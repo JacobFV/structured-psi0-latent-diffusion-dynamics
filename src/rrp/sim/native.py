@@ -52,6 +52,7 @@ class StepResult:
     time: float
     rejected: str | None = None
     source: str | None = None
+    command: dict | None = None      # groups actually executed for robot 0 (for exact replay)
 
 
 class Session:
@@ -483,7 +484,9 @@ class Session:
         if self.runtime.runtime_version != v0:
             obs = self.observe()
         self._last_obs = obs
-        return StepResult(obs, self.data.qpos.copy(), float(self.data.time), rejected, source)
+        c0 = cmds.get(0)
+        return StepResult(obs, self.data.qpos.copy(), float(self.data.time), rejected, source,
+                          c0.groups if (c0 is not None and not rejected) else None)
 
     # ------------------------------------------------------------------ interventions
     def teleport_object(self, sim_body: str, pos, source: str = "user"):
