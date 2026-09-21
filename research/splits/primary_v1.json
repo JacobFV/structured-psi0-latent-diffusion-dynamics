@@ -1,0 +1,21 @@
+{
+ "split_id": "primary_v1",
+ "frozen_utc": "2026-09-21",
+ "basis": "teacher/controller eligibility only (artifacts/assets/teacher_validation_pick_place_20seeds.txt); no policy results existed when frozen",
+ "task": "pick_place",
+ "source_train_robots": ["parm5_pg2", "parm5_tf3", "parm5s_pg2", "parm5l_tf3", "parm6_pg2", "parm6_tf3", "parm7_pg2", "parm7_tf3",
+                         "panda_pg2", "ur5e_pg2", "ur5e_tf3", "sawyer_pg2", "sawyer_tf3"],
+ "source_heldout_eval_robots": ["parm5s_tf3", "parm5l_pg2"],
+ "targets": {
+  "held_out_arm_family": {"robots": ["xarm7_pg2", "xarm7_tf3"], "family": "menagerie/ufactory",
+                          "excluded_from_training": ["xarm7_*", "lite6_*"]},
+  "held_out_compatible_attachment_combination": {"robots": ["panda_tf3"],
+                          "note": "franka arm seen only with pg2; tf3 module seen only on other arms; fr3_* (franka near-duplicate) excluded from training to avoid leaking the combination"}
+ },
+ "excluded": {"fr3_pg2": "franka near-duplicate lineage", "fr3_tf3": "franka near-duplicate lineage + would leak target combination",
+              "z1_pg2": "teacher feasible on 4/20 layouts only", "z1_tf3": "teacher feasible on 3/20 layouts only",
+              "lite6_pg2": "ufactory family (held out) + low feasibility", "lite6_tf3": "ufactory family (held out)"},
+ "seed_ranges": {"source_train_demos": [0, 100000], "target_adaptation_demos": [1000000, 1100000],
+                 "evaluation_scenes": [2000000, 2100000], "development_eval_scenes": [3000000, 3100000]},
+ "lineage_rule": "no menagerie family and no (arm,module) combination of a target may appear in source training"
+}

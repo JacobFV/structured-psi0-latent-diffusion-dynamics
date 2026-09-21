@@ -14,3 +14,11 @@ z1_pg2 valid True [] hold_qvel 0.033 {'fail': 4, 'agree': 20, 'infeasible': 16} 
 z1_tf3 valid True [] hold_qvel 0.033 {'infeasible': 17, 'agree': 20, 'success': 1, 'fail': 2} 2.4 s
 lite6_pg2 valid True [] hold_qvel 0.019 {'success': 5, 'agree': 20, 'infeasible': 15} 2.5 s
 lite6_tf3 valid True [] hold_qvel 0.019 {'success': 4, 'agree': 19, 'fail': 1, 'infeasible': 15} 2.5 s
+parm5s_pg2 valid True [] hold_qvel 0.0 {'success': 19, 'agree': 20, 'infeasible': 1} 2.0 s
+parm5s_tf3 valid True [] hold_qvel 0.0 {'success': 19, 'agree': 20, 'infeasible': 1} 2.0 s
+parm5l_pg2 valid True [] hold_qvel 0.0 {'success': 17, 'agree': 20, 'infeasible': 3} 2.0 s
+parm5l_tf3 valid True [] hold_qvel 0.0 {'success': 17, 'agree': 20, 'infeasible': 3} 1.9 s
+parm6_pg2 valid True [] hold_qvel 0.0 {'success': 17, 'agree': 20, 'infeasible': 3} 1.8 s
+parm6_tf3 valid True [] hold_qvel 0.0 {'success': 17, 'agree': 20, 'infeasible': 3} 1.8 s
+parm7_pg2 valid True [] hold_qvel 0.0 {'success': 18, 'agree': 20, 'infeasible': 2} 1.2 s
+parm7_tf3 valid True [] hold_qvel 0.0 {'success': 18, 'agree': 20, 'fail': 1, 'infeasible': 1} 6.1 s
