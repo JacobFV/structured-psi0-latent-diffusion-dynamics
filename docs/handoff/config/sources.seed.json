@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "audit_utc_date": "2026-09-21",
+  "note": "seed audit, not a substitute for local source/license/compatibility resolution",
+  "topoformer": {
+    "repository": "https://github.com/JacobFV/topoformer",
+    "inspected_main": "e80ddacbe731a1ae064d869962bd63720e5f86c0",
+    "extended02_report_blob": "4d92b5c39df46e3395d9533ebeb5f05fb9935379",
+    "extended03_branch_observed": "a19ff5d8275a659961a2494e69b0f9558f1f3d3a",
+    "extended03_results_inspected": false,
+    "mutations_authorized": false
+  },
+  "psi0": {
+    "repository": "https://github.com/physical-superintelligence-lab/Psi0",
+    "inspected_sonic_release_blob": "988f77230eab5d8d7c48aeaed3d0b55914e8ec68",
+    "checkpoint_downloaded_in_handoff_preparation": false
+  },
+  "papers": [
+    "https://arxiv.org/abs/2603.12263",
+    "https://arxiv.org/abs/2606.31846",
+    "https://arxiv.org/abs/2605.25477",
+    "https://arxiv.org/abs/2601.15419"
+  ],
+  "weights_assets_controllers_validated_on_user_machines": false
+}

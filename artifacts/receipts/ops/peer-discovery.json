@@ -1,0 +1,110 @@
+{
+ "local": {
+  "hostname": "Dell-gb10-1",
+  "machine_id": "sha256:7d78d8868416"
+ },
+ "chosen_peer_alias": "gb10-direct",
+ "probes": [
+  {
+   "alias": "spark-gb10",
+   "reachable": false,
+   "error": "ssh: connect to host 10.100.216.1 port 22: No route to host",
+   "facts": {},
+   "distinct_from_local": null,
+   "route": "10.100.216.1 dev enp1s0f1np1 src 10.100.216.2 uid 1000 "
+  },
+  {
+   "alias": "spark-ec4d",
+   "reachable": true,
+   "error": null,
+   "facts": {
+    "hostname": "spark-ec4d",
+    "machine_id": "sha256:3bea39a9a4fb",
+    "arch": "aarch64",
+    "kernel": "6.17.0-1026-nvidia",
+    "nproc": 20,
+    "memtotal": 130663165952,
+    "memavailable": 15188725760,
+    "swaptotal": 17179865088,
+    "swapfree": 13880672256,
+    "disk_total": 4031871553536,
+    "disk_free": 442262953984,
+    "shm_total": 65331580928,
+    "shm_free": 65184243712,
+    "load": "0.66 0.65 0.63",
+    "gpu": "NVIDIA GB10, 580.159.03",
+    "gpu_apps": "20560, VLLM::EngineCore, 92350 MiB;",
+    "cuda": "/usr/local/cuda-13 /usr/local/cuda-13.0",
+    "cgroup_controllers": "cpu memory pids",
+    "python": "Python 3.12.3"
+   },
+   "distinct_from_local": true,
+   "route": "100.116.206.112 dev tailscale0 table 52 src 100.76.194.24 uid 1000 "
+  },
+  {
+   "alias": "promaxgb10-4dfb",
+   "reachable": true,
+   "error": null,
+   "facts": {
+    "hostname": "promaxgb10-4dfb",
+    "machine_id": "sha256:931d381bca76",
+    "arch": "aarch64",
+    "kernel": "6.17.0-1008-nvidia",
+    "nproc": 20,
+    "memtotal": 128453668864,
+    "memavailable": 118444679168,
+    "swaptotal": 17179865088,
+    "swapfree": 16965070848,
+    "disk_total": 2000869588992,
+    "disk_free": 201402511360,
+    "shm_total": 64226832384,
+    "shm_free": 58555510784,
+    "load": "0.11 0.10 0.06",
+    "gpu": "NVIDIA GB10, 580.126.09",
+    "gpu_apps": "",
+    "cuda": "/usr/local/cuda-13 /usr/local/cuda-13.0",
+    "cgroup_controllers": "cpu memory pids",
+    "python": "Python 3.12.3"
+   },
+   "distinct_from_local": true,
+   "route": "100.99.75.74 dev tailscale0 table 52 src 100.76.194.24 uid 1000 "
+  },
+  {
+   "alias": "gb10-direct",
+   "reachable": true,
+   "error": null,
+   "facts": {
+    "hostname": "promaxgb10-4dfb",
+    "machine_id": "sha256:931d381bca76",
+    "arch": "aarch64",
+    "kernel": "6.17.0-1008-nvidia",
+    "nproc": 20,
+    "memtotal": 128453668864,
+    "memavailable": 118431252480,
+    "swaptotal": 17179865088,
+    "swapfree": 16965070848,
+    "disk_total": 2000869588992,
+    "disk_free": 201402511360,
+    "shm_total": 64226832384,
+    "shm_free": 58555510784,
+    "load": "0.11 0.10 0.06",
+    "gpu": "NVIDIA GB10, 580.126.09",
+    "gpu_apps": "",
+    "cuda": "/usr/local/cuda-13 /usr/local/cuda-13.0",
+    "cgroup_controllers": "cpu memory pids",
+    "python": "Python 3.12.3"
+   },
+   "distinct_from_local": true,
+   "route": "10.100.216.3 dev enp1s0f1np1 src 10.100.216.2 uid 1000 "
+  }
+ ],
+ "aliases_by_machine": {
+  "sha256:3bea39a9a4fb": [
+   "spark-ec4d"
+  ],
+  "sha256:931d381bca76": [
+   "promaxgb10-4dfb",
+   "gb10-direct"
+  ]
+ }
+}

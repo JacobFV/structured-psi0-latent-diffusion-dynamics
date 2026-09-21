@@ -1,0 +1,12 @@
+{"schema_version": "1.0", "states": ["planned","implementing","test_failed","verified","running","completed","failed_hypothesis","blocked_external","budget_exhausted"],
+ "tasks": {
+  "P01": {"state": "planned", "title": "schemas, package, fixtures"},
+  "P02": {"state": "verified", "title": "machine discovery and telemetry", "evidence": ["artifacts/receipts/ops/peer-discovery.json", "configs/resources.local.json", "tests/unit/test_budget.py"]},
+  "P03": {"state": "verified", "title": "aggregate enforcement, leases, watchdog", "evidence": ["artifacts/receipts/ops/enforcement-tests-host.txt", "tests/integration/test_resource_enforcement.py", "research/decisions.md#D-004"]},
+  "P04": {"state": "planned"}, "P05": {"state": "planned"}, "P06": {"state": "planned"},
+  "P07": {"state": "planned"}, "P08": {"state": "planned"}, "P09": {"state": "planned"}, "P10": {"state": "planned"},
+  "P11": {"state": "planned"}, "P12": {"state": "planned"}, "P13": {"state": "planned"}, "P14": {"state": "planned"},
+  "P15": {"state": "planned"}, "P16": {"state": "planned"}, "P17": {"state": "planned"}, "P18": {"state": "planned"},
+  "P19": {"state": "planned"}, "P20": {"state": "planned"}, "P21": {"state": "planned"}, "P22": {"state": "planned"},
+  "P23": {"state": "planned"}, "P24": {"state": "planned"}, "P25": {"state": "planned"}
+ }}

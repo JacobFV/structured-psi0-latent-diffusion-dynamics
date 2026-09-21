@@ -1,0 +1,85 @@
+{
+  "schema_version": "1.0",
+  "status": "initial_shapes_to_profile_not_measured_fit",
+  "flow": {
+    "time_zero": "noise",
+    "time_one": "data",
+    "target_velocity": "z_target-minus-noise",
+    "nfe_sweep": [
+      1,
+      2,
+      4,
+      8,
+      16
+    ]
+  },
+  "profiles": [
+    {
+      "name": "fixture",
+      "width": 64,
+      "heads": 2,
+      "blocks": 2,
+      "latent_dim": 4,
+      "horizon": 4,
+      "max_context_tokens": 24,
+      "purpose": "CPU correctness only"
+    },
+    {
+      "name": "small",
+      "width": 256,
+      "heads": 4,
+      "blocks": 6,
+      "latent_dim": 16,
+      "horizon": 16,
+      "max_context_tokens": 192,
+      "purpose": "development learning and structural sweeps"
+    },
+    {
+      "name": "medium",
+      "width": 512,
+      "heads": 8,
+      "blocks": 12,
+      "latent_dim": 16,
+      "horizon": 16,
+      "max_context_tokens": 256,
+      "purpose": "real VLM-backed primary candidates"
+    },
+    {
+      "name": "target_scale",
+      "width": 1024,
+      "heads": 16,
+      "blocks": 24,
+      "latent_dim": 16,
+      "horizon": 32,
+      "max_context_tokens": 384,
+      "purpose": "profile and evaluate larger action expert if cost justified"
+    }
+  ],
+  "action_attention_default": "factorized_time_then_entity_plus_packed_cross_attention",
+  "graph_strength_initial": 0.0,
+  "context_banks": [
+    "task_event",
+    "scene_entity",
+    "morphology_state",
+    "interaction_frame"
+  ],
+  "node_counts_for_profile": [
+    1,
+    8,
+    32,
+    64,
+    128,
+    256
+  ],
+  "qa_decoder_on_sampler_path": false,
+  "vlm": {
+    "preferred_source": "PSI0 trained system-ii checkpoint after source audit",
+    "fallback": "documented pretrained VLM only after compatibility blocker",
+    "freeze_initially": true,
+    "cache_features_only_with_provenance": true
+  },
+  "codec": {
+    "freeze_for_initial_policy_and_rl": true,
+    "compare_direct_action": true
+  }
+}

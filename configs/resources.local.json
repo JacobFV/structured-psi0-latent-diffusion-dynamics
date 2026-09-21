@@ -1,0 +1,147 @@
+{
+ "schema_version": "1.0",
+ "policy_id": "shared-host-half-free-v1",
+ "host": {
+  "measurement": {
+   "measured_utc": 1790014015.0,
+   "meminfo": {
+    "MemTotal": 130596077568,
+    "MemAvailable": 43010654208,
+    "SwapTotal": 17179865088,
+    "SwapFree": 180224
+   },
+   "idle_cpu": {
+    "allowed_cpu_count": 20,
+    "samples": [
+     17.905297074193257,
+     16.415111922932244,
+     16.957889622273875,
+     16.516420326331094,
+     17.750519647178823,
+     17.547217026141915,
+     15.809626064843856,
+     15.503714849000486,
+     14.718229333137394,
+     14.222198215587392
+    ],
+    "idle_cores_min": 14.222198215587392,
+    "idle_cores_mean": 16.334622408162033
+   },
+   "disk": {
+    "path": "/home/brandonin/work/relational-robot-policy",
+    "total_bytes": 3937360351232,
+    "free_bytes": 457124507648,
+    "used_bytes": 3280195751936
+   },
+   "budget": {
+    "role": "host",
+    "memory_gib": 20.028396606445312,
+    "cpu_cores": 7.111099107793696,
+    "new_disk_gib": 59.035115432739246,
+    "memory_reserve_gib": 12.162707519531251,
+    "disk_reserve_gib": 366.6952579498291,
+    "host_gpu_enabled": false,
+    "basis": {
+     "total_ram_gib": 121.6270751953125,
+     "available_ram_gib": 40.056793212890625,
+     "free_cpu_cores": 14.222198215587392,
+     "free_disk_gib": 425.73037338256836,
+     "total_disk_gib": 3666.952579498291,
+     "policy": {
+      "free_cpu_fraction": 0.5,
+      "free_memory_fraction": 0.5,
+      "free_disk_fraction": 0.5,
+      "memory_reserve_gib": 8.0,
+      "memory_reserve_total_fraction": 0.1,
+      "disk_reserve_gib": 20.0,
+      "disk_reserve_total_fraction": 0.1
+     }
+    },
+    "memory_bytes": 21505327104
+   }
+  },
+  "enforced": {
+   "cpu_cores": 7.11,
+   "memory_bytes": 21505327104,
+   "gpu_slots": 0,
+   "disk_bytes": 63388472524,
+   "host_gpu": "disabled_pending_verified_isolation"
+  },
+  "lease_expiry_s": 20,
+  "memory_reserve_bytes": 13059607756,
+  "disk_reserve_bytes": 393736035123,
+  "startup_new_disk_bytes": 63388472524
+ },
+ "peer": {
+  "measurement": {
+   "measured_utc": 1790014015.0,
+   "meminfo": {
+    "MemTotal": 128453668864,
+    "MemAvailable": 118472515584,
+    "SwapTotal": 17179865088,
+    "SwapFree": 16965054464
+   },
+   "idle_cpu": {
+    "allowed_cpu_count": 20,
+    "samples": [
+     19.91959595959596,
+     19.99009900990099,
+     19.99009900990099,
+     19.9001900190019,
+     19.98,
+     20.0,
+     20.0,
+     19.92039603960396,
+     20.0,
+     19.94049504950495
+    ],
+    "idle_cores_min": 19.9001900190019,
+    "idle_cores_mean": 19.964087508750875
+   },
+   "disk": {
+    "path": "/dev/shm/rrp-brandonin/repo",
+    "total_bytes": 64226832384,
+    "free_bytes": 58555539456,
+    "used_bytes": 5671292928
+   },
+   "budget": {
+    "role": "peer",
+    "memory_gib": 88.26890258789064,
+    "cpu_cores": 15.920152015201522,
+    "new_disk_gib": 27.267047882080078,
+    "memory_reserve_gib": 11.963180160522462,
+    "disk_reserve_gib": 20.0,
+    "host_gpu_enabled": false,
+    "basis": {
+     "total_ram_gib": 119.63180160522461,
+     "available_ram_gib": 110.33612823486328,
+     "free_cpu_cores": 19.9001900190019,
+     "free_disk_gib": 54.534095764160156,
+     "total_disk_gib": 59.81589889526367,
+     "policy": {
+      "free_cpu_fraction": 0.8,
+      "free_memory_fraction": 0.8,
+      "free_disk_fraction": 0.5,
+      "memory_reserve_gib": 8.0,
+      "memory_reserve_total_fraction": 0.1,
+      "disk_reserve_gib": 20.0,
+      "disk_reserve_total_fraction": 0.1
+     }
+    },
+    "memory_bytes": 94778012467
+   }
+  },
+  "enforced": {
+   "cpu_cores": 15.92,
+   "memory_bytes": 94778012467,
+   "gpu_slots": 1,
+   "disk_bytes": 29277769728
+  },
+  "lease_expiry_s": 20,
+  "memory_reserve_bytes": 12845366886,
+  "disk_reserve_bytes": 21474836480,
+  "startup_new_disk_bytes": 29277769728
+ },
+ "peer_alias": "gb10-direct",
+ "peer_root": "/dev/shm/rrp-brandonin"
+}

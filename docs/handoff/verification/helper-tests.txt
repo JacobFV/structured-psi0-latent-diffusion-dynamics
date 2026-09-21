@@ -1,0 +1,28 @@
+test_bad_snapshot_numbers_rejected (test_handoff_helpers.HelperTests.test_bad_snapshot_numbers_rejected) ... ok
+test_counter_reset_rejected (test_handoff_helpers.HelperTests.test_counter_reset_rejected) ... ok
+test_disallowed_cpu_not_counted (test_handoff_helpers.HelperTests.test_disallowed_cpu_not_counted) ... ok
+test_disk_reserve_is_preserved (test_handoff_helpers.HelperTests.test_disk_reserve_is_preserved) ... ok
+test_fractional_cpu_not_rounded_up (test_handoff_helpers.HelperTests.test_fractional_cpu_not_rounded_up) ... ok
+test_gpu_is_not_authorized (test_handoff_helpers.HelperTests.test_gpu_is_not_authorized) ... ok
+test_help_does_not_inspect_machine (test_handoff_helpers.HelperTests.test_help_does_not_inspect_machine) ... ok
+test_host_fraction_cannot_exceed_half (test_handoff_helpers.HelperTests.test_host_fraction_cannot_exceed_half) ... ok
+test_host_half_free_not_total (test_handoff_helpers.HelperTests.test_host_half_free_not_total) ... ok
+test_inconsistent_availability_rejected (test_handoff_helpers.HelperTests.test_inconsistent_availability_rejected) ... ok
+test_invalid_role_rejected (test_handoff_helpers.HelperTests.test_invalid_role_rejected) ... ok
+test_iowait_not_counted_as_idle (test_handoff_helpers.HelperTests.test_iowait_not_counted_as_idle) ... ok
+test_meminfo_units (test_handoff_helpers.HelperTests.test_meminfo_units) ... ok
+test_missing_memavailable_is_not_guessed (test_handoff_helpers.HelperTests.test_missing_memavailable_is_not_guessed) ... ok
+test_output_refuses_overwrite (test_handoff_helpers.HelperTests.test_output_refuses_overwrite) ... ok
+test_peer_is_not_automatically_authorized (test_handoff_helpers.HelperTests.test_peer_is_not_automatically_authorized) ... ok
+test_reserve_can_reduce_budget_to_zero (test_handoff_helpers.HelperTests.test_reserve_can_reduce_budget_to_zero) ... ok
+test_duplicate_json_keys_rejected (test_handoff_helpers.IntegrityTests.test_duplicate_json_keys_rejected) ... ok
+test_manifest_detects_tamper (test_handoff_helpers.IntegrityTests.test_manifest_detects_tamper) ... ok
+test_manifest_rejects_parent_traversal (test_handoff_helpers.IntegrityTests.test_manifest_rejects_parent_traversal) ... ok
+test_manifest_rejects_symlink (test_handoff_helpers.IntegrityTests.test_manifest_rejects_symlink) ... ok
+test_manifest_success (test_handoff_helpers.IntegrityTests.test_manifest_success) ... ok
+test_valid_json_accepted (test_handoff_helpers.IntegrityTests.test_valid_json_accepted) ... ok
+
+----------------------------------------------------------------------
+Ran 23 tests in 0.610s
+
+OK

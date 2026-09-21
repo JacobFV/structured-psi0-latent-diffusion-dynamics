@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0",
+  "policy_id": "shared-host-half-free-v1",
+  "host": {
+    "free_cpu_fraction": 0.5,
+    "free_memory_fraction": 0.5,
+    "free_disk_fraction": 0.5,
+    "memory_reserve_gib": 8,
+    "memory_reserve_total_fraction": 0.1,
+    "disk_reserve_gib": 20,
+    "disk_reserve_total_fraction": 0.1,
+    "gpu_default": "disabled_pending_verified_isolation",
+    "max_bootstrap_cpu_workers": 1,
+    "automated_browser": "software_render_or_peer_stream",
+    "aggregate_descendants": true,
+    "swap_growth_allowed": false
+  },
+  "peer": {
+    "free_cpu_fraction": 0.8,
+    "free_memory_fraction": 0.8,
+    "free_disk_fraction": 0.5,
+    "memory_reserve_gib": 8,
+    "memory_reserve_total_fraction": 0.1,
+    "disk_reserve_gib": 20,
+    "disk_reserve_total_fraction": 0.1,
+    "max_heavy_gpu_jobs": 1,
+    "respect_existing_work": true
+  },
+  "monitor": {
+    "baseline_window_seconds": 10,
+    "sample_seconds": 1,
+    "watchdog_seconds": 2,
+    "checkpoint_grace_seconds": 30,
+    "telemetry_failure": "stop_new_admission_then_checkpoint_owned_jobs",
+    "lease_heartbeat_seconds": 5,
+    "lease_expiry_seconds": 20,
+    "memory_high_fraction_of_max": 0.8
+  },
+  "campaign": {
+    "peer_gpu_device_hours_max": 96,
+    "aggregate_cpu_core_hours_max": 512,
+    "active_calendar_days_max": 7,
+    "confirmation_reserve_fraction": 0.2,
+    "audit_reporting_reserve_fraction": 0.1,
+    "max_single_job_seconds": 21600,
+    "profile_ladder_seconds": [
+      30,
+      120,
+      600
+    ],
+    "max_unchanged_retries": 2,
+    "max_development_recipes_per_question": 3,
+    "auto_extend_total_budget": false
+  },
+  "forbidden": [
+    "sudo_or_global_upgrade",
+    "network_reconfiguration",
+    "unrelated_process_signals",
+    "private_key_export",
+    "paid_compute_or_new_paid_api",
+    "physical_robot_actuation",
+    "public_publication_without_authorization"
+  ],
+  "notes": [
+    "limits are aggregate, not per process",
+    "measure current free capacity; do not allocate half of nominal total",
+    "unified CPU/GPU memory must not be added twice",
+    "bootstrap preflight is read-only, not a limiter"
+  ]
+}

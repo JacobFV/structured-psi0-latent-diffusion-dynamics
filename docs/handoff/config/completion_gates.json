@@ -1,0 +1,492 @@
+{
+  "schema_version": "1.0",
+  "overall_status": "not_started",
+  "requirements": [
+    {
+      "id": "R01",
+      "description": "autonomous end-to-end implementation, testing and actual research",
+      "tasks": [
+        "P01",
+        "P02",
+        "P03",
+        "P04",
+        "P05",
+        "P06",
+        "P07",
+        "P08",
+        "P09",
+        "P10",
+        "P11",
+        "P12",
+        "P13",
+        "P14",
+        "P15",
+        "P16",
+        "P17",
+        "P18",
+        "P19",
+        "P20",
+        "P21",
+        "P22",
+        "P23",
+        "P24",
+        "P25"
+      ],
+      "contract": "docs/00_scope_and_acceptance.md",
+      "expected_evidence": "proof-linked release matrix; no scaffold-only closure",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R02",
+      "description": "two GB10s; existing SSH peer discovery without guessing identity",
+      "tasks": [
+        "P02",
+        "P03"
+      ],
+      "contract": "docs/03_resource_safety.md",
+      "expected_evidence": "redacted distinct-host capability receipts",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R03",
+      "description": "aggregate host use \u226450% CURRENTLY FREE resources",
+      "tasks": [
+        "P02",
+        "P03"
+      ],
+      "contract": "docs/03_resource_safety.md",
+      "expected_evidence": "effective parent quotas, measured baseline, load-change and child tests",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R04",
+      "description": "fresh implementation with meaningful \u03c8\u2080 pretrained integration",
+      "tasks": [
+        "P14",
+        "P16"
+      ],
+      "contract": "docs/01_architecture.md",
+      "expected_evidence": "source-locked backbone; real image features and learned rollout",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R05",
+      "description": "minimize new-body deployment cost; zero-shot plus small fine-tuning",
+      "tasks": [
+        "P17",
+        "P21",
+        "P23"
+      ],
+      "contract": "docs/07_research_protocol.md",
+      "expected_evidence": "zero-update and adaptation curves; controller/integration accounting",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R06",
+      "description": "\u03c8\u2080-style low-level tracking and controller-specific action contracts",
+      "tasks": [
+        "P08",
+        "P12"
+      ],
+      "contract": "docs/04_simulation_robots_and_surgery.md",
+      "expected_evidence": "separate validated original/SONIC/native command contracts",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R07",
+      "description": "privileged training labels without inference leakage",
+      "tasks": [
+        "P01",
+        "P06",
+        "P07",
+        "P16"
+      ],
+      "contract": "docs/02_interfaces.md",
+      "expected_evidence": "serialized public/private separation and leakage tests",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R08",
+      "description": "supplied compositional task hypergraph",
+      "tasks": [
+        "P04",
+        "P05"
+      ],
+      "contract": "docs/02_interfaces.md",
+      "expected_evidence": "ordered role/incidence, predicates/effects, actual output binding",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R09",
+      "description": "GUI to watch, request and directly edit task graph",
+      "tasks": [
+        "P10",
+        "P11"
+      ],
+      "contract": "docs/05_workbench.md",
+      "expected_evidence": "actual browser commands, versioned edits, stale chunk rejection",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R10",
+      "description": "GUI to interact with robots, objects, targets and manipulators",
+      "tasks": [
+        "P07",
+        "P10",
+        "P11"
+      ],
+      "contract": "docs/05_workbench.md",
+      "expected_evidence": "physics-backed selection/movement/replay browser evidence",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R11",
+      "description": "many humanoids, quadrupeds, hexapods, arms, dual/mobile bodies",
+      "tasks": [
+        "P09",
+        "P12",
+        "P22"
+      ],
+      "contract": "docs/04_simulation_robots_and_surgery.md",
+      "expected_evidence": "catalogue plus distinct executed family/controller/policy ledger",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R12",
+      "description": "physically synthetic hand/arm/body swaps",
+      "tasks": [
+        "P09",
+        "P17"
+      ],
+      "contract": "docs/04_simulation_robots_and_surgery.md",
+      "expected_evidence": "validated attachments, physics lineage and heldout combinations",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R13",
+      "description": "structural node initialization and coarse manipulator/body nodes",
+      "tasks": [
+        "P09",
+        "P14"
+      ],
+      "contract": "docs/01_architecture.md",
+      "expected_evidence": "hierarchical pooling/FK and geometry/identity tests",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R14",
+      "description": "variable-node flow action trajectory; node identity separate from noise",
+      "tasks": [
+        "P13",
+        "P14"
+      ],
+      "contract": "docs/01_architecture.md",
+      "expected_evidence": "variable n, permutation, masks and independent actuator tests",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R15",
+      "description": "graph structure directly available to system i",
+      "tasks": [
+        "P14"
+      ],
+      "contract": "docs/01_architecture.md",
+      "expected_evidence": "graph bias/input tests independent of VLM encoding",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R16",
+      "description": "four clean context banks, one noised action stream",
+      "tasks": [
+        "P14",
+        "P23"
+      ],
+      "contract": "docs/01_architecture.md",
+      "expected_evidence": "cached/uncached equivalence; packed versus naive latency",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R17",
+      "description": "object visibility versus looking/focus/action distinctions",
+      "tasks": [
+        "P15"
+      ],
+      "contract": "docs/01_architecture.md",
+      "expected_evidence": "canonical slot probes, occluded-action and multiobject tests",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R18",
+      "description": "object embeddings shared across prompts/views",
+      "tasks": [
+        "P15",
+        "P16"
+      ],
+      "contract": "docs/01_architecture.md",
+      "expected_evidence": "entity correspondence and prompt-invariance controls",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R19",
+      "description": "object QA projection into separate frozen text transformer",
+      "tasks": [
+        "P15",
+        "P16"
+      ],
+      "contract": "docs/06_learning_and_adaptation.md",
+      "expected_evidence": "live slot/projector gradients, frozen decoder, blank/shuffle controls",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R20",
+      "description": "held object query for each manipulator",
+      "tasks": [
+        "P15"
+      ],
+      "contract": "docs/01_architecture.md",
+      "expected_evidence": "held-by relation per manipulator including handover/dual hold",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R21",
+      "description": "relative object/manipulator/camera/body geometry",
+      "tasks": [
+        "P13",
+        "P15"
+      ],
+      "contract": "docs/01_architecture.md",
+      "expected_evidence": "frame-aware poses/distances and analytic FK baseline",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R22",
+      "description": "queryable per-manipulator compositional task representation",
+      "tasks": [
+        "P05",
+        "P15"
+      ],
+      "contract": "docs/02_interfaces.md",
+      "expected_evidence": "role/set readout, bimanual overlap and role intervention",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R23",
+      "description": "task-role invariance under compatible morphology swaps",
+      "tasks": [
+        "P17",
+        "P22"
+      ],
+      "contract": "docs/06_learning_and_adaptation.md",
+      "expected_evidence": "paired feasible swap alignment without capability erasure",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R24",
+      "description": "predicates, desired deltas, dependencies and functional composition",
+      "tasks": [
+        "P04",
+        "P05",
+        "P15",
+        "P22"
+      ],
+      "contract": "docs/02_interfaces.md",
+      "expected_evidence": "real output-to-input dependence versus supplied stage sequence",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R25",
+      "description": "topoformer progress informs typed routing and input audits",
+      "tasks": [
+        "P05",
+        "P14",
+        "P22"
+      ],
+      "contract": "docs/09_sources_and_topoformer.md",
+      "expected_evidence": "read-only source lock; provenance/failure-memory counterfactual tests",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R26",
+      "description": "contact-centric active reference frames",
+      "tasks": [
+        "P07",
+        "P15",
+        "P22"
+      ],
+      "contract": "docs/01_architecture.md",
+      "expected_evidence": "contact creation/slip/expiry/tangent uncertainty and causal ablation",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R27",
+      "description": "uncertainty and missing/false distinction",
+      "tasks": [
+        "P06",
+        "P15",
+        "P22"
+      ],
+      "contract": "docs/01_architecture.md",
+      "expected_evidence": "calibration, null channels, risk/coverage and partial observation",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R28",
+      "description": "GRPO fine-tuning with minimal experience",
+      "tasks": [
+        "P18",
+        "P23"
+      ],
+      "contract": "docs/06_learning_and_adaptation.md",
+      "expected_evidence": "valid path likelihood math and actual online update/outcomes",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R29",
+      "description": "shared-prefix/event-boundary branching",
+      "tasks": [
+        "P06",
+        "P18",
+        "P23"
+      ],
+      "contract": "docs/06_learning_and_adaptation.md",
+      "expected_evidence": "complete continuation snapshots and correct credit/accounting",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R30",
+      "description": "EXPO-FT off-policy adaptation comparison",
+      "tasks": [
+        "P19",
+        "P23"
+      ],
+      "contract": "docs/06_learning_and_adaptation.md",
+      "expected_evidence": "verified source-derived objective and actual short learning run",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R31",
+      "description": "trainable action latent with an explicit valid target",
+      "tasks": [
+        "P13",
+        "P14"
+      ],
+      "contract": "docs/01_architecture.md",
+      "expected_evidence": "codec reconstruction/rollout gates plus direct-action comparator",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R32",
+      "description": "matched baselines and no fake positive research results",
+      "tasks": [
+        "P20",
+        "P21",
+        "P24"
+      ],
+      "contract": "docs/07_research_protocol.md",
+      "expected_evidence": "same public information, independent seeds, raw counts and failures",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R33",
+      "description": "sampler and end-to-end latency measured on real machine",
+      "tasks": [
+        "P14",
+        "P23"
+      ],
+      "contract": "docs/07_research_protocol.md",
+      "expected_evidence": "synchronized components, NFE/node-size sweep and memory telemetry",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R34",
+      "description": "pretrained/medium/larger profiles after small tests",
+      "tasks": [
+        "P16",
+        "P23"
+      ],
+      "contract": "docs/01_architecture.md",
+      "expected_evidence": "actual VLM-backed run and larger profile receipt or explicit resource boundary",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R35",
+      "description": "resume without duplicating or destroying other work",
+      "tasks": [
+        "P03",
+        "P06",
+        "P20",
+        "P25"
+      ],
+      "contract": "docs/10_autonomy_and_recovery.md",
+      "expected_evidence": "lease expiry, ownership, checkpoint/restart and owned-only shutdown",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R36",
+      "description": "reproducible docs, checkpoints, data, reports and meeting artifacts",
+      "tasks": [
+        "P24",
+        "P25"
+      ],
+      "contract": "docs/08_tests_and_release.md",
+      "expected_evidence": "real commands, local paths+hashes, videos/brief and clean-environment check",
+      "status": "not_started",
+      "evidence_paths": []
+    },
+    {
+      "id": "R37",
+      "description": "auxiliary concepts shape system-i denoising representations, not only context",
+      "tasks": [
+        "P15",
+        "P16",
+        "P22"
+      ],
+      "contract": "docs/01_architecture.md",
+      "expected_evidence": "nonzero intended action-expert gradients and controlled rollout interventions",
+      "status": "not_started",
+      "evidence_paths": []
+    }
+  ],
+  "rules": {
+    "complete_requires_all_mandatory_engineering_and_campaign_execution": true,
+    "positive_hypothesis_required": false,
+    "blocked_is_not_complete": true,
+    "teacher_is_not_learned": true,
+    "asset_is_not_controller": true
+  }
+}

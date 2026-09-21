@@ -1,0 +1,14 @@
+.cache/
+.venv/
+ops/broker/
+ops/logs/
+ops/watchdog/
+__pycache__/
+*.pyc
+node_modules/
+artifacts/datasets/
+artifacts/checkpoints/
+artifacts/episodes/
+artifacts/video/raw/
+ui/dist/
+

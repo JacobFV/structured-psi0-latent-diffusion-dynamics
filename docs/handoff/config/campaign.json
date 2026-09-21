@@ -1,0 +1,117 @@
+{
+  "schema_version": "1.0",
+  "campaign_id": "rrp-campaign-01",
+  "status": "unexecuted",
+  "primary": {
+    "methods": [
+      "matched_shared_unstructured",
+      "relational_structured"
+    ],
+    "tasks": [
+      "pick_place",
+      "support_insert"
+    ],
+    "target_conditions": [
+      "held_out_arm_family",
+      "held_out_compatible_attachment_combination"
+    ],
+    "training_seeds": [
+      1701,
+      1702,
+      1703
+    ],
+    "episodes_per_task_body_method_seed_checkpoint": 100,
+    "sft_demo_budgets": [
+      0,
+      5,
+      20,
+      100
+    ],
+    "target_success": 0.8,
+    "target_interaction_reduction": 2.0,
+    "target_p95_latency_ratio_max": 1.25,
+    "sustained_threshold_requires_next_checkpoint": true
+  },
+  "online": {
+    "methods": [
+      "sft_only",
+      "grpo",
+      "shared_prefix_grpo",
+      "expo_ft_inspired"
+    ],
+    "new_control_transition_checkpoints": [
+      0,
+      10000,
+      50000,
+      200000
+    ],
+    "max_development_cells": 4,
+    "group_size_initial": 4,
+    "shared_prefix_selection": "registered_event_boundary",
+    "freeze_codec_and_controller_in_grpo": true
+  },
+  "stages": [
+    "ops_fixtures",
+    "source_and_assets",
+    "teacher_gui_vertical_slice",
+    "codec_policy_development",
+    "vlm_semantic_integration",
+    "primary_confirmation",
+    "breadth_and_interventions",
+    "online_adaptation",
+    "audit_and_release"
+  ],
+  "split_dimensions": [
+    "body_lineage",
+    "module_lineage",
+    "attachment_combination",
+    "task_template",
+    "scene_object_instance",
+    "episode_seed"
+  ],
+  "mandatory_interventions": [
+    "node_permutation",
+    "role_swap",
+    "irrelevant_object",
+    "graph_zero_reversed_rewired",
+    "stale_same_type_output",
+    "foreign_same_type_output",
+    "old_valid_output",
+    "rejection_memory",
+    "contact_anchor_expiry",
+    "no_contact_anchor",
+    "capability_infeasible_swap",
+    "functional_composition",
+    "graph_edit_with_queued_chunk"
+  ],
+  "analysis": {
+    "raw_episode_logs_required": true,
+    "failure_denominator": "all_attempted",
+    "censor_unreached_threshold": true,
+    "report_seed_cells": true,
+    "no_final_test_tuning": true,
+    "units": [
+      "control_transitions",
+      "physics_substeps",
+      "action_chunks",
+      "sampler_evaluations",
+      "rendered_frames",
+      "replay_samples",
+      "optimizer_presentations",
+      "cpu_core_seconds",
+      "gpu_device_seconds",
+      "wall_seconds"
+    ]
+  },
+  "breadth": {
+    "humanoid_body_families": 3,
+    "quadruped_families": 2,
+    "hexapod_families": 1,
+    "standalone_arm_families": 2,
+    "dual_arm_systems": 1,
+    "mobile_manipulators_or_labeled_synthetic_equivalent": 1,
+    "policy_evaluation_required_per_family": true,
+    "stress_training_seeds": 1,
+    "stress_results_label": "exploratory"
+  }
+}

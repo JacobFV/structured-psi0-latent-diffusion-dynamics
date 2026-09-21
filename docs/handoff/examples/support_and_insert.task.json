@@ -1,0 +1,689 @@
+{
+  "schema_version": "1.0",
+  "task_id": "support_and_insert",
+  "graph_version": 1,
+  "entity_declarations": [
+    {
+      "id": "left",
+      "type": "manipulator",
+      "descriptor": "assembly currently assigned support role"
+    },
+    {
+      "id": "right",
+      "type": "manipulator",
+      "descriptor": "assembly currently assigned insertion role"
+    },
+    {
+      "id": "camera",
+      "type": "sensor",
+      "descriptor": "declared scene camera"
+    },
+    {
+      "id": "peg",
+      "type": "object",
+      "descriptor": "target peg selected from observed descriptors"
+    },
+    {
+      "id": "fixture",
+      "type": "object",
+      "descriptor": "workpiece to stabilize"
+    },
+    {
+      "id": "hole",
+      "type": "feature",
+      "descriptor": "selected hole feature on workpiece"
+    }
+  ],
+  "events": [
+    {
+      "id": "locate",
+      "operator": "estimate_frame",
+      "roles": [
+        {
+          "role": "actor",
+          "ordinal": 0,
+          "binding": {
+            "kind": "entity",
+            "entity": {
+              "id": "camera",
+              "version": 0
+            }
+          }
+        },
+        {
+          "role": "patient",
+          "ordinal": 0,
+          "binding": {
+            "kind": "entity",
+            "entity": {
+              "id": "hole",
+              "version": 0
+            }
+          }
+        }
+      ],
+      "requires_completed": [],
+      "requires_active": [],
+      "preconditions": [],
+      "invariants": [],
+      "desired_effects": [],
+      "completion": [
+        {
+          "predicate": "frame_estimate_valid",
+          "arguments": [
+            {
+              "kind": "entity",
+              "entity": {
+                "id": "hole",
+                "version": 0
+              }
+            }
+          ],
+          "comparison": "eq",
+          "value": true,
+          "source": "observation_estimate",
+          "persistence_seconds": 0
+        }
+      ],
+      "resources": [
+        {
+          "entity": {
+            "id": "camera",
+            "version": 0
+          },
+          "mode": "observe"
+        }
+      ],
+      "produces": [
+        {
+          "name": "hole_frame",
+          "type": "frame_estimate",
+          "availability": "on_success"
+        }
+      ],
+      "timeout_seconds": 30,
+      "recovery": {
+        "max_attempts": 2,
+        "on_failure": "reobserve_then_retry"
+      }
+    },
+    {
+      "id": "support",
+      "operator": "maintain_support",
+      "roles": [
+        {
+          "role": "actor",
+          "ordinal": 0,
+          "binding": {
+            "kind": "entity",
+            "entity": {
+              "id": "left",
+              "version": 0
+            }
+          }
+        },
+        {
+          "role": "patient",
+          "ordinal": 0,
+          "binding": {
+            "kind": "entity",
+            "entity": {
+              "id": "fixture",
+              "version": 0
+            }
+          }
+        }
+      ],
+      "requires_completed": [],
+      "requires_active": [],
+      "preconditions": [
+        {
+          "predicate": "reachable",
+          "arguments": [
+            {
+              "kind": "entity",
+              "entity": {
+                "id": "left",
+                "version": 0
+              }
+            },
+            {
+              "kind": "entity",
+              "entity": {
+                "id": "fixture",
+                "version": 0
+              }
+            }
+          ],
+          "comparison": "eq",
+          "value": true,
+          "source": "observation_estimate",
+          "persistence_seconds": 0
+        }
+      ],
+      "invariants": [],
+      "desired_effects": [
+        {
+          "predicate": "supported",
+          "arguments": [
+            {
+              "kind": "entity",
+              "entity": {
+                "id": "fixture",
+                "version": 0
+              }
+            }
+          ],
+          "comparison": "eq",
+          "value": true,
+          "source": "desired_effect",
+          "persistence_seconds": 0
+        }
+      ],
+      "completion": [
+        {
+          "predicate": "event_succeeded",
+          "arguments": [
+            {
+              "kind": "event_output",
+              "event_id": "insert",
+              "attempt": 0,
+              "output_name": "inserted"
+            }
+          ],
+          "comparison": "eq",
+          "value": true,
+          "source": "validated_receipt",
+          "persistence_seconds": 0
+        }
+      ],
+      "resources": [
+        {
+          "entity": {
+            "id": "left",
+            "version": 0
+          },
+          "mode": "exclusive_control"
+        }
+      ],
+      "produces": [
+        {
+          "name": "anchor",
+          "type": "contact_anchor",
+          "availability": "while_active_and_valid"
+        }
+      ],
+      "timeout_seconds": 120,
+      "recovery": {
+        "max_attempts": 2,
+        "on_failure": "reobserve_then_retry"
+      }
+    },
+    {
+      "id": "acquire",
+      "operator": "grasp",
+      "roles": [
+        {
+          "role": "actor",
+          "ordinal": 0,
+          "binding": {
+            "kind": "entity",
+            "entity": {
+              "id": "right",
+              "version": 0
+            }
+          }
+        },
+        {
+          "role": "patient",
+          "ordinal": 0,
+          "binding": {
+            "kind": "entity",
+            "entity": {
+              "id": "peg",
+              "version": 0
+            }
+          }
+        }
+      ],
+      "requires_completed": [],
+      "requires_active": [],
+      "preconditions": [],
+      "invariants": [],
+      "desired_effects": [
+        {
+          "predicate": "held_by",
+          "arguments": [
+            {
+              "kind": "entity",
+              "entity": {
+                "id": "peg",
+                "version": 0
+              }
+            },
+            {
+              "kind": "entity",
+              "entity": {
+                "id": "right",
+                "version": 0
+              }
+            }
+          ],
+          "comparison": "eq",
+          "value": true,
+          "source": "desired_effect",
+          "persistence_seconds": 0
+        }
+      ],
+      "completion": [
+        {
+          "predicate": "held_by",
+          "arguments": [
+            {
+              "kind": "entity",
+              "entity": {
+                "id": "peg",
+                "version": 0
+              }
+            },
+            {
+              "kind": "entity",
+              "entity": {
+                "id": "right",
+                "version": 0
+              }
+            }
+          ],
+          "comparison": "eq",
+          "value": true,
+          "source": "observation_estimate",
+          "persistence_seconds": 0.1
+        }
+      ],
+      "resources": [
+        {
+          "entity": {
+            "id": "right",
+            "version": 0
+          },
+          "mode": "exclusive_control"
+        }
+      ],
+      "produces": [],
+      "timeout_seconds": 30,
+      "recovery": {
+        "max_attempts": 2,
+        "on_failure": "reobserve_then_retry"
+      }
+    },
+    {
+      "id": "align",
+      "operator": "align_axis",
+      "roles": [
+        {
+          "role": "actor",
+          "ordinal": 0,
+          "binding": {
+            "kind": "entity",
+            "entity": {
+              "id": "right",
+              "version": 0
+            }
+          }
+        },
+        {
+          "role": "patient",
+          "ordinal": 0,
+          "binding": {
+            "kind": "entity",
+            "entity": {
+              "id": "peg",
+              "version": 0
+            }
+          }
+        },
+        {
+          "role": "target",
+          "ordinal": 0,
+          "binding": {
+            "kind": "entity",
+            "entity": {
+              "id": "hole",
+              "version": 0
+            }
+          }
+        },
+        {
+          "role": "reference",
+          "ordinal": 0,
+          "binding": {
+            "kind": "event_output",
+            "event_id": "locate",
+            "attempt": 0,
+            "output_name": "hole_frame"
+          }
+        },
+        {
+          "role": "support",
+          "ordinal": 0,
+          "binding": {
+            "kind": "event_output",
+            "event_id": "support",
+            "attempt": 0,
+            "output_name": "anchor"
+          }
+        }
+      ],
+      "requires_completed": [
+        "locate",
+        "acquire"
+      ],
+      "requires_active": [
+        "support"
+      ],
+      "preconditions": [
+        {
+          "predicate": "held_by",
+          "arguments": [
+            {
+              "kind": "entity",
+              "entity": {
+                "id": "peg",
+                "version": 0
+              }
+            },
+            {
+              "kind": "entity",
+              "entity": {
+                "id": "right",
+                "version": 0
+              }
+            }
+          ],
+          "comparison": "eq",
+          "value": true,
+          "source": "observation_estimate",
+          "persistence_seconds": 0
+        },
+        {
+          "predicate": "anchor_valid",
+          "arguments": [
+            {
+              "kind": "event_output",
+              "event_id": "support",
+              "attempt": 0,
+              "output_name": "anchor"
+            }
+          ],
+          "comparison": "eq",
+          "value": true,
+          "source": "validated_receipt",
+          "persistence_seconds": 0
+        }
+      ],
+      "invariants": [
+        {
+          "predicate": "anchor_valid",
+          "arguments": [
+            {
+              "kind": "event_output",
+              "event_id": "support",
+              "attempt": 0,
+              "output_name": "anchor"
+            }
+          ],
+          "comparison": "eq",
+          "value": true,
+          "source": "validated_receipt",
+          "persistence_seconds": 0
+        }
+      ],
+      "desired_effects": [],
+      "completion": [
+        {
+          "predicate": "lateral_error_m",
+          "arguments": [
+            {
+              "kind": "entity",
+              "entity": {
+                "id": "peg",
+                "version": 0
+              }
+            },
+            {
+              "kind": "entity",
+              "entity": {
+                "id": "hole",
+                "version": 0
+              }
+            }
+          ],
+          "comparison": "le",
+          "value": 0.003,
+          "source": "observation_estimate",
+          "persistence_seconds": 0.1
+        },
+        {
+          "predicate": "axis_error_rad",
+          "arguments": [
+            {
+              "kind": "entity",
+              "entity": {
+                "id": "peg",
+                "version": 0
+              }
+            },
+            {
+              "kind": "entity",
+              "entity": {
+                "id": "hole",
+                "version": 0
+              }
+            }
+          ],
+          "comparison": "le",
+          "value": 0.05,
+          "source": "observation_estimate",
+          "persistence_seconds": 0.1
+        }
+      ],
+      "resources": [
+        {
+          "entity": {
+            "id": "right",
+            "version": 0
+          },
+          "mode": "exclusive_control"
+        }
+      ],
+      "produces": [
+        {
+          "name": "aligned",
+          "type": "alignment_receipt",
+          "availability": "on_success"
+        }
+      ],
+      "timeout_seconds": 30,
+      "recovery": {
+        "max_attempts": 2,
+        "on_failure": "reobserve_then_retry"
+      },
+      "frame_binding": {
+        "kind": "event_output",
+        "event_id": "locate",
+        "attempt": 0,
+        "output_name": "hole_frame"
+      }
+    },
+    {
+      "id": "insert",
+      "operator": "insert",
+      "roles": [
+        {
+          "role": "actor",
+          "ordinal": 0,
+          "binding": {
+            "kind": "entity",
+            "entity": {
+              "id": "right",
+              "version": 0
+            }
+          }
+        },
+        {
+          "role": "patient",
+          "ordinal": 0,
+          "binding": {
+            "kind": "entity",
+            "entity": {
+              "id": "peg",
+              "version": 0
+            }
+          }
+        },
+        {
+          "role": "target",
+          "ordinal": 0,
+          "binding": {
+            "kind": "entity",
+            "entity": {
+              "id": "hole",
+              "version": 0
+            }
+          }
+        },
+        {
+          "role": "reference",
+          "ordinal": 0,
+          "binding": {
+            "kind": "event_output",
+            "event_id": "locate",
+            "attempt": 0,
+            "output_name": "hole_frame"
+          }
+        }
+      ],
+      "requires_completed": [
+        "align"
+      ],
+      "requires_active": [
+        "support"
+      ],
+      "preconditions": [
+        {
+          "predicate": "receipt_valid",
+          "arguments": [
+            {
+              "kind": "event_output",
+              "event_id": "align",
+              "attempt": 0,
+              "output_name": "aligned"
+            }
+          ],
+          "comparison": "eq",
+          "value": true,
+          "source": "validated_receipt",
+          "persistence_seconds": 0
+        }
+      ],
+      "invariants": [
+        {
+          "predicate": "anchor_valid",
+          "arguments": [
+            {
+              "kind": "event_output",
+              "event_id": "support",
+              "attempt": 0,
+              "output_name": "anchor"
+            }
+          ],
+          "comparison": "eq",
+          "value": true,
+          "source": "validated_receipt",
+          "persistence_seconds": 0
+        }
+      ],
+      "desired_effects": [
+        {
+          "predicate": "inside",
+          "arguments": [
+            {
+              "kind": "entity",
+              "entity": {
+                "id": "peg",
+                "version": 0
+              }
+            },
+            {
+              "kind": "entity",
+              "entity": {
+                "id": "hole",
+                "version": 0
+              }
+            }
+          ],
+          "comparison": "eq",
+          "value": true,
+          "source": "desired_effect",
+          "persistence_seconds": 0
+        }
+      ],
+      "completion": [
+        {
+          "predicate": "insertion_depth_m",
+          "arguments": [
+            {
+              "kind": "entity",
+              "entity": {
+                "id": "peg",
+                "version": 0
+              }
+            },
+            {
+              "kind": "entity",
+              "entity": {
+                "id": "hole",
+                "version": 0
+              }
+            }
+          ],
+          "comparison": "ge",
+          "value": 0.02,
+          "source": "observation_estimate",
+          "persistence_seconds": 0.2
+        }
+      ],
+      "resources": [
+        {
+          "entity": {
+            "id": "right",
+            "version": 0
+          },
+          "mode": "exclusive_control"
+        }
+      ],
+      "produces": [
+        {
+          "name": "inserted",
+          "type": "completion_receipt",
+          "availability": "on_success"
+        }
+      ],
+      "timeout_seconds": 30,
+      "recovery": {
+        "max_attempts": 2,
+        "on_failure": "reobserve_then_retry"
+      },
+      "frame_binding": {
+        "kind": "event_output",
+        "event_id": "locate",
+        "attempt": 0,
+        "output_name": "hole_frame"
+      }
+    }
+  ],
+  "success_events": [
+    "insert",
+    "support"
+  ]
+}

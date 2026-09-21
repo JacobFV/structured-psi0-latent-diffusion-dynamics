@@ -1,0 +1,73 @@
+{
+  "schema_version": "1.0",
+  "snapshot": {
+    "utc": "2026-09-21T18:06:55.000000+00:00",
+    "hostname": "Dell-gb10-1",
+    "architecture": "aarch64",
+    "platform": "Linux-6.17.0-1026-nvidia-aarch64-with-glibc2.39",
+    "allowed_cpu_count": 20,
+    "idle_cpu_cores": 12.051697129764523,
+    "idle_cpu_samples": [
+      14.123692583885992,
+      14.274520893741567,
+      14.15063686115475,
+      14.341108149527344,
+      12.906934784368401,
+      14.827628007198996,
+      12.747042498406165,
+      12.051697129764523,
+      14.336054464272433,
+      13.54279264743535
+    ],
+    "memory_total_bytes": 130596077568,
+    "memory_available_bytes": 47821524992,
+    "swap_used_bytes_samples": [
+      17179496448,
+      17179496448,
+      17179602944,
+      17179602944,
+      17179594752,
+      17179594752,
+      17179787264,
+      17179787264,
+      17179787264,
+      17179787264
+    ],
+    "disk_total_bytes": 3937360351232,
+    "disk_free_bytes": 458245341184,
+    "disk_path": "/home/brandonin/work/relational-robot-policy",
+    "cgroup_read": {
+      "memory_headroom_bytes": null,
+      "cpu_quota_cores": null,
+      "enforcement_verified": false,
+      "warnings": []
+    },
+    "gpu_diagnostic": {
+      "status": "reported",
+      "rows": [
+        "NVIDIA GB10, 0, [N/A], [N/A]"
+      ],
+      "warning": "raw diagnostic only; N/A is unknown; CPU/GPU memory may share one pool; not an allocation lease"
+    },
+    "inspection_window_seconds": 10.0,
+    "limitations": [
+      "snapshot estimates only, not resource enforcement",
+      "external load may change after inspection",
+      "no SSH peer was contacted",
+      "disk IO/network/GPU bandwidth are not isolated by this helper"
+    ]
+  },
+  "proposed_budget": {
+    "role": "host",
+    "memory_limit_bytes": 23910762496,
+    "new_disk_limit_bytes": 64509306060,
+    "cpu_quota_cores": 6.025848564882262,
+    "memory_reserve_bytes": 13059607757,
+    "disk_reserve_bytes": 393736035124,
+    "gpu_admission": "disabled_pending_enforcement",
+    "heavy_work_authorized": false,
+    "warning": "initial measurement only; implement/test aggregate enforcement and live watchdog before heavy work"
+  },
+  "workloads_started": false,
+  "enforcement_installed": false
+}

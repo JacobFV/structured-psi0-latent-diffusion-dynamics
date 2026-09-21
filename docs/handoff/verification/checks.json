@@ -1,0 +1,68 @@
+{
+  "schema_version": "1.0",
+  "package_version": "1.0",
+  "scope": "handoff documents and lightweight helpers only; not robotics implementation evidence",
+  "checks": {
+    "helper_unittests": {
+      "status": "pass",
+      "tests": 23,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v",
+      "raw_log": "verification/helper-tests.txt"
+    },
+    "task_schema": {
+      "status": "pass",
+      "validator": "jsonschema Draft202012Validator",
+      "schema": "contracts/task_graph.schema.json",
+      "instance": "examples/support_and_insert.task.json"
+    },
+    "task_example_semantics": {
+      "status": "pass",
+      "checks": [
+        "unique event/entity identities",
+        "existing role references",
+        "known prerequisite events",
+        "acyclic requires_completed relations"
+      ]
+    },
+    "python_syntax": {
+      "status": "pass",
+      "actual_files": 3,
+      "documented_python_snippets": 26,
+      "scope": "ast.parse; planned product APIs were not executed"
+    },
+    "traceability": {
+      "status": "pass",
+      "implementation_tasks": 25,
+      "requirements": 37,
+      "all_statuses": "not_started",
+      "contract_paths_exist": true
+    },
+    "original_design": {
+      "status": "pass",
+      "unchanged_copy": true,
+      "sha256": "a33adce74c3ea15929086fb08e6d6a6fd6d34e55845cfa02460d89ce61a64dd7"
+    },
+    "local_markdown_links": {
+      "status": "pass"
+    },
+    "preflight_smoke": {
+      "status": "pass",
+      "machine": "packaging container only",
+      "heavy_work_authorized": false,
+      "workloads_started": false,
+      "enforcement_installed": false
+    }
+  },
+  "not_performed": [
+    "GB10 execution",
+    "SSH peer access",
+    "resource isolation or cgroup enforcement on user machines",
+    "simulator/GUI integration",
+    "policy implementation",
+    "model training or adaptation",
+    "robot performance or latency measurement"
+  ]
+}
