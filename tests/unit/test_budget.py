@@ -47,11 +47,13 @@ def test_host_fraction_cannot_exceed_half():
                        free_disk_gib=100, total_disk_gib=1000, policy=RolePolicy(0.6, 0.5, 0.5))
 
 
-def test_peer_policy_allows_eighty_percent_after_reserve():
+def test_peer_policy_uses_all_free_after_small_reserve():
+    # D-008: the user authorized using all of the peer
     b = compute_budget(role="peer", total_ram_gib=120, available_ram_gib=100, free_cpu_cores=20,
                        free_disk_gib=500, total_disk_gib=1000)
-    assert b.memory_gib == pytest.approx(80)
-    assert b.cpu_cores == pytest.approx(16)
+    assert b.memory_gib == pytest.approx(94)
+    assert b.cpu_cores == pytest.approx(20)
+    assert b.new_disk_gib == pytest.approx(490)
 
 
 def test_live_limit_does_not_repeatedly_halve_project_reduced_memory():

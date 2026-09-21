@@ -107,7 +107,11 @@ def create_app(token: str | None = None, port: int = 8765, allowed_origins: list
     @app.get("/api/sessions/{sid}/scene")
     def scene(sid: str):
         from .sessions import scene_geometry
-        return scene_geometry(sess(sid).sim.model)
+        s = sess(sid)
+        out = scene_geometry(s.sim.model)
+        # public object declarations only (the task-entity mapping is privileged and not exposed here)
+        out["objects"] = [dict(sim_body=o.sim_body, descriptor=o.descriptor, kind=o.kind) for o in s.scenario.objects]
+        return out
 
     @app.get("/api/sessions/{sid}/frame")
     def frame(sid: str):

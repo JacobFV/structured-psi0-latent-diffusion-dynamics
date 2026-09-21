@@ -119,3 +119,33 @@ def test_ui_protocol_exposes_state_and_intervention_receipts():
     kinds = set(public_message_kinds())
     assert {"session_snapshot", "graph_committed", "command_rejected",
             "probe_result", "resource_update"} <= kinds
+
+
+def test_scene_exposes_body_joints_public_objects_and_controller_targets():
+    c = TestClient(create_test_app())
+    sid, snap = _session(c)
+    sc = c.get(f"/api/sessions/{sid}/scene").json()
+    jointed = [b for b in sc["bodies"] if b["joints"]]
+    assert jointed and all(isinstance(j, str) for b in jointed for j in b["joints"])
+    assert {o["sim_body"] for o in sc["objects"]} >= {"cube"}
+    assert all("task_entity" not in o for o in sc["objects"])      # privileged mapping stays hidden
+    ctrl = snap["robots"][0]["controller"]
+    assert len(ctrl["current_targets"]["arm"]) == next(g["width"] for g in ctrl["groups"] if g["name"] == "arm")
+    assert "gripper" in snap["robots"][0]["manipulators"]
+
+
+def test_actor_rebinding_moves_resource_ownership():
+    c = TestClient(create_test_app())
+    sid, snap = _session(c)
+    v = snap["graph"]["version"]
+    ops = [{"op": "add_entity", "entity": {"id": "gripper2", "type": "manipulator", "descriptor": "second hand"}},
+           {"op": "bind_role", "event_id": "grasp", "role": "actor", "ordinal": 0,
+            "binding": {"kind": "entity", "entity": {"id": "gripper2", "version": 0}}}]
+    r = c.post(f"/api/sessions/{sid}/graph", json={"expected_version": v, "request_id": "rb", "operations": ops},
+               headers=H)
+    assert r.status_code == 200, r.text
+    r = c.post(f"/api/sessions/{sid}/commands", json={"type": "request_event", "event_id": "grasp",
+                                                       "expected_version": v + 1}, headers=H).json()
+    assert r["accepted"], r
+    owners = c.get(f"/api/sessions/{sid}/snapshot").json()["runtime"]["owners"]
+    assert owners == {"gripper2": "grasp"}

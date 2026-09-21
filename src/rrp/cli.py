@@ -57,7 +57,7 @@ def cmd_ops_watchdog(a):
     wc = WatchdogConfig(memory_reserve_bytes=cfg["memory_reserve_bytes"], disk_reserve_bytes=cfg["disk_reserve_bytes"],
                         startup_memory_bytes=cfg["enforced"]["memory_bytes"],
                         startup_cpu_cores=cfg["enforced"]["cpu_cores"], disk_path=str(a.disk_path or repo_root()),
-                        fraction=0.5 if role == "host" else 0.8)
+                        fraction=0.5 if role == "host" else 1.0, psi_full_avg10_shed=25.0 if role == "host" else 80.0)
     run_loop(br, be, wc, interval_s=a.interval, log_path=repo_root() / "ops" / "watchdog" / f"{role}.jsonl",
              max_iterations=a.iterations, gpu=(role == "peer"))
 

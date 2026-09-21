@@ -106,7 +106,7 @@ def run_leased(argv: list[str], *, cpu: float, memory_bytes: int, label: str, gp
              "--max-seconds", str(max_seconds), "--", *argv]
     env["PYTHONPATH"] = str(repo_root() / "src") + (":" + os.environ["PYTHONPATH"] if os.environ.get("PYTHONPATH") else "")
     unit = be.start_job(lease.lease_id, child, cwd=str(cwd or repo_root()), env=env,
-                        runtime_max_s=max_seconds + 120, private_devices=not gpu)
+                        runtime_max_s=max_seconds + 120, private_devices=(host and not gpu))
     out = {"lease_id": lease.lease_id, "unit": unit, "log": str(log)}
     if wait:
         out.update(wait_unit(be, unit, log))

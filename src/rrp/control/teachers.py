@@ -148,10 +148,13 @@ class PickPlaceTeacher:
     def _ik_seeds(self, target):
         home = np.array(self.r.meta.get("home") or np.zeros(len(self.q_arm)))
         yaw = float(np.arctan2(target[1] - self.base[1], target[0] - self.base[0]))
+        # the asset's zero-yaw convention may differ: rotate the base joint by the azimuth
+        # difference between the target and the home TCP
+        dyaw = yaw - float(self.r.meta.get("home_tcp_azimuth", 0.0))
         seeds = []
         for flip in (0.0, 0.3, -0.3):
             s = home.copy()
-            s[0] = yaw + flip
+            s[0] = home[0] + dyaw + flip
             seeds.append(s)
         return seeds
 

@@ -45,7 +45,9 @@ def scene_geometry(model: mujoco.MjModel) -> dict:
         geoms.append(dict(id=g, name=model.geom(g).name, type=int(model.geom_type[g]), body=int(model.geom_bodyid[g]),
                           size=model.geom_size[g].tolist(), pos=model.geom_pos[g].tolist(),
                           quat=model.geom_quat[g].tolist(), rgba=model.geom_rgba[g].tolist()))
-    bodies = [dict(id=b, name=model.body(b).name, parent=int(model.body_parentid[b])) for b in range(model.nbody)]
+    bodies = [dict(id=b, name=model.body(b).name, parent=int(model.body_parentid[b]),
+                   joints=[model.joint(j).name for j in range(model.njnt) if int(model.jnt_bodyid[j]) == b])
+              for b in range(model.nbody)]
     return dict(geoms=geoms, bodies=bodies)
 
 
@@ -120,7 +122,10 @@ class WorkbenchSession:
                                              members=a.members) for a in rs.assemblies],
                             controller=dict(id=r.controller.contract.id, version=r.controller.version,
                                             groups=[dict(name=g.name, width=g.width, units=g.units, lower=g.lower,
-                                                         upper=g.upper) for g in r.controller.contract.command_groups]),
+                                                         upper=g.upper) for g in r.controller.contract.command_groups],
+                                            current_targets={k: np.asarray(v).round(5).tolist() for k, v in
+                                                             r.controller.current_targets(self.sim.data).items()}),
+                            manipulators={ent: asm for ent, (ri, asm) in self.sim.manip_map.items() if ri == r.idx},
                             independent_controls=rs.independent_controls(),
                             generalized_coordinates=rs.generalized_coordinates(),
                             lineage=rs.lineage))

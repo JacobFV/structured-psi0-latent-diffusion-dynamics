@@ -53,8 +53,41 @@ def module_extent(m: Module) -> float:
     return float(max(r)) if r else 0.0
 
 
+def _with_standoff(module: Module, standoff: float) -> Module:
+    """Declared mechanical adapter plate between flange and module root (mass included)."""
+    import mujoco as _mj
+    spec = module.spec.copy()
+    root = next(b for b in spec.worldbody.bodies)
+    root.pos = [root.pos[0], root.pos[1], root.pos[2] + standoff]
+    spec.worldbody.add_geom(name="adapter_plate", type=_mj.mjtGeom.mjGEOM_CYLINDER,
+                            size=[0.035, standoff / 2, 0], pos=[0, 0, standoff / 2], density=2700,
+                            rgba=[0.5, 0.5, 0.55, 1])
+    meta = copy.deepcopy(module.meta)
+    meta["adapter_standoff_m"] = standoff
+    meta["lineage"] = list(meta.get("lineage", [])) + [f"adapter/standoff_{int(standoff * 1000)}mm"]
+    return Module(spec, meta)
+
+
 def attach(body: Module | Assembled, module: Module, port_id: str, *, prefix: str | None = None,
-           validate_steps: int = 400) -> Assembled:
+           validate_steps: int = 400, standoffs=(0.0, 0.015, 0.03, 0.045)) -> Assembled:
+    """Tries the declared adapter standoffs in order; the first physically valid assembly wins.
+    All rejected attempts are recorded in validation['rejected_attempts']."""
+    rejected = []
+    for so in standoffs:
+        mod = module if so == 0.0 else _with_standoff(module, so)
+        try:
+            out = _attach_once(body, mod, port_id, prefix=prefix, validate_steps=validate_steps)
+            out.validation["rejected_attempts"] = rejected
+            return out
+        except AttachmentError as e:
+            if "physics validation failed" not in str(e) or "initial_penetration" not in str(e):
+                raise
+            rejected.append(dict(standoff=so, reason=str(e)))
+    raise AttachmentError(f"no valid standoff; attempts: {rejected}")
+
+
+def _attach_once(body: Module | Assembled, module: Module, port_id: str, *, prefix: str | None = None,
+                 validate_steps: int = 400) -> Assembled:
     host_spec = body.spec.copy()
     meta = copy.deepcopy(body.meta)
     ports = {p["id"]: p for p in meta.get("ports", [])}
@@ -117,9 +150,13 @@ def validate_physics(model: mujoco.MjModel, steps: int = 400) -> dict:
     """Finite dynamics, positive inertia, unique names, bounded motion under hold commands,
     and no deep initial penetration between non-adjacent bodies."""
     failures = []
-    names = [model.joint(j).name for j in range(model.njnt)] + [model.actuator(u).name for u in range(model.nu)]
-    if len(names) != len(set(names)):
-        failures.append("duplicate_names")
+    # MuJoCo names are unique per object type (a joint and an actuator may share a name)
+    for kind, names in (("joint", [model.joint(j).name for j in range(model.njnt)]),
+                        ("actuator", [model.actuator(u).name for u in range(model.nu)]),
+                        ("body", [model.body(b).name for b in range(model.nbody)])):
+        named = [n for n in names if n]
+        if len(named) != len(set(named)):
+            failures.append(f"duplicate_{kind}_names")
     for b in range(1, model.nbody):
         if model.body_mass[b] <= 0 and model.body_dofnum[b] > 0:
             failures.append(f"nonpositive_mass:{model.body(b).name}")

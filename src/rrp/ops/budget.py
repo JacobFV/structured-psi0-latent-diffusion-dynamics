@@ -41,10 +41,12 @@ class RolePolicy:
 
     @classmethod
     def peer(cls) -> "RolePolicy":
-        return cls(0.8, 0.8, 0.5)
+        # D-008: user authorized using ALL of the peer; keep only a small OS safety reserve
+        return cls(1.0, 1.0, 1.0, memory_reserve_gib=6.0, memory_reserve_total_fraction=0.0,
+                   disk_reserve_gib=10.0, disk_reserve_total_fraction=0.0)
 
     def validate(self, role: str) -> None:
-        upper = 0.5 if role == "host" else 0.8
+        upper = 0.5 if role == "host" else 1.0
         for name in ("free_cpu_fraction", "free_memory_fraction", "free_disk_fraction"):
             v = _finite_nonneg(getattr(self, name), name)
             if v > upper:
