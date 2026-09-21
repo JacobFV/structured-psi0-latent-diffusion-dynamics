@@ -197,10 +197,16 @@ class RobotSpec(Strict):
         return self
 
     def with_hash(self) -> "RobotSpec":
-        d = self.model_dump(mode="json")
-        d["spec_hash"] = ""
-        d["name"] = ""  # presentation name does not change identity
-        self.spec_hash = content_hash(d)
+        """Physical/structural identity: names, sites, lineage and provenance are excluded
+        (they are presentation/split metadata), so renaming never changes identity."""
+        def strip(x):
+            if isinstance(x, dict):
+                return {k: strip(v) for k, v in x.items()
+                        if k not in ("name", "site", "spec_hash", "lineage", "asset_source", "occupied_by")}
+            if isinstance(x, list):
+                return [strip(v) for v in x]
+            return x
+        self.spec_hash = content_hash(strip(self.model_dump(mode="json")))
         return self
 
     def independent_controls(self) -> int:

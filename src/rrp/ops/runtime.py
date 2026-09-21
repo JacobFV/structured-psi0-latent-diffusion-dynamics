@@ -62,6 +62,13 @@ def make_broker(role: str | None = None, *, require_watchdog: bool = True) -> tu
     return br, be
 
 
+SOFTWARE_RENDER_ENV = {
+    "MUJOCO_GL": "egl", "PYOPENGL_PLATFORM": "egl", "EGL_PLATFORM": "surfaceless",
+    "__EGL_VENDOR_LIBRARY_FILENAMES": "/usr/share/glvnd/egl_vendor.d/50_mesa.json",
+    "LIBGL_ALWAYS_SOFTWARE": "1", "GALLIUM_DRIVER": "llvmpipe",
+}
+
+
 def thread_env(cpu_cores: float) -> dict:
     n = str(max(1, int(math.floor(cpu_cores))))
     return {k: n for k in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS",
@@ -87,15 +94,19 @@ def run_leased(argv: list[str], *, cpu: float, memory_bytes: int, label: str, gp
               "TMPDIR", "PLAYWRIGHT_BROWSERS_PATH", "MUJOCO_GL", "PYOPENGL_PLATFORM", "npm_config_cache"):
         if k in os.environ and k not in env:
             env[k] = os.environ[k]
+    host = node_role() == "host"
+    if host and gpu:
+        raise RuntimeError("host GPU work is disabled (no verified isolation; research/decisions.md D-004/D-007)")
     if not gpu:
         env["CUDA_VISIBLE_DEVICES"] = ""
+        env.update(SOFTWARE_RENDER_ENV)
     else:
         env["RRP_GPU_MEMORY_BYTES"] = str(int(gpu_memory_bytes))
     child = [sys.executable, "-m", "rrp.ops.child", "--lease", lease.lease_id, "--log", str(log),
              "--max-seconds", str(max_seconds), "--", *argv]
     env["PYTHONPATH"] = str(repo_root() / "src") + (":" + os.environ["PYTHONPATH"] if os.environ.get("PYTHONPATH") else "")
     unit = be.start_job(lease.lease_id, child, cwd=str(cwd or repo_root()), env=env,
-                        runtime_max_s=max_seconds + 120)
+                        runtime_max_s=max_seconds + 120, private_devices=not gpu)
     out = {"lease_id": lease.lease_id, "unit": unit, "log": str(log)}
     if wait:
         out.update(wait_unit(be, unit, log))

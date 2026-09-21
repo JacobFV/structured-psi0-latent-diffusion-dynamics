@@ -23,3 +23,6 @@ Host had swap fully used (16 GiB) by other workloads and ~40-47 GiB available at
 
 ## D-006 2026-09-21 MemoryHigh behaviour
 A child exceeding MemoryHigh with no swap stalls in reclaim (PSI full ~89%) instead of dying. The watchdog therefore sheds on sustained project memory PSI (tested with a bounded fixture in `tests/integration/test_resource_enforcement.py`).
+
+## D-007 2026-09-21 INCIDENT: brief unintended host GPU use; fixed with hard device exclusion
+A 128x96 MuJoCo render probe (20 frames, <1 s, lease 1790017490_e25c21) created an EGL context on the host NVIDIA GB10 because the lease runner's environment allowlist dropped the Mesa vendor override and `CUDA_VISIBLE_DEVICES=""` does not affect EGL. No other workload was affected (probe finished in <1 s), but it violated the host-GPU-off rule. Fix: every non-GPU lease now runs with systemd `PrivateDevices=yes` (verified: /dev/nvidia* absent inside the unit) and forced Mesa llvmpipe EGL env; host GPU leases are refused in code. Regression test: `tests/integration/test_host_gpu_exclusion.py`. Host software rendering measured at ~18 fps for 128x96 on one core, so data rendering belongs on the peer.

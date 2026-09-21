@@ -89,7 +89,8 @@ def cmd_ops_run(a):
         raise SystemExit("no command")
     res = run_leased(cmd, cpu=a.cpu, memory_bytes=_parse_bytes(a.mem), label=a.label, gpu=a.gpu,
                      gpu_memory_bytes=_parse_bytes(a.gpu_mem) if a.gpu_mem else 0,
-                     max_seconds=a.max_seconds, wait=not a.detach)
+                     max_seconds=a.max_seconds, wait=not a.detach,
+                     extra_env=dict(kv.split("=", 1) for kv in (a.env or [])))
     print(json.dumps(res), file=sys.stderr)
     if not a.detach and res.get("returncode") not in (0,):
         raise SystemExit(1)
@@ -177,6 +178,7 @@ def build_parser() -> argparse.ArgumentParser:
     o.add_argument("--gpu-mem", help="declared GPU (unified) memory, counted in the aggregate")
     o.add_argument("--max-seconds", type=int, default=3600)
     o.add_argument("--detach", action="store_true")
+    o.add_argument("--env", action="append", help="KEY=VALUE passed to the job")
     o.add_argument("cmd", nargs=argparse.REMAINDER)
     o.set_defaults(fn=cmd_ops_run)
     o = ops.add_parser("status")

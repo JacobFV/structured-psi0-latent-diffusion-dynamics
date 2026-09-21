@@ -1,0 +1,147 @@
+{
+  "schema_version": "1.0",
+  "retrieved_utc": "2026-09-21T18:12:31Z",
+  "method": "git ls-remote / GitHub REST (read-only) / raw.githubusercontent / arXiv abs+HTML / HF API JSON + safetensors header range reads; no clones, no weight downloads",
+  "audit_doc": "research/methods/source-audit.md",
+  "sources": {
+    "psi0_repo": {
+      "url": "https://github.com/physical-superintelligence-lab/Psi0",
+      "resolved_commit_or_version": "4f3720d45e102b36d7c3e9465ab8062274170518",
+      "retrieved_utc": "2026-09-21T18:12:31Z",
+      "license": "Apache-2.0 (root LICENSE text; GitHub API reports NOASSERTION)",
+      "notes": "examples/psi0_for_sonic.md blob 988f77230eab5d8d7c48aeaed3d0b55914e8ec68 matches handoff. real/assets/{h1_2,inspire_hand,unitree_hand} have no per-directory LICENSE (upstream Unitree/Inspire descriptions)."
+    },
+    "psi0_hf_models": {
+      "url": "https://huggingface.co/USC-PSI-Lab/psi-model",
+      "resolved_commit_or_version": "4c6f9776fc5b18d87945254175e38bb74b9d7748",
+      "retrieved_utc": "2026-09-21",
+      "license": "none declared on HF (no card/LICENSE); GitHub repo is Apache-2.0 - weight license coverage UNVERIFIED",
+      "notes": "gated=false. System-II = Qwen3-VL-2B-Instruct derivative, 2,131,333,120 params, vocab 153792. Key dirs: psi0/pre.fast.2605160748.ckpt.ego390k (4.26 GB bf16), psi0/postpre.sonic1.0.unifolm.2609092156.40k (8.53 GB f32 VLM + 2.70 GB action header), psi0/sonic-checkpoints/multi-task.psi-dream.2609092156 (11.22 GB f32 single file), psi0/pre.fast.1by1.2601091803.ckpt.ego200k.he30k (4.26 GB bf16), psi0/real-checkpoints/task1..8 (6.25 GB each). Nothing downloaded."
+    },
+    "qwen3_vl_2b_instruct": {
+      "url": "https://huggingface.co/Qwen/Qwen3-VL-2B-Instruct",
+      "resolved_commit_or_version": "89644892e4d8 (short sha from HF API)",
+      "retrieved_utc": "2026-09-21",
+      "license": "apache-2.0",
+      "notes": "Base VLM of psi0 System-II; gated=false; one model.safetensors 4,255,140,312 bytes bf16; 2,127,532,032 params."
+    },
+    "simple_repo": {
+      "url": "https://github.com/physical-superintelligence-lab/SIMPLE",
+      "resolved_commit_or_version": "6d10628794d9c7de4596b4f2afb2c054a637c2bc",
+      "retrieved_utc": "2026-09-21T18:12:31Z",
+      "license": "MIT (license.md at repo root; GitHub API reports 'other')",
+      "notes": "Robot MJCF/USD assets are NOT in git; fetched at runtime from HF dataset USC-PSI-Lab/SIMPLE (sha 1ce0fa3956706b408df2c7c0e26b0298aa7411fd, gated=false, license undeclared) as robots_<name>.zip."
+    },
+    "simple_hf_dataset": {
+      "url": "https://huggingface.co/datasets/USC-PSI-Lab/SIMPLE",
+      "resolved_commit_or_version": "1ce0fa3956706b408df2c7c0e26b0298aa7411fd",
+      "retrieved_utc": "2026-09-21",
+      "license": "undeclared on HF (UNVERIFIED)",
+      "notes": "robots_g1.zip 134,402,738 B; robots_g1_inspire.zip 80,619,444 B; robots_vega_1.zip 130,273,511 B; robots_g1_sonic.zip 23,114,187 B."
+    },
+    "mujoco_menagerie": {
+      "url": "https://github.com/google-deepmind/mujoco_menagerie",
+      "resolved_commit_or_version": "c96a32d28fb5da84da38c1da4d749e7a13212855",
+      "retrieved_utc": "2026-09-21T18:12:31Z",
+      "license": "per-directory LICENSE files (all 45 audited candidates: Apache-2.0 / BSD-2/3-Clause / BSD-3-Clause-Clear / MIT); repo-level LICENSE is an aggregate",
+      "notes": "All 45 candidate directories exist; ~1.45 GB total for the 45 dirs (git tree sizes)."
+    },
+    "robot_descriptions_py": {
+      "url": "https://github.com/robot-descriptions/robot_descriptions.py",
+      "resolved_commit_or_version": "d6b206deb9e6d461616f9552171549987cee0f0a",
+      "retrieved_utc": "2026-09-21T18:12:31Z",
+      "license": "Apache-2.0 (loader code only; each description has its own license)",
+      "notes": "Discovery only; not inspected further."
+    },
+    "topoformer": {
+      "url": "https://github.com/JacobFV/topoformer",
+      "resolved_commit_or_version": {
+        "main": "1197afda5220ade22c6cc96824e2ad41b0811aed",
+        "campaign/extended-02": "e80ddacbe731a1ae064d869962bd63720e5f86c0",
+        "campaign/extended-03": "1197afda5220ade22c6cc96824e2ad41b0811aed",
+        "campaign/extended-01": "65d44ae6acb17cd53360e5350f9c297b0c5954d0",
+        "campaign/e03-preflight": "caf1a78517856ed64b0a069ba1c5e04db2de8aab"
+      },
+      "retrieved_utc": "2026-09-21T18:12:31Z",
+      "license": "none declared (GitHub API license=null) - do not copy code; reimplement documented math with attribution",
+      "notes": "DIFFERS FROM HANDOFF: main moved e80dd... -> 1197afda (8 commits ahead, extended-03 campaign, now PAUSED); handoff's extended-03 a19ff5d8275a659961a2494e69b0f9558f1f3d3a is an ancestor of 1197afda. extended-02 final-report blob 4d92b5c39df46e3395d9533ebeb5f05fb9935379 matches handoff. attention.py blob 40b38a09ff9fd7410a5609f8fb01fedc772dacd7 @ e80dd."
+    },
+    "arxiv_psi0": {
+      "url": "https://arxiv.org/abs/2603.12263",
+      "resolved_commit_or_version": "v1 (12 Mar 2026; only version)",
+      "retrieved_utc": "2026-09-21",
+      "license": "see arXiv page",
+      "notes": "Psi0: An Open Foundation Model Towards Universal Humanoid Loco-Manipulation."
+    },
+    "arxiv_z1": {
+      "url": "https://arxiv.org/abs/2606.31846",
+      "resolved_commit_or_version": "v1 (30 Jun 2026; only version, html v2 404)",
+      "retrieved_utc": "2026-09-21",
+      "license": "see arXiv page",
+      "notes": "Z-1: Efficient RL for VLA models. Defers flow-SDE to piRL (2510.25889). No code release verified."
+    },
+    "arxiv_expo_ft": {
+      "url": "https://arxiv.org/abs/2605.25477",
+      "resolved_commit_or_version": "v2 (17 Aug 2026; v1 25 May 2026)",
+      "retrieved_utc": "2026-09-21",
+      "license": "CC BY 4.0",
+      "notes": "EXPO-FT (Dong, Hung, Gao, Sadigh, Finn)."
+    },
+    "arxiv_unified_latent": {
+      "url": "https://arxiv.org/abs/2601.15419",
+      "resolved_commit_or_version": "v1 (21 Jan 2026; only version)",
+      "retrieved_utc": "2026-09-21",
+      "license": "CC BY 4.0",
+      "notes": "Learning a Unified Latent Space for Cross-Embodiment Robot Control (Yan, Lee). No code found (absence unverified)."
+    },
+    "arxiv_expo": {
+      "url": "https://arxiv.org/abs/2507.07986",
+      "resolved_commit_or_version": "v3 (30 Apr 2026)",
+      "retrieved_utc": "2026-09-21",
+      "license": "see arXiv page",
+      "notes": "Original EXPO (ICLR 2026)."
+    },
+    "arxiv_pirl": {
+      "url": "https://arxiv.org/abs/2510.25889",
+      "resolved_commit_or_version": "v3",
+      "retrieved_utc": "2026-09-21",
+      "license": "see arXiv page",
+      "notes": "Flow-SDE source cited by Z-1 (Eq. 7-9)."
+    },
+    "arxiv_flow_grpo": {
+      "url": "https://arxiv.org/abs/2505.05470",
+      "resolved_commit_or_version": "v5",
+      "retrieved_utc": "2026-09-21",
+      "license": "see arXiv page",
+      "notes": "Original flow-SDE (Eq. 8-9, App. A)."
+    },
+    "expo_ft_code": {
+      "url": "https://github.com/pd-perry/expo-ft",
+      "resolved_commit_or_version": "803381fc3b4c91a0c47904f1b688fc5e35904f50",
+      "retrieved_utc": "2026-09-21",
+      "license": "MIT",
+      "notes": "Uses OpenPI fork pd-perry/openpi@expo_ft 46407a41183b037313a383ff679683f2773b766d (Apache-2.0); droid fork 076cecd2c892e644fdc106f8ba3a79482ed6e0e8 license unverified."
+    },
+    "expo_code": {
+      "url": "https://github.com/pd-perry/EXPO",
+      "resolved_commit_or_version": "bbd571306b413e05d5d4b01a6efa20352c2b891a",
+      "retrieved_utc": "2026-09-21",
+      "license": "MIT",
+      "notes": ""
+    },
+    "rlinf": {
+      "url": "https://github.com/RLinf/RLinf",
+      "resolved_commit_or_version": "807e5fdd836f0c3671fd351f65faf3bce5ddaf35",
+      "retrieved_utc": "2026-09-21",
+      "license": "Apache-2.0",
+      "notes": "Z-1's stated GRPO framework. flow_sde code was read at an earlier main commit prefix 184ba07f0a (2026-09-22); re-verify rlinf/models/embodiment/openpi/sampling/rl_sampler.py at the pinned SHA before porting. Not proven identical to Z-1's code."
+    },
+    "flow_grpo_code": {
+      "url": "https://github.com/yifan123/flow_grpo",
+      "resolved_commit_or_version": "879042cf5707f8b90daa98d147d7deac2317c5da",
+      "retrieved_utc": "2026-09-21",
+      "license": "MIT",
+      "notes": "flow_grpo/diffusers_patch/sd3_sde_with_logprob.py read at main."
+    }
+  }
+}

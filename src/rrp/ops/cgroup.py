@@ -81,13 +81,16 @@ class SystemdUserBackend:
         return s
 
     def start_job(self, lease_id: str, argv: list[str], *, cwd: str, env: dict[str, str] | None = None,
-                  runtime_max_s: int | None = None, nice: int = 10) -> str:
+                  runtime_max_s: int | None = None, nice: int = 10, private_devices: bool = False) -> str:
         unit = job_unit(lease_id)
         args = ["systemd-run", "--user", "--quiet", f"--unit={unit}", f"--slice={lease_slice(lease_id)}",
                 f"--working-directory={cwd}", "-p", "KillMode=control-group", "-p", "OOMPolicy=kill",
                 "-p", f"Nice={nice}", "-p", "IOSchedulingClass=idle", "-p", "TimeoutStopSec=45"]
         if runtime_max_s:
             args += ["-p", f"RuntimeMaxSec={int(runtime_max_s)}"]
+        if private_devices:
+            # hard host-GPU exclusion: /dev/nvidia* and /dev/dri are absent inside the unit
+            args += ["-p", "PrivateDevices=yes"]
         for k, v in (env or {}).items():
             args.append(f"--setenv={k}={v}")
         args += ["--", *argv]

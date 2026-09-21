@@ -1,0 +1,310 @@
+{
+ "schema_version": "1.0",
+ "task_id": "pick_place",
+ "graph_version": 1,
+ "entity_declarations": [
+  {
+   "id": "gripper",
+   "type": "manipulator",
+   "descriptor": "assembly assigned to the pick role"
+  },
+  {
+   "id": "cube",
+   "type": "object",
+   "descriptor": "red cube"
+  },
+  {
+   "id": "target",
+   "type": "feature",
+   "descriptor": "green target zone"
+  }
+ ],
+ "events": [
+  {
+   "id": "grasp",
+   "operator": "grasp",
+   "roles": [
+    {
+     "role": "actor",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "gripper",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "patient",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "cube",
+       "version": 0
+      }
+     }
+    }
+   ],
+   "requires_completed": [],
+   "requires_active": [],
+   "preconditions": [],
+   "invariants": [],
+   "desired_effects": [
+    {
+     "predicate": "held_by",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "cube",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "gripper",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "desired_effect",
+     "persistence_seconds": 0.0
+    }
+   ],
+   "completion": [
+    {
+     "predicate": "held_by",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "cube",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "gripper",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.3
+    }
+   ],
+   "resources": [
+    {
+     "entity": {
+      "id": "gripper",
+      "version": 0
+     },
+     "mode": "exclusive_control"
+    }
+   ],
+   "produces": [],
+   "timeout_seconds": 20,
+   "recovery": {
+    "max_attempts": 2,
+    "on_failure": "reobserve_then_retry"
+   }
+  },
+  {
+   "id": "place",
+   "operator": "place",
+   "roles": [
+    {
+     "role": "actor",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "gripper",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "patient",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "cube",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "destination",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "target",
+       "version": 0
+      }
+     }
+    }
+   ],
+   "requires_completed": [
+    "grasp"
+   ],
+   "requires_active": [],
+   "preconditions": [
+    {
+     "predicate": "held_by",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "cube",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "gripper",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.0
+    }
+   ],
+   "invariants": [],
+   "desired_effects": [
+    {
+     "predicate": "in_region",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "cube",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "target",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "desired_effect",
+     "persistence_seconds": 0.0
+    },
+    {
+     "predicate": "held_by",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "cube",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "gripper",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": false,
+     "source": "desired_effect",
+     "persistence_seconds": 0.0
+    }
+   ],
+   "completion": [
+    {
+     "predicate": "in_region",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "cube",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "target",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.3
+    },
+    {
+     "predicate": "held_by",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "cube",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "gripper",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": false,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.3
+    }
+   ],
+   "resources": [
+    {
+     "entity": {
+      "id": "gripper",
+      "version": 0
+     },
+     "mode": "exclusive_control"
+    }
+   ],
+   "produces": [
+    {
+     "name": "placed",
+     "type": "completion_receipt",
+     "availability": "on_success"
+    }
+   ],
+   "timeout_seconds": 25,
+   "recovery": {
+    "max_attempts": 2,
+    "on_failure": "reobserve_then_retry"
+   }
+  }
+ ],
+ "success_events": [
+  "place"
+ ]
+}

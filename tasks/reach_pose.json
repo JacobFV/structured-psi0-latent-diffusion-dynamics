@@ -1,0 +1,95 @@
+{
+ "schema_version": "1.0",
+ "task_id": "reach_pose",
+ "graph_version": 1,
+ "entity_declarations": [
+  {
+   "id": "gripper",
+   "type": "manipulator",
+   "descriptor": "assembly assigned to reach"
+  },
+  {
+   "id": "goal",
+   "type": "feature",
+   "descriptor": "blue goal marker"
+  }
+ ],
+ "events": [
+  {
+   "id": "reach",
+   "operator": "reach",
+   "roles": [
+    {
+     "role": "actor",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "gripper",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "target",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "goal",
+       "version": 0
+      }
+     }
+    }
+   ],
+   "requires_completed": [],
+   "requires_active": [],
+   "preconditions": [],
+   "invariants": [],
+   "desired_effects": [],
+   "completion": [
+    {
+     "predicate": "distance_m",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "gripper",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "goal",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "le",
+     "value": 0.03,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.25
+    }
+   ],
+   "resources": [
+    {
+     "entity": {
+      "id": "gripper",
+      "version": 0
+     },
+     "mode": "exclusive_control"
+    }
+   ],
+   "produces": [],
+   "timeout_seconds": 15,
+   "recovery": {
+    "max_attempts": 2,
+    "on_failure": "reobserve_then_retry"
+   }
+  }
+ ],
+ "success_events": [
+  "reach"
+ ]
+}
