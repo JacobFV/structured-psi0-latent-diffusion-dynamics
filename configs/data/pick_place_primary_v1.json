@@ -1,7 +1,7 @@
 {
  "name": "pick_place_primary_v1",
  "out_dir": "artifacts/datasets/pick_place_primary_v1",
- "workers": 18,
+ "workers": 12,
  "max_distractors": 2,
  "items": [
   {

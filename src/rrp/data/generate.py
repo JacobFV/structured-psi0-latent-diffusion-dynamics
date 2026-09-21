@@ -15,6 +15,18 @@ _ROBOT_CACHE = {}
 
 def _job(args):
     robot_key, task, seed, n_distr, out_dir, split = args
+    eid = f"{task}_{robot_key}_s{seed}"
+    done = Path(out_dir) / "episodes" / f"{eid}.public.pkl.gz"
+    if done.exists() and (Path(out_dir) / "episodes" / f"{eid}.private.pkl.gz").exists():
+        from rrp.data.collect import read_episode
+        import hashlib
+        try:   # resume: reuse the completed episode (verified readable)
+            meta = read_episode(done)["meta"]
+            meta = dict(meta, files={p.name: hashlib.sha256(p.read_bytes()).hexdigest()[:16]
+                                     for p in (done, done.with_name(f"{eid}.private.pkl.gz"))}, resumed=True)
+            return meta
+        except Exception:  # noqa: BLE001 - corrupt partial file: regenerate
+            pass
     from rrp.morphology.catalog import workbench_robots
     from rrp.sim.scenario import BUILDERS
     from rrp.sim.native import Session
