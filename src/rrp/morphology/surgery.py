@@ -139,14 +139,21 @@ def _attach_once(body: Module | Assembled, module: Module, port_id: str, *, pref
         model = host_spec.copy().compile()
     except ValueError as e:
         raise AttachmentError(f"compile failed after attach: {e}") from e
-    validation = validate_physics(model, steps=validate_steps)
+    init = {}
+    if meta.get("home"):
+        arm_acts = next((g["actuators"] for g in meta["controller"]["groups"] if g["name"] == "arm"), [])
+        for a, v in zip(arm_acts, meta["home"]):
+            u = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, a)
+            if u >= 0:
+                init[model.joint(model.actuator_trnid[u, 0]).name] = v
+    validation = validate_physics(model, steps=validate_steps, init_qpos=init)
     if not validation["ok"]:
         raise AttachmentError(f"physics validation failed: {validation['failures']}")
     rs = compile_robot_spec(model, meta, prefix="", name=meta["name"])
     return Assembled(host_spec, meta, model, rs, validation)
 
 
-def validate_physics(model: mujoco.MjModel, steps: int = 400) -> dict:
+def validate_physics(model: mujoco.MjModel, steps: int = 400, init_qpos: dict | None = None) -> dict:
     """Finite dynamics, positive inertia, unique names, bounded motion under hold commands,
     and no deep initial penetration between non-adjacent bodies."""
     failures = []
@@ -163,6 +170,10 @@ def validate_physics(model: mujoco.MjModel, steps: int = 400) -> dict:
         if np.any(model.body_inertia[b] < 0):
             failures.append(f"negative_inertia:{model.body(b).name}")
     d = mujoco.MjData(model)
+    for jn, v in (init_qpos or {}).items():   # validate at the asset's declared home pose
+        jid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, jn)
+        if jid >= 0:
+            d.qpos[model.jnt_qposadr[jid]] = v
     mujoco.mj_forward(model, d)
     # hold commands: position actuators hold current joint positions
     for u in range(model.nu):

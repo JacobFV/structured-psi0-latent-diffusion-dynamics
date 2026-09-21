@@ -64,6 +64,8 @@ class PickPlaceTeacher:
         self.tcp_site = self.r.tcp_sites[next(a.id for a in self.r.spec.assemblies if a.kind in ("gripper", "hand"))]
         self.base = np.array(session.scenario.robots[robot].base_pos)
         self.grasp_xyz = None
+        self.ioff = np.zeros(3)
+        self.last_tcp = None
 
     def _body(self, name):
         m, d = self.s.model, self.s.data
@@ -99,25 +101,33 @@ class PickPlaceTeacher:
         if self.phase in ("pregrasp", "descend"):
             self.yaw = _yaw_of_quat(cq)
             self.yaw = (self.yaw + np.pi / 4) % (np.pi / 2) - np.pi / 4   # cube symmetry
-        goal = self._goal()
+        goal_true = self._goal()
+        # integral correction of steady-state tracking error (gravity/finite servo gains)
+        err_vec = goal_true - tcp_now
+        if np.linalg.norm(self.tcp_cmd - goal_true) < 1e-6 and np.linalg.norm(err_vec) < 0.04:
+            self.ioff = np.clip(self.ioff + 0.25 * err_vec, -0.04, 0.04)
+        goal = goal_true + self.ioff
         d = goal - self.tcp_cmd
         n = np.linalg.norm(d)
         step = self.speed * dt
         self.tcp_cmd = goal.copy() if n <= step else self.tcp_cmd + d / n * step
-        err = np.linalg.norm(goal - tcp_now)
-        if self.phase == "pregrasp" and err < 0.015 and n < 1e-6:
+        err = np.linalg.norm(goal_true - tcp_now)
+        speed = np.linalg.norm(tcp_now - self.last_tcp) / dt if self.last_tcp is not None else 1.0
+        self.last_tcp = tcp_now
+        stalled = n < 1e-6 and speed < 0.01 and self.t_phase > 1.0
+        if self.phase == "pregrasp" and (err < 0.015 or (stalled and err < 0.03)) and n < 1e-6:
             self._next("descend")
-        elif self.phase == "descend" and err < 0.008 and n < 1e-6:
+        elif self.phase == "descend" and (err < 0.008 or (stalled and err < 0.015)) and n < 1e-6:
             self._next("close")
         elif self.phase == "close":
             self.grip = self.closed_v
             if self.t_phase > 0.7:
                 self._next("lift")
-        elif self.phase == "lift" and n < 1e-6 and err < 0.02:
+        elif self.phase == "lift" and n < 1e-6 and (err < 0.02 or (stalled and err < 0.04)):
             self._next("transport")
-        elif self.phase == "transport" and n < 1e-6 and err < 0.015:
+        elif self.phase == "transport" and n < 1e-6 and (err < 0.015 or (stalled and err < 0.03)):
             self._next("lower")
-        elif self.phase == "lower" and n < 1e-6 and err < 0.01:
+        elif self.phase == "lower" and n < 1e-6 and (err < 0.01 or (stalled and err < 0.02)):
             self._next("open")
         elif self.phase == "open":
             self.grip = self.open_v
@@ -129,7 +139,7 @@ class PickPlaceTeacher:
         return NativeCommand(controller_version=self.r.controller.version,
                              groups={"arm": q.tolist(), "gripper": [float(self.grip)]}, source=SOURCE)
 
-    _STATE = ("phase", "t_phase", "tcp_cmd", "grip", "q_arm", "yaw", "grasp_xyz")
+    _STATE = ("phase", "t_phase", "tcp_cmd", "grip", "q_arm", "yaw", "grasp_xyz", "ioff", "last_tcp")
 
     def state(self) -> dict:
         import copy
@@ -141,6 +151,7 @@ class PickPlaceTeacher:
             setattr(self, k, copy.deepcopy(st[k]))
 
     def _next(self, p):
+        self.ioff = np.zeros(3) if p in ("transport", "retreat") else self.ioff
         if p == "close":
             self.grasp_xyz = self.tcp_cmd.copy()   # freeze: later goals must not chase the held object
         self.phase, self.t_phase = p, 0.0
