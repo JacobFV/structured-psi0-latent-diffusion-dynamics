@@ -1,0 +1,42 @@
+{
+ "checkpoint": "artifacts/runs/adapt_start_bc_xarm7pg2_only_v2/policy.pt",
+ "robot": "xarm7_pg2",
+ "train_seed_start": 2000000,
+ "eval_seed_start": 3000000,
+ "eval_episodes": 64,
+ "eval_batch": 32,
+ "budgets": [
+  0,
+  10000,
+  50000
+ ],
+ "max_steps": 300,
+ "execute_prefix": 8,
+ "nfe": 8,
+ "seed": 0,
+ "note": "P18/P19 v3: SUFFIX adaptation. Scripted teacher (privileged planner, labelled) executes to the public grasp boundary; the learned policy controls the suffix. Start = feat-v2 single-robot BC on 150 xarm7_pg2 demos (base: full 0/32, suffix 0/32 [12 cube falls]). Reward = privileged sim success + 0.5*(1-min(d_cube_zone/0.3,1)) privileged shaping (sim only), identical for all methods. Budget = all new control transitions incl. teacher prefix steps; learned-only transitions reported. Hyperparameters fixed a priori.",
+ "name": "adapt_grpo_prefix_suffix_xarm7pg2_v3",
+ "method": "grpo_shared_prefix",
+ "groups_per_iter": 4,
+ "branch_event": "grasp",
+ "grpo": {
+  "group_size": 8,
+  "clip": 0.2,
+  "lr": 3e-05,
+  "weight_decay": 0.01,
+  "grad_clip": 1.0,
+  "epochs": 4,
+  "minibatch": 64,
+  "kl_coef": 0.0,
+  "trainable": "action_expert",
+  "sde": {
+   "nfe": 8,
+   "noise_level": 0.5,
+   "first_step": "clamp",
+   "last_step": "stochastic"
+  }
+ },
+ "out_dir": "artifacts/runs/adapt_grpo_prefix_suffix_xarm7pg2_v3",
+ "prefix_source": "teacher",
+ "shaping_dist": 0.5
+}
