@@ -14,8 +14,8 @@ _ROBOT_CACHE = {}
 
 
 def _job(args):
-    robot_key, task, seed, n_distr, out_dir, split = args
-    eid = f"{task}_{robot_key}_s{seed}"
+    robot_key, task, seed, n_distr, out_dir, split, noise = (list(args) + [0.0])[:7]
+    eid = f"{task}_{robot_key}_s{seed}" + (f"_dart{int(noise * 1000)}" if noise else "")
     done = Path(out_dir) / "episodes" / f"{eid}.public.pkl.gz"
     if done.exists() and (Path(out_dir) / "episodes" / f"{eid}.private.pkl.gz").exists():
         from rrp.data.collect import read_episode
@@ -36,8 +36,8 @@ def _job(args):
     robot = _ROBOT_CACHE[robot_key]
     kw = {"n_distractors": n_distr} if task == "pick_place" else {}
     sess = Session(BUILDERS[task](robot, seed, **kw), seed=seed)
-    eid = f"{task}_{robot_key}_s{seed}"
-    rec = collect_teacher_episode(sess, episode_id=eid, split_lineage=dict(split=split, robot_key=robot_key))
+    rec = collect_teacher_episode(sess, episode_id=eid, split_lineage=dict(split=split, robot_key=robot_key),
+                                  exec_noise=noise, noise_seed=seed)
     rec.public["meta"]["robot_key"] = robot_key
     return write_episode(rec, Path(out_dir) / "episodes")
 
@@ -49,8 +49,9 @@ def generate(config: dict) -> dict:
     for item in config["items"]:
         for k in range(item["episodes"]):
             seed = item["seed_start"] + k
-            jobs.append((item["robot"], item.get("task", "pick_place"), seed, k % (config.get("max_distractors", 2) + 1),
-                         str(out), item["split"]))
+            for noise in [0.0] + list(item.get("dart_noise", config.get("dart_noise", []))):
+                jobs.append((item["robot"], item.get("task", "pick_place"), seed,
+                             k % (config.get("max_distractors", 2) + 1), str(out), item["split"], noise))
     t0 = time.time()
     metas = []
     import multiprocessing as mp

@@ -76,7 +76,10 @@ class EpisodeRecord:
 
 
 def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_steps: int = 600,
-                            episode_id: str = "", split_lineage: dict | None = None) -> EpisodeRecord:
+                            episode_id: str = "", split_lineage: dict | None = None,
+                            exec_noise: float = 0.0, noise_seed: int = 0) -> EpisodeRecord:
+    """exec_noise > 0 (DART): executed ARM command = teacher command + N(0, exec_noise) held for a few
+    steps; the recorded LABEL is always the clean teacher command, so data covers recovery states."""
     feat = featurizer_for(session)
     teacher = teacher_cls(session)
     f = teacher.feasibility() if hasattr(teacher, "feasibility") else {"feasible": True}
@@ -85,6 +88,8 @@ def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_
     obs = session.observe()
     prev = None
     status = "infeasible" if not f["feasible"] else "running"
+    nrng = np.random.default_rng([noise_seed, 7])
+    nz = None
     steps = 0
     if f["feasible"]:
         for k in range(max_steps):
@@ -93,6 +98,14 @@ def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_
             a = feat.aspace.normalize([cmd.groups], pi.q0)[0]
             inputs.append(pi)
             actions.append(cmd.groups)
+            if exec_noise > 0:
+                if k % 5 == 0:
+                    nz = nrng.normal(0, exec_noise, len(cmd.groups["arm"]))
+                g = feat.aspace
+                arm_lo = [lo for lo, grp in zip(g.lower, g.node_group) if grp == "arm"]
+                arm_hi = [hi for hi, grp in zip(g.upper, g.node_group) if grp == "arm"]
+                noisy = np.clip(np.array(cmd.groups["arm"]) + nz, arm_lo, arm_hi)
+                cmd = cmd.model_copy(update={"groups": dict(cmd.groups, arm=noisy.tolist())})
             q0s.append(pi.q0)
             labels.append(privileged_labels(session, feat))
             phases.append(teacher.phase)
@@ -112,7 +125,7 @@ def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_
                 seed=session.seed, control_dt=session.dt, physics_dt=float(session.model.opt.timestep),
                 steps=steps, status=status, feasibility=f, source="scripted_teacher", privileged_teacher=True,
                 public_runtime_success=bool(session.runtime.succeeded()), featurizer=FEATURIZER_VERSION,
-                wall_s=time.time() - t0, split_lineage=split_lineage or {},
+                wall_s=time.time() - t0, split_lineage=split_lineage or {}, exec_noise=exec_noise,
                 n_distractors=session.scenario.meta.get("n_distractors", 0))
     public = dict(meta=meta, inputs=inputs, actions=actions, q0=q0s, statuses=statuses,
                   action_space=dict(node_group=feat.aspace.node_group, node_col=feat.aspace.node_col,

@@ -1,0 +1,144 @@
+{
+ "name": "pick_place_primary_v3dart",
+ "out_dir": "artifacts/datasets/pick_place_primary_v3dart",
+ "workers": 6,
+ "max_distractors": 2,
+ "items": [
+  {
+   "robot": "parm5_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 300,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "parm5_tf3",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 300,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "parm5s_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 300,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "parm5l_tf3",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 300,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "parm6_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 300,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "parm6_tf3",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 300,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "parm7_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 300,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "parm7_tf3",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 300,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "panda_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 300,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "ur5e_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 300,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "ur5e_tf3",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 300,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "sawyer_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 300,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "sawyer_tf3",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 300,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "xarm7_pg2",
+   "split": "target_demos",
+   "seed_start": 1000000,
+   "episodes": 150
+  },
+  {
+   "robot": "xarm7_tf3",
+   "split": "target_demos",
+   "seed_start": 1000000,
+   "episodes": 150
+  },
+  {
+   "robot": "panda_tf3",
+   "split": "target_demos",
+   "seed_start": 1000000,
+   "episodes": 150
+  }
+ ],
+ "split_file": "research/splits/primary_v1.json"
+}

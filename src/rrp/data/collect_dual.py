@@ -106,7 +106,11 @@ def _job(args):
     sess = make_session(task, pair, seed)
     rec = collect_dual_episode(sess, TEACHERS[task](sess), max_steps=max_steps, episode_id=eid,
                                split_lineage=dict(split=split, robot_key=pair), pair_key=pair)
-    return write_episode(rec, ep_dir)
+    meta = write_episode(rec, ep_dir)
+    del rec, sess
+    import gc
+    gc.collect()      # sessions hold MuJoCo buffers in reference cycles; free them per episode
+    return meta
 
 
 def generate(config: dict) -> dict:
@@ -135,8 +139,8 @@ def generate(config: dict) -> dict:
                 pass
         todo.append(j)
     print(f"[collect_dual] resumed {len(metas)}, to generate {len(todo)}", flush=True)
-    # workers keep at most one robot pair cached (dual_validate.make_pair), so no task-count recycling
-    with ProcessPoolExecutor(max_workers=config.get("workers", os.cpu_count())) as ex:
+    # workers keep one robot pair cached (dual_validate.make_pair); recycled every 25 real episodes
+    with ProcessPoolExecutor(max_workers=config.get("workers", os.cpu_count()), max_tasks_per_child=25) as ex:
         futs = [ex.submit(_job, j) for j in todo]
         for i, f in enumerate(as_completed(futs)):
             try:
