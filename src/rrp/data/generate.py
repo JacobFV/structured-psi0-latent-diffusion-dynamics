@@ -53,7 +53,9 @@ def generate(config: dict) -> dict:
                          str(out), item["split"]))
     t0 = time.time()
     metas = []
-    with ProcessPoolExecutor(max_workers=config.get("workers", os.cpu_count()), max_tasks_per_child=200) as ex:
+    import multiprocessing as mp
+    with ProcessPoolExecutor(max_workers=config.get("workers", os.cpu_count()),
+                             mp_context=mp.get_context("spawn")) as ex:
         futs = [ex.submit(_job, j) for j in jobs]   # jobs are grouped by robot (config order)
         for i, f in enumerate(as_completed(futs)):
             try:
