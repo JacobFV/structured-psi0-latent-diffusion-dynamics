@@ -49,6 +49,48 @@
    "split": "source_train",
    "seed_start": 0,
    "episodes": 150
+  },
+  {
+   "task": "support_insert",
+   "pair": "parm5l_pg2__parm5s_tf3",
+   "split": "source_heldout_eval",
+   "seed_start": 3000000,
+   "episodes": 60
+  },
+  {
+   "task": "support_insert",
+   "pair": "xarm7_pg2__xarm7_pg2",
+   "split": "target:held_out_arm_family",
+   "seed_start": 1000000,
+   "episodes": 60
+  },
+  {
+   "task": "support_insert",
+   "pair": "xarm7_tf3__xarm7_pg2",
+   "split": "target:held_out_arm_family",
+   "seed_start": 1000000,
+   "episodes": 60
+  },
+  {
+   "task": "support_insert",
+   "pair": "ur5e_pg2__panda_tf3",
+   "split": "target:held_out_attachment_combination_on_insertion_arm",
+   "seed_start": 1000000,
+   "episodes": 60
+  },
+  {
+   "task": "support_insert",
+   "pair": "parm6_pg2__panda_tf3",
+   "split": "target:held_out_attachment_combination_on_insertion_arm",
+   "seed_start": 1000000,
+   "episodes": 60
+  },
+  {
+   "task": "support_insert",
+   "pair": "aloha",
+   "split": "target:held_out_dual_arm_body",
+   "seed_start": 1000000,
+   "episodes": 60
   }
  ]
 }

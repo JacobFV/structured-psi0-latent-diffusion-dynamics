@@ -5,25 +5,108 @@
  "basis": "written before any support_insert dataset or policy result existed; pair membership follows primary_v1 lineage rules; eligibility below uses only scripted_teacher validation (artifacts/assets/dual_teacher_validation/support_insert_30seeds_v2.jsonl, seeds 0-29)",
  "task": "support_insert",
  "task_graph": "tasks/support_and_insert.json",
- "role_convention": {"pair_key": "<left_robot>__<right_robot>", "left": "support arm (maintain_support, exports contact anchor)",
-                      "right": "insertion arm (acquire peg, align, insert)", "dual_body": "a single dual-arm body binds left/right to its two gripper assemblies"},
- "source_train_pairs": ["parm5_pg2__parm5_pg2", "parm6_pg2__parm7_tf3", "parm7_pg2__parm5_tf3", "parm6_tf3__parm6_pg2",
-                        "parm5_tf3__parm7_pg2", "panda_pg2__ur5e_pg2", "ur5e_pg2__sawyer_pg2", "sawyer_pg2__panda_pg2",
-                        "ur5e_tf3__parm6_pg2", "sawyer_tf3__ur5e_pg2"],
- "source_heldout_eval_pairs": ["parm5l_pg2__parm5s_tf3"],
- "targets": {
-  "held_out_arm_family": {"pairs": ["xarm7_pg2__xarm7_pg2", "xarm7_tf3__xarm7_pg2"], "family": "menagerie/ufactory",
-                          "rule": "no xarm7_* or lite6_* robot in any source pair (either role)"},
-  "held_out_attachment_combination_on_insertion_arm": {"pairs": ["ur5e_pg2__panda_tf3", "parm6_pg2__panda_tf3"],
-                          "rule": "panda_tf3 never appears in a source pair (either role); panda seen only with pg2, tf3 seen only on other arms; fr3_* excluded (franka near-duplicate)"},
-  "held_out_dual_arm_body": {"pairs": ["aloha"], "family": "menagerie/trossen (ALOHA 2, ViperX-300 derived)",
-                          "rule": "diagnostic target: a single body carrying both roles; no trossen lineage in source; reported separately from two-body pairs"}
+ "role_convention": {
+  "pair_key": "<left_robot>__<right_robot>",
+  "left": "support arm (maintain_support, exports contact anchor)",
+  "right": "insertion arm (acquire peg, align, insert)",
+  "dual_body": "a single dual-arm body binds left/right to its two gripper assemblies"
  },
- "excluded": {"fr3_*": "franka near-duplicate lineage", "z1_*": "low teacher feasibility on pick_place", "lite6_*": "ufactory family (held out)",
-              "parm5s_tf3 / parm5l_pg2 in source pairs": "primary_v1 source held-out evaluation robots"},
+ "source_train_pairs": [
+  "parm5_pg2__parm5_pg2",
+  "parm6_pg2__parm7_tf3",
+  "parm7_pg2__parm5_tf3",
+  "parm6_tf3__parm6_pg2",
+  "parm5_tf3__parm7_pg2",
+  "panda_pg2__ur5e_pg2",
+  "ur5e_pg2__sawyer_pg2",
+  "sawyer_pg2__panda_pg2",
+  "ur5e_tf3__parm6_pg2",
+  "sawyer_tf3__ur5e_pg2"
+ ],
+ "source_heldout_eval_pairs": [
+  "parm5l_pg2__parm5s_tf3"
+ ],
+ "targets": {
+  "held_out_arm_family": {
+   "pairs": [
+    "xarm7_pg2__xarm7_pg2",
+    "xarm7_tf3__xarm7_pg2"
+   ],
+   "family": "menagerie/ufactory",
+   "rule": "no xarm7_* or lite6_* robot in any source pair (either role)"
+  },
+  "held_out_attachment_combination_on_insertion_arm": {
+   "pairs": [
+    "ur5e_pg2__panda_tf3",
+    "parm6_pg2__panda_tf3"
+   ],
+   "rule": "panda_tf3 never appears in a source pair (either role); panda seen only with pg2, tf3 seen only on other arms; fr3_* excluded (franka near-duplicate)"
+  },
+  "held_out_dual_arm_body": {
+   "pairs": [
+    "aloha"
+   ],
+   "family": "menagerie/trossen (ALOHA 2, ViperX-300 derived)",
+   "rule": "diagnostic target: a single body carrying both roles; no trossen lineage in source; reported separately from two-body pairs"
+  }
+ },
+ "excluded": {
+  "fr3_*": "franka near-duplicate lineage",
+  "z1_*": "low teacher feasibility on pick_place",
+  "lite6_*": "ufactory family (held out)",
+  "parm5s_tf3 / parm5l_pg2 in source pairs": "primary_v1 source held-out evaluation robots"
+ },
  "teacher_eligibility_rule": "a source pair enters demonstration generation only if scripted_teacher success/feasible >= 0.5 over seeds 0-29; targets are generated for adaptation/evaluation regardless and their teacher rates are reported (a teacher-ineligible target is marked, not dropped silently)",
- "seed_ranges": {"teacher_validation": [0, 30], "source_train_demos": [0, 100000], "target_adaptation_demos": [1000000, 1100000],
-                 "evaluation_scenes": [2000000, 2100000], "development_eval_scenes": [3000000, 3100000]},
+ "seed_ranges": {
+  "teacher_validation": [
+   0,
+   30
+  ],
+  "source_train_demos": [
+   0,
+   100000
+  ],
+  "target_adaptation_demos": [
+   1000000,
+   1100000
+  ],
+  "evaluation_scenes": [
+   2000000,
+   2100000
+  ],
+  "development_eval_scenes": [
+   3000000,
+   3100000
+  ]
+ },
  "lineage_rule": "inherits primary_v1: no menagerie family and no (arm,module) combination of a target may appear in source training, in either role",
- "resolved_eligibility": "appended after validation, before dataset generation (see research/decisions.md D-dual-2)"
+ "resolved_eligibility": {
+  "decisions": [
+   "D-014",
+   "D-015"
+  ],
+  "validation": "artifacts/assets/dual_teacher_validation/support_insert_30seeds_final.jsonl",
+  "eligible_source_train_pairs": [
+   "parm5_pg2__parm5_pg2",
+   "parm5_tf3__parm7_pg2",
+   "parm6_tf3__parm6_pg2",
+   "parm7_pg2__parm5_tf3",
+   "panda_pg2__ur5e_pg2",
+   "ur5e_pg2__sawyer_pg2"
+  ],
+  "ineligible_source_train_pairs": {
+   "parm6_pg2__parm7_tf3": "10/22 feasible",
+   "sawyer_pg2__panda_pg2": "0/30",
+   "sawyer_tf3__ur5e_pg2": "0/30",
+   "ur5e_tf3__parm6_pg2": "0/19 feasible"
+  },
+  "target_teacher_rates": {
+   "xarm7_pg2__xarm7_pg2": "30/30",
+   "xarm7_tf3__xarm7_pg2": "30/30",
+   "ur5e_pg2__panda_tf3": "3/30 (teacher-weak)",
+   "parm6_pg2__panda_tf3": "11/30 (teacher-weak)",
+   "aloha": "22/30"
+  },
+  "appended_utc": "2026-09-21, before any policy result"
+ }
 }

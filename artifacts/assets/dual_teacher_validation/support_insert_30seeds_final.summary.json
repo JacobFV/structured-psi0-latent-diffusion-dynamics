@@ -1,0 +1,263 @@
+{
+ "support_insert|aloha": {
+  "agree": 26,
+  "error": 0,
+  "failure": 8,
+  "infeasible": 0,
+  "n": 30,
+  "public_success": 20,
+  "reasons": {
+   "ended_in_phase:L:l_done|R:r_retreat": 1,
+   "ended_in_phase:L:l_hold|R:r_align": 7
+  },
+  "retried": 11,
+  "success": 22,
+  "success_rate_all": 0.7333333333333333,
+  "success_rate_feasible": 0.7333333333333333
+ },
+ "support_insert|panda_pg2__ur5e_pg2": {
+  "agree": 30,
+  "error": 0,
+  "failure": 0,
+  "infeasible": 0,
+  "n": 30,
+  "public_success": 30,
+  "reasons": {},
+  "retried": 0,
+  "success": 30,
+  "success_rate_all": 1.0,
+  "success_rate_feasible": 1.0
+ },
+ "support_insert|parm5_pg2__parm5_pg2": {
+  "agree": 30,
+  "error": 0,
+  "failure": 0,
+  "infeasible": 3,
+  "n": 30,
+  "public_success": 27,
+  "reasons": {
+   "infeasible:right.grasp": 3
+  },
+  "retried": 0,
+  "success": 27,
+  "success_rate_all": 0.9,
+  "success_rate_feasible": 1.0
+ },
+ "support_insert|parm5_tf3__parm7_pg2": {
+  "agree": 30,
+  "error": 0,
+  "failure": 2,
+  "infeasible": 7,
+  "n": 30,
+  "public_success": 21,
+  "reasons": {
+   "ended_in_phase:L:l_hold|R:r_descend": 1,
+   "ended_in_phase:L:l_hold|R:r_lift": 1,
+   "infeasible:right.grasp": 7
+  },
+  "retried": 2,
+  "success": 21,
+  "success_rate_all": 0.7,
+  "success_rate_feasible": 0.9130434782608695
+ },
+ "support_insert|parm5l_pg2__parm5s_tf3": {
+  "agree": 17,
+  "error": 0,
+  "failure": 10,
+  "infeasible": 1,
+  "n": 30,
+  "public_success": 16,
+  "reasons": {
+   "ended_in_phase:L:l_done|R:r_done": 5,
+   "ended_in_phase:L:l_hold|R:r_align": 2,
+   "ended_in_phase:L:l_hold|R:r_approach": 1,
+   "ended_in_phase:L:l_hold|R:r_insert": 2,
+   "infeasible:right.transit": 1
+  },
+  "retried": 13,
+  "success": 19,
+  "success_rate_all": 0.6333333333333333,
+  "success_rate_feasible": 0.6551724137931034
+ },
+ "support_insert|parm6_pg2__panda_tf3": {
+  "agree": 25,
+  "error": 0,
+  "failure": 19,
+  "infeasible": 0,
+  "n": 30,
+  "public_success": 6,
+  "reasons": {
+   "ended_in_phase:L:l_hold|R:r_align": 3,
+   "ended_in_phase:L:l_hold|R:r_approach": 5,
+   "ended_in_phase:L:l_hold|R:r_descend": 7,
+   "ended_in_phase:L:l_hold|R:r_lift": 2,
+   "ended_in_phase:L:l_hold|R:r_transit": 2
+  },
+  "retried": 24,
+  "success": 11,
+  "success_rate_all": 0.36666666666666664,
+  "success_rate_feasible": 0.36666666666666664
+ },
+ "support_insert|parm6_pg2__parm7_tf3": {
+  "agree": 23,
+  "error": 0,
+  "failure": 12,
+  "infeasible": 8,
+  "n": 30,
+  "public_success": 15,
+  "reasons": {
+   "ended_in_phase:L:l_done|R:r_done": 6,
+   "ended_in_phase:L:l_hold|R:r_descend": 1,
+   "ended_in_phase:L:l_hold|R:r_insert": 3,
+   "ended_in_phase:L:l_hold|R:r_lift": 2,
+   "infeasible:right.grasp": 8
+  },
+  "retried": 7,
+  "success": 10,
+  "success_rate_all": 0.3333333333333333,
+  "success_rate_feasible": 0.45454545454545453
+ },
+ "support_insert|parm6_tf3__parm6_pg2": {
+  "agree": 30,
+  "error": 0,
+  "failure": 0,
+  "infeasible": 11,
+  "n": 30,
+  "public_success": 19,
+  "reasons": {
+   "infeasible:right.grasp": 11
+  },
+  "retried": 0,
+  "success": 19,
+  "success_rate_all": 0.6333333333333333,
+  "success_rate_feasible": 1.0
+ },
+ "support_insert|parm7_pg2__parm5_tf3": {
+  "agree": 26,
+  "error": 0,
+  "failure": 8,
+  "infeasible": 3,
+  "n": 30,
+  "public_success": 21,
+  "reasons": {
+   "ended_in_phase:L:l_done|R:r_done": 3,
+   "ended_in_phase:L:l_hold|R:r_approach": 3,
+   "ended_in_phase:L:l_hold|R:r_descend": 1,
+   "ended_in_phase:L:l_hold|R:r_insert": 1,
+   "infeasible:right.grasp": 3
+  },
+  "retried": 6,
+  "success": 19,
+  "success_rate_all": 0.6333333333333333,
+  "success_rate_feasible": 0.7037037037037037
+ },
+ "support_insert|sawyer_pg2__panda_pg2": {
+  "agree": 30,
+  "error": 0,
+  "failure": 30,
+  "infeasible": 0,
+  "n": 30,
+  "public_success": 0,
+  "reasons": {
+   "ended_in_phase:L:l_hold|R:r_align": 8,
+   "ended_in_phase:L:l_hold|R:r_approach": 2,
+   "ended_in_phase:L:l_hold|R:r_transit": 20
+  },
+  "retried": 30,
+  "success": 0,
+  "success_rate_all": 0.0,
+  "success_rate_feasible": 0.0
+ },
+ "support_insert|sawyer_tf3__ur5e_pg2": {
+  "agree": 30,
+  "error": 0,
+  "failure": 30,
+  "infeasible": 0,
+  "n": 30,
+  "public_success": 0,
+  "reasons": {
+   "ended_in_phase:L:l_hold|R:r_align": 30
+  },
+  "retried": 30,
+  "success": 0,
+  "success_rate_all": 0.0,
+  "success_rate_feasible": 0.0
+ },
+ "support_insert|ur5e_pg2__panda_tf3": {
+  "agree": 29,
+  "error": 0,
+  "failure": 27,
+  "infeasible": 0,
+  "n": 30,
+  "public_success": 2,
+  "reasons": {
+   "ended_in_phase:L:l_hold|R:r_align": 3,
+   "ended_in_phase:L:l_hold|R:r_approach": 8,
+   "ended_in_phase:L:l_hold|R:r_descend": 7,
+   "ended_in_phase:L:l_hold|R:r_insert": 2,
+   "ended_in_phase:L:l_hold|R:r_lift": 2,
+   "ended_in_phase:L:l_hold|R:r_transit": 5
+  },
+  "retried": 28,
+  "success": 3,
+  "success_rate_all": 0.1,
+  "success_rate_feasible": 0.1
+ },
+ "support_insert|ur5e_pg2__sawyer_pg2": {
+  "agree": 30,
+  "error": 0,
+  "failure": 3,
+  "infeasible": 0,
+  "n": 30,
+  "public_success": 27,
+  "reasons": {
+   "ended_in_phase:L:l_hold|R:r_descend": 3
+  },
+  "retried": 3,
+  "success": 27,
+  "success_rate_all": 0.9,
+  "success_rate_feasible": 0.9
+ },
+ "support_insert|ur5e_tf3__parm6_pg2": {
+  "agree": 30,
+  "error": 0,
+  "failure": 19,
+  "infeasible": 11,
+  "n": 30,
+  "public_success": 0,
+  "reasons": {
+   "ended_in_phase:L:l_hold|R:r_wait": 19,
+   "infeasible:right.grasp": 11
+  },
+  "retried": 19,
+  "success": 0,
+  "success_rate_all": 0.0,
+  "success_rate_feasible": 0.0
+ },
+ "support_insert|xarm7_pg2__xarm7_pg2": {
+  "agree": 30,
+  "error": 0,
+  "failure": 0,
+  "infeasible": 0,
+  "n": 30,
+  "public_success": 30,
+  "reasons": {},
+  "retried": 0,
+  "success": 30,
+  "success_rate_all": 1.0,
+  "success_rate_feasible": 1.0
+ },
+ "support_insert|xarm7_tf3__xarm7_pg2": {
+  "agree": 30,
+  "error": 0,
+  "failure": 0,
+  "infeasible": 0,
+  "n": 30,
+  "public_success": 30,
+  "reasons": {},
+  "retried": 0,
+  "success": 30,
+  "success_rate_all": 1.0,
+  "success_rate_feasible": 1.0
+ }
+}
