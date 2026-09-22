@@ -198,3 +198,16 @@ def snapshot(disk_path: str | Path, project_slice: str = "rrp.slice") -> HostSna
         system_memory_pressure=read_psi(Path("/proc/pressure/memory")),
         disk=disk_usage(disk_path), thermal_max_c=cpu_thermal_max_c(),
         project_cgroup=read_cgroup(slice_cgroup_path(project_slice)), errors=errors)
+
+
+def cpu_freq_ratio() -> float | None:
+    """min over cpus of current/max frequency (None if unavailable)."""
+    ratios = []
+    for c in Path("/sys/devices/system/cpu").glob("cpu[0-9]*/cpufreq"):
+        try:
+            cur = int((c / "scaling_cur_freq").read_text())
+            mx = int((c / "cpuinfo_max_freq").read_text())
+            ratios.append(cur / mx)
+        except (OSError, ValueError, ZeroDivisionError):
+            pass
+    return min(ratios) if ratios else None

@@ -61,7 +61,12 @@ def test_telemetry_failure_stops_admission():
 
 def test_disk_and_thermal():
     assert evaluate(ok_sample(disk_free=50 * G), cfg(), WatchdogState()).level == "shed"
-    assert evaluate(ok_sample(gpu_temp_c=95.0), cfg(), WatchdogState()).level == "shed"
+    assert evaluate(ok_sample(gpu_temp_c=96.0), cfg(), WatchdogState()).level == "shed"
+    assert evaluate(ok_sample(thermal_c=96.0, cpu_freq_ratio=1.0), cfg(), WatchdogState()).level == "ok"
+    assert evaluate(ok_sample(thermal_c=98.0, cpu_freq_ratio=1.0), cfg(), WatchdogState()).level == "stop_admission"
+    assert evaluate(ok_sample(thermal_c=93.0, cpu_freq_ratio=0.5), cfg(), WatchdogState()).level == "shed"
+    assert evaluate(ok_sample(thermal_c=101.0), cfg(), WatchdogState()).level == "shed"
+    assert evaluate(ok_sample(gpu_thermal_throttle=True), cfg(), WatchdogState()).level == "shed"
 
 
 def test_loop_revokes_only_owned_leases_and_hard_stops_after_grace(tmp_path):

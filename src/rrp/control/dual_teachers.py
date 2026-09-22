@@ -348,6 +348,7 @@ class HandoverTeacher(DualTeacherBase):
     when the runtime's `release` event is active; receiver places on the target zone."""
 
     HANDOVER_POINT = np.array([0.40, 0.0, 0.20])
+    GRASP_DZ = 0.006
 
     def __init__(self, session, speed: float = 0.3):
         super().__init__(session, speed)
@@ -390,7 +391,7 @@ class HandoverTeacher(DualTeacherBase):
                 self._next("left", "l_descend")
         elif pl == "l_descend":
             gpt = c + a * self.d
-            L.set_goal(np.r_[gpt[:2], c[2] + 0.002], 0.12, yaw_bar)
+            L.set_goal(np.r_[gpt[:2], c[2] + self.GRASP_DZ], 0.12, yaw_bar)
             if L.reached(0.006):
                 self.gl = L.goal.copy()
                 self._next("left", "l_close")
@@ -435,15 +436,15 @@ class HandoverTeacher(DualTeacherBase):
                 self._next("right", "r_descend")
         elif pr == "r_descend":
             gpt = c - a * self.d
-            R.set_goal(np.r_[gpt[:2], c[2] + 0.002], 0.1, yaw_bar)
+            R.set_goal(np.r_[gpt[:2], c[2] + self.GRASP_DZ], 0.1, yaw_bar)
             if R.reached(0.006):
                 self.gr = R.goal.copy()
                 self._next("right", "r_close")
         elif pr == "r_close":
             R.set_goal(self.gr, 0.1)
             R.grip = R.closed_for(self.half[1])
-            if self.t_phase["right"] > 0.8 and self.status("place") in ("active", "ready", "succeeded") or \
-                    self.status("release") == "succeeded":
+            # keep holding in place until the giver's release is confirmed by the runtime
+            if self.t_phase["right"] > 0.8 and self.status("release") == "succeeded":
                 tcp, Rt = R.tcp()
                 self.off_r = c - tcp
                 self._next("right", "r_transport")
@@ -472,7 +473,7 @@ class HandoverTeacher(DualTeacherBase):
         wps = {"left": {"grasp": np.r_[(c + a * self.d)[:2], c[2]],
                         "present": self.HANDOVER_POINT + np.array([0, self.d, 0])},
                "right": {"receive": self.HANDOVER_POINT - np.array([0, self.d, 0]),
-                         "place": np.r_[zone[:2] + np.array([0, -self.d]), 0.03]}}
+                         "place": np.r_[zone[:2] + np.array([0, -self.d]), self.half[2] * 2 + 0.012]}}
         errs, bad = {}, []
         for ent, w in wps.items():
             for k, p in w.items():

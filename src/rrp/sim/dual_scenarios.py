@@ -33,7 +33,7 @@ FIX_HEIGHT = 0.045
 FIX_BASE = 0.006
 CLEARANCE_M = 2 * HOLE_HALF_W - 2 * PEG_RADIUS
 
-BAR_HALF = (0.09, 0.011, 0.011)  # handover bar, long axis = local x
+BAR_HALF = (0.09, 0.011, 0.02)  # handover bar, long axis = local x
 BAR_GRASP_D = 0.065             # grasp points at +-6.5 cm from the bar centre
 
 # two separately mounted arms: left at +y, right at -y, both facing +x (the table)
@@ -158,7 +158,7 @@ def build_handover(robots: list, seed: int, *, task: dict | None = None) -> Scen
     bar_xy = np.array([rng.uniform(0.34, 0.44), rng.uniform(0.12, 0.20)])
     bar_yaw = float(math.pi / 2 + rng.uniform(-0.35, 0.35))       # long axis roughly along y
     add_bar(scene, bar_xy, bar_yaw)
-    tgt_xy = np.array([rng.uniform(0.32, 0.46), rng.uniform(-0.26, -0.16)])
+    tgt_xy = np.array([rng.uniform(0.36, 0.48), rng.uniform(-0.20, -0.10)])
     add_target_zone(scene, "target_zone", [*tgt_xy, 0.0005], radius=0.05)
     objects = [ObjectDecl("bar", "cyan bar", "object", BAR_HALF, task_entity="bar"),
                ObjectDecl("target_zone", "green target zone", "feature", radius=0.05, task_entity="target")]

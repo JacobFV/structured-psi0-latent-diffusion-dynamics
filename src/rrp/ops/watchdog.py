@@ -31,8 +31,10 @@ class WatchdogConfig:
     psi_full_avg10_shed: float = 25.0
     psi_sustain_samples: int = 3
     project_psi_full_avg10_shed: float = 60.0
-    thermal_shed_c: float = 95.0
-    gpu_thermal_shed_c: float = 90.0
+    thermal_shed_c: float = 100.0          # hard ceiling (no firmware trip points exposed on GB10)
+    thermal_stop_admission_c: float = 97.0
+    gpu_thermal_shed_c: float = 95.0
+    cpu_freq_throttle_ratio: float = 0.7   # shed if hot AND clocks dropped below this fraction of max
     stable_window_samples: int = 15
     project_disk_limit_bytes: int | None = None
 
@@ -118,10 +120,17 @@ def evaluate(sample: dict, cfg: WatchdogConfig, st: WatchdogState) -> Verdict:
     if cfg.project_disk_limit_bytes is not None and pdb is not None and pdb > cfg.project_disk_limit_bytes:
         bump("stop_admission", f"project_disk_over_budget:{pdb}")
     t = sample.get("thermal_c")
-    if t is not None and t > cfg.thermal_shed_c:
+    fr = sample.get("cpu_freq_ratio")
+    if t is not None and t >= cfg.thermal_shed_c:
         bump("shed", f"cpu_thermal:{t}")
+    elif t is not None and t >= 90.0 and fr is not None and fr < cfg.cpu_freq_throttle_ratio:
+        bump("shed", f"cpu_thermal_throttle:{t}C@{fr:.2f}")
+    elif t is not None and t >= cfg.thermal_stop_admission_c:
+        bump("stop_admission", f"cpu_hot:{t}")
     g = sample.get("gpu_temp_c")
-    if g is not None and g > cfg.gpu_thermal_shed_c:
+    if sample.get("gpu_thermal_throttle"):
+        bump("shed", "gpu_thermal_slowdown_active")
+    elif g is not None and g > cfg.gpu_thermal_shed_c:
         bump("shed", f"gpu_thermal:{g}")
     live_cpu = None
     if sample.get("idle_cores") is not None:
@@ -157,10 +166,15 @@ def collect_sample(cfg: WatchdogConfig, st: WatchdogState, project_slice="rrp.sl
         disk_free = telemetry.disk_usage(cfg.disk_path)["free_bytes"]
     except OSError:
         disk_free = None
-    gtemp = None
+    gtemp, gthrot = None, None
     if gpu:
         g = telemetry.gpu_status()
         gtemp = g.get("temperature_c")
+        tr = g.get("throttle_reasons") or ""
+        try:
+            gthrot = bool(int(tr, 16) & 0x60) if tr.startswith("0x") else None   # HW/SW thermal slowdown bits
+        except ValueError:
+            gthrot = None
     return dict(
         memory_available=mi.get("MemAvailable"), swap_free=mi.get("SwapFree"),
         psi_full_avg10=(psi or {}).get("full", {}).get("avg10"),
@@ -168,6 +182,7 @@ def collect_sample(cfg: WatchdogConfig, st: WatchdogState, project_slice="rrp.sl
         project_psi_full_avg10=((cg or {}).get("memory_pressure") or {}).get("full", {}).get("avg10"),
         disk_free=disk_free, thermal_c=telemetry.cpu_thermal_max_c(), gpu_temp_c=gtemp,
         idle_cores=idle, project_cpu_cores=proj_cpu, telemetry_errors=errors,
+        cpu_freq_ratio=telemetry.cpu_freq_ratio(), gpu_thermal_throttle=gthrot,
         project_disk_bytes=None,
     )
 

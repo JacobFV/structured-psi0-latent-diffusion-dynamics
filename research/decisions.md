@@ -32,3 +32,6 @@ User instruction (supersedes the handoff's 80%-of-free peer default): "you can u
 
 ## D-009 2026-09-21 peer GPU concurrency 3
 With the whole peer authorized (D-008) and five parallel engineering tracks, the peer broker admits up to 3 concurrent GPU leases. Each declares gpu_memory_bytes (counted in the aggregate memory limit) and applies the in-process CUDA cap; the system MemAvailable watchdog remains the backstop. Timing/latency measurements must be taken with no other GPU lease active (recorded per measurement).
+
+## D-010 2026-09-21 thermal guard based on throttling evidence
+The initial 95 C CPU shed threshold repeatedly killed healthy peer jobs (evidence: ops/watchdog/peer.jsonl, leases 1790033520_d98918, 1790038081_a0568e). GB10 exposes no thermal trip points; at 96-97 C the CPUs ran at full 2.808 GHz and GPU thermal-slowdown flags were inactive. New rule: shed on GPU HW/SW thermal slowdown, on CPU >=90 C with clocks below 70% of max, or at >=100 C; stop admission (no new leases) at >=97 C. Killed runs are preserved and rerun from checkpoints.
