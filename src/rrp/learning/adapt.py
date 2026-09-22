@@ -25,7 +25,11 @@ def _device():
 def load_policy(path, device):
     from rrp.model.flow import FlowPolicy, PolicyConfig
     from rrp.model.codec import ActionCodec, CodecConfig
-    st = load_checkpoint(path, map_location=device)
+    from rrp.data.collect import FEATURIZER_VERSION
+    # never adapt a checkpoint trained on a different public featurizer (silent input mismatch)
+    st = load_checkpoint(path, map_location=device, requested_versions=dict(featurizer=FEATURIZER_VERSION))
+    if st["versions"].get("featurizer") != FEATURIZER_VERSION:
+        raise ValueError(f"checkpoint featurizer {st['versions'].get('featurizer')!r} != {FEATURIZER_VERSION!r}")
     cfg = st["config"]
     model = FlowPolicy(PolicyConfig(**cfg["policy"])).to(device)
     model.load_state_dict(st["model"])
