@@ -36,6 +36,7 @@ STATIC_FEATURE_MIN_N = 12          # detections averaged before a static feature
 STATIC_FEATURE_RESET_M = 0.015     # a jump larger than this restarts the average (feature moved)
 ANCHOR_SLIP_M = 0.012              # maintained contact anchor invalid when the TCP slides further
 ANCHOR_LOSS_S = 0.3                # contact must be lost this long before the anchor is invalid
+HELD_HOLD_S = 0.25                 # held_by hysteresis (contact chatter)
 EXTRA_PUBLIC_PREDICATES = ("supported", "inside")
 
 
@@ -141,13 +142,14 @@ class DualSession(Session):
         self._static: dict[int, list] = {}
         self._inhand: dict[tuple, dict] = {}
         self._anchors: dict[tuple, dict] = {}
+        self._held: dict[tuple, dict] = {}
         self.fixture_init = None
         super().__init__(scenario, **kw)
         # the base class built one IK per robot from the first gripper; handles carry per-arm IK
 
     # ------------------------------------------------------------------ lifecycle
     def reset(self, seed=None):
-        self._static, self._inhand, self._anchors = {}, {}, {}
+        self._static, self._inhand, self._anchors, self._held = {}, {}, {}, {}
         obs = super().reset(seed)
         if self._apply_declared_home():
             obs = self._last_obs
@@ -206,6 +208,7 @@ class DualSession(Session):
             acc.append(meas[i])
             del acc[:-60]
         if hasattr(self, "runtime"):
+            self._update_held()
             self._update_inhand()
 
     def tcp_pose(self, ent: str):
@@ -236,6 +239,27 @@ class DualSession(Session):
         return bool(cmd < lo + 0.5 * (hi - lo) and (w is None or w > lo + 0.002))
 
     def held_estimate(self, obj: str, ent: str) -> bool:
+        """Filtered public held_by: raw evidence with HELD_HOLD_S hysteresis against contact chatter
+        (a release is reported once the raw evidence has been absent that long)."""
+        st = self._held.get((obj, ent))
+        if st is None:
+            return self._held_raw(obj, ent)
+        return st["state"]
+
+    def _update_held(self):
+        t = float(self.data.time)
+        for ent in self.handles:
+            for obj, sl in self.entity_slots.items():
+                if self.detectables[sl].kind != "object":
+                    continue
+                raw = self._held_raw(obj, ent)
+                st = self._held.setdefault((obj, ent), dict(state=raw, last_true=t if raw else -1e9))
+                if raw:
+                    st["state"], st["last_true"] = True, t
+                elif st["state"] and t - st["last_true"] >= HELD_HOLD_S:
+                    st["state"] = False
+
+    def _held_raw(self, obj: str, ent: str) -> bool:
         touch = self.touch_values(ent)
         touch_ok = int((touch > 0.2).sum()) >= min(2, len(touch)) if len(touch) else False
         pos, _ = self._track(obj)
@@ -473,6 +497,34 @@ class DualSession(Session):
         return super().privileged_success()
 
     # ------------------------------------------------------------------ multi-robot commands
+    @property
+    def multi_spec_hash(self) -> str:
+        from rrp.data.features_multi import combined_hash
+        return combined_hash([r.spec.spec_hash for r in self.robots])
+
+    @property
+    def multi_controller_version(self) -> str:
+        return "|".join(r.controller.version for r in self.robots)
+
+    def submit_chunk(self, chunk, robot: int = 0, execute_prefix: int | None = None):
+        """Chunks whose groups are namespaced `r<i>:<group>` address all robots at once and are
+        validated against the combined spec hash / controller versions."""
+        if not any(":" in g.group for g in chunk.command_groups):
+            return super().submit_chunk(chunk, robot, execute_prefix)
+        from rrp.contracts.errors import StaleActionError
+        if abs(chunk.dt - self.dt) > 1e-9:
+            raise StaleActionError(f"chunk dt {chunk.dt} != controller period {self.dt}", reasons=["rate_mismatch"])
+        self.executor.submit(chunk, graph_version=self.runtime.graph_version, robot_spec_hash=self.multi_spec_hash,
+                             controller_version=self.multi_controller_version, now=float(self.data.time),
+                             execute_prefix=execute_prefix)
+
+    def step(self, command=None, robot: int = 0):
+        if command is None and self.executor.queue and any(":" in k for k in self.executor.queue[0]):
+            row = self.executor.pop()
+            src = self.executor.meta["source"] if self.executor.meta else "learned"
+            command = self.command_from_flat(row, src)
+        return super().step(command, robot)
+
     def command_from_flat(self, flat: dict, source: str) -> dict[int, NativeCommand]:
         """{"r<i>:<group>": values} -> {robot_idx: NativeCommand} (multi-robot action space)."""
         per: dict[int, dict] = {}

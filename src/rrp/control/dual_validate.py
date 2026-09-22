@@ -110,12 +110,20 @@ def main(argv=None):
     ap.add_argument("--out", required=True)
     a = ap.parse_args(argv)
     lo, hi = map(int, a.seeds.split(":"))
-    jobs = [(a.task, p, s, a.max_steps) for p in a.pairs.split(",") for s in range(lo, hi)]
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     rows = []
+    if out.exists():   # resume: keep finished rows (interrupted runs are common under the watchdog)
+        for line in out.read_text().splitlines():
+            try:
+                rows.append(json.loads(line))
+            except json.JSONDecodeError:
+                pass
+    done = {(r["task"], r["pair"], r["seed"]) for r in rows}
+    jobs = [(a.task, p, s, a.max_steps) for p in a.pairs.split(",") for s in range(lo, hi)
+            if (a.task, p, s) not in done]
     t0 = time.time()
-    with ProcessPoolExecutor(max_workers=a.workers, max_tasks_per_child=100) as ex, out.open("w") as fh:
+    with ProcessPoolExecutor(max_workers=a.workers, max_tasks_per_child=100) as ex, out.open("a") as fh:
         futs = [ex.submit(_job, j) for j in jobs]
         for i, f in enumerate(as_completed(futs)):
             r = f.result()
@@ -124,7 +132,8 @@ def main(argv=None):
             fh.flush()
             if i % 20 == 0:
                 print(f"[dual_validate] {i + 1}/{len(jobs)} {time.time() - t0:.0f}s", flush=True)
-    summ = summarize(rows)
+    want = {p for p in a.pairs.split(",")}
+    summ = summarize([r for r in rows if r["pair"] in want and lo <= r["seed"] < hi])
     out.with_suffix(".summary.json").write_text(json.dumps(summ, indent=1, sort_keys=True))
     for k, d in sorted(summ.items()):
         print(k, {x: d[x] for x in ("n", "success", "failure", "infeasible", "error", "agree")}, d["reasons"])

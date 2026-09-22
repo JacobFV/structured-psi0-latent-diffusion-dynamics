@@ -36,7 +36,10 @@ class ArmMover:
         self.h = session.handles[ent]
         self.r = session.robots[self.h.robot]
         self.q_arm = self.r.controller.current_targets(session.data)[self.h.arm_group].copy()
-        self.grip = self.h.open_value
+        # teacher pre-shape: three-finger hands open only to vertical fingers (0 rad) instead of the
+        # fully splayed -0.6 rad, keeping the hand footprint small next to the other arm
+        self.open_value = 0.0 if self.h.gripper_kind == "three_finger" else self.h.open_value
+        self.grip = self.open_value
         self.speed = speed
         self.goal = None
         self.yaw = GRASP_YAW
@@ -62,8 +65,12 @@ class ArmMover:
     def set_goal(self, goal, speed: float | None = None, yaw: float | None = None):
         goal = np.asarray(goal, float)
         if self.goal is None or np.linalg.norm(goal - self.goal) > 1e-4:
+            if self.goal is None or np.linalg.norm(goal - self.goal) > 2e-3:
+                # a genuinely new target: progress flags must be re-measured by step() before
+                # reached() can fire (otherwise a phase could complete on stale values)
+                self.n, self.err, self.stalled = float("inf"), float("inf"), False
+                self.t_goal = 0.0
             self.goal = goal
-            self.t_goal = 0.0
         if speed is not None:
             self.speed = speed
         if yaw is not None:
@@ -150,6 +157,18 @@ class DualTeacherBase:
         self.log.append(dict(t=float(self.s.data.time), arm=ent, frm=self.phase[ent], to=p))
         self.phase[ent], self.t_phase[ent] = p, 0.0
 
+    STAGE = {"left": np.array([0.36, 0.22, 0.30]), "right": np.array([0.36, -0.22, 0.30])}
+
+    def _staging(self, ent, nxt) -> bool:
+        """Move to a staging pose on the arm's own side first (asset home poses may place the
+        TCP across the workspace; sweeping from there can hit the other arm or the object)."""
+        a = self.arms[ent]
+        a.set_goal(self.STAGE[ent], 0.35)
+        if a.reached(0.03) or self.t_phase[ent] > 6.0:
+            self._next(ent, nxt)
+            return True
+        return False
+
     def status(self, ev):
         return self.s.runtime.status(ev)
 
@@ -176,9 +195,14 @@ class SupportInsertTeacher(DualTeacherBase):
     ALIGN_HOVER = 0.012         # peg bottom above the hole top during align
     INSERT_DEPTH = 0.032
 
-    def __init__(self, session, speed: float = 0.3, grasp_depth: float = 0.02, frame_override=None):
+    # grasp depth below the peg top per hand type: three-finger hands close at their fingertips,
+    # so they grasp near the peg's middle (a top grasp lets the peg pivot out of the hand)
+    GRASP_DEPTH = {"parallel": 0.02, "three_finger": 0.04, "aloha": 0.02}
+
+    def __init__(self, session, speed: float = 0.3, grasp_depth: float | None = None, frame_override=None):
         super().__init__(session, speed)
-        self.grasp_depth = grasp_depth
+        self.grasp_depth = grasp_depth if grasp_depth is not None else \
+            self.GRASP_DEPTH.get(self.arms["right"].h.gripper_kind, 0.02)
         self.frame_override = frame_override    # diagnostic hook: replace the bound hole frame
         g = session.scenario.meta["declared_geometry"]
         self.peg_half = g["peg"]["half_length"]
@@ -224,9 +248,13 @@ class SupportInsertTeacher(DualTeacherBase):
         # ---------------- left arm: support
         sp = self._support_point()
         L.yaw = GRASP_YAW
-        L.grip = L.h.closed_value
+        # support posture: closed hand, except hands whose fully closed fingers touch each other
+        # (ALOHA) -- that self-contact would register on the finger touch sensors
+        L.grip = L.h.closed_value if L.h.gripper_kind != "aloha" else 0.012
         if pl == "start":
-            self._next("left", "l_pre")
+            self._next("left", "l_stage")
+        elif pl == "l_stage":
+            self._staging("left", "l_pre")
         elif pl == "l_pre":
             L.set_goal(sp + [0, 0, self.HOVER], 0.3)
             if L.reached(0.006):
@@ -256,9 +284,12 @@ class SupportInsertTeacher(DualTeacherBase):
         top = peg + pR[:, 2] * self.peg_half
         close_v = R.closed_for(self.peg_r)
         if pr == "start":
-            self._next("right", "r_pre")
+            self._next("right", "r_stage")
+        elif pr == "r_stage":
+            R.grip = R.open_value
+            self._staging("right", "r_pre")
         elif pr == "r_pre":
-            R.grip = R.h.open_value
+            R.grip = R.open_value
             R.set_goal(np.r_[top[:2], top[2] + self.HOVER], 0.3)
             if R.reached(0.012):
                 self._next("right", "r_descend")
@@ -276,7 +307,7 @@ class SupportInsertTeacher(DualTeacherBase):
             R.set_goal(np.r_[self.grasp_xyz[:2], 0.25], 0.25)
             if R.reached(0.02):
                 self._next("right", "r_wait")
-        elif pr in ("r_wait", "r_transit", "r_align"):
+        elif pr in ("r_wait", "r_transit", "r_approach", "r_align"):
             fr = self.bound_hole_frame()
             if fr is None or self.status("align") not in ("active", "succeeded") and pr == "r_wait":
                 R.set_goal(np.r_[self.grasp_xyz[:2] if pr == "r_wait" else R.goal[:2], 0.25], 0.2)
@@ -287,7 +318,13 @@ class SupportInsertTeacher(DualTeacherBase):
             if pr == "r_wait":
                 self._next("right", "r_transit")
             elif pr == "r_transit":
-                R.set_goal(hp + n_up * 0.06 - off, 0.25)
+                # high transit then a vertical approach: keeps the held peg clear of the support
+                # arm's wrist, which on some bodies protrudes over the fixture
+                R.set_goal(hp + n_up * 0.15 - off, 0.25)
+                if R.reached(0.015):
+                    self._next("right", "r_approach")
+            elif pr == "r_approach":
+                R.set_goal(hp + n_up * 0.05 - off, 0.12)
                 if R.reached(0.01):
                     self._next("right", "r_align")
             else:
@@ -305,7 +342,7 @@ class SupportInsertTeacher(DualTeacherBase):
             elif self.status("insert") == "failed":
                 self._next("right", "r_abort")
         elif pr == "r_open":
-            R.grip = R.h.open_value
+            R.grip = R.open_value
             if self.t_phase["right"] > 0.6:
                 self._next("right", "r_retreat")
         elif pr == "r_retreat":
@@ -374,16 +411,17 @@ class HandoverTeacher(DualTeacherBase):
         L, R = self.arms["left"], self.arms["right"]
         pl, pr = self.phase["left"], self.phase["right"]
         c, Rb, a = self._bar()
-        yaw_bar = _wrap_pi(self._yaw_along(a))
-        if yaw_bar > math.pi / 2:
-            yaw_bar -= math.pi
-        elif yaw_bar < -math.pi / 2:
-            yaw_bar += math.pi
+        # parallel/three-finger grasps are symmetric under pi: pick the equivalent yaw nearest to
+        # GRASP_YAW so the commanded wrist never flips by pi between control steps
+        yaw_bar = self._yaw_along(a)
+        yaw_bar = GRASP_YAW + _wrap_pi(2 * (yaw_bar - GRASP_YAW)) / 2
         h = self.half[2]
         # ---------------- giver
         if pl == "start":
-            L.grip = L.h.open_value
-            self._next("left", "l_pre")
+            L.grip = L.open_value
+            self._next("left", "l_stage")
+        elif pl == "l_stage":
+            self._staging("left", "l_pre")
         elif pl == "l_pre":
             gpt = c + a * self.d
             L.set_goal(np.r_[gpt[:2], 0.12], 0.3, yaw_bar)
@@ -415,7 +453,7 @@ class HandoverTeacher(DualTeacherBase):
             if self.status("release") == "active":
                 self._next("left", "l_open")
         elif pl == "l_open":
-            L.grip = L.h.open_value
+            L.grip = L.open_value
             if self.t_phase["left"] > 0.6:
                 self._next("left", "l_retreat")
         elif pl == "l_retreat":
@@ -424,8 +462,10 @@ class HandoverTeacher(DualTeacherBase):
                 self._next("left", "l_done")
         # ---------------- receiver
         if pr == "start":
-            R.grip = R.h.open_value
-            self._next("right", "r_wait")
+            R.grip = R.open_value
+            self._next("right", "r_stage")
+        elif pr == "r_stage":
+            self._staging("right", "r_wait")
         elif pr == "r_wait":
             if self.status("receive") == "active" and pl == "l_hold":
                 self._next("right", "r_pre")
@@ -459,7 +499,7 @@ class HandoverTeacher(DualTeacherBase):
             if R.reached(0.01):
                 self._next("right", "r_open")
         elif pr == "r_open":
-            R.grip = R.h.open_value
+            R.grip = R.open_value
             if self.t_phase["right"] > 0.6:
                 self._next("right", "r_retreat")
         elif pr == "r_retreat":
