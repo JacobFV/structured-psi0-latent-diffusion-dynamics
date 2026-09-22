@@ -155,8 +155,8 @@ class LeggedSession(Session):
         self.intervention_log = []
         self.fell = False
         self.loc = None
-        self.loc_prev = None
-        self.speed_est = 0.0
+        self.loc_hist = []
+        self.speed_est = float("nan")
         # settle 0.3 s under the tracker holding a zero command
         for _ in range(int(0.3 * TRACKER_HZ)):
             self._tracker_tick(np.zeros(3))
@@ -183,9 +183,13 @@ class LeggedSession(Session):
         q = self.data.qpos
         x = np.array([q[b.qa] + self.env_rng.normal(0, self.LOC_SIGMA), q[b.qa + 1] + self.env_rng.normal(0, self.LOC_SIGMA),
                       yaw_of(q[b.qa + 3:b.qa + 7]) + self.env_rng.normal(0, self.YAW_SIGMA)])
-        if self.loc is not None:
-            sp = float(np.linalg.norm(x[:2] - self.loc[:2])) / self.dt
-            self.speed_est = 0.7 * self.speed_est + 0.3 * sp
+        self.loc_hist.append(x[:2].copy())
+        w = max(2, int(round(1.0 / self.dt)) + 1)          # 1 s baseline: noise ~ 2.8 cm/s
+        self.loc_hist = self.loc_hist[-w:]
+        if len(self.loc_hist) >= w:
+            self.speed_est = float(np.linalg.norm(self.loc_hist[-1] - self.loc_hist[0])) / ((w - 1) * self.dt)
+        else:
+            self.speed_est = float("nan")
         self.loc = x
 
     def _track(self, entity: str):
@@ -229,7 +233,8 @@ class LeggedSession(Session):
             t = self._touch()
             return float(np.mean(t > 1.0)) if len(t) else None, bool(len(t)), 0.9
         if predicate == "base_speed" and args == ["body"]:
-            return float(self.speed_est), self.loc is not None, 0.8
+            ok = self.loc is not None and np.isfinite(self.speed_est)
+            return (float(self.speed_est) if ok else None), ok, 0.8
         return None, False, 0.0
 
     def truth_predicate(self, pred: str, args: list[str], held=None):
@@ -359,7 +364,8 @@ class LeggedSession(Session):
         c["controller_state"] = [dict(joint_targets=c["controller_state"][0], tracker=self.tracker.state(),
                                       cmd=self.cmd.tolist(), fell=self.fell)]
         c["sensor_filters"]["localization"] = dict(loc=None if self.loc is None else self.loc.tolist(),
-                                                   speed_est=self.speed_est)
+                                                   speed_est=self.speed_est,
+                                                   hist=[h.tolist() for h in self.loc_hist])
         c["entity_tracker"] = self.tracker_obj.state()
         return snap
 
@@ -381,7 +387,8 @@ class LeggedSession(Session):
         self.fell = st["fell"]
         loc = c["sensor_filters"].get("localization", {})
         self.loc = None if loc.get("loc") is None else np.array(loc["loc"])
-        self.speed_est = loc.get("speed_est", 0.0)
+        self.speed_est = loc.get("speed_est", float("nan"))
+        self.loc_hist = [np.array(h) for h in loc.get("hist", [])]
         self._last_obs = self.observe()
         return self._last_obs
 

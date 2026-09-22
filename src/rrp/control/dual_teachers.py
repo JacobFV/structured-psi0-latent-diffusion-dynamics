@@ -62,8 +62,6 @@ class ArmMover:
     def set_goal(self, goal, speed: float | None = None, yaw: float | None = None):
         goal = np.asarray(goal, float)
         if self.goal is None or np.linalg.norm(goal - self.goal) > 1e-4:
-            if self.goal is not None and np.linalg.norm(goal - self.goal) > 0.03:
-                self.ioff = np.zeros(3)
             self.goal = goal
             self.t_goal = 0.0
         if speed is not None:
@@ -203,6 +201,15 @@ class SupportInsertTeacher(DualTeacherBase):
         tcp, _ = self.arms["right"].tcp()
         return p - R[:, 2] * self.peg_half - tcp
 
+    def _touchdown(self, L):
+        """Freeze the support contact where it happened: command = measured TCP (no integral)."""
+        tcp, _ = L.tcp()
+        self.contact_z, self.contact_xy = float(tcp[2]), tcp[:2].copy()
+        L.integral = False
+        L.ioff = np.zeros(3)
+        L.tcp_cmd = tcp.copy()
+        self._next("left", "l_hold")
+
     def bound_hole_frame(self):
         if self.frame_override is not None:
             return self.frame_override
@@ -222,19 +229,16 @@ class SupportInsertTeacher(DualTeacherBase):
             self._next("left", "l_pre")
         elif pl == "l_pre":
             L.set_goal(sp + [0, 0, self.HOVER], 0.3)
-            if L.reached(0.015):
+            if L.reached(0.006):
                 self._next("left", "l_descend")
         elif pl == "l_descend":
             tcp_z = float(L.tcp()[0][2])
             L.set_goal(sp + [0, 0, -0.03], 0.12 if tcp_z > sp[2] + 0.04 else 0.03)   # slow near contact; stops on touch
             t = self.s.touch_values("left")
             if len(t) and t.max() > 0.5:
-                tcp, _ = L.tcp()
-                self.contact_z, self.contact_xy = float(tcp[2]), L.goal[:2].copy()
-                self._next("left", "l_hold")
+                self._touchdown(L)
             elif L.reached(0.005):
-                self._next("left", "l_hold")
-                self.contact_z, self.contact_xy = float(L.tcp()[0][2]), L.goal[:2].copy()
+                self._touchdown(L)
         elif pl == "l_hold":
             # contact point frozen at touch-down; no integral action while pressing (the commanded
             # depth is intentionally unreachable -> bounded pressing force, no lateral drift)

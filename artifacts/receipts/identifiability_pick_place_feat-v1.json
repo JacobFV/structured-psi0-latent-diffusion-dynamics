@@ -1,0 +1,38 @@
+[
+ {
+  "intervention": "rejection_memory",
+  "status": "distinguishable",
+  "max_abs_diff": 1.0986123085021973,
+  "detail": ""
+ },
+ {
+  "intervention": "role_swap",
+  "status": "distinguishable",
+  "max_abs_diff": Infinity,
+  "detail": "different tensor shapes"
+ },
+ {
+  "intervention": "graph_rewiring",
+  "status": "distinguishable",
+  "max_abs_diff": Infinity,
+  "detail": "different tensor shapes"
+ },
+ {
+  "intervention": "foreign_vs_correct_provenance",
+  "status": "distinguishable",
+  "max_abs_diff": Infinity,
+  "detail": "different tensor shapes"
+ },
+ {
+  "intervention": "stale_vs_valid_output",
+  "status": "distinguishable",
+  "max_abs_diff": 1.0,
+  "detail": ""
+ },
+ {
+  "intervention": "irrelevant_object_moved",
+  "status": "not_required",
+  "max_abs_diff": 0.5481727123260498,
+  "detail": ""
+ }
+]

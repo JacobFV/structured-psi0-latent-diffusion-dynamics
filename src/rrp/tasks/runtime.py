@@ -369,7 +369,11 @@ class TaskRuntime:
                 self.receipts.invalidate(eid, inst.attempt, name, "estimate_invalid")
                 self.runtime_version += 1
             return False
-        if maintained and latest and latest.valid and latest.value == value:
+        # compare the stored form (covariance lives outside the value) so an unchanged maintained
+        # output does not produce a new receipt version every tick
+        same = isinstance(value, dict) and latest is not None and \
+            latest.value == {k: v for k, v in value.items() if k != "covariance_diag"}
+        if maintained and latest and latest.valid and (latest.value == value or same):
             return True
         if latest and latest.valid:
             self.receipts.invalidate(eid, inst.attempt, name, "superseded")
