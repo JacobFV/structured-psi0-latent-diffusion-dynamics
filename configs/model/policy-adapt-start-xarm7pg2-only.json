@@ -1,0 +1,29 @@
+{
+ "dataset": "artifacts/datasets/pick_place_primary_v1",
+ "train_robots": [
+  "xarm7_pg2"
+ ],
+ "horizon": 16,
+ "seed": 4243,
+ "name": "adapt_start_bc_xarm7pg2_only_v1",
+ "out_dir": "artifacts/runs/adapt_start_bc_xarm7pg2_only_v1",
+ "epochs": 30,
+ "batch_size": 256,
+ "lr": 0.0003,
+ "stride": 1,
+ "aux_weight": 0.1,
+ "policy": {
+  "width": 128,
+  "heads": 4,
+  "ctx_layers": 2,
+  "blocks": 4,
+  "horizon": 16,
+  "latent_dim": 1,
+  "structured": true,
+  "bias_mode": "true",
+  "aux": true,
+  "name": "adapt_start_bc_xarm7pg2_only_v1"
+ },
+ "episodes_per_robot": 150,
+ "note": "Adaptation starting point (fallback): single-robot BC on all 150 xarm7_pg2 target_demos episodes (seeds 1000000+). Target-SFT start, NOT zero-shot. Eval/training adaptation seeds (2000000+/3000000+) are disjoint."
+}
