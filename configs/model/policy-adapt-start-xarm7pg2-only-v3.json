@@ -1,0 +1,29 @@
+{
+ "dataset": "artifacts/datasets/pick_place_primary_v3",
+ "train_robots": [
+  "xarm7_pg2"
+ ],
+ "horizon": 16,
+ "seed": 4243,
+ "name": "adapt_start_bc_xarm7pg2_only_v3",
+ "out_dir": "artifacts/runs/adapt_start_bc_xarm7pg2_only_v3",
+ "epochs": 30,
+ "batch_size": 256,
+ "lr": 0.0003,
+ "stride": 1,
+ "aux_weight": 0.1,
+ "policy": {
+  "width": 128,
+  "heads": 4,
+  "ctx_layers": 2,
+  "blocks": 4,
+  "horizon": 16,
+  "latent_dim": 1,
+  "structured": true,
+  "bias_mode": "true",
+  "aux": true,
+  "name": "adapt_start_bc_xarm7pg2_only_v3"
+ },
+ "episodes_per_robot": 150,
+ "note": "Adaptation starting point (fallback, feat-v2, teacher fix D-016): single-robot BC on all 150 xarm7_pg2 target_demos of pick_place_primary_v3. Target-SFT start, NOT zero-shot."
+}
