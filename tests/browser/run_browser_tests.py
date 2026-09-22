@@ -33,7 +33,7 @@ BACKEND = f"""
 import sys, uvicorn
 sys.path.insert(0, {str(REPO / 'src')!r})
 from rrp.service.app import create_app, MAX_BODY
-app = create_app(token=sys.argv[1], port={PORT})
+app = create_app(token=sys.argv[1], port={PORT}, max_sessions=64)
 uvicorn.run(app, host="127.0.0.1", port={PORT}, log_level="warning", ws_max_size=MAX_BODY)
 """
 
