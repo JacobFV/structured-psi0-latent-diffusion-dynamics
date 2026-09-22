@@ -25,7 +25,7 @@ from rrp.model.backbone import Resampler
 from rrp.model.flow import FlowPolicy, PolicyConfig
 from rrp.ops.jobs import CheckpointSignal
 
-FEAT_VERSION = "feat-v1"
+from rrp.learning.behavior import FEAT_VERSION  # noqa: E402  (feat-v2)
 
 
 class VLMFlowPolicy(nn.Module):
