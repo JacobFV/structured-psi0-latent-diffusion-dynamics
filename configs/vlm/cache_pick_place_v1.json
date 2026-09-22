@@ -29,7 +29,7 @@
  ],
  "n_text": 8,
  "out_dir": "artifacts/vlm_cache/pick_place_v1",
- "workers": 6,
+ "workers": 2,
  "batch": 32,
  "q0_tol": 1e-06
 }

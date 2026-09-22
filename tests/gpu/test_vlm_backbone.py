@@ -18,7 +18,7 @@ def test_real_images_through_adapter_and_resampler():
     apply_cap()
     vlm = VLMBackbone(BackboneSpec(), device="cuda")
     prov = vlm.provenance()
-    assert prov["hidden_width"] == 2048 and prov["n_layers"] == 28 and prov["vocab"] >= 153000
+    assert prov["hidden_width"] == 2048 and prov["n_layers"] == 28 and prov["embed_rows"] == 153792  # psi0 FAST-extended embedding (base: 151936)
     frames, texts = [], []
     for seed in (1, 2):
         s = make_pick_place_session(seed=seed, n_distractors=2)
