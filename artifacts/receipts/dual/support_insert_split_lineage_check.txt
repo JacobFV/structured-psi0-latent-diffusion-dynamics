@@ -1,0 +1,7 @@
+source robots: ['panda+pg2', 'parm5+pg2', 'parm5+tf3', 'parm6+pg2', 'parm6+tf3', 'parm7+pg2', 'sawyer+pg2', 'ur5e+pg2']
+check held_out_arm_family: ufactory lineage in source -> False
+check panda+tf3 robot in source (either role) -> False
+check fr3 in source -> False
+check trossen/aloha lineage in source -> False
+check source held-out eval robots (parm5s_tf3, parm5l_pg2 lineages) in source -> False
+all checks must be False; manifest_hash 2181bf6728ab7a6d
