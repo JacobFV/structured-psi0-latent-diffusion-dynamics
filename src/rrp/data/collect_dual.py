@@ -21,10 +21,11 @@ from pathlib import Path
 import numpy as np
 
 from rrp.data.collect import EpisodeRecord, privileged_labels, write_episode, read_episode
+from rrp.data.collect import FEATURIZER_VERSION as BASE_FEATURIZER_VERSION
 from rrp.data.features_multi import MultiFeaturizer
 from rrp.data.manifest import write_manifest
 
-FEATURIZER_VERSION = "feat-multi-v1"
+FEATURIZER_VERSION = f"feat-multi-v1+{BASE_FEATURIZER_VERSION}"
 
 
 def collect_dual_episode(session, teacher, max_steps: int = 1200, episode_id: str = "",

@@ -1,0 +1,3347 @@
+{
+ "pair": "parm5_pg2__parm5_pg2",
+ "delta": [
+  0.02,
+  -0.015,
+  0.0
+ ],
+ "nominal_hole": [
+  0.43,
+  -0.045,
+  0.045
+ ],
+ "summary": {
+  "receipt": {
+   "n": 12,
+   "public_success": 10,
+   "privileged_success": 10
+  },
+  "shifted": {
+   "n": 12,
+   "public_success": 0,
+   "privileged_success": 0
+  },
+  "fixed_order": {
+   "n": 12,
+   "public_success": 0,
+   "privileged_success": 0
+  },
+  "stale_receipt": {
+   "n": 12,
+   "public_success": 0,
+   "privileged_success": 0
+  }
+ },
+ "paired_command_shift": [
+  {
+   "seed": 0,
+   "d_align_goal": [
+    0.020007725671260967,
+    -0.01490168431414366,
+    -4.1793035265524914e-05
+   ],
+   "d_receipt": [
+    0.020000000000000018,
+    -0.015000000000000003,
+    0.0
+   ],
+   "residual": 0.00010710890662564254
+  },
+  {
+   "seed": 1,
+   "d_align_goal": [
+    0.02000611596592411,
+    -0.014905810119019688,
+    -7.757694209284405e-05
+   ],
+   "d_receipt": [
+    0.020000000000000018,
+    -0.015,
+    0.0
+   ],
+   "residual": 0.00012217741469987931
+  },
+  {
+   "seed": 3,
+   "d_align_goal": [
+    0.020008992277970095,
+    -0.01491236305567882,
+    -6.96817800085181e-05
+   ],
+   "d_receipt": [
+    0.020000000000000018,
+    -0.015,
+    0.0
+   ],
+   "residual": 0.00011232384225176792
+  },
+  {
+   "seed": 4,
+   "d_align_goal": [
+    0.02000784696361163,
+    -0.01489274735527518,
+    -3.776000748828556e-05
+   ],
+   "d_receipt": [
+    0.020000000000000018,
+    -0.014999999999999998,
+    0.0
+   ],
+   "residual": 0.00011397597467846128
+  },
+  {
+   "seed": 5,
+   "d_align_goal": [
+    0.020010983756128198,
+    -0.015024364970227994,
+    -0.00017184846931364572
+   ],
+   "d_receipt": [
+    0.020000000000000018,
+    -0.015,
+    0.0
+   ],
+   "residual": 0.0001739143210846577
+  },
+  {
+   "seed": 6,
+   "d_align_goal": [
+    0.02001102497406282,
+    -0.014936123711494928,
+    -9.429845922664937e-05
+   ],
+   "d_receipt": [
+    0.020000000000000018,
+    -0.015,
+    0.0
+   ],
+   "residual": 0.0001144287101158997
+  },
+  {
+   "seed": 7,
+   "d_align_goal": [
+    0.020011620671307018,
+    -0.014928423290029913,
+    -0.00010072493237875402
+   ],
+   "d_receipt": [
+    0.020000000000000018,
+    -0.015,
+    0.0
+   ],
+   "residual": 0.00012411195516335958
+  },
+  {
+   "seed": 8,
+   "d_align_goal": [
+    0.020008134121494603,
+    -0.014932907543595969,
+    -0.00010023768630129659
+   ],
+   "d_receipt": [
+    0.020000000000000018,
+    -0.015,
+    0.0
+   ],
+   "residual": 0.00012089315693558727
+  },
+  {
+   "seed": 9,
+   "d_align_goal": [
+    0.020010217042894962,
+    -0.014883895778936382,
+    -2.6751062304486428e-05
+   ],
+   "d_receipt": [
+    0.020000000000000018,
+    -0.015000000000000006,
+    0.0
+   ],
+   "residual": 0.00011958343300276443
+  },
+  {
+   "seed": 10,
+   "d_align_goal": [
+    0.020006363436311347,
+    -0.01501302928282526,
+    -0.000143120375334288
+   ],
+   "d_receipt": [
+    0.020000000000000018,
+    -0.015,
+    0.0
+   ],
+   "residual": 0.00014385304087316493
+  }
+ ],
+ "rows": [
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 0,
+   "condition": "receipt",
+   "source": "scripted_teacher",
+   "public_success": true,
+   "privileged_success": true,
+   "failure_reason": null,
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "succeeded",
+     0,
+     null
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "succeeded",
+     0,
+     null
+    ],
+    "insert": [
+     "succeeded",
+     0,
+     null
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.4110158615464206,
+     -0.018635232994490294,
+     0.04407733908301195
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.4123845588038837,
+    -0.017500356113530402,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.4110158615464206,
+     -0.018635232994490294,
+     0.04407733908301195
+    ],
+    "event": "locate",
+    "attempt": 0,
+    "version": 0
+   },
+   "align_goal_last": [
+    0.4116906686171771,
+    -0.019016624709132283,
+    0.16368227920143757
+   ],
+   "insert_goal_last": [
+    0.41190536524892657,
+    -0.018795183649518862,
+    0.08174813588050273
+   ],
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": 0.039111137882822236,
+    "lateral": 0.001089516346254626,
+    "axis_err": 0.001250003095076122,
+    "fixture_shift": 0.0004397170085149568,
+    "fixture_tilt": 4.3357258097794335e-06
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 0,
+   "condition": "shifted",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_insert",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "succeeded",
+     0,
+     null
+    ],
+    "insert": [
+     "active",
+     1,
+     "requested_by_auto"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.43101586154642063,
+     -0.0336352329944903,
+     0.04407733908301195
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.4123845588038837,
+    -0.017500356113530402,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.43101586154642063,
+     -0.0336352329944903,
+     0.04407733908301195
+    ],
+    "event": "locate",
+    "attempt": 0,
+    "version": 0
+   },
+   "align_goal_last": [
+    0.4316983942884381,
+    -0.033918309023275944,
+    0.16364048616617205
+   ],
+   "insert_goal_last": [
+    0.4319195624014975,
+    -0.03371320859580049,
+    0.08170434998468185
+   ],
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": 0.002267242473577713,
+    "lateral": 0.026262319314151805,
+    "axis_err": 0.08038484018551359,
+    "fixture_shift": 0.001047387594724513,
+    "fixture_tilt": 0.0005478251006795765
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 0,
+   "condition": "fixed_order",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_align",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "active",
+     1,
+     "requested_by_auto"
+    ],
+    "insert": [
+     "pending",
+     0,
+     "prerequisite_unsatisfied"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.4110158615464206,
+     -0.018635232994490294,
+     0.04407733908301195
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.4123845588038837,
+    -0.017500356113530402,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.43,
+     -0.045,
+     0.045
+    ],
+    "event": "fixed_nominal"
+   },
+   "align_goal_last": [
+    0.4305673644036796,
+    -0.04518747524826783,
+    0.12985067337004352
+   ],
+   "insert_goal_last": null,
+   "align_rejections": [
+    "timeout"
+   ],
+   "n_align_rejections": 1,
+   "truth": {
+    "depth": -0.012433657923573831,
+    "lateral": 0.032136943466949355,
+    "axis_err": 0.0009198196844086041,
+    "fixture_shift": 0.000993472579366963,
+    "fixture_tilt": 0.0004677582489304232
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 0,
+   "condition": "stale_receipt",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_wait",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "pending",
+     0,
+     "binding_unavailable"
+    ],
+    "insert": [
+     "pending",
+     0,
+     "prerequisite_unsatisfied"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.4110158615464206,
+     -0.018635232994490294,
+     0.04407733908301195
+    ],
+    "version": 0,
+    "valid": false,
+    "invalid_reason": "estimate_stale_intervention"
+   },
+   "hole_true": [
+    0.4123845588038837,
+    -0.017500356113530402,
+    0.045
+   ],
+   "hole_frame_used": null,
+   "align_goal_last": null,
+   "insert_goal_last": null,
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": -0.13246033085856687,
+    "lateral": 0.3050754080902407,
+    "axis_err": 0.0010011868191114157,
+    "fixture_shift": 0.000993472579366963,
+    "fixture_tilt": 0.0004677582489304232
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 1,
+   "condition": "receipt",
+   "source": "scripted_teacher",
+   "public_success": true,
+   "privileged_success": true,
+   "failure_reason": null,
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "succeeded",
+     0,
+     null
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "succeeded",
+     0,
+     null
+    ],
+    "insert": [
+     "succeeded",
+     0,
+     null
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.4243313837725627,
+     -0.0732476131836919,
+     0.0442170178835023
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.42337755811579847,
+    -0.07282035850439714,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.4243313837725627,
+     -0.0732476131836919,
+     0.0442170178835023
+    ],
+    "event": "locate",
+    "attempt": 0,
+    "version": 0
+   },
+   "align_goal_last": [
+    0.4250120802847191,
+    -0.07339590358504508,
+    0.1638611032410462
+   ],
+   "insert_goal_last": [
+    0.42524421819539043,
+    -0.07321108835429668,
+    0.08192801927224097
+   ],
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": 0.039111014970238736,
+    "lateral": 0.0011572789814252127,
+    "axis_err": 0.0010700601609495131,
+    "fixture_shift": 0.00036366623109718746,
+    "fixture_tilt": 5.4971149095619725e-06
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 1,
+   "condition": "shifted",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_insert",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "succeeded",
+     0,
+     null
+    ],
+    "insert": [
+     "active",
+     1,
+     "requested_by_auto"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.4443313837725627,
+     -0.0882476131836919,
+     0.0442170178835023
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.42337755811579847,
+    -0.07282035850439714,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.4443313837725627,
+     -0.0882476131836919,
+     0.0442170178835023
+    ],
+    "event": "locate",
+    "attempt": 0,
+    "version": 0
+   },
+   "align_goal_last": [
+    0.4450181962506432,
+    -0.08830171370406477,
+    0.16378352629895335
+   ],
+   "insert_goal_last": [
+    0.44525452992147757,
+    -0.08813580259194051,
+    0.08184876895315585
+   ],
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": 0.007676820403005849,
+    "lateral": 0.03081686329843208,
+    "axis_err": 0.08948663402076414,
+    "fixture_shift": 0.0016576166058035007,
+    "fixture_tilt": 0.0006592104872618274
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 1,
+   "condition": "fixed_order",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_align",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "active",
+     1,
+     "requested_by_auto"
+    ],
+    "insert": [
+     "pending",
+     0,
+     "prerequisite_unsatisfied"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.4243313837725627,
+     -0.0732476131836919,
+     0.0442170178835023
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.42337755811579847,
+    -0.07282035850439714,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.43,
+     -0.045,
+     0.045
+    ],
+    "event": "fixed_nominal"
+   },
+   "align_goal_last": [
+    0.4305640723575346,
+    -0.04502937608679939,
+    0.12988537247309798
+   ],
+   "insert_goal_last": null,
+   "align_rejections": [
+    "timeout"
+   ],
+   "n_align_rejections": 1,
+   "truth": {
+    "depth": -0.012484323463404034,
+    "lateral": 0.028472616921875717,
+    "axis_err": 0.0013072513582824078,
+    "fixture_shift": 0.00045869818910008943,
+    "fixture_tilt": 0.00042588520789746734
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 1,
+   "condition": "stale_receipt",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_wait",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "pending",
+     0,
+     "binding_unavailable"
+    ],
+    "insert": [
+     "pending",
+     0,
+     "prerequisite_unsatisfied"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.4243313837725627,
+     -0.0732476131836919,
+     0.0442170178835023
+    ],
+    "version": 0,
+    "valid": false,
+    "invalid_reason": "estimate_stale_intervention"
+   },
+   "hole_true": [
+    0.42337755811579847,
+    -0.07282035850439714,
+    0.045
+   ],
+   "hole_frame_used": null,
+   "align_goal_last": null,
+   "insert_goal_last": null,
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": -0.13231547354391351,
+    "lateral": 0.19665893246056326,
+    "axis_err": 0.0013504353492648255,
+    "fixture_shift": 0.00045869818910008943,
+    "fixture_tilt": 0.00042588520789746734
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 2,
+   "condition": "receipt",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "infeasible:right.grasp",
+   "statuses": {},
+   "locate_receipt": null,
+   "hole_true": [
+    0.47564128671215966,
+    -0.018269498333516168,
+    0.045
+   ],
+   "hole_frame_used": null,
+   "align_goal_last": null,
+   "insert_goal_last": null,
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {}
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 2,
+   "condition": "shifted",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "infeasible:right.grasp",
+   "statuses": {},
+   "locate_receipt": null,
+   "hole_true": [
+    0.47564128671215966,
+    -0.018269498333516168,
+    0.045
+   ],
+   "hole_frame_used": null,
+   "align_goal_last": null,
+   "insert_goal_last": null,
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {}
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 2,
+   "condition": "fixed_order",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "infeasible:right.grasp",
+   "statuses": {},
+   "locate_receipt": null,
+   "hole_true": [
+    0.47564128671215966,
+    -0.018269498333516168,
+    0.045
+   ],
+   "hole_frame_used": null,
+   "align_goal_last": null,
+   "insert_goal_last": null,
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {}
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 2,
+   "condition": "stale_receipt",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "infeasible:right.grasp",
+   "statuses": {},
+   "locate_receipt": null,
+   "hole_true": [
+    0.47564128671215966,
+    -0.018269498333516168,
+    0.045
+   ],
+   "hole_frame_used": null,
+   "align_goal_last": null,
+   "insert_goal_last": null,
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {}
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 3,
+   "condition": "receipt",
+   "source": "scripted_teacher",
+   "public_success": true,
+   "privileged_success": true,
+   "failure_reason": null,
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "succeeded",
+     0,
+     null
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "succeeded",
+     0,
+     null
+    ],
+    "insert": [
+     "succeeded",
+     0,
+     null
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.4172631451333513,
+     -0.04323824494236831,
+     0.04669574106530875
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.4191587155585924,
+    -0.04194172235145646,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.4172631451333513,
+     -0.04323824494236831,
+     0.04669574106530875
+    ],
+    "event": "locate",
+    "attempt": 0,
+    "version": 0
+   },
+   "align_goal_last": [
+    0.41794174502660575,
+    -0.04328706398660471,
+    0.16649842217337685
+   ],
+   "insert_goal_last": [
+    0.4181641788231715,
+    -0.04308136643009168,
+    0.08456368465981098
+   ],
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": 0.03911126654497644,
+    "lateral": 0.0009380573999072696,
+    "axis_err": 0.001093139429294114,
+    "fixture_shift": 0.0004247725798244784,
+    "fixture_tilt": 5.483080646234358e-06
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 3,
+   "condition": "shifted",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_insert",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "succeeded",
+     0,
+     null
+    ],
+    "insert": [
+     "active",
+     1,
+     "requested_by_auto"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.4372631451333513,
+     -0.05823824494236831,
+     0.04669574106530875
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.4191587155585924,
+    -0.04194172235145646,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.4372631451333513,
+     -0.05823824494236831,
+     0.04669574106530875
+    ],
+    "event": "locate",
+    "attempt": 0,
+    "version": 0
+   },
+   "align_goal_last": [
+    0.43795073730457584,
+    -0.05819942704228353,
+    0.16642874039336833
+   ],
+   "insert_goal_last": [
+    0.43817750658906685,
+    -0.0580114567715538,
+    0.08449242030107978
+   ],
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": 0.002815086135737433,
+    "lateral": 0.02933215959776046,
+    "axis_err": 0.08477477205656148,
+    "fixture_shift": 0.0005053689579210039,
+    "fixture_tilt": 0.0004549978969712648
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 3,
+   "condition": "fixed_order",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_align",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "active",
+     1,
+     "requested_by_auto"
+    ],
+    "insert": [
+     "pending",
+     0,
+     "prerequisite_unsatisfied"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.4172631451333513,
+     -0.04323824494236831,
+     0.04669574106530875
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.4191587155585924,
+    -0.04194172235145646,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.43,
+     -0.045,
+     0.045
+    ],
+    "event": "fixed_nominal"
+   },
+   "align_goal_last": [
+    0.4305619182065256,
+    -0.04489064673700231,
+    0.13004784865402275
+   ],
+   "insert_goal_last": null,
+   "align_rejections": [
+    "timeout"
+   ],
+   "n_align_rejections": 1,
+   "truth": {
+    "depth": -0.01231034748152419,
+    "lateral": 0.011072093381743782,
+    "axis_err": 0.0013936396034702281,
+    "fixture_shift": 0.0005736227806796009,
+    "fixture_tilt": 0.00043809520088782943
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 3,
+   "condition": "stale_receipt",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_wait",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "pending",
+     0,
+     "binding_unavailable"
+    ],
+    "insert": [
+     "pending",
+     0,
+     "prerequisite_unsatisfied"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.4172631451333513,
+     -0.04323824494236831,
+     0.04669574106530875
+    ],
+    "version": 0,
+    "valid": false,
+    "invalid_reason": "estimate_stale_intervention"
+   },
+   "hole_true": [
+    0.4191587155585924,
+    -0.04194172235145646,
+    0.045
+   ],
+   "hole_frame_used": null,
+   "align_goal_last": null,
+   "insert_goal_last": null,
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": -0.13133959758654917,
+    "lateral": 0.19130224977345384,
+    "axis_err": 0.0014259163024267678,
+    "fixture_shift": 0.0005736227806796009,
+    "fixture_tilt": 0.00043809520088782943
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 4,
+   "condition": "receipt",
+   "source": "scripted_teacher",
+   "public_success": true,
+   "privileged_success": true,
+   "failure_reason": null,
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "succeeded",
+     0,
+     null
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "succeeded",
+     0,
+     null
+    ],
+    "insert": [
+     "succeeded",
+     0,
+     null
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.37824309027322167,
+     -0.008184956437916157,
+     0.04425482435794145
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.3789766193695362,
+    -0.008184951745371823,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.37824309027322167,
+     -0.008184956437916157,
+     0.04425482435794145
+    ],
+    "event": "locate",
+    "attempt": 0,
+    "version": 0
+   },
+   "align_goal_last": [
+    0.37890768002467423,
+    -0.008069411525008846,
+    0.16403805273596506
+   ],
+   "insert_goal_last": [
+    0.37911319938891685,
+    -0.00782773038858722,
+    0.08210528784563137
+   ],
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": 0.03911116199038778,
+    "lateral": 0.0012630548948084578,
+    "axis_err": 0.0011956914260139748,
+    "fixture_shift": 0.0003443963782024867,
+    "fixture_tilt": 3.7292816714335925e-06
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 4,
+   "condition": "shifted",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_insert",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "succeeded",
+     0,
+     null
+    ],
+    "insert": [
+     "active",
+     1,
+     "requested_by_auto"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.3982430902732217,
+     -0.023184956437916154,
+     0.04425482435794145
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.3789766193695362,
+    -0.008184951745371823,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.3982430902732217,
+     -0.023184956437916154,
+     0.04425482435794145
+    ],
+    "event": "locate",
+    "attempt": 0,
+    "version": 0
+   },
+   "align_goal_last": [
+    0.39891552698828586,
+    -0.022962158880284026,
+    0.16400029272847677
+   ],
+   "insert_goal_last": [
+    0.39912792637704964,
+    -0.022738339202068712,
+    0.08206668618431523
+   ],
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": 0.003803341443921987,
+    "lateral": 0.0270209575536136,
+    "axis_err": 0.07976332348998184,
+    "fixture_shift": 0.0003414857187308845,
+    "fixture_tilt": 0.00034417036986820885
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 4,
+   "condition": "fixed_order",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_align",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "active",
+     1,
+     "requested_by_auto"
+    ],
+    "insert": [
+     "pending",
+     0,
+     "prerequisite_unsatisfied"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.37824309027322167,
+     -0.008184956437916157,
+     0.04425482435794145
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.3789766193695362,
+    -0.008184951745371823,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.43,
+     -0.045,
+     0.045
+    ],
+    "event": "fixed_nominal"
+   },
+   "align_goal_last": [
+    0.43056419055193423,
+    -0.04453857918141978,
+    0.12991822605578346
+   ],
+   "insert_goal_last": null,
+   "align_rejections": [
+    "timeout"
+   ],
+   "n_align_rejections": 1,
+   "truth": {
+    "depth": -0.012209546328748428,
+    "lateral": 0.06280975522857073,
+    "axis_err": 0.0013592588680571035,
+    "fixture_shift": 0.00041120931696387637,
+    "fixture_tilt": 0.00039641904198617627
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 4,
+   "condition": "stale_receipt",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_wait",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "pending",
+     0,
+     "binding_unavailable"
+    ],
+    "insert": [
+     "pending",
+     0,
+     "prerequisite_unsatisfied"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.37824309027322167,
+     -0.008184956437916157,
+     0.04425482435794145
+    ],
+    "version": 0,
+    "valid": false,
+    "invalid_reason": "estimate_stale_intervention"
+   },
+   "hole_true": [
+    0.3789766193695362,
+    -0.008184951745371823,
+    0.045
+   ],
+   "hole_frame_used": null,
+   "align_goal_last": null,
+   "insert_goal_last": null,
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": -0.13130268387473332,
+    "lateral": 0.3168507941484396,
+    "axis_err": 0.0014284693303868283,
+    "fixture_shift": 0.00041120931696387637,
+    "fixture_tilt": 0.00039641904198617627
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 5,
+   "condition": "receipt",
+   "source": "scripted_teacher",
+   "public_success": true,
+   "privileged_success": true,
+   "failure_reason": null,
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "succeeded",
+     0,
+     null
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "succeeded",
+     0,
+     null
+    ],
+    "insert": [
+     "succeeded",
+     0,
+     null
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.45031226108794503,
+     -0.05115553681362109,
+     0.04389808315078574
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.4515022885895788,
+    -0.05046043264720752,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.45031226108794503,
+     -0.05115553681362109,
+     0.04389808315078574
+    ],
+    "event": "locate",
+    "attempt": 0,
+    "version": 0
+   },
+   "align_goal_last": [
+    0.4510030402846536,
+    -0.051042324748601306,
+    0.16279050463404426
+   ],
+   "insert_goal_last": [
+    0.45122561918245824,
+    -0.05085738990787873,
+    0.08085231911732049
+   ],
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": 0.0391109584627135,
+    "lateral": 0.0009300745247267151,
+    "axis_err": 0.0009709397690782721,
+    "fixture_shift": 0.00035198690761502045,
+    "fixture_tilt": 4.573272944744825e-06
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 5,
+   "condition": "shifted",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_insert",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "succeeded",
+     0,
+     null
+    ],
+    "insert": [
+     "active",
+     1,
+     "requested_by_auto"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.47031226108794505,
+     -0.06615553681362109,
+     0.04389808315078574
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.4515022885895788,
+    -0.05046043264720752,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.47031226108794505,
+     -0.06615553681362109,
+     0.04389808315078574
+    ],
+    "event": "locate",
+    "attempt": 0,
+    "version": 0
+   },
+   "align_goal_last": [
+    0.4710140240407818,
+    -0.0660666897188293,
+    0.16261865616473062
+   ],
+   "insert_goal_last": [
+    0.47123897902043205,
+    -0.06589976956161683,
+    0.0806778516783285
+   ],
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": 0.013852363048276995,
+    "lateral": 0.005201244944444586,
+    "axis_err": 0.1705727022972556,
+    "fixture_shift": 0.006648969779294828,
+    "fixture_tilt": 0.0003932629177097268
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 5,
+   "condition": "fixed_order",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_align",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "active",
+     1,
+     "requested_by_auto"
+    ],
+    "insert": [
+     "pending",
+     0,
+     "prerequisite_unsatisfied"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.45031226108794503,
+     -0.05115553681362109,
+     0.04389808315078574
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.4515022885895788,
+    -0.05046043264720752,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.43,
+     -0.045,
+     0.045
+    ],
+    "event": "fixed_nominal"
+   },
+   "align_goal_last": [
+    0.4305294451975526,
+    -0.04481435067983546,
+    0.1293011393819397
+   ],
+   "insert_goal_last": null,
+   "align_rejections": [
+    "timeout"
+   ],
+   "n_align_rejections": 1,
+   "truth": {
+    "depth": -0.01186292315617315,
+    "lateral": 0.022167518531841127,
+    "axis_err": 0.001290703998238679,
+    "fixture_shift": 0.00048602301436061635,
+    "fixture_tilt": 0.0003752671632970998
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 5,
+   "condition": "stale_receipt",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_wait",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "pending",
+     0,
+     "binding_unavailable"
+    ],
+    "insert": [
+     "pending",
+     0,
+     "prerequisite_unsatisfied"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.45031226108794503,
+     -0.05115553681362109,
+     0.04389808315078574
+    ],
+    "version": 0,
+    "valid": false,
+    "invalid_reason": "estimate_stale_intervention"
+   },
+   "hole_true": [
+    0.4515022885895788,
+    -0.05046043264720752,
+    0.045
+   ],
+   "hole_frame_used": null,
+   "align_goal_last": null,
+   "insert_goal_last": null,
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": -0.13246486561504928,
+    "lateral": 0.21313414747816273,
+    "axis_err": 0.0013730090838096967,
+    "fixture_shift": 0.00048602301436061635,
+    "fixture_tilt": 0.0003752671632970998
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 6,
+   "condition": "receipt",
+   "source": "scripted_teacher",
+   "public_success": true,
+   "privileged_success": true,
+   "failure_reason": null,
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "succeeded",
+     0,
+     null
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "succeeded",
+     0,
+     null
+    ],
+    "insert": [
+     "succeeded",
+     0,
+     null
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.4401728916812906,
+     -0.07092441445437063,
+     0.045009204545762176
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.44064941681038755,
+    -0.07226420924593707,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.4401728916812906,
+     -0.07092441445437063,
+     0.045009204545762176
+    ],
+    "event": "locate",
+    "attempt": 0,
+    "version": 0
+   },
+   "align_goal_last": [
+    0.4408614156134132,
+    -0.0704095574721336,
+    0.16448067778146083
+   ],
+   "insert_goal_last": [
+    0.44109054181720775,
+    -0.07023108373799092,
+    0.08254458176889273
+   ],
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": 0.03911084087352519,
+    "lateral": 0.0021370885041809367,
+    "axis_err": 0.0009616542914568184,
+    "fixture_shift": 0.0003822190172373413,
+    "fixture_tilt": 4.6443360140784566e-06
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 6,
+   "condition": "shifted",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_insert",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "succeeded",
+     0,
+     null
+    ],
+    "insert": [
+     "active",
+     1,
+     "requested_by_auto"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.4601728916812906,
+     -0.08592441445437063,
+     0.045009204545762176
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.44064941681038755,
+    -0.07226420924593707,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.4601728916812906,
+     -0.08592441445437063,
+     0.045009204545762176
+    ],
+    "event": "locate",
+    "attempt": 0,
+    "version": 0
+   },
+   "align_goal_last": [
+    0.460872440587476,
+    -0.08534568118362852,
+    0.16438637932223418
+   ],
+   "insert_goal_last": [
+    0.4611009088679343,
+    -0.08518809735457443,
+    0.08244888121362218
+   ],
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": 0.0035229672354259076,
+    "lateral": 0.027800888203499224,
+    "axis_err": 0.08644409614176006,
+    "fixture_shift": 0.00025882242761591465,
+    "fixture_tilt": 0.0005788379667291331
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 6,
+   "condition": "fixed_order",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_align",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "active",
+     1,
+     "requested_by_auto"
+    ],
+    "insert": [
+     "pending",
+     0,
+     "prerequisite_unsatisfied"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.4401728916812906,
+     -0.07092441445437063,
+     0.045009204545762176
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.44064941681038755,
+    -0.07226420924593707,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.43,
+     -0.045,
+     0.045
+    ],
+    "event": "fixed_nominal"
+   },
+   "align_goal_last": [
+    0.43052773764591507,
+    -0.044452515626388835,
+    0.1297413618474304
+   ],
+   "insert_goal_last": null,
+   "align_rejections": [
+    "timeout"
+   ],
+   "n_align_rejections": 1,
+   "truth": {
+    "depth": -0.012153329143285842,
+    "lateral": 0.030053954286663957,
+    "axis_err": 0.0013285701695765202,
+    "fixture_shift": 0.0004889195452340427,
+    "fixture_tilt": 0.00034902210525782274
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 6,
+   "condition": "stale_receipt",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_wait",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "pending",
+     0,
+     "binding_unavailable"
+    ],
+    "insert": [
+     "pending",
+     0,
+     "prerequisite_unsatisfied"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.4401728916812906,
+     -0.07092441445437063,
+     0.045009204545762176
+    ],
+    "version": 0,
+    "valid": false,
+    "invalid_reason": "estimate_stale_intervention"
+   },
+   "hole_true": [
+    0.44064941681038755,
+    -0.07226420924593707,
+    0.045
+   ],
+   "hole_frame_used": null,
+   "align_goal_last": null,
+   "insert_goal_last": null,
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": -0.13218910617508808,
+    "lateral": 0.2709716404377781,
+    "axis_err": 0.0013728748912706914,
+    "fixture_shift": 0.0004889195452340427,
+    "fixture_tilt": 0.00034902210525782274
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 7,
+   "condition": "receipt",
+   "source": "scripted_teacher",
+   "public_success": true,
+   "privileged_success": true,
+   "failure_reason": null,
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "succeeded",
+     0,
+     null
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "succeeded",
+     0,
+     null
+    ],
+    "insert": [
+     "succeeded",
+     0,
+     null
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.4519431003306586,
+     -0.03572444452252821,
+     0.044297160424237224
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.45020441359006524,
+    -0.03560977485494343,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.4519431003306586,
+     -0.03572444452252821,
+     0.044297160424237224
+    ],
+    "event": "locate",
+    "attempt": 0,
+    "version": 0
+   },
+   "align_goal_last": [
+    0.45263655741242204,
+    -0.03557688704528126,
+    0.16402768079742194
+   ],
+   "insert_goal_last": [
+    0.45286069147688385,
+    -0.03538063648703166,
+    0.08208656264650177
+   ],
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": 0.039111103614434053,
+    "lateral": 0.0005359005616244781,
+    "axis_err": 0.0011496159220108246,
+    "fixture_shift": 0.00047890272102218127,
+    "fixture_tilt": 3.633317471955552e-06
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 7,
+   "condition": "shifted",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_insert",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "succeeded",
+     0,
+     null
+    ],
+    "insert": [
+     "active",
+     1,
+     "requested_by_auto"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.4719431003306586,
+     -0.05072444452252821,
+     0.044297160424237224
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.45020441359006524,
+    -0.03560977485494343,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.4719431003306586,
+     -0.05072444452252821,
+     0.044297160424237224
+    ],
+    "event": "locate",
+    "attempt": 0,
+    "version": 0
+   },
+   "align_goal_last": [
+    0.47264817808372905,
+    -0.05050531033531117,
+    0.1639269558650432
+   ],
+   "insert_goal_last": [
+    0.4728758088463775,
+    -0.050325552761467926,
+    0.08198197367529103
+   ],
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": 0.004099946064836285,
+    "lateral": 0.03097670033447974,
+    "axis_err": 0.08853221859980286,
+    "fixture_shift": 0.0009675850547931278,
+    "fixture_tilt": 0.00043836083099488873
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 7,
+   "condition": "fixed_order",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_align",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "active",
+     1,
+     "requested_by_auto"
+    ],
+    "insert": [
+     "pending",
+     0,
+     "prerequisite_unsatisfied"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.4519431003306586,
+     -0.03572444452252821,
+     0.044297160424237224
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.45020441359006524,
+    -0.03560977485494343,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.43,
+     -0.045,
+     0.045
+    ],
+    "event": "fixed_nominal"
+   },
+   "align_goal_last": [
+    0.43052989155096133,
+    -0.04485045469257614,
+    0.1301059950502157
+   ],
+   "insert_goal_last": null,
+   "align_rejections": [
+    "timeout"
+   ],
+   "n_align_rejections": 1,
+   "truth": {
+    "depth": -0.012367045666047521,
+    "lateral": 0.022711892635563176,
+    "axis_err": 0.001455041848555143,
+    "fixture_shift": 0.0005668602480099241,
+    "fixture_tilt": 0.00046231584331465615
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 7,
+   "condition": "stale_receipt",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_wait",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "pending",
+     0,
+     "binding_unavailable"
+    ],
+    "insert": [
+     "pending",
+     0,
+     "prerequisite_unsatisfied"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.4519431003306586,
+     -0.03572444452252821,
+     0.044297160424237224
+    ],
+    "version": 0,
+    "valid": false,
+    "invalid_reason": "estimate_stale_intervention"
+   },
+   "hole_true": [
+    0.45020441359006524,
+    -0.03560977485494343,
+    0.045
+   ],
+   "hole_frame_used": null,
+   "align_goal_last": null,
+   "insert_goal_last": null,
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": -0.13212282489649774,
+    "lateral": 0.28889533920654326,
+    "axis_err": 0.0015878457349846244,
+    "fixture_shift": 0.0005668602480099241,
+    "fixture_tilt": 0.00046231584331465615
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 8,
+   "condition": "receipt",
+   "source": "scripted_teacher",
+   "public_success": true,
+   "privileged_success": true,
+   "failure_reason": null,
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "succeeded",
+     0,
+     null
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "succeeded",
+     0,
+     null
+    ],
+    "insert": [
+     "succeeded",
+     0,
+     null
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.4350971631688389,
+     -0.07126614372895966,
+     0.04257435126061022
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.43542967663493415,
+    -0.07249623072988493,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.4350971631688389,
+     -0.07126614372895966,
+     0.04257435126061022
+    ],
+    "event": "locate",
+    "attempt": 0,
+    "version": 0
+   },
+   "align_goal_last": [
+    0.43578015032325595,
+    -0.0713582322577739,
+    0.16173688427257432
+   ],
+   "insert_goal_last": [
+    0.4360107158389927,
+    -0.07117749274674653,
+    0.07980309410673109
+   ],
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": 0.0391106786729773,
+    "lateral": 0.0023607104670848485,
+    "axis_err": 0.0008261275860149317,
+    "fixture_shift": 0.0004039802753252701,
+    "fixture_tilt": 5.0608476606535244e-06
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 8,
+   "condition": "shifted",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_insert",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "succeeded",
+     0,
+     null
+    ],
+    "insert": [
+     "active",
+     1,
+     "requested_by_auto"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.4550971631688389,
+     -0.08626614372895966,
+     0.04257435126061022
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.43542967663493415,
+    -0.07249623072988493,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.4550971631688389,
+     -0.08626614372895966,
+     0.04257435126061022
+    ],
+    "event": "locate",
+    "attempt": 0,
+    "version": 0
+   },
+   "align_goal_last": [
+    0.45578828444475056,
+    -0.08629113980136986,
+    0.16163664658627303
+   ],
+   "insert_goal_last": [
+    0.4560209591302547,
+    -0.08613059606028116,
+    0.07970128730607684
+   ],
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": 0.00491950278728822,
+    "lateral": 0.028905771377485654,
+    "axis_err": 0.08941275415696755,
+    "fixture_shift": 0.0019973365905958875,
+    "fixture_tilt": 0.0008567100993868218
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 8,
+   "condition": "fixed_order",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_align",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "active",
+     1,
+     "requested_by_auto"
+    ],
+    "insert": [
+     "pending",
+     0,
+     "prerequisite_unsatisfied"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.4350971631688389,
+     -0.07126614372895966,
+     0.04257435126061022
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.43542967663493415,
+    -0.07249623072988493,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.43,
+     -0.045,
+     0.045
+    ],
+    "event": "fixed_nominal"
+   },
+   "align_goal_last": [
+    0.4305648227593385,
+    -0.045032673973061335,
+    0.12941576024700197
+   ],
+   "insert_goal_last": null,
+   "align_rejections": [
+    "timeout"
+   ],
+   "n_align_rejections": 1,
+   "truth": {
+    "depth": -0.012306145138484874,
+    "lateral": 0.02806720201488445,
+    "axis_err": 0.0013671599663135816,
+    "fixture_shift": 0.0005341652551093643,
+    "fixture_tilt": 0.000484207998329403
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 8,
+   "condition": "stale_receipt",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_wait",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "pending",
+     0,
+     "binding_unavailable"
+    ],
+    "insert": [
+     "pending",
+     0,
+     "prerequisite_unsatisfied"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.4350971631688389,
+     -0.07126614372895966,
+     0.04257435126061022
+    ],
+    "version": 0,
+    "valid": false,
+    "invalid_reason": "estimate_stale_intervention"
+   },
+   "hole_true": [
+    0.43542967663493415,
+    -0.07249623072988493,
+    0.045
+   ],
+   "hole_frame_used": null,
+   "align_goal_last": null,
+   "insert_goal_last": null,
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": -0.1319556956320981,
+    "lateral": 0.17033999594881336,
+    "axis_err": 0.0014294946320635592,
+    "fixture_shift": 0.0005341652551093643,
+    "fixture_tilt": 0.000484207998329403
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 9,
+   "condition": "receipt",
+   "source": "scripted_teacher",
+   "public_success": true,
+   "privileged_success": true,
+   "failure_reason": null,
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "succeeded",
+     0,
+     null
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "succeeded",
+     0,
+     null
+    ],
+    "insert": [
+     "succeeded",
+     0,
+     null
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.3968567134917034,
+     -0.05171316897374809,
+     0.04566375501849154
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.3986748850222688,
+    -0.052670775262487805,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.3968567134917034,
+     -0.05171316897374809,
+     0.04566375501849154
+    ],
+    "event": "locate",
+    "attempt": 0,
+    "version": 0
+   },
+   "align_goal_last": [
+    0.39752499149828524,
+    -0.05216792993420108,
+    0.1650735188245736
+   ],
+   "insert_goal_last": [
+    0.3977496067985041,
+    -0.05195762138081419,
+    0.08314165776556082
+   ],
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": 0.03911104466992145,
+    "lateral": 0.001241655334971071,
+    "axis_err": 0.0010970884355372159,
+    "fixture_shift": 0.0003342234017320318,
+    "fixture_tilt": 4.400789984332064e-06
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 9,
+   "condition": "shifted",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_insert",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "succeeded",
+     0,
+     null
+    ],
+    "insert": [
+     "active",
+     1,
+     "requested_by_auto"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.4168567134917034,
+     -0.0667131689737481,
+     0.04566375501849154
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.3986748850222688,
+    -0.052670775262487805,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.4168567134917034,
+     -0.0667131689737481,
+     0.04566375501849154
+    ],
+    "event": "locate",
+    "attempt": 0,
+    "version": 0
+   },
+   "align_goal_last": [
+    0.4175352085411802,
+    -0.06705182571313746,
+    0.16504676776226912
+   ],
+   "insert_goal_last": [
+    0.4177635122872569,
+    -0.06686131027073929,
+    0.08311434810434178
+   ],
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": 0.0037440111687855214,
+    "lateral": 0.02682777217293512,
+    "axis_err": 0.08595034658567804,
+    "fixture_shift": 0.0006736200134807624,
+    "fixture_tilt": 0.0005822750429263113
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 9,
+   "condition": "fixed_order",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_align",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "active",
+     1,
+     "requested_by_auto"
+    ],
+    "insert": [
+     "pending",
+     0,
+     "prerequisite_unsatisfied"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.3968567134917034,
+     -0.05171316897374809,
+     0.04566375501849154
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.3986748850222688,
+    -0.052670775262487805,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.43,
+     -0.045,
+     0.045
+    ],
+    "event": "fixed_nominal"
+   },
+   "align_goal_last": [
+    0.43053185549320594,
+    -0.04518968495124732,
+    0.12954726892993862
+   ],
+   "insert_goal_last": null,
+   "align_rejections": [
+    "timeout"
+   ],
+   "n_align_rejections": 1,
+   "truth": {
+    "depth": -0.011963801824027424,
+    "lateral": 0.032073928157719714,
+    "axis_err": 0.0011912820585007519,
+    "fixture_shift": 0.00041328574248217584,
+    "fixture_tilt": 0.00035475282831546375
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 9,
+   "condition": "stale_receipt",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_wait",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "pending",
+     0,
+     "binding_unavailable"
+    ],
+    "insert": [
+     "pending",
+     0,
+     "prerequisite_unsatisfied"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.3968567134917034,
+     -0.05171316897374809,
+     0.04566375501849154
+    ],
+    "version": 0,
+    "valid": false,
+    "invalid_reason": "estimate_stale_intervention"
+   },
+   "hole_true": [
+    0.3986748850222688,
+    -0.052670775262487805,
+    0.045
+   ],
+   "hole_frame_used": null,
+   "align_goal_last": null,
+   "insert_goal_last": null,
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": -0.13274915769155451,
+    "lateral": 0.18517989029810383,
+    "axis_err": 0.0012745616292424039,
+    "fixture_shift": 0.00041328574248217584,
+    "fixture_tilt": 0.00035475282831546375
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 10,
+   "condition": "receipt",
+   "source": "scripted_teacher",
+   "public_success": true,
+   "privileged_success": true,
+   "failure_reason": null,
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "succeeded",
+     0,
+     null
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "succeeded",
+     0,
+     null
+    ],
+    "insert": [
+     "succeeded",
+     0,
+     null
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.45226678652301283,
+     -0.06295116892830643,
+     0.04413142787624452
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.45362391137770264,
+    -0.06358852527269605,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.45226678652301283,
+     -0.06295116892830643,
+     0.04413142787624452
+    ],
+    "event": "locate",
+    "attempt": 0,
+    "version": 0
+   },
+   "align_goal_last": [
+    0.45295923727922294,
+    -0.06265899294700152,
+    0.16326461926055405
+   ],
+   "insert_goal_last": [
+    0.4531870739599242,
+    -0.062480607313727926,
+    0.08132641529284572
+   ],
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": 0.039110831664666834,
+    "lateral": 0.00255447967414026,
+    "axis_err": 0.0009406127072062852,
+    "fixture_shift": 0.0003657819890511275,
+    "fixture_tilt": 4.909881736615377e-06
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 10,
+   "condition": "shifted",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_insert",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "succeeded",
+     0,
+     null
+    ],
+    "insert": [
+     "active",
+     1,
+     "requested_by_auto"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.47226678652301285,
+     -0.07795116892830643,
+     0.04413142787624452
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.45362391137770264,
+    -0.06358852527269605,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.47226678652301285,
+     -0.07795116892830643,
+     0.04413142787624452
+    ],
+    "event": "locate",
+    "attempt": 0,
+    "version": 0
+   },
+   "align_goal_last": [
+    0.4729656007155343,
+    -0.07767202222982678,
+    0.16312149888521976
+   ],
+   "insert_goal_last": [
+    0.47320014007786854,
+    -0.0775096173998554,
+    0.0811805069744859
+   ],
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": 0.0023893534838503876,
+    "lateral": 0.026054696973863322,
+    "axis_err": 0.0865665501092403,
+    "fixture_shift": 0.000769855800600977,
+    "fixture_tilt": 0.0009027016858849278
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 10,
+   "condition": "fixed_order",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_align",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "active",
+     1,
+     "requested_by_auto"
+    ],
+    "insert": [
+     "pending",
+     0,
+     "prerequisite_unsatisfied"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.45226678652301283,
+     -0.06295116892830643,
+     0.04413142787624452
+    ],
+    "version": 0,
+    "valid": true,
+    "invalid_reason": null
+   },
+   "hole_true": [
+    0.45362391137770264,
+    -0.06358852527269605,
+    0.045
+   ],
+   "hole_frame_used": {
+    "pos": [
+     0.43,
+     -0.045,
+     0.045
+    ],
+    "event": "fixed_nominal"
+   },
+   "align_goal_last": [
+    0.4305299212630151,
+    -0.04463622678752104,
+    0.129551296057785
+   ],
+   "insert_goal_last": null,
+   "align_rejections": [
+    "timeout"
+   ],
+   "n_align_rejections": 1,
+   "truth": {
+    "depth": -0.012334491141291636,
+    "lateral": 0.030842302733827407,
+    "axis_err": 0.0017186017827864758,
+    "fixture_shift": 0.00045961065189203487,
+    "fixture_tilt": 0.0004480316614283798
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 10,
+   "condition": "stale_receipt",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "ended_in_phase:L:l_hold|R:r_wait",
+   "statuses": {
+    "locate": [
+     "succeeded",
+     0,
+     null
+    ],
+    "support": [
+     "active",
+     0,
+     "requested_by_auto"
+    ],
+    "acquire": [
+     "succeeded",
+     0,
+     null
+    ],
+    "align": [
+     "pending",
+     0,
+     "binding_unavailable"
+    ],
+    "insert": [
+     "pending",
+     0,
+     "prerequisite_unsatisfied"
+    ]
+   },
+   "locate_receipt": {
+    "pos": [
+     0.45226678652301283,
+     -0.06295116892830643,
+     0.04413142787624452
+    ],
+    "version": 0,
+    "valid": false,
+    "invalid_reason": "estimate_stale_intervention"
+   },
+   "hole_true": [
+    0.45362391137770264,
+    -0.06358852527269605,
+    0.045
+   ],
+   "hole_frame_used": null,
+   "align_goal_last": null,
+   "insert_goal_last": null,
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {
+    "depth": -0.13210732969717903,
+    "lateral": 0.23350403153330657,
+    "axis_err": 0.0018086223183412548,
+    "fixture_shift": 0.00045961065189203487,
+    "fixture_tilt": 0.0004480316614283798
+   }
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 11,
+   "condition": "receipt",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "infeasible:right.grasp",
+   "statuses": {},
+   "locate_receipt": null,
+   "hole_true": [
+    0.4259340058723209,
+    -0.06255770063514643,
+    0.045
+   ],
+   "hole_frame_used": null,
+   "align_goal_last": null,
+   "insert_goal_last": null,
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {}
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 11,
+   "condition": "shifted",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "infeasible:right.grasp",
+   "statuses": {},
+   "locate_receipt": null,
+   "hole_true": [
+    0.4259340058723209,
+    -0.06255770063514643,
+    0.045
+   ],
+   "hole_frame_used": null,
+   "align_goal_last": null,
+   "insert_goal_last": null,
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {}
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 11,
+   "condition": "fixed_order",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "infeasible:right.grasp",
+   "statuses": {},
+   "locate_receipt": null,
+   "hole_true": [
+    0.4259340058723209,
+    -0.06255770063514643,
+    0.045
+   ],
+   "hole_frame_used": null,
+   "align_goal_last": null,
+   "insert_goal_last": null,
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {}
+  },
+  {
+   "pair": "parm5_pg2__parm5_pg2",
+   "seed": 11,
+   "condition": "stale_receipt",
+   "source": "scripted_teacher",
+   "public_success": false,
+   "privileged_success": false,
+   "failure_reason": "infeasible:right.grasp",
+   "statuses": {},
+   "locate_receipt": null,
+   "hole_true": [
+    0.4259340058723209,
+    -0.06255770063514643,
+    0.045
+   ],
+   "hole_frame_used": null,
+   "align_goal_last": null,
+   "insert_goal_last": null,
+   "align_rejections": [],
+   "n_align_rejections": 0,
+   "truth": {}
+  }
+ ],
+ "wall_s": 41.72756242752075,
+ "source": "scripted_teacher"
+}

@@ -72,13 +72,60 @@ class MultiFeaturizer:
             out.setdefault(int(ri[1:]), {})[g] = list(v)
         return out
 
+    def _node_grippers(self, f) -> list:
+        """For bodies with several grasping assemblies (e.g. ALOHA): the gripper TCP site each
+        action node drives (its own arm's gripper). None when the body has a single gripper."""
+        grips = [a for a in f.spec.assemblies if a.kind in ("gripper", "hand")]
+        if len(grips) < 2:
+            return None
+        by_id = {a.id: a for a in f.spec.assemblies}
+        out = []
+        for k in f.node_asm:
+            a = by_id.get(f.asm_ids[k]) if k >= 0 else None
+            g = None
+            while a is not None and g is None:          # walk up the assembly tree
+                g = a if a.kind in ("gripper", "hand") else next(
+                    (x for x in grips if x.parent_assembly == a.id), None)
+                a = by_id.get(a.parent_assembly) if a.parent_assembly else None
+            out.append(g.frame.site if g else None)
+        return out
+
+    def _fix_multi_gripper_jacobians(self, f, pi):
+        """feat-v2 node features end with [J_pos(3), J_rot(3), lever(3)] w.r.t. THE first
+        gripper TCP; for multi-gripper bodies recompute them w.r.t. each node's own gripper."""
+        sites = self._node_grippers(f)
+        if sites is None:
+            return
+        import math
+        import mujoco
+        m, d = f.model, f.data            # holds FK at the measured q from the call just made
+        mujoco.mj_comPos(m, d)
+        c, s_ = math.cos(-f.base_yaw), math.sin(-f.base_yaw)
+        Rb = np.array([[c, -s_, 0], [s_, c, 0], [0, 0, 1]])
+        jac = np.zeros((6, m.nv))
+        cache = {}
+        for i, site in enumerate(sites):
+            if site is None:
+                continue
+            if site not in cache:
+                sid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_SITE, site)
+                mujoco.mj_jacSite(m, d, jac[:3], jac[3:], sid)
+                cache[site] = (jac.copy(), f._to_base(d.site_xpos[sid]))
+            J, tcp_b = cache[site]
+            anchor = f._to_base(d.xanchor[f.jids[i]])
+            v = np.concatenate([Rb @ J[:3, f.dadr[i]], Rb @ J[3:, f.dadr[i]], tcp_b - anchor]).astype(np.float32)
+            pi.act_node_feats[i, -9:] = v
+            pi.tokens["morph"][i, -9:] = v
+
     def __call__(self, obs: PolicyObservation, prev_action: np.ndarray | None = None) -> PolicyInput:
         parts = []
         for i, f in enumerate(self.subs):
             pa = None
             if prev_action is not None:
                 pa = prev_action[self.node_off[i]:self.node_off[i] + self.n_nodes[i]]
-            parts.append(f(obs, pa))
+            pi = f(obs, pa)
+            self._fix_multi_gripper_jacobians(f, pi)
+            parts.append(pi)
         # ---------------- morph bank layout
         other_off, cur = [], self.N
         for i, p in enumerate(parts):

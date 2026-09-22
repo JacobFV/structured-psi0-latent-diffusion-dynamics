@@ -1,0 +1,130 @@
+{
+ "handover|aloha": {
+  "agree": 30,
+  "error": 0,
+  "failure": 30,
+  "infeasible": 0,
+  "n": 30,
+  "public_success": 0,
+  "reasons": {
+   "ended_in_phase:L:l_hold|R:r_descend": 17,
+   "ended_in_phase:L:l_hold|R:r_pre": 13
+  },
+  "retried": 30,
+  "success": 0,
+  "success_rate_all": 0.0,
+  "success_rate_feasible": 0.0
+ },
+ "handover|panda_pg2__ur5e_pg2": {
+  "agree": 30,
+  "error": 0,
+  "failure": 0,
+  "infeasible": 0,
+  "n": 30,
+  "public_success": 30,
+  "reasons": {},
+  "retried": 0,
+  "success": 30,
+  "success_rate_all": 1.0,
+  "success_rate_feasible": 1.0
+ },
+ "handover|parm5_pg2__parm5_pg2": {
+  "agree": 30,
+  "error": 0,
+  "failure": 0,
+  "infeasible": 0,
+  "n": 30,
+  "public_success": 30,
+  "reasons": {},
+  "retried": 0,
+  "success": 30,
+  "success_rate_all": 1.0,
+  "success_rate_feasible": 1.0
+ },
+ "handover|parm5_pg2__parm6_tf3": {
+  "agree": 30,
+  "error": 0,
+  "failure": 0,
+  "infeasible": 0,
+  "n": 30,
+  "public_success": 30,
+  "reasons": {},
+  "retried": 0,
+  "success": 30,
+  "success_rate_all": 1.0,
+  "success_rate_feasible": 1.0
+ },
+ "handover|parm6_pg2__parm7_pg2": {
+  "agree": 30,
+  "error": 0,
+  "failure": 1,
+  "infeasible": 5,
+  "n": 30,
+  "public_success": 24,
+  "reasons": {
+   "ended_in_phase:L:l_descend|R:r_wait": 1,
+   "infeasible:left.grasp": 5
+  },
+  "retried": 1,
+  "success": 24,
+  "success_rate_all": 0.8,
+  "success_rate_feasible": 0.96
+ },
+ "handover|parm7_tf3__parm5_pg2": {
+  "agree": 30,
+  "error": 0,
+  "failure": 0,
+  "infeasible": 3,
+  "n": 30,
+  "public_success": 27,
+  "reasons": {
+   "infeasible:left.grasp": 3
+  },
+  "retried": 0,
+  "success": 27,
+  "success_rate_all": 0.9,
+  "success_rate_feasible": 1.0
+ },
+ "handover|sawyer_pg2__panda_tf3": {
+  "agree": 30,
+  "error": 0,
+  "failure": 30,
+  "infeasible": 0,
+  "n": 30,
+  "public_success": 0,
+  "reasons": {
+   "ended_in_phase:L:l_hold|R:r_close": 2,
+   "ended_in_phase:L:l_hold|R:r_pre": 28
+  },
+  "retried": 30,
+  "success": 0,
+  "success_rate_all": 0.0,
+  "success_rate_feasible": 0.0
+ },
+ "handover|ur5e_pg2__sawyer_pg2": {
+  "agree": 30,
+  "error": 0,
+  "failure": 0,
+  "infeasible": 0,
+  "n": 30,
+  "public_success": 30,
+  "reasons": {},
+  "retried": 0,
+  "success": 30,
+  "success_rate_all": 1.0,
+  "success_rate_feasible": 1.0
+ },
+ "handover|xarm7_pg2__xarm7_pg2": {
+  "agree": 30,
+  "error": 0,
+  "failure": 0,
+  "infeasible": 0,
+  "n": 30,
+  "public_success": 30,
+  "reasons": {},
+  "retried": 0,
+  "success": 30,
+  "success_rate_all": 1.0,
+  "success_rate_feasible": 1.0
+ }
+}
