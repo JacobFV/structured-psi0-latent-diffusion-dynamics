@@ -93,9 +93,40 @@ as `infeasible:<arm>.<waypoint>`. Those layouts are not attempted.
 
 ## teacher validation (30 seeds per pair, seeds 0-29)
 
-SI_TABLE_PLACEHOLDER
+**support_insert** (`artifacts/assets/dual_teacher_validation/support_insert_30seeds_final.jsonl`, summary `.summary.json`). The success rate is over feasible layouts; `agree` counts episodes where public runtime success equals privileged physical success.
 
-HANDOVER_TABLE_PLACEHOLDER
+| pair (left support __ right insert) | split role | n | success | failure | infeasible | success/feasible | agree | top non-success reasons |
+|---|---|---|---|---|---|---|---|---|
+| aloha | target: dual-arm body | 30 | 22 | 8 | 0 | 0.73 | 26/30 | ended_in_phase:L:l_hold | R:r_align x7; ended_in_phase:L:l_done | R:r_retreat x1 |
+| panda_pg2__ur5e_pg2 | source (eligible) | 30 | 30 | 0 | 0 | 1.00 | 30/30 |  |
+| parm5_pg2__parm5_pg2 | source (eligible) | 30 | 27 | 0 | 3 | 1.00 | 30/30 | infeasible:right.grasp x3 |
+| parm5_tf3__parm7_pg2 | source (eligible) | 30 | 21 | 2 | 7 | 0.91 | 30/30 | infeasible:right.grasp x7; ended_in_phase:L:l_hold | R:r_descend x1; ended_in_phase:L:l_hold | R:r_lift x1 |
+| parm5l_pg2__parm5s_tf3 | source held-out eval | 30 | 19 | 10 | 1 | 0.66 | 17/30 | infeasible:right.transit x1; ended_in_phase:L:l_done | R:r_done x5; ended_in_phase:L:l_hold | R:r_approach x1 |
+| parm6_pg2__panda_tf3 | target: panda+tf3 insertion arm (teacher-weak) | 30 | 11 | 19 | 0 | 0.37 | 25/30 | ended_in_phase:L:l_hold | R:r_approach x5; ended_in_phase:L:l_hold | R:r_descend x7; ended_in_phase:L:l_hold | R:r_align x3 |
+| parm6_pg2__parm7_tf3 | source (INELIGIBLE) | 30 | 10 | 12 | 8 | 0.45 | 23/30 | infeasible:right.grasp x8; ended_in_phase:L:l_hold | R:r_insert x3; ended_in_phase:L:l_done | R:r_done x6 |
+| parm6_tf3__parm6_pg2 | source (eligible) | 30 | 19 | 0 | 11 | 1.00 | 30/30 | infeasible:right.grasp x11 |
+| parm7_pg2__parm5_tf3 | source (eligible) | 30 | 19 | 8 | 3 | 0.70 | 26/30 | infeasible:right.grasp x3; ended_in_phase:L:l_done | R:r_done x3; ended_in_phase:L:l_hold | R:r_approach x3 |
+| sawyer_pg2__panda_pg2 | source (INELIGIBLE) | 30 | 0 | 30 | 0 | 0.00 | 30/30 | ended_in_phase:L:l_hold | R:r_transit x20; ended_in_phase:L:l_hold | R:r_align x8; ended_in_phase:L:l_hold | R:r_approach x2 |
+| sawyer_tf3__ur5e_pg2 | source (INELIGIBLE) | 30 | 0 | 30 | 0 | 0.00 | 30/30 | ended_in_phase:L:l_hold | R:r_align x30 |
+| ur5e_pg2__panda_tf3 | target: panda+tf3 insertion arm (teacher-weak) | 30 | 3 | 27 | 0 | 0.10 | 29/30 | ended_in_phase:L:l_hold | R:r_approach x8; ended_in_phase:L:l_hold | R:r_descend x7; ended_in_phase:L:l_hold | R:r_transit x5 |
+| ur5e_pg2__sawyer_pg2 | source (eligible) | 30 | 27 | 3 | 0 | 0.90 | 30/30 | ended_in_phase:L:l_hold | R:r_descend x3 |
+| ur5e_tf3__parm6_pg2 | source (INELIGIBLE) | 30 | 0 | 19 | 11 | 0.00 | 30/30 | ended_in_phase:L:l_hold | R:r_wait x19; infeasible:right.grasp x11 |
+| xarm7_pg2__xarm7_pg2 | target: held-out family | 30 | 30 | 0 | 0 | 1.00 | 30/30 |  |
+| xarm7_tf3__xarm7_pg2 | target: held-out family | 30 | 30 | 0 | 0 | 1.00 | 30/30 |  |
+
+**handover** (`artifacts/assets/dual_teacher_validation/handover_30seeds_v2.jsonl`). Rows for parallel-gripper-only pairs were carried over from the v1 run, whose code path is identical (see `carried_from`); pairs with a three-finger hand were rerun after the three-finger yaw fix. The v1 file is kept.
+
+| pair (left giver __ right receiver) | n | success | failure | infeasible | success/feasible | agree | top non-success reasons |
+|---|---|---|---|---|---|---|---|
+| aloha | 30 | 0 | 30 | 0 | 0.00 | 30/30 | ended_in_phase:L:l_hold|R:r_descend x17; ended_in_phase:L:l_hold|R:r_pre x13 |
+| panda_pg2__ur5e_pg2 | 30 | 30 | 0 | 0 | 1.00 | 30/30 |  |
+| parm5_pg2__parm5_pg2 | 30 | 30 | 0 | 0 | 1.00 | 30/30 |  |
+| parm5_pg2__parm6_tf3 | 30 | 30 | 0 | 0 | 1.00 | 30/30 |  |
+| parm6_pg2__parm7_pg2 | 30 | 24 | 1 | 5 | 0.96 | 30/30 | ended_in_phase:L:l_descend|R:r_wait x1; infeasible:left.grasp x5 |
+| parm7_tf3__parm5_pg2 | 30 | 27 | 0 | 3 | 1.00 | 30/30 | infeasible:left.grasp x3 |
+| sawyer_pg2__panda_tf3 | 30 | 0 | 30 | 0 | 0.00 | 30/30 | ended_in_phase:L:l_hold|R:r_close x2; ended_in_phase:L:l_hold|R:r_pre x28 |
+| ur5e_pg2__sawyer_pg2 | 30 | 30 | 0 | 0 | 1.00 | 30/30 |  |
+| xarm7_pg2__xarm7_pg2 | 30 | 30 | 0 | 0 | 1.00 | 30/30 |  |
 
 ## ALOHA (menagerie `aloha`, one dual-arm body)
 
@@ -106,7 +137,23 @@ finger-joint width sensors, keyframes removed, and the finger equality leader sw
 actuated finger (the coupling is symmetric with identical physics; without the swap the
 compiler rejected the model because an actuator drove a mimic joint). The assets were synced
 to the peer (`.cache/assets/mujoco_menagerie/aloha`).
-ALOHA_PLACEHOLDER
+Status, with the stages of docs/04 used literally:
+* imported and physics-validated: yes. The body compiles inside the scenario; the fingers,
+  touch and width sensors report; the arms hold their home pose.
+* support_insert teacher: **22/30 physical successes** (public/privileged agreement 26/30).
+  The 7 failures that ended in `r_align` are align timeouts. This is teacher-validated at a
+  moderate rate and the body is included as a diagnostic target.
+* handover teacher: **0/30**. The receiver never converges above the bar that the giver
+  presents. Diagnosis from a trace: the ViperX servo gains are low (waist kp 43, wrist_rotate
+  kp 10.4), so both arms sag under load and the presented bar drifts by several cm. The
+  receiver's goal follows the moving bar, and the teacher's integral correction is only active
+  once the command has converged onto a fixed goal, so a steady-state error of about 2.5 cm
+  remains and the `r_pre` phase never completes. A scratch test with looser integral gating was
+  killed by the host watchdog before it produced a result, so this track has no fix and no
+  verified number. Status: `handover teacher_validated = failed (reason recorded)`.
+* Support posture: fully closed ALOHA fingers touch each other, which reads as contact on the
+  finger touch sensors and produces a false support anchor. The support posture therefore
+  closes to 12 mm.
 
 ## datasets
 

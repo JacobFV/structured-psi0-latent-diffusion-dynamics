@@ -123,7 +123,7 @@ def main(argv=None):
     jobs = [(a.task, p, s, a.max_steps) for p in a.pairs.split(",") for s in range(lo, hi)
             if (a.task, p, s) not in done]
     t0 = time.time()
-    with ProcessPoolExecutor(max_workers=a.workers, max_tasks_per_child=100) as ex, out.open("a") as fh:
+    with ProcessPoolExecutor(max_workers=a.workers) as ex, out.open("a") as fh:
         futs = [ex.submit(_job, j) for j in jobs]
         for i, f in enumerate(as_completed(futs)):
             r = f.result()

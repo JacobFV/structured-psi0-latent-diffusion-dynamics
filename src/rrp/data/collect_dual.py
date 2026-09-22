@@ -119,8 +119,25 @@ def generate(config: dict) -> dict:
                          str(out), item["split"], config.get("max_steps", 1200)))
     t0 = time.time()
     metas = []
-    with ProcessPoolExecutor(max_workers=config.get("workers", os.cpu_count()), max_tasks_per_child=100) as ex:
-        futs = [ex.submit(_job, j) for j in jobs]
+    # resume in the parent: completed, readable episodes are not resubmitted. (Submitting them made
+    # workers hit max_tasks_per_child in seconds; CPython 3.12's worker replacement then hung the pool.)
+    todo = []
+    for j in jobs:
+        eid = f"{j[0]}_{j[1]}_s{j[2]}"
+        pub, prv = out / "episodes" / f"{eid}.public.pkl.gz", out / "episodes" / f"{eid}.private.pkl.gz"
+        if pub.exists() and prv.exists():
+            try:
+                meta = read_episode(pub)["meta"]
+                metas.append(dict(meta, files={p.name: hashlib.sha256(p.read_bytes()).hexdigest()[:16]
+                                              for p in (pub, prv)}, resumed=True))
+                continue
+            except Exception:  # noqa: BLE001 - corrupt partial file: regenerate
+                pass
+        todo.append(j)
+    print(f"[collect_dual] resumed {len(metas)}, to generate {len(todo)}", flush=True)
+    # workers keep at most one robot pair cached (dual_validate.make_pair), so no task-count recycling
+    with ProcessPoolExecutor(max_workers=config.get("workers", os.cpu_count())) as ex:
+        futs = [ex.submit(_job, j) for j in todo]
         for i, f in enumerate(as_completed(futs)):
             try:
                 metas.append(f.result())
