@@ -23,3 +23,8 @@ def register(sub):
         cli_train.register(sub)
     except ImportError:
         pass
+    try:
+        from rrp import cli_adapt
+        cli_adapt.register(sub)
+    except ImportError:
+        pass
