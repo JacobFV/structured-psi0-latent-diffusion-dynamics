@@ -68,6 +68,7 @@ def register(sub):
     e.add_argument("--out", required=True)
     e.set_defaults(fn=cmd_evaluate)
     register_campaign(sub)
+    register_analyze(sub)
 
 
 def cmd_campaign_cell(a):
@@ -101,3 +102,18 @@ def register_campaign(sub):
     l.add_argument("--models", nargs="+", required=True, help="name=checkpoint")
     l.add_argument("--out", required=True)
     l.set_defaults(fn=cmd_latency)
+
+
+def cmd_analyze(a):
+    from rrp.evaluation.analysis import analyze
+    protocol = json.loads(open(a.protocol).read())
+    res = analyze(Path(a.root), Path("research/reports"), Path("artifacts/figures"), protocol["targets"],
+                  protocol["budgets"])
+    print(f"analyzed {res['n_rows']} episode rows -> research/reports/primary_tables.md")
+
+
+def register_analyze(sub):
+    p = sub.add_parser("analyze", help="tables/figures from raw episode rows")
+    p.add_argument("--protocol", required=True)
+    p.add_argument("--root", default="artifacts/runs/primary")
+    p.set_defaults(fn=cmd_analyze)
