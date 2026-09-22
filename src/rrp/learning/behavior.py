@@ -123,7 +123,15 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
             p.requires_grad_(False)       # frozen codec for the policy experiment
     pcfg = PolicyConfig(**cfg["policy"])
     model = FlowPolicy(pcfg).to(dev)
-    opt = torch.optim.AdamW(model.parameters(), lr=cfg.get("lr", 3e-4), weight_decay=cfg.get("wd", 1e-4))
+    swap = cfg.get("swap_alignment")
+    proj, pairs = None, []
+    params = list(model.parameters())
+    if swap:
+        from rrp.learning.swap_alignment import SwapProjector, build_pairs, swap_alignment_loss
+        pairs = build_pairs(eps, cfg["horizon"])
+        proj = SwapProjector(pcfg.D, swap.get("rank", 16)).to(dev)
+        params += list(proj.parameters())
+    opt = torch.optim.AdamW(params, lr=cfg.get("lr", 3e-4), weight_decay=cfg.get("wd", 1e-4))
     total_steps = cfg["epochs"] * max(1, len(ds) // cfg["batch_size"])
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=cfg.get("lr", 3e-4), total_steps=max(total_steps, 10),
                                                 pct_start=0.05)
@@ -147,6 +155,11 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
             target = encode_targets(codec, batch, a, v)
             loss, logs = model.loss(batch, target, v, lab if pcfg.aux else None, aux_weight=cfg.get("aux_weight", 0.1),
                                     generator=gen)
+            if proj is not None and len(pairs) >= 8:
+                sl = swap_alignment_loss(model, proj, rng.sample(pairs, min(swap.get("pairs_per_step", 64), len(pairs))),
+                                         dev)
+                loss = loss + swap.get("weight", 0.1) * sl
+                logs["swap_align"] = float(sl.detach())
             opt.zero_grad()
             loss.backward()
             gn = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -167,7 +180,8 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
                             versions=dict(policy=pcfg.name, featurizer=FEAT_VERSION,
                                           codec=(codec.cfg.version if codec else None)),
                             config=cfg, data_cursor=dict(epoch=epoch), extra=dict(sched=sched.state_dict()))
-    res = dict(steps=step, wall_s=time.time() - t0, train_chunks=len(ds), n_params=sum(p.numel() for p in model.parameters()),
+    res = dict(steps=step, wall_s=time.time() - t0, train_chunks=len(ds), swap_pairs=len(pairs),
+               n_params=sum(p.numel() for p in model.parameters()),
                gpu=ginfo, interrupted=sig.requested)
     meta = save_checkpoint(out_dir / "policy.pt", model=model, optimizer=opt, step=step,
                            versions=dict(policy=pcfg.name, featurizer=FEAT_VERSION,
