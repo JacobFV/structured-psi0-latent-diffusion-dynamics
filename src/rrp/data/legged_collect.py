@@ -100,6 +100,8 @@ def main(argv=None):
     ap.add_argument("--seeds", default="0-9")
     ap.add_argument("--tracker", default="auto")
     ap.add_argument("--out", required=True)
+    ap.add_argument("--teacher-report", action="store_true",
+                    help="also write artifacts/assets/legged_teacher/<body>.json (teacher validation gate)")
     a = ap.parse_args(argv)
     out = Path(a.out) / a.body
     rows = []
@@ -112,6 +114,14 @@ def main(argv=None):
     summ = dict(body=a.body, n=len(rows), success=sum(r["status"] == "success" for r in rows),
                 fell=sum(r["status"] == "fell" for r in rows), episodes=rows)
     (out / "manifest.json").write_text(json.dumps(summ, indent=1))
+    if a.teacher_report:
+        rep = Path(__file__).resolve().parents[3] / "artifacts" / "assets" / "legged_teacher" / f"{a.body}.json"
+        rep.parent.mkdir(parents=True, exist_ok=True)
+        rep.write_text(json.dumps(dict(body=a.body, task="waypoint_contact", n=len(rows),
+                                       success_rate=summ["success"] / max(1, len(rows)), fell=summ["fell"],
+                                       tracker_source=rows[0]["tracker_source"] if rows else None,
+                                       teacher="WaypointTeacher (scripted_teacher, privileged base pose)",
+                                       seeds=a.seeds, episodes=rows), indent=1))
     print(json.dumps({k: v for k, v in summ.items() if k != "episodes"}))
 
 

@@ -352,6 +352,19 @@ def menagerie_legged(key: str) -> Module:
         a.forcerange = [-eff, eff]
         adapter.append(dict(actuator=a.name, joint=jname, source_kind="position" if is_pos else "motor",
                             source_gear=gear, source_kp=kp0, kp=kp, kd=kd, effort=eff))
+    # joint equalities whose DEPENDENT side (joint1) is an actuated joint: invert the (linear) relation
+    # so the actuated joint is the driver (physics unchanged: q1 = c0 + c1 q2  <=>  q2 = -c0/c1 + q1/c1)
+    actuated = {a.target for a in spec.actuators}
+    inverted = []
+    for eq in spec.equalities:
+        if eq.type == mujoco.mjtEq.mjEQ_JOINT and eq.name1 in actuated and eq.name2:
+            c = list(eq.data[:5])
+            if abs(c[1]) > 1e-9 and all(abs(x) < 1e-12 for x in c[2:5]):
+                eq.name1, eq.name2 = eq.name2, eq.name1
+                eq.data = [-c[0] / c[1], 1.0 / c[1], 0, 0, 0] + list(eq.data[5:])
+                inverted.append([eq.name2, eq.name1])
+            else:
+                raise ValueError(f"{key}: nonlinear equality drives actuated joint {eq.name1}")
     imu = add_imu(spec, root_body)
     model = spec.copy().compile()
     data = mujoco.MjData(model)
@@ -408,7 +421,7 @@ def menagerie_legged(key: str) -> Module:
                     if g["actuators"]]),
                 actuator_adapter=dict(kind="joint_pd_position_servo", note="motor actuators converted to PD servos "
                                       "with original torque limits; position actuators re-gained per table",
-                                      actuators=adapter),
+                                      actuators=adapter, inverted_joint_equalities=inverted),
                 params=dict(lengths=[nominal]),
                 legged=dict(root_body=root_body, imu=imu, foot_bodies=list(info["feet"]), foot_sites=foot_sites,
                             touch_sensors=touch, policy_actuators=policy, held_actuators=held, default_pose=default,
