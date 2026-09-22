@@ -130,7 +130,17 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
     log = open(out_dir / "train_log.jsonl", "a")
     step, t0 = 0, time.time()
     gen = torch.Generator(device=dev).manual_seed(cfg["seed"])
-    for epoch in range(cfg["epochs"]):
+    start_epoch = 0
+    last = out_dir / "policy_last.pt"
+    if last.exists():      # resume: model/optimizer/scheduler/epoch cursor
+        st = load_checkpoint(last, map_location=dev)
+        model.load_state_dict(st["model"])
+        opt.load_state_dict(st["optimizer"])
+        sched.load_state_dict(st["extra"]["sched"])
+        step, start_epoch = st["step"], st["data_cursor"]["epoch"] + 1
+        rng = random.Random(cfg["seed"] + start_epoch)
+    every = cfg.get("checkpoint_every_epochs", 1)
+    for epoch in range(start_epoch, cfg["epochs"]):
         for batch, a, v, lab, eff in ds.batches(cfg["batch_size"], rng):
             batch, a, v = batch.to(dev), a.to(dev), v.to(dev)
             lab = {k: t.to(dev) for k, t in lab.items()}
@@ -152,6 +162,11 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
                 break
         if sig.requested:
             break
+        if (epoch + 1) % every == 0 and epoch + 1 < cfg["epochs"]:
+            save_checkpoint(last, model=model, optimizer=opt, step=step,
+                            versions=dict(policy=pcfg.name, featurizer=FEAT_VERSION,
+                                          codec=(codec.cfg.version if codec else None)),
+                            config=cfg, data_cursor=dict(epoch=epoch), extra=dict(sched=sched.state_dict()))
     res = dict(steps=step, wall_s=time.time() - t0, train_chunks=len(ds), n_params=sum(p.numel() for p in model.parameters()),
                gpu=ginfo, interrupted=sig.requested)
     meta = save_checkpoint(out_dir / "policy.pt", model=model, optimizer=opt, step=step,
