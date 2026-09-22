@@ -1,0 +1,54 @@
+{
+ "name": "support_insert_primary_v1",
+ "task": "support_insert",
+ "out_dir": "artifacts/datasets/support_insert_primary_v1",
+ "workers": 4,
+ "max_steps": 1200,
+ "split_file": "research/splits/primary_v1_support_insert.json",
+ "teacher": "scripted_teacher (privileged)",
+ "featurizer": "feat-multi-v1+feat-v2",
+ "items": [
+  {
+   "task": "support_insert",
+   "pair": "parm5_pg2__parm5_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 150
+  },
+  {
+   "task": "support_insert",
+   "pair": "parm5_tf3__parm7_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 150
+  },
+  {
+   "task": "support_insert",
+   "pair": "parm6_tf3__parm6_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 150
+  },
+  {
+   "task": "support_insert",
+   "pair": "parm7_pg2__parm5_tf3",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 150
+  },
+  {
+   "task": "support_insert",
+   "pair": "panda_pg2__ur5e_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 150
+  },
+  {
+   "task": "support_insert",
+   "pair": "ur5e_pg2__sawyer_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 150
+  }
+ ]
+}
