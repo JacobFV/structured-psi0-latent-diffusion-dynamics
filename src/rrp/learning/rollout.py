@@ -236,3 +236,28 @@ def event_boundary(event: str = "grasp"):
 def feasible(session) -> bool:
     from rrp.control.teachers import PickPlaceTeacher
     return bool(PickPlaceTeacher(session).feasibility()["feasible"])
+
+
+def teacher_prefix(policy, st: EpisodeState, boundary, max_steps: int) -> bool:
+    """Execute the SCRIPTED TEACHER (source=scripted_teacher, privileged planner) until the public
+    boundary fires. Used only for labelled "suffix adaptation from teacher prefix" experiments; the
+    learned policy's previous-action feature is set exactly as in teacher data collection."""
+    from rrp.control.teachers import PickPlaceTeacher
+    s = st.session
+    t = PickPlaceTeacher(s)
+    f = policy.featurizer(s)
+    while st.steps < max_steps:
+        pi_q0 = f(s.observe(), policy.prev.get(id(s))).q0
+        c = t.act()
+        policy.prev[id(s)] = f.aspace.normalize([c.groups], pi_q0)[0]
+        s.step(c)
+        st.steps += 1
+        st.tag["teacher_steps"] = st.tag.get("teacher_steps", 0) + 1
+        if cube_fell(s) or s.runtime.succeeded():
+            st.done = True
+            return False
+        if boundary(st):
+            s.executor.invalidate("branch_point", float(s.data.time))
+            return True
+    st.done, st.outcome = True, "timeout"
+    return False

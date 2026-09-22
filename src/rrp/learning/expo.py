@@ -247,15 +247,19 @@ class ExpoAgent(PolicyAdapter):
 
 # -------------------------------------------------------------------- episode -> replay
 def collect_expo_episodes(agent: ExpoAgent, make_scenario, seeds: list[int], max_steps: int, buf: ReplayBuffer,
-                          H: int) -> list[dict]:
+                          H: int, prefix_source: str = "none", event: str = "grasp") -> list[dict]:
     from rrp.sim.native import Session
     states = []
     for sd in seeds:
         s = Session(make_scenario(sd), seed=sd)
-        states.append(EpisodeState(s, sd, max_steps, tag=dict(seed=sd, rows=[])))
+        states.append(EpisodeState(s, sd, max_steps, tag=dict(seed=sd, rows={})))
+    if prefix_source == "teacher":          # labelled scripted-teacher prefix up to the public boundary
+        from rrp.learning.rollout import teacher_prefix, event_boundary
+        for st in states:
+            teacher_prefix(agent, st, event_boundary(event), max_steps)
 
     def on_step(st, r):
-        st.tag["rows"].append(r.command)
+        st.tag["rows"][st.steps - 1] = r.command      # command executed at step index steps-1
 
     agent.deterministic = False
     drive(agent, states, on_step=on_step)
@@ -294,7 +298,11 @@ def collect_expo_episodes(agent: ExpoAgent, make_scenario, seeds: list[int], max
             rows = st.tag["rows"]
             for c in chunks:
                 t = c["step"]
-                seq = rows[t:t + H]
+                seq = []
+                for i in range(t, t + H):
+                    if i not in rows:
+                        break
+                    seq.append(rows[i])
                 if not seq or seq[0] is None:
                     continue
                 valid_rows = [r is not None for r in seq]
@@ -308,7 +316,8 @@ def collect_expo_episodes(agent: ExpoAgent, make_scenario, seeds: list[int], max
                 valid = np.zeros_like(an, bool)
                 valid[:nv] = np.array(valid_rows)[:, None]
                 buf.add_bc(dict(pi=c["pi"], a=an.astype(np.float32), valid=valid))
-        out.append(dict(seed=st.seed, steps=st.steps, **fin, chunks=len(chunks),
+        out.append(dict(seed=st.seed, steps=st.steps, teacher_steps=st.tag.get("teacher_steps", 0), **fin,
+                        chunks=len(chunks),
                         edited=sum(c["selected"] == "edited" for c in chunks)))
     agent.forget([st.session for st in states])
     return out

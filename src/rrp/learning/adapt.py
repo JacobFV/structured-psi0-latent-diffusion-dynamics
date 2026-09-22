@@ -81,6 +81,77 @@ def _evaluate(policy, cfg, out_dir: Path, tag: str, ckpt: str):
     return s
 
 
+class _RunnerShim:
+    """Lets the teacher prefix set LearnedPolicy's private featurizer/prev-action state."""
+
+    def __init__(self, pol):
+        self.pol = pol
+        self.prev = pol._prev
+
+    def featurizer(self, s):
+        return self.pol.featurizer(s)
+
+
+def _evaluate_suffix(policy, cfg, out_dir: Path, tag: str, ckpt: str):
+    """Suffix evaluation: SCRIPTED TEACHER executes up to the public `grasp` boundary, then the evaluated
+    policy runs to termination (same rules/max_steps as evaluate()). Held-out eval seeds; raw rows appended
+    to eval_suffix_episodes.jsonl. Denominator = feasible episodes whose teacher prefix reached the boundary."""
+    from rrp.evaluation.statistics import wilson
+    from rrp.learning.rollout import EpisodeState, drive, finalize, event_boundary, teacher_prefix, feasible
+    from rrp.sim.native import Session
+    make = scenario_factory(cfg["robot"])
+    adapter = policy if hasattr(policy, "prev") else _RunnerShim(policy)
+    t0 = time.time()
+    states, rows = [], []
+    for sd in range(cfg["eval_seed_start"], cfg["eval_seed_start"] + cfg["eval_episodes"]):
+        s = Session(make(sd), seed=sd)
+        if not feasible(s):
+            rows.append(dict(seed=sd, outcome="infeasible"))
+            continue
+        st = EpisodeState(s, sd, cfg["max_steps"], tag=dict(seed=sd))
+        if teacher_prefix(adapter, st, event_boundary(cfg.get("branch_event", "grasp")), cfg["max_steps"]):
+            st.paused = False
+            states.append(st)
+        else:
+            rows.append(dict(seed=sd, outcome="prefix_failed", teacher_steps=st.steps))
+    drive(policy, states)
+    for st in states:
+        fin = finalize(st)
+        rows.append(dict(seed=st.seed, outcome=fin["outcome"], privileged_success=fin["privileged_success"],
+                         public_success=fin["public_success"], steps=st.steps,
+                         teacher_prefix_steps=st.tag.get("teacher_steps", 0), policy_calls=st.calls,
+                         chunk_rejections=st.rejections, command_rejections=st.cmd_rejections, object_fell=st.fell,
+                         events={e: v.status for e, v in st.session.runtime.instances.items()}, note=st.note))
+    for r in rows:
+        r.update(robot=cfg["robot"], method=f"{cfg['method']}:{tag}", checkpoint=ckpt,
+                 protocol="suffix_after_scripted_teacher_grasp")
+    with open(out_dir / "eval_suffix_episodes.jsonl", "a") as f:
+        for r in rows:
+            f.write(json.dumps(r, default=str) + "\n")
+    att = [r for r in rows if r["outcome"] not in ("infeasible", "prefix_failed")]
+    k = sum(bool(r["privileged_success"]) for r in att)
+    lo, hi = wilson(k, len(att))
+    return dict(protocol="suffix_after_scripted_teacher_grasp", attempted=len(att), successes=k,
+                success_rate=k / len(att) if att else None, wilson95=[lo, hi],
+                infeasible=sum(r["outcome"] == "infeasible" for r in rows),
+                prefix_failed=sum(r["outcome"] == "prefix_failed" for r in rows),
+                outcomes={o: sum(r["outcome"] == o for r in att) for o in sorted({r["outcome"] for r in att})},
+                eval_wall_s=time.time() - t0)
+
+
+def _evaluate_any(policy, cfg, out_dir, tag):
+    """Full-episode evaluation (rrp.evaluation.runner.evaluate) and, when the run uses the teacher-prefix
+    suffix protocol, the suffix evaluation as well (reported separately, never merged)."""
+    out = dict(full_episode=_evaluate(policy, cfg, out_dir, tag, cfg["checkpoint"]) if cfg.get("eval_full", True)
+               else None)
+    if cfg.get("prefix_source") == "teacher" or cfg.get("eval_suffix"):
+        out["suffix"] = _evaluate_suffix(policy, cfg, out_dir, tag, cfg["checkpoint"])
+    prim = out.get("suffix") or out["full_episode"]
+    out.update({k: prim[k] for k in ("attempted", "successes", "success_rate", "wilson95")}, primary=prim.get(
+        "protocol", "full_episode"))
+    return out
+
+
 def run(cfg: dict) -> dict:
     method = cfg["method"]
     out_dir = Path(cfg["out_dir"])
@@ -94,7 +165,8 @@ def run(cfg: dict) -> dict:
     log = open(out_dir / "train_log.jsonl", "a")
     budgets = sorted(cfg["budgets"])
     results = dict(method=method, robot=cfg["robot"], checkpoint=cfg["checkpoint"], gpu=ginfo, evals=[])
-    counters = dict(new_transitions=0, reused_prefix_transitions=0, episodes=0, groups=0, rollout_wall_s=0.0,
+    counters = dict(new_transitions=0, learned_transitions=0, reused_prefix_transitions=0, episodes=0, groups=0,
+                    rollout_wall_s=0.0,
                     update_wall_s=0.0)
     execute_prefix, nfe = cfg.get("execute_prefix", 8), cfg.get("nfe", 8)
     if method in ("grpo", "grpo_shared_prefix"):
@@ -113,7 +185,7 @@ def run(cfg: dict) -> dict:
         def evaluate_now(tag):
             pol = LearnedPolicy(model, codec, dev, nfe=nfe, execute_prefix=execute_prefix, name=f"{method}:{tag}",
                                 seed=cfg.get("eval_policy_seed", 0))
-            r = _evaluate(pol, cfg, out_dir, tag, cfg["checkpoint"])
+            r = _evaluate_any(pol, cfg, out_dir, tag)
             model.train()
             return r
 
@@ -123,10 +195,12 @@ def run(cfg: dict) -> dict:
             t0 = time.time()
             if method == "grpo":
                 groups = collect_plain(actor, make, ids, gcfg.group_size, cfg["max_steps"],
-                                       cfg.get("shaping_grasp", 0.0))
+                                       cfg.get("shaping_grasp", 0.0), prefix_source=cfg.get("prefix_source", "none"),
+                                       event=cfg.get("branch_event", "grasp"))
             else:
                 groups = collect_shared_prefix(actor, make, ids, gcfg.group_size, cfg["max_steps"],
-                                               cfg.get("branch_event", "grasp"), cfg.get("shaping_grasp", 0.0))
+                                               cfg.get("branch_event", "grasp"), cfg.get("shaping_grasp", 0.0),
+                                               prefix_source=cfg.get("prefix_source", "learned"))
             t1 = time.time()
             samples, info = build_samples([dict(returns=g.returns, members=g.members) for g in groups
                                            if len(g.returns) >= 2], gcfg)
@@ -135,6 +209,7 @@ def run(cfg: dict) -> dict:
             counters["rollout_wall_s"] += t1 - t0
             counters["update_wall_s"] += t2 - t1
             counters["new_transitions"] += sum(g.new_transitions for g in groups)
+            counters["learned_transitions"] += sum(g.learned_transitions for g in groups)
             counters["reused_prefix_transitions"] += sum(g.reused_prefix_transitions for g in groups)
             counters["groups"] += len(groups)
             counters["episodes"] += sum(len(g.returns) for g in groups)
@@ -177,14 +252,16 @@ def run(cfg: dict) -> dict:
 
         def evaluate_now(tag):
             agent.deterministic = True
-            r = _evaluate(agent, cfg, out_dir, tag, cfg["checkpoint"])
+            r = _evaluate_any(agent, cfg, out_dir, tag)
             agent.deterministic = False
             return r
 
         def train_iteration():
             ids = seeds.take(cfg.get("episodes_per_iter", 16))
             t0 = time.time()
-            eps = collect_expo_episodes(agent, make, ids, cfg["max_steps"], buf, model.cfg.horizon)
+            eps = collect_expo_episodes(agent, make, ids, cfg["max_steps"], buf, model.cfg.horizon,
+                                        prefix_source=cfg.get("prefix_source", "none"),
+                                        event=cfg.get("branch_event", "grasp"))
             t1 = time.time()
             steps = sum(e["steps"] for e in eps)
             pending["steps"] += steps
@@ -195,6 +272,7 @@ def run(cfg: dict) -> dict:
             counters["rollout_wall_s"] += t1 - t0
             counters["update_wall_s"] += t2 - t1
             counters["new_transitions"] += steps
+            counters["learned_transitions"] += steps - sum(e["teacher_steps"] for e in eps)
             counters["episodes"] += len(eps)
             row = dict(t=time.time(), **counters, train_success_rate=sum(e["privileged_success"] for e in eps) / len(eps),
                        replay=len(buf), bc_windows=len(buf.bc), update_calls_this_iter=calls, **agent.stats,
@@ -217,13 +295,15 @@ def run(cfg: dict) -> dict:
 
     t_start = time.time()
     for b in budgets:
-        while counters["new_transitions"] < b:
+        while counters[cfg.get("budget_counter", "new_transitions")] < b:
             train_iteration()
         tag = f"b{b}"
         if b > 0:
             save(tag)
         ev = evaluate_now(tag)
-        ev.update(budget=b, actual_new_transitions=counters["new_transitions"],
+        ev.update(budget=b, budget_counter=cfg.get("budget_counter", "new_transitions"),
+                  actual_new_transitions=counters["new_transitions"],
+                  actual_learned_transitions=counters["learned_transitions"],
                   reused_prefix_transitions=counters["reused_prefix_transitions"], wall_s=time.time() - t_start,
                   counters=dict(counters))
         results["evals"].append(ev)

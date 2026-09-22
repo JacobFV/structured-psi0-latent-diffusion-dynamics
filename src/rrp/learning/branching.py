@@ -15,7 +15,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 
-from rrp.learning.rollout import EpisodeState, drive, finalize, event_boundary
+from rrp.learning.rollout import EpisodeState, drive, finalize, event_boundary, teacher_prefix
 
 
 @dataclass
@@ -25,7 +25,8 @@ class GroupResult:
     returns: list = field(default_factory=list)
     members: list = field(default_factory=list)     # trainable chunk records per member
     outcomes: list = field(default_factory=list)
-    new_transitions: int = 0                         # physically executed control steps
+    new_transitions: int = 0                         # physically executed control steps (all sources)
+    learned_transitions: int = 0                     # of which commanded by the learned policy
     prefix_steps: int = 0
     reused_prefix_transitions: int = 0               # prefix steps NOT re-executed thanks to sharing
     prefix_chunks_excluded: int = 0
@@ -52,22 +53,44 @@ def _make_sessions(make_scenario, seed, n):
     return [Session(sc, seed=seed) for _ in range(n)]
 
 
-def collect_plain(policy, make_scenario, seeds: list[int], G: int, max_steps: int, shaping_grasp=0.0):
-    """G independent full episodes per seed (same initial state, independent SDE noise)."""
+def _prefix(policy, states, boundary, source: str, max_steps: int):
+    """Run the prefix to the public boundary. source='learned': the (stochastic) policy itself;
+    source='teacher': the SCRIPTED TEACHER (labelled suffix-adaptation setting)."""
+    if source == "learned":
+        drive(policy, states, stop_fn=boundary)
+    elif source == "teacher":
+        for st in states:
+            st.paused = teacher_prefix(policy, st, boundary, max_steps)
+    else:
+        raise ValueError(source)
+    for st in states:
+        st.tag["prefix_steps"] = st.steps
+        st.tag["prefix_chunks"] = len(st.chunks)
+
+
+def collect_plain(policy, make_scenario, seeds: list[int], G: int, max_steps: int, shaping_grasp=0.0,
+                  prefix_source: str = "none", event: str = "grasp"):
+    """G independent episodes per seed (same initial state, independent SDE noise). With
+    prefix_source='teacher' every member re-executes the teacher prefix itself (all steps counted)."""
     states = []
     for sd in seeds:
         for j, s in enumerate(_make_sessions(make_scenario, sd, G)):
             states.append(EpisodeState(s, sd, max_steps, tag=dict(seed=sd, member=j)))
+    if prefix_source == "teacher":
+        _prefix(policy, states, event_boundary(event), "teacher", max_steps)
+        for st in states:
+            st.paused = False
     drive(policy, states)
     out = []
     for sd in seeds:
-        gr = GroupResult(sd, "plain")
+        gr = GroupResult(sd, "plain" if prefix_source == "none" else "plain_teacher_prefix")
         for st in [x for x in states if x.seed == sd]:
             fin = finalize(st)
             gr.returns.append(reward_of(fin, shaping_grasp))
             gr.outcomes.append(fin["outcome"])
             gr.members.append(st.chunks)
             gr.new_transitions += st.steps
+            gr.learned_transitions += st.steps - st.tag.get("teacher_steps", 0)
             gr.suffix_steps.append(st.steps)
         out.append(gr)
     policy.forget([st.session for st in states])
@@ -75,15 +98,16 @@ def collect_plain(policy, make_scenario, seeds: list[int], G: int, max_steps: in
 
 
 def collect_shared_prefix(policy, make_scenario, seeds: list[int], G: int, max_steps: int, event: str = "grasp",
-                          shaping_grasp=0.0):
+                          shaping_grasp=0.0, prefix_source: str = "learned"):
     boundary = event_boundary(event)
     leaders = [EpisodeState(_make_sessions(make_scenario, sd, 1)[0], sd, max_steps, tag=dict(seed=sd, leader=True))
                for sd in seeds]
-    drive(policy, leaders, stop_fn=boundary)
+    _prefix(policy, leaders, boundary, prefix_source, max_steps)
     out, branches = [], []
     for ld in leaders:
-        gr = GroupResult(ld.seed, "shared_prefix", new_transitions=ld.steps, prefix_steps=ld.steps,
-                         prefix_chunks_excluded=len(ld.chunks), reached_boundary=ld.paused)
+        gr = GroupResult(ld.seed, f"shared_prefix_{prefix_source}", new_transitions=ld.steps, prefix_steps=ld.steps,
+                         prefix_chunks_excluded=len(ld.chunks), reached_boundary=ld.paused,
+                         learned_transitions=ld.steps - ld.tag.get("teacher_steps", 0))
         out.append(gr)
         if not ld.paused:
             fin = finalize(ld)
@@ -108,6 +132,7 @@ def collect_shared_prefix(policy, make_scenario, seeds: list[int], G: int, max_s
         gr.outcomes.append(fin["outcome"])
         gr.members.append(st.chunks)            # suffix chunks only
         gr.new_transitions += st.steps
+        gr.learned_transitions += st.steps
         gr.suffix_steps.append(st.steps)
     policy.forget([ld.session for ld in leaders] + [b.session for _, b in branches])
     return out
