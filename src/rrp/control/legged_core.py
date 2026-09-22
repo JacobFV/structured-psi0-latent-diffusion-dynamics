@@ -203,10 +203,11 @@ class RewardCfg:
     @staticmethod
     def for_kind(kind: str) -> "RewardCfg":
         if kind in ("humanoid", "biped"):
+            # v3: track_ang 1.0 -> 2.0 + turn-in-place commands (v2 walked but never turned)
             # v2 (after v1 converged to a stable non-walking stander): sharper tracking kernel, more
             # tracking weight, less alive bonus so standing still under a walk command is not optimal
             return RewardCfg(orient=-5.0, alive=0.3, contact_phase=0.4, height=-20.0, air_time=1.0,
-                             stand_still=-0.5, termination=-10.0, sigma=0.1, track_lin=2.5, track_ang=1.0)
+                             stand_still=-0.5, termination=-10.0, sigma=0.1, track_lin=2.5, track_ang=2.0)
         return RewardCfg()
 
 
@@ -252,6 +253,9 @@ class LeggedEnv:
             c[:] = 0
         elif u < 0.45:        # forward + turn (the waypoint-teacher regime)
             c[1] = 0
+        elif self.b.biped and u < 0.7:   # v3 (bipeds): pure turn-in-place commands
+            c[:2] = 0
+            c[2] = self.rng.choice([-1, 1]) * self.rng.uniform(0.3, 1.0) * self.b.cmd_ranges["wz"][1]
         if np.linalg.norm(c[:2]) < 0.05:
             c[:2] = 0
         if abs(c[2]) < 0.05:
