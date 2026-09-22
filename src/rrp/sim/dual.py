@@ -37,6 +37,7 @@ STATIC_FEATURE_RESET_M = 0.015     # a jump larger than this restarts the averag
 ANCHOR_SLIP_M = 0.012              # maintained contact anchor invalid when the TCP slides further
 ANCHOR_LOSS_S = 0.3                # contact must be lost this long before the anchor is invalid
 HELD_HOLD_S = 0.25                 # held_by hysteresis (contact chatter)
+INHAND_WINDOW = 12                 # in-hand pose belief: running mean over ~this many detections (tracks slip)
 EXTRA_PUBLIC_PREDICATES = ("supported", "inside")
 
 
@@ -288,7 +289,7 @@ class DualSession(Session):
                 rel = R.T @ (np.array(tr.mean) - tcp)
                 b = self._inhand.setdefault(key, dict(n=0, mean=np.zeros(3)))
                 b["n"] += 1
-                b["mean"] = b["mean"] + (rel - b["mean"]) / min(b["n"], 50)
+                b["mean"] = b["mean"] + (rel - b["mean"]) / min(b["n"], INHAND_WINDOW)
 
     def inhand_offset(self, obj: str, ent: str) -> np.ndarray | None:
         b = self._inhand.get((obj, ent))

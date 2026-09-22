@@ -407,14 +407,25 @@ class HandoverTeacher(DualTeacherBase):
     def _yaw_along(self, a):
         return float(math.atan2(a[1], a[0]))
 
+    @staticmethod
+    def _grasp_yaw(arm, bar_axis_yaw):
+        """Hand yaw for a bar grasp. Parallel jaws: close across the bar (yaw = bar axis, mod pi).
+        Three-finger hands (120-degree symmetric): rotate 90 degrees so no finger lands on the
+        bar's long axis (a finger on the axis rests on the bar instead of closing around it)."""
+        if arm.h.gripper_kind == "three_finger":
+            base = bar_axis_yaw + math.pi / 2
+            return min((base + k * 2 * math.pi / 3 for k in range(-3, 4)),
+                       key=lambda y: abs(_wrap_pi(y - GRASP_YAW)))
+        return GRASP_YAW + _wrap_pi(2 * (bar_axis_yaw - GRASP_YAW)) / 2
+
     def _plan(self):
         L, R = self.arms["left"], self.arms["right"]
         pl, pr = self.phase["left"], self.phase["right"]
         c, Rb, a = self._bar()
         # parallel/three-finger grasps are symmetric under pi: pick the equivalent yaw nearest to
         # GRASP_YAW so the commanded wrist never flips by pi between control steps
-        yaw_bar = self._yaw_along(a)
-        yaw_bar = GRASP_YAW + _wrap_pi(2 * (yaw_bar - GRASP_YAW)) / 2
+        yaw_raw = self._yaw_along(a)
+        yaw_l, yaw_r = self._grasp_yaw(L, yaw_raw), self._grasp_yaw(R, yaw_raw)
         h = self.half[2]
         # ---------------- giver
         if pl == "start":
@@ -424,12 +435,12 @@ class HandoverTeacher(DualTeacherBase):
             self._staging("left", "l_pre")
         elif pl == "l_pre":
             gpt = c + a * self.d
-            L.set_goal(np.r_[gpt[:2], 0.12], 0.3, yaw_bar)
+            L.set_goal(np.r_[gpt[:2], 0.12], 0.3, yaw_l)
             if L.reached(0.012):
                 self._next("left", "l_descend")
         elif pl == "l_descend":
             gpt = c + a * self.d
-            L.set_goal(np.r_[gpt[:2], c[2] + self.GRASP_DZ], 0.12, yaw_bar)
+            L.set_goal(np.r_[gpt[:2], c[2] + self.GRASP_DZ], 0.12, yaw_l)
             if L.reached(0.006):
                 self.gl = L.goal.copy()
                 self._next("left", "l_close")
@@ -471,12 +482,12 @@ class HandoverTeacher(DualTeacherBase):
                 self._next("right", "r_pre")
         elif pr == "r_pre":
             gpt = c - a * self.d
-            R.set_goal(np.r_[gpt[:2], c[2] + 0.08], 0.3, yaw_bar)
+            R.set_goal(np.r_[gpt[:2], c[2] + 0.08], 0.3, yaw_r)
             if R.reached(0.012):
                 self._next("right", "r_descend")
         elif pr == "r_descend":
             gpt = c - a * self.d
-            R.set_goal(np.r_[gpt[:2], c[2] + self.GRASP_DZ], 0.1, yaw_bar)
+            R.set_goal(np.r_[gpt[:2], c[2] + self.GRASP_DZ], 0.1, yaw_r)
             if R.reached(0.006):
                 self.gr = R.goal.copy()
                 self._next("right", "r_close")
