@@ -80,9 +80,18 @@ def main(argv=None):
     lo, hi = map(int, a.seeds.split(":"))
     rows = []
     t0 = time.time()
+    part = Path(a.out + ".rows.jsonl")      # incremental rows: an interrupted run resumes
+    part.parent.mkdir(parents=True, exist_ok=True)
+    if part.exists():
+        rows = [json.loads(l) for l in part.read_text().splitlines() if l.strip()]
+    done = {(r["seed"], r["condition"]) for r in rows}
     for seed in range(lo, hi):
         for cond in ("receipt", "shifted", "fixed_order", "stale_receipt"):
+            if (seed, cond) in done:
+                continue
             rows.append(run(a.pair, seed, cond))
+            with part.open("a") as fh:
+                fh.write(json.dumps(rows[-1], default=str) + "\n")
             print(json.dumps({k: rows[-1][k] for k in ("seed", "condition", "public_success", "privileged_success",
                                                        "failure_reason")}), flush=True)
     # paired analysis: command shift vs receipt shift

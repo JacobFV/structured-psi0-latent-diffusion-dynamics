@@ -139,8 +139,9 @@ def generate(config: dict) -> dict:
                 pass
         todo.append(j)
     print(f"[collect_dual] resumed {len(metas)}, to generate {len(todo)}", flush=True)
-    # workers keep one robot pair cached (dual_validate.make_pair); recycled every 25 real episodes
-    with ProcessPoolExecutor(max_workers=config.get("workers", os.cpu_count()), max_tasks_per_child=25) as ex:
+    # no max_tasks_per_child: CPython 3.12 worker replacement hung this pool twice (workers gone,
+    # parent blocked). Memory is bounded by one cached robot pair per worker + gc after each episode.
+    with ProcessPoolExecutor(max_workers=config.get("workers", os.cpu_count())) as ex:
         futs = [ex.submit(_job, j) for j in todo]
         for i, f in enumerate(as_completed(futs)):
             try:

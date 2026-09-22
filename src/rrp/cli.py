@@ -122,8 +122,18 @@ def cmd_ops_shrink(a):
 
 def cmd_ops_stop(a):
     from rrp.ops.runtime import stop_owned
+    from rrp.ops.cgroup import SystemdUserBackend, job_unit
     if not a.owned_only:
         raise SystemExit("refusing: pass --owned-only (this tool never stops unrelated processes)")
+    if a.lease:
+        be = SystemdUserBackend()
+        for lid in a.lease:
+            be.remove_lease(lid)
+        print(json.dumps({"stopped_leases": a.lease}))
+        return
+    if not a.all_project_jobs:
+        raise SystemExit("refusing: several engineers share this project; pass --lease ID (your own jobs) or "
+                         "--all-project-jobs for the final shutdown only")
     print(json.dumps({"stopped": stop_owned()}, indent=1))
 
 
@@ -198,6 +208,8 @@ def build_parser() -> argparse.ArgumentParser:
     o.set_defaults(fn=cmd_ops_status)
     o = ops.add_parser("stop")
     o.add_argument("--owned-only", action="store_true")
+    o.add_argument("--lease", action="append", help="stop only these leases (repeatable)")
+    o.add_argument("--all-project-jobs", action="store_true", help="final shutdown of every project job")
     o.set_defaults(fn=cmd_ops_stop)
     o = ops.add_parser("discover", help="discover/verify the SSH peer among configured aliases")
     o.add_argument("--peer")

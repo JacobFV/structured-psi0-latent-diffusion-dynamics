@@ -137,7 +137,7 @@ class ResourceBroker:
 
     def _log(self, st, kind, **kw):
         st.setdefault("events", []).append(dict(t=self.clock(), kind=kind, **kw))
-        st["events"] = st["events"][-500:]
+        st["events"] = st["events"][-5000:]
 
     def _expire(self, st):
         now = self.clock()
@@ -331,7 +331,9 @@ class ResourceBroker:
                     revoked.append(lid)
                     self._log(st, "lease_revoke_requested", lease_id=lid, reason="live_limit_reduced")
                 total_mem -= l["request"]["memory_bytes"] + l["request"].get("gpu_memory_bytes", 0)
-            self._log(st, "limits_updated", cpu=cpu, mem=mem)
+            if abs(st.get("_last_logged_mem", 0) - mem) > 2 * 1024 ** 3:   # don't flood the audit log
+                self._log(st, "limits_updated", cpu=cpu, mem=mem)
+                st["_last_logged_mem"] = mem
         # CPU throttling is safe to apply immediately; memory max stays until checkpoint.
         try:
             self.backend.ensure_parent(cpu_cores=max(cpu, 0.01), memory_bytes=start["memory_bytes"])
