@@ -1,0 +1,48 @@
+{
+ "dataset": "artifacts/datasets/pick_place_primary_v1",
+ "feature_cache": "artifacts/vlm_cache/pick_place_v1/477a8493f2a47702",
+ "train_robots": [
+  "parm5_pg2",
+  "parm5_tf3",
+  "parm5s_pg2",
+  "parm5l_tf3",
+  "parm6_pg2",
+  "parm6_tf3",
+  "parm7_pg2",
+  "parm7_tf3",
+  "panda_pg2",
+  "ur5e_pg2",
+  "ur5e_tf3",
+  "sawyer_pg2",
+  "sawyer_tf3"
+ ],
+ "train_episodes_per_robot": 20,
+ "horizon": 16,
+ "every": 4,
+ "seed": 1701,
+ "epochs": 40,
+ "batch_size": 128,
+ "lr": 0.0003,
+ "aux_weight": 0.1,
+ "resampler": {
+  "dim": 256,
+  "queries": 16,
+  "layers": 2,
+  "heads": 4
+ },
+ "policy": {
+  "width": 256,
+  "heads": 4,
+  "ctx_layers": 3,
+  "blocks": 6,
+  "horizon": 16,
+  "latent_dim": 1,
+  "structured": true,
+  "bias_mode": "true",
+  "aux": true,
+  "name": "vlm_psi0_structured_v1"
+ },
+ "name": "vlm_psi0_structured_v1",
+ "out_dir": "artifacts/runs/vlm_psi0_structured_v1",
+ "use_images": true
+}

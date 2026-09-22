@@ -1,0 +1,17 @@
+{
+ "name": "object_qa_v1",
+ "policy_checkpoint": "artifacts/runs/vlm_psi0_structured_v1/policy.pt",
+ "out_dir": "artifacts/runs/object_qa_v1",
+ "seed": 7,
+ "epochs": 6,
+ "batch_size": 64,
+ "q_per_sample": 4,
+ "n_prefix": 4,
+ "lr": 0.0003,
+ "sources": [
+  "action",
+  "action+slot"
+ ],
+ "train_policy": false,
+ "eval_samples": 1500
+}

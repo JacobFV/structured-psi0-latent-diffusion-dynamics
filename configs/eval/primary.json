@@ -1,0 +1,53 @@
+{
+ "id": "primary_v1",
+ "stage": "primary_confirmation",
+ "status": "DRAFT_NOT_SEALED",
+ "question": "Does explicit relational/event/role structure (typed banks, incidence pointers, structural bias, system-i semantic readouts) reduce new-body demonstration experience to sustained 80% pick_place success versus a matched shared morphology-conditioned policy with the same public inputs, at <=25% p95 latency overhead?",
+ "methods": {
+  "relational_structured": "configs/model/primary-structured.json",
+  "matched_shared_unstructured": "configs/model/primary-unstructured.json"
+ },
+ "seeds": [
+  1701,
+  1702,
+  1703
+ ],
+ "targets": [
+  "xarm7_pg2",
+  "xarm7_tf3",
+  "panda_tf3"
+ ],
+ "budgets": [
+  5,
+  20,
+  100
+ ],
+ "source_eval_robots": [
+  "parm5s_tf3",
+  "parm5l_pg2"
+ ],
+ "retention": true,
+ "sft": {
+  "lr": 0.0001,
+  "modules": "all",
+  "steps_for_budget": {
+   "5": 150,
+   "20": 300,
+   "100": 600
+  }
+ },
+ "eval": {
+  "episodes": 100,
+  "source_episodes": 50,
+  "retention_episodes": 50,
+  "seed_start": 2000000,
+  "max_steps": 300,
+  "nfe": 8,
+  "prefix": 8,
+  "batch": 25
+ },
+ "split": "research/splits/primary_v1.json",
+ "threshold": 0.8,
+ "analysis": "rrp analyze --protocol configs/eval/primary.json",
+ "notes": "SFT step counts fixed a priori per budget (not tuned on the evaluation scenes). Evaluation scenes 2,000,000+ never used for development."
+}
