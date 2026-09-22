@@ -1,0 +1,333 @@
+{
+ "schema_version": "1.0",
+ "task_id": "waypoint_contact",
+ "graph_version": 1,
+ "entity_declarations": [
+  {
+   "id": "body",
+   "type": "body",
+   "descriptor": "legged body assigned to locomote"
+  },
+  {
+   "id": "waypoint_a",
+   "type": "feature",
+   "descriptor": "orange waypoint marker"
+  },
+  {
+   "id": "waypoint_b",
+   "type": "feature",
+   "descriptor": "cyan waypoint marker"
+  }
+ ],
+ "events": [
+  {
+   "id": "walk_to_a",
+   "operator": "walk_to",
+   "roles": [
+    {
+     "role": "actor",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "body",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "target",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "waypoint_a",
+       "version": 0
+      }
+     }
+    }
+   ],
+   "requires_completed": [],
+   "requires_active": [],
+   "preconditions": [],
+   "invariants": [
+    {
+     "predicate": "upright",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "body",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.0
+    }
+   ],
+   "desired_effects": [],
+   "completion": [
+    {
+     "predicate": "distance_m",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "body",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "waypoint_a",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "le",
+     "value": 0.3,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.2
+    }
+   ],
+   "resources": [
+    {
+     "entity": {
+      "id": "body",
+      "version": 0
+     },
+     "mode": "exclusive_control"
+    }
+   ],
+   "produces": [],
+   "timeout_seconds": 45,
+   "recovery": {
+    "max_attempts": 2,
+    "on_failure": "reobserve_then_retry"
+   }
+  },
+  {
+   "id": "walk_to_b",
+   "operator": "walk_to",
+   "roles": [
+    {
+     "role": "actor",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "body",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "target",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "waypoint_b",
+       "version": 0
+      }
+     }
+    }
+   ],
+   "requires_completed": [
+    "walk_to_a"
+   ],
+   "requires_active": [],
+   "preconditions": [],
+   "invariants": [
+    {
+     "predicate": "upright",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "body",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.0
+    }
+   ],
+   "desired_effects": [],
+   "completion": [
+    {
+     "predicate": "distance_m",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "body",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "waypoint_b",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "le",
+     "value": 0.3,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.2
+    }
+   ],
+   "resources": [
+    {
+     "entity": {
+      "id": "body",
+      "version": 0
+     },
+     "mode": "exclusive_control"
+    }
+   ],
+   "produces": [],
+   "timeout_seconds": 45,
+   "recovery": {
+    "max_attempts": 2,
+    "on_failure": "reobserve_then_retry"
+   }
+  },
+  {
+   "id": "halt",
+   "operator": "halt",
+   "roles": [
+    {
+     "role": "actor",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "body",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "reference",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "waypoint_b",
+       "version": 0
+      }
+     }
+    }
+   ],
+   "requires_completed": [
+    "walk_to_b"
+   ],
+   "requires_active": [],
+   "preconditions": [],
+   "invariants": [
+    {
+     "predicate": "upright",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "body",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.0
+    }
+   ],
+   "desired_effects": [],
+   "completion": [
+    {
+     "predicate": "stance_fraction",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "body",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "ge",
+     "value": 0.99,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.5
+    },
+    {
+     "predicate": "base_speed",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "body",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "le",
+     "value": 0.1,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.5
+    },
+    {
+     "predicate": "distance_m",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "body",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "waypoint_b",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "le",
+     "value": 0.45,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.0
+    }
+   ],
+   "resources": [
+    {
+     "entity": {
+      "id": "body",
+      "version": 0
+     },
+     "mode": "exclusive_control"
+    }
+   ],
+   "produces": [],
+   "timeout_seconds": 15,
+   "recovery": {
+    "max_attempts": 2,
+    "on_failure": "reobserve_then_retry"
+   }
+  }
+ ],
+ "success_events": [
+  "halt"
+ ]
+}
