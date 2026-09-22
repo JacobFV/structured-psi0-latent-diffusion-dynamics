@@ -28,7 +28,7 @@ def cmd_ops_init(a):
     cfgp = config_path()
     cfg = json.loads(cfgp.read_text()) if cfgp.exists() else {"schema_version": "1.0", "policy_id": "shared-host-half-free-v1"}
     enforced = {"cpu_cores": round(b["cpu_cores"] - 0.005, 2), "memory_bytes": b["memory_bytes"],
-                "gpu_slots": 0 if role == "host" else 1, "disk_bytes": int(b["new_disk_gib"] * 1024 ** 3)}
+                "gpu_slots": 0 if role == "host" else 3, "disk_bytes": int(b["new_disk_gib"] * 1024 ** 3)}
     if a.cpu_cap is not None:
         enforced["cpu_cores"] = min(enforced["cpu_cores"], a.cpu_cap)
     if a.memory_cap:

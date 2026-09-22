@@ -29,3 +29,6 @@ A 128x96 MuJoCo render probe (20 frames, <1 s, lease 1790017490_e25c21) created 
 
 ## D-008 2026-09-21 user correction: the whole peer may be used
 User instruction (supersedes the handoff's 80%-of-free peer default): "you can use all the peer". Peer policy now: 100% of free CPU/RAM/disk minus a small OS safety reserve (6 GiB RAM, 10 GiB disk); system-wide PSI shedding threshold on the peer raised to 80 (project-level stalls still shed). Persistent peer disk (~178 GiB usable) may now be used, but the RAM-backed workspace remains for speed; durable artifacts still sync to the host. Host limits (<=50% of currently free, no host GPU) are unchanged.
+
+## D-009 2026-09-21 peer GPU concurrency 3
+With the whole peer authorized (D-008) and five parallel engineering tracks, the peer broker admits up to 3 concurrent GPU leases. Each declares gpu_memory_bytes (counted in the aggregate memory limit) and applies the in-process CUDA cap; the system MemAvailable watchdog remains the backstop. Timing/latency measurements must be taken with no other GPU lease active (recorded per measurement).
