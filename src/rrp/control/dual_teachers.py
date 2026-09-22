@@ -230,11 +230,11 @@ class SupportInsertTeacher(DualTeacherBase):
             t = self.s.touch_values("left")
             if len(t) and t.max() > 0.5:
                 tcp, _ = L.tcp()
-                self.contact_z, self.contact_xy = float(tcp[2]), L.tcp_cmd[:2].copy()
+                self.contact_z, self.contact_xy = float(tcp[2]), L.goal[:2].copy()
                 self._next("left", "l_hold")
             elif L.reached(0.005):
                 self._next("left", "l_hold")
-                self.contact_z, self.contact_xy = float(L.tcp()[0][2]), L.tcp_cmd[:2].copy()
+                self.contact_z, self.contact_xy = float(L.tcp()[0][2]), L.goal[:2].copy()
         elif pl == "l_hold":
             # contact point frozen at touch-down; no integral action while pressing (the commanded
             # depth is intentionally unreachable -> bounded pressing force, no lateral drift)
@@ -289,14 +289,13 @@ class SupportInsertTeacher(DualTeacherBase):
             else:
                 R.set_goal(hp + n_up * self.ALIGN_HOVER - off, 0.05)
                 if self.status("insert") in ("active", "succeeded"):
+                    self._ins_off = off           # freeze the in-hand offset for the insertion stroke
                     self._next("right", "r_insert")
         elif pr == "r_insert":
             fr = self.bound_hole_frame()
             if fr is not None:
                 hp, n_up, info = fr
-                off = self._peg_bottom_in_tcp() if self.t_phase["right"] < 0.05 else getattr(self, "_ins_off", None)
-                self._ins_off = off
-                R.set_goal(hp - n_up * self.INSERT_DEPTH - off, 0.03)
+                R.set_goal(hp - n_up * self.INSERT_DEPTH - self._ins_off, 0.03)
             if self.status("insert") == "succeeded":
                 self._next("right", "r_open")
             elif self.status("insert") == "failed":

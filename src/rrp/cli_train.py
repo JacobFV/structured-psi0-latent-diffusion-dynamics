@@ -67,3 +67,37 @@ def register(sub):
     e.add_argument("--batch", type=int, default=16)
     e.add_argument("--out", required=True)
     e.set_defaults(fn=cmd_evaluate)
+    register_campaign(sub)
+
+
+def cmd_campaign_cell(a):
+    from rrp.evaluation.campaign import run_cell
+    protocol = json.loads(open(a.protocol).read())
+    if torch_cuda():
+        from rrp.ops.gpu import apply_cap
+        apply_cap()
+    print(json.dumps(run_cell(protocol, a.method, a.seed), indent=1))
+
+
+def cmd_latency(a):
+    from rrp.evaluation.latency import run_latency_suite
+    cks = dict(kv.split("=", 1) for kv in a.models)
+    run_latency_suite(cks, Path(a.out))
+
+
+def torch_cuda():
+    import torch
+    return torch.cuda.is_available()
+
+
+def register_campaign(sub):
+    c = sub.add_parser("campaign", help="resumable campaign cells").add_subparsers(dest="camp_cmd", required=True)
+    r = c.add_parser("cell")
+    r.add_argument("--protocol", required=True)
+    r.add_argument("--method", required=True)
+    r.add_argument("--seed", type=int, required=True)
+    r.set_defaults(fn=cmd_campaign_cell)
+    l = sub.add_parser("latency", help="synchronized latency suite")
+    l.add_argument("--models", nargs="+", required=True, help="name=checkpoint")
+    l.add_argument("--out", required=True)
+    l.set_defaults(fn=cmd_latency)
