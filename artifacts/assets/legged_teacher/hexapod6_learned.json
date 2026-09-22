@@ -1,0 +1,312 @@
+{
+ "body": "hexapod6",
+ "task": "waypoint_contact",
+ "n": 20,
+ "success_rate": 0.0,
+ "fell": 0,
+ "tracker_source": "learned_tracker",
+ "teacher": "WaypointTeacher (scripted_teacher, privileged base pose)",
+ "seeds": "0-19",
+ "episodes": [
+  {
+   "episode_id": "hexapod6_wpc_s0",
+   "status": "failure",
+   "steps": 499,
+   "files": {
+    "hexapod6_wpc_s0.public.pkl.gz": "bfb4b6aa5b1fc0a3",
+    "hexapod6_wpc_s0.private.pkl.gz": "dd91b7ebc2a58f1d"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s1",
+   "status": "failure",
+   "steps": 484,
+   "files": {
+    "hexapod6_wpc_s1.public.pkl.gz": "7c90dbf972b44db4",
+    "hexapod6_wpc_s1.private.pkl.gz": "1aa0638df4ff4270"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s2",
+   "status": "failure",
+   "steps": 508,
+   "files": {
+    "hexapod6_wpc_s2.public.pkl.gz": "8bf87c3702a3e355",
+    "hexapod6_wpc_s2.private.pkl.gz": "a886c71d90eec3c7"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s3",
+   "status": "failure",
+   "steps": 485,
+   "files": {
+    "hexapod6_wpc_s3.public.pkl.gz": "37da5e2b1013a68f",
+    "hexapod6_wpc_s3.private.pkl.gz": "abf3eec0239f7e92"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s4",
+   "status": "failure",
+   "steps": 552,
+   "files": {
+    "hexapod6_wpc_s4.public.pkl.gz": "f7e474843c3f2f72",
+    "hexapod6_wpc_s4.private.pkl.gz": "c0c5c6b060d4e10a"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s5",
+   "status": "failure",
+   "steps": 517,
+   "files": {
+    "hexapod6_wpc_s5.public.pkl.gz": "84fbf0d23f8d2ca5",
+    "hexapod6_wpc_s5.private.pkl.gz": "5c0a826d19b0d006"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s6",
+   "status": "failure",
+   "steps": 489,
+   "files": {
+    "hexapod6_wpc_s6.public.pkl.gz": "d1da806934729b6e",
+    "hexapod6_wpc_s6.private.pkl.gz": "a01891b91a5b2758"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s7",
+   "status": "failure",
+   "steps": 520,
+   "files": {
+    "hexapod6_wpc_s7.public.pkl.gz": "e79eee6f7654cc29",
+    "hexapod6_wpc_s7.private.pkl.gz": "10cf2c9875001aa3"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s8",
+   "status": "failure",
+   "steps": 483,
+   "files": {
+    "hexapod6_wpc_s8.public.pkl.gz": "efed9677ef16a2cd",
+    "hexapod6_wpc_s8.private.pkl.gz": "7d18940a281d6499"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s9",
+   "status": "failure",
+   "steps": 537,
+   "files": {
+    "hexapod6_wpc_s9.public.pkl.gz": "5d88a5bf41898ceb",
+    "hexapod6_wpc_s9.private.pkl.gz": "38e68d7fa4691aa4"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s10",
+   "status": "failure",
+   "steps": 535,
+   "files": {
+    "hexapod6_wpc_s10.public.pkl.gz": "3ac7dc06ff44c578",
+    "hexapod6_wpc_s10.private.pkl.gz": "6192bcd4b1c4c8c9"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s11",
+   "status": "failure",
+   "steps": 493,
+   "files": {
+    "hexapod6_wpc_s11.public.pkl.gz": "316c477db6854b15",
+    "hexapod6_wpc_s11.private.pkl.gz": "911004eaf2a8ffd9"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s12",
+   "status": "failure",
+   "steps": 471,
+   "files": {
+    "hexapod6_wpc_s12.public.pkl.gz": "ad35cb57fc8d0500",
+    "hexapod6_wpc_s12.private.pkl.gz": "2346d49f80de3476"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s13",
+   "status": "failure",
+   "steps": 548,
+   "files": {
+    "hexapod6_wpc_s13.public.pkl.gz": "fe2f80b3257e10fa",
+    "hexapod6_wpc_s13.private.pkl.gz": "3fb472bd2a3dda5d"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s14",
+   "status": "failure",
+   "steps": 525,
+   "files": {
+    "hexapod6_wpc_s14.public.pkl.gz": "11e275580655c885",
+    "hexapod6_wpc_s14.private.pkl.gz": "8062b29694b134d6"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s15",
+   "status": "failure",
+   "steps": 514,
+   "files": {
+    "hexapod6_wpc_s15.public.pkl.gz": "947a0ed0d9e68a64",
+    "hexapod6_wpc_s15.private.pkl.gz": "8d523d0f5ad9d0f2"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s16",
+   "status": "failure",
+   "steps": 469,
+   "files": {
+    "hexapod6_wpc_s16.public.pkl.gz": "714a8818656bd681",
+    "hexapod6_wpc_s16.private.pkl.gz": "ca1c935e5b905963"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s17",
+   "status": "failure",
+   "steps": 532,
+   "files": {
+    "hexapod6_wpc_s17.public.pkl.gz": "000d17deb61d7430",
+    "hexapod6_wpc_s17.private.pkl.gz": "cbc72382f9271709"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s18",
+   "status": "failure",
+   "steps": 491,
+   "files": {
+    "hexapod6_wpc_s18.public.pkl.gz": "8df981756ecb4498",
+    "hexapod6_wpc_s18.private.pkl.gz": "b028875d5d9d03ee"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s19",
+   "status": "failure",
+   "steps": 492,
+   "files": {
+    "hexapod6_wpc_s19.public.pkl.gz": "34d8287077be8e16",
+    "hexapod6_wpc_s19.private.pkl.gz": "d234eaf175501d1b"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  }
+ ]
+}
