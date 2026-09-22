@@ -82,28 +82,27 @@ def collate_inputs(inputs: list, extra_tokens: dict | None = None) -> Batch:
     node_rel = np.zeros((B, N, N, N_REL), bool)
     P = max(max(len(pi.pointers) for pi in inputs), 1)
     ptr = -np.ones((B, P, 2), np.int64)
+    offs_arr = np.array([offs[b] for b in BANKS])
     for i, pi in enumerate(inputs):
         n = pi.act_node_feats.shape[0]
         nf[i, :n] = pi.act_node_feats
         nm[i, :n] = True
-        for qb, qi, kb, ki, r in pi.relations:
-            kc = offs[BANKS[kb]] + ki
-            if qb == -1:
-                if kb == 0 and ki < n and r == 16 and False:
-                    pass
-                act_rel[i, qi, kc, r] = True
-            else:
-                ctx_rel[i, offs[BANKS[qb]] + qi, kc, r] = True
-        for j, (sb, si, db, di) in enumerate(pi.pointers):
-            ptr[i, j] = (offs[BANKS[sb]] + si, offs[BANKS[db]] + di)
-    # node->node kinematic relation derived from morph relations among action-node tokens
-    kp = 16
-    for i, pi in enumerate(inputs):
-        n = pi.act_node_feats.shape[0]
-        for qb, qi, kb, ki, r in pi.relations:
-            if qb == 0 and kb == 0 and r == kp and qi < n and ki < n:
-                node_rel[i, qi, ki, kp] = True
-                node_rel[i, ki, qi, kp] = True
+        R = np.asarray(pi.relations).reshape(-1, 5)
+        if len(R):
+            kc = offs_arr[R[:, 2]] + R[:, 3]
+            a = R[:, 0] == -1
+            act_rel[i, R[a, 1], kc[a], R[a, 4]] = True
+            c = ~a
+            qc = offs_arr[R[c, 0]] + R[c, 1]
+            ctx_rel[i, qc, kc[c], R[c, 4]] = True
+            # node->node kinematic relation among action-node morph tokens
+            kpm = (R[:, 0] == 0) & (R[:, 2] == 0) & (R[:, 4] == 16) & (R[:, 1] < n) & (R[:, 3] < n)
+            node_rel[i, R[kpm, 1], R[kpm, 3], 16] = True
+            node_rel[i, R[kpm, 3], R[kpm, 1], 16] = True
+        Pp = np.asarray(pi.pointers).reshape(-1, 4)
+        if len(Pp):
+            ptr[i, :len(Pp), 0] = offs_arr[Pp[:, 0]] + Pp[:, 1]
+            ptr[i, :len(Pp), 1] = offs_arr[Pp[:, 2]] + Pp[:, 3]
     ctx_mask = torch.cat([masks[b] for b in BANKS], 1)
     return Batch(toks, masks, kinds, texts, offs, ctx_mask, torch.from_numpy(nf), torch.from_numpy(nm),
                  torch.from_numpy(ctx_rel), torch.from_numpy(act_rel), torch.from_numpy(node_rel),

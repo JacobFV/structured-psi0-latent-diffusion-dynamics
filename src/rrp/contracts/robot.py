@@ -155,7 +155,7 @@ class RobotSpec(Strict):
     schema_version: Literal["1.0"] = "1.0"
     spec_hash: str = ""
     name: str
-    family: Literal["humanoid", "quadruped", "biped", "hexapod", "arm", "dual_arm", "mobile_manipulator",
+    family: Literal["humanoid", "quadruped", "biped", "hexapod", "multipod", "arm", "dual_arm", "mobile_manipulator",
                     "end_effector", "fixture"]
     asset_source: dict
     lineage: list[str]                      # body/module lineage ids for split control

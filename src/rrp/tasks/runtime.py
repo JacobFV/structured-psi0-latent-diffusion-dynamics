@@ -19,6 +19,7 @@ from .compiler import CompiledTask, compile_task
 from .interventions import GraphStore, EditReceipt
 from .receipts import Receipt, ReceiptStore
 
+RECEIPT_VALIDITY_PREDICATES = ("receipt_valid", "anchor_valid", "frame_valid")
 STATUSES = ("pending", "ready", "active", "succeeded", "failed", "cancelled", "blocked")
 
 
@@ -194,6 +195,13 @@ class TaskRuntime:
     def evaluate(self, cond: Condition, obs: PolicyObservation | None) -> Estimate:
         if cond.source == "validated_receipt":
             if cond.predicate == "event_succeeded":
+                for a in cond.arguments:
+                    if isinstance(a, OutputBinding):
+                        r = self.receipts.latest(a.event_id, a.attempt, a.output_name)
+                        return Estimate(bool(r and r.valid), True, 1.0, "receipt")
+            if cond.predicate in RECEIPT_VALIDITY_PREDICATES:
+                # validity of a bound receipt (e.g. a maintained support anchor): known from the
+                # receipt store; a missing receipt is known-invalid, never silently true
                 for a in cond.arguments:
                     if isinstance(a, OutputBinding):
                         r = self.receipts.latest(a.event_id, a.attempt, a.output_name)
@@ -412,7 +420,18 @@ class TaskRuntime:
                                       provenance="recovery")
 
     def _has_consumers(self, eid, attempt) -> bool:
-        return any(i.source_event == eid and i.source_attempt == attempt for i in self.compiled.incidences)
+        if any(i.source_event == eid and i.source_attempt == attempt for i in self.compiled.incidences):
+            return True
+        # outputs consumed only by guard conditions or frame bindings (e.g. receipt_valid(align#0.aligned))
+        for e in self.compiled.definition.events:
+            fb = e.frame_binding
+            if isinstance(fb, OutputBinding) and fb.event_id == eid and fb.attempt == attempt:
+                return True
+            for c in e.preconditions + e.invariants + e.desired_effects + e.completion:
+                if any(isinstance(a, OutputBinding) and a.event_id == eid and a.attempt == attempt
+                       for a in c.arguments):
+                    return True
+        return False
 
     # ---------------------------------------------------------------- edits
     def apply_edit(self, operations: list[dict], expected_version: int, request_id: str,

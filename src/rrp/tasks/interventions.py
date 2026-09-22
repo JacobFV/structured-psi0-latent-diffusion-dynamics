@@ -163,6 +163,9 @@ def _apply_op(doc: dict, prio: dict, op: dict[str, Any]):
                 b = r["binding"]
                 if b["kind"] == "event_output" and b["event_id"] == src and b["attempt"] == old:
                     b["attempt"] = new
+            fb = e.get("frame_binding")
+            if fb and fb.get("kind") == "event_output" and fb["event_id"] == src and fb["attempt"] == old:
+                fb["attempt"] = new
             for cond_key in ("preconditions", "invariants", "desired_effects", "completion"):
                 for c in e[cond_key]:
                     for a in c["arguments"]:

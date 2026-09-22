@@ -53,6 +53,7 @@ class StepResult:
     rejected: str | None = None
     source: str | None = None
     command: dict | None = None      # groups actually executed for robot 0 (for exact replay)
+    commands: dict | None = None     # robot index -> groups executed (all robots; multi-robot replay)
 
 
 class Session:
@@ -461,11 +462,14 @@ class Session:
                 cmds = {robot: NativeCommand(controller_version=r.controller.version, groups=row,
                                              source=self.executor.meta["source"] if self.executor.meta else "learned")}
         rejected = None
+        executed = {}
         for r in self.robots:
             c = cmds.get(r.idx)
             try:
                 r.controller.begin_step(self.data, c)
                 source = source or (c.source if c else None)
+                if c is not None:
+                    executed[r.idx] = c.groups
             except ControllerRejection as e:
                 rejected = e.code
                 r.controller.begin_step(self.data, None)
@@ -486,7 +490,7 @@ class Session:
         self._last_obs = obs
         c0 = cmds.get(0)
         return StepResult(obs, self.data.qpos.copy(), float(self.data.time), rejected, source,
-                          c0.groups if (c0 is not None and not rejected) else None)
+                          c0.groups if (c0 is not None and not rejected) else None, executed or None)
 
     # ------------------------------------------------------------------ interventions
     def teleport_object(self, sim_body: str, pos, source: str = "user"):
