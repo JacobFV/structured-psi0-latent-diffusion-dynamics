@@ -53,3 +53,6 @@ Source pairs: sawyer_tf3__ur5e_pg2 0/30 and ur5e_tf3__parm6_pg2 0/19 feasible, s
 
 ## D-015 2026-09-21 private remote authorized by user
 User asked for a private repo. Created https://github.com/JacobFV/relational-robot-policy (PRIVATE) and pushed main. Excluded: tokens (ops/workbench-token), model checkpoints (*.pt except small project-trained tracker actors), third-party assets/weights (.cache/, psi0/Qwen weights never committed), datasets. Push regularly after local commits; never make it public without separate authorization.
+
+## D-016 2026-09-21 teacher fix: continuous grasp yaw (data quality, not a model recipe change)
+Action statistics (scripts/diag_actions.py) showed the last arm joint (wrist roll) with first-step normalized delta std 1.1-1.3 and peaks 5.8-11.6 (up to ~6 rad) on procedural arms: the scripted teacher chose the cube-symmetric grasp yaw in [-pi/4, pi/4] regardless of the current tool yaw, producing wrist flips that are not inferable from the state. Fix: choose the symmetric yaw nearest the current tool yaw. Teacher re-validated and dataset regenerated (pick_place_primary_v3); earlier datasets archived.

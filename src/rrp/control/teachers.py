@@ -99,8 +99,15 @@ class PickPlaceTeacher:
             self.tcp_cmd = tcp_now.copy()
         cube, cq = self._body(self.obj)
         if self.phase in ("pregrasp", "descend"):
-            self.yaw = _yaw_of_quat(cq)
-            self.yaw = (self.yaw + np.pi / 4) % (np.pi / 2) - np.pi / 4   # cube symmetry
+            # among the cube's 4-fold symmetric grasp yaws, pick the one closest to the CURRENT
+            # tool yaw (avoids wrist-roll flips that make demonstrations multimodal/discontinuous)
+            _, Rt = self.s._fk_site(self.r, self.tcp_site)
+            cur = float(np.arctan2(Rt[1, 0], Rt[0, 0]))
+            base = _yaw_of_quat(cq)
+            cands = [base + k * np.pi / 2 for k in range(-4, 5)]
+            wrap = lambda a: (a + np.pi) % (2 * np.pi) - np.pi
+            self.yaw = min(cands, key=lambda y: abs(wrap(y - cur)))
+            self.yaw = cur + wrap(self.yaw - cur)
         goal_true = self._goal()
         # integral correction of steady-state tracking error (gravity/finite servo gains)
         err_vec = goal_true - tcp_now
