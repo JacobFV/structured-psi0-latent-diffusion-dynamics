@@ -29,11 +29,16 @@ class Sample:
 
 
 def load_episodes(ds_dir: Path, robots: set[str] | None = None, statuses=("success",), limit_per_robot=None,
-                  seeds: tuple | None = None, episode_ids: set | None = None) -> list[tuple[dict, dict]]:
+                  seeds: tuple | None = None, episode_ids: set | None = None,
+                  include_dart_failures: bool = False) -> list[tuple[dict, dict]]:
+    """DART episodes (execution noise, clean teacher labels) may be included even when the noisy
+    execution failed: their labels are still the teacher's corrective commands."""
     man = json.loads((ds_dir / "manifest.json").read_text())
     out, per = [], {}
     for m in man["episodes"]:
-        if m.get("status") not in statuses:
+        ok = m.get("status") in statuses or (include_dart_failures and m.get("exec_noise", 0) > 0
+                                             and m.get("status") == "failure")
+        if not ok:
             continue
         rk = m.get("robot_key") or m.get("split_lineage", {}).get("robot_key")
         if robots is not None and rk not in robots:
