@@ -74,21 +74,12 @@
       "specs": [
         {
           "title": "select robot, create session, step, inspect one joint and see joint values change",
-          "ok": false,
+          "ok": true,
           "tags": [],
           "tests": [
             {
               "timeout": 120000,
-              "annotations": [
-                {
-                  "type": "serial",
-                  "location": {
-                    "file": "/home/brandonin/work/relational-robot-policy/tests/browser/workbench.spec.ts",
-                    "line": 0,
-                    "column": 0
-                  }
-                }
-              ],
+              "annotations": [],
               "expectedStatus": "passed",
               "projectId": "chromium",
               "projectName": "chromium",
@@ -96,72 +87,29 @@
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "failed",
-                  "duration": 1693,
-                  "error": {
-                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('[role=alert][data-code=\"out_of_bounds\"]')\nExpected: visible\nError: strict mode violation: locator('[role=alert][data-code=\"out_of_bounds\"]') resolved to 2 elements:\n    1) <div role=\"alert\" class=\"toast toast-error\" data-code=\"out_of_bounds\">…</div> aka getByText('Command rejected by backendout_of_boundsgroup arm: command outside boundsDismiss')\n    2) <div role=\"alert\" class=\"toast toast-error\" data-code=\"out_of_bounds\">…</div> aka getByText('Joint target (arm) rejected (HTTP 422)out_of_boundsgroup arm: command outside')\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" locator('[role=alert][data-code=\"out_of_bounds\"]') with timeout 15000ms\u001b[22m\n\u001b[2m  - waiting for locator('[role=alert][data-code=\"out_of_bounds\"]')\u001b[22m\n",
-                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('[role=alert][data-code=\"out_of_bounds\"]')\nExpected: visible\nError: strict mode violation: locator('[role=alert][data-code=\"out_of_bounds\"]') resolved to 2 elements:\n    1) <div role=\"alert\" class=\"toast toast-error\" data-code=\"out_of_bounds\">…</div> aka getByText('Command rejected by backendout_of_boundsgroup arm: command outside boundsDismiss')\n    2) <div role=\"alert\" class=\"toast toast-error\" data-code=\"out_of_bounds\">…</div> aka getByText('Joint target (arm) rejected (HTTP 422)out_of_boundsgroup arm: command outside')\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" locator('[role=alert][data-code=\"out_of_bounds\"]') with timeout 15000ms\u001b[22m\n\u001b[2m  - waiting for locator('[role=alert][data-code=\"out_of_bounds\"]')\u001b[22m\n\n    at /home/brandonin/work/relational-robot-policy/tests/browser/workbench.spec.ts:72:54",
-                    "location": {
-                      "file": "/home/brandonin/work/relational-robot-policy/tests/browser/workbench.spec.ts",
-                      "column": 54,
-                      "line": 72
-                    },
-                    "snippet": "\u001b[0m \u001b[90m 70 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgetByLabel(\u001b[32m\"arm[1] value\"\u001b[39m\u001b[33m,\u001b[39m { exact\u001b[33m:\u001b[39m \u001b[36mtrue\u001b[39m })\u001b[33m.\u001b[39mfill(\u001b[32m\"9\"\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 71 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgetByRole(\u001b[32m\"button\"\u001b[39m\u001b[33m,\u001b[39m { name\u001b[33m:\u001b[39m \u001b[32m\"Send arm joint target\"\u001b[39m })\u001b[33m.\u001b[39mclick()\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 72 |\u001b[39m   \u001b[36mawait\u001b[39m expect(alertWithCode(page\u001b[33m,\u001b[39m \u001b[32m\"out_of_bounds\"\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                      \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 73 |\u001b[39m })\u001b[33m;\u001b[39m\n \u001b[90m 74 |\u001b[39m\n \u001b[90m 75 |\u001b[39m test(\u001b[32m\"click-to-select a body in the 3D scene\"\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\u001b[0m"
-                  },
-                  "errors": [
-                    {
-                      "location": {
-                        "file": "/home/brandonin/work/relational-robot-policy/tests/browser/workbench.spec.ts",
-                        "column": 54,
-                        "line": 72
-                      },
-                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('[role=alert][data-code=\"out_of_bounds\"]')\nExpected: visible\nError: strict mode violation: locator('[role=alert][data-code=\"out_of_bounds\"]') resolved to 2 elements:\n    1) <div role=\"alert\" class=\"toast toast-error\" data-code=\"out_of_bounds\">…</div> aka getByText('Command rejected by backendout_of_boundsgroup arm: command outside boundsDismiss')\n    2) <div role=\"alert\" class=\"toast toast-error\" data-code=\"out_of_bounds\">…</div> aka getByText('Joint target (arm) rejected (HTTP 422)out_of_boundsgroup arm: command outside')\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" locator('[role=alert][data-code=\"out_of_bounds\"]') with timeout 15000ms\u001b[22m\n\u001b[2m  - waiting for locator('[role=alert][data-code=\"out_of_bounds\"]')\u001b[22m\n\n\n  70 |   await page.getByLabel(\"arm[1] value\", { exact: true }).fill(\"9\");\n  71 |   await page.getByRole(\"button\", { name: \"Send arm joint target\" }).click();\n> 72 |   await expect(alertWithCode(page, \"out_of_bounds\")).toBeVisible();\n     |                                                      ^\n  73 | });\n  74 |\n  75 | test(\"click-to-select a body in the 3D scene\", async ({ page }) => {\n    at /home/brandonin/work/relational-robot-policy/tests/browser/workbench.spec.ts:72:54"
-                    }
-                  ],
+                  "status": "passed",
+                  "duration": 1473,
+                  "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-21T23:48:24.794394Z",
-                  "annotations": [
-                    {
-                      "type": "serial",
-                      "location": {
-                        "file": "/home/brandonin/work/relational-robot-policy/tests/browser/workbench.spec.ts",
-                        "line": 0,
-                        "column": 0
-                      }
-                    }
-                  ],
+                  "startTime": "2026-09-22T00:32:28.649963Z",
+                  "annotations": [],
                   "attachments": [
                     {
                       "name": "video",
                       "contentType": "video/webm",
                       "path": "/home/brandonin/work/relational-robot-policy/.cache/browser-run/test-results/workbench-select-robot-cre-6e06e-and-see-joint-values-change-chromium/video.webm"
-                    },
-                    {
-                      "name": "error-context",
-                      "contentType": "text/markdown",
-                      "path": "/home/brandonin/work/relational-robot-policy/.cache/browser-run/test-results/workbench-select-robot-cre-6e06e-and-see-joint-values-change-chromium/error-context.md"
-                    },
-                    {
-                      "name": "trace",
-                      "contentType": "application/zip",
-                      "path": "/home/brandonin/work/relational-robot-policy/.cache/browser-run/test-results/workbench-select-robot-cre-6e06e-and-see-joint-values-change-chromium/trace.zip"
                     }
-                  ],
-                  "errorLocation": {
-                    "file": "/home/brandonin/work/relational-robot-policy/tests/browser/workbench.spec.ts",
-                    "column": 54,
-                    "line": 72
-                  }
+                  ]
                 }
               ],
-              "status": "unexpected"
+              "status": "expected"
             }
           ],
           "id": "921e070f285a8b470d11-9cc6bc49d30e92613756",
           "file": "workbench.spec.ts",
-          "line": 51,
+          "line": 49,
           "column": 5
         },
         {
@@ -171,40 +119,37 @@
           "tests": [
             {
               "timeout": 120000,
-              "annotations": [
-                {
-                  "type": "serial",
-                  "location": {
-                    "file": "/home/brandonin/work/relational-robot-policy/tests/browser/workbench.spec.ts",
-                    "line": 0,
-                    "column": 0
-                  }
-                }
-              ],
+              "annotations": [],
               "expectedStatus": "passed",
               "projectId": "chromium",
               "projectName": "chromium",
               "results": [
                 {
-                  "workerIndex": -1,
-                  "parallelIndex": -1,
-                  "status": "skipped",
-                  "duration": 0,
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 831,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-21T23:48:40.639269Z",
+                  "startTime": "2026-09-22T00:32:41.650668Z",
                   "annotations": [],
-                  "attachments": []
+                  "attachments": [
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "/home/brandonin/work/relational-robot-policy/.cache/browser-run/test-results/workbench-click-to-select-a-body-in-the-3D-scene-chromium/video.webm"
+                    }
+                  ]
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "921e070f285a8b470d11-e3050e139a0fb9534a9d",
           "file": "workbench.spec.ts",
-          "line": 75,
+          "line": 73,
           "column": 5
         },
         {
@@ -214,40 +159,37 @@
           "tests": [
             {
               "timeout": 120000,
-              "annotations": [
-                {
-                  "type": "serial",
-                  "location": {
-                    "file": "/home/brandonin/work/relational-robot-policy/tests/browser/workbench.spec.ts",
-                    "line": 0,
-                    "column": 0
-                  }
-                }
-              ],
+              "annotations": [],
               "expectedStatus": "passed",
               "projectId": "chromium",
               "projectName": "chromium",
               "results": [
                 {
-                  "workerIndex": -1,
-                  "parallelIndex": -1,
-                  "status": "skipped",
-                  "duration": 0,
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1170,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-21T23:48:40.639269Z",
+                  "startTime": "2026-09-22T00:32:48.676940Z",
                   "annotations": [],
-                  "attachments": []
+                  "attachments": [
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "/home/brandonin/work/relational-robot-policy/.cache/browser-run/test-results/workbench-move-an-end-effe-03c9a-serve-motion-after-stepping-chromium/video.webm"
+                    }
+                  ]
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "921e070f285a8b470d11-726acf93bcb69090e067",
           "file": "workbench.spec.ts",
-          "line": 86,
+          "line": 84,
           "column": 5
         },
         {
@@ -257,40 +199,37 @@
           "tests": [
             {
               "timeout": 120000,
-              "annotations": [
-                {
-                  "type": "serial",
-                  "location": {
-                    "file": "/home/brandonin/work/relational-robot-policy/tests/browser/workbench.spec.ts",
-                    "line": 0,
-                    "column": 0
-                  }
-                }
-              ],
+              "annotations": [],
               "expectedStatus": "passed",
               "projectId": "chromium",
               "projectName": "chromium",
               "results": [
                 {
-                  "workerIndex": -1,
-                  "parallelIndex": -1,
-                  "status": "skipped",
-                  "duration": 0,
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1850,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-21T23:48:40.639269Z",
+                  "startTime": "2026-09-22T00:32:58.581038Z",
                   "annotations": [],
-                  "attachments": []
+                  "attachments": [
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "/home/brandonin/work/relational-robot-policy/.cache/browser-run/test-results/workbench-create-an-event--6d0f2--handle-drag-reject-a-cycle-chromium/video.webm"
+                    }
+                  ]
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "921e070f285a8b470d11-12ae1198581e8e7352cd",
           "file": "workbench.spec.ts",
-          "line": 111,
+          "line": 109,
           "column": 5
         },
         {
@@ -300,40 +239,37 @@
           "tests": [
             {
               "timeout": 120000,
-              "annotations": [
-                {
-                  "type": "serial",
-                  "location": {
-                    "file": "/home/brandonin/work/relational-robot-policy/tests/browser/workbench.spec.ts",
-                    "line": 0,
-                    "column": 0
-                  }
-                }
-              ],
+              "annotations": [],
               "expectedStatus": "passed",
               "projectId": "chromium",
               "projectName": "chromium",
               "results": [
                 {
-                  "workerIndex": -1,
-                  "parallelIndex": -1,
-                  "status": "skipped",
-                  "duration": 0,
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1026,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-21T23:48:40.639269Z",
+                  "startTime": "2026-09-22T00:33:14.215544Z",
                   "annotations": [],
-                  "attachments": []
+                  "attachments": [
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "/home/brandonin/work/relational-robot-policy/.cache/browser-run/test-results/workbench-reject-an-unsati-cf5a9-request-place-before-grasp--chromium/video.webm"
+                    }
+                  ]
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "921e070f285a8b470d11-ceddc08181bc2340627b",
           "file": "workbench.spec.ts",
-          "line": 147,
+          "line": 145,
           "column": 5
         },
         {
@@ -343,40 +279,37 @@
           "tests": [
             {
               "timeout": 120000,
-              "annotations": [
-                {
-                  "type": "serial",
-                  "location": {
-                    "file": "/home/brandonin/work/relational-robot-policy/tests/browser/workbench.spec.ts",
-                    "line": 0,
-                    "column": 0
-                  }
-                }
-              ],
+              "annotations": [],
               "expectedStatus": "passed",
               "projectId": "chromium",
               "projectName": "chromium",
               "results": [
                 {
-                  "workerIndex": -1,
-                  "parallelIndex": -1,
-                  "status": "skipped",
-                  "duration": 0,
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4954,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-21T23:48:40.639269Z",
+                  "startTime": "2026-09-22T00:33:22.899510Z",
                   "annotations": [],
-                  "attachments": []
+                  "attachments": [
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "/home/brandonin/work/relational-robot-policy/.cache/browser-run/test-results/workbench-change-actor-bin-7a6fa-ng-and-controller-ownership-chromium/video.webm"
+                    }
+                  ]
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "921e070f285a8b470d11-603b92c78025d895882b",
           "file": "workbench.spec.ts",
-          "line": 159,
+          "line": 157,
           "column": 5
         },
         {
@@ -386,40 +319,37 @@
           "tests": [
             {
               "timeout": 120000,
-              "annotations": [
-                {
-                  "type": "serial",
-                  "location": {
-                    "file": "/home/brandonin/work/relational-robot-policy/tests/browser/workbench.spec.ts",
-                    "line": 0,
-                    "column": 0
-                  }
-                }
-              ],
+              "annotations": [],
               "expectedStatus": "passed",
               "projectId": "chromium",
               "projectName": "chromium",
               "results": [
                 {
-                  "workerIndex": -1,
-                  "parallelIndex": -1,
-                  "status": "skipped",
-                  "duration": 0,
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2190,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-21T23:48:40.639269Z",
+                  "startTime": "2026-09-22T00:34:04.644821Z",
                   "annotations": [],
-                  "attachments": []
+                  "attachments": [
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "/home/brandonin/work/relational-robot-policy/.cache/browser-run/test-results/workbench-edit-while-execu-f3ce0-sion-edit-rejected-with-409-chromium/video.webm"
+                    }
+                  ]
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "921e070f285a8b470d11-4e5df5cbe8261b2c06a7",
           "file": "workbench.spec.ts",
-          "line": 195,
+          "line": 193,
           "column": 5
         },
         {
@@ -429,40 +359,37 @@
           "tests": [
             {
               "timeout": 120000,
-              "annotations": [
-                {
-                  "type": "serial",
-                  "location": {
-                    "file": "/home/brandonin/work/relational-robot-policy/tests/browser/workbench.spec.ts",
-                    "line": 0,
-                    "column": 0
-                  }
-                }
-              ],
+              "annotations": [],
               "expectedStatus": "passed",
               "projectId": "chromium",
               "projectName": "chromium",
               "results": [
                 {
-                  "workerIndex": -1,
-                  "parallelIndex": -1,
-                  "status": "skipped",
-                  "duration": 0,
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2573,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-21T23:48:40.639269Z",
+                  "startTime": "2026-09-22T00:34:23.115079Z",
                   "annotations": [],
-                  "attachments": []
+                  "attachments": [
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "/home/brandonin/work/relational-robot-policy/.cache/browser-run/test-results/workbench-disconnect-recon-0e25d-ithout-duplicating-commands-chromium/video.webm"
+                    }
+                  ]
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "921e070f285a8b470d11-f5b8916642ad4b95f854",
           "file": "workbench.spec.ts",
-          "line": 232,
+          "line": 230,
           "column": 5
         },
         {
@@ -472,40 +399,37 @@
           "tests": [
             {
               "timeout": 120000,
-              "annotations": [
-                {
-                  "type": "serial",
-                  "location": {
-                    "file": "/home/brandonin/work/relational-robot-policy/tests/browser/workbench.spec.ts",
-                    "line": 0,
-                    "column": 0
-                  }
-                }
-              ],
+              "annotations": [],
               "expectedStatus": "passed",
               "projectId": "chromium",
               "projectName": "chromium",
               "results": [
                 {
-                  "workerIndex": -1,
-                  "parallelIndex": -1,
-                  "status": "skipped",
-                  "duration": 0,
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1261,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-21T23:48:40.639269Z",
+                  "startTime": "2026-09-22T00:34:44.816581Z",
                   "annotations": [],
-                  "attachments": []
+                  "attachments": [
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "/home/brandonin/work/relational-robot-policy/.cache/browser-run/test-results/workbench-physics-replay-r-46137-episode-export-downloads-it-chromium/video.webm"
+                    }
+                  ]
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "921e070f285a8b470d11-b79ef9eef84eac669899",
           "file": "workbench.spec.ts",
-          "line": 252,
+          "line": 250,
           "column": 5
         },
         {
@@ -515,40 +439,37 @@
           "tests": [
             {
               "timeout": 120000,
-              "annotations": [
-                {
-                  "type": "serial",
-                  "location": {
-                    "file": "/home/brandonin/work/relational-robot-policy/tests/browser/workbench.spec.ts",
-                    "line": 0,
-                    "column": 0
-                  }
-                }
-              ],
+              "annotations": [],
               "expectedStatus": "passed",
               "projectId": "chromium",
               "projectName": "chromium",
               "results": [
                 {
-                  "workerIndex": -1,
-                  "parallelIndex": -1,
-                  "status": "skipped",
-                  "duration": 0,
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1269,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-21T23:48:40.639269Z",
+                  "startTime": "2026-09-22T00:34:55.478001Z",
                   "annotations": [],
-                  "attachments": []
+                  "attachments": [
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "/home/brandonin/work/relational-robot-policy/.cache/browser-run/test-results/workbench-probes-show-null-b1aa1-ntact-held-by-and-object-QA-chromium/video.webm"
+                    }
+                  ]
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "921e070f285a8b470d11-974720f0b3fa6824c914",
           "file": "workbench.spec.ts",
-          "line": 266,
+          "line": 264,
           "column": 5
         },
         {
@@ -558,40 +479,37 @@
           "tests": [
             {
               "timeout": 120000,
-              "annotations": [
-                {
-                  "type": "serial",
-                  "location": {
-                    "file": "/home/brandonin/work/relational-robot-policy/tests/browser/workbench.spec.ts",
-                    "line": 0,
-                    "column": 0
-                  }
-                }
-              ],
+              "annotations": [],
               "expectedStatus": "passed",
               "projectId": "chromium",
               "projectName": "chromium",
               "results": [
                 {
-                  "workerIndex": -1,
-                  "parallelIndex": -1,
-                  "status": "skipped",
-                  "duration": 0,
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1915,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-21T23:48:40.639269Z",
+                  "startTime": "2026-09-22T00:35:06.215154Z",
                   "annotations": [],
-                  "attachments": []
+                  "attachments": [
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "/home/brandonin/work/relational-robot-policy/.cache/browser-run/test-results/workbench-teacher-learned--28663-s-render-with-stable-colors-chromium/video.webm"
+                    }
+                  ]
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "921e070f285a8b470d11-b216627d2fc09755dabb",
           "file": "workbench.spec.ts",
-          "line": 293,
+          "line": 291,
           "column": 5
         },
         {
@@ -601,40 +519,37 @@
           "tests": [
             {
               "timeout": 120000,
-              "annotations": [
-                {
-                  "type": "serial",
-                  "location": {
-                    "file": "/home/brandonin/work/relational-robot-policy/tests/browser/workbench.spec.ts",
-                    "line": 0,
-                    "column": 0
-                  }
-                }
-              ],
+              "annotations": [],
               "expectedStatus": "passed",
               "projectId": "chromium",
               "projectName": "chromium",
               "results": [
                 {
-                  "workerIndex": -1,
-                  "parallelIndex": -1,
-                  "status": "skipped",
-                  "duration": 0,
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1206,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-21T23:48:40.639269Z",
+                  "startTime": "2026-09-22T00:35:22.413445Z",
                   "annotations": [],
-                  "attachments": []
+                  "attachments": [
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "/home/brandonin/work/relational-robot-policy/.cache/browser-run/test-results/workbench-teleport-require-ade00-ivileged-overlay-is-labeled-chromium/video.webm"
+                    }
+                  ]
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "921e070f285a8b470d11-3cf36c90f01f0d794c5b",
           "file": "workbench.spec.ts",
-          "line": 333,
+          "line": 331,
           "column": 5
         },
         {
@@ -644,40 +559,37 @@
           "tests": [
             {
               "timeout": 120000,
-              "annotations": [
-                {
-                  "type": "serial",
-                  "location": {
-                    "file": "/home/brandonin/work/relational-robot-policy/tests/browser/workbench.spec.ts",
-                    "line": 0,
-                    "column": 0
-                  }
-                }
-              ],
+              "annotations": [],
               "expectedStatus": "passed",
               "projectId": "chromium",
               "projectName": "chromium",
               "results": [
                 {
-                  "workerIndex": -1,
-                  "parallelIndex": -1,
-                  "status": "skipped",
-                  "duration": 0,
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1004,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-21T23:48:40.639269Z",
+                  "startTime": "2026-09-22T00:35:32.654130Z",
                   "annotations": [],
-                  "attachments": []
+                  "attachments": [
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "/home/brandonin/work/relational-robot-policy/.cache/browser-run/test-results/workbench-dragging-a-graph-node-changes-layout-only-chromium/video.webm"
+                    }
+                  ]
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "921e070f285a8b470d11-6711629427662774c435",
           "file": "workbench.spec.ts",
-          "line": 355,
+          "line": 353,
           "column": 5
         },
         {
@@ -687,83 +599,77 @@
           "tests": [
             {
               "timeout": 120000,
-              "annotations": [
-                {
-                  "type": "serial",
-                  "location": {
-                    "file": "/home/brandonin/work/relational-robot-policy/tests/browser/workbench.spec.ts",
-                    "line": 0,
-                    "column": 0
-                  }
-                }
-              ],
+              "annotations": [],
               "expectedStatus": "passed",
               "projectId": "chromium",
               "projectName": "chromium",
               "results": [
                 {
-                  "workerIndex": -1,
-                  "parallelIndex": -1,
-                  "status": "skipped",
-                  "duration": 0,
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 551,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-21T23:48:40.639269Z",
+                  "startTime": "2026-09-22T00:35:41.161388Z",
                   "annotations": [],
-                  "attachments": []
+                  "attachments": [
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "/home/brandonin/work/relational-robot-policy/.cache/browser-run/test-results/workbench-low-load-stream-mode-shows-server-rendered-frames-chromium/video.webm"
+                    }
+                  ]
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "921e070f285a8b470d11-177a8adb749739e40ae0",
           "file": "workbench.spec.ts",
-          "line": 374,
+          "line": 372,
           "column": 5
         },
         {
-          "title": "demo tour: teacher executes pick-and-place while graph and inspector follow",
+          "title": "demo tour: teacher executes requested pick-and-place while graph and inspector follow",
           "ok": true,
           "tags": [],
           "tests": [
             {
               "timeout": 120000,
-              "annotations": [
-                {
-                  "type": "serial",
-                  "location": {
-                    "file": "/home/brandonin/work/relational-robot-policy/tests/browser/workbench.spec.ts",
-                    "line": 0,
-                    "column": 0
-                  }
-                }
-              ],
+              "annotations": [],
               "expectedStatus": "passed",
               "projectId": "chromium",
               "projectName": "chromium",
               "results": [
                 {
-                  "workerIndex": -1,
-                  "parallelIndex": -1,
-                  "status": "skipped",
-                  "duration": 0,
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9770,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-21T23:48:40.639269Z",
+                  "startTime": "2026-09-22T00:35:45.848375Z",
                   "annotations": [],
-                  "attachments": []
+                  "attachments": [
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "/home/brandonin/work/relational-robot-policy/.cache/browser-run/test-results/workbench-demo-tour-teache-294b8--graph-and-inspector-follow-chromium/video.webm"
+                    }
+                  ]
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
-          "id": "921e070f285a8b470d11-18e7c3f6283e50dd1e21",
+          "id": "921e070f285a8b470d11-70e8636535e24ed23bf0",
           "file": "workbench.spec.ts",
-          "line": 382,
+          "line": 380,
           "column": 5
         }
       ]
@@ -771,11 +677,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-09-21T23:48:22.278400Z",
-    "duration": 2207.615,
-    "expected": 0,
-    "skipped": 14,
-    "unexpected": 1,
+    "startTime": "2026-09-22T00:32:26.697752Z",
+    "duration": 33531.939,
+    "expected": 15,
+    "skipped": 0,
+    "unexpected": 0,
     "flaky": 0
   }
 }

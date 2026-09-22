@@ -113,7 +113,7 @@ test("create an event, connect dependencies (form and handle drag), reject a cyc
   await page.getByRole("button", { name: "Add event…" }).click();
   await page.getByLabel("new event id", { exact: true }).fill("inspect_cube");
   await page.getByLabel("new event operator", { exact: true }).fill("inspect");
-  await page.getByLabel("new event actor", { exact: true }).selectOption("");
+  await page.getByLabel("new event actor", { exact: true }).selectOption("gripper");   // backend requires an actor
   await page.getByLabel("new event patient", { exact: true }).selectOption("cube");
   await page.getByRole("button", { name: "Add event", exact: true }).click();
   await expect(page.getByTestId("event-node-inspect_cube")).toBeVisible();
@@ -377,20 +377,38 @@ test("low-load stream mode shows server-rendered frames", async ({ page }) => {
   await expect(page.getByTestId("scene-canvas")).toHaveCount(0);
 });
 
-test("demo tour: teacher executes pick-and-place while graph and inspector follow", async ({ page }) => {
+test("demo tour: teacher executes requested pick-and-place while graph and inspector follow", async ({ page }) => {
   await open(page);
   await createSession(page);
+  await tab(page, "Morphology");
+  await page.getByTestId("morph-joint-r0_j2").click();
+  await page.waitForTimeout(800);
+  // request grasp (guards + ownership checked by backend), then let the privileged scripted teacher act
+  await selectEvent(page, "grasp");
+  await page.getByRole("button", { name: "Request execution" }).click();
+  await expect(page.getByTestId("status-grasp")).toHaveText("active");
   await page.getByLabel("control mode", { exact: true }).selectOption("scripted_teacher");
   await page.getByRole("button", { name: "Apply mode" }).click();
   await expect(page.getByTestId("mode-badge")).toContainText("SCRIPTED TEACHER (privileged)");
+  await tab(page, "Routing");
+  await expect(page.getByTestId("owner-gripper")).toContainText("grasp");
   await page.getByRole("button", { name: "Run", exact: true }).click();
-  await expect.poll(async () => page.getByTestId("status-grasp").innerText(), { timeout: 60_000 }).toMatch(/active|succeeded/);
-  await page.waitForTimeout(4000);
+  await expect(page.getByTestId("status-grasp")).toHaveText("succeeded", { timeout: 60_000 });
+  await selectEvent(page, "place");
+  await page.getByRole("button", { name: "Request execution" }).click();
+  await expect(page.getByTestId("status-place")).toHaveText(/active|succeeded/);
+  await expect(page.getByTestId("status-place")).toHaveText("succeeded", { timeout: 60_000 });
+  await expect(page.getByTestId("event-node-place")).toContainText("placed");     // completion receipt rendered on the node
+  await page.getByRole("button", { name: "inspect" }).first().click();
   await tab(page, "Probes");
   await page.getByRole("button", { name: "Run all (no args)" }).click();
-  await page.waitForTimeout(3000);
-  await tab(page, "Routing");
-  await page.waitForTimeout(3000);
+  await page.waitForTimeout(1500);
   if (await page.getByRole("button", { name: "Pause" }).isVisible()) await page.getByRole("button", { name: "Pause" }).click();
   await expect(page.getByTestId("count-scripted_teacher")).toBeVisible();
+  await page.getByRole("button", { name: "Physics replay" }).click();
+  await expect(page.getByTestId("replay-result")).toContainText("final_state_match=true");
+  await tab(page, "Selection");
+  await selectEvent(page, "place");
+  await page.waitForTimeout(1500);
+  if (process.env.RRP_PW_OUT) await page.screenshot({ path: `${process.env.RRP_PW_OUT}/workbench-demo.png` });
 });

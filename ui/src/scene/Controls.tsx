@@ -86,7 +86,7 @@ function GroupSliders({ group, current }: { group: CommandGroup; current: number
             value={v} onChange={(e) => { const nv = [...vals]; nv[i] = Number(e.target.value); setVals(nv); setDirty(true); }} />
           <input aria-label={`${group.name}[${i}] value`} type="number" step={0.01} value={Number(v.toFixed(4))}
             onChange={(e) => { const nv = [...vals]; nv[i] = Number(e.target.value); setVals(nv); setDirty(true); }} style={{ width: 72 }} />
-          <span className="muted small">[{fmt(group.lower[i], 2)}, {fmt(group.upper[i], 2)}]</span>
+          <span className="muted small">[{fmt(group.lower[i], 3)}, {fmt(group.upper[i], 3)}]</span>
         </div>
       ))}
       <button onClick={async () => { const r = await command({ type: "joint_target", group: group.name, values: vals }, `Joint target (${group.name})`); if (r) setDirty(false); }}>

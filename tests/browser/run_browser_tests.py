@@ -92,6 +92,8 @@ def main() -> int:
         (rec / "summary.json").write_text(json.dumps({"returncode": rc, "stats": stats,
                                                       "finished": time.strftime("%Y-%m-%dT%H:%M:%S")}, indent=1))
     shutil.copy(out_dir / "backend.log", rec / "backend.log")
+    if (out_dir / "workbench-demo.png").exists():
+        shutil.copy(out_dir / "workbench-demo.png", rec / "workbench-demo.png")
     videos = sorted((out_dir / "test-results").rglob("*.webm"), key=lambda p: p.stat().st_size, reverse=True)
     if videos:
         vdir = REPO / "artifacts" / "video"
