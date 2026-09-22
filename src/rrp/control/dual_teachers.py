@@ -17,10 +17,23 @@ import mujoco
 import numpy as np
 
 from rrp.contracts.action import NativeCommand
-from rrp.control.ik import down_rotation
+from rrp.control.ik import down_rotation, rot_error
 
 SOURCE = "scripted_teacher"
 GRASP_YAW = math.pi / 2          # palm long axis along world x: keeps the two hands apart along y
+ROT_RATE = 1.5                   # rad/s, commanded tool-orientation slew limit (yaw and tilt)
+JOINT_RATE = 3.0                 # rad/s, commanded joint-target slew limit
+
+
+def _rotvec_mat(rv):
+    ang = float(np.linalg.norm(rv))
+    if ang < 1e-12:
+        return np.eye(3)
+    q = np.zeros(4)
+    mujoco.mju_axisAngle2Quat(q, rv / ang, ang)
+    m = np.zeros(9)
+    mujoco.mju_quat2Mat(m, q)
+    return m.reshape(3, 3)
 
 
 def _wrap_pi(a):
@@ -52,6 +65,12 @@ class ArmMover:
         self.stalled = False
         self.max_ik_err = 0.0
         self.integral = True
+        # orientation: yaw targets are equivalence classes under the hand's symmetry; the commanded
+        # tool orientation starts at the CURRENT one, heads to the nearest equivalent tool-down target
+        # and is rate-limited, so the wrist never jumps/flips between control steps (cf. the lead's
+        # pick_place teacher fix, continuous grasp yaw)
+        self.yaw_sym = 2 * math.pi / 3 if self.h.gripper_kind == "three_finger" else math.pi
+        self.R_cmd = None
 
     def closed_for(self, obj_half: float) -> float:
         h = self.h
@@ -100,10 +119,23 @@ class ArmMover:
         v = np.linalg.norm(tcp_now - self.last_tcp) / dt if self.last_tcp is not None else 1.0
         self.last_tcp = tcp_now
         self.stalled = n < step and v < 0.01 and self.t_goal > 1.0
-        q, e = self.h.ik.solve(self.s.data.qpos.copy(), self.q_arm, self.tcp_cmd, down_rotation(self.yaw),
+        if self.R_cmd is None:              # start from the CURRENT tool orientation (asset homes differ)
+            _, Rn = self.tcp()
+            self.R_cmd = Rn.copy()
+        cur_yaw = float(math.atan2(self.R_cmd[1, 0], self.R_cmd[0, 0]))
+        tgt_yaw = self.yaw + round((cur_yaw - self.yaw) / self.yaw_sym) * self.yaw_sym   # nearest equivalent
+        rv = rot_error(self.R_cmd, down_rotation(tgt_yaw))
+        ang = float(np.linalg.norm(rv))
+        if ang > ROT_RATE * dt:
+            rv = rv * (ROT_RATE * dt / ang)
+        self.R_cmd = _rotvec_mat(rv) @ self.R_cmd
+        q, e = self.h.ik.solve(self.s.data.qpos.copy(), self.q_arm, self.tcp_cmd, self.R_cmd,
                                seeds=self.seeds(self.tcp_cmd))
         self.max_ik_err = max(self.max_ik_err, float(e))
-        self.q_arm = q
+        # joint-speed limit (declared teacher constraint): IK branch switches near singularities or
+        # from reseeding would otherwise command multi-radian single-step jumps
+        self.q_arm = self.q_arm + np.clip(q - self.q_arm, -JOINT_RATE * dt, JOINT_RATE * dt)
+        q = self.q_arm
         return {self.h.arm_group: q.tolist(), self.h.grip_group: [float(self.grip)]}
 
     def reached(self, tol: float) -> bool:
@@ -126,7 +158,8 @@ class ArmMover:
                                iters=120, seeds=self.seeds(target))
         return float(e)
 
-    _STATE = ("q_arm", "grip", "speed", "goal", "yaw", "tcp_cmd", "ioff", "last_tcp", "t_goal", "err", "n", "stalled")
+    _STATE = ("q_arm", "grip", "speed", "goal", "yaw", "R_cmd", "tcp_cmd", "ioff", "last_tcp", "t_goal", "err", "n",
+              "stalled")
 
     def state(self):
         import copy
