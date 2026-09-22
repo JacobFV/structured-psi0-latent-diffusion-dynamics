@@ -1,6 +1,6 @@
 {
  "name": "vlm_cache_pick_place_v1",
- "dataset": "artifacts/datasets/pick_place_primary_v2",
+ "dataset": "artifacts/datasets/pick_place_primary_v3",
  "robots": [
   "parm5_pg2",
   "parm5_tf3",
@@ -29,7 +29,7 @@
  ],
  "n_text": 8,
  "out_dir": "artifacts/vlm_cache/pick_place_v1",
- "workers": 2,
+ "workers": 1,
  "batch": 32,
  "q0_tol": 1e-06
 }

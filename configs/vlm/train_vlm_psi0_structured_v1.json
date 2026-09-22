@@ -1,5 +1,5 @@
 {
- "dataset": "artifacts/datasets/pick_place_primary_v2",
+ "dataset": "artifacts/datasets/pick_place_primary_v3",
  "feature_cache": "artifacts/vlm_cache/pick_place_v1/477a8493f2a47702",
  "train_robots": [
   "parm5_pg2",

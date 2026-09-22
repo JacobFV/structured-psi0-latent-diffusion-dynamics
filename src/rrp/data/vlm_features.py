@@ -115,6 +115,7 @@ def build_cache(cfg: dict) -> dict:
     out = Path(cfg["out_dir"]) / spec.key()
     out.mkdir(parents=True, exist_ok=True)
     (out / "samples").mkdir(exist_ok=True)
+    print(f"[vlm_cache] backbone loaded in {load_s:.0f}s {prov['source']['label']}", flush=True)
     eps = select_episodes(Path(cfg["dataset"]), cfg["robots"], cfg["per_robot"], cfg.get("offset", 0))
     todo = [e for e in eps if not (out / f"{e['eid']}.pt").exists()]
     jobs = []
@@ -157,8 +158,10 @@ def build_cache(cfg: dict) -> dict:
                 seen_robot.add(rk)
                 from PIL import Image
                 Image.fromarray(r["frames"][len(r["frames"]) // 2][0]).save(out / "samples" / f"{r['eid']}.png")
-            if stats["frames"] and len(seen_robot) and stats["frames"] % 500 < len(r["t"]):
-                print(f"[vlm_cache] {stats['frames']} frames {time.time() - t0:.0f}s", flush=True)
+            stats["episodes"] = stats.get("episodes", 0) + 1
+            if stats["episodes"] % 10 == 1:
+                print(f"[vlm_cache] {stats['episodes']}/{len(jobs)} eps {stats['frames']} frames "
+                      f"vlm {stats['vlm_s']:.0f}s wall {time.time() - t0:.0f}s", flush=True)
     index = dict(provenance=prov, spec_key=spec.key(), config=cfg, load_s=load_s, gpu=ginfo,
                  episodes=sorted(p.stem for p in out.glob("*.pt")), n_visual=None, stats=stats,
                  peak_gpu_bytes=torch.cuda.max_memory_allocated(), wall_s=time.time() - t0)
