@@ -1,0 +1,47 @@
+{
+ "body": "go2",
+ "obs_dim": 47,
+ "priv_dim": 10,
+ "act_dim": 12,
+ "control_dt": 0.02,
+ "hidden": [
+  256,
+  128,
+  64
+ ],
+ "kind": "quadruped",
+ "algo": "ppo_asymmetric_actor_critic",
+ "actor_inputs": "public: imu gyro, imu gravity, command, joint pos/vel, last action, gait clock",
+ "critic_inputs": "public + privileged: base lin vel, height, foot contacts, friction, push flag",
+ "source_label": "learned_tracker (trained with privileged critic)",
+ "args": {
+  "body": "go2",
+  "out": "/dev/shm/rrp-brandonin/legged_runs/go2",
+  "iters": 3000,
+  "workers": 4,
+  "envs": 48,
+  "horizon": 32,
+  "epochs": 5,
+  "minibatches": 2,
+  "lr": 0.001,
+  "desired_kl": 0.02,
+  "min_lr": 0.0001,
+  "gamma": 0.99,
+  "lam": 0.95,
+  "clip": 0.2,
+  "vf_coef": 1.0,
+  "ent_coef": 0.005,
+  "init_std": 0.6,
+  "hidden": "256,128,64",
+  "episode_s": 20.0,
+  "no_push": false,
+  "device": "cpu",
+  "torch_threads": 2,
+  "seed": 1,
+  "ckpt_every": 25,
+  "resume": true
+ },
+ "gpu": {
+  "cuda": false
+ }
+}

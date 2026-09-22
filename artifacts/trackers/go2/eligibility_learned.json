@@ -1,0 +1,17 @@
+{
+ "body": "go2",
+ "tracker_kind": "learned",
+ "tracker_sha": "16b45d59e547cab7",
+ "tracker_version": "learned_tracker:go2:iter1199",
+ "eligible": true,
+ "gate": {
+  "no_fall_rate": 1.0,
+  "forward_ratio": 1.0539082149214551,
+  "turn_ratio": 0.5933937877313241,
+  "stand_ok": true,
+  "passed": true
+ },
+ "frozen_at": "2026-09-22T04:43:39",
+ "validation_file": "validation_learned.json",
+ "note": "frozen on independent tracker validation, before any learned high-level policy result"
+}
