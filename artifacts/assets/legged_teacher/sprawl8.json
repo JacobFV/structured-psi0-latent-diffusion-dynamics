@@ -1,0 +1,312 @@
+{
+ "body": "sprawl8",
+ "task": "waypoint_contact",
+ "n": 20,
+ "success_rate": 1.0,
+ "fell": 0,
+ "tracker_source": "scripted_controller",
+ "teacher": "WaypointTeacher (scripted_teacher, privileged base pose)",
+ "seeds": "0-19",
+ "episodes": [
+  {
+   "episode_id": "sprawl8_wpc_s0",
+   "status": "success",
+   "steps": 181,
+   "files": {
+    "sprawl8_wpc_s0.public.pkl.gz": "eab8f5f1c0429848",
+    "sprawl8_wpc_s0.private.pkl.gz": "361889ac118ed746"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "sprawl8_wpc_s1",
+   "status": "success",
+   "steps": 185,
+   "files": {
+    "sprawl8_wpc_s1.public.pkl.gz": "d2bf32ba0f2808a0",
+    "sprawl8_wpc_s1.private.pkl.gz": "6c039098e5094f89"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "sprawl8_wpc_s2",
+   "status": "success",
+   "steps": 201,
+   "files": {
+    "sprawl8_wpc_s2.public.pkl.gz": "2f735d0e8b72bafa",
+    "sprawl8_wpc_s2.private.pkl.gz": "f14a0e0c3fdf0267"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "sprawl8_wpc_s3",
+   "status": "success",
+   "steps": 181,
+   "files": {
+    "sprawl8_wpc_s3.public.pkl.gz": "ede5a686462e4f38",
+    "sprawl8_wpc_s3.private.pkl.gz": "3c780f9642e67045"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "sprawl8_wpc_s4",
+   "status": "success",
+   "steps": 240,
+   "files": {
+    "sprawl8_wpc_s4.public.pkl.gz": "6694f71a320691f2",
+    "sprawl8_wpc_s4.private.pkl.gz": "95b648e2e50661d9"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "sprawl8_wpc_s5",
+   "status": "success",
+   "steps": 201,
+   "files": {
+    "sprawl8_wpc_s5.public.pkl.gz": "83dbfc301b404f1a",
+    "sprawl8_wpc_s5.private.pkl.gz": "325403ef9725ae97"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "sprawl8_wpc_s6",
+   "status": "success",
+   "steps": 177,
+   "files": {
+    "sprawl8_wpc_s6.public.pkl.gz": "c56fd551d42bb12b",
+    "sprawl8_wpc_s6.private.pkl.gz": "f6126e3ce4b15da7"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "sprawl8_wpc_s7",
+   "status": "success",
+   "steps": 214,
+   "files": {
+    "sprawl8_wpc_s7.public.pkl.gz": "94553f3677d3b019",
+    "sprawl8_wpc_s7.private.pkl.gz": "aee78ec991cc1087"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "sprawl8_wpc_s8",
+   "status": "success",
+   "steps": 181,
+   "files": {
+    "sprawl8_wpc_s8.public.pkl.gz": "6c08a8ae8c898516",
+    "sprawl8_wpc_s8.private.pkl.gz": "e45e31142537a217"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "sprawl8_wpc_s9",
+   "status": "success",
+   "steps": 210,
+   "files": {
+    "sprawl8_wpc_s9.public.pkl.gz": "8bd25038316881a5",
+    "sprawl8_wpc_s9.private.pkl.gz": "5d9717148ce0d46b"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "sprawl8_wpc_s10",
+   "status": "success",
+   "steps": 230,
+   "files": {
+    "sprawl8_wpc_s10.public.pkl.gz": "4d8d4d2607429bb4",
+    "sprawl8_wpc_s10.private.pkl.gz": "853a98917d976d1e"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "sprawl8_wpc_s11",
+   "status": "success",
+   "steps": 185,
+   "files": {
+    "sprawl8_wpc_s11.public.pkl.gz": "d1c752405e7aac88",
+    "sprawl8_wpc_s11.private.pkl.gz": "efcc57916a14290a"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "sprawl8_wpc_s12",
+   "status": "success",
+   "steps": 173,
+   "files": {
+    "sprawl8_wpc_s12.public.pkl.gz": "992693698540e451",
+    "sprawl8_wpc_s12.private.pkl.gz": "80259f8848560430"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "sprawl8_wpc_s13",
+   "status": "success",
+   "steps": 223,
+   "files": {
+    "sprawl8_wpc_s13.public.pkl.gz": "4823451129b16c7b",
+    "sprawl8_wpc_s13.private.pkl.gz": "ef452e178ffffd18"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "sprawl8_wpc_s14",
+   "status": "success",
+   "steps": 217,
+   "files": {
+    "sprawl8_wpc_s14.public.pkl.gz": "07697e5aa200d06c",
+    "sprawl8_wpc_s14.private.pkl.gz": "0042181adc749db5"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "sprawl8_wpc_s15",
+   "status": "success",
+   "steps": 206,
+   "files": {
+    "sprawl8_wpc_s15.public.pkl.gz": "2ea6a606907b4d61",
+    "sprawl8_wpc_s15.private.pkl.gz": "0994455eca093d8c"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "sprawl8_wpc_s16",
+   "status": "success",
+   "steps": 165,
+   "files": {
+    "sprawl8_wpc_s16.public.pkl.gz": "991bacde92eb9b63",
+    "sprawl8_wpc_s16.private.pkl.gz": "63eded051bbd3074"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "sprawl8_wpc_s17",
+   "status": "success",
+   "steps": 210,
+   "files": {
+    "sprawl8_wpc_s17.public.pkl.gz": "25327d9e93504c9e",
+    "sprawl8_wpc_s17.private.pkl.gz": "5775634a129339de"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "sprawl8_wpc_s18",
+   "status": "success",
+   "steps": 183,
+   "files": {
+    "sprawl8_wpc_s18.public.pkl.gz": "d8d1e2cc831595ea",
+    "sprawl8_wpc_s18.private.pkl.gz": "79885015b94eb51f"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "sprawl8_wpc_s19",
+   "status": "success",
+   "steps": 194,
+   "files": {
+    "sprawl8_wpc_s19.public.pkl.gz": "f69c233a10f55954",
+    "sprawl8_wpc_s19.private.pkl.gz": "2ae19b96abe4c702"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  }
+ ]
+}

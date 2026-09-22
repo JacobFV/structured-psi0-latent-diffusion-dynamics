@@ -138,7 +138,7 @@ def train(args):
                     kl_mean = kl
                     if args.desired_kl > 0:     # adaptive lr
                         if kl > 2 * args.desired_kl:
-                            lr = max(1e-5, lr / 1.5)
+                            lr = max(args.min_lr, lr / 1.5)
                         elif 0 < kl < args.desired_kl / 2:
                             lr = min(1e-2, lr * 1.5)
                         for g in opt.param_groups:
@@ -183,11 +183,12 @@ def main(argv=None):
     ap.add_argument("--iters", type=int, default=1000)
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--envs", type=int, default=48)
-    ap.add_argument("--horizon", type=int, default=24)
+    ap.add_argument("--horizon", type=int, default=32)
     ap.add_argument("--epochs", type=int, default=5)
-    ap.add_argument("--minibatches", type=int, default=4)
+    ap.add_argument("--minibatches", type=int, default=2)
     ap.add_argument("--lr", type=float, default=1e-3)
-    ap.add_argument("--desired-kl", type=float, default=0.01)
+    ap.add_argument("--desired-kl", type=float, default=0.02)
+    ap.add_argument("--min-lr", type=float, default=1e-4)
     ap.add_argument("--gamma", type=float, default=0.99)
     ap.add_argument("--lam", type=float, default=0.95)
     ap.add_argument("--clip", type=float, default=0.2)

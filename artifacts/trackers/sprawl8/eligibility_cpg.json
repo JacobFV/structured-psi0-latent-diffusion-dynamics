@@ -1,0 +1,17 @@
+{
+ "body": "sprawl8",
+ "tracker_kind": "cpg",
+ "tracker_sha": "scripted",
+ "tracker_version": "cpg:sprawl8_f10t14",
+ "eligible": true,
+ "gate": {
+  "no_fall_rate": 1.0,
+  "forward_ratio": 0.9605408436961509,
+  "turn_ratio": 0.5964568411678199,
+  "stand_ok": true,
+  "passed": true
+ },
+ "frozen_at": "2026-09-21T20:22:25",
+ "validation_file": "validation_cpg.json",
+ "note": "frozen on independent tracker validation, before any learned high-level policy result"
+}

@@ -15,7 +15,7 @@ while true; do
   active=$(ssh $PEER "cd /dev/shm/rrp-brandonin/repo && PATH=/dev/shm/rrp-brandonin/bin:\$PATH PYTHONPATH=src RRP_NODE=peer RRP_REPO=\$PWD python3 -m rrp.cli ops status 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); print(sum(1 for v in d[\"active_leases\"].values() if v[\"request\"][\"label\"]==\"$LABEL\"))'")
   if [ "${active:-0}" = "0" ]; then
     temp=$(ssh $PEER "cat /sys/class/thermal/thermal_zone*/temp | sort -n | tail -1")
-    if [ "${temp:-99999}" -lt 88000 ]; then
+    if [ "${temp:-99999}" -lt 95000 ]; then
       echo "$(date +%T) launching $BODY (iter $last, temp $temp)"
       ssh $PEER "mkdir -p $OUT && cd /dev/shm/rrp-brandonin/repo && export PATH=/dev/shm/rrp-brandonin/bin:\$PATH PYTHONPATH=src RRP_NODE=peer RRP_REPO=\$PWD && python3 -m rrp.cli ops run --cpu $CPU --mem $MEM --label $LABEL --max-seconds 21000 --detach -- $PY -m rrp.control.tracker_training --body $BODY --out $OUT --iters $ITERS --workers $WORKERS --resume $EXTRA" 2>&1 | tail -1
     else

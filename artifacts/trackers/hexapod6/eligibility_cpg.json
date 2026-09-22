@@ -1,0 +1,17 @@
+{
+ "body": "hexapod6",
+ "tracker_kind": "cpg",
+ "tracker_sha": "scripted",
+ "tracker_version": "cpg:hexapod6",
+ "eligible": true,
+ "gate": {
+  "no_fall_rate": 1.0,
+  "forward_ratio": 0.9628643710148896,
+  "turn_ratio": 0.7507224655934399,
+  "stand_ok": true,
+  "passed": true
+ },
+ "frozen_at": "2026-09-21T20:21:09",
+ "validation_file": "validation_cpg.json",
+ "note": "frozen on independent tracker validation, before any learned high-level policy result"
+}

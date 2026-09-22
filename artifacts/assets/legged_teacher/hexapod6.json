@@ -1,0 +1,312 @@
+{
+ "body": "hexapod6",
+ "task": "waypoint_contact",
+ "n": 20,
+ "success_rate": 1.0,
+ "fell": 0,
+ "tracker_source": "scripted_controller",
+ "teacher": "WaypointTeacher (scripted_teacher, privileged base pose)",
+ "seeds": "0-19",
+ "episodes": [
+  {
+   "episode_id": "hexapod6_wpc_s0",
+   "status": "success",
+   "steps": 176,
+   "files": {
+    "hexapod6_wpc_s0.public.pkl.gz": "238f84c71e87f1df",
+    "hexapod6_wpc_s0.private.pkl.gz": "698643698e223f28"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s1",
+   "status": "success",
+   "steps": 181,
+   "files": {
+    "hexapod6_wpc_s1.public.pkl.gz": "ffac87507ac8b1f0",
+    "hexapod6_wpc_s1.private.pkl.gz": "847490263cdb3f4c"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s2",
+   "status": "success",
+   "steps": 195,
+   "files": {
+    "hexapod6_wpc_s2.public.pkl.gz": "bd5a5c4aaf554648",
+    "hexapod6_wpc_s2.private.pkl.gz": "d86d7f9d3ca96964"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s3",
+   "status": "success",
+   "steps": 180,
+   "files": {
+    "hexapod6_wpc_s3.public.pkl.gz": "fdf2657505feb689",
+    "hexapod6_wpc_s3.private.pkl.gz": "80d0d353e1a6fbb2"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s4",
+   "status": "success",
+   "steps": 233,
+   "files": {
+    "hexapod6_wpc_s4.public.pkl.gz": "e06396520b9f6389",
+    "hexapod6_wpc_s4.private.pkl.gz": "6751642814d81f29"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s5",
+   "status": "success",
+   "steps": 203,
+   "files": {
+    "hexapod6_wpc_s5.public.pkl.gz": "bc9691365c9505d8",
+    "hexapod6_wpc_s5.private.pkl.gz": "156326963b19b14e"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s6",
+   "status": "success",
+   "steps": 180,
+   "files": {
+    "hexapod6_wpc_s6.public.pkl.gz": "502b5eba588b3207",
+    "hexapod6_wpc_s6.private.pkl.gz": "09e490b1f0d4ef8c"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s7",
+   "status": "success",
+   "steps": 209,
+   "files": {
+    "hexapod6_wpc_s7.public.pkl.gz": "b5fb7b28f0a4132c",
+    "hexapod6_wpc_s7.private.pkl.gz": "63523136474cdd9c"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s8",
+   "status": "success",
+   "steps": 179,
+   "files": {
+    "hexapod6_wpc_s8.public.pkl.gz": "5ae60173a92c2f2a",
+    "hexapod6_wpc_s8.private.pkl.gz": "7f348be502b991af"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s9",
+   "status": "success",
+   "steps": 212,
+   "files": {
+    "hexapod6_wpc_s9.public.pkl.gz": "628a1267b671f560",
+    "hexapod6_wpc_s9.private.pkl.gz": "66f1c0188d2e3ba2"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s10",
+   "status": "success",
+   "steps": 230,
+   "files": {
+    "hexapod6_wpc_s10.public.pkl.gz": "106617c73d6aaccf",
+    "hexapod6_wpc_s10.private.pkl.gz": "4aa4ee498d7d6c42"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s11",
+   "status": "success",
+   "steps": 180,
+   "files": {
+    "hexapod6_wpc_s11.public.pkl.gz": "b82cdc875f0263e9",
+    "hexapod6_wpc_s11.private.pkl.gz": "8f767f8b49bf5e9b"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s12",
+   "status": "success",
+   "steps": 168,
+   "files": {
+    "hexapod6_wpc_s12.public.pkl.gz": "6cd5906566f1807a",
+    "hexapod6_wpc_s12.private.pkl.gz": "d6080fad68362e4d"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s13",
+   "status": "success",
+   "steps": 220,
+   "files": {
+    "hexapod6_wpc_s13.public.pkl.gz": "32688f099cacca48",
+    "hexapod6_wpc_s13.private.pkl.gz": "fa5e7d1da23d89d3"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s14",
+   "status": "success",
+   "steps": 213,
+   "files": {
+    "hexapod6_wpc_s14.public.pkl.gz": "ea29d802801bbaeb",
+    "hexapod6_wpc_s14.private.pkl.gz": "76540376a393e483"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s15",
+   "status": "success",
+   "steps": 199,
+   "files": {
+    "hexapod6_wpc_s15.public.pkl.gz": "2cdc2ff4ff625763",
+    "hexapod6_wpc_s15.private.pkl.gz": "37c8b426238b4f31"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s16",
+   "status": "success",
+   "steps": 168,
+   "files": {
+    "hexapod6_wpc_s16.public.pkl.gz": "c4940dc8aa9de40c",
+    "hexapod6_wpc_s16.private.pkl.gz": "755eca33b53ca13b"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s17",
+   "status": "success",
+   "steps": 203,
+   "files": {
+    "hexapod6_wpc_s17.public.pkl.gz": "f5813ef23e575947",
+    "hexapod6_wpc_s17.private.pkl.gz": "7c91f8e5e6618604"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s18",
+   "status": "success",
+   "steps": 178,
+   "files": {
+    "hexapod6_wpc_s18.public.pkl.gz": "68c190f4470b6f59",
+    "hexapod6_wpc_s18.private.pkl.gz": "9d73b5876c3cce06"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  },
+  {
+   "episode_id": "hexapod6_wpc_s19",
+   "status": "success",
+   "steps": 187,
+   "files": {
+    "hexapod6_wpc_s19.public.pkl.gz": "338c2ba5e38c014c",
+    "hexapod6_wpc_s19.private.pkl.gz": "44e93b4e23514f48"
+   },
+   "tracker_source": "scripted_controller",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "succeeded"
+   }
+  }
+ ]
+}
