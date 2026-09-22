@@ -1,0 +1,10 @@
+stochastic samples 245 {'iter_groups': 3, 'informative_groups': 1, 'zero_variance_groups': 2, 'excluded_chunks': 449}
+stochastic lr 3e-05 [{"step": 1, "clip": 1.0, "med_abs_logratio": 12.65}, {"step": 2, "clip": 1.0, "med_abs_logratio": 30.3}, {"step": 3, "clip": 1.0, "med_abs_logratio": 47.598}, {"step": 4, "clip": 1.0, "med_abs_logratio": 64.555}]
+stochastic lr 1e-05 [{"step": 1, "clip": 1.0, "med_abs_logratio": 2.232}, {"step": 2, "clip": 1.0, "med_abs_logratio": 4.842}, {"step": 3, "clip": 1.0, "med_abs_logratio": 7.469}, {"step": 4, "clip": 1.0, "med_abs_logratio": 10.014}]
+stochastic lr 3e-06 [{"step": 1, "clip": 0.875, "med_abs_logratio": 0.531}, {"step": 2, "clip": 0.875, "med_abs_logratio": 0.892}, {"step": 3, "clip": 0.938, "med_abs_logratio": 1.18}, {"step": 4, "clip": 1.0, "med_abs_logratio": 1.466}]
+stochastic lr 1e-06 [{"step": 1, "clip": 0.375, "med_abs_logratio": 0.161}, {"step": 2, "clip": 0.812, "med_abs_logratio": 0.355}, {"step": 3, "clip": 1.0, "med_abs_logratio": 0.425}, {"step": 4, "clip": 0.938, "med_abs_logratio": 0.569}]
+deterministic samples 256 {'iter_groups': 3, 'informative_groups': 1, 'zero_variance_groups': 2, 'excluded_chunks': 396}
+deterministic lr 3e-05 [{"step": 1, "clip": 1.0, "med_abs_logratio": 5.414}, {"step": 2, "clip": 1.0, "med_abs_logratio": 11.175}, {"step": 3, "clip": 1.0, "med_abs_logratio": 16.721}, {"step": 4, "clip": 1.0, "med_abs_logratio": 22.001}]
+deterministic lr 1e-05 [{"step": 1, "clip": 1.0, "med_abs_logratio": 1.304}, {"step": 2, "clip": 1.0, "med_abs_logratio": 2.502}, {"step": 3, "clip": 1.0, "med_abs_logratio": 3.588}, {"step": 4, "clip": 1.0, "med_abs_logratio": 4.509}]
+deterministic lr 3e-06 [{"step": 1, "clip": 0.688, "med_abs_logratio": 0.331}, {"step": 2, "clip": 1.0, "med_abs_logratio": 0.481}, {"step": 3, "clip": 1.0, "med_abs_logratio": 0.622}, {"step": 4, "clip": 1.0, "med_abs_logratio": 0.838}]
+deterministic lr 1e-06 [{"step": 1, "clip": 0.062, "med_abs_logratio": 0.104}, {"step": 2, "clip": 0.5, "med_abs_logratio": 0.22}, {"step": 3, "clip": 0.875, "med_abs_logratio": 0.279}, {"step": 4, "clip": 1.0, "med_abs_logratio": 0.35}]

@@ -36,6 +36,10 @@ class GRPOConfig:
     all_equal: str = "skip"          # skip | z1_min (only meaningful with success-time decay)
     kl_coef: float = 0.0             # 0 = no KL (faithful to Z-1); >0 = labelled departure
     trainable: str = "action_expert"  # action_expert (context encoder + aux readout frozen) | all
+    # "sum" = exact augmented-path log-likelihood (default). "mean_dims" = DIMENSION-NORMALIZED SURROGATE
+    # (log-ratio divided by #valid coords x #stochastic steps, as in Flow-GRPO/RLinf code); not an exact
+    # likelihood ratio and always reported under that name.
+    logprob_reduction: str = "sum"
     sde: SDEConfig = field(default_factory=SDEConfig)
 
 
@@ -136,7 +140,13 @@ class GRPOLearner:
                 adv = torch.tensor([s["adv"] for s in mb], dtype=path.latents.dtype, device=self.device)
                 logp, means = path_log_prob(self._vel(self.model, batch), path, return_means=True)
                 self.update_velocity_evals += len(mb) * int(path.stochastic.sum())
-                obj, ratio = clipped_surrogate(logp, path.old_log_prob, adv, cfg.clip)
+                if cfg.logprob_reduction == "mean_dims":
+                    n = path.valid.reshape(path.valid.shape[0], -1).sum(1).to(logp.dtype) * int(path.stochastic.sum())
+                    obj, ratio = clipped_surrogate(logp / n, path.old_log_prob / n, adv, cfg.clip)
+                elif cfg.logprob_reduction == "sum":
+                    obj, ratio = clipped_surrogate(logp, path.old_log_prob, adv, cfg.clip)
+                else:
+                    raise ValueError(cfg.logprob_reduction)
                 # Z-1 normalisation: sum over chunks / total trainable chunks of the iteration batch
                 loss = -obj.sum() / len(mb)
                 if self.ref is not None:
