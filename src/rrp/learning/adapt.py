@@ -301,6 +301,27 @@ def run(cfg: dict) -> dict:
         raise ValueError(method)
 
     t_start = time.time()
+    if cfg.get("eval_only_tag"):            # resume an interrupted evaluation from saved adapted state
+        tag = cfg["eval_only_tag"]
+        sd = load_checkpoint(out_dir / f"policy_{tag}.pt", map_location=dev)
+        model.load_state_dict(sd["model"])
+        if method == "expo":
+            h = torch.load(out_dir / f"expo_heads_{tag}.pt", map_location=dev)
+            agent.q.load_state_dict(h["q"])
+            agent.q_t.load_state_dict(h["q_t"])
+            agent.edit.load_state_dict(h["edit"])
+        prev = json.loads((out_dir / "result.json").read_text()) if (out_dir / "result.json").exists() else results
+        ev = evaluate_now(tag)
+        saved = sd["extra"].get("counters", {})
+        ev.update(budget=int(tag[1:]), actual_new_transitions=saved.get("new_transitions"),
+                  actual_learned_transitions=saved.get("learned_transitions"),
+                  reused_prefix_transitions=saved.get("reused_prefix_transitions"), counters=saved,
+                  resumed_eval=True)
+        prev.setdefault("evals", []).append(ev)
+        prev["counters"] = saved
+        (out_dir / "result.json").write_text(json.dumps(prev, indent=1, default=str))
+        print("EVAL", tag, json.dumps({k: ev[k] for k in ("attempted", "successes", "success_rate")}), flush=True)
+        return prev
     for b in budgets:
         while counters[cfg.get("budget_counter", "new_transitions")] < b:
             train_iteration()

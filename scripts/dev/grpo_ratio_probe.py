@@ -23,8 +23,8 @@ for last in ["stochastic", "deterministic"]:
     if not samples: continue
     for lr in [3e-5, 1e-5, 3e-6, 1e-6]:
         m = copy.deepcopy(base)
-        L = GRPOLearner(m, GRPOConfig(sde=sde, lr=lr, epochs=1, minibatch=64), "cpu", version_prefix="p")
-        mb = samples[:64]
+        L = GRPOLearner(m, GRPOConfig(sde=sde, lr=lr, epochs=1, minibatch=16), "cpu", version_prefix="p")
+        mb = samples[:16]
         batch = collate_inputs([s["pi"] for s in mb]); path = SDEPath.cat([s["path"] for s in mb])
         out = []
         for step in range(4):
