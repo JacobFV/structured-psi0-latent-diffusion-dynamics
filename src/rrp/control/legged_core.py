@@ -203,8 +203,10 @@ class RewardCfg:
     @staticmethod
     def for_kind(kind: str) -> "RewardCfg":
         if kind in ("humanoid", "biped"):
-            return RewardCfg(orient=-5.0, alive=1.0, contact_phase=0.4, height=-20.0, air_time=0.5,
-                             stand_still=-0.5, termination=-10.0)
+            # v2 (after v1 converged to a stable non-walking stander): sharper tracking kernel, more
+            # tracking weight, less alive bonus so standing still under a walk command is not optimal
+            return RewardCfg(orient=-5.0, alive=0.3, contact_phase=0.4, height=-20.0, air_time=1.0,
+                             stand_still=-0.5, termination=-10.0, sigma=0.1, track_lin=2.5, track_ang=1.0)
         return RewardCfg()
 
 

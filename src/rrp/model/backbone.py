@@ -107,6 +107,7 @@ class VLMBackbone:
         return dict(source=self.spec.source, local_path=str(self.path), spec_key=self.spec.key(),
                     architecture=type(self.model).__name__, taps=list(self.spec.taps), n_text=self.spec.n_text,
                     hidden_width=self.width, n_layers=self.n_layers, vocab=len(tok),
+                    embed_rows=self.model.get_input_embeddings().num_embeddings,
                     tokenizer=type(tok).__name__, processor=type(self.processor).__name__,
                     image_processor=type(self.processor.image_processor).__name__, processor_hash=self.proc_hash,
                     dtype=self.spec.dtype, attn=self.spec.attn, frozen=True,

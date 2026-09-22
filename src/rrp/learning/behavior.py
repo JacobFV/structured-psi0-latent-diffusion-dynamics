@@ -80,7 +80,7 @@ def train_codec(cfg: dict, out_dir: Path) -> dict:
                            versions=dict(codec=ccfg.version, featurizer=FEAT_VERSION), config=cfg,
                            extra=dict(result=res, interrupted=sig.requested))
     res["checkpoint"] = meta
-    (out_dir / "result.json").write_text(json.dumps(res, indent=1, default=str))
+    (out_dir / ("result.json" if not sig.requested else "interrupted.json")).write_text(json.dumps(res, indent=1, default=str))
     return res
 
 
@@ -174,6 +174,11 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
             if sig.requested:
                 break
         if sig.requested:
+            # checkpoint-before-termination: resumable state (the interrupted epoch is repeated)
+            save_checkpoint(last, model=model, optimizer=opt, step=step,
+                            versions=dict(policy=pcfg.name, featurizer=FEAT_VERSION,
+                                          codec=(codec.cfg.version if codec else None)),
+                            config=cfg, data_cursor=dict(epoch=epoch - 1), extra=dict(sched=sched.state_dict()))
             break
         if (epoch + 1) % every == 0 and epoch + 1 < cfg["epochs"]:
             save_checkpoint(last, model=model, optimizer=opt, step=step,
@@ -183,10 +188,11 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
     res = dict(steps=step, wall_s=time.time() - t0, train_chunks=len(ds), swap_pairs=len(pairs),
                n_params=sum(p.numel() for p in model.parameters()),
                gpu=ginfo, interrupted=sig.requested)
-    meta = save_checkpoint(out_dir / "policy.pt", model=model, optimizer=opt, step=step,
+    meta = save_checkpoint(out_dir / ("policy.pt" if not sig.requested else "policy_interrupted.pt"),
+                           model=model, optimizer=opt, step=step,
                            versions=dict(policy=pcfg.name, featurizer=FEAT_VERSION,
                                          codec=(codec.cfg.version if codec else None)),
                            config=cfg, extra=dict(result=res))
     res["checkpoint"] = meta
-    (out_dir / "result.json").write_text(json.dumps(res, indent=1, default=str))
+    (out_dir / ("result.json" if not sig.requested else "interrupted.json")).write_text(json.dumps(res, indent=1, default=str))
     return res
