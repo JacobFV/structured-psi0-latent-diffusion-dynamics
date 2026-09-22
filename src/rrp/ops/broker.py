@@ -224,6 +224,27 @@ class ResourceBroker:
                 return LeaseDecision("checkpoint_and_stop", l["revoke_reason"], l["expires_at"])
             return LeaseDecision("continue", None, l["expires_at"])
 
+    def shrink(self, lease_id: str, *, memory_bytes: int | None = None, gpu_memory_bytes: int | None = None,
+               cpu_cores: float | None = None) -> dict:
+        """Reduce a live lease's reservation (never grow it). The enforced slice caps are lowered too."""
+        with self._locked() as st:
+            l = st["leases"].get(lease_id)
+            if l is None or l["state"] not in ("active", "revoke_requested"):
+                raise LeaseError(f"lease {lease_id} not active")
+            r = l["request"]
+            new = dict(memory_bytes=memory_bytes if memory_bytes is not None else r["memory_bytes"],
+                       gpu_memory_bytes=gpu_memory_bytes if gpu_memory_bytes is not None else r.get("gpu_memory_bytes", 0),
+                       cpu_cores=cpu_cores if cpu_cores is not None else r["cpu_cores"])
+            if new["memory_bytes"] > r["memory_bytes"] or new["gpu_memory_bytes"] > r.get("gpu_memory_bytes", 0) \
+                    or new["cpu_cores"] > r["cpu_cores"]:
+                raise CapacityError("shrink cannot grow a lease")
+            r.update(new)
+            self._log(st, "lease_shrunk", lease_id=lease_id, **new)
+        if hasattr(self.backend, "set_slice"):
+            from .cgroup import lease_slice
+            self.backend.set_slice(lease_slice(lease_id), cpu_cores=new["cpu_cores"], memory_bytes=new["memory_bytes"])
+        return new
+
     def attach_process(self, lease_id: str, unit: str | None, pid: int | None, start_ticks: int | None):
         with self._locked() as st:
             l = st["leases"][lease_id]

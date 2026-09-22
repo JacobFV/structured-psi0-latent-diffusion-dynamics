@@ -113,6 +113,13 @@ def cmd_ops_status(a):
     print(json.dumps(out, indent=1, default=str))
 
 
+def cmd_ops_shrink(a):
+    from rrp.ops.runtime import make_broker
+    br, _ = make_broker(require_watchdog=False)
+    print(json.dumps(br.shrink(a.lease, memory_bytes=_parse_bytes(a.mem) if a.mem else None,
+                               gpu_memory_bytes=_parse_bytes(a.gpu_mem) if a.gpu_mem else None, cpu_cores=a.cpu)))
+
+
 def cmd_ops_stop(a):
     from rrp.ops.runtime import stop_owned
     if not a.owned_only:
@@ -181,6 +188,12 @@ def build_parser() -> argparse.ArgumentParser:
     o.add_argument("--env", action="append", help="KEY=VALUE passed to the job")
     o.add_argument("cmd", nargs=argparse.REMAINDER)
     o.set_defaults(fn=cmd_ops_run)
+    o = ops.add_parser("shrink", help="reduce a live lease reservation")
+    o.add_argument("--lease", required=True)
+    o.add_argument("--mem")
+    o.add_argument("--gpu-mem")
+    o.add_argument("--cpu", type=float)
+    o.set_defaults(fn=cmd_ops_shrink)
     o = ops.add_parser("status")
     o.set_defaults(fn=cmd_ops_status)
     o = ops.add_parser("stop")
