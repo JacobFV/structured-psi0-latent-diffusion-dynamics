@@ -197,6 +197,7 @@ class RewardCfg:
     height: float = 0.0
     feet_slip: float = -0.05
     termination: float = -5.0
+    stand_contact: float = 0.5     # zero command: all feet down (stance transition)
     sigma: float = 0.25
 
     @staticmethod
@@ -332,6 +333,7 @@ class LeggedEnv:
             self.air[i] = np.where(fc, 0.0, self.air[i] + self.dt)
             if not moving:
                 r += cfg.stand_still * float(np.sum(np.abs(q - b.q0))) / b.n * 4
+                r += cfg.stand_contact * float(np.mean(fc))
             if cfg.contact_phase and b.nf == 2:
                 if moving:
                     want = np.array([self.phase[i] < 0.55, self.phase[i] >= 0.45])  # left stance / right stance

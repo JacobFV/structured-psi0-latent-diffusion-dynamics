@@ -128,13 +128,18 @@ def body_entry(key: str) -> dict:
             selected=(best or {}).get("tracker_kind"))
     else:
         e["stages"]["controller_validated"] = _stage(False, "no tracker trained/validated for this body (not attempted)")
-    tp = TEACH / f"{key}.json"
-    if tp.exists():
+    reps = {}
+    for tp in sorted(TEACH.glob(f"{key}*.json")):
         t = json.loads(tp.read_text())
-        e["stages"]["teacher_validated"] = _stage(t["success_rate"] >= 0.8, None if t["success_rate"] >= 0.8 else
-                                                  f"teacher success {t['success_rate']:.2f} < 0.8",
-                                                  success_rate=t["success_rate"], n=t["n"], fell=t["fell"],
-                                                  tracker_source=t["tracker_source"], file=str(tp.relative_to(REPO)))
+        if t.get("body") == key:
+            reps[tp.stem] = dict(success_rate=t["success_rate"], n=t["n"], fell=t["fell"],
+                                 tracker_source=t["tracker_source"], file=str(tp.relative_to(REPO)))
+    if reps:
+        best = max(reps.values(), key=lambda r: r["success_rate"])
+        ok = best["success_rate"] >= 0.8
+        e["stages"]["teacher_validated"] = _stage(ok, None if ok else f"best teacher success {best['success_rate']:.2f} < 0.8",
+                                                  selected_tracker_source=best["tracker_source"] if ok else None,
+                                                  runs=reps)
     else:
         e["stages"]["teacher_validated"] = _stage(False, "teacher not run (requires a validated controller)")
     e["catalog_wall_s"] = time.time() - t0

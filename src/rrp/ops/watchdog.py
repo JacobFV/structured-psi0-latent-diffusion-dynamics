@@ -178,7 +178,8 @@ def collect_sample(cfg: WatchdogConfig, st: WatchdogState, project_slice="rrp.sl
     return dict(
         memory_available=mi.get("MemAvailable"), swap_free=mi.get("SwapFree"),
         psi_full_avg10=(psi or {}).get("full", {}).get("avg10"),
-        project_memory=(cg or {}).get("memory_current"),
+        project_memory=((cg or {}).get("memory_current") + (telemetry.project_gpu_bytes() or 0 if gpu else 0))
+        if (cg or {}).get("memory_current") is not None else None,
         project_psi_full_avg10=((cg or {}).get("memory_pressure") or {}).get("full", {}).get("avg10"),
         disk_free=disk_free, thermal_c=telemetry.cpu_thermal_max_c(), gpu_temp_c=gtemp,
         idle_cores=idle, project_cpu_cores=proj_cpu, telemetry_errors=errors,

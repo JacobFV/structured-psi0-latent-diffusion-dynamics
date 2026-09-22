@@ -211,3 +211,26 @@ def cpu_freq_ratio() -> float | None:
         except (OSError, ValueError, ZeroDivisionError):
             pass
     return min(ratios) if ratios else None
+
+
+def project_gpu_bytes(slice_name: str = "rrp.slice") -> int | None:
+    """GPU (unified) memory used by processes inside the project slice, from nvidia-smi.
+    On GB10 these allocations reduce MemAvailable but are invisible to memcg."""
+    exe = shutil.which("nvidia-smi")
+    if not exe:
+        return None
+    try:
+        r = subprocess.run([exe, "--query-compute-apps=pid,used_memory", "--format=csv,noheader,nounits"],
+                           capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    total = 0
+    for line in r.stdout.strip().splitlines():
+        try:
+            pid, mem = [x.strip() for x in line.split(",")]
+            cg = Path(f"/proc/{pid}/cgroup").read_text()
+        except (OSError, ValueError):
+            continue
+        if f"/{slice_name}/" in cg:
+            total += int(float(mem)) * 1024 * 1024
+    return total

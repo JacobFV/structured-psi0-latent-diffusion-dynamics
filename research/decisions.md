@@ -35,3 +35,6 @@ With the whole peer authorized (D-008) and five parallel engineering tracks, the
 
 ## D-010 2026-09-21 thermal guard based on throttling evidence
 The initial 95 C CPU shed threshold repeatedly killed healthy peer jobs (evidence: ops/watchdog/peer.jsonl, leases 1790033520_d98918, 1790038081_a0568e). GB10 exposes no thermal trip points; at 96-97 C the CPUs ran at full 2.808 GHz and GPU thermal-slowdown flags were inactive. New rule: shed on GPU HW/SW thermal slowdown, on CPU >=90 C with clocks below 70% of max, or at >=100 C; stop admission (no new leases) at >=97 C. Killed runs are preserved and rerun from checkpoints.
+
+## D-011 2026-09-21 GPU memory attribution in the live limit
+Dev runs 1790038081_07a6c7 (structured, interrupted at step 6057/epoch 3) and 1790045747_76b6bd (unstructured, step 1) were revoked with `live_limit_reduced`: CUDA allocations lower MemAvailable but are not in memcg, so the live limit treated our own GPU memory as external load. Fix: project residency P now = memcg memory.current + nvidia-smi used_memory of processes inside rrp.slice. Interrupted runs preserved.
