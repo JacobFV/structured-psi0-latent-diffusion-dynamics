@@ -222,7 +222,17 @@ def finalize(st: EpisodeState) -> dict:
         st.outcome = "success" if priv else "failure"
     grasped = s.runtime.status("grasp") == "succeeded" if "grasp" in s.runtime.instances else False
     return dict(privileged_success=priv, public_success=bool(s.runtime.succeeded()), outcome=st.outcome,
-                grasp_public=bool(grasped), reward_label=REWARD_LABEL)
+                grasp_public=bool(grasped), reward_label=REWARD_LABEL, cube_zone_xy=cube_zone_xy(s))
+
+
+def cube_zone_xy(s) -> float | None:
+    """PRIVILEGED simulator truth (reward shaping only): final cube-to-target-zone horizontal distance."""
+    try:
+        c = s.data.xpos[s.model.body("cube").id]
+        z = s.data.xpos[s.model.body("target_zone").id]
+    except KeyError:
+        return None
+    return float(np.linalg.norm(c[:2] - z[:2]))
 
 
 def event_boundary(event: str = "grasp"):

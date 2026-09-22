@@ -158,6 +158,8 @@ def run(cfg: dict) -> dict:
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "config.json").write_text(json.dumps(cfg, indent=1))
     dev, ginfo = _device()
+    from rrp.learning import branching as _br
+    _br.SHAPING["dist"] = float(cfg.get("shaping_dist", 0.0))
     torch.manual_seed(cfg.get("seed", 0))
     model, codec, st = load_policy(cfg["checkpoint"], dev)
     make = scenario_factory(cfg["robot"])
@@ -213,9 +215,10 @@ def run(cfg: dict) -> dict:
             counters["reused_prefix_transitions"] += sum(g.reused_prefix_transitions for g in groups)
             counters["groups"] += len(groups)
             counters["episodes"] += sum(len(g.returns) for g in groups)
-            succ = [r for g in groups for r in g.returns]
+            succ = [o == "success" for g in groups for o in g.outcomes]
+            rets = [r for g in groups for r in g.returns]
             row = dict(iteration=learner.iteration, t=time.time(), **counters, **info,
-                       train_success_rate=sum(succ) / max(len(succ), 1),
+                       train_success_rate=sum(succ) / max(len(succ), 1), train_mean_return=sum(rets) / max(len(rets), 1),
                        boundary_rate=(sum(bool(g.reached_boundary) for g in groups) / len(groups))
                        if method == "grpo_shared_prefix" else None,
                        snapshot_s=sum(g.snapshot_s + g.restore_s for g in groups),

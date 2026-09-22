@@ -41,10 +41,17 @@ class GroupResult:
         return d
 
 
-def reward_of(fin: dict, shaping_grasp: float = 0.0) -> float:
+SHAPING = {"dist": 0.0}      # set per run: weight of privileged distance shaping (documented, sim only)
+
+
+def reward_of(fin: dict, shaping_grasp: float = 0.0, shaping_dist: float | None = None) -> float:
     """Sparse success reward (privileged simulator evaluator, sim training only) + optional documented
-    shaping bonus for the PUBLIC grasp event (0 by default)."""
-    return float(fin["privileged_success"]) + shaping_grasp * float(fin["grasp_public"])
+    shaping: PUBLIC grasp-event bonus, and PRIVILEGED final cube-to-zone distance term
+    w * (1 - min(d / 0.3 m, 1)). Both 0 by default."""
+    w = SHAPING["dist"] if shaping_dist is None else shaping_dist
+    d = fin.get("cube_zone_xy")
+    dense = w * (1.0 - min(d / 0.3, 1.0)) if (w and d is not None) else 0.0
+    return float(fin["privileged_success"]) + shaping_grasp * float(fin["grasp_public"]) + dense
 
 
 def _make_sessions(make_scenario, seed, n):

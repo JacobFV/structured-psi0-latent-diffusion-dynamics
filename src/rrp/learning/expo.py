@@ -21,6 +21,7 @@ from rrp.learning.critics import QEnsemble, EditPolicy, make_target, min_of_rand
 from rrp.learning.grpo import set_trainable
 from rrp.learning.replay_buffer import ReplayBuffer, ReplayRecord
 from rrp.learning.rollout import PolicyAdapter, EpisodeState, drive, finalize
+from rrp.learning.branching import reward_of
 from rrp.model.batch import collate_inputs
 
 
@@ -279,7 +280,7 @@ def collect_expo_episodes(agent: ExpoAgent, make_scenario, seeds: list[int], max
             n_steps = (st.steps if last else chunks[j + 1]["step"]) - c["step"]
             if n_steps <= 0:
                 continue
-            rew = (agent.cfg.gamma ** (n_steps - 1)) * float(success) if last else 0.0
+            rew = (agent.cfg.gamma ** (n_steps - 1)) * reward_of(fin) if last else 0.0
             recs.append(ReplayRecord(
                 episode_id=f"expo_s{st.seed}_{id(st)}", step=c["step"], state_emb=c["state_emb"],
                 base_proposal=c["base_proposal"], edit=c["edit"], executed_norm=c["executed_norm"],
