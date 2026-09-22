@@ -1,0 +1,40 @@
+{
+ "schema_version": "1.0",
+ "addendum_to": "research/sources.lock.json",
+ "retrieved_utc": "2026-09-21",
+ "method": "HF API tree/metadata (sizes, LFS sha256) checked BEFORE download; huggingface_hub.snapshot_download at pinned revisions with allow_patterns; HF_HOME=/dev/shm/rrp-brandonin/cache/hf on the peer only",
+ "sources": {
+  "psi0_system2_vlm": {
+   "url": "https://huggingface.co/USC-PSI-Lab/psi-model/tree/4c6f9776fc5b18d87945254175e38bb74b9d7748/psi0/pre.fast.2605160748.ckpt.ego390k",
+   "resolved_commit_or_version": "4c6f9776fc5b18d87945254175e38bb74b9d7748",
+   "subfolder": "psi0/pre.fast.2605160748.ckpt.ego390k",
+   "files": {"model.safetensors": {"bytes": 4262742488, "lfs_sha256": "b2ab7b3598b90e827c04f3f650e8187e5cc5167845ed7a1e0a65ca40fcc506f0"},
+             "tokenizer.json": {"bytes": 11422654, "lfs_sha256": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4"},
+             "other": "added_tokens.json chat_template.jinja config.json generation_config.json merges.txt preprocessor_config.json special_tokens_map.json tokenizer_config.json video_preprocessor_config.json vocab.json (< 3 MB each)"},
+   "license": "NONE declared on HF (no card/LICENSE; gated=false). GitHub repo Apache-2.0; coverage of weights UNVERIFIED. LOCAL RESEARCH USE ONLY - never redistribute or publish these weights or derived checkpoints containing them.",
+   "role": "frozen system-ii backbone (Qwen3VLForConditionalGeneration, vocab 153792 incl. FAST action tokens); loaded as a standard HF dir (training-path loader, psi0 src/psi/trainers/finetune.py); processor/tokenizer from the same dir"
+  },
+  "psi0_loader_reference": {
+   "url": "https://raw.githubusercontent.com/physical-superintelligence-lab/Psi0/4f3720d45e102b36d7c3e9465ab8062274170518/src/psi/models/psi0.py",
+   "resolved_commit_or_version": "4f3720d45e102b36d7c3e9465ab8062274170518",
+   "sha256": "8467da111434915f16f98fecf1eb98e9e59674d92bade9f19e1f2412015ac003",
+   "license": "Apache-2.0 (repo root LICENSE)",
+   "role": "read-only reference for loading/prompting (from_pretrained 1733-1824, prompt 1925-1990); not vendored"
+  },
+  "qwen25_05b_instruct": {
+   "url": "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct",
+   "resolved_commit_or_version": "7ae557604adf67be50417f59c2c2f167def9a775",
+   "files": {"model.safetensors": {"bytes": 988097824, "lfs_sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe"}},
+   "license": "apache-2.0 (HF tag + LICENSE file)",
+   "role": "separate frozen text decoder for object QA (R19)"
+  },
+  "qwen3_vl_2b_instruct_fallback": {
+   "url": "https://huggingface.co/Qwen/Qwen3-VL-2B-Instruct",
+   "resolved_commit_or_version": "89644892e4d85e24eaac8bacfd4f463576704203",
+   "license": "apache-2.0",
+   "role": "FALLBACK ONLY (label 'fallback_not_psi0'); not downloaded unless psi0 load is blocked"
+  }
+ },
+ "packages_peer_venv": {"transformers": "4.57.1 (psi0 pin)", "accelerate": "1.15.0", "safetensors": "0.8.0", "huggingface_hub": "0.36.2", "tokenizers": "0.22.2"},
+ "download_budget_bytes": 5300000000
+}
