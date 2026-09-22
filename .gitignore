@@ -12,3 +12,8 @@ artifacts/episodes/
 artifacts/video/raw/
 ui/dist/
 
+ops/workbench-token
+*.pt
+*.tmp
+MUJOCO_LOG.TXT
+.cache/
