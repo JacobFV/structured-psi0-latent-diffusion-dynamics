@@ -15,9 +15,9 @@ import torch
 
 from rrp.data.features import BANKS, N_REL, HASH_DIM
 
-MORPH_DIM = 35
-BANK_DIMS = {"morph": MORPH_DIM, "scene": 24, "task": 59, "interact": 32}
-NODE_DIM = 35
+MORPH_DIM = 44
+BANK_DIMS = {"morph": MORPH_DIM, "scene": 27, "task": 59, "interact": 32}
+NODE_DIM = 44
 
 
 @dataclass

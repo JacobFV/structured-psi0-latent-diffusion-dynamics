@@ -20,7 +20,7 @@ from rrp.model.codec import ActionCodec, CodecConfig
 from rrp.model.flow import FlowPolicy, PolicyConfig
 from rrp.ops.jobs import CheckpointSignal
 
-FEAT_VERSION = "feat-v1"
+FEAT_VERSION = "feat-v2"
 
 
 def device_setup():

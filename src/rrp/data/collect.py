@@ -20,7 +20,7 @@ from rrp.data.features import Featurizer
 from rrp.sim.native import Session
 from rrp.sim.sensors import camera_visibility
 
-FEATURIZER_VERSION = "feat-v1"
+FEATURIZER_VERSION = "feat-v2"
 
 
 def featurizer_for(session: Session, robot: int = 0) -> Featurizer:

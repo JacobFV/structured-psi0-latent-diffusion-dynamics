@@ -1,5 +1,5 @@
 {
- "dataset": "artifacts/datasets/pick_place_primary_v1",
+ "dataset": "artifacts/datasets/pick_place_primary_v2",
  "train_robots": [
   "parm5_pg2",
   "parm5_tf3",
@@ -18,7 +18,7 @@
  "horizon": 16,
  "seed": 1701,
  "name": "dev_unstructured_direct",
- "out_dir": "artifacts/runs/dev2_unstructured_direct",
+ "out_dir": "artifacts/runs/dev3_unstructured_direct",
  "epochs": 4,
  "batch_size": 256,
  "lr": 0.0003,

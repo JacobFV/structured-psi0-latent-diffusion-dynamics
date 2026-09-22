@@ -260,14 +260,29 @@ class Featurizer:
         qd = np.array([qd_robot[n] for n in self.node_joint_names], np.float32)
         mid = self.ranges.mean(1)
         half = np.maximum((self.ranges[:, 1] - self.ranges[:, 0]) / 2, 1e-3)
+        # Jacobian of the grasping assembly's TCP w.r.t. each actuated joint (public FK model)
+        gasm = next((a for a in self.spec.assemblies if a.kind in ("gripper", "hand")), None)
+        tcp_w = np.zeros(3)
+        jac = np.zeros((6, self.model.nv))
+        if gasm is not None:
+            sid = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SITE, gasm.frame.site)
+            mujoco.mj_comPos(self.model, d)
+            mujoco.mj_jacSite(self.model, d, jac[:3], jac[3:], sid)
+            tcp_w = d.site_xpos[sid].copy()
+        self._tcp_base = self._to_base(tcp_w)
+        c, s_ = math.cos(-self.base_yaw), math.sin(-self.base_yaw)
+        Rb = np.array([[c, -s_, 0], [s_, c, 0], [0, 0, 1]])
         dyn = []
         for i, n in enumerate(self.node_joint_names):
             jid = self.jids[i]
             anchor = self._to_base(d.xanchor[jid])
             axis = d.xaxis[jid].astype(np.float32)
             pa = prev_action[i] if prev_action is not None else 0.0
+            jp = Rb @ jac[:3, self.dadr[i]]
+            jr = Rb @ jac[3:, self.dadr[i]]
+            lever = self._tcp_base - anchor
             dyn.append(np.concatenate([[(q0[i] - mid[i]) / half[i], np.clip(qd[i] * 0.1, -3, 3), pa],
-                                       anchor, axis]).astype(np.float32))
+                                       anchor, axis, jp, jr, lever]).astype(np.float32))
         node_feats = np.concatenate([self.node_static, np.stack(dyn)], 1)
 
         # ---------------- morph bank: action nodes, passive joints, assemblies
@@ -281,8 +296,8 @@ class Featurizer:
             v = np.zeros(F_m, np.float32)
             v[:2] = one_hot(["hinge", "slide"].index(j.type), 2)
             v[2:5] = j.axis
-            v[-6:-3] = self._to_base(d.xanchor[jid])
-            v[-3:] = d.xaxis[jid]
+            v[-15:-12] = self._to_base(d.xanchor[jid])
+            v[-12:-9] = d.xaxis[jid]
             morph.append(v)
             mkind.append(1)
         asm_tok_index = {}
@@ -308,12 +323,13 @@ class Featurizer:
             known = od.position_estimate is not None
             pos = self._to_base(od.position_estimate) if known else np.zeros(3, np.float32)
             std = np.sqrt(np.asarray(od.position_cov_diag, np.float32)) if od.position_cov_diag else np.ones(3)
+            rel = (pos - self._tcp_base) if known else np.zeros(3, np.float32)
             v = np.concatenate([pos, np.log(std + 1e-4) / 5, [float(od.visible), float(known)],
-                                text_hash(od.descriptor)]).astype(np.float32)
+                                text_hash(od.descriptor), rel]).astype(np.float32)
             slot_tok[od.slot] = len(scene)
             scene.append(v)
             skind.append(0)
-        F_s = 3 + 3 + 2 + HASH_DIM
+        F_s = 3 + 3 + 2 + HASH_DIM + 3
         if not scene:
             scene.append(np.zeros(F_s, np.float32))
             skind.append(1)   # explicit null token
@@ -514,10 +530,10 @@ class Featurizer:
                                      runtime_version=ti.runtime_version if ti else None))
 
 
-BANK_DIMS = {"morph": None, "scene": 3 + 3 + 2 + HASH_DIM,
+BANK_DIMS = {"morph": None, "scene": 3 + 3 + 2 + HASH_DIM + 3,
              "task": HASH_DIM + len(STATUS) + 3 + HASH_DIM + len(ROLE_TYPES) + 1 + 4 + 3,
              "interact": 4 + 3 + 3 + 3 + 3 + HASH_DIM}
 
 
 def morph_dim(static_dim: int) -> int:
-    return static_dim + 9
+    return static_dim + 18
