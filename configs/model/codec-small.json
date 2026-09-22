@@ -1,5 +1,5 @@
 {
- "dataset": "artifacts/datasets/pick_place_primary_v2",
+ "dataset": "artifacts/datasets/pick_place_primary_v3",
  "train_robots": [
   "parm5_pg2",
   "parm5_tf3",
@@ -18,7 +18,7 @@
  "horizon": 16,
  "seed": 1701,
  "name": "codec_dev_v1",
- "out_dir": "artifacts/runs/codec_dev_v2",
+ "out_dir": "artifacts/runs/codec_dev_v3",
  "heldout_robots": [
   "parm5s_tf3",
   "parm5l_pg2"
