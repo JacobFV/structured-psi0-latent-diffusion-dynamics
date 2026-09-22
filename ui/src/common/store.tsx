@@ -174,10 +174,15 @@ export function useWorkbenchState() {
     }
     setLog((l) => [...l.slice(-199), { seq: m.seq, kind: m.kind, source: m.source, graph_version: m.graph_version, summary: summarize(m), at: Date.now() }]);
     if (m.kind === "command_rejected") {
-      const r = lastHttpReject.current;
+      // The same rejection usually also comes back on the HTTP response of our own request (in either
+      // order); wait briefly and only toast rejections that no HTTP error of ours already reported.
       const reason = m.payload?.reason as string;
-      const dup = r && (r.reason === reason || (reason === "version_conflict" && r.reason === "version_conflict")) && performance.now() - r.at < 3000;
-      if (!dup) toast({ level: "error", title: "Command rejected by backend", code: reason, message: m.payload?.message ?? "" });
+      const seenAt = performance.now();
+      window.setTimeout(() => {
+        const r = lastHttpReject.current;
+        const dup = r && r.reason === reason && Math.abs(r.at - seenAt) < 3000;
+        if (!dup) toast({ level: "error", title: "Command rejected by backend", code: reason, message: m.payload?.message ?? "" });
+      }, 600);
     }
     scheduleRefresh(0);
   }, [refresh, scheduleRefresh, toast]);

@@ -31,6 +31,7 @@ def _job(args):
     from rrp.sim.scenario import BUILDERS
     from rrp.sim.native import Session
     if robot_key not in _ROBOT_CACHE:
+        _ROBOT_CACHE.clear()            # bounded memory: keep one robot per worker
         _ROBOT_CACHE[robot_key] = workbench_robots()[robot_key]()
     robot = _ROBOT_CACHE[robot_key]
     kw = {"n_distractors": n_distr} if task == "pick_place" else {}
@@ -52,8 +53,8 @@ def generate(config: dict) -> dict:
                          str(out), item["split"]))
     t0 = time.time()
     metas = []
-    with ProcessPoolExecutor(max_workers=config.get("workers", os.cpu_count())) as ex:
-        futs = [ex.submit(_job, j) for j in jobs]
+    with ProcessPoolExecutor(max_workers=config.get("workers", os.cpu_count()), max_tasks_per_child=200) as ex:
+        futs = [ex.submit(_job, j) for j in jobs]   # jobs are grouped by robot (config order)
         for i, f in enumerate(as_completed(futs)):
             try:
                 metas.append(f.result())

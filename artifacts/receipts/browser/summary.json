@@ -1,0 +1,12 @@
+{
+ "returncode": 1,
+ "stats": {
+  "startTime": "2026-09-21T23:48:22.278400Z",
+  "duration": 2207.615,
+  "expected": 0,
+  "skipped": 14,
+  "unexpected": 1,
+  "flaky": 0
+ },
+ "finished": "2026-09-21T16:50:39"
+}
