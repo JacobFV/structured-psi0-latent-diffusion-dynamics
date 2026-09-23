@@ -56,10 +56,14 @@ class LearnedPolicy:
         return cls(model, codec, device, name=cfg["policy"].get("name", "policy"), **kw)
 
     def featurizer(self, session):
-        k = id(session)
-        if k not in self._feat:
-            self._feat[k] = featurizer_for(session)
-        return self._feat[k]
+        # stored ON the session: id()-keyed caches go stale when sessions are garbage-collected
+        # and a new session (possibly another robot) reuses the id (bug found 2026-09-21)
+        f = getattr(session, "_rrp_featurizer", None)
+        if f is None:
+            f = featurizer_for(session)
+            session._rrp_featurizer = f
+            session._rrp_prev_action = None
+        return f
 
     @torch.no_grad()
     def chunks(self, sessions: list) -> list[ActionChunk]:
@@ -69,7 +73,7 @@ class LearnedPolicy:
             f = self.featurizer(s)
             obs = s.observe()
             obs_list.append(obs)
-            feats.append(f(obs, self._prev.get(id(s))))
+            feats.append(f(obs, getattr(s, "_rrp_prev_action", None)))
         batch = collate_inputs(feats).to(self.device)
         H = self.model.cfg.horizon
         t1 = time.perf_counter()
@@ -89,7 +93,7 @@ class LearnedPolicy:
             n = pi.act_node_feats.shape[0]
             ai = np.clip(a[i, :, :n], -6, 6)
             groups_seq = f.aspace.denormalize(ai, pi.q0)
-            self._prev[id(s)] = ai[min(self.execute_prefix, H) - 1]
+            s._rrp_prev_action = ai[min(self.execute_prefix, H) - 1]
             gnames = sorted(set(f.aspace.node_group), key=f.aspace.node_group.index)
             cg = []
             for g in gnames:

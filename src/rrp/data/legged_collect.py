@@ -49,10 +49,10 @@ def private_record(s: LeggedSession, teacher) -> dict:
 
 
 def collect_episode(body: str, seed: int, tracker_kind: str = "auto", max_steps: int = 1300,
-                    split_lineage: dict | None = None) -> EpisodeRecord:
+                    split_lineage: dict | None = None, arc_only: bool = False) -> EpisodeRecord:
     sc = build_waypoint_contact(body, seed)
     s = LeggedSession(sc, tracker_kind=tracker_kind, seed=seed)
-    te = WaypointTeacher(s)
+    te = WaypointTeacher(s, arc_only=arc_only)
     t0 = time.time()
     obs = s._last_obs
     inputs, actions, labels, phases = [], [], [], []
@@ -77,7 +77,7 @@ def collect_episode(body: str, seed: int, tracker_kind: str = "auto", max_steps:
                 seed=seed, control_dt=s.dt, physics_dt=float(s.model.opt.timestep), tracker_hz=50.0, steps=steps,
                 status=status, public_runtime_success=bool(s.runtime.succeeded()),
                 event_status={e: i.status for e, i in s.runtime.instances.items()},
-                source="scripted_teacher", privileged_teacher=True, waypoints=sc.meta["waypoints"],
+                source="scripted_teacher", privileged_teacher=True, teacher_variant="arc_only" if arc_only else "default", waypoints=sc.meta["waypoints"],
                 wall_s=time.time() - t0, split_lineage=split_lineage or {"lineage": rs.lineage})
     public = dict(meta=meta, inputs=inputs, actions=actions,
                   action_space=dict(group="base_velocity", units=["m/s", "m/s", "rad/s"],
@@ -100,6 +100,7 @@ def main(argv=None):
     ap.add_argument("--seeds", default="0-9")
     ap.add_argument("--tracker", default="auto")
     ap.add_argument("--out", required=True)
+    ap.add_argument("--arc-only", action="store_true", help="teacher keeps min forward speed while turning")
     ap.add_argument("--teacher-report", action="store_true",
                     help="also write artifacts/assets/legged_teacher/<body>.json (teacher validation gate)")
     a = ap.parse_args(argv)
@@ -112,7 +113,7 @@ def main(argv=None):
                 read_episode(pub)["meta"]["tracker_source"] == ("scripted_controller" if a.tracker == "cpg" else "learned_tracker"):
             m = dict(read_episode(pub)["meta"], files={})       # resumable: keep finished episodes
         else:
-            rec = collect_episode(a.body, sd, a.tracker)
+            rec = collect_episode(a.body, sd, a.tracker, arc_only=a.arc_only)
             m = write_episode(rec, out)
         rows.append(dict(episode_id=m["episode_id"], status=m["status"], steps=m["steps"], files=m["files"],
                          tracker_source=m["tracker_source"], event_status=m["event_status"]))
@@ -121,12 +122,14 @@ def main(argv=None):
                 fell=sum(r["status"] == "fell" for r in rows), episodes=rows)
     (out / "manifest.json").write_text(json.dumps(summ, indent=1))
     if a.teacher_report:
-        rep = Path(__file__).resolve().parents[3] / "artifacts" / "assets" / "legged_teacher" / f"{a.body}.json"
+        rep = Path(__file__).resolve().parents[3] / "artifacts" / "assets" / "legged_teacher" / (
+            f"{a.body}_arc_only.json" if a.arc_only else f"{a.body}.json")
         rep.parent.mkdir(parents=True, exist_ok=True)
         rep.write_text(json.dumps(dict(body=a.body, task="waypoint_contact", n=len(rows),
                                        success_rate=summ["success"] / max(1, len(rows)), fell=summ["fell"],
                                        tracker_source=rows[0]["tracker_source"] if rows else None,
-                                       teacher="WaypointTeacher (scripted_teacher, privileged base pose)",
+                                       teacher="WaypointTeacher (scripted_teacher, privileged base pose)"
+                                       + (" arc_only variant" if a.arc_only else ""),
                                        seeds=a.seeds, episodes=rows), indent=1))
     print(json.dumps({k: v for k, v in summ.items() if k != "episodes"}))
 

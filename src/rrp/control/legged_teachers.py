@@ -23,7 +23,10 @@ class WaypointTeacher:
     source = "scripted_teacher"
     privileged = True
 
-    def __init__(self, session, speed_frac: float = 0.6, turn_gain: float = 1.5):
+    def __init__(self, session, speed_frac: float = 0.6, turn_gain: float = 1.5, arc_only: bool = False):
+        """arc_only: for trackers validated only for walking/arc turns (no in-place turning), keep a
+        minimum forward speed while turning (declared teacher variant, recorded in episode meta)."""
+        self.arc_only = arc_only
         self.s = session
         L = session.robots[0].meta["legged"]
         self.r = L["command_ranges"]
@@ -64,7 +67,9 @@ class WaypointTeacher:
         err = wrap(math.atan2(dy, dx) - yaw)
         wz = float(np.clip(self.k * err, -self.wmax, self.wmax))
         vx = self.vmax * max(0.0, math.cos(err)) ** 2 * min(1.0, dist / 0.6 + 0.3)
-        if abs(err) > 1.0:
+        if self.arc_only:
+            vx = max(vx, 0.5 * self.vmax)
+        elif abs(err) > 1.0:
             vx = 0.0
         return np.array([vx, 0.0, wz])
 
