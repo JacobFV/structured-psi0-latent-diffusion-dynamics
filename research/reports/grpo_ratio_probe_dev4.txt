@@ -1,0 +1,5 @@
+deterministic samples 528 {'iter_groups': 3, 'informative_groups': 2, 'zero_variance_groups': 1, 'excluded_chunks': 264}
+deterministic lr 1e-07 [{"step": 1, "clip": 0.0, "med_abs_logratio": 0.014}, {"step": 2, "clip": 0.0, "med_abs_logratio": 0.027}, {"step": 3, "clip": 0.0, "med_abs_logratio": 0.041}, {"step": 4, "clip": 0.062, "med_abs_logratio": 0.056}]
+deterministic lr 3e-07 [{"step": 1, "clip": 0.0, "med_abs_logratio": 0.041}, {"step": 2, "clip": 0.062, "med_abs_logratio": 0.085}, {"step": 3, "clip": 0.188, "med_abs_logratio": 0.124}, {"step": 4, "clip": 0.438, "med_abs_logratio": 0.181}]
+deterministic lr 1e-06 [{"step": 1, "clip": 0.25, "med_abs_logratio": 0.143}, {"step": 2, "clip": 0.688, "med_abs_logratio": 0.337}, {"step": 3, "clip": 0.938, "med_abs_logratio": 0.44}, {"step": 4, "clip": 1.0, "med_abs_logratio": 0.496}]
+deterministic lr 3e-06 [{"step": 1, "clip": 0.812, "med_abs_logratio": 0.483}, {"step": 2, "clip": 1.0, "med_abs_logratio": 0.962}, {"step": 3, "clip": 1.0, "med_abs_logratio": 1.41}, {"step": 4, "clip": 1.0, "med_abs_logratio": 1.881}]
