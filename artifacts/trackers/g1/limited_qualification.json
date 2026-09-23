@@ -1,0 +1,22 @@
+{
+ "body": "g1",
+ "tracker_version": "learned_tracker:g1:iter3599",
+ "tracker_sha": "d0a88b58ee0ce67d",
+ "status": "limited: whole-body floating-base walker, forward + arc turning only",
+ "gate_passed": false,
+ "failed_criterion": "turn-in-place ratio 0.075 (< 0.4)",
+ "evidence": {
+  "no_fall_rate": 1.0,
+  "forward_ratio": 0.9125204754283474,
+  "arc_yaw_ratio": 0.48680214519949433,
+  "arc_forward_ratio": 0.7965105945634269,
+  "push_recovery_falls": 0.0
+ },
+ "allowed_use": "waypoint_contact only with WaypointTeacher(arc_only=True) (min forward speed while turning); not eligible for commands requiring in-place turning; teacher runs: artifacts/assets/legged_teacher/g1*.json",
+ "decided": "2026-09-21, from independent tracker validation, before any learned high-level policy result",
+ "history": [
+  "v1 (sigma 0.25, alive 1.0): converged to a stable non-walking stander (artifacts/trackers/g1/v1_stander)",
+  "v2 (sigma 0.1, track_lin 2.5, alive 0.3, resumed from v1): forward walker, no turning (v2_walker)",
+  "v3 (track_ang 2.0 + turn-in-place commands, resumed from v2): arc turning emerged, in-place turning did not"
+ ]
+}

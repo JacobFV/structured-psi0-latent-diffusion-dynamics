@@ -125,7 +125,9 @@ def body_entry(key: str) -> dict:
             best is not None, None if best else "; ".join(f"{k}: gate failed {v['gate']}" for k, v in elig.items()),
             trackers={k: dict(eligible=v["eligible"], gate=v["gate"], tracker_sha=v["tracker_sha"],
                               frozen_at=v["frozen_at"]) for k, v in elig.items()},
-            selected=(best or {}).get("tracker_kind"))
+            selected=(best or {}).get("tracker_kind"),
+            limited_qualification=(json.loads((TRACKERS / key / "limited_qualification.json").read_text())
+                                   if (TRACKERS / key / "limited_qualification.json").exists() else None))
     else:
         e["stages"]["controller_validated"] = _stage(False, "no tracker trained/validated for this body (not attempted)")
     reps = {}

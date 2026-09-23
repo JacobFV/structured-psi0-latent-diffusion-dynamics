@@ -1,0 +1,312 @@
+{
+ "body": "g1",
+ "task": "waypoint_contact",
+ "n": 20,
+ "success_rate": 0.8,
+ "fell": 3,
+ "tracker_source": "learned_tracker",
+ "teacher": "WaypointTeacher (scripted_teacher, privileged base pose)",
+ "seeds": "0-19",
+ "episodes": [
+  {
+   "episode_id": "g1_wpc_s0",
+   "status": "success",
+   "steps": 435,
+   "files": {
+    "g1_wpc_s0.public.pkl.gz": "3f7eff7abc316a59",
+    "g1_wpc_s0.private.pkl.gz": "6c45650e6bdd4964"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "g1_wpc_s1",
+   "status": "success",
+   "steps": 462,
+   "files": {
+    "g1_wpc_s1.public.pkl.gz": "65a0f02804fdc68b",
+    "g1_wpc_s1.private.pkl.gz": "2ee2aef6a0742a28"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "g1_wpc_s2",
+   "status": "success",
+   "steps": 433,
+   "files": {
+    "g1_wpc_s2.public.pkl.gz": "9cb4a7d799ef2d01",
+    "g1_wpc_s2.private.pkl.gz": "03c3507f614a5733"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "g1_wpc_s3",
+   "status": "success",
+   "steps": 409,
+   "files": {
+    "g1_wpc_s3.public.pkl.gz": "62101fa0bf6f081b",
+    "g1_wpc_s3.private.pkl.gz": "830effe961b7b748"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "g1_wpc_s4",
+   "status": "success",
+   "steps": 458,
+   "files": {
+    "g1_wpc_s4.public.pkl.gz": "3eb9b6c646d045db",
+    "g1_wpc_s4.private.pkl.gz": "2f69a64ef125c242"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "g1_wpc_s5",
+   "status": "success",
+   "steps": 434,
+   "files": {
+    "g1_wpc_s5.public.pkl.gz": "ca811cec31d5d2bd",
+    "g1_wpc_s5.private.pkl.gz": "019f19d87438ae92"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "g1_wpc_s6",
+   "status": "success",
+   "steps": 403,
+   "files": {
+    "g1_wpc_s6.public.pkl.gz": "a1414d08c08039c9",
+    "g1_wpc_s6.private.pkl.gz": "fd2e03c2e27a66a1"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "g1_wpc_s7",
+   "status": "success",
+   "steps": 451,
+   "files": {
+    "g1_wpc_s7.public.pkl.gz": "25a2c377cf791452",
+    "g1_wpc_s7.private.pkl.gz": "a120eee104f3f751"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "g1_wpc_s8",
+   "status": "fell",
+   "steps": 136,
+   "files": {
+    "g1_wpc_s8.public.pkl.gz": "b51d8993dcc381f8",
+    "g1_wpc_s8.private.pkl.gz": "5f4fa21b076261ae"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "active",
+    "walk_to_b": "pending",
+    "halt": "pending"
+   }
+  },
+  {
+   "episode_id": "g1_wpc_s9",
+   "status": "success",
+   "steps": 434,
+   "files": {
+    "g1_wpc_s9.public.pkl.gz": "029b53e9bf65a6fa",
+    "g1_wpc_s9.private.pkl.gz": "c62f614c0a23a273"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "g1_wpc_s10",
+   "status": "success",
+   "steps": 443,
+   "files": {
+    "g1_wpc_s10.public.pkl.gz": "968e9f768549284c",
+    "g1_wpc_s10.private.pkl.gz": "2121bb2a261770be"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "g1_wpc_s11",
+   "status": "fell",
+   "steps": 81,
+   "files": {
+    "g1_wpc_s11.public.pkl.gz": "52d76973f757a20b",
+    "g1_wpc_s11.private.pkl.gz": "56de22586947ea6d"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "failed",
+    "halt": "pending"
+   }
+  },
+  {
+   "episode_id": "g1_wpc_s12",
+   "status": "success",
+   "steps": 451,
+   "files": {
+    "g1_wpc_s12.public.pkl.gz": "412a939987a30b8a",
+    "g1_wpc_s12.private.pkl.gz": "cd160840d294662b"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "g1_wpc_s13",
+   "status": "success",
+   "steps": 450,
+   "files": {
+    "g1_wpc_s13.public.pkl.gz": "3f7aa6e141015751",
+    "g1_wpc_s13.private.pkl.gz": "e7aba6b5387faccc"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "g1_wpc_s14",
+   "status": "success",
+   "steps": 440,
+   "files": {
+    "g1_wpc_s14.public.pkl.gz": "5fafb8d09e2f8ae8",
+    "g1_wpc_s14.private.pkl.gz": "d0ebde5756e9e113"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "g1_wpc_s15",
+   "status": "fell",
+   "steps": 95,
+   "files": {
+    "g1_wpc_s15.public.pkl.gz": "7586997b64cafa46",
+    "g1_wpc_s15.private.pkl.gz": "8c6b57cedbdabca7"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "active",
+    "halt": "pending"
+   }
+  },
+  {
+   "episode_id": "g1_wpc_s16",
+   "status": "success",
+   "steps": 395,
+   "files": {
+    "g1_wpc_s16.public.pkl.gz": "18ffcb7fb0c12a66",
+    "g1_wpc_s16.private.pkl.gz": "b960b757e5b685ce"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "g1_wpc_s17",
+   "status": "success",
+   "steps": 417,
+   "files": {
+    "g1_wpc_s17.public.pkl.gz": "bbb4f899c72de59d",
+    "g1_wpc_s17.private.pkl.gz": "422ccdbde20b2707"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "g1_wpc_s18",
+   "status": "success",
+   "steps": 442,
+   "files": {
+    "g1_wpc_s18.public.pkl.gz": "9b4f291bdcf6fa00",
+    "g1_wpc_s18.private.pkl.gz": "5bd7ad6c74178f43"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded",
+    "halt": "failed"
+   }
+  },
+  {
+   "episode_id": "g1_wpc_s19",
+   "status": "failure",
+   "steps": 975,
+   "files": {
+    "g1_wpc_s19.public.pkl.gz": "0d8d2ac153b26e43",
+    "g1_wpc_s19.private.pkl.gz": "fb1c07295b1ea8fa"
+   },
+   "tracker_source": "learned_tracker",
+   "event_status": {
+    "walk_to_a": "succeeded",
+    "walk_to_b": "failed",
+    "halt": "pending"
+   }
+  }
+ ]
+}
