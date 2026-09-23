@@ -102,6 +102,7 @@ def _evaluate_suffix(policy, cfg, out_dir: Path, tag: str, ckpt: str):
     to eval_suffix_episodes.jsonl. Denominator = feasible episodes whose teacher prefix reached the boundary."""
     from rrp.evaluation.statistics import wilson
     from rrp.learning.rollout import EpisodeState, drive, finalize, event_boundary, teacher_prefix, feasible
+    from rrp.learning.branching import reward_of
     from rrp.sim.native import Session
     make = scenario_factory(cfg["robot"])
     adapter = policy if hasattr(policy, "prev") else _RunnerShim(policy)
@@ -125,7 +126,8 @@ def _evaluate_suffix(policy, cfg, out_dir: Path, tag: str, ckpt: str):
                          public_success=fin["public_success"], steps=st.steps,
                          teacher_prefix_steps=st.tag.get("teacher_steps", 0), policy_calls=st.calls,
                          chunk_rejections=st.rejections, command_rejections=st.cmd_rejections, object_fell=st.fell,
-                         events={e: v.status for e, v in st.session.runtime.instances.items()}, note=st.note))
+                         events={e: v.status for e, v in st.session.runtime.instances.items()}, note=st.note,
+                         cube_zone_xy_privileged=fin.get("cube_zone_xy"), shaped_return=reward_of(fin)))
     for r in rows:
         r.update(robot=cfg["robot"], method=f"{cfg['method']}:{tag}", checkpoint=ckpt,
                  protocol="suffix_after_scripted_teacher_grasp")
@@ -135,7 +137,12 @@ def _evaluate_suffix(policy, cfg, out_dir: Path, tag: str, ckpt: str):
     att = [r for r in rows if r["outcome"] not in ("infeasible", "prefix_failed")]
     k = sum(bool(r["privileged_success"]) for r in att)
     lo, hi = wilson(k, len(att))
+    dists = [r["cube_zone_xy_privileged"] for r in att if r.get("cube_zone_xy_privileged") is not None]
+    rets = [r["shaped_return"] for r in att]
     return dict(protocol="suffix_after_scripted_teacher_grasp", attempted=len(att), successes=k,
+                secondary_privileged=dict(mean_final_cube_zone_xy=sum(dists) / len(dists) if dists else None,
+                                          within_0p1m=sum(d < 0.1 for d in dists), mean_shaped_return=sum(rets) / len(rets)
+                                          if rets else None),
                 success_rate=k / len(att) if att else None, wilson95=[lo, hi],
                 infeasible=sum(r["outcome"] == "infeasible" for r in rows),
                 prefix_failed=sum(r["outcome"] == "prefix_failed" for r in rows),
@@ -303,9 +310,10 @@ def run(cfg: dict) -> dict:
     t_start = time.time()
     if cfg.get("eval_only_tag"):            # resume an interrupted evaluation from saved adapted state
         tag = cfg["eval_only_tag"]
-        sd = load_checkpoint(out_dir / f"policy_{tag}.pt", map_location=dev)
+        sd = load_checkpoint(out_dir / f"policy_{tag}.pt", map_location=dev) if tag != "b0" else \
+            dict(model=model.state_dict(), extra={})       # b0 = the unadapted start checkpoint
         model.load_state_dict(sd["model"])
-        if method == "expo":
+        if method == "expo" and tag != "b0":
             h = torch.load(out_dir / f"expo_heads_{tag}.pt", map_location=dev)
             agent.q.load_state_dict(h["q"])
             agent.q_t.load_state_dict(h["q_t"])
