@@ -1,0 +1,45 @@
+{
+ "checkpoint": "artifacts/runs/dev4_structured_direct/policy.pt",
+ "robot": "xarm7_pg2",
+ "train_seed_start": 2000000,
+ "eval_seed_start": 3000000,
+ "eval_episodes": 64,
+ "eval_batch": 32,
+ "budgets": [
+  0,
+  10000,
+  50000
+ ],
+ "max_steps": 300,
+ "execute_prefix": 8,
+ "nfe": 8,
+ "seed": 0,
+ "note": "P18/P19 v4: SUFFIX adaptation on held-out target xarm7_pg2 (scripted teacher to public grasp boundary, labelled; learned policy controls the suffix). Start = lead's source-only dev4_structured_direct (feat-v2, teacher fix D-016; zero-shot on xarm7_pg2), selected over my single-robot BC by suffix success on DEV seeds 2500000+ (1/48 vs 0/48). Reward = privileged sim success + 0.5*(1-min(d/0.3,1)) privileged shaping, identical for all methods. GRPO lr from the TRAINING-seed ratio probe on this checkpoint (research/reports/grpo_ratio_probe_dev4.txt).",
+ "name": "adapt_grpo_exact_suffix_xarm7pg2_v4",
+ "method": "grpo",
+ "groups_per_iter": 4,
+ "grpo": {
+  "group_size": 8,
+  "clip": 0.2,
+  "lr": 1e-07,
+  "weight_decay": 0.01,
+  "grad_clip": 1.0,
+  "epochs": 2,
+  "minibatch": 32,
+  "kl_coef": 0.0,
+  "trainable": "action_expert",
+  "sde": {
+   "nfe": 8,
+   "noise_level": 0.5,
+   "first_step": "clamp",
+   "last_step": "deterministic"
+  },
+  "logprob_reduction": "sum"
+ },
+ "out_dir": "artifacts/runs/adapt_grpo_exact_suffix_xarm7pg2_v4",
+ "prefix_source": "teacher",
+ "shaping_dist": 0.5,
+ "eval_only_tag": "b50000",
+ "eval_full": false,
+ "eval_tag_suffix": "_secondary"
+}

@@ -319,7 +319,7 @@ def run(cfg: dict) -> dict:
             agent.q_t.load_state_dict(h["q_t"])
             agent.edit.load_state_dict(h["edit"])
         prev = json.loads((out_dir / "result.json").read_text()) if (out_dir / "result.json").exists() else results
-        ev = evaluate_now(tag)
+        ev = evaluate_now(tag + cfg.get("eval_tag_suffix", ""))
         saved = sd["extra"].get("counters", {})
         ev.update(budget=int(tag[1:]), actual_new_transitions=saved.get("new_transitions"),
                   actual_learned_transitions=saved.get("learned_transitions"),
