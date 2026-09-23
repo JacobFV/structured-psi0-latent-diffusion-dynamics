@@ -1,0 +1,39 @@
+{
+ "checkpoint": "artifacts/runs/dev4_structured_direct/policy.pt",
+ "robot": "xarm7_pg2",
+ "train_seed_start": 2000000,
+ "eval_seed_start": 2500000,
+ "eval_episodes": 48,
+ "eval_batch": 32,
+ "budgets": [
+  0
+ ],
+ "max_steps": 300,
+ "execute_prefix": 8,
+ "nfe": 8,
+ "seed": 0,
+ "note": "start-checkpoint selection on DEV seeds 2500000+ (disjoint from train 2000000+ and eval 3000000+)",
+ "name": "startsel_dev4",
+ "method": "grpo",
+ "groups_per_iter": 4,
+ "grpo": {
+  "group_size": 8,
+  "clip": 0.2,
+  "lr": 3e-05,
+  "weight_decay": 0.01,
+  "grad_clip": 1.0,
+  "epochs": 4,
+  "minibatch": 64,
+  "kl_coef": 0.0,
+  "trainable": "action_expert",
+  "sde": {
+   "nfe": 8,
+   "noise_level": 0.5,
+   "first_step": "clamp",
+   "last_step": "stochastic"
+  }
+ },
+ "out_dir": "artifacts/runs/adapt_startsel_dev4",
+ "prefix_source": "teacher",
+ "eval_full": true
+}
