@@ -68,3 +68,6 @@ LearnedPolicy cached featurizers and previous actions by id(session). Garbage-co
 
 ## D-021 2026-09-21 development recipe intervention #2: remove previous-action input
 After fixing D-020, dev4 policies still reached 1/71 successes in closed loop on dev scenes (both methods identical; artifacts/runs/dev4_*/eval_dev.jsonl on peer) despite open-loop chunk MSE well below hold/zero baselines (panda 0.058 vs 0.148; parm6 0.048 vs 0.127). The previous-action node feature has different semantics in training (teacher's previous 1-step command) and inference (last executed row of the policy's own chunk, an 8-step delta) and permits copycat shortcuts. Removed for all methods (zeroed at load for stored datasets). Next fallback if still failing: DART data (recipe #3).
+
+## D-022 2026-09-21 development recipe intervention #3 (last before analysis decision): DART data + 6 epochs
+dev5 (D-021) dev-scene closed-loop successes (prefix 8): structured panda 2/20, parm6_tf3 4/13, parm5s_tf3 4/18, xarm7 0/20; unstructured 3/20, 0/13, 4/18, 0/20. Prefix 4 was worse for both. Recipe #3 for both methods: pick_place_primary_v3dart (clean + execution-noise demonstrations with clean teacher labels, noisy failures included as corrective labels) and 6 epochs. After this run an explicit analysis decision is recorded regardless of outcome.
