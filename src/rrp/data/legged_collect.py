@@ -105,9 +105,15 @@ def main(argv=None):
     a = ap.parse_args(argv)
     out = Path(a.out) / a.body
     rows = []
+    from rrp.data.collect import read_episode
     for sd in _seeds(a.seeds):
-        rec = collect_episode(a.body, sd, a.tracker)
-        m = write_episode(rec, out)
+        pub = out / f"{a.body}_wpc_s{sd}.public.pkl.gz"
+        if pub.exists() and (out / f"{a.body}_wpc_s{sd}.private.pkl.gz").exists() and \
+                read_episode(pub)["meta"]["tracker_source"] == ("scripted_controller" if a.tracker == "cpg" else "learned_tracker"):
+            m = dict(read_episode(pub)["meta"], files={})       # resumable: keep finished episodes
+        else:
+            rec = collect_episode(a.body, sd, a.tracker)
+            m = write_episode(rec, out)
         rows.append(dict(episode_id=m["episode_id"], status=m["status"], steps=m["steps"], files=m["files"],
                          tracker_source=m["tracker_source"], event_status=m["event_status"]))
         print(json.dumps(rows[-1]), flush=True)

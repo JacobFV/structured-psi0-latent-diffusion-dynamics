@@ -1,0 +1,17 @@
+{
+ "body": "anymal_c",
+ "tracker_kind": "learned",
+ "tracker_sha": "bfb57bc86b09ae78",
+ "tracker_version": "learned_tracker:anymal_c:iter1274",
+ "eligible": true,
+ "gate": {
+  "no_fall_rate": 1.0,
+  "forward_ratio": 0.9835171681374362,
+  "turn_ratio": 0.7212610330951899,
+  "stand_ok": true,
+  "passed": true
+ },
+ "frozen_at": "2026-09-22T14:38:34",
+ "validation_file": "validation_learned.json",
+ "note": "frozen on independent tracker validation, before any learned high-level policy result"
+}
