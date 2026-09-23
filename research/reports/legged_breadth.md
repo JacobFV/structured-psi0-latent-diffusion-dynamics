@@ -54,7 +54,8 @@ balance control, which is expected).
 | go2 | quadruped, menagerie unitree_go2 | teacher_validated | learned PPO iter 1199 | 1.05 / 0.59 / 1.0 | 20/20 |
 | anymal_c | quadruped, menagerie anybotics_anymal_c | teacher_validated | learned PPO iter 1274 | 0.98 / 0.72 / 1.0 | 20/20 |
 | g1 | humanoid, menagerie unitree_g1 (29-DoF, no hands; 12 leg joints policy-controlled, waist+arms held) | physics_validated (+ limited qualification) | learned PPO iter 3599 FAILS gate on turn-in-place | 0.91 / 0.075 / 1.0 (arc yaw ratio 0.49) | default teacher 16/20 (3 falls); arc_only teacher variant 19/20, 0 falls |
-| t1, h1 | humanoid, menagerie booster_t1 / unitree_h1 | physics_validated; tracker training in progress at report time (see addendum) | - | - | - |
+| t1 | humanoid, menagerie booster_t1 (12 leg joints policy, waist/arms/head held) | physics_validated (+ limited qualification) | learned PPO iter 2999 FAILS gate on turn-in-place | 0.74 / 0.30 / 1.0 (arc yaw ratio 0.71) | default 20/20; arc_only 20/20 |
+| h1 | humanoid, menagerie unitree_h1 (10 leg joints, 1-DoF ankles) | physics_validated (+ limited qualification) | learned PPO iter 2999 FAILS gate on turn-in-place | 0.69 / 0.33 / 1.0 (arc yaw ratio 0.13) | default 11/20; arc_only 12/20 (0 falls; timeouts) |
 | op3, talos | humanoid, menagerie robotis_op3 / pal_talos (talos_position.xml) | physics_validated | not attempted (CPU budget) | - | - |
 | a1 | quadruped, menagerie unitree_a1 (same unitree_quadruped family key as go2) | physics_validated | not attempted | - | - |
 | cassie | biped, menagerie agility_cassie (closed-chain, 0.5 ms timestep) | physics_validated | not attempted | - | - |
@@ -64,6 +65,8 @@ Selected validation details (5 seeds each, `validation_learned.json`):
 - anymal_c learned: forward 0.47 m/s at 0.48, CoT 1.07; turn 0.35 at 0.48.
 - hexapod learned vs CPG: similar tracking, but the learned gait is far less efficient (CoT 7.4 vs 1.6, slip 0.16 vs 0.07 m/s).
 - g1: stands and walks forward 0.44 m/s at 0.48 cmd without falls (also under 0.15 m/s kicks); arcs at about half the commanded yaw rate; does not turn in place.
+- t1: forward 0.36 m/s at 0.48 (CoT 3.4, high slip 0.40 m/s), arc yaw 0.71 of command, in-place turn 0.30 of command; no falls.
+- h1: forward 0.33 m/s at 0.48, in-place turn 0.33, but arc yaw only 0.13 of command (poor steering while walking) -> 11-12/20 teacher (misses waypoints by timeout, never falls).
 
 ## Failures and how they were handled (preserved, not hidden)
 
@@ -83,6 +86,10 @@ Selected validation details (5 seeds each, `validation_learned.json`):
    A limited qualification is recorded (`artifacts/trackers/g1/limited_qualification.json`):
    whole-body floating-base forward/arc walker, eligible only with the declared `arc_only` teacher variant
    (min forward speed while turning), 19/20 teacher success. Any use must carry this limitation label.
+   T1 and H1 were then trained from scratch with the v3 humanoid reward (3000 iters each). Both walk
+   without falls but fail the same criterion (in-place turn ratio 0.30 / 0.33 < 0.4). Limited
+   qualifications: `artifacts/trackers/{t1,h1}/limited_qualification.json`. T1 is the strongest humanoid
+   (teacher 20/20 with either teacher variant); H1 steers poorly while walking (teacher 55-60 %).
 4. Operational: peer thermal/memory-pressure sheds killed several training segments (all resumed from
    checkpoints via `scripts/legged_supervise.sh`); a `peer_sync.sh push --delete` wiped an early in-repo
    run directory (runs now live outside the synced repo at `/dev/shm/rrp-brandonin/legged_runs`). I did
@@ -105,8 +112,11 @@ body - including G1 -> another body - raises `ContractBodyError`. Tests: `tests/
 - Two quadruped families: go2 (unitree) + anymal_c (anybotics) both controller- and teacher-validated.
   pquad4 is synthetic and does not count as a commercial family.
 - Three humanoid families: imported and physics-validated: h1, g1, t1, op3, talos (5 families).
-  Controller-validated: none under the frozen gate; g1 has a limited (forward/arc) qualification.
-  **The humanoid part of the breadth gate is not met yet.**
+  Controller-validated under the frozen gate: none (all three trained humanoids fail only the in-place
+  turn criterion). Limited qualifications (walk + arc turning, no falls in validation): t1 (teacher 20/20),
+  g1 (arc_only teacher 19/20), h1 (teacher 55-60 %, below the 80 % teacher gate).
+  **The humanoid part of the breadth gate is met only under a declared limitation** (t1, g1 with
+  teacher >= 80 %; h1 fails the teacher gate). Whether a limited qualification counts is a lead decision.
 - Learned high-level policy evaluation on waypoint_contact: not done in this track (owned by the
   learning track); datasets are ready (below).
 
@@ -114,8 +124,8 @@ body - including G1 -> another body - raises `ContractBodyError`. Tests: `tests/
 
 `artifacts/datasets/legged_waypoint_contact/<body>/` (gitignored; manifest per body): 20 episodes each for
 hexapod6, pquad4, sprawl4, sprawl8, hexapod6_long (CPG), go2, anymal_c (learned trackers), g1 (default
-teacher, learned tracker, includes 3 falls + 1 failure). `.../legged_waypoint_contact_arc_only/g1/`:
-20 episodes with the arc_only teacher. `.../legged_waypoint_contact_learnedtracker/hexapod6/`: the 20
+teacher, learned tracker, includes 3 falls + 1 failure), t1 (20/20), h1 (11/20; failures kept). `.../legged_waypoint_contact_arc_only/{g1,t1,h1}/`:
+20 episodes each with the arc_only teacher. `.../legged_waypoint_contact_learnedtracker/hexapod6/`: the 20
 failed-halt episodes with the learned hexapod tracker. Public records: encoders, IMU, touch, localization,
 detector slots, public predicates, task view; action = base_velocity. Private: true base pose/velocity,
 contacts, truth predicates, teacher phase.
@@ -124,15 +134,17 @@ contacts, truth predicates, teacher phase.
 
 GPU: 0 device-hours (all training on peer CPU cores; PPO updates on CPU).
 Training wall time (sum of iteration times from train logs): hexapod6 0.33 h (3-7 cores), go2 0.92 h
-(5 cores), anymal_c 0.58 h (5 cores), g1 v1+v2+v3 2.07 h (2-5 cores); samples 4.5 M / 12.4 M / 8.0 M /
-~39 M respectively. Estimated upper bound ~= 18 CPU core-hours for training. The resource ledger
+(5 cores), anymal_c 0.58 h (5 cores), g1 v1+v2+v3 2.07 h (2-5 cores), t1 1.35 h (5), h1 1.32 h (5);
+samples 4.5 M / 12.4 M / 8.0 M / ~39 M / 18.4 M / 18.4 M. Estimated upper bound ~= 31 CPU core-hours for
+training (wall x lease cores). The resource ledger
 (`scripts/legged_costs.py` over host + peer ledgers) records 1.22 core-h, because units stopped by the
 watchdog/`systemctl stop` do not write ledger rows; treat the train-log estimate as the real figure.
 Validation/teacher/catalog jobs on the host: < 0.1 core-h.
 
 ## Resume / next steps
 
-- T1/H1 trackers: see addendum; supervisors `scripts/legged_supervise.sh {t1,h1} ...` resume from
-  `/dev/shm/rrp-brandonin/legged_runs/<body>/checkpoint.pt`.
-- G1 in-place turning: likely needs a turning curriculum from the start or a yaw-rate-conditioned gait clock.
+- Humanoid trackers can be resumed with `scripts/legged_supervise.sh <body> CPU MEM WORKERS ITERS ...
+  --resume` from `/dev/shm/rrp-brandonin/legged_runs/<body>/checkpoint.pt` (RAM-backed; actors + logs are
+  already copied to `artifacts/trackers/<body>/`).
+- Humanoid in-place turning: likely needs a turning curriculum from the start or a yaw-rate-conditioned gait clock.
 - op3 / talos / cassie / a1 trackers not attempted.

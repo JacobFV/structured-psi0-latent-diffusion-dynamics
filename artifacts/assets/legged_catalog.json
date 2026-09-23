@@ -1,5 +1,5 @@
 {
- "generated": "2026-09-23T03:26:42",
+ "generated": "2026-09-23T13:32:08",
  "menagerie_commit": "c96a32d28fb5da84da38c1da4d749e7a13212855",
  "ladder": [
   "source_verified",
@@ -117,7 +117,7 @@
     "procedural_legged/v1/sprawl6",
     "procedural_legged/v1/sprawl6/hexapod6"
    ],
-   "catalog_wall_s": 0.08298730850219727,
+   "catalog_wall_s": 0.08086466789245605,
    "status": "teacher_validated"
   },
   {
@@ -203,7 +203,7 @@
     "procedural_legged/v1/mammal4",
     "procedural_legged/v1/mammal4/pquad4"
    ],
-   "catalog_wall_s": 0.01854395866394043,
+   "catalog_wall_s": 0.017983198165893555,
    "status": "teacher_validated"
   },
   {
@@ -289,7 +289,7 @@
     "procedural_legged/v1/sprawl4",
     "procedural_legged/v1/sprawl4/sprawl4_f10t14"
    ],
-   "catalog_wall_s": 0.018390893936157227,
+   "catalog_wall_s": 0.017420053482055664,
    "status": "teacher_validated"
   },
   {
@@ -375,7 +375,7 @@
     "procedural_legged/v1/sprawl8",
     "procedural_legged/v1/sprawl8/sprawl8_f10t14"
    ],
-   "catalog_wall_s": 0.03164196014404297,
+   "catalog_wall_s": 0.03041386604309082,
    "status": "teacher_validated"
   },
   {
@@ -461,7 +461,7 @@
     "procedural_legged/v1/sprawl6",
     "procedural_legged/v1/sprawl6/hexapod6_long"
    ],
-   "catalog_wall_s": 0.023969650268554688,
+   "catalog_wall_s": 0.02313542366027832,
    "status": "teacher_validated"
   },
   {
@@ -549,7 +549,7 @@
     "menagerie/unitree_quadruped",
     "menagerie/unitree_go2@c96a32d28fb5"
    ],
-   "catalog_wall_s": 0.5947830677032471,
+   "catalog_wall_s": 0.6047492027282715,
    "status": "teacher_validated"
   },
   {
@@ -637,7 +637,7 @@
     "menagerie/anybotics_anymal",
     "menagerie/anybotics_anymal_c@c96a32d28fb5"
    ],
-   "catalog_wall_s": 1.5863113403320312,
+   "catalog_wall_s": 1.6211211681365967,
    "status": "teacher_validated"
   },
   {
@@ -699,7 +699,7 @@
     "menagerie/unitree_quadruped",
     "menagerie/unitree_a1@c96a32d28fb5"
    ],
-   "catalog_wall_s": 0.3346576690673828,
+   "catalog_wall_s": 0.349545955657959,
    "status": "physics_validated"
   },
   {
@@ -742,11 +742,66 @@
     },
     "controller_validated": {
      "ok": false,
-     "reason": "no tracker trained/validated for this body (not attempted)"
+     "reason": "learned: gate failed {'no_fall_rate': 1.0, 'forward_ratio': 0.6912607388785839, 'turn_ratio': 0.3262204542230994, 'stand_ok': True, 'passed': False}",
+     "trackers": {
+      "learned": {
+       "eligible": false,
+       "gate": {
+        "no_fall_rate": 1.0,
+        "forward_ratio": 0.6912607388785839,
+        "turn_ratio": 0.3262204542230994,
+        "stand_ok": true,
+        "passed": false
+       },
+       "tracker_sha": "5711b8941ae09c1b",
+       "frozen_at": "2026-09-23T13:08:34"
+      }
+     },
+     "selected": null,
+     "limited_qualification": {
+      "body": "h1",
+      "tracker_version": "learned_tracker:h1:iter2999",
+      "tracker_sha": "5711b8941ae09c1b",
+      "status": "limited: whole-body floating-base walker; in-place turning below gate",
+      "gate_passed": false,
+      "failed_criterion": "turn-in-place ratio 0.326 (< 0.4)",
+      "evidence": {
+       "no_fall_rate": 1.0,
+       "forward_ratio": 0.6912607388785839,
+       "arc_yaw_ratio": 0.13138923447235717,
+       "arc_forward_ratio": 0.5222167029491096
+      },
+      "teacher": {
+       "default": 0.55,
+       "arc_only": 0.6
+      },
+      "allowed_use": "waypoint_contact with the declared teacher variants; turn-in-place commands degrade (ratio 0.33)",
+      "decided": "2026-09-21, from independent tracker validation, before any learned high-level policy result",
+      "history": [
+       "trained from scratch with the humanoid v3 reward (sigma 0.1, track_lin 2.5, track_ang 2.0, alive 0.3, turn-in-place commands), 3000 iters"
+      ]
+     }
     },
     "teacher_validated": {
      "ok": false,
-     "reason": "teacher not run (requires a validated controller)"
+     "reason": "best teacher success 0.60 < 0.8",
+     "selected_tracker_source": null,
+     "runs": {
+      "h1": {
+       "success_rate": 0.55,
+       "n": 20,
+       "fell": 0,
+       "tracker_source": "learned_tracker",
+       "file": "artifacts/assets/legged_teacher/h1.json"
+      },
+      "h1_arc_only": {
+       "success_rate": 0.6,
+       "n": 20,
+       "fell": 0,
+       "tracker_source": "learned_tracker",
+       "file": "artifacts/assets/legged_teacher/h1_arc_only.json"
+      }
+     }
     }
    },
    "source": "menagerie",
@@ -761,7 +816,7 @@
     "menagerie/unitree_humanoid_h1",
     "menagerie/unitree_h1@c96a32d28fb5"
    ],
-   "catalog_wall_s": 0.3809361457824707,
+   "catalog_wall_s": 0.37246036529541016,
    "status": "physics_validated"
   },
   {
@@ -877,7 +932,7 @@
     "menagerie/unitree_humanoid_g1",
     "menagerie/unitree_g1@c96a32d28fb5"
    ],
-   "catalog_wall_s": 1.5510499477386475,
+   "catalog_wall_s": 1.6145529747009277,
    "status": "physics_validated"
   },
   {
@@ -920,11 +975,66 @@
     },
     "controller_validated": {
      "ok": false,
-     "reason": "no tracker trained/validated for this body (not attempted)"
+     "reason": "learned: gate failed {'no_fall_rate': 1.0, 'forward_ratio': 0.7441641440934377, 'turn_ratio': 0.2969094300444963, 'stand_ok': True, 'passed': False}",
+     "trackers": {
+      "learned": {
+       "eligible": false,
+       "gate": {
+        "no_fall_rate": 1.0,
+        "forward_ratio": 0.7441641440934377,
+        "turn_ratio": 0.2969094300444963,
+        "stand_ok": true,
+        "passed": false
+       },
+       "tracker_sha": "185df8519a8ca280",
+       "frozen_at": "2026-09-23T13:08:34"
+      }
+     },
+     "selected": null,
+     "limited_qualification": {
+      "body": "t1",
+      "tracker_version": "learned_tracker:t1:iter2999",
+      "tracker_sha": "185df8519a8ca280",
+      "status": "limited: whole-body floating-base walker; in-place turning below gate",
+      "gate_passed": false,
+      "failed_criterion": "turn-in-place ratio 0.297 (< 0.4)",
+      "evidence": {
+       "no_fall_rate": 1.0,
+       "forward_ratio": 0.7441641440934377,
+       "arc_yaw_ratio": 0.7112736949577503,
+       "arc_forward_ratio": 0.7473254678835963
+      },
+      "teacher": {
+       "default": 1.0,
+       "arc_only": 1.0
+      },
+      "allowed_use": "waypoint_contact with the declared teacher variants; turn-in-place commands degrade (ratio 0.30)",
+      "decided": "2026-09-21, from independent tracker validation, before any learned high-level policy result",
+      "history": [
+       "trained from scratch with the humanoid v3 reward (sigma 0.1, track_lin 2.5, track_ang 2.0, alive 0.3, turn-in-place commands), 3000 iters"
+      ]
+     }
     },
     "teacher_validated": {
-     "ok": false,
-     "reason": "teacher not run (requires a validated controller)"
+     "ok": true,
+     "reason": null,
+     "selected_tracker_source": "learned_tracker",
+     "runs": {
+      "t1": {
+       "success_rate": 1.0,
+       "n": 20,
+       "fell": 0,
+       "tracker_source": "learned_tracker",
+       "file": "artifacts/assets/legged_teacher/t1.json"
+      },
+      "t1_arc_only": {
+       "success_rate": 1.0,
+       "n": 20,
+       "fell": 0,
+       "tracker_source": "learned_tracker",
+       "file": "artifacts/assets/legged_teacher/t1_arc_only.json"
+      }
+     }
     }
    },
    "source": "menagerie",
@@ -939,7 +1049,7 @@
     "menagerie/booster_t1",
     "menagerie/booster_t1@c96a32d28fb5"
    ],
-   "catalog_wall_s": 0.5178327560424805,
+   "catalog_wall_s": 0.534984827041626,
    "status": "physics_validated"
   },
   {
@@ -1001,7 +1111,7 @@
     "menagerie/robotis_op",
     "menagerie/robotis_op3@c96a32d28fb5"
    ],
-   "catalog_wall_s": 3.5221076011657715,
+   "catalog_wall_s": 3.7138490676879883,
    "status": "physics_validated"
   },
   {
@@ -1063,7 +1173,7 @@
     "menagerie/pal_talos",
     "menagerie/pal_talos@c96a32d28fb5"
    ],
-   "catalog_wall_s": 0.9834723472595215,
+   "catalog_wall_s": 1.043004035949707,
    "status": "physics_validated"
   },
   {
@@ -1125,7 +1235,7 @@
     "menagerie/agility_cassie",
     "menagerie/agility_cassie@c96a32d28fb5"
    ],
-   "catalog_wall_s": 0.7499589920043945,
+   "catalog_wall_s": 0.7482073307037354,
    "status": "physics_validated"
   }
  ]

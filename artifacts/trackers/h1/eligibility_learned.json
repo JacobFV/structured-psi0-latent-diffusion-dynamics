@@ -1,0 +1,17 @@
+{
+ "body": "h1",
+ "tracker_kind": "learned",
+ "tracker_sha": "5711b8941ae09c1b",
+ "tracker_version": "learned_tracker:h1:iter2999",
+ "eligible": false,
+ "gate": {
+  "no_fall_rate": 1.0,
+  "forward_ratio": 0.6912607388785839,
+  "turn_ratio": 0.3262204542230994,
+  "stand_ok": true,
+  "passed": false
+ },
+ "frozen_at": "2026-09-23T13:08:34",
+ "validation_file": "validation_learned.json",
+ "note": "frozen on independent tracker validation, before any learned high-level policy result"
+}

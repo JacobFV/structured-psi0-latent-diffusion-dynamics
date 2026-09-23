@@ -1,0 +1,23 @@
+{
+ "body": "t1",
+ "tracker_version": "learned_tracker:t1:iter2999",
+ "tracker_sha": "185df8519a8ca280",
+ "status": "limited: whole-body floating-base walker; in-place turning below gate",
+ "gate_passed": false,
+ "failed_criterion": "turn-in-place ratio 0.297 (< 0.4)",
+ "evidence": {
+  "no_fall_rate": 1.0,
+  "forward_ratio": 0.7441641440934377,
+  "arc_yaw_ratio": 0.7112736949577503,
+  "arc_forward_ratio": 0.7473254678835963
+ },
+ "teacher": {
+  "default": 1.0,
+  "arc_only": 1.0
+ },
+ "allowed_use": "waypoint_contact with the declared teacher variants; turn-in-place commands degrade (ratio 0.30)",
+ "decided": "2026-09-21, from independent tracker validation, before any learned high-level policy result",
+ "history": [
+  "trained from scratch with the humanoid v3 reward (sigma 0.1, track_lin 2.5, track_ang 2.0, alive 0.3, turn-in-place commands), 3000 iters"
+ ]
+}
