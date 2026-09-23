@@ -66,6 +66,15 @@ def episode_samples(pub: dict, prv: dict, H: int, stride: int = 1) -> list[Sampl
     manips = prv["manipulators"]
     for t in range(0, T, stride):
         pi = pub["inputs"][t]
+        if pi.act_node_feats[:, 2].any():      # datasets collected before D-021 carry prev-action: zero it
+            import copy as _copy
+            pi = _copy.copy(pi)
+            n = pi.act_node_feats.shape[0]
+            pi.act_node_feats = pi.act_node_feats.copy()
+            pi.act_node_feats[:, 2] = 0.0
+            pi.tokens = dict(pi.tokens)
+            pi.tokens["morph"] = pi.tokens["morph"].copy()
+            pi.tokens["morph"][:n, 2] = 0.0
         q0 = pub["q0"][t]
         seq = pub["actions"][t:t + H]
         n_valid = len(seq)

@@ -18,7 +18,7 @@
  "horizon": 16,
  "seed": 1701,
  "name": "dev_unstructured_direct",
- "out_dir": "artifacts/runs/dev4_unstructured_direct",
+ "out_dir": "artifacts/runs/dev5_unstructured_direct",
  "epochs": 4,
  "batch_size": 256,
  "lr": 0.0003,

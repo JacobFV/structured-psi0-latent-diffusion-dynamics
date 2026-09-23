@@ -277,7 +277,9 @@ class Featurizer:
             jid = self.jids[i]
             anchor = self._to_base(d.xanchor[jid])
             axis = d.xaxis[jid].astype(np.float32)
-            pa = prev_action[i] if prev_action is not None else 0.0
+            # previous-action input disabled (D-021): its train (teacher 1-step) vs test (own chunk,
+            # 8-step delta) semantics differ and it invites copycat behaviour
+            pa = 0.0
             jp = Rb @ jac[:3, self.dadr[i]]
             jr = Rb @ jac[3:, self.dadr[i]]
             lever = self._tcp_base - anchor

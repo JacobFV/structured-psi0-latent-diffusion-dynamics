@@ -65,3 +65,6 @@ The lead flagged wrist flips in the pick_place teacher (their D-016). The dual t
 
 ## D-020 2026-09-21 BUG: stale featurizer cache in LearnedPolicy (invalidates earlier closed-loop evals)
 LearnedPolicy cached featurizers and previous actions by id(session). Garbage-collected sessions' ids were reused by new sessions (including other robots), so some episodes were featurized with a stale featurizer (wrong kinematics/prev action); one run crashed with KeyError('r0_joint6'). All closed-loop evaluations before this fix (dev_structured_partial, dev4_*) are INVALID and kept only as bug evidence. Fix: featurizer/prev-action stored on the session object.
+
+## D-021 2026-09-21 development recipe intervention #2: remove previous-action input
+After fixing D-020, dev4 policies still reached 1/71 successes in closed loop on dev scenes (both methods identical; artifacts/runs/dev4_*/eval_dev.jsonl on peer) despite open-loop chunk MSE well below hold/zero baselines (panda 0.058 vs 0.148; parm6 0.048 vs 0.127). The previous-action node feature has different semantics in training (teacher's previous 1-step command) and inference (last executed row of the policy's own chunk, an 8-step delta) and permits copycat shortcuts. Removed for all methods (zeroed at load for stored datasets). Next fallback if still failing: DART data (recipe #3).
