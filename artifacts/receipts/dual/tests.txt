@@ -1,5 +1,5 @@
-# 2026-09-22T21:50:38Z host lease: .venv/bin/python -m pytest tests/integration/test_native_sim.py tests/unit/test_task_runtime.py tests/unit/test_interventions.py tests/unit/test_dual_public_estimators.py -q
+# 2026-09-23T06:17:04Z host lease (teacher v2): .venv/bin/python -m pytest tests/integration/test_native_sim.py tests/unit/test_task_runtime.py tests/unit/test_interventions.py tests/unit/test_dual_public_estimators.py -q
 ................................                                         [100%]
-[rrp.child] lease=1790113822_0ec29c rc=0 stopped_by=None heartbeats=0
-{"lease_id": "1790113822_0ec29c", "unit": "rrp-job-1790113822_0ec29c.service", "log": "/home/brandonin/work/relational-robot-policy/ops/logs/1790113822_0ec29c_dualtests.log", "returncode": 0, "unit_result": "success", "exec_status": "0"}
+[rrp.child] lease=1790144207_689ea9 rc=0 stopped_by=None heartbeats=0
+{"lease_id": "1790144207_689ea9", "unit": "rrp-job-1790144207_689ea9.service", "log": "/home/brandonin/work/relational-robot-policy/ops/logs/1790144207_689ea9_dualtests.log", "returncode": 0, "unit_result": "success", "exec_status": "0"}
 
