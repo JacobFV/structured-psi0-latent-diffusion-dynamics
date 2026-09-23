@@ -1,0 +1,3 @@
+episodes 14 ['aloha', 'panda_pg2__ur5e_pg2', 'parm5_pg2__parm5_pg2', 'parm5_tf3__parm7_pg2', 'parm5l_pg2__parm5s_tf3', 'parm6_pg2__panda_tf3', 'parm6_pg2__parm7_tf3', 'parm6_tf3__parm6_pg2', 'parm7_pg2__parm5_tf3', 'sawyer_tf3__ur5e_pg2', 'ur5e_pg2__panda_tf3', 'ur5e_pg2__sawyer_pg2', 'xarm7_pg2__xarm7_pg2', 'xarm7_tf3__xarm7_pg2']
+samples 210 node_feats (8, 16, 44) actions (8, 16, 16, 1) morph (8, 22, 44) scene (8, 3, 27)
+

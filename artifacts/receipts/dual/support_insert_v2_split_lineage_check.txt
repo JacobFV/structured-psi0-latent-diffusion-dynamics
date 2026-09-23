@@ -1,0 +1,8 @@
+dataset support_insert_primary_v2 manifest_hash ac8b04c0b43faa28
+source robots: ['panda+pg2', 'parm5+pg2', 'parm5+tf3', 'parm6+pg2', 'parm6+tf3', 'parm7+pg2', 'parm7+tf3', 'sawyer+pg2', 'sawyer+tf3', 'ur5e+pg2']
+ufactory lineage in source -> False
+panda+tf3 robot in source (either role) -> False
+fr3 in source -> False
+trossen/aloha lineage in source -> False
+source held-out eval lineages (parm5s/parm5l) in source -> False
+all checks must be False

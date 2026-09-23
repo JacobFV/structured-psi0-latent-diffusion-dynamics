@@ -169,39 +169,48 @@ longer causes failures.
 
 ## datasets
 
-`artifacts/datasets/support_insert_primary_v1` (1.1 GB; generated on the peer, pulled to the
-host): config `configs/data/support_insert_primary_v1.json`, split
-`research/splits/primary_v1_support_insert.json` (frozen before generation; eligibility in
-D-014/D-017). Command: `python -m rrp.data.collect_dual --config configs/data/support_insert_primary_v1.json`
-(peer lease, 4 CPU). The format matches `rrp.data.collect`: `*.public.pkl.gz` holds MultiFeaturizer
-inputs (feat-multi-v1+feat-v2: node/morph dim 44, scene dim 27), flat namespaced actions
-(`r<i>:<group>`), q0, public runtime statuses and the flat action space. `*.private.pkl.gz` holds
-per-manipulator privileged labels, teacher phases, true insertion geometry and the privileged
-layout. Episode `status` comes from the privileged evaluator; `public_runtime_success` is
-recorded separately. Failed and infeasible attempts are kept. The data loads unchanged with
-`rrp.learning.data.load_episodes` / `ChunkDataset` (checked: 12 episodes, batch node_feats
-(8,16,44), actions (8,16,16,1)).
-Split/lineage check: `artifacts/receipts/dual/support_insert_split_lineage_check.txt` found no
-ufactory, panda+tf3, fr3, trossen or held-out-source lineage in the source_train episodes.
+**Current: `artifacts/datasets/support_insert_primary_v2`** (teacher v2, 1.5 GB). Generated on the
+host under a broker lease, because the peer was saturated by other tracks for hours
+(admission refused on CPU and memory). A copy was pushed to the peer at
+`/dev/shm/rrp-brandonin/repo/artifacts/datasets/support_insert_primary_v2`. Config:
+`configs/data/support_insert_primary_v2.json`. Split: `research/splits/primary_v1_support_insert.json`
+(frozen before any data; eligibility re-resolved for teacher v2 in D-019). Command:
+`python -m rrp.data.collect_dual --config configs/data/support_insert_primary_v2.json`.
+The format matches `rrp.data.collect`: `*.public.pkl.gz` holds MultiFeaturizer inputs
+(feat-multi-v1+feat-v2: node/morph dim 44, scene dim 27), flat namespaced actions (`r<i>:<group>`),
+q0, public runtime statuses and the flat action space. `*.private.pkl.gz` holds per-manipulator
+privileged labels, teacher phases, true insertion geometry and the privileged layout. Episode
+`status` comes from the privileged evaluator; `public_runtime_success` is stored separately.
+Failed and infeasible attempts are kept. The data loads unchanged with
+`rrp.learning.data.load_episodes` / `ChunkDataset`
+(`artifacts/receipts/dual/support_insert_v2_loader_check.txt`). Split/lineage check:
+`artifacts/receipts/dual/support_insert_v2_split_lineage_check.txt` found no ufactory, panda+tf3,
+fr3, trossen or held-out-source lineage in the source_train episodes.
 
 | pair | split | episodes | success | failure | infeasible | other | mean steps (success) |
 |---|---|---|---|---|---|---|---|
-| parm5l_pg2__parm5s_tf3 | source_heldout_eval | 60 | 24 | 33 | 3 | 0 | 870 |
+| parm5l_pg2__parm5s_tf3 | source_heldout_eval | 60 | 33 | 24 | 3 | 0 | 783 |
 | panda_pg2__ur5e_pg2 | source_train | 150 | 150 | 0 | 0 | 0 | 265 |
 | parm5_pg2__parm5_pg2 | source_train | 150 | 135 | 6 | 9 | 0 | 192 |
-| parm5_tf3__parm7_pg2 | source_train | 150 | 104 | 6 | 40 | 0 | 193 |
+| parm5_tf3__parm7_pg2 | source_train | 150 | 104 | 6 | 40 | 0 | 201 |
+| parm6_pg2__parm7_tf3 | source_train | 150 | 74 | 32 | 44 | 0 | 201 |
 | parm6_tf3__parm6_pg2 | source_train | 150 | 91 | 7 | 52 | 0 | 195 |
-| parm7_pg2__parm5_tf3 | source_train | 150 | 79 | 56 | 15 | 0 | 253 |
-| ur5e_pg2__sawyer_pg2 | source_train | 150 | 141 | 9 | 0 | 0 | 230 |
-| xarm7_pg2__xarm7_pg2 | target:held_out_arm_family | 60 | 60 | 0 | 0 | 0 | 209 |
-| xarm7_tf3__xarm7_pg2 | target:held_out_arm_family | 60 | 60 | 0 | 0 | 0 | 209 |
-| parm6_pg2__panda_tf3 | target:held_out_attachment_combination_on_insertion_arm | 60 | 13 | 47 | 0 | 0 | 907 |
-| ur5e_pg2__panda_tf3 | target:held_out_attachment_combination_on_insertion_arm | 60 | 6 | 54 | 0 | 0 | 735 |
-| aloha | target:held_out_dual_arm_body | 60 | 47 | 13 | 0 | 0 | 472 |
+| parm7_pg2__parm5_tf3 | source_train | 150 | 71 | 64 | 15 | 0 | 302 |
+| sawyer_tf3__ur5e_pg2 | source_train | 150 | 103 | 47 | 0 | 0 | 265 |
+| ur5e_pg2__sawyer_pg2 | source_train | 150 | 141 | 9 | 0 | 0 | 228 |
+| xarm7_pg2__xarm7_pg2 | target:held_out_arm_family | 60 | 60 | 0 | 0 | 0 | 208 |
+| xarm7_tf3__xarm7_pg2 | target:held_out_arm_family | 60 | 60 | 0 | 0 | 0 | 208 |
+| parm6_pg2__panda_tf3 | target:held_out_attachment_combination_on_insertion_arm | 60 | 14 | 46 | 0 | 0 | 863 |
+| ur5e_pg2__panda_tf3 | target:held_out_attachment_combination_on_insertion_arm | 60 | 9 | 51 | 0 | 0 | 951 |
+| aloha | target:held_out_dual_arm_body | 60 | 60 | 0 | 0 | 0 | 276 |
 
-total 1260 {'failure': 231, 'infeasible': 119, 'success': 910} manifest_hash 2181bf6728ab7a6d
+total 1560 {'failure': 292, 'infeasible': 163, 'success': 1105} manifest_hash ac8b04c0b43faa28
 
 Seeds: source 0-149 per pair (0-29 overlap the teacher-validation scenes; demonstrations only),
-targets 1,000,000+, source held-out development 3,000,000+. Episode length: up to 1200 control
+targets 1,000,000+, source held-out development 3,000,000+. Episodes run up to 1200 control
 steps at 20 Hz. The long mean lengths of the teacher-weak targets reflect failures that ran to
 the step cap.
+
+Superseded: `artifacts/datasets/support_insert_primary_v1` (teacher v1 with wrist snaps; 1260
+episodes, 910 successes, manifest_hash 2181bf6728ab7a6d) is kept on the host for provenance
+only and has been removed from the peer. Do not mix it with v2.
