@@ -1,0 +1,129 @@
+{
+ "support_insert|aloha": {
+  "agree": 30,
+  "error": 0,
+  "failure": 0,
+  "infeasible": 0,
+  "n": 30,
+  "public_success": 30,
+  "reasons": {},
+  "retried": 0,
+  "success": 30,
+  "success_rate_all": 1.0,
+  "success_rate_feasible": 1.0
+ },
+ "support_insert|parm6_pg2__parm7_tf3": {
+  "agree": 29,
+  "error": 0,
+  "failure": 7,
+  "infeasible": 8,
+  "n": 30,
+  "public_success": 16,
+  "reasons": {
+   "ended_in_phase:L:l_done|R:r_done": 1,
+   "ended_in_phase:L:l_hold|R:r_approach": 3,
+   "ended_in_phase:L:l_hold|R:r_descend": 1,
+   "ended_in_phase:L:l_hold|R:r_lift": 2,
+   "infeasible:right.grasp": 8
+  },
+  "retried": 6,
+  "success": 15,
+  "success_rate_all": 0.5,
+  "success_rate_feasible": 0.6818181818181818
+ },
+ "support_insert|parm6_tf3__parm6_pg2": {
+  "agree": 30,
+  "error": 0,
+  "failure": 0,
+  "infeasible": 11,
+  "n": 30,
+  "public_success": 19,
+  "reasons": {
+   "infeasible:right.grasp": 11
+  },
+  "retried": 0,
+  "success": 19,
+  "success_rate_all": 0.6333333333333333,
+  "success_rate_feasible": 1.0
+ },
+ "support_insert|sawyer_tf3__ur5e_pg2": {
+  "agree": 30,
+  "error": 0,
+  "failure": 8,
+  "infeasible": 0,
+  "n": 30,
+  "public_success": 22,
+  "reasons": {
+   "ended_in_phase:L:l_hold|R:r_abort": 1,
+   "ended_in_phase:L:l_hold|R:r_align": 7
+  },
+  "retried": 11,
+  "success": 22,
+  "success_rate_all": 0.7333333333333333,
+  "success_rate_feasible": 0.7333333333333333
+ },
+ "support_insert|ur5e_pg2__panda_tf3": {
+  "agree": 25,
+  "error": 0,
+  "failure": 27,
+  "infeasible": 0,
+  "n": 30,
+  "public_success": 4,
+  "reasons": {
+   "ended_in_phase:L:l_done|R:r_done": 3,
+   "ended_in_phase:L:l_hold|R:r_align": 2,
+   "ended_in_phase:L:l_hold|R:r_approach": 5,
+   "ended_in_phase:L:l_hold|R:r_descend": 8,
+   "ended_in_phase:L:l_hold|R:r_lift": 1,
+   "ended_in_phase:L:l_hold|R:r_transit": 8
+  },
+  "retried": 26,
+  "success": 3,
+  "success_rate_all": 0.1,
+  "success_rate_feasible": 0.1
+ },
+ "support_insert|ur5e_pg2__sawyer_pg2": {
+  "agree": 30,
+  "error": 0,
+  "failure": 3,
+  "infeasible": 0,
+  "n": 30,
+  "public_success": 27,
+  "reasons": {
+   "ended_in_phase:L:l_hold|R:r_transit": 3
+  },
+  "retried": 3,
+  "success": 27,
+  "success_rate_all": 0.9,
+  "success_rate_feasible": 0.9
+ },
+ "support_insert|ur5e_tf3__parm6_pg2": {
+  "agree": 30,
+  "error": 0,
+  "failure": 19,
+  "infeasible": 11,
+  "n": 30,
+  "public_success": 0,
+  "reasons": {
+   "ended_in_phase:L:l_hold|R:r_wait": 19,
+   "infeasible:right.grasp": 11
+  },
+  "retried": 19,
+  "success": 0,
+  "success_rate_all": 0.0,
+  "success_rate_feasible": 0.0
+ },
+ "support_insert|xarm7_pg2__xarm7_pg2": {
+  "agree": 30,
+  "error": 0,
+  "failure": 0,
+  "infeasible": 0,
+  "n": 30,
+  "public_success": 30,
+  "reasons": {},
+  "retried": 0,
+  "success": 30,
+  "success_rate_all": 1.0,
+  "success_rate_feasible": 1.0
+ }
+}
