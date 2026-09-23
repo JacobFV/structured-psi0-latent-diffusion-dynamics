@@ -1,0 +1,111 @@
+{
+ "name": "support_insert_primary_v2",
+ "task": "support_insert",
+ "out_dir": "artifacts/datasets/support_insert_primary_v2",
+ "workers": 4,
+ "max_steps": 1200,
+ "split_file": "research/splits/primary_v1_support_insert.json",
+ "teacher": "scripted_teacher v2 (orientation slew + joint-rate limit; privileged)",
+ "featurizer": "feat-multi-v1+feat-v2",
+ "eligibility": "artifacts/assets/dual_teacher_validation/support_insert_30seeds_v3.summary.json (D-019)",
+ "items": [
+  {
+   "task": "support_insert",
+   "pair": "parm5_pg2__parm5_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 150
+  },
+  {
+   "task": "support_insert",
+   "pair": "parm5_tf3__parm7_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 150
+  },
+  {
+   "task": "support_insert",
+   "pair": "parm6_pg2__parm7_tf3",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 150
+  },
+  {
+   "task": "support_insert",
+   "pair": "parm6_tf3__parm6_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 150
+  },
+  {
+   "task": "support_insert",
+   "pair": "parm7_pg2__parm5_tf3",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 150
+  },
+  {
+   "task": "support_insert",
+   "pair": "panda_pg2__ur5e_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 150
+  },
+  {
+   "task": "support_insert",
+   "pair": "ur5e_pg2__sawyer_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 150
+  },
+  {
+   "task": "support_insert",
+   "pair": "sawyer_tf3__ur5e_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 150
+  },
+  {
+   "task": "support_insert",
+   "pair": "parm5l_pg2__parm5s_tf3",
+   "split": "source_heldout_eval",
+   "seed_start": 3000000,
+   "episodes": 60
+  },
+  {
+   "task": "support_insert",
+   "pair": "xarm7_pg2__xarm7_pg2",
+   "split": "target:held_out_arm_family",
+   "seed_start": 1000000,
+   "episodes": 60
+  },
+  {
+   "task": "support_insert",
+   "pair": "xarm7_tf3__xarm7_pg2",
+   "split": "target:held_out_arm_family",
+   "seed_start": 1000000,
+   "episodes": 60
+  },
+  {
+   "task": "support_insert",
+   "pair": "ur5e_pg2__panda_tf3",
+   "split": "target:held_out_attachment_combination_on_insertion_arm",
+   "seed_start": 1000000,
+   "episodes": 60
+  },
+  {
+   "task": "support_insert",
+   "pair": "parm6_pg2__panda_tf3",
+   "split": "target:held_out_attachment_combination_on_insertion_arm",
+   "seed_start": 1000000,
+   "episodes": 60
+  },
+  {
+   "task": "support_insert",
+   "pair": "aloha",
+   "split": "target:held_out_dual_arm_body",
+   "seed_start": 1000000,
+   "episodes": 60
+  }
+ ]
+}

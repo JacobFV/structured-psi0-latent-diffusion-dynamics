@@ -160,7 +160,7 @@ Status, with the stages of docs/04 used literally:
 `artifacts/datasets/support_insert_primary_v1` (1.1 GB; generated on the peer, pulled to the
 host): config `configs/data/support_insert_primary_v1.json`, split
 `research/splits/primary_v1_support_insert.json` (frozen before generation; eligibility in
-D-014/D-015). Command: `python -m rrp.data.collect_dual --config configs/data/support_insert_primary_v1.json`
+D-014/D-017). Command: `python -m rrp.data.collect_dual --config configs/data/support_insert_primary_v1.json`
 (peer lease, 4 CPU). The format matches `rrp.data.collect`: `*.public.pkl.gz` holds MultiFeaturizer
 inputs (feat-multi-v1+feat-v2: node/morph dim 44, scene dim 27), flat namespaced actions
 (`r<i>:<group>`), q0, public runtime statuses and the flat action space. `*.private.pkl.gz` holds

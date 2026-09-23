@@ -35,7 +35,7 @@ ssh gb10-direct 'cd /dev/shm/rrp-brandonin/repo && PATH=/dev/shm/rrp-brandonin/b
 - peer GPU device-hours: ~0.001 of 96. CPU core-hours: <0.1 of 512. Calendar day 1 of 7.
 
 ## blockers
-- dual-arm: ALOHA handover teacher 0/30 (low-gain servo sag vs. gated integral term); panda+tf3 insertion-arm target teacher-weak (3/30, 11/30); public insertion-depth estimator can false-positive on jams (D-016).
+- dual-arm: ALOHA handover teacher 0/30 (low-gain servo sag vs. gated integral term); panda+tf3 insertion-arm target teacher-weak (3/30, 11/30); public insertion-depth estimator can false-positive on jams (D-018).
 - none yet.
 
 ## resume

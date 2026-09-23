@@ -83,7 +83,7 @@
  "resolved_eligibility": {
   "decisions": [
    "D-014",
-   "D-015"
+   "D-017"
   ],
   "validation": "artifacts/assets/dual_teacher_validation/support_insert_30seeds_final.jsonl",
   "eligible_source_train_pairs": [
@@ -108,5 +108,34 @@
    "aloha": "22/30"
   },
   "appended_utc": "2026-09-21, before any policy result"
+ },
+ "resolved_eligibility_teacher_v2": {
+  "decision": "D-019",
+  "validation": "artifacts/assets/dual_teacher_validation/support_insert_30seeds_v3.jsonl",
+  "eligible_source_train_pairs": [
+   "parm5_pg2__parm5_pg2",
+   "parm5_tf3__parm7_pg2",
+   "parm6_pg2__parm7_tf3",
+   "parm6_tf3__parm6_pg2",
+   "parm7_pg2__parm5_tf3",
+   "panda_pg2__ur5e_pg2",
+   "ur5e_pg2__sawyer_pg2",
+   "sawyer_tf3__ur5e_pg2"
+  ],
+  "ineligible_source_train_pairs": {
+   "sawyer_pg2__panda_pg2": "1/30",
+   "ur5e_tf3__parm6_pg2": "0/19 feasible"
+  },
+  "target_teacher_rates": {
+   "xarm7_pg2__xarm7_pg2": "30/30",
+   "xarm7_tf3__xarm7_pg2": "30/30",
+   "ur5e_pg2__panda_tf3": "3/30 (teacher-weak)",
+   "parm6_pg2__panda_tf3": "8/30 (teacher-weak)",
+   "aloha": "30/30"
+  },
+  "source_heldout_eval": {
+   "parm5l_pg2__parm5s_tf3": "14/29"
+  },
+  "appended_utc": "2026-09-21, before any policy result; supersedes resolved_eligibility for dataset v2"
  }
 }
