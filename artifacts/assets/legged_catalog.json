@@ -1,0 +1,1132 @@
+{
+ "generated": "2026-09-23T03:26:42",
+ "menagerie_commit": "c96a32d28fb5da84da38c1da4d749e7a13212855",
+ "ladder": [
+  "source_verified",
+  "imported",
+  "physics_validated",
+  "controller_validated",
+  "teacher_validated"
+ ],
+ "lineage_notes": [
+  "anymal_b/c are near-duplicates: only anymal_c imported",
+  "go2 and a1 share the unitree_quadruped family key (not independent holdouts)",
+  "procedural bodies share procedural_legged/v1; sprawl4/6/8 + hexapod6_long are one lineage family (topology diagnostics), pquad4 is the mammal-layout sub-family",
+  "psi0 contracts (rrp.control.psi_contracts) are NOT validated on any of these bodies: menagerie g1.xml has no Dex3 hands (SONIC source body is G1+Dex3), h1.xml has no Inspire hands (AMO source body)"
+ ],
+ "bodies": [
+  {
+   "id": "hexapod6",
+   "stages": {
+    "source_verified": {
+     "ok": true,
+     "reason": null,
+     "params_hash": "7982036bf4d08ca8"
+    },
+    "imported": {
+     "ok": true,
+     "reason": null,
+     "spec_hash": "bb3653fb58c1aeb9",
+     "n_joints": 19,
+     "n_actuators": 18,
+     "n_sensors": 9,
+     "family": "hexapod",
+     "controller_contracts": [
+      "joint_targets",
+      "legged_tracker"
+     ],
+     "actuator_adapter": null,
+     "policy_actuators": 18,
+     "held_actuators": 0
+    },
+    "physics_validated": {
+     "ok": true,
+     "reason": null,
+     "total_mass_kg": 1.8891966104651556,
+     "n_policy_joints": 18,
+     "n_feet": 6,
+     "nominal_height_m": 0.11456806596423696,
+     "initial_min_contact_dist": 0.0,
+     "stands_under_static_pd_hold_3s": true,
+     "final_height": 0.10771010475390068,
+     "start_height": 0.11956806596423697,
+     "timestep": 0.002
+    },
+    "controller_validated": {
+     "ok": true,
+     "reason": null,
+     "trackers": {
+      "learned": {
+       "eligible": true,
+       "gate": {
+        "no_fall_rate": 1.0,
+        "forward_ratio": 0.876815838858828,
+        "turn_ratio": 0.9274115563117367,
+        "stand_ok": true,
+        "passed": true
+       },
+       "tracker_sha": "1b91d81851c2cd21",
+       "frozen_at": "2026-09-21T22:37:03"
+      },
+      "cpg": {
+       "eligible": true,
+       "gate": {
+        "no_fall_rate": 1.0,
+        "forward_ratio": 0.9628643710148896,
+        "turn_ratio": 0.7507224655934399,
+        "stand_ok": true,
+        "passed": true
+       },
+       "tracker_sha": "scripted",
+       "frozen_at": "2026-09-21T20:21:09"
+      }
+     },
+     "selected": "learned",
+     "limited_qualification": null
+    },
+    "teacher_validated": {
+     "ok": true,
+     "reason": null,
+     "selected_tracker_source": "scripted_controller",
+     "runs": {
+      "hexapod6": {
+       "success_rate": 1.0,
+       "n": 20,
+       "fell": 0,
+       "tracker_source": "scripted_controller",
+       "file": "artifacts/assets/legged_teacher/hexapod6.json"
+      },
+      "hexapod6_learned": {
+       "success_rate": 0.0,
+       "n": 20,
+       "fell": 0,
+       "tracker_source": "learned_tracker",
+       "file": "artifacts/assets/legged_teacher/hexapod6_learned.json"
+      }
+     }
+    }
+   },
+   "source": "procedural",
+   "kind": "hexapod",
+   "family": "procedural_legged/v1/sprawl6",
+   "synthetic": true,
+   "license": "project",
+   "generator": "rrp.morphology.legged.procedural_legged",
+   "lineage": [
+    "procedural_legged/v1",
+    "procedural_legged/v1/sprawl6",
+    "procedural_legged/v1/sprawl6/hexapod6"
+   ],
+   "catalog_wall_s": 0.08298730850219727,
+   "status": "teacher_validated"
+  },
+  {
+   "id": "pquad4",
+   "stages": {
+    "source_verified": {
+     "ok": true,
+     "reason": null,
+     "params_hash": "995e9ffdf829c93e"
+    },
+    "imported": {
+     "ok": true,
+     "reason": null,
+     "spec_hash": "6053dcfd43c7c852",
+     "n_joints": 13,
+     "n_actuators": 12,
+     "n_sensors": 7,
+     "family": "quadruped",
+     "controller_contracts": [
+      "joint_targets",
+      "legged_tracker"
+     ],
+     "actuator_adapter": null,
+     "policy_actuators": 12,
+     "held_actuators": 0
+    },
+    "physics_validated": {
+     "ok": true,
+     "reason": null,
+     "total_mass_kg": 3.7441671841205753,
+     "n_policy_joints": 12,
+     "n_feet": 4,
+     "nominal_height_m": 0.3019559945959316,
+     "initial_min_contact_dist": 0.0,
+     "stands_under_static_pd_hold_3s": true,
+     "final_height": 0.2775993122901965,
+     "start_height": 0.3069559945959316,
+     "timestep": 0.002
+    },
+    "controller_validated": {
+     "ok": true,
+     "reason": null,
+     "trackers": {
+      "cpg": {
+       "eligible": true,
+       "gate": {
+        "no_fall_rate": 1.0,
+        "forward_ratio": 0.8991660095760678,
+        "turn_ratio": 0.5666578868484601,
+        "stand_ok": true,
+        "passed": true
+       },
+       "tracker_sha": "scripted",
+       "frozen_at": "2026-09-21T20:21:43"
+      }
+     },
+     "selected": "cpg",
+     "limited_qualification": null
+    },
+    "teacher_validated": {
+     "ok": true,
+     "reason": null,
+     "selected_tracker_source": "scripted_controller",
+     "runs": {
+      "pquad4": {
+       "success_rate": 1.0,
+       "n": 20,
+       "fell": 0,
+       "tracker_source": "scripted_controller",
+       "file": "artifacts/assets/legged_teacher/pquad4.json"
+      }
+     }
+    }
+   },
+   "source": "procedural",
+   "kind": "quadruped",
+   "family": "procedural_legged/v1/mammal4",
+   "synthetic": true,
+   "license": "project",
+   "generator": "rrp.morphology.legged.procedural_legged",
+   "lineage": [
+    "procedural_legged/v1",
+    "procedural_legged/v1/mammal4",
+    "procedural_legged/v1/mammal4/pquad4"
+   ],
+   "catalog_wall_s": 0.01854395866394043,
+   "status": "teacher_validated"
+  },
+  {
+   "id": "sprawl4",
+   "stages": {
+    "source_verified": {
+     "ok": true,
+     "reason": null,
+     "params_hash": "44f90811cb386abd"
+    },
+    "imported": {
+     "ok": true,
+     "reason": null,
+     "spec_hash": "9cebb94f02e5e488",
+     "n_joints": 13,
+     "n_actuators": 12,
+     "n_sensors": 7,
+     "family": "quadruped",
+     "controller_contracts": [
+      "joint_targets",
+      "legged_tracker"
+     ],
+     "actuator_adapter": null,
+     "policy_actuators": 12,
+     "held_actuators": 0
+    },
+    "physics_validated": {
+     "ok": true,
+     "reason": null,
+     "total_mass_kg": 1.7454644069767706,
+     "n_policy_joints": 12,
+     "n_feet": 4,
+     "nominal_height_m": 0.11456806596423696,
+     "initial_min_contact_dist": 0.0,
+     "stands_under_static_pd_hold_3s": true,
+     "final_height": 0.1045222531445262,
+     "start_height": 0.11956806596423697,
+     "timestep": 0.002
+    },
+    "controller_validated": {
+     "ok": true,
+     "reason": null,
+     "trackers": {
+      "cpg": {
+       "eligible": true,
+       "gate": {
+        "no_fall_rate": 1.0,
+        "forward_ratio": 0.6451141508228706,
+        "turn_ratio": 0.6903560107572717,
+        "stand_ok": true,
+        "passed": true
+       },
+       "tracker_sha": "scripted",
+       "frozen_at": "2026-09-21T20:22:00"
+      }
+     },
+     "selected": "cpg",
+     "limited_qualification": null
+    },
+    "teacher_validated": {
+     "ok": true,
+     "reason": null,
+     "selected_tracker_source": "scripted_controller",
+     "runs": {
+      "sprawl4": {
+       "success_rate": 1.0,
+       "n": 20,
+       "fell": 0,
+       "tracker_source": "scripted_controller",
+       "file": "artifacts/assets/legged_teacher/sprawl4.json"
+      }
+     }
+    }
+   },
+   "source": "procedural",
+   "kind": "quadruped",
+   "family": "procedural_legged/v1/sprawl4",
+   "synthetic": true,
+   "license": "project",
+   "generator": "rrp.morphology.legged.procedural_legged",
+   "lineage": [
+    "procedural_legged/v1",
+    "procedural_legged/v1/sprawl4",
+    "procedural_legged/v1/sprawl4/sprawl4_f10t14"
+   ],
+   "catalog_wall_s": 0.018390893936157227,
+   "status": "teacher_validated"
+  },
+  {
+   "id": "sprawl8",
+   "stages": {
+    "source_verified": {
+     "ok": true,
+     "reason": null,
+     "params_hash": "3eb2e4566508ae91"
+    },
+    "imported": {
+     "ok": true,
+     "reason": null,
+     "spec_hash": "bcf04e4cde9cdf3a",
+     "n_joints": 25,
+     "n_actuators": 24,
+     "n_sensors": 11,
+     "family": "multipod",
+     "controller_contracts": [
+      "joint_targets",
+      "legged_tracker"
+     ],
+     "actuator_adapter": null,
+     "policy_actuators": 24,
+     "held_actuators": 0
+    },
+    "physics_validated": {
+     "ok": true,
+     "reason": null,
+     "total_mass_kg": 3.0049288139535406,
+     "n_policy_joints": 24,
+     "n_feet": 8,
+     "nominal_height_m": 0.11456806596423696,
+     "initial_min_contact_dist": 0.0,
+     "stands_under_static_pd_hold_3s": true,
+     "final_height": 0.10620571164628696,
+     "start_height": 0.11956806596423697,
+     "timestep": 0.002
+    },
+    "controller_validated": {
+     "ok": true,
+     "reason": null,
+     "trackers": {
+      "cpg": {
+       "eligible": true,
+       "gate": {
+        "no_fall_rate": 1.0,
+        "forward_ratio": 0.9605408436961509,
+        "turn_ratio": 0.5964568411678199,
+        "stand_ok": true,
+        "passed": true
+       },
+       "tracker_sha": "scripted",
+       "frozen_at": "2026-09-21T20:22:25"
+      }
+     },
+     "selected": "cpg",
+     "limited_qualification": null
+    },
+    "teacher_validated": {
+     "ok": true,
+     "reason": null,
+     "selected_tracker_source": "scripted_controller",
+     "runs": {
+      "sprawl8": {
+       "success_rate": 1.0,
+       "n": 20,
+       "fell": 0,
+       "tracker_source": "scripted_controller",
+       "file": "artifacts/assets/legged_teacher/sprawl8.json"
+      }
+     }
+    }
+   },
+   "source": "procedural",
+   "kind": "multipod",
+   "family": "procedural_legged/v1/sprawl8",
+   "synthetic": true,
+   "license": "project",
+   "generator": "rrp.morphology.legged.procedural_legged",
+   "lineage": [
+    "procedural_legged/v1",
+    "procedural_legged/v1/sprawl8",
+    "procedural_legged/v1/sprawl8/sprawl8_f10t14"
+   ],
+   "catalog_wall_s": 0.03164196014404297,
+   "status": "teacher_validated"
+  },
+  {
+   "id": "hexapod6_long",
+   "stages": {
+    "source_verified": {
+     "ok": true,
+     "reason": null,
+     "params_hash": "03adae8cb8888e67"
+    },
+    "imported": {
+     "ok": true,
+     "reason": null,
+     "spec_hash": "65720d51218cc18f",
+     "n_joints": 19,
+     "n_actuators": 18,
+     "n_sensors": 9,
+     "family": "hexapod",
+     "controller_contracts": [
+      "joint_targets",
+      "legged_tracker"
+     ],
+     "actuator_adapter": null,
+     "policy_actuators": 18,
+     "held_actuators": 0
+    },
+    "physics_validated": {
+     "ok": true,
+     "reason": null,
+     "total_mass_kg": 2.4283975970981064,
+     "n_policy_joints": 18,
+     "n_feet": 6,
+     "nominal_height_m": 0.13617964839579555,
+     "initial_min_contact_dist": 0.0,
+     "stands_under_static_pd_hold_3s": true,
+     "final_height": 0.12306867385732666,
+     "start_height": 0.14117964839579555,
+     "timestep": 0.002
+    },
+    "controller_validated": {
+     "ok": true,
+     "reason": null,
+     "trackers": {
+      "cpg": {
+       "eligible": true,
+       "gate": {
+        "no_fall_rate": 1.0,
+        "forward_ratio": 0.9779086420946724,
+        "turn_ratio": 0.7413770621393179,
+        "stand_ok": true,
+        "passed": true
+       },
+       "tracker_sha": "scripted",
+       "frozen_at": "2026-09-21T20:22:50"
+      }
+     },
+     "selected": "cpg",
+     "limited_qualification": null
+    },
+    "teacher_validated": {
+     "ok": true,
+     "reason": null,
+     "selected_tracker_source": "scripted_controller",
+     "runs": {
+      "hexapod6_long": {
+       "success_rate": 1.0,
+       "n": 20,
+       "fell": 0,
+       "tracker_source": "scripted_controller",
+       "file": "artifacts/assets/legged_teacher/hexapod6_long.json"
+      }
+     }
+    }
+   },
+   "source": "procedural",
+   "kind": "hexapod",
+   "family": "procedural_legged/v1/sprawl6",
+   "synthetic": true,
+   "license": "project",
+   "generator": "rrp.morphology.legged.procedural_legged",
+   "lineage": [
+    "procedural_legged/v1",
+    "procedural_legged/v1/sprawl6",
+    "procedural_legged/v1/sprawl6/hexapod6_long"
+   ],
+   "catalog_wall_s": 0.023969650268554688,
+   "status": "teacher_validated"
+  },
+  {
+   "id": "go2",
+   "stages": {
+    "source_verified": {
+     "ok": true,
+     "reason": null,
+     "mjcf_sha256": "50adb09a4365293e2acdaf2010ae35a82b0f09fea18ae51806fef91e310ed04a",
+     "license_file": true
+    },
+    "imported": {
+     "ok": true,
+     "reason": null,
+     "spec_hash": "de2b2474739a4640",
+     "n_joints": 13,
+     "n_actuators": 12,
+     "n_sensors": 7,
+     "family": "quadruped",
+     "controller_contracts": [
+      "joint_targets",
+      "legged_tracker"
+     ],
+     "actuator_adapter": "joint_pd_position_servo",
+     "policy_actuators": 12,
+     "held_actuators": 0
+    },
+    "physics_validated": {
+     "ok": true,
+     "reason": null,
+     "total_mass_kg": 15.206408000000003,
+     "n_policy_joints": 12,
+     "n_feet": 4,
+     "nominal_height_m": 0.29728111161631726,
+     "initial_min_contact_dist": 0.0,
+     "stands_under_static_pd_hold_3s": true,
+     "final_height": 0.23535622928812971,
+     "start_height": 0.30228111161631727,
+     "timestep": 0.002
+    },
+    "controller_validated": {
+     "ok": true,
+     "reason": null,
+     "trackers": {
+      "learned": {
+       "eligible": true,
+       "gate": {
+        "no_fall_rate": 1.0,
+        "forward_ratio": 1.0539082149214551,
+        "turn_ratio": 0.5933937877313241,
+        "stand_ok": true,
+        "passed": true
+       },
+       "tracker_sha": "16b45d59e547cab7",
+       "frozen_at": "2026-09-22T04:43:39"
+      }
+     },
+     "selected": "learned",
+     "limited_qualification": null
+    },
+    "teacher_validated": {
+     "ok": true,
+     "reason": null,
+     "selected_tracker_source": "learned_tracker",
+     "runs": {
+      "go2": {
+       "success_rate": 1.0,
+       "n": 20,
+       "fell": 0,
+       "tracker_source": "learned_tracker",
+       "file": "artifacts/assets/legged_teacher/go2.json"
+      }
+     }
+    }
+   },
+   "source": "menagerie",
+   "kind": "quadruped",
+   "family": "unitree_quadruped",
+   "dir": "unitree_go2",
+   "file": "go2.xml",
+   "license": "BSD-3-Clause",
+   "commit": "c96a32d28fb5da84da38c1da4d749e7a13212855",
+   "synthetic": false,
+   "lineage": [
+    "menagerie/unitree_quadruped",
+    "menagerie/unitree_go2@c96a32d28fb5"
+   ],
+   "catalog_wall_s": 0.5947830677032471,
+   "status": "teacher_validated"
+  },
+  {
+   "id": "anymal_c",
+   "stages": {
+    "source_verified": {
+     "ok": true,
+     "reason": null,
+     "mjcf_sha256": "25dfeab8913aff6f69877a85faa5f2dfa15c56a0d553cd99dbd46a4584067d8b",
+     "license_file": true
+    },
+    "imported": {
+     "ok": true,
+     "reason": null,
+     "spec_hash": "b7a100b36f7ee20a",
+     "n_joints": 13,
+     "n_actuators": 12,
+     "n_sensors": 7,
+     "family": "quadruped",
+     "controller_contracts": [
+      "joint_targets",
+      "legged_tracker"
+     ],
+     "actuator_adapter": "joint_pd_position_servo",
+     "policy_actuators": 12,
+     "held_actuators": 0
+    },
+    "physics_validated": {
+     "ok": true,
+     "reason": null,
+     "total_mass_kg": 44.965180000000004,
+     "n_policy_joints": 12,
+     "n_feet": 4,
+     "nominal_height_m": 0.5581344581161132,
+     "initial_min_contact_dist": 0.0,
+     "stands_under_static_pd_hold_3s": true,
+     "final_height": 0.5000410186709002,
+     "start_height": 0.5631344581161132,
+     "timestep": 0.002
+    },
+    "controller_validated": {
+     "ok": true,
+     "reason": null,
+     "trackers": {
+      "learned": {
+       "eligible": true,
+       "gate": {
+        "no_fall_rate": 1.0,
+        "forward_ratio": 0.9835171681374362,
+        "turn_ratio": 0.7212610330951899,
+        "stand_ok": true,
+        "passed": true
+       },
+       "tracker_sha": "bfb57bc86b09ae78",
+       "frozen_at": "2026-09-22T14:38:34"
+      }
+     },
+     "selected": "learned",
+     "limited_qualification": null
+    },
+    "teacher_validated": {
+     "ok": true,
+     "reason": null,
+     "selected_tracker_source": "learned_tracker",
+     "runs": {
+      "anymal_c": {
+       "success_rate": 1.0,
+       "n": 20,
+       "fell": 0,
+       "tracker_source": "learned_tracker",
+       "file": "artifacts/assets/legged_teacher/anymal_c.json"
+      }
+     }
+    }
+   },
+   "source": "menagerie",
+   "kind": "quadruped",
+   "family": "anybotics_anymal",
+   "dir": "anybotics_anymal_c",
+   "file": "anymal_c.xml",
+   "license": "BSD-3-Clause",
+   "commit": "c96a32d28fb5da84da38c1da4d749e7a13212855",
+   "synthetic": false,
+   "lineage": [
+    "menagerie/anybotics_anymal",
+    "menagerie/anybotics_anymal_c@c96a32d28fb5"
+   ],
+   "catalog_wall_s": 1.5863113403320312,
+   "status": "teacher_validated"
+  },
+  {
+   "id": "a1",
+   "stages": {
+    "source_verified": {
+     "ok": true,
+     "reason": null,
+     "mjcf_sha256": "492978cb7700b0064bcefbc2b93dba651a828cf9212df91d56e951666890807c",
+     "license_file": true
+    },
+    "imported": {
+     "ok": true,
+     "reason": null,
+     "spec_hash": "03cf8ec6c5db8021",
+     "n_joints": 13,
+     "n_actuators": 12,
+     "n_sensors": 7,
+     "family": "quadruped",
+     "controller_contracts": [
+      "joint_targets",
+      "legged_tracker"
+     ],
+     "actuator_adapter": "joint_pd_position_servo",
+     "policy_actuators": 12,
+     "held_actuators": 0
+    },
+    "physics_validated": {
+     "ok": true,
+     "reason": null,
+     "total_mass_kg": 12.453000000000001,
+     "n_policy_joints": 12,
+     "n_feet": 4,
+     "nominal_height_m": 0.2767427248662287,
+     "initial_min_contact_dist": 0.0,
+     "stands_under_static_pd_hold_3s": true,
+     "final_height": 0.23268687022668724,
+     "start_height": 0.2817427248662287,
+     "timestep": 0.002
+    },
+    "controller_validated": {
+     "ok": false,
+     "reason": "no tracker trained/validated for this body (not attempted)"
+    },
+    "teacher_validated": {
+     "ok": false,
+     "reason": "teacher not run (requires a validated controller)"
+    }
+   },
+   "source": "menagerie",
+   "kind": "quadruped",
+   "family": "unitree_quadruped",
+   "dir": "unitree_a1",
+   "file": "a1.xml",
+   "license": "BSD-3-Clause",
+   "commit": "c96a32d28fb5da84da38c1da4d749e7a13212855",
+   "synthetic": false,
+   "lineage": [
+    "menagerie/unitree_quadruped",
+    "menagerie/unitree_a1@c96a32d28fb5"
+   ],
+   "catalog_wall_s": 0.3346576690673828,
+   "status": "physics_validated"
+  },
+  {
+   "id": "h1",
+   "stages": {
+    "source_verified": {
+     "ok": true,
+     "reason": null,
+     "mjcf_sha256": "4d15bc381ee8113722fe514a6fc0059988cd114c2bedfadf2e6279b41ef0810d",
+     "license_file": true
+    },
+    "imported": {
+     "ok": true,
+     "reason": null,
+     "spec_hash": "a524f1a7e231f99e",
+     "n_joints": 20,
+     "n_actuators": 19,
+     "n_sensors": 5,
+     "family": "humanoid",
+     "controller_contracts": [
+      "joint_targets",
+      "legged_tracker"
+     ],
+     "actuator_adapter": "joint_pd_position_servo",
+     "policy_actuators": 10,
+     "held_actuators": 9
+    },
+    "physics_validated": {
+     "ok": true,
+     "reason": null,
+     "total_mass_kg": 51.437000000000005,
+     "n_policy_joints": 10,
+     "n_feet": 2,
+     "nominal_height_m": 1.0367020525993145,
+     "initial_min_contact_dist": 0.0,
+     "stands_under_static_pd_hold_3s": false,
+     "final_height": 0.09825080973216087,
+     "start_height": 1.0417020525993144,
+     "timestep": 0.002
+    },
+    "controller_validated": {
+     "ok": false,
+     "reason": "no tracker trained/validated for this body (not attempted)"
+    },
+    "teacher_validated": {
+     "ok": false,
+     "reason": "teacher not run (requires a validated controller)"
+    }
+   },
+   "source": "menagerie",
+   "kind": "humanoid",
+   "family": "unitree_humanoid_h1",
+   "dir": "unitree_h1",
+   "file": "h1.xml",
+   "license": "BSD-3-Clause",
+   "commit": "c96a32d28fb5da84da38c1da4d749e7a13212855",
+   "synthetic": false,
+   "lineage": [
+    "menagerie/unitree_humanoid_h1",
+    "menagerie/unitree_h1@c96a32d28fb5"
+   ],
+   "catalog_wall_s": 0.3809361457824707,
+   "status": "physics_validated"
+  },
+  {
+   "id": "g1",
+   "stages": {
+    "source_verified": {
+     "ok": true,
+     "reason": null,
+     "mjcf_sha256": "3c2616550a31f33e84d3c80b8e913ac5618c8888019b0c9490dae93493e647f3",
+     "license_file": true
+    },
+    "imported": {
+     "ok": true,
+     "reason": null,
+     "spec_hash": "0724eb6ba2a55648",
+     "n_joints": 30,
+     "n_actuators": 29,
+     "n_sensors": 9,
+     "family": "humanoid",
+     "controller_contracts": [
+      "joint_targets",
+      "legged_tracker"
+     ],
+     "actuator_adapter": "joint_pd_position_servo",
+     "policy_actuators": 12,
+     "held_actuators": 17
+    },
+    "physics_validated": {
+     "ok": true,
+     "reason": null,
+     "total_mass_kg": 33.341142000000005,
+     "n_policy_joints": 12,
+     "n_feet": 2,
+     "nominal_height_m": 0.7918637524221748,
+     "initial_min_contact_dist": 0.0,
+     "stands_under_static_pd_hold_3s": false,
+     "final_height": 0.08536244194892617,
+     "start_height": 0.7968637524221748,
+     "timestep": 0.002
+    },
+    "controller_validated": {
+     "ok": false,
+     "reason": "learned: gate failed {'no_fall_rate': 1.0, 'forward_ratio': 0.9125204754283474, 'turn_ratio': 0.07544453153603056, 'stand_ok': True, 'passed': False}",
+     "trackers": {
+      "learned": {
+       "eligible": false,
+       "gate": {
+        "no_fall_rate": 1.0,
+        "forward_ratio": 0.9125204754283474,
+        "turn_ratio": 0.07544453153603056,
+        "stand_ok": true,
+        "passed": false
+       },
+       "tracker_sha": "d0a88b58ee0ce67d",
+       "frozen_at": "2026-09-23T01:33:14"
+      }
+     },
+     "selected": null,
+     "limited_qualification": {
+      "body": "g1",
+      "tracker_version": "learned_tracker:g1:iter3599",
+      "tracker_sha": "d0a88b58ee0ce67d",
+      "status": "limited: whole-body floating-base walker, forward + arc turning only",
+      "gate_passed": false,
+      "failed_criterion": "turn-in-place ratio 0.075 (< 0.4)",
+      "evidence": {
+       "no_fall_rate": 1.0,
+       "forward_ratio": 0.9125204754283474,
+       "arc_yaw_ratio": 0.48680214519949433,
+       "arc_forward_ratio": 0.7965105945634269,
+       "push_recovery_falls": 0.0
+      },
+      "allowed_use": "waypoint_contact only with WaypointTeacher(arc_only=True) (min forward speed while turning); not eligible for commands requiring in-place turning; teacher runs: artifacts/assets/legged_teacher/g1*.json",
+      "decided": "2026-09-21, from independent tracker validation, before any learned high-level policy result",
+      "history": [
+       "v1 (sigma 0.25, alive 1.0): converged to a stable non-walking stander (artifacts/trackers/g1/v1_stander)",
+       "v2 (sigma 0.1, track_lin 2.5, alive 0.3, resumed from v1): forward walker, no turning (v2_walker)",
+       "v3 (track_ang 2.0 + turn-in-place commands, resumed from v2): arc turning emerged, in-place turning did not"
+      ]
+     }
+    },
+    "teacher_validated": {
+     "ok": true,
+     "reason": null,
+     "selected_tracker_source": "learned_tracker",
+     "runs": {
+      "g1": {
+       "success_rate": 0.8,
+       "n": 20,
+       "fell": 3,
+       "tracker_source": "learned_tracker",
+       "file": "artifacts/assets/legged_teacher/g1.json"
+      },
+      "g1_arc_only": {
+       "success_rate": 0.95,
+       "n": 20,
+       "fell": 0,
+       "tracker_source": "learned_tracker",
+       "file": "artifacts/assets/legged_teacher/g1_arc_only.json"
+      }
+     }
+    }
+   },
+   "source": "menagerie",
+   "kind": "humanoid",
+   "family": "unitree_humanoid_g1",
+   "dir": "unitree_g1",
+   "file": "g1.xml",
+   "license": "BSD-3-Clause",
+   "commit": "c96a32d28fb5da84da38c1da4d749e7a13212855",
+   "synthetic": false,
+   "lineage": [
+    "menagerie/unitree_humanoid_g1",
+    "menagerie/unitree_g1@c96a32d28fb5"
+   ],
+   "catalog_wall_s": 1.5510499477386475,
+   "status": "physics_validated"
+  },
+  {
+   "id": "t1",
+   "stages": {
+    "source_verified": {
+     "ok": true,
+     "reason": null,
+     "mjcf_sha256": "78af3f7910e4413894863b6427f44a7daf49e5eb47628e6fe2db775219e346b9",
+     "license_file": true
+    },
+    "imported": {
+     "ok": true,
+     "reason": null,
+     "spec_hash": "ee90a66370496c30",
+     "n_joints": 24,
+     "n_actuators": 23,
+     "n_sensors": 8,
+     "family": "humanoid",
+     "controller_contracts": [
+      "joint_targets",
+      "legged_tracker"
+     ],
+     "actuator_adapter": "joint_pd_position_servo",
+     "policy_actuators": 12,
+     "held_actuators": 11
+    },
+    "physics_validated": {
+     "ok": true,
+     "reason": null,
+     "total_mass_kg": 31.614357,
+     "n_policy_joints": 12,
+     "n_feet": 2,
+     "nominal_height_m": 0.6658526350768469,
+     "initial_min_contact_dist": 0.0,
+     "stands_under_static_pd_hold_3s": false,
+     "final_height": 0.13821401867040461,
+     "start_height": 0.6708526350768469,
+     "timestep": 0.002
+    },
+    "controller_validated": {
+     "ok": false,
+     "reason": "no tracker trained/validated for this body (not attempted)"
+    },
+    "teacher_validated": {
+     "ok": false,
+     "reason": "teacher not run (requires a validated controller)"
+    }
+   },
+   "source": "menagerie",
+   "kind": "humanoid",
+   "family": "booster_t1",
+   "dir": "booster_t1",
+   "file": "t1.xml",
+   "license": "Apache-2.0",
+   "commit": "c96a32d28fb5da84da38c1da4d749e7a13212855",
+   "synthetic": false,
+   "lineage": [
+    "menagerie/booster_t1",
+    "menagerie/booster_t1@c96a32d28fb5"
+   ],
+   "catalog_wall_s": 0.5178327560424805,
+   "status": "physics_validated"
+  },
+  {
+   "id": "op3",
+   "stages": {
+    "source_verified": {
+     "ok": true,
+     "reason": null,
+     "mjcf_sha256": "02e07fe80bb0352a0987e14e41be496d045a070dd70444a8277b9272105e44ac",
+     "license_file": true
+    },
+    "imported": {
+     "ok": true,
+     "reason": null,
+     "spec_hash": "7d5d86330231f959",
+     "n_joints": 21,
+     "n_actuators": 20,
+     "n_sensors": 6,
+     "family": "humanoid",
+     "controller_contracts": [
+      "joint_targets",
+      "legged_tracker"
+     ],
+     "actuator_adapter": "joint_pd_position_servo",
+     "policy_actuators": 12,
+     "held_actuators": 8
+    },
+    "physics_validated": {
+     "ok": true,
+     "reason": null,
+     "total_mass_kg": 3.14747,
+     "n_policy_joints": 12,
+     "n_feet": 2,
+     "nominal_height_m": 0.27915,
+     "initial_min_contact_dist": 0.0,
+     "stands_under_static_pd_hold_3s": true,
+     "final_height": 0.27906353092858466,
+     "start_height": 0.28415,
+     "timestep": 0.002
+    },
+    "controller_validated": {
+     "ok": false,
+     "reason": "no tracker trained/validated for this body (not attempted)"
+    },
+    "teacher_validated": {
+     "ok": false,
+     "reason": "teacher not run (requires a validated controller)"
+    }
+   },
+   "source": "menagerie",
+   "kind": "humanoid",
+   "family": "robotis_op",
+   "dir": "robotis_op3",
+   "file": "op3.xml",
+   "license": "Apache-2.0",
+   "commit": "c96a32d28fb5da84da38c1da4d749e7a13212855",
+   "synthetic": false,
+   "lineage": [
+    "menagerie/robotis_op",
+    "menagerie/robotis_op3@c96a32d28fb5"
+   ],
+   "catalog_wall_s": 3.5221076011657715,
+   "status": "physics_validated"
+  },
+  {
+   "id": "talos",
+   "stages": {
+    "source_verified": {
+     "ok": true,
+     "reason": null,
+     "mjcf_sha256": "ce2d3af3f1c80e9875e2c8b2e7a0ec6dd3317086e949e0299060ecd725753a92",
+     "license_file": true
+    },
+    "imported": {
+     "ok": true,
+     "reason": null,
+     "spec_hash": "57b921cf03662923",
+     "n_joints": 45,
+     "n_actuators": 32,
+     "n_sensors": 5,
+     "family": "humanoid",
+     "controller_contracts": [
+      "joint_targets",
+      "legged_tracker"
+     ],
+     "actuator_adapter": "joint_pd_position_servo",
+     "policy_actuators": 12,
+     "held_actuators": 20
+    },
+    "physics_validated": {
+     "ok": true,
+     "reason": null,
+     "total_mass_kg": 94.00318999999999,
+     "n_policy_joints": 12,
+     "n_feet": 2,
+     "nominal_height_m": 1.0263980007720341,
+     "initial_min_contact_dist": 0.0,
+     "stands_under_static_pd_hold_3s": true,
+     "final_height": 1.0174476132276686,
+     "start_height": 1.031398000772034,
+     "timestep": 0.001
+    },
+    "controller_validated": {
+     "ok": false,
+     "reason": "no tracker trained/validated for this body (not attempted)"
+    },
+    "teacher_validated": {
+     "ok": false,
+     "reason": "teacher not run (requires a validated controller)"
+    }
+   },
+   "source": "menagerie",
+   "kind": "humanoid",
+   "family": "pal_talos",
+   "dir": "pal_talos",
+   "file": "talos_position.xml",
+   "license": "Apache-2.0",
+   "commit": "c96a32d28fb5da84da38c1da4d749e7a13212855",
+   "synthetic": false,
+   "lineage": [
+    "menagerie/pal_talos",
+    "menagerie/pal_talos@c96a32d28fb5"
+   ],
+   "catalog_wall_s": 0.9834723472595215,
+   "status": "physics_validated"
+  },
+  {
+   "id": "cassie",
+   "stages": {
+    "source_verified": {
+     "ok": true,
+     "reason": null,
+     "mjcf_sha256": "92ec84d23a0f62a848b4d646fc9197cad3b0c518bb6cb1aafe241b3db88dd885",
+     "license_file": true
+    },
+    "imported": {
+     "ok": true,
+     "reason": null,
+     "spec_hash": "104536409c75f866",
+     "n_joints": 23,
+     "n_actuators": 10,
+     "n_sensors": 26,
+     "family": "biped",
+     "controller_contracts": [
+      "joint_targets",
+      "legged_tracker"
+     ],
+     "actuator_adapter": "joint_pd_position_servo",
+     "policy_actuators": 10,
+     "held_actuators": 0
+    },
+    "physics_validated": {
+     "ok": true,
+     "reason": null,
+     "total_mass_kg": 33.312,
+     "n_policy_joints": 10,
+     "n_feet": 2,
+     "nominal_height_m": 1.014471317587395,
+     "initial_min_contact_dist": 0.0,
+     "stands_under_static_pd_hold_3s": false,
+     "final_height": 0.162511827059864,
+     "start_height": 1.0194713175873948,
+     "timestep": 0.0005
+    },
+    "controller_validated": {
+     "ok": false,
+     "reason": "no tracker trained/validated for this body (not attempted)"
+    },
+    "teacher_validated": {
+     "ok": false,
+     "reason": "teacher not run (requires a validated controller)"
+    }
+   },
+   "source": "menagerie",
+   "kind": "biped",
+   "family": "agility_cassie",
+   "dir": "agility_cassie",
+   "file": "cassie.xml",
+   "license": "MIT",
+   "commit": "c96a32d28fb5da84da38c1da4d749e7a13212855",
+   "synthetic": false,
+   "lineage": [
+    "menagerie/agility_cassie",
+    "menagerie/agility_cassie@c96a32d28fb5"
+   ],
+   "catalog_wall_s": 0.7499589920043945,
+   "status": "physics_validated"
+  }
+ ]
+}
