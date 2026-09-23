@@ -126,3 +126,18 @@ a reward in simulation training only; never a policy input). Optional documented
 5. Learning rate scaled for a small model; everything else per Z-1 C.3 unless a run config says otherwise.
 
 This is **not** a faithful Z-1 reproduction (different model, task, branch rule and scale).
+
+## 9. measured ratio sensitivity of the exact path likelihood (run finding, 2026-09-21)
+
+With K = 8 fully stochastic steps and ~16×8 valid coordinates per step, the summed path log-ratio is
+extremely sensitive to parameter changes: the smallest transition std is s_{K−1} = a h/√(1−h) ≈ 0.067
+(1/s² ≈ 224). v3 runs at lr 3e-5 had a ratio clip fraction of 0.95–0.98 in every iteration although the
+first-pass ratio was exactly 1 (max |ρ−1| ≤ 8e-5). The training-seed probe
+(`scripts/dev/grpo_ratio_probe.py`, output `artifacts/runs/adapt_grpo_suffix_xarm7pg2_v3/ratio_probe.txt`)
+measured the median |log ρ| after ONE Adam step: 12.6 (lr 3e-5), 2.2 (1e-5), 0.53 (3e-6), 0.16 (1e-6);
+with a deterministic last step: 5.4 / 1.3 / 0.33 / 0.10. Consequences for v4:
+- exact objective: lr 3e-7, 2 epochs, `last_step="deterministic"` (RLinf `ignore_last`), still summed;
+- a **dimension-normalized surrogate** (`logprob_reduction="mean_dims"`: log-ratio divided by
+  #valid coords × #stochastic steps, as in Flow-GRPO/RLinf code) is run as a separately named variant.
+  It is not an exact likelihood ratio.
+These choices come from training-side diagnostics only, never from evaluation outcomes.
