@@ -1,6 +1,8 @@
 # functional composition at the runtime level (support_insert)
 
-Status: **verified** for the scripted privileged teacher (`scripted_teacher`) on two arm pairs.
+Status: **verified** for the scripted privileged teacher (`scripted_teacher`, teacher v2 per D-019).
+The teacher-v1 run is archived under `artifacts/assets/functional_composition/archive_teacher_v1/`; its
+conclusions are the same.
 No learned policy is involved; this shows that the task runtime + teacher implement
 data-dependent composition, not only a sequence. Raw outputs:
 `artifacts/assets/functional_composition/parm5_pair.json`,
@@ -57,10 +59,24 @@ The runtime does not fall back to some other frame.
 
 ## second pair (menagerie panda_pg2 + ur5e_pg2)
 
-See `panda_ur5e_pair.json`. It has the same four conditions; the summary is in the table
-below, copied from the file.
+| condition | panda_pg2 + ur5e_pg2 (10 seeds, all feasible) |
+|---|---|
+| receipt | 10/10 physical, 10/10 public |
+| shifted | **0/10 physical, but 8/10 public "successes"** (public insertion-depth false positives, see below) |
+| fixed_order | 0/10 physical, 0/10 public (align times out and retries) |
+| stale_receipt | 0/10; align `pending(binding_unavailable)` |
 
-PANDA_TABLE_PLACEHOLDER
+Paired command shift: the final align goal moved by the injected receipt offset within 0.2 mm on
+9/10 seeds. Seed 7 had a 38 mm residual; its last recorded align goal belongs to a different
+point of the approach, and this is not investigated further.
+
+On this stronger arm pair, the peg jams on the fixture top at the wrong location and slips in
+the grasp faster than the public in-hand belief (12-detection window) can follow. The public
+`insertion_depth_m` then crosses 20 mm, the runtime marks `insert` as succeeded and the teacher
+releases, while the privileged evaluator records a failure. This is the public-estimator
+limitation recorded in D-018: dataset labels use the privileged evaluator, and
+`public_runtime_success` is stored separately. The proposed fix, not implemented, is the
+conservative minimum of the depth from direct detection and the FK-based depth.
 
 ## estimator issue found during this experiment (fixed)
 
@@ -69,8 +85,9 @@ detections. In the `shifted` condition the peg jammed on the fixture surface and
 the grasp. The stale in-hand belief then made the public `insertion_depth_m` report a
 successful insertion that had not physically happened. That run's output was overwritten and
 is not used for any number here. The window was reduced to 12 detections
-(`INHAND_WINDOW` in `src/rrp/sim/dual.py`). The re-run reported above has public and
-privileged outcomes that agree in every condition. The disagreement rate between public and
+(`INHAND_WINDOW` in `src/rrp/sim/dual.py`). With the shorter window, public and privileged outcomes
+agree in every condition for the parm5 pair. They still disagree for the panda pair (above), so
+the window change reduces the problem but does not remove it. The disagreement rate between public and
 privileged success is also tracked per pair in the teacher validation
 (`artifacts/assets/dual_teacher_validation/*.summary.json`, field `agree`).
 
