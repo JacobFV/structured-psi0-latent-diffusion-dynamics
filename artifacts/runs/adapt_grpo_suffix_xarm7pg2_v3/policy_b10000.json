@@ -1,0 +1,11 @@
+{
+ "path": "artifacts/runs/adapt_grpo_suffix_xarm7pg2_v3/policy_b10000.pt",
+ "sha256_16": "905d43a323f360a6",
+ "step": 80,
+ "versions": {
+  "policy": "adapt_start_bc_xarm7pg2_only_v2",
+  "featurizer": "feat-v2",
+  "codec": null,
+  "adaptation": "grpo@2"
+ }
+}

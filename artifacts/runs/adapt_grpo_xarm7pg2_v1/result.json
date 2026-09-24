@@ -1,0 +1,123 @@
+{
+ "method": "grpo",
+ "robot": "xarm7_pg2",
+ "checkpoint": "artifacts/runs/adapt_start_bc_xarm7pg2_v1/policy.pt",
+ "gpu": {
+  "cuda": true,
+  "declared_bytes": 8589934592,
+  "device_total_bytes": 128453668864,
+  "fraction": 0.06687185090131269
+ },
+ "evals": [
+  {
+   "attempted": 64,
+   "successes": 0,
+   "success_rate": 0.0,
+   "wilson95": [
+    0.0,
+    0.05662406063551054
+   ],
+   "infeasible": 0,
+   "outcomes": {
+    "timeout": 64
+   },
+   "public_private_agreement": 1.0,
+   "eval_wall_s": 39.257511377334595,
+   "budget": 0,
+   "actual_new_transitions": 0,
+   "reused_prefix_transitions": 0,
+   "wall_s": 39.280622482299805,
+   "counters": {
+    "new_transitions": 0,
+    "reused_prefix_transitions": 0,
+    "episodes": 0,
+    "groups": 0,
+    "rollout_wall_s": 0.0,
+    "update_wall_s": 0.0
+   }
+  },
+  {
+   "attempted": 64,
+   "successes": 0,
+   "success_rate": 0.0,
+   "wilson95": [
+    0.0,
+    0.05662406063551054
+   ],
+   "infeasible": 0,
+   "outcomes": {
+    "timeout": 64
+   },
+   "public_private_agreement": 1.0,
+   "eval_wall_s": 38.65774631500244,
+   "budget": 10000,
+   "actual_new_transitions": 19200,
+   "reused_prefix_transitions": 0,
+   "wall_s": 135.47997117042542,
+   "counters": {
+    "new_transitions": 19200,
+    "reused_prefix_transitions": 0,
+    "episodes": 64,
+    "groups": 8,
+    "rollout_wall_s": 57.26643705368042,
+    "update_wall_s": 0.001013040542602539
+   }
+  },
+  {
+   "attempted": 64,
+   "successes": 0,
+   "success_rate": 0.0,
+   "wilson95": [
+    0.0,
+    0.05662406063551054
+   ],
+   "infeasible": 0,
+   "outcomes": {
+    "timeout": 64
+   },
+   "public_private_agreement": 1.0,
+   "eval_wall_s": 37.33312940597534,
+   "budget": 50000,
+   "actual_new_transitions": 57600,
+   "reused_prefix_transitions": 0,
+   "wall_s": 275.8837842941284,
+   "counters": {
+    "new_transitions": 57600,
+    "reused_prefix_transitions": 0,
+    "episodes": 192,
+    "groups": 24,
+    "rollout_wall_s": 159.9059669971466,
+    "update_wall_s": 0.0024366378784179688
+   }
+  }
+ ],
+ "modules": {
+  "trainable_params": 1975585,
+  "total_params": 2647732,
+  "frozen_modules": [
+   "context",
+   "readout",
+   "codec",
+   "controller"
+  ],
+  "changed_modules": [
+   "blocks",
+   "h_emb",
+   "node",
+   "node_from_ctx",
+   "out",
+   "out_norm",
+   "tau",
+   "z_in"
+  ]
+ },
+ "counters": {
+  "new_transitions": 57600,
+  "reused_prefix_transitions": 0,
+  "episodes": 192,
+  "groups": 24,
+  "rollout_wall_s": 159.9059669971466,
+  "update_wall_s": 0.0024366378784179688
+ },
+ "wall_s": 275.88515067100525
+}

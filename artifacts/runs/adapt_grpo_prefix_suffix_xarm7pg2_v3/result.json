@@ -1,0 +1,215 @@
+{
+ "method": "grpo_shared_prefix",
+ "robot": "xarm7_pg2",
+ "checkpoint": "artifacts/runs/adapt_start_bc_xarm7pg2_only_v2/policy.pt",
+ "gpu": {
+  "cuda": true,
+  "declared_bytes": 8589934592,
+  "device_total_bytes": 128453668864,
+  "fraction": 0.06687185090131269
+ },
+ "evals": [
+  {
+   "full_episode": {
+    "attempted": 64,
+    "successes": 0,
+    "success_rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.05662406063551054
+    ],
+    "infeasible": 0,
+    "outcomes": {
+     "timeout": 64
+    },
+    "public_private_agreement": 1.0,
+    "eval_wall_s": 39.38136601448059
+   },
+   "suffix": {
+    "protocol": "suffix_after_scripted_teacher_grasp",
+    "attempted": 64,
+    "successes": 1,
+    "success_rate": 0.015625,
+    "wilson95": [
+     0.0027635418927853816,
+     0.08334101684786545
+    ],
+    "infeasible": 0,
+    "prefix_failed": 0,
+    "outcomes": {
+     "failure": 22,
+     "success": 1,
+     "timeout": 41
+    },
+    "eval_wall_s": 31.45038342475891
+   },
+   "attempted": 64,
+   "successes": 1,
+   "success_rate": 0.015625,
+   "wilson95": [
+    0.0027635418927853816,
+    0.08334101684786545
+   ],
+   "primary": "suffix_after_scripted_teacher_grasp",
+   "budget": 0,
+   "budget_counter": "new_transitions",
+   "actual_new_transitions": 0,
+   "actual_learned_transitions": 0,
+   "reused_prefix_transitions": 0,
+   "wall_s": 70.90244030952454,
+   "counters": {
+    "new_transitions": 0,
+    "learned_transitions": 0,
+    "reused_prefix_transitions": 0,
+    "episodes": 0,
+    "groups": 0,
+    "rollout_wall_s": 0.0,
+    "update_wall_s": 0.0
+   }
+  },
+  {
+   "full_episode": {
+    "attempted": 64,
+    "successes": 0,
+    "success_rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.05662406063551054
+    ],
+    "infeasible": 0,
+    "outcomes": {
+     "timeout": 64
+    },
+    "public_private_agreement": 1.0,
+    "eval_wall_s": 42.10965895652771
+   },
+   "suffix": {
+    "protocol": "suffix_after_scripted_teacher_grasp",
+    "attempted": 64,
+    "successes": 0,
+    "success_rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.05662406063551054
+    ],
+    "infeasible": 0,
+    "prefix_failed": 0,
+    "outcomes": {
+     "timeout": 64
+    },
+    "eval_wall_s": 48.66443753242493
+   },
+   "attempted": 64,
+   "successes": 0,
+   "success_rate": 0.0,
+   "wilson95": [
+    0.0,
+    0.05662406063551054
+   ],
+   "primary": "suffix_after_scripted_teacher_grasp",
+   "budget": 10000,
+   "budget_counter": "new_transitions",
+   "actual_new_transitions": 15999,
+   "actual_learned_transitions": 15695,
+   "reused_prefix_transitions": 2128,
+   "wall_s": 231.1123034954071,
+   "counters": {
+    "new_transitions": 15999,
+    "learned_transitions": 15695,
+    "reused_prefix_transitions": 2128,
+    "episodes": 64,
+    "groups": 8,
+    "rollout_wall_s": 44.136497497558594,
+    "update_wall_s": 24.87900424003601
+   }
+  },
+  {
+   "full_episode": {
+    "attempted": 64,
+    "successes": 0,
+    "success_rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.05662406063551054
+    ],
+    "infeasible": 0,
+    "outcomes": {
+     "failure": 2,
+     "timeout": 62
+    },
+    "public_private_agreement": 1.0,
+    "eval_wall_s": 35.036216020584106
+   },
+   "suffix": {
+    "protocol": "suffix_after_scripted_teacher_grasp",
+    "attempted": 64,
+    "successes": 0,
+    "success_rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.05662406063551054
+    ],
+    "infeasible": 0,
+    "prefix_failed": 0,
+    "outcomes": {
+     "failure": 26,
+     "timeout": 38
+    },
+    "eval_wall_s": 28.49306321144104
+   },
+   "attempted": 64,
+   "successes": 0,
+   "success_rate": 0.0,
+   "wilson95": [
+    0.0,
+    0.05662406063551054
+   ],
+   "primary": "suffix_after_scripted_teacher_grasp",
+   "budget": 50000,
+   "budget_counter": "new_transitions",
+   "actual_new_transitions": 56141,
+   "actual_learned_transitions": 55080,
+   "reused_prefix_transitions": 7427,
+   "wall_s": 504.60798168182373,
+   "counters": {
+    "new_transitions": 56141,
+    "learned_transitions": 55080,
+    "reused_prefix_transitions": 7427,
+    "episodes": 224,
+    "groups": 28,
+    "rollout_wall_s": 153.05517411231995,
+    "update_wall_s": 125.05648946762085
+   }
+  }
+ ],
+ "modules": {
+  "trainable_params": 1977889,
+  "total_params": 2653108,
+  "frozen_modules": [
+   "context",
+   "readout",
+   "codec",
+   "controller"
+  ],
+  "changed_modules": [
+   "blocks",
+   "h_emb",
+   "node",
+   "node_from_ctx",
+   "out",
+   "out_norm",
+   "tau",
+   "z_in"
+  ]
+ },
+ "counters": {
+  "new_transitions": 56141,
+  "learned_transitions": 55080,
+  "reused_prefix_transitions": 7427,
+  "episodes": 224,
+  "groups": 28,
+  "rollout_wall_s": 153.05517411231995,
+  "update_wall_s": 125.05648946762085
+ },
+ "wall_s": 504.61049795150757
+}

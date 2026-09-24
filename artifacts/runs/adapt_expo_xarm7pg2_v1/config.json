@@ -1,0 +1,35 @@
+{
+ "checkpoint": "artifacts/runs/adapt_start_bc_xarm7pg2_v1/policy.pt",
+ "robot": "xarm7_pg2",
+ "train_seed_start": 2000000,
+ "eval_seed_start": 3000000,
+ "eval_episodes": 64,
+ "eval_batch": 32,
+ "budgets": [
+  0,
+  10000,
+  50000
+ ],
+ "max_steps": 300,
+ "execute_prefix": 8,
+ "nfe": 8,
+ "seed": 0,
+ "note": "P18/P19 first pass: matched NEW control transitions; eval seeds disjoint from training seeds; reward = privileged simulator success (sim training only); hyperparameters fixed a priori, not tuned on eval.",
+ "name": "adapt_expo_xarm7pg2_v1",
+ "method": "expo",
+ "episodes_per_iter": 16,
+ "expo": {
+  "n_base": 8,
+  "beta": 0.05,
+  "ensemble": 10,
+  "hidden": 256,
+  "gamma": 0.99,
+  "utd": 20,
+  "batch": 64,
+  "env_steps_per_update": 40,
+  "lr_base": 1e-05,
+  "base_update": true,
+  "base_success_only": true
+ },
+ "out_dir": "artifacts/runs/adapt_expo_xarm7pg2_v1"
+}

@@ -1,0 +1,42 @@
+{
+ "dataset": "artifacts/datasets/pick_place_primary_v1",
+ "train_robots": [
+  "parm5_pg2",
+  "parm5_tf3",
+  "parm5s_pg2",
+  "parm5l_tf3",
+  "parm6_pg2",
+  "parm6_tf3",
+  "parm7_pg2",
+  "parm7_tf3",
+  "panda_pg2",
+  "ur5e_pg2",
+  "ur5e_tf3",
+  "sawyer_pg2",
+  "sawyer_tf3",
+  "xarm7_pg2"
+ ],
+ "horizon": 16,
+ "seed": 4242,
+ "name": "adapt_start_bc_xarm7pg2_v1",
+ "out_dir": "artifacts/runs/adapt_start_bc_xarm7pg2_v1",
+ "epochs": 10,
+ "batch_size": 256,
+ "lr": 0.0003,
+ "stride": 1,
+ "aux_weight": 0.1,
+ "policy": {
+  "width": 128,
+  "heads": 4,
+  "ctx_layers": 2,
+  "blocks": 4,
+  "horizon": 16,
+  "latent_dim": 1,
+  "structured": true,
+  "bias_mode": "true",
+  "aux": true,
+  "name": "adapt_start_bc_xarm7pg2_v1"
+ },
+ "episodes_per_robot": 40,
+ "note": "Adaptation starting point (P18/P19): BC on 13 source robots + 40 xarm7_pg2 target demos (first 40 successful target_demos episodes; source capped at 40 episodes/robot). Not a supervised-budget result."
+}

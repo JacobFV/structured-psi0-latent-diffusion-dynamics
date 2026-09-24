@@ -1,0 +1,10 @@
+{
+ "path": "artifacts/runs/adapt_start_bc_xarm7pg2_only_v1/policy.pt",
+ "sha256_16": "3de5b3c5bfda6b89",
+ "step": 2070,
+ "versions": {
+  "policy": "adapt_start_bc_xarm7pg2_only_v1",
+  "featurizer": "feat-v1",
+  "codec": null
+ }
+}

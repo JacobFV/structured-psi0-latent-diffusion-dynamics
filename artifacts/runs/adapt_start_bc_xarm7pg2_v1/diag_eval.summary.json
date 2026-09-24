@@ -1,0 +1,30 @@
+{
+ "panda_pg2": {
+  "attempted": 16,
+  "successes": 0,
+  "success_rate": 0.0,
+  "wilson95": [
+   0.0,
+   0.1936076829974049
+  ],
+  "infeasible": 0,
+  "outcomes": {
+   "timeout": 16
+  },
+  "public_private_agreement": 1.0
+ },
+ "xarm7_pg2": {
+  "attempted": 16,
+  "successes": 0,
+  "success_rate": 0.0,
+  "wilson95": [
+   0.0,
+   0.1936076829974049
+  ],
+  "infeasible": 0,
+  "outcomes": {
+   "timeout": 16
+  },
+  "public_private_agreement": 1.0
+ }
+}

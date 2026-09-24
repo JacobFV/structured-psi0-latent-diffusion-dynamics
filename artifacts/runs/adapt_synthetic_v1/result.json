@@ -1,0 +1,55 @@
+{
+ "history": [
+  {
+   "iteration": 0,
+   "success": 0.1045
+  },
+  {
+   "iteration": 10,
+   "success": 0.31,
+   "train_success": 0.2578125,
+   "first_pass_max_abs_ratio_minus_1": 0.0
+  },
+  {
+   "iteration": 20,
+   "success": 0.91,
+   "train_success": 0.875,
+   "first_pass_max_abs_ratio_minus_1": 0.0
+  },
+  {
+   "iteration": 30,
+   "success": 0.998,
+   "train_success": 1.0,
+   "first_pass_max_abs_ratio_minus_1": 0.0
+  },
+  {
+   "iteration": 40,
+   "success": 1.0,
+   "train_success": 0.9921875,
+   "first_pass_max_abs_ratio_minus_1": 0.0
+  },
+  {
+   "iteration": 50,
+   "success": 1.0,
+   "train_success": 1.0,
+   "first_pass_max_abs_ratio_minus_1": 0.0
+  },
+  {
+   "iteration": 60,
+   "success": 0.999,
+   "train_success": 1.0,
+   "first_pass_max_abs_ratio_minus_1": 0.0
+  }
+ ],
+ "before": 0.1045,
+ "after": 0.999,
+ "wall_s": 0.41053199768066406,
+ "sde": {
+  "nfe": 8,
+  "noise_level": 0.7,
+  "first_step": "clamp",
+  "last_step": "stochastic"
+ },
+ "reward": "sparse |a-1.5o|<0.35",
+ "label": "synthetic (not robot)"
+}

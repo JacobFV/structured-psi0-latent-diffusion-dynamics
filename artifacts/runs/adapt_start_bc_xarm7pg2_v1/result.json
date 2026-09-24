@@ -1,0 +1,23 @@
+{
+ "steps": 2490,
+ "wall_s": 729.6561253070831,
+ "train_chunks": 63990,
+ "n_params": 2647732,
+ "gpu": {
+  "cuda": true,
+  "declared_bytes": 12884901888,
+  "device_total_bytes": 128453668864,
+  "fraction": 0.10030777635196904
+ },
+ "interrupted": false,
+ "checkpoint": {
+  "path": "artifacts/runs/adapt_start_bc_xarm7pg2_v1/policy.pt",
+  "sha256_16": "09116770da210c71",
+  "step": 2490,
+  "versions": {
+   "policy": "adapt_start_bc_xarm7pg2_v1",
+   "featurizer": "feat-v1",
+   "codec": null
+  }
+ }
+}
