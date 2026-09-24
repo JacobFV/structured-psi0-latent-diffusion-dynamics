@@ -48,6 +48,7 @@ def job_unit(lease_id: str) -> str:
 class SystemdUserBackend:
     runner: tuple[str, ...] = ()
     dry_run: bool = False
+    unrestricted: bool = False     # peer mode (user instruction D-026): no CPU/memory caps, tracking only
 
     def _run(self, args: list[str], check: bool = True, timeout: float = 30) -> subprocess.CompletedProcess:
         cmd = list(args)
@@ -62,6 +63,10 @@ class SystemdUserBackend:
 
     def set_slice(self, slice_name: str, *, cpu_cores: float, memory_bytes: int,
                   tasks_max: int = 4096, memory_high_fraction: float = 0.8) -> None:
+        if self.unrestricted:
+            self._run(["systemctl", "--user", "set-property", "--runtime", slice_name, "CPUQuota=",
+                       "MemoryMax=infinity", "MemoryHigh=infinity", "TasksMax=infinity"])
+            return
         if memory_bytes <= 0:
             raise EnforcementError("memory allocation must be positive")
         high = int(memory_bytes * memory_high_fraction)

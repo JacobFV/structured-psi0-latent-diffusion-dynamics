@@ -54,10 +54,19 @@ def cmd_ops_watchdog(a):
     role = node_role()
     cfg = load_config()[role]
     br, be = make_broker(require_watchdog=False)
+    if cfg.get("unrestricted"):
+        # emergency-only guard (D-026): act only when the machine itself is about to fail
+        cfg = dict(cfg, memory_reserve_bytes=3 * 1024 ** 3, disk_reserve_bytes=2 * 1024 ** 3)
     wc = WatchdogConfig(memory_reserve_bytes=cfg["memory_reserve_bytes"], disk_reserve_bytes=cfg["disk_reserve_bytes"],
                         startup_memory_bytes=cfg["enforced"]["memory_bytes"],
                         startup_cpu_cores=cfg["enforced"]["cpu_cores"], disk_path=str(a.disk_path or repo_root()),
-                        fraction=0.5 if role == "host" else 1.0, psi_full_avg10_shed=25.0 if role == "host" else 80.0)
+                        fraction=0.5 if role == "host" else 1.0, psi_full_avg10_shed=25.0 if role == "host" else 101.0)
+    if cfg.get("unrestricted"):
+        wc.startup_memory_bytes = 10 ** 15
+        wc.startup_cpu_cores = 10000.0
+        wc.project_psi_full_avg10_shed = 101.0
+        wc.swap_growth_stop_bytes = wc.swap_growth_shed_bytes = 10 ** 15
+        wc.thermal_stop_admission_c = 100.0
     run_loop(br, be, wc, interval_s=a.interval, log_path=repo_root() / "ops" / "watchdog" / f"{role}.jsonl",
              max_iterations=a.iterations, gpu=(role == "peer"))
 

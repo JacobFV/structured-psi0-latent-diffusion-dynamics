@@ -80,3 +80,6 @@ The peer watchdog compared SwapFree to its start-time baseline; swapped-out page
 
 ## D-025 2026-09-21 disclosure: target body appeared in development evals
 Development evaluations dev_structured_partial, dev4 and dev5 included xarm7_pg2 (a primary TARGET body) on development scenes (3,000,000+). All its results were 0-1/20 and no recipe choice depended on them (recipe changes D-012/D-016/D-021/D-022 were motivated by source-body diagnostics). From now on development evaluation uses only source-train bodies on new scenes and the held-out-source bodies (parm5s_tf3, parm5l_pg2); target bodies are evaluated only in the sealed protocol.
+
+## D-026 2026-09-21 user instruction: no leases/limits on the peer
+User: "there should be no leases / limits on the peer machine (unless you're doing that to share the machine with multiple of your own trains)". Peer now runs in unrestricted mode: broker is a job registry only (no capacity refusals), lease slices have CPUQuota/MemoryMax/MemoryHigh unset, watchdog acts only on emergencies (MemAvailable < 3 GiB, disk < 2 GiB, GPU thermal slowdown / CPU >= 100 C or clock throttling). Host limits unchanged (shared machine).

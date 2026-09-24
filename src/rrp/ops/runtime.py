@@ -53,8 +53,11 @@ def measure_and_budget(role: str, disk_path: Path, window_s: float = 10.0) -> di
 def make_broker(role: str | None = None, *, require_watchdog: bool = True) -> tuple[ResourceBroker, SystemdUserBackend]:
     role = role or node_role()
     cfg = load_config()[role]
-    be = SystemdUserBackend()
-    lim = cfg["enforced"]
+    unrestricted = bool(cfg.get("unrestricted"))
+    be = SystemdUserBackend(unrestricted=unrestricted)
+    lim = dict(cfg["enforced"])
+    if unrestricted:   # registry/scheduler only: nothing is refused for capacity
+        lim.update(cpu_cores=10000.0, memory_bytes=10 ** 15, gpu_slots=64, disk_bytes=None)
     br = ResourceBroker(cpu_limit=lim["cpu_cores"], memory_limit_bytes=lim["memory_bytes"], backend=be,
                         state_dir=state_dir(role), lease_expiry_s=cfg.get("lease_expiry_s", 20),
                         gpu_slots=lim.get("gpu_slots", 0), disk_limit_bytes=lim.get("disk_bytes"),
