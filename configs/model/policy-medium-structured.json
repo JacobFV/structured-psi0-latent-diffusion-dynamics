@@ -36,5 +36,6 @@
   "aux": true,
   "name": "dev6_structured_medium"
  },
- "include_dart_failures": true
+ "include_dart_failures": true,
+ "packed_dir": "artifacts/packed/pp_v3dart_s2_H16"
 }

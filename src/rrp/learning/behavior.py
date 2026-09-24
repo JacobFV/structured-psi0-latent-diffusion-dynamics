@@ -110,10 +110,15 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
     torch.manual_seed(cfg["seed"])
     np.random.seed(cfg["seed"])
     rng = random.Random(cfg["seed"])
-    eps = load_episodes(Path(cfg["dataset"]), robots=set(cfg["train_robots"]),
-                        limit_per_robot=cfg.get("episodes_per_robot"),
-                        include_dart_failures=cfg.get("include_dart_failures", False))
-    ds = ChunkDataset(eps, cfg["horizon"], stride=cfg.get("stride", 1))
+    if cfg.get("packed_dir"):
+        from rrp.learning.packed import PackedChunkDataset
+        ds = PackedChunkDataset(Path(cfg["packed_dir"]))     # memory-mapped, shared across jobs
+        eps = []
+    else:
+        eps = load_episodes(Path(cfg["dataset"]), robots=set(cfg["train_robots"]),
+                            limit_per_robot=cfg.get("episodes_per_robot"),
+                            include_dart_failures=cfg.get("include_dart_failures", False))
+        ds = ChunkDataset(eps, cfg["horizon"], stride=cfg.get("stride", 1))
     codec = None
     if cfg.get("codec_checkpoint"):
         st = load_checkpoint(Path(cfg["codec_checkpoint"]), requested_versions=dict(featurizer=FEAT_VERSION))
