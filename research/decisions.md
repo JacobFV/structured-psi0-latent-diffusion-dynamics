@@ -77,3 +77,6 @@ Legged track (research/reports/legged_breadth.md): procedural hexapod/quadrupeds
 
 ## D-024 2026-09-21 swap-growth guard latched permanently (fixed)
 The peer watchdog compared SwapFree to its start-time baseline; swapped-out pages remain swapped even with ~96 GB available, so the guard stayed at "shed" and killed/refused all jobs (dev6_structured killed; GRPO track blocked). Now: growth measured over a ~60 s window; shedding additionally requires tight memory (MemAvailable < 3x reserve); otherwise only admission pauses until growth ages out.
+
+## D-025 2026-09-21 disclosure: target body appeared in development evals
+Development evaluations dev_structured_partial, dev4 and dev5 included xarm7_pg2 (a primary TARGET body) on development scenes (3,000,000+). All its results were 0-1/20 and no recipe choice depended on them (recipe changes D-012/D-016/D-021/D-022 were motivated by source-body diagnostics). From now on development evaluation uses only source-train bodies on new scenes and the held-out-source bodies (parm5s_tf3, parm5l_pg2); target bodies are evaluated only in the sealed protocol.
