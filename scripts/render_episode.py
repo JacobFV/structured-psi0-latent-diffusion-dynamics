@@ -1,0 +1,97 @@
+"""Render short labelled demo videos of teacher or learned-policy episodes (GPU EGL on the peer/host
+GPU lease). Usage:
+  render_episode.py --robot panda_pg2 --seeds 3000001,3000002 --source learned --checkpoint ckpt.pt --out artifacts/video
+  render_episode.py --robot panda_pg2 --seeds 3000001 --source scripted_teacher --out artifacts/video
+Each video's caption states the controller source, robot, task, seed and privileged-evaluator outcome, and a
+line is appended to artifacts/video/INDEX.md.
+"""
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import os
+from pathlib import Path
+
+os.environ.setdefault("MUJOCO_GL", "egl")
+
+import imageio
+import mujoco
+import numpy as np
+from PIL import Image, ImageDraw
+
+
+def caption(frame: np.ndarray, lines: list[str]) -> np.ndarray:
+    im = Image.fromarray(frame)
+    d = ImageDraw.Draw(im)
+    d.rectangle([0, 0, im.width, 14 * len(lines) + 6], fill=(0, 0, 0))
+    for i, t in enumerate(lines):
+        d.text((6, 3 + 14 * i), t, fill=(255, 255, 255))
+    return np.asarray(im)
+
+
+def run(args):
+    from rrp.morphology.catalog import workbench_robots
+    from rrp.sim.scenario import BUILDERS
+    from rrp.sim.native import Session
+    from rrp.control.teachers import PickPlaceTeacher
+    robot = workbench_robots()[args.robot]()
+    pol = None
+    if args.source == "learned":
+        import torch
+        from rrp.policy.runner import LearnedPolicy
+        dev = "cuda" if torch.cuda.is_available() else "cpu"
+        if dev == "cuda":
+            from rrp.ops.gpu import apply_cap
+            apply_cap()
+        pol = LearnedPolicy.from_checkpoint(args.checkpoint, device=dev, execute_prefix=args.prefix)
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    index = out / "INDEX.md"
+    for sd in [int(x) for x in args.seeds.split(",")]:
+        s = Session(BUILDERS[args.task](robot, sd, n_distractors=sd % 3), seed=sd)
+        r = mujoco.Renderer(s.model, args.height, args.width)
+        teacher = PickPlaceTeacher(s) if args.source == "scripted_teacher" else None
+        frames = []
+        label = "SCRIPTED TEACHER (privileged)" if teacher else f"LEARNED {Path(args.checkpoint).parent.name}"
+        for k in range(args.max_steps):
+            if teacher:
+                s.step(teacher.act())
+                done = teacher.done
+            else:
+                if not s.executor.queue:
+                    s.submit_chunk(pol.chunks([s])[0], execute_prefix=pol.execute_prefix)
+                s.step(None)
+                done = s.runtime.succeeded()
+            if k % args.every == 0:
+                r.update_scene(s.data, camera=args.camera)
+                st = " ".join(f"{e}:{v.status}" for e, v in s.runtime.instances.items())
+                frames.append(caption(r.render().copy(), [f"{label} | {args.robot} | {args.task} | seed {sd}",
+                                                          f"t={s.data.time:.1f}s  {st}"]))
+            if done:
+                break
+        ok = s.privileged_success()
+        tag = "success" if ok else "failure"
+        name = f"{dt.date.today()}_{args.source}_{args.robot}_{args.task}_s{sd}_{tag}.mp4"
+        imageio.mimsave(out / name, frames, fps=args.fps, quality=6)
+        with open(index, "a") as f:
+            f.write(f"- `{name}` — source={args.source} ckpt={args.checkpoint or '-'} robot={args.robot} "
+                    f"task={args.task} seed={sd} outcome={tag} (privileged evaluator)\n")
+        print(name, tag, flush=True)
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--robot", required=True)
+    ap.add_argument("--task", default="pick_place")
+    ap.add_argument("--seeds", required=True)
+    ap.add_argument("--source", choices=["scripted_teacher", "learned"], required=True)
+    ap.add_argument("--checkpoint")
+    ap.add_argument("--prefix", type=int, default=8)
+    ap.add_argument("--out", default="artifacts/video")
+    ap.add_argument("--camera", default="front")
+    ap.add_argument("--width", type=int, default=480)
+    ap.add_argument("--height", type=int, default=360)
+    ap.add_argument("--every", type=int, default=1)
+    ap.add_argument("--fps", type=int, default=20)
+    ap.add_argument("--max-steps", type=int, default=300)
+    run(ap.parse_args())
