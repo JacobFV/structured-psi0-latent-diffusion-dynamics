@@ -86,3 +86,6 @@ User: "there should be no leases / limits on the peer machine (unless you're doi
 
 ## D-027 2026-09-21 user authorized host GPU at 80% of free memory
 User: "authorize host GPU at 80% of free memory". Host memory budget (CPU+GPU unified) = min(0.8 x MemAvailable, MemAvailable - reserve), live-updated; host CPU unchanged at 50% of idle cores; up to 2 concurrent host GPU leases; every GPU job applies the in-process CUDA cap to its declared GPU memory; the host watchdog (MemAvailable, PSI, swap, thermal incl. GPU slowdown) sheds owned jobs when other users need the machine. Non-GPU host leases still run with PrivateDevices. Host jobs are resumable, non-critical-path by preference.
+
+## D-028 2026-09-21 BUG: broker held its lock across systemctl calls -> cascading lease expiry
+At 08:33-08:35 stopping one slow job (TimeoutStopSec 45 s) inside the broker's state lock (release/_expire/gc called backend.remove_lease under flock) blocked every other job's heartbeat for >20 s; five healthy peer jobs (dev6 x2, codec, support_insert x2) expired and were stopped. Fix: all systemd calls happen after the lock is released; lease expiry raised to 120 s; regression test test_slow_backend_cleanup_never_blocks_heartbeats. Affected runs restarted.

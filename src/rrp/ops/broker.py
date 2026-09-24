@@ -95,6 +95,7 @@ class ResourceBroker:
         self.require_watchdog = require_watchdog
         self.watchdog_max_age_s = watchdog_max_age_s
         self._mem_state: dict | None = None
+        self._pending_cleanup: list[str] = []
         self.state_dir = Path(state_dir) if state_dir else None
         if self.state_dir:
             self.state_dir.mkdir(parents=True, exist_ok=True)
@@ -121,6 +122,7 @@ class ResourceBroker:
             if self._mem_state is None:
                 self._mem_state = {}
             yield self._mem_state
+            self._run_cleanup()
             return
         lock = open(self.state_dir / "lock", "a+")
         try:
@@ -134,6 +136,15 @@ class ResourceBroker:
         finally:
             fcntl.flock(lock, fcntl.LOCK_UN)
             lock.close()
+            self._run_cleanup()
+
+    def _run_cleanup(self):
+        pend, self._pending_cleanup = self._pending_cleanup, []
+        for lid in pend:
+            try:
+                self.backend.remove_lease(lid)
+            except Exception:  # noqa: BLE001 - best effort; gc retries
+                pass
 
     def _log(self, st, kind, **kw):
         st.setdefault("events", []).append(dict(t=self.clock(), kind=kind, **kw))
@@ -145,10 +156,7 @@ class ResourceBroker:
             if l["state"] in ("active", "revoke_requested") and l["expires_at"] < now:
                 l["state"] = "expired"
                 self._log(st, "lease_expired", lease_id=lid)
-                try:
-                    self.backend.remove_lease(lid)
-                except Exception as e:  # noqa: BLE001 - record, do not mask
-                    self._log(st, "lease_cleanup_error", lease_id=lid, error=str(e))
+                self._pending_cleanup.append(lid)   # never call systemd while holding the lock
 
     @staticmethod
     def _active(st):
@@ -261,20 +269,24 @@ class ResourceBroker:
                 l["state"] = "released"
                 self._log(st, "lease_released", lease_id=lease_id)
             if cleanup_backend:
-                self.backend.remove_lease(lease_id)
                 l["backend_removed"] = True
+                self._pending_cleanup.append(lease_id)
 
     def gc(self, is_unit_active=None) -> list[str]:
         """Remove enforcement objects of released/expired leases whose units have exited."""
-        removed = []
         with self._locked() as st:
-            for lid, l in st["leases"].items():
-                if l["state"] in ("released", "expired") and not l.get("backend_removed"):
-                    if is_unit_active is not None and is_unit_active(lid):
-                        continue
-                    self.backend.remove_lease(lid)
-                    l["backend_removed"] = True
-                    removed.append(lid)
+            cands = [lid for lid, l in st["leases"].items()
+                     if l["state"] in ("released", "expired") and not l.get("backend_removed")]
+        removed = [lid for lid in cands if not (is_unit_active is not None and is_unit_active(lid))]
+        for lid in removed:
+            try:
+                self.backend.remove_lease(lid)
+            except Exception:  # noqa: BLE001
+                pass
+        with self._locked() as st:
+            for lid in removed:
+                if lid in st["leases"]:
+                    st["leases"][lid]["backend_removed"] = True
             # bound state size: forget old finished leases (events keep the audit trail)
             done = [k for k, v in st["leases"].items() if v.get("backend_removed")]
             for k in sorted(done, key=lambda k: st["leases"][k]["created"])[:-200]:

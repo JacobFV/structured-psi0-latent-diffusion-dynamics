@@ -35,7 +35,7 @@ def cmd_ops_init(a):
         enforced["memory_bytes"] = min(enforced["memory_bytes"], _parse_bytes(a.memory_cap))
     if role == "host":
         enforced["host_gpu"] = "authorized_by_user_D027_in_process_cap_plus_watchdog"
-    cfg[role] = {"measurement": m, "enforced": enforced, "lease_expiry_s": 20, "gpu_authorized": role == "host",
+    cfg[role] = {"measurement": m, "enforced": enforced, "lease_expiry_s": 120, "gpu_authorized": role == "host",
                  "memory_reserve_bytes": int(b["memory_reserve_gib"] * 1024 ** 3),
                  "disk_reserve_bytes": int(b["disk_reserve_gib"] * 1024 ** 3),
                  "startup_new_disk_bytes": int(b["new_disk_gib"] * 1024 ** 3)}

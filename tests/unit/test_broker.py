@@ -118,3 +118,23 @@ def test_max_runtime_triggers_checkpoint(tmp_path):
     l = b.acquire(ResourceRequest(cpu_cores=1, memory_bytes=10, max_seconds=30))
     clk.t += 31
     assert b.heartbeat(l.lease_id).action == "checkpoint_and_stop"
+
+
+def test_slow_backend_cleanup_never_blocks_heartbeats(tmp_path):
+    """Regression (D-028): systemctl stop inside the lock blocked all heartbeats -> cascade expiry."""
+    import threading, time
+    from tests.support import fake_enforcement_backend
+    be = fake_enforcement_backend()
+    slow = lambda lid: time.sleep(2.0)
+    be.remove_lease = slow
+    b = ResourceBroker(cpu_limit=4, memory_limit_bytes=10**9, backend=be, state_dir=tmp_path)
+    victim = b.acquire(ResourceRequest(cpu_cores=1, memory_bytes=10))
+    other = b.acquire(ResourceRequest(cpu_cores=1, memory_bytes=10))
+    th = threading.Thread(target=lambda: b.release(victim.lease_id))
+    th.start()
+    time.sleep(0.2)
+    b2 = ResourceBroker(cpu_limit=4, memory_limit_bytes=10**9, backend=be, state_dir=tmp_path)
+    t0 = time.time()
+    assert b2.heartbeat(other.lease_id).action == "continue"
+    assert time.time() - t0 < 0.5
+    th.join()
