@@ -74,3 +74,6 @@ dev5 (D-021) dev-scene closed-loop successes (prefix 8): structured panda 2/20, 
 
 ## D-023 2026-09-21 humanoid breadth status (no retroactive gate change)
 Legged track (research/reports/legged_breadth.md): procedural hexapod/quadrupeds and go2/anymal_c trackers pass their pre-declared controller gates; t1/g1/h1 trackers walk and arc without falls but FAIL the pre-declared in-place-turn criterion. We do not relax that gate after the fact: humanoids are reported as "limited qualification: forward/arc waypoint locomotion" and the >=3 humanoid-family breadth gate is recorded as NOT MET unless turning is fixed in a new, separately registered tracker iteration. psi0 36/80-dim contracts implemented; no body validated for them (menagerie G1/H1 lack the required hands) -> blocked_external for psi0-native control.
+
+## D-024 2026-09-21 swap-growth guard latched permanently (fixed)
+The peer watchdog compared SwapFree to its start-time baseline; swapped-out pages remain swapped even with ~96 GB available, so the guard stayed at "shed" and killed/refused all jobs (dev6_structured killed; GRPO track blocked). Now: growth measured over a ~60 s window; shedding additionally requires tight memory (MemAvailable < 3x reserve); otherwise only admission pauses until growth ages out.

@@ -88,10 +88,12 @@ def evaluate(sample: dict, cfg: WatchdogConfig, st: WatchdogState) -> Verdict:
             bump("shed", f"project_memory_{proj}_exceeds_live_limit_{live_mem}")
     sf = sample.get("swap_free")
     if sf is not None and sf >= 0:
-        if st.baseline_swap_free is None:
-            st.baseline_swap_free = sf
-        growth = st.baseline_swap_free - sf
-        if growth > cfg.swap_growth_shed_bytes:
+        # swap GROWTH over a recent window (~60 s at 2 s sampling); already-swapped pages that
+        # never come back must not latch the guard forever (D-024)
+        st.swap_hist = (getattr(st, "swap_hist", None) or [])[-30:] + [sf]
+        growth = max(st.swap_hist) - sf
+        tight = avail is not None and avail >= 0 and avail < cfg.memory_reserve_bytes * 3
+        if growth > cfg.swap_growth_shed_bytes and tight:
             bump("shed", f"swap_growth:{growth}")
         elif growth > cfg.swap_growth_stop_bytes:
             bump("stop_admission", f"swap_growth:{growth}")

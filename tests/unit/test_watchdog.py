@@ -41,11 +41,17 @@ def test_external_load_rise_sheds_when_project_exceeds_live_limit():
     assert v2.level == "shed"
 
 
-def test_swap_growth_escalates():
+def test_swap_growth_escalates_only_recently_and_when_tight():
     st = WatchdogState()
     evaluate(ok_sample(swap_free=4 * G), cfg(), st)
     assert evaluate(ok_sample(swap_free=4 * G - 300 * 1024**2), cfg(), st).level == "stop_admission"
-    assert evaluate(ok_sample(swap_free=2 * G), cfg(), st).level == "shed"
+    assert evaluate(ok_sample(swap_free=2 * G, memory_available=20 * G), cfg(), st).level == "shed"
+    st2 = WatchdogState()
+    evaluate(ok_sample(swap_free=4 * G), cfg(), st2)
+    assert evaluate(ok_sample(swap_free=2 * G), cfg(), st2).level == "stop_admission"   # plenty of RAM: no kill
+    for _ in range(40):                                                                   # old growth ages out
+        v = evaluate(ok_sample(swap_free=2 * G), cfg(), st2)
+    assert v.level == "ok"
 
 
 def test_psi_must_be_sustained_before_shedding():
