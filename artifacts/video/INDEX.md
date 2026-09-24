@@ -1,0 +1,1 @@
+- `2026-09-21_scripted_teacher_panda_pg2_pick_place_s3000001_success.mp4` — source=scripted_teacher ckpt=- robot=panda_pg2 task=pick_place seed=3000001 outcome=success (privileged evaluator)
