@@ -1,0 +1,36 @@
+{
+ "dataset": "artifacts/datasets/support_insert_primary_v2",
+ "train_robots": [
+  "parm5_pg2__parm5_pg2",
+  "parm6_pg2__parm7_tf3",
+  "parm7_pg2__parm5_tf3",
+  "parm6_tf3__parm6_pg2",
+  "parm5_tf3__parm7_pg2",
+  "panda_pg2__ur5e_pg2",
+  "ur5e_pg2__sawyer_pg2",
+  "sawyer_pg2__panda_pg2",
+  "ur5e_tf3__parm6_pg2",
+  "sawyer_tf3__ur5e_pg2"
+ ],
+ "horizon": 16,
+ "seed": 1701,
+ "name": "si_dev_unstructured",
+ "out_dir": "artifacts/runs/si_dev_unstructured",
+ "epochs": 6,
+ "batch_size": 128,
+ "lr": 0.0003,
+ "stride": 1,
+ "aux_weight": 0.1,
+ "policy": {
+  "width": 256,
+  "heads": 4,
+  "ctx_layers": 3,
+  "blocks": 6,
+  "horizon": 16,
+  "latent_dim": 1,
+  "name": "si_dev_unstructured",
+  "structured": false,
+  "bias_mode": "none",
+  "aux": false
+ }
+}
