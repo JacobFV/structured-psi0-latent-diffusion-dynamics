@@ -1,0 +1,40 @@
+{
+ "dataset": "artifacts/datasets/pick_place_primary_v3dart",
+ "train_robots": [
+  "parm5_pg2",
+  "parm5_tf3",
+  "parm5s_pg2",
+  "parm5l_tf3",
+  "parm6_pg2",
+  "parm6_tf3",
+  "parm7_pg2",
+  "parm7_tf3",
+  "panda_pg2",
+  "ur5e_pg2",
+  "ur5e_tf3",
+  "sawyer_pg2",
+  "sawyer_tf3"
+ ],
+ "horizon": 16,
+ "seed": 1701,
+ "name": "dev6_structured_medium",
+ "out_dir": "artifacts/runs/dev6_structured_medium",
+ "epochs": 6,
+ "batch_size": 256,
+ "lr": 0.0003,
+ "stride": 2,
+ "aux_weight": 0.1,
+ "policy": {
+  "width": 512,
+  "heads": 8,
+  "ctx_layers": 3,
+  "blocks": 12,
+  "horizon": 16,
+  "latent_dim": 1,
+  "structured": true,
+  "bias_mode": "true",
+  "aux": true,
+  "name": "dev6_structured_medium"
+ },
+ "include_dart_failures": true
+}
