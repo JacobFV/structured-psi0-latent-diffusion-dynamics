@@ -1,0 +1,11 @@
+{
+ "path": "artifacts/runs/adapt_grpo_exact_suffix_xarm7pg2_v4/policy_b10000.pt",
+ "sha256_16": "0c5890e1e65f60cc",
+ "step": 100,
+ "versions": {
+  "policy": "dev_structured_direct",
+  "featurizer": "feat-v2",
+  "codec": null,
+  "adaptation": "grpo@2"
+ }
+}

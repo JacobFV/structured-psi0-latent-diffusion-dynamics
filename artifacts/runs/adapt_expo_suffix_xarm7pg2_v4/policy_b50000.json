@@ -1,0 +1,11 @@
+{
+ "path": "artifacts/runs/adapt_expo_suffix_xarm7pg2_v4/policy_b50000.pt",
+ "sha256_16": "336cb19935a2a321",
+ "step": 0,
+ "versions": {
+  "policy": "dev_structured_direct",
+  "featurizer": "feat-v2",
+  "codec": null,
+  "adaptation": "expo-base@0"
+ }
+}
