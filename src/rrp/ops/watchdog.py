@@ -193,7 +193,8 @@ def collect_sample(cfg: WatchdogConfig, st: WatchdogState, project_slice="rrp.sl
 
 def run_loop(broker, backend, cfg: WatchdogConfig, *, interval_s: float = 2.0, log_path: Path,
              max_iterations: int | None = None, checkpoint_grace_s: float = 30.0, gpu: bool = False,
-             sample_fn=None, emergency_grace_s: float = 5.0, max_log_bytes: int = 20 * 1024 ** 2):
+             sample_fn=None, emergency_grace_s: float = 5.0, max_log_bytes: int = 20 * 1024 ** 2,
+             adjust_limits: bool = True):
     st = WatchdogState()
     shed_started: dict[str, float] = {}
     i = 0
@@ -206,7 +207,7 @@ def run_loop(broker, backend, cfg: WatchdogConfig, *, interval_s: float = 2.0, l
         v = evaluate(sample, cfg, st)
         broker.watchdog_beat(dict(level=v.level, reasons=v.reasons, t=time.time(),
                                   live_memory_bytes=v.live_memory_bytes, live_cpu_cores=v.live_cpu_cores))
-        if v.live_memory_bytes is not None and v.live_cpu_cores is not None:
+        if adjust_limits and v.live_memory_bytes is not None and v.live_cpu_cores is not None:
             broker.update_limits(cpu_cores=max(v.live_cpu_cores, 0.05), memory_bytes=v.live_memory_bytes)
         if v.level == "ok":
             if st.stable_count >= cfg.stable_window_samples and broker.totals()["admission_stopped"]:

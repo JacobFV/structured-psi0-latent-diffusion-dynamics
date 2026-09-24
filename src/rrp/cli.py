@@ -68,7 +68,7 @@ def cmd_ops_watchdog(a):
         wc.swap_growth_stop_bytes = wc.swap_growth_shed_bytes = 10 ** 15
         wc.thermal_stop_admission_c = 100.0
     run_loop(br, be, wc, interval_s=a.interval, log_path=repo_root() / "ops" / "watchdog" / f"{role}.jsonl",
-             max_iterations=a.iterations, gpu=True)
+             max_iterations=a.iterations, gpu=True, adjust_limits=not cfg.get("unrestricted"))
 
 
 def cmd_ops_start_watchdog(a):
