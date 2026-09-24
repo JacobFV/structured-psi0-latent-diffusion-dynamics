@@ -98,8 +98,8 @@ def run_leased(argv: list[str], *, cpu: float, memory_bytes: int, label: str, gp
         if k in os.environ and k not in env:
             env[k] = os.environ[k]
     host = node_role() == "host"
-    if host and gpu:
-        raise RuntimeError("host GPU work is disabled (no verified isolation; research/decisions.md D-004/D-007)")
+    if host and gpu and not load_config()["host"].get("gpu_authorized"):
+        raise RuntimeError("host GPU work is disabled unless authorized (D-004/D-007/D-027)")
     if not gpu:
         env["CUDA_VISIBLE_DEVICES"] = ""
         env.update(SOFTWARE_RENDER_ENV)

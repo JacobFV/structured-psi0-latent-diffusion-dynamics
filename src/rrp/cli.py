@@ -28,14 +28,14 @@ def cmd_ops_init(a):
     cfgp = config_path()
     cfg = json.loads(cfgp.read_text()) if cfgp.exists() else {"schema_version": "1.0", "policy_id": "shared-host-half-free-v1"}
     enforced = {"cpu_cores": round(b["cpu_cores"] - 0.005, 2), "memory_bytes": b["memory_bytes"],
-                "gpu_slots": 0 if role == "host" else 3, "disk_bytes": int(b["new_disk_gib"] * 1024 ** 3)}
+                "gpu_slots": 2 if role == "host" else 3, "disk_bytes": int(b["new_disk_gib"] * 1024 ** 3)}
     if a.cpu_cap is not None:
         enforced["cpu_cores"] = min(enforced["cpu_cores"], a.cpu_cap)
     if a.memory_cap:
         enforced["memory_bytes"] = min(enforced["memory_bytes"], _parse_bytes(a.memory_cap))
     if role == "host":
-        enforced["host_gpu"] = "disabled_pending_verified_isolation"
-    cfg[role] = {"measurement": m, "enforced": enforced, "lease_expiry_s": 20,
+        enforced["host_gpu"] = "authorized_by_user_D027_in_process_cap_plus_watchdog"
+    cfg[role] = {"measurement": m, "enforced": enforced, "lease_expiry_s": 20, "gpu_authorized": role == "host",
                  "memory_reserve_bytes": int(b["memory_reserve_gib"] * 1024 ** 3),
                  "disk_reserve_bytes": int(b["disk_reserve_gib"] * 1024 ** 3),
                  "startup_new_disk_bytes": int(b["new_disk_gib"] * 1024 ** 3)}
@@ -60,7 +60,7 @@ def cmd_ops_watchdog(a):
     wc = WatchdogConfig(memory_reserve_bytes=cfg["memory_reserve_bytes"], disk_reserve_bytes=cfg["disk_reserve_bytes"],
                         startup_memory_bytes=cfg["enforced"]["memory_bytes"],
                         startup_cpu_cores=cfg["enforced"]["cpu_cores"], disk_path=str(a.disk_path or repo_root()),
-                        fraction=0.5 if role == "host" else 1.0, psi_full_avg10_shed=25.0 if role == "host" else 101.0)
+                        fraction=0.8 if role == "host" else 1.0, psi_full_avg10_shed=25.0 if role == "host" else 101.0)
     if cfg.get("unrestricted"):
         wc.startup_memory_bytes = 10 ** 15
         wc.startup_cpu_cores = 10000.0
@@ -68,7 +68,7 @@ def cmd_ops_watchdog(a):
         wc.swap_growth_stop_bytes = wc.swap_growth_shed_bytes = 10 ** 15
         wc.thermal_stop_admission_c = 100.0
     run_loop(br, be, wc, interval_s=a.interval, log_path=repo_root() / "ops" / "watchdog" / f"{role}.jsonl",
-             max_iterations=a.iterations, gpu=(role == "peer"))
+             max_iterations=a.iterations, gpu=True)
 
 
 def cmd_ops_start_watchdog(a):

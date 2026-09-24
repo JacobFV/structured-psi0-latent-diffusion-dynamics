@@ -7,7 +7,7 @@ def test_half_free_not_half_total():
     b = host_budget(total_ram_gib=128, available_ram_gib=40,
                     free_cpu_cores=6, free_disk_gib=200,
                     total_disk_gib=1000)
-    assert b.memory_gib <= 20
+    assert b.memory_gib <= 0.8 * 40      # D-027: host memory at 80% of free (user authorization)
     assert b.cpu_cores <= 3
     assert b.new_disk_gib <= 100
     assert not b.host_gpu_enabled
@@ -23,7 +23,7 @@ def test_reserve_dominates_when_little_is_free():
     # 14 GiB free, reserve 12.8 GiB -> only 1.2 GiB usable, not 7
     b = host_budget(total_ram_gib=128, available_ram_gib=14, free_cpu_cores=4,
                     free_disk_gib=50, total_disk_gib=1000)
-    assert b.memory_gib == pytest.approx(14 - 12.8)
+    assert b.memory_gib == pytest.approx(14 - 12.8)   # reserve still dominates
     assert b.new_disk_gib == 0.0  # disk reserve 100 GiB > free 50 GiB
 
 
@@ -41,10 +41,13 @@ def test_zero_totals_and_inconsistent_values_rejected():
         host_budget(total_ram_gib=10, available_ram_gib=11, free_cpu_cores=1, free_disk_gib=1, total_disk_gib=1)
 
 
-def test_host_fraction_cannot_exceed_half():
+def test_host_fraction_limits():
     with pytest.raises(BudgetError):
         compute_budget(role="host", total_ram_gib=128, available_ram_gib=100, free_cpu_cores=10,
                        free_disk_gib=100, total_disk_gib=1000, policy=RolePolicy(0.6, 0.5, 0.5))
+    with pytest.raises(BudgetError):
+        compute_budget(role="host", total_ram_gib=128, available_ram_gib=100, free_cpu_cores=10,
+                       free_disk_gib=100, total_disk_gib=1000, policy=RolePolicy(0.5, 0.9, 0.5))
 
 
 def test_peer_policy_uses_all_free_after_small_reserve():

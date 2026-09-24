@@ -25,7 +25,8 @@ class WatchdogConfig:
     startup_memory_bytes: int
     startup_cpu_cores: float
     disk_path: str
-    fraction: float = 0.5
+    fraction: float = 0.5          # memory fraction of free
+    cpu_fraction: float = 0.5
     swap_growth_stop_bytes: int = 256 * 1024 ** 2
     swap_growth_shed_bytes: int = 1 * GIB
     psi_full_avg10_shed: float = 25.0
@@ -138,7 +139,7 @@ def evaluate(sample: dict, cfg: WatchdogConfig, st: WatchdogState) -> Verdict:
     if sample.get("idle_cores") is not None:
         live_cpu = live_cpu_limit(startup_limit=cfg.startup_cpu_cores, idle_now=sample["idle_cores"],
                                   project_usage=sample.get("project_cpu_cores") or 0.0,
-                                  fraction=cfg.fraction)
+                                  fraction=cfg.cpu_fraction)
     st.stable_count = st.stable_count + 1 if level == "ok" else 0
     return Verdict(level, reasons, live_mem, live_cpu)
 

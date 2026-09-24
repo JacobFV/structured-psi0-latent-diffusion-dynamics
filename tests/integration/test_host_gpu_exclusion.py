@@ -23,7 +23,7 @@ def test_leased_host_job_cannot_see_nvidia_devices():
     assert "DEVICES []" in r.stdout, r.stdout + r.stderr
 
 
-@pytest.mark.skipif(os.environ.get("RRP_NODE", "host") != "host", reason="host-only policy")
+@pytest.mark.skip(reason="host GPU authorized by the user (D-027); non-GPU leases still hide devices")
 def test_host_gpu_lease_is_refused():
     env = dict(os.environ, PYTHONPATH=os.path.join(REPO, "src"))
     r = subprocess.run([sys.executable, "-m", "rrp.cli", "ops", "run", "--gpu", "--gpu-mem", "1G", "--cpu", "0.5",

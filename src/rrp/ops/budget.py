@@ -37,7 +37,8 @@ class RolePolicy:
 
     @classmethod
     def host(cls) -> "RolePolicy":
-        return cls(0.5, 0.5, 0.5)
+        # D-027: user authorized host GPU use at 80% of FREE memory (unified CPU+GPU); CPU stays 50%
+        return cls(0.5, 0.8, 0.5)
 
     @classmethod
     def peer(cls) -> "RolePolicy":
@@ -46,8 +47,8 @@ class RolePolicy:
                    disk_reserve_gib=10.0, disk_reserve_total_fraction=0.0)
 
     def validate(self, role: str) -> None:
-        upper = 0.5 if role == "host" else 1.0
         for name in ("free_cpu_fraction", "free_memory_fraction", "free_disk_fraction"):
+            upper = 1.0 if role != "host" else (0.8 if name == "free_memory_fraction" else 0.5)
             v = _finite_nonneg(getattr(self, name), name)
             if v > upper:
                 raise BudgetError(f"{role} {name} {v} exceeds protected maximum {upper}")

@@ -83,3 +83,6 @@ Development evaluations dev_structured_partial, dev4 and dev5 included xarm7_pg2
 
 ## D-026 2026-09-21 user instruction: no leases/limits on the peer
 User: "there should be no leases / limits on the peer machine (unless you're doing that to share the machine with multiple of your own trains)". Peer now runs in unrestricted mode: broker is a job registry only (no capacity refusals), lease slices have CPUQuota/MemoryMax/MemoryHigh unset, watchdog acts only on emergencies (MemAvailable < 3 GiB, disk < 2 GiB, GPU thermal slowdown / CPU >= 100 C or clock throttling). Host limits unchanged (shared machine).
+
+## D-027 2026-09-21 user authorized host GPU at 80% of free memory
+User: "authorize host GPU at 80% of free memory". Host memory budget (CPU+GPU unified) = min(0.8 x MemAvailable, MemAvailable - reserve), live-updated; host CPU unchanged at 50% of idle cores; up to 2 concurrent host GPU leases; every GPU job applies the in-process CUDA cap to its declared GPU memory; the host watchdog (MemAvailable, PSI, swap, thermal incl. GPU slowdown) sheds owned jobs when other users need the machine. Non-GPU host leases still run with PrivateDevices. Host jobs are resumable, non-critical-path by preference.
