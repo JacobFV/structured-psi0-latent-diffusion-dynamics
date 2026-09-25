@@ -223,7 +223,10 @@ def _acc(d, res):
 
 def evaluate_dual_latent(policy: DualLatentPolicy, realizer, probe, task: str, pair: str, seeds: list[int], *,
                          method: str, replan_ticks: int = 8, max_steps: int = 800, batch: int = 20,
-                         out_path: Path | None = None, device="cpu") -> list[DualLatentEpisode]:
+                         out_path: Path | None = None, device="cpu", packet_edit: str | None = None
+                         ) -> list[DualLatentEpisode]:
+    """packet_edit='swap_slots' (causal intervention): system 0 receives each packet with its two slots' z values
+    exchanged (handles unchanged), i.e. the left arm is driven by the right arm's latent and vice versa."""
     from rrp.control.dual_validate import make_session
     from rrp.control.dual_teachers import TEACHERS
     from rrp.model.latent_probes import probe_metrics
@@ -249,6 +252,8 @@ def evaluate_dual_latent(policy: DualLatentPolicy, realizer, probe, task: str, p
                 pk = policy.packets([S[k] for k in need])
                 for k, p in zip(need, pk):
                     meta[k]["calls"] += 1
+                    if packet_edit == "swap_slots":
+                        p = p.model_copy(update={"z": np.ascontiguousarray(p.z[:, ::-1]), "source": "debug"})
                     try:
                         s0[k].receive(p, now=float(S[k].data.time), graph_version=S[k].runtime.graph_version)
                     except (ControllerRejection, StaleActionError):
@@ -281,7 +286,7 @@ def evaluate_dual_latent(policy: DualLatentPolicy, realizer, probe, task: str, p
                                              m["steps"], m["calls"], s0[k].stats.ticks, s0[k].stats.rejected,
                                              s0[k].stats.fallback_holds, float(s.data.time), time.time() - m["t0"],
                                              {e: v.status for e, v in s.runtime.instances.items()}, m["probes"],
-                                             m["probes_swap"], source=f"learned:{policy.name}"))
+                                             m["probes_swap"], source=f"learned:{policy.name}" + (f"+edit:{packet_edit}" if packet_edit else "")))
     if out_path:
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with open(out_path, "a") as fh:

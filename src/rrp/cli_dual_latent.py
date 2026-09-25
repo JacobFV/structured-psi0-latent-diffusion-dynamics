@@ -53,7 +53,7 @@ def cmd_eval(a):
     for pair in a.pairs.split(","):
         res = evaluate_dual_latent(pol, R, P, a.task, pair, list(range(a.seed_start, a.seed_start + a.episodes)),
                                    method=a.method, batch=a.batch, out_path=Path(a.out), device=dev,
-                                   replan_ticks=a.replan, max_steps=a.max_steps)
+                                   replan_ticks=a.replan, max_steps=a.max_steps, packet_edit=a.packet_edit)
         att = [r for r in res if r.outcome != "infeasible"]
         k = sum(r.privileged_success for r in att)
         def agg(key):
@@ -68,7 +68,7 @@ def cmd_eval(a):
             for e, st_ in r.events.items():
                 ev_done.setdefault(e, {}).setdefault(st_, 0)
                 ev_done[e][st_] += 1
-        summ[pair] = dict(task=a.task, source=f"learned:{a.checkpoint}", attempted=len(att), successes=k,
+        summ[pair] = dict(task=a.task, source=f"learned:{a.checkpoint}", packet_edit=a.packet_edit, attempted=len(att), successes=k,
                           public_successes=sum(r.public_success for r in att), wilson95=wilson(k, len(att)),
                           outcomes={o: sum(r.outcome == o for r in res) for o in {r.outcome for r in res}},
                           event_final_status=ev_done, system_i_calls=sum(r.system_i_calls for r in att),
@@ -110,6 +110,7 @@ def register(p):
     e.add_argument("--batch", type=int, default=20)
     e.add_argument("--max-steps", type=int, default=800)
     e.add_argument("--probe")
+    e.add_argument("--packet-edit", choices=["swap_slots"], help="causal intervention on the received packet")
     e.add_argument("--cpu", action="store_true")
     e.add_argument("--out", required=True)
     e.set_defaults(fn=cmd_eval)
