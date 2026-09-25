@@ -1,6 +1,6 @@
 # structured-psi0-latent-diffusion-dynamics
 
-> Formerly `relational-robot-policy` (renamed 2026-09-25). The Python package/CLI is still `rrp`, and the working checkout on the GB10 hosts is still `~/work/relational-robot-policy`.
+> Public research repo, shared openly. Formerly `relational-robot-policy` (renamed 2026-09-25). The Python package/CLI is still `rrp`, and the working checkout on the GB10 hosts is still `~/work/relational-robot-policy`.
 
 Research system for **morphology-general robot control with a structured, semantic action latent**:
 a ψ₀-inspired stack where a planner ("system i") emits a continuous latent action packet `z` that carries the task's
