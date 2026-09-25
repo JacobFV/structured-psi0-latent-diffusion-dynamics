@@ -121,3 +121,5 @@ ul { margin: 2px 0; padding-left: 18px; }
   .main { grid-template-columns: 1fr 1fr; }
   .insp-col { grid-column: 1 / -1; }
 }
+
+.packet-banner{background:#1e3a8a;color:#fff;padding:4px 8px;border-radius:4px;font-weight:600;margin-bottom:6px}
