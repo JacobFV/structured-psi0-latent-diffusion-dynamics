@@ -1,0 +1,64 @@
+{
+ "out_dir": "artifacts/packed/dualarm_latent_v1_H16",
+ "horizon": 16,
+ "multi_m": 2,
+ "limits": {
+  "T": {
+   "morph": 24,
+   "scene": 8,
+   "task": 32,
+   "interact": 12
+  },
+  "N": 16,
+  "R": 256
+ },
+ "note": "dual-arm latent pack: support_insert v2 clean + DART v1 + handover v1 clean/DART; source-train pairs only; successes only (DART successes included)",
+ "sources": [
+  {
+   "dataset": "artifacts/datasets/support_insert_primary_v2",
+   "robots": [
+    "parm5_pg2__parm5_pg2",
+    "parm5_tf3__parm7_pg2",
+    "parm6_pg2__parm7_tf3",
+    "parm6_tf3__parm6_pg2",
+    "parm7_pg2__parm5_tf3",
+    "panda_pg2__ur5e_pg2",
+    "ur5e_pg2__sawyer_pg2",
+    "sawyer_tf3__ur5e_pg2"
+   ],
+   "statuses": [
+    "success"
+   ]
+  },
+  {
+   "dataset": "artifacts/datasets/support_insert_dart_v1",
+   "robots": [
+    "parm5_pg2__parm5_pg2",
+    "parm5_tf3__parm7_pg2",
+    "parm6_pg2__parm7_tf3",
+    "parm6_tf3__parm6_pg2",
+    "parm7_pg2__parm5_tf3",
+    "panda_pg2__ur5e_pg2",
+    "ur5e_pg2__sawyer_pg2",
+    "sawyer_tf3__ur5e_pg2"
+   ],
+   "statuses": [
+    "success"
+   ]
+  },
+  {
+   "dataset": "artifacts/datasets/handover_primary_v1dart",
+   "robots": [
+    "panda_pg2__ur5e_pg2",
+    "parm5_pg2__parm5_pg2",
+    "parm5_pg2__parm6_tf3",
+    "parm6_pg2__parm7_pg2",
+    "parm7_tf3__parm5_pg2",
+    "ur5e_pg2__sawyer_pg2"
+   ],
+   "statuses": [
+    "success"
+   ]
+  }
+ ]
+}

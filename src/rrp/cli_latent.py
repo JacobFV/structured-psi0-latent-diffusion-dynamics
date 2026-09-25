@@ -23,6 +23,8 @@ def register(sub):
     register_cell(p)
     register_latency(p)
     register_counterfactuals(p)
+    from rrp import cli_dual_latent
+    cli_dual_latent.register(p)
 
 
 def cmd_flow(a):
