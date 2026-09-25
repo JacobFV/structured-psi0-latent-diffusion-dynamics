@@ -1,14 +1,14 @@
 # project status — structured-psi0-latent-diffusion-dynamics (formerly relational robot policy)
 
-**ACTIVE: architecture correction (R38) on branch correction/controller-facing-latent — see research/corrections/controller-facing-semantic-latent.md. Old direct-action path = baseline only.**
+**ACTIVE: corrected architecture (R38) on `main`. Current priority (authoritative): research/corrections/2026-09-25-causal-semantics-priorities.md — a competent source controller and causally meaningful packet semantics before any expansion. Old direct-action path = baseline only.**
 
-Updated: 2026-09-25 (session 2). Overall: **in_progress** (not complete).
+Updated: 2026-09-25 14:00 PDT (session 2). Evidence: research/reports/evidence_matrix.md. Overall: **in_progress** (not complete).
 
 ## resolved environment
 - repo: `~/work/relational-robot-policy` (GitHub: JacobFV/structured-psi0-latent-diffusion-dynamics, renamed 2026-09-25) (host `Dell-gb10-1`, aarch64 GB10). Handoff in `docs/handoff/`.
 - peer: `gb10-direct` (hostname promaxgb10-4dfb, direct link). Workspace (RAM-backed, D-003): `/dev/shm/rrp-brandonin/{repo,venv,cache,bin}`.
 - host venv: `.venv` (CPU only). peer venv: `/dev/shm/rrp-brandonin/venv` (torch cu130, mujoco).
-- enforced parents: host `rrp.slice` 7.11 CPU / 20.0 GiB / swap 0 / host GPU off; peer `rrp.slice` ~15.9 CPU / ~88 GiB / 1 GPU slot. See `configs/resources.local.json`.
+- enforced parents (D-033/D-036): host `rrp.slice` 80% of free CPU/memory (14.97 CPU / 34.2 GiB at last init), disk reserve fixed 300 GB, host GPU allowed (2 leases); peer unrestricted (whole machine, D-008/D-026). See `configs/resources.local.json`.
 - watchdogs: `rrp-watchdog-host.service`, `rrp-watchdog-peer.service` (user services inside rrp-control.slice).
 
 ## how to run anything (always under a lease)
@@ -41,22 +41,21 @@ ssh gb10-direct 'cd /dev/shm/rrp-brandonin/repo && PATH=/dev/shm/rrp-brandonin/b
 | legged_vlm | ~/work/rrp-wt/legged_vlm | legged/humanoid + VLM system II on latent path | — |
 Host data mirror: ~/work/rrp-data/datasets only (packed removed, D-034: host disk reserve); packed-data training runs on the peer.
 
-## now (2026-09-25)
-- Stage A complete (research/reports/latent_slice1_progress.md). Probe analysis + loss-gap diagnosis: D-031.
-- RUNNING on peer: `scripts/latent_chain_v2.sh` (flow_latent_sem_v2 -> flow_latent_nosem_v2 -> 20-episode eval on
-  panda_pg2, parm6_tf3, parm5s_tf3, parm5l_pg2 -> disturbance -> labelled videos), then systemd unit `rrp-chain-v3`
-  runs the same chain for flow_latent_sem_v3. Log: /dev/shm/rrp-brandonin/repo/ops/logs/latent_chain_v{2,3}.out.
-- Resume (idempotent; training resumes from policy_last.pt, finished steps skipped): check `pgrep -af latent_chain` and
-  `systemctl --user status rrp-chain-v3` on the peer first; if neither runs, `scripts/peer_sync.sh push` then
-  `ssh gb10-direct 'cd /dev/shm/rrp-brandonin/repo && nohup setsid bash scripts/latent_chain_v2.sh latent_sem_v2 latent_nosem_v2 latent_sem_v3 > ops/logs/latent_chain_resume.out 2>&1 &'`.
-- After a peer reboot: push source, `scripts/peer_bootstrap.sh` (restores venv, menagerie on disk, data links),
-  copy `~/rrp-peer-data/artifacts-snapshot-20260921/runs/*` into repo/artifacts/runs/ if missing (snapshot is on the PEER).
-- Host `.venv` is a self-referencing symlink (broken); host tests currently run on the peer.
-- Remaining after the chain: counterexample, embodiment-swap, latency, composition, causal-edit acceptance tests;
-  four-way baseline comparison; target adaptation (xarm7_pg2, xarm7_tf3, panda_tf3) then packet-policy GRPO;
-  migrate VLM, dual-arm, legged work. Competent closed-loop performance of the corrected policy is NOT established.
+## now (2026-09-25 14:00)
+- Lead chain moved to the HOST GPU (the peer GPU was time-sliced 9 ways; flow_latent_sem_v2 had dropped to 0.3 steps/s):
+  user unit `rrp-chain-host` runs `RRP_NODE=host scripts/latent_chain_v2.sh latent_sem_v2 latent_nosem_v2 latent_sem_v3`
+  (it resumed sem_v2 exactly at step 24,543). Log: ops/logs/latent_chain_host.out. Outputs: artifacts/runs/flow_latent_*_v{2,3}
+  on the HOST (copy them to the peer store for other tracks). The peer chain and `rrp-chain-v3` are stopped.
+- Resume the lead chain (idempotent): `systemctl --user status rrp-chain-host`; if it is not running,
+  `cd ~/work/relational-robot-policy && systemd-run --user --unit rrp-chain-host --collect -p WorkingDirectory=$PWD --setenv=RRP_NODE=host --setenv=PATH=$PATH bash -c "exec bash scripts/latent_chain_v2.sh latent_sem_v2 latent_nosem_v2 latent_sem_v3 >> ops/logs/latent_chain_host.out 2>&1"`.
+- Tracks: see the table above. Each track's resume steps are in research/tracks/<track>.md; the branches are
+  track/<name> on origin, and the worktrees are ~/work/rrp-wt/<name>. On hold (D-037): baselines seeds 1702/1703 and SFT
+  budgets; GRPO runs; legged/VLM breadth.
+- After a peer reboot: push source, run `scripts/peer_bootstrap.sh` (it restores the venv, the menagerie on disk and the
+  data links), and copy `~/rrp-peer-data/artifacts-snapshot-20260921/runs/*` into repo/artifacts/runs/ if missing (the snapshot is on the PEER).
+- Host data: ~/work/rrp-data/{datasets,packed} (linked from artifacts/); menagerie at .cache/assets (pinned SHA).
 
-## current work (parallel tracks)
+## earlier work log (2026-09-21, superseded by the track table; kept for accounting)
 - lead: codec + structured/unstructured BC policies training on peer (artifacts/runs/codec_dev_v1, dev_structured_direct, dev_unstructured_direct).
 - agent tracks: legged/humanoid breadth; dual-arm support_insert/handover; GRPO/EXPO-FT; psi0 VLM backbone + object QA.
 

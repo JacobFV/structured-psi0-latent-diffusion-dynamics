@@ -8,10 +8,11 @@ meaning (which object, which manipulator, what relation should change, relative 
 uncertainty), and a fast embodiment-specific controller ("system 0") realizes that same `z` online from the robot's
 own proprioception and touch sensing. Simulation is native MuJoCo; everything runs on two NVIDIA GB10 machines.
 
-> **Status (2026-09-21):** research code, not a product. The corrected architecture (below) is being implemented on
-> branch `correction/controller-facing-latent`; the earlier direct-action policy is kept only as a baseline.
-> No learned policy is competent yet — see [`STATUS.md`](STATUS.md) and
-> [`research/decisions.md`](research/decisions.md) for the honest current state.
+> **Status (2026-09-25):** research code, not a product. The corrected architecture (below) is on `main`.
+> The earlier direct-action policy is kept only as a baseline. **No learned policy is competent in closed loop yet, and
+> causal packet semantics are not shown.** See [`research/reports/evidence_matrix.md`](research/reports/evidence_matrix.md)
+> for what is and is not established, and [`STATUS.md`](STATUS.md) / [`research/decisions.md`](research/decisions.md)
+> for the running work and its history.
 
 ---
 
@@ -133,12 +134,14 @@ tests/         unit/, integration/, browser/ (Playwright), gpu/
 
 ## resources and machines
 
-- **Host** (shared): at most 50% of currently free CPU; memory at most 80% of free, GPU authorized (user decision
-  D-027). Enforced by the broker plus a watchdog that sheds our own jobs under external pressure.
+- **Host** (shared): at most 80% of currently free CPU and memory, a fixed 300 GB shared-disk reserve, GPU authorized
+  (user decisions D-027, D-033, D-036). Enforced by the broker plus a watchdog that sheds our own jobs under external
+  pressure; `rrp ops run --disk` reserves disk for downloads/transfers up front.
 - **Peer** (`gb10-direct`, dedicated): unrestricted per user instruction (D-026), with a whole-project 100 GiB
   memory ceiling to protect the OS. The code/venv workspace is RAM-backed (`/dev/shm/rrp-brandonin`); datasets and
   packs live on `~/rrp-peer-data`. Rebuild after a reboot with `scripts/peer_bootstrap.sh`; sync code with
-  `scripts/peer_sync.sh push`.
+  `scripts/peer_sync.sh push`. Parallel agents each use their own peer code dir (`RRP_PEER_REPO`) with one shared
+  broker and artifact store (`scripts/peer_run.sh`).
 - No cloud spend, no public services (loopback only), no physical robots.
 
 ## development conventions

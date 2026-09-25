@@ -1,0 +1,32 @@
+# evidence matrix (current; updated 2026-09-25 14:00 PDT)
+
+The single place that states what has and has not been shown. Every cell is backed by a saved raw output (paths
+given) or says **not shown**. Column meanings:
+- **implementation**: code exists and a smoke run of the real pipeline passed.
+- **oracle-target behaviour**: packets made by the frozen encoder from the TEACHER's demonstrated actions (an oracle
+  diagnostic that uses future actions; not deployable).
+- **generated-packet behaviour**: packets sampled by system i from public observations (the deployable route).
+- **semantic interventions**: VALID edits of the packet (binding, manipulator, requested effect) with irrelevant-edit
+  controls. Zero/shuffle sensitivity and probe accuracy do not count as semantic control.
+- **held-out transfer**: target bodies of the sealed protocol (xarm7_pg2, xarm7_tf3, panda_tf3).
+
+Headline: **no learned policy is competent in closed loop yet, and causal packet semantics are not shown.**
+The priority is a competent source controller and causal packet semantics
+(research/corrections/2026-09-25-causal-semantics-priorities.md).
+
+| component | implementation | oracle-target behaviour | generated-packet behaviour | semantic interventions | held-out transfer |
+|---|---|---|---|---|---|
+| single-arm pick_place, corrected path (latent_sem) | verified: stage A, stage B (standardized, resumable), system 0 runtime, eval, disturbance, render (D-031) | Probes on encoded z, training distribution: held_by_pos 0.956, rel_pos 0.054 m, subtask 1.00; shuffled z 0.151 / 0.365 m / 0.645; metadata-only 0.000 / 0.268 m / 0.784 (`artifacts/runs/latent_*_v1/probe_*.json`). System-0 1-step teacher-forced MSE 0.0129 vs zero-action 0.213. **Closed-loop oracle route (R1): not shown yet** (ladder track). | Closed loop panda_pg2, dev seeds: flow v1 interrupted **0/64**; flow sem_v2 snapshot @22k **0/32**, never grasps, min TCP-cube 0.43 m (`artifacts/runs/grpo_latent_ref_*`). With a labelled 40-tick teacher prefix: 1/32 success, 12/32 grasps (not deployable). Full sem_v2 / nosem_v2 / sem_v3 dev evals: running (lead chain, host). | Counterexample (object rebinding) **FAILS**: 0/14 focus changes (D-032). The test had limitations (asymmetric graph edit, slot prior: metadata-only probe already gets focus 0.927); binding track is repairing it (symmetric rebinding, permutations, balanced bindings). Embodiment swap pg2↔tf3 on encoded z: focus agreement 0.98, subtask 1.00. Causal edits on the v1-interrupted generator: the packet matters (zero packet moves TCP 5.85 cm in 0.4 s vs 2.92 cm control), but directed edits are noise-level (rel +x: +0.03 cm) → **no semantic control shown**. | **not shown** (sealed; no competent source controller) |
+| latent_nosem (capacity-matched control) | verified | Probes: held_by_pos 0.888, rel_pos 0.258 m (≈ metadata only) | nosem_v2 training | counterexample 0/14 (same limitations) | not shown |
+| baseline_direct_action / action_only_codec | verified runner (`rrp campaign baseline-cell`, exact resume; D-035) | n/a | seed-1701 sources training on peer; **no results** | n/a | budget-0 cells queued after sources; SFT budgets on hold |
+| packet-policy GRPO | verified code + likelihood tests (`tests/unit/test_latent_grpo.py`) | n/a | from reset: no reward signal (0 successes); runs on hold until a source policy is competent | n/a | not started |
+| dual-arm (support_insert, handover), M=2 | verified pack/train smoke on 2 assemblies | teacher reference (scripted_teacher): support_insert 20/20, 19/20, 20/20, held-out source pair 9/17; handover 20/20 ×3, 16/16 | training; **no results** | paired manipulator-assignment tasks being generated (dualarm track) | not shown |
+| legged / humanoid | data collection + representation code | teacher data only | **not shown** (winding down: peripheral) | not shown | not shown |
+| VLM system II | smoke (Qwen3-VL weights hash-verified, isolated packages) | n/a | **not shown** | not shown | not shown |
+| compatibility / safety | verified: bundle fingerprint in compatibility IDs with a mismatch-rejection test (D-038); packet admission, staleness, spec checks | — | — | — | — |
+
+## in flight on the critical path
+1. ladder track: R0 expert → tracker, R1 oracle packet → system 0, R2 generated packet → system 0, on matched scenes (item 3).
+2. binding track: repaired counterexample, then paired physically consistent tasks through the whole pipeline, plus goal/predicted/observed-effect separation (items 1, 2, 5).
+3. acceptance track: valid semantic interventions plus irrelevant-edit controls, once a competent checkpoint exists (item 4).
+4. lead chain (host GPU): flow sem_v2 → nosem_v2 → sem_v3, each with a 20-episode dev eval on 4 source bodies, a disturbance test and videos.
