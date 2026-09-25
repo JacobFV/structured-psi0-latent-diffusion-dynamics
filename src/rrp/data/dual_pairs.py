@@ -34,6 +34,18 @@ def task_graph_hash(task: str) -> str:
     return hashlib.sha256(json.dumps(assign_task(task.split("_", 1)[1]), sort_keys=True).encode()).hexdigest()[:16]
 
 
+def annotate_validity(pairs: list) -> None:
+    """valid_demonstration = privileged success AND the assigned manipulator held the bar AND the other never did
+    (a DART episode can push the bar into the zone without a grasp: success, but not a demonstration of the
+    assignment). valid_pair = both variants valid. Consumers should train/evaluate pairs on valid ones only."""
+    for p in pairs:
+        for arm, v in p["variants"].items():
+            h = v.get("held_steps_by_manipulator") or {}
+            other = "right" if arm == "left" else "left"
+            v["valid_demonstration"] = bool(v["status"] == "success" and h.get(arm, 0) > 0 and h.get(other, 0) == 0)
+        p["valid_pair"] = all(v["valid_demonstration"] for v in p["variants"].values())
+
+
 def build_pair_index(ds_dir: Path, packed_dir: Path | None = None, check_scene: bool = True) -> dict:
     from rrp.data.collect import read_episode
     man = json.loads((ds_dir / "manifest.json").read_text())
@@ -74,7 +86,11 @@ def build_pair_index(ds_dir: Path, packed_dir: Path | None = None, check_scene: 
             fl, fr = scene_fingerprint("assign_left", rk, seed), scene_fingerprint("assign_right", rk, seed)
             row.update(scene_fingerprint=fl, scene_identical=fl == fr)
         pairs.append(row)
-    summ = dict(n_pairs=len(pairs), both_success=sum(p["both_success"] for p in pairs),
+    annotate_validity(pairs)
+    summ = dict(n_pairs=len(pairs), valid_pairs=sum(p["valid_pair"] for p in pairs),
+                invalid_success_packed_ep_idx=sorted(v["packed_ep_idx"] for p in pairs for v in p["variants"].values()
+                                                     if v["status"] == "success" and not v["valid_demonstration"]
+                                                     and v["packed_ep_idx"] is not None), both_success=sum(p["both_success"] for p in pairs),
                 scene_identical=sum(bool(p.get("scene_identical")) for p in pairs),
                 holder_matches_assignment=sum(p["holder_matches_assignment"] for p in pairs))
     by = {}
