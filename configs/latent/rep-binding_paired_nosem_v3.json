@@ -17,7 +17,7 @@
  ],
  "horizon": 16,
  "stride": 1,
- "include_dart_failures": true,
+ "include_dart_failures": false,
  "packed_dir": "artifacts/packed/binding_combined_v1_H16",
  "seed": 1701,
  "steps": 20000,

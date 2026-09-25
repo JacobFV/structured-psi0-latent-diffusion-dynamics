@@ -13,7 +13,7 @@
   "R": 256,
   "P": 64
  },
- "note": "Whole-pipeline binding diversity (track binding, D-037 item 2): single-arm object-binding pairs (pick_place_paired_v1: successes + DART failures, as in v1) + dual-arm manipulator-assignment pairs (assign_pick_place_v1 source_train successes, 5 invalid 'pushed, not grasped' DART episodes excluded; dev/held-out arm-swap pairs kept for evaluation). Multi-assembly format (M=2, role order).",
+ "note": "Whole-pipeline binding diversity (track binding, D-037 item 2): single-arm object-binding pairs (pick_place_paired_v1: clean + DART successes; DART failures are NOT included, unlike v1: they average ~280 rows/episode and would triple the pack to ~3.6M rows) + dual-arm manipulator-assignment pairs (assign_pick_place_v1 source_train successes, 5 invalid 'pushed, not grasped' DART episodes excluded; dev/held-out arm-swap pairs kept for evaluation). Multi-assembly format (M=2, role order).",
  "sources": [
   {
    "dataset": "artifacts/datasets/pick_place_paired_v1",
@@ -35,7 +35,7 @@
    "statuses": [
     "success"
    ],
-   "include_dart_failures": true
+   "include_dart_failures": false
   },
   {
    "dataset": "artifacts/datasets/assign_pick_place_v1",
