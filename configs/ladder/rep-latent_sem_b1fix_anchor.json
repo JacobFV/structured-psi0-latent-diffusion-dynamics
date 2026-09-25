@@ -23,11 +23,12 @@
  "steps": 15000,
  "batch_size": 128,
  "lr": 0.0003,
- "name": "ladder_latent_sem_b1fix",
- "out_dir": "artifacts/runs/ladder_latent_sem_b1fix",
+ "name": "ladder_latent_sem_b1fix_anchor",
+ "out_dir": "artifacts/runs/ladder_latent_sem_b1fix_anchor",
  "latent": {
-  "name": "ladder_latent_sem_b1fix",
+  "name": "ladder_latent_sem_b1fix_anchor",
   "semantic_weight": 1.0
  },
- "zero_prev_action": true
+ "zero_prev_action": true,
+ "realizer_anchor": true
 }

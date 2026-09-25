@@ -99,6 +99,110 @@ moves toward the cube but swings sideways first and the tool tilts progressively
 t=40-90); it descends next to/onto the cube and pushes it. Compounding 1-step error (covariate shift) + off-manifold
 packets; the teacher's relabel at those states is a large wrist correction (0.4-0.6 rad).
 
+## fixes tested so far (all system-0 realizer variants share the FROZEN sem_v1 encoder unless noted)
+| system 0 | on-teacher arm/grip err (prev 0) | R1 panda (30) | R1 panda re-anchored (30) | R1 parm6_tf3 (30) | R1 13 bodies x 24 (seeds 3.2M/3.3M) |
+|---|---|---|---|---|---|
+| sem_v1 R (B-1) | 0.030 / 0.78 | 0/30, approach 30 | - | - | - |
+| refit @2k (col 28 zeroed) | 0.0074 / 0.056 | 0/16 | 0/16 | - | 1/312 (sawyer_pg2); min TCP-cube 0.11-0.55 m |
+| + DAgger round 1 (`rz_sem_v1_dagger1`) | 0.0123 / 0.052 | running | 0/30: approach 19, grasp 11 | 0/30: approach 17, grasp 5, lift 5, transport 3 | 0/312; min TCP-cube 0.04-0.12 m; parm6 reach 11/24 |
+DAgger round 1 = 13 bodies x 24 R1 re-anchored rollouts of the @2k realizer (seeds 3,200,000+; 94k learner states),
+mixed 50/50 with the pack, 4k steps from the @4k refit (`configs/ladder/rz_sem_v1_dagger1.json`). It brings the hand to the
+cube and, on parm6_tf3, carries the cube to the zone in 3/30 (placing fails), but it also teaches large wrist corrections
+(cmd step 0.35 rad/tick on panda, tracking lag 0.11 rad) and raises the on-teacher error.
+
+### fixed-packet disturbance (`latent_eval.disturbance_test`, panda_pg2, seeds 3000100+, 10 x joints 1 and 3, +0.12 rad,
+packet held 8 ticks; final TCP deviation from the undisturbed rollout; raw `ladder_v1/panda_pg2/disturbance_oracle_*.jsonl`)
+| system 0 (oracle packet) | closed-loop system 0 | open-loop deltas | replay of absolute targets (servo only) |
+|---|---|---|---|
+| sem_v1 R, prev 0 | 0.034 m | 0.042 m | 0.0007 m |
+| sem_v1 R, prev own | 0.048 m | 0.061 m | 0.0010 m |
+| DAgger 1 | 0.038 m | 0.058 m | 0.0052 m |
+System 0 does NOT return to the packet's plan after a push: it realizes deltas relative to the CURRENT state, so a
+disturbance persists (3-5 cm), whereas plain absolute-target replay recovers to <1 cm. Same mechanism as the drift under
+compounding error. Proposed fix under test: an ANCHORED system-0 input — node column 28 (free after the B-1 fix) carries
+the joint displacement since the packet's anchor state, so the realizer can express targets relative to the plan, not
+only to the present (`realizer_anchor: true`; `rrp.control.latent_realizer.realizer_node_feats`).
+
+## running now
+- `ladder_rz_sem_v1_anchor` (anchored refit on frozen sem_v1 E, CPU), lease 1790375880_472857.
+- `ladder_rz_sem_v1_dagger2` (DAgger round 2: r1+r2 buffers, from dagger1, CPU), lease 1790375896_89c2cb.
+- `ladder_flow_sem_v2_b1fix_ft` (flow v2 fine-tuned 4k steps with col 28 zeroed, GPU), lease 1790374277_f0def8.
+- next: Stage A retrained jointly with the fix + anchor (`configs/ladder/rep-latent_sem_b1fix_anchor.json`, GPU) and
+  the pure 8k refit evaluation (`scripts/ladder_eval_rz.sh`).
+
+## infrastructure notes
+- Host `rrp ops run` is broken right now: every lease fails with systemd status 219/CGROUP ("Failed to create cgroup ...
+  Cannot allocate memory"); a 1 GiB lease fails with "MemoryHigh out of range". All ladder work runs on the peer.
+- `_prefetch` (forked collate workers) deadlocks when the parent already initialized torch on CPU-only or CUDA before
+  forking (seen twice: a CPU refit and a flow train with `"prefetch": true`, both stuck on a futex with idle workers).
+  Use the serial path (`prefetch_workers: 0` / no `prefetch`). On the contended peer GPU the prefetch refit ran at
+  0.73 s/step, the serial CPU refit at 0.33 s/step.
+
+## bug B-1: previous-action feature zeroed in the wrong column
+- Node features are `[static(26) | q, qd, PREV_ACTION, anchor(3), axis(3), jp(3), jr(3), lever(3)]` (NODE_DIM 44), so
+  prev-action is column **28**. Datasets were collected before D-021 with the teacher's previous 1-step command there.
+  D-021's load-time fix in `rrp.learning.data.episode_samples` tests/zeroes column **2** (a static column, always 0),
+  so it never fires: packs built since then (incl. `latent_pp_v3dart_s1_H16`) carry the teacher's previous command in
+  column 28 of node features and of the node rows of the morph bank. The deployed featurizer always writes 0 there.
+- Evidence (all on the peer store):
+  - Feature parity: replay of stored episode `pick_place_panda_pg2_s0` through the current featurizer/teacher
+    (`scripts/ladder_feature_parity.py artifacts/datasets/pick_place_primary_v3dart pick_place_panda_pg2_s0`): every
+    bank, relation, q0, local sensor and action is identical except node/morph column 28 (t >= 1). Packed column 28 is
+    non-zero in 66% of node entries (first 20k rows).
+  - Stage-A system 0 on the TEACHER's own clean trajectory (R0 route with a shadow system 0 fed oracle packets, not
+    executed; panda_pg2 seeds 3000000-1; `artifacts/runs/ladder_smoke/teacher_shadow*.jsonl`), normalized 1-step MSE vs
+    teacher label:
+    | prev-action input | arm | gripper | reference: arm hold-still error |
+    |---|---|---|---|
+    | 0 (current deployment) | 0.030 | 0.78 (close 1.0, transport 1.8, lower 2.0: it OPENS while carrying) | 0.018 |
+    | own previous command (training-consistent) | 0.0017 | 0.028 | 0.018 |
+    | training pack, same robot (`packed_check_sem_panda.json`) | 0.004-0.011 | 0.001-0.03 | 0.03-0.09 |
+    With the deployed input, system 0 is worse than holding still on the arm and inverts the gripper while carrying.
+- Fix (opt-in, default keeps running jobs/resumes bit-identical): `PackedChunkDataset(..., zero_prev_action=True)` /
+  config key `"zero_prev_action": true` for `train_representation` / `train_latent_flow` zeroes column 28 on node rows at
+  load (`rrp.learning.packed.PREV_ACTION_COL`; guard test `tests/unit/test_prev_action_col.py`). Verified: only node
+  column 28 and morph rows < n_nodes column 28 change. Stage A and Stage B must be retrained with it for a
+  deployment-consistent model. Alternatively deploy with the prev-action input = own previous command (ladder
+  `--prev-action own`); this is training-consistent in form but not in semantics (teacher vs own command, the D-021 copycat
+  concern) — the ladder measures both.
+- Affects also: old direct-action baselines (dev5/dev6), GRPO bases, binding-track representations (unless they set the
+  flag), dualarm pack (if built from pre-D-021 datasets; check column 28).
+
+## ladder table (panda_pg2 unless noted; dev seeds = first 30 feasible from 3,000,000; 300 ticks; replan 8; NFE 8)
+Raw: peer `artifacts/runs/ladder_v1/<robot>/<route>_<tag>.jsonl` (+ `.summary.json`); summarize with
+`scripts/ladder_peek.py <files>`. `prev` = what the deployed featurizer puts in node column 28 (B-1): `zero` = current
+deployment; `own` = system 0's own previous command (training-consistent form). Label error = normalized 1-step MSE of
+system 0 vs the shadow teacher's command at the visited state; on R0 it is the shadow system 0 on the teacher trajectory.
+| rung | system 0 | prev | success (Wilson 95%) | failed stage | min TCP-cube | arm / grip label err | track q (rad) / TCP (m) |
+|---|---|---|---|---|---|---|---|
+| R0 teacher (privileged) | shadow: sem_v1 R | own | 30/30 (0.89-1.0) | - | 0.003 | 0.0017 / 0.023 | 0.025 / 0.021 |
+| R0 teacher | shadow: sem_v1 R | zero | 30/30 (running) | - | | | |
+| R0 teacher | shadow: refit R @2k (B-1 fix) | zero | 8/8 | - | 0.003 | 0.0074 / 0.056 | 0.025 / 0.020 |
+| R1 oracle (ORACLE DIAGNOSTIC) | sem_v1 R | zero | 0/30 (0-0.11) | approach 30 | 0.42 | (diverged) | 0.006 / 0.005 (barely moves: 0.014 rad/tick) |
+| R1 oracle | sem_v1 R | own | 0/30 (0-0.11) | approach 30 | 0.28 | copycat drift | 0.073 / 0.10 |
+| R1 oracle | refit R @2k | zero | 0/16 | approach 14, grasp 2 | 0.084 | | 0.015 / 0.020 |
+| R1 oracle, re-anchored expert | refit R @2k | zero | 0/16 | approach 13, grasp 1, lift 2 | 0.095 | | 0.017 / 0.022 |
+| R2 flow v2@24543 | sem_v1 R | zero | 0/30 (0-0.11) | approach 30 | 0.44 | | 0.007 / 0.007 |
+| R2 flow v2@24543 | sem_v1 R | own | 0/30 (0-0.11) | approach 30 | 0.33 | | 0.032 / 0.031 |
+| R2 flow v2@24543 | refit R @2k | zero | 0/16 | approach 15, lift 1 | 0.22 | | 0.035 / 0.038 |
+parm6_tf3 (seeds 3000003..3000041, 30 feasible): R0 30/30 (track 0.006 rad / 0.007 m); shadow sem_v1 R on the teacher
+trajectory: prev own arm/grip 0.0018/0.0017, prev zero 0.0087/0.53 (arm hold-still reference 0.0048) -> B-1 on a
+second body too.
+
+Tracking: the joint tracker follows every route's commands closely (R0 0.025 rad mean lag at teacher speeds); failures are
+never tracker failures.
+
+Oracle vs generated z at the same states (R2 rows, `oracle_cmp`): probes read the generated packet as well as the oracle
+packet (held_by/acting_on/subtask 1.0, rel_pos 0.045 vs 0.043 m). With the OLD system 0 the action from generated vs
+oracle z differs by only 0.002 (it barely reads z; copycat of col 28). With the REFIT system 0 the difference is 0.89
+(normalized arm MSE; hold-still 0.017): once system 0 actually uses z, the generator's z (flow v2, itself trained with
+the B-1 input) drives it very differently from the oracle z -> the generator is the second failure point.
+
+R1 failure mode with the refit realizer (trace `artifacts/runs/ladder_smoke/oracle_ticks_zero_rz2k_re.jsonl`): the arm
+moves toward the cube but swings sideways first and the tool tilts progressively (tool z-axis 20-25 deg off vertical by
+t=40-90); it descends next to/onto the cube and pushes it. Compounding 1-step error (covariate shift) + off-manifold
+packets; the teacher's relabel at those states is a large wrist correction (0.4-0.6 rad).
+
 ## fixes being tested
 1. Realizer refit on frozen E with col 28 zeroed (B-1): `configs/ladder/rz_sem_v1_b1fix_ft.json`, lease 1790370807_bd05c2.
 2. System-0 DAgger: R1 (re-anchored expert) rollouts of the current refit realizer on all 13 source-train bodies, seeds
