@@ -16,7 +16,8 @@
   "structured": true,
   "bias_mode": "true",
   "attention": "factorized",
-  "name": "flow_binding_paired_nosem_v3"
+  "name": "flow_binding_paired_nosem_v3",
+  "slot_handles": true
  },
  "normalize_target": true,
  "snapshot_every": 1000,

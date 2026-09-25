@@ -28,9 +28,10 @@
  "latent": {
   "name": "binding_paired_nosem_v3",
   "semantic_weight": 0.0,
-  "binding_cf": 0.5
+  "binding_cf": 0.5,
+  "slot_handles": true
  },
- "notes": "Whole-pipeline binding diversity (correction 2026-09-25 item 2): paired scenes (identical initial scene, every cube assigned as patient in turn, role-independent slot order), each with its own scripted_teacher demonstration -> realizer/encoder/probes trained on binding-varying FACTUAL data; plus binding_cf 0.5 same-trajectory/different-meaning copies (probe+KL only, no realizer loss); goal_effect probe (item 5). 20k steps (v1 realize loss plateaus by ~15k). sem/nosem differ only in semantic_weight. Training pack also includes the dual-arm manipulator-assignment pairs (assign_pick_place_v1, source_train, 5 invalid DART episodes excluded).",
+ "notes": "Whole-pipeline binding diversity (correction 2026-09-25 item 2): paired scenes (identical initial scene, every cube assigned as patient in turn, role-independent slot order), each with its own scripted_teacher demonstration -> realizer/encoder/probes trained on binding-varying FACTUAL data; plus binding_cf 0.5 same-trajectory/different-meaning copies (probe+KL only, no realizer loss); goal_effect probe (item 5). 20k steps (v1 realize loss plateaus by ~15k). sem/nosem differ only in semantic_weight. Training pack also includes the dual-arm manipulator-assignment pairs (assign_pick_place_v1, source_train, 5 invalid DART episodes excluded). slot_handles: public tracker slot-id embedding on scene tokens (slot order is no longer canonical, so entity addresses must be given to the encoder; the probe addresses entities by slot id).",
  "prefetch": true,
  "probe": {
   "goal_effect": true

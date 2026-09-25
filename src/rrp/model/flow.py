@@ -58,6 +58,8 @@ class PolicyConfig:
     image_tokens: int = 0             # VLM resampled tokens appended to the scene bank
     image_dim: int = 0
     max_slots: int = 8
+    slot_handles: bool = False        # add a learned embedding of the PUBLIC tracker slot id (entity address) to
+                                      # scene tokens; needed when slot order is not canonical (paired binding data)
     name: str = "policy"
 
     @property
@@ -95,6 +97,7 @@ class ContextEncoder(nn.Module):
         self.text = nn.Linear(HASH_DIM, D)          # serialized pointer text (unstructured baseline)
         self.ptr = nn.Linear(D, D)                  # incidence message (structured)
         self.img = nn.Linear(cfg.image_dim, D) if cfg.image_tokens else None
+        self.slot_emb = nn.Embedding(cfg.max_slots, D) if cfg.slot_handles else None
         self.layers = nn.ModuleList()
         for _ in range(cfg.ctx_layers):
             self.layers.append(nn.ModuleDict(dict(n1=nn.LayerNorm(D), att=MHA(D, cfg.heads), n2=nn.LayerNorm(D),
@@ -106,6 +109,8 @@ class ContextEncoder(nn.Module):
             x = self.proj[b](batch.bank_tokens[b]) + self.bank_emb.weight[i] + self.kind_emb(batch.bank_kind[b].clamp(max=7))
             if not self.cfg.structured:
                 x = x + self.text(batch.bank_text[b])
+            if b == "scene" and self.slot_emb is not None:     # public slot address (tracker slot id)
+                x = x + self.slot_emb.weight[:x.shape[1]][None]
             parts.append(x)
             masks.append(batch.bank_mask[b])
         h = torch.cat(parts, 1)

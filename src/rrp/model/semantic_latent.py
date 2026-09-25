@@ -46,11 +46,12 @@ class LatentConfig:
     name: str = "latent_sem_v1"
     binding_cf: float = 0.0                        # fraction of each batch appended as counterfactual-binding copies
     binding_contrast: float = 0.0                  # optional weight: push E(cf) away from E(factual) (hinge)
+    slot_handles: bool = False                     # public slot-address embedding on scene tokens (see PolicyConfig)
 
     def version(self) -> str:
         d = asdict(self)
-        for k in ("binding_cf", "binding_contrast"):   # added later: omit at default so v1 versions are unchanged
-            if d[k] == 0.0:
+        for k, dflt in (("binding_cf", 0.0), ("binding_contrast", 0.0), ("slot_handles", False)):
+            if d[k] == dflt:                           # added later: omit at default so v1 versions are unchanged
                 d.pop(k)
         return "ls-" + hashlib.sha256(json.dumps(d, sort_keys=True, default=str).encode()).hexdigest()[:12]
 
@@ -80,7 +81,7 @@ class TargetEncoder(nn.Module):
         self.cfg = cfg
         D = cfg.width
         pc = PolicyConfig(width=D, heads=cfg.heads, ctx_layers=cfg.ctx_layers, blocks=1, horizon=cfg.horizon,
-                          structured=True, bias_mode="true", aux=False)
+                          structured=True, bias_mode="true", aux=False, slot_handles=cfg.slot_handles)
         self.context = ContextEncoder(pc)
         self.node = MLP(NODE_DIM, D)
         self.a_in = nn.Linear(1, D)
