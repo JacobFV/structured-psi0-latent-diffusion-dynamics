@@ -20,6 +20,7 @@ def register(sub):
     r.set_defaults(fn=cmd_rep)
     register_more(p)
     register_probe_cmd(p)
+    register_cell(p)
 
 
 def cmd_flow(a):
@@ -109,3 +110,24 @@ def register_probe_cmd(p):
     f.add_argument("--steps", type=int, default=6000)
     f.add_argument("--metadata-only", action="store_true")
     f.set_defaults(fn=cmd_fit_probes)
+
+
+def cmd_cell(a):
+    import torch
+    from rrp.evaluation.latent_campaign import run_latent_cell
+    if torch.cuda.is_available():
+        from rrp.ops.gpu import apply_cap
+        apply_cap()
+    proto = json.loads(open(a.protocol).read())
+    print(json.dumps(run_latent_cell(proto, a.method, a.seed, base_flow_config=a.base_flow_config,
+                                     target_packed=a.target_packed), indent=1))
+
+
+def register_cell(p):
+    c = p.add_parser("cell", help="resumable latent_slice1 campaign cell")
+    c.add_argument("--protocol", default="configs/eval/latent_slice1.json")
+    c.add_argument("--method", required=True)
+    c.add_argument("--seed", type=int, required=True)
+    c.add_argument("--base-flow-config", required=True)
+    c.add_argument("--target-packed", default="artifacts/packed/latent_targets")
+    c.set_defaults(fn=cmd_cell)

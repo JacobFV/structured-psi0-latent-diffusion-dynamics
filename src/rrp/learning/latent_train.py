@@ -332,3 +332,54 @@ def fit_probes_on_frozen(rep_path: Path, packed_dir: Path, out_path: Path, steps
                                                      seed=seed), result=res), out_path)
     out_path.with_suffix(".json").write_text(json.dumps(res, indent=1))
     return res
+
+
+def sft_latent_flow(flow_ckpt: Path, target_packed_dir: Path, budget: int, *, seed: int, out_dir: Path, steps: int,
+                    lr: float = 1e-4, packet_semantic_weight: float | None = None) -> dict:
+    """Supervised new-body adaptation of SYSTEM I only: latent meaning (encoder, probes) and system 0 frozen.
+    Episodes chosen by nested budgets over the target demo pool (fixed permutation per seed)."""
+    from rrp.evaluation.adaptation import nested_budget_indices
+    from rrp.model.latent_batch import assembly_batch
+    dev = _dev()
+    st = load_checkpoint(flow_ckpt, map_location=dev)
+    cfgj = st["config"]
+    lcfg, E, R, P, rep_res = load_representation(Path(cfgj["representation"]), dev)
+    pcfg = PolicyConfig(**dict(cfgj["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz, aux=False))
+    model = FlowPolicy(pcfg).to(dev)
+    model.load_state_dict(st["model"])
+    data = LatentData(target_packed_dir)
+    eps = sorted(set(data.ep.tolist()))
+    chosen = [eps[i] for i in nested_budget_indices(len(eps), [budget], seed)[budget]]
+    pool = [int(i) for i in np.nonzero(np.isin(data.ep, chosen))[0]]
+    transitions = len(pool)
+    w_sem = cfgj.get("packet_semantic_weight", 0.0) if packet_semantic_weight is None else packet_semantic_weight
+    opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
+    rng = random.Random(seed)
+    torch.manual_seed(seed)
+    t0 = time.time()
+    B = min(128, max(8, len(pool)))
+    for step in range(steps):
+        sel = np.array(sorted(rng.sample(pool, B) if len(pool) >= B else [rng.choice(pool) for _ in range(B)]))
+        batch, a, v, lab, r = data.fetch(sel, sel, dev)
+        with torch.no_grad():
+            af, am, ai = assembly_tokens(batch)
+            zt, _ = E(batch, a, v, af, am, ai)
+        ab = assembly_batch(batch)
+        smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
+        S = smask.shape[1]
+        fn = (lambda zc: probe_loss(P(zc, am, S), lab, smask)) if w_sem > 0 else None
+        loss, _ = model.loss(ab, zt, am[:, None, :].expand(-1, lcfg.knots, -1), None, packet_loss_fn=fn,
+                             packet_weight=w_sem)
+        opt.zero_grad()
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+        opt.step()
+    res = dict(budget=budget, seed=seed, demo_episodes=len(chosen), demo_control_transitions=transitions,
+               optimizer_updates=steps, wall_s=time.time() - t0, changed_modules="system_i_flow_only",
+               frozen=["target_encoder", "packet_probes", "system0_realizer"],
+               latent_space_version=rep_res["latent_space_version"], source_checkpoint=str(flow_ckpt))
+    out_dir.mkdir(parents=True, exist_ok=True)
+    save_checkpoint(out_dir / "policy.pt", model=model, optimizer=None, step=steps,
+                    versions=dict(st["versions"], adapted=True), config=cfgj, extra=dict(result=dict(st["extra"]["result"], sft=res)))
+    (out_dir / "result.json").write_text(json.dumps(res, indent=1))
+    return res
