@@ -270,6 +270,9 @@ class PackedChunkDataset:
                 node_rel[i, R[kp, 1], R[kp, 3], 16] = True
                 node_rel[i, R[kp, 3], R[kp, 1], 16] = True
             P = A["ptr"][i, :A["n_ptr"][i]].astype(np.int64)
+            if len(P):                 # drop pointers into tokens cut by bank truncation (else index past the bank)
+                ln = np.array([A[f"len_{b}"][i] for b in BANKS])
+                P = P[(P[:, 1] < ln[P[:, 0]]) & (P[:, 3] < ln[P[:, 2]])]
             if len(P):
                 ptr[i, :len(P), 0] = offs_arr[P[:, 0]] + P[:, 1]
                 ptr[i, :len(P), 1] = offs_arr[P[:, 2]] + P[:, 3]
