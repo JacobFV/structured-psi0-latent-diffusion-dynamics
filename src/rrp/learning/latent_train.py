@@ -94,33 +94,34 @@ class LatentData:
         return batch.to(dev), mv(a[..., 0]), mv(v), {k: mv(x) for k, x in lab.items()}, {k: mv(x) for k, x in r.items()}
 
 
-def _prefetch(data, B, rng, max_j, dev, depth: int = 4):
-    """Background thread: sample + collate on CPU ahead of the GPU step (same rng sequence as the serial loop)."""
-    import queue
-    import threading
-    q: queue.Queue = queue.Queue(maxsize=depth)
-    stop = threading.Event()
+_PF_DATA = None
 
-    def work():
-        while not stop.is_set():
-            sel, tgt, j = data.sample(B, rng, max_j)
-            item = (data.fetch(sel, tgt, "cpu"), j)
-            while not stop.is_set():
-                try:
-                    q.put(item, timeout=1)
-                    break
-                except queue.Full:
-                    pass
 
-    th = threading.Thread(target=work, daemon=True)
-    th.start()
+def _pf_fetch(sel, tgt):
+    return _PF_DATA.fetch(sel, tgt, "cpu")
+
+
+def _prefetch(data, B, rng, max_j, dev, depth: int = 6, workers: int = 3):
+    """Collate batches on CPU ahead of the GPU step in forked worker processes (the packed arrays are memory-mapped,
+    so workers share the page cache). Batch order = the serial rng sequence (sampling happens here, in order)."""
+    import collections
+    import multiprocessing as mp
+    from concurrent.futures import ProcessPoolExecutor
+    global _PF_DATA
+    _PF_DATA = data
+    ex = ProcessPoolExecutor(max_workers=workers, mp_context=mp.get_context("fork"))
+    pend = collections.deque()
     mv = lambda x: x.to(dev, non_blocking=True)
     try:
         while True:
-            (batch, a, v, lab, r), j = q.get()
+            while len(pend) < depth:
+                sel, tgt, j = data.sample(B, rng, max_j)
+                pend.append((ex.submit(_pf_fetch, sel, tgt), j))
+            fut, j = pend.popleft()
+            batch, a, v, lab, r = fut.result()
             yield batch.to(dev), mv(a), mv(v), {k: mv(x) for k, x in lab.items()}, {k: mv(x) for k, x in r.items()}, j
     finally:
-        stop.set()
+        ex.shutdown(wait=False, cancel_futures=True)
 
 
 def representation_step(E, R, P, data_b, cfg: LatentConfig, train=True):
