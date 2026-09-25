@@ -288,6 +288,9 @@ def fit_probe(cfg, out: Path):
                 _agg(agg, probe_metrics(P(mu, b["asm_mask"], b["body_asm"]), lab, b))
                 _agg(sh, probe_metrics(P(mu[torch.randperm(len(i), device=dev)], b["asm_mask"], b["body_asm"]), lab, b))
         res[mode] = dict(heldout=_fin(agg), heldout_shuffled_z=_fin(sh))
+        if mode == "z":
+            out.mkdir(parents=True, exist_ok=True)
+            torch.save(dict(state=P.state_dict(), mode=mode), out / "probe_posthoc.pt")
     out.mkdir(parents=True, exist_ok=True)
     (out / "probe_posthoc.json").write_text(json.dumps(dict(representation=cfg["representation"], **res), indent=1))
     return res

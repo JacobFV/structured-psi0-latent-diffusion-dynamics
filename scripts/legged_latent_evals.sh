@@ -6,7 +6,7 @@ RUN=/dev/shm/rrp-brandonin/repo/artifacts/runs/$1
 PAR=${2:-6}
 F=$RUN/policy.pt
 B6=go2,pquad4,hexapod6,sprawl4,sprawl8,hexapod6_long
-E="$PY -m rrp.evaluation.legged_latent_eval --flow $F"
+E="$PY -m rrp.evaluation.legged_latent_eval --flow $F ${3:+--posthoc-probe $3}"
 cmds=()
 for b in ${B6//,/ }; do cmds+=("$E --bodies $b --seeds 10000-10019 --out $RUN/eval_dev_$b.jsonl"); done
 for ed in mirror_goal halt probe_yaw:0.6 probe_yaw:-0.6 zero; do
