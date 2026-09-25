@@ -1,5 +1,7 @@
 # project status — relational robot policy
 
+**ACTIVE: architecture correction (R38) on branch correction/controller-facing-latent — see research/corrections/controller-facing-semantic-latent.md. Old direct-action path = baseline only.**
+
 Updated: 2026-09-21 (session 1). Overall: **in_progress** (not complete).
 
 ## resolved environment

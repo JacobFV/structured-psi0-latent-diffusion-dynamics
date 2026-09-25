@@ -1,5 +1,12 @@
 # agent operating notes (repo-level; the full contract is docs/handoff/AGENTS.md)
 
+## AUTHORITATIVE CORRECTION (2026-09-21) — read research/corrections/controller-facing-semantic-latent.md first
+System i generates a structured continuous latent packet z[b,knots,assemblies,d]; the semantic objectives are supervised
+ON THAT PACKET; system 0 consumes THE SAME packet with morphology + current proprio/local sensors + phase and emits
+native commands online. Acceptance evidence = probes of the received packet, not hidden-state probes. The old
+direct-action FlowPolicy and the action-only codec are BASELINES ONLY (never present them as the corrected architecture).
+Do not schedule old-path runs except as named baselines. Work on branch correction/controller-facing-latent.
+
 ## testing policy for this research stage (user instruction, 2026-09-21)
 Be much lighter on tests. At this stage we care about RESULTS; implementations get hardened and
 cleaned later, once they have proved their worth.
