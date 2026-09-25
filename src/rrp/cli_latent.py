@@ -22,6 +22,7 @@ def register(sub):
     register_probe_cmd(p)
     register_cell(p)
     register_latency(p)
+    register_counterfactuals(p)
 
 
 def cmd_flow(a):
@@ -145,3 +146,39 @@ def register_latency(p):
     c.add_argument("--direct")
     c.add_argument("--out", required=True)
     c.set_defaults(fn=cmd_latency)
+
+
+def cmd_counterfactuals(a):
+    import torch
+    from rrp.evaluation.latent_counterfactuals import counterexample, embodiment_swap
+    from rrp.learning.latent_train import load_representation
+    dev = "cuda" if a.gpu and torch.cuda.is_available() else "cpu"
+    _, E, _, P, res = load_representation(Path(a.representation), dev)
+    if a.probe:                                   # measurement probe fitted post hoc on frozen z (fair across variants)
+        from rrp.model.latent_probes import PacketProbe
+        st = torch.load(a.probe, map_location=dev, weights_only=False)
+        P = PacketProbe(**st["cfg"]).to(dev).eval()
+        P.load_state_dict(st["state"])
+    ds = Path(a.dataset)
+    out = dict(representation=a.representation, probe=a.probe or "representation (jointly trained)",
+               latent_space_version=res["latent_space_version"],
+               source="encoded teacher targets (not generated packets)",
+               counterexample=counterexample(E, P, ds, robot=a.robot, n=a.n, dev=dev),
+               embodiment_swap=embodiment_swap(E, P, ds, arm=a.arm, seeds=range(a.seed_start, a.seed_start + a.n), dev=dev))
+    Path(a.out).write_text(json.dumps(out, indent=1))
+    print(json.dumps({k: v for k, v in out.items() if k != "counterexample"} | {
+        "counterexample": {k: v for k, v in out["counterexample"].items() if k != "rows"}}, indent=1))
+
+
+def register_counterfactuals(p):
+    c = p.add_parser("counterfactuals", help="section-6 counterexample + compatible embodiment swap on frozen E/P")
+    c.add_argument("--representation", required=True)
+    c.add_argument("--dataset", default="artifacts/datasets/pick_place_primary_v3dart")
+    c.add_argument("--robot", default="panda_pg2")
+    c.add_argument("--arm", default="parm6")
+    c.add_argument("--n", type=int, default=20)
+    c.add_argument("--seed-start", type=int, default=0)
+    c.add_argument("--gpu", action="store_true")
+    c.add_argument("--probe", help="post-hoc probe .pt (fit-probes output); default: the representation's own P")
+    c.add_argument("--out", required=True)
+    c.set_defaults(fn=cmd_counterfactuals)
