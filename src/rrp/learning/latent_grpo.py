@@ -180,7 +180,8 @@ def batched_ticks(s0s, sessions) -> list:
     nf = np.zeros((B, Nmax, F), np.float32); nm = np.zeros((B, Nmax), bool)
     for b, (i, now, pi, loc) in enumerate(work):
         z[b, :, :zs[b].shape[1]] = zs[b]; zm[b] = False; zm[b, :zs[b].shape[1]] = s0s[i].packet.assembly_mask
-        n = pi.act_node_feats.shape[0]; nf[b, :n] = pi.act_node_feats; nm[b, :n] = True
+        from rrp.control.latent_realizer import realizer_node_feats
+        n = pi.act_node_feats.shape[0]; nf[b, :n] = realizer_node_feats(s0s[i], pi); nm[b, :n] = True
     kt = torch.tensor(s0s[work[0][0]].packet.knot_times, dtype=torch.float32, device=dev)
     ph = torch.tensor([now - s0s[i].packet.valid_from for i, now, _, _ in work], dtype=torch.float32, device=dev)
     lc = torch.from_numpy(np.stack([w[3] for w in work]).astype(np.float32)).to(dev)

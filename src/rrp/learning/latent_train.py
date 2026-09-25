@@ -46,8 +46,11 @@ def _dev():
 class LatentData:
     """Row i = (episode, t). Realizer targets use row i+j of the same episode (stride-1 packing required)."""
 
-    def __init__(self, packed_dir: Path, zero_prev_action: bool = False):
+    def __init__(self, packed_dir: Path, zero_prev_action: bool = False, anchor: bool = False):
+        if anchor and not zero_prev_action:
+            raise ValueError("realizer_anchor reuses node column 28: requires zero_prev_action")
         self.ds = PackedChunkDataset(packed_dir, zero_prev_action=zero_prev_action)
+        self.anchor = anchor
         if self.ds.meta["stride"] != 1:
             raise ValueError("latent training needs stride-1 packing (state at t+j)")
         self.ep = np.asarray(self.ds.arr["ep_idx"])
@@ -80,6 +83,9 @@ class LatentData:
         v1 = np.asarray(A["valid"][ts][:, 0])[inv]
         loc = np.asarray(A["local"][ts]).astype(np.float32)[inv]
         N = batch.node_feats.shape[1]
+        if self.anchor:            # anchored realizer: col 28 = normalized joint displacement since the packet state (t)
+            from rrp.control.latent_realizer import Q_COL, ANCHOR_COL
+            nodes[:, :N, ANCHOR_COL] = nodes[:, :N, Q_COL] - batch.node_feats[:, :, Q_COL].numpy()
         lab["subtask"] = torch.from_numpy(np.asarray(A["subtask"][sel]).astype(np.int64))
         r = dict(node=torch.from_numpy(nodes[:, :N]), node_mask=torch.from_numpy(np.arange(N)[None] < nn_[:, None]),
                  a1=torch.from_numpy(a1[:, :N]), v1=torch.from_numpy(v1[:, :N]), local=torch.from_numpy(loc))
@@ -199,8 +205,10 @@ def train_representation(cfg_json: dict, out_dir: Path) -> dict:
     seed = cfg_json.get("seed", 0)
     torch.manual_seed(seed)
     rng = random.Random(seed)
-    data = LatentData(Path(cfg_json["packed_dir"]), zero_prev_action=cfg_json.get("zero_prev_action", False))
+    data = LatentData(Path(cfg_json["packed_dir"]), zero_prev_action=cfg_json.get("zero_prev_action", False),
+                      anchor=cfg_json.get("realizer_anchor", False))
     E, R = TargetEncoder(cfg).to(dev), LatentRealizer(cfg.dz, layers=cfg.realizer_layers).to(dev)
+    R.anchor = cfg_json.get("realizer_anchor", False)
     P = PacketProbe(cfg.dz, cfg.knots, **cfg_json.get("probe", {})).to(dev)
     params = list(E.parameters()) + list(R.parameters()) + list(P.parameters())
     opt = torch.optim.AdamW(params, lr=cfg_json.get("lr", 3e-4), weight_decay=1e-4)
@@ -290,6 +298,7 @@ def load_representation(path: Path, dev):
     E, R, P = TargetEncoder(cfg).to(dev), LatentRealizer(cfg.dz, layers=cfg.realizer_layers).to(dev), \
         PacketProbe(cfg.dz, cfg.knots, **st["config"].get("probe", {})).to(dev)
     E.load_state_dict(st["model"]["E"]); R.load_state_dict(st["model"]["R"]); P.load_state_dict(st["model"]["P"])
+    R.anchor = bool(st["config"].get("realizer_anchor", False))    # ladder: anchored realizer input (col 28)
     for m in (E, R, P):
         m.eval()
         for p in m.parameters():
@@ -552,8 +561,10 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
     rep_path = Path(cfg_json["representation"])
     st0 = load_checkpoint(rep_path, map_location=dev)
     lcfg, E, R_old, P, rep_res = load_representation(rep_path, dev)
-    data = LatentData(Path(cfg_json["packed_dir"]), zero_prev_action=cfg_json.get("zero_prev_action", False))
+    data = LatentData(Path(cfg_json["packed_dir"]), zero_prev_action=cfg_json.get("zero_prev_action", False),
+                      anchor=cfg_json.get("realizer_anchor", False))
     R = LatentRealizer(lcfg.dz, layers=lcfg.realizer_layers).to(dev)
+    R.anchor = cfg_json.get("realizer_anchor", False)
     if cfg_json.get("init", "fresh") == "old":
         R.load_state_dict(R_old.state_dict())
     for p_ in R.parameters():
@@ -632,7 +643,8 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
     E.eval(); R.eval(); P.eval()
     save_checkpoint(out_dir / ("representation.pt" if not sig.requested else "representation_interrupted.pt"),
                     model=_bundle(E, R, P), optimizer=None, step=step, versions=dict(latent=rep_res["latent_space_version"]),
-                    config=dict(st0["config"], refit=cfg_json), extra=dict(result=res))
+                    config=dict(st0["config"], refit=cfg_json, realizer_anchor=R.anchor,
+                                zero_prev_action=cfg_json.get("zero_prev_action", False)), extra=dict(result=res))
     (out_dir / "result.json").write_text(json.dumps(res, indent=1, default=str))
     return res
 
