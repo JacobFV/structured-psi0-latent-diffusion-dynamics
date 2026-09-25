@@ -533,3 +533,75 @@ def sft_latent_flow(flow_ckpt: Path, target_packed_dir: Path, budget: int, *, se
                     versions=dict(st["versions"], adapted=True), config=cfgj, extra=dict(result=dict(st["extra"]["result"], sft=res)))
     (out_dir / "result.json").write_text(json.dumps(res, indent=1))
     return res
+
+
+def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
+    """Re-train ONLY system 0 (the realizer R) on a FROZEN Stage-A encoder E (same latent space, same probes), with the
+    same objective as Stage A (L_real with reparameterized z ~ q(z|context, demonstrated chunk), phases j <= max).
+    Motivated by bug B-1 (config "zero_prev_action": true) and by closed-loop robustness variants. The latent space
+    version is unchanged (E identical), so flows trained on it stay valid; the realizer compat version changes.
+    cfg: representation, packed_dir, steps, batch_size, lr, seed, name, zero_prev_action, init ("fresh"|"old")."""
+    dev = _dev()
+    sig = CheckpointSignal()
+    seed = cfg_json.get("seed", 0)
+    torch.manual_seed(seed)
+    rng = random.Random(seed)
+    rep_path = Path(cfg_json["representation"])
+    st0 = load_checkpoint(rep_path, map_location=dev)
+    lcfg, E, R_old, P, rep_res = load_representation(rep_path, dev)
+    data = LatentData(Path(cfg_json["packed_dir"]), zero_prev_action=cfg_json.get("zero_prev_action", False))
+    R = LatentRealizer(lcfg.dz, layers=lcfg.realizer_layers).to(dev)
+    if cfg_json.get("init", "fresh") == "old":
+        R.load_state_dict(R_old.state_dict())
+    for p_ in R.parameters():
+        p_.requires_grad_(True)
+    opt = torch.optim.AdamW(R.parameters(), lr=cfg_json.get("lr", 3e-4), weight_decay=1e-4)
+    steps = cfg_json["steps"]
+    sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=cfg_json.get("lr", 3e-4), total_steps=steps, pct_start=0.05)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    last = out_dir / "rz_last.pt"
+    step = 0
+    if last.exists():
+        st = load_checkpoint(last, map_location=dev)
+        R.load_state_dict(st["model"]); opt.load_state_dict(st["optimizer"]); sched.load_state_dict(st["extra"]["sched"])
+        step = st["step"]; rng.setstate(st["extra"]["rng_py"])
+    log = open(out_dir / "train_log.jsonl", "a")
+    B = cfg_json.get("batch_size", 128)
+    t0 = time.time()
+    kt = torch.tensor(lcfg.knot_times, device=dev)
+    feed = _prefetch(data, B, rng, lcfg.max_phase_ticks, dev, workers=cfg_json.get("prefetch_workers", 3))
+    while step < steps and not sig.requested:
+        batch, a, v, lab, r, j = next(feed)
+        j = torch.as_tensor(j, device=dev)
+        with torch.no_grad():
+            af, am, ai = assembly_tokens(batch)
+            mu, logvar = E(batch, a, v, af, am, ai)
+            z = mu + torch.randn_like(mu) * (0.5 * logvar).exp()
+        phase = torch.as_tensor(j * lcfg.control_dt, dtype=z.dtype, device=dev)
+        pred = R(z, am, kt, phase, r["node"], r["node_mask"], r["local"], node_asm=r.get("node_asm"))
+        m = (r["v1"] & r["node_mask"]).float()
+        loss = ((pred - r["a1"]) ** 2 * m).sum() / m.sum().clamp(min=1)
+        opt.zero_grad()
+        loss.backward()
+        gn = torch.nn.utils.clip_grad_norm_(R.parameters(), 1.0)
+        opt.step()
+        sched.step()
+        step += 1
+        if step % 100 == 0:
+            log.write(json.dumps(dict(step=step, t=time.time() - t0, real=float(loss.detach()), gn=float(gn))) + "\n")
+            log.flush()
+        if step % 2000 == 0 or sig.requested:
+            save_checkpoint(last, model=R, optimizer=opt, step=step, versions=dict(latent=rep_res["latent_space_version"]),
+                            config=cfg_json, extra=dict(sched=sched.state_dict(), rng_py=rng.getstate()))
+    name = cfg_json.get("name", out_dir.name)
+    res = dict(rep_res, steps_refit=step, wall_s=time.time() - t0, interrupted=sig.requested,
+               realizer_compat_version=__import__("rrp.control.latent_realizer", fromlist=["x"]).bundle_versions(
+                   lcfg.version(), E.state_dict(), R.state_dict())[1], refit_name=name,
+               refit_of=str(rep_path), zero_prev_action=cfg_json.get("zero_prev_action", False),
+               eval=None if sig.requested else evaluate_representation(E, R, P, data, lcfg, dev))
+    E.eval(); R.eval(); P.eval()
+    save_checkpoint(out_dir / ("representation.pt" if not sig.requested else "representation_interrupted.pt"),
+                    model=_bundle(E, R, P), optimizer=None, step=step, versions=dict(latent=rep_res["latent_space_version"]),
+                    config=dict(st0["config"], refit=cfg_json), extra=dict(result=res))
+    (out_dir / "result.json").write_text(json.dumps(res, indent=1, default=str))
+    return res

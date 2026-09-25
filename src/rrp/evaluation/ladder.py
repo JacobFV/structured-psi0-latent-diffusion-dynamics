@@ -78,8 +78,32 @@ class PrevActionFeaturizer:
         return pi
 
     def record(self, cmd, q0):
-        if cmd is not None:
+        if cmd is not None and self.mode == "own" and q0 is not None:
             self.prev = self.base.aspace.normalize([cmd.groups], q0)[0].astype(np.float32)
+
+
+def install_prev_action(s, mode: str):
+    """Install PrevActionFeaturizer on a session and make it follow every executed command and snapshot/restore
+    (for code paths that step the session themselves, e.g. latent_eval.disturbance_test)."""
+    f = s._rrp_featurizer = PrevActionFeaturizer(_featurizer(s), mode)
+    step, snap, restore = s.step, s.snapshot, s.restore
+    saved = {}
+
+    def step_(cmd=None, robot=0):
+        if f.mode == "own" and cmd is not None and not isinstance(cmd, dict):
+            f.record(cmd, f.base(s.observe()).q0)
+        return step(cmd, robot)
+
+    def snap_():
+        sn = snap()
+        saved[id(sn)] = None if f.prev is None else f.prev.copy()
+        return sn
+
+    def restore_(sn):
+        f.prev = saved.get(id(sn))
+        return restore(sn)
+    s.step, s.snapshot, s.restore = step_, snap_, restore_
+    return f
 
 
 def _featurizer(s):
@@ -272,6 +296,7 @@ class LadderConfig:
     object_shift: tuple | None = None   # (tick, dx, dy): teleport cube mid-episode (intervention; labelled)
     task: str = "pick_place"
     flow_seed: int = 0
+    keep_ticks: bool = False         # store per-tick rows in the output (diagnostics)
     prev_action: str = "zero"        # zero (current deployment) | own (training-consistent input, bug B-1)
 
 
@@ -293,13 +318,18 @@ def load_models(cfg: LadderConfig):
         pol = LatentPolicy.from_checkpoint(cfg.flow, device=cfg.device, nfe=cfg.nfe, seed=cfg.flow_seed)
         if pol.lsv != out["res"]["latent_space_version"]:
             raise ValueError(f"flow latent space {pol.lsv} != representation {out['res']['latent_space_version']}")
+        if out["res"]["realizer_compat_version"] != pol.rcv:
+            # same latent space, refit realizer (e.g. bug B-1 fix): packets are addressed to THIS realizer; logged
+            ids["realizer_override"] = dict(flow_rcv=pol.rcv, used_rcv=out["res"]["realizer_compat_version"])
+            pol.rcv = out["res"]["realizer_compat_version"]
         out["flow"] = pol
         ids["flow"] = dict(path=str(cfg.flow), sha256=sha256_file(cfg.flow), nfe=cfg.nfe, sampler="euler-ode")
     return out, ids
 
 
 @torch.no_grad()
-def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids=None) -> list[dict]:
+def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids=None, frame_cb=None) -> list[dict]:
+    """frame_cb(k, session, step, shadow_phase): optional per-tick callback after each executed step (rendering)."""
     from rrp.morphology.catalog import workbench_robots
     from rrp.sim.scenario import BUILDERS
     from rrp.sim.native import Session
@@ -359,6 +389,11 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
             q_meas = s.data.qpos[mt.qadr].copy()
             lab = labels[k]
             row = dict(t=step, phase=shadows[k].t.phase)
+            if cfg.keep_ticks:
+                row.update(q=q_meas.round(4).tolist(), tcp=mt.tcp().round(4).tolist(),
+                           lab=np.round(lab.groups["arm"], 4).tolist(), lab_g=lab.groups.get("gripper"),
+                           cmd=np.round(c0.groups["arm"], 4).tolist() if c0 is not None else None,
+                           cmd_g=c0.groups.get("gripper") if c0 is not None else None)
             if s0 and s0[k].packet is not None:
                 row["j"] = int(round((float(s.data.time) - s0[k].packet.valid_from) / s.dt))
             if c0 is not None:              # system-0 output (executed in R1/R2; shadow-only in R0) vs teacher label
@@ -382,6 +417,8 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
                 row["track_tcp"] = float(np.linalg.norm(mt.tcp() - tcp_cmd))
             row["held"] = mt.update(step)
             meta[k]["ticks"].append(row)
+            if frame_cb is not None:
+                frame_cb(k, s, step, shadows[k].t.phase)
             if cfg.route == "teacher" and shadows[k].t.done:
                 meta[k]["done"] = True
             if s.data.xpos[mt.cube][2] < -0.05:
@@ -419,6 +456,7 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
             lab_err_by_j={j: float(np.mean(v)) for j, v in sorted(by_j.items())},
             oracle_cmp=({key: float(np.mean([r[key] for r in rp])) for key in rp[0] if key != "t"} if rp else None),
             oracle_cmp_by_phase=_cmp_by_phase(rp, T) if rp else None,
+            ticks=T if cfg.keep_ticks else None, replans=m["replans"] if cfg.keep_ticks else None,
             interventions=s.intervention_log, wall_s=time.time() - m["t0"],
             source=dict(teacher="scripted_teacher(privileged)", oracle="target_encoder_oracle(ORACLE DIAGNOSTIC: "
                         "teacher future actions)", generated="learned(system-i flow)")[cfg.route],
@@ -489,14 +527,14 @@ def summarize(rows: list[dict]) -> dict:
 
 @torch.no_grad()
 def packed_realization_check(rep_path: str, packed_dir: str, robot_key: str | None, device, n_batches: int = 20,
-                             seed: int = 3, max_j: int = 7, exclude_noisy: bool = False) -> dict:
+                             seed: int = 3, max_j: int = 7, zero_prev_action: bool = False) -> dict:
     """Stage-A realization error on the TRAINING pack split into arm / gripper nodes and by phase j
     (encoded-target oracle, the same quantity the ladder measures online as lab_err_*)."""
     import random
     from rrp.learning.latent_train import load_representation, LatentData
     from rrp.model.semantic_latent import assembly_tokens
     lcfg, E, R, P, res = load_representation(Path(rep_path), device)
-    data = LatentData(Path(packed_dir))
+    data = LatentData(Path(packed_dir), zero_prev_action=zero_prev_action)
     rid = data.ds.meta["robot_ids"].get(robot_key) if robot_key else None
     pool = None
     if rid is not None:

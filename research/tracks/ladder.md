@@ -3,11 +3,36 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
-## CURRENT ANSWER FOR ACCEPTANCE (which route/checkpoint is competent)
-- **No competent learned route yet** (being measured; see table below — updated as jobs land).
-- **CRITICAL BUG B-1 found (2026-09-25): train/deploy input mismatch in EVERY model trained on the packed datasets
-  since D-021.** Any closed-loop result of Stage-A realizers, Stage-B flows, GRPO, baselines evaluated with the current
-  featurizer is confounded by it. Details and fix below.
+## CURRENT ANSWER FOR ACCEPTANCE / GRPO / campaign (which route/checkpoint is competent)
+- **No competent learned route exists yet, and none can with the current Stage-A system 0**: R0 teacher 30/30;
+  R1 oracle (latent_sem_v1) 0/30 with deployment input, 0/30 with training-consistent own-prev input; R2 flow v2 0/30.
+- **Root cause localized: bug B-1** (below). The Stage-A realizer is a copycat of the previous teacher command stored in
+  node-feature column 28; at deployment that column is 0, which on the TRAINING pack itself makes system 0 no better than
+  holding still (arm) and wrong on the gripper. This explains the acceptance finding (step-0 output -0.1 vs -1.0, packet
+  fine) and the GRPO findings (small undirected steps, gripper stuck ~0.03 = "mode averaging" is actually copying a zero
+  prev-action; no grasp/lift after a teacher prefix).
+- **Fix in progress**: system 0 re-fit on the FROZEN sem_v1 encoder with column 28 zeroed (same latent space => existing
+  flows stay usable; new realizer compat id). Running: peer lease 1790370807_bd05c2 `ladder_rz_sem_ft`
+  (config `configs/ladder/rz_sem_v1_b1fix_ft.json`, warm start, 8k steps) -> `artifacts/runs/ladder_rz_sem_v1_b1fix_ft/`.
+  Then R1/R2 are rerun on it. If the frozen z lacks what R needs without the crutch, Stage A must be retrained with
+  `"zero_prev_action": true` (binding track: please set it for revised representations).
+- Until then: do NOT treat any learned closed-loop number (acceptance, GRPO, baselines, 4-way campaign) as evidence
+  about the architecture; they are dominated by B-1.
+
+### B-1 on the training pack itself (`scripts/ladder_t0_check.py`, raw `artifacts/runs/ladder_smoke/t0_check_sem_panda.json`)
+latent_sem_v1 E+R, panda_pg2 rows, j=0, 96 rows each; normalized MSE (arm hold-still reference = arm_label_sq):
+| input | rows | arm err | arm hold-still | grip err | grip pred / label | z norm |
+|---|---|---|---|---|---|---|
+| stored (teacher prev cmd in col 28) | t=0 (col 28 is 0 there too) | 0.112 | 0.114 | 0.314 | -0.44 / -1.0 | 97.7 |
+| stored | t=1 | 0.005 | 0.079 | 0.0002 | -1.01 / -1.0 | 96.5 |
+| stored | t>=5 | 0.005 | 0.082 | 0.005 | -0.36 / -0.35 | 35.4 |
+| col 28 zeroed (= deployment) | t=1 | 0.144 | 0.079 | 0.319 | -0.44 / -1.0 | 96.3 |
+| col 28 zeroed (= deployment) | t>=5 | 0.083 | 0.082 | 0.741 | -0.59 / -0.35 | 34.6 |
+The only training rows whose col 28 is 0 are t=0, and exactly there the realizer has no skill: the acceptance "step-0"
+symptom is the same bug, not a knot-timing/phase-0/normalization/clipping problem (knot times, phase and normalization
+are identical between pack and runtime; clipping at +-6 is never hit: |a| < 2.5 in all traces). The large step-0 z norm
+is E's (98 at t<=1 vs 35 later), identical in pack and runtime. The acceptance parity check matched features because at
+t=0 the column is 0 in both; from t=1 on it differs (`scripts/ladder_feature_parity.py`).
 
 ## bug B-1: previous-action feature zeroed in the wrong column
 - Node features are `[static(26) | q, qd, PREV_ACTION, anchor(3), axis(3), jp(3), jr(3), lever(3)]` (NODE_DIM 44), so

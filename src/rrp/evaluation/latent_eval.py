@@ -166,11 +166,13 @@ def _tcp(s):
 
 
 def disturbance_test(policy, realizer, robot_key: str, seeds: list[int], *, warmup_ticks=30, hold_ticks=8,
-                     joint_offset=0.12, joint_index=1, device="cpu") -> list[dict]:
+                     joint_offset=0.12, joint_index=1, device="cpu", session_hook=None) -> list[dict]:
     """Packet held FIXED (no system-i call). Compare TCP deviation from the undisturbed rollout for:
     A) system 0 closed loop (state-dependent realization), B) open-loop replay of the nominal commands expressed as
     deltas from the current state (no feedback), C) replay of the nominal ABSOLUTE targets (native servo
-    stabilization only)."""
+    stabilization only).
+    session_hook(s): optional, called on each new session before anything else (e.g. the ladder installs its
+    input featurizer there)."""
     from rrp.morphology.catalog import workbench_robots
     from rrp.sim.scenario import BUILDERS
     from rrp.sim.native import Session
@@ -179,6 +181,8 @@ def disturbance_test(policy, realizer, robot_key: str, seeds: list[int], *, warm
     rows = []
     for sd in seeds:
         s = Session(BUILDERS["pick_place"](robot, sd, n_distractors=0), seed=sd)
+        if session_hook is not None:
+            session_hook(s)
         f = policy.featurizer(s)
         s0 = LatentSystem0(realizer, f, latent_space_version=policy.lsv, realizer_compat_version=policy.rcv, device=device)
         for k in range(warmup_ticks):             # normal operation to mid-approach
