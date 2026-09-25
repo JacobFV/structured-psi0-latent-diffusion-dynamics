@@ -51,6 +51,12 @@ def active_operator(pi) -> int:
                     return k
     return 0
 MAX_N, MAX_S, MAX_R, MAX_P = 12, 8, 160, 32
+# Bug B-1 (ladder track, 2026-09-25): the node feature layout is [static(26) | q, qd, PREV_ACTION, anchor, axis, jp,
+# jr, lever]; datasets collected before D-021 store the teacher's previous 1-step command at column 28, and the D-021
+# load-time zeroing (rrp.learning.data.episode_samples) tested/zeroed column 2 instead, so every pack built since then
+# still carries it while the deployed featurizer writes 0. zero_prev_action=True zeroes it at load time (node rows of
+# the node array and of the morph bank). Default False keeps existing runs/resumes bit-identical.
+PREV_ACTION_COL = NODE_DIM - 16
 
 
 def _focus(pi, S):
@@ -206,13 +212,14 @@ def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, s
 
 
 class PackedChunkDataset:
-    def __init__(self, packed_dir: Path, stride: int = 1):
+    def __init__(self, packed_dir: Path, stride: int = 1, zero_prev_action: bool = False):
         """stride > 1 keeps rows with t % stride == 0 of a stride-1 pack: the same chunk set that
         pack_dataset(..., stride=stride) would produce (episode_samples uses range(0, T, stride))."""
         self.dir = Path(packed_dir)
         self.meta = json.loads((self.dir / "meta.json").read_text())
         self.arr = {p.stem: np.load(p, mmap_mode="r") for p in self.dir.glob("*.npy")}
         self.H = self.meta["H"]
+        self.zero_prev_action = zero_prev_action
         self.rows = None
         if stride > 1:
             if self.meta["stride"] != 1:
@@ -245,6 +252,11 @@ class PackedChunkDataset:
             o += Tn[b]
         C = o
         N = max(int(A["n_nodes"].max()), 1)
+        if self.zero_prev_action:
+            A["node"] = A["node"].copy(); A["node"][..., PREV_ACTION_COL] = 0
+            A["tok_morph"] = A["tok_morph"].copy()
+            nrow = np.arange(A["tok_morph"].shape[1])[None, :] < A["n_nodes"][:, None]
+            A["tok_morph"][..., PREV_ACTION_COL] *= ~nrow
         toks = {b: torch.from_numpy(A[f"tok_{b}"][:, :Tn[b]].astype(np.float32)) for b in BANKS}
         masks = {b: torch.from_numpy(np.arange(Tn[b])[None, :] < A[f"len_{b}"][:, None]) for b in BANKS}
         kinds = {b: torch.from_numpy(A[f"kind_{b}"][:, :Tn[b]].astype(np.int64)) for b in BANKS}

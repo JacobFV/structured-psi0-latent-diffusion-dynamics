@@ -46,8 +46,8 @@ def _dev():
 class LatentData:
     """Row i = (episode, t). Realizer targets use row i+j of the same episode (stride-1 packing required)."""
 
-    def __init__(self, packed_dir: Path):
-        self.ds = PackedChunkDataset(packed_dir)
+    def __init__(self, packed_dir: Path, zero_prev_action: bool = False):
+        self.ds = PackedChunkDataset(packed_dir, zero_prev_action=zero_prev_action)
         if self.ds.meta["stride"] != 1:
             raise ValueError("latent training needs stride-1 packing (state at t+j)")
         self.ep = np.asarray(self.ds.arr["ep_idx"])
@@ -72,6 +72,9 @@ class LatentData:
         inv = np.argsort(order)
         ts = tgt[order]
         nodes = np.asarray(A["node"][ts]).astype(np.float32)[inv]
+        if self.ds.zero_prev_action:                    # bug B-1 fix (see rrp.learning.packed.PREV_ACTION_COL)
+            from rrp.learning.packed import PREV_ACTION_COL
+            nodes[..., PREV_ACTION_COL] = 0
         nn_ = np.asarray(A["n_nodes"][ts])[inv]
         a1 = np.asarray(A["a"][ts][:, 0]).astype(np.float32)[inv]           # 1-step teacher command at t+j
         v1 = np.asarray(A["valid"][ts][:, 0])[inv]
@@ -151,7 +154,7 @@ def train_representation(cfg_json: dict, out_dir: Path) -> dict:
     seed = cfg_json.get("seed", 0)
     torch.manual_seed(seed)
     rng = random.Random(seed)
-    data = LatentData(Path(cfg_json["packed_dir"]))
+    data = LatentData(Path(cfg_json["packed_dir"]), zero_prev_action=cfg_json.get("zero_prev_action", False))
     E, R = TargetEncoder(cfg).to(dev), LatentRealizer(cfg.dz, layers=cfg.realizer_layers).to(dev)
     P = PacketProbe(cfg.dz, cfg.knots, **cfg_json.get("probe", {})).to(dev)
     params = list(E.parameters()) + list(R.parameters()) + list(P.parameters())
@@ -260,7 +263,7 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
     torch.manual_seed(seed)
     rng = random.Random(seed)
     lcfg, E, R, P, rep_res = load_representation(Path(cfg_json["representation"]), dev)
-    data = LatentData(Path(cfg_json["packed_dir"]))
+    data = LatentData(Path(cfg_json["packed_dir"]), zero_prev_action=cfg_json.get("zero_prev_action", False))
     pcfg = PolicyConfig(**dict(cfg_json["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz, aux=False))
     model = FlowPolicy(pcfg).to(dev)
     opt = torch.optim.AdamW(model.parameters(), lr=cfg_json.get("lr", 3e-4), weight_decay=1e-4)
