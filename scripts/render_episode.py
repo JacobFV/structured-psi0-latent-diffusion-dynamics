@@ -74,6 +74,11 @@ def run(args):
             if teacher:
                 s.step(teacher.act())
                 done = teacher.done
+            elif args.source == "learned_latent" and k < args.teacher_prefix_steps:   # labelled curriculum prefix
+                if k == 0:
+                    pteacher = PickPlaceTeacher(s)
+                s.step(pteacher.act())
+                done = s.runtime.succeeded()
             elif args.source == "learned_latent":
                 if k % args.replan == 0 or s0.packet is None:
                     try:
@@ -90,17 +95,22 @@ def run(args):
             if k % args.every == 0:
                 r.update_scene(s.data, camera=args.camera)
                 st = " ".join(f"{e}:{v.status}" for e, v in s.runtime.instances.items())
-                frames.append(caption(r.render().copy(), [f"{label} | {args.robot} | {args.task} | seed {sd}",
+                lab = label if not (args.source == "learned_latent" and k < args.teacher_prefix_steps) else \
+                    f"SCRIPTED TEACHER prefix (privileged) {k + 1}/{args.teacher_prefix_steps}, then {label}"
+                frames.append(caption(r.render().copy(), [f"{lab} | {args.robot} | {args.task} | seed {sd}",
                                                           f"t={s.data.time:.1f}s  {st}"]))
             if done:
                 break
         ok = s.privileged_success()
         tag = "success" if ok else "failure"
-        name = f"{dt.date.today()}_{args.source}_{args.robot}_{args.task}_s{sd}_{tag}.mp4"
+        pf = f"_teacherprefix{args.teacher_prefix_steps}" if args.teacher_prefix_steps else ""
+        name = f"{dt.date.today()}_{args.source}{('_' + args.tag) if args.tag else ''}{pf}_{args.robot}_{args.task}_s{sd}_{tag}.mp4"
         imageio.mimsave(out / name, frames, fps=args.fps, quality=6)
         with open(index, "a") as f:
             f.write(f"- `{name}` — source={args.source} ckpt={args.checkpoint or '-'} robot={args.robot} "
-                    f"task={args.task} seed={sd} outcome={tag} (privileged evaluator)\n")
+                    f"task={args.task} seed={sd} outcome={tag} (privileged evaluator)"
+                    + (f" teacher_prefix={args.teacher_prefix_steps} ticks (scripted, privileged) then learned" if pf else "")
+                    + "\n")
         print(name, tag, flush=True)
 
 
@@ -120,4 +130,6 @@ if __name__ == "__main__":
     ap.add_argument("--every", type=int, default=1)
     ap.add_argument("--fps", type=int, default=20)
     ap.add_argument("--max-steps", type=int, default=300)
+    ap.add_argument("--teacher-prefix-steps", type=int, default=0, help="learned_latent: scripted teacher for the first N ticks")
+    ap.add_argument("--tag", default="", help="extra filename tag (e.g. grpo / reference)")
     run(ap.parse_args())
