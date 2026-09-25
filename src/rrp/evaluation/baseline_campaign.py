@@ -45,7 +45,8 @@ def _lock(path: Path):
 def source_config(method: str, seed: int, cell: Path, smoke: bool = False) -> dict:
     base = json.loads(Path("configs/model/policy-small-structured.json").read_text())
     cfg = dict(base, seed=seed, out_dir=str(cell / "source"), name=f"{method}_seed{seed}",
-               packed_dir=SOURCE_PACK, packed_stride=base.get("stride", 2), prefetch=True)
+               packed_dir=SOURCE_PACK, packed_stride=base.get("stride", 2), prefetch=True, exact_resume=True,
+               checkpoint_every_steps=1000)
     cfg["policy"] = dict(base["policy"], name=f"{method}_seed{seed}")
     if method == "baseline_action_only_codec":
         ccfg = json.loads(Path("configs/model/codec-small.json").read_text())

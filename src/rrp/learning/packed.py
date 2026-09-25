@@ -217,14 +217,14 @@ class PackedChunkDataset:
     def __len__(self):
         return self.meta["n"] if self.rows is None else len(self.rows)
 
-    def batches(self, batch_size, rng, shuffle=True, drop_last=True):
+    def batches(self, batch_size, rng, shuffle=True, drop_last=True, start_batch=0):
         idx = np.arange(len(self))
         if shuffle:
             idx = np.array(rng.sample(range(len(self)), len(self)))
         if self.rows is not None:
             idx = self.rows[idx]
         stop = len(idx) - (len(idx) % batch_size if drop_last else 0)
-        for i in range(0, stop, batch_size):
+        for i in range(start_batch * batch_size, stop, batch_size):
             sel = np.sort(idx[i:i + batch_size])
             if len(sel) == 0:
                 break

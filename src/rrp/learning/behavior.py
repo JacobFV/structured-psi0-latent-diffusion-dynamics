@@ -168,7 +168,8 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
     log = open(out_dir / "train_log.jsonl", "a")
     step, t0 = 0, time.time()
     gen = torch.Generator(device=dev).manual_seed(cfg["seed"])
-    start_epoch = 0
+    start_epoch, skip = 0, 0
+    exact = bool(cfg.get("exact_resume"))       # packed datasets only; resume reproduces the uninterrupted run
     last = out_dir / "policy_last.pt"
     if last.exists():      # resume: model/optimizer/scheduler/epoch cursor
         st = load_checkpoint(last, map_location=dev)
@@ -177,9 +178,27 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
         sched.load_state_dict(st["extra"]["sched"])
         step, start_epoch = st["step"], st["data_cursor"]["epoch"] + 1
         rng = random.Random(cfg["seed"] + start_epoch)
+        if "next_epoch" in st["data_cursor"]:       # exact (mid-epoch) cursor
+            start_epoch, skip = st["data_cursor"]["next_epoch"], st["data_cursor"]["skip"]
+        if st["extra"].get("gen") is not None:
+            gen.set_state(st["extra"]["gen"].to("cpu") if hasattr(st["extra"]["gen"], "to") else st["extra"]["gen"])
     every = cfg.get("checkpoint_every_epochs", 1)
+    every_steps = cfg.get("checkpoint_every_steps", 1000)
+
+    def save_last(next_epoch, nskip):
+        save_checkpoint(last, model=model, optimizer=opt, step=step,
+                        versions=dict(policy=pcfg.name, featurizer=FEAT_VERSION,
+                                      codec=(codec.cfg.version if codec else None)),
+                        config=cfg, data_cursor=dict(epoch=next_epoch - 1, next_epoch=next_epoch, skip=nskip),
+                        extra=dict(sched=sched.state_dict(), gen=gen.get_state()))
     for epoch in range(start_epoch, cfg["epochs"]):
-        it = ds.batches(cfg["batch_size"], rng)
+        if exact:
+            # per-epoch data order independent of interruptions; resume skips completed batches without collating
+            it = ds.batches(cfg["batch_size"], random.Random(cfg["seed"] * 1000 + epoch), start_batch=skip)
+            bi = skip
+            skip = 0
+        else:
+            it = ds.batches(cfg["batch_size"], rng)
         for batch, a, v, lab, eff in (prefetch(it) if cfg.get("prefetch") else it):
             batch, a, v = batch.to(dev), a.to(dev), v.to(dev)
             lab = {k: t.to(dev) for k, t in lab.items()}
@@ -202,8 +221,14 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
                 log.write(json.dumps(dict(step=step, epoch=epoch, t=time.time() - t0, loss=float(loss.detach()),
                                           grad_norm=float(gn), lr=sched.get_last_lr()[0], **logs)) + "\n")
                 log.flush()
+            if exact:
+                bi += 1
+                if step % every_steps == 0 or sig.requested:
+                    save_last(epoch, bi)       # exact cursor: weights after `bi` batches of `epoch`
             if sig.requested or step >= cfg.get("smoke_max_steps", 1 << 62):
                 break
+        if sig.requested and exact:
+            break
         if sig.requested:
             # checkpoint-before-termination: resumable state (the interrupted epoch is repeated)
             save_checkpoint(last, model=model, optimizer=opt, step=step,
@@ -211,7 +236,9 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
                                           codec=(codec.cfg.version if codec else None)),
                             config=cfg, data_cursor=dict(epoch=epoch - 1), extra=dict(sched=sched.state_dict()))
             break
-        if (epoch + 1) % every == 0 and epoch + 1 < cfg["epochs"]:
+        if exact and epoch + 1 < cfg["epochs"]:
+            save_last(epoch + 1, 0)
+        elif (epoch + 1) % every == 0 and epoch + 1 < cfg["epochs"]:
             save_checkpoint(last, model=model, optimizer=opt, step=step,
                             versions=dict(policy=pcfg.name, featurizer=FEAT_VERSION,
                                           codec=(codec.cfg.version if codec else None)),
