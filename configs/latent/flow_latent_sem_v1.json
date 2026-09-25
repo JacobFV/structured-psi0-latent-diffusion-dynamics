@@ -1,0 +1,21 @@
+{
+ "name": "flow_latent_sem_v1",
+ "out_dir": "artifacts/runs/flow_latent_sem_v1",
+ "representation": "artifacts/runs/latent_sem_v1/representation.pt",
+ "packed_dir": "artifacts/packed/latent_pp_v3dart_s1_H16",
+ "seed": 1701,
+ "steps": 30000,
+ "batch_size": 128,
+ "lr": 0.0003,
+ "packet_semantic_weight": 1.0,
+ "policy": {
+  "width": 256,
+  "heads": 4,
+  "ctx_layers": 3,
+  "blocks": 6,
+  "structured": true,
+  "bias_mode": "true",
+  "attention": "factorized",
+  "name": "flow_latent_sem_v1"
+ }
+}
