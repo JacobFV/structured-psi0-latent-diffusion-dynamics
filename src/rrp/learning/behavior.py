@@ -46,7 +46,7 @@ def train_codec(cfg: dict, out_dir: Path) -> dict:
     sig = CheckpointSignal()
     torch.manual_seed(cfg["seed"])
     rng = random.Random(cfg["seed"])
-    eps = load_episodes(Path(cfg["dataset"]), robots=set(cfg["train_robots"]))
+    eps = load_episodes(Path(cfg["dataset"]), robots=set(cfg["train_robots"]), limit_per_robot=cfg.get("episodes_per_robot"))
     ds = ChunkDataset(eps, cfg["horizon"], stride=cfg.get("stride", 2))
     hold = load_episodes(Path(cfg["dataset"]), robots=set(cfg.get("heldout_robots", [])), limit_per_robot=20) \
         if cfg.get("heldout_robots") else []
@@ -112,7 +112,7 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
     rng = random.Random(cfg["seed"])
     if cfg.get("packed_dir"):
         from rrp.learning.packed import PackedChunkDataset
-        ds = PackedChunkDataset(Path(cfg["packed_dir"]))     # memory-mapped, shared across jobs
+        ds = PackedChunkDataset(Path(cfg["packed_dir"]), stride=cfg.get("packed_stride", 1))   # memory-mapped, shared
         eps = []
     else:
         eps = load_episodes(Path(cfg["dataset"]), robots=set(cfg["train_robots"]),
@@ -177,7 +177,7 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
                 log.write(json.dumps(dict(step=step, epoch=epoch, t=time.time() - t0, loss=float(loss.detach()),
                                           grad_norm=float(gn), lr=sched.get_last_lr()[0], **logs)) + "\n")
                 log.flush()
-            if sig.requested:
+            if sig.requested or step >= cfg.get("smoke_max_steps", 1 << 62):
                 break
         if sig.requested:
             # checkpoint-before-termination: resumable state (the interrupted epoch is repeated)

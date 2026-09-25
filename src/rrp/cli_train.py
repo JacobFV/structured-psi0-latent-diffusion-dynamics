@@ -80,6 +80,20 @@ def cmd_campaign_cell(a):
     print(json.dumps(run_cell(protocol, a.method, a.seed), indent=1))
 
 
+def cmd_baseline_cell(a):
+    from rrp.evaluation.baseline_campaign import run_baseline_cell
+    protocol = json.loads(open(a.protocol).read())
+    if torch_cuda():
+        from rrp.ops.gpu import apply_cap
+        apply_cap()
+    for t in a.target.split(","):
+        for bud in ([int(x) for x in str(a.budget).split(",")]):
+            r = run_baseline_cell(protocol, a.method, a.seed, t, bud, root=Path(a.root), eval_device=a.eval_device,
+                                  train_only=a.train_only, smoke=a.smoke)
+            print(json.dumps({k: r.get(k) for k in ("method", "seed", "target", "budget", "successes", "attempted",
+                                                     "wilson95", "trained")}), flush=True)
+
+
 def cmd_latency(a):
     from rrp.evaluation.latency import run_latency_suite
     cks = dict(kv.split("=", 1) for kv in a.models)
@@ -98,6 +112,17 @@ def register_campaign(sub):
     r.add_argument("--method", required=True)
     r.add_argument("--seed", type=int, required=True)
     r.set_defaults(fn=cmd_campaign_cell)
+    b = c.add_parser("baseline-cell", help="latent_slice1 baseline cell (method, seed, target, budget); resumable")
+    b.add_argument("--protocol", default="configs/eval/latent_slice1.json")
+    b.add_argument("--method", required=True)
+    b.add_argument("--seed", type=int, required=True)
+    b.add_argument("--target", required=True, help="a protocol target, or 'source' (source competence)")
+    b.add_argument("--budget", default="0", help="int or comma list")
+    b.add_argument("--root", default="artifacts/runs/latent_slice1")
+    b.add_argument("--eval-device", default=None, help="cpu|cuda (default: cuda if available)")
+    b.add_argument("--train-only", action="store_true", help="build source/SFT checkpoints, skip evaluation")
+    b.add_argument("--smoke", action="store_true", help="tiny run (30 source steps, 10 SFT steps, 3 episodes)")
+    b.set_defaults(fn=cmd_baseline_cell)
     l = sub.add_parser("latency", help="synchronized latency suite")
     l.add_argument("--models", nargs="+", required=True, help="name=checkpoint")
     l.add_argument("--out", required=True)

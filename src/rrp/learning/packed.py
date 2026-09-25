@@ -177,19 +177,28 @@ def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, s
 
 
 class PackedChunkDataset:
-    def __init__(self, packed_dir: Path):
+    def __init__(self, packed_dir: Path, stride: int = 1):
+        """stride > 1 keeps rows with t % stride == 0 of a stride-1 pack: the same chunk set that
+        pack_dataset(..., stride=stride) would produce (episode_samples uses range(0, T, stride))."""
         self.dir = Path(packed_dir)
         self.meta = json.loads((self.dir / "meta.json").read_text())
         self.arr = {p.stem: np.load(p, mmap_mode="r") for p in self.dir.glob("*.npy")}
         self.H = self.meta["H"]
+        self.rows = None
+        if stride > 1:
+            if self.meta["stride"] != 1:
+                raise ValueError("row subsampling needs a stride-1 pack")
+            self.rows = np.nonzero(np.asarray(self.arr["t"]) % stride == 0)[0]
 
     def __len__(self):
-        return self.meta["n"]
+        return self.meta["n"] if self.rows is None else len(self.rows)
 
     def batches(self, batch_size, rng, shuffle=True, drop_last=True):
         idx = np.arange(len(self))
         if shuffle:
             idx = np.array(rng.sample(range(len(self)), len(self)))
+        if self.rows is not None:
+            idx = self.rows[idx]
         stop = len(idx) - (len(idx) % batch_size if drop_last else 0)
         for i in range(0, stop, batch_size):
             sel = np.sort(idx[i:i + batch_size])
