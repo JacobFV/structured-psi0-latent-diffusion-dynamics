@@ -7,12 +7,13 @@
    "morph": 24,
    "scene": 8,
    "task": 32,
-   "interact": 12
+   "interact": 32
   },
   "N": 16,
-  "R": 256
+  "R": 512,
+  "P": 64
  },
- "note": "dual-arm latent pack: support_insert v2 clean + DART v1 + handover v1 clean/DART; source-train pairs only; successes only (DART successes included)",
+ "note": "dual-arm latent pack: support_insert v2 clean + DART v1 + handover v1 clean/DART; source-train pairs only; successes only (DART successes included); limits sized so no dual row is truncated (meta truncated_rows)",
  "sources": [
   {
    "dataset": "artifacts/datasets/support_insert_primary_v2",

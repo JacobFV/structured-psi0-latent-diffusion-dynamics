@@ -69,10 +69,11 @@ def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, s
     """limits: override MAX_T/N/R (dual-arm inputs are larger). multi_m > 0 additionally stores multi-assembly
     arrays (rrp.learning.dual_latent): per-slot privileged labels held_m/contact_m/rel_tcp_m in packet order, public
     per-slot subtask_m and local sensors local_m, and node_asm (packet slot of each action node)."""
-    MAX_T_, MAX_N_, MAX_R_ = dict(MAX_T), MAX_N, MAX_R
+    MAX_T_, MAX_N_, MAX_R_, MAX_P_ = dict(MAX_T), MAX_N, MAX_R, MAX_P
     if limits:
         MAX_T_.update(limits.get("T", {}))
-        MAX_N_, MAX_R_ = limits.get("N", MAX_N_), limits.get("R", MAX_R)
+        MAX_N_, MAX_R_, MAX_P_ = limits.get("N", MAX_N_), limits.get("R", MAX_R), limits.get("P", MAX_P)
+    trunc = dict(rel=0, ptr=0, **{b: 0 for b in BANKS})
     out_dir.mkdir(parents=True, exist_ok=True)
     man = json.loads((ds_dir / "manifest.json").read_text())
     per, ids = {}, []
@@ -97,7 +98,7 @@ def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, s
         **{f"text_{b}": ((MAX_T_[b], HASH_DIM), np.float16) for b in BANKS},
         **{f"len_{b}": ((), np.int16) for b in BANKS},
         node=((MAX_N_, NODE_DIM), np.float16), n_nodes=((), np.int16),
-        rel=((MAX_R_, 5), np.int16), n_rel=((), np.int16), ptr=((MAX_P, 4), np.int16), n_ptr=((), np.int16),
+        rel=((MAX_R_, 5), np.int16), n_rel=((), np.int16), ptr=((MAX_P_, 4), np.int16), n_ptr=((), np.int16),
         a=((H, MAX_N_), np.float16), valid=((H, MAX_N_), np.bool_), eff=((H, 4), np.float16),
         held=((MAX_S,), np.bool_), contact=((MAX_S,), np.bool_), visible=((MAX_S,), np.bool_),
         focus=((MAX_S,), np.bool_), slot_valid=((MAX_S,), np.bool_), rel_tcp=((MAX_S, 3), np.float16),
@@ -148,8 +149,12 @@ def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, s
                 rr = np.zeros((MAX_R_, 5), np.int16)
                 rr[:len(R)] = R
                 row["rel"], row["n_rel"] = rr, np.int16(len(R))
-                P = np.asarray(pi.pointers)[:MAX_P]
-                pp = np.zeros((MAX_P, 4), np.int16)
+                P = np.asarray(pi.pointers)[:MAX_P_]
+                pp = np.zeros((MAX_P_, 4), np.int16)
+                trunc["ptr"] += len(pi.pointers) > MAX_P_
+                trunc["rel"] += len(pi.relations) > MAX_R_
+                for b in BANKS:
+                    trunc[b] += len(pi.tokens[b]) > MAX_T_[b]
                 pp[:len(P)] = P
                 row["ptr"], row["n_ptr"] = pp, np.int16(len(P))
                 a = np.zeros((H, MAX_N_), np.float16)
@@ -194,7 +199,7 @@ def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, s
         np.save(out_dir / f"{k2}.npy", arr)
         buf[k2] = None
     meta = dict(n=n, H=H, stride=stride, source=str(ds_dir), robot_ids=robot_ids, operators=OPERATORS, robots=sorted(set(r for r in robots_seen if r)),
-                max=dict(T=MAX_T_, N=MAX_N_, S=MAX_S, R=MAX_R_, P=MAX_P), include_dart_failures=include_dart_failures,
+                max=dict(T=MAX_T_, N=MAX_N_, S=MAX_S, R=MAX_R_, P=MAX_P_), truncated_rows=trunc, include_dart_failures=include_dart_failures,
                 multi_m=multi_m, statuses=list(statuses))
     (out_dir / "meta.json").write_text(json.dumps(meta, indent=1))
     return meta
@@ -248,7 +253,7 @@ class PackedChunkDataset:
         ctx_rel = np.zeros((B, C, C, N_REL), bool)
         act_rel = np.zeros((B, N, C, N_REL), bool)
         node_rel = np.zeros((B, N, N, N_REL), bool)
-        ptr = -np.ones((B, MAX_P, 2), np.int64)
+        ptr = -np.ones((B, A["ptr"].shape[1], 2), np.int64)
         for i in range(B):
             R = A["rel"][i, :A["n_rel"][i]].astype(np.int64)
             n = int(A["n_nodes"][i])
