@@ -1,0 +1,126 @@
+{
+ "device": "cuda",
+ "gpu": "NVIDIA GB10",
+ "t": 1790364142.461714,
+ "system_i": {
+  "1": {
+   "p50": 41.643045498858555,
+   "p95": 57.35100310048435,
+   "p99": 72.97302494089308,
+   "mean": 42.77600572504525,
+   "n": 40
+  },
+  "2": {
+   "p50": 55.089904000851675,
+   "p95": 67.49379940038125,
+   "p99": 68.5219397201945,
+   "mean": 56.2365824000608,
+   "n": 40
+  },
+  "4": {
+   "p50": 91.24038799927803,
+   "p95": 101.71526285039361,
+   "p99": 116.22635657040517,
+   "mean": 71.97396904989546,
+   "n": 40
+  },
+  "8": {
+   "p50": 36.882845999571146,
+   "p95": 61.68498099978024,
+   "p99": 64.85861956061854,
+   "mean": 39.861463124952934,
+   "n": 40
+  }
+ },
+ "note": "physics paused during inference (offline loop): these are compute latencies, not a real-time claim",
+ "system0_tick": {
+  "p50": 8.580001500376966,
+  "p95": 25.02589274945421,
+  "p99": 32.28350405051968,
+  "mean": 10.796741287572331,
+  "n": 80
+ },
+ "system0_deadline_s": 0.05,
+ "system0_deadline_misses": 0,
+ "end_to_end_obs_to_first_command": {
+  "p50": 152.31529300035618,
+  "p95": 183.51633565071094,
+  "p99": 198.70237353006814,
+  "mean": 113.84053752494765,
+  "n": 40
+ },
+ "baseline_direct_action_source": "random-init weights, architecture configs/model/policy-small-structured.json (timing only)",
+ "baseline_direct_action_obs_to_chunk": {
+  "p50": 50.4121430003579,
+  "p95": 153.1922900000609,
+  "p99": 273.5821488397595,
+  "mean": 85.11276044982878,
+  "n": 40
+ },
+ "paired_interleaved_nfe8": {
+  "latent_obs_to_first_command": {
+   "p50": 53.03231100060657,
+   "p95": 175.45685299992329,
+   "p99": 208.41482374986285,
+   "mean": 75.55115685008786,
+   "n": 80
+  },
+  "direct_obs_to_chunk": {
+   "p50": 47.18219899950782,
+   "p95": 156.46780380066048,
+   "p99": 163.87666890967003,
+   "mean": 65.09738433744587,
+   "n": 80
+  },
+  "p95_overhead_ratio": 1.1213607447539482,
+  "p50_overhead_ratio": 1.1239898123688508,
+  "per_replan_compute_p95_ratio": 2.240960080789622,
+  "threshold_p95_ratio": 1.25
+ },
+ "active_leases_during_measurement": [
+  {
+   "label": null,
+   "gpu": null
+  },
+  {
+   "label": null,
+   "gpu": null
+  },
+  {
+   "label": null,
+   "gpu": null
+  },
+  {
+   "label": null,
+   "gpu": null
+  },
+  {
+   "label": null,
+   "gpu": null
+  },
+  {
+   "label": null,
+   "gpu": null
+  },
+  {
+   "label": null,
+   "gpu": null
+  },
+  {
+   "label": null,
+   "gpu": null
+  },
+  {
+   "label": null,
+   "gpu": null
+  },
+  {
+   "label": null,
+   "gpu": null
+  },
+  {
+   "label": null,
+   "gpu": null
+  }
+ ]
+}

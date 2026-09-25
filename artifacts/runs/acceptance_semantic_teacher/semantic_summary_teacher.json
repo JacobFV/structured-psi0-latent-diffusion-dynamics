@@ -1,0 +1,173 @@
+{
+ "meta": {
+  "route": "teacher",
+  "source": "scripted_teacher (privileged expert native commands; reference rung)",
+  "representation": "artifacts/runs/latent_sem_v1/representation.pt",
+  "checkpoint": null,
+  "orthogonal_probe": "artifacts/runs/latent_sem_v1/probe_posthoc.pt",
+  "robots": [
+   "panda_pg2"
+  ],
+  "seeds": [
+   3000000,
+   3000011
+  ],
+  "t": 1790370440.1801162,
+  "scenes": "pick_place with n_distractors = max(1, seed % 3)"
+ },
+ "summary": {
+  "control": {
+   "n": 12,
+   "followed": 12,
+   "followed_wilson95": [
+    0.7575059904469021,
+    1.0
+   ],
+   "cube_lifted": 12,
+   "distractor0_lifted": 0,
+   "cube_in_zone": 12,
+   "distractor0_in_zone": 0,
+   "cube_at_shifted_goal": 0,
+   "privileged_success": 12,
+   "skipped": 0,
+   "cube_final_xy_to_zone_m": {
+    "mean": 0.010135305670889239,
+    "lo": 0.007256914011792227,
+    "hi": 0.013161282908334144,
+    "n": 12
+   },
+   "cube_final_xy_to_shifted_goal_m": {
+    "mean": 0.11637990138320815,
+    "lo": 0.11251097976349768,
+    "hi": 0.12027452919952543,
+    "n": 12
+   }
+  },
+  "goal_shift": {
+   "n": 12,
+   "followed": 12,
+   "followed_wilson95": [
+    0.7575059904469021,
+    1.0
+   ],
+   "cube_lifted": 12,
+   "distractor0_lifted": 0,
+   "cube_in_zone": 0,
+   "distractor0_in_zone": 0,
+   "cube_at_shifted_goal": 12,
+   "privileged_success": 0,
+   "skipped": 0,
+   "cube_final_xy_to_zone_m": {
+    "mean": 0.12521565112469465,
+    "lo": 0.12148162913714262,
+    "hi": 0.1289300512668235,
+    "n": 12
+   },
+   "cube_final_xy_to_shifted_goal_m": {
+    "mean": 0.010214317030509693,
+    "lo": 0.007566554048420789,
+    "hi": 0.012889255832908423,
+    "n": 12
+   },
+   "paired_n": 12,
+   "same_lifted_object_as_control": 12,
+   "same_cube_in_zone_as_control": 0,
+   "approach_preference_distractor_vs_control_m": {
+    "mean": -0.007617867019778229,
+    "lo": -0.020868718906263645,
+    "hi": 0.0,
+    "n": 12
+   },
+   "tcp_mean_deviation_from_control_m": {
+    "mean": 0.047719763283648325,
+    "lo": 0.04666733068287398,
+    "hi": 0.0485776993587404,
+    "n": 12
+   }
+  },
+  "irrelevant_distractor": {
+   "n": 12,
+   "followed": 12,
+   "followed_wilson95": [
+    0.7575059904469021,
+    1.0
+   ],
+   "cube_lifted": 12,
+   "distractor0_lifted": 0,
+   "cube_in_zone": 12,
+   "distractor0_in_zone": 0,
+   "cube_at_shifted_goal": 0,
+   "privileged_success": 12,
+   "skipped": 0,
+   "cube_final_xy_to_zone_m": {
+    "mean": 0.010135305670889239,
+    "lo": 0.007256914011792227,
+    "hi": 0.013161282908334144,
+    "n": 12
+   },
+   "cube_final_xy_to_shifted_goal_m": {
+    "mean": 0.11637990138320815,
+    "lo": 0.11251097976349768,
+    "hi": 0.12027452919952543,
+    "n": 12
+   },
+   "paired_n": 12,
+   "same_lifted_object_as_control": 12,
+   "same_cube_in_zone_as_control": 12,
+   "approach_preference_distractor_vs_control_m": {
+    "mean": 0.0,
+    "lo": 0.0,
+    "hi": 0.0,
+    "n": 12
+   },
+   "tcp_mean_deviation_from_control_m": {
+    "mean": 0.0,
+    "lo": 0.0,
+    "hi": 0.0,
+    "n": 12
+   }
+  },
+  "rebind_obj": {
+   "n": 12,
+   "followed": 12,
+   "followed_wilson95": [
+    0.7575059904469021,
+    1.0
+   ],
+   "cube_lifted": 0,
+   "distractor0_lifted": 12,
+   "cube_in_zone": 0,
+   "distractor0_in_zone": 12,
+   "cube_at_shifted_goal": 0,
+   "privileged_success": 0,
+   "skipped": 0,
+   "cube_final_xy_to_zone_m": {
+    "mean": 0.2289968123237163,
+    "lo": 0.1946611637130391,
+    "hi": 0.2663586720881057,
+    "n": 12
+   },
+   "cube_final_xy_to_shifted_goal_m": {
+    "mean": 0.29412700698311106,
+    "lo": 0.2630897860544327,
+    "hi": 0.3237301387478095,
+    "n": 12
+   },
+   "paired_n": 12,
+   "same_lifted_object_as_control": 0,
+   "same_cube_in_zone_as_control": 0,
+   "approach_preference_distractor_vs_control_m": {
+    "mean": 0.35575246587631965,
+    "lo": 0.3149862844966952,
+    "hi": 0.3960277429692634,
+    "n": 12
+   },
+   "tcp_mean_deviation_from_control_m": {
+    "mean": 0.14594347436189456,
+    "lo": 0.12115399680681833,
+    "hi": 0.17439198388333793,
+    "n": 12
+   }
+  }
+ }
+}

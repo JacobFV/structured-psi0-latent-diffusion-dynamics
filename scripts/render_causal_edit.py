@@ -37,16 +37,27 @@ def main(a):
     if dev == "cuda":
         from rrp.ops.gpu import apply_cap
         apply_cap()
-    pol = LatentPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=8)
-    rep = Path(load_checkpoint(a.checkpoint, map_location="cpu")["config"]["representation"])
-    _, _, R, P, _ = load_representation(rep, dev)
+    from rrp.evaluation import latent_semantic_edits as se
+    if a.route == "oracle":                 # ORACLE DIAGNOSTIC: E(context, scripted-teacher demo) -> system 0
+        rep = Path(a.representation)
+        lcfg, E, R, P, res = load_representation(rep, dev)
+        pol = se.OracleSource(E, lcfg, res, rep, dev)
+        pol.lsv, pol.rcv = res["latent_space_version"], res["realizer_compat_version"]
+    else:
+        pol = LatentPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=8)
+        rep = Path(load_checkpoint(a.checkpoint, map_location="cpu")["config"]["representation"])
+        _, _, R, P, _ = load_representation(rep, dev)
     probe = a.probe or (str(rep.parent / "probe_posthoc.pt") if (rep.parent / "probe_posthoc.pt").exists() else None)
     P = lc.load_probe(probe, P, dev)
     robot = workbench_robots()[a.robot]()
-    S = [Session(BUILDERS["pick_place"](robot, a.seed, n_distractors=a.seed % 3), seed=a.seed) for _ in range(2)]
+    nd = max(1, a.seed % 3) if a.condition in se.CONDITIONS else a.seed % 3
+    S = [Session(BUILDERS["pick_place"](robot, a.seed, n_distractors=nd), seed=a.seed) for _ in range(2)]
+    goff = se.goal_offset(S[0])
+    teach = [se.make_teacher("control", S[0], goff), se.make_teacher(a.condition, S[1], goff)] \
+        if a.route == "oracle" else [None, None]
     s0 = [lc._s0(pol, R, s, dev) for s in S]
     rend = [mujoco.Renderer(s.model, a.height, a.width) for s in S]
-    ck = Path(a.checkpoint).parent.name
+    ck = "ORACLE-DIAGNOSTIC E(" + rep.parent.name + ")+teacher demo" if a.route == "oracle" else Path(a.checkpoint).parent.name
     frames, calls, done = [], 0, [False, False]
     d = a.delta_cm / 100
     for step in range(a.max_steps):
@@ -55,6 +66,12 @@ def main(a):
             calls += 1
             for i, s in enumerate(S):
                 if done[i]:
+                    continue
+                if a.route == "oracle" or a.condition in se.CONDITIONS:
+                    c = "control" if i == 0 else a.condition
+                    srcobj = pol if a.route == "oracle" else se.GeneratedSource(pol)
+                    q = lc.deliver(srcobj.packet(s, c, teach[i], goff, key), s)
+                    lc._recv(s0[i], q, s)
                     continue
                 p = pol.packets([s], noise_keys=[key])[0]
                 q = lc.deliver(p, s)
@@ -78,6 +95,8 @@ def main(a):
         for i, s in enumerate(S):
             if not done[i]:
                 s.step(s0[i].tick(s, s.controller_version()))
+                if teach[i] is not None:
+                    teach[i].act()                  # shadow expert follows the real state (never executed)
                 done[i] = bool(s.runtime.succeeded() or lc._body_pos(s, "cube")[2] < -0.05)
             if step % a.every == 0:
                 rend[i].update_scene(s.data, camera=a.camera)
@@ -92,12 +111,13 @@ def main(a):
     ok = [bool(s.privileged_success()) for s in S]
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
-    name = f"{dt.date.today()}_causal_edit_{a.condition.replace('+', 'p').replace('-', 'm')}_learned_{ck}_{a.robot}_s{a.seed}.mp4"
+    tagsrc = f"oracle_{rep.parent.name}" if a.route == "oracle" else f"learned_{ck}"
+    name = f"{dt.date.today()}_causal_edit_{a.condition.replace('+', 'p').replace('-', 'm')}_{tagsrc}_{a.robot}_s{a.seed}.mp4"
     imageio.mimsave(out / name, frames, fps=a.fps, quality=6)
     tcp_gap = float(np.linalg.norm(lc._tcp(S[0]) - lc._tcp(S[1])))
     with open(out / "INDEX.md", "a") as f:
         f.write(f"- `{name}` — causal edit of the RECEIVED packet, side by side (left unedited control, right "
-                f"{a.condition}); source=learned:{a.checkpoint} (system i + system 0 frozen) robot={a.robot} "
+                f"{a.condition}); source={'ORACLE DIAGNOSTIC target_encoder_oracle E(' + str(rep) + ') + scripted_teacher demo' if a.route == 'oracle' else 'learned:' + str(a.checkpoint)} (system 0 frozen) robot={a.robot} "
                 f"task=pick_place seed={a.seed} outcome control={'success' if ok[0] else 'failure'} "
                 f"edited={'success' if ok[1] else 'failure'} (privileged evaluator); final TCP gap {tcp_gap:.3f} m\n")
     print(name, ok, tcp_gap)
@@ -105,7 +125,9 @@ def main(a):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--checkpoint", required=True)
+    ap.add_argument("--checkpoint")
+    ap.add_argument("--route", choices=["generated", "oracle"], default="generated")
+    ap.add_argument("--representation", help="oracle route: frozen representation.pt")
     ap.add_argument("--robot", default="panda_pg2")
     ap.add_argument("--seed", type=int, default=3000001)
     ap.add_argument("--condition", default="focus_swap")

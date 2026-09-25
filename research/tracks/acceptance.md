@@ -61,3 +61,51 @@ Routes: teacher (reference rung: expert native commands for the edited task, pro
 (ORACLE DIAGNOSTIC: E(context, teacher demo) -> system 0; source=target_encoder_oracle), generated (system i's packet).
 Manipulator assignment: pending the dualarm track's paired tasks.
 Scenes: pick_place with n_distractors = max(1, seed % 3) so rebind/irrelevant edits always have a distractor.
+
+## results of the semantic-edit suite (panda_pg2 source body, dev seeds 3,000,000+)
+State: suite **verified** (code + teacher rung + oracle rung); semantic control **not demonstrable yet**: no competent
+packet route exists (the oracle route is not competent either; see below). Rerun on a competent checkpoint when the
+ladder track names one.
+
+| route (source label) | seeds | control followed | rebind_obj followed | goal_shift followed | irrelevant_distractor unchanged | orthogonal_matched unchanged |
+|---|---|---|---|---|---|---|
+| teacher (scripted_teacher, reference rung) | 12 | 12/12 cube in zone | 12/12 distractor0 lifted + in zone, cube untouched | 12/12 cube at shifted goal, 0/12 in old zone | 12/12 same as control | n/a |
+| oracle (target_encoder_oracle, E(latent_sem_v1) + teacher demo; DIAGNOSTIC) | 8 | 0/8 (nothing grasped) | 0/8 | 0/8 | 0/8 success (same as control) | 0/8 |
+
+Oracle graded signals (paired with control, bootstrap 95% CI over 8 seeds; raw
+artifacts/runs/acceptance_semantic_sem_v1rep/semantic_rows_oracle.jsonl, summary semantic_summary_oracle.json):
+mean TCP deviation from control: rebind_obj 8.4 [6.8, 9.7] cm, goal_shift 1.9 [1.6, 2.3] cm, irrelevant_distractor
+1.8 [1.5, 2.1] cm, orthogonal_matched 0.9 [0.7, 1.0] cm. So the rebind edit changes behaviour far more than the
+irrelevant edits, but NOT in the predicted direction: approach preference for distractor0 vs control is
+-1.3 [-2.1, -0.7] cm (the TCP ended relatively closer to the cube). The goal edit cannot show anything before a grasp.
+Orthogonal control: the probe-relevant span has rank 42 of 256 z dims; the matched norm is ~4% of ||z||.
+Commands:
+  `rrp latent semantic-edits --route teacher --representation artifacts/runs/latent_sem_v1/representation.pt --episodes 12 --max-steps 500 --out artifacts/runs/acceptance_semantic_teacher`
+  `rrp latent semantic-edits --route oracle --representation artifacts/runs/latent_sem_v1/representation.pt --episodes 8 --out artifacts/runs/acceptance_semantic_sem_v1rep`
+  (peer CPU leases 1790370424_4f7427, 1790369814_3235a2)
+
+Why the oracle route fails (diagnostic for the ladder track; scratch script, peer CPU): on the stored training episode
+pick_place_panda_pg2_s0, runtime featurization equals the stored inputs exactly (all banks, nodes, relations, q0), and
+E -> R reproduces the teacher's 1-step command at t = 10 and 30 (e.g. [-0.02 -0.24 0.25 ...] vs [-0.02 -0.28 0.26 ...]),
+but NOT at t = 0: there |z| = 98.6 (vs 20-73 later) and R outputs about -0.1 on every joint instead of the teacher's
+wrist command -1.0. Online, system 0 therefore barely moves at the start; the shadow expert's tcp_cmd runs ahead, the
+demonstrations become large (|a| grows from 1.2 to 3.8), and system 0 keeps under-producing them
+(|a_s - a_t| from 0.9 to 3.7). A 12-tick expert warm start does not fix it (tcp-cube 0.34 m -> 0.22 m after 200 ticks).
+
+## latency (keep; contaminated by shared load)
+`rrp latent latency --checkpoint artifacts/runs/flow_latent_sem_v1/policy_interrupted.pt --direct-config configs/model/policy-small-structured.json --out artifacts/runs/acceptance_latency/sem_v1_interrupted.json`
+The trained direct-action checkpoints (dev3/dev4) were lost in the 2026-09-21 reboot. Compute cost does not depend on the
+weights, so the SAME direct-action architecture is timed with random init (labelled "timing only"). Measured on the peer
+GB10 while 11 other leases were active, so it is NOT the protocol's quiet condition (NFE 4 p95 101.7 ms was slower than
+NFE 8 p95 61.7 ms). The fairest number is the interleaved pairs: latent obs->first native command p95 175.5 ms vs direct
+obs->chunk p95 156.5 ms at NFE 8, **p95 overhead ratio 1.12 (threshold 1.25)**, p50 ratio 1.12. Per replan period
+including the 7 further system-0 ticks the latent path costs 2.24x the direct chunk (system-0 tick p95 25.0 ms, 0/80
+misses of the 50 ms deadline). Rerun on sem_v2/v3 when the GPU is quiet.
+
+## resume / next
+1. When the ladder track names a competent route/checkpoint: `rrp latent semantic-edits --route generated --checkpoint
+   <flow> --episodes 12 --out artifacts/runs/acceptance_semantic_<tag>` (and `--route oracle --representation <rep>` for
+   the matching oracle), then `rrp latent causal ...` and `rrp latent composition ...` on the same checkpoint.
+2. With the binding track's reps (binding_latent_{sem,nosem}_v2): oracle rung first (CPU is enough; E and R are small).
+3. Manipulator assignment: needs the dualarm track's paired tasks (same scene, other arm assigned); add a condition.
+4. Latency on sem_v2/v3 in a quiet GPU window with `--reps 100`.
