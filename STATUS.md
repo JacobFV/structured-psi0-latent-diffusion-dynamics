@@ -41,19 +41,19 @@ ssh gb10-direct 'cd /dev/shm/rrp-brandonin/repo && PATH=/dev/shm/rrp-brandonin/b
 | legged_vlm | ~/work/rrp-wt/legged_vlm | legged/humanoid + VLM system II on latent path | — |
 Host data mirror: ~/work/rrp-data/datasets only (packed removed, D-034: host disk reserve); packed-data training runs on the peer.
 
-## now (2026-09-25 16:15) — no subagents running (stopped at the user's request, D-044)
-- Critical finding: bug B-1 (D-044). No learned closed-loop number so far is evidence about the architecture.
-- Jobs still running under leases (their results land in the shared peer store / host artifacts):
-  - peer: ladder_rz_anchor (472857), ladder_rz_dagger2 (89c2cb), ladder_rep_b1fix_anchor (8d7f01), ladder_flow_b1fix_ft (f0def8);
-    rep_binding_paired_{sem,nosem}_v3 (499dc7, 627400), driven by scripts/binding_chain_v3.sh {sem,nosem} (nohup on peer);
-    flow_latent_sem_v3 (da625a); binding_v1_reeval_cpu (5303b7);
-    baselines_direct_action (f24d3b), baselines_action_only_codec (158758), driven by host scripts/baselines_supervise.sh (seed 1701, BUDGETS=0).
-  - host: flow_latent_nosem_v2 (310edb). The lead chain coordinator rrp-chain-host is stopped: do NOT evaluate flows with the
-    B-1 realizer; rerun evals once a fixed realizer exists.
-- Resume a track: read research/tracks/<track>.md on origin/track/<track> (worktree ~/work/rrp-wt/<track>), especially
-  ladder (B-1 fix: R1/R2 rerun on the fixed realizer) and binding (paired v3 pipeline; set zero_prev_action for new reps).
-- On hold: baselines seeds 1702/1703 and SFT budgets; GRPO; legged/VLM; dual-arm training.
-- After a peer reboot: push source, run `scripts/peer_bootstrap.sh`, and restore runs from `~/rrp-peer-data/artifacts-snapshot-20260921/runs/` (on the PEER).
+## now (2026-09-25 17:10) — lead working solo (no subagents); B-1 fix pipeline-wide (D-045); refits on the frozen v1 encoder fail (D-046)
+Deciding experiments, all deployment-consistent (zero_prev_action):
+- Stage A retrained jointly with fix + anchored system 0: peer lease 8d7f01 -> artifacts/runs/ladder_latent_sem_b1fix_anchor
+  (ladder dir /dev/shm/rrp-brandonin/wt/ladder).
+- binding v4 = paired pipeline + fix + anchor, sem & nosem: peer units rrp-binding-chain-v4-{sem,nosem} (scripts/binding_chain_v4.sh,
+  dir wt/binding; logs repo/ops/logs/binding_chain_v4_*.log). The chain runs rep -> probes -> counterfactuals -> flow -> dev eval -> eval-binding.
+- Oracle-route ladder evals auto-start when each of these representations lands: peer units rrp-ladder-wait-{jointfix,bindv4sem,bindv4nosem}
+  (outputs wt/ladder artifacts/runs/ladder_v1/<robot>/oracle_zero_<tag>*.summary.json).
+- Plain BC with the fix: direct-action baseline seed-1701 source on the HOST (unit rrp-b1fix-baseline_direct_action,
+  scripts/baselines_host_b1fix.sh, root artifacts/runs/latent_slice1_b1fix); codec baseline on the PEER (unit rrp-b1fix-codec, dir wt/lead).
+Stopped as B-1-contaminated (kept, never resume): flow_latent_{sem_v3,nosem_v2}, rep_binding_paired_*_v3, baseline sources in wt/baselines latent_slice1/.
+Resume: `systemctl --user list-units 'rrp-*'` on both nodes; each script above is idempotent/resumable. Track notes: research/tracks/*.md on origin/track/*.
+After a peer reboot: push source, run `scripts/peer_bootstrap.sh`, and restore runs from `~/rrp-peer-data/artifacts-snapshot-20260921/runs/` (on the PEER).
 
 ## earlier work log (2026-09-21, superseded by the track table; kept for accounting)
 - lead: codec + structured/unstructured BC policies training on peer (artifacts/runs/codec_dev_v1, dev_structured_direct, dev_unstructured_direct).
