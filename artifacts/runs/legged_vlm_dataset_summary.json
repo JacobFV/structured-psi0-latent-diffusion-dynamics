@@ -1,0 +1,193 @@
+{
+ "legged_latent_v1/go2": {
+  "episodes": 600,
+  "ticks": 322900,
+  "status": {
+   "success": 598,
+   "failure": 2
+  },
+  "by_sigma": {
+   "0.0:success": 150,
+   "0.1:success": 150,
+   "0.2:success": 150,
+   "0.3:failure": 2,
+   "0.3:success": 148
+  },
+  "tracker": "learned_tracker:go2:iter1199",
+  "teacher_variant": "default",
+  "seeds": [
+   0,
+   599
+  ]
+ },
+ "legged_latent_v1/hexapod6": {
+  "episodes": 600,
+  "ticks": 1070640,
+  "status": {
+   "success": 258,
+   "failure": 342
+  },
+  "by_sigma": {
+   "0.0:success": 153,
+   "0.1:failure": 52,
+   "0.1:success": 97,
+   "0.2:failure": 143,
+   "0.2:success": 6,
+   "0.3:failure": 147,
+   "0.3:success": 2
+  },
+  "tracker": "cpg:hexapod6",
+  "teacher_variant": "default",
+  "seeds": [
+   0,
+   599
+  ]
+ },
+ "legged_latent_v1/hexapod6_long": {
+  "episodes": 600,
+  "ticks": 1004375,
+  "status": {
+   "success": 328,
+   "failure": 272
+  },
+  "by_sigma": {
+   "0.0:success": 150,
+   "0.1:failure": 6,
+   "0.1:success": 144,
+   "0.2:failure": 123,
+   "0.2:success": 27,
+   "0.3:failure": 143,
+   "0.3:success": 7
+  },
+  "tracker": "cpg:hexapod6_long",
+  "teacher_variant": "default",
+  "seeds": [
+   0,
+   599
+  ]
+ },
+ "legged_latent_v1/pquad4": {
+  "episodes": 600,
+  "ticks": 984255,
+  "status": {
+   "success": 279,
+   "failure": 305,
+   "fell": 16
+  },
+  "by_sigma": {
+   "0.0:success": 150,
+   "0.1:failure": 22,
+   "0.1:success": 128,
+   "0.2:failure": 149,
+   "0.2:success": 1,
+   "0.3:failure": 134,
+   "0.3:fell": 16
+  },
+  "tracker": "cpg:pquad4",
+  "teacher_variant": "default",
+  "seeds": [
+   0,
+   599
+  ]
+ },
+ "legged_latent_v1/sprawl4": {
+  "episodes": 600,
+  "ticks": 1132885,
+  "status": {
+   "success": 405,
+   "failure": 195
+  },
+  "by_sigma": {
+   "0.0:success": 150,
+   "0.1:failure": 4,
+   "0.1:success": 146,
+   "0.2:failure": 71,
+   "0.2:success": 79,
+   "0.3:failure": 120,
+   "0.3:success": 30
+  },
+  "tracker": "cpg:sprawl4_f10t14",
+  "teacher_variant": "default",
+  "seeds": [
+   0,
+   599
+  ]
+ },
+ "legged_latent_v1/sprawl8": {
+  "episodes": 600,
+  "ticks": 1080675,
+  "status": {
+   "success": 263,
+   "failure": 337
+  },
+  "by_sigma": {
+   "0.0:success": 150,
+   "0.1:failure": 44,
+   "0.1:success": 106,
+   "0.2:failure": 144,
+   "0.2:success": 6,
+   "0.3:failure": 149,
+   "0.3:success": 1
+  },
+  "tracker": "cpg:sprawl8_f10t14",
+  "teacher_variant": "default",
+  "seeds": [
+   0,
+   599
+  ]
+ },
+ "legged_latent_v2/g1": {
+  "episodes": 600,
+  "ticks": 1349150,
+  "status": {
+   "success": 552,
+   "failure": 46,
+   "fell": 2
+  },
+  "by_sigma": {
+   "0.0:failure": 11,
+   "0.0:fell": 1,
+   "0.0:success": 138,
+   "0.05:failure": 4,
+   "0.05:fell": 1,
+   "0.05:success": 145,
+   "0.1:failure": 7,
+   "0.1:success": 143,
+   "0.15:failure": 24,
+   "0.15:success": 126
+  },
+  "tracker": "learned_tracker:g1:iter3599",
+  "teacher_variant": "arc_only",
+  "seeds": [
+   0,
+   599
+  ]
+ },
+ "legged_latent_v2/t1": {
+  "episodes": 600,
+  "ticks": 451670,
+  "status": {
+   "success": 562,
+   "failure": 29,
+   "fell": 9
+  },
+  "by_sigma": {
+   "0.0:fell": 7,
+   "0.0:success": 143,
+   "0.05:failure": 1,
+   "0.05:fell": 1,
+   "0.05:success": 148,
+   "0.1:failure": 10,
+   "0.1:success": 140,
+   "0.15:failure": 18,
+   "0.15:fell": 1,
+   "0.15:success": 131
+  },
+  "tracker": "learned_tracker:t1:iter2999",
+  "teacher_variant": "default",
+  "seeds": [
+   0,
+   599
+  ]
+ }
+}

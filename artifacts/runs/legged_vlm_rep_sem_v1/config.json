@@ -1,0 +1,22 @@
+{
+ "name": "legged_sem_v1",
+ "data": "artifacts/datasets/legged_latent_v1",
+ "bodies": [
+  "go2",
+  "pquad4",
+  "hexapod6",
+  "sprawl4",
+  "sprawl8",
+  "hexapod6_long"
+ ],
+ "latent": {
+  "dz": 32,
+  "width": 192,
+  "semantic_weight": 1.0,
+  "beta_kl": 0.001
+ },
+ "steps": 12000,
+ "batch_size": 256,
+ "lr": 0.0003,
+ "seed": 0
+}

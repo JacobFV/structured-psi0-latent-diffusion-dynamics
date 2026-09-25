@@ -1,0 +1,48 @@
+{
+ "source": "scripted_teacher",
+ "edit": "none",
+ "per_body": {
+  "go2": {
+   "n": 20,
+   "success": 20,
+   "fell": 0,
+   "mean_sim_time": 9.774999999999933,
+   "packet_probes": null
+  },
+  "pquad4": {
+   "n": 20,
+   "success": 20,
+   "fell": 0,
+   "mean_sim_time": 16.235000000001442,
+   "packet_probes": null
+  },
+  "hexapod6": {
+   "n": 20,
+   "success": 20,
+   "fell": 0,
+   "mean_sim_time": 18.915000000000383,
+   "packet_probes": null
+  },
+  "sprawl4": {
+   "n": 20,
+   "success": 20,
+   "fell": 0,
+   "mean_sim_time": 26.654999999996107,
+   "packet_probes": null
+  },
+  "sprawl8": {
+   "n": 20,
+   "success": 20,
+   "fell": 0,
+   "mean_sim_time": 19.13500000000025,
+   "packet_probes": null
+  },
+  "hexapod6_long": {
+   "n": 20,
+   "success": 20,
+   "fell": 0,
+   "mean_sim_time": 18.90000000000037,
+   "packet_probes": null
+  }
+ }
+}
