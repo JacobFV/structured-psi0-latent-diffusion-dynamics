@@ -41,19 +41,19 @@ ssh gb10-direct 'cd /dev/shm/rrp-brandonin/repo && PATH=/dev/shm/rrp-brandonin/b
 | legged_vlm | ~/work/rrp-wt/legged_vlm | legged/humanoid + VLM system II on latent path | — |
 Host data mirror: ~/work/rrp-data/datasets only (packed removed, D-034: host disk reserve); packed-data training runs on the peer.
 
-## now (2026-09-25 14:00)
-- Lead chain moved to the HOST GPU (the peer GPU was time-sliced 9 ways; flow_latent_sem_v2 had dropped to 0.3 steps/s):
-  user unit `rrp-chain-host` runs `RRP_NODE=host scripts/latent_chain_v2.sh latent_sem_v2 latent_nosem_v2 latent_sem_v3`
-  (it resumed sem_v2 exactly at step 24,543). Log: ops/logs/latent_chain_host.out. Outputs: artifacts/runs/flow_latent_*_v{2,3}
-  on the HOST (copy them to the peer store for other tracks). The peer chain and `rrp-chain-v3` are stopped.
-- Resume the lead chain (idempotent): `systemctl --user status rrp-chain-host`; if it is not running,
-  `cd ~/work/relational-robot-policy && systemd-run --user --unit rrp-chain-host --collect -p WorkingDirectory=$PWD --setenv=RRP_NODE=host --setenv=PATH=$PATH bash -c "exec bash scripts/latent_chain_v2.sh latent_sem_v2 latent_nosem_v2 latent_sem_v3 >> ops/logs/latent_chain_host.out 2>&1"`.
-- Tracks: see the table above. Each track's resume steps are in research/tracks/<track>.md; the branches are
-  track/<name> on origin, and the worktrees are ~/work/rrp-wt/<name>. On hold (D-037): baselines seeds 1702/1703 and SFT
-  budgets; GRPO runs; legged/VLM breadth.
-- After a peer reboot: push source, run `scripts/peer_bootstrap.sh` (it restores the venv, the menagerie on disk and the
-  data links), and copy `~/rrp-peer-data/artifacts-snapshot-20260921/runs/*` into repo/artifacts/runs/ if missing (the snapshot is on the PEER).
-- Host data: ~/work/rrp-data/{datasets,packed} (linked from artifacts/); menagerie at .cache/assets (pinned SHA).
+## now (2026-09-25 16:15) — no subagents running (stopped at the user's request, D-044)
+- Critical finding: bug B-1 (D-044). No learned closed-loop number so far is evidence about the architecture.
+- Jobs still running under leases (their results land in the shared peer store / host artifacts):
+  - peer: ladder_rz_anchor (472857), ladder_rz_dagger2 (89c2cb), ladder_rep_b1fix_anchor (8d7f01), ladder_flow_b1fix_ft (f0def8);
+    rep_binding_paired_{sem,nosem}_v3 (499dc7, 627400), driven by scripts/binding_chain_v3.sh {sem,nosem} (nohup on peer);
+    flow_latent_sem_v3 (da625a); binding_v1_reeval_cpu (5303b7);
+    baselines_direct_action (f24d3b), baselines_action_only_codec (158758), driven by host scripts/baselines_supervise.sh (seed 1701, BUDGETS=0).
+  - host: flow_latent_nosem_v2 (310edb). The lead chain coordinator rrp-chain-host is stopped: do NOT evaluate flows with the
+    B-1 realizer; rerun evals once a fixed realizer exists.
+- Resume a track: read research/tracks/<track>.md on origin/track/<track> (worktree ~/work/rrp-wt/<track>), especially
+  ladder (B-1 fix: R1/R2 rerun on the fixed realizer) and binding (paired v3 pipeline; set zero_prev_action for new reps).
+- On hold: baselines seeds 1702/1703 and SFT budgets; GRPO; legged/VLM; dual-arm training.
+- After a peer reboot: push source, run `scripts/peer_bootstrap.sh`, and restore runs from `~/rrp-peer-data/artifacts-snapshot-20260921/runs/` (on the PEER).
 
 ## earlier work log (2026-09-21, superseded by the track table; kept for accounting)
 - lead: codec + structured/unstructured BC policies training on peer (artifacts/runs/codec_dev_v1, dev_structured_direct, dev_unstructured_direct).

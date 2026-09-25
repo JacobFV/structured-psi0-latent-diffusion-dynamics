@@ -73,6 +73,24 @@ class System0Stats:
     fallback_holds: int = 0
 
 
+Q_COL, ANCHOR_COL = 26, 28     # node-feature layout: normalized joint position; (formerly prev-action, bug B-1) column
+
+
+def realizer_node_feats(s0, pi) -> np.ndarray:
+    """Node features handed to the realizer. For anchored realizers (`net.anchor`, ladder track), column 28 carries the
+    joint displacement since the packet's anchor state (the measured state at the first tick of this packet, i.e. at
+    valid_from), in the same normalized-position units as column 26; this is local proprio memory of system 0 (declared),
+    no scene/task information. Otherwise column 28 is left as the featurizer wrote it (0 since D-021)."""
+    nf = pi.act_node_feats.astype(np.float32)
+    if not getattr(s0.net, "anchor", False):
+        return nf
+    if getattr(s0, "_anchor_for", None) is not s0.packet:
+        s0._anchor_for, s0._anchor = s0.packet, nf[:, Q_COL].copy()
+    nf = nf.copy()
+    nf[:, ANCHOR_COL] = nf[:, Q_COL] - s0._anchor
+    return nf
+
+
 class LatentSystem0:
     """Runtime wrapper: holds the current packet, realizes it every tick from fresh local state."""
 
@@ -130,7 +148,7 @@ class LatentSystem0:
         zm = torch.tensor([self.packet.assembly_mask], device=dev)
         kt = torch.tensor(self.packet.knot_times, dtype=torch.float32, device=dev)
         ph = torch.tensor([now - self.packet.valid_from], dtype=torch.float32, device=dev)
-        nf = torch.from_numpy(pi.act_node_feats.astype(np.float32))[None].to(dev)
+        nf = torch.from_numpy(realizer_node_feats(self, pi))[None].to(dev)
         nm = torch.ones(1, nf.shape[1], dtype=torch.bool, device=dev)
         lc = torch.from_numpy(loc)[None].to(dev)
         a = self.net(z, zm, kt, ph, nf, nm, lc)[0].cpu().numpy()

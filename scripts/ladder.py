@@ -30,6 +30,8 @@ def main():
     ap.add_argument("--object-shift", help="tick,dx,dy")
     ap.add_argument("--no-compare", action="store_true")
     ap.add_argument("--keep-ticks", action="store_true")
+    ap.add_argument("--reanchor", action="store_true", help="R1: re-anchor the expert reference at each replan")
+    ap.add_argument("--collect-dagger", help="R1 only: write a system-0 DAgger buffer (.npz) of learner-visited states")
     ap.add_argument("--disturbance", action="store_true")
     ap.add_argument("--tag", default="")
     ap.add_argument("--render-seeds", help="comma list: render these seeds (one episode each) instead of evaluating")
@@ -49,7 +51,7 @@ def main():
     seeds = feasible_seeds(a.robot, a.seed_start, a.n)
     cfg = LadderConfig(route=a.route, robot=a.robot, seeds=seeds, representation=a.rep, flow=a.flow,
                        replan_ticks=a.replan, max_steps=a.max_steps, nfe=a.nfe, compare_oracle=not a.no_compare,
-                       device=dev, prev_action=a.prev_action, keep_ticks=a.keep_ticks, object_shift=tuple(float(x) for x in a.object_shift.split(",")) if a.object_shift else None)
+                       device=dev, prev_action=a.prev_action, keep_ticks=a.keep_ticks, oracle_reanchor=a.reanchor, object_shift=tuple(float(x) for x in a.object_shift.split(",")) if a.object_shift else None)
     if cfg.object_shift:
         cfg.object_shift = (int(cfg.object_shift[0]),) + cfg.object_shift[1:]
     models, ids = load_models(cfg) if (a.route != "teacher" or a.rep) else (dict(E=None, R=None, P=None, lcfg=None, res=None, flow=None), {})
@@ -61,7 +63,7 @@ def main():
         return
     if a.disturbance:
         from rrp.evaluation.latent_eval import disturbance_test
-        pol = models["flow"] if a.route == "generated" else OraclePacketPolicy(models["E"], models["lcfg"], models["res"], dev)
+        pol = models["flow"] if a.route == "generated" else OraclePacketPolicy(models["E"], models["lcfg"], models["res"], dev, reanchor=a.reanchor)
         rows = []
         for ji in (1, 3):
             rows += [dict(r, joint_index=ji, route=a.route, checkpoints=ids)
@@ -78,12 +80,17 @@ def main():
     if p.exists():
         p.unlink()
     rows = []
+    collect = {} if a.collect_dagger else None
     for i in range(0, len(seeds), a.batch):
         cfg.seeds = seeds[i:i + a.batch]
-        rows += run_ladder(cfg, p, models, ids)
+        rows += run_ladder(cfg, p, models, ids, collect=collect)
         print(f"{len(rows)}/{len(seeds)} success={sum(r['privileged_success'] for r in rows)}", flush=True)
+    if collect is not None:
+        from rrp.evaluation.ladder import save_dagger
+        save_dagger(collect, Path(a.collect_dagger), dict(robot=a.robot, seeds=seeds, route=a.route, rep=a.rep,
+                                                           reanchor=a.reanchor, prev_action=a.prev_action, ids=ids))
     summ = dict(summarize(rows), route=a.route, robot=a.robot, seeds=[seeds[0], seeds[-1], len(seeds)],
-                replan=a.replan, nfe=a.nfe, prev_action=a.prev_action, keep_ticks=a.keep_ticks, object_shift=a.object_shift, checkpoints=ids)
+                replan=a.replan, nfe=a.nfe, prev_action=a.prev_action, reanchor=a.reanchor, keep_ticks=a.keep_ticks, oracle_reanchor=a.reanchor, object_shift=a.object_shift, checkpoints=ids)
     (out / f"{name}.summary.json").write_text(json.dumps(summ, indent=1, default=str))
     print(json.dumps({k: v for k, v in summ.items() if k != "checkpoints"}, default=str))
 

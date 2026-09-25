@@ -46,8 +46,11 @@ def _dev():
 class LatentData:
     """Row i = (episode, t). Realizer targets use row i+j of the same episode (stride-1 packing required)."""
 
-    def __init__(self, packed_dir: Path, zero_prev_action: bool = False):
+    def __init__(self, packed_dir: Path, zero_prev_action: bool = False, anchor: bool = False):
+        if anchor and not zero_prev_action:
+            raise ValueError("realizer_anchor reuses node column 28: requires zero_prev_action")
         self.ds = PackedChunkDataset(packed_dir, zero_prev_action=zero_prev_action)
+        self.anchor = anchor
         if self.ds.meta["stride"] != 1:
             raise ValueError("latent training needs stride-1 packing (state at t+j)")
         self.ep = np.asarray(self.ds.arr["ep_idx"])
@@ -80,6 +83,9 @@ class LatentData:
         v1 = np.asarray(A["valid"][ts][:, 0])[inv]
         loc = np.asarray(A["local"][ts]).astype(np.float32)[inv]
         N = batch.node_feats.shape[1]
+        if self.anchor:            # anchored realizer: col 28 = normalized joint displacement since the packet state (t)
+            from rrp.control.latent_realizer import Q_COL, ANCHOR_COL
+            nodes[:, :N, ANCHOR_COL] = nodes[:, :N, Q_COL] - batch.node_feats[:, :, Q_COL].numpy()
         lab["subtask"] = torch.from_numpy(np.asarray(A["subtask"][sel]).astype(np.int64))
         r = dict(node=torch.from_numpy(nodes[:, :N]), node_mask=torch.from_numpy(np.arange(N)[None] < nn_[:, None]),
                  a1=torch.from_numpy(a1[:, :N]), v1=torch.from_numpy(v1[:, :N]), local=torch.from_numpy(loc))
@@ -202,8 +208,10 @@ def train_representation(cfg_json: dict, out_dir: Path) -> dict:
     seed = cfg_json.get("seed", 0)
     torch.manual_seed(seed)
     rng = random.Random(seed)
-    data = LatentData(Path(cfg_json["packed_dir"]), zero_prev_action=cfg_json.get("zero_prev_action", False))
+    data = LatentData(Path(cfg_json["packed_dir"]), zero_prev_action=cfg_json.get("zero_prev_action", False),
+                      anchor=cfg_json.get("realizer_anchor", False))
     E, R = TargetEncoder(cfg).to(dev), LatentRealizer(cfg.dz, layers=cfg.realizer_layers).to(dev)
+    R.anchor = cfg_json.get("realizer_anchor", False)
     P = PacketProbe(cfg.dz, cfg.knots, **cfg_json.get("probe", {})).to(dev)
     params = list(E.parameters()) + list(R.parameters()) + list(P.parameters())
     opt = torch.optim.AdamW(params, lr=cfg_json.get("lr", 3e-4), weight_decay=1e-4)
@@ -293,6 +301,7 @@ def load_representation(path: Path, dev):
     E, R, P = TargetEncoder(cfg).to(dev), LatentRealizer(cfg.dz, layers=cfg.realizer_layers).to(dev), \
         PacketProbe(cfg.dz, cfg.knots, **st["config"].get("probe", {})).to(dev)
     E.load_state_dict(st["model"]["E"]); R.load_state_dict(st["model"]["R"]); P.load_state_dict(st["model"]["P"])
+    R.anchor = bool(st["config"].get("realizer_anchor", False))    # ladder: anchored realizer input (col 28)
     for m in (E, R, P):
         m.eval()
         for p in m.parameters():
@@ -334,6 +343,9 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
         sched.load_state_dict(st["extra"]["sched"]); step = st["step"]
         rng.setstate(st["extra"]["rng_py"]); gen.set_state(st["extra"]["gen"].cpu())
         print(f"resumed {last} at step {step}", flush=True)
+    elif cfg_json.get("init_from"):            # warm start (e.g. bug B-1 fine-tune): weights incl. target-norm buffers
+        model.load_state_dict(load_checkpoint(Path(cfg_json["init_from"]), map_location=dev)["model"])
+        print(f"initialized from {cfg_json['init_from']}", flush=True)
     elif cfg_json.get("normalize_target", False):
         mean, std = latent_target_stats(E, data, dev, seed=seed + 17)
         model.set_target_norm(mean, std)
@@ -552,8 +564,10 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
     rep_path = Path(cfg_json["representation"])
     st0 = load_checkpoint(rep_path, map_location=dev)
     lcfg, E, R_old, P, rep_res = load_representation(rep_path, dev)
-    data = LatentData(Path(cfg_json["packed_dir"]), zero_prev_action=cfg_json.get("zero_prev_action", False))
+    data = LatentData(Path(cfg_json["packed_dir"]), zero_prev_action=cfg_json.get("zero_prev_action", False),
+                      anchor=cfg_json.get("realizer_anchor", False))
     R = LatentRealizer(lcfg.dz, layers=lcfg.realizer_layers).to(dev)
+    R.anchor = cfg_json.get("realizer_anchor", False)
     if cfg_json.get("init", "fresh") == "old":
         R.load_state_dict(R_old.state_dict())
     for p_ in R.parameters():
@@ -572,7 +586,16 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
     B = cfg_json.get("batch_size", 128)
     t0 = time.time()
     kt = torch.tensor(lcfg.knot_times, device=dev)
-    feed = _prefetch(data, B, rng, lcfg.max_phase_ticks, dev, workers=cfg_json.get("prefetch_workers", 3))
+    dag = _load_dagger(cfg_json.get("dagger") or [], dev)
+    Bd = int(round(B * cfg_json.get("dagger_frac", 0.5))) if dag else 0
+    drng = np.random.default_rng(seed + 11)
+    nw = cfg_json.get("prefetch_workers", 3)
+
+    def _serial():
+        while True:
+            sel, tgt, j = data.sample(B - Bd, rng, lcfg.max_phase_ticks)
+            yield (*data.fetch(sel, tgt, dev), j)
+    feed = _prefetch(data, B - Bd, rng, lcfg.max_phase_ticks, dev, workers=nw) if nw > 0 else _serial()
     while step < steps and not sig.requested:
         batch, a, v, lab, r, j = next(feed)
         j = torch.as_tensor(j, device=dev)
@@ -583,7 +606,24 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
         phase = torch.as_tensor(j * lcfg.control_dt, dtype=z.dtype, device=dev)
         pred = R(z, am, kt, phase, r["node"], r["node_mask"], r["local"], node_asm=r.get("node_asm"))
         m = (r["v1"] & r["node_mask"]).float()
-        loss = ((pred - r["a1"]) ** 2 * m).sum() / m.sum().clamp(min=1)
+        se, cnt = ((pred - r["a1"]) ** 2 * m).sum(), m.sum()
+        l_pack = float((se / cnt.clamp(min=1)).detach())
+        l_dag = None
+        if Bd:
+            idx = torch.from_numpy(drng.integers(0, dag["n"], Bd)).to(dev)
+            rp = dag["rp"][idx]
+            mu_d, lv_d = dag["mu"][rp].float(), dag["lv"][rp].float()
+            zd = mu_d + torch.randn_like(mu_d) * (0.5 * lv_d).exp()
+            Md = zd.shape[2]
+            amd = torch.ones(Bd, Md, dtype=torch.bool, device=dev)
+            nmask = torch.arange(dag["node"].shape[1], device=dev)[None] < dag["n_nodes"][idx][:, None]
+            pd = R(zd, amd, kt, dag["j"][idx].float() * lcfg.control_dt, dag["node"][idx].float(), nmask,
+                   dag["local"][idx].float())
+            md = nmask.float()
+            sed = ((pd - dag["a1"][idx]) ** 2 * md).sum()
+            l_dag = float((sed / md.sum().clamp(min=1)).detach())
+            se, cnt = se + sed, cnt + md.sum()
+        loss = se / cnt.clamp(min=1)
         opt.zero_grad()
         loss.backward()
         gn = torch.nn.utils.clip_grad_norm_(R.parameters(), 1.0)
@@ -591,7 +631,8 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
         sched.step()
         step += 1
         if step % 100 == 0:
-            log.write(json.dumps(dict(step=step, t=time.time() - t0, real=float(loss.detach()), gn=float(gn))) + "\n")
+            log.write(json.dumps(dict(step=step, t=time.time() - t0, real=float(loss.detach()), pack=l_pack, dagger=l_dag,
+                                      gn=float(gn))) + "\n")
             log.flush()
         if step % 2000 == 0 or sig.requested:
             save_checkpoint(last, model=R, optimizer=opt, step=step, versions=dict(latent=rep_res["latent_space_version"]),
@@ -605,6 +646,27 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
     E.eval(); R.eval(); P.eval()
     save_checkpoint(out_dir / ("representation.pt" if not sig.requested else "representation_interrupted.pt"),
                     model=_bundle(E, R, P), optimizer=None, step=step, versions=dict(latent=rep_res["latent_space_version"]),
-                    config=dict(st0["config"], refit=cfg_json), extra=dict(result=res))
+                    config=dict(st0["config"], refit=cfg_json, realizer_anchor=R.anchor,
+                                zero_prev_action=cfg_json.get("zero_prev_action", False)), extra=dict(result=res))
     (out_dir / "result.json").write_text(json.dumps(res, indent=1, default=str))
     return res
+
+
+def _load_dagger(paths, dev):
+    """System-0 DAgger buffers written by rrp.evaluation.ladder.save_dagger (single-assembly bodies; M = 1)."""
+    if not paths:
+        return None
+    parts = [np.load(p) for p in paths]
+    off, rp = 0, []
+    for q in parts:
+        rp.append(q["rp"].astype(np.int64) + off)
+        off += len(q["mu"])
+    Mmax = max(q["mu"].shape[2] for q in parts)
+    if any(q["mu"].shape[2] != Mmax for q in parts):
+        raise ValueError("mixed assembly counts in DAgger buffers")
+    t = lambda k, dt=None: torch.from_numpy(np.concatenate([q[k] for q in parts]).astype(dt) if dt else
+                                            np.concatenate([q[k] for q in parts])).to(dev)
+    d = dict(mu=t("mu"), lv=t("lv"), rp=torch.from_numpy(np.concatenate(rp)).to(dev), j=t("j", np.int64),
+             node=t("node"), n_nodes=t("n_nodes", np.int64), local=t("local"), a1=t("a1", np.float32))
+    d["n"] = len(d["rp"])
+    return d

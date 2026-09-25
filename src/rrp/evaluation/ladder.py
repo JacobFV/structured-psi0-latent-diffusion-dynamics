@@ -118,10 +118,19 @@ class ShadowTeacher:
     """Per-session scripted teacher (PRIVILEGED). label(s) advances it once at the current state; lookahead(s, H)
     returns the teacher's next H commands executed from the current state, then restores session + teacher."""
 
-    def __init__(self, s):
+    def __init__(self, s, reanchor: bool = False):
         from rrp.control.teachers import PickPlaceTeacher
         self.t = PickPlaceTeacher(s)
         self.synced = s.step_count
+        self.reanchor = reanchor
+
+    def reanchor_now(self, s):
+        """Re-anchor the expert's internal TCP reference (and IK seed) to the MEASURED arm, keeping its phase: the
+        expert then demonstrates a smooth continuation from where the arm actually is (as in clean demonstrations)
+        instead of a jump back to its own run-away reference."""
+        t = self.t
+        t.tcp_cmd = s._fk_site(t.r, t.tcp_site)[0].copy()
+        t.q_arm = s.data.qpos[t.r.qadr[:len(t.q_arm)]].copy()
 
     def catch_up(self, s):
         while self.synced < s.step_count:       # missed ticks (e.g. disturbance_test warmup): advance at current state
@@ -136,6 +145,8 @@ class ShadowTeacher:
 
     def lookahead(self, s, H: int):
         self.catch_up(s)
+        if self.reanchor:
+            self.reanchor_now(s)
         snap, st = s.snapshot(), self.t.state()
         cmds = []
         for _ in range(H):
@@ -154,7 +165,8 @@ class OraclePacketPolicy:
     LatentPolicy (packets/featurizer/lsv/rcv/calls) so evaluate/disturbance code can drive it."""
     name = "target_encoder_oracle"
 
-    def __init__(self, E, cfg, res, device, validity_s: float = 0.8):
+    def __init__(self, E, cfg, res, device, validity_s: float = 0.8, reanchor: bool = False):
+        self.reanchor = reanchor
         self.E, self.cfg, self.device, self.validity = E, cfg, device, validity_s
         self.lsv, self.rcv = res["latent_space_version"], res["realizer_compat_version"]
         self.shadows: dict[int, ShadowTeacher] = {}
@@ -166,7 +178,7 @@ class OraclePacketPolicy:
     def shadow(self, s) -> ShadowTeacher:
         k = id(s)
         if k not in self.shadows:
-            self.shadows[k] = ShadowTeacher(s)
+            self.shadows[k] = ShadowTeacher(s, reanchor=self.reanchor)
         return self.shadows[k]
 
     @torch.no_grad()
@@ -190,8 +202,9 @@ class OraclePacketPolicy:
         for i in range(len(A)):
             a[i, :, :A[i].shape[1]] = A[i]; v[i, :, :V[i].shape[1]] = V[i]
         af, am, ai = assembly_tokens(b)
-        mu, _ = self.E(b, torch.from_numpy(a).to(self.device), torch.from_numpy(v).to(self.device), af, am, ai)
-        mu = mu.float().cpu().numpy()
+        mu, lv = self.E(b, torch.from_numpy(a).to(self.device), torch.from_numpy(v).to(self.device), af, am, ai)
+        mu, lv = mu.float().cpu().numpy(), lv.float().cpu().numpy()
+        self.last_logvar = [lv[i][:, :int(am[i].sum())] for i in range(len(sessions))]
         return [mu[i][:, :int(am[i].sum())] for i in range(len(sessions))]
 
     def packets(self, sessions):
@@ -297,6 +310,7 @@ class LadderConfig:
     task: str = "pick_place"
     flow_seed: int = 0
     keep_ticks: bool = False         # store per-tick rows in the output (diagnostics)
+    oracle_reanchor: bool = False    # R1: re-anchor the expert reference to the measured arm at each replan
     prev_action: str = "zero"        # zero (current deployment) | own (training-consistent input, bug B-1)
 
 
@@ -328,8 +342,15 @@ def load_models(cfg: LadderConfig):
 
 
 @torch.no_grad()
-def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids=None, frame_cb=None) -> list[dict]:
-    """frame_cb(k, session, step, shadow_phase): optional per-tick callback after each executed step (rendering)."""
+def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids=None, frame_cb=None,
+               collect: dict | None = None) -> list[dict]:
+    """frame_cb(k, session, step, shadow_phase): optional per-tick callback after each executed step (rendering).
+    collect: DAgger buffer for system 0 (route oracle): at each replan the oracle posterior (mu, logvar) of the teacher
+    chunk; at each executed tick with phase j <= collect['max_j'] the LEARNER-visited state (node features, local
+    sensors) and the shadow teacher's command there (normalized with that tick's q0) -> see save_dagger/refit."""
+    if collect is not None:
+        collect.setdefault("mu", []); collect.setdefault("lv", []); collect.setdefault("rows", [])
+        collect["cur"] = {}; collect.setdefault("max_j", 12)
     from rrp.morphology.catalog import workbench_robots
     from rrp.sim.scenario import BUILDERS
     from rrp.sim.native import Session
@@ -338,7 +359,8 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
     if models is None:
         models, ids = load_models(cfg)
     robot = workbench_robots()[cfg.robot]()
-    oracle = OraclePacketPolicy(models["E"], models["lcfg"], models["res"], cfg.device) if models["E"] is not None else None
+    oracle = OraclePacketPolicy(models["E"], models["lcfg"], models["res"], cfg.device,
+                                reanchor=cfg.oracle_reanchor) if models["E"] is not None else None
     gen = models["flow"]
     S, s0, meters, shadows, meta = [], [], [], [], []
     for sd in cfg.seeds:
@@ -370,6 +392,10 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
                       for k, z in zip(need, zo)]
             else:
                 pk = gen.packets([S[k] for k in need])
+            if collect is not None and cfg.route == "oracle":
+                for j, k in enumerate(need):
+                    collect["cur"][k] = len(collect["mu"])
+                    collect["mu"].append(zo[j].astype(np.float16)); collect["lv"].append(oracle.last_logvar[j].astype(np.float16))
             for j, (k, p) in enumerate(zip(need, pk)):
                 meta[k]["calls"] += 1
                 rec = dict(t=step)
@@ -390,12 +416,21 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
             lab = labels[k]
             row = dict(t=step, phase=shadows[k].t.phase)
             if cfg.keep_ticks:
+                xm = s.data.site_xmat[mt.site].reshape(3, 3)
                 row.update(q=q_meas.round(4).tolist(), tcp=mt.tcp().round(4).tolist(),
+                           cube=s.data.xpos[mt.cube].round(4).tolist(), tool_z=xm[:, 2].round(3).tolist(),
                            lab=np.round(lab.groups["arm"], 4).tolist(), lab_g=lab.groups.get("gripper"),
                            cmd=np.round(c0.groups["arm"], 4).tolist() if c0 is not None else None,
                            cmd_g=c0.groups.get("gripper") if c0 is not None else None)
             if s0 and s0[k].packet is not None:
                 row["j"] = int(round((float(s.data.time) - s0[k].packet.valid_from) / s.dt))
+            if collect is not None and c0 is not None and k in collect["cur"] and row.get("j", 99) <= collect["max_j"]:
+                pi_c = f.base(s.observe())
+                n_ = pi_c.act_node_feats.shape[0]
+                nd = np.zeros((12, pi_c.act_node_feats.shape[1]), np.float16); nd[:n_] = pi_c.act_node_feats
+                a1 = np.zeros(12, np.float32); a1[:n_] = f.aspace.normalize([lab.groups], pi_c.q0)[0]
+                from rrp.learning.packed import local_sensors
+                collect["rows"].append((collect["cur"][k], row["j"], nd, n_, local_sensors(pi_c).astype(np.float16), a1))
             if c0 is not None:              # system-0 output (executed in R1/R2; shadow-only in R0) vs teacher label
                 q0z = np.zeros(len(f.aspace.node_group))       # the q0 offset cancels in the difference
                 la = f.aspace.normalize([lab.groups], q0z)[0]
@@ -581,3 +616,12 @@ def _gripper_mask(robot_key: str, N: int) -> np.ndarray:
     isg = np.asarray(_featurizer(s).aspace.is_gripper, bool)
     g[:len(isg)] = isg
     return g
+
+
+def save_dagger(collect: dict, path: Path, meta: dict):
+    rows = collect["rows"]
+    np.savez_compressed(path, mu=np.stack(collect["mu"]), lv=np.stack(collect["lv"]),
+                        rp=np.array([r[0] for r in rows], np.int32), j=np.array([r[1] for r in rows], np.int8),
+                        node=np.stack([r[2] for r in rows]), n_nodes=np.array([r[3] for r in rows], np.int16),
+                        local=np.stack([r[4] for r in rows]), a1=np.stack([r[5] for r in rows]),
+                        meta=np.array(json.dumps(meta)))
