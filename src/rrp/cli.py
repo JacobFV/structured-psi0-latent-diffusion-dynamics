@@ -60,7 +60,8 @@ def cmd_ops_watchdog(a):
     wc = WatchdogConfig(memory_reserve_bytes=cfg["memory_reserve_bytes"], disk_reserve_bytes=cfg["disk_reserve_bytes"],
                         startup_memory_bytes=cfg["enforced"]["memory_bytes"],
                         startup_cpu_cores=cfg["enforced"]["cpu_cores"], disk_path=str(a.disk_path or repo_root()),
-                        fraction=0.8 if role == "host" else 1.0, psi_full_avg10_shed=25.0 if role == "host" else 101.0)
+                        fraction=0.8 if role == "host" else 1.0, psi_full_avg10_shed=25.0 if role == "host" else 101.0,
+                        cpu_fraction=0.8 if role == "host" else 1.0)          # D-033 host CPU 80% of free
     if cfg.get("unrestricted"):
         wc.startup_memory_bytes = 10 ** 15
         wc.startup_cpu_cores = 10000.0

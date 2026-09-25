@@ -8,7 +8,7 @@ def test_half_free_not_half_total():
                     free_cpu_cores=6, free_disk_gib=200,
                     total_disk_gib=1000)
     assert b.memory_gib <= 0.8 * 40      # D-027: host memory at 80% of free (user authorization)
-    assert b.cpu_cores <= 3
+    assert b.cpu_cores <= 0.8 * 6             # D-033: host CPU at 80% of free cores (user authorization)
     assert b.new_disk_gib <= 100
     assert not b.host_gpu_enabled
 
@@ -16,7 +16,7 @@ def test_half_free_not_half_total():
 def test_fractional_cpu_not_rounded_up():
     b = host_budget(total_ram_gib=128, available_ram_gib=40, free_cpu_cores=0.8,
                     free_disk_gib=200, total_disk_gib=1000)
-    assert b.cpu_cores == pytest.approx(0.4)
+    assert b.cpu_cores == pytest.approx(0.64)
 
 
 def test_reserve_dominates_when_little_is_free():
@@ -44,7 +44,7 @@ def test_zero_totals_and_inconsistent_values_rejected():
 def test_host_fraction_limits():
     with pytest.raises(BudgetError):
         compute_budget(role="host", total_ram_gib=128, available_ram_gib=100, free_cpu_cores=10,
-                       free_disk_gib=100, total_disk_gib=1000, policy=RolePolicy(0.6, 0.5, 0.5))
+                       free_disk_gib=100, total_disk_gib=1000, policy=RolePolicy(0.9, 0.5, 0.5))
     with pytest.raises(BudgetError):
         compute_budget(role="host", total_ram_gib=128, available_ram_gib=100, free_cpu_cores=10,
                        free_disk_gib=100, total_disk_gib=1000, policy=RolePolicy(0.5, 0.9, 0.5))
