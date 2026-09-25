@@ -204,7 +204,7 @@ fr3, trossen or held-out-source lineage in the source_train episodes.
 | ur5e_pg2__panda_tf3 | target:held_out_attachment_combination_on_insertion_arm | 60 | 9 | 51 | 0 | 0 | 951 |
 | aloha | target:held_out_dual_arm_body | 60 | 60 | 0 | 0 | 0 | 276 |
 
-total 1560 {'failure': 292, 'infeasible': 163, 'success': 1105} manifest_hash ac8b04c0b43faa28
+total 1560 {'failure': 292, 'infeasible': 163, 'success': 1105} manifest_hash 246f1a54d1d96f32
 
 Seeds: source 0-149 per pair (0-29 overlap the teacher-validation scenes; demonstrations only),
 targets 1,000,000+, source held-out development 3,000,000+. Episodes run up to 1200 control
