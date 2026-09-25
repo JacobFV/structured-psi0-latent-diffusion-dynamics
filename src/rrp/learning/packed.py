@@ -71,7 +71,8 @@ def _focus(pi, S):
 
 def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, stride: int = 1,
                  include_dart_failures: bool = False, statuses=("success",), limit_per_robot=None,
-                 seeds=None, chunk_episodes: int = 200, limits: dict | None = None, multi_m: int = 0) -> dict:
+                 seeds=None, chunk_episodes: int = 200, limits: dict | None = None, multi_m: int = 0,
+                 exclude_episodes=()) -> dict:
     """limits: override MAX_T/N/R (dual-arm inputs are larger). multi_m > 0 additionally stores multi-assembly
     arrays (rrp.learning.dual_latent): per-slot privileged labels held_m/contact_m/rel_tcp_m in packet order, public
     per-slot subtask_m and local sensors local_m, and node_asm (packet slot of each action node)."""
@@ -87,7 +88,7 @@ def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, s
         rk = m.get("robot_key") or m.get("split_lineage", {}).get("robot_key")
         ok = m.get("status") in statuses or (include_dart_failures and m.get("exec_noise", 0) > 0
                                              and m.get("status") == "failure")
-        if not ok or (robots is not None and rk not in robots):
+        if not ok or (robots is not None and rk not in robots) or m.get("episode_id") in set(exclude_episodes):
             continue
         if seeds is not None and not (seeds[0] <= m["seed"] < seeds[1]):
             continue

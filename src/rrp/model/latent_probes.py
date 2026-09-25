@@ -207,6 +207,8 @@ def probe_loss_multi(out: dict, lab: dict, smask: torch.Tensor) -> tuple[torch.T
         subtask=F.cross_entropy(out["subtask"][:, :M].reshape(-1, out["subtask"].shape[-1]),
                                 lab["subtask_m"].reshape(-1).long()),
     )
+    if _goal_terms(out, lab, smask):
+        L["goal_effect"] = gaussian_nll(out["goal_effect"], lab["goal_effect"] * 10, smask)
     total = sum(L.values())
     return total, {f"probe_{k}": float(v.detach()) for k, v in L.items()}
 
@@ -226,6 +228,8 @@ def probe_metrics_multi(out: dict, lab: dict, smask: torch.Tensor) -> dict:
     derr = (out["observed_effect"][..., :3] / 10 - lab["future_disp"]).norm(dim=-1)
     res["observed_effect_err_m"] = (float((derr * m).sum()), int(m.sum()))
     res["desired_delta_err_m"] = res["observed_effect_err_m"]          # deprecated alias
+    if _goal_terms(out, lab, smask):
+        res.update(goal_metrics(out, lab, m))
     M = lab["held_m"].shape[-1]
     for a in range(M):
         for q, key in (("held_by", "held_m"), ("acting_on", "contact_m")):

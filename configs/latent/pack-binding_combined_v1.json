@@ -1,0 +1,66 @@
+{
+ "out_dir": "artifacts/packed/binding_combined_v1_H16",
+ "horizon": 16,
+ "multi_m": 2,
+ "limits": {
+  "T": {
+   "morph": 24,
+   "scene": 8,
+   "task": 32,
+   "interact": 16
+  },
+  "N": 16,
+  "R": 256,
+  "P": 64
+ },
+ "note": "Whole-pipeline binding diversity (track binding, D-037 item 2): single-arm object-binding pairs (pick_place_paired_v1: successes + DART failures, as in v1) + dual-arm manipulator-assignment pairs (assign_pick_place_v1 source_train successes, 5 invalid 'pushed, not grasped' DART episodes excluded; dev/held-out arm-swap pairs kept for evaluation). Multi-assembly format (M=2, role order).",
+ "sources": [
+  {
+   "dataset": "artifacts/datasets/pick_place_paired_v1",
+   "robots": [
+    "parm5_pg2",
+    "parm5_tf3",
+    "parm5s_pg2",
+    "parm5l_tf3",
+    "parm6_pg2",
+    "parm6_tf3",
+    "parm7_pg2",
+    "parm7_tf3",
+    "panda_pg2",
+    "ur5e_pg2",
+    "ur5e_tf3",
+    "sawyer_pg2",
+    "sawyer_tf3"
+   ],
+   "statuses": [
+    "success"
+   ],
+   "include_dart_failures": true
+  },
+  {
+   "dataset": "artifacts/datasets/assign_pick_place_v1",
+   "robots": [
+    "panda_pg2__ur5e_pg2",
+    "parm5_pg2__parm5_pg2",
+    "parm5_pg2__parm6_tf3",
+    "parm6_pg2__parm7_pg2",
+    "parm7_tf3__parm5_pg2",
+    "ur5e_pg2__sawyer_pg2"
+   ],
+   "statuses": [
+    "success"
+   ],
+   "seeds": [
+    0,
+    100000
+   ],
+   "exclude_episodes": [
+    "assign_right_parm5_pg2__parm5_pg2_s154_dart40",
+    "assign_right_parm5_pg2__parm5_pg2_s176_dart40",
+    "assign_right_parm6_pg2__parm7_pg2_s130_dart40",
+    "assign_right_parm6_pg2__parm7_pg2_s165_dart40",
+    "assign_right_parm7_tf3__parm5_pg2_s188_dart40"
+   ]
+  }
+ ]
+}

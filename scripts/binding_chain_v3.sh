@@ -12,7 +12,7 @@ PY=$P/venv/bin/python
 run() { python3 -m rrp.cli ops run "$@"; }
 N=binding_paired_${V}_v3
 R=artifacts/runs/$N
-PK=artifacts/packed/latent_paired_v1_s1_H16
+PK=artifacts/packed/binding_combined_v1_H16
 [ -f $PK/meta.json ] || { echo "missing $PK"; exit 1; }
 [ -f $R/representation.pt ] || run --gpu --gpu-mem 16G --cpu 5 --mem 24G --label rep_$N --max-seconds 28800 -- \
   $PY -m rrp.cli latent train-representation --config configs/latent/rep-$N.json

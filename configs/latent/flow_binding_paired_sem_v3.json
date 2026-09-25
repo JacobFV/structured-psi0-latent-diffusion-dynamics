@@ -2,7 +2,7 @@
  "name": "flow_binding_paired_sem_v3",
  "out_dir": "artifacts/runs/flow_binding_paired_sem_v3",
  "representation": "artifacts/runs/binding_paired_sem_v3/representation.pt",
- "packed_dir": "artifacts/packed/latent_paired_v1_s1_H16",
+ "packed_dir": "artifacts/packed/binding_combined_v1_H16",
  "seed": 1701,
  "steps": 20000,
  "batch_size": 128,

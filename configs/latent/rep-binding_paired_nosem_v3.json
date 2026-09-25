@@ -1,5 +1,5 @@
 {
- "dataset": "artifacts/datasets/pick_place_paired_v1",
+ "dataset": "artifacts/datasets/pick_place_paired_v1 + artifacts/datasets/assign_pick_place_v1 (see configs/latent/pack-binding_combined_v1.json)",
  "train_robots": [
   "parm5_pg2",
   "parm5_tf3",
@@ -18,7 +18,7 @@
  "horizon": 16,
  "stride": 1,
  "include_dart_failures": true,
- "packed_dir": "artifacts/packed/latent_paired_v1_s1_H16",
+ "packed_dir": "artifacts/packed/binding_combined_v1_H16",
  "seed": 1701,
  "steps": 20000,
  "batch_size": 128,
@@ -30,7 +30,7 @@
   "semantic_weight": 0.0,
   "binding_cf": 0.5
  },
- "notes": "Whole-pipeline binding diversity (correction 2026-09-25 item 2): paired scenes (identical initial scene, every cube assigned as patient in turn, role-independent slot order), each with its own scripted_teacher demonstration -> realizer/encoder/probes trained on binding-varying FACTUAL data; plus binding_cf 0.5 same-trajectory/different-meaning copies (probe+KL only, no realizer loss); goal_effect probe (item 5). 20k steps (v1 realize loss plateaus by ~15k). sem/nosem differ only in semantic_weight.",
+ "notes": "Whole-pipeline binding diversity (correction 2026-09-25 item 2): paired scenes (identical initial scene, every cube assigned as patient in turn, role-independent slot order), each with its own scripted_teacher demonstration -> realizer/encoder/probes trained on binding-varying FACTUAL data; plus binding_cf 0.5 same-trajectory/different-meaning copies (probe+KL only, no realizer loss); goal_effect probe (item 5). 20k steps (v1 realize loss plateaus by ~15k). sem/nosem differ only in semantic_weight. Training pack also includes the dual-arm manipulator-assignment pairs (assign_pick_place_v1, source_train, 5 invalid DART episodes excluded).",
  "prefetch": true,
  "probe": {
   "goal_effect": true

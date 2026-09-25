@@ -18,7 +18,8 @@ def cmd_pack(a):
                                 statuses=tuple(src.get("statuses", ["success"])),
                                 include_dart_failures=src.get("include_dart_failures", False),
                                 seeds=tuple(src["seeds"]) if src.get("seeds") else None,
-                                limits=cfg["limits"], multi_m=cfg["multi_m"])
+                                limits=cfg["limits"], multi_m=cfg["multi_m"],
+                                exclude_episodes=tuple(src.get("exclude_episodes", ())))
             print(k, json.dumps({kk: meta[kk] for kk in ("n", "robots")}), flush=True)
         parts.append(d)
     meta = concat_packed(parts, out)
