@@ -26,7 +26,8 @@ class CreateSession(_Req):
 
 class Command(_Req):
     type: Literal["step", "run", "pause", "reset", "joint_target", "ee_target", "teleport", "request_event",
-                  "cancel_event", "set_mode", "debug_force_success", "replay"]
+                  "cancel_event", "set_mode", "debug_force_success", "replay", "latent_freeze", "latent_unfreeze",
+                  "disturb_joint"]
     n: int = Field(default=1, ge=1, le=2000)
     group: str | None = Field(default=None, max_length=32)
     values: list[float] | None = Field(default=None, max_length=64)
