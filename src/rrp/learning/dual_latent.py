@@ -185,7 +185,7 @@ def concat_packed(dirs: list, out_dir) -> dict:
         out.flush()
         del out
     meta = dict(metas[0], n=n, robot_ids=robot_ids, source=[m["source"] for m in metas],
-                parts=[dict(dir=str(d), n=m["n"]) for d, m in zip(dirs, metas)],
+                parts=[dict(dir=str(d), n=m["n"], truncated_rows=m.get("truncated_rows")) for d, m in zip(dirs, metas)],
                 robots=sorted({r for m in metas for r in m.get("robots", [])}))
     (out_dir / "meta.json").write_text(json.dumps(meta, indent=1))
     return meta

@@ -7,13 +7,13 @@
    "morph": 24,
    "scene": 8,
    "task": 32,
-   "interact": 32
+   "interact": 64
   },
   "N": 16,
-  "R": 512,
-  "P": 64
+  "R": 1024,
+  "P": 128
  },
- "note": "dual-arm latent pack: support_insert v2 clean + DART v1 + handover v1 clean/DART; source-train pairs only; successes only (DART successes included); limits sized so no dual row is truncated (meta truncated_rows)",
+ "note": "dual-arm latent pack: support_insert v2 clean + DART v1 + handover v1 clean/DART; source-train pairs only; successes only (DART successes included). Handover receipts accumulate in the interact bank (anchor receipt versions), so limits are sized to avoid truncation (see meta truncated_rows per part)",
  "sources": [
   {
    "dataset": "artifacts/datasets/support_insert_primary_v2",
