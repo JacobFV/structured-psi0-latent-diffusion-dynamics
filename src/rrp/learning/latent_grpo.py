@@ -405,6 +405,7 @@ def train_latent_grpo(cfg: LatentGRPORunConfig) -> dict:
                note="Eval: deployed ODE sampler on held-out seeds; reference@0 = unmodified checkpoint.")
     save_checkpoint(out / "policy.pt", model=model, optimizer=None, step=learner.opt_steps,
                     versions=dict(st["versions"], latent_grpo=learner.version), config=st["config"],
-                    extra=dict(result=dict(st["extra"]["result"], latent_grpo=res)))
+                    extra=dict(result=dict((st.get("extra") or {}).get("result") or dict(
+                        latent_space_version=base.lsv, realizer_compat_version=base.rcv), latent_grpo=res)))
     (out / "result.json").write_text(json.dumps(res, indent=1, default=str))
     return res

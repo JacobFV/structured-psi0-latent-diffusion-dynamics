@@ -30,8 +30,9 @@ class LatentPolicy:
     @classmethod
     def from_checkpoint(cls, path, device="cpu", **kw):
         st = load_checkpoint(path, map_location=device)
-        res = st["extra"]["result"]
         rep = load_checkpoint(st["config"]["representation"], map_location="cpu")
+        # training snapshots (policy_last.pt) carry no result: versions come from the representation
+        res = (st.get("extra") or {}).get("result") or rep["extra"]["result"]
         from rrp.model.semantic_latent import LatentConfig
         lcfg = LatentConfig(**rep["config"]["latent"])
         pc = PolicyConfig(**dict(st["config"]["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz, aux=False))
