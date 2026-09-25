@@ -12,9 +12,9 @@ case "${1:-push}" in
   push)
     ssh "$PEER" "mkdir -p $R"
     rsync -a --bwlimit=100000 --delete \
-      --exclude .venv --exclude .cache --exclude .git --exclude node_modules \
+      --exclude .venv --exclude /.cache --exclude .git --exclude node_modules \
       --exclude 'ops/broker/' --exclude 'ops/logs/' --exclude 'ops/watchdog/' --exclude 'ops/resource-ledger*.jsonl' \
-      --exclude 'configs/resources.local.json' --exclude 'artifacts/' --exclude 'research/registry.jsonl' \
+      --exclude 'configs/resources.local.json' --exclude '/artifacts' --exclude 'research/registry.jsonl' \
       --exclude 'ui/node_modules/' --exclude 'ui/dist/' --exclude '__pycache__/' \
       "$ROOT/" "$PEER:$R/"
     if [ "$R" != "$P/repo" ]; then

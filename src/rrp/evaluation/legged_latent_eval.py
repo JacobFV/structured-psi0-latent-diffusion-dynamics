@@ -167,7 +167,11 @@ class LatentLeggedController:
         b = ad.dyn_batch()
         edit = self.edit if now >= self.t_edit else "none"
         b["ctx"] = self._ctx(ad, edit if edit in ("mirror_goal", "halt") else None)
-        z = self._sample(b)
+        if getattr(self, "oracle", None) is not None:
+            with torch.no_grad():
+                z, _ = self.E(b, self.oracle.demo(ad))
+        else:
+            z = self._sample(b)
         if edit.startswith("probe_yaw"):
             z = self.probe_edit(z, b, float(edit.split(":")[1]))
         if edit == "zero":
@@ -183,7 +187,8 @@ class LatentLeggedController:
                               assembly_mask=[True] * M, observation_id=f"lg{ad.ticks}",
                               graph_version=int(ad.s.runtime.graph_version), runtime_version=int(ad.s.runtime.runtime_version),
                               robot_spec_hash=self.morph.spec_hash, generated_at=time.time(), valid_from=now,
-                              valid_until=now + 0.6, source="learned", policy_version=self.policy_version,
+                              valid_until=now + 0.6, source="target_encoder_oracle" if getattr(self, "oracle", None) is not None else "learned",
+                              policy_version=self.policy_version,
                               sampling=dict(nfe=self.nfe, sampler="euler_rectified_flow", edit=edit))
         self.packets.append(dict(t=now, ev=active_event(ad.s.runtime), edit=edit,
                                  probe=dict(contact=(pout["contact"][0, :, :M] > 0).int().tolist(),
@@ -211,14 +216,69 @@ class LatentLeggedController:
         return (zz * am).detach()
 
 
-def run_episode(ctl, body, seed, max_s=60.0, video=None):
-    sc = build_waypoint_contact(body, seed)
+class OracleShadow:
+    """DIAGNOSTIC (privileged, source=target_encoder_oracle): at each replan, roll the privileged waypoint teacher +
+    frozen body tracker forward 0.8 s in a SHADOW copy of the physics state, encode those demonstrated targets with E
+    and send the resulting packet. Isolates system 0 (realization) from system i (generation)."""
+
+    def __init__(self, ctl, session, inner):
+        import mujoco
+        from rrp.control.legged_tracker import load_tracker
+        self.c, self.s = ctl, session
+        self.inner = load_tracker(session.body_key, session.binding, session.robots[0].meta, session.tracker_kind)
+        self.mj = mujoco
+        self.shadow = mujoco.MjData(session.model)
+
+    def demo(self, ad):
+        from rrp.control.legged_core import yaw_of
+        mj, s, b = self.mj, self.s, self.s.binding
+        mj.mj_copyData(self.shadow, s.model, s.data)
+        d = self.shadow
+        tr = self.inner
+        if hasattr(tr, "last_a"):
+            tr.last_a = np.clip((d.ctrl[b.pol_act] - b.q0) / b.action_scale, -5, 5)
+        tr.phase = ad.osc()
+        ev = active_event(s.runtime)
+        L = s.robots[0].meta["legged"]["command_ranges"]
+        wps = {o.task_entity: o.sim_body for o in s.scenario.objects}
+        acts = []
+        n = max(1, int(round(1.0 / (50.0 * s.model.opt.timestep))))
+        for k in range(40):
+            if k % 5 == 0:
+                if ev >= 2:
+                    cmd = np.zeros(3)
+                else:
+                    q = d.qpos
+                    x, y, yaw = q[b.qa], q[b.qa + 1], yaw_of(q[b.qa + 3:b.qa + 7])
+                    bid = mj.mj_name2id(s.model, mj.mjtObj.mjOBJ_BODY, wps["waypoint_a" if ev == 0 else "waypoint_b"])
+                    tx, ty = d.xpos[bid][:2]
+                    err = (math.atan2(ty - y, tx - x) - yaw + math.pi) % (2 * math.pi) - math.pi
+                    dist = math.hypot(tx - x, ty - y)
+                    vmax, wmax = 0.6 * L["vx"][1], 0.8 * L["wz"][1]
+                    wz = float(np.clip(1.5 * err, -wmax, wmax))
+                    vx = 0.0 if abs(err) > 1.0 else vmax * max(0.0, math.cos(err)) ** 2 * min(1.0, dist / 0.6 + 0.3)
+                    cmd = np.array([vx, 0.0, wz])
+            tgt = tr.act(d, cmd)
+            acts.append((tgt - b.q0) / b.action_scale)
+            d.ctrl[b.pol_act] = tgt
+            if len(b.held_act):
+                d.ctrl[b.held_act] = b.q0_held
+            for _ in range(n):
+                mj.mj_step(s.model, d)
+        a = np.zeros((MAX_N, 40), np.float32)
+        a[:b.n] = np.array(acts, np.float32).T
+        return torch.from_numpy(a)[None].to(self.c.dev)
+
+
+def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=None):
+    sc = scenario if scenario is not None else build_waypoint_contact(body, seed)
     s = LeggedSession(sc, tracker_kind="cpg" if body not in ("go2", "t1") else "auto", seed=seed)
     morph = LeggedMorph(s.model, s.binding, sc.robots[0].robot_spec.spec_hash)
     ad = System0Adapter(ctl, s, morph) if ctl is not None else None
     teacher = None
     if ctl is not None:
         ctl.bind(s, morph)
+        ctl.oracle = OracleShadow(ctl, s, s.tracker) if oracle else None
         s.tracker = ad
     s.reset()
     if ctl is None:
@@ -250,7 +310,9 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None):
         if s.fell or s.runtime.succeeded() or (teacher is not None and teacher.done):
             break
     ok = bool(s.privileged_success() and not s.fell)
-    row = dict(body=body, seed=seed, source=("scripted_teacher" if ctl is None else ctl.policy_version),
+    src = "scripted_teacher" if ctl is None else (
+        f"privileged_oracle_packet:{ctl.lsv}" if oracle else ctl.policy_version)
+    row = dict(body=body, seed=seed, source=src,
                edit=(ctl.edit if ctl else "none"), t_edit=(ctl.t_edit if ctl else None), success=ok, fell=bool(s.fell),
                public_success=bool(s.runtime.succeeded()), sim_time=float(s.data.time), wall_s=time.time() - t0,
                events={e: v.status for e, v in s.runtime.instances.items()},
@@ -339,6 +401,7 @@ def main(argv=None):
     ap.add_argument("--nfe", type=int, default=8)
     ap.add_argument("--max-s", type=float, default=60.0)
     ap.add_argument("--posthoc-probe", default=None)
+    ap.add_argument("--oracle", action="store_true", help="DIAGNOSTIC: E-encoded shadow teacher rollouts as packets")
     ap.add_argument("--out", required=True)
     ap.add_argument("--video-dir", default=None)
     ap.add_argument("--video-n", type=int, default=0)
@@ -355,10 +418,11 @@ def main(argv=None):
                 ctl = LatentLeggedController(Path(a.flow), dev, nfe=a.nfe, edit=a.edit, t_edit=a.t_edit, seed=sd,
                                              posthoc_probe=a.posthoc_probe) if a.flow else None
                 want = a.video_dir is not None and nv < a.video_n
-                row, frames = run_episode(ctl, body, sd, a.max_s, video=True if want else None)
+                row, frames = run_episode(ctl, body, sd, a.max_s, video=True if want else None, oracle=a.oracle)
                 if want:
-                    lab = ("SCRIPTED TEACHER (privileged)" if ctl is None
-                           else f"LEARNED latent sys-i+sys-0 {Path(a.flow).parent.name}")
+                    lab = ("SCRIPTED TEACHER (privileged)" if ctl is None else (
+                        "PRIVILEGED ORACLE packets (E on shadow teacher) + LEARNED sys-0" if a.oracle
+                        else f"LEARNED latent sys-i+sys-0 {Path(a.flow).parent.name}"))
                     row["video"] = save_video(frames, row, Path(a.video_dir), lab)
                     nv += 1
                 rows.append(row)
