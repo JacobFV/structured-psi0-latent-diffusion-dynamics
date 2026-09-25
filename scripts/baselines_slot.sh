@@ -37,4 +37,4 @@ for s in "${deferred[@]}"; do
   run_seed "$s"
 done
 echo "[slot] $(date -Is) done $method $*"
-[ "$fails" = 0 ] && touch "$ROOT/.slot_done_${method}_$(echo "$@" | tr ' ' _)"
+[ "$fails" = 0 ] && touch "$ROOT/.slot_done_${method}_$(echo "$@" | tr ' ' _)_b$(echo $BUDGETS | tr ' ' _)"
