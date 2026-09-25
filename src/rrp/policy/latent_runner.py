@@ -49,7 +49,9 @@ class LatentPolicy:
         return f
 
     @torch.no_grad()
-    def packets(self, sessions) -> list[LatentActionChunk]:
+    def packets(self, sessions, noise_keys=None) -> list[LatentActionChunk]:
+        """noise_keys: optional per-session integer seeds for the initial flow noise (paired interventions:
+        the same key gives the same noise whatever else is in the batch)."""
         t0 = time.perf_counter()
         feats, obs = [], []
         for s in sessions:
@@ -58,7 +60,12 @@ class LatentPolicy:
             feats.append(self.featurizer(s)(o))
         b = assembly_batch(collate_inputs(feats).to(self.device))
         cache = self.model.prepare(b)
-        z = self.model.sample(cache, len(self.knot_times), nfe=self.nfe, generator=self.gen)
+        noise = None
+        if noise_keys is not None:
+            K, N, D = len(self.knot_times), b.node_mask.shape[1], self.model.cfg.latent_dim
+            noise = torch.stack([torch.randn((K, N, D), generator=torch.Generator().manual_seed(int(k) % (2 ** 63)))
+                                 for k in noise_keys]).to(self.device, cache.ctx.dtype)
+        z = self.model.sample(cache, len(self.knot_times), nfe=self.nfe, generator=self.gen, noise=noise)
         if self.device != "cpu" and torch.cuda.is_available():
             torch.cuda.synchronize()
         z = z.float().cpu().numpy()

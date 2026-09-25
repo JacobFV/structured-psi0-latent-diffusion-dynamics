@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 
 
@@ -26,6 +27,7 @@ def register(sub):
     from rrp import cli_dual_latent
     cli_dual_latent.register(p)
     register_grpo(p)
+    register_causal(p)
 
 
 def cmd_flow(a):
@@ -140,13 +142,15 @@ def register_cell(p):
 
 def cmd_latency(a):
     from rrp.evaluation.latency import latent_latency_suite
-    print(json.dumps(latent_latency_suite(a.checkpoint, Path(a.out), direct_ckpt=a.direct), indent=1))
+    print(json.dumps(latent_latency_suite(a.checkpoint, Path(a.out), direct_ckpt=a.direct, direct_config=a.direct_config, reps=a.reps), indent=1))
 
 
 def register_latency(p):
     c = p.add_parser("latency")
     c.add_argument("--checkpoint", required=True)
     c.add_argument("--direct")
+    c.add_argument("--reps", type=int, default=40)
+    c.add_argument("--direct-config", help="time the direct-action architecture with random init (no checkpoint)")
     c.add_argument("--out", required=True)
     c.set_defaults(fn=cmd_latency)
 
@@ -237,3 +241,83 @@ def register_grpo(p):
                    help="curriculum: SCRIPTED TEACHER controls the first N ticks (labelled; also evaluated without)")
     c.add_argument("--seed", type=int, default=0)
     c.set_defaults(fn=cmd_grpo)
+# ------------------------------------------------------------------ causal edits / composition (acceptance track)
+TARGET_BODIES = ("xarm7_pg2", "xarm7_tf3", "panda_tf3")      # D-025: never used for development
+
+
+def _causal_common(a, window_conds, episode_conds):
+    import torch
+    from rrp.evaluation import latent_causal as lc
+    robots = a.robots.split(",")
+    if a.seed_start < 3_000_000 or any(r in TARGET_BODIES for r in robots):
+        raise SystemExit("dev rule (D-025): source/dev bodies and dev seeds >= 3,000,000 only")
+    pol, R, P, dev = _load(a)
+    from rrp.learning.checkpoint import load_checkpoint
+    rep = Path(load_checkpoint(a.checkpoint, map_location="cpu")["config"]["representation"])
+    probe = a.probe or (str(rep.parent / "probe_posthoc.pt") if (rep.parent / "probe_posthoc.pt").exists() else None)
+    P = lc.load_probe(probe, P, dev)
+    out = Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    seeds = list(range(a.seed_start, a.seed_start + a.episodes))
+    meta = dict(checkpoint=a.checkpoint, source=f"learned:{a.checkpoint}", representation=str(rep),
+                edit_probe=probe or "representation (jointly trained)", robots=robots, seeds=[seeds[0], seeds[-1]],
+                delta_m=a.delta_cm / 100, nfe=a.nfe, replan=a.replan, t=time.time(),
+                note="probe defines edit directions only; evidence = system-0 behaviour vs the unedited packet")
+    summ = dict(meta=meta)
+    conds = a.conditions.split(",") if a.conditions else None
+    if a.protocol in ("window", "both"):
+        rows = []
+        for r in robots:
+            rows += lc.window_protocol(pol, R, P, r, seeds, window=a.window, replan=a.replan, delta_m=a.delta_cm / 100,
+                                       conditions=tuple(conds or window_conds), edit_steps=a.edit_steps, dev=dev)
+        (out / "window_rows.jsonl").write_text("\n".join(json.dumps(x) for x in rows))
+        summ["window"] = lc.summarize_window(rows, a.delta_cm / 100)
+        summ["window"]["per_robot"] = {r: lc.summarize_window([x for x in rows if x.get("robot") == r],
+                                                              a.delta_cm / 100) for r in robots}
+    if a.protocol in ("episode", "both"):
+        rows = []
+        for r in robots:
+            rows += lc.episode_protocol(pol, R, P, r, seeds[:a.episode_seeds or None],
+                                        conditions=tuple(conds or episode_conds), replan=a.replan,
+                                        max_steps=a.max_steps, delta_m=a.delta_cm / 100, edit_steps=a.edit_steps,
+                                        dev=dev)
+        (out / "episode_rows.jsonl").write_text("\n".join(json.dumps(x) for x in rows))
+        summ["episode"] = lc.summarize_episodes(rows)
+    (out / "summary.json").write_text(json.dumps(summ, indent=1))
+    print(json.dumps(summ, indent=1)[:20000])
+
+
+def cmd_causal(a):
+    from rrp.evaluation import latent_causal as lc
+    _causal_common(a, lc.WINDOW_CONDS, lc.EPISODE_CONDS)
+
+
+def cmd_composition(a):
+    _causal_common(a, ("control_replay", "rel+x", "rel+y", "rel+xy", "sum_xy"), ("control", "chain_A_then_B"))
+
+
+def _causal_args(c):
+    c.add_argument("--checkpoint", required=True)
+    c.add_argument("--robots", default="panda_pg2,parm6_pg2,ur5e_pg2")
+    c.add_argument("--episodes", type=int, default=16, help="dev seeds per robot")
+    c.add_argument("--episode-seeds", type=int, default=0, help="episode protocol: first N of the seeds (0 = all)")
+    c.add_argument("--seed-start", type=int, default=3000000)
+    c.add_argument("--protocol", choices=["window", "episode", "both"], default="both")
+    c.add_argument("--conditions", help="comma list (default: all for this command)")
+    c.add_argument("--probe", help="edit-direction probe (.pt from fit-probes); default <rep dir>/probe_posthoc.pt")
+    c.add_argument("--delta-cm", type=float, default=5.0)
+    c.add_argument("--window", type=int, default=8)
+    c.add_argument("--edit-steps", type=int, default=80)
+    c.add_argument("--max-steps", type=int, default=240)
+    c.add_argument("--nfe", type=int, default=8)
+    c.add_argument("--replan", type=int, default=8)
+    c.add_argument("--out", required=True)
+
+
+def register_causal(p):
+    c = p.add_parser("causal", help="causal edits of the RECEIVED packet (window + episode protocols)")
+    _causal_args(c)
+    c.set_defaults(fn=cmd_causal)
+    c = p.add_parser("composition", help="packet composition: edit superposition (window) + two-object chain")
+    _causal_args(c)
+    c.set_defaults(fn=cmd_composition)

@@ -128,7 +128,7 @@ def run_latency_suite(checkpoints: dict[str, str], out_path: Path, dev=None, nod
 
 @torch.no_grad()
 def latent_latency_suite(flow_ckpt: str, out_path: Path, dev=None, nfe_list=(1, 2, 4, 8), reps=40,
-                         direct_ckpt: str | None = None) -> dict:
+                         direct_ckpt: str | None = None, direct_config: str | None = None) -> dict:
     """R38 test 12: synchronized timings of the actual corrected inference path.
     system i: observe+featurize+collate+prepare+sample+packet construction (per replan, NFE sweep)
     system 0: per-tick realization (featurize local state + realizer forward + denormalize) vs 50 ms deadline
@@ -178,9 +178,20 @@ def latent_latency_suite(flow_ckpt: str, out_path: Path, dev=None, nfe_list=(1, 
         _sync(dev)
         e2e.append(time.perf_counter() - t0)
     res["end_to_end_obs_to_first_command"] = _pct(e2e)
+    dp = None
     if direct_ckpt:
         from rrp.policy.runner import LearnedPolicy
         dp = LearnedPolicy.from_checkpoint(direct_ckpt, device=dev)
+        res["baseline_direct_action_source"] = f"checkpoint {direct_ckpt}"
+    elif direct_config:
+        # the trained direct-action checkpoints were lost in the 2026-09-21 peer reboot; compute cost does not depend
+        # on the weights, so the SAME architecture/config with random init is timed (labelled; timing only)
+        from rrp.policy.runner import LearnedPolicy
+        cfg = json.loads(Path(direct_config).read_text())
+        torch.manual_seed(0)
+        dp = LearnedPolicy(FlowPolicy(PolicyConfig(**cfg["policy"])).to(dev), None, dev, name="direct_random_init")
+        res["baseline_direct_action_source"] = f"random-init weights, architecture {direct_config} (timing only)"
+    if dp is not None:
         for _ in range(3):
             dp.chunks([s])
         dd = []
@@ -190,6 +201,37 @@ def latent_latency_suite(flow_ckpt: str, out_path: Path, dev=None, nfe_list=(1, 
             _sync(dev)
             dd.append(time.perf_counter() - t0)
         res["baseline_direct_action_obs_to_chunk"] = _pct(dd)
+        # interleaved pairs under the same external load: latent obs->first command vs direct obs->chunk (NFE 8)
+        lat, dirc = [], []
+        pol8 = LatentPolicy.from_checkpoint(flow_ckpt, device=dev, nfe=8)
+        for _ in range(reps * 2):
+            t0 = time.perf_counter()
+            q = pol8.packets([s])[0]
+            s0.receive(q, now=float(s.data.time), graph_version=s.runtime.graph_version)
+            s0.tick(s, s.controller_version())
+            _sync(dev)
+            t1 = time.perf_counter()
+            dp.chunks([s])
+            _sync(dev)
+            t2 = time.perf_counter()
+            lat.append(t1 - t0)
+            dirc.append(t2 - t1)
+        L, D = _pct(lat), _pct(dirc)
+        tick_p95 = res["system0_tick"]["p95"]
+        res["paired_interleaved_nfe8"] = dict(
+            latent_obs_to_first_command=L, direct_obs_to_chunk=D,
+            p95_overhead_ratio=L["p95"] / D["p95"], p50_overhead_ratio=L["p50"] / D["p50"],
+            # per 0.4 s replan period the latent path also runs 7 more system-0 ticks; direct replays its queue
+            per_replan_compute_p95_ratio=(L["p95"] + 7 * tick_p95) / D["p95"],
+            threshold_p95_ratio=1.25)
+        try:
+            from rrp.ops.runtime import make_broker  # external load: other leases active during the measurement
+            br, _ = make_broker(require_watchdog=False)
+            res["active_leases_during_measurement"] = [
+                dict(label=v["request"].get("label"), gpu=v["request"].get("gpu"))
+                for v in br.leases().values() if v.get("state") == "active"]
+        except Exception as e:  # noqa: BLE001
+            res["active_leases_during_measurement"] = f"unavailable: {e}"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(res, indent=1))
     return res
