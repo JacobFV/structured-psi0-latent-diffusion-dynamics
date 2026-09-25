@@ -96,31 +96,25 @@ Campaign (running): see "status" below.
 - codec seed1701 (`.../baseline_action_only_codec/seed1701/codec/result.json`): 4,572 updates, 195,297 train chunks,
   train reconstruction MSE 0.00017 (shuffled-latent 0.41, zero-action 0.25; normalized actions).
 
-## status (2026-09-25 13:40 PDT)
-State: running (peer), blocked_external (host admission).
-- Lead instruction 13:30: at most 1 peer job; move source trainings and cells to the host GPU (1 lease: --gpu
-  --gpu-mem 20G --cpu 4 --mem 16G). Menagerie assets mirrored to `~/work/rrp-data/cache` (worktree `.cache` link,
-  git-excluded) so target bodies can be evaluated on the host.
-- Host admission is STOPPED by the broker (`disk_below_reserve`: ~353 GiB free < 10% reserve of 3.6 TiB). Not changed
-  by me; reported to the lead. The host supervisor retries every 10 min.
-- PEER (1 job): lease label `baselines_direct_action`, supervisor `scripts/baselines_supervise.sh baseline_direct_action
-  1701 1702 1703` (host pid, log `~/work/rrp-wt/baselines-logs/supervise_baseline_direct_action.log`); seed1701
-  source training, ~1.1 s/update on the oversubscribed peer => ~8 h per source model. Seed1703's source is marked
-  REMOTE_TRAINING (host) and deferred; the peer slot runs its cells once the host syncs it.
-- HOST (waiting for admission): `scripts/baselines_host_supervise.sh` (log `~/work/rrp-wt/baselines-logs/host_supervise.log`)
-  -> lease `baselines_host_slot` running `scripts/baselines_host_queue.sh`: direct seed1703 source (train-only, then
-  rsynced to the peer), then all codec cells for seeds 1701-1703. Codec seed1701's autoencoder (finished) and its
-  source checkpoint (exact cursor at update 608) were moved from the peer to the host
-  (`~/work/rrp-wt/baselines/artifacts/runs/latent_slice1/baseline_action_only_codec/seed1701`; peer copy marked
-  MOVED_TO_HOST, do not resume it there).
-- Results: none yet (no source model has finished).
+## status (2026-09-25 13:45 PDT)
+State: running (peer, 2 slots). Lead 13:40: host has no packed data and only ~10 GB of disk headroom, so all
+packed-data training stays on the peer (2 slots allowed again). The host slot was withdrawn before it ran anything,
+and host copies (codec seed1701 state, menagerie mirror) were deleted.
+- Peer slot 1: lease `1790367145_aea797` (label baselines_direct_action), supervisor
+  `scripts/baselines_supervise.sh baseline_direct_action 1701 1702 1703` (log
+  `~/work/rrp-wt/baselines-logs/supervise_baseline_direct_action.log`). It is training the seed1701 source.
+- Peer slot 2: lease `1790368549_518d74` (label baselines_action_only_codec), supervisor for the codec method, same
+  seeds. The seed1701 source resumed exactly from update 608 (codec autoencoder already done).
+- Throughput on the oversubscribed peer: 1-2 s/update, so each source model (26.3k updates) takes ~8-14 h. The
+  full grid is ~3 sources per slot plus about 1 h of SFT and eval per seed, so 1-2 days in total.
+- Results: none yet.
 
 ## resume
 - Check: `ssh gb10-direct 'systemctl --user list-units "rrp-job-*" --no-legend | grep baselines_'`;
   `pgrep -af "baselines_(host_)?supervise"`; peer log `/dev/shm/rrp-brandonin/repo/ops/logs/<lease>_baselines_direct_action.log`.
 - Restart the peer slot (idempotent/resumable) from the worktree:
   `setsid nohup scripts/baselines_supervise.sh baseline_direct_action 1701 1702 1703 > ~/work/rrp-wt/baselines-logs/supervise_baseline_direct_action.log 2>&1 < /dev/null &`
-- Restart the host slot: `setsid nohup scripts/baselines_host_supervise.sh > ~/work/rrp-wt/baselines-logs/host_supervise.log 2>&1 < /dev/null &`
+- Restart the codec slot: `setsid nohup scripts/baselines_supervise.sh baseline_action_only_codec 1701 1702 1703 > ~/work/rrp-wt/baselines-logs/supervise_baseline_action_only_codec.log 2>&1 < /dev/null &`
 - Single cell by hand: `PYTHONPATH=src python -m rrp.cli campaign baseline-cell --method M --seed S --target T --budget B`
   (prefix with `rrp.cli ops run ...` on the host, or `scripts/peer_run.sh ... -- PY -m rrp.cli ...` on the peer).
 - Aggregate (after pulling peer JSONs: `rsync -a --include='*/' --include='*.json' --include='*.jsonl' --exclude='*'
