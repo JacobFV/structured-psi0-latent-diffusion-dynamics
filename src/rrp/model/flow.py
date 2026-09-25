@@ -222,7 +222,11 @@ class FlowPolicy(nn.Module):
         ctx, cmask, _ = self.context(batch, rewire_gen)
         B, N = batch.node_feats.shape[:2]
         morph_off = batch.bank_offset["morph"]
-        node_ctx = ctx[:, morph_off:morph_off + N]       # action node tokens are the first morph tokens
+        if "node_ctx_index" in batch.extra:              # latent path: generated entities are assemblies
+            idx = batch.extra["node_ctx_index"]
+            node_ctx = torch.gather(ctx, 1, idx[..., None].expand(-1, -1, ctx.shape[-1]))
+        else:
+            node_ctx = ctx[:, morph_off:morph_off + N]   # action node tokens are the first morph tokens
         node_emb = self.node(batch.node_feats) + self.node_from_ctx(node_ctx)
         use_bias = self.cfg.bias_mode != "none"
         act_rel = batch.act_rel
@@ -253,7 +257,8 @@ class FlowPolicy(nn.Module):
         return (v, hidden) if return_hidden else v
 
     def loss(self, batch: Batch, target: torch.Tensor, valid: torch.Tensor, labels: dict | None = None,
-             aux_weight: float = 0.1, generator=None) -> tuple[torch.Tensor, dict]:
+             aux_weight: float = 0.1, generator=None, packet_loss_fn=None,
+             packet_weight: float = 0.0) -> tuple[torch.Tensor, dict]:
         """target [B,H,N,d] clean latent/action; valid [B,H,N] mask."""
         cache = self.prepare(batch)
         B = target.shape[0]
@@ -266,6 +271,14 @@ class FlowPolicy(nn.Module):
         fl = masked_mse(v, v_t, m)
         logs = {"flow": float(fl.detach())}
         loss = fl
+        if packet_loss_fn is not None and packet_weight > 0:
+            # R38: semantic objective on the predicted CLEAN LATENT (the tensor system 0 will receive), not on
+            # hidden states: z_hat_clean = z_tau + (1 - tau) * v_theta
+            t_ = tau[:, None, None, None]
+            z_hat_clean = z_tau + (1 - t_) * v
+            pl, plogs = packet_loss_fn(z_hat_clean)
+            loss = loss + packet_weight * pl
+            logs.update({f"zhat_{k}": x for k, x in plogs.items()})
         if self.readout is not None and labels is not None:
             # predicted clean action from the current estimate (future-effect readouts use it)
             t_ = tau[:, None, None, None]

@@ -186,3 +186,104 @@ def evaluate_representation(E, R, P, data, cfg, dev, n_batches=30, seed=99) -> d
     f = lambda d: {k: (x / n if n else None) for k, (x, n) in d.items()}
     return dict(realize_mse=float(np.mean(real)), zero_action_mse=float(np.mean(hold)), probes=f(agg),
                 probes_shuffled_z=f(agg_sh))
+
+
+def load_representation(path: Path, dev):
+    st = load_checkpoint(path, map_location=dev)
+    cfg = LatentConfig(**st["config"]["latent"])
+    E, R, P = TargetEncoder(cfg).to(dev), LatentRealizer(cfg.dz, layers=cfg.realizer_layers).to(dev), \
+        PacketProbe(cfg.dz, cfg.knots).to(dev)
+    E.load_state_dict(st["model"]["E"]); R.load_state_dict(st["model"]["R"]); P.load_state_dict(st["model"]["P"])
+    for m in (E, R, P):
+        m.eval()
+        for p in m.parameters():
+            p.requires_grad_(False)    # frozen parameters; gradients still flow THROUGH P to its input z
+    res = st["extra"]["result"]
+    return cfg, E, R, P, res
+
+
+def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
+    """Stage B: system-i flow generating z (knots x assemblies) toward the frozen encoder mean."""
+    from rrp.model.latent_batch import assembly_batch
+    dev = _dev()
+    sig = CheckpointSignal()
+    seed = cfg_json.get("seed", 0)
+    torch.manual_seed(seed)
+    rng = random.Random(seed)
+    lcfg, E, R, P, rep_res = load_representation(Path(cfg_json["representation"]), dev)
+    data = LatentData(Path(cfg_json["packed_dir"]))
+    pcfg = PolicyConfig(**dict(cfg_json["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz, aux=False))
+    model = FlowPolicy(pcfg).to(dev)
+    opt = torch.optim.AdamW(model.parameters(), lr=cfg_json.get("lr", 3e-4), weight_decay=1e-4)
+    steps = cfg_json["steps"]
+    sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=cfg_json.get("lr", 3e-4), total_steps=steps, pct_start=0.05)
+    w_sem = cfg_json.get("packet_semantic_weight", 0.0)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    log = open(out_dir / "train_log.jsonl", "a")
+    step, t0 = 0, time.time()
+    B = cfg_json.get("batch_size", 128)
+    gen = torch.Generator(device=dev).manual_seed(seed)
+    while step < steps and not sig.requested:
+        sel, tgt, j = data.sample(B, rng, 0)
+        batch, a, v, lab, r = data.fetch(sel, tgt, dev)
+        with torch.no_grad():
+            af, am, ai = assembly_tokens(batch)
+            z_target, _ = E(batch, a, v, af, am, ai)             # clean target = frozen posterior mean
+        ab = assembly_batch(batch)
+        smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
+        S = batch.bank_tokens["scene"].shape[1]
+        pl_fn = (lambda zc: probe_loss(P(zc, am, S), lab, smask)) if w_sem > 0 else None
+        valid = am[:, None, :].expand(-1, lcfg.knots, -1)
+        loss, logs = model.loss(ab, z_target, valid, None, generator=gen, packet_loss_fn=pl_fn, packet_weight=w_sem)
+        opt.zero_grad()
+        loss.backward()
+        gn = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+        opt.step()
+        sched.step()
+        step += 1
+        if step % 100 == 0:
+            log.write(json.dumps(dict(step=step, t=time.time() - t0, loss=float(loss.detach()), gn=float(gn), **logs)) + "\n")
+            log.flush()
+    res = dict(steps=step, wall_s=time.time() - t0, interrupted=sig.requested,
+               latent_space_version=rep_res["latent_space_version"],
+               realizer_compat_version=rep_res["realizer_compat_version"],
+               eval=None if sig.requested else evaluate_generated(model, E, R, P, data, lcfg, dev))
+    save_checkpoint(out_dir / ("policy.pt" if not sig.requested else "policy_interrupted.pt"), model=model, optimizer=None,
+                    step=step, versions=dict(latent=rep_res["latent_space_version"], policy=pcfg.name),
+                    config=cfg_json, extra=dict(result=res))
+    (out_dir / "result.json").write_text(json.dumps(res, indent=1, default=str))
+    return res
+
+
+@torch.no_grad()
+def evaluate_generated(model, E, R, P, data, lcfg, dev, n_batches=20, seed=7, nfe=8) -> dict:
+    """Packet-probe semantics on (a) oracle encoder targets, (b) one-step clean estimates at tau=0.5, (c) FREE
+    samples from pure noise with permissible observations only; plus shuffled-z control. Disjoint RNG stream."""
+    from rrp.model.latent_batch import assembly_batch
+    model.eval()
+    rng = random.Random(seed)
+    aggs = {k: {} for k in ("oracle", "one_step", "free", "free_shuffled")}
+    zdist = []
+    for _ in range(n_batches):
+        sel, tgt, j = data.sample(128, rng, 0)
+        batch, a, v, lab, r = data.fetch(sel, tgt, dev)
+        af, am, ai = assembly_tokens(batch)
+        zt, _ = E(batch, a, v, af, am, ai)
+        ab = assembly_batch(batch)
+        cache = model.prepare(ab)
+        eps = torch.randn_like(zt)
+        tau = torch.full((zt.shape[0],), 0.5, device=dev)
+        z_tau, _ = interpolate_target(eps, zt, tau)
+        vv = model.velocity(z_tau, tau, cache)
+        z1 = z_tau + 0.5 * vv
+        zf = model.sample(cache, lcfg.knots, nfe=nfe)
+        smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
+        S = smask.shape[1]
+        for name, z in (("oracle", zt), ("one_step", z1), ("free", zf),
+                        ("free_shuffled", zf[torch.randperm(zf.shape[0], device=dev)])):
+            for k, (x, n) in probe_metrics(P(z, am, S), lab, smask).items():
+                s_, n_ = aggs[name].get(k, (0, 0)); aggs[name][k] = (s_ + x, n_ + n)
+        zdist.append(float(((zf - zt) ** 2).mean()))
+    model.train()
+    f = lambda d: {k: (x / n if n else None) for k, (x, n) in d.items()}
+    return dict(free_vs_oracle_mse=float(np.mean(zdist)), **{k: f(v) for k, v in aggs.items()})

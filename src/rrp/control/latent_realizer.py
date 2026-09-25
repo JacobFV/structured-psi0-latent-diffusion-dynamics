@@ -110,6 +110,9 @@ class LatentSystem0:
     @torch.no_grad()
     def tick(self, session, controller_version: str) -> NativeCommand | None:
         now = float(session.data.time)
+        # runtime validation (allowed): a graph edit invalidates the packet -> fallback hold until replanned.
+        if self.packet is not None and session.runtime.graph_version != self.packet.graph_version:
+            self.invalidate("graph_edit", now)
         obs = session.observe()
         if self.packet is None or now > self.packet.valid_until:
             if self.packet is not None:
