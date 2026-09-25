@@ -80,6 +80,16 @@ class LatentData:
         lab["subtask"] = torch.from_numpy(np.asarray(A["subtask"][sel]).astype(np.int64))
         r = dict(node=torch.from_numpy(nodes[:, :N]), node_mask=torch.from_numpy(np.arange(N)[None] < nn_[:, None]),
                  a1=torch.from_numpy(a1[:, :N]), v1=torch.from_numpy(v1[:, :N]), local=torch.from_numpy(loc))
+        if "held_m" in A:          # multi-assembly pack (rrp.learning.dual_latent)
+            S = lab["held"].shape[1]
+            for k in ("held_m", "contact_m", "rel_tcp_m"):
+                x = np.asarray(A[k][sel])[:, :S]
+                lab[k] = torch.from_numpy(x.astype(np.float32) if x.dtype == np.float16 else x)
+            lab["subtask_m"] = torch.from_numpy(np.asarray(A["subtask_m"][sel]).astype(np.int64))
+            na = np.asarray(A["node_asm"][ts])[inv][:, :N].astype(np.int64)            # slot of each node at t+j
+            locm = np.asarray(A["local_m"][ts]).astype(np.float32)[inv]                 # [B,M,4] at t+j
+            r["node_asm"] = torch.from_numpy(na)
+            r["local"] = torch.from_numpy(np.take_along_axis(locm, na[..., None].clip(0, locm.shape[1] - 1), 1))  # per node
         mv = lambda x: x.to(dev, non_blocking=True)
         return batch.to(dev), mv(a[..., 0]), mv(v), {k: mv(x) for k, x in lab.items()}, {k: mv(x) for k, x in r.items()}
 
@@ -91,7 +101,7 @@ def representation_step(E, R, P, data_b, cfg: LatentConfig, train=True):
     z = mu + torch.randn_like(mu) * (0.5 * logvar).exp() if train else mu
     kt = torch.tensor(cfg.knot_times, dtype=z.dtype, device=z.device)
     phase = torch.as_tensor(j * cfg.control_dt, dtype=z.dtype, device=z.device)
-    pred = R(z, am, kt, phase, r["node"], r["node_mask"], r["local"])
+    pred = R(z, am, kt, phase, r["node"], r["node_mask"], r["local"], node_asm=r.get("node_asm"))
     m = (r["v1"] & r["node_mask"]).float()
     l_real = ((pred - r["a1"]) ** 2 * m).sum() / m.sum().clamp(min=1)
     mm = am[:, None, :, None].float().expand_as(mu)
@@ -113,7 +123,7 @@ def train_representation(cfg_json: dict, out_dir: Path) -> dict:
     rng = random.Random(seed)
     data = LatentData(Path(cfg_json["packed_dir"]))
     E, R = TargetEncoder(cfg).to(dev), LatentRealizer(cfg.dz, layers=cfg.realizer_layers).to(dev)
-    P = PacketProbe(cfg.dz, cfg.knots).to(dev)
+    P = PacketProbe(cfg.dz, cfg.knots, **cfg_json.get("probe", {})).to(dev)
     params = list(E.parameters()) + list(R.parameters()) + list(P.parameters())
     opt = torch.optim.AdamW(params, lr=cfg_json.get("lr", 3e-4), weight_decay=1e-4)
     steps = cfg_json["steps"]
@@ -173,7 +183,8 @@ def evaluate_representation(E, R, P, data, cfg, dev, n_batches=30, seed=99) -> d
         _, _, (z, am, out, lab2, smask) = representation_step(E, R, P, (batch, a, v, lab, r, torch.as_tensor(j, device=dev)),
                                                               cfg, train=False)
         kt = torch.tensor(cfg.knot_times, device=dev)
-        pred = R(z, am, kt, torch.as_tensor(j * cfg.control_dt, dtype=z.dtype, device=dev), r["node"], r["node_mask"], r["local"])
+        pred = R(z, am, kt, torch.as_tensor(j * cfg.control_dt, dtype=z.dtype, device=dev), r["node"], r["node_mask"], r["local"],
+                 node_asm=r.get("node_asm"))
         m = (r["v1"] & r["node_mask"]).float()
         real.append(float(((pred - r["a1"]) ** 2 * m).sum() / m.sum()))
         hold.append(float(((r["a1"]) ** 2 * m).sum() / m.sum()))
@@ -192,7 +203,7 @@ def load_representation(path: Path, dev):
     st = load_checkpoint(path, map_location=dev)
     cfg = LatentConfig(**st["config"]["latent"])
     E, R, P = TargetEncoder(cfg).to(dev), LatentRealizer(cfg.dz, layers=cfg.realizer_layers).to(dev), \
-        PacketProbe(cfg.dz, cfg.knots).to(dev)
+        PacketProbe(cfg.dz, cfg.knots, **st["config"].get("probe", {})).to(dev)
     E.load_state_dict(st["model"]["E"]); R.load_state_dict(st["model"]["R"]); P.load_state_dict(st["model"]["P"])
     for m in (E, R, P):
         m.eval()
@@ -333,7 +344,8 @@ def fit_probes_on_frozen(rep_path: Path, packed_dir: Path, out_path: Path, steps
     dev = _dev()
     lcfg, E, R, _, rep_res = load_representation(rep_path, dev)
     data = LatentData(packed_dir)
-    P = PacketProbe(lcfg.dz, lcfg.knots, metadata_only=metadata_only, seed=seed).to(dev)
+    pk = load_checkpoint(rep_path, map_location="cpu")["config"].get("probe", {})
+    P = PacketProbe(lcfg.dz, lcfg.knots, metadata_only=metadata_only, seed=seed, **pk).to(dev)
     opt = torch.optim.AdamW(P.parameters(), lr=3e-4, weight_decay=1e-4)
     rng = random.Random(seed)
     t0 = time.time()
@@ -366,7 +378,7 @@ def fit_probes_on_frozen(rep_path: Path, packed_dir: Path, out_path: Path, steps
     res = dict(steps=steps, wall_s=time.time() - t0, metadata_only=metadata_only, encoded_target=f(agg),
                encoded_target_shuffled=f(sh), latent_space_version=rep_res["latent_space_version"])
     torch.save(dict(state=P.state_dict(), cfg=dict(dz=lcfg.dz, knots=lcfg.knots, metadata_only=metadata_only,
-                                                     seed=seed), result=res), out_path)
+                                                     seed=seed, **pk), result=res), out_path)
     out_path.with_suffix(".json").write_text(json.dumps(res, indent=1))
     return res
 

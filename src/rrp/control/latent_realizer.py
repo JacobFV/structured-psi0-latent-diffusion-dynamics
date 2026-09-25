@@ -42,7 +42,8 @@ class LatentRealizer(nn.Module):
         self.D = D
 
     def forward(self, z, zmask, knot_times, phase, node_feats, node_mask, local, node_asm=None):
-        """z [B,K,M,dz]; knot_times [K] (s); phase [B] (s since valid_from); node_feats [B,N,F]; local [B,4];
+        """z [B,K,M,dz]; knot_times [K] (s); phase [B] (s since valid_from); node_feats [B,N,F]; local [B,4] or,
+        for multi-assembly bodies, per node [B,N,4] (each node sees its own assembly's touch/width);
         node_asm [B,N] packet assembly index per node (default 0). Returns normalized 1-step actions [B,N]."""
         B, K, M, _ = z.shape
         N = node_feats.shape[1]
@@ -54,7 +55,8 @@ class LatentRealizer(nn.Module):
         knot_asm = torch.arange(M, device=z.device).repeat(K)                          # [K*M]
         own = (node_asm[:, :, None] == knot_asm[None, None, :]) & zmask[:, None, :].repeat(1, 1, K)  # [B,N,K*M]
         bias = torch.zeros(B, 1, N, K * M, device=z.device, dtype=kt.dtype).masked_fill(~own[:, None], float("-inf"))
-        x = self.node(node_feats) + self.local(local)[:, None]
+        loc = self.local(local)
+        x = self.node(node_feats) + (loc if local.dim() == 3 else loc[:, None])     # local [B,4] or per node [B,N,4]
         for L in self.blocks:
             x = x + L["x"](L["n1"](x), kv=kt, bias=bias)
             x = x + L["s"](L["n2"](x), key_mask=node_mask)

@@ -21,7 +21,7 @@ from rrp.model.batch import Batch, BANK_DIMS, NODE_DIM
 
 MAX_T = {"morph": 16, "scene": 8, "task": 24, "interact": 12}
 OPERATORS = ["none", "grasp", "place", "reach", "maintain_support", "estimate_frame", "align_axis", "insert",
-             "give", "receive", "walk_to", "halt"]
+             "give", "receive", "walk_to", "halt", "maintain_hold", "release"]   # appended only (indices are stable)
 
 
 def local_sensors(pi) -> np.ndarray:
@@ -65,7 +65,14 @@ def _focus(pi, S):
 
 def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, stride: int = 1,
                  include_dart_failures: bool = False, statuses=("success",), limit_per_robot=None,
-                 seeds=None, chunk_episodes: int = 200) -> dict:
+                 seeds=None, chunk_episodes: int = 200, limits: dict | None = None, multi_m: int = 0) -> dict:
+    """limits: override MAX_T/N/R (dual-arm inputs are larger). multi_m > 0 additionally stores multi-assembly
+    arrays (rrp.learning.dual_latent): per-slot privileged labels held_m/contact_m/rel_tcp_m in packet order, public
+    per-slot subtask_m and local sensors local_m, and node_asm (packet slot of each action node)."""
+    MAX_T_, MAX_N_, MAX_R_ = dict(MAX_T), MAX_N, MAX_R
+    if limits:
+        MAX_T_.update(limits.get("T", {}))
+        MAX_N_, MAX_R_ = limits.get("N", MAX_N_), limits.get("R", MAX_R)
     out_dir.mkdir(parents=True, exist_ok=True)
     man = json.loads((ds_dir / "manifest.json").read_text())
     per, ids = {}, []
@@ -85,18 +92,23 @@ def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, s
     arrays = {}
     n = 0
     specs = dict(
-        **{f"tok_{b}": ((MAX_T[b], BANK_DIMS[b]), np.float16) for b in BANKS},
-        **{f"kind_{b}": ((MAX_T[b],), np.int8) for b in BANKS},
-        **{f"text_{b}": ((MAX_T[b], HASH_DIM), np.float16) for b in BANKS},
+        **{f"tok_{b}": ((MAX_T_[b], BANK_DIMS[b]), np.float16) for b in BANKS},
+        **{f"kind_{b}": ((MAX_T_[b],), np.int8) for b in BANKS},
+        **{f"text_{b}": ((MAX_T_[b], HASH_DIM), np.float16) for b in BANKS},
         **{f"len_{b}": ((), np.int16) for b in BANKS},
-        node=((MAX_N, NODE_DIM), np.float16), n_nodes=((), np.int16),
-        rel=((MAX_R, 5), np.int16), n_rel=((), np.int16), ptr=((MAX_P, 4), np.int16), n_ptr=((), np.int16),
-        a=((H, MAX_N), np.float16), valid=((H, MAX_N), np.bool_), eff=((H, 4), np.float16),
+        node=((MAX_N_, NODE_DIM), np.float16), n_nodes=((), np.int16),
+        rel=((MAX_R_, 5), np.int16), n_rel=((), np.int16), ptr=((MAX_P, 4), np.int16), n_ptr=((), np.int16),
+        a=((H, MAX_N_), np.float16), valid=((H, MAX_N_), np.bool_), eff=((H, 4), np.float16),
         held=((MAX_S,), np.bool_), contact=((MAX_S,), np.bool_), visible=((MAX_S,), np.bool_),
         focus=((MAX_S,), np.bool_), slot_valid=((MAX_S,), np.bool_), rel_tcp=((MAX_S, 3), np.float16),
         future_disp=((MAX_S, 3), np.float16), gaze=((MAX_S,), np.float16),
         ep_idx=((), np.int32), t=((), np.int32), ep_len=((), np.int32), local=((4,), np.float16),
         subtask=((), np.int8), robot_id=((), np.int16))
+    if multi_m:
+        M_ = multi_m
+        specs.update(held_m=((MAX_S, M_), np.bool_), contact_m=((MAX_S, M_), np.bool_), rel_tcp_m=((MAX_S, M_, 3), np.float16),
+                     subtask_m=((M_,), np.int8), local_m=((M_, 4), np.float16), node_asm=((MAX_N_,), np.int8),
+                     slot_col=((M_,), np.int8))
     buf = {k: [] for k in specs}
     robots_seen = []
     ep_counter = 0
@@ -109,36 +121,39 @@ def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, s
             ep_len = len(pub["inputs"])
             rk = pub["meta"].get("robot_key") or ""
             rid = robot_ids.setdefault(rk, len(robot_ids))
+            if multi_m:
+                from rrp.learning import dual_latent as DL
+                cols = DL.label_columns_for_slots(pub["meta"], list(prv["manipulators"]), multi_m)
             for smp in episode_samples(pub, prv, H, stride):
                 pi = smp.pi
                 row = {}
                 for b in BANKS:
-                    T = min(len(pi.tokens[b]), MAX_T[b])
-                    x = np.zeros((MAX_T[b], BANK_DIMS[b]), np.float16)
+                    T = min(len(pi.tokens[b]), MAX_T_[b])
+                    x = np.zeros((MAX_T_[b], BANK_DIMS[b]), np.float16)
                     x[:T, :pi.tokens[b].shape[1]] = pi.tokens[b][:T]
                     row[f"tok_{b}"] = x
-                    k = np.zeros(MAX_T[b], np.int8)
+                    k = np.zeros(MAX_T_[b], np.int8)
                     k[:T] = pi.token_kind[b][:T]
                     row[f"kind_{b}"] = k
-                    t = np.zeros((MAX_T[b], HASH_DIM), np.float16)
+                    t = np.zeros((MAX_T_[b], HASH_DIM), np.float16)
                     pt = pi.pointer_text[b][:T]
                     t[:len(pt)] = pt
                     row[f"text_{b}"] = t
                     row[f"len_{b}"] = np.int16(T)
-                N = min(pi.act_node_feats.shape[0], MAX_N)
-                nd = np.zeros((MAX_N, NODE_DIM), np.float16)
+                N = min(pi.act_node_feats.shape[0], MAX_N_)
+                nd = np.zeros((MAX_N_, NODE_DIM), np.float16)
                 nd[:N] = pi.act_node_feats[:N]
                 row["node"], row["n_nodes"] = nd, np.int16(N)
-                R = np.asarray(pi.relations)[:MAX_R]
-                rr = np.zeros((MAX_R, 5), np.int16)
+                R = np.asarray(pi.relations)[:MAX_R_]
+                rr = np.zeros((MAX_R_, 5), np.int16)
                 rr[:len(R)] = R
                 row["rel"], row["n_rel"] = rr, np.int16(len(R))
                 P = np.asarray(pi.pointers)[:MAX_P]
                 pp = np.zeros((MAX_P, 4), np.int16)
                 pp[:len(P)] = P
                 row["ptr"], row["n_ptr"] = pp, np.int16(len(P))
-                a = np.zeros((H, MAX_N), np.float16)
-                v = np.zeros((H, MAX_N), bool)
+                a = np.zeros((H, MAX_N_), np.float16)
+                v = np.zeros((H, MAX_N_), bool)
                 a[:, :N] = smp.a[:, :N]
                 v[:, :N] = smp.valid[:, :N]
                 row["a"], row["valid"], row["eff"] = a, v, smp.effect.astype(np.float16)
@@ -161,6 +176,14 @@ def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, s
                 row["local"] = local_sensors(pi).astype(np.float16)
                 row["subtask"] = np.int8(active_operator(pi))
                 row["robot_id"] = np.int16(rid)
+                if multi_m:
+                    row.update(DL.multi_labels(prv["labels"][smp.meta["t"]], cols, S, MAX_S, multi_m))
+                    row["subtask_m"] = DL.assembly_operators(pi, OPERATORS, multi_m).astype(np.int8)
+                    row["local_m"] = DL.local_sensors_multi(pi, multi_m).astype(np.float16)
+                    na = np.zeros(MAX_N_, np.int8)
+                    na[:N] = DL.node_assembly_index(pi, multi_m)[:N]
+                    row["node_asm"] = na
+                    row["slot_col"] = np.array(cols, np.int8)
                 for k2 in specs:
                     buf[k2].append(row[k2])
                 robots_seen.append(smp.meta.get("robot"))
@@ -171,7 +194,8 @@ def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, s
         np.save(out_dir / f"{k2}.npy", arr)
         buf[k2] = None
     meta = dict(n=n, H=H, stride=stride, source=str(ds_dir), robot_ids=robot_ids, operators=OPERATORS, robots=sorted(set(r for r in robots_seen if r)),
-                max=dict(T=MAX_T, N=MAX_N, S=MAX_S, R=MAX_R, P=MAX_P), include_dart_failures=include_dart_failures)
+                max=dict(T=MAX_T_, N=MAX_N_, S=MAX_S, R=MAX_R_, P=MAX_P), include_dart_failures=include_dart_failures,
+                multi_m=multi_m, statuses=list(statuses))
     (out_dir / "meta.json").write_text(json.dumps(meta, indent=1))
     return meta
 

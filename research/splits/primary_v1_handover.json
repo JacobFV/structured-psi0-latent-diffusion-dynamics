@@ -1,0 +1,67 @@
+{
+ "split_id": "primary_v1_handover",
+ "addendum_to": "research/splits/primary_v1.json",
+ "frozen_utc": "2026-09-25",
+ "basis": "written by the dualarm track before any handover dataset or policy result existed; pair membership follows primary_v1 lineage rules; eligibility uses only scripted_teacher validation (artifacts/assets/dual_teacher_validation/handover_30seeds_v3.jsonl, teacher v2, seeds 0-29)",
+ "task": "handover",
+ "task_graph": "tasks/handover.json",
+ "role_convention": {
+  "pair_key": "<left_robot>__<right_robot>",
+  "left": "giver (take, offer, release)",
+  "right": "receiver (receive, place)",
+  "dual_body": "a single dual-arm body binds left/right to its two gripper assemblies"
+ },
+ "source_train_pairs": [
+  "panda_pg2__ur5e_pg2",
+  "parm5_pg2__parm5_pg2",
+  "parm5_pg2__parm6_tf3",
+  "parm6_pg2__parm7_pg2",
+  "parm7_tf3__parm5_pg2",
+  "ur5e_pg2__sawyer_pg2"
+ ],
+ "source_heldout_eval_pairs": [
+  "parm5l_pg2__parm5s_tf3"
+ ],
+ "targets": {
+  "held_out_arm_family": {
+   "pairs": [
+    "xarm7_pg2__xarm7_pg2"
+   ]
+  },
+  "held_out_attachment_combination": {
+   "pairs": [
+    "sawyer_pg2__panda_tf3"
+   ],
+   "note": "teacher 0/30 (teacher-weak)"
+  },
+  "held_out_dual_arm_body": {
+   "pairs": [
+    "aloha"
+   ]
+  }
+ },
+ "teacher_eligibility_rule": "same as primary_v1_support_insert: success/feasible >= 0.5 over seeds 0-29 (all six source pairs 0.96-1.00)",
+ "seed_ranges": {
+  "teacher_validation": [
+   0,
+   30
+  ],
+  "source_train_demos": [
+   0,
+   100000
+  ],
+  "target_adaptation_demos": [
+   1000000,
+   1100000
+  ],
+  "evaluation_scenes": [
+   2000000,
+   2100000
+  ],
+  "development_eval_scenes": [
+   3000000,
+   3100000
+  ]
+ },
+ "development_eval": "source-train pairs on development scenes + the held-out source pair (D-025 rule); target pairs only in a sealed protocol"
+}
