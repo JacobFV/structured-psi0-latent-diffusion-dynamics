@@ -12,7 +12,7 @@ export interface CreateSession {
 
 /** mirrors rrp.service.schemas.Command */
 export interface Command {
-  type: "step" | "run" | "pause" | "reset" | "joint_target" | "ee_target" | "teleport" | "request_event" | "cancel_event" | "set_mode" | "debug_force_success" | "replay";
+  type: "step" | "run" | "pause" | "reset" | "joint_target" | "ee_target" | "teleport" | "request_event" | "cancel_event" | "set_mode" | "debug_force_success" | "replay" | "latent_freeze" | "latent_unfreeze" | "disturb_joint";
   n?: number;
   group?: string | null;
   values?: Array<number> | null;

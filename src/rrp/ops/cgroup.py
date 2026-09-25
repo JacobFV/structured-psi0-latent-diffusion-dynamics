@@ -64,8 +64,13 @@ class SystemdUserBackend:
     def set_slice(self, slice_name: str, *, cpu_cores: float, memory_bytes: int,
                   tasks_max: int = 4096, memory_high_fraction: float = 0.8) -> None:
         if self.unrestricted:
-            self._run(["systemctl", "--user", "set-property", "--runtime", slice_name, "CPUQuota=",
-                       "MemoryMax=infinity", "MemoryHigh=infinity", "TasksMax=infinity"])
+            if slice_name == PARENT_SLICE:
+                # whole-project OS-protection ceiling only (after the 2026-09-21 peer OOM hang), no per-job caps
+                self._run(["systemctl", "--user", "set-property", "--runtime", slice_name, "CPUQuota=",
+                           "MemoryMax=100G", "MemoryHigh=infinity", "MemorySwapMax=0", "TasksMax=infinity"])
+            else:
+                self._run(["systemctl", "--user", "set-property", "--runtime", slice_name, "CPUQuota=",
+                           "MemoryMax=infinity", "MemoryHigh=infinity", "TasksMax=infinity"])
             return
         if memory_bytes <= 0:
             raise EnforcementError("memory allocation must be positive")

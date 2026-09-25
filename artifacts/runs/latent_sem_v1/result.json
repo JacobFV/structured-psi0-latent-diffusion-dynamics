@@ -1,0 +1,37 @@
+{
+ "steps": 30000,
+ "wall_s": 3126.5413086414337,
+ "interrupted": false,
+ "latent_space_version": "ls-8db814f941f5",
+ "realizer_compat_version": "rz-ls-8db814f941f5-none-v1",
+ "eval": {
+  "realize_mse": 0.012912215339019895,
+  "zero_action_mse": 0.21274671355883282,
+  "probes": {
+   "visible": 0.9826155324539181,
+   "visible_pos": 0.9913312076524512,
+   "focused_on": 1.0,
+   "focused_on_pos": 1.0,
+   "held_by": 0.9970297894644885,
+   "held_by_pos": 0.9535315985130112,
+   "acting_on": 0.9827028915873155,
+   "acting_on_pos": 0.8450363196125908,
+   "rel_pos_err_m": 0.05641024954362531,
+   "desired_delta_err_m": 0.01074919084529122,
+   "subtask": 1.0
+  },
+  "probes_shuffled_z": {
+   "visible": 0.8107801170612388,
+   "visible_pos": 0.8964726982861698,
+   "focused_on": 0.8785708045776186,
+   "focused_on_pos": 0.8436797121007648,
+   "held_by": 0.9210273434087534,
+   "held_by_pos": 0.1449814126394052,
+   "acting_on": 0.8894906962522932,
+   "acting_on_pos": 0.19975786924939468,
+   "rel_pos_err_m": 0.37074666420236846,
+   "desired_delta_err_m": 0.015880860625848797,
+   "subtask": 0.6494791666666667
+  }
+ }
+}

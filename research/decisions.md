@@ -89,3 +89,6 @@ User: "authorize host GPU at 80% of free memory". Host memory budget (CPU+GPU un
 
 ## D-028 2026-09-21 BUG: broker held its lock across systemctl calls -> cascading lease expiry
 At 08:33-08:35 stopping one slow job (TimeoutStopSec 45 s) inside the broker's state lock (release/_expire/gc called backend.remove_lease under flock) blocked every other job's heartbeat for >20 s; five healthy peer jobs (dev6 x2, codec, support_insert x2) expired and were stopped. Fix: all systemd calls happen after the lock is released; lease expiry raised to 120 s; regression test test_slow_backend_cleanup_never_blocks_heartbeats. Affected runs restarted.
+
+## D-029 2026-09-21 authoritative correction: controller-facing semantic latent
+User correction received; recorded in research/corrections/controller-facing-semantic-latent.md. No incompatible jobs were running (peer rebooted after the OOM hang; host queue empty); no old-path runs will be scheduled except as named baselines. Pre-correction revision tagged pre-correction-272c689; migration branch correction/controller-facing-latent. Peer-only raw eval rows of dev4/dev5 were lost in the reboot (summaries remain in D-021/D-022).

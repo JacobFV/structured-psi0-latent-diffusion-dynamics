@@ -124,3 +124,72 @@ def run_latency_suite(checkpoints: dict[str, str], out_path: Path, dev=None, nod
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(res, indent=1))
     return res
+
+
+@torch.no_grad()
+def latent_latency_suite(flow_ckpt: str, out_path: Path, dev=None, nfe_list=(1, 2, 4, 8), reps=40,
+                         direct_ckpt: str | None = None) -> dict:
+    """R38 test 12: synchronized timings of the actual corrected inference path.
+    system i: observe+featurize+collate+prepare+sample+packet construction (per replan, NFE sweep)
+    system 0: per-tick realization (featurize local state + realizer forward + denormalize) vs 50 ms deadline
+    end-to-end: observation -> first native command after a replan."""
+    from rrp.policy.latent_runner import LatentPolicy
+    from rrp.learning.latent_train import load_representation
+    from rrp.learning.checkpoint import load_checkpoint
+    from rrp.control.latent_realizer import LatentSystem0
+    from rrp.sim.fixtures import make_pick_place_session
+    dev = dev or torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    rep = load_checkpoint(flow_ckpt, map_location="cpu")["config"]["representation"]
+    _, _, R, _, _ = load_representation(Path(rep), dev)
+    s = make_pick_place_session(seed=5, n_distractors=2)
+    for _ in range(10):
+        s.step(None)
+    res = dict(device=str(dev), gpu=torch.cuda.get_device_name(0) if dev.type == "cuda" else None, t=time.time(),
+               system_i={}, note="physics paused during inference (offline loop): these are compute latencies, "
+                                 "not a real-time claim")
+    for nfe in nfe_list:
+        pol = LatentPolicy.from_checkpoint(flow_ckpt, device=dev, nfe=nfe)
+        for _ in range(3):
+            pol.packets([s])
+        ts = []
+        for _ in range(reps):
+            t0 = time.perf_counter()
+            p = pol.packets([s])[0]
+            _sync(dev)
+            ts.append(time.perf_counter() - t0)
+        res["system_i"][nfe] = _pct(ts)
+    s0 = LatentSystem0(R, pol.featurizer(s), latent_space_version=pol.lsv, realizer_compat_version=pol.rcv, device=dev)
+    s0.receive(p, now=float(s.data.time), graph_version=s.runtime.graph_version)
+    tk = []
+    for _ in range(reps * 2):
+        t0 = time.perf_counter()
+        s0.tick(s, s.controller_version())
+        _sync(dev)
+        tk.append(time.perf_counter() - t0)
+    res["system0_tick"] = _pct(tk)
+    res["system0_deadline_s"] = 0.05
+    res["system0_deadline_misses"] = int(sum(t > 0.05 for t in tk))
+    e2e = []
+    for _ in range(reps):
+        t0 = time.perf_counter()
+        q = pol.packets([s])[0]
+        s0.receive(q, now=float(s.data.time), graph_version=s.runtime.graph_version)
+        s0.tick(s, s.controller_version())
+        _sync(dev)
+        e2e.append(time.perf_counter() - t0)
+    res["end_to_end_obs_to_first_command"] = _pct(e2e)
+    if direct_ckpt:
+        from rrp.policy.runner import LearnedPolicy
+        dp = LearnedPolicy.from_checkpoint(direct_ckpt, device=dev)
+        for _ in range(3):
+            dp.chunks([s])
+        dd = []
+        for _ in range(reps):
+            t0 = time.perf_counter()
+            dp.chunks([s])
+            _sync(dev)
+            dd.append(time.perf_counter() - t0)
+        res["baseline_direct_action_obs_to_chunk"] = _pct(dd)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(res, indent=1))
+    return res

@@ -1,0 +1,8 @@
+{
+ "path": "artifacts/runs/latent_sem_v1/representation.pt",
+ "sha256_16": "8946aa9d2d0da5fc",
+ "step": 30000,
+ "versions": {
+  "latent": "ls-8db814f941f5"
+ }
+}

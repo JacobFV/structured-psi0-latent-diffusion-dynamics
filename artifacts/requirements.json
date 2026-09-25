@@ -330,7 +330,7 @@
    "test_command": null,
    "artifact_paths": [],
    "source_revision": null,
-   "limitations": null
+   "limitations": "superseded interpretation: must be satisfied on the transmitted latent packet (R38)"
   },
   {
    "id": "R20",
@@ -377,7 +377,7 @@
    "test_command": null,
    "artifact_paths": [],
    "source_revision": null,
-   "limitations": null
+   "limitations": "superseded interpretation: must be satisfied on the transmitted latent packet (R38)"
   },
   {
    "id": "R23",
@@ -527,7 +527,7 @@
    "test_command": null,
    "artifact_paths": [],
    "source_revision": null,
-   "limitations": null
+   "limitations": "superseded interpretation: must be satisfied on the transmitted latent packet (R38)"
   },
   {
    "id": "R32",
@@ -623,6 +623,26 @@
    "contract": "docs/01_architecture.md",
    "expected_evidence": "nonzero intended action-expert gradients and controlled rollout interventions",
    "status": "not_started",
+   "evidence_paths": [],
+   "test_command": null,
+   "artifact_paths": [],
+   "source_revision": null,
+   "limitations": "superseded interpretation: must be satisfied on the transmitted latent packet (R38)"
+  },
+  {
+   "id": "R38",
+   "description": "controller-facing semantic latent: system i emits LatentActionChunk z; semantics supervised on z; system 0 consumes the same z online with local feedback; packet-only probes are the acceptance evidence",
+   "tasks": [
+    "C01",
+    "C02",
+    "C03",
+    "C04",
+    "C05",
+    "C06"
+   ],
+   "contract": "research/corrections/controller-facing-semantic-latent.md",
+   "expected_evidence": "independent-consumer, no-bypass, metadata-only, output-gradient, sampled-semantics, causal, disturbance tests + closed-loop results",
+   "status": "implementing",
    "evidence_paths": [],
    "test_command": null,
    "artifact_paths": [],

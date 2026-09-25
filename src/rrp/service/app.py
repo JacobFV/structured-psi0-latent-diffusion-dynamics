@@ -163,6 +163,20 @@ def create_app(token: str | None = None, port: int = 8765, allowed_origins: list
                 return {"accepted": True, "excluded_from_evaluation": True}
             if cmd.type == "replay":
                 return s.physics_replay()
+            if cmd.type in ("latent_freeze", "latent_unfreeze"):
+                s.latent_frozen = cmd.type == "latent_freeze"
+                s.publish("intervention", dict(kind=cmd.type, diagnostic=True), source="debug")
+                return {"frozen": s.latent_frozen}
+            if cmd.type == "disturb_joint":
+                import mujoco as _mj
+                with s.lock:
+                    r0 = s.sim.robots[0]
+                    s.sim.data.qpos[r0.qadr[int(cmd.n) - 1]] += float(cmd.yaw)
+                    _mj.mj_forward(s.sim.model, s.sim.data)
+                    s.contaminated = True
+                s.publish("intervention", dict(kind="disturb_joint", joint=int(cmd.n) - 1, offset=float(cmd.yaw),
+                                               contaminates_evaluation=True), source="user")
+                return {"accepted": True, "contaminated": True}
         except ControllerRejection as e:
             s.publish("command_rejected", dict(reason=e.code, message=str(e)), source="user")
             return rrp_error(e, 422)
@@ -199,6 +213,11 @@ def create_app(token: str | None = None, port: int = 8765, allowed_origins: list
         res = probe_mod.run_probe(s, req)
         s.publish("probe_result", res, source="user")
         return res
+
+    @app.get("/api/sessions/{sid}/packet")
+    def packet(sid: str):
+        from .sessions import packet_view
+        return packet_view(sess(sid))
 
     @app.get("/api/sessions/{sid}/episode")
     def episode(sid: str):

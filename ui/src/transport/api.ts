@@ -53,6 +53,7 @@ export class Api {
   probe(sid: string, body: ProbeRequest) { return this.req<ProbeResult>("POST", `/api/sessions/${sid}/probes`, body); }
   episode(sid: string) { return this.req<Episode>("GET", `/api/sessions/${sid}/episode`); }
   replay(sid: string) { return this.command<ReplayResult>(sid, { type: "replay" }); }
+  packet(sid: string) { return this.req<Record<string, any>>("GET", `/api/sessions/${sid}/packet`); } // eslint-disable-line @typescript-eslint/no-explicit-any
   resources() { return this.req<ResourcesView>("GET", "/api/resources"); }
   frameUrl(sid: string, n: number) { return `${this.base}/api/sessions/${sid}/frame?n=${n}`; }
 }

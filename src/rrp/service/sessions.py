@@ -23,7 +23,15 @@ from rrp.control.teachers import PickPlaceTeacher
 from rrp.sim.native import Session
 from rrp.tasks.interventions import EditRejected
 
-MODES = ("hold", "user", "scripted_teacher", "learned", "debug")
+MODES = ("hold", "user", "scripted_teacher", "learned", "learned_latent", "debug")
+
+
+class LatentStack:
+    """Corrected path (R38): system-i LatentPolicy + system-0 realizer + packet-only probe (diagnostic)."""
+
+    def __init__(self, policy, realizer, probe, name: str, replan_ticks: int = 8):
+        self.policy, self.realizer, self.probe, self.name = policy, realizer, probe, name
+        self.replan_ticks = replan_ticks
 
 
 def robot_registry() -> dict:
@@ -170,6 +178,9 @@ class WorkbenchSession:
             return view
 
     def control_label(self) -> str:
+        if self.mode == "learned_latent":
+            return f"LEARNED latent policy {self.policy_name} (system i -> packet z -> system 0)" + \
+                (" [LATENT FROZEN — diagnostic]" if getattr(self, "latent_frozen", False) else "")
         if self.mode == "learned":
             return f"LEARNED policy {self.policy_name}"
         if self.mode == "scripted_teacher":
@@ -192,10 +203,23 @@ class WorkbenchSession:
                 if self.teacher is None:
                     self.mode = "hold"
                     raise RRPError(f"no scripted teacher for task {self.task}", code="no_teacher")
-            if mode == "learned":
+            if mode in ("learned", "learned_latent"):
                 if policy is None:
                     raise RRPError("learned mode requires a loaded policy", code="no_policy")
+                if mode == "learned_latent" and not isinstance(policy, LatentStack):
+                    raise RRPError("learned_latent requires a latent-path policy", code="wrong_policy_type")
+                if mode == "learned" and isinstance(policy, LatentStack):
+                    mode = self.mode = "learned_latent"
                 self.policy, self.policy_name = policy, policy_name
+                if isinstance(policy, LatentStack):
+                    from rrp.control.latent_realizer import LatentSystem0
+                    self.system0 = LatentSystem0(policy.realizer, policy.policy.featurizer(self.sim),
+                                                 latent_space_version=policy.policy.lsv,
+                                                 realizer_compat_version=policy.policy.rcv,
+                                                 device=policy.policy.device)
+                    self.latent_frozen = False
+                    self.latent_ticks = 0
+                    self.packet_log = []
             self.publish("mode_changed", dict(mode=self.mode, label=self.control_label()), source="user")
 
     def _command_for_step(self) -> tuple[NativeCommand | None, str]:
@@ -206,6 +230,20 @@ class WorkbenchSession:
             if not self.sim.executor.queue:
                 self.policy.act(self.sim)   # submits a versioned chunk into the executor
             return None, f"learned:{self.policy_name}"
+        if self.mode == "learned_latent" and self.policy is not None:
+            st, s0 = self.policy, self.system0
+            now = float(self.sim.data.time)
+            if not self.latent_frozen and (self.latent_ticks % st.replan_ticks == 0 or s0.packet is None):
+                p = st.policy.packets([self.sim])[0]
+                try:
+                    s0.receive(p, now=now, graph_version=self.sim.runtime.graph_version)
+                    self.packet_log.append(dict(t=now, observation_id=p.observation_id, source=p.source,
+                                                graph_version=p.graph_version, runtime_version=p.runtime_version))
+                    self.packet_log = self.packet_log[-500:]
+                except RRPError as e:
+                    self.publish("command_rejected", dict(reason=e.code), source="system0")
+            self.latent_ticks += 1
+            return s0.tick(self.sim, r.controller.version), f"learned_latent:{self.policy_name}"
         if self.mode == "user" and self.user_targets:
             groups = copy.deepcopy(self.user_targets)
             self.user_targets = {}
@@ -361,3 +399,46 @@ class WorkbenchSession:
         buf = io.BytesIO()
         Image.fromarray(px).save(buf, format="JPEG", quality=70)
         return buf.getvalue()
+
+
+def packet_view(ws) -> dict:
+    """Probes of the EXACT received controller packet (diagnostic; never feeds back into control)."""
+    import numpy as np
+    import torch
+    s0 = getattr(ws, "system0", None)
+    if s0 is None or s0.packet is None:
+        return dict(available=False, reason="no packet held by system 0")
+    p = s0.packet
+    now = float(ws.sim.data.time)
+    view = dict(available=True, label="PROBE OF RECEIVED CONTROLLER PACKET (packet-only; no context/hidden state)",
+                observation_id=p.observation_id, source=p.source, policy_version=p.policy_version,
+                latent_space_version=p.latent_space_version, realizer_compat_version=p.realizer_compat_version,
+                graph_version=p.graph_version, runtime_version=p.runtime_version, shape=list(p.z.shape),
+                knot_times=p.knot_times, age_s=now - p.valid_from, phase_s=now - p.valid_from,
+                valid_until=p.valid_until, valid=now <= p.valid_until, frozen=getattr(ws, "latent_frozen", False),
+                assemblies=[a.handle for a in p.assemblies], entity_registry=[e.handle for e in p.entity_registry],
+                system0=dict(ticks=s0.stats.ticks, packets=s0.stats.packets, rejected=s0.stats.rejected,
+                             fallback_holds=s0.stats.fallback_holds),
+                z_norm_per_knot=[float(np.linalg.norm(p.z[k])) for k in range(p.z.shape[0])])
+    probe = ws.policy.probe if hasattr(ws.policy, "probe") else None
+    if probe is not None:
+        from rrp.data.features import text_hash  # noqa: F401  (no feature leaks: probe gets only z + handles)
+        from rrp.learning.packed import OPERATORS
+        dev = next(probe.parameters()).device
+        with torch.no_grad():
+            z = torch.from_numpy(np.asarray(p.z, np.float32))[None].to(dev)
+            am = torch.tensor([p.assembly_mask], device=dev)
+            S = len(p.entity_registry)
+            out = probe(z, am, S)
+        sig = lambda x: [round(float(v), 3) for v in torch.sigmoid(x).flatten().tolist()]
+        view["probes"] = dict(
+            per_entity={e.handle: dict(visible=sig(out["visible"][0, i]), focused_on=sig(out["focused_on"][0, i]),
+                                       held_by=sig(out["held_by"][0, i, 0]), acting_on=sig(out["acting_on"][0, i, 0]),
+                                       rel_pos_m=[round(float(v) / 10, 3) for v in out["rel_pos"][0, i, 0, :3]],
+                                       rel_pos_std_m=[round(float(torch.exp(0.5 * v)) / 10, 3) for v in out["rel_pos"][0, i, 0, 3:]],
+                                       desired_delta_m=[round(float(v) / 10, 3) for v in out["desired_delta"][0, i, :3]])
+                        for i, e in enumerate(p.entity_registry)},
+            per_assembly={a.handle: dict(subtask=OPERATORS[int(out["subtask"][0, m].argmax())],
+                                         subtask_p=round(float(torch.softmax(out["subtask"][0, m], -1).max()), 3))
+                          for m, a in enumerate(p.assemblies)})
+    return view

@@ -1,0 +1,8 @@
+{
+ "path": "artifacts/runs/latent_nosem_v1/rep_last.pt",
+ "sha256_16": "76ff76d77adc2c5d",
+ "step": 30000,
+ "versions": {
+  "latent": "ls-dc6ca4a55d80"
+ }
+}

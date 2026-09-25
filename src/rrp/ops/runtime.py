@@ -23,8 +23,20 @@ def repo_root() -> Path:
     return Path(os.environ.get("RRP_REPO", REPO))
 
 
+def ops_root() -> Path:
+    """Single shared ops state (broker, config, logs, ledger) — one aggregate budget per node even when several
+    worktrees/branches run code. Defaults to RRP_OPS_ROOT, else the main checkout, else this repo."""
+    env = os.environ.get("RRP_OPS_ROOT")
+    if env:
+        return Path(env)
+    main = Path.home() / "work" / "relational-robot-policy"
+    if node_role() == "host" and (main / "configs" / "resources.local.json").exists():
+        return main
+    return repo_root()
+
+
 def config_path() -> Path:
-    return repo_root() / "configs" / "resources.local.json"
+    return ops_root() / "configs" / "resources.local.json"
 
 
 def load_config() -> dict:
@@ -36,7 +48,7 @@ def node_role() -> str:
 
 
 def state_dir(role: str | None = None) -> Path:
-    return repo_root() / "ops" / "broker" / (role or node_role())
+    return ops_root() / "ops" / "broker" / (role or node_role())
 
 
 def measure_and_budget(role: str, disk_path: Path, window_s: float = 10.0) -> dict:
@@ -87,11 +99,11 @@ def run_leased(argv: list[str], *, cpu: float, memory_bytes: int, label: str, gp
     lease = br.acquire(ResourceRequest(cpu_cores=cpu, memory_bytes=memory_bytes, gpu=gpu, label=label,
                                        node=node_role(), max_seconds=max_seconds,
                                        gpu_memory_bytes=gpu_memory_bytes))
-    log_dir = log_dir or (repo_root() / "ops" / "logs")
+    log_dir = log_dir or (ops_root() / "ops" / "logs")
     log_dir.mkdir(parents=True, exist_ok=True)
     log = log_dir / f"{lease.lease_id}_{label}.log"
     env = {**thread_env(cpu), **(extra_env or {}), "RRP_LEASE": lease.lease_id, "RRP_NODE": node_role(),
-           "RRP_REPO": str(repo_root()), "RRP_UNIT": job_unit(lease.lease_id),
+           "RRP_REPO": str(repo_root()), "RRP_OPS_ROOT": str(ops_root()), "RRP_UNIT": job_unit(lease.lease_id),
            "PATH": os.environ.get("PATH", ""), "HOME": os.environ.get("HOME", "")}
     for k in ("CUDA_VISIBLE_DEVICES", "HF_HOME", "UV_CACHE_DIR", "UV_PYTHON_INSTALL_DIR", "XDG_CACHE_HOME",
               "TMPDIR", "PLAYWRIGHT_BROWSERS_PATH", "MUJOCO_GL", "PYOPENGL_PLATFORM", "npm_config_cache"):

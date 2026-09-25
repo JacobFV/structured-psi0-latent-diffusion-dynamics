@@ -1,0 +1,37 @@
+{
+ "steps": 30000,
+ "wall_s": 3127.6504411697388,
+ "interrupted": false,
+ "latent_space_version": "ls-dc6ca4a55d80",
+ "realizer_compat_version": "rz-ls-dc6ca4a55d80-none-v1",
+ "eval": {
+  "realize_mse": 0.011691913338533292,
+  "zero_action_mse": 0.21274671355883282,
+  "probes": {
+   "visible": 0.12326373722372674,
+   "visible_pos": 0.0,
+   "focused_on": 0.3883987070848257,
+   "focused_on_pos": 1.0,
+   "held_by": 0.04717393203459422,
+   "held_by_pos": 1.0,
+   "acting_on": 0.07242072158644186,
+   "acting_on_pos": 1.0,
+   "rel_pos_err_m": 0.3203008922831173,
+   "desired_delta_err_m": 0.12631572464454474,
+   "subtask": 0.0
+  },
+  "probes_shuffled_z": {
+   "visible": 0.12326373722372674,
+   "visible_pos": 0.0,
+   "focused_on": 0.3883987070848257,
+   "focused_on_pos": 1.0,
+   "held_by": 0.04717393203459422,
+   "held_by_pos": 1.0,
+   "acting_on": 0.07250808071983926,
+   "acting_on_pos": 1.0,
+   "rel_pos_err_m": 0.320078648760234,
+   "desired_delta_err_m": 0.1263164551255796,
+   "subtask": 0.0
+  }
+ }
+}

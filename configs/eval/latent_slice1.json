@@ -1,0 +1,98 @@
+{
+ "id": "latent_slice1",
+ "stage": "primary_confirmation",
+ "status": "SEALED_BEFORE_RESULTS",
+ "question": "With the controller-facing latent (R38), does semantic supervision on the transmitted packet improve new-body transfer/adaptation (and packet semantics) relative to a capacity-matched latent without semantic objectives, the action-only codec and direct actions, at <=25% p95 latency overhead?",
+ "task": "pick_place",
+ "split": "research/splits/primary_v1.json",
+ "source_train_robots": [
+  "parm5_pg2",
+  "parm5_tf3",
+  "parm5s_pg2",
+  "parm5l_tf3",
+  "parm6_pg2",
+  "parm6_tf3",
+  "parm7_pg2",
+  "parm7_tf3",
+  "panda_pg2",
+  "ur5e_pg2",
+  "ur5e_tf3",
+  "sawyer_pg2",
+  "sawyer_tf3"
+ ],
+ "source_heldout_eval_robots": [
+  "parm5s_tf3",
+  "parm5l_pg2"
+ ],
+ "targets": [
+  "xarm7_pg2",
+  "xarm7_tf3",
+  "panda_tf3"
+ ],
+ "methods": {
+  "baseline_direct_action": "old FlowPolicy latent_dim=1 + hidden-state auxiliaries (configs/model/policy-small-structured.json, packed data) \u2014 native ActionChunk path",
+  "baseline_action_only_codec": "old action-only codec (configs/model/codec-small.json) + FlowPolicy on codec latent \u2014 native ActionChunk path",
+  "latent_nosem": "configs/latent/rep-latent_nosem_v1.json + flow packet_semantic_weight=0",
+  "latent_sem": "configs/latent/rep-latent_sem_v1.json + flow packet_semantic_weight=1"
+ },
+ "threshold": 0.8,
+ "sustained_requires_next_checkpoint": true,
+ "sft_budgets": [
+  0,
+  5,
+  20,
+  100
+ ],
+ "seeds": [
+  1701,
+  1702,
+  1703
+ ],
+ "eval": {
+  "episodes": 100,
+  "seed_start": 2000000,
+  "dev_seed_start": 3000000,
+  "max_steps": 300,
+  "replan_ticks": 8,
+  "nfe": 8
+ },
+ "clocks": {
+  "system_i_replan_s": 0.4,
+  "knot_spacing_s": 0.2,
+  "knots": 4,
+  "system0_hz": 20,
+  "physics_hz": 500
+ },
+ "semantic_reporting": [
+  "oracle_target",
+  "one_step_clean(tau=0.5)",
+  "free_sampled",
+  "free_shuffled_control",
+  "metadata_only_probe"
+ ],
+ "latency": {
+  "metrics": [
+   "p50",
+   "p95",
+   "p99"
+  ],
+  "paths": [
+   "context+sampling",
+   "system0 tick",
+   "end-to-end obs->command"
+  ],
+  "nfe": [
+   1,
+   2,
+   4,
+   8
+  ],
+  "condition": "no other GPU lease active on the peer"
+ },
+ "targets_aspirational": {
+  "interaction_reduction": 2.0,
+  "p95_latency_overhead_max": 1.25
+ },
+ "dev_rule": "development iteration only on source bodies and dev scenes (>=3,000,000); targets/eval scenes untouched until the sealed runs",
+ "notes": "latent representation (encoder+realizer+probes) is frozen per variant before any flow/adaptation comparison; GRPO later optimizes the stochastic latent policy with the realizer and latent meaning frozen."
+}

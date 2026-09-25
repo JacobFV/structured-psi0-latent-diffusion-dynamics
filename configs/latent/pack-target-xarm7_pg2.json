@@ -1,0 +1,9 @@
+{
+ "dataset": "artifacts/datasets/pick_place_primary_v3dart",
+ "train_robots": [
+  "xarm7_pg2"
+ ],
+ "horizon": 16,
+ "stride": 1,
+ "include_dart_failures": false
+}

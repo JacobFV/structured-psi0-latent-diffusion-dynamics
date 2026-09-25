@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useWB } from "../common/store";
 import { fmt, sourceStyle } from "../common/labels";
 import { bodyInfo, bodyOfJoint, jointByAddress, observedObject } from "../common/model";
@@ -6,7 +6,7 @@ import { EventInspector } from "../graph/EventInspector";
 import type { ProbeQuery } from "../transport/types";
 import type { ProbeResult } from "../transport/responses";
 
-const TABS = ["Selection", "Morphology", "Observation", "Probes", "Routing", "Log", "Privileged"] as const;
+const TABS = ["Selection", "Morphology", "Observation", "Packet", "Probes", "Routing", "Log", "Privileged"] as const;
 type Tab = (typeof TABS)[number];
 
 export function Inspector() {
@@ -23,6 +23,7 @@ export function Inspector() {
         {tab === "Selection" && (selection?.kind === "event" ? <EventInspector eventId={selection.id} /> : <SelectionView />)}
         {tab === "Morphology" && <Morphology />}
         {tab === "Observation" && <Observation />}
+        {tab === "Packet" && <PacketPanel />}
         {tab === "Probes" && <Probes />}
         {tab === "Routing" && <Routing />}
         {tab === "Log" && <Log />}
@@ -300,6 +301,58 @@ function Privileged() {
           </>) : <div className="muted">loading…</div>}
         </div>
       )}
+    </div>
+  );
+}
+
+
+/** R38: probes of the EXACT received controller packet z (system i -> system 0), not internal diagnostics. */
+function PacketPanel() {
+  const { api, sessionId, command, reportError } = useWB();
+  const [view, setView] = useState<Record<string, any> | null>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const [joint, setJoint] = useState(2);
+  const [offset, setOffset] = useState(0.12);
+  useEffect(() => {
+    if (!sessionId) return;
+    let alive = true;
+    const tick = async () => {
+      try { const v = await api.packet(sessionId); if (alive) setView(v); } catch (e) { reportError(e, "packet"); }
+    };
+    void tick();
+    const h = setInterval(() => void tick(), 1000);
+    return () => { alive = false; clearInterval(h); };
+  }, [api, sessionId, reportError]);
+  if (!view) return <div className="muted">loading…</div>;
+  if (!view.available) return <div data-testid="packet-panel" className="muted">No latent packet held by system 0 ({view.reason}). Select a latent policy in learned mode.</div>;
+  return (
+    <div data-testid="packet-panel">
+      <div className="packet-banner" data-testid="packet-banner">{view.label}</div>
+      <table className="kv"><tbody>
+        <tr><td>source obs</td><td><code>{view.observation_id}</code> ({view.source}, {view.policy_version})</td></tr>
+        <tr><td>latent space</td><td><code>{view.latent_space_version}</code> / realizer <code>{view.realizer_compat_version}</code></td></tr>
+        <tr><td>shape [K,M,D]</td><td>{JSON.stringify(view.shape)} knots {JSON.stringify(view.knot_times)} s</td></tr>
+        <tr><td>age / phase</td><td>{fmt(view.age_s, 2)} s — {view.valid ? "valid" : "EXPIRED"} (until {fmt(view.valid_until, 2)})</td></tr>
+        <tr><td>graph / runtime</td><td>v{view.graph_version} / r{view.runtime_version}</td></tr>
+        <tr><td>system 0</td><td>ticks {view.system0.ticks}, packets {view.system0.packets}, rejected {view.system0.rejected}, fallback holds {view.system0.fallback_holds}</td></tr>
+        <tr><td>frozen</td><td>{view.frozen ? "YES (diagnostic)" : "no"}</td></tr>
+      </tbody></table>
+      {view.probes && (<>
+        <h5>Per manipulator (from received z)</h5>
+        <ul>{Object.entries(view.probes.per_assembly as Record<string, { subtask: string; subtask_p: number }>).map(([h, a]) =>
+          <li key={h}><code>{h}</code>: subtask <b>{a.subtask}</b> (p={a.subtask_p})</li>)}</ul>
+        <h5>Per entity handle (opaque registry)</h5>
+        <table className="kv"><thead><tr><th>handle</th><th>visible</th><th>focused</th><th>held_by m0</th><th>acting_on m0</th><th>rel pos to TCP (m) ± std</th><th>desired Δ (m)</th></tr></thead>
+          <tbody>{Object.entries(view.probes.per_entity as Record<string, any>).map(([h, e]) => ( // eslint-disable-line @typescript-eslint/no-explicit-any
+            <tr key={h}><td><code>{h}</code></td><td>{e.visible[0]}</td><td>{e.focused_on[0]}</td><td>{e.held_by[0]}</td><td>{e.acting_on[0]}</td>
+              <td>{fmt(e.rel_pos_m, 2)} ± {fmt(e.rel_pos_std_m, 2)}</td><td>{fmt(e.desired_delta_m, 2)}</td></tr>))}</tbody></table>
+      </>)}
+      <div className="row wrap">
+        <button onClick={() => void command({ type: view.frozen ? "latent_unfreeze" : "latent_freeze" })}>{view.frozen ? "Unfreeze latent" : "Freeze latent (diagnostic)"}</button>
+        <label>joint # <input aria-label="disturb joint" type="number" min={1} value={joint} onChange={(e) => setJoint(Number(e.target.value))} style={{ width: 50 }} /></label>
+        <label>offset rad <input aria-label="disturb offset" type="number" step={0.02} value={offset} onChange={(e) => setOffset(Number(e.target.value))} style={{ width: 70 }} /></label>
+        <button onClick={() => void command({ type: "disturb_joint", n: joint, yaw: offset })}>Disturb joint (contaminates eval)</button>
+      </div>
+      <p className="muted small">Packet probes read only z + opaque handles; they never alter control. Privileged truth is in the Privileged tab.</p>
     </div>
   );
 }

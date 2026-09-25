@@ -1,0 +1,143 @@
+"""Packet-only semantic probes: probe(received z, query_type, opaque handles) -> answer (R38, sections 4-5).
+
+The probe sees ONLY the transmitted latent tensor, the query type and opaque handle codes (entity slot index,
+assembly index in the packet). Handle codes are FIXED random vectors (addresses, not features): no object feature,
+descriptor, label or context vector enters a query. `metadata_only=True` builds the control probe that receives no
+latent at all (answers achievable from query/handle alone); shuffled-latent controls are applied at evaluation.
+
+Query types (operational definitions, labels from the privileged bus, used only as supervision):
+  visible(e)         e is inside the front camera frustum and not occluded (ray test)
+  looking_at(e)      angle between the front camera optical axis and e (deg/30, regression)
+  focused_on(e)      e is bound to a patient/target/destination role of an ACTIVE event (public runtime)
+  held_by(e, m)      e touched by >= 2 bodies of manipulator m's hand assembly
+  acting_on(e, m)    any contact between e and manipulator m's hand assembly
+  rel_pos(e, m)      e position minus m's TCP, base frame (Gaussian: mean + log-variance)
+  desired_delta(e)   e displacement over the packet horizon (Gaussian)
+  subtask(m)         operator of m's active event (classification)
+These are not an implication chain (an occluded object can be focused on or held).
+"""
+from __future__ import annotations
+
+import math
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+from .attention import MHA
+from .flow import MLP
+
+ENTITY_QUERIES = ("visible", "looking_at", "focused_on")
+ENTITY_MANIP_QUERIES = ("held_by", "acting_on", "rel_pos")
+ENTITY_EFFECT_QUERIES = ("desired_delta",)
+MANIP_QUERIES = ("subtask",)
+ALL_QUERIES = ENTITY_QUERIES + ENTITY_MANIP_QUERIES + ENTITY_EFFECT_QUERIES + MANIP_QUERIES
+
+
+class PacketProbe(nn.Module):
+    def __init__(self, dz: int, knots: int, width: int = 128, heads: int = 4, max_entities: int = 8,
+                 max_assemblies: int = 2, n_operators: int = 12, metadata_only: bool = False, seed: int = 1234):
+        super().__init__()
+        self.metadata_only = metadata_only
+        g = torch.Generator().manual_seed(seed)
+        self.register_buffer("ent_code", F.normalize(torch.randn(max_entities, 16, generator=g), dim=-1))
+        self.register_buffer("asm_code", F.normalize(torch.randn(max_assemblies, 16, generator=g), dim=-1))
+        D = width
+        self.z_in = nn.Linear(dz, D)
+        self.knot = nn.Embedding(knots, D)
+        self.asm_in = nn.Linear(16, D)
+        self.ent_in = nn.Linear(16, D)
+        self.qtype = nn.Embedding(len(ALL_QUERIES), D)
+        self.const = nn.Parameter(torch.zeros(1, 1, D))
+        self.att = MHA(D, heads)
+        self.att2 = MHA(D, heads)
+        self.n1, self.n2 = nn.LayerNorm(D), nn.LayerNorm(D)
+        self.heads = nn.ModuleDict(dict(visible=nn.Linear(D, 1), looking_at=nn.Linear(D, 1), focused_on=nn.Linear(D, 1),
+                                        held_by=nn.Linear(D, 1), acting_on=nn.Linear(D, 1), rel_pos=nn.Linear(D, 6),
+                                        desired_delta=nn.Linear(D, 6), subtask=nn.Linear(D, n_operators)))
+        self.mlp = MLP(D, D, 2 * D)
+
+    def _tokens(self, z, zmask):
+        B, K, M, _ = z.shape
+        if self.metadata_only:
+            t = self.const.expand(B, K * M, -1) + (self.knot.weight[None, :, None] +
+                                                    self.asm_in(self.asm_code[:M])[None, None]).reshape(1, K * M, -1)
+        else:
+            t = self.z_in(z) + self.knot.weight[None, :, None] + self.asm_in(self.asm_code[:M])[None, None]
+            t = t.reshape(B, K * M, -1)
+        km = zmask[:, None, :].expand(B, K, M).reshape(B, K * M)
+        return t, km
+
+    def _read(self, q, t, km):
+        r = q + self.att(self.n1(q), kv=t, key_mask=km)
+        r = r + self.att2(self.n2(r), kv=t, key_mask=km)
+        return r + self.mlp(r)
+
+    def forward(self, z: torch.Tensor, zmask: torch.Tensor, n_entities: int) -> dict:
+        """z [B,K,M,dz] (the received packet), zmask [B,M]. Returns predictions for all entity/assembly handles."""
+        B, K, M, _ = z.shape
+        t, km = self._tokens(z, zmask)
+        S = n_entities
+        e = self.ent_in(self.ent_code[:S])                  # [S,D]
+        a = self.asm_in(self.asm_code[:M])                  # [M,D]
+        qi = {q: i for i, q in enumerate(ALL_QUERIES)}
+        out = {}
+        for q in ENTITY_QUERIES + ENTITY_EFFECT_QUERIES:
+            qq = (self.qtype.weight[qi[q]] + e)[None].expand(B, S, -1)
+            r = self._read(qq, t, km)
+            out[q] = self.heads[q](r)                       # [B,S,*]
+        for q in ENTITY_MANIP_QUERIES:
+            qq = (self.qtype.weight[qi[q]] + e[:, None] + a[None]).reshape(1, S * M, -1).expand(B, -1, -1)
+            r = self._read(qq, t, km)
+            out[q] = self.heads[q](r).reshape(B, S, M, -1)
+        qq = (self.qtype.weight[qi["subtask"]] + a)[None].expand(B, M, -1)
+        out["subtask"] = self.heads["subtask"](self._read(qq, t, km))   # [B,M,ops]
+        return out
+
+
+def gaussian_nll(pred6, target, mask):
+    mu, logvar = pred6[..., :3], pred6[..., 3:].clamp(-8, 6)
+    nll = 0.5 * (((target - mu) ** 2) / logvar.exp() + logvar + math.log(2 * math.pi)).sum(-1)
+    m = mask.float()
+    return (nll * m).sum() / m.sum().clamp(min=1)
+
+
+def probe_loss(out: dict, lab: dict, smask: torch.Tensor, m0: int = 0) -> tuple[torch.Tensor, dict]:
+    """lab: held/contact/visible/focus [B,S] (manipulator 0 for held/contact/rel), rel_tcp/future_disp [B,S,3],
+    gaze [B,S], subtask [B]. Positions scaled to decimeters for conditioning."""
+    m = smask.float()
+    den = m.sum().clamp(min=1)
+    bce = lambda logit, y: (F.binary_cross_entropy_with_logits(logit.squeeze(-1), y.float(), reduction="none")
+                            * m).sum() / den
+    L = dict(
+        visible=bce(out["visible"], lab["visible"]),
+        focused_on=bce(out["focused_on"], lab["focus"]),
+        held_by=bce(out["held_by"][:, :, m0], lab["held"]),
+        acting_on=bce(out["acting_on"][:, :, m0], lab["contact"]),
+        looking_at=((out["looking_at"].squeeze(-1) - lab["gaze"] / 30).pow(2) * m).sum() / den,
+        rel_pos=gaussian_nll(out["rel_pos"][:, :, m0], lab["rel_tcp"] * 10, smask),
+        desired_delta=gaussian_nll(out["desired_delta"], lab["future_disp"] * 10, smask),
+        subtask=F.cross_entropy(out["subtask"][:, m0], lab["subtask"].long()),
+    )
+    total = sum(L.values())
+    return total, {f"probe_{k}": float(v.detach()) for k, v in L.items()}
+
+
+@torch.no_grad()
+def probe_metrics(out: dict, lab: dict, smask: torch.Tensor, m0: int = 0) -> dict:
+    """Accuracy / error metrics (raw sums for aggregation)."""
+    m = smask.bool()
+    res = {}
+    for q, key in (("visible", "visible"), ("focused_on", "focus"), ("held_by", "held"), ("acting_on", "contact")):
+        logit = out[q][..., 0] if q in ENTITY_QUERIES else out[q][:, :, m0, 0]
+        pred = logit > 0
+        y = lab[key].bool()
+        res[q] = (int(((pred == y) & m).sum()), int(m.sum()))
+        pos = y & m
+        res[q + "_pos"] = (int(((pred == y) & pos).sum()), int(pos.sum()))   # balanced view on rare positives
+    err = (out["rel_pos"][:, :, m0, :3] / 10 - lab["rel_tcp"]).norm(dim=-1)
+    res["rel_pos_err_m"] = (float((err * m).sum()), int(m.sum()))
+    derr = (out["desired_delta"][..., :3] / 10 - lab["future_disp"]).norm(dim=-1)
+    res["desired_delta_err_m"] = (float((derr * m).sum()), int(m.sum()))
+    res["subtask"] = (int((out["subtask"][:, m0].argmax(-1) == lab["subtask"].long()).sum()), int(len(lab["subtask"])))
+    return res
