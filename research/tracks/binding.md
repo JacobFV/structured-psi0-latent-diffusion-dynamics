@@ -1,7 +1,9 @@
 # track `binding`: make the Stage-A packet follow the supplied task binding (D-032)
 
 Branch `track/binding`, worktree `~/work/rrp-wt/binding`, peer dir `/dev/shm/rrp-brandonin/wt/binding`.
-State: **running** (Stage-A v2 training on peer).
+State: **running**. Scope per `research/corrections/2026-09-25-causal-semantics-priorities.md` (D-037): items 1 (diagnostic
+repair), 2 (whole-pipeline binding diversity, single-arm objects) and 5 (goal/predicted/observed effect).
+Stage-A v2 (semantic-only counterfactuals) is an INTERMEDIATE result; the deliverable is the paired-task pipeline (section 5).
 
 ## 1. Is the v1 counterexample test valid? Partly not (fixed, see below)
 Context layout (`data/features.py`): scene slots have structural edges ONLY to task-bank tokens: `role_points_to`
@@ -49,12 +51,44 @@ Known limitation for later: Stage B (flow) still trains on factual data only, wh
 | what | command | output | state |
 |---|---|---|---|
 | CPU smoke (30 steps) | `rrp latent train-representation --config <scratch smoke_sem.json>` | scratch | verified (runs; eval has `binding_counterfactual`) |
-| v1 re-eval, fixed test | `scripts/binding_v1_reeval.sh` (host GPU lease) | `artifacts/runs/binding_v1_reeval/` | running |
+| v1 re-eval, fixed test | `scripts/binding_v1_reeval.sh`; host lease 1790363904_b7ef3b was killed by the host disk watchdog (another track's copy; old reserve) after the sem part; relaunched on the peer CPU-only (lease 1790366019_5303b7) | `artifacts/runs/binding_v1_reeval/` (peer) | running |
 | Stage A sem v2 | peer lease 1790363882_585088, `configs/latent/rep-binding_latent_sem_v2.json` | `artifacts/runs/binding_latent_sem_v2` | running (~2.1 h) |
 | Stage A nosem v2 | peer lease 1790363882_6525d1, `configs/latent/rep-binding_latent_nosem_v2.json` | `artifacts/runs/binding_latent_nosem_v2` | running |
 
 ## 4. Results
-(pending)
+### v1 under the repaired test (encoded teacher targets, panda_pg2, 60 episodes x 2 samples, n=80 pairs with >= 3 slots)
+| representation | probe | rel z change | focus_follows (label-changing pairs) | exact focus set, factual |
+|---|---|---|---|---|
+| latent_sem_v1 | factual post-hoc (D-031) | 0.047 | 0.0 (n=71) | 1.00 |
+| latent_sem_v1 | post-hoc refit with `--binding-cf 0.5` | 0.047 | **0.0** (n=71; also 0.0 on its in-distribution held-out batches) | 0.95 |
+| latent_nosem_v1 | factual post-hoc | 0.009 | 0.0 (n=71) | 0.775 |
+Raw: `artifacts/runs/binding_v1_reeval/{sem,nosem}_cf_probe_factual.json`, `sem_probe_bindcf.json` (peer store; small
+JSONs mirrored in the host worktree). Even a probe trained on binding-varying labels cannot recover the binding from v1
+z: the v1 packet does not carry it. The original D-032 numbers (4.9% / 0/14, asymmetric edit + slot-0 prior) stay
+valid as a record of the flawed test and are reproduced by `counterexample_v1` in every counterfactuals.json.
+
+## 5. Whole-pipeline binding diversity (item 2) and effect semantics (item 5)
+- `sim/scenario.build_pick_place_paired` (+ BUILDERS `pick_place_paired`): the physical scene depends only on the seed
+  (2-3 same-size cubes, distinct colors from 6, poses, green target zone); `patient` selects which physical cube the
+  task assigns. Pairs therefore have IDENTICAL initial scenes and differ only in the supplied binding, each with its own
+  scripted_teacher demonstration. Public slot order = seeded permutation over physical objects incl. the target zone,
+  identical within a pair and independent of role (address permutation; patient/destination slots balanced).
+  Verified on a smoke collection (parm6_tf3: identical slot tokens within a pair; focus label moves with the patient).
+- `configs/data/pick_place_paired_v1.json`: 13 source robots x 200 scenes (seeds 2000000+), every assignment, + DART
+  0.08 -> 13000 episodes. Peer CPU lease 1790369924_8948b2 (running, ~100 min).
+- Next: pack (H16 stride 1), Stage A `binding_paired_{sem,nosem}_v3` = paired data + binding_cf 0.5 (same-trajectory /
+  different-meaning set, no realizer loss) + goal_effect probe; Stage B flows on the paired pack; closed-loop
+  `rrp latent eval-binding` (same scene, each cube assigned in turn: success, moved-assigned vs moved-wrong object,
+  scenes where every assignment is followed).
+- Item 5: probe query `desired_delta` renamed `observed_effect` (it is realized future displacement, label
+  future_disp); output alias `desired_delta` and a checkpoint key remap keep old probes/reps loading (checked on
+  latent_sem_v1). New optional query `goal_effect` (probe cfg `goal_effect: true`): label from the task spec and public
+  estimates = destination minus position of the object bound as patient of a not-yet-succeeded event, zero elsewhere
+  (`binding_aug.goal_effect_from_batch`); it is recomputed after rebinding, so it follows the binding. Metrics:
+  goal_effect_err_m, goal_effect_err_patient_m and the zero-prediction baseline.
+- Infra: `scripts/peer_sync.sh` excluded `artifacts/`, which does not protect the peer SYMLINK; `--delete` removed it
+  and the running collection recreated a local tmpfs `artifacts/` (294 episodes, merged back into the shared store,
+  symlink restored). Fixed by excluding `/artifacts`. Other tracks using peer_sync push were exposed to the same race.
 
 ## resume
 1. Poll: `ssh gb10-direct tail -n1 /dev/shm/rrp-brandonin/repo/artifacts/runs/binding_latent_{sem,nosem}_v2/train_log.jsonl`
