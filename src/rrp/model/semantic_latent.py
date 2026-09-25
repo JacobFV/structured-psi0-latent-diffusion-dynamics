@@ -44,9 +44,15 @@ class LatentConfig:
     realizer_layers: int = 2
     max_phase_ticks: int = 12                      # realizer trained on phases 0..max (0.55 s)
     name: str = "latent_sem_v1"
+    binding_cf: float = 0.0                        # fraction of each batch appended as counterfactual-binding copies
+    binding_contrast: float = 0.0                  # optional weight: push E(cf) away from E(factual) (hinge)
 
     def version(self) -> str:
-        return "ls-" + hashlib.sha256(json.dumps(asdict(self), sort_keys=True, default=str).encode()).hexdigest()[:12]
+        d = asdict(self)
+        for k in ("binding_cf", "binding_contrast"):   # added later: omit at default so v1 versions are unchanged
+            if d[k] == 0.0:
+                d.pop(k)
+        return "ls-" + hashlib.sha256(json.dumps(d, sort_keys=True, default=str).encode()).hexdigest()[:12]
 
 
 def assembly_tokens(batch: Batch, max_m: int = 2):

@@ -128,13 +128,20 @@ def _prefetch(data, B, rng, max_j, dev, depth: int = 6, workers: int = 3):
 
 
 def representation_step(E, R, P, data_b, cfg: LatentConfig, train=True):
+    """With cfg.binding_cf > 0 (training only) a fraction of the batch is appended as counterfactual-binding copies
+    (model/binding_aug.py): same trajectory, body and scene tokens, task roles rebound to another slot, `focus`
+    labels follow the binding. Realizer loss uses FACTUAL rows only; probe and KL terms use all rows."""
     batch, a, v, lab, r, j = data_b
+    nf, cf = batch.B, None
+    if train and cfg.binding_cf > 0:
+        from rrp.model.binding_aug import augment
+        batch, a, v, lab, nf, cf = augment(batch, a, v, lab, cfg.binding_cf)
     af, am, ai = assembly_tokens(batch)
     mu, logvar = E(batch, a, v, af, am, ai)
     z = mu + torch.randn_like(mu) * (0.5 * logvar).exp() if train else mu
     kt = torch.tensor(cfg.knot_times, dtype=z.dtype, device=z.device)
     phase = torch.as_tensor(j * cfg.control_dt, dtype=z.dtype, device=z.device)
-    pred = R(z, am, kt, phase, r["node"], r["node_mask"], r["local"], node_asm=r.get("node_asm"))
+    pred = R(z[:nf], am[:nf], kt, phase, r["node"], r["node_mask"], r["local"], node_asm=r.get("node_asm"))
     m = (r["v1"] & r["node_mask"]).float()
     l_real = ((pred - r["a1"]) ** 2 * m).sum() / m.sum().clamp(min=1)
     mm = am[:, None, :, None].float().expand_as(mu)
@@ -143,8 +150,44 @@ def representation_step(E, R, P, data_b, cfg: LatentConfig, train=True):
     out = P(z, am, batch.bank_tokens["scene"].shape[1])
     l_sem, logs = probe_loss(out, lab, smask)
     loss = l_real + cfg.semantic_weight * l_sem + cfg.beta_kl * kl
+    if cf is not None:
+        d = (mu[:nf][cf["pick"]] - mu[nf:]).flatten(1).norm(dim=1) / mu[:nf][cf["pick"]].flatten(1).norm(dim=1).clamp(min=1e-3)
+        logs.update(cf_rel_dist=float(d.mean().detach()), n_cf=int(len(cf["pick"])))
+        if cfg.binding_contrast > 0:
+            l_con = F.relu(0.25 - d).mean()
+            loss = loss + cfg.binding_contrast * l_con
+            logs.update(contrast=float(l_con.detach()))
     logs.update(real=float(l_real.detach()), kl=float(kl.detach()), sem=float(l_sem.detach()))
-    return loss, logs, (z, am, out, lab, smask)
+    return loss, logs, (z[:nf], am[:nf], {k: x[:nf] for k, x in out.items()}, {k: x[:nf] for k, x in lab.items()},
+                        smask[:nf])
+
+
+@torch.no_grad()
+def binding_cf_metrics(E, P, batch, a, v, lab, gen=None) -> dict:
+    """Counterfactual-binding response of the encoded packet (raw sums): relative z change, probe metrics on the
+    counterfactual rows against binding-following labels, and `focus_follows` = the probe's focus flips from the
+    rebound-away slot to the newly bound slot (among swaps that change the focus label)."""
+    from rrp.model.binding_aug import augment
+    b2, a2, v2, l2, nf, info = augment(batch, a, v, lab, 1.0, gen)
+    if info is None:
+        return {}
+    af, am, ai = assembly_tokens(b2)
+    mu, _ = E(b2, a2, v2, af, am, ai)
+    S = b2.bank_tokens["scene"].shape[1]
+    out = P(mu[nf:], am[nf:], S)
+    lc = {k: x[nf:] for k, x in l2.items()}
+    smask = b2.bank_mask["scene"][nf:] & lc["slot_valid"].bool()
+    res = {f"cf_{k}": x for k, x in probe_metrics(out, lc, smask).items()}
+    zf = mu[:nf][info["pick"]]
+    rd = (zf - mu[nf:]).flatten(1).norm(dim=1) / zf.flatten(1).norm(dim=1).clamp(min=1e-3)
+    res["cf_rel_z_dist"] = (float(rd.sum()), int(len(rd)))
+    fo = out["focused_on"][..., 0] > 0
+    b = torch.arange(len(info["pick"]), device=fo.device)
+    lf = lab["focus"][info["pick"]].bool()
+    chg = lf[b, info["src"]] != lf[b, info["dst"]]
+    follows = (fo[b, info["src"]] == lc["focus"].bool()[b, info["src"]]) & (fo[b, info["dst"]] == lc["focus"].bool()[b, info["dst"]])
+    res["cf_focus_follows"] = (int((follows & chg).sum()), int(chg.sum()))
+    return res
 
 
 def train_representation(cfg_json: dict, out_dir: Path) -> dict:
@@ -213,7 +256,8 @@ def evaluate_representation(E, R, P, data, cfg, dev, n_batches=30, seed=99) -> d
     """Encoded-target quality: realization error vs baselines, packet-probe metrics with shuffled-z control."""
     E.eval(); R.eval(); P.eval()
     rng = random.Random(seed)
-    agg, agg_sh, real, hold = {}, {}, [], []
+    agg, agg_sh, agg_cf, real, hold = {}, {}, {}, [], []
+    gcf = torch.Generator().manual_seed(seed)
     for _ in range(n_batches):
         sel, tgt, j = data.sample(128, rng, cfg.max_phase_ticks)
         batch, a, v, lab, r = data.fetch(sel, tgt, dev)
@@ -230,10 +274,12 @@ def evaluate_representation(E, R, P, data, cfg, dev, n_batches=30, seed=99) -> d
         zs = z[torch.randperm(z.shape[0], device=dev)]
         for k, (x, n) in probe_metrics(P(zs, am, smask.shape[1]), lab2, smask).items():
             s_, n_ = agg_sh.get(k, (0, 0)); agg_sh[k] = (s_ + x, n_ + n)
+        for k, (x, n) in binding_cf_metrics(E, P, batch, a, v, lab, gcf).items():
+            s_, n_ = agg_cf.get(k, (0, 0)); agg_cf[k] = (s_ + x, n_ + n)
     E.train(); R.train(); P.train()
     f = lambda d: {k: (x / n if n else None) for k, (x, n) in d.items()}
     return dict(realize_mse=float(np.mean(real)), zero_action_mse=float(np.mean(hold)), probes=f(agg),
-                probes_shuffled_z=f(agg_sh))
+                probes_shuffled_z=f(agg_sh), binding_counterfactual=f(agg_cf))
 
 
 def load_representation(path: Path, dev):
@@ -383,7 +429,7 @@ def evaluate_generated(model, E, R, P, data, lcfg, dev, n_batches=20, seed=7, nf
 
 
 def fit_probes_on_frozen(rep_path: Path, packed_dir: Path, out_path: Path, steps: int = 6000, seed: int = 5,
-                         metadata_only: bool = False) -> dict:
+                         metadata_only: bool = False, binding_cf: float = 0.0) -> dict:
     """MEASUREMENT probe: a fresh PacketProbe trained on DETACHED z from the frozen encoder (identical procedure
     for latent_sem and latent_nosem). metadata_only=True trains the no-latent control probe."""
     dev = _dev()
@@ -394,9 +440,13 @@ def fit_probes_on_frozen(rep_path: Path, packed_dir: Path, out_path: Path, steps
     opt = torch.optim.AdamW(P.parameters(), lr=3e-4, weight_decay=1e-4)
     rng = random.Random(seed)
     t0 = time.time()
+    gcf = torch.Generator().manual_seed(seed)
     for step in range(steps):
         sel, tgt, j = data.sample(128, rng, 0)
         batch, a, v, lab, r = data.fetch(sel, tgt, dev)
+        if binding_cf > 0:        # probe also sees counterfactual-binding packets (labels follow the binding)
+            from rrp.model.binding_aug import augment
+            batch, a, v, lab, _, _ = augment(batch, a, v, lab, binding_cf, gcf)
         with torch.no_grad():
             af, am, ai = assembly_tokens(batch)
             mu, _ = E(batch, a, v, af, am, ai)
@@ -407,8 +457,9 @@ def fit_probes_on_frozen(rep_path: Path, packed_dir: Path, out_path: Path, steps
         opt.step()
     # held-out evaluation on a disjoint RNG stream: real z vs shuffled z
     P.eval()
-    agg, sh = {}, {}
+    agg, sh, cfm = {}, {}, {}
     rng2 = random.Random(seed + 1000)
+    gcf2 = torch.Generator().manual_seed(seed + 1000)
     with torch.no_grad():
         for _ in range(30):
             sel, tgt, j = data.sample(128, rng2, 0)
@@ -419,9 +470,12 @@ def fit_probes_on_frozen(rep_path: Path, packed_dir: Path, out_path: Path, steps
             for d_, z in ((agg, mu), (sh, mu[torch.randperm(mu.shape[0], device=dev)])):
                 for k, (x, n) in probe_metrics(P(z, am, smask.shape[1]), lab, smask).items():
                     s_, n_ = d_.get(k, (0, 0)); d_[k] = (s_ + x, n_ + n)
+            for k, (x, n) in binding_cf_metrics(E, P, batch, a, v, lab, gcf2).items():
+                s_, n_ = cfm.get(k, (0, 0)); cfm[k] = (s_ + x, n_ + n)
     f = lambda d: {k: (x / n if n else None) for k, (x, n) in d.items()}
-    res = dict(steps=steps, wall_s=time.time() - t0, metadata_only=metadata_only, encoded_target=f(agg),
-               encoded_target_shuffled=f(sh), latent_space_version=rep_res["latent_space_version"])
+    res = dict(steps=steps, wall_s=time.time() - t0, metadata_only=metadata_only, binding_cf=binding_cf,
+               encoded_target=f(agg), encoded_target_shuffled=f(sh), binding_counterfactual=f(cfm),
+               latent_space_version=rep_res["latent_space_version"])
     torch.save(dict(state=P.state_dict(), cfg=dict(dz=lcfg.dz, knots=lcfg.knots, metadata_only=metadata_only,
                                                      seed=seed, **pk), result=res), out_path)
     out_path.with_suffix(".json").write_text(json.dumps(res, indent=1))

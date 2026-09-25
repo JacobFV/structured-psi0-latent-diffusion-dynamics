@@ -28,9 +28,75 @@ def _encode(E, pis, a, dev):
 
 
 @torch.no_grad()
-def counterexample(E, P, ds_dir, robot="panda_pg2", n=20, dev="cpu", seed=0) -> dict:
-    """Swap which object slot is BOUND as the task patient (a legitimate supplied-context change) while keeping the
-    demonstrated actions and body state identical."""
+def counterexample(E, P, ds_dir, robot="panda_pg2", n=20, dev="cpu", seed=0, per_episode=1) -> dict:
+    """Rebind the task PATIENT to an unbound object slot (a legitimate supplied-context change) while keeping the
+    demonstrated actions, body state and all scene tokens identical.
+
+    v2 of this test (track `binding`, 2026-09-25). The v1 edit (`counterexample_v1`) had two flaws: (1) it retargeted
+    only relations whose KEY was slot 0, leaving slot 0's own patient_of / pred_arg edges (query side) in place, so
+    the edited graph bound the patient to BOTH slots; (2) its only readout was the focus argmax of a probe that had
+    never seen a focused slot >= 2 (in the training data the patient is always canonical slot 0), so it could not
+    flip even for a binding-aware z. Here the edit is the symmetric slot-edge swap of model/binding_aug.rebind, the
+    expected label is recomputed from the edited relations with the public focus rule, and the headline metric is
+    `focus_follows`: probe focus is ON for the newly bound slot and OFF for the old one."""
+    from rrp.model.binding_aug import focus_from_batch, rebind, slot_has_edges
+    rng = np.random.default_rng(seed)
+    eps = load_episodes(ds_dir, robots={robot}, limit_per_robot=n)
+    rows = []
+    for pub, prv in eps:
+        smp = episode_samples(pub, prv, 16, stride=10)
+        for i in rng.choice(len(smp), size=min(per_episode, len(smp)), replace=False):
+            s = smp[i]
+            pi = s.pi
+            n_slots = len(pi.tokens["scene"])
+            if n_slots < 3:
+                continue
+            b = collate_inputs([pi]).to(dev)
+            o, T = b.bank_offset["task"], b.bank_tokens["task"].shape[1]
+            os_ = b.bank_offset["scene"]
+            patient = b.ctx_rel[0, o:o + T, os_:os_ + n_slots, 4].any(0)           # event -patient_of-> slot
+            bound = slot_has_edges(b)[0, :n_slots]
+            if not patient.any() or bound.all():
+                continue
+            src = int(torch.nonzero(patient)[0])
+            dst = int(torch.nonzero(~bound)[0])
+            bc = rebind(b, torch.tensor([src], device=dev), torch.tensor([dst], device=dev))
+            f0, f1 = focus_from_batch(b)[0], focus_from_batch(bc)[0]
+            mu, am, _ = _encode_batch(E, [b, bc], np.stack([s.a, s.a]), dev)
+            out = P(mu, am, n_slots)
+            foc = torch.sigmoid(out["focused_on"][..., 0])
+            pf, pc = foc[0] > 0.5, foc[1] > 0.5
+            rows.append(dict(src=src, dst=dst, z_dist=float((mu[0] - mu[1]).norm()), z_norm=float(mu[0].norm()),
+                             label_orig=f0.int().tolist(), label_cf=f1.int().tolist(),
+                             focus_orig=foc[0].tolist(), focus_cf=foc[1].tolist(),
+                             argmax_changed=bool(foc[0].argmax() != foc[1].argmax()),
+                             focus_follows=bool(pc[dst] == f1[dst] and pc[src] == f1[src]),
+                             exact_orig=bool(torch.equal(pf, f0)), exact_cf=bool(torch.equal(pc, f1))))
+    m = lambda k: float(np.mean([r[k] for r in rows])) if rows else None
+    return dict(test="v2_symmetric_rebind", n=len(rows), mean_z_dist=m("z_dist"),
+                mean_rel_z_dist=float(np.mean([r["z_dist"] / max(r["z_norm"], 1e-6) for r in rows])) if rows else None,
+                focus_follows=m("focus_follows"), focus_exact_cf=m("exact_cf"), focus_exact_orig=m("exact_orig"),
+                focus_argmax_changed=m("argmax_changed"), rows=rows[:5])
+
+
+def _encode_batch(E, batches, a, dev):
+    from rrp.model.binding_aug import cat_batch
+    b = batches[0]
+    for x in batches[1:]:
+        b = cat_batch(b, x)
+    N = b.node_feats.shape[1]
+    aa = torch.zeros(len(a), a.shape[1], N, device=dev)
+    aa[:, :, :a.shape[2]] = torch.as_tensor(a, device=dev)
+    v = torch.zeros_like(aa, dtype=torch.bool)
+    v[:, :, :a.shape[2]] = True
+    af, am, ai = assembly_tokens(b)
+    mu, _ = E(b, aa, v, af, am, ai)
+    return mu, am, b
+
+
+@torch.no_grad()
+def counterexample_v1(E, P, ds_dir, robot="panda_pg2", n=20, dev="cpu", seed=0) -> dict:
+    """ORIGINAL (flawed, kept for reproducing D-032): one-sided edit + argmax readout. See `counterexample`."""
     rng = np.random.default_rng(seed)
     eps = load_episodes(ds_dir, robots={robot}, limit_per_robot=n)
     rows = []
@@ -42,8 +108,6 @@ def counterexample(E, P, ds_dir, robot="panda_pg2", n=20, dev="cpu", seed=0) -> 
         if n_slots < 3:
             continue
         pj = copy.deepcopy(pi)
-        # counterfactual context: the task entity that was bound to slot 0 is now bound to another object slot
-        # (role pointers retargeted), trajectory unchanged
         other = 2
         R = pj.relations.copy()
         R[(R[:, 2] == 1) & (R[:, 3] == 0)] = R[(R[:, 2] == 1) & (R[:, 3] == 0)] * [1, 1, 1, 0, 1] + [0, 0, 0, other, 0]
@@ -57,7 +121,8 @@ def counterexample(E, P, ds_dir, robot="panda_pg2", n=20, dev="cpu", seed=0) -> 
         rows.append(dict(z_dist=float((mu[0] - mu[1]).norm()), z_norm=float(mu[0].norm()),
                          focus_orig=foc[0].tolist(), focus_cf=foc[1].tolist(),
                          argmax_changed=bool(foc[0].argmax() != foc[1].argmax())))
-    return dict(n=len(rows), mean_z_dist=float(np.mean([r["z_dist"] for r in rows])) if rows else None,
+    return dict(test="v1_one_sided", n=len(rows),
+                mean_z_dist=float(np.mean([r["z_dist"] for r in rows])) if rows else None,
                 mean_rel_z_dist=float(np.mean([r["z_dist"] / max(r["z_norm"], 1e-6) for r in rows])) if rows else None,
                 focus_argmax_changed=float(np.mean([r["argmax_changed"] for r in rows])) if rows else None, rows=rows[:5])
 

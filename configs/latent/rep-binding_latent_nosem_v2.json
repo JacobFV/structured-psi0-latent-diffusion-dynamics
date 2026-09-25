@@ -1,0 +1,34 @@
+{
+ "dataset": "artifacts/datasets/pick_place_primary_v3dart",
+ "train_robots": [
+  "parm5_pg2",
+  "parm5_tf3",
+  "parm5s_pg2",
+  "parm5l_tf3",
+  "parm6_pg2",
+  "parm6_tf3",
+  "parm7_pg2",
+  "parm7_tf3",
+  "panda_pg2",
+  "ur5e_pg2",
+  "ur5e_tf3",
+  "sawyer_pg2",
+  "sawyer_tf3"
+ ],
+ "horizon": 16,
+ "stride": 1,
+ "include_dart_failures": true,
+ "packed_dir": "artifacts/packed/latent_pp_v3dart_s1_H16",
+ "seed": 1701,
+ "steps": 30000,
+ "batch_size": 128,
+ "lr": 0.0003,
+ "name": "binding_latent_nosem_v2",
+ "out_dir": "artifacts/runs/binding_latent_nosem_v2",
+ "latent": {
+  "name": "binding_latent_nosem_v2",
+  "semantic_weight": 0.0,
+  "binding_cf": 0.5
+ },
+ "notes": "v1 + counterfactual-binding augmentation (track binding): 50% of each batch appended with task roles rebound to another slot; focus labels follow the binding; realizer loss on factual rows only. sem/nosem differ only in semantic_weight."
+}

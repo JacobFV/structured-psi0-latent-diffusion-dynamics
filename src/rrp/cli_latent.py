@@ -105,7 +105,7 @@ def register_more(p):
 def cmd_fit_probes(a):
     from rrp.learning.latent_train import fit_probes_on_frozen
     res = fit_probes_on_frozen(Path(a.representation), Path(a.packed_dir), Path(a.out), steps=a.steps,
-                               metadata_only=a.metadata_only)
+                               metadata_only=a.metadata_only, binding_cf=a.binding_cf)
     print(json.dumps(res, indent=1))
 
 
@@ -116,6 +116,8 @@ def register_probe_cmd(p):
     f.add_argument("--out", required=True)
     f.add_argument("--steps", type=int, default=6000)
     f.add_argument("--metadata-only", action="store_true")
+    f.add_argument("--binding-cf", type=float, default=0.0,
+                   help="fraction of each probe batch appended as counterfactual-binding copies (focus follows binding)")
     f.set_defaults(fn=cmd_fit_probes)
 
 
@@ -157,7 +159,7 @@ def register_latency(p):
 
 def cmd_counterfactuals(a):
     import torch
-    from rrp.evaluation.latent_counterfactuals import counterexample, embodiment_swap
+    from rrp.evaluation.latent_counterfactuals import counterexample, counterexample_v1, embodiment_swap
     from rrp.learning.latent_train import load_representation
     dev = "cuda" if a.gpu and torch.cuda.is_available() else "cpu"
     _, E, _, P, res = load_representation(Path(a.representation), dev)
@@ -170,11 +172,13 @@ def cmd_counterfactuals(a):
     out = dict(representation=a.representation, probe=a.probe or "representation (jointly trained)",
                latent_space_version=res["latent_space_version"],
                source="encoded teacher targets (not generated packets)",
-               counterexample=counterexample(E, P, ds, robot=a.robot, n=a.n, dev=dev),
+               counterexample=counterexample(E, P, ds, robot=a.robot, n=a.n, dev=dev, per_episode=a.per_episode),
+               counterexample_v1=counterexample_v1(E, P, ds, robot=a.robot, n=a.n, dev=dev),
                embodiment_swap=embodiment_swap(E, P, ds, arm=a.arm, seeds=range(a.seed_start, a.seed_start + a.n), dev=dev))
     Path(a.out).write_text(json.dumps(out, indent=1))
-    print(json.dumps({k: v for k, v in out.items() if k != "counterexample"} | {
-        "counterexample": {k: v for k, v in out["counterexample"].items() if k != "rows"}}, indent=1))
+    print(json.dumps({k: v for k, v in out.items() if not k.startswith("counterexample")} | {
+        "counterexample": {k: v for k, v in out["counterexample"].items() if k != "rows"},
+        "counterexample_v1": {k: v for k, v in out["counterexample_v1"].items() if k != "rows"}}, indent=1))
 
 
 def register_counterfactuals(p):
@@ -185,6 +189,7 @@ def register_counterfactuals(p):
     c.add_argument("--arm", default="parm6")
     c.add_argument("--n", type=int, default=20)
     c.add_argument("--seed-start", type=int, default=0)
+    c.add_argument("--per-episode", type=int, default=1, help="counterexample samples per episode")
     c.add_argument("--gpu", action="store_true")
     c.add_argument("--probe", help="post-hoc probe .pt (fit-probes output); default: the representation's own P")
     c.add_argument("--out", required=True)
