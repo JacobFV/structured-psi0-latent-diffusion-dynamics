@@ -72,7 +72,7 @@ def ground(out: Path, body="go2", batch=8):
         for r in rows:
             f.write(json.dumps(r) + "\n")
     res = analyze(rows, F)
-    res.update(provenance=s2.provenance(), wall_s=time.time() - t0, body_for_scene=body, camera="front 256x256",
+    res.update(provenance=s2.provenance(), wall_s=time.time() - t0, body_for_scene=body, camera="system2 (declared static virtual camera) 384x384",
                n=len(rows))
     (out / "ground_result.json").write_text(json.dumps(res, indent=1, default=str))
     print(json.dumps({k: v for k, v in res.items() if k != "provenance"}, indent=1))
@@ -169,6 +169,7 @@ def main(argv=None):
     ap.add_argument("--flow", default=None)
     ap.add_argument("--seeds", default="10000-10019")
     ap.add_argument("--small", action="store_true", help="smoke: 8 train + 8 test seeds")
+    ap.add_argument("--body", default="go2")
     a = ap.parse_args(argv)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -176,10 +177,10 @@ def main(argv=None):
         if a.small:
             global TRAIN_SEEDS, TEST_SEEDS
             TRAIN_SEEDS, TEST_SEEDS = range(0, 8), range(5000, 5008)
-        ground(out)
+        ground(out, body=a.body)
     else:
         lo, hi = a.seeds.split("-")
-        closed_loop(Path(a.flow), out, range(int(lo), int(hi) + 1))
+        closed_loop(Path(a.flow), out, range(int(lo), int(hi) + 1), body=a.body)
 
 
 if __name__ == "__main__":

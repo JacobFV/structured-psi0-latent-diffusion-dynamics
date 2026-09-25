@@ -92,8 +92,12 @@ def scenario_with_truth(body, seed, truth_order, public_order):
     return sc
 
 
-def render_public(sc, size=256, camera="front"):
-    """Declared public scene camera at the initial state (the system-II input image)."""
+SYSTEM2_CAMERA = dict(lookat=(1.8, 0.0, 0.0), distance=8.5, azimuth=0.0, elevation=-72.0)   # declared, static
+
+
+def render_public(sc, size=384, camera="system2"):
+    """Declared public scene camera at the initial state (the system-II input image). `system2` is a fixed,
+    declared virtual camera behind/above the start pose looking over the workspace (static world pose)."""
     import mujoco
     d = mujoco.MjData(sc.model)
     mujoco.mj_forward(sc.model, d)
@@ -103,7 +107,14 @@ def render_public(sc, size=256, camera="front"):
     b.set_default(d)
     mujoco.mj_forward(sc.model, d)
     r = mujoco.Renderer(sc.model, size, size)
-    r.update_scene(d, camera=camera)
+    if camera == "system2":
+        cam = mujoco.MjvCamera()
+        cam.type = mujoco.mjtCamera.mjCAMERA_FREE
+        cam.lookat[:] = SYSTEM2_CAMERA["lookat"]
+        cam.distance, cam.azimuth, cam.elevation = (SYSTEM2_CAMERA[k] for k in ("distance", "azimuth", "elevation"))
+        r.update_scene(d, camera=cam)
+    else:
+        r.update_scene(d, camera=camera)
     img = r.render().copy()
     r.close()
     return img
