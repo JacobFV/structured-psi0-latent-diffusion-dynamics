@@ -73,7 +73,10 @@ def counterexample(E, P, ds_dir, robot="panda_pg2", n=20, dev="cpu", seed=0, per
                              focus_follows=bool(pc[dst] == f1[dst] and pc[src] == f1[src]),
                              exact_orig=bool(torch.equal(pf, f0)), exact_cf=bool(torch.equal(pc, f1))))
     m = lambda k: float(np.mean([r[k] for r in rows])) if rows else None
-    return dict(test="v2_symmetric_rebind", n=len(rows), mean_z_dist=m("z_dist"),
+    chg = [r for r in rows if r["label_orig"] != r["label_cf"]]     # rebinding changes the focus label (active event)
+    return dict(test="v2_symmetric_rebind", n=len(rows), n_label_changed=len(chg),
+                focus_follows_changed=float(np.mean([r["focus_follows"] for r in chg])) if chg else None,
+                mean_z_dist=m("z_dist"),
                 mean_rel_z_dist=float(np.mean([r["z_dist"] / max(r["z_norm"], 1e-6) for r in rows])) if rows else None,
                 focus_follows=m("focus_follows"), focus_exact_cf=m("exact_cf"), focus_exact_orig=m("exact_orig"),
                 focus_argmax_changed=m("argmax_changed"), rows=rows[:5])
