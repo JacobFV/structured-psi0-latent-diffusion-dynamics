@@ -94,6 +94,35 @@ class LatentData:
         return batch.to(dev), mv(a[..., 0]), mv(v), {k: mv(x) for k, x in lab.items()}, {k: mv(x) for k, x in r.items()}
 
 
+def _prefetch(data, B, rng, max_j, dev, depth: int = 4):
+    """Background thread: sample + collate on CPU ahead of the GPU step (same rng sequence as the serial loop)."""
+    import queue
+    import threading
+    q: queue.Queue = queue.Queue(maxsize=depth)
+    stop = threading.Event()
+
+    def work():
+        while not stop.is_set():
+            sel, tgt, j = data.sample(B, rng, max_j)
+            item = (data.fetch(sel, tgt, "cpu"), j)
+            while not stop.is_set():
+                try:
+                    q.put(item, timeout=1)
+                    break
+                except queue.Full:
+                    pass
+
+    th = threading.Thread(target=work, daemon=True)
+    th.start()
+    mv = lambda x: x.to(dev, non_blocking=True)
+    try:
+        while True:
+            (batch, a, v, lab, r), j = q.get()
+            yield batch.to(dev), mv(a), mv(v), {k: mv(x) for k, x in lab.items()}, {k: mv(x) for k, x in r.items()}, j
+    finally:
+        stop.set()
+
+
 def representation_step(E, R, P, data_b, cfg: LatentConfig, train=True):
     batch, a, v, lab, r, j = data_b
     af, am, ai = assembly_tokens(batch)
@@ -138,9 +167,13 @@ def train_representation(cfg_json: dict, out_dir: Path) -> dict:
         E.load_state_dict(st["model"]["E"]); R.load_state_dict(st["model"]["R"]); P.load_state_dict(st["model"]["P"])
         opt.load_state_dict(st["optimizer"]); sched.load_state_dict(st["extra"]["sched"]); step = st["step"]
     B = cfg_json.get("batch_size", 128)
+    feed = _prefetch(data, B, rng, cfg.max_phase_ticks, dev) if cfg_json.get("prefetch") else None
     while step < steps and not sig.requested:
-        sel, tgt, j = data.sample(B, rng, cfg.max_phase_ticks)
-        batch, a, v, lab, r = data.fetch(sel, tgt, dev)
+        if feed is not None:
+            batch, a, v, lab, r, j = next(feed)
+        else:
+            sel, tgt, j = data.sample(B, rng, cfg.max_phase_ticks)
+            batch, a, v, lab, r = data.fetch(sel, tgt, dev)
         loss, logs, _ = representation_step(E, R, P, (batch, a, v, lab, r, torch.as_tensor(j, device=dev)), cfg)
         opt.zero_grad()
         loss.backward()
@@ -253,9 +286,13 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
                         policy=pcfg.name), config=cfg_json,
                         extra=dict(sched=sched.state_dict(), rng_py=rng.getstate(), gen=gen.get_state()))
 
+    feed = _prefetch(data, B, rng, 0, dev) if cfg_json.get("prefetch") else None   # resume: rng runs ahead by <= depth
     while step < steps and not sig.requested:
-        sel, tgt, j = data.sample(B, rng, 0)
-        batch, a, v, lab, r = data.fetch(sel, tgt, dev)
+        if feed is not None:
+            batch, a, v, lab, r, j = next(feed)
+        else:
+            sel, tgt, j = data.sample(B, rng, 0)
+            batch, a, v, lab, r = data.fetch(sel, tgt, dev)
         with torch.no_grad():
             af, am, ai = assembly_tokens(batch)
             z_target, _ = E(batch, a, v, af, am, ai)             # clean target = frozen posterior mean

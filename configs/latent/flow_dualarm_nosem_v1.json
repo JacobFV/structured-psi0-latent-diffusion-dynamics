@@ -4,7 +4,7 @@
  "representation": "artifacts/runs/dualarm_latent_nosem_v1/representation.pt",
  "packed_dir": "artifacts/packed/dualarm_latent_v1_H16",
  "seed": 1701,
- "steps": 20000,
+ "steps": 12000,
  "batch_size": 128,
  "lr": 0.0003,
  "packet_semantic_weight": 0.0,
@@ -19,5 +19,6 @@
   "name": "dualarm_flow_nosem_v1"
  },
  "normalize_target": true,
- "snapshot_every": 1000
+ "snapshot_every": 1000,
+ "prefetch": true
 }
