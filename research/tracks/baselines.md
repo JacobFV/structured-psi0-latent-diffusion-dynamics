@@ -73,6 +73,18 @@ aggregation script already reads their `run_latent_cell` outputs.
    instead of the brief's `artifacts/runs/<track>_...` naming.
 6. No registry writes (the brief reserves research/registry.jsonl for the lead); every cell writes its own JSON.
 
+7. Source-training resume: the 6 h lease cap interrupts each ~8 h source run. The stock resume repeats the interrupted
+   epoch with the step counter continuing (extra, seed-dependent updates). Baseline sources use `exact_resume`
+   (per-epoch data order Random(seed*1000+epoch), batch-skip cursor saved every 1000 updates and on SIGTERM, flow
+   noise generator state), so every source model gets exactly 6 epochs = the same update count. Verified: SIGTERM at
+   update 9 + resume -> 24/24 updates, max weight difference 1.8e-6 vs an uninterrupted run (peer lease
+   baselines_resume_test).
+
+## incidents
+- 12:27 and 13:18 (2026-09-25): both seed1701 source runs were stopped and restarted from scratch by me to pick up
+  first the prefetch change, then exact resume (lost ~1 h of compute). Their partial logs are kept in
+  `source/aborted_pre_exact_resume/`. No results existed. codec seed1701 was kept (finished, not affected).
+
 ## runs
 Smoke (verified 2026-09-25): `rrp campaign baseline-cell --smoke --root artifacts/runs/baselines_smoke` on the peer,
 both methods (codec: source + xarm7_pg2 b0,b5; direct: source + panda_tf3/xarm7_tf3 b0,b100). All paths ran: codec
