@@ -149,6 +149,51 @@ def _tcp_cube_d(s) -> float:
     return float(np.linalg.norm(_tcp(s) - s.data.xpos[s.model.body("cube").id]))
 
 
+@torch.no_grad()
+def batched_ticks(s0s, sessions) -> list:
+    """LatentSystem0.tick for several sessions with ONE realizer forward (same inputs/rules per session: graph-edit
+    invalidation, expiry fallback hold, fresh proprio/local sensors every tick). Returns NativeCommand|None each."""
+    from rrp.contracts.action import NativeCommand
+    cmds, work = [None] * len(sessions), []
+    for i, (s0, s) in enumerate(zip(s0s, sessions)):
+        now = float(s.data.time)
+        if s0.packet is not None and s.runtime.graph_version != s0.packet.graph_version:
+            s0.invalidate("graph_edit", now)
+        obs = s.observe()
+        if s0.packet is None or now > s0.packet.valid_until:
+            if s0.packet is not None:
+                s0.invalidate("expired", now)
+            s0.stats.fallback_holds += 1
+            continue
+        pi, loc = s0.local_inputs(obs)
+        work.append((i, now, pi, loc))
+    if not work:
+        return cmds
+    s0 = s0s[work[0][0]]
+    dev, net = s0.device, s0.net
+    B = len(work)
+    Nmax = max(w[2].act_node_feats.shape[0] for w in work)
+    F = work[0][2].act_node_feats.shape[1]
+    zs = [np.asarray(s0s[i].packet.z, np.float32) for i, *_ in work]
+    Kk, Mmax, dz = zs[0].shape[0], max(z.shape[1] for z in zs), zs[0].shape[2]
+    z = np.zeros((B, Kk, Mmax, dz), np.float32); zm = np.zeros((B, Mmax), bool)
+    nf = np.zeros((B, Nmax, F), np.float32); nm = np.zeros((B, Nmax), bool)
+    for b, (i, now, pi, loc) in enumerate(work):
+        z[b, :, :zs[b].shape[1]] = zs[b]; zm[b] = False; zm[b, :zs[b].shape[1]] = s0s[i].packet.assembly_mask
+        n = pi.act_node_feats.shape[0]; nf[b, :n] = pi.act_node_feats; nm[b, :n] = True
+    kt = torch.tensor(s0s[work[0][0]].packet.knot_times, dtype=torch.float32, device=dev)
+    ph = torch.tensor([now - s0s[i].packet.valid_from for i, now, _, _ in work], dtype=torch.float32, device=dev)
+    lc = torch.from_numpy(np.stack([w[3] for w in work]).astype(np.float32)).to(dev)
+    a = net(torch.from_numpy(z).to(dev), torch.from_numpy(zm).to(dev), kt, ph, torch.from_numpy(nf).to(dev),
+            torch.from_numpy(nm).to(dev), lc).cpu().numpy()
+    for b, (i, now, pi, loc) in enumerate(work):
+        n = pi.act_node_feats.shape[0]
+        groups = s0s[i].f.aspace.denormalize(np.clip(a[b, :n], -6, 6)[None], pi.q0)[0]
+        s0s[i].stats.ticks += 1
+        cmds[i] = NativeCommand(controller_version=sessions[i].controller_version(), groups=groups, source="learned")
+    return cmds
+
+
 def run_episodes(policy, realizer, robot_key: str, seeds: list[int], *, replan_ticks=8, max_steps=300,
                  task="pick_place", device="cpu", reward: RewardConfig | None = None, record=True,
                  prefix_steps: int = 0) -> list[dict]:
@@ -212,9 +257,10 @@ def run_episodes(policy, realizer, robot_key: str, seeds: list[int], *, replan_t
                         meta[k]["recs"].append(recs[j])
                 except (ControllerRejection, StaleActionError):
                     pass
-        for k in act:
+        cmds = batched_ticks([s0[k] for k in act], [S[k] for k in act])
+        for k, cmd in zip(act, cmds):
             s = S[k]
-            s.step(s0[k].tick(s, s.controller_version()))
+            s.step(cmd)
             meta[k]["steps"] += 1
             if True:
                 meta[k]["min_reach"] = min(meta[k]["min_reach"], _tcp_cube_d(s))
