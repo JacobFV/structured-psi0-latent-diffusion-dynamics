@@ -75,8 +75,19 @@ def _shift_track(s, body, d):
 
 
 def goal_offset(s, g=0.12):
+    """Displacement of the requested placement: among +-g along x/y, the candidate whose new goal stays inside the
+    placement workspace and is farthest from every other object (a goal on top of a distractor is not valid)."""
     z = _body_pos(s, "target_zone")
-    return np.array([0.0, -np.sign(z[1] or 1.0) * g, 0.0])
+    others = [_body_pos(s, o.sim_body) for o in s.detectables if o.sim_body != "target_zone"]
+    best, score = None, -1.0
+    for d in ([0, -g, 0], [0, g, 0], [-g, 0, 0], [g, 0, 0]):
+        q = z + np.array(d)
+        if not (0.28 <= q[0] <= 0.55 and -0.28 <= q[1] <= 0.28):
+            continue
+        m = min(float(np.linalg.norm((q - o)[:2])) for o in others)
+        if m > score:
+            best, score = np.array(d, float), m
+    return best if best is not None else np.array([0.0, -np.sign(z[1] or 1.0) * g, 0.0])
 
 
 def context_edit(cond, s, goal_off):
@@ -346,6 +357,9 @@ def summarize_semantic(rows):
             e["same_lifted_object_as_control"] = sum(r["lifted"] == q["lifted"] for r, q in pair)
             e["same_cube_in_zone_as_control"] = sum(r["placed_in_zone"]["cube"] == q["placed_in_zone"]["cube"]
                                                     for r, q in pair)
+            # graded (pre-grasp) signal: did the TCP come relatively closer to distractor0 than under control?
+            pref = lambda r: r["min_tcp_dist"]["cube"] - r["min_tcp_dist"]["distractor0"]
+            e["approach_preference_distractor_vs_control_m"] = boot_ci([pref(r) - pref(q) for r, q in pair])
             e["tcp_mean_deviation_from_control_m"] = boot_ci([float(np.linalg.norm(
                 np.array(r["tcp"])[:min(len(r["tcp"]), len(q["tcp"]))] -
                 np.array(q["tcp"])[:min(len(r["tcp"]), len(q["tcp"]))], axis=1).mean()) for r, q in pair])
