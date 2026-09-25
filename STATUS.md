@@ -39,7 +39,7 @@ ssh gb10-direct 'cd /dev/shm/rrp-brandonin/repo && PATH=/dev/shm/rrp-brandonin/b
 | grpo | ~/work/rrp-wt/grpo | packet-policy GRPO (system i only) | target RL stage |
 | dualarm | ~/work/rrp-wt/dualarm | support_insert/handover on latent path (M=2 assemblies) | — |
 | legged_vlm | ~/work/rrp-wt/legged_vlm | legged/humanoid + VLM system II on latent path | — |
-Host data mirror: ~/work/rrp-data (datasets, packed), linked from artifacts/.
+Host data mirror: ~/work/rrp-data/datasets only (packed removed, D-034: host disk reserve); packed-data training runs on the peer.
 
 ## now (2026-09-25)
 - Stage A complete (research/reports/latent_slice1_progress.md). Probe analysis + loss-gap diagnosis: D-031.
