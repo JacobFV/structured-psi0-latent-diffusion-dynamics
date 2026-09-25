@@ -21,6 +21,7 @@ def register(sub):
     register_more(p)
     register_probe_cmd(p)
     register_cell(p)
+    register_latency(p)
 
 
 def cmd_flow(a):
@@ -131,3 +132,16 @@ def register_cell(p):
     c.add_argument("--base-flow-config", required=True)
     c.add_argument("--target-packed", default="artifacts/packed/latent_targets")
     c.set_defaults(fn=cmd_cell)
+
+
+def cmd_latency(a):
+    from rrp.evaluation.latency import latent_latency_suite
+    print(json.dumps(latent_latency_suite(a.checkpoint, Path(a.out), direct_ckpt=a.direct), indent=1))
+
+
+def register_latency(p):
+    c = p.add_parser("latency")
+    c.add_argument("--checkpoint", required=True)
+    c.add_argument("--direct")
+    c.add_argument("--out", required=True)
+    c.set_defaults(fn=cmd_latency)
