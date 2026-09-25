@@ -219,10 +219,29 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=cfg_json.get("lr", 3e-4), total_steps=steps, pct_start=0.05)
     w_sem = cfg_json.get("packet_semantic_weight", 0.0)
     out_dir.mkdir(parents=True, exist_ok=True)
-    log = open(out_dir / "train_log.jsonl", "a")
-    step, t0 = 0, time.time()
     B = cfg_json.get("batch_size", 128)
     gen = torch.Generator(device=dev).manual_seed(seed)
+    step, t0 = 0, time.time()
+    last = out_dir / "policy_last.pt"      # full resume state (model incl. norm buffers, optimizer, scheduler, RNG)
+    if last.exists():
+        st = load_checkpoint(last, map_location=dev)
+        if st["config"] != cfg_json:
+            raise ValueError(f"{last} was written by a different config; use a fresh out_dir")
+        model.load_state_dict(st["model"]); opt.load_state_dict(st["optimizer"])
+        sched.load_state_dict(st["extra"]["sched"]); step = st["step"]
+        rng.setstate(st["extra"]["rng_py"]); gen.set_state(st["extra"]["gen"].cpu())
+        print(f"resumed {last} at step {step}", flush=True)
+    elif cfg_json.get("normalize_target", False):
+        mean, std = latent_target_stats(E, data, dev, seed=seed + 17)
+        model.set_target_norm(mean, std)
+        (out_dir / "target_norm.json").write_text(json.dumps(dict(mean=mean.tolist(), std=std.tolist()), indent=0))
+    log = open(out_dir / "train_log.jsonl", "a")
+
+    def snapshot():
+        save_checkpoint(last, model=model, optimizer=opt, step=step, versions=dict(latent=rep_res["latent_space_version"],
+                        policy=pcfg.name), config=cfg_json,
+                        extra=dict(sched=sched.state_dict(), rng_py=rng.getstate(), gen=gen.get_state()))
+
     while step < steps and not sig.requested:
         sel, tgt, j = data.sample(B, rng, 0)
         batch, a, v, lab, r = data.fetch(sel, tgt, dev)
@@ -234,7 +253,8 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
         S = batch.bank_tokens["scene"].shape[1]
         pl_fn = (lambda zc: probe_loss(P(zc, am, S), lab, smask)) if w_sem > 0 else None
         valid = am[:, None, :].expand(-1, lcfg.knots, -1)
-        loss, logs = model.loss(ab, z_target, valid, None, generator=gen, packet_loss_fn=pl_fn, packet_weight=w_sem)
+        loss, logs = model.loss(ab, z_target, valid, None, generator=gen, packet_loss_fn=pl_fn, packet_weight=w_sem,
+                                packet_tau_min=cfg_json.get("packet_tau_min", 0.0))
         opt.zero_grad()
         loss.backward()
         gn = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -244,6 +264,8 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
         if step % 100 == 0:
             log.write(json.dumps(dict(step=step, t=time.time() - t0, loss=float(loss.detach()), gn=float(gn), **logs)) + "\n")
             log.flush()
+        if step % cfg_json.get("snapshot_every", 1000) == 0 or sig.requested:
+            snapshot()
     res = dict(steps=step, wall_s=time.time() - t0, interrupted=sig.requested,
                latent_space_version=rep_res["latent_space_version"],
                realizer_compat_version=rep_res["realizer_compat_version"],
@@ -253,6 +275,21 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
                     config=cfg_json, extra=dict(result=res))
     (out_dir / "result.json").write_text(json.dumps(res, indent=1, default=str))
     return res
+
+
+@torch.no_grad()
+def latent_target_stats(E, data, dev, n_batches: int = 20, seed: int = 0):
+    """Per-dim mean/std of the frozen encoder mean over valid (knot, assembly) entries of the training data."""
+    rng = random.Random(seed)
+    zs = []
+    for _ in range(n_batches):
+        sel, tgt, j = data.sample(128, rng, 0)
+        batch, a, v, lab, r = data.fetch(sel, tgt, dev)
+        af, am, ai = assembly_tokens(batch)
+        mu, _ = E(batch, a, v, af, am, ai)
+        zs.append(mu[am[:, None, :].expand(-1, mu.shape[1], -1)].float())
+    z = torch.cat(zs)
+    return z.mean(0), z.std(0)
 
 
 @torch.no_grad()
@@ -273,9 +310,9 @@ def evaluate_generated(model, E, R, P, data, lcfg, dev, n_batches=20, seed=7, nf
         cache = model.prepare(ab)
         eps = torch.randn_like(zt)
         tau = torch.full((zt.shape[0],), 0.5, device=dev)
-        z_tau, _ = interpolate_target(eps, zt, tau)
+        z_tau, _ = interpolate_target(eps, model.normalize(zt), tau)
         vv = model.velocity(z_tau, tau, cache)
-        z1 = z_tau + 0.5 * vv
+        z1 = model.denormalize(z_tau + 0.5 * vv)
         zf = model.sample(cache, lcfg.knots, nfe=nfe)
         smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
         S = smask.shape[1]

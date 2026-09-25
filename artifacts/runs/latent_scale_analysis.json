@@ -1,0 +1,30 @@
+{
+ "artifacts/runs/latent_sem_v1/representation.pt": {
+  "n": 10240,
+  "dz": 64,
+  "rms": 2.288933753967285,
+  "second_moment": 5.239218235015869,
+  "mean_abs_dim_mean": 0.528294563293457,
+  "dim_std_median": 2.0795323848724365,
+  "dim_std_max": 4.0708770751953125,
+  "dims_std_gt_0p1": 64,
+  "norm_p50": 15.26575756072998,
+  "norm_p99": 43.3248176574707,
+  "flow_floor_zero_knowledge": 6.239218235015869,
+  "flow_floor_mean_known": 5.804574966430664
+ },
+ "artifacts/runs/latent_nosem_v1/representation.pt": {
+  "n": 10240,
+  "dz": 64,
+  "rms": 0.379659503698349,
+  "second_moment": 0.14414134621620178,
+  "mean_abs_dim_mean": 0.025284023955464363,
+  "dim_std_median": 0.27223891019821167,
+  "dim_std_max": 1.1866183280944824,
+  "dims_std_gt_0p1": 64,
+  "norm_p50": 2.1833600997924805,
+  "norm_p99": 8.424233436584473,
+  "flow_floor_zero_knowledge": 1.1441413164138794,
+  "flow_floor_mean_known": 1.1432100534439087
+ }
+}

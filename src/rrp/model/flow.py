@@ -216,6 +216,25 @@ class FlowPolicy(nn.Module):
         nn.init.zeros_(self.out.weight)
         nn.init.zeros_(self.out.bias)
         self.readout = SemanticReadout(cfg) if cfg.aux else None
+        # Per-dim target standardization: the flow runs in (z - z_mean) / z_std; loss()/sample() speak raw z.
+        # Identity by default (action-space flows, checkpoints saved before these buffers existed).
+        self.register_buffer("z_mean", torch.zeros(cfg.latent_dim))
+        self.register_buffer("z_std", torch.ones(cfg.latent_dim))
+        self._register_load_state_dict_pre_hook(self._default_norm_buffers)
+
+    def _default_norm_buffers(self, state_dict, prefix, *args):
+        for k, v in (("z_mean", self.z_mean), ("z_std", self.z_std)):
+            state_dict.setdefault(prefix + k, v.detach().clone())
+
+    def set_target_norm(self, mean: torch.Tensor, std: torch.Tensor):
+        self.z_mean.copy_(mean)
+        self.z_std.copy_(std.clamp(min=1e-3))
+
+    def normalize(self, z):
+        return (z - self.z_mean) / self.z_std
+
+    def denormalize(self, z):
+        return z * self.z_std + self.z_mean
 
     # ---------------- context / cache
     def prepare(self, batch: Batch, key: tuple = ("uncached",), rewire_gen=None) -> ContextCache:
@@ -258,9 +277,11 @@ class FlowPolicy(nn.Module):
 
     def loss(self, batch: Batch, target: torch.Tensor, valid: torch.Tensor, labels: dict | None = None,
              aux_weight: float = 0.1, generator=None, packet_loss_fn=None,
-             packet_weight: float = 0.0) -> tuple[torch.Tensor, dict]:
-        """target [B,H,N,d] clean latent/action; valid [B,H,N] mask."""
+             packet_weight: float = 0.0, packet_tau_min: float = 0.0) -> tuple[torch.Tensor, dict]:
+        """target [B,H,N,d] clean latent/action (raw space); valid [B,H,N] mask. The flow MSE is computed in
+        standardized space; packet/readout objectives see the de-standardized estimate."""
         cache = self.prepare(batch)
+        target = self.normalize(target)
         B = target.shape[0]
         eps = torch.randn(target.shape, generator=generator, device=target.device, dtype=target.dtype)
         tau = torch.rand(B, generator=generator, device=target.device, dtype=target.dtype)
@@ -275,14 +296,19 @@ class FlowPolicy(nn.Module):
             # R38: semantic objective on the predicted CLEAN LATENT (the tensor system 0 will receive), not on
             # hidden states: z_hat_clean = z_tau + (1 - tau) * v_theta
             t_ = tau[:, None, None, None]
-            z_hat_clean = z_tau + (1 - t_) * v
+            z_hat_clean = self.denormalize(z_tau + (1 - t_) * v)
+            if packet_tau_min > 0:
+                # near-noise estimates cannot be semantically confident without distorting the velocity field:
+                # only samples with tau >= packet_tau_min pass semantic gradient into v
+                keep = (tau >= packet_tau_min)[:, None, None, None]
+                z_hat_clean = torch.where(keep, z_hat_clean, z_hat_clean.detach())
             pl, plogs = packet_loss_fn(z_hat_clean)
             loss = loss + packet_weight * pl
             logs.update({f"zhat_{k}": x for k, x in plogs.items()})
         if self.readout is not None and labels is not None:
             # predicted clean action from the current estimate (future-effect readouts use it)
             t_ = tau[:, None, None, None]
-            z_hat = z_tau + (1 - t_) * v
+            z_hat = self.denormalize(z_tau + (1 - t_) * v)
             aux, alog = self.readout(hidden, cache, batch, labels, z_hat)
             loss = loss + aux_weight * aux
             logs.update(alog)
@@ -298,7 +324,7 @@ class FlowPolicy(nn.Module):
         for k in range(nfe):
             tau = torch.full((B,), k * dt, device=z.device, dtype=z.dtype)
             z = z + dt * self.velocity(z, tau, cache)
-        return z
+        return self.denormalize(z) * cache.node_mask[:, None, :, None].to(z.dtype)
 
 
 # ------------------------------------------------------------------ auxiliary semantic readouts

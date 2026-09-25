@@ -2,6 +2,7 @@
 GPU lease). Usage:
   render_episode.py --robot panda_pg2 --seeds 3000001,3000002 --source learned --checkpoint ckpt.pt --out artifacts/video
   render_episode.py --robot panda_pg2 --seeds 3000001 --source scripted_teacher --out artifacts/video
+  render_episode.py --robot panda_pg2 --seeds 3000001 --source learned_latent --checkpoint flow/policy.pt
 Each video's caption states the controller source, robot, task, seed and privileged-evaluator outcome, and a
 line is appended to artifacts/video/INDEX.md.
 """
@@ -44,6 +45,18 @@ def run(args):
             from rrp.ops.gpu import apply_cap
             apply_cap()
         pol = LearnedPolicy.from_checkpoint(args.checkpoint, device=dev, execute_prefix=args.prefix)
+    elif args.source == "learned_latent":             # corrected path: system i packet -> system 0 every tick
+        import torch
+        from rrp.policy.latent_runner import LatentPolicy
+        from rrp.learning.checkpoint import load_checkpoint
+        from rrp.learning.latent_train import load_representation
+        from rrp.control.latent_realizer import LatentSystem0
+        dev = "cuda" if torch.cuda.is_available() else "cpu"
+        if dev == "cuda":
+            from rrp.ops.gpu import apply_cap
+            apply_cap()
+        pol = LatentPolicy.from_checkpoint(args.checkpoint, device=dev, nfe=8)
+        _, _, realizer, _, _ = load_representation(Path(load_checkpoint(args.checkpoint)["config"]["representation"]), dev)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     index = out / "INDEX.md"
@@ -53,10 +66,22 @@ def run(args):
         teacher = PickPlaceTeacher(s) if args.source == "scripted_teacher" else None
         frames = []
         label = "SCRIPTED TEACHER (privileged)" if teacher else f"LEARNED {Path(args.checkpoint).parent.name}"
+        if args.source == "learned_latent":
+            label = f"LEARNED latent (sys-i flow + sys-0) {Path(args.checkpoint).parent.name}"
+            s0 = LatentSystem0(realizer, pol.featurizer(s), latent_space_version=pol.lsv,
+                               realizer_compat_version=pol.rcv, device=dev)
         for k in range(args.max_steps):
             if teacher:
                 s.step(teacher.act())
                 done = teacher.done
+            elif args.source == "learned_latent":
+                if k % args.replan == 0 or s0.packet is None:
+                    try:
+                        s0.receive(pol.packets([s])[0], now=float(s.data.time), graph_version=s.runtime.graph_version)
+                    except Exception as e:          # rejected/stale packet: system 0 keeps its fallback hold
+                        print("packet rejected:", e, flush=True)
+                s.step(s0.tick(s, s.controller_version()))
+                done = s.runtime.succeeded()
             else:
                 if not s.executor.queue:
                     s.submit_chunk(pol.chunks([s])[0], execute_prefix=pol.execute_prefix)
@@ -84,9 +109,10 @@ if __name__ == "__main__":
     ap.add_argument("--robot", required=True)
     ap.add_argument("--task", default="pick_place")
     ap.add_argument("--seeds", required=True)
-    ap.add_argument("--source", choices=["scripted_teacher", "learned"], required=True)
+    ap.add_argument("--source", choices=["scripted_teacher", "learned", "learned_latent"], required=True)
     ap.add_argument("--checkpoint")
     ap.add_argument("--prefix", type=int, default=8)
+    ap.add_argument("--replan", type=int, default=8, help="learned_latent: system-i period in control ticks")
     ap.add_argument("--out", default="artifacts/video")
     ap.add_argument("--camera", default="front")
     ap.add_argument("--width", type=int, default=480)

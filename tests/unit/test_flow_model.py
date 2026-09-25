@@ -167,3 +167,51 @@ def test_unstructured_baseline_has_no_pointer_messages(inputs):
                                                                 horizon=4, aux=False)).parameters())
     n_params_u = sum(p.numel() for p in m.parameters())
     assert n_params_s == n_params_u   # matched parameter budget (pointer vs text projections are same size)
+
+
+def test_target_norm_buffers_legacy_load_and_raw_space_io(inputs):
+    b = dbl(collate_inputs(inputs))
+    m = small()
+    legacy = {k: v for k, v in m.state_dict().items() if k not in ("z_mean", "z_std")}
+    m2 = small()
+    m2.load_state_dict(legacy)                                   # pre-normalization checkpoints still load (identity)
+    assert torch.equal(m2.z_std, torch.ones_like(m2.z_std))
+    m2.set_target_norm(torch.full((1,), 3.0, dtype=torch.float64), torch.full((1,), 5.0, dtype=torch.float64))
+    m3 = small()
+    m3.load_state_dict(m2.state_dict())                          # buffers persist
+    assert float(m3.z_mean) == 3.0 and float(m3.z_std) == 5.0
+    # zero-initialised output layer => velocity 0 => sample returns denormalized noise, masked
+    cache = m3.prepare(b)
+    noise = torch.randn(2, 4, b.node_feats.shape[1], 1, dtype=torch.float64)
+    z = m3.sample(cache, 4, nfe=2, noise=noise)
+    mask = cache.node_mask[:, None, :, None].double()
+    assert torch.allclose(z, (noise * 5.0 + 3.0) * mask)
+    # the flow loss is computed in standardized space: target == mean gives the same loss as target 0 at identity
+    valid = torch.ones(2, 4, b.node_feats.shape[1], dtype=torch.bool)
+    g = lambda: torch.Generator().manual_seed(0)
+    l_norm, _ = m3.loss(b, torch.full_like(noise, 3.0), valid, generator=g())
+    m2.set_target_norm(torch.zeros(1, dtype=torch.float64), torch.ones(1, dtype=torch.float64))
+    m2.load_state_dict({**m3.state_dict(), "z_mean": m2.z_mean, "z_std": m2.z_std})
+    l_id, _ = m2.loss(b, torch.zeros_like(noise), valid, generator=g())
+    assert torch.allclose(l_norm, l_id)
+
+
+def test_packet_tau_min_blocks_semantic_gradient_at_low_tau(inputs):
+    b = dbl(collate_inputs(inputs))
+    m = small()
+    torch.nn.init.normal_(m.out.weight, std=0.1)                 # non-zero velocity so gradients reach m.out
+    tgt = torch.randn(2, 4, b.node_feats.shape[1], 1, dtype=torch.float64)
+    valid = torch.ones(2, 4, b.node_feats.shape[1], dtype=torch.bool)
+    grads = []
+    for tau_min in (0.0, 1.1):                                  # 1.1 > any tau: semantic gradient fully blocked
+        m.zero_grad()
+        g = torch.Generator().manual_seed(0)
+        loss, _ = m.loss(b, tgt, valid, generator=g, packet_loss_fn=lambda z: (z.pow(2).sum(), {}),
+                         packet_weight=1.0, packet_tau_min=tau_min)
+        loss.backward()
+        grads.append(m.out.weight.grad.clone())
+    m.zero_grad()
+    flow_only, _ = m.loss(b, tgt, valid, generator=torch.Generator().manual_seed(0))
+    flow_only.backward()
+    assert not torch.allclose(grads[0], grads[1])
+    assert torch.allclose(grads[1], m.out.weight.grad)          # blocked == flow-only gradient
