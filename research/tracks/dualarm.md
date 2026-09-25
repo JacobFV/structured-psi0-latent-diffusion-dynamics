@@ -125,3 +125,13 @@ probes, labelled videos.
   expected behaviour = the other variant's demonstration. Dev-scene pairs (split development_eval, seeds 3000000+)
   are not in the pack. Closed-loop evaluator for the dual packet: `rrp latent evaluate-dual --task assign_left ...`
   (+ `--packet-edit swap_slots`, slot-addressed probes, slot-swap probe control).
+- 14:30 compatibility with the binding track (merged on main): host smoke of `train-representation` with
+  `latent.binding_cf 0.5` + `probe.n_operators 14` on a 2-seed assign pack, then `fit-probes`: runs end to end
+  (multi-assembly labels + counterfactual-binding augmentation). Scratch outputs only.
+
+## next steps (for whoever resumes)
+1. binding track: Stage A/B on `artifacts/packed/assign_pick_place_v1_H16` (drop the 5 invalid ep_idx), so
+   manipulator assignment varies through the whole pipeline (item 2).
+2. acceptance track: manipulator-assignment intervention on a competent checkpoint using the dev-scene pairs
+   (`research/pairs/assign_pick_place_v1.json`, split development_eval) with `rrp latent evaluate-dual`.
+3. Optional (not critical path): the stopped support_insert/handover sem/nosem chain (`scripts/dualarm_chain.sh`).
