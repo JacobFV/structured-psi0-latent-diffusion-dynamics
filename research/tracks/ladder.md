@@ -30,7 +30,7 @@ latent_sem_v1 E+R, panda_pg2 rows, j=0, 96 rows each; normalized MSE (arm hold-s
 | col 28 zeroed (= deployment) | t>=5 | 0.083 | 0.082 | 0.741 | -0.59 / -0.35 | 34.6 |
 The only training rows whose col 28 is 0 are t=0, and exactly there the realizer has no skill: the acceptance "step-0"
 symptom is the same bug, not a knot-timing/phase-0/normalization/clipping problem (knot times, phase and normalization
-are identical between pack and runtime; clipping at +-6 is never hit: |a| < 2.5 in all traces). The large step-0 z norm
+are identical between pack and runtime; the +-6 output clip was not checked separately because the error is already present in the raw network output on the pack). The large step-0 z norm
 is E's (98 at t<=1 vs 35 later), identical in pack and runtime. The acceptance parity check matched features because at
 t=0 the column is 0 in both; from t=1 on it differs (`scripts/ladder_feature_parity.py`).
 
