@@ -2,7 +2,7 @@
 
 Owner: grpo track agent. Branch `track/grpo`, worktree `~/work/rrp-wt/grpo`, peer dir `/dev/shm/rrp-brandonin/wt/grpo`.
 
-## what it is (state: implementing -> see log)
+## what it is (state: code verified; dev result = failed_hypothesis at this base, no signal; paused per lead until a competent checkpoint)
 RL fine-tuning of SYSTEM I only (the flow that emits the latent packet z[knots, assemblies, dz]); system 0 (LatentRealizer),
 target encoder and packet probes are frozen and not in the optimizer; the flow's context encoder is frozen too by default
 (`--trainable action_expert`). Code: `src/rrp/learning/latent_grpo.py`, CLI `rrp latent grpo`, test
@@ -57,7 +57,7 @@ Train seeds default 3,100,000+, eval seeds 3,000,000+ (feasible seeds only, disj
   prefix there is grasp/suffix variance -> used as the dev curriculum.
 - Diag (v1 base, prefix 40, reward success+0.5 events+0.5 reach, 1 iter, 4x8): first-pass |ratio-1| 7.6e-5, clip frac 0.18
   at lr 1e-6/2 epochs, path KL 0.010, 3/4 informative groups. Mechanics OK.
-- RUNNING: lease 1790365845_5f45eb `grpo_v2s22k_p40`: base v2 step-22000 snapshot, prefix 40, reward
+- COMPLETED: lease 1790365845_5f45eb `grpo_v2s22k_p40`: base v2 step-22000 snapshot, prefix 40, reward
   success + 0.5 public events + 0.5 privileged cube-zone dist, 15 iters x 8 groups x 8, lr 1e-6, kl 0.05, eval 64 held-out
   dev seeds every 5 iters (both prefix-40 and from-reset). Out: artifacts/runs/grpo_latent_v2s22k_p40_v1.
 - 2026-09-25 lead redirect (causal-semantics priorities): no new GRPO runs; the host lr=3e-6 run (lease 1790368812_e38d14)
@@ -86,3 +86,36 @@ used only as diagnostics. Aggregates from the 64/32-episode evals above agree.
 5. No packet rejections, no fallback holds, no stale packets in any run: the packet contract and runtime are not the cause.
 Implication: localize command generation first (expert native -> tracker is fine; test expert-encoded packet -> system 0
 next); the gripper channel and step amplitude are the specific signatures to check.
+
+## dev result: grpo_latent_v2s22k_p40_v1 (completed, failed_hypothesis: no improvement)
+Command: `scripts/peer_run.sh --gpu --gpu-mem 10G --cpu 6 --mem 24G --label grpo_v2s22k_p40 --max-seconds 21600 --detach --
+PY -m rrp.cli latent grpo --checkpoint artifacts/runs/grpo_base_snapshots/flow_latent_sem_v2_step22000.pt --robot panda_pg2
+--out artifacts/runs/grpo_latent_v2s22k_p40_v1 --iters 15 --groups-per-iter 8 --group-size 8 --eval-episodes 64 --eval-every 5
+--teacher-prefix-steps 40 --shaping-events 0.5 --shaping-dist 0.5 --lr 1e-6 --kl-coef 0.05`.
+Raw: peer store `artifacts/runs/grpo_latent_v2s22k_p40_v1/{result.json,train_log.jsonl,eval_episodes.jsonl,policy.pt}`.
+Reward label: `privileged_sim_success + 0.5*public_event_fraction + 0.5*privileged_cube_zone_dist` (reward only).
+Held-out eval: 64 feasible dev seeds from 3,000,000, deployed ODE sampler; train seeds 3,100,000+ (disjoint).
+
+| policy | from reset | 40-tick teacher prefix (suffix success) | mean reward (prefix) | public event fraction (prefix) |
+|---|---|---|---|---|
+| reference (v2 step 22000) | 0/64 [0, .057] | 0/64 [0, .057] | 0.198 | 0.156 |
+| latent_grpo@5 | 0/64 | 2/64 [.009, .107] | 0.233 | 0.156 |
+| latent_grpo@10 | 0/64 | 1/64 [.003, .083] | 0.218 | 0.148 |
+| latent_grpo@15 | 0/64 | 1/64 [.003, .083] | 0.222 | 0.172 |
+
+Training-rollout (SDE) reward per iteration was flat (0.08-0.24, no trend), grasp rate 0.16-0.36, SDE success 1/960.
+Update health: first-pass |ratio-1| < 1e-4 every iteration, clip fraction 0.14-0.24, path KL to reference grew 0.013 -> 0.16,
+114/120 groups informative. So the optimizer moved the policy, but the reward did not go up: with a base that never
+transports the cube, the shaped reward's variance is dominated by grasp-event noise. Conclusion: no evidence that GRPO
+improves success at this base. The run confirms the brief's warning that a near-0% base gives GRPO no success signal, and
+the labelled teacher-prefix + shaping curriculum was not enough over 15 iterations. (Also: the same 32 seeds gave 1/32
+success in a separate reference eval vs 0 of the same seeds here; contact outcomes differ between runs, so +/-1-2 successes is noise.)
+Accounting (result.json): 960 train episodes, 249,600 learned env ticks + 4,800 teacher-prefix ticks (shared per group),
+31,680 packets, 253,440 rollout + 421,344 update velocity evals, 942 optimizer updates, 512 eval episodes (not used for
+updates), 4,431 s training wall time.
+Videos (labelled failures): artifacts/video/2026-09-25_learned_latent_{v2s22k_base,v2s22k_base_teacherprefix40,grpo15_teacherprefix40}_panda_pg2_pick_place_s300000{0,1,1}_failure.mp4.
+
+## resume
+- GRPO is paused (lead, 2026-09-25). Resume on a competent checkpoint (source success well above 0 from reset) with the
+  campaign CLI above. Candidate first run: same settings without the teacher prefix, success reward only (+0.5 public
+  events), lr 1e-6..3e-6, 20 iters. Check that the reference eval shows success variance first.
