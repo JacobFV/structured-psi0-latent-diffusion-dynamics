@@ -25,6 +25,7 @@ def register(sub):
     register_counterfactuals(p)
     from rrp import cli_dual_latent
     cli_dual_latent.register(p)
+    register_grpo(p)
 
 
 def cmd_flow(a):
@@ -184,3 +185,50 @@ def register_counterfactuals(p):
     c.add_argument("--probe", help="post-hoc probe .pt (fit-probes output); default: the representation's own P")
     c.add_argument("--out", required=True)
     c.set_defaults(fn=cmd_counterfactuals)
+
+
+def cmd_grpo(a):
+    from rrp.learning.flow_sde import SDEConfig
+    from rrp.learning.grpo import GRPOConfig
+    from rrp.learning.latent_grpo import LatentGRPORunConfig, RewardConfig, train_latent_grpo
+    g = GRPOConfig(group_size=a.group_size, lr=a.lr, epochs=a.epochs, minibatch=a.minibatch, kl_coef=a.kl_coef,
+                   clip=a.clip, trainable=a.trainable,
+                   sde=SDEConfig(nfe=a.nfe, noise_level=a.noise_level, first_step="clamp", last_step=a.last_step))
+    cfg = LatentGRPORunConfig(checkpoint=a.checkpoint, robot=a.robot, out_dir=a.out, iters=a.iters,
+                              groups_per_iter=a.groups_per_iter, train_seed_start=a.train_seed_start,
+                              eval_seed_start=a.eval_seed_start, eval_episodes=a.eval_episodes, eval_every=a.eval_every,
+                              eval_batch=a.eval_batch, max_steps=a.max_steps, nfe=a.nfe, seed=a.seed,
+                              allow_target=a.allow_target,
+                              reward=RewardConfig(shaping_events=a.shaping_events, shaping_dist=a.shaping_dist), grpo=g)
+    res = train_latent_grpo(cfg)
+    print(json.dumps(dict(evals=res["evals"], accounting=res["accounting"]), indent=1))
+
+
+def register_grpo(p):
+    c = p.add_parser("grpo", help="packet-policy GRPO: RL fine-tunes system i only (system 0/encoder/probes frozen)")
+    c.add_argument("--checkpoint", required=True, help="system-i flow checkpoint (e.g. an SFT-adapted policy.pt)")
+    c.add_argument("--robot", required=True)
+    c.add_argument("--out", required=True)
+    c.add_argument("--allow-target", action="store_true", help="required for sealed target bodies (campaign only)")
+    c.add_argument("--iters", type=int, default=20)
+    c.add_argument("--groups-per-iter", type=int, default=8)
+    c.add_argument("--group-size", type=int, default=8)
+    c.add_argument("--train-seed-start", type=int, default=3_100_000)
+    c.add_argument("--eval-seed-start", type=int, default=3_000_000)
+    c.add_argument("--eval-episodes", type=int, default=64)
+    c.add_argument("--eval-every", type=int, default=5)
+    c.add_argument("--eval-batch", type=int, default=32)
+    c.add_argument("--max-steps", type=int, default=300)
+    c.add_argument("--lr", type=float, default=1e-6)
+    c.add_argument("--epochs", type=int, default=2)
+    c.add_argument("--minibatch", type=int, default=64)
+    c.add_argument("--clip", type=float, default=0.2)
+    c.add_argument("--kl-coef", type=float, default=0.05)
+    c.add_argument("--trainable", default="action_expert", choices=["action_expert", "all"])
+    c.add_argument("--nfe", type=int, default=8)
+    c.add_argument("--noise-level", type=float, default=0.5)
+    c.add_argument("--last-step", default="deterministic", choices=["deterministic", "stochastic"])
+    c.add_argument("--shaping-events", type=float, default=0.0, help="weight of PUBLIC task-event progress reward")
+    c.add_argument("--shaping-dist", type=float, default=0.0, help="weight of PRIVILEGED cube-zone distance reward")
+    c.add_argument("--seed", type=int, default=0)
+    c.set_defaults(fn=cmd_grpo)

@@ -81,8 +81,9 @@ def set_trainable(model, mode: str) -> list[str]:
 
 
 class GRPOLearner:
-    def __init__(self, model, cfg: GRPOConfig, device, version_prefix: str = "grpo"):
+    def __init__(self, model, cfg: GRPOConfig, device, version_prefix: str = "grpo", collate_fn=None):
         self.model = model
+        self.collate_fn = collate_fn or collate_inputs    # latent path: assembly_batch(collate_inputs(.))
         self.cfg = cfg
         self.device = device
         self.frozen = set_trainable(model, cfg.trainable)
@@ -133,7 +134,7 @@ class GRPOLearner:
             for i in range(0, n_total, cfg.minibatch):
                 idx = order[i:i + cfg.minibatch]
                 mb = [samples[j] for j in idx]
-                batch = collate_inputs([s["pi"] for s in mb]).to(self.device)
+                batch = self.collate_fn([s["pi"] for s in mb]).to(self.device)
                 path = SDEPath.cat([s["path"] for s in mb]).to(self.device)
                 if path.valid.shape[2] != batch.node_mask.shape[1]:
                     raise ValueError("path/node padding mismatch")
