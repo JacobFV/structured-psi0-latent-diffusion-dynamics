@@ -17,3 +17,4 @@ ops/workbench-token
 *.tmp
 MUJOCO_LOG.TXT
 .cache/
+.venv
