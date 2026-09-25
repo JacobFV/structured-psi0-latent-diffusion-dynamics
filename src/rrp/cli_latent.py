@@ -19,6 +19,7 @@ def register(sub):
     r.add_argument("--config", required=True)
     r.set_defaults(fn=cmd_rep)
     register_more(p)
+    register_probe_cmd(p)
 
 
 def cmd_flow(a):
@@ -91,3 +92,20 @@ def register_more(p):
         e.add_argument("--batch", type=int, default=16)
         e.add_argument("--out", required=True)
         e.set_defaults(fn=fn)
+
+
+def cmd_fit_probes(a):
+    from rrp.learning.latent_train import fit_probes_on_frozen
+    res = fit_probes_on_frozen(Path(a.representation), Path(a.packed_dir), Path(a.out), steps=a.steps,
+                               metadata_only=a.metadata_only)
+    print(json.dumps(res, indent=1))
+
+
+def register_probe_cmd(p):
+    f = p.add_parser("fit-probes", help="measurement probe on frozen detached z (or metadata-only control)")
+    f.add_argument("--representation", required=True)
+    f.add_argument("--packed-dir", required=True)
+    f.add_argument("--out", required=True)
+    f.add_argument("--steps", type=int, default=6000)
+    f.add_argument("--metadata-only", action="store_true")
+    f.set_defaults(fn=cmd_fit_probes)

@@ -287,3 +287,48 @@ def evaluate_generated(model, E, R, P, data, lcfg, dev, n_batches=20, seed=7, nf
     model.train()
     f = lambda d: {k: (x / n if n else None) for k, (x, n) in d.items()}
     return dict(free_vs_oracle_mse=float(np.mean(zdist)), **{k: f(v) for k, v in aggs.items()})
+
+
+def fit_probes_on_frozen(rep_path: Path, packed_dir: Path, out_path: Path, steps: int = 6000, seed: int = 5,
+                         metadata_only: bool = False) -> dict:
+    """MEASUREMENT probe: a fresh PacketProbe trained on DETACHED z from the frozen encoder (identical procedure
+    for latent_sem and latent_nosem). metadata_only=True trains the no-latent control probe."""
+    dev = _dev()
+    lcfg, E, R, _, rep_res = load_representation(rep_path, dev)
+    data = LatentData(packed_dir)
+    P = PacketProbe(lcfg.dz, lcfg.knots, metadata_only=metadata_only, seed=seed).to(dev)
+    opt = torch.optim.AdamW(P.parameters(), lr=3e-4, weight_decay=1e-4)
+    rng = random.Random(seed)
+    t0 = time.time()
+    for step in range(steps):
+        sel, tgt, j = data.sample(128, rng, 0)
+        batch, a, v, lab, r = data.fetch(sel, tgt, dev)
+        with torch.no_grad():
+            af, am, ai = assembly_tokens(batch)
+            mu, _ = E(batch, a, v, af, am, ai)
+        smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
+        loss, _ = probe_loss(P(mu.detach(), am, smask.shape[1]), lab, smask)
+        opt.zero_grad()
+        loss.backward()
+        opt.step()
+    # held-out evaluation on a disjoint RNG stream: real z vs shuffled z
+    P.eval()
+    agg, sh = {}, {}
+    rng2 = random.Random(seed + 1000)
+    with torch.no_grad():
+        for _ in range(30):
+            sel, tgt, j = data.sample(128, rng2, 0)
+            batch, a, v, lab, r = data.fetch(sel, tgt, dev)
+            af, am, ai = assembly_tokens(batch)
+            mu, _ = E(batch, a, v, af, am, ai)
+            smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
+            for d_, z in ((agg, mu), (sh, mu[torch.randperm(mu.shape[0], device=dev)])):
+                for k, (x, n) in probe_metrics(P(z, am, smask.shape[1]), lab, smask).items():
+                    s_, n_ = d_.get(k, (0, 0)); d_[k] = (s_ + x, n_ + n)
+    f = lambda d: {k: (x / n if n else None) for k, (x, n) in d.items()}
+    res = dict(steps=steps, wall_s=time.time() - t0, metadata_only=metadata_only, encoded_target=f(agg),
+               encoded_target_shuffled=f(sh), latent_space_version=rep_res["latent_space_version"])
+    torch.save(dict(state=P.state_dict(), cfg=dict(dz=lcfg.dz, knots=lcfg.knots, metadata_only=metadata_only,
+                                                     seed=seed), result=res), out_path)
+    out_path.with_suffix(".json").write_text(json.dumps(res, indent=1))
+    return res
