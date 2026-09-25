@@ -41,6 +41,30 @@ def encode_targets(codec: ActionCodec | None, batch, a, v):
     return mu
 
 
+def prefetch(gen, depth: int = 3):
+    """Run a batch generator in a background thread (collate overlaps GPU compute); same order and content."""
+    import queue
+    import threading
+    q: queue.Queue = queue.Queue(depth)
+    END = object()
+
+    def work():
+        try:
+            for x in gen:
+                q.put(x)
+        except BaseException as e:  # noqa: BLE001
+            q.put(e)
+        q.put(END)
+    threading.Thread(target=work, daemon=True).start()
+    while True:
+        x = q.get()
+        if x is END:
+            return
+        if isinstance(x, BaseException):
+            raise x
+        yield x
+
+
 def train_codec(cfg: dict, out_dir: Path) -> dict:
     dev, ginfo = device_setup()
     sig = CheckpointSignal()
@@ -155,7 +179,8 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
         rng = random.Random(cfg["seed"] + start_epoch)
     every = cfg.get("checkpoint_every_epochs", 1)
     for epoch in range(start_epoch, cfg["epochs"]):
-        for batch, a, v, lab, eff in ds.batches(cfg["batch_size"], rng):
+        it = ds.batches(cfg["batch_size"], rng)
+        for batch, a, v, lab, eff in (prefetch(it) if cfg.get("prefetch") else it):
             batch, a, v = batch.to(dev), a.to(dev), v.to(dev)
             lab = {k: t.to(dev) for k, t in lab.items()}
             target = encode_targets(codec, batch, a, v)
