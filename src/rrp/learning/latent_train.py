@@ -451,8 +451,9 @@ def fit_probes_on_frozen(rep_path: Path, packed_dir: Path, out_path: Path, steps
     for latent_sem and latent_nosem). metadata_only=True trains the no-latent control probe."""
     dev = _dev()
     lcfg, E, R, _, rep_res = load_representation(rep_path, dev)
-    data = LatentData(packed_dir)
-    pk = load_checkpoint(rep_path, map_location="cpu")["config"].get("probe", {})
+    rep_cfg = load_checkpoint(rep_path, map_location="cpu")["config"]
+    data = LatentData(packed_dir, zero_prev_action=rep_cfg.get("zero_prev_action", False))   # same inputs as E saw (B-1)
+    pk = rep_cfg.get("probe", {})
     P = PacketProbe(lcfg.dz, lcfg.knots, metadata_only=metadata_only, seed=seed, **pk).to(dev)
     opt = torch.optim.AdamW(P.parameters(), lr=3e-4, weight_decay=1e-4)
     rng = random.Random(seed)
@@ -512,7 +513,7 @@ def sft_latent_flow(flow_ckpt: Path, target_packed_dir: Path, budget: int, *, se
     pcfg = PolicyConfig(**dict(cfgj["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz, aux=False))
     model = FlowPolicy(pcfg).to(dev)
     model.load_state_dict(st["model"])
-    data = LatentData(target_packed_dir)
+    data = LatentData(target_packed_dir, zero_prev_action=cfgj.get("zero_prev_action", False))   # as the source flow (B-1)
     eps = sorted(set(data.ep.tolist()))
     chosen = [eps[i] for i in nested_budget_indices(len(eps), [budget], seed)[budget]]
     pool = [int(i) for i in np.nonzero(np.isin(data.ep, chosen))[0]]

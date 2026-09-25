@@ -136,7 +136,8 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
     rng = random.Random(cfg["seed"])
     if cfg.get("packed_dir"):
         from rrp.learning.packed import PackedChunkDataset
-        ds = PackedChunkDataset(Path(cfg["packed_dir"]), stride=cfg.get("packed_stride", 1))   # memory-mapped, shared
+        ds = PackedChunkDataset(Path(cfg["packed_dir"]), stride=cfg.get("packed_stride", 1),   # memory-mapped, shared
+                                zero_prev_action=cfg.get("zero_prev_action", False))       # B-1 (D-044)
         eps = []
     else:
         eps = load_episodes(Path(cfg["dataset"]), robots=set(cfg["train_robots"]),

@@ -57,6 +57,24 @@ def load_episodes(ds_dir: Path, robots: set[str] | None = None, statuses=("succe
     return out
 
 
+def zero_prev_action_input(pi):
+    """Datasets collected before D-021 carry the teacher's previous command in the node prev-action column; the deployed
+    featurizer writes 0 there. D-021 zeroed static column 2 by mistake; the column is PREV_ACTION_COL (bug B-1,
+    D-044/D-045). Returns pi unchanged, or a copy with node rows (and their morph-bank rows) zeroed in that column."""
+    from rrp.learning.packed import PREV_ACTION_COL as PA
+    if not pi.act_node_feats[:, PA].any():
+        return pi
+    import copy as _copy
+    pi = _copy.copy(pi)
+    n = pi.act_node_feats.shape[0]
+    pi.act_node_feats = pi.act_node_feats.copy()
+    pi.act_node_feats[:, PA] = 0.0
+    pi.tokens = dict(pi.tokens)
+    pi.tokens["morph"] = pi.tokens["morph"].copy()
+    pi.tokens["morph"][:n, PA] = 0.0
+    return pi
+
+
 def episode_samples(pub: dict, prv: dict, H: int, stride: int = 1) -> list[Sample]:
     from rrp.data.features import ActionSpace
     asd = pub["action_space"]
@@ -66,15 +84,7 @@ def episode_samples(pub: dict, prv: dict, H: int, stride: int = 1) -> list[Sampl
     manips = prv["manipulators"]
     for t in range(0, T, stride):
         pi = pub["inputs"][t]
-        if pi.act_node_feats[:, 2].any():      # datasets collected before D-021 carry prev-action: zero it
-            import copy as _copy
-            pi = _copy.copy(pi)
-            n = pi.act_node_feats.shape[0]
-            pi.act_node_feats = pi.act_node_feats.copy()
-            pi.act_node_feats[:, 2] = 0.0
-            pi.tokens = dict(pi.tokens)
-            pi.tokens["morph"] = pi.tokens["morph"].copy()
-            pi.tokens["morph"][:n, 2] = 0.0
+        pi = zero_prev_action_input(pi)
         q0 = pub["q0"][t]
         seq = pub["actions"][t:t + H]
         n_valid = len(seq)
