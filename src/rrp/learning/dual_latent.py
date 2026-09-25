@@ -172,7 +172,11 @@ def concat_packed(dirs: list, out_dir) -> dict:
         out = np.lib.format.open_memmap(out_dir / f"{name}.npy", mode="w+", dtype=arrs[0].dtype,
                                         shape=(n,) + arrs[0].shape[1:])
         o, ep_off = 0, 0
+        if name == "ep_idx":
+            ep_offsets = []
         for a, m, rm in zip(arrs, metas, remaps):
+            if name == "ep_idx":
+                ep_offsets.append(ep_off)
             k = len(a)
             if name == "ep_idx":
                 out[o:o + k] = np.asarray(a) + ep_off
@@ -184,7 +188,8 @@ def concat_packed(dirs: list, out_dir) -> dict:
             o += k
         out.flush()
         del out
-    meta = dict(metas[0], n=n, robot_ids=robot_ids, source=[m["source"] for m in metas],
+    episode_index = {e: i + off for m, off in zip(metas, ep_offsets) for e, i in m.get("episode_index", {}).items()}
+    meta = dict(metas[0], n=n, robot_ids=robot_ids, episode_index=episode_index, source=[m["source"] for m in metas],
                 parts=[dict(dir=str(d), n=m["n"], truncated_rows=m.get("truncated_rows")) for d, m in zip(dirs, metas)],
                 robots=sorted({r for m in metas for r in m.get("robots", [])}))
     (out_dir / "meta.json").write_text(json.dumps(meta, indent=1))

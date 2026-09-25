@@ -1,0 +1,37 @@
+{
+ "out_dir": "artifacts/packed/assign_pick_place_v1_H16",
+ "horizon": 16,
+ "multi_m": 2,
+ "limits": {
+  "T": {
+   "morph": 24,
+   "scene": 8,
+   "task": 32,
+   "interact": 16
+  },
+  "N": 16,
+  "R": 256,
+  "P": 64
+ },
+ "note": "manipulator-assignment pairs (assign_left/assign_right, identical scenes); source_train split only (clean + DART successes); multi-assembly arrays (packet slot = role order left,right); meta.episode_index maps episode_id -> ep_idx; pair index research/pairs/assign_pick_place_v1.json",
+ "sources": [
+  {
+   "dataset": "artifacts/datasets/assign_pick_place_v1",
+   "robots": [
+    "panda_pg2__ur5e_pg2",
+    "parm5_pg2__parm5_pg2",
+    "parm5_pg2__parm6_tf3",
+    "parm6_pg2__parm7_pg2",
+    "parm7_tf3__parm5_pg2",
+    "ur5e_pg2__sawyer_pg2"
+   ],
+   "statuses": [
+    "success"
+   ],
+   "seeds": [
+    0,
+    100000
+   ]
+  }
+ ]
+}

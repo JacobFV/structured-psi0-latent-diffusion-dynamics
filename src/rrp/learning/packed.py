@@ -119,12 +119,14 @@ def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, s
     buf = {k: [] for k in specs}
     robots_seen = []
     ep_counter = 0
+    episode_index: dict[str, int] = {}          # episode_id -> ep_idx (rows of that episode)
     robot_ids: dict[str, int] = {}
     for g in range(0, len(ids), chunk_episodes):
         eps = load_episodes(ds_dir, robots=robots, statuses=statuses, seeds=seeds,
                             episode_ids=set(ids[g:g + chunk_episodes]), include_dart_failures=include_dart_failures)
         for pub, prv in eps:
             ep_counter += 1
+            episode_index[pub["meta"]["episode_id"]] = ep_counter
             ep_len = len(pub["inputs"])
             rk = pub["meta"].get("robot_key") or ""
             rid = robot_ids.setdefault(rk, len(robot_ids))
@@ -206,7 +208,7 @@ def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, s
         buf[k2] = None
     meta = dict(n=n, H=H, stride=stride, source=str(ds_dir), robot_ids=robot_ids, operators=OPERATORS, robots=sorted(set(r for r in robots_seen if r)),
                 max=dict(T=MAX_T_, N=MAX_N_, S=MAX_S, R=MAX_R_, P=MAX_P_), truncated_rows=trunc, include_dart_failures=include_dart_failures,
-                multi_m=multi_m, statuses=list(statuses))
+                multi_m=multi_m, statuses=list(statuses), episode_index=episode_index)
     (out_dir / "meta.json").write_text(json.dumps(meta, indent=1))
     return meta
 

@@ -93,7 +93,21 @@ def cmd_teacher_ref(a):
         print(pair, {s: sum(r["status"] == s for r in rr) for s in ("success", "failure", "infeasible", "error")})
 
 
+def cmd_pair_index(a):
+    from rrp.data.dual_pairs import build_pair_index
+    idx = build_pair_index(Path(a.dataset), Path(a.packed) if a.packed else None, check_scene=not a.no_scene_check)
+    Path(a.out).parent.mkdir(parents=True, exist_ok=True)
+    Path(a.out).write_text(json.dumps(idx, indent=1))
+    print(json.dumps(dict(summary=idx["summary"], by_group=idx["by_group"]), indent=1))
+
+
 def register(p):
+    pi = p.add_parser("pair-index-dual", help="pair index for the manipulator-assignment family")
+    pi.add_argument("--dataset", required=True)
+    pi.add_argument("--packed")
+    pi.add_argument("--no-scene-check", action="store_true")
+    pi.add_argument("--out", required=True)
+    pi.set_defaults(fn=cmd_pair_index)
     k = p.add_parser("pack-dual", help="pack dual-arm datasets with multi-assembly arrays and concatenate")
     k.add_argument("--config", required=True)
     k.add_argument("--keep-parts", action="store_true")
