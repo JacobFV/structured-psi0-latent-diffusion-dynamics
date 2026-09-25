@@ -10,7 +10,7 @@ given) or says **not shown**. Column meanings:
   controls. Zero/shuffle sensitivity and probe accuracy do not count as semantic control.
 - **held-out transfer**: target bodies of the sealed protocol (xarm7_pg2, xarm7_tf3, panda_tf3).
 
-Headline: **no learned policy is competent in closed loop yet, and causal packet semantics are not shown.**
+Headline: **no learned policy is competent in closed loop yet, and causal packet semantics are not shown.** Bug B-1 (D-044): system 0 was trained to copy the previous teacher command, which is zero at deployment, so every learned closed-loop number below is dominated by that bug until the realizer is refit.
 The priority is a competent source controller and causal packet semantics
 (research/corrections/2026-09-25-causal-semantics-priorities.md).
 
