@@ -331,6 +331,9 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
         sched.load_state_dict(st["extra"]["sched"]); step = st["step"]
         rng.setstate(st["extra"]["rng_py"]); gen.set_state(st["extra"]["gen"].cpu())
         print(f"resumed {last} at step {step}", flush=True)
+    elif cfg_json.get("init_from"):            # warm start (e.g. bug B-1 fine-tune): weights incl. target-norm buffers
+        model.load_state_dict(load_checkpoint(Path(cfg_json["init_from"]), map_location=dev)["model"])
+        print(f"initialized from {cfg_json['init_from']}", flush=True)
     elif cfg_json.get("normalize_target", False):
         mean, std = latent_target_stats(E, data, dev, seed=seed + 17)
         model.set_target_norm(mean, std)
@@ -572,7 +575,13 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
     dag = _load_dagger(cfg_json.get("dagger") or [], dev)
     Bd = int(round(B * cfg_json.get("dagger_frac", 0.5))) if dag else 0
     drng = np.random.default_rng(seed + 11)
-    feed = _prefetch(data, B - Bd, rng, lcfg.max_phase_ticks, dev, workers=cfg_json.get("prefetch_workers", 3))
+    nw = cfg_json.get("prefetch_workers", 3)
+
+    def _serial():
+        while True:
+            sel, tgt, j = data.sample(B - Bd, rng, lcfg.max_phase_ticks)
+            yield (*data.fetch(sel, tgt, dev), j)
+    feed = _prefetch(data, B - Bd, rng, lcfg.max_phase_ticks, dev, workers=nw) if nw > 0 else _serial()
     while step < steps and not sig.requested:
         batch, a, v, lab, r, j = next(feed)
         j = torch.as_tensor(j, device=dev)
