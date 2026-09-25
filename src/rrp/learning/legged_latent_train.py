@@ -58,7 +58,7 @@ class LeggedData:
                 raise FileNotFoundError(root / body)
             first = True
             for sh in shards:
-                d = np.load(sh)
+                d = dict(np.load(sh))           # decompress each array once
                 meta = json.loads(sh.with_suffix(".json").read_text())
                 if first:
                     self._add_static(d, meta)

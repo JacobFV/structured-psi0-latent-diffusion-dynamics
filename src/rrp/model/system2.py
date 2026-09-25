@@ -123,9 +123,14 @@ def render_public(sc, size=384, camera="system2"):
 class System2:
     """Frozen psi0 System-II VLM wrapper: answer scoring + pooled features."""
 
-    def __init__(self, device="cuda", local_dir=None):
+    def __init__(self, device=None, local_dir=None):
+        import os
         from rrp.model.backbone import VLMBackbone, BackboneSpec
-        self.bb = VLMBackbone(BackboneSpec(), device=device, local_dir=local_dir)
+        device = device or os.environ.get("RRP_S2_DEVICE", "cuda" if torch.cuda.is_available() else "cpu")
+        spec = BackboneSpec()
+        if device == "cpu":
+            spec.dtype = "float32"
+        self.bb = VLMBackbone(spec, device=device, local_dir=local_dir)
         tok = self.bb.processor.tokenizer
         self.cand = {c: tok.encode(" " + c, add_special_tokens=False)[0] for c in COLORS}
         self.cand_nospace = {c: tok.encode(c, add_special_tokens=False)[0] for c in COLORS}
