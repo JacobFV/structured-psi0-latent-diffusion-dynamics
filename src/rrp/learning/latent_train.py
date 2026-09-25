@@ -569,7 +569,10 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
     B = cfg_json.get("batch_size", 128)
     t0 = time.time()
     kt = torch.tensor(lcfg.knot_times, device=dev)
-    feed = _prefetch(data, B, rng, lcfg.max_phase_ticks, dev, workers=cfg_json.get("prefetch_workers", 3))
+    dag = _load_dagger(cfg_json.get("dagger") or [], dev)
+    Bd = int(round(B * cfg_json.get("dagger_frac", 0.5))) if dag else 0
+    drng = np.random.default_rng(seed + 11)
+    feed = _prefetch(data, B - Bd, rng, lcfg.max_phase_ticks, dev, workers=cfg_json.get("prefetch_workers", 3))
     while step < steps and not sig.requested:
         batch, a, v, lab, r, j = next(feed)
         j = torch.as_tensor(j, device=dev)
@@ -580,7 +583,24 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
         phase = torch.as_tensor(j * lcfg.control_dt, dtype=z.dtype, device=dev)
         pred = R(z, am, kt, phase, r["node"], r["node_mask"], r["local"], node_asm=r.get("node_asm"))
         m = (r["v1"] & r["node_mask"]).float()
-        loss = ((pred - r["a1"]) ** 2 * m).sum() / m.sum().clamp(min=1)
+        se, cnt = ((pred - r["a1"]) ** 2 * m).sum(), m.sum()
+        l_pack = float((se / cnt.clamp(min=1)).detach())
+        l_dag = None
+        if Bd:
+            idx = torch.from_numpy(drng.integers(0, dag["n"], Bd)).to(dev)
+            rp = dag["rp"][idx]
+            mu_d, lv_d = dag["mu"][rp].float(), dag["lv"][rp].float()
+            zd = mu_d + torch.randn_like(mu_d) * (0.5 * lv_d).exp()
+            Md = zd.shape[2]
+            amd = torch.ones(Bd, Md, dtype=torch.bool, device=dev)
+            nmask = torch.arange(dag["node"].shape[1], device=dev)[None] < dag["n_nodes"][idx][:, None]
+            pd = R(zd, amd, kt, dag["j"][idx].float() * lcfg.control_dt, dag["node"][idx].float(), nmask,
+                   dag["local"][idx].float())
+            md = nmask.float()
+            sed = ((pd - dag["a1"][idx]) ** 2 * md).sum()
+            l_dag = float((sed / md.sum().clamp(min=1)).detach())
+            se, cnt = se + sed, cnt + md.sum()
+        loss = se / cnt.clamp(min=1)
         opt.zero_grad()
         loss.backward()
         gn = torch.nn.utils.clip_grad_norm_(R.parameters(), 1.0)
@@ -588,7 +608,8 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
         sched.step()
         step += 1
         if step % 100 == 0:
-            log.write(json.dumps(dict(step=step, t=time.time() - t0, real=float(loss.detach()), gn=float(gn))) + "\n")
+            log.write(json.dumps(dict(step=step, t=time.time() - t0, real=float(loss.detach()), pack=l_pack, dagger=l_dag,
+                                      gn=float(gn))) + "\n")
             log.flush()
         if step % 2000 == 0 or sig.requested:
             save_checkpoint(last, model=R, optimizer=opt, step=step, versions=dict(latent=rep_res["latent_space_version"]),
@@ -605,3 +626,23 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
                     config=dict(st0["config"], refit=cfg_json), extra=dict(result=res))
     (out_dir / "result.json").write_text(json.dumps(res, indent=1, default=str))
     return res
+
+
+def _load_dagger(paths, dev):
+    """System-0 DAgger buffers written by rrp.evaluation.ladder.save_dagger (single-assembly bodies; M = 1)."""
+    if not paths:
+        return None
+    parts = [np.load(p) for p in paths]
+    off, rp = 0, []
+    for q in parts:
+        rp.append(q["rp"].astype(np.int64) + off)
+        off += len(q["mu"])
+    Mmax = max(q["mu"].shape[2] for q in parts)
+    if any(q["mu"].shape[2] != Mmax for q in parts):
+        raise ValueError("mixed assembly counts in DAgger buffers")
+    t = lambda k, dt=None: torch.from_numpy(np.concatenate([q[k] for q in parts]).astype(dt) if dt else
+                                            np.concatenate([q[k] for q in parts])).to(dev)
+    d = dict(mu=t("mu"), lv=t("lv"), rp=torch.from_numpy(np.concatenate(rp)).to(dev), j=t("j", np.int64),
+             node=t("node"), n_nodes=t("n_nodes", np.int64), local=t("local"), a1=t("a1", np.float32))
+    d["n"] = len(d["rp"])
+    return d

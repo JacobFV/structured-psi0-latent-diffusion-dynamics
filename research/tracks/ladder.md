@@ -64,6 +64,50 @@ t=0 the column is 0 in both; from t=1 on it differs (`scripts/ladder_feature_par
 - Affects also: old direct-action baselines (dev5/dev6), GRPO bases, binding-track representations (unless they set the
   flag), dualarm pack (if built from pre-D-021 datasets; check column 28).
 
+## ladder table (panda_pg2 unless noted; dev seeds = first 30 feasible from 3,000,000; 300 ticks; replan 8; NFE 8)
+Raw: peer `artifacts/runs/ladder_v1/<robot>/<route>_<tag>.jsonl` (+ `.summary.json`); summarize with
+`scripts/ladder_peek.py <files>`. `prev` = what the deployed featurizer puts in node column 28 (B-1): `zero` = current
+deployment; `own` = system 0's own previous command (training-consistent form). Label error = normalized 1-step MSE of
+system 0 vs the shadow teacher's command at the visited state; on R0 it is the shadow system 0 on the teacher trajectory.
+| rung | system 0 | prev | success (Wilson 95%) | failed stage | min TCP-cube | arm / grip label err | track q (rad) / TCP (m) |
+|---|---|---|---|---|---|---|---|
+| R0 teacher (privileged) | shadow: sem_v1 R | own | 30/30 (0.89-1.0) | - | 0.003 | 0.0017 / 0.023 | 0.025 / 0.021 |
+| R0 teacher | shadow: sem_v1 R | zero | 30/30 (running) | - | | | |
+| R0 teacher | shadow: refit R @2k (B-1 fix) | zero | 8/8 | - | 0.003 | 0.0074 / 0.056 | 0.025 / 0.020 |
+| R1 oracle (ORACLE DIAGNOSTIC) | sem_v1 R | zero | 0/30 (0-0.11) | approach 30 | 0.42 | (diverged) | 0.006 / 0.005 (barely moves: 0.014 rad/tick) |
+| R1 oracle | sem_v1 R | own | 0/30 (0-0.11) | approach 30 | 0.28 | copycat drift | 0.073 / 0.10 |
+| R1 oracle | refit R @2k | zero | 0/16 | approach 14, grasp 2 | 0.084 | | 0.015 / 0.020 |
+| R1 oracle, re-anchored expert | refit R @2k | zero | 0/16 | approach 13, grasp 1, lift 2 | 0.095 | | 0.017 / 0.022 |
+| R2 flow v2@24543 | sem_v1 R | zero | 0/30 (0-0.11) | approach 30 | 0.44 | | 0.007 / 0.007 |
+| R2 flow v2@24543 | sem_v1 R | own | 0/30 (0-0.11) | approach 30 | 0.33 | | 0.032 / 0.031 |
+| R2 flow v2@24543 | refit R @2k | zero | 0/16 | approach 15, lift 1 | 0.22 | | 0.035 / 0.038 |
+parm6_tf3 (seeds 3000003..3000041, 30 feasible): R0 30/30 (track 0.006 rad / 0.007 m); shadow sem_v1 R on the teacher
+trajectory: prev own arm/grip 0.0018/0.0017, prev zero 0.0087/0.53 (arm hold-still reference 0.0048) -> B-1 on a
+second body too.
+
+Tracking: the joint tracker follows every route's commands closely (R0 0.025 rad mean lag at teacher speeds); failures are
+never tracker failures.
+
+Oracle vs generated z at the same states (R2 rows, `oracle_cmp`): probes read the generated packet as well as the oracle
+packet (held_by/acting_on/subtask 1.0, rel_pos 0.045 vs 0.043 m). With the OLD system 0 the action from generated vs
+oracle z differs by only 0.002 (it barely reads z; copycat of col 28). With the REFIT system 0 the difference is 0.89
+(normalized arm MSE; hold-still 0.017): once system 0 actually uses z, the generator's z (flow v2, itself trained with
+the B-1 input) drives it very differently from the oracle z -> the generator is the second failure point.
+
+R1 failure mode with the refit realizer (trace `artifacts/runs/ladder_smoke/oracle_ticks_zero_rz2k_re.jsonl`): the arm
+moves toward the cube but swings sideways first and the tool tilts progressively (tool z-axis 20-25 deg off vertical by
+t=40-90); it descends next to/onto the cube and pushes it. Compounding 1-step error (covariate shift) + off-manifold
+packets; the teacher's relabel at those states is a large wrist correction (0.4-0.6 rad).
+
+## fixes being tested
+1. Realizer refit on frozen E with col 28 zeroed (B-1): `configs/ladder/rz_sem_v1_b1fix_ft.json`, lease 1790370807_bd05c2.
+2. System-0 DAgger: R1 (re-anchored expert) rollouts of the current refit realizer on all 13 source-train bodies, seeds
+   3,200,000+ (24 feasible each), buffer = oracle posterior at each replan + learner-visited states with the shadow
+   teacher's command; mixed 50/50 with the pack in `refit_realizer` (`"dagger": [...]`). Collection leases
+   1790373150_81c015, 1790373151_61c3bd, 1790373151_2e8975, 1790373152_9c8793 -> `artifacts/runs/ladder_dagger_r1/<robot>.npz`.
+3. Generator: flow retrain on the same frozen E with the B-1 fix (`configs/ladder/flow_sem_v2_b1fix.json`, 20k steps),
+   lease 1790373182_289454 -> `artifacts/runs/ladder_flow_sem_v2_b1fix/`.
+
 ## method (code: `src/rrp/evaluation/ladder.py`, CLI `scripts/ladder.py`)
 - Matched scenes: `feasible_seeds(robot, 3_000_000, n)` (same list for every rung), `n_distractors = seed % 3`.
 - R0 `teacher`: scripted teacher (privileged) -> joint-target tracker. R1 `oracle`: ORACLE DIAGNOSTIC, frozen Stage-A E
