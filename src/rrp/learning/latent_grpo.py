@@ -173,8 +173,19 @@ def run_episodes(policy, realizer, robot_key: str, seeds: list[int], *, replan_t
                                 device=device))
         meta.append(dict(done=False, outcome=None, steps=0, calls=0, recs=[], teacher_steps=0, min_reach=None))
     if prefix_steps > 0:
+        # teacher prefix runs ONCE per distinct seed; group members get a snapshot restore (physics, controller,
+        # task runtime, tracker, RNG) so the shared prefix is identical and counted once in accounting.
         from rrp.control.teachers import PickPlaceTeacher
+        leader: dict = {}
         for k, s in enumerate(S):
+            if seeds[k] in leader:
+                j = leader[seeds[k]]
+                if meta[j]["outcome"] != "teacher_prefix_terminal":
+                    s.restore(S[j].snapshot())
+                meta[k].update(teacher_steps=meta[j]["teacher_steps"], done=meta[j]["done"], outcome=meta[j]["outcome"],
+                               shared_prefix=True)
+                continue
+            leader[seeds[k]] = k
             t = PickPlaceTeacher(s)
             for _ in range(prefix_steps):
                 s.step(t.act())
@@ -228,6 +239,7 @@ def run_episodes(policy, realizer, robot_key: str, seeds: list[int], *, replan_t
             r += reward.shaping_reach * (1 - min(m["min_reach"] / max(m["reach0"], 1e-6), 1.0))
         out.append(dict(seed=seeds[k], outcome=m["outcome"], privileged_success=priv,
                         public_success=bool(s.runtime.succeeded()), steps=m["steps"], teacher_steps=m["teacher_steps"],
+                        shared_prefix=m.get("shared_prefix", False),
                         min_tcp_cube_dist_priv=m["min_reach"], packets=m["calls"],
                         rejected=s0[k].stats.rejected, public_event_fraction=ev, cube_zone_dist_priv=d, reward=r,
                         reward_label=reward.label(), events={e: v.status for e, v in s.runtime.instances.items()},
@@ -361,7 +373,7 @@ def train_latent_grpo(cfg: LatentGRPORunConfig) -> dict:
         ust = learner.update(samples)
         acct["train_episodes"] += len(rows)
         acct["train_env_steps"] += sum(r["steps"] for r in rows)
-        acct["train_teacher_prefix_steps"] = acct.get("train_teacher_prefix_steps", 0) + sum(r["teacher_steps"] for r in rows)
+        acct["train_teacher_prefix_steps"] = acct.get("train_teacher_prefix_steps", 0) + sum(r["teacher_steps"] for r in rows if not r["shared_prefix"])
         acct["train_packets"] += sum(r["packets"] for r in rows)
         acct["rollout_velocity_evals"] = actor.velocity_evals
         acct["update_velocity_evals"] = learner.update_velocity_evals
