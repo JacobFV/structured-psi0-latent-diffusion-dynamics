@@ -243,7 +243,11 @@ def load_representation(path: Path, dev):
         m.eval()
         for p in m.parameters():
             p.requires_grad_(False)    # frozen parameters; gradients still flow THROUGH P to its input z
-    res = st["extra"]["result"]
+    from rrp.control.latent_realizer import bundle_versions
+    lsv, rcv = bundle_versions(cfg.version(), st["model"]["E"], st["model"]["R"])
+    R.bundle_versions = (lsv, rcv)
+    res = dict(st["extra"]["result"], config_latent_space_version=st["extra"]["result"]["latent_space_version"],
+               latent_space_version=lsv, realizer_compat_version=rcv)
     return cfg, E, R, P, res
 
 

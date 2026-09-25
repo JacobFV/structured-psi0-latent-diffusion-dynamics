@@ -38,9 +38,17 @@ class LatentPolicy:
         pc = PolicyConfig(**dict(st["config"]["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz, aux=False))
         m = FlowPolicy(pc).to(device)
         m.load_state_dict(st["model"])
-        return cls(m, knot_times=lcfg.knot_times, latent_space_version=res["latent_space_version"],
-                   realizer_compat_version=res["realizer_compat_version"], device=device,
-                   name=st["config"].get("name", "latent_policy"), **kw)
+        from rrp.control.latent_realizer import bundle_versions, is_fingerprinted
+        from rrp.contracts.errors import ControllerRejection
+        lsv, rcv = bundle_versions(lcfg.version(), rep["model"]["E"], rep["model"]["R"])
+        legacy = not is_fingerprinted(res["latent_space_version"])
+        if not legacy and (res["latent_space_version"], res["realizer_compat_version"]) != (lsv, rcv):
+            raise ControllerRejection(f"generator {path} was trained against latent space {res['latent_space_version']}, "
+                                      f"but {st['config']['representation']} is now {lsv}", code="latent_space_mismatch")
+        pol = cls(m, knot_times=lcfg.knot_times, latent_space_version=lsv, realizer_compat_version=rcv, device=device,
+                  name=st["config"].get("name", "latent_policy"), **kw)
+        pol.legacy_unfingerprinted = legacy       # trained before D-038: bound to the representation FILE, not weights
+        return pol
 
     def featurizer(self, s):
         f = getattr(s, "_rrp_featurizer", None)

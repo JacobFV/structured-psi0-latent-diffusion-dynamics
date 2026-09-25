@@ -69,3 +69,25 @@ def test_admission_checks():
         args.update(kw)
         with pytest.raises(exc):
             check_packet(p, **args)
+
+
+def test_bundle_fingerprint_rejects_same_config_retrained_bundle():
+    """D-038: compatibility IDs fingerprint the frozen weights; a bundle retrained with an identical config gets new
+    IDs, and system 0 rejects packets stamped for the old bundle even if the caller passes the old IDs."""
+    import types
+    import torch
+    from rrp.control.latent_realizer import LatentRealizer, LatentSystem0, bundle_versions
+    torch.manual_seed(0)
+    E_old, E_new = torch.nn.Linear(4, 4).state_dict(), torch.nn.Linear(4, 4).state_dict()
+    R = LatentRealizer(8, layers=1)
+    old = bundle_versions("ls-cfg", E_old, R.state_dict())
+    new = bundle_versions("ls-cfg", E_new, R.state_dict())
+    assert old != new and old[0].startswith("ls-cfg-w")
+    assert bundle_versions("ls-cfg", {k: v.clone() for k, v in E_old.items()}, R.state_dict()) == old  # deterministic
+    R.bundle_versions = new
+    s0 = LatentSystem0(R, types.SimpleNamespace(spec=types.SimpleNamespace(spec_hash="h")),
+                       latent_space_version=old[0], realizer_compat_version=old[1])
+    with pytest.raises(ControllerRejection) as e:
+        s0.receive(pkt(latent_space_version=old[0], realizer_compat_version=old[1]), now=0.1, graph_version=1)
+    assert e.value.code == "latent_space_mismatch"
+    s0.receive(pkt(latent_space_version=new[0], realizer_compat_version=new[1]), now=0.1, graph_version=1)

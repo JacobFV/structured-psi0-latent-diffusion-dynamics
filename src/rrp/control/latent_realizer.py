@@ -23,6 +23,7 @@ from rrp.contracts.errors import ControllerRejection, StaleActionError
 from rrp.model.attention import MHA
 from rrp.model.batch import NODE_DIM
 from rrp.model.flow import MLP, sinusoidal
+import hashlib
 
 REALIZER_RECURRENT_STATE = "none-v1"
 
@@ -79,7 +80,9 @@ class LatentSystem0:
                  realizer_compat_version: str, device="cpu", fallback: str = "hold_measured"):
         self.net = realizer.eval()
         self.f = featurizer
-        self.lsv, self.rcv = latent_space_version, realizer_compat_version
+        # the realizer's OWN frozen-bundle fingerprint (set by load_representation) is authoritative; the
+        # caller-supplied IDs are only used for legacy realizers without one
+        self.lsv, self.rcv = getattr(realizer, "bundle_versions", None) or (latent_space_version, realizer_compat_version)
         self.device = device
         self.packet: LatentActionChunk | None = None
         self.fallback = fallback
@@ -134,3 +137,25 @@ class LatentSystem0:
         groups = self.f.aspace.denormalize(np.clip(a, -6, 6)[None], pi.q0)[0]
         self.stats.ticks += 1
         return NativeCommand(controller_version=controller_version, groups=groups, source="learned")
+
+
+def weights_digest(state_dict: dict) -> str:
+    """sha256 over parameter/buffer names and raw bytes (dtype-exact), sorted by name."""
+    h = hashlib.sha256()
+    for k in sorted(state_dict):
+        t = state_dict[k].detach().cpu().contiguous()
+        h.update(k.encode()); h.update(str(t.dtype).encode()); h.update(str(tuple(t.shape)).encode())
+        h.update(t.reshape(-1).view(torch.uint8).numpy().tobytes())
+    return h.hexdigest()[:12]
+
+
+def bundle_versions(config_version: str, encoder_state: dict, realizer_state: dict) -> tuple[str, str]:
+    """Compatibility IDs of a FROZEN bundle: the latent space is defined by the encoder weights (not only its
+    config); system-0 compatibility additionally by the realizer weights. Retraining with the same config yields
+    different IDs, so stale packets/generators are rejected instead of silently reinterpreted."""
+    lsv = f"{config_version}-w{weights_digest(encoder_state)}"
+    return lsv, f"rz-{lsv}-r{weights_digest(realizer_state)}-{REALIZER_RECURRENT_STATE}"
+
+
+def is_fingerprinted(latent_space_version: str) -> bool:
+    return "-w" in latent_space_version
