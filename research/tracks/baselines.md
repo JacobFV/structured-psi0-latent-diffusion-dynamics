@@ -81,6 +81,8 @@ Throughput on the shared peer: ~0.6 s/update at batch 256 => ~4.4 h per source m
 ~1 s per episode.
 
 Campaign (running): see "status" below.
+- codec seed1701 (`.../baseline_action_only_codec/seed1701/codec/result.json`): 4,572 updates, 195,297 train chunks,
+  train reconstruction MSE 0.00017 (shuffled-latent 0.41, zero-action 0.25; normalized actions).
 
 ## status
 (updated below as results arrive)
