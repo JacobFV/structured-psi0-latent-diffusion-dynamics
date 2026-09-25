@@ -36,7 +36,7 @@ GLOBAL_DIM = 22
 ASM_KINDS = ("leg", "body", "arm")
 BODY_KINDS = ("quadruped", "hexapod", "humanoid", "other")
 EVENTS = ("walk_to_a", "walk_to_b", "halt")
-MAX_N = 24                              # padded actuated joints (policy + held)
+MAX_N = 32                              # padded actuated joints (policy + held; g1 has 29)
 MAX_M = 11                              # padded assemblies (8 legs + body + 2 arms)
 
 
