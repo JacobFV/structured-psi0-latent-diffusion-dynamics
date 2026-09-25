@@ -60,3 +60,29 @@ Train seeds default 3,100,000+, eval seeds 3,000,000+ (feasible seeds only, disj
 - RUNNING: lease 1790365845_5f45eb `grpo_v2s22k_p40`: base v2 step-22000 snapshot, prefix 40, reward
   success + 0.5 public events + 0.5 privileged cube-zone dist, 15 iters x 8 groups x 8, lr 1e-6, kl 0.05, eval 64 held-out
   dev seeds every 5 iters (both prefix-40 and from-reset). Out: artifacts/runs/grpo_latent_v2s22k_p40_v1.
+- 2026-09-25 lead redirect (causal-semantics priorities): no new GRPO runs; the host lr=3e-6 run (lease 1790368812_e38d14)
+  was stopped right after launch, before any iteration (`ops stop --lease ... --owned-only`); its output was deleted.
+  GRPO resumes on a competent checkpoint later.
+
+## rollout failure modes (input to the ladder track, item 3)
+Source: `scripts/diag_rollout_trace.py` (committed), peer leases 1790369494_42befa (from reset, seeds 3,000,000-2)
+and grpo_trace_p40 (40-tick teacher prefix, seeds 3,000,000-5); raw per-tick rows in
+`artifacts/runs/grpo_trace_v2s22k/trace_{reset,p40}.jsonl` on the peer store. Checkpoint flow_latent_sem_v2 at step 22000
+(snapshot, not final), system 0 = latent_sem_v1 realizer, deployed ODE sampler; all distances are PRIVILEGED sim truth
+used only as diagnostics. Aggregates from the 64/32-episode evals above agree.
+1. **Tracking is not the bottleneck.** Arm tracking error |target - measured q| on the learned path is 0.003-0.05 rad
+   (the teacher's is 0.1 rad while moving, because it commands bigger steps). The tracker follows what system 0 commands.
+2. **Approach failure from reset (100% of episodes).** The TCP moves (0.02-0.23 m/s) but does not go to the cube: TCP-cube
+   distance goes 0.54 -> 0.49 -> 0.58 m over 150 ticks (teacher: 0.54 -> 0.002 m by tick 40). Commanded arm-target steps
+   are 0.002-0.04 rad/tick, not directed (teacher 0.05-0.065 rad/tick, monotone). Median min TCP-cube distance over 300
+   ticks is 0.43-0.44 m (64 episodes). No grasp in 0/192 reset episodes across v1 and v2-snapshot evals.
+3. **Gripper never commits (averaged command).** Learned gripper commands sit at 0.013-0.043 (mean ~0.03) and change
+   from tick to tick; the teacher's are bimodal (0.045 open / 0.0 closed). This looks like mode averaging of a binary
+   decision in the packet or in system 0 (which of the two is the ladder's question: expert-encoded packet -> system 0).
+4. **Grasp/transport failure after a teacher hand-off at the cube (40-tick prefix).** The learned suffix drifts off the
+   cube (TCP-cube 0.005 -> 0.03-0.17 m within 120 ticks), sometimes pushes it (cube-zone 0.156 -> 0.119 m, cube never
+   lifted). The public grasp event fires in 20-31% of episodes (partial closure registered as a grasp), but the cube stays
+   at rest height (z 0.022 m; one 0.049 m blip), so transport never starts. Suffix success 0-2/64.
+5. No packet rejections, no fallback holds, no stale packets in any run: the packet contract and runtime are not the cause.
+Implication: localize command generation first (expert native -> tracker is fine; test expert-encoded packet -> system 0
+next); the gripper channel and step amplitude are the specific signatures to check.
