@@ -38,7 +38,8 @@ class RolePolicy:
     @classmethod
     def host(cls) -> "RolePolicy":
         # D-027: host GPU at 80% of FREE memory (unified CPU+GPU). D-033: user raised host CPU to 80% of free cores.
-        return cls(0.8, 0.8, 0.5)
+        # D-036: user set the shared-disk reserve to a fixed 300 GB (was max(20 GB, 10% of total) = ~367 GB here)
+        return cls(0.8, 0.8, 0.5, disk_reserve_gib=300.0, disk_reserve_total_fraction=0.0)
 
     @classmethod
     def peer(cls) -> "RolePolicy":

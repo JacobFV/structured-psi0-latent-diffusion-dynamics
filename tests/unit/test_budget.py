@@ -24,7 +24,7 @@ def test_reserve_dominates_when_little_is_free():
     b = host_budget(total_ram_gib=128, available_ram_gib=14, free_cpu_cores=4,
                     free_disk_gib=50, total_disk_gib=1000)
     assert b.memory_gib == pytest.approx(14 - 12.8)   # reserve still dominates
-    assert b.new_disk_gib == 0.0  # disk reserve 100 GiB > free 50 GiB
+    assert b.new_disk_gib == 0.0  # disk reserve 300 GiB (D-036) > free 50 GiB
 
 
 @pytest.mark.parametrize("bad", [-1, float("nan"), float("inf"), "3", True, None])
@@ -79,3 +79,10 @@ def test_live_limit_does_not_repeatedly_halve_project_reduced_memory():
 def test_live_cpu_limit_tracks_external_load():
     assert live_cpu_limit(startup_limit=6, idle_now=12, project_usage=0) == 6
     assert live_cpu_limit(startup_limit=6, idle_now=2, project_usage=2) == 2
+
+
+def test_host_disk_reserve_fixed_300gb():
+    # D-036: fixed 300 GB shared-disk reserve, not 10% of total
+    b = host_budget(total_ram_gib=128, available_ram_gib=40, free_cpu_cores=4, free_disk_gib=377, total_disk_gib=3667)
+    assert b.disk_reserve_gib == 300.0
+    assert b.new_disk_gib == pytest.approx(min(0.5 * 377, 377 - 300))

@@ -94,11 +94,11 @@ def thread_env(cpu_cores: float) -> dict:
 def run_leased(argv: list[str], *, cpu: float, memory_bytes: int, label: str, gpu: bool = False,
                gpu_memory_bytes: int = 0,
                max_seconds: int = 21600, cwd: Path | None = None, wait: bool = True,
-               extra_env: dict | None = None, log_dir: Path | None = None) -> dict:
+               extra_env: dict | None = None, log_dir: Path | None = None, disk_bytes: int = 0) -> dict:
     br, be = make_broker()
     lease = br.acquire(ResourceRequest(cpu_cores=cpu, memory_bytes=memory_bytes, gpu=gpu, label=label,
                                        node=node_role(), max_seconds=max_seconds,
-                                       gpu_memory_bytes=gpu_memory_bytes))
+                                       gpu_memory_bytes=gpu_memory_bytes, disk_bytes=disk_bytes))
     log_dir = log_dir or (ops_root() / "ops" / "logs")
     log_dir.mkdir(parents=True, exist_ok=True)
     log = log_dir / f"{lease.lease_id}_{label}.log"

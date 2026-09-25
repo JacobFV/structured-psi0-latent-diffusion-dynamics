@@ -99,6 +99,7 @@ def cmd_ops_run(a):
         raise SystemExit("no command")
     res = run_leased(cmd, cpu=a.cpu, memory_bytes=_parse_bytes(a.mem), label=a.label, gpu=a.gpu,
                      gpu_memory_bytes=_parse_bytes(a.gpu_mem) if a.gpu_mem else 0,
+                     disk_bytes=_parse_bytes(a.disk) if getattr(a, "disk", None) else 0,
                      max_seconds=a.max_seconds, wait=not a.detach,
                      extra_env=dict(kv.split("=", 1) for kv in (a.env or [])))
     print(json.dumps(res), file=sys.stderr)
@@ -203,6 +204,7 @@ def build_parser() -> argparse.ArgumentParser:
     o.add_argument("--label", default="job")
     o.add_argument("--gpu", action="store_true")
     o.add_argument("--gpu-mem", help="declared GPU (unified) memory, counted in the aggregate")
+    o.add_argument("--disk", help="new disk this job will write (e.g. 25G), reserved against the node disk budget")
     o.add_argument("--max-seconds", type=int, default=3600)
     o.add_argument("--detach", action="store_true")
     o.add_argument("--env", action="append", help="KEY=VALUE passed to the job")
