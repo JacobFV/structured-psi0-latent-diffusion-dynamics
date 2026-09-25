@@ -1,0 +1,130 @@
+{
+ "name": "pick_place_paired_v1",
+ "out_dir": "artifacts/datasets/pick_place_paired_v1",
+ "workers": 12,
+ "task": "pick_place_paired",
+ "paired_objects": [
+  2,
+  3
+ ],
+ "notes": "Paired binding scenes (track binding): identical initial scene per (robot, seed), every cube assigned as patient in turn, seeded public slot order independent of role; scripted_teacher demos (+DART 0.08). Seeds 2000000+ are disjoint from pick_place_primary_v3dart.",
+ "items": [
+  {
+   "robot": "parm5_pg2",
+   "split": "source_train",
+   "seed_start": 2000000,
+   "episodes": 200,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "parm5_tf3",
+   "split": "source_train",
+   "seed_start": 2000000,
+   "episodes": 200,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "parm5s_pg2",
+   "split": "source_train",
+   "seed_start": 2000000,
+   "episodes": 200,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "parm5l_tf3",
+   "split": "source_train",
+   "seed_start": 2000000,
+   "episodes": 200,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "parm6_pg2",
+   "split": "source_train",
+   "seed_start": 2000000,
+   "episodes": 200,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "parm6_tf3",
+   "split": "source_train",
+   "seed_start": 2000000,
+   "episodes": 200,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "parm7_pg2",
+   "split": "source_train",
+   "seed_start": 2000000,
+   "episodes": 200,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "parm7_tf3",
+   "split": "source_train",
+   "seed_start": 2000000,
+   "episodes": 200,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "panda_pg2",
+   "split": "source_train",
+   "seed_start": 2000000,
+   "episodes": 200,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "ur5e_pg2",
+   "split": "source_train",
+   "seed_start": 2000000,
+   "episodes": 200,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "ur5e_tf3",
+   "split": "source_train",
+   "seed_start": 2000000,
+   "episodes": 200,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "sawyer_pg2",
+   "split": "source_train",
+   "seed_start": 2000000,
+   "episodes": 200,
+   "dart_noise": [
+    0.08
+   ]
+  },
+  {
+   "robot": "sawyer_tf3",
+   "split": "source_train",
+   "seed_start": 2000000,
+   "episodes": 200,
+   "dart_noise": [
+    0.08
+   ]
+  }
+ ]
+}

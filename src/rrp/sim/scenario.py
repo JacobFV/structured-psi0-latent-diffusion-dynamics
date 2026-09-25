@@ -145,8 +145,71 @@ def build_reach(robot, seed: int, task: dict | None = None, base=((0.0, 0.0, 0.0
     return Scenario("reach_pose", task or _task("reach_pose"), scene, model, robots, objects, seed)
 
 
+PAIRED_COLORS = ("red", "blue", "yellow", "purple", "orange", "cyan")
+
+
+def build_pick_place_paired(robot, seed: int, *, patient: int = 0, n_objects: int = 3, cube_size: float = 0.022,
+                            base=((0.0, 0.0, 0.0), 0.0)) -> Scenario:
+    """Paired binding scenes (track `binding`, correction 2026-09-25 item 2).
+
+    The PHYSICAL scene depends only on `seed`: n_objects same-size cubes with distinct colors, poses and a green
+    target zone, all placed in the graspable region. `patient` (0..n_objects-1) selects which physical cube the task
+    assigns as patient; the other cubes are clutter. So (seed, patient=i) and (seed, patient=j) have IDENTICAL initial
+    scenes and differ only in the supplied task binding (entity descriptor), each with its own valid demonstration.
+    The public slot order (tracker slots) is a seeded permutation over PHYSICAL objects incl. the target zone,
+    identical within a pair and independent of the role, so neither the patient nor the destination has a fixed slot.
+    Internally the assigned cube is named `cube` (privileged sim name; teachers/success checks use it); names are
+    not public. The task's `cube` entity descriptor is set to the assigned cube's color descriptor."""
+    if not 0 <= patient < n_objects:
+        raise ValueError("patient index out of range")
+    rng = np.random.default_rng(seed)
+    scene = workspace_spec(f"pick_place_paired_{seed}")
+    mounted = mount_robots(scene, [robot], [base])
+    placed = []
+    xys = []
+    for _ in range(n_objects):
+        xy = _free_xy(rng, [0.30, -0.22], [0.52, 0.22], placed, 0.09)
+        placed.append(xy)
+        xys.append(xy)
+    tgt_xy = _free_xy(rng, [0.28, -0.28], [0.54, 0.28], placed, 0.12)
+    colors = [PAIRED_COLORS[i] for i in rng.permutation(len(PAIRED_COLORS))[:n_objects]]
+    yaws = rng.uniform(-math.pi / 4, math.pi / 4, n_objects)
+    order = rng.permutation(n_objects + 1)            # public slot order over physical items (index n = target zone)
+    names, k = [], 0
+    for i in range(n_objects):
+        if i == patient:
+            names.append("cube")
+        else:
+            names.append(f"distractor{k}")
+            k += 1
+    for i in range(n_objects):                        # bodies added in PHYSICAL order: identical model up to names
+        b = add_box_object(scene, names[i], [*xys[i], cube_size + 0.001], size=(cube_size,) * 3, rgba=COLORS[colors[i]])
+        b.quat = _quat_from_axis_angle([0, 0, 1], yaws[i])
+    add_target_zone(scene, "target_zone", [*tgt_xy, 0.0005], radius=0.05)
+    decl = [ObjectDecl(names[i], f"{colors[i]} cube", "object", (cube_size,) * 3,
+                       task_entity="cube" if i == patient else None) for i in range(n_objects)]
+    decl.append(ObjectDecl("target_zone", "green target zone", "feature", radius=0.05, task_entity="target"))
+    objects = [decl[i] for i in order]
+    model = scene.compile()
+    robots = []
+    for prefix, meta, pos, yaw in mounted:
+        rs = compile_robot_spec(model, meta, prefix=prefix, name=meta.get("name"))
+        manip = next(a.id for a in rs.assemblies if "grasp" in a.capabilities)
+        robots.append(MountedRobot(prefix, meta, rs, pos, yaw, {"gripper": manip}))
+    task = copy.deepcopy(_task("pick_place"))
+    for e in task["entity_declarations"]:
+        if e["id"] == "cube":
+            e["descriptor"] = f"{colors[patient]} cube"
+    return Scenario("pick_place", task, scene, model, robots, objects, seed,
+                    meta=dict(paired=True, pair_seed=seed, patient=patient, n_objects=n_objects, colors=colors,
+                              cube_color=colors[patient], n_distractors=n_objects - 1,
+                              slot_order=[int(x) for x in order],
+                              patient_slot=int(list(order).index(patient)),
+                              target_slot=int(list(order).index(n_objects))))
+
+
 def _task(name):
     return load_task(name)
 
 
-BUILDERS = {"pick_place": build_pick_place, "reach_pose": build_reach}
+BUILDERS = {"pick_place": build_pick_place, "reach_pose": build_reach, "pick_place_paired": build_pick_place_paired}
