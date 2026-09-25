@@ -10,7 +10,7 @@ import json
 import time
 
 from .jobs import run_leased_child
-from .runtime import make_broker, repo_root, node_role
+from .runtime import make_broker, ops_root, node_role
 from . import telemetry
 
 
@@ -39,7 +39,7 @@ def main(argv=None):
                cpu_core_s=(info.get("cpu_usage_usec") or 0) / 1e6,
                gpu_device_s=(time.time() - t0) if req.get("gpu") else 0.0,
                returncode=res.returncode, stopped_by=res.stopped_by, cmd=" ".join(cmd)[:300])
-    ledger = repo_root() / "ops" / "resource-ledger.jsonl"
+    ledger = ops_root() / "ops" / "resource-ledger.jsonl"
     with open(ledger, "a") as lf:
         lf.write(json.dumps(rec) + "\n")
     log.with_suffix(".rc").write_text(str(res.returncode if res.returncode is not None else -1))

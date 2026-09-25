@@ -20,6 +20,36 @@ from rrp.learning.data import load_episodes, episode_samples
 from rrp.model.batch import Batch, BANK_DIMS, NODE_DIM
 
 MAX_T = {"morph": 16, "scene": 8, "task": 24, "interact": 12}
+OPERATORS = ["none", "grasp", "place", "reach", "maintain_support", "estimate_frame", "align_axis", "insert",
+             "give", "receive", "walk_to", "halt"]
+
+
+def local_sensors(pi) -> np.ndarray:
+    """Declared local sensors for system 0: touch summary (log max, count>0.2N, log mean) + gripper width."""
+    from rrp.data.features import text_hash
+    th = text_hash("touch")
+    out = np.zeros(4, np.float32)
+    it, ik = pi.tokens["interact"], pi.token_kind["interact"]
+    for j in range(len(ik)):
+        if ik[j] != 1:
+            continue
+        if np.allclose(it[j, 16:], th):
+            out[:3] = it[j, 13:16]
+        else:
+            out[3] = it[j, 13]
+    return out
+
+
+def active_operator(pi) -> int:
+    """Public subtask label: operator of the first ACTIVE event (runtime status is public)."""
+    from rrp.data.features import text_hash
+    tt, tk = pi.tokens["task"], pi.token_kind["task"]
+    for j in range(len(tk)):
+        if tk[j] == 0 and tt[j, HASH_DIM + 2] > 0.5:
+            for k, op in enumerate(OPERATORS):
+                if np.allclose(tt[j, :HASH_DIM], text_hash(op), atol=1e-5):
+                    return k
+    return 0
 MAX_N, MAX_S, MAX_R, MAX_P = 12, 8, 160, 32
 
 
@@ -64,13 +94,21 @@ def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, s
         a=((H, MAX_N), np.float16), valid=((H, MAX_N), np.bool_), eff=((H, 4), np.float16),
         held=((MAX_S,), np.bool_), contact=((MAX_S,), np.bool_), visible=((MAX_S,), np.bool_),
         focus=((MAX_S,), np.bool_), slot_valid=((MAX_S,), np.bool_), rel_tcp=((MAX_S, 3), np.float16),
-        future_disp=((MAX_S, 3), np.float16), gaze=((MAX_S,), np.float16))
+        future_disp=((MAX_S, 3), np.float16), gaze=((MAX_S,), np.float16),
+        ep_idx=((), np.int32), t=((), np.int32), ep_len=((), np.int32), local=((4,), np.float16),
+        subtask=((), np.int8), robot_id=((), np.int16))
     buf = {k: [] for k in specs}
     robots_seen = []
+    ep_counter = 0
+    robot_ids: dict[str, int] = {}
     for g in range(0, len(ids), chunk_episodes):
         eps = load_episodes(ds_dir, robots=robots, statuses=statuses, seeds=seeds,
                             episode_ids=set(ids[g:g + chunk_episodes]), include_dart_failures=include_dart_failures)
         for pub, prv in eps:
+            ep_counter += 1
+            ep_len = len(pub["inputs"])
+            rk = pub["meta"].get("robot_key") or ""
+            rid = robot_ids.setdefault(rk, len(robot_ids))
             for smp in episode_samples(pub, prv, H, stride):
                 pi = smp.pi
                 row = {}
@@ -119,6 +157,10 @@ def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, s
                 gz = np.zeros(MAX_S, np.float16)
                 gz[:S] = smp.labels["gaze"][:S]
                 row["gaze"] = gz
+                row["ep_idx"], row["t"], row["ep_len"] = np.int32(ep_counter), np.int32(smp.meta["t"]), np.int32(ep_len)
+                row["local"] = local_sensors(pi).astype(np.float16)
+                row["subtask"] = np.int8(active_operator(pi))
+                row["robot_id"] = np.int16(rid)
                 for k2 in specs:
                     buf[k2].append(row[k2])
                 robots_seen.append(smp.meta.get("robot"))
@@ -128,7 +170,7 @@ def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, s
         arr = np.stack(buf[k2]).astype(dt) if buf[k2] else np.zeros((0,) + shape, dt)
         np.save(out_dir / f"{k2}.npy", arr)
         buf[k2] = None
-    meta = dict(n=n, H=H, stride=stride, source=str(ds_dir), robots=sorted(set(r for r in robots_seen if r)),
+    meta = dict(n=n, H=H, stride=stride, source=str(ds_dir), robot_ids=robot_ids, operators=OPERATORS, robots=sorted(set(r for r in robots_seen if r)),
                 max=dict(T=MAX_T, N=MAX_N, S=MAX_S, R=MAX_R, P=MAX_P), include_dart_failures=include_dart_failures)
     (out_dir / "meta.json").write_text(json.dumps(meta, indent=1))
     return meta
