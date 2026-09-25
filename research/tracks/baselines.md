@@ -31,9 +31,8 @@ aggregation script already reads their `run_latent_cell` outputs.
   because `episode_samples` uses `range(0, T, stride)`); `train_policy` reads `packed_stride`.
 - `scripts/baselines_slot.sh <method> <seeds...>`: serial queue for one GPU slot (source, then target x budget cells);
   `scripts/baselines_supervise.sh` (host, lightweight) re-launches the slot lease in <=6 h segments (broker cap) until
-  the slot writes `.slot_done_*` (only when no cell failed). `scripts/baselines_host_source.sh <method> <seed>`: optional
-  host slot that trains one source model and rsyncs it to the peer; the peer slot defers that seed while
-  `source/REMOTE_TRAINING` exists.
+  the slot writes `.slot_done_*` (only when no cell failed). The slot defers a seed while `source/REMOTE_TRAINING`
+  exists (a hook for training a source model elsewhere; currently unused, and the host script was removed).
 - `src/rrp/evaluation/latent_slice1_report.py` (`python -m rrp.evaluation.latent_slice1_report`): per method x target x
   budget pooled success, Wilson 95%, per-seed k/n, target demo episodes / transitions / SFT updates, source updates,
   first sustained crossing of 0.8. Works on both baseline and latent cell layouts.
