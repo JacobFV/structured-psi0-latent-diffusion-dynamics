@@ -198,8 +198,9 @@ def cmd_grpo(a):
                               groups_per_iter=a.groups_per_iter, train_seed_start=a.train_seed_start,
                               eval_seed_start=a.eval_seed_start, eval_episodes=a.eval_episodes, eval_every=a.eval_every,
                               eval_batch=a.eval_batch, max_steps=a.max_steps, nfe=a.nfe, seed=a.seed,
-                              allow_target=a.allow_target,
-                              reward=RewardConfig(shaping_events=a.shaping_events, shaping_dist=a.shaping_dist), grpo=g)
+                              allow_target=a.allow_target, prefix_steps=a.teacher_prefix_steps,
+                              reward=RewardConfig(shaping_events=a.shaping_events, shaping_dist=a.shaping_dist,
+                                                  shaping_reach=a.shaping_reach), grpo=g)
     res = train_latent_grpo(cfg)
     print(json.dumps(dict(evals=res["evals"], accounting=res["accounting"]), indent=1))
 
@@ -230,5 +231,9 @@ def register_grpo(p):
     c.add_argument("--last-step", default="deterministic", choices=["deterministic", "stochastic"])
     c.add_argument("--shaping-events", type=float, default=0.0, help="weight of PUBLIC task-event progress reward")
     c.add_argument("--shaping-dist", type=float, default=0.0, help="weight of PRIVILEGED cube-zone distance reward")
+    c.add_argument("--shaping-reach", type=float, default=0.0,
+                   help="weight of PRIVILEGED min TCP-to-cube distance reward (curriculum, reward only)")
+    c.add_argument("--teacher-prefix-steps", type=int, default=0,
+                   help="curriculum: SCRIPTED TEACHER controls the first N ticks (labelled; also evaluated without)")
     c.add_argument("--seed", type=int, default=0)
     c.set_defaults(fn=cmd_grpo)

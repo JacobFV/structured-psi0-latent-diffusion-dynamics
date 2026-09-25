@@ -131,6 +131,7 @@ class RewardConfig:
     shaping_events: float = 0.0        # public task-runtime progress
     shaping_dist: float = 0.0          # PRIVILEGED sim-truth cube-to-zone distance (reward only)
     dist_scale: float = 0.3
+    shaping_reach: float = 0.0         # PRIVILEGED sim-truth: 1 - min_t d(TCP, cube) / d at learned-control start
 
     def label(self) -> str:
         parts = [REWARD_LABEL]
@@ -138,14 +139,25 @@ class RewardConfig:
             parts.append(f"{self.shaping_events}*public_event_fraction")
         if self.shaping_dist:
             parts.append(f"{self.shaping_dist}*privileged_cube_zone_dist")
+        if self.shaping_reach:
+            parts.append(f"{self.shaping_reach}*privileged_min_tcp_cube_dist")
         return " + ".join(parts)
 
 
+def _tcp_cube_d(s) -> float:
+    from rrp.evaluation.latent_eval import _tcp
+    return float(np.linalg.norm(_tcp(s) - s.data.xpos[s.model.body("cube").id]))
+
+
 def run_episodes(policy, realizer, robot_key: str, seeds: list[int], *, replan_ticks=8, max_steps=300,
-                 task="pick_place", device="cpu", reward: RewardConfig | None = None, record=True) -> list[dict]:
+                 task="pick_place", device="cpu", reward: RewardConfig | None = None, record=True,
+                 prefix_steps: int = 0) -> list[dict]:
     """Lock-step closed loop (same rules as evaluate_latent): system i every `replan_ticks`, system 0 every tick.
     `seeds` may repeat (a GRPO group = the same seed G times). Returns one dict per episode incl. packet records
-    of ACCEPTED packets (rejected packets never influenced control and are excluded from training)."""
+    of ACCEPTED packets (rejected packets never influenced control and are excluded from training).
+    prefix_steps > 0: CURRICULUM — the SCRIPTED TEACHER (privileged planner, source=scripted_teacher) controls the
+    first prefix_steps ticks (deterministic given the seed, so identical within a group), then system i/system 0
+    take over for the remaining max_steps - prefix_steps ticks. Results report it; never a deployable score."""
     from rrp.morphology.catalog import workbench_robots
     from rrp.sim.scenario import BUILDERS
     from rrp.sim.native import Session
@@ -159,8 +171,21 @@ def run_episodes(policy, realizer, robot_key: str, seeds: list[int], *, replan_t
         S.append(s)
         s0.append(LatentSystem0(realizer, f, latent_space_version=policy.lsv, realizer_compat_version=policy.rcv,
                                 device=device))
-        meta.append(dict(done=False, outcome=None, steps=0, calls=0, recs=[]))
-    for step in range(max_steps):
+        meta.append(dict(done=False, outcome=None, steps=0, calls=0, recs=[], teacher_steps=0, min_reach=None))
+    if prefix_steps > 0:
+        from rrp.control.teachers import PickPlaceTeacher
+        for k, s in enumerate(S):
+            t = PickPlaceTeacher(s)
+            for _ in range(prefix_steps):
+                s.step(t.act())
+                meta[k]["teacher_steps"] += 1
+                if s.runtime.succeeded() or s.data.xpos[s.model.body("cube").id][2] < -0.05:
+                    meta[k]["done"] = True
+                    meta[k]["outcome"] = "teacher_prefix_terminal"
+                    break
+    for k, s in enumerate(S):
+        meta[k]["min_reach"] = meta[k]["reach0"] = _tcp_cube_d(s)
+    for step in range(max_steps - prefix_steps):
         act = [k for k, m in enumerate(meta) if not m["done"]]
         if not act:
             break
@@ -180,6 +205,8 @@ def run_episodes(policy, realizer, robot_key: str, seeds: list[int], *, replan_t
             s = S[k]
             s.step(s0[k].tick(s, s.controller_version()))
             meta[k]["steps"] += 1
+            if True:
+                meta[k]["min_reach"] = min(meta[k]["min_reach"], _tcp_cube_d(s))
             if s.data.xpos[s.model.body("cube").id][2] < -0.05:
                 meta[k].update(done=True, outcome="failure")
             elif s.runtime.succeeded():
@@ -189,7 +216,7 @@ def run_episodes(policy, realizer, robot_key: str, seeds: list[int], *, replan_t
         m = meta[k]
         priv = bool(s.privileged_success())
         if m["outcome"] is None:
-            m["outcome"] = "success" if priv else ("timeout" if m["steps"] >= max_steps else "failure")
+            m["outcome"] = "success" if priv else ("timeout" if m["steps"] >= max_steps - prefix_steps else "failure")
         ev = _public_event_fraction(s)
         d = _cube_zone_d(s)
         r = float(priv)
@@ -197,8 +224,11 @@ def run_episodes(policy, realizer, robot_key: str, seeds: list[int], *, replan_t
             r += reward.shaping_events * ev
         if reward.shaping_dist and d is not None:
             r += reward.shaping_dist * (1 - min(d / reward.dist_scale, 1.0))
+        if reward.shaping_reach:
+            r += reward.shaping_reach * (1 - min(m["min_reach"] / max(m["reach0"], 1e-6), 1.0))
         out.append(dict(seed=seeds[k], outcome=m["outcome"], privileged_success=priv,
-                        public_success=bool(s.runtime.succeeded()), steps=m["steps"], packets=m["calls"],
+                        public_success=bool(s.runtime.succeeded()), steps=m["steps"], teacher_steps=m["teacher_steps"],
+                        min_tcp_cube_dist_priv=m["min_reach"], packets=m["calls"],
                         rejected=s0[k].stats.rejected, public_event_fraction=ev, cube_zone_dist_priv=d, reward=r,
                         reward_label=reward.label(), events={e: v.status for e, v in s.runtime.instances.items()},
                         recs=m["recs"]))
@@ -237,6 +267,7 @@ class LatentGRPORunConfig:
     replan_ticks: int = 8
     nfe: int = 8
     seed: int = 0
+    prefix_steps: int = 0              # scripted-teacher curriculum prefix (labelled); 0 = learned from reset
     allow_target: bool = False
     reward: RewardConfig = field(default_factory=RewardConfig)
     grpo: GRPOConfig = field(default_factory=lambda: GRPOConfig(
@@ -244,23 +275,29 @@ class LatentGRPORunConfig:
         sde=SDEConfig(nfe=8, noise_level=0.5, first_step="clamp", last_step="deterministic")))
 
 
-def _eval(model, base, realizer, cfg: LatentGRPORunConfig, seeds, device, tag, out: Path) -> dict:
-    """Deployed sampler (ODE, nfe) on held-out seeds; no probes (control only)."""
+def _eval(model, base, realizer, cfg: LatentGRPORunConfig, seeds, device, tag, out: Path, prefix: int = 0) -> dict:
+    """Deployed sampler (ODE, nfe) on held-out seeds; no probes (control only). prefix>0: teacher-prefix curriculum
+    eval (suffix success; episodes the teacher itself finished are excluded and counted)."""
     pol = LatentPolicy(model, knot_times=base.knot_times, latent_space_version=base.lsv,
                        realizer_compat_version=base.rcv, device=device, nfe=cfg.nfe, name=tag, seed=cfg.seed + 99)
     rows, t0 = [], time.time()
     for i in range(0, len(seeds), cfg.eval_batch):
         rows += run_episodes(pol, realizer, cfg.robot, seeds[i:i + cfg.eval_batch], replan_ticks=cfg.replan_ticks,
-                             max_steps=cfg.max_steps, device=device, reward=cfg.reward, record=False)
+                             max_steps=cfg.max_steps, device=device, reward=cfg.reward, record=False,
+                             prefix_steps=prefix)
     with open(out / "eval_episodes.jsonl", "a") as fh:
         for r in rows:
-            fh.write(json.dumps(dict({k: v for k, v in r.items() if k != "recs"}, tag=tag, sampler="ode")) + "\n")
+            fh.write(json.dumps(dict({k: v for k, v in r.items() if k != "recs"}, tag=tag, sampler="ode",
+                                     teacher_prefix_steps=prefix)) + "\n")
     from rrp.evaluation.statistics import wilson
+    teacher_done = sum(r["outcome"] == "teacher_prefix_terminal" for r in rows)
+    rows = [r for r in rows if r["outcome"] != "teacher_prefix_terminal"]
     k = sum(r["privileged_success"] for r in rows)
     model.train()
-    return dict(tag=tag, episodes=len(rows), successes=k, rate=k / max(1, len(rows)), wilson95=wilson(k, len(rows)),
+    return dict(tag=tag, teacher_prefix_steps=prefix, teacher_finished_excluded=teacher_done, episodes=len(rows), successes=k, rate=k / max(1, len(rows)), wilson95=wilson(k, len(rows)),
                 mean_reward=float(np.mean([r["reward"] for r in rows])),
                 mean_event_fraction=float(np.mean([r["public_event_fraction"] for r in rows])),
+                mean_min_tcp_cube_dist_priv=float(np.mean([r["min_tcp_cube_dist_priv"] for r in rows])),
                 env_steps=sum(r["steps"] for r in rows), wall_s=time.time() - t0)
 
 
@@ -294,16 +331,22 @@ def train_latent_grpo(cfg: LatentGRPORunConfig) -> dict:
                 update_velocity_evals=0, optimizer_updates=0, informative_groups=0, zero_variance_groups=0,
                 eval_episodes=0, eval_env_steps=0)
     log = open(out / "train_log.jsonl", "a")
-    evals = [_eval(model, base, R, cfg, eval_seeds, dev, "reference@0", out)]
-    acct["eval_episodes"] += evals[-1]["episodes"]; acct["eval_env_steps"] += evals[-1]["env_steps"]
-    print(json.dumps(evals[-1]), flush=True)
+    evals = []
+
+    def do_eval(tag):
+        for pf in sorted({0, cfg.prefix_steps}):
+            evals.append(_eval(model, base, R, cfg, eval_seeds, dev, tag, out, prefix=pf))
+            acct["eval_episodes"] += evals[-1]["episodes"]; acct["eval_env_steps"] += evals[-1]["env_steps"]
+            print(json.dumps(evals[-1]), flush=True)
+    do_eval("reference@0")
     t_start = time.time()
     for it in range(cfg.iters):
         t0 = time.time()
         seeds = train_pool[it * cfg.groups_per_iter:(it + 1) * cfg.groups_per_iter]
         actor.version = learner.version
         rows = run_episodes(actor, R, cfg.robot, [s for s in seeds for _ in range(G)], replan_ticks=cfg.replan_ticks,
-                            max_steps=cfg.max_steps, device=dev, reward=cfg.reward)
+                            max_steps=cfg.max_steps, device=dev, reward=cfg.reward, prefix_steps=cfg.prefix_steps)
+        teacher_done = sum(r["outcome"] == "teacher_prefix_terminal" for r in rows)
         t_roll = time.time() - t0
         samples, info = [], dict(informative_groups=0, zero_variance_groups=0)
         for gi in range(len(seeds)):
@@ -318,6 +361,7 @@ def train_latent_grpo(cfg: LatentGRPORunConfig) -> dict:
         ust = learner.update(samples)
         acct["train_episodes"] += len(rows)
         acct["train_env_steps"] += sum(r["steps"] for r in rows)
+        acct["train_teacher_prefix_steps"] = acct.get("train_teacher_prefix_steps", 0) + sum(r["teacher_steps"] for r in rows)
         acct["train_packets"] += sum(r["packets"] for r in rows)
         acct["rollout_velocity_evals"] = actor.velocity_evals
         acct["update_velocity_evals"] = learner.update_velocity_evals
@@ -328,19 +372,21 @@ def train_latent_grpo(cfg: LatentGRPORunConfig) -> dict:
                    sde_success=float(np.mean([r["privileged_success"] for r in rows])),
                    mean_reward=float(np.mean([r["reward"] for r in rows])),
                    group_success=[sum(r["privileged_success"] for r in rows[g * G:(g + 1) * G]) for g in range(len(seeds))],
-                   rejected=sum(r["rejected"] for r in rows), **info, update=ust, rollout_s=t_roll,
+                   rejected=sum(r["rejected"] for r in rows), teacher_finished=teacher_done,
+                   mean_min_reach=float(np.mean([r["min_tcp_cube_dist_priv"] for r in rows])),
+                   grasp_rate=float(np.mean([r["events"].get("grasp") == "succeeded" for r in rows])), **info, update=ust, rollout_s=t_roll,
                    iter_s=time.time() - t0, accounting=dict(acct))
         log.write(json.dumps(rec, default=str) + "\n"); log.flush()
-        print(json.dumps({k: rec[k] for k in ("iter", "sde_success", "mean_reward", "group_success",
+        print(json.dumps({k: rec[k] for k in ("iter", "sde_success", "mean_reward", "grasp_rate", "mean_min_reach", "group_success",
                                               "informative_groups", "rollout_s", "iter_s")}),
               json.dumps({k: ust.get(k) for k in ("chunks", "ratio_mean", "clip_frac", "kl", "grad_norm",
                                                   "first_pass_max_abs_ratio_minus_1")}), flush=True)
         if (it + 1) % cfg.eval_every == 0 or it + 1 == cfg.iters:
-            evals.append(_eval(model, base, R, cfg, eval_seeds, dev, f"latent_grpo@{it + 1}", out))
-            acct["eval_episodes"] += evals[-1]["episodes"]; acct["eval_env_steps"] += evals[-1]["env_steps"]
-            print(json.dumps(evals[-1]), flush=True)
+            do_eval(f"latent_grpo@{it + 1}")
     res = dict(method="latent_grpo", source_checkpoint=cfg.checkpoint, robot=cfg.robot, reward_label=cfg.reward.label(),
-               controller_source=f"learned:{cfg.checkpoint}+latent_grpo", changed_modules=learner.module_report(),
+               controller_source=f"learned:{cfg.checkpoint}+latent_grpo",
+               curriculum=(f"scripted_teacher prefix {cfg.prefix_steps} ticks (privileged planner), learned suffix"
+                           if cfg.prefix_steps else "none (learned from reset)"), changed_modules=learner.module_report(),
                frozen=["system0_realizer", "target_encoder", "packet_probes"] + sorted(learner.frozen),
                eval_seeds=[eval_seeds[0], eval_seeds[-1], len(eval_seeds)], evals=evals, accounting=acct,
                train_wall_s=time.time() - t_start, kl_coef=cfg.grpo.kl_coef,
