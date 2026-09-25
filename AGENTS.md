@@ -31,6 +31,6 @@ outcome). Keep them small so they can be committed.
   `PYTHONPATH=src python3 -m rrp.cli ops run --cpu X --mem Y --label L -- cmd`.
 - Peer (`gb10-direct`): the user authorized using ALL of it (research/decisions.md D-008); one GPU
   job at a time via the broker's GPU slot. Workspace: /dev/shm/rrp-brandonin (sync with scripts/peer_sync.sh push).
-- Commit as you go and push to the PRIVATE remote `origin` (github.com/JacobFV/relational-robot-policy); never make it public.
+- Commit as you go and push to the remote `origin` (github.com/JacobFV/structured-psi0-latent-diffusion-dynamics; renamed from relational-robot-policy 2026-09-25). The GitHub repo is currently PUBLIC: never commit tokens, weights, third-party assets or datasets.
 - NEVER run `rrp ops stop` without `--lease <your lease id>`: other engineers' jobs share the project slice.
   (2026-09-21 incident: an unscoped stop killed every running peer job, including the lead's training.)

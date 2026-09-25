@@ -1,11 +1,11 @@
-# project status — relational robot policy
+# project status — structured-psi0-latent-diffusion-dynamics (formerly relational robot policy)
 
 **ACTIVE: architecture correction (R38) on branch correction/controller-facing-latent — see research/corrections/controller-facing-semantic-latent.md. Old direct-action path = baseline only.**
 
 Updated: 2026-09-21 (session 1). Overall: **in_progress** (not complete).
 
 ## resolved environment
-- repo: `~/work/relational-robot-policy` (host `Dell-gb10-1`, aarch64 GB10). Handoff in `docs/handoff/`.
+- repo: `~/work/relational-robot-policy` (GitHub: JacobFV/structured-psi0-latent-diffusion-dynamics, renamed 2026-09-25) (host `Dell-gb10-1`, aarch64 GB10). Handoff in `docs/handoff/`.
 - peer: `gb10-direct` (hostname promaxgb10-4dfb, direct link). Workspace (RAM-backed, D-003): `/dev/shm/rrp-brandonin/{repo,venv,cache,bin}`.
 - host venv: `.venv` (CPU only). peer venv: `/dev/shm/rrp-brandonin/venv` (torch cu130, mujoco).
 - enforced parents: host `rrp.slice` 7.11 CPU / 20.0 GiB / swap 0 / host GPU off; peer `rrp.slice` ~15.9 CPU / ~88 GiB / 1 GPU slot. See `configs/resources.local.json`.

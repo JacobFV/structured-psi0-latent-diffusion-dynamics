@@ -1,4 +1,6 @@
-# relational-robot-policy
+# structured-psi0-latent-diffusion-dynamics
+
+> Formerly `relational-robot-policy` (renamed 2026-09-25). The Python package/CLI is still `rrp`, and the working checkout on the GB10 hosts is still `~/work/relational-robot-policy`.
 
 Research system for **morphology-general robot control with a structured, semantic action latent**:
 a ψ₀-inspired stack where a planner ("system i") emits a continuous latent action packet `z` that carries the task's
@@ -45,7 +47,7 @@ Requirements: Linux aarch64 or x86_64, Python 3.12, [`uv`](https://github.com/as
 (the resource broker uses user cgroups), Node 20+ only for the UI.
 
 ```bash
-git clone <this repo> && cd relational-robot-policy
+git clone https://github.com/JacobFV/structured-psi0-latent-diffusion-dynamics.git && cd structured-psi0-latent-diffusion-dynamics
 uv venv --python 3.12 .venv
 uv pip install --python .venv/bin/python -e '.[sim,service,ml,dev]'   # CPU torch is fine for tests
 scripts/fetch_menagerie.sh                                             # pinned third-party robot assets (~1.7 GB)
