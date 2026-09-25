@@ -42,3 +42,21 @@ Train seeds default 3,100,000+, eval seeds 3,000,000+ (feasible seeds only, disj
 `eval_episodes.jsonl`.
 
 ## log
+- 2026-09-25 [verified] code + tests: `pytest tests/unit/test_latent_grpo.py` (likelihood/ratio/padding/KL; batched
+  system-0 == per-session tick) and `tests/unit/test_grpo_density.py` pass. Smoke: `rrp latent grpo --checkpoint
+  artifacts/runs/flow_latent_sem_v1/policy_interrupted.pt --robot panda_pg2 --out artifacts/runs/grpo_latent_smoke_v1
+  --iters 1 --groups-per-iter 2 --group-size 4 --eval-episodes 8 --max-steps 80` (peer lease 1790363746_124da4) ran end to end.
+- Reference (base) closed-loop on panda_pg2 dev seeds 3,000,000+ (deployed ODE sampler, 300 ticks), raw rows in
+  `artifacts/runs/<run>/eval_episodes.jsonl` on the peer store:
+  | base | from reset | teacher prefix 40 ticks (suffix success) |
+  |---|---|---|
+  | flow_latent_sem_v1 policy_interrupted (4.2k steps) | 0/64 (grpo_latent_ref_v1); 0/32, min TCP-cube 0.45 m of 0.54 (grpo_latent_diag_v1) | 0/32, grasp 1/32 |
+  | flow_latent_sem_v2 snapshot step 22000 (copied to grpo_base_snapshots/) | 0/32, never grasps, min TCP-cube 0.43 m | 1/32, grasp 12/32 |
+  Teacher timing on panda_pg2 (seeds 3,000,000-5): public grasp event at tick 42-47, success at ~100.
+  => from reset GRPO has no success signal (no grasp, zero-variance success reward); with the labelled 40-tick teacher
+  prefix there is grasp/suffix variance -> used as the dev curriculum.
+- Diag (v1 base, prefix 40, reward success+0.5 events+0.5 reach, 1 iter, 4x8): first-pass |ratio-1| 7.6e-5, clip frac 0.18
+  at lr 1e-6/2 epochs, path KL 0.010, 3/4 informative groups. Mechanics OK.
+- RUNNING: lease 1790365845_5f45eb `grpo_v2s22k_p40`: base v2 step-22000 snapshot, prefix 40, reward
+  success + 0.5 public events + 0.5 privileged cube-zone dist, 15 iters x 8 groups x 8, lr 1e-6, kl 0.05, eval 64 held-out
+  dev seeds every 5 iters (both prefix-40 and from-reset). Out: artifacts/runs/grpo_latent_v2s22k_p40_v1.
