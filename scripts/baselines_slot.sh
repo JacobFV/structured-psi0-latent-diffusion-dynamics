@@ -15,14 +15,15 @@ run_seed() {
   local s=$1
   echo "[slot] $(date -Is) $method seed$s source"
   $PY -m rrp.cli campaign baseline-cell --method "$method" --seed "$s" --target source --root "$ROOT" \
-    || { echo "[slot] FAILED $method seed$s source"; return 1; }
+    || { echo "[slot] FAILED $method seed$s source"; fails=$((fails+1)); return 1; }
   for t in $TARGETS; do for b in $BUDGETS; do
     echo "[slot] $(date -Is) $method seed$s $t b$b"
     $PY -m rrp.cli campaign baseline-cell --method "$method" --seed "$s" --target "$t" --budget "$b" --root "$ROOT" \
-      || echo "[slot] FAILED $method seed$s $t b$b"
+      || { echo "[slot] FAILED $method seed$s $t b$b"; fails=$((fails+1)); }
   done; done
 }
 deferred=()
+fails=0
 for s in "$@"; do
   d="$ROOT/$method/seed$s/source"
   if [ -e "$d/REMOTE_TRAINING" ] && [ ! -s "$d/policy.pt" ]; then deferred+=("$s"); continue; fi
@@ -36,3 +37,4 @@ for s in "${deferred[@]}"; do
   run_seed "$s"
 done
 echo "[slot] $(date -Is) done $method $*"
+[ "$fails" = 0 ] && touch "$ROOT/.slot_done_${method}_$(echo "$@" | tr ' ' _)"
