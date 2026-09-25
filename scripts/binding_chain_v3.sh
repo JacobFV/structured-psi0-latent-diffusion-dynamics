@@ -14,8 +14,10 @@ N=binding_paired_${V}_v3
 R=artifacts/runs/$N
 PK=artifacts/packed/binding_combined_v1_H16
 [ -f $PK/meta.json ] || { echo "missing $PK"; exit 1; }
-[ -f $R/representation.pt ] || run --gpu --gpu-mem 16G --cpu 5 --mem 24G --label rep_$N --max-seconds 28800 -- \
-  $PY -m rrp.cli latent train-representation --config configs/latent/rep-$N.json
+for attempt in 1 2 3; do          # 6 h lease cap: training resumes from rep_last.pt
+  [ -f $R/representation.pt ] || run --gpu --gpu-mem 16G --cpu 5 --mem 24G --label rep_$N --max-seconds 21600 -- \
+    $PY -m rrp.cli latent train-representation --config configs/latent/rep-$N.json
+done
 [ -f $R/representation.pt ] || { echo "rep $N did not finish"; exit 1; }
 [ -f $R/probe_bindcf.pt ] || run --gpu --gpu-mem 6G --cpu 3 --mem 12G --label probe_$N --max-seconds 7200 -- \
   $PY -m rrp.cli latent fit-probes --representation $R/representation.pt --packed-dir $PK --binding-cf 0.5 --out $R/probe_bindcf.pt
