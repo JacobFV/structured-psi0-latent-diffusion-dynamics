@@ -1,0 +1,6 @@
+00:44:09 launching go2 (iter 22, temp 85400)
+{"lease_id": "1790045200_1110ad", "unit": "rrp-job-1790045200_1110ad.service", "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790045200_1110ad_tracker_go2.log"}
+00:51:22 launching go2 (iter -1, temp 88700)
+{"lease_id": "1790048843_c0ef55", "unit": "rrp-job-1790048843_c0ef55.service", "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790048843_c0ef55_tracker_go2.log"}
+01:18:48 launching go2 (iter 944, temp 73500)
+{"lease_id": "1790062686_253e12", "unit": "rrp-job-1790062686_253e12.service", "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790062686_253e12_tracker_go2.log"}

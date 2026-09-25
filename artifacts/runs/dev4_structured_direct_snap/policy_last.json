@@ -1,0 +1,10 @@
+{
+ "path": "artifacts/runs/dev4_structured_direct/policy_last.pt",
+ "sha256_16": "732efc7732bbf182",
+ "step": 5461,
+ "versions": {
+  "policy": "dev_structured_direct",
+  "featurizer": "feat-v2",
+  "codec": null
+ }
+}

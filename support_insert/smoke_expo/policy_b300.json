@@ -1,0 +1,9 @@
+{
+ "path": "support_insert/smoke_expo/policy_b300.pt",
+ "sha256_16": "00cdab390dc50b09",
+ "step": 0,
+ "versions": {
+  "policy": "smoke_random",
+  "adaptation": "expo-base@0"
+ }
+}

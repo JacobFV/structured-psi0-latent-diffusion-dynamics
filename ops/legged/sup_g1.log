@@ -1,0 +1,98 @@
+00:44:15 g1 waiting: peer temp 90000
+00:45:46 g1 waiting: peer temp 92700
+00:46:35 launching g1 (iter -1, temp 89800)
+rrp.ops.broker.CapacityError: cpu 22.00 > aggregate limit 19.04
+00:48:07 launching g1 (iter -1, temp 93800)
+rrp.ops.broker.CapacityError: cpu 22.00 > aggregate limit 18.73
+00:49:39 launching g1 (iter -1, temp 93500)
+rrp.ops.broker.CapacityError: cpu 20.00 > aggregate limit 19.75
+00:50:00 launching g1 (iter -1, temp 88400)
+rrp.ops.broker.CapacityError: cpu 20.00 > aggregate limit 19.80
+00:51:31 launching g1 (iter -1, temp 91400)
+rrp.ops.broker.CapacityError: cpu 20.00 > aggregate limit 19.80
+00:53:03 launching g1 (iter -1, temp 93300)
+rrp.ops.broker.CapacityError: cpu 20.00 > aggregate limit 19.59
+00:54:35 launching g1 (iter -1, temp 94900)
+rrp.ops.broker.CapacityError: cpu 20.00 > aggregate limit 19.80
+00:56:07 launching g1 (iter -1, temp 94600)
+rrp.ops.broker.CapacityError: cpu 20.00 > aggregate limit 19.80
+00:57:39 launching g1 (iter -1, temp 92400)
+rrp.ops.broker.CapacityError: cpu 24.00 > aggregate limit 19.27
+00:59:11 g1 waiting: peer temp 96300
+01:00:42 g1 waiting: peer temp 97200
+01:02:14 launching g1 (iter -1, temp 92400)
+rrp.ops.broker.CapacityError: cpu 24.00 > aggregate limit 19.47
+01:03:45 launching g1 (iter -1, temp 94000)
+rrp.ops.broker.CapacityError: cpu 24.00 > aggregate limit 19.80
+01:05:17 launching g1 (iter -1, temp 89700)
+{"lease_id": "1790055870_16eceb", "unit": "rrp-job-1790055870_16eceb.service", "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790055870_16eceb_tracker_g1.log"}
+01:18:59 launching g1 (iter 400, temp 83800)
+{"lease_id": "1790062778_5a4279", "unit": "rrp-job-1790062778_5a4279.service", "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790062778_5a4279_tracker_g1.log"}
+01:50:20 launching g1 (iter 1395, temp 88100)
+{"lease_id": "1790078606_02f262", "unit": "rrp-job-1790078606_02f262.service", "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790078606_02f262_tracker_g1.log"}
+01:51:51 launching g1 (iter 1395, temp 61300)
+{"lease_id": "1790079380_fd01db", "unit": "rrp-job-1790079380_fd01db.service", "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790079380_fd01db_tracker_g1.log"}
+02:04:42 launching g1 (iter 1910, temp 89200)
+{"lease_id": "1790085868_b34930", "unit": "rrp-job-1790085868_b34930.service", "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790085868_b34930_tracker_g1.log"}
+02:20:17 launching g1 (iter 2473, temp 71800)
+{"lease_id": "1790093727_b0c0eb", "unit": "rrp-job-1790093727_b0c0eb.service", "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790093727_b0c0eb_tracker_g1.log"}
+02:21:49 launching g1 (iter 2476, temp 93100)
+rrp.ops.broker.AdmissionStopped: cpu_hot:97.0
+02:23:20 launching g1 (iter 2476, temp 78400)
+rrp.ops.broker.CapacityError: memory 112742891520 > aggregate limit 111818199040
+02:24:52 launching g1 (iter 2476, temp 90100)
+rrp.ops.broker.CapacityError: memory 112742891520 > aggregate limit 111818199040
+02:26:26 launching g1 (iter 2476, temp 93200)
+rrp.ops.broker.CapacityError: memory 112742891520 > aggregate limit 111818199040
+02:27:58 launching g1 (iter 2476, temp 92900)
+rrp.ops.broker.CapacityError: memory 112742891520 > aggregate limit 111818199040
+02:29:30 launching g1 (iter 2476, temp 90100)
+rrp.ops.broker.CapacityError: memory 112742891520 > aggregate limit 111818199040
+02:31:02 launching g1 (iter 2476, temp 92200)
+rrp.ops.broker.CapacityError: memory 112742891520 > aggregate limit 111818199040
+02:32:37 launching g1 (iter 2476, temp 90800)
+rrp.ops.broker.CapacityError: memory 112742891520 > aggregate limit 111818199040
+02:34:14 launching g1 (iter 2476, temp 90500)
+rrp.ops.broker.CapacityError: memory 112742891520 > aggregate limit 111818199040
+02:35:46 launching g1 (iter 2476, temp 91900)
+{"lease_id": "1790101545_58c2b6", "unit": "rrp-job-1790101545_58c2b6.service", "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790101545_58c2b6_tracker_g1.log"}
+02:39:00 launching g1 (iter 2530, temp 94200)
+rrp.ops.broker.CapacityError: cpu 23.00 > aggregate limit 19.73
+02:40:31 g1 waiting: peer temp 95000
+02:42:03 launching g1 (iter 2530, temp 94400)
+rrp.ops.broker.AdmissionStopped: cpu_hot:97.3
+02:43:37 g1 waiting: peer temp 96500
+02:45:08 launching g1 (iter 2530, temp 94400)
+rrp.ops.broker.CapacityError: cpu 23.00 > aggregate limit 19.57
+02:46:39 launching g1 (iter 2530, temp 93900)
+rrp.ops.broker.CapacityError: cpu 23.00 > aggregate limit 19.80
+02:48:11 launching g1 (iter 2530, temp 90900)
+rrp.ops.broker.CapacityError: cpu 24.50 > aggregate limit 19.80
+02:48:20 launching g1 (iter 2530, temp 92800)
+rrp.ops.broker.CapacityError: cpu 23.50 > aggregate limit 19.80
+02:49:52 launching g1 (iter 2530, temp 94400)
+rrp.ops.broker.CapacityError: cpu 23.50 > aggregate limit 19.62
+02:51:29 launching g1 (iter 2530, temp 91400)
+rrp.ops.broker.CapacityError: cpu 23.50 > aggregate limit 19.80
+02:53:01 g1 waiting: peer temp 97800
+02:54:32 g1 waiting: peer temp 97400
+02:56:11 g1 waiting: peer temp 96900
+02:57:45 g1 waiting: peer temp 95300
+02:59:20 launching g1 (iter 2530, temp 66400)
+rrp.ops.broker.AdmissionStopped: sustained_project_memory_psi:74.91
+03:00:52 g1 waiting: peer temp 96300
+03:02:23 launching g1 (iter 2530, temp 88900)
+rrp.ops.broker.CapacityError: memory 115964116992 > aggregate limit 111818199040
+03:03:55 launching g1 (iter 2530, temp 89200)
+rrp.ops.broker.CapacityError: memory 118111600640 > aggregate limit 111818199040
+03:05:27 launching g1 (iter 2530, temp 86900)
+rrp.ops.broker.CapacityError: memory 118111600640 > aggregate limit 111818199040
+03:06:59 launching g1 (iter 2530, temp 84600)
+rrp.ops.broker.CapacityError: memory 115964116992 > aggregate limit 111818199040
+03:08:30 launching g1 (iter 2530, temp 84700)
+rrp.ops.broker.CapacityError: memory 115964116992 > aggregate limit 111818199040
+03:09:39 launching g1 (iter 2530, temp 87300)
+{"lease_id": "1790118652_90ccc9", "unit": "rrp-job-1790118652_90ccc9.service", "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790118652_90ccc9_tracker_g1.log"}
+03:12:41 launching g1 (iter 2530, temp 88600)
+{"lease_id": "1790120183_fad0fa", "unit": "rrp-job-1790120183_fad0fa.service", "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790120183_fad0fa_tracker_g1.log"}
+04:05:43 g1 done at iter 3599

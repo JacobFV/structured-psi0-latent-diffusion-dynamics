@@ -1,0 +1,21 @@
+01:47:36 launching anymal_c (iter -1, temp 90600)
+rrp.ops.broker.CapacityError: cpu 24.00 > aggregate limit 19.73
+01:49:08 launching anymal_c (iter -1, temp 92600)
+rrp.ops.broker.AdmissionStopped: cpu_hot:97.0
+01:50:40 launching anymal_c (iter -1, temp 90700)
+rrp.ops.broker.AdmissionStopped: sustained_project_memory_psi:68.58
+01:52:12 launching anymal_c (iter -1, temp 79600)
+{"lease_id": "1790079549_794bca", "unit": "rrp-job-1790079549_794bca.service", "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790079549_794bca_tracker_anymal_c.log"}
+02:04:42 launching anymal_c (iter -1, temp 89200)
+{"lease_id": "1790085868_dde288", "unit": "rrp-job-1790085868_dde288.service", "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790085868_dde288_tracker_anymal_c.log"}
+02:16:37 launching anymal_c (iter -1, temp 93000)
+rrp.ops.broker.CapacityError: cpu 23.00 > aggregate limit 19.80
+02:18:09 launching anymal_c (iter -1, temp 94900)
+rrp.ops.broker.CapacityError: cpu 21.00 > aggregate limit 18.72
+02:19:46 launching anymal_c (iter -1, temp 89500)
+rrp.ops.broker.AdmissionStopped: watchdog heartbeat missing or stale
+02:21:45 anymal_c waiting: peer temp 97100
+02:23:16 launching anymal_c (iter -1, temp 72200)
+{"lease_id": "1790095242_60719d", "unit": "rrp-job-1790095242_60719d.service", "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790095242_60719d_tracker_anymal_c.log"}
+02:35:24 launching anymal_c (iter 428, temp 88400)
+{"lease_id": "1790101368_466ad2", "unit": "rrp-job-1790101368_466ad2.service", "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790101368_466ad2_tracker_anymal_c.log"}

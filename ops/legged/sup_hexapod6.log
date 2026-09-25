@@ -1,0 +1,23 @@
+00:46:59 launching hexapod6 (iter -1, temp 90800)
+{"lease_id": "1790046622_59354e", "unit": "rrp-job-1790046622_59354e.service", "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790046622_59354e_tracker_hexapod6.log"}
+00:50:08 launching hexapod6 (iter -1, temp 87500)
+{"lease_id": "1790048212_b245b5", "unit": "rrp-job-1790048212_b245b5.service", "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790048212_b245b5_tracker_hexapod6.log"}
+01:05:36 launching hexapod6 (iter 793, temp 93100)
+rrp.ops.broker.CapacityError: cpu 22.00 > aggregate limit 19.22
+01:07:08 launching hexapod6 (iter 793, temp 94500)
+rrp.ops.broker.CapacityError: cpu 22.00 > aggregate limit 19.27
+01:08:40 launching hexapod6 (iter 793, temp 92300)
+rrp.ops.broker.CapacityError: cpu 22.00 > aggregate limit 18.83
+01:10:12 launching hexapod6 (iter 793, temp 93100)
+rrp.ops.broker.CapacityError: cpu 22.00 > aggregate limit 19.80
+01:11:52 launching hexapod6 (iter 793, temp 92100)
+rrp.ops.broker.CapacityError: cpu 22.00 > aggregate limit 19.80
+01:13:25 launching hexapod6 (iter 793, temp 93600)
+rrp.ops.broker.CapacityError: cpu 22.00 > aggregate limit 19.80
+01:14:56 launching hexapod6 (iter 793, temp 94100)
+rrp.ops.broker.CapacityError: cpu 22.00 > aggregate limit 19.72
+01:16:34 launching hexapod6 (iter 793, temp 92500)
+rrp.ops.broker.CapacityError: cpu 22.00 > aggregate limit 19.23
+01:18:13 launching hexapod6 (iter 793, temp 87400)
+{"lease_id": "1790062391_d2bbe8", "unit": "rrp-job-1790062391_d2bbe8.service", "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790062391_d2bbe8_tracker_hexapod6.log"}
+01:24:17 hexapod6 done at iter 1099

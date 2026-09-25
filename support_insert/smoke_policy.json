@@ -1,0 +1,8 @@
+{
+ "path": "support_insert/smoke_policy.pt",
+ "sha256_16": "94e87c8a8c729fd0",
+ "step": 0,
+ "versions": {
+  "policy": "smoke_random"
+ }
+}

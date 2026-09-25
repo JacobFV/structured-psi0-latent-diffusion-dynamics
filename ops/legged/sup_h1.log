@@ -1,0 +1,3 @@
+04:16:38 launching h1 (iter -1, temp 86900)
+{"lease_id": "1790152470_fb9b21", "unit": "rrp-job-1790152470_fb9b21.service", "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790152470_fb9b21_tracker_h1.log"}
+05:37:09 h1 done at iter 2999

@@ -1,0 +1,9 @@
+{
+ "path": "support_insert/smoke_grpo_shared_prefix/policy_b300.pt",
+ "sha256_16": "e7b41764a4e00e24",
+ "step": 0,
+ "versions": {
+  "policy": "smoke_random",
+  "adaptation": "grpo_shared_prefix@3"
+ }
+}
