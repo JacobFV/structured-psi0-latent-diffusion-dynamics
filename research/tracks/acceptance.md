@@ -33,7 +33,6 @@ Only the packet handed to system 0 changes; system i and system 0 are frozen. Th
   Early signal: zero/shuffle packets move the TCP far more than probe-guided or counterfactual 5 cm edits.
 - 2026-09-25 latency on sem_v1 interrupted under heavy shared peer load (11 active leases): NOT a clean measurement.
   Raw: artifacts/runs/acceptance_latency/sem_v1_interrupted.json (peer store).
-- running: acceptance_causal_sem_v1i (lease 1790364195_73c2da) -> artifacts/runs/acceptance_causal_sem_v1i (dev reference).
 - 2026-09-25 window protocol, sem_v1 INTERRUPTED checkpoint (dev reference, not a result on the final flow; 3 source bodies x
   16 dev seeds, 42 feasible, 6 decision points each; raw artifacts/runs/acceptance_causal_sem_v1i/window_rows.jsonl):
   control_replay 0.00 cm (exact pairing). zero packet: TCP shift 5.85 [5.13, 6.70] cm in 0.4 s (control moves 2.92 cm);
@@ -43,3 +42,22 @@ Only the packet handed to system 0 changes; system i and system 0 are frozen. Th
   antisymmetry -0.01 [-0.03, 0.01] cm; focus_swap toward distractor -0.04 [-0.12, 0.02] cm. Policy never grasped in 128 ticks.
   Composition: sum_xy vs sum of single-edit effects cosine 0.97, residual 0.08 (linear at this tiny amplitude, but the single
   effects themselves are ~1-3 mm noise-level perturbations, not directed); rel+xy jointly optimized: cosine 0.57.
+
+## 2026-09-25 re-scope (lead; research/corrections/2026-09-25-causal-semantics-priorities.md item 4)
+Zero/shuffle sensitivity is packet DEPENDENCE, not semantic control. The v1-interrupted reference runs were STOPPED on
+the lead's request (scoped stops, leases 1790364195_73c2da and 1790366954_af0767) to free the peer GPU:
+- sem_v1i: window protocol COMPLETE (numbers above; raw artifacts/runs/acceptance_causal_sem_v1i/window_rows.jsonl +
+  window_summary.json, committed). Episode protocol PARTIAL, rows not saved; the log lines (0 successes in every condition
+  on panda_pg2 8 seeds and parm6_pg2 4 feasible seeds) are in artifacts/runs/acceptance_causal_sem_v1i/episode_partial_log.txt.
+- nosem_v1i (CPU, window only): stopped at panda_pg2 seed 12/16; no rows saved (rows are written at the end). Not a result.
+
+New suite `rrp latent semantic-edits --route teacher|oracle|generated` (src/rrp/evaluation/latent_semantic_edits.py):
+VALID semantic edits of the context the packet is generated for, physical scene unchanged, system 0 frozen:
+rebind_obj (task rebound to distractor0 in the public belief; oracle demo = teacher on distractor0), goal_shift (target
+zone belief displaced 12 cm; oracle demo places there), and IRRELEVANT controls: irrelevant_distractor (unbound
+distractor belief moved 10 cm) and orthogonal_matched (random z edit orthogonal to all probe-readout gradients, norm =
+||z_goal_shift - z_control|| per packet). Measures: which object is lifted, where objects end, new-goal success.
+Routes: teacher (reference rung: expert native commands for the edited task, proves each edit is achievable), oracle
+(ORACLE DIAGNOSTIC: E(context, teacher demo) -> system 0; source=target_encoder_oracle), generated (system i's packet).
+Manipulator assignment: pending the dualarm track's paired tasks.
+Scenes: pick_place with n_distractors = max(1, seed % 3) so rebind/irrelevant edits always have a distractor.

@@ -29,6 +29,7 @@ def register(sub):
     cli_dual_latent.register(p)
     register_grpo(p)
     register_causal(p)
+    register_semantic(p)
 
 
 def cmd_flow(a):
@@ -378,3 +379,68 @@ def register_causal(p):
     c = p.add_parser("composition", help="packet composition: edit superposition (window) + two-object chain")
     _causal_args(c)
     c.set_defaults(fn=cmd_composition)
+
+
+# ------------------------------------------------------------------ semantic interventions (correction item 4)
+def cmd_semantic(a):
+    import torch
+    from rrp.evaluation import latent_semantic_edits as se
+    from rrp.evaluation import latent_causal as lc
+    from rrp.learning.latent_train import load_representation
+    robots = a.robots.split(",")
+    if a.seed_start < 3_000_000 or any(r in TARGET_BODIES for r in robots):
+        raise SystemExit("dev rule (D-025): source/dev bodies and dev seeds >= 3,000,000 only")
+    dev = "cuda" if a.gpu and torch.cuda.is_available() else "cpu"
+    if dev == "cuda":
+        from rrp.ops.gpu import apply_cap
+        apply_cap()
+    if a.route == "teacher":
+        rep = Path(a.representation)
+        _, _, R, P, _ = load_representation(rep, dev)
+        src = se.TeacherSource()
+        label = "scripted_teacher (privileged expert native commands; reference rung)"
+    elif a.route == "oracle":
+        rep = Path(a.representation)
+        lcfg, E, R, P, res = load_representation(rep, dev)
+        src = se.OracleSource(E, lcfg, res, rep, dev)
+        label = f"ORACLE DIAGNOSTIC target_encoder_oracle:E({rep}) + scripted_teacher demo"
+    else:
+        from rrp.learning.checkpoint import load_checkpoint
+        from rrp.policy.latent_runner import LatentPolicy
+        rep = Path(load_checkpoint(a.checkpoint, map_location="cpu")["config"]["representation"])
+        _, _, R, P, _ = load_representation(rep, dev)
+        src = se.GeneratedSource(LatentPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=a.nfe))
+        label = f"learned:{a.checkpoint}"
+    probe = a.probe or (str(rep.parent / "probe_posthoc.pt") if (rep.parent / "probe_posthoc.pt").exists() else None)
+    P = lc.load_probe(probe, P, dev)
+    out = Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    rows_path = out / f"semantic_rows_{a.route}.jsonl"
+    seeds = list(range(a.seed_start, a.seed_start + a.episodes))
+    rows = []
+    for r in robots:
+        rows += se.semantic_suite(src, R, P, r, seeds, tuple(a.conditions.split(",")), max_steps=a.max_steps, dev=dev,
+                                  out_path=rows_path)
+    summ = dict(meta=dict(route=a.route, source=label, representation=str(rep), checkpoint=a.checkpoint,
+                          orthogonal_probe=probe, robots=robots, seeds=[seeds[0], seeds[-1]], t=time.time(),
+                          scenes="pick_place with n_distractors = max(1, seed % 3)"),
+                summary=se.summarize_semantic(rows))
+    (out / f"semantic_summary_{a.route}.json").write_text(json.dumps(summ, indent=1))
+    print(json.dumps(summ, indent=1))
+
+
+def register_semantic(p):
+    c = p.add_parser("semantic-edits", help="valid semantic packet edits (binding / goal) + irrelevant-edit controls")
+    c.add_argument("--route", choices=["teacher", "oracle", "generated"], required=True)
+    c.add_argument("--representation", help="oracle route: frozen representation.pt")
+    c.add_argument("--checkpoint", help="generated route: flow policy checkpoint")
+    c.add_argument("--robots", default="panda_pg2")
+    c.add_argument("--episodes", type=int, default=12)
+    c.add_argument("--seed-start", type=int, default=3000000)
+    c.add_argument("--conditions", default="control,rebind_obj,goal_shift,irrelevant_distractor,orthogonal_matched")
+    c.add_argument("--probe")
+    c.add_argument("--max-steps", type=int, default=300)
+    c.add_argument("--nfe", type=int, default=8)
+    c.add_argument("--gpu", action="store_true")
+    c.add_argument("--out", required=True)
+    c.set_defaults(fn=cmd_semantic)
