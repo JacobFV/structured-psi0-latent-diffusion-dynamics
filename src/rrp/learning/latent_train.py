@@ -93,6 +93,8 @@ class LatentData:
             locm = np.asarray(A["local_m"][ts]).astype(np.float32)[inv]                 # [B,M,4] at t+j
             r["node_asm"] = torch.from_numpy(na)
             r["local"] = torch.from_numpy(np.take_along_axis(locm, na[..., None].clip(0, locm.shape[1] - 1), 1))  # per node
+        from rrp.model.binding_aug import goal_effect_from_batch
+        lab["goal_effect"] = goal_effect_from_batch(batch)          # task-goal label (public spec + estimates)
         mv = lambda x: x.to(dev, non_blocking=True)
         return batch.to(dev), mv(a[..., 0]), mv(v), {k: mv(x) for k, x in lab.items()}, {k: mv(x) for k, x in r.items()}
 

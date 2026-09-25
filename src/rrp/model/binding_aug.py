@@ -40,6 +40,29 @@ def focus_from_batch(batch: Batch) -> torch.Tensor:
     return (r & active[..., None]).any(1)
 
 
+STATUS_SUCCEEDED = 3            # features.STATUS index
+
+
+def goal_effect_from_batch(batch: Batch) -> torch.Tensor:
+    """Task-goal displacement label [B,S,3] (m, base frame), from the task spec and public estimates only:
+    for every event that is not yet succeeded and has both a patient and a destination bound to scene slots,
+    goal[patient] = pos[destination] - pos[patient]; zero for every other slot. Recomputed after `rebind`, so it
+    follows the supplied binding (unlike future_disp, which is the realized motion)."""
+    ot, T = batch.bank_offset["task"], batch.bank_tokens["task"].shape[1]
+    os_, S = batch.bank_offset["scene"], batch.bank_tokens["scene"].shape[1]
+    tt, tk, tm = batch.bank_tokens["task"], batch.bank_kind["task"], batch.bank_mask["task"]
+    open_ev = (tk == 0) & tm & (tt[..., HASH_DIM + STATUS_SUCCEEDED] < 0.5)          # [B,T]
+    r = batch.ctx_rel[:, ot:ot + T, os_:os_ + S]                                       # [B,T,S,R]
+    pat = r[..., 4] & open_ev[..., None]
+    dst = r[..., 6] & open_ev[..., None]
+    pos = batch.bank_tokens["scene"][..., :3]                                          # [B,S,3] public estimate
+    has_dst = dst.any(-1)                                                              # [B,T]
+    dpos = (dst.float() @ pos) / dst.float().sum(-1, keepdim=True).clamp(min=1)         # [B,T,3]
+    w = (pat & has_dst[..., None]).float()                                             # [B,T,S]
+    tgt = torch.einsum("bts,btc->bsc", w, dpos) / w.sum(1)[..., None].clamp(min=1)     # [B,S,3]
+    return torch.where(w.sum(1)[..., None] > 0, tgt - pos, torch.zeros_like(pos))
+
+
 def choose_swap(batch: Batch, slot_ok: torch.Tensor, gen: torch.Generator | None = None):
     """Per sample: src = random bound slot, dst = random valid UNBOUND slot (else another bound slot).
     Returns src [B], dst [B], ok [B] (False when fewer than two valid slots or no bound slot)."""
@@ -129,6 +152,8 @@ def augment(batch: Batch, a, v, lab: dict, frac: float, gen: torch.Generator | N
     pick = cand[torch.randperm(len(cand), generator=gen)[:k].to(cand.device)]
     bc = rebind(index_batch(batch, pick), src[pick], dst[pick])
     lc = swap_slot_labels({kk: x[pick] for kk, x in lab.items()}, src[pick], dst[pick])
+    if "goal_effect" in lab:                   # binding-defined: recompute from the rebound graph
+        lc["goal_effect"] = goal_effect_from_batch(bc)
     out_b = cat_batch(batch, bc)
     out_l = {kk: torch.cat([lab[kk], lc[kk]], 0) for kk in lab}
     return out_b, torch.cat([a, a[pick]], 0), torch.cat([v, v[pick]], 0), out_l, B, \

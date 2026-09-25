@@ -12,7 +12,12 @@ Query types (operational definitions, labels from the privileged bus, used only 
   held_by(e, m)      e touched by >= 2 bodies of manipulator m's hand assembly
   acting_on(e, m)    any contact between e and manipulator m's hand assembly
   rel_pos(e, m)      e position minus m's TCP, base frame (Gaussian: mean + log-variance)
-  desired_delta(e)   e displacement over the packet horizon (Gaussian)
+  observed_effect(e) e REALIZED displacement over the packet horizon (Gaussian; label future_disp). Formerly named
+                     `desired_delta`; renamed because it is observed motion, not intended task change. The output
+                     dict keeps `desired_delta` as a deprecated alias and old checkpoints load (key remap).
+  goal_effect(e)     (optional, probe cfg goal_effect=True) task-goal displacement from the task spec: for the object
+                     bound as patient of a not-yet-succeeded event with a destination, destination position minus
+                     object position (public estimates); zero for every other entity (label from binding_aug).
   subtask(m)         operator of m's active event (classification)
 These are not an implication chain (an occluded object can be focused on or held).
 """
@@ -29,16 +34,18 @@ from .flow import MLP
 
 ENTITY_QUERIES = ("visible", "looking_at", "focused_on")
 ENTITY_MANIP_QUERIES = ("held_by", "acting_on", "rel_pos")
-ENTITY_EFFECT_QUERIES = ("desired_delta",)
+ENTITY_EFFECT_QUERIES = ("observed_effect",)
 MANIP_QUERIES = ("subtask",)
 ALL_QUERIES = ENTITY_QUERIES + ENTITY_MANIP_QUERIES + ENTITY_EFFECT_QUERIES + MANIP_QUERIES
 
 
 class PacketProbe(nn.Module):
     def __init__(self, dz: int, knots: int, width: int = 128, heads: int = 4, max_entities: int = 8,
-                 max_assemblies: int = 2, n_operators: int = 12, metadata_only: bool = False, seed: int = 1234):
+                 max_assemblies: int = 2, n_operators: int = 12, metadata_only: bool = False, seed: int = 1234,
+                 goal_effect: bool = False):
         super().__init__()
         self.metadata_only = metadata_only
+        self.goal_effect = goal_effect
         g = torch.Generator().manual_seed(seed)
         self.register_buffer("ent_code", F.normalize(torch.randn(max_entities, 16, generator=g), dim=-1))
         self.register_buffer("asm_code", F.normalize(torch.randn(max_assemblies, 16, generator=g), dim=-1))
@@ -47,15 +54,22 @@ class PacketProbe(nn.Module):
         self.knot = nn.Embedding(knots, D)
         self.asm_in = nn.Linear(16, D)
         self.ent_in = nn.Linear(16, D)
-        self.qtype = nn.Embedding(len(ALL_QUERIES), D)
+        self.qtype = nn.Embedding(len(ALL_QUERIES) + int(goal_effect), D)
         self.const = nn.Parameter(torch.zeros(1, 1, D))
         self.att = MHA(D, heads)
         self.att2 = MHA(D, heads)
         self.n1, self.n2 = nn.LayerNorm(D), nn.LayerNorm(D)
         self.heads = nn.ModuleDict(dict(visible=nn.Linear(D, 1), looking_at=nn.Linear(D, 1), focused_on=nn.Linear(D, 1),
                                         held_by=nn.Linear(D, 1), acting_on=nn.Linear(D, 1), rel_pos=nn.Linear(D, 6),
-                                        desired_delta=nn.Linear(D, 6), subtask=nn.Linear(D, n_operators)))
+                                        observed_effect=nn.Linear(D, 6), subtask=nn.Linear(D, n_operators)))
+        if goal_effect:
+            self.heads["goal_effect"] = nn.Linear(D, 6)
         self.mlp = MLP(D, D, 2 * D)
+
+    def _load_from_state_dict(self, state_dict, prefix, *args, **kwargs):
+        for k in [k for k in state_dict if k.startswith(prefix + "heads.desired_delta.")]:   # pre-rename checkpoints
+            state_dict[k.replace("heads.desired_delta.", "heads.observed_effect.")] = state_dict.pop(k)
+        super()._load_from_state_dict(state_dict, prefix, *args, **kwargs)
 
     def _tokens(self, z, zmask):
         B, K, M, _ = z.shape
@@ -92,7 +106,16 @@ class PacketProbe(nn.Module):
             out[q] = self.heads[q](r).reshape(B, S, M, -1)
         qq = (self.qtype.weight[qi["subtask"]] + a)[None].expand(B, M, -1)
         out["subtask"] = self.heads["subtask"](self._read(qq, t, km))   # [B,M,ops]
+        if self.goal_effect:
+            qq = (self.qtype.weight[len(ALL_QUERIES)] + e)[None].expand(B, S, -1)
+            out["goal_effect"] = self.heads["goal_effect"](self._read(qq, t, km))
+        out["desired_delta"] = out["observed_effect"]        # deprecated alias
         return out
+
+
+def _goal_terms(out, lab, smask):
+    """Goal-effect loss/metric only when both the probe head and the label exist."""
+    return "goal_effect" in out and "goal_effect" in lab
 
 
 def gaussian_nll(pred6, target, mask):
@@ -120,9 +143,11 @@ def probe_loss(out: dict, lab: dict, smask: torch.Tensor, m0: int = 0) -> tuple[
         acting_on=bce(out["acting_on"][:, :, m0], lab["contact"]),
         looking_at=((out["looking_at"].squeeze(-1) - lab["gaze"] / 30).pow(2) * m).sum() / den,
         rel_pos=gaussian_nll(out["rel_pos"][:, :, m0], lab["rel_tcp"] * 10, smask),
-        desired_delta=gaussian_nll(out["desired_delta"], lab["future_disp"] * 10, smask),
+        observed_effect=gaussian_nll(out["observed_effect"], lab["future_disp"] * 10, smask),
         subtask=F.cross_entropy(out["subtask"][:, m0], lab["subtask"].long()),
     )
+    if _goal_terms(out, lab, smask):
+        L["goal_effect"] = gaussian_nll(out["goal_effect"], lab["goal_effect"] * 10, smask)
     total = sum(L.values())
     return total, {f"probe_{k}": float(v.detach()) for k, v in L.items()}
 
@@ -143,10 +168,24 @@ def probe_metrics(out: dict, lab: dict, smask: torch.Tensor, m0: int = 0) -> dic
         res[q + "_pos"] = (int(((pred == y) & pos).sum()), int(pos.sum()))   # balanced view on rare positives
     err = (out["rel_pos"][:, :, m0, :3] / 10 - lab["rel_tcp"]).norm(dim=-1)
     res["rel_pos_err_m"] = (float((err * m).sum()), int(m.sum()))
-    derr = (out["desired_delta"][..., :3] / 10 - lab["future_disp"]).norm(dim=-1)
-    res["desired_delta_err_m"] = (float((derr * m).sum()), int(m.sum()))
+    derr = (out["observed_effect"][..., :3] / 10 - lab["future_disp"]).norm(dim=-1)
+    res["observed_effect_err_m"] = (float((derr * m).sum()), int(m.sum()))
+    res["desired_delta_err_m"] = res["observed_effect_err_m"]          # deprecated alias (same quantity)
     res["subtask"] = (int((out["subtask"][:, m0].argmax(-1) == lab["subtask"].long()).sum()), int(len(lab["subtask"])))
+    if _goal_terms(out, lab, smask):
+        res.update(goal_metrics(out, lab, m))
     return res
+
+
+@torch.no_grad()
+def goal_metrics(out, lab, m) -> dict:
+    """goal_effect error on all slots and on goal-bearing slots (bound patient), plus a zero-prediction baseline."""
+    g = lab["goal_effect"]
+    err = (out["goal_effect"][..., :3] / 10 - g).norm(dim=-1)
+    gp = (g.norm(dim=-1) > 1e-6) & m
+    return dict(goal_effect_err_m=(float((err * m).sum()), int(m.sum())),
+                goal_effect_err_patient_m=(float((err * gp).sum()), int(gp.sum())),
+                goal_effect_zero_baseline_patient_m=(float((g.norm(dim=-1) * gp).sum()), int(gp.sum())))
 
 
 def probe_loss_multi(out: dict, lab: dict, smask: torch.Tensor) -> tuple[torch.Tensor, dict]:
@@ -164,7 +203,7 @@ def probe_loss_multi(out: dict, lab: dict, smask: torch.Tensor) -> tuple[torch.T
         acting_on=bce(out["acting_on"][:, :, :M, 0], lab["contact_m"], mm, denm),
         looking_at=((out["looking_at"].squeeze(-1) - lab["gaze"] / 30).pow(2) * m).sum() / den,
         rel_pos=gaussian_nll(out["rel_pos"][:, :, :M], lab["rel_tcp_m"] * 10, mm.bool()),
-        desired_delta=gaussian_nll(out["desired_delta"], lab["future_disp"] * 10, smask),
+        observed_effect=gaussian_nll(out["observed_effect"], lab["future_disp"] * 10, smask),
         subtask=F.cross_entropy(out["subtask"][:, :M].reshape(-1, out["subtask"].shape[-1]),
                                 lab["subtask_m"].reshape(-1).long()),
     )
@@ -184,8 +223,9 @@ def probe_metrics_multi(out: dict, lab: dict, smask: torch.Tensor) -> dict:
         res[q] = (int(((pred == y) & m).sum()), int(m.sum()))
         pos = y & m
         res[q + "_pos"] = (int(((pred == y) & pos).sum()), int(pos.sum()))
-    derr = (out["desired_delta"][..., :3] / 10 - lab["future_disp"]).norm(dim=-1)
-    res["desired_delta_err_m"] = (float((derr * m).sum()), int(m.sum()))
+    derr = (out["observed_effect"][..., :3] / 10 - lab["future_disp"]).norm(dim=-1)
+    res["observed_effect_err_m"] = (float((derr * m).sum()), int(m.sum()))
+    res["desired_delta_err_m"] = res["observed_effect_err_m"]          # deprecated alias
     M = lab["held_m"].shape[-1]
     for a in range(M):
         for q, key in (("held_by", "held_m"), ("acting_on", "contact_m")):
