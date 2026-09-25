@@ -18,3 +18,5 @@ ops/workbench-token
 MUJOCO_LOG.TXT
 .cache/
 .venv
+artifacts/datasets
+artifacts/packed
