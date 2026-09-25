@@ -62,10 +62,28 @@ Known limitation for later: Stage B (flow) still trains on factual data only, wh
 | latent_sem_v1 | factual post-hoc (D-031) | 0.047 | 0.0 (n=71) | 1.00 |
 | latent_sem_v1 | post-hoc refit with `--binding-cf 0.5` | 0.047 | **0.0** (n=71; also 0.0 on its in-distribution held-out batches) | 0.95 |
 | latent_nosem_v1 | factual post-hoc | 0.009 | 0.0 (n=71) | 0.775 |
+| latent_nosem_v1 | post-hoc refit with `--binding-cf 0.5` | 0.009 | 0.0 (n=71; in-distribution 0.0) | 0.75 |
 Raw: `artifacts/runs/binding_v1_reeval/{sem,nosem}_cf_probe_factual.json`, `sem_probe_bindcf.json` (peer store; small
 JSONs mirrored in the host worktree). Even a probe trained on binding-varying labels cannot recover the binding from v1
 z: the v1 packet does not carry it. The original D-032 numbers (4.9% / 0/14, asymmetric edit + slot-0 prior) stay
 valid as a record of the flawed test and are reproduced by `counterexample_v1` in every counterfactuals.json.
+
+### Stage-A v2 (design 1: semantic-only counterfactual augmentation on v3dart) -- intermediate, stopped
+- `binding_latent_sem_v2` trained 8,700/30,000 steps (peer contention: ~1.3-2.4 s/step vs 0.1 in v1), then stopped
+  with a resumable checkpoint (`rep_last.pt`, `representation_interrupted.pt`) to free GPU slots for v3;
+  `binding_latent_nosem_v2` stopped at ~6,000. Train-log focus BCE plateaued at 0.40-0.42 from step 2,000 on
+  (v1 reached 0.007 by step 4,000 without counterfactuals): the counterfactual rows were NOT being learned.
+  Early check at step 6,000 (`scripts/binding_early_check.py`, jointly trained probe, 36 label-changing pairs):
+  focus_follows 0.0, rel z change 6.1% (sem) / 0.2% (nosem). Raw: `artifacts/runs/binding_latent_sem_v2/train_log.jsonl`.
+- Learnability diagnostic (`scripts/binding_diag_learnability.py`, focus-only loss, cf 0.5, fresh E+P, v3dart, demonstrated
+  actions ZEROED): held-out cf_focus_follows 0.77 at 250 steps, 0.91 at 500, 1.00 at 2,000, 0.99 at 2,500
+  (`artifacts/runs/binding_diag/learnability_no_traj.json`). So the structured encoder CAN read the supplied binding
+  (pointers + relation bias) quickly; in v2 the demonstrated trajectory + slot/descriptor prior made the binding
+  path not worth learning under the joint objective. (The with-trajectory arm of the diagnostic was stopped for GPU
+  slots before it ran.)
+- Also found: the scene bank has NO slot-address input. v1 z could name entities by slot index only because slot index
+  == descriptor in v3dart (canonical order). With permuted slot order an encoder cannot address entities at all, so
+  v3 adds `slot_handles` (learned embedding of the public tracker slot id on scene tokens; also in FlowPolicy).
 
 ## 5. Whole-pipeline binding diversity (item 2) and effect semantics (item 5)
 - `sim/scenario.build_pick_place_paired` (+ BUILDERS `pick_place_paired`): the physical scene depends only on the seed
@@ -76,10 +94,19 @@ valid as a record of the flawed test and are reproduced by `counterexample_v1` i
   Verified on a smoke collection (parm6_tf3: identical slot tokens within a pair; focus label moves with the patient).
 - `configs/data/pick_place_paired_v1.json`: 13 source robots x 200 scenes (seeds 2000000+), every assignment, + DART
   0.08 -> 13000 episodes. Peer CPU lease 1790369924_8948b2 (running, ~100 min).
-- Next: pack (H16 stride 1), Stage A `binding_paired_{sem,nosem}_v3` = paired data + binding_cf 0.5 (same-trajectory /
-  different-meaning set, no realizer loss) + goal_effect probe; Stage B flows on the paired pack; closed-loop
-  `rrp latent eval-binding` (same scene, each cube assigned in turn: success, moved-assigned vs moved-wrong object,
-  scenes where every assignment is followed).
+- Outcome: 5,840 successes (clean 5,487/6,500; DART 353), 5,326 failures (5,230 DART), 1,834 infeasible (small arms,
+  wider object region); 1,867/2,600 clean scenes have EVERY assignment succeed.
+- Combined pack `artifacts/packed/binding_combined_v1_H16` (peer; `configs/latent/pack-binding_combined_v1.json`,
+  multi-assembly format M=2): paired single-arm successes (790,610 rows; DART failures NOT included, unlike v1, since
+  they average ~280 rows/episode and would have tripled the pack) + dual-arm assign_pick_place_v1 source_train
+  successes with the 5 invalid "pushed, not grasped" DART episodes excluded (749,831 rows) = 1,540,441 rows.
+  Arm-swap dev/held-out pairs are NOT in the pack (kept for evaluation).
+- Stage A `binding_paired_{sem,nosem}_v3` (design 2 = paired factual data + binding_cf 0.5 + slot_handles +
+  goal_effect probe; 20k steps; identical except semantic_weight) and the rest of the chain run as detached units
+  `rrp-binding-chain-v3-{sem,nosem}` (`scripts/binding_chain_v3.sh`; logs `ops/logs/binding_chain_v3_*.log` on the
+  peer): rep -> fit-probes (--binding-cf 0.5; + metadata-only for sem) -> counterfactuals on v3dart and paired data ->
+  `latent_chain_v2.sh` (flow 20k, 20-episode dev eval on panda_pg2/parm6_tf3/parm5s_tf3/parm5l_pg2, disturbance,
+  videos) -> `rrp latent eval-binding` (10 paired scenes x each assignment, panda_pg2 + parm6_tf3).
 - Item 5: probe query `desired_delta` renamed `observed_effect` (it is realized future displacement, label
   future_disp); output alias `desired_delta` and a checkpoint key remap keep old probes/reps loading (checked on
   latent_sem_v1). New optional query `goal_effect` (probe cfg `goal_effect: true`): label from the task spec and public
