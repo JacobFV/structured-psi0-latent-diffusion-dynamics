@@ -24,6 +24,7 @@ def register(sub):
     register_cell(p)
     register_latency(p)
     register_counterfactuals(p)
+    register_eval_binding(p)
     from rrp import cli_dual_latent
     cli_dual_latent.register(p)
     register_grpo(p)
@@ -75,6 +76,43 @@ def cmd_eval(a):
     Path(a.out).with_suffix(".summary.json").write_text(json.dumps(summ, indent=1))
 
 
+def cmd_eval_binding(a):
+    """Closed-loop binding test on paired scenes: identical initial scene, each cube assigned as patient in turn.
+    Reports success, wrong-object manipulation and whether behavior follows the assignment across a pair."""
+    from rrp.evaluation.latent_eval import evaluate_latent, paired_keys, paired_scene_fn
+    from rrp.evaluation.statistics import wilson
+    pol, R, P, dev = _load(a)
+    summ = {}
+    for robot in a.robots.split(","):
+        keys = paired_keys(a.seed_start, a.scenes)
+        res = []
+        for i in range(0, len(keys), a.batch):          # scene_fn per key (builders differ per key)
+            grp = keys[i:i + a.batch]
+            fns = {k: paired_scene_fn(k) for k in grp}
+            res += evaluate_latent(pol, R, P, robot, grp, method=a.method, batch=len(grp), out_path=Path(a.out),
+                                   device=dev, replan_ticks=a.replan, scene_fn=lambda rb, k: fns[k](rb, k))
+        att = [r for r in res if r.outcome != "infeasible"]
+        ok = [r for r in att if r.privileged_success]
+        assigned = [r for r in att if "cube" in r.extra["moved"]]
+        wrong = [r for r in att if any(b != "cube" for b in r.extra["moved"])]
+        scenes = {}
+        for r in att:
+            scenes.setdefault(r.extra["scene_seed"], []).append(r)
+        full = [v for v in scenes.values() if len(v) == 2 + v[0].extra["scene_seed"] % 2]
+        k = len(ok)
+        summ[robot] = dict(attempted=len(att), successes=k, wilson95=wilson(k, len(att)),
+                           moved_assigned_object=len(assigned) / max(len(att), 1),
+                           moved_wrong_object=len(wrong) / max(len(att), 1),
+                           scenes_complete=len(full),
+                           scenes_all_assignments_succeed=sum(all(r.privileged_success for r in v) for v in full),
+                           scenes_all_follow_assignment=sum(all("cube" in r.extra["moved"] and
+                                                                not any(b != "cube" for b in r.extra["moved"])
+                                                                for r in v) for v in full),
+                           outcomes={o: sum(r.outcome == o for r in res) for o in {r.outcome for r in res}})
+        print(robot, json.dumps(summ[robot]), flush=True)
+    Path(a.out).with_suffix(".summary.json").write_text(json.dumps(summ, indent=1))
+
+
 def cmd_disturb(a):
     from rrp.evaluation.latent_eval import disturbance_test
     pol, R, P, dev = _load(a)
@@ -82,6 +120,20 @@ def cmd_disturb(a):
     Path(a.out).write_text("\n".join(json.dumps(r) for r in rows))
     for k in ("final_dev_closed_loop_m", "final_dev_open_loop_delta_m", "final_dev_servo_absolute_m"):
         print(k, round(float(sum(r[k] for r in rows) / len(rows)), 4))
+
+
+def register_eval_binding(p):
+    e = p.add_parser("eval-binding", help="closed-loop paired-binding test (same scene, different assigned object)")
+    e.add_argument("--checkpoint", required=True)
+    e.add_argument("--robots", required=True)
+    e.add_argument("--scenes", type=int, default=10)
+    e.add_argument("--seed-start", type=int, default=3100000)
+    e.add_argument("--method", default="latent")
+    e.add_argument("--nfe", type=int, default=8)
+    e.add_argument("--replan", type=int, default=8)
+    e.add_argument("--batch", type=int, default=15)
+    e.add_argument("--out", required=True)
+    e.set_defaults(fn=cmd_eval_binding)
 
 
 def register_more(p):

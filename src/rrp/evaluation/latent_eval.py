@@ -37,6 +37,7 @@ class LatentEpisode:
     wall_s: float
     events: dict
     probe_counts: dict = field(default_factory=dict)
+    extra: dict = field(default_factory=dict)
 
 
 def packet_labels(session, pi, M=1, S=None):
@@ -47,12 +48,36 @@ def packet_labels(session, pi, M=1, S=None):
     return dict(held=t(lab["slot_held"][:S, 0]), contact=t(lab["slot_contact"][:S, 0]), visible=t(lab["slot_visible"][:S]),
                 focus=t(_focus(pi, S)), gaze=t(lab["slot_gaze_angle"][:S]).float(),
                 rel_tcp=t(lab["slot_rel_tcp"][:S, 0]).float(), future_disp=torch.zeros(1, S, 3),
-                subtask=torch.tensor([active_operator(pi)]))
+                subtask=torch.tensor([active_operator(pi)]), goal_effect=_goal(pi)[:, :S])
+
+
+def _goal(pi):
+    from rrp.model.batch import collate_inputs
+    from rrp.model.binding_aug import goal_effect_from_batch
+    return goal_effect_from_batch(collate_inputs([pi]))
+
+
+def paired_scene_fn(key: int):
+    """Episode key = 10 * scene_seed + patient; n_objects = 2 + scene_seed % 2 (as in data generation)."""
+    from rrp.sim.scenario import build_pick_place_paired
+    sd, p = divmod(int(key), 10)
+
+    def fn(robot, _key):
+        sc = build_pick_place_paired(robot, sd, patient=p, n_objects=2 + sd % 2)
+        return sc, dict(scene_seed=sd, patient=p, patient_color=sc.meta["cube_color"], sim_seed=sd,
+                        patient_slot=sc.meta["patient_slot"], physical_names=None)
+    return fn
+
+
+def paired_keys(seed_start: int, n_scenes: int) -> list[int]:
+    return [10 * sd + p for sd in range(seed_start, seed_start + n_scenes) for p in range(2 + sd % 2)]
 
 
 def evaluate_latent(policy, realizer, probe, robot_key: str, seeds: list[int], *, method: str, replan_ticks: int = 8,
                     max_steps: int = 300, batch: int = 16, out_path: Path | None = None, task: str = "pick_place",
-                    device="cpu") -> list[LatentEpisode]:
+                    device="cpu", scene_fn=None) -> list[LatentEpisode]:
+    """scene_fn(robot, seed) -> (Scenario, extra dict) overrides the default builder (e.g. paired binding scenes;
+    `seed` is then an opaque episode key). Episodes record displacement of every non-assigned object."""
     from rrp.morphology.catalog import workbench_robots
     from rrp.sim.scenario import BUILDERS
     from rrp.sim.native import Session
@@ -62,8 +87,16 @@ def evaluate_latent(policy, realizer, probe, robot_key: str, seeds: list[int], *
     for i in range(0, len(seeds), batch):
         group = seeds[i:i + batch]
         S, meta, s0 = [], [], []
+        ex = []
         for sd in group:
-            s = Session(BUILDERS[task](robot, sd, n_distractors=sd % 3), seed=sd)
+            if scene_fn is not None:
+                scen, e_ = scene_fn(robot, sd)
+                s = Session(scen, seed=e_.get("sim_seed", sd))
+            else:
+                s, e_ = Session(BUILDERS[task](robot, sd, n_distractors=sd % 3), seed=sd), {}
+            e_ = dict(e_, init={o.sim_body: s.data.xpos[s.model.body(o.sim_body).id].tolist()
+                                for o in s.scenario.objects if o.kind == "object"})
+            ex.append(e_)
             feas = PickPlaceTeacher(s).feasibility()["feasible"]
             f = policy.featurizer(s)
             S.append(s)
@@ -110,10 +143,14 @@ def evaluate_latent(policy, realizer, probe, robot_key: str, seeds: list[int], *
             priv = bool(s.privileged_success()) if m["outcome"] != "infeasible" else False
             if m["outcome"] is None:
                 m["outcome"] = "success" if priv else ("timeout" if m["steps"] >= max_steps else "failure")
+            e_ = ex[k]
+            disp = {b: float(np.linalg.norm(s.data.xpos[s.model.body(b).id] - np.array(p0))) for b, p0 in e_["init"].items()}
+            e_ = dict(e_, final_disp_m=disp, moved=[b for b, d in disp.items() if d > 0.03])
+            e_.pop("init")
             results.append(LatentEpisode(robot_key, group[k], method, m["outcome"], priv, bool(s.runtime.succeeded()),
                                          m["steps"], m["calls"], s0[k].stats.ticks, s0[k].stats.rejected,
                                          s0[k].stats.fallback_holds, float(s.data.time), time.time() - m["t0"],
-                                         {e: v.status for e, v in s.runtime.instances.items()}, m["probes"]))
+                                         {e: v.status for e, v in s.runtime.instances.items()}, m["probes"], e_))
     if out_path:
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with open(out_path, "a") as fh:
