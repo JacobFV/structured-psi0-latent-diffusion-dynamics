@@ -1,0 +1,38 @@
+{
+ "dataset": "artifacts/datasets/pick_place_paired_v1",
+ "train_robots": [
+  "parm5_pg2",
+  "parm5_tf3",
+  "parm5s_pg2",
+  "parm5l_tf3",
+  "parm6_pg2",
+  "parm6_tf3",
+  "parm7_pg2",
+  "parm7_tf3",
+  "panda_pg2",
+  "ur5e_pg2",
+  "ur5e_tf3",
+  "sawyer_pg2",
+  "sawyer_tf3"
+ ],
+ "horizon": 16,
+ "stride": 1,
+ "include_dart_failures": true,
+ "packed_dir": "artifacts/packed/latent_paired_v1_s1_H16",
+ "seed": 1701,
+ "steps": 20000,
+ "batch_size": 128,
+ "lr": 0.0003,
+ "name": "binding_paired_sem_v3",
+ "out_dir": "artifacts/runs/binding_paired_sem_v3",
+ "latent": {
+  "name": "binding_paired_sem_v3",
+  "semantic_weight": 1.0,
+  "binding_cf": 0.5
+ },
+ "notes": "Whole-pipeline binding diversity (correction 2026-09-25 item 2): paired scenes (identical initial scene, every cube assigned as patient in turn, role-independent slot order), each with its own scripted_teacher demonstration -> realizer/encoder/probes trained on binding-varying FACTUAL data; plus binding_cf 0.5 same-trajectory/different-meaning copies (probe+KL only, no realizer loss); goal_effect probe (item 5). 20k steps (v1 realize loss plateaus by ~15k). sem/nosem differ only in semantic_weight.",
+ "prefetch": true,
+ "probe": {
+  "goal_effect": true
+ }
+}
