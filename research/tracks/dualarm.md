@@ -56,3 +56,15 @@ probes, labelled videos.
 - 12:37 scripted_teacher reference on the dev scenes (seeds 3000000-3000019; pairs panda_pg2__ur5e_pg2,
   parm5_pg2__parm5_pg2, ur5e_pg2__sawyer_pg2, held-out parm5l_pg2__parm5s_tf3), both tasks:
   `PY -m rrp.cli latent teacher-ref-dual --task <t> --pairs ... --out artifacts/runs/dualarm_teacher_ref/<t>.jsonl`.
+- 12:57 teacher reference (scripted_teacher, privileged; dev seeds 3000000-19, max 800 steps;
+  raw `artifacts/runs/dualarm_teacher_ref/{support_insert,handover}.jsonl`), success/feasible:
+  support_insert panda_pg2__ur5e_pg2 20/20, parm5_pg2__parm5_pg2 19/20, ur5e_pg2__sawyer_pg2 20/20,
+  parm5l_pg2__parm5s_tf3 (held-out source) 9/17 (3 infeasible); handover 20/20, 20/20, 20/20, 16/16 (4 infeasible).
+- 13:05 pack v1 found truncation (handover receipts accumulate in the interact bank: 4 -> 24+ tokens per episode,
+  more under DART), repacked with limits interact 64 / R 1024 / P 128 -> 524,805 rows (si clean 200,151; si DART
+  27,917; handover 296,737); 1,199 handover rows (0.4%) still exceed 64 interact tokens and are truncated (tail =
+  sensor tokens lost). Collate now drops pointers into truncated tokens (caused a CUDA gather assert).
+- 13:40 peer GPU is shared by ~10 processes (load ~41 on 20 cores): Stage A runs ~2 s/step regardless of data
+  prefetch (added forked-worker prefetch, `prefetch: true`). Budget cut to 8k steps per stage (was 20k), probes
+  3k steps. Chain (lease 1790369312_a8c248, `bash scripts/dualarm_chain.sh`, resumable, 6 h lease cap: relaunch
+  the same command to continue).
