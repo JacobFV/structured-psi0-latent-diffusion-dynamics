@@ -572,7 +572,100 @@ class HandoverTeacher(DualTeacherBase):
         return self.phase["right"] == "r_done" and self.phase["left"] == "l_done"
 
 
-TEACHERS = {"support_insert": SupportInsertTeacher, "handover": HandoverTeacher}
+class AssignedPickPlaceTeacher(HandoverTeacher):
+    """Manipulator-assignment pick-place: the arm bound as actor of `take` in the (public) task graph grasps the
+    bar at its centre, and places it on the target zone when `place` is active; the other arm stages on its own
+    side and holds. Privileged inputs: bar pose, in-hand offset (as for the handover teacher)."""
+
+    def __init__(self, session, speed: float = 0.3):
+        super().__init__(session, speed)
+        take = session.runtime.compiled.event("take")
+        self.actor = next(r.binding.entity.id for r in take.roles if r.role == "actor")
+        self.idle = "right" if self.actor == "left" else "left"
+        self.g = None
+        self.off = None
+        self.log_actor = self.actor
+
+    def _plan(self):
+        A, ea, ei = self.arms[self.actor], self.actor, self.idle
+        p = self.phase[ea]
+        c, Rb, a = self._bar()
+        yaw = self._grasp_yaw(A, self._yaw_along(a))
+        h = self.half[2]
+        # idle arm: stage on its own side and hold there
+        if self.phase[ei] == "start":
+            self.arms[ei].grip = self.arms[ei].open_value
+            self._next(ei, "stage")
+        elif self.phase[ei] == "stage":
+            self._staging(ei, "hold")
+        if p == "start":
+            A.grip = A.open_value
+            self._next(ea, "stage")
+        elif p == "stage":
+            self._staging(ea, "wait")
+        elif p == "wait":
+            if self.status("take") == "active":
+                self._next(ea, "pre")
+        elif p == "pre":
+            A.set_goal(np.r_[c[:2], 0.12], 0.3, yaw)
+            if A.reached(0.012):
+                self._next(ea, "descend")
+        elif p == "descend":
+            A.set_goal(np.r_[c[:2], c[2] + self.GRASP_DZ], 0.12, yaw)
+            if A.reached(0.006):
+                self.g = A.goal.copy()
+                self._next(ea, "close")
+        elif p == "close":
+            A.set_goal(self.g, 0.1)
+            A.grip = A.closed_for(self.half[1])
+            if self.t_phase[ea] > 0.8:
+                self._next(ea, "lift")
+        elif p == "lift":
+            A.set_goal(np.r_[self.g[:2], 0.14], 0.2)
+            if A.reached(0.02) and self.status("take") == "succeeded":
+                tcp, _ = A.tcp()
+                self.off = c - tcp
+                self._next(ea, "transport")
+        elif p == "transport":
+            zone = self._body("target_zone")[0]
+            A.set_goal(np.r_[zone[:2] - self.off[:2], 0.16], 0.2)
+            if A.reached(0.015):
+                self._next(ea, "lower")
+        elif p == "lower":
+            zone = self._body("target_zone")[0]
+            A.set_goal(np.r_[zone[:2] - self.off[:2], h + 0.012 - self.off[2]], 0.1)
+            if A.reached(0.01):
+                self._next(ea, "open")
+        elif p == "open":
+            A.grip = A.open_value
+            if self.t_phase[ea] > 0.6:
+                self._next(ea, "retreat")
+        elif p == "retreat":
+            A.set_goal(np.r_[A.goal[:2], 0.25], 0.2)
+            if A.reached(0.02):
+                self._next(ea, "done")
+
+    def feasibility(self, tol: float = 0.012) -> dict:
+        c, Rb, a = self._bar()
+        zone = self._body("target_zone")[0]
+        A = self.arms[self.actor]
+        wps = {"grasp": np.r_[c[:2], c[2]], "pre": np.r_[c[:2], 0.12],
+               "place": np.r_[zone[:2], self.half[2] * 2 + 0.012], "carry": np.r_[zone[:2], 0.16]}
+        errs = {f"{self.actor}.{k}": A.ik_error(p, self._grasp_yaw(A, self._yaw_along(a))) for k, p in wps.items()}
+        bad = [k for k, e in errs.items() if e > tol]
+        return {"feasible": not bad, "ik_errors": errs, "unreachable": bad}
+
+    @property
+    def done(self):
+        return self.phase[self.actor] == "done"
+
+    @property
+    def phase_label(self) -> str:
+        return f"L:{self.phase['left']}|R:{self.phase['right']}"
+
+
+TEACHERS = {"support_insert": SupportInsertTeacher, "handover": HandoverTeacher,
+            "assign_left": AssignedPickPlaceTeacher, "assign_right": AssignedPickPlaceTeacher}
 
 
 @dataclass

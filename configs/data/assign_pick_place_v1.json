@@ -1,0 +1,187 @@
+{
+ "name": "assign_pick_place_v1",
+ "task": "assign",
+ "out_dir": "artifacts/datasets/assign_pick_place_v1",
+ "workers": 8,
+ "max_steps": 600,
+ "stop_after_success": 10,
+ "noise_levels": [
+  0.0,
+  0.04
+ ],
+ "noise_burst": [
+  25,
+  5
+ ],
+ "split_file": "research/splits/primary_v1_assign_pick_place.json",
+ "teacher": "scripted_teacher AssignedPickPlaceTeacher (privileged bar pose/in-hand offset; acting arm read from the public task graph)",
+ "featurizer": "feat-multi-v1+feat-v2",
+ "pairing": "episodes <task>_<pair>_s<seed>[_dartN] for task in {assign_left, assign_right} share the initial scene; see pair index",
+ "dart": "source_train only: executed arm commands + N(0, 0.04 rad) in bursts of 5 of every 25 control steps; labels are the clean teacher commands",
+ "items": [
+  {
+   "task": "assign_left",
+   "pair": "panda_pg2__ur5e_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 200
+  },
+  {
+   "task": "assign_right",
+   "pair": "panda_pg2__ur5e_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 200
+  },
+  {
+   "task": "assign_left",
+   "pair": "parm5_pg2__parm5_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 200
+  },
+  {
+   "task": "assign_right",
+   "pair": "parm5_pg2__parm5_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 200
+  },
+  {
+   "task": "assign_left",
+   "pair": "parm5_pg2__parm6_tf3",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 200
+  },
+  {
+   "task": "assign_right",
+   "pair": "parm5_pg2__parm6_tf3",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 200
+  },
+  {
+   "task": "assign_left",
+   "pair": "parm6_pg2__parm7_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 200
+  },
+  {
+   "task": "assign_right",
+   "pair": "parm6_pg2__parm7_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 200
+  },
+  {
+   "task": "assign_left",
+   "pair": "parm7_tf3__parm5_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 200
+  },
+  {
+   "task": "assign_right",
+   "pair": "parm7_tf3__parm5_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 200
+  },
+  {
+   "task": "assign_left",
+   "pair": "ur5e_pg2__sawyer_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 200
+  },
+  {
+   "task": "assign_right",
+   "pair": "ur5e_pg2__sawyer_pg2",
+   "split": "source_train",
+   "seed_start": 0,
+   "episodes": 200
+  },
+  {
+   "task": "assign_left",
+   "pair": "parm5l_pg2__parm5s_tf3",
+   "split": "source_heldout_eval",
+   "seed_start": 3000000,
+   "episodes": 20,
+   "noise_levels": [
+    0.0
+   ]
+  },
+  {
+   "task": "assign_right",
+   "pair": "parm5l_pg2__parm5s_tf3",
+   "split": "source_heldout_eval",
+   "seed_start": 3000000,
+   "episodes": 20,
+   "noise_levels": [
+    0.0
+   ]
+  },
+  {
+   "task": "assign_left",
+   "pair": "panda_pg2__ur5e_pg2",
+   "split": "development_eval",
+   "seed_start": 3000000,
+   "episodes": 20,
+   "noise_levels": [
+    0.0
+   ]
+  },
+  {
+   "task": "assign_right",
+   "pair": "panda_pg2__ur5e_pg2",
+   "split": "development_eval",
+   "seed_start": 3000000,
+   "episodes": 20,
+   "noise_levels": [
+    0.0
+   ]
+  },
+  {
+   "task": "assign_left",
+   "pair": "parm5_pg2__parm5_pg2",
+   "split": "development_eval",
+   "seed_start": 3000000,
+   "episodes": 20,
+   "noise_levels": [
+    0.0
+   ]
+  },
+  {
+   "task": "assign_right",
+   "pair": "parm5_pg2__parm5_pg2",
+   "split": "development_eval",
+   "seed_start": 3000000,
+   "episodes": 20,
+   "noise_levels": [
+    0.0
+   ]
+  },
+  {
+   "task": "assign_left",
+   "pair": "parm5_pg2__parm6_tf3",
+   "split": "development_eval",
+   "seed_start": 3000000,
+   "episodes": 20,
+   "noise_levels": [
+    0.0
+   ]
+  },
+  {
+   "task": "assign_right",
+   "pair": "parm5_pg2__parm6_tf3",
+   "split": "development_eval",
+   "seed_start": 3000000,
+   "episodes": 20,
+   "noise_levels": [
+    0.0
+   ]
+  }
+ ]
+}

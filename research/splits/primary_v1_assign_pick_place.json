@@ -1,0 +1,49 @@
+{
+ "split_id": "primary_v1_assign_pick_place",
+ "addendum_to": "research/splits/primary_v1.json",
+ "frozen_utc": "2026-09-25",
+ "basis": "written by the dualarm track before any assign_pick_place dataset or policy result existed (D-037 item 2, manipulator assignment). Same source-train pairs as primary_v1_handover (dual-arm source lineage)",
+ "task_family": "assign_pick_place (tasks: assign_left, assign_right; graph = rrp.sim.dual_scenarios.assign_task(arm))",
+ "pairing": "a PAIR = the same (robot pair, seed): identical initial scene (layout RNG independent of the assignment), task graph differs only in which manipulator entity is bound as actor of take/place",
+ "source_train_pairs": [
+  "panda_pg2__ur5e_pg2",
+  "parm5_pg2__parm5_pg2",
+  "parm5_pg2__parm6_tf3",
+  "parm6_pg2__parm7_pg2",
+  "parm7_tf3__parm5_pg2",
+  "ur5e_pg2__sawyer_pg2"
+ ],
+ "source_heldout_eval_pairs": [
+  "parm5l_pg2__parm5s_tf3"
+ ],
+ "targets": {
+  "held_out_arm_family": {
+   "pairs": [
+    "xarm7_pg2__xarm7_pg2"
+   ]
+  },
+  "held_out_dual_arm_body": {
+   "pairs": [
+    "aloha"
+   ]
+  }
+ },
+ "seed_ranges": {
+  "source_train_demos": [
+   0,
+   100000
+  ],
+  "target_adaptation_demos": [
+   1000000,
+   1100000
+  ],
+  "evaluation_scenes": [
+   2000000,
+   2100000
+  ],
+  "development_eval_scenes": [
+   3000000,
+   3100000
+  ]
+ }
+}

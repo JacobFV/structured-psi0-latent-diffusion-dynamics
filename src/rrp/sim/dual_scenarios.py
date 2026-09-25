@@ -169,4 +169,50 @@ def build_handover(robots: list, seed: int, *, task: dict | None = None) -> Scen
                               privileged_layout=dict(bar_xy=bar_xy.tolist(), bar_yaw=bar_yaw, target_xy=tgt_xy.tolist())))
 
 
-DUAL_BUILDERS = {"support_insert": build_support_insert, "handover": build_handover}
+def assign_task(arm: str) -> dict:
+    """Manipulator-assignment task graph: take(ARM, bar) -> place(ARM, bar, target), ARM in {left, right}.
+    Built from the handover graph's `take` and `place` events with the actor rebound; the other manipulator is
+    declared but bound to no event. Both variants share every scene quantity (paired tasks)."""
+    import copy
+    import json as _json
+    if arm not in ("left", "right"):
+        raise ValueError(arm)
+    h = load_task("handover")
+    ev = {e["id"]: e for e in h["events"]}
+    rebind = lambda e, frm: _json.loads(_json.dumps(e).replace(f'"id": "{frm}"', f'"id": "{arm}"'))
+    take = rebind(copy.deepcopy(ev["take"]), "left")
+    place = rebind(copy.deepcopy(ev["place"]), "right")
+    place["requires_completed"] = ["take"]
+    decl = [dict(id="left", type="manipulator", descriptor="left manipulator assembly"),
+            dict(id="right", type="manipulator", descriptor="right manipulator assembly"),
+            dict(id="bar", type="object", descriptor="cyan bar to move"),
+            dict(id="target", type="feature", descriptor="green target zone")]
+    return dict(schema_version=h["schema_version"], task_id=f"assign_pick_place_{arm}", graph_version=0,
+                entity_declarations=decl, events=[take, place], success_events=["place"])
+
+
+def build_assign(robots: list, seed: int, *, arm: str = "left", task: dict | None = None) -> Scenario:
+    """Paired manipulator-assignment scene: ONE layout per seed (bar and target zone in the shared central
+    workspace, reachable by both arms); the task graph assigns the acting arm. The layout RNG does not depend on
+    `arm`, so the two variants of a seed start from an identical initial scene."""
+    rng = np.random.default_rng([seed, 29])
+    scene = workspace_spec(f"assign_{seed}")
+    mounted = _mount(scene, robots)
+    bar_xy = np.array([rng.uniform(0.42, 0.48), rng.uniform(-0.04, 0.04)])
+    bar_yaw = float(math.pi / 2 + rng.uniform(-0.35, 0.35))       # long axis roughly along y
+    add_bar(scene, bar_xy, bar_yaw)
+    tgt_xy = np.array([rng.uniform(0.30, 0.34), rng.uniform(-0.05, 0.05)])
+    add_target_zone(scene, "target_zone", [*tgt_xy, 0.0005], radius=0.05)
+    objects = [ObjectDecl("bar", "cyan bar", "object", BAR_HALF, task_entity="bar"),
+               ObjectDecl("target_zone", "green target zone", "feature", radius=0.05, task_entity="target")]
+    model = scene.compile()
+    rob = _mounted(model, mounted)
+    return Scenario(f"assign_{arm}", task or assign_task(arm), scene, model, rob, objects, seed,
+                    meta=dict(declared_geometry=dict(bar=dict(half_extents=list(BAR_HALF), grasp_offset=BAR_GRASP_D)),
+                              pair_family="assign_pick_place", assigned_role=arm,
+                              privileged_layout=dict(bar_xy=bar_xy.tolist(), bar_yaw=bar_yaw, target_xy=tgt_xy.tolist())))
+
+
+DUAL_BUILDERS = {"support_insert": build_support_insert, "handover": build_handover,
+                 "assign_left": lambda robots, seed, **kw: build_assign(robots, seed, arm="left", **kw),
+                 "assign_right": lambda robots, seed, **kw: build_assign(robots, seed, arm="right", **kw)}
