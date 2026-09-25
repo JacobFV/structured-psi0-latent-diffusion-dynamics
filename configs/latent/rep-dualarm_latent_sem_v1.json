@@ -4,7 +4,7 @@
  "stride": 1,
  "packed_dir": "artifacts/packed/dualarm_latent_v1_H16",
  "seed": 1701,
- "steps": 12000,
+ "steps": 8000,
  "batch_size": 128,
  "lr": 0.0003,
  "probe": {
