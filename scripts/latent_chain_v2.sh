@@ -8,8 +8,10 @@ set -uo pipefail
 if [ "${RRP_NODE:-peer}" = host ]; then
   cd "$(dirname "$0")/.."; export PYTHONPATH=src RRP_REPO=$PWD; PY=${PY:-$PWD/.venv/bin/python}; RUNPY=$PY
 else
-  cd ${RRP_REPO:-/dev/shm/rrp-brandonin/repo}
-  export PATH=/dev/shm/rrp-brandonin/bin:$PATH PYTHONPATH=src RRP_NODE=peer RRP_REPO=$PWD
+  # RRP_PEER_REPO: this track's peer code dir (default: the lead's checkout); RRP_OPS_ROOT: the ONE shared broker
+  cd ${RRP_PEER_REPO:-${RRP_REPO:-/dev/shm/rrp-brandonin/repo}}
+  export PATH=/dev/shm/rrp-brandonin/bin:$PATH PYTHONPATH=src RRP_NODE=peer RRP_REPO=$PWD \
+    RRP_OPS_ROOT=${RRP_OPS_ROOT:-/dev/shm/rrp-brandonin/repo}
   PY=/dev/shm/rrp-brandonin/venv/bin/python; RUNPY=python3
 fi
 # resource requests (host budget is small and counts declared GPU memory in the aggregate)
