@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/brandonin/work/rrp-wt/binding/src/rrp/cli.py", line 247, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/brandonin/work/rrp-wt/binding/src/rrp/cli.py", line 243, in main
+    return a.fn(a)
+           ^^^^^^^
+  File "/home/brandonin/work/rrp-wt/binding/src/rrp/cli.py", line 100, in cmd_ops_run
+    res = run_leased(cmd, cpu=a.cpu, memory_bytes=_parse_bytes(a.mem), label=a.label, gpu=a.gpu,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/brandonin/work/rrp-wt/binding/src/rrp/ops/runtime.py", line 99, in run_leased
+    lease = br.acquire(ResourceRequest(cpu_cores=cpu, memory_bytes=memory_bytes, gpu=gpu, label=label,
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/brandonin/work/rrp-wt/binding/src/rrp/ops/broker.py", line 198, in acquire
+    raise CapacityError(f"memory {mem} > aggregate limit {lim['memory_bytes']}")
+rrp.ops.broker.CapacityError: memory 49392123904 > aggregate limit 36703007539

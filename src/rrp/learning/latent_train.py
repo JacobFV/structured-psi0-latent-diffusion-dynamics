@@ -103,6 +103,9 @@ _PF_DATA = None
 
 
 def _pf_fetch(sel, tgt):
+    # forked worker: torch intra-op thread pools inherited from the parent can deadlock after fork (seen on the host
+    # once fetch() gained torch ops: goal_effect_from_batch); run single-threaded in the worker.
+    torch.set_num_threads(1)
     return _PF_DATA.fetch(sel, tgt, "cpu")
 
 

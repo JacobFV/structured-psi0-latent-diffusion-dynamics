@@ -1,0 +1,17 @@
+/home/brandonin/work/rrp-wt/binding/scripts/binding_diag_learnability.py:56: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:820.)
+  rec = dict(step=step, t=round(time.time() - t0), loss=float(loss), **evaluate())
+{"step": 250, "t": 67, "loss": 0.13072994351387024, "cf_focused_on": 0.9060052219321149, "cf_focused_on_pos": 0.8184187662901824, "cf_rel_z_dist": 0.761734277009964, "cf_focus_follows": 0.726027397260274}
+{"step": 500, "t": 139, "loss": 0.09325625747442245, "cf_focused_on": 0.8779203685422836, "cf_focused_on_pos": 0.7624784853700516, "cf_rel_z_dist": 0.5820582956075668, "cf_focus_follows": 0.5805471124620061}
+{"step": 750, "t": 211, "loss": 0.10882730782032013, "cf_focused_on": 0.8684296441397323, "cf_focused_on_pos": 0.7447346251053075, "cf_rel_z_dist": 1.1640645116567612, "cf_focus_follows": 0.4969040247678019}
+{"step": 1000, "t": 284, "loss": 0.1229170709848404, "cf_focused_on": 0.8965405754930488, "cf_focused_on_pos": 0.8886097152428811, "cf_rel_z_dist": 0.58807822316885, "cf_focus_follows": 0.8647416413373861}
+{"step": 1250, "t": 359, "loss": 0.025980904698371887, "cf_focused_on": 0.9218040233614536, "cf_focused_on_pos": 0.9573378839590444, "cf_rel_z_dist": 0.6742071732878685, "cf_focus_follows": 0.9246987951807228}
+{"step": 1500, "t": 432, "loss": 0.01974010095000267, "cf_focused_on": 0.9924664264657713, "cf_focused_on_pos": 0.9922680412371134, "cf_rel_z_dist": 1.261333703994751, "cf_focus_follows": 0.9864864864864865}
+{"step": 1750, "t": 507, "loss": 0.02890188992023468, "cf_focused_on": 0.9679633867276888, "cf_focused_on_pos": 0.9764705882352941, "cf_rel_z_dist": 0.8045211881399155, "cf_focus_follows": 0.8959276018099548}
+{"step": 2000, "t": 583, "loss": 0.00653672032058239, "cf_focused_on": 0.998025666337611, "cf_focused_on_pos": 0.9991525423728813, "cf_rel_z_dist": 0.9561675190925598, "cf_focus_follows": 0.9984779299847792}
+{"step": 2250, "t": 659, "loss": 0.0004210247425362468, "cf_focused_on": 1.0, "cf_focused_on_pos": 1.0, "cf_rel_z_dist": 1.0113837718963623, "cf_focus_follows": 1.0}
+{"step": 2500, "t": 734, "loss": 0.0001337618741672486, "cf_focused_on": 1.0, "cf_focused_on_pos": 1.0, "cf_rel_z_dist": 1.0193951278924942, "cf_focus_follows": 1.0}
+{"step": 2750, "t": 810, "loss": 0.019807729870080948, "cf_focused_on": 1.0, "cf_focused_on_pos": 1.0, "cf_rel_z_dist": 1.0153410136699677, "cf_focus_follows": 1.0}
+{"step": 3000, "t": 884, "loss": 2.0674362182617188, "cf_focused_on": 0.556467498358503, "cf_focused_on_pos": 0.8868421052631579, "cf_rel_z_dist": 0.45259975641965866, "cf_focus_follows": 0.7832585949177877}
+[rrp.child] lease=1790372279_4964de rc=0 stopped_by=None heartbeats=177
+{"lease_id": "1790372279_4964de", "unit": "rrp-job-1790372279_4964de.service", "log": "/home/brandonin/work/relational-robot-policy/ops/logs/1790372279_4964de_binding_diag_no_traj.log", "returncode": 0, "unit_result": "success", "exec_status": "0"}
