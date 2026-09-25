@@ -29,6 +29,18 @@ ssh gb10-direct 'cd /dev/shm/rrp-brandonin/repo && PATH=/dev/shm/rrp-brandonin/b
 
 - Dual-arm track (verified, scripted_teacher only): support_insert + handover scenarios (`src/rrp/sim/dual_scenarios.py`, `tasks/handover.json`), DualSession public estimators, dual teachers, ALOHA import, MultiFeaturizer (feat-multi-v1+feat-v2); teacher v2 validation 16 SI pairs / 9 handover pairs x 30 seeds (`artifacts/assets/dual_teacher_validation/*_v3*`, D-019); dataset `artifacts/datasets/support_insert_primary_v2` (teacher v2; v1 archived; split `research/splits/primary_v1_support_insert.json`); functional composition report `research/reports/functional_composition.md`; details `research/reports/dual_arm_tasks.md`.
 
+## parallel tracks (D-033; brief: research/tracks/BRIEF.md; each track's resume file: research/tracks/<track>.md)
+| track | worktree / branch | goal | blocks |
+|---|---|---|---|
+| lead chain | main checkout, peer /dev/shm/rrp-brandonin/repo | stage B v2/v3 flows + dev eval/disturbance/videos | — |
+| binding | ~/work/rrp-wt/binding, track/binding | fix D-032 counterexample failure (binding-sensitive stage A) + flows | four-way latent cells |
+| acceptance | ~/work/rrp-wt/acceptance | causal edits, composition, latency (reusable CLI) | — |
+| baselines | ~/work/rrp-wt/baselines | sealed latent_slice1 cells for direct-action + codec baselines; aggregation | — |
+| grpo | ~/work/rrp-wt/grpo | packet-policy GRPO (system i only) | target RL stage |
+| dualarm | ~/work/rrp-wt/dualarm | support_insert/handover on latent path (M=2 assemblies) | — |
+| legged_vlm | ~/work/rrp-wt/legged_vlm | legged/humanoid + VLM system II on latent path | — |
+Host data mirror: ~/work/rrp-data (datasets, packed), linked from artifacts/.
+
 ## now (2026-09-25)
 - Stage A complete (research/reports/latent_slice1_progress.md). Probe analysis + loss-gap diagnosis: D-031.
 - RUNNING on peer: `scripts/latent_chain_v2.sh` (flow_latent_sem_v2 -> flow_latent_nosem_v2 -> 20-episode eval on
