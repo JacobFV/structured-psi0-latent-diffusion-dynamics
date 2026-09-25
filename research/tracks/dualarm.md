@@ -42,3 +42,17 @@ probes, labelled videos.
   incl. DART successes; limits morph 24 / task 32 / N 16 / R 256; multi_m 2).
 
 ## log
+- 12:20 data jobs (peer CPU, leases 1790364027_cce6a2 / 1790364028_32d9d9):
+  `PY -m rrp.data.collect_dual --config configs/data/handover_primary_v1dart.json --workers 6` -> 1215 success /
+  133 failure / 92 infeasible (585 s). `... support_insert_dart_v1.json` -> 94 success / 586 failure / 120 infeasible
+  (824 s): burst DART at 0.04 rad still breaks the 2 mm-clearance insertion most of the time; only DART successes
+  are packed.
+- 12:35 host smoke (verified): pack-dual on 2 pairs x 3 seeds -> train-representation 40 steps -> train-flow 40
+  steps -> fit-probes 30 steps -> evaluate-dual (support_insert and handover, parm5 pair, 2 episodes x 30 steps):
+  packets accepted (0 rejections), per-slot probe metrics and slot-swap control produced, runtime advanced
+  (locate succeeded). Scratch outputs only.
+- 12:36 real pack running on peer (lease 1790364984_3fe26b):
+  `PY -m rrp.cli latent pack-dual --config configs/latent/pack-dualarm_latent_v1.json`.
+- 12:37 scripted_teacher reference on the dev scenes (seeds 3000000-3000019; pairs panda_pg2__ur5e_pg2,
+  parm5_pg2__parm5_pg2, ur5e_pg2__sawyer_pg2, held-out parm5l_pg2__parm5s_tf3), both tasks:
+  `PY -m rrp.cli latent teacher-ref-dual --task <t> --pairs ... --out artifacts/runs/dualarm_teacher_ref/<t>.jsonl`.
