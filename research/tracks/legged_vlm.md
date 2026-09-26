@@ -6,6 +6,29 @@ work on legged/humanoid bodies, and do the packet semantics (per-leg contact per
 displacement, subtask, fall) causally control behaviour? Arm lessons applied up front (B-1, D-050, D-052..D-056).
 Compute: host GPU (leases below), host CPU for closed-loop sims. Data copied to host `~/work/rrp-data/datasets/legged_latent_v{1,2}` (lease 1790399700_94cca7, --disk 2G).
 
+### LEGGED RESEARCH RESULT (for the demo agent; updated 2026-09-26 00:3x; every number from the raw files named)
+**Headline (go2 quadruped, matched dev seeds 10000-10029, privileged evaluator):**
+| route | source label | success | raw |
+|---|---|---|---|
+| R0 teacher | scripted_teacher (privileged) | 30/30 | `artifacts/runs/legged_ladder/go2/teacher_bc5k.jsonl` |
+| BC positive control (no packet) | learned:legged_bc_go2_v1/policy.pt | 30/30 | `bc_bc20k.jsonl` |
+| R1 stateless oracle E(BC chunk) → system 0 | ORACLE DIAGNOSTIC | nosem 30/30, sem 25/30 (5 fell) | `r1_{nosem,sem}_go2_v2.jsonl` |
+| **R2 deployable: flow → packet → system 0** | learned:legged_flow_{nosem,sem}_go2_v2/snap_s4000.pt | **nosem 30/30, sem 29/30** (1 fell) | `r2_*_go2_v2_snap_s4000.jsonl` |
+This is the first competent deployable latent-packet route in the project. On the legged body, the corrected architecture matches plain BC. The arm lessons were applied from the start (feature parity exact; qd dropout; stateless BC expert). Why legs are easier than the arm (hypothesis, untested): the gait is periodic, so system 0 predicts most of the target from proprioception + oscillator phase, and the packet has to carry only the low-dimensional residual (speed, turn, stop). The arm needs precise object-relative geometry.
+
+**Causal packet edits (go2, 20 dev seeds, every packet edited from t=2 s, effect in t=2–5 s, paired vs unedited; mean [95% bootstrap CI]; sem edits use its jointly trained probe, nosem its post-hoc measurement probe; controls = random z directions of matched norm, plus z=0).** Deployable route R2 (snap_s4000):
+| edit (target read by the probe) | sem | nosem | matched random |dz| 4–12 |
+|---|---|---|---|
+| turn +0.6 rad (Δyaw) | +0.22 [0.14, 0.30] | +0.37 [0.27, 0.48] | −0.01..+0.04 (CIs include 0) |
+| turn −0.6 rad (Δyaw) | −0.17 [−0.23, −0.13] | −0.23 [−0.29, −0.19] | |
+| halt (Δforward, m) | −1.39 [−1.48, −1.29] | −1.19 [−1.28, −1.09] | −0.02..−0.13 |
+| goal mirrored laterally (Δlateral, m) | +0.04 [−0.01, 0.08] (null) | +0.01 [−0.01, 0.03] (null) | |
+| leg-0 stance / swing (Δ leg-0 contact fraction) | −0.00 / −0.02 [−0.03, −0.01] | +0.00 / +0.01 (wrong sign) | −0.01..+0.05 |
+R1 gives the same pattern (turn sem +0.18/−0.15, nosem +0.30/−0.15; halt −1.24 / −1.23; goal mirror null; contact ±0.02). Raw: `artifacts/runs/legged_edits/go2/{r1,r2}_{sem,nosem}*/effects.json` + `*.jsonl`.
+**Reading:** the packet causally controls turning and stopping on the deployable route, well beyond matched-norm random edits. Semantic supervision is NOT needed for this: the no-semantic packet is at least as steerable, through a probe fit afterwards. The goal-waypoint readout is not a causal handle (system 0 acts on the displacement it encodes, not on where the goal is). Per-leg contact per knot is barely decodable (probe swing accuracy 0.41 / 0.38) and not steerable. So for sem vs capacity-matched nosem on legged: equal task success, and no semantic advantage in causal control. This is the same conclusion as the arm (D-059).
+Clips: `artifacts/video/2026-09-26_legged_learned-R2_*` and `2026-09-25_legged_*` (INDEX.md lines).
+**Other bodies (BC positive control, dev seeds 10000-10029):** hexapod6 BC 30/30 (teacher 30/30); t1 humanoid BC 24/30 (teacher 30/30); g1 training. Latent route for hexapod6 is training (peer).
+
 ### plan / state
 | step | state | evidence |
 |---|---|---|
