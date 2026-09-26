@@ -1,0 +1,20 @@
+{
+ "file": "artifacts/runs/legged_ladder/hexapod6/r2_nosem_hexapod6_v2_snap_s4000.jsonl",
+ "source": "learned:legged_flow_nosem_hexapod6_v2/snap_s4000.pt",
+ "edit": "none",
+ "n": 30,
+ "success": 30,
+ "wilson95": [
+  0.886,
+  1.0
+ ],
+ "stages": {
+  "success": 30
+ },
+ "seeds": [
+  10000,
+  10029
+ ],
+ "events_a": 30,
+ "events_b": 30
+}
