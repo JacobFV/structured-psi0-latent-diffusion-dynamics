@@ -1065,6 +1065,37 @@ def build(updates_html: str = ""):
     for f in (RAW / "ladder_v1").glob("*/generated_zero_flowjf_*.summary.json"):
         d = J(str(f.relative_to(RAW)))
         r2.append((d["success"], f.parent.name, f.name[len("generated_zero_"):-len(".summary.json")], d["n"]))
+
+    def best_of(glob_pat, root=RAW / "ladder_v1"):
+        best = {}
+        for f in root.glob(glob_pat):
+            d = json.loads(f.read_text())
+            r = f.parent.name
+            tag = f.name.replace(".summary.json", "")
+            if "fresh" in tag:          # different seed set, not the matched scenes
+                continue
+            if r not in best or d["success"] > best[r][0]:
+                best[r] = (d["success"], d["n"], tag)
+        return best
+    sc_rows = []
+    for lab, kind, bst, note in (
+            ("R0 scripted teacher (privileged)", "teacher", best_of("*/teacher_shadow_zero.summary.json"), "reference"),
+            ("plain BC, B-1 fixed (learned, best checkpoint)", "bc", best_of("*/learned_*.summary.json", ROOT / "artifacts/runs/baselines_bc_ladder"), "positive control"),
+            ("latent: stateless oracle packet → system 0 (diagnostic)", "oracle", best_of("*/oracle_zero_*_orcbc.summary.json"), "not deployable"),
+            ("latent: R2 generated packet → system 0 (deployable)", "learned", best_of("*/generated_zero_flowjf_*.summary.json"), "the architecture test")):
+        cells = [f'<span class="badge b-{kind}">{esc(lab)}</span>']
+        for r in ("panda_pg2", "parm6_tf3"):
+            if r in bst:
+                k, n, tag = bst[r]
+                cells.append(f'{frac(k, n)}<br><span class="ci">{esc(tag.replace("learned_", "").replace("oracle_zero_", "").replace("generated_zero_", "").replace("teacher_shadow_zero", "teacher"))}</span>')
+            else:
+                cells.append("—")
+        cells.append(esc(note))
+        sc_rows.append(cells)
+    scoreboard = ("<h3 style=\"margin-top:.8rem\">Scoreboard: pick_place on the 30 matched dev scenes (best checkpoint per row)</h3>"
+                  + table(["controller", "panda_pg2", "parm6_tf3", "role"], sc_rows)
+                  + '<p class="muted" style="font-size:.85em">Best-of selections across checkpoints and variants are optimistic for every row alike; each '
+                  'cell names the run it comes from, and per-run tables follow below. Semantic control of the packet: <b>not shown</b> (D-059, D-062).</p>')
     r2_best = "0/30 on every snapshot" if not r2 or max(r2)[0] == 0 else \
         "{}/{} ({}, {}; still far below BC)".format(max(r2)[0], max(r2)[3], max(r2)[1], max(r2)[2])
     body = (sec_architecture() + sec_works() + sec_bodies() + sec_matrix() + sec_debug() + sec_semantic() + sec_bc() + sec_next())
@@ -1090,6 +1121,7 @@ train/deploy mismatch (bug B-1). The latent route's remaining failure is <b>not 
 diagnostic turned out to be confounded (§4). In the clean test, the generated route against BC on the same seeds, the latent
 route's best result so far is {r2_best} (sprint update). A stateless oracle and a generator-gap measurement show that both system 0 (underfit; the first gate) and the generator
 (at the current flow snapshot) fall short (D-052).</p>
+{scoreboard}
 {updates_html}
 {sec_sprint()}
 {body}
