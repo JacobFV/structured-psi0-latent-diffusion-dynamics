@@ -791,7 +791,17 @@ def legged_research():
                 _sh.copy2(ROOT / "artifacts/video" / f, VID / f)
             cards.append((f, kind, f.replace("2026-09-25_legged_", "").replace(".mp4", "").replace("_", " "), desc[:300], "artifacts/video/INDEX.md"))
     vids_ = ('<div class="grid">' + "".join(video_card(c) for c in cards) + "</div>") if cards else ""
-    return head + f"<p>{badge('run') if 'RESTART' in lab else ''} Rendered from the legged agent's track notes ({lab}); the go2 BC positive control is {badge('bc', 'learned')}, everything else is labelled in the table.</p>" + '<div class="mdsec">' + md_table_to_html(sec) + "</div>" + src(f"research/tracks/legged_vlm.md ({lab})", "D-060") + vids_
+    reading = f"""<div class="update"><p><b>Legged headline (go2, from the legged agent's notes).</b> The <b>deployable latent route is competent on go2</b>:
+system i's own packets → system 0 give nosem 30/30 and sem 29/30 on the 30 matched dev seeds, against plain BC 30/30 and the teacher 30/30
+{badge('learned', 'learned:legged_flow_{sem,nosem}_go2_v2 snap_s4000')}. Unlike the arm, the legged system 0 is not the bottleneck: the stateless oracle route
+gives nosem 30/30 and sem 25/30. BC positive controls on other bodies: hexapod6 30/30, t1 humanoid 24/30 (teacher 30/30); g1 is training.
+{src('research/tracks/legged_vlm.md (rows 4a, 6b, 7a)', 'artifacts/runs/legged_ladder/go2/r2_*_snap_s4000.jsonl')}</p>
+<p><b>Packet edits (D-069, oracle route, go2, 20 seeds):</b> probe-guided halt changes forward progress by −1.24 m (sem) and −1.23 m (nosem), against −0.05 to
+−0.19 m for random edits of matched norm. Yaw ±0.6 edits give sign-correct turns of 0.16–0.30 rad, against ≈0 for random edits. Goal-mirror is null and
+per-leg contact edits are weak. This shows <b>packet → behaviour causality along probe directions on an oracle route</b>: the edit is applied to z, not to
+the context. It does not show that system i puts the right semantics into the packet. <b>Semantic supervision shows no advantage</b>: nosem is as good or
+better. {src('D-069')}</p></div>"""
+    return head + f"<p>{badge('run') if 'RESTART' in lab else ''} Rendered from the legged agent's track notes ({lab}); the go2 BC positive control is {badge('bc', 'learned')}, everything else is labelled in the table.</p>" + reading + '<details><summary>legged agent\'s full live table (click to expand)</summary><div class="mdsec">' + md_table_to_html(sec) + "</div></details>" + src(f"research/tracks/legged_vlm.md ({lab})", "D-060") + vids_
 
 
 def sec_bodies():
@@ -849,9 +859,10 @@ def sec_bodies():
     return f"""
 <section id="bodies"><h2>2b · Bodies: morphology breadth</h2>
 <p class="lede">The packet and system 0 are defined over a morphology graph, so the same interfaces cover arms with different
-kinematics and grippers, two-arm pairs, legged robots and humanoids. <b>Honest scope:</b> every non-arm clip below is the
-<b>scripted teacher driving a frozen tracker</b>. There is <b>no learned legged or humanoid model</b>, and dual-arm training was
-deferred (D-040, D-043). Learned results on this page are single-arm pick_place only.</p>
+kinematics and grippers, two-arm pairs, legged robots and humanoids. <b>Honest scope:</b> every clip in the body grids below is the
+<b>scripted teacher driving a frozen tracker</b>. Learned legged results (go2 BC, oracle and deployable latent routes; BC on hexapod6
+and t1) are in the research block at the end of this section and are labelled there. No learned humanoid latent model and no dual-arm
+learned model exist yet (dual-arm training was deferred, D-043).</p>
 {montage}
 {extra}
 {''.join(html_)}
@@ -877,7 +888,7 @@ def sec_matrix():
         ["binding (object pairs)", badge("ok"), "v1 z does not carry the binding: focus_follows 0.0 " + src("binding_v1_reeval/sem_cf_probe_bindcf.json"),
          "binding v4 flows " + badge("run"), "not shown", badge("none")],
         ["dual-arm / assignment", badge("ok"), "teacher only", badge("none"), "pairs ready, teacher does both; v4 arm edits: no detectable effect " + src("D-043"), badge("none")],
-        ["legged / humanoid", "data + code; research restarted (D-060)", "teacher only (+ go2 BC 30/30)", badge("run"), badge("none"), badge("none")],
+        ["legged / humanoid", "verified on go2 (D-060)", "go2 stateless oracle: nosem 30/30, sem 25/30", "<b>go2 R2: nosem 30/30, sem 29/30</b> vs BC 30/30; hexapod6 BC 30/30, t1 BC 24/30 " + src("research/tracks/legged_vlm.md"), "probe-direction halt/turn edits causal on the oracle route; no sem advantage " + src("D-069"), badge("none")],
         ["VLM system II", "smoke only", "n/a", badge("none"), badge("none"), badge("none")],
         ["latency", badge("ok"), "—", "p95 1.014× vs real BC checkpoint (≤ 1.25×) " + src("D-058"), "—", "—"],
     ]
@@ -1226,7 +1237,9 @@ checkpoints; 30/30 on both bodies at the end), so data and evaluation are sound.
 velocity-copy shortcut in system 0, <b>the deployable latent route succeeds sometimes but stays well below BC</b>: best R2
 {r2_best}. A stateless oracle diagnostic, which feeds system 0 packets encoded from BC's own chunks, reaches {orc_best}: the gap from BC to
 that diagnostic is system 0's, and the gap from the diagnostic to R2 is the generator's (D-052, D-056, D-063, D-066, D-067, D-068). <b>A semantic advantage of the packet is not shown</b>: goal content in the packet is executed, but
-binding changes are not followed, and semantic vs capacity-matched no-semantic packets show no difference (D-059, D-062).</p>
+binding changes are not followed, and semantic vs capacity-matched no-semantic packets show no difference (D-059, D-062).
+<b>On the go2 quadruped the deployable latent route is competent</b> (nosem 30/30, sem 29/30 vs BC 30/30), and probe-direction edits of the
+packet causally halt and turn the robot, again with no advantage for semantic supervision (D-069; §2b).</p>
 {scoreboard}
 {updates_html}
 {sec_sprint()}
