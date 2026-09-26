@@ -55,7 +55,15 @@ Driver `scripts/arm_lineage_chain.sh` (LIN=sfjf; parametrized copy of the nosem 
 state `artifacts/runs/ladder_armsfjf_state/`, outputs `ladder_latent_semfix_b1fix_anchor`, `ladder_flow_sfjf*`,
 `ladder_rz_sfjf_*`, `ladder_dagger_sfjf_*`, R2 tags `zero_flowsf*`, edit suite `acceptance_armsfjf_gen_{parm6,panda}`.
 Host GPU not used: the pack (24 GB) does not fit the host's disk headroom (313 GB free vs 300 GB reserve).
-RESUME (semfix): `ssh gb10-direct 'systemd-run --user --unit rrp-armsemfix-chain2 --setenv=LIN=sfjf --working-directory=/dev/shm/rrp-brandonin/wt/ladder bash scripts/arm_lineage_chain.sh'`.
+06:45 MOVED TO HOST (lead, D-086: host reserve 100 GB, pack mirrored to ~/work/rrp-data/packed): the peer semfix chain
+was stopped after 200 Stage-A steps (own lease 1790430089_c1eafd; partial outputs moved to
+`ladder_smoke/semfix_peer_aborted_s200*`, not used). Now `scripts/arm_lineage_hybrid.sh` (LIN=sfjf) runs on the HOST as
+user unit `rrp-armsemfix-hybrid`: Stage A / flows / system-0 refits on the host GPU (declared: rep 8G GPU + 5G RAM,
+flow 5G + 5G, refit 3G + 4G; measured Stage A ~1 GB GPU, peer RSS of these jobs 1.7-2.0 GB), then pushed to the peer store;
+DAgger collections, edit suite and evaluations on the peer CPU (buffers pulled back). State on the HOST:
+`~/work/rrp-wt/ladder/artifacts/runs/ladder_armsfjf_state/` (chain.log, <node>.out). Host Stage A step 100 reproduces
+the frozen sem run exactly (loss 10.5886, gn 60.666; same seed; the floor binds later).
+RESUME (semfix): on the host, `systemd-run --user --unit rrp-armsemfix-hybrid2 --setenv=LIN=sfjf --working-directory=$HOME/work/rrp-wt/ladder bash scripts/arm_lineage_hybrid.sh`.
 
 ## SPRINT BEST ROUTE FINAL (frozen 2026-09-26 02:30 PDT, sprint_latent; for sprint_semantic / sprint_demo)
 **Deployable route (R2): system i `learned:ladder_flow_jointfix_gdag2h` -> system 0 `learned:ladder_rz_jointfix_gendag3_noqd`.**
