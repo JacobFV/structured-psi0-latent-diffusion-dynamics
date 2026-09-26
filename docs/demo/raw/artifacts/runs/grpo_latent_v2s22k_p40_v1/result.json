@@ -1,0 +1,192 @@
+{
+ "method": "latent_grpo",
+ "source_checkpoint": "artifacts/runs/grpo_base_snapshots/flow_latent_sem_v2_step22000.pt",
+ "robot": "panda_pg2",
+ "reward_label": "privileged_sim_success + 0.5*public_event_fraction + 0.5*privileged_cube_zone_dist",
+ "controller_source": "learned:artifacts/runs/grpo_base_snapshots/flow_latent_sem_v2_step22000.pt+latent_grpo",
+ "curriculum": "scripted_teacher prefix 40 ticks (privileged planner), learned suffix",
+ "changed_modules": {
+  "trainable_params": 11566960,
+  "total_params": 14619964,
+  "frozen_modules": [
+   "context",
+   "codec",
+   "controller"
+  ],
+  "changed_modules": [
+   "blocks",
+   "h_emb",
+   "node",
+   "node_from_ctx",
+   "out",
+   "out_norm",
+   "tau",
+   "z_in"
+  ]
+ },
+ "frozen": [
+  "system0_realizer",
+  "target_encoder",
+  "packet_probes",
+  "context"
+ ],
+ "eval_seeds": [
+  3000000,
+  3000063,
+  64
+ ],
+ "evals": [
+  {
+   "tag": "reference@0",
+   "teacher_prefix_steps": 0,
+   "teacher_finished_excluded": 0,
+   "episodes": 64,
+   "successes": 0,
+   "rate": 0.0,
+   "wilson95": [
+    0.0,
+    0.05662406063551054
+   ],
+   "mean_reward": 0.11963584593778799,
+   "mean_event_fraction": 0.0,
+   "mean_min_tcp_cube_dist_priv": 0.441379328440107,
+   "env_steps": 19200,
+   "wall_s": 107.56999325752258
+  },
+  {
+   "tag": "reference@0",
+   "teacher_prefix_steps": 40,
+   "teacher_finished_excluded": 0,
+   "episodes": 64,
+   "successes": 0,
+   "rate": 0.0,
+   "wilson95": [
+    0.0,
+    0.05662406063551054
+   ],
+   "mean_reward": 0.19834808498916023,
+   "mean_event_fraction": 0.15625,
+   "mean_min_tcp_cube_dist_priv": 0.00338848758815658,
+   "env_steps": 16640,
+   "wall_s": 97.47914838790894
+  },
+  {
+   "tag": "latent_grpo@5",
+   "teacher_prefix_steps": 0,
+   "teacher_finished_excluded": 0,
+   "episodes": 64,
+   "successes": 0,
+   "rate": 0.0,
+   "wilson95": [
+    0.0,
+    0.05662406063551054
+   ],
+   "mean_reward": 0.11963584593778802,
+   "mean_event_fraction": 0.0,
+   "mean_min_tcp_cube_dist_priv": 0.4418711244697834,
+   "env_steps": 19200,
+   "wall_s": 166.01746559143066
+  },
+  {
+   "tag": "latent_grpo@5",
+   "teacher_prefix_steps": 40,
+   "teacher_finished_excluded": 0,
+   "episodes": 64,
+   "successes": 2,
+   "rate": 0.03125,
+   "wilson95": [
+    0.008612138268632274,
+    0.10697291857715885
+   ],
+   "mean_reward": 0.23261201739547216,
+   "mean_event_fraction": 0.15625,
+   "mean_min_tcp_cube_dist_priv": 0.003358068537502914,
+   "env_steps": 16516,
+   "wall_s": 164.09418749809265
+  },
+  {
+   "tag": "latent_grpo@10",
+   "teacher_prefix_steps": 0,
+   "teacher_finished_excluded": 0,
+   "episodes": 64,
+   "successes": 0,
+   "rate": 0.0,
+   "wilson95": [
+    0.0,
+    0.05662406063551054
+   ],
+   "mean_reward": 0.11963584593778796,
+   "mean_event_fraction": 0.0,
+   "mean_min_tcp_cube_dist_priv": 0.4417464253011295,
+   "env_steps": 19200,
+   "wall_s": 184.32709431648254
+  },
+  {
+   "tag": "latent_grpo@10",
+   "teacher_prefix_steps": 40,
+   "teacher_finished_excluded": 0,
+   "episodes": 64,
+   "successes": 1,
+   "rate": 0.015625,
+   "wilson95": [
+    0.0027635418927853816,
+    0.08334101684786545
+   ],
+   "mean_reward": 0.2177831022966772,
+   "mean_event_fraction": 0.1484375,
+   "mean_min_tcp_cube_dist_priv": 0.003355741636658527,
+   "env_steps": 16615,
+   "wall_s": 165.14690852165222
+  },
+  {
+   "tag": "latent_grpo@15",
+   "teacher_prefix_steps": 0,
+   "teacher_finished_excluded": 0,
+   "episodes": 64,
+   "successes": 0,
+   "rate": 0.0,
+   "wilson95": [
+    0.0,
+    0.05662406063551054
+   ],
+   "mean_reward": 0.119635845937788,
+   "mean_event_fraction": 0.0,
+   "mean_min_tcp_cube_dist_priv": 0.4418064694681587,
+   "env_steps": 19200,
+   "wall_s": 145.11690425872803
+  },
+  {
+   "tag": "latent_grpo@15",
+   "teacher_prefix_steps": 40,
+   "teacher_finished_excluded": 0,
+   "episodes": 64,
+   "successes": 1,
+   "rate": 0.015625,
+   "wilson95": [
+    0.0027635418927853816,
+    0.08334101684786545
+   ],
+   "mean_reward": 0.22159282190424695,
+   "mean_event_fraction": 0.171875,
+   "mean_min_tcp_cube_dist_priv": 0.0033543544107356013,
+   "env_steps": 16613,
+   "wall_s": 114.58267545700073
+  }
+ ],
+ "accounting": {
+  "train_episodes": 960,
+  "train_env_steps": 249600,
+  "train_packets": 31680,
+  "rollout_velocity_evals": 253440,
+  "update_velocity_evals": 421344,
+  "optimizer_updates": 942,
+  "informative_groups": 114,
+  "zero_variance_groups": 6,
+  "eval_episodes": 512,
+  "eval_env_steps": 143184,
+  "train_teacher_prefix_steps": 4800
+ },
+ "train_wall_s": 4431.438933610916,
+ "kl_coef": 0.05,
+ "note": "Eval: deployed ODE sampler on held-out seeds; reference@0 = unmodified checkpoint."
+}

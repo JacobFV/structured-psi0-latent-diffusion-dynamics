@@ -1,0 +1,42 @@
+{
+ "n": 30,
+ "success": 0,
+ "rate": 0.0,
+ "wilson95": [
+  0.0,
+  0.113517091390478
+ ],
+ "failed_stage": {
+  "approach": 27,
+  "lift": 2,
+  "grasp": 1
+ },
+ "track_q_rad": 0.11348958513234365,
+ "track_tcp_m": 0.09644539731552564,
+ "lab_err_arm": 1.492062209852661,
+ "lab_err_grip": 0.0020580178314036144,
+ "min_tcp_cube_m": 0.09245426812807796,
+ "cmd_step_rad": 0.353322322891325,
+ "route": "oracle",
+ "robot": "panda_pg2",
+ "seeds": [
+  3000000,
+  3000029,
+  30
+ ],
+ "replan": 8,
+ "nfe": 8,
+ "prev_action": "zero",
+ "reanchor": true,
+ "keep_ticks": false,
+ "oracle_reanchor": true,
+ "object_shift": null,
+ "checkpoints": {
+  "representation": {
+   "path": "artifacts/runs/ladder_rz_sem_v1_dagger1/representation.pt",
+   "sha256": "4b4a419ca6c4c448fa6ff97ab71a1648857255d8282d678a3ea15cc1343b00c3",
+   "latent_space_version": "ls-8db814f941f5-wd246dff9b00b",
+   "realizer_compat_version": "rz-ls-8db814f941f5-wd246dff9b00b-r29b3ee0d3268-none-v1"
+  }
+ }
+}

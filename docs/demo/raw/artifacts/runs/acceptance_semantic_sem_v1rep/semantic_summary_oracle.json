@@ -1,0 +1,191 @@
+{
+ "meta": {
+  "route": "oracle",
+  "source": "ORACLE DIAGNOSTIC target_encoder_oracle:E(artifacts/runs/latent_sem_v1/representation.pt) + scripted_teacher demo",
+  "representation": "artifacts/runs/latent_sem_v1/representation.pt",
+  "checkpoint": null,
+  "orthogonal_probe": "artifacts/runs/latent_sem_v1/probe_posthoc.pt",
+  "robots": [
+   "panda_pg2"
+  ],
+  "seeds": [
+   3000000,
+   3000007
+  ],
+  "t": 1790370410.2575781,
+  "scenes": "pick_place with n_distractors = max(1, seed % 3)"
+ },
+ "summary": {
+  "control": {
+   "n": 8,
+   "followed": 0,
+   "followed_wilson95": [
+    0.0,
+    0.3244075683414076
+   ],
+   "cube_lifted": 0,
+   "distractor0_lifted": 0,
+   "cube_in_zone": 0,
+   "distractor0_in_zone": 0,
+   "cube_at_shifted_goal": 0,
+   "privileged_success": 0,
+   "skipped": 0,
+   "cube_final_xy_to_zone_m": {
+    "mean": 0.21450188191295255,
+    "lo": 0.1786015265861145,
+    "hi": 0.25453284064021353,
+    "n": 8
+   },
+   "cube_final_xy_to_shifted_goal_m": {
+    "mean": 0.13117993928771912,
+    "lo": 0.10115321321069717,
+    "hi": 0.16279682325781963,
+    "n": 8
+   }
+  },
+  "goal_shift": {
+   "n": 8,
+   "followed": 0,
+   "followed_wilson95": [
+    0.0,
+    0.3244075683414076
+   ],
+   "cube_lifted": 0,
+   "distractor0_lifted": 0,
+   "cube_in_zone": 0,
+   "distractor0_in_zone": 0,
+   "cube_at_shifted_goal": 0,
+   "privileged_success": 0,
+   "skipped": 0,
+   "cube_final_xy_to_zone_m": {
+    "mean": 0.21450188191178018,
+    "lo": 0.17860152658497144,
+    "hi": 0.2545328406390705,
+    "n": 8
+   },
+   "cube_final_xy_to_shifted_goal_m": {
+    "mean": 0.13117993928628632,
+    "lo": 0.10115321320926438,
+    "hi": 0.16279682325781963,
+    "n": 8
+   },
+   "paired_n": 8,
+   "same_lifted_object_as_control": 8,
+   "same_cube_in_zone_as_control": 8,
+   "tcp_mean_deviation_from_control_m": {
+    "mean": 0.019315754966388238,
+    "lo": 0.01590629893916,
+    "hi": 0.02292147611462692,
+    "n": 8
+   }
+  },
+  "irrelevant_distractor": {
+   "n": 8,
+   "followed": 0,
+   "followed_wilson95": [
+    0.0,
+    0.3244075683414076
+   ],
+   "cube_lifted": 0,
+   "distractor0_lifted": 0,
+   "cube_in_zone": 0,
+   "distractor0_in_zone": 0,
+   "cube_at_shifted_goal": 0,
+   "privileged_success": 0,
+   "skipped": 0,
+   "cube_final_xy_to_zone_m": {
+    "mean": 0.21450188191295255,
+    "lo": 0.1786015265861145,
+    "hi": 0.25453284064021353,
+    "n": 8
+   },
+   "cube_final_xy_to_shifted_goal_m": {
+    "mean": 0.13117993928771912,
+    "lo": 0.10115321321069717,
+    "hi": 0.16279682325781963,
+    "n": 8
+   },
+   "paired_n": 8,
+   "same_lifted_object_as_control": 8,
+   "same_cube_in_zone_as_control": 8,
+   "tcp_mean_deviation_from_control_m": {
+    "mean": 0.017592273024932964,
+    "lo": 0.015169757206853953,
+    "hi": 0.02107401506945481,
+    "n": 8
+   }
+  },
+  "orthogonal_matched": {
+   "n": 8,
+   "followed": 0,
+   "followed_wilson95": [
+    0.0,
+    0.3244075683414076
+   ],
+   "cube_lifted": 0,
+   "distractor0_lifted": 0,
+   "cube_in_zone": 0,
+   "distractor0_in_zone": 0,
+   "cube_at_shifted_goal": 0,
+   "privileged_success": 0,
+   "skipped": 0,
+   "cube_final_xy_to_zone_m": {
+    "mean": 0.21450188191295255,
+    "lo": 0.1786015265861145,
+    "hi": 0.25453284064021353,
+    "n": 8
+   },
+   "cube_final_xy_to_shifted_goal_m": {
+    "mean": 0.13117993928771912,
+    "lo": 0.10115321321069717,
+    "hi": 0.16279682325781963,
+    "n": 8
+   },
+   "paired_n": 8,
+   "same_lifted_object_as_control": 8,
+   "same_cube_in_zone_as_control": 8,
+   "tcp_mean_deviation_from_control_m": {
+    "mean": 0.00860428145201083,
+    "lo": 0.007440899145652993,
+    "hi": 0.009632829709003185,
+    "n": 8
+   }
+  },
+  "rebind_obj": {
+   "n": 8,
+   "followed": 0,
+   "followed_wilson95": [
+    0.0,
+    0.3244075683414076
+   ],
+   "cube_lifted": 0,
+   "distractor0_lifted": 0,
+   "cube_in_zone": 0,
+   "distractor0_in_zone": 0,
+   "cube_at_shifted_goal": 0,
+   "privileged_success": 0,
+   "skipped": 0,
+   "cube_final_xy_to_zone_m": {
+    "mean": 0.21450188191181216,
+    "lo": 0.17860152658503453,
+    "hi": 0.25453284063910164,
+    "n": 8
+   },
+   "cube_final_xy_to_shifted_goal_m": {
+    "mean": 0.13117993928601707,
+    "lo": 0.10115321320926438,
+    "hi": 0.16279682325780617,
+    "n": 8
+   },
+   "paired_n": 8,
+   "same_lifted_object_as_control": 8,
+   "same_cube_in_zone_as_control": 8,
+   "tcp_mean_deviation_from_control_m": {
+    "mean": 0.0837758244556074,
+    "lo": 0.0678736896132047,
+    "hi": 0.09705005683679833,
+    "n": 8
+   }
+  }
+ }
+}

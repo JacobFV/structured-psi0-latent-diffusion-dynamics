@@ -1,0 +1,89 @@
+{
+ "method": "latent_grpo",
+ "source_checkpoint": "artifacts/runs/grpo_base_snapshots/flow_latent_sem_v2_step22000.pt",
+ "robot": "panda_pg2",
+ "reward_label": "privileged_sim_success + 0.5*public_event_fraction + 0.5*privileged_min_tcp_cube_dist",
+ "controller_source": "learned:artifacts/runs/grpo_base_snapshots/flow_latent_sem_v2_step22000.pt+latent_grpo",
+ "curriculum": "scripted_teacher prefix 40 ticks (privileged planner), learned suffix",
+ "changed_modules": {
+  "trainable_params": 11566960,
+  "total_params": 14619964,
+  "frozen_modules": [
+   "context",
+   "codec",
+   "controller"
+  ],
+  "changed_modules": [
+   "blocks",
+   "h_emb",
+   "node",
+   "node_from_ctx",
+   "out",
+   "out_norm",
+   "tau",
+   "z_in"
+  ]
+ },
+ "frozen": [
+  "system0_realizer",
+  "target_encoder",
+  "packet_probes",
+  "context"
+ ],
+ "eval_seeds": [
+  3000000,
+  3000031,
+  32
+ ],
+ "evals": [
+  {
+   "tag": "reference@0",
+   "teacher_prefix_steps": 0,
+   "teacher_finished_excluded": 0,
+   "episodes": 32,
+   "successes": 0,
+   "rate": 0.0,
+   "wilson95": [
+    0.0,
+    0.10717919976468034
+   ],
+   "mean_reward": 0.10744913937461908,
+   "mean_event_fraction": 0.0,
+   "mean_min_tcp_cube_dist_priv": 0.42988336669776883,
+   "env_steps": 9600,
+   "wall_s": 389.5802640914917
+  },
+  {
+   "tag": "reference@0",
+   "teacher_prefix_steps": 40,
+   "teacher_finished_excluded": 0,
+   "episodes": 32,
+   "successes": 1,
+   "rate": 0.03125,
+   "wilson95": [
+    0.00553786010270331,
+    0.15744263967668448
+   ],
+   "mean_reward": 0.16106051265456994,
+   "mean_event_fraction": 0.203125,
+   "mean_min_tcp_cube_dist_priv": 0.003296590951003183,
+   "env_steps": 8291,
+   "wall_s": 382.39717292785645
+  }
+ ],
+ "accounting": {
+  "train_episodes": 0,
+  "train_env_steps": 0,
+  "train_packets": 0,
+  "rollout_velocity_evals": 0,
+  "update_velocity_evals": 0,
+  "optimizer_updates": 0,
+  "informative_groups": 0,
+  "zero_variance_groups": 0,
+  "eval_episodes": 64,
+  "eval_env_steps": 17891
+ },
+ "train_wall_s": 0.0008060932159423828,
+ "kl_coef": 0.05,
+ "note": "Eval: deployed ODE sampler on held-out seeds; reference@0 = unmodified checkpoint."
+}

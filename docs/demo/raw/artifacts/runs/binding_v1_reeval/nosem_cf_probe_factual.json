@@ -1,0 +1,262 @@
+{
+ "representation": "artifacts/runs/latent_nosem_v1/representation.pt",
+ "probe": "artifacts/runs/latent_nosem_v1/probe_posthoc.pt",
+ "latent_space_version": "ls-dc6ca4a55d80",
+ "source": "encoded teacher targets (not generated packets)",
+ "counterexample": {
+  "test": "v2_symmetric_rebind",
+  "n": 80,
+  "n_label_changed": 71,
+  "focus_follows_changed": 0.0,
+  "mean_z_dist": 0.05120684781577438,
+  "mean_rel_z_dist": 0.009257474419566303,
+  "focus_follows": 0.0,
+  "focus_exact_cf": 0.0,
+  "focus_exact_orig": 0.775,
+  "focus_argmax_changed": 0.0,
+  "rows": [
+   {
+    "src": 0,
+    "dst": 2,
+    "z_dist": 0.1799623668193817,
+    "z_norm": 4.580164432525635,
+    "label_orig": [
+     1,
+     0,
+     0
+    ],
+    "label_cf": [
+     0,
+     0,
+     1
+    ],
+    "focus_orig": [
+     0.9990215301513672,
+     0.012256944552063942,
+     0.00015375624934677035
+    ],
+    "focus_cf": [
+     0.9990476965904236,
+     0.01359584741294384,
+     0.0001562135003041476
+    ],
+    "argmax_changed": false,
+    "focus_follows": false,
+    "exact_orig": true,
+    "exact_cf": false
+   },
+   {
+    "src": 0,
+    "dst": 2,
+    "z_dist": 0.017177915200591087,
+    "z_norm": 12.41303539276123,
+    "label_orig": [
+     1,
+     0,
+     0
+    ],
+    "label_cf": [
+     0,
+     0,
+     1
+    ],
+    "focus_orig": [
+     0.998896598815918,
+     0.00040556801832281053,
+     3.1037234293762594e-05
+    ],
+    "focus_cf": [
+     0.9988880753517151,
+     0.0004048838745802641,
+     3.0995852284831926e-05
+    ],
+    "argmax_changed": false,
+    "focus_follows": false,
+    "exact_orig": true,
+    "exact_cf": false
+   },
+   {
+    "src": 0,
+    "dst": 2,
+    "z_dist": 0.009972844272851944,
+    "z_norm": 3.584014415740967,
+    "label_orig": [
+     0,
+     0,
+     0
+    ],
+    "label_cf": [
+     0,
+     0,
+     0
+    ],
+    "focus_orig": [
+     0.9877146482467651,
+     0.7696282863616943,
+     0.00013577663048636168
+    ],
+    "focus_cf": [
+     0.9876840710639954,
+     0.7707016468048096,
+     0.00013586081331595778
+    ],
+    "argmax_changed": false,
+    "focus_follows": false,
+    "exact_orig": false,
+    "exact_cf": false
+   },
+   {
+    "src": 0,
+    "dst": 2,
+    "z_dist": 0.013828259892761707,
+    "z_norm": 8.677804946899414,
+    "label_orig": [
+     1,
+     0,
+     0
+    ],
+    "label_cf": [
+     0,
+     0,
+     1
+    ],
+    "focus_orig": [
+     0.9773878455162048,
+     0.8731305003166199,
+     8.462127880193293e-05
+    ],
+    "focus_cf": [
+     0.9773106575012207,
+     0.8703768849372864,
+     8.445698040304706e-05
+    ],
+    "argmax_changed": false,
+    "focus_follows": false,
+    "exact_orig": false,
+    "exact_cf": false
+   },
+   {
+    "src": 0,
+    "dst": 2,
+    "z_dist": 0.0509360246360302,
+    "z_norm": 12.907191276550293,
+    "label_orig": [
+     1,
+     1,
+     0
+    ],
+    "label_cf": [
+     0,
+     1,
+     1
+    ],
+    "focus_orig": [
+     0.9935532808303833,
+     0.8994520306587219,
+     0.0002718555915635079
+    ],
+    "focus_cf": [
+     0.9936245679855347,
+     0.8998217582702637,
+     0.00027126504573971033
+    ],
+    "argmax_changed": false,
+    "focus_follows": false,
+    "exact_orig": true,
+    "exact_cf": false
+   }
+  ]
+ },
+ "counterexample_v1": {
+  "test": "v1_one_sided",
+  "n": 40,
+  "mean_z_dist": 0.099862050707452,
+  "mean_rel_z_dist": 0.017363722848540247,
+  "focus_argmax_changed": 0.0,
+  "rows": [
+   {
+    "z_dist": 0.017983336001634598,
+    "z_norm": 6.563562870025635,
+    "focus_orig": [
+     0.9939000606536865,
+     0.40965697169303894,
+     0.00011266891669947654
+    ],
+    "focus_cf": [
+     0.9939064383506775,
+     0.41639450192451477,
+     0.00011281394836260006
+    ],
+    "argmax_changed": false
+   },
+   {
+    "z_dist": 0.11338988691568375,
+    "z_norm": 4.488903999328613,
+    "focus_orig": [
+     0.9983088970184326,
+     0.7811607718467712,
+     0.00026344897923991084
+    ],
+    "focus_cf": [
+     0.9982649683952332,
+     0.6403088569641113,
+     0.00025258329696953297
+    ],
+    "argmax_changed": false
+   },
+   {
+    "z_dist": 0.014813597314059734,
+    "z_norm": 13.129714965820312,
+    "focus_orig": [
+     0.9996646642684937,
+     0.0019186054123565555,
+     5.961192073300481e-05
+    ],
+    "focus_cf": [
+     0.9996625185012817,
+     0.0019129525171592832,
+     5.952864739811048e-05
+    ],
+    "argmax_changed": false
+   },
+   {
+    "z_dist": 0.11721087247133255,
+    "z_norm": 4.686549186706543,
+    "focus_orig": [
+     0.9991573095321655,
+     0.014624400995671749,
+     0.000159377625095658,
+     0.00010394903074484318
+    ],
+    "focus_cf": [
+     0.9991368651390076,
+     0.013493572361767292,
+     0.00015727136633358896,
+     0.00010265457240166143
+    ],
+    "argmax_changed": false
+   },
+   {
+    "z_dist": 0.8427488803863525,
+    "z_norm": 7.089008331298828,
+    "focus_orig": [
+     0.9850324392318726,
+     0.07109253108501434,
+     5.415895429905504e-05
+    ],
+    "focus_cf": [
+     0.986211895942688,
+     0.03204016759991646,
+     4.971690577804111e-05
+    ],
+    "argmax_changed": false
+   }
+  ]
+ },
+ "embodiment_swap": {
+  "pairs": 129,
+  "focus_agreement": 1.0,
+  "subtask_agreement": 1.0,
+  "desired_delta_disagreement_m": 0.0004497494960525037
+ }
+}

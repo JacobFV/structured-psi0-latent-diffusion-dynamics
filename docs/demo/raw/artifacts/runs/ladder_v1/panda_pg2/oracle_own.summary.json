@@ -1,0 +1,37 @@
+{
+ "n": 30,
+ "success": 0,
+ "rate": 0.0,
+ "wilson95": [
+  0.0,
+  0.113517091390478
+ ],
+ "failed_stage": {
+  "approach": 30
+ },
+ "track_q_rad": 0.07297164689557059,
+ "track_tcp_m": 0.10080134294308359,
+ "lab_err_arm": 6.3513061634720716,
+ "lab_err_grip": 0.0020037250427406956,
+ "min_tcp_cube_m": 0.27946506923633224,
+ "cmd_step_rad": 0.28930864901435704,
+ "route": "oracle",
+ "robot": "panda_pg2",
+ "seeds": [
+  3000000,
+  3000029,
+  30
+ ],
+ "replan": 8,
+ "nfe": 8,
+ "prev_action": "own",
+ "object_shift": null,
+ "checkpoints": {
+  "representation": {
+   "path": "artifacts/runs/latent_sem_v1/representation.pt",
+   "sha256": "8946aa9d2d0da5fca149786e867a4138ca9596976258abde2ef20aef4708db04",
+   "latent_space_version": "ls-8db814f941f5",
+   "realizer_compat_version": "rz-ls-8db814f941f5-none-v1"
+  }
+ }
+}

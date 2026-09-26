@@ -1,0 +1,262 @@
+{
+ "representation": "artifacts/runs/latent_nosem_v1/representation.pt",
+ "probe": "artifacts/runs/binding_v1_reeval/nosem_probe_bindcf.pt",
+ "latent_space_version": "ls-dc6ca4a55d80-w6bd281b88d5b",
+ "source": "encoded teacher targets (not generated packets)",
+ "counterexample": {
+  "test": "v2_symmetric_rebind",
+  "n": 80,
+  "n_label_changed": 71,
+  "focus_follows_changed": 0.0,
+  "mean_z_dist": 0.05120684781577438,
+  "mean_rel_z_dist": 0.009257474419566303,
+  "focus_follows": 0.0,
+  "focus_exact_cf": 0.0,
+  "focus_exact_orig": 0.75,
+  "focus_argmax_changed": 0.0,
+  "rows": [
+   {
+    "src": 0,
+    "dst": 2,
+    "z_dist": 0.1799623668193817,
+    "z_norm": 4.580164432525635,
+    "label_orig": [
+     1,
+     0,
+     0
+    ],
+    "label_cf": [
+     0,
+     0,
+     1
+    ],
+    "focus_orig": [
+     0.8152217864990234,
+     0.31060999631881714,
+     0.17185181379318237
+    ],
+    "focus_cf": [
+     0.8238207697868347,
+     0.3323167562484741,
+     0.1806946098804474
+    ],
+    "argmax_changed": false,
+    "focus_follows": false,
+    "exact_orig": true,
+    "exact_cf": false
+   },
+   {
+    "src": 0,
+    "dst": 2,
+    "z_dist": 0.017177915200591087,
+    "z_norm": 12.41303539276123,
+    "label_orig": [
+     1,
+     0,
+     0
+    ],
+    "label_cf": [
+     0,
+     0,
+     1
+    ],
+    "focus_orig": [
+     0.8268846869468689,
+     0.09998568892478943,
+     0.16036877036094666
+    ],
+    "focus_cf": [
+     0.8275835514068604,
+     0.10047820955514908,
+     0.16082483530044556
+    ],
+    "argmax_changed": false,
+    "focus_follows": false,
+    "exact_orig": true,
+    "exact_cf": false
+   },
+   {
+    "src": 0,
+    "dst": 2,
+    "z_dist": 0.009972844272851944,
+    "z_norm": 3.584014415740967,
+    "label_orig": [
+     0,
+     0,
+     0
+    ],
+    "label_cf": [
+     0,
+     0,
+     0
+    ],
+    "focus_orig": [
+     0.8436132073402405,
+     0.3396523892879486,
+     0.22252781689167023
+    ],
+    "focus_cf": [
+     0.8439114689826965,
+     0.3403901755809784,
+     0.22288385033607483
+    ],
+    "argmax_changed": false,
+    "focus_follows": false,
+    "exact_orig": false,
+    "exact_cf": false
+   },
+   {
+    "src": 0,
+    "dst": 2,
+    "z_dist": 0.013828259892761707,
+    "z_norm": 8.677804946899414,
+    "label_orig": [
+     1,
+     0,
+     0
+    ],
+    "label_cf": [
+     0,
+     0,
+     1
+    ],
+    "focus_orig": [
+     0.8171743154525757,
+     0.267052561044693,
+     0.1560525745153427
+    ],
+    "focus_cf": [
+     0.8168623447418213,
+     0.26612389087677,
+     0.1557120531797409
+    ],
+    "argmax_changed": false,
+    "focus_follows": false,
+    "exact_orig": true,
+    "exact_cf": false
+   },
+   {
+    "src": 0,
+    "dst": 2,
+    "z_dist": 0.0509360246360302,
+    "z_norm": 12.907191276550293,
+    "label_orig": [
+     1,
+     1,
+     0
+    ],
+    "label_cf": [
+     0,
+     1,
+     1
+    ],
+    "focus_orig": [
+     0.8759986758232117,
+     0.5804051756858826,
+     0.24658411741256714
+    ],
+    "focus_cf": [
+     0.8746896386146545,
+     0.5789013504981995,
+     0.24583032727241516
+    ],
+    "argmax_changed": false,
+    "focus_follows": false,
+    "exact_orig": true,
+    "exact_cf": false
+   }
+  ]
+ },
+ "counterexample_v1": {
+  "test": "v1_one_sided",
+  "n": 40,
+  "mean_z_dist": 0.099862050707452,
+  "mean_rel_z_dist": 0.017363722848540247,
+  "focus_argmax_changed": 0.0,
+  "rows": [
+   {
+    "z_dist": 0.017983336001634598,
+    "z_norm": 6.563562870025635,
+    "focus_orig": [
+     0.8447551727294922,
+     0.47299501299858093,
+     0.17598877847194672
+    ],
+    "focus_cf": [
+     0.8454532027244568,
+     0.47481581568717957,
+     0.17665831744670868
+    ],
+    "argmax_changed": false
+   },
+   {
+    "z_dist": 0.11338988691568375,
+    "z_norm": 4.488903999328613,
+    "focus_orig": [
+     0.8801735043525696,
+     0.49365636706352234,
+     0.2579265832901001
+    ],
+    "focus_cf": [
+     0.8763342499732971,
+     0.47378474473953247,
+     0.24882756173610687
+    ],
+    "argmax_changed": false
+   },
+   {
+    "z_dist": 0.014813597314059734,
+    "z_norm": 13.129714965820312,
+    "focus_orig": [
+     0.7306132912635803,
+     0.1965612918138504,
+     0.15573523938655853
+    ],
+    "focus_cf": [
+     0.7308085560798645,
+     0.1964751034975052,
+     0.15566091239452362
+    ],
+    "argmax_changed": false
+   },
+   {
+    "z_dist": 0.11721087247133255,
+    "z_norm": 4.686549186706543,
+    "focus_orig": [
+     0.8213661909103394,
+     0.32265347242355347,
+     0.1785299926996231,
+     0.11112512648105621
+    ],
+    "focus_cf": [
+     0.8158072829246521,
+     0.30857640504837036,
+     0.17280052602291107,
+     0.10664116591215134
+    ],
+    "argmax_changed": false
+   },
+   {
+    "z_dist": 0.8427488803863525,
+    "z_norm": 7.089008331298828,
+    "focus_orig": [
+     0.7505512833595276,
+     0.14646682143211365,
+     0.10210715979337692
+    ],
+    "focus_cf": [
+     0.7147349715232849,
+     0.1346600204706192,
+     0.09111469238996506
+    ],
+    "argmax_changed": false
+   }
+  ]
+ },
+ "embodiment_swap": {
+  "pairs": 129,
+  "focus_agreement": 1.0,
+  "subtask_agreement": 1.0,
+  "desired_delta_disagreement_m": 0.0002485324636603933
+ }
+}

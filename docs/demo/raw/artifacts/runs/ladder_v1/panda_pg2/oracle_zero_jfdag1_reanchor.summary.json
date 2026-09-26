@@ -1,0 +1,43 @@
+{
+ "n": 30,
+ "success": 1,
+ "rate": 0.03333333333333333,
+ "wilson95": [
+  0.0059084379948573795,
+  0.16670751396958874
+ ],
+ "failed_stage": {
+  "approach": 25,
+  "grasp": 3,
+  "lift": 1,
+  "success": 1
+ },
+ "track_q_rad": 0.0417512524471496,
+ "track_tcp_m": 0.03668191575574421,
+ "lab_err_arm": 0.3234704626648324,
+ "lab_err_grip": 0.0205862691581384,
+ "min_tcp_cube_m": 0.060564193099755914,
+ "cmd_step_rad": 0.14670698932942788,
+ "route": "oracle",
+ "robot": "panda_pg2",
+ "seeds": [
+  3000000,
+  3000029,
+  30
+ ],
+ "replan": 8,
+ "nfe": 8,
+ "prev_action": "zero",
+ "reanchor": true,
+ "keep_ticks": false,
+ "oracle_reanchor": true,
+ "object_shift": null,
+ "checkpoints": {
+  "representation": {
+   "path": "artifacts/runs/ladder_rz_jointfix_dagger1/representation.pt",
+   "sha256": "f2754a1839fcdb20d13f83a7fe00a7b7921474672b97077d2566b5c40906943a",
+   "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5",
+   "realizer_compat_version": "rz-ls-80e5f25be2f0-wf22fe70f99d5-r1fd4ab28472b-none-v1"
+  }
+ }
+}

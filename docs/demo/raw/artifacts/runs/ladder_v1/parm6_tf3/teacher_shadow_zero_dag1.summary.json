@@ -1,0 +1,40 @@
+{
+ "n": 8,
+ "success": 8,
+ "rate": 1.0,
+ "wilson95": [
+  0.6755843804891231,
+  1.0
+ ],
+ "failed_stage": {
+  "success": 8
+ },
+ "track_q_rad": 0.006383218117089865,
+ "track_tcp_m": 0.006698795657668753,
+ "lab_err_arm": 0.003986332418712734,
+ "lab_err_grip": 0.047471842294373734,
+ "min_tcp_cube_m": 0.0022107546131928044,
+ "cmd_step_rad": 0.047717913606669125,
+ "route": "teacher",
+ "robot": "parm6_tf3",
+ "seeds": [
+  3000003,
+  3000012,
+  8
+ ],
+ "replan": 8,
+ "nfe": 8,
+ "prev_action": "zero",
+ "reanchor": false,
+ "keep_ticks": false,
+ "oracle_reanchor": false,
+ "object_shift": null,
+ "checkpoints": {
+  "representation": {
+   "path": "artifacts/runs/ladder_rz_sem_v1_dagger1/representation.pt",
+   "sha256": "4b4a419ca6c4c448fa6ff97ab71a1648857255d8282d678a3ea15cc1343b00c3",
+   "latent_space_version": "ls-8db814f941f5-wd246dff9b00b",
+   "realizer_compat_version": "rz-ls-8db814f941f5-wd246dff9b00b-r29b3ee0d3268-none-v1"
+  }
+ }
+}
