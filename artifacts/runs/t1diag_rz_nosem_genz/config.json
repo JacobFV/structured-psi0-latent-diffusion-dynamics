@@ -1,0 +1,12 @@
+{
+ "name": "t1diag_rz_nosem_genz",
+ "representation": "artifacts/runs/legged_rep_nosem_t1_v2/representation.pt",
+ "steps": 4000,
+ "batch_size": 256,
+ "lr": 0.0003,
+ "qd_dropout": 0.5,
+ "seed": 0,
+ "note": "T1 DIAGNOSIS fix test: system-0 refit from the Stage-A system 0 on the ORIGINAL teacher data only; 50% of packets are samples of the deployed flow at the same public context (generator-aware system 0)",
+ "gen_flow": "artifacts/runs/legged_flow_nosem_t1_v2/policy.pt",
+ "gen_frac": 0.5
+}

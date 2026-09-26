@@ -1,0 +1,10 @@
+{
+ "name": "t1diag_rz_nosem_ctl12k",
+ "representation": "artifacts/runs/legged_rep_nosem_t1_v2/representation.pt",
+ "steps": 12000,
+ "batch_size": 256,
+ "lr": 0.0003,
+ "qd_dropout": 0.5,
+ "seed": 0,
+ "note": "T1 DIAGNOSIS: system-0-only refit (frozen encoder, realization loss only, teacher data), 12k steps: tests whether the sem system 0 is undertrained because the semantic NLL dominated the clipped Stage-A gradient"
+}

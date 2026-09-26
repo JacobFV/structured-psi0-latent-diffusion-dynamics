@@ -64,6 +64,17 @@ def load_buf(root: Path, dev):
 
 
 def load_models(v, ts, dev):
+    if ts.startswith("lv4"):                     # fix variant: sem = bounded-NLL rep/flow; nosem = its original seed
+        base = {"lv4": "v2"}.get(ts, "v2s" + ts[-1])
+        if v == "nosem":
+            return load_models(v, base, dev)
+        sfx = "" if ts == "lv4" else "_" + ts.split("_")[1]
+        rep = f"artifacts/runs/t1diag_rep_sem_lv4{sfx}/representation.pt"
+        rcfg, E, R, P, rres = load_rep(Path(rep), dev)
+        st = torch.load(f"artifacts/runs/t1diag_flow_sem_lv4{sfx}/policy.pt", map_location=dev, weights_only=False)
+        F_ = LeggedFlow(dz=rcfg["latent"]["dz"], D=st["cfg"].get("width", 256), layers=st["cfg"].get("layers", 4)).to(dev)
+        F_.load_state_dict(st["flow"]); F_.eval()
+        return dict(E=E, R=R, P=P, F=F_, rcfg=rcfg)
     rep = f"artifacts/runs/legged_rep_{v}_t1_{ts}/representation.pt"
     rcfg, E, R, P, rres = load_rep(Path(rep), dev)
     st = torch.load(f"artifacts/runs/legged_flow_{v}_t1_{ts}/policy.pt", map_location=dev, weights_only=False)
@@ -468,9 +479,123 @@ def readout_and_teacher_err(ts="v2", out=None):
     return res
 
 
+@torch.no_grad()
+def balance_cv(ts, out):
+    """Balance channel with a regularized probe: ridge from z (oracle E(BC chunk) and a flow sample) to IMU now/+10/+20
+    ticks and base displacement; lambda chosen on an inner split of the TRAIN episodes (even), R^2 on odd episodes.
+    Same packet rows for both variants."""
+    dev = _dev()
+    Ms = {v: load_models(v, ts, dev) for v in ("sem", "nosem")}
+    sets = {"bc": BUF / "bc", "r2_sem": BUF / f"r2_sem_{ts}", "r2_nosem": BUF / f"r2_nosem_{ts}"}
+    res = dict(ts=ts, sets={})
+    g = torch.Generator(device=dev).manual_seed(0)
+    for sn, root in sets.items():
+        data = load_buf(root, dev)
+        pi = packet_rows(data)
+        end = data.A["ep_end"][pi]
+        ep = torch.bucketize(pi, torch.unique(data.A["ep_end"]), right=False)
+        tr, te = (ep % 2 == 0), (ep % 2 == 1)
+        tr_a, tr_b = tr & (ep % 4 == 0), tr & (ep % 4 == 2)
+        Y = {f"imu_t+{dt}": data.A["imu"][torch.minimum(pi + dt, end)] for dt in (0, 10, 20)}
+        r = {}
+        for v, M in Ms.items():
+            for zk in ("oracle", "gen"):
+                X = []
+                for s_ in range(0, len(pi), 512):
+                    i = pi[s_:s_ + 512]
+                    b = data.ctx_batch(i)
+                    z = M["E"](b, data.beh(i))[0] if zk == "oracle" else M["F"].sample(b, nfe=8, generator=g)
+                    X.append(z[:, :, :5].flatten(1))
+                X = torch.cat(X)
+                for yk, y in Y.items():
+                    best = None
+                    for lam in (1e-2, 1e-1, 1.0, 10.0, 100.0, 1000.0):
+                        sc = float(ridge_r2(X[tr_a], y[tr_a], X[tr_b], y[tr_b], lam).mean())
+                        if best is None or sc > best[0]:
+                            best = (sc, lam)
+                    r2 = ridge_r2(X[tr], y[tr], X[te], y[te], best[1]).cpu().numpy()
+                    r[f"{v}/{zk}/{yk}"] = dict(zip(["gyro_x", "gyro_y", "gyro_z", "grav_x", "grav_y", "grav_z"],
+                                                   [round(float(x), 3) for x in r2]), lam=best[1])
+        res["sets"][sn] = r
+        print(sn, json.dumps(r), flush=True)
+    Path(out).write_text(json.dumps(res, indent=1))
+
+
+def _rot_grav(imu, axis, ang):
+    """Rotate the body-frame gravity part of the IMU (cols 3:6) about body x (roll) or y (pitch) by ang rad."""
+    g = imu[:, 3:6].clone()
+    c, s_ = math.cos(ang), math.sin(ang)
+    if axis == "pitch":      # about y: x' = c x + s z, z' = -s x + c z
+        g = torch.stack([c * g[:, 0] + s_ * g[:, 2], g[:, 1], -s_ * g[:, 0] + c * g[:, 2]], -1)
+    else:                    # about x: y' = c y - s z, z' = s y + c z
+        g = torch.stack([g[:, 0], c * g[:, 1] - s_ * g[:, 2], s_ * g[:, 1] + c * g[:, 2]], -1)
+    out = imu.clone(); out[:, 3:6] = g
+    return out
+
+
+@torch.no_grad()
+def feedback(ts, out):
+    """Balance FEEDBACK of system 0 (closed-loop property that one-step MSE does not measure): action change when the
+    IMU reports a small extra tilt (gravity rotated 0.05 rad in pitch/roll) or body rate (gyro +0.5 rad/s about x/y),
+    packet fixed (oracle E(BC chunk)); compared with the stateless BC expert's own change at the same state (paired
+    noise). Reported: RMS |dR|, RMS |dBC|, cosine(dR, dBC), gain = <dR, dBC>/|dBC|^2. Also the same for joint-velocity
+    feedback (qd scaled by 1.2)."""
+    from rrp.learning.legged_bc import load_bc
+    dev = _dev()
+    Ms = {v: load_models(v, ts, dev) for v in ("sem", "nosem")}
+    bc, _ = load_bc("artifacts/runs/legged_bc_t1_v1/policy.pt", dev)
+    tb = {"lv4": "v2", "lv4_s1": "v2s1", "lv4_s3": "v2s3"}.get(ts, ts)
+    sets = {"bc": BUF / "bc", "r2_sem": BUF / f"r2_sem_{tb}", "r2_nosem": BUF / f"r2_nosem_{tb}"}
+    perts = {"pitch+0.05": ("pitch", 0.05), "pitch-0.05": ("pitch", -0.05), "roll+0.05": ("roll", 0.05),
+             "roll-0.05": ("roll", -0.05), "gyro_x+0.5": ("gyro", 0), "gyro_y+0.5": ("gyro", 1), "qd*1.2": ("qd", 0)}
+    res = dict(ts=ts, sets={}, label="packet fixed = oracle E(BC chunk); BC = learned stateless expert (reference)")
+    for sn, root in sets.items():
+        data = load_buf(root, dev)
+        pi = packet_rows(data)
+        r = {}
+        for pk, (kind, arg) in perts.items():
+            acc = {v: [0.0, 0.0, 0.0] for v in Ms}; nb = 0.0; acc_n = 0.0
+            for s_ in range(0, len(pi), 512):
+                i = pi[s_:s_ + 512]
+                b = data.ctx_batch(i)
+                bp = dict(b)
+                if kind in ("pitch", "roll"):
+                    bp["imu"] = _rot_grav(b["imu"], kind, arg)
+                elif kind == "gyro":
+                    im = b["imu"].clone(); im[:, arg] += 0.5 * 0.25; bp["imu"] = im
+                else:
+                    bp["qd"] = b["qd"] * 1.2
+                m = b["node_mask"].float() * data.A["amask"][i].float()
+                gseed = int(i[0])
+                a0 = bc.sample(b, nfe=8, generator=torch.Generator(device=dev).manual_seed(gseed))[:, :, 0]
+                a1 = bc.sample(bp, nfe=8, generator=torch.Generator(device=dev).manual_seed(gseed))[:, :, 0]
+                dB = (a1 - a0) * m
+                nb += float((dB ** 2).sum())
+                ph = torch.zeros(len(i), device=dev)
+                for v, M in Ms.items():
+                    z = M["E"](b, data.beh(i))[0]
+                    dR = (M["R"](z, bp, ph) - M["R"](z, b, ph)) * m
+                    acc[v][0] += float((dR ** 2).sum()); acc[v][1] += float((dR * dB).sum())
+                acc_n += float(m.sum())
+            r[pk] = dict(bc_rms=math.sqrt(nb / max(acc_n, 1)),
+                         **{v: dict(rms=math.sqrt(a[0] / max(acc_n, 1)), gain_on_bc=a[1] / max(nb, 1e-9),
+                                    cos=a[1] / max(math.sqrt(a[0] * nb), 1e-9)) for v, a in acc.items()})
+        res["sets"][sn] = r
+        print(sn, json.dumps(r), flush=True)
+    Path(out).write_text(json.dumps(res, indent=1))
+
+
 if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1 and sys.argv[1] == "readout":
         readout_and_teacher_err(sys.argv[2], sys.argv[3])
+    elif len(sys.argv) > 1 and sys.argv[1] == "geom":
+        _d = _dev(); _M = {v: load_models(v, sys.argv[2], _d) for v in ("sem", "nosem")}
+        _td = LeggedData(Path(_M["sem"]["rcfg"]["data"]), _M["sem"]["rcfg"]["bodies"], _d)
+        Path(sys.argv[3]).write_text(json.dumps({v: latent_geometry(M, _td) for v, M in _M.items()}, indent=1))
+    elif len(sys.argv) > 1 and sys.argv[1] == "feedback":
+        feedback(sys.argv[2], sys.argv[3])
+    elif len(sys.argv) > 1 and sys.argv[1] == "balance":
+        balance_cv(sys.argv[2], sys.argv[3])
     else:
         main()

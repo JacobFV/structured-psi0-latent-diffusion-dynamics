@@ -1,0 +1,10 @@
+{
+ "name": "t1diag_rz_nosem_ctl",
+ "representation": "artifacts/runs/legged_rep_nosem_t1_v2/representation.pt",
+ "steps": 4000,
+ "batch_size": 256,
+ "lr": 0.0003,
+ "qd_dropout": 0.5,
+ "seed": 0,
+ "note": "T1 DIAGNOSIS fix test: system-0 refit from the Stage-A system 0 on the ORIGINAL teacher data only; control: identical refit with posterior-sampled packets only"
+}

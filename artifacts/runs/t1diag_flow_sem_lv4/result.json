@@ -1,0 +1,41 @@
+{
+ "steps": 12000,
+ "wall_s": 1308.7831304073334,
+ "representation": "artifacts/runs/t1diag_rep_sem_lv4/representation.pt",
+ "latent_space_version": "legged-ls-t1diag_rep_sem_lv4",
+ "eval": {
+  "split": "held_out_episodes",
+  "realize_mse": {
+   "oracle": 0.018022838017592826,
+   "free": 0.021812293554345767,
+   "zero": 1.002055190006892
+  },
+  "oracle": {
+   "contact_acc": 0.9707682291666667,
+   "contact_swing_acc": 0.6597321174123681,
+   "goal_err": 0.017378754845722037,
+   "disp_xy_err": 0.03901549453536669,
+   "disp_yaw_err": 0.027794657523433366,
+   "subtask_acc": 0.9973958333333334,
+   "fall_acc": 0.998046875
+  },
+  "free": {
+   "contact_acc": 0.9318359375,
+   "contact_swing_acc": 0.23624964377315474,
+   "goal_err": 0.02057461200275955,
+   "disp_xy_err": 0.0744704191883405,
+   "disp_yaw_err": 0.03744371198117733,
+   "subtask_acc": 0.9994791666666667,
+   "fall_acc": 0.998046875
+  },
+  "free_shuffled": {
+   "contact_acc": 0.9097005208333333,
+   "contact_swing_acc": 0.042462239954402965,
+   "goal_err": 0.5598914485498603,
+   "disp_xy_err": 0.37313962578773496,
+   "disp_yaw_err": 0.160958132147789,
+   "subtask_acc": 0.34921875,
+   "fall_acc": 0.998046875
+  }
+ }
+}

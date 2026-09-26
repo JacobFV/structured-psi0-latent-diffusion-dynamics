@@ -1,0 +1,22 @@
+{
+ "file": "artifacts/runs/legged_ladder/t1/r1t_t1diag_sem_lv4.jsonl",
+ "source": "privileged_oracle_packet:legged-ls-t1diag_rep_sem_lv4",
+ "edit": "none",
+ "n": 30,
+ "success": 25,
+ "wilson95": [
+  0.664,
+  0.927
+ ],
+ "stages": {
+  "success": 25,
+  "halt": 2,
+  "fell": 3
+ },
+ "seeds": [
+  10000,
+  10029
+ ],
+ "events_a": 30,
+ "events_b": 28
+}

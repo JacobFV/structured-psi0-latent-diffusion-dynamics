@@ -1,0 +1,20 @@
+{
+ "file": "artifacts/runs/legged_ladder/t1/r2_t1diag_nosem_rzctl.jsonl",
+ "source": "learned:legged_flow_nosem_t1_v2/policy.pt+rz:t1diag_rz_nosem_ctl/realizer.pt",
+ "edit": "none",
+ "n": 30,
+ "success": 30,
+ "wilson95": [
+  0.886,
+  1.0
+ ],
+ "stages": {
+  "success": 30
+ },
+ "seeds": [
+  10000,
+  10029
+ ],
+ "events_a": 30,
+ "events_b": 30
+}
