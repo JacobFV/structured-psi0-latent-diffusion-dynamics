@@ -154,3 +154,35 @@ approached the new cube first 30/30, first touch new 29/30, lifted+placed new 30
 Arm: `rrp latent arm-edits --route teacher --episodes 8 --max-steps 700 --conditions control,swap_arm --out artifacts/runs/acceptance_sprint_arm_teacher`
 (lease 1790388786_c5d0ce): 3 pairs x 8 seeds = 24; swap_arm: the edited-to arm touches the bar first 24/24 (control 0/24),
 bar-distance preference +0.35 m. (privileged_success is scored against the REAL task, so it is 0 for the edited arm.)
+
+### oracle rung, B-1-fixed bundle (ORACLE DIAGNOSTIC: E(ladder_latent_sem_b1fix_anchor) + scripted_teacher demo -> frozen system 0)
+6 peer CPU shards (leases 1790388786_981f44 .. 1790388789_de0d14), each
+`rrp latent semantic-edits --route oracle --scene paired --representation artifacts/runs/ladder_latent_sem_b1fix_anchor/representation.pt --episodes 5 --seed-start 31000{00,05,..,25} --max-steps 300 --out artifacts/runs/acceptance_sprint_sem_b1fix_oracle/shard<i>`,
+merged by `scripts/sem_merge.py` -> `artifacts/runs/acceptance_sprint_sem_b1fix_oracle/semantic_summary_oracle.json`.
+30 paired scenes, panda_pg2, 0 task successes in any condition (the route is not competent), but the approach changes:
+| condition | first approach old/new/none | first touch old/new/none | min-dist pref. new vs control (m) | init-dir pref. vs control |
+|---|---|---|---|---|
+| control | 15/4/11 | 13/5/12 | - | - |
+| rebind_obj (valid) | 3/12/15 | 2/19/9 | +0.163 [+0.123, +0.211] | +0.81 [+0.49, +1.17] |
+| irrelevant_distractor | 16/3/11 | 13/5/12 | +0.007 [-0.004, +0.020] | +0.00 [-0.00, +0.00] |
+| orthogonal_matched (norm = rebind) | 22/4/4 | 22/8/0 | +0.019 [-0.002, +0.042] | +0.26 [+0.04, +0.55] |
+| goal_shift (valid) | 13/6/11 | 14/6/10 | -0.003 [-0.018, +0.010] | -0.00 |
+Contrasts (per scene, rebind effect minus control-edit effect): min-dist +0.156 m [0.115, 0.205] vs irrelevant,
++0.144 [0.110, 0.183] vs orthogonal. Goal edit: the cube is moved in only ~12/30 (pushed, never carried), end-position
+preference for the new goal vs irrelevant +0.004 m [-0.019, 0.025]: no measurable goal effect (nothing is transported).
+CAVEAT (lead, D-049): the oracle packet encodes the teacher's demonstration toward the new object and the shadow
+teacher is not a valid expert off-trajectory, so this is WEAK evidence: it shows that system 0 follows the packet's
+content, not that anything reads the supplied binding. The binding test is the generated route (v4 flows) and the BC
+reference below.
+
+### BC reference controller (added at the lead's request, 19:15)
+`--route bc`: the competent direct-action BC `learned:artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt`
+(sha256 5e6586bd6000412c.., track baselines: 25/30 panda_pg2), NOT the latent path; context-conditioned (sees the task
+graph); the chunk for an edited condition is computed from the edited public context and executed in the real scene;
+flow noise keyed per (seed, call); control_replay = other noise.
+- Paired scenes (smoke, 1 scene): BC is NOT competent there (hovers over the target zone; the paired scenes have
+  permuted slot order and new colors, which BC never saw). So BC is tested on the canonical pick_place scenes with
+  `rebind_desc` = the same descriptor/binding-only edit (task entity "red cube" -> distractor0's descriptor).
+- Running: 4 peer shards `acceptance_sprint_sem_bc_pp/shard{0..3}` (32 seeds from 3,000,000; control, rebind_desc,
+  rebind_obj (belief swap), goal_shift, irrelevant_distractor, control_replay; 400 steps) + teacher rung on the same
+  scenes `acceptance_sprint_sem_teacher_pp`.
