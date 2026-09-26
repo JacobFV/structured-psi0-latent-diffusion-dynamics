@@ -397,63 +397,72 @@ def _re_step(path: str) -> int:
     return int(m.group(1)) if m else -1
 
 
+def recipe_sets(r, recipe):
+    """All evaluations of an R2 recipe on robot r: {'dev': d, '3000100': d, ...}."""
+    import re
+    out = {}
+    for f in (RAW / "ladder_v1" / r).glob(f"generated_zero_{recipe}*.summary.json"):
+        t = f.name[len(f"generated_zero_{recipe}"):-len(".summary.json")]
+        m = re.fullmatch(r"(?:_(?:fresh|s)(3000\d00))?", t)
+        if not m:
+            continue
+        key = "dev" if (m.group(1) in (None, "3000000")) else m.group(1)
+        out[key] = J(str(f.relative_to(RAW)))
+    return out
+
+
+FROZEN = [("flowgdag2h_rzgendag3_noqd", "flow_jointfix_gdag2h → system 0 gendag3_noqd", "02:30 (current)"),
+          ("flowgdag1_rzgendag3_noqd", "flow_jointfix_gdag1 → system 0 gendag3_noqd", "01:10 (superseded)")]
+
+
 def sec_final_route():
     """SPRINT BEST ROUTE FINAL (frozen by sprint_latent), rendered from the raw summaries it names."""
-    T = "ladder_v1/{r}/{t}.summary.json"
-    def cell(r, t):
-        p = T.format(r=r, t=t)
-        if not have(p):
-            return None
-        return J(p)
     robots = ("panda_pg2", "parm6_tf3", "parm5s_tf3", "parm5l_pg2")
-    spec = [("R0 scripted_teacher (privileged)", "teacher", {"panda_pg2": "teacher_shadow_zero", "parm6_tf3": "teacher_shadow_zero", "parm5s_tf3": "teacher_heldout_ref", "parm5l_pg2": "teacher_heldout_ref"}),
-            ("plain BC learned:direct1701_u12000 (reference)", "bc", {"panda_pg2": None, "parm6_tf3": None, "parm5s_tf3": "learned_bc_direct1701_u12000", "parm5l_pg2": "learned_bc_direct1701_u12000"}),
-            ("R1 ORACLE (stateless): E(BC chunk) → system 0 gendag3_noqd", "oracle", {r: "oracle_zero_gendag3noqd_orcbc" for r in robots}),
-            ("<b>R2 deployable: flow_jointfix_gdag1 → system 0 gendag3_noqd</b>", "learned", {r: "generated_zero_flowgdag1_rzgendag3_noqd" for r in robots})]
-    import re as _rf
-    fresh_sets = sorted({m.group(1) for f in (RAW / "ladder_v1").glob("*/*_fresh*.summary.json")
-                         for m in [_rf.search(r"_fresh(\d+)\.summary", f.name)] if m})
-    for fs in fresh_sets:
-        spec.append((f"plain BC learned:direct1701_u12000, FRESH seeds {fs}+", "bc", {r: f"learned_bc_direct1701_u12000_fresh{fs}" for r in robots}))
-        spec.append((f"R2 (same frozen checkpoints), FRESH seeds {fs}+", "learned", {r: f"generated_zero_flowgdag1_rzgendag3_noqd_fresh{fs}" for r in robots}))
+    def one(r, t):
+        p = f"ladder_v1/{r}/{t}.summary.json"
+        return J(p) if have(p) else None
     rows = []
-    for lab, kind, tags in spec:
-        cells = [f'<span class="badge b-{kind}">{lab}</span>']
-        for r in robots:
-            t = tags.get(r)
-            d = cell(r, t) if t else None
-            if d is None and kind == "bc" and r in ("panda_pg2", "parm6_tf3"):
-                bp = f"artifacts/runs/baselines_bc_ladder/{r}/learned_direct1701_u12000.summary.json"
-                d = J(bp) if have(bp) else None
-            cells.append(frac(d["success"], d["n"]) if d else "—")
+    def add(lab, kind, vals):
+        cells = [f'<span class="badge b-{kind}">{lab}</span>'] + [frac(d["success"], d["n"]) if d else "—" for d in vals]
         if any(c != "—" for c in cells[1:]):
             rows.append(cells)
-    # pooled R2 dev + fresh
-    pool = []
-    for r in robots:
-        ds = [cell(r, t) for t in ["generated_zero_flowgdag1_rzgendag3_noqd"] + [f"generated_zero_flowgdag1_rzgendag3_noqd_fresh{fs}" for fs in fresh_sets]]
-        ds = [d for d in ds if d]
-        pool.append(frac(sum(d["success"] for d in ds), sum(d["n"] for d in ds)) + f'<br><span class="ci">{len(ds)} seed sets</span>' if ds else "—")
-    rows.append(['<span class="badge b-learned">R2 pooled: dev + ALL fresh seed sets</span>'] + pool)
+    add("R0 scripted_teacher (privileged), dev", "teacher", [one(r, "teacher_shadow_zero") or one(r, "teacher_heldout_ref") for r in robots])
+    bc = lambda r, suf="": one(r, f"learned_bc_direct1701_u12000{suf}") or (J(f"artifacts/runs/baselines_bc_ladder/{r}/learned_direct1701_u12000.summary.json") if suf == "" and have(f"artifacts/runs/baselines_bc_ladder/{r}/learned_direct1701_u12000.summary.json") else None)
+    add("plain BC learned:direct1701_u12000, dev", "bc", [bc(r) for r in robots])
+    add("R1 ORACLE (stateless): E(BC chunk) → system 0 gendag3_noqd, dev", "oracle", [one(r, "oracle_zero_gendag3noqd_orcbc") for r in robots])
+    for recipe, lab, when in FROZEN:
+        sets = {r: recipe_sets(r, recipe) for r in robots}
+        keys = sorted({k for v in sets.values() for k in v}, key=lambda k: (k != "dev", k))
+        for k in keys:
+            if k != "dev":
+                add(f"plain BC learned:direct1701_u12000, fresh seeds {k}+", "bc", [one(r, f"learned_bc_direct1701_u12000_fresh{k}") for r in robots])
+            add(("<b>" if "current" in when else "") + f"R2 {lab}, {'dev' if k == 'dev' else 'fresh seeds ' + k + '+'} · frozen {when}" + ("</b>" if "current" in when else ""),
+                "learned", [sets[r].get(k) for r in robots])
+        pool = []
+        for r in robots:
+            ds = list(sets[r].values())
+            pool.append((frac(sum(d["success"] for d in ds), sum(d["n"] for d in ds)) + f'<br><span class="ci">{len(ds)} seed set(s)</span>') if ds else "—")
+        rows.append([f'<span class="badge b-learned">R2 {esc(lab)} pooled over ALL its seed sets · {when}</span>'] + pool)
     gd = sorted((RAW / "ladder_dagger_gdag2").glob("generated_*.summary.json"))
     tb = ""
     if gd:
         k = sum(json.loads(f.read_text())["success"] for f in gd)
         n = sum(json.loads(f.read_text())["n"] for f in gd)
         USED.update(str(f.relative_to(RAW)) for f in gd)
-        tb = f"<p>R2 on the {len(gd)} source-<i>training</i> bodies (24 seeds each, seeds 4,000,000+): <b>{k}/{n}</b> (these rollouts were also collected as DAgger training data for the next round; the evaluated checkpoint had not trained on them). {src('ladder_dagger_gdag2/generated_<robot>.summary.json')}</p>"
-    return f"""<h3>FINAL best latent route (frozen 01:10 by sprint_latent): the deployable route works, below BC</h3>
-{table(["controller", "panda_pg2 (dev, 30)", "parm6_tf3 (dev, 30)", "parm5s_tf3 (held-out source body)", "parm5l_pg2 (held-out source body)"], rows)}
+        tb = (f"<p>R2 flow_gdag1 on the {len(gd)} source-<i>training</i> bodies (24 seeds each, seeds 4,000,000+): <b>{k}/{n}</b> (these rollouts were also "
+              f"collected as DAgger training data for the next round; the evaluated checkpoint had not trained on them). {src('ladder_dagger_gdag2/generated_<robot>.summary.json')}</p>")
+    return f"""<h3>FINAL best latent route (frozen by sprint_latent): the deployable route works, below BC</h3>
+{table(["controller", "panda_pg2", "parm6_tf3", "parm5s_tf3 (held-out source body)", "parm5l_pg2 (held-out source body)"], rows)}
 {tb}
-<p>Every evaluation of the frozen checkpoints on non-training seeds is listed, better or worse; BC rows on the same seed sets are shown for a like-for-like comparison.
-No teacher, oracle or BC at run time on the R2 rows. System i = <code>ladder_flow_jointfix_gdag1/policy.pt</code> (sha256 78fbee7f…),
-system 0 + encoder bundle = <code>ladder_rz_jointfix_gendag3_noqd/representation.pt</code> (sha256 f60cde41…). The DAgger labels come from a
-<i>learned</i> stateless expert (the BC controller, trained on the same scripted-teacher demonstrations) at learner-visited states.
-What made it work, all within the architecture: (1) removing a joint-velocity shortcut in system 0; (2) replacing the stale teacher FSM with
-the stateless BC expert; (3) system-0 DAgger rounds, including states visited with system i's own packets, plus z-noise; (4) generator DAgger.
-Not solved: panda grasp/lift and parm6 place. The ordering is R2 &lt; R1 stateless &lt; BC. Binding-v4 sem/nosem bundles are not competent
-with the same recipe yet, so no deployable sem-vs-nosem comparison exists on the arm.
-{src('research/tracks/ladder.md (SPRINT BEST ROUTE FINAL)', 'ladder_v1/<robot>/generated_zero_flowgdag1_rzgendag3_noqd[_fresh3000100].summary.json', 'D-070', 'D-072')}</p>
+<p>Every evaluation of the frozen checkpoints on non-training seeds is listed, better or worse, for the current and the superseded freeze. BC rows on the same
+seed sets are shown for a like-for-like comparison. No teacher, oracle or BC at run time on the R2 rows. Current freeze: system i
+<code>ladder_flow_jointfix_gdag2h</code> (generator-DAgger round 2) and system 0 + encoder <code>ladder_rz_jointfix_gendag3_noqd/representation.pt</code>
+(sha256 f60cde41…). The DAgger labels come from a <i>learned</i> stateless expert (the BC controller, trained on the same scripted-teacher demonstrations) at
+learner-visited states. What made it work, all within the architecture: (1) removing a joint-velocity shortcut in system 0; (2) replacing the stale teacher
+FSM with the stateless BC expert; (3) system-0 DAgger rounds, including states visited with system i's own packets, plus z-noise; (4) generator DAgger.
+Not solved: panda grasp/lift and parm6 place. The ordering is R2 &lt; BC. Binding-v4 sem/nosem bundles are not competent with the same recipe yet, so no
+deployable sem-vs-nosem comparison exists on the arm.
+{src('research/tracks/ladder.md (SPRINT BEST ROUTE FINAL)', 'ladder_v1/<robot>/generated_zero_<recipe>[_s|_fresh<seed>].summary.json', 'D-070', 'D-072')}</p>
 <div class="grid wide">{"".join(video_card(v) for v in R2_VIDEOS[:2] if (VID / v[0]).exists())}</div>"""
 
 
@@ -1394,13 +1403,13 @@ def build(updates_html: str = ""):
     ob = BEST.get("oracle", {})
     orc_best = ", ".join(f"{v[0]}/{v[1]} {r}" for r, v in sorted(ob.items())) or "—"
     _h = lambda t: (lambda d: f"{d['success']}/{d['n']}")(J(f"ladder_v1/parm5s_tf3/{t}.summary.json")) if have(f"ladder_v1/parm5s_tf3/{t}.summary.json") else "—"
-    ho_r2, ho_bc = _h("generated_zero_flowgdag1_rzgendag3_noqd"), _h("learned_bc_direct1701_u12000")
+    ho_r2, ho_bc = _h("generated_zero_" + FROZEN[0][0]), _h("learned_bc_direct1701_u12000")
     _h2 = lambda t: (lambda d: f"{d['success']}/{d['n']}")(J(f"ladder_v1/parm5l_pg2/{t}.summary.json")) if have(f"ladder_v1/parm5l_pg2/{t}.summary.json") else "—"
     def _pool(r):
-        ds = [json.loads(f.read_text()) for f in (RAW / "ladder_v1" / r).glob("generated_zero_flowgdag1_rzgendag3_noqd*.summary.json")]
+        ds = list(recipe_sets(r, FROZEN[0][0]).values())
         return f"{sum(d['success'] for d in ds)}/{sum(d['n'] for d in ds)} on {r}" if ds else "—"
     pool_txt = ", ".join(_pool(r) for r in ("panda_pg2", "parm6_tf3"))
-    ho_r2b, ho_bcb = _h2("generated_zero_flowgdag1_rzgendag3_noqd"), _h2("learned_bc_direct1701_u12000")
+    ho_r2b, ho_bcb = _h2("generated_zero_" + FROZEN[0][0]), _h2("learned_bc_direct1701_u12000")
     lb = BEST.get("learned", {})
     import re as _rb
     def _recipe_pool(r, tag):
