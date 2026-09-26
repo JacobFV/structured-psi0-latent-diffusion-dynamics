@@ -70,3 +70,4 @@ Rendered on peer GPU EGL into `artifacts/runs/demo_video/` (NOT the shared artif
 - 22:04 lead: latency block now D-058 (1.014×, final checkpoints) with a supersedes-D-041 note; held-out BC table generalized (codec final 77/80); BC tags incl. ufinal.
 - 22:14 lead: new §2b Bodies section (auto-picks scripted_teacher clips from artifacts/video/INDEX.md grouped arms/dual-arm/legged/humanoid; legged table moved there; optional teacher-ref tables from artifacts/runs/sprint_bodies_teacher_ref/*.summary.json); §2 now shows only the binding-pair clips; wide clips no longer letterboxed.
 - 22:21 sprint_bodies folded in: montage at top of §2b, humanoid/anymal teacher-ref tables, failures (g1 fall, g1/h1 halt failures, parm7 place), per-body notes; builder copies only picked clips and prunes unreferenced videos from docs/demo/video (15 MB).
+- 22:25 D-062 best-route semantic row + lead's reading (goal content executed; semantic claim NOT shown); refresh.sh now always pushes.

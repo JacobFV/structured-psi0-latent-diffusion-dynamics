@@ -375,6 +375,21 @@ def sec_sprint():
                              ci(o4["_contrasts"].get("rebind_obj-irrelevant_distractor:pref_min"))
                              + (f'<br><span class="ci">vs orthogonal edit: {orth["mean"]:+.3f} [{orth["lo"]:+.3f}, {orth["hi"]:+.3f}]</span>' if orth else ""),
                              goal(o4), "n/a"])
+        BR = "artifacts/runs/acceptance_sprint_sem_best_orcbc/semantic_summary_oracle.json"
+        bb_ctrl = bb_goal = bb_irr = bb_orth = bb_orth_s = bb_rb = "—"
+        if have(BR):
+            bb = J(BR)["summary"]
+            f2 = lambda c, k: f'{bb[c][k]}/{bb[c]["n"]}'
+            bb_ctrl, bb_goal, bb_irr, bb_orth = f2("control", "privileged_success"), f2("goal_shift", "cube_at_shifted_goal"), f2("irrelevant_distractor", "cube_at_shifted_goal"), f2("orthogonal_matched", "cube_at_shifted_goal")
+            bb_orth_s, bb_rb = f2("orthogonal_matched", "privileged_success"), fc(bb, "rebind_desc")
+            g_ = bb["goal_shift"]
+            rows.append([f'{badge("oracle", "BEST ROUTE, ORACLE: E(BC chunk for the edited context) → system 0 jfbcdag2")}<br>canonical scenes',
+                         "binding (descriptor only)",
+                         f'{fc(bb, "rebind_desc")} / {fc(bb, "control")}',
+                         ci(bb["_contrasts"].get("rebind_desc-irrelevant_distractor:pref_min")) + '<br><span class="ci">by abandoning the old cube, not reaching the new one</span>',
+                         f'<b>{g_["cube_at_shifted_goal"]}/{g_["n"]}</b><br><span class="ci">irrelevant {bb["irrelevant_distractor"]["cube_at_shifted_goal"]}/{bb["irrelevant_distractor"]["n"]}, orthogonal {bb["orthogonal_matched"]["cube_at_shifted_goal"]}/{bb["orthogonal_matched"]["n"]}; '
+                         f'{ci(bb["_contrasts"].get("goal_shift-irrelevant_distractor:goal_pref"))} m beyond irrelevant</span>',
+                         "n/a"])
         rows.append([f'{badge("learned", "learned: v4 sem / nosem flows")}', "generated route", badge("run"), badge("run"), badge("run"), badge("run")])
         parts.append("<h3>Semantic interventions at the level each route reaches (sprint_semantic)</h3>"
                      + table(["route", "edit type", "rebind: first touch on the NEW object (edit / control)",
@@ -384,7 +399,12 @@ def sec_sprint():
 approach the rebound object, but that packet encodes the teacher's demonstration toward it, so this is weak evidence
 (system 0 reads packet content, not the binding). The competent BC controller follows a goal edit and a swap of object
 <i>beliefs</i>, but <b>ignores a pure binding change</b>: that is the capability the semantic packet is meant to add, and the
-generated-route test on the binding-v4 flows is pending. <b>Binding v4 sem vs nosem (oracle route, D-059):</b> no semantic
+generated-route test on the binding-v4 flows is pending. <b>Best latent route: system 0 causally executes goal content carried in the packet (oracle diagnostic, D-062).</b>
+Packet = E(the BC chunk for the edited context) → system 0 jfbcdag2, panda_pg2, 48 seeds, control success {bb_ctrl}. A valid goal edit puts
+the cube at the NEW goal in {bb_goal} vs {bb_irr} and {bb_orth} under the matched controls. A probe-orthogonal edit of matched norm drops success to
+{bb_orth_s}. A binding edit is NOT followed ({bb_rb} first touch on the new object). <b>This does not show that semantic supervision adds control:</b>
+the BC expert already follows goal edits, the packet encodes BC's chunk, and bindings are not carried because BC ignores them.
+{src(BR, 'D-062')} <b>Binding v4 sem vs nosem (oracle route, D-059):</b> no semantic
 advantage at the behaviour level. Neither v4 system 0 is competent before refitting, and the sem effect is not separable from a
 matched-norm probe-orthogonal edit. The claim that semantic supervision adds causal control remains <b>not shown</b>. {src('D-059')} {src(T, O, B, A, 'research/tracks/acceptance.md (SPRINT SEMANTIC RESULTS)')}</p>
 <div class="grid">{''.join(video_card(v) for v in SEM_VIDEOS)}</div>""")
