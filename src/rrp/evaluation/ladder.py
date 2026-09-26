@@ -558,7 +558,8 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
             track_q_rad=agg("track_q", T), track_tcp_m=agg("track_tcp", T), cmd_step_rad=agg("cmd_step", T),
             lab_err_arm=agg("lab_err_arm", T), lab_step_arm=agg("lab_step_arm", T), lab_err_grip=agg("lab_err_grip", T), by_phase=by_phase,
             lab_err_by_j={j: float(np.mean(v)) for j, v in sorted(by_j.items())},
-            oracle_cmp=({key: float(np.mean([r[key] for r in rp])) for key in rp[0] if key != "t"} if rp else None),
+            oracle_cmp=({key: float(np.mean([r[key] for r in rp if key in r])) for key in sorted({x for r in rp for x in r})
+                         if key not in ("t", "rejected")} if rp else None),
             oracle_cmp_by_phase=_cmp_by_phase(rp, T) if rp else None,
             ticks=T if cfg.keep_ticks else None, replans=m["replans"] if cfg.keep_ticks else None,
             interventions=s.intervention_log, wall_s=time.time() - m["t0"],
@@ -580,7 +581,8 @@ def _cmp_by_phase(rp, T):
     out = {}
     for r in rp:
         out.setdefault(ph.get(r["t"], "?"), []).append(r)
-    return {p: {k: float(np.mean([x[k] for x in v])) for k in v[0] if k != "t"} | {"n": len(v)} for p, v in out.items()}
+    return {p: {k: float(np.mean([x[k] for x in v if k in x])) for k in sorted({y for x in v for y in x})
+                if k not in ("t", "rejected")} | {"n": len(v)} for p, v in out.items()}
 
 
 @torch.no_grad()

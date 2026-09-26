@@ -112,7 +112,9 @@ def render(a, cfg, models, ids):
                  oracle="R1 ORACLE DIAGNOSTIC: E(teacher future actions) -> sys-0",
                  generated="R2 LEARNED sys-i flow -> sys-0",
                  learned=f"LEARNED plain BC learned:{a.policy_label or a.policy}")[a.route]
-    ck = (a.policy_label or Path(a.policy).stem) if a.policy else Path(a.flow).stem if a.flow else (Path(a.rep).parent.name if a.rep else "-")
+    if a.route == "oracle" and a.oracle_expert == "bc":
+        label = f"R1 ORACLE DIAGNOSTIC: E(chunk of BC learned:{a.policy_label}) -> sys-0"
+    ck = Path(a.rep).parent.name if (a.route == "oracle" and a.rep) else (a.policy_label or Path(a.policy).stem) if a.policy else Path(a.flow).stem if a.flow else (Path(a.rep).parent.name if a.rep else "-")
     out = Path(a.video_out)
     out.mkdir(parents=True, exist_ok=True)
     for sd in [int(x) for x in a.render_seeds.split(",")]:
