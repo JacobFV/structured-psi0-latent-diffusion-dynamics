@@ -1,0 +1,110 @@
+{
+ "device": "cuda",
+ "gpu": "NVIDIA GB10",
+ "t": 1790398943.5413575,
+ "system_i": {
+  "1": {
+   "p50": 5.946249992121011,
+   "p95": 8.07475356268696,
+   "p99": 11.439379394287245,
+   "mean": 6.197486120508984,
+   "n": 100
+  },
+  "2": {
+   "p50": 9.131005499511957,
+   "p95": 13.59466283465735,
+   "p99": 27.770146053517266,
+   "mean": 9.872161565581337,
+   "n": 100
+  },
+  "4": {
+   "p50": 14.523290970828384,
+   "p95": 14.929115603445098,
+   "p99": 15.88788299006416,
+   "mean": 14.685957878828049,
+   "n": 100
+  },
+  "8": {
+   "p50": 25.68422502372414,
+   "p95": 26.351295807398856,
+   "p99": 27.8858628391754,
+   "mean": 25.763661727542058,
+   "n": 100
+  }
+ },
+ "note": "physics paused during inference (offline loop): these are compute latencies, not a real-time claim",
+ "system0_tick": {
+  "p50": 1.4549079933203757,
+  "p95": 1.7039308615494517,
+  "p99": 1.978231583489103,
+  "mean": 1.4904616953572258,
+  "n": 200
+ },
+ "system0_deadline_s": 0.05,
+ "system0_deadline_misses": 0,
+ "end_to_end_obs_to_first_command": {
+  "p50": 27.280165464617312,
+  "p95": 28.77039960003458,
+  "p99": 33.40953422361057,
+  "mean": 27.532231061486527,
+  "n": 100
+ },
+ "baseline_direct_action_source": "checkpoint artifacts/runs/baselines_bc_ckpts/direct1701_u18000.pt",
+ "baseline_direct_action_obs_to_chunk": {
+  "p50": 26.694472006056458,
+  "p95": 27.236121700843796,
+  "p99": 27.635239097289745,
+  "mean": 26.706866613822058,
+  "n": 100
+ },
+ "paired_interleaved_nfe8": {
+  "latent_obs_to_first_command": {
+   "p50": 27.888383949175477,
+   "p95": 28.674966987455264,
+   "p99": 38.39910022565163,
+   "mean": 28.118063461733982,
+   "n": 200
+  },
+  "direct_obs_to_chunk": {
+   "p50": 27.300795482005924,
+   "p95": 28.279593243496493,
+   "p99": 34.341958897421115,
+   "mean": 27.537014237605035,
+   "n": 200
+  },
+  "p95_overhead_ratio": 1.013980885105188,
+  "p50_overhead_ratio": 1.021522759934114,
+  "per_replan_compute_p95_ratio": 1.4357520162578312,
+  "threshold_p95_ratio": 1.25
+ },
+ "active_leases_during_measurement": [
+  {
+   "label": "acc_v4nosem_paired_s2",
+   "gpu": false
+  },
+  {
+   "label": "acc_v4nosem_paired_s1",
+   "gpu": false
+  },
+  {
+   "label": "acc_v4sem_paired_s0",
+   "gpu": false
+  },
+  {
+   "label": "acc_v4sem_paired_s1",
+   "gpu": false
+  },
+  {
+   "label": "acc_v4nosem_paired_s0",
+   "gpu": false
+  },
+  {
+   "label": "acc_v4sem_paired_s2",
+   "gpu": false
+  },
+  {
+   "label": "lead_latency_final",
+   "gpu": true
+  }
+ ]
+}

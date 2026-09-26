@@ -1,0 +1,24 @@
+{
+ "steps": 26304,
+ "wall_s": 17289.07640314102,
+ "train_chunks": 1122555,
+ "swap_pairs": 0,
+ "n_params": 14925323,
+ "gpu": {
+  "cuda": true,
+  "declared_bytes": 17179869184,
+  "device_total_bytes": 128453668864,
+  "fraction": 0.13374370180262538
+ },
+ "interrupted": false,
+ "checkpoint": {
+  "path": "artifacts/runs/latent_slice1_b1fix/baseline_action_only_codec/seed1701/source/policy.pt",
+  "sha256_16": "6e19895618547844",
+  "step": 26304,
+  "versions": {
+   "policy": "baseline_action_only_codec_seed1701",
+   "featurizer": "feat-v2",
+   "codec": "codec-v1"
+  }
+ }
+}

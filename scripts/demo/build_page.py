@@ -190,7 +190,7 @@ def video_card(v) -> str:
     f, kind, title, cap, s = v
     lab = {"teacher": "teacher | BC | oracle" if f.startswith("2026-09-25_triptych") else "teacher | BC | stateless oracle" if "orcbctriptych" in f else "scripted_teacher", "oracle": "oracle diagnostic", "learned": "learned", "bc": "learned"}[kind]
     if kind == "learned":
-        lab = "teacher | BC | learned:flow_jointfix@" + f.split("flowjf_s")[1].split(".")[0] if "r2triptych" in f else "learned:flow_latent_sem_v2@22k"
+        lab = ("teacher | BC | learned:flow_jointfix@" + (f.split("flowjf_s")[1].split(".")[0] if "flowjf_s" in f else "20k → sys-0 jfbcdag2")) if "r2triptych" in f else "learned:flow_latent_sem_v2@22k"
     if kind == "bc":
         lab = "learned:" + ("direct1701_u12000 (BC)" if "_s30000" not in f else
                             f.split("_s30000")[1].split("_", 1)[1].rsplit("_", 1)[0])
@@ -272,6 +272,11 @@ SEM_VIDEOS = [
 
 
 R2_VIDEOS = [
+    ("2026-09-25_r2triptych_parm6_tf3_s3000038_teacher_bc-direct1701_u12000_generated-flowjf20k_rzbcdag2.mp4", "learned",
+     "same scene · teacher | plain BC | R2 generated (flow_jointfix final → system 0 jfbcdag2) · parm6_tf3 · seed 3000038",
+     "Seed 3000038 is the ONLY R2 success in the evaluation (1/30). In this re-render the R2 panel fails at grasp: the "
+     "first deployable-route success does not reproduce on demand (flow sampling noise), so treat it as a single event.",
+     "ladder_v1/parm6_tf3/generated_zero_flowjf_s20000_rzbcdag2.summary.json"),
     ("2026-09-25_r2triptych_panda_pg2_s3000029_teacher_bc-direct1701_u12000_generated-flowjf_s4000.mp4", "learned",
      "same scene · teacher | plain BC | R2 generated (flow_jointfix@4000) · panda_pg2 · seed 3000029",
      "Right panel: the deployable latent route, system i's own packet → system 0. This render: teacher success, BC success, "
@@ -360,6 +365,16 @@ def sec_sprint():
             rows.append([f'{badge("bc", "learned:direct1701_u12000 (BC, NOT latent)")}<br>canonical scenes', "object beliefs swapped",
                          f'{fc(b, "rebind_obj")} / {fc(b, "control")}',
                          ci(b["_contrasts"].get("rebind_obj-irrelevant_distractor:pref_min")), "(same run)", "n/a"])
+        for v in ("sem", "nosem"):
+            V = f"artifacts/runs/acceptance_sprint_sem_v4{v}_oracle/semantic_summary_oracle.json"
+            if have(V):
+                o4 = J(V)["summary"]
+                orth = o4["_contrasts"].get("rebind_obj-orthogonal_matched:pref_min")
+                rows.append([f'{badge("oracle", f"ORACLE: E(binding v4 {v.upper()}) + teacher demo")}<br>paired scenes', "binding (descriptor)",
+                             f'{fc(o4, "rebind_obj")} / {fc(o4, "control")}',
+                             ci(o4["_contrasts"].get("rebind_obj-irrelevant_distractor:pref_min"))
+                             + (f'<br><span class="ci">vs orthogonal edit: {orth["mean"]:+.3f} [{orth["lo"]:+.3f}, {orth["hi"]:+.3f}]</span>' if orth else ""),
+                             goal(o4), "n/a"])
         rows.append([f'{badge("learned", "learned: v4 sem / nosem flows")}', "generated route", badge("run"), badge("run"), badge("run"), badge("run")])
         parts.append("<h3>Semantic interventions at the level each route reaches (sprint_semantic)</h3>"
                      + table(["route", "edit type", "rebind: first touch on the NEW object (edit / control)",
@@ -369,7 +384,9 @@ def sec_sprint():
 approach the rebound object, but that packet encodes the teacher's demonstration toward it, so this is weak evidence
 (system 0 reads packet content, not the binding). The competent BC controller follows a goal edit and a swap of object
 <i>beliefs</i>, but <b>ignores a pure binding change</b>: that is the capability the semantic packet is meant to add, and the
-generated-route test on the binding-v4 flows is pending. {src(T, O, B, A, 'research/tracks/acceptance.md (SPRINT SEMANTIC RESULTS)')}</p>
+generated-route test on the binding-v4 flows is pending. <b>Binding v4 sem vs nosem (oracle route, D-059):</b> no semantic
+advantage at the behaviour level. Neither v4 system 0 is competent before refitting, and the sem effect is not separable from a
+matched-norm probe-orthogonal edit. The claim that semantic supervision adds causal control remains <b>not shown</b>. {src('D-059')} {src(T, O, B, A, 'research/tracks/acceptance.md (SPRINT SEMANTIC RESULTS)')}</p>
 <div class="grid">{''.join(video_card(v) for v in SEM_VIDEOS)}</div>""")
 
     import re as _re
@@ -391,7 +408,7 @@ generated-route test on the binding-v4 flows is pending. {src(T, O, B, A, 'resea
                     cells += ["—", "—"]
             rows.append(cells)
         known = {"jointfix": "jointfix", "jfdag1": "jfdag1 (shadow DAgger r1)", "jfdag2df08": "jfdag2df08 (shadow DAgger r1+r2)",
-                 "jfbcdag1": "jfbcdag1 (BC-expert DAgger)", "jfbcdag1long": "jfbcdag1long (BC-expert DAgger, 16k steps, lr 3e-4)", "jfnoqd": "jfnoqd (no joint-velocity input)", "jfbcdag2": "jfbcdag2 (BC-expert DAgger round 2)", "jfnoqd": "jfnoqd (no joint-velocity input)", "bindv4sem": "binding v4 SEM bundle", "bindv4nosem": "binding v4 NOSEM bundle (capacity-matched control)"}
+                 "jfbcdag1": "jfbcdag1 (BC-expert DAgger)", "jfbcdag1long": "jfbcdag1long (BC-expert DAgger, 16k steps, lr 3e-4)", "jfnoqd": "jfnoqd (no joint-velocity input)", "jfbcdag2": "jfbcdag2 (BC-expert DAgger round 2)", "jfbig16k": "jfbig16k (larger system 0, 16k steps, BC-expert DAgger)", "jfnoqd": "jfnoqd (no joint-velocity input)", "bindv4sem": "binding v4 SEM bundle", "bindv4nosem": "binding v4 NOSEM bundle (capacity-matched control)"}
         found = sorted({f.name[len("oracle_zero_"):-len("_orcbc.summary.json")] for f in (RAW / "ladder_v1").glob("*/oracle_zero_*_orcbc.summary.json")},
                        key=lambda t: (list(known).index(t) if t in known else 99, t))
         for t_, lab in ((t, known.get(t, t)) for t in found):
@@ -458,6 +475,11 @@ packet. R2 fails at the same stages as the stateless oracle. Next: fix the syste
 next) {badge('oracle', 'ORACLE DIAGNOSTIC')}, and system 0 is scored against BC's executed command (1-step, normalized).
 The jointly trained system 0 realizes these packets below the hold-still error (a partial, not a precise, realization), and shadow-teacher DAgger
 <i>raised</i> its error (to 83–133% of hold-still) (consistent with stale labels). Its first tick after each new packet is as bad as holding still.
+<b>Mechanism found (sprint_latent):</b> system 0 largely copies the current joint <i>velocity</i> rather than following the packet. At
+BC-visited states, zeroing only the joint-velocity input collapses its commanded step gain from 0.88 to 0.12 relative to BC. From rest this is
+a fixed point, and it is the same class of proprioceptive shortcut as B-1. BC-expert DAgger penalizes it, which explains why the refits help. Removing
+the velocity input alone (jfnoqd) also moves the stateless route from 0/30 to its row's value. A refit without the velocity input is under test.
+{src('ladder_localize/bias/', 'research/tracks/ladder.md (SPRINT BEST ROUTE, 21:58)', 'D-056')}
 The generated-packet row measures the generator gap at the same states: through system 0 the generated packet is
 no better than holding still. So at this flow snapshot both stages fall short. {src(L.format(r='<robot>', t='<tag>'), 'research/tracks/ladder.md (sprint)')}</p>""")
     if not parts:
@@ -533,7 +555,8 @@ def sec_works():
     lrows = [[esc(b), frac(v["success"], v["n"], ci=False), str(v["fell"])] for b, v in lg.items()]
     legt = table(["body", "success", "falls"], lrows)
 
-    lat = J("acceptance_latency/sem_v1_interrupted.json")
+    LAT = "artifacts/runs/lead_latency_final/flowjf20k_vs_direct18k.json"
+    lat = J(LAT)
     pi = lat["paired_interleaved_nfe8"]
     return f"""
 <section id="works"><h2>2 · What works today</h2>
@@ -563,12 +586,13 @@ route, so no failure below is a tracker failure. {src('D-044', 'D-049')}</p>
 <li>Packet-policy GRPO with exact per-step likelihoods (unit-tested); on hold, no signal from a non-competent base. {src('D-042')}</li>
 <li>Sealed-protocol baseline runner (direct actions, action-only codec) with exact resume. {src('D-035')}</li>
 </ul>
-<h3>Latency {badge('ok', 'measured, with caveats')}</h3>
-<p>Observation → first native command, interleaved pairs at NFE 8: latent p95 <b>{pi['latent_obs_to_first_command']['p95']:.0f} ms</b>
-vs direct-action p95 <b>{pi['direct_obs_to_chunk']['p95']:.0f} ms</b> → overhead ratio <b>{pi['p95_overhead_ratio']:.2f}×</b>
-(threshold {pi['threshold_p95_ratio']}×). System-0 tick p95 {lat['system0_tick']['p95']:.1f} ms, {lat['system0_deadline_misses']}/{lat['system0_tick']['n']} misses of the 50 ms deadline.
-Caveats: direct path timed with random weights (same compute), peer GPU shared by other jobs; to rerun on final checkpoints in a quiet window.
-{src('acceptance_latency/sem_v1_interrupted.json', 'D-041')}</p>
+<h3>Latency {badge('ok', 'within budget')}</h3>
+<p>Final checkpoints, quiet GPU, {pi['latent_obs_to_first_command']['n']} interleaved pairs at NFE 8: the latent route (learned:ladder_flow_jointfix 20k → system 0)
+observation → first native command p95 <b>{pi['latent_obs_to_first_command']['p95']:.1f} ms</b> vs the real B-1-fixed BC checkpoint
+learned:direct1701_u18000 observation → chunk p95 <b>{pi['direct_obs_to_chunk']['p95']:.1f} ms</b> → overhead ratio <b>{pi['p95_overhead_ratio']:.3f}×</b>
+(limit {pi['threshold_p95_ratio']}×). System-0 tick p95 {lat['system0_tick']['p95']:.1f} ms, {lat['system0_deadline_misses']} misses of the 50 ms deadline
+({lat['system0_tick']['n']} ticks). {src(LAT, 'D-058')}<br>
+<span class="muted">Supersedes the earlier 1.12× estimate (D-041), which used random direct-path weights on a loaded peer.</span></p>
 <div class="grid">{''.join(video_card(v) for v in VIDEOS)}</div>
 </section>"""
 
@@ -588,7 +612,7 @@ def sec_matrix():
         ["dual-arm / assignment", badge("ok"), "teacher only", badge("none"), "pairs ready, teacher does both " + src("D-043"), badge("none")],
         ["legged / humanoid", "data + code", "teacher only", badge("none"), badge("none"), badge("none")],
         ["VLM system II", "smoke only", "n/a", badge("none"), badge("none"), badge("none")],
-        ["latency", badge("ok"), "—", "p95 1.12× (≤ 1.25×), caveats " + src("D-041"), "—", "—"],
+        ["latency", badge("ok"), "—", "p95 1.014× vs real BC checkpoint (≤ 1.25×), quiet GPU " + src("D-058"), "—", "—"],
     ]
     return f"""
 <section id="matrix"><h2>3 · Evidence matrix</h2>
@@ -716,8 +740,8 @@ def sec_bc():
     rows = []
     import re as _re2
     bctags = sorted({f.name[len("learned_"):-len(".summary.json")] for f in (ROOT / "artifacts/runs/baselines_bc_ladder").glob("*/learned_*.summary.json")},
-                    key=lambda t: (t.split("_u")[0], int(_re2.sub(r"\D", "", t.split("_u")[-1]) or 0)))
-    for tag, what in ((t, ("direct-action BC" if t.startswith("direct") else "action-only codec BC") + f", {int(_re2.sub(r'\D', '', t.split('_u')[-1])):,} updates")
+                    key=lambda t: (t.split("_u")[0], int(_re2.sub(r"\D", "", t.split("_u")[-1]) or 10**9)))
+    for tag, what in ((t, ("direct-action BC" if t.startswith("direct") else "action-only codec BC") + (f", {int(_re2.sub(r'\D', '', t.split('_u')[-1])):,} updates" if _re2.sub(r'\D', '', t.split('_u')[-1]) else ", final checkpoint"))
                       for t in bctags):
         cells = []
         for r in ("panda_pg2", "parm6_tf3"):
@@ -738,19 +762,25 @@ def sec_bc():
         rows.append([f'<span class="badge b-{kind}">{lab}</span>'] + cells)
     t = table(["controller", "panda_pg2", "failures (stage)", "parm6_tf3", "failures (stage)"], rows)
     ho = ""
-    hp = "artifacts/runs/baselines_bc_ladder/heldout/direct1701_u12000.summary.json"
-    if have(hp):
+    HO = [("artifacts/runs/baselines_bc_ladder/heldout/direct1701_u12000.summary.json", "learned:direct1701_u12000 (direct BC, 12k updates)"),
+          ("artifacts/runs/latent_slice1_b1fix/baseline_action_only_codec/seed1701/eval/source.summary.json", "learned:codec1701 final (action-only codec BC, 26.3k updates)"),
+          ("artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/eval/source.summary.json", "learned:direct1701 final (direct BC)")]
+    hr = []
+    for hp, lab in HO:
+        if not have(hp):
+            continue
         h = J(hp)
-        hr = [[f"<code>{esc(b)}</code>", frac(v["successes"], v["attempted"]), str(v["infeasible"]),
-               esc(", ".join(f"{k} {n}" for k, n in v["outcomes"].items() if k not in ("success", "infeasible")))]
-              for b, v in h.items() if not b.startswith("_")]
-        k = sum(v["successes"] for b, v in h.items() if not b.startswith("_"))
-        n = sum(v["attempted"] for b, v in h.items() if not b.startswith("_"))
-        hr.append(["<b>pooled</b>", frac(k, n), "", ""])
-        ho = (f"<h3>Held-out source bodies (not in BC training) {badge('bc', 'learned:direct1701_u12000')}</h3>"
-              + table(["body", "success / feasible", "infeasible", "failures"], hr)
-              + f"<p>Protocol source-competence harness, seeds 2,000,000+, 50 episodes per body. These are held-out "
-              f"<i>source</i> bodies, not the sealed target bodies (xarm7_pg2, xarm7_tf3, panda_tf3). {src(hp)}</p>")
+        bodies = [b_ for b_ in h if not b_.startswith("_")]
+        k = sum(h[b_]["successes"] for b_ in bodies)
+        n = sum(h[b_]["attempted"] for b_ in bodies)
+        hr.append([f'<span class="badge b-bc">{esc(lab)}</span>']
+                  + [frac(h[b_]["successes"], h[b_]["attempted"]) for b_ in ("parm5s_tf3", "parm5l_pg2")]
+                  + [frac(k, n), f"<code>{esc(hp)}</code>"])
+    if hr:
+        ho = ("<h3>Held-out source bodies (not in BC training)</h3>"
+              + table(["controller", "parm5s_tf3", "parm5l_pg2", "pooled", "raw"], hr)
+              + "<p>Protocol source-competence harness, seeds 2,000,000+, 50 episodes per body, infeasible scenes excluded. These are "
+              "held-out <i>source</i> bodies, not the sealed target bodies (xarm7_pg2, xarm7_tf3, panda_tf3).</p>")
     vids = "".join(video_card(v) for v in BC_VIDEOS)
     return f"""
 <section id="bc"><h2>6 · Positive control: plain behaviour cloning with the fix {badge('ok', 'competent')}</h2>
@@ -844,6 +874,12 @@ def build(updates_html: str = ""):
     bcs = [J(str(f.relative_to(ROOT)))["success"] for f in (ROOT / "artifacts/runs/baselines_bc_ladder").glob("*/learned_*.summary.json")
            if "heldout" not in str(f)]
     bc_lo, bc_hi = min(bcs), max(bcs)
+    r2 = []
+    for f in (RAW / "ladder_v1").glob("*/generated_zero_flowjf_*.summary.json"):
+        d = J(str(f.relative_to(RAW)))
+        r2.append((d["success"], f.parent.name, f.name[len("generated_zero_"):-len(".summary.json")], d["n"]))
+    r2_best = "0/30 on every snapshot" if not r2 or max(r2)[0] == 0 else \
+        "{}/{} ({}, {}; still far below BC)".format(max(r2)[0], max(r2)[3], max(r2)[1], max(r2)[2])
     body = (sec_architecture() + sec_works() + sec_matrix() + sec_debug() + sec_semantic() + sec_bc() + sec_next())
     used = "".join(f"<li><code>{esc(p)}</code></li>" for p in sorted(USED))
     page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
@@ -860,12 +896,12 @@ def build(updates_html: str = ""):
 <a href="#semantic">semantic edits</a><a href="#bc">BC control</a><a href="#next">next</a><a href="#sources">sources</a></nav>
 </header>
 <p class="lede"><b>Bottom line.</b> The scripted teacher solves every task and edit shown here on single-arm, dual-arm and legged
-bodies, and the pipeline runs end to end within the latency budget. <b>Plain behaviour cloning on the same data is competent</b> ({bc_lo}–{bc_hi} of 30 on matched scenes across mid-training checkpoints), so data and
+bodies, and the pipeline runs end to end within the latency budget (p95 overhead 1.014×, D-058). <b>Plain behaviour cloning on the same data is competent</b> ({bc_lo}–{bc_hi} of 30 on matched scenes across mid-training checkpoints), so data and
 evaluation are sound. <b>The latent-packet route is not competent yet</b>: its best oracle-diagnostic variant succeeds 1 time
 in 30, and causal packet semantics are not shown. We found and fixed a
 train/deploy mismatch (bug B-1). The latent route's remaining failure is <b>not localized yet</b>: the oracle-packet
 diagnostic turned out to be confounded (§4). In the clean test, the generated route against BC on the same seeds, the latent
-route is still 0/30 (sprint update). A stateless oracle and a generator-gap measurement show that both system 0 (underfit; the first gate) and the generator
+route's best result so far is {r2_best} (sprint update). A stateless oracle and a generator-gap measurement show that both system 0 (underfit; the first gate) and the generator
 (at the current flow snapshot) fall short (D-052).</p>
 {updates_html}
 {sec_sprint()}
