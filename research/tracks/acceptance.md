@@ -13,6 +13,8 @@ position), panda_pg2, dev seeds; 95% bootstrap CIs over scenes; all numbers from
 | ORACLE DIAGNOSTIC E(binding_paired_nosem_v4)+teacher demo, paired | 30 | 4/30 / 7/30 | +0.052 [+0.020, +0.082] | no transport / none | 2/18 (control 4/18); vs orthogonal +0.006 [-0.025, +0.037] |
 | SPRINT BEST ROUTE: ORACLE DIAGNOSTIC E(ladder_rz_jointfix_bcdag2)+stateless BC demo -> jfbcdag2, canonical, rebind_desc | 48 | 4/48 first approach new (control 0/48); old cube abandoned 38/48 | +0.163 [+0.130, +0.200] (by abandoning, not redirecting) | **16/48 at new goal** (control 1/48, orthogonal 0/48) / +0.104 [+0.081, +0.127] | n/a |
 | **DEPLOYABLE generated route**: learned:ladder_flow_jointfix/snap_final_s20000 -> system 0 ladder_rz_jointfix_gendag1_noqd, **parm6_tf3**, canonical, rebind_desc | 41 | **28/41** / 3/41 (first approach new 31/41 vs 0/41) | +0.211 [+0.175, +0.248] (beyond orthogonal +0.205 [+0.170, +0.240]; beyond noise replay +0.216 [+0.179, +0.253]) | **15/41 at new goal** (control 0/41, irrelevant 1/41, orthogonal 0/40, replay 0/40) / +0.104 [+0.077, +0.131] | n/a |
+| **DEPLOYABLE, POOLED 80 seeds** (original 41 + lead extension 39, seeds 3,000,000-3,000,119; D-075) | 80 | **56/80** [0.59, 0.79] / 6/80 (first approach new 60/80 vs 0/80; old cube lifted 0/80 vs 58/80 unedited) | +0.231 [+0.202, +0.261] (beyond orthogonal +0.223 [+0.194, +0.252]; beyond replay +0.236 [+0.207, +0.265]) | **23/80** [0.20, 0.39] at new goal (controls: 1/80, 1/80, 1/79) / +0.090 [+0.072, +0.108] (beyond orthogonal +0.083 [+0.064, +0.102]; beyond replay +0.089 [+0.071, +0.108]) | n/a |
+| (extension seeds alone, 3,000,060-3,000,119) | 39 | 28/39 / 3/39 | +0.252 [+0.206, +0.297] | 8/39 [0.11, 0.36] at new goal (controls <= 1/39) / +0.076 [+0.053, +0.099] | n/a |
 **DEPLOYABLE-ROUTE RESULT (01:00, arm counterpart of legged D-071):** on the deployable latent route (system i flow
 -> packet -> system 0, no oracle, no BC anywhere at runtime), the packet generated from an EDITED public context
 causally redirects behaviour on parm6_tf3 (41 feasible dev seeds, noise-keyed pairs):
@@ -25,6 +27,14 @@ causally redirects behaviour on parm6_tf3 (41 feasible dev seeds, noise-keyed pa
   approach, not task completion.
 - Controls do not move behaviour: irrelevant edit +0.0 [-2.2, +2.3] cm goal effect, orthogonal +0.4 [-1.6, +2.5],
   noise replay +0.4 [-2.2, +2.9]; control successes 12/41, 11/41, 15/40, 10/40.
+POOLED (02:10, with the lead's 39-seed extension; D-075): the effect replicates on new seeds. The goal effect is
+SMALLER on the extension seeds: 8/39 at the new goal (vs 15/41 originally), end-position effect beyond the irrelevant
+edit +7.6 cm [5.3, 9.9] (vs +10.4 [7.7, 13.1]). The CIs overlap, so this is most likely sampling variation plus the
+lower control competence there (the extension has fewer transports: cube lifted 23/39 under goal_shift). Pooled: goal
+23/80 [0.20, 0.39] at the new goal vs 1/80 for each control, effect +9.0 cm [7.2, 10.8]. Rebind: first touch new 56/80
+vs 6/80, original cube never lifted (0/80 vs 58/80 unedited), min-distance effect +23.1 cm [20.2, 26.1]; the new cube
+is lifted in only 7/80. Raw extension rows: `artifacts/runs/acceptance_sprint_sem_gen_jf_parm6_ext/shard{0..5}`
+(lead leases lead_semgen_ext_s0..5); summaries `semantic_summary_generated_{ext,pooled}.json` (scripts/sem_merge.py).
 Honest reading: this is the first deployable-route evidence of PACKET-LEVEL CAUSAL CONTROL by task semantics (goal and
 binding) beyond matched controls. It is NOT a semantic-supervision claim: this bundle has no nosem counterpart yet, and
 a nosem flow could route the same information. The rebinding may act through the binding pointer or through the public
