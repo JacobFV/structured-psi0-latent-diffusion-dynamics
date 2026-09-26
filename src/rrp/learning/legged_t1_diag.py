@@ -73,7 +73,13 @@ def load_models(v, ts, dev):
 
 
 def packet_rows(data):
-    return torch.nonzero(data.pk).squeeze(-1)
+    pi = torch.nonzero(data.pk).squeeze(-1)
+    win = getattr(data, "window", None)                 # (lo, hi) ticks since episode start, optional
+    if win is not None:
+        starts = torch.tensor([em["start"] for em in data.ep_meta], device=data.dev)
+        t = pi - starts[torch.bucketize(pi, starts, right=True) - 1]
+        pi = pi[(t >= win[0]) & (t < win[1])]
+    return pi
 
 
 @torch.no_grad()
@@ -283,12 +289,100 @@ def fall_analysis(data, M=None, own_recv=True):
     return res
 
 
+@torch.no_grad()
+def temporal_metrics(M, data, own_recv, gen_seed=5, chunk=512):
+    """Packet-boundary action jump and sample spread (ratios to the hold-still error at the same states).
+    jump_recv: at packet tick i, R(previous received packet, state_i, phase 0.4 s) vs R(new packet, state_i, 0)
+    jump_gen:  the same with fresh flow samples at ctx_{i-20} and ctx_i (matched states, either model)
+    spread:    two independent flow samples at ctx_i, both realized at state_i, phase 0
+    jump_oracle: the same boundary jump with oracle packets E(BC chunk) at i-20 and i."""
+    E, R, F_ = M["E"], M["R"], M["F"]
+    pi = packet_rows(data)
+    starts = torch.tensor([em["start"] for em in data.ep_meta], device=data.dev)
+    epi = torch.bucketize(pi, starts, right=True) - 1
+    prev_ok = (pi - 20) >= starts[epi]
+    pi = pi[prev_ok]
+    g = torch.Generator(device=data.dev).manual_seed(gen_seed)
+    acc = {k: 0.0 for k in ("jump_gen", "jump_oracle", "spread", "jump_recv", "hold", "within_gen")}
+    for s_ in range(0, len(pi), chunk):
+        i = pi[s_:s_ + chunk]; ip = i - 20
+        b, bp = data.ctx_batch(i), data.ctx_batch(ip)
+        z1, z2, zp = F_.sample(b, nfe=8, generator=g), F_.sample(b, nfe=8, generator=g), F_.sample(bp, nfe=8, generator=g)
+        mo, _ = E(b, data.beh(i)); mop, _ = E(bp, data.beh(ip))
+        zero = torch.zeros(len(i), device=data.dev)
+        br, _, a1, am = data.realizer_batch(i, zero.long())
+        m = am.float()
+        ph0, ph20 = zero, zero + 0.4
+        hold = data.hold_still(i)
+        d = lambda x, y: float((((x - y) ** 2) * m).sum())
+        acc["jump_gen"] += d(R(zp, br, ph20), R(z1, br, ph0))
+        acc["jump_oracle"] += d(R(mop, br, ph20), R(mo, br, ph0))
+        acc["spread"] += d(R(z1, br, ph0), R(z2, br, ph0))
+        # within-packet step change for reference: R(z, s_i, 0) vs R(z, s_{i+1}, 0.02) is dominated by gait; skip
+        if own_recv:
+            acc["jump_recv"] += d(R(data.zpk[ip], br, ph20), R(data.zpk[i], br, ph0))
+        acc["hold"] += d(hold, a1)
+    h = acc.pop("hold")
+    return {k: v / h for k, v in acc.items()} | dict(n=int(len(pi)))
+
+
+def main_extra(ts, out):
+    dev = _dev()
+    torch.manual_seed(0)
+    Ms = {v: load_models(v, ts, dev) for v in ("sem", "nosem")}
+    sets = {"bc": BUF / "bc", "r2_sem": BUF / f"r2_sem_{ts}", "r2_nosem": BUF / f"r2_nosem_{ts}"}
+    if ts == "v2":
+        sets.update(r1_sem=BUF / "r1_sem_v2", r1_nosem=BUF / "r1_nosem_v2")
+    res = dict(ts=ts, sets={})
+    for sn, root in sets.items():
+        data = load_buf(root, dev)
+        res["sets"][sn] = {v: temporal_metrics(M, data, sn in (f"r2_{v}", f"r1_{v}")) for v, M in Ms.items()}
+        print(sn, json.dumps(res["sets"][sn]), flush=True)
+    Path(out).write_text(json.dumps(res, indent=1))
+
+
+def liftoff(data):
+    """Per episode: first tick with a foot off the ground (touch==0) and tilt at 1/2/3 s."""
+    out = []
+    for em in data.ep_meta:
+        s_, T = em["start"], em["T"]
+        tt = data.A["touch"][s_:s_ + T, :2].cpu().numpy()
+        g = data.A["imu"][s_:s_ + T, 3:6].cpu().numpy()
+        tilt = np.arccos(np.clip(-g[:, 2], -1, 1))
+        off = np.nonzero(tt.min(1) < 0.5)[0]
+        out.append(dict(seed=em["seed"], status=em["status"], first_liftoff_tick=int(off[0]) if len(off) else None,
+                        tilt_at={f"{k}s": (round(float(tilt[50 * k]), 3) if 50 * k < T else None) for k in (1, 2, 3)}))
+    return out
+
+
+def main_early(ts, out, lo, hi):
+    dev = _dev()
+    torch.manual_seed(0)
+    Ms = {v: load_models(v, ts, dev) for v in ("sem", "nosem")}
+    sets = {"bc": BUF / "bc", "r2_sem": BUF / f"r2_sem_{ts}", "r2_nosem": BUF / f"r2_nosem_{ts}"}
+    res = dict(ts=ts, window_ticks=[lo, hi], sets={})
+    for sn, root in sets.items():
+        data = load_buf(root, dev)
+        res["sets"][sn] = dict(liftoff=liftoff(data))
+        data.window = (lo, hi)
+        for v, M in Ms.items():
+            res["sets"][sn][v] = score_set(M, data, sn == f"r2_{v}")
+            print(sn, v, json.dumps(res["sets"][sn][v]["err_ratio"]), flush=True)
+    Path(out).write_text(json.dumps(res, indent=1))
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--ts", default="v2")
     ap.add_argument("--teacher-geometry", action="store_true")
     ap.add_argument("--out", required=True)
+    ap.add_argument("--early", type=int, nargs=2, default=None, help="packet ticks window [lo, hi) since episode start")
+    ap.add_argument("--extra", action="store_true", help="temporal metrics only (boundary jump, sample spread)")
     a = ap.parse_args(argv)
+    if a.extra:
+        return main_extra(a.ts, a.out)
+    if a.early:
+        return main_early(a.ts, a.out, *a.early)
     dev = _dev()
     torch.manual_seed(0)
     Ms = {v: load_models(v, a.ts, dev) for v in ("sem", "nosem")}
@@ -322,5 +416,61 @@ def main(argv=None):
     print(json.dumps(res["geometry"], indent=1))
 
 
+
+@torch.no_grad()
+def readout_and_teacher_err(ts="v2", out=None):
+    """(a) requested forward/yaw displacement read from the packet by the variant's probe (sem: joint probe; nosem:
+    post-hoc measurement probe) for z = E(BC chunk), E(teacher chunk), flow sample, at the same packet states;
+    realized displacement over 0.8 s for reference.  (b) system-0 error vs the shadow-TEACHER first action at j=0
+    (the only tick where the shadow state equals the recorded state), ratio to hold-still."""
+    from rrp.model.legged_latent import LeggedProbe
+    dev = _dev()
+    Ms = {v: load_models(v, ts, dev) for v in ("sem", "nosem")}
+    pp = torch.load(f"artifacts/runs/legged_rep_nosem_t1_{ts}/probe_posthoc.pt", map_location=dev, weights_only=False) \
+        if Path(f"artifacts/runs/legged_rep_nosem_t1_{ts}/probe_posthoc.pt").exists() else None
+    if pp is not None:
+        Pn = LeggedProbe(dz=32).to(dev); Pn.load_state_dict(pp["state"]); Pn.eval(); Ms["nosem"]["P"] = Pn
+    sets = {"bc": BUF / "bc", "r2_sem": BUF / f"r2_sem_{ts}", "r2_nosem": BUF / f"r2_nosem_{ts}"}
+    if ts == "v2":
+        sets.update(r1_sem=BUF / "r1_sem_v2", r1_nosem=BUF / "r1_nosem_v2")
+    res = dict(ts=ts, nosem_probe=("posthoc" if pp is not None else "untrained joint probe (INVALID)"), sets={})
+    g = torch.Generator(device=dev).manual_seed(11)
+    for sn, root in sets.items():
+        data = load_buf(root, dev)
+        pi = packet_rows(data)
+        end = data.A["ep_end"][pi]
+        p0, p1 = data.A["pose"][pi], data.A["pose"][torch.minimum(pi + 40, end)]
+        c, s_ = torch.cos(p0[:, 2]), torch.sin(p0[:, 2])
+        real_fwd = (c * (p1[:, 0] - p0[:, 0]) + s_ * (p1[:, 1] - p0[:, 1])) / 0.5
+        r = dict(realized_fwd_disp_norm=float(real_fwd.mean()))
+        for v, M in Ms.items():
+            acc = {k: [] for k in ("oracle", "teacher", "gen")}
+            te = {k: [0.0, 0.0] for k in ("oracle", "teacher", "gen")}
+            for s0 in range(0, len(pi), 512):
+                i = pi[s0:s0 + 512]
+                b = data.ctx_batch(i)
+                zs = dict(oracle=M["E"](b, data.beh(i))[0], teacher=M["E"](b, data.tch[i][:, :, :40])[0],
+                          gen=M["F"].sample(b, nfe=8, generator=g))
+                br, ph, a1, am = data.realizer_batch(i, torch.zeros(len(i), device=dev, dtype=torch.long))
+                m = am.float()
+                lab = data.tch[i][:, :, 0]
+                hold = data.hold_still(i)
+                for k, z in zs.items():
+                    acc[k].append(M["P"](z, b["asm_mask"], b["body_asm"])["disp"][:, :3])
+                    te[k][0] += float((((M["R"](z, br, ph) - lab) ** 2) * m).sum()); te[k][1] += float((((hold - lab) ** 2) * m).sum())
+            r[v] = dict(readout_fwd={k: float(torch.cat(x)[:, 0].mean()) for k, x in acc.items()},
+                        readout_yaw_abs={k: float(torch.cat(x)[:, 2].abs().mean()) for k, x in acc.items()},
+                        err_vs_teacher_j0={k: x[0] / x[1] for k, x in te.items()})
+        res["sets"][sn] = r
+        print(sn, json.dumps(r), flush=True)
+    if out:
+        Path(out).write_text(json.dumps(res, indent=1))
+    return res
+
+
 if __name__ == "__main__":
-    main()
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "readout":
+        readout_and_teacher_err(sys.argv[2], sys.argv[3])
+    else:
+        main()
