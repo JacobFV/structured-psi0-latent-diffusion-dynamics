@@ -1,0 +1,28 @@
+{
+ "probe_goal_mirror": {
+  "n": 20,
+  "toward_mirror_lateral_m": [
+   0.011,
+   0.007,
+   0.015
+  ],
+  "toward_mirror_yaw_rad": [
+   0.022,
+   0.015,
+   0.028
+  ]
+ },
+ "rand_norm_8": {
+  "n": 20,
+  "toward_mirror_lateral_m": [
+   0.002,
+   -0.0,
+   0.004
+  ],
+  "toward_mirror_yaw_rad": [
+   0.003,
+   -0.003,
+   0.008
+  ]
+ }
+}
