@@ -15,6 +15,15 @@ the teacher's demonstrations, or the simulator/tracker setup.
 | reference: R0 scripted_teacher (ladder track) | 30/30 | 30/30 | - |
 | reference: R1 oracle route, best (D-048, jfdag1 re-anchored) | 1/30 | 0/30 | mostly approach |
 
+**Learning curve (ladder dev scenes, 30 matched seeds per body; regenerate: `python3 scripts/bc_curve_table.py`)**
+| checkpoint | panda_pg2 | parm6_tf3 | failed stages panda / parm6 |
+|---|---|---|---|
+| learned:codec1701_u13152 | 28/30 [0.79, 0.98] | 25/30 [0.66, 0.93] | place 1, grasp 1 / transport 4, lift 1 |
+| learned:codec1701_u17000 | 25/30 [0.66, 0.93] | 25/30 [0.66, 0.93] | lift 2, place 1, transport 2 / transport 5 |
+| learned:codec1701_u20000 | 27/30 [0.74, 0.97] | 29/30 [0.83, 0.99] | grasp 1, lift 1, transport 1 / place 1 |
+| learned:direct1701_u12000 | 25/30 [0.66, 0.93] | 27/30 [0.74, 0.97] | lift 2, transport 1, grasp 2 / transport 2, place 1 |
+| learned:direct1701_u15000 | 23/30 [0.59, 0.88] | 27/30 [0.74, 0.97] | grasp 2, place 2, transport 1, lift 2 / place 1, transport 2 |
+
 Held-out source bodies (NOT in BC training; the protocol's source-competence bodies and harness: rrp.evaluation.runner,
 seeds 2,000,000.., 50 episodes each, infeasible excluded), learned:direct1701_u12000: parm5s_tf3 44/47 = 0.94
 [0.83, 0.98], parm5l_pg2 30/33 = 0.91 [0.76, 0.97]; pooled 74/80 = 0.93. All 6 failures are timeouts. Raw:
