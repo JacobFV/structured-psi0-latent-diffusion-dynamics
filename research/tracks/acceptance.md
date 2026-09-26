@@ -120,3 +120,37 @@ misses of the 50 ms deadline). Rerun on sem_v2/v3 when the GPU is quiet.
   BC has no packet: the edit is applied to the public context BC observes at each chunk (snapshot/edit/chunk/restore).
   Running now on pick_place scenes (u12000, 24 seeds, panda_pg2 + parm6_tf3; out artifacts/runs/baselines_bcsem_u12000/).
   Please ping here when the paired/approach-level version is on main; I will rerun BC with `--scene paired`.
+
+## sprint (2026-09-25 19:00 -> 09-26 04:00): semantic edits at the level the routes reach (agent sprint_semantic)
+State: implementing -> verified (teacher rung); oracle/learned runs in progress.
+
+Code (merged to main 7381aba, de4955a):
+- `rrp latent semantic-edits --scene paired`: binding-paired scenes (`pick_place_paired`, identical physics for every
+  assignment). Episode key = 10*scene_seed + patient, patient alternates with the seed; rebind target = distractor0
+  (first other cube in physical order). The VALID rebind edit changes only the public task context: the `cube` entity's
+  descriptor becomes the other cube's color and the public entity->slot binding follows (`rebind_descriptor`); tracker
+  beliefs, physics and runtime statuses are untouched. Conditions: control, rebind_obj, goal_shift (zone belief 12 cm),
+  irrelevant_distractor (unbound belief 10 cm), orthogonal_matched (probe-orthogonal z, norm = ||z_rebind - z_control||
+  per packet), control_replay (generated route only: other flow noise; oracle/teacher are deterministic).
+- Approach-level metrics (privileged measurement): min TCP distance to old (cube) / new (distractor0) object, which
+  object the TCP first comes within 6 cm of, first robot-object contact, cosine of the initial xy motion (first 4 cm)
+  toward each object, and for goal edits the end position of the cube (only if moved >= 2 cm) relative to old/new goal.
+  Summaries: counts with Wilson CIs, paired-with-control bootstrap CIs, and contrasts valid-edit minus control-edit
+  (difference of paired differences per scene).
+- `rrp latent arm-edits`: dual-arm assign_pick_place dev pairs (3 robot pairs, seeds 3,000,000+; assigned arm = left
+  for even seeds, right for odd). swap_arm = VALID context edit (actor of take/place rebound = the other variant's task
+  graph, `rebind_actor`); swap_slots = control packet with the two assembly slots exchanged; orthogonal_matched (norm =
+  ||z_swap_arm - z_control||); control_replay. Metrics per arm: min distance to the bar, first arm to touch the bar,
+  TCP path share. DualLatentSystem0 now applies the anchored-realizer column (was missing: v4 bundles are anchored) and
+  DualLatentPolicy takes noise keys.
+- `scripts/render_causal_edit.py --suite semantic|arm`: side-by-side video from the SAME runner as the measurement.
+- `scripts/sem_merge.py`: merge sharded rows -> one summary.
+
+### teacher rung (scripted_teacher, privileged; proves each edit is achievable and the metrics read it)
+`rrp latent semantic-edits --route teacher --scene paired --representation <any> --episodes 30 --seed-start 3100000 --max-steps 500 --conditions control,rebind_obj,goal_shift,irrelevant_distractor --out artifacts/runs/acceptance_sprint_sem_teacher_paired`
+(peer lease 1790388785_36db43). 30 scenes, panda_pg2: control approached/touched the assigned cube 30/30; rebind_obj
+approached the new cube first 30/30, first touch new 29/30, lifted+placed new 30/30; goal_shift cube ends at the new goal
+30/30 (end-position preference +11.2 cm [11.0, 11.4]); irrelevant_distractor identical to control 30/30.
+Arm: `rrp latent arm-edits --route teacher --episodes 8 --max-steps 700 --conditions control,swap_arm --out artifacts/runs/acceptance_sprint_arm_teacher`
+(lease 1790388786_c5d0ce): 3 pairs x 8 seeds = 24; swap_arm: the edited-to arm touches the bar first 24/24 (control 0/24),
+bar-distance preference +0.35 m. (privileged_success is scored against the REAL task, so it is 0 for the edited arm.)
