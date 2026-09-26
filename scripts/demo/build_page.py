@@ -577,7 +577,9 @@ matched-norm probe-orthogonal edit. The claim that semantic supervision adds cau
         rep = (c.get("representation") or {}).get("path", "")
         if not fl or "ladder_ckpts" in fl or "grpo_base" in fl or "flow_latent_sem_v" in fl:   # pre-fix flows
             continue
-        fresh = " · FRESH seeds " + f.name.split("fresh")[1].split(".")[0] + "+ (not the matched set)" if "fresh" in f.name else ""
+        import re as _rq2
+        _fm = _rq2.search(r"_(?:fresh|s)(3000[1-9]00)\.summary", f.name)
+        fresh = " · FRESH seeds " + _fm.group(1) + "+ (not the matched set)" if _fm else ""
         import re as _re3
         _st = _re_step(fl)
         if _st < 0:
@@ -1348,7 +1350,8 @@ def build(updates_html: str = ""):
             d = json.loads(f.read_text())
             r = f.parent.name
             tag = f.name.replace(".summary.json", "")
-            if "fresh" in tag or "v2s24543" in tag:   # other seed set / pre-fix flow
+            import re as _rq
+            if "fresh" in tag or "v2s24543" in tag or _rq.search(r"_s3000[1-9]00$", tag):   # other seed set / pre-fix flow
                 continue
             if r not in best or d["success"] > best[r][0]:
                 best[r] = (d["success"], d["n"], tag)
