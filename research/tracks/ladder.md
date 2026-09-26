@@ -19,6 +19,15 @@ prev-action input 0, privileged success evaluator. Matched dev seeds = the first
 | R2 pooled (60 seeds) | **23/60 = 0.38 [0.27,0.51]** | **43/60 = 0.72 [0.59,0.81]** | | |
 | R2 on the 13 source-TRAINING bodies (seeds 4,000,000+, 24 each; gdag2 collection) | 209/312 = 0.67 overall | | | |
 | historical: R1 shadow-teacher oracle (CONFOUNDED, D-050), best jfdag1 | 1/30 | 0/30 | approach | |
+
+HELD-OUT source bodies (not in the pack, not in any DAgger buffer; same harness, first 30 feasible dev seeds from 3,000,000):
+| rung | parm5s_tf3 | parm5l_pg2 |
+|---|---|---|
+| R0 scripted_teacher (privileged) | 30/30 [0.89,1.00] | 30/30 [0.89,1.00] |
+| plain BC learned:direct1701_u12000 (ladder harness) | 26/30 [0.70,0.95] | 29/30 [0.83,0.99] |
+| R1 ORACLE DIAGNOSTIC stateless -> gendag3_noqd | 28/30 [0.79,0.98] | 27/30 [0.74,0.97] |
+| **R2 generated flow_jointfix_gdag1 -> gendag3_noqd** | **21/30 [0.52,0.83]** | **22/30 [0.56,0.86]** |
+R2 failures: approach 3, lift 3, transport 2, place 1 / approach 5, lift 2, place 1. Raw: `artifacts/runs/ladder_v1/<robot>/{generated_zero_flowgdag1_rzgendag3_noqd,learned_bc_direct1701_u12000,oracle_zero_gendag3noqd_orcbc,teacher_heldout_ref}.summary.json`.
 Tracking is never the failure: the joint tracker follows every rung's commands within ~1 cm TCP.
 Raw (peer store = also in the peer path `/dev/shm/rrp-brandonin/repo/`): `artifacts/runs/ladder_v1/<robot>/generated_zero_flowgdag1_rzgendag3_noqd[_fresh3000100].{jsonl,summary.json}`,
 `artifacts/runs/ladder_v1/<robot>/oracle_zero_gendag3noqd_orcbc.{jsonl,summary.json}`, `.../teacher_shadow_own.summary.json`,
