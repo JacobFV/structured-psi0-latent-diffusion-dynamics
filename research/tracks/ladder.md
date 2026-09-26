@@ -249,3 +249,22 @@ dev seeds from 3,000,000) with honest ladder evidence. Oracle rows are ORACLE DI
   jfdag1) and D-049 fix A `rz_jointfix_dagger2_df08.json` (same, dagger_frac 0.8).
 - [running] host GPU flow on the jointfix bundle (zero_prev_action, normalize_target, 20k steps):
   `configs/ladder/flow_jointfix.json`, host lease 1790388397_d67260 -> `artifacts/runs/ladder_flow_jointfix/` (host).
+- 19:25 lead re-prioritized (sprint_bc: plain BC with the B-1 fix is competent, 25-28/30; the shadow teacher FSM is stale
+  on learner-visited states, so R1-with-shadow and shadow-DAgger labels are confounded). Shadow-teacher DAgger stopped:
+  round-2 collection (above) is recorded; refit `rz_jointfix_dagger2` (df 0.5) stopped at 1.3k/4k steps; only the
+  df 0.8 refit (D-049 fix A) is allowed to finish for the record. The host broker stopped every job at ~19:15
+  (disk below reserve: 300 GB free vs 322 GB reserve); the jointfix flow restarted on the host at 19:26 (lease
+  1790389550_4baed9, packet_tau_min 0.6 added, 0.25 s/step) with a watcher `scripts/ladder_flow_watch.sh` that snapshots
+  every 4k steps and runs R2 on the peer (tags `zero_flowjf_s<step>`).
+- [completed] **Stateless localization on BC-visited states** (`scripts/ladder_localize.py`): BC (learned:direct1701_u12000)
+  runs the 30 matched dev seeds; each episode is replayed exactly (replay consistent 30/30 on both robots); every 8
+  ticks z_bc = E(the chunk BC actually executed next) (ORACLE DIAGNOSTIC, no teacher state); shadow system 0 realizes it;
+  1-step normalized arm MSE vs BC's executed command. Raw: peer `artifacts/runs/ladder_localize/<robot>/bc_direct1701_u12000__<tag>.json`.
+  | system 0 | panda_pg2 arm / grip | parm6_tf3 arm / grip | hold-still arm ref (panda / parm6) | err at j=0 vs j=1..7 (panda) |
+  |---|---|---|---|---|
+  | jointfix (Stage A joint, B-1 fixed) | 0.0049 / 0.063 | 0.0035 / 0.058 | 0.0114 / 0.0047 | 0.011 vs 0.0035-0.0049 |
+  | jfdag1 (shadow DAgger r1) | 0.0094 / 0.062 | 0.0062 / 0.044 | same | 0.014 vs 0.0078-0.0099 |
+  BC success in pass 1: 24/30 panda, 26/30 parm6. Reading: the jointly trained system 0 realizes packets encoding BC's
+  chunks with ~40% (panda) / ~75% (parm6) of the hold-still error, and its first tick after each new packet (j=0) is as
+  bad as holding still. Shadow-teacher DAgger DOUBLED the error on BC-visited states (consistent with stale labels).
+  Closed-loop version (R1 with the stateless BC expert, `--oracle-expert bc`, `scripts/ladder_eval_orcbc.sh`): running.
