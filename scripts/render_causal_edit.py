@@ -53,7 +53,13 @@ def main_semantic(a):
     else:
         rep = Path(a.representation)
         lcfg, E, R, P, res = load_representation(rep, dev)
-        if a.route == "oracle":
+        if a.route == "oracle" and a.oracle_expert == "bc":
+            from rrp.policy.runner import LearnedPolicy
+            src = se.OracleSource(E, lcfg, res, rep, dev, expert="bc", bc=LearnedPolicy.from_checkpoint(
+                a.checkpoint, device=dev, nfe=8, execute_prefix=8))
+            srclab = f"ORACLE DIAGNOSTIC E({rep.parent.name})+stateless BC demo"
+            tag = f"oracle_bcexpert_{rep.parent.name}"
+        elif a.route == "oracle":
             src = se.OracleSource(E, lcfg, res, rep, dev)
             srclab = f"ORACLE DIAGNOSTIC E({rep.parent.name})+teacher demo"
             tag = f"oracle_{rep.parent.name}"
@@ -254,5 +260,6 @@ if __name__ == "__main__":
     ap.add_argument("--suite", choices=["causal", "semantic", "arm"], default="causal",
                     help="semantic/arm: videos of rrp.evaluation.latent_semantic_edits conditions (same runner)")
     ap.add_argument("--scene", default="paired")
+    ap.add_argument("--oracle-expert", choices=["teacher", "bc"], default="teacher")
     ap.add_argument("--pair", default="panda_pg2__ur5e_pg2")
     main(ap.parse_args())
