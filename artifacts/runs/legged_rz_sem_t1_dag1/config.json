@@ -1,0 +1,15 @@
+{
+ "name": "legged_rz_sem_t1_dag1",
+ "representation": "artifacts/runs/legged_rep_sem_t1_v2/representation.pt",
+ "dagger": [
+  "artifacts/runs/legged_buf/bc_t1",
+  "artifacts/runs/legged_buf/dag1_sem_t1"
+ ],
+ "steps": 4000,
+ "batch_size": 256,
+ "lr": 0.0003,
+ "dagger_frac": 0.5,
+ "qd_dropout": 0.5,
+ "seed": 0,
+ "note": "system-0 refit on the frozen encoder; DAgger labels from the STATELESS BC expert (learned:legged_bc_t1_v1) on states visited by the R1 route and by BC"
+}
