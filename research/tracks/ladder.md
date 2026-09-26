@@ -238,3 +238,14 @@ packets; the teacher's relabel at those states is a large wrist correction (0.4-
 - [running] lease 1790369958_1a7c76 `ladder_r01_panda`: R0 (shadow, prev own), R1 prev own, R1 prev zero; n=30 panda_pg2
   -> `artifacts/runs/ladder_v1/panda_pg2/{teacher_shadow_own,oracle_own,oracle_zero}.jsonl`.
 - [running] lease 1790369958_fe952f `ladder_r2_panda`: R2 flow v2 step 24543, prev own / zero -> `.../generated_v2s24543_{own,zero}.jsonl`.
+
+## sprint (2026-09-25 19:00 → 03:00 PDT, agent sprint_latent)
+Scope: bring the corrected latent path (B-1 fixed) as close as possible to competent on pick_place (panda_pg2, parm6_tf3,
+dev seeds from 3,000,000) with honest ladder evidence. Oracle rows are ORACLE DIAGNOSTIC (teacher-encoded packet).
+- [running] DAgger round 2 on jointfix+jfdag1: collection `scripts/ladder_dagger_collect.sh` with
+  `ladder_rz_jointfix_dagger1/representation.pt`, 13 bodies x 24, SEED=3300000, 4 peer CPU leases
+  -> `artifacts/runs/ladder_dagger_jf2/` (R1 on training bodies: 0/312; min TCP-cube 4-6 cm on parm*/panda, 9-25 cm on
+  parm7/sawyer/ur5e). Refits: `configs/ladder/rz_jointfix_dagger2.json` (jf1+jf2 buffers, dagger_frac 0.5, init from
+  jfdag1) and D-049 fix A `rz_jointfix_dagger2_df08.json` (same, dagger_frac 0.8).
+- [running] host GPU flow on the jointfix bundle (zero_prev_action, normalize_target, 20k steps):
+  `configs/ladder/flow_jointfix.json`, host lease 1790388397_d67260 -> `artifacts/runs/ladder_flow_jointfix/` (host).
