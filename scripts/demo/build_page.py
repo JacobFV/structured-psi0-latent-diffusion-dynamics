@@ -1480,14 +1480,12 @@ editing the goal in the task context steers the robot (D-071). On the parm6 arm,
 never lifted; the approach goes to the new cube, also on panda) redirect behaviour beyond matched controls (D-074, D-075, D-077). Plain BC, run on the same seeds, ignores the rebinding completely (original cube placed 80/82) while following goal edits (77/82) (D-083).</li>
 <li><b>Competence:</b> the deployable latent route matches BC on go2 (nosem 30/30, sem 29/30) and hexapod6 (30/30 both), and on the t1 humanoid for nosem only (107/120 over 4 seeds vs BC 24/30) (D-070, D-076, D-079). It is partial on the
 arms: {pool_txt} pooled over the matched and fresh seed sets, against BC 24–30 of 30 on the same sets (D-078, D-080).</li>
-<li><b>Semantic supervision: the evidence is mixed and small.</b> The sem packet has more editable probe handles on hexapod6 (halt −0.19 m vs +0.03 m;
-turn 0.11 vs 0.03–0.07 rad). But context-to-behaviour control is equal on go2 and hexapod6. On the t1 humanoid, the no-semantic
-packet gives a competent deployable route and the semantic packet does not: across 4 training seeds, nosem 107/120 vs sem 38/120
-(nosem wins every seed; BC 24/30). <b>Correction (D-085): this gap is an artefact of a training defect in the semantic recipe</b>
-(an unbounded probe NLL under shared gradient clipping trains the sem system 0 ~250× slower). With a bounded NLL, fixed sem reaches 81/90 vs nosem 83/90
-over training seeds 0, 1 and 3 (original sem 21/90; D-087). So on t1, once the recipe is fixed, semantic supervision neither helps nor hurts task success. So every sem-vs-nosem comparison on this page is confounded, and the effect of semantic
-supervision is currently UNKNOWN, neither shown to help nor to hurt. The t1 oracle-route gap flipped sign across seeds (18/0 vs 0/12), so it was diagnostic noise. The arm result
-has no nosem counterpart, and the binding-v4 sem/nosem bundles are not competent. Because of the D-085 defect, no sem-vs-nosem conclusion is supported in either direction (D-059, D-079, D-082, D-085).</li>
+<li><b>Semantic supervision: a first positive effect once a training defect was fixed; not yet replicated.</b> All early sem-vs-nosem
+comparisons used a defective semantic recipe (an unbounded probe NLL under shared gradient clipping trained the sem system 0 ~250× slower, D-085),
+which, for example, made the t1 humanoid's sem route fall (38/120 vs nosem 107/120). With the bounded-NLL fix: t1 sem ≈ nosem on task success (81/90 vs 83/90,
+3 training seeds, D-087). On go2 and hexapod6, success (30/30 all) and task-context goal steering are equal, but a <b>"halt" request in the task context slows
+the robot only with the semantic packet</b> (go2 −0.24 m vs nosem +0.46 m; hexapod6 −0.34 m vs +0.01 m; CIs separated), and only the semantic packet has a goal-readout
+handle above random (D-088). One training seed per variant: replication is running. The arm has no fixed-sem or nosem counterpart yet (running), and the binding-v4 bundles are not competent.</li>
 <li><b>Not tested:</b> the sealed held-out target bodies for the latent route. Plain BC transfers to a new gripper (78–85/100) but not to the unseen xarm7 arm
 (0/100; D-064). Humanoid g1 has no competent BC control.</li>
 </ul></div>
