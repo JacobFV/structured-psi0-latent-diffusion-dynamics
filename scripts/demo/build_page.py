@@ -1416,7 +1416,7 @@ def build(updates_html: str = ""):
                   + '<p class="muted" style="font-size:.85em">Best-of selections across checkpoints and variants are optimistic for every row alike; each '
                   'cell names the run it comes from, and per-run tables follow below. Semantic control of the packet: <b>not shown</b> (D-059, D-062).</p>')
     ob = BEST.get("oracle", {})
-    orc_best = ", ".join(f"{v[0]}/{v[1]} {r}" for r, v in sorted(ob.items())) or "—"
+    orc_best = ", ".join(f"{v[0]}/{v[1]} {r}" for r, v in sorted(ob.items()) if r in ("panda_pg2", "parm6_tf3")) or "—"
     _h = lambda t: (lambda d: f"{d['success']}/{d['n']}")(J(f"ladder_v1/parm5s_tf3/{t}.summary.json")) if have(f"ladder_v1/parm5s_tf3/{t}.summary.json") else "—"
     ho_r2, ho_bc = _h("generated_zero_" + FROZEN[0][0]), _h("learned_bc_direct1701_u12000")
     _h2 = lambda t: (lambda d: f"{d['success']}/{d['n']}")(J(f"ladder_v1/parm5l_pg2/{t}.summary.json")) if have(f"ladder_v1/parm5l_pg2/{t}.summary.json") else "—"
