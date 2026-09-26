@@ -47,6 +47,11 @@ playback speed (10 Hz frames; 1.5x for short episodes, 3x for the long humanoid 
 - h1 (humanoid): `2026-09-25_scripted_teacher_legged_h1_waypoint_contact_s1000{0,1}_success.mp4`;
   FAILURE `..._h1_waypoint_contact_s10005_failure.mp4` (halt fails)
 
+Montage (next item picked after the list: one clip showing morphology breadth at a glance):
+`2026-09-25_scripted_teacher_legged_montage_10bodies.mp4` (1280x760, 19 s, 0.7 MB): 10 tiles, all scripted_teacher
+successes, header says "NOT a learned policy". The name has no single body key, so the demo builder must reference it by name.
+Built from the per-body clips with a small PIL/imageio tiling script (not committed; one-off).
+
 Arm breadth, pick_place, `scripts/render_episode.py --source scripted_teacher --tag bodies`, dev seeds 3000001-3000002:
 - ur5e_pg2 2/2, sawyer_tf3 2/2, parm5s_tf3 (procedural) 2/2 success:
   `2026-09-25_scripted_teacher_bodies_{ur5e_pg2,sawyer_tf3,parm5s_tf3}_pick_place_s300000{1,2}_success.mp4`
