@@ -1188,7 +1188,9 @@ def sec_semantic():
           for c in ("control_replay", "zero", "shuffle", "rel+x", "rel-x", "rel+y", "cf+x", "cf-x", "focus_swap", "rand") if c in w]
     wt = table(["packet edit (8 ticks, window protocol)", "TCP shift vs control, cm [95% CI]", "shift along the edit, cm"], wr)
     return f"""
-<section id="semantic"><h2>5 · Semantic interventions</h2>
+<section id="semantic"><h2>5 · Semantic interventions (early, pre-fix results)</h2>
+<p class="muted">This section records the first acceptance runs, made before the B-1 fix. The current semantic-intervention results, including the
+deployable-route results D-071, D-074, D-075 and D-077, are in the <a href="#sprint">sprint update</a> and in §2b.</p>
 <p class="lede">An intervention edits only the context the packet is generated for (which object is bound, where the goal is);
 the physical scene is unchanged and system 0 is frozen. Irrelevant edits are the control. Zero/shuffle sensitivity and
 probe accuracy do <b>not</b> count as semantic control.</p>
@@ -1307,7 +1309,8 @@ learner-visited and generated-packet states, no proprioceptive shortcuts, with t
 approach after a pure binding change, which BC does not do, but it rarely lifts the new cube (D-074). Next: the same test on a capacity-matched
 nosem bundle trained with the same recipe, and on panda once it is competent.</li>
 <li><b>Semantic vs capacity-matched no-semantic packets on a competent route</b>: rebind, goal and manipulator-assignment edits with
-irrelevant-edit controls. So far there is no advantage (D-059).</li>
+irrelevant-edit controls. So far the evidence is mixed and small: no advantage on the arm oracle routes (D-059); stronger probe handles but equal
+context control on hexapod6; the deployable route works only with nosem on t1 (D-079). Replicate across training seeds before any claim.</li>
 <li><b>Only then</b> run the sealed four-way comparison on the held-out bodies. BC transfers to a new gripper but not to the unseen xarm7
 arm (D-064), and that is where the latent route has to show its value.</li>
 </ol>
