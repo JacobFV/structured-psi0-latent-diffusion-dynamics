@@ -1,0 +1,43 @@
+{
+ "representation": "artifacts/runs/legged_rep_nosem_go2_v2/representation.pt",
+ "z": {
+  "heldout": {
+   "contact_acc": 0.75609130859375,
+   "contact_swing_acc": 0.3836347893015201,
+   "goal_err": 0.12757231443617265,
+   "disp_xy_err": 0.04302730457857251,
+   "disp_yaw_err": 0.026810920983552932,
+   "subtask_acc": 0.86591796875,
+   "fall_acc": 1.0
+  },
+  "heldout_shuffled_z": {
+   "contact_acc": 0.6901611328125,
+   "contact_swing_acc": 0.25372811237252263,
+   "goal_err": 0.5215612597850371,
+   "disp_xy_err": 0.5821123197674751,
+   "disp_yaw_err": 0.18916643522679805,
+   "subtask_acc": 0.31376953125,
+   "fall_acc": 1.0
+  }
+ },
+ "metadata_only": {
+  "heldout": {
+   "contact_acc": 0.746240234375,
+   "contact_swing_acc": 0.0,
+   "goal_err": 0.3919817009674361,
+   "disp_xy_err": 0.4680206276476383,
+   "disp_yaw_err": 0.12239374406635761,
+   "subtask_acc": 0.359375,
+   "fall_acc": 1.0
+  },
+  "heldout_shuffled_z": {
+   "contact_acc": 0.746240234375,
+   "contact_swing_acc": 0.0,
+   "goal_err": 0.3919817009674361,
+   "disp_xy_err": 0.4680206276476383,
+   "disp_yaw_err": 0.12239374406635761,
+   "subtask_acc": 0.359375,
+   "fall_acc": 1.0
+  }
+ }
+}
