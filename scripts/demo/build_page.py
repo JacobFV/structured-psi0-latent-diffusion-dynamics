@@ -223,6 +223,8 @@ def ladder_rows():
         ("R1", "oracle", "… anchored system-0 input", "oracle_zero_anchor", "oracle_zero_anchor_reanchor", "oracle"),
         ("R1", "oracle", "Stage A retrained jointly with the fix + anchor (jointfix)", "oracle_zero_jointfix", "oracle_zero_jointfix_reanchor", "oracle"),
         ("R1", "oracle", "jointfix + system-0 DAgger round 1 (jfdag1)", "oracle_zero_jfdag1", "oracle_zero_jfdag1_reanchor", "oracle"),
+        ("R1", "oracle", "binding v4 SEM bundle (paired data, B-1 fixed, anchored)", "oracle_zero_bindv4sem", "oracle_zero_bindv4sem_reanchor", "oracle"),
+        ("R1", "oracle", "binding v4 NOSEM bundle (capacity-matched control)", "oracle_zero_bindv4nosem", "oracle_zero_bindv4nosem_reanchor", "oracle"),
         ("R2", "learned", "learned:flow_latent_sem_v2@24543 → sem_v1 system 0 (both pre-fix)", "generated_v2s24543_zero", None, "learned"),
     ]
     rows = []
@@ -283,6 +285,26 @@ R2_VIDEOS = [
 ]
 
 
+ORCBC_VIDEOS = [
+    ("2026-09-25_ladder_oracle_parm6_tf3_s3000008_jfbcdag1long_orcbc_success.mp4", "oracle",
+     "stateless R1 · system 0 jfbcdag1long · parm6_tf3 · seed 3000008 · success",
+     "Packet = E(the chunk the competent BC would execute now); no teacher state. Success in both the evaluation and this render.",
+     "ladder_v1/parm6_tf3/oracle_zero_jfbcdag1long_orcbc.summary.json"),
+    ("2026-09-25_ladder_oracle_parm6_tf3_s3000006_jfbcdag1long_orcbc_failure-lift.mp4", "oracle",
+     "stateless R1 · jfbcdag1long · parm6_tf3 · seed 3000006 · failure (lift) in this render",
+     "The evaluation row of this seed succeeded; this re-render fails at lift (run-to-run variance).",
+     "ladder_v1/parm6_tf3/oracle_zero_jfbcdag1long_orcbc.summary.json"),
+    ("2026-09-25_ladder_oracle_panda_pg2_s3000017_jfbcdag1long_orcbc_success.mp4", "oracle",
+     "stateless R1 · jfbcdag1long · panda_pg2 · seed 3000017 · success",
+     "One of the 3 panda successes; success in both the evaluation and this render.",
+     "ladder_v1/panda_pg2/oracle_zero_jfbcdag1long_orcbc.summary.json"),
+    ("2026-09-25_ladder_oracle_panda_pg2_s3000000_jfbcdag1long_orcbc_failure-approach.mp4", "oracle",
+     "stateless R1 · jfbcdag1long · panda_pg2 · seed 3000000 · failure (approach)",
+     "Typical panda failure: the hand does not settle over the cube.",
+     "ladder_v1/panda_pg2/oracle_zero_jfbcdag1long_orcbc.summary.json"),
+]
+
+
 def sec_sprint():
     """Top 'sprint update' block, generated from the sprint agents' raw outputs when present."""
     parts = []
@@ -335,12 +357,13 @@ generated-route test on the binding-v4 flows is pending. {src(T, O, B, A, 'resea
 <div class="grid">{''.join(video_card(v) for v in SEM_VIDEOS)}</div>""")
 
     import re as _re
-    snaps = sorted({int(m.group(1)) for f in (RAW / "ladder_v1").glob("*/generated_zero_flowjf_s*.summary.json")
-                    for m in [_re.search(r"_s(\d+)\.summary", f.name)] if m})
+    snaps = sorted({m.group(1) for f in (RAW / "ladder_v1").glob("*/generated_zero_flowjf_s*.summary.json")
+                    for m in [_re.search(r"_s(\d+(?:_\w+)?)\.summary", f.name)] if m}, key=lambda x: (int(x.split("_")[0]), x))
     if snaps:
         rows = []
         for st in snaps:
-            cells = [f'<span class="badge b-learned">learned:ladder_flow_jointfix@{st}</span>']
+            st_, rz = (st.split("_", 1) + ["jointfix"])[:2]
+            cells = [f'<span class="badge b-learned">R2 learned:ladder_flow_jointfix@{st_}</span> → system 0 {esc(rz)}']
             for r in ("panda_pg2", "parm6_tf3"):
                 p = f"ladder_v1/{r}/generated_zero_flowjf_s{st}.summary.json"
                 if have(p):
@@ -351,9 +374,11 @@ generated-route test on the binding-v4 flows is pending. {src(T, O, B, A, 'resea
                 else:
                     cells += ["—", "—"]
             rows.append(cells)
-        for t_, lab in (("jointfix", "jointfix"), ("jfdag1", "jfdag1 (shadow DAgger r1)"),
-                        ("jfdag2df08", "jfdag2df08 (shadow DAgger r1+r2)"), ("jfbcdag1", "jfbcdag1 (BC-expert DAgger)"),
-                        ("jfbcdag1_long", "jfbcdag1_long (BC-expert DAgger, 16k)")):
+        known = {"jointfix": "jointfix", "jfdag1": "jfdag1 (shadow DAgger r1)", "jfdag2df08": "jfdag2df08 (shadow DAgger r1+r2)",
+                 "jfbcdag1": "jfbcdag1 (BC-expert DAgger)", "jfbcdag1long": "jfbcdag1long (BC-expert DAgger, 16k steps, lr 3e-4)", "bindv4sem": "binding v4 SEM bundle", "bindv4nosem": "binding v4 NOSEM bundle (capacity-matched control)"}
+        found = sorted({f.name[len("oracle_zero_"):-len("_orcbc.summary.json")] for f in (RAW / "ladder_v1").glob("*/oracle_zero_*_orcbc.summary.json")},
+                       key=lambda t: (list(known).index(t) if t in known else 99, t))
+        for t_, lab in ((t, known.get(t, t)) for t in found):
             ps = [f"ladder_v1/{r}/oracle_zero_{t_}_orcbc.summary.json" for r in ("panda_pg2", "parm6_tf3")]
             if not any(have(p) for p in ps):
                 continue
@@ -378,23 +403,33 @@ generated-route test on the binding-v4 flows is pending. {src(T, O, B, A, 'resea
 encoder, snapshots as training proceeds) → the jointly trained system 0 → tracker; no teacher in the loop. Same 30 matched
 dev seeds as BC. The flow is still training (20k steps planned); rows are added as snapshots are evaluated.
 The stateless R1 rows replace the confounded shadow-teacher oracle: the packet is E(the chunk the competent BC would
-execute at the current state), with no teacher state. <b>Diagnosis (D-052, audited by the lead): system 0 (the realizer) is the
-primary bottleneck, not the generator</b>. On its own training pack it explains only ~30% of the teacher's 1-step motion (underfit). Packets that encode a 25/30 controller's own chunks still give 0/30 through
-system 0. At BC's own states, system 0 explains only part of BC's 1-step motion, and none of it on the first tick of each
-packet. R2 already fails at the same stages as the stateless oracle. The direct generator-gap measurement is pending. Next: fix the system-0 fit offline, gated on arm error at BC states ≤ 20% of hold-still before any closed-loop run. {src('D-052')}
+execute at the current state), with no teacher state. <b>Diagnosis (D-052 and its 20:15 refinement): both stages fall short. System 0's underfit is the first gate, and the
+generator is also short at this snapshot</b> (generator-gap row below). On its own training pack it explains only ~30% of the teacher's 1-step motion (underfit). With the original jointfix system 0, packets that encode the competent BC's own chunks
+still give 0/30. <b>Improving system 0's fit is the first lever that converts:</b> the refit jfbcdag1long (BC-expert DAgger,
+longer training) lifts the same stateless oracle route to the successes shown in its row, still far below BC. At BC's own states, system 0 explains only part of BC's 1-step motion, and none of it on the first tick of each
+packet. R2 fails at the same stages as the stateless oracle. Next: fix the system-0 fit offline, gated on arm error at BC states ≤ 20% of hold-still before any closed-loop run. {src('D-052')}
 {src('ladder_v1/<robot>/generated_zero_flowjf_s<step>.summary.json', 'artifacts/runs/baselines_bc_ladder/', 'research/tracks/ladder.md (SPRINT BEST ROUTE)')}</p>
+<div class="grid">{''.join(video_card(v) for v in ORCBC_VIDEOS if (VID / v[0]).exists())}</div>
 <div class="grid wide">{''.join(video_card(v) for v in R2_VIDEOS if (VID / v[0]).exists())}</div>""")
     L = "ladder_localize/{r}/bc_direct1701_u12000__{t}.json"
     if have(L.format(r="panda_pg2", t="jointfix")):
         rows = []
-        for t_, lab in (("jointfix", "jointfix (Stage A joint, B-1 fixed)"), ("jfdag1", "jfdag1 (+ shadow-teacher DAgger)")):
+        tags = sorted({f.name[len("bc_direct1701_u12000__"):-5] for f in (RAW / "ladder_localize").glob("*/bc_direct1701_u12000__*.json")},
+                      key=lambda t: (("__" in t), t != "jointfix", t))
+        for t_ in tags:
+            gen = "__" in t_
+            lab = (f"jointfix system 0, GENERATED packet from learned:ladder_flow_{t_.split('__')[1].replace('flowjf', 'jointfix@').replace('_s', '')}"
+                   if gen else f"system 0 {t_}, oracle packet E(BC chunk)")
             cells = [esc(lab)]
             for r in ("panda_pg2", "parm6_tf3"):
                 p = L.format(r=r, t=t_)
                 if have(p):
                     d = J(p)["summary"]
-                    cells.append(f'{d["sys0_bcoracle_err_arm"]:.4f} / {d["hold_still_ref_arm"]:.4f} '
-                                 f'<span class="ci">({d["sys0_bcoracle_err_arm"] / d["hold_still_ref_arm"]:.0%} of hold-still)</span>')
+                    e = d["sys0_gen_err_arm"] if gen else d["sys0_bcoracle_err_arm"]
+                    x = (f' <span class="ci">|z_gen − z_bc| / |z_bc| = {d["z_gen_vs_bcoracle_rel"]:.2f}</span>'
+                         if gen and d.get("z_gen_vs_bcoracle_rel") is not None else "")
+                    cells.append(f'{e:.4f} / {d["hold_still_ref_arm"]:.4f} '
+                                 f'<span class="ci">({e / d["hold_still_ref_arm"]:.0%} of hold-still)</span>{x}')
                 else:
                     cells.append("—")
             rows.append(cells)
@@ -404,7 +439,8 @@ packet. R2 already fails at the same stages as the stateless oracle. The direct 
 next) {badge('oracle', 'ORACLE DIAGNOSTIC')}, and system 0 is scored against BC's executed command (1-step, normalized).
 The jointly trained system 0 realizes these packets below the hold-still error (a partial, not a precise, realization), and shadow-teacher DAgger
 <i>raised</i> its error (to 83–133% of hold-still) (consistent with stale labels). Its first tick after each new packet is as bad as holding still.
-Closed-loop version and R2 on the fixed flow: {badge('run')}. {src(L.format(r='<robot>', t='<tag>'), 'research/tracks/ladder.md (sprint)')}</p>""")
+The generated-packet row measures the generator gap at the same states: through system 0 the generated packet is
+no better than holding still. So at this flow snapshot both stages fall short. {src(L.format(r='<robot>', t='<tag>'), 'research/tracks/ladder.md (sprint)')}</p>""")
     if not parts:
         return ""
     now = dt.datetime.now().strftime("%H:%M")
@@ -659,8 +695,11 @@ def sec_bc():
         prog = (f'Direct-action source training at build time: update {last["step"]:,} of ~26.3k. '
                 f'{src("host: artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/source/train_log.jsonl")}')
     rows = []
-    for tag, what in (("direct1701_u12000", "direct-action BC, 12k of ~26.3k updates"),
-                      ("codec1701_u13152", "action-only codec BC, 13.2k updates")):
+    import re as _re2
+    bctags = sorted({f.name[len("learned_"):-len(".summary.json")] for f in (ROOT / "artifacts/runs/baselines_bc_ladder").glob("*/learned_*.summary.json")},
+                    key=lambda t: (t.split("_u")[0], int(_re2.sub(r"\D", "", t.split("_u")[-1]) or 0)))
+    for tag, what in ((t, ("direct-action BC" if t.startswith("direct") else "action-only codec BC") + f", {int(_re2.sub(r'\D', '', t.split('_u')[-1])):,} updates")
+                      for t in bctags):
         cells = []
         for r in ("panda_pg2", "parm6_tf3"):
             p = f"artifacts/runs/baselines_bc_ladder/{r}/learned_{tag}.summary.json"
@@ -799,12 +838,13 @@ def build(updates_html: str = ""):
 <a href="#semantic">semantic edits</a><a href="#bc">BC control</a><a href="#next">next</a><a href="#sources">sources</a></nav>
 </header>
 <p class="lede"><b>Bottom line.</b> The scripted teacher solves every task and edit shown here on single-arm, dual-arm and legged
-bodies, and the pipeline runs end to end within the latency budget. <b>Plain behaviour cloning on the same data is competent</b> (25–28 of 30 on matched scenes, mid-training), so data and
+bodies, and the pipeline runs end to end within the latency budget. <b>Plain behaviour cloning on the same data is competent</b> (23–29 of 30 on matched scenes across mid-training checkpoints), so data and
 evaluation are sound. <b>The latent-packet route is not competent yet</b>: its best oracle-diagnostic variant succeeds 1 time
 in 30, and causal packet semantics are not shown. We found and fixed a
 train/deploy mismatch (bug B-1). The latent route's remaining failure is <b>not localized yet</b>: the oracle-packet
 diagnostic turned out to be confounded (§4). In the clean test, the generated route against BC on the same seeds, the latent
-route is still 0/30 (sprint update). A stateless oracle localizes the main bottleneck to system 0 (the realizer, underfit) rather than the generator (D-052).</p>
+route is still 0/30 (sprint update). A stateless oracle and a generator-gap measurement show that both system 0 (underfit; the first gate) and the generator
+(at the current flow snapshot) fall short (D-052).</p>
 {updates_html}
 {sec_sprint()}
 {body}
