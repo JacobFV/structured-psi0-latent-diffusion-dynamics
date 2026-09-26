@@ -1023,7 +1023,7 @@ def sec_bc():
                "kinematic chain without target data: that is the gap the sealed latent-vs-baseline comparison is meant to test. "
                "No latent method has been run on these bodies (sealed until a source controller is competent). "
                + src("artifacts/runs/latent_slice1_b1fix/<method>/seed1701/eval/<target>_b0.summary.json",
-                     "research/reports/latent_slice1_b1fix_baselines_tables.md") + "</p>")
+                     "research/reports/latent_slice1_b1fix_baselines_tables.md", "D-064") + "</p>")
     vids = "".join(video_card(v) for v in BC_VIDEOS)
     return f"""
 <section id="bc"><h2>6 · Positive control: plain behaviour cloning with the fix {badge('ok', 'competent')}</h2>
