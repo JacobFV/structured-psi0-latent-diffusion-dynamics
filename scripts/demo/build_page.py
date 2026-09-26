@@ -375,7 +375,7 @@ generated-route test on the binding-v4 flows is pending. {src(T, O, B, A, 'resea
                     cells += ["—", "—"]
             rows.append(cells)
         known = {"jointfix": "jointfix", "jfdag1": "jfdag1 (shadow DAgger r1)", "jfdag2df08": "jfdag2df08 (shadow DAgger r1+r2)",
-                 "jfbcdag1": "jfbcdag1 (BC-expert DAgger)", "jfbcdag1long": "jfbcdag1long (BC-expert DAgger, 16k steps, lr 3e-4)", "bindv4sem": "binding v4 SEM bundle", "bindv4nosem": "binding v4 NOSEM bundle (capacity-matched control)"}
+                 "jfbcdag1": "jfbcdag1 (BC-expert DAgger)", "jfbcdag1long": "jfbcdag1long (BC-expert DAgger, 16k steps, lr 3e-4)", "jfnoqd": "jfnoqd (no joint-velocity input)", "jfbcdag2": "jfbcdag2 (BC-expert DAgger round 2)", "bindv4sem": "binding v4 SEM bundle", "bindv4nosem": "binding v4 NOSEM bundle (capacity-matched control)"}
         found = sorted({f.name[len("oracle_zero_"):-len("_orcbc.summary.json")] for f in (RAW / "ladder_v1").glob("*/oracle_zero_*_orcbc.summary.json")},
                        key=lambda t: (list(known).index(t) if t in known else 99, t))
         for t_, lab in ((t, known.get(t, t)) for t in found):
@@ -823,6 +823,9 @@ try{var s=localStorage.getItem('rrp-theme');if(s)r.dataset.theme=s}catch(e){}})(
 
 def build(updates_html: str = ""):
     now = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
+    bcs = [J(str(f.relative_to(ROOT)))["success"] for f in (ROOT / "artifacts/runs/baselines_bc_ladder").glob("*/learned_*.summary.json")
+           if "heldout" not in str(f)]
+    bc_lo, bc_hi = min(bcs), max(bcs)
     body = (sec_architecture() + sec_works() + sec_matrix() + sec_debug() + sec_semantic() + sec_bc() + sec_next())
     used = "".join(f"<li><code>{esc(p)}</code></li>" for p in sorted(USED))
     page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
@@ -839,7 +842,7 @@ def build(updates_html: str = ""):
 <a href="#semantic">semantic edits</a><a href="#bc">BC control</a><a href="#next">next</a><a href="#sources">sources</a></nav>
 </header>
 <p class="lede"><b>Bottom line.</b> The scripted teacher solves every task and edit shown here on single-arm, dual-arm and legged
-bodies, and the pipeline runs end to end within the latency budget. <b>Plain behaviour cloning on the same data is competent</b> (23–29 of 30 on matched scenes across mid-training checkpoints), so data and
+bodies, and the pipeline runs end to end within the latency budget. <b>Plain behaviour cloning on the same data is competent</b> ({bc_lo}–{bc_hi} of 30 on matched scenes across mid-training checkpoints), so data and
 evaluation are sound. <b>The latent-packet route is not competent yet</b>: its best oracle-diagnostic variant succeeds 1 time
 in 30, and causal packet semantics are not shown. We found and fixed a
 train/deploy mismatch (bug B-1). The latent route's remaining failure is <b>not localized yet</b>: the oracle-packet

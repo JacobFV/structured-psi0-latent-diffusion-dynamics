@@ -1,0 +1,42 @@
+{
+ "n": 30,
+ "success": 29,
+ "rate": 0.9666666666666667,
+ "wilson95": [
+  0.8332924860304112,
+  0.9940915620051425
+ ],
+ "failed_stage": {
+  "success": 29,
+  "transport": 1
+ },
+ "track_q_rad": 0.006842024629711882,
+ "track_tcp_m": 0.00699316543218634,
+ "lab_err_arm": 0.20814316746058115,
+ "lab_err_grip": 0.48204103586859126,
+ "min_tcp_cube_m": 0.0040228895923834305,
+ "cmd_step_rad": 0.046160613393270634,
+ "route": "learned",
+ "robot": "parm6_tf3",
+ "seeds": [
+  3000003,
+  3000041,
+  30
+ ],
+ "replan": 8,
+ "nfe": 8,
+ "prev_action": "zero",
+ "reanchor": false,
+ "keep_ticks": false,
+ "oracle_reanchor": false,
+ "object_shift": null,
+ "checkpoints": {
+  "policy": {
+   "path": "artifacts/runs/baselines_bc_ckpts/direct1701_u18000.pt",
+   "sha256": "0063fa12427c425954b8fa36d6312db7986b95aa8c3cf88cd87cf276fd5896d8",
+   "nfe": 8,
+   "execute_prefix": 8,
+   "label": "direct1701_u18000"
+  }
+ }
+}

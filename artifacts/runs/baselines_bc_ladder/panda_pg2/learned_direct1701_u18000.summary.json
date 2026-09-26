@@ -1,0 +1,41 @@
+{
+ "n": 30,
+ "success": 30,
+ "rate": 1.0,
+ "wilson95": [
+  0.8864829086095221,
+  1.0
+ ],
+ "failed_stage": {
+  "success": 30
+ },
+ "track_q_rad": 0.024138933215415482,
+ "track_tcp_m": 0.020877289906101933,
+ "lab_err_arm": 0.2343824710987215,
+ "lab_err_grip": 1.1735406837393494,
+ "min_tcp_cube_m": 0.004400840622293139,
+ "cmd_step_rad": 0.09329366030981161,
+ "route": "learned",
+ "robot": "panda_pg2",
+ "seeds": [
+  3000000,
+  3000029,
+  30
+ ],
+ "replan": 8,
+ "nfe": 8,
+ "prev_action": "zero",
+ "reanchor": false,
+ "keep_ticks": false,
+ "oracle_reanchor": false,
+ "object_shift": null,
+ "checkpoints": {
+  "policy": {
+   "path": "artifacts/runs/baselines_bc_ckpts/direct1701_u18000.pt",
+   "sha256": "0063fa12427c425954b8fa36d6312db7986b95aa8c3cf88cd87cf276fd5896d8",
+   "nfe": 8,
+   "execute_prefix": 8,
+   "label": "direct1701_u18000"
+  }
+ }
+}
