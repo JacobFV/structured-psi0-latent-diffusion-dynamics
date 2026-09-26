@@ -84,7 +84,7 @@ Contexts = gdag1-3 (learner-visited R2 states on the 13 training bodies, target 
 | pfD (sha 324c3938) | from the 20k base flow, 8k steps, 50/50, lr 1e-4 | 9 / 11 / 9 = 29/90 | 20 / 14 / 21 = 55/90 | worse |
 **Outcome: no post-freeze variant beats the frozen route on all seed sets; the 02:30 freeze (flow_jointfix_gdag2h ->
 gendag3_noqd, 36/90 and 70/90) stays the reported route.** Every pack-included variant loses 13-18 parm6 successes
-per 90 seeds, and panda stays at 29-38/90 (a +2 at best, well inside the CI). Mixing the pack back in pulls the flow back
+per 90 seeds, and panda stays at 29-38/90 (a +2 at best, well inside the CI). Untested hypothesis: mixing the pack back in pulls the flow back
 toward the demonstrations' packets, which the DAgger-trained system 0 realizes less well than the on-route targets.
 Panda failures stay at approach (8-13 per 30) in every variant: retraining the generator on its own visited states with
 the pack mixed in does not move panda's approach failures. Raw: `artifacts/runs/ladder_v1/<robot>/generated_zero_flowpf*_rzgendag3_noqd_s*.summary.json`.
