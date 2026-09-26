@@ -1,0 +1,240 @@
+{
+ "protocol": "latent_slice1",
+ "status": "SEALED_BEFORE_RESULTS",
+ "root": "artifacts/runs/latent_slice1_b1fix",
+ "table": [
+  {
+   "method": "baseline_direct_action",
+   "target": "source",
+   "budget": 0,
+   "seeds_done": [
+    1701
+   ],
+   "successes": 79,
+   "attempted": 80,
+   "rate": 0.9875,
+   "wilson95": [
+    0.9325372985264325,
+    0.9977900245039738
+   ],
+   "per_seed": {
+    "1701": [
+     79,
+     80
+    ]
+   },
+   "demo_episodes": 0,
+   "demo_transitions_per_seed": {
+    "1701": 0
+   },
+   "sft_updates": 0,
+   "source_updates_per_seed": {
+    "1701": 26304
+   }
+  },
+  {
+   "method": "baseline_direct_action",
+   "target": "xarm7_pg2",
+   "budget": 0,
+   "seeds_done": [
+    1701
+   ],
+   "successes": 0,
+   "attempted": 100,
+   "rate": 0.0,
+   "wilson95": [
+    0.0,
+    0.03699349876899627
+   ],
+   "per_seed": {
+    "1701": [
+     0,
+     100
+    ]
+   },
+   "demo_episodes": 0,
+   "demo_transitions_per_seed": {
+    "1701": 0
+   },
+   "sft_updates": 0,
+   "source_updates_per_seed": {
+    "1701": 26304
+   }
+  },
+  {
+   "method": "baseline_direct_action",
+   "target": "xarm7_tf3",
+   "budget": 0,
+   "seeds_done": [
+    1701
+   ],
+   "successes": 0,
+   "attempted": 100,
+   "rate": 0.0,
+   "wilson95": [
+    0.0,
+    0.03699349876899627
+   ],
+   "per_seed": {
+    "1701": [
+     0,
+     100
+    ]
+   },
+   "demo_episodes": 0,
+   "demo_transitions_per_seed": {
+    "1701": 0
+   },
+   "sft_updates": 0,
+   "source_updates_per_seed": {
+    "1701": 26304
+   }
+  },
+  {
+   "method": "baseline_direct_action",
+   "target": "panda_tf3",
+   "budget": 0,
+   "seeds_done": [
+    1701
+   ],
+   "successes": 78,
+   "attempted": 100,
+   "rate": 0.78,
+   "wilson95": [
+    0.6892964640723263,
+    0.8499871766170359
+   ],
+   "per_seed": {
+    "1701": [
+     78,
+     100
+    ]
+   },
+   "demo_episodes": 0,
+   "demo_transitions_per_seed": {
+    "1701": 0
+   },
+   "sft_updates": 0,
+   "source_updates_per_seed": {
+    "1701": 26304
+   }
+  },
+  {
+   "method": "baseline_action_only_codec",
+   "target": "source",
+   "budget": 0,
+   "seeds_done": [
+    1701
+   ],
+   "successes": 77,
+   "attempted": 80,
+   "rate": 0.9625,
+   "wilson95": [
+    0.8954527983617241,
+    0.9871654311799435
+   ],
+   "per_seed": {
+    "1701": [
+     77,
+     80
+    ]
+   },
+   "demo_episodes": 0,
+   "demo_transitions_per_seed": {
+    "1701": 0
+   },
+   "sft_updates": 0,
+   "source_updates_per_seed": {
+    "1701": 26304
+   }
+  },
+  {
+   "method": "baseline_action_only_codec",
+   "target": "xarm7_pg2",
+   "budget": 0,
+   "seeds_done": [
+    1701
+   ],
+   "successes": 0,
+   "attempted": 100,
+   "rate": 0.0,
+   "wilson95": [
+    0.0,
+    0.03699349876899627
+   ],
+   "per_seed": {
+    "1701": [
+     0,
+     100
+    ]
+   },
+   "demo_episodes": 0,
+   "demo_transitions_per_seed": {
+    "1701": 0
+   },
+   "sft_updates": 0,
+   "source_updates_per_seed": {
+    "1701": 26304
+   }
+  },
+  {
+   "method": "baseline_action_only_codec",
+   "target": "xarm7_tf3",
+   "budget": 0,
+   "seeds_done": [
+    1701
+   ],
+   "successes": 0,
+   "attempted": 100,
+   "rate": 0.0,
+   "wilson95": [
+    0.0,
+    0.03699349876899627
+   ],
+   "per_seed": {
+    "1701": [
+     0,
+     100
+    ]
+   },
+   "demo_episodes": 0,
+   "demo_transitions_per_seed": {
+    "1701": 0
+   },
+   "sft_updates": 0,
+   "source_updates_per_seed": {
+    "1701": 26304
+   }
+  },
+  {
+   "method": "baseline_action_only_codec",
+   "target": "panda_tf3",
+   "budget": 0,
+   "seeds_done": [
+    1701
+   ],
+   "successes": 85,
+   "attempted": 100,
+   "rate": 0.85,
+   "wilson95": [
+    0.7671644033458782,
+    0.9069401475158245
+   ],
+   "per_seed": {
+    "1701": [
+     85,
+     100
+    ]
+   },
+   "demo_episodes": 0,
+   "demo_transitions_per_seed": {
+    "1701": 0
+   },
+   "sft_updates": 0,
+   "source_updates_per_seed": {
+    "1701": 26304
+   }
+  }
+ ],
+ "crossings": []
+}

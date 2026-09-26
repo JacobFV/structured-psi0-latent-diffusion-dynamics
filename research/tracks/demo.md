@@ -73,3 +73,4 @@ Rendered on peer GPU EGL into `artifacts/runs/demo_video/` (NOT the shared artif
 - 22:25 D-062 best-route semantic row + lead's reading (goal content executed; semantic claim NOT shown); refresh.sh now always pushes.
 - 22:43 added a top scoreboard (best run per row on the matched scenes, from raw; fresh-seed runs excluded).
 - 22:51 R2 9/30 parm6 (flow final -> gendag1_noqd) folded in; R2 rows keyed by recorded checkpoints; scoreboard/lede include it; R2 success clip s3000012 (CPU-model render reproduces success; GPU renders of success seeds fail late).
+- 23:03 BC final folded in: zero-shot sealed-target table (panda_tf3 78/85, xarm7 0/100), held-out 79/80, 2 BC final clips; matrix BC row + held-out column updated.

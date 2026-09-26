@@ -126,6 +126,14 @@ VIDEOS = [
      "artifacts/video/INDEX.md"),
 ]
 BC_VIDEOS = [
+    ("2026-09-25_learned_bc_direct1701_final_parm5s_tf3_pick_place_s2000029_success.mp4", "bc",
+     "plain BC final · held-out source body parm5s_tf3 · seed 2000029",
+     "Direct-action BC (final, 26.3k updates) on a body it was never trained on (held-out source body).",
+     "artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/eval/source.summary.json"),
+    ("2026-09-25_learned_bc_direct1701_final_zeroshot_newbody_xarm7_pg2_pick_place_s2000000_failure.mp4", "bc",
+     "plain BC final · zero-shot NEW body xarm7_pg2 · FAILURE",
+     "Budget 0 on a sealed target arm: 0/100. The unseen kinematic chain is not solved without target data.",
+     "artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/eval/xarm7_pg2_b0.summary.json"),
     ("2026-09-25_ladder_learned_panda_pg2_s3000000_direct1701_u12000_success.mp4", "bc",
      "plain BC · direct1701_u12000 · panda_pg2 · seed 3000000 · success",
      "Direct-action flow policy (B-1 fixed), chunk every 8 ticks, same tracker and scenes as the ladder.",
@@ -193,7 +201,7 @@ def video_card(v) -> str:
         lab = ("teacher | BC | learned:flow_jointfix@" + (f.split("flowjf_s")[1].split(".")[0] if "flowjf_s" in f else "20k → sys-0 " + f.split("flowjf20k_")[1].split(".")[0])) if "r2triptych" in f \
             else ("learned:flow_jointfix@20k → sys-0 " + f.split("flowjf20k_")[1].split("_cpu")[0]) if "flowjf20k_" in f else "learned:flow_latent_sem_v2@22k"
     if kind == "bc":
-        lab = "learned:" + ("direct1701_u12000 (BC)" if "_s30000" not in f else
+        lab = "learned:" + ("direct1701 final (BC)" if "bc_direct1701_final" in f else "direct1701_u12000 (BC)" if "_s30000" not in f else
                             f.split("_s30000")[1].split("_", 1)[1].rsplit("_", 1)[0])
     exists = (VID / f).exists()
     size = f"{(VID / f).stat().st_size / 1e6:.2f} MB" if exists else "missing"
@@ -994,6 +1002,28 @@ def sec_bc():
               + table(["controller", "parm5s_tf3", "parm5l_pg2", "pooled", "raw"], hr)
               + "<p>Protocol source-competence harness, seeds 2,000,000+, 50 episodes per body, infeasible scenes excluded. These are "
               "held-out <i>source</i> bodies, not the sealed target bodies (xarm7_pg2, xarm7_tf3, panda_tf3).</p>")
+    zs = []
+    for m, lab in (("baseline_direct_action", "learned:direct1701 final (direct BC)"), ("baseline_action_only_codec", "learned:codec1701 final (codec BC)")):
+        cells = [f'<span class="badge b-bc">{esc(lab)}</span>']
+        any_ = False
+        for t in ("panda_tf3", "xarm7_pg2", "xarm7_tf3"):
+            zp = f"artifacts/runs/latent_slice1_b1fix/{m}/seed1701/eval/{t}_b0.summary.json"
+            if have(zp):
+                d = J(zp)[t]
+                cells.append(frac(d["successes"], d["attempted"]))
+                any_ = True
+            else:
+                cells.append("—")
+        if any_:
+            zs.append(cells)
+    if zs:
+        ho += ("<h3>Zero-shot transfer to the sealed protocol's NEW bodies (budget 0: no target data)</h3>"
+               + table(["controller", "panda_tf3 (known arm, new gripper)", "xarm7_pg2 (new arm)", "xarm7_tf3 (new arm + gripper)"], zs)
+               + "<p>100 episodes per cell, seeds 2,000,000+. Plain BC transfers across a new gripper pairing but not to an unseen arm "
+               "kinematic chain without target data: that is the gap the sealed latent-vs-baseline comparison is meant to test. "
+               "No latent method has been run on these bodies (sealed until a source controller is competent). "
+               + src("artifacts/runs/latent_slice1_b1fix/<method>/seed1701/eval/<target>_b0.summary.json",
+                     "research/reports/latent_slice1_b1fix_baselines_tables.md", "D-064") + "</p>")
     vids = "".join(video_card(v) for v in BC_VIDEOS)
     return f"""
 <section id="bc"><h2>6 · Positive control: plain behaviour cloning with the fix {badge('ok', 'competent')}</h2>

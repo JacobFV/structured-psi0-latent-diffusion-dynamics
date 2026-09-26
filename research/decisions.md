@@ -222,3 +222,11 @@ Reading: (1) system 0 causally executes goal content carried in the received pac
 
 ## D-063 2026-09-25 DEPLOYABLE latent route reaches 9/30 on parm6_tf3 (system i's own packets → robust system 0)
 R2 = learned:ladder_flow_jointfix final (snap_final_s20000, sha256 33b95888…; trained with zero_prev_action) → system 0 ladder_rz_jointfix_gendag1_noqd (sha256 4a2a2165…). That system 0 was refit from bcdag2 WITHOUT the joint-velocity input (D-056), with BC-expert DAgger including states visited with GENERATED packets, and z-noise 0.3. parm6_tf3: 9/30 [Wilson ≈ 0.17–0.48]. Failures: place 13, transport 4, lift 2, grasp 1, approach 1. Lead audit: 9 successes recomputed from the rows; the same 30 matched dev seeds as every earlier R2 row; route "generated", source learned(system-i flow); no teacher or BC in the loop; the system-0 swap shares the flow's latent-space version and is recorded as realizer_override in the summary. A CPU re-render of seed 3000012 reproduces the success; other re-renders of success seeds failed late (transport/place). panda_pg2 pending. Before this: R2 at best 1/30 (D-056). The three fixes (no qd, generated-packet DAgger, z-noise) together turned generated packets into task successes. Still below BC (23–30/30); semantic claims remain not shown (D-059, D-062).
+
+## D-064 2026-09-25 BC final checkpoints; sealed budget-0 transfer: new gripper yes, unseen arm no; R2 confirmations
+Sealed latent_slice1 budget-0 cells (campaign harness, 100 episodes, seeds 2,000,000+; raw peer latent_slice1_b1fix/<method>/seed1701/eval/<target>_b0.summary.json; lead checked):
+- direct BC: panda_tf3 78/100, xarm7_pg2 0/100, xarm7_tf3 0/100
+- codec BC: 85/100, 0/100, 0/100 (all failures timeouts)
+- direct final on held-out source bodies: 79/80; final checkpoints 30/30 on panda_pg2 and parm6_tf3
+BC transfers zero-shot to a new gripper pairing on a known arm (panda + tf3) but not to an unseen arm (xarm7). That gap is the one the sealed four-way comparison is designed to test; no latent method has been run on target bodies.
+R2 (deployable) confirmations: gendag1_noqd on FRESH seeds (3,000,100+; not the matched set): parm6 7/30, panda 2/30. The matched-seed D-063 result (9/30 parm6) holds up roughly on fresh seeds. R2 panda with system 0 bcdag3: 3/30. Stateless R1: bcdag3 parm6 22/30; gendag1noqd panda 18/30.
