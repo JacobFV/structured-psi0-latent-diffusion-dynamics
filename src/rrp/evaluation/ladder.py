@@ -642,7 +642,7 @@ def packed_realization_check(rep_path: str, packed_dir: str, robot_key: str | No
     from rrp.learning.latent_train import load_representation, LatentData
     from rrp.model.semantic_latent import assembly_tokens
     lcfg, E, R, P, res = load_representation(Path(rep_path), device)
-    data = LatentData(Path(packed_dir), zero_prev_action=zero_prev_action)
+    data = LatentData(Path(packed_dir), zero_prev_action=zero_prev_action, anchor=getattr(R, "anchor", False))
     rid = data.ds.meta["robot_ids"].get(robot_key) if robot_key else None
     pool = None
     if rid is not None:

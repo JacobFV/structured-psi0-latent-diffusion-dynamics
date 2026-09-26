@@ -3,6 +3,50 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
+## SPRINT BEST ROUTE (live; updated 2026-09-25 20:05 PDT by sprint_latent)
+**No competent latent route yet. Best learned R2 so far: flow_jointfix@4000 → system 0 jointfix: 0/30 panda_pg2, 0/30
+parm6_tf3. Current diagnosis: system 0 (the realizer) is the primary bottleneck, not the generator.**
+Matched scenes: first 30 feasible dev seeds from 3,000,000, n_distractors = seed % 3, 300 ticks, replan 8, NFE 8,
+prev-action input 0 (deployment), privileged success evaluator. Wilson 95% in brackets. Raw: peer
+`artifacts/runs/ladder_v1/<robot>/<route>_<tag>.{jsonl,summary.json}` (`scripts/ladder_sumpeek.py`).
+| rung (source label) | system 0 | panda_pg2 | parm6_tf3 | failure stage (panda / parm6) | track q rad / TCP m (panda) |
+|---|---|---|---|---|---|
+| R0 scripted_teacher (privileged) | - | 30/30 [0.89,1] | 30/30 [0.89,1] | - | 0.025 / 0.021 |
+| reference: plain BC learned:direct1701_u12000 (sprint_bc) | - | 25/30 [0.66,0.93] | 27/30 [0.74,0.97] | late (grasp/lift/transport) | |
+| R1 oracle, shadow-teacher packet, re-anchored (ORACLE DIAGNOSTIC; CONFOUNDED: stale FSM, D-050) | jfdag1 | 1/30 | 0/30 | approach 25 / approach 29 | 0.042 / 0.037 |
+| R1 oracle, STATELESS packet E(BC chunk at current state) (ORACLE DIAGNOSTIC) | jointfix | 0/30 [0,0.11] | 0/30 [0,0.11] | approach 18, grasp 5, lift 5, transport 1, place 1 / approach 20, grasp 4, lift 5, transport 1 | 0.011 / 0.012 |
+| same | jfdag1 (shadow DAgger r1) | 0/30 | 0/30 | approach 30 / grasp 16, lift 4, transport 4, place 3 | 0.018 / 0.014 |
+| same | jfdag2df08 (shadow DAgger r1+r2, 80% DAgger; D-049 fix A) | 0/30 | 0/30 | approach 29 / approach 27 | 0.023 / 0.019 |
+| same | jfbcdag1 (DAgger with the stateless BC expert; D-049 fix B) | running | running | | |
+| R2 learned:ladder_flow_jointfix@4000 (system i, zero_prev_action, normalize_target, tau_min 0.6) | jointfix | 0/30 [0,0.11] | 0/30 [0,0.11] | approach 16, grasp 11, lift 2, place 1 / approach 21, grasp 7, transport 2 | 0.014 / 0.017 |
+| R2 @8000, @12000, @16000, final | jointfix | scheduled | | | |
+
+Stateless localization on BC-visited states (`scripts/ladder_localize.py`; BC episodes replayed exactly, 30/30 replay
+consistent; z_bc = E(chunk BC actually executed next); system 0 NOT executed; 1-step normalized MSE vs BC's command):
+| system 0 | arm err panda / parm6 | hold-still arm ref panda / parm6 | first tick after a new packet (j=0), panda |
+|---|---|---|---|
+| jointfix | 0.0049 / 0.0035 | 0.0114 / 0.0047 | 0.011 (= hold-still) |
+| jfdag1 | 0.0094 / 0.0062 | same | 0.014 |
+| jfdag2df08 | 0.0175 / 0.0110 (worse than holding still) | same | |
+On the training pack itself (panda rows, jointfix, `scripts/ladder_packed_check.py`) system 0's arm error is 0.02-0.066
+vs 0.03-0.09 for a zero action: it explains only ~30% of the teacher's 1-step motion (underfit), and on the teacher's
+own clean trajectory its j=0 error is 3x its j>=1 error (0.0126 vs ~0.004).
+
+Why system 0 is the bottleneck: (1) packets that encode a 25/30 controller's own chunks give 0/30 through system 0 in
+closed loop; (2) system 0 explains only ~55% (panda) / ~25% (parm6) of BC's 1-step motion at BC's own states, and none
+of it on the first tick of each packet; (3) R2 at 4k flow steps already fails at the same stages as R1-BC (approach/grasp),
+so the generator is not visibly worse than the stateless oracle. Pending: the generator gap measured directly
+(z_gen vs z_bc distance and system-0 error from generated vs oracle packets at BC states; leases 1790391692_2ffeb0,
+1790391693_2ce338 -> `artifacts/runs/ladder_localize/<robot>/bc_direct1701_u12000__jointfix__flowjf_s4000.json`).
+Shadow-teacher DAgger makes system 0 WORSE on BC-visited states (2x-3.5x error): withdrawn as a fix.
+
+Compute now:
+- HOST GPU: `ladder_flow_jointfix` (lease 1790389550_4baed9, 0.26 s/step, 20k steps, ETA ~20:55 PDT);
+  `scripts/ladder_flow_watch.sh` snapshots every 4k steps and runs R2 on the peer (tags `zero_flowjf_s<step>`).
+- HOST GPU: `ladder_rz_jointfix_bcdag1_long` (system-0 refit, 16k steps, lr 3e-4, 50/50 BC-expert DAgger; ETA ~20:40).
+- PEER: binding v4 reps (binding chain, ~20:25) -> flows in the binding chain; ladder R1-BC evals of bindv4 sem/nosem
+  start automatically when the reps land (host loop, tags `zero_bindv4{sem,nosem}_orcbc`).
+
 ## CURRENT ANSWER FOR ACCEPTANCE / GRPO / campaign (which route/checkpoint is competent)
 - **No competent learned route exists yet, and none can with the current Stage-A system 0**: R0 teacher 30/30;
   R1 oracle (latent_sem_v1) 0/30 with deployment input, 0/30 with training-consistent own-prev input; R2 flow v2 0/30.
