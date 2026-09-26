@@ -45,6 +45,19 @@ invalid log path; no rows written); fixed in all three drivers and relaunched on
 the old function: its `semedits` node will fail the same way and must be relaunched the same way
 (`LIN=sfjf bash scripts/arm_lineage_hybrid.sh semedits_all`, then touch the marker).
 
+Semfix Stage A (host, 06:45-08:55, `ladder_latent_semfix_b1fix_anchor/representation.pt` sha 05069361...): median grad
+norm 42.8 (last half 21.3), mean clip scale 0.036, final realization loss 0.0181, KL/entry 6.05. So on the ARM the
+lv -4 floor reduces the starvation ~7x but does not remove it (frozen sem 300 / 0.0049; nosem 0.47 / 0.95; the t1 fix
+reached gn 11 / 0.16). Reported as is; the lineage is the lead's specified fix (identical recipe otherwise).
+bc1 collection = stateless R1 (ORACLE DIAGNOSTIC: packet = E(BC chunk)) with each lineage's Stage-A system 0 on the 13
+TRAINING bodies x 24, seeds 3,200,000+ (raw `artifacts/runs/ladder_dagger_{bc1,nsjf_bc1,sfjf_bc1}/oracle_<robot>.summary.json`):
+| Stage-A system 0 | success | approach failures | grasp | lift | transport | place |
+|---|---|---|---|---|---|---|
+| frozen sem (lv -8) | 4/312 | 174 | 56 | 29 | 40 | 9 |
+| nosem | 1/312 | 282 | 14 | 9 | 6 | 0 |
+| sem, bounded NLL (lv -4) | **85/312** | 50 | 56 | 37 | 52 | 32 |
+(one training seed each; a diagnostic of the un-DAgger'd system 0, not a deployable result.)
+
 ### ADDED 06:40 (lead, after D-085): third lineage = SEM with the BOUNDED semantic NLL (state: running)
 D-085 check on the ARM (Stage-A train logs, 150 x 100-step entries): sem `ladder_latent_sem_b1fix_anchor` median grad norm
 300 (last half 191), mean clip scale min(1,1/gn) 0.0049; nosem `ladder_latent_nosem_b1fix_anchor` median 0.47 (last half
