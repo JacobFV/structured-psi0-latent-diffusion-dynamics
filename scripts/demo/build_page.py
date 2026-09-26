@@ -198,9 +198,15 @@ def video_card(v) -> str:
     f, kind, title, cap, s = v
     lab = {"teacher": "teacher | BC | oracle" if f.startswith("2026-09-25_triptych") else "teacher | BC | stateless oracle" if "orcbctriptych" in f else "scripted_teacher", "oracle": "oracle diagnostic", "learned": "learned", "bc": "learned"}[kind]
     if kind == "learned":
-        lab = ("teacher | BC | learned:flow_jointfix@" + (f.split("flowjf_s")[1].split(".")[0] if "flowjf_s" in f else "20k → sys-0 " + f.split("flowjf20k_")[1].split(".")[0].replace("_cpu", ""))) if "r2triptych" in f \
-            else ("learned:flow_jointfix@20k → sys-0 " + f.split("flowjf20k_")[1].split("_cpu")[0]) if "flowjf20k_" in f \
-            else ("learned:flow_jointfix_ft → sys-0 " + f.split("flowjfft_")[1].split("_cpu")[0]) if "flowjfft_" in f else "learned:flow_latent_sem_v2@22k"
+        lab = "learned:flow_latent_sem_v2@22k"
+        for key, flow in (("flowgdag1_", "flow_jointfix_gdag1"), ("flowjfft_", "flow_jointfix_ft"), ("flowjf20k_", "flow_jointfix@20k"), ("flowjf_s", "flow_jointfix@")):
+            if key in f:
+                import re as _rr
+                rest = _rr.sub(r"_(success|fell|failure.*)$", "", f.split(key)[1].split(".")[0].replace("_cpu", ""))
+                lab = (f"learned:{flow}{rest}" if key == "flowjf_s" else f"learned:{flow} → sys-0 {rest}")
+                break
+        if "r2triptych" in f:
+            lab = "teacher | BC | " + lab
     if "_legged_" in f and kind in ("bc", "oracle", "learned"):
         lab = {"bc": "learned: legged BC", "oracle": "ORACLE diagnostic (legged)", "learned": "learned (legged)"}[kind]
     elif kind == "bc":
@@ -284,6 +290,15 @@ SEM_VIDEOS = [
 
 
 R2_VIDEOS = [
+    ("2026-09-25_r2triptych_panda_pg2_s3000012_teacher_bc-direct1701_u12000_generated-flowgdag1_gendag3noqd_cpu.mp4", "learned",
+     "same scene · teacher | plain BC u12000 | R2 best recipe (flow gdag1 → system 0 gendag3_noqd) · panda_pg2 · seed 3000012",
+     "This render: teacher success; BC (12k-update checkpoint) fails at grasp; the deployable latent route SUCCEEDS. Best recipe: 10/30 panda, 22/30 parm6 "
+     "(D-070). Re-rendered with the model on CPU; of 4 re-rendered evaluation-success seeds of this recipe, 2 succeeded again (panda 3000012, parm6 3000019).",
+     "ladder_v1/panda_pg2/generated_zero_flowgdag1_rzgendag3_noqd.summary.json"),
+    ("2026-09-25_r2triptych_parm6_tf3_s3000019_teacher_bc-direct1701_u12000_generated-flowgdag1_gendag3noqd_cpu.mp4", "learned",
+     "same scene · teacher | plain BC u12000 | R2 best recipe · parm6_tf3 · seed 3000019",
+     "This render: all three succeed (R2 on CPU; teacher and BC panels from an earlier GPU render of the same seed).",
+     "ladder_v1/parm6_tf3/generated_zero_flowgdag1_rzgendag3_noqd.summary.json"),
     ("2026-09-25_ladder_generated_parm6_tf3_s3000011_flowjfft_gendag2noqd_cpu_success.mp4", "learned",
      "R2 generated · learned:ladder_flow_jointfix_ft → system 0 gendag2_noqd · parm6_tf3 · seed 3000011 · SUCCESS",
      "The deployable latent route (system i's own packets; no teacher or BC in the loop) on the current best parm6 recipe (16/30). "
@@ -795,7 +810,7 @@ def legged_research():
 system i's own packets → system 0 give nosem 30/30 and sem 29/30 on the 30 matched dev seeds, against plain BC 30/30 and the teacher 30/30
 {badge('learned', 'learned:legged_flow_{sem,nosem}_go2_v2 snap_s4000')}. Unlike the arm, the legged system 0 is not the bottleneck: the stateless oracle route
 gives nosem 30/30 and sem 25/30. BC positive controls on other bodies: hexapod6 30/30, t1 humanoid 24/30 (teacher 30/30); g1 is training.
-{src('research/tracks/legged_vlm.md (rows 4a, 6b, 7a)', 'artifacts/runs/legged_ladder/go2/r2_*_snap_s4000.jsonl')}</p>
+{src('research/tracks/legged_vlm.md', 'D-070', 'artifacts/runs/legged_ladder/go2/r2_*_snap_s4000.jsonl')}</p>
 <p><b>Packet edits (D-069, oracle route, go2, 20 seeds):</b> probe-guided halt changes forward progress by −1.24 m (sem) and −1.23 m (nosem), against −0.05 to
 −0.19 m for random edits of matched norm. Yaw ±0.6 edits give sign-correct turns of 0.16–0.30 rad, against ≈0 for random edits. Goal-mirror is null and
 per-leg contact edits are weak. This shows <b>packet → behaviour causality along probe directions on an oracle route</b>: the edit is applied to z, not to

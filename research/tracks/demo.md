@@ -78,3 +78,4 @@ Rendered on peer GPU EGL into `artifacts/runs/demo_video/` (NOT the shared artif
 - 23:44 R2 best-recipe clips: CPU re-renders of eval-success seeds reproduce 3/5 (parm6, flow ft) and 1/4 (panda); captions state it; dropped the old flow@4000 triptychs.
 - 00:09 legged research block also shows the legged agent's labelled learned/oracle clips from artifacts/video/INDEX.md (go2 BC, R1 sem/nosem, packet edits halt/yaw, a fall).
 - 00:12 legged headline block (go2 deployable R2 nosem 30/30, sem 29/30; D-069 edit reading; hexapod6/t1 BC); §2b lede, bottom line and both matrices updated; arm R2 best now 10/30 panda, 22/30 parm6 (flowgdag1, auto).
+- 00:25 best-recipe (D-070) triptychs: panda 3000012 (teacher ok, BC u12000 fails grasp, R2 success), parm6 3000019 (all succeed); 2/4 re-rendered success seeds reproduced.
