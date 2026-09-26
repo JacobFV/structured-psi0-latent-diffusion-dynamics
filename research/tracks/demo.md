@@ -88,3 +88,4 @@ Rendered on peer GPU EGL into `artifacts/runs/demo_video/` (NOT the shared artif
 - 02:25 FINAL block parametrized by frozen recipes (02:30 gdag2h current, 01:10 gdag1 superseded), all seed sets each. BUG FIXED: the earlier FINAL block fell back to the DEV BC numbers for the fresh-3000100 BC row (no BC eval exists on 3000100); that row showed 25/30, 27/30 wrongly from 01:12 to 02:30. Matrix corrected.
 - 02:26 D-077 panda rebinding row/sentence/box.
 - 02:40 D-079 (t1 deployable nosem 26–27/30 vs sem 6–11/30; mixed semantic evidence) replaces the 'leads' framing everywhere.
+- 02:52 D-079 update (t1 sem 6–13/30), D-080 'distilled through a learned stateless expert' label, legged FINAL section auto-rendered.

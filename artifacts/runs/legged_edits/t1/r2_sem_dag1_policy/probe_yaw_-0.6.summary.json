@@ -1,0 +1,25 @@
+{
+ "source": "learned:legged_flow_sem_t1_v2/policy.pt+rz:legged_rz_sem_t1_dag1/realizer.pt",
+ "edit": "probe_yaw:-0.6",
+ "per_body": {
+  "t1": {
+   "n": 20,
+   "success": 0,
+   "fell": 6,
+   "stages": {
+    "fell": 6,
+    "drift_a": 12,
+    "drift_b": 2
+   },
+   "seeds": "10000-10019",
+   "mean_sim_time": 4.704999999999703,
+   "packet_probes": {
+    "subtask": 1.0,
+    "contact": 0.9106583072100314,
+    "goal_err": 0.06016789012268753,
+    "disp_yaw_err": 0.10128199598687333,
+    "disp_xy_err": 0.07744458190058515
+   }
+  }
+ }
+}

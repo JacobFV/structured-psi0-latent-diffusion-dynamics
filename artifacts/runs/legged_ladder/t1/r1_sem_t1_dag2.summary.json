@@ -1,0 +1,23 @@
+{
+ "file": "artifacts/runs/legged_ladder/t1/r1_sem_t1_dag2.jsonl",
+ "source": "oracle_diagnostic:E(bc_chunk)|rep:legged_rep_sem_t1_v2+rz:legged_rz_sem_t1_dag2/realizer.pt|bc=legged_bc_t1_v1/policy.pt",
+ "edit": "none",
+ "n": 30,
+ "success": 12,
+ "wilson95": [
+  0.246,
+  0.577
+ ],
+ "stages": {
+  "fell": 15,
+  "success": 12,
+  "halt": 2,
+  "drift_b": 1
+ },
+ "seeds": [
+  10000,
+  10029
+ ],
+ "events_a": 16,
+ "events_b": 14
+}
