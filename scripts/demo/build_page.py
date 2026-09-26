@@ -816,7 +816,7 @@ def build(updates_html: str = ""):
 <a href="#semantic">semantic edits</a><a href="#bc">BC control</a><a href="#next">next</a><a href="#sources">sources</a></nav>
 </header>
 <p class="lede"><b>Bottom line.</b> The scripted teacher solves every task and edit shown here on single-arm, dual-arm and legged
-bodies, and the pipeline runs end to end within the latency budget. <b>Plain behaviour cloning on the same data is competent</b> (23–28 of 30 on matched scenes across mid-training checkpoints), so data and
+bodies, and the pipeline runs end to end within the latency budget. <b>Plain behaviour cloning on the same data is competent</b> (23–29 of 30 on matched scenes across mid-training checkpoints), so data and
 evaluation are sound. <b>The latent-packet route is not competent yet</b>: its best oracle-diagnostic variant succeeds 1 time
 in 30, and causal packet semantics are not shown. We found and fixed a
 train/deploy mismatch (bug B-1). The latent route's remaining failure is <b>not localized yet</b>: the oracle-packet
