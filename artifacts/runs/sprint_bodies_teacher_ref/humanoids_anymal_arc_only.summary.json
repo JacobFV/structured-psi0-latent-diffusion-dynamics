@@ -1,0 +1,36 @@
+{
+ "source": "scripted_teacher:arc_only",
+ "task": "waypoint_contact",
+ "seeds": "10000-10019",
+ "per_body": {
+  "g1": {
+   "success": 18,
+   "n": 20,
+   "fell": 0,
+   "halt_failed": 2,
+   "other_fail": 0,
+   "failed_seeds": [
+    10000,
+    10018
+   ],
+   "note": "source=scripted_teacher (arc_only variant) (privileged) + frozen learned tracker g1:iter3599 (limited: forward + arc turning only); dev seeds 10000-10019; waypoint_contact; privileged evaluator; raw eval_dev_g1_arc_only.jsonl; NOT a learned policy"
+  },
+  "h1": {
+   "success": 13,
+   "n": 20,
+   "fell": 0,
+   "halt_failed": 7,
+   "other_fail": 0,
+   "failed_seeds": [
+    10005,
+    10006,
+    10007,
+    10011,
+    10012,
+    10014,
+    10019
+   ],
+   "note": "source=scripted_teacher (arc_only variant) (privileged) + frozen learned tracker h1:iter2999 (limited: in-place turning below gate); dev seeds 10000-10019; waypoint_contact; privileged evaluator; raw eval_dev_h1_arc_only.jsonl; NOT a learned policy"
+  }
+ }
+}

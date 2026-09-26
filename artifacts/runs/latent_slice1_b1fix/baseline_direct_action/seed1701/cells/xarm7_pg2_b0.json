@@ -1,0 +1,66 @@
+{
+ "protocol": "latent_slice1",
+ "protocol_status": "SEALED_BEFORE_RESULTS",
+ "method": "baseline_direct_action",
+ "seed": 1701,
+ "target": "xarm7_pg2",
+ "budget": 0,
+ "smoke": false,
+ "controller_source": "learned:artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/source/policy.pt",
+ "action_path": "native_ActionChunk",
+ "kind": "zero_shot_transfer_of_source_controller",
+ "successes": 0,
+ "attempted": 100,
+ "success_rate": 0.0,
+ "wilson95": [
+  0.0,
+  0.03699349876899627
+ ],
+ "per_robot": {
+  "xarm7_pg2": {
+   "attempted": 100,
+   "successes": 0,
+   "success_rate": 0.0,
+   "wilson95": [
+    0.0,
+    0.03699349876899627
+   ],
+   "infeasible": 0,
+   "outcomes": {
+    "timeout": 100
+   },
+   "public_private_agreement": 1.0,
+   "policy_calls": 3800,
+   "control_steps": 30000
+  }
+ },
+ "eval_meta": {
+  "controller_source": "learned:artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/source/policy.pt",
+  "device": "cpu",
+  "wall_s": 1095.794365644455,
+  "seed_start": 2000000,
+  "episodes": 100,
+  "nfe": 8,
+  "execute_prefix": 8,
+  "max_steps": 300
+ },
+ "acquisition": {
+  "target_demo_episodes": 0,
+  "target_demo_transitions": 0,
+  "target_optimizer_updates": 0,
+  "target_chunk_presentations": 0,
+  "source_pretraining": {
+   "source_policy": {
+    "optimizer_updates": 26304,
+    "batch_size": 256,
+    "chunk_presentations": 6733824,
+    "train_chunks": 1122555,
+    "wall_s": 10242.292162179947,
+    "data": "artifacts/packed/latent_pp_v3dart_s1_H16",
+    "stride": 2
+   }
+  }
+ },
+ "sft": null,
+ "eval_rows": "artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/eval/xarm7_pg2_b0.jsonl"
+}

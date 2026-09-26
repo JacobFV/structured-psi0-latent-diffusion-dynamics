@@ -9,9 +9,16 @@ position), panda_pg2, dev seeds; 95% bootstrap CIs over scenes; all numbers from
 | scripted_teacher (privileged reference) paired | 30 | 29/30 / 0/30 | +0.295 | 30/30 / +0.222 | 24/24 (control 0/24) |
 | ORACLE DIAGNOSTIC E(ladder_latent_sem_b1fix_anchor)+teacher demo, paired | 30 | 19/30 / 5/30 | +0.156 [+0.115, +0.205] | 0/30 / +0.004 [-0.019, +0.025] | n/a (single-arm bundle) |
 | learned:direct1701_u12000 (BC reference, NOT latent), canonical scenes, rebind_desc | 32 | 0/32 / 0/32 | +0.006 [+0.001, +0.013] | 24/32 / +0.167 [+0.141, +0.190] | n/a |
-| v4 sem / nosem (oracle, generated) | pending | | | | |
-Reading so far: the metrics and edits are valid (teacher ~100%). The oracle route follows a rebind (weak evidence: the
-packet encodes the teacher's demo). The competent BC controller follows goal edits but ignores a valid rebinding.
+| ORACLE DIAGNOSTIC E(binding_paired_sem_v4)+teacher demo, paired | 30 | 8/30 / 5/30 | +0.037 [-0.001, +0.077] | no transport / none | 6/18 (control 4/18); vs orthogonal +0.001 m [-0.072, +0.070] |
+| ORACLE DIAGNOSTIC E(binding_paired_nosem_v4)+teacher demo, paired | 30 | 4/30 / 7/30 | +0.052 [+0.020, +0.082] | no transport / none | 2/18 (control 4/18); vs orthogonal +0.006 [-0.025, +0.037] |
+| SPRINT BEST ROUTE: ORACLE DIAGNOSTIC E(ladder_rz_jointfix_bcdag2)+stateless BC demo -> jfbcdag2, canonical, rebind_desc | 48 | 4/48 first approach new (control 0/48); old cube abandoned 38/48 | +0.163 [+0.130, +0.200] (by abandoning, not redirecting) | **16/48 at new goal** (control 1/48, orthogonal 0/48) / +0.104 [+0.081, +0.127] | n/a |
+| generated route (v4 flow) | pending: flow_binding_paired_nosem_v4 started 22:07 | | | | |
+Reading: the metrics and edits are valid (teacher ~100%). A valid GOAL edit redirects placement through the best oracle
+latent route (16/48 vs 0/48 under matched controls) and through BC (24/32). The supplied BINDING is not followed by any
+learned route: BC ignores it (0/32), and the v4 oracle routes show at most a small initial-motion bias, with sem NOT
+better than nosem. The best route abandons the old object but does not go to the new one. The arm-assignment edit has
+no detectable effect on v4 (the arms rarely reach the bar). The teacher-demo oracle (b1fix) follows rebinds only
+because its demo moves toward the new cube (weak evidence).
 
 Branch `track/acceptance`, worktree `~/work/rrp-wt/acceptance`, peer dir `/dev/shm/rrp-brandonin/wt/acceptance`.
 Spec: research/corrections/controller-facing-semantic-latent.md; list: research/reports/latent_slice1_progress.md "Pending".
@@ -258,3 +265,43 @@ sensitive to off-probe z directions. The nosem bias exceeds both controls. Weak 
 No detectable arm-assignment effect for either bundle: which arm approaches the bar does not follow the actor
 rebinding or the slot swap beyond the matched orthogonal control. (Teacher reference: 24/24.) Again limited by the
 route: the arms reach the bar in only 4-8 of 18 control episodes.
+- BC on paired scenes (host leases 1790389569_{49db16,0bf376}; raw `artifacts/runs/acceptance_sprint_sem_bc_paired/`),
+  12 scenes: 2/12 successes in control (out of distribution). Rebinding changes nothing: first touch new 3/12 vs 4/12 in
+  control, min-dist effect +0.003 m [-0.002, +0.007], TCP deviation from control 1.4 cm (vs 11.8 cm for a noise replay).
+  So the BC controller is insensitive to the binding on paired scenes too.
+- 22:40 INCIDENT (mine): the launch loop for best-route shards 8/9 retried `ops run --detach` with stderr hidden and
+  grepped stdout for "lease_id". The lease JSON never matched, so the loop relaunched shard 8 every 30 s (~20 copies,
+  ~24 GiB host memory), which blocked the legged track. The lead killed the loop and scoped-stopped the copies. I stopped the
+  last copy, moved the polluted `shard8/` out of the results (not used), and relaunched shard 8 once into `shard8b`
+  (lease 1790400179_8f8ec1), checking the exit code. Shard 9 was refused (host memory cap) and is not retried
+  automatically. Rule for myself: launch once, check rc, no unbounded retry loops.
+
+### SPRINT BEST ROUTE (ladder 21:58): stateless BC-expert oracle -> system 0 jfbcdag2, canonical pick_place -- 48 seeds done
+ORACLE DIAGNOSTIC: packet = E(ladder_rz_jointfix_bcdag2)(edited public context, chunk that BC direct1701_u12000 emits
+for the EDITED context at the current state) -> frozen system 0 jfbcdag2. Host leases 1790399070_{fac25e,80c73e,574d0a,
+e711d4,4fbdbb} + 1790399462_{050d36,66944c,10d591}; raw `artifacts/runs/acceptance_sprint_sem_best_orcbc/shard{0..7}/`,
+summary `semantic_summary_oracle.json` (seeds 3,000,000-3,000,047; shard8b running for 6 more).
+| condition | cube in zone (success) | cube at NEW goal | first approach old / new / none | effect beyond irrelevant edit |
+|---|---|---|---|---|
+| control | 27/48 | 1/48 | 48 / 0 / 0 | - |
+| goal_shift (VALID) | 1/48 | **16/48** | 48 / 0 / 0 | end-pos. pref. +0.104 m [+0.081, +0.127]; beyond orthogonal +0.074 [+0.050, +0.097] |
+| rebind_desc (VALID) | 2/48 | 0 | 6 / 4 / 38 | min-dist pref. +0.163 m [+0.130, +0.200], but by ABANDONING the old cube, not by approaching the new one (new first 4/48 vs 0/48) |
+| irrelevant_distractor | 27/48 | 0 | 48 / 0 / 0 | +0.004 [+0.001, +0.009] |
+| orthogonal_matched (norm = goal edit) | 2/48 | 0 | 44 / 0 / 4 | success collapses 27 -> 2 (system 0 is fragile to off-probe z) |
+| control_replay (other BC noise) | 23/48 | 0 | 48 / 0 / 0 | +0.001 [-0.008, +0.010] |
+Reading: through the best (oracle) latent route, a valid GOAL edit in the packet's context causally redirects placement
+(16/48 at the new goal vs 0/48 under matched-size controls). A valid REBINDING disrupts the approach but does not
+redirect it. Its demo source, BC, ignores the binding (above), so the packet mixes a new binding with a demo toward the
+old cube. Caveat: a probe-orthogonal edit of the same norm also destroys success (2/48), so the goal effect is specific in
+direction but system 0 is not robust to packet perturbations.
+- Best-route videos (seed 3000009, where control succeeds and the goal edit places at the new goal):
+  `artifacts/video/2026-09-25_semantic_edit_{goal_shift,rebind_desc,orthogonal_matched}_oracle_bcexpert_ladder_rz_jointfix_bcdag2_panda_pg2_k3000009.mp4`
+  (the rebind_desc and orthogonal videos show FAILURES: the old cube is abandoned or dropped).
+
+### generated (DEPLOYABLE) route, lead request 22:45: learned:ladder_flow_jointfix/snap_final_s20000 -> system 0 ladder_rz_jointfix_gendag1_noqd, parm6_tf3
+`rrp latent semantic-edits --route generated --checkpoint artifacts/runs/ladder_flow_jointfix/snap_final_s20000.pt --representation artifacts/runs/ladder_rz_jointfix_gendag1_noqd/representation.pt --robots parm6_tf3 --episodes 10 --seed-start 30000{0,1,..,5}0 --max-steps 400 --conditions control,goal_shift,rebind_desc,irrelevant_distractor,orthogonal_matched,control_replay --out artifacts/runs/acceptance_sprint_sem_gen_jf_parm6/shard<i>`
+(new `--representation` override for the generated route = the system-0 bundle, same latent space; as in
+rrp.evaluation.ladder). 60 seeds, of which parm6_tf3 finds ~half feasible. Shard 0 on host (lease 1790402031_9d384e,
+1.5 GB, measured RSS 0.8 GB); shards 1-5 on the peer (host memory cap full; leases 1790402041_2fa744 .. 1790402043_e55765).
+Flow noise keyed per (seed, call); control_replay = other noise. Scenes use n_distractors = max(1, seed % 3) (the
+ladder uses seed % 3), so the control rate is not the same as D-063's 9/30.

@@ -1,0 +1,29 @@
+{
+ "panda_tf3": {
+  "attempted": 100,
+  "successes": 78,
+  "success_rate": 0.78,
+  "wilson95": [
+   0.6892964640723263,
+   0.8499871766170359
+  ],
+  "infeasible": 0,
+  "outcomes": {
+   "success": 78,
+   "timeout": 22
+  },
+  "public_private_agreement": 1.0,
+  "policy_calls": 2041,
+  "control_steps": 15984
+ },
+ "_meta": {
+  "controller_source": "learned:artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/source/policy.pt",
+  "device": "cpu",
+  "wall_s": 596.4327077865601,
+  "seed_start": 2000000,
+  "episodes": 100,
+  "nfe": 8,
+  "execute_prefix": 8,
+  "max_steps": 300
+ }
+}

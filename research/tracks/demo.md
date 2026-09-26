@@ -68,3 +68,9 @@ Rendered on peer GPU EGL into `artifacts/runs/demo_video/` (NOT the shared artif
 - 21:50 jfbcdag2 stateless R1 11/30 panda, 19/30 parm6; 3 same-scene triptych clips (scripts/demo/render_orcbc_triptych.sh, lease 1790397535_5e29e7); BC range now computed from data (23–30).
 - 22:05 first R2 success (1/30 parm6, flow final -> jfbcdag2) folded in; lede R2 best computed from raw; velocity-copy mechanism paragraph; R2 clip s3000038 (render fails at grasp; caption says the success does not reproduce).
 - 22:04 lead: latency block now D-058 (1.014×, final checkpoints) with a supersedes-D-041 note; held-out BC table generalized (codec final 77/80); BC tags incl. ufinal.
+- 22:14 lead: new §2b Bodies section (auto-picks scripted_teacher clips from artifacts/video/INDEX.md grouped arms/dual-arm/legged/humanoid; legged table moved there; optional teacher-ref tables from artifacts/runs/sprint_bodies_teacher_ref/*.summary.json); §2 now shows only the binding-pair clips; wide clips no longer letterboxed.
+- 22:21 sprint_bodies folded in: montage at top of §2b, humanoid/anymal teacher-ref tables, failures (g1 fall, g1/h1 halt failures, parm7 place), per-body notes; builder copies only picked clips and prunes unreferenced videos from docs/demo/video (15 MB).
+- 22:25 D-062 best-route semantic row + lead's reading (goal content executed; semantic claim NOT shown); refresh.sh now always pushes.
+- 22:43 added a top scoreboard (best run per row on the matched scenes, from raw; fresh-seed runs excluded).
+- 22:51 R2 9/30 parm6 (flow final -> gendag1_noqd) folded in; R2 rows keyed by recorded checkpoints; scoreboard/lede include it; R2 success clip s3000012 (CPU-model render reproduces success; GPU renders of success seeds fail late).
+- 23:03 BC final folded in: zero-shot sealed-target table (panda_tf3 78/85, xarm7 0/100), held-out 79/80, 2 BC final clips; matrix BC row + held-out column updated.
