@@ -1,0 +1,62 @@
+{
+ "rep": "artifacts/runs/legged_rep_nosem_go2_v2/representation.pt",
+ "realizer": null,
+ "flow": null,
+ "label_source": "stateless BC expert chunk (see buffer json)",
+ "bc_visited": {
+  "mse": {
+   "R_oracle": 0.011069702201833327,
+   "hold": 0.9766623735427856,
+   "zero_action": 1.2040656407674153,
+   "R_oracle_qd0": 0.013756968919187785,
+   "R_z0": 0.1420796086390813,
+   "R_zshuf": 0.12501244395971298,
+   "R_gen": null
+  },
+  "ratio_to_hold": {
+   "R_oracle": 0.011334215898661714,
+   "R_oracle_qd0": 0.014085695622004136,
+   "R_z0": 0.14547464148096118,
+   "R_zshuf": 0.12799965202533364,
+   "R_gen": null,
+   "zero_action": 1.232837133266164
+  },
+  "step_gain": {
+   "normal": 0.9961183942068685,
+   "qd_zeroed": 0.9901570369182703,
+   "z_zeroed": 0.7837836075146839,
+   "z_shuffled": 0.9319878719760163
+  },
+  "j0_ratio_to_hold": 0.01112271975578296,
+  "packet_gap_rel": null,
+  "gate_pass_R_oracle_le_0.2_hold": true
+ },
+ "teacher_heldout": {
+  "mse": {
+   "R_oracle": 0.012725829922904571,
+   "hold": 1.1036363283793131,
+   "zero_action": 1.4155898968378702,
+   "R_oracle_qd0": 0.0248115886002779,
+   "R_z0": 0.2129844824473063,
+   "R_zshuf": 0.22676787972450257,
+   "R_gen": null
+  },
+  "ratio_to_hold": {
+   "R_oracle": 0.011530818255677047,
+   "R_oracle_qd0": 0.022481670784354885,
+   "R_z0": 0.19298429833319589,
+   "R_zshuf": 0.20547337369503826,
+   "R_gen": null,
+   "zero_action": 1.2826597498078556
+  },
+  "step_gain": {
+   "normal": 0.9875317913379278,
+   "qd_zeroed": 0.9798360170838845,
+   "z_zeroed": 0.7706617196848025,
+   "z_shuffled": 0.8981877119128487
+  },
+  "j0_ratio_to_hold": 0.012475878898595095,
+  "packet_gap_rel": null,
+  "gate_pass_R_oracle_le_0.2_hold": true
+ }
+}
