@@ -1328,7 +1328,7 @@ def build(updates_html: str = ""):
     _h = lambda t: (lambda d: f"{d['success']}/{d['n']}")(J(f"ladder_v1/parm5s_tf3/{t}.summary.json")) if have(f"ladder_v1/parm5s_tf3/{t}.summary.json") else "—"
     ho_r2, ho_bc = _h("generated_zero_flowgdag1_rzgendag3_noqd"), _h("learned_bc_direct1701_u12000")
     lb = BEST.get("learned", {})
-    r2_best = (", ".join(f"{v[0]}/{v[1]} on {r}" for r, v in sorted(lb.items()) if r in ("panda_pg2", "parm6_tf3")) + " (best recipe per body; BC " + ", ".join(f"{v[0]}/{v[1]}" for r, v in sorted(BEST.get("bc", {}).items()) if r in ("panda_pg2", "parm6_tf3")) + ")") if lb else "—"
+    r2_best = (", ".join(f"{v[0]}/{v[1]} on {r}" for r, v in sorted(lb.items()) if r in ("panda_pg2", "parm6_tf3")) + " (best recipe per body; final BC " + ", ".join(f"{v[0]}/{v[1]}" for r, v in sorted(BEST.get("bc", {}).items()) if r in ("panda_pg2", "parm6_tf3")) + ")") if lb else "—"
     body = (sec_architecture() + sec_works() + sec_bodies() + sec_matrix() + sec_debug() + sec_semantic() + sec_bc() + sec_next())
     used = "".join(f"<li><code>{esc(p)}</code></li>" for p in sorted(USED))
     page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
@@ -1349,7 +1349,7 @@ humanoid bodies (weaker on g1, h1 and one procedural arm, §2b), and the pipelin
 1.014×, D-058). <b>Plain behaviour cloning on the same data is competent</b> ({bc_lo}–{bc_hi} of 30 on the matched scenes across
 checkpoints; 30/30 on both bodies at the end), so data and evaluation are sound. After fixing a train/deploy mismatch (bug B-1) and a
 velocity-copy shortcut in system 0, <b>the deployable latent route succeeds sometimes but stays well below BC</b>: best R2
-{r2_best}; on a held-out source body (parm5s_tf3) {ho_r2} vs BC {ho_bc}, and on 30 fresh seeds the parm6 rate holds. A stateless oracle diagnostic, which feeds system 0 packets encoded from BC's own chunks, reaches {orc_best}: the gap from BC to
+{r2_best}; on a held-out source body (parm5s_tf3) {ho_r2} vs BC (12k-update checkpoint) {ho_bc}, and on 30 fresh seeds the parm6 rate holds. A stateless oracle diagnostic, which feeds system 0 packets encoded from BC's own chunks, reaches {orc_best}: the gap from BC to
 that diagnostic is system 0's, and the gap from the diagnostic to R2 is the generator's (D-052, D-056, D-063, D-066, D-067, D-068, D-070). <b>A semantic advantage of the packet is not shown</b>: goal content in the packet is executed, but
 binding changes are not followed, and semantic vs capacity-matched no-semantic packets show no difference (D-059, D-062).
 <b>On the go2 quadruped the deployable latent route is competent</b> (nosem 30/30, sem 29/30 vs BC 30/30), and probe-direction edits of the
