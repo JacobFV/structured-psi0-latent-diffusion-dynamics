@@ -28,10 +28,21 @@ import hashlib
 REALIZER_RECURRENT_STATE = "none-v1"
 
 
+def make_realizer(dz: int, default_layers: int, arch: dict | None = None) -> "LatentRealizer":
+    """Realizer from a bundle's optional `realizer_arch` (ladder refits: layers/width/z_norm); default = Stage-A arch."""
+    a = arch or {}
+    return LatentRealizer(dz, width=a.get("width", 192), layers=a.get("layers", default_layers),
+                          z_norm=a.get("z_norm", False))
+
+
 class LatentRealizer(nn.Module):
-    def __init__(self, dz: int, width: int = 192, heads: int = 4, layers: int = 2):
+    def __init__(self, dz: int, width: int = 192, heads: int = 4, layers: int = 2, z_norm: bool = False):
         super().__init__()
         D = width
+        self.z_norm = z_norm
+        if z_norm:              # per-dim standardization of the received z (stats of E's posterior mean on the pack)
+            self.register_buffer("z_mean", torch.zeros(dz))
+            self.register_buffer("z_std", torch.ones(dz))
         self.node = MLP(NODE_DIM, D)
         self.local = nn.Linear(4, D)
         self.z_in = nn.Linear(dz, D)
@@ -49,6 +60,8 @@ class LatentRealizer(nn.Module):
         B, K, M, _ = z.shape
         N = node_feats.shape[1]
         rel_t = knot_times[None, :] - phase[:, None]                                  # [B,K]
+        if self.z_norm:
+            z = (z - self.z_mean) / self.z_std
         kt = self.z_in(z) + self.dt_in(sinusoidal(rel_t, self.D))[:, :, None]         # [B,K,M,D]
         kt = kt.reshape(B, K * M, -1)
         if node_asm is None:

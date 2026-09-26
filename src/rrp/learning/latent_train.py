@@ -298,7 +298,8 @@ def evaluate_representation(E, R, P, data, cfg, dev, n_batches=30, seed=99) -> d
 def load_representation(path: Path, dev):
     st = load_checkpoint(path, map_location=dev)
     cfg = LatentConfig(**st["config"]["latent"])
-    E, R, P = TargetEncoder(cfg).to(dev), LatentRealizer(cfg.dz, layers=cfg.realizer_layers).to(dev), \
+    from rrp.control.latent_realizer import make_realizer
+    E, R, P = TargetEncoder(cfg).to(dev), make_realizer(cfg.dz, cfg.realizer_layers, st["config"].get("realizer_arch")).to(dev), \
         PacketProbe(cfg.dz, cfg.knots, **st["config"].get("probe", {})).to(dev)
     E.load_state_dict(st["model"]["E"]); R.load_state_dict(st["model"]["R"]); P.load_state_dict(st["model"]["P"])
     R.anchor = bool(st["config"].get("realizer_anchor", False))    # ladder: anchored realizer input (col 28)
@@ -567,12 +568,28 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
     lcfg, E, R_old, P, rep_res = load_representation(rep_path, dev)
     data = LatentData(Path(cfg_json["packed_dir"]), zero_prev_action=cfg_json.get("zero_prev_action", False),
                       anchor=cfg_json.get("realizer_anchor", False))
-    R = LatentRealizer(lcfg.dz, layers=lcfg.realizer_layers).to(dev)
+    from rrp.control.latent_realizer import make_realizer
+    arch = dict(st0["config"].get("realizer_arch") or {})
+    for k_ in ("layers", "width", "z_norm"):                  # capacity / input-normalization overrides (ladder sprint)
+        if f"realizer_{k_}" in cfg_json:
+            arch[k_] = cfg_json[f"realizer_{k_}"]
+    R = make_realizer(lcfg.dz, lcfg.realizer_layers, arch).to(dev)
     R.anchor = cfg_json.get("realizer_anchor", False)
     if cfg_json.get("init", "fresh") == "old":
         R.load_state_dict(R_old.state_dict())
     for p_ in R.parameters():
         p_.requires_grad_(True)
+    if getattr(R, "z_norm", False) and cfg_json.get("init", "fresh") != "old":
+        zs = []
+        with torch.no_grad():
+            for _ in range(cfg_json.get("z_norm_batches", 40)):
+                sel_, tgt_, j_ = data.sample(64, rng, lcfg.max_phase_ticks)
+                b_, a_, v_, lab_, r_ = data.fetch(sel_, tgt_, dev)
+                af_, am_, ai_ = assembly_tokens(b_)
+                mu_, _ = E(b_, a_, v_, af_, am_, ai_)
+                zs.append(mu_[am_[:, None, :].expand(-1, mu_.shape[1], -1)].float())
+        zc = torch.cat(zs)
+        R.z_mean.copy_(zc.mean(0)); R.z_std.copy_(zc.std(0).clamp(min=1e-3))
     opt = torch.optim.AdamW(R.parameters(), lr=cfg_json.get("lr", 3e-4), weight_decay=1e-4)
     steps = cfg_json["steps"]
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=cfg_json.get("lr", 3e-4), total_steps=steps, pct_start=0.05)
@@ -607,6 +624,9 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
         phase = torch.as_tensor(j * lcfg.control_dt, dtype=z.dtype, device=dev)
         pred = R(z, am, kt, phase, r["node"], r["node_mask"], r["local"], node_asm=r.get("node_asm"))
         m = (r["v1"] & r["node_mask"]).float()
+        w0 = cfg_json.get("j0_weight", 1.0)
+        if w0 != 1.0:                                  # extra weight on the first tick of a packet (phase j = 0)
+            m = m * (1.0 + (w0 - 1.0) * (j == 0).float()[:, None])
         se, cnt = ((pred - r["a1"]) ** 2 * m).sum(), m.sum()
         l_pack = float((se / cnt.clamp(min=1)).detach())
         l_dag = None
@@ -621,6 +641,8 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
             pd = R(zd, amd, kt, dag["j"][idx].float() * lcfg.control_dt, dag["node"][idx].float(), nmask,
                    dag["local"][idx].float())
             md = nmask.float()
+            if cfg_json.get("j0_weight", 1.0) != 1.0:
+                md = md * (1.0 + (cfg_json["j0_weight"] - 1.0) * (dag["j"][idx] == 0).float()[:, None])
             sed = ((pd - dag["a1"][idx]) ** 2 * md).sum()
             l_dag = float((sed / md.sum().clamp(min=1)).detach())
             se, cnt = se + sed, cnt + md.sum()
@@ -648,6 +670,7 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
     save_checkpoint(out_dir / ("representation.pt" if not sig.requested else "representation_interrupted.pt"),
                     model=_bundle(E, R, P), optimizer=None, step=step, versions=dict(latent=rep_res["latent_space_version"]),
                     config=dict(st0["config"], refit=cfg_json, realizer_anchor=R.anchor,
+                                realizer_arch=dict(layers=len(R.blocks), width=R.D, z_norm=bool(getattr(R, "z_norm", False))),
                                 zero_prev_action=cfg_json.get("zero_prev_action", False)), extra=dict(result=res))
     (out_dir / "result.json").write_text(json.dumps(res, indent=1, default=str))
     return res
