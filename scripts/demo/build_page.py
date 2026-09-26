@@ -201,7 +201,9 @@ def video_card(v) -> str:
         lab = ("teacher | BC | learned:flow_jointfix@" + (f.split("flowjf_s")[1].split(".")[0] if "flowjf_s" in f else "20k → sys-0 " + f.split("flowjf20k_")[1].split(".")[0].replace("_cpu", ""))) if "r2triptych" in f \
             else ("learned:flow_jointfix@20k → sys-0 " + f.split("flowjf20k_")[1].split("_cpu")[0]) if "flowjf20k_" in f \
             else ("learned:flow_jointfix_ft → sys-0 " + f.split("flowjfft_")[1].split("_cpu")[0]) if "flowjfft_" in f else "learned:flow_latent_sem_v2@22k"
-    if kind == "bc":
+    if "_legged_" in f and kind in ("bc", "oracle", "learned"):
+        lab = {"bc": "learned: legged BC", "oracle": "ORACLE diagnostic (legged)", "learned": "learned (legged)"}[kind]
+    elif kind == "bc":
         lab = "learned:" + ("direct1701 final (BC)" if "bc_direct1701_final" in f else "direct1701_u12000 (BC)" if "_s30000" not in f else
                             f.split("_s30000")[1].split("_", 1)[1].rsplit("_", 1)[0])
     exists = (VID / f).exists()
@@ -774,7 +776,22 @@ def legged_research():
     sec = txt[i:j if j > 0 else None]
     USED.add("research/tracks/legged_vlm.md")
     lab = "LEGGED RESEARCH RESULT" if sec.startswith("## LEGGED RESEARCH RESULT") else "RESEARCH RESTART, live state"
-    return head + f"<p>{badge('run') if 'RESTART' in lab else ''} Rendered from the legged agent's track notes ({lab}); the go2 BC positive control is {badge('bc', 'learned')}, everything else is labelled in the table.</p>" + '<div class="mdsec">' + md_table_to_html(sec) + "</div>" + src(f"research/tracks/legged_vlm.md ({lab})", "D-060")
+    import re as _r
+    import shutil as _sh
+    cards = []
+    idx = ROOT / "artifacts/video/INDEX.md"
+    for line in (idx.read_text().splitlines() if idx.exists() else []):
+        m = _r.match(r"- `(\d{4}-\d\d-\d\d_legged_[^`]+\.mp4)` — (.*)", line)
+        if not m:
+            continue
+        f, desc = m.group(1), m.group(2)
+        if (ROOT / "artifacts/video" / f).exists() and (ROOT / "artifacts/video" / f).stat().st_size < 2_500_000:
+            kind = "bc" if "learned-bc" in f else "oracle" if "oracle" in f else "learned"
+            if not (VID / f).exists():
+                _sh.copy2(ROOT / "artifacts/video" / f, VID / f)
+            cards.append((f, kind, f.replace("2026-09-25_legged_", "").replace(".mp4", "").replace("_", " "), desc[:300], "artifacts/video/INDEX.md"))
+    vids_ = ('<div class="grid">' + "".join(video_card(c) for c in cards) + "</div>") if cards else ""
+    return head + f"<p>{badge('run') if 'RESTART' in lab else ''} Rendered from the legged agent's track notes ({lab}); the go2 BC positive control is {badge('bc', 'learned')}, everything else is labelled in the table.</p>" + '<div class="mdsec">' + md_table_to_html(sec) + "</div>" + src(f"research/tracks/legged_vlm.md ({lab})", "D-060") + vids_
 
 
 def sec_bodies():
