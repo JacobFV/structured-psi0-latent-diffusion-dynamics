@@ -5,8 +5,10 @@
 matched dev scenes, already at mid-training.** Same data (latent_pp_v3dart_s1_H16, stride 2), same seed 1701, same
 scenes/seeds as the ladder (30 feasible dev seeds from 3,000,000; n_distractors = seed % 3; prev-action input 0 as
 deployed; replan / execute prefix 8; nfe 8; privileged success evaluator). So the latent path's closed-loop failures
-(oracle route 0-1/30, D-046..D-049) come from the latent architecture/training (Stage A + system 0), NOT from the data,
-the teacher's demonstrations, or the simulator/tracker setup.
+(oracle route 0-1/30, D-046..D-049) do NOT come from the data, the teacher's demonstrations, or the simulator/tracker
+setup: the same demonstrations yield a competent controller. They come from the latent path (Stage A + system 0) and/or
+from the oracle rung's construction (its packets come from a stateful shadow teacher that stalls off-trajectory; see the
+D-049 diagnostic below). The decisive latent test is R2 (system i's own packet) against this BC on the same seeds.
 
 | checkpoint (label) | panda_pg2 | parm6_tf3 | failures by stage (panda / parm6) |
 |---|---|---|---|
