@@ -221,3 +221,16 @@ still picks the original cube 25/32 (effect vs irrelevant edit +0.6 cm [0.1, 1.3
 binding (the task object is always the canonical slot/descriptor), so BC learned "slot 0", not "the bound entity".
 This is the reference the latent binding result (v4 sem/nosem, trained on binding-varying paired data) is compared with.
 Paired scenes: BC is not competent at all (permuted slots/colours; running on host shards, record only).
+
+### 22:05 runs launched (v4 bundles, SPRINT BEST ROUTE)
+(The v4 representations were ready at 20:26; my watcher missed it, so these started at 22:02.)
+- v4 sem / nosem oracle, paired semantic suite, host leases 1790398887_{5f8ac6,a0cd67,ec2c75} (sem) and
+  {d92e93,1c09ed,0ec73a} (nosem), 1 CPU each: `rrp latent semantic-edits --route oracle --scene paired --representation artifacts/runs/binding_paired_{sem,nosem}_v4/representation.pt --episodes 10 --seed-start 31000{00,10,20} --max-steps 300 --out artifacts/runs/acceptance_sprint_sem_v4{sem,nosem}_oracle/shard<i>`
+  (orthogonal control uses the jointly trained probe for both; no probe_posthoc exists for v4).
+- v4 sem / nosem oracle, arm edits, peer leases 1790398893_0e8623 .. 1790398896_a8d96a (one per robot pair):
+  `rrp latent arm-edits --route oracle --representation .../binding_paired_{v}_v4/representation.pt --pairs <pair> --episodes 6 --max-steps 400 --conditions control,swap_arm,swap_slots,orthogonal_matched --out artifacts/runs/acceptance_sprint_arm_v4{v}_oracle/<pair>`
+- SPRINT BEST ROUTE (ladder, 21:58): R1 stateless oracle = E(chunk of BC direct1701_u12000) -> system 0 of
+  `ladder_rz_jointfix_bcdag2`. New `--oracle-expert bc`: the BC chunk is computed for the EDITED context. Canonical
+  pick_place, 30 seeds, 5 peer shards (leases 1790399024_a80e4c .. 1790399027_0107c0) ->
+  `artifacts/runs/acceptance_sprint_sem_best_orcbc/shard<i>`. Prediction from the BC result: goal edits propagate,
+  the rebinding does not (the demo source ignores it). orthogonal_matched here is norm-matched to goal_shift.
