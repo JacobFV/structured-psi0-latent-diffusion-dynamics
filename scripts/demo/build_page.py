@@ -351,18 +351,38 @@ generated-route test on the binding-v4 flows is pending. {src(T, O, B, A, 'resea
                 else:
                     cells += ["—", "—"]
             rows.append(cells)
+        for t_, lab in (("jointfix", "jointfix"), ("jfdag1", "jfdag1 (shadow DAgger r1)"),
+                        ("jfdag2df08", "jfdag2df08 (shadow DAgger r1+r2)"), ("jfbcdag1", "jfbcdag1 (BC-expert DAgger)"),
+                        ("jfbcdag1_long", "jfbcdag1_long (BC-expert DAgger, 16k)")):
+            ps = [f"ladder_v1/{r}/oracle_zero_{t_}_orcbc.summary.json" for r in ("panda_pg2", "parm6_tf3")]
+            if not any(have(p) for p in ps):
+                continue
+            cells = [f'<span class="badge b-oracle">R1 ORACLE, stateless: E(BC chunk) → system 0 {esc(lab)}</span>']
+            for p in ps:
+                if have(p):
+                    d = J(p)
+                    cells += [frac(d["success"], d["n"]),
+                              esc(", ".join(f"{k} {v}" for k, v in d["failed_stage"].items() if k != "success"))]
+                else:
+                    cells += ["—", "—"]
+            rows.append(cells)
         for tag, lab in (("direct1701_u12000", "learned:direct1701_u12000 (plain BC, same seeds)"),):
             cells = [f'<span class="badge b-bc">{lab}</span>']
             for r in ("panda_pg2", "parm6_tf3"):
                 d = J(f"artifacts/runs/baselines_bc_ladder/{r}/learned_{tag}.summary.json")
                 cells += [frac(d["success"], d["n"]), esc(", ".join(f"{k} {v}" for k, v in d["failed_stage"].items() if k != "success"))]
             rows.append(cells)
-        parts.insert(0, "<h3>The clean test: R2 generated route on the B-1-fixed bundle vs BC (sprint_latent)</h3>"
+        parts.insert(0, "<h3>Best latent route so far vs BC (sprint_latent, SPRINT BEST ROUTE): R2 generated and stateless R1 on the B-1-fixed bundle</h3>"
                      + table(["controller", "panda_pg2", "failures (stage)", "parm6_tf3", "failures (stage)"], rows)
                      + f"""<p>R2 = system i's own packets (flow trained with <code>zero_prev_action</code> on the jointly trained
 encoder, snapshots as training proceeds) → the jointly trained system 0 → tracker; no teacher in the loop. Same 30 matched
 dev seeds as BC. The flow is still training (20k steps planned); rows are added as snapshots are evaluated.
-{src('ladder_v1/<robot>/generated_zero_flowjf_s<step>.summary.json', 'artifacts/runs/baselines_bc_ladder/', 'research/tracks/ladder.md (sprint)')}</p>
+The stateless R1 rows replace the confounded shadow-teacher oracle: the packet is E(the chunk the competent BC would
+execute at the current state), with no teacher state. <b>sprint_latent's interim diagnosis: system 0 (the realizer) is the
+primary bottleneck, not the generator</b>. Packets that encode a 25/30 controller's own chunks still give 0/30 through
+system 0. At BC's own states, system 0 explains only part of BC's 1-step motion, and none of it on the first tick of each
+packet. R2 already fails at the same stages as the stateless oracle. The direct generator-gap measurement is pending.
+{src('ladder_v1/<robot>/generated_zero_flowjf_s<step>.summary.json', 'artifacts/runs/baselines_bc_ladder/', 'research/tracks/ladder.md (SPRINT BEST ROUTE)')}</p>
 <div class="grid wide">{''.join(video_card(v) for v in R2_VIDEOS if (VID / v[0]).exists())}</div>""")
     L = "ladder_localize/{r}/bc_direct1701_u12000__{t}.json"
     if have(L.format(r="panda_pg2", t="jointfix")):
@@ -783,7 +803,8 @@ bodies, and the pipeline runs end to end within the latency budget. <b>Plain beh
 evaluation are sound. <b>The latent-packet route is not competent yet</b>: its best oracle-diagnostic variant succeeds 1 time
 in 30, and causal packet semantics are not shown. We found and fixed a
 train/deploy mismatch (bug B-1). The latent route's remaining failure is <b>not localized yet</b>: the oracle-packet
-diagnostic turned out to be confounded (§4), and the clean test is the generated route against BC on the same seeds.</p>
+diagnostic turned out to be confounded (§4). In the clean test, the generated route against BC on the same seeds, the latent
+route is still 0/30 (sprint update). Interim evidence from a stateless oracle points at system 0 (the realizer) rather than the generator.</p>
 {updates_html}
 {sec_sprint()}
 {body}
