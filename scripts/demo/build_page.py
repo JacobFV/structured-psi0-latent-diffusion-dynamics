@@ -985,7 +985,9 @@ This is one body and one semantic. {src('artifacts/runs/legged_edits/go2/r2ctx_{
     reading = f"""<div class="update">{d071}<p><b>Legged headline (go2, from the legged agent's notes).</b> The <b>deployable latent route is competent on go2</b>:
 system i's own packets → system 0 give nosem 30/30 and sem 29/30 on the 30 matched dev seeds, against plain BC 30/30 and the teacher 30/30
 {badge('learned', 'learned:legged_flow_{sem,nosem}_go2_v2 snap_s4000')}. Unlike the arm, the legged system 0 is not the bottleneck: the stateless oracle route
-gives nosem 30/30 and sem 25/30. <b>hexapod6 is the second body through the deployable route: R2 sem 30/30, nosem 30/30</b> (D-076); its BC is 30/30 and its stateless oracle route 30/30 for both. BC positive control t1 humanoid 24/30
+gives nosem 30/30 and sem 25/30. <b>hexapod6 is the second body through the deployable route: R2 sem 30/30, nosem 30/30</b> (D-076); On hexapod6's deployable route, <b>probe-direction z edits steer the SEM packet more</b>: halt −0.19 m forward (nosem +0.03, no stop), turn ±0.6 gives
+0.11 rad (nosem 0.03–0.07), against ≈0 for random edits. Task-context goal steering is equal (+0.165 vs +0.168 m), and success is equal (30/30). The sem advantage
+is therefore in the packet's editable handles, not in context-to-behaviour control {src('artifacts/runs/legged_edits/hexapod6/', 'research/tracks/legged_vlm.md')}. its BC is 30/30 and its stateless oracle route 30/30 for both. BC positive control t1 humanoid 24/30
 (teacher 30/30). <b>g1 humanoid: the positive control fails</b> (BC 2–7/30 across replan settings vs the arc-only teacher 25/30), so no latent claim is made there.
 <b>t1 humanoid oracle route is not competent</b>: stateless R1 sem 12/30, nosem 0/30 (mostly falls), against BC 24/30, even though both pass the offline gate.
 After one BC-expert DAgger round, applied identically to both, it is sem 18/30 and nosem 0/30 (nosem never reaches the first waypoint in 21/30).
@@ -1453,8 +1455,8 @@ never lifted; the approach goes to the new cube, also on panda) redirect behavio
 <li><b>Competence:</b> the deployable latent route matches BC on go2 (nosem 30/30, sem 29/30) and hexapod6 (30/30 both; D-070, D-076). It is partial on the
 arms: {pool_txt} pooled over the matched and fresh seed sets, against BC 24–30 of 30 on the same sets (D-072).</li>
 <li><b>Not shown:</b> a specific contribution of semantic supervision. On go2, nosem is as steerable as sem (D-069, D-071). The arm result has no nosem
-counterpart, and the binding-v4 sem/nosem bundles are not competent (D-059). The only sem &gt; nosem gap is a lead, not a result: on t1, on an oracle route
-that is not competent (sem 12/30 vs nosem 0/30; after one identical DAgger round 18/30 vs 0/30; BC 24/30; D-076).</li>
+counterpart, and the binding-v4 sem/nosem bundles are not competent (D-059). Two sem &gt; nosem signals so far: on hexapod6's deployable route, sem's probe-direction handles steer more (halt, turn), while context steering is equal; and on t1,
+on an oracle route that is not competent, sem succeeds more (12/30 vs 0/30; after one identical DAgger round 18/30 vs 0/30; BC 24/30; D-076). Both are leads, not results.</li>
 <li><b>Not tested:</b> the sealed held-out target bodies for the latent route. Plain BC transfers to a new gripper (78–85/100) but not to the unseen xarm7 arm
 (0/100; D-064). Humanoid g1 has no competent BC control.</li>
 </ul></div>
