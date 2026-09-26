@@ -682,6 +682,13 @@ def md_table_to_html(md: str) -> str:
 def legged_research():
     p = ROOT / "research/tracks/legged_vlm.md"
     txt = p.read_text() if p.exists() else ""
+    if "## LEGGED RESEARCH RESULT" not in txt:
+        import subprocess
+        try:
+            txt = subprocess.run(["git", "-C", str(ROOT), "show", "origin/track/legged_vlm:research/tracks/legged_vlm.md"],
+                                 capture_output=True, text=True, timeout=20).stdout
+        except Exception:
+            txt = ""
     i = txt.find("## LEGGED RESEARCH RESULT")
     head = f"<h3>Legged / humanoid research (agent legged; D-060)</h3>"
     if i < 0:
