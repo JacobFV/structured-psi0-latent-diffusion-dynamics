@@ -19,7 +19,8 @@ Compute: host GPU (leases below), host CPU for closed-loop sims. Data copied to 
 | 4c. post-hoc probes on frozen z (held-out teacher episodes) | completed | sem / nosem / metadata-only: displacement xy err 0.036 / 0.043 / 0.47; yaw 0.018 / 0.027 / 0.12; goal 0.017 / 0.128 / 0.39; subtask 1.0 / 0.87 / 0.36; contact acc 0.758 / 0.756 / 0.746 (swing 0.41 / 0.38 / 0.0). Per-leg contact is barely decodable in either packet (stance is the majority class). `artifacts/runs/legged_rep_{sem,nosem}_go2_v2/probe_posthoc.json` |
 | 5. BC-expert DAgger refit of system 0 | implementing (not needed for nosem: R1 is already 30/30) | `legged_dagger.py collect/refit` |
 | 6. flows sem/nosem, R2, packet edits (mirror goal, halt, turn, per-leg contact) with irrelevant-edit controls | planned | |
-| 7. hexapod6, then t1, g1 | planned | |
+| 7a. BC positive control, other bodies (dev seeds 10000-10029; same recipe, 20k steps) | completed (hexapod6, t1); g1 training | hexapod6 (CPG tracker): BC **30/30**, teacher 30/30 (`artifacts/runs/legged_ladder/hexapod6/*_v1.jsonl`). **t1 humanoid**: BC **24/30** [0.63, 0.91] (4 fell, 2 halt not completed); teacher 30/30 (`artifacts/runs/legged_ladder/t1/*_v1.jsonl`, peer lease 1790405735_79f597). Held-out first-tick MSE vs hold-still: hexapod6 0.0003 / 0.047, t1 0.024 / 0.87. |
+| 7b. hexapod6 / t1 / g1 Stage A + R1 | planned (host admission was stopped by external memory pressure) | configs `configs/legged_latent/rep_{sem,nosem}_{hexapod6,t1,g1}_v2.json` |
 
 
 Worktree `~/work/rrp-wt/legged_vlm`, branch `track/legged_vlm`, peer dir `/dev/shm/rrp-brandonin/wt/legged_vlm`.
