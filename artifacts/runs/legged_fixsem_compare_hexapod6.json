@@ -1,0 +1,507 @@
+{
+ "body": "hexapod6",
+ "r2": {
+  "sem_orig": {
+   "snap_s4000": {
+    "success": 30,
+    "n": 30,
+    "fell": 0,
+    "source": "learned:legged_flow_sem_hexapod6_v2/snap_s4000.pt",
+    "file": "artifacts/runs/legged_ladder/hexapod6/r2_sem_hexapod6_v2_snap_s4000.jsonl"
+   },
+   "policy": {
+    "success": 30,
+    "n": 30,
+    "fell": 0,
+    "source": "learned:legged_flow_sem_hexapod6_v2/policy.pt",
+    "file": "artifacts/runs/legged_ladder/hexapod6/r2_sem_hexapod6_v2_policy.jsonl"
+   }
+  },
+  "sem_fixed": {
+   "snap_s4000": {
+    "success": 30,
+    "n": 30,
+    "fell": 0,
+    "source": "learned:legged_fixsem_flow_sem_hexapod6_lv4/snap_s4000.pt",
+    "file": "artifacts/runs/legged_ladder/hexapod6/r2_fixsem_hexapod6_lv4_snap_s4000.jsonl"
+   },
+   "policy": {
+    "success": 30,
+    "n": 30,
+    "fell": 0,
+    "source": "learned:legged_fixsem_flow_sem_hexapod6_lv4/policy.pt",
+    "file": "artifacts/runs/legged_ladder/hexapod6/r2_fixsem_hexapod6_lv4_policy.jsonl"
+   }
+  },
+  "nosem": {
+   "snap_s4000": {
+    "success": 30,
+    "n": 30,
+    "fell": 0,
+    "source": "learned:legged_flow_nosem_hexapod6_v2/snap_s4000.pt",
+    "file": "artifacts/runs/legged_ladder/hexapod6/r2_nosem_hexapod6_v2_snap_s4000.jsonl"
+   },
+   "policy": {
+    "success": 30,
+    "n": 30,
+    "fell": 0,
+    "source": "learned:legged_flow_nosem_hexapod6_v2/policy.pt",
+    "file": "artifacts/runs/legged_ladder/hexapod6/r2_nosem_hexapod6_v2_policy.jsonl"
+   }
+  }
+ },
+ "z_edits": {
+  "sem_orig": {
+   "dir": "artifacts/runs/legged_edits/hexapod6/r2_sem_snap_s4000",
+   "n_none": 20,
+   "fell_none": 0,
+   "turn_pos_dyaw": [
+    0.1061,
+    0.0991,
+    0.1135
+   ],
+   "turn_pos_dz": 5.521,
+   "turn_neg_dyaw": [
+    -0.1128,
+    -0.121,
+    -0.1046
+   ],
+   "turn_neg_dz": 5.199,
+   "halt_forward": [
+    -0.1912,
+    -0.2062,
+    -0.1766
+   ],
+   "halt_dz": 17.53,
+   "halt_fell": 0,
+   "goal_mirror_toward": [
+    0.011,
+    0.007,
+    0.015
+   ],
+   "goal_mirror_dz": 2.149,
+   "rand8_toward": [
+    0.002,
+    -0.0,
+    0.004
+   ],
+   "leg0_stance_dcontact": [
+    -0.0,
+    -0.0113,
+    0.0113
+   ],
+   "leg0_swing_dcontact": [
+    -0.0032,
+    -0.0129,
+    0.0065
+   ],
+   "contact_dz": [
+    5.561,
+    5.098
+   ],
+   "random": {
+    "1": {
+     "forward": [
+      -0.0002,
+      -0.0008,
+      0.0004
+     ],
+     "dyaw": [
+      0.0012,
+      0.0009,
+      0.0016
+     ]
+    },
+    "2": {
+     "forward": [
+      -0.001,
+      -0.0018,
+      -0.0001
+     ],
+     "dyaw": [
+      0.0027,
+      0.0023,
+      0.0031
+     ]
+    },
+    "4": {
+     "forward": [
+      -0.0013,
+      -0.0031,
+      0.0002
+     ],
+     "dyaw": [
+      0.0059,
+      0.0054,
+      0.0064
+     ]
+    },
+    "8": {
+     "forward": [
+      -0.0022,
+      -0.0047,
+      -0.0001
+     ],
+     "dyaw": [
+      0.0118,
+      0.0109,
+      0.013
+     ]
+    },
+    "12": {
+     "forward": [
+      -0.0038,
+      -0.0075,
+      -0.0004
+     ],
+     "dyaw": [
+      0.019,
+      0.0177,
+      0.0205
+     ]
+    }
+   },
+   "zero_forward": [
+    -0.4733,
+    -0.5109,
+    -0.4423
+   ],
+   "packet_z_norm_mean": 46.257
+  },
+  "sem_fixed": {
+   "dir": "artifacts/runs/legged_edits/hexapod6/r2_fixsem_snap_s4000",
+   "n_none": 20,
+   "fell_none": 0,
+   "turn_pos_dyaw": [
+    0.1001,
+    0.09,
+    0.1099
+   ],
+   "turn_pos_dz": 10.061,
+   "turn_neg_dyaw": [
+    -0.1605,
+    -0.1878,
+    -0.135
+   ],
+   "turn_neg_dz": 10.42,
+   "halt_forward": [
+    -0.3288,
+    -0.3488,
+    -0.3074
+   ],
+   "halt_dz": 24.872,
+   "halt_fell": 0,
+   "goal_mirror_toward": [
+    0.023,
+    0.015,
+    0.033
+   ],
+   "goal_mirror_dz": 2.335,
+   "rand8_toward": [
+    0.001,
+    -0.0,
+    0.002
+   ],
+   "leg0_stance_dcontact": [
+    0.029,
+    0.0161,
+    0.0419
+   ],
+   "leg0_swing_dcontact": [
+    -0.0177,
+    -0.0355,
+    0.0017
+   ],
+   "contact_dz": [
+    28.743,
+    22.254
+   ],
+   "random": {
+    "1": {
+     "forward": [
+      -0.0001,
+      -0.0016,
+      0.0014
+     ],
+     "dyaw": [
+      0.0019,
+      0.0014,
+      0.0023
+     ]
+    },
+    "2": {
+     "forward": [
+      -0.0008,
+      -0.0024,
+      0.0007
+     ],
+     "dyaw": [
+      0.0037,
+      0.003,
+      0.0043
+     ]
+    },
+    "4": {
+     "forward": [
+      -0.0023,
+      -0.0042,
+      -0.0006
+     ],
+     "dyaw": [
+      0.0082,
+      0.0078,
+      0.0086
+     ]
+    },
+    "8": {
+     "forward": [
+      -0.0047,
+      -0.0073,
+      -0.002
+     ],
+     "dyaw": [
+      0.0161,
+      0.0154,
+      0.0167
+     ]
+    },
+    "12": {
+     "forward": [
+      -0.0121,
+      -0.0147,
+      -0.0094
+     ],
+     "dyaw": [
+      0.0242,
+      0.0232,
+      0.0253
+     ]
+    }
+   },
+   "zero_forward": [
+    -0.6324,
+    -0.6626,
+    -0.6016
+   ],
+   "packet_z_norm_mean": 66.162
+  },
+  "nosem": {
+   "dir": "artifacts/runs/legged_edits/hexapod6/r2_nosem_snap_s4000",
+   "n_none": 20,
+   "fell_none": 0,
+   "turn_pos_dyaw": [
+    0.0343,
+    0.0308,
+    0.0376
+   ],
+   "turn_pos_dz": 2.848,
+   "turn_neg_dyaw": [
+    -0.0721,
+    -0.0771,
+    -0.0666
+   ],
+   "turn_neg_dz": 2.983,
+   "halt_forward": [
+    0.0283,
+    0.0164,
+    0.0397
+   ],
+   "halt_dz": 7.024,
+   "halt_fell": 0,
+   "goal_mirror_toward": [
+    0.001,
+    -0.002,
+    0.003
+   ],
+   "goal_mirror_dz": 3.297,
+   "rand8_toward": [
+    0.001,
+    -0.0,
+    0.002
+   ],
+   "leg0_stance_dcontact": [
+    -0.0032,
+    -0.0194,
+    0.0145
+   ],
+   "leg0_swing_dcontact": [
+    0.0097,
+    -0.0081,
+    0.0274
+   ],
+   "contact_dz": [
+    9.077,
+    5.96
+   ],
+   "random": {
+    "1": {
+     "forward": [
+      -0.0004,
+      -0.0009,
+      0.0
+     ],
+     "dyaw": [
+      -0.0,
+      -0.0004,
+      0.0003
+     ]
+    },
+    "2": {
+     "forward": [
+      -0.0007,
+      -0.0014,
+      -0.0002
+     ],
+     "dyaw": [
+      -0.0001,
+      -0.0004,
+      0.0003
+     ]
+    },
+    "4": {
+     "forward": [
+      -0.0016,
+      -0.0031,
+      -0.0003
+     ],
+     "dyaw": [
+      -0.0005,
+      -0.0011,
+      0.0002
+     ]
+    },
+    "8": {
+     "forward": [
+      -0.0037,
+      -0.0061,
+      -0.0018
+     ],
+     "dyaw": [
+      -0.0004,
+      -0.0013,
+      0.0005
+     ]
+    },
+    "12": {
+     "forward": [
+      -0.0069,
+      -0.0098,
+      -0.0042
+     ],
+     "dyaw": [
+      -0.0004,
+      -0.0016,
+      0.0008
+     ]
+    }
+   },
+   "zero_forward": [
+    -0.5591,
+    -0.5922,
+    -0.5255
+   ],
+   "packet_z_norm_mean": 5.611
+  }
+ },
+ "ctx_edits": {
+  "sem_orig": {
+   "dir": "artifacts/runs/legged_edits/hexapod6/r2ctx_sem_snap_s4000",
+   "mirror_active": [
+    0.165,
+    0.125,
+    0.21
+   ],
+   "mirror_goal": [
+    0.176,
+    0.135,
+    0.218
+   ],
+   "mirror_inactive": [
+    0.001,
+    -0.001,
+    0.003
+   ],
+   "mirror_active_yaw": [
+    0.621,
+    0.488,
+    0.78
+   ],
+   "halt_forward": [
+    -0.1039,
+    -0.152,
+    -0.0631
+   ],
+   "active_minus_inactive_paired": [
+    0.164,
+    0.127,
+    0.205
+   ]
+  },
+  "sem_fixed": {
+   "dir": "artifacts/runs/legged_edits/hexapod6/r2ctx_fixsem_snap_s4000",
+   "mirror_active": [
+    0.181,
+    0.138,
+    0.225
+   ],
+   "mirror_goal": [
+    0.192,
+    0.146,
+    0.238
+   ],
+   "mirror_inactive": [
+    -0.001,
+    -0.004,
+    0.002
+   ],
+   "mirror_active_yaw": [
+    0.66,
+    0.501,
+    0.837
+   ],
+   "halt_forward": [
+    -0.3356,
+    -0.3754,
+    -0.2936
+   ],
+   "active_minus_inactive_paired": [
+    0.182,
+    0.142,
+    0.225
+   ]
+  },
+  "nosem": {
+   "dir": "artifacts/runs/legged_edits/hexapod6/r2ctx_nosem_snap_s4000",
+   "mirror_active": [
+    0.168,
+    0.114,
+    0.225
+   ],
+   "mirror_goal": [
+    0.147,
+    0.096,
+    0.206
+   ],
+   "mirror_inactive": [
+    -0.005,
+    -0.011,
+    0.0
+   ],
+   "mirror_active_yaw": [
+    0.629,
+    0.435,
+    0.854
+   ],
+   "halt_forward": [
+    0.0078,
+    -0.0485,
+    0.057
+   ],
+   "active_minus_inactive_paired": [
+    0.173,
+    0.122,
+    0.229
+   ]
+  }
+ }
+}
