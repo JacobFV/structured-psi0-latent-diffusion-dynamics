@@ -198,7 +198,7 @@ def video_card(v) -> str:
     f, kind, title, cap, s = v
     lab = {"teacher": "teacher | BC | oracle" if f.startswith("2026-09-25_triptych") else "teacher | BC | stateless oracle" if "orcbctriptych" in f else "scripted_teacher", "oracle": "oracle diagnostic", "learned": "learned", "bc": "learned"}[kind]
     if kind == "learned":
-        lab = "learned:flow_latent_sem_v2@22k"
+        lab = "learned:flow_latent_sem_v2@22k" if "semantic_edit" not in f else "learned (deployable): flow_jointfix@20k → sys-0 gendag1_noqd"
         for key, flow in (("flowgdag1_", "flow_jointfix_gdag1"), ("flowjfft_", "flow_jointfix_ft"), ("flowjf20k_", "flow_jointfix@20k"), ("flowjf_s", "flow_jointfix@")):
             if key in f:
                 import re as _rr
@@ -259,6 +259,21 @@ def ladder_rows():
                      pp, pr, qp, qr, esc(stages), mtc])
     return rows
 
+
+GEN_SEM_VIDEOS = [
+    ("2026-09-26_semantic_edit_goal_shift_learned_ladder_flow_jointfix_parm6_tf3_k3000052.mp4", "learned",
+     "DEPLOYABLE route · goal edit · parm6_tf3 · left unedited, right edited",
+     "Only the BELIEF of the goal zone moves 12 cm (no marker is drawn there). The cube ends at the new goal, 12 cm from the green zone. Selected clear seed; aggregate 15/41 vs 0–1/41.",
+     "artifacts/runs/acceptance_sprint_sem_gen_jf_parm6/semantic_summary_generated.json"),
+    ("2026-09-26_semantic_edit_rebind_desc_learned_ladder_flow_jointfix_parm6_tf3_k3000052.mp4", "learned",
+     "DEPLOYABLE route · binding edit (descriptor only) · parm6_tf3",
+     "The task entity's descriptor now names the other cube; the arm approaches and touches the NEW cube (aggregate first approach 31/41 vs 0/41). The rebound task is rarely completed (new cube lifted 5/41).",
+     "artifacts/runs/acceptance_sprint_sem_gen_jf_parm6/semantic_summary_generated.json"),
+    ("2026-09-26_semantic_edit_orthogonal_matched_learned_ladder_flow_jointfix_parm6_tf3_k3000052.mp4", "learned",
+     "DEPLOYABLE route · CONTROL: probe-orthogonal packet edit of matched norm · parm6_tf3",
+     "Same seed; behaviour is unchanged (approaches and touches the original cube).",
+     "artifacts/runs/acceptance_sprint_sem_gen_jf_parm6/semantic_summary_generated.json"),
+]
 
 SEM_VIDEOS = [
     ("2026-09-25_semantic_edit_rebind_obj_scripted_teacher_panda_pg2_k31000080.mp4", "teacher",
@@ -543,7 +558,7 @@ arm first approaches the new cube in {gen_appr}, with closest approach {gen_pref
 (0/32)</b>, so this is the first place the latent route does something the direct-action baseline does not. <b>Caveats:</b> one body (panda is
 not competent on this route), and the new cube is lifted in only {gen_newl}, so the rebound task is rarely completed. The flow may read the
 binding through public predicate estimates that follow it. There is no nosem counterpart, so the role of semantic supervision is not isolated.
-{src(GEN if have(GEN) else "D-074", "D-074")}<br><br><b>Best latent route: system 0 causally executes goal content carried in the packet (oracle diagnostic, D-062).</b>
+{src(GEN if have(GEN) else "D-074", "D-074")}</p><div class="grid3">{"".join(video_card(v) for v in GEN_SEM_VIDEOS if (VID / v[0]).exists())}</div><p><b>Best latent route: system 0 causally executes goal content carried in the packet (oracle diagnostic, D-062).</b>
 Packet = E(the BC chunk for the edited context) → system 0 jfbcdag2, panda_pg2, 48 seeds, control success {bb_ctrl}. A valid goal edit puts
 the cube at the NEW goal in {bb_goal} vs {bb_irr} and {bb_orth} under the matched controls. A probe-orthogonal edit of matched norm drops success to
 {bb_orth_s}. A binding edit is NOT followed ({bb_rb} first touch on the new object). <b>This does not show that semantic supervision adds control:</b>
