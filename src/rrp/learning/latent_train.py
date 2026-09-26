@@ -329,7 +329,8 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
     torch.manual_seed(seed)
     rng = random.Random(seed)
     lcfg, E, R, P, rep_res = load_representation(Path(cfg_json["representation"]), dev)
-    data = LatentData(Path(cfg_json["packed_dir"]), zero_prev_action=cfg_json.get("zero_prev_action", False))
+    pack_free = cfg_json.get("gen_dagger_frac", 0.0) >= 1.0 and bool(cfg_json.get("init_from"))
+    data = None if pack_free else LatentData(Path(cfg_json["packed_dir"]), zero_prev_action=cfg_json.get("zero_prev_action", False))
     pcfg = PolicyConfig(**dict(cfg_json["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz, aux=False))
     model = FlowPolicy(pcfg).to(dev)
     opt = torch.optim.AdamW(model.parameters(), lr=cfg_json.get("lr", 3e-4), weight_decay=1e-4)
@@ -372,23 +373,26 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
     Bg = int(round(B * cfg_json.get("gen_dagger_frac", 0.5))) if gd_items else 0
     grng = random.Random(seed + 23)
     Bp = B - Bg
-    feed = _prefetch(data, Bp, rng, 0, dev) if cfg_json.get("prefetch") else None   # resume: rng runs ahead by <= depth
+    feed = _prefetch(data, Bp, rng, 0, dev) if (cfg_json.get("prefetch") and Bp) else None   # resume: rng runs ahead by <= depth
     while step < steps and not sig.requested:
-        if feed is not None:
+        if Bp == 0:                 # pack-free generator DAgger (gen_dagger_frac 1.0, warm start): DAgger rows only
+            loss, logs = torch.zeros((), device=dev), {}
+        elif feed is not None:
             batch, a, v, lab, r, j = next(feed)
         else:
             sel, tgt, j = data.sample(Bp, rng, 0)
             batch, a, v, lab, r = data.fetch(sel, tgt, dev)
-        with torch.no_grad():
-            af, am, ai = assembly_tokens(batch)
-            z_target, _ = E(batch, a, v, af, am, ai)             # clean target = frozen posterior mean
-        ab = assembly_batch(batch)
-        smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
-        S = batch.bank_tokens["scene"].shape[1]
-        pl_fn = (lambda zc: probe_loss(P(zc, am, S), lab, smask)) if w_sem > 0 else None
-        valid = am[:, None, :].expand(-1, lcfg.knots, -1)
-        loss, logs = model.loss(ab, z_target, valid, None, generator=gen, packet_loss_fn=pl_fn, packet_weight=w_sem,
-                                packet_tau_min=cfg_json.get("packet_tau_min", 0.0))
+        if Bp:
+            with torch.no_grad():
+                af, am, ai = assembly_tokens(batch)
+                z_target, _ = E(batch, a, v, af, am, ai)             # clean target = frozen posterior mean
+            ab = assembly_batch(batch)
+            smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
+            S = batch.bank_tokens["scene"].shape[1]
+            pl_fn = (lambda zc: probe_loss(P(zc, am, S), lab, smask)) if w_sem > 0 else None
+            valid = am[:, None, :].expand(-1, lcfg.knots, -1)
+            loss, logs = model.loss(ab, z_target, valid, None, generator=gen, packet_loss_fn=pl_fn, packet_weight=w_sem,
+                                    packet_tau_min=cfg_json.get("packet_tau_min", 0.0))
         if Bg:
             from rrp.model.batch import collate_inputs
             it = [gd_items[grng.randrange(len(gd_items))] for _ in range(Bg)]
@@ -415,7 +419,7 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
     res = dict(steps=step, wall_s=time.time() - t0, interrupted=sig.requested,
                latent_space_version=rep_res["latent_space_version"],
                realizer_compat_version=rep_res["realizer_compat_version"],
-               eval=None if sig.requested else evaluate_generated(model, E, R, P, data, lcfg, dev))
+               eval=None if (sig.requested or data is None) else evaluate_generated(model, E, R, P, data, lcfg, dev))
     save_checkpoint(out_dir / ("policy.pt" if not sig.requested else "policy_interrupted.pt"), model=model, optimizer=None,
                     step=step, versions=dict(latent=rep_res["latent_space_version"], policy=pcfg.name),
                     config=cfg_json, extra=dict(result=res))
