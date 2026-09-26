@@ -457,12 +457,12 @@ def sec_final_route():
 <p>Every evaluation of the frozen checkpoints on non-training seeds is listed, better or worse, for the current and the superseded freeze. BC rows on the same
 seed sets are shown for a like-for-like comparison. No teacher, oracle or BC at run time on the R2 rows. Current freeze: system i
 <code>ladder_flow_jointfix_gdag2h</code> (generator-DAgger round 2) and system 0 + encoder <code>ladder_rz_jointfix_gendag3_noqd/representation.pt</code>
-(sha256 f60cde41…). The DAgger labels come from a <i>learned</i> stateless expert (the BC controller, trained on the same scripted-teacher demonstrations) at
-learner-visited states. What made it work, all within the architecture: (1) removing a joint-velocity shortcut in system 0; (2) replacing the stale teacher
+(sha256 f60cde41…). The route is <b>distilled through a learned stateless expert</b>: system-0 DAgger labels and flow targets come from the learned BC policy (trained on
+the same scripted-teacher demonstrations), not from the scripted teacher; the extra training seeds (3.2M–4.1M) are disjoint from every evaluation set (D-080). What made it work, all within the architecture: (1) removing a joint-velocity shortcut in system 0; (2) replacing the stale teacher
 FSM with the stateless BC expert; (3) system-0 DAgger rounds, including states visited with system i's own packets, plus z-noise; (4) generator DAgger.
 Not solved: panda grasp/lift and parm6 place. The ordering is R2 &lt; BC. Binding-v4 sem/nosem bundles are not competent with the same recipe yet, so no
 deployable sem-vs-nosem comparison exists on the arm.
-{src('research/tracks/ladder.md (SPRINT BEST ROUTE FINAL)', 'ladder_v1/<robot>/generated_zero_<recipe>[_s|_fresh<seed>].summary.json', 'D-070', 'D-072')}</p>
+{src('research/tracks/ladder.md (SPRINT BEST ROUTE FINAL)', 'ladder_v1/<robot>/generated_zero_<recipe>[_s|_fresh<seed>].summary.json', 'D-070', 'D-072', 'D-080')}</p>
 <div class="grid wide">{"".join(video_card(v) for v in R2_VIDEOS[:2] if (VID / v[0]).exists())}</div>"""
 
 
@@ -987,7 +987,7 @@ system i's own packets → system 0 give nosem 30/30 and sem 29/30 on the 30 mat
 {badge('learned', 'learned:legged_flow_{sem,nosem}_go2_v2 snap_s4000')}. Unlike the arm, the legged system 0 is not the bottleneck: the stateless oracle route
 gives nosem 30/30 and sem 25/30.
 <b>hexapod6 is the second body through the deployable route: R2 sem 30/30, nosem 30/30</b> (BC 30/30, stateless oracle 30/30 for both; D-076).
-<b>t1 humanoid is the third body through the deployable route, for nosem only: R2 nosem 26–27/30, at least BC's 24/30; sem 6–11/30</b> (D-079).
+<b>t1 humanoid is the third body through the deployable route, for nosem only: R2 nosem 26–27/30, at least BC's 24/30; sem 6–13/30</b> (D-079).
 The oracle diagnostic was not predictive on t1: there the gap went the other way (stateless R1 sem 12/30 → 18/30 after one identical DAgger round, nosem 0/30),
 and it reverses on the deployable route. <b>g1 humanoid: the positive control fails</b> (BC 2–7/30 across replan settings vs the arc-only teacher 25/30), so
 no latent claim is made there.
@@ -1000,7 +1000,7 @@ the packet's editable handles, not in context-to-behaviour control. {src('artifa
 per-leg contact edits are weak. This shows <b>packet → behaviour causality along probe directions on an oracle route</b>: the edit is applied to z, not to
 the context. It does not show that system i puts the right semantics into the packet. <b>Semantic supervision shows no advantage</b>: nosem is as good or
 better. {src('D-069')}</p></div>"""
-    return head + f"<p>{badge('run') if 'RESTART' in lab else ''} Rendered from the legged agent's track notes ({lab}); the go2 BC positive control is {badge('bc', 'learned')}, everything else is labelled in the table.</p>" + reading + '<details><summary>legged agent\'s full live table (click to expand)</summary><div class="mdsec">' + md_table_to_html(sec) + "</div></details>" + src(f"research/tracks/legged_vlm.md ({lab})", "D-060") + vids_
+    return head + f"<p>{badge('run') if 'RESTART' in lab else ''} The table below is rendered from the legged agent's track notes ({lab}); every row names its controller source.</p>" + reading + '<details><summary>legged agent\'s full live table (click to expand)</summary><div class="mdsec">' + md_table_to_html(sec) + "</div></details>" + src(f"research/tracks/legged_vlm.md ({lab})", "D-060") + vids_
 
 
 def sec_bodies():
@@ -1087,7 +1087,7 @@ def sec_matrix():
         ["binding (object pairs)", badge("ok"), "v1 z does not carry the binding: focus_follows 0.0 " + src("binding_v1_reeval/sem_cf_probe_bindcf.json"),
          "binding v4 flows " + badge("run"), "not shown", badge("none")],
         ["dual-arm / assignment", badge("ok"), "teacher only", badge("none"), "pairs ready, teacher does both; v4 arm edits: no detectable effect " + src("D-043"), badge("none")],
-        ["legged / humanoid", "verified on go2 (D-060)", "go2 stateless oracle: nosem 30/30, sem 25/30", "<b>go2 R2: nosem 30/30, sem 29/30</b> vs BC 30/30; hexapod6 R2 30/30 both; t1 R2 nosem 26–27/30 (≥ BC 24/30), sem 6–11/30 (D-079) " + src("research/tracks/legged_vlm.md"), "probe-direction halt/turn edits causal (go2, hexapod6); sem has stronger handles on hexapod6 but equal context control; mixed overall " + src("D-069", "D-079"), badge("none")],
+        ["legged / humanoid", "verified on go2 (D-060)", "go2 stateless oracle: nosem 30/30, sem 25/30", "<b>go2 R2: nosem 30/30, sem 29/30</b> vs BC 30/30; hexapod6 R2 30/30 both; t1 R2 nosem 26–27/30 (≥ BC 24/30), sem 6–13/30 (D-079) " + src("research/tracks/legged_vlm.md"), "probe-direction halt/turn edits causal (go2, hexapod6); sem has stronger handles on hexapod6 but equal context control; mixed overall " + src("D-069", "D-079"), badge("none")],
         ["VLM system II", "smoke only", "n/a", badge("none"), badge("none"), badge("none")],
         ["latency", badge("ok"), "—", "p95 1.014× vs real BC checkpoint (≤ 1.25×) " + src("D-058"), "—", "—"],
     ]
@@ -1458,7 +1458,7 @@ never lifted; the approach goes to the new cube, also on panda) redirect behavio
 arms: {pool_txt} pooled over the matched and fresh seed sets, against BC 24–30 of 30 on the same sets (D-072).</li>
 <li><b>Semantic supervision: the evidence is mixed and small.</b> The sem packet has more editable probe handles on hexapod6 (halt −0.19 m vs +0.03 m;
 turn 0.11 vs 0.03–0.07 rad). But context-to-behaviour control is equal on go2 and hexapod6. On the t1 humanoid the deployable route works for nosem
-(26–27/30, at least BC's 24/30) and not for sem (6–11/30); the t1 oracle-route gap (sem 18/30 vs nosem 0/30) reverses on the deployable route. The arm result
+(26–27/30, at least BC's 24/30) and not for sem (6–13/30); the t1 oracle-route gap (sem 18/30 vs nosem 0/30) reverses on the deployable route. The arm result
 has no nosem counterpart, and the binding-v4 sem/nosem bundles are not competent. No claim that semantic supervision improves control is supported (D-059, D-079).</li>
 <li><b>Not tested:</b> the sealed held-out target bodies for the latent route. Plain BC transfers to a new gripper (78–85/100) but not to the unseen xarm7 arm
 (0/100; D-064). Humanoid g1 has no competent BC control.</li>
@@ -1476,7 +1476,7 @@ redirects the approach to the new cube (original cube lifted 0/80 vs 58/80 unedi
 and there is no nosem counterpart yet (D-074, D-075).
 <b>On the go2 quadruped the deployable latent route is competent</b> (nosem 30/30, sem 29/30 vs BC 30/30), and probe-direction edits of the
 packet causally halt and turn the robot (D-069, D-070; §2b). hexapod6 is also competent (30/30), and the t1 humanoid only with the no-semantic
-packet (26–27/30 vs sem 6–11/30, D-079). The evidence on semantic supervision is mixed and small. <b>On go2's deployable
+packet (26–27/30 vs sem 6–13/30, D-079). The evidence on semantic supervision is mixed and small. <b>On go2's deployable
 route, editing only the task context (mirroring the active waypoint) steers the robot toward the new goal: task → packet → behaviour,
 shown for one body and one semantic, and not dependent on semantic supervision (D-071).</b></p>
 {scoreboard}
