@@ -1,0 +1,21 @@
+{
+ "name": "legged_fixrep_rep_nosem_go2_s2",
+ "data": "artifacts/datasets/legged_latent_v1",
+ "bodies": [
+  "go2"
+ ],
+ "latent": {
+  "dz": 32,
+  "width": 192,
+  "semantic_weight": 0.0,
+  "beta_kl": 0.001,
+  "qd_dropout": 0.5
+ },
+ "steps": 12000,
+ "batch_size": 256,
+ "lr": 0.0003,
+ "seed": 2,
+ "ckpt_every": 500,
+ "snap_every": 4000,
+ "note": "LEGGED FIXED-SEM REPLICATION, training seed 2: nosem, identical to legged_rep_nosem_go2_v2 except seed"
+}

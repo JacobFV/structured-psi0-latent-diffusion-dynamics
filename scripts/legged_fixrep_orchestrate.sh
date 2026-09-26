@@ -18,5 +18,13 @@ case $1 in
        [ -f $F/policy.pt ] && [ -f $R/probe_posthoc.pt ] || { echo "host chain $t incomplete"; exit 1; }
        rsync -a --mkpath $R/{config.json,result.json,representation.pt,probe_posthoc.pt,probe_posthoc.json,probe_cfg.json} gb10-direct:$PA/legged_fixrep_rep_$t/ &&
        rsync -a --mkpath $F/{config.json,result.json,policy.pt,snap_s4000.pt,snap_s8000.pt} gb10-direct:$PA/legged_fixrep_flow_$t/ || exit 1
-       ssh gb10-direct "sed -i 's#\"representation\": \".*\"#\"representation\": \"$R/representation.pt\"#' $PA/legged_fixrep_rep_$t/probe_cfg.json" ; ev go2 $t;;
+       ev go2 $t;;
 esac
+# go2hostflows: the 3 go2 flows moved to host lease 1790447816_10e23c (scripts/legged_fixrep_move_go2flows.sh)
+if [ "$1" = go2hostflows ]; then
+  T="fixsem_go2_s1 fixsem_go2_s2 nosem_go2_s2"; L=~/work/relational-robot-policy/ops/logs/1790447816_10e23c_legged_fixrep_flows_go2h.log
+  until grep -q 'rrp.child' $L 2>/dev/null; do sleep 60; done; tail -1 $L; grep -q 'rc=0' $L || exit 1
+  for t in $T; do R=artifacts/runs/legged_fixrep_rep_$t; F=artifacts/runs/legged_fixrep_flow_$t
+    rsync -a --mkpath $F/{config.json,result.json,policy.pt,snap_s4000.pt,snap_s8000.pt} gb10-direct:$PA/legged_fixrep_flow_$t/ || exit 1; done
+  ev go2 $T
+fi
