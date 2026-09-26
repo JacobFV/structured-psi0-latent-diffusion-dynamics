@@ -1,0 +1,21 @@
+{
+ "file": "artifacts/runs/legged_ladder/t1/r2_nosem_t1_v2_orig_policy.jsonl",
+ "source": "learned:legged_flow_nosem_t1_v2/policy.pt",
+ "edit": "none",
+ "n": 30,
+ "success": 28,
+ "wilson95": [
+  0.787,
+  0.982
+ ],
+ "stages": {
+  "success": 28,
+  "fell": 2
+ },
+ "seeds": [
+  10000,
+  10029
+ ],
+ "events_a": 30,
+ "events_b": 28
+}

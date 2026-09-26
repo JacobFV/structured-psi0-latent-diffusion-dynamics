@@ -21,7 +21,7 @@ All numbers are closed-loop successes on the matched dev seeds 10000-10029 (30 e
 |---|---|---|---|---|---|
 | go2 (quadruped, learned tracker) | 30/30 | 30/30 | 25 / 30 | 4k: 29 / 30; 8k: 30 / 30; **final: 30 / 30** | `go2/{teacher_bc5k,bc_bc20k,r1_*_go2_v2,r2_*_go2_v2_{snap_s4000,snap_s8000,policy}}.jsonl` |
 | hexapod6 (6 legs, CPG tracker) | 30/30 | 30/30 | 30 / 30 | 4k: 30 / 30; **final: 30 / 30** | `hexapod6/{teacher_v1,bc_v1,r1_*,r2_*_hexapod6_v2_{snap_s4000,policy}}.jsonl` |
-| t1 (humanoid, learned tracker) | 30/30 | 24/30 | original system 0: 12 / 0; DAgger-1: 18 / 0; DAgger-2: 12 / 0 | original system 0 (8k): 6 / 24; DAgger-1 (8k): 7 / 26; **DAgger-1 (final): 11 / 27**; DAgger-2 (final): 13 / 26 | `t1/{teacher_v1,bc_v1,r1_*_t1_{v2,dag1,dag2},r2_*_t1_{v2_snap_s8000,dag1_snap_s8000,dag1_policy,dag2_policy}}.jsonl` |
+| t1 (humanoid, learned tracker) | 30/30 | 24/30 | original system 0: 12 / 0; DAgger-1: 18 / 0; DAgger-2: 12 / 0 | original system 0 (8k): 6 / 24; original system 0 (final): 3 / 28; DAgger-1 (8k): 7 / 26; **DAgger-1 (final): 11 / 27**; DAgger-2 (final): 13 / 26 | `t1/{teacher_v1,bc_v1,r1_*_t1_{v2,dag1,dag2},r2_*_t1_{v2_snap_s8000,dag1_snap_s8000,dag1_policy,dag2_policy}}.jsonl` |
 | g1 (humanoid, "limited qualification" tracker) | 25/30 (arc_only teacher) | **2/30** (replan 5), 7/30 (replan 2), 4/30 (replan 3) | not run | not run | `g1/{teacher_v1,bc_v1,bc_replan*_dev30}.jsonl` |
 The positive control fails on g1, so no latent-route claim is made for g1 (Stage A was trained, `artifacts/runs/legged_rep_*_g1_v2`, but not evaluated in closed loop).
 
