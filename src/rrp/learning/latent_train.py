@@ -627,6 +627,11 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
             af, am, ai = assembly_tokens(batch)
             mu, logvar = E(batch, a, v, af, am, ai)
             z = mu + torch.randn_like(mu) * (0.5 * logvar).exp()
+            zn = cfg_json.get("z_noise_rel", 0.0)
+            if zn > 0:              # robustness to generator error: isotropic noise with relative norm ~ U(0, zn) per sample
+                rel = torch.rand(z.shape[0], 1, 1, 1, device=dev) * zn
+                nz = torch.randn_like(z)
+                z = z + nz * rel * z.flatten(1).norm(dim=1)[:, None, None, None] / nz.flatten(1).norm(dim=1)[:, None, None, None]
         phase = torch.as_tensor(j * lcfg.control_dt, dtype=z.dtype, device=dev)
         pred = R(z, am, kt, phase, r["node"], r["node_mask"], r["local"], node_asm=r.get("node_asm"))
         m = (r["v1"] & r["node_mask"]).float()
