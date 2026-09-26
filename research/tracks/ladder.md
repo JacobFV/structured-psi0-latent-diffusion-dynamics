@@ -3,6 +3,25 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
+## ARM SEED-2 REPLICATION (lead request after D-091; started 2026-09-26 13:50 PDT; state: running)
+Goal: replicate the three-way arm comparison (D-091: sem 146/240, semfix 124/240, nosem 3/240, one training seed each)
+with a second TRAINING seed for all three lineages, seed-matched, same recipe and same evaluation sets.
+Lineages (configs `configs/ladder/armseed2/<lin>/`, generated from the frozen-sem configs by name substitution):
+- `sejf2` = frozen-sem recipe (semantic_weight 1, probe log-variance floor -8), Stage A `ladder_latent_sem_b1fix_anchor_s2`
+- `sfjf2` = semfix (semantic_weight 1, `probe_lv_min` -4), Stage A `ladder_latent_semfix_b1fix_anchor_s2`
+- `nsjf2` = nosem (semantic_weight 0; flows packet_semantic_weight 0), Stage A `ladder_latent_nosem_b1fix_anchor_s2`
+Seed changes (the ONLY other difference from seed 1): every training seed +1000 (Stage A 1706 -> 2706; flows
+1701/1702/1703/1860 -> 2701/2702/2703/2860; system-0 refits 1711/1712/1715/1761/1790/1820 -> 2711/.../2820); every DAgger
+collection seed +1,100,000 (bc1 4.3M, bc2 4.4M, bc3 4.5M, gen1 4.6M, gen2 4.8M, gen3 4.9M, gdag1 5.0M, gdag2 5.1M;
+disjoint from all evaluation sets 3.0M-3.0M+300 and from every earlier buffer, which used 3.2M-4.1M).
+Evaluation (unchanged): R2 dev 3,000,000 + fresh 3,000,100 / 3,000,200 x 30 on panda_pg2 and parm6_tf3; held-out
+parm5s_tf3 / parm5l_pg2 (dev 30); progression + stateless R1; edit suite parm6 3,000,000-119 and panda 3,000,000-047.
+Placement: all three on the PEER in parallel (the host broker was full: t1 agent leases 12 of 11.6 CPU), peer units
+`rrp-arm-{nsjf2,sfjf2,sejf2}`, driver `scripts/arm_lineage_chain.sh` (LIN=<lin>; SOFF=1100000 set by the lineage case),
+state `artifacts/runs/ladder_arm<lin>_state/` (peer store).
+RESUME: `ssh gb10-direct 'systemd-run --user --unit rrp-arm-<lin>-r --setenv=LIN=<lin> --working-directory=/dev/shm/rrp-brandonin/wt/ladder bash scripts/arm_lineage_chain.sh'`
+(done nodes skipped; trainers resume from *_last.pt; collections skip existing buffers; a .failed node is not retried).
+
 ## ARM NOSEM COUNTERPART RESULT (FINAL, 2026-09-26 14:00 PDT; three arm lineages; state: completed)
 Three lineages, IDENTICAL recipe (Stage A -> flow 20k -> 3 BC-expert system-0 DAgger rounds incl. generated-packet states,
 no qd, z-noise 0.3 -> generator DAgger gdag1 / gdag2h -> final system 0 gendag3_noqd), same seeds, same DAgger seeds,

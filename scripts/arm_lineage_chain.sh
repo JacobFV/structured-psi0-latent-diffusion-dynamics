@@ -12,8 +12,13 @@ PY=$P/venv/bin/python
 LIN=${LIN:?set LIN=sfjf}
 case $LIN in
   sfjf) C=configs/ladder/armsemfix; REPN=ladder_latent_semfix_b1fix_anchor; REPCFG=rep-latent_semfix_b1fix_anchor.json; TG=sf ;;
+  # ARM SEED-2 REPLICATION: training seeds +1000 (in the configs), DAgger collection seeds +1,100,000 (SOFF)
+  nsjf2) C=configs/ladder/armseed2/nsjf2; REPN=ladder_latent_nosem_b1fix_anchor_s2; REPCFG=rep-$REPN.json; TG=ns2; SOFF=1100000 ;;
+  sfjf2) C=configs/ladder/armseed2/sfjf2; REPN=ladder_latent_semfix_b1fix_anchor_s2; REPCFG=rep-$REPN.json; TG=sf2; SOFF=1100000 ;;
+  sejf2) C=configs/ladder/armseed2/sejf2; REPN=ladder_latent_sem_b1fix_anchor_s2; REPCFG=rep-$REPN.json; TG=se2; SOFF=1100000 ;;
   *) echo "unknown LIN $LIN"; exit 2 ;;
 esac
+SOFF=${SOFF:-0}
 ST=artifacts/runs/ladder_arm${LIN}_state; mkdir -p $ST
 RUNS=artifacts/runs
 BODIES="panda_pg2 parm5_pg2 parm5_tf3 parm5l_tf3 parm5s_pg2 parm6_pg2 parm6_tf3 parm7_pg2 parm7_tf3 sawyer_pg2 sawyer_tf3 ur5e_pg2 ur5e_tf3"
@@ -121,22 +126,22 @@ all_nodes() {
   node stageA - train_gpu a${TG}_stageA $C/$REPCFG rep 16G 14400 &
   node F0 stageA flow0 &
   node Fft F0 train_gpu a${TG}_flowft $C/flow_${LIN}_ft.json flow 16G 10800 &
-  node bc1 stageA collect bc1 $REP0 3200000 &
+  node bc1 stageA collect bc1 $REP0 $((3200000 + SOFF)) &
   node rzbcdag1 bc1 train_gpu a${TG}_rz_bcdag1 $C/rz_${LIN}_bcdag1.json rz 8G 7200 &
   node rzbcdag1long bc1 train_gpu a${TG}_rz_bcdag1long $C/rz_${LIN}_bcdag1_long.json rz 8G 10800 &
-  node bc2 rzbcdag1 collect bc2 $(rz bcdag1) 3300000 &
-  node bc3 rzbcdag1long collect bc3 $(rz bcdag1_long) 3400000 &
-  node gen1 rzbcdag1long,F0 collect gen1 $(rz bcdag1_long) 3500000 $F0 &
+  node bc2 rzbcdag1 collect bc2 $(rz bcdag1) $((3300000 + SOFF)) &
+  node bc3 rzbcdag1long collect bc3 $(rz bcdag1_long) $((3400000 + SOFF)) &
+  node gen1 rzbcdag1long,F0 collect gen1 $(rz bcdag1_long) $((3500000 + SOFF)) $F0 &
   node rzbcdag2 rzbcdag1long,bc2 train_gpu a${TG}_rz_bcdag2 $C/rz_${LIN}_bcdag2.json rz 8G 10800 &
   node rzgendag1 rzbcdag2,gen1,bc3 train_gpu a${TG}_rz_gendag1 $C/rz_${LIN}_gendag1_noqd.json rz 8G 7200 &
   node semedits rzgendag1,F0 semedits_all &
-  node gen2 rzgendag1,F0 collect gen2 $(rz gendag1_noqd) 3700000 $F0 &
+  node gen2 rzgendag1,F0 collect gen2 $(rz gendag1_noqd) $((3700000 + SOFF)) $F0 &
   node rzgendag2 gen2 train_gpu a${TG}_rz_gendag2 $C/rz_${LIN}_gendag2_noqd.json rz 8G 7200 &
-  node gen3 rzgendag2,Fft collect gen3 $(rz gendag2_noqd) 3800000 $FFT &
-  node gdag1 rzgendag2,Fft collect gdag1 $(rz gendag2_noqd) 3900000 $FFT 1 &
+  node gen3 rzgendag2,Fft collect gen3 $(rz gendag2_noqd) $((3800000 + SOFF)) $FFT &
+  node gdag1 rzgendag2,Fft collect gdag1 $(rz gendag2_noqd) $((3900000 + SOFF)) $FFT 1 &
   node rzgendag3 gen3 train_gpu a${TG}_rz_gendag3 $C/rz_${LIN}_gendag3_noqd.json rz 8G 7200 &
   node Fgdag1 gdag1,F0 train_gpu a${TG}_flowgdag1 $C/flow_${LIN}_gdag1.json flow 16G 7200 &
-  node gdag2 rzgendag3,Fgdag1 collect gdag2 $(rz gendag3_noqd) 4000000 $FG1 1 &
+  node gdag2 rzgendag3,Fgdag1 collect gdag2 $(rz gendag3_noqd) $((4000000 + SOFF)) $FG1 1 &
   node Fgdag2h gdag2,Fgdag1 train_gpu a${TG}_flowgdag2h $C/flow_${LIN}_gdag2h.json flow 16G 7200 &
   node finalevals Fgdag2h,rzgendag3 final_evals &
   node progevals rzgendag3,Fgdag1,rzgendag1 prog_evals &
