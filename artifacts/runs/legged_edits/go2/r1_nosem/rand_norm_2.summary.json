@@ -1,0 +1,24 @@
+{
+ "source": "oracle_diagnostic:E(bc_chunk)|rep:legged_rep_nosem_go2_v2|bc=legged_bc_go2_v1/policy.pt",
+ "edit": "rand_norm:2",
+ "per_body": {
+  "go2": {
+   "n": 20,
+   "success": 0,
+   "fell": 0,
+   "stages": {
+    "drift_a": 15,
+    "drift_b": 5
+   },
+   "seeds": "10000-10019",
+   "mean_sim_time": 5.099999999999659,
+   "packet_probes": {
+    "subtask": 0.7625,
+    "contact": 0.76171875,
+    "goal_err": 0.5192648115491908,
+    "disp_yaw_err": 0.03495519080808089,
+    "disp_xy_err": 0.05648844171516071
+   }
+  }
+ }
+}

@@ -11,7 +11,7 @@ RZA=""; [ "$RZ" != "-" ] && RZA="--realizer $RZ"
 cmds=()
 for r in ${ROUTES//,/ }; do
   case $r in
-    teacher) A="";;
+    teacher) A=""; [ "$BODY" = g1 ] && A="--arc-only g1";;
     bc) A="--bc $BC";;
     r1) A="--rep $REP --bc $BC --oracle-bc $RZA";;
     r1qd0) A="--rep $REP --bc $BC --oracle-bc $RZA --zero-qd";;
