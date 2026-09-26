@@ -50,3 +50,13 @@ Rendered on peer GPU EGL into `artifacts/runs/demo_video/` (NOT the shared artif
   R2 vs BC. Same-scene triptychs (teacher | BC | oracle) for s3000008 and s3000018 via scripts/demo/render_triptych.sh +
   side_by_side.py (lease 1790388888_c98769); the jfdag1 "success" seed 3000018 FAILS (approach) in this re-render.
 - 20:05 lead wording fix in §6 and evidence_matrix.md (failure in the packet route incl. possibly the generator). Lead republishes artifact.html per refresh.
+- 20:15 refresh 2: generated top "Sprint update" block (sec_sprint in build_page.py) from sprint_semantic raw
+  (acceptance_sprint_sem_{teacher_paired,b1fix_oracle,bc_pp}, acceptance_sprint_arm_teacher; committed on main) and
+  sprint_latent's stateless localization (peer ladder_localize/*, pulled). 6 semantic-edit clips from artifacts/video copied
+  into docs/demo/video. Key reading: BC follows goal and belief swaps but ignores a pure descriptor rebind (0/32);
+  jointfix oracle approaches the rebound cube 19/30 first-touch (weak: packet encodes the teacher demo). v4 generated
+  and R2-on-fixed-flow still running.
+- 20:10 refresh 3: R2 (the clean test) added to the sprint block, generated from ladder_v1/<robot>/generated_zero_flowjf_s<step>
+  summaries (sprint_latent's watcher; new snapshots appear automatically on rebuild). flow_jointfix@4000: 0/30 panda, see
+  page for parm6. R2 triptych clips (teacher | BC | R2@4000) for panda s3000029 and s3000008 via
+  scripts/demo/render_r2_triptych.sh (lease 1790391225_ffb5f8); render outcomes differ from eval rows, captions say so.

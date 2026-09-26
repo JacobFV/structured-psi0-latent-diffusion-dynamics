@@ -509,9 +509,8 @@ def run_condition(src, R, P, robot, robot_key, seed, cond, *, max_steps=300, rep
                placed_at_shifted_goal={b: placed(b, goal_new) for b in lift},
                goal_offset=goal_off.tolist(), tcp=tcp_tr[::4].round(4).tolist(), edit_info=info[:3],
                packet_z_norm=zlog, objects0={b: z0[b].round(4).tolist() for b in z0}, **am)
-    if scene == "paired":
-        row["patient_color"] = s.scenario.meta["cube_color"]
-        row["rebind_color"] = s.scenario.object("distractor0").descriptor
+    row["patient_color"] = s.scenario.object("cube").descriptor
+    row["rebind_color"] = s.scenario.object("distractor0").descriptor
     row["followed"] = followed(row)
     return row
 

@@ -39,6 +39,44 @@ Checkpoints: snapshots of `policy_last.pt` (sha256 prefix verified against polic
 source-TRAINING bodies (as for the ladder); competence on held-out source bodies (protocol parm5s_tf3/parm5l_pg2) is
 below.
 
+**Semantic edits on BC (same suite, conditions, edits and measurements as the acceptance track's
+latent_semantic_edits; BC has no packet, so the edit is applied to the public context BC observes at each chunk;
+physical scene unchanged).** learned:direct1701_u12000, pick_place dev scenes from 3,000,000 (n_distractors =
+max(1, seed % 3)), 24 seeds per body (parm6_tf3: 7 infeasible, n = 17):
+
+| condition | panda_pg2 (n=24) | parm6_tf3 (n=17) |
+|---|---|---|
+| control: cube lifted / cube in zone | 23 / 22 | 17 / 13 |
+| rebind_obj (task belief -> distractor0): distractor0 lifted / cube lifted / distractor0 in zone | 20 / 0 / 7 | 14 / 0 / 9 |
+| goal_shift (goal belief +12 cm): cube at shifted goal / cube in old zone | 19 / 1 | 10 / 0 |
+| irrelevant_distractor (unbound belief moved 10 cm): same lifted object as control / cube in zone | 23 / 21 | 17 / 14 |
+
+Paired approach preference toward distractor0 vs control: rebind +0.30 m [0.27, 0.33] (panda), +0.31 m [0.26, 0.35]
+(parm6); irrelevant edit +0.001 m [0.000, 0.002] / +0.000 m. So BC's behaviour follows valid context edits (object and
+goal) and ignores the matched irrelevant edit. Caveat: this rebind swaps the tracker BELIEFS of the two objects, so it
+tests "act where the task slot's object is", not binding. The VALID binding edit (descriptor + public binding only,
+`rebind_desc`) was run on the same checkpoint by the acceptance track (research/tracks/acceptance.md "BC reference
+result", 32 seeds panda_pg2): BC IGNORES it (first approach to the new cube 0/32; original cube in zone 25/32; effect vs
+irrelevant +0.6 cm). The source data never varies the binding, so BC learned "slot 0", not "the bound entity". BC is
+also not competent on the binding-paired scenes (permuted slots/colours it never saw). So BC is the competent-control
+reference for manipulation and goal edits, and a NEGATIVE reference for binding (what the latent v4 path must beat).
+Rebind completes the placement less often (7/20, 9/14 of the lifts; the distractor is a same-size cube). Not diagnosed;
+likely the public task runtime (grasp/hold events bound to the cube) disagrees with the edited belief after the lift.
+Raw: `artifacts/runs/baselines_bcsem_u12000/<robot>/semantic_{rows,summary}_learned_pick_place.*` (committed).
+Command: `python -m rrp.evaluation.bc_semantic_edits --policy artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt
+--label direct1701_u12000 --robots <r> --episodes 24 --out artifacts/runs/baselines_bcsem_u12000/<r>` (peer leases
+1790388716_62f535, 1790388716_bce2bf). Videos: artifacts/video/2026-09-25_bc_semantic_{control,rebind_obj,goal_shift,
+irrelevant_distractor}_parm6_tf3_s3000005_direct1701_u12000_followed.mp4 (all four followed).
+
+**Incident 19:16-19:52: the host direct-action source was stopped by the host watchdog (disk_below_reserve) at update
+12,869 (SIGTERM checkpoint) and every retry was refused (memory limit, host busy).** I stopped the host supervisor unit
+rrp-b1fix-baseline_direct_action and resumed the run EXACTLY (exact_resume; checkpoint sha 09263cfa3569e14e copied)
+on the peer: unit rrp-b1fix-direct (peer, dir wt/baselines, same scripts/baselines_host_b1fix.sh with RRP_NODE=peer),
+lease 1790391035_b47fcd, output now in the PEER store
+`/dev/shm/rrp-brandonin/repo/artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/source`. The host dir
+carries MOVED_TO_PEER.txt; do not resume there. The unit runs the source-competence cell after training. The watcher and
+the b0 launcher (`scripts/bc_b0_after.sh`, host loops) follow the peer path.
+
 Code (verified by smoke + these runs): `run_ladder` route `learned` (src/rrp/evaluation/ladder.py; `scripts/ladder.py
 --route learned --policy <ckpt> --policy-label <tag>`): a LearnedPolicy chunk is submitted every 8 ticks and its rows
 executed; shadow teacher, Meter and failure stages exactly as the other rungs. Learning-curve watcher
