@@ -355,7 +355,7 @@ generated-route test on the binding-v4 flows is pending. {src(T, O, B, A, 'resea
                     cells += ["—", "—"]
             rows.append(cells)
         known = {"jointfix": "jointfix", "jfdag1": "jfdag1 (shadow DAgger r1)", "jfdag2df08": "jfdag2df08 (shadow DAgger r1+r2)",
-                 "jfbcdag1": "jfbcdag1 (BC-expert DAgger)", "bindv4sem": "binding v4 SEM bundle", "bindv4nosem": "binding v4 NOSEM bundle (capacity-matched control)"}
+                 "jfbcdag1": "jfbcdag1 (BC-expert DAgger)", "jfbcdag1long": "jfbcdag1long (BC-expert DAgger, 16k steps, lr 3e-4)", "bindv4sem": "binding v4 SEM bundle", "bindv4nosem": "binding v4 NOSEM bundle (capacity-matched control)"}
         found = sorted({f.name[len("oracle_zero_"):-len("_orcbc.summary.json")] for f in (RAW / "ladder_v1").glob("*/oracle_zero_*_orcbc.summary.json")},
                        key=lambda t: (list(known).index(t) if t in known else 99, t))
         for t_, lab in ((t, known.get(t, t)) for t in found):
