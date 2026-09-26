@@ -56,7 +56,8 @@ Paired approach preference toward distractor0 vs control: rebind +0.30 m [0.27, 
 goal) and ignores the matched irrelevant edit. Caveat: this rebind swaps the tracker BELIEFS of the two objects, so it
 tests "act on the object the task context points to", not descriptor-based binding (the acceptance track's paired-scene
 version, where only the entity descriptor/binding changes, is pending on main; I will rerun BC with `--scene paired`).
-Rebind rarely completes the placement (7/20, 9/14) because the physical distractor is a different shape/size.
+Rebind completes the placement less often (7/20, 9/14 of the lifts; the distractor is a same-size cube). Not diagnosed;
+likely the public task runtime (grasp/hold events bound to the cube) disagrees with the edited belief after the lift.
 Raw: `artifacts/runs/baselines_bcsem_u12000/<robot>/semantic_{rows,summary}_learned_pick_place.*` (committed).
 Command: `python -m rrp.evaluation.bc_semantic_edits --policy artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt
 --label direct1701_u12000 --robots <r> --episodes 24 --out artifacts/runs/baselines_bcsem_u12000/<r>` (peer leases
