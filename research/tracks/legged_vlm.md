@@ -131,7 +131,8 @@ Configs are `configs/legged_fixsem/{rep,flow}_{fixsem,nosem}_{go2,hexapod6}_s{1,
 |---|---|---|
 | go2 × {fixsem, nosem} × {s1, s2} training | running | host GPU lease 1790440021_55a138 was launched with all 4 go2 chains. 3 of them failed at CUDA context creation (CUDA_ERROR_OUT_OF_MEMORY; the host GPU is shared) and only `nosem_go2_s1` trains there. The lease will exit rc=1 by design because the other chains failed. `fixsem_go2_s1`, `fixsem_go2_s2` and `nosem_go2_s2` were relaunched from scratch on peer GPU lease 1790440106_9ac1a9. The peer GPU is saturated at ~94% with 7 processes (~0.5 s/step vs 0.09 solo; no CPU quota throttling). |
 | hexapod6 × {fixsem, nosem} × {s1, s2} training | running | peer GPU lease 1790440023_da8335 → peer store `artifacts/runs/legged_fixrep_{rep,flow}_*_hexapod6_s*` |
-| evals | planned | peer CPU |
+| evals | planned (auto-launched by `scripts/legged_fixrep_orchestrate.sh {hex,go2peer,go2host}` when each training lease ends with its flows present) | peer CPU |
+**Incident (09:40).** I ran `scripts/peer_sync.sh push` once without `RRP_PEER_REPO`. It rsynced this worktree, which was current origin/main, into the SHARED peer code dir `/dev/shm/rrp-brandonin/repo` with `--delete`. The sync excludes artifacts, ops state, .git and resources.local.json. Any uncommitted files that existed only in that code dir were deleted; I cannot tell what, if anything, was lost. The only process running from that dir was the peer watchdog, whose modules were already loaded. Reported to the lead.
 Resume: rerun the same train command under a GPU lease. It skips finished stages and resumes from the `*_last.pt` checkpoints.
 
 ## T1 DIAGNOSIS (t1_diag agent, 2026-09-26 05:00 →; worktree ~/work/rrp-wt/legged_vlm, peer dir wt/legged_vlm)
