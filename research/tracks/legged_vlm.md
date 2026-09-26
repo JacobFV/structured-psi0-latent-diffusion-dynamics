@@ -17,10 +17,10 @@ shrinks the sem posterior σ 10× (0.04–0.06 vs 0.54) and halves the packet's 
 10–11.5), squeezing balance state (pitch rate) out of the packet. Causal tests on training seed 0: (a) the sem system 0 falls even
 with PRIVILEGED teacher-encoded packets and no generator (10/30 vs nosem 25/30), so the generator is not the cause; (b) retraining only
 the sem system 0 with the realization loss on the frozen sem encoder gives a dose-response 3 → 15 (4k steps) → 24/30 (12k steps) on R2
-(teacher packets 10 → 14 → 23/30), nosem stays 30/30; (c) the one-line fix of the recipe (bounded semantic NLL: probe log-variance
+(teacher packets 10 → 14 → 23/30), nosem stays 30/30; the teacher-packet failure replicates on training seeds 1 and 3 (sem 9 and 15/30 vs nosem 28 and 29/30); (c) the one-line fix of the recipe (bounded semantic NLL: probe log-variance
 floor −4 instead of −8; everything else identical; a no-op for nosem, whose semantic weight is 0) gives sem R2 **29/30** (nosem 28/30)
 and 25/30 with teacher packets, while the probes stay as good (goal err 0.0175 vs 0.0173, displacement 0.039 vs 0.039, subtask 0.997,
-contact-swing accuracy 0.67 vs 0.19). Replication of the fix on training seeds 1 and 3: see the table below. The nosem R1 failure is not
+contact-swing accuracy 0.67 vs 0.19). The fix replicates on training seeds 1 and 3 (R2 25/30 and 27/30; pooled over seeds 0, 1, 3: fixed sem 81/90 vs original sem 21/90 vs nosem 83/90). The nosem R1 failure is not
 an encoder collapse: with teacher-encoded packets the same nosem system 0 walks (25/30); at the states the R1-nosem loop visits, the
 stateless BC expert's own chunks ask for slow motion, and both encoders read that faithfully.
 
@@ -36,7 +36,14 @@ stateless BC expert's own chunks ask for slow motion, and both encoders read tha
 | teacher-encoded packets → refit system 0 (4k / 12k) | 14/30 / 23/30 | – | `r1t_t1diag_sem_rzctl{,12k}.jsonl` |
 | **R2, FIX: Stage A with bounded semantic NLL (lv floor −4) + its flow (w_sem 0.5 as before)** | **29/30 (1 fell)** | 28/30 (original; fix is a no-op) | `r2_t1diag_sem_lv4.jsonl` |
 | teacher-encoded packets → FIX system 0 | 25/30 (3 fell) | 25/30 | `r1t_t1diag_sem_lv4.jsonl` |
-| FIX replication, training seeds 1 and 3 | running (peer GPU lease 1790429049_c48a2e, then evals `t1_diag_evals.sh lv4s <s>`) | seed 1: 27/30, seed 3: 28/30 (original, D-084) | `r2_t1diag_sem_lv4_s{1,3}.jsonl` |
+| FIX replication, training seed 1: R2 / teacher packets | **25/30** / 28/30 | 27/30 (D-084) / 28/30 | `r2_t1diag_sem_lv4_s1.jsonl`, `r1t_t1diag_sem_lv4_s1.jsonl`, `r1t_t1diag_nosem_v2s1_orig.jsonl` |
+| FIX replication, training seed 3: R2 / teacher packets | **27/30** / 21/30 | 28/30 (D-084) / 29/30 | `r2_t1diag_sem_lv4_s3.jsonl`, `r1t_t1diag_sem_lv4_s3.jsonl`, `r1t_t1diag_nosem_v2s3_orig.jsonl` |
+| original sem, teacher packets, seeds 1 / 3 | 9/30 (21 fell) / 15/30 (14 fell) | 28/30 / 29/30 | `r1t_t1diag_{sem,nosem}_v2s{1,3}_orig.jsonl` |
+
+**Pooled over training seeds 0, 1, 3 (dev seeds 10000–10029 each).** R2 deployable: original sem 21/90 (3+8+10), FIXED sem **81/90** (29+25+27), nosem 83/90 (28+27+28).
+Teacher-encoded packets: original sem 34/90 (10+9+15), fixed sem 74/90 (25+28+21), nosem 82/90 (25+28+29). The fix's Stage-A update scale
+is 0.16 / 0.16 / 0.15 (median grad norm 11 / 10 / 11) and its held-out realization MSE 0.0176 / 0.0141 / 0.0164 (original sem seed 0: 0.024;
+nosem 0.014). Seed 2 was not rerun (budget); the fix was trained once per seed with the original seed's config otherwise unchanged.
 Reading: generator-aware system-0 training adds nothing over the equal-length control (15 vs 15), so system-0 sensitivity to generator
 error is not the lever. Removing the Stage-B semantic loss helps (3 → 13) but leaves 16 falls. What moves sem to nosem level is giving
 system 0 the training it was denied (dose-response) or not starving it in the first place (the bounded-NLL fix).
@@ -94,8 +101,9 @@ shadow-teacher chunk recorded at packet ticks): `artifacts/runs/t1_diag/buf/{bc,
 
 ### Consequences
 - The t1 result "semantic supervision hurts" (D-084) is a result about the RECIPE (unbounded Gaussian NLL + joint clipping), not about
-  semantic content. With the bounded NLL, the sem packet matches nosem on seed 0 (29/30 vs 28/30) with its probes intact.
-  So on t1 the evidence is now: no semantic advantage, and no intrinsic disadvantage.
+  semantic content. With the bounded NLL, the sem packet matches nosem (seed 0: 29/30 vs 28/30) with its probes intact.
+  With the bounded NLL the sem packet matches nosem on the deployable route over 3 training seeds (81/90 vs 83/90). So on t1 the
+  evidence is now: no semantic advantage, and no intrinsic disadvantage. D-084 should be re-read as a recipe artifact.
 - The same starvation is present in the go2 and hexapod6 sem Stage-A runs (clip scale 0.004); those bodies tolerated it (go2 R1 sem 25 vs
   nosem 30 is consistent with a weaker sem system 0). Any sem-vs-nosem comparison trained with this recipe is confounded by optimizer
   starvation of system 0. The arm pipeline should be checked for the same pattern (not checked here).
@@ -110,7 +118,8 @@ shadow-teacher chunk recorded at packet ticks): `artifacts/runs/t1_diag/buf/{bc,
 - refits: `scripts/t1_diag_refit.sh` (host GPU 1790424619_63e81c; 12k: 1790426510_275aa4) → `artifacts/runs/t1diag_rz_{sem,nosem}_{ctl,genz,ctl12k}`.
 - flow w/o semantic loss: peer GPU 1790424650_5d90c4 → `artifacts/runs/t1diag_flow_sem_w0`.
 - fix: `scripts/t1_diag_lv4_chain.sh` (peer GPU 1790425883_41b926) → `artifacts/runs/t1diag_{rep,flow}_sem_lv4`; seeds 1, 3:
-  `scripts/t1_diag_lv4_seeds.sh` (peer GPU 1790429049_c48a2e) → `t1diag_{rep,flow}_sem_lv4_s{1,3}`.
+  `scripts/t1_diag_lv4_seeds.sh` (peer GPU 1790429049_c48a2e, rc=0) → `t1diag_{rep,flow}_sem_lv4_s{1,3}`; evals 1790431753_6bcda7,
+  1790434263_edace8; teacher-packet baselines seeds 1/3: 1790431849_32aabe (all rc=0).
 - closed-loop evals: `scripts/t1_diag_evals.sh {oracle|refit|refit_r1t|flow_w0|lv4|lv4s}` (peer CPU leases 1790424669_b9c86e,
   1790425909_364c58, 1790426505_ad95e5, 1790426521_18fcf8, 1790425883_7be876, 1790428371_c9daec, 1790428386_41f922).
   Note: r1t rows record the source as `privileged_oracle_packet:<latent space>`; the refit system 0 used is in the file name and the command.

@@ -1,0 +1,21 @@
+{
+ "file": "artifacts/runs/legged_ladder/t1/r1t_t1diag_nosem_v2s3_orig.jsonl",
+ "source": "privileged_oracle_packet:legged-ls-legged_nosem_t1_v2s3",
+ "edit": "none",
+ "n": 30,
+ "success": 29,
+ "wilson95": [
+  0.833,
+  0.994
+ ],
+ "stages": {
+  "success": 29,
+  "fell": 1
+ },
+ "seeds": [
+  10000,
+  10029
+ ],
+ "events_a": 30,
+ "events_b": 29
+}
