@@ -83,3 +83,4 @@ Rendered on peer GPU EGL into `artifacts/runs/demo_video/` (NOT the shared artif
 - 01:02 D-071 central-claim box at top of the legged headline (raw mirror_effects.json table + unedited/inactive/active clips side by side) and one bottom-line sentence.
 - 01:05 SPRINT BEST ROUTE FINAL block at the top of the sprint update (R0/BC/R1/R2/fresh/pooled on panda, parm6 and held-out parm5s_tf3; 13 training bodies 209/312; checkpoints sha); bottom line adds held-out parm5s 21/30 vs BC 26/30.
 - 01:12 lead rule: every evaluation of the frozen checkpoints on non-training seeds is shown; FINAL block lists every fresh set with matching BC rows, pooled over all sets (32/90 panda, 60/90 parm6); bottom line uses the pooled numbers.
+- 01:42 D-074 (arm deployable-route context edits) row + paragraph + bottom line + matrix cell + next-steps; stale 'no learned route follows binding' text removed. Waiting for sprint_semantic's seed-3000052 renders.
