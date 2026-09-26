@@ -365,6 +365,16 @@ def sec_sprint():
             rows.append([f'{badge("bc", "learned:direct1701_u12000 (BC, NOT latent)")}<br>canonical scenes', "object beliefs swapped",
                          f'{fc(b, "rebind_obj")} / {fc(b, "control")}',
                          ci(b["_contrasts"].get("rebind_obj-irrelevant_distractor:pref_min")), "(same run)", "n/a"])
+        for v in ("sem", "nosem"):
+            V = f"artifacts/runs/acceptance_sprint_sem_v4{v}_oracle/semantic_summary_oracle.json"
+            if have(V):
+                o4 = J(V)["summary"]
+                orth = o4["_contrasts"].get("rebind_obj-orthogonal_matched:pref_min")
+                rows.append([f'{badge("oracle", f"ORACLE: E(binding v4 {v.upper()}) + teacher demo")}<br>paired scenes', "binding (descriptor)",
+                             f'{fc(o4, "rebind_obj")} / {fc(o4, "control")}',
+                             ci(o4["_contrasts"].get("rebind_obj-irrelevant_distractor:pref_min"))
+                             + (f'<br><span class="ci">vs orthogonal edit: {orth["mean"]:+.3f} [{orth["lo"]:+.3f}, {orth["hi"]:+.3f}]</span>' if orth else ""),
+                             goal(o4), "n/a"])
         rows.append([f'{badge("learned", "learned: v4 sem / nosem flows")}', "generated route", badge("run"), badge("run"), badge("run"), badge("run")])
         parts.append("<h3>Semantic interventions at the level each route reaches (sprint_semantic)</h3>"
                      + table(["route", "edit type", "rebind: first touch on the NEW object (edit / control)",
@@ -374,7 +384,9 @@ def sec_sprint():
 approach the rebound object, but that packet encodes the teacher's demonstration toward it, so this is weak evidence
 (system 0 reads packet content, not the binding). The competent BC controller follows a goal edit and a swap of object
 <i>beliefs</i>, but <b>ignores a pure binding change</b>: that is the capability the semantic packet is meant to add, and the
-generated-route test on the binding-v4 flows is pending. {src(T, O, B, A, 'research/tracks/acceptance.md (SPRINT SEMANTIC RESULTS)')}</p>
+generated-route test on the binding-v4 flows is pending. <b>Binding v4 sem vs nosem (oracle route, D-059):</b> no semantic
+advantage at the behaviour level. Neither v4 system 0 is competent before refitting, and the sem effect is not separable from a
+matched-norm probe-orthogonal edit. The claim that semantic supervision adds causal control remains <b>not shown</b>. {src('D-059')} {src(T, O, B, A, 'research/tracks/acceptance.md (SPRINT SEMANTIC RESULTS)')}</p>
 <div class="grid">{''.join(video_card(v) for v in SEM_VIDEOS)}</div>""")
 
     import re as _re
