@@ -1,0 +1,21 @@
+{
+ "file": "artifacts/runs/legged_ladder/g1/teacher_v1.jsonl",
+ "source": "scripted_teacher:arc_only",
+ "edit": "none",
+ "n": 30,
+ "success": 25,
+ "wilson95": [
+  0.664,
+  0.927
+ ],
+ "stages": {
+  "halt": 5,
+  "success": 25
+ },
+ "seeds": [
+  10000,
+  10029
+ ],
+ "events_a": 30,
+ "events_b": 30
+}
