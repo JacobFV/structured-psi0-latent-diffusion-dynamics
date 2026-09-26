@@ -1,0 +1,30 @@
+{
+ "sem": {
+  "kl_per_entry_mean": 2.7673425674438477,
+  "kl_total_per_packet": 1771.0992431640625,
+  "active_entries_kl_gt_0p01": 640,
+  "active_entries_kl_gt_0p1": 640,
+  "n_entries": 640,
+  "participation_ratio": 6.841163158416748,
+  "mu_norm": 31.321819305419922,
+  "sigma_mean": 0.10624626278877258,
+  "snr_entries_gt1": 640,
+  "snr_median": 8.652047157287598,
+  "top_eig_frac": 0.29890158772468567,
+  "eig_frac_top10": 0.901717483997345
+ },
+ "nosem": {
+  "kl_per_entry_mean": 0.7583410739898682,
+  "kl_total_per_packet": 485.3382873535156,
+  "active_entries_kl_gt_0p01": 640,
+  "active_entries_kl_gt_0p1": 398,
+  "n_entries": 640,
+  "participation_ratio": 11.511322021484375,
+  "mu_norm": 13.487222671508789,
+  "sigma_mean": 0.5463650226593018,
+  "snr_entries_gt1": 247,
+  "snr_median": 0.6673122644424438,
+  "top_eig_frac": 0.18093958497047424,
+  "eig_frac_top10": 0.8159263134002686
+ }
+}

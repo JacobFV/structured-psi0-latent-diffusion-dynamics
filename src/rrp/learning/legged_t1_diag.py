@@ -486,7 +486,8 @@ def balance_cv(ts, out):
     Same packet rows for both variants."""
     dev = _dev()
     Ms = {v: load_models(v, ts, dev) for v in ("sem", "nosem")}
-    sets = {"bc": BUF / "bc", "r2_sem": BUF / f"r2_sem_{ts}", "r2_nosem": BUF / f"r2_nosem_{ts}"}
+    tb = {"lv4": "v2", "lv4_s1": "v2s1", "lv4_s3": "v2s3"}.get(ts, ts)
+    sets = {"bc": BUF / "bc", "r2_sem": BUF / f"r2_sem_{tb}", "r2_nosem": BUF / f"r2_nosem_{tb}"}
     res = dict(ts=ts, sets={})
     g = torch.Generator(device=dev).manual_seed(0)
     for sn, root in sets.items():

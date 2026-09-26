@@ -13,6 +13,8 @@ case $1 in
     done;;
   lv4) bash scripts/legged_ladder.sh t1 t1diag_sem_lv4 $PAR r2 - - - artifacts/runs/t1diag_flow_sem_lv4/policy.pt &
       bash scripts/legged_ladder.sh t1 t1diag_sem_lv4 $PAR r1t - artifacts/runs/t1diag_rep_sem_lv4/representation.pt &;;
+  lv4s) s=$2; bash scripts/legged_ladder.sh t1 t1diag_sem_lv4_s$s $PAR r2 - - - artifacts/runs/t1diag_flow_sem_lv4_s$s/policy.pt &
+      bash scripts/legged_ladder.sh t1 t1diag_sem_lv4_s$s $PAR r1t - artifacts/runs/t1diag_rep_sem_lv4_s$s/representation.pt &;;
   refit_r1t) for v in ${2:-sem nosem}; do for k in ${KS:-ctl}; do
       bash scripts/legged_ladder.sh t1 t1diag_${v}_rz${k} $PAR r1t - artifacts/runs/legged_rep_${v}_t1_v2/representation.pt artifacts/runs/t1diag_rz_${v}_${k}/realizer.pt &
     done; done;;
