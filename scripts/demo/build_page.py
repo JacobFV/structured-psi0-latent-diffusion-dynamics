@@ -574,9 +574,7 @@ route, so no failure below is a tracker failure. {src('D-044', 'D-049')}</p>
 {dualt}
 <p>Success / feasible, dev seeds 3,000,000–019. Plus the manipulator-assignment family: 2,480 identical-scene pairs,
 2,203 valid (both assignments succeed and only the assigned arm holds the bar). {src('dualarm_teacher_ref/*.jsonl', 'D-043', 'research/pairs/assign_pick_place_v1.json')}</p>
-<h3>Legged {badge('teacher')}</h3>
-{legt}
-<p>Teacher driving the frozen body trackers, dev seeds 10000–10019. No learned legged model finished. {src('legged_vlm_teacher_ref/eval_dev.summary.json', 'D-040')}</p>
+<p>Legged and humanoid bodies: see §2b.</p>
 <h3>Infrastructure {badge('ok')}</h3>
 <ul>
 <li>Stage A / Stage B training (standardized, resumable), system-0 runtime at 50 ms, closed-loop eval, disturbance test, labelled renders. {src('D-031')}</li>
@@ -593,7 +591,103 @@ learned:direct1701_u18000 observation → chunk p95 <b>{pi['direct_obs_to_chunk'
 (limit {pi['threshold_p95_ratio']}×). System-0 tick p95 {lat['system0_tick']['p95']:.1f} ms, {lat['system0_deadline_misses']} misses of the 50 ms deadline
 ({lat['system0_tick']['n']} ticks). {src(LAT, 'D-058')}<br>
 <span class="muted">Supersedes the earlier 1.12× estimate (D-041), which used random direct-path weights on a loaded peer.</span></p>
-<div class="grid">{''.join(video_card(v) for v in VIDEOS)}</div>
+<h3>Binding pair: identical scene, three different task bindings {badge('teacher')}</h3>
+<div class="grid">{''.join(video_card(v) for v in VIDEOS if "paired" in v[0])}</div>
+<p>Single-arm, dual-arm, legged and humanoid clips: §2b.</p>
+</section>"""
+
+
+LEGGED = ["go2", "anymal_c", "pquad4", "hexapod6_long", "hexapod6", "sprawl4", "sprawl8"]
+HUMANOID = ["t1", "g1", "h1"]
+ARMS = ["panda_pg2", "panda_tf3", "parm6_tf3", "parm6_pg2", "parm5s_tf3", "parm5l_pg2", "parm7", "ur5e_pg2", "ur5e", "sawyer_pg2",
+        "sawyer", "xarm7_pg2", "xarm7_tf3", "xarm7", "proc", "procedural"]
+
+
+def body_clips():
+    """Scripted-teacher clips from artifacts/video/INDEX.md, grouped by morphology (auto-picks up new sprint_bodies clips)."""
+    import re
+    import shutil
+    idx = ROOT / "artifacts/video/INDEX.md"
+    groups = {"arms": {}, "dual-arm": {}, "legged": {}, "humanoid": {}}
+    if not idx.exists():
+        return groups
+    for line in idx.read_text().splitlines():
+        m = re.match(r"- `([^`]+\.mp4)` — (.*)", line)
+        if not m:
+            continue
+        f, desc = m.group(1), m.group(2)
+        low = (f + " " + desc).lower()
+        if "scripted_teacher" not in low or any(t in f for t in ("causal_edit", "semantic_edit", "triptych", "ladder_", "bc_semantic")):
+            continue
+        src_ = ROOT / "artifacts/video" / f
+        if not src_.exists() or src_.stat().st_size > 2_500_000:
+            continue
+        name = f.lower()
+        if "__" in name or "dual" in name:
+            mm = re.search(r"teacher_(.+?)_([a-z0-9]+_[a-z0-9]+__[a-z0-9]+_[a-z0-9]+)_s\d", name)
+            grp, body = "dual-arm", (f"{mm.group(1)} · {mm.group(2)}" if mm else name[:40])
+        else:
+            grp = body = None
+            for g, names in (("humanoid", HUMANOID), ("legged", LEGGED), ("arms", ARMS)):
+                for b_ in names:
+                    if re.search(rf"(^|_){re.escape(b_)}(_|$)", name.replace(".mp4", "")):
+                        grp, body = g, b_
+                        break
+                if grp:
+                    break
+            if not grp:
+                continue
+        groups[grp].setdefault(body, []).append((f, desc))
+    for g in groups.values():
+        for b_, lst in g.items():
+            for f, _ in lst:
+                if not (VID / f).exists():
+                    VID.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(ROOT / "artifacts/video" / f, VID / f)
+    return groups
+
+
+def sec_bodies():
+    groups = body_clips()
+    lg = J("legged_vlm_teacher_ref/eval_dev.summary.json")["per_body"]
+    lrows = [[esc(b), frac(v["success"], v["n"], ci=False), str(v["fell"])] for b, v in lg.items()]
+    legt = table(["legged body", "teacher success", "falls"], lrows)
+    extra = ""
+    BR = "artifacts/runs/sprint_bodies_teacher_ref"
+    ref_files = sorted((ROOT / BR).glob("*.summary.json")) + sorted((RAW / "sprint_bodies_teacher_ref").glob("*.summary.json")) \
+        if ((ROOT / BR).exists() or (RAW / "sprint_bodies_teacher_ref").exists()) else []
+    for f in ref_files:
+        try:
+            d = json.loads(f.read_text())
+            rows = [[esc(b), frac(v.get("success", 0), v.get("n", 0), ci=False), esc(v.get("note", ""))]
+                    for b, v in (d.get("per_body") or {}).items()]
+            if rows:
+                extra += table(["body", "teacher success", "note"], rows) + src(str(f.relative_to(ROOT)) if str(f).startswith(str(ROOT / "artifacts")) else f.name)
+        except Exception:
+            pass
+    html_ = []
+    titles = {"arms": "Single arms (different kinematics and grippers)", "dual-arm": "Dual-arm (two role-ordered assemblies)",
+              "legged": "Legged (one assembly per leg + body)", "humanoid": "Humanoids"}
+    for g in ("arms", "dual-arm", "legged", "humanoid"):
+        cards = []
+        for b_, lst in sorted(groups[g].items()):
+            plain = [c for c in lst if "paired" not in c[0]]
+            f, desc = (plain or lst)[-1]
+            outcome = "success" if "success" in f else ("failure" if "fail" in f else "")
+            cards.append((f, "teacher", f"{b_} · {outcome}".strip(" ·"), desc[:220] + ("…" if len(desc) > 220 else ""),
+                          "artifacts/video/INDEX.md"))
+        body_html = ''.join(video_card(c) for c in cards) if cards else '<div class="novid">clips pending (sprint_bodies)</div>'
+        html_.append(f"<h3>{titles[g]} {badge('teacher')}</h3><div class=\"grid\">{body_html}</div>")
+        if g == "legged":
+            html_.append(legt + f"<p>Teacher driving frozen body trackers, dev seeds 10000–10019. {src('legged_vlm_teacher_ref/eval_dev.summary.json', 'D-040')}</p>")
+    return f"""
+<section id="bodies"><h2>2b · Bodies: morphology breadth</h2>
+<p class="lede">The packet and system 0 are defined over a morphology graph, so the same interfaces cover arms with different
+kinematics and grippers, two-arm pairs, legged robots and humanoids. <b>Honest scope:</b> every non-arm clip below is the
+<b>scripted teacher driving a frozen tracker</b>. There is <b>no learned legged or humanoid model</b>, and dual-arm training was
+deferred (D-040, D-043). Learned results on this page are single-arm pick_place only.</p>
+{extra}
+{''.join(html_)}
 </section>"""
 
 
@@ -852,7 +946,7 @@ table.ladder td:nth-child(n+3):nth-child(-n+6){white-space:nowrap}
 .arch2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;font-size:.92rem}
 .grid.wide{grid-template-columns:1fr}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin:1rem 0}
 figure.vid{margin:0;border:1px solid var(--line);border-radius:8px;background:var(--card);overflow:hidden}
-figure.vid video{width:100%;display:block;background:#000;aspect-ratio:4/3}
+figure.vid video{width:100%;display:block;background:#000;aspect-ratio:4/3}.grid.wide figure.vid video{aspect-ratio:auto;max-height:420px}
 figcaption{padding:.5rem .6rem;font-size:.84rem;overflow-wrap:anywhere}.novid{padding:2rem;text-align:center;color:var(--mut)}
 .update{border:1.5px solid var(--acc);border-radius:8px;padding:.6rem .9rem;background:var(--card)}
 #theme{float:right;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:.25rem .6rem;cursor:pointer}
@@ -880,7 +974,7 @@ def build(updates_html: str = ""):
         r2.append((d["success"], f.parent.name, f.name[len("generated_zero_"):-len(".summary.json")], d["n"]))
     r2_best = "0/30 on every snapshot" if not r2 or max(r2)[0] == 0 else \
         "{}/{} ({}, {}; still far below BC)".format(max(r2)[0], max(r2)[3], max(r2)[1], max(r2)[2])
-    body = (sec_architecture() + sec_works() + sec_matrix() + sec_debug() + sec_semantic() + sec_bc() + sec_next())
+    body = (sec_architecture() + sec_works() + sec_bodies() + sec_matrix() + sec_debug() + sec_semantic() + sec_bc() + sec_next())
     used = "".join(f"<li><code>{esc(p)}</code></li>" for p in sorted(USED))
     page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -892,7 +986,7 @@ def build(updates_html: str = ""):
 <p class="muted">Built {now} PDT from saved raw outputs by <code>scripts/demo/build_page.py</code>. Research state, not a product.</p>
 <div class="legend">Controller-source labels:
 {badge('teacher')} {badge('oracle')} {badge('learned', 'learned:<ckpt>')} {badge('bc', 'learned BC baseline')} {badge('none')} {badge('run')}</div>
-<nav><a href="#sprint">sprint update</a><a href="#arch">architecture</a><a href="#works">what works</a><a href="#matrix">evidence</a><a href="#debug">debugging</a>
+<nav><a href="#sprint">sprint update</a><a href="#arch">architecture</a><a href="#works">what works</a><a href="#bodies">bodies</a><a href="#matrix">evidence</a><a href="#debug">debugging</a>
 <a href="#semantic">semantic edits</a><a href="#bc">BC control</a><a href="#next">next</a><a href="#sources">sources</a></nav>
 </header>
 <p class="lede"><b>Bottom line.</b> The scripted teacher solves every task and edit shown here on single-arm, dual-arm and legged
