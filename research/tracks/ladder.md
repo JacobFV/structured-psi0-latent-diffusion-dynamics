@@ -23,9 +23,9 @@ gendag3_noqd sem 10/30, 22/30 vs nosem 0/30, 0/30. Stateless R1 (ORACLE DIAGNOST
 sem 13/30, 27/30 vs nosem 0/30, 0/30. nosem failures are almost all at APPROACH (panda 30/30 per set; parm6 25-26/30),
 min TCP-cube distance ~0.11 m (panda) / ~0.09 m (parm6): the arm does not reach the cube.
 On-policy DAgger collections on the 13 training bodies (312 episodes each; route in parentheses): the recipe never
-lifts nosem. Success sem / nosem: bc1 (R1, Stage-A sys0) 4 / 1; bc2 3 / 0... bc3 99 / 4; gen1 (R2) 1 / 2; gen2 41 / 6;
+lifts nosem. Success sem / nosem: bc1 (R1, Stage-A sys0) 4 / 1; bc2 6 / 0; bc3 99 / 4; gen1 (R2) 1 / 2; gen2 41 / 6;
 gen3 143 / 0; gdag1 145 / 1; gdag2 209 / 0. Approach failures: sem 174 -> ~20 from bc3 on; nosem 235-294 in every round.
-(exact: sem bc2 6/312; raw `artifacts/runs/ladder_dagger_{,nsjf_}<buf>/*.summary.json`.)
+(raw `artifacts/runs/ladder_dagger_{,nsjf_}<buf>/*.summary.json`.)
 Offline gate on BC-visited states (arm error / hold-still, panda / parm6; raw `ladder_localize/<robot>/bc_direct1701_u12000__nsjf*.json`,
 summaries in `research/tracks/ladder/armnosem/gate_nosem_summaries.json`): Stage-A system 0 sem 0.43 / 0.74 vs nosem
 0.39 / 0.72 (EQUAL: the one-step gate does not separate them, as on t1); after the recipe, oracle packet: sem gendag3 0.48
