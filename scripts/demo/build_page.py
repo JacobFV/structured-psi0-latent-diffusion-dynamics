@@ -1485,7 +1485,7 @@ comparisons used a defective semantic recipe (an unbounded probe NLL under share
 which, for example, made the t1 humanoid's sem route fall (38/120 vs nosem 107/120). With the bounded-NLL fix: t1 sem ≈ nosem on task success (81/90 vs 83/90,
 3 training seeds, D-087). On go2 and hexapod6, success (30/30 all) and task-context goal steering are equal, but a <b>"halt" request in the task context slows
 the robot only with the semantic packet</b> (go2 −0.24 m vs nosem +0.46 m; hexapod6 −0.34 m vs +0.01 m; CIs separated), and only the semantic packet has a goal-readout
-handle above random (D-088). One training seed per variant: replication is running. The arm has no fixed-sem or nosem counterpart yet (running), and the binding-v4 bundles are not competent.</li>
+handle above random (D-088). One training seed per variant: replication is running. <b>On the arm, the capacity-matched no-semantic packet route fails completely under the identical recipe</b> (R2 pooled panda 0/90 vs sem 36/90; parm6 3/90 vs sem 70/90; held-out 0/30 vs 20/30; it never reaches the cube), and it does not follow rebinding (first approach on the new cube 0/82 vs 60/80), so on the arm the semantic packet is what makes the latent route viable (D-089; one seed; a fixed-sem arm lineage is running).</li>
 <li><b>Not tested:</b> the sealed held-out target bodies for the latent route. Plain BC transfers to a new gripper (78–85/100) but not to the unseen xarm7 arm
 (0/100; D-064). Humanoid g1 has no competent BC control.</li>
 </ul></div>
