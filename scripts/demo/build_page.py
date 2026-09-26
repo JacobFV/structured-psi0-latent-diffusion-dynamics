@@ -446,14 +446,14 @@ matched-norm probe-orthogonal edit. The claim that semantic supervision adds cau
         if "ladder_flow_jointfix" not in fl:
             continue
         fresh = " · FRESH seeds " + f.name.split("fresh")[1].split(".")[0] + "+ (not the matched set)" if "fresh" in f.name else ""
-        step = _re_step(fl)
+        step = (Path(fl).parent.name.replace("ladder_flow_", ""), _re_step(fl))
         s0 = Path(rep).parent.name.replace("ladder_rz_jointfix_", "").replace("ladder_latent_sem_b1fix_anchor", "jointfix")
         r2rows.setdefault((step, s0, fresh), {})[f.parent.name] = d
     if r2rows:
         rows = []
         for (step, s0, fresh), per in sorted(r2rows.items()):
             desc0 = {"gendag1": " (as gendag1_noqd but WITH the joint-velocity input)", "gendag1_qdd": " (gendag1 variant with joint-velocity dropout)", "gendag1_noqd": " (refit from bcdag2: no joint-velocity input, BC-expert DAgger incl. states visited with GENERATED packets, z-noise 0.3; config configs/ladder/rz_jointfix_gendag1_noqd.json on track/ladder)"}.get(s0, "")
-            cells = [f'<span class="badge b-learned">R2 learned:ladder_flow_jointfix@{step}</span> → system 0 {esc(s0)}<b>{esc(fresh)}</b><span class="ci">{esc(desc0)}</span>']
+            cells = [f'<span class="badge b-learned">R2 learned:ladder_flow_{step[0]}{"@" + str(step[1]) if step[1] >= 0 else " (final)"}</span> → system 0 {esc(s0)}<b>{esc(fresh)}</b><span class="ci">{esc(desc0)}</span>']
             for r in ("panda_pg2", "parm6_tf3"):
                 d = per.get(r)
                 if d:
