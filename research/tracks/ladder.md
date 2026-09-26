@@ -61,8 +61,10 @@ Negative: a 4th system-0 round (`gendag4b`) did not help (pooled 16/60, 32/60 wi
 
 Sem vs nosem (binding v4 bundles), same recipe compressed to the sprint: NOT REACHED — neither bundle became competent,
 so there is no deployable sem-vs-nosem comparison. R1 stateless after 3 BC-DAgger rounds: sem 1/30, 1/30; nosem 0/30, 4/30;
-after the generated-packet round: sem 0/30, 2/30; nosem 0/30 (panda). R2 with their own flows (12k): sem 0/30, 0/30;
-nosem 0/30, 1/30 (bcdag2) and 0/30, 0/30 (gendag1, base or DAgger-tuned flow); training bodies sem 0/312, nosem 4/312.
+after the generated-packet round: sem 0/30, 2/30; nosem 0/30, 0/30. R2 with their own flows (12k, and the same flows after
+800 steps of generator DAgger): sem 0/30, 0/30 in every combination (bcdag2, gendag1 x base / DAgger-tuned flow);
+nosem 0/30, 1/30 (bcdag2) then 0/30, 0/30; training bodies (R2 collection) sem 0/312, nosem 4/312.
+Raw: peer `artifacts/runs/ladder_v1/<robot>/{oracle_zero_bindv4*_orcbc,generated_zero_flowbv4*}.summary.json`.
 Nearly all failures are at approach: the binding-v4 system 0 still does not move toward the object from these packets.
 The binding chain's own flows (`flow_binding_paired_{sem,nosem}_v4`) are deadlocked on prefetch (alert below).
 
@@ -72,8 +74,9 @@ HELD-OUT source bodies (not in the pack, not in any DAgger buffer; same harness,
 | R0 scripted_teacher (privileged) | 30/30 [0.89,1.00] | 30/30 [0.89,1.00] |
 | plain BC learned:direct1701_u12000 (ladder harness) | 26/30 [0.70,0.95] | 29/30 [0.83,0.99] |
 | R1 ORACLE DIAGNOSTIC stateless -> gendag3_noqd | 28/30 [0.79,0.98] | 27/30 [0.74,0.97] |
-| **R2 generated flow_jointfix_gdag1 -> gendag3_noqd** | **21/30 [0.52,0.83]** | **22/30 [0.56,0.86]** |
-R2 failures: approach 3, lift 3, transport 2, place 1 / approach 5, lift 2, place 1. Raw: `artifacts/runs/ladder_v1/<robot>/{generated_zero_flowgdag1_rzgendag3_noqd,learned_bc_direct1701_u12000,oracle_zero_gendag3noqd_orcbc,teacher_heldout_ref}.summary.json`.
+| **R2 generated flow_jointfix_gdag2h -> gendag3_noqd (final route)** | **20/30 [0.49,0.81]** | **20/30 [0.49,0.81]** |
+| R2 generated flow_jointfix_gdag1 -> gendag3_noqd (01:10 freeze) | 21/30 [0.52,0.83] | 22/30 [0.56,0.86] |
+Final-route R2 failures: approach 4, transport 3, place 2, lift 1 / lift 5, approach 4, grasp 1. Raw: `artifacts/runs/ladder_v1/<robot>/{generated_zero_flowgdag1_rzgendag3_noqd,learned_bc_direct1701_u12000,oracle_zero_gendag3noqd_orcbc,teacher_heldout_ref}.summary.json`.
 Tracking is never the failure: the joint tracker follows every rung's commands within ~1 cm TCP.
 Raw (peer store = also in the peer path `/dev/shm/rrp-brandonin/repo/`): `artifacts/runs/ladder_v1/<robot>/generated_zero_flowgdag1_rzgendag3_noqd[_fresh3000100].{jsonl,summary.json}`,
 `artifacts/runs/ladder_v1/<robot>/oracle_zero_gendag3noqd_orcbc.{jsonl,summary.json}`, `.../teacher_shadow_own.summary.json`,

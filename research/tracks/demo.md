@@ -85,3 +85,5 @@ Rendered on peer GPU EGL into `artifacts/runs/demo_video/` (NOT the shared artif
 - 01:12 lead rule: every evaluation of the frozen checkpoints on non-training seeds is shown; FINAL block lists every fresh set with matching BC rows, pooled over all sets (32/90 panda, 60/90 parm6); bottom line uses the pooled numbers.
 - 01:42 D-074 (arm deployable-route context edits) row + paragraph + bottom line + matrix cell + next-steps; stale 'no learned route follows binding' text removed. Waiting for sprint_semantic's seed-3000052 renders.
 - 02:08 D-075 pooled 80-seed arm result (table rows per seed set, paragraph, bottom line, clip captions), D-076 (hexapod6 deployable 30/30; t1 sem>nosem as a lead), and a top 'What the evidence supports' box (lead request).
+- 02:25 FINAL block parametrized by frozen recipes (02:30 gdag2h current, 01:10 gdag1 superseded), all seed sets each. BUG FIXED: the earlier FINAL block fell back to the DEV BC numbers for the fresh-3000100 BC row (no BC eval exists on 3000100); that row showed 25/30, 27/30 wrongly from 01:12 to 02:30. Matrix corrected.
+- 02:26 D-077 panda rebinding row/sentence/box.

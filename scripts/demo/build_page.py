@@ -397,63 +397,72 @@ def _re_step(path: str) -> int:
     return int(m.group(1)) if m else -1
 
 
+def recipe_sets(r, recipe):
+    """All evaluations of an R2 recipe on robot r: {'dev': d, '3000100': d, ...}."""
+    import re
+    out = {}
+    for f in (RAW / "ladder_v1" / r).glob(f"generated_zero_{recipe}*.summary.json"):
+        t = f.name[len(f"generated_zero_{recipe}"):-len(".summary.json")]
+        m = re.fullmatch(r"(?:_(?:fresh|s)(3000\d00))?", t)
+        if not m:
+            continue
+        key = "dev" if (m.group(1) in (None, "3000000")) else m.group(1)
+        out[key] = J(str(f.relative_to(RAW)))
+    return out
+
+
+FROZEN = [("flowgdag2h_rzgendag3_noqd", "flow_jointfix_gdag2h → system 0 gendag3_noqd", "02:30 (current)"),
+          ("flowgdag1_rzgendag3_noqd", "flow_jointfix_gdag1 → system 0 gendag3_noqd", "01:10 (superseded)")]
+
+
 def sec_final_route():
     """SPRINT BEST ROUTE FINAL (frozen by sprint_latent), rendered from the raw summaries it names."""
-    T = "ladder_v1/{r}/{t}.summary.json"
-    def cell(r, t):
-        p = T.format(r=r, t=t)
-        if not have(p):
-            return None
-        return J(p)
     robots = ("panda_pg2", "parm6_tf3", "parm5s_tf3", "parm5l_pg2")
-    spec = [("R0 scripted_teacher (privileged)", "teacher", {"panda_pg2": "teacher_shadow_zero", "parm6_tf3": "teacher_shadow_zero", "parm5s_tf3": "teacher_heldout_ref", "parm5l_pg2": "teacher_heldout_ref"}),
-            ("plain BC learned:direct1701_u12000 (reference)", "bc", {"panda_pg2": None, "parm6_tf3": None, "parm5s_tf3": "learned_bc_direct1701_u12000", "parm5l_pg2": "learned_bc_direct1701_u12000"}),
-            ("R1 ORACLE (stateless): E(BC chunk) → system 0 gendag3_noqd", "oracle", {r: "oracle_zero_gendag3noqd_orcbc" for r in robots}),
-            ("<b>R2 deployable: flow_jointfix_gdag1 → system 0 gendag3_noqd</b>", "learned", {r: "generated_zero_flowgdag1_rzgendag3_noqd" for r in robots})]
-    import re as _rf
-    fresh_sets = sorted({m.group(1) for f in (RAW / "ladder_v1").glob("*/*_fresh*.summary.json")
-                         for m in [_rf.search(r"_fresh(\d+)\.summary", f.name)] if m})
-    for fs in fresh_sets:
-        spec.append((f"plain BC learned:direct1701_u12000, FRESH seeds {fs}+", "bc", {r: f"learned_bc_direct1701_u12000_fresh{fs}" for r in robots}))
-        spec.append((f"R2 (same frozen checkpoints), FRESH seeds {fs}+", "learned", {r: f"generated_zero_flowgdag1_rzgendag3_noqd_fresh{fs}" for r in robots}))
+    def one(r, t):
+        p = f"ladder_v1/{r}/{t}.summary.json"
+        return J(p) if have(p) else None
     rows = []
-    for lab, kind, tags in spec:
-        cells = [f'<span class="badge b-{kind}">{lab}</span>']
-        for r in robots:
-            t = tags.get(r)
-            d = cell(r, t) if t else None
-            if d is None and kind == "bc" and r in ("panda_pg2", "parm6_tf3"):
-                bp = f"artifacts/runs/baselines_bc_ladder/{r}/learned_direct1701_u12000.summary.json"
-                d = J(bp) if have(bp) else None
-            cells.append(frac(d["success"], d["n"]) if d else "—")
+    def add(lab, kind, vals):
+        cells = [f'<span class="badge b-{kind}">{lab}</span>'] + [frac(d["success"], d["n"]) if d else "—" for d in vals]
         if any(c != "—" for c in cells[1:]):
             rows.append(cells)
-    # pooled R2 dev + fresh
-    pool = []
-    for r in robots:
-        ds = [cell(r, t) for t in ["generated_zero_flowgdag1_rzgendag3_noqd"] + [f"generated_zero_flowgdag1_rzgendag3_noqd_fresh{fs}" for fs in fresh_sets]]
-        ds = [d for d in ds if d]
-        pool.append(frac(sum(d["success"] for d in ds), sum(d["n"] for d in ds)) + f'<br><span class="ci">{len(ds)} seed sets</span>' if ds else "—")
-    rows.append(['<span class="badge b-learned">R2 pooled: dev + ALL fresh seed sets</span>'] + pool)
+    add("R0 scripted_teacher (privileged), dev", "teacher", [one(r, "teacher_shadow_zero") or one(r, "teacher_heldout_ref") for r in robots])
+    bc = lambda r, suf="": one(r, f"learned_bc_direct1701_u12000{suf}") or (J(f"artifacts/runs/baselines_bc_ladder/{r}/learned_direct1701_u12000.summary.json") if suf == "" and have(f"artifacts/runs/baselines_bc_ladder/{r}/learned_direct1701_u12000.summary.json") else None)
+    add("plain BC learned:direct1701_u12000, dev", "bc", [bc(r) for r in robots])
+    add("R1 ORACLE (stateless): E(BC chunk) → system 0 gendag3_noqd, dev", "oracle", [one(r, "oracle_zero_gendag3noqd_orcbc") for r in robots])
+    for recipe, lab, when in FROZEN:
+        sets = {r: recipe_sets(r, recipe) for r in robots}
+        keys = sorted({k for v in sets.values() for k in v}, key=lambda k: (k != "dev", k))
+        for k in keys:
+            if k != "dev":
+                add(f"plain BC learned:direct1701_u12000, fresh seeds {k}+", "bc", [one(r, f"learned_bc_direct1701_u12000_fresh{k}") for r in robots])
+            add(("<b>" if "current" in when else "") + f"R2 {lab}, {'dev' if k == 'dev' else 'fresh seeds ' + k + '+'} · frozen {when}" + ("</b>" if "current" in when else ""),
+                "learned", [sets[r].get(k) for r in robots])
+        pool = []
+        for r in robots:
+            ds = list(sets[r].values())
+            pool.append((frac(sum(d["success"] for d in ds), sum(d["n"] for d in ds)) + f'<br><span class="ci">{len(ds)} seed set(s)</span>') if ds else "—")
+        rows.append([f'<span class="badge b-learned">R2 {esc(lab)} pooled over ALL its seed sets · {when}</span>'] + pool)
     gd = sorted((RAW / "ladder_dagger_gdag2").glob("generated_*.summary.json"))
     tb = ""
     if gd:
         k = sum(json.loads(f.read_text())["success"] for f in gd)
         n = sum(json.loads(f.read_text())["n"] for f in gd)
         USED.update(str(f.relative_to(RAW)) for f in gd)
-        tb = f"<p>R2 on the {len(gd)} source-<i>training</i> bodies (24 seeds each, seeds 4,000,000+): <b>{k}/{n}</b> (these rollouts were also collected as DAgger training data for the next round; the evaluated checkpoint had not trained on them). {src('ladder_dagger_gdag2/generated_<robot>.summary.json')}</p>"
-    return f"""<h3>FINAL best latent route (frozen 01:10 by sprint_latent): the deployable route works, below BC</h3>
-{table(["controller", "panda_pg2 (dev, 30)", "parm6_tf3 (dev, 30)", "parm5s_tf3 (held-out source body)", "parm5l_pg2 (held-out source body)"], rows)}
+        tb = (f"<p>R2 flow_gdag1 on the {len(gd)} source-<i>training</i> bodies (24 seeds each, seeds 4,000,000+): <b>{k}/{n}</b> (these rollouts were also "
+              f"collected as DAgger training data for the next round; the evaluated checkpoint had not trained on them). {src('ladder_dagger_gdag2/generated_<robot>.summary.json')}</p>")
+    return f"""<h3>FINAL best latent route (frozen by sprint_latent): the deployable route works, below BC</h3>
+{table(["controller", "panda_pg2", "parm6_tf3", "parm5s_tf3 (held-out source body)", "parm5l_pg2 (held-out source body)"], rows)}
 {tb}
-<p>Every evaluation of the frozen checkpoints on non-training seeds is listed, better or worse; BC rows on the same seed sets are shown for a like-for-like comparison.
-No teacher, oracle or BC at run time on the R2 rows. System i = <code>ladder_flow_jointfix_gdag1/policy.pt</code> (sha256 78fbee7f…),
-system 0 + encoder bundle = <code>ladder_rz_jointfix_gendag3_noqd/representation.pt</code> (sha256 f60cde41…). The DAgger labels come from a
-<i>learned</i> stateless expert (the BC controller, trained on the same scripted-teacher demonstrations) at learner-visited states.
-What made it work, all within the architecture: (1) removing a joint-velocity shortcut in system 0; (2) replacing the stale teacher FSM with
-the stateless BC expert; (3) system-0 DAgger rounds, including states visited with system i's own packets, plus z-noise; (4) generator DAgger.
-Not solved: panda grasp/lift and parm6 place. The ordering is R2 &lt; R1 stateless &lt; BC. Binding-v4 sem/nosem bundles are not competent
-with the same recipe yet, so no deployable sem-vs-nosem comparison exists on the arm.
-{src('research/tracks/ladder.md (SPRINT BEST ROUTE FINAL)', 'ladder_v1/<robot>/generated_zero_flowgdag1_rzgendag3_noqd[_fresh3000100].summary.json', 'D-070', 'D-072')}</p>
+<p>Every evaluation of the frozen checkpoints on non-training seeds is listed, better or worse, for the current and the superseded freeze. BC rows on the same
+seed sets are shown for a like-for-like comparison. No teacher, oracle or BC at run time on the R2 rows. Current freeze: system i
+<code>ladder_flow_jointfix_gdag2h</code> (generator-DAgger round 2) and system 0 + encoder <code>ladder_rz_jointfix_gendag3_noqd/representation.pt</code>
+(sha256 f60cde41…). The DAgger labels come from a <i>learned</i> stateless expert (the BC controller, trained on the same scripted-teacher demonstrations) at
+learner-visited states. What made it work, all within the architecture: (1) removing a joint-velocity shortcut in system 0; (2) replacing the stale teacher
+FSM with the stateless BC expert; (3) system-0 DAgger rounds, including states visited with system i's own packets, plus z-noise; (4) generator DAgger.
+Not solved: panda grasp/lift and parm6 place. The ordering is R2 &lt; BC. Binding-v4 sem/nosem bundles are not competent with the same recipe yet, so no
+deployable sem-vs-nosem comparison exists on the arm.
+{src('research/tracks/ladder.md (SPRINT BEST ROUTE FINAL)', 'ladder_v1/<robot>/generated_zero_<recipe>[_s|_fresh<seed>].summary.json', 'D-070', 'D-072')}</p>
 <div class="grid wide">{"".join(video_card(v) for v in R2_VIDEOS[:2] if (VID / v[0]).exists())}</div>"""
 
 
@@ -506,7 +515,12 @@ def sec_sprint():
                              ci(o4["_contrasts"].get("rebind_obj-irrelevant_distractor:pref_min"))
                              + (f'<br><span class="ci">vs orthogonal edit: {orth["mean"]:+.3f} [{orth["lo"]:+.3f}, {orth["hi"]:+.3f}]</span>' if orth else ""),
                              goal(o4), "n/a"])
-        gen_goal = gen_ctl = gen_orig = gen_orig_c = gen_appr = gen_pref = gen_newl = gen_n = "—"
+        gen_goal = gen_ctl = gen_orig = gen_orig_c = gen_appr = gen_pref = gen_newl = gen_n = pan_rb = "—"
+        PAN = "artifacts/runs/acceptance_sprint_sem_gen_jf_panda/semantic_summary_generated.json"
+        if have(PAN):
+            pp_ = J(PAN)["summary"]
+            pan_rb = f'{fc(pp_, "rebind_desc")} vs {fc(pp_, "control")} unedited'
+
         GEN = "artifacts/runs/acceptance_sprint_sem_gen_jf_parm6/semantic_summary_generated.json"
         GENP = "artifacts/runs/acceptance_sprint_sem_gen_jf_parm6_ext/semantic_summary_generated_pooled.json"
         GENX = "artifacts/runs/acceptance_sprint_sem_gen_jf_parm6_ext/semantic_summary_generated_ext.json"
@@ -543,12 +557,13 @@ def sec_sprint():
                          f'<b>{g_["cube_at_shifted_goal"]}/{g_["n"]}</b><br><span class="ci">irrelevant {bb["irrelevant_distractor"]["cube_at_shifted_goal"]}/{bb["irrelevant_distractor"]["n"]}, orthogonal {bb["orthogonal_matched"]["cube_at_shifted_goal"]}/{bb["orthogonal_matched"]["n"]}; '
                          f'{ci(bb["_contrasts"].get("goal_shift-irrelevant_distractor:goal_pref"))} m beyond irrelevant</span>',
                          "n/a"])
-        for GEN, setlab in (("artifacts/runs/acceptance_sprint_sem_gen_jf_parm6_ext/semantic_summary_generated_ext.json", "replication, 39 new seeds"),
+        for GEN, setlab in (("artifacts/runs/acceptance_sprint_sem_gen_jf_panda/semantic_summary_generated.json", "PANDA_PG2 (route not competent: approach-level only)"),
+                            ("artifacts/runs/acceptance_sprint_sem_gen_jf_parm6_ext/semantic_summary_generated_ext.json", "replication, 39 new seeds"),
                             ("artifacts/runs/acceptance_sprint_sem_gen_jf_parm6/semantic_summary_generated.json", "first 41 seeds"),
                             ("artifacts/runs/acceptance_sprint_sem_gen_jf_parm6_ext/semantic_summary_generated_pooled.json", "pooled 80 seeds")):
           if have(GEN):
             gg = J(GEN)["summary"]
-            rows.insert(0, [f'{badge("learned", "DEPLOYABLE: learned flow_jointfix@20k → system 0 gendag1_noqd")}<br>parm6_tf3, canonical scenes, {setlab}',
+            rows.insert(0, [f'{badge("learned", "DEPLOYABLE: learned flow_jointfix@20k → system 0 gendag1_noqd")}<br>{"panda_pg2" if "PANDA" in setlab else "parm6_tf3"}, canonical scenes, {setlab.replace("PANDA_PG2 ", "")}',
                             "binding (descriptor only)",
                             f'<b>{fc(gg, "rebind_desc")}</b> / {fc(gg, "control")}<br><span class="ci">first approach new {gg["rebind_desc"]["approached_first_new_frac"]["k"]}/{gg["rebind_desc"]["n"]}; original cube lifted {gg["rebind_desc"]["cube_lifted"]}/{gg["rebind_desc"]["n"]} vs {gg["control"]["cube_lifted"]}/{gg["control"]["n"]} unedited; new cube lifted {gg["rebind_desc"]["distractor0_lifted"]}</span>',
                             ci(gg["_contrasts"].get("rebind_desc-irrelevant_distractor:pref_min")),
@@ -570,7 +585,8 @@ A binding edit (only the task entity's descriptor changes) means the original cu
 arm first approaches the new cube in {gen_appr}, with closest approach {gen_pref} m toward it. <b>Plain BC ignores the same rebinding
 (0/32)</b>, so this is the first place the latent route does something the direct-action baseline does not. <b>Caveats:</b> one body (panda is
 not competent on this route), and the new cube is lifted in only {gen_newl}, so the rebound task is rarely completed. The flow may read the
-binding through public predicate estimates that follow it. There is no nosem counterpart, so the role of semantic supervision is not isolated.
+binding through public predicate estimates that follow it. There is no nosem counterpart, so the role of semantic supervision is not isolated. On panda_pg2, where this route never transports, the binding edit also redirects the approach: first touch on the new cube {pan_rb} (D-077);
+the goal edit cannot be tested there.
 {src(GEN if have(GEN) else "D-074", "D-074", "D-075")}</p><div class="grid3">{"".join(video_card(v) for v in GEN_SEM_VIDEOS if (VID / v[0]).exists())}</div><p><b>Best latent route: system 0 causally executes goal content carried in the packet (oracle diagnostic, D-062).</b>
 Packet = E(the BC chunk for the edited context) → system 0 jfbcdag2, panda_pg2, 48 seeds, control success {bb_ctrl}. A valid goal edit puts
 the cube at the NEW goal in {bb_goal} vs {bb_irr} and {bb_orth} under the matched controls. A probe-orthogonal edit of matched norm drops success to
@@ -972,6 +988,7 @@ system i's own packets → system 0 give nosem 30/30 and sem 29/30 on the 30 mat
 gives nosem 30/30 and sem 25/30. <b>hexapod6 is the second body through the deployable route: R2 sem 30/30, nosem 30/30</b> (D-076); its BC is 30/30 and its stateless oracle route 30/30 for both. BC positive control t1 humanoid 24/30
 (teacher 30/30). <b>g1 humanoid: the positive control fails</b> (BC 2–7/30 across replan settings vs the arc-only teacher 25/30), so no latent claim is made there.
 <b>t1 humanoid oracle route is not competent</b>: stateless R1 sem 12/30, nosem 0/30 (mostly falls), against BC 24/30, even though both pass the offline gate.
+After one BC-expert DAgger round, applied identically to both, it is sem 18/30 and nosem 0/30 (nosem never reaches the first waypoint in 21/30).
 This is the first sem &gt; nosem gap: a lead to follow up, not a result, because the route is an oracle diagnostic and not competent (D-076).
 {src('research/tracks/legged_vlm.md', 'D-070', 'artifacts/runs/legged_ladder/go2/r2_*_snap_s4000.jsonl')}</p>
 <p><b>Packet edits (D-069, oracle route, go2, 20 seeds):</b> probe-guided halt changes forward progress by −1.24 m (sem) and −1.23 m (nosem), against −0.05 to
@@ -1394,13 +1411,13 @@ def build(updates_html: str = ""):
     ob = BEST.get("oracle", {})
     orc_best = ", ".join(f"{v[0]}/{v[1]} {r}" for r, v in sorted(ob.items())) or "—"
     _h = lambda t: (lambda d: f"{d['success']}/{d['n']}")(J(f"ladder_v1/parm5s_tf3/{t}.summary.json")) if have(f"ladder_v1/parm5s_tf3/{t}.summary.json") else "—"
-    ho_r2, ho_bc = _h("generated_zero_flowgdag1_rzgendag3_noqd"), _h("learned_bc_direct1701_u12000")
+    ho_r2, ho_bc = _h("generated_zero_" + FROZEN[0][0]), _h("learned_bc_direct1701_u12000")
     _h2 = lambda t: (lambda d: f"{d['success']}/{d['n']}")(J(f"ladder_v1/parm5l_pg2/{t}.summary.json")) if have(f"ladder_v1/parm5l_pg2/{t}.summary.json") else "—"
     def _pool(r):
-        ds = [json.loads(f.read_text()) for f in (RAW / "ladder_v1" / r).glob("generated_zero_flowgdag1_rzgendag3_noqd*.summary.json")]
+        ds = list(recipe_sets(r, FROZEN[0][0]).values())
         return f"{sum(d['success'] for d in ds)}/{sum(d['n'] for d in ds)} on {r}" if ds else "—"
     pool_txt = ", ".join(_pool(r) for r in ("panda_pg2", "parm6_tf3"))
-    ho_r2b, ho_bcb = _h2("generated_zero_flowgdag1_rzgendag3_noqd"), _h2("learned_bc_direct1701_u12000")
+    ho_r2b, ho_bcb = _h2("generated_zero_" + FROZEN[0][0]), _h2("learned_bc_direct1701_u12000")
     lb = BEST.get("learned", {})
     import re as _rb
     def _recipe_pool(r, tag):
@@ -1432,12 +1449,12 @@ def build(updates_html: str = ""):
 <ul>
 <li><b>Supported, on deployable routes (no teacher, oracle or BC at run time):</b> the central claim task → packet → behaviour. On the go2 quadruped,
 editing the goal in the task context steers the robot (D-071). On the parm6 arm, goal edits (23/80 vs ≤1/80) and binding edits (the original cube is
-never lifted; the approach goes to the new cube) redirect behaviour beyond matched controls (D-074, D-075). Plain BC ignores the binding edit.</li>
+never lifted; the approach goes to the new cube, also on panda) redirect behaviour beyond matched controls (D-074, D-075, D-077). Plain BC ignores the binding edit.</li>
 <li><b>Competence:</b> the deployable latent route matches BC on go2 (nosem 30/30, sem 29/30) and hexapod6 (30/30 both; D-070, D-076). It is partial on the
 arms: {pool_txt} pooled over the matched and fresh seed sets, against BC 24–30 of 30 on the same sets (D-072).</li>
 <li><b>Not shown:</b> a specific contribution of semantic supervision. On go2, nosem is as steerable as sem (D-069, D-071). The arm result has no nosem
 counterpart, and the binding-v4 sem/nosem bundles are not competent (D-059). The only sem &gt; nosem gap is a lead, not a result: on t1, on an oracle route
-that is not competent (sem 12/30 vs nosem 0/30; BC 24/30; D-076).</li>
+that is not competent (sem 12/30 vs nosem 0/30; after one identical DAgger round 18/30 vs 0/30; BC 24/30; D-076).</li>
 <li><b>Not tested:</b> the sealed held-out target bodies for the latent route. Plain BC transfers to a new gripper (78–85/100) but not to the unseen xarm7 arm
 (0/100; D-064). Humanoid g1 has no competent BC control.</li>
 </ul></div>
