@@ -190,7 +190,8 @@ def video_card(v) -> str:
     f, kind, title, cap, s = v
     lab = {"teacher": "teacher | BC | oracle" if f.startswith("2026-09-25_triptych") else "teacher | BC | stateless oracle" if "orcbctriptych" in f else "scripted_teacher", "oracle": "oracle diagnostic", "learned": "learned", "bc": "learned"}[kind]
     if kind == "learned":
-        lab = ("teacher | BC | learned:flow_jointfix@" + (f.split("flowjf_s")[1].split(".")[0] if "flowjf_s" in f else "20k → sys-0 jfbcdag2")) if "r2triptych" in f else "learned:flow_latent_sem_v2@22k"
+        lab = ("teacher | BC | learned:flow_jointfix@" + (f.split("flowjf_s")[1].split(".")[0] if "flowjf_s" in f else "20k → sys-0 " + f.split("flowjf20k_")[1].split(".")[0])) if "r2triptych" in f \
+            else ("learned:flow_jointfix@20k → sys-0 " + f.split("flowjf20k_")[1].split("_cpu")[0]) if "flowjf20k_" in f else "learned:flow_latent_sem_v2@22k"
     if kind == "bc":
         lab = "learned:" + ("direct1701_u12000 (BC)" if "_s30000" not in f else
                             f.split("_s30000")[1].split("_", 1)[1].rsplit("_", 1)[0])
@@ -272,6 +273,16 @@ SEM_VIDEOS = [
 
 
 R2_VIDEOS = [
+    ("2026-09-25_ladder_generated_parm6_tf3_s3000012_flowjf20k_gendag1noqd_cpu_success.mp4", "learned",
+     "R2 generated · learned:ladder_flow_jointfix final → system 0 gendag1_noqd · parm6_tf3 · seed 3000012 · SUCCESS",
+     "The deployable latent route (system i's own packets, no teacher, no BC in the loop) completes pick-and-place. One of 9/30 "
+     "evaluation successes on parm6_tf3, re-rendered with the model on CPU like the evaluation. A CPU re-render of another "
+     "success seed (3000003) failed at transport, and GPU re-renders of 3 success seeds failed late (place/transport).",
+     "ladder_v1/parm6_tf3/generated_zero_ladder_flow_jointfix_snap_final_s20000_rzgendag1noqd.summary.json"),
+    ("2026-09-25_r2triptych_parm6_tf3_s3000012_teacher_bc-direct1701_u12000_generated-flowjf20k_gendag1noqd.mp4", "learned",
+     "same scene · teacher | plain BC | R2 (flow final → system 0 gendag1_noqd) · parm6_tf3 · seed 3000012 · GPU render",
+     "This GPU render: teacher success; BC fails at lift (BC also varies run to run); R2 carries the cube and fails at place.",
+     "artifacts/runs/demo_video/r2_parm6_tf3_3000012/INDEX.md"),
     ("2026-09-25_r2triptych_parm6_tf3_s3000038_teacher_bc-direct1701_u12000_generated-flowjf20k_rzbcdag2.mp4", "learned",
      "same scene · teacher | plain BC | R2 generated (flow_jointfix final → system 0 jfbcdag2) · parm6_tf3 · seed 3000038",
      "Seed 3000038 is the ONLY R2 success in the evaluation (1/30). In this re-render the R2 panel fails at grasp: the "
@@ -422,15 +433,17 @@ matched-norm probe-orthogonal edit. The claim that semantic supervision adds cau
         c = d.get("checkpoints") or {}
         fl = (c.get("flow") or {}).get("path", "")
         rep = (c.get("representation") or {}).get("path", "")
-        if "ladder_flow_jointfix" not in fl or "fresh" in f.name:
+        if "ladder_flow_jointfix" not in fl:
             continue
+        fresh = " · FRESH seeds " + f.name.split("fresh")[1].split(".")[0] + "+ (not the matched set)" if "fresh" in f.name else ""
         step = _re_step(fl)
         s0 = Path(rep).parent.name.replace("ladder_rz_jointfix_", "").replace("ladder_latent_sem_b1fix_anchor", "jointfix")
-        r2rows.setdefault((step, s0), {})[f.parent.name] = d
+        r2rows.setdefault((step, s0, fresh), {})[f.parent.name] = d
     if r2rows:
         rows = []
-        for (step, s0), per in sorted(r2rows.items()):
-            cells = [f'<span class="badge b-learned">R2 learned:ladder_flow_jointfix@{step}</span> → system 0 {esc(s0)}']
+        for (step, s0, fresh), per in sorted(r2rows.items()):
+            desc0 = {"gendag1": " (as gendag1_noqd but WITH the joint-velocity input)", "gendag1_qdd": " (gendag1 variant with joint-velocity dropout)", "gendag1_noqd": " (refit from bcdag2: no joint-velocity input, BC-expert DAgger incl. states visited with GENERATED packets, z-noise 0.3; config configs/ladder/rz_jointfix_gendag1_noqd.json on track/ladder)"}.get(s0, "")
+            cells = [f'<span class="badge b-learned">R2 learned:ladder_flow_jointfix@{step}</span> → system 0 {esc(s0)}<b>{esc(fresh)}</b><span class="ci">{esc(desc0)}</span>']
             for r in ("panda_pg2", "parm6_tf3"):
                 d = per.get(r)
                 if d:
@@ -441,7 +454,7 @@ matched-norm probe-orthogonal edit. The claim that semantic supervision adds cau
                     cells += ["—", "—"]
             rows.append(cells)
         known = {"jointfix": "jointfix", "jfdag1": "jfdag1 (shadow DAgger r1)", "jfdag2df08": "jfdag2df08 (shadow DAgger r1+r2)",
-                 "jfbcdag1": "jfbcdag1 (BC-expert DAgger)", "jfbcdag1long": "jfbcdag1long (BC-expert DAgger, 16k steps, lr 3e-4)", "jfnoqd": "jfnoqd (no joint-velocity input)", "jfbcdag2": "jfbcdag2 (BC-expert DAgger round 2)", "jfbig16k": "jfbig16k (larger system 0, 16k steps, BC-expert DAgger)", "jfnoqd": "jfnoqd (no joint-velocity input)", "bindv4sem": "binding v4 SEM bundle", "bindv4sembcdag1": "binding v4 SEM + BC-expert DAgger r1", "bindv4nosembcdag1": "binding v4 NOSEM + BC-expert DAgger r1", "bindv4nosem": "binding v4 NOSEM bundle (capacity-matched control)"}
+                 "jfbcdag1": "jfbcdag1 (BC-expert DAgger)", "jfbcdag1long": "jfbcdag1long (BC-expert DAgger, 16k steps, lr 3e-4)", "jfnoqd": "jfnoqd (no joint-velocity input)", "jfbcdag2": "jfbcdag2 (BC-expert DAgger round 2)", "jfbcdag3": "jfbcdag3 (BC-expert DAgger round 3)", "jfbig16k": "jfbig16k (larger system 0, 16k steps, BC-expert DAgger)", "jfnoqd": "jfnoqd (no joint-velocity input)", "bindv4sem": "binding v4 SEM bundle", "bindv4sembcdag1": "binding v4 SEM + BC-expert DAgger r1", "bindv4nosembcdag1": "binding v4 NOSEM + BC-expert DAgger r1", "bindv4nosem": "binding v4 NOSEM bundle (capacity-matched control)"}
         found = sorted({f.name[len("oracle_zero_"):-len("_orcbc.summary.json")] for f in (RAW / "ladder_v1").glob("*/oracle_zero_*_orcbc.summary.json")},
                        key=lambda t: (list(known).index(t) if t in known else 99, t))
         for t_, lab in ((t, known.get(t, t)) for t in found):
@@ -472,7 +485,7 @@ The stateless R1 rows replace the confounded shadow-teacher oracle: the packet i
 execute at the current state), with no teacher state. <b>Diagnosis (D-052 and its 20:15 refinement): both stages fall short. System 0's underfit is the first gate, and the
 generator is also short at this snapshot</b> (generator-gap row below). On its own training pack it explains only ~30% of the teacher's 1-step motion (underfit). With the original jointfix system 0, packets that encode the competent BC's own chunks
 still give 0/30. <b>Improving system 0's fit is the first lever that converts:</b> refitting system 0 with DAgger relabelled by the stateless BC expert
-(jfbcdag1long, then round 2 jfbcdag2) lifts the same stateless oracle route to the first latent-path successes (D-053) and
+(jfbcdag1long, then round 2 jfbcdag2) lifts the same stateless oracle route to the first latent-path successes (D-053; the deployable R2 route follows, D-063) and
 then further (D-055; see rows), still far below BC and not deployable
 (the packet encodes BC's own chunk). R2 through this refit (rows “→ system 0 rzlong”) is the next test. At BC's own states, system 0 explains only part of BC's 1-step motion, and none of it on the first tick of each
 packet. R2 fails at the same stages as the stateless oracle. Next: fix the system-0 fit offline, gated on arm error at BC states ≤ 20% of hold-still before any closed-loop run. {src('D-052')}

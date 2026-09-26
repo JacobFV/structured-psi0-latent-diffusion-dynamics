@@ -425,10 +425,15 @@ def cmd_semantic(a):
     else:
         from rrp.learning.checkpoint import load_checkpoint
         from rrp.policy.latent_runner import LatentPolicy
-        rep = Path(load_checkpoint(a.checkpoint, map_location="cpu")["config"]["representation"])
-        _, _, R, P, _ = load_representation(rep, dev)
-        src = se.GeneratedSource(LatentPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=a.nfe))
-        label = f"learned:{a.checkpoint}"
+        rep = Path(a.representation or load_checkpoint(a.checkpoint, map_location="cpu")["config"]["representation"])
+        _, _, R, P, res = load_representation(rep, dev)
+        pol = LatentPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=a.nfe)
+        if pol.lsv != res["latent_space_version"]:
+            raise SystemExit(f"flow latent space {pol.lsv} != system-0 bundle {res['latent_space_version']}")
+        if pol.rcv != res["realizer_compat_version"]:     # same latent space, refit system 0 (as rrp.evaluation.ladder)
+            pol.rcv = res["realizer_compat_version"]
+        src = se.GeneratedSource(pol)
+        label = f"learned:{a.checkpoint} -> system 0 of {rep}"
     probe = None
     if rep is not None:
         probe = a.probe or (str(rep.parent / "probe_posthoc.pt") if (rep.parent / "probe_posthoc.pt").exists() else None)
@@ -517,7 +522,8 @@ def register_semantic(p):
     c = p.add_parser("semantic-edits", help="valid semantic packet edits (binding / goal) + irrelevant-edit controls")
     c.add_argument("--route", choices=["teacher", "oracle", "generated", "bc"], required=True,
                    help="bc: direct-action BC reference controller (--checkpoint), context-conditioned, no packet")
-    c.add_argument("--representation", help="oracle route: frozen representation.pt")
+    c.add_argument("--representation", help="oracle route: frozen representation.pt; generated route: optional "
+                   "system-0 bundle override (same latent space, refit realizer)")
     c.add_argument("--checkpoint", help="generated route: flow policy checkpoint")
     c.add_argument("--robots", default="panda_pg2")
     c.add_argument("--episodes", type=int, default=12)

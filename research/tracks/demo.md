@@ -72,3 +72,4 @@ Rendered on peer GPU EGL into `artifacts/runs/demo_video/` (NOT the shared artif
 - 22:21 sprint_bodies folded in: montage at top of §2b, humanoid/anymal teacher-ref tables, failures (g1 fall, g1/h1 halt failures, parm7 place), per-body notes; builder copies only picked clips and prunes unreferenced videos from docs/demo/video (15 MB).
 - 22:25 D-062 best-route semantic row + lead's reading (goal content executed; semantic claim NOT shown); refresh.sh now always pushes.
 - 22:43 added a top scoreboard (best run per row on the matched scenes, from raw; fresh-seed runs excluded).
+- 22:51 R2 9/30 parm6 (flow final -> gendag1_noqd) folded in; R2 rows keyed by recorded checkpoints; scoreboard/lede include it; R2 success clip s3000012 (CPU-model render reproduces success; GPU renders of success seeds fail late).
