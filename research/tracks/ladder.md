@@ -3,10 +3,14 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
-## SPRINT BEST ROUTE (live; updated 2026-09-26 00:20 PDT by sprint_latent)
+## SPRINT BEST ROUTE (live; updated 2026-09-26 00:35 PDT by sprint_latent)
 **Best DEPLOYABLE route (R2: system i flow -> system 0; no teacher, no oracle, no BC at run time):
 learned:ladder_flow_jointfix_gdag1 (generator DAgger) -> system 0 learned:ladder_rz_jointfix_gendag3_noqd:
-panda_pg2 10/30 [0.19,0.51], parm6_tf3 22/30 [0.56,0.86]** (matched dev seeds, NFE 8, standard sampling).
+panda_pg2 10/30 [0.19,0.51], parm6_tf3 22/30 [0.56,0.86]** (matched dev seeds, NFE 8, standard sampling);
+**30 FRESH seeds (3,000,100+): 13/30 [0.27,0.61] and 21/30 [0.52,0.83] -> pooled panda 23/60 = 0.38 [0.27,0.51],
+parm6 43/60 = 0.72 [0.59,0.81].** (Plain BC on the dev seeds: 25/30, 27/30; teacher 30/30, 30/30.)
+Binding v4 with the same recipe so far (R1 stateless, system 0 after 3 BC-DAgger rounds, no qd, z-noise): sem 1/30, 1/30;
+the generated-packet rounds and flow DAgger for sem and nosem are running (`scripts/ladder_bindv4_chain.sh`).
 Progression on the same seeds (panda / parm6): flow final + gendag1noqd 0/30, 9/30 -> + gendag2noqd 6/30, 12/30 ->
 flow_ft + gendag2noqd 7/30, 16/30 -> flow_ft + gendag3noqd 9/30, 17/30 -> flow_gdag1 + gendag2noqd 9/30, 19/30 ->
 **flow_gdag1 + gendag3noqd 10/30, 22/30**. Fresh-seed check (3,000,100+) of the round-2 system with the 20k flow: 9/30, 11/30.
