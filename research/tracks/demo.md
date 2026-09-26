@@ -81,3 +81,4 @@ Rendered on peer GPU EGL into `artifacts/runs/demo_video/` (NOT the shared artif
 - 00:25 best-recipe (D-070) triptychs: panda 3000012 (teacher ok, BC u12000 fails grasp, R2 success), parm6 3000019 (all succeed); 2/4 re-rendered success seeds reproduced.
 - 00:58 phone layout: badges wrap inside tables; R2/R1 table shows BC + top 4 R2 + top 2 stateless rows, the rest collapsed; BC reference row is the final checkpoint.
 - 01:02 D-071 central-claim box at top of the legged headline (raw mirror_effects.json table + unedited/inactive/active clips side by side) and one bottom-line sentence.
+- 01:05 SPRINT BEST ROUTE FINAL block at the top of the sprint update (R0/BC/R1/R2/fresh/pooled on panda, parm6 and held-out parm5s_tf3; 13 training bodies 209/312; checkpoints sha); bottom line adds held-out parm5s 21/30 vs BC 26/30.

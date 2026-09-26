@@ -382,6 +382,59 @@ def _re_step(path: str) -> int:
     return int(m.group(1)) if m else -1
 
 
+def sec_final_route():
+    """SPRINT BEST ROUTE FINAL (frozen by sprint_latent), rendered from the raw summaries it names."""
+    T = "ladder_v1/{r}/{t}.summary.json"
+    def cell(r, t):
+        p = T.format(r=r, t=t)
+        if not have(p):
+            return None
+        return J(p)
+    robots = ("panda_pg2", "parm6_tf3", "parm5s_tf3")
+    spec = [("R0 scripted_teacher (privileged)", "teacher", {"panda_pg2": "teacher_shadow_zero", "parm6_tf3": "teacher_shadow_zero", "parm5s_tf3": "teacher_heldout_ref"}),
+            ("plain BC learned:direct1701_u12000 (reference)", "bc", {"panda_pg2": None, "parm6_tf3": None, "parm5s_tf3": "learned_bc_direct1701_u12000"}),
+            ("R1 ORACLE (stateless): E(BC chunk) → system 0 gendag3_noqd", "oracle", {r: "oracle_zero_gendag3noqd_orcbc" for r in robots}),
+            ("<b>R2 deployable: flow_jointfix_gdag1 → system 0 gendag3_noqd</b>", "learned", {r: "generated_zero_flowgdag1_rzgendag3_noqd" for r in robots}),
+            ("R2, same checkpoints, 30 FRESH seeds (3,000,100+)", "learned", {r: "generated_zero_flowgdag1_rzgendag3_noqd_fresh3000100" for r in robots})]
+    rows = []
+    for lab, kind, tags in spec:
+        cells = [f'<span class="badge b-{kind}">{lab}</span>']
+        for r in robots:
+            t = tags.get(r)
+            d = cell(r, t) if t else None
+            if d is None and kind == "bc" and r != "parm5s_tf3":
+                bp = f"artifacts/runs/baselines_bc_ladder/{r}/learned_direct1701_u12000.summary.json"
+                d = J(bp) if have(bp) else None
+            cells.append(frac(d["success"], d["n"]) if d else "—")
+        rows.append(cells)
+    # pooled R2 dev + fresh
+    pool = []
+    for r in robots:
+        ds = [cell(r, t) for t in ("generated_zero_flowgdag1_rzgendag3_noqd", "generated_zero_flowgdag1_rzgendag3_noqd_fresh3000100")]
+        ds = [d for d in ds if d]
+        pool.append(frac(sum(d["success"] for d in ds), sum(d["n"] for d in ds)) if len(ds) == 2 else "—")
+    rows.append(['<span class="badge b-learned">R2 pooled (dev + fresh)</span>'] + pool)
+    gd = sorted((RAW / "ladder_dagger_gdag2").glob("generated_*.summary.json"))
+    tb = ""
+    if gd:
+        k = sum(json.loads(f.read_text())["success"] for f in gd)
+        n = sum(json.loads(f.read_text())["n"] for f in gd)
+        USED.update(str(f.relative_to(RAW)) for f in gd)
+        tb = f"<p>R2 on the {len(gd)} source-<i>training</i> bodies (24 seeds each, seeds 4,000,000+): <b>{k}/{n}</b>. {src('ladder_dagger_gdag2/generated_<robot>.summary.json')}</p>"
+    return f"""<h3>FINAL best latent route (frozen 01:10 by sprint_latent): the deployable route works, below BC</h3>
+{table(["controller", "panda_pg2 (dev, 30)", "parm6_tf3 (dev, 30)", "parm5s_tf3 (held-out source body, 30)"], rows)}
+{tb}
+<p>No teacher, oracle or BC at run time on the R2 rows. System i = <code>ladder_flow_jointfix_gdag1/policy.pt</code> (sha256 78fbee7f…),
+system 0 + encoder bundle = <code>ladder_rz_jointfix_gendag3_noqd/representation.pt</code> (sha256 f60cde41…). The DAgger labels come from a
+<i>learned</i> stateless expert (the BC controller, trained on the same scripted-teacher demonstrations) at learner-visited states.
+What made it work, all within the architecture: (1) removing a joint-velocity shortcut in system 0; (2) replacing the stale teacher FSM with
+the stateless BC expert; (3) system-0 DAgger rounds, including states visited with system i's own packets, plus z-noise; (4) generator DAgger.
+Not solved: panda grasp/lift and parm6 place. The ordering is R2 &lt; R1 stateless &lt; BC. Binding-v4 sem/nosem bundles are not competent
+with the same recipe yet, so no deployable sem-vs-nosem comparison exists on the arm.
+{src('research/tracks/ladder.md (SPRINT BEST ROUTE FINAL)', 'ladder_v1/<robot>/generated_zero_flowgdag1_rzgendag3_noqd[_fresh3000100].summary.json', 'D-070')}</p>
+<div class="grid wide">{"".join(video_card(v) for v in R2_VIDEOS[:2] if (VID / v[0]).exists())}</div>"""
+
+
 def sec_sprint():
     """Top 'sprint update' block, generated from the sprint agents' raw outputs when present."""
     parts = []
@@ -550,7 +603,7 @@ packet. R2 fails at the same stages as the stateless oracle. Next: fix the syste
 {src('ladder_v1/<robot>/generated_zero_flowjf_s<step>.summary.json', 'artifacts/runs/baselines_bc_ladder/', 'research/tracks/ladder.md (SPRINT BEST ROUTE)')}</p>
 <div class="grid wide">{''.join(video_card(v) for v in ORCBC_TRI if (VID / v[0]).exists())}</div>
 <div class="grid">{''.join(video_card(v) for v in ORCBC_VIDEOS if (VID / v[0]).exists())}</div>
-<div class="grid wide">{''.join(video_card(v) for v in R2_VIDEOS if (VID / v[0]).exists())}</div>""")
+<div class="grid wide">{''.join(video_card(v) for v in R2_VIDEOS[2:] if (VID / v[0]).exists())}</div>""")
     L = "ladder_localize/{r}/bc_direct1701_u12000__{t}.json"
     if have(L.format(r="panda_pg2", t="jointfix")):
         rows = []
@@ -586,6 +639,7 @@ the velocity input alone (jfnoqd) also moves the stateless route from 0/30 to it
 {src('ladder_localize/bias/', 'research/tracks/ladder.md (SPRINT BEST ROUTE, 21:58)', 'D-056')}
 The generated-packet row measures the generator gap at the same states: through system 0 the generated packet is
 no better than holding still. So at this flow snapshot both stages fall short. {src(L.format(r='<robot>', t='<tag>'), 'research/tracks/ladder.md (sprint)')}</p>""")
+    parts.insert(0, sec_final_route())
     if not parts:
         return ""
     now = dt.datetime.now().strftime("%H:%M")
@@ -1271,8 +1325,10 @@ def build(updates_html: str = ""):
                   'cell names the run it comes from, and per-run tables follow below. Semantic control of the packet: <b>not shown</b> (D-059, D-062).</p>')
     ob = BEST.get("oracle", {})
     orc_best = ", ".join(f"{v[0]}/{v[1]} {r}" for r, v in sorted(ob.items())) or "—"
+    _h = lambda t: (lambda d: f"{d['success']}/{d['n']}")(J(f"ladder_v1/parm5s_tf3/{t}.summary.json")) if have(f"ladder_v1/parm5s_tf3/{t}.summary.json") else "—"
+    ho_r2, ho_bc = _h("generated_zero_flowgdag1_rzgendag3_noqd"), _h("learned_bc_direct1701_u12000")
     lb = BEST.get("learned", {})
-    r2_best = (", ".join(f"{v[0]}/{v[1]} on {r}" for r, v in sorted(lb.items())) + " (best recipe per body; BC " + ", ".join(f"{v[0]}/{v[1]}" for r, v in sorted(BEST.get("bc", {}).items())) + ")") if lb else "—"
+    r2_best = (", ".join(f"{v[0]}/{v[1]} on {r}" for r, v in sorted(lb.items()) if r in ("panda_pg2", "parm6_tf3")) + " (best recipe per body; final BC " + ", ".join(f"{v[0]}/{v[1]}" for r, v in sorted(BEST.get("bc", {}).items()) if r in ("panda_pg2", "parm6_tf3")) + ")") if lb else "—"
     body = (sec_architecture() + sec_works() + sec_bodies() + sec_matrix() + sec_debug() + sec_semantic() + sec_bc() + sec_next())
     used = "".join(f"<li><code>{esc(p)}</code></li>" for p in sorted(USED))
     page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
@@ -1293,7 +1349,7 @@ humanoid bodies (weaker on g1, h1 and one procedural arm, §2b), and the pipelin
 1.014×, D-058). <b>Plain behaviour cloning on the same data is competent</b> ({bc_lo}–{bc_hi} of 30 on the matched scenes across
 checkpoints; 30/30 on both bodies at the end), so data and evaluation are sound. After fixing a train/deploy mismatch (bug B-1) and a
 velocity-copy shortcut in system 0, <b>the deployable latent route succeeds sometimes but stays well below BC</b>: best R2
-{r2_best}. A stateless oracle diagnostic, which feeds system 0 packets encoded from BC's own chunks, reaches {orc_best}: the gap from BC to
+{r2_best}; on a held-out source body (parm5s_tf3) {ho_r2} vs BC (12k-update checkpoint) {ho_bc}, and on 30 fresh seeds the parm6 rate holds. A stateless oracle diagnostic, which feeds system 0 packets encoded from BC's own chunks, reaches {orc_best}: the gap from BC to
 that diagnostic is system 0's, and the gap from the diagnostic to R2 is the generator's (D-052, D-056, D-063, D-066, D-067, D-068, D-070). <b>A semantic advantage of the packet is not shown</b>: goal content in the packet is executed, but
 binding changes are not followed, and semantic vs capacity-matched no-semantic packets show no difference (D-059, D-062).
 <b>On the go2 quadruped the deployable latent route is competent</b> (nosem 30/30, sem 29/30 vs BC 30/30), and probe-direction edits of the
