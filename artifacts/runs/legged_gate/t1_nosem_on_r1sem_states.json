@@ -1,0 +1,34 @@
+{
+ "rep": "artifacts/runs/legged_rep_nosem_t1_v2/representation.pt",
+ "realizer": null,
+ "flow": null,
+ "label_source": "stateless BC expert chunk (see buffer json)",
+ "bc_visited": {
+  "mse": {
+   "R_oracle": 0.031609740232427914,
+   "hold": 0.7556340972582499,
+   "zero_action": 0.8790878653526306,
+   "R_oracle_qd0": 0.04286805006364981,
+   "R_z0": 0.2812739004691442,
+   "R_zshuf": 0.09397072245677313,
+   "R_gen": null
+  },
+  "ratio_to_hold": {
+   "R_oracle": 0.04183207235766755,
+   "R_oracle_qd0": 0.05673122774527071,
+   "R_z0": 0.37223558530474093,
+   "R_zshuf": 0.12436008750496756,
+   "R_gen": null,
+   "zero_action": 1.1633777095849982
+  },
+  "step_gain": {
+   "normal": 0.9611483808553577,
+   "qd_zeroed": 0.9458635083569235,
+   "z_zeroed": 0.6066820701663728,
+   "z_shuffled": 0.9069553215193396
+  },
+  "j0_ratio_to_hold": 0.033391011976158,
+  "packet_gap_rel": null,
+  "gate_pass_R_oracle_le_0.2_hold": true
+ }
+}

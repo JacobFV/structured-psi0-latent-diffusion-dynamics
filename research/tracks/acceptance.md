@@ -15,6 +15,7 @@ position), panda_pg2, dev seeds; 95% bootstrap CIs over scenes; all numbers from
 | **DEPLOYABLE generated route**: learned:ladder_flow_jointfix/snap_final_s20000 -> system 0 ladder_rz_jointfix_gendag1_noqd, **parm6_tf3**, canonical, rebind_desc | 41 | **28/41** / 3/41 (first approach new 31/41 vs 0/41) | +0.211 [+0.175, +0.248] (beyond orthogonal +0.205 [+0.170, +0.240]; beyond noise replay +0.216 [+0.179, +0.253]) | **15/41 at new goal** (control 0/41, irrelevant 1/41, orthogonal 0/40, replay 0/40) / +0.104 [+0.077, +0.131] | n/a |
 | **DEPLOYABLE, POOLED 80 seeds** (original 41 + lead extension 39, seeds 3,000,000-3,000,119; D-075) | 80 | **56/80** [0.59, 0.79] / 6/80 (first approach new 60/80 vs 0/80; old cube lifted 0/80 vs 58/80 unedited) | +0.231 [+0.202, +0.261] (beyond orthogonal +0.223 [+0.194, +0.252]; beyond replay +0.236 [+0.207, +0.265]) | **23/80** [0.20, 0.39] at new goal (controls: 1/80, 1/80, 1/79) / +0.090 [+0.072, +0.108] (beyond orthogonal +0.083 [+0.064, +0.102]; beyond replay +0.089 [+0.071, +0.108]) | n/a |
 | (extension seeds alone, 3,000,060-3,000,119) | 39 | 28/39 / 3/39 | +0.252 [+0.206, +0.297] | 8/39 [0.11, 0.36] at new goal (controls <= 1/39) / +0.076 [+0.053, +0.099] | n/a |
+| DEPLOYABLE route on **panda_pg2** (same checkpoints; route 0/30 there, D-063), seeds 3,000,000-47 (24 complete; host watchdog stops) | 24 | **24/24** / 0/24 (first approach new 24/24 vs 0/24; old cube lifted 0/24 vs 0/24) | +0.285 [+0.234, +0.344] (beyond orthogonal +0.284 [+0.236, +0.342]; beyond replay +0.276 [+0.242, +0.314]) | 0/24 at new goal (no transport on panda: cube lifted 0/24 in control) / +0.003 [-0.023, +0.031] | n/a |
 **DEPLOYABLE-ROUTE RESULT (01:00, arm counterpart of legged D-071):** on the deployable latent route (system i flow
 -> packet -> system 0, no oracle, no BC anywhere at runtime), the packet generated from an EDITED public context
 causally redirects behaviour on parm6_tf3 (41 feasible dev seeds, noise-keyed pairs):
@@ -340,3 +341,10 @@ ladder uses seed % 3), so the control rate is not the same as D-063's 9/30.
   measurable): host leases 1790412063_{b69980,23c4cb,047183,2805b6,7df3b6,246cd0}, 48 seeds, 1.5G each, one launch each
   -> `artifacts/runs/acceptance_sprint_sem_gen_jf_panda/shard<i>`. Videos of parm6_tf3 seed 3000052 (control succeeds,
   goal edit places at the new goal, rebind touches + lifts the new cube) are rendering on the peer.
+- 02:07 panda_pg2 deployable suite: all 6 host shards were stopped by the host watchdog (sustained memory PSI, other
+  projects) after 1 seed each (36 rows kept). Relaunched once each for the remaining 7 seeds per shard into `shard<i>b`.
+- 02:40 panda_pg2 deployable suite done, partial: 24 complete seeds (144 rows). Host shards were stopped by the watchdog
+  (memory PSI / live limit reduced) and peer shards 4b-5b completed; raw
+  `artifacts/runs/acceptance_sprint_sem_gen_jf_panda/shard*/semantic_rows_generated.jsonl`, summary
+  `semantic_summary_generated.json`. The rebinding redirects the approach on a SECOND body: first touch new 24/24 vs
+  0/24, min-dist effect +28.5 cm [23.4, 34.4]. The goal edit cannot show (panda never transports on this route).
