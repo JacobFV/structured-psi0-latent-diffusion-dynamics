@@ -66,3 +66,4 @@ Rendered on peer GPU EGL into `artifacts/runs/demo_video/` (NOT the shared artif
 - 20:36 refresh: binding v4 sem/nosem ladder rows (shadow R1: parm6 sem re-anchored 1/30, else 0/30; stateless R1 panda 0/30 both), BC learning curve rows (all learned_* summaries).
 - 20:55 stateless R1 jfbcdag1long (3/30 panda, 11/30 parm6) + 4 clips (scripts/demo/render_orcbc.sh, lease 1790394228_e728a0); text: improving system 0's fit is the first lever that converts.
 - 21:50 jfbcdag2 stateless R1 11/30 panda, 19/30 parm6; 3 same-scene triptych clips (scripts/demo/render_orcbc_triptych.sh, lease 1790397535_5e29e7); BC range now computed from data (23–30).
+- 22:05 first R2 success (1/30 parm6, flow final -> jfbcdag2) folded in; lede R2 best computed from raw; velocity-copy mechanism paragraph; R2 clip s3000038 (render fails at grasp; caption says the success does not reproduce).

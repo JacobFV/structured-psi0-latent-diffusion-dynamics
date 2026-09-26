@@ -190,7 +190,7 @@ def video_card(v) -> str:
     f, kind, title, cap, s = v
     lab = {"teacher": "teacher | BC | oracle" if f.startswith("2026-09-25_triptych") else "teacher | BC | stateless oracle" if "orcbctriptych" in f else "scripted_teacher", "oracle": "oracle diagnostic", "learned": "learned", "bc": "learned"}[kind]
     if kind == "learned":
-        lab = "teacher | BC | learned:flow_jointfix@" + f.split("flowjf_s")[1].split(".")[0] if "r2triptych" in f else "learned:flow_latent_sem_v2@22k"
+        lab = ("teacher | BC | learned:flow_jointfix@" + (f.split("flowjf_s")[1].split(".")[0] if "flowjf_s" in f else "20k → sys-0 jfbcdag2")) if "r2triptych" in f else "learned:flow_latent_sem_v2@22k"
     if kind == "bc":
         lab = "learned:" + ("direct1701_u12000 (BC)" if "_s30000" not in f else
                             f.split("_s30000")[1].split("_", 1)[1].rsplit("_", 1)[0])
@@ -272,6 +272,11 @@ SEM_VIDEOS = [
 
 
 R2_VIDEOS = [
+    ("2026-09-25_r2triptych_parm6_tf3_s3000038_teacher_bc-direct1701_u12000_generated-flowjf20k_rzbcdag2.mp4", "learned",
+     "same scene · teacher | plain BC | R2 generated (flow_jointfix final → system 0 jfbcdag2) · parm6_tf3 · seed 3000038",
+     "Seed 3000038 is the ONLY R2 success in the evaluation (1/30). In this re-render the R2 panel fails at grasp: the "
+     "first deployable-route success does not reproduce on demand (flow sampling noise), so treat it as a single event.",
+     "ladder_v1/parm6_tf3/generated_zero_flowjf_s20000_rzbcdag2.summary.json"),
     ("2026-09-25_r2triptych_panda_pg2_s3000029_teacher_bc-direct1701_u12000_generated-flowjf_s4000.mp4", "learned",
      "same scene · teacher | plain BC | R2 generated (flow_jointfix@4000) · panda_pg2 · seed 3000029",
      "Right panel: the deployable latent route, system i's own packet → system 0. This render: teacher success, BC success, "
@@ -849,6 +854,12 @@ def build(updates_html: str = ""):
     bcs = [J(str(f.relative_to(ROOT)))["success"] for f in (ROOT / "artifacts/runs/baselines_bc_ladder").glob("*/learned_*.summary.json")
            if "heldout" not in str(f)]
     bc_lo, bc_hi = min(bcs), max(bcs)
+    r2 = []
+    for f in (RAW / "ladder_v1").glob("*/generated_zero_flowjf_*.summary.json"):
+        d = J(str(f.relative_to(RAW)))
+        r2.append((d["success"], f.parent.name, f.name[len("generated_zero_"):-len(".summary.json")], d["n"]))
+    r2_best = "0/30 on every snapshot" if not r2 or max(r2)[0] == 0 else \
+        "{}/{} ({}, {}; still far below BC)".format(max(r2)[0], max(r2)[3], max(r2)[1], max(r2)[2])
     body = (sec_architecture() + sec_works() + sec_matrix() + sec_debug() + sec_semantic() + sec_bc() + sec_next())
     used = "".join(f"<li><code>{esc(p)}</code></li>" for p in sorted(USED))
     page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
@@ -870,7 +881,7 @@ evaluation are sound. <b>The latent-packet route is not competent yet</b>: its b
 in 30, and causal packet semantics are not shown. We found and fixed a
 train/deploy mismatch (bug B-1). The latent route's remaining failure is <b>not localized yet</b>: the oracle-packet
 diagnostic turned out to be confounded (§4). In the clean test, the generated route against BC on the same seeds, the latent
-route is still 0/30 (sprint update). A stateless oracle and a generator-gap measurement show that both system 0 (underfit; the first gate) and the generator
+route's best result so far is {r2_best} (sprint update). A stateless oracle and a generator-gap measurement show that both system 0 (underfit; the first gate) and the generator
 (at the current flow snapshot) fall short (D-052).</p>
 {updates_html}
 {sec_sprint()}
