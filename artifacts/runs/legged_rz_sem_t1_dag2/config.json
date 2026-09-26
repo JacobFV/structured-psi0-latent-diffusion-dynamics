@@ -1,0 +1,17 @@
+{
+ "name": "legged_rz_sem_t1_dag2",
+ "representation": "artifacts/runs/legged_rep_sem_t1_v2/representation.pt",
+ "init_realizer": "artifacts/runs/legged_rz_sem_t1_dag1/realizer.pt",
+ "dagger": [
+  "artifacts/runs/legged_buf/bc_t1",
+  "artifacts/runs/legged_buf/dag1_sem_t1",
+  "artifacts/runs/legged_buf/dag2_sem_t1"
+ ],
+ "steps": 4000,
+ "batch_size": 256,
+ "lr": 0.0002,
+ "dagger_frac": 0.6,
+ "qd_dropout": 0.5,
+ "seed": 0,
+ "note": "DAgger round 2 (stateless BC labels on states visited by the round-1 R1 route); identical recipe for sem and nosem"
+}

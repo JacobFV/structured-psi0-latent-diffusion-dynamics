@@ -1,0 +1,34 @@
+{
+ "rep": "artifacts/runs/legged_rep_sem_t1_v2/representation.pt",
+ "realizer": "artifacts/runs/legged_rz_sem_t1_dag1/realizer.pt",
+ "flow": "artifacts/runs/legged_flow_sem_t1_v2/policy.pt",
+ "label_source": "stateless BC expert chunk (see buffer json)",
+ "bc_visited": {
+  "mse": {
+   "R_oracle": 0.010103163557748,
+   "hold": 0.7755614757537842,
+   "zero_action": 0.9009856303532918,
+   "R_oracle_qd0": 0.016214644288023314,
+   "R_z0": 0.18108729521433511,
+   "R_zshuf": 0.03778132485846678,
+   "R_gen": 0.011497523387273152
+  },
+  "ratio_to_hold": {
+   "R_oracle": 0.013026902281251822,
+   "R_oracle_qd0": 0.020906974875542866,
+   "R_z0": 0.233491864765888,
+   "R_zshuf": 0.04871480345480844,
+   "R_gen": 0.014824773724221502,
+   "zero_action": 1.1617204548196587
+  },
+  "step_gain": {
+   "normal": 0.9852356869555708,
+   "qd_zeroed": 0.9745350611894563,
+   "z_zeroed": 0.7743788164058903,
+   "z_shuffled": 0.9730198987750754
+  },
+  "j0_ratio_to_hold": 0.011625669076335991,
+  "packet_gap_rel": 0.23235941398307047,
+  "gate_pass_R_oracle_le_0.2_hold": true
+ }
+}
