@@ -359,3 +359,14 @@ Consequences: (1) D-084's "semantic supervision hurts on t1" is an artefact of t
 ## D-086 2026-09-26 user relaxed the host disk reserve to 100 GB; host packed mirror restored; host GPU slots 3
 User: "you can relax the reserve to just be 100GB free." Host RolePolicy disk reserve is now a fixed 100 GB (was 300 GB, D-036). Re-initialized: rrp.slice 12.98 CPU / 31.7 GiB; new-disk budget 156 GiB. Host GPU slots default to 3 (was 2; D-054 had raised them manually). Test updated (test_host_disk_reserve_fixed_100gb). The host copy of latent_pp_v3dart_s1_H16 (24 GB) is being restored under a 26 GB disk reservation (lease mirror_pack_again), so the otherwise idle host GPU can train the fixed-recipe arm sem lineage (D-085).
 Update (D-085, arm): arm_nosem agent confirmed the frozen ARM sem Stage A was affected the same way (median grad norm 300 vs 0.47 nosem, i.e. updates scaled ~200× down). Added latent.probe_lv_min (bounded NLL, with test) to the arm code; a fixed-sem arm lineage (sfjf: frozen sem recipe + probe_lv_min −4, otherwise identical) is running alongside the nosem counterpart.
+
+## D-087 2026-09-26 t1: the bounded-NLL fix replicates; fixed sem ≈ nosem on the deployable route (81/90 vs 83/90; original sem 21/90)
+t1_diag final (research/tracks/legged_vlm.md "T1 DIAGNOSIS", main 538a8b3; raw artifacts/runs/t1_diag/, artifacts/runs/legged_ladder/t1/*t1diag*). R2 deployable, dev seeds 10000–10029, training seeds 0/1/3:
+- fixed sem (latent.probe_lv_min −4, otherwise identical): 29 / 25 / 27 = 81/90
+- nosem: 83/90
+- original sem: 21/90
+- with PRIVILEGED teacher-encoded packets: original sem 10/9/15 vs nosem 25/28/29; fixed sem 25/28/21
+Probes are not worse with the fix (goal err 0.0175, displacement 0.039, subtask 0.997; swing-contact accuracy improves 0.19 → 0.67).
+Refuted hypotheses: (a) generator-error sensitivity: 1-step system-0 error from generated packets equals that from oracle packets, and sem ≈ nosem on all state sets, which is also why the offline gate passed while the closed loop failed; (b) nosem encoder collapse / "maps BC chunks to stand": nosem is not collapsed (participation ratio 10–11.5), and both encoders read BC chunks alike. The R1-nosem stall happens because at R1-visited states the BC expert's own chunks request slow motion (forward readout 0.19 vs teacher 0.40, flow 0.32), so R1 is not an upper bound for R2 on t1.
+Correlates, untested as causes: the original sem packet carries no pitch-rate information (R² ≈ 0 vs nosem 0.7; the fix restores it to 0.34–0.42); sem falls start early with both feet down; sem damps joint velocity less.
+Conclusion: with the recipe defect fixed, semantic supervision neither helps nor hurts task success on t1. Earlier sem-vs-nosem results on go2/hexapod6/arm need rerunning with the fix before any conclusion (arm fixed-sem lineage running).
