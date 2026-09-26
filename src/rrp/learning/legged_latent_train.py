@@ -241,7 +241,7 @@ def train_rep(cfg, out: Path):
         st = torch.load(str(last), map_location=dev, weights_only=False)
         E.load_state_dict(st["E"]); R.load_state_dict(st["R"]); P.load_state_dict(st["P"])
         opt.load_state_dict(st["opt"]); sch.load_state_dict(st["sch"])
-        step0 = st["step"]; rng.bit_generator.state = st["rng"]; torch.set_rng_state(st["torch_rng"])
+        step0 = st["step"]; rng.bit_generator.state = st["rng"]; torch.set_rng_state(st["torch_rng"].cpu())
         print(f"resumed at step {step0}", flush=True)
     log = open(out / "train_log.jsonl", "a")
     t0 = time.time()
@@ -352,7 +352,7 @@ def train_flow(cfg, out: Path):
     if last.exists():
         st = torch.load(str(last), map_location=dev, weights_only=False)
         F_.load_state_dict(st["flow"]); opt.load_state_dict(st["opt"]); sch.load_state_dict(st["sch"])
-        step0 = st["step"]; rng.bit_generator.state = st["rng"]; torch.set_rng_state(st["torch_rng"])
+        step0 = st["step"]; rng.bit_generator.state = st["rng"]; torch.set_rng_state(st["torch_rng"].cpu())
         print(f"resumed at step {step0}", flush=True)
     log = open(out / "train_log.jsonl", "a")
     t0 = time.time()
