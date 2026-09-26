@@ -5,7 +5,7 @@ set -uo pipefail
 REP=$1; TAG=$2; shift 2
 ROBOTS=${*:-panda_pg2 parm6_tf3}
 BC=${BC:-artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt}; BCL=${BCL:-direct1701_u12000}
-PY=/dev/shm/rrp-brandonin/venv/bin/python
+PY=${PY:-/dev/shm/rrp-brandonin/venv/bin/python}
 export CUDA_VISIBLE_DEVICES=
 sha256sum $REP
 for r in $ROBOTS; do

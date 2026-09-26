@@ -4,9 +4,11 @@
 #   [EXPERT=bc BC=<ckpt> BCL=<label>] ladder_dagger_collect.sh <rep.pt> <out_dir> <n_eps> robot1 robot2 ...
 # EXPERT=teacher (default): re-anchored shadow teacher packets + teacher relabels (CONFOUNDED off-trajectory, D-050).
 # EXPERT=bc: stateless expert, packet = E(BC chunk at the replan state), label = that packet's plan row j.
+# EXPERT=bc FLOW=<flow.pt>: route generated (system i's own packets drive the rollout and are stored as z), label = the
+#   BC expert's plan row j from the replan state.
 set -uo pipefail
 REP=$1; OUT=$2; N=$3; shift 3
-PY=/dev/shm/rrp-brandonin/venv/bin/python
+PY=${PY:-/dev/shm/rrp-brandonin/venv/bin/python}
 export CUDA_VISIBLE_DEVICES=
 if [ "${EXPERT:-teacher}" = bc ]; then
   X="--oracle-expert bc --policy ${BC:-artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt} --policy-label ${BCL:-direct1701_u12000}"
@@ -16,6 +18,7 @@ fi
 mkdir -p $OUT
 for r in "$@"; do
   [ -f $OUT/$r.npz ] && continue
-  $PY scripts/ladder.py --route oracle $X --prev-action zero --robot $r --n $N --seed-start ${SEED:-3200000} \
-    --rep $REP --out $OUT --tag $r --no-compare --collect-dagger $OUT/$r.npz || echo "FAILED $r"
+  if [ -n "${FLOW:-}" ]; then ROUTE="generated --flow $FLOW"; NC=""; else ROUTE=oracle; NC=--no-compare; fi
+  $PY scripts/ladder.py --route $ROUTE $X --prev-action zero --robot $r --n $N --seed-start ${SEED:-3200000} \
+    --rep $REP --out $OUT --tag $r $NC --collect-dagger $OUT/$r.npz || echo "FAILED $r"
 done

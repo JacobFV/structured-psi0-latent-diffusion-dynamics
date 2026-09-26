@@ -440,6 +440,13 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
                 for j, k in enumerate(need):
                     collect["cur"][k] = len(collect["mu"])
                     collect["mu"].append(zo[j].astype(np.float16)); collect["lv"].append(oracle.last_logvar[j].astype(np.float16))
+            elif collect is not None and cfg.route == "generated" and cfg.oracle_expert == "bc":
+                # system-0 DAgger on system i's OWN packets: z = generated packet (deterministic, tiny logvar),
+                # label = the stateless BC expert's plan row j from the replan state (oracle.last_cmds via zo above)
+                for j, k in enumerate(need):
+                    collect["cur"][k] = len(collect["mu"])
+                    zg = np.asarray(pk[j].z, np.float32)
+                    collect["mu"].append(zg.astype(np.float16)); collect["lv"].append(np.full_like(zg, -8.0).astype(np.float16))
             for j, (k, p) in enumerate(zip(need, pk)):
                 meta[k]["calls"] += 1
                 rec = dict(t=step)
