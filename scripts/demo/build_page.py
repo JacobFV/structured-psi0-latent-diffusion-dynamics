@@ -1480,7 +1480,7 @@ never lifted; the approach goes to the new cube, also on panda) redirect behavio
 <li><b>Competence:</b> the deployable latent route matches BC on go2 (nosem 30/30, sem 29/30) and hexapod6 (30/30 both), and on the t1 humanoid for nosem only (107/120 over 4 seeds vs BC 24/30) (D-070, D-076, D-079). It is partial on the
 arms: {pool_txt} pooled over the matched and fresh seed sets, against BC 24–30 of 30 on the same sets (D-078, D-080).</li>
 <li><b>Semantic supervision: the evidence is mixed and small.</b> The sem packet has more editable probe handles on hexapod6 (halt −0.19 m vs +0.03 m;
-turn 0.11 vs 0.03–0.07 rad). But context-to-behaviour control is equal on go2 and hexapod6. On the t1 humanoid, across two training seeds, the no-semantic
+turn 0.11 vs 0.03–0.07 rad). But context-to-behaviour control is equal on go2 and hexapod6. On the t1 humanoid, the no-semantic
 packet gives a competent deployable route and the semantic packet does not: across 4 training seeds, nosem 107/120 vs sem 38/120
 (nosem wins every seed; BC 24/30): on this body semantic supervision hurts (D-082, D-084). The t1 oracle-route gap flipped sign across seeds (18/0 vs 0/12), so it was diagnostic noise. The arm result
 has no nosem counterpart, and the binding-v4 sem/nosem bundles are not competent. No claim that semantic supervision improves control is supported (D-059, D-079, D-082).</li>
