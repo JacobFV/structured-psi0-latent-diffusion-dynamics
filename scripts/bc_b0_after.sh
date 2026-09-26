@@ -10,7 +10,7 @@ M=${1:?method}
 PEER=gb10-direct; P=/dev/shm/rrp-brandonin; PR=$P/wt/baselines
 REL=artifacts/runs/latent_slice1_b1fix/$M/seed1701/source
 export RRP_PEER_REPO=$PR
-if [ $M = baseline_direct_action ]; then
+if [ $M = baseline_direct_action ] && [ ! -e $HOME/work/relational-robot-policy/$REL/MOVED_TO_PEER.txt ]; then
   H=$HOME/work/relational-robot-policy/$REL
   until [ -f $H/policy.pt ] && [ -f $H/result.json ]; do sleep 300; done
   ssh $PEER "mkdir -p $P/repo/$REL" && rsync -a $H/policy.pt $H/policy.json $H/result.json $H/config.json $PEER:$P/repo/$REL/ 2>/dev/null \

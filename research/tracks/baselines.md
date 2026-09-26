@@ -68,6 +68,15 @@ Command: `python -m rrp.evaluation.bc_semantic_edits --policy artifacts/runs/bas
 1790388716_62f535, 1790388716_bce2bf). Videos: artifacts/video/2026-09-25_bc_semantic_{control,rebind_obj,goal_shift,
 irrelevant_distractor}_parm6_tf3_s3000005_direct1701_u12000_followed.mp4 (all four followed).
 
+**Incident 19:16-19:52: the host direct-action source was stopped by the host watchdog (disk_below_reserve) at update
+12,869 (SIGTERM checkpoint) and every retry was refused (memory limit, host busy).** I stopped the host supervisor unit
+rrp-b1fix-baseline_direct_action and resumed the run EXACTLY (exact_resume; checkpoint sha 09263cfa3569e14e copied)
+on the peer: unit rrp-b1fix-direct (peer, dir wt/baselines, same scripts/baselines_host_b1fix.sh with RRP_NODE=peer),
+lease 1790391035_b47fcd, output now in the PEER store
+`/dev/shm/rrp-brandonin/repo/artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/source`. The host dir
+carries MOVED_TO_PEER.txt; do not resume there. The unit runs the source-competence cell after training. The watcher and
+the b0 launcher (`scripts/bc_b0_after.sh`, host loops) follow the peer path.
+
 Code (verified by smoke + these runs): `run_ladder` route `learned` (src/rrp/evaluation/ladder.py; `scripts/ladder.py
 --route learned --policy <ckpt> --policy-label <tag>`): a LearnedPolicy chunk is submitted every 8 ticks and its rows
 executed; shadow teacher, Meter and failure stages exactly as the other rungs. Learning-curve watcher
