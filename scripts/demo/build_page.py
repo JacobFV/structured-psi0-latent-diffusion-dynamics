@@ -462,7 +462,7 @@ the same scripted-teacher demonstrations), not from the scripted teacher; the ex
 FSM with the stateless BC expert; (3) system-0 DAgger rounds, including states visited with system i's own packets, plus z-noise; (4) generator DAgger.
 Not solved: panda grasp/lift and parm6 place. The ordering is R2 &lt; BC. Post-freeze flow variants (generator-DAgger round 3, pfA–pfD) did not beat the freeze (D-081); their rows are in the collapsed table below. Binding-v4 sem/nosem bundles are not competent with the same recipe yet, so no
 deployable sem-vs-nosem comparison exists on the arm.
-{src('research/tracks/ladder.md (SPRINT BEST ROUTE FINAL)', 'ladder_v1/<robot>/generated_zero_<recipe>[_s|_fresh<seed>].summary.json', 'D-070', 'D-072', 'D-080')}</p>
+{src('research/tracks/ladder.md (SPRINT BEST ROUTE FINAL)', 'ladder_v1/<robot>/generated_zero_<recipe>[_s|_fresh<seed>].summary.json', 'D-078 (02:30 re-freeze)', 'D-080', 'D-072 (superseded 01:10 freeze)')}</p>
 <div class="grid wide">{"".join(video_card(v) for v in R2_VIDEOS[:2] if (VID / v[0]).exists())}</div>"""
 
 
@@ -1478,7 +1478,7 @@ def build(updates_html: str = ""):
 editing the goal in the task context steers the robot (D-071). On the parm6 arm, goal edits (23/80 vs ≤1/80) and binding edits (the original cube is
 never lifted; the approach goes to the new cube, also on panda) redirect behaviour beyond matched controls (D-074, D-075, D-077). Plain BC, run on the same seeds, ignores the rebinding completely (original cube placed 80/82) while following goal edits (77/82) (D-083).</li>
 <li><b>Competence:</b> the deployable latent route matches BC on go2 (nosem 30/30, sem 29/30) and hexapod6 (30/30 both), and on the t1 humanoid for nosem only (26–28/30 vs BC 24/30) (D-070, D-076, D-079). It is partial on the
-arms: {pool_txt} pooled over the matched and fresh seed sets, against BC 24–30 of 30 on the same sets (D-072).</li>
+arms: {pool_txt} pooled over the matched and fresh seed sets, against BC 24–30 of 30 on the same sets (D-078, D-080).</li>
 <li><b>Semantic supervision: the evidence is mixed and small.</b> The sem packet has more editable probe handles on hexapod6 (halt −0.19 m vs +0.03 m;
 turn 0.11 vs 0.03–0.07 rad). But context-to-behaviour control is equal on go2 and hexapod6. On the t1 humanoid, across two training seeds, the no-semantic
 packet gives a competent deployable route (26–28/30 ≥ BC 24/30) and the semantic packet does not (3–16/30): on this body semantic supervision
@@ -1492,7 +1492,7 @@ humanoid bodies (weaker on g1, h1 and one procedural arm, §2b), and the pipelin
 1.014×, D-058). <b>Plain behaviour cloning on the same data is competent</b> ({bc_lo}–{bc_hi} of 30 on the matched scenes across
 checkpoints; 30/30 on both bodies at the end), so data and evaluation are sound. After fixing a train/deploy mismatch (bug B-1) and a
 velocity-copy shortcut in system 0, <b>the deployable latent route succeeds sometimes but stays well below BC</b>: best R2
-{r2_best}; on held-out source bodies parm5s_tf3 and parm5l_pg2 {ho_r2} and {ho_r2b} vs BC (12k-update checkpoint) {ho_bc} and {ho_bcb}; pooled over the dev and all fresh seed sets, R2 gets {pool_txt}. A stateless oracle diagnostic, which feeds system 0 packets encoded from BC's own chunks, reaches {orc_best}: the gap from BC to
+{r2_best}; on held-out source bodies parm5s_tf3 and parm5l_pg2 {ho_r2} and {ho_r2b} vs BC (12k-update checkpoint) {ho_bc} and {ho_bcb}; pooled over the dev and all fresh seed sets, the frozen route gets {pool_txt} (D-078, D-080). A stateless oracle diagnostic, which feeds system 0 packets encoded from BC's own chunks, reaches {orc_best}: the gap from BC to
 that diagnostic is system 0's, and the gap from the diagnostic to R2 is the generator's (D-052, D-056, D-063, D-066, D-067, D-068, D-070). <b>A semantic advantage of the packet is not shown</b>: goal content in the packet is executed, but
 semantic vs capacity-matched no-semantic packets show no difference (D-059, D-062). <b>On the deployable arm route (parm6_tf3), editing the task
 context redirects behaviour beyond matched controls</b>: a goal edit puts the cube at the new goal (23/80 vs ≤1/80 per control, pooled over 80 seeds), and a binding edit
