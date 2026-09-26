@@ -423,7 +423,7 @@ execute at the current state), with no teacher state. <b>Diagnosis (D-052 and it
 generator is also short at this snapshot</b> (generator-gap row below). On its own training pack it explains only ~30% of the teacher's 1-step motion (underfit). With the original jointfix system 0, packets that encode the competent BC's own chunks
 still give 0/30. <b>Improving system 0's fit is the first lever that converts:</b> refitting system 0 with DAgger relabelled by the stateless BC expert
 (jfbcdag1long, then round 2 jfbcdag2) lifts the same stateless oracle route to the first latent-path successes (D-053) and
-then further (see rows), still far below BC and not deployable
+then further (D-055; see rows), still far below BC and not deployable
 (the packet encodes BC's own chunk). R2 through this refit (rows “→ system 0 rzlong”) is the next test. At BC's own states, system 0 explains only part of BC's 1-step motion, and none of it on the first tick of each
 packet. R2 fails at the same stages as the stateless oracle. Next: fix the system-0 fit offline, gated on arm error at BC states ≤ 20% of hold-still before any closed-loop run. {src('D-052')}
 {src('ladder_v1/<robot>/generated_zero_flowjf_s<step>.summary.json', 'artifacts/runs/baselines_bc_ladder/', 'research/tracks/ladder.md (SPRINT BEST ROUTE)')}</p>
