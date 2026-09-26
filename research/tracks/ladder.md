@@ -3,14 +3,23 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
-## SPRINT BEST ROUTE (live; updated 2026-09-25 23:30 PDT by sprint_latent)
-**Best DEPLOYABLE route (R2: system i flow -> system 0, no teacher, no oracle at run time): learned:ladder_flow_jointfix
-(final, 20k) -> system 0 `gendag2noqd` (round 2 of generated-packet DAgger): panda_pg2 6/30 [0.10,0.37], parm6_tf3
-12/30 [0.25,0.58] on the matched dev seeds** (fresh-seed confirmation running). Round 1 (`gendag1noqd`): panda 0/30 +
-2/30 fresh, parm6 9/30 + 7/30 fresh (pooled 16/60); with the fine-tuned flow (`ladder_flow_jointfix_ft`, +10k) parm6 11/30.
-System 0 checkpoint: `artifacts/runs/ladder_rz_jointfix_gendag2_noqd/representation.pt` (from gendag1noqd; DAgger buffers
-bc1-bc3 + gen1 + gen2 (gen2 = R2 rollouts of flow final + gendag1noqd, seeds 3,700,000+); same recipe; config
-`configs/ladder/rz_jointfix_gendag2_noqd.json`). Round 3 (gen3, collected with the fine-tuned flow) is being collected.
+## SPRINT BEST ROUTE (live; updated 2026-09-26 00:00 PDT by sprint_latent)
+**Best DEPLOYABLE route (R2: system i flow -> system 0; no teacher, no oracle, no BC at run time):
+learned:ladder_flow_jointfix_ft (flow_jointfix final + 10k fine-tune) -> system 0 `gendag2noqd`:
+panda_pg2 7/30 [0.12,0.41], parm6_tf3 16/30 [0.36,0.70]** (matched dev seeds, NFE 8, standard sampling).
+Same system 0 with the 20k flow: 6/30 and 12/30 on the dev seeds, 9/30 [0.17,0.48] and 11/30 [0.22,0.54] on 30 FRESH seeds
+(3,000,100+) -> pooled panda 15/60 = 0.25 [0.16,0.37], parm6 23/60 = 0.38 [0.27,0.51].
+On the 13 source-TRAINING bodies (seeds 3,800,000+, 24 each; the gen-DAgger round-3 collection rollouts, R2 flow_ft ->
+gendag2noqd): 143/312 = 0.46 (parm6_pg2 20/24, parm7_pg2 19/24, parm5s_pg2 18/24, parm5_pg2 17/24 ... sawyer_tf3 3/24),
+raw peer `artifacts/runs/ladder_dagger_gen3/generated_<robot>.summary.json`.
+References on the matched seeds: R0 scripted_teacher 30/30, 30/30; plain BC learned:direct1701_u12000 25/30, 27/30;
+R1 stateless oracle through the same system 0: 9/30, 27/30.
+Sampling check (host, flow final + gendag2noqd, parm6): NFE 16 13/30 (vs 12/30 at NFE 8); initial-noise scale 0.5 4/30;
+scale 0 (deterministic) 1/30 (approach 24) -> standard stochastic sampling is best; mode-seeking collapses the packet.
+System 0 checkpoint: `artifacts/runs/ladder_rz_jointfix_gendag2_noqd/representation.pt`; flow:
+`artifacts/runs/ladder_flow_jointfix_ft/policy.pt` (`configs/ladder/flow_jointfix_ft.json`, init from
+`ladder_flow_jointfix/snap_final_s20000.pt`, +10k steps, lr 1e-4). Running: system 0 round 3 (`gendag3_noqd`), generator
+DAgger (flow fine-tune on learner-visited contexts with target z* = E(BC chunk), `configs/ladder/flow_jointfix_gdag1.json`).
 Best oracle-diagnostic route (R1 stateless: packet = E(chunk of BC learned:direct1701_u12000 at the current state)):
 system 0 `gendag1qdd`: panda 18/30 [0.42,0.75], parm6 27/30 [0.74,0.97] (BC itself: 25/30, 27/30) -> with a valid
 packet, system 0 is now close to BC-level on parm6. The remaining deployable gap is the GENERATOR's packet (grasp on panda,

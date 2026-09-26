@@ -198,8 +198,9 @@ def video_card(v) -> str:
     f, kind, title, cap, s = v
     lab = {"teacher": "teacher | BC | oracle" if f.startswith("2026-09-25_triptych") else "teacher | BC | stateless oracle" if "orcbctriptych" in f else "scripted_teacher", "oracle": "oracle diagnostic", "learned": "learned", "bc": "learned"}[kind]
     if kind == "learned":
-        lab = ("teacher | BC | learned:flow_jointfix@" + (f.split("flowjf_s")[1].split(".")[0] if "flowjf_s" in f else "20k → sys-0 " + f.split("flowjf20k_")[1].split(".")[0])) if "r2triptych" in f \
-            else ("learned:flow_jointfix@20k → sys-0 " + f.split("flowjf20k_")[1].split("_cpu")[0]) if "flowjf20k_" in f else "learned:flow_latent_sem_v2@22k"
+        lab = ("teacher | BC | learned:flow_jointfix@" + (f.split("flowjf_s")[1].split(".")[0] if "flowjf_s" in f else "20k → sys-0 " + f.split("flowjf20k_")[1].split(".")[0].replace("_cpu", ""))) if "r2triptych" in f \
+            else ("learned:flow_jointfix@20k → sys-0 " + f.split("flowjf20k_")[1].split("_cpu")[0]) if "flowjf20k_" in f \
+            else ("learned:flow_jointfix_ft → sys-0 " + f.split("flowjfft_")[1].split("_cpu")[0]) if "flowjfft_" in f else "learned:flow_latent_sem_v2@22k"
     if kind == "bc":
         lab = "learned:" + ("direct1701 final (BC)" if "bc_direct1701_final" in f else "direct1701_u12000 (BC)" if "_s30000" not in f else
                             f.split("_s30000")[1].split("_", 1)[1].rsplit("_", 1)[0])
@@ -281,6 +282,29 @@ SEM_VIDEOS = [
 
 
 R2_VIDEOS = [
+    ("2026-09-25_ladder_generated_parm6_tf3_s3000011_flowjfft_gendag2noqd_cpu_success.mp4", "learned",
+     "R2 generated · learned:ladder_flow_jointfix_ft → system 0 gendag2_noqd · parm6_tf3 · seed 3000011 · SUCCESS",
+     "The deployable latent route (system i's own packets; no teacher or BC in the loop) on the current best parm6 recipe (16/30). "
+     "Re-rendering 5 of its evaluation-success seeds on CPU reproduced 3 successes (3000011, 3000015, 3000016); 3000010 failed at lift, 3000017 at approach.",
+     "ladder_v1/parm6_tf3/generated_zero_flowjfft10k_rzgendag2noqd.summary.json"),
+    ("2026-09-25_ladder_generated_parm6_tf3_s3000015_flowjfft_gendag2noqd_cpu_success.mp4", "learned",
+     "R2 generated · same recipe · parm6_tf3 · seed 3000015 · SUCCESS", "Second reproduced success.",
+     "ladder_v1/parm6_tf3/generated_zero_flowjfft10k_rzgendag2noqd.summary.json"),
+    ("2026-09-25_ladder_generated_parm6_tf3_s3000010_flowjfft_gendag2noqd_cpu_failure-lift.mp4", "learned",
+     "R2 generated · same recipe · parm6_tf3 · seed 3000010 · failure (lift) in this render",
+     "Its evaluation row succeeded; this re-render fails at lift. Single episodes vary.",
+     "ladder_v1/parm6_tf3/generated_zero_flowjfft10k_rzgendag2noqd.summary.json"),
+    ("2026-09-25_ladder_generated_panda_pg2_s3000013_flowjf20k_gendag2noqd_cpu_success.mp4", "learned",
+     "R2 generated · learned:ladder_flow_jointfix final → system 0 gendag2_noqd · panda_pg2 · seed 3000013 · SUCCESS",
+     "Best panda recipe (6/30). Re-rendering 4 of its evaluation-success seeds reproduced 1 success; the others failed at grasp, lift or transport.",
+     "ladder_v1/panda_pg2/generated_zero_ladder_flow_jointfix_snap_final_s20000_rzgendag2noqd.summary.json"),
+    ("2026-09-25_ladder_generated_panda_pg2_s3000009_flowjf20k_gendag2noqd_cpu_failure-lift.mp4", "learned",
+     "R2 generated · same recipe · panda_pg2 · seed 3000009 · failure (lift) in this render",
+     "Its evaluation row succeeded.", "ladder_v1/panda_pg2/generated_zero_ladder_flow_jointfix_snap_final_s20000_rzgendag2noqd.summary.json"),
+    ("2026-09-25_r2triptych_panda_pg2_s3000000_teacher_bc-direct1701_u12000_generated-flowjf20k_gendag2noqd_cpu.mp4", "learned",
+     "same scene · teacher | plain BC u12000 | R2 (flow final → gendag2_noqd) · panda_pg2 · seed 3000000 · CPU render",
+     "This render: teacher success; BC (12k-update checkpoint) fails at grasp; R2 carries the cube and fails at place.",
+     "artifacts/runs/demo_video/r2_panda_pg2_3000000/INDEX.md"),
     ("2026-09-25_ladder_generated_parm6_tf3_s3000012_flowjf20k_gendag1noqd_cpu_success.mp4", "learned",
      "R2 generated · learned:ladder_flow_jointfix final → system 0 gendag1_noqd · parm6_tf3 · seed 3000012 · SUCCESS",
      "The deployable latent route (system i's own packets, no teacher, no BC in the loop) completes pick-and-place. One of 9/30 "
@@ -296,16 +320,6 @@ R2_VIDEOS = [
      "Seed 3000038 is the ONLY R2 success in the evaluation (1/30). In this re-render the R2 panel fails at grasp: the "
      "first deployable-route success does not reproduce on demand (flow sampling noise), so treat it as a single event.",
      "ladder_v1/parm6_tf3/generated_zero_flowjf_s20000_rzbcdag2.summary.json"),
-    ("2026-09-25_r2triptych_panda_pg2_s3000029_teacher_bc-direct1701_u12000_generated-flowjf_s4000.mp4", "learned",
-     "same scene · teacher | plain BC | R2 generated (flow_jointfix@4000) · panda_pg2 · seed 3000029",
-     "Right panel: the deployable latent route, system i's own packet → system 0. This render: teacher success, BC success, "
-     "R2 failure at grasp. (The evaluation row of this seed got furthest of all 30, failing only at place.)",
-     "artifacts/runs/demo_video/r2_panda_pg2_3000029/INDEX.md"),
-    ("2026-09-25_r2triptych_panda_pg2_s3000008_teacher_bc-direct1701_u12000_generated-flowjf_s4000.mp4", "learned",
-     "same scene · teacher | plain BC | R2 generated (flow_jointfix@4000) · panda_pg2 · seed 3000008",
-     "This render: teacher success, BC success, R2 failure at approach (the evaluation row reached the cube, 5 mm, and "
-     "failed at grasp).",
-     "artifacts/runs/demo_video/r2_panda_pg2_3000008/INDEX.md"),
 ]
 
 
@@ -443,17 +457,22 @@ matched-norm probe-orthogonal edit. The claim that semantic supervision adds cau
         c = d.get("checkpoints") or {}
         fl = (c.get("flow") or {}).get("path", "")
         rep = (c.get("representation") or {}).get("path", "")
-        if "ladder_flow_jointfix" not in fl:
+        if not fl or "ladder_ckpts" in fl or "grpo_base" in fl or "flow_latent_sem_v" in fl:   # pre-fix flows
             continue
         fresh = " · FRESH seeds " + f.name.split("fresh")[1].split(".")[0] + "+ (not the matched set)" if "fresh" in f.name else ""
-        step = (Path(fl).parent.name.replace("ladder_flow_", ""), _re_step(fl))
-        s0 = Path(rep).parent.name.replace("ladder_rz_jointfix_", "").replace("ladder_latent_sem_b1fix_anchor", "jointfix")
+        import re as _re3
+        _st = _re_step(fl)
+        if _st < 0:
+            _m = _re3.search(r"(\d+)k_rz", f.name)
+            _st = int(_m.group(1)) * 1000 if _m else -1
+        step = (Path(fl).parent.name.replace("ladder_flow_", "").replace("ladder_", ""), _st)
+        s0 = Path(rep).parent.name.replace("ladder_rz_jointfix_", "").replace("ladder_latent_sem_b1fix_anchor", "jointfix").replace("ladder_rz_", "")
         r2rows.setdefault((step, s0, fresh), {})[f.parent.name] = d
     if r2rows:
         rows = []
         for (step, s0, fresh), per in sorted(r2rows.items()):
-            desc0 = {"gendag1": " (as gendag1_noqd but WITH the joint-velocity input)", "gendag2_noqd": " (round 2 of gendag1_noqd: DAgger on generated-packet states, no joint-velocity input)", "gendag1_qdd": " (gendag1 variant with joint-velocity dropout)", "gendag1_noqd": " (refit from bcdag2: no joint-velocity input, BC-expert DAgger incl. states visited with GENERATED packets, z-noise 0.3; config configs/ladder/rz_jointfix_gendag1_noqd.json on track/ladder)"}.get(s0, "")
-            cells = [f'<span class="badge b-learned">R2 learned:ladder_flow_{step[0]}{"@" + str(step[1]) if step[1] >= 0 else " (final)"}</span> → system 0 {esc(s0)}<b>{esc(fresh)}</b><span class="ci">{esc(desc0)}</span>']
+            desc0 = {"gendag1": " (as gendag1_noqd but WITH the joint-velocity input)", "gendag2_noqd": " (round 2 of gendag1_noqd: DAgger on generated-packet states, no joint-velocity input)", "gendag3_noqd": " (round 3 of the same recipe)", "gendag1_qdd": " (gendag1 variant with joint-velocity dropout)", "gendag1_noqd": " (refit from bcdag2: no joint-velocity input, BC-expert DAgger incl. states visited with GENERATED packets, z-noise 0.3; config configs/ladder/rz_jointfix_gendag1_noqd.json on track/ladder)"}.get(s0, "")
+            cells = [f'<span class="badge b-learned">R2 learned:flow_{step[0]}{"@" + str(step[1]) if step[1] >= 0 else " (final)"}</span> → system 0 {esc(s0)}<b>{esc(fresh)}</b><span class="ci">{esc(desc0)}</span>']
             for r in ("panda_pg2", "parm6_tf3"):
                 d = per.get(r)
                 if d:
@@ -1166,8 +1185,8 @@ def build(updates_html: str = ""):
                   'cell names the run it comes from, and per-run tables follow below. Semantic control of the packet: <b>not shown</b> (D-059, D-062).</p>')
     ob = BEST.get("oracle", {})
     orc_best = ", ".join(f"{v[0]}/{v[1]} {r}" for r, v in sorted(ob.items())) or "—"
-    r2_best = "0/30 on every snapshot" if not r2 or max(r2)[0] == 0 else \
-        "{}/{} ({}, {}; still far below BC)".format(max(r2)[0], max(r2)[3], max(r2)[1], max(r2)[2])
+    lb = BEST.get("learned", {})
+    r2_best = (", ".join(f"{v[0]}/{v[1]} on {r}" for r, v in sorted(lb.items())) + " (best recipe per body; BC " + ", ".join(f"{v[0]}/{v[1]}" for r, v in sorted(BEST.get("bc", {}).items())) + ")") if lb else "—"
     body = (sec_architecture() + sec_works() + sec_bodies() + sec_matrix() + sec_debug() + sec_semantic() + sec_bc() + sec_next())
     used = "".join(f"<li><code>{esc(p)}</code></li>" for p in sorted(USED))
     page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
@@ -1189,7 +1208,7 @@ humanoid bodies (weaker on g1, h1 and one procedural arm, §2b), and the pipelin
 checkpoints; 30/30 on both bodies at the end), so data and evaluation are sound. After fixing a train/deploy mismatch (bug B-1) and a
 velocity-copy shortcut in system 0, <b>the deployable latent route succeeds sometimes but stays well below BC</b>: best R2
 {r2_best}. A stateless oracle diagnostic, which feeds system 0 packets encoded from BC's own chunks, reaches {orc_best}: the gap from BC to
-that diagnostic is system 0's, and the gap from the diagnostic to R2 is the generator's (D-052, D-056, D-063, D-066). <b>A semantic advantage of the packet is not shown</b>: goal content in the packet is executed, but
+that diagnostic is system 0's, and the gap from the diagnostic to R2 is the generator's (D-052, D-056, D-063, D-066, D-067, D-068). <b>A semantic advantage of the packet is not shown</b>: goal content in the packet is executed, but
 binding changes are not followed, and semantic vs capacity-matched no-semantic packets show no difference (D-059, D-062).</p>
 {scoreboard}
 {updates_html}

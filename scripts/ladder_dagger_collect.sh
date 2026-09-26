@@ -20,5 +20,5 @@ for r in "$@"; do
   [ -f $OUT/$r.npz ] && continue
   if [ -n "${FLOW:-}" ]; then ROUTE="generated --flow $FLOW"; NC=""; else ROUTE=oracle; NC=--no-compare; fi
   $PY scripts/ladder.py --route $ROUTE $X --prev-action zero --robot $r --n $N --seed-start ${SEED:-3200000} \
-    --rep $REP --out $OUT --tag $r $NC --collect-dagger $OUT/$r.npz || echo "FAILED $r"
+    --rep $REP --out $OUT --tag $r $NC ${GENCTX:+--collect-gen-ctx} --collect-dagger $OUT/$r.npz || echo "FAILED $r"
 done
