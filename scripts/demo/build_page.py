@@ -1402,7 +1402,17 @@ def build(updates_html: str = ""):
     pool_txt = ", ".join(_pool(r) for r in ("panda_pg2", "parm6_tf3"))
     ho_r2b, ho_bcb = _h2("generated_zero_flowgdag1_rzgendag3_noqd"), _h2("learned_bc_direct1701_u12000")
     lb = BEST.get("learned", {})
-    r2_best = (", ".join(f"{v[0]}/{v[1]} on {r}" for r, v in sorted(lb.items()) if r in ("panda_pg2", "parm6_tf3")) + " (best recipe per body; final BC " + ", ".join(f"{v[0]}/{v[1]}" for r, v in sorted(BEST.get("bc", {}).items()) if r in ("panda_pg2", "parm6_tf3")) + ")") if lb else "—"
+    import re as _rb
+    def _recipe_pool(r, tag):
+        base = _rb.sub(r"_(?:fresh|s)3000\d00$", "", tag)
+        ds = []
+        for f in (RAW / "ladder_v1" / r).glob(f"{base}*.summary.json"):
+            t = f.name[:-len(".summary.json")]
+            if _rb.sub(r"_(?:fresh|s)3000\d00$", "", t) == base:
+                ds.append(json.loads(f.read_text()))
+        return sum(d["success"] for d in ds), sum(d["n"] for d in ds), len(ds)
+    _rp = {r: _recipe_pool(r, v[2]) for r, v in lb.items() if r in ("panda_pg2", "parm6_tf3")}
+    r2_best = (", ".join(f"{v[0]}/{v[1]} on {r} (that recipe over all its seed sets: {_rp[r][0]}/{_rp[r][1]})" for r, v in sorted(lb.items()) if r in ("panda_pg2", "parm6_tf3")) + " (best recipe per body on the matched seeds, a best-of selection; final BC " + ", ".join(f"{v[0]}/{v[1]}" for r, v in sorted(BEST.get("bc", {}).items()) if r in ("panda_pg2", "parm6_tf3")) + ")") if lb else "—"
     body = (sec_architecture() + sec_works() + sec_bodies() + sec_matrix() + sec_debug() + sec_semantic() + sec_bc() + sec_next())
     used = "".join(f"<li><code>{esc(p)}</code></li>" for p in sorted(USED))
     page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
