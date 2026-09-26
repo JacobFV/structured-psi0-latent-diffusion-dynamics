@@ -526,7 +526,7 @@ def sec_bc():
 <p class="lede"><b>Plain behaviour cloning with deployment-consistent input (B-1 fixed) is a competent controller on the
 ladder's matched scenes, already at mid-training.</b> Same data, same seed (1701), same 30 dev seeds, same tracker and
 privileged evaluator, prev-action input 0 as deployed. So the latent route's closed-loop failure comes from the latent
-architecture/training (Stage A + system 0), <i>not</i> from the data, the demonstrations or the simulator setup.</p>
+packet route (Stage A encoder / system 0 and/or the generator), <i>not</i> from the data, the demonstrations or the simulator.</p>
 {t}
 <p>Wilson 95% in brackets. BC failures are late (grasp / lift / transport / place timeouts), none at approach.
 {src('artifacts/runs/baselines_bc_ladder/<robot>/learned_<tag>.summary.json', 'research/tracks/baselines.md (SPRINT BC RESULT)')}

@@ -49,3 +49,4 @@ Rendered on peer GPU EGL into `artifacts/runs/demo_video/` (NOT the shared artif
   final_teacher_phase); lede says the latent failure is not localized; "heads for the object" is an observation; next #1 =
   R2 vs BC. Same-scene triptychs (teacher | BC | oracle) for s3000008 and s3000018 via scripts/demo/render_triptych.sh +
   side_by_side.py (lease 1790388888_c98769); the jfdag1 "success" seed 3000018 FAILS (approach) in this re-render.
+- 20:05 lead wording fix in §6 and evidence_matrix.md (failure in the packet route incl. possibly the generator). Lead republishes artifact.html per refresh.
