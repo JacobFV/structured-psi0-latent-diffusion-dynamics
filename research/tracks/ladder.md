@@ -61,6 +61,10 @@ What made it work (all in-architecture; ablations on the same seeds in the live 
    0/30,0/30 -> 18/30,27/30; R2 0/30,0/30 -> 9/30,17/30.
 4. Generator DAgger (flow fine-tuned on learner-visited contexts toward z* = E(BC chunk)): R2 9/30,17/30 -> 10/30,22/30.
 Not solved: panda grasp/lift (pg2 parallel gripper alignment) and parm6 place; R2 < R1 stateless < BC.
+A 4th system-0 round (`gendag4b`: + gdag1/gdag2 generated-packet buffers, CPU 6k) did NOT help: with flow_gdag1, panda 9/30
++ 7/30 fresh, parm6 16/30 + 16/30 fresh (pooled 16/60, 32/60 vs 23/60, 43/60 for gendag3) -> gendag3_noqd stays final.
+A second generator-DAgger round (`flow_jointfix_gdag2`) was stopped at ~300 steps: the peer GPU was saturated by other
+tracks (3 s/step).
 
 Sem vs nosem (binding v4 bundles) with the same recipe, compressed to the sprint: NOT competent, so no deployable
 comparison yet. R1 stateless after 3 BC-DAgger rounds: sem 1/30, 1/30; nosem 0/30, 4/30. R2 with their own flows
