@@ -43,3 +43,9 @@ Rendered on peer GPU EGL into `artifacts/runs/demo_video/` (NOT the shared artif
   differ from eval rows for 2 of 4 seeds (s3000013 panda eval fail/render success; s3000003 parm6 eval success/render
   fail-lift); captions say so. Bottom line, matrix and evidence_matrix.md headline updated. Merged to main.
 - 19:40 held-out source-body BC (74/80 pooled, raw artifacts/runs/baselines_bc_ladder/heldout/) added; caption wrap fix.
+- 19:50 lead request: build_page.py also writes `docs/demo/artifact.html` (no doctype/html/head/body; <title>, <style>,
+  content, script; color-scheme:dark in both dark token blocks; relative video paths). Accuracy: R1 oracle route is
+  CONFOUNDED (sprint_bc: shadow teacher's final phase lags in BC successes, computed on the page from raw
+  final_teacher_phase); lede says the latent failure is not localized; "heads for the object" is an observation; next #1 =
+  R2 vs BC. Same-scene triptychs (teacher | BC | oracle) for s3000008 and s3000018 via scripts/demo/render_triptych.sh +
+  side_by_side.py (lease 1790388888_c98769); the jfdag1 "success" seed 3000018 FAILS (approach) in this re-render.

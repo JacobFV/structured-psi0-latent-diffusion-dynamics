@@ -145,6 +145,18 @@ BC_VIDEOS = [
      "Action-only codec baseline (flow on a 4-d action codec latent), same route.",
      "artifacts/runs/baselines_bc_ladder/panda_pg2/learned_codec1701_u13152.summary.json"),
 ]
+TRIPTYCH = [
+    ("2026-09-25_triptych_panda_pg2_s3000008_teacher_bc-direct1701_u12000_oracle-jointfix.mp4", "teacher",
+     "same scene, three controllers · panda_pg2 · seed 3000008",
+     "Left: R0 scripted teacher (privileged), success. Middle: plain BC learned:direct1701_u12000, success. Right: R1 ORACLE "
+     "diagnostic, jointly retrained latent bundle (jointfix), failure at lift. Each panel carries its own source caption.",
+     "artifacts/runs/demo_video/tri_3000008/INDEX.md"),
+    ("2026-09-25_triptych_panda_pg2_s3000018_teacher_bc-direct1701_u12000_oracle-jfdag1.mp4", "teacher",
+     "same scene, three controllers · panda_pg2 · seed 3000018",
+     "Left: teacher, success. Middle: plain BC, success. Right: R1 ORACLE jfdag1 — this is the seed of its only evaluation "
+     "success (D-048), but in this re-render it fails at approach: the 1/30 does not even reproduce reliably.",
+     "artifacts/runs/demo_video/tri_3000018/INDEX.md"),
+]
 LADDER_VIDEOS = [
     ("2026-09-25_ladder_oracle_panda_pg2_s3000018_jfdag1_success.mp4", "oracle",
      "R1 oracle · jointfix + DAgger-1 system 0 · seed 3000018 · SUCCESS (the only one of 30)",
@@ -158,8 +170,8 @@ LADDER_VIDEOS = [
      "artifacts/runs/ladder_v1/panda_pg2/oracle_zero_jfdag1_reanchor.summary.json"),
     ("2026-09-25_ladder_oracle_panda_pg2_s3000008_jointfix_failure-lift.mp4", "oracle",
      "R1 oracle · jointly retrained Stage A (B-1 fix) · seed 3000008 · failure at lift",
-     "The arm now reaches the cube (6 mm) but drives to the object instead of the packet's pregrasp waypoint 13 cm above "
-     "it, so the expert encoded in the packet never advances (D-047, D-049).",
+     "The arm now reaches the cube (6 mm) but heads for the object rather than the oracle packet's pregrasp waypoint. "
+     "Observation only: the oracle packet itself may be stale off the teacher trajectory (see the confound in §4).",
      "artifacts/runs/ladder_v1/panda_pg2/oracle_zero_jointfix_reanchor.summary.json"),
     ("2026-09-25_causal_edit_rebind_obj_oracle_latent_sem_v1_panda_pg2_s3000001.mp4", "oracle",
      "semantic edit rebind_obj · oracle packets (latent_sem_v1, pre-fix) · side by side",
@@ -176,7 +188,7 @@ LADDER_VIDEOS = [
 
 def video_card(v) -> str:
     f, kind, title, cap, s = v
-    lab = {"teacher": "scripted_teacher", "oracle": "oracle diagnostic", "learned": "learned", "bc": "learned"}[kind]
+    lab = {"teacher": "teacher | BC | oracle" if f.startswith("2026-09-25_triptych") else "scripted_teacher", "oracle": "oracle diagnostic", "learned": "learned", "bc": "learned"}[kind]
     if kind == "learned":
         lab = "learned:flow_latent_sem_v2@22k"
     if kind == "bc":
@@ -335,7 +347,7 @@ Caveats: direct path timed with random weights (same compute), peer GPU shared b
 def sec_matrix():
     rows = [
         ["single-arm pick_place (latent_sem)", badge("ok"),
-         "R1 best: <b>1/30</b> (panda, jointfix + DAgger-1); 0/30 on parm6_tf3 " + src("D-048"),
+         "R1 best: <b>1/30</b> (panda, jointfix + DAgger-1); 0/30 on parm6_tf3 " + src("D-048") + "; <b>confounded</b>: oracle packets are stale off the teacher trajectory (§4)",
          "0/30 (flow v2, pre-fix) " + src("D-044") + "; B-1-fixed flows " + badge("run"),
          "teacher does every edit; oracle: packet dependence, <b>no semantic control</b> " + src("D-041"),
          badge("none")],
@@ -380,6 +392,18 @@ def sec_debug():
             if have(p):
                 d = J(p)
                 inv.append(f"{r} {t}: {d['success']}/{d['n']}")
+    import collections
+    sh = []
+    for r in ("panda_pg2", "parm6_tf3"):
+        p = f"artifacts/runs/baselines_bc_ladder/{r}/learned_direct1701_u12000.jsonl"
+        if have(p):
+            rows_ = [x for x in JL(p) if x["privileged_success"]]
+            c = collections.Counter(x.get("final_teacher_phase") for x in rows_)
+            sh.append(f"{r}: of {len(rows_)} BC successes the shadow teacher's final phase is "
+                      + ", ".join(f"{k} {v}" for k, v in c.most_common()))
+    shadow = esc("; ".join(sh)) or "(raw rows not available)"
+    srcbc = src("artifacts/runs/baselines_bc_ladder/<robot>/learned_direct1701_u12000.jsonl (final_teacher_phase)",
+                "research/tracks/baselines.md")
     ka = [J(f"lead_teacher_reanchor/{r}_K1.json") for r in ("panda_pg2", "parm6_tf3")]
     kb = [J(f"lead_teacher_reanchor/{r}_K8.json") for r in ("panda_pg2", "parm6_tf3")]
     return f"""
@@ -394,21 +418,25 @@ dominated by B-1 and says nothing about the architecture. {src('D-044', 'D-045')
 {src('ladder_smoke/t0_check_sem_panda.json')}
 <h3>The failure-localization ladder</h3>
 <p>Matched dev scenes, 30 seeds each, deployment input (prev-action = 0), replan every 8 ticks.
-<span class="badge b-oracle">R1</span> uses a packet encoded from the teacher's future actions: it asks whether
-<i>system 0</i> can realize a good packet at all. Wilson 95% intervals in brackets.</p>
+<span class="badge b-oracle">R1</span> uses a packet encoded from the teacher's future actions: it was meant to ask whether
+<i>system 0</i> can realize a good packet at all (but see the confound below). Wilson 95% intervals in brackets.</p>
 {lt}
 <p>{src('ladder_v1/<robot>/<tag>.summary.json', 'D-044', 'D-046', 'D-047', 'D-048')}. Rows marked n/a were not run with
 re-anchoring. Refit rows use the frozen v1 encoder; "jointfix" retrains encoder and system 0 together with the fix.</p>
-<h3>D-049: which oracle variant is valid, and what system 0 actually does</h3>
+<h3>D-049 and after: is the oracle route a valid test?</h3>
 <p>Re-anchoring the oracle expert changes the teacher whose actions are encoded. Check with the teacher itself driving:
 no re-anchoring and re-anchoring every 8 ticks both give {kb[0]['success']}/{kb[0]['n']} (panda) and {kb[1]['success']}/{kb[1]['n']} (parm6);
 re-anchoring <i>every tick</i> gives {ka[0]['success']}/{ka[0]['n']} and {ka[1]['success']}/{ka[1]['n']}, stuck in pregrasp.
 So the every-8-ticks R1 route (the table above) is valid, and the replan-every-tick R1 runs
 (<span class="muted">{esc('; '.join(inv))}</span>) are <b>withdrawn</b>. {src('lead_teacher_reanchor/*_K1.json', 'lead_teacher_reanchor/*_K8.json', 'D-049')}</p>
-<p>Mechanism in the valid runs: the median closest approach of the tool is 4–6 cm from the cube, not the pregrasp waypoint
-13 cm above it. System 0 drives toward the object while the packet encodes “go to pregrasp”, so the encoded expert never
-advances. Hypothesis under test: the object-relative semantic loss plus system 0 favour “go to the patient” over the
-demonstrated waypoint geometry. {src('D-047', 'D-049')}</p>
+<p><b>Why R1 is confounded anyway (sprint_bc).</b> The shadow teacher is stateful and is not a valid expert on
+learner-visited states. In the competent BC episodes of §6 it still ends far behind the task even when BC succeeds:
+{shadow}. So the R1 oracle packet (which encodes that teacher's look-ahead) and the shadow-DAgger labels can say “hover at
+pregrasp” while the task is actually progressing. R1's 0–1/30 therefore cannot separate “system 0 cannot realize packets”
+from “the oracle packets are stale off the teacher's trajectory”. {srcbc}</p>
+<p><b>Observation, not a cause:</b> in the valid re-anchored R1 runs the tool's median closest approach is 4–6 cm from the
+cube, not the pregrasp waypoint 13 cm above it; system 0 heads for the object while the (possibly stale) oracle packet
+encodes “go to pregrasp”. {src('D-047', 'D-049')}</p>
 <div class="grid">{''.join(video_card(v) for v in LADDER_VIDEOS[:3])}</div>
 </section>"""
 
@@ -494,6 +522,7 @@ def sec_bc():
     vids = "".join(video_card(v) for v in BC_VIDEOS)
     return f"""
 <section id="bc"><h2>6 · Positive control: plain behaviour cloning with the fix {badge('ok', 'competent')}</h2>
+<div class="grid wide">{''.join(video_card(v) for v in TRIPTYCH)}</div>
 <p class="lede"><b>Plain behaviour cloning with deployment-consistent input (B-1 fixed) is a competent controller on the
 ladder's matched scenes, already at mid-training.</b> Same data, same seed (1701), same 30 dev seeds, same tracker and
 privileged evaluator, prev-action input 0 as deployed. So the latent route's closed-loop failure comes from the latent
@@ -511,9 +540,9 @@ def sec_next():
     return """
 <section id="next"><h2>7 · What is next</h2>
 <ol>
-<li><b>Make one route competent on source bodies.</b> System 0 must track the packet's waypoint geometry, not head for the
-object: training on learner-visited states with oracle packets (DAgger on the jointly trained model), a packet target it
-can servo to. The bar is the competent plain-BC control on the same seeds (§6).</li>
+<li><b>The clean test: R2 vs BC on the same seeds.</b> System i's own packet from a B-1-fixed flow → system 0,
+compared with the competent plain-BC control (§6) on the ladder's matched scenes. No teacher is in the loop, so the
+oracle confound does not apply. If R2 fails where BC succeeds, the gap is in the packet route itself.</li>
 <li><b>Generated route on the fixed bundle</b>: flows trained with <code>zero_prev_action</code> on the jointly trained
 and binding-v4 encoders, then R2 on matched seeds.</li>
 <li><b>Semantic interventions on a competent route</b>: rebind_obj, goal_shift, manipulator assignment (dual-arm pairs),
@@ -528,10 +557,10 @@ CSS = """
 :root{--bg:#fbfbf9;--fg:#1d1f23;--mut:#5d6470;--card:#ffffff;--line:#e2e4e8;--acc:#2f5bd3;--code:#f1f2f4;
 --teach:#1f7a4d;--teach-bg:#e3f4ea;--orc:#8a5a00;--orc-bg:#fdf0d5;--lrn:#2f5bd3;--lrn-bg:#e3eafc;--bc:#6b3fb5;--bc-bg:#eee6fa;
 --none:#6b7280;--none-bg:#eceef1;--run:#0f6e80;--run-bg:#dff3f6;--ok:#1f7a4d;--ok-bg:#e3f4ea;--fail:#b3261e;--fail-bg:#fbe4e2}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15171a;--fg:#e6e7ea;--mut:#9aa1ad;--card:#1d2024;--line:#30343a;--acc:#8fb0ff;--code:#262a30;
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#15171a;--fg:#e6e7ea;--mut:#9aa1ad;--card:#1d2024;--line:#30343a;--acc:#8fb0ff;--code:#262a30;
 --teach:#7fd6a6;--teach-bg:#173325;--orc:#f2c265;--orc-bg:#3a2d10;--lrn:#9db7ff;--lrn-bg:#1d2947;--bc:#c7a8f5;--bc-bg:#2e2342;
 --none:#aab0ba;--none-bg:#2a2e34;--run:#7dd3e0;--run-bg:#133a41;--ok:#7fd6a6;--ok-bg:#173325;--fail:#ff9b92;--fail-bg:#43201d}}
-:root[data-theme="dark"]{--bg:#15171a;--fg:#e6e7ea;--mut:#9aa1ad;--card:#1d2024;--line:#30343a;--acc:#8fb0ff;--code:#262a30;
+:root[data-theme="dark"]{color-scheme:dark;--bg:#15171a;--fg:#e6e7ea;--mut:#9aa1ad;--card:#1d2024;--line:#30343a;--acc:#8fb0ff;--code:#262a30;
 --teach:#7fd6a6;--teach-bg:#173325;--orc:#f2c265;--orc-bg:#3a2d10;--lrn:#9db7ff;--lrn-bg:#1d2947;--bc:#c7a8f5;--bc-bg:#2e2342;
 --none:#aab0ba;--none-bg:#2a2e34;--run:#7dd3e0;--run-bg:#133a41;--ok:#7fd6a6;--ok-bg:#173325;--fail:#ff9b92;--fail-bg:#43201d}
 *{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
@@ -559,7 +588,7 @@ table.ladder td:nth-child(n+3):nth-child(-n+6){white-space:nowrap}
 .bt{font-weight:700}.bd{font-size:.82rem;color:var(--mut)}
 .arr{align-self:center;font-size:1.3rem;color:var(--mut);text-align:center;flex:0 0 auto}.arr small{display:block;font-size:.65rem;max-width:5em}
 .arch2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;font-size:.92rem}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin:1rem 0}
+.grid.wide{grid-template-columns:1fr}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin:1rem 0}
 figure.vid{margin:0;border:1px solid var(--line);border-radius:8px;background:var(--card);overflow:hidden}
 figure.vid video{width:100%;display:block;background:#000;aspect-ratio:4/3}
 figcaption{padding:.5rem .6rem;font-size:.84rem;overflow-wrap:anywhere}.novid{padding:2rem;text-align:center;color:var(--mut)}
@@ -599,8 +628,8 @@ def build(updates_html: str = ""):
 bodies, and the pipeline runs end to end within the latency budget. <b>Plain behaviour cloning on the same data is competent</b> (25–28 of 30 on matched scenes, mid-training), so data and
 evaluation are sound. <b>The latent-packet route is not competent yet</b>: its best oracle-diagnostic variant succeeds 1 time
 in 30, and causal packet semantics are not shown. We found and fixed a
-train/deploy mismatch (bug B-1) and localized the remaining failure to system 0 heading for the object instead of the
-packet's waypoint.</p>
+train/deploy mismatch (bug B-1). The latent route's remaining failure is <b>not localized yet</b>: the oracle-packet
+diagnostic turned out to be confounded (§4), and the clean test is the generated route against BC on the same seeds.</p>
 {updates_html}
 {body}
 <section id="sources"><h2>Sources</h2>
@@ -611,7 +640,16 @@ Videos: <code>docs/demo/video/</code>; index lines in <code>artifacts/video/INDE
 </section>
 </main><script>{JS}</script></body></html>"""
     OUT.write_text(page)
-    print(OUT, len(page), "bytes;", len(USED), "raw files")
+    # artifact contract: no doctype/html/head/body; <title> then <style>, then content and script
+    head_end = page.index("</head><body>")
+    title = page[page.index("<title>"):page.index("</title>") + 8]
+    style = page[page.index("<style>"):page.index("</style>") + 8]
+    content = page[head_end + len("</head><body>"):page.rindex("</body>")]
+    art = title + "\n" + style + "\n" + content + "\n"
+    for tag in ("<!doctype", "<html", "<head>", "<head ", "<body", "</body>", "</html>", "</head>"):
+        assert tag not in art.lower(), tag
+    (OUT.parent / "artifact.html").write_text(art)
+    print(OUT, len(page), "bytes;", len(USED), "raw files; artifact.html", len(art), "bytes")
 
 
 if __name__ == "__main__":

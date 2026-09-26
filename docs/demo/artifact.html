@@ -1,7 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Structured Latent Packets</title>
-<meta name="description" content="Honest demo of a controller-facing semantic latent packet for robot manipulation: what works, what fails, and why.">
 <style>
 :root{--bg:#fbfbf9;--fg:#1d1f23;--mut:#5d6470;--card:#ffffff;--line:#e2e4e8;--acc:#2f5bd3;--code:#f1f2f4;
 --teach:#1f7a4d;--teach-bg:#e3f4ea;--orc:#8a5a00;--orc-bg:#fdf0d5;--lrn:#2f5bd3;--lrn-bg:#e3eafc;--bc:#6b3fb5;--bc-bg:#eee6fa;
@@ -46,7 +43,8 @@ figcaption{padding:.5rem .6rem;font-size:.84rem;overflow-wrap:anywhere}.novid{pa
 .legend{display:flex;flex-wrap:wrap;gap:.4rem;margin:.5rem 0}
 @media (max-width:720px){.arch{flex-direction:column}.arr{transform:rotate(90deg);padding:0}.arr small{display:none}
 .arch2{grid-template-columns:1fr}.grid{grid-template-columns:1fr}h1{font-size:1.35rem}}
-</style></head><body><main>
+</style>
+<main>
 <header><button id="theme" type="button" aria-label="toggle light/dark theme">◐ theme</button>
 <h1>Structured latent packets for cross-body robot control — demo</h1>
 <p class="muted">Built 2026-09-25 19:18 PDT from saved raw outputs by <code>scripts/demo/build_page.py</code>. Research state, not a product.</p>
@@ -215,4 +213,4 @@ Videos: <code>docs/demo/video/</code>; index lines in <code>artifacts/video/INDE
 function cur(){return r.dataset.theme||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}
 b.onclick=function(){r.dataset.theme=cur()==='dark'?'light':'dark';try{localStorage.setItem('rrp-theme',r.dataset.theme)}catch(e){}};
 try{var s=localStorage.getItem('rrp-theme');if(s)r.dataset.theme=s}catch(e){}})();
-</script></body></html>
+</script>
