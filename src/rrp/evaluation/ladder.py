@@ -162,6 +162,20 @@ class ShadowTeacher:
         return cmds
 
 
+class BCLookahead:
+    """Stateless expert for the oracle route: the H-step chunk a learned BC policy emits at the CURRENT state (no
+    stepping, no FSM). Valid off the teacher trajectory, unlike the shadow teacher (see sprint_bc / D-050)."""
+
+    def __init__(self, lp):
+        self.lp = lp
+
+    def lookahead(self, s, H: int):
+        ch = self.lp.chunks([s])[0]
+        rows = [{g.group: np.asarray(g.values[t]).tolist() for g in ch.command_groups}
+                for t in range(min(H, ch.horizon))]
+        return rows
+
+
 class OraclePacketPolicy:
     """ORACLE DIAGNOSTIC: z = E(public context at t, teacher chunk a[t:t+H]) (posterior mean). Same interface as
     LatentPolicy (packets/featurizer/lsv/rcv/calls) so evaluate/disturbance code can drive it."""
@@ -316,6 +330,8 @@ class LadderConfig:
     prev_action: str = "zero"        # zero (current deployment) | own (training-consistent input, bug B-1)
     policy: str | None = None        # route learned: LearnedPolicy checkpoint (baseline FlowPolicy)
     policy_label: str | None = None  # label for the source string (default: checkpoint path)
+    oracle_expert: str = "teacher"   # R1 packet source: teacher (shadow FSM look-ahead) | bc (stateless: E(chunk the
+                                     # learned BC policy `policy` would execute from the current state); ORACLE DIAGNOSTIC
 
 
 def load_models(cfg: LadderConfig):
@@ -382,7 +398,13 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
         f = s._rrp_featurizer = PrevActionFeaturizer(_featurizer(s), cfg.prev_action)
         S.append(s)
         meters.append(Meter(s))
-        shadows.append(oracle.shadow(s) if oracle else ShadowTeacher(s))
+        if cfg.oracle_expert == "bc":
+            if lp is None:
+                raise ValueError("oracle_expert bc needs cfg.policy")
+            oracle.shadows[id(s)] = BCLookahead(lp)
+            shadows.append(ShadowTeacher(s))            # labels/phase only
+        else:
+            shadows.append(oracle.shadow(s) if oracle else ShadowTeacher(s))
         if cfg.route not in ("teacher", "learned") or models["R"] is not None:     # teacher route + R: shadow system 0 (not executed)
             s0.append(LatentSystem0(models["R"], f, latent_space_version=models["res"]["latent_space_version"],
                                     realizer_compat_version=models["res"]["realizer_compat_version"], device=cfg.device))
@@ -528,7 +550,8 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
             ticks=T if cfg.keep_ticks else None, replans=m["replans"] if cfg.keep_ticks else None,
             interventions=s.intervention_log, wall_s=time.time() - m["t0"],
             source=dict(teacher="scripted_teacher(privileged)", oracle="target_encoder_oracle(ORACLE DIAGNOSTIC: "
-                        "teacher future actions)", generated="learned(system-i flow)",
+                        + ("teacher future actions)" if cfg.oracle_expert == "teacher" else
+                           f"chunk of learned:{cfg.policy_label or cfg.policy} at the current state)"), generated="learned(system-i flow)",
                         learned=f"learned:{cfg.policy_label or cfg.policy}")[cfg.route],
             checkpoints=ids))
     if out_path:

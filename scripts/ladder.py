@@ -24,6 +24,8 @@ def main():
     ap.add_argument("--flow")
     ap.add_argument("--policy", help="route learned: LearnedPolicy checkpoint (baseline FlowPolicy)")
     ap.add_argument("--policy-label", help="label, e.g. baseline_direct_action_s1701@11000")
+    ap.add_argument("--oracle-expert", choices=["teacher", "bc"], default="teacher",
+                    help="route oracle: packet encodes the shadow teacher's look-ahead or the BC policy's chunk (--policy)")
     ap.add_argument("--replan", type=int, default=8)
     ap.add_argument("--prev-action", choices=["zero", "own"], default="zero")
     ap.add_argument("--nfe", type=int, default=8)
@@ -51,7 +53,7 @@ def main():
     from rrp.evaluation.ladder import LadderConfig, load_models, run_ladder, summarize, OraclePacketPolicy, install_prev_action
     from rrp.learning.latent_grpo import feasible_seeds
     seeds = feasible_seeds(a.robot, a.seed_start, a.n)
-    cfg = LadderConfig(route=a.route, robot=a.robot, seeds=seeds, representation=a.rep, flow=a.flow, policy=a.policy, policy_label=a.policy_label,
+    cfg = LadderConfig(route=a.route, robot=a.robot, seeds=seeds, representation=a.rep, flow=a.flow, policy=a.policy, policy_label=a.policy_label, oracle_expert=a.oracle_expert,
                        replan_ticks=a.replan, max_steps=a.max_steps, nfe=a.nfe, compare_oracle=not a.no_compare,
                        device=dev, prev_action=a.prev_action, keep_ticks=a.keep_ticks, oracle_reanchor=a.reanchor, object_shift=tuple(float(x) for x in a.object_shift.split(",")) if a.object_shift else None)
     if cfg.object_shift:
@@ -92,7 +94,7 @@ def main():
         save_dagger(collect, Path(a.collect_dagger), dict(robot=a.robot, seeds=seeds, route=a.route, rep=a.rep,
                                                            reanchor=a.reanchor, prev_action=a.prev_action, ids=ids))
     summ = dict(summarize(rows), route=a.route, robot=a.robot, seeds=[seeds[0], seeds[-1], len(seeds)],
-                replan=a.replan, nfe=a.nfe, prev_action=a.prev_action, reanchor=a.reanchor, keep_ticks=a.keep_ticks, oracle_reanchor=a.reanchor, object_shift=a.object_shift, checkpoints=ids)
+                replan=a.replan, nfe=a.nfe, prev_action=a.prev_action, reanchor=a.reanchor, oracle_expert=a.oracle_expert, policy_label=a.policy_label, keep_ticks=a.keep_ticks, oracle_reanchor=a.reanchor, object_shift=a.object_shift, checkpoints=ids)
     (out / f"{name}.summary.json").write_text(json.dumps(summ, indent=1, default=str))
     print(json.dumps({k: v for k, v in summ.items() if k != "checkpoints"}, default=str))
 
