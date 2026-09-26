@@ -92,7 +92,7 @@ def main():
     if collect is not None:
         from rrp.evaluation.ladder import save_dagger
         save_dagger(collect, Path(a.collect_dagger), dict(robot=a.robot, seeds=seeds, route=a.route, rep=a.rep,
-                                                           reanchor=a.reanchor, prev_action=a.prev_action, ids=ids))
+                                                           reanchor=a.reanchor, prev_action=a.prev_action, oracle_expert=a.oracle_expert, policy_label=a.policy_label, ids=ids))
     summ = dict(summarize(rows), route=a.route, robot=a.robot, seeds=[seeds[0], seeds[-1], len(seeds)],
                 replan=a.replan, nfe=a.nfe, prev_action=a.prev_action, reanchor=a.reanchor, oracle_expert=a.oracle_expert, policy_label=a.policy_label, keep_ticks=a.keep_ticks, oracle_reanchor=a.reanchor, object_shift=a.object_shift, checkpoints=ids)
     (out / f"{name}.summary.json").write_text(json.dumps(summ, indent=1, default=str))

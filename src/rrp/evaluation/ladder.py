@@ -170,10 +170,11 @@ class BCLookahead:
         self.lp = lp
 
     def lookahead(self, s, H: int):
-        ch = self.lp.chunks([s])[0]
-        rows = [{g.group: np.asarray(g.values[t]).tolist() for g in ch.command_groups}
-                for t in range(min(H, ch.horizon))]
-        return rows
+        return self.lookahead_batch([s], H)[0]
+
+    def lookahead_batch(self, sessions, H: int):
+        return [[{g.group: np.asarray(g.values[t]).tolist() for g in ch.command_groups} for t in range(min(H, ch.horizon))]
+                for ch in self.lp.chunks(sessions)]
 
 
 class OraclePacketPolicy:
@@ -203,9 +204,16 @@ class OraclePacketPolicy:
         from rrp.model.semantic_latent import assembly_tokens
         H = self.cfg.horizon
         feats, A, V = [], [], []
+        pre = {}
+        bcs = [s for s in sessions if isinstance(self.shadow(s), BCLookahead)]
+        if bcs:                                           # one batched BC call for all stateless-expert sessions
+            for s, rows in zip(bcs, self.shadow(bcs[0]).lookahead_batch(bcs, H)):
+                pre[id(s)] = rows
+        self.last_cmds = getattr(self, "last_cmds", {})
         for s in sessions:
             pi = self.featurizer(s)(s.observe())
-            cmds = self.shadow(s).lookahead(s, H)
+            cmds = pre[id(s)] if id(s) in pre else self.shadow(s).lookahead(s, H)
+            self.last_cmds[id(s)] = cmds
             n = len(cmds)
             seq = cmds + [cmds[-1]] * (H - n)
             a = self.featurizer(s).aspace.normalize(seq, pi.q0).astype(np.float16).astype(np.float32)  # packed fp16
@@ -484,9 +492,14 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
                 pi_c = f.base(s.observe())
                 n_ = pi_c.act_node_feats.shape[0]
                 nd = np.zeros((12, pi_c.act_node_feats.shape[1]), np.float16); nd[:n_] = pi_c.act_node_feats
-                a1 = np.zeros(12, np.float32); a1[:n_] = f.aspace.normalize([lab.groups], pi_c.q0)[0]
-                from rrp.learning.packed import local_sensors
-                collect["rows"].append((collect["cur"][k], row["j"], nd, n_, local_sensors(pi_c).astype(np.float16), a1))
+                lg = lab.groups
+                if cfg.oracle_expert == "bc":           # label = the packet's own plan row j (consistent with z)
+                    plan = oracle.last_cmds.get(id(s))
+                    lg = plan[min(row["j"], len(plan) - 1)] if plan else None
+                if lg is not None:
+                    a1 = np.zeros(12, np.float32); a1[:n_] = f.aspace.normalize([lg], pi_c.q0)[0]
+                    from rrp.learning.packed import local_sensors
+                    collect["rows"].append((collect["cur"][k], row["j"], nd, n_, local_sensors(pi_c).astype(np.float16), a1))
             if c0 is not None:              # system-0 output (executed in R1/R2; shadow-only in R0) vs teacher label
                 q0z = np.zeros(len(f.aspace.node_group))       # the q0 offset cancels in the difference
                 la = f.aspace.normalize([lab.groups], q0z)[0]
