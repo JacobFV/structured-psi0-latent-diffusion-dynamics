@@ -1,0 +1,63 @@
+{
+ "n": 24,
+ "success": 17,
+ "rate": 0.7083333333333334,
+ "wilson95": [
+  0.508319363412903,
+  0.8508553966583573
+ ],
+ "failed_stage": {
+  "success": 17,
+  "transport": 1,
+  "lift": 5,
+  "approach": 1
+ },
+ "track_q_rad": 0.0050986525930727345,
+ "track_tcp_m": 0.006632086601797081,
+ "lab_err_arm": 0.3184725578116212,
+ "lab_err_grip": 2.290843537547537,
+ "min_tcp_cube_m": 0.01927476730637716,
+ "cmd_step_rad": 0.031993835158601804,
+ "route": "generated",
+ "robot": "parm7_pg2",
+ "seeds": [
+  4000000,
+  4000035,
+  24
+ ],
+ "replan": 8,
+ "nfe": 8,
+ "prev_action": "zero",
+ "reanchor": false,
+ "oracle_expert": "bc",
+ "policy_label": "direct1701_u12000",
+ "keep_ticks": false,
+ "oracle_reanchor": false,
+ "object_shift": null,
+ "checkpoints": {
+  "policy": {
+   "path": "artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt",
+   "sha256": "5e6586bd6000412c541fb7b22f4cac324de63905acd4bcf46ab2fea0fb366ff5",
+   "nfe": 8,
+   "execute_prefix": 8,
+   "label": "direct1701_u12000"
+  },
+  "representation": {
+   "path": "artifacts/runs/ladder_rz_jointfix_gendag3_noqd/representation.pt",
+   "sha256": "f60cde41ed0671b84d1f698288d5a69a086f7d89f187b6562e195a287ff23622",
+   "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5",
+   "realizer_compat_version": "rz-ls-80e5f25be2f0-wf22fe70f99d5-r96d867118f17-none-v1"
+  },
+  "realizer_override": {
+   "flow_rcv": "rz-ls-80e5f25be2f0-wf22fe70f99d5-rd0e27f2e6572-none-v1",
+   "used_rcv": "rz-ls-80e5f25be2f0-wf22fe70f99d5-r96d867118f17-none-v1"
+  },
+  "flow": {
+   "path": "artifacts/runs/ladder_flow_jointfix_gdag1/policy.pt",
+   "sha256": "78fbee7f4f8df737d5074409f1d16379b031a459ea054a4b9192d64e487df873",
+   "nfe": 8,
+   "sampler": "euler-ode",
+   "noise_scale": 1.0
+  }
+ }
+}
