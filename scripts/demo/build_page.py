@@ -569,7 +569,7 @@ def sec_sprint():
                             ci(gg["_contrasts"].get("rebind_desc-irrelevant_distractor:pref_min")),
                             f'<b>{gg["goal_shift"]["cube_at_shifted_goal"]}/{gg["goal_shift"]["n"]}</b><br><span class="ci">irrelevant {gg["irrelevant_distractor"]["cube_at_shifted_goal"]}/{gg["irrelevant_distractor"]["n"]}, orthogonal {gg["orthogonal_matched"]["cube_at_shifted_goal"]}/{gg["orthogonal_matched"]["n"]}, noise replay {gg["control_replay"]["cube_at_shifted_goal"]}/{gg["control_replay"]["n"]}</span>',
                             "n/a"])
-        rows.append([f'{badge("learned", "learned: v4 sem / nosem flows")}', "generated route", badge("run"), badge("run"), badge("run"), badge("run")])
+        rows.append([f'{badge("learned", "learned: binding v4 sem / nosem flows")}', "generated route", "not competent with the sprint recipe (R2 ≤ 1/30) " + src("D-080"), "—", "—", "—"])
         parts.append("<h3>Semantic interventions at the level each route reaches (sprint_semantic)</h3>"
                      + table(["route", "edit type", "rebind: first touch on the NEW object (edit / control)",
                               "rebind effect beyond the matched irrelevant edit, min-distance preference (m) [95% CI]",
@@ -1060,8 +1060,8 @@ def sec_bodies():
 <p class="lede">The packet and system 0 are defined over a morphology graph, so the same interfaces cover arms with different
 kinematics and grippers, two-arm pairs, legged robots and humanoids. <b>Honest scope:</b> every clip in the body grids below is the
 <b>scripted teacher driving a frozen tracker</b>. Learned legged results (go2 BC, oracle and deployable latent routes; BC on hexapod6
-and t1) are in the research block at the end of this section and are labelled there. No learned humanoid latent model and no dual-arm
-learned model exist yet (dual-arm training was deferred, D-043).</p>
+and t1) are in the research block at the end of this section and are labelled there. No dual-arm learned model exists yet
+(dual-arm training was deferred, D-043), and g1 has no competent BC control.</p>
 {montage}
 {extra}
 {''.join(html_)}
@@ -1167,6 +1167,7 @@ from “the oracle packets are stale off the teacher's trajectory”. {srcbc}</p
 cube, not the pregrasp waypoint 13 cm above it; system 0 heads for the object while the (possibly stale) oracle packet
 encodes “go to pregrasp”. {src('D-047', 'D-049')}</p>
 <div class="grid">{''.join(video_card(v) for v in LADDER_VIDEOS[:3])}</div>
+<div class="grid wide">{''.join(video_card(v) for v in TRIPTYCH)}</div>
 </section>"""
 
 
@@ -1282,7 +1283,6 @@ def sec_bc():
     vids = "".join(video_card(v) for v in BC_VIDEOS)
     return f"""
 <section id="bc"><h2>6 · Positive control: plain behaviour cloning with the fix {badge('ok', 'competent')}</h2>
-<div class="grid wide">{''.join(video_card(v) for v in TRIPTYCH)}</div>
 <p class="lede"><b>Plain behaviour cloning with deployment-consistent input (B-1 fixed) is a competent controller on the
 ladder's matched scenes, already at mid-training.</b> Same data, same seed (1701), same 30 dev seeds, same tracker and
 privileged evaluator, prev-action input 0 as deployed. So the latent route's closed-loop failure comes from the latent
