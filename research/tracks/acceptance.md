@@ -248,3 +248,13 @@ The key contrast, sem vs nosem, shows NO semantic advantage at the behaviour lev
 small rebind-directed bias in the initial motion. For sem it cannot be separated from a matched-norm probe-orthogonal
 edit, which moves the sem arm a lot: mean TCP deviation 0.39 m vs 0.24 m for the rebind, so the sem system 0 is very
 sensitive to off-probe z directions. The nosem bias exceeds both controls. Weak evidence either way: the route is not competent.
+
+### v4 sem vs nosem, arm edits (dual-arm assign dev pairs), oracle rung -- completed (peer; raw `artifacts/runs/acceptance_sprint_arm_v4{sem,nosem}_oracle/<pair>/arm_rows_oracle.jsonl`, merged `arm_summary_oracle.json`)
+3 robot pairs x 6 seeds = 18 per condition, 400 steps, ORACLE DIAGNOSTIC E(v4)+teacher demo -> v4 dual system 0.
+| bundle | edited-to arm touches bar first: control / swap_arm / swap_slots / orthogonal | no arm touches the bar (control) | swap_arm bar-pref. vs control (m) | swap_arm beyond orthogonal (m) |
+|---|---|---|---|---|
+| v4 sem | 4 / 6 / 5 / 3 of 18 | 10/18 | -0.031 [-0.087, +0.030] | +0.001 [-0.072, +0.070] |
+| v4 nosem | 4 / 2 / 3 / 2 of 18 | 14/18 | +0.002 [-0.039, +0.040] | +0.006 [-0.025, +0.037] |
+No detectable arm-assignment effect for either bundle: which arm approaches the bar does not follow the actor
+rebinding or the slot swap beyond the matched orthogonal control. (Teacher reference: 24/24.) Again limited by the
+route: the arms reach the bar in only 4-8 of 18 control episodes.
