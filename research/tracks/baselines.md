@@ -23,8 +23,10 @@ D-049 diagnostic below). The decisive latent test is R2 (system i's own packet) 
 | learned:codec1701_u13152 | 28/30 [0.79, 0.98] | 25/30 [0.66, 0.93] | place 1, grasp 1 / transport 4, lift 1 |
 | learned:codec1701_u17000 | 25/30 [0.66, 0.93] | 25/30 [0.66, 0.93] | lift 2, place 1, transport 2 / transport 5 |
 | learned:codec1701_u20000 | 27/30 [0.74, 0.97] | 29/30 [0.83, 0.99] | grasp 1, lift 1, transport 1 / place 1 |
+| learned:codec1701_u23000 | 27/30 [0.74, 0.97] | 29/30 [0.83, 0.99] | place 1, lift 2 / transport 1 |
 | learned:direct1701_u12000 | 25/30 [0.66, 0.93] | 27/30 [0.74, 0.97] | lift 2, transport 1, grasp 2 / transport 2, place 1 |
 | learned:direct1701_u15000 | 23/30 [0.59, 0.88] | 27/30 [0.74, 0.97] | grasp 2, place 2, transport 1, lift 2 / place 1, transport 2 |
+| learned:direct1701_u18000 | 30/30 [0.89, 1.00] | 29/30 [0.83, 0.99] | none / transport 1 |
 
 Held-out source bodies (NOT in BC training; the protocol's source-competence bodies and harness: rrp.evaluation.runner,
 seeds 2,000,000.., 50 episodes each, infeasible excluded), learned:direct1701_u12000: parm5s_tf3 44/47 = 0.94
