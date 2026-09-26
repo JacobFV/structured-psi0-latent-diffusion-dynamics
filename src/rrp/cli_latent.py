@@ -404,6 +404,17 @@ def cmd_semantic(a):
         lcfg, E, R, P, res = load_representation(rep, dev)
         src = se.OracleSource(E, lcfg, res, rep, dev)
         label = f"ORACLE DIAGNOSTIC target_encoder_oracle:E({rep}) + scripted_teacher demo"
+    elif a.route == "bc":
+        from rrp.policy.runner import LearnedPolicy
+        from rrp.evaluation.ladder import sha256_file
+        rep = Path(a.representation) if a.representation else None
+        R = P = None
+        if rep:
+            _, _, R, P, _ = load_representation(rep, dev)
+        src = se.BCSource(LearnedPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=a.nfe, execute_prefix=8),
+                          a.checkpoint)
+        label = (f"learned:{a.checkpoint} (direct-action BC reference controller, NOT the latent path; "
+                 f"sha256 {sha256_file(a.checkpoint)[:16]})")
     else:
         from rrp.learning.checkpoint import load_checkpoint
         from rrp.policy.latent_runner import LatentPolicy
@@ -411,8 +422,10 @@ def cmd_semantic(a):
         _, _, R, P, _ = load_representation(rep, dev)
         src = se.GeneratedSource(LatentPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=a.nfe))
         label = f"learned:{a.checkpoint}"
-    probe = a.probe or (str(rep.parent / "probe_posthoc.pt") if (rep.parent / "probe_posthoc.pt").exists() else None)
-    P = lc.load_probe(probe, P, dev)
+    probe = None
+    if rep is not None:
+        probe = a.probe or (str(rep.parent / "probe_posthoc.pt") if (rep.parent / "probe_posthoc.pt").exists() else None)
+        P = lc.load_probe(probe, P, dev)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     rows_path = out / f"semantic_rows_{a.route}.jsonl"
@@ -495,7 +508,8 @@ def register_semantic(p):
     c.add_argument("--out", required=True)
     c.set_defaults(fn=cmd_arm)
     c = p.add_parser("semantic-edits", help="valid semantic packet edits (binding / goal) + irrelevant-edit controls")
-    c.add_argument("--route", choices=["teacher", "oracle", "generated"], required=True)
+    c.add_argument("--route", choices=["teacher", "oracle", "generated", "bc"], required=True,
+                   help="bc: direct-action BC reference controller (--checkpoint), context-conditioned, no packet")
     c.add_argument("--representation", help="oracle route: frozen representation.pt")
     c.add_argument("--checkpoint", help="generated route: flow policy checkpoint")
     c.add_argument("--robots", default="panda_pg2")

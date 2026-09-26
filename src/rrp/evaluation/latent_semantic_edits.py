@@ -21,6 +21,8 @@ Conditions (edits of the context the packet is generated for; the physical scene
   rebind_obj              the task is rebound to distractor0: in the public belief the bound object slot now holds
                           distractor0's track (and vice versa); the oracle's teacher demonstrates distractor0.
                           Prediction: distractor0 is grasped and placed in the zone; the cube stays.
+  rebind_desc             (pick_place scenes, canonical slot order) the task entity's descriptor + public binding are
+                          rebound to distractor0 (same edit as rebind_obj on paired scenes); beliefs untouched.
   goal_shift              requested physical effect changed: the target zone belief is displaced by G (default
                           12 cm, toward the workspace centre line); the oracle's teacher places at the displaced goal.
                           Prediction: the cube ends near the displaced goal, not in the real zone.
@@ -119,7 +121,7 @@ def rebind_actor(s, arm):
 
 
 def context_edit(cond, s, goal_off):
-    if cond == "rebind_obj" and getattr(s, "_sem_paired", False):
+    if cond == "rebind_desc" or (cond == "rebind_obj" and getattr(s, "_sem_paired", False)):
         rebind_descriptor(s, "distractor0")
     elif cond == "rebind_obj":
         _swap_tracks(s, "cube", "distractor0")
@@ -132,7 +134,7 @@ def context_edit(cond, s, goal_off):
 
 
 def make_teacher(cond, s, goal_off):
-    if cond == "rebind_obj":
+    if cond in ("rebind_obj", "rebind_desc"):
         return PickPlaceTeacher(s, obj="distractor0")
     if cond == "goal_shift":
         return ShiftedGoalTeacher(s, goal_off)
@@ -271,6 +273,32 @@ class GeneratedSource:
         return p.model_copy(update=dict(sampling=dict(p.sampling, route="generated", condition=cond)))
 
 
+class BCSource:
+    """Context-conditioned REFERENCE controller (not the latent path): a plain direct-action BC FlowPolicy
+    (rrp.policy.runner.LearnedPolicy, source="learned") that emits H-step native joint-target chunks from the public
+    observation incl. the task graph. For an edited condition the chunk is computed from the EDITED public context
+    (snapshot -> edit -> chunk -> restore) and executed in the real scene (first `execute_prefix` rows). Flow noise is
+    keyed by (seed, call), identical for control and edited runs."""
+    label = "bc"
+    lsv = rcv = "n/a"
+
+    def __init__(self, policy, name):
+        self.pol, self.name = policy, name
+
+    def featurizer(self, s):
+        return self.pol.featurizer(s)
+
+    def chunk(self, s, cond, goal_off, key):
+        snap = s.snapshot()
+        try:
+            context_edit(cond, s, goal_off)
+            self.pol.gen.manual_seed(int(key) % (2 ** 63))
+            ch = self.pol.chunks([s])[0]
+        finally:
+            s.restore(snap)
+        return ch
+
+
 # ------------------------------------------------------------------ irrelevant direction (probe-orthogonal)
 def probe_orthogonal(P, z, n_ent, key, norm):
     """Random direction orthogonal to the probe gradients of every semantic readout, scaled to `norm`."""
@@ -385,8 +413,10 @@ def run_condition(src, R, P, robot, robot_key, seed, cond, *, max_steps=300, rep
     if not ctrl_t.feasibility()["feasible"]:
         return dict(base, skipped="infeasible_control")
     match = "rebind_obj" if scene == "paired" else "goal_shift"
-    if cond == "control_replay" and src.label != "generated":
+    if cond == "control_replay" and src.label not in ("generated", "bc"):
         return dict(base, skipped=f"n/a_deterministic_{src.label}")
+    if cond == "orthogonal_matched" and src.label == "bc":
+        return dict(base, skipped="n/a_no_packet_for_bc")
     teachers = {}
     if src.label in ("oracle", "teacher"):
         need = {"orthogonal_matched": ("control", match), "control_replay": ("control",)}.get(cond, (cond,))
@@ -396,7 +426,8 @@ def run_condition(src, R, P, robot, robot_key, seed, cond, *, max_steps=300, rep
                 return dict(base, skipped=f"infeasible_{c}")
             teachers[c] = t
     f = src.featurizer(s)
-    s0 = LatentSystem0(R, f, latent_space_version=src.lsv, realizer_compat_version=src.rcv, device=dev)
+    s0 = None if src.label == "bc" else LatentSystem0(R, f, latent_space_version=src.lsv,
+                                                      realizer_compat_version=src.rcv, device=dev)
     z0 = {b: _body_pos(s, b) for b in ("cube", "distractor0", "target_zone")}
     goal_new = z0["target_zone"] + goal_off
     lift = {"cube": 0.0, "distractor0": 0.0}
@@ -423,6 +454,20 @@ def run_condition(src, R, P, robot, robot_key, seed, cond, *, max_steps=300, rep
             s.step(teachers[cond].act())
             measure(step)
             if teachers[cond].done:
+                break
+            continue
+        if src.label == "bc":                           # context-conditioned direct-action reference controller
+            if step % replan == 0 or not s.executor.queue:
+                key = _key(seed, calls) + (500 if cond == "control_replay" else 0)
+                calls += 1
+                ch = src.chunk(s, "control" if cond == "control_replay" else cond, goal_off, key)
+                try:
+                    s.submit_chunk(ch, execute_prefix=replan)
+                except Exception as e:                  # noqa: BLE001 - recorded
+                    info.append(dict(chunk_rejected=repr(e)[:200]))
+            s.step(None)
+            measure(step)
+            if s.runtime.succeeded() or _body_pos(s, "cube")[2] < -0.05:
                 break
             continue
         if step % replan == 0 or s0.packet is None:
@@ -454,7 +499,7 @@ def run_condition(src, R, P, robot, robot_key, seed, cond, *, max_steps=300, rep
     tcp_tr = np.array(tcp_tr)
     am = approach_metrics(tcp_tr, {b: z0[b] for b in lift}, fcon)
     row = dict(base, route=src.label, steps=step + 1, system_i_calls=calls,
-               packets_rejected=s0.stats.rejected, privileged_success=bool(s.privileged_success()),
+               packets_rejected=s0.stats.rejected if s0 else 0, privileged_success=bool(s.privileged_success()),
                lifted={b: v > 0.03 for b, v in lift.items()}, max_lift_m=lift,
                held_at_end=held,
                moved_xy_m={b: xy(fin[b], z0[b]) for b in lift},
@@ -473,7 +518,7 @@ def run_condition(src, R, P, robot, robot_key, seed, cond, *, max_steps=300, rep
 
 def followed(r):
     c = r["condition"]
-    if c == "rebind_obj":
+    if c in ("rebind_obj", "rebind_desc"):
         return bool(r["lifted"]["distractor0"] and not r["lifted"]["cube"])
     if c == "goal_shift":
         return bool(r["placed_at_shifted_goal"]["cube"])
@@ -577,7 +622,8 @@ def summarize_semantic(rows):
     # effect of the valid edit beyond the irrelevant edits (paired per scene; difference of paired differences)
     byc = {c: {(r["robot"], r["seed"]): r for r in ok if r["condition"] == c} for c in {r["condition"] for r in ok}}
     con = {}
-    for valid, metric in (("rebind_obj", _pref_min), ("rebind_obj", _pref_dir), ("goal_shift", _goal_pref)):
+    for valid, metric in (("rebind_obj", _pref_min), ("rebind_obj", _pref_dir), ("rebind_desc", _pref_min),
+                          ("rebind_desc", _pref_dir), ("goal_shift", _goal_pref)):
         for ctl in ("irrelevant_distractor", "orthogonal_matched", "control_replay"):
             if valid not in byc or ctl not in byc:
                 continue
