@@ -419,7 +419,7 @@ packet. R2 fails at the same stages as the stateless oracle. Next: fix the syste
                       key=lambda t: (("__" in t), t != "jointfix", t))
         for t_ in tags:
             gen = "__" in t_
-            lab = (f"jointfix system 0, GENERATED packet from learned:ladder_flow_{t_.split('__')[1].replace('flowjf', 'jointfix@').replace('_s', '')}"
+            lab = (f"system 0 {t_.split('__')[0]}, GENERATED packet from learned:ladder_flow_{t_.split('__')[1].replace('flowjf', 'jointfix@').replace('_s', '')}"
                    if gen else f"system 0 {t_}, oracle packet E(BC chunk)")
             cells = [esc(lab)]
             for r in ("panda_pg2", "parm6_tf3"):
