@@ -163,3 +163,11 @@ ladder_latent_sem_b1fix_anchor: encoder + anchored system 0 trained jointly with
 - parm6_tf3: 0/30; approach 14, grasp 5, lift 11
 - re-anchored: 0/30 and 0/30
 Compared with the refits (D-046) the arm now reaches the cube: min TCP-cube 0.3–4 cm, and the public grasp event is reached in many parm6 episodes. Failure mechanism in every grasp/lift failure: the privileged shadow expert, whose look-ahead is encoded into the oracle packet, never leaves "pregrasp". Its transition needs the tool within 1.5 cm of a point 13 cm ABOVE the cube (teachers.py). System 0 instead drives the tool down to the cube, so the packet keeps encoding "hover at pregrasp, gripper open" while the arm grasps (gripper label error 0.6–1.9 in those episodes). So system 0 does not follow a hover packet with centimetre accuracy: off the teacher's state distribution it produces the typical next motion (descend/close) rather than the motion encoded in z. A realized closed-loop success needs either system 0 that tracks the packet's geometry more tightly (e.g. training on learner-visited states with oracle packets, a DAgger variant on the jointly trained model) or a packet-level target representation it can servo to. Not tried yet. Next deciding result: plain behaviour cloning with the fix (direct-action baseline, host, ~4 h left) and binding v4.
+
+## D-048 2026-09-25 DAgger round 1 on the jointly trained bundle: first oracle-route success (1/30), not competent
+DAgger round 1: re-anchored R1 rollouts of the jointly trained B-1-fixed bundle on all 13 source-train bodies (24 feasible seeds each from 3,200,000; peer wt/ladder artifacts/runs/ladder_dagger_jf1/), then a system-0 refit on the frozen encoder, 50/50 with the pack, 4k steps, anchored input kept (configs/ladder/rz_jointfix_dagger1.json on track/ladder). R1 on matched dev seeds (raw: ladder_v1/<robot>/*jfdag1*):
+- panda_pg2 re-anchored: 1/30 (the first oracle-route success; Wilson 95% 0.006–0.17); plain: 0/30
+- parm6_tf3: 0/30 both ways
+- most failures are back at approach (24–29/30)
+- shadow on the teacher trajectory: 8/8, arm error 0.009 / 0.004
+Not a competent route. Plain behaviour cloning with the fix (direct-action baseline) and binding v4 remain the deciding results.
