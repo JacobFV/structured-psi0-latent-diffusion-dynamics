@@ -342,3 +342,12 @@ Lead ran `rrp latent semantic-edits --route bc` with the final BC (direct1701_u1
 - rebind_desc: ORIGINAL cube lifted 82/82 and placed in the zone 80/82 (the rebinding is ignored)
 - irrelevant_distractor: 81/82 in the zone; noise replay 78/82
 Comparison with the latent deployable route on the same seeds (D-075): the latent route leaves the original cube untouched in 80/80 rebind runs (vs 58/80 lifted unedited) and approaches the new cube, while BC ignores the rebinding completely. BC follows goal edits far better (77/82 vs 23/80), consistent with BC's higher competence. The D-074 claim "the latent route carries a binding edit that the direct-action baseline does not" is now supported like-for-like on identical seeds, with the same caveats (the latent route rarely completes the rebound task; the binding may be read via public predicate estimates; no nosem counterpart).
+
+## D-084 2026-09-26 t1 humanoid, 4 training seeds: semantic supervision hurts the deployable route in every seed (sem 38/120 vs nosem 107/120)
+legged agent (main 06228e7; lead recomputed from rows in artifacts/runs/legged_ladder/t1/). R2 deployable route (final flow, original system 0, same recipe per seed), dev seeds 10000–10029, sem / nosem:
+- seed 0: 3/28
+- seed 1: 8/27
+- seed 2: 17/24
+- seed 3: 10/28
+- total: 38/120 vs 107/120; nosem wins in every seed. Sem failures are falls (13–24 per seed).
+BC 24/30, teacher 30/30. With 4 training seeds, this is the strongest sem-vs-nosem result of the project, and it goes AGAINST semantic supervision on this body: the capacity-matched no-semantic packet gives a BC-level deployable humanoid controller, and the semantic packet degrades it. Together with equal performance on go2/hexapod6 (D-070/071/076) and no arm counterpart, the project's evidence does not support the hypothesis that semantic supervision of the packet improves control. Semantic probe handles are more editable on hexapod6 (D-079); that is a diagnostic property, not better control. Supersedes the "seeds 2–3 in progress" note of D-082.
