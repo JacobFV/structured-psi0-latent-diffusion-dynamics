@@ -1,0 +1,34 @@
+{
+ "steps": 12000,
+ "wall_s": 2822.434990644455,
+ "bodies": [
+  "t1"
+ ],
+ "n_rows": 451670,
+ "n_train_rows": 430505,
+ "n_heldout_rows": 21165,
+ "latent_space_version": "legged-ls-legged_nosem_t1_v2s2",
+ "eval": {
+  "split": "held_out_episodes",
+  "realize_mse": 0.015341006801463664,
+  "zero_action_mse": 0.9939396277070045,
+  "probes": {
+   "contact_acc": 0.06007080078125,
+   "contact_swing_acc": 1.0,
+   "goal_err": 1.8987066849067735,
+   "disp_xy_err": 0.9237427651882172,
+   "disp_yaw_err": 0.13384625427424907,
+   "subtask_acc": 0.0759765625,
+   "fall_acc": 0.00234375
+  },
+  "probes_shuffled_z": {
+   "contact_acc": 0.06007080078125,
+   "contact_swing_acc": 1.0,
+   "goal_err": 1.8972495947244983,
+   "disp_xy_err": 0.925300307571888,
+   "disp_yaw_err": 0.1288801223039627,
+   "subtask_acc": 0.0759765625,
+   "fall_acc": 0.00234375
+  }
+ }
+}
