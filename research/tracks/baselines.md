@@ -17,6 +17,25 @@ D-049 diagnostic below). The decisive latent test is R2 (system i's own packet) 
 | reference: R0 scripted_teacher (ladder track) | 30/30 | 30/30 | - |
 | reference: R1 oracle route, best (D-048, jfdag1 re-anchored) | 1/30 | 0/30 | mostly approach |
 
+**Provenance audit of the direct-action snapshots (lead request, 21:45).** All `direct1701_u*` snapshots come from ONE
+B-1-fixed run: root `artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/source`, config
+`.../source/config.json` (`zero_prev_action: true`, `exact_resume: true`, packed_dir latent_pp_v3dart_s1_H16), name
+baseline_direct_action_seed1701. Updates 0-12,869 ran on the host (lease 1790381771_8e7e1c, log
+~/work/relational-robot-policy/ops/logs/1790381771_8e7e1c_b1fix_baseline_direct_action.log) until the host watchdog
+stopped it (disk_below_reserve; SIGTERM checkpoint policy_interrupted.pt sha 2483e8cfe3f5c6f6, policy_last.pt sha
+09263cfa3569e14e). The SAME directory was copied to the peer store and resumed exactly from update 12,869 (peer unit
+rrp-b1fix-direct, lease 1790391035_b47fcd, log /dev/shm/rrp-brandonin/repo/ops/logs/1790391035_b47fcd_b1fix_baseline_direct_action.log;
+train_log.jsonl continues at step 12,900). The host copy stays frozen at 12,869 (MOVED_TO_PEER.txt). Each snapshot's own
+embedded config says zero_prev_action=True, out_dir = the b1fix root above, step = its tag:
+| snapshot | sha256[:16] (file = ladder summaries' recorded sha) | node at snapshot | embedded step / zero_prev_action |
+|---|---|---|---|
+| direct1701_u12000 | 5e6586bd6000412c | host | 12000 / True |
+| direct1701_u15000 | e6b211e19d09c7d1 | peer (resumed) | 15000 / True |
+| direct1701_u18000 | 0063fa12427c4259 | peer (resumed) | 18000 / True |
+scripts/bc_ckpt_watch.sh copies policy_last.pt and keeps the copy only if its sha256[:16] equals policy_last.json's
+sha256_16 at that moment (otherwise it discards and retries), so every snapshot matched its run's policy_last.json.
+No snapshot comes from a pre-fix run (the pre-fix sources are under `artifacts/runs/latent_slice1/`, never read here).
+
 **Learning curve (ladder dev scenes, 30 matched seeds per body; regenerate: `python3 scripts/bc_curve_table.py`)**
 | checkpoint | panda_pg2 | parm6_tf3 | failed stages panda / parm6 |
 |---|---|---|---|
