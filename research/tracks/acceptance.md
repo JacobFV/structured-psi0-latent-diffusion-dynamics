@@ -234,3 +234,17 @@ Paired scenes: BC is not competent at all (permuted slots/colours; running on ho
   pick_place, 30 seeds, 5 peer shards (leases 1790399024_a80e4c .. 1790399027_0107c0) ->
   `artifacts/runs/acceptance_sprint_sem_best_orcbc/shard<i>`. Prediction from the BC result: goal edits propagate,
   the rebinding does not (the demo source ignores it). orthogonal_matched here is norm-matched to goal_shift.
+
+### v4 sem vs nosem, oracle rung, paired scenes -- completed 22:04 (host; raw `artifacts/runs/acceptance_sprint_sem_v4{sem,nosem}_oracle/`)
+ORACLE DIAGNOSTIC (E(binding_paired_{sem,nosem}_v4) + scripted_teacher demo -> v4 system 0), 30 paired scenes, panda_pg2.
+Both v4 system-0s barely reach anything: in the control condition the TCP comes within 6 cm of no object in 22/30 (sem)
+and 21/30 (nosem) scenes; 0 lifts, 0 successes anywhere. (Consistent with the ladder finding at 20:45: v4 system 0
+copies the joint velocity and largely ignores the packet.)
+| bundle | first touch NEW: control / rebind | rebind min-dist effect beyond irrelevant (m) | beyond orthogonal (m) | init-dir effect beyond irrelevant | goal edit |
+|---|---|---|---|---|---|
+| v4 sem | 5/30 -> 8/30 | +0.037 [-0.001, +0.077] | +0.002 [-0.037, +0.042] | +0.12 [+0.05, +0.20] | no transport; no effect |
+| v4 nosem | 7/30 -> 4/30 | +0.052 [+0.020, +0.082] | +0.040 [+0.010, +0.071] | +0.40 [+0.13, +0.70] | no transport; no effect |
+The key contrast, sem vs nosem, shows NO semantic advantage at the behaviour level on the oracle route. Both show a
+small rebind-directed bias in the initial motion. For sem it cannot be separated from a matched-norm probe-orthogonal
+edit, which moves the sem arm a lot: mean TCP deviation 0.39 m vs 0.24 m for the rebind, so the sem system 0 is very
+sensitive to off-probe z directions. The nosem bias exceeds both controls. Weak evidence either way: the route is not competent.
