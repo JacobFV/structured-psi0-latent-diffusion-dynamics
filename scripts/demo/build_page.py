@@ -487,7 +487,7 @@ matched-norm probe-orthogonal edit. The claim that semantic supervision adds cau
         r2rows.setdefault((step, s0, fresh), {})[f.parent.name] = d
     if r2rows:
         rows = []
-        for (step, s0, fresh), per in sorted(r2rows.items()):
+        for (step, s0, fresh), per in sorted(r2rows.items(), key=lambda kv: (bool(kv[0][2]), -sum(d["success"] for d in kv[1].values()))):
             desc0 = {"gendag1": " (as gendag1_noqd but WITH the joint-velocity input)", "gendag2_noqd": " (round 2 of gendag1_noqd: DAgger on generated-packet states, no joint-velocity input)", "gendag3_noqd": " (round 3 of the same recipe)", "gendag1_qdd": " (gendag1 variant with joint-velocity dropout)", "gendag1_noqd": " (refit from bcdag2: no joint-velocity input, BC-expert DAgger incl. states visited with GENERATED packets, z-noise 0.3; config configs/ladder/rz_jointfix_gendag1_noqd.json on track/ladder)"}.get(s0, "")
             cells = [f'<span class="badge b-learned">R2 learned:flow_{step[0]}{"@" + str(step[1]) if step[1] >= 0 else " (final)"}</span> → system 0 {esc(s0)}<b>{esc(fresh)}</b><span class="ci">{esc(desc0)}</span>']
             for r in ("panda_pg2", "parm6_tf3"):
@@ -499,6 +499,7 @@ matched-norm probe-orthogonal edit. The claim that semantic supervision adds cau
                 else:
                     cells += ["—", "—"]
             rows.append(cells)
+        r2_rows_, rows = rows, []
         known = {"jointfix": "jointfix", "jfdag1": "jfdag1 (shadow DAgger r1)", "jfdag2df08": "jfdag2df08 (shadow DAgger r1+r2)",
                  "jfbcdag1": "jfbcdag1 (BC-expert DAgger)", "jfbcdag1long": "jfbcdag1long (BC-expert DAgger, 16k steps, lr 3e-4)", "jfnoqd": "jfnoqd (no joint-velocity input)", "jfbcdag2": "jfbcdag2 (BC-expert DAgger round 2)", "jfbcdag3": "jfbcdag3 (BC-expert DAgger round 3)", "jfbig16k": "jfbig16k (larger system 0, 16k steps, BC-expert DAgger)", "jfnoqd": "jfnoqd (no joint-velocity input)", "bindv4sem": "binding v4 SEM bundle", "bindv4sembcdag1": "binding v4 SEM + BC-expert DAgger r1", "bindv4nosembcdag1": "binding v4 NOSEM + BC-expert DAgger r1", "bindv4nosem": "binding v4 NOSEM bundle (capacity-matched control)"}
         found = sorted({f.name[len("oracle_zero_"):-len("_orcbc.summary.json")] for f in (RAW / "ladder_v1").glob("*/oracle_zero_*_orcbc.summary.json")},
@@ -508,22 +509,33 @@ matched-norm probe-orthogonal edit. The claim that semantic supervision adds cau
             if not any(have(p) for p in ps):
                 continue
             cells = [f'<span class="badge b-oracle">R1 ORACLE, stateless: E(BC chunk) → system 0 {esc(lab)}</span>']
+            tot = 0
             for p in ps:
                 if have(p):
                     d = J(p)
+                    tot += d["success"]
                     cells += [frac(d["success"], d["n"]),
                               esc(", ".join(f"{k} {v}" for k, v in d["failed_stage"].items() if k != "success"))]
                 else:
                     cells += ["—", "—"]
-            rows.append(cells)
-        for tag, lab in (("direct1701_u12000", "learned:direct1701_u12000 (plain BC, same seeds)"),):
+            rows.append((tot, cells))
+        orc_rows_ = [c for _, c in sorted(rows, key=lambda x: -x[0])]
+        rows = []
+        for tag, lab in (("direct1701_ufinal", "learned:direct1701 final (plain BC, same seeds)"), ("direct1701_u12000", "learned:direct1701_u12000 (plain BC mid-training, same seeds)")):
+            if not have(f"artifacts/runs/baselines_bc_ladder/panda_pg2/learned_{tag}.summary.json"):
+                continue
             cells = [f'<span class="badge b-bc">{lab}</span>']
             for r in ("panda_pg2", "parm6_tf3"):
                 d = J(f"artifacts/runs/baselines_bc_ladder/{r}/learned_{tag}.summary.json")
                 cells += [frac(d["success"], d["n"]), esc(", ".join(f"{k} {v}" for k, v in d["failed_stage"].items() if k != "success"))]
             rows.append(cells)
+        hdr = ["controller", "panda_pg2", "failures (stage)", "parm6_tf3", "failures (stage)"]
+        main_rows = rows + r2_rows_[:4] + orc_rows_[:2]
+        rest = r2_rows_[4:] + orc_rows_[2:]
+        rows = main_rows
+        more = (f"<details><summary>all {len(rest)} other R2 / stateless-R1 rows, best first (click to expand)</summary>" + table(hdr, rest) + "</details>") if rest else ""
         parts.insert(0, "<h3>Best latent route so far vs BC (sprint_latent, SPRINT BEST ROUTE): R2 generated and stateless R1 on the B-1-fixed bundle</h3>"
-                     + table(["controller", "panda_pg2", "failures (stage)", "parm6_tf3", "failures (stage)"], rows)
+                     + table(hdr, rows) + more
                      + f"""<p>R2 = system i's own packets (flow trained with <code>zero_prev_action</code> on the jointly trained
 encoder, snapshots as training proceeds) → the jointly trained system 0 → tracker; no teacher in the loop. Same 30 matched
 dev seeds as BC. The flow is still training (20k steps planned); rows are added as snapshots are evaluated.
@@ -1154,7 +1166,7 @@ nav{display:flex;flex-wrap:wrap;gap:.3rem .8rem;font-size:.9rem}nav a{color:var(
 .b-learned{color:var(--lrn);background:var(--lrn-bg)}.b-bc{color:var(--bc);background:var(--bc-bg)}
 .b-none{color:var(--none);background:var(--none-bg)}.b-run{color:var(--run);background:var(--run-bg)}
 .b-ok{color:var(--ok);background:var(--ok-bg)}.b-fail{color:var(--fail);background:var(--fail-bg)}
-.tw{overflow-x:auto;margin:.5rem 0;border:1px solid var(--line);border-radius:6px;background:var(--card)}
+td .badge{white-space:normal}.tw{overflow-x:auto;margin:.5rem 0;border:1px solid var(--line);border-radius:6px;background:var(--card)}
 table{border-collapse:collapse;width:100%;font-size:.88rem}th,td{padding:.4rem .55rem;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
 th{font-weight:600;background:var(--code)}tr:last-child td{border-bottom:0}
 table.ladder td:nth-child(n+3):nth-child(-n+6){white-space:nowrap}
