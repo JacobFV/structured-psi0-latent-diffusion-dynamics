@@ -1,5 +1,24 @@
 # track legged_vlm — legged/humanoid breadth and VLM system II on the latent-packet path
 
+## LEGGED FIXED-SEM RERUN (legged_fixsem agent, 2026-09-26 08:15 →; worktree ~/work/rrp-wt/legged_vlm, peer dir wt/legged_vlm)
+Question (D-085/D-087): the go2/hexapod6 sem results (R2 success equal, D-070/D-076; task-context steering equal, D-071/D-079;
+sem had stronger probe-direction z handles on hexapod6 and the only working goal-readout handle, D-069/D-079) were measured with the
+defective semantic recipe (unbounded probe NLL + shared clip → system 0 starved, packet collapsed). Rerun sem with the bounded NLL
+(`latent.probe_lv_min: -4`), everything else identical (same data, seed 0, steps, flow recipe), and repeat the same evals.
+Labels: learned:legged_fixsem_flow_sem_<body>_lv4/<ckpt> (DEPLOYABLE R2). nosem and original sem are the existing runs.
+
+### State
+| step | state | evidence |
+|---|---|---|
+| configs `configs/legged_fixsem/{rep,flow}_sem_{go2,hexapod6}_lv4.json` (diff vs original: probe_lv_min −4, name, note) | verified | generated from the saved original `config.json`s |
+| Stage A + flow, go2 then hexapod6 (`scripts/legged_fixsem_train.sh`) | running | host GPU lease 1790435710_97b4ff (3 CPU / 9G / gpu-mem 4G) → `artifacts/runs/legged_fixsem_{rep,flow}_sem_{go2,hexapod6}_lv4` |
+| evals per body (`scripts/legged_fixsem_eval.sh BODY`): gen gate, R2 snap_s4000 + final (dev 10000–10029), z-edit suite + task-context suite on R2 snap_s4000 (dev 10000–10019), mirror effects | planned | peer CPU |
+
+Resume: if the training lease died, rerun `bash scripts/legged_fixsem_train.sh` under a host GPU lease (it skips finished stages; the
+trainers resume from rep_last/flow_last). Then copy each finished `legged_fixsem_{rep,flow}_sem_<body>_lv4` dir to the peer store
+(`/dev/shm/rrp-brandonin/repo/artifacts/runs/`), `scripts/peer_sync.sh push` with `RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/legged_vlm`,
+and run the eval script under a peer CPU lease; copy `artifacts/runs/legged_{ladder,edits,gate}/<body>/*fixsem*` back.
+
 ## T1 DIAGNOSIS (t1_diag agent, 2026-09-26 05:00 →; worktree ~/work/rrp-wt/legged_vlm, peer dir wt/legged_vlm)
 Questions (D-084, D-080): (1) why the SEMANTIC packet falls on the t1 deployable route (sem 38/120 vs nosem 107/120, 4 training
 seeds, same recipe/data); (2) why nosem fails the stateless oracle route R1 (the robot barely moves) but succeeds on R2.
