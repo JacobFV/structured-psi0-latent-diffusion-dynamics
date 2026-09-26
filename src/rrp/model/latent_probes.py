@@ -118,20 +118,20 @@ def _goal_terms(out, lab, smask):
     return "goal_effect" in out and "goal_effect" in lab
 
 
-def gaussian_nll(pred6, target, mask):
-    mu, logvar = pred6[..., :3], pred6[..., 3:].clamp(-8, 6)
+def gaussian_nll(pred6, target, mask, lv_min: float = -8.0):
+    mu, logvar = pred6[..., :3], pred6[..., 3:].clamp(lv_min, 6)
     nll = 0.5 * (((target - mu) ** 2) / logvar.exp() + logvar + math.log(2 * math.pi)).sum(-1)
     m = mask.float()
     return (nll * m).sum() / m.sum().clamp(min=1)
 
 
-def probe_loss(out: dict, lab: dict, smask: torch.Tensor, m0: int = 0) -> tuple[torch.Tensor, dict]:
+def probe_loss(out: dict, lab: dict, smask: torch.Tensor, m0: int = 0, lv_min: float = -8.0) -> tuple[torch.Tensor, dict]:
     """lab: held/contact/visible/focus [B,S] (manipulator 0 for held/contact/rel), rel_tcp/future_disp [B,S,3],
     gaze [B,S], subtask [B]. Positions scaled to decimeters for conditioning.
     Multi-assembly labels (held_m/contact_m [B,S,M], rel_tcp_m [B,S,M,3], subtask_m [B,M], packet slot order)
     switch the manipulator-indexed queries to ALL packet slots."""
     if "held_m" in lab:
-        return probe_loss_multi(out, lab, smask)
+        return probe_loss_multi(out, lab, smask, lv_min=lv_min)
     m = smask.float()
     den = m.sum().clamp(min=1)
     bce = lambda logit, y: (F.binary_cross_entropy_with_logits(logit.squeeze(-1), y.float(), reduction="none")
@@ -142,12 +142,12 @@ def probe_loss(out: dict, lab: dict, smask: torch.Tensor, m0: int = 0) -> tuple[
         held_by=bce(out["held_by"][:, :, m0], lab["held"]),
         acting_on=bce(out["acting_on"][:, :, m0], lab["contact"]),
         looking_at=((out["looking_at"].squeeze(-1) - lab["gaze"] / 30).pow(2) * m).sum() / den,
-        rel_pos=gaussian_nll(out["rel_pos"][:, :, m0], lab["rel_tcp"] * 10, smask),
-        observed_effect=gaussian_nll(out["observed_effect"], lab["future_disp"] * 10, smask),
+        rel_pos=gaussian_nll(out["rel_pos"][:, :, m0], lab["rel_tcp"] * 10, smask, lv_min),
+        observed_effect=gaussian_nll(out["observed_effect"], lab["future_disp"] * 10, smask, lv_min),
         subtask=F.cross_entropy(out["subtask"][:, m0], lab["subtask"].long()),
     )
     if _goal_terms(out, lab, smask):
-        L["goal_effect"] = gaussian_nll(out["goal_effect"], lab["goal_effect"] * 10, smask)
+        L["goal_effect"] = gaussian_nll(out["goal_effect"], lab["goal_effect"] * 10, smask, lv_min)
     total = sum(L.values())
     return total, {f"probe_{k}": float(v.detach()) for k, v in L.items()}
 
@@ -188,7 +188,7 @@ def goal_metrics(out, lab, m) -> dict:
                 goal_effect_zero_baseline_patient_m=(float((g.norm(dim=-1) * gp).sum()), int(gp.sum())))
 
 
-def probe_loss_multi(out: dict, lab: dict, smask: torch.Tensor) -> tuple[torch.Tensor, dict]:
+def probe_loss_multi(out: dict, lab: dict, smask: torch.Tensor, lv_min: float = -8.0) -> tuple[torch.Tensor, dict]:
     """Every packet slot m answers its own held_by/acting_on/rel_pos/subtask queries (role-addressed)."""
     m = smask.float()
     den = m.sum().clamp(min=1)
@@ -202,13 +202,13 @@ def probe_loss_multi(out: dict, lab: dict, smask: torch.Tensor) -> tuple[torch.T
         held_by=bce(out["held_by"][:, :, :M, 0], lab["held_m"], mm, denm),
         acting_on=bce(out["acting_on"][:, :, :M, 0], lab["contact_m"], mm, denm),
         looking_at=((out["looking_at"].squeeze(-1) - lab["gaze"] / 30).pow(2) * m).sum() / den,
-        rel_pos=gaussian_nll(out["rel_pos"][:, :, :M], lab["rel_tcp_m"] * 10, mm.bool()),
-        observed_effect=gaussian_nll(out["observed_effect"], lab["future_disp"] * 10, smask),
+        rel_pos=gaussian_nll(out["rel_pos"][:, :, :M], lab["rel_tcp_m"] * 10, mm.bool(), lv_min),
+        observed_effect=gaussian_nll(out["observed_effect"], lab["future_disp"] * 10, smask, lv_min),
         subtask=F.cross_entropy(out["subtask"][:, :M].reshape(-1, out["subtask"].shape[-1]),
                                 lab["subtask_m"].reshape(-1).long()),
     )
     if _goal_terms(out, lab, smask):
-        L["goal_effect"] = gaussian_nll(out["goal_effect"], lab["goal_effect"] * 10, smask)
+        L["goal_effect"] = gaussian_nll(out["goal_effect"], lab["goal_effect"] * 10, smask, lv_min)
     total = sum(L.values())
     return total, {f"probe_{k}": float(v.detach()) for k, v in L.items()}
 

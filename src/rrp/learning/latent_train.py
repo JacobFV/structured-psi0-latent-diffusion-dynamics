@@ -163,7 +163,7 @@ def representation_step(E, R, P, data_b, cfg: LatentConfig, train=True):
     kl = (0.5 * (mu ** 2 + logvar.exp() - 1 - logvar) * mm).sum() / mm.sum().clamp(min=1)
     smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
     out = P(z, am, batch.bank_tokens["scene"].shape[1])
-    l_sem, logs = probe_loss(out, lab, smask)
+    l_sem, logs = probe_loss(out, lab, smask, lv_min=cfg.probe_lv_min)
     loss = l_real + cfg.semantic_weight * l_sem + cfg.beta_kl * kl
     if cf is not None:
         d = (mu[:nf][cf["pick"]] - mu[nf:]).flatten(1).norm(dim=1) / mu[:nf][cf["pick"]].flatten(1).norm(dim=1).clamp(min=1e-3)
@@ -389,7 +389,7 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
             ab = assembly_batch(batch)
             smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
             S = batch.bank_tokens["scene"].shape[1]
-            pl_fn = (lambda zc: probe_loss(P(zc, am, S), lab, smask)) if w_sem > 0 else None
+            pl_fn = (lambda zc: probe_loss(P(zc, am, S), lab, smask, lv_min=lcfg.probe_lv_min)) if w_sem > 0 else None
             valid = am[:, None, :].expand(-1, lcfg.knots, -1)
             loss, logs = model.loss(ab, z_target, valid, None, generator=gen, packet_loss_fn=pl_fn, packet_weight=w_sem,
                                     packet_tau_min=cfg_json.get("packet_tau_min", 0.0))
@@ -564,7 +564,7 @@ def sft_latent_flow(flow_ckpt: Path, target_packed_dir: Path, budget: int, *, se
         ab = assembly_batch(batch)
         smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
         S = smask.shape[1]
-        fn = (lambda zc: probe_loss(P(zc, am, S), lab, smask)) if w_sem > 0 else None
+        fn = (lambda zc: probe_loss(P(zc, am, S), lab, smask, lv_min=lcfg.probe_lv_min)) if w_sem > 0 else None
         loss, _ = model.loss(ab, zt, am[:, None, :].expand(-1, lcfg.knots, -1), None, packet_loss_fn=fn,
                              packet_weight=w_sem)
         opt.zero_grad()

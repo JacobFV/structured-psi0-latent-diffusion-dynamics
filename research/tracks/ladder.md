@@ -38,6 +38,25 @@ RESUME: `ssh gb10-direct systemctl --user status rrp-armnosem-chain`; if the uni
 `ssh gb10-direct 'systemd-run --user --unit rrp-armnosem-chain2 --working-directory=/dev/shm/rrp-brandonin/wt/ladder bash scripts/armnosem_chain.sh'`
 (done nodes are skipped; trainers resume from their *_last.pt; collections skip existing buffers).
 
+### ADDED 06:40 (lead, after D-085): third lineage = SEM with the BOUNDED semantic NLL (state: running)
+D-085 check on the ARM (Stage-A train logs, 150 x 100-step entries): sem `ladder_latent_sem_b1fix_anchor` median grad norm
+300 (last half 191), mean clip scale min(1,1/gn) 0.0049; nosem `ladder_latent_nosem_b1fix_anchor` median 0.47 (last half
+0.25), scale 0.95. So the frozen arm sem bundle was trained under the same starvation as t1 (every update scaled ~200x
+down). Final Stage-A realization loss is nevertheless similar (sem 0.0189 vs nosem 0.0184); KL/entry 5.76 vs 0.41.
+First on-policy difference: bc1 collection (stateless R1 with the Stage-A system 0, 13 training bodies x 24): sem 4/312
+(approach failures 174), nosem 1/312 (approach 282).
+Fix option for the arm (the legged code already had it): `latent.probe_lv_min` (default -8 = old behaviour; omitted from
+the latent-space version at default so existing bundle IDs are unchanged), used by the arm probe Gaussian NLL in Stage A
+and by the flow's packet-semantic loss (read from the representation). Test `tests/unit/test_probe_lv_min.py`.
+Smoke (300 steps): grad norm at step 300: 8 (lv -4) vs 75 (lv -8).
+Lineage `sfjf`: `configs/ladder/armsemfix/*` = the sem configs with ONLY `latent.probe_lv_min: -4.0` added in Stage A
+(flows keep packet_semantic_weight 1.0; everything else identical, same seeds, DAgger seeds and buffer compositions).
+Driver `scripts/arm_lineage_chain.sh` (LIN=sfjf; parametrized copy of the nosem driver), peer unit `rrp-armsemfix-chain`,
+state `artifacts/runs/ladder_armsfjf_state/`, outputs `ladder_latent_semfix_b1fix_anchor`, `ladder_flow_sfjf*`,
+`ladder_rz_sfjf_*`, `ladder_dagger_sfjf_*`, R2 tags `zero_flowsf*`, edit suite `acceptance_armsfjf_gen_{parm6,panda}`.
+Host GPU not used: the pack (24 GB) does not fit the host's disk headroom (313 GB free vs 300 GB reserve).
+RESUME (semfix): `ssh gb10-direct 'systemd-run --user --unit rrp-armsemfix-chain2 --setenv=LIN=sfjf --working-directory=/dev/shm/rrp-brandonin/wt/ladder bash scripts/arm_lineage_chain.sh'`.
+
 ## SPRINT BEST ROUTE FINAL (frozen 2026-09-26 02:30 PDT, sprint_latent; for sprint_semantic / sprint_demo)
 **Deployable route (R2): system i `learned:ladder_flow_jointfix_gdag2h` -> system 0 `learned:ladder_rz_jointfix_gendag3_noqd`.**
 No teacher, oracle or BC at run time. pick_place, 300 ticks, replan 8, NFE 8, standard stochastic sampling (noise scale 1),

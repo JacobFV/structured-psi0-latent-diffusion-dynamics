@@ -47,10 +47,12 @@ class LatentConfig:
     binding_cf: float = 0.0                        # fraction of each batch appended as counterfactual-binding copies
     binding_contrast: float = 0.0                  # optional weight: push E(cf) away from E(factual) (hinge)
     slot_handles: bool = False                     # public slot-address embedding on scene tokens (see PolicyConfig)
+    probe_lv_min: float = -8.0                     # probe Gaussian-NLL log-variance floor; -4 = bounded NLL (D-085 fix)
 
     def version(self) -> str:
         d = asdict(self)
-        for k, dflt in (("binding_cf", 0.0), ("binding_contrast", 0.0), ("slot_handles", False)):
+        for k, dflt in (("binding_cf", 0.0), ("binding_contrast", 0.0), ("slot_handles", False),
+                         ("probe_lv_min", -8.0)):
             if d[k] == dflt:                           # added later: omit at default so v1 versions are unchanged
                 d.pop(k)
         return "ls-" + hashlib.sha256(json.dumps(d, sort_keys=True, default=str).encode()).hexdigest()[:12]
