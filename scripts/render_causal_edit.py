@@ -33,7 +33,13 @@ def main_semantic(a):
     from render_episode import caption
     dev = "cpu"
     arm = a.suite == "arm"
-    if a.route == "generated":
+    if a.route == "bc":
+        from rrp.policy.runner import LearnedPolicy
+        src = se.BCSource(LearnedPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=8, execute_prefix=8), a.checkpoint)
+        R = P = rep = None
+        srclab = f"LEARNED BC reference {Path(a.checkpoint).stem} (not latent)"
+        tag = f"learned_bc_{Path(a.checkpoint).stem}"
+    elif a.route == "generated":
         from rrp.learning.checkpoint import load_checkpoint
         rep = Path(load_checkpoint(a.checkpoint, map_location="cpu")["config"]["representation"])
         _, _, R, P, _ = load_representation(rep, dev)
@@ -55,8 +61,9 @@ def main_semantic(a):
             src = se.TeacherSource()
             srclab = "SCRIPTED TEACHER (privileged)"
             tag = "scripted_teacher"
-    probe = a.probe or (str(rep.parent / "probe_posthoc.pt") if (rep.parent / "probe_posthoc.pt").exists() else None)
-    P = lc.load_probe(probe, P, dev)
+    if rep is not None:
+        probe = a.probe or (str(rep.parent / "probe_posthoc.pt") if (rep.parent / "probe_posthoc.pt").exists() else None)
+        P = lc.load_probe(probe, P, dev)
     rend, frames, rows = {}, {}, {}
     for c in ("control", a.condition):
         fr = frames.setdefault(c, [])
@@ -87,7 +94,8 @@ def main_semantic(a):
                 f"min dist old/new={r['min_tcp_dist']['cube']:.2f}/{r['min_tcp_dist']['distractor0']:.2f} m"]
     what = (lambda r: f"task: {r['assigned']} arm") if arm else (
         lambda r: f"task object: {r.get('patient_color', 'cube')}")
-    edit_lab = {"rebind_obj": "EDIT: task rebound to " + str(rows["control"].get("rebind_color", "distractor0")),
+    edit_lab = {"rebind_desc": "EDIT: task rebound to " + str(rows["control"].get("rebind_color", "distractor0")),
+                "rebind_obj": "EDIT: task rebound to " + str(rows["control"].get("rebind_color", "distractor0")),
                 "swap_arm": "EDIT: actor rebound to " + str(rows["control"].get("edited_to", "")) + " arm",
                 "goal_shift": "EDIT: goal moved 12 cm", "irrelevant_distractor": "CONTROL EDIT: unbound object belief moved",
                 "orthogonal_matched": "CONTROL EDIT: probe-orthogonal z, matched norm",
@@ -229,7 +237,7 @@ def main(a):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--checkpoint")
-    ap.add_argument("--route", choices=["generated", "oracle", "teacher"], default="generated")
+    ap.add_argument("--route", choices=["generated", "oracle", "teacher", "bc"], default="generated")
     ap.add_argument("--representation", help="oracle route: frozen representation.pt")
     ap.add_argument("--robot", default="panda_pg2")
     ap.add_argument("--seed", type=int, default=3000001)
