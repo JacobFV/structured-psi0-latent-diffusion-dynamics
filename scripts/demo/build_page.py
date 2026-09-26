@@ -988,6 +988,7 @@ system i's own packets → system 0 give nosem 30/30 and sem 29/30 on the 30 mat
 gives nosem 30/30 and sem 25/30. <b>hexapod6 is the second body through the deployable route: R2 sem 30/30, nosem 30/30</b> (D-076); its BC is 30/30 and its stateless oracle route 30/30 for both. BC positive control t1 humanoid 24/30
 (teacher 30/30). <b>g1 humanoid: the positive control fails</b> (BC 2–7/30 across replan settings vs the arc-only teacher 25/30), so no latent claim is made there.
 <b>t1 humanoid oracle route is not competent</b>: stateless R1 sem 12/30, nosem 0/30 (mostly falls), against BC 24/30, even though both pass the offline gate.
+After one BC-expert DAgger round, applied identically to both, it is sem 18/30 and nosem 0/30 (nosem never reaches the first waypoint in 21/30).
 This is the first sem &gt; nosem gap: a lead to follow up, not a result, because the route is an oracle diagnostic and not competent (D-076).
 {src('research/tracks/legged_vlm.md', 'D-070', 'artifacts/runs/legged_ladder/go2/r2_*_snap_s4000.jsonl')}</p>
 <p><b>Packet edits (D-069, oracle route, go2, 20 seeds):</b> probe-guided halt changes forward progress by −1.24 m (sem) and −1.23 m (nosem), against −0.05 to
@@ -1453,7 +1454,7 @@ never lifted; the approach goes to the new cube, also on panda) redirect behavio
 arms: {pool_txt} pooled over the matched and fresh seed sets, against BC 24–30 of 30 on the same sets (D-072).</li>
 <li><b>Not shown:</b> a specific contribution of semantic supervision. On go2, nosem is as steerable as sem (D-069, D-071). The arm result has no nosem
 counterpart, and the binding-v4 sem/nosem bundles are not competent (D-059). The only sem &gt; nosem gap is a lead, not a result: on t1, on an oracle route
-that is not competent (sem 12/30 vs nosem 0/30; BC 24/30; D-076).</li>
+that is not competent (sem 12/30 vs nosem 0/30; after one identical DAgger round 18/30 vs 0/30; BC 24/30; D-076).</li>
 <li><b>Not tested:</b> the sealed held-out target bodies for the latent route. Plain BC transfers to a new gripper (78–85/100) but not to the unseen xarm7 arm
 (0/100; D-064). Humanoid g1 has no competent BC control.</li>
 </ul></div>
