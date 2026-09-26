@@ -272,3 +272,11 @@ legged agent (research/tracks/legged_vlm.md; raw artifacts/runs/legged_edits/go2
 - per-leg contact per knot is barely decodable (probe swing accuracy 0.41 / 0.38) and not steerable
 Reading: on a competent deployable route, meaning in the supplied task context causally flows through the generated packet into behaviour for goal direction, beyond a matched irrelevant context edit. This is the architecture's central claim, shown on one body (go2) for one semantic (goal direction). Semantic supervision is not needed for it (nosem is at least as steerable). The only sem-specific causal handle (goal readout) is small. So sem vs capacity-matched nosem: equal success, no meaningful semantic advantage in causal control, the same conclusion as the arm (D-059, D-062). Not shown: halt via task context, per-leg contact semantics, other bodies.
 Note (D-071): the raw mirror effects are 0.355 m (sem) and 0.435 m (nosem); the demo page prints them from the raw file as 0.35 / 0.43 (D-071 quoted the track file's rounding, 0.36 / 0.44).
+
+## D-072 2026-09-26 FINAL best arm latent route (sprint freeze): deployable route works, below BC
+sprint_latent "SPRINT BEST ROUTE FINAL" (research/tracks/ladder.md; lead verified the key rows from the raw summaries). System i = ladder_flow_jointfix_gdag1 (sha256 78fbee7f…), system 0 = gendag3_noqd on the frozen jointfix encoder. Matched dev seeds, R2 (no teacher/oracle/BC at run time):
+- panda_pg2 10/30, parm6_tf3 22/30; fresh seeds 13/30 and 21/30; pooled 23/60 and 43/60
+- held-out source body parm5s_tf3: 21/30 (BC u12000 26/30)
+- 13 source-training bodies, seeds 4,000,000+: 209/312. These were the DAgger round-2 collection rollouts: new seeds for the evaluated checkpoint, later reused as training data
+- references: stateless R1 13/30 / 27/30 / 28/30; BC u12000 25/30 / 27/30 / 26/30; final BC 30/30; teacher 30/30
+The in-architecture fixes that got here: B-1 zero_prev_action; qd removed from system 0 (velocity shortcut); BC-expert (stateless) DAgger including generated-packet states + z-noise for system 0; generator DAgger toward E(BC chunk). DAgger labels come from the learned BC expert, not the stateful teacher. Unsolved: panda grasp/lift, parm6 place; ordering R2 < R1 < BC. Binding-v4 sem/nosem not yet competent, so there is no deployable sem-vs-nosem comparison on the arm (legged has one: D-070/D-071).
