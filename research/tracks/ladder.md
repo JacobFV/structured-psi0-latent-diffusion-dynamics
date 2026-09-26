@@ -80,8 +80,12 @@ Contexts = gdag1-3 (learner-visited R2 states on the 13 training bodies, target 
 | pfA (sha f16949b7) | from gdag2h, 3k steps, 50% pack / 50% DAgger, lr 5e-5 | 12 / 12 / 13 = 37/90 | 20 / 22 / 14 = 56/90 | worse (parm6) |
 | pfB (sha 75409608) | from gdag2h, 3k steps, 25% pack / 75% DAgger, lr 1e-4 | 11 / 10 / 12 = 33/90 | 17 / 17 / 18 = 52/90 | worse |
 | gdag3h (be8caaf7) | from gdag2h, 1.5k pack-free, + gdag3 contexts (02:47) | 13 / 12 / 10 = 35/90 | 20 / 18 / 21 = 59/90 | worse |
-| pfC | from gdag2h, 8k steps, 50/50, lr 1e-4 | running | running | |
-| pfD | from the 20k base flow, 8k steps, 50/50, lr 1e-4 | running | running | |
+| pfC (sha 5c754231) | from gdag2h, 8k steps, 50/50, lr 1e-4 | 12 / 14 / 12 = 38/90 | 18 / 19 / 20 = 57/90 | worse (parm6); panda +2, within noise |
+| pfD (sha 324c3938) | from the 20k base flow, 8k steps, 50/50, lr 1e-4 | 9 / 11 / 9 = 29/90 | 20 / 14 / 21 = 55/90 | worse |
+**Outcome: no post-freeze variant beats the frozen route on all seed sets; the 02:30 freeze (flow_jointfix_gdag2h ->
+gendag3_noqd, 36/90 and 70/90) stays the reported route.** Every pack-included variant loses 13-18 parm6 successes
+per 90 seeds, and panda stays at 29-38/90 (a +2 at best, well inside the CI). Mixing the pack back in pulls the flow back
+toward the demonstrations' packets, which the DAgger-trained system 0 realizes less well than the on-route targets.
 Panda failures stay at approach (8-13 per 30) in every variant: retraining the generator on its own visited states with
 the pack mixed in does not move panda's approach failures. Raw: `artifacts/runs/ladder_v1/<robot>/generated_zero_flowpf*_rzgendag3_noqd_s*.summary.json`.
 
