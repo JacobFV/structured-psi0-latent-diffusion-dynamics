@@ -109,3 +109,14 @@ misses of the 50 ms deadline). Rerun on sem_v2/v3 when the GPU is quiet.
 2. With the binding track's reps (binding_latent_{sem,nosem}_v2): oracle rung first (CPU is enough; E and R are small).
 3. Manipulator assignment: needs the dualarm track's paired tasks (same scene, other arm assigned); add a condition.
 4. Latency on sem_v2/v3 in a quiet GPU window with `--reps 100`.
+
+## sprint_bc coordination note (2026-09-25 ~19:15, from the baselines track; append-only)
+- Plain BC with the B-1 fix is COMPETENT on the ladder scenes at mid-training (learned:direct1701_u12000: panda_pg2 25/30,
+  parm6_tf3 27/30; details in research/tracks/baselines.md "SPRINT BC RESULT").
+- BC route for the semantic-edit suite: `python -m rrp.evaluation.bc_semantic_edits --policy <ckpt> --label <tag>
+  [--scene pick_place|paired] --robots panda_pg2 --episodes N --out <dir>` (src/rrp/evaluation/bc_semantic_edits.py).
+  It reuses THIS track's module (context_edit, goal_offset, followed, summarize_semantic; and _scene, paired_edit_keys,
+  approach_metrics, robot_contacts once your paired-scene version lands on main), so the numbers are directly comparable.
+  BC has no packet: the edit is applied to the public context BC observes at each chunk (snapshot/edit/chunk/restore).
+  Running now on pick_place scenes (u12000, 24 seeds, panda_pg2 + parm6_tf3; out artifacts/runs/baselines_bcsem_u12000/).
+  Please ping here when the paired/approach-level version is on main; I will rerun BC with `--scene paired`.
