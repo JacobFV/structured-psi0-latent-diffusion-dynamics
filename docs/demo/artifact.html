@@ -47,7 +47,7 @@ figcaption{padding:.5rem .6rem;font-size:.84rem;overflow-wrap:anywhere}.novid{pa
 <main>
 <header><button id="theme" type="button" aria-label="toggle light/dark theme">◐ theme</button>
 <h1>Structured latent packets for cross-body robot control — demo</h1>
-<p class="muted">Built 2026-09-25 19:18 PDT from saved raw outputs by <code>scripts/demo/build_page.py</code>. Research state, not a product.</p>
+<p class="muted">Built 2026-09-25 19:28 PDT from saved raw outputs by <code>scripts/demo/build_page.py</code>. Research state, not a product.</p>
 <div class="legend">Controller-source labels:
 <span class="badge b-teacher">scripted_teacher (privileged)</span> <span class="badge b-oracle">ORACLE diagnostic (not deployable)</span> <span class="badge b-learned">learned:&lt;ckpt&gt;</span> <span class="badge b-bc">learned BC baseline</span> <span class="badge b-none">not shown</span> <span class="badge b-run">running</span></div>
 <nav><a href="#arch">architecture</a><a href="#works">what works</a><a href="#matrix">evidence</a><a href="#debug">debugging</a>
@@ -181,7 +181,7 @@ the edit. <b>No semantic control is shown.</b> Reruns on the B-1-fixed bundles:
 <p class="lede"><b>Plain behaviour cloning with deployment-consistent input (B-1 fixed) is a competent controller on the
 ladder's matched scenes, already at mid-training.</b> Same data, same seed (1701), same 30 dev seeds, same tracker and
 privileged evaluator, prev-action input 0 as deployed. So the latent route's closed-loop failure comes from the latent
-architecture/training (Stage A + system 0), <i>not</i> from the data, the demonstrations or the simulator setup.</p>
+packet route (Stage A encoder / system 0 and/or the generator), <i>not</i> from the data, the demonstrations or the simulator.</p>
 <div class="tw"><table class=""><thead><tr><th>controller</th><th>panda_pg2</th><th>failures (stage)</th><th>parm6_tf3</th><th>failures (stage)</th></tr></thead><tbody><tr><td><span class="badge b-bc">learned:direct1701_u12000</span><br><span class="muted" style="font-size:.8em">direct-action BC, 12k of ~26.3k updates</span></td><td><b>25/30</b> <span class="ci">[0.66–0.93]</span></td><td>lift 2, transport 1, grasp 2</td><td><b>27/30</b> <span class="ci">[0.74–0.97]</span></td><td>transport 2, place 1</td></tr><tr><td><span class="badge b-bc">learned:codec1701_u13152</span><br><span class="muted" style="font-size:.8em">action-only codec BC, 13.2k updates</span></td><td><b>28/30</b> <span class="ci">[0.79–0.98]</span></td><td>place 1, grasp 1</td><td><b>25/30</b> <span class="ci">[0.66–0.93]</span></td><td>transport 4, lift 1</td></tr><tr><td><span class="badge b-teacher">R0 scripted teacher</span></td><td><b>30/30</b> <span class="ci">[0.89–1.00]</span></td><td>—</td><td><b>30/30</b> <span class="ci">[0.89–1.00]</span></td><td>—</td></tr><tr><td><span class="badge b-oracle">R1 oracle, best latent (jfdag1)</span></td><td><b>1/30</b> <span class="ci">[0.01–0.17]</span></td><td>approach 25, grasp 3, lift 1</td><td><b>0/30</b> <span class="ci">[0.00–0.11]</span></td><td>approach 29, lift 1</td></tr></tbody></table></div>
 <p>Wilson 95% in brackets. BC failures are late (grasp / lift / transport / place timeouts), none at approach.
 <span class="src">source: <code>artifacts/runs/baselines_bc_ladder/&lt;robot&gt;/learned_&lt;tag&gt;.summary.json</code>, <code>research/tracks/baselines.md (SPRINT BC RESULT)</code></span>
