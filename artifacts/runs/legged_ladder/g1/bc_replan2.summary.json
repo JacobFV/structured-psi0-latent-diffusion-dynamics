@@ -1,0 +1,22 @@
+{
+ "file": "artifacts/runs/legged_ladder/g1/bc_replan2.jsonl",
+ "source": "learned:legged_bc_g1_v1/policy.pt",
+ "edit": "none",
+ "n": 10,
+ "success": 6,
+ "wilson95": [
+  0.313,
+  0.832
+ ],
+ "stages": {
+  "success": 6,
+  "fell": 3,
+  "drift_a": 1
+ },
+ "seeds": [
+  10000,
+  10009
+ ],
+ "events_a": 8,
+ "events_b": 8
+}
