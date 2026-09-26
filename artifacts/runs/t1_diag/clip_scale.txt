@@ -1,0 +1,13 @@
+legged_rep_sem_t1_v2 n 60 median gn 388.8 mean clip scale 0.0038 first-half 0.0019 final real 0.0184
+legged_rep_nosem_t1_v2 n 60 median gn 0.4 mean clip scale 0.9186 first-half 0.8395 final real 0.0082
+t1diag_rep_sem_lv4 n 60 median gn 11.1 mean clip scale 0.1642 first-half 0.0440 final real 0.0138
+legged_rep_sem_t1_v2s2 n 60 median gn 459.6 mean clip scale 0.0034 first-half 0.0016 final real 0.0271
+legged_rep_nosem_t1_v2s2 n 60 median gn 0.5 mean clip scale 0.8963 first-half 0.7925 final real 0.0123
+legged_rep_sem_t1_v2s3 n 26 median gn 581.9 mean clip scale 0.0020 first-half 0.0023 final real 0.0268
+legged_rep_nosem_t1_v2s3 n 26 median gn 1.1 mean clip scale 0.7033 first-half 0.4626 final real 0.0160
+legged_rep_sem_t1_v2s1 n 60 median gn 413.6 mean clip scale 0.0037 first-half 0.0017 final real 0.0169
+legged_rep_nosem_t1_v2s1 n 60 median gn 0.4 mean clip scale 0.9131 first-half 0.8262 final real 0.0071
+legged_rep_sem_go2_v2 n 60 median gn 466.3 mean clip scale 0.0036 final real 0.01477
+legged_rep_nosem_go2_v2 n 60 median gn 0.3 mean clip scale 0.9436 final real 0.00999
+legged_rep_sem_hexapod6_v2 n 60 median gn 405.2 mean clip scale 0.0042 final real 0.00013
+legged_rep_nosem_hexapod6_v2 n 60 median gn 0.0 mean clip scale 0.9986 final real 0.00004

@@ -1,0 +1,335 @@
+{
+ "ts": "lv4",
+ "sets": {
+  "bc": {
+   "sem/oracle/imu_t+0": {
+    "gyro_x": 0.143,
+    "gyro_y": 0.335,
+    "gyro_z": 0.332,
+    "grav_x": 0.515,
+    "grav_y": 0.814,
+    "grav_z": -0.063,
+    "lam": 1000.0
+   },
+   "sem/oracle/imu_t+10": {
+    "gyro_x": 0.199,
+    "gyro_y": 0.284,
+    "gyro_z": -0.008,
+    "grav_x": 0.334,
+    "grav_y": 0.779,
+    "grav_z": 0.183,
+    "lam": 1000.0
+   },
+   "sem/oracle/imu_t+20": {
+    "gyro_x": 0.31,
+    "gyro_y": 0.147,
+    "gyro_z": 0.011,
+    "grav_x": 0.36,
+    "grav_y": 0.665,
+    "grav_z": 0.191,
+    "lam": 1000.0
+   },
+   "sem/gen/imu_t+0": {
+    "gyro_x": 0.121,
+    "gyro_y": 0.423,
+    "gyro_z": 0.301,
+    "grav_x": 0.41,
+    "grav_y": 0.717,
+    "grav_z": -0.042,
+    "lam": 1000.0
+   },
+   "sem/gen/imu_t+10": {
+    "gyro_x": 0.234,
+    "gyro_y": 0.339,
+    "gyro_z": -0.096,
+    "grav_x": 0.082,
+    "grav_y": 0.652,
+    "grav_z": 0.275,
+    "lam": 1000.0
+   },
+   "sem/gen/imu_t+20": {
+    "gyro_x": 0.499,
+    "gyro_y": 0.068,
+    "gyro_z": -0.238,
+    "grav_x": 0.102,
+    "grav_y": 0.51,
+    "grav_z": 0.581,
+    "lam": 1000.0
+   },
+   "nosem/oracle/imu_t+0": {
+    "gyro_x": 0.098,
+    "gyro_y": 0.585,
+    "gyro_z": -0.163,
+    "grav_x": 0.653,
+    "grav_y": 0.698,
+    "grav_z": 0.428,
+    "lam": 1000.0
+   },
+   "nosem/oracle/imu_t+10": {
+    "gyro_x": 0.228,
+    "gyro_y": 0.397,
+    "gyro_z": -1.616,
+    "grav_x": 0.268,
+    "grav_y": 0.256,
+    "grav_z": -0.143,
+    "lam": 1000.0
+   },
+   "nosem/oracle/imu_t+20": {
+    "gyro_x": 0.264,
+    "gyro_y": 0.069,
+    "gyro_z": -0.553,
+    "grav_x": -0.06,
+    "grav_y": 0.398,
+    "grav_z": -0.321,
+    "lam": 1000.0
+   },
+   "nosem/gen/imu_t+0": {
+    "gyro_x": 0.096,
+    "gyro_y": 0.57,
+    "gyro_z": -0.753,
+    "grav_x": 0.661,
+    "grav_y": 0.54,
+    "grav_z": -1.998,
+    "lam": 1000.0
+   },
+   "nosem/gen/imu_t+10": {
+    "gyro_x": -0.064,
+    "gyro_y": 0.367,
+    "gyro_z": -0.748,
+    "grav_x": 0.583,
+    "grav_y": 0.695,
+    "grav_z": -1.535,
+    "lam": 1000.0
+   },
+   "nosem/gen/imu_t+20": {
+    "gyro_x": 0.01,
+    "gyro_y": 0.199,
+    "gyro_z": -1.667,
+    "grav_x": 0.549,
+    "grav_y": 0.619,
+    "grav_z": -1.73,
+    "lam": 1000.0
+   }
+  },
+  "r2_sem": {
+   "sem/oracle/imu_t+0": {
+    "gyro_x": 0.347,
+    "gyro_y": 0.286,
+    "gyro_z": 0.387,
+    "grav_x": 0.461,
+    "grav_y": 0.877,
+    "grav_z": 0.416,
+    "lam": 1000.0
+   },
+   "sem/oracle/imu_t+10": {
+    "gyro_x": 0.277,
+    "gyro_y": 0.412,
+    "gyro_z": 0.474,
+    "grav_x": 0.641,
+    "grav_y": 0.718,
+    "grav_z": 0.58,
+    "lam": 1000.0
+   },
+   "sem/oracle/imu_t+20": {
+    "gyro_x": 0.167,
+    "gyro_y": 0.389,
+    "gyro_z": 0.527,
+    "grav_x": 0.617,
+    "grav_y": 0.734,
+    "grav_z": 0.573,
+    "lam": 1000.0
+   },
+   "sem/gen/imu_t+0": {
+    "gyro_x": 0.33,
+    "gyro_y": 0.318,
+    "gyro_z": 0.382,
+    "grav_x": 0.628,
+    "grav_y": 0.872,
+    "grav_z": 0.495,
+    "lam": 1000.0
+   },
+   "sem/gen/imu_t+10": {
+    "gyro_x": 0.342,
+    "gyro_y": 0.331,
+    "gyro_z": 0.395,
+    "grav_x": 0.756,
+    "grav_y": 0.719,
+    "grav_z": 0.584,
+    "lam": 1000.0
+   },
+   "sem/gen/imu_t+20": {
+    "gyro_x": 0.271,
+    "gyro_y": 0.329,
+    "gyro_z": 0.435,
+    "grav_x": 0.675,
+    "grav_y": 0.753,
+    "grav_z": 0.559,
+    "lam": 1000.0
+   },
+   "nosem/oracle/imu_t+0": {
+    "gyro_x": 0.37,
+    "gyro_y": 0.524,
+    "gyro_z": 0.473,
+    "grav_x": 0.728,
+    "grav_y": 0.857,
+    "grav_z": 0.664,
+    "lam": 1000.0
+   },
+   "nosem/oracle/imu_t+10": {
+    "gyro_x": 0.333,
+    "gyro_y": 0.558,
+    "gyro_z": 0.282,
+    "grav_x": 0.846,
+    "grav_y": 0.753,
+    "grav_z": 0.831,
+    "lam": 1000.0
+   },
+   "nosem/oracle/imu_t+20": {
+    "gyro_x": 0.188,
+    "gyro_y": 0.499,
+    "gyro_z": 0.443,
+    "grav_x": 0.819,
+    "grav_y": 0.715,
+    "grav_z": 0.813,
+    "lam": 1000.0
+   },
+   "nosem/gen/imu_t+0": {
+    "gyro_x": 0.32,
+    "gyro_y": 0.621,
+    "gyro_z": 0.46,
+    "grav_x": 0.705,
+    "grav_y": 0.84,
+    "grav_z": 0.678,
+    "lam": 1000.0
+   },
+   "nosem/gen/imu_t+10": {
+    "gyro_x": 0.343,
+    "gyro_y": 0.604,
+    "gyro_z": 0.323,
+    "grav_x": 0.858,
+    "grav_y": 0.679,
+    "grav_z": 0.793,
+    "lam": 1000.0
+   },
+   "nosem/gen/imu_t+20": {
+    "gyro_x": 0.198,
+    "gyro_y": 0.499,
+    "gyro_z": 0.471,
+    "grav_x": 0.778,
+    "grav_y": 0.662,
+    "grav_z": 0.747,
+    "lam": 1000.0
+   }
+  },
+  "r2_nosem": {
+   "sem/oracle/imu_t+0": {
+    "gyro_x": -0.056,
+    "gyro_y": 0.418,
+    "gyro_z": 0.442,
+    "grav_x": 0.698,
+    "grav_y": 0.889,
+    "grav_z": 0.752,
+    "lam": 1000.0
+   },
+   "sem/oracle/imu_t+10": {
+    "gyro_x": 0.113,
+    "gyro_y": 0.478,
+    "gyro_z": 0.533,
+    "grav_x": 0.731,
+    "grav_y": 0.874,
+    "grav_z": 0.725,
+    "lam": 1000.0
+   },
+   "sem/oracle/imu_t+20": {
+    "gyro_x": 0.033,
+    "gyro_y": 0.321,
+    "gyro_z": 0.48,
+    "grav_x": 0.707,
+    "grav_y": 0.87,
+    "grav_z": 0.712,
+    "lam": 1000.0
+   },
+   "sem/gen/imu_t+0": {
+    "gyro_x": 0.001,
+    "gyro_y": 0.383,
+    "gyro_z": 0.42,
+    "grav_x": 0.654,
+    "grav_y": 0.85,
+    "grav_z": 0.717,
+    "lam": 1000.0
+   },
+   "sem/gen/imu_t+10": {
+    "gyro_x": 0.086,
+    "gyro_y": 0.426,
+    "gyro_z": 0.476,
+    "grav_x": 0.689,
+    "grav_y": 0.831,
+    "grav_z": 0.694,
+    "lam": 1000.0
+   },
+   "sem/gen/imu_t+20": {
+    "gyro_x": 0.022,
+    "gyro_y": 0.391,
+    "gyro_z": 0.495,
+    "grav_x": 0.623,
+    "grav_y": 0.821,
+    "grav_z": 0.677,
+    "lam": 1000.0
+   },
+   "nosem/oracle/imu_t+0": {
+    "gyro_x": 0.016,
+    "gyro_y": 0.707,
+    "gyro_z": 0.488,
+    "grav_x": 0.855,
+    "grav_y": 0.947,
+    "grav_z": 0.886,
+    "lam": 1000.0
+   },
+   "nosem/oracle/imu_t+10": {
+    "gyro_x": 0.177,
+    "gyro_y": 0.736,
+    "gyro_z": 0.548,
+    "grav_x": 0.859,
+    "grav_y": 0.942,
+    "grav_z": 0.884,
+    "lam": 1000.0
+   },
+   "nosem/oracle/imu_t+20": {
+    "gyro_x": 0.042,
+    "gyro_y": 0.439,
+    "gyro_z": 0.48,
+    "grav_x": 0.847,
+    "grav_y": 0.938,
+    "grav_z": 0.883,
+    "lam": 1000.0
+   },
+   "nosem/gen/imu_t+0": {
+    "gyro_x": 0.047,
+    "gyro_y": 0.701,
+    "gyro_z": 0.468,
+    "grav_x": 0.863,
+    "grav_y": 0.934,
+    "grav_z": 0.899,
+    "lam": 1000.0
+   },
+   "nosem/gen/imu_t+10": {
+    "gyro_x": 0.177,
+    "gyro_y": 0.726,
+    "gyro_z": 0.529,
+    "grav_x": 0.836,
+    "grav_y": 0.931,
+    "grav_z": 0.9,
+    "lam": 1000.0
+   },
+   "nosem/gen/imu_t+20": {
+    "gyro_x": -0.027,
+    "gyro_y": 0.461,
+    "gyro_z": 0.508,
+    "grav_x": 0.801,
+    "grav_y": 0.932,
+    "grav_z": 0.895,
+    "lam": 1000.0
+   }
+  }
+ }
+}

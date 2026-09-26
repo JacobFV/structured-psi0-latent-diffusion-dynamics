@@ -1,5 +1,124 @@
 # track legged_vlm — legged/humanoid breadth and VLM system II on the latent-packet path
 
+## T1 DIAGNOSIS (t1_diag agent, 2026-09-26 05:00 →; worktree ~/work/rrp-wt/legged_vlm, peer dir wt/legged_vlm)
+Questions (D-084, D-080): (1) why the SEMANTIC packet falls on the t1 deployable route (sem 38/120 vs nosem 107/120, 4 training
+seeds, same recipe/data); (2) why nosem fails the stateless oracle route R1 (the robot barely moves) but succeeds on R2.
+Method: closed-loop interventions on the matched dev seeds 10000–10029, and offline measurements on MATCHED recorded states
+(the same states scored by both variants). Labels: learned:<ckpt> (deployable), ORACLE DIAGNOSTIC (packet = E(stateless BC chunk)),
+PRIVILEGED ORACLE (packet = E(shadow scripted-teacher chunk), no generator; diagnostic only). Every number below is from the raw file named.
+
+### Answer in one paragraph
+The sem failure is a TRAINING-DYNAMICS defect of the semantic recipe, not a generator-error or packet-semantics effect. In Stage A the
+semantic probe loss is a Gaussian NLL whose log-variance may shrink to −8, so it keeps decreasing (−13 at the end) and its gradient
+dominates. The whole E+R+P gradient is clipped to norm 1, and the sem gradient norm is 390–580 (median; nosem 0.4–1.1), so every sem
+update is scaled by ~0.002–0.004 (nosem 0.70–0.92), in all 4 training seeds and also on go2/hexapod6. System 0 (R) gets gradient only
+from the realization loss, so the sem system 0 trains at an effective learning rate ~250× lower: it is undertrained. The same pressure
+shrinks the sem posterior σ 10× (0.04–0.06 vs 0.54) and halves the packet's effective dimensionality (participation ratio 4.4–4.7 vs
+10–11.5), squeezing balance state (pitch rate) out of the packet. Causal tests on training seed 0: (a) the sem system 0 falls even
+with PRIVILEGED teacher-encoded packets and no generator (10/30 vs nosem 25/30), so the generator is not the cause; (b) retraining only
+the sem system 0 with the realization loss on the frozen sem encoder gives a dose-response 3 → 15 (4k steps) → 24/30 (12k steps) on R2
+(teacher packets 10 → 14 → 23/30), nosem stays 30/30; (c) the one-line fix of the recipe (bounded semantic NLL: probe log-variance
+floor −4 instead of −8; everything else identical; a no-op for nosem, whose semantic weight is 0) gives sem R2 **29/30** (nosem 28/30)
+and 25/30 with teacher packets, while the probes stay as good (goal err 0.0175 vs 0.0173, displacement 0.039 vs 0.039, subtask 0.997,
+contact-swing accuracy 0.67 vs 0.19). Replication of the fix on training seeds 1 and 3: see the table below. The nosem R1 failure is not
+an encoder collapse: with teacher-encoded packets the same nosem system 0 walks (25/30); at the states the R1-nosem loop visits, the
+stateless BC expert's own chunks ask for slow motion, and both encoders read that faithfully.
+
+### Closed-loop results (t1, dev seeds 10000–10029, 30 episodes each; training seed 0 unless stated)
+| route | sem | nosem | raw (`artifacts/runs/legged_ladder/t1/`) |
+|---|---|---|---|
+| R2 deployable, original recipe (D-084) | 3/30 (27 fell) | 28/30 | `r2_*_t1_v2_orig_policy.jsonl` |
+| PRIVILEGED teacher-encoded packets E(shadow teacher chunk) → original system 0 (no generator) | **10/30 (20 fell)** | **25/30** | `r1t_t1diag_{sem,nosem}_v2_orig.jsonl` |
+| R2, flow retrained WITHOUT the packet-semantic loss (sem rep, `packet_semantic_weight` 0) | 13/30 (16 fell) | (nosem flow already has 0) | `r2_t1diag_sem_flow_w0.jsonl` |
+| R2, system 0 refit 4k steps, realization only, frozen encoder (control) | 15/30 | 30/30 | `r2_t1diag_{sem,nosem}_rzctl.jsonl` |
+| R2, same refit with 50% generated packets (generator-aware system 0) | 15/30 | 29/30 | `r2_t1diag_{sem,nosem}_rzgenz.jsonl` |
+| R2, system 0 refit 12k steps, realization only | **24/30** | 30/30 | `r2_t1diag_{sem,nosem}_rzctl12k.jsonl` |
+| teacher-encoded packets → refit system 0 (4k / 12k) | 14/30 / 23/30 | – | `r1t_t1diag_sem_rzctl{,12k}.jsonl` |
+| **R2, FIX: Stage A with bounded semantic NLL (lv floor −4) + its flow (w_sem 0.5 as before)** | **29/30 (1 fell)** | 28/30 (original; fix is a no-op) | `r2_t1diag_sem_lv4.jsonl` |
+| teacher-encoded packets → FIX system 0 | 25/30 (3 fell) | 25/30 | `r1t_t1diag_sem_lv4.jsonl` |
+| FIX replication, training seeds 1 and 3 | running (peer GPU lease 1790429049_c48a2e, then evals `t1_diag_evals.sh lv4s <s>`) | seed 1: 27/30, seed 3: 28/30 (original, D-084) | `r2_t1diag_sem_lv4_s{1,3}.jsonl` |
+Reading: generator-aware system-0 training adds nothing over the equal-length control (15 vs 15), so system-0 sensitivity to generator
+error is not the lever. Removing the Stage-B semantic loss helps (3 → 13) but leaves 16 falls. What moves sem to nosem level is giving
+system 0 the training it was denied (dose-response) or not starving it in the first place (the bounded-NLL fix).
+
+### Mechanism evidence (offline, matched states)
+Buffers (`scripts/t1_diag_collect.sh`, peer lease 1790424402_920e35, rc=0; seeds 22000–22015, disjoint from dev; received packet and
+shadow-teacher chunk recorded at packet ticks): `artifacts/runs/t1_diag/buf/{bc, r1_{sem,nosem}_v2, r2_{sem,nosem}_{v2,v2s1,v2s2,v2s3}}`
+(peer store and host). The recorded R2 routes reproduce D-084 on new seeds: sem 5, 2, 7, 8 /16 vs nosem 16, 15, 15, 14 /16.
+- **Clip scale** (`artifacts/runs/t1_diag/clip_scale.txt`, from the Stage-A train logs): median grad norm sem 389 / 414 / 460 / 582, nosem
+  0.4 / 0.4 / 0.5 / 1.1 (seeds 0–3); mean update scale min(1, 1/gn) sem 0.0038 / 0.0037 / 0.0034 / 0.0020, nosem 0.92 / 0.91 / 0.90 / 0.70
+  (seed 3's log covers only 26 of 60 intervals). go2 sem 0.0036 vs nosem 0.94; hexapod6 0.0042 vs 1.00. Fix (lv floor −4): median gn 11.1,
+  scale 0.16. Final training realization loss: sem 0.018 / 0.017 / 0.027 / 0.027 vs nosem 0.008 / 0.007 / 0.012 / 0.016; fix 0.014.
+- **Latent geometry** (`diag_<ts>.json` → geometry, held-out teacher rows): sem posterior σ 0.054 / 0.059 / 0.041 / 0.040 vs nosem 0.55;
+  participation ratio of μ 4.7 / 4.6 / 4.4 / 4.5 vs 11.5 / 10.3 / 10.0 / 10.6; KL/entry 4.1 / 4.2 / 3.9 / 3.6 vs 0.76–0.81. nosem is NOT
+  near-collapsed: 396–398 of 640 entries have KL > 0.1 and it spreads variance over twice as many directions; its KL is low because its
+  posterior is wide. Fix: σ 0.106, PR 6.8, KL 2.8 (`geom_lv4.json`).
+- **Balance channel** (`balance_{v2,v2s1,lv4}.json`, ridge with λ chosen on an inner split, R² on held-out episodes, z = E(BC chunk)):
+  on the R2-nosem states the nosem packet encodes gravity-x/y R² 0.86/0.95 (s0), 0.83/0.88 (s1) and pitch rate 0.71/0.69; the sem packet
+  0.48/0.76, 0.56/0.80 and pitch rate −0.01/−0.09 (none). BC states: same pattern. Fix: pitch rate 0.42 (R2-nosem states) / 0.34 (BC).
+  System 0 also receives the IMU directly, so this is a correlate, not by itself a cause.
+- **One-step system-0 error does NOT separate the variants** (`diag_<ts>.json` → sets.*.err_ratio; ratio to hold-still, BC-chunk labels,
+  ticks 0–19 after a packet). E.g. seed 0 on R2-sem states: oracle 0.051 / 0.050, generated 0.048 / 0.048 (sem / nosem); on R2-nosem
+  states 0.023 / 0.024 and 0.023 / 0.023; the same for seeds 1–3 and in the first 2 s (`early_<ts>.json`). Against the shadow-TEACHER
+  first action (`readout_<ts>.json`, err_vs_teacher_j0, teacher packets) sem is worse on BC states in all 4 seeds (0.078–0.088 vs
+  0.061–0.069) and on R2 states in seeds 0–2 (e.g. seed 0: 0.232 vs 0.189 on R2-sem states), but not in seed 3 (0.122 vs 0.127). This is why the offline gate passed while the closed
+  loop failed: the deficit is closed-loop.
+- **System-0 sensitivity to generator error** (the D-080 candidate): refuted. Generated packets are 150–475 posterior σ² from E(BC chunk)
+  for sem vs 4–15 for nosem (relative gap 0.22–0.37 vs 0.34–0.62), but the action change per unit packet error is smaller for sem
+  (0.020–0.026 vs 0.046–0.060), and the resulting error with generated packets equals the oracle-packet error in both variants. Packet
+  boundary jumps are LARGER for nosem (0.014–0.035 vs 0.006–0.010 of hold-still; `temporal_<ts>.json`); sample spread is equal (0.002–0.007).
+- **Balance feedback of system 0** (`feedback_<ts>.json`; action change for a 0.05 rad extra tilt in the IMU, packet fixed, as a gain on the
+  stateless BC expert's own change): sem responds more strongly to pitch (1.38–1.74 vs 1.19–1.43) and less to joint velocity
+  (qd×1.2: 0.19–0.25 vs 0.26–0.47), across seeds (seed 2, the smallest gap, is the closest). The fixed model keeps the high pitch gain
+  (1.44–1.55) but moves the velocity gain to nosem level (0.28–0.34). So a high tilt gain alone does not cause falls; weaker velocity
+  damping is a candidate correlate, not a tested cause.
+- **Fall onset** (`diag_<ts>.json` → falls; tilt > 0.35 rad): sem R2 falls start early (mean onset 2.5 / 3.8 / 7.8 / 7.1 s; dev rows: 21 of
+  27 seed-0 falls before 4.5 s), in walk_to_a, with BOTH feet in stance at onset (40 of 41 falls in seeds 0–3) and the robot
+  tipping forward/sideways (pitch+ 15, roll+ 21, roll− 5). Onset is spread over the packet (ticks-in-packet histogram flat), so no
+  knot/replan boundary is implicated, and no single leg (no swing foot at onset). The received-packet one-step error rises only in the
+  last second before onset (0.12–0.17 of hold-still vs 0.02 in non-fall episodes), i.e. after the state has already left the
+  distribution. In the first 2 s the sem robot accelerates harder than nosem or BC (1–2 s forward speed 0.44 / 0.50 m/s for seeds 0/1 vs
+  nosem 0.35 / 0.42, BC 0.37; computed from the buffers' poses).
+
+### Q2: why nosem fails R1 but walks on R2
+- Same nosem system 0: E(stateless BC chunk) packets 0/30 (D-079); PRIVILEGED teacher-encoded packets **25/30** (`r1t_t1diag_nosem_v2_orig`).
+  So the system 0 can walk; the R1 packet SOURCE is the problem.
+- At the states the R1-nosem loop visits (`readout_v2.json`, r1_nosem): the requested forward displacement read from the packet is
+  0.19 for E(BC chunk), 0.40 for E(teacher chunk) and 0.32 for a flow sample (nosem post-hoc probe; the sem encoder reads the same:
+  0.18 / 0.37 / 0.30); realized ≈ 0.00. The BC chunks there move less than the teacher's (RMS vs hold-still 0.56 vs 0.70). So the
+  hypothesis "the low-KL nosem encoder maps BC chunks to stand" is REFUTED: both encoders read the BC chunk faithfully, and the BC expert
+  itself asks for slow motion at those states. R1 is a closed loop between the stateless BC expert (queried every 0.4 s, then held for the
+  whole packet) and system 0. It can settle into a slow regime; the flow, trained on teacher chunks, requests more speed at the same states.
+  Which variant falls into this regime is seed-dependent (D-082: seed 1 is the reverse, sem 0 / nosem 12). R1 is not an upper bound for R2
+  on t1, and it is not evidence about the packet.
+
+### Consequences
+- The t1 result "semantic supervision hurts" (D-084) is a result about the RECIPE (unbounded Gaussian NLL + joint clipping), not about
+  semantic content. With the bounded NLL, the sem packet matches nosem on seed 0 (29/30 vs 28/30) with its probes intact.
+  So on t1 the evidence is now: no semantic advantage, and no intrinsic disadvantage.
+- The same starvation is present in the go2 and hexapod6 sem Stage-A runs (clip scale 0.004); those bodies tolerated it (go2 R1 sem 25 vs
+  nosem 30 is consistent with a weaker sem system 0). Any sem-vs-nosem comparison trained with this recipe is confounded by optimizer
+  starvation of system 0. The arm pipeline should be checked for the same pattern (not checked here).
+- Recommended recipe change for all legged sem runs: bound the probe NLL (lv floor) or clip gradients per objective. Re-run sem-vs-nosem
+  comparisons after that.
+
+### Commands and leases (all one-shot, rc checked)
+- buffers: `scripts/t1_diag_collect.sh` (peer 1790424402_920e35, rc=0).
+- offline: `python -m rrp.learning.legged_t1_diag --ts <ts>` (host 1790425274_e1569e: seeds 0–1, then shed by the host watchdog;
+  seeds 2–3 + readout/temporal/early in host 1790425919_94fca1, rc=0); `… feedback|balance|geom <ts> <out>` (host 1790428424_8baa0c,
+  1790428386_cc232e, 1790429083_bb8674, 1790429274_f5b87c).
+- refits: `scripts/t1_diag_refit.sh` (host GPU 1790424619_63e81c; 12k: 1790426510_275aa4) → `artifacts/runs/t1diag_rz_{sem,nosem}_{ctl,genz,ctl12k}`.
+- flow w/o semantic loss: peer GPU 1790424650_5d90c4 → `artifacts/runs/t1diag_flow_sem_w0`.
+- fix: `scripts/t1_diag_lv4_chain.sh` (peer GPU 1790425883_41b926) → `artifacts/runs/t1diag_{rep,flow}_sem_lv4`; seeds 1, 3:
+  `scripts/t1_diag_lv4_seeds.sh` (peer GPU 1790429049_c48a2e) → `t1diag_{rep,flow}_sem_lv4_s{1,3}`.
+- closed-loop evals: `scripts/t1_diag_evals.sh {oracle|refit|refit_r1t|flow_w0|lv4|lv4s}` (peer CPU leases 1790424669_b9c86e,
+  1790425909_364c58, 1790426505_ad95e5, 1790426521_18fcf8, 1790425883_7be876, 1790428371_c9daec, 1790428386_41f922).
+  Note: r1t rows record the source as `privileged_oracle_packet:<latent space>`; the refit system 0 used is in the file name and the command.
+- clips (labelled, INDEX.md): `artifacts/video/2026-09-26_t1diag_*` — seed-0 R2 sem fall (10001, 2.6 s) vs R2 nosem success; teacher-packet
+  sem fall vs nosem success; fixed sem (bounded NLL) success on the same seed.
+- code: `src/rrp/learning/legged_t1_diag.py`; `legged_dagger.py` (Recorder `--diag`, generator-aware refit `gen_flow`);
+  `model/legged_latent.py` + `legged_latent_train.py` (`latent.probe_lv_min`, default −8 = old behaviour).
+
 ## RESEARCH RESTART (2026-09-25 22:15 →; legged agent; supersedes the wind-down state below for the legged part)
 Question: does the corrected architecture (system i → packet z[4 knots, legs+body(+arms), 32] → system 0 at 50 Hz)
 work on legged/humanoid bodies, and do the packet semantics (per-leg contact per knot, goal waypoint, base
