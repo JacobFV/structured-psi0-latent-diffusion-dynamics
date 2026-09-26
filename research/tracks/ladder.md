@@ -3,7 +3,7 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
-## SPRINT BEST ROUTE (live; updated 2026-09-25 21:45 PDT by sprint_latent)
+## SPRINT BEST ROUTE (live; updated 2026-09-25 21:58 PDT by sprint_latent)
 **Best route so far: R1 stateless oracle (packet = E(chunk of BC learned:direct1701_u12000 at the current state); ORACLE
 DIAGNOSTIC, not deployable) through system 0 `jfbcdag2`: 11/30 panda_pg2 [0.22,0.54], 19/30 parm6_tf3 [0.46,0.78].
 Best deployable R2 (flow_jointfix final -> system 0): still 0/30 on both bodies (grasp failures); system 0 is very
@@ -57,11 +57,18 @@ collection on 13 bodies (jfbcdag1) most failures are transport/place; next check
 | R2 @8000 | jfbcdag1 | 0/30 | 0/30 | lift 12, approach 11, grasp 7 / grasp 20, approach 9 | 0.022 / 0.023 |
 | R2 @20000 (final) | jointfix | 0/30 | 0/30 | approach 24, lift 5, grasp 1 / grasp 17, approach 11 | 0.012 / 0.014 |
 | R2 @16000 | jfbcdag1long | 0/30 | 0/30 | grasp 21, approach 8, lift 1 / grasp 22, others 8 | 0.016 / 0.014 |
+| R2 learned:ladder_flow_jointfix@20000 (final) | **jfbcdag2** | 0/30 [0,0.11] | **1/30 [0.01,0.17]** (first deployable-route success) | grasp 22, lift 4, approach 4 / grasp 20, transport 3, lift 2, approach 2, place 2 | 0.017 / 0.014 |
 | R2 @20000 (final) | jfbcdag1long | 0/30 [0,0.11] | 0/30 [0,0.11] | grasp 15, approach 11, lift 4 / grasp 18, approach 7, lift 2, transport 2, place 1 | 0.016 / 0.013 |
 Generator gap at the final flow (BC-visited states, system 0 jfbcdag1long): |z_gen - z_bc|/|z_bc| 0.25 panda / 0.33 parm6
 (0.50 / 0.54 at 4k), but system 0's arm error from the generated packet is still hold-still level (ratio 1.00 / 2.44)
 and its gripper error 0.23 / 0.20 vs 0.06 / 0.04 from the oracle packet -> R2 now reaches the cube but fails the GRASP:
 the generated packet's residual error is in directions system 0 is sensitive to (gripper timing/closing).
+R2 grasp failure mechanism (trace `artifacts/runs/ladder_smoke/generated_trace_r2_bcdag2.jsonl`, parm6 seed 3000003): the
+tool sits at the cube (|tcp-cube| < 1.5 cm) for ~150 ticks with the gripper commanded OPEN (-0.6) the whole time; the BC
+plan at the same states says close (+0.65) at some replans. The generated packet does not carry the close decision.
+Host note: the host broker's disk-reserve watchdog stopped all host jobs again at ~21:45 (300 GB free vs 322 GB reserve;
+external growth); interrupted checkpoints are evaluated as such: `ladder_rz_jointfix_znoise` @11.1k/12k and
+`ladder_rz_jointfix_big32k` @16.3k/32k (representation_interrupted.pt).
 Next (running): system-0 DAgger on system i's OWN packets (route generated, labels = BC plan row j; buffers
 `artifacts/runs/ladder_dagger_gen1/`), then refit from jfbcdag1long.
 
