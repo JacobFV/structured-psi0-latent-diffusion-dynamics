@@ -424,7 +424,9 @@ def sec_sprint():
 approach the rebound object, but that packet encodes the teacher's demonstration toward it, so this is weak evidence
 (system 0 reads packet content, not the binding). The competent BC controller follows a goal edit and a swap of object
 <i>beliefs</i>, but <b>ignores a pure binding change</b>: that is the capability the semantic packet is meant to add, and the
-generated-route test on the binding-v4 flows is pending. <b>Best latent route: system 0 causally executes goal content carried in the packet (oracle diagnostic, D-062).</b>
+generated-route test on the binding-v4 flows is pending. The final BC reference (D-065) follows goal edits (23/24, 16/17) and object-belief swaps
+(23/24, 15/17), leaves irrelevant edits unchanged, and ignores descriptor-only rebinds: the latent packet must beat this reference, especially on binding,
+to support the semantic claim. <b>Best latent route: system 0 causally executes goal content carried in the packet (oracle diagnostic, D-062).</b>
 Packet = E(the BC chunk for the edited context) → system 0 jfbcdag2, panda_pg2, 48 seeds, control success {bb_ctrl}. A valid goal edit puts
 the cube at the NEW goal in {bb_goal} vs {bb_irr} and {bb_orth} under the matched controls. A probe-orthogonal edit of matched norm drops success to
 {bb_orth_s}. A binding edit is NOT followed ({bb_rb} first touch on the new object). <b>This does not show that semantic supervision adds control:</b>
