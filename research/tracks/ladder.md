@@ -16,7 +16,9 @@ prev-action input 0, privileged success evaluator. Matched dev seeds = the first
 | R1 ORACLE DIAGNOSTIC, stateless: packet = E(chunk of learned:direct1701_u12000 at the current state) -> gendag3_noqd | 13/30 [0.27,0.61] | 27/30 [0.74,0.97] | lift 8, approach 6, grasp 2, transport 1 / place 2, transport 1 | 0.014 / 0.014; 0.007 / 0.007 |
 | **R2 generated: flow_jointfix_gdag1 -> gendag3_noqd** | **10/30 [0.19,0.51]** | **22/30 [0.56,0.86]** | lift 7, approach 6, grasp 4, transport 3 / lift 4, place 2, approach 1, transport 1 | 0.012 / 0.012; 0.005 / 0.006 |
 | R2, same checkpoints, 30 FRESH seeds | 13/30 [0.27,0.61] | 21/30 [0.52,0.83] | lift 8, approach 4, grasp 2, transport 2, place 1 / lift 4, transport 4, place 1 | 0.012 / 0.012; 0.005 / 0.006 |
-| R2 pooled (60 seeds) | **23/60 = 0.38 [0.27,0.51]** | **43/60 = 0.72 [0.59,0.81]** | | |
+| R2, 30 more FRESH seeds (3,000,200+) | 9/30 [0.17,0.48] | 17/30 [0.39,0.73] | lift 7, approach 7, grasp 4, place 2, transport 1 / approach 5, transport 5, lift 2, place 1 | 0.013 / 0.012; 0.005 / 0.006 |
+| plain BC on the same 3,000,200+ seeds (ladder harness) | 24/30 [0.63,0.90] | 27/30 [0.74,0.97] | | |
+| **R2 pooled (90 seeds)** | **32/90 = 0.36 [0.26,0.46]** | **60/90 = 0.67 [0.56,0.75]** | | |
 | R2 on the 13 source-TRAINING bodies (seeds 4,000,000+, 24 each; gdag2 collection) | 209/312 = 0.67 overall | | | |
 | historical: R1 shadow-teacher oracle (CONFOUNDED, D-050), best jfdag1 | 1/30 | 0/30 | approach | |
 
