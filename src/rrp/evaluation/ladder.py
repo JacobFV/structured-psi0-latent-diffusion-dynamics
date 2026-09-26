@@ -353,8 +353,9 @@ def load_models(cfg: LadderConfig):
 
 @torch.no_grad()
 def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids=None, frame_cb=None,
-               collect: dict | None = None) -> list[dict]:
-    """frame_cb(k, session, step, shadow_phase): optional per-tick callback after each executed step (rendering).
+               collect: dict | None = None, cmd_log: dict | None = None) -> list[dict]:
+    """cmd_log: if given, cmd_log[k] = list of the EXACT executed command groups per tick (None = hold), for replay.
+    frame_cb(k, session, step, shadow_phase): optional per-tick callback after each executed step (rendering).
     collect: DAgger buffer for system 0 (route oracle): at each replan the oracle posterior (mu, logvar) of the teacher
     chunk; at each executed tick with phase j <= collect['max_j'] the LEARNER-visited state (node features, local
     sensors) and the shadow teacher's command there (normalized with that tick's q0) -> see save_dagger/refit."""
@@ -441,6 +442,9 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
         cmds = [labels[k] for k in act] if cfg.route == "teacher" else sys0
         for k, cmd, c0 in zip(act, cmds, sys0):
             s, mt = S[k], meters[k]
+            if cmd_log is not None:
+                cmd_log.setdefault(k, []).append(None if cmd is None else {g: np.array(v, copy=True) if not np.isscalar(v)
+                                                                           else v for g, v in cmd.groups.items()})
             f = _featurizer(s)
             q_meas = s.data.qpos[mt.qadr].copy()
             lab = labels[k]

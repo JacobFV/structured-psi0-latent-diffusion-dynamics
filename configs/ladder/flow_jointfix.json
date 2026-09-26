@@ -20,5 +20,6 @@
   "name": "ladder_flow_jointfix"
  },
  "normalize_target": true,
- "snapshot_every": 1000
+ "snapshot_every": 1000,
+ "packet_tau_min": 0.6
 }
