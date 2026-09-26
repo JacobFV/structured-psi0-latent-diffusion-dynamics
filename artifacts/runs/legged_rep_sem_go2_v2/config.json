@@ -1,0 +1,21 @@
+{
+ "name": "legged_sem_go2_v2",
+ "data": "artifacts/datasets/legged_latent_v1",
+ "bodies": [
+  "go2"
+ ],
+ "latent": {
+  "dz": 32,
+  "width": 192,
+  "semantic_weight": 1.0,
+  "beta_kl": 0.001,
+  "qd_dropout": 0.5
+ },
+ "steps": 12000,
+ "batch_size": 256,
+ "lr": 0.0003,
+ "seed": 0,
+ "ckpt_every": 500,
+ "snap_every": 4000,
+ "note": "B-1-style audit: system-0 inputs are local_state (q, qd, imu, touch) + osc; no teacher command or previous action. qd dropout 0.5 counters the D-056 velocity shortcut."
+}

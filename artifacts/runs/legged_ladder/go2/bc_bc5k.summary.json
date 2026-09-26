@@ -1,0 +1,22 @@
+{
+ "file": "artifacts/runs/legged_ladder/go2/bc_bc5k.jsonl",
+ "source": "learned:legged_bc_go2_v1/snap_s5000.pt",
+ "edit": "none",
+ "n": 30,
+ "success": 26,
+ "wilson95": [
+  0.703,
+  0.947
+ ],
+ "stages": {
+  "success": 26,
+  "drift_a": 2,
+  "drift_b": 2
+ },
+ "seeds": [
+  10000,
+  10029
+ ],
+ "events_a": 28,
+ "events_b": 26
+}
