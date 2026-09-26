@@ -32,6 +32,18 @@ R1 gives the same pattern (turn sem +0.18/−0.15, nosem +0.30/−0.15; halt −
 Clips: `artifacts/video/2026-09-26_legged_learned-R2_*` and `2026-09-25_legged_*` (INDEX.md lines).
 Generator gap at BC-visited states (|z_gen − z_orc| / |z_orc|): 4k 0.20 / 0.28, 8k 0.16 / 0.25, final 0.15 / 0.24 (sem / nosem). System-0 error with generated packets is 1.2% of hold-still at every snapshot (`artifacts/runs/legged_gate/go2_*_gen_*.json`).
 **Second body, hexapod6 (6 legs, CPG tracker), deployable route R2 (flow snap_s4000; the flows were moved from the peer to the host GPU at step 2500, exact resume): sem 30/30, nosem 30/30** (BC 30/30, teacher 30/30, R1 30/30 and 30/30). Raw `artifacts/runs/legged_ladder/hexapod6/r2_*_snap_s4000.jsonl`. On the hexapod, system 0 depends on the packet far more than on go2 (z shuffled: 41–43% of hold-still vs 12–13% on go2).
+**hexapod6 causal edits on R2 (snap_s4000, 20 seeds, same protocol; `artifacts/runs/legged_edits/hexapod6/`).** The hexapod walks slowly (about 0.5 m in the 3 s window), so the effects are smaller in absolute terms:
+| edit | sem | nosem | matched random |dz| 4–12 |
+|---|---|---|---|
+| turn +0.6 (Δyaw rad) | +0.106 [0.099, 0.114] | +0.034 [0.031, 0.038] | sem +0.006..+0.019, nosem ≈0 |
+| turn −0.6 | −0.113 [−0.121, −0.105] | −0.072 [−0.077, −0.067] | |
+| halt (Δforward m) | **−0.19 [−0.21, −0.18]** | **+0.03 [0.02, 0.04] (no stop)** | −0.001..−0.007 |
+| goal mirror (toward-mirror lateral m) | +0.011 [0.007, 0.015] | +0.001 (chance) | +0.001..+0.002 |
+| leg-0 stance/swing (Δ contact) | 0.00 / −0.00 | −0.00 / +0.01 | |
+| z = 0 | fwd −0.47, leg0 contact +0.40 | fwd −0.56, +0.33 | |
+| task ctx: mirror active waypoint (toward-mirror lateral m) | +0.165 [0.125, 0.210] | +0.168 [0.114, 0.225] | inactive: +0.001 / −0.005 |
+| task ctx: halt | no stop (+0.02) | no stop (+0.01) | |
+**On the hexapod, the semantic packet is the more steerable one.** Its probe-defined halt stops the robot (nosem: no effect), and its turn handle is 1.5–3x stronger. Task-context steering (goal mirror via system i) is equal for the two. Task success is equal (30/30).
 **Other bodies (BC positive control, dev seeds 10000-10029):** hexapod6 BC 30/30 (teacher 30/30); t1 humanoid BC 24/30 (teacher 30/30). **g1 humanoid: the positive control FAILS**: BC 2/30 at replan 5 (28 falls) vs the arc-only scripted teacher 25/30 (5 halt not completed). A pilot on 10 seeds gave replan 2 → 6/10 and replan 1 → 1/10; a 30-seed check of replan 2/3 is running. The g1 latent route is not meaningful until g1 BC is competent (the g1 tracker is only "limited qualification"). Raw `artifacts/runs/legged_ladder/{hexapod6,t1,g1}/`. hexapod6 and t1 latent routes: Stage A done / training on the peer (see the plan table).
 
 ### plan / state
