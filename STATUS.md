@@ -54,7 +54,7 @@ What the evidence supports (see the page's top box):
   - BC ignores the binding edit (D-065).
 - Competence: the latent route matches BC on go2 and hexapod6 (D-070, D-076), and on t1 only for nosem (D-079, D-082).
   - Arm is partial: frozen route pooled 36/90 panda_pg2, 70/90 parm6_tf3 (D-078, D-080).
-- Not shown: any benefit of semantic supervision. The evidence is mixed. On t1, sem HURTS across 2 seeds (D-082); on go2 and hexapod6 context-to-behaviour control is equal; the sem packet has more editable probe handles on hexapod6.
+- Not shown: any benefit of semantic supervision. On t1, sem HURTS in all 4 training seeds (nosem 107/120 vs sem 38/120, D-084); on go2 and hexapod6 context-to-behaviour control is equal; the sem packet has more editable probe handles on hexapod6.
 - Not tested: the latent route on the sealed target bodies. BC: new gripper 78–85/100, unseen xarm7 0/100 (D-064). g1 has no competent BC.
 - Root-cause fixes along the way: B-1 prev-action column (D-044/045); system-0 velocity-copy shortcut (D-056); stale stateful teacher as oracle/DAgger expert (D-050); compatibility-ID fingerprinting (D-038).
 
@@ -62,8 +62,7 @@ Frozen arm route: system i ladder_flow_jointfix_gdag2h (sha d0d64918…) → sys
 Always pass the system-0 bundle explicitly (research/tracks/ladder.md "SPRINT BEST ROUTE FINAL"). Legged: research/tracks/legged_vlm.md
 "LEGGED RESEARCH RESULT FINAL". Semantic suite: research/tracks/acceptance.md "SPRINT SEMANTIC RESULTS". BC: research/tracks/baselines.md.
 
-Still running at sprint end: t1 sem/nosem training seeds 2 and 3 (legged agent; resume steps in legged_vlm.md); the final-BC like-for-like
-semantic-edit run on parm6 (artifacts/runs/acceptance_sprint_sem_bc18k_parm6; to be added as a BC row next to D-074).
+Completed after sprint end: t1 seeds 2–3 (D-084); like-for-like BC control on parm6 (D-083). Nothing is running as of 05:35 (all sprint agents finished).
 On hold (not started): seeds 1702/1703 and SFT budgets of the sealed four-way campaign; GRPO on target bodies; dual-arm and VLM training.
 Most valuable next steps:
 1. A nosem counterpart of the frozen arm route (same recipe), to isolate semantic supervision on the arm.
