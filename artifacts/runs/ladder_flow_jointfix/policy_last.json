@@ -1,7 +1,7 @@
 {
  "path": "artifacts/runs/ladder_flow_jointfix/policy_last.pt",
- "sha256_16": "466eed831f3b13ad",
- "step": 17000,
+ "sha256_16": "90812fbccddf417e",
+ "step": 18000,
  "versions": {
   "latent": "ls-80e5f25be2f0-wf22fe70f99d5",
   "policy": "ladder_flow_jointfix"

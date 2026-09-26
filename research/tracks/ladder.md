@@ -3,12 +3,34 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
-## SPRINT BEST ROUTE (live; updated 2026-09-25 20:12 PDT by sprint_latent)
-**No competent latent route yet. Best learned R2 so far: flow_jointfix@4000 → system 0 jointfix: 0/30 panda_pg2, 0/30
-parm6_tf3. Current diagnosis: system 0 (the realizer) is the primary bottleneck, not the generator.**
-Matched scenes: first 30 feasible dev seeds from 3,000,000, n_distractors = seed % 3, 300 ticks, replan 8, NFE 8,
-prev-action input 0 (deployment), privileged success evaluator. Wilson 95% in brackets. Raw: peer
-`artifacts/runs/ladder_v1/<robot>/<route>_<tag>.{jsonl,summary.json}` (`scripts/ladder_sumpeek.py`).
+## SPRINT BEST ROUTE (live; updated 2026-09-25 20:55 PDT by sprint_latent)
+**Best route so far: R1 stateless oracle (packet = E(chunk of BC learned:direct1701_u12000 at the current state); ORACLE
+DIAGNOSTIC, not deployable) through system 0 `jfbcdag1long`: 3/30 panda_pg2 [0.03,0.26], 11/30 parm6_tf3 [0.22,0.54] —
+the first oracle-route successes on a valid expert. Best deployable R2 (flow_jointfix, system 0 jointfix): still 0/30.**
+Checkpoint: peer+host `artifacts/runs/ladder_rz_jointfix_bcdag1_long/representation.pt` (= Stage-A E of
+`ladder_latent_sem_b1fix_anchor` + system 0 refit 16k steps, lr 3e-4, 50/50 pack / DAgger with the stateless BC expert,
+label = the packet's plan row j; config `configs/ladder/rz_jointfix_bcdag1_long.json`). Same latent space as flow_jointfix,
+so R2 = flow_jointfix + this system 0 is running now (tag `zero_flowjf_s16000_rzlong`).
+
+**Mechanism found (lead item 2/3, 20:45): system 0 copies the current joint VELOCITY, not the packet.** At BC-visited
+states (bindv4nosem, panda, 10 seeds, `artifacts/runs/ladder_localize/bias/`), system 0's commanded TCP step has gain 0.88
+vs BC's (j>=1) and 0.61 on the first tick of a packet; zeroing ONLY the joint-velocity node input (col 27) collapses the
+gain to 0.12 and the error to hold-still level at every j (0.011-0.017 vs hold 0.011-0.019). So the 1-step accuracy that
+passes the offline gate (bindv4 15-19% of hold-still) comes from extrapolating the present motion; the packet contributes
+little. In closed loop from rest this is a fixed point: a closed-loop trace (bindv4nosem, R1 stateless, panda seed
+3000000, `artifacts/runs/ladder_smoke/oracle_trace_bindv4nosem_orcbc.jsonl`) shows the packet's plan row 5-15 cm from the
+TCP while system 0 commands <1 cm steps, often in another direction; min TCP-cube 11 cm. Same class as B-1 (a
+proprioceptive shortcut), via qd. The anchored input (col 28) itself is computed identically at runtime and in training
+(runtime j>=1 errors are tiny; `realizer_node_feats` vs `LatentData.fetch`), so (3) is not a bug; but DAgger buffers
+stored col 28 = 0 (fixed now: `_load_dagger(anchor=True)` recomputes it from the packet's j=0 row; jfbcdag1/jfbcdag1long
+were trained with col 28 = 0 on their DAgger half). Fix under test (in-architecture): `realizer_drop_qd` = system 0
+without the velocity input (training and runtime), refits `rz_jointfix_noqd` (host GPU) and `rz_bindv4sem_noqd` (peer GPU).
+Why BC-expert DAgger helps: its buffer contains the learner's own slow/stalled states labelled with the plan row, which
+penalizes the velocity copy (R1 stateless: jointfix 0/30,0/30 -> jfbcdag1 0/30,0/30 but reaching transport/place ->
+jfbcdag1long 3/30, 11/30).
+Gripper / place (lead item 4): with jfbcdag1long most parm6 failures are at place (13) and transport (5); in the DAgger-2
+collection on 13 bodies (jfbcdag1) most failures are transport/place; next check.
+
 | rung (source label) | system 0 | panda_pg2 | parm6_tf3 | failure stage (panda / parm6) | track q rad / TCP m (panda) |
 |---|---|---|---|---|---|
 | R0 scripted_teacher (privileged) | - | 30/30 [0.89,1] | 30/30 [0.89,1] | - | 0.025 / 0.021 |
@@ -17,10 +39,16 @@ prev-action input 0 (deployment), privileged success evaluator. Wilson 95% in br
 | R1 oracle, STATELESS packet E(BC chunk at current state) (ORACLE DIAGNOSTIC) | jointfix | 0/30 [0,0.11] | 0/30 [0,0.11] | approach 18, grasp 5, lift 5, transport 1, place 1 / approach 20, grasp 4, lift 5, transport 1 | 0.011 / 0.012 |
 | same | jfdag1 (shadow DAgger r1) | 0/30 | 0/30 | approach 30 / grasp 16, lift 4, transport 4, place 3 | 0.018 / 0.014 |
 | same | jfdag2df08 (shadow DAgger r1+r2, 80% DAgger; D-049 fix A) | 0/30 | 0/30 | approach 29 / approach 27 | 0.023 / 0.019 |
+| same | **jfbcdag1long** (jointfix E; system 0 16k steps, lr 3e-4, 50/50 BC-expert DAgger) | **3/30 [0.03,0.26]** | **11/30 [0.22,0.54]** | approach 5, grasp 5, lift 3, transport 11, place 3 / place 13, transport 5, approach 1 | 0.013 / 0.013 |
+| same | bindv4nosem (binding v4, no semantic loss) | 0/30 | 1/30 [0.01,0.17] | approach 25 / approach 22 | 0.009 / 0.010 |
+| same | bindv4sem (binding v4, semantic) | 0/30 | 0/30 | approach 28 / approach 30 | 0.007 / 0.009 |
 | same | **jfbcdag1** (jointfix R + 1 round DAgger with the stateless BC expert, label = packet plan row j; D-049 fix B) | 0/30 [0,0.11] | 0/30 [0,0.11] | approach 9, grasp 10, lift 8, transport 3 / **transport 13, place 12**, lift 4, grasp 1 | 0.016 / 0.016 |
 | R2 learned:ladder_flow_jointfix@4000 (system i, zero_prev_action, normalize_target, tau_min 0.6) | jointfix | 0/30 [0,0.11] | 0/30 [0,0.11] | approach 16, grasp 11, lift 2, place 1 / approach 21, grasp 7, transport 2 | 0.014 / 0.017 |
 | R2 learned:ladder_flow_jointfix@8000 | jointfix | 0/30 | 0/30 | approach 24, grasp 5, lift 1 / approach 14, grasp 14, lift 2 | 0.012 / 0.014 |
-| R2 @12000, @16000, final (20k) | jointfix | scheduled (watcher) | | | |
+| R2 @12000 | jointfix | 0/30 | 0/30 | approach 24 / grasp 12, approach 12 | 0.013 / 0.015 |
+| R2 @16000 | jointfix | 0/30 | 0/30 | approach 20, lift 4, grasp 6 / grasp 20, approach 7 | 0.012 / 0.014 |
+| R2 @8000 | jfbcdag1 | 0/30 | 0/30 | lift 12, approach 11, grasp 7 / grasp 20, approach 9 | 0.022 / 0.023 |
+| R2 @16000 / final | jfbcdag1long | running | | | |
 
 Stateless localization on BC-visited states (`scripts/ladder_localize.py`; BC episodes replayed exactly, 30/30 replay
 consistent; z_bc = E(chunk BC actually executed next); system 0 NOT executed; 1-step normalized MSE vs BC's command):
@@ -30,6 +58,9 @@ consistent; z_bc = E(chunk BC actually executed next); system 0 NOT executed; 1-
 | jfdag1 | 0.0094 / 0.0062 | same | 0.014 |
 | jfdag2df08 | 0.0175 / 0.0110 (worse than holding still) | same | |
 | jfbcdag1 | 0.0073 / 0.0060 (gate 0.64 / 1.29) | same | |
+| jfbcdag1long | 0.0048 / 0.0031 (gate 0.42 / 0.67) | same | |
+| bindv4nosem | 0.0017 / 0.0016 (gate 0.15 / 0.35) | same | 0.0089 vs 0.0004-0.0012 |
+| bindv4sem | 0.0021 / 0.0020 (gate 0.19 / 0.42) | same | 0.0098 vs 0.0008-0.0015 |
 Gate metric = arm err / hold-still (target <= 0.20): jointfix 0.43 / 0.74; jfbcdag1 0.64 / 1.29; jfdag1 0.83 / 1.33.
 Caveat: the gate is measured on BC's own (on-plan) states; the BC-expert DAgger refit is worse there but better in closed
 loop (parm6 reaches transport/place in 25/30 instead of 1/30), so the gate is necessary-ish, not sufficient/aligned.

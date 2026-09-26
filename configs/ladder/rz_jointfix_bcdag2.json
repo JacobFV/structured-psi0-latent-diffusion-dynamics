@@ -1,7 +1,7 @@
 {
  "name": "rz_jointfix_bcdag2",
  "out_dir": "artifacts/runs/ladder_rz_jointfix_bcdag2",
- "representation": "artifacts/runs/ladder_rz_jointfix_bcdag1/representation.pt",
+ "representation": "artifacts/runs/ladder_rz_jointfix_bcdag1_long/representation.pt",
  "packed_dir": "artifacts/packed/latent_pp_v3dart_s1_H16",
  "zero_prev_action": true,
  "dagger": [
@@ -34,9 +34,9 @@
  ],
  "dagger_frac": 0.5,
  "prefetch_workers": 0,
- "steps": 4000,
+ "steps": 16000,
  "batch_size": 128,
- "lr": 0.0001,
+ "lr": 0.0003,
  "seed": 1715,
  "init": "old",
  "realizer_anchor": true
