@@ -375,7 +375,8 @@ def paired_edit_keys(seed_start, n_scenes):
 
 
 def run_condition(src, R, P, robot, robot_key, seed, cond, *, max_steps=300, replan=8, dev="cpu", g=0.12,
-                  scene="pick_place"):
+                  scene="pick_place", on_step=None):
+    """on_step(session, step): optional observer after every executed tick (video rendering); never alters control."""
     from rrp.control.latent_realizer import LatentSystem0
     s = _scene(robot, seed, scene)
     goal_off = goal_offset(s, g)
@@ -406,6 +407,8 @@ def run_condition(src, R, P, robot, robot_key, seed, cond, *, max_steps=300, rep
     zlog = []
 
     def measure(step):
+        if on_step is not None:
+            on_step(s, step)
         for b in lift:
             lift[b] = max(lift[b], float(_body_pos(s, b)[2] - z0[b][2]))
         for b, _ in robot_contacts(s, objs, rb):
@@ -658,7 +661,7 @@ def _dual_system0(R, f, lsv, rcv, dev):
     return DualLatentSystem0(R, f, latent_space_version=lsv, realizer_compat_version=rcv, device=dev)
 
 
-def run_arm_condition(src, R, P, pair, seed, cond, *, max_steps=400, replan=8, dev="cpu"):
+def run_arm_condition(src, R, P, pair, seed, cond, *, max_steps=400, replan=8, dev="cpu", on_step=None):
     import mujoco
     from rrp.control.dual_validate import make_session
     arm = "left" if seed % 2 == 0 else "right"          # assigned arm alternates with the seed (balanced)
@@ -716,6 +719,8 @@ def run_arm_condition(src, R, P, pair, seed, cond, *, max_steps=400, replan=8, d
             s.step(s0.tick(s))
             for t in teachers.values():
                 t.act()
+        if on_step is not None:
+            on_step(s, step)
         for e, i in sites.items():
             tr[e].append(s.data.site_xpos[i].copy())
         for c in range(s.data.ncon):
