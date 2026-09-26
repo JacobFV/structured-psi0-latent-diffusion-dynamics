@@ -537,7 +537,8 @@ def save_video(frames, row, video_dir: Path, label: str):
     import imageio
     video_dir.mkdir(parents=True, exist_ok=True)
     tag = "success" if row["success"] else ("fell" if row["fell"] else "failure")
-    src = row["source"].replace(":", "-").replace("/", "_")
+    import re
+    src = re.sub(r"[^A-Za-z0-9_.+-]+", "-", row["source"])[:80]
     ed = "" if row["edit"] == "none" else f"_edit-{row['edit'].replace(':', '')}"
     name = f"{dt.date.today()}_legged_{src}{ed}_{row['body']}_waypoint_contact_s{row['seed']}_{tag}.mp4"
     imgs = [_caption(f, [f"{label} | {row['body']} | waypoint_contact | seed {row['seed']}" + (
