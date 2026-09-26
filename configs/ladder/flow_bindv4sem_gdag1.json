@@ -4,7 +4,7 @@
  "representation": "artifacts/runs/binding_paired_sem_v4/representation.pt",
  "packed_dir": "artifacts/packed/binding_combined_v1_H16",
  "seed": 1841,
- "steps": 4000,
+ "steps": 800,
  "batch_size": 128,
  "lr": 0.0001,
  "packet_semantic_weight": 1.0,
