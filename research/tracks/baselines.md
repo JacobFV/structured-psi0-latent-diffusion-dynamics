@@ -150,6 +150,17 @@ lease 1790391035_b47fcd, output now in the PEER store
 carries MOVED_TO_PEER.txt; do not resume there. The unit runs the source-competence cell after training. The watcher and
 the b0 launcher (`scripts/bc_b0_after.sh`, host loops) follow the peer path.
 
+**Semantic edits on the FINAL direct BC (learned:direct1701_final, same suite/seeds as above; raw
+`artifacts/runs/baselines_bcsem_final/<robot>/semantic_*_learned_pick_place.*`, peer leases 1790402547_038cc5/_4bb291):**
+| condition | panda_pg2 (n=24) | parm6_tf3 (n=17) |
+|---|---|---|
+| control: cube lifted / in zone | 24 / 24 | 17 / 17 |
+| rebind_obj (belief swap): distractor0 lifted / cube lifted / distractor0 in zone | 23 / 0 / 5 | 15 / 0 / 2 |
+| goal_shift: cube at shifted goal / in old zone | 23 / 0 | 16 / 0 |
+| irrelevant_distractor: same lifted object / cube in zone | 24 / 24 | 17 / 17 |
+Approach preference toward distractor0 vs control: rebind +0.33 m [0.30, 0.36] / +0.30 m [0.25, 0.35]; irrelevant
+-0.001 m [-0.002, 0.000] / 0.000 m. (The valid descriptor rebind is ignored by BC: acceptance track, 0/32 at u12000.)
+
 Code (verified by smoke + these runs): `run_ladder` route `learned` (src/rrp/evaluation/ladder.py; `scripts/ladder.py
 --route learned --policy <ckpt> --policy-label <tag>`): a LearnedPolicy chunk is submitted every 8 ticks and its rows
 executed; shadow teacher, Meter and failure stages exactly as the other rungs. Learning-curve watcher
