@@ -81,7 +81,7 @@ orcbc() {  # rep tag: stateless R1 oracle diagnostic
   ops --cpu 3 --mem 10G --label a${TG}_orcbc_$2 --max-seconds 10800 -- bash -c "set -e; bash scripts/ladder_eval_orcbc.sh $1 $2; for r in panda_pg2 parm6_tf3; do test -f artifacts/runs/ladder_v1/\$r/oracle_zero_$2_orcbc.summary.json; done"
 }
 semedit() {  # robot seedstart episodes shardname: task-context semantic-edit suite (D-074/075/077 command)
-  ops --cpu 1 --mem 2G --label a${TG}_sem_$4 --max-seconds 14400 -- env OMP_NUM_THREADS=1 $PY -m rrp.cli latent semantic-edits --route generated \
+  ops --cpu 1 --mem 2G --label a${TG}_sem_${4//\//_} --max-seconds 14400 -- env OMP_NUM_THREADS=1 $PY -m rrp.cli latent semantic-edits --route generated \
     --checkpoint $F0 --representation $(rz gendag1_noqd) --robots $1 --episodes $3 --seed-start $2 --max-steps 400 \
     --conditions control,goal_shift,rebind_desc,irrelevant_distractor,orthogonal_matched,control_replay \
     --out artifacts/runs/acceptance_arm${LIN}_gen_$4

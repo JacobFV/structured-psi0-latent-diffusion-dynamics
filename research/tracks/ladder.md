@@ -38,6 +38,13 @@ RESUME: `ssh gb10-direct systemctl --user status rrp-armnosem-chain`; if the uni
 `ssh gb10-direct 'systemd-run --user --unit rrp-armnosem-chain2 --working-directory=/dev/shm/rrp-brandonin/wt/ladder bash scripts/armnosem_chain.sh'`
 (done nodes are skipped; trainers resume from their *_last.pt; collections skip existing buffers).
 
+Progress (nosem, peer): Stage A 06:13; bc1-3, rz bcdag1/bcdag1_long/bcdag2, flow 20k (07:55), flow_ft, gen1, rz gendag1_noqd
+(08:10) done; gen2 running. 08:10 the edit-suite node failed in 5 s on a driver bug (job label contained "/" ->
+invalid log path; no rows written); fixed in all three drivers and relaunched once as peer unit `rrp-armnosem-semedits`
+(same command/seeds; writes semedits.done/.failed into the nosem state dir). The running host semfix driver still holds
+the old function: its `semedits` node will fail the same way and must be relaunched the same way
+(`LIN=sfjf bash scripts/arm_lineage_hybrid.sh semedits_all`, then touch the marker).
+
 ### ADDED 06:40 (lead, after D-085): third lineage = SEM with the BOUNDED semantic NLL (state: running)
 D-085 check on the ARM (Stage-A train logs, 150 x 100-step entries): sem `ladder_latent_sem_b1fix_anchor` median grad norm
 300 (last half 191), mean clip scale min(1,1/gn) 0.0049; nosem `ladder_latent_nosem_b1fix_anchor` median 0.47 (last half
