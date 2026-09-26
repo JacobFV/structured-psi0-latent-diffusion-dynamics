@@ -1,0 +1,9 @@
+{
+ "path": "artifacts/runs/latent_slice1_b1fix/baseline_action_only_codec/seed1701/codec/codec.pt",
+ "sha256_16": "6088b57d9adfae5a",
+ "step": 4572,
+ "versions": {
+  "codec": "codec-v1",
+  "featurizer": "feat-v2"
+ }
+}

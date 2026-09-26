@@ -1,0 +1,94 @@
+{
+ "protocol": "latent_slice1",
+ "protocol_status": "SEALED_BEFORE_RESULTS",
+ "method": "baseline_action_only_codec",
+ "seed": 1701,
+ "target": "source",
+ "budget": 0,
+ "smoke": false,
+ "controller_source": "learned:artifacts/runs/latent_slice1_b1fix/baseline_action_only_codec/seed1701/source/policy.pt",
+ "action_path": "native_ActionChunk",
+ "kind": "source_competence",
+ "successes": 77,
+ "attempted": 80,
+ "success_rate": 0.9625,
+ "wilson95": [
+  0.8954527983617241,
+  0.9871654311799435
+ ],
+ "per_robot": {
+  "parm5s_tf3": {
+   "attempted": 47,
+   "successes": 44,
+   "success_rate": 0.9361702127659575,
+   "wilson95": [
+    0.828373857036585,
+    0.9780546149654928
+   ],
+   "infeasible": 3,
+   "outcomes": {
+    "infeasible": 3,
+    "success": 44,
+    "timeout": 3
+   },
+   "public_private_agreement": 1.0,
+   "policy_calls": 585,
+   "control_steps": 4509
+  },
+  "parm5l_pg2": {
+   "attempted": 33,
+   "successes": 33,
+   "success_rate": 1.0,
+   "wilson95": [
+    0.8957300009841286,
+    0.9999999999999999
+   ],
+   "infeasible": 17,
+   "outcomes": {
+    "infeasible": 17,
+    "success": 33
+   },
+   "public_private_agreement": 1.0,
+   "policy_calls": 362,
+   "control_steps": 2786
+  }
+ },
+ "eval_meta": {
+  "controller_source": "learned:artifacts/runs/latent_slice1_b1fix/baseline_action_only_codec/seed1701/source/policy.pt",
+  "device": "cuda",
+  "wall_s": 20.19371509552002,
+  "seed_start": 2000000,
+  "episodes": 50,
+  "nfe": 8,
+  "execute_prefix": 8,
+  "max_steps": 300
+ },
+ "acquisition": {
+  "target_demo_episodes": 0,
+  "target_demo_transitions": 0,
+  "target_optimizer_updates": 0,
+  "target_chunk_presentations": 0,
+  "source_pretraining": {
+   "source_policy": {
+    "optimizer_updates": 26304,
+    "batch_size": 256,
+    "chunk_presentations": 6733824,
+    "train_chunks": 1122555,
+    "wall_s": 17289.07640314102,
+    "data": "artifacts/packed/latent_pp_v3dart_s1_H16",
+    "stride": 2
+   },
+   "codec": {
+    "optimizer_updates": 4572,
+    "batch_size": 256,
+    "chunk_presentations": 1170432,
+    "train_chunks": 195297,
+    "wall_s": 691.6475787162781,
+    "data": "artifacts/datasets/pick_place_primary_v3",
+    "stride": 2
+   }
+  }
+ },
+ "sft": null,
+ "eval_rows": "artifacts/runs/latent_slice1_b1fix/baseline_action_only_codec/seed1701/eval/source.jsonl"
+}

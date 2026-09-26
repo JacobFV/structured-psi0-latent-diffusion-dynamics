@@ -17,6 +17,15 @@ D-049 diagnostic below). The decisive latent test is R2 (system i's own packet) 
 | reference: R0 scripted_teacher (ladder track) | 30/30 | 30/30 | - |
 | reference: R1 oracle route, best (D-048, jfdag1 re-anchored) | 1/30 | 0/30 | mostly approach |
 
+**FINAL: action-only codec BC, seed 1701 (B-1 fixed; 26,304 updates, finished 21:52 on the peer).**
+Source competence (sealed-protocol cell, held-out source bodies, seeds 2,000,000.., 50 episodes each, infeasible
+excluded): parm5s_tf3 44/47 = 0.94 [0.83, 0.98], parm5l_pg2 33/33 = 1.00 [0.90, 1.00]; pooled 77/80 = 0.96. Ladder dev
+scenes (final policy.pt): panda_pg2 29/30 [0.83, 0.99], parm6_tf3 28/30 [0.79, 0.98]. Raw (committed):
+`artifacts/runs/latent_slice1_b1fix/baseline_action_only_codec/seed1701/{eval/source.*,cells/source.json,source/result.json}`,
+`artifacts/runs/baselines_bc_ladder/<robot>/learned_codec1701_ufinal.*`. Budget-0 zero-shot transfer cells
+(xarm7_pg2, xarm7_tf3, panda_tf3; 100 episodes each) running on peer CPU: leases 1790398973_3bb80a, 1790398973_0c5291,
+1790398974_a65ba3.
+
 **Provenance audit of the direct-action snapshots (lead request, 21:45).** All `direct1701_u*` snapshots come from ONE
 B-1-fixed run: root `artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/source`, config
 `.../source/config.json` (`zero_prev_action: true`, `exact_resume: true`, packed_dir latent_pp_v3dart_s1_H16), name
@@ -43,9 +52,12 @@ No snapshot comes from a pre-fix run (the pre-fix sources are under `artifacts/r
 | learned:codec1701_u17000 | 25/30 [0.66, 0.93] | 25/30 [0.66, 0.93] | lift 2, place 1, transport 2 / transport 5 |
 | learned:codec1701_u20000 | 27/30 [0.74, 0.97] | 29/30 [0.83, 0.99] | grasp 1, lift 1, transport 1 / place 1 |
 | learned:codec1701_u23000 | 27/30 [0.74, 0.97] | 29/30 [0.83, 0.99] | place 1, lift 2 / transport 1 |
+| learned:codec1701_u26000 | 29/30 [0.83, 0.99] | 30/30 [0.89, 1.00] | transport 1 / none |
+| learned:codec1701_ufinal | 29/30 [0.83, 0.99] | 28/30 [0.79, 0.98] | place 1 / place 2 |
 | learned:direct1701_u12000 | 25/30 [0.66, 0.93] | 27/30 [0.74, 0.97] | lift 2, transport 1, grasp 2 / transport 2, place 1 |
 | learned:direct1701_u15000 | 23/30 [0.59, 0.88] | 27/30 [0.74, 0.97] | grasp 2, place 2, transport 1, lift 2 / place 1, transport 2 |
 | learned:direct1701_u18000 | 30/30 [0.89, 1.00] | 29/30 [0.83, 0.99] | none / transport 1 |
+| learned:direct1701_u21000 | 29/30 [0.83, 0.99] | 30/30 [0.89, 1.00] | transport 1 / none |
 
 Held-out source bodies (NOT in BC training; the protocol's source-competence bodies and harness: rrp.evaluation.runner,
 seeds 2,000,000.., 50 episodes each, infeasible excluded), learned:direct1701_u12000: parm5s_tf3 44/47 = 0.94

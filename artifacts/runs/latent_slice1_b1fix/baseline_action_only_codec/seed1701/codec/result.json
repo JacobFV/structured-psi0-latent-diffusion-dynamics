@@ -1,0 +1,19 @@
+{
+ "steps": 4572,
+ "wall_s": 691.6475787162781,
+ "train_chunks": 195297,
+ "train_recon": {
+  "mse": 0.00015488147982978262,
+  "shuffled_latent_mse": 0.4189635723829269,
+  "zero_action_mse": 0.24975476190447807
+ },
+ "checkpoint": {
+  "path": "artifacts/runs/latent_slice1_b1fix/baseline_action_only_codec/seed1701/codec/codec.pt",
+  "sha256_16": "6088b57d9adfae5a",
+  "step": 4572,
+  "versions": {
+   "codec": "codec-v1",
+   "featurizer": "feat-v2"
+  }
+ }
+}
