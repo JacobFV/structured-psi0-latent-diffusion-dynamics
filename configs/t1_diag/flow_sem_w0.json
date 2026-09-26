@@ -1,0 +1,15 @@
+{
+ "name": "t1diag_flow_sem_w0",
+ "representation": "artifacts/runs/legged_rep_sem_t1_v2/representation.pt",
+ "width": 256,
+ "layers": 4,
+ "packet_semantic_weight": 0.0,
+ "packet_tau_min": 0.6,
+ "steps": 12000,
+ "batch_size": 256,
+ "lr": 0.0003,
+ "seed": 0,
+ "ckpt_every": 500,
+ "snap_every": 4000,
+ "note": "T1 DIAGNOSIS: sem representation, flow WITHOUT the packet-semantic loss (isolates stage-B semantic loss); otherwise identical to legged_flow_sem_t1_v2"
+}

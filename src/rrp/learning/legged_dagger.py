@@ -28,13 +28,16 @@ from rrp.learning.legged_latent_train import LeggedData, load_rep, rep_step, _de
 
 
 class Recorder:
-    def __init__(self, bc, dev, nfe=8, seed=0):
-        self.bc, self.dev, self.nfe = bc, dev, nfe
+    def __init__(self, bc, dev, nfe=8, seed=0, diag=False):
+        self.bc, self.dev, self.nfe, self.diag = bc, dev, nfe, diag
         self.gen = torch.Generator(device=dev).manual_seed(seed + 991)
+        self.shadow = None
         self.reset()
 
     def reset(self):
         self.rows = {k: [] for k in ("q", "qd", "imu", "touch", "osc", "a", "beh", "ctx", "ev", "pose", "contact")}
+        if self.diag:                                      # t1 diagnosis: received packet + shadow-teacher chunk
+            self.rows.update(pk=[], zpk=[], tch=[])        # (privileged; DIAGNOSTIC labels only) at packet ticks
         self.ctx = None
 
     def __call__(self, ad, fc):
@@ -51,6 +54,21 @@ class Recorder:
         self.rows["beh"].append(ch.astype(np.float16)); self.rows["ctx"].append(self.ctx.copy())
         self.rows["ev"].append(active_event(ad.s.runtime)); self.rows["pose"].append(ad.s.base_pose_truth().astype(np.float32))
         self.rows["contact"].append(np.asarray(fc, bool))
+        if self.diag:
+            from rrp.control.legged_latent import TICKS_PER_PACKET
+            at = ad.ticks % TICKS_PER_PACKET == 0
+            self.rows["pk"].append(bool(at))
+            z = np.zeros((4, 11, 32), np.float16)
+            t = np.zeros((MAX_N, 40), np.float16)
+            if at:
+                if getattr(ad, "packet", None) is not None:
+                    zz = np.asarray(ad.packet.z, np.float32)
+                    z[:, :zz.shape[1], :zz.shape[2]] = zz
+                if self.shadow is None:
+                    from rrp.evaluation.legged_latent_eval import OracleShadow
+                    self.shadow = OracleShadow(ad.c, ad.s, None)
+                t[:] = self.shadow.demo(ad)[0].cpu().numpy()
+            self.rows["zpk"].append(z); self.rows["tch"].append(t)
 
 
 def collect(a):
@@ -72,7 +90,7 @@ def collect(a):
                                          rep=a.rep, realizer=a.realizer)
             if a.route == "oracle_bc":
                 ctl.bc, ctl.bc_version = bc, Path(a.bc).name
-        rec = Recorder(bc, dev, a.nfe, sd)
+        rec = Recorder(bc, dev, a.nfe, sd, diag=a.diag)
         ctl.recorder = rec
         row, _ = run_episode(ctl, a.body, sd, a.max_s)
         arr = {k: np.asarray(v) for k, v in rec.rows.items()}
@@ -180,6 +198,24 @@ def gate(a):
 
 
 # ------------------------------------------------------------------ refit
+def gen_step(E, R, F_, data, i, j, gen_frac, qd_drop):
+    """System-0 loss where a fraction of the packets are flow samples from the same public context (teacher labels)."""
+    b = data.ctx_batch(i)
+    with torch.no_grad():
+        mu, lv = E(b, data.beh(i))
+        z = mu + torch.randn_like(mu) * (0.5 * lv).exp()
+        zg = F_.sample(b, nfe=8)
+        use = (torch.rand(len(i), device=mu.device) < gen_frac)[:, None, None, None]
+        z = torch.where(use, zg, z)
+    br, ph, a1, am = data.realizer_batch(i, j)
+    if qd_drop > 0:
+        keep = (torch.rand(len(i), 1, device=br["qd"].device) >= qd_drop).float()
+        br = dict(br); br["qd"] = br["qd"] * keep
+    m = am.float()
+    l = (((R(z, br, ph) - a1) ** 2) * m).sum() / m.sum()
+    return l, dict(real=float(l.detach()))
+
+
 def refit(cfg, out: Path):
     dev = _dev()
     rcfg, E, R, P, rres = load_rep(Path(cfg["representation"]), dev)
@@ -189,7 +225,14 @@ def refit(cfg, out: Path):
     for p in R.parameters():
         p.requires_grad_(True)
     base = LeggedData(Path(rcfg["data"]), cfg.get("bodies", rcfg["bodies"]), dev)
-    dag = [LeggedData(Path(r), cfg.get("bodies", rcfg["bodies"]), dev) for r in cfg["dagger"]]
+    dag = [LeggedData(Path(r), cfg.get("bodies", rcfg["bodies"]), dev) for r in cfg.get("dagger", [])]
+    F_ = None
+    if cfg.get("gen_flow"):          # generator-aware system 0: train on packets the deployed flow actually emits
+        from rrp.model.legged_latent import LeggedFlow
+        fst = torch.load(cfg["gen_flow"], map_location=dev, weights_only=False)
+        F_ = LeggedFlow(dz=rcfg["latent"]["dz"], D=fst["cfg"].get("width", 256), layers=fst["cfg"].get("layers", 4)).to(dev)
+        F_.load_state_dict(fst["flow"]); F_.eval()
+        gen_frac = float(cfg.get("gen_frac", 0.5))
     steps, lr = cfg["steps"], cfg.get("lr", 3e-4)
     opt = torch.optim.AdamW(R.parameters(), lr=lr, weight_decay=1e-4)
     sch = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=lr, total_steps=steps, pct_start=0.05)
@@ -203,14 +246,17 @@ def refit(cfg, out: Path):
     t0 = time.time()
     for step in range(1, steps + 1):
         loss = 0.0
-        parts = [(base, int(B * (1 - fr)), MAX_J)] + [(d, int(B * fr / len(dag)), 19) for d in dag]
+        parts = [(base, int(B * (1 - fr)) if dag else B, MAX_J)] + [(d, int(B * fr / len(dag)), 19) for d in dag]
         logs = {}
         for k, (d, nb, mj) in enumerate(parts):
             if nb == 0:
                 continue
             i = d.sample(nb, rng)
             j = torch.from_numpy(rng.integers(0, mj + 1, nb)).to(dev)
-            l, lg, _ = rep_step(E, R, P, d, i, j, 0.0, 0.0, train=True, qd_drop=qd_drop)
+            if F_ is not None and d is base:
+                l, lg = gen_step(E, R, F_, d, i, j, gen_frac, qd_drop)
+            else:
+                l, lg, _ = rep_step(E, R, P, d, i, j, 0.0, 0.0, train=True, qd_drop=qd_drop)
             loss = loss + l * nb / B
             logs[f"real_{k}"] = lg["real"]
         opt.zero_grad(); loss.backward()
@@ -236,6 +282,7 @@ def main(argv=None):
     ap.add_argument("--body", default="go2"); ap.add_argument("--seeds")
     ap.add_argument("--nfe", type=int, default=8); ap.add_argument("--max-s", type=float, default=40.0)
     ap.add_argument("--buf"); ap.add_argument("--teacher-data", default=None)
+    ap.add_argument("--diag", action="store_true", help="also record received packets + shadow-teacher chunks")
     ap.add_argument("--config"); ap.add_argument("--out", required=True)
     a = ap.parse_args(argv)
     if a.stage == "collect":

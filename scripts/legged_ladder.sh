@@ -15,6 +15,7 @@ for r in ${ROUTES//,/ }; do
     bc) A="--bc $BC";;
     r1) A="--rep $REP --bc $BC --oracle-bc $RZA";;
     r1qd0) A="--rep $REP --bc $BC --oracle-bc $RZA --zero-qd";;
+    r1t) A="--rep $REP --oracle $RZA";;   # PRIVILEGED shadow-teacher packets E(teacher chunk) (diagnostic)
     r2) A="--flow $FLOW $RZA";;
   esac
   for ((s=a; s<=b; s+=n)); do e=$((s+n-1)); [ $e -gt $b ] && e=$b

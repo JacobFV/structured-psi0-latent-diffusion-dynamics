@@ -174,9 +174,9 @@ class LeggedProbe(nn.Module):
         return out
 
 
-def gnll(pred, target, mask=None):
+def gnll(pred, target, mask=None, lv_min=-8.0):
     d = target.shape[-1]
-    mu, lv = pred[..., :d], pred[..., d:].clamp(-8, 6)
+    mu, lv = pred[..., :d], pred[..., d:].clamp(lv_min, 6)
     nll = 0.5 * (((target - mu) ** 2) / lv.exp() + lv + math.log(2 * math.pi)).sum(-1)
     if mask is None:
         return nll.mean()
@@ -184,12 +184,12 @@ def gnll(pred, target, mask=None):
     return (nll * m).sum() / m.sum().clamp(min=1)
 
 
-def probe_loss(out, lab, b):
+def probe_loss(out, lab, b, lv_min=-8.0):
     lm = (b["asm_is_leg"][:, None, :].expand_as(out["contact"])).float()
     L = dict(contact=(F.binary_cross_entropy_with_logits(out["contact"], lab["contact_k"].float(), reduction="none")
                       * lm).sum() / lm.sum().clamp(min=1),
-             goal=gnll(out["goal"], lab["goal"], lab["goal_valid"]),
-             disp=gnll(out["disp"], lab["disp"]),
+             goal=gnll(out["goal"], lab["goal"], lab["goal_valid"], lv_min=lv_min),
+             disp=gnll(out["disp"], lab["disp"], lv_min=lv_min),
              subtask=F.cross_entropy(out["subtask"], lab["subtask"]),
              fall=F.binary_cross_entropy_with_logits(out["fall"][:, 0], lab["fall"].float()))
     return sum(L.values()), {f"probe_{k}": float(v.detach()) for k, v in L.items()}

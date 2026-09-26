@@ -165,7 +165,7 @@ class LeggedData:
         return torch.from_numpy(rng.choice(pool, B)).to(self.dev)
 
 
-def rep_step(E, R, P, data, i, j, w_sem, beta, train=True, qd_drop=0.0):
+def rep_step(E, R, P, data, i, j, w_sem, beta, train=True, qd_drop=0.0, lv_min=-8.0):
     b = data.ctx_batch(i)
     mu, lv = E(b, data.beh(i))
     z = mu + torch.randn_like(mu) * (0.5 * lv).exp() if train else mu
@@ -180,7 +180,7 @@ def rep_step(E, R, P, data, i, j, w_sem, beta, train=True, qd_drop=0.0):
     kl = (0.5 * (mu ** 2 + lv.exp() - 1 - lv) * mm).sum() / mm.sum()
     lab = data.labels(i)
     out = P(z, b["asm_mask"], b["body_asm"])
-    l_sem, logs = probe_loss(out, lab, b)
+    l_sem, logs = probe_loss(out, lab, b, lv_min=lv_min)
     loss = l_real + w_sem * l_sem + beta * kl
     logs.update(real=float(l_real.detach()), kl=float(kl.detach()), sem=float(l_sem.detach()))
     return loss, logs, (z, out, lab, b, pred, a1, m)
@@ -251,7 +251,7 @@ def train_rep(cfg, out: Path):
         i = data.sample(B, rng)
         j = torch.from_numpy(rng.integers(0, MAX_J + 1, B)).to(dev)
         loss, logs, _ = rep_step(E, R, P, data, i, j, lc["semantic_weight"], lc.get("beta_kl", 1e-3),
-                                 qd_drop=lc.get("qd_dropout", 0.0))
+                                 qd_drop=lc.get("qd_dropout", 0.0), lv_min=lc.get("probe_lv_min", -8.0))
         opt.zero_grad()
         loss.backward()
         gn = torch.nn.utils.clip_grad_norm_(params, 1.0)
@@ -370,7 +370,8 @@ def train_flow(cfg, out: Path):
         with torch.no_grad():
             zt, _ = E(b, data.beh(i))
         lab = data.labels(i)
-        fn = (lambda zc: probe_loss(P(zc, b["asm_mask"], b["body_asm"]), lab, b)) if w > 0 else None
+        lvm = rcfg["latent"].get("probe_lv_min", -8.0)
+        fn = (lambda zc: probe_loss(P(zc, b["asm_mask"], b["body_asm"]), lab, b, lv_min=lvm)) if w > 0 else None
         loss, logs = F_.loss(b, zt, fn, w, cfg.get("packet_tau_min", 0.6))
         opt.zero_grad(); loss.backward()
         gn = torch.nn.utils.clip_grad_norm_(F_.parameters(), 1.0)
