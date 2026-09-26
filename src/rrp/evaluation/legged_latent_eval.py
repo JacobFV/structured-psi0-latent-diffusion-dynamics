@@ -250,6 +250,12 @@ class LatentLeggedController:
         if mode == "mirror_goal":
             c = c.copy()
             c[9] = -c[9]; c[13] = -c[13]                 # lateral body-frame waypoint estimates (a, b)
+        if mode in ("mirror_active", "mirror_inactive"):   # task-context edit of ONE waypoint estimate
+            c = c.copy()
+            ev = active_event(ad.s.runtime)
+            act = 9 if ev == 0 else 13
+            idx = act if mode == "mirror_active" else (13 if act == 9 else 9)
+            c[idx] = -c[idx]
         if mode == "halt":
             c = c.copy()
             c[16:20] = np.eye(4)[EVENTS.index("halt")]
@@ -261,7 +267,7 @@ class LatentLeggedController:
     def generate(self, ad, now):
         b = ad.dyn_batch()
         edit = self.edit if now >= self.t_edit else "none"
-        b["ctx"] = self._ctx(ad, edit if edit in ("mirror_goal", "halt") else None)
+        b["ctx"] = self._ctx(ad, edit if edit in ("mirror_goal", "halt", "mirror_active", "mirror_inactive") else None)
         if self.bc is not None:
             with torch.no_grad():
                 z, _ = self.E(b, self.bc.sample(b, nfe=self.nfe, generator=self.gen)[..., :40])

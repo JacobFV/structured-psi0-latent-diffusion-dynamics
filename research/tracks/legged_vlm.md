@@ -6,6 +6,30 @@ work on legged/humanoid bodies, and do the packet semantics (per-leg contact per
 displacement, subtask, fall) causally control behaviour? Arm lessons applied up front (B-1, D-050, D-052..D-056).
 Compute: host GPU (leases below), host CPU for closed-loop sims. Data copied to host `~/work/rrp-data/datasets/legged_latent_v{1,2}` (lease 1790399700_94cca7, --disk 2G).
 
+### LEGGED RESEARCH RESULT (for the demo agent; updated 2026-09-26 00:3x; every number from the raw files named)
+**Headline (go2 quadruped, matched dev seeds 10000-10029, privileged evaluator):**
+| route | source label | success | raw |
+|---|---|---|---|
+| R0 teacher | scripted_teacher (privileged) | 30/30 | `artifacts/runs/legged_ladder/go2/teacher_bc5k.jsonl` |
+| BC positive control (no packet) | learned:legged_bc_go2_v1/policy.pt | 30/30 | `bc_bc20k.jsonl` |
+| R1 stateless oracle E(BC chunk) → system 0 | ORACLE DIAGNOSTIC | nosem 30/30, sem 25/30 (5 fell) | `r1_{nosem,sem}_go2_v2.jsonl` |
+| **R2 deployable: flow → packet → system 0** | learned:legged_flow_{nosem,sem}_go2_v2/snap_s4000.pt | **nosem 30/30, sem 29/30** (1 fell) | `r2_*_go2_v2_snap_s4000.jsonl` |
+This is the first competent deployable latent-packet route in the project. On the legged body, the corrected architecture matches plain BC. The arm lessons were applied from the start (feature parity exact; qd dropout; stateless BC expert). Why legs are easier than the arm (hypothesis, untested): the gait is periodic, so system 0 predicts most of the target from proprioception + oscillator phase, and the packet has to carry only the low-dimensional residual (speed, turn, stop). The arm needs precise object-relative geometry.
+
+**Causal packet edits (go2, 20 dev seeds, every packet edited from t=2 s, effect in t=2–5 s, paired vs unedited; mean [95% bootstrap CI]; sem edits use its jointly trained probe, nosem its post-hoc measurement probe; controls = random z directions of matched norm, plus z=0).** Deployable route R2 (snap_s4000):
+| edit (target read by the probe) | sem | nosem | matched random |dz| 4–12 |
+|---|---|---|---|
+| turn +0.6 rad (Δyaw) | +0.22 [0.14, 0.30] | +0.37 [0.27, 0.48] | −0.01..+0.04 (CIs include 0) |
+| turn −0.6 rad (Δyaw) | −0.17 [−0.23, −0.13] | −0.23 [−0.29, −0.19] | |
+| halt (Δforward, m) | −1.39 [−1.48, −1.29] | −1.19 [−1.28, −1.09] | −0.02..−0.13 |
+| goal mirrored laterally (lateral displacement TOWARD the mirrored side, m; sign-normalized by the true goal side) | +0.074 [0.042, 0.110] (|dz| 6.2) | +0.025 [0.011, 0.043] (|dz| 2.3) | +0.018 / +0.002 at |dz| 8 |
+| leg-0 stance / swing (Δ leg-0 contact fraction) | −0.00 / −0.02 [−0.03, −0.01] | +0.00 / +0.01 (wrong sign) | −0.01..+0.05 |
+R1 gives the same pattern (turn sem +0.18/−0.15, nosem +0.30/−0.15; halt −1.24 / −1.23; goal mirror toward-mirror sem +0.064 [0.040, 0.090] vs random +0.013, nosem +0.013 ≈ random +0.019; contact ±0.02). (An earlier unsigned lateral metric had called the goal edit null. The sign-normalized metric, `scripts/legged_mirror_effect.py` → `mirror_effects.json`, replaces it.) Raw: `artifacts/runs/legged_edits/go2/{r1,r2}_{sem,nosem}*/effects.json` + `*.jsonl`.
+**Task-context edits on R2 (system i generates the packet from an EDITED public task context; same seeds/window; `artifacts/runs/legged_edits/go2/r2ctx_{sem,nosem}_snap_s4000/mirror_effects.json`):** mirroring the ACTIVE waypoint's lateral estimate moves the robot toward the mirrored side: sem +0.36 m [0.22, 0.50] (yaw +0.61 rad), nosem +0.44 m [0.30, 0.59] (yaw +0.51). Mirroring both waypoints gives sem +0.34, nosem +0.41. The irrelevant control (mirroring only the INACTIVE waypoint) gives +0.04 [−0.02, 0.11] and +0.05 [−0.01, 0.11]. Setting the task view to `halt` does NOT stop the robot (forward +0.14 m sem, +0.46 m nosem). In the data, halt only ever happens when the robot is standing at waypoint b, so a halt request far from b is out of distribution for system i. So meaning flows task → packet → behaviour for the goal direction in both packets, with no semantic advantage.
+**Reading:** the packet causally controls turning and stopping on the deployable route, well beyond matched-norm random edits. Semantic supervision is NOT needed for this: the no-semantic packet is at least as steerable, through a probe fit afterwards. The one semantic-specific handle is the goal readout. Editing z so the sem probe reads a mirrored goal moves the robot 6–7 cm toward the mirror side in 3 s (3–5x the random control). The same edit through the nosem post-hoc probe is at chance. This effect is small. Per-leg contact per knot is barely decodable (probe swing accuracy 0.41 / 0.38) and not steerable. So for sem vs capacity-matched nosem on legged: equal task success, and no semantic advantage in causal control. This is the same conclusion as the arm (D-059).
+Clips: `artifacts/video/2026-09-26_legged_learned-R2_*` and `2026-09-25_legged_*` (INDEX.md lines).
+**Other bodies (BC positive control, dev seeds 10000-10029):** hexapod6 BC 30/30 (teacher 30/30); t1 humanoid BC 24/30 (teacher 30/30); g1 training. Latent route for hexapod6 is training (peer).
+
 ### plan / state
 | step | state | evidence |
 |---|---|---|
