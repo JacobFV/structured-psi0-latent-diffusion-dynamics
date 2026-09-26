@@ -158,12 +158,16 @@ def build_packet(f, s, o, z, *, lsv, rcv, knot_times, source, name, sampling, va
 
 
 class OracleSource:
+    """expert="teacher": demo = scripted teacher (shadow FSM, stepped in a discarded snapshot).
+    expert="bc": STATELESS demo = the H-step chunk the BC policy `bc` emits for the (edited) context at the current
+    state (ladder `BCLookahead`, valid off the teacher trajectory); flow noise keyed per (seed, call)."""
     label = "oracle"
 
-    def __init__(self, E, lcfg, res, rep_path, dev):
+    def __init__(self, E, lcfg, res, rep_path, dev, expert="teacher", bc=None):
         self.E, self.lcfg, self.dev = E, lcfg, dev
         self.lsv, self.rcv = res["latent_space_version"], res["realizer_compat_version"]
-        self.name = f"oracle:E({rep_path})"
+        self.expert, self.bc = expert, bc
+        self.name = f"oracle:E({rep_path})" + ("+bc_expert" if expert == "bc" else "")
 
     def featurizer(self, s):
         return _featurizer(s)
@@ -174,8 +178,24 @@ class OracleSource:
         from rrp.model.semantic_latent import assembly_tokens
         f = self.featurizer(s)
         H = self.lcfg.horizon
-        snap, tst = s.snapshot(), teacher.state()
+        if self.expert == "bc":
+            snap = s.snapshot()
+            try:
+                context_edit(cond, s, goal_off)
+                o = s.observe()
+                pi = f(o)
+                self.bc.gen.manual_seed(int(key) % (2 ** 63))
+                ch = self.bc.chunks([s])[0]
+                cmds = [{g.group: np.asarray(g.values[t]).tolist() for g in ch.command_groups}
+                        for t in range(min(H, ch.horizon))]
+            finally:
+                s.restore(snap)
+            teacher, tst = None, None
+        else:
+            snap, tst = s.snapshot(), teacher.state()
         try:
+            if teacher is None:
+                raise _Skip
             context_edit(cond, s, goal_off)
             o = s.observe()
             pi = f(o)
@@ -186,9 +206,12 @@ class OracleSource:
                 s.step(c)
                 if getattr(teacher, "done", False):
                     break
+        except _Skip:
+            pass
         finally:
-            s.restore(snap)
-            teacher.load(tst)
+            if teacher is not None:
+                s.restore(snap)
+                teacher.load(tst)
         n = len(cmds)
         a = f.aspace.normalize(cmds + [cmds[-1]] * (H - n), pi.q0).astype(np.float16).astype(np.float32)
         b = collate_inputs([pi]).to(self.dev)
@@ -207,6 +230,10 @@ class OracleSource:
                                source="target_encoder_oracle", name=self.name, sampling=samp)
         return build_packet(f, s, o, z, lsv=self.lsv, rcv=self.rcv, knot_times=self.lcfg.knot_times,
                             source="target_encoder_oracle", name=self.name, sampling=samp)
+
+
+class _Skip(Exception):
+    pass
 
 
 def _flat(c):
@@ -413,12 +440,12 @@ def run_condition(src, R, P, robot, robot_key, seed, cond, *, max_steps=300, rep
     if not ctrl_t.feasibility()["feasible"]:
         return dict(base, skipped="infeasible_control")
     match = "rebind_obj" if scene == "paired" else "goal_shift"
-    if cond == "control_replay" and src.label not in ("generated", "bc"):
+    if cond == "control_replay" and src.label not in ("generated", "bc") and getattr(src, "expert", "") != "bc":
         return dict(base, skipped=f"n/a_deterministic_{src.label}")
     if cond == "orthogonal_matched" and src.label == "bc":
         return dict(base, skipped="n/a_no_packet_for_bc")
     teachers = {}
-    if src.label in ("oracle", "teacher"):
+    if src.label == "teacher" or (src.label == "oracle" and getattr(src, "expert", "teacher") == "teacher"):
         need = {"orthogonal_matched": ("control", match), "control_replay": ("control",)}.get(cond, (cond,))
         for c in need:
             t = make_teacher(c, s, goal_off)

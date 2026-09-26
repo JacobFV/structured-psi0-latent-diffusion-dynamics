@@ -402,8 +402,15 @@ def cmd_semantic(a):
     elif a.route == "oracle":
         rep = Path(a.representation)
         lcfg, E, R, P, res = load_representation(rep, dev)
-        src = se.OracleSource(E, lcfg, res, rep, dev)
-        label = f"ORACLE DIAGNOSTIC target_encoder_oracle:E({rep}) + scripted_teacher demo"
+        if a.oracle_expert == "bc":
+            from rrp.policy.runner import LearnedPolicy
+            src = se.OracleSource(E, lcfg, res, rep, dev, expert="bc",
+                                  bc=LearnedPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=a.nfe, execute_prefix=8))
+            label = (f"ORACLE DIAGNOSTIC target_encoder_oracle:E({rep}) + STATELESS BC expert demo "
+                     f"(learned:{a.checkpoint} chunk for the edited context)")
+        else:
+            src = se.OracleSource(E, lcfg, res, rep, dev)
+            label = f"ORACLE DIAGNOSTIC target_encoder_oracle:E({rep}) + scripted_teacher demo"
     elif a.route == "bc":
         from rrp.policy.runner import LearnedPolicy
         from rrp.evaluation.ladder import sha256_file
@@ -516,6 +523,8 @@ def register_semantic(p):
     c.add_argument("--episodes", type=int, default=12)
     c.add_argument("--seed-start", type=int, default=3000000)
     c.add_argument("--conditions", help="default: all conditions of the scene family")
+    c.add_argument("--oracle-expert", choices=["teacher", "bc"], default="teacher",
+                   help="oracle route demo source; bc = stateless BC chunk (--checkpoint = BC policy)")
     c.add_argument("--scene", choices=["pick_place", "paired"], default="pick_place",
                    help="paired: binding-paired scenes (rebinding is physically valid; approach-level metrics)")
     c.add_argument("--probe")
