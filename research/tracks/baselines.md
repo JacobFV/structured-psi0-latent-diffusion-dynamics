@@ -54,8 +54,12 @@ max(1, seed % 3)), 24 seeds per body (parm6_tf3: 7 infeasible, n = 17):
 Paired approach preference toward distractor0 vs control: rebind +0.30 m [0.27, 0.33] (panda), +0.31 m [0.26, 0.35]
 (parm6); irrelevant edit +0.001 m [0.000, 0.002] / +0.000 m. So BC's behaviour follows valid context edits (object and
 goal) and ignores the matched irrelevant edit. Caveat: this rebind swaps the tracker BELIEFS of the two objects, so it
-tests "act on the object the task context points to", not descriptor-based binding (the acceptance track's paired-scene
-version, where only the entity descriptor/binding changes, is pending on main; I will rerun BC with `--scene paired`).
+tests "act where the task slot's object is", not binding. The VALID binding edit (descriptor + public binding only,
+`rebind_desc`) was run on the same checkpoint by the acceptance track (research/tracks/acceptance.md "BC reference
+result", 32 seeds panda_pg2): BC IGNORES it (first approach to the new cube 0/32; original cube in zone 25/32; effect vs
+irrelevant +0.6 cm). The source data never varies the binding, so BC learned "slot 0", not "the bound entity". BC is
+also not competent on the binding-paired scenes (permuted slots/colours it never saw). So BC is the competent-control
+reference for manipulation and goal edits, and a NEGATIVE reference for binding (what the latent v4 path must beat).
 Rebind completes the placement less often (7/20, 9/14 of the lifts; the distractor is a same-size cube). Not diagnosed;
 likely the public task runtime (grasp/hold events bound to the cube) disagrees with the edited belief after the lift.
 Raw: `artifacts/runs/baselines_bcsem_u12000/<robot>/semantic_{rows,summary}_learned_pick_place.*` (committed).
