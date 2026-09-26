@@ -1,5 +1,18 @@
 # track: acceptance (causal edits, composition, latency on the corrected latent path)
 
+## SPRINT SEMANTIC RESULTS (2026-09-25/26 demo sprint; agent sprint_semantic; details in "sprint" below)
+Question: do VALID edits of the task semantics in the context the packet is generated for change behaviour causally,
+beyond irrelevant edits of matched size? Measured at the level each route reaches (approach / first touch / end
+position), panda_pg2, dev seeds; 95% bootstrap CIs over scenes; all numbers from the raw rows named below.
+| route (source label) | scenes | rebind: first touch NEW (edit / control) | rebind effect beyond irrelevant edit, min-dist pref. (m) | goal edit: cube at new goal / end-pos. effect (m) | arm swap: edited-to arm touches bar first |
+|---|---|---|---|---|---|
+| scripted_teacher (privileged reference) paired | 30 | 29/30 / 0/30 | +0.295 | 30/30 / +0.222 | 24/24 (control 0/24) |
+| ORACLE DIAGNOSTIC E(ladder_latent_sem_b1fix_anchor)+teacher demo, paired | 30 | 19/30 / 5/30 | +0.156 [+0.115, +0.205] | 0/30 / +0.004 [-0.019, +0.025] | n/a (single-arm bundle) |
+| learned:direct1701_u12000 (BC reference, NOT latent), canonical scenes, rebind_desc | 32 | 0/32 / 0/32 | +0.006 [+0.001, +0.013] | 24/32 / +0.167 [+0.141, +0.190] | n/a |
+| v4 sem / nosem (oracle, generated) | pending | | | | |
+Reading so far: the metrics and edits are valid (teacher ~100%). The oracle route follows a rebind (weak evidence: the
+packet encodes the teacher's demo). The competent BC controller follows goal edits but ignores a valid rebinding.
+
 Branch `track/acceptance`, worktree `~/work/rrp-wt/acceptance`, peer dir `/dev/shm/rrp-brandonin/wt/acceptance`.
 Spec: research/corrections/controller-facing-semantic-latent.md; list: research/reports/latent_slice1_progress.md "Pending".
 Counterexample / embodiment swap are done elsewhere (D-032) and not repeated here.
