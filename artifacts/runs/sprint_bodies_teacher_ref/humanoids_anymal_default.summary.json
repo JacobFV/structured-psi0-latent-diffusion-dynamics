@@ -1,0 +1,54 @@
+{
+ "source": "scripted_teacher",
+ "task": "waypoint_contact",
+ "seeds": "10000-10019",
+ "per_body": {
+  "anymal_c": {
+   "success": 20,
+   "n": 20,
+   "fell": 0,
+   "halt_failed": 0,
+   "other_fail": 0,
+   "failed_seeds": [],
+   "note": "source=scripted_teacher (privileged) + frozen learned tracker anymal_c:iter1274 (gate passed); dev seeds 10000-10019; waypoint_contact; privileged evaluator; raw eval_dev_anymal_c_default.jsonl; NOT a learned policy"
+  },
+  "g1": {
+   "success": 17,
+   "n": 20,
+   "fell": 2,
+   "halt_failed": 1,
+   "other_fail": 0,
+   "failed_seeds": [
+    10002,
+    10018,
+    10019
+   ],
+   "note": "source=scripted_teacher (privileged) + frozen learned tracker g1:iter3599 (limited: forward + arc turning only); dev seeds 10000-10019; waypoint_contact; privileged evaluator; raw eval_dev_g1_default.jsonl; NOT a learned policy"
+  },
+  "h1": {
+   "success": 14,
+   "n": 20,
+   "fell": 0,
+   "halt_failed": 4,
+   "other_fail": 2,
+   "failed_seeds": [
+    10002,
+    10005,
+    10006,
+    10014,
+    10015,
+    10019
+   ],
+   "note": "source=scripted_teacher (privileged) + frozen learned tracker h1:iter2999 (limited: in-place turning below gate); dev seeds 10000-10019; waypoint_contact; privileged evaluator; raw eval_dev_h1_default.jsonl; NOT a learned policy"
+  },
+  "t1": {
+   "success": 20,
+   "n": 20,
+   "fell": 0,
+   "halt_failed": 0,
+   "other_fail": 0,
+   "failed_seeds": [],
+   "note": "source=scripted_teacher (privileged) + frozen learned tracker t1:iter2999 (limited: in-place turning below gate); dev seeds 10000-10019; waypoint_contact; privileged evaluator; raw eval_dev_t1_default.jsonl; NOT a learned policy"
+  }
+ }
+}

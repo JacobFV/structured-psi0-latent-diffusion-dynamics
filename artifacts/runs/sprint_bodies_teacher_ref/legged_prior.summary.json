@@ -1,0 +1,43 @@
+{
+ "source": "scripted_teacher",
+ "task": "waypoint_contact",
+ "seeds": "10000-10019",
+ "per_body": {
+  "go2": {
+   "success": 20,
+   "n": 20,
+   "fell": 0,
+   "note": "source=scripted_teacher (privileged) + frozen tracker (go2 learned; others CPG gait tracker); dev seeds 10000-10019; from artifacts/runs/legged_vlm_teacher_ref/eval_dev.jsonl (legged_vlm track); NOT a learned policy"
+  },
+  "pquad4": {
+   "success": 20,
+   "n": 20,
+   "fell": 0,
+   "note": "source=scripted_teacher (privileged) + frozen tracker (go2 learned; others CPG gait tracker); dev seeds 10000-10019; from artifacts/runs/legged_vlm_teacher_ref/eval_dev.jsonl (legged_vlm track); NOT a learned policy"
+  },
+  "hexapod6": {
+   "success": 20,
+   "n": 20,
+   "fell": 0,
+   "note": "source=scripted_teacher (privileged) + frozen tracker (go2 learned; others CPG gait tracker); dev seeds 10000-10019; from artifacts/runs/legged_vlm_teacher_ref/eval_dev.jsonl (legged_vlm track); NOT a learned policy"
+  },
+  "sprawl4": {
+   "success": 20,
+   "n": 20,
+   "fell": 0,
+   "note": "source=scripted_teacher (privileged) + frozen tracker (go2 learned; others CPG gait tracker); dev seeds 10000-10019; from artifacts/runs/legged_vlm_teacher_ref/eval_dev.jsonl (legged_vlm track); NOT a learned policy"
+  },
+  "sprawl8": {
+   "success": 20,
+   "n": 20,
+   "fell": 0,
+   "note": "source=scripted_teacher (privileged) + frozen tracker (go2 learned; others CPG gait tracker); dev seeds 10000-10019; from artifacts/runs/legged_vlm_teacher_ref/eval_dev.jsonl (legged_vlm track); NOT a learned policy"
+  },
+  "hexapod6_long": {
+   "success": 20,
+   "n": 20,
+   "fell": 0,
+   "note": "source=scripted_teacher (privileged) + frozen tracker (go2 learned; others CPG gait tracker); dev seeds 10000-10019; from artifacts/runs/legged_vlm_teacher_ref/eval_dev.jsonl (legged_vlm track); NOT a learned policy"
+  }
+ }
+}
