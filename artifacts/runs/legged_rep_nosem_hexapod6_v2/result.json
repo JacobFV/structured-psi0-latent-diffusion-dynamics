@@ -1,0 +1,34 @@
+{
+ "steps": 12000,
+ "wall_s": 3413.0178141593933,
+ "bodies": [
+  "hexapod6"
+ ],
+ "n_rows": 1070640,
+ "n_train_rows": 1001415,
+ "n_heldout_rows": 69225,
+ "latent_space_version": "legged-ls-legged_nosem_hexapod6_v2",
+ "eval": {
+  "split": "held_out_episodes",
+  "realize_mse": 6.352131763378565e-05,
+  "zero_action_mse": 0.0862352080643177,
+  "probes": {
+   "contact_acc": 0.5056070963541667,
+   "contact_swing_acc": 0.0,
+   "goal_err": 0.7542652885894058,
+   "disp_xy_err": 0.7632464319467545,
+   "disp_yaw_err": 0.39540997222065927,
+   "subtask_acc": 0.5970703125,
+   "fall_acc": 1.0
+  },
+  "probes_shuffled_z": {
+   "contact_acc": 0.5056070963541667,
+   "contact_swing_acc": 0.0,
+   "goal_err": 0.7534951371113674,
+   "disp_xy_err": 0.7645052224397659,
+   "disp_yaw_err": 0.3954188607633114,
+   "subtask_acc": 0.5970703125,
+   "fall_acc": 1.0
+  }
+ }
+}
