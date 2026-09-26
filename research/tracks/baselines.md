@@ -22,6 +22,18 @@ seeds 2,000,000.., 50 episodes each, infeasible excluded), learned:direct1701_u1
 
 Wilson 95% in brackets. All failures of BC are timeouts late in the task (grasp/lift/transport/place), none at approach.
 Raw: `artifacts/runs/baselines_bc_ladder/<robot>/learned_<tag>.{jsonl,summary.json}` (committed; peer store same path).
+
+**Diagnostic for D-049 (the teacher is stateful): the shadow teacher is not a valid expert on learner-visited states.**
+In the same BC episodes the ladder's shadow teacher (advanced once per tick at the executed state, as in every rung) ends
+far behind the task: among the 25 panda_pg2 BC successes its final phase is pregrasp 10, descend 11, lift 3,
+transport 1; parm6_tf3 (27 successes): pregrasp 4, descend 5, lift 10, other 8. Codec BC: the same pattern (panda
+pregrasp 7 / descend 11 of 28). So BC completes pick-and-place while the teacher FSM, whose look-ahead is what the R1
+oracle packet encodes and what DAgger relabels with, still says "hover at pregrasp". BC is stateless (public obs ->
+chunk) and does not need the teacher's waypoint; the oracle route inherits the FSM's stale phase. Consequence: R1's
+0-1/30 (D-046..D-049) cannot separate "system 0 cannot realize packets" from "the oracle packets are wrong off the
+teacher trajectory"; the DAgger labels from this shadow are suspect for the same reason. The clean test of the latent
+architecture is R2 (system i's own packet, no teacher) on a B-1-fixed flow, compared with this BC on the same seeds.
+Data/teacher/sim are NOT the bottleneck: the same demonstrations yield a competent BC controller.
 Checkpoints: snapshots of `policy_last.pt` (sha256 prefix verified against policy_last.json) in
 `artifacts/runs/baselines_bc_ckpts/<tag>.pt` (host + peer store; not committed). Caveat: panda_pg2 and parm6_tf3 are
 source-TRAINING bodies (as for the ladder); competence on held-out source bodies (protocol parm5s_tf3/parm5l_pg2) is
