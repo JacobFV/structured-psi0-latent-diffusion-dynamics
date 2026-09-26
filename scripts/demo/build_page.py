@@ -198,8 +198,9 @@ def video_card(v) -> str:
     f, kind, title, cap, s = v
     lab = {"teacher": "teacher | BC | oracle" if f.startswith("2026-09-25_triptych") else "teacher | BC | stateless oracle" if "orcbctriptych" in f else "scripted_teacher", "oracle": "oracle diagnostic", "learned": "learned", "bc": "learned"}[kind]
     if kind == "learned":
-        lab = ("teacher | BC | learned:flow_jointfix@" + (f.split("flowjf_s")[1].split(".")[0] if "flowjf_s" in f else "20k → sys-0 " + f.split("flowjf20k_")[1].split(".")[0])) if "r2triptych" in f \
-            else ("learned:flow_jointfix@20k → sys-0 " + f.split("flowjf20k_")[1].split("_cpu")[0]) if "flowjf20k_" in f else "learned:flow_latent_sem_v2@22k"
+        lab = ("teacher | BC | learned:flow_jointfix@" + (f.split("flowjf_s")[1].split(".")[0] if "flowjf_s" in f else "20k → sys-0 " + f.split("flowjf20k_")[1].split(".")[0].replace("_cpu", ""))) if "r2triptych" in f \
+            else ("learned:flow_jointfix@20k → sys-0 " + f.split("flowjf20k_")[1].split("_cpu")[0]) if "flowjf20k_" in f \
+            else ("learned:flow_jointfix_ft → sys-0 " + f.split("flowjfft_")[1].split("_cpu")[0]) if "flowjfft_" in f else "learned:flow_latent_sem_v2@22k"
     if kind == "bc":
         lab = "learned:" + ("direct1701 final (BC)" if "bc_direct1701_final" in f else "direct1701_u12000 (BC)" if "_s30000" not in f else
                             f.split("_s30000")[1].split("_", 1)[1].rsplit("_", 1)[0])
@@ -281,6 +282,29 @@ SEM_VIDEOS = [
 
 
 R2_VIDEOS = [
+    ("2026-09-25_ladder_generated_parm6_tf3_s3000011_flowjfft_gendag2noqd_cpu_success.mp4", "learned",
+     "R2 generated · learned:ladder_flow_jointfix_ft → system 0 gendag2_noqd · parm6_tf3 · seed 3000011 · SUCCESS",
+     "The deployable latent route (system i's own packets; no teacher or BC in the loop) on the current best parm6 recipe (16/30). "
+     "Re-rendering 5 of its evaluation-success seeds on CPU reproduced 3 successes (3000011, 3000015, 3000016); 3000010 failed at lift, 3000017 at approach.",
+     "ladder_v1/parm6_tf3/generated_zero_flowjfft10k_rzgendag2noqd.summary.json"),
+    ("2026-09-25_ladder_generated_parm6_tf3_s3000015_flowjfft_gendag2noqd_cpu_success.mp4", "learned",
+     "R2 generated · same recipe · parm6_tf3 · seed 3000015 · SUCCESS", "Second reproduced success.",
+     "ladder_v1/parm6_tf3/generated_zero_flowjfft10k_rzgendag2noqd.summary.json"),
+    ("2026-09-25_ladder_generated_parm6_tf3_s3000010_flowjfft_gendag2noqd_cpu_failure-lift.mp4", "learned",
+     "R2 generated · same recipe · parm6_tf3 · seed 3000010 · failure (lift) in this render",
+     "Its evaluation row succeeded; this re-render fails at lift. Single episodes vary.",
+     "ladder_v1/parm6_tf3/generated_zero_flowjfft10k_rzgendag2noqd.summary.json"),
+    ("2026-09-25_ladder_generated_panda_pg2_s3000013_flowjf20k_gendag2noqd_cpu_success.mp4", "learned",
+     "R2 generated · learned:ladder_flow_jointfix final → system 0 gendag2_noqd · panda_pg2 · seed 3000013 · SUCCESS",
+     "Best panda recipe (6/30). Re-rendering 4 of its evaluation-success seeds reproduced 1 success; the others failed at grasp, lift or transport.",
+     "ladder_v1/panda_pg2/generated_zero_ladder_flow_jointfix_snap_final_s20000_rzgendag2noqd.summary.json"),
+    ("2026-09-25_ladder_generated_panda_pg2_s3000009_flowjf20k_gendag2noqd_cpu_failure-lift.mp4", "learned",
+     "R2 generated · same recipe · panda_pg2 · seed 3000009 · failure (lift) in this render",
+     "Its evaluation row succeeded.", "ladder_v1/panda_pg2/generated_zero_ladder_flow_jointfix_snap_final_s20000_rzgendag2noqd.summary.json"),
+    ("2026-09-25_r2triptych_panda_pg2_s3000000_teacher_bc-direct1701_u12000_generated-flowjf20k_gendag2noqd_cpu.mp4", "learned",
+     "same scene · teacher | plain BC u12000 | R2 (flow final → gendag2_noqd) · panda_pg2 · seed 3000000 · CPU render",
+     "This render: teacher success; BC (12k-update checkpoint) fails at grasp; R2 carries the cube and fails at place.",
+     "artifacts/runs/demo_video/r2_panda_pg2_3000000/INDEX.md"),
     ("2026-09-25_ladder_generated_parm6_tf3_s3000012_flowjf20k_gendag1noqd_cpu_success.mp4", "learned",
      "R2 generated · learned:ladder_flow_jointfix final → system 0 gendag1_noqd · parm6_tf3 · seed 3000012 · SUCCESS",
      "The deployable latent route (system i's own packets, no teacher, no BC in the loop) completes pick-and-place. One of 9/30 "
@@ -296,16 +320,6 @@ R2_VIDEOS = [
      "Seed 3000038 is the ONLY R2 success in the evaluation (1/30). In this re-render the R2 panel fails at grasp: the "
      "first deployable-route success does not reproduce on demand (flow sampling noise), so treat it as a single event.",
      "ladder_v1/parm6_tf3/generated_zero_flowjf_s20000_rzbcdag2.summary.json"),
-    ("2026-09-25_r2triptych_panda_pg2_s3000029_teacher_bc-direct1701_u12000_generated-flowjf_s4000.mp4", "learned",
-     "same scene · teacher | plain BC | R2 generated (flow_jointfix@4000) · panda_pg2 · seed 3000029",
-     "Right panel: the deployable latent route, system i's own packet → system 0. This render: teacher success, BC success, "
-     "R2 failure at grasp. (The evaluation row of this seed got furthest of all 30, failing only at place.)",
-     "artifacts/runs/demo_video/r2_panda_pg2_3000029/INDEX.md"),
-    ("2026-09-25_r2triptych_panda_pg2_s3000008_teacher_bc-direct1701_u12000_generated-flowjf_s4000.mp4", "learned",
-     "same scene · teacher | plain BC | R2 generated (flow_jointfix@4000) · panda_pg2 · seed 3000008",
-     "This render: teacher success, BC success, R2 failure at approach (the evaluation row reached the cube, 5 mm, and "
-     "failed at grasp).",
-     "artifacts/runs/demo_video/r2_panda_pg2_3000008/INDEX.md"),
 ]
 
 
