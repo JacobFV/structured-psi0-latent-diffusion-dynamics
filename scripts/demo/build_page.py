@@ -460,7 +460,7 @@ seed sets are shown for a like-for-like comparison. No teacher, oracle or BC at 
 (sha256 f60cde41…). The route is <b>distilled through a learned stateless expert</b>: system-0 DAgger labels and flow targets come from the learned BC policy (trained on
 the same scripted-teacher demonstrations), not from the scripted teacher; the extra training seeds (3.2M–4.1M) are disjoint from every evaluation set (D-080). What made it work, all within the architecture: (1) removing a joint-velocity shortcut in system 0; (2) replacing the stale teacher
 FSM with the stateless BC expert; (3) system-0 DAgger rounds, including states visited with system i's own packets, plus z-noise; (4) generator DAgger.
-Not solved: panda grasp/lift and parm6 place. The ordering is R2 &lt; BC. Binding-v4 sem/nosem bundles are not competent with the same recipe yet, so no
+Not solved: panda grasp/lift and parm6 place. The ordering is R2 &lt; BC. Post-freeze flow variants (generator-DAgger round 3, pfA–pfD) did not beat the freeze (D-081); their rows are in the collapsed table below. Binding-v4 sem/nosem bundles are not competent with the same recipe yet, so no
 deployable sem-vs-nosem comparison exists on the arm.
 {src('research/tracks/ladder.md (SPRINT BEST ROUTE FINAL)', 'ladder_v1/<robot>/generated_zero_<recipe>[_s|_fresh<seed>].summary.json', 'D-070', 'D-072', 'D-080')}</p>
 <div class="grid wide">{"".join(video_card(v) for v in R2_VIDEOS[:2] if (VID / v[0]).exists())}</div>"""
