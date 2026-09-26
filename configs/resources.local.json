@@ -3,49 +3,49 @@
  "policy_id": "shared-host-half-free-v1",
  "host": {
   "measurement": {
-   "measured_utc": 1790369280.4406917,
+   "measured_utc": 1790430149.3780692,
    "meminfo": {
     "MemTotal": 130596077568,
-    "MemAvailable": 49762615296,
+    "MemAvailable": 47147663360,
     "SwapTotal": 17179865088,
-    "SwapFree": 2772992
+    "SwapFree": 311296
    },
    "idle_cpu": {
     "allowed_cpu_count": 20,
     "samples": [
-     18.973107568488807,
-     19.086052360338073,
-     18.94055208087608,
-     18.71563182848897,
-     19.044318431843184,
-     19.15830995954226,
-     19.104014095287077,
-     18.737117099465046,
-     19.11151990709275,
-     19.058763631465187
+     18.85360359031906,
+     18.062287932980126,
+     18.438804490718987,
+     17.536804458901603,
+     17.14883601425575,
+     17.478678250951543,
+     16.229341518861546,
+     16.40211750090493,
+     17.18557906077269,
+     17.666012818813467
     ],
-    "idle_cores_min": 18.71563182848897,
-    "idle_cores_mean": 18.992938696288743
+    "idle_cores_min": 16.229341518861546,
+    "idle_cores_mean": 17.50020656374797
    },
    "disk": {
     "path": "/home/brandonin/work/relational-robot-policy",
     "total_bytes": 3937360351232,
-    "free_bytes": 405778284544,
-    "used_bytes": 3331541975040
+    "free_bytes": 336040648704,
+    "used_bytes": 3401279610880
    },
    "budget": {
     "role": "host",
-    "memory_gib": 34.18233947753906,
-    "cpu_cores": 14.972505462791176,
-    "new_disk_gib": 77.91047668457031,
+    "memory_gib": 31.74697570800781,
+    "cpu_cores": 12.983473215089237,
+    "new_disk_gib": 156.48112106323242,
     "memory_reserve_gib": 12.162707519531251,
-    "disk_reserve_gib": 300.0,
+    "disk_reserve_gib": 100.0,
     "host_gpu_enabled": false,
     "basis": {
      "total_ram_gib": 121.6270751953125,
-     "available_ram_gib": 46.34504699707031,
-     "free_cpu_cores": 18.71563182848897,
-     "free_disk_gib": 377.9104766845703,
+     "available_ram_gib": 43.90968322753906,
+     "free_cpu_cores": 16.229341518861546,
+     "free_disk_gib": 312.96224212646484,
      "total_disk_gib": 3666.952579498291,
      "policy": {
       "free_cpu_fraction": 0.8,
@@ -53,25 +53,25 @@
       "free_disk_fraction": 0.5,
       "memory_reserve_gib": 8.0,
       "memory_reserve_total_fraction": 0.1,
-      "disk_reserve_gib": 300.0,
+      "disk_reserve_gib": 100.0,
       "disk_reserve_total_fraction": 0.0
      }
     },
-    "memory_bytes": 36703007539
+    "memory_bytes": 34088055603
    }
   },
   "enforced": {
-   "cpu_cores": 14.97,
-   "memory_bytes": 36703007539,
+   "cpu_cores": 12.98,
+   "memory_bytes": 34088055603,
    "gpu_slots": 3,
-   "disk_bytes": 83655737344,
+   "disk_bytes": 168020324352,
    "host_gpu": "authorized_by_user_D027_in_process_cap_plus_watchdog"
   },
   "lease_expiry_s": 120,
   "gpu_authorized": true,
   "memory_reserve_bytes": 13059607756,
-  "disk_reserve_bytes": 322122547200,
-  "startup_new_disk_bytes": 83655737344
+  "disk_reserve_bytes": 107374182400,
+  "startup_new_disk_bytes": 168020324352
  },
  "peer": {
   "measurement": {
