@@ -3,11 +3,14 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
-## SPRINT BEST ROUTE (live; updated 2026-09-25 23:35 PDT by sprint_latent)
+## SPRINT BEST ROUTE (live; updated 2026-09-25 23:30 PDT by sprint_latent)
 **Best DEPLOYABLE route (R2: system i flow -> system 0, no teacher, no oracle at run time): learned:ladder_flow_jointfix
-(final, 20k) -> system 0 `gendag1noqd`: parm6_tf3 9/30 [0.17,0.48] on the dev seeds and 7/30 [0.12,0.41] on 30 FRESH
-seeds (3,000,100+) -> pooled 16/60 = 0.27 [0.17,0.39]; panda_pg2 0/30 and 2/30 fresh -> 2/60 = 0.03 [0.01,0.11]
-(panda fails at GRASP 25-26/30).**
+(final, 20k) -> system 0 `gendag2noqd` (round 2 of generated-packet DAgger): panda_pg2 6/30 [0.10,0.37], parm6_tf3
+12/30 [0.25,0.58] on the matched dev seeds** (fresh-seed confirmation running). Round 1 (`gendag1noqd`): panda 0/30 +
+2/30 fresh, parm6 9/30 + 7/30 fresh (pooled 16/60); with the fine-tuned flow (`ladder_flow_jointfix_ft`, +10k) parm6 11/30.
+System 0 checkpoint: `artifacts/runs/ladder_rz_jointfix_gendag2_noqd/representation.pt` (from gendag1noqd; DAgger buffers
+bc1-bc3 + gen1 + gen2 (gen2 = R2 rollouts of flow final + gendag1noqd, seeds 3,700,000+); same recipe; config
+`configs/ladder/rz_jointfix_gendag2_noqd.json`). Round 3 (gen3, collected with the fine-tuned flow) is being collected.
 Best oracle-diagnostic route (R1 stateless: packet = E(chunk of BC learned:direct1701_u12000 at the current state)):
 system 0 `gendag1qdd`: panda 18/30 [0.42,0.75], parm6 27/30 [0.74,0.97] (BC itself: 25/30, 27/30) -> with a valid
 packet, system 0 is now close to BC-level on parm6. The remaining deployable gap is the GENERATOR's packet (grasp on panda,
@@ -67,6 +70,8 @@ collection on 13 bodies (jfbcdag1) most failures are transport/place; next check
 | same | jfbcdag3 (BC-DAgger round 3: bc1-bc4) | 21/30 [0.52,0.83] | 22/30 [0.56,0.86] | place 3, lift 2, grasp 2 / transport 5, place 3 | 0.018 / 0.017 |
 | same | **jfbcdag2** (DAgger round 2: from jfbcdag1long, bc1+bc2, 16k) | **11/30 [0.22,0.54]** | **19/30 [0.46,0.78]** | place 4, grasp 4, approach 2, lift 5, transport 4 / place 6, transport 5 | 0.016 / 0.015 |
 | same | jfbig@16.3k (4 layers x 256, z standardized, fresh, bc1+bc2; interrupted at 16.3k/32k by host stop) | 4/30 [0.05,0.30] | 20/30 [0.49,0.81] | lift 9, transport 9, grasp 5, place 2 / place 7, transport 2 | 0.015 / 0.012 |
+| same | bindv4sem_bcdag2noqd (binding v4 sem E; recipe, BC-DAgger r1+r2, 8k) | 0/30 | 1/30 | approach 26 / transport 12, approach 7, grasp 5 | 0.013 / 0.016 |
+| same | bindv4nosem_bcdag2noqd (binding v4 nosem E; same) | 0/30 | 1/30 | approach 29 / approach 16, grasp 6, place 4 | 0.011 / 0.010 |
 | same | bindv4sem_bcdag1 (binding v4 sem E; system 0 + 1 round BC-expert DAgger, 8k) | 0/30 | running | grasp 9, approach 19, lift 2 / | 0.031 / 0.027 |
 | same | bindv4nosem_bcdag1 (binding v4 nosem E; same) | 0/30 | running | approach 27, grasp 2, lift 1 / | 0.015 / 0.014 |
 | same | jfnoqd (jointfix, no joint-velocity input, pack only 8k) | 0/30 | 5/30 [0.07,0.34] | grasp 14, approach 8, lift 5 / transport 13, approach 7, lift 4 | 0.011 / 0.013 |
@@ -82,6 +87,8 @@ collection on 13 bodies (jfbcdag1) most failures are transport/place; next check
 | R2 @20000 (final) | jointfix | 0/30 | 0/30 | approach 24, lift 5, grasp 1 / grasp 17, approach 11 | 0.012 / 0.014 |
 | R2 @16000 | jfbcdag1long | 0/30 | 0/30 | grasp 21, approach 8, lift 1 / grasp 22, others 8 | 0.016 / 0.014 |
 | R2 learned:ladder_flow_jointfix@20000 (final) | **jfbcdag2** | 0/30 [0,0.11] | **1/30 [0.01,0.17]** (first deployable-route success) | grasp 22, lift 4, approach 4 / grasp 20, transport 3, lift 2, approach 2, place 2 | 0.017 / 0.014 |
+| **R2 @20000** | **gendag2noqd** (round 2 of generated-packet DAgger) | **6/30 [0.10,0.37]** | **12/30 [0.25,0.58]** | grasp 12, lift 9, transport 2, place 1 / place 6, approach 5, transport 5, grasp 1, lift 1 | 0.011 / 0.012 |
+| R2 flow_jointfix_ft (+10k fine-tune) | gendag1noqd | 0/30 | 11/30 [0.22,0.54] | grasp 23 / place 10, approach 3, lift 3, transport 3 | 0.010 / 0.011 |
 | R2 @20000 FRESH seeds 3,000,100+ | gendag1noqd | 2/30 [0.02,0.21] | 7/30 [0.12,0.41] | grasp 25 / transport 9, place 8, approach 3, lift 2, grasp 1 | 0.011 / 0.011 |
 | R2 @20000 | gendag1qdd (same recipe, qd dropout 0.5 instead of removal) | 0/30 | 7/30 [0.12,0.41] | grasp 25, approach 5 / place 9, approach 7, lift 3, transport 3 | 0.011 / 0.011 |
 | R2 @20000 | gendag1 (same recipe, qd kept) | 1/30 [0.01,0.17] | 6/30 [0.10,0.37] | grasp 25, approach 4 / place 13, transport 5 | 0.010 / 0.010 |
