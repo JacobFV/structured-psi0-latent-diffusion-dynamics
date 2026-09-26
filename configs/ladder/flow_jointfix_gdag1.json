@@ -22,7 +22,7 @@
  "normalize_target": true,
  "snapshot_every": 1000,
  "packet_tau_min": 0.6,
- "init_from": "artifacts/runs/ladder_flow_jointfix_ft/policy.pt",
+ "init_from": "artifacts/runs/ladder_flow_jointfix/snap_final_s20000.pt",
  "gen_dagger": [
   "artifacts/runs/ladder_dagger_gdag1/panda_pg2.npz.genctx.pkl",
   "artifacts/runs/ladder_dagger_gdag1/parm5_pg2.npz.genctx.pkl",
