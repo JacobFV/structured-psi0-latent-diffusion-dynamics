@@ -125,6 +125,26 @@ VIDEOS = [
      "dual-arm handover · panda gives, UR5e receives · success", "Two-assembly task with take / offer / receive / release events.",
      "artifacts/video/INDEX.md"),
 ]
+BC_VIDEOS = [
+    ("2026-09-25_ladder_learned_panda_pg2_s3000000_direct1701_u12000_success.mp4", "bc",
+     "plain BC · direct1701_u12000 · panda_pg2 · seed 3000000 · success",
+     "Direct-action flow policy (B-1 fixed), chunk every 8 ticks, same tracker and scenes as the ladder.",
+     "artifacts/runs/baselines_bc_ladder/panda_pg2/learned_direct1701_u12000.summary.json"),
+    ("2026-09-25_ladder_learned_panda_pg2_s3000013_direct1701_u12000_success.mp4", "bc",
+     "plain BC · direct1701_u12000 · panda_pg2 · seed 3000013 · success in this render",
+     "The evaluation row of this seed FAILED (grasp); this GPU re-render succeeds. Flow sampling noise and GPU/CPU "
+     "numerics make single episodes vary; the table's rates are the evidence, not the clips.",
+     "artifacts/runs/baselines_bc_ladder/panda_pg2/learned_direct1701_u12000.summary.json"),
+    ("2026-09-25_ladder_learned_parm6_tf3_s3000003_direct1701_u12000_failure-lift.mp4", "bc",
+     "plain BC · direct1701_u12000 · parm6_tf3 · seed 3000003 · FAILURE (lift) in this render",
+     "Same checkpoint on the 3-finger body. The evaluation row of this seed succeeded; this re-render fails at lift "
+     "(run-to-run variance, see previous clip).",
+     "artifacts/runs/baselines_bc_ladder/parm6_tf3/learned_direct1701_u12000.summary.json"),
+    ("2026-09-25_ladder_learned_panda_pg2_s3000001_codec1701_u13152_success.mp4", "bc",
+     "plain BC · action-only codec codec1701_u13152 · panda_pg2 · seed 3000001 · success",
+     "Action-only codec baseline (flow on a 4-d action codec latent), same route.",
+     "artifacts/runs/baselines_bc_ladder/panda_pg2/learned_codec1701_u13152.summary.json"),
+]
 LADDER_VIDEOS = [
     ("2026-09-25_ladder_oracle_panda_pg2_s3000018_jfdag1_success.mp4", "oracle",
      "R1 oracle · jointfix + DAgger-1 system 0 · seed 3000018 · SUCCESS (the only one of 30)",
@@ -156,9 +176,11 @@ LADDER_VIDEOS = [
 
 def video_card(v) -> str:
     f, kind, title, cap, s = v
-    lab = {"teacher": "scripted_teacher", "oracle": "oracle diagnostic", "learned": "learned"}[kind]
+    lab = {"teacher": "scripted_teacher", "oracle": "oracle diagnostic", "learned": "learned", "bc": "learned"}[kind]
     if kind == "learned":
         lab = "learned:flow_latent_sem_v2@22k"
+    if kind == "bc":
+        lab = "learned:" + f.split("_s30000")[1].split("_", 1)[1].rsplit("_", 1)[0]
     exists = (VID / f).exists()
     size = f"{(VID / f).stat().st_size / 1e6:.2f} MB" if exists else "missing"
     body = (f'<video controls muted loop playsinline preload="metadata" src="video/{esc(f)}"></video>' if exists
@@ -319,7 +341,7 @@ def sec_matrix():
          badge("none")],
         ["latent_nosem (control)", badge("ok"), "not evaluated after the fix", "binding v4 nosem " + badge("run"),
          "—", badge("none")],
-        ["plain BC with fix (direct actions)", badge("ok"), "n/a", "training " + badge("run") + " (see §6)", "n/a", badge("none")],
+        ["plain BC with fix (direct / codec)", badge("ok"), "n/a", "<b>25/30, 27/30</b> (direct); <b>28/30, 25/30</b> (codec) on panda / parm6, mid-training " + src("artifacts/runs/baselines_bc_ladder/"), "n/a", badge("none")],
         ["binding (object pairs)", badge("ok"), "v1 z does not carry the binding: focus_follows 0.0 " + src("binding_v1_reeval/sem_cf_probe_bindcf.json"),
          "binding v4 chains " + badge("run"), "not shown", badge("none")],
         ["dual-arm / assignment", badge("ok"), "teacher only", badge("none"), "pairs ready, teacher does both " + src("D-043"), badge("none")],
@@ -329,8 +351,9 @@ def sec_matrix():
     ]
     return f"""
 <section id="matrix"><h2>3 · Evidence matrix</h2>
-<p class="lede"><b>Headline: no learned policy is competent in closed loop yet, and causal packet semantics are not shown.</b>
-The best oracle-route result is 1 success in 30 seeds; the generated (deployable) route has no success after the B-1 fix yet.</p>
+<p class="lede"><b>Headline: the latent-packet route is not competent in closed loop yet, and causal packet semantics are not shown.</b>
+Plain BC with the same data and fix is competent on the same scenes (§6). The best latent oracle-route result is 1 success
+in 30 seeds; the generated (deployable) latent route has no success after the B-1 fix yet.</p>
 {table(["component", "implementation", "oracle-packet behaviour (diagnostic)", "generated-packet behaviour (deployable)", "semantic interventions", "held-out bodies"], rows, "matrix")}
 <p>Full statement with every raw path: <code>research/reports/evidence_matrix.md</code>. Held-out bodies (xarm7_pg2, xarm7_tf3, panda_tf3) stay sealed until a source controller is competent.</p>
 </section>"""
@@ -431,16 +454,42 @@ def sec_bc():
     prog = ""
     if tl.exists():
         last = json.loads(tl.read_text().splitlines()[-1])
-        prog = (f'Training progress at build time: update {last["step"]:,} (epoch {last["epoch"]}), flow loss '
-                f'{last["flow"]:.3f}. {src("host: artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/source/train_log.jsonl")}')
+        prog = (f'Direct-action source training at build time: update {last["step"]:,} of ~26.3k. '
+                f'{src("host: artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/source/train_log.jsonl")}')
+    rows = []
+    for tag, what in (("direct1701_u12000", "direct-action BC, 12k of ~26.3k updates"),
+                      ("codec1701_u13152", "action-only codec BC, 13.2k updates")):
+        cells = []
+        for r in ("panda_pg2", "parm6_tf3"):
+            p = f"artifacts/runs/baselines_bc_ladder/{r}/learned_{tag}.summary.json"
+            if have(p):
+                d = J(p)
+                st = ", ".join(f"{k} {v}" for k, v in d.get("failed_stage", {}).items() if k != "success")
+                cells += [frac(d["success"], d["n"]), esc(st or "—")]
+            else:
+                cells += ["—", "—"]
+        rows.append([f'<span class="badge b-bc">learned:{tag}</span><br><span class="muted" style="font-size:.8em">{what}</span>'] + cells)
+    for r_, lab, kind in (("teacher_shadow_zero", "R0 scripted teacher", "teacher"),
+                          ("oracle_zero_jfdag1_reanchor", "R1 oracle, best latent (jfdag1)", "oracle")):
+        cells = []
+        for r in ("panda_pg2", "parm6_tf3"):
+            d = J(f"ladder_v1/{r}/{r_}.summary.json")
+            cells += [frac(d["success"], d["n"]), esc(", ".join(f"{k} {v}" for k, v in d["failed_stage"].items() if k != "success") or "—")]
+        rows.append([f'<span class="badge b-{kind}">{lab}</span>'] + cells)
+    t = table(["controller", "panda_pg2", "failures (stage)", "parm6_tf3", "failures (stage)"], rows)
+    vids = "".join(video_card(v) for v in BC_VIDEOS)
     return f"""
-<section id="bc"><h2>6 · Positive control: plain behaviour cloning with the fix {badge('run')}</h2>
-<p>If a plain direct-action flow policy trained on the same data with the B-1 fix succeeds on the same matched seeds, the data
-and the evaluation are sound and the remaining gap is in the packet route. If it also fails, the problem is shared
-(data, horizon, closed-loop compounding). Same scenes, same tracker, same evaluator; labelled
-<span class="badge b-bc">learned:baseline_direct_action seed1701 (B-1 fixed)</span>. {src('D-046', 'D-047')}</p>
-<p>{prog}</p>
-<p id="sprint-bc"><i>Result pending (sprint_bc agent).</i></p>
+<section id="bc"><h2>6 · Positive control: plain behaviour cloning with the fix {badge('ok', 'competent')}</h2>
+<p class="lede"><b>Plain behaviour cloning with deployment-consistent input (B-1 fixed) is a competent controller on the
+ladder's matched scenes, already at mid-training.</b> Same data, same seed (1701), same 30 dev seeds, same tracker and
+privileged evaluator, prev-action input 0 as deployed. So the latent route's closed-loop failure comes from the latent
+architecture/training (Stage A + system 0), <i>not</i> from the data, the demonstrations or the simulator setup.</p>
+{t}
+<p>Wilson 95% in brackets. BC failures are late (grasp / lift / transport / place timeouts), none at approach.
+{src('artifacts/runs/baselines_bc_ladder/<robot>/learned_<tag>.summary.json', 'research/tracks/baselines.md (SPRINT BC RESULT)')}
+Caveat: panda_pg2 and parm6_tf3 are source-<i>training</i> bodies (as for the ladder); held-out bodies are not evaluated.
+{prog}</p>
+<div class="grid">{vids}</div>
 </section>"""
 
 
@@ -450,7 +499,7 @@ def sec_next():
 <ol>
 <li><b>Make one route competent on source bodies.</b> System 0 must track the packet's waypoint geometry, not head for the
 object: training on learner-visited states with oracle packets (DAgger on the jointly trained model), a packet target it
-can servo to, and the BC positive control on the same seeds.</li>
+can servo to. The bar is the competent plain-BC control on the same seeds (§6).</li>
 <li><b>Generated route on the fixed bundle</b>: flows trained with <code>zero_prev_action</code> on the jointly trained
 and binding-v4 encoders, then R2 on matched seeds.</li>
 <li><b>Semantic interventions on a competent route</b>: rebind_obj, goal_shift, manipulator assignment (dual-arm pairs),
@@ -533,8 +582,9 @@ def build(updates_html: str = ""):
 <a href="#semantic">semantic edits</a><a href="#bc">BC control</a><a href="#next">next</a><a href="#sources">sources</a></nav>
 </header>
 <p class="lede"><b>Bottom line.</b> The scripted teacher solves every task and edit shown here on single-arm, dual-arm and legged
-bodies, and the pipeline runs end to end within the latency budget. <b>No learned policy is competent in closed loop yet</b>:
-the best oracle-diagnostic route succeeds 1 time in 30, and causal packet semantics are not shown. We found and fixed a
+bodies, and the pipeline runs end to end within the latency budget. <b>Plain behaviour cloning on the same data is competent</b> (25–28 of 30 on matched scenes, mid-training), so data and
+evaluation are sound. <b>The latent-packet route is not competent yet</b>: its best oracle-diagnostic variant succeeds 1 time
+in 30, and causal packet semantics are not shown. We found and fixed a
 train/deploy mismatch (bug B-1) and localized the remaining failure to system 0 heading for the object instead of the
 packet's waypoint.</p>
 {updates_html}

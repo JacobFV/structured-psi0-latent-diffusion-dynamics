@@ -38,3 +38,7 @@ Rendered on peer GPU EGL into `artifacts/runs/demo_video/` (NOT the shared artif
   `SPRINT BC RESULT` (baselines.md) on origin/track/* and the worktrees; pull their raw files, add rows/clips, rebuild,
   commit, merge docs/demo + videos to main, tell the lead.
 - R2 generated clip on the best bundle once a fixed flow exists.
+- 19:30 refresh 1: sprint_bc result folded in (plain BC with the fix 25/30, 27/30 direct; 28/30, 25/30 codec; raw
+  `artifacts/runs/baselines_bc_ladder/`). BC clips via `scripts/demo/render_bc.sh` (lease 1790388739_b6c0b1): re-renders
+  differ from eval rows for 2 of 4 seeds (s3000013 panda eval fail/render success; s3000003 parm6 eval success/render
+  fail-lift); captions say so. Bottom line, matrix and evidence_matrix.md headline updated. Merged to main.
