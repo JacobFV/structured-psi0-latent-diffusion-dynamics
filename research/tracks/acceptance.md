@@ -12,13 +12,34 @@ position), panda_pg2, dev seeds; 95% bootstrap CIs over scenes; all numbers from
 | ORACLE DIAGNOSTIC E(binding_paired_sem_v4)+teacher demo, paired | 30 | 8/30 / 5/30 | +0.037 [-0.001, +0.077] | no transport / none | 6/18 (control 4/18); vs orthogonal +0.001 m [-0.072, +0.070] |
 | ORACLE DIAGNOSTIC E(binding_paired_nosem_v4)+teacher demo, paired | 30 | 4/30 / 7/30 | +0.052 [+0.020, +0.082] | no transport / none | 2/18 (control 4/18); vs orthogonal +0.006 [-0.025, +0.037] |
 | SPRINT BEST ROUTE: ORACLE DIAGNOSTIC E(ladder_rz_jointfix_bcdag2)+stateless BC demo -> jfbcdag2, canonical, rebind_desc | 48 | 4/48 first approach new (control 0/48); old cube abandoned 38/48 | +0.163 [+0.130, +0.200] (by abandoning, not redirecting) | **16/48 at new goal** (control 1/48, orthogonal 0/48) / +0.104 [+0.081, +0.127] | n/a |
-| generated route (v4 flow) | pending: flow_binding_paired_nosem_v4 started 22:07 | | | | |
-Reading: the metrics and edits are valid (teacher ~100%). A valid GOAL edit redirects placement through the best oracle
-latent route (16/48 vs 0/48 under matched controls) and through BC (24/32). The supplied BINDING is not followed by any
-learned route: BC ignores it (0/32), and the v4 oracle routes show at most a small initial-motion bias, with sem NOT
-better than nosem. The best route abandons the old object but does not go to the new one. The arm-assignment edit has
-no detectable effect on v4 (the arms rarely reach the bar). The teacher-demo oracle (b1fix) follows rebinds only
-because its demo moves toward the new cube (weak evidence).
+| **DEPLOYABLE generated route**: learned:ladder_flow_jointfix/snap_final_s20000 -> system 0 ladder_rz_jointfix_gendag1_noqd, **parm6_tf3**, canonical, rebind_desc | 41 | **28/41** / 3/41 (first approach new 31/41 vs 0/41) | +0.211 [+0.175, +0.248] (beyond orthogonal +0.205 [+0.170, +0.240]; beyond noise replay +0.216 [+0.179, +0.253]) | **15/41 at new goal** (control 0/41, irrelevant 1/41, orthogonal 0/40, replay 0/40) / +0.104 [+0.077, +0.131] | n/a |
+**DEPLOYABLE-ROUTE RESULT (01:00, arm counterpart of legged D-071):** on the deployable latent route (system i flow
+-> packet -> system 0, no oracle, no BC anywhere at runtime), the packet generated from an EDITED public context
+causally redirects behaviour on parm6_tf3 (41 feasible dev seeds, noise-keyed pairs):
+- goal_shift: the cube ends at the NEW goal in 15/41 episodes vs 0-1/41 under all three matched controls; end-position
+  preference beyond the irrelevant edit +10.4 cm [7.7, 13.1], beyond the orthogonal edit +9.4 cm [6.5, 12.1], beyond a
+  flow-noise replay +9.4 cm [6.5, 12.2]. Old-zone successes drop 12/41 -> 0/41.
+- rebind_desc (only the task entity's descriptor + public binding changed): the arm first approaches the NEW cube in
+  31/41 (control 0/41) and first touches it in 28/41 (control 3/41); min-distance preference beyond the irrelevant edit
+  +21.1 cm [17.5, 24.8]. The new cube is lifted in only 5/41 and placed in the zone 1/41, so this is redirection of the
+  approach, not task completion.
+- Controls do not move behaviour: irrelevant edit +0.0 [-2.2, +2.3] cm goal effect, orthogonal +0.4 [-1.6, +2.5],
+  noise replay +0.4 [-2.2, +2.9]; control successes 12/41, 11/41, 15/40, 10/40.
+Honest reading: this is the first deployable-route evidence of PACKET-LEVEL CAUSAL CONTROL by task semantics (goal and
+binding) beyond matched controls. It is NOT a semantic-supervision claim: this bundle has no nosem counterpart yet, and
+a nosem flow could route the same information. The rebinding may act through the binding pointer or through the public
+predicate estimates that follow the binding (e.g. distance(gripper, cube)); both are part of the valid edited context.
+Contrast: the plain BC controller given the same edited context ignores the rebinding (0/32). One body (parm6_tf3);
+panda_pg2 is not competent on this route (D-063: 0/30).
+Raw: `artifacts/runs/acceptance_sprint_sem_gen_jf_parm6/shard{0..5}/semantic_rows_generated.jsonl`, summary
+`semantic_summary_generated.json` (host lease 1790402031_9d384e, shard 0 cut at 34 rows by the host watchdog, rc -10,
+seed 3000005 partial; peer leases 1790402041_2fa744 .. 1790402043_e55765).
+
+Reading of the other rows: the metrics and edits are valid (teacher ~100%). A valid GOAL edit redirects placement
+through every competent route: the deployable one above, the best oracle latent route (16/48 vs 0/48) and BC (24/32).
+The supplied BINDING is ignored by BC (0/32) and by the oracle routes whose demo does not follow it. The deployable
+flow does follow it at the approach level (above). v4 sem vs nosem (oracle rung) shows no semantic advantage: both
+system 0s barely reach objects. The arm-assignment edit has no detectable effect on v4.
 
 Branch `track/acceptance`, worktree `~/work/rrp-wt/acceptance`, peer dir `/dev/shm/rrp-brandonin/wt/acceptance`.
 Spec: research/corrections/controller-facing-semantic-latent.md; list: research/reports/latent_slice1_progress.md "Pending".
