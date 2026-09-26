@@ -76,3 +76,4 @@ Rendered on peer GPU EGL into `artifacts/runs/demo_video/` (NOT the shared artif
 - 23:03 BC final folded in: zero-shot sealed-target table (panda_tf3 78/85, xarm7 0/100), held-out 79/80, 2 BC final clips; matrix BC row + held-out column updated.
 - 23:25 bottom line, §3 headline and matrix made data-driven from raw (BEST per row); legged block renders RESEARCH RESTART live state until LEGGED RESEARCH RESULT exists; R2 gendag2_noqd 6/30 panda, 12/30 parm6.
 - 23:44 R2 best-recipe clips: CPU re-renders of eval-success seeds reproduce 3/5 (parm6, flow ft) and 1/4 (panda); captions state it; dropped the old flow@4000 triptychs.
+- 00:09 legged research block also shows the legged agent's labelled learned/oracle clips from artifacts/video/INDEX.md (go2 BC, R1 sem/nosem, packet edits halt/yaw, a fall).

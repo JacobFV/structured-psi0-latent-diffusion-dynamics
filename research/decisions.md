@@ -248,3 +248,11 @@ Legged, go2 (legged agent, research/tracks/legged_vlm.md RESEARCH RESTART table)
 
 ## D-068 2026-09-26 recipe round 3: deployable route 9/30 (panda), 17/30 (parm6); binding-v4 flows not yet competent
 R2 flow_jointfix_ft → system 0 gendag3_noqd (round 3 of: no qd, BC-expert DAgger with generated-packet states, z-noise), matched seeds (lead verified the summaries): panda_pg2 9/30, parm6_tf3 17/30. BC 30/30 on both. Binding v4 (paired-data bundles) at flow step 12k with a bcdag2_noqd system 0: sem 0/30 (panda), 0/30 (parm6); nosem 1/30 (parm6). They are a round behind the jointfix bundle (no generated-packet DAgger yet), so the sem-vs-nosem comparison on a deployable route is still unavailable.
+
+## D-069 2026-09-26 legged (go2): probe-guided packet edits causally halt and turn the robot; sem shows no advantage
+legged agent (research/tracks/legged_vlm.md row 4b; raw peer artifacts/runs/legged_edits/go2/r1_{sem,nosem}/effects.json; lead read the effect table). R1 stateless-oracle route (packet = E(BC chunk), ORACLE DIAGNOSTIC), go2, 20 dev seeds 10000–10019. Every packet from t=2 s is edited by a gradient step on z against the probe (sem: its joint probe; nosem: a post-hoc measurement probe). Effects are paired against the unedited run over t=2–5 s, with bootstrap 95% CIs:
+- halt: forward progress −1.24 m [−1.42, −1.03] (sem), −1.23 m [−1.28, −1.17] (nosem); random edits of matched norm 8–12 give −0.05 to −0.19 m
+- yaw +0.6: dyaw +0.18 [0.14, 0.24] (sem), +0.30 [0.25, 0.34] (nosem)
+- yaw −0.6: −0.16 [−0.20, −0.11] (sem), −0.16 [−0.18, −0.13] (nosem); random edits ≈ 0 (|dyaw| ≤ 0.03)
+- goal-mirror: null; per-leg contact edits: small or inconsistent
+Reading: system 0 causally reads the halt and turn directions of the received packet, beyond matched random edits. That is behaviour-level causal packet control on a competent route (R1 30/30 nosem, 25/30 sem). The edit is applied directly to z along probe directions, not to the context; it shows packet → behaviour causality, not that system i puts the right semantics into the packet from context. Semantic supervision shows no advantage: nosem's post-hoc probe directions work as well or better. Also: BC positive controls hexapod6 30/30, t1 humanoid 24/30 (teacher 30/30).
