@@ -1,0 +1,24 @@
+{
+ "source": "learned:legged_fixsem_flow_sem_go2_lv4/snap_s4000.pt",
+ "edit": "rand_norm:16",
+ "per_body": {
+  "go2": {
+   "n": 20,
+   "success": 0,
+   "fell": 0,
+   "stages": {
+    "drift_b": 15,
+    "drift_a": 5
+   },
+   "seeds": "10000-10019",
+   "mean_sim_time": 5.099999999999659,
+   "packet_probes": {
+    "subtask": 1.0,
+    "contact": 0.7984375,
+    "goal_err": 0.07659457273812914,
+    "disp_yaw_err": 0.024035450054243995,
+    "disp_xy_err": 0.043290939182499114
+   }
+  }
+ }
+}

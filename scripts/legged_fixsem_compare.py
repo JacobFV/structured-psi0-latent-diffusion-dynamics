@@ -39,6 +39,9 @@ for v, (ed, tag) in V.items():
         contact_dz=[c("contact_0_1", "mean_dz"), c("contact_0_0", "mean_dz")],
         random={k: dict(forward=c(f"rand_norm_{k}", "forward"), dyaw=c(f"rand_norm_{k}", "dyaw")) for k in (1, 2, 4, 8, 12)},
         zero_forward=c("zero", "forward"))
+    bg = J(E / f"r2_{ed}_snap_s4000_bigrand/effects.json").get("conditions", {})
+    for k in (16, 25):
+        out["z_edits"][v]["random"][k] = dict(forward=bg.get(f"rand_norm_{k}", {}).get("forward"), dyaw=bg.get(f"rand_norm_{k}", {}).get("dyaw"))
     nz = rows(E / f"r2_{ed}_snap_s4000/none.jsonl") or []
     zn = [pk["z_norm"] for r in nz for pk in r.get("packets", []) if "z_norm" in pk]
     out["z_edits"][v]["packet_z_norm_mean"] = round(sum(zn) / len(zn), 3) if zn else None
@@ -104,7 +107,7 @@ for lab, k in [("z: turn +0.6 Δyaw rad", "turn_pos_dyaw"), ("z: turn −0.6 Δy
 md.append("| z: edit norms |dz| turn+/turn−/halt/goal | " + " | ".join(
     "/".join(f(Z[v][k]) for k in ("turn_pos_dz", "turn_neg_dz", "halt_dz", "goal_mirror_dz")) for v in V) + " |")
 md.append("| unedited packet mean |z| | " + " | ".join(f(Z[v]["packet_z_norm_mean"]) for v in V) + " |")
-for kk in (4, 8, 12):
+for kk in (4, 8, 12, 16, 25):
     md.append(f"| z: random |dz| {kk} Δforward / Δyaw | " + " | ".join(
         f"{f(Z[v]['random'][kk]['forward'])} / {f(Z[v]['random'][kk]['dyaw'])}" for v in V) + " |")
 C = out["ctx_edits"]

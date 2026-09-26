@@ -17,7 +17,9 @@ Labels: learned:legged_fixsem_flow_sem_<body>_lv4/<ckpt> (DEPLOYABLE R2). nosem 
 | geometry, hexapod6 (peer CPU lease 1790437813_3a616a, rc=0) | completed | `artifacts/runs/legged_fixsem_diag/geom_hexapod6.json`: grad norm orig 405 / FIXED 7.3 / nosem 0.03; update scale 0.0042 / 0.19 / 1.00; σ 0.085 / 0.23 / 0.98; participation ratio 4.2 / 4.5 / **2.2**; KL/entry 3.3 / 2.1 / **0.025 (17 of 896 entries with KL > 0.1)**. On hexapod6 the NOSEM packet is the near-collapsed one; the sem packet was not low-dimensional relative to it. |
 | go2 evals (peer CPU lease 1790438373_b59162, `scripts/legged_fixsem_eval.sh go2 8`, rc=0) | completed | table `artifacts/runs/legged_fixsem_compare_go2.md` (built by `scripts/legged_fixsem_compare.py go2` from the raw rows) |
 | hexapod6 flow (peer GPU lease 1790436459_62d857, rc=0) | completed | peer store `artifacts/runs/legged_fixsem_flow_sem_hexapod6_lv4` |
-| hexapod6 evals (peer CPU lease 1790438939_c44f9b) | running | |
+| hexapod6 evals (peer CPU lease 1790438939_c44f9b, rc=0) | completed | `artifacts/runs/legged_fixsem_compare_hexapod6.md` |
+| extra random z controls at |dz| 16 and 25 for orig sem / fixed sem / nosem, both bodies (`scripts/legged_fixsem_bigrand.sh`, peer CPU lease 1790439528_ee550f, rc=0; the halt probe edits reach |dz| 12–25, above the original largest control 12) | completed | `artifacts/runs/legged_edits/<body>/r2_{sem,nosem,fixsem}_snap_s4000_bigrand/effects.json`; the unedited runs reproduce the original ones bit-exactly (max final-pose difference 0.0) |
+| hexapod6 clips (peer GPU lease 1790439551_c50780, rc=0) | completed | `artifacts/video/2026-09-26_fixsem_*hexapod6*` |
 | go2 clips (peer GPU lease 1790438985_946982, `scripts/legged_fixsem_videos.sh go2`, rc=0) | completed | `artifacts/video/2026-09-26_fixsem_*` (INDEX.md lines) |
 | Stage A + flow hexapod6 (PEER GPU lease 1790436459_62d857, lead's instruction; `BODIES=hexapod6`) | running | peer store `artifacts/runs/legged_fixsem_{rep,flow}_sem_hexapod6_lv4` |
 | geometry / clip scale, go2 (`scripts/legged_fixsem_geom.py`, host CPU lease 1790437095_f653d0, rc=0) | completed | `artifacts/runs/legged_fixsem_diag/geom_go2.json`: median Stage-A grad norm orig sem 466 / FIXED 10.7 / nosem 0.32; mean update scale 0.0036 / 0.18 / 0.94; posterior σ 0.057 / 0.107 / 0.62; participation ratio of μ 4.3 / 7.6 / 5.5; KL per entry 3.8 / 3.1 / 0.58 |
@@ -27,6 +29,97 @@ Resume: if the training lease died, rerun `bash scripts/legged_fixsem_train.sh` 
 trainers resume from rep_last/flow_last). Then copy each finished `legged_fixsem_{rep,flow}_sem_<body>_lv4` dir to the peer store
 (`/dev/shm/rrp-brandonin/repo/artifacts/runs/`), `scripts/peer_sync.sh push` with `RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/legged_vlm`,
 and run the eval script under a peer CPU lease; copy `artifacts/runs/legged_{ladder,edits,gate}/<body>/*fixsem*` back.
+
+
+### LEGGED FIXED-SEM RESULT (2026-09-26 ~09:45; legged_fixsem agent; every number from the raw files named)
+Same recipe/seed/data as the original sem runs except `probe_lv_min −4` in Stage A; same flow recipe; same eval scripts and seeds
+(R2 dev 10000–10029; edits on R2 flow snap_s4000, dev 10000–10019, edit from t=2 s, effect over t=2–5 s, paired vs the unedited run,
+bootstrap 95% CI). sem edits use the jointly trained probe; nosem uses its post-hoc probe (as before). Full tables:
+`artifacts/runs/legged_fixsem_compare_{go2,hexapod6}.{md,json}` (built by `scripts/legged_fixsem_compare.py` from
+`artifacts/runs/legged_ladder/<body>/r2_*` and `artifacts/runs/legged_edits/<body>/r2{,ctx}_{sem,fixsem,nosem}_snap_s4000{,_bigrand}/`).
+Sources: learned:legged_flow_sem_<body>_v2 (original sem), learned:legged_fixsem_flow_sem_<body>_lv4 (FIXED sem), learned:legged_flow_nosem_<body>_v2.
+
+**Stage A (held-out teacher rows; `geom_<body>.json`, `result.json`)** — original sem / FIXED sem / nosem:
+- go2:
+  - update scale: 0.0036 / 0.18 / 0.94
+  - realization MSE: 0.0193 / 0.0143 / 0.0125
+  - participation ratio: 4.3 / 7.6 / 5.5
+  - posterior σ: 0.057 / 0.107 / 0.62
+  - swing-contact probe accuracy: 0.42 / 0.94 / –
+- hexapod6:
+  - update scale: 0.0042 / 0.19 / 1.00
+  - realization MSE: 1.8e-4 / 9.7e-5 / 6.4e-5
+  - participation ratio: 4.2 / 4.5 / 2.2
+  - posterior σ: 0.085 / 0.23 / 0.98
+  - nosem has only 17 of 896 entries with KL > 0.1, so on hexapod6 the NOSEM packet is the near-collapsed one
+- Other probes are unchanged by the fix (goal err go2 0.017, hexapod6 0.0136).
+
+| go2 (deployable R2) | original sem | FIXED sem | nosem |
+|---|---|---|---|
+| R2 success snap_s4000 / final flow | 29/30 / 30/30 | **30/30 / 30/30** | 30/30 / 30/30 |
+| z turn +0.6 / −0.6 (Δyaw rad) | +0.22 / −0.17 | +0.26 [0.18, 0.35] / −0.26 [−0.36, −0.18] | +0.37 / −0.24 |
+| z halt (Δforward m; unedited 1.65 / 1.76 / 1.56 m) | −1.39 (|dz| 12) | −1.42 [−1.54, −1.30] (|dz| 15.6) | −1.19 (|dz| 9.1) |
+| random |dz| 16 / 25 (Δforward m) | −0.13 / −0.33 | −0.03 / −0.05 | −0.23 / −0.57 |
+| z goal-readout mirror (toward-mirror lateral m) | +0.074 [0.042, 0.110] | +0.087 [0.031, 0.146] | +0.025 [0.011, 0.043] (|dz| 2.3) |
+| random |dz| 8, same metric | +0.018 | +0.006 | +0.002 |
+| z leg-0 stance / swing (Δcontact) | −0.002 / −0.020 | +0.037 / −0.031 (|dz| 11 / 22) | +0.005 / +0.008 |
+| random |dz| 16 / 25 leg-0 Δcontact | +0.037 / +0.093 | +0.018 / +0.024 | – |
+| ctx mirror ACTIVE waypoint (toward-mirror m) | +0.36 [0.22, 0.50] | +0.49 [0.33, 0.66] | +0.44 [0.30, 0.59] |
+| ctx mirror INACTIVE (irrelevant control) | +0.04 [−0.02, 0.11] | **+0.10 [0.03, 0.19]** | +0.05 [−0.01, 0.11] |
+| ctx ACTIVE − INACTIVE, paired per seed | +0.31 [0.20, 0.45] | +0.39 [0.26, 0.53] | +0.39 [0.25, 0.54] |
+| ctx task view `halt` (Δforward m) | +0.14 [0.03, 0.24] | **−0.24 [−0.31, −0.17]** | +0.46 [0.35, 0.57] |
+| ctx mirror INACTIVE (Δforward m) | −0.07 | −0.08 | −0.05 |
+
+| hexapod6 (deployable R2) | original sem | FIXED sem | nosem |
+|---|---|---|---|
+| R2 success snap_s4000 / final flow | 30/30 / 30/30 | **30/30 / 30/30** | 30/30 / 30/30 |
+| z turn +0.6 / −0.6 (Δyaw rad) | +0.106 / −0.113 | +0.100 [0.090, 0.110] / −0.161 [−0.188, −0.135] (|dz| 10) | +0.034 / −0.072 |
+| random |dz| 16 / 25 (Δyaw rad; sem packets have a small +yaw bias under any random edit) | +0.026 / +0.047 | +0.032 / +0.048 | +0.000 / +0.004 |
+| z halt (Δforward m; unedited 0.48 / 0.64 / 0.62 m) | −0.19 (|dz| 17.5) | **−0.33 [−0.35, −0.31]** (|dz| 24.9) | +0.03 (no stop) |
+| random |dz| 16 / 25 (Δforward m) | −0.004 / −0.004 | −0.018 / −0.038 | −0.011 / −0.037 |
+| z goal-readout mirror (toward-mirror lateral m) | +0.011 [0.007, 0.015] | +0.023 [0.015, 0.033] | +0.001 (chance) |
+| random |dz| 8, same metric | +0.002 | +0.001 | +0.001 |
+| z leg-0 stance / swing (Δcontact) | 0.000 / −0.003 | +0.029 [0.016, 0.042] / −0.018 [−0.035, 0.002] (|dz| 29 / 22) | −0.003 / +0.010 |
+| random |dz| 25 leg-0 Δcontact | −0.002 | 0.000 | – |
+| ctx mirror ACTIVE waypoint (toward-mirror m) | +0.165 | +0.181 [0.138, 0.225] | +0.168 |
+| ctx mirror INACTIVE | +0.001 | −0.001 | −0.005 |
+| ctx ACTIVE − INACTIVE, paired | +0.164 [0.127, 0.205] | +0.182 [0.142, 0.225] | +0.173 [0.122, 0.229] |
+| ctx task view `halt` (Δforward m) | −0.104 [−0.152, −0.063] | **−0.336 [−0.375, −0.294]** | +0.008 [−0.049, 0.057] |
+
+**Answers**
+1. **Task success is still equal.** All three variants score 30/30 on both bodies, at ceiling. The only non-30 row was the original sem go2 snap_s4000 (29/30, one fall), and the fixed sem has no falls.
+2. **Task-context goal steering is still equal.**
+   - Paired active − inactive mirror: go2 0.31 / 0.39 / 0.39; hexapod6 0.16 / 0.18 / 0.17 m (original / fixed / nosem). The CIs overlap.
+   - Caveat: on go2 the fixed-sem irrelevant control is not null (+0.10 m [0.03, 0.19]). Context edits in general perturb the fixed-sem go2 route somewhat more.
+3. **The sem handle advantages were NOT an artefact of the handicapped packet. They survive the fix and get stronger on hexapod6.**
+   - hexapod6, fixed sem:
+     - probe halt stops 52% of the forward progress in the window (−0.33 m of 0.64). Original sem: 40% (−0.19 of 0.48). nosem: +0.03 (no stop).
+     - turn handle: +0.10 / −0.16 rad (nosem +0.03 / −0.07).
+     - goal-readout handle doubles: +0.023 m vs +0.011; nosem at chance.
+   - go2: fixed sem ≈ original sem. It is on par with nosem for turn and halt (nosem has the stronger +turn; all three halt), and keeps the only above-random goal-readout handle (+0.087 m vs random +0.006). The nosem goal edit is small (+0.025 m) but its |dz| is only 2.3.
+   - Every halt edit exceeds random edits of equal or larger norm (|dz| 16 and 25) by a wide margin.
+   - The collapse hypothesis is also refuted by geometry. On hexapod6 the original sem packet was not low-dimensional relative to nosem: PR 4.2 vs 2.2, and nosem is the collapsed one. The fix raised σ but barely changed the PR (4.5).
+4. **New in the fixed sem: a context-level `halt` handle.** Task view `halt` (packet regenerated by system i from the edited context; no z edit) slows the fixed-sem robot:
+   - hexapod6: −0.34 m, 52%
+   - go2: −0.24 m, 14%
+   - The irrelevant-context edit gives ≈0 on hexapod6 and −0.08 on go2.
+   - nosem does not slow: +0.01 and +0.46 m (go2 walks further). The original sem was in between: hexapod6 −0.10, go2 +0.14.
+   - Correction to the older notes: FINAL item 4 / the hexapod6 table said "task ctx: halt, no stop (+0.02)" for original sem. The raw `r2ctx_sem_snap_s4000/effects.json` gives −0.104 m [−0.152, −0.063], a small slowdown.
+   - Before, "task-view halt does not stop either packet (OOD)" was the verdict (D-071). With the fix, on hexapod6 it roughly halves progress in 3 s, and only for the semantic packet.
+5. **Per-leg contact is now decodable but only marginally steerable.**
+   - The fixed-sem go2 probe reads swing at 0.94 (was 0.42).
+   - Leg-0 edits move contact by only 2–4 pp. go2 stance +0.037 is within about 2x of the random |dz| 16 control (+0.018). go2 swing −0.031 (|dz| 22) has the opposite sign to random (+0.024) but also pushes the robot forward +0.13 m. hexapod6 stance +0.029 vs random 0.000.
+   - Not a usable handle.
+
+**Verdict.** With the recipe defect fixed, semantic supervision gives the same task success and the same context-to-goal steering as nosem on go2 and hexapod6, as on t1 (D-087). The earlier "sem has stronger probe handles" findings (hexapod6 halt/turn, goal readout on both bodies) REPLICATE with a correctly trained sem system 0, and on hexapod6 they are larger. So they are not an artefact of the starved/collapsed sem packet. The fixed sem additionally exposes a task-context `halt` that partially works (hexapod6 52%, go2 14%), which neither nosem nor, largely, the original sem has.
+
+What this does and does not show:
+- These are editability/diagnostic properties plus one context-level effect. None changes task success, which is at ceiling.
+- The nosem comparison uses post-hoc probes on a packet that carries far less (hexapod6 nosem KL 0.025/entry). "nosem has no halt direction" partly means "nosem's packet barely encodes it".
+- One training seed per variant (seed 0), as in the originals.
+- Edit norms differ by variant. The fixed-sem packets are larger (|z| 40–66 vs nosem 6–12), and random controls up to |dz| 25 bracket all probe edits.
+
+Clips: `artifacts/video/2026-09-26_fixsem_*` (INDEX.md): go2 fixed-sem success on 10017 (the original sem fall seed), and task-view `halt` fixed sem vs nosem on go2 and hexapod6 with unedited references.
 
 ## T1 DIAGNOSIS (t1_diag agent, 2026-09-26 05:00 →; worktree ~/work/rrp-wt/legged_vlm, peer dir wt/legged_vlm)
 Questions (D-084, D-080): (1) why the SEMANTIC packet falls on the t1 deployable route (sem 38/120 vs nosem 107/120, 4 training
