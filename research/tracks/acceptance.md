@@ -294,3 +294,14 @@ Reading: through the best (oracle) latent route, a valid GOAL edit in the packet
 redirect it. Its demo source, BC, ignores the binding (above), so the packet mixes a new binding with a demo toward the
 old cube. Caveat: a probe-orthogonal edit of the same norm also destroys success (2/48), so the goal effect is specific in
 direction but system 0 is not robust to packet perturbations.
+- Best-route videos (seed 3000009, where control succeeds and the goal edit places at the new goal):
+  `artifacts/video/2026-09-25_semantic_edit_{goal_shift,rebind_desc,orthogonal_matched}_oracle_bcexpert_ladder_rz_jointfix_bcdag2_panda_pg2_k3000009.mp4`
+  (the rebind_desc and orthogonal videos show FAILURES: the old cube is abandoned or dropped).
+
+### generated (DEPLOYABLE) route, lead request 22:45: learned:ladder_flow_jointfix/snap_final_s20000 -> system 0 ladder_rz_jointfix_gendag1_noqd, parm6_tf3
+`rrp latent semantic-edits --route generated --checkpoint artifacts/runs/ladder_flow_jointfix/snap_final_s20000.pt --representation artifacts/runs/ladder_rz_jointfix_gendag1_noqd/representation.pt --robots parm6_tf3 --episodes 10 --seed-start 30000{0,1,..,5}0 --max-steps 400 --conditions control,goal_shift,rebind_desc,irrelevant_distractor,orthogonal_matched,control_replay --out artifacts/runs/acceptance_sprint_sem_gen_jf_parm6/shard<i>`
+(new `--representation` override for the generated route = the system-0 bundle, same latent space; as in
+rrp.evaluation.ladder). 60 seeds, of which parm6_tf3 finds ~half feasible. Shard 0 on host (lease 1790402031_9d384e,
+1.5 GB, measured RSS 0.8 GB); shards 1-5 on the peer (host memory cap full; leases 1790402041_2fa744 .. 1790402043_e55765).
+Flow noise keyed per (seed, call); control_replay = other noise. Scenes use n_distractors = max(1, seed % 3) (the
+ladder uses seed % 3), so the control rate is not the same as D-063's 9/30.
