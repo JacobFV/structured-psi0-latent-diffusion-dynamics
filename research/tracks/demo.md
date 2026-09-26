@@ -42,3 +42,4 @@ Rendered on peer GPU EGL into `artifacts/runs/demo_video/` (NOT the shared artif
   `artifacts/runs/baselines_bc_ladder/`). BC clips via `scripts/demo/render_bc.sh` (lease 1790388739_b6c0b1): re-renders
   differ from eval rows for 2 of 4 seeds (s3000013 panda eval fail/render success; s3000003 parm6 eval success/render
   fail-lift); captions say so. Bottom line, matrix and evidence_matrix.md headline updated. Merged to main.
+- 19:40 held-out source-body BC (74/80 pooled, raw artifacts/runs/baselines_bc_ladder/heldout/) added; caption wrap fix.

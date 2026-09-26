@@ -477,6 +477,20 @@ def sec_bc():
             cells += [frac(d["success"], d["n"]), esc(", ".join(f"{k} {v}" for k, v in d["failed_stage"].items() if k != "success") or "—")]
         rows.append([f'<span class="badge b-{kind}">{lab}</span>'] + cells)
     t = table(["controller", "panda_pg2", "failures (stage)", "parm6_tf3", "failures (stage)"], rows)
+    ho = ""
+    hp = "artifacts/runs/baselines_bc_ladder/heldout/direct1701_u12000.summary.json"
+    if have(hp):
+        h = J(hp)
+        hr = [[f"<code>{esc(b)}</code>", frac(v["successes"], v["attempted"]), str(v["infeasible"]),
+               esc(", ".join(f"{k} {n}" for k, n in v["outcomes"].items() if k not in ("success", "infeasible")))]
+              for b, v in h.items() if not b.startswith("_")]
+        k = sum(v["successes"] for b, v in h.items() if not b.startswith("_"))
+        n = sum(v["attempted"] for b, v in h.items() if not b.startswith("_"))
+        hr.append(["<b>pooled</b>", frac(k, n), "", ""])
+        ho = (f"<h3>Held-out source bodies (not in BC training) {badge('bc', 'learned:direct1701_u12000')}</h3>"
+              + table(["body", "success / feasible", "infeasible", "failures"], hr)
+              + f"<p>Protocol source-competence harness, seeds 2,000,000+, 50 episodes per body. These are held-out "
+              f"<i>source</i> bodies, not the sealed target bodies (xarm7_pg2, xarm7_tf3, panda_tf3). {src(hp)}</p>")
     vids = "".join(video_card(v) for v in BC_VIDEOS)
     return f"""
 <section id="bc"><h2>6 · Positive control: plain behaviour cloning with the fix {badge('ok', 'competent')}</h2>
@@ -487,8 +501,8 @@ architecture/training (Stage A + system 0), <i>not</i> from the data, the demons
 {t}
 <p>Wilson 95% in brackets. BC failures are late (grasp / lift / transport / place timeouts), none at approach.
 {src('artifacts/runs/baselines_bc_ladder/<robot>/learned_<tag>.summary.json', 'research/tracks/baselines.md (SPRINT BC RESULT)')}
-Caveat: panda_pg2 and parm6_tf3 are source-<i>training</i> bodies (as for the ladder); held-out bodies are not evaluated.
-{prog}</p>
+panda_pg2 and parm6_tf3 are source-<i>training</i> bodies (as for the ladder). {prog}</p>
+{ho}
 <div class="grid">{vids}</div>
 </section>"""
 
@@ -548,7 +562,7 @@ table.ladder td:nth-child(n+3):nth-child(-n+6){white-space:nowrap}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin:1rem 0}
 figure.vid{margin:0;border:1px solid var(--line);border-radius:8px;background:var(--card);overflow:hidden}
 figure.vid video{width:100%;display:block;background:#000;aspect-ratio:4/3}
-figcaption{padding:.5rem .6rem;font-size:.84rem}.novid{padding:2rem;text-align:center;color:var(--mut)}
+figcaption{padding:.5rem .6rem;font-size:.84rem;overflow-wrap:anywhere}.novid{padding:2rem;text-align:center;color:var(--mut)}
 .update{border:1.5px solid var(--acc);border-radius:8px;padding:.6rem .9rem;background:var(--card)}
 #theme{float:right;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:.25rem .6rem;cursor:pointer}
 .legend{display:flex;flex-wrap:wrap;gap:.4rem;margin:.5rem 0}
