@@ -1,0 +1,66 @@
+{
+ "steps": 4000,
+ "wall_s": 572.3074028491974,
+ "interrupted": false,
+ "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5",
+ "realizer_compat_version": "rz-ls-80e5f25be2f0-wf22fe70f99d5-rd0e27f2e6572-none-v1",
+ "eval": {
+  "free_vs_oracle_mse": 0.32452312409877776,
+  "oracle": {
+   "visible": 0.9703137153227898,
+   "visible_pos": 0.9899244332493703,
+   "focused_on": 1.0,
+   "focused_on_pos": 1.0,
+   "held_by": 0.9968887736582837,
+   "held_by_pos": 0.9565217391304348,
+   "acting_on": 0.9835364272750843,
+   "acting_on_pos": 0.8380414312617702,
+   "rel_pos_err_m": 0.10875684398426613,
+   "observed_effect_err_m": 0.012032449106370226,
+   "desired_delta_err_m": 0.012032449106370226,
+   "subtask": 1.0
+  },
+  "one_step": {
+   "visible": 0.9731656728026964,
+   "visible_pos": 0.991109794043562,
+   "focused_on": 0.9998703655690951,
+   "focused_on_pos": 1.0,
+   "held_by": 0.9971480425200934,
+   "held_by_pos": 0.9565217391304348,
+   "acting_on": 0.9831475239823697,
+   "acting_on_pos": 0.8342749529190208,
+   "rel_pos_err_m": 0.109150757219682,
+   "observed_effect_err_m": 0.012032319604964153,
+   "desired_delta_err_m": 0.012032319604964153,
+   "subtask": 1.0
+  },
+  "free": {
+   "visible": 0.9766658024371273,
+   "visible_pos": 0.9925914950363017,
+   "focused_on": 0.9998703655690951,
+   "focused_on_pos": 1.0,
+   "held_by": 0.9975369458128078,
+   "held_by_pos": 0.9592391304347826,
+   "acting_on": 0.9847031371532279,
+   "acting_on_pos": 0.8549905838041432,
+   "rel_pos_err_m": 0.10588295966008181,
+   "observed_effect_err_m": 0.012111782069523964,
+   "desired_delta_err_m": 0.012111782069523964,
+   "subtask": 1.0
+  },
+  "free_shuffled": {
+   "visible": 0.8063261602281566,
+   "visible_pos": 0.8961327604089495,
+   "focused_on": 0.8759398496240601,
+   "focused_on_pos": 0.8400802944128472,
+   "held_by": 0.9166450609281825,
+   "held_by_pos": 0.11141304347826086,
+   "acting_on": 0.8921441534871661,
+   "acting_on_pos": 0.18267419962335216,
+   "rel_pos_err_m": 0.35214188100761906,
+   "observed_effect_err_m": 0.013684261083170203,
+   "desired_delta_err_m": 0.013684261083170203,
+   "subtask": 0.6390625
+  }
+ }
+}

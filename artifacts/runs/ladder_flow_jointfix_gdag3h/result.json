@@ -1,0 +1,8 @@
+{
+ "steps": 1500,
+ "wall_s": 433.0346236228943,
+ "interrupted": false,
+ "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5",
+ "realizer_compat_version": "rz-ls-80e5f25be2f0-wf22fe70f99d5-rd0e27f2e6572-none-v1",
+ "eval": null
+}

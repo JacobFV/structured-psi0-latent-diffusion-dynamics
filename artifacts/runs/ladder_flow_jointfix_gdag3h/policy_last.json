@@ -1,0 +1,9 @@
+{
+ "path": "artifacts/runs/ladder_flow_jointfix_gdag3h/policy_last.pt",
+ "sha256_16": "5d54c79df23f05b3",
+ "step": 1500,
+ "versions": {
+  "latent": "ls-80e5f25be2f0-wf22fe70f99d5",
+  "policy": "ladder_flow_jointfix_gdag3h"
+ }
+}
