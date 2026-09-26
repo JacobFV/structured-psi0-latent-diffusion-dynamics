@@ -340,3 +340,5 @@ ladder uses seed % 3), so the control rate is not the same as D-063's 9/30.
   measurable): host leases 1790412063_{b69980,23c4cb,047183,2805b6,7df3b6,246cd0}, 48 seeds, 1.5G each, one launch each
   -> `artifacts/runs/acceptance_sprint_sem_gen_jf_panda/shard<i>`. Videos of parm6_tf3 seed 3000052 (control succeeds,
   goal edit places at the new goal, rebind touches + lifts the new cube) are rendering on the peer.
+- 02:07 panda_pg2 deployable suite: all 6 host shards were stopped by the host watchdog (sustained memory PSI, other
+  projects) after 1 seed each (36 rows kept). Relaunched once each for the remaining 7 seeds per shard into `shard<i>b`.
