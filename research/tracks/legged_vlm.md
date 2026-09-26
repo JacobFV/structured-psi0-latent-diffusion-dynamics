@@ -1,5 +1,24 @@
 # track legged_vlm — legged/humanoid breadth and VLM system II on the latent-packet path
 
+## RESEARCH RESTART (2026-09-25 22:15 →; legged agent; supersedes the wind-down state below for the legged part)
+Question: does the corrected architecture (system i → packet z[4 knots, legs+body(+arms), 32] → system 0 at 50 Hz)
+work on legged/humanoid bodies, and do the packet semantics (per-leg contact per knot, goal waypoint, base
+displacement, subtask, fall) causally control behaviour? Arm lessons applied up front (B-1, D-050, D-052..D-056).
+Compute: host GPU (leases below), host CPU for closed-loop sims. Data copied to host `~/work/rrp-data/datasets/legged_latent_v{1,2}` (lease 1790399700_94cca7, --disk 2G).
+
+### plan / state
+| step | state | evidence |
+|---|---|---|
+| 0. feature parity (train rows vs deployed featurizers, 3 re-simulated go2 episodes incl. DART) | verified | `artifacts/runs/legged_parity_go2/parity.json`: re-sim == stored (max abs 0); system-0 inputs q/qd/imu/touch/osc + morphology identical (0.0); system-i ctx identical at step-start ticks (0.0; mid-step ticks reuse the step-start ctx in training, and deployment only reads ctx at step-aligned replans). No teacher command or previous action enters any learned input (the tracker's last_a stays inside the frozen tracker). |
+| 1. BC positive control (flow, same public inputs, 40-tick chunk, replan 5 ticks), go2 | running | lease 1790400275_8dce13, `artifacts/runs/legged_bc_go2_v1` (bc_last.pt resumable, snaps every 5k) |
+| 2. Stage A go2 sem + capacity-matched nosem, qd dropout 0.5, resumable | running | lease 1790400276_a2a139, `artifacts/runs/legged_rep_{sem,nosem}_go2_v2` |
+| 3. offline gate on BC-visited states (R vs hold-still, qd-zero, z-zero/shuffle step gain) | implementing | `src/rrp/learning/legged_dagger.py gate` |
+| 4. ladder on matched dev seeds 10000-10029: R0 teacher / BC / R1 stateless oracle E(BC chunk) / R2 generated; failure stages fell/stall/drift_a/drift_b/halt | implementing | `src/rrp/evaluation/legged_latent_eval.py` (--bc, --oracle-bc, --rep, --realizer, --zero-qd) |
+| 5. BC-expert DAgger refit of system 0 | implementing | `legged_dagger.py collect/refit` |
+| 6. flows sem/nosem, R2, packet edits (mirror goal, halt, turn, per-leg contact) with irrelevant-edit controls | planned | |
+| 7. hexapod6, then t1, g1 | planned | |
+
+
 Worktree `~/work/rrp-wt/legged_vlm`, branch `track/legged_vlm`, peer dir `/dev/shm/rrp-brandonin/wt/legged_vlm`.
 
 ## inventory (2026-09-25)

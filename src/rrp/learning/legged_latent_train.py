@@ -90,6 +90,9 @@ class LeggedData:
                     cols["wpa"].append(np.tile(np.array(em["waypoints"]["a"], np.float32), (T, 1)))
                     cols["wpb"].append(np.tile(np.array(em["waypoints"]["b"], np.float32), (T, 1)))
                     cols["held_out"].append(np.full(T, ho))
+                    if "beh" in d:                   # DAgger buffer: stored stateless-expert chunk per tick
+                        bh = d["beh"][sl].astype(np.float32)
+                        cols.setdefault("beh", []).append(np.pad(bh, ((0, 0), (0, MAX_N - bh.shape[1]), (0, 0))))
                     off += T
         t = lambda x: torch.from_numpy(np.concatenate(x)).to(dev)
         self.A = {k: t(v) for k, v in cols.items()}
@@ -123,6 +126,8 @@ class LeggedData:
         return b
 
     def beh(self, i):
+        if "beh" in self.A:
+            return self.A["beh"][i]
         idx = torch.minimum(i[:, None] + torch.arange(H, device=self.dev)[None], self.A["ep_end"][i][:, None])
         return self.A["a"][idx].transpose(1, 2)                             # [B,N,H]
 
@@ -343,10 +348,23 @@ def train_flow(cfg, out: Path):
     w = cfg.get("packet_semantic_weight", 0.0)
     out.mkdir(parents=True, exist_ok=True)
     (out / "config.json").write_text(json.dumps(cfg, indent=1))
-    log = open(out / "train_log.jsonl", "w")
+    step0, last = 0, out / "flow_last.pt"
+    if last.exists():
+        st = torch.load(str(last), map_location=dev, weights_only=False)
+        F_.load_state_dict(st["flow"]); opt.load_state_dict(st["opt"]); sch.load_state_dict(st["sch"])
+        step0 = st["step"]; rng.bit_generator.state = st["rng"]; torch.set_rng_state(st["torch_rng"])
+        print(f"resumed at step {step0}", flush=True)
+    log = open(out / "train_log.jsonl", "a")
     t0 = time.time()
     B = cfg.get("batch_size", 256)
-    for step in range(1, steps + 1):
+    ck, sn = cfg.get("ckpt_every", 500), cfg.get("snap_every", 0)
+    for step in range(step0 + 1, steps + 1):
+        if step > step0 + 1 and step % ck == 1 and step - 1 < steps:
+            _save(last, flow=F_.state_dict(), opt=opt.state_dict(), sch=sch.state_dict(), step=step - 1,
+                  rng=rng.bit_generator.state, torch_rng=torch.get_rng_state())
+        if sn and step > 1 and (step - 1) % sn == 0:
+            _save(out / f"snap_s{step - 1}.pt", flow=F_.state_dict(), cfg=cfg,
+                  result=dict(latent_space_version=rres["latent_space_version"], step=step - 1))
         i = data.sample(B, rng)
         b = data.ctx_batch(i)
         with torch.no_grad():

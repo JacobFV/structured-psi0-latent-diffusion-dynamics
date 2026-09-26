@@ -126,6 +126,8 @@ class System0Adapter:
             tgt = np.clip(b.q0, b.lo, b.hi)          # declared fallback: hold the default stance
         fc, _ = b.contacts(data)
         self.c.trace.append(dict(t=now, pose=self.s.base_pose_truth().tolist(), contact=fc.astype(int).tolist()))
+        if getattr(self.c, "recorder", None) is not None and self.armed:
+            self.c.recorder(self, fc)
         self.ticks += 1
         return tgt
 
@@ -188,6 +190,8 @@ class BCAdapter:
             tgt = np.clip(b.q0, b.lo, b.hi)
         fc, _ = b.contacts(data)
         self.c.trace.append(dict(t=now, pose=self.s.base_pose_truth().tolist(), contact=fc.astype(int).tolist()))
+        if getattr(self.c, "recorder", None) is not None and self.armed:
+            self.c.recorder(self, fc)
         self.ticks += 1
         return tgt
 
@@ -266,8 +270,17 @@ class LatentLeggedController:
                 z, _ = self.E(b, self.oracle.demo(ad))
         else:
             z = self._sample(b)
+        z_pre = z
         if edit.startswith("probe_yaw"):
             z = self.probe_edit(z, b, float(edit.split(":")[1]))
+        elif edit.startswith("contact:"):              # contact:<leg>:<0 swing|1 stance> at every knot
+            _, leg, v = edit.split(":")
+            z = self.contact_edit(z, b, int(leg), float(v))
+        elif edit.startswith("rand_norm:"):            # irrelevant-edit control: random direction, fixed |dz|
+            gg = torch.Generator(device=z.device).manual_seed(int(now * 1000) + 7)
+            am = b["asm_mask"][:, None, :, None].float()
+            d = torch.randn(z.shape, generator=gg, device=z.device) * am
+            z = z + d / d.norm() * float(edit.split(":")[1])
         if edit == "zero":
             z = torch.zeros_like(z)
         with torch.no_grad():
@@ -291,8 +304,26 @@ class LatentLeggedController:
                                             subtask=int(pout["subtask"][0].argmax()),
                                             fall=float(torch.sigmoid(pout["fall"][0, 0]))),
                                  pose=ad.s.base_pose_truth().tolist(),
-                                 z_norm=float(np.linalg.norm(zz))))
+                                 z_norm=float(np.linalg.norm(zz)),
+                                 dz_norm=float((z - z_pre).norm()) if edit != "none" else 0.0))
         return p
+
+    def contact_edit(self, z, b, leg, v, steps=60, lr=0.05):
+        """Move z so the frozen probe reads leg `leg` in contact state v at every knot (other entries anchored)."""
+        z0 = z.detach()
+        with torch.no_grad():
+            c0 = self.P(z0, b["asm_mask"], b["body_asm"])["contact"].clone()
+        zz = z0.clone().requires_grad_(True)
+        opt = torch.optim.Adam([zz], lr=lr)
+        am = b["asm_mask"][:, None, :, None].float()
+        tgt = torch.full_like(c0[:, :, leg], v)
+        for _ in range(steps):
+            c = self.P(zz * am, b["asm_mask"], b["body_asm"])["contact"]
+            other = torch.ones_like(c); other[:, :, leg] = 0
+            loss = torch.nn.functional.binary_cross_entropy_with_logits(c[:, :, leg], tgt, reduction="sum") + \
+                ((c - c0) ** 2 * other).sum() * 0.1 + 0.01 * ((zz - z0) ** 2 * am).sum() / am.sum()
+            opt.zero_grad(); loss.backward(); opt.step()
+        return (zz * am).detach()
 
     def probe_edit(self, z, b, yaw, steps=60, lr=0.05):
         """Move z so the frozen probe reads displacement yaw = `yaw` rad (x/y displacement readout kept at its
