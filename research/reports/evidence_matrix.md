@@ -38,3 +38,5 @@ Sprint semantic results (sprint_semantic, acceptance.md "SPRINT SEMANTIC RESULTS
 2. binding track: repaired counterexample, then paired physically consistent tasks through the whole pipeline, plus goal/predicted/observed-effect separation (items 1, 2, 5).
 3. acceptance track: valid semantic interventions plus irrelevant-edit controls, once a competent checkpoint exists (item 4).
 4. lead chain (host GPU): flow sem_v2 → nosem_v2 → sem_v3, each with a 20-episode dev eval on 4 source bodies, a disturbance test and videos.
+
+**Update 05:30 (D-084):** t1 humanoid across 4 training seeds on the deployable route: nosem 107/120 vs sem 38/120 (per seed 28/3, 27/8, 24/17, 28/10; sem fails by falling; BC 24/30). The no-semantic packet wins in every seed. This supersedes the "seeds 2–3 in progress" notes above. The project's evidence does not support the claim that semantic supervision of the packet improves control.
