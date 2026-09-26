@@ -26,7 +26,7 @@ Sprint semantic results (sprint_semantic, acceptance.md "SPRINT SEMANTIC RESULTS
 | dual-arm (support_insert, handover), M=2 | verified pack/train smoke on 2 assemblies | teacher reference (scripted_teacher): support_insert 20/20, 19/20, 20/20, held-out source pair 9/17; handover 20/20 ×3, 16/16 | **not shown** (training deferred, D-043) | paired arm-assignment tasks ready: 2,203 valid identical-scene pairs; scripted teacher performs both assignments (D-043); learned: not shown | not shown |
 | legged / humanoid | data collection + representation code | teacher data only | **not shown** (winding down: peripheral) | not shown | not shown |
 | VLM system II | smoke (Qwen3-VL weights hash-verified, isolated packages) | n/a | **not shown** | not shown | not shown |
-| latency | verified (`rrp latent latency --direct-config`) | — | p95 1.12× direct-action path (threshold 1.25×), 0/80 system-0 deadline misses. Caveats: direct path timed with random weights (same compute), peer loaded (interleaved pairs); rerun on final flows in a quiet window | — | — |
+| latency | verified (`rrp latent latency --direct-config`) | — | **clean (D-058): p95 28.7 ms latent (learned:ladder_flow_jointfix 20k → system 0) vs 28.3 ms real B-1-fixed BC direct1701_u18000, overhead 1.014× (limit 1.25×), system-0 tick p95 1.7 ms, 0 deadline misses; quiet GPU, 100 interleaved pairs, NFE 8** (`artifacts/runs/lead_latency_final/flowjf20k_vs_direct18k.json`). Supersedes the D-041 1.12× estimate (random direct weights, loaded peer). | — | — |
 | compatibility / safety | verified: bundle fingerprint in compatibility IDs with a mismatch-rejection test (D-038); packet admission, staleness, spec checks | — | — | — | — |
 
 ## in flight on the critical path
