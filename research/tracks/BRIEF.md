@@ -51,3 +51,23 @@ Known state:
 - No paid APIs, sudo, network changes, public listeners, or physical robots.
 - Finish with a concise report: what is done and verified, the numbers with artifact paths, what is still running
   (lease ids and output paths), and exact next steps.
+
+## DEMO SPRINT (2026-09-25 19:00 → 2026-09-26 05:00 PDT) — read this section first; it overrides older track scopes
+Goal: ready-to-demonstrate, HONEST artifacts in 10 h. Scope is frozen: no new variants beyond what is listed for your track.
+The state is in research/decisions.md D-044..D-049 and research/reports/evidence_matrix.md. Key facts:
+- Bug B-1 (D-044/D-045): train with `"zero_prev_action": true`. Anything trained without it is contaminated; never use it.
+- No learned route is competent yet: oracle route (teacher-encoded packet → system 0) is at best 1/30 (D-047/D-048); the
+  arm drives toward the cube rather than the packet's pregrasp waypoint (D-049). Re-anchoring the oracle expert every
+  tick is INVALID (D-049); the default every 8 ticks is valid.
+- In flight (do not duplicate): binding v4 chains (peer units rrp-binding-chain-v4-{sem,nosem}, dir wt/binding) →
+  representations `artifacts/runs/binding_paired_{sem,nosem}_v4` → probes → counterfactuals → flows (latent_chain_v2) →
+  dev eval → eval-binding; auto oracle-ladder evals (units rrp-ladder-wait-bindv4{sem,nosem}, tags bindv4sem/bindv4nosem);
+  plain BC with fix on host (unit rrp-b1fix-baseline_direct_action, root artifacts/runs/latent_slice1_b1fix);
+  codec baseline on peer (unit rrp-b1fix-codec, dir wt/lead).
+Resources: the user wants ≥80% of the host and 100% of the peer GPU/memory in use continuously. The HOST GPU is mostly idle,
+so use it (host budget ~15 CPU / 34 GiB incl. declared GPU memory; the BC job holds 16G GPU + 10G). Use peer CPU for simulation evals.
+Every finished result gets: the raw JSON/JSONL path, a line in your research/tracks/<track>.md, and a short labelled video
+(artifacts/video/<date>_<source>_<what>.mp4 + INDEX.md line; include a failure). Merge verified work to main often.
+Labels: scripted_teacher (privileged) / oracle (teacher-encoded packet: DIAGNOSTIC, not deployable) / learned:<ckpt>.
+Report to the lead by finishing with a summary. Do not stop early: when your list is done, pick the next highest-value
+item for the demo within your scope, and say what you picked.
