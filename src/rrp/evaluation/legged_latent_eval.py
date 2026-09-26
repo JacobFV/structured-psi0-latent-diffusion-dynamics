@@ -270,9 +270,17 @@ class OracleShadow:
         return torch.from_numpy(a)[None].to(self.c.dev)
 
 
-def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=None):
+LEARNED_TRACKER_BODIES = ("go2", "t1", "g1", "h1", "anymal_c")   # frozen learned trackers; procedural bodies use CPG
+
+
+def default_tracker_kind(body):
+    return "auto" if body in LEARNED_TRACKER_BODIES else "cpg"
+
+
+def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=None, arc_only=False, frame_every=2,
+                cam_scale=1.0, size=(368, 480)):
     sc = scenario if scenario is not None else build_waypoint_contact(body, seed)
-    s = LeggedSession(sc, tracker_kind="cpg" if body not in ("go2", "t1") else "auto", seed=seed)
+    s = LeggedSession(sc, tracker_kind=default_tracker_kind(body), seed=seed)
     morph = LeggedMorph(s.model, s.binding, sc.robots[0].robot_spec.spec_hash)
     ad = System0Adapter(ctl, s, morph) if ctl is not None else None
     teacher = None
@@ -283,18 +291,18 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
     s.reset()
     if ctl is None:
         from rrp.control.legged_teachers import WaypointTeacher
-        teacher = WaypointTeacher(s)
+        teacher = WaypointTeacher(s, arc_only=arc_only)
     else:
         ad.armed = True
     frames = []
     rend = None
     if video is not None:
         import mujoco
-        rend = mujoco.Renderer(s.model, 368, 480)
+        rend = mujoco.Renderer(s.model, *size)
         cam = mujoco.MjvCamera()
         cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING
         cam.trackbodyid = s.binding.root_bid
-        cam.distance, cam.elevation, cam.azimuth = 3.0 * max(0.5, s.binding.nominal_height() / 0.35) ** 0.5, -25, 135
+        cam.distance, cam.elevation, cam.azimuth = cam_scale * 3.0 * max(0.5, s.binding.nominal_height() / 0.35) ** 0.5, -25, 135
     zero = NativeCommand(controller_version=s.controller_version(), groups={"base_velocity": [0.0, 0.0, 0.0]},
                          source="learned")
     t0 = time.time()
@@ -303,20 +311,21 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
         cmd = teacher.act() if teacher else zero
         s.step(cmd)
         steps += 1
-        if rend is not None and steps % 2 == 0:
+        if rend is not None and steps % frame_every == 0:
             rend.update_scene(s.data, camera=cam)
             st = " ".join(f"{e}:{v.status}" for e, v in s.runtime.instances.items())
             frames.append((rend.render().copy(), f"t={s.data.time:.1f}s {st}"))
         if s.fell or s.runtime.succeeded() or (teacher is not None and teacher.done):
             break
     ok = bool(s.privileged_success() and not s.fell)
-    src = "scripted_teacher" if ctl is None else (
+    src = ("scripted_teacher" + (":arc_only" if arc_only else "")) if ctl is None else (
         f"privileged_oracle_packet:{ctl.lsv}" if oracle else ctl.policy_version)
     row = dict(body=body, seed=seed, source=src,
                edit=(ctl.edit if ctl else "none"), t_edit=(ctl.t_edit if ctl else None), success=ok, fell=bool(s.fell),
                public_success=bool(s.runtime.succeeded()), sim_time=float(s.data.time), wall_s=time.time() - t0,
                events={e: v.status for e, v in s.runtime.instances.items()},
-               final_pose=s.base_pose_truth().tolist(), waypoints=sc.meta["waypoints"])
+               final_pose=s.base_pose_truth().tolist(), waypoints=sc.meta["waypoints"],
+               tracker=getattr(s, "tracker_version_str", None), n_steps=steps)
     if ctl is not None:
         row.update(stats=ad.stats, packets=ctl.packets, packet_log=ad.log[:20])
         row["trace"] = ctl.trace[::5]
@@ -405,6 +414,7 @@ def main(argv=None):
     ap.add_argument("--out", required=True)
     ap.add_argument("--video-dir", default=None)
     ap.add_argument("--video-n", type=int, default=0)
+    ap.add_argument("--arc-only", default="none", help="teacher arc_only variant: none | all | comma list of bodies")
     ap.add_argument("--device", default="cpu", help="cpu (default; eval runs in CPU leases) or cuda")
     a = ap.parse_args(argv)
     dev = _dev() if a.device == "cuda" else torch.device("cpu")
@@ -419,7 +429,8 @@ def main(argv=None):
                 ctl = LatentLeggedController(Path(a.flow), dev, nfe=a.nfe, edit=a.edit, t_edit=a.t_edit, seed=sd,
                                              posthoc_probe=a.posthoc_probe) if a.flow else None
                 want = a.video_dir is not None and nv < a.video_n
-                row, frames = run_episode(ctl, body, sd, a.max_s, video=True if want else None, oracle=a.oracle)
+                row, frames = run_episode(ctl, body, sd, a.max_s, video=True if want else None, oracle=a.oracle,
+                                         arc_only=(a.flow is None and (a.arc_only == "all" or body in a.arc_only.split(","))))
                 if want:
                     lab = ("SCRIPTED TEACHER (privileged)" if ctl is None else (
                         "PRIVILEGED ORACLE packets (E on shadow teacher) + LEARNED sys-0" if a.oracle

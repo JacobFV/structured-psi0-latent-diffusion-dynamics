@@ -17,14 +17,29 @@ D-049 diagnostic below). The decisive latent test is R2 (system i's own packet) 
 | reference: R0 scripted_teacher (ladder track) | 30/30 | 30/30 | - |
 | reference: R1 oracle route, best (D-048, jfdag1 re-anchored) | 1/30 | 0/30 | mostly approach |
 
+**FINAL: direct-action BC, seed 1701 (B-1 fixed; 26,304 updates = 6 epochs, finished 22:42 on the peer; policy.pt
+sha256[:16] 86094786ab15ecd8). THE POSITIVE CONTROL IS COMPETENT.**
+- Source competence (sealed-protocol cell, held-out source bodies NOT in training, seeds 2,000,000.., 50 episodes each,
+  infeasible excluded): parm5s_tf3 46/47 = 0.98 [0.89, 1.00], parm5l_pg2 33/33 = 1.00 [0.90, 1.00]; pooled 79/80 = 0.99.
+  The single failure (parm5s_tf3 seed 2000029) is a timeout after the grasp succeeded (place still active).
+- Ladder dev scenes (30 matched feasible seeds from 3,000,000, prev-action 0 as deployed): panda_pg2 30/30 [0.89, 1.00],
+  parm6_tf3 30/30 [0.89, 1.00]. Same seeds: scripted teacher 30/30 / 30/30; best oracle route 1/30 / 0/30.
+- Raw (committed): `artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/{eval/source.*,cells/source.json,
+  source/result.json,source/train_log.jsonl}`, `artifacts/runs/baselines_bc_ladder/<robot>/learned_direct1701_ufinal.*`.
+- Budget-0 zero-shot transfer cells (xarm7_pg2, xarm7_tf3, panda_tf3) running on peer CPU: leases 1790401361_f15525,
+  1790401361_3cc06a, 1790401362_e2608d (auto-launched by scripts/bc_b0_after.sh).
+
 **FINAL: action-only codec BC, seed 1701 (B-1 fixed; 26,304 updates, finished 21:52 on the peer).**
 Source competence (sealed-protocol cell, held-out source bodies, seeds 2,000,000.., 50 episodes each, infeasible
 excluded): parm5s_tf3 44/47 = 0.94 [0.83, 0.98], parm5l_pg2 33/33 = 1.00 [0.90, 1.00]; pooled 77/80 = 0.96. Ladder dev
 scenes (final policy.pt): panda_pg2 29/30 [0.83, 0.99], parm6_tf3 28/30 [0.79, 0.98]. Raw (committed):
 `artifacts/runs/latent_slice1_b1fix/baseline_action_only_codec/seed1701/{eval/source.*,cells/source.json,source/result.json}`,
-`artifacts/runs/baselines_bc_ladder/<robot>/learned_codec1701_ufinal.*`. Budget-0 zero-shot transfer cells
-(xarm7_pg2, xarm7_tf3, panda_tf3; 100 episodes each) running on peer CPU: leases 1790398973_3bb80a, 1790398973_0c5291,
-1790398974_a65ba3.
+`artifacts/runs/baselines_bc_ladder/<robot>/learned_codec1701_ufinal.*`. Budget-0 zero-shot transfer to the protocol's NEW
+bodies (sealed cells, 100 episodes each, seeds 2,000,000..; `eval/<target>_b0.*`, `cells/<target>_b0.json`):
+panda_tf3 85/100 = 0.85 [0.77, 0.91] (known arm, new gripper-arm pairing); xarm7_pg2 0/100 [0.00, 0.04] and
+xarm7_tf3 0/100 [0.00, 0.04] (new arm: all timeouts, the grasp event never completes). So plain BC transfers across
+gripper pairings, but not to an unseen arm kinematic chain without target data. That is the gap the sealed protocol
+asks the latent methods (and the SFT budgets, on hold) to close.
 
 **Provenance audit of the direct-action snapshots (lead request, 21:45).** All `direct1701_u*` snapshots come from ONE
 B-1-fixed run: root `artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/source`, config
@@ -58,6 +73,8 @@ No snapshot comes from a pre-fix run (the pre-fix sources are under `artifacts/r
 | learned:direct1701_u15000 | 23/30 [0.59, 0.88] | 27/30 [0.74, 0.97] | grasp 2, place 2, transport 1, lift 2 / place 1, transport 2 |
 | learned:direct1701_u18000 | 30/30 [0.89, 1.00] | 29/30 [0.83, 0.99] | none / transport 1 |
 | learned:direct1701_u21000 | 29/30 [0.83, 0.99] | 30/30 [0.89, 1.00] | transport 1 / none |
+| learned:direct1701_u24000 | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | none / none |
+| learned:direct1701_ufinal | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | none / none |
 
 Held-out source bodies (NOT in BC training; the protocol's source-competence bodies and harness: rrp.evaluation.runner,
 seeds 2,000,000.., 50 episodes each, infeasible excluded), learned:direct1701_u12000: parm5s_tf3 44/47 = 0.94

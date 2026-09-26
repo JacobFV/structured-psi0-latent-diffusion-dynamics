@@ -1,0 +1,10 @@
+{
+ "path": "artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/source/policy.pt",
+ "sha256_16": "86094786ab15ecd8",
+ "step": 26304,
+ "versions": {
+  "policy": "baseline_direct_action_seed1701",
+  "featurizer": "feat-v2",
+  "codec": null
+ }
+}

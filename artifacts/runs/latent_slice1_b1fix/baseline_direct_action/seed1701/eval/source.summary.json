@@ -1,0 +1,47 @@
+{
+ "parm5s_tf3": {
+  "attempted": 47,
+  "successes": 46,
+  "success_rate": 0.9787234042553191,
+  "wilson95": [
+   0.8888701884870314,
+   0.9962342320030542
+  ],
+  "infeasible": 3,
+  "outcomes": {
+   "infeasible": 3,
+   "success": 46,
+   "timeout": 1
+  },
+  "public_private_agreement": 1.0,
+  "policy_calls": 519,
+  "control_steps": 3965
+ },
+ "parm5l_pg2": {
+  "attempted": 33,
+  "successes": 33,
+  "success_rate": 1.0,
+  "wilson95": [
+   0.8957300009841286,
+   0.9999999999999999
+  ],
+  "infeasible": 17,
+  "outcomes": {
+   "infeasible": 17,
+   "success": 33
+  },
+  "public_private_agreement": 1.0,
+  "policy_calls": 358,
+  "control_steps": 2764
+ },
+ "_meta": {
+  "controller_source": "learned:artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/source/policy.pt",
+  "device": "cuda",
+  "wall_s": 12.697072505950928,
+  "seed_start": 2000000,
+  "episodes": 50,
+  "nfe": 8,
+  "execute_prefix": 8,
+  "max_steps": 300
+ }
+}

@@ -1,0 +1,659 @@
+{
+ "meta": {
+  "route": "oracle",
+  "source": "ORACLE DIAGNOSTIC target_encoder_oracle:E(artifacts/runs/ladder_rz_jointfix_bcdag2/representation.pt) + STATELESS BC expert demo (learned:artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt chunk for the edited context)",
+  "representation": "artifacts/runs/ladder_rz_jointfix_bcdag2/representation.pt",
+  "checkpoint": "artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt",
+  "orthogonal_probe": null,
+  "robots": [
+   "panda_pg2"
+  ],
+  "seeds": [
+   3000018,
+   3000023
+  ],
+  "t": 1790399458.5438983,
+  "scenes": "pick_place with n_distractors = max(1, seed % 3)",
+  "conditions": "control,rebind_desc,goal_shift,irrelevant_distractor,orthogonal_matched,control_replay"
+ },
+ "summary": {
+  "control": {
+   "n": 6,
+   "followed": 5,
+   "followed_wilson95": [
+    0.4364971749742326,
+    0.969946630588185
+   ],
+   "cube_lifted": 5,
+   "distractor0_lifted": 0,
+   "cube_in_zone": 5,
+   "distractor0_in_zone": 0,
+   "cube_at_shifted_goal": 0,
+   "privileged_success": 5,
+   "skipped": 0,
+   "cube_final_xy_to_zone_m": {
+    "mean": 0.04815604627901273,
+    "lo": 0.012003393431548751,
+    "hi": 0.11289730109229075,
+    "n": 6
+   },
+   "cube_final_xy_to_shifted_goal_m": {
+    "mean": 0.14059325446224782,
+    "lo": 0.11851548981153108,
+    "hi": 0.17183288488142512,
+    "n": 6
+   },
+   "approached_first": {
+    "cube": 6,
+    "distractor0": 0,
+    "null": 0
+   },
+   "approached_first_new_frac": {
+    "k": 0,
+    "n": 6,
+    "wilson95": [
+     0.0,
+     0.39033429165637346
+    ]
+   },
+   "first_contact": {
+    "cube": 6,
+    "distractor0": 0,
+    "null": 0
+   },
+   "first_contact_new_frac": {
+    "k": 0,
+    "n": 6,
+    "wilson95": [
+     0.0,
+     0.39033429165637346
+    ]
+   },
+   "min_dist_pref_new_m": {
+    "mean": -0.13157751955719824,
+    "lo": -0.15752377764863434,
+    "hi": -0.10580636902804663,
+    "n": 6
+   },
+   "init_dir_pref_new": {
+    "mean": -0.8031873709392072,
+    "lo": -1.0844078070532415,
+    "hi": -0.5079983890267598,
+    "n": 6
+   },
+   "cube_moved": 5,
+   "goal_pref_new_m": {
+    "mean": -0.10936128263009903,
+    "lo": -0.11751572884987609,
+    "hi": -0.09670412352114856,
+    "n": 5
+   }
+  },
+  "control_replay": {
+   "n": 6,
+   "followed": 1,
+   "followed_wilson95": [
+    0.030053369411815023,
+    0.5635028250257673
+   ],
+   "cube_lifted": 2,
+   "distractor0_lifted": 0,
+   "cube_in_zone": 1,
+   "distractor0_in_zone": 0,
+   "cube_at_shifted_goal": 0,
+   "privileged_success": 1,
+   "skipped": 0,
+   "cube_final_xy_to_zone_m": {
+    "mean": 0.12665469707505786,
+    "lo": 0.06247091583094542,
+    "hi": 0.19334616849814798,
+    "n": 6
+   },
+   "cube_final_xy_to_shifted_goal_m": {
+    "mean": 0.1971020945076614,
+    "lo": 0.15573612433292736,
+    "hi": 0.23966013230442806,
+    "n": 6
+   },
+   "approached_first": {
+    "cube": 6,
+    "distractor0": 0,
+    "null": 0
+   },
+   "approached_first_new_frac": {
+    "k": 0,
+    "n": 6,
+    "wilson95": [
+     0.0,
+     0.39033429165637346
+    ]
+   },
+   "first_contact": {
+    "cube": 6,
+    "distractor0": 0,
+    "null": 0
+   },
+   "first_contact_new_frac": {
+    "k": 0,
+    "n": 6,
+    "wilson95": [
+     0.0,
+     0.39033429165637346
+    ]
+   },
+   "min_dist_pref_new_m": {
+    "mean": -0.11903273400078623,
+    "lo": -0.14864452572949208,
+    "hi": -0.08655461431508273,
+    "n": 6
+   },
+   "init_dir_pref_new": {
+    "mean": -0.7680936466125406,
+    "lo": -1.1587126563358303,
+    "hi": -0.39588474398402856,
+    "n": 6
+   },
+   "cube_moved": 5,
+   "goal_pref_new_m": {
+    "mean": -0.07440592709484777,
+    "lo": -0.10635258256297853,
+    "hi": -0.04245927162671699,
+    "n": 5
+   },
+   "paired_n": 6,
+   "same_lifted_object_as_control": 3,
+   "same_cube_in_zone_as_control": 2,
+   "approach_preference_distractor_vs_control_m": {
+    "mean": 0.012544785556412025,
+    "lo": 0.0007969785933255036,
+    "hi": 0.02484780240606411,
+    "n": 6
+   },
+   "tcp_mean_deviation_from_control_m": {
+    "mean": 0.06105051008149872,
+    "lo": 0.04381016376263518,
+    "hi": 0.07628215284653209,
+    "n": 6
+   },
+   "init_dir_pref_vs_control": {
+    "mean": 0.035093724326666666,
+    "lo": -0.16163595172440873,
+    "hi": 0.18631967910069544,
+    "n": 6
+   },
+   "approached_first_changed_to_new": 0,
+   "approached_first_changed_from_new": 0,
+   "first_contact_changed_to_new": 0,
+   "goal_pref_vs_control_m": {
+    "mean": 0.02912946294604273,
+    "lo": -0.0045467532181039175,
+    "hi": 0.06503775365572838,
+    "n": 6
+   }
+  },
+  "goal_shift": {
+   "n": 6,
+   "followed": 3,
+   "followed_wilson95": [
+    0.18761630498040816,
+    0.8123836950195918
+   ],
+   "cube_lifted": 4,
+   "distractor0_lifted": 0,
+   "cube_in_zone": 0,
+   "distractor0_in_zone": 0,
+   "cube_at_shifted_goal": 3,
+   "privileged_success": 0,
+   "skipped": 0,
+   "cube_final_xy_to_zone_m": {
+    "mean": 0.13167512675467455,
+    "lo": 0.0913625322648586,
+    "hi": 0.17444347228612853,
+    "n": 6
+   },
+   "cube_final_xy_to_shifted_goal_m": {
+    "mean": 0.11189063750403604,
+    "lo": 0.03495102527919098,
+    "hi": 0.20477725422828022,
+    "n": 6
+   },
+   "approached_first": {
+    "cube": 6,
+    "distractor0": 0,
+    "null": 0
+   },
+   "approached_first_new_frac": {
+    "k": 0,
+    "n": 6,
+    "wilson95": [
+     0.0,
+     0.39033429165637346
+    ]
+   },
+   "first_contact": {
+    "cube": 6,
+    "distractor0": 0,
+    "null": 0
+   },
+   "first_contact_new_frac": {
+    "k": 0,
+    "n": 6,
+    "wilson95": [
+     0.0,
+     0.39033429165637346
+    ]
+   },
+   "min_dist_pref_new_m": {
+    "mean": -0.14360126814600374,
+    "lo": -0.19427871987379816,
+    "hi": -0.0953034598579033,
+    "n": 6
+   },
+   "init_dir_pref_new": {
+    "mean": -0.773208286229934,
+    "lo": -1.0703280892860623,
+    "hi": -0.4577216856398361,
+    "n": 6
+   },
+   "cube_moved": 4,
+   "goal_pref_new_m": {
+    "mean": 0.05905243192165666,
+    "lo": 0.029712963451150265,
+    "hi": 0.08595978738081014,
+    "n": 4
+   },
+   "paired_n": 6,
+   "same_lifted_object_as_control": 5,
+   "same_cube_in_zone_as_control": 1,
+   "approach_preference_distractor_vs_control_m": {
+    "mean": -0.012023748588805479,
+    "lo": -0.03745101361077884,
+    "hi": 0.014408381291430516,
+    "n": 6
+   },
+   "tcp_mean_deviation_from_control_m": {
+    "mean": 0.07838177757302843,
+    "lo": 0.06264494493226853,
+    "hi": 0.0942572348201597,
+    "n": 6
+   },
+   "init_dir_pref_vs_control": {
+    "mean": 0.029979084709273046,
+    "lo": -0.026223608837373874,
+    "hi": 0.06886902991967565,
+    "n": 6
+   },
+   "approached_first_changed_to_new": 0,
+   "approached_first_changed_from_new": 0,
+   "first_contact_changed_to_new": 0,
+   "goal_pref_vs_control_m": {
+    "mean": 0.1566032281674244,
+    "lo": 0.11757271523174714,
+    "hi": 0.19563374110310155,
+    "n": 5
+   }
+  },
+  "irrelevant_distractor": {
+   "n": 6,
+   "followed": 5,
+   "followed_wilson95": [
+    0.4364971749742326,
+    0.969946630588185
+   ],
+   "cube_lifted": 5,
+   "distractor0_lifted": 0,
+   "cube_in_zone": 5,
+   "distractor0_in_zone": 0,
+   "cube_at_shifted_goal": 0,
+   "privileged_success": 5,
+   "skipped": 0,
+   "cube_final_xy_to_zone_m": {
+    "mean": 0.05089900216060093,
+    "lo": 0.01569680769040248,
+    "hi": 0.11411402370719259,
+    "n": 6
+   },
+   "cube_final_xy_to_shifted_goal_m": {
+    "mean": 0.14329324534235335,
+    "lo": 0.1233139609187252,
+    "hi": 0.17383931142975464,
+    "n": 6
+   },
+   "approached_first": {
+    "cube": 6,
+    "distractor0": 0,
+    "null": 0
+   },
+   "approached_first_new_frac": {
+    "k": 0,
+    "n": 6,
+    "wilson95": [
+     0.0,
+     0.39033429165637346
+    ]
+   },
+   "first_contact": {
+    "cube": 6,
+    "distractor0": 0,
+    "null": 0
+   },
+   "first_contact_new_frac": {
+    "k": 0,
+    "n": 6,
+    "wilson95": [
+     0.0,
+     0.39033429165637346
+    ]
+   },
+   "min_dist_pref_new_m": {
+    "mean": -0.1308394321971413,
+    "lo": -0.1548289369513539,
+    "hi": -0.1080025435000241,
+    "n": 6
+   },
+   "init_dir_pref_new": {
+    "mean": -0.8006231559426863,
+    "lo": -1.0817017481958213,
+    "hi": -0.507496629673372,
+    "n": 6
+   },
+   "cube_moved": 5,
+   "goal_pref_new_m": {
+    "mean": -0.10871976429406223,
+    "lo": -0.11209366366617117,
+    "hi": -0.1031883078355913,
+    "n": 5
+   },
+   "paired_n": 6,
+   "same_lifted_object_as_control": 6,
+   "same_cube_in_zone_as_control": 6,
+   "approach_preference_distractor_vs_control_m": {
+    "mean": 0.0007380873600569456,
+    "lo": -0.0039864590822124985,
+    "hi": 0.005988376128536234,
+    "n": 6
+   },
+   "tcp_mean_deviation_from_control_m": {
+    "mean": 0.01580347780534652,
+    "lo": 0.004295840773116696,
+    "hi": 0.03341334270537125,
+    "n": 6
+   },
+   "init_dir_pref_vs_control": {
+    "mean": 0.0025642149965209673,
+    "lo": -0.0002598943282758707,
+    "hi": 0.006508866288239634,
+    "n": 6
+   },
+   "approached_first_changed_to_new": 0,
+   "approached_first_changed_from_new": 0,
+   "first_contact_changed_to_new": 0,
+   "goal_pref_vs_control_m": {
+    "mean": 0.0006415183360368032,
+    "lo": -0.014277266596243707,
+    "hi": 0.011265804702133664,
+    "n": 5
+   }
+  },
+  "orthogonal_matched": {
+   "n": 6,
+   "followed": 0,
+   "followed_wilson95": [
+    0.0,
+    0.39033429165637346
+   ],
+   "cube_lifted": 1,
+   "distractor0_lifted": 0,
+   "cube_in_zone": 0,
+   "distractor0_in_zone": 0,
+   "cube_at_shifted_goal": 0,
+   "privileged_success": 0,
+   "skipped": 0,
+   "cube_final_xy_to_zone_m": {
+    "mean": 0.21282861677538287,
+    "lo": 0.13767395128508567,
+    "hi": 0.30156193699405637,
+    "n": 6
+   },
+   "cube_final_xy_to_shifted_goal_m": {
+    "mean": 0.24873132888135585,
+    "lo": 0.17102546859905932,
+    "hi": 0.32119201741466874,
+    "n": 6
+   },
+   "approached_first": {
+    "cube": 6,
+    "distractor0": 0,
+    "null": 0
+   },
+   "approached_first_new_frac": {
+    "k": 0,
+    "n": 6,
+    "wilson95": [
+     0.0,
+     0.39033429165637346
+    ]
+   },
+   "first_contact": {
+    "cube": 6,
+    "distractor0": 0,
+    "null": 0
+   },
+   "first_contact_new_frac": {
+    "k": 0,
+    "n": 6,
+    "wilson95": [
+     0.0,
+     0.39033429165637346
+    ]
+   },
+   "min_dist_pref_new_m": {
+    "mean": -0.11714739619214243,
+    "lo": -0.16094021199404251,
+    "hi": -0.08614717553660702,
+    "n": 6
+   },
+   "init_dir_pref_new": {
+    "mean": -0.5874387542445186,
+    "lo": -1.1585317404451354,
+    "hi": 0.14121541996251888,
+    "n": 6
+   },
+   "cube_moved": 4,
+   "goal_pref_new_m": {
+    "mean": -0.022455757400146,
+    "lo": -0.10043119055092253,
+    "hi": 0.055519675750630534,
+    "n": 4
+   },
+   "paired_n": 6,
+   "same_lifted_object_as_control": 2,
+   "same_cube_in_zone_as_control": 1,
+   "approach_preference_distractor_vs_control_m": {
+    "mean": 0.014430123365055817,
+    "lo": -0.0101410107369407,
+    "hi": 0.04037272406540767,
+    "n": 6
+   },
+   "tcp_mean_deviation_from_control_m": {
+    "mean": 0.10425673320974559,
+    "lo": 0.07629039182163483,
+    "hi": 0.12602129064082992,
+    "n": 6
+   },
+   "init_dir_pref_vs_control": {
+    "mean": 0.21574861669468848,
+    "lo": -0.3547591936177768,
+    "hi": 1.090299659409239,
+    "n": 6
+   },
+   "approached_first_changed_to_new": 0,
+   "approached_first_changed_from_new": 0,
+   "first_contact_changed_to_new": 0,
+   "goal_pref_vs_control_m": {
+    "mean": 0.09139667670998224,
+    "lo": 0.02309831826940258,
+    "hi": 0.15969503515056188,
+    "n": 5
+   }
+  },
+  "rebind_desc": {
+   "n": 6,
+   "followed": 0,
+   "followed_wilson95": [
+    0.0,
+    0.39033429165637346
+   ],
+   "cube_lifted": 0,
+   "distractor0_lifted": 0,
+   "cube_in_zone": 0,
+   "distractor0_in_zone": 0,
+   "cube_at_shifted_goal": 0,
+   "privileged_success": 0,
+   "skipped": 0,
+   "cube_final_xy_to_zone_m": {
+    "mean": 0.19454869760637847,
+    "lo": 0.17276676452243003,
+    "hi": 0.21416422339860064,
+    "n": 6
+   },
+   "cube_final_xy_to_shifted_goal_m": {
+    "mean": 0.23102258035569623,
+    "lo": 0.17868391978555107,
+    "hi": 0.2817098670763585,
+    "n": 6
+   },
+   "approached_first": {
+    "cube": 0,
+    "distractor0": 0,
+    "null": 6
+   },
+   "approached_first_new_frac": {
+    "k": 0,
+    "n": 6,
+    "wilson95": [
+     0.0,
+     0.39033429165637346
+    ]
+   },
+   "first_contact": {
+    "cube": 1,
+    "distractor0": 0,
+    "null": 5
+   },
+   "first_contact_new_frac": {
+    "k": 0,
+    "n": 6,
+    "wilson95": [
+     0.0,
+     0.39033429165637346
+    ]
+   },
+   "min_dist_pref_new_m": {
+    "mean": 0.0437768891536218,
+    "lo": -0.009216861246699869,
+    "hi": 0.09708143987657751,
+    "n": 6
+   },
+   "init_dir_pref_new": {
+    "mean": 0.07023348344609494,
+    "lo": -0.7027996888273825,
+    "hi": 0.866280758403564,
+    "n": 6
+   },
+   "cube_moved": 0,
+   "goal_pref_new_m": {
+    "mean": null,
+    "lo": null,
+    "hi": null,
+    "n": 0
+   },
+   "paired_n": 6,
+   "same_lifted_object_as_control": 1,
+   "same_cube_in_zone_as_control": 1,
+   "approach_preference_distractor_vs_control_m": {
+    "mean": 0.17535440871082006,
+    "lo": 0.10051526303939808,
+    "hi": 0.25434472481584774,
+    "n": 6
+   },
+   "tcp_mean_deviation_from_control_m": {
+    "mean": 0.1578492865657136,
+    "lo": 0.14362718425820326,
+    "hi": 0.17507959617704974,
+    "n": 6
+   },
+   "init_dir_pref_vs_control": {
+    "mean": 0.873420854385302,
+    "lo": -0.01843456710167666,
+    "hi": 1.7906081831989147,
+    "n": 6
+   },
+   "approached_first_changed_to_new": 0,
+   "approached_first_changed_from_new": 0,
+   "first_contact_changed_to_new": 0,
+   "goal_pref_vs_control_m": {
+    "mean": 0.10936128263009903,
+    "lo": 0.09670412352114856,
+    "hi": 0.11751572884987609,
+    "n": 5
+   }
+  },
+  "_contrasts": {
+   "rebind_desc-irrelevant_distractor:pref_min": {
+    "mean": 0.1746163213507631,
+    "lo": 0.10335989246588896,
+    "hi": 0.2474249698542435,
+    "n": 6
+   },
+   "rebind_desc-orthogonal_matched:pref_min": {
+    "mean": 0.16092428534576422,
+    "lo": 0.07914738939549082,
+    "hi": 0.2527209408894956,
+    "n": 6
+   },
+   "rebind_desc-control_replay:pref_min": {
+    "mean": 0.16280962315440803,
+    "lo": 0.08237415034956282,
+    "hi": 0.24323624449967388,
+    "n": 6
+   },
+   "rebind_desc-irrelevant_distractor:pref_dir": {
+    "mean": 0.8708566393887812,
+    "lo": -0.02340889501515353,
+    "hi": 1.790076823326723,
+    "n": 6
+   },
+   "rebind_desc-orthogonal_matched:pref_dir": {
+    "mean": 0.6576722376906137,
+    "lo": 0.028116818179716268,
+    "hi": 1.7343785097558786,
+    "n": 6
+   },
+   "rebind_desc-control_replay:pref_dir": {
+    "mean": 0.8383271300586354,
+    "lo": -0.19097190269506836,
+    "hi": 1.970664842881023,
+    "n": 6
+   },
+   "goal_shift-irrelevant_distractor:goal_pref": {
+    "mean": 0.15596170983138757,
+    "lo": 0.12695404716079914,
+    "hi": 0.18443587445893767,
+    "n": 5
+   },
+   "goal_shift-orthogonal_matched:goal_pref": {
+    "mean": 0.08150818932180265,
+    "lo": 0.00855415985805584,
+    "hi": 0.1608166794891216,
+    "n": 4
+   },
+   "goal_shift-control_replay:goal_pref": {
+    "mean": 0.10137322719347756,
+    "lo": 0.046950224905836814,
+    "hi": 0.15876712309102073,
+    "n": 6
+   }
+  }
+ }
+}
