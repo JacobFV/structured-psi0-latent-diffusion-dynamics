@@ -13,11 +13,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from rrp.evaluation import latent_semantic_edits as se  # noqa: E402
 from rrp.evaluation.statistics import wilson  # noqa: E402
 
-R2 = {  # (sem tag, nosem tag) per seed set; the sem dev-seed file has no _s suffix for the 3,000,000 set
-    "final": ("generated_zero_flowgdag2h_rzgendag3_noqd_s{s}", "generated_zero_flownsgdag2h_rznsgendag3_noqd_s{s}"),
-    "flow20k_gendag1": ("generated_zero_ladder_flow_jointfix_snap_final_s20000_rzgendag1noqd", "generated_zero_flowns20k_rznsgendag1_noqd_s3000000"),
-    "flowgdag1_gendag3": ("generated_zero_flowgdag1_rzgendag3_noqd", "generated_zero_flownsgdag1_rznsgendag3_noqd_s3000000"),
-    "r1_stateless_gendag3": ("oracle_zero_gendag3noqd_orcbc", "oracle_zero_nsjfgendag3noqd_orcbc"),
+R2 = {  # (sem, nosem, semfix) tags; the sem dev-seed file has no _s suffix for the 3,000,000 set
+    "final": ("generated_zero_flowgdag2h_rzgendag3_noqd_s{s}", "generated_zero_flownsgdag2h_rznsgendag3_noqd_s{s}",
+              "generated_zero_flowsfgdag2h_rzsfgendag3_noqd_s{s}"),
+    "flow20k_gendag1": ("generated_zero_ladder_flow_jointfix_snap_final_s20000_rzgendag1noqd", "generated_zero_flowns20k_rznsgendag1_noqd_s3000000",
+                        "generated_zero_flowsf20k_rzsfgendag1_noqd_s3000000"),
+    "flowgdag1_gendag3": ("generated_zero_flowgdag1_rzgendag3_noqd", "generated_zero_flownsgdag1_rznsgendag3_noqd_s3000000",
+                          "generated_zero_flowsfgdag1_rzsfgendag3_noqd_s3000000"),
+    "r1_stateless_gendag3": ("oracle_zero_gendag3noqd_orcbc", "oracle_zero_nsjfgendag3noqd_orcbc", "oracle_zero_sfjfgendag3noqd_orcbc"),
 }
 
 
@@ -47,18 +50,22 @@ def r2_table(d):
         sets = (3000000, 3000100, 3000200) if robot in ("panda_pg2", "parm6_tf3") else (3000000,)
         rows = {}
         for s in sets:
-            st, nt = R2["final"]
+            st, nt, ft = R2["final"]
             sem = load(d, robot, st.format(s=s)) or (load(d, robot, "generated_zero_flowgdag2h_rzgendag3_noqd") if s == 3000000 else None)
-            rows[s] = dict(sem=sem, nosem=load(d, robot, nt.format(s=s)))
-        ok = [r for r in rows.values() if r["sem"] and r["nosem"]]
-        ks, ns = sum(r["sem"]["k"] for r in ok), sum(r["sem"]["n"] for r in ok)
-        kn, nn = sum(r["nosem"]["k"] for r in ok), sum(r["nosem"]["n"] for r in ok)
-        out[robot] = dict(per_set=rows, pooled=dict(sem=rate(ks, ns), nosem=rate(kn, nn),
-                                                    diff_nosem_minus_sem=(kn / nn - ks / ns) if ns and nn else None,
-                                                    diff95=newcombe(kn, nn, ks, ns) if ns and nn else None))
+            rows[s] = dict(sem=sem, nosem=load(d, robot, nt.format(s=s)), semfix=load(d, robot, ft.format(s=s)))
+        pooled = {}
+        for v in ("sem", "nosem", "semfix"):
+            ok = [r for r in rows.values() if r[v]]
+            pooled[v] = rate(sum(r[v]["k"] for r in ok), sum(r[v]["n"] for r in ok))
+        for a_, b_ in (("nosem", "sem"), ("semfix", "sem"), ("semfix", "nosem")):
+            A, B = pooled[a_], pooled[b_]
+            if A["n"] and B["n"] and A["n"] == B["n"]:
+                pooled[f"diff_{a_}_minus_{b_}"] = dict(diff=A["rate"] - B["rate"], ci95=newcombe(A["k"], A["n"], B["k"], B["n"]))
+        out[robot] = dict(per_set=rows, pooled=pooled)
         for key in ("flow20k_gendag1", "flowgdag1_gendag3", "r1_stateless_gendag3"):
             if robot in ("panda_pg2", "parm6_tf3"):
-                out[robot][key] = dict(sem=load(d, robot, R2[key][0]), nosem=load(d, robot, R2[key][1]))
+                out[robot][key] = dict(sem=load(d, robot, R2[key][0]), nosem=load(d, robot, R2[key][1]),
+                                       semfix=load(d, robot, R2[key][2]))
     return out
 
 
@@ -129,6 +136,16 @@ def boot_diff(a, b, n=4000, seed=0):
                 n_a=len(a), n_b=len(b))
 
 
+def edit_compare_multi(sets):
+    """sets: {name: rows}; per-variant key metrics plus pairwise differences vs 'sem' and nosem-vs-semfix."""
+    out = {n: dict(key=edit_key(se.summarize_semantic(r), r), seeds_complete=len(per_seed(r)), n_rows=len(r))
+           for n, r in sets.items()}
+    for a_, b_ in (("nosem", "sem"), ("semfix", "sem"), ("semfix", "nosem")):
+        if a_ in sets and b_ in sets:
+            out[f"diff_{a_}_minus_{b_}"] = edit_compare(sets[b_], sets[a_])["diff_nosem_minus_sem"]
+    return out
+
+
 def edit_compare(sem_rows, nosem_rows):
     out = {}
     for name, rows in (("sem", sem_rows), ("nosem", nosem_rows)):
@@ -156,15 +173,15 @@ def edit_compare(sem_rows, nosem_rows):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--ladder", required=True)
-    for k in ("sem-parm6", "nosem-parm6", "sem-panda", "nosem-panda"):
+    for k in ("sem-parm6", "nosem-parm6", "semfix-parm6", "sem-panda", "nosem-panda", "semfix-panda"):
         ap.add_argument(f"--{k}", nargs="*", default=[])
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
     res = dict(r2=r2_table(a.ladder))
-    if a.sem_parm6 and a.nosem_parm6:
-        res["edits_parm6"] = edit_compare(rows_of(a.sem_parm6), rows_of(a.nosem_parm6))
-    if a.sem_panda and a.nosem_panda:
-        res["edits_panda"] = edit_compare(rows_of(a.sem_panda), rows_of(a.nosem_panda))
+    for body in ("parm6", "panda"):
+        sets = {v: rows_of(getattr(a, f"{v}_{body}")) for v in ("sem", "nosem", "semfix") if getattr(a, f"{v}_{body}")}
+        if len(sets) >= 2:
+            res[f"edits_{body}"] = edit_compare_multi(sets)
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     Path(a.out).write_text(json.dumps(res, indent=1, default=str))
     print(json.dumps(res, indent=1, default=str)[:6000])
