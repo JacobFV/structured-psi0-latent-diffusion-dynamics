@@ -46,6 +46,8 @@ collection on 13 bodies (jfbcdag1) most failures are transport/place; next check
 | same | jfdag2df08 (shadow DAgger r1+r2, 80% DAgger; D-049 fix A) | 0/30 | 0/30 | approach 29 / approach 27 | 0.023 / 0.019 |
 | same | **jfbcdag2** (DAgger round 2: from jfbcdag1long, bc1+bc2, 16k) | **11/30 [0.22,0.54]** | **19/30 [0.46,0.78]** | place 4, grasp 4, approach 2, lift 5, transport 4 / place 6, transport 5 | 0.016 / 0.015 |
 | same | jfbig@16.3k (4 layers x 256, z standardized, fresh, bc1+bc2; interrupted at 16.3k/32k by host stop) | 4/30 [0.05,0.30] | 20/30 [0.49,0.81] | lift 9, transport 9, grasp 5, place 2 / place 7, transport 2 | 0.015 / 0.012 |
+| same | bindv4sem_bcdag1 (binding v4 sem E; system 0 + 1 round BC-expert DAgger, 8k) | 0/30 | running | grasp 9, approach 19, lift 2 / | 0.031 / 0.027 |
+| same | bindv4nosem_bcdag1 (binding v4 nosem E; same) | 0/30 | running | approach 27, grasp 2, lift 1 / | 0.015 / 0.014 |
 | same | jfnoqd (jointfix, no joint-velocity input, pack only 8k) | 0/30 | 5/30 [0.07,0.34] | grasp 14, approach 8, lift 5 / transport 13, approach 7, lift 4 | 0.011 / 0.013 |
 | same | **jfbcdag1long** (jointfix E; system 0 16k steps, lr 3e-4, 50/50 BC-expert DAgger) | **3/30 [0.03,0.26]** | **11/30 [0.22,0.54]** | approach 5, grasp 5, lift 3, transport 11, place 3 / place 13, transport 5, approach 1 | 0.013 / 0.013 |
 | same | bindv4nosem (binding v4, no semantic loss) | 0/30 | 1/30 [0.01,0.17] | approach 25 / approach 22 | 0.009 / 0.010 |
@@ -61,6 +63,7 @@ collection on 13 bodies (jfbcdag1) most failures are transport/place; next check
 | R2 learned:ladder_flow_jointfix@20000 (final) | **jfbcdag2** | 0/30 [0,0.11] | **1/30 [0.01,0.17]** (first deployable-route success) | grasp 22, lift 4, approach 4 / grasp 20, transport 3, lift 2, approach 2, place 2 | 0.017 / 0.014 |
 | R2 @20000, FRESH seeds 3,000,100+ | jfbcdag2 | 0/30 | 0/30 | grasp 23, approach 4, lift 3 / grasp 12, approach 9, transport 6, lift 3 | 0.017 / 0.015 |
 | R2 @20000 | jfznoise@11.1k (z-noise 0.3 refit, interrupted by host stop) | 0/30 | 1/30 [0.01,0.17] | grasp 25 / approach 12, grasp 11, transport 6 | 0.014 / 0.012 |
+| R2 @20000, NFE 32 (host) | jfbcdag2 | 0/30 | 1/30 [0.01,0.17] | grasp 21, approach 5 / grasp 21, transport 3, place 2 | 0.018 / 0.015 |
 | R2 @20000 (final) | jfbcdag1long | 0/30 [0,0.11] | 0/30 [0,0.11] | grasp 15, approach 11, lift 4 / grasp 18, approach 7, lift 2, transport 2, place 1 | 0.016 / 0.013 |
 Generator gap at the final flow (BC-visited states, system 0 jfbcdag1long): |z_gen - z_bc|/|z_bc| 0.25 panda / 0.33 parm6
 (0.50 / 0.54 at 4k), but system 0's arm error from the generated packet is still hold-still level (ratio 1.00 / 2.44)
