@@ -61,8 +61,10 @@ Negative: a 4th system-0 round (`gendag4b`) did not help (pooled 16/60, 32/60 wi
 
 Sem vs nosem (binding v4 bundles), same recipe compressed to the sprint: NOT REACHED — neither bundle became competent,
 so there is no deployable sem-vs-nosem comparison. R1 stateless after 3 BC-DAgger rounds: sem 1/30, 1/30; nosem 0/30, 4/30;
-after the generated-packet round: sem 0/30, 2/30; nosem 0/30 (panda). R2 with their own flows (12k): sem 0/30, 0/30;
-nosem 0/30, 1/30 (bcdag2) and 0/30, 0/30 (gendag1, base or DAgger-tuned flow); training bodies sem 0/312, nosem 4/312.
+after the generated-packet round: sem 0/30, 2/30; nosem 0/30, 0/30. R2 with their own flows (12k, and the same flows after
+800 steps of generator DAgger): sem 0/30, 0/30 in every combination (bcdag2, gendag1 x base / DAgger-tuned flow);
+nosem 0/30, 1/30 (bcdag2) then 0/30, 0/30; training bodies (R2 collection) sem 0/312, nosem 4/312.
+Raw: peer `artifacts/runs/ladder_v1/<robot>/{oracle_zero_bindv4*_orcbc,generated_zero_flowbv4*}.summary.json`.
 Nearly all failures are at approach: the binding-v4 system 0 still does not move toward the object from these packets.
 The binding chain's own flows (`flow_binding_paired_{sem,nosem}_v4`) are deadlocked on prefetch (alert below).
 
