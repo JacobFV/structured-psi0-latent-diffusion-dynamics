@@ -71,6 +71,20 @@ Raw: peer `artifacts/runs/ladder_v1/<robot>/{oracle_zero_bindv4*_orcbc,generated
 Nearly all failures are at approach: the binding-v4 system 0 still does not move toward the object from these packets.
 The binding chain's own flows (`flow_binding_paired_{sem,nosem}_v4`) are deadlocked on prefetch (alert below).
 
+### post-freeze experiments (lead 02:50: pack-included flow retraining on the route's own visited states; freeze stands unless a variant beats it on ALL of dev + both fresh sets)
+All: R2 with system 0 `gendag3_noqd` fixed, 30 seeds per set (dev 3,000,000 / fresh 3,000,100 / fresh 3,000,200), NFE 8.
+Contexts = gdag1-3 (learner-visited R2 states on the 13 training bodies, target z* = E(BC chunk)); peer GPU.
+| variant | recipe | panda dev / f100 / f200 = pooled | parm6 dev / f100 / f200 = pooled | verdict |
+|---|---|---|---|---|
+| FROZEN flow_jointfix_gdag2h | (reference) | 14 / 11 / 11 = 36/90 | 24 / 24 / 22 = 70/90 | - |
+| pfA (sha f16949b7) | from gdag2h, 3k steps, 50% pack / 50% DAgger, lr 5e-5 | 12 / 12 / 13 = 37/90 | 20 / 22 / 14 = 56/90 | worse (parm6) |
+| pfB (sha 75409608) | from gdag2h, 3k steps, 25% pack / 75% DAgger, lr 1e-4 | 11 / 10 / 12 = 33/90 | 17 / 17 / 18 = 52/90 | worse |
+| gdag3h (be8caaf7) | from gdag2h, 1.5k pack-free, + gdag3 contexts (02:47) | 13 / 12 / 10 = 35/90 | 20 / 18 / 21 = 59/90 | worse |
+| pfC | from gdag2h, 8k steps, 50/50, lr 1e-4 | running | running | |
+| pfD | from the 20k base flow, 8k steps, 50/50, lr 1e-4 | running | running | |
+Panda failures stay at approach (8-13 per 30) in every variant: retraining the generator on its own visited states with
+the pack mixed in does not move panda's approach failures. Raw: `artifacts/runs/ladder_v1/<robot>/generated_zero_flowpf*_rzgendag3_noqd_s*.summary.json`.
+
 HELD-OUT source bodies (not in the pack, not in any DAgger buffer; same harness, first 30 feasible dev seeds from 3,000,000):
 | rung | parm5s_tf3 | parm5l_pg2 |
 |---|---|---|
