@@ -458,6 +458,11 @@ packet. R2 fails at the same stages as the stateless oracle. Next: fix the syste
 next) {badge('oracle', 'ORACLE DIAGNOSTIC')}, and system 0 is scored against BC's executed command (1-step, normalized).
 The jointly trained system 0 realizes these packets below the hold-still error (a partial, not a precise, realization), and shadow-teacher DAgger
 <i>raised</i> its error (to 83–133% of hold-still) (consistent with stale labels). Its first tick after each new packet is as bad as holding still.
+<b>Mechanism found (sprint_latent):</b> system 0 largely copies the current joint <i>velocity</i> rather than following the packet. At
+BC-visited states, zeroing only the joint-velocity input collapses its commanded step gain from 0.88 to 0.12 relative to BC. From rest this is
+a fixed point, and it is the same class of proprioceptive shortcut as B-1. BC-expert DAgger penalizes it, which explains why the refits help. Removing
+the velocity input alone (jfnoqd) also moves the stateless route from 0/30 to its row's value. A refit without the velocity input is under test.
+{src('ladder_localize/bias/', 'research/tracks/ladder.md (SPRINT BEST ROUTE, 21:58)')}
 The generated-packet row measures the generator gap at the same states: through system 0 the generated packet is
 no better than holding still. So at this flow snapshot both stages fall short. {src(L.format(r='<robot>', t='<tag>'), 'research/tracks/ladder.md (sprint)')}</p>""")
     if not parts:
