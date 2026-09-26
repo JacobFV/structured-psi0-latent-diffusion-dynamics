@@ -387,14 +387,22 @@ packet. R2 already fails at the same stages as the stateless oracle. The direct 
     L = "ladder_localize/{r}/bc_direct1701_u12000__{t}.json"
     if have(L.format(r="panda_pg2", t="jointfix")):
         rows = []
-        for t_, lab in (("jointfix", "jointfix (Stage A joint, B-1 fixed)"), ("jfdag1", "jfdag1 (+ shadow-teacher DAgger)")):
+        tags = sorted({f.name[len("bc_direct1701_u12000__"):-5] for f in (RAW / "ladder_localize").glob("*/bc_direct1701_u12000__*.json")},
+                      key=lambda t: (("__" in t), t != "jointfix", t))
+        for t_ in tags:
+            gen = "__" in t_
+            lab = (f"jointfix system 0, GENERATED packet from learned:ladder_flow_{t_.split('__')[1].replace('flowjf', 'jointfix@').replace('_s', '')}"
+                   if gen else f"system 0 {t_}, oracle packet E(BC chunk)")
             cells = [esc(lab)]
             for r in ("panda_pg2", "parm6_tf3"):
                 p = L.format(r=r, t=t_)
                 if have(p):
                     d = J(p)["summary"]
-                    cells.append(f'{d["sys0_bcoracle_err_arm"]:.4f} / {d["hold_still_ref_arm"]:.4f} '
-                                 f'<span class="ci">({d["sys0_bcoracle_err_arm"] / d["hold_still_ref_arm"]:.0%} of hold-still)</span>')
+                    e = d["sys0_gen_err_arm"] if gen else d["sys0_bcoracle_err_arm"]
+                    x = (f' <span class="ci">|z_gen − z_bc| / |z_bc| = {d["z_gen_vs_bcoracle_rel"]:.2f}</span>'
+                         if gen and d.get("z_gen_vs_bcoracle_rel") is not None else "")
+                    cells.append(f'{e:.4f} / {d["hold_still_ref_arm"]:.4f} '
+                                 f'<span class="ci">({e / d["hold_still_ref_arm"]:.0%} of hold-still)</span>{x}')
                 else:
                     cells.append("—")
             rows.append(cells)
@@ -404,7 +412,8 @@ packet. R2 already fails at the same stages as the stateless oracle. The direct 
 next) {badge('oracle', 'ORACLE DIAGNOSTIC')}, and system 0 is scored against BC's executed command (1-step, normalized).
 The jointly trained system 0 realizes these packets below the hold-still error (a partial, not a precise, realization), and shadow-teacher DAgger
 <i>raised</i> its error (to 83–133% of hold-still) (consistent with stale labels). Its first tick after each new packet is as bad as holding still.
-Closed-loop version and R2 on the fixed flow: {badge('run')}. {src(L.format(r='<robot>', t='<tag>'), 'research/tracks/ladder.md (sprint)')}</p>""")
+The generated-packet row measures the generator gap at the same states: through system 0 the generated packet is
+no better than holding still. So at this flow snapshot both stages fall short. {src(L.format(r='<robot>', t='<tag>'), 'research/tracks/ladder.md (sprint)')}</p>""")
     if not parts:
         return ""
     now = dt.datetime.now().strftime("%H:%M")

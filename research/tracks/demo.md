@@ -62,3 +62,4 @@ Rendered on peer GPU EGL into `artifacts/runs/demo_video/` (NOT the shared artif
   scripts/demo/render_r2_triptych.sh (lease 1790391225_ffb5f8); render outcomes differ from eval rows, captions say so.
 - 20:15 refresh 4: SPRINT BEST ROUTE (interim) folded in: stateless R1 (E(BC chunk)) rows jointfix/jfdag1/jfdag2df08 all 0/30; sprint_latent's interim diagnosis (system 0 is the primary bottleneck) quoted with its reasons; lede updated.
 - 20:10 refresh 5: R2 flow_jointfix@8000 (0/30, 0/30) and stateless R1 jfbcdag1 (0/30 panda) rows; D-052 cited (system 0 underfit = primary bottleneck).
+- refresh 6: localization table now lists every ladder_localize tag incl. the generator gap (flowjf@4000: generated packet 93%/187% of hold-still vs oracle 43%/74%).
