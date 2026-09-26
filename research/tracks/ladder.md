@@ -3,6 +3,41 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
+## ARM NOSEM COUNTERPART (arm_nosem agent, started 2026-09-26 05:10 PDT; state: running)
+Question: does semantic supervision contribute to the frozen arm route (D-078/D-080: R2 pooled 36/90 panda_pg2, 70/90
+parm6_tf3) and to the task-context goal/binding edits (D-074/075/077)? Build the capacity-matched NO-SEMANTIC counterpart
+with the IDENTICAL recipe, then evaluate like-for-like.
+
+Treatment (configs `configs/ladder/armnosem/*`, generated from the sem configs by path/name substitution; diff = only):
+- Stage A `rep-latent_nosem_b1fix_anchor.json`: `latent.semantic_weight` 1.0 -> 0.0 (seed 1706, 15k steps, zero_prev_action,
+  realizer_anchor, same pack; nothing else changed).
+- flows `flow_nsjf{,_ft,_gdag1,_gdag2h}.json`: `packet_semantic_weight` 1.0 -> 0.0. Decision: in a nosem Stage A the
+  probes P receive no gradient (untrained), so a packet-probe loss would be noise; the sealed protocol defines nosem as
+  "nosem Stage A + flow packet_semantic_weight=0" (configs/eval/latent_slice1.json). Everything else identical
+  (seeds 1701/1702/1703/1860, steps 20k/+10k/+4k/+1.5k, lr, pack/DAgger fractions, packet_tau_min 0.6).
+- system-0 refits `rz_nsjf_{bcdag1,bcdag1_long,bcdag2,gendag1_noqd,gendag2_noqd,gendag3_noqd}.json`: identical to the sem
+  lineage (same seeds, steps, lr, dagger_frac, z-noise 0.3, realizer_drop_qd, anchor, same buffer compositions incl. gen1
+  without ur5e_tf3 in gendag1).
+- DAgger buffers re-collected ON-POLICY with the nosem models, same expert (stateless BC learned:direct1701_u12000,
+  sha 5e6586bd), same bodies (13 x 24) and seeds as the sem buffers (read from their summaries):
+  bc1 3.2M (Stage-A system 0) | bc2 3.3M (bcdag1) | bc3 3.4M (bcdag1_long) | gen1 3.5M (bcdag1_long + flow 20k) |
+  gen2 3.7M (gendag1_noqd + flow 20k) | gen3 3.8M (gendag2_noqd + flow_ft) | gdag1 ctx 3.9M (gendag2_noqd + flow_ft) |
+  gdag2 ctx 4.0M (gendag3_noqd + flow_gdag1). Output dirs `artifacts/runs/ladder_dagger_nsjf_<buf>`.
+- Final nosem route: flow `ladder_flow_nsjf_gdag2h` -> system 0 `ladder_rz_nsjf_gendag3_noqd` (counterpart of
+  gdag2h -> gendag3_noqd). Edit-suite route: `ladder_flow_nsjf/snap_final_s20000.pt` -> `ladder_rz_nsjf_gendag1_noqd`
+  (counterpart of the D-074/075/077 route flow_jointfix 20k -> gendag1_noqd).
+Driver: `scripts/armnosem_chain.sh` (runs on the peer as user unit `rrp-armnosem-chain`; DAG of one-shot leased jobs,
+exit-code/output checks, .done/.failed markers in `artifacts/runs/ladder_armnosem_state/`, log `chain.log`; no retries).
+Smoke: Stage A nosem 200 steps rc=0 (probe losses stay high = untrained probes, as expected).
+Evaluation plan (identical commands to the sem rows): R2 dev 3,000,000 + fresh 3,000,100 / 3,000,200 x 30 on panda_pg2,
+parm6_tf3; held-out parm5s_tf3 / parm5l_pg2 (dev); progression rows (flow 20k -> gendag1, flow_gdag1 -> gendag3); stateless
+R1 diagnostic; semantic-edit suite parm6_tf3 seeds 3,000,000-119 (12 shards x 10, max-steps 400, 6 conditions) and
+panda_pg2 seeds 3,000,000-047 (6 x 8). Sem panda suite had only 24/48 seeds (host watchdog); the missing 24 are being
+completed with the sem checkpoints (`artifacts/runs/acceptance_armnosem_semcompl_panda/shard_<seed>`).
+RESUME: `ssh gb10-direct systemctl --user status rrp-armnosem-chain`; if the unit is gone but nodes are unfinished, rerun
+`ssh gb10-direct 'systemd-run --user --unit rrp-armnosem-chain2 --working-directory=/dev/shm/rrp-brandonin/wt/ladder bash scripts/armnosem_chain.sh'`
+(done nodes are skipped; trainers resume from their *_last.pt; collections skip existing buffers).
+
 ## SPRINT BEST ROUTE FINAL (frozen 2026-09-26 02:30 PDT, sprint_latent; for sprint_semantic / sprint_demo)
 **Deployable route (R2): system i `learned:ladder_flow_jointfix_gdag2h` -> system 0 `learned:ladder_rz_jointfix_gendag3_noqd`.**
 No teacher, oracle or BC at run time. pick_place, 300 ticks, replan 8, NFE 8, standard stochastic sampling (noise scale 1),

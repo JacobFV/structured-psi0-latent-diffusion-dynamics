@@ -1,0 +1,26 @@
+{
+ "name": "ladder_flow_nsjf_ft",
+ "out_dir": "artifacts/runs/ladder_flow_nsjf_ft",
+ "representation": "artifacts/runs/ladder_latent_nosem_b1fix_anchor/representation.pt",
+ "packed_dir": "artifacts/packed/latent_pp_v3dart_s1_H16",
+ "zero_prev_action": true,
+ "seed": 1702,
+ "steps": 10000,
+ "batch_size": 128,
+ "lr": 0.0001,
+ "packet_semantic_weight": 0.0,
+ "policy": {
+  "width": 256,
+  "heads": 4,
+  "ctx_layers": 3,
+  "blocks": 6,
+  "structured": true,
+  "bias_mode": "true",
+  "attention": "factorized",
+  "name": "ladder_flow_nsjf_ft"
+ },
+ "normalize_target": true,
+ "snapshot_every": 1000,
+ "packet_tau_min": 0.6,
+ "init_from": "artifacts/runs/ladder_flow_nsjf/snap_final_s20000.pt"
+}
