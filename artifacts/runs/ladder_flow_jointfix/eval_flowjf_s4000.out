@@ -1,0 +1,34 @@
+WARNING: Attach conflict when attaching 'pg2' to 'panda', policy is 'warning'
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING: Attach conflict when attaching 'pg2' to 'panda', policy is 'warning'
+cone: parent has 0 (default), child has 1, keeping parent value
+
+Traceback (most recent call last):
+  File "/dev/shm/rrp-brandonin/wt/ladder/scripts/ladder.py", line 144, in <module>
+    main()
+  File "/dev/shm/rrp-brandonin/wt/ladder/scripts/ladder.py", line 90, in main
+    rows += run_ladder(cfg, p, models, ids, collect=collect)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/dev/shm/rrp-brandonin/venv/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/dev/shm/rrp-brandonin/wt/ladder/src/rrp/evaluation/ladder.py", line 561, in run_ladder
+    oracle_cmp=({key: float(np.mean([r[key] for r in rp])) for key in rp[0] if key != "t"} if rp else None),
+                                     ~^^^^^
+KeyError: 'probe_gen_visible_pos'
+Traceback (most recent call last):
+  File "/dev/shm/rrp-brandonin/wt/ladder/scripts/ladder.py", line 144, in <module>
+    main()
+  File "/dev/shm/rrp-brandonin/wt/ladder/scripts/ladder.py", line 90, in main
+    rows += run_ladder(cfg, p, models, ids, collect=collect)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/dev/shm/rrp-brandonin/venv/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/dev/shm/rrp-brandonin/wt/ladder/src/rrp/evaluation/ladder.py", line 561, in run_ladder
+    oracle_cmp=({key: float(np.mean([r[key] for r in rp])) for key in rp[0] if key != "t"} if rp else None),
+                                     ~^^^^^
+KeyError: 'probe_gen_visible_pos'
+[rrp.child] lease=1790390677_e89665 rc=1 stopped_by=None heartbeats=43
+{"lease_id": "1790390677_e89665", "unit": "rrp-job-1790390677_e89665.service", "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790390677_e89665_ladder_r2_flowjf_s4000.log", "returncode": 1, "unit_result": "exit-code", "exec_status": "1"}

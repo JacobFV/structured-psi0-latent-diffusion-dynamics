@@ -86,7 +86,7 @@ class System0Stats:
     fallback_holds: int = 0
 
 
-Q_COL, ANCHOR_COL = 26, 28     # node-feature layout: normalized joint position; (formerly prev-action, bug B-1) column
+Q_COL, QD_COL, ANCHOR_COL = 26, 27, 28     # node-feature layout: normalized joint position; (formerly prev-action, bug B-1) column
 
 
 def realizer_node_feats(s0, pi) -> np.ndarray:
@@ -95,6 +95,9 @@ def realizer_node_feats(s0, pi) -> np.ndarray:
     valid_from), in the same normalized-position units as column 26; this is local proprio memory of system 0 (declared),
     no scene/task information. Otherwise column 28 is left as the featurizer wrote it (0 since D-021)."""
     nf = pi.act_node_feats.astype(np.float32)
+    if getattr(s0.net, "drop_qd", False):         # realizer trained without the joint-velocity input (ladder sprint)
+        nf = nf.copy()
+        nf[:, QD_COL] = 0
     if not getattr(s0.net, "anchor", False):
         return nf
     if getattr(s0, "_anchor_for", None) is not s0.packet:

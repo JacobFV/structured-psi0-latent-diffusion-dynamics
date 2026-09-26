@@ -488,6 +488,13 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
                            cmd_g=c0.groups.get("gripper") if c0 is not None else None)
             if s0 and s0[k].packet is not None:
                 row["j"] = int(round((float(s.data.time) - s0[k].packet.valid_from) / s.dt))
+                if cfg.keep_ticks and oracle is not None and getattr(oracle, "last_cmds", None) and id(s) in oracle.last_cmds:
+                    pl = oracle.last_cmds[id(s)]                    # the packet's encoded plan row j (diagnostic)
+                    pr = pl[min(row["j"], len(pl) - 1)]
+                    row["plan"] = np.round(pr["arm"], 4).tolist(); row["plan_g"] = pr.get("gripper")
+                    row["plan_tcp"] = mt.tcp_of(np.asarray(pr["arm"], float)).round(4).tolist()
+                    if c0 is not None:
+                        row["cmd_tcp"] = mt.tcp_of(_arm(c0.groups)).round(4).tolist()
             if collect is not None and c0 is not None and k in collect["cur"] and row.get("j", 99) <= collect["max_j"]:
                 pi_c = f.base(s.observe())
                 n_ = pi_c.act_node_feats.shape[0]
@@ -595,7 +602,10 @@ def _compare(models, s, zg, zo, device) -> dict:
     f = _featurizer(s)
     pi = f(s.observe())
     kt = torch.tensor(models["lcfg"].knot_times, dtype=torch.float32, device=device)
-    nf = torch.from_numpy(pi.act_node_feats.astype(np.float32))[None].to(device)
+    nf_ = pi.act_node_feats.astype(np.float32).copy()
+    if getattr(models["R"], "drop_qd", False):
+        nf_[:, 27] = 0
+    nf = torch.from_numpy(nf_)[None].to(device)
     nm = torch.ones(1, nf.shape[1], dtype=torch.bool, device=device)
     lc = torch.from_numpy(local_sensors(pi))[None].to(device)
     ph = torch.zeros(1, device=device)
@@ -642,7 +652,8 @@ def packed_realization_check(rep_path: str, packed_dir: str, robot_key: str | No
     from rrp.learning.latent_train import load_representation, LatentData
     from rrp.model.semantic_latent import assembly_tokens
     lcfg, E, R, P, res = load_representation(Path(rep_path), device)
-    data = LatentData(Path(packed_dir), zero_prev_action=zero_prev_action, anchor=getattr(R, "anchor", False))
+    data = LatentData(Path(packed_dir), zero_prev_action=zero_prev_action, anchor=getattr(R, "anchor", False),
+                      drop_qd=getattr(R, "drop_qd", False))
     rid = data.ds.meta["robot_ids"].get(robot_key) if robot_key else None
     pool = None
     if rid is not None:

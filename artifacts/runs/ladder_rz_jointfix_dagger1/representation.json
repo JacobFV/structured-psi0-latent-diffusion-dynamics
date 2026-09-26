@@ -1,0 +1,8 @@
+{
+ "path": "artifacts/runs/ladder_rz_jointfix_dagger1/representation.pt",
+ "sha256_16": "f2754a1839fcdb20",
+ "step": 4000,
+ "versions": {
+  "latent": "ls-80e5f25be2f0-wf22fe70f99d5"
+ }
+}

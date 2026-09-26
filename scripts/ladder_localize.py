@@ -34,7 +34,16 @@ def main():
     ap.add_argument("--replan", type=int, default=8)
     ap.add_argument("--nfe", type=int, default=8)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--zero-qd", action="store_true", help="DIAGNOSTIC: zero the joint-velocity node column (27) at "
+                    "system-0 input, to test whether system 0 copies the current velocity (causal confusion)")
     a = ap.parse_args()
+    if a.zero_qd:
+        import rrp.control.latent_realizer as LR
+        _orig = LR.realizer_node_feats
+
+        def _zq(s0, pi):
+            nf = _orig(s0, pi).copy(); nf[:, 27] = 0; return nf
+        LR.realizer_node_feats = _zq
     if a.seed_start < 3_000_000:
         sys.exit("dev seeds must be >= 3,000,000")
     dev = "cpu"
@@ -84,7 +93,7 @@ def main():
                                    realizer_compat_version=res["realizer_compat_version"], device=dev)
         s0o.append(mk()); s0g.append(mk())
         st.append(dict(err_o_arm=[], err_o_grip=[], err_g_arm=[], err_g_grip=[], hold_arm=[], zrel=[], z_by_t=[],
-                       err_o_by_j={}, err_g_by_j={}))
+                       err_o_by_j={}, err_g_by_j={}, hold_by_j={}, tcp={}))
     arm_n = grip_n = None
     Tmax = max(len(v) for v in log.values())
     for step in range(Tmax):
@@ -128,6 +137,15 @@ def main():
                     st[k][f"err_{tag}_arm"].append(ea)
                     st[k][f"err_{tag}_grip"].append(float(np.mean((lb[grip_n] - ca[grip_n]) ** 2)) if grip_n else 0.0)
                     st[k][f"err_{tag}_by_j"].setdefault(j, []).append(ea)
+                    if tag == "o":        # TCP-space bias of system 0 vs BC's command (FK of the commanded arm q)
+                        mt = meters[k]
+                        tn = mt.tcp(); tb = mt.tcp_of(np.asarray(cmd["arm"], float)); tr = mt.tcp_of(np.asarray(c.groups["arm"], float))
+                        cube = s.data.xpos[mt.cube].copy(); u = cube - tn; u = u / (np.linalg.norm(u) + 1e-9)
+                        sb, sr = tb - tn, tr - tn
+                        st[k]["tcp"].setdefault(0 if j == 0 else 1, []).append(
+                            [float(np.dot(tr - tb, u)), *(tr - tb).tolist(), float(np.linalg.norm(sb)), float(np.linalg.norm(sr)),
+                             float(np.dot(sr, sb) / (np.dot(sb, sb) + 1e-12))])
+                st[k]["hold_by_j"].setdefault(j, []).append(st[k]["hold_arm"][-1])
             s.step(None if cmd is None else NativeCommand(controller_version=s.controller_version(), groups=cmd,
                                                           source="learned"))   # exact replay of BC's logged commands
     out_rows = []
@@ -141,6 +159,10 @@ def main():
                              z_gen_vs_bcoracle_rel=m(st[k]["zrel"]), hold_still_ref_arm=m(st[k]["hold_arm"]),
                              err_o_by_j={j: m(v) for j, v in sorted(st[k]["err_o_by_j"].items())},
                              err_g_by_j={j: m(v) for j, v in sorted(st[k]["err_g_by_j"].items())},
+                             hold_by_j={j: m(v) for j, v in sorted(st[k]["hold_by_j"].items())},
+                             tcp_bias={("j0" if g == 0 else "j1+"): dict(zip(["along_cube_m", "dx", "dy", "dz", "bc_step_m", "sys0_step_m",
+                                                                                "gain_proj"], np.mean(v, 0).tolist()))
+                                       for g, v in st[k]["tcp"].items()},
                              z_by_t=st[k]["z_by_t"]))
     pool = lambda key: float(np.mean([r[key] for r in out_rows if r[key] is not None])) \
         if any(r[key] is not None for r in out_rows) else None
@@ -151,6 +173,11 @@ def main():
                 z_gen_vs_bcoracle_rel=pool("z_gen_vs_bcoracle_rel"),
                 hold_still_ref_arm=pool("hold_still_ref_arm"),
                 note="z_bc = E(BC's executed next chunk): ORACLE DIAGNOSTIC; system 0 / generator not executed",
+                err_o_by_j={j: float(np.mean([r["err_o_by_j"][j] for r in out_rows if j in r["err_o_by_j"]])) for j in range(a.replan)},
+                hold_by_j={j: float(np.mean([r["hold_by_j"][j] for r in out_rows if j in r["hold_by_j"]])) for j in range(a.replan)},
+                tcp_bias={g: {q: float(np.mean([r["tcp_bias"][g][q] for r in out_rows if g in r["tcp_bias"]]))
+                              for q in ["along_cube_m", "dx", "dy", "dz", "bc_step_m", "sys0_step_m", "gain_proj"]}
+                          for g in ("j0", "j1+")},
                 checkpoints=ids, wall_s=time.time() - t0)
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     Path(a.out).write_text(json.dumps(dict(summary=summ, rows=out_rows), indent=1, default=str))

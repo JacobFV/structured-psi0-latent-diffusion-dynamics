@@ -1,0 +1,8 @@
+{
+ "path": "artifacts/runs/ladder_latent_sem_b1fix_anchor/representation.pt",
+ "sha256_16": "49b2e2e325b9e3a1",
+ "step": 15000,
+ "versions": {
+  "latent": "ls-80e5f25be2f0"
+ }
+}

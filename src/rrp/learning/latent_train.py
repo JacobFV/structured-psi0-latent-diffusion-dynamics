@@ -46,11 +46,12 @@ def _dev():
 class LatentData:
     """Row i = (episode, t). Realizer targets use row i+j of the same episode (stride-1 packing required)."""
 
-    def __init__(self, packed_dir: Path, zero_prev_action: bool = False, anchor: bool = False):
+    def __init__(self, packed_dir: Path, zero_prev_action: bool = False, anchor: bool = False, drop_qd: bool = False):
         if anchor and not zero_prev_action:
             raise ValueError("realizer_anchor reuses node column 28: requires zero_prev_action")
         self.ds = PackedChunkDataset(packed_dir, zero_prev_action=zero_prev_action)
         self.anchor = anchor
+        self.drop_qd = drop_qd          # realizer input without the joint-velocity column (velocity-copy causal confusion)
         if self.ds.meta["stride"] != 1:
             raise ValueError("latent training needs stride-1 packing (state at t+j)")
         self.ep = np.asarray(self.ds.arr["ep_idx"])
@@ -86,6 +87,9 @@ class LatentData:
         if self.anchor:            # anchored realizer: col 28 = normalized joint displacement since the packet state (t)
             from rrp.control.latent_realizer import Q_COL, ANCHOR_COL
             nodes[:, :N, ANCHOR_COL] = nodes[:, :N, Q_COL] - batch.node_feats[:, :, Q_COL].numpy()
+        if self.drop_qd:
+            from rrp.control.latent_realizer import QD_COL
+            nodes[:, :, QD_COL] = 0
         lab["subtask"] = torch.from_numpy(np.asarray(A["subtask"][sel]).astype(np.int64))
         r = dict(node=torch.from_numpy(nodes[:, :N]), node_mask=torch.from_numpy(np.arange(N)[None] < nn_[:, None]),
                  a1=torch.from_numpy(a1[:, :N]), v1=torch.from_numpy(v1[:, :N]), local=torch.from_numpy(loc))
@@ -303,6 +307,7 @@ def load_representation(path: Path, dev):
         PacketProbe(cfg.dz, cfg.knots, **st["config"].get("probe", {})).to(dev)
     E.load_state_dict(st["model"]["E"]); R.load_state_dict(st["model"]["R"]); P.load_state_dict(st["model"]["P"])
     R.anchor = bool(st["config"].get("realizer_anchor", False))    # ladder: anchored realizer input (col 28)
+    R.drop_qd = bool(st["config"].get("realizer_drop_qd", False))  # ladder: realizer input without joint velocity (col 27)
     for m in (E, R, P):
         m.eval()
         for p in m.parameters():
@@ -567,7 +572,7 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
     st0 = load_checkpoint(rep_path, map_location=dev)
     lcfg, E, R_old, P, rep_res = load_representation(rep_path, dev)
     data = LatentData(Path(cfg_json["packed_dir"]), zero_prev_action=cfg_json.get("zero_prev_action", False),
-                      anchor=cfg_json.get("realizer_anchor", False))
+                      anchor=cfg_json.get("realizer_anchor", False), drop_qd=cfg_json.get("realizer_drop_qd", False))
     from rrp.control.latent_realizer import make_realizer
     arch = dict(st0["config"].get("realizer_arch") or {})
     for k_ in ("layers", "width", "z_norm"):                  # capacity / input-normalization overrides (ladder sprint)
@@ -575,6 +580,7 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
             arch[k_] = cfg_json[f"realizer_{k_}"]
     R = make_realizer(lcfg.dz, lcfg.realizer_layers, arch).to(dev)
     R.anchor = cfg_json.get("realizer_anchor", False)
+    R.drop_qd = cfg_json.get("realizer_drop_qd", False)
     if cfg_json.get("init", "fresh") == "old":
         R.load_state_dict(R_old.state_dict())
     for p_ in R.parameters():
@@ -604,7 +610,7 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
     B = cfg_json.get("batch_size", 128)
     t0 = time.time()
     kt = torch.tensor(lcfg.knot_times, device=dev)
-    dag = _load_dagger(cfg_json.get("dagger") or [], dev)
+    dag = _load_dagger(cfg_json.get("dagger") or [], dev, anchor=R.anchor, drop_qd=R.drop_qd)
     Bd = int(round(B * cfg_json.get("dagger_frac", 0.5))) if dag else 0
     drng = np.random.default_rng(seed + 11)
     nw = cfg_json.get("prefetch_workers", 3)
@@ -669,18 +675,42 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
     E.eval(); R.eval(); P.eval()
     save_checkpoint(out_dir / ("representation.pt" if not sig.requested else "representation_interrupted.pt"),
                     model=_bundle(E, R, P), optimizer=None, step=step, versions=dict(latent=rep_res["latent_space_version"]),
-                    config=dict(st0["config"], refit=cfg_json, realizer_anchor=R.anchor,
+                    config=dict(st0["config"], refit=cfg_json, realizer_anchor=R.anchor, realizer_drop_qd=R.drop_qd,
                                 realizer_arch=dict(layers=len(R.blocks), width=R.D, z_norm=bool(getattr(R, "z_norm", False))),
                                 zero_prev_action=cfg_json.get("zero_prev_action", False)), extra=dict(result=res))
     (out_dir / "result.json").write_text(json.dumps(res, indent=1, default=str))
     return res
 
 
-def _load_dagger(paths, dev):
-    """System-0 DAgger buffers written by rrp.evaluation.ladder.save_dagger (single-assembly bodies; M = 1)."""
+def _load_dagger(paths, dev, anchor: bool = False, drop_qd: bool = False):
+    """System-0 DAgger buffers written by rrp.evaluation.ladder.save_dagger (single-assembly bodies; M = 1).
+    Buffers store the BASE node features (col 28 = 0). anchor: recompute col 28 = q(t+j) - q(packet state) from the
+    j = 0 row of the same packet (as LatentData does for the pack; rows without a j = 0 row are dropped).
+    drop_qd: zero the joint-velocity column (27) like LatentData(drop_qd)."""
     if not paths:
         return None
-    parts = [np.load(p) for p in paths]
+    from rrp.control.latent_realizer import Q_COL, ANCHOR_COL, QD_COL
+    parts = []
+    for p in paths:
+        z_ = np.load(p)
+        q = {k_: z_[k_] for k_ in ("mu", "lv", "rp", "j", "node", "n_nodes", "local", "a1")}
+        if anchor or drop_qd:
+            node = q["node"].astype(np.float32)
+            keep = np.ones(len(node), bool)
+            if anchor:
+                j0 = {}
+                for i, (rp_, j_) in enumerate(zip(q["rp"], q["j"])):
+                    if j_ == 0:
+                        j0[int(rp_)] = i
+                idx0 = np.array([j0.get(int(r_), -1) for r_ in q["rp"]])
+                keep = idx0 >= 0
+                node[keep, :, ANCHOR_COL] = node[keep, :, Q_COL] - node[idx0[keep], :, Q_COL]
+            if drop_qd:
+                node[:, :, QD_COL] = 0
+            q["node"] = node.astype(q["node"].dtype)
+            for k_ in ("rp", "j", "node", "n_nodes", "local", "a1"):
+                q[k_] = q[k_][keep]
+        parts.append(q)
     off, rp = 0, []
     for q in parts:
         rp.append(q["rp"].astype(np.int64) + off)

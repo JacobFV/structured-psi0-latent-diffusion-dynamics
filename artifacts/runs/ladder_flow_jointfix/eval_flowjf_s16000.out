@@ -1,0 +1,17 @@
+WARNING: Attach conflict when attaching 'pg2' to 'panda', policy is 'warning'
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING: Attach conflict when attaching 'pg2' to 'panda', policy is 'warning'
+cone: parent has 0 (default), child has 1, keeping parent value
+
+16/30 success=0
+WARNING: Attach conflict when attaching 'pg2' to 'panda', policy is 'warning'
+cone: parent has 0 (default), child has 1, keeping parent value
+
+30/30 success=0
+{"n": 30, "success": 0, "rate": 0.0, "wilson95": [0.0, 0.113517091390478], "failed_stage": {"approach": 20, "lift": 4, "grasp": 6}, "track_q_rad": 0.011973814320959602, "track_tcp_m": 0.01391084520874924, "lab_err_arm": 0.6283846128722975, "lab_err_grip": 0.31309049192876626, "min_tcp_cube_m": 0.043332233345467826, "cmd_step_rad": 0.03884613006159157, "route": "generated", "robot": "panda_pg2", "seeds": [3000000, 3000029, 30], "replan": 8, "nfe": 8, "prev_action": "zero", "reanchor": false, "oracle_expert": "teacher", "policy_label": null, "keep_ticks": false, "oracle_reanchor": false, "object_shift": null}
+16/30 success=0
+30/30 success=0
+{"n": 30, "success": 0, "rate": 0.0, "wilson95": [0.0, 0.113517091390478], "failed_stage": {"grasp": 20, "approach": 7, "lift": 2, "transport": 1}, "track_q_rad": 0.004092070355594638, "track_tcp_m": 0.005155392189861687, "lab_err_arm": 0.29320077675932804, "lab_err_grip": 0.4297307683828234, "min_tcp_cube_m": 0.019825500733898143, "cmd_step_rad": 0.01987089177484647, "route": "generated", "robot": "parm6_tf3", "seeds": [3000003, 3000041, 30], "replan": 8, "nfe": 8, "prev_action": "zero", "reanchor": false, "oracle_expert": "teacher", "policy_label": null, "keep_ticks": false, "oracle_reanchor": false, "object_shift": null}
+[rrp.child] lease=1790393804_40c8f1 rc=0 stopped_by=None heartbeats=38
+{"lease_id": "1790393804_40c8f1", "unit": "rrp-job-1790393804_40c8f1.service", "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790393804_40c8f1_ladder_r2_flowjf_s16000.log", "returncode": 0, "unit_result": "success", "exec_status": "0"}

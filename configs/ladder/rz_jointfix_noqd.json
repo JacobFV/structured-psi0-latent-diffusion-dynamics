@@ -1,0 +1,16 @@
+{
+ "name": "rz_jointfix_noqd",
+ "out_dir": "artifacts/runs/ladder_rz_jointfix_noqd",
+ "representation": "artifacts/runs/ladder_latent_sem_b1fix_anchor/representation.pt",
+ "packed_dir": "artifacts/packed/latent_pp_v3dart_s1_H16",
+ "zero_prev_action": true,
+ "dagger": [],
+ "prefetch_workers": 0,
+ "steps": 8000,
+ "batch_size": 128,
+ "lr": 0.0003,
+ "seed": 1720,
+ "init": "old",
+ "realizer_anchor": true,
+ "realizer_drop_qd": true
+}

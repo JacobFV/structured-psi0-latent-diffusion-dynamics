@@ -1,0 +1,8 @@
+{
+ "path": "artifacts/runs/ladder_rz_jointfix_big_pack/representation_interrupted.pt",
+ "sha256_16": "713f15a2ec611250",
+ "step": 1254,
+ "versions": {
+  "latent": "ls-80e5f25be2f0-wf22fe70f99d5"
+ }
+}
