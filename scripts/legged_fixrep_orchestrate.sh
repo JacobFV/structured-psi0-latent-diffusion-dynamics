@@ -10,7 +10,7 @@ ev() { local B=$1; shift; bash scripts/peer_run.sh --cpu 10 --mem 12G --label le
         bash -c "PY=$PPY bash scripts/legged_fixrep_eval.sh $B 10 $*"; }
 case $1 in
   hex) T="fixsem_hexapod6_s1 fixsem_hexapod6_s2 nosem_hexapod6_s1 nosem_hexapod6_s2"
-       waitpeer 1790440023_da8335; haveflows $T && ev hexapod6 $T;;
+       waitpeer ${HEXLEASE:-1790440023_da8335}; haveflows $T && ev hexapod6 $T;;
   go2peer) T="fixsem_go2_s1 fixsem_go2_s2 nosem_go2_s2"
        waitpeer 1790440106_9ac1a9; haveflows $T && ev go2 $T;;
   go2host) t=nosem_go2_s1; F=artifacts/runs/legged_fixrep_flow_$t; R=artifacts/runs/legged_fixrep_rep_$t
