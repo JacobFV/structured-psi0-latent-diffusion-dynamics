@@ -460,7 +460,12 @@ matched-norm probe-orthogonal edit. The claim that semantic supervision adds cau
         if not fl or "ladder_ckpts" in fl or "grpo_base" in fl or "flow_latent_sem_v" in fl:   # pre-fix flows
             continue
         fresh = " · FRESH seeds " + f.name.split("fresh")[1].split(".")[0] + "+ (not the matched set)" if "fresh" in f.name else ""
-        step = (Path(fl).parent.name.replace("ladder_flow_", "").replace("ladder_", ""), _re_step(fl))
+        import re as _re3
+        _st = _re_step(fl)
+        if _st < 0:
+            _m = _re3.search(r"(\d+)k_rz", f.name)
+            _st = int(_m.group(1)) * 1000 if _m else -1
+        step = (Path(fl).parent.name.replace("ladder_flow_", "").replace("ladder_", ""), _st)
         s0 = Path(rep).parent.name.replace("ladder_rz_jointfix_", "").replace("ladder_latent_sem_b1fix_anchor", "jointfix").replace("ladder_rz_", "")
         r2rows.setdefault((step, s0, fresh), {})[f.parent.name] = d
     if r2rows:
