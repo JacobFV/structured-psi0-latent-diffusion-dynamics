@@ -230,3 +230,11 @@ Sealed latent_slice1 budget-0 cells (campaign harness, 100 episodes, seeds 2,000
 - direct final on held-out source bodies: 79/80; final checkpoints 30/30 on panda_pg2 and parm6_tf3
 BC transfers zero-shot to a new gripper pairing on a known arm (panda + tf3) but not to an unseen arm (xarm7). That gap is the one the sealed four-way comparison is designed to test; no latent method has been run on target bodies.
 R2 (deployable) confirmations: gendag1_noqd on FRESH seeds (3,000,100+; not the matched set): parm6 7/30, panda 2/30. The matched-seed D-063 result (9/30 parm6) holds up roughly on fresh seeds. R2 panda with system 0 bcdag3: 3/30. Stateless R1: bcdag3 parm6 22/30; gendag1noqd panda 18/30.
+
+## D-065 2026-09-25 BC final semantic-edit reference; sprint_bc track closed
+sprint_bc final (research/tracks/baselines.md "SPRINT BC RESULT"; research/reports/latent_slice1_b1fix_baselines_tables.md). Final direct-action BC (26,304 updates): held-out source 79/80, ladder 30/30 + 30/30; codec BC 77/80, 29/30 + 28/30. Learning curve: competent from 12k and 30/30 on both bodies from 24k. Semantic edits on the final BC (src/rrp/evaluation/bc_semantic_edits.py; panda_pg2 24 seeds, parm6_tf3 17 feasible):
+- goal shift: cube placed at the shifted goal 23/24 and 16/17
+- object-belief swap with a distractor: distractor lifted 23/24 and 15/17
+- irrelevant edit: unchanged 24/24 and 17/17
+- descriptor-only rebind: ignored (0/32 on the 12k checkpoint, acceptance track)
+So a competent context-conditioned controller already follows goal and object-belief edits but not a pure binding change. The latent packet must beat this reference, especially on binding, to support the semantic claim. Seeds 1702/1703 and the SFT budgets stay on hold; nothing of this track is running.
