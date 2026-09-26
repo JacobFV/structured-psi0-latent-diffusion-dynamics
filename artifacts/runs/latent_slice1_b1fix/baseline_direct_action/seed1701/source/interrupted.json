@@ -1,0 +1,24 @@
+{
+ "steps": 12869,
+ "wall_s": 7208.041483640671,
+ "train_chunks": 1122555,
+ "swap_pairs": 0,
+ "n_params": 14923016,
+ "gpu": {
+  "cuda": true,
+  "declared_bytes": 17179869184,
+  "device_total_bytes": 130596077568,
+  "fraction": 0.1315496568038548
+ },
+ "interrupted": true,
+ "checkpoint": {
+  "path": "artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/source/policy_interrupted.pt",
+  "sha256_16": "2483e8cfe3f5c6f6",
+  "step": 12869,
+  "versions": {
+   "policy": "baseline_direct_action_seed1701",
+   "featurizer": "feat-v2",
+   "codec": null
+  }
+ }
+}
