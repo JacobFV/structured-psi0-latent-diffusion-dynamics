@@ -33,7 +33,15 @@ Rendered on peer GPU EGL into `artifacts/runs/demo_video/` (NOT the shared artif
 - 19:20 page v1 built (44 raw files), evidence matrix updated with D-048/D-049 and the B-1-fixed BC state. BC source at
   update 12,000 (host). No SPRINT sections in ladder/acceptance/baselines notes yet.
 
-## next
+## resume / state (04:00)
+State: **completed for the sprint** (page live on main; refreshed continuously). To refresh after new results: `scripts/demo/refresh.sh "<note>"`
+(pulls raw from the peer store, rebuilds index.html + artifact.html, commits docs/demo + helpers, rebases (INDEX.md conflicts union-resolved by `scripts/demo/resolve.sh`), pushes main + track/demo with retry).
+Watcher: `scripts/demo/watch_events.sh <sec>` prints new ladder/localize/acceptance raw files and non-demo commits.
+The builder is data-driven for: scoreboard, bottom-line R2/oracle/BC numbers, R2 rows (keyed by the checkpoints in each summary; fresh seed sets `_fresh<seed>`/`_s3000X00`), FINAL block (edit `FROZEN` in build_page.py when sprint_latent re-freezes), legged/bodies clips (from artifacts/video/INDEX.md), legged table (legged_vlm.md LEGGED RESEARCH RESULT).
+Hard-coded narrative numbers (legged D-069/D-071/D-076/D-079, D-062 wording) cite their decision ids; update them if those decisions change.
+Known issue: some auto 'demo: rebuild after rebase' commits before 02:35 lack the Co-Authored-By trailer (already on main; not rewritten).
+
+## next (original plan)
 - Every ~90 min: check `SPRINT BEST ROUTE` (track/ladder ladder.md), `SPRINT SEMANTIC RESULTS` (acceptance.md),
   `SPRINT BC RESULT` (baselines.md) on origin/track/* and the worktrees; pull their raw files, add rows/clips, rebuild,
   commit, merge docs/demo + videos to main, tell the lead.
