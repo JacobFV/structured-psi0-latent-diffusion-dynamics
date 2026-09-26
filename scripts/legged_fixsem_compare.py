@@ -50,6 +50,37 @@ for v, (ed, tag) in V.items():
                                halt_forward=cf.get("halt", {}).get("forward"))
 
 
+def paired_active_minus_inactive(d):
+    """per-seed toward-mirror lateral (vs the unedited run), mirror_active minus mirror_inactive; bootstrap 95% CI."""
+    import math, numpy as np
+    def eff(r):
+        te = r["t_edit"]; tr = [x for x in r["trace"] if x["t"] >= te - 1e-6]
+        if len(tr) < 2:
+            return None
+        x0, y0, a0 = tr[0]["pose"]; x1, y1, a1 = tr[-1]["pose"]
+        ev = next((p["ev"] for p in r["packets"] if p["t"] >= te - 1e-6), 0)
+        wp = r["waypoints"]["a" if ev == 0 else "b"]; c, s_ = math.cos(a0), math.sin(a0)
+        return math.copysign(1.0, -s_ * (wp[0] - x0) + c * (wp[1] - y0)), -s_ * (x1 - x0) + c * (y1 - y0)
+    R = {k: {r["seed"]: r for r in (rows(d / f"{k}.jsonl") or [])} for k in ("none", "mirror_active", "mirror_inactive")}
+    diffs = []
+    for sd, r0 in R["none"].items():
+        b = eff(r0)
+        if b is None or sd not in R["mirror_active"] or sd not in R["mirror_inactive"]:
+            continue
+        a, i = eff(R["mirror_active"][sd]), eff(R["mirror_inactive"][sd])
+        if a is None or i is None:
+            continue
+        diffs.append(-b[0] * (a[1] - b[1]) - (-b[0] * (i[1] - b[1])))
+    if not diffs:
+        return None
+    v = np.asarray(diffs); rng = np.random.default_rng(0); bs = [rng.choice(v, len(v)).mean() for _ in range(2000)]
+    return [round(float(v.mean()), 3), round(float(np.percentile(bs, 2.5)), 3), round(float(np.percentile(bs, 97.5)), 3)]
+
+
+for v, (ed, tag) in V.items():
+    out["ctx_edits"][v]["active_minus_inactive_paired"] = paired_active_minus_inactive(E / f"r2ctx_{ed}_snap_s4000")
+
+
 def f(x):
     if x is None:
         return "–"
@@ -78,7 +109,8 @@ for kk in (4, 8, 12):
         f"{f(Z[v]['random'][kk]['forward'])} / {f(Z[v]['random'][kk]['dyaw'])}" for v in V) + " |")
 C = out["ctx_edits"]
 for lab, k in [("ctx: mirror ACTIVE waypoint, toward-mirror lateral m", "mirror_active"), ("ctx: mirror both waypoints", "mirror_goal"),
-               ("ctx: mirror INACTIVE waypoint (control)", "mirror_inactive"), ("ctx: task view halt, Δforward m", "halt_forward")]:
+               ("ctx: mirror INACTIVE waypoint (control)", "mirror_inactive"),
+               ("ctx: ACTIVE − INACTIVE, paired per seed", "active_minus_inactive_paired"), ("ctx: task view halt, Δforward m", "halt_forward")]:
     md.append(f"| {lab} | " + " | ".join(f(C[v][k]) for v in V) + " |")
 Path(f"artifacts/runs/legged_fixsem_compare_{body}.json").write_text(json.dumps(out, indent=1))
 Path(f"artifacts/runs/legged_fixsem_compare_{body}.md").write_text("\n".join(md) + "\n")
