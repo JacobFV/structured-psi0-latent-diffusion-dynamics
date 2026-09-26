@@ -18,7 +18,7 @@ prev-action input 0, privileged success evaluator. Matched dev seeds = the first
 | R2, same checkpoints, 30 FRESH seeds | 13/30 [0.27,0.61] | 21/30 [0.52,0.83] | lift 8, approach 4, grasp 2, transport 2, place 1 / lift 4, transport 4, place 1 | 0.012 / 0.012; 0.005 / 0.006 |
 | R2, 30 more FRESH seeds (3,000,200+) | 9/30 [0.17,0.48] | 17/30 [0.39,0.73] | lift 7, approach 7, grasp 4, place 2, transport 1 / approach 5, transport 5, lift 2, place 1 | 0.013 / 0.012; 0.005 / 0.006 |
 | plain BC on the same 3,000,200+ seeds (ladder harness) | 24/30 [0.63,0.90] | 27/30 [0.74,0.97] | | |
-| **R2 pooled (90 seeds)** | **32/90 = 0.36 [0.26,0.46]** | **60/90 = 0.67 [0.56,0.75]** | | |
+| **R2 pooled (90 seeds)** | **32/90 = 0.36 [0.26,0.46]** | **60/90 = 0.67 [0.56,0.76]** | | |
 | R2 on the 13 source-TRAINING bodies (seeds 4,000,000+, 24 each; gdag2 collection) | 209/312 = 0.67 overall | | | |
 | historical: R1 shadow-teacher oracle (CONFOUNDED, D-050), best jfdag1 | 1/30 | 0/30 | approach | |
 
@@ -61,6 +61,10 @@ What made it work (all in-architecture; ablations on the same seeds in the live 
    0/30,0/30 -> 18/30,27/30; R2 0/30,0/30 -> 9/30,17/30.
 4. Generator DAgger (flow fine-tuned on learner-visited contexts toward z* = E(BC chunk)): R2 9/30,17/30 -> 10/30,22/30.
 Not solved: panda grasp/lift (pg2 parallel gripper alignment) and parm6 place; R2 < R1 stateless < BC.
+A 4th system-0 round (`gendag4b`: + gdag1/gdag2 generated-packet buffers, CPU 6k) did NOT help: with flow_gdag1, panda 9/30
++ 7/30 fresh, parm6 16/30 + 16/30 fresh (pooled 16/60, 32/60 vs 23/60, 43/60 for gendag3) -> gendag3_noqd stays final.
+A second generator-DAgger round (`flow_jointfix_gdag2`) was stopped at ~300 steps: the peer GPU was saturated by other
+tracks (3 s/step).
 
 Sem vs nosem (binding v4 bundles) with the same recipe, compressed to the sprint: NOT competent, so no deployable
 comparison yet. R1 stateless after 3 BC-DAgger rounds: sem 1/30, 1/30; nosem 0/30, 4/30. R2 with their own flows

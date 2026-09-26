@@ -41,14 +41,17 @@ def main_semantic(a):
         tag = f"learned_bc_{Path(a.checkpoint).stem}"
     elif a.route == "generated":
         from rrp.learning.checkpoint import load_checkpoint
-        rep = Path(load_checkpoint(a.checkpoint, map_location="cpu")["config"]["representation"])
-        _, _, R, P, _ = load_representation(rep, dev)
+        rep = Path(a.representation or load_checkpoint(a.checkpoint, map_location="cpu")["config"]["representation"])
+        _, _, R, P, res = load_representation(rep, dev)
         if arm:
             from rrp.evaluation.dual_latent_eval import DualLatentPolicy as Pol
         else:
             from rrp.policy.latent_runner import LatentPolicy as Pol
-        src = se.GeneratedSource(Pol.from_checkpoint(a.checkpoint, device=dev, nfe=8))
-        srclab = f"LEARNED {Path(a.checkpoint).parent.name}"
+        pol = Pol.from_checkpoint(a.checkpoint, device=dev, nfe=8)
+        assert pol.lsv == res["latent_space_version"], "flow / system-0 latent space mismatch"
+        pol.rcv = res["realizer_compat_version"]            # system-0 override (same latent space), as the suite
+        src = se.GeneratedSource(pol)
+        srclab = f"LEARNED (deployable) {Path(a.checkpoint).parent.name} -> s0 {rep.parent.name}"
         tag = f"learned_{Path(a.checkpoint).parent.name}"
     else:
         rep = Path(a.representation)
