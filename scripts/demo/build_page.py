@@ -192,7 +192,8 @@ def video_card(v) -> str:
     if kind == "learned":
         lab = "learned:flow_latent_sem_v2@22k"
     if kind == "bc":
-        lab = "learned:" + f.split("_s30000")[1].split("_", 1)[1].rsplit("_", 1)[0]
+        lab = "learned:" + ("direct1701_u12000 (BC)" if "_s30000" not in f else
+                            f.split("_s30000")[1].split("_", 1)[1].rsplit("_", 1)[0])
     exists = (VID / f).exists()
     size = f"{(VID / f).stat().st_size / 1e6:.2f} MB" if exists else "missing"
     body = (f'<video controls muted loop playsinline preload="metadata" src="video/{esc(f)}"></video>' if exists
@@ -237,6 +238,114 @@ def ladder_rows():
                      f'{esc(what)}<br><span class="muted" style="font-size:.8em">tag {esc(plain)}</span>',
                      pp, pr, qp, qr, esc(stages), mtc])
     return rows
+
+
+SEM_VIDEOS = [
+    ("2026-09-25_semantic_edit_rebind_obj_scripted_teacher_panda_pg2_k31000080.mp4", "teacher",
+     "rebind (paired scene) · teacher · left control, right edited",
+     "Only the task's binding changes (the entity descriptor now names the other cube). The teacher goes to the new cube.",
+     "artifacts/runs/acceptance_sprint_sem_teacher_paired/semantic_summary_teacher.json"),
+    ("2026-09-25_semantic_edit_rebind_obj_oracle_ladder_latent_sem_b1fix_anchor_panda_pg2_k31000080.mp4", "oracle",
+     "rebind (same scene) · ORACLE packet, jointfix bundle · approaches and touches the new cube",
+     "The oracle packet encodes the teacher's demonstration to the new cube, so following it shows system 0 reads the "
+     "packet's content, not that anything reads the supplied binding (weak evidence). No task success.",
+     "artifacts/runs/acceptance_sprint_sem_b1fix_oracle/semantic_summary_oracle.json"),
+    ("2026-09-25_semantic_edit_irrelevant_distractor_oracle_ladder_latent_sem_b1fix_anchor_panda_pg2_k31000080.mp4", "oracle",
+     "irrelevant edit (control) · ORACLE packet, same scene · unchanged",
+     "The matched irrelevant edit (an unbound object's belief moved 10 cm) leaves the approach unchanged.",
+     "artifacts/runs/acceptance_sprint_sem_b1fix_oracle/semantic_summary_oracle.json"),
+    ("2026-09-25_semantic_edit_swap_arm_scripted_teacher_panda_pg2__ur5e_pg2_k3000000.mp4", "teacher",
+     "arm assignment swap · teacher · dual-arm",
+     "The actor of take/place is rebound to the other arm; the other arm does the task.",
+     "artifacts/runs/acceptance_sprint_arm_teacher/arm_summary_teacher.json"),
+    ("2026-09-25_semantic_edit_rebind_desc_learned_bc_direct1701_u12000_panda_pg2_k3000008.mp4", "bc",
+     "descriptor rebind · plain BC (not latent) · IGNORED",
+     "The competent BC controller does not follow a pure binding change: it keeps going to the original cube.",
+     "artifacts/runs/acceptance_sprint_sem_bc_pp/semantic_summary_bc.json"),
+    ("2026-09-25_semantic_edit_goal_shift_learned_bc_direct1701_u12000_panda_pg2_k3000008.mp4", "bc",
+     "goal edit · plain BC (not latent) · followed",
+     "Goal belief moved 12 cm: BC places the cube at the new goal.",
+     "artifacts/runs/acceptance_sprint_sem_bc_pp/semantic_summary_bc.json"),
+]
+
+
+def sec_sprint():
+    """Top 'sprint update' block, generated from the sprint agents' raw outputs when present."""
+    parts = []
+    T = "artifacts/runs/acceptance_sprint_sem_teacher_paired/semantic_summary_teacher.json"
+    O = "artifacts/runs/acceptance_sprint_sem_b1fix_oracle/semantic_summary_oracle.json"
+    B = "artifacts/runs/acceptance_sprint_sem_bc_pp/semantic_summary_bc.json"
+    A = "artifacts/runs/acceptance_sprint_arm_teacher/arm_summary_teacher.json"
+    if have(T) and have(O):
+        def ci(d):
+            return f'{d["mean"]:+.3f} <span class="ci">[{d["lo"]:+.3f}, {d["hi"]:+.3f}]</span>' if d else "—"
+
+        def fc(s, c):
+            v = s.get(c, {}).get("first_contact_new_frac")
+            return f'{v["k"]}/{v["n"]}' if v else "—"
+
+        def goal(s):
+            g = s.get("goal_shift")
+            return f'{g["cube_at_shifted_goal"]}/{g["n"]}' if g else "—"
+        rows = []
+        t = J(T)["summary"]
+        arm = ""
+        if have(A):
+            a = J(A)["summary"]
+            e, c = a["swap_arm"]["first_contact_is_edited_to"], a["control"]["first_contact_is_edited_to"]
+            arm = f'{e["k"]}/{e["n"]} (control {c["k"]}/{c["n"]})'
+        rows.append([f'{badge("teacher")}<br>paired scenes', "binding (descriptor)", f'{fc(t, "rebind_obj")} / {fc(t, "control")}',
+                     ci(t["_contrasts"].get("rebind_obj-irrelevant_distractor:pref_min")), goal(t), arm or "—"])
+        o = J(O)["summary"]
+        rows.append([f'{badge("oracle", "ORACLE: E(jointfix) + teacher demo")}<br>paired scenes', "binding (descriptor)",
+                     f'{fc(o, "rebind_obj")} / {fc(o, "control")}',
+                     ci(o["_contrasts"].get("rebind_obj-irrelevant_distractor:pref_min")), goal(o), "n/a (single-arm bundle)"])
+        if have(B):
+            b = J(B)["summary"]
+            rows.append([f'{badge("bc", "learned:direct1701_u12000 (BC, NOT latent)")}<br>canonical scenes', "binding (descriptor only)",
+                         f'{fc(b, "rebind_desc")} / {fc(b, "control")}',
+                         ci(b["_contrasts"].get("rebind_desc-irrelevant_distractor:pref_min")), goal(b), "n/a"])
+            rows.append([f'{badge("bc", "learned:direct1701_u12000 (BC, NOT latent)")}<br>canonical scenes', "object beliefs swapped",
+                         f'{fc(b, "rebind_obj")} / {fc(b, "control")}',
+                         ci(b["_contrasts"].get("rebind_obj-irrelevant_distractor:pref_min")), "(same run)", "n/a"])
+        rows.append([f'{badge("learned", "learned: v4 sem / nosem flows")}', "generated route", badge("run"), badge("run"), badge("run"), badge("run")])
+        parts.append("<h3>Semantic interventions at the level each route reaches (sprint_semantic)</h3>"
+                     + table(["route", "edit type", "rebind: first touch on the NEW object (edit / control)",
+                              "rebind effect beyond the matched irrelevant edit, min-distance preference (m) [95% CI]",
+                              "goal edit: cube at the new goal", "arm swap: edited-to arm touches first"], rows)
+                     + f"""<p>Reading: the edits and metrics are valid (the teacher follows them). The oracle packet makes system 0
+approach the rebound object, but that packet encodes the teacher's demonstration toward it, so this is weak evidence
+(system 0 reads packet content, not the binding). The competent BC controller follows a goal edit and a swap of object
+<i>beliefs</i>, but <b>ignores a pure binding change</b>: that is the capability the semantic packet is meant to add, and the
+generated-route test on the binding-v4 flows is pending. {src(T, O, B, A, 'research/tracks/acceptance.md (SPRINT SEMANTIC RESULTS)')}</p>
+<div class="grid">{''.join(video_card(v) for v in SEM_VIDEOS)}</div>""")
+    L = "ladder_localize/{r}/bc_direct1701_u12000__{t}.json"
+    if have(L.format(r="panda_pg2", t="jointfix")):
+        rows = []
+        for t_, lab in (("jointfix", "jointfix (Stage A joint, B-1 fixed)"), ("jfdag1", "jfdag1 (+ shadow-teacher DAgger)")):
+            cells = [esc(lab)]
+            for r in ("panda_pg2", "parm6_tf3"):
+                p = L.format(r=r, t=t_)
+                if have(p):
+                    d = J(p)["summary"]
+                    cells.append(f'{d["sys0_bcoracle_err_arm"]:.4f} / {d["hold_still_ref_arm"]:.4f} '
+                                 f'<span class="ci">({d["sys0_bcoracle_err_arm"] / d["hold_still_ref_arm"]:.0%} of hold-still)</span>')
+                else:
+                    cells.append("—")
+            rows.append(cells)
+        parts.append("<h3>Stateless localization on BC-visited states (sprint_latent)</h3>"
+                     + table(["system 0", "panda_pg2 arm error / hold-still ref", "parm6_tf3 arm error / hold-still ref"], rows)
+                     + f"""<p>No teacher state: BC drives the matched seeds; every 8 ticks the packet is E(the chunk BC actually executed
+next) {badge('oracle', 'ORACLE DIAGNOSTIC')}, and system 0 is scored against BC's executed command (1-step, normalized).
+The jointly trained system 0 realizes these packets below the hold-still error (a partial, not a precise, realization), and shadow-teacher DAgger
+<i>raised</i> its error (to 83–133% of hold-still) (consistent with stale labels). Its first tick after each new packet is as bad as holding still.
+Closed-loop version and R2 on the fixed flow: {badge('run')}. {src(L.format(r='<robot>', t='<tag>'), 'research/tracks/ladder.md (sprint)')}</p>""")
+    if not parts:
+        return ""
+    now = dt.datetime.now().strftime("%H:%M")
+    return (f'<section id="sprint" class="update"><h2 style="border:0;margin-top:.3rem">Sprint update ({now} PDT)</h2>'
+            + "".join(parts) + "</section>")
+
 
 
 def sec_architecture():
@@ -472,7 +581,7 @@ The teacher performs every edit. The oracle route (pre-fix model) never grasps. 
 <p>{src('artifacts/runs/acceptance_causal_sem_v1i/window_summary.json')} System 0 depends strongly on the packet (zero packet
 5.85 cm vs control-replay exactly 0), but directed 5 cm geometry edits move the tool by fractions of a millimetre along
 the edit. <b>No semantic control is shown.</b> Reruns on the B-1-fixed bundles:
-<span id="sprint-semantic">see the sprint update below when available.</span></p>
+see the <a href="#sprint">sprint update</a> at the top (B-1-fixed oracle, BC reference, teacher paired scenes).</p>
 <div class="grid">{video_card(LADDER_VIDEOS[3])}</div>
 </section>"""
 
@@ -621,7 +730,7 @@ def build(updates_html: str = ""):
 <p class="muted">Built {now} PDT from saved raw outputs by <code>scripts/demo/build_page.py</code>. Research state, not a product.</p>
 <div class="legend">Controller-source labels:
 {badge('teacher')} {badge('oracle')} {badge('learned', 'learned:<ckpt>')} {badge('bc', 'learned BC baseline')} {badge('none')} {badge('run')}</div>
-<nav><a href="#arch">architecture</a><a href="#works">what works</a><a href="#matrix">evidence</a><a href="#debug">debugging</a>
+<nav><a href="#sprint">sprint update</a><a href="#arch">architecture</a><a href="#works">what works</a><a href="#matrix">evidence</a><a href="#debug">debugging</a>
 <a href="#semantic">semantic edits</a><a href="#bc">BC control</a><a href="#next">next</a><a href="#sources">sources</a></nav>
 </header>
 <p class="lede"><b>Bottom line.</b> The scripted teacher solves every task and edit shown here on single-arm, dual-arm and legged
@@ -631,6 +740,7 @@ in 30, and causal packet semantics are not shown. We found and fixed a
 train/deploy mismatch (bug B-1). The latent route's remaining failure is <b>not localized yet</b>: the oracle-packet
 diagnostic turned out to be confounded (§4), and the clean test is the generated route against BC on the same seeds.</p>
 {updates_html}
+{sec_sprint()}
 {body}
 <section id="sources"><h2>Sources</h2>
 <p>Decision ids refer to <code>research/decisions.md</code>. Raw paths are relative to <code>artifacts/runs/</code> on the
