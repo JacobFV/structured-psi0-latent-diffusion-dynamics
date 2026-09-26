@@ -1236,10 +1236,10 @@ humanoid bodies (weaker on g1, h1 and one procedural arm, §2b), and the pipelin
 checkpoints; 30/30 on both bodies at the end), so data and evaluation are sound. After fixing a train/deploy mismatch (bug B-1) and a
 velocity-copy shortcut in system 0, <b>the deployable latent route succeeds sometimes but stays well below BC</b>: best R2
 {r2_best}. A stateless oracle diagnostic, which feeds system 0 packets encoded from BC's own chunks, reaches {orc_best}: the gap from BC to
-that diagnostic is system 0's, and the gap from the diagnostic to R2 is the generator's (D-052, D-056, D-063, D-066, D-067, D-068). <b>A semantic advantage of the packet is not shown</b>: goal content in the packet is executed, but
+that diagnostic is system 0's, and the gap from the diagnostic to R2 is the generator's (D-052, D-056, D-063, D-066, D-067, D-068, D-070). <b>A semantic advantage of the packet is not shown</b>: goal content in the packet is executed, but
 binding changes are not followed, and semantic vs capacity-matched no-semantic packets show no difference (D-059, D-062).
 <b>On the go2 quadruped the deployable latent route is competent</b> (nosem 30/30, sem 29/30 vs BC 30/30), and probe-direction edits of the
-packet causally halt and turn the robot, again with no advantage for semantic supervision (D-069; §2b).</p>
+packet causally halt and turn the robot, again with no advantage for semantic supervision (D-069, D-070; §2b).</p>
 {scoreboard}
 {updates_html}
 {sec_sprint()}
