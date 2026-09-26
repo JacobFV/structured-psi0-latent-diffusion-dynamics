@@ -296,3 +296,10 @@ Lead launched the identical suite on NEW seeds 3,000,060–119 (host, 6 one-shot
 - rebind_desc: original cube lifted 0/39 vs 28/39 unedited; new cube lifted 2/39
 - unedited control success 14/39; the orthogonal control lowers zone success to 4/39 (system 0 fragility, as in D-062), but no control moves the cube to the new goal
 Pooled over the original and new seeds (80): goal edit 23/80 at the new goal vs ≤ 2/80 for any control; rebind: original cube lifted 0/80 vs 58/80 unedited. The D-074 direction replicates. The goal effect is smaller on the new seeds (8/39 vs 15/41), so its rate should be quoted pooled. The binding effect (abandoning the original object) is robust; completing the rebound task stays rare (7/80).
+
+## D-076 2026-09-26 second body through the deployable route (hexapod6 30/30 sem and nosem); t1 humanoid: first semantic advantage, on the oracle route
+legged agent (raw on main, 3439085; lead recomputed from rows):
+- hexapod6 R2 (flow snap_s4000 → system 0, dev seeds 10000–10029): sem 30/30, nosem 30/30, 0 falls; BC 30/30, teacher 30/30, R1 30/30 both. hexapod6's system 0 depends on the packet far more than go2's (z shuffled: 41–43% of hold-still vs 12–13%). R2 z/context edits on hexapod6 are running.
+- t1 humanoid: passes the offline gate (2.5–2.9% of hold-still), but stateless R1 (packet = E(BC chunk)) gives sem 12/30 (14 falls) vs nosem 0/30 (29 falls). This is the arm's compounding pattern again. BC-expert DAgger for t1 is running. It is the first place the SEMANTIC variant is clearly better than capacity-matched nosem (12/30 vs 0/30). It is on an oracle route and not competent, so it is a lead, not a result.
+- g1: blocked at the positive control (BC 2–7/30 vs teacher 25/30).
+Also a CUDA RNG-state bug in the flow resume code was found and fixed before an exact host resume.
