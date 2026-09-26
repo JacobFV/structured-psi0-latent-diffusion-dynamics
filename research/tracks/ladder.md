@@ -3,12 +3,18 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
-## SPRINT BEST ROUTE (live; updated 2026-09-26 00:00 PDT by sprint_latent)
+## SPRINT BEST ROUTE (live; updated 2026-09-26 00:20 PDT by sprint_latent)
 **Best DEPLOYABLE route (R2: system i flow -> system 0; no teacher, no oracle, no BC at run time):
-learned:ladder_flow_jointfix_ft (flow_jointfix final + 10k fine-tune) -> system 0 `gendag2noqd`:
-panda_pg2 7/30 [0.12,0.41], parm6_tf3 16/30 [0.36,0.70]** (matched dev seeds, NFE 8, standard sampling).
-Same system 0 with the 20k flow: 6/30 and 12/30 on the dev seeds, 9/30 [0.17,0.48] and 11/30 [0.22,0.54] on 30 FRESH seeds
-(3,000,100+) -> pooled panda 15/60 = 0.25 [0.16,0.37], parm6 23/60 = 0.38 [0.27,0.51].
+learned:ladder_flow_jointfix_gdag1 (generator DAgger) -> system 0 learned:ladder_rz_jointfix_gendag3_noqd:
+panda_pg2 10/30 [0.19,0.51], parm6_tf3 22/30 [0.56,0.86]** (matched dev seeds, NFE 8, standard sampling).
+Progression on the same seeds (panda / parm6): flow final + gendag1noqd 0/30, 9/30 -> + gendag2noqd 6/30, 12/30 ->
+flow_ft + gendag2noqd 7/30, 16/30 -> flow_ft + gendag3noqd 9/30, 17/30 -> flow_gdag1 + gendag2noqd 9/30, 19/30 ->
+**flow_gdag1 + gendag3noqd 10/30, 22/30**. Fresh-seed check (3,000,100+) of the round-2 system with the 20k flow: 9/30, 11/30.
+Generator DAgger (`configs/ladder/flow_jointfix_gdag1.json`): flow fine-tuned 4k steps (lr 1e-4) from
+`ladder_flow_jointfix/snap_final_s20000.pt` on 50% pack rows + 50% (public context at learner-visited R2 states, target
+z* = E(chunk of BC learned:direct1701_u12000 at that state)); contexts from R2 rollouts of flow_ft + gendag2noqd on the 13
+source-training bodies, seeds 3,900,000+ (`artifacts/runs/ladder_dagger_gdag1/*.genctx.pkl`). Offline: |z_gen - z_bc| /
+|z_bc| 0.24 / 0.30 (flow_ft 0.25 / 0.32), system-0 error from the generated packet 0.73 / 2.69 of hold-still.
 On the 13 source-TRAINING bodies (seeds 3,800,000+, 24 each; the gen-DAgger round-3 collection rollouts, R2 flow_ft ->
 gendag2noqd): 143/312 = 0.46 (parm6_pg2 20/24, parm7_pg2 19/24, parm5s_pg2 18/24, parm5_pg2 17/24 ... sawyer_tf3 3/24),
 raw peer `artifacts/runs/ladder_dagger_gen3/generated_<robot>.summary.json`.
