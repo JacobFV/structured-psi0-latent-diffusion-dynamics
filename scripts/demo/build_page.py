@@ -190,7 +190,8 @@ def video_card(v) -> str:
     f, kind, title, cap, s = v
     lab = {"teacher": "teacher | BC | oracle" if f.startswith("2026-09-25_triptych") else "teacher | BC | stateless oracle" if "orcbctriptych" in f else "scripted_teacher", "oracle": "oracle diagnostic", "learned": "learned", "bc": "learned"}[kind]
     if kind == "learned":
-        lab = ("teacher | BC | learned:flow_jointfix@" + (f.split("flowjf_s")[1].split(".")[0] if "flowjf_s" in f else "20k → sys-0 jfbcdag2")) if "r2triptych" in f else "learned:flow_latent_sem_v2@22k"
+        lab = ("teacher | BC | learned:flow_jointfix@" + (f.split("flowjf_s")[1].split(".")[0] if "flowjf_s" in f else "20k → sys-0 " + f.split("flowjf20k_")[1].split(".")[0])) if "r2triptych" in f \
+            else ("learned:flow_jointfix@20k → sys-0 " + f.split("flowjf20k_")[1].split("_cpu")[0]) if "flowjf20k_" in f else "learned:flow_latent_sem_v2@22k"
     if kind == "bc":
         lab = "learned:" + ("direct1701_u12000 (BC)" if "_s30000" not in f else
                             f.split("_s30000")[1].split("_", 1)[1].rsplit("_", 1)[0])
@@ -272,6 +273,16 @@ SEM_VIDEOS = [
 
 
 R2_VIDEOS = [
+    ("2026-09-25_ladder_generated_parm6_tf3_s3000012_flowjf20k_gendag1noqd_cpu_success.mp4", "learned",
+     "R2 generated · learned:ladder_flow_jointfix final → system 0 gendag1_noqd · parm6_tf3 · seed 3000012 · SUCCESS",
+     "The deployable latent route (system i's own packets, no teacher, no BC in the loop) completes pick-and-place. One of 9/30 "
+     "evaluation successes on parm6_tf3, re-rendered with the model on CPU like the evaluation. A CPU re-render of another "
+     "success seed (3000003) failed at transport, and GPU re-renders of 3 success seeds failed late (place/transport).",
+     "ladder_v1/parm6_tf3/generated_zero_ladder_flow_jointfix_snap_final_s20000_rzgendag1noqd.summary.json"),
+    ("2026-09-25_r2triptych_parm6_tf3_s3000012_teacher_bc-direct1701_u12000_generated-flowjf20k_gendag1noqd.mp4", "learned",
+     "same scene · teacher | plain BC | R2 (flow final → system 0 gendag1_noqd) · parm6_tf3 · seed 3000012 · GPU render",
+     "This GPU render: teacher success; BC fails at lift (BC also varies run to run); R2 carries the cube and fails at place.",
+     "artifacts/runs/demo_video/r2_parm6_tf3_3000012/INDEX.md"),
     ("2026-09-25_r2triptych_parm6_tf3_s3000038_teacher_bc-direct1701_u12000_generated-flowjf20k_rzbcdag2.mp4", "learned",
      "same scene · teacher | plain BC | R2 generated (flow_jointfix final → system 0 jfbcdag2) · parm6_tf3 · seed 3000038",
      "Seed 3000038 is the ONLY R2 success in the evaluation (1/30). In this re-render the R2 panel fails at grasp: the "
@@ -430,7 +441,8 @@ matched-norm probe-orthogonal edit. The claim that semantic supervision adds cau
     if r2rows:
         rows = []
         for (step, s0), per in sorted(r2rows.items()):
-            cells = [f'<span class="badge b-learned">R2 learned:ladder_flow_jointfix@{step}</span> → system 0 {esc(s0)}']
+            desc0 = {"gendag1_noqd": " (refit from bcdag2: no joint-velocity input, BC-expert DAgger incl. states visited with GENERATED packets, z-noise 0.3; config configs/ladder/rz_jointfix_gendag1_noqd.json on track/ladder)"}.get(s0, "")
+            cells = [f'<span class="badge b-learned">R2 learned:ladder_flow_jointfix@{step}</span> → system 0 {esc(s0)}<span class="ci">{esc(desc0)}</span>']
             for r in ("panda_pg2", "parm6_tf3"):
                 d = per.get(r)
                 if d:
