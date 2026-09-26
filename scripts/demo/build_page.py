@@ -335,12 +335,13 @@ generated-route test on the binding-v4 flows is pending. {src(T, O, B, A, 'resea
 <div class="grid">{''.join(video_card(v) for v in SEM_VIDEOS)}</div>""")
 
     import re as _re
-    snaps = sorted({int(m.group(1)) for f in (RAW / "ladder_v1").glob("*/generated_zero_flowjf_s*.summary.json")
-                    for m in [_re.search(r"_s(\d+)\.summary", f.name)] if m})
+    snaps = sorted({m.group(1) for f in (RAW / "ladder_v1").glob("*/generated_zero_flowjf_s*.summary.json")
+                    for m in [_re.search(r"_s(\d+(?:_\w+)?)\.summary", f.name)] if m}, key=lambda x: (int(x.split("_")[0]), x))
     if snaps:
         rows = []
         for st in snaps:
-            cells = [f'<span class="badge b-learned">learned:ladder_flow_jointfix@{st}</span>']
+            st_, rz = (st.split("_", 1) + ["jointfix"])[:2]
+            cells = [f'<span class="badge b-learned">R2 learned:ladder_flow_jointfix@{st_}</span> → system 0 {esc(rz)}']
             for r in ("panda_pg2", "parm6_tf3"):
                 p = f"ladder_v1/{r}/generated_zero_flowjf_s{st}.summary.json"
                 if have(p):
@@ -378,10 +379,10 @@ generated-route test on the binding-v4 flows is pending. {src(T, O, B, A, 'resea
 encoder, snapshots as training proceeds) → the jointly trained system 0 → tracker; no teacher in the loop. Same 30 matched
 dev seeds as BC. The flow is still training (20k steps planned); rows are added as snapshots are evaluated.
 The stateless R1 rows replace the confounded shadow-teacher oracle: the packet is E(the chunk the competent BC would
-execute at the current state), with no teacher state. <b>Diagnosis (D-052, audited by the lead): system 0 (the realizer) is the
-primary bottleneck, not the generator</b>. On its own training pack it explains only ~30% of the teacher's 1-step motion (underfit). Packets that encode a 25/30 controller's own chunks still give 0/30 through
+execute at the current state), with no teacher state. <b>Diagnosis (D-052 and its 20:15 refinement): both stages fall short. System 0's underfit is the first gate, and the
+generator is also short at this snapshot</b> (generator-gap row below). On its own training pack it explains only ~30% of the teacher's 1-step motion (underfit). Packets that encode a 25/30 controller's own chunks still give 0/30 through
 system 0. At BC's own states, system 0 explains only part of BC's 1-step motion, and none of it on the first tick of each
-packet. R2 already fails at the same stages as the stateless oracle. The direct generator-gap measurement is pending. Next: fix the system-0 fit offline, gated on arm error at BC states ≤ 20% of hold-still before any closed-loop run. {src('D-052')}
+packet. R2 fails at the same stages as the stateless oracle. Next: fix the system-0 fit offline, gated on arm error at BC states ≤ 20% of hold-still before any closed-loop run. {src('D-052')}
 {src('ladder_v1/<robot>/generated_zero_flowjf_s<step>.summary.json', 'artifacts/runs/baselines_bc_ladder/', 'research/tracks/ladder.md (SPRINT BEST ROUTE)')}</p>
 <div class="grid wide">{''.join(video_card(v) for v in R2_VIDEOS if (VID / v[0]).exists())}</div>""")
     L = "ladder_localize/{r}/bc_direct1701_u12000__{t}.json"
@@ -813,7 +814,8 @@ evaluation are sound. <b>The latent-packet route is not competent yet</b>: its b
 in 30, and causal packet semantics are not shown. We found and fixed a
 train/deploy mismatch (bug B-1). The latent route's remaining failure is <b>not localized yet</b>: the oracle-packet
 diagnostic turned out to be confounded (§4). In the clean test, the generated route against BC on the same seeds, the latent
-route is still 0/30 (sprint update). A stateless oracle localizes the main bottleneck to system 0 (the realizer, underfit) rather than the generator (D-052).</p>
+route is still 0/30 (sprint update). A stateless oracle and a generator-gap measurement show that both system 0 (underfit; the first gate) and the generator
+(at the current flow snapshot) fall short (D-052).</p>
 {updates_html}
 {sec_sprint()}
 {body}
