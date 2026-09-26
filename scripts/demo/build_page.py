@@ -467,7 +467,7 @@ The jointly trained system 0 realizes these packets below the hold-still error (
 BC-visited states, zeroing only the joint-velocity input collapses its commanded step gain from 0.88 to 0.12 relative to BC. From rest this is
 a fixed point, and it is the same class of proprioceptive shortcut as B-1. BC-expert DAgger penalizes it, which explains why the refits help. Removing
 the velocity input alone (jfnoqd) also moves the stateless route from 0/30 to its row's value. A refit without the velocity input is under test.
-{src('ladder_localize/bias/', 'research/tracks/ladder.md (SPRINT BEST ROUTE, 21:58)')}
+{src('ladder_localize/bias/', 'research/tracks/ladder.md (SPRINT BEST ROUTE, 21:58)', 'D-056')}
 The generated-packet row measures the generator gap at the same states: through system 0 the generated packet is
 no better than holding still. So at this flow snapshot both stages fall short. {src(L.format(r='<robot>', t='<tag>'), 'research/tracks/ladder.md (sprint)')}</p>""")
     if not parts:
