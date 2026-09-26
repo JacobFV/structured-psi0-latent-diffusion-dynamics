@@ -633,6 +633,11 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
                 nz = torch.randn_like(z)
                 z = z + nz * rel * z.flatten(1).norm(dim=1)[:, None, None, None] / nz.flatten(1).norm(dim=1)[:, None, None, None]
         phase = torch.as_tensor(j * lcfg.control_dt, dtype=z.dtype, device=dev)
+        qdp = cfg_json.get("realizer_qd_dropout", 0.0)
+        if qdp > 0:                 # per-sample dropout of the joint-velocity input (eval keeps full qd): packet reliance
+            from rrp.control.latent_realizer import QD_COL
+            keep = (torch.rand(r["node"].shape[0], 1, device=dev) >= qdp).to(r["node"].dtype)
+            r["node"] = r["node"].clone(); r["node"][:, :, QD_COL] = r["node"][:, :, QD_COL] * keep
         pred = R(z, am, kt, phase, r["node"], r["node_mask"], r["local"], node_asm=r.get("node_asm"))
         m = (r["v1"] & r["node_mask"]).float()
         w0 = cfg_json.get("j0_weight", 1.0)
@@ -649,7 +654,12 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
             Md = zd.shape[2]
             amd = torch.ones(Bd, Md, dtype=torch.bool, device=dev)
             nmask = torch.arange(dag["node"].shape[1], device=dev)[None] < dag["n_nodes"][idx][:, None]
-            pd = R(zd, amd, kt, dag["j"][idx].float() * lcfg.control_dt, dag["node"][idx].float(), nmask,
+            nd_ = dag["node"][idx].float()
+            if cfg_json.get("realizer_qd_dropout", 0.0) > 0:
+                from rrp.control.latent_realizer import QD_COL
+                keep = (torch.rand(Bd, 1, device=dev) >= cfg_json["realizer_qd_dropout"]).float()
+                nd_[:, :, QD_COL] = nd_[:, :, QD_COL] * keep
+            pd = R(zd, amd, kt, dag["j"][idx].float() * lcfg.control_dt, nd_, nmask,
                    dag["local"][idx].float())
             md = nmask.float()
             if cfg_json.get("j0_weight", 1.0) != 1.0:

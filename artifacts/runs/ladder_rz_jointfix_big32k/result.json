@@ -1,0 +1,13 @@
+{
+ "steps": 15000,
+ "wall_s": 2275.3479177951813,
+ "interrupted": true,
+ "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5",
+ "realizer_compat_version": "rz-ls-80e5f25be2f0-wf22fe70f99d5-r787e76ad5b7c-none-v1",
+ "eval": null,
+ "config_latent_space_version": "ls-80e5f25be2f0",
+ "steps_refit": 16314,
+ "refit_name": "rz_jointfix_big32k",
+ "refit_of": "artifacts/runs/ladder_latent_sem_b1fix_anchor/representation.pt",
+ "zero_prev_action": true
+}

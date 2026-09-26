@@ -1,0 +1,8 @@
+{
+ "path": "artifacts/runs/ladder_rz_jointfix_znoise/rz_last.pt",
+ "sha256_16": "0d780deb0226efdb",
+ "step": 11112,
+ "versions": {
+  "latent": "ls-80e5f25be2f0-wf22fe70f99d5"
+ }
+}

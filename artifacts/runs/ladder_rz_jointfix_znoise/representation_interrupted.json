@@ -1,0 +1,8 @@
+{
+ "path": "artifacts/runs/ladder_rz_jointfix_znoise/representation_interrupted.pt",
+ "sha256_16": "e0aafd84ae105c9c",
+ "step": 11112,
+ "versions": {
+  "latent": "ls-80e5f25be2f0-wf22fe70f99d5"
+ }
+}

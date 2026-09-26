@@ -1,0 +1,8 @@
+{
+ "path": "artifacts/runs/ladder_rz_jointfix_bcdag2/representation.pt",
+ "sha256_16": "13ed6197650f67e1",
+ "step": 16000,
+ "versions": {
+  "latent": "ls-80e5f25be2f0-wf22fe70f99d5"
+ }
+}

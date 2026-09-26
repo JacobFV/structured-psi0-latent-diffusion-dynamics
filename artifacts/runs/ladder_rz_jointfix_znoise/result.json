@@ -1,0 +1,13 @@
+{
+ "steps": 15000,
+ "wall_s": 1336.6576828956604,
+ "interrupted": true,
+ "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5",
+ "realizer_compat_version": "rz-ls-80e5f25be2f0-wf22fe70f99d5-rd6d38a2bb75c-none-v1",
+ "eval": null,
+ "config_latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5",
+ "steps_refit": 11112,
+ "refit_name": "rz_jointfix_znoise",
+ "refit_of": "artifacts/runs/ladder_rz_jointfix_bcdag2/representation.pt",
+ "zero_prev_action": true
+}
