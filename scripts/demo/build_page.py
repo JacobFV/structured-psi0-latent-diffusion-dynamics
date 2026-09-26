@@ -810,7 +810,7 @@ def legged_research():
 system i's own packets → system 0 give nosem 30/30 and sem 29/30 on the 30 matched dev seeds, against plain BC 30/30 and the teacher 30/30
 {badge('learned', 'learned:legged_flow_{sem,nosem}_go2_v2 snap_s4000')}. Unlike the arm, the legged system 0 is not the bottleneck: the stateless oracle route
 gives nosem 30/30 and sem 25/30. BC positive controls on other bodies: hexapod6 30/30, t1 humanoid 24/30 (teacher 30/30); g1 is training.
-{src('research/tracks/legged_vlm.md (rows 4a, 6b, 7a)', 'artifacts/runs/legged_ladder/go2/r2_*_snap_s4000.jsonl')}</p>
+{src('research/tracks/legged_vlm.md', 'D-070', 'artifacts/runs/legged_ladder/go2/r2_*_snap_s4000.jsonl')}</p>
 <p><b>Packet edits (D-069, oracle route, go2, 20 seeds):</b> probe-guided halt changes forward progress by −1.24 m (sem) and −1.23 m (nosem), against −0.05 to
 −0.19 m for random edits of matched norm. Yaw ±0.6 edits give sign-correct turns of 0.16–0.30 rad, against ≈0 for random edits. Goal-mirror is null and
 per-leg contact edits are weak. This shows <b>packet → behaviour causality along probe directions on an oracle route</b>: the edit is applied to z, not to
