@@ -3,6 +3,67 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
+## ARM NOSEM COUNTERPART RESULT (interim 09:45 PDT: frozen sem vs nosem complete; bounded-NLL sem lineage running)
+All rows: same recipe, same seeds, same harness; source labels: learned (system i flow -> system 0, DEPLOYABLE) unless
+marked ORACLE DIAGNOSTIC. Wilson / Newcombe 95%. nosem chain completed 09:28 (every node rc=0; one driver-bug relaunch of
+the edit suite, see below). nosem checkpoints (peer store; sha256 prefix): flow 20k `ladder_flow_nsjf/snap_final_s20000.pt`
+b37d5dfa, flow_gdag1 11f986d9, final flow `ladder_flow_nsjf_gdag2h/policy.pt` 2556be52, system 0 gendag1_noqd 3cc7250f,
+final system 0 `ladder_rz_nsjf_gendag3_noqd/representation.pt` 05183c0b; Stage A e0e70fde.
+
+R2 deployable route (final flow gdag2h -> system 0 gendag3_noqd; counterparts):
+| seed set | panda_pg2 sem / nosem | parm6_tf3 sem / nosem |
+|---|---|---|
+| dev 3,000,000 | 14/30 / 0/30 | 24/30 / 1/30 |
+| fresh 3,000,100 | 11/30 / 0/30 | 24/30 / 0/30 |
+| fresh 3,000,200 | 11/30 / 0/30 | 22/30 / 2/30 |
+| **pooled 90** | **36/90 / 0/90** (diff -0.40 [-0.50, -0.30]) | **70/90 / 3/90** (diff -0.74 [-0.82, -0.63]) |
+| held-out parm5s_tf3 / parm5l_pg2 (dev) | sem 20/30, 20/30 | nosem 0/30, 0/30 |
+Progression (dev seeds, panda / parm6): flow 20k -> gendag1_noqd sem 0/30, 9/30 vs nosem 0/30, 3/30; flow_gdag1 ->
+gendag3_noqd sem 10/30, 22/30 vs nosem 0/30, 0/30. Stateless R1 (ORACLE DIAGNOSTIC, packet = E(BC chunk)) -> gendag3_noqd:
+sem 13/30, 27/30 vs nosem 0/30, 0/30. nosem failures are almost all at APPROACH (panda 30/30 per set; parm6 25-26/30),
+min TCP-cube distance ~0.11 m (panda) / ~0.09 m (parm6): the arm does not reach the cube.
+On-policy DAgger collections on the 13 training bodies (312 episodes each; route in parentheses): the recipe never
+lifts nosem. Success sem / nosem: bc1 (R1, Stage-A sys0) 4 / 1; bc2 3 / 0... bc3 99 / 4; gen1 (R2) 1 / 2; gen2 41 / 6;
+gen3 143 / 0; gdag1 145 / 1; gdag2 209 / 0. Approach failures: sem 174 -> ~20 from bc3 on; nosem 235-294 in every round.
+(exact: sem bc2 6/312; raw `artifacts/runs/ladder_dagger_{,nsjf_}<buf>/*.summary.json`.)
+Offline gate on BC-visited states (arm error / hold-still, panda / parm6; raw `ladder_localize/<robot>/bc_direct1701_u12000__nsjf*.json`,
+summaries in `research/tracks/ladder/armnosem/gate_nosem_summaries.json`): Stage-A system 0 sem 0.43 / 0.74 vs nosem
+0.39 / 0.72 (EQUAL: the one-step gate does not separate them, as on t1); after the recipe, oracle packet: sem gendag3 0.48
+/ 0.84 vs nosem 0.58 / 1.60; generated packet: 0.73 / 2.69 vs 1.00 / 3.01; generator gap |z_gen - z_bc|/|z_bc|: sem
+0.24 / 0.30 vs nosem 0.54 / 0.62 (the nosem generator is ~2x further from E(BC chunk), again as on t1 D-080).
+
+Task-context edit suite (D-074/075/077 command; route flow 20k -> gendag1_noqd; parm6 seeds 3,000,000-119, panda
+3,000,000-047; conditions control, goal_shift, rebind_desc, irrelevant_distractor, orthogonal_matched, control_replay):
+| metric | parm6 sem (80 feasible) | parm6 nosem (82) | panda sem (48) | panda nosem (48) |
+|---|---|---|---|---|
+| unedited control: task success / cube lifted | 26 / 58 | 1 / 25 | 0 / 2 | 0 / 0 |
+| goal_shift: cube at NEW goal (controls) | 23 (1,1,1,1) | 3 (1,1,1,0) | 1 (0,0,0,0) | 0 (0,0,0,0) |
+| goal end-position effect beyond irrelevant edit | +9.0 cm [7.2, 10.8] | +2.5 cm | +2.4 cm | +0.2 cm |
+| rebind_desc: first APPROACH on new cube | 60/80 | 0/82 | 48/48 | 0/48 |
+| rebind_desc: first contact on new cube (unedited) | 56/80 (6) | 6/82 (1) | 48/48 (0) | 0/48 (1) |
+| rebind_desc: ORIGINAL cube lifted (unedited) | 0/80 (58) | 11/82 (25) | 0/48 (2) | 0/48 (0) |
+| rebind min-distance effect beyond irrelevant / orthogonal / replay | +23.1 / +22.3 / +23.6 cm | +2.8 / +2.6 / +2.3 cm | +29.2 / +28.5 / +29.0 cm | +1.5 / +1.5 / +0.8 cm |
+nosem - sem: first approach new -0.75 [-0.83, -0.64] (parm6), -1.0 [-1.0, -0.90] (panda); rebind min-distance effect
+-20.3 cm [-23.4, -17.2] (parm6), -27.8 cm [-32.2, -23.8] (panda); goal at new goal -0.25 [-0.36, -0.14] (parm6).
+The panda sem suite was completed from 24 to 48 seeds with the sem checkpoints (raw
+`artifacts/runs/acceptance_armnosem_semcompl_panda/shard_<seed>`; D-077's 24/24 holds: 48/48).
+Raw: R2 `ladder_v1/<robot>/generated_zero_flowns*_s<set>.summary.json`, R1 `oracle_zero_nsjfgendag3noqd_orcbc.*`
+(peer store; summaries copied to `research/tracks/ladder/armnosem/ladder_v1/`); edits
+`artifacts/runs/acceptance_armnosem_gen_{parm6,panda}/shard*/semantic_rows_generated.jsonl` (peer store; merged
+`research/tracks/ladder/armnosem/semantic_summary_nosem_{parm6,panda}.json`); comparison
+`research/tracks/ladder/armnosem/compare_sem_nosem.json` (scripts/armnosem_compare.py).
+Reading (interim): on the ARM, with the identical recipe, the capacity-matched NO-semantic packet does NOT give a
+working deployable controller (0/90, 3/90), while the (starved) semantic packet does (36/90, 70/90). This is the opposite
+of t1 (D-084), where the sem lineage was the broken one because of the probe-NLL starvation (D-085). The arm sem system 0
+was also starved (clip scale 0.005) yet works, so here semantic supervision of the packet is associated with a large
+competence and binding-controllability advantage. The nosem failure is a closed-loop APPROACH failure with equal one-step
+offline error, larger generator gap, and no response to DAgger. Caveats: one training seed per lineage; the recipe
+(qd removal, z-noise 0.3 relative, DAgger schedule) was DEVELOPED on the sem bundle and may be tuned to it (the nosem
+lineage gets the same recipe, not a re-tuned one); the edit-suite difference is confounded with competence on parm6, but
+not on panda (neither route completes the task there; sem redirects the approach 48/48, nosem 0/48); nosem's
+orthogonal_matched control uses untrained probe gradients (a random matched-norm direction). The bounded-NLL sem lineage
+(third arm, below) is the fair semantic comparison per D-085 and is running.
+
 ## ARM NOSEM COUNTERPART (arm_nosem agent, started 2026-09-26 05:10 PDT; state: running)
 Question: does semantic supervision contribute to the frozen arm route (D-078/D-080: R2 pooled 36/90 panda_pg2, 70/90
 parm6_tf3) and to the task-context goal/binding edits (D-074/075/077)? Build the capacity-matched NO-SEMANTIC counterpart

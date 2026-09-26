@@ -1,0 +1,1145 @@
+{
+ "r2": {
+  "panda_pg2": {
+   "per_set": {
+    "3000000": {
+     "sem": {
+      "k": 14,
+      "n": 30,
+      "seeds": [
+       3000000,
+       3000029,
+       30
+      ],
+      "failed_stage": {
+       "approach": 7,
+       "success": 14,
+       "place": 3,
+       "grasp": 1,
+       "lift": 5
+      },
+      "path": "artifacts/runs/ladder_v1_pull/panda_pg2/generated_zero_flowgdag2h_rzgendag3_noqd_s3000000.summary.json"
+     },
+     "nosem": {
+      "k": 0,
+      "n": 30,
+      "seeds": [
+       3000000,
+       3000029,
+       30
+      ],
+      "failed_stage": {
+       "approach": 30
+      },
+      "path": "artifacts/runs/ladder_v1_pull/panda_pg2/generated_zero_flownsgdag2h_rznsgendag3_noqd_s3000000.summary.json"
+     },
+     "semfix": null
+    },
+    "3000100": {
+     "sem": {
+      "k": 11,
+      "n": 30,
+      "seeds": [
+       3000100,
+       3000129,
+       30
+      ],
+      "failed_stage": {
+       "success": 11,
+       "approach": 13,
+       "lift": 2,
+       "grasp": 1,
+       "transport": 1,
+       "place": 2
+      },
+      "path": "artifacts/runs/ladder_v1_pull/panda_pg2/generated_zero_flowgdag2h_rzgendag3_noqd_s3000100.summary.json"
+     },
+     "nosem": {
+      "k": 0,
+      "n": 30,
+      "seeds": [
+       3000100,
+       3000129,
+       30
+      ],
+      "failed_stage": {
+       "approach": 30
+      },
+      "path": "artifacts/runs/ladder_v1_pull/panda_pg2/generated_zero_flownsgdag2h_rznsgendag3_noqd_s3000100.summary.json"
+     },
+     "semfix": null
+    },
+    "3000200": {
+     "sem": {
+      "k": 11,
+      "n": 30,
+      "seeds": [
+       3000200,
+       3000229,
+       30
+      ],
+      "failed_stage": {
+       "lift": 6,
+       "transport": 4,
+       "approach": 7,
+       "success": 11,
+       "place": 1,
+       "grasp": 1
+      },
+      "path": "artifacts/runs/ladder_v1_pull/panda_pg2/generated_zero_flowgdag2h_rzgendag3_noqd_s3000200.summary.json"
+     },
+     "nosem": {
+      "k": 0,
+      "n": 30,
+      "seeds": [
+       3000200,
+       3000229,
+       30
+      ],
+      "failed_stage": {
+       "approach": 30
+      },
+      "path": "artifacts/runs/ladder_v1_pull/panda_pg2/generated_zero_flownsgdag2h_rznsgendag3_noqd_s3000200.summary.json"
+     },
+     "semfix": null
+    }
+   },
+   "pooled": {
+    "sem": {
+     "k": 36,
+     "n": 90,
+     "rate": 0.4,
+     "wilson95": [
+      0.30489019806356116,
+      0.5032969271731751
+     ]
+    },
+    "nosem": {
+     "k": 0,
+     "n": 90,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.04093562618368095
+     ]
+    },
+    "semfix": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "diff_nosem_minus_sem": {
+     "diff": -0.4,
+     "ci95": [
+      -0.5032969271731751,
+      -0.2964548411781667
+     ]
+    }
+   },
+   "flow20k_gendag1": {
+    "sem": {
+     "k": 0,
+     "n": 30,
+     "seeds": [
+      3000000,
+      3000029,
+      30
+     ],
+     "failed_stage": {
+      "grasp": 26,
+      "approach": 4
+     },
+     "path": "artifacts/runs/ladder_v1_pull/panda_pg2/generated_zero_ladder_flow_jointfix_snap_final_s20000_rzgendag1noqd.summary.json"
+    },
+    "nosem": {
+     "k": 0,
+     "n": 30,
+     "seeds": [
+      3000000,
+      3000029,
+      30
+     ],
+     "failed_stage": {
+      "approach": 30
+     },
+     "path": "artifacts/runs/ladder_v1_pull/panda_pg2/generated_zero_flowns20k_rznsgendag1_noqd_s3000000.summary.json"
+    },
+    "semfix": null
+   },
+   "flowgdag1_gendag3": {
+    "sem": {
+     "k": 10,
+     "n": 30,
+     "seeds": [
+      3000000,
+      3000029,
+      30
+     ],
+     "failed_stage": {
+      "lift": 7,
+      "success": 10,
+      "transport": 3,
+      "grasp": 4,
+      "approach": 6
+     },
+     "path": "artifacts/runs/ladder_v1_pull/panda_pg2/generated_zero_flowgdag1_rzgendag3_noqd.summary.json"
+    },
+    "nosem": {
+     "k": 0,
+     "n": 30,
+     "seeds": [
+      3000000,
+      3000029,
+      30
+     ],
+     "failed_stage": {
+      "approach": 30
+     },
+     "path": "artifacts/runs/ladder_v1_pull/panda_pg2/generated_zero_flownsgdag1_rznsgendag3_noqd_s3000000.summary.json"
+    },
+    "semfix": null
+   },
+   "r1_stateless_gendag3": {
+    "sem": {
+     "k": 13,
+     "n": 30,
+     "seeds": [
+      3000000,
+      3000029,
+      30
+     ],
+     "failed_stage": {
+      "approach": 6,
+      "lift": 8,
+      "success": 13,
+      "transport": 1,
+      "grasp": 2
+     },
+     "path": "artifacts/runs/ladder_v1_pull/panda_pg2/oracle_zero_gendag3noqd_orcbc.summary.json"
+    },
+    "nosem": {
+     "k": 0,
+     "n": 30,
+     "seeds": [
+      3000000,
+      3000029,
+      30
+     ],
+     "failed_stage": {
+      "approach": 30
+     },
+     "path": "artifacts/runs/ladder_v1_pull/panda_pg2/oracle_zero_nsjfgendag3noqd_orcbc.summary.json"
+    },
+    "semfix": null
+   }
+  },
+  "parm6_tf3": {
+   "per_set": {
+    "3000000": {
+     "sem": {
+      "k": 24,
+      "n": 30,
+      "seeds": [
+       3000003,
+       3000041,
+       30
+      ],
+      "failed_stage": {
+       "success": 24,
+       "approach": 4,
+       "lift": 1,
+       "transport": 1
+      },
+      "path": "artifacts/runs/ladder_v1_pull/parm6_tf3/generated_zero_flowgdag2h_rzgendag3_noqd_s3000000.summary.json"
+     },
+     "nosem": {
+      "k": 1,
+      "n": 30,
+      "seeds": [
+       3000003,
+       3000041,
+       30
+      ],
+      "failed_stage": {
+       "lift": 3,
+       "approach": 25,
+       "success": 1,
+       "transport": 1
+      },
+      "path": "artifacts/runs/ladder_v1_pull/parm6_tf3/generated_zero_flownsgdag2h_rznsgendag3_noqd_s3000000.summary.json"
+     },
+     "semfix": null
+    },
+    "3000100": {
+     "sem": {
+      "k": 24,
+      "n": 30,
+      "seeds": [
+       3000100,
+       3000138,
+       30
+      ],
+      "failed_stage": {
+       "success": 24,
+       "approach": 1,
+       "place": 3,
+       "lift": 2
+      },
+      "path": "artifacts/runs/ladder_v1_pull/parm6_tf3/generated_zero_flowgdag2h_rzgendag3_noqd_s3000100.summary.json"
+     },
+     "nosem": {
+      "k": 0,
+      "n": 30,
+      "seeds": [
+       3000100,
+       3000138,
+       30
+      ],
+      "failed_stage": {
+       "approach": 25,
+       "transport": 3,
+       "lift": 2
+      },
+      "path": "artifacts/runs/ladder_v1_pull/parm6_tf3/generated_zero_flownsgdag2h_rznsgendag3_noqd_s3000100.summary.json"
+     },
+     "semfix": null
+    },
+    "3000200": {
+     "sem": {
+      "k": 22,
+      "n": 30,
+      "seeds": [
+       3000201,
+       3000241,
+       30
+      ],
+      "failed_stage": {
+       "success": 22,
+       "approach": 4,
+       "lift": 3,
+       "transport": 1
+      },
+      "path": "artifacts/runs/ladder_v1_pull/parm6_tf3/generated_zero_flowgdag2h_rzgendag3_noqd_s3000200.summary.json"
+     },
+     "nosem": {
+      "k": 2,
+      "n": 30,
+      "seeds": [
+       3000201,
+       3000241,
+       30
+      ],
+      "failed_stage": {
+       "approach": 26,
+       "success": 2,
+       "grasp": 2
+      },
+      "path": "artifacts/runs/ladder_v1_pull/parm6_tf3/generated_zero_flownsgdag2h_rznsgendag3_noqd_s3000200.summary.json"
+     },
+     "semfix": null
+    }
+   },
+   "pooled": {
+    "sem": {
+     "k": 70,
+     "n": 90,
+     "rate": 0.7777777777777778,
+     "wilson95": [
+      0.681526895263864,
+      0.8512866457452022
+     ]
+    },
+    "nosem": {
+     "k": 3,
+     "n": 90,
+     "rate": 0.03333333333333333,
+     "wilson95": [
+      0.011400390134124576,
+      0.0934728609706443
+     ]
+    },
+    "semfix": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "diff_nosem_minus_sem": {
+     "diff": -0.7444444444444445,
+     "ci95": [
+      -0.8211556409364296,
+      -0.63094997246829
+     ]
+    }
+   },
+   "flow20k_gendag1": {
+    "sem": {
+     "k": 9,
+     "n": 30,
+     "seeds": [
+      3000003,
+      3000041,
+      30
+     ],
+     "failed_stage": {
+      "success": 9,
+      "lift": 2,
+      "place": 13,
+      "transport": 4,
+      "approach": 1,
+      "grasp": 1
+     },
+     "path": "artifacts/runs/ladder_v1_pull/parm6_tf3/generated_zero_ladder_flow_jointfix_snap_final_s20000_rzgendag1noqd.summary.json"
+    },
+    "nosem": {
+     "k": 3,
+     "n": 30,
+     "seeds": [
+      3000003,
+      3000041,
+      30
+     ],
+     "failed_stage": {
+      "lift": 3,
+      "approach": 19,
+      "grasp": 2,
+      "success": 3,
+      "transport": 3
+     },
+     "path": "artifacts/runs/ladder_v1_pull/parm6_tf3/generated_zero_flowns20k_rznsgendag1_noqd_s3000000.summary.json"
+    },
+    "semfix": null
+   },
+   "flowgdag1_gendag3": {
+    "sem": {
+     "k": 22,
+     "n": 30,
+     "seeds": [
+      3000003,
+      3000041,
+      30
+     ],
+     "failed_stage": {
+      "success": 22,
+      "place": 2,
+      "lift": 4,
+      "approach": 1,
+      "transport": 1
+     },
+     "path": "artifacts/runs/ladder_v1_pull/parm6_tf3/generated_zero_flowgdag1_rzgendag3_noqd.summary.json"
+    },
+    "nosem": {
+     "k": 0,
+     "n": 30,
+     "seeds": [
+      3000003,
+      3000041,
+      30
+     ],
+     "failed_stage": {
+      "approach": 26,
+      "lift": 2,
+      "transport": 2
+     },
+     "path": "artifacts/runs/ladder_v1_pull/parm6_tf3/generated_zero_flownsgdag1_rznsgendag3_noqd_s3000000.summary.json"
+    },
+    "semfix": null
+   },
+   "r1_stateless_gendag3": {
+    "sem": {
+     "k": 27,
+     "n": 30,
+     "seeds": [
+      3000003,
+      3000041,
+      30
+     ],
+     "failed_stage": {
+      "success": 27,
+      "transport": 1,
+      "place": 2
+     },
+     "path": "artifacts/runs/ladder_v1_pull/parm6_tf3/oracle_zero_gendag3noqd_orcbc.summary.json"
+    },
+    "nosem": {
+     "k": 0,
+     "n": 30,
+     "seeds": [
+      3000003,
+      3000041,
+      30
+     ],
+     "failed_stage": {
+      "approach": 23,
+      "lift": 3,
+      "transport": 3,
+      "grasp": 1
+     },
+     "path": "artifacts/runs/ladder_v1_pull/parm6_tf3/oracle_zero_nsjfgendag3noqd_orcbc.summary.json"
+    },
+    "semfix": null
+   }
+  },
+  "parm5s_tf3": {
+   "per_set": {
+    "3000000": {
+     "sem": {
+      "k": 20,
+      "n": 30,
+      "seeds": [
+       3000000,
+       3000032,
+       30
+      ],
+      "failed_stage": {
+       "success": 20,
+       "place": 2,
+       "approach": 4,
+       "transport": 3,
+       "lift": 1
+      },
+      "path": "artifacts/runs/ladder_v1_pull/parm5s_tf3/generated_zero_flowgdag2h_rzgendag3_noqd.summary.json"
+     },
+     "nosem": {
+      "k": 0,
+      "n": 30,
+      "seeds": [
+       3000000,
+       3000032,
+       30
+      ],
+      "failed_stage": {
+       "approach": 28,
+       "lift": 2
+      },
+      "path": "artifacts/runs/ladder_v1_pull/parm5s_tf3/generated_zero_flownsgdag2h_rznsgendag3_noqd_s3000000.summary.json"
+     },
+     "semfix": null
+    }
+   },
+   "pooled": {
+    "sem": {
+     "k": 20,
+     "n": 30,
+     "rate": 0.6666666666666666,
+     "wilson95": [
+      0.4878005150467802,
+      0.8076950200327357
+     ]
+    },
+    "nosem": {
+     "k": 0,
+     "n": 30,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.11351339476145204
+     ]
+    },
+    "semfix": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "diff_nosem_minus_sem": {
+     "diff": -0.6666666666666666,
+     "ci95": [
+      -0.8076950200327357,
+      -0.45482146142100277
+     ]
+    }
+   }
+  },
+  "parm5l_pg2": {
+   "per_set": {
+    "3000000": {
+     "sem": {
+      "k": 20,
+      "n": 30,
+      "seeds": [
+       3000003,
+       3000042,
+       30
+      ],
+      "failed_stage": {
+       "success": 20,
+       "lift": 5,
+       "approach": 4,
+       "grasp": 1
+      },
+      "path": "artifacts/runs/ladder_v1_pull/parm5l_pg2/generated_zero_flowgdag2h_rzgendag3_noqd.summary.json"
+     },
+     "nosem": {
+      "k": 0,
+      "n": 30,
+      "seeds": [
+       3000003,
+       3000042,
+       30
+      ],
+      "failed_stage": {
+       "grasp": 2,
+       "approach": 26,
+       "transport": 2
+      },
+      "path": "artifacts/runs/ladder_v1_pull/parm5l_pg2/generated_zero_flownsgdag2h_rznsgendag3_noqd_s3000000.summary.json"
+     },
+     "semfix": null
+    }
+   },
+   "pooled": {
+    "sem": {
+     "k": 20,
+     "n": 30,
+     "rate": 0.6666666666666666,
+     "wilson95": [
+      0.4878005150467802,
+      0.8076950200327357
+     ]
+    },
+    "nosem": {
+     "k": 0,
+     "n": 30,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.11351339476145204
+     ]
+    },
+    "semfix": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "diff_nosem_minus_sem": {
+     "diff": -0.6666666666666666,
+     "ci95": [
+      -0.8076950200327357,
+      -0.45482146142100277
+     ]
+    }
+   }
+  }
+ },
+ "edits_parm6": {
+  "sem": {
+   "key": {
+    "n_feasible_seeds": 80,
+    "control_success": 26,
+    "control_cube_lifted": 58,
+    "goal_cube_at_new_goal": {
+     "k": 23,
+     "n": 80,
+     "rate": 0.2875,
+     "wilson95": [
+      0.19986924232910197,
+      0.3946034630166183
+     ]
+    },
+    "goal_controls_at_new_goal": {
+     "control": 1,
+     "irrelevant_distractor": 1,
+     "orthogonal_matched": 1,
+     "control_replay": 1
+    },
+    "goal_effect_beyond_irrelevant_m": {
+     "mean": 0.09013707789655054,
+     "lo": 0.07164467166135356,
+     "hi": 0.10823871987875991,
+     "n": 73
+    },
+    "goal_effect_beyond_orthogonal_m": {
+     "mean": 0.08302340799713191,
+     "lo": 0.06412968702147029,
+     "hi": 0.1019280462394263,
+     "n": 75
+    },
+    "goal_effect_beyond_replay_m": {
+     "mean": 0.08949035906331032,
+     "lo": 0.07085089615283792,
+     "hi": 0.1075802767194958,
+     "n": 76
+    },
+    "rebind_original_cube_lifted": {
+     "k": 0,
+     "n": 80,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.04581813022522419
+     ]
+    },
+    "rebind_new_cube_lifted": {
+     "k": 7,
+     "n": 80,
+     "rate": 0.0875,
+     "wilson95": [
+      0.04303200154719593,
+      0.16976795588861404
+     ]
+    },
+    "rebind_new_cube_in_zone": 2,
+    "rebind_first_approach_new": {
+     "k": 60,
+     "n": 80,
+     "wilson95": [
+      0.6451532529217489,
+      0.8319376819656391
+     ]
+    },
+    "rebind_first_contact_new": {
+     "k": 56,
+     "n": 80,
+     "wilson95": [
+      0.5923184599007563,
+      0.789354288009154
+     ]
+    },
+    "control_first_contact_new": {
+     "k": 6,
+     "n": 80,
+     "wilson95": [
+      0.03482524908934525,
+      0.1541201616020953
+     ]
+    },
+    "rebind_mindist_beyond_irrelevant_m": {
+     "mean": 0.23121252723311989,
+     "lo": 0.2023539186755731,
+     "hi": 0.26090563867716277,
+     "n": 80
+    },
+    "rebind_mindist_beyond_orthogonal_m": {
+     "mean": 0.22287625526429267,
+     "lo": 0.1940233930119385,
+     "hi": 0.25177164892296283,
+     "n": 79
+    },
+    "rebind_mindist_beyond_replay_m": {
+     "mean": 0.23622945200790688,
+     "lo": 0.20702371700010735,
+     "hi": 0.2653615742164284,
+     "n": 79
+    }
+   },
+   "seeds_complete": 80,
+   "n_rows": 694
+  },
+  "nosem": {
+   "key": {
+    "n_feasible_seeds": 82,
+    "control_success": 1,
+    "control_cube_lifted": 25,
+    "goal_cube_at_new_goal": {
+     "k": 3,
+     "n": 82,
+     "rate": 0.036585365853658534,
+     "wilson95": [
+      0.01251957298416867,
+      0.10212734715852193
+     ]
+    },
+    "goal_controls_at_new_goal": {
+     "control": 1,
+     "irrelevant_distractor": 1,
+     "orthogonal_matched": 1,
+     "control_replay": 0
+    },
+    "goal_effect_beyond_irrelevant_m": {
+     "mean": 0.024527023095857456,
+     "lo": -0.0012776215322285757,
+     "hi": 0.050478567765153706,
+     "n": 39
+    },
+    "goal_effect_beyond_orthogonal_m": {
+     "mean": 0.024528447874947238,
+     "lo": 0.002292432206870934,
+     "hi": 0.04721816173253549,
+     "n": 44
+    },
+    "goal_effect_beyond_replay_m": {
+     "mean": 0.03339607370801051,
+     "lo": 0.014625136153932591,
+     "hi": 0.0529548139825171,
+     "n": 50
+    },
+    "rebind_original_cube_lifted": {
+     "k": 11,
+     "n": 82,
+     "rate": 0.13414634146341464,
+     "wilson95": [
+      0.0765869139579786,
+      0.22445012825993504
+     ]
+    },
+    "rebind_new_cube_lifted": {
+     "k": 0,
+     "n": 82,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.04475062436448195
+     ]
+    },
+    "rebind_new_cube_in_zone": 0,
+    "rebind_first_approach_new": {
+     "k": 0,
+     "n": 82,
+     "wilson95": [
+      0.0,
+      0.04475062436448195
+     ]
+    },
+    "rebind_first_contact_new": {
+     "k": 6,
+     "n": 82,
+     "wilson95": [
+      0.03396477705802167,
+      0.15057843886287756
+     ]
+    },
+    "control_first_contact_new": {
+     "k": 1,
+     "n": 82,
+     "wilson95": [
+      0.002155992057983412,
+      0.0658933975659014
+     ]
+    },
+    "rebind_mindist_beyond_irrelevant_m": {
+     "mean": 0.02834268541552799,
+     "lo": 0.017408589157075386,
+     "hi": 0.039165563234704506,
+     "n": 82
+    },
+    "rebind_mindist_beyond_orthogonal_m": {
+     "mean": 0.02581095850850857,
+     "lo": 0.014324763388645773,
+     "hi": 0.03689636293672466,
+     "n": 82
+    },
+    "rebind_mindist_beyond_replay_m": {
+     "mean": 0.022935365458103874,
+     "lo": 0.009628753799269363,
+     "hi": 0.03624196059929485,
+     "n": 82
+    }
+   },
+   "seeds_complete": 82,
+   "n_rows": 720
+  },
+  "diff_nosem_minus_sem": {
+   "goal_effect_beyond_irrelevant_m": {
+    "mean": -0.06561005480069308,
+    "lo": -0.09794231972324752,
+    "hi": -0.034279826204251955,
+    "n_a": 39,
+    "n_b": 73
+   },
+   "rebind_mindist_beyond_irrelevant_m": {
+    "mean": -0.2028698418175919,
+    "lo": -0.23398540240405324,
+    "hi": -0.17161021489987455,
+    "n_a": 82,
+    "n_b": 80
+   },
+   "goal_cube_at_new_goal": {
+    "diff": -0.25091463414634146,
+    "ci95": [
+     -0.3606885571726655,
+     -0.14148474333335237
+    ]
+   },
+   "rebind_original_cube_lifted": {
+    "diff": 0.13414634146341464,
+    "ci95": [
+     0.060577402691068954,
+     0.22445012825993504
+    ]
+   },
+   "rebind_new_cube_lifted": {
+    "diff": -0.0875,
+    "ci95": [
+     -0.16976795588861404,
+     -0.02441259026232294
+    ]
+   },
+   "rebind_first_contact_new": {
+    "diff": -0.6268292682926829,
+    "ci95": [
+     -0.7244063950467816,
+     -0.49421227388689026
+    ]
+   },
+   "rebind_first_approach_new": {
+    "diff": -0.75,
+    "ci95": [
+     -0.8319376819656391,
+     -0.6360023739111128
+    ]
+   }
+  }
+ },
+ "edits_panda": {
+  "sem": {
+   "key": {
+    "n_feasible_seeds": 48,
+    "control_success": 0,
+    "control_cube_lifted": 2,
+    "goal_cube_at_new_goal": {
+     "k": 1,
+     "n": 48,
+     "rate": 0.020833333333333332,
+     "wilson95": [
+      0.003687110936731193,
+      0.10899218103056246
+     ]
+    },
+    "goal_controls_at_new_goal": {
+     "control": 0,
+     "irrelevant_distractor": 0,
+     "orthogonal_matched": 0,
+     "control_replay": 0
+    },
+    "goal_effect_beyond_irrelevant_m": {
+     "mean": 0.023511249634482576,
+     "lo": -0.0014448184462546268,
+     "hi": 0.04845580400387176,
+     "n": 23
+    },
+    "goal_effect_beyond_orthogonal_m": {
+     "mean": 0.043190587954790596,
+     "lo": 0.018989713928516075,
+     "hi": 0.0665274221725732,
+     "n": 26
+    },
+    "goal_effect_beyond_replay_m": {
+     "mean": 0.04299800082013147,
+     "lo": 0.01968370532821477,
+     "hi": 0.06603962704436699,
+     "n": 25
+    },
+    "rebind_original_cube_lifted": {
+     "k": 0,
+     "n": 48,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.07410013074848033
+     ]
+    },
+    "rebind_new_cube_lifted": {
+     "k": 0,
+     "n": 48,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.07410013074848033
+     ]
+    },
+    "rebind_new_cube_in_zone": 0,
+    "rebind_first_approach_new": {
+     "k": 48,
+     "n": 48,
+     "wilson95": [
+      0.9258998692515198,
+      1.0
+     ]
+    },
+    "rebind_first_contact_new": {
+     "k": 48,
+     "n": 48,
+     "wilson95": [
+      0.9258998692515198,
+      1.0
+     ]
+    },
+    "control_first_contact_new": {
+     "k": 0,
+     "n": 48,
+     "wilson95": [
+      0.0,
+      0.07410013074848033
+     ]
+    },
+    "rebind_mindist_beyond_irrelevant_m": {
+     "mean": 0.29233684561096146,
+     "lo": 0.2523409544798383,
+     "hi": 0.33501119097939686,
+     "n": 48
+    },
+    "rebind_mindist_beyond_orthogonal_m": {
+     "mean": 0.28537482315227813,
+     "lo": 0.24798529437435535,
+     "hi": 0.3274586026035413,
+     "n": 48
+    },
+    "rebind_mindist_beyond_replay_m": {
+     "mean": 0.28976127570698157,
+     "lo": 0.25656472972080824,
+     "hi": 0.3272651367060661,
+     "n": 48
+    }
+   },
+   "seeds_complete": 48,
+   "n_rows": 288
+  },
+  "nosem": {
+   "key": {
+    "n_feasible_seeds": 48,
+    "control_success": 0,
+    "control_cube_lifted": 0,
+    "goal_cube_at_new_goal": {
+     "k": 0,
+     "n": 48,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.07410013074848033
+     ]
+    },
+    "goal_controls_at_new_goal": {
+     "control": 0,
+     "irrelevant_distractor": 0,
+     "orthogonal_matched": 0,
+     "control_replay": 0
+    },
+    "goal_effect_beyond_irrelevant_m": {
+     "mean": 0.00242348307693685,
+     "lo": 0.00242348307693685,
+     "hi": 0.00242348307693685,
+     "n": 1
+    },
+    "goal_effect_beyond_orthogonal_m": {
+     "mean": -0.0006785382205765911,
+     "lo": -0.0006785382205765911,
+     "hi": -0.0006785382205765911,
+     "n": 1
+    },
+    "goal_effect_beyond_replay_m": {
+     "mean": -0.090086357004723,
+     "lo": -0.090086357004723,
+     "hi": -0.090086357004723,
+     "n": 1
+    },
+    "rebind_original_cube_lifted": {
+     "k": 0,
+     "n": 48,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.07410013074848033
+     ]
+    },
+    "rebind_new_cube_lifted": {
+     "k": 0,
+     "n": 48,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.07410013074848033
+     ]
+    },
+    "rebind_new_cube_in_zone": 0,
+    "rebind_first_approach_new": {
+     "k": 0,
+     "n": 48,
+     "wilson95": [
+      0.0,
+      0.07410013074848033
+     ]
+    },
+    "rebind_first_contact_new": {
+     "k": 0,
+     "n": 48,
+     "wilson95": [
+      0.0,
+      0.07410013074848033
+     ]
+    },
+    "control_first_contact_new": {
+     "k": 1,
+     "n": 48,
+     "wilson95": [
+      0.003687110936731193,
+      0.10899218103056246
+     ]
+    },
+    "rebind_mindist_beyond_irrelevant_m": {
+     "mean": 0.014516311562329335,
+     "lo": 0.008278962333837151,
+     "hi": 0.021773864547914763,
+     "n": 48
+    },
+    "rebind_mindist_beyond_orthogonal_m": {
+     "mean": 0.01536015317448347,
+     "lo": 0.009441115426036435,
+     "hi": 0.02238120395046174,
+     "n": 48
+    },
+    "rebind_mindist_beyond_replay_m": {
+     "mean": 0.008402885941568147,
+     "lo": -0.002346656415690334,
+     "hi": 0.020008935855694777,
+     "n": 48
+    }
+   },
+   "seeds_complete": 48,
+   "n_rows": 288
+  },
+  "diff_nosem_minus_sem": {
+   "goal_effect_beyond_irrelevant_m": {
+    "mean": -0.021087766557545726,
+    "lo": -0.04556192733622454,
+    "hi": 0.0034713258984285255,
+    "n_a": 1,
+    "n_b": 23
+   },
+   "rebind_mindist_beyond_irrelevant_m": {
+    "mean": -0.2778205340486321,
+    "lo": -0.32155093408795266,
+    "hi": -0.23834736116269253,
+    "n_a": 48,
+    "n_b": 48
+   },
+   "goal_cube_at_new_goal": {
+    "diff": -0.020833333333333332,
+    "ci95": [
+     -0.10899218103056246,
+     0.05522468609536085
+    ]
+   },
+   "rebind_original_cube_lifted": {
+    "diff": 0.0,
+    "ci95": [
+     -0.07410013074848033,
+     0.07410013074848033
+    ]
+   },
+   "rebind_new_cube_lifted": {
+    "diff": 0.0,
+    "ci95": [
+     -0.07410013074848033,
+     0.07410013074848033
+    ]
+   },
+   "rebind_first_contact_new": {
+    "diff": -1.0,
+    "ci95": [
+     -1.0,
+     -0.8952065901218796
+    ]
+   },
+   "rebind_first_approach_new": {
+    "diff": -1.0,
+    "ci95": [
+     -1.0,
+     -0.8952065901218796
+    ]
+   }
+  }
+ }
+}

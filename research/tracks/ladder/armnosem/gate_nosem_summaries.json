@@ -1,0 +1,424 @@
+{
+ "panda_pg2/bc_direct1701_u12000__nsjfgendag1noqd__flowns20k.json": {
+  "robot": "panda_pg2",
+  "n": 30,
+  "bc_label": "learned:direct1701_u12000",
+  "bc_success": 24,
+  "replay_consistent": 30,
+  "sys0_bcoracle_err_arm": 0.005744178562969719,
+  "sys0_bcoracle_err_grip": 0.04534934103604788,
+  "sys0_gen_err_arm": 0.010090137739714643,
+  "sys0_gen_err_grip": 0.1882525028762846,
+  "z_gen_vs_bcoracle_rel": 0.5491374367568338,
+  "hold_still_ref_arm": 0.011380474029662755,
+  "note": "z_bc = E(BC's executed next chunk): ORACLE DIAGNOSTIC; system 0 / generator not executed",
+  "err_o_by_j": {
+   "0": 0.009068312168626452,
+   "1": 0.006689643952448368,
+   "2": 0.004848978175690144,
+   "3": 0.004620195963099074,
+   "4": 0.0044715052322276665,
+   "5": 0.004937761600805998,
+   "6": 0.005435861606202902,
+   "7": 0.005789840335188858
+  },
+  "hold_by_j": {
+   "0": 0.016832372866364177,
+   "1": 0.014572324896217202,
+   "2": 0.01122647770871754,
+   "3": 0.010534325491608817,
+   "4": 0.00967036949519065,
+   "5": 0.009663119481945167,
+   "6": 0.00935137893690949,
+   "7": 0.00893509512933421
+  },
+  "tcp_bias": {
+   "j0": {
+    "along_cube_m": -0.002327544747578834,
+    "dx": 0.005174810077272944,
+    "dy": -0.004232379392695317,
+    "dz": 0.0056201270547484635,
+    "bc_step_m": 0.03192150071415945,
+    "sys0_step_m": 0.025633269591539134,
+    "gain_proj": 0.39138065511530035
+   },
+   "j1+": {
+    "along_cube_m": -0.0012716626662405254,
+    "dx": 0.0027683348334078114,
+    "dy": -0.004138544367361451,
+    "dz": 0.007426282092847315,
+    "bc_step_m": 0.0271748893720036,
+    "sys0_step_m": 0.029457403206302756,
+    "gain_proj": 0.5729960586518067
+   }
+  },
+  "checkpoints": {
+   "representation": {
+    "path": "artifacts/runs/ladder_rz_nsjf_gendag1_noqd/representation.pt",
+    "sha256": "3cc7250f12b803fb591ee6dfa116b3d3c0e63daea6d85592ef1d5cee7fbb7eff",
+    "latent_space_version": "ls-041f79337259-wf4f5c031348e",
+    "realizer_compat_version": "rz-ls-041f79337259-wf4f5c031348e-r477ae8a6115c-none-v1"
+   },
+   "realizer_override": {
+    "flow_rcv": "rz-ls-041f79337259-wf4f5c031348e-ra0e1e97be1c3-none-v1",
+    "used_rcv": "rz-ls-041f79337259-wf4f5c031348e-r477ae8a6115c-none-v1"
+   },
+   "flow": {
+    "path": "artifacts/runs/ladder_flow_nsjf/snap_final_s20000.pt",
+    "sha256": "b37d5dfae19c7f87b4d470cbd5d600bcc74febc697b8690f095f4eb0a2dafdbb",
+    "nfe": 8,
+    "sampler": "euler-ode",
+    "noise_scale": 1.0
+   }
+  },
+  "wall_s": 145.26609420776367
+ },
+ "panda_pg2/bc_direct1701_u12000__nsjfgendag3noqd__flownsgdag1.json": {
+  "robot": "panda_pg2",
+  "n": 30,
+  "bc_label": "learned:direct1701_u12000",
+  "bc_success": 24,
+  "replay_consistent": 30,
+  "sys0_bcoracle_err_arm": 0.006628239552382533,
+  "sys0_bcoracle_err_grip": 0.04555649787056194,
+  "sys0_gen_err_arm": 0.011413944699016722,
+  "sys0_gen_err_grip": 0.196380728326781,
+  "z_gen_vs_bcoracle_rel": 0.544857029093483,
+  "hold_still_ref_arm": 0.011380474029662755,
+  "note": "z_bc = E(BC's executed next chunk): ORACLE DIAGNOSTIC; system 0 / generator not executed",
+  "err_o_by_j": {
+   "0": 0.00938967616398005,
+   "1": 0.007029022563742205,
+   "2": 0.005406366825270762,
+   "3": 0.005478497839278008,
+   "4": 0.005482114061646001,
+   "5": 0.006056914545963503,
+   "6": 0.0067673353737791545,
+   "7": 0.007365434747886263
+  },
+  "hold_by_j": {
+   "0": 0.016832372866364177,
+   "1": 0.014572324896217202,
+   "2": 0.01122647770871754,
+   "3": 0.010534325491608817,
+   "4": 0.00967036949519065,
+   "5": 0.009663119481945167,
+   "6": 0.00935137893690949,
+   "7": 0.00893509512933421
+  },
+  "tcp_bias": {
+   "j0": {
+    "along_cube_m": -0.002639261190074824,
+    "dx": 0.004666805637188729,
+    "dy": -0.0044189252551504596,
+    "dz": 0.004885092604753499,
+    "bc_step_m": 0.03192150071415945,
+    "sys0_step_m": 0.025880720873201566,
+    "gain_proj": 0.3509991432258952
+   },
+   "j1+": {
+    "along_cube_m": 0.0013904887937924576,
+    "dx": 0.0030919744414063073,
+    "dy": -0.0044290745172344955,
+    "dz": 0.00556693361770733,
+    "bc_step_m": 0.0271748893720036,
+    "sys0_step_m": 0.03248946010319297,
+    "gain_proj": 0.6462403260988088
+   }
+  },
+  "checkpoints": {
+   "representation": {
+    "path": "artifacts/runs/ladder_rz_nsjf_gendag3_noqd/representation.pt",
+    "sha256": "05183c0bfa5f9b2af345ff7f573ec6754aaa022814ddcb57218f2514719cd16c",
+    "latent_space_version": "ls-041f79337259-wf4f5c031348e",
+    "realizer_compat_version": "rz-ls-041f79337259-wf4f5c031348e-rcb169394fcb9-none-v1"
+   },
+   "realizer_override": {
+    "flow_rcv": "rz-ls-041f79337259-wf4f5c031348e-ra0e1e97be1c3-none-v1",
+    "used_rcv": "rz-ls-041f79337259-wf4f5c031348e-rcb169394fcb9-none-v1"
+   },
+   "flow": {
+    "path": "artifacts/runs/ladder_flow_nsjf_gdag1/policy.pt",
+    "sha256": "11f986d94e7e5ff804a45bc107d973e70aa166707df5beb963f8aa3337dd2b2d",
+    "nfe": 8,
+    "sampler": "euler-ode",
+    "noise_scale": 1.0
+   }
+  },
+  "wall_s": 147.30398106575012
+ },
+ "panda_pg2/bc_direct1701_u12000__nsjf_stageA.json": {
+  "robot": "panda_pg2",
+  "n": 30,
+  "bc_label": "learned:direct1701_u12000",
+  "bc_success": 24,
+  "replay_consistent": 30,
+  "sys0_bcoracle_err_arm": 0.004420055372182482,
+  "sys0_bcoracle_err_grip": 0.060561052224385986,
+  "sys0_gen_err_arm": null,
+  "sys0_gen_err_grip": null,
+  "z_gen_vs_bcoracle_rel": null,
+  "hold_still_ref_arm": 0.011380474029662755,
+  "note": "z_bc = E(BC's executed next chunk): ORACLE DIAGNOSTIC; system 0 / generator not executed",
+  "err_o_by_j": {
+   "0": 0.010007377592796381,
+   "1": 0.004392702120302432,
+   "2": 0.0035997849373594786,
+   "3": 0.0036172625369397223,
+   "4": 0.003220948329504223,
+   "5": 0.0034914426428766508,
+   "6": 0.003451428920487744,
+   "7": 0.00341299106055248
+  },
+  "hold_by_j": {
+   "0": 0.016832372866364177,
+   "1": 0.014572324896217202,
+   "2": 0.01122647770871754,
+   "3": 0.010534325491608817,
+   "4": 0.00967036949519065,
+   "5": 0.009663119481945167,
+   "6": 0.00935137893690949,
+   "7": 0.00893509512933421
+  },
+  "tcp_bias": {
+   "j0": {
+    "along_cube_m": -0.003939026526924365,
+    "dx": 0.006813870046020114,
+    "dy": -0.007157893200490371,
+    "dz": 0.0032087904875161477,
+    "bc_step_m": 0.03192150071415945,
+    "sys0_step_m": 0.023939455869690093,
+    "gain_proj": 0.43766966823843484
+   },
+   "j1+": {
+    "along_cube_m": -0.0018916698388784015,
+    "dx": 0.0061679850812803305,
+    "dy": -0.001001674285395124,
+    "dz": 0.0013502778626325862,
+    "bc_step_m": 0.0271748893720036,
+    "sys0_step_m": 0.023269955817355192,
+    "gain_proj": 0.4753741020239359
+   }
+  },
+  "checkpoints": {
+   "representation": {
+    "path": "artifacts/runs/ladder_latent_nosem_b1fix_anchor/representation.pt",
+    "sha256": "e0e70fde78d6b84282af9c02f6405a5293c33831fced0ad6c3f22df45dcbacff",
+    "latent_space_version": "ls-041f79337259-wf4f5c031348e",
+    "realizer_compat_version": "rz-ls-041f79337259-wf4f5c031348e-ra0e1e97be1c3-none-v1"
+   }
+  },
+  "wall_s": 123.38236618041992
+ },
+ "parm6_tf3/bc_direct1701_u12000__nsjfgendag1noqd__flowns20k.json": {
+  "robot": "parm6_tf3",
+  "n": 30,
+  "bc_label": "learned:direct1701_u12000",
+  "bc_success": 26,
+  "replay_consistent": 30,
+  "sys0_bcoracle_err_arm": 0.005909497488520998,
+  "sys0_bcoracle_err_grip": 0.04212938417224666,
+  "sys0_gen_err_arm": 0.013378707553374091,
+  "sys0_gen_err_grip": 0.1705456077079496,
+  "z_gen_vs_bcoracle_rel": 0.6520535590376695,
+  "hold_still_ref_arm": 0.0046651384261685615,
+  "note": "z_bc = E(BC's executed next chunk): ORACLE DIAGNOSTIC; system 0 / generator not executed",
+  "err_o_by_j": {
+   "0": 0.00819841598595174,
+   "1": 0.006098256089121627,
+   "2": 0.005255044183072656,
+   "3": 0.005148165861538937,
+   "4": 0.005280369407328027,
+   "5": 0.005577096126717055,
+   "6": 0.005680339537434911,
+   "7": 0.005940752529982553
+  },
+  "hold_by_j": {
+   "0": 0.011783945637189826,
+   "1": 0.006210762738274858,
+   "2": 0.0033911816199663465,
+   "3": 0.003491826282649345,
+   "4": 0.0033493620526322755,
+   "5": 0.003255819104034914,
+   "6": 0.002836767901880863,
+   "7": 0.002578017605372017
+  },
+  "tcp_bias": {
+   "j0": {
+    "along_cube_m": -0.0028879566194266594,
+    "dx": 0.002807376914997042,
+    "dy": 0.000762178418851976,
+    "dz": -0.0006128861071072032,
+    "bc_step_m": 0.022563685832525153,
+    "sys0_step_m": 0.021983804971862732,
+    "gain_proj": 0.7333619426536502
+   },
+   "j1+": {
+    "along_cube_m": -0.000827456229444224,
+    "dx": 0.0019223258539792522,
+    "dy": 0.0024481685508342377,
+    "dz": 0.0008509700740540807,
+    "bc_step_m": 0.01659594523015898,
+    "sys0_step_m": 0.025329516963261113,
+    "gain_proj": 0.5359841415652055
+   }
+  },
+  "checkpoints": {
+   "representation": {
+    "path": "artifacts/runs/ladder_rz_nsjf_gendag1_noqd/representation.pt",
+    "sha256": "3cc7250f12b803fb591ee6dfa116b3d3c0e63daea6d85592ef1d5cee7fbb7eff",
+    "latent_space_version": "ls-041f79337259-wf4f5c031348e",
+    "realizer_compat_version": "rz-ls-041f79337259-wf4f5c031348e-r477ae8a6115c-none-v1"
+   },
+   "realizer_override": {
+    "flow_rcv": "rz-ls-041f79337259-wf4f5c031348e-ra0e1e97be1c3-none-v1",
+    "used_rcv": "rz-ls-041f79337259-wf4f5c031348e-r477ae8a6115c-none-v1"
+   },
+   "flow": {
+    "path": "artifacts/runs/ladder_flow_nsjf/snap_final_s20000.pt",
+    "sha256": "b37d5dfae19c7f87b4d470cbd5d600bcc74febc697b8690f095f4eb0a2dafdbb",
+    "nfe": 8,
+    "sampler": "euler-ode",
+    "noise_scale": 1.0
+   }
+  },
+  "wall_s": 96.72140526771545
+ },
+ "parm6_tf3/bc_direct1701_u12000__nsjfgendag3noqd__flownsgdag1.json": {
+  "robot": "parm6_tf3",
+  "n": 30,
+  "bc_label": "learned:direct1701_u12000",
+  "bc_success": 26,
+  "replay_consistent": 30,
+  "sys0_bcoracle_err_arm": 0.0074613085894921745,
+  "sys0_bcoracle_err_grip": 0.045252324723897855,
+  "sys0_gen_err_arm": 0.014044550364968886,
+  "sys0_gen_err_grip": 0.15271131979211353,
+  "z_gen_vs_bcoracle_rel": 0.6233947578511271,
+  "hold_still_ref_arm": 0.0046651384261685615,
+  "note": "z_bc = E(BC's executed next chunk): ORACLE DIAGNOSTIC; system 0 / generator not executed",
+  "err_o_by_j": {
+   "0": 0.00773365830246212,
+   "1": 0.006060351147107159,
+   "2": 0.005707313521924928,
+   "3": 0.006404681193599034,
+   "4": 0.007336909296191665,
+   "5": 0.008418950243450022,
+   "6": 0.00888412346779068,
+   "7": 0.009365836965289325
+  },
+  "hold_by_j": {
+   "0": 0.011783945637189826,
+   "1": 0.006210762738274858,
+   "2": 0.0033911816199663465,
+   "3": 0.003491826282649345,
+   "4": 0.0033493620526322755,
+   "5": 0.003255819104034914,
+   "6": 0.002836767901880863,
+   "7": 0.002578017605372017
+  },
+  "tcp_bias": {
+   "j0": {
+    "along_cube_m": -0.0014980746738459299,
+    "dx": 0.0018943246697027114,
+    "dy": -4.47103461030176e-05,
+    "dz": 0.00026225336089054965,
+    "bc_step_m": 0.022563685832525153,
+    "sys0_step_m": 0.022818084461014316,
+    "gain_proj": 0.6859487238872898
+   },
+   "j1+": {
+    "along_cube_m": -0.0005402920824611246,
+    "dx": 0.00420708480691555,
+    "dy": 0.00025086152124650246,
+    "dz": 0.003103216136682002,
+    "bc_step_m": 0.01659594523015898,
+    "sys0_step_m": 0.027086232073951725,
+    "gain_proj": 0.5131113052022063
+   }
+  },
+  "checkpoints": {
+   "representation": {
+    "path": "artifacts/runs/ladder_rz_nsjf_gendag3_noqd/representation.pt",
+    "sha256": "05183c0bfa5f9b2af345ff7f573ec6754aaa022814ddcb57218f2514719cd16c",
+    "latent_space_version": "ls-041f79337259-wf4f5c031348e",
+    "realizer_compat_version": "rz-ls-041f79337259-wf4f5c031348e-rcb169394fcb9-none-v1"
+   },
+   "realizer_override": {
+    "flow_rcv": "rz-ls-041f79337259-wf4f5c031348e-ra0e1e97be1c3-none-v1",
+    "used_rcv": "rz-ls-041f79337259-wf4f5c031348e-rcb169394fcb9-none-v1"
+   },
+   "flow": {
+    "path": "artifacts/runs/ladder_flow_nsjf_gdag1/policy.pt",
+    "sha256": "11f986d94e7e5ff804a45bc107d973e70aa166707df5beb963f8aa3337dd2b2d",
+    "nfe": 8,
+    "sampler": "euler-ode",
+    "noise_scale": 1.0
+   }
+  },
+  "wall_s": 93.22892737388611
+ },
+ "parm6_tf3/bc_direct1701_u12000__nsjf_stageA.json": {
+  "robot": "parm6_tf3",
+  "n": 30,
+  "bc_label": "learned:direct1701_u12000",
+  "bc_success": 26,
+  "replay_consistent": 30,
+  "sys0_bcoracle_err_arm": 0.0033562407937651082,
+  "sys0_bcoracle_err_grip": 0.04333115703015456,
+  "sys0_gen_err_arm": null,
+  "sys0_gen_err_grip": null,
+  "z_gen_vs_bcoracle_rel": null,
+  "hold_still_ref_arm": 0.0046651384261685615,
+  "note": "z_bc = E(BC's executed next chunk): ORACLE DIAGNOSTIC; system 0 / generator not executed",
+  "err_o_by_j": {
+   "0": 0.008350597144788315,
+   "1": 0.0031248666105385186,
+   "2": 0.0026994086070303617,
+   "3": 0.0025256148539054436,
+   "4": 0.0024332530773108637,
+   "5": 0.002678695166808088,
+   "6": 0.0022847910442162075,
+   "7": 0.0025256374810513588
+  },
+  "hold_by_j": {
+   "0": 0.011783945637189826,
+   "1": 0.006210762738274858,
+   "2": 0.0033911816199663465,
+   "3": 0.003491826282649345,
+   "4": 0.0033493620526322755,
+   "5": 0.003255819104034914,
+   "6": 0.002836767901880863,
+   "7": 0.002578017605372017
+  },
+  "tcp_bias": {
+   "j0": {
+    "along_cube_m": 0.005146359126396308,
+    "dx": 0.00035530653937098603,
+    "dy": 0.00016161908861390752,
+    "dz": -0.007546351358866,
+    "bc_step_m": 0.022563685832525153,
+    "sys0_step_m": 0.023926013693031885,
+    "gain_proj": 0.6648422429090644
+   },
+   "j1+": {
+    "along_cube_m": 0.003415277768166345,
+    "dx": -0.0010541801965930902,
+    "dy": -0.0005655342836582746,
+    "dz": -0.005869689661128737,
+    "bc_step_m": 0.01659594523015898,
+    "sys0_step_m": 0.02130648996829724,
+    "gain_proj": 0.5112059567878211
+   }
+  },
+  "checkpoints": {
+   "representation": {
+    "path": "artifacts/runs/ladder_latent_nosem_b1fix_anchor/representation.pt",
+    "sha256": "e0e70fde78d6b84282af9c02f6405a5293c33831fced0ad6c3f22df45dcbacff",
+    "latent_space_version": "ls-041f79337259-wf4f5c031348e",
+    "realizer_compat_version": "rz-ls-041f79337259-wf4f5c031348e-ra0e1e97be1c3-none-v1"
+   }
+  },
+  "wall_s": 75.25498843193054
+ }
+}
