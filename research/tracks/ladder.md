@@ -3,7 +3,7 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
-## SPRINT BEST ROUTE (live; updated 2026-09-25 20:05 PDT by sprint_latent)
+## SPRINT BEST ROUTE (live; updated 2026-09-25 20:12 PDT by sprint_latent)
 **No competent latent route yet. Best learned R2 so far: flow_jointfix@4000 → system 0 jointfix: 0/30 panda_pg2, 0/30
 parm6_tf3. Current diagnosis: system 0 (the realizer) is the primary bottleneck, not the generator.**
 Matched scenes: first 30 feasible dev seeds from 3,000,000, n_distractors = seed % 3, 300 ticks, replan 8, NFE 8,
@@ -17,9 +17,10 @@ prev-action input 0 (deployment), privileged success evaluator. Wilson 95% in br
 | R1 oracle, STATELESS packet E(BC chunk at current state) (ORACLE DIAGNOSTIC) | jointfix | 0/30 [0,0.11] | 0/30 [0,0.11] | approach 18, grasp 5, lift 5, transport 1, place 1 / approach 20, grasp 4, lift 5, transport 1 | 0.011 / 0.012 |
 | same | jfdag1 (shadow DAgger r1) | 0/30 | 0/30 | approach 30 / grasp 16, lift 4, transport 4, place 3 | 0.018 / 0.014 |
 | same | jfdag2df08 (shadow DAgger r1+r2, 80% DAgger; D-049 fix A) | 0/30 | 0/30 | approach 29 / approach 27 | 0.023 / 0.019 |
-| same | jfbcdag1 (DAgger with the stateless BC expert; D-049 fix B) | running | running | | |
+| same | **jfbcdag1** (jointfix R + 1 round DAgger with the stateless BC expert, label = packet plan row j; D-049 fix B) | 0/30 [0,0.11] | 0/30 [0,0.11] | approach 9, grasp 10, lift 8, transport 3 / **transport 13, place 12**, lift 4, grasp 1 | 0.016 / 0.016 |
 | R2 learned:ladder_flow_jointfix@4000 (system i, zero_prev_action, normalize_target, tau_min 0.6) | jointfix | 0/30 [0,0.11] | 0/30 [0,0.11] | approach 16, grasp 11, lift 2, place 1 / approach 21, grasp 7, transport 2 | 0.014 / 0.017 |
-| R2 @8000, @12000, @16000, final | jointfix | scheduled | | | |
+| R2 learned:ladder_flow_jointfix@8000 | jointfix | 0/30 | 0/30 | approach 24, grasp 5, lift 1 / approach 14, grasp 14, lift 2 | 0.012 / 0.014 |
+| R2 @12000, @16000, final (20k) | jointfix | scheduled (watcher) | | | |
 
 Stateless localization on BC-visited states (`scripts/ladder_localize.py`; BC episodes replayed exactly, 30/30 replay
 consistent; z_bc = E(chunk BC actually executed next); system 0 NOT executed; 1-step normalized MSE vs BC's command):
@@ -28,6 +29,15 @@ consistent; z_bc = E(chunk BC actually executed next); system 0 NOT executed; 1-
 | jointfix | 0.0049 / 0.0035 | 0.0114 / 0.0047 | 0.011 (= hold-still) |
 | jfdag1 | 0.0094 / 0.0062 | same | 0.014 |
 | jfdag2df08 | 0.0175 / 0.0110 (worse than holding still) | same | |
+| jfbcdag1 | 0.0073 / 0.0060 (gate 0.64 / 1.29) | same | |
+Gate metric = arm err / hold-still (target <= 0.20): jointfix 0.43 / 0.74; jfbcdag1 0.64 / 1.29; jfdag1 0.83 / 1.33.
+Caveat: the gate is measured on BC's own (on-plan) states; the BC-expert DAgger refit is worse there but better in closed
+loop (parm6 reaches transport/place in 25/30 instead of 1/30), so the gate is necessary-ish, not sufficient/aligned.
+**Generator gap (flow_jointfix@4000 at the same BC states, `..__jointfix__flowjf_s4000.json`)**: |z_gen - z_bc| / |z_bc|
+= 0.50 (panda) / 0.54 (parm6); system 0's arm error from the GENERATED packet 0.0106 / 0.0088 vs 0.0049 / 0.0035 from
+the oracle packet (hold-still 0.0114 / 0.0047): through system 0, the generated packet is no better than holding
+still. So at 4k flow steps BOTH stages are short: system 0 realizes ~55%/25% of the motion from a perfect packet, and
+the generator's packet loses the rest.
 On the training pack itself (panda rows, jointfix, `scripts/ladder_packed_check.py`) system 0's arm error is 0.02-0.066
 vs 0.03-0.09 for a zero action: it explains only ~30% of the teacher's 1-step motion (underfit), and on the teacher's
 own clean trajectory its j=0 error is 3x its j>=1 error (0.0126 vs ~0.004).
@@ -39,6 +49,12 @@ so the generator is not visibly worse than the stateless oracle. Pending: the ge
 (z_gen vs z_bc distance and system-0 error from generated vs oracle packets at BC states; leases 1790391692_2ffeb0,
 1790391693_2ce338 -> `artifacts/runs/ladder_localize/<robot>/bc_direct1701_u12000__jointfix__flowjf_s4000.json`).
 Shadow-teacher DAgger makes system 0 WORSE on BC-visited states (2x-3.5x error): withdrawn as a fix.
+
+System-0 offline-first levers (lead 20:05): running (a)+(c)+(d) combined `rz_jointfix_big_bcdag1` (realizer 4 layers x 256,
+z standardized at system-0 input, j=0 loss weight 3, fresh init, 12k steps, lr 3e-4, 50/50 BC-expert DAgger; peer GPU lease
+1790391992_8bb97e, ~0.45 s/step, ETA ~21:40); (b) `rz_jointfix_bcdag1_long` (2 layers, init jointfix, 16k steps, lr 3e-4,
+host GPU, ETA ~20:40); next on the host GPU: `rz_jointfix_big_pack` (same as big, pack only, no DAgger: teacher data only).
+Each passes the offline gate (`scripts/ladder_gate.sh`) before closed-loop R1-BC / R2.
 
 Compute now:
 - HOST GPU: `ladder_flow_jointfix` (lease 1790389550_4baed9, 0.26 s/step, 20k steps, ETA ~20:55 PDT);
