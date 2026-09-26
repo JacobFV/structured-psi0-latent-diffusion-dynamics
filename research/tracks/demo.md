@@ -98,3 +98,4 @@ Known issue: some auto 'demo: rebuild after rebase' commits before 02:35 lack th
 - 02:40 D-079 (t1 deployable nosem 26–27/30 vs sem 6–11/30; mixed semantic evidence) replaces the 'leads' framing everywhere.
 - 02:52 D-079 update (t1 sem 6–13/30), D-080 'distilled through a learned stateless expert' label, legged FINAL section auto-rendered.
 - 03:15 QA pass: v4 'running' row → not competent (D-080); §2b humanoid sentence fixed; old shadow-oracle triptychs moved from §6 to §4.
+- 04:12 D-083 like-for-like BC row + wording (FINAL BUILD).

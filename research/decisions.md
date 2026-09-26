@@ -327,3 +327,18 @@ Update (D-079, 02:55; legged agent, LEGGED RESEARCH RESULT FINAL at 0dabe95): he
 
 ## D-081 2026-09-26 post-freeze flow retraining with the pack does not beat the 02:30 freeze (negative result)
 sprint_latent, research/tracks/ladder.md "post-freeze experiments". 4 flow variants trained on the idle peer GPU (flow DAgger on the route's own visited states with the pack mixed in; same system 0 gendag3_noqd), plus gdag3h (pack-free, one more round). Every variant was scored on dev plus both fresh seed sets (30 each). Frozen gdag2h: 36/90 panda, 70/90 parm6. pfA 37/90, 56/90; pfB 33/90, 52/90; pfC 38/90, 57/90; pfD 29/90, 55/90; gdag3h 35/90, 59/90. Panda: no variant closes the gap (best +2/90, within CI; approach failures stay at 8–13/30). Parm6: every pack-mixed variant loses 13–18/90. Hypothesis (untested): mixing the pack pulls the flow toward demonstration packets that this system 0 realizes less well. The reported route stays the 02:30 freeze. The next lever for panda is on the system-0 / approach side, not more flow retraining.
+
+## D-082 2026-09-26 t1 humanoid: nosem > sem on the deployable route REPLICATES across training seeds; the R1 oracle gap was seed variance
+legged agent (LEGGED RESEARCH RESULT FINAL, main d6067a5; lead recomputed seed-1 from rows in artifacts/runs/legged_ladder/t1/). R2 deployable, final flow, dev seeds 10000–10029, sem / nosem:
+- original system 0: seed 0 3/28 (earlier snapshots 6–13/24–27), seed 1 8/27
+- DAgger-1 system 0: seed 0 11/27, seed 1 16/26
+R1 stateless oracle (DAgger-1), sem / nosem: seed 0 18/0, seed 1 0/12. The sign flips across seeds, so the D-076 "sem > nosem on R1" was seed variance of the diagnostic, not a semantic effect.
+Reading: on the t1 humanoid, the capacity-matched NO-semantic packet gives a competent deployable route on both training seeds (26–28/30, ≥ BC 24/30), while the semantic packet does not (3–16/30, many falls). This is the clearest sem-vs-nosem result of the project: on this body, semantic supervision of the packet HURTS the deployable controller. Seeds 2 and 3 are in progress.
+
+## D-083 2026-09-26 like-for-like BC control for D-074/075: final BC follows goal edits but completely ignores the rebinding on the same parm6 seeds
+Lead ran `rrp latent semantic-edits --route bc` with the final BC (direct1701_u18000, sha 0063fa12…) on parm6_tf3, with the SAME seeds (3,000,000–119), max-steps 400 and conditions as the latent D-074/075 suite (host, 12 one-shot shards, rc=0; raw artifacts/runs/acceptance_sprint_sem_bc18k_parm6/; lead aggregated the shard summaries). 82 feasible seeds:
+- control: 82/82 success
+- goal_shift: cube at the NEW goal 77/82
+- rebind_desc: ORIGINAL cube lifted 82/82 and placed in the zone 80/82 (the rebinding is ignored)
+- irrelevant_distractor: 81/82 in the zone; noise replay 78/82
+Comparison with the latent deployable route on the same seeds (D-075): the latent route leaves the original cube untouched in 80/80 rebind runs (vs 58/80 lifted unedited) and approaches the new cube, while BC ignores the rebinding completely. BC follows goal edits far better (77/82 vs 23/80), consistent with BC's higher competence. The D-074 claim "the latent route carries a binding edit that the direct-action baseline does not" is now supported like-for-like on identical seeds, with the same caveats (the latent route rarely completes the rebound task; the binding may be read via public predicate estimates; no nosem counterpart).

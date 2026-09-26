@@ -41,6 +41,37 @@ ssh gb10-direct 'cd /dev/shm/rrp-brandonin/repo && PATH=/dev/shm/rrp-brandonin/b
 | legged_vlm | ~/work/rrp-wt/legged_vlm | legged/humanoid + VLM system II on latent path | — |
 Host data mirror: ~/work/rrp-data/datasets only (packed removed, D-034: host disk reserve); packed-data training runs on the peer.
 
+## END OF DEMO SPRINT (2026-09-26 ~04:00 PDT) — current state and resume
+Demo page (private artifact, owner-shareable): https://claude.ai/artifact/1LYxCtzDDCdEFvbrZJ83ot. Source: docs/demo/artifact.html
+(standalone: docs/demo/index.html), built by scripts/demo/build_page.py from raw outputs (resume steps: research/tracks/demo.md).
+Single current evidence statement: research/reports/evidence_matrix.md. The decisions log (D-044..D-082) has every result, with raw paths.
+
+What the evidence supports (see the page's top box):
+- Supported, on DEPLOYABLE routes (no teacher/oracle/BC at run time): task → packet → behaviour.
+  - go2: goal direction (D-071).
+  - parm6 arm: goal + binding edits (D-074, D-075; 80 seeds).
+  - panda arm: binding redirection (D-077).
+  - BC ignores the binding edit (D-065).
+- Competence: the latent route matches BC on go2 and hexapod6 (D-070, D-076), and on t1 only for nosem (D-079, D-082).
+  - Arm is partial: frozen route pooled 36/90 panda_pg2, 70/90 parm6_tf3 (D-078, D-080).
+- Not shown: any benefit of semantic supervision. The evidence is mixed. On t1, sem HURTS across 2 seeds (D-082); on go2 and hexapod6 context-to-behaviour control is equal; the sem packet has more editable probe handles on hexapod6.
+- Not tested: the latent route on the sealed target bodies. BC: new gripper 78–85/100, unseen xarm7 0/100 (D-064). g1 has no competent BC.
+- Root-cause fixes along the way: B-1 prev-action column (D-044/045); system-0 velocity-copy shortcut (D-056); stale stateful teacher as oracle/DAgger expert (D-050); compatibility-ID fingerprinting (D-038).
+
+Frozen arm route: system i ladder_flow_jointfix_gdag2h (sha d0d64918…) → system 0 ladder_rz_jointfix_gendag3_noqd (sha f60cde41…).
+Always pass the system-0 bundle explicitly (research/tracks/ladder.md "SPRINT BEST ROUTE FINAL"). Legged: research/tracks/legged_vlm.md
+"LEGGED RESEARCH RESULT FINAL". Semantic suite: research/tracks/acceptance.md "SPRINT SEMANTIC RESULTS". BC: research/tracks/baselines.md.
+
+Still running at sprint end: t1 sem/nosem training seeds 2 and 3 (legged agent; resume steps in legged_vlm.md); the final-BC like-for-like
+semantic-edit run on parm6 (artifacts/runs/acceptance_sprint_sem_bc18k_parm6; to be added as a BC row next to D-074).
+On hold (not started): seeds 1702/1703 and SFT budgets of the sealed four-way campaign; GRPO on target bodies; dual-arm and VLM training.
+Most valuable next steps:
+1. A nosem counterpart of the frozen arm route (same recipe), to isolate semantic supervision on the arm.
+2. Latent route on the sealed target bodies (four-way comparison).
+3. System-0/approach fixes for panda.
+Operational notes: the host is shared. External memory pressure (other projects' processes) sheds our host jobs; the disk reserve is 300 GiB (D-036).
+Launch loops must check exit codes and be bounded (D-061).
+
 ## DEMO SPRINT (2026-09-25 19:00 → 2026-09-26 05:00 PDT; user: "bring back as many subagents as you need ... no stopping", ≥80% host, 100% peer)
 Plan and rules: research/tracks/BRIEF.md "DEMO SPRINT". Agents and their outputs:
 | agent | worktree / notes | delivers |
