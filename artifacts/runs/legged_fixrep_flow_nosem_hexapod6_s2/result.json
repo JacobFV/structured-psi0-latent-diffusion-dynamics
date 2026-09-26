@@ -1,0 +1,41 @@
+{
+ "steps": 12000,
+ "wall_s": 2781.5046989917755,
+ "representation": "artifacts/runs/legged_fixrep_rep_nosem_hexapod6_s2/representation.pt",
+ "latent_space_version": "legged-ls-legged_fixrep_rep_nosem_hexapod6_s2",
+ "eval": {
+  "split": "held_out_episodes",
+  "realize_mse": {
+   "oracle": 0.00010767662679427304,
+   "free": 0.0008471514680422843,
+   "zero": 0.0852281093597412
+  },
+  "oracle": {
+   "contact_acc": 0.49288736979166664,
+   "contact_swing_acc": 1.0,
+   "goal_err": 1.8900378735885794,
+   "disp_xy_err": 0.78905774752299,
+   "disp_yaw_err": 0.14144297192494074,
+   "subtask_acc": 0.030078125,
+   "fall_acc": 0.0
+  },
+  "free": {
+   "contact_acc": 0.49288736979166664,
+   "contact_swing_acc": 1.0,
+   "goal_err": 1.8904883571240163,
+   "disp_xy_err": 0.7889549096425374,
+   "disp_yaw_err": 0.14122015237808228,
+   "subtask_acc": 0.030078125,
+   "fall_acc": 0.0
+  },
+  "free_shuffled": {
+   "contact_acc": 0.49288736979166664,
+   "contact_swing_acc": 1.0,
+   "goal_err": 1.8908490823537556,
+   "disp_xy_err": 0.7888524055480957,
+   "disp_yaw_err": 0.14068256417910258,
+   "subtask_acc": 0.030078125,
+   "fall_acc": 0.0
+  }
+ }
+}

@@ -1,0 +1,43 @@
+{
+ "representation": "artifacts/runs/legged_fixrep_rep_nosem_hexapod6_s1/representation.pt",
+ "z": {
+  "heldout": {
+   "contact_acc": 0.5432291666666667,
+   "contact_swing_acc": 0.2917750204324244,
+   "goal_err": 0.0889684840862156,
+   "disp_xy_err": 0.042162032891064884,
+   "disp_yaw_err": 0.0482109229080379,
+   "subtask_acc": 0.92021484375,
+   "fall_acc": 1.0
+  },
+  "heldout_shuffled_z": {
+   "contact_acc": 0.5051025390625,
+   "contact_swing_acc": 0.2530978857600449,
+   "goal_err": 0.24847874168068138,
+   "disp_xy_err": 0.15525767393410206,
+   "disp_yaw_err": 0.0813239911571145,
+   "subtask_acc": 0.44267578125,
+   "fall_acc": 1.0
+  }
+ },
+ "metadata_only": {
+  "heldout": {
+   "contact_acc": 0.50711669921875,
+   "contact_swing_acc": 0.0,
+   "goal_err": 0.22356098400117114,
+   "disp_xy_err": 0.13471399396657943,
+   "disp_yaw_err": 0.062478001695126295,
+   "subtask_acc": 0.5935546875,
+   "fall_acc": 1.0
+  },
+  "heldout_shuffled_z": {
+   "contact_acc": 0.50711669921875,
+   "contact_swing_acc": 0.0,
+   "goal_err": 0.22356098400117114,
+   "disp_xy_err": 0.13471399396657943,
+   "disp_yaw_err": 0.062478001695126295,
+   "subtask_acc": 0.5935546875,
+   "fall_acc": 1.0
+  }
+ }
+}
