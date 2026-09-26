@@ -3,14 +3,19 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
-## SPRINT BEST ROUTE (live; updated 2026-09-25 21:20 PDT by sprint_latent)
+## SPRINT BEST ROUTE (live; updated 2026-09-25 21:45 PDT by sprint_latent)
 **Best route so far: R1 stateless oracle (packet = E(chunk of BC learned:direct1701_u12000 at the current state); ORACLE
-DIAGNOSTIC, not deployable) through system 0 `jfbcdag1long`: 3/30 panda_pg2 [0.03,0.26], 11/30 parm6_tf3 [0.22,0.54] —
-the first oracle-route successes on a valid expert. Best deployable R2 (flow_jointfix, system 0 jointfix): still 0/30.**
-Checkpoint: peer+host `artifacts/runs/ladder_rz_jointfix_bcdag1_long/representation.pt` (= Stage-A E of
-`ladder_latent_sem_b1fix_anchor` + system 0 refit 16k steps, lr 3e-4, 50/50 pack / DAgger with the stateless BC expert,
-label = the packet's plan row j; config `configs/ladder/rz_jointfix_bcdag1_long.json`). Same latent space as flow_jointfix,
-so R2 = flow_jointfix + this system 0 is running now (tag `zero_flowjf_s16000_rzlong`).
+DIAGNOSTIC, not deployable) through system 0 `jfbcdag2`: 11/30 panda_pg2 [0.22,0.54], 19/30 parm6_tf3 [0.46,0.78].
+Best deployable R2 (flow_jointfix final -> system 0): still 0/30 on both bodies (grasp failures); system 0 is very
+sensitive to the generator's residual z error. Fixes for that running (z-noise refit, DAgger on generated packets).**
+Checkpoint: `artifacts/runs/ladder_rz_jointfix_bcdag2/representation.pt` (peer + host) = Stage-A E of
+`ladder_latent_sem_b1fix_anchor` (latent space ls-80e5f25be2f0-wf22fe70f99d5, same as flow_jointfix) + system 0 refit
+from jfbcdag1long, 16k steps, lr 3e-4, 50/50 pack / BC-expert DAgger buffers bc1 (collected by jointfix) + bc2 (by
+jfbcdag1), DAgger col 28 recomputed (`configs/ladder/rz_jointfix_bcdag2.json`).
+DAgger with the stateless BC expert, R1 stateless (30 seeds each, panda / parm6): jointfix 0/30, 0/30 -> round 1 4k steps
+(jfbcdag1) 0/30, 0/30 -> round 1 16k (jfbcdag1long) 3/30, 11/30 -> round 2 (jfbcdag2) 11/30, 19/30. Round 3 buffers (bc4,
+collected by jfbcdag2, seeds 3,600,000+) are being collected. Removing ONLY the joint-velocity input, pack only, no DAgger
+(jfnoqd): 0/30, 5/30 [0.07,0.34] (from 0/30, 0/30) -> the velocity-copy mechanism below is causal.
 
 **Mechanism found (lead item 2/3, 20:45): system 0 copies the current joint VELOCITY, not the packet.** At BC-visited
 states (bindv4nosem, panda, 10 seeds, `artifacts/runs/ladder_localize/bias/`), system 0's commanded TCP step has gain 0.88
@@ -39,6 +44,8 @@ collection on 13 bodies (jfbcdag1) most failures are transport/place; next check
 | R1 oracle, STATELESS packet E(BC chunk at current state) (ORACLE DIAGNOSTIC) | jointfix | 0/30 [0,0.11] | 0/30 [0,0.11] | approach 18, grasp 5, lift 5, transport 1, place 1 / approach 20, grasp 4, lift 5, transport 1 | 0.011 / 0.012 |
 | same | jfdag1 (shadow DAgger r1) | 0/30 | 0/30 | approach 30 / grasp 16, lift 4, transport 4, place 3 | 0.018 / 0.014 |
 | same | jfdag2df08 (shadow DAgger r1+r2, 80% DAgger; D-049 fix A) | 0/30 | 0/30 | approach 29 / approach 27 | 0.023 / 0.019 |
+| same | **jfbcdag2** (DAgger round 2: from jfbcdag1long, bc1+bc2, 16k) | **11/30 [0.22,0.54]** | **19/30 [0.46,0.78]** | place 4, grasp 4, approach 2, lift 5, transport 4 / place 6, transport 5 | 0.016 / 0.015 |
+| same | jfnoqd (jointfix, no joint-velocity input, pack only 8k) | 0/30 | 5/30 [0.07,0.34] | grasp 14, approach 8, lift 5 / transport 13, approach 7, lift 4 | 0.011 / 0.013 |
 | same | **jfbcdag1long** (jointfix E; system 0 16k steps, lr 3e-4, 50/50 BC-expert DAgger) | **3/30 [0.03,0.26]** | **11/30 [0.22,0.54]** | approach 5, grasp 5, lift 3, transport 11, place 3 / place 13, transport 5, approach 1 | 0.013 / 0.013 |
 | same | bindv4nosem (binding v4, no semantic loss) | 0/30 | 1/30 [0.01,0.17] | approach 25 / approach 22 | 0.009 / 0.010 |
 | same | bindv4sem (binding v4, semantic) | 0/30 | 0/30 | approach 28 / approach 30 | 0.007 / 0.009 |
@@ -67,6 +74,8 @@ consistent; z_bc = E(chunk BC actually executed next); system 0 NOT executed; 1-
 | jfdag2df08 | 0.0175 / 0.0110 (worse than holding still) | same | |
 | jfbcdag1 | 0.0073 / 0.0060 (gate 0.64 / 1.29) | same | |
 | jfbcdag1long | 0.0048 / 0.0031 (gate 0.42 / 0.67) | same | |
+| jfbcdag2 | 0.0045 / 0.0041 (gate 0.39 / 0.89); from the GENERATED packet (flow final) 0.0140 / 0.0200 (gen gate 1.23 / 4.30) | same | |
+| jfnoqd | 0.0055 / 0.0036 (gate 0.48 / 0.78) | same | |
 | bindv4nosem | 0.0017 / 0.0016 (gate 0.15 / 0.35) | same | 0.0089 vs 0.0004-0.0012 |
 | bindv4sem | 0.0021 / 0.0020 (gate 0.19 / 0.42) | same | 0.0098 vs 0.0008-0.0015 |
 Gate metric = arm err / hold-still (target <= 0.20): jointfix 0.43 / 0.74; jfbcdag1 0.64 / 1.29; jfdag1 0.83 / 1.33.
