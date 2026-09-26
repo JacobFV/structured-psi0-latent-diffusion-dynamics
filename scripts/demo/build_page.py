@@ -457,17 +457,22 @@ matched-norm probe-orthogonal edit. The claim that semantic supervision adds cau
         c = d.get("checkpoints") or {}
         fl = (c.get("flow") or {}).get("path", "")
         rep = (c.get("representation") or {}).get("path", "")
-        if "ladder_flow_jointfix" not in fl:
+        if not fl or "ladder_ckpts" in fl or "grpo_base" in fl or "flow_latent_sem_v" in fl:   # pre-fix flows
             continue
         fresh = " · FRESH seeds " + f.name.split("fresh")[1].split(".")[0] + "+ (not the matched set)" if "fresh" in f.name else ""
-        step = (Path(fl).parent.name.replace("ladder_flow_", ""), _re_step(fl))
-        s0 = Path(rep).parent.name.replace("ladder_rz_jointfix_", "").replace("ladder_latent_sem_b1fix_anchor", "jointfix")
+        import re as _re3
+        _st = _re_step(fl)
+        if _st < 0:
+            _m = _re3.search(r"(\d+)k_rz", f.name)
+            _st = int(_m.group(1)) * 1000 if _m else -1
+        step = (Path(fl).parent.name.replace("ladder_flow_", "").replace("ladder_", ""), _st)
+        s0 = Path(rep).parent.name.replace("ladder_rz_jointfix_", "").replace("ladder_latent_sem_b1fix_anchor", "jointfix").replace("ladder_rz_", "")
         r2rows.setdefault((step, s0, fresh), {})[f.parent.name] = d
     if r2rows:
         rows = []
         for (step, s0, fresh), per in sorted(r2rows.items()):
-            desc0 = {"gendag1": " (as gendag1_noqd but WITH the joint-velocity input)", "gendag2_noqd": " (round 2 of gendag1_noqd: DAgger on generated-packet states, no joint-velocity input)", "gendag1_qdd": " (gendag1 variant with joint-velocity dropout)", "gendag1_noqd": " (refit from bcdag2: no joint-velocity input, BC-expert DAgger incl. states visited with GENERATED packets, z-noise 0.3; config configs/ladder/rz_jointfix_gendag1_noqd.json on track/ladder)"}.get(s0, "")
-            cells = [f'<span class="badge b-learned">R2 learned:ladder_flow_{step[0]}{"@" + str(step[1]) if step[1] >= 0 else " (final)"}</span> → system 0 {esc(s0)}<b>{esc(fresh)}</b><span class="ci">{esc(desc0)}</span>']
+            desc0 = {"gendag1": " (as gendag1_noqd but WITH the joint-velocity input)", "gendag2_noqd": " (round 2 of gendag1_noqd: DAgger on generated-packet states, no joint-velocity input)", "gendag3_noqd": " (round 3 of the same recipe)", "gendag1_qdd": " (gendag1 variant with joint-velocity dropout)", "gendag1_noqd": " (refit from bcdag2: no joint-velocity input, BC-expert DAgger incl. states visited with GENERATED packets, z-noise 0.3; config configs/ladder/rz_jointfix_gendag1_noqd.json on track/ladder)"}.get(s0, "")
+            cells = [f'<span class="badge b-learned">R2 learned:flow_{step[0]}{"@" + str(step[1]) if step[1] >= 0 else " (final)"}</span> → system 0 {esc(s0)}<b>{esc(fresh)}</b><span class="ci">{esc(desc0)}</span>']
             for r in ("panda_pg2", "parm6_tf3"):
                 d = per.get(r)
                 if d:
@@ -1180,8 +1185,8 @@ def build(updates_html: str = ""):
                   'cell names the run it comes from, and per-run tables follow below. Semantic control of the packet: <b>not shown</b> (D-059, D-062).</p>')
     ob = BEST.get("oracle", {})
     orc_best = ", ".join(f"{v[0]}/{v[1]} {r}" for r, v in sorted(ob.items())) or "—"
-    r2_best = "0/30 on every snapshot" if not r2 or max(r2)[0] == 0 else \
-        "{}/{} ({}, {}; still far below BC)".format(max(r2)[0], max(r2)[3], max(r2)[1], max(r2)[2])
+    lb = BEST.get("learned", {})
+    r2_best = (", ".join(f"{v[0]}/{v[1]} on {r}" for r, v in sorted(lb.items())) + " (best recipe per body; BC " + ", ".join(f"{v[0]}/{v[1]}" for r, v in sorted(BEST.get("bc", {}).items())) + ")") if lb else "—"
     body = (sec_architecture() + sec_works() + sec_bodies() + sec_matrix() + sec_debug() + sec_semantic() + sec_bc() + sec_next())
     used = "".join(f"<li><code>{esc(p)}</code></li>" for p in sorted(USED))
     page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
