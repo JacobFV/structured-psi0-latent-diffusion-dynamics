@@ -1,0 +1,45 @@
+{
+ "n": 30,
+ "success": 26,
+ "rate": 0.8666666666666667,
+ "wilson95": [
+  0.7031831605558306,
+  0.9469043057578189
+ ],
+ "failed_stage": {
+  "success": 26,
+  "lift": 1,
+  "place": 3
+ },
+ "track_q_rad": 0.009486879569026987,
+ "track_tcp_m": 0.0072960519005351625,
+ "lab_err_arm": 0.49953788844520736,
+ "lab_err_grip": 1.1624722772552714,
+ "min_tcp_cube_m": 0.006083734972401991,
+ "cmd_step_rad": 0.05414341198329734,
+ "route": "learned",
+ "robot": "parm5s_tf3",
+ "seeds": [
+  3000000,
+  3000032,
+  30
+ ],
+ "replan": 8,
+ "nfe": 8,
+ "prev_action": "zero",
+ "reanchor": false,
+ "oracle_expert": "teacher",
+ "policy_label": "direct1701_u12000",
+ "keep_ticks": false,
+ "oracle_reanchor": false,
+ "object_shift": null,
+ "checkpoints": {
+  "policy": {
+   "path": "artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt",
+   "sha256": "5e6586bd6000412c541fb7b22f4cac324de63905acd4bcf46ab2fea0fb366ff5",
+   "nfe": 8,
+   "execute_prefix": 8,
+   "label": "direct1701_u12000"
+  }
+ }
+}

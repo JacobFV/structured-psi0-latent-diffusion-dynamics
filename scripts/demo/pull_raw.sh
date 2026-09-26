@@ -22,6 +22,7 @@ FILES=(
   'grpo_latent_ref_v2s22k/result.json' 'grpo_latent_v2s22k_p40_v1/result.json'
   'ladder_smoke/t0_check_sem_panda.json'
   'ladder_localize/*/*.json'
+  'ladder_dagger_gdag2/*.summary.json'
   "$@"
 )
 cd $D; L=$(mktemp)
