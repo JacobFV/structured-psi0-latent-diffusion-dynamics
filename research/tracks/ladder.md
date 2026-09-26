@@ -3,6 +3,60 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
+## SPRINT BEST ROUTE FINAL (frozen 2026-09-26 01:10 PDT, sprint_latent; for sprint_semantic / sprint_demo)
+**Deployable route (R2): system i `learned:ladder_flow_jointfix_gdag1` -> system 0 `learned:ladder_rz_jointfix_gendag3_noqd`.**
+No teacher, oracle or BC at run time. pick_place, 300 ticks, replan 8, NFE 8, standard stochastic sampling (noise scale 1),
+prev-action input 0, privileged success evaluator. Matched dev seeds = the first 30 feasible from 3,000,000
+(n_distractors = seed % 3). Fresh = the first 30 feasible from 3,000,100. Wilson 95%.
+
+| rung (source label) | panda_pg2 | parm6_tf3 | failure stages (panda / parm6) | track q rad / TCP m (panda; parm6) |
+|---|---|---|---|---|
+| R0 scripted_teacher (privileged) | 30/30 [0.89,1.00] | 30/30 [0.89,1.00] | - | 0.025 / 0.021; 0.006 / 0.007 |
+| reference: plain BC learned:direct1701_u12000 (sprint_bc) | 25/30 [0.66,0.93] | 27/30 [0.74,0.97] | late (grasp/lift/transport/place) | |
+| R1 ORACLE DIAGNOSTIC, stateless: packet = E(chunk of learned:direct1701_u12000 at the current state) -> gendag3_noqd | 13/30 [0.27,0.61] | 27/30 [0.74,0.97] | lift 8, approach 6, grasp 2, transport 1 / place 2, transport 1 | 0.014 / 0.014; 0.007 / 0.007 |
+| **R2 generated: flow_jointfix_gdag1 -> gendag3_noqd** | **10/30 [0.19,0.51]** | **22/30 [0.56,0.86]** | lift 7, approach 6, grasp 4, transport 3 / lift 4, place 2, approach 1, transport 1 | 0.012 / 0.012; 0.005 / 0.006 |
+| R2, same checkpoints, 30 FRESH seeds | 13/30 [0.27,0.61] | 21/30 [0.52,0.83] | lift 8, approach 4, grasp 2, transport 2, place 1 / lift 4, transport 4, place 1 | 0.012 / 0.012; 0.005 / 0.006 |
+| R2 pooled (60 seeds) | **23/60 = 0.38 [0.27,0.51]** | **43/60 = 0.72 [0.59,0.81]** | | |
+| R2 on the 13 source-TRAINING bodies (seeds 4,000,000+, 24 each; gdag2 collection) | 209/312 = 0.67 overall | | | |
+| historical: R1 shadow-teacher oracle (CONFOUNDED, D-050), best jfdag1 | 1/30 | 0/30 | approach | |
+Tracking is never the failure: the joint tracker follows every rung's commands within ~1 cm TCP.
+Raw (peer store = also in the peer path `/dev/shm/rrp-brandonin/repo/`): `artifacts/runs/ladder_v1/<robot>/generated_zero_flowgdag1_rzgendag3_noqd[_fresh3000100].{jsonl,summary.json}`,
+`artifacts/runs/ladder_v1/<robot>/oracle_zero_gendag3noqd_orcbc.{jsonl,summary.json}`, `.../teacher_shadow_own.summary.json`,
+`artifacts/runs/ladder_dagger_gdag2/generated_<robot>.summary.json`.
+
+Checkpoints (peer store; sha256):
+- system i (flow): `artifacts/runs/ladder_flow_jointfix_gdag1/policy.pt` 78fbee7f4f8df737d5074409f1d16379b031a459ea054a4b9192d64e487df873
+  (config `configs/ladder/flow_jointfix_gdag1.json`: init `ladder_flow_jointfix/snap_final_s20000.pt`
+  33b958884f3af12b59ed0a91f2b563101d9e8ace2521b143067d77113d4cc3bc, +4k steps generator DAgger, zero_prev_action,
+  normalize_target, packet_semantic_weight 1.0, packet_tau_min 0.6). Latent space ls-80e5f25be2f0-wf22fe70f99d5.
+- system 0 (+ the frozen Stage-A encoder E and probes P in the same bundle): `artifacts/runs/ladder_rz_jointfix_gendag3_noqd/representation.pt`
+  f60cde41ed0671b84d1f698288d5a69a086f7d89f187b6562e195a287ff23622, realizer compat
+  rz-ls-80e5f25be2f0-wf22fe70f99d5-r96d867118f17-none-v1; realizer_anchor true, realizer_drop_qd true (the runtime zeroes
+  the joint-velocity input; handled by `realizer_node_feats` when loaded with `load_representation`).
+- Encoder origin: `artifacts/runs/ladder_latent_sem_b1fix_anchor/representation.pt` 49b2e2e3...fb8 (Stage A with the
+  semantic packet objective, trained jointly with the B-1 fix).
+- USAGE: the flow's packets are addressed to the ORIGINAL jointfix realizer; always pass the system-0 bundle explicitly
+  (`scripts/ladder.py --route generated --flow <flow> --rep <gendag3 bundle>`; `load_models` logs `realizer_override`).
+  Tools that load only the flow checkpoint would use the jointfix realizer (0/30) — do not use them for this route.
+- Labels: system i = learned (flow); system 0 = learned, with DAgger labels from the plan rows of a LEARNED stateless
+  expert (BC learned:direct1701_u12000, trained on the same scripted-teacher demonstrations) at learner-visited states;
+  the generator DAgger targets z* = E(chunk of that BC). DAgger seeds 3,200,000-4,000,000 (disjoint from dev 3,000,000+).
+
+What made it work (all in-architecture; ablations on the same seeds in the live table below):
+1. System 0 copied the current joint velocity (a B-1-like proprio shortcut): zeroing only qd collapsed its step gain from
+   0.88 to 0.12; removing qd alone moved R1 stateless from 0/30, 0/30 to 0/30, 5/30.
+2. The shadow teacher FSM is stale off its own trajectory (sprint_bc); the stateless BC expert gives valid packets and labels.
+3. System-0 DAgger with that expert (3 rounds) + DAgger on system i's OWN generated packets + z-noise 0.3: R1 stateless
+   0/30,0/30 -> 18/30,27/30; R2 0/30,0/30 -> 9/30,17/30.
+4. Generator DAgger (flow fine-tuned on learner-visited contexts toward z* = E(BC chunk)): R2 9/30,17/30 -> 10/30,22/30.
+Not solved: panda grasp/lift (pg2 parallel gripper alignment) and parm6 place; R2 < R1 stateless < BC.
+
+Sem vs nosem (binding v4 bundles) with the same recipe, compressed to the sprint: NOT competent, so no deployable
+comparison yet. R1 stateless after 3 BC-DAgger rounds: sem 1/30, 1/30; nosem 0/30, 4/30. R2 with their own flows
+(12k, `ladder_flow_bindv4{sem,nosem}`): sem 0/30, 0/30; nosem 0/30, 1/30; on 13 training bodies sem 0/312, nosem 4/312.
+Their generated-packet DAgger / flow DAgger round is still running (see the live section; will be appended).
+The binding chain's own flows (`flow_binding_paired_{sem,nosem}_v4`) are deadlocked on prefetch (alert below).
+
 ## SPRINT BEST ROUTE (live; updated 2026-09-26 00:35 PDT by sprint_latent)
 **Best DEPLOYABLE route (R2: system i flow -> system 0; no teacher, no oracle, no BC at run time):
 learned:ladder_flow_jointfix_gdag1 (generator DAgger) -> system 0 learned:ladder_rz_jointfix_gendag3_noqd:
