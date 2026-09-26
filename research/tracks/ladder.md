@@ -144,7 +144,15 @@ flow 5G + 5G, refit 3G + 4G; measured Stage A ~1 GB GPU, peer RSS of these jobs 
 DAgger collections, edit suite and evaluations on the peer CPU (buffers pulled back). State on the HOST:
 `~/work/rrp-wt/ladder/artifacts/runs/ladder_armsfjf_state/` (chain.log, <node>.out). Host Stage A step 100 reproduces
 the frozen sem run exactly (loss 10.5886, gn 60.666; same seed; the floor binds later).
-RESUME (semfix): on the host, `systemd-run --user --unit rrp-armsemfix-hybrid2 --setenv=LIN=sfjf --working-directory=$HOME/work/rrp-wt/ladder bash scripts/arm_lineage_hybrid.sh`.
+12:48 MOVED BACK TO THE PEER (lead: the host run is data-bound, 0.76 flow steps/s at 13% GPU, while the peer GPU sat
+idle): host driver unit stopped; host flow_ft lease 1790447466_18593a stopped (scoped) at step 3618 and its
+policy_last.pt (sha16 a303c96d8d94e2e7) synced to the peer store, where it resumed exactly ("resumed ... at step 3618");
+host rz_gendag1 was allowed to finish (rc=0, 8k steps) and pushed; host done-markers copied to the peer state dir
+`artifacts/runs/ladder_armsfjf_state/`. Host-trained so far: Stage A, flow 20k, rz bcdag1 / bcdag1_long / bcdag2 /
+gendag1_noqd (same configs; device is not part of the recipe). Everything else runs on the peer via
+`scripts/arm_lineage_chain.sh` (LIN=sfjf), unit `rrp-armsemfix-peer`.
+RESUME (semfix, peer): `ssh gb10-direct 'systemd-run --user --unit rrp-armsemfix-peer2 --setenv=LIN=sfjf --working-directory=/dev/shm/rrp-brandonin/wt/ladder bash scripts/arm_lineage_chain.sh'`.
+(obsolete) host resume: `systemd-run --user --unit rrp-armsemfix-hybrid2 --setenv=LIN=sfjf --working-directory=$HOME/work/rrp-wt/ladder bash scripts/arm_lineage_hybrid.sh`.
 
 ## SPRINT BEST ROUTE FINAL (frozen 2026-09-26 02:30 PDT, sprint_latent; for sprint_semantic / sprint_demo)
 **Deployable route (R2): system i `learned:ladder_flow_jointfix_gdag2h` -> system 0 `learned:ladder_rz_jointfix_gendag3_noqd`.**
