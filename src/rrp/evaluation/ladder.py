@@ -8,6 +8,8 @@ Matched scenes (same feasible seeds, same n_distractors = seed % 3), frozen chec
                    with q0 at t exactly as training builds targets) into z = E mean; frozen system 0 realizes it online.
                    Uses privileged future teacher actions: NOT deployable.
   R2 `generated`: deployable. System i flow samples z from public observations -> the same system 0.
+  `learned`     : deployable positive control. A plain FlowPolicy (direct-action / codec baseline, LearnedPolicy)
+                   emits H-step joint-target chunks from public observations; the first replan_ticks rows execute.
 In every rung a SHADOW teacher is advanced once per tick at the executed state (as in DART collection: its FSM
 follows its own references while the arm executes other commands). It supplies (i) the phase label per tick,
 (ii) the relabelled teacher command (DAgger-style label) to measure system-0 action error, and (iii) in R2 the oracle
@@ -312,6 +314,8 @@ class LadderConfig:
     keep_ticks: bool = False         # store per-tick rows in the output (diagnostics)
     oracle_reanchor: bool = False    # R1: re-anchor the expert reference to the measured arm at each replan
     prev_action: str = "zero"        # zero (current deployment) | own (training-consistent input, bug B-1)
+    policy: str | None = None        # route learned: LearnedPolicy checkpoint (baseline FlowPolicy)
+    policy_label: str | None = None  # label for the source string (default: checkpoint path)
 
 
 def load_models(cfg: LadderConfig):
@@ -321,7 +325,13 @@ def load_models(cfg: LadderConfig):
     if cfg.flow and not rep:
         rep = load_checkpoint(cfg.flow, map_location="cpu")["config"]["representation"]
     ids = {}
-    out = dict(E=None, R=None, P=None, lcfg=None, res=None, flow=None)
+    out = dict(E=None, R=None, P=None, lcfg=None, res=None, flow=None, learned=None)
+    if cfg.policy:
+        from rrp.policy.runner import LearnedPolicy
+        out["learned"] = LearnedPolicy.from_checkpoint(cfg.policy, device=cfg.device, nfe=cfg.nfe,
+                                                       execute_prefix=cfg.replan_ticks, seed=cfg.flow_seed)
+        ids["policy"] = dict(path=str(cfg.policy), sha256=sha256_file(cfg.policy), nfe=cfg.nfe,
+                             execute_prefix=cfg.replan_ticks, label=cfg.policy_label)
     if rep:
         lcfg, E, R, P, res = load_representation(Path(rep), cfg.device)
         out.update(E=E, R=R, P=P, lcfg=lcfg, res=res)
@@ -362,6 +372,9 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
     oracle = OraclePacketPolicy(models["E"], models["lcfg"], models["res"], cfg.device,
                                 reanchor=cfg.oracle_reanchor) if models["E"] is not None else None
     gen = models["flow"]
+    lp = models.get("learned")
+    if cfg.route == "learned" and lp is None:
+        raise ValueError("route learned needs cfg.policy")
     S, s0, meters, shadows, meta = [], [], [], [], []
     for sd in cfg.seeds:
         s = Session(BUILDERS[cfg.task](robot, sd, n_distractors=sd % 3), seed=sd)
@@ -369,7 +382,7 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
         S.append(s)
         meters.append(Meter(s))
         shadows.append(oracle.shadow(s) if oracle else ShadowTeacher(s))
-        if cfg.route != "teacher" or models["R"] is not None:     # teacher route + R: shadow system 0 (not executed)
+        if cfg.route not in ("teacher", "learned") or models["R"] is not None:     # teacher route + R: shadow system 0 (not executed)
             s0.append(LatentSystem0(models["R"], f, latent_space_version=models["res"]["latent_space_version"],
                                     realizer_compat_version=models["res"]["realizer_compat_version"], device=cfg.device))
         meta.append(dict(done=False, outcome=None, steps=0, calls=0, t0=time.time(), ticks=[], replans=[],
@@ -406,8 +419,25 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
                     s0[k].receive(p, now=float(S[k].data.time), graph_version=S[k].runtime.graph_version)
                 except (ControllerRejection, StaleActionError):
                     rec["rejected"] = True
+        if cfg.route == "learned":
+            needl = [k for k in act if step % cfg.replan_ticks == 0 or not S[k].executor.queue]
+            if needl:
+                for k, ch in zip(needl, lp.chunks([S[k] for k in needl])):
+                    meta[k]["calls"] += 1
+                    meta[k]["replans"].append(dict(t=step))
+                    try:
+                        S[k].submit_chunk(ch, execute_prefix=cfg.replan_ticks)
+                    except (ControllerRejection, StaleActionError):
+                        meta[k]["replans"][-1]["rejected"] = True
         labels = {k: shadows[k].label(S[k]) for k in act}
         sys0 = batched_ticks([s0[k] for k in act], [S[k] for k in act]) if s0 else [None] * len(act)
+        if cfg.route == "learned":
+            from rrp.contracts.action import NativeCommand
+            sys0 = []
+            for k in act:
+                row_ = S[k].executor.pop()
+                sys0.append(None if row_ is None else NativeCommand(controller_version=S[k].controller_version(),
+                                                                    groups=row_, source="learned"))
         cmds = [labels[k] for k in act] if cfg.route == "teacher" else sys0
         for k, cmd, c0 in zip(act, cmds, sys0):
             s, mt = S[k], meters[k]
@@ -494,7 +524,8 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
             ticks=T if cfg.keep_ticks else None, replans=m["replans"] if cfg.keep_ticks else None,
             interventions=s.intervention_log, wall_s=time.time() - m["t0"],
             source=dict(teacher="scripted_teacher(privileged)", oracle="target_encoder_oracle(ORACLE DIAGNOSTIC: "
-                        "teacher future actions)", generated="learned(system-i flow)")[cfg.route],
+                        "teacher future actions)", generated="learned(system-i flow)",
+                        learned=f"learned:{cfg.policy_label or cfg.policy}")[cfg.route],
             checkpoints=ids))
     if out_path:
         out_path.parent.mkdir(parents=True, exist_ok=True)
