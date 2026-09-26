@@ -15,6 +15,11 @@ the teacher's demonstrations, or the simulator/tracker setup.
 | reference: R0 scripted_teacher (ladder track) | 30/30 | 30/30 | - |
 | reference: R1 oracle route, best (D-048, jfdag1 re-anchored) | 1/30 | 0/30 | mostly approach |
 
+Held-out source bodies (NOT in BC training; the protocol's source-competence bodies and harness: rrp.evaluation.runner,
+seeds 2,000,000.., 50 episodes each, infeasible excluded), learned:direct1701_u12000: parm5s_tf3 44/47 = 0.94
+[0.83, 0.98], parm5l_pg2 30/33 = 0.91 [0.76, 0.97]; pooled 74/80 = 0.93. All 6 failures are timeouts. Raw:
+`artifacts/runs/baselines_bc_ladder/heldout/direct1701_u12000.{jsonl,summary.json}` (peer lease 1790388547_71cadb).
+
 Wilson 95% in brackets. All failures of BC are timeouts late in the task (grasp/lift/transport/place), none at approach.
 Raw: `artifacts/runs/baselines_bc_ladder/<robot>/learned_<tag>.{jsonl,summary.json}` (committed; peer store same path).
 Checkpoints: snapshots of `policy_last.pt` (sha256 prefix verified against policy_last.json) in
