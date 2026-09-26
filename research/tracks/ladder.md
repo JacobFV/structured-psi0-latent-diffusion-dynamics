@@ -3,19 +3,25 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
-## SPRINT BEST ROUTE (live; updated 2026-09-25 22:12 PDT by sprint_latent)
-**Best route so far: R1 stateless oracle (packet = E(chunk of BC learned:direct1701_u12000 at the current state); ORACLE
-DIAGNOSTIC, not deployable) through system 0 `jfbcdag2`: 11/30 panda_pg2 [0.22,0.54], 19/30 parm6_tf3 [0.46,0.78].
-Best deployable R2 (flow_jointfix final -> system 0): still 0/30 on both bodies (grasp failures); system 0 is very
-sensitive to the generator's residual z error. Fixes for that running (z-noise refit, DAgger on generated packets).**
-Checkpoint: `artifacts/runs/ladder_rz_jointfix_bcdag2/representation.pt` (peer + host) = Stage-A E of
-`ladder_latent_sem_b1fix_anchor` (latent space ls-80e5f25be2f0-wf22fe70f99d5, same as flow_jointfix) + system 0 refit
-from jfbcdag1long, 16k steps, lr 3e-4, 50/50 pack / BC-expert DAgger buffers bc1 (collected by jointfix) + bc2 (by
-jfbcdag1), DAgger col 28 recomputed (`configs/ladder/rz_jointfix_bcdag2.json`).
-DAgger with the stateless BC expert, R1 stateless (30 seeds each, panda / parm6): jointfix 0/30, 0/30 -> round 1 4k steps
-(jfbcdag1) 0/30, 0/30 -> round 1 16k (jfbcdag1long) 3/30, 11/30 -> round 2 (jfbcdag2) 11/30, 19/30. Round 3 buffers (bc4,
-collected by jfbcdag2, seeds 3,600,000+) are being collected. Removing ONLY the joint-velocity input, pack only, no DAgger
-(jfnoqd): 0/30, 5/30 [0.07,0.34] (from 0/30, 0/30) -> the velocity-copy mechanism below is causal.
+## SPRINT BEST ROUTE (live; updated 2026-09-25 23:05 PDT by sprint_latent)
+**Best DEPLOYABLE route (R2: system i flow -> system 0, no teacher, no oracle at run time): learned:ladder_flow_jointfix
+(final, 20k) -> system 0 `gendag1noqd`: parm6_tf3 9/30 [0.17,0.48], panda_pg2 0/30 [0,0.11] (panda fails at GRASP 26/30).**
+Best oracle-diagnostic route (R1 stateless: packet = E(chunk of BC learned:direct1701_u12000 at the current state)):
+system 0 `jfbcdag2`: panda 11/30 [0.22,0.54], parm6 19/30 [0.46,0.78].
+Reference on the same 30 seeds: R0 scripted_teacher 30/30, 30/30; plain BC learned:direct1701_u12000 25/30, 27/30.
+
+Checkpoints (peer store; copies on host):
+- system i: `artifacts/runs/ladder_flow_jointfix/snap_final_s20000.pt` (FlowPolicy, zero_prev_action, normalize_target,
+  packet_tau_min 0.6, packet_semantic_weight 1.0, 20k steps; `configs/ladder/flow_jointfix.json`; latent space
+  ls-80e5f25be2f0-wf22fe70f99d5 = Stage-A E of `ladder_latent_sem_b1fix_anchor`, trained jointly with the B-1 fix).
+- system 0: `artifacts/runs/ladder_rz_jointfix_gendag1_noqd/representation.pt` (same E; system 0 refit from jfbcdag2,
+  8k steps, lr 2e-4, 60% DAgger: BC-expert oracle-packet buffers bc1-bc3 + generated-packet buffers gen1 (route R2
+  rollouts of flow_jointfix + jfbcdag1long, seeds 3,500,000+, 12/13 bodies), z-noise 0.3 on pack z, joint-velocity
+  input removed (realizer_drop_qd), anchored input; `configs/ladder/rz_jointfix_gendag1_noqd.json`).
+- HONEST LABELS: the DAgger labels of system 0 are the plan rows of a LEARNED stateless expert (plain BC
+  learned:direct1701_u12000, itself trained on the same scripted-teacher demonstrations), not the scripted teacher;
+  DAgger seeds (3.2M-3.6M) are disjoint from the dev seeds (3.0M). The flow never sees BC.
+- Raw: peer `artifacts/runs/ladder_v1/<robot>/generated_zero_ladder_flow_jointfix_snap_final_s20000_rzgendag1noqd.{jsonl,summary.json}`.
 
 **Mechanism found (lead item 2/3, 20:45): system 0 copies the current joint VELOCITY, not the packet.** At BC-visited
 states (bindv4nosem, panda, 10 seeds, `artifacts/runs/ladder_localize/bias/`), system 0's commanded TCP step has gain 0.88
@@ -61,6 +67,7 @@ collection on 13 bodies (jfbcdag1) most failures are transport/place; next check
 | R2 @20000 (final) | jointfix | 0/30 | 0/30 | approach 24, lift 5, grasp 1 / grasp 17, approach 11 | 0.012 / 0.014 |
 | R2 @16000 | jfbcdag1long | 0/30 | 0/30 | grasp 21, approach 8, lift 1 / grasp 22, others 8 | 0.016 / 0.014 |
 | R2 learned:ladder_flow_jointfix@20000 (final) | **jfbcdag2** | 0/30 [0,0.11] | **1/30 [0.01,0.17]** (first deployable-route success) | grasp 22, lift 4, approach 4 / grasp 20, transport 3, lift 2, approach 2, place 2 | 0.017 / 0.014 |
+| **R2 @20000 (final)** | **gendag1noqd** (DAgger on generated + BC-oracle packets, z-noise, no velocity input) | 0/30 [0,0.11] | **9/30 [0.17,0.48]** | grasp 26, approach 4 / place 13, transport 4, lift 2, grasp 1, approach 1 | 0.011 / 0.011 |
 | R2 @20000, FRESH seeds 3,000,100+ | jfbcdag2 | 0/30 | 0/30 | grasp 23, approach 4, lift 3 / grasp 12, approach 9, transport 6, lift 3 | 0.017 / 0.015 |
 | R2 @20000 | jfznoise@11.1k (z-noise 0.3 refit, interrupted by host stop) | 0/30 | 1/30 [0.01,0.17] | grasp 25 / approach 12, grasp 11, transport 6 | 0.014 / 0.012 |
 | R2 @20000, NFE 32 (host) | jfbcdag2 | 0/30 | 1/30 [0.01,0.17] | grasp 21, approach 5 / grasp 21, transport 3, place 2 | 0.018 / 0.015 |
