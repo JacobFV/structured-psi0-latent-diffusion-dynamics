@@ -41,6 +41,16 @@ ssh gb10-direct 'cd /dev/shm/rrp-brandonin/repo && PATH=/dev/shm/rrp-brandonin/b
 | legged_vlm | ~/work/rrp-wt/legged_vlm | legged/humanoid + VLM system II on latent path | — |
 Host data mirror: ~/work/rrp-data/datasets only (packed removed, D-034: host disk reserve); packed-data training runs on the peer.
 
+## DEMO SPRINT (2026-09-25 19:00 → 2026-09-26 05:00 PDT; user: "bring back as many subagents as you need ... no stopping", ≥80% host, 100% peer)
+Plan and rules: research/tracks/BRIEF.md "DEMO SPRINT". Agents and their outputs:
+| agent | worktree / notes | delivers |
+|---|---|---|
+| sprint_latent | ~/work/rrp-wt/ladder, research/tracks/ladder.md "SPRINT BEST ROUTE" | best B-1-fixed route: binding v4 oracle ladder, DAgger rounds, flows (host + peer GPU), R0/R1/R2 table |
+| sprint_semantic | ~/work/rrp-wt/acceptance, acceptance.md "SPRINT SEMANTIC RESULTS" | approach-level semantic edits (rebind, goal, arm swap, plus controls); sem vs nosem; edit videos |
+| sprint_bc | ~/work/rrp-wt/baselines, baselines.md "SPRINT BC RESULT" | plain BC positive control (B-1 fixed) with a learning curve, competence and videos |
+| sprint_demo | ~/work/rrp-wt/demo, docs/demo/index.html | demo page, videos, evidence matrix (owner for the sprint) |
+The lead publishes the page, audits the claims and rebalances resources (a watchdog alerts when a GPU is underused).
+
 ## now (2026-09-25 17:10) — lead working solo (no subagents); B-1 fix pipeline-wide (D-045); refits on the frozen v1 encoder fail (D-046)
 Deciding experiments, all deployment-consistent (zero_prev_action):
 - Stage A retrained jointly with fix + anchored system 0: peer lease 8d7f01 -> artifacts/runs/ladder_latent_sem_b1fix_anchor

@@ -1,0 +1,14 @@
+{
+ "n": 20,
+ "final_dev_closed_loop_m": 0.038415636489868704,
+ "final_dev_open_loop_delta_m": 0.05807047552966353,
+ "final_dev_servo_absolute_m": 0.005153925242095504,
+ "checkpoints": {
+  "representation": {
+   "path": "artifacts/runs/ladder_rz_sem_v1_dagger1/representation.pt",
+   "sha256": "4b4a419ca6c4c448fa6ff97ab71a1648857255d8282d678a3ea15cc1343b00c3",
+   "latent_space_version": "ls-8db814f941f5-wd246dff9b00b",
+   "realizer_compat_version": "rz-ls-8db814f941f5-wd246dff9b00b-r29b3ee0d3268-none-v1"
+  }
+ }
+}

@@ -1,0 +1,131 @@
+{
+ "robot": "panda_pg2",
+ "reanchor_every": 1,
+ "n": 20,
+ "success": 0,
+ "final_phases": {
+  "pregrasp": 20
+ },
+ "rows": [
+  {
+   "seed": 3000000,
+   "success": false,
+   "phase": "pregrasp",
+   "steps": 300
+  },
+  {
+   "seed": 3000001,
+   "success": false,
+   "phase": "pregrasp",
+   "steps": 300
+  },
+  {
+   "seed": 3000002,
+   "success": false,
+   "phase": "pregrasp",
+   "steps": 300
+  },
+  {
+   "seed": 3000003,
+   "success": false,
+   "phase": "pregrasp",
+   "steps": 300
+  },
+  {
+   "seed": 3000004,
+   "success": false,
+   "phase": "pregrasp",
+   "steps": 300
+  },
+  {
+   "seed": 3000005,
+   "success": false,
+   "phase": "pregrasp",
+   "steps": 300
+  },
+  {
+   "seed": 3000006,
+   "success": false,
+   "phase": "pregrasp",
+   "steps": 300
+  },
+  {
+   "seed": 3000007,
+   "success": false,
+   "phase": "pregrasp",
+   "steps": 300
+  },
+  {
+   "seed": 3000008,
+   "success": false,
+   "phase": "pregrasp",
+   "steps": 300
+  },
+  {
+   "seed": 3000009,
+   "success": false,
+   "phase": "pregrasp",
+   "steps": 300
+  },
+  {
+   "seed": 3000010,
+   "success": false,
+   "phase": "pregrasp",
+   "steps": 300
+  },
+  {
+   "seed": 3000011,
+   "success": false,
+   "phase": "pregrasp",
+   "steps": 300
+  },
+  {
+   "seed": 3000012,
+   "success": false,
+   "phase": "pregrasp",
+   "steps": 300
+  },
+  {
+   "seed": 3000013,
+   "success": false,
+   "phase": "pregrasp",
+   "steps": 300
+  },
+  {
+   "seed": 3000014,
+   "success": false,
+   "phase": "pregrasp",
+   "steps": 300
+  },
+  {
+   "seed": 3000015,
+   "success": false,
+   "phase": "pregrasp",
+   "steps": 300
+  },
+  {
+   "seed": 3000016,
+   "success": false,
+   "phase": "pregrasp",
+   "steps": 300
+  },
+  {
+   "seed": 3000017,
+   "success": false,
+   "phase": "pregrasp",
+   "steps": 300
+  },
+  {
+   "seed": 3000018,
+   "success": false,
+   "phase": "pregrasp",
+   "steps": 300
+  },
+  {
+   "seed": 3000019,
+   "success": false,
+   "phase": "pregrasp",
+   "steps": 300
+  }
+ ]
+}

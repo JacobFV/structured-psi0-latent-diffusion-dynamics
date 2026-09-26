@@ -1,0 +1,32 @@
+{
+ "steps": 6000,
+ "wall_s": 1077.1028106212616,
+ "metadata_only": false,
+ "encoded_target": {
+  "visible": 0.9750394114555965,
+  "visible_pos": 0.9934072520227749,
+  "focused_on": 0.999649675950254,
+  "focused_on_pos": 0.9997726756080928,
+  "held_by": 0.9968470835522859,
+  "held_by_pos": 0.9555984555984556,
+  "acting_on": 0.9838850937116833,
+  "acting_on_pos": 0.8710089399744572,
+  "rel_pos_err_m": 0.053989130261692324,
+  "desired_delta_err_m": 0.012400885329060264,
+  "subtask": 1.0
+ },
+ "encoded_target_shuffled": {
+  "visible": 0.8121387283236994,
+  "visible_pos": 0.9014084507042254,
+  "focused_on": 0.8768610965142757,
+  "focused_on_pos": 0.8404182768811094,
+  "held_by": 0.9238045191802418,
+  "held_by_pos": 0.15057915057915058,
+  "acting_on": 0.8945524610264495,
+  "acting_on_pos": 0.21966794380587484,
+  "rel_pos_err_m": 0.3654230872518566,
+  "desired_delta_err_m": 0.01587104250282639,
+  "subtask": 0.6450520833333333
+ },
+ "latent_space_version": "ls-8db814f941f5"
+}

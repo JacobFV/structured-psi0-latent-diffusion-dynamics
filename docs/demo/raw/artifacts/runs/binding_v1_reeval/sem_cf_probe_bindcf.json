@@ -1,0 +1,262 @@
+{
+ "representation": "artifacts/runs/latent_sem_v1/representation.pt",
+ "probe": "artifacts/runs/binding_v1_reeval/sem_probe_bindcf.pt",
+ "latent_space_version": "ls-8db814f941f5",
+ "source": "encoded teacher targets (not generated packets)",
+ "counterexample": {
+  "test": "v2_symmetric_rebind",
+  "n": 80,
+  "n_label_changed": 71,
+  "focus_follows_changed": 0.0,
+  "mean_z_dist": 1.5289775812998414,
+  "mean_rel_z_dist": 0.047075351463316206,
+  "focus_follows": 0.1125,
+  "focus_exact_cf": 0.1125,
+  "focus_exact_orig": 0.95,
+  "focus_argmax_changed": 0.0,
+  "rows": [
+   {
+    "src": 0,
+    "dst": 2,
+    "z_dist": 1.047827124595642,
+    "z_norm": 26.635019302368164,
+    "label_orig": [
+     1,
+     0,
+     0
+    ],
+    "label_cf": [
+     0,
+     0,
+     1
+    ],
+    "focus_orig": [
+     0.8085642457008362,
+     0.10347319394350052,
+     0.09142734110355377
+    ],
+    "focus_cf": [
+     0.8169083595275879,
+     0.1127815917134285,
+     0.09570908546447754
+    ],
+    "argmax_changed": false,
+    "focus_follows": false,
+    "exact_orig": true,
+    "exact_cf": false
+   },
+   {
+    "src": 0,
+    "dst": 2,
+    "z_dist": 0.46944481134414673,
+    "z_norm": 22.3658447265625,
+    "label_orig": [
+     1,
+     0,
+     0
+    ],
+    "label_cf": [
+     0,
+     0,
+     1
+    ],
+    "focus_orig": [
+     0.7478917241096497,
+     0.05654840171337128,
+     0.10273128002882004
+    ],
+    "focus_cf": [
+     0.749489963054657,
+     0.05655215308070183,
+     0.10362923890352249
+    ],
+    "argmax_changed": false,
+    "focus_follows": false,
+    "exact_orig": true,
+    "exact_cf": false
+   },
+   {
+    "src": 0,
+    "dst": 2,
+    "z_dist": 0.9186842441558838,
+    "z_norm": 34.74937438964844,
+    "label_orig": [
+     0,
+     0,
+     0
+    ],
+    "label_cf": [
+     0,
+     0,
+     0
+    ],
+    "focus_orig": [
+     0.05735698714852333,
+     0.009854568168520927,
+     0.019566969946026802
+    ],
+    "focus_cf": [
+     0.05738739296793938,
+     0.009705574251711369,
+     0.019202230498194695
+    ],
+    "argmax_changed": false,
+    "focus_follows": true,
+    "exact_orig": true,
+    "exact_cf": true
+   },
+   {
+    "src": 0,
+    "dst": 2,
+    "z_dist": 0.6009238958358765,
+    "z_norm": 95.98237609863281,
+    "label_orig": [
+     1,
+     0,
+     0
+    ],
+    "label_cf": [
+     0,
+     0,
+     1
+    ],
+    "focus_orig": [
+     0.8531270623207092,
+     0.17380322515964508,
+     0.2054014801979065
+    ],
+    "focus_cf": [
+     0.8499715328216553,
+     0.16938917338848114,
+     0.201884925365448
+    ],
+    "argmax_changed": false,
+    "focus_follows": false,
+    "exact_orig": true,
+    "exact_cf": false
+   },
+   {
+    "src": 0,
+    "dst": 2,
+    "z_dist": 2.034928560256958,
+    "z_norm": 27.148944854736328,
+    "label_orig": [
+     1,
+     1,
+     0
+    ],
+    "label_cf": [
+     0,
+     1,
+     1
+    ],
+    "focus_orig": [
+     0.924275815486908,
+     0.6231118440628052,
+     0.1909315586090088
+    ],
+    "focus_cf": [
+     0.9163937568664551,
+     0.5796967148780823,
+     0.17585031688213348
+    ],
+    "argmax_changed": false,
+    "focus_follows": false,
+    "exact_orig": true,
+    "exact_cf": false
+   }
+  ]
+ },
+ "counterexample_v1": {
+  "test": "v1_one_sided",
+  "n": 40,
+  "mean_z_dist": 1.8644867606461049,
+  "mean_rel_z_dist": 0.0482270242608754,
+  "focus_argmax_changed": 0.0,
+  "rows": [
+   {
+    "z_dist": 0.8465722799301147,
+    "z_norm": 35.71998596191406,
+    "focus_orig": [
+     0.8174906969070435,
+     0.8754133582115173,
+     0.2076558768749237
+    ],
+    "focus_cf": [
+     0.8200556635856628,
+     0.8686144948005676,
+     0.2017448991537094
+    ],
+    "argmax_changed": false
+   },
+   {
+    "z_dist": 1.5975390672683716,
+    "z_norm": 36.54243850708008,
+    "focus_orig": [
+     0.9146096706390381,
+     0.7909938097000122,
+     0.15948745608329773
+    ],
+    "focus_cf": [
+     0.908059298992157,
+     0.7974052429199219,
+     0.16123315691947937
+    ],
+    "argmax_changed": false
+   },
+   {
+    "z_dist": 0.7174018025398254,
+    "z_norm": 21.753633499145508,
+    "focus_orig": [
+     0.8011254072189331,
+     0.026056872680783272,
+     0.09508337080478668
+    ],
+    "focus_cf": [
+     0.7973623275756836,
+     0.02542734518647194,
+     0.0934709683060646
+    ],
+    "argmax_changed": false
+   },
+   {
+    "z_dist": 2.052476167678833,
+    "z_norm": 27.618976593017578,
+    "focus_orig": [
+     0.8343223929405212,
+     0.14990608394145966,
+     0.10641898959875107,
+     0.09570402652025223
+    ],
+    "focus_cf": [
+     0.8341086506843567,
+     0.1403249055147171,
+     0.10001334547996521,
+     0.09141134470701218
+    ],
+    "argmax_changed": false
+   },
+   {
+    "z_dist": 7.889215469360352,
+    "z_norm": 97.77518463134766,
+    "focus_orig": [
+     0.8266485333442688,
+     0.16109080612659454,
+     0.1697738766670227
+    ],
+    "focus_cf": [
+     0.7994098663330078,
+     0.17306169867515564,
+     0.16927391290664673
+    ],
+    "argmax_changed": false
+   }
+  ]
+ },
+ "embodiment_swap": {
+  "pairs": 129,
+  "focus_agreement": 0.9534883720930233,
+  "subtask_agreement": 1.0,
+  "desired_delta_disagreement_m": 0.0026280046924878754
+ }
+}

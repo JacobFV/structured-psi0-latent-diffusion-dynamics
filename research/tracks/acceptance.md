@@ -109,3 +109,80 @@ misses of the 50 ms deadline). Rerun on sem_v2/v3 when the GPU is quiet.
 2. With the binding track's reps (binding_latent_{sem,nosem}_v2): oracle rung first (CPU is enough; E and R are small).
 3. Manipulator assignment: needs the dualarm track's paired tasks (same scene, other arm assigned); add a condition.
 4. Latency on sem_v2/v3 in a quiet GPU window with `--reps 100`.
+
+## sprint_bc coordination note (2026-09-25 ~19:15, from the baselines track; append-only)
+- Plain BC with the B-1 fix is COMPETENT on the ladder scenes at mid-training (learned:direct1701_u12000: panda_pg2 25/30,
+  parm6_tf3 27/30; details in research/tracks/baselines.md "SPRINT BC RESULT").
+- BC route for the semantic-edit suite: `python -m rrp.evaluation.bc_semantic_edits --policy <ckpt> --label <tag>
+  [--scene pick_place|paired] --robots panda_pg2 --episodes N --out <dir>` (src/rrp/evaluation/bc_semantic_edits.py).
+  It reuses THIS track's module (context_edit, goal_offset, followed, summarize_semantic; and _scene, paired_edit_keys,
+  approach_metrics, robot_contacts once your paired-scene version lands on main), so the numbers are directly comparable.
+  BC has no packet: the edit is applied to the public context BC observes at each chunk (snapshot/edit/chunk/restore).
+  Running now on pick_place scenes (u12000, 24 seeds, panda_pg2 + parm6_tf3; out artifacts/runs/baselines_bcsem_u12000/).
+  Please ping here when the paired/approach-level version is on main; I will rerun BC with `--scene paired`.
+
+## sprint (2026-09-25 19:00 -> 09-26 04:00): semantic edits at the level the routes reach (agent sprint_semantic)
+State: implementing -> verified (teacher rung); oracle/learned runs in progress.
+
+Code (merged to main 7381aba, de4955a):
+- `rrp latent semantic-edits --scene paired`: binding-paired scenes (`pick_place_paired`, identical physics for every
+  assignment). Episode key = 10*scene_seed + patient, patient alternates with the seed; rebind target = distractor0
+  (first other cube in physical order). The VALID rebind edit changes only the public task context: the `cube` entity's
+  descriptor becomes the other cube's color and the public entity->slot binding follows (`rebind_descriptor`); tracker
+  beliefs, physics and runtime statuses are untouched. Conditions: control, rebind_obj, goal_shift (zone belief 12 cm),
+  irrelevant_distractor (unbound belief 10 cm), orthogonal_matched (probe-orthogonal z, norm = ||z_rebind - z_control||
+  per packet), control_replay (generated route only: other flow noise; oracle/teacher are deterministic).
+- Approach-level metrics (privileged measurement): min TCP distance to old (cube) / new (distractor0) object, which
+  object the TCP first comes within 6 cm of, first robot-object contact, cosine of the initial xy motion (first 4 cm)
+  toward each object, and for goal edits the end position of the cube (only if moved >= 2 cm) relative to old/new goal.
+  Summaries: counts with Wilson CIs, paired-with-control bootstrap CIs, and contrasts valid-edit minus control-edit
+  (difference of paired differences per scene).
+- `rrp latent arm-edits`: dual-arm assign_pick_place dev pairs (3 robot pairs, seeds 3,000,000+; assigned arm = left
+  for even seeds, right for odd). swap_arm = VALID context edit (actor of take/place rebound = the other variant's task
+  graph, `rebind_actor`); swap_slots = control packet with the two assembly slots exchanged; orthogonal_matched (norm =
+  ||z_swap_arm - z_control||); control_replay. Metrics per arm: min distance to the bar, first arm to touch the bar,
+  TCP path share. DualLatentSystem0 now applies the anchored-realizer column (was missing: v4 bundles are anchored) and
+  DualLatentPolicy takes noise keys.
+- `scripts/render_causal_edit.py --suite semantic|arm`: side-by-side video from the SAME runner as the measurement.
+- `scripts/sem_merge.py`: merge sharded rows -> one summary.
+
+### teacher rung (scripted_teacher, privileged; proves each edit is achievable and the metrics read it)
+`rrp latent semantic-edits --route teacher --scene paired --representation <any> --episodes 30 --seed-start 3100000 --max-steps 500 --conditions control,rebind_obj,goal_shift,irrelevant_distractor --out artifacts/runs/acceptance_sprint_sem_teacher_paired`
+(peer lease 1790388785_36db43). 30 scenes, panda_pg2: control approached/touched the assigned cube 30/30; rebind_obj
+approached the new cube first 30/30, first touch new 29/30, lifted+placed new 30/30; goal_shift cube ends at the new goal
+30/30 (end-position preference +11.2 cm [11.0, 11.4]); irrelevant_distractor identical to control 30/30.
+Arm: `rrp latent arm-edits --route teacher --episodes 8 --max-steps 700 --conditions control,swap_arm --out artifacts/runs/acceptance_sprint_arm_teacher`
+(lease 1790388786_c5d0ce): 3 pairs x 8 seeds = 24; swap_arm: the edited-to arm touches the bar first 24/24 (control 0/24),
+bar-distance preference +0.35 m. (privileged_success is scored against the REAL task, so it is 0 for the edited arm.)
+
+### oracle rung, B-1-fixed bundle (ORACLE DIAGNOSTIC: E(ladder_latent_sem_b1fix_anchor) + scripted_teacher demo -> frozen system 0)
+6 peer CPU shards (leases 1790388786_981f44 .. 1790388789_de0d14), each
+`rrp latent semantic-edits --route oracle --scene paired --representation artifacts/runs/ladder_latent_sem_b1fix_anchor/representation.pt --episodes 5 --seed-start 31000{00,05,..,25} --max-steps 300 --out artifacts/runs/acceptance_sprint_sem_b1fix_oracle/shard<i>`,
+merged by `scripts/sem_merge.py` -> `artifacts/runs/acceptance_sprint_sem_b1fix_oracle/semantic_summary_oracle.json`.
+30 paired scenes, panda_pg2, 0 task successes in any condition (the route is not competent), but the approach changes:
+| condition | first approach old/new/none | first touch old/new/none | min-dist pref. new vs control (m) | init-dir pref. vs control |
+|---|---|---|---|---|
+| control | 15/4/11 | 13/5/12 | - | - |
+| rebind_obj (valid) | 3/12/15 | 2/19/9 | +0.163 [+0.123, +0.211] | +0.81 [+0.49, +1.17] |
+| irrelevant_distractor | 16/3/11 | 13/5/12 | +0.007 [-0.004, +0.020] | +0.00 [-0.00, +0.00] |
+| orthogonal_matched (norm = rebind) | 22/4/4 | 22/8/0 | +0.019 [-0.002, +0.042] | +0.26 [+0.04, +0.55] |
+| goal_shift (valid) | 13/6/11 | 14/6/10 | -0.003 [-0.018, +0.010] | -0.00 |
+Contrasts (per scene, rebind effect minus control-edit effect): min-dist +0.156 m [0.115, 0.205] vs irrelevant,
++0.144 [0.110, 0.183] vs orthogonal. Goal edit: the cube is moved in only ~12/30 (pushed, never carried), end-position
+preference for the new goal vs irrelevant +0.004 m [-0.019, 0.025]: no measurable goal effect (nothing is transported).
+CAVEAT (lead, D-049): the oracle packet encodes the teacher's demonstration toward the new object and the shadow
+teacher is not a valid expert off-trajectory, so this is WEAK evidence: it shows that system 0 follows the packet's
+content, not that anything reads the supplied binding. The binding test is the generated route (v4 flows) and the BC
+reference below.
+
+### BC reference controller (added at the lead's request, 19:15)
+`--route bc`: the competent direct-action BC `learned:artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt`
+(sha256 5e6586bd6000412c.., track baselines: 25/30 panda_pg2), NOT the latent path; context-conditioned (sees the task
+graph); the chunk for an edited condition is computed from the edited public context and executed in the real scene;
+flow noise keyed per (seed, call); control_replay = other noise.
+- Paired scenes (smoke, 1 scene): BC is NOT competent there (hovers over the target zone; the paired scenes have
+  permuted slot order and new colors, which BC never saw). So BC is tested on the canonical pick_place scenes with
+  `rebind_desc` = the same descriptor/binding-only edit (task entity "red cube" -> distractor0's descriptor).
+- Running: 4 peer shards `acceptance_sprint_sem_bc_pp/shard{0..3}` (32 seeds from 3,000,000; control, rebind_desc,
+  rebind_obj (belief swap), goal_shift, irrelevant_distractor, control_replay; 400 steps) + teacher rung on the same
+  scenes `acceptance_sprint_sem_teacher_pp`.

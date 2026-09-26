@@ -1,0 +1,48 @@
+{
+ "parm5s_tf3": {
+  "attempted": 47,
+  "successes": 44,
+  "success_rate": 0.9361702127659575,
+  "wilson95": [
+   0.828373857036585,
+   0.9780546149654928
+  ],
+  "infeasible": 3,
+  "outcomes": {
+   "infeasible": 3,
+   "success": 44,
+   "timeout": 3
+  },
+  "public_private_agreement": 0.9787234042553191,
+  "policy_calls": 673,
+  "control_steps": 5165
+ },
+ "parm5l_pg2": {
+  "attempted": 33,
+  "successes": 30,
+  "success_rate": 0.9090909090909091,
+  "wilson95": [
+   0.7642739420848934,
+   0.9685960587203024
+  ],
+  "infeasible": 17,
+  "outcomes": {
+   "infeasible": 17,
+   "success": 30,
+   "timeout": 3
+  },
+  "public_private_agreement": 1.0,
+  "policy_calls": 459,
+  "control_steps": 3527
+ },
+ "_meta": {
+  "controller_source": "learned:artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt",
+  "device": "cpu",
+  "wall_s": 196.2341992855072,
+  "seed_start": 2000000,
+  "episodes": 50,
+  "nfe": 8,
+  "execute_prefix": 8,
+  "max_steps": 300
+ }
+}

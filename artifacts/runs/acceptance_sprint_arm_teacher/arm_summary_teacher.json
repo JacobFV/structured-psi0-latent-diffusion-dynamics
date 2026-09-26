@@ -1,0 +1,107 @@
+{
+ "meta": {
+  "route": "teacher",
+  "source": "scripted_teacher (privileged expert native commands; reference rung)",
+  "representation": "artifacts/runs/ladder_latent_sem_b1fix_anchor/representation.pt",
+  "checkpoint": null,
+  "orthogonal_probe": null,
+  "pairs": "panda_pg2__ur5e_pg2,parm5_pg2__parm5_pg2,parm5_pg2__parm6_tf3",
+  "seeds": [
+   3000000,
+   3000007
+  ],
+  "conditions": [
+   "control",
+   "swap_arm"
+  ],
+  "t": 1790388815.726223,
+  "scenes": "assign_pick_place dev scenes; assigned arm = left for even seeds, right for odd; edit rebinds the actor of take/place"
+ },
+ "summary": {
+  "control": {
+   "n": 24,
+   "followed": 24,
+   "moving_arm_is_edited_to": {
+    "k": 0,
+    "n": 24,
+    "wilson95": [
+     0.0,
+     0.13797620655132792
+    ]
+   },
+   "first_contact_is_edited_to": {
+    "k": 0,
+    "n": 24,
+    "wilson95": [
+     0.0,
+     0.13797620655132792
+    ]
+   },
+   "first_contact_none": 0,
+   "privileged_success": 24,
+   "edited_to_path_share": {
+    "mean": 0.200101325601748,
+    "lo": 0.16804203188207406,
+    "hi": 0.238318627037324,
+    "n": 24
+   },
+   "bar_pref_edited_to_m": {
+    "mean": -0.3482255195832114,
+    "lo": -0.3548810255670255,
+    "hi": -0.34143069125320163,
+    "n": 24
+   },
+   "skipped": 0
+  },
+  "swap_arm": {
+   "n": 24,
+   "followed": 24,
+   "moving_arm_is_edited_to": {
+    "k": 24,
+    "n": 24,
+    "wilson95": [
+     0.862023793448672,
+     0.9999999999999999
+    ]
+   },
+   "first_contact_is_edited_to": {
+    "k": 24,
+    "n": 24,
+    "wilson95": [
+     0.862023793448672,
+     0.9999999999999999
+    ]
+   },
+   "first_contact_none": 0,
+   "privileged_success": 0,
+   "edited_to_path_share": {
+    "mean": 0.7188251286904457,
+    "lo": 0.6841451309237021,
+    "hi": 0.7477270169278997,
+    "n": 24
+   },
+   "bar_pref_edited_to_m": {
+    "mean": 0.3455889707397601,
+    "lo": 0.3387363017486535,
+    "hi": 0.35268896207663286,
+    "n": 24
+   },
+   "skipped": 0,
+   "paired_n": 24,
+   "path_share_vs_control": {
+    "mean": 0.5187238030886977,
+    "lo": 0.47359099436487656,
+    "hi": 0.5591843616816512,
+    "n": 24
+   },
+   "bar_pref_vs_control_m": {
+    "mean": 0.6938144903229716,
+    "lo": 0.6865217394576871,
+    "hi": 0.7022977448534143,
+    "n": 24
+   },
+   "moving_arm_changed": 24
+  },
+  "_contrasts": {}
+ }
+}

@@ -404,6 +404,17 @@ def cmd_semantic(a):
         lcfg, E, R, P, res = load_representation(rep, dev)
         src = se.OracleSource(E, lcfg, res, rep, dev)
         label = f"ORACLE DIAGNOSTIC target_encoder_oracle:E({rep}) + scripted_teacher demo"
+    elif a.route == "bc":
+        from rrp.policy.runner import LearnedPolicy
+        from rrp.evaluation.ladder import sha256_file
+        rep = Path(a.representation) if a.representation else None
+        R = P = None
+        if rep:
+            _, _, R, P, _ = load_representation(rep, dev)
+        src = se.BCSource(LearnedPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=a.nfe, execute_prefix=8),
+                          a.checkpoint)
+        label = (f"learned:{a.checkpoint} (direct-action BC reference controller, NOT the latent path; "
+                 f"sha256 {sha256_file(a.checkpoint)[:16]})")
     else:
         from rrp.learning.checkpoint import load_checkpoint
         from rrp.policy.latent_runner import LatentPolicy
@@ -411,33 +422,102 @@ def cmd_semantic(a):
         _, _, R, P, _ = load_representation(rep, dev)
         src = se.GeneratedSource(LatentPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=a.nfe))
         label = f"learned:{a.checkpoint}"
-    probe = a.probe or (str(rep.parent / "probe_posthoc.pt") if (rep.parent / "probe_posthoc.pt").exists() else None)
-    P = lc.load_probe(probe, P, dev)
+    probe = None
+    if rep is not None:
+        probe = a.probe or (str(rep.parent / "probe_posthoc.pt") if (rep.parent / "probe_posthoc.pt").exists() else None)
+        P = lc.load_probe(probe, P, dev)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     rows_path = out / f"semantic_rows_{a.route}.jsonl"
-    seeds = list(range(a.seed_start, a.seed_start + a.episodes))
+    if a.scene == "paired":
+        seeds = se.paired_edit_keys(a.seed_start, a.episodes)
+        conds = a.conditions or ",".join(se.PAIRED_CONDITIONS)
+        scenes = ("pick_place_paired: episode key = 10*scene_seed + patient (patient alternates with the seed), "
+                  "n_objects = 2 + seed % 2; rebind target = distractor0 (first other cube in physical order); "
+                  "rebind edit = task entity descriptor + public binding only")
+    else:
+        seeds = list(range(a.seed_start, a.seed_start + a.episodes))
+        conds = a.conditions or ",".join(se.CONDITIONS)
+        scenes = "pick_place with n_distractors = max(1, seed % 3)"
     rows = []
     for r in robots:
-        rows += se.semantic_suite(src, R, P, r, seeds, tuple(a.conditions.split(",")), max_steps=a.max_steps, dev=dev,
-                                  out_path=rows_path)
+        rows += se.semantic_suite(src, R, P, r, seeds, tuple(conds.split(",")), max_steps=a.max_steps, dev=dev,
+                                  out_path=rows_path, scene=a.scene)
     summ = dict(meta=dict(route=a.route, source=label, representation=str(rep), checkpoint=a.checkpoint,
                           orthogonal_probe=probe, robots=robots, seeds=[seeds[0], seeds[-1]], t=time.time(),
-                          scenes="pick_place with n_distractors = max(1, seed % 3)"),
+                          scenes=scenes, conditions=conds),
                 summary=se.summarize_semantic(rows))
     (out / f"semantic_summary_{a.route}.json").write_text(json.dumps(summ, indent=1))
     print(json.dumps(summ, indent=1))
 
 
+def cmd_arm(a):
+    import torch
+    from rrp.evaluation import latent_semantic_edits as se
+    from rrp.evaluation import latent_causal as lc
+    from rrp.learning.latent_train import load_representation
+    if a.seed_start < 3_000_000:
+        raise SystemExit("dev rule (D-025): dev seeds >= 3,000,000 only")
+    dev = "cuda" if a.gpu and torch.cuda.is_available() else "cpu"
+    if a.route == "generated":
+        from rrp.learning.checkpoint import load_checkpoint
+        from rrp.evaluation.dual_latent_eval import DualLatentPolicy
+        rep = Path(load_checkpoint(a.checkpoint, map_location="cpu")["config"]["representation"])
+        _, _, R, P, _ = load_representation(rep, dev)
+        src = se.GeneratedSource(DualLatentPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=a.nfe))
+        label = f"learned:{a.checkpoint}"
+    else:
+        rep = Path(a.representation)
+        lcfg, E, R, P, res = load_representation(rep, dev)
+        if a.route == "oracle":
+            src = se.OracleSource(E, lcfg, res, rep, dev)
+            label = f"ORACLE DIAGNOSTIC target_encoder_oracle:E({rep}) + scripted_teacher demo"
+        else:
+            src = se.TeacherSource()
+            label = "scripted_teacher (privileged expert native commands; reference rung)"
+    probe = a.probe or (str(rep.parent / "probe_posthoc.pt") if (rep.parent / "probe_posthoc.pt").exists() else None)
+    P = lc.load_probe(probe, P, dev)
+    out = Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    seeds = list(range(a.seed_start, a.seed_start + a.episodes))
+    conds = tuple((a.conditions or ",".join(se.ARM_CONDITIONS)).split(","))
+    rows = se.arm_suite(src, R, P, a.pairs.split(","), seeds, conds, max_steps=a.max_steps, dev=dev,
+                        out_path=out / f"arm_rows_{a.route}.jsonl")
+    summ = dict(meta=dict(route=a.route, source=label, representation=str(rep), checkpoint=a.checkpoint,
+                          orthogonal_probe=probe, pairs=a.pairs, seeds=[seeds[0], seeds[-1]], conditions=conds,
+                          t=time.time(), scenes="assign_pick_place dev scenes; assigned arm = left for even seeds, "
+                                                "right for odd; edit rebinds the actor of take/place"),
+                summary=se.summarize_arm(rows))
+    (out / f"arm_summary_{a.route}.json").write_text(json.dumps(summ, indent=1))
+    print(json.dumps(summ, indent=1))
+
+
 def register_semantic(p):
-    c = p.add_parser("semantic-edits", help="valid semantic packet edits (binding / goal) + irrelevant-edit controls")
+    c = p.add_parser("arm-edits", help="manipulator-assignment edits (dual-arm assign scenes) + matched controls")
     c.add_argument("--route", choices=["teacher", "oracle", "generated"], required=True)
+    c.add_argument("--representation")
+    c.add_argument("--checkpoint")
+    c.add_argument("--pairs", default="panda_pg2__ur5e_pg2,parm5_pg2__parm5_pg2,parm5_pg2__parm6_tf3")
+    c.add_argument("--episodes", type=int, default=6)
+    c.add_argument("--seed-start", type=int, default=3000000)
+    c.add_argument("--conditions")
+    c.add_argument("--probe")
+    c.add_argument("--max-steps", type=int, default=400)
+    c.add_argument("--nfe", type=int, default=8)
+    c.add_argument("--gpu", action="store_true")
+    c.add_argument("--out", required=True)
+    c.set_defaults(fn=cmd_arm)
+    c = p.add_parser("semantic-edits", help="valid semantic packet edits (binding / goal) + irrelevant-edit controls")
+    c.add_argument("--route", choices=["teacher", "oracle", "generated", "bc"], required=True,
+                   help="bc: direct-action BC reference controller (--checkpoint), context-conditioned, no packet")
     c.add_argument("--representation", help="oracle route: frozen representation.pt")
     c.add_argument("--checkpoint", help="generated route: flow policy checkpoint")
     c.add_argument("--robots", default="panda_pg2")
     c.add_argument("--episodes", type=int, default=12)
     c.add_argument("--seed-start", type=int, default=3000000)
-    c.add_argument("--conditions", default="control,rebind_obj,goal_shift,irrelevant_distractor,orthogonal_matched")
+    c.add_argument("--conditions", help="default: all conditions of the scene family")
+    c.add_argument("--scene", choices=["pick_place", "paired"], default="pick_place",
+                   help="paired: binding-paired scenes (rebinding is physically valid; approach-level metrics)")
     c.add_argument("--probe")
     c.add_argument("--max-steps", type=int, default=300)
     c.add_argument("--nfe", type=int, default=8)

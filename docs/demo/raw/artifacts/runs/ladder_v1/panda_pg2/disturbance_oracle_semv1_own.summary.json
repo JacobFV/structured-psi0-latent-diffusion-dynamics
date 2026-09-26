@@ -1,0 +1,14 @@
+{
+ "n": 20,
+ "final_dev_closed_loop_m": 0.04820654755605873,
+ "final_dev_open_loop_delta_m": 0.06114515044110523,
+ "final_dev_servo_absolute_m": 0.0009529262378111131,
+ "checkpoints": {
+  "representation": {
+   "path": "artifacts/runs/latent_sem_v1/representation.pt",
+   "sha256": "8946aa9d2d0da5fca149786e867a4138ca9596976258abde2ef20aef4708db04",
+   "latent_space_version": "ls-8db814f941f5-wd246dff9b00b",
+   "realizer_compat_version": "rz-ls-8db814f941f5-wd246dff9b00b-rc51d57dc1c0d-none-v1"
+  }
+ }
+}

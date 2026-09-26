@@ -84,7 +84,7 @@ class DualLatentPolicy(LatentPolicy):
         return multi_featurizer(s)
 
     @torch.no_grad()
-    def packets(self, sessions) -> list[LatentActionChunk]:
+    def packets(self, sessions, noise_keys=None) -> list[LatentActionChunk]:
         t0 = time.perf_counter()
         feats, obs = [], []
         for s in sessions:
@@ -93,7 +93,12 @@ class DualLatentPolicy(LatentPolicy):
             feats.append(self.featurizer(s)(o))
         b = assembly_batch(collate_inputs(feats).to(self.device))
         cache = self.model.prepare(b)
-        z = self.model.sample(cache, len(self.knot_times), nfe=self.nfe, generator=self.gen)
+        noise = None
+        if noise_keys is not None:          # paired interventions: same key -> same initial flow noise
+            K, N, D = len(self.knot_times), b.node_mask.shape[1], self.model.cfg.latent_dim
+            noise = torch.stack([torch.randn((K, N, D), generator=torch.Generator().manual_seed(int(k) % (2 ** 63)))
+                                 for k in noise_keys]).to(self.device, cache.ctx.dtype)
+        z = self.model.sample(cache, len(self.knot_times), nfe=self.nfe, generator=self.gen, noise=noise)
         if self.device != "cpu" and torch.cuda.is_available():
             torch.cuda.synchronize()
         z = z.float().cpu().numpy()
@@ -152,7 +157,8 @@ class DualLatentSystem0(LatentSystem0):
         zm = torch.tensor([self.packet.assembly_mask], device=dev)
         kt = torch.tensor(self.packet.knot_times, dtype=torch.float32, device=dev)
         ph = torch.tensor([now - self.packet.valid_from], dtype=torch.float32, device=dev)
-        nf = torch.from_numpy(pi.act_node_feats.astype(np.float32))[None].to(dev)
+        from rrp.control.latent_realizer import realizer_node_feats
+        nf = torch.from_numpy(realizer_node_feats(self, pi))[None].to(dev)    # anchored realizers: col 28 (ladder)
         nm = torch.ones(1, nf.shape[1], dtype=torch.bool, device=dev)
         a = self.net(z, zm, kt, ph, nf, nm, torch.from_numpy(loc)[None].to(dev),
                      node_asm=torch.from_numpy(na)[None].to(dev))[0].cpu().numpy()

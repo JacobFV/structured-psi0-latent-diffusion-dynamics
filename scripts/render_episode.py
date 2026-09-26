@@ -61,10 +61,14 @@ def run(args):
     out.mkdir(parents=True, exist_ok=True)
     index = out / "INDEX.md"
     for sd in [int(x) for x in args.seeds.split(",")]:
-        s = Session(BUILDERS[args.task](robot, sd, n_distractors=sd % 3), seed=sd)
+        if args.task == "pick_place_paired":         # binding pairs: identical scene, patient = which cube is bound
+            s = Session(BUILDERS[args.task](robot, sd, patient=args.patient), seed=sd)
+        else:
+            s = Session(BUILDERS[args.task](robot, sd, n_distractors=sd % 3), seed=sd)
         r = mujoco.Renderer(s.model, args.height, args.width)
         teacher = PickPlaceTeacher(s) if args.source == "scripted_teacher" else None
         frames = []
+        ptag = f" | patient=cube#{args.patient}" if args.task == "pick_place_paired" else ""
         label = "SCRIPTED TEACHER (privileged)" if teacher else f"LEARNED {Path(args.checkpoint).parent.name}"
         if args.source == "learned_latent":
             label = f"LEARNED latent (sys-i flow + sys-0) {Path(args.checkpoint).parent.name}"
@@ -97,18 +101,19 @@ def run(args):
                 st = " ".join(f"{e}:{v.status}" for e, v in s.runtime.instances.items())
                 lab = label if not (args.source == "learned_latent" and k < args.teacher_prefix_steps) else \
                     f"SCRIPTED TEACHER prefix (privileged) {k + 1}/{args.teacher_prefix_steps}, then {label}"
-                frames.append(caption(r.render().copy(), [f"{lab} | {args.robot} | {args.task} | seed {sd}",
+                frames.append(caption(r.render().copy(), [f"{lab} | {args.robot} | {args.task}{ptag} | seed {sd}",
                                                           f"t={s.data.time:.1f}s  {st}"]))
             if done:
                 break
         ok = s.privileged_success()
         tag = "success" if ok else "failure"
         pf = f"_teacherprefix{args.teacher_prefix_steps}" if args.teacher_prefix_steps else ""
-        name = f"{dt.date.today()}_{args.source}{('_' + args.tag) if args.tag else ''}{pf}_{args.robot}_{args.task}_s{sd}_{tag}.mp4"
+        pp = f"_patient{args.patient}" if args.task == "pick_place_paired" else ""
+        name = f"{dt.date.today()}_{args.source}{('_' + args.tag) if args.tag else ''}{pf}_{args.robot}_{args.task}{pp}_s{sd}_{tag}.mp4"
         imageio.mimsave(out / name, frames, fps=args.fps, quality=6)
         with open(index, "a") as f:
             f.write(f"- `{name}` — source={args.source} ckpt={args.checkpoint or '-'} robot={args.robot} "
-                    f"task={args.task} seed={sd} outcome={tag} (privileged evaluator)"
+                    f"task={args.task}{pp} seed={sd} outcome={tag} (privileged evaluator)"
                     + (f" teacher_prefix={args.teacher_prefix_steps} ticks (scripted, privileged) then learned" if pf else "")
                     + "\n")
         print(name, tag, flush=True)
@@ -131,5 +136,6 @@ if __name__ == "__main__":
     ap.add_argument("--fps", type=int, default=20)
     ap.add_argument("--max-steps", type=int, default=300)
     ap.add_argument("--teacher-prefix-steps", type=int, default=0, help="learned_latent: scripted teacher for the first N ticks")
+    ap.add_argument("--patient", type=int, default=0, help="pick_place_paired: index of the cube bound as patient")
     ap.add_argument("--tag", default="", help="extra filename tag (e.g. grpo / reference)")
     run(ap.parse_args())

@@ -16,12 +16,14 @@ import torch
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--route", choices=["teacher", "oracle", "generated"], required=True)
+    ap.add_argument("--route", choices=["teacher", "oracle", "generated", "learned"], required=True)
     ap.add_argument("--robot", required=True)
     ap.add_argument("--n", type=int, default=30)
     ap.add_argument("--seed-start", type=int, default=3_000_000)
     ap.add_argument("--rep")
     ap.add_argument("--flow")
+    ap.add_argument("--policy", help="route learned: LearnedPolicy checkpoint (baseline FlowPolicy)")
+    ap.add_argument("--policy-label", help="label, e.g. baseline_direct_action_s1701@11000")
     ap.add_argument("--replan", type=int, default=8)
     ap.add_argument("--prev-action", choices=["zero", "own"], default="zero")
     ap.add_argument("--nfe", type=int, default=8)
@@ -49,7 +51,7 @@ def main():
     from rrp.evaluation.ladder import LadderConfig, load_models, run_ladder, summarize, OraclePacketPolicy, install_prev_action
     from rrp.learning.latent_grpo import feasible_seeds
     seeds = feasible_seeds(a.robot, a.seed_start, a.n)
-    cfg = LadderConfig(route=a.route, robot=a.robot, seeds=seeds, representation=a.rep, flow=a.flow,
+    cfg = LadderConfig(route=a.route, robot=a.robot, seeds=seeds, representation=a.rep, flow=a.flow, policy=a.policy, policy_label=a.policy_label,
                        replan_ticks=a.replan, max_steps=a.max_steps, nfe=a.nfe, compare_oracle=not a.no_compare,
                        device=dev, prev_action=a.prev_action, keep_ticks=a.keep_ticks, oracle_reanchor=a.reanchor, object_shift=tuple(float(x) for x in a.object_shift.split(",")) if a.object_shift else None)
     if cfg.object_shift:
@@ -106,8 +108,9 @@ def render(a, cfg, models, ids):
     from render_episode import caption
     label = dict(teacher="R0 SCRIPTED TEACHER (privileged)",
                  oracle="R1 ORACLE DIAGNOSTIC: E(teacher future actions) -> sys-0",
-                 generated="R2 LEARNED sys-i flow -> sys-0")[a.route]
-    ck = Path(a.flow).stem if a.flow else (Path(a.rep).parent.name if a.rep else "-")
+                 generated="R2 LEARNED sys-i flow -> sys-0",
+                 learned=f"LEARNED plain BC learned:{a.policy_label or a.policy}")[a.route]
+    ck = (a.policy_label or Path(a.policy).stem) if a.policy else Path(a.flow).stem if a.flow else (Path(a.rep).parent.name if a.rep else "-")
     out = Path(a.video_out)
     out.mkdir(parents=True, exist_ok=True)
     for sd in [int(x) for x in a.render_seeds.split(",")]:

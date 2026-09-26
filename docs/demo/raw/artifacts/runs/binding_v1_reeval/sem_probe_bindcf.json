@@ -1,0 +1,48 @@
+{
+ "steps": 6000,
+ "wall_s": 1457.7222113609314,
+ "metadata_only": false,
+ "binding_cf": 0.5,
+ "encoded_target": {
+  "visible": 0.9754773165177789,
+  "visible_pos": 0.9931075816601738,
+  "focused_on": 0.9944823962165003,
+  "focused_on_pos": 0.991816321891339,
+  "held_by": 0.9964091784901034,
+  "held_by_pos": 0.9517374517374517,
+  "acting_on": 0.9830968645997548,
+  "acting_on_pos": 0.8620689655172413,
+  "rel_pos_err_m": 0.055680788300421176,
+  "desired_delta_err_m": 0.01273975012744657,
+  "subtask": 1.0
+ },
+ "encoded_target_shuffled": {
+  "visible": 0.815729549833596,
+  "visible_pos": 0.9027070222754969,
+  "focused_on": 0.873270275004379,
+  "focused_on_pos": 0.8415548988406456,
+  "held_by": 0.9240672622175512,
+  "held_by_pos": 0.15444015444015444,
+  "acting_on": 0.8927132597652829,
+  "acting_on_pos": 0.20306513409961685,
+  "rel_pos_err_m": 0.3632697584667062,
+  "desired_delta_err_m": 0.015577595128259677,
+  "subtask": 0.6578125
+ },
+ "binding_counterfactual": {
+  "cf_visible": 0.9755648975302155,
+  "cf_visible_pos": 0.9939067026271102,
+  "cf_focused_on": 0.5543878087230688,
+  "cf_focused_on_pos": 0.42055012502841554,
+  "cf_held_by": 0.9966719215274129,
+  "cf_held_by_pos": 0.9517374517374517,
+  "cf_acting_on": 0.9830968645997548,
+  "cf_acting_on_pos": 0.8607918263090677,
+  "cf_rel_pos_err_m": 0.056238297218406945,
+  "cf_desired_delta_err_m": 0.012741904581129749,
+  "cf_subtask": 1.0,
+  "cf_rel_z_dist": 0.027831594459712505,
+  "cf_focus_follows": 0.0
+ },
+ "latent_space_version": "ls-8db814f941f5"
+}
