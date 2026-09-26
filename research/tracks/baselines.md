@@ -1,8 +1,15 @@
 # track: baselines (latent_slice1 four-way comparison, baseline methods)
 
-## SPRINT BC RESULT (2026-09-25, sprint_bc; live section, updated as checkpoints land)
-**Plain behaviour cloning with deployment-consistent input (B-1 fixed) IS a competent source controller on the ladder's
-matched dev scenes, already at mid-training.** Same data (latent_pp_v3dart_s1_H16, stride 2), same seed 1701, same
+## SPRINT BC RESULT (2026-09-25, sprint_bc; completed 23:05 PDT)
+State: completed (both B-1-fixed seed-1701 baseline sources trained, source-competence + budget-0 cells done, learning
+curve, semantic edits, videos). Seeds 1702/1703 and SFT budgets remain ON HOLD. Nothing of this track is still running;
+the watcher loops (scripts/bc_ckpt_watch.sh, scripts/bc_b0_after.sh) have exited.
+**FINAL (23:05): plain behaviour cloning with deployment-consistent input (B-1 fixed) IS a competent source controller.**
+Direct-action BC seed 1701 (26,304 updates): held-out source bodies 79/80 = 0.99 [0.93, 1.00]; ladder dev scenes
+panda_pg2 30/30 and parm6_tf3 30/30 (each [0.89, 1.00]). Action-only codec BC: 77/80 = 0.96 [0.90, 0.99]; ladder 29/30,
+28/30. Zero-shot to new bodies (budget 0): panda_tf3 78/100 (direct) / 85/100 (codec); xarm7_pg2 and xarm7_tf3 0/100 for
+both (an unseen arm is not solved without target data). BC follows goal edits and belief swaps but ignores a valid
+descriptor rebinding (acceptance track, 0/32). It was already competent at mid-training (12k updates: 25/30, 27/30). Same data (latent_pp_v3dart_s1_H16, stride 2), same seed 1701, same
 scenes/seeds as the ladder (30 feasible dev seeds from 3,000,000; n_distractors = seed % 3; prev-action input 0 as
 deployed; replan / execute prefix 8; nfe 8; privileged success evaluator). So the latent path's closed-loop failures
 (oracle route 0-1/30, D-046..D-049) do NOT come from the data, the teacher's demonstrations, or the simulator/tracker
@@ -26,8 +33,13 @@ sha256[:16] 86094786ab15ecd8). THE POSITIVE CONTROL IS COMPETENT.**
   parm6_tf3 30/30 [0.89, 1.00]. Same seeds: scripted teacher 30/30 / 30/30; best oracle route 1/30 / 0/30.
 - Raw (committed): `artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/{eval/source.*,cells/source.json,
   source/result.json,source/train_log.jsonl}`, `artifacts/runs/baselines_bc_ladder/<robot>/learned_direct1701_ufinal.*`.
-- Budget-0 zero-shot transfer cells (xarm7_pg2, xarm7_tf3, panda_tf3) running on peer CPU: leases 1790401361_f15525,
-  1790401361_3cc06a, 1790401362_e2608d (auto-launched by scripts/bc_b0_after.sh).
+- Budget-0 zero-shot transfer to the protocol's NEW bodies (sealed cells, 100 episodes each): panda_tf3 78/100 = 0.78
+  [0.69, 0.85]; xarm7_pg2 0/100 [0.00, 0.04]; xarm7_tf3 0/100 [0.00, 0.04] (all timeouts). Same pattern as the codec.
+- Aggregate table (both baselines, sealed protocol, seed 1701, budget 0): research/reports/latent_slice1_b1fix_baselines_tables.md
+  (from `python -m rrp.evaluation.latent_slice1_report --root artifacts/runs/latent_slice1_b1fix --out-json
+  artifacts/runs/latent_slice1_b1fix/aggregate.json --out-md research/reports/latent_slice1_b1fix_baselines_tables.md`).
+- Videos: artifacts/video/2026-09-25_learned_bc_direct1701_final_{panda_pg2_..._s3000000_success, parm5s_tf3_..._s2000029_success,
+  zeroshot_newbody_xarm7_pg2_..._s2000000_failure}.mp4 (+ the u12000 ladder videos incl. a grasp failure).
 
 **FINAL: action-only codec BC, seed 1701 (B-1 fixed; 26,304 updates, finished 21:52 on the peer).**
 Source competence (sealed-protocol cell, held-out source bodies, seeds 2,000,000.., 50 episodes each, infeasible

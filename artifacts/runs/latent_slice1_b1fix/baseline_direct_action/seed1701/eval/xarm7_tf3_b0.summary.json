@@ -1,0 +1,28 @@
+{
+ "xarm7_tf3": {
+  "attempted": 100,
+  "successes": 0,
+  "success_rate": 0.0,
+  "wilson95": [
+   0.0,
+   0.03699349876899627
+  ],
+  "infeasible": 0,
+  "outcomes": {
+   "timeout": 100
+  },
+  "public_private_agreement": 1.0,
+  "policy_calls": 3800,
+  "control_steps": 30000
+ },
+ "_meta": {
+  "controller_source": "learned:artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/source/policy.pt",
+  "device": "cpu",
+  "wall_s": 1100.486485004425,
+  "seed_start": 2000000,
+  "episodes": 100,
+  "nfe": 8,
+  "execute_prefix": 8,
+  "max_steps": 300
+ }
+}
