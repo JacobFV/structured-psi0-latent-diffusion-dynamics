@@ -1,0 +1,42 @@
+{
+ "n": 30,
+ "success": 0,
+ "rate": 0.0,
+ "wilson95": [
+  0.0,
+  0.113517091390478
+ ],
+ "failed_stage": {
+  "approach": 30
+ },
+ "track_q_rad": 0.0065673417861164705,
+ "track_tcp_m": 0.010153035111554286,
+ "lab_err_arm": 1.026255364180077,
+ "lab_err_grip": 0.22318802274467267,
+ "min_tcp_cube_m": 0.14100934664297157,
+ "cmd_step_rad": 0.024307812065634316,
+ "route": "oracle",
+ "robot": "parm6_tf3",
+ "seeds": [
+  3000003,
+  3000041,
+  30
+ ],
+ "replan": 8,
+ "nfe": 8,
+ "prev_action": "zero",
+ "reanchor": false,
+ "oracle_expert": "teacher",
+ "policy_label": null,
+ "keep_ticks": false,
+ "oracle_reanchor": false,
+ "object_shift": null,
+ "checkpoints": {
+  "representation": {
+   "path": "artifacts/runs/binding_paired_sem_v4/representation.pt",
+   "sha256": "baa24a12ac8750d2c6fe3c29bcd702f7c7fc547997e526ac9b6cecb6c99fd661",
+   "latent_space_version": "ls-6d2448d800d3-w055335ee546a",
+   "realizer_compat_version": "rz-ls-6d2448d800d3-w055335ee546a-rc1b88f05b725-none-v1"
+  }
+ }
+}

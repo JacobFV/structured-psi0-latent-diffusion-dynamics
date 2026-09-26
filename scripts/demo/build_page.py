@@ -673,8 +673,11 @@ def sec_bc():
         prog = (f'Direct-action source training at build time: update {last["step"]:,} of ~26.3k. '
                 f'{src("host: artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/source/train_log.jsonl")}')
     rows = []
-    for tag, what in (("direct1701_u12000", "direct-action BC, 12k of ~26.3k updates"),
-                      ("codec1701_u13152", "action-only codec BC, 13.2k updates")):
+    import re as _re2
+    bctags = sorted({f.name[len("learned_"):-len(".summary.json")] for f in (ROOT / "artifacts/runs/baselines_bc_ladder").glob("*/learned_*.summary.json")},
+                    key=lambda t: (t.split("_u")[0], int(_re2.sub(r"\D", "", t.split("_u")[-1]) or 0)))
+    for tag, what in ((t, ("direct-action BC" if t.startswith("direct") else "action-only codec BC") + f", {int(_re2.sub(r'\D', '', t.split('_u')[-1])):,} updates")
+                      for t in bctags):
         cells = []
         for r in ("panda_pg2", "parm6_tf3"):
             p = f"artifacts/runs/baselines_bc_ladder/{r}/learned_{tag}.summary.json"
@@ -813,7 +816,7 @@ def build(updates_html: str = ""):
 <a href="#semantic">semantic edits</a><a href="#bc">BC control</a><a href="#next">next</a><a href="#sources">sources</a></nav>
 </header>
 <p class="lede"><b>Bottom line.</b> The scripted teacher solves every task and edit shown here on single-arm, dual-arm and legged
-bodies, and the pipeline runs end to end within the latency budget. <b>Plain behaviour cloning on the same data is competent</b> (25–28 of 30 on matched scenes, mid-training), so data and
+bodies, and the pipeline runs end to end within the latency budget. <b>Plain behaviour cloning on the same data is competent</b> (23–28 of 30 on matched scenes across mid-training checkpoints), so data and
 evaluation are sound. <b>The latent-packet route is not competent yet</b>: its best oracle-diagnostic variant succeeds 1 time
 in 30, and causal packet semantics are not shown. We found and fixed a
 train/deploy mismatch (bug B-1). The latent route's remaining failure is <b>not localized yet</b>: the oracle-packet
