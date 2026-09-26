@@ -19,6 +19,8 @@ Generator DAgger (`configs/ladder/flow_jointfix_gdag1.json`): flow fine-tuned 4k
 z* = E(chunk of BC learned:direct1701_u12000 at that state)); contexts from R2 rollouts of flow_ft + gendag2noqd on the 13
 source-training bodies, seeds 3,900,000+ (`artifacts/runs/ladder_dagger_gdag1/*.genctx.pkl`). Offline: |z_gen - z_bc| /
 |z_bc| 0.24 / 0.30 (flow_ft 0.25 / 0.32), system-0 error from the generated packet 0.73 / 2.69 of hold-still.
+On the 13 source-TRAINING bodies, R2 flow_gdag1 -> gendag3noqd (the gdag2 collection rollouts, seeds 4,000,000+, 24 each):
+**209/312 = 0.67** (raw peer `artifacts/runs/ladder_dagger_gdag2/generated_<robot>.summary.json`); earlier pair below.
 On the 13 source-TRAINING bodies (seeds 3,800,000+, 24 each; the gen-DAgger round-3 collection rollouts, R2 flow_ft ->
 gendag2noqd): 143/312 = 0.46 (parm6_pg2 20/24, parm7_pg2 19/24, parm5s_pg2 18/24, parm5_pg2 17/24 ... sawyer_tf3 3/24),
 raw peer `artifacts/runs/ladder_dagger_gen3/generated_<robot>.summary.json`.
