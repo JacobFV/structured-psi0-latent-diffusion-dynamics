@@ -452,7 +452,7 @@ matched-norm probe-orthogonal edit. The claim that semantic supervision adds cau
     if r2rows:
         rows = []
         for (step, s0, fresh), per in sorted(r2rows.items()):
-            desc0 = {"gendag1": " (as gendag1_noqd but WITH the joint-velocity input)", "gendag1_qdd": " (gendag1 variant with joint-velocity dropout)", "gendag1_noqd": " (refit from bcdag2: no joint-velocity input, BC-expert DAgger incl. states visited with GENERATED packets, z-noise 0.3; config configs/ladder/rz_jointfix_gendag1_noqd.json on track/ladder)"}.get(s0, "")
+            desc0 = {"gendag1": " (as gendag1_noqd but WITH the joint-velocity input)", "gendag2_noqd": " (round 2 of gendag1_noqd: DAgger on generated-packet states, no joint-velocity input)", "gendag1_qdd": " (gendag1 variant with joint-velocity dropout)", "gendag1_noqd": " (refit from bcdag2: no joint-velocity input, BC-expert DAgger incl. states visited with GENERATED packets, z-noise 0.3; config configs/ladder/rz_jointfix_gendag1_noqd.json on track/ladder)"}.get(s0, "")
             cells = [f'<span class="badge b-learned">R2 learned:ladder_flow_{step[0]}{"@" + str(step[1]) if step[1] >= 0 else " (final)"}</span> → system 0 {esc(s0)}<b>{esc(fresh)}</b><span class="ci">{esc(desc0)}</span>']
             for r in ("panda_pg2", "parm6_tf3"):
                 d = per.get(r)
@@ -738,7 +738,7 @@ def md_table_to_html(md: str) -> str:
 def legged_research():
     p = ROOT / "research/tracks/legged_vlm.md"
     txt = p.read_text() if p.exists() else ""
-    if "## LEGGED RESEARCH RESULT" not in txt:
+    if "## LEGGED RESEARCH RESULT" not in txt and "## RESEARCH RESTART" not in txt:
         import subprocess
         try:
             txt = subprocess.run(["git", "-C", str(ROOT), "show", "origin/track/legged_vlm:research/tracks/legged_vlm.md"],
@@ -746,13 +746,16 @@ def legged_research():
         except Exception:
             txt = ""
     i = txt.find("## LEGGED RESEARCH RESULT")
+    if i < 0:
+        i = txt.find("## RESEARCH RESTART")
     head = f"<h3>Legged / humanoid research (agent legged; D-060)</h3>"
     if i < 0:
         return head + f"<p>{badge('run')} Legged research restarted (D-060): BC positive control, the ladder (teacher / BC / stateless oracle / R2) and packet edits on go2 → hexapod6 → t1/g1. Results pending.</p>"
     j = txt.find("\n## ", i + 5)
     sec = txt[i:j if j > 0 else None]
     USED.add("research/tracks/legged_vlm.md")
-    return head + '<div class="mdsec">' + md_table_to_html(sec) + "</div>" + src("research/tracks/legged_vlm.md (LEGGED RESEARCH RESULT)", "D-060")
+    lab = "LEGGED RESEARCH RESULT" if sec.startswith("## LEGGED RESEARCH RESULT") else "RESEARCH RESTART, live state"
+    return head + f"<p>{badge('run') if 'RESTART' in lab else ''} Rendered from the legged agent's track notes ({lab}); the go2 BC positive control is {badge('bc', 'learned')}, everything else is labelled in the table.</p>" + '<div class="mdsec">' + md_table_to_html(sec) + "</div>" + src(f"research/tracks/legged_vlm.md ({lab})", "D-060")
 
 
 def sec_bodies():
@@ -820,28 +823,32 @@ deferred (D-040, D-043). Learned results on this page are single-arm pick_place 
 </section>"""
 
 
+BEST = {}
+
+
 def sec_matrix():
+    def b(kind, r):
+        v = BEST.get(kind, {}).get(r)
+        return f"{v[0]}/{v[1]}" if v else "—"
+    orc = f"stateless oracle best: <b>{b('oracle', 'panda_pg2')}</b> panda, <b>{b('oracle', 'parm6_tf3')}</b> parm6 (diagnostic) " + src("D-053", "D-055")
+    gen = f"R2 best: <b>{b('learned', 'panda_pg2')}</b> panda, <b>{b('learned', 'parm6_tf3')}</b> parm6 vs BC {b('bc', 'panda_pg2')}, {b('bc', 'parm6_tf3')} " + src("D-063")
     rows = [
-        ["single-arm pick_place (latent_sem)", badge("ok"),
-         "R1 best: <b>1/30</b> (panda, jointfix + DAgger-1); 0/30 on parm6_tf3 " + src("D-048") + "; <b>confounded</b>: oracle packets are stale off the teacher trajectory (§4)",
-         "0/30 (flow v2, pre-fix) " + src("D-044") + "; B-1-fixed flows " + badge("run"),
-         "teacher does every edit; oracle: packet dependence, <b>no semantic control</b> " + src("D-041"),
+        ["single-arm pick_place (latent, B-1 fixed)", badge("ok"), orc, gen,
+         "goal content in the packet is executed (oracle, D-062); binding not followed; <b>semantic advantage not shown</b> " + src("D-059", "D-062"),
          badge("none")],
-        ["latent_nosem (control)", badge("ok"), "not evaluated after the fix", "binding v4 nosem " + badge("run"),
-         "—", badge("none")],
-        ["plain BC with fix (direct / codec)", badge("ok"), "n/a", "<b>25/30, 27/30</b> (direct); <b>28/30, 25/30</b> (codec) on panda / parm6, mid-training " + src("artifacts/runs/baselines_bc_ladder/"), "n/a", badge("none")],
+        ["latent_nosem (control)", badge("ok"), "binding v4 nosem: see sprint rows", "v4 flows " + badge("run"), "no sem advantage over nosem " + src("D-059"), badge("none")],
+        ["plain BC with fix (direct / codec)", badge("ok"), "n/a", f"<b>{b('bc', 'panda_pg2')}, {b('bc', 'parm6_tf3')}</b> (final) " + src("D-065"), "follows goal and belief edits, ignores binding " + src("D-065"), "zero-shot: panda_tf3 78–85/100, xarm7 0/100 " + src("D-064")],
         ["binding (object pairs)", badge("ok"), "v1 z does not carry the binding: focus_follows 0.0 " + src("binding_v1_reeval/sem_cf_probe_bindcf.json"),
-         "binding v4 chains " + badge("run"), "not shown", badge("none")],
-        ["dual-arm / assignment", badge("ok"), "teacher only", badge("none"), "pairs ready, teacher does both " + src("D-043"), badge("none")],
-        ["legged / humanoid", "data + code", "teacher only", badge("none"), badge("none"), badge("none")],
+         "binding v4 flows " + badge("run"), "not shown", badge("none")],
+        ["dual-arm / assignment", badge("ok"), "teacher only", badge("none"), "pairs ready, teacher does both; v4 arm edits: no detectable effect " + src("D-043"), badge("none")],
+        ["legged / humanoid", "data + code; research restarted (D-060)", "teacher only (+ go2 BC 30/30)", badge("run"), badge("none"), badge("none")],
         ["VLM system II", "smoke only", "n/a", badge("none"), badge("none"), badge("none")],
-        ["latency", badge("ok"), "—", "p95 1.014× vs real BC checkpoint (≤ 1.25×), quiet GPU " + src("D-058"), "—", "—"],
+        ["latency", badge("ok"), "—", "p95 1.014× vs real BC checkpoint (≤ 1.25×) " + src("D-058"), "—", "—"],
     ]
     return f"""
 <section id="matrix"><h2>3 · Evidence matrix</h2>
-<p class="lede"><b>Headline: the latent-packet route is not competent in closed loop yet, and causal packet semantics are not shown.</b>
-Plain BC with the same data and fix is competent on the same scenes (§6). The best latent oracle-route result is 1 success
-in 30 seeds; the generated (deployable) latent route has no success after the B-1 fix yet.</p>
+<p class="lede"><b>Headline: the deployable latent route now succeeds sometimes but is well below plain BC, and a semantic advantage of the
+packet is not shown.</b> Best R2 {b('learned', 'panda_pg2')} (panda) and {b('learned', 'parm6_tf3')} (parm6) vs BC {b('bc', 'panda_pg2')} and {b('bc', 'parm6_tf3')} on the same scenes.</p>
 {table(["component", "implementation", "oracle-packet behaviour (diagnostic)", "generated-packet behaviour (deployable)", "semantic interventions", "held-out bodies"], rows, "matrix")}
 <p>Full statement with every raw path: <code>research/reports/evidence_matrix.md</code>. Held-out bodies (xarm7_pg2, xarm7_tf3, panda_tf3) stay sealed until a source controller is competent.</p>
 </section>"""
@@ -1047,15 +1054,15 @@ def sec_next():
     return """
 <section id="next"><h2>7 · What is next</h2>
 <ol>
-<li><b>The clean test: R2 vs BC on the same seeds.</b> System i's own packet from a B-1-fixed flow → system 0,
-compared with the competent plain-BC control (§6) on the ladder's matched scenes. No teacher is in the loop, so the
-oracle confound does not apply. If R2 fails where BC succeeds, the gap is in the packet route itself.</li>
-<li><b>Generated route on the fixed bundle</b>: flows trained with <code>zero_prev_action</code> on the jointly trained
-and binding-v4 encoders, then R2 on matched seeds.</li>
-<li><b>Semantic interventions on a competent route</b>: rebind_obj, goal_shift, manipulator assignment (dual-arm pairs),
-each with irrelevant-edit controls; sem vs capacity-matched nosem.</li>
-<li><b>Only then</b> the sealed four-way comparison on held-out bodies (xarm7_pg2, xarm7_tf3, panda_tf3) with the
-≤ 1.25× latency constraint rerun on final checkpoints.</li>
+<li><b>Close the R2-vs-BC gap on the source bodies.</b> The gap from BC to the stateless oracle belongs to system 0, which still realizes
+only part of the commanded motion. The gap from the oracle to R2 belongs to the generator. Continue what moved the numbers: DAgger on
+learner-visited and generated-packet states, no proprioceptive shortcuts, with the offline gate before closed-loop runs.</li>
+<li><b>Make the packet carry the binding.</b> No learned route follows a pure binding change yet, and neither does BC. This is the
+capability the semantic packet is meant to add (binding v4 flows and their generated-route edits are running).</li>
+<li><b>Semantic vs capacity-matched no-semantic packets on a competent route</b>: rebind, goal and manipulator-assignment edits with
+irrelevant-edit controls. So far there is no advantage (D-059).</li>
+<li><b>Only then</b> run the sealed four-way comparison on the held-out bodies. BC transfers to a new gripper but not to the unseen xarm7
+arm (D-064), and that is where the latent route has to show its value.</li>
 </ol>
 </section>"""
 
@@ -1152,10 +1159,13 @@ def build(updates_html: str = ""):
                 cells.append("—")
         cells.append(esc(note))
         sc_rows.append(cells)
+        BEST[kind] = bst
     scoreboard = ("<h3 style=\"margin-top:.8rem\">Scoreboard: pick_place on the 30 matched dev scenes (best checkpoint per row)</h3>"
                   + table(["controller", "panda_pg2", "parm6_tf3", "role"], sc_rows)
                   + '<p class="muted" style="font-size:.85em">Best-of selections across checkpoints and variants are optimistic for every row alike; each '
                   'cell names the run it comes from, and per-run tables follow below. Semantic control of the packet: <b>not shown</b> (D-059, D-062).</p>')
+    ob = BEST.get("oracle", {})
+    orc_best = ", ".join(f"{v[0]}/{v[1]} {r}" for r, v in sorted(ob.items())) or "—"
     r2_best = "0/30 on every snapshot" if not r2 or max(r2)[0] == 0 else \
         "{}/{} ({}, {}; still far below BC)".format(max(r2)[0], max(r2)[3], max(r2)[1], max(r2)[2])
     body = (sec_architecture() + sec_works() + sec_bodies() + sec_matrix() + sec_debug() + sec_semantic() + sec_bc() + sec_next())
@@ -1173,14 +1183,14 @@ def build(updates_html: str = ""):
 <nav><a href="#sprint">sprint update</a><a href="#arch">architecture</a><a href="#works">what works</a><a href="#bodies">bodies</a><a href="#matrix">evidence</a><a href="#debug">debugging</a>
 <a href="#semantic">semantic edits</a><a href="#bc">BC control</a><a href="#next">next</a><a href="#sources">sources</a></nav>
 </header>
-<p class="lede"><b>Bottom line.</b> The scripted teacher solves every task and edit shown here on single-arm, dual-arm and legged
-bodies, and the pipeline runs end to end within the latency budget (p95 overhead 1.014×, D-058). <b>Plain behaviour cloning on the same data is competent</b> ({bc_lo}–{bc_hi} of 30 on matched scenes across mid-training checkpoints), so data and
-evaluation are sound. <b>The latent-packet route is not competent yet</b>: its best oracle-diagnostic variant succeeds 1 time
-in 30, and causal packet semantics are not shown. We found and fixed a
-train/deploy mismatch (bug B-1). The latent route's remaining failure is <b>not localized yet</b>: the oracle-packet
-diagnostic turned out to be confounded (§4). In the clean test, the generated route against BC on the same seeds, the latent
-route's best result so far is {r2_best} (sprint update). A stateless oracle and a generator-gap measurement show that both system 0 (underfit; the first gate) and the generator
-(at the current flow snapshot) fall short (D-052).</p>
+<p class="lede"><b>Bottom line.</b> The scripted teacher solves the tasks and edits shown here on single-arm, dual-arm, legged and most
+humanoid bodies (weaker on g1, h1 and one procedural arm, §2b), and the pipeline runs within the latency budget (p95 overhead
+1.014×, D-058). <b>Plain behaviour cloning on the same data is competent</b> ({bc_lo}–{bc_hi} of 30 on the matched scenes across
+checkpoints; 30/30 on both bodies at the end), so data and evaluation are sound. After fixing a train/deploy mismatch (bug B-1) and a
+velocity-copy shortcut in system 0, <b>the deployable latent route succeeds sometimes but stays well below BC</b>: best R2
+{r2_best}. A stateless oracle diagnostic, which feeds system 0 packets encoded from BC's own chunks, reaches {orc_best}: the gap from BC to
+that diagnostic is system 0's, and the gap from the diagnostic to R2 is the generator's (D-052, D-056, D-063, D-066). <b>A semantic advantage of the packet is not shown</b>: goal content in the packet is executed, but
+binding changes are not followed, and semantic vs capacity-matched no-semantic packets show no difference (D-059, D-062).</p>
 {scoreboard}
 {updates_html}
 {sec_sprint()}
