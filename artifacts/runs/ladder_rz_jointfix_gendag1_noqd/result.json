@@ -1,0 +1,60 @@
+{
+ "steps": 15000,
+ "wall_s": 701.2960605621338,
+ "interrupted": false,
+ "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5",
+ "realizer_compat_version": "rz-ls-80e5f25be2f0-wf22fe70f99d5-rfa523e43af65-none-v1",
+ "eval": {
+  "realize_mse": 0.02810112896064917,
+  "zero_action_mse": 0.21274671355883282,
+  "probes": {
+   "visible": 0.9728313095134097,
+   "visible_pos": 0.9905340773216421,
+   "focused_on": 1.0,
+   "focused_on_pos": 1.0,
+   "held_by": 0.9971171485978859,
+   "held_by_pos": 0.9553903345724907,
+   "acting_on": 0.9810430680527649,
+   "acting_on_pos": 0.8075060532687651,
+   "rel_pos_err_m": 0.10587184956326405,
+   "observed_effect_err_m": 0.012476142966779567,
+   "desired_delta_err_m": 0.012476142966779567,
+   "subtask": 1.0
+  },
+  "probes_shuffled_z": {
+   "visible": 0.815672228531493,
+   "visible_pos": 0.9020526106018334,
+   "focused_on": 0.8783960863108238,
+   "focused_on_pos": 0.8434547908232118,
+   "held_by": 0.9205905477417664,
+   "held_by_pos": 0.1412639405204461,
+   "acting_on": 0.8903642875862672,
+   "acting_on_pos": 0.1791767554479419,
+   "rel_pos_err_m": 0.3542398649542115,
+   "observed_effect_err_m": 0.014227911802611622,
+   "desired_delta_err_m": 0.014227911802611622,
+   "subtask": 0.6502604166666667
+  },
+  "binding_counterfactual": {
+   "cf_visible": 0.8855595352494103,
+   "cf_visible_pos": 0.9027500996412914,
+   "cf_focused_on": 0.5595352494103258,
+   "cf_focused_on_pos": 0.43297345928924874,
+   "cf_held_by": 0.9961561981305146,
+   "cf_held_by_pos": 0.9368029739776952,
+   "cf_acting_on": 0.9772866253166769,
+   "cf_acting_on_pos": 0.7227602905569007,
+   "cf_rel_pos_err_m": 0.15242784296340522,
+   "cf_observed_effect_err_m": 0.012694923827937047,
+   "cf_desired_delta_err_m": 0.012694923827937047,
+   "cf_subtask": 1.0,
+   "cf_rel_z_dist": 0.4247680832942327,
+   "cf_focus_follows": 0.0
+  }
+ },
+ "config_latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5",
+ "steps_refit": 8000,
+ "refit_name": "rz_jointfix_gendag1_noqd",
+ "refit_of": "artifacts/runs/ladder_rz_jointfix_bcdag2/representation.pt",
+ "zero_prev_action": true
+}

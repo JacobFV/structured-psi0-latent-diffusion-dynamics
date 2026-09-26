@@ -58,6 +58,9 @@ What made it work (all in-architecture; ablations on the same seeds in the live 
    10/30,22/30 -> 14/30,24/30.
 Not solved: panda approach/lift/grasp (pg2) and parm6 approach/place; R2 < BC (0.40 vs ~0.8 panda, 0.78 vs ~0.9 parm6).
 Negative: a 4th system-0 round (`gendag4b`) did not help (pooled 16/60, 32/60 with flow_gdag1 vs 23/60, 43/60).
+Negative (post-freeze, 02:47): a 3rd generator-DAgger round (`ladder_flow_jointfix_gdag3h`, +1.5k pack-free steps on
+gdag1-3 contexts; gdag3 = R2 rollouts of the final route on the 13 training bodies, seeds 4,100,000+: 211/312 = 0.68)
+gave panda 13/30, 12/30, 10/30 = 35/90 and parm6 20/30, 18/30, 21/30 = 59/90 -> not better; the frozen route stands.
 
 Sem vs nosem (binding v4 bundles), same recipe compressed to the sprint: NOT REACHED — neither bundle became competent,
 so there is no deployable sem-vs-nosem comparison. R1 stateless after 3 BC-DAgger rounds: sem 1/30, 1/30; nosem 0/30, 4/30;
