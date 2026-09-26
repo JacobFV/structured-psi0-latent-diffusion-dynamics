@@ -9,7 +9,7 @@ cd ~/work/relational-robot-policy; git fetch -q origin; base=$(git rev-parse ori
 while [ $(date +%s) -lt $end ]; do
   sleep 150
   b=$(snap); new=$(comm -13 <(echo "$a") <(echo "$b"))
-  git fetch -q origin 2>/dev/null; ch=$(git log --format='%h %s' $base..origin/main -- research/decisions.md research/tracks artifacts/runs | grep -v "demo:" | head)
+  git fetch -q origin 2>/dev/null; ch=$(git log --format='%h %s' $base..origin/main -- research/decisions.md research/tracks artifacts/runs artifacts/video | grep -v "demo:" | head)
   if [ -n "$new" ] || [ -n "$ch" ]; then
     echo "$(date +%H:%M) NEW FILES:"; echo "$new"; echo "COMMITS:"; echo "$ch"
     for f in $(echo "$new" | grep ladder_v1); do ssh gb10-direct "python3 -c \"import json;d=json.load(open('$f'));print('$f'.split('ladder_v1/')[1], d.get('success'), d.get('n'))\""; done
