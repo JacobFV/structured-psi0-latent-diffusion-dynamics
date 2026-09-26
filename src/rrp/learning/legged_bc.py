@@ -139,7 +139,7 @@ def train(cfg, out: Path):
     if last.exists():
         st = torch.load(str(last), map_location=dev, weights_only=False)
         model.load_state_dict(st["model"]); opt.load_state_dict(st["opt"]); sch.load_state_dict(st["sch"])
-        step0 = st["step"]; rng.bit_generator.state = st["rng"]; torch.set_rng_state(st["torch_rng"])
+        step0 = st["step"]; rng.bit_generator.state = st["rng"]; torch.set_rng_state(st["torch_rng"].cpu())
         print(f"resumed at step {step0}", flush=True)
     (out / "config.json").write_text(json.dumps(cfg, indent=1))
     log = open(out / "train_log.jsonl", "a")
