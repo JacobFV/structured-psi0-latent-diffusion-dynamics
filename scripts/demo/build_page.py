@@ -326,6 +326,12 @@ ORCBC_TRI = [
 ]
 
 
+def _re_step(path: str) -> int:
+    import re
+    m = re.search(r"s(\d+)\.pt$", path)
+    return int(m.group(1)) if m else -1
+
+
 def sec_sprint():
     """Top 'sprint update' block, generated from the sprint agents' raw outputs when present."""
     parts = []
@@ -409,20 +415,27 @@ advantage at the behaviour level. Neither v4 system 0 is competent before refitt
 matched-norm probe-orthogonal edit. The claim that semantic supervision adds causal control remains <b>not shown</b>. {src('D-059')} {src(T, O, B, A, 'research/tracks/acceptance.md (SPRINT SEMANTIC RESULTS)')}</p>
 <div class="grid">{''.join(video_card(v) for v in SEM_VIDEOS)}</div>""")
 
-    import re as _re
-    snaps = sorted({m.group(1) for f in (RAW / "ladder_v1").glob("*/generated_zero_flowjf_s*.summary.json")
-                    for m in [_re.search(r"_s(\d+(?:_\w+)?)\.summary", f.name)] if m}, key=lambda x: (int(x.split("_")[0]), x))
-    if snaps:
+    # R2 rows keyed by the checkpoints recorded in each summary (flow snapshot x system 0), matched dev seeds only
+    r2rows = {}
+    for f in (RAW / "ladder_v1").glob("*/generated_zero_*.summary.json"):
+        d = J(str(f.relative_to(RAW)))
+        c = d.get("checkpoints") or {}
+        fl = (c.get("flow") or {}).get("path", "")
+        rep = (c.get("representation") or {}).get("path", "")
+        if "ladder_flow_jointfix" not in fl or "fresh" in f.name:
+            continue
+        step = _re_step(fl)
+        s0 = Path(rep).parent.name.replace("ladder_rz_jointfix_", "").replace("ladder_latent_sem_b1fix_anchor", "jointfix")
+        r2rows.setdefault((step, s0), {})[f.parent.name] = d
+    if r2rows:
         rows = []
-        for st in snaps:
-            st_, rz = (st.split("_", 1) + ["jointfix"])[:2]
-            cells = [f'<span class="badge b-learned">R2 learned:ladder_flow_jointfix@{st_}</span> → system 0 {esc(rz)}']
+        for (step, s0), per in sorted(r2rows.items()):
+            cells = [f'<span class="badge b-learned">R2 learned:ladder_flow_jointfix@{step}</span> → system 0 {esc(s0)}']
             for r in ("panda_pg2", "parm6_tf3"):
-                p = f"ladder_v1/{r}/generated_zero_flowjf_s{st}.summary.json"
-                if have(p):
-                    d = J(p)
+                d = per.get(r)
+                if d:
                     cells += [frac(d["success"], d["n"]),
-                              esc(", ".join(f"{k} {v}" for k, v in d["failed_stage"].items() if k != "success"))
+                              esc(", ".join(f"{kk} {v}" for kk, v in d["failed_stage"].items() if kk != "success"))
                               + f' <span class="ci">(min TCP–cube {d["min_tcp_cube_m"] * 100:.1f} cm)</span>']
                 else:
                     cells += ["—", "—"]
@@ -1062,7 +1075,9 @@ def build(updates_html: str = ""):
            if "heldout" not in str(f)]
     bc_lo, bc_hi = min(bcs), max(bcs)
     r2 = []
-    for f in (RAW / "ladder_v1").glob("*/generated_zero_flowjf_*.summary.json"):
+    for f in (RAW / "ladder_v1").glob("*/generated_zero_*.summary.json"):
+        if "fresh" in f.name or "v2s24543" in f.name:
+            continue
         d = J(str(f.relative_to(RAW)))
         r2.append((d["success"], f.parent.name, f.name[len("generated_zero_"):-len(".summary.json")], d["n"]))
 
@@ -1072,7 +1087,7 @@ def build(updates_html: str = ""):
             d = json.loads(f.read_text())
             r = f.parent.name
             tag = f.name.replace(".summary.json", "")
-            if "fresh" in tag:          # different seed set, not the matched scenes
+            if "fresh" in tag or "v2s24543" in tag:   # other seed set / pre-fix flow
                 continue
             if r not in best or d["success"] > best[r][0]:
                 best[r] = (d["success"], d["n"], tag)
@@ -1082,7 +1097,7 @@ def build(updates_html: str = ""):
             ("R0 scripted teacher (privileged)", "teacher", best_of("*/teacher_shadow_zero.summary.json"), "reference"),
             ("plain BC, B-1 fixed (learned, best checkpoint)", "bc", best_of("*/learned_*.summary.json", ROOT / "artifacts/runs/baselines_bc_ladder"), "positive control"),
             ("latent: stateless oracle packet → system 0 (diagnostic)", "oracle", best_of("*/oracle_zero_*_orcbc.summary.json"), "not deployable"),
-            ("latent: R2 generated packet → system 0 (deployable)", "learned", best_of("*/generated_zero_flowjf_*.summary.json"), "the architecture test")):
+            ("latent: R2 generated packet → system 0 (deployable)", "learned", best_of("*/generated_zero_*.summary.json"), "the architecture test")):
         cells = [f'<span class="badge b-{kind}">{esc(lab)}</span>']
         for r in ("panda_pg2", "parm6_tf3"):
             if r in bst:
