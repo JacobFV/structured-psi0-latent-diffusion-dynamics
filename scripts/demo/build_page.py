@@ -813,12 +813,43 @@ def legged_research():
             continue
         f, desc = m.group(1), m.group(2)
         if (ROOT / "artifacts/video" / f).exists() and (ROOT / "artifacts/video" / f).stat().st_size < 2_500_000:
+            if "ctxedit" in f or f.endswith("s10010_unedited-5s.mp4"):
+                continue
             kind = "bc" if "learned-bc" in f else "oracle" if "oracle" in f else "learned"
             if not (VID / f).exists():
                 _sh.copy2(ROOT / "artifacts/video" / f, VID / f)
             cards.append((f, kind, f.replace("2026-09-25_legged_", "").replace(".mp4", "").replace("_", " "), desc[:300], "artifacts/video/INDEX.md"))
     vids_ = ('<div class="grid">' + "".join(video_card(c) for c in cards) + "</div>") if cards else ""
-    reading = f"""<div class="update"><p><b>Legged headline (go2, from the legged agent's notes).</b> The <b>deployable latent route is competent on go2</b>:
+    import shutil as _sh
+    CTX = [("2026-09-26_legged_learned-R2_sem_go2_s10010_unedited-5s.mp4", "learned", "unedited task context",
+            "R2 deployable route (sem), go2 seed 10010, t = 0–5 s, no edit.", "artifacts/video/INDEX.md"),
+           ("2026-09-26_legged_learned-R2_sem_go2_s10010_ctxedit-mirror_inactive-5s.mp4", "learned", "IRRELEVANT edit: inactive waypoint mirrored",
+            "Control: from t = 2 s the packet is generated from a context in which only the inactive waypoint is mirrored. The path is essentially unchanged.", "artifacts/video/INDEX.md"),
+           ("2026-09-26_legged_learned-R2_sem_go2_s10010_ctxedit-mirror_active-5s.mp4", "learned", "VALID edit: active waypoint mirrored",
+            "From t = 2 s system i generates every packet from a context with the active waypoint mirrored, and the robot veers toward the mirrored goal. This seed is illustrative, not typical (see the suite means).", "artifacts/video/INDEX.md")]
+    for c in CTX:
+        if (ROOT / "artifacts/video" / c[0]).exists() and not (VID / c[0]).exists():
+            _sh.copy2(ROOT / "artifacts/video" / c[0], VID / c[0])
+    ctx_html = '<div class="grid3">' + "".join(video_card(c) for c in CTX if (VID / c[0]).exists()) + "</div>"
+    ME = {v: J(f"artifacts/runs/legged_edits/go2/r2ctx_{v}_snap_s4000/mirror_effects.json") for v in ("sem", "nosem")
+          if have(f"artifacts/runs/legged_edits/go2/r2ctx_{v}_snap_s4000/mirror_effects.json")}
+    def me(v, k):
+        if v not in ME or k not in ME[v]:
+            return "—"
+        m, lo, hi = ME[v][k]["toward_mirror_lateral_m"]
+        return f'{m:+.2f} m <span class="ci">[{lo:+.2f}, {hi:+.2f}]</span>'
+    me_m = lambda v: f'{ME[v]["mirror_active"]["toward_mirror_lateral_m"][0]:.2f}' if v in ME else "—"
+    me_tab = table(["task-context edit (R2 deployable, go2, 19 seeds, t = 2–5 s)", "sem: lateral move toward the mirrored side", "nosem"],
+                   [[esc(lab), me("sem", k), me("nosem", k)] for k, lab in (("mirror_active", "VALID: mirror the active waypoint"),
+                                                                             ("mirror_goal", "VALID: mirror both waypoints"),
+                                                                             ("mirror_inactive", "IRRELEVANT: mirror only the inactive waypoint"))]) if ME else ""
+    d071 = f"""<p><b>Central claim, shown on one body for one semantic (D-071).</b> On go2's <b>deployable</b> route, editing only the task context
+(mirroring the active waypoint) moves the robot <b>{me_m('sem')} m (sem) / {me_m('nosem')} m (nosem)</b> toward the mirrored side. The irrelevant control (mirroring the
+inactive waypoint) moves it 0.04–0.05 m. So meaning in the supplied task context flows task → packet → behaviour for goal direction.
+<b>Honest limits:</b> halt via the task context does not work (out of distribution: halts only occur at the final waypoint in the data).
+Semantic supervision is not needed (nosem is at least as steerable), and the only sem-specific handle, a goal readout, is small (6–7 cm, 3–5× random).
+This is one body and one semantic. {src('artifacts/runs/legged_edits/go2/r2ctx_{sem,nosem}_snap_s4000/mirror_effects.json', 'D-071')}</p>{me_tab}{ctx_html}"""
+    reading = f"""<div class="update">{d071}<p><b>Legged headline (go2, from the legged agent's notes).</b> The <b>deployable latent route is competent on go2</b>:
 system i's own packets → system 0 give nosem 30/30 and sem 29/30 on the 30 matched dev seeds, against plain BC 30/30 and the teacher 30/30
 {badge('learned', 'learned:legged_flow_{sem,nosem}_go2_v2 snap_s4000')}. Unlike the arm, the legged system 0 is not the bottleneck: the stateless oracle route
 gives nosem 30/30 and sem 25/30. BC positive controls on other bodies: hexapod6 30/30, t1 humanoid 24/30 (teacher 30/30); g1 is training.
@@ -1176,14 +1207,14 @@ table.ladder td:nth-child(n+3):nth-child(-n+6){white-space:nowrap}
 .bt{font-weight:700}.bd{font-size:.82rem;color:var(--mut)}
 .arr{align-self:center;font-size:1.3rem;color:var(--mut);text-align:center;flex:0 0 auto}.arr small{display:block;font-size:.65rem;max-width:5em}
 .arch2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;font-size:.92rem}
-.grid.wide{grid-template-columns:1fr}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin:1rem 0}
+.grid.wide{grid-template-columns:1fr}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:.6rem 0}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin:1rem 0}
 figure.vid{margin:0;border:1px solid var(--line);border-radius:8px;background:var(--card);overflow:hidden}
 figure.vid video{width:100%;display:block;background:#000;aspect-ratio:4/3}.grid.wide figure.vid video{aspect-ratio:auto;max-height:420px}
 figcaption{padding:.5rem .6rem;font-size:.84rem;overflow-wrap:anywhere}.novid{padding:2rem;text-align:center;color:var(--mut)}
 .update{border:1.5px solid var(--acc);border-radius:8px;padding:.6rem .9rem;background:var(--card)}
 #theme{float:right;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:.25rem .6rem;cursor:pointer}
 .legend{display:flex;flex-wrap:wrap;gap:.4rem;margin:.5rem 0}
-@media (max-width:720px){.arch{flex-direction:column}.arr{transform:rotate(90deg);padding:0}.arr small{display:none}
+@media (max-width:720px){.grid3{grid-template-columns:1fr}.arch{flex-direction:column}.arr{transform:rotate(90deg);padding:0}.arr small{display:none}
 .arch2{grid-template-columns:1fr}.grid{grid-template-columns:1fr}h1{font-size:1.35rem}}
 """
 
@@ -1266,7 +1297,9 @@ velocity-copy shortcut in system 0, <b>the deployable latent route succeeds some
 that diagnostic is system 0's, and the gap from the diagnostic to R2 is the generator's (D-052, D-056, D-063, D-066, D-067, D-068, D-070). <b>A semantic advantage of the packet is not shown</b>: goal content in the packet is executed, but
 binding changes are not followed, and semantic vs capacity-matched no-semantic packets show no difference (D-059, D-062).
 <b>On the go2 quadruped the deployable latent route is competent</b> (nosem 30/30, sem 29/30 vs BC 30/30), and probe-direction edits of the
-packet causally halt and turn the robot, again with no advantage for semantic supervision (D-069, D-070; §2b).</p>
+packet causally halt and turn the robot, again with no advantage for semantic supervision (D-069, D-070; §2b). <b>On go2's deployable
+route, editing only the task context (mirroring the active waypoint) steers the robot toward the new goal: task → packet → behaviour,
+shown for one body and one semantic, and not dependent on semantic supervision (D-071).</b></p>
 {scoreboard}
 {updates_html}
 {sec_sprint()}
