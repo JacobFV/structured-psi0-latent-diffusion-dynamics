@@ -258,3 +258,7 @@ sensitive to off-probe z directions. The nosem bias exceeds both controls. Weak 
 No detectable arm-assignment effect for either bundle: which arm approaches the bar does not follow the actor
 rebinding or the slot swap beyond the matched orthogonal control. (Teacher reference: 24/24.) Again limited by the
 route: the arms reach the bar in only 4-8 of 18 control episodes.
+- BC on paired scenes (host leases 1790389569_{49db16,0bf376}; raw `artifacts/runs/acceptance_sprint_sem_bc_paired/`),
+  12 scenes: 2/12 successes in control (out of distribution). Rebinding changes nothing: first touch new 3/12 vs 4/12 in
+  control, min-dist effect +0.003 m [-0.002, +0.007], TCP deviation from control 1.4 cm (vs 11.8 cm for a noise replay).
+  So the BC controller is insensitive to the binding on paired scenes too.
