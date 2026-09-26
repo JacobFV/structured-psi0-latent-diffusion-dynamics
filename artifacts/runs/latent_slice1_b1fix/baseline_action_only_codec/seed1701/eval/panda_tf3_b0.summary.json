@@ -1,0 +1,29 @@
+{
+ "panda_tf3": {
+  "attempted": 100,
+  "successes": 85,
+  "success_rate": 0.85,
+  "wilson95": [
+   0.7671644033458782,
+   0.9069401475158245
+  ],
+  "infeasible": 0,
+  "outcomes": {
+   "success": 85,
+   "timeout": 15
+  },
+  "public_private_agreement": 0.99,
+  "policy_calls": 1838,
+  "control_steps": 14382
+ },
+ "_meta": {
+  "controller_source": "learned:artifacts/runs/latent_slice1_b1fix/baseline_action_only_codec/seed1701/source/policy.pt",
+  "device": "cpu",
+  "wall_s": 639.0574376583099,
+  "seed_start": 2000000,
+  "episodes": 100,
+  "nfe": 8,
+  "execute_prefix": 8,
+  "max_steps": 300
+ }
+}

@@ -22,9 +22,12 @@ Source competence (sealed-protocol cell, held-out source bodies, seeds 2,000,000
 excluded): parm5s_tf3 44/47 = 0.94 [0.83, 0.98], parm5l_pg2 33/33 = 1.00 [0.90, 1.00]; pooled 77/80 = 0.96. Ladder dev
 scenes (final policy.pt): panda_pg2 29/30 [0.83, 0.99], parm6_tf3 28/30 [0.79, 0.98]. Raw (committed):
 `artifacts/runs/latent_slice1_b1fix/baseline_action_only_codec/seed1701/{eval/source.*,cells/source.json,source/result.json}`,
-`artifacts/runs/baselines_bc_ladder/<robot>/learned_codec1701_ufinal.*`. Budget-0 zero-shot transfer cells
-(xarm7_pg2, xarm7_tf3, panda_tf3; 100 episodes each) running on peer CPU: leases 1790398973_3bb80a, 1790398973_0c5291,
-1790398974_a65ba3.
+`artifacts/runs/baselines_bc_ladder/<robot>/learned_codec1701_ufinal.*`. Budget-0 zero-shot transfer to the protocol's NEW
+bodies (sealed cells, 100 episodes each, seeds 2,000,000..; `eval/<target>_b0.*`, `cells/<target>_b0.json`):
+panda_tf3 85/100 = 0.85 [0.77, 0.91] (known arm, new gripper-arm pairing); xarm7_pg2 0/100 [0.00, 0.04] and
+xarm7_tf3 0/100 [0.00, 0.04] (new arm: all timeouts, the grasp event never completes). So plain BC transfers across
+gripper pairings, but not to an unseen arm kinematic chain without target data. That is the gap the sealed protocol
+asks the latent methods (and the SFT budgets, on hold) to close.
 
 **Provenance audit of the direct-action snapshots (lead request, 21:45).** All `direct1701_u*` snapshots come from ONE
 B-1-fixed run: root `artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/source`, config
