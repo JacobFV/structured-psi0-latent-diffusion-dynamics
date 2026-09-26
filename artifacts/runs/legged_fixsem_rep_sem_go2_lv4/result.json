@@ -1,0 +1,34 @@
+{
+ "steps": 12000,
+ "wall_s": 1064.0609652996063,
+ "bodies": [
+  "go2"
+ ],
+ "n_rows": 322900,
+ "n_train_rows": 307130,
+ "n_heldout_rows": 15770,
+ "latent_space_version": "legged-ls-legged_fixsem_rep_sem_go2_lv4",
+ "eval": {
+  "split": "held_out_episodes",
+  "realize_mse": 0.014333390654064715,
+  "zero_action_mse": 1.4127176433801651,
+  "probes": {
+   "contact_acc": 0.970068359375,
+   "contact_swing_acc": 0.9385198969367307,
+   "goal_err": 0.01703062741071041,
+   "disp_xy_err": 0.03411771161481738,
+   "disp_yaw_err": 0.018486187607049943,
+   "subtask_acc": 1.0,
+   "fall_acc": 1.0
+  },
+  "probes_shuffled_z": {
+   "contact_acc": 0.63885498046875,
+   "contact_swing_acc": 0.2912014505200878,
+   "goal_err": 0.5291469551900261,
+   "disp_xy_err": 0.5919803261756897,
+   "disp_yaw_err": 0.19143166691064833,
+   "subtask_acc": 0.30595703125,
+   "fall_acc": 1.0
+  }
+ }
+}

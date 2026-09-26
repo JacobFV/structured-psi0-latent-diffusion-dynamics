@@ -11,7 +11,10 @@ Labels: learned:legged_fixsem_flow_sem_<body>_lv4/<ckpt> (DEPLOYABLE R2). nosem 
 | step | state | evidence |
 |---|---|---|
 | configs `configs/legged_fixsem/{rep,flow}_sem_{go2,hexapod6}_lv4.json` (diff vs original: probe_lv_min −4, name, note) | verified | generated from the saved original `config.json`s |
-| Stage A + flow, go2 then hexapod6 (`scripts/legged_fixsem_train.sh`) | running | host GPU lease 1790435710_97b4ff (3 CPU / 9G / gpu-mem 4G) → `artifacts/runs/legged_fixsem_{rep,flow}_sem_{go2,hexapod6}_lv4` |
+| Stage A go2 (host GPU lease 1790435710_97b4ff; that lease then exited rc=2 because the concurrent step was cancelled by me after the lead moved hexapod6 to the peer GPU; Stage A itself had finished) | completed | `artifacts/runs/legged_fixsem_rep_sem_go2_lv4/result.json`: held-out realization MSE 0.0143 (orig sem 0.0193, nosem 0.0125); probes goal 0.0170, disp xy 0.034 / yaw 0.018, subtask 1.0, contact 0.97 with swing 0.94 (orig sem 0.76 / 0.42) |
+| flow go2 (host GPU lease 1790437089_a86b45, `BODIES=go2 bash scripts/legged_fixsem_train.sh`) | running | `artifacts/runs/legged_fixsem_flow_sem_go2_lv4` |
+| Stage A + flow hexapod6 (PEER GPU lease 1790436459_62d857, lead's instruction; `BODIES=hexapod6`) | running | peer store `artifacts/runs/legged_fixsem_{rep,flow}_sem_hexapod6_lv4` |
+| geometry / clip scale, go2 (`scripts/legged_fixsem_geom.py`, host CPU lease 1790437095_f653d0, rc=0) | completed | `artifacts/runs/legged_fixsem_diag/geom_go2.json`: median Stage-A grad norm orig sem 466 / FIXED 10.7 / nosem 0.32; mean update scale 0.0036 / 0.18 / 0.94; posterior σ 0.057 / 0.107 / 0.62; participation ratio of μ 4.3 / 7.6 / 5.5; KL per entry 3.8 / 3.1 / 0.58 |
 | evals per body (`scripts/legged_fixsem_eval.sh BODY`): gen gate, R2 snap_s4000 + final (dev 10000–10029), z-edit suite + task-context suite on R2 snap_s4000 (dev 10000–10019), mirror effects | planned | peer CPU |
 
 Resume: if the training lease died, rerun `bash scripts/legged_fixsem_train.sh` under a host GPU lease (it skips finished stages; the
