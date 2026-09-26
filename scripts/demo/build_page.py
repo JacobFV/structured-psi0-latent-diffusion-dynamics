@@ -523,9 +523,9 @@ packet. R2 fails at the same stages as the stateless oracle. Next: fix the syste
                 else:
                     cells.append("—")
             rows.append(cells)
-        parts.append("<h3>Stateless localization on BC-visited states (sprint_latent)</h3>"
+        parts.append("<h3>Stateless localization on BC-visited states (sprint_latent)</h3><details><summary>offline system-0 error table (click to expand)</summary>"
                      + table(["system 0", "panda_pg2 arm error / hold-still ref", "parm6_tf3 arm error / hold-still ref"], rows)
-                     + f"""<p>No teacher state: BC drives the matched seeds; every 8 ticks the packet is E(the chunk BC actually executed
+                     + "</details>" + f"""<p>No teacher state: BC drives the matched seeds; every 8 ticks the packet is E(the chunk BC actually executed
 next) {badge('oracle', 'ORACLE DIAGNOSTIC')}, and system 0 is scored against BC's executed command (1-step, normalized).
 The jointly trained system 0 realizes these packets below the hold-still error (a partial, not a precise, realization), and shadow-teacher DAgger
 <i>raised</i> its error (to 83–133% of hold-still) (consistent with stale labels). Its first tick after each new packet is as bad as holding still.
