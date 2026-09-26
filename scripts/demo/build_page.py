@@ -1008,7 +1008,7 @@ gives nosem 30/30 and sem 25/30.
 <b>hexapod6 is the second body through the deployable route: R2 sem 30/30, nosem 30/30</b> (BC 30/30, stateless oracle 30/30 for both; D-076).
 <b>t1 humanoid is the third body through the deployable route, for nosem only: across 4 training seeds R2 nosem 107/120
 (24–28 per seed, around BC's 24/30) vs sem 38/120 (3–17 per seed, failing by falling)</b> (D-079, D-082, D-084). The sem failures were traced to a
-training defect (unbounded semantic NLL); the fixed recipe gives sem 29/30 on seed 0 (D-085).
+training defect (unbounded semantic NLL); the fixed recipe gives sem 81/90 vs nosem 83/90 over 3 seeds (D-085, D-087).
 The oracle diagnostic was not predictive on t1: its sem-vs-nosem gap flipped sign across training seeds (18/0 vs 0/12), so it was diagnostic
 noise (D-082). <b>g1 humanoid: the positive control fails</b> (BC 2–7/30 across replan settings vs the arc-only teacher 25/30), so
 no latent claim is made there.
@@ -1108,7 +1108,7 @@ def sec_matrix():
         ["binding (object pairs)", badge("ok"), "v1 z does not carry the binding: focus_follows 0.0 " + src("binding_v1_reeval/sem_cf_probe_bindcf.json"),
          "binding v4 flows " + badge("run"), "not shown", badge("none")],
         ["dual-arm / assignment", badge("ok"), "teacher only", badge("none"), "pairs ready, teacher does both; v4 arm edits: no detectable effect " + src("D-043"), badge("none")],
-        ["legged / humanoid", "verified on go2 (D-060)", "go2 stateless oracle: nosem 30/30, sem 25/30", "<b>go2 R2: nosem 30/30, sem 29/30</b> vs BC 30/30; hexapod6 R2 30/30 both; t1 R2 over 4 seeds nosem 107/120 vs sem 38/120 (BC 24/30; D-084), a recipe defect: fixed sem 29/30 (D-085) " + src("research/tracks/legged_vlm.md"), "probe-direction halt/turn edits causal (go2, hexapod6); sem has stronger handles on hexapod6 but equal context control; mixed overall " + src("D-069", "D-079"), badge("none")],
+        ["legged / humanoid", "verified on go2 (D-060)", "go2 stateless oracle: nosem 30/30, sem 25/30", "<b>go2 R2: nosem 30/30, sem 29/30</b> vs BC 30/30; hexapod6 R2 30/30 both; t1 R2 over 4 seeds nosem 107/120 vs sem 38/120 (BC 24/30; D-084), a recipe defect: fixed sem 81/90 vs nosem 83/90 (D-087) " + src("research/tracks/legged_vlm.md"), "probe-direction halt/turn edits causal (go2, hexapod6); sem has stronger handles on hexapod6 but equal context control; mixed overall " + src("D-069", "D-079"), badge("none")],
         ["VLM system II", "smoke only", "n/a", badge("none"), badge("none"), badge("none")],
         ["latency", badge("ok"), "—", "p95 1.014× vs real BC checkpoint (≤ 1.25×) " + src("D-058"), "—", "—"],
     ]
@@ -1484,8 +1484,8 @@ arms: {pool_txt} pooled over the matched and fresh seed sets, against BC 24–30
 turn 0.11 vs 0.03–0.07 rad). But context-to-behaviour control is equal on go2 and hexapod6. On the t1 humanoid, the no-semantic
 packet gives a competent deployable route and the semantic packet does not: across 4 training seeds, nosem 107/120 vs sem 38/120
 (nosem wins every seed; BC 24/30). <b>Correction (D-085): this gap is an artefact of a training defect in the semantic recipe</b>
-(an unbounded probe NLL under shared gradient clipping trains the sem system 0 ~250× slower). With a bounded NLL the sem packet reaches 29/30
-(nosem 28/30) on t1 seed 0, and replication is in progress. So every sem-vs-nosem comparison on this page is confounded, and the effect of semantic
+(an unbounded probe NLL under shared gradient clipping trains the sem system 0 ~250× slower). With a bounded NLL, fixed sem reaches 81/90 vs nosem 83/90
+over training seeds 0, 1 and 3 (original sem 21/90; D-087). So on t1, once the recipe is fixed, semantic supervision neither helps nor hurts task success. So every sem-vs-nosem comparison on this page is confounded, and the effect of semantic
 supervision is currently UNKNOWN, neither shown to help nor to hurt. The t1 oracle-route gap flipped sign across seeds (18/0 vs 0/12), so it was diagnostic noise. The arm result
 has no nosem counterpart, and the binding-v4 sem/nosem bundles are not competent. Because of the D-085 defect, no sem-vs-nosem conclusion is supported in either direction (D-059, D-079, D-082, D-085).</li>
 <li><b>Not tested:</b> the sealed held-out target bodies for the latent route. Plain BC transfers to a new gripper (78–85/100) but not to the unseen xarm7 arm
@@ -1505,7 +1505,7 @@ rebinding completely (original cube placed 80/82) while following goal edits (77
 and there is no nosem counterpart yet (D-074, D-075).
 <b>On the go2 quadruped the deployable latent route is competent</b> (nosem 30/30, sem 29/30 vs BC 30/30), and probe-direction edits of the
 packet causally halt and turn the robot (D-069, D-070; §2b). hexapod6 is also competent (30/30), and the t1 humanoid only with the no-semantic
-packet (4 training seeds: nosem 107/120 vs sem 38/120), but this gap was traced to a training defect in the semantic recipe; with the fix sem reaches 29/30 (D-085), so no sem-vs-nosem conclusion stands yet. The evidence on semantic supervision is mixed and small. <b>On go2's deployable
+packet (4 training seeds: nosem 107/120 vs sem 38/120), but this gap was traced to a training defect in the semantic recipe; with the fix, sem ≈ nosem (81/90 vs 83/90 over 3 seeds; D-085, D-087). The evidence on semantic supervision is mixed and small. <b>On go2's deployable
 route, editing only the task context (mirroring the active waypoint) steers the robot toward the new goal: task → packet → behaviour,
 shown for one body and one semantic, and not dependent on semantic supervision (D-071).</b></p>
 {scoreboard}
