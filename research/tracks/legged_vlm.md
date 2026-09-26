@@ -6,6 +6,14 @@ work on legged/humanoid bodies, and do the packet semantics (per-leg contact per
 displacement, subtask, fall) causally control behaviour? Arm lessons applied up front (B-1, D-050, D-052..D-056).
 Compute: host GPU (leases below), host CPU for closed-loop sims. Data copied to host `~/work/rrp-data/datasets/legged_latent_v{1,2}` (lease 1790399700_94cca7, --disk 2G).
 
+### IN FLIGHT / RESUME (updated 2026-09-26 03:25)
+t1 second training seed (seed 1) of the sem/nosem pair tests whether the t1 R2 gap (sem 11–13 vs nosem 26–27) is seed variance:
+- Stage A seed 1 is done: `artifacts/runs/legged_rep_{sem,nosem}_t1_v2s1` (KL sem 4.29 / nosem 0.77; realization 0.022 / 0.013, the same as seed 0).
+- Flows seed 1 resume on the host GPU from flow_last.pt (the watchdog shed them once under external memory pressure). Rerun with `bash scripts/legged_flow_pair.sh t1_v2s1` under an ops lease; it resumes automatically.
+- DAgger-1 buffers for seed 1: peer lease 1790418228_0124ec → `artifacts/runs/legged_buf/dag1_{sem,nosem}_t1s1` (peer store). Then copy them to the host and run `bash scripts/legged_refit_pair.sh t1s1 dag1` (host GPU; configs `configs/legged_dagger/rz_*_t1s1_dag1.json`).
+- Then copy the realizers and flows to the peer and run `bash scripts/legged_t1s1_eval.sh` (R1 DAgger-1; R2 with the final flow using the original and the DAgger-1 system 0). Append the result to FINAL.
+Host-side jobs are shed whenever external memory PSI > ~25 (the tensorcode processes). The peer is the reliable place for CPU evals.
+
 ### LEGGED RESEARCH RESULT FINAL (frozen 2026-09-26 ~03:00 PDT; legged agent). The demo builds from this table.
 All numbers are closed-loop successes on the matched dev seeds 10000-10029 (30 episodes; waypoint_contact = walk to a, walk to b, halt; privileged evaluator), taken from the raw rows under `artifacts/runs/legged_ladder/<body>/`. Labels: scripted_teacher (privileged); BC = learned plain behaviour cloning (no packet; the positive control); R1 = ORACLE DIAGNOSTIC (packet = E(stateless BC chunk at the current state) → learned system 0; not deployable); R2 = DEPLOYABLE latent route (learned system-i flow samples the packet from public context every 0.4 s → learned system 0 at 50 Hz). sem = packet-semantic supervision; nosem = capacity-matched, no semantic loss.
 

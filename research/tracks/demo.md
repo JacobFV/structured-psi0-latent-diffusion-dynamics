@@ -89,3 +89,4 @@ Rendered on peer GPU EGL into `artifacts/runs/demo_video/` (NOT the shared artif
 - 02:26 D-077 panda rebinding row/sentence/box.
 - 02:40 D-079 (t1 deployable nosem 26–27/30 vs sem 6–11/30; mixed semantic evidence) replaces the 'leads' framing everywhere.
 - 02:52 D-079 update (t1 sem 6–13/30), D-080 'distilled through a learned stateless expert' label, legged FINAL section auto-rendered.
+- 03:15 QA pass: v4 'running' row → not competent (D-080); §2b humanoid sentence fixed; old shadow-oracle triptychs moved from §6 to §4.
