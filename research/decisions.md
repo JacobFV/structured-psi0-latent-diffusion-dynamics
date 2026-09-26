@@ -238,3 +238,6 @@ sprint_bc final (research/tracks/baselines.md "SPRINT BC RESULT"; research/repor
 - irrelevant edit: unchanged 24/24 and 17/17
 - descriptor-only rebind: ignored (0/32 on the 12k checkpoint, acceptance track)
 So a competent context-conditioned controller already follows goal and object-belief edits but not a pure binding change. The latent packet must beat this reference, especially on binding, to support the semantic claim. Seeds 1702/1703 and the SFT budgets stay on hold; nothing of this track is running.
+
+## D-066 2026-09-25 recipe round 2: deployable route 6/30 (panda) and 12/30 (parm6); the gap decomposes into system 0 and generator
+System 0 ladder_rz_jointfix_gendag2_noqd (round 2 of: no qd input, BC-expert DAgger including generated-packet states, z-noise). R2 with flow_jointfix final: panda_pg2 6/30, parm6_tf3 12/30 (matched seeds; lead verified the summaries). Best stateless oracle (packet = E(BC chunk)): panda 21/30 (jfbcdag3), parm6 27/30 (gendag1qdd). BC is 30/30 on both. Gap decomposition on the same seeds: BC 30 → oracle 21–27 is system 0's share; oracle → R2 6–12 is the generator's share. Both are closing with the recipe; the generator gap is now the larger one. Semantic advantage still not shown (D-059, D-062).
