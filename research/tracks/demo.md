@@ -64,3 +64,4 @@ Rendered on peer GPU EGL into `artifacts/runs/demo_video/` (NOT the shared artif
 - 20:10 refresh 5: R2 flow_jointfix@8000 (0/30, 0/30) and stateless R1 jfbcdag1 (0/30 panda) rows; D-052 cited (system 0 underfit = primary bottleneck).
 - refresh 6: localization table now lists every ladder_localize tag incl. the generator gap (flowjf@4000: generated packet 93%/187% of hold-still vs oracle 43%/74%).
 - 20:36 refresh: binding v4 sem/nosem ladder rows (shadow R1: parm6 sem re-anchored 1/30, else 0/30; stateless R1 panda 0/30 both), BC learning curve rows (all learned_* summaries).
+- 20:55 stateless R1 jfbcdag1long (3/30 panda, 11/30 parm6) + 4 clips (scripts/demo/render_orcbc.sh, lease 1790394228_e728a0); text: improving system 0's fit is the first lever that converts.

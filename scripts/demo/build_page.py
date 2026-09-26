@@ -285,6 +285,26 @@ R2_VIDEOS = [
 ]
 
 
+ORCBC_VIDEOS = [
+    ("2026-09-25_ladder_oracle_parm6_tf3_s3000008_jfbcdag1long_orcbc_success.mp4", "oracle",
+     "stateless R1 · system 0 jfbcdag1long · parm6_tf3 · seed 3000008 · success",
+     "Packet = E(the chunk the competent BC would execute now); no teacher state. Success in both the evaluation and this render.",
+     "ladder_v1/parm6_tf3/oracle_zero_jfbcdag1long_orcbc.summary.json"),
+    ("2026-09-25_ladder_oracle_parm6_tf3_s3000006_jfbcdag1long_orcbc_failure-lift.mp4", "oracle",
+     "stateless R1 · jfbcdag1long · parm6_tf3 · seed 3000006 · failure (lift) in this render",
+     "The evaluation row of this seed succeeded; this re-render fails at lift (run-to-run variance).",
+     "ladder_v1/parm6_tf3/oracle_zero_jfbcdag1long_orcbc.summary.json"),
+    ("2026-09-25_ladder_oracle_panda_pg2_s3000017_jfbcdag1long_orcbc_success.mp4", "oracle",
+     "stateless R1 · jfbcdag1long · panda_pg2 · seed 3000017 · success",
+     "One of the 3 panda successes; success in both the evaluation and this render.",
+     "ladder_v1/panda_pg2/oracle_zero_jfbcdag1long_orcbc.summary.json"),
+    ("2026-09-25_ladder_oracle_panda_pg2_s3000000_jfbcdag1long_orcbc_failure-approach.mp4", "oracle",
+     "stateless R1 · jfbcdag1long · panda_pg2 · seed 3000000 · failure (approach)",
+     "Typical panda failure: the hand does not settle over the cube.",
+     "ladder_v1/panda_pg2/oracle_zero_jfbcdag1long_orcbc.summary.json"),
+]
+
+
 def sec_sprint():
     """Top 'sprint update' block, generated from the sprint agents' raw outputs when present."""
     parts = []
@@ -384,10 +404,12 @@ encoder, snapshots as training proceeds) → the jointly trained system 0 → tr
 dev seeds as BC. The flow is still training (20k steps planned); rows are added as snapshots are evaluated.
 The stateless R1 rows replace the confounded shadow-teacher oracle: the packet is E(the chunk the competent BC would
 execute at the current state), with no teacher state. <b>Diagnosis (D-052 and its 20:15 refinement): both stages fall short. System 0's underfit is the first gate, and the
-generator is also short at this snapshot</b> (generator-gap row below). On its own training pack it explains only ~30% of the teacher's 1-step motion (underfit). Packets that encode a 25/30 controller's own chunks still give 0/30 through
-system 0. At BC's own states, system 0 explains only part of BC's 1-step motion, and none of it on the first tick of each
+generator is also short at this snapshot</b> (generator-gap row below). On its own training pack it explains only ~30% of the teacher's 1-step motion (underfit). With the original jointfix system 0, packets that encode the competent BC's own chunks
+still give 0/30. <b>Improving system 0's fit is the first lever that converts:</b> the refit jfbcdag1long (BC-expert DAgger,
+longer training) lifts the same stateless oracle route to the successes shown in its row, still far below BC. At BC's own states, system 0 explains only part of BC's 1-step motion, and none of it on the first tick of each
 packet. R2 fails at the same stages as the stateless oracle. Next: fix the system-0 fit offline, gated on arm error at BC states ≤ 20% of hold-still before any closed-loop run. {src('D-052')}
 {src('ladder_v1/<robot>/generated_zero_flowjf_s<step>.summary.json', 'artifacts/runs/baselines_bc_ladder/', 'research/tracks/ladder.md (SPRINT BEST ROUTE)')}</p>
+<div class="grid">{''.join(video_card(v) for v in ORCBC_VIDEOS if (VID / v[0]).exists())}</div>
 <div class="grid wide">{''.join(video_card(v) for v in R2_VIDEOS if (VID / v[0]).exists())}</div>""")
     L = "ladder_localize/{r}/bc_direct1701_u12000__{t}.json"
     if have(L.format(r="panda_pg2", t="jointfix")):
