@@ -1054,15 +1054,15 @@ def sec_next():
     return """
 <section id="next"><h2>7 · What is next</h2>
 <ol>
-<li><b>The clean test: R2 vs BC on the same seeds.</b> System i's own packet from a B-1-fixed flow → system 0,
-compared with the competent plain-BC control (§6) on the ladder's matched scenes. No teacher is in the loop, so the
-oracle confound does not apply. If R2 fails where BC succeeds, the gap is in the packet route itself.</li>
-<li><b>Generated route on the fixed bundle</b>: flows trained with <code>zero_prev_action</code> on the jointly trained
-and binding-v4 encoders, then R2 on matched seeds.</li>
-<li><b>Semantic interventions on a competent route</b>: rebind_obj, goal_shift, manipulator assignment (dual-arm pairs),
-each with irrelevant-edit controls; sem vs capacity-matched nosem.</li>
-<li><b>Only then</b> the sealed four-way comparison on held-out bodies (xarm7_pg2, xarm7_tf3, panda_tf3) with the
-≤ 1.25× latency constraint rerun on final checkpoints.</li>
+<li><b>Close the R2-vs-BC gap on the source bodies.</b> The gap from BC to the stateless oracle belongs to system 0, which still realizes
+only part of the commanded motion. The gap from the oracle to R2 belongs to the generator. Continue what moved the numbers: DAgger on
+learner-visited and generated-packet states, no proprioceptive shortcuts, with the offline gate before closed-loop runs.</li>
+<li><b>Make the packet carry the binding.</b> No learned route follows a pure binding change yet, and neither does BC. This is the
+capability the semantic packet is meant to add (binding v4 flows and their generated-route edits are running).</li>
+<li><b>Semantic vs capacity-matched no-semantic packets on a competent route</b>: rebind, goal and manipulator-assignment edits with
+irrelevant-edit controls. So far there is no advantage (D-059).</li>
+<li><b>Only then</b> run the sealed four-way comparison on the held-out bodies. BC transfers to a new gripper but not to the unseen xarm7
+arm (D-064), and that is where the latent route has to show its value.</li>
 </ol>
 </section>"""
 
