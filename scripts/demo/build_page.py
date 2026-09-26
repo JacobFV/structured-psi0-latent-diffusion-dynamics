@@ -223,6 +223,8 @@ def ladder_rows():
         ("R1", "oracle", "… anchored system-0 input", "oracle_zero_anchor", "oracle_zero_anchor_reanchor", "oracle"),
         ("R1", "oracle", "Stage A retrained jointly with the fix + anchor (jointfix)", "oracle_zero_jointfix", "oracle_zero_jointfix_reanchor", "oracle"),
         ("R1", "oracle", "jointfix + system-0 DAgger round 1 (jfdag1)", "oracle_zero_jfdag1", "oracle_zero_jfdag1_reanchor", "oracle"),
+        ("R1", "oracle", "binding v4 SEM bundle (paired data, B-1 fixed, anchored)", "oracle_zero_bindv4sem", "oracle_zero_bindv4sem_reanchor", "oracle"),
+        ("R1", "oracle", "binding v4 NOSEM bundle (capacity-matched control)", "oracle_zero_bindv4nosem", "oracle_zero_bindv4nosem_reanchor", "oracle"),
         ("R2", "learned", "learned:flow_latent_sem_v2@24543 → sem_v1 system 0 (both pre-fix)", "generated_v2s24543_zero", None, "learned"),
     ]
     rows = []
