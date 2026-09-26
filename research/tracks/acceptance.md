@@ -262,3 +262,9 @@ route: the arms reach the bar in only 4-8 of 18 control episodes.
   12 scenes: 2/12 successes in control (out of distribution). Rebinding changes nothing: first touch new 3/12 vs 4/12 in
   control, min-dist effect +0.003 m [-0.002, +0.007], TCP deviation from control 1.4 cm (vs 11.8 cm for a noise replay).
   So the BC controller is insensitive to the binding on paired scenes too.
+- 22:40 INCIDENT (mine): the launch loop for best-route shards 8/9 retried `ops run --detach` with stderr hidden and
+  grepped stdout for "lease_id". The lease JSON never matched, so the loop relaunched shard 8 every 30 s (~20 copies,
+  ~24 GiB host memory), which blocked the legged track. The lead killed the loop and scoped-stopped the copies. I stopped the
+  last copy, moved the polluted `shard8/` out of the results (not used), and relaunched shard 8 once into `shard8b`
+  (lease 1790400179_8f8ec1), checking the exit code. Shard 9 was refused (host memory cap) and is not retried
+  automatically. Rule for myself: launch once, check rc, no unbounded retry loops.
