@@ -60,3 +60,5 @@ Rendered on peer GPU EGL into `artifacts/runs/demo_video/` (NOT the shared artif
   summaries (sprint_latent's watcher; new snapshots appear automatically on rebuild). flow_jointfix@4000: 0/30 panda, see
   page for parm6. R2 triptych clips (teacher | BC | R2@4000) for panda s3000029 and s3000008 via
   scripts/demo/render_r2_triptych.sh (lease 1790391225_ffb5f8); render outcomes differ from eval rows, captions say so.
+- 20:15 refresh 4: SPRINT BEST ROUTE (interim) folded in: stateless R1 (E(BC chunk)) rows jointfix/jfdag1/jfdag2df08 all 0/30; sprint_latent's interim diagnosis (system 0 is the primary bottleneck) quoted with its reasons; lede updated.
+- 20:10 refresh 5: R2 flow_jointfix@8000 (0/30, 0/30) and stateless R1 jfbcdag1 (0/30 panda) rows; D-052 cited (system 0 underfit = primary bottleneck).
