@@ -363,12 +363,21 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
                         policy=pcfg.name), config=cfg_json,
                         extra=dict(sched=sched.state_dict(), rng_py=rng.getstate(), gen=gen.get_state()))
 
-    feed = _prefetch(data, B, rng, 0, dev) if cfg_json.get("prefetch") else None   # resume: rng runs ahead by <= depth
+    # generator DAgger (ladder sprint): (public context at learner-visited states, z* = E(stateless expert chunk))
+    gd_items = []
+    for gp in cfg_json.get("gen_dagger") or []:
+        import pickle
+        with open(gp, "rb") as fh:
+            gd_items += pickle.load(fh)["items"]
+    Bg = int(round(B * cfg_json.get("gen_dagger_frac", 0.5))) if gd_items else 0
+    grng = random.Random(seed + 23)
+    Bp = B - Bg
+    feed = _prefetch(data, Bp, rng, 0, dev) if cfg_json.get("prefetch") else None   # resume: rng runs ahead by <= depth
     while step < steps and not sig.requested:
         if feed is not None:
             batch, a, v, lab, r, j = next(feed)
         else:
-            sel, tgt, j = data.sample(B, rng, 0)
+            sel, tgt, j = data.sample(Bp, rng, 0)
             batch, a, v, lab, r = data.fetch(sel, tgt, dev)
         with torch.no_grad():
             af, am, ai = assembly_tokens(batch)
@@ -380,6 +389,18 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
         valid = am[:, None, :].expand(-1, lcfg.knots, -1)
         loss, logs = model.loss(ab, z_target, valid, None, generator=gen, packet_loss_fn=pl_fn, packet_weight=w_sem,
                                 packet_tau_min=cfg_json.get("packet_tau_min", 0.0))
+        if Bg:
+            from rrp.model.batch import collate_inputs
+            it = [gd_items[grng.randrange(len(gd_items))] for _ in range(Bg)]
+            bd = collate_inputs([x[0] for x in it]).to(dev)
+            afd, amd, aid = assembly_tokens(bd)
+            zt = torch.zeros(Bg, lcfg.knots, amd.shape[1], lcfg.dz, device=dev)
+            for i_, x in enumerate(it):
+                m_ = x[1].shape[1]
+                zt[i_, :, :m_] = torch.from_numpy(x[1]).to(dev)
+            ld, _ = model.loss(assembly_batch(bd), zt, amd[:, None, :].expand(-1, lcfg.knots, -1), None, generator=gen)
+            logs = dict(logs, gen_dagger=float(ld.detach()))
+            loss = (Bp * loss + Bg * ld) / B
         opt.zero_grad()
         loss.backward()
         gn = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)

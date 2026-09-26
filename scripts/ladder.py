@@ -29,12 +29,15 @@ def main():
     ap.add_argument("--replan", type=int, default=8)
     ap.add_argument("--prev-action", choices=["zero", "own"], default="zero")
     ap.add_argument("--nfe", type=int, default=8)
+    ap.add_argument("--noise-scale", type=float, default=1.0, help="R2: initial flow-noise scale (0 = deterministic)")
     ap.add_argument("--max-steps", type=int, default=300)
     ap.add_argument("--batch", type=int, default=16)
     ap.add_argument("--object-shift", help="tick,dx,dy")
     ap.add_argument("--no-compare", action="store_true")
     ap.add_argument("--keep-ticks", action="store_true")
     ap.add_argument("--reanchor", action="store_true", help="R1: re-anchor the expert reference at each replan")
+    ap.add_argument("--collect-gen-ctx", action="store_true", help="with --collect-dagger on route generated + "
+                    "--oracle-expert bc: also store (public context, z* = E(BC chunk)) per replan for generator DAgger")
     ap.add_argument("--collect-dagger", help="R1 only: write a system-0 DAgger buffer (.npz) of learner-visited states")
     ap.add_argument("--disturbance", action="store_true")
     ap.add_argument("--tag", default="")
@@ -53,7 +56,7 @@ def main():
     from rrp.evaluation.ladder import LadderConfig, load_models, run_ladder, summarize, OraclePacketPolicy, install_prev_action
     from rrp.learning.latent_grpo import feasible_seeds
     seeds = feasible_seeds(a.robot, a.seed_start, a.n)
-    cfg = LadderConfig(route=a.route, robot=a.robot, seeds=seeds, representation=a.rep, flow=a.flow, policy=a.policy, policy_label=a.policy_label, oracle_expert=a.oracle_expert,
+    cfg = LadderConfig(route=a.route, robot=a.robot, seeds=seeds, representation=a.rep, flow=a.flow, policy=a.policy, policy_label=a.policy_label, oracle_expert=a.oracle_expert, noise_scale=a.noise_scale,
                        replan_ticks=a.replan, max_steps=a.max_steps, nfe=a.nfe, compare_oracle=not a.no_compare,
                        device=dev, prev_action=a.prev_action, keep_ticks=a.keep_ticks, oracle_reanchor=a.reanchor, object_shift=tuple(float(x) for x in a.object_shift.split(",")) if a.object_shift else None)
     if cfg.object_shift:
@@ -85,6 +88,8 @@ def main():
         p.unlink()
     rows = []
     collect = {} if a.collect_dagger else None
+    if collect is not None and a.collect_gen_ctx:
+        collect["gen_ctx"] = []
     for i in range(0, len(seeds), a.batch):
         cfg.seeds = seeds[i:i + a.batch]
         rows += run_ladder(cfg, p, models, ids, collect=collect)

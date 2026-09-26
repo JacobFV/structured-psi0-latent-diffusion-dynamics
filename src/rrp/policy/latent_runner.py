@@ -73,6 +73,11 @@ class LatentPolicy:
             K, N, D = len(self.knot_times), b.node_mask.shape[1], self.model.cfg.latent_dim
             noise = torch.stack([torch.randn((K, N, D), generator=torch.Generator().manual_seed(int(k) % (2 ** 63)))
                                  for k in noise_keys]).to(self.device, cache.ctx.dtype)
+        ns = getattr(self, "noise_scale", 1.0)          # sampling temperature of the initial flow noise (1 = standard)
+        if noise is None and ns != 1.0:
+            noise = ns * torch.randn((b.node_mask.shape[0], len(self.knot_times), cache.node_mask.shape[1],
+                                      self.model.cfg.latent_dim), generator=self.gen, device=cache.ctx.device,
+                                     dtype=cache.ctx.dtype)
         z = self.model.sample(cache, len(self.knot_times), nfe=self.nfe, generator=self.gen, noise=noise)
         if self.device != "cpu" and torch.cuda.is_available():
             torch.cuda.synchronize()

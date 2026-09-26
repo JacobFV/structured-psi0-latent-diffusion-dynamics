@@ -333,6 +333,7 @@ class LadderConfig:
     object_shift: tuple | None = None   # (tick, dx, dy): teleport cube mid-episode (intervention; labelled)
     task: str = "pick_place"
     flow_seed: int = 0
+    noise_scale: float = 1.0         # R2: initial flow-noise scale (0 = deterministic mode-seeking sample)
     keep_ticks: bool = False         # store per-tick rows in the output (diagnostics)
     oracle_reanchor: bool = False    # R1: re-anchor the expert reference to the measured arm at each replan
     prev_action: str = "zero"        # zero (current deployment) | own (training-consistent input, bug B-1)
@@ -364,6 +365,7 @@ def load_models(cfg: LadderConfig):
     if cfg.flow:
         from rrp.policy.latent_runner import LatentPolicy
         pol = LatentPolicy.from_checkpoint(cfg.flow, device=cfg.device, nfe=cfg.nfe, seed=cfg.flow_seed)
+        pol.noise_scale = cfg.noise_scale
         if pol.lsv != out["res"]["latent_space_version"]:
             raise ValueError(f"flow latent space {pol.lsv} != representation {out['res']['latent_space_version']}")
         if out["res"]["realizer_compat_version"] != pol.rcv:
@@ -371,7 +373,8 @@ def load_models(cfg: LadderConfig):
             ids["realizer_override"] = dict(flow_rcv=pol.rcv, used_rcv=out["res"]["realizer_compat_version"])
             pol.rcv = out["res"]["realizer_compat_version"]
         out["flow"] = pol
-        ids["flow"] = dict(path=str(cfg.flow), sha256=sha256_file(cfg.flow), nfe=cfg.nfe, sampler="euler-ode")
+        ids["flow"] = dict(path=str(cfg.flow), sha256=sha256_file(cfg.flow), nfe=cfg.nfe, sampler="euler-ode",
+                           noise_scale=cfg.noise_scale)
     return out, ids
 
 
@@ -447,6 +450,8 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
                     collect["cur"][k] = len(collect["mu"])
                     zg = np.asarray(pk[j].z, np.float32)
                     collect["mu"].append(zg.astype(np.float16)); collect["lv"].append(np.full_like(zg, -8.0).astype(np.float16))
+                    if collect.get("gen_ctx") is not None:   # generator DAgger: (public context at the learner state, z*)
+                        collect["gen_ctx"].append((_featurizer(S[k])(S[k].observe()), np.asarray(zo[j], np.float32)))
             for j, (k, p) in enumerate(zip(need, pk)):
                 meta[k]["calls"] += 1
                 rec = dict(t=step)
@@ -716,3 +721,7 @@ def save_dagger(collect: dict, path: Path, meta: dict):
                         node=np.stack([r[2] for r in rows]), n_nodes=np.array([r[3] for r in rows], np.int16),
                         local=np.stack([r[4] for r in rows]), a1=np.stack([r[5] for r in rows]),
                         meta=np.array(json.dumps(meta)))
+    if collect.get("gen_ctx"):
+        import pickle
+        with open(str(path) + ".genctx.pkl", "wb") as fh:
+            pickle.dump(dict(items=collect["gen_ctx"], meta=meta), fh)
