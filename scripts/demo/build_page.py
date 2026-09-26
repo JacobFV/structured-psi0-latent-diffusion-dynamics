@@ -599,8 +599,18 @@ learned:direct1701_u18000 observation → chunk p95 <b>{pi['direct_obs_to_chunk'
 
 LEGGED = ["go2", "anymal_c", "pquad4", "hexapod6_long", "hexapod6", "sprawl4", "sprawl8"]
 HUMANOID = ["t1", "g1", "h1"]
-ARMS = ["panda_pg2", "panda_tf3", "parm6_tf3", "parm6_pg2", "parm5s_tf3", "parm5l_pg2", "parm7", "ur5e_pg2", "ur5e", "sawyer_pg2",
+ARMS = ["panda_pg2", "panda_tf3", "parm6_tf3", "parm6_pg2", "parm5s_tf3", "parm5l_pg2", "parm7_pg2", "parm7", "ur5e_pg2", "ur5e", "sawyer_pg2", "sawyer_tf3",
         "sawyer", "xarm7_pg2", "xarm7_tf3", "xarm7", "proc", "procedural"]
+
+
+BODY_NOTES = {
+    "parm7_pg2": "Weak teacher on this procedural arm: it grasps but never completes the place (0/2 seeds; only 2 seeds tried).",
+    "xarm7_pg2": "Held-out TARGET body of the sealed protocol: teacher only; no learned policy was run on it.",
+    "g1": "g1's frozen tracker supports only forward walking and arc turns: 18/20 with the arc_only teacher, 17/20 with 2 falls with the default teacher.",
+    "h1": "Weakest humanoid: 14/20; it reaches both waypoints but drifts during the halt or times out.",
+    "parm5s_tf3": "Procedural arm (held-out source body).",
+}
+MONTAGE = "2026-09-25_scripted_teacher_legged_montage_10bodies.mp4"
 
 
 def body_clips():
@@ -638,13 +648,48 @@ def body_clips():
             if not grp:
                 continue
         groups[grp].setdefault(body, []).append((f, desc))
-    for g in groups.values():
-        for b_, lst in g.items():
-            for f, _ in lst:
-                if not (VID / f).exists():
-                    VID.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(ROOT / "artifacts/video" / f, VID / f)
     return groups
+
+
+def md_table_to_html(md: str) -> str:
+    """Render the pipe tables and paragraphs of a track's result section (raw paths inside stay visible)."""
+    import re
+    out, rows = [], []
+
+    def inline(t):
+        t = esc(t)
+        t = re.sub(r"`([^`]+)`", r"<code>\1</code>", t)
+        return re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", t)
+
+    def flush():
+        if rows:
+            out.append(table([inline(c) for c in rows[0]], [[inline(c) for c in r] for r in rows[1:]]))
+            rows.clear()
+    for line in md.splitlines():
+        if line.strip().startswith("|"):
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if all(re.fullmatch(r":?-{2,}:?", c) for c in cells if c):
+                continue
+            rows.append(cells)
+        else:
+            flush()
+            if line.strip() and not line.startswith("## "):
+                out.append(f"<p>{inline(line.lstrip('#').strip())}</p>" if line.startswith("#") else inline(line) + " ")
+    flush()
+    return "".join(out)
+
+
+def legged_research():
+    p = ROOT / "research/tracks/legged_vlm.md"
+    txt = p.read_text() if p.exists() else ""
+    i = txt.find("## LEGGED RESEARCH RESULT")
+    head = f"<h3>Legged / humanoid research (agent legged; D-060)</h3>"
+    if i < 0:
+        return head + f"<p>{badge('run')} Legged research restarted (D-060): BC positive control, the ladder (teacher / BC / stateless oracle / R2) and packet edits on go2 → hexapod6 → t1/g1. Results pending.</p>"
+    j = txt.find("\n## ", i + 5)
+    sec = txt[i:j if j > 0 else None]
+    USED.add("research/tracks/legged_vlm.md")
+    return head + '<div class="mdsec">' + md_table_to_html(sec) + "</div>" + src("research/tracks/legged_vlm.md (LEGGED RESEARCH RESULT)", "D-060")
 
 
 def sec_bodies():
@@ -657,12 +702,15 @@ def sec_bodies():
     ref_files = sorted((ROOT / BR).glob("*.summary.json")) + sorted((RAW / "sprint_bodies_teacher_ref").glob("*.summary.json")) \
         if ((ROOT / BR).exists() or (RAW / "sprint_bodies_teacher_ref").exists()) else []
     for f in ref_files:
+        if "legged_prior" in f.name:
+            continue
         try:
             d = json.loads(f.read_text())
-            rows = [[esc(b), frac(v.get("success", 0), v.get("n", 0), ci=False), esc(v.get("note", ""))]
+            rows = [[esc(b), frac(v.get("success", 0), v.get("n", 0), ci=False), str(v.get("fell", "")), esc(v.get("note", ""))]
                     for b, v in (d.get("per_body") or {}).items()]
             if rows:
-                extra += table(["body", "teacher success", "note"], rows) + src(str(f.relative_to(ROOT)) if str(f).startswith(str(ROOT / "artifacts")) else f.name)
+                extra += f"<h3>Teacher reference, waypoint_contact, dev seeds 10000–10019 ({esc(f.name.replace('.summary.json', ''))}) {badge('teacher')}</h3>"
+                extra += table(["body", "teacher success", "falls", "note"], rows) + src(str(f.relative_to(ROOT)) if str(f).startswith(str(ROOT / "artifacts")) else f.name)
         except Exception:
             pass
     html_ = []
@@ -671,23 +719,41 @@ def sec_bodies():
     for g in ("arms", "dual-arm", "legged", "humanoid"):
         cards = []
         for b_, lst in sorted(groups[g].items()):
-            plain = [c for c in lst if "paired" not in c[0]]
-            f, desc = (plain or lst)[-1]
-            outcome = "success" if "success" in f else ("failure" if "fail" in f else "")
-            cards.append((f, "teacher", f"{b_} · {outcome}".strip(" ·"), desc[:220] + ("…" if len(desc) > 220 else ""),
-                          "artifacts/video/INDEX.md"))
+            plain = [c for c in lst if "paired" not in c[0]] or lst
+            succ = [c for c in plain if "success" in c[0]]
+            fail = [c for c in plain if "success" not in c[0]]
+            pick = (succ[-1:] + fail[-2:]) if g in ("legged", "humanoid") else (succ[-1:] or fail[-1:]) + (fail[-1:] if succ else [])
+            for f, desc in pick:
+                if not (VID / f).exists():
+                    import shutil
+                    shutil.copy2(ROOT / "artifacts/video" / f, VID / f)
+                outcome = "success" if "success" in f else ("FELL" if "fell" in f else "failure" if "fail" in f else "")
+                note = BODY_NOTES.get(b_, "")
+                cards.append((f, "teacher", f"{b_} · {outcome}".strip(" ·"), (note + " " if note else "") + desc[:260] + ("…" if len(desc) > 260 else ""),
+                              "artifacts/video/INDEX.md"))
         body_html = ''.join(video_card(c) for c in cards) if cards else '<div class="novid">clips pending (sprint_bodies)</div>'
         html_.append(f"<h3>{titles[g]} {badge('teacher')}</h3><div class=\"grid\">{body_html}</div>")
         if g == "legged":
             html_.append(legt + f"<p>Teacher driving frozen body trackers, dev seeds 10000–10019. {src('legged_vlm_teacher_ref/eval_dev.summary.json', 'D-040')}</p>")
+    research = legged_research()
+    montage = ""
+    if (ROOT / "artifacts/video" / MONTAGE).exists():
+        if not (VID / MONTAGE).exists():
+            import shutil
+            shutil.copy2(ROOT / "artifacts/video" / MONTAGE, VID / MONTAGE)
+        montage = '<div class="grid wide">' + video_card((MONTAGE, "teacher", "10 legged and humanoid bodies · montage",
+            "Scripted teacher driving each body's frozen tracker on the waypoint_contact task (walk to A, walk to B, halt).",
+            "artifacts/video/INDEX.md")) + "</div>"
     return f"""
 <section id="bodies"><h2>2b · Bodies: morphology breadth</h2>
 <p class="lede">The packet and system 0 are defined over a morphology graph, so the same interfaces cover arms with different
 kinematics and grippers, two-arm pairs, legged robots and humanoids. <b>Honest scope:</b> every non-arm clip below is the
 <b>scripted teacher driving a frozen tracker</b>. There is <b>no learned legged or humanoid model</b>, and dual-arm training was
 deferred (D-040, D-043). Learned results on this page are single-arm pick_place only.</p>
+{montage}
 {extra}
 {''.join(html_)}
+{research}
 </section>"""
 
 
@@ -1017,6 +1083,9 @@ Videos: <code>docs/demo/video/</code>; index lines in <code>artifacts/video/INDE
     for tag in ("<!doctype", "<html", "<head>", "<head ", "<body", "</body>", "</html>", "</head>"):
         assert tag not in art.lower(), tag
     (OUT.parent / "artifact.html").write_text(art)
+    for v in VID.glob("*.mp4"):
+        if f"video/{v.name}" not in page:
+            v.unlink()
     print(OUT, len(page), "bytes;", len(USED), "raw files; artifact.html", len(art), "bytes")
 
 
