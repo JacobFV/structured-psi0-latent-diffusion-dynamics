@@ -63,7 +63,7 @@
   "enforced": {
    "cpu_cores": 14.97,
    "memory_bytes": 36703007539,
-   "gpu_slots": 2,
+   "gpu_slots": 3,
    "disk_bytes": 83655737344,
    "host_gpu": "authorized_by_user_D027_in_process_cap_plus_watchdog"
   },
