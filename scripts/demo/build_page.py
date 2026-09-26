@@ -190,7 +190,7 @@ def video_card(v) -> str:
     f, kind, title, cap, s = v
     lab = {"teacher": "teacher | BC | oracle" if f.startswith("2026-09-25_triptych") else "scripted_teacher", "oracle": "oracle diagnostic", "learned": "learned", "bc": "learned"}[kind]
     if kind == "learned":
-        lab = "learned:flow_latent_sem_v2@22k"
+        lab = "teacher | BC | learned:flow_jointfix@" + f.split("flowjf_s")[1].split(".")[0] if "r2triptych" in f else "learned:flow_latent_sem_v2@22k"
     if kind == "bc":
         lab = "learned:" + ("direct1701_u12000 (BC)" if "_s30000" not in f else
                             f.split("_s30000")[1].split("_", 1)[1].rsplit("_", 1)[0])
@@ -269,6 +269,20 @@ SEM_VIDEOS = [
 ]
 
 
+R2_VIDEOS = [
+    ("2026-09-25_r2triptych_panda_pg2_s3000029_teacher_bc-direct1701_u12000_generated-flowjf_s4000.mp4", "learned",
+     "same scene · teacher | plain BC | R2 generated (flow_jointfix@4000) · panda_pg2 · seed 3000029",
+     "Right panel: the deployable latent route, system i's own packet → system 0. This render: teacher success, BC success, "
+     "R2 failure at grasp. (The evaluation row of this seed got furthest of all 30, failing only at place.)",
+     "artifacts/runs/demo_video/r2_panda_pg2_3000029/INDEX.md"),
+    ("2026-09-25_r2triptych_panda_pg2_s3000008_teacher_bc-direct1701_u12000_generated-flowjf_s4000.mp4", "learned",
+     "same scene · teacher | plain BC | R2 generated (flow_jointfix@4000) · panda_pg2 · seed 3000008",
+     "This render: teacher success, BC success, R2 failure at approach (the evaluation row reached the cube, 5 mm, and "
+     "failed at grasp).",
+     "artifacts/runs/demo_video/r2_panda_pg2_3000008/INDEX.md"),
+]
+
+
 def sec_sprint():
     """Top 'sprint update' block, generated from the sprint agents' raw outputs when present."""
     parts = []
@@ -319,6 +333,37 @@ approach the rebound object, but that packet encodes the teacher's demonstration
 <i>beliefs</i>, but <b>ignores a pure binding change</b>: that is the capability the semantic packet is meant to add, and the
 generated-route test on the binding-v4 flows is pending. {src(T, O, B, A, 'research/tracks/acceptance.md (SPRINT SEMANTIC RESULTS)')}</p>
 <div class="grid">{''.join(video_card(v) for v in SEM_VIDEOS)}</div>""")
+
+    import re as _re
+    snaps = sorted({int(m.group(1)) for f in (RAW / "ladder_v1").glob("*/generated_zero_flowjf_s*.summary.json")
+                    for m in [_re.search(r"_s(\d+)\.summary", f.name)] if m})
+    if snaps:
+        rows = []
+        for st in snaps:
+            cells = [f'<span class="badge b-learned">learned:ladder_flow_jointfix@{st}</span>']
+            for r in ("panda_pg2", "parm6_tf3"):
+                p = f"ladder_v1/{r}/generated_zero_flowjf_s{st}.summary.json"
+                if have(p):
+                    d = J(p)
+                    cells += [frac(d["success"], d["n"]),
+                              esc(", ".join(f"{k} {v}" for k, v in d["failed_stage"].items() if k != "success"))
+                              + f' <span class="ci">(min TCP–cube {d["min_tcp_cube_m"] * 100:.1f} cm)</span>']
+                else:
+                    cells += ["—", "—"]
+            rows.append(cells)
+        for tag, lab in (("direct1701_u12000", "learned:direct1701_u12000 (plain BC, same seeds)"),):
+            cells = [f'<span class="badge b-bc">{lab}</span>']
+            for r in ("panda_pg2", "parm6_tf3"):
+                d = J(f"artifacts/runs/baselines_bc_ladder/{r}/learned_{tag}.summary.json")
+                cells += [frac(d["success"], d["n"]), esc(", ".join(f"{k} {v}" for k, v in d["failed_stage"].items() if k != "success"))]
+            rows.append(cells)
+        parts.insert(0, "<h3>The clean test: R2 generated route on the B-1-fixed bundle vs BC (sprint_latent)</h3>"
+                     + table(["controller", "panda_pg2", "failures (stage)", "parm6_tf3", "failures (stage)"], rows)
+                     + f"""<p>R2 = system i's own packets (flow trained with <code>zero_prev_action</code> on the jointly trained
+encoder, snapshots as training proceeds) → the jointly trained system 0 → tracker; no teacher in the loop. Same 30 matched
+dev seeds as BC. The flow is still training (20k steps planned); rows are added as snapshots are evaluated.
+{src('ladder_v1/<robot>/generated_zero_flowjf_s<step>.summary.json', 'artifacts/runs/baselines_bc_ladder/', 'research/tracks/ladder.md (sprint)')}</p>
+<div class="grid wide">{''.join(video_card(v) for v in R2_VIDEOS if (VID / v[0]).exists())}</div>""")
     L = "ladder_localize/{r}/bc_direct1701_u12000__{t}.json"
     if have(L.format(r="panda_pg2", t="jointfix")):
         rows = []

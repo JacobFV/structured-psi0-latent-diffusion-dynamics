@@ -56,3 +56,7 @@ Rendered on peer GPU EGL into `artifacts/runs/demo_video/` (NOT the shared artif
   into docs/demo/video. Key reading: BC follows goal and belief swaps but ignores a pure descriptor rebind (0/32);
   jointfix oracle approaches the rebound cube 19/30 first-touch (weak: packet encodes the teacher demo). v4 generated
   and R2-on-fixed-flow still running.
+- 20:10 refresh 3: R2 (the clean test) added to the sprint block, generated from ladder_v1/<robot>/generated_zero_flowjf_s<step>
+  summaries (sprint_latent's watcher; new snapshots appear automatically on rebuild). flow_jointfix@4000: 0/30 panda, see
+  page for parm6. R2 triptych clips (teacher | BC | R2@4000) for panda s3000029 and s3000008 via
+  scripts/demo/render_r2_triptych.sh (lease 1790391225_ffb5f8); render outcomes differ from eval rows, captions say so.
