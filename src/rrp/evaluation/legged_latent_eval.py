@@ -273,6 +273,8 @@ class LatentLeggedController:
         z_pre = z
         if edit.startswith("probe_yaw"):
             z = self.probe_edit(z, b, float(edit.split(":")[1]))
+        elif edit in ("probe_goal_mirror", "probe_halt"):
+            z = self.readout_edit(z, b, edit)
         elif edit.startswith("contact:"):              # contact:<leg>:<0 swing|1 stance> at every knot
             _, leg, v = edit.split(":")
             z = self.contact_edit(z, b, int(leg), float(v))
@@ -307,6 +309,27 @@ class LatentLeggedController:
                                  z_norm=float(np.linalg.norm(zz)),
                                  dz_norm=float((z - z_pre).norm()) if edit != "none" else 0.0))
         return p
+
+    def readout_edit(self, z, b, kind, steps=60, lr=0.05):
+        """probe_goal_mirror: z moved so the probe reads the goal mirrored laterally (gx, -gy), rest anchored.
+        probe_halt: z moved so the probe reads subtask=halt and zero base displacement."""
+        z0 = z.detach()
+        with torch.no_grad():
+            o0 = self.P(z0, b["asm_mask"], b["body_asm"])
+            g0, d0 = o0["goal"][:, :2].clone(), o0["disp"][:, :3].clone()
+        zz = z0.clone().requires_grad_(True)
+        opt = torch.optim.Adam([zz], lr=lr)
+        am = b["asm_mask"][:, None, :, None].float()
+        for _ in range(steps):
+            o = self.P(zz * am, b["asm_mask"], b["body_asm"])
+            if kind == "probe_goal_mirror":
+                loss = ((o["goal"][:, :2] - g0 * torch.tensor([1.0, -1.0], device=z.device)) ** 2).sum() * 4
+            else:
+                loss = torch.nn.functional.cross_entropy(o["subtask"], torch.full((z.shape[0],), 2, device=z.device)) + \
+                    ((o["disp"][:, :3]) ** 2).sum()
+            loss = loss + 0.01 * ((zz - z0) ** 2 * am).sum() / am.sum()
+            opt.zero_grad(); loss.backward(); opt.step()
+        return (zz * am).detach()
 
     def contact_edit(self, z, b, leg, v, steps=60, lr=0.05):
         """Move z so the frozen probe reads leg `leg` in contact state v at every knot (other entries anchored)."""
