@@ -186,3 +186,25 @@ flow noise keyed per (seed, call); control_replay = other noise.
 - Running: 4 peer shards `acceptance_sprint_sem_bc_pp/shard{0..3}` (32 seeds from 3,000,000; control, rebind_desc,
   rebind_obj (belief swap), goal_shift, irrelevant_distractor, control_replay; 400 steps) + teacher rung on the same
   scenes `acceptance_sprint_sem_teacher_pp`.
+- 19:25 host routing (lead request): the host broker refuses every admission (`AdmissionStopped: disk_below_reserve:321604132864`,
+  the watchdog shed state; even `--cpu 1 --disk 10M`). I do not bypass the broker, so the shards stay on the peer until
+  the host reserve is fixed (lead: lower the disk reserve or free disk space).
+
+### BC reference result (canonical pick_place, 32 seeds 3,000,000+, panda_pg2, 400 steps) -- completed
+Raw: `artifacts/runs/acceptance_sprint_sem_bc_pp/shard{0..3}/semantic_rows_bc.jsonl`, summary
+`semantic_summary_bc.json` (peer leases 1790389070_139486, _155de8, 1790389071_9e7868, _77ba5c). Teacher rung on the
+same scenes: `acceptance_sprint_sem_teacher_pp` (rebind_desc: approach + touch new 32/32; goal_shift 32/32).
+| condition (source learned:direct1701_u12000, BC reference) | cube in zone | first approach new | new cube lifted / in zone | cube at new goal | min-dist pref. vs control (m) |
+|---|---|---|---|---|---|
+| control | 28/32 | 0/32 | 0 / 0 | 0 | - |
+| rebind_desc (VALID binding edit: descriptor + public binding only) | 25/32 | **0/32** | 0 / 0 | 0 | +0.006 [+0.002, +0.014] |
+| rebind_obj (belief edit: tracks of cube and distractor0 exchanged) | 0/32 | 32/32 | 29 / 11 | 0 | +0.301 [+0.273, +0.330] |
+| goal_shift (VALID: zone belief moved 12 cm) | 1/32 | 0/32 | 0 / 0 | **24/32** | end-pos. pref. +0.173 [+0.147, +0.194] |
+| irrelevant_distractor | 27/32 | 0/32 | 0 / 0 | 0 | +0.001 [-0.000, +0.002] |
+| control_replay (other flow noise) | 26/32 | 0/32 | 0 / 0 | 0 | +0.009 [+0.003, +0.015] |
+Reading: the competent BC controller follows the goal edit and the belief swap (where the bound slot's object IS),
+but IGNORES a valid rebinding of the task entity: with the descriptor and public binding pointed at the other cube it
+still picks the original cube 25/32 (effect vs irrelevant edit +0.6 cm [0.1, 1.3]). The training data never varied the
+binding (the task object is always the canonical slot/descriptor), so BC learned "slot 0", not "the bound entity".
+This is the reference the latent binding result (v4 sem/nosem, trained on binding-varying paired data) is compared with.
+Paired scenes: BC is not competent at all (permuted slots/colours; running on host shards, record only).
