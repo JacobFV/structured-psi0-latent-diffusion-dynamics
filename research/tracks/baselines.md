@@ -1,5 +1,37 @@
 # track: baselines (latent_slice1 four-way comparison, baseline methods)
 
+## SPRINT BC RESULT (2026-09-25, sprint_bc; live section, updated as checkpoints land)
+**Plain behaviour cloning with deployment-consistent input (B-1 fixed) IS a competent source controller on the ladder's
+matched dev scenes, already at mid-training.** Same data (latent_pp_v3dart_s1_H16, stride 2), same seed 1701, same
+scenes/seeds as the ladder (30 feasible dev seeds from 3,000,000; n_distractors = seed % 3; prev-action input 0 as
+deployed; replan / execute prefix 8; nfe 8; privileged success evaluator). So the latent path's closed-loop failures
+(oracle route 0-1/30, D-046..D-049) come from the latent architecture/training (Stage A + system 0), NOT from the data,
+the teacher's demonstrations, or the simulator/tracker setup.
+
+| checkpoint (label) | panda_pg2 | parm6_tf3 | failures by stage (panda / parm6) |
+|---|---|---|---|
+| learned:direct1701_u12000 (direct-action BC, 12k/26.3k updates) | 25/30 = 0.83 [0.66, 0.93] | 27/30 = 0.90 [0.74, 0.97] | grasp 2, lift 2, transport 1 / transport 2, place 1 |
+| learned:codec1701_u13152 (action-only codec BC, 13.2k updates) | 28/30 = 0.93 [0.79, 0.98] | 25/30 = 0.83 [0.66, 0.93] | grasp 1, place 1 / lift 1, transport 4 |
+| reference: R0 scripted_teacher (ladder track) | 30/30 | 30/30 | - |
+| reference: R1 oracle route, best (D-048, jfdag1 re-anchored) | 1/30 | 0/30 | mostly approach |
+
+Wilson 95% in brackets. All failures of BC are timeouts late in the task (grasp/lift/transport/place), none at approach.
+Raw: `artifacts/runs/baselines_bc_ladder/<robot>/learned_<tag>.{jsonl,summary.json}` (committed; peer store same path).
+Checkpoints: snapshots of `policy_last.pt` (sha256 prefix verified against policy_last.json) in
+`artifacts/runs/baselines_bc_ckpts/<tag>.pt` (host + peer store; not committed). Caveat: panda_pg2 and parm6_tf3 are
+source-TRAINING bodies (as for the ladder); competence on held-out source bodies (protocol parm5s_tf3/parm5l_pg2) is
+below.
+
+Code (verified by smoke + these runs): `run_ladder` route `learned` (src/rrp/evaluation/ladder.py; `scripts/ladder.py
+--route learned --policy <ckpt> --policy-label <tag>`): a LearnedPolicy chunk is submitted every 8 ticks and its rows
+executed; shadow teacher, Meter and failure stages exactly as the other rungs. Learning-curve watcher
+`scripts/bc_ckpt_watch.sh` (host loop, pid in `pgrep -af bc_ckpt_watch`; log ~/work/rrp-wt/baselines-logs/bc_watch.log):
+every 3,000 updates of either source (and the final policy.pt) it snapshots and launches a peer CPU lease
+`baselines_bcl_<tag>` (4 CPU, 8G) that runs both robots.
+
+Commands: `scripts/ladder.py --route learned --policy artifacts/runs/baselines_bc_ckpts/<tag>.pt --policy-label <tag>
+--robot <r> --n 30 --tag <tag> --out artifacts/runs/baselines_bc_ladder/<r>` (peer, CUDA_VISIBLE_DEVICES=).
+
 Owner: baselines track agent. Branch `track/baselines`, worktree `~/work/rrp-wt/baselines`,
 peer code dir `/dev/shm/rrp-brandonin/wt/baselines` (its `artifacts/` is the shared peer store).
 
