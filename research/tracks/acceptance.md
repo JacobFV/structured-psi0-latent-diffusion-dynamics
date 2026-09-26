@@ -326,3 +326,7 @@ rrp.evaluation.ladder). 60 seeds, of which parm6_tf3 finds ~half feasible. Shard
 1.5 GB, measured RSS 0.8 GB); shards 1-5 on the peer (host memory cap full; leases 1790402041_2fa744 .. 1790402043_e55765).
 Flow noise keyed per (seed, call); control_replay = other noise. Scenes use n_distractors = max(1, seed % 3) (the
 ladder uses seed % 3), so the control rate is not the same as D-063's 9/30.
+- 01:05 same deployable-route suite on panda_pg2 (route 0/30 there, D-063; approach-level effects are still
+  measurable): host leases 1790412063_{b69980,23c4cb,047183,2805b6,7df3b6,246cd0}, 48 seeds, 1.5G each, one launch each
+  -> `artifacts/runs/acceptance_sprint_sem_gen_jf_panda/shard<i>`. Videos of parm6_tf3 seed 3000052 (control succeeds,
+  goal edit places at the new goal, rebind touches + lifts the new cube) are rendering on the peer.
