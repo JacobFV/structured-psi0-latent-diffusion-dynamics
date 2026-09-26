@@ -515,7 +515,12 @@ def sec_sprint():
                              ci(o4["_contrasts"].get("rebind_obj-irrelevant_distractor:pref_min"))
                              + (f'<br><span class="ci">vs orthogonal edit: {orth["mean"]:+.3f} [{orth["lo"]:+.3f}, {orth["hi"]:+.3f}]</span>' if orth else ""),
                              goal(o4), "n/a"])
-        gen_goal = gen_ctl = gen_orig = gen_orig_c = gen_appr = gen_pref = gen_newl = gen_n = "—"
+        gen_goal = gen_ctl = gen_orig = gen_orig_c = gen_appr = gen_pref = gen_newl = gen_n = pan_rb = "—"
+        PAN = "artifacts/runs/acceptance_sprint_sem_gen_jf_panda/semantic_summary_generated.json"
+        if have(PAN):
+            pp_ = J(PAN)["summary"]
+            pan_rb = f'{fc(pp_, "rebind_desc")} vs {fc(pp_, "control")} unedited'
+
         GEN = "artifacts/runs/acceptance_sprint_sem_gen_jf_parm6/semantic_summary_generated.json"
         GENP = "artifacts/runs/acceptance_sprint_sem_gen_jf_parm6_ext/semantic_summary_generated_pooled.json"
         GENX = "artifacts/runs/acceptance_sprint_sem_gen_jf_parm6_ext/semantic_summary_generated_ext.json"
@@ -552,12 +557,13 @@ def sec_sprint():
                          f'<b>{g_["cube_at_shifted_goal"]}/{g_["n"]}</b><br><span class="ci">irrelevant {bb["irrelevant_distractor"]["cube_at_shifted_goal"]}/{bb["irrelevant_distractor"]["n"]}, orthogonal {bb["orthogonal_matched"]["cube_at_shifted_goal"]}/{bb["orthogonal_matched"]["n"]}; '
                          f'{ci(bb["_contrasts"].get("goal_shift-irrelevant_distractor:goal_pref"))} m beyond irrelevant</span>',
                          "n/a"])
-        for GEN, setlab in (("artifacts/runs/acceptance_sprint_sem_gen_jf_parm6_ext/semantic_summary_generated_ext.json", "replication, 39 new seeds"),
+        for GEN, setlab in (("artifacts/runs/acceptance_sprint_sem_gen_jf_panda/semantic_summary_generated.json", "PANDA_PG2 (route not competent: approach-level only)"),
+                            ("artifacts/runs/acceptance_sprint_sem_gen_jf_parm6_ext/semantic_summary_generated_ext.json", "replication, 39 new seeds"),
                             ("artifacts/runs/acceptance_sprint_sem_gen_jf_parm6/semantic_summary_generated.json", "first 41 seeds"),
                             ("artifacts/runs/acceptance_sprint_sem_gen_jf_parm6_ext/semantic_summary_generated_pooled.json", "pooled 80 seeds")):
           if have(GEN):
             gg = J(GEN)["summary"]
-            rows.insert(0, [f'{badge("learned", "DEPLOYABLE: learned flow_jointfix@20k → system 0 gendag1_noqd")}<br>parm6_tf3, canonical scenes, {setlab}',
+            rows.insert(0, [f'{badge("learned", "DEPLOYABLE: learned flow_jointfix@20k → system 0 gendag1_noqd")}<br>{"panda_pg2" if "PANDA" in setlab else "parm6_tf3"}, canonical scenes, {setlab.replace("PANDA_PG2 ", "")}',
                             "binding (descriptor only)",
                             f'<b>{fc(gg, "rebind_desc")}</b> / {fc(gg, "control")}<br><span class="ci">first approach new {gg["rebind_desc"]["approached_first_new_frac"]["k"]}/{gg["rebind_desc"]["n"]}; original cube lifted {gg["rebind_desc"]["cube_lifted"]}/{gg["rebind_desc"]["n"]} vs {gg["control"]["cube_lifted"]}/{gg["control"]["n"]} unedited; new cube lifted {gg["rebind_desc"]["distractor0_lifted"]}</span>',
                             ci(gg["_contrasts"].get("rebind_desc-irrelevant_distractor:pref_min")),
@@ -579,7 +585,8 @@ A binding edit (only the task entity's descriptor changes) means the original cu
 arm first approaches the new cube in {gen_appr}, with closest approach {gen_pref} m toward it. <b>Plain BC ignores the same rebinding
 (0/32)</b>, so this is the first place the latent route does something the direct-action baseline does not. <b>Caveats:</b> one body (panda is
 not competent on this route), and the new cube is lifted in only {gen_newl}, so the rebound task is rarely completed. The flow may read the
-binding through public predicate estimates that follow it. There is no nosem counterpart, so the role of semantic supervision is not isolated.
+binding through public predicate estimates that follow it. There is no nosem counterpart, so the role of semantic supervision is not isolated. On panda_pg2, where this route never transports, the binding edit also redirects the approach: first touch on the new cube {pan_rb} (D-077);
+the goal edit cannot be tested there.
 {src(GEN if have(GEN) else "D-074", "D-074", "D-075")}</p><div class="grid3">{"".join(video_card(v) for v in GEN_SEM_VIDEOS if (VID / v[0]).exists())}</div><p><b>Best latent route: system 0 causally executes goal content carried in the packet (oracle diagnostic, D-062).</b>
 Packet = E(the BC chunk for the edited context) → system 0 jfbcdag2, panda_pg2, 48 seeds, control success {bb_ctrl}. A valid goal edit puts
 the cube at the NEW goal in {bb_goal} vs {bb_irr} and {bb_orth} under the matched controls. A probe-orthogonal edit of matched norm drops success to
@@ -1441,7 +1448,7 @@ def build(updates_html: str = ""):
 <ul>
 <li><b>Supported, on deployable routes (no teacher, oracle or BC at run time):</b> the central claim task → packet → behaviour. On the go2 quadruped,
 editing the goal in the task context steers the robot (D-071). On the parm6 arm, goal edits (23/80 vs ≤1/80) and binding edits (the original cube is
-never lifted; the approach goes to the new cube) redirect behaviour beyond matched controls (D-074, D-075). Plain BC ignores the binding edit.</li>
+never lifted; the approach goes to the new cube, also on panda) redirect behaviour beyond matched controls (D-074, D-075, D-077). Plain BC ignores the binding edit.</li>
 <li><b>Competence:</b> the deployable latent route matches BC on go2 (nosem 30/30, sem 29/30) and hexapod6 (30/30 both; D-070, D-076). It is partial on the
 arms: {pool_txt} pooled over the matched and fresh seed sets, against BC 24–30 of 30 on the same sets (D-072).</li>
 <li><b>Not shown:</b> a specific contribution of semantic supervision. On go2, nosem is as steerable as sem (D-069, D-071). The arm result has no nosem
