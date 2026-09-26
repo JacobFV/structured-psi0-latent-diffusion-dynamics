@@ -1185,8 +1185,8 @@ def build(updates_html: str = ""):
                   'cell names the run it comes from, and per-run tables follow below. Semantic control of the packet: <b>not shown</b> (D-059, D-062).</p>')
     ob = BEST.get("oracle", {})
     orc_best = ", ".join(f"{v[0]}/{v[1]} {r}" for r, v in sorted(ob.items())) or "—"
-    r2_best = "0/30 on every snapshot" if not r2 or max(r2)[0] == 0 else \
-        "{}/{} ({}, {}; still far below BC)".format(max(r2)[0], max(r2)[3], max(r2)[1], max(r2)[2])
+    lb = BEST.get("learned", {})
+    r2_best = (", ".join(f"{v[0]}/{v[1]} on {r}" for r, v in sorted(lb.items())) + " (best recipe per body; BC " + ", ".join(f"{v[0]}/{v[1]}" for r, v in sorted(BEST.get("bc", {}).items())) + ")") if lb else "—"
     body = (sec_architecture() + sec_works() + sec_bodies() + sec_matrix() + sec_debug() + sec_semantic() + sec_bc() + sec_next())
     used = "".join(f"<li><code>{esc(p)}</code></li>" for p in sorted(USED))
     page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
