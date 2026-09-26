@@ -394,8 +394,13 @@ def sec_final_route():
     spec = [("R0 scripted_teacher (privileged)", "teacher", {"panda_pg2": "teacher_shadow_zero", "parm6_tf3": "teacher_shadow_zero", "parm5s_tf3": "teacher_heldout_ref", "parm5l_pg2": "teacher_heldout_ref"}),
             ("plain BC learned:direct1701_u12000 (reference)", "bc", {"panda_pg2": None, "parm6_tf3": None, "parm5s_tf3": "learned_bc_direct1701_u12000", "parm5l_pg2": "learned_bc_direct1701_u12000"}),
             ("R1 ORACLE (stateless): E(BC chunk) → system 0 gendag3_noqd", "oracle", {r: "oracle_zero_gendag3noqd_orcbc" for r in robots}),
-            ("<b>R2 deployable: flow_jointfix_gdag1 → system 0 gendag3_noqd</b>", "learned", {r: "generated_zero_flowgdag1_rzgendag3_noqd" for r in robots}),
-            ("R2, same checkpoints, 30 FRESH seeds (3,000,100+)", "learned", {r: "generated_zero_flowgdag1_rzgendag3_noqd_fresh3000100" for r in robots})]
+            ("<b>R2 deployable: flow_jointfix_gdag1 → system 0 gendag3_noqd</b>", "learned", {r: "generated_zero_flowgdag1_rzgendag3_noqd" for r in robots})]
+    import re as _rf
+    fresh_sets = sorted({m.group(1) for f in (RAW / "ladder_v1").glob("*/*_fresh*.summary.json")
+                         for m in [_rf.search(r"_fresh(\d+)\.summary", f.name)] if m})
+    for fs in fresh_sets:
+        spec.append((f"plain BC learned:direct1701_u12000, FRESH seeds {fs}+", "bc", {r: f"learned_bc_direct1701_u12000_fresh{fs}" for r in robots}))
+        spec.append((f"R2 (same frozen checkpoints), FRESH seeds {fs}+", "learned", {r: f"generated_zero_flowgdag1_rzgendag3_noqd_fresh{fs}" for r in robots}))
     rows = []
     for lab, kind, tags in spec:
         cells = [f'<span class="badge b-{kind}">{lab}</span>']
@@ -406,14 +411,15 @@ def sec_final_route():
                 bp = f"artifacts/runs/baselines_bc_ladder/{r}/learned_direct1701_u12000.summary.json"
                 d = J(bp) if have(bp) else None
             cells.append(frac(d["success"], d["n"]) if d else "—")
-        rows.append(cells)
+        if any(c != "—" for c in cells[1:]):
+            rows.append(cells)
     # pooled R2 dev + fresh
     pool = []
     for r in robots:
-        ds = [cell(r, t) for t in ("generated_zero_flowgdag1_rzgendag3_noqd", "generated_zero_flowgdag1_rzgendag3_noqd_fresh3000100")]
+        ds = [cell(r, t) for t in ["generated_zero_flowgdag1_rzgendag3_noqd"] + [f"generated_zero_flowgdag1_rzgendag3_noqd_fresh{fs}" for fs in fresh_sets]]
         ds = [d for d in ds if d]
-        pool.append(frac(sum(d["success"] for d in ds), sum(d["n"] for d in ds)) if len(ds) == 2 else "—")
-    rows.append(['<span class="badge b-learned">R2 pooled (dev + fresh)</span>'] + pool)
+        pool.append(frac(sum(d["success"] for d in ds), sum(d["n"] for d in ds)) + f'<br><span class="ci">{len(ds)} seed sets</span>' if ds else "—")
+    rows.append(['<span class="badge b-learned">R2 pooled: dev + ALL fresh seed sets</span>'] + pool)
     gd = sorted((RAW / "ladder_dagger_gdag2").glob("generated_*.summary.json"))
     tb = ""
     if gd:
@@ -424,7 +430,8 @@ def sec_final_route():
     return f"""<h3>FINAL best latent route (frozen 01:10 by sprint_latent): the deployable route works, below BC</h3>
 {table(["controller", "panda_pg2 (dev, 30)", "parm6_tf3 (dev, 30)", "parm5s_tf3 (held-out source body)", "parm5l_pg2 (held-out source body)"], rows)}
 {tb}
-<p>No teacher, oracle or BC at run time on the R2 rows. System i = <code>ladder_flow_jointfix_gdag1/policy.pt</code> (sha256 78fbee7f…),
+<p>Every evaluation of the frozen checkpoints on non-training seeds is listed, better or worse; BC rows on the same seed sets are shown for a like-for-like comparison.
+No teacher, oracle or BC at run time on the R2 rows. System i = <code>ladder_flow_jointfix_gdag1/policy.pt</code> (sha256 78fbee7f…),
 system 0 + encoder bundle = <code>ladder_rz_jointfix_gendag3_noqd/representation.pt</code> (sha256 f60cde41…). The DAgger labels come from a
 <i>learned</i> stateless expert (the BC controller, trained on the same scripted-teacher demonstrations) at learner-visited states.
 What made it work, all within the architecture: (1) removing a joint-velocity shortcut in system 0; (2) replacing the stale teacher FSM with
@@ -1328,6 +1335,10 @@ def build(updates_html: str = ""):
     _h = lambda t: (lambda d: f"{d['success']}/{d['n']}")(J(f"ladder_v1/parm5s_tf3/{t}.summary.json")) if have(f"ladder_v1/parm5s_tf3/{t}.summary.json") else "—"
     ho_r2, ho_bc = _h("generated_zero_flowgdag1_rzgendag3_noqd"), _h("learned_bc_direct1701_u12000")
     _h2 = lambda t: (lambda d: f"{d['success']}/{d['n']}")(J(f"ladder_v1/parm5l_pg2/{t}.summary.json")) if have(f"ladder_v1/parm5l_pg2/{t}.summary.json") else "—"
+    def _pool(r):
+        ds = [json.loads(f.read_text()) for f in (RAW / "ladder_v1" / r).glob("generated_zero_flowgdag1_rzgendag3_noqd*.summary.json")]
+        return f"{sum(d['success'] for d in ds)}/{sum(d['n'] for d in ds)} on {r}" if ds else "—"
+    pool_txt = ", ".join(_pool(r) for r in ("panda_pg2", "parm6_tf3"))
     ho_r2b, ho_bcb = _h2("generated_zero_flowgdag1_rzgendag3_noqd"), _h2("learned_bc_direct1701_u12000")
     lb = BEST.get("learned", {})
     r2_best = (", ".join(f"{v[0]}/{v[1]} on {r}" for r, v in sorted(lb.items()) if r in ("panda_pg2", "parm6_tf3")) + " (best recipe per body; final BC " + ", ".join(f"{v[0]}/{v[1]}" for r, v in sorted(BEST.get("bc", {}).items()) if r in ("panda_pg2", "parm6_tf3")) + ")") if lb else "—"
@@ -1351,7 +1362,7 @@ humanoid bodies (weaker on g1, h1 and one procedural arm, §2b), and the pipelin
 1.014×, D-058). <b>Plain behaviour cloning on the same data is competent</b> ({bc_lo}–{bc_hi} of 30 on the matched scenes across
 checkpoints; 30/30 on both bodies at the end), so data and evaluation are sound. After fixing a train/deploy mismatch (bug B-1) and a
 velocity-copy shortcut in system 0, <b>the deployable latent route succeeds sometimes but stays well below BC</b>: best R2
-{r2_best}; on held-out source bodies parm5s_tf3 and parm5l_pg2 {ho_r2} and {ho_r2b} vs BC (12k-update checkpoint) {ho_bc} and {ho_bcb}, and on 30 fresh seeds the parm6 rate holds. A stateless oracle diagnostic, which feeds system 0 packets encoded from BC's own chunks, reaches {orc_best}: the gap from BC to
+{r2_best}; on held-out source bodies parm5s_tf3 and parm5l_pg2 {ho_r2} and {ho_r2b} vs BC (12k-update checkpoint) {ho_bc} and {ho_bcb}; pooled over the dev and all fresh seed sets, R2 gets {pool_txt}. A stateless oracle diagnostic, which feeds system 0 packets encoded from BC's own chunks, reaches {orc_best}: the gap from BC to
 that diagnostic is system 0's, and the gap from the diagnostic to R2 is the generator's (D-052, D-056, D-063, D-066, D-067, D-068, D-070). <b>A semantic advantage of the packet is not shown</b>: goal content in the packet is executed, but
 binding changes are not followed, and semantic vs capacity-matched no-semantic packets show no difference (D-059, D-062).
 <b>On the go2 quadruped the deployable latent route is competent</b> (nosem 30/30, sem 29/30 vs BC 30/30), and probe-direction edits of the
