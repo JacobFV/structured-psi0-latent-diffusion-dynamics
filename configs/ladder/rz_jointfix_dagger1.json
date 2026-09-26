@@ -1,0 +1,29 @@
+{
+ "name": "rz_jointfix_dagger1",
+ "out_dir": "artifacts/runs/ladder_rz_jointfix_dagger1",
+ "representation": "artifacts/runs/ladder_latent_sem_b1fix_anchor/representation.pt",
+ "packed_dir": "artifacts/packed/latent_pp_v3dart_s1_H16",
+ "zero_prev_action": true,
+ "dagger": [
+  "artifacts/runs/ladder_dagger_jf1/panda_pg2.npz",
+  "artifacts/runs/ladder_dagger_jf1/parm5_pg2.npz",
+  "artifacts/runs/ladder_dagger_jf1/parm5_tf3.npz",
+  "artifacts/runs/ladder_dagger_jf1/parm5l_tf3.npz",
+  "artifacts/runs/ladder_dagger_jf1/parm5s_pg2.npz",
+  "artifacts/runs/ladder_dagger_jf1/parm6_pg2.npz",
+  "artifacts/runs/ladder_dagger_jf1/parm6_tf3.npz",
+  "artifacts/runs/ladder_dagger_jf1/parm7_pg2.npz",
+  "artifacts/runs/ladder_dagger_jf1/parm7_tf3.npz",
+  "artifacts/runs/ladder_dagger_jf1/sawyer_pg2.npz",
+  "artifacts/runs/ladder_dagger_jf1/sawyer_tf3.npz",
+  "artifacts/runs/ladder_dagger_jf1/ur5e_pg2.npz",
+  "artifacts/runs/ladder_dagger_jf1/ur5e_tf3.npz"
+ ],
+ "dagger_frac": 0.5,
+ "prefetch_workers": 0,
+ "steps": 4000,
+ "batch_size": 128,
+ "lr": 0.0001,
+ "seed": 1704,
+ "init": "old"
+}
