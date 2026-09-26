@@ -1,0 +1,876 @@
+{
+ "body": "hexapod6",
+ "variants": {
+  "fixsem": {
+   "0": {
+    "r2": {
+     "r2_snap_s4000": {
+      "success": 30,
+      "n": 30,
+      "fell": 0,
+      "file": "artifacts/runs/legged_ladder/hexapod6/r2_fixsem_hexapod6_lv4_snap_s4000.jsonl"
+     },
+     "r2_final": {
+      "success": 30,
+      "n": 30,
+      "fell": 0,
+      "file": "artifacts/runs/legged_ladder/hexapod6/r2_fixsem_hexapod6_lv4_policy.jsonl"
+     }
+    },
+    "unedited_forward_mean": 0.64,
+    "effects": {
+     "ctx halt \u0394forward m": [
+      -0.336,
+      -0.375,
+      -0.294
+     ],
+     "ctx mirror INACTIVE \u0394forward m": [
+      0.001,
+      -0.006,
+      0.006
+     ],
+     "ctx mirror ACTIVE toward m": [
+      0.181,
+      0.141,
+      0.224
+     ],
+     "ctx mirror INACTIVE toward m": [
+      -0.001,
+      -0.004,
+      0.002
+     ],
+     "ctx ACTIVE\u2212INACTIVE toward m": [
+      0.182,
+      0.142,
+      0.225
+     ],
+     "z halt \u0394forward m": [
+      -0.329,
+      -0.35,
+      -0.307
+     ],
+     "z turn +0.6 \u0394yaw": [
+      0.1,
+      0.09,
+      0.111
+     ],
+     "z turn \u22120.6 \u0394yaw": [
+      -0.161,
+      -0.188,
+      -0.134
+     ],
+     "z goal-mirror toward m": [
+      0.023,
+      0.015,
+      0.033
+     ],
+     "z random 8 toward m": [
+      0.001,
+      -0.001,
+      0.002
+     ],
+     "z random 16 \u0394forward m": [
+      -0.018,
+      -0.021,
+      -0.016
+     ],
+     "z random 25 \u0394forward m": [
+      -0.038,
+      -0.042,
+      -0.034
+     ],
+     "z random 25 \u0394yaw": [
+      0.048,
+      0.046,
+      0.05
+     ]
+    },
+    "dirs": [
+     "artifacts/runs/legged_edits/hexapod6/r2_fixsem_snap_s4000",
+     "artifacts/runs/legged_edits/hexapod6/r2_fixsem_snap_s4000_bigrand",
+     "artifacts/runs/legged_edits/hexapod6/r2ctx_fixsem_snap_s4000"
+    ]
+   },
+   "1": {
+    "r2": {
+     "r2_snap_s4000": {
+      "success": 30,
+      "n": 30,
+      "fell": 0,
+      "file": "artifacts/runs/legged_ladder/hexapod6/r2_fixrep_fixsem_hexapod6_s1_snap_s4000.jsonl"
+     },
+     "r2_final": {
+      "success": 30,
+      "n": 30,
+      "fell": 0,
+      "file": "artifacts/runs/legged_ladder/hexapod6/r2_fixrep_fixsem_hexapod6_s1_policy.jsonl"
+     }
+    },
+    "unedited_forward_mean": 0.445,
+    "effects": {
+     "ctx halt \u0394forward m": [
+      -0.101,
+      -0.142,
+      -0.063
+     ],
+     "ctx mirror INACTIVE \u0394forward m": [
+      0.002,
+      -0.011,
+      0.014
+     ],
+     "ctx mirror ACTIVE toward m": [
+      0.127,
+      0.091,
+      0.168
+     ],
+     "ctx mirror INACTIVE toward m": [
+      0.001,
+      -0.001,
+      0.004
+     ],
+     "ctx ACTIVE\u2212INACTIVE toward m": [
+      0.126,
+      0.091,
+      0.166
+     ],
+     "z halt \u0394forward m": [
+      -0.263,
+      -0.29,
+      -0.237
+     ],
+     "z turn +0.6 \u0394yaw": [
+      0.064,
+      0.06,
+      0.067
+     ],
+     "z turn \u22120.6 \u0394yaw": [
+      -0.064,
+      -0.067,
+      -0.06
+     ],
+     "z goal-mirror toward m": [
+      0.007,
+      0.004,
+      0.011
+     ],
+     "z random 8 toward m": [
+      -0.0,
+      -0.001,
+      0.001
+     ],
+     "z random 16 \u0394forward m": [
+      0.005,
+      0.002,
+      0.007
+     ],
+     "z random 25 \u0394forward m": [
+      -0.003,
+      -0.007,
+      -0.0
+     ],
+     "z random 25 \u0394yaw": [
+      0.025,
+      0.023,
+      0.026
+     ]
+    },
+    "dirs": [
+     "artifacts/runs/legged_edits/hexapod6/r2_fixrep_fixsem_hexapod6_s1_snap_s4000",
+     "artifacts/runs/legged_edits/hexapod6/r2ctx_fixrep_fixsem_hexapod6_s1_snap_s4000"
+    ]
+   },
+   "2": {
+    "r2": {
+     "r2_snap_s4000": {
+      "success": 30,
+      "n": 30,
+      "fell": 0,
+      "file": "artifacts/runs/legged_ladder/hexapod6/r2_fixrep_fixsem_hexapod6_s2_snap_s4000.jsonl"
+     },
+     "r2_final": {
+      "success": 30,
+      "n": 30,
+      "fell": 0,
+      "file": "artifacts/runs/legged_ladder/hexapod6/r2_fixrep_fixsem_hexapod6_s2_policy.jsonl"
+     }
+    },
+    "unedited_forward_mean": 0.615,
+    "effects": {
+     "ctx halt \u0394forward m": [
+      -0.222,
+      -0.256,
+      -0.187
+     ],
+     "ctx mirror INACTIVE \u0394forward m": [
+      0.006,
+      -0.01,
+      0.021
+     ],
+     "ctx mirror ACTIVE toward m": [
+      0.18,
+      0.138,
+      0.23
+     ],
+     "ctx mirror INACTIVE toward m": [
+      0.0,
+      -0.004,
+      0.004
+     ],
+     "ctx ACTIVE\u2212INACTIVE toward m": [
+      0.18,
+      0.138,
+      0.228
+     ],
+     "z halt \u0394forward m": [
+      -0.326,
+      -0.349,
+      -0.305
+     ],
+     "z turn +0.6 \u0394yaw": [
+      0.138,
+      0.126,
+      0.151
+     ],
+     "z turn \u22120.6 \u0394yaw": [
+      -0.105,
+      -0.113,
+      -0.096
+     ],
+     "z goal-mirror toward m": [
+      0.016,
+      0.013,
+      0.02
+     ],
+     "z random 8 toward m": [
+      0.002,
+      0.001,
+      0.002
+     ],
+     "z random 16 \u0394forward m": [
+      -0.033,
+      -0.036,
+      -0.03
+     ],
+     "z random 25 \u0394forward m": [
+      -0.064,
+      -0.069,
+      -0.059
+     ],
+     "z random 25 \u0394yaw": [
+      0.011,
+      0.008,
+      0.014
+     ]
+    },
+    "dirs": [
+     "artifacts/runs/legged_edits/hexapod6/r2_fixrep_fixsem_hexapod6_s2_snap_s4000",
+     "artifacts/runs/legged_edits/hexapod6/r2ctx_fixrep_fixsem_hexapod6_s2_snap_s4000"
+    ]
+   },
+   "pooled": {
+    "effects": {
+     "ctx halt \u0394forward m": [
+      -0.219,
+      -0.253,
+      -0.187
+     ],
+     "ctx mirror INACTIVE \u0394forward m": [
+      0.003,
+      -0.004,
+      0.01
+     ],
+     "ctx mirror ACTIVE toward m": [
+      0.163,
+      0.137,
+      0.189
+     ],
+     "ctx mirror INACTIVE toward m": [
+      0.0,
+      -0.002,
+      0.002
+     ],
+     "ctx ACTIVE\u2212INACTIVE toward m": [
+      0.163,
+      0.137,
+      0.188
+     ],
+     "z halt \u0394forward m": [
+      -0.306,
+      -0.322,
+      -0.29
+     ],
+     "z turn +0.6 \u0394yaw": [
+      0.1,
+      0.091,
+      0.11
+     ],
+     "z turn \u22120.6 \u0394yaw": [
+      -0.11,
+      -0.124,
+      -0.096
+     ],
+     "z goal-mirror toward m": [
+      0.016,
+      0.012,
+      0.02
+     ],
+     "z random 8 toward m": [
+      0.001,
+      0.0,
+      0.001
+     ],
+     "z random 16 \u0394forward m": [
+      -0.015,
+      -0.02,
+      -0.011
+     ],
+     "z random 25 \u0394forward m": [
+      -0.035,
+      -0.042,
+      -0.028
+     ],
+     "z random 25 \u0394yaw": [
+      0.028,
+      0.024,
+      0.032
+     ]
+    },
+    "training_seeds": [
+     0,
+     1,
+     2
+    ],
+    "r2_snap_s4000": [
+     "30/30",
+     "30/30",
+     "30/30"
+    ],
+    "r2_final": [
+     "30/30",
+     "30/30",
+     "30/30"
+    ]
+   }
+  },
+  "nosem": {
+   "0": {
+    "r2": {
+     "r2_snap_s4000": {
+      "success": 30,
+      "n": 30,
+      "fell": 0,
+      "file": "artifacts/runs/legged_ladder/hexapod6/r2_nosem_hexapod6_v2_snap_s4000.jsonl"
+     },
+     "r2_final": {
+      "success": 30,
+      "n": 30,
+      "fell": 0,
+      "file": "artifacts/runs/legged_ladder/hexapod6/r2_nosem_hexapod6_v2_policy.jsonl"
+     }
+    },
+    "unedited_forward_mean": 0.62,
+    "effects": {
+     "ctx halt \u0394forward m": [
+      0.008,
+      -0.048,
+      0.057
+     ],
+     "ctx mirror INACTIVE \u0394forward m": [
+      -0.009,
+      -0.024,
+      0.008
+     ],
+     "ctx mirror ACTIVE toward m": [
+      0.168,
+      0.118,
+      0.223
+     ],
+     "ctx mirror INACTIVE toward m": [
+      -0.005,
+      -0.011,
+      0.001
+     ],
+     "ctx ACTIVE\u2212INACTIVE toward m": [
+      0.173,
+      0.122,
+      0.229
+     ],
+     "z halt \u0394forward m": [
+      0.028,
+      0.016,
+      0.04
+     ],
+     "z turn +0.6 \u0394yaw": [
+      0.034,
+      0.031,
+      0.037
+     ],
+     "z turn \u22120.6 \u0394yaw": [
+      -0.072,
+      -0.077,
+      -0.067
+     ],
+     "z goal-mirror toward m": [
+      0.001,
+      -0.002,
+      0.003
+     ],
+     "z random 8 toward m": [
+      0.001,
+      -0.0,
+      0.002
+     ],
+     "z random 16 \u0394forward m": [
+      -0.011,
+      -0.015,
+      -0.008
+     ],
+     "z random 25 \u0394forward m": [
+      -0.037,
+      -0.045,
+      -0.031
+     ],
+     "z random 25 \u0394yaw": [
+      0.004,
+      0.002,
+      0.007
+     ]
+    },
+    "dirs": [
+     "artifacts/runs/legged_edits/hexapod6/r2_nosem_snap_s4000",
+     "artifacts/runs/legged_edits/hexapod6/r2_nosem_snap_s4000_bigrand",
+     "artifacts/runs/legged_edits/hexapod6/r2ctx_nosem_snap_s4000"
+    ]
+   },
+   "1": {
+    "r2": {
+     "r2_snap_s4000": {
+      "success": 30,
+      "n": 30,
+      "fell": 0,
+      "file": "artifacts/runs/legged_ladder/hexapod6/r2_fixrep_nosem_hexapod6_s1_snap_s4000.jsonl"
+     },
+     "r2_final": {
+      "success": 30,
+      "n": 30,
+      "fell": 0,
+      "file": "artifacts/runs/legged_ladder/hexapod6/r2_fixrep_nosem_hexapod6_s1_policy.jsonl"
+     }
+    },
+    "unedited_forward_mean": 0.502,
+    "effects": {
+     "ctx halt \u0394forward m": [
+      0.036,
+      -0.027,
+      0.084
+     ],
+     "ctx mirror INACTIVE \u0394forward m": [
+      -0.007,
+      -0.025,
+      0.01
+     ],
+     "ctx mirror ACTIVE toward m": [
+      0.137,
+      0.086,
+      0.195
+     ],
+     "ctx mirror INACTIVE toward m": [
+      0.0,
+      -0.002,
+      0.003
+     ],
+     "ctx ACTIVE\u2212INACTIVE toward m": [
+      0.137,
+      0.086,
+      0.195
+     ],
+     "z halt \u0394forward m": [
+      -0.146,
+      -0.164,
+      -0.129
+     ],
+     "z turn +0.6 \u0394yaw": [
+      0.11,
+      0.103,
+      0.117
+     ],
+     "z turn \u22120.6 \u0394yaw": [
+      -0.101,
+      -0.109,
+      -0.094
+     ],
+     "z goal-mirror toward m": [
+      0.003,
+      0.002,
+      0.004
+     ],
+     "z random 8 toward m": [
+      0.001,
+      -0.0,
+      0.002
+     ],
+     "z random 16 \u0394forward m": [
+      0.017,
+      0.012,
+      0.023
+     ],
+     "z random 25 \u0394forward m": [
+      0.02,
+      0.013,
+      0.027
+     ],
+     "z random 25 \u0394yaw": [
+      0.006,
+      0.005,
+      0.008
+     ]
+    },
+    "dirs": [
+     "artifacts/runs/legged_edits/hexapod6/r2_fixrep_nosem_hexapod6_s1_snap_s4000",
+     "artifacts/runs/legged_edits/hexapod6/r2ctx_fixrep_nosem_hexapod6_s1_snap_s4000"
+    ]
+   },
+   "2": {
+    "r2": {
+     "r2_snap_s4000": {
+      "success": 30,
+      "n": 30,
+      "fell": 0,
+      "file": "artifacts/runs/legged_ladder/hexapod6/r2_fixrep_nosem_hexapod6_s2_snap_s4000.jsonl"
+     },
+     "r2_final": {
+      "success": 30,
+      "n": 30,
+      "fell": 0,
+      "file": "artifacts/runs/legged_ladder/hexapod6/r2_fixrep_nosem_hexapod6_s2_policy.jsonl"
+     }
+    },
+    "unedited_forward_mean": 0.529,
+    "effects": {
+     "ctx halt \u0394forward m": [
+      0.098,
+      0.079,
+      0.117
+     ],
+     "ctx mirror INACTIVE \u0394forward m": [
+      -0.004,
+      -0.01,
+      0.002
+     ],
+     "ctx mirror ACTIVE toward m": [
+      0.144,
+      0.096,
+      0.2
+     ],
+     "ctx mirror INACTIVE toward m": [
+      -0.001,
+      -0.005,
+      0.002
+     ],
+     "ctx ACTIVE\u2212INACTIVE toward m": [
+      0.145,
+      0.096,
+      0.201
+     ],
+     "z halt \u0394forward m": [
+      -0.078,
+      -0.089,
+      -0.07
+     ],
+     "z turn +0.6 \u0394yaw": [
+      0.154,
+      0.147,
+      0.161
+     ],
+     "z turn \u22120.6 \u0394yaw": [
+      -0.18,
+      -0.189,
+      -0.171
+     ],
+     "z goal-mirror toward m": [
+      0.002,
+      0.001,
+      0.003
+     ],
+     "z random 8 toward m": [
+      0.001,
+      -0.001,
+      0.004
+     ],
+     "z random 16 \u0394forward m": [
+      -0.055,
+      -0.059,
+      -0.052
+     ],
+     "z random 25 \u0394forward m": [
+      -0.091,
+      -0.095,
+      -0.086
+     ],
+     "z random 25 \u0394yaw": [
+      -0.08,
+      -0.083,
+      -0.078
+     ]
+    },
+    "dirs": [
+     "artifacts/runs/legged_edits/hexapod6/r2_fixrep_nosem_hexapod6_s2_snap_s4000",
+     "artifacts/runs/legged_edits/hexapod6/r2ctx_fixrep_nosem_hexapod6_s2_snap_s4000"
+    ]
+   },
+   "pooled": {
+    "effects": {
+     "ctx halt \u0394forward m": [
+      0.047,
+      0.016,
+      0.073
+     ],
+     "ctx mirror INACTIVE \u0394forward m": [
+      -0.007,
+      -0.015,
+      0.001
+     ],
+     "ctx mirror ACTIVE toward m": [
+      0.15,
+      0.118,
+      0.183
+     ],
+     "ctx mirror INACTIVE toward m": [
+      -0.002,
+      -0.005,
+      0.0
+     ],
+     "ctx ACTIVE\u2212INACTIVE toward m": [
+      0.152,
+      0.12,
+      0.184
+     ],
+     "z halt \u0394forward m": [
+      -0.065,
+      -0.085,
+      -0.046
+     ],
+     "z turn +0.6 \u0394yaw": [
+      0.099,
+      0.087,
+      0.112
+     ],
+     "z turn \u22120.6 \u0394yaw": [
+      -0.118,
+      -0.13,
+      -0.105
+     ],
+     "z goal-mirror toward m": [
+      0.002,
+      0.001,
+      0.003
+     ],
+     "z random 8 toward m": [
+      0.001,
+      -0.0,
+      0.002
+     ],
+     "z random 16 \u0394forward m": [
+      -0.016,
+      -0.025,
+      -0.009
+     ],
+     "z random 25 \u0394forward m": [
+      -0.036,
+      -0.048,
+      -0.024
+     ],
+     "z random 25 \u0394yaw": [
+      -0.023,
+      -0.034,
+      -0.014
+     ]
+    },
+    "training_seeds": [
+     0,
+     1,
+     2
+    ],
+    "r2_snap_s4000": [
+     "30/30",
+     "30/30",
+     "30/30"
+    ],
+    "r2_final": [
+     "30/30",
+     "30/30",
+     "30/30"
+    ]
+   }
+  },
+  "sem_orig": {
+   "0": {
+    "r2": {
+     "r2_snap_s4000": {
+      "success": 30,
+      "n": 30,
+      "fell": 0,
+      "file": "artifacts/runs/legged_ladder/hexapod6/r2_sem_hexapod6_v2_snap_s4000.jsonl"
+     },
+     "r2_final": {
+      "success": 30,
+      "n": 30,
+      "fell": 0,
+      "file": "artifacts/runs/legged_ladder/hexapod6/r2_sem_hexapod6_v2_policy.jsonl"
+     }
+    },
+    "unedited_forward_mean": 0.482,
+    "effects": {
+     "ctx halt \u0394forward m": [
+      -0.104,
+      -0.152,
+      -0.063
+     ],
+     "ctx mirror INACTIVE \u0394forward m": [
+      0.009,
+      -0.003,
+      0.022
+     ],
+     "ctx mirror ACTIVE toward m": [
+      0.165,
+      0.127,
+      0.207
+     ],
+     "ctx mirror INACTIVE toward m": [
+      0.001,
+      -0.001,
+      0.003
+     ],
+     "ctx ACTIVE\u2212INACTIVE toward m": [
+      0.164,
+      0.127,
+      0.205
+     ],
+     "z halt \u0394forward m": [
+      -0.191,
+      -0.206,
+      -0.175
+     ],
+     "z turn +0.6 \u0394yaw": [
+      0.106,
+      0.099,
+      0.114
+     ],
+     "z turn \u22120.6 \u0394yaw": [
+      -0.113,
+      -0.121,
+      -0.104
+     ],
+     "z goal-mirror toward m": [
+      0.011,
+      0.007,
+      0.015
+     ],
+     "z random 8 toward m": [
+      0.002,
+      -0.001,
+      0.004
+     ],
+     "z random 16 \u0394forward m": [
+      -0.004,
+      -0.009,
+      0.001
+     ],
+     "z random 25 \u0394forward m": [
+      -0.004,
+      -0.012,
+      0.003
+     ],
+     "z random 25 \u0394yaw": [
+      0.047,
+      0.044,
+      0.05
+     ]
+    },
+    "dirs": [
+     "artifacts/runs/legged_edits/hexapod6/r2_sem_snap_s4000",
+     "artifacts/runs/legged_edits/hexapod6/r2_sem_snap_s4000_bigrand",
+     "artifacts/runs/legged_edits/hexapod6/r2ctx_sem_snap_s4000"
+    ]
+   },
+   "pooled": {
+    "effects": {
+     "ctx halt \u0394forward m": [
+      -0.104,
+      -0.152,
+      -0.063
+     ],
+     "ctx mirror INACTIVE \u0394forward m": [
+      0.009,
+      -0.003,
+      0.022
+     ],
+     "ctx mirror ACTIVE toward m": [
+      0.165,
+      0.127,
+      0.207
+     ],
+     "ctx mirror INACTIVE toward m": [
+      0.001,
+      -0.001,
+      0.003
+     ],
+     "ctx ACTIVE\u2212INACTIVE toward m": [
+      0.164,
+      0.127,
+      0.205
+     ],
+     "z halt \u0394forward m": [
+      -0.191,
+      -0.206,
+      -0.175
+     ],
+     "z turn +0.6 \u0394yaw": [
+      0.106,
+      0.099,
+      0.114
+     ],
+     "z turn \u22120.6 \u0394yaw": [
+      -0.113,
+      -0.121,
+      -0.104
+     ],
+     "z goal-mirror toward m": [
+      0.011,
+      0.007,
+      0.015
+     ],
+     "z random 8 toward m": [
+      0.002,
+      -0.001,
+      0.004
+     ],
+     "z random 16 \u0394forward m": [
+      -0.004,
+      -0.009,
+      0.001
+     ],
+     "z random 25 \u0394forward m": [
+      -0.004,
+      -0.012,
+      0.003
+     ],
+     "z random 25 \u0394yaw": [
+      0.047,
+      0.044,
+      0.05
+     ]
+    },
+    "training_seeds": [
+     0
+    ],
+    "r2_snap_s4000": [
+     "30/30"
+    ],
+    "r2_final": [
+     "30/30"
+    ]
+   }
+  }
+ }
+}

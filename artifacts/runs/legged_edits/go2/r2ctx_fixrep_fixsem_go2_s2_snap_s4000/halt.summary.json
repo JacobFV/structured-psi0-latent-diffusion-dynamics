@@ -1,0 +1,24 @@
+{
+ "source": "learned:legged_fixrep_flow_fixsem_go2_s2/snap_s4000.pt",
+ "edit": "halt",
+ "per_body": {
+  "go2": {
+   "n": 20,
+   "success": 0,
+   "fell": 0,
+   "stages": {
+    "drift_a": 16,
+    "drift_b": 4
+   },
+   "seeds": "10000-10019",
+   "mean_sim_time": 5.099999999999659,
+   "packet_probes": {
+    "subtask": 1.0,
+    "contact": 0.8203125,
+    "goal_err": 0.10508471120437941,
+    "disp_yaw_err": 0.029154950712316285,
+    "disp_xy_err": 0.03132276507107807
+   }
+  }
+ }
+}

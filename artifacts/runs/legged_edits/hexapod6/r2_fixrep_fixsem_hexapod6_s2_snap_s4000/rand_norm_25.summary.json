@@ -1,0 +1,23 @@
+{
+ "source": "learned:legged_fixrep_flow_fixsem_hexapod6_s2/snap_s4000.pt",
+ "edit": "rand_norm:25",
+ "per_body": {
+  "hexapod6": {
+   "n": 20,
+   "success": 0,
+   "fell": 0,
+   "stages": {
+    "drift_a": 20
+   },
+   "seeds": "10000-10019",
+   "mean_sim_time": 5.099999999999659,
+   "packet_probes": {
+    "subtask": 1.0,
+    "contact": 0.821875,
+    "goal_err": 0.0729000767830813,
+    "disp_yaw_err": 0.02338108205681757,
+    "disp_xy_err": 0.013123067579152478
+   }
+  }
+ }
+}
