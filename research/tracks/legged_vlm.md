@@ -121,6 +121,19 @@ What this does and does not show:
 
 Clips: `artifacts/video/2026-09-26_fixsem_*` (INDEX.md): go2 fixed-sem success on 10017 (the original sem fall seed), and task-view `halt` fixed sem vs nosem on go2 and hexapod6 with unedited references.
 
+### LEGGED FIXED-SEM REPLICATION (lead request after D-088; 2026-09-26 ~10:00 →)
+Replicate over training seeds 1 and 2, fixed sem AND nosem (new seeds for both, identical treatment), on go2 and hexapod6.
+Configs are `configs/legged_fixsem/{rep,flow}_{fixsem,nosem}_{go2,hexapod6}_s{1,2}.json`. Each is the seed-0 config of that variant with only the `seed` changed in rep and flow; the nosem configs keep no `probe_lv_min`, which is a no-op for nosem.
+- Chain: `scripts/legged_fixrep_train.sh TAG...`. For each tag it runs Stage A, then (nosem only) the post-hoc probe (4000 steps, as in `legged_stageb.sh`), then the flow. The tags run in parallel within one lease.
+- Evals: `scripts/legged_fixrep_eval.sh BODY PAR TAG...`. It runs R2 on snap_s4000 and the final flow over dev seeds 10000–10029, plus the z-edit suite and the task-context suite on R2 snap_s4000. The z-suite includes random edits of norm 16 and 25.
+- Tables: `scripts/legged_fixrep_compare.py BODY` → `artifacts/runs/legged_fixrep_compare_<body>.{md,json}`. It reports per training seed and pooled (0, 1, 2). Seed 0 comes from the runs above.
+| step | state | evidence |
+|---|---|---|
+| go2 × {fixsem, nosem} × {s1, s2} training | running | host GPU lease 1790440021_55a138 → `artifacts/runs/legged_fixrep_{rep,flow}_*_go2_s*` |
+| hexapod6 × {fixsem, nosem} × {s1, s2} training | running | peer GPU lease 1790440023_da8335 → peer store `artifacts/runs/legged_fixrep_{rep,flow}_*_hexapod6_s*` |
+| evals | planned | peer CPU |
+Resume: rerun the same train command under a GPU lease. It skips finished stages and resumes from the `*_last.pt` checkpoints.
+
 ## T1 DIAGNOSIS (t1_diag agent, 2026-09-26 05:00 →; worktree ~/work/rrp-wt/legged_vlm, peer dir wt/legged_vlm)
 Questions (D-084, D-080): (1) why the SEMANTIC packet falls on the t1 deployable route (sem 38/120 vs nosem 107/120, 4 training
 seeds, same recipe/data); (2) why nosem fails the stateless oracle route R1 (the robot barely moves) but succeeds on R2.

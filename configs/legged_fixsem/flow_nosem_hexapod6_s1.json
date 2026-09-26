@@ -1,0 +1,15 @@
+{
+ "name": "legged_fixrep_flow_nosem_hexapod6_s1",
+ "representation": "artifacts/runs/legged_fixrep_rep_nosem_hexapod6_s1/representation.pt",
+ "width": 256,
+ "layers": 4,
+ "packet_semantic_weight": 0.0,
+ "packet_tau_min": 0.6,
+ "steps": 12000,
+ "batch_size": 256,
+ "lr": 0.0003,
+ "seed": 1,
+ "ckpt_every": 500,
+ "snap_every": 4000,
+ "note": "replication flow, seed 1; otherwise identical to the seed-0 flow of this variant"
+}
