@@ -39,6 +39,30 @@ Checkpoints: snapshots of `policy_last.pt` (sha256 prefix verified against polic
 source-TRAINING bodies (as for the ladder); competence on held-out source bodies (protocol parm5s_tf3/parm5l_pg2) is
 below.
 
+**Semantic edits on BC (same suite, conditions, edits and measurements as the acceptance track's
+latent_semantic_edits; BC has no packet, so the edit is applied to the public context BC observes at each chunk;
+physical scene unchanged).** learned:direct1701_u12000, pick_place dev scenes from 3,000,000 (n_distractors =
+max(1, seed % 3)), 24 seeds per body (parm6_tf3: 7 infeasible, n = 17):
+
+| condition | panda_pg2 (n=24) | parm6_tf3 (n=17) |
+|---|---|---|
+| control: cube lifted / cube in zone | 23 / 22 | 17 / 13 |
+| rebind_obj (task belief -> distractor0): distractor0 lifted / cube lifted / distractor0 in zone | 20 / 0 / 7 | 14 / 0 / 9 |
+| goal_shift (goal belief +12 cm): cube at shifted goal / cube in old zone | 19 / 1 | 10 / 0 |
+| irrelevant_distractor (unbound belief moved 10 cm): same lifted object as control / cube in zone | 23 / 21 | 17 / 14 |
+
+Paired approach preference toward distractor0 vs control: rebind +0.30 m [0.27, 0.33] (panda), +0.31 m [0.26, 0.35]
+(parm6); irrelevant edit +0.001 m [0.000, 0.002] / +0.000 m. So BC's behaviour follows valid context edits (object and
+goal) and ignores the matched irrelevant edit. Caveat: this rebind swaps the tracker BELIEFS of the two objects, so it
+tests "act on the object the task context points to", not descriptor-based binding (the acceptance track's paired-scene
+version, where only the entity descriptor/binding changes, is pending on main; I will rerun BC with `--scene paired`).
+Rebind rarely completes the placement (7/20, 9/14) because the physical distractor is a different shape/size.
+Raw: `artifacts/runs/baselines_bcsem_u12000/<robot>/semantic_{rows,summary}_learned_pick_place.*` (committed).
+Command: `python -m rrp.evaluation.bc_semantic_edits --policy artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt
+--label direct1701_u12000 --robots <r> --episodes 24 --out artifacts/runs/baselines_bcsem_u12000/<r>` (peer leases
+1790388716_62f535, 1790388716_bce2bf). Videos: artifacts/video/2026-09-25_bc_semantic_{control,rebind_obj,goal_shift,
+irrelevant_distractor}_parm6_tf3_s3000005_direct1701_u12000_followed.mp4 (all four followed).
+
 Code (verified by smoke + these runs): `run_ladder` route `learned` (src/rrp/evaluation/ladder.py; `scripts/ladder.py
 --route learned --policy <ckpt> --policy-label <tag>`): a LearnedPolicy chunk is submitted every 8 ticks and its rows
 executed; shadow teacher, Meter and failure stages exactly as the other rungs. Learning-curve watcher

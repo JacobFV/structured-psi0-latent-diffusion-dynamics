@@ -1,0 +1,170 @@
+{
+ "meta": {
+  "route": "learned",
+  "source": "learned:direct1701_u12000",
+  "checkpoint": "artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt",
+  "robots": "parm6_tf3",
+  "scene": "pick_place",
+  "seeds": [
+   3000000,
+   3000023
+  ],
+  "conditions": "control,rebind_obj,goal_shift,irrelevant_distractor",
+  "edit": "context edit applied to BC's public observation at each chunk (no packet)"
+ },
+ "summary": {
+  "control": {
+   "n": 17,
+   "followed": 13,
+   "followed_wilson95": [
+    0.5273820168822574,
+    0.9044495574456308
+   ],
+   "cube_lifted": 17,
+   "distractor0_lifted": 0,
+   "cube_in_zone": 13,
+   "distractor0_in_zone": 0,
+   "cube_at_shifted_goal": 1,
+   "privileged_success": 13,
+   "skipped": 7,
+   "cube_final_xy_to_zone_m": {
+    "mean": 0.03972100589824784,
+    "lo": 0.024815602641060832,
+    "hi": 0.058441303755193866,
+    "n": 17
+   },
+   "cube_final_xy_to_shifted_goal_m": {
+    "mean": 0.12018853249923621,
+    "lo": 0.10099114315535439,
+    "hi": 0.140329069570964,
+    "n": 17
+   }
+  },
+  "goal_shift": {
+   "n": 17,
+   "followed": 10,
+   "followed_wilson95": [
+    0.3600544248492146,
+    0.7838894332600814
+   ],
+   "cube_lifted": 17,
+   "distractor0_lifted": 0,
+   "cube_in_zone": 0,
+   "distractor0_in_zone": 0,
+   "cube_at_shifted_goal": 10,
+   "privileged_success": 0,
+   "skipped": 7,
+   "cube_final_xy_to_zone_m": {
+    "mean": 0.17406127986937395,
+    "lo": 0.1417972951720722,
+    "hi": 0.21110402502854042,
+    "n": 17
+   },
+   "cube_final_xy_to_shifted_goal_m": {
+    "mean": 0.11467091460117082,
+    "lo": 0.05574179271634759,
+    "hi": 0.18287753896862863,
+    "n": 17
+   },
+   "paired_n": 17,
+   "same_lifted_object_as_control": 17,
+   "same_cube_in_zone_as_control": 4,
+   "approach_preference_distractor_vs_control_m": {
+    "mean": -0.012287064437791848,
+    "lo": -0.0283650307490456,
+    "hi": 0.0006490681850531891,
+    "n": 17
+   },
+   "tcp_mean_deviation_from_control_m": {
+    "mean": 0.05861983053733018,
+    "lo": 0.047753085364114815,
+    "hi": 0.07092686806346962,
+    "n": 17
+   }
+  },
+  "irrelevant_distractor": {
+   "n": 17,
+   "followed": 14,
+   "followed_wilson95": [
+    0.5897054122922163,
+    0.938088734108536
+   ],
+   "cube_lifted": 17,
+   "distractor0_lifted": 0,
+   "cube_in_zone": 14,
+   "distractor0_in_zone": 0,
+   "cube_at_shifted_goal": 0,
+   "privileged_success": 14,
+   "skipped": 7,
+   "cube_final_xy_to_zone_m": {
+    "mean": 0.037146764203763914,
+    "lo": 0.02315646802580157,
+    "hi": 0.056036165189002285,
+    "n": 17
+   },
+   "cube_final_xy_to_shifted_goal_m": {
+    "mean": 0.12382751846665574,
+    "lo": 0.1057592761549177,
+    "hi": 0.14374004921755187,
+    "n": 17
+   },
+   "paired_n": 17,
+   "same_lifted_object_as_control": 17,
+   "same_cube_in_zone_as_control": 16,
+   "approach_preference_distractor_vs_control_m": {
+    "mean": 0.00014570403504712102,
+    "lo": -0.00026922357918278324,
+    "hi": 0.0005052657706230285,
+    "n": 17
+   },
+   "tcp_mean_deviation_from_control_m": {
+    "mean": 0.005643464568096934,
+    "lo": 0.0022563272559311147,
+    "hi": 0.009777047568808345,
+    "n": 17
+   }
+  },
+  "rebind_obj": {
+   "n": 17,
+   "followed": 14,
+   "followed_wilson95": [
+    0.5897054122922163,
+    0.938088734108536
+   ],
+   "cube_lifted": 0,
+   "distractor0_lifted": 14,
+   "cube_in_zone": 0,
+   "distractor0_in_zone": 9,
+   "cube_at_shifted_goal": 0,
+   "privileged_success": 0,
+   "skipped": 7,
+   "cube_final_xy_to_zone_m": {
+    "mean": 0.22728239597612204,
+    "lo": 0.1973378326045731,
+    "hi": 0.2589835297882394,
+    "n": 17
+   },
+   "cube_final_xy_to_shifted_goal_m": {
+    "mean": 0.2665948595192744,
+    "lo": 0.23502291577895293,
+    "hi": 0.29778932121371643,
+    "n": 17
+   },
+   "paired_n": 17,
+   "same_lifted_object_as_control": 0,
+   "same_cube_in_zone_as_control": 4,
+   "approach_preference_distractor_vs_control_m": {
+    "mean": 0.3053099640039882,
+    "lo": 0.2550605728056628,
+    "hi": 0.35431160548980645,
+    "n": 17
+   },
+   "tcp_mean_deviation_from_control_m": {
+    "mean": 0.18906929805032635,
+    "lo": 0.16603359329587483,
+    "hi": 0.21317358922623575,
+    "n": 17
+   }
+  }
+ }
+}
