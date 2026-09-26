@@ -1,0 +1,20 @@
+{
+ "file": "artifacts/runs/legged_ladder/hexapod6/r1qd0_sem_hexapod6_v2.jsonl",
+ "source": "oracle_diagnostic:E(bc_chunk)|rep:legged_rep_sem_hexapod6_v2|bc=legged_bc_hexapod6_v1/policy.pt",
+ "edit": "none",
+ "n": 30,
+ "success": 30,
+ "wilson95": [
+  0.886,
+  1.0
+ ],
+ "stages": {
+  "success": 30
+ },
+ "seeds": [
+  10000,
+  10029
+ ],
+ "events_a": 30,
+ "events_b": 30
+}

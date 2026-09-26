@@ -1,0 +1,62 @@
+{
+ "rep": "artifacts/runs/legged_rep_nosem_hexapod6_v2/representation.pt",
+ "realizer": null,
+ "flow": null,
+ "label_source": "stateless BC expert chunk (see buffer json)",
+ "bc_visited": {
+  "mse": {
+   "R_oracle": 0.0012269944935623142,
+   "hold": 0.06623116698529985,
+   "zero_action": 0.2161840928925408,
+   "R_oracle_qd0": 0.001308584728071259,
+   "R_z0": 0.08583352499537998,
+   "R_zshuf": 0.028694753348827363,
+   "R_gen": null
+  },
+  "ratio_to_hold": {
+   "R_oracle": 0.01852593800490709,
+   "R_oracle_qd0": 0.019757838909311418,
+   "R_z0": 1.295968784823479,
+   "R_zshuf": 0.4332515136747662,
+   "R_gen": null,
+   "zero_action": 3.264084006560285
+  },
+  "step_gain": {
+   "normal": 0.9930317681299279,
+   "qd_zeroed": 0.9942876063776096,
+   "z_zeroed": 0.8147102465300645,
+   "z_shuffled": 0.9348222339316643
+  },
+  "j0_ratio_to_hold": 0.002842549272232471,
+  "packet_gap_rel": null,
+  "gate_pass_R_oracle_le_0.2_hold": true
+ },
+ "teacher_heldout": {
+  "mse": {
+   "R_oracle": 5.407890122215678e-05,
+   "hold": 0.04602245837450027,
+   "zero_action": 0.0884261750512653,
+   "R_oracle_qd0": 5.37383122718893e-05,
+   "R_z0": 0.043286394079526266,
+   "R_zshuf": 0.09930714335706499,
+   "R_gen": null
+  },
+  "ratio_to_hold": {
+   "R_oracle": 0.0011750545957823137,
+   "R_oracle_qd0": 0.0011676541012781742,
+   "R_z0": 0.9405493667307008,
+   "R_zshuf": 2.1577974507352313,
+   "R_gen": null,
+   "zero_action": 1.9213700913521756
+  },
+  "step_gain": {
+   "normal": 1.0002434899123271,
+   "qd_zeroed": 1.0006427936539266,
+   "z_zeroed": 0.8606648205654511,
+   "z_shuffled": 0.733904746402371
+  },
+  "j0_ratio_to_hold": 0.0021256313477294782,
+  "packet_gap_rel": null,
+  "gate_pass_R_oracle_le_0.2_hold": true
+ }
+}
