@@ -569,6 +569,25 @@ def sec_sprint():
                             ci(gg["_contrasts"].get("rebind_desc-irrelevant_distractor:pref_min")),
                             f'<b>{gg["goal_shift"]["cube_at_shifted_goal"]}/{gg["goal_shift"]["n"]}</b><br><span class="ci">irrelevant {gg["irrelevant_distractor"]["cube_at_shifted_goal"]}/{gg["irrelevant_distractor"]["n"]}, orthogonal {gg["orthogonal_matched"]["cube_at_shifted_goal"]}/{gg["orthogonal_matched"]["n"]}, noise replay {gg["control_replay"]["cube_at_shifted_goal"]}/{gg["control_replay"]["n"]}</span>',
                             "n/a"])
+        bcsh = sorted((ROOT / "artifacts/runs/acceptance_sprint_sem_bc18k_parm6").glob("shard*/semantic_summary_bc.json"))
+        if bcsh:
+            agg = {}
+            for f in bcsh:
+                USED.add(str(f.relative_to(ROOT)))
+                for c, v in json.loads(f.read_text())["summary"].items():
+                    if c == "_contrasts":
+                        continue
+                    a = agg.setdefault(c, {})
+                    for k in ("n", "cube_lifted", "cube_in_zone", "cube_at_shifted_goal", "privileged_success"):
+                        a[k] = a.get(k, 0) + (v.get(k) or 0)
+            rb, gs = agg.get("rebind_desc", {}), agg.get("goal_shift", {})
+            ins = 1 if rows and "pooled 80" in rows[0][0] else 0
+            rows.insert(ins, [f'{badge("bc", "learned:direct1701_u18000 final BC (NOT latent), SAME parm6 seeds")}<br>like-for-like control (D-083)',
+                              "binding (descriptor only)",
+                              f'<b>ignored</b>: original cube lifted {rb.get("cube_lifted")}/{rb.get("n")}, placed in zone {rb.get("cube_in_zone")}/{rb.get("n")}',
+                              "—",
+                              f'<b>{gs.get("cube_at_shifted_goal")}/{gs.get("n")}</b><br><span class="ci">control success {agg["control"]["privileged_success"]}/{agg["control"]["n"]}, irrelevant {agg["irrelevant_distractor"]["privileged_success"]}/{agg["irrelevant_distractor"]["n"]}</span>',
+                              "n/a"])
         rows.append([f'{badge("learned", "learned: binding v4 sem / nosem flows")}', "generated route", "not competent with the sprint recipe (R2 ≤ 1/30) " + src("D-080"), "—", "—", "—"])
         parts.append("<h3>Semantic interventions at the level each route reaches (sprint_semantic)</h3>"
                      + table(["route", "edit type", "rebind: first touch on the NEW object (edit / control)",
@@ -582,8 +601,8 @@ approach the rebound object, but that packet encodes the teacher's demonstration
 to support the semantic claim. <b>Arm central-claim result (D-074, replicated in D-075; deployable route, parm6_tf3, {gen_n} seeds pooled): task semantics in the context steer behaviour through the
 generated packet, beyond matched controls.</b> A goal edit puts the cube at the new goal in {gen_goal}, against {gen_ctl} for three matched controls.{gen_ext}
 A binding edit (only the task entity's descriptor changes) means the original cube is never lifted ({gen_orig} vs {gen_orig_c} unedited). The
-arm first approaches the new cube in {gen_appr}, with closest approach {gen_pref} m toward it. <b>Plain BC ignores the same rebinding
-(0/32)</b>, so this is the first place the latent route does something the direct-action baseline does not. <b>Caveats:</b> one body (panda is
+arm first approaches the new cube in {gen_appr}, with closest approach {gen_pref} m toward it. <b>Plain BC, run on the same seeds, ignores the rebinding completely (original cube placed 80/82) while following goal edits
+(77/82) (D-083)</b>, so this is the first place the latent route does something the direct-action baseline does not. <b>Caveats:</b> one body (panda is
 not competent on this route), and the new cube is lifted in only {gen_newl}, so the rebound task is rarely completed. The flow may read the
 binding through public predicate estimates that follow it. There is no nosem counterpart, so the role of semantic supervision is not isolated. On panda_pg2, where this route never transports, the binding edit also redirects the approach: first touch on the new cube {pan_rb} (D-077);
 the goal edit cannot be tested there.
@@ -1457,7 +1476,7 @@ def build(updates_html: str = ""):
 <ul>
 <li><b>Supported, on deployable routes (no teacher, oracle or BC at run time):</b> the central claim task → packet → behaviour. On the go2 quadruped,
 editing the goal in the task context steers the robot (D-071). On the parm6 arm, goal edits (23/80 vs ≤1/80) and binding edits (the original cube is
-never lifted; the approach goes to the new cube, also on panda) redirect behaviour beyond matched controls (D-074, D-075, D-077). Plain BC ignores the binding edit.</li>
+never lifted; the approach goes to the new cube, also on panda) redirect behaviour beyond matched controls (D-074, D-075, D-077). Plain BC, run on the same seeds, ignores the rebinding completely (original cube placed 80/82) while following goal edits (77/82) (D-083).</li>
 <li><b>Competence:</b> the deployable latent route matches BC on go2 (nosem 30/30, sem 29/30) and hexapod6 (30/30 both), and on the t1 humanoid for nosem only (26–28/30 vs BC 24/30) (D-070, D-076, D-079). It is partial on the
 arms: {pool_txt} pooled over the matched and fresh seed sets, against BC 24–30 of 30 on the same sets (D-072).</li>
 <li><b>Semantic supervision: the evidence is mixed and small.</b> The sem packet has more editable probe handles on hexapod6 (halt −0.19 m vs +0.03 m;
@@ -1477,7 +1496,8 @@ velocity-copy shortcut in system 0, <b>the deployable latent route succeeds some
 that diagnostic is system 0's, and the gap from the diagnostic to R2 is the generator's (D-052, D-056, D-063, D-066, D-067, D-068, D-070). <b>A semantic advantage of the packet is not shown</b>: goal content in the packet is executed, but
 semantic vs capacity-matched no-semantic packets show no difference (D-059, D-062). <b>On the deployable arm route (parm6_tf3), editing the task
 context redirects behaviour beyond matched controls</b>: a goal edit puts the cube at the new goal (23/80 vs ≤1/80 per control, pooled over 80 seeds), and a binding edit
-redirects the approach to the new cube (original cube lifted 0/80 vs 58/80 unedited), which plain BC ignores. The rebound task is rarely completed,
+redirects the approach to the new cube (original cube lifted 0/80 vs 58/80 unedited). Plain BC, run on the same seeds, ignores the
+rebinding completely (original cube placed 80/82) while following goal edits (77/82) (D-083). The rebound task is rarely completed,
 and there is no nosem counterpart yet (D-074, D-075).
 <b>On the go2 quadruped the deployable latent route is competent</b> (nosem 30/30, sem 29/30 vs BC 30/30), and probe-direction edits of the
 packet causally halt and turn the robot (D-069, D-070; §2b). hexapod6 is also competent (30/30), and the t1 humanoid only with the no-semantic
