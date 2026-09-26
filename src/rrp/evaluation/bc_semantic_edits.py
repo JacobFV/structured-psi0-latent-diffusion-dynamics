@@ -48,7 +48,7 @@ def _scene(robot, key, scene):
 
 
 def run_bc_condition(src: BCSource, robot, robot_key, seed, cond, *, max_steps=300, replan=8, g=0.12,
-                     scene="pick_place"):
+                     scene="pick_place", frame_cb=None):
     s = _scene(robot, seed, scene)
     goal_off = se.goal_offset(s, g)
     base = dict(robot=robot_key, seed=seed, condition=cond, scene=scene)
@@ -80,6 +80,8 @@ def run_bc_condition(src: BCSource, robot, robot_key, seed, cond, *, max_steps=3
                 if fcon[b] is None:
                     fcon[b] = step
         tcp_tr.append(_tcp(s))
+        if frame_cb is not None:
+            frame_cb(s, step)
         if s.runtime.succeeded() or _body_pos(s, "cube")[2] < -0.05:
             break
     held = {b: any(b in v for v in s.truth().held_by.values()) for b in lift}
@@ -139,6 +141,8 @@ def main():
     ap.add_argument("--scene", choices=["pick_place", "paired"], default="pick_place")
     ap.add_argument("--conditions", default="control,rebind_obj,goal_shift,irrelevant_distractor")
     ap.add_argument("--max-steps", type=int, default=300)
+    ap.add_argument("--render-seed", type=int, help="render this seed for each condition instead of evaluating")
+    ap.add_argument("--video-out", default="artifacts/video")
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
     if a.seed_start < 3_000_000:
@@ -148,6 +152,8 @@ def main():
     src = BCSource(pol, a.label)
     seeds = (se.paired_edit_keys(a.seed_start, a.episodes) if a.scene == "paired"
              else list(range(a.seed_start, a.seed_start + a.episodes)))
+    if a.render_seed is not None:
+        return render(src, a)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     rp = out / f"semantic_rows_learned_{a.scene}.jsonl"
@@ -163,6 +169,50 @@ def main():
                 summary=se.summarize_semantic(rows))
     (out / f"semantic_summary_learned_{a.scene}.json").write_text(json.dumps(summ, indent=1, default=str))
     print(json.dumps(summ["summary"], indent=1, default=str))
+
+
+def render(src, a):
+    import datetime as dt
+    import os
+    import sys
+    os.environ.setdefault("MUJOCO_GL", "egl")
+    import imageio
+    import mujoco
+    from rrp.morphology.catalog import workbench_robots
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
+    from render_episode import caption
+    what = dict(control="task as given (cube -> zone)",
+                rebind_obj="EDIT: task belief rebound to distractor0 (scene unchanged)",
+                goal_shift="EDIT: goal belief shifted 12 cm (scene unchanged)",
+                irrelevant_distractor="CONTROL EDIT: unbound distractor belief moved 10 cm")
+    out = Path(a.video_out)
+    out.mkdir(parents=True, exist_ok=True)
+    for rk in a.robots.split(","):
+        robot = workbench_robots()[rk]()
+        for c in a.conditions.split(","):
+            frames, rend = [], {}
+
+            def cb(s, step):
+                if "r" not in rend:
+                    rend["r"] = mujoco.Renderer(s.model, 360, 480)
+                r = rend["r"]
+                r.update_scene(s.data, camera="front")
+                frames.append(caption(r.render().copy(), [
+                    f"LEARNED plain BC (learned:{a.label}) | no packet",
+                    f"{rk} seed {a.render_seed} | {what.get(c, c)}",
+                    f"t={s.data.time:.1f}s"]))
+            row = run_bc_condition(src, robot, rk, a.render_seed, c, max_steps=a.max_steps, scene=a.scene, frame_cb=cb)
+            if "skipped" in row:
+                print(c, row["skipped"])
+                continue
+            tag = "followed" if row["followed"] else "not-followed"
+            name = f"{dt.date.today()}_bc_semantic_{c}_{rk}_s{a.render_seed}_{a.label}_{tag}.mp4"
+            imageio.mimsave(out / name, frames, fps=20, quality=6)
+            with open(out / "INDEX.md", "a") as fh:
+                fh.write(f"- `{name}` — semantic edit `{c}` on plain BC (learned:{a.label}; the edit changes only the "
+                         f"public context BC sees; privileged evaluator) robot={rk} seed={a.render_seed} "
+                         f"outcome={tag} lifted={row['lifted']} placed_in_zone={row['placed_in_zone']}\n")
+            print(name, flush=True)
 
 
 if __name__ == "__main__":
