@@ -3,24 +3,68 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
-## SPRINT BEST ROUTE FINAL (frozen 2026-09-26 01:10 PDT, sprint_latent; for sprint_semantic / sprint_demo)
-**Deployable route (R2): system i `learned:ladder_flow_jointfix_gdag1` -> system 0 `learned:ladder_rz_jointfix_gendag3_noqd`.**
+## SPRINT BEST ROUTE FINAL (frozen 2026-09-26 02:30 PDT, sprint_latent; for sprint_semantic / sprint_demo)
+**Deployable route (R2): system i `learned:ladder_flow_jointfix_gdag2h` -> system 0 `learned:ladder_rz_jointfix_gendag3_noqd`.**
 No teacher, oracle or BC at run time. pick_place, 300 ticks, replan 8, NFE 8, standard stochastic sampling (noise scale 1),
 prev-action input 0, privileged success evaluator. Matched dev seeds = the first 30 feasible from 3,000,000
-(n_distractors = seed % 3). Fresh = the first 30 feasible from 3,000,100. Wilson 95%.
+(n_distractors = seed % 3); fresh = the first 30 feasible from 3,000,100 and from 3,000,200. Wilson 95%.
+(Supersedes the 01:10 freeze, which used flow `ladder_flow_jointfix_gdag1`; that row is kept below for reference.)
 
 | rung (source label) | panda_pg2 | parm6_tf3 | failure stages (panda / parm6) | track q rad / TCP m (panda; parm6) |
 |---|---|---|---|---|
 | R0 scripted_teacher (privileged) | 30/30 [0.89,1.00] | 30/30 [0.89,1.00] | - | 0.025 / 0.021; 0.006 / 0.007 |
-| reference: plain BC learned:direct1701_u12000 (sprint_bc) | 25/30 [0.66,0.93] | 27/30 [0.74,0.97] | late (grasp/lift/transport/place) | |
+| reference: plain BC learned:direct1701_u12000 (dev seeds, sprint_bc) | 25/30 [0.66,0.93] | 27/30 [0.74,0.97] | late (grasp/lift/transport/place) | |
+| reference: same BC, seeds 3,000,200+ (ladder harness) | 24/30 [0.63,0.90] | 27/30 [0.74,0.97] | | |
 | R1 ORACLE DIAGNOSTIC, stateless: packet = E(chunk of learned:direct1701_u12000 at the current state) -> gendag3_noqd | 13/30 [0.27,0.61] | 27/30 [0.74,0.97] | lift 8, approach 6, grasp 2, transport 1 / place 2, transport 1 | 0.014 / 0.014; 0.007 / 0.007 |
-| **R2 generated: flow_jointfix_gdag1 -> gendag3_noqd** | **10/30 [0.19,0.51]** | **22/30 [0.56,0.86]** | lift 7, approach 6, grasp 4, transport 3 / lift 4, place 2, approach 1, transport 1 | 0.012 / 0.012; 0.005 / 0.006 |
-| R2, same checkpoints, 30 FRESH seeds | 13/30 [0.27,0.61] | 21/30 [0.52,0.83] | lift 8, approach 4, grasp 2, transport 2, place 1 / lift 4, transport 4, place 1 | 0.012 / 0.012; 0.005 / 0.006 |
-| R2, 30 more FRESH seeds (3,000,200+) | 9/30 [0.17,0.48] | 17/30 [0.39,0.73] | lift 7, approach 7, grasp 4, place 2, transport 1 / approach 5, transport 5, lift 2, place 1 | 0.013 / 0.012; 0.005 / 0.006 |
-| plain BC on the same 3,000,200+ seeds (ladder harness) | 24/30 [0.63,0.90] | 27/30 [0.74,0.97] | | |
-| **R2 pooled (90 seeds)** | **32/90 = 0.36 [0.26,0.46]** | **60/90 = 0.67 [0.56,0.76]** | | |
-| R2 on the 13 source-TRAINING bodies (seeds 4,000,000+, 24 each; gdag2 collection) | 209/312 = 0.67 overall | | | |
+| **R2 generated: flow_jointfix_gdag2h -> gendag3_noqd, dev seeds** | **14/30 [0.30,0.64]** | **24/30 [0.63,0.90]** | approach 7, lift 5, place 3, grasp 1 / approach 4, lift 1, transport 1 | 0.013 / 0.013; 0.006 / 0.007 |
+| R2, same, fresh seeds 3,000,100+ | 11/30 [0.22,0.54] | 24/30 [0.63,0.90] | approach 13, place 2, lift 2, grasp 1, transport 1 / place 3, lift 2, approach 1 | 0.012 / 0.012; 0.006 / 0.006 |
+| R2, same, fresh seeds 3,000,200+ | 11/30 [0.22,0.54] | 22/30 [0.56,0.86] | lift 6, approach 7, transport 4, place 1, grasp 1 / approach 4, lift 3, transport 1 | 0.013 / 0.012; 0.006 / 0.006 |
+| **R2 pooled (90 seeds)** | **36/90 = 0.40 [0.30,0.50]** | **70/90 = 0.78 [0.68,0.85]** | | |
+| previous freeze: flow_jointfix_gdag1 -> gendag3_noqd, pooled 90 | 32/90 = 0.36 [0.26,0.46] | 60/90 = 0.67 [0.56,0.76] | | |
+| R2 flow_gdag1 on the 13 source-TRAINING bodies (seeds 4,000,000+, 24 each; gdag2 collection) | 209/312 = 0.67 overall | | | |
 | historical: R1 shadow-teacher oracle (CONFOUNDED, D-050), best jfdag1 | 1/30 | 0/30 | approach | |
+Tracking is never the failure: the joint tracker follows every rung's commands within ~1 cm TCP.
+Raw: peer `artifacts/runs/ladder_v1/<robot>/generated_zero_flowgdag2h_rzgendag3_noqd_s{3000000,3000100,3000200}.{jsonl,summary.json}`,
+`.../oracle_zero_gendag3noqd_orcbc.*`, `.../teacher_shadow_own.summary.json`; copies in `research/tracks/ladder/sprint_final/`.
+
+Checkpoints (peer store `/dev/shm/rrp-brandonin/repo/artifacts/runs/`, flow also on the host worktree; sha256):
+- system i (flow): `artifacts/runs/ladder_flow_jointfix_gdag2h/policy.pt` d0d6491892a60431d6354bbaa16ff3b704a07ae6ad437692706023ad0207f9dd
+  (`configs/ladder/flow_jointfix_gdag2h.json`: warm start `ladder_flow_jointfix_gdag1/policy.pt`
+  78fbee7f4f8df737d5074409f1d16379b031a459ea054a4b9192d64e487df873, +1.5k steps lr 5e-5, pack-free generator DAgger on
+  gdag1 + gdag2 contexts (host GPU); gdag1 = `ladder_flow_jointfix/snap_final_s20000.pt`
+  33b958884f3af12b59ed0a91f2b563101d9e8ace2521b143067d77113d4cc3bc + 4k steps 50/50 pack/generator DAgger;
+  base flow: zero_prev_action, normalize_target, packet_semantic_weight 1.0, packet_tau_min 0.6, 20k steps).
+  Latent space ls-80e5f25be2f0-wf22fe70f99d5.
+- system 0 (+ the frozen Stage-A encoder E and probes P in the same bundle): `artifacts/runs/ladder_rz_jointfix_gendag3_noqd/representation.pt`
+  f60cde41ed0671b84d1f698288d5a69a086f7d89f187b6562e195a287ff23622, realizer compat
+  rz-ls-80e5f25be2f0-wf22fe70f99d5-r96d867118f17-none-v1; realizer_anchor true, realizer_drop_qd true (the runtime zeroes
+  the joint-velocity input; handled by `realizer_node_feats` when loaded with `load_representation`).
+- Encoder origin: `artifacts/runs/ladder_latent_sem_b1fix_anchor/representation.pt` 49b2e2e325b9e3a1dbed8b125e481f34b879f346139b80625918d101efa11fb8
+  (Stage A with the semantic packet objective, trained jointly with the B-1 fix).
+- USAGE: the flow's packets are addressed to the ORIGINAL jointfix realizer; always pass the system-0 bundle explicitly
+  (`scripts/ladder.py --route generated --flow <flow> --rep <gendag3 bundle>`; `load_models` logs `realizer_override`).
+  Tools that load only the flow checkpoint would use the jointfix realizer (0/30): do not use them for this route.
+- Labels: system i = learned (flow); system 0 = learned, with DAgger labels from the plan rows of a LEARNED stateless
+  expert (BC learned:direct1701_u12000, trained on the same scripted-teacher demonstrations) at learner-visited states;
+  the generator DAgger targets z* = E(chunk of that BC). DAgger seeds 3,200,000-4,000,000 (disjoint from all eval seeds).
+
+What made it work (all in-architecture; ablations on the same seeds in the live table below):
+1. System 0 copied the current joint velocity (a B-1-like proprio shortcut): zeroing only qd collapsed its step gain from
+   0.88 to 0.12; removing qd alone moved R1 stateless from 0/30, 0/30 to 0/30, 5/30.
+2. The shadow teacher FSM is stale off its own trajectory (sprint_bc); the stateless BC expert gives valid packets and labels.
+3. System-0 DAgger with that expert (3 rounds) + DAgger on system i's OWN generated packets + z-noise 0.3: R1 stateless
+   0/30,0/30 -> 18/30,27/30; R2 0/30,0/30 -> 9/30,17/30.
+4. Generator DAgger (flow fine-tuned on learner-visited contexts toward z* = E(BC chunk)), 2 rounds: R2 (dev) 9/30,17/30 ->
+   10/30,22/30 -> 14/30,24/30.
+Not solved: panda approach/lift/grasp (pg2) and parm6 approach/place; R2 < BC (0.40 vs ~0.8 panda, 0.78 vs ~0.9 parm6).
+Negative: a 4th system-0 round (`gendag4b`) did not help (pooled 16/60, 32/60 with flow_gdag1 vs 23/60, 43/60).
+
+Sem vs nosem (binding v4 bundles), same recipe compressed to the sprint: NOT REACHED — neither bundle became competent,
+so there is no deployable sem-vs-nosem comparison. R1 stateless after 3 BC-DAgger rounds: sem 1/30, 1/30; nosem 0/30, 4/30;
+after the generated-packet round: sem 0/30, 2/30; nosem 0/30 (panda). R2 with their own flows (12k): sem 0/30, 0/30;
+nosem 0/30, 1/30 (bcdag2) and 0/30, 0/30 (gendag1, base or DAgger-tuned flow); training bodies sem 0/312, nosem 4/312.
+Nearly all failures are at approach: the binding-v4 system 0 still does not move toward the object from these packets.
+The binding chain's own flows (`flow_binding_paired_{sem,nosem}_v4`) are deadlocked on prefetch (alert below).
 
 HELD-OUT source bodies (not in the pack, not in any DAgger buffer; same harness, first 30 feasible dev seeds from 3,000,000):
 | rung | parm5s_tf3 | parm5l_pg2 |
