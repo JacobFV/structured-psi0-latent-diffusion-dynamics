@@ -985,13 +985,15 @@ This is one body and one semantic. {src('artifacts/runs/legged_edits/go2/r2ctx_{
     reading = f"""<div class="update">{d071}<p><b>Legged headline (go2, from the legged agent's notes).</b> The <b>deployable latent route is competent on go2</b>:
 system i's own packets → system 0 give nosem 30/30 and sem 29/30 on the 30 matched dev seeds, against plain BC 30/30 and the teacher 30/30
 {badge('learned', 'learned:legged_flow_{sem,nosem}_go2_v2 snap_s4000')}. Unlike the arm, the legged system 0 is not the bottleneck: the stateless oracle route
-gives nosem 30/30 and sem 25/30. <b>hexapod6 is the second body through the deployable route: R2 sem 30/30, nosem 30/30</b> (D-076); On hexapod6's deployable route, <b>probe-direction z edits steer the SEM packet more</b>: halt −0.19 m forward (nosem +0.03, no stop), turn ±0.6 gives
-0.11 rad (nosem 0.03–0.07), against ≈0 for random edits. Task-context goal steering is equal (+0.165 vs +0.168 m), and success is equal (30/30). The sem advantage
-is therefore in the packet's editable handles, not in context-to-behaviour control {src('artifacts/runs/legged_edits/hexapod6/', 'research/tracks/legged_vlm.md')}. its BC is 30/30 and its stateless oracle route 30/30 for both. BC positive control t1 humanoid 24/30
-(teacher 30/30). <b>g1 humanoid: the positive control fails</b> (BC 2–7/30 across replan settings vs the arc-only teacher 25/30), so no latent claim is made there.
-<b>t1 humanoid oracle route is not competent</b>: stateless R1 sem 12/30, nosem 0/30 (mostly falls), against BC 24/30, even though both pass the offline gate.
-After one BC-expert DAgger round, applied identically to both, it is sem 18/30 and nosem 0/30 (nosem never reaches the first waypoint in 21/30).
-This is the first sem &gt; nosem gap: a lead to follow up, not a result, because the route is an oracle diagnostic and not competent (D-076).
+gives nosem 30/30 and sem 25/30.
+<b>hexapod6 is the second body through the deployable route: R2 sem 30/30, nosem 30/30</b> (BC 30/30, stateless oracle 30/30 for both; D-076).
+<b>t1 humanoid is the third body through the deployable route, for nosem only: R2 nosem 26–27/30, at least BC's 24/30; sem 6–11/30</b> (D-079).
+The oracle diagnostic was not predictive on t1: there the gap went the other way (stateless R1 sem 12/30 → 18/30 after one identical DAgger round, nosem 0/30),
+and it reverses on the deployable route. <b>g1 humanoid: the positive control fails</b> (BC 2–7/30 across replan settings vs the arc-only teacher 25/30), so
+no latent claim is made there.
+<b>Semantic supervision, legged:</b> on hexapod6 the sem packet has more editable probe handles (halt −0.19 m forward vs nosem +0.03 m, no stop; turn ±0.6 gives
+0.11 rad vs 0.03–0.07 rad; random edits ≈0), but task-context goal steering is equal (+0.165 vs +0.168 m) and success is equal. The sem advantage is therefore in
+the packet's editable handles, not in context-to-behaviour control. {src('artifacts/runs/legged_edits/hexapod6/', 'D-079')}
 {src('research/tracks/legged_vlm.md', 'D-070', 'artifacts/runs/legged_ladder/go2/r2_*_snap_s4000.jsonl')}</p>
 <p><b>Packet edits (D-069, oracle route, go2, 20 seeds):</b> probe-guided halt changes forward progress by −1.24 m (sem) and −1.23 m (nosem), against −0.05 to
 −0.19 m for random edits of matched norm. Yaw ±0.6 edits give sign-correct turns of 0.16–0.30 rad, against ≈0 for random edits. Goal-mirror is null and
@@ -1085,7 +1087,7 @@ def sec_matrix():
         ["binding (object pairs)", badge("ok"), "v1 z does not carry the binding: focus_follows 0.0 " + src("binding_v1_reeval/sem_cf_probe_bindcf.json"),
          "binding v4 flows " + badge("run"), "not shown", badge("none")],
         ["dual-arm / assignment", badge("ok"), "teacher only", badge("none"), "pairs ready, teacher does both; v4 arm edits: no detectable effect " + src("D-043"), badge("none")],
-        ["legged / humanoid", "verified on go2 (D-060)", "go2 stateless oracle: nosem 30/30, sem 25/30", "<b>go2 R2: nosem 30/30, sem 29/30</b> vs BC 30/30; hexapod6 BC 30/30, t1 BC 24/30 " + src("research/tracks/legged_vlm.md"), "probe-direction halt/turn edits causal on the oracle route; no sem advantage " + src("D-069"), badge("none")],
+        ["legged / humanoid", "verified on go2 (D-060)", "go2 stateless oracle: nosem 30/30, sem 25/30", "<b>go2 R2: nosem 30/30, sem 29/30</b> vs BC 30/30; hexapod6 R2 30/30 both; t1 R2 nosem 26–27/30 (≥ BC 24/30), sem 6–11/30 (D-079) " + src("research/tracks/legged_vlm.md"), "probe-direction halt/turn edits causal (go2, hexapod6); sem has stronger handles on hexapod6 but equal context control; mixed overall " + src("D-069", "D-079"), badge("none")],
         ["VLM system II", "smoke only", "n/a", badge("none"), badge("none"), badge("none")],
         ["latency", badge("ok"), "—", "p95 1.014× vs real BC checkpoint (≤ 1.25×) " + src("D-058"), "—", "—"],
     ]
@@ -1452,11 +1454,12 @@ def build(updates_html: str = ""):
 <li><b>Supported, on deployable routes (no teacher, oracle or BC at run time):</b> the central claim task → packet → behaviour. On the go2 quadruped,
 editing the goal in the task context steers the robot (D-071). On the parm6 arm, goal edits (23/80 vs ≤1/80) and binding edits (the original cube is
 never lifted; the approach goes to the new cube, also on panda) redirect behaviour beyond matched controls (D-074, D-075, D-077). Plain BC ignores the binding edit.</li>
-<li><b>Competence:</b> the deployable latent route matches BC on go2 (nosem 30/30, sem 29/30) and hexapod6 (30/30 both; D-070, D-076). It is partial on the
+<li><b>Competence:</b> the deployable latent route matches BC on go2 (nosem 30/30, sem 29/30) and hexapod6 (30/30 both), and on the t1 humanoid for nosem only (26–27/30 vs BC 24/30) (D-070, D-076, D-079). It is partial on the
 arms: {pool_txt} pooled over the matched and fresh seed sets, against BC 24–30 of 30 on the same sets (D-072).</li>
-<li><b>Not shown:</b> a specific contribution of semantic supervision. On go2, nosem is as steerable as sem (D-069, D-071). The arm result has no nosem
-counterpart, and the binding-v4 sem/nosem bundles are not competent (D-059). Two sem &gt; nosem signals so far: on hexapod6's deployable route, sem's probe-direction handles steer more (halt, turn), while context steering is equal; and on t1,
-on an oracle route that is not competent, sem succeeds more (12/30 vs 0/30; after one identical DAgger round 18/30 vs 0/30; BC 24/30; D-076). Both are leads, not results.</li>
+<li><b>Semantic supervision: the evidence is mixed and small.</b> The sem packet has more editable probe handles on hexapod6 (halt −0.19 m vs +0.03 m;
+turn 0.11 vs 0.03–0.07 rad). But context-to-behaviour control is equal on go2 and hexapod6. On the t1 humanoid the deployable route works for nosem
+(26–27/30, at least BC's 24/30) and not for sem (6–11/30); the t1 oracle-route gap (sem 18/30 vs nosem 0/30) reverses on the deployable route. The arm result
+has no nosem counterpart, and the binding-v4 sem/nosem bundles are not competent. No claim that semantic supervision improves control is supported (D-059, D-079).</li>
 <li><b>Not tested:</b> the sealed held-out target bodies for the latent route. Plain BC transfers to a new gripper (78–85/100) but not to the unseen xarm7 arm
 (0/100; D-064). Humanoid g1 has no competent BC control.</li>
 </ul></div>
@@ -1472,7 +1475,8 @@ context redirects behaviour beyond matched controls</b>: a goal edit puts the cu
 redirects the approach to the new cube (original cube lifted 0/80 vs 58/80 unedited), which plain BC ignores. The rebound task is rarely completed,
 and there is no nosem counterpart yet (D-074, D-075).
 <b>On the go2 quadruped the deployable latent route is competent</b> (nosem 30/30, sem 29/30 vs BC 30/30), and probe-direction edits of the
-packet causally halt and turn the robot, again with no advantage for semantic supervision (D-069, D-070; §2b). <b>On go2's deployable
+packet causally halt and turn the robot (D-069, D-070; §2b). hexapod6 is also competent (30/30), and the t1 humanoid only with the no-semantic
+packet (26–27/30 vs sem 6–11/30, D-079). The evidence on semantic supervision is mixed and small. <b>On go2's deployable
 route, editing only the task context (mirroring the active waypoint) steers the robot toward the new goal: task → packet → behaviour,
 shown for one body and one semantic, and not dependent on semantic supervision (D-071).</b></p>
 {scoreboard}
