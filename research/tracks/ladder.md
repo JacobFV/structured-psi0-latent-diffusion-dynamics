@@ -10,6 +10,13 @@ Best oracle-diagnostic route (R1 stateless: packet = E(chunk of BC learned:direc
 system 0 `jfbcdag2`: panda 11/30 [0.22,0.54], parm6 19/30 [0.46,0.78].
 Reference on the same 30 seeds: R0 scripted_teacher 30/30, 30/30; plain BC learned:direct1701_u12000 25/30, 27/30.
 
+**ALERT for the lead (23:20): the binding chain's flows `flow_binding_paired_{sem,nosem}_v4` are DEADLOCKED** (peer leases
+1790399212_fa9d73 since 22:06 and 1790401602_231ce8 since 22:46: main process 0% CPU, 3 idle forked prefetch workers,
+623 MiB GPU, empty train_log; config has "prefetch": true = the known fork-after-torch-init deadlock, see
+infrastructure notes). They hold two GPU leases doing nothing. I am not stopping them (not my leases). For the
+sem-vs-nosem deployable comparison I am training ladder-owned copies with prefetch off and 12k steps
+(`configs/ladder/flow_bindv4{sem,nosem}.json` -> `artifacts/runs/ladder_flow_bindv4{sem,nosem}`) as soon as my GPU slots free.
+
 Checkpoints (peer store; copies on host):
 - system i: `artifacts/runs/ladder_flow_jointfix/snap_final_s20000.pt` (FlowPolicy, zero_prev_action, normalize_target,
   packet_tau_min 0.6, packet_semantic_weight 1.0, 20k steps; `configs/ladder/flow_jointfix.json`; latent space
