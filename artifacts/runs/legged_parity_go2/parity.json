@@ -1,0 +1,88 @@
+{
+ "body": "go2",
+ "episodes": [
+  {
+   "ep": 0,
+   "seed": 0,
+   "sigma": 0.0,
+   "ticks": 300,
+   "resim_vs_stored_maxabs": {
+    "a": 0.0,
+    "q": 0.0,
+    "qd": 0.0
+   },
+   "deploy_vs_train_maxabs": {
+    "q": 0.0,
+    "qd": 0.0,
+    "imu": 0.0,
+    "asm_touch": 0.0,
+    "osc": 0.0,
+    "ctx": 0.0,
+    "node_static": 0.0,
+    "node_asm": 0.0,
+    "asm_static": 0.0,
+    "node_mask": 0.0,
+    "asm_mask": 0.0,
+    "ctx_deploy_vs_train_all_ticks": 0.955909788608551,
+    "ctx_deploy_vs_train_step_aligned": 0.0,
+    "ctx_deploy_vs_train_osc_cols_excluded": 0.3394293487071991
+   }
+  },
+  {
+   "ep": 1,
+   "seed": 1,
+   "sigma": 0.1,
+   "ticks": 300,
+   "resim_vs_stored_maxabs": {
+    "a": 0.0,
+    "q": 0.0,
+    "qd": 0.0
+   },
+   "deploy_vs_train_maxabs": {
+    "q": 0.0,
+    "qd": 0.0,
+    "imu": 0.0,
+    "asm_touch": 0.0,
+    "osc": 0.0,
+    "ctx": 0.0,
+    "node_static": 0.0,
+    "node_asm": 0.0,
+    "asm_static": 0.0,
+    "node_mask": 0.0,
+    "asm_mask": 0.0,
+    "ctx_deploy_vs_train_all_ticks": 0.955909788608551,
+    "ctx_deploy_vs_train_step_aligned": 0.0,
+    "ctx_deploy_vs_train_osc_cols_excluded": 0.49428269267082214
+   }
+  },
+  {
+   "ep": 5,
+   "seed": 5,
+   "sigma": 0.1,
+   "ticks": 300,
+   "resim_vs_stored_maxabs": {
+    "a": 0.0,
+    "q": 0.0,
+    "qd": 0.0
+   },
+   "deploy_vs_train_maxabs": {
+    "q": 0.0,
+    "qd": 0.0,
+    "imu": 0.0,
+    "asm_touch": 0.0,
+    "osc": 0.0,
+    "ctx": 0.0,
+    "node_static": 0.0,
+    "node_asm": 0.0,
+    "asm_static": 0.0,
+    "node_mask": 0.0,
+    "asm_mask": 0.0,
+    "ctx_deploy_vs_train_all_ticks": 0.955909788608551,
+    "ctx_deploy_vs_train_step_aligned": 0.0,
+    "ctx_deploy_vs_train_osc_cols_excluded": 0.4098474383354187
+   }
+  }
+ ],
+ "system0_inputs": "q, qd (local_state), imu, per-foot touch, osc-v1 (own tick counter), morphology tokens, z, phase",
+ "teacher_command_or_prev_action_in_inputs": false
+}

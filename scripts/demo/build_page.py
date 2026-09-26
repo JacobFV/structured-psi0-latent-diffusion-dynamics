@@ -424,7 +424,9 @@ def sec_sprint():
 approach the rebound object, but that packet encodes the teacher's demonstration toward it, so this is weak evidence
 (system 0 reads packet content, not the binding). The competent BC controller follows a goal edit and a swap of object
 <i>beliefs</i>, but <b>ignores a pure binding change</b>: that is the capability the semantic packet is meant to add, and the
-generated-route test on the binding-v4 flows is pending. <b>Best latent route: system 0 causally executes goal content carried in the packet (oracle diagnostic, D-062).</b>
+generated-route test on the binding-v4 flows is pending. The final BC reference (D-065) follows goal edits (23/24, 16/17) and object-belief swaps
+(23/24, 15/17), leaves irrelevant edits unchanged, and ignores descriptor-only rebinds: the latent packet must beat this reference, especially on binding,
+to support the semantic claim. <b>Best latent route: system 0 causally executes goal content carried in the packet (oracle diagnostic, D-062).</b>
 Packet = E(the BC chunk for the edited context) → system 0 jfbcdag2, panda_pg2, 48 seeds, control success {bb_ctrl}. A valid goal edit puts
 the cube at the NEW goal in {bb_goal} vs {bb_irr} and {bb_orth} under the matched controls. A probe-orthogonal edit of matched norm drops success to
 {bb_orth_s}. A binding edit is NOT followed ({bb_rb} first touch on the new object). <b>This does not show that semantic supervision adds control:</b>
@@ -444,14 +446,14 @@ matched-norm probe-orthogonal edit. The claim that semantic supervision adds cau
         if "ladder_flow_jointfix" not in fl:
             continue
         fresh = " · FRESH seeds " + f.name.split("fresh")[1].split(".")[0] + "+ (not the matched set)" if "fresh" in f.name else ""
-        step = _re_step(fl)
+        step = (Path(fl).parent.name.replace("ladder_flow_", ""), _re_step(fl))
         s0 = Path(rep).parent.name.replace("ladder_rz_jointfix_", "").replace("ladder_latent_sem_b1fix_anchor", "jointfix")
         r2rows.setdefault((step, s0, fresh), {})[f.parent.name] = d
     if r2rows:
         rows = []
         for (step, s0, fresh), per in sorted(r2rows.items()):
-            desc0 = {"gendag1": " (as gendag1_noqd but WITH the joint-velocity input)", "gendag1_qdd": " (gendag1 variant with joint-velocity dropout)", "gendag1_noqd": " (refit from bcdag2: no joint-velocity input, BC-expert DAgger incl. states visited with GENERATED packets, z-noise 0.3; config configs/ladder/rz_jointfix_gendag1_noqd.json on track/ladder)"}.get(s0, "")
-            cells = [f'<span class="badge b-learned">R2 learned:ladder_flow_jointfix@{step}</span> → system 0 {esc(s0)}<b>{esc(fresh)}</b><span class="ci">{esc(desc0)}</span>']
+            desc0 = {"gendag1": " (as gendag1_noqd but WITH the joint-velocity input)", "gendag2_noqd": " (round 2 of gendag1_noqd: DAgger on generated-packet states, no joint-velocity input)", "gendag1_qdd": " (gendag1 variant with joint-velocity dropout)", "gendag1_noqd": " (refit from bcdag2: no joint-velocity input, BC-expert DAgger incl. states visited with GENERATED packets, z-noise 0.3; config configs/ladder/rz_jointfix_gendag1_noqd.json on track/ladder)"}.get(s0, "")
+            cells = [f'<span class="badge b-learned">R2 learned:ladder_flow_{step[0]}{"@" + str(step[1]) if step[1] >= 0 else " (final)"}</span> → system 0 {esc(s0)}<b>{esc(fresh)}</b><span class="ci">{esc(desc0)}</span>']
             for r in ("panda_pg2", "parm6_tf3"):
                 d = per.get(r)
                 if d:
@@ -523,9 +525,9 @@ packet. R2 fails at the same stages as the stateless oracle. Next: fix the syste
                 else:
                     cells.append("—")
             rows.append(cells)
-        parts.append("<h3>Stateless localization on BC-visited states (sprint_latent)</h3>"
+        parts.append("<h3>Stateless localization on BC-visited states (sprint_latent)</h3><details><summary>offline system-0 error table (click to expand)</summary>"
                      + table(["system 0", "panda_pg2 arm error / hold-still ref", "parm6_tf3 arm error / hold-still ref"], rows)
-                     + f"""<p>No teacher state: BC drives the matched seeds; every 8 ticks the packet is E(the chunk BC actually executed
+                     + "</details>" + f"""<p>No teacher state: BC drives the matched seeds; every 8 ticks the packet is E(the chunk BC actually executed
 next) {badge('oracle', 'ORACLE DIAGNOSTIC')}, and system 0 is scored against BC's executed command (1-step, normalized).
 The jointly trained system 0 realizes these packets below the hold-still error (a partial, not a precise, realization), and shadow-teacher DAgger
 <i>raised</i> its error (to 83–133% of hold-still) (consistent with stale labels). Its first tick after each new packet is as bad as holding still.

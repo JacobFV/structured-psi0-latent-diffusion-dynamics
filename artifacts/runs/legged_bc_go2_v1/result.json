@@ -1,0 +1,18 @@
+{
+ "steps": 20000,
+ "wall_s": 2746.943862915039,
+ "bodies": [
+  "go2"
+ ],
+ "n_rows": 322900,
+ "n_train_rows": 307130,
+ "n_heldout_rows": 15770,
+ "eval": {
+  "chunk_mse": 0.279943186044693,
+  "first5_mse": 0.05321421977132559,
+  "first_mse": 0.02441475847736001,
+  "hold_first_mse": 1.110243594646454,
+  "zero_first_mse": 1.4432611286640167
+ },
+ "source": "learned (behaviour cloning of scripted_teacher -> frozen tracker targets; POSITIVE CONTROL)"
+}

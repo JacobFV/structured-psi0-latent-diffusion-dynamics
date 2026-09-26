@@ -90,6 +90,9 @@ class LeggedData:
                     cols["wpa"].append(np.tile(np.array(em["waypoints"]["a"], np.float32), (T, 1)))
                     cols["wpb"].append(np.tile(np.array(em["waypoints"]["b"], np.float32), (T, 1)))
                     cols["held_out"].append(np.full(T, ho))
+                    if "beh" in d:                   # DAgger buffer: stored stateless-expert chunk per tick
+                        bh = d["beh"][sl].astype(np.float32)
+                        cols.setdefault("beh", []).append(np.pad(bh, ((0, 0), (0, MAX_N - bh.shape[1]), (0, 0))))
                     off += T
         t = lambda x: torch.from_numpy(np.concatenate(x)).to(dev)
         self.A = {k: t(v) for k, v in cols.items()}
@@ -123,6 +126,8 @@ class LeggedData:
         return b
 
     def beh(self, i):
+        if "beh" in self.A:
+            return self.A["beh"][i]
         idx = torch.minimum(i[:, None] + torch.arange(H, device=self.dev)[None], self.A["ep_end"][i][:, None])
         return self.A["a"][idx].transpose(1, 2)                             # [B,N,H]
 
@@ -150,16 +155,24 @@ class LeggedData:
         b = self.ctx_batch(tj)
         return b, jj.float() * TICK_DT, self.A["a"][tj], self.A["amask"][tj]
 
+    def hold_still(self, i):
+        """Hold-still reference action at row i: the current joint position in action units."""
+        sc = self.S["node_static"][self.A["body"][i]][..., 14].clamp(min=1e-6)       # action_scale column
+        return self.A["q"][i] / sc * self.A["amask"][i]
+
     def sample(self, B, rng: np.random.Generator, test=False):
         pool = self.test_idx if test else self.train_idx
         return torch.from_numpy(rng.choice(pool, B)).to(self.dev)
 
 
-def rep_step(E, R, P, data, i, j, w_sem, beta, train=True):
+def rep_step(E, R, P, data, i, j, w_sem, beta, train=True, qd_drop=0.0):
     b = data.ctx_batch(i)
     mu, lv = E(b, data.beh(i))
     z = mu + torch.randn_like(mu) * (0.5 * lv).exp() if train else mu
     br, ph, a1, am = data.realizer_batch(i, j)
+    if train and qd_drop > 0:                    # counter the proprioceptive (joint-velocity) shortcut, D-056
+        keep = (torch.rand(len(i), 1, device=br["qd"].device) >= qd_drop).float()
+        br = dict(br); br["qd"] = br["qd"] * keep
     pred = R(z, br, ph)
     m = am.float()
     l_real = (((pred - a1) ** 2) * m).sum() / m.sum()
@@ -223,13 +236,22 @@ def train_rep(cfg, out: Path):
     sch = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=lr, total_steps=steps, pct_start=0.05)
     out.mkdir(parents=True, exist_ok=True)
     (out / "config.json").write_text(json.dumps(cfg, indent=1))
-    log = open(out / "train_log.jsonl", "w")
+    step0, last = 0, out / "rep_last.pt"
+    if last.exists():                            # exact resume (D-040: the first run lost 9k steps)
+        st = torch.load(str(last), map_location=dev, weights_only=False)
+        E.load_state_dict(st["E"]); R.load_state_dict(st["R"]); P.load_state_dict(st["P"])
+        opt.load_state_dict(st["opt"]); sch.load_state_dict(st["sch"])
+        step0 = st["step"]; rng.bit_generator.state = st["rng"]; torch.set_rng_state(st["torch_rng"])
+        print(f"resumed at step {step0}", flush=True)
+    log = open(out / "train_log.jsonl", "a")
     t0 = time.time()
     B = cfg.get("batch_size", 256)
-    for step in range(1, steps + 1):
+    ck, sn = cfg.get("ckpt_every", 500), cfg.get("snap_every", 0)
+    for step in range(step0 + 1, steps + 1):
         i = data.sample(B, rng)
         j = torch.from_numpy(rng.integers(0, MAX_J + 1, B)).to(dev)
-        loss, logs, _ = rep_step(E, R, P, data, i, j, lc["semantic_weight"], lc.get("beta_kl", 1e-3))
+        loss, logs, _ = rep_step(E, R, P, data, i, j, lc["semantic_weight"], lc.get("beta_kl", 1e-3),
+                                 qd_drop=lc.get("qd_dropout", 0.0))
         opt.zero_grad()
         loss.backward()
         gn = torch.nn.utils.clip_grad_norm_(params, 1.0)
@@ -237,6 +259,12 @@ def train_rep(cfg, out: Path):
         if step % 200 == 0:
             log.write(json.dumps(dict(step=step, t=time.time() - t0, loss=float(loss.detach()), gn=float(gn), **logs)) + "\n")
             log.flush()
+        if step % ck == 0 and step < steps:
+            _save(last, E=E.state_dict(), R=R.state_dict(), P=P.state_dict(), opt=opt.state_dict(),
+                  sch=sch.state_dict(), step=step, rng=rng.bit_generator.state, torch_rng=torch.get_rng_state())
+        if sn and step % sn == 0 and step < steps:
+            _save(out / f"snap_s{step}.pt", E=E.state_dict(), R=R.state_dict(), P=P.state_dict(), cfg=cfg,
+                  result=dict(latent_space_version=f"legged-ls-{cfg['name']}", step=step))
     res = dict(steps=steps, wall_s=time.time() - t0, bodies=cfg["bodies"], n_rows=data.n,
                n_train_rows=len(data.train_idx), n_heldout_rows=len(data.test_idx),
                latent_space_version=f"legged-ls-{cfg['name']}", eval=eval_rep(E, R, P, data))
@@ -320,10 +348,23 @@ def train_flow(cfg, out: Path):
     w = cfg.get("packet_semantic_weight", 0.0)
     out.mkdir(parents=True, exist_ok=True)
     (out / "config.json").write_text(json.dumps(cfg, indent=1))
-    log = open(out / "train_log.jsonl", "w")
+    step0, last = 0, out / "flow_last.pt"
+    if last.exists():
+        st = torch.load(str(last), map_location=dev, weights_only=False)
+        F_.load_state_dict(st["flow"]); opt.load_state_dict(st["opt"]); sch.load_state_dict(st["sch"])
+        step0 = st["step"]; rng.bit_generator.state = st["rng"]; torch.set_rng_state(st["torch_rng"])
+        print(f"resumed at step {step0}", flush=True)
+    log = open(out / "train_log.jsonl", "a")
     t0 = time.time()
     B = cfg.get("batch_size", 256)
-    for step in range(1, steps + 1):
+    ck, sn = cfg.get("ckpt_every", 500), cfg.get("snap_every", 0)
+    for step in range(step0 + 1, steps + 1):
+        if step > step0 + 1 and step % ck == 1 and step - 1 < steps:
+            _save(last, flow=F_.state_dict(), opt=opt.state_dict(), sch=sch.state_dict(), step=step - 1,
+                  rng=rng.bit_generator.state, torch_rng=torch.get_rng_state())
+        if sn and step > 1 and (step - 1) % sn == 0:
+            _save(out / f"snap_s{step - 1}.pt", flow=F_.state_dict(), cfg=cfg,
+                  result=dict(latent_space_version=rres["latent_space_version"], step=step - 1))
         i = data.sample(B, rng)
         b = data.ctx_batch(i)
         with torch.no_grad():

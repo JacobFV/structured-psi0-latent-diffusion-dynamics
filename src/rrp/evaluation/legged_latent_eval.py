@@ -109,6 +109,8 @@ class System0Adapter:
         tgt = None
         if self.packet is not None and (now <= self.packet.valid_until or self.c.edit == "freeze"):
             bb = self.dyn_batch()
+            if self.c.zero_qd:
+                bb["qd"] = torch.zeros_like(bb["qd"])
             z = torch.from_numpy(np.asarray(self.packet.z, np.float32))[None].to(self.c.dev)
             zp = torch.zeros(1, z.shape[1], MAX_M, z.shape[3], device=self.c.dev)
             zp[:, :, :z.shape[2]] = z
@@ -124,23 +126,116 @@ class System0Adapter:
             tgt = np.clip(b.q0, b.lo, b.hi)          # declared fallback: hold the default stance
         fc, _ = b.contacts(data)
         self.c.trace.append(dict(t=now, pose=self.s.base_pose_truth().tolist(), contact=fc.astype(int).tolist()))
+        if getattr(self.c, "recorder", None) is not None and self.armed:
+            self.c.recorder(self, fc)
         self.ticks += 1
         return tgt
 
 
+class BCController:
+    """POSITIVE CONTROL: plain behaviour-cloning flow policy (no packet); replans a 40-tick native-target chunk
+    every `replan` ticks from the same public inputs (context + local state) and executes it open-loop between."""
+
+    def __init__(self, ckpt: Path, dev, nfe=8, replan=5, seed=0):
+        from rrp.learning.legged_bc import load_bc
+        self.model, st = load_bc(ckpt, dev)
+        self.dev, self.nfe, self.replan = dev, nfe, replan
+        self.gen = torch.Generator(device=dev).manual_seed(seed)
+        self.policy_version = f"learned:{Path(ckpt).parent.name}/{Path(ckpt).name}"
+        self.edit, self.t_edit, self.trace, self.packets = "none", None, [], []
+
+    def bind(self, session, morph):
+        self.static = static_batch(morph, self.dev)
+        self.morph = morph
+        self.trace, self.packets = [], []
+
+
+class BCAdapter:
+    source = "learned"
+
+    def __init__(self, ctl, session, morph):
+        self.c, self.s, self.m = ctl, session, morph
+        self.version = f"bc:{ctl.policy_version}"
+        self.armed, self.ticks, self.chunk, self.k = False, 0, None, 0
+        self.log = []
+        self.stats = dict(ticks=0, packets=0, rejected=0, fallback=0)
+
+    def reset(self, phase=0.0):
+        self.ticks, self.chunk, self.armed = 0, None, False
+
+    def state(self):
+        return dict(ticks=self.ticks)
+
+    def load(self, st):
+        self.ticks = st["ticks"]
+
+    osc = System0Adapter.osc
+    dyn_batch = System0Adapter.dyn_batch
+
+    def act(self, data, cmd):
+        b = self.s.binding
+        now = float(data.time)
+        if self.armed and (self.chunk is None or self.k >= self.c.replan):
+            bb = self.dyn_batch()
+            bb["ctx"] = torch.from_numpy(public_context(self.s, self.osc()))[None].to(self.c.dev)
+            self.chunk = self.c.model.sample(bb, nfe=self.c.nfe, generator=self.c.gen)[0, :b.n].cpu().numpy()
+            self.k = 0
+            self.stats["packets"] += 1
+        if self.chunk is not None:
+            tgt = b.targets(np.clip(self.chunk[:, self.k].astype(np.float64), -5, 5))
+            self.k += 1
+            self.stats["ticks"] += 1
+        else:
+            self.stats["fallback"] += 1
+            tgt = np.clip(b.q0, b.lo, b.hi)
+        fc, _ = b.contacts(data)
+        self.c.trace.append(dict(t=now, pose=self.s.base_pose_truth().tolist(), contact=fc.astype(int).tolist()))
+        if getattr(self.c, "recorder", None) is not None and self.armed:
+            self.c.recorder(self, fc)
+        self.ticks += 1
+        return tgt
+
+
+def failure_stage(row):
+    """success | fell | stall (base moved < 0.3 m over the episode) | drift_a (never reached waypoint a) |
+    drift_b (reached a, not b) | halt (reached b, halt not completed)."""
+    if row["success"]:
+        return "success"
+    if row["fell"]:
+        return "fell"
+    tr = row.get("trace") or []
+    path = sum(math.hypot(b["pose"][0] - a["pose"][0], b["pose"][1] - a["pose"][1]) for a, b in zip(tr, tr[1:]))
+    ev = row["events"]
+    if ev.get("walk_to_a") not in ("succeeded", "completed"):
+        return "stall" if path < 0.3 else "drift_a"
+    if ev.get("walk_to_b") not in ("succeeded", "completed"):
+        return "drift_b"
+    return "halt"
+
+
 class LatentLeggedController:
-    def __init__(self, flow_ckpt: Path, dev, nfe=8, edit="none", t_edit=1.0, seed=0, posthoc_probe=None):
-        st = torch.load(str(flow_ckpt), map_location=dev, weights_only=False)
-        self.cfg = st["cfg"]
-        rcfg, self.E, self.R, self.P, rres = load_rep(Path(self.cfg["representation"]), dev)
+    def __init__(self, flow_ckpt: Path | None, dev, nfe=8, edit="none", t_edit=1.0, seed=0, posthoc_probe=None,
+                 rep=None, realizer=None, zero_qd=False):
+        st = torch.load(str(flow_ckpt), map_location=dev, weights_only=False) if flow_ckpt else None
+        self.cfg = st["cfg"] if st else dict(representation=str(rep))
+        rcfg, self.E, self.R, self.P, rres = load_rep(Path(rep or self.cfg["representation"]), dev)
+        if realizer:                                   # refit system 0 (same encoder / latent space)
+            rs = torch.load(str(realizer), map_location=dev, weights_only=False)
+            self.R.load_state_dict(rs["R"])
+        self.zero_qd = zero_qd
         if posthoc_probe:                              # measurement probe for latent_nosem (frozen, detached z)
             pp = torch.load(posthoc_probe, map_location=dev, weights_only=False)
             self.P = LeggedProbe(dz=rcfg["latent"]["dz"]).to(dev)
             self.P.load_state_dict(pp["state"]); self.P.eval()
-        self.F = LeggedFlow(dz=rcfg["latent"]["dz"], D=self.cfg.get("width", 256), layers=self.cfg.get("layers", 4)).to(dev)
-        self.F.load_state_dict(st["flow"]); self.F.eval()
+        self.F = None
+        if st:
+            self.F = LeggedFlow(dz=rcfg["latent"]["dz"], D=self.cfg.get("width", 256), layers=self.cfg.get("layers", 4)).to(dev)
+            self.F.load_state_dict(st["flow"]); self.F.eval()
         self.lsv = rres["latent_space_version"]
-        self.policy_version = f"learned:{Path(flow_ckpt).parent.name}"
+        self.policy_version = (f"learned:{Path(flow_ckpt).parent.name}/{Path(flow_ckpt).name}" if flow_ckpt else
+                               f"rep:{Path(rep).parent.name}") + (f"+rz:{Path(realizer).parent.name}/{Path(realizer).name}"
+                                                                    if realizer else "")
+        self.bc = None                                 # stateless BC expert (oracle packets = E(BC chunk))
         self.dev, self.nfe, self.edit, self.t_edit = dev, nfe, edit, t_edit
         self.gen = torch.Generator(device=dev).manual_seed(seed)
         self.packets, self.trace = [], []
@@ -167,13 +262,25 @@ class LatentLeggedController:
         b = ad.dyn_batch()
         edit = self.edit if now >= self.t_edit else "none"
         b["ctx"] = self._ctx(ad, edit if edit in ("mirror_goal", "halt") else None)
-        if getattr(self, "oracle", None) is not None:
+        if self.bc is not None:
+            with torch.no_grad():
+                z, _ = self.E(b, self.bc.sample(b, nfe=self.nfe, generator=self.gen)[..., :40])
+        elif getattr(self, "oracle", None) is not None:
             with torch.no_grad():
                 z, _ = self.E(b, self.oracle.demo(ad))
         else:
             z = self._sample(b)
+        z_pre = z
         if edit.startswith("probe_yaw"):
             z = self.probe_edit(z, b, float(edit.split(":")[1]))
+        elif edit.startswith("contact:"):              # contact:<leg>:<0 swing|1 stance> at every knot
+            _, leg, v = edit.split(":")
+            z = self.contact_edit(z, b, int(leg), float(v))
+        elif edit.startswith("rand_norm:"):            # irrelevant-edit control: random direction, fixed |dz|
+            gg = torch.Generator(device=z.device).manual_seed(int(now * 1000) + 7)
+            am = b["asm_mask"][:, None, :, None].float()
+            d = torch.randn(z.shape, generator=gg, device=z.device) * am
+            z = z + d / d.norm() * float(edit.split(":")[1])
         if edit == "zero":
             z = torch.zeros_like(z)
         with torch.no_grad():
@@ -187,7 +294,8 @@ class LatentLeggedController:
                               assembly_mask=[True] * M, observation_id=f"lg{ad.ticks}",
                               graph_version=int(ad.s.runtime.graph_version), runtime_version=int(ad.s.runtime.runtime_version),
                               robot_spec_hash=self.morph.spec_hash, generated_at=time.time(), valid_from=now,
-                              valid_until=now + 0.6, source="target_encoder_oracle" if getattr(self, "oracle", None) is not None else "learned",
+                              valid_until=now + 0.6, source="target_encoder_oracle" if (getattr(self, "oracle", None) is not None
+                                                                                  or self.bc is not None) else "learned",
                               policy_version=self.policy_version,
                               sampling=dict(nfe=self.nfe, sampler="euler_rectified_flow", edit=edit))
         self.packets.append(dict(t=now, ev=active_event(ad.s.runtime), edit=edit,
@@ -196,8 +304,26 @@ class LatentLeggedController:
                                             subtask=int(pout["subtask"][0].argmax()),
                                             fall=float(torch.sigmoid(pout["fall"][0, 0]))),
                                  pose=ad.s.base_pose_truth().tolist(),
-                                 z_norm=float(np.linalg.norm(zz))))
+                                 z_norm=float(np.linalg.norm(zz)),
+                                 dz_norm=float((z - z_pre).norm()) if edit != "none" else 0.0))
         return p
+
+    def contact_edit(self, z, b, leg, v, steps=60, lr=0.05):
+        """Move z so the frozen probe reads leg `leg` in contact state v at every knot (other entries anchored)."""
+        z0 = z.detach()
+        with torch.no_grad():
+            c0 = self.P(z0, b["asm_mask"], b["body_asm"])["contact"].clone()
+        zz = z0.clone().requires_grad_(True)
+        opt = torch.optim.Adam([zz], lr=lr)
+        am = b["asm_mask"][:, None, :, None].float()
+        tgt = torch.full_like(c0[:, :, leg], v)
+        for _ in range(steps):
+            c = self.P(zz * am, b["asm_mask"], b["body_asm"])["contact"]
+            other = torch.ones_like(c); other[:, :, leg] = 0
+            loss = torch.nn.functional.binary_cross_entropy_with_logits(c[:, :, leg], tgt, reduction="sum") + \
+                ((c - c0) ** 2 * other).sum() * 0.1 + 0.01 * ((zz - z0) ** 2 * am).sum() / am.sum()
+            opt.zero_grad(); loss.backward(); opt.step()
+        return (zz * am).detach()
 
     def probe_edit(self, z, b, yaw, steps=60, lr=0.05):
         """Move z so the frozen probe reads displacement yaw = `yaw` rad (x/y displacement readout kept at its
@@ -282,11 +408,13 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
     sc = scenario if scenario is not None else build_waypoint_contact(body, seed)
     s = LeggedSession(sc, tracker_kind=default_tracker_kind(body), seed=seed)
     morph = LeggedMorph(s.model, s.binding, sc.robots[0].robot_spec.spec_hash)
-    ad = System0Adapter(ctl, s, morph) if ctl is not None else None
+    is_bc = isinstance(ctl, BCController)
+    ad = (BCAdapter if is_bc else System0Adapter)(ctl, s, morph) if ctl is not None else None
     teacher = None
     if ctl is not None:
         ctl.bind(s, morph)
-        ctl.oracle = OracleShadow(ctl, s, s.tracker) if oracle else None
+        if not is_bc:
+            ctl.oracle = OracleShadow(ctl, s, s.tracker) if oracle else None
         s.tracker = ad
     s.reset()
     if ctl is None:
@@ -319,7 +447,9 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
             break
     ok = bool(s.privileged_success() and not s.fell)
     src = ("scripted_teacher" + (":arc_only" if arc_only else "")) if ctl is None else (
-        f"privileged_oracle_packet:{ctl.lsv}" if oracle else ctl.policy_version)
+        f"privileged_oracle_packet:{ctl.lsv}" if oracle else (
+            f"oracle_diagnostic:E(bc_chunk)|{ctl.policy_version}|bc={ctl.bc_version}" if getattr(ctl, "bc", None) is not None
+            else ctl.policy_version))
     row = dict(body=body, seed=seed, source=src,
                edit=(ctl.edit if ctl else "none"), t_edit=(ctl.t_edit if ctl else None), success=ok, fell=bool(s.fell),
                public_success=bool(s.runtime.succeeded()), sim_time=float(s.data.time), wall_s=time.time() - t0,
@@ -329,6 +459,9 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
     if ctl is not None:
         row.update(stats=ad.stats, packets=ctl.packets, packet_log=ad.log[:20])
         row["trace"] = ctl.trace[::5]
+        if getattr(ctl, "zero_qd", False):
+            row["zero_qd"] = True
+    row["failure_stage"] = failure_stage(row)
     return row, frames
 
 
@@ -411,6 +544,13 @@ def main(argv=None):
     ap.add_argument("--max-s", type=float, default=60.0)
     ap.add_argument("--posthoc-probe", default=None)
     ap.add_argument("--oracle", action="store_true", help="DIAGNOSTIC: E-encoded shadow teacher rollouts as packets")
+    ap.add_argument("--bc", default=None, help="BC policy.pt: alone = BC route (positive control); with --rep or "
+                    "--flow and --oracle-bc = stateless oracle packets E(BC chunk) (DIAGNOSTIC)")
+    ap.add_argument("--oracle-bc", action="store_true")
+    ap.add_argument("--rep", default=None, help="representation.pt (oracle routes without a flow)")
+    ap.add_argument("--realizer", default=None, help="refit system-0 state (R) to use instead of the rep's R")
+    ap.add_argument("--zero-qd", action="store_true", help="DIAGNOSTIC: system 0 sees qd = 0")
+    ap.add_argument("--replan", type=int, default=5, help="BC replan period (ticks)")
     ap.add_argument("--out", required=True)
     ap.add_argument("--video-dir", default=None)
     ap.add_argument("--video-n", type=int, default=0)
@@ -426,27 +566,44 @@ def main(argv=None):
         for body in a.bodies.split(","):
             nv = 0
             for sd in _seeds(a.seeds):
-                ctl = LatentLeggedController(Path(a.flow), dev, nfe=a.nfe, edit=a.edit, t_edit=a.t_edit, seed=sd,
-                                             posthoc_probe=a.posthoc_probe) if a.flow else None
+                if a.bc and not a.oracle_bc:
+                    ctl = BCController(Path(a.bc), dev, nfe=a.nfe, replan=a.replan, seed=sd)
+                elif a.flow or a.rep:
+                    ctl = LatentLeggedController(Path(a.flow) if a.flow else None, dev, nfe=a.nfe, edit=a.edit,
+                                                 t_edit=a.t_edit, seed=sd, posthoc_probe=a.posthoc_probe, rep=a.rep,
+                                                 realizer=a.realizer, zero_qd=a.zero_qd)
+                    if a.oracle_bc:
+                        from rrp.learning.legged_bc import load_bc
+                        ctl.bc, _ = load_bc(a.bc, dev)
+                        ctl.bc_version = f"{Path(a.bc).parent.name}/{Path(a.bc).name}"
+                else:
+                    ctl = None
                 want = a.video_dir is not None and nv < a.video_n
                 row, frames = run_episode(ctl, body, sd, a.max_s, video=True if want else None, oracle=a.oracle,
                                          arc_only=(a.flow is None and (a.arc_only == "all" or body in a.arc_only.split(","))))
                 if want:
                     lab = ("SCRIPTED TEACHER (privileged)" if ctl is None else (
                         "PRIVILEGED ORACLE packets (E on shadow teacher) + LEARNED sys-0" if a.oracle
-                        else f"LEARNED latent sys-i+sys-0 {Path(a.flow).parent.name}"))
+                        else f"LEARNED BC (no packet; positive control) {row['source']}" if isinstance(ctl, BCController)
+                        else f"ORACLE DIAGNOSTIC packets E(BC chunk) + LEARNED sys-0" if a.oracle_bc
+                        else f"LEARNED latent sys-i+sys-0 {row['source']}"))
                     row["video"] = save_video(frames, row, Path(a.video_dir), lab)
                     nv += 1
                 rows.append(row)
                 f.write(json.dumps(row) + "\n"); f.flush()
-                print(json.dumps({k: row[k] for k in ("body", "seed", "source", "edit", "success", "fell", "sim_time")}),
+                print(json.dumps({k: row[k] for k in ("body", "seed", "source", "edit", "success", "fell", "sim_time",
+                                                      "failure_stage")}),
                       flush=True)
     summ = {}
     for body in a.bodies.split(","):
         rs = [r for r in rows if r["body"] == body]
+        stages = {}
+        for r in rs:
+            stages[r["failure_stage"]] = stages.get(r["failure_stage"], 0) + 1
         summ[body] = dict(n=len(rs), success=sum(r["success"] for r in rs), fell=sum(r["fell"] for r in rs),
+                          stages=stages, seeds=a.seeds,
                           mean_sim_time=float(np.mean([r["sim_time"] for r in rs])),
-                          packet_probes=packet_probe_accuracy(rs) if a.flow else None)
+                          packet_probes=packet_probe_accuracy(rs) if (a.flow or a.rep) else None)
     out.with_suffix(".summary.json").write_text(json.dumps(dict(source=rows[0]["source"], edit=a.edit, per_body=summ),
                                                            indent=1))
     print(json.dumps(summ, indent=1))
