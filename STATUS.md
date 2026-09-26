@@ -44,7 +44,7 @@ Host data mirror: ~/work/rrp-data/datasets only (packed removed, D-034: host dis
 ## END OF DEMO SPRINT (2026-09-26 ~04:00 PDT) — current state and resume
 Demo page (private artifact, owner-shareable): https://claude.ai/artifact/1LYxCtzDDCdEFvbrZJ83ot. Source: docs/demo/artifact.html
 (standalone: docs/demo/index.html), built by scripts/demo/build_page.py from raw outputs (resume steps: research/tracks/demo.md).
-Single current evidence statement: research/reports/evidence_matrix.md. The decisions log (D-044..D-090) has every result, with raw paths.
+Single current evidence statement: research/reports/evidence_matrix.md. The decisions log (D-044..D-091) has every result, with raw paths.
 
 What the evidence supports (see the page's top box):
 - Supported, on DEPLOYABLE routes (no teacher/oracle/BC at run time): task → packet → behaviour.
@@ -54,7 +54,7 @@ What the evidence supports (see the page's top box):
   - BC ignores the binding edit (D-065).
 - Competence: the latent route matches BC on go2 and hexapod6 (D-070, D-076), and on t1 only for nosem (D-079, D-082).
   - Arm is partial: frozen route pooled 36/90 panda_pg2, 70/90 parm6_tf3 (D-078, D-080).
-- Semantic supervision (after the D-085 bounded-NLL fix): essential on the arm (nosem route 0/90 panda, 3/90 parm6 vs sem 36/90, 70/90; D-089, one seed); on go2/hexapod6 a task-context "halt" slows only the sem packet, replicated in direction over 3 seeds (D-088, D-090); t1 success equal (81/90 vs 83/90, D-087). The D-084 "sem hurts" reading was the D-085 defect.
+- Semantic supervision (after the D-085 bounded-NLL fix): essential on the arm (nosem route 3/240 vs frozen sem 146/240 vs bounded-NLL sem 124/240 deployable successes; D-089, D-091, one seed; seed 2 running); on go2/hexapod6 a task-context "halt" slows only the sem packet, replicated in direction over 3 seeds (D-088, D-090); t1 success equal (81/90 vs 83/90, D-087). The D-084 "sem hurts" reading was the D-085 defect.
 - Not tested: the latent route on the sealed target bodies. BC: new gripper 78–85/100, unseen xarm7 0/100 (D-064). g1 has no competent BC.
 - Root-cause fixes along the way: B-1 prev-action column (D-044/045); system-0 velocity-copy shortcut (D-056); stale stateful teacher as oracle/DAgger expert (D-050); compatibility-ID fingerprinting (D-038).
 
