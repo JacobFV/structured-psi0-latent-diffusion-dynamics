@@ -193,3 +193,23 @@ shards are skipped; arm leases need --mem 6G: at 3-4G the lease's memory.high th
 rebuild tables with `python -m rrp.evaluation.robustness report --out artifacts/runs/robust/<dir>`. Videos render on the
 peer (the host venv has no imageio/PIL): `RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/robust scripts/peer_run.sh --cpu 1 --mem 5G
 --label robust_video -- env MUJOCO_GL=egl PY -m rrp.evaluation.robustness video --family ... --condition KEY --seed S`.
+
+## PROPOSED GATES for trackers and datasets (for lead review; not enforced yet)
+All quantities are the `motion` fields now in every eval row (rrp.evaluation.motion_quality) or the robustness report;
+"nominal" = the deployed physics (contact_v2, ideal actuators, sourced limits). Numbers in brackets are what we measure now.
+
+| applies to | metric | threshold | rationale / current values |
+|---|---|---|---|
+| legged tracker (validation forward trial) | stance slip ratio | < 0.15 | the D-093 contact gate, kept. [anymal_c 0.03, go2 0.02, t1 0.10-0.15] |
+| legged tracker | cost of transport (forward, nominal) | quadruped <= 1.0, biped <= 2.0 | 2-3x the best accepted tracker per family; catches energy-wasting gaits without over-constraining. [anymal_c 0.35, go2 0.88, t1 1.4-1.8] |
+| legged tracker | peak foot force (median over episodes) | <= 3.5 body weights | stomping / impact exploitation; accepted gaits sit at 2.5-2.9 in the waypoint task |
+| legged tracker | joint-limit margin (min over the episode) | >= 0.02 of range | a gait that parks joints on their stops relies on the limit as a mechanical support. [0.28 nominal; learned routes reach -0.005 only under mu 0.36] |
+| legged tracker | robustness inside the TRAINING randomization | no break-point at friction 0.6 / 1.25, mass 0.9 / 1.1, v1lat 0-20 ms, push dv 0.5 m/s; no-fall >= 0.9 at each | a tracker must be robust where it was trained to be; outside-range levels (mu 0.36, kp 0.7, dv 1.5) are reported, not gated. [anymal_c teacher route: passes] |
+| legged dataset (teacher/tracker rollouts) | episode slip ratio / falls / limit margin | slip < 0.15 on >= 95% of episodes, 0 falls at DART sigma 0, margin >= 0 | data inherit the tracker gait; the per-episode check catches noise-induced exceptions (the D-105 stance flicker is an end-check artifact, not a gait defect, and is excluded) |
+| arm teacher / dataset | commanded velocity step at phase switches | <= 0.5 rad/s | v2 teacher 0.18-0.28 passes, v1 0.9-1.4 fails (D-097): the step the policy must reproduce |
+| arm teacher / dataset | commanded joint jerk RMS | <= 2x the v2 teacher of the same body | body-relative because link scales differ (v2: 36-55 rad/s^3 commanded) |
+| arm teacher / dataset | max cube-finger penetration | <= 10 mm | grasps held by interpenetration are a simulator exploit (v1 three-finger 18-24 mm fails, v2 6-7 mm passes) |
+| arm teacher / dataset | joint-limit margin | >= 0.02 | as legged. [nominal 0.03-0.09: parm6 is close] |
+| learned policies (reported, not gated) | chunk-boundary velocity step, jerk, penetration, all robustness break-points | flag chunk step > 1.5 rad/s | a quality report for every eval, not an acceptance gate; BC 2.2-3.3, frozen route 2.0-2.2 rad/s (D-102 chunk-seam issue) |
+Open point: the arm penetration gate currently FAILS the learned-route rollouts on parm6 (17-20 mm at nominal, same as the v1
+teacher its data came from); applying it to v2-data policies only is consistent with D-097/D-102.

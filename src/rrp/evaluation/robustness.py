@@ -577,6 +577,101 @@ def comparisons_md(cs: list[dict]) -> list[str]:
     return L
 
 
+def variant_comparison(specs: list[str], robot: str, a: str, b: str, family: str = "legged") -> dict:
+    """Variant-level robustness comparison over training seeds. specs: "VARIANT:TRAINSEED=DIR/ROUTE" (a sweep output dir and
+    the route name inside it). For each training seed and metric (privileged / public success): the per-eval-seed paired
+    comparison a vs b (paired_route_comparison). Pooled: per eval seed, the level mean / drop differences averaged over
+    training seeds (sign-flip over the 20 eval seeds, seed bootstrap). Variant level (D-090 style): the per-training-seed
+    means of each variant (n = 3 vs 3), exact permutation test over all C(6,3) relabellings of training seeds, one- and
+    two-sided, for the level mean and the drop."""
+    import itertools
+    oc, runs = {}, {}
+    for s in specs:
+        lhs, _, rhs = s.partition("=")
+        var, _, ts = lhs.partition(":")
+        d, _, route = rhs.rpartition("/")
+        o = load_outcomes(Path(d), family)
+        key = f"{var}_t{ts}"
+        oc[key] = {robot: o[route][robot]}
+        runs.setdefault(var, {})[int(ts)] = key
+    tseeds = sorted(set(runs[a]) & set(runs[b]))
+    out = dict(robot=robot, a=a, b=b, training_seeds=tseeds, metrics={})
+    for which, mname in ((0, "privileged_success"), (1, "public_success")):
+        per = {ts: paired_route_comparison(oc, robot, runs[a][ts], runs[b][ts], which) for ts in tseeds}
+        # pooled over training seeds, paired by eval seed
+        A = [oc[runs[a][ts]][robot] for ts in tseeds]
+        B = [oc[runs[b][ts]][robot] for ts in tseeds]
+        keys = sorted(set.intersection(*[set(D) for D in A + B]) - {NOMINAL, "all_moderate"})
+        seeds = sorted(set.intersection(*[set(D[NOMINAL]) for D in A + B]))
+        def lm(D):
+            return np.array([np.mean([D[k][s][which] for k in keys]) for s in seeds])
+        def dr(D):
+            return np.array([float(D[NOMINAL][s][which]) for s in seeds]) - lm(D)
+        dl = np.mean([lm(x) - lm(y) for x, y in zip(A, B)], 0)
+        dd = np.mean([dr(x) - dr(y) for x, y in zip(A, B)], 0)
+        rng = np.random.default_rng(2)
+        boot = lambda x: [float(np.percentile([x[rng.integers(0, len(x), len(x))].mean() for _ in range(4000)], q))
+                          for q in (2.5, 97.5)]
+        pooled = dict(diff_level_mean=float(dl.mean()), ci=boot(dl), p=_signflip_p(dl),
+                      diff_drop=float(dd.mean()), ci_drop=boot(dd), p_drop=_signflip_p(dd), n_eval_seeds=len(seeds),
+                      n_levels=len(keys))
+        # variant level: 3 vs 3 training-seed means, exact permutation
+        va = {ts: (float(lm(oc[runs[a][ts]][robot]).mean()), float(dr(oc[runs[a][ts]][robot]).mean())) for ts in tseeds}
+        vb = {ts: (float(lm(oc[runs[b][ts]][robot]).mean()), float(dr(oc[runs[b][ts]][robot]).mean())) for ts in tseeds}
+        vl = dict(level_mean_a=[va[t][0] for t in tseeds], level_mean_b=[vb[t][0] for t in tseeds],
+                  drop_a=[va[t][1] for t in tseeds], drop_b=[vb[t][1] for t in tseeds])
+        for j, nm in ((0, "level_mean"), (1, "drop")):
+            xs = [va[t][j] for t in tseeds] + [vb[t][j] for t in tseeds]
+            n = len(tseeds)
+            obs = np.mean(xs[:n]) - np.mean(xs[n:])
+            ds = [np.mean([xs[i] for i in c]) - np.mean([xs[i] for i in range(2 * n) if i not in c])
+                  for c in itertools.combinations(range(2 * n), n)]
+            vl[f"{nm}_diff"] = float(obs)
+            vl[f"{nm}_p_one_sided_lower"] = float(np.mean([d <= obs + 1e-12 for d in ds]))
+            vl[f"{nm}_p_one_sided_higher"] = float(np.mean([d >= obs - 1e-12 for d in ds]))
+            vl[f"{nm}_p_two_sided"] = float(np.mean([abs(d) >= abs(obs) - 1e-12 for d in ds]))
+            vl[f"{nm}_all_a_below_all_b"] = bool(max(xs[:n]) < min(xs[n:]))
+            vl[f"{nm}_all_a_above_all_b"] = bool(min(xs[:n]) > max(xs[n:]))
+        out["metrics"][mname] = dict(per_training_seed={str(k): v for k, v in per.items()}, pooled=pooled, variant_level=vl)
+    return out
+
+
+def variant_md(r: dict) -> str:
+    L = [f"# variant-level robustness: {r['a']} vs {r['b']} on {r['robot']} (training seeds {r['training_seeds']})", "",
+         "Per eval seed: level mean = mean success over the perturbed single-factor levels (all_moderate excluded); drop = "
+         "nominal - level mean. Per training seed: paired over the 20 eval seeds (seed-bootstrap CI, sign-flip p). Pooled: "
+         "per-eval-seed differences averaged over training seeds. Variant level: the 3 training-seed means per variant, exact "
+         "permutation over all 20 relabellings (min one-sided p = 0.05).", ""]
+    for m, x in r["metrics"].items():
+        L += [f"## {m}", "", "| training seed | level mean a / b | diff [95% CI] p | drop a / b | diff drop [95% CI] p |",
+              "|---|---|---|---|---|"]
+        for ts, c in x["per_training_seed"].items():
+            L.append(f"| {ts} | {c['level_mean_a']:.3f} / {c['level_mean_b']:.3f} | {c['diff_level_mean']:+.3f} "
+                     f"[{c['diff_level_mean_ci'][0]:+.3f}, {c['diff_level_mean_ci'][1]:+.3f}] p={c['p_level_mean']:.3g} | "
+                     f"{c['drop_a']:+.3f} / {c['drop_b']:+.3f} | {c['diff_drop']:+.3f} [{c['diff_drop_ci'][0]:+.3f}, "
+                     f"{c['diff_drop_ci'][1]:+.3f}] p={c['p_drop']:.3g} |")
+        p = x["pooled"]
+        L.append(f"| pooled | - | {p['diff_level_mean']:+.3f} [{p['ci'][0]:+.3f}, {p['ci'][1]:+.3f}] p={p['p']:.3g} | - | "
+                 f"{p['diff_drop']:+.3f} [{p['ci_drop'][0]:+.3f}, {p['ci_drop'][1]:+.3f}] p={p['p_drop']:.3g} |")
+        v = x["variant_level"]
+        f3 = lambda xs: " / ".join(f"{u:.3f}" for u in xs)
+        L += ["", f"variant level ({len(v['level_mean_a'])} vs {len(v['level_mean_b'])}): level mean a {f3(v['level_mean_a'])} vs b {f3(v['level_mean_b'])}, diff "
+              f"{v['level_mean_diff']:+.3f}, exact p one-sided (a lower) {v['level_mean_p_one_sided_lower']:.2f}, "
+              f"(a higher) {v['level_mean_p_one_sided_higher']:.2f}, two-sided {v['level_mean_p_two_sided']:.2f}; "
+              f"drop a {f3(v['drop_a'])} vs b {f3(v['drop_b'])}, diff {v['drop_diff']:+.3f}, one-sided (a lower) "
+              f"{v['drop_p_one_sided_lower']:.2f}, (a higher) {v['drop_p_one_sided_higher']:.2f}, two-sided "
+              f"{v['drop_p_two_sided']:.2f}", ""]
+    return "\n".join(L)
+
+
+def cmd_variant(a):
+    r = variant_comparison(a.spec, a.robot, a.a, a.b)
+    out = Path(a.out)
+    out.with_suffix(".json").write_text(json.dumps(r, indent=1))
+    out.with_suffix(".md").write_text(variant_md(r))
+    print(variant_md(r))
+
+
 def cmd_report(a):
     out = Path(a.out)
     rep = build_report(out)
@@ -715,8 +810,14 @@ def main(argv=None):
     v.add_argument("--seed", type=int, required=True)
     v.add_argument("--video-dir", default="artifacts/video")
     v.add_argument("--out", default=None, help="sweep output dir (arm: seed list from its manifest)")
+    w = sub.add_parser("variant")
+    w.add_argument("--spec", action="append", required=True, help="VARIANT:TRAINSEED=SWEEPDIR/ROUTE")
+    w.add_argument("--robot", required=True)
+    w.add_argument("--a", required=True)
+    w.add_argument("--b", required=True)
+    w.add_argument("--out", required=True, help="output path stem (.json/.md)")
     a = ap.parse_args(argv)
-    {"run": cmd_run, "report": cmd_report, "video": cmd_video}[a.cmd](a)
+    {"run": cmd_run, "report": cmd_report, "video": cmd_video, "variant": cmd_variant}[a.cmd](a)
 
 
 if __name__ == "__main__":
