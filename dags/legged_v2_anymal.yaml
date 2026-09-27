@@ -7,7 +7,7 @@
 #   cycled over seeds, held-out = seed % 20 == 19; same counts/splits as the go2 legged_latent_v1 data), `bc`
 #   (BC POSITIVE CONTROL, recipe of configs/legged_bc/bc_go2_v1.json), and the reference evals `teacher`
 #   (scripted_teacher) and `bcr2` (bc:<ckpt>) on the same 30 dev seeds;
-# - variant x seed matrix: semfix (probe_lv_min -4), nosem, sem (original recipe, lv -8; optional) x seeds 0/1/2.
+# - variant x seed matrix: semfix (probe_lv_min -4), nosem x seeds 0/1/2 (the original defective sem is skipped, lead 2026-09-27).
 #   Per point: Stage A -> [nosem: post-hoc probe] -> flow -> R2 (snap_s4000 and final flow, dev 10000-10029) ->
 #   z-edit suite (incl. random |dz| 1-25) and task-context suite (halt, mirror active/inactive) on snap_s4000,
 #   dev 10000-10019, t_edit 2 s, window 2-5 s, with paired mirror effects.
@@ -22,13 +22,12 @@ global_lineage: 'legged8-{body}-v2data'
 label_prefix: 'l8_{tg}{seed}'
 global_label_prefix: 'l8'
 matrix:
-  variant: [semfix, nosem, sem]
+  variant: [semfix, nosem]
   seed: [0, 1, 2]
 axis_vars:
   variant:
     semfix: {sw: 1.0, lv: -4.0, psw: 0.5, tg: fs}
     nosem: {sw: 0.0, lv: -8.0, psw: 0.0, tg: ns}
-    sem: {sw: 1.0, lv: -8.0, psw: 0.5, tg: se}
 vars:
   body: anymal_c
   cseeds: 0-599
