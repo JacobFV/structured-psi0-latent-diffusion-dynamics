@@ -1,0 +1,10 @@
+t1 v2 v2 v2trk-v1lat-lat0 v1lat 0
+t1 v2 v2 v2trk-v1lat-lat30 v1lat 30
+h1 v2 v2 v2trk-v1lat-lat0 v1lat 0
+h1 v2 v2 v2trk-v1lat-lat30 v1lat 30
+g1 v2 v2 v2trk-v1lat-lat0 v1lat 0
+g1 v2 v2 v2trk-v1lat-lat30 v1lat 30
+go2 v2 v2 v2trk-v1lat-lat0 v1lat 0
+go2 v2 v2 v2trk-v1lat-lat30 v1lat 30
+anymal_c v2 v2 v2trk-v1lat-lat0 v1lat 0
+anymal_c v2 v2 v2trk-v1lat-lat30 v1lat 30

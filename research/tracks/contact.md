@@ -268,7 +268,12 @@ Attempts for (2):
   | installed r1 (legacy) | 1.00 | 1.10 | 0.02 | - | 1.15 | 0.08 | 1.19 | F (turn) |
   | step d, legacy limits | 1.00 | 0.76 | **1.14** | 0.79 | 1.34 | 0.14 | 1.70 | T |
   | step d, sourced limits (transfer) | 1.00 | 0.78 | **1.10** | 0.82 | 1.38 | 0.13 | 1.70 | T |
-  Lead gate (turn >= 0.5, fwd >= 0.8, slip < 0.15, no falls): FAILS only on forward (0.76-0.78). Next: an 800-iter fine-tune under SOURCED limits with the
+  Lead gate (turn >= 0.5, fwd >= 0.8, slip < 0.15, no falls): FAILS on forward (0.76-0.78) AND on robustness. The 20-seed validation (sourced,
+  `val/g1_stepd-sourced-20seeds_physv2.json`, 120 episodes) has no falls (turn 1.04, fwd 0.77), but the render (yaw 0, seed 1000) FELL backwards at 2.5 s
+  in a pure turn. A 50-episode pure-turn fall check from the render's initial condition (`scripts/contact_fall_rate.py`,
+  `fallrate/g1_stepd_turn_{legacy,sourced}.json`) gives **2/50 (legacy) and 3/50 (sourced) falls**, at 2.5-3.2 s (one at 6.6 s). Video (FAILURE):
+  `artifacts/video/2026-09-27_contact_g1_turn_installed-vs-stepd_iter2999_ok_fell.mp4`; forward: `..._g1_forward_installed-vs-stepd_iter2999_ok_ok.mp4`.
+  Lesson: the 5-seed validation undersamples rare falls, so the 50-episode fall check is now run before any install. Next: an 800-iter fine-tune under SOURCED limits with the
   W8-style command mix + stand_vel (`artifacts/runs/contact_g1_src`, peer, queued: the peer broker was full). h1 host
   `artifacts/runs/contact_h1_step` (lease 1790518222_a2ad53), g1 peer `artifacts/runs/contact_g1_step` (lease 1790517947_132a38). A process
   mix-up during the c->d restart (an old wrapper relaunched once into the new dir) was caught; that output is in `contact_h1_step_junk`, not used.
