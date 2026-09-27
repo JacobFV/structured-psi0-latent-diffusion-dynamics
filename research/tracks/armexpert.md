@@ -179,3 +179,54 @@ scripts/peer_run.sh --gpu --gpu-mem 2G --cpu 1 --mem 4G --label armexpert_render
 Placement note: the lead asked for host placement at 19:50, but the host broker was full (12.9 / 12.98 CPU) and a 1.9-CPU
 host attempt stalled under external memory pressure (swap 15/15 GB, memory PSI full 13 %); it was stopped with
 `rrp ops stop --owned-only --lease 1790477714_81f5ec` and the run went to the peer (4 CPU).
+
+## step 2 part 1 (D-097 approval): v4dart data, pack, v2 stateless BC expert — state: running
+Scope (lead, after D-097): collect `pick_place_primary_v4dart` = v3dart config + `"teacher_version": "v2"`; pack like
+`latent_pp_v3dart_s1_H16`; train the stateless direct BC at seeds 1701/1702 and evaluate exactly like sprint_bc; report
+BC output smoothness vs the v1 BC expert. Latent lineages NOT started (the lead launches them).
+
+### v2 revised before its first data use (re-verified)
+The first v4dart collection showed one CLEAN failure the D-097 run had not sampled (parm7_pg2 seed 291, seeds 200-299
+were not in the verification set): the grasp pose is out of reach by 1 cm (elbow at its limit), the Cartesian descent
+fell back to a joint-space arc that swept the fingers through the cube and knocked it away, and the retry picked an
+unreachable yaw. Fixes (arm_smooth.py): (1) when the END point of a Cartesian segment is out of reach, track the
+straight line to the closest reachable point (IK of the goal -> FK) instead of a joint arc; (2) retries cycle through the
+reachable (or within-1.6-cm) yaws, repeating the best one, never an unreachable one; unreachable candidates are ranked by
+IK error. That collection was discarded (its manifest is kept at `artifacts/runs/armexpert/v4dart/_superseded/`).
+Re-verification with the fixed code, same 18 bodies x 300 seeds as D-097 (host, per-body leases because the host
+memory-PSI watchdog shed longer jobs; `scripts/armexpert_verify_host.sh`): **v2 4811/4811** (v1 4703/4811); parm7_tf3
+seed 3, the one D-097 failure, now succeeds; smoothness unchanged (table `artifacts/runs/armexpert_diag/compare_v1_v2b.json`,
+rows `v2b_18bodies.jsonl.gz`). D-097's v2 numbers stay valid for the earlier code (commit c8cfd6a); the revised code is
+commit 5de2b45. The version label stays `pick_place_v2_minjerk` (no data had been produced with the earlier code; every
+manifest records the git sha).
+
+### collection and pack (run-dag)
+`dags/armexpert_v4dart.yaml` (collect -> pack), run with `rrp run-dag`. Placement history: host first (shed three times
+by the host memory-PSI watchdog, then the host broker was fully leased by the contact track for 6 h), final run on the
+PEER (collect 6 CPU, lease 1790483042_545738, 7 min; pack 2 CPU, lease 1790483469_14e3e7, 10 min; both rc 0, pipeline
+manifests with config hashes). The pack output dir is a symlink to the peer disk (`~/rrp-peer-data/packed/
+latent_pp_v4dart_s1_H16`, 15 GB; /dev/shm could not hold it); a copy is on the host at
+`~/work/rrp-data/packed/latent_pp_v4dart_s1_H16`. Store aliases: `artifacts/packed/latent_pp_v4dart_s1_H16`,
+`artifacts/datasets/pick_place_primary_v4dart` (peer).
+What run-dag lacked: (a) BC training and the sprint_bc evaluations are not pipeline stages (train_policy/train_bc are
+legacy-only kinds; no `learned`-route ladder eval or protocol source/b0 cells as stages), so they run through
+`scripts/armexpert_bcv2_chain.sh` (`rrp campaign baseline-cell`, `scripts/ladder.py --route learned`); (b) no data
+transfer between placements (cross-placement deps are refused; moving the partial host collection to the peer was manual);
+(c) no way to put a stage output on a different filesystem than the derived `artifacts/runs/...` dir (the 15 GB pack
+needed a pre-made symlink on the peer); (d) no wait-for-admission across memory-PSI admission stops (only capacity
+refusals are waited for), hence the bounded wrapper `scripts/armexpert_dag_loop.sh`.
+Manifest: `artifacts/runs/armexpert/v4dart/collect-v4dart_s1/manifest.json` (+ pipeline_manifest.json), provenance
+source `scripts_teacher` -> `scripted_teacher:pick_place_v2_minjerk`, flags.teacher_version, git 25817c1 (clean).
+
+Gate (clean episodes per body >= v3dart): **passed on every body** (v4 clean successes 3897/3897 feasible vs v3
+3820/3897; the tf3 bodies gain: ur5e_tf3 257 -> 300, sawyer_tf3 292 -> 300, panda_tf3 140 -> 150, xarm7_tf3 139 -> 150,
+parm7_tf3 239 -> 243, parm5_tf3 287 -> 288).
+DART episodes (noise 0.08 rad on the executed arm command, clean labels): successes drop 193 -> 63 of 3447. Probe
+(`research/scripts/2026-09-26/armexpert_dart_probe.py`, ur5e_pg2 seeds 0-19): v1 6/20 (it grasps with its tolerant
+stall rule and usually fails later, at retreat), v2 1/20 — v2's approach check measures the noisy TCP, never gets within
+6 mm, retries and gives up (`approach_blocked` x3). So v4dart's DART rows concentrate on approach/descend states, while
+v3dart's covered all phases (but 79 % of v3dart's rows were DART failures that stalled to the 600-tick limit: 546 ticks
+per failure episode vs 250 in v4dart). Pack rows: v4 1,367,967 vs v3 2,242,823 (clean rows 506k vs 389k, DART-failure
+rows 845k vs 1,776k). Consequence: 6 epochs = ~16k updates for v4 vs 26.3k for v3 (the recipe is epochs-based;
+u12000 is compared at equal updates). If the BC shows weak recovery in late phases, a v2.1 that accepts the grasp after
+the corrections when within 1.6 cm (as v1 does) would restore late-phase DART coverage.
