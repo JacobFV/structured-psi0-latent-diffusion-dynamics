@@ -127,6 +127,25 @@ make a minimum clearance a permanent term like slip, or raise the clearance floo
 Videos (reviewed): `artifacts/video/2026-09-26_contact_go2_{forward,turn}_v1-vs-v2_iter3499_ok_ok.mp4`,
 `artifacts/video/2026-09-26_contact_go2_forward_alpha0-vs-final_iter3499_ok_ok.mp4`.
 
+### t1: completed (verified; gate not passed)
+Run `artifacts/runs/contact_t1_v2_warm` (host lease 1790474219_cd8a6d, warm from v1 iter2999). It was SHED by the host memory watchdog
+(system memory PSI from another project) at iter ~3605 of 4000. A resume was shed again within seconds (lease 1790481580_97c00d),
+so the final tracker is the iter-3599 export: `artifacts/trackers/t1/contact_v2/actor.pt` (sha256 b3b006f357d62d50...).
+alpha stayed 0 for the whole run: the training-window gate (track <= 0.35, fall <= 0.10, slip <= 0.20) was never met (windows
+at about 0.43 / 0.15-0.25 / 0.27-0.36). There is no alpha0 snapshot because alpha never moved.
+Validation (`artifacts/runs/contact_v2/val/t1_*`): slip ratio 0.86 (v1/v1 physics) -> 0.20; swing apex 1.4 -> 7.2 cm; air time
+0.02 -> 0.08 s; duty 0.85-1.0 -> 0.67-0.73; fwd ratio 0.74 -> 0.91; no falls; CoT 3.42 -> 2.96. **Gate fails**: turn-in-place
+ratio 0.02 (v1 turned 0.30 by skating in v1 physics; in v2 physics the v1 tracker also turns only 0.02), and slip is 0.20 > 0.15.
+Videos (reviewed: v2 visibly lifts and places feet, v1 glides): `artifacts/video/2026-09-26_contact_t1_{forward,turn}_v1-vs-v2_iter3599_ok_ok.mp4`.
+Round 2 (queued with admission retries): `artifacts/runs/contact_t1_v2_r2`, resumed from the iter-3599 checkpoint to 5100 iters with
+humanoid gate thresholds (advance track 0.5 / fall 0.25 / slip 0.3; back off 0.65 / 0.4 / 0.45), so the schedule is exercised on a humanoid.
+
+## compute incidents
+- Host memory-PSI watchdog (another project holds 3 x 20 GB processes): shed t1 (iter 3605), the t1 resume, the go2 finalize (renders
+  redone), anymal_c and hexapod6 (twice, within about 20 iterations). New launches go through `scripts/contact_launch_retry.sh`
+  (bounded: 120 s x TRIES, exit 3 when never admitted).
+- Peer at load 23-58 for most of the evening; h1/g1 warm runs continue there at 3-5 s/iter under the 6 h cap.
+
 ## resume steps
 1. `tail -1 artifacts/runs/contact_<body>_v2/train_log.jsonl` (alpha, gate). The ops log is in the main checkout
    `ops/logs/<lease>_contact_<body>_v2.log`. `--resume` continues from checkpoint.pt, including the gate state.
