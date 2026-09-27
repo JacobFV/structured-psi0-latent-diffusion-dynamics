@@ -213,7 +213,16 @@ Results (`val/{go2,anymal_c}_v2act2ft*-lat*`):
 - t1 turn-trained tracker under actuator_v2 (`val/t1_turn2-act2-lat*`): no falls and turn 0.66/0.99/1.01, but fwd 0.55/0.37/0.37 (the pre-turn t1
   held 0.80/0.78/0.74). The turn-trained t1 is FRAGILE to realistic actuators. Running: t1 fine-tune with actuator_v2 plus the turn terms (host,
   `artifacts/runs/contact_t1_act2`, 1000 iters, alpha 1).
-- h1 actuator fine-tune running (host, `artifacts/runs/contact_h1_act2`, 800 iters, from the installed h1 r2).
+- t1 fine-tune with actuator_v2 plus the turn terms (`artifacts/runs/contact_t1_act2`, 1000 iters): fwd under actuator_v2 recovers to 0.87/0.76/0.67 at
+  0/15/30 ms (turn-trained: 0.55/0.37/0.37), but **turn in place is lost (0.00)** and slip is 0.14-0.16. Within this budget, turning and
+  actuator robustness conflict for t1. Not installed. The installed t1 (turn-trained) stays: it passes the gate under the deployed actuator_v1 physics.
+- h1 actuator fine-tune (`artifacts/runs/contact_h1_act2`, 800 iters): no-fall 0.80/1.00/0.24 -> 0.92/0.92/0.24, fwd 0.84/0.57/0.00 -> 1.12/0.48/0.24.
+  **The 30 ms collapse is NOT fixed**; not installed. h1 needs a longer actuator_v2 run, or a gait that is not near-shuffle (see (2)).
+- The validations of the t1/h1 fine-tunes ran on the peer (host shed them twice at memory PSI 32-33).
+
+#### (3) robustness summary: no-fall at 30 ms latency (actuator_v2), installed tracker -> best fine-tune
+anymal_c 1.00 (already robust; fine-tune not needed) | go2 1.00 -> 1.00 (turn +0.05-0.11) | g1 **0.40 -> 1.00** (fwd 0 -> 0.72) |
+t1 (turn-trained) 1.00, but fwd 0.37 -> 0.67 and turning lost in the fine-tune | h1 **0.24 -> 0.24 (not fixed)**. Pre-turn t1: 1.00, fwd 0.74.
 
 ## runs
 ### gait_v2a: failed_hypothesis (stopped at iter 500-1400)
