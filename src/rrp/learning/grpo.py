@@ -19,7 +19,7 @@ from dataclasses import dataclass, field, asdict
 import torch
 
 from rrp.learning.flow_sde import SDEConfig, SDEPath, path_log_prob, gaussian_path_kl
-from rrp.model.batch import collate_inputs
+from rrp.models.batch import collate_inputs
 
 
 @dataclass

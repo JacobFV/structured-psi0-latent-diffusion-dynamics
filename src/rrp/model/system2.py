@@ -69,7 +69,7 @@ def make_instruction(seed: int, family: str, waypoints: dict, template: int | No
 
 def public_task(order):
     """Task graph with the system-II binding: entity descriptors in the instructed/predicted order."""
-    from rrp.sim.scenario import load_task
+    from rrp.envs.scenario import load_task
     t = copy.deepcopy(load_task("waypoint_contact"))
     for d in t["entity_declarations"]:
         if d["id"] == "waypoint_a":
@@ -83,7 +83,7 @@ def scenario_with_truth(body, seed, truth_order, public_order):
     """Scene is unchanged (orange at a, cyan at b). PUBLIC task graph = public_order binding; PRIVILEGED
     ObjectDecl.task_entity mapping = the instruction truth (used only by the privileged evaluator)."""
     from rrp.sim.legged import build_waypoint_contact
-    from rrp.sim.scenario import ObjectDecl
+    from rrp.envs.scenario import ObjectDecl
     sc = build_waypoint_contact(body, seed, task=public_task(public_order))
     phys = {"orange": "waypoint_a", "cyan": "waypoint_b"}
     ent = {truth_order[0]: "waypoint_a", truth_order[1]: "waypoint_b"}
@@ -125,7 +125,7 @@ class System2:
 
     def __init__(self, device=None, local_dir=None):
         import os
-        from rrp.model.backbone import VLMBackbone, BackboneSpec
+        from rrp.models.backbone import VLMBackbone, BackboneSpec
         device = device or os.environ.get("RRP_S2_DEVICE", "cuda" if torch.cuda.is_available() else "cpu")
         spec = BackboneSpec()
         if device == "cpu":

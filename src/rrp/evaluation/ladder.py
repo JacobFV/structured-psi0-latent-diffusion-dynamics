@@ -121,7 +121,7 @@ class ShadowTeacher:
     returns the teacher's next H commands executed from the current state, then restores session + teacher."""
 
     def __init__(self, s, reanchor: bool = False):
-        from rrp.control.teachers import PickPlaceTeacher
+        from rrp.teachers.arm import PickPlaceTeacher
         self.t = PickPlaceTeacher(s)
         self.synced = s.step_count
         self.reanchor = reanchor
@@ -200,8 +200,8 @@ class OraclePacketPolicy:
 
     @torch.no_grad()
     def encode(self, sessions) -> list[np.ndarray]:
-        from rrp.model.batch import collate_inputs
-        from rrp.model.semantic_latent import assembly_tokens
+        from rrp.models.batch import collate_inputs
+        from rrp.models.semantic_latent import assembly_tokens
         H = self.cfg.horizon
         feats, A, V = [], [], []
         pre = {}
@@ -345,14 +345,14 @@ class LadderConfig:
 
 def load_models(cfg: LadderConfig):
     from rrp.learning.latent_train import load_representation
-    from rrp.learning.checkpoint import load_checkpoint
+    from rrp.models.checkpoint import load_checkpoint
     rep = cfg.representation
     if cfg.flow and not rep:
         rep = load_checkpoint(cfg.flow, map_location="cpu")["config"]["representation"]
     ids = {}
     out = dict(E=None, R=None, P=None, lcfg=None, res=None, flow=None, learned=None)
     if cfg.policy:
-        from rrp.policy.runner import LearnedPolicy
+        from rrp.controllers.policy_runner import LearnedPolicy
         out["learned"] = LearnedPolicy.from_checkpoint(cfg.policy, device=cfg.device, nfe=cfg.nfe,
                                                        execute_prefix=cfg.replan_ticks, seed=cfg.flow_seed)
         ids["policy"] = dict(path=str(cfg.policy), sha256=sha256_file(cfg.policy), nfe=cfg.nfe,
@@ -363,7 +363,7 @@ def load_models(cfg: LadderConfig):
         ids["representation"] = dict(path=str(rep), sha256=sha256_file(rep), latent_space_version=res["latent_space_version"],
                                      realizer_compat_version=res["realizer_compat_version"])
     if cfg.flow:
-        from rrp.policy.latent_runner import LatentPolicy
+        from rrp.controllers.latent_runner import LatentPolicy
         pol = LatentPolicy.from_checkpoint(cfg.flow, device=cfg.device, nfe=cfg.nfe, seed=cfg.flow_seed)
         pol.noise_scale = cfg.noise_scale
         if pol.lsv != out["res"]["latent_space_version"]:
@@ -389,10 +389,10 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
     if collect is not None:
         collect.setdefault("mu", []); collect.setdefault("lv", []); collect.setdefault("rows", [])
         collect["cur"] = {}; collect.setdefault("max_j", 12)
-    from rrp.morphology.catalog import workbench_robots
-    from rrp.sim.scenario import BUILDERS
-    from rrp.sim.native import Session
-    from rrp.control.latent_realizer import LatentSystem0
+    from rrp.bodies.catalog import workbench_robots
+    from rrp.envs.scenario import BUILDERS
+    from rrp.envs.native import Session
+    from rrp.controllers.latent_realizer import LatentSystem0
     from rrp.learning.latent_grpo import batched_ticks
     if models is None:
         models, ids = load_models(cfg)
@@ -610,7 +610,7 @@ def _compare(models, s, zg, zo, device) -> dict:
     and packet-probe readouts of each against privileged labels (diagnostic)."""
     from rrp.features.derived import local_sensors
     from rrp.evaluation.latent_eval import packet_labels
-    from rrp.model.latent_probes import probe_metrics
+    from rrp.models.latent_probes import probe_metrics
     f = _featurizer(s)
     pi = f(s.observe())
     kt = torch.tensor(models["lcfg"].knot_times, dtype=torch.float32, device=device)
@@ -662,7 +662,7 @@ def packed_realization_check(rep_path: str, packed_dir: str, robot_key: str | No
     (encoded-target oracle, the same quantity the ladder measures online as lab_err_*)."""
     import random
     from rrp.learning.latent_train import load_representation, LatentData
-    from rrp.model.semantic_latent import assembly_tokens
+    from rrp.models.semantic_latent import assembly_tokens
     lcfg, E, R, P, res = load_representation(Path(rep_path), device)
     data = LatentData(Path(packed_dir), zero_prev_action=zero_prev_action, anchor=getattr(R, "anchor", False),
                       drop_qd=getattr(R, "drop_qd", False))
@@ -704,9 +704,9 @@ def packed_realization_check(rep_path: str, packed_dir: str, robot_key: str | No
 
 
 def _gripper_mask(robot_key: str, N: int) -> np.ndarray:
-    from rrp.morphology.catalog import workbench_robots
-    from rrp.sim.scenario import BUILDERS
-    from rrp.sim.native import Session
+    from rrp.bodies.catalog import workbench_robots
+    from rrp.envs.scenario import BUILDERS
+    from rrp.envs.native import Session
     s = Session(BUILDERS["pick_place"](workbench_robots()[robot_key](), 3_000_000, n_distractors=0), seed=3_000_000)
     g = np.zeros(N, bool)
     isg = np.asarray(_featurizer(s).aspace.is_gripper, bool)

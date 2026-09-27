@@ -42,7 +42,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from rrp.control.teachers import PickPlaceTeacher
+from rrp.teachers.arm import PickPlaceTeacher
 from rrp.evaluation.latent_causal import _body_pos, _key, _recv, _slot, _tcp, deliver
 
 CONDITIONS = ("control", "rebind_obj", "goal_shift", "irrelevant_distractor", "orthogonal_matched")
@@ -111,7 +111,7 @@ def rebind_descriptor(s, body, ent="cube"):
 def rebind_actor(s, arm):
     """Dual-arm assign scenes: VALID manipulator-assignment edit: the actor of take/place is rebound to `arm`
     (the task graph of the other variant of the pair; same graph_version, same runtime statuses)."""
-    from rrp.sim.dual_scenarios import assign_task
+    from rrp.envs.dual_scenarios import assign_task
     sn = s.snapshot()
     c = sn.components
     doc = assign_task(arm)
@@ -174,8 +174,8 @@ class OracleSource:
 
     @torch.no_grad()
     def packet(self, s, cond, teacher, goal_off, key=None):
-        from rrp.model.batch import collate_inputs
-        from rrp.model.semantic_latent import assembly_tokens
+        from rrp.models.batch import collate_inputs
+        from rrp.models.semantic_latent import assembly_tokens
         f = self.featurizer(s)
         H = self.lcfg.horizon
         if self.expert == "bc":
@@ -413,8 +413,8 @@ def approach_metrics(tcp, objs0, first_contact, tcp0=None, *, near=0.06, move=0.
 
 # ------------------------------------------------------------------ episodes
 def _scene(robot, key, scene):
-    from rrp.sim.scenario import BUILDERS, build_pick_place_paired
-    from rrp.sim.native import Session
+    from rrp.envs.scenario import BUILDERS, build_pick_place_paired
+    from rrp.envs.native import Session
     if scene == "paired":                              # key = 10 * scene_seed + patient (as eval-binding)
         sd, p = divmod(int(key), 10)
         s = Session(build_pick_place_paired(robot, sd, patient=p, n_objects=2 + sd % 2), seed=sd)
@@ -432,7 +432,7 @@ def paired_edit_keys(seed_start, n_scenes):
 def run_condition(src, R, P, robot, robot_key, seed, cond, *, max_steps=300, replan=8, dev="cpu", g=0.12,
                   scene="pick_place", on_step=None):
     """on_step(session, step): optional observer after every executed tick (video rendering); never alters control."""
-    from rrp.control.latent_realizer import LatentSystem0
+    from rrp.controllers.latent_realizer import LatentSystem0
     s = _scene(robot, seed, scene)
     goal_off = goal_offset(s, g)
     ctrl_t = PickPlaceTeacher(s)
@@ -553,7 +553,7 @@ def followed(r):
 
 def semantic_suite(src, R, P, robot_key, seeds, conditions=CONDITIONS, *, max_steps=300, dev="cpu", log=print,
                    out_path: Path | None = None, scene="pick_place"):
-    from rrp.morphology.catalog import workbench_robots
+    from rrp.bodies.catalog import workbench_robots
     robot = workbench_robots()[robot_key]()
     rows = []
     for sd in seeds:
@@ -717,7 +717,7 @@ class _DualTeacher:
 
 def _dual_teacher(s, arm):
     """AssignedPickPlaceTeacher for actor `arm`, constructed inside that task context (then restored)."""
-    from rrp.control.dual_teachers import AssignedPickPlaceTeacher
+    from rrp.teachers.dual import AssignedPickPlaceTeacher
     sn = s.snapshot()
     try:
         if arm != s._sem_assigned:
@@ -735,7 +735,7 @@ def _dual_system0(R, f, lsv, rcv, dev):
 
 def run_arm_condition(src, R, P, pair, seed, cond, *, max_steps=400, replan=8, dev="cpu", on_step=None):
     import mujoco
-    from rrp.control.dual_validate import make_session
+    from rrp.teachers.dual_validate import make_session
     arm = "left" if seed % 2 == 0 else "right"          # assigned arm alternates with the seed (balanced)
     other = "right" if arm == "left" else "left"
     s = make_session(f"assign_{arm}", pair, seed)

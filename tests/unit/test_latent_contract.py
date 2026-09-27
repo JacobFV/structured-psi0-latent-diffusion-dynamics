@@ -76,7 +76,7 @@ def test_bundle_fingerprint_rejects_same_config_retrained_bundle():
     IDs, and system 0 rejects packets stamped for the old bundle even if the caller passes the old IDs."""
     import types
     import torch
-    from rrp.control.latent_realizer import LatentRealizer, LatentSystem0, bundle_versions
+    from rrp.controllers.latent_realizer import LatentRealizer, LatentSystem0, bundle_versions
     torch.manual_seed(0)
     E_old, E_new = torch.nn.Linear(4, 4).state_dict(), torch.nn.Linear(4, 4).state_dict()
     R = LatentRealizer(8, layers=1)

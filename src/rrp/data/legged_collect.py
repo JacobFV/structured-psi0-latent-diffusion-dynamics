@@ -20,7 +20,7 @@ from pathlib import Path
 
 import numpy as np
 
-from rrp.control.legged_teachers import WaypointTeacher
+from rrp.teachers.legged import WaypointTeacher
 from rrp.contracts.provenance import CONTACT_VERSION_DEFAULT, parse_source, physics_provenance
 from rrp.data.collect import EpisodeRecord, write_episode
 from rrp.data.manifest import dataset_provenance, write_manifest

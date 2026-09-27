@@ -9,9 +9,9 @@ pytestmark = pytest.mark.menagerie      # panda_pg2 is a Menagerie body
 
 
 def test_prev_action_col_matches_featurizer_layout():
-    from rrp.morphology.catalog import workbench_robots
-    from rrp.sim.scenario import BUILDERS
-    from rrp.sim.native import Session
+    from rrp.bodies.catalog import workbench_robots
+    from rrp.envs.scenario import BUILDERS
+    from rrp.envs.native import Session
     from rrp.data.collect import featurizer_for
     s = Session(BUILDERS["pick_place"](workbench_robots()["panda_pg2"](), 3_000_000, n_distractors=0), seed=3_000_000)
     f = featurizer_for(s)
@@ -24,9 +24,9 @@ def test_prev_action_col_matches_featurizer_layout():
 def test_load_time_zeroing_hits_prev_action_col_not_col2():
     """D-045: the D-021 load-time fix must zero PREV_ACTION_COL on node rows (it used to zero static column 2)."""
     from rrp.learning.data import zero_prev_action_input
-    from rrp.morphology.catalog import workbench_robots
-    from rrp.sim.scenario import BUILDERS
-    from rrp.sim.native import Session
+    from rrp.bodies.catalog import workbench_robots
+    from rrp.envs.scenario import BUILDERS
+    from rrp.envs.native import Session
     from rrp.data.collect import featurizer_for
     s = Session(BUILDERS["pick_place"](workbench_robots()["panda_pg2"](), 3_000_000, n_distractors=0), seed=3_000_000)
     pi = featurizer_for(s)(s.observe())

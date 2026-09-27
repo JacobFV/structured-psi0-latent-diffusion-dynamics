@@ -42,14 +42,14 @@ def cmd_flow(a):
 
 def _load(a):
     import torch
-    from rrp.policy.latent_runner import LatentPolicy
+    from rrp.controllers.latent_runner import LatentPolicy
     from rrp.learning.latent_train import load_representation
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     if dev == "cuda":
         from rrp.contracts.workload import apply_cap
         apply_cap()
     pol = LatentPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=a.nfe)
-    from rrp.learning.checkpoint import load_checkpoint
+    from rrp.models.checkpoint import load_checkpoint
     rep = load_checkpoint(a.checkpoint, map_location="cpu")["config"]["representation"]
     lcfg, E, R, P, _ = load_representation(Path(rep), dev)
     return pol, R, P, dev
@@ -217,7 +217,7 @@ def cmd_counterfactuals(a):
     dev = "cuda" if a.gpu and torch.cuda.is_available() else "cpu"
     _, E, _, P, res = load_representation(Path(a.representation), dev)
     if a.probe:                                   # measurement probe fitted post hoc on frozen z (fair across variants)
-        from rrp.model.latent_probes import PacketProbe
+        from rrp.models.latent_probes import PacketProbe
         st = torch.load(a.probe, map_location=dev, weights_only=False)
         P = PacketProbe(**st["cfg"]).to(dev).eval()
         P.load_state_dict(st["state"])
@@ -310,7 +310,7 @@ def _causal_common(a, window_conds, episode_conds):
     if a.seed_start < 3_000_000 or any(r in TARGET_BODIES for r in robots):
         raise SystemExit("dev rule (D-025): source/dev bodies and dev seeds >= 3,000,000 only")
     pol, R, P, dev = _load(a)
-    from rrp.learning.checkpoint import load_checkpoint
+    from rrp.models.checkpoint import load_checkpoint
     rep = Path(load_checkpoint(a.checkpoint, map_location="cpu")["config"]["representation"])
     probe = a.probe or (str(rep.parent / "probe_posthoc.pt") if (rep.parent / "probe_posthoc.pt").exists() else None)
     P = lc.load_probe(probe, P, dev)
@@ -403,7 +403,7 @@ def cmd_semantic(a):
         rep = Path(a.representation)
         lcfg, E, R, P, res = load_representation(rep, dev)
         if a.oracle_expert == "bc":
-            from rrp.policy.runner import LearnedPolicy
+            from rrp.controllers.policy_runner import LearnedPolicy
             src = se.OracleSource(E, lcfg, res, rep, dev, expert="bc",
                                   bc=LearnedPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=a.nfe, execute_prefix=8))
             label = (f"ORACLE DIAGNOSTIC target_encoder_oracle:E({rep}) + STATELESS BC expert demo "
@@ -412,7 +412,7 @@ def cmd_semantic(a):
             src = se.OracleSource(E, lcfg, res, rep, dev)
             label = f"ORACLE DIAGNOSTIC target_encoder_oracle:E({rep}) + scripted_teacher demo"
     elif a.route == "bc":
-        from rrp.policy.runner import LearnedPolicy
+        from rrp.controllers.policy_runner import LearnedPolicy
         from rrp.evaluation.ladder import sha256_file
         rep = Path(a.representation) if a.representation else None
         R = P = None
@@ -423,8 +423,8 @@ def cmd_semantic(a):
         label = (f"learned:{a.checkpoint} (direct-action BC reference controller, NOT the latent path; "
                  f"sha256 {sha256_file(a.checkpoint)[:16]})")
     else:
-        from rrp.learning.checkpoint import load_checkpoint
-        from rrp.policy.latent_runner import LatentPolicy
+        from rrp.models.checkpoint import load_checkpoint
+        from rrp.controllers.latent_runner import LatentPolicy
         rep = Path(a.representation or load_checkpoint(a.checkpoint, map_location="cpu")["config"]["representation"])
         _, _, R, P, res = load_representation(rep, dev)
         pol = LatentPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=a.nfe)
@@ -472,7 +472,7 @@ def cmd_arm(a):
         raise SystemExit("dev rule (D-025): dev seeds >= 3,000,000 only")
     dev = "cuda" if a.gpu and torch.cuda.is_available() else "cpu"
     if a.route == "generated":
-        from rrp.learning.checkpoint import load_checkpoint
+        from rrp.models.checkpoint import load_checkpoint
         from rrp.evaluation.dual_latent_eval import DualLatentPolicy
         rep = Path(load_checkpoint(a.checkpoint, map_location="cpu")["config"]["representation"])
         _, _, R, P, _ = load_representation(rep, dev)

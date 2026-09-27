@@ -35,7 +35,7 @@ from rrp.contracts.latent_action import LatentActionChunk, AssemblyHandle, check
 from rrp.features.legged import (LeggedMorph, public_context, local_state, active_event, TICK_DT,
                                        TICKS_PER_PACKET, KNOT_TIMES, MAX_N, MAX_M, EVENTS)
 from rrp.learning.legged_latent_train import load_rep, _dev
-from rrp.model.legged_latent import LeggedFlow, LeggedProbe
+from rrp.models.legged_latent import LeggedFlow, LeggedProbe
 from rrp.sim.legged import LeggedSession, build_waypoint_contact
 
 REALIZER_COMPAT = "legged-rz-osc-v1"     # base of the system-0 compatibility ID (osc-v1 phase input)
@@ -469,7 +469,7 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
         s.tracker = ad
     s.reset()
     if ctl is None:
-        from rrp.control.legged_teachers import WaypointTeacher
+        from rrp.teachers.legged import WaypointTeacher
         teacher = WaypointTeacher(s, arc_only=arc_only)
     else:
         ad.armed = True

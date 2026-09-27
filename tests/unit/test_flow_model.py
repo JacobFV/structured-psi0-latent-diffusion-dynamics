@@ -3,10 +3,10 @@ import numpy as np
 import pytest
 import torch
 
-from rrp.sim.fixtures import make_pick_place_session
+from rrp.envs.fixtures import make_pick_place_session
 from rrp.data.collect import featurizer_for
-from rrp.model.batch import collate_inputs
-from rrp.model.flow import FlowPolicy, PolicyConfig
+from rrp.models.batch import collate_inputs
+from rrp.models.flow import FlowPolicy, PolicyConfig
 
 torch.manual_seed(0)
 

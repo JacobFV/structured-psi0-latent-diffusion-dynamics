@@ -14,11 +14,11 @@ import numpy as np
 import torch
 
 from rrp.contracts.errors import ControllerRejection, StaleActionError
-from rrp.control.latent_realizer import LatentSystem0
+from rrp.controllers.latent_realizer import LatentSystem0
 from rrp.data.collect import privileged_labels
 from rrp.features.featurizer import featurizer_for
 from rrp.learning.packed import active_operator, _focus
-from rrp.model.latent_probes import probe_metrics
+from rrp.models.latent_probes import probe_metrics
 
 
 @dataclass
@@ -53,14 +53,14 @@ def packet_labels(session, pi, M=1, S=None):
 
 
 def _goal(pi):
-    from rrp.model.batch import collate_inputs
-    from rrp.model.binding_aug import goal_effect_from_batch
+    from rrp.models.batch import collate_inputs
+    from rrp.models.binding_aug import goal_effect_from_batch
     return goal_effect_from_batch(collate_inputs([pi]))
 
 
 def paired_scene_fn(key: int):
     """Episode key = 10 * scene_seed + patient; n_objects = 2 + scene_seed % 2 (as in data generation)."""
-    from rrp.sim.scenario import build_pick_place_paired
+    from rrp.envs.scenario import build_pick_place_paired
     sd, p = divmod(int(key), 10)
 
     def fn(robot, _key):
@@ -79,10 +79,10 @@ def evaluate_latent(policy, realizer, probe, robot_key: str, seeds: list[int], *
                     device="cpu", scene_fn=None) -> list[LatentEpisode]:
     """scene_fn(robot, seed) -> (Scenario, extra dict) overrides the default builder (e.g. paired binding scenes;
     `seed` is then an opaque episode key). Episodes record displacement of every non-assigned object."""
-    from rrp.morphology.catalog import workbench_robots
-    from rrp.sim.scenario import BUILDERS
-    from rrp.sim.native import Session
-    from rrp.control.teachers import PickPlaceTeacher
+    from rrp.bodies.catalog import workbench_robots
+    from rrp.envs.scenario import BUILDERS
+    from rrp.envs.native import Session
+    from rrp.teachers.arm import PickPlaceTeacher
     robot = workbench_robots()[robot_key]()
     results = []
     for i in range(0, len(seeds), batch):
@@ -174,9 +174,9 @@ def disturbance_test(policy, realizer, robot_key: str, seeds: list[int], *, warm
     stabilization only).
     session_hook(s): optional, called on each new session before anything else (e.g. the ladder installs its
     input featurizer there)."""
-    from rrp.morphology.catalog import workbench_robots
-    from rrp.sim.scenario import BUILDERS
-    from rrp.sim.native import Session
+    from rrp.bodies.catalog import workbench_robots
+    from rrp.envs.scenario import BUILDERS
+    from rrp.envs.native import Session
     from rrp.contracts.action import NativeCommand
     robot = workbench_robots()[robot_key]()
     rows = []

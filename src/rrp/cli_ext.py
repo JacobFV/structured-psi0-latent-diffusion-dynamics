@@ -19,7 +19,7 @@ def cmd_task_validate(a):
 
 
 def cmd_assets_validate(a):
-    from rrp.morphology.catalog import workbench_robots
+    from rrp.bodies.catalog import workbench_robots
     robots = workbench_robots()
     if a.robot not in robots:
         raise SystemExit(f"unknown robot {a.robot}; known: {sorted(robots)}")

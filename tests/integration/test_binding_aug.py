@@ -12,7 +12,7 @@ pytestmark = pytest.mark.packed_data
 
 def test_rebind_focus_follows_binding():
     from rrp.learning.packed import PackedChunkDataset
-    from rrp.model.binding_aug import augment, focus_from_batch, slot_has_edges
+    from rrp.models.binding_aug import augment, focus_from_batch, slot_has_edges
     ds = PackedChunkDataset(PACKED)
     sel = np.sort(np.random.default_rng(0).choice(len(ds), 256, replace=False))
     batch, a, v, lab, _ = ds.collate(sel)
@@ -35,7 +35,7 @@ def test_rebind_focus_follows_binding():
 
 def test_goal_effect_follows_binding():
     from rrp.learning.packed import PackedChunkDataset
-    from rrp.model.binding_aug import augment, goal_effect_from_batch
+    from rrp.models.binding_aug import augment, goal_effect_from_batch
     ds = PackedChunkDataset(PACKED)
     sel = np.sort(np.random.default_rng(1).choice(len(ds), 256, replace=False))
     batch, a, v, lab, _ = ds.collate(sel)

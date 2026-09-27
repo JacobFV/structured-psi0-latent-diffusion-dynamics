@@ -84,7 +84,7 @@ def test_featurizer_constant_is_single():
 
 
 def test_weights_digest_matches_arm_bundle_algorithm():
-    from rrp.control.latent_realizer import weights_digest as wd_old_name
+    from rrp.controllers.latent_realizer import weights_digest as wd_old_name
     sd = torch.nn.Linear(4, 3).state_dict()
     h = hashlib.sha256()                                  # the D-038 algorithm, verbatim
     for k in sorted(sd):
@@ -150,7 +150,7 @@ def test_legged_checkpoints_fingerprinted_and_legacy(tmp_path):
 
 
 def test_save_checkpoint_provenance(tmp_path):
-    from rrp.learning.checkpoint import save_checkpoint, load_checkpoint, checkpoint_provenance
+    from rrp.models.checkpoint import save_checkpoint, load_checkpoint, checkpoint_provenance
     m = torch.nn.Linear(2, 2)
     save_checkpoint(tmp_path / "p.pt", model=m, step=1, versions=dict(featurizer=FEATURIZER_VERSION),
                     config=dict(zero_prev_action=True, realizer_drop_qd=False))

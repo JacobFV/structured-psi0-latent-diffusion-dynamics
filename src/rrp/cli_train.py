@@ -29,7 +29,7 @@ def cmd_train_policy(a):
 
 def cmd_evaluate(a):
     import torch
-    from rrp.policy.runner import LearnedPolicy
+    from rrp.controllers.policy_runner import LearnedPolicy
     from rrp.evaluation.runner import evaluate, summarize
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     if dev == "cuda":

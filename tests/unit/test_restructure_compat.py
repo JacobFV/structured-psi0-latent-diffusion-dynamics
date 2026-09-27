@@ -54,7 +54,9 @@ def test_policy_input_pickles_under_the_old_path():
 def test_python_dash_m_old_path_forwards():
     """`python -m <old module>` still runs the moved module's __main__ (shim forwards via runpy)."""
     import os
-    mains = [o for o in SHIMS if "run_module" in (REPO / "src" / Path(*o.split("."))).with_suffix(".py").read_text()]
+    src = lambda m: (REPO / "src" / Path(*m.split("."))).with_suffix(".py").read_text()
+    # only modules whose __main__ parses arguments (argparse): `--help` must not start real work
+    mains = [o for o in SHIMS if "run_module" in src(o) and "argparse" in src(SHIMS[o])]
     if not mains:
         pytest.skip("no moved __main__ modules yet")
     env = dict(os.environ, PYTHONPATH=str(REPO / "src"))

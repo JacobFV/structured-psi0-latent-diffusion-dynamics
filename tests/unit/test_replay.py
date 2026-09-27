@@ -4,7 +4,7 @@ import pytest
 import torch
 
 from rrp.learning.replay_buffer import ReplayBuffer, ReplayRecord
-from rrp.learning.critics import squashed_log_prob, td_target, min_of_random_pair
+from rrp.models.critics import squashed_log_prob, td_target, min_of_random_pair
 
 
 def test_incompatible_controller_replay_is_rejected():

@@ -42,7 +42,7 @@ import mujoco
 import numpy as np
 import torch
 
-from rrp.control.latent_realizer import LatentSystem0
+from rrp.controllers.latent_realizer import LatentSystem0
 from rrp.contracts.errors import ControllerRejection, StaleActionError
 
 WINDOW_CONDS = ("control_replay", "rel+x", "rel-x", "rel+y", "rel+xy", "sum_xy", "rand", "cf+x", "cf-x", "zero",
@@ -58,7 +58,7 @@ def load_probe(probe_path, rep_P, dev):
     """Measurement probe used to define edit directions (post-hoc probe = same procedure for sem and nosem)."""
     if not probe_path:
         return rep_P
-    from rrp.model.latent_probes import PacketProbe
+    from rrp.models.latent_probes import PacketProbe
     st = torch.load(probe_path, map_location=dev, weights_only=False)
     P = PacketProbe(**st["cfg"]).to(dev).eval()
     P.load_state_dict(st["state"])
@@ -195,9 +195,9 @@ def _key(seed, call):
 
 
 def _session(robot, seed, task="pick_place"):
-    from rrp.sim.scenario import BUILDERS
-    from rrp.sim.native import Session
-    from rrp.control.teachers import PickPlaceTeacher
+    from rrp.envs.scenario import BUILDERS
+    from rrp.envs.native import Session
+    from rrp.teachers.arm import PickPlaceTeacher
     s = Session(BUILDERS[task](robot, seed, n_distractors=seed % 3), seed=seed)
     return s, PickPlaceTeacher(s).feasibility()["feasible"]
 
@@ -218,7 +218,7 @@ def _recv(s0, p, s):
 # ------------------------------------------------------------------ window protocol (exactly paired)
 def window_protocol(policy, R, P, robot_key, seeds, *, decision_ticks=(8, 32, 56, 80, 104, 128), window=8,
                     replan=8, delta_m=0.05, conditions=WINDOW_CONDS, edit_steps=80, dev="cpu", log=print):
-    from rrp.morphology.catalog import workbench_robots
+    from rrp.bodies.catalog import workbench_robots
     robot = workbench_robots()[robot_key]()
     rows = []
     last_ctrl = {}                     # decision tick -> control packet of the most recent OTHER seed (shuffle)
@@ -340,7 +340,7 @@ def _window_conditions(policy, R, P, s, p, robot_key, sd, step, window, delta_m,
 # ------------------------------------------------------------------ episode protocol (whole closed loop)
 def episode_protocol(policy, R, P, robot_key, seeds, *, conditions=EPISODE_CONDS, replan=8, max_steps=240,
                      delta_m=0.05, chain_t1=48, edit_steps=60, dev="cpu", log=print):
-    from rrp.morphology.catalog import workbench_robots
+    from rrp.bodies.catalog import workbench_robots
     robot = workbench_robots()[robot_key]()
     feas = {sd: _session(robot, sd)[1] for sd in seeds}
     seeds = [sd for sd in seeds if feas[sd]]
@@ -357,8 +357,8 @@ def episode_protocol(policy, R, P, robot_key, seeds, *, conditions=EPISODE_CONDS
 
 def _episodes(policy, R, P, robot, robot_key, seeds, cond, replan, max_steps, delta_m, chain_t1, edit_steps, dev,
               ctrl_packets):
-    from rrp.sim.scenario import BUILDERS
-    from rrp.sim.native import Session
+    from rrp.envs.scenario import BUILDERS
+    from rrp.envs.native import Session
     S = [Session(BUILDERS["pick_place"](robot, sd, n_distractors=sd % 3), seed=sd) for sd in seeds]
     s0 = [_s0(policy, R, s, dev) for s in S]
     calls = [0] * len(S)

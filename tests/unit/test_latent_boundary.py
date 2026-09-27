@@ -6,12 +6,12 @@ import numpy as np
 import pytest
 import torch
 
-from rrp.sim.fixtures import make_pick_place_session
+from rrp.envs.fixtures import make_pick_place_session
 from rrp.contracts.latent_action import LatentActionChunk
-from rrp.control.latent_realizer import LatentRealizer, LatentSystem0
-from rrp.model.flow import FlowPolicy, PolicyConfig
-from rrp.model.latent_probes import PacketProbe, probe_loss
-from rrp.policy.latent_runner import LatentPolicy
+from rrp.controllers.latent_realizer import LatentRealizer, LatentSystem0
+from rrp.models.flow import FlowPolicy, PolicyConfig
+from rrp.models.latent_probes import PacketProbe, probe_loss
+from rrp.controllers.latent_runner import LatentPolicy
 
 DZ, K = 16, 4
 torch.manual_seed(0)
@@ -44,8 +44,8 @@ def test_independent_consumer_in_separate_process(tmp_path):
     code = f"""
 import json, torch
 from rrp.contracts.latent_action import LatentActionChunk
-from rrp.control.latent_realizer import LatentRealizer, LatentSystem0
-from rrp.sim.fixtures import make_pick_place_session
+from rrp.controllers.latent_realizer import LatentRealizer, LatentSystem0
+from rrp.envs.fixtures import make_pick_place_session
 from rrp.data.collect import featurizer_for
 p = LatentActionChunk.from_bytes(open(r'{tmp_path}/packet.json','rb').read())
 R = LatentRealizer({DZ}, width=32, heads=2, layers=1); R.load_state_dict(torch.load(r'{tmp_path}/r.pt'))
@@ -92,8 +92,8 @@ def test_metadata_only_probe_ignores_latent():
 
 
 def test_semantic_loss_on_predicted_clean_latent_reaches_flow_model_only_via_packet():
-    from rrp.model.latent_batch import assembly_batch
-    from rrp.model.batch import collate_inputs
+    from rrp.models.latent_batch import assembly_batch
+    from rrp.models.batch import collate_inputs
     s = make_pick_place_session(seed=5, n_distractors=1)
     pol = tiny_policy()
     b = assembly_batch(collate_inputs([pol.featurizer(s)(s.observe())] * 2))

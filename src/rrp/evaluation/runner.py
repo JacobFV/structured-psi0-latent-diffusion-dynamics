@@ -36,10 +36,10 @@ class EpisodeResult:
 def evaluate(policy, robot_key: str, seeds: list[int], *, method: str, checkpoint: str, max_steps: int = 300,
              batch: int = 16, n_distractors_fn=lambda s: s % 3, out_path: Path | None = None,
              task: str = "pick_place", check_feasible: bool = True) -> list[EpisodeResult]:
-    from rrp.morphology.catalog import workbench_robots
-    from rrp.sim.scenario import BUILDERS
-    from rrp.sim.native import Session
-    from rrp.control.teachers import PickPlaceTeacher
+    from rrp.bodies.catalog import workbench_robots
+    from rrp.envs.scenario import BUILDERS
+    from rrp.envs.native import Session
+    from rrp.teachers.arm import PickPlaceTeacher
     robot = workbench_robots()[robot_key]()
     results = []
     for i in range(0, len(seeds), batch):

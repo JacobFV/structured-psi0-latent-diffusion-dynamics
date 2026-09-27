@@ -9,7 +9,7 @@ from pathlib import Path
 
 import torch
 
-from rrp.learning.checkpoint import load_checkpoint, save_checkpoint
+from rrp.models.checkpoint import load_checkpoint, save_checkpoint
 from rrp.learning.flow_sde import SDEConfig
 
 
@@ -23,8 +23,8 @@ def _device():
 
 
 def load_policy(path, device):
-    from rrp.model.flow import FlowPolicy, PolicyConfig
-    from rrp.model.codec import ActionCodec, CodecConfig
+    from rrp.models.flow import FlowPolicy, PolicyConfig
+    from rrp.models.codec import ActionCodec, CodecConfig
     from rrp.data.collect import FEATURIZER_VERSION
     # never adapt a checkpoint trained on a different public featurizer (silent input mismatch)
     st = load_checkpoint(path, map_location=device, requested_versions=dict(featurizer=FEATURIZER_VERSION))
@@ -45,8 +45,8 @@ def load_policy(path, device):
 
 
 def scenario_factory(robot_key: str, n_distractors_fn=lambda s: s % 3):
-    from rrp.morphology.catalog import workbench_robots
-    from rrp.sim.scenario import BUILDERS
+    from rrp.bodies.catalog import workbench_robots
+    from rrp.envs.scenario import BUILDERS
     robot = workbench_robots()[robot_key]()
     return lambda seed: BUILDERS["pick_place"](robot, seed, n_distractors=n_distractors_fn(seed))
 
@@ -60,7 +60,7 @@ class SeedStream:
         self.skipped = 0
 
     def take(self, k: int) -> list[int]:
-        from rrp.sim.native import Session
+        from rrp.envs.native import Session
         from rrp.learning.rollout import feasible
         out = []
         while len(out) < k:
@@ -103,7 +103,7 @@ def _evaluate_suffix(policy, cfg, out_dir: Path, tag: str, ckpt: str):
     from rrp.evaluation.statistics import wilson
     from rrp.learning.rollout import EpisodeState, drive, finalize, event_boundary, teacher_prefix, feasible
     from rrp.learning.branching import reward_of
-    from rrp.sim.native import Session
+    from rrp.envs.native import Session
     make = scenario_factory(cfg["robot"])
     adapter = policy if hasattr(policy, "prev") else _RunnerShim(policy)
     t0 = time.time()
@@ -186,7 +186,7 @@ def run(cfg: dict) -> dict:
         from rrp.learning.grpo import GRPOConfig, GRPOLearner, build_samples
         from rrp.learning.branching import collect_plain, collect_shared_prefix
         from rrp.learning.rollout import SDEPolicy
-        from rrp.policy.runner import LearnedPolicy
+        from rrp.controllers.policy_runner import LearnedPolicy
         gc = dict(cfg.get("grpo", {}))
         sde = SDEConfig(**gc.pop("sde", {"nfe": nfe}))
         gcfg = GRPOConfig(sde=sde, **gc)
@@ -249,7 +249,7 @@ def run(cfg: dict) -> dict:
     elif method == "expo":
         from rrp.learning.expo import ExpoAgent, ExpoConfig, collect_expo_episodes
         from rrp.learning.replay_buffer import ReplayBuffer
-        from rrp.sim.native import Session
+        from rrp.envs.native import Session
         ecfg = ExpoConfig(nfe=nfe, **cfg.get("expo", {}))
         probe = Session(make(cfg["eval_seed_start"]), seed=0)
         from rrp.features.featurizer import featurizer_for

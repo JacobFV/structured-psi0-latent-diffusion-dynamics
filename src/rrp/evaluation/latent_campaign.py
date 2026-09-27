@@ -17,7 +17,7 @@ def _done(p: Path) -> bool:
 def run_latent_cell(protocol: dict, method: str, seed: int, *, base_flow_config: str, target_packed: str,
                     root: Path = Path("artifacts/runs/latent_slice1")) -> dict:
     from rrp.learning.latent_train import train_latent_flow, sft_latent_flow, load_representation
-    from rrp.policy.latent_runner import LatentPolicy
+    from rrp.controllers.latent_runner import LatentPolicy
     from rrp.evaluation.latent_eval import evaluate_latent
     from rrp.evaluation.statistics import wilson
     reg = ExperimentRegistry("research/registry.jsonl")

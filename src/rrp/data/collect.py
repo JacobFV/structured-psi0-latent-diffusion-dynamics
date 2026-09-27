@@ -15,10 +15,10 @@ from pathlib import Path
 import mujoco
 import numpy as np
 
-from rrp.control.teachers import PickPlaceTeacher
+from rrp.teachers.arm import PickPlaceTeacher
 from rrp.features.featurizer import Featurizer, featurizer_for  # noqa: F401  (featurizer_for moved to rrp.features)
-from rrp.sim.native import Session
-from rrp.sim.sensors import camera_visibility
+from rrp.envs.native import Session
+from rrp.envs.sensors import camera_visibility
 
 from rrp.contracts.provenance import FEATURIZER_VERSION, physics_provenance  # noqa: E402,F401  (single constant; alias kept)
 

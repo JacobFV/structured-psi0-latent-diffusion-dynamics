@@ -8,10 +8,10 @@ import copy
 
 import numpy as np
 
-from rrp.control.dual_teachers import SupportInsertTeacher
-from rrp.morphology.variants import registered_variants
-from rrp.sim.dual import DualSession
-from rrp.sim.dual_scenarios import build_support_insert
+from rrp.teachers.dual import SupportInsertTeacher
+from rrp.bodies.variants import registered_variants
+from rrp.envs.dual import DualSession
+from rrp.envs.dual_scenarios import build_support_insert
 
 
 def _session():

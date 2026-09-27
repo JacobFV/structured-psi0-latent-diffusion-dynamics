@@ -1,6 +1,6 @@
 import torch
-from rrp.model.flow import interpolate_target, masked_mse
-from rrp.model.codec import masked_reconstruction_loss
+from rrp.models.flow import interpolate_target, masked_mse
+from rrp.models.codec import masked_reconstruction_loss
 import pytest
 
 

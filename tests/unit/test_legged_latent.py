@@ -2,7 +2,7 @@
 import torch
 
 from rrp.features.legged import NODE_STATIC_DIM, ASM_DIM, GLOBAL_DIM
-from rrp.model.legged_latent import LeggedRealizer, LeggedProbe, LeggedFlow
+from rrp.models.legged_latent import LeggedRealizer, LeggedProbe, LeggedFlow
 
 
 def _batch(B=3, N=12, M=5):

@@ -11,8 +11,8 @@ import numpy as np
 import torch
 
 from rrp.learning.data import load_episodes, episode_samples
-from rrp.model.batch import collate_inputs
-from rrp.model.semantic_latent import assembly_tokens
+from rrp.models.batch import collate_inputs
+from rrp.models.semantic_latent import assembly_tokens
 
 
 def _encode(E, pis, a, dev):
@@ -39,7 +39,7 @@ def counterexample(E, P, ds_dir, robot="panda_pg2", n=20, dev="cpu", seed=0, per
     flip even for a binding-aware z. Here the edit is the symmetric slot-edge swap of model/binding_aug.rebind, the
     expected label is recomputed from the edited relations with the public focus rule, and the headline metric is
     `focus_follows`: probe focus is ON for the newly bound slot and OFF for the old one."""
-    from rrp.model.binding_aug import focus_from_batch, rebind, slot_has_edges
+    from rrp.models.binding_aug import focus_from_batch, rebind, slot_has_edges
     rng = np.random.default_rng(seed)
     eps = load_episodes(ds_dir, robots={robot}, limit_per_robot=n)
     rows = []
@@ -83,7 +83,7 @@ def counterexample(E, P, ds_dir, robot="panda_pg2", n=20, dev="cpu", seed=0, per
 
 
 def _encode_batch(E, batches, a, dev):
-    from rrp.model.binding_aug import cat_batch
+    from rrp.models.binding_aug import cat_batch
     b = batches[0]
     for x in batches[1:]:
         b = cat_batch(b, x)

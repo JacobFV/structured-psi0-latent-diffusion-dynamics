@@ -10,8 +10,8 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from rrp.model.batch import collate_inputs
-from rrp.model.flow import FlowPolicy, PolicyConfig
+from rrp.models.batch import collate_inputs
+from rrp.models.flow import FlowPolicy, PolicyConfig
 
 
 def _pct(xs):
@@ -86,8 +86,8 @@ def bench_policy(model: FlowPolicy, pi, dev, *, nfe_list=(1, 2, 4, 8, 16), reps:
 
 
 def run_latency_suite(checkpoints: dict[str, str], out_path: Path, dev=None, node_counts=(7, 16, 32, 64, 128)):
-    from rrp.policy.runner import LearnedPolicy
-    from rrp.sim.fixtures import make_pick_place_session
+    from rrp.controllers.policy_runner import LearnedPolicy
+    from rrp.envs.fixtures import make_pick_place_session
     from rrp.features.featurizer import featurizer_for
     dev = dev or torch.device("cuda" if torch.cuda.is_available() else "cpu")
     s = make_pick_place_session(seed=5, n_distractors=2)
@@ -133,11 +133,11 @@ def latent_latency_suite(flow_ckpt: str, out_path: Path, dev=None, nfe_list=(1, 
     system i: observe+featurize+collate+prepare+sample+packet construction (per replan, NFE sweep)
     system 0: per-tick realization (featurize local state + realizer forward + denormalize) vs 50 ms deadline
     end-to-end: observation -> first native command after a replan."""
-    from rrp.policy.latent_runner import LatentPolicy
+    from rrp.controllers.latent_runner import LatentPolicy
     from rrp.learning.latent_train import load_representation
-    from rrp.learning.checkpoint import load_checkpoint
-    from rrp.control.latent_realizer import LatentSystem0
-    from rrp.sim.fixtures import make_pick_place_session
+    from rrp.models.checkpoint import load_checkpoint
+    from rrp.controllers.latent_realizer import LatentSystem0
+    from rrp.envs.fixtures import make_pick_place_session
     dev = dev or torch.device("cuda" if torch.cuda.is_available() else "cpu")
     rep = load_checkpoint(flow_ckpt, map_location="cpu")["config"]["representation"]
     _, _, R, _, _ = load_representation(Path(rep), dev)
@@ -180,13 +180,13 @@ def latent_latency_suite(flow_ckpt: str, out_path: Path, dev=None, nfe_list=(1, 
     res["end_to_end_obs_to_first_command"] = _pct(e2e)
     dp = None
     if direct_ckpt:
-        from rrp.policy.runner import LearnedPolicy
+        from rrp.controllers.policy_runner import LearnedPolicy
         dp = LearnedPolicy.from_checkpoint(direct_ckpt, device=dev)
         res["baseline_direct_action_source"] = f"checkpoint {direct_ckpt}"
     elif direct_config:
         # the trained direct-action checkpoints were lost in the 2026-09-21 peer reboot; compute cost does not depend
         # on the weights, so the SAME architecture/config with random init is timed (labelled; timing only)
-        from rrp.policy.runner import LearnedPolicy
+        from rrp.controllers.policy_runner import LearnedPolicy
         cfg = json.loads(Path(direct_config).read_text())
         torch.manual_seed(0)
         dp = LearnedPolicy(FlowPolicy(PolicyConfig(**cfg["policy"])).to(dev), None, dev, name="direct_random_init")

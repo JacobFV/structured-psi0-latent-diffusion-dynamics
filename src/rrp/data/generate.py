@@ -31,9 +31,9 @@ def _job(args):
             return meta
         except Exception:  # noqa: BLE001 - corrupt partial file: regenerate
             pass
-    from rrp.morphology.catalog import workbench_robots
-    from rrp.sim.scenario import BUILDERS
-    from rrp.sim.native import Session
+    from rrp.bodies.catalog import workbench_robots
+    from rrp.envs.scenario import BUILDERS
+    from rrp.envs.native import Session
     if robot_key not in _ROBOT_CACHE:
         _ROBOT_CACHE.clear()            # bounded memory: keep one robot per worker
         _ROBOT_CACHE[robot_key] = workbench_robots()[robot_key]()

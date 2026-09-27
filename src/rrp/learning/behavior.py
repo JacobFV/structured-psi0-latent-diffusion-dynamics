@@ -14,10 +14,10 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from rrp.learning.checkpoint import save_checkpoint, load_checkpoint
+from rrp.models.checkpoint import save_checkpoint, load_checkpoint
 from rrp.learning.data import ChunkDataset, load_episodes
-from rrp.model.codec import ActionCodec, CodecConfig
-from rrp.model.flow import FlowPolicy, PolicyConfig
+from rrp.models.codec import ActionCodec, CodecConfig
+from rrp.models.flow import FlowPolicy, PolicyConfig
 from rrp.contracts.workload import CheckpointSignal
 
 from rrp.contracts.provenance import FEATURIZER_VERSION as FEAT_VERSION  # noqa: E402  (alias of the single constant)

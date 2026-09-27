@@ -24,8 +24,8 @@ import torch
 import torch.nn as nn
 
 from rrp.features.legged import NODE_STATIC_DIM, ASM_DIM, GLOBAL_DIM
-from rrp.model.flow import MLP, sinusoidal
-from rrp.model.legged_latent import block, run_block
+from rrp.models.flow import MLP, sinusoidal
+from rrp.models.legged_latent import block, run_block
 from rrp.learning.legged_latent_train import LeggedData, _dev, _save, H
 
 
@@ -86,7 +86,7 @@ class LeggedBC(nn.Module):
 
 
 def _mha(D, heads):
-    from rrp.model.attention import MHA
+    from rrp.models.attention import MHA
     return MHA(D, heads)
 
 

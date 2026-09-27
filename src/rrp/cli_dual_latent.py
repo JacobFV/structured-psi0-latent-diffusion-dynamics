@@ -36,7 +36,7 @@ def cmd_eval(a):
     import torch
     from rrp.evaluation.dual_latent_eval import DualLatentPolicy, evaluate_dual_latent
     from rrp.evaluation.statistics import wilson
-    from rrp.learning.checkpoint import load_checkpoint
+    from rrp.models.checkpoint import load_checkpoint
     from rrp.learning.latent_train import load_representation
     dev = "cuda" if torch.cuda.is_available() and not a.cpu else "cpu"
     if dev == "cuda":
@@ -46,7 +46,7 @@ def cmd_eval(a):
     rep = load_checkpoint(a.checkpoint, map_location="cpu")["config"]["representation"]
     _, _, R, P, _ = load_representation(Path(rep), dev)
     if a.probe:                          # post-hoc measurement probe (identical procedure for sem / nosem)
-        from rrp.model.latent_probes import PacketProbe
+        from rrp.models.latent_probes import PacketProbe
         st = torch.load(a.probe, map_location=dev, weights_only=False)
         P = PacketProbe(**st["cfg"]).to(dev).eval()
         P.load_state_dict(st["state"])

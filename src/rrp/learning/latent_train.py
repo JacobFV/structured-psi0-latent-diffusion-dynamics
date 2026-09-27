@@ -26,13 +26,13 @@ import torch
 import torch.nn.functional as F
 
 from rrp.contracts.provenance import resolve_zero_prev_action
-from rrp.learning.checkpoint import save_checkpoint, load_checkpoint
+from rrp.models.checkpoint import save_checkpoint, load_checkpoint
 from rrp.learning.packed import PackedChunkDataset
-from rrp.model.batch import Batch
-from rrp.model.flow import FlowPolicy, PolicyConfig, interpolate_target, masked_mse
-from rrp.model.latent_probes import PacketProbe, probe_loss, probe_metrics
-from rrp.model.semantic_latent import LatentConfig, TargetEncoder, assembly_tokens
-from rrp.control.latent_realizer import LatentRealizer, REALIZER_RECURRENT_STATE
+from rrp.models.batch import Batch
+from rrp.models.flow import FlowPolicy, PolicyConfig, interpolate_target, masked_mse
+from rrp.models.latent_probes import PacketProbe, probe_loss, probe_metrics
+from rrp.models.semantic_latent import LatentConfig, TargetEncoder, assembly_tokens
+from rrp.controllers.latent_realizer import LatentRealizer, REALIZER_RECURRENT_STATE
 from rrp.contracts.workload import CheckpointSignal
 
 
@@ -86,10 +86,10 @@ class LatentData:
         loc = np.asarray(A["local"][ts]).astype(np.float32)[inv]
         N = batch.node_feats.shape[1]
         if self.anchor:            # anchored realizer: col 28 = normalized joint displacement since the packet state (t)
-            from rrp.control.latent_realizer import Q_COL, ANCHOR_COL
+            from rrp.controllers.latent_realizer import Q_COL, ANCHOR_COL
             nodes[:, :N, ANCHOR_COL] = nodes[:, :N, Q_COL] - batch.node_feats[:, :, Q_COL].numpy()
         if self.drop_qd:
-            from rrp.control.latent_realizer import QD_COL
+            from rrp.controllers.latent_realizer import QD_COL
             nodes[:, :, QD_COL] = 0
         lab["subtask"] = torch.from_numpy(np.asarray(A["subtask"][sel]).astype(np.int64))
         r = dict(node=torch.from_numpy(nodes[:, :N]), node_mask=torch.from_numpy(np.arange(N)[None] < nn_[:, None]),
@@ -104,7 +104,7 @@ class LatentData:
             locm = np.asarray(A["local_m"][ts]).astype(np.float32)[inv]                 # [B,M,4] at t+j
             r["node_asm"] = torch.from_numpy(na)
             r["local"] = torch.from_numpy(np.take_along_axis(locm, na[..., None].clip(0, locm.shape[1] - 1), 1))  # per node
-        from rrp.model.binding_aug import goal_effect_from_batch
+        from rrp.models.binding_aug import goal_effect_from_batch
         lab["goal_effect"] = goal_effect_from_batch(batch)          # task-goal label (public spec + estimates)
         mv = lambda x: x.to(dev, non_blocking=True)
         return batch.to(dev), mv(a[..., 0]), mv(v), {k: mv(x) for k, x in lab.items()}, {k: mv(x) for k, x in r.items()}
@@ -150,7 +150,7 @@ def representation_step(E, R, P, data_b, cfg: LatentConfig, train=True):
     batch, a, v, lab, r, j = data_b
     nf, cf = batch.B, None
     if train and cfg.binding_cf > 0:
-        from rrp.model.binding_aug import augment
+        from rrp.models.binding_aug import augment
         batch, a, v, lab, nf, cf = augment(batch, a, v, lab, cfg.binding_cf)
     af, am, ai = assembly_tokens(batch)
     mu, logvar = E(batch, a, v, af, am, ai)
@@ -183,7 +183,7 @@ def binding_cf_metrics(E, P, batch, a, v, lab, gen=None) -> dict:
     """Counterfactual-binding response of the encoded packet (raw sums): relative z change, probe metrics on the
     counterfactual rows against binding-following labels, and `focus_follows` = the probe's focus flips from the
     rebound-away slot to the newly bound slot (among swaps that change the focus label)."""
-    from rrp.model.binding_aug import augment
+    from rrp.models.binding_aug import augment
     b2, a2, v2, l2, nf, info = augment(batch, a, v, lab, 1.0, gen)
     if info is None:
         return {}
@@ -312,7 +312,7 @@ def evaluate_representation(E, R, P, data, cfg, dev, n_batches=30, seed=99) -> d
 def load_representation(path: Path, dev):
     st = load_checkpoint(path, map_location=dev)
     cfg = LatentConfig(**st["config"]["latent"])
-    from rrp.control.latent_realizer import make_realizer
+    from rrp.controllers.latent_realizer import make_realizer
     E, R, P = TargetEncoder(cfg).to(dev), make_realizer(cfg.dz, cfg.realizer_layers, st["config"].get("realizer_arch")).to(dev), \
         PacketProbe(cfg.dz, cfg.knots, **st["config"].get("probe", {})).to(dev)
     E.load_state_dict(st["model"]["E"]); R.load_state_dict(st["model"]["R"]); P.load_state_dict(st["model"]["P"])
@@ -322,7 +322,7 @@ def load_representation(path: Path, dev):
         m.eval()
         for p in m.parameters():
             p.requires_grad_(False)    # frozen parameters; gradients still flow THROUGH P to its input z
-    from rrp.control.latent_realizer import bundle_versions
+    from rrp.controllers.latent_realizer import bundle_versions
     lsv, rcv = bundle_versions(cfg.version(), st["model"]["E"], st["model"]["R"])
     R.bundle_versions = (lsv, rcv)
     res = dict(st["extra"]["result"], config_latent_space_version=st["extra"]["result"]["latent_space_version"],
@@ -332,7 +332,7 @@ def load_representation(path: Path, dev):
 
 def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
     """Stage B: system-i flow generating z (knots x assemblies) toward the frozen encoder mean."""
-    from rrp.model.latent_batch import assembly_batch
+    from rrp.models.latent_batch import assembly_batch
     cfg_json = _explicit_zpa(cfg_json, out_dir, "policy_last.pt", f"train_latent_flow({out_dir})")
     dev = _dev()
     sig = CheckpointSignal()
@@ -405,7 +405,7 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
             loss, logs = model.loss(ab, z_target, valid, None, generator=gen, packet_loss_fn=pl_fn, packet_weight=w_sem,
                                     packet_tau_min=cfg_json.get("packet_tau_min", 0.0))
         if Bg:
-            from rrp.model.batch import collate_inputs
+            from rrp.models.batch import collate_inputs
             it = [gd_items[grng.randrange(len(gd_items))] for _ in range(Bg)]
             bd = collate_inputs([x[0] for x in it]).to(dev)
             afd, amd, aid = assembly_tokens(bd)
@@ -457,7 +457,7 @@ def latent_target_stats(E, data, dev, n_batches: int = 20, seed: int = 0):
 def evaluate_generated(model, E, R, P, data, lcfg, dev, n_batches=20, seed=7, nfe=8) -> dict:
     """Packet-probe semantics on (a) oracle encoder targets, (b) one-step clean estimates at tau=0.5, (c) FREE
     samples from pure noise with permissible observations only; plus shuffled-z control. Disjoint RNG stream."""
-    from rrp.model.latent_batch import assembly_batch
+    from rrp.models.latent_batch import assembly_batch
     model.eval()
     rng = random.Random(seed)
     aggs = {k: {} for k in ("oracle", "one_step", "free", "free_shuffled")}
@@ -506,7 +506,7 @@ def fit_probes_on_frozen(rep_path: Path, packed_dir: Path, out_path: Path, steps
         sel, tgt, j = data.sample(128, rng, 0)
         batch, a, v, lab, r = data.fetch(sel, tgt, dev)
         if binding_cf > 0:        # probe also sees counterfactual-binding packets (labels follow the binding)
-            from rrp.model.binding_aug import augment
+            from rrp.models.binding_aug import augment
             batch, a, v, lab, _, _ = augment(batch, a, v, lab, binding_cf, gcf)
         with torch.no_grad():
             af, am, ai = assembly_tokens(batch)
@@ -548,7 +548,7 @@ def sft_latent_flow(flow_ckpt: Path, target_packed_dir: Path, budget: int, *, se
     """Supervised new-body adaptation of SYSTEM I only: latent meaning (encoder, probes) and system 0 frozen.
     Episodes chosen by nested budgets over the target demo pool (fixed permutation per seed)."""
     from rrp.evaluation.adaptation import nested_budget_indices
-    from rrp.model.latent_batch import assembly_batch
+    from rrp.models.latent_batch import assembly_batch
     dev = _dev()
     st = load_checkpoint(flow_ckpt, map_location=dev)
     cfgj = st["config"]
@@ -612,7 +612,7 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
     lcfg, E, R_old, P, rep_res = load_representation(rep_path, dev)
     data = LatentData(Path(cfg_json["packed_dir"]), zero_prev_action=cfg_json.get("zero_prev_action", False),
                       anchor=cfg_json.get("realizer_anchor", False), drop_qd=cfg_json.get("realizer_drop_qd", False))
-    from rrp.control.latent_realizer import make_realizer
+    from rrp.controllers.latent_realizer import make_realizer
     arch = dict(st0["config"].get("realizer_arch") or {})
     for k_ in ("layers", "width", "z_norm"):                  # capacity / input-normalization overrides (ladder sprint)
         if f"realizer_{k_}" in cfg_json:
@@ -674,7 +674,7 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
         phase = torch.as_tensor(j * lcfg.control_dt, dtype=z.dtype, device=dev)
         qdp = cfg_json.get("realizer_qd_dropout", 0.0)
         if qdp > 0:                 # per-sample dropout of the joint-velocity input (eval keeps full qd): packet reliance
-            from rrp.control.latent_realizer import QD_COL
+            from rrp.controllers.latent_realizer import QD_COL
             keep = (torch.rand(r["node"].shape[0], 1, device=dev) >= qdp).to(r["node"].dtype)
             r["node"] = r["node"].clone(); r["node"][:, :, QD_COL] = r["node"][:, :, QD_COL] * keep
         pred = R(z, am, kt, phase, r["node"], r["node_mask"], r["local"], node_asm=r.get("node_asm"))
@@ -695,7 +695,7 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
             nmask = torch.arange(dag["node"].shape[1], device=dev)[None] < dag["n_nodes"][idx][:, None]
             nd_ = dag["node"][idx].float()
             if cfg_json.get("realizer_qd_dropout", 0.0) > 0:
-                from rrp.control.latent_realizer import QD_COL
+                from rrp.controllers.latent_realizer import QD_COL
                 keep = (torch.rand(Bd, 1, device=dev) >= cfg_json["realizer_qd_dropout"]).float()
                 nd_[:, :, QD_COL] = nd_[:, :, QD_COL] * keep
             pd = R(zd, amd, kt, dag["j"][idx].float() * lcfg.control_dt, nd_, nmask,
@@ -743,7 +743,7 @@ def _load_dagger(paths, dev, anchor: bool = False, drop_qd: bool = False):
     drop_qd: zero the joint-velocity column (27) like LatentData(drop_qd)."""
     if not paths:
         return None
-    from rrp.control.latent_realizer import Q_COL, ANCHOR_COL, QD_COL
+    from rrp.controllers.latent_realizer import Q_COL, ANCHOR_COL, QD_COL
     parts = []
     for p in paths:
         z_ = np.load(p)

@@ -1,5 +1,5 @@
 import numpy as np
-from rrp.sim.sensors import ObjectTracker, DetectorConfig
+from rrp.envs.sensors import ObjectTracker, DetectorConfig
 
 
 def test_tracker_follows_moving_object_and_grows_uncertainty_when_unseen():

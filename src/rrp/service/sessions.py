@@ -18,9 +18,9 @@ import numpy as np
 
 from rrp.contracts.action import NativeCommand
 from rrp.contracts.errors import RRPError, VersionConflict, ControllerRejection
-from rrp.control.ik import down_rotation
-from rrp.control.teachers import PickPlaceTeacher
-from rrp.sim.native import Session
+from rrp.bodies.ik import down_rotation
+from rrp.teachers.arm import PickPlaceTeacher
+from rrp.envs.native import Session
 from rrp.tasks.interventions import EditRejected
 
 MODES = ("hold", "user", "scripted_teacher", "learned", "learned_latent", "debug")
@@ -36,12 +36,12 @@ class LatentStack:
 
 def robot_registry() -> dict:
     """Fixed selector keys only (no filesystem paths)."""
-    from rrp.morphology.catalog import workbench_robots
+    from rrp.bodies.catalog import workbench_robots
     return workbench_robots()
 
 
 def task_registry() -> dict:
-    from rrp.sim.scenario import BUILDERS
+    from rrp.envs.scenario import BUILDERS
     return {k: v for k, v in BUILDERS.items()}
 
 
@@ -212,7 +212,7 @@ class WorkbenchSession:
                     mode = self.mode = "learned_latent"
                 self.policy, self.policy_name = policy, policy_name
                 if isinstance(policy, LatentStack):
-                    from rrp.control.latent_realizer import LatentSystem0
+                    from rrp.controllers.latent_realizer import LatentSystem0
                     self.system0 = LatentSystem0(policy.realizer, policy.policy.featurizer(self.sim),
                                                  latent_space_version=policy.policy.lsv,
                                                  realizer_compat_version=policy.policy.rcv,

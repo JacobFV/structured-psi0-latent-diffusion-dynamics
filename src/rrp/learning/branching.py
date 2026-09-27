@@ -55,7 +55,7 @@ def reward_of(fin: dict, shaping_grasp: float = 0.0, shaping_dist: float | None 
 
 
 def _make_sessions(make_scenario, seed, n):
-    from rrp.sim.native import Session
+    from rrp.envs.native import Session
     sc = make_scenario(seed)
     return [Session(sc, seed=seed) for _ in range(n)]
 
@@ -123,7 +123,7 @@ def collect_shared_prefix(policy, make_scenario, seeds: list[int], G: int, max_s
         t0 = time.perf_counter()
         snap = ld.session.snapshot()
         gr.snapshot_s = time.perf_counter() - t0
-        from rrp.sim.native import Session
+        from rrp.envs.native import Session
         t0 = time.perf_counter()
         for j in range(G):
             s = Session(ld.session.scenario, seed=ld.seed)

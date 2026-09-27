@@ -17,12 +17,12 @@ from dataclasses import dataclass, field
 import numpy as np
 import torch
 
-from rrp.learning.critics import QEnsemble, EditPolicy, make_target, min_of_random_pair, soft_update, td_target
+from rrp.models.critics import QEnsemble, EditPolicy, make_target, min_of_random_pair, soft_update, td_target
 from rrp.learning.grpo import set_trainable
 from rrp.learning.replay_buffer import ReplayBuffer, ReplayRecord
 from rrp.learning.rollout import PolicyAdapter, EpisodeState, drive, finalize
 from rrp.learning.branching import reward_of
-from rrp.model.batch import collate_inputs
+from rrp.models.batch import collate_inputs
 
 
 @dataclass
@@ -249,7 +249,7 @@ class ExpoAgent(PolicyAdapter):
 # -------------------------------------------------------------------- episode -> replay
 def collect_expo_episodes(agent: ExpoAgent, make_scenario, seeds: list[int], max_steps: int, buf: ReplayBuffer,
                           H: int, prefix_source: str = "none", event: str = "grasp") -> list[dict]:
-    from rrp.sim.native import Session
+    from rrp.envs.native import Session
     states = []
     for sd in seeds:
         s = Session(make_scenario(sd), seed=sd)

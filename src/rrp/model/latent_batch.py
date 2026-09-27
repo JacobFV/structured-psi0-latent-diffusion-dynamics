@@ -1,20 +1,11 @@
-"""Re-target a context Batch so the generated entities are controllable assemblies (latent path)."""
-from __future__ import annotations
+"""Deprecated import path (W4 restructure, docs/strategy.md): moved to `rrp.models.latent_batch`.
 
-import dataclasses
+This old path stays importable and is the SAME module object (sys.modules alias), so private names, monkeypatching and
+pickles that reference the old path keep working. New code must import `rrp.models.latent_batch` (tests/unit/test_layering.py).
+"""
+import importlib as _importlib
+import sys as _sys
+import warnings as _warnings
 
-import torch
-
-from .batch import Batch
-from .semantic_latent import assembly_tokens
-
-
-def assembly_batch(batch: Batch, max_m: int = 2) -> Batch:
-    af, am, ai = assembly_tokens(batch, max_m)
-    B, M = am.shape
-    R = batch.ctx_rel.shape[-1]
-    act_rel = torch.gather(batch.ctx_rel, 1, ai[:, :, None, None].expand(-1, -1, batch.ctx_rel.shape[2], R))
-    act_rel = act_rel & am[:, :, None, None]
-    node_rel = torch.zeros(B, M, M, R, dtype=torch.bool, device=af.device)
-    extra = dict(batch.extra, node_ctx_index=ai)
-    return dataclasses.replace(batch, node_feats=af, node_mask=am, act_rel=act_rel, node_rel=node_rel, extra=extra)
+_warnings.warn("rrp.model.latent_batch is deprecated; import rrp.models.latent_batch", DeprecationWarning, stacklevel=2)
+_sys.modules[__name__] = _importlib.import_module("rrp.models.latent_batch")

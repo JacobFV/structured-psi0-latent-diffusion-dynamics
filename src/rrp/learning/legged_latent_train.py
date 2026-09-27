@@ -24,7 +24,7 @@ import numpy as np
 import torch
 
 from rrp.features.legged import MAX_N, MAX_M, KNOT_TIMES, TICK_DT
-from rrp.model.legged_latent import (LeggedEncoder, LeggedRealizer, LeggedProbe, LeggedFlow, probe_loss,
+from rrp.models.legged_latent import (LeggedEncoder, LeggedRealizer, LeggedProbe, LeggedFlow, probe_loss,
                                      probe_metrics)
 
 H = 40                    # demonstrated ticks seen by E (0.8 s)

@@ -21,7 +21,7 @@ import torch
 from rrp.contracts.action import ActionChunk, GroupCommand
 from rrp.contracts.errors import StaleActionError
 from rrp.features.featurizer import featurizer_for
-from rrp.model.batch import collate_inputs
+from rrp.models.batch import collate_inputs
 from rrp.learning.flow_sde import SDEConfig, sample_sde
 
 REWARD_LABEL = "privileged_sim_success"   # simulator-truth evaluator used as reward (sim training only)
@@ -244,7 +244,7 @@ def event_boundary(event: str = "grasp"):
 
 
 def feasible(session) -> bool:
-    from rrp.control.teachers import PickPlaceTeacher
+    from rrp.teachers.arm import PickPlaceTeacher
     return bool(PickPlaceTeacher(session).feasibility()["feasible"])
 
 
@@ -252,7 +252,7 @@ def teacher_prefix(policy, st: EpisodeState, boundary, max_steps: int) -> bool:
     """Execute the SCRIPTED TEACHER (source=scripted_teacher, privileged planner) until the public
     boundary fires. Used only for labelled "suffix adaptation from teacher prefix" experiments; the
     learned policy's previous-action feature is set exactly as in teacher data collection."""
-    from rrp.control.teachers import PickPlaceTeacher
+    from rrp.teachers.arm import PickPlaceTeacher
     s = st.session
     t = PickPlaceTeacher(s)
     f = policy.featurizer(s)

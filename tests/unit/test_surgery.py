@@ -1,6 +1,6 @@
 import pytest
-from rrp.morphology.fixtures import arm_with_port, gripper_module, three_finger_module
-from rrp.morphology.surgery import attach, AttachmentError
+from rrp.bodies.fixtures import arm_with_port, gripper_module, three_finger_module
+from rrp.bodies.surgery import attach, AttachmentError
 
 
 def test_attachment_rebinds_names_and_preserves_positive_mass():
@@ -61,8 +61,8 @@ def test_physics_validation_reports_stability():
 
 def test_validator_detects_self_collision_with_world_welded_parent():
     import mujoco
-    from rrp.morphology.surgery import validate_physics
-    from rrp.morphology.generators import procedural_arm, ArmParams
+    from rrp.bodies.surgery import validate_physics
+    from rrp.bodies.generators import procedural_arm, ArmParams
     m = procedural_arm(ArmParams())
     m.spec.excludes[0].delete() if hasattr(m.spec.excludes[0], "delete") else m.spec.delete(m.spec.excludes[0])
     v = validate_physics(m.spec.compile(), steps=10)

@@ -15,7 +15,7 @@ from pathlib import Path
 
 import numpy as np
 
-from rrp.control.teachers import PickPlaceTeacher
+from rrp.teachers.arm import PickPlaceTeacher
 from rrp.evaluation import latent_semantic_edits as se
 from rrp.evaluation.latent_causal import _body_pos, _key, _tcp
 
@@ -42,8 +42,8 @@ def _scene(robot, key, scene):
         return se._scene(robot, key, scene)
     if scene != "pick_place":
         raise ValueError("paired scenes need the acceptance track's latent_semantic_edits")
-    from rrp.sim.scenario import BUILDERS
-    from rrp.sim.native import Session
+    from rrp.envs.scenario import BUILDERS
+    from rrp.envs.native import Session
     return Session(BUILDERS["pick_place"](robot, key, n_distractors=max(1, key % 3)), seed=key)
 
 
@@ -111,7 +111,7 @@ def run_bc_condition(src: BCSource, robot, robot_key, seed, cond, *, max_steps=3
 
 def bc_semantic_suite(src, robot_key, seeds, conditions, *, max_steps=300, scene="pick_place", out_path=None,
                       log=print):
-    from rrp.morphology.catalog import workbench_robots
+    from rrp.bodies.catalog import workbench_robots
     robot = workbench_robots()[robot_key]()
     rows = []
     for sd in seeds:
@@ -147,7 +147,7 @@ def main():
     a = ap.parse_args()
     if a.seed_start < 3_000_000:
         raise SystemExit("dev seeds must be >= 3,000,000")
-    from rrp.policy.runner import LearnedPolicy
+    from rrp.controllers.policy_runner import LearnedPolicy
     pol = LearnedPolicy.from_checkpoint(a.policy, device="cpu", nfe=8, execute_prefix=8)
     src = BCSource(pol, a.label)
     seeds = (se.paired_edit_keys(a.seed_start, a.episodes) if a.scene == "paired"
@@ -178,7 +178,7 @@ def render(src, a):
     os.environ.setdefault("MUJOCO_GL", "egl")
     import imageio
     import mujoco
-    from rrp.morphology.catalog import workbench_robots
+    from rrp.bodies.catalog import workbench_robots
     sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
     from render_episode import caption
     what = dict(control="task as given (cube -> zone)",

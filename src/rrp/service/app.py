@@ -338,7 +338,7 @@ def serve(host: str = "127.0.0.1", port: int = 8765):
         f.write(token)
     app = create_app(token=token, port=port)
     try:
-        from rrp.policy.registry import register_workbench_policies
+        from rrp.service.policy_registry import register_workbench_policies
         register_workbench_policies(app.state.rrp.policies)
     except ImportError:
         pass

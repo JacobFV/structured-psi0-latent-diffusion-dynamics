@@ -19,7 +19,7 @@ def _done(p: Path) -> bool:
 def run_cell(protocol: dict, method: str, seed: int, *, root: Path = Path("artifacts/runs/primary")) -> dict:
     from rrp.learning.behavior import train_policy
     from rrp.learning.sft import sft
-    from rrp.policy.runner import LearnedPolicy
+    from rrp.controllers.policy_runner import LearnedPolicy
     from rrp.evaluation.runner import evaluate, summarize
     reg = ExperimentRegistry("research/registry.jsonl")
     mcfg = json.loads(Path(protocol["methods"][method]).read_text())

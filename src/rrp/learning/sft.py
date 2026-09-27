@@ -11,9 +11,9 @@ import torch
 
 from rrp.evaluation.adaptation import nested_budget_indices
 from rrp.learning.behavior import device_setup, encode_targets
-from rrp.learning.checkpoint import load_checkpoint, save_checkpoint
+from rrp.models.checkpoint import load_checkpoint, save_checkpoint
 from rrp.learning.data import ChunkDataset, load_episodes
-from rrp.model.flow import FlowPolicy, PolicyConfig
+from rrp.models.flow import FlowPolicy, PolicyConfig
 
 
 def sft(source_ckpt: Path, dataset: Path, target_robot: str, budget: int, *, seed: int, out_dir: Path,
@@ -73,7 +73,7 @@ def sft_packed(source_ckpt: Path, target_packed_dir: Path, budget: int, *, seed:
     trained (the analogue of system i); a codec, if any, stays frozen (the analogue of the frozen realizer)."""
     import numpy as np
     from rrp.learning.packed import PackedChunkDataset
-    from rrp.model.codec import ActionCodec, CodecConfig
+    from rrp.models.codec import ActionCodec, CodecConfig
     dev, _ = device_setup()
     st = load_checkpoint(source_ckpt, map_location=dev)
     cfgj = st["config"]

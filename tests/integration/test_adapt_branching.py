@@ -3,14 +3,14 @@ import numpy as np
 import pytest
 import torch
 
-from rrp.control.teachers import PickPlaceTeacher
+from rrp.teachers.arm import PickPlaceTeacher
 from rrp.learning.flow_sde import SDEConfig
 from rrp.learning.grpo import GRPOConfig, GRPOLearner
 from rrp.learning.rollout import SDEPolicy, EpisodeState, drive
-from rrp.model.flow import FlowPolicy, PolicyConfig
-from rrp.morphology.catalog import workbench_robots
-from rrp.sim.native import Session
-from rrp.sim.scenario import BUILDERS
+from rrp.models.flow import FlowPolicy, PolicyConfig
+from rrp.bodies.catalog import workbench_robots
+from rrp.envs.native import Session
+from rrp.envs.scenario import BUILDERS
 
 pytestmark = pytest.mark.menagerie      # xarm7_pg2 is a Menagerie body
 

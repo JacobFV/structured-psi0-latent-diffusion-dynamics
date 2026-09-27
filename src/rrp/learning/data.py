@@ -15,7 +15,7 @@ import numpy as np
 import torch
 
 from rrp.data.collect import read_episode
-from rrp.model.batch import collate_inputs
+from rrp.models.batch import collate_inputs
 
 
 @dataclass

@@ -41,7 +41,7 @@ import torch
 
 from rrp.features.legged import MAX_N
 from rrp.learning.legged_latent_train import LeggedData, load_rep, _dev
-from rrp.model.legged_latent import LeggedFlow
+from rrp.models.legged_latent import LeggedFlow
 
 import os
 BUF = Path(os.environ.get("T1DIAG_BUF", "artifacts/runs/t1_diag/buf"))
@@ -434,7 +434,7 @@ def readout_and_teacher_err(ts="v2", out=None):
     post-hoc measurement probe) for z = E(BC chunk), E(teacher chunk), flow sample, at the same packet states;
     realized displacement over 0.8 s for reference.  (b) system-0 error vs the shadow-TEACHER first action at j=0
     (the only tick where the shadow state equals the recorded state), ratio to hold-still."""
-    from rrp.model.legged_latent import LeggedProbe
+    from rrp.models.legged_latent import LeggedProbe
     dev = _dev()
     Ms = {v: load_models(v, ts, dev) for v in ("sem", "nosem")}
     pp = torch.load(f"artifacts/runs/legged_rep_nosem_t1_{ts}/probe_posthoc.pt", map_location=dev, weights_only=False) \

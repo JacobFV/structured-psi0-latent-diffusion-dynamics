@@ -39,9 +39,9 @@ from rrp.contracts.errors import ControllerRejection, StaleActionError
 from rrp.contracts.latent_action import LatentActionChunk, AssemblyHandle, EntityHandle
 from rrp.learning.flow_sde import SDEConfig, sample_sde
 from rrp.learning.grpo import GRPOConfig, GRPOLearner, group_advantages
-from rrp.model.batch import collate_inputs
-from rrp.model.latent_batch import assembly_batch
-from rrp.policy.latent_runner import LatentPolicy
+from rrp.models.batch import collate_inputs
+from rrp.models.latent_batch import assembly_batch
+from rrp.controllers.latent_runner import LatentPolicy
 
 REWARD_LABEL = "privileged_sim_success"
 TARGET_BODIES = ("xarm7_pg2", "xarm7_tf3", "panda_tf3")      # D-025: never used during development
@@ -180,7 +180,7 @@ def batched_ticks(s0s, sessions) -> list:
     nf = np.zeros((B, Nmax, F), np.float32); nm = np.zeros((B, Nmax), bool)
     for b, (i, now, pi, loc) in enumerate(work):
         z[b, :, :zs[b].shape[1]] = zs[b]; zm[b] = False; zm[b, :zs[b].shape[1]] = s0s[i].packet.assembly_mask
-        from rrp.control.latent_realizer import realizer_node_feats
+        from rrp.controllers.latent_realizer import realizer_node_feats
         n = pi.act_node_feats.shape[0]; nf[b, :n] = realizer_node_feats(s0s[i], pi); nm[b, :n] = True
     kt = torch.tensor(s0s[work[0][0]].packet.knot_times, dtype=torch.float32, device=dev)
     ph = torch.tensor([now - s0s[i].packet.valid_from for i, now, _, _ in work], dtype=torch.float32, device=dev)
@@ -204,10 +204,10 @@ def run_episodes(policy, realizer, robot_key: str, seeds: list[int], *, replan_t
     prefix_steps > 0: CURRICULUM — the SCRIPTED TEACHER (privileged planner, source=scripted_teacher) controls the
     first prefix_steps ticks (deterministic given the seed, so identical within a group), then system i/system 0
     take over for the remaining max_steps - prefix_steps ticks. Results report it; never a deployable score."""
-    from rrp.morphology.catalog import workbench_robots
-    from rrp.sim.scenario import BUILDERS
-    from rrp.sim.native import Session
-    from rrp.control.latent_realizer import LatentSystem0
+    from rrp.bodies.catalog import workbench_robots
+    from rrp.envs.scenario import BUILDERS
+    from rrp.envs.native import Session
+    from rrp.controllers.latent_realizer import LatentSystem0
     reward = reward or RewardConfig()
     robot = workbench_robots()[robot_key]()
     S, s0, meta = [], [], []
@@ -221,7 +221,7 @@ def run_episodes(policy, realizer, robot_key: str, seeds: list[int], *, replan_t
     if prefix_steps > 0:
         # teacher prefix runs ONCE per distinct seed; group members get a snapshot restore (physics, controller,
         # task runtime, tracker, RNG) so the shared prefix is identical and counted once in accounting.
-        from rrp.control.teachers import PickPlaceTeacher
+        from rrp.teachers.arm import PickPlaceTeacher
         leader: dict = {}
         for k, s in enumerate(S):
             if seeds[k] in leader:
@@ -295,10 +295,10 @@ def run_episodes(policy, realizer, robot_key: str, seeds: list[int], *, replan_t
 
 
 def feasible_seeds(robot_key: str, start: int, n: int, task="pick_place") -> list[int]:
-    from rrp.morphology.catalog import workbench_robots
-    from rrp.sim.scenario import BUILDERS
-    from rrp.sim.native import Session
-    from rrp.control.teachers import PickPlaceTeacher
+    from rrp.bodies.catalog import workbench_robots
+    from rrp.envs.scenario import BUILDERS
+    from rrp.envs.native import Session
+    from rrp.teachers.arm import PickPlaceTeacher
     robot = workbench_robots()[robot_key]()
     out, sd = [], start
     while len(out) < n:
@@ -361,7 +361,7 @@ def _eval(model, base, realizer, cfg: LatentGRPORunConfig, seeds, device, tag, o
 
 
 def train_latent_grpo(cfg: LatentGRPORunConfig) -> dict:
-    from rrp.learning.checkpoint import load_checkpoint, save_checkpoint
+    from rrp.models.checkpoint import load_checkpoint, save_checkpoint
     from rrp.learning.latent_train import load_representation
     if cfg.robot in TARGET_BODIES and not cfg.allow_target:
         raise ValueError(f"{cfg.robot} is a sealed target body (D-025); pass allow_target for the campaign stage only")

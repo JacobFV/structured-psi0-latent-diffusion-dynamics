@@ -18,7 +18,7 @@ import torch
 from rrp.features.featurizer import BANKS, HASH_DIM, N_REL
 from rrp.features.derived import OPERATORS, local_sensors, active_operator  # noqa: F401  (moved to features, W4)
 from rrp.learning.data import load_episodes, episode_samples
-from rrp.model.batch import Batch, BANK_DIMS, NODE_DIM
+from rrp.models.batch import Batch, BANK_DIMS, NODE_DIM
 
 MAX_T = {"morph": 16, "scene": 8, "task": 24, "interact": 12}
 MAX_N, MAX_S, MAX_R, MAX_P = 12, 8, 160, 32

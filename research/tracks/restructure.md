@@ -51,8 +51,8 @@ Deviations from the audit's target text, forced by the layering rule (recorded h
 ## phases
 | phase | content | state |
 |---|---|---|
-| P1 | skeleton packages; contracts (psi, workload), physics (snapshot), features (featurizer, multi, legged, derived) | implementing |
-| P2 | bodies, envs, teachers, controllers, models | planned |
+| P1 | skeleton packages; contracts (psi, workload), physics (snapshot), features (featurizer, multi, legged, derived) | merged 0882cce |
+| P2 | bodies, envs, teachers, controllers, models | verified |
 | P3 | data, training, evaluation (break evaluation↔training) | planned |
 | P4 | CLI package without silent ImportError; ops → orchestration | planned |
 | P5 | research diagnostics; dedup | planned |
@@ -67,6 +67,20 @@ Deviations from the audit's target text, forced by the layering rule (recorded h
   `combined_hash` (features.multi → contracts.robot; the dual env needs it).
 - tests: `tests/unit/test_layering.py`, `tests/unit/test_restructure_compat.py` (every shim is the same module object and
   warns; PolicyInput pickles under the old path; `python -m <old>` forwards).
+
+### P2 (bodies / envs / teachers / controllers / models)
+- morphology.{aloha,catalog,compiler,fixtures,generators,importers,surgery,variants} → bodies.*; control.ik → bodies.ik;
+  morphology.legged_catalog → evaluation.legged_catalog (it evaluates trackers on the legged envs).
+- sim.{native,dual,scenario,dual_scenarios,sensors,fixtures} → envs.*; control.joint_targets → envs.joint_targets.
+- control.teachers → teachers.arm; control.dual_teachers → teachers.dual; control.legged_teachers → teachers.legged;
+  control.dual_validate → teachers.dual_validate; control.functional_composition → teachers.functional_composition.
+- control.latent_realizer → controllers.latent_realizer; policy.runner → controllers.policy_runner;
+  policy.latent_runner → controllers.latent_runner; policy.registry → service.policy_registry.
+- model.* → models.* (system2 waits for P5 → research); learning.checkpoint → models.checkpoint;
+  learning.critics → models.critics.
+- checks: unit 218 passed / 1 skipped; safe integration tests (adapt_branching, binding_aug, native_sim, service,
+  teacher, ui_contract) 27 passed, same as origin/main; every `from rrp... import name` in scripts/, tests/, src/
+  resolves (1465 names; scratch checker); demo page identical except the 2 build-timestamp lines.
 
 ## excluded until W1 merges (P6)
 morphology/legged.py, morphology/contact.py, sim/legged.py, control/{legged_core, legged_vec, legged_tracker,

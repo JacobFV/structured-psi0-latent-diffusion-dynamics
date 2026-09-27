@@ -20,7 +20,7 @@ import numpy as np
 
 
 def scene_fingerprint(task: str, pair: str, seed: int) -> str:
-    from rrp.control.dual_validate import make_session
+    from rrp.teachers.dual_validate import make_session
     s = make_session(task, pair, seed)
     m, d = s.model, s.data
     h = hashlib.sha256()
@@ -30,7 +30,7 @@ def scene_fingerprint(task: str, pair: str, seed: int) -> str:
 
 
 def task_graph_hash(task: str) -> str:
-    from rrp.sim.dual_scenarios import assign_task
+    from rrp.envs.dual_scenarios import assign_task
     return hashlib.sha256(json.dumps(assign_task(task.split("_", 1)[1]), sort_keys=True).encode()).hexdigest()[:16]
 
 

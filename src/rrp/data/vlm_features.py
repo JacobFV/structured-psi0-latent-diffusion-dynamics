@@ -27,13 +27,13 @@ def replay_render(robot_key: str, seed: int, n_distractors: int, task: str = "pi
                   cameras=("front",), size: int = 256, max_steps: int = 600, ref_q0=None) -> dict:
     """Re-simulate a teacher episode and render keyframes. Mirrors collect_teacher_episode."""
     os.environ.setdefault("MUJOCO_GL", "egl")
-    from rrp.control.teachers import PickPlaceTeacher
+    from rrp.teachers.arm import PickPlaceTeacher
     from rrp.data.collect import privileged_labels
     from rrp.features.featurizer import featurizer_for
-    from rrp.model.backbone import Renderer, task_text
-    from rrp.morphology.catalog import workbench_robots
-    from rrp.sim.native import Session
-    from rrp.sim.scenario import BUILDERS
+    from rrp.models.backbone import Renderer, task_text
+    from rrp.bodies.catalog import workbench_robots
+    from rrp.envs.native import Session
+    from rrp.envs.scenario import BUILDERS
     if robot_key not in _ROBOTS:
         _ROBOTS.clear()
         _ROBOTS[robot_key] = workbench_robots()[robot_key]()
@@ -104,7 +104,7 @@ def build_cache(cfg: dict) -> dict:
     """cfg: dataset, robots, per_robot, offset, every, cameras, size, out_dir, workers, batch, taps."""
     import torch
     from rrp.data.collect import read_episode
-    from rrp.model.backbone import BackboneSpec, VLMBackbone, PSI0, FALLBACK, image_hash, text_hash
+    from rrp.models.backbone import BackboneSpec, VLMBackbone, PSI0, FALLBACK, image_hash, text_hash
     from rrp.contracts.workload import apply_cap
     ginfo = apply_cap()
     src = FALLBACK if cfg.get("fallback") else PSI0

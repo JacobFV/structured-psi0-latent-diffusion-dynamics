@@ -3,8 +3,8 @@ import math
 
 import torch
 
-from rrp.model.latent_probes import gaussian_nll
-from rrp.model.semantic_latent import LatentConfig
+from rrp.models.latent_probes import gaussian_nll
+from rrp.models.semantic_latent import LatentConfig
 
 
 def test_floor_bounds_nll():

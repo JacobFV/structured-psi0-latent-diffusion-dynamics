@@ -19,10 +19,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from rrp.learning.checkpoint import save_checkpoint, load_checkpoint
+from rrp.models.checkpoint import save_checkpoint, load_checkpoint
 from rrp.learning.data import episode_samples, collate_samples
-from rrp.model.backbone import Resampler
-from rrp.model.flow import FlowPolicy, PolicyConfig
+from rrp.models.backbone import Resampler
+from rrp.models.flow import FlowPolicy, PolicyConfig
 from rrp.contracts.workload import CheckpointSignal
 
 from rrp.learning.behavior import FEAT_VERSION  # noqa: E402  (feat-v2)
@@ -196,8 +196,8 @@ def train(cfg: dict, out_dir: Path) -> dict:
 # ------------------------------------------------------------------ online VLM-backed evaluation
 def make_eval_policy(ckpt: Path, device, nfe=8, execute_prefix=8, image_mode="real", vlm=None, size=256,
                      cameras=("front",)):
-    from rrp.policy.runner import LearnedPolicy
-    from rrp.model.backbone import Renderer, task_text
+    from rrp.controllers.policy_runner import LearnedPolicy
+    from rrp.models.backbone import Renderer, task_text
 
     st = load_checkpoint(ckpt, map_location=device)
     cfg = st["config"]
@@ -252,7 +252,7 @@ def evaluate_main(a):
     os.environ.setdefault("MUJOCO_GL", "egl")
     from rrp.evaluation.runner import evaluate, summarize
     from rrp.contracts.workload import apply_cap
-    from rrp.model.backbone import BackboneSpec, VLMBackbone, PSI0, FALLBACK
+    from rrp.models.backbone import BackboneSpec, VLMBackbone, PSI0, FALLBACK
     ginfo = apply_cap()
     dev = "cuda"
     st = load_checkpoint(Path(a.checkpoint), map_location="cpu")
@@ -296,11 +296,11 @@ def evaluate_main(a):
             r.close()
     if vlm is not None:
         # batch=1 live latency (the deployment case), same frames as a real call
-        from rrp.model.backbone import Renderer
-        from rrp.morphology.catalog import workbench_robots
-        from rrp.sim.native import Session
-        from rrp.sim.scenario import BUILDERS
-        from rrp.model.backbone import task_text
+        from rrp.models.backbone import Renderer
+        from rrp.bodies.catalog import workbench_robots
+        from rrp.envs.native import Session
+        from rrp.envs.scenario import BUILDERS
+        from rrp.models.backbone import task_text
         s = Session(BUILDERS["pick_place"](workbench_robots()[a.robots.split(",")[0]](), 7, n_distractors=2), seed=7)
         r = Renderer(s.model, 256)
         fr = [r.render(s.data, r.cameras(["front"]))]

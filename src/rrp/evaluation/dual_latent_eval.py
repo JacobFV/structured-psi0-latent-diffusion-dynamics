@@ -25,13 +25,13 @@ import torch
 from rrp.contracts.action import NativeCommand
 from rrp.contracts.errors import ControllerRejection, StaleActionError
 from rrp.contracts.latent_action import LatentActionChunk, AssemblyHandle, EntityHandle, check_packet
-from rrp.control.latent_realizer import LatentSystem0
+from rrp.controllers.latent_realizer import LatentSystem0
 from rrp.features.multi import MultiFeaturizer
 from rrp.learning import dual_latent as DL
 from rrp.learning.packed import OPERATORS, _focus
-from rrp.model.batch import collate_inputs
-from rrp.model.latent_batch import assembly_batch
-from rrp.policy.latent_runner import LatentPolicy
+from rrp.models.batch import collate_inputs
+from rrp.models.latent_batch import assembly_batch
+from rrp.controllers.latent_runner import LatentPolicy
 
 NULL_HASH = "0" * 16
 
@@ -157,7 +157,7 @@ class DualLatentSystem0(LatentSystem0):
         zm = torch.tensor([self.packet.assembly_mask], device=dev)
         kt = torch.tensor(self.packet.knot_times, dtype=torch.float32, device=dev)
         ph = torch.tensor([now - self.packet.valid_from], dtype=torch.float32, device=dev)
-        from rrp.control.latent_realizer import realizer_node_feats
+        from rrp.controllers.latent_realizer import realizer_node_feats
         nf = torch.from_numpy(realizer_node_feats(self, pi))[None].to(dev)    # anchored realizers: col 28 (ladder)
         nm = torch.ones(1, nf.shape[1], dtype=torch.bool, device=dev)
         a = self.net(z, zm, kt, ph, nf, nm, torch.from_numpy(loc)[None].to(dev),
@@ -233,9 +233,9 @@ def evaluate_dual_latent(policy: DualLatentPolicy, realizer, probe, task: str, p
                          ) -> list[DualLatentEpisode]:
     """packet_edit='swap_slots' (causal intervention): system 0 receives each packet with its two slots' z values
     exchanged (handles unchanged), i.e. the left arm is driven by the right arm's latent and vice versa."""
-    from rrp.control.dual_validate import make_session
-    from rrp.control.dual_teachers import TEACHERS
-    from rrp.model.latent_probes import probe_metrics
+    from rrp.teachers.dual_validate import make_session
+    from rrp.teachers.dual import TEACHERS
+    from rrp.models.latent_probes import probe_metrics
     results = []
     for i in range(0, len(seeds), batch):
         group = seeds[i:i + batch]
@@ -303,5 +303,5 @@ def evaluate_dual_latent(policy: DualLatentPolicy, realizer, probe, task: str, p
 
 def teacher_reference(task: str, pair: str, seeds: list[int], max_steps: int = 800) -> list[dict]:
     """scripted_teacher (privileged) on the SAME development scenes, for reference."""
-    from rrp.control.dual_validate import run_one
+    from rrp.teachers.dual_validate import run_one
     return [run_one(task, pair, sd, max_steps=max_steps) for sd in seeds]

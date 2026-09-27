@@ -15,9 +15,9 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from rrp.learning.checkpoint import load_checkpoint
-from rrp.model.flow import PolicyConfig
-from rrp.model.qa import ObjectQA, QTYPES, OBJECT_DEPENDENT, load_decoder, make_questions, policy_hidden
+from rrp.models.checkpoint import load_checkpoint
+from rrp.models.flow import PolicyConfig
+from rrp.models.qa import ObjectQA, QTYPES, OBJECT_DEPENDENT, load_decoder, make_questions, policy_hidden
 
 
 def _slots_by_episode(ds_dir: Path, eids):

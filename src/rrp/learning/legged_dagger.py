@@ -180,7 +180,7 @@ def gate(a):
         R.load_state_dict(torch.load(a.realizer, map_location=dev, weights_only=False)["R"])
     F_ = None
     if a.flow:
-        from rrp.model.legged_latent import LeggedFlow
+        from rrp.models.legged_latent import LeggedFlow
         st = torch.load(a.flow, map_location=dev, weights_only=False)
         F_ = LeggedFlow(dz=rcfg["latent"]["dz"], D=st["cfg"].get("width", 256), layers=st["cfg"].get("layers", 4)).to(dev)
         F_.load_state_dict(st["flow"]); F_.eval()
@@ -228,7 +228,7 @@ def refit(cfg, out: Path):
     dag = [LeggedData(Path(r), cfg.get("bodies", rcfg["bodies"]), dev) for r in cfg.get("dagger", [])]
     F_ = None
     if cfg.get("gen_flow"):          # generator-aware system 0: train on packets the deployed flow actually emits
-        from rrp.model.legged_latent import LeggedFlow
+        from rrp.models.legged_latent import LeggedFlow
         fst = torch.load(cfg["gen_flow"], map_location=dev, weights_only=False)
         F_ = LeggedFlow(dz=rcfg["latent"]["dz"], D=fst["cfg"].get("width", 256), layers=fst["cfg"].get("layers", 4)).to(dev)
         F_.load_state_dict(fst["flow"]); F_.eval()

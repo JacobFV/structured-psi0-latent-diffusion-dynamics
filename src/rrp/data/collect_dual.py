@@ -137,8 +137,8 @@ def _job(args):
                                      for p in (done, ep_dir / f"{eid}.private.pkl.gz")}, resumed=True)
         except Exception:  # noqa: BLE001 - corrupt partial file: regenerate
             pass
-    from rrp.control.dual_validate import make_session
-    from rrp.control.dual_teachers import TEACHERS
+    from rrp.teachers.dual_validate import make_session
+    from rrp.teachers.dual import TEACHERS
     sess = make_session(task, pair, seed)
     rec = collect_dual_episode(sess, TEACHERS[task](sess), max_steps=max_steps, episode_id=eid,
                                split_lineage=dict(split=split, robot_key=pair), pair_key=pair,

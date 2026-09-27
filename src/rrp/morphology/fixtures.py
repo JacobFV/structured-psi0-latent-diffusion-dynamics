@@ -1,17 +1,11 @@
-"""Small real model records for tests and the first vertical slice."""
-from __future__ import annotations
+"""Deprecated import path (W4 restructure, docs/strategy.md): moved to `rrp.bodies.fixtures`.
 
-from .generators import ArmParams, GripperParams, procedural_arm, gripper_module as _gripper
+This old path stays importable and is the SAME module object (sys.modules alias), so private names, monkeypatching and
+pickles that reference the old path keep working. New code must import `rrp.bodies.fixtures` (tests/unit/test_layering.py).
+"""
+import importlib as _importlib
+import sys as _sys
+import warnings as _warnings
 
-
-def arm_with_port(**kw):
-    return procedural_arm(ArmParams(**kw))
-
-
-def gripper_module(**kw):
-    return _gripper(GripperParams(**kw))
-
-
-def three_finger_module(**kw):
-    kw.setdefault("name", "tf3")
-    return _gripper(GripperParams(kind="three_finger", **kw))
+_warnings.warn("rrp.morphology.fixtures is deprecated; import rrp.bodies.fixtures", DeprecationWarning, stacklevel=2)
+_sys.modules[__name__] = _importlib.import_module("rrp.bodies.fixtures")
