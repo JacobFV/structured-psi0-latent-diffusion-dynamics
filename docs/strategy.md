@@ -25,9 +25,9 @@ Principles:
 | W2 | Repo hygiene (phase 0) | hygiene agent | — | verified 2026-09-26 (main 3c796fd; tests 152 pass / 3 skip on a fresh clone; 78 dataset/weight files, 391 MB, untracked; copy in ~/work/rrp-data/git-untracked-2026-09-26) |
 | W3 | Provenance and contracts (phase 1) | provenance agent | — | verified 2026-09-26 (main 510f052; 165 unit tests pass; arm/dual/legged smoke manifests carry full provenance; 22 configs made explicit zero_prev_action) |
 | W4 | Package restructure with shims (phase 2) | restructure agent | W2, W3 | P1–P5 verified 2026-09-26 (main 817b3b3; 274 unit tests pass; layering test passes; byte-identical parity episodes; checkpoint audit 347 host + 508 peer *.pt load, 0 errors; demo page unchanged). P6 (legged files) waits for W1 merge |
-| W5 | Unified pipeline + DAG orchestration (phases 3–4) | pipeline agent | W4; arm seed 2 finished | planned |
+| W5 | Unified pipeline + DAG orchestration (phases 3–4) | pipeline agent | W4; arm seed 2 finished | running (parity on peer wt/pipeline) |
 | W6 | Robustness sweeps + motion-quality gates | robustness agent | W1 v2 trackers | planned |
-| W7 | Arm expert: smooth scripted trajectories, then GRPO fine-tuning with anchor evals | arm agent | arm seed 2 finished | planned |
+| W7 | Arm expert: smooth scripted trajectories, then GRPO fine-tuning with anchor evals | arm agent | arm seed 2 finished | running: step 1 smoothing (diagnosis + smoothed teacher version); GRPO after lead approval |
 | W8 | Legged regeneration on contact v2 (data → Stage A → flow → R2 → edits) | legged agent | W1 gate, W3 | planned |
 | W9 | Open claims: held-out target bodies; one loco-manipulation task | later | W5, W8 | planned |
 | R0 | Arm seed-2 replication (running experiment) | arm agent | — | completed 2026-09-26 (D-095) |
@@ -125,3 +125,6 @@ Conflict rules:
   - Report with the exact commands, raw paths and numbers.
   - Merge verified work to main with rebase.
   - Never touch other agents' leases, other users' processes, or other projects' files.
+
+
+| R1 | Arm nosem recipe ablation (z-noise 0; keep qd; both), seed 1 | arm agent | R0 | running (fairness check for D-095) |
