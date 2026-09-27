@@ -124,11 +124,18 @@ Next track item after this gate (strategy W1): actuator realism (armature, joint
 latency randomisation (v2 currently randomises 0-8 ms).
 
 ## W1 follow-up (lead D-101, 2026-09-27)
-### (1) go2 permanent clearance floor: running
-New PERMANENT term `clearance_floor` (via `--reward-set clearance_floor=-2`): at each touchdown during a moving command,
--2 x clip((floor - apex)/floor, 0, 1)^2 per foot, where floor = 0.6 x swing_height (go2 3.6 cm, humanoids 4.8 cm). It is never scheduled.
-Run: host lease 1790495753_12bd09, `artifacts/runs/contact_go2_cf`, warm from go2 contact_v2 iter3499, 1500 iters, lr ceiling 1e-3,
-schedule restarted (warm-up 100). alpha was back at 1.0 by iter ~700; window slip 0.05, CoT 1.13-1.23 (vs 0.93 before the floor).
+### (1) go2 permanent clearance floor: GATE PASSED
+New PERMANENT term `clearance_floor` (`--reward-set clearance_floor=W`): at each touchdown during a moving command,
+W x clip((floor - apex)/floor, 0, 1)^2 per foot, where floor = 0.6 x swing_height (go2 3.6 cm, humanoids 4.8 cm). It is never scheduled.
+- cf (W=-2): host lease 1790495753_12bd09, `artifacts/runs/contact_go2_cf`, warm from go2 contact_v2 iter3499, 1500 iters, lr ceiling 1e-3,
+  schedule restarted (alpha back at 1.0 by ~700). Validation `val/go2_v2cf_physv2.json`: slip 0.03, apex 2.2 cm, CoT 0.71, turn 0.66,
+  contact gate passes, but the apex is below the 3.6 cm floor.
+- cf2 (W=-6): `artifacts/runs/contact_go2_cf2`, 800 iters from cf with alpha fixed at 1. **Installed** as `artifacts/trackers/go2/contact_v2/actor.pt`
+  (sha af3f06f4e029e9f9; the previous no-floor tracker is at `~/work/rrp-data/contact-v1-actors/go2_contact_v2_iter3499_noflor.pt`).
+  Validation `val/go2_v2cf2_physv2.json`: no falls, fwd 1.03, turn 0.79, **slip 0.02**, duty 0.40-0.60, air 0.25 s, **apex 3.8 cm**, **CoT 0.88**
+  (v1 2.34; no-floor v2 0.65), legacy gate and contact gate pass. The floor costs about 35% CoT relative to the flat-swing policy.
+- Videos (reviewed: the swing foot clears the floor visibly): `2026-09-27_contact_go2_forward_floor-vs-nofloor_iter1499_ok_ok.mp4`,
+  `2026-09-27_contact_go2_{forward,turn}_v1-vs-v2floor_iter799_ok_ok.mp4`.
 ### (2) turn in place: running (t1, h1; g1 queued)
 PERMANENT `yaw_slip` (-0.5 x sum over stance feet of |foot yaw rate|: no pivoting on a planted foot) and `turn_step` (+1 x agreement of
 contacts with the alternating gait clock during pure-turn commands), plus clearance_floor -2. Curriculum: pure-turn probability 0.35;
@@ -136,6 +143,10 @@ yaw-rate range +-[0.3, 1] x scale x wz_max, scale starting at 0.4 and widened by
 <= 0.2 (`turn_scale` in train log and checkpoint). Humanoid alpha thresholds as in t1 r2. Runs (PEER, dir wt/contact3, warm from the
 installed contact_v2 trackers): t1 lease 1790497102_81e726 `artifacts/runs/contact_t1_turn`, h1 lease 1790497102_12a17b
 `artifacts/runs/contact_h1_turn`, 2500 iters each.
+Attempt a (stopped at iter ~650-750; kept as `contact_{t1,h1}_turn_a` on the peer): the window turn ratio FELL (t1 0.76 -> 0.30, h1 0.77 -> 0.36).
+Cause: the sigma 0.1 yaw kernel. Ignoring a 0.1-0.2 rad/s curriculum command costs only 0.2-0.7 per step, which is less than the new anti-pivot penalty.
+Fix: separate `sigma_ang` (0.02: ignoring 0.2 rad/s now costs 1.7). Attempt b: peer dir wt/contact5, t1 lease 1790498747_1b719b,
+h1 lease 1790498748_824e00, same outputs, `--reward-set clearance_floor=-2,yaw_slip=-0.5,turn_step=1,sigma_ang=0.02`.
 
 ## runs
 ### gait_v2a: failed_hypothesis (stopped at iter 500-1400)
