@@ -26,8 +26,12 @@ run_job() {   # $1 label $2 cpu $3 mem $4 max_s $5 gpu(0/1) -- cmd...   (python 
   local g=(); [ "$gpu" = 1 ] && g=(--gpu --gpu-mem 16G)
   set -- env RRP_GRASP_CONTACT=$GC "$@"
   if [ "$PLACE" = peer ]; then
-    RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armexpert scripts/peer_run.sh "${g[@]}" --cpu "$cpu" --mem "$mem" \
-      --label "$label" --max-seconds "$maxs" -- "$@" > /tmp/armexpert_$label.out 2>&1
+    for _try in $(seq 1 180); do       # wait (<= 3 h) for peer admission (memory-capped broker, D-106)
+      RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armexpert scripts/peer_run.sh "${g[@]}" --cpu "$cpu" --mem "$mem" \
+        --label "$label" --max-seconds "$maxs" -- "$@" > /tmp/armexpert_$label.out 2>&1
+      grep -q "AdmissionStopped\|CapacityError" /tmp/armexpert_$label.out || break
+      sleep 60
+    done
   else
     local a=(); for x in "$@"; do [ "$x" = PY ] && a+=("$HPY") || a+=("$x"); done
     PYTHONPATH=src "$HPY" -m rrp.cli ops run "${g[@]}" --cpu "$cpu" --mem "$mem" --label "$label" \
