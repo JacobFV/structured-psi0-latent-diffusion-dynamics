@@ -21,7 +21,7 @@ Principles:
 
 | id | workstream | owner | depends on | status |
 |---|---|---|---|---|
-| W1 | Physics realism: contact v2, reward schedule, slip gate; then actuator realism and latency | contact agent | — | D-101/D-103: gate passes anymal_c, go2 (floor), t1 (turn-trained); h1/g1 turn and h1 latency open; actuator_v1 built, not default |
+| W1 | Physics realism: contact v2, reward schedule, slip gate; then actuator realism and latency | contact agent | — | round complete (D-101/103/107): installed anymal_c, go2 (floor), t1 w8d (sourced limits); sourced torque limits default; permanent standing; g1 (overspins: cap yaw-progress reward) and h1 (retrain from scratch) parked; actuator dynamics/latency opt-in |
 | W2 | Repo hygiene (phase 0) | hygiene agent | — | verified 2026-09-26 (main 3c796fd; tests 152 pass / 3 skip on a fresh clone; 78 dataset/weight files, 391 MB, untracked; copy in ~/work/rrp-data/git-untracked-2026-09-26) |
 | W3 | Provenance and contracts (phase 1) | provenance agent | — | verified 2026-09-26 (main 510f052; 165 unit tests pass; arm/dual/legged smoke manifests carry full provenance; 22 configs made explicit zero_prev_action) |
 | W4 | Package restructure with shims (phase 2) | restructure agent | W2, W3 | completed 2026-09-27 (P6 f1db76d: 338 unit tests, parity byte-identical, host audit 391 / peer audit post-P6 0 errors; legacy packages are shims only) |
