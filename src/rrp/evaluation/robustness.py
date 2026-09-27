@@ -166,14 +166,22 @@ def run_legged_shard(route: dict, body: str, cond: dict, seeds: list[int], out: 
     dev = torch.device("cpu")
     done = {json.loads(l)["seed"] for l in out.read_text().splitlines()} if out.exists() else set()
     rows = [json.loads(l) for l in out.read_text().splitlines()] if out.exists() else []
+    cached = None
     with open(out, "a") as f:
         for sd in seeds:
             if sd in done:
                 continue
-            if route["kind"] == "bc":
-                ctl = BCController(Path(route["ckpt"]), dev, nfe=8, replan=5, seed=sd)
-            elif route["kind"] == "flow":
-                ctl = LatentLeggedController(Path(route["ckpt"]), dev, nfe=8, edit="none", t_edit=1.0, seed=sd)
+            # one controller per shard (loading + fingerprinting the checkpoints costs ~15 s); per seed its only
+            # seed-dependent state is reset exactly as a fresh construction would set it (generator, packet/trace logs)
+            if route["kind"] in ("bc", "flow"):
+                if cached is None:
+                    cached = (BCController(Path(route["ckpt"]), dev, nfe=8, replan=5, seed=sd) if route["kind"] == "bc" else
+                              LatentLeggedController(Path(route["ckpt"]), dev, nfe=8, edit="none", t_edit=1.0, seed=sd))
+                ctl = cached
+                ctl.gen = torch.Generator(device=dev).manual_seed(sd)
+                ctl.packets, ctl.trace = [], []
+                if hasattr(ctl, "oracle"):
+                    ctl.oracle = None
             else:
                 ctl = None
             want = video_dir is not None and sd in video_seeds
@@ -442,6 +450,89 @@ def cmd_report(a):
     print(render_md(rep))
 
 
+# ------------------------------------------------------------------ labelled failure videos
+def _cond_by_key(family, robot, key):
+    return next(c for c in conditions(family, robot) if c["key"] == key)
+
+
+def render_video(family: str, route: dict, robot: str, key: str, seed: int, out_dir: Path, sweep_out: Path | None = None,
+                 fps: int = 25) -> dict:
+    """Re-run ONE sweep episode exactly (legged: per-seed controller RNG; arm: the same seed batches in order, since the
+    flow RNG is shared by a batch) and save a captioned mp4 + an artifacts/video/INDEX.md line. The caption names the
+    controller source and the physics condition."""
+    import datetime as dt
+    import re
+    import imageio
+    os.environ.setdefault("MUJOCO_GL", "egl")
+    cond = _cond_by_key(family, robot, key)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    pert_s = json.dumps({k: v for k, v in cond["pert"].to_dict().items()
+                         if k != "version" and v not in (None, 0.0, 1.0, [0.0, 0.0, 0.0])})
+    if family == "legged":
+        import torch
+        from rrp.evaluation.legged_latent_eval import BCController, LatentLeggedController, run_episode, _caption
+        dev = torch.device("cpu")
+        ctl = (BCController(Path(route["ckpt"]), dev, nfe=8, replan=5, seed=seed) if route["kind"] == "bc" else
+               LatentLeggedController(Path(route["ckpt"]), dev, nfe=8, edit="none", t_edit=1.0, seed=seed)
+               if route["kind"] == "flow" else None)
+        row, frames = run_episode(ctl, robot, seed, 60.0, video=True, perturb=cond["pert"])
+        src = row["source"]
+        ok, tag = row["success"], ("success" if row["success"] else ("fell" if row["fell"] else f"failure-{row['failure_stage']}"))
+        lab = dict(teacher="SCRIPTED TEACHER (privileged)", bc="LEARNED BC (positive control)",
+                   flow="LEARNED latent sys-i -> packet -> sys-0")[route["kind"]]
+        imgs = [_caption(f, [f"{lab} | {src}"[:90], f"ROBUSTNESS {key} {pert_s}"[:90], f"{robot} waypoint_contact seed {seed} | {st}"[:90]])
+                for f, st in frames]
+    else:
+        import mujoco
+        from rrp.evaluation.ladder import LadderConfig, load_models, run_ladder
+        from rrp.evaluation.legged_latent_eval import _caption
+        man = json.loads((sweep_out / "manifest.json").read_text()) if sweep_out else None
+        seeds = man["seeds"][robot] if man else feasible_arm_seeds(robot, 3_000_000, 20)
+        kind = route["kind"]
+        cfg = LadderConfig(route=kind, robot=robot, seeds=list(seeds), representation=route.get("rep"), flow=route.get("flow"),
+                           policy=route.get("ckpt"), policy_label=(Path(route["ckpt"]).stem if route.get("ckpt") else None),
+                           replan_ticks=8, max_steps=300, nfe=8, compare_oracle=False, device="cpu", prev_action="zero",
+                           perturb=None if cond["factor"] == NOMINAL else cond["pert"])
+        models, ids = load_models(cfg) if kind != "teacher" else (dict(E=None, R=None, P=None, lcfg=None, res=None, flow=None), {})
+        lab = dict(teacher="SCRIPTED TEACHER (privileged)", learned="LEARNED plain BC",
+                   generated="LEARNED sys-i flow -> packet -> sys-0 (frozen arm route)")[kind]
+        imgs, rend, row = [], {}, None
+        for i in range(0, len(seeds), 16):
+            b = list(seeds[i:i + 16])
+            tgt = b.index(seed) if seed in b else None
+
+            def cb(k, s, step, phase, tgt=tgt):
+                if k != tgt:
+                    return
+                if "r" not in rend:
+                    rend["r"] = mujoco.Renderer(s.model, 360, 480)
+                rend["r"].update_scene(s.data, camera="front")
+                st = " ".join(f"{e}:{v.status}" for e, v in s.runtime.instances.items())
+                imgs.append(_caption(rend["r"].render().copy(), [f"{lab}"[:90], f"ROBUSTNESS {key} {pert_s}"[:90],
+                                                                 f"{robot} pick_place seed {seed} t={s.data.time:.1f}s {st}"[:90]]))
+            rows = run_ladder(replace(cfg, seeds=b), None, models, ids, frame_cb=cb if tgt is not None else None)
+            if tgt is not None:
+                row = rows[tgt]
+                break
+        src = row["source"]
+        ok = row["privileged_success"]
+        tag = "success" if ok else f"failure-{row['failed_stage']}"
+    s_ = re.sub(r"[^A-Za-z0-9_.+-]+", "-", f"{route['name']}")[:40]
+    name = f"{dt.date.today()}_robust_{s_}_{robot}_{key.replace('=', '')}_s{seed}_{tag}.mp4"
+    imageio.mimsave(out_dir / name, imgs, fps=fps, quality=6)
+    with open(out_dir / "INDEX.md", "a") as fh:
+        fh.write(f"- `{name}` — W6 robustness sweep, source={src} (route {route['name']}) robot={robot} "
+                 f"task={'waypoint_contact' if family == 'legged' else 'pick_place'} seed={seed} condition={key} "
+                 f"{pert_s} outcome={tag} (privileged evaluator)\n")
+    return dict(video=name, success=bool(ok), outcome=tag, source=src)
+
+
+def cmd_video(a):
+    route = parse_route(a.route, a.family)
+    r = render_video(a.family, route, a.robot, a.condition, a.seed, Path(a.video_dir), Path(a.out) if a.out else None)
+    print(json.dumps(r))
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -456,8 +547,16 @@ def main(argv=None):
     r.add_argument("--workers", type=int, default=1)
     p = sub.add_parser("report")
     p.add_argument("--out", required=True)
+    v = sub.add_parser("video")
+    v.add_argument("--family", choices=["legged", "arm"], required=True)
+    v.add_argument("--route", required=True)
+    v.add_argument("--robot", required=True)
+    v.add_argument("--condition", required=True, help="condition key, e.g. push_dv=1.5")
+    v.add_argument("--seed", type=int, required=True)
+    v.add_argument("--video-dir", default="artifacts/video")
+    v.add_argument("--out", default=None, help="sweep output dir (arm: seed list from its manifest)")
     a = ap.parse_args(argv)
-    {"run": cmd_run, "report": cmd_report}[a.cmd](a)
+    {"run": cmd_run, "report": cmd_report, "video": cmd_video}[a.cmd](a)
 
 
 if __name__ == "__main__":
