@@ -4,7 +4,8 @@ same model's unedited run over t=2-5 s; per training seed and POOLED over (train
 95% CI over episodes. Added: the scripted_teacher and bc:<ckpt> references on the same R2 dev seeds, and per measure
 an exact permutation test over the training-seed means (fixsem vs nosem; one-sided in the direction of the observed
 difference, and two-sided), plus the pooled fixsem-nosem difference with a bootstrap CI.
-usage: python scripts/legged8_compare.py BODY [LINEAGE_PREFIX=legged8] [TRACK_DIR=artifacts/runs/legged8]
+usage: [L8_CAVEAT="..."] python scripts/legged8_compare.py BODY [LINEAGE_PREFIX=legged8] [TRACK_DIR=artifacts/runs/legged8]
+(BODY may carry a lineage suffix, e.g. t1sl -> lineage legged8-t1sl-*, rows of body t1)
    -> <TRACK_DIR>/legged8_compare_<BODY>.{json,md}"""
 import itertools
 import json
@@ -14,7 +15,8 @@ from pathlib import Path
 
 import numpy as np
 
-body = sys.argv[1]
+lbody = sys.argv[1]                                  # lineage key (e.g. t1sl)
+body = lbody[:-2] if lbody.endswith("sl") else lbody  # simulated body (rows live under <body>/)
 pre = sys.argv[2] if len(sys.argv) > 2 else "legged8"
 T = Path(sys.argv[3] if len(sys.argv) > 3 else "artifacts/runs/legged8")
 exec(open("scripts/legged_edit_effects.py").read().split("def ci")[0])   # feats(r): forward/lateral/dyaw/... in window
@@ -23,7 +25,7 @@ VARIANTS = ("semfix", "nosem", "sem")
 
 
 def lin(v):
-    return T / f"{pre}-{body}-{v}"
+    return T / f"{pre}-{lbody}-{v}"
 
 
 def load(p):
@@ -124,7 +126,7 @@ def r2stat(p):
 
 
 res = {"body": body, "contact_version": "contact_v2", "variants": {}, "references": {}}
-D = T / f"{pre}-{body}-v2data"
+D = T / f"{pre}-{lbody}-v2data"
 for k, pat in (("teacher", "eval_r2-teacher_s0"), ("bc", "eval_r2-bc_s0")):
     res["references"][k] = r2stat(first(D / pat / body, "*.jsonl"))
 raw = {}
@@ -173,8 +175,11 @@ def f(x):
 
 V = res["variants"]
 cols = [(v, s) for v in VARIANTS if v in V for s in list(SEEDS) + ["pooled"] if s in V[v]]
+import os
+CAVEAT = os.environ.get("L8_CAVEAT")          # e.g. a recorded gate exception; printed in the table header and the json
+res["caveat"] = CAVEAT
 md = [f"# {body}, contact_v2 (W8). Sources: learned:<flow ckpt> (R2 deployable route); references scripted_teacher and bc:<ckpt>",
-      "", f"| {body} (contact_v2) | " + " | ".join(f"{v} s{s}" if s != "pooled" else f"{v} POOLED" for v, s in cols) + " |",
+      *([f"**CAVEAT: {CAVEAT}**"] if CAVEAT else []), "", f"| {body} (contact_v2) | " + " | ".join(f"{v} s{s}" if s != "pooled" else f"{v} POOLED" for v, s in cols) + " |",
       "|" + "---|" * (len(cols) + 1)]
 
 
@@ -203,6 +208,6 @@ if tests:
         else:
             md.append(f"| {lab} | {p['seeds_fixsem']} | {p['seeds_nosem']} | {p['every_seed_ordered']} | {p['p_one_sided']} ({p['direction']}) | "
                       f"{p['p_two_sided']} | {f(t['pooled_diff_fixsem_minus_nosem'])} |")
-(T / f"legged8_compare_{body}.json").write_text(json.dumps(res, indent=1, default=str))
-(T / f"legged8_compare_{body}.md").write_text("\n".join(md) + "\n")
+(T / f"legged8_compare_{lbody}.json").write_text(json.dumps(res, indent=1, default=str))
+(T / f"legged8_compare_{lbody}.md").write_text("\n".join(md) + "\n")
 print("\n".join(md))

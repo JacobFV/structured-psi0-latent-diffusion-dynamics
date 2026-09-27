@@ -44,7 +44,12 @@ for i in range(n):
             rr.append(lab(cells[(v, ed)][i], f"{v.upper()} {'UNEDITED' if ed == 'none' else 'CTX HALT @2s'} | fwd t2-8s {I['fwd']:.2f} m"
                           + (" | FELL" if I["fell"] else ""), I["fell"]))
         rows.append(np.concatenate(rr, 1))
-    frames.append(np.concatenate(rows, 0))
+    fr = np.concatenate(rows, 0)
+    if os.environ.get("TILE_BANNER"):                 # a caveat drawn on every frame (e.g. W8 t1 gate exception)
+        im = Image.fromarray(fr).convert("RGB"); d = ImageDraw.Draw(im)
+        d.rectangle([0, 0, im.width, 16], fill=(150, 90, 0)); d.text((6, 3), os.environ["TILE_BANNER"], fill=(255, 255, 255))
+        fr = np.asarray(im)
+    frames.append(fr)
 src = {v: info[(v, "none")]["src"] for v in ("fixsem", "nosem")}
 name = f"{dt.date.today()}_learned_ctxhalt_{body}_trainseed{k}_s{seed}_fixsem-vs-nosem_{kind}.mp4"
 OD = Path(sys.argv[6]) if len(sys.argv) > 6 else Path("artifacts/video")
