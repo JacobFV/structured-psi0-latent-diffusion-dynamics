@@ -1,4 +1,4 @@
-"""YAML subset for DAG files (PyYAML is not a project dependency; it is used when installed).
+"""YAML subset for DAG files (PyYAML is not used, even when installed: its YAML 1.1 scalars differ, see load).
 
 Supported: block mappings and sequences by indentation (spaces only), "- " items (including "- key: value" maps),
 flow sequences [a, b] and flow mappings {a: 1, b: [2, 3]} (nesting allowed), scalars (int, float, true/false,
@@ -16,11 +16,9 @@ class YamlError(ValueError):
 
 
 def load(text: str):
-    try:
-        import yaml  # type: ignore
-        return yaml.safe_load(text)
-    except ImportError:
-        return loads(text)
+    """Always the built-in subset parser (W11): PyYAML, when installed, reads e.g. `5e-05` as a STRING (YAML 1.1
+    floats need a dot), so the parse depended on the environment; test_dag caught it in a venv with PyYAML."""
+    return loads(text)
 
 
 def _strip_comment(line: str) -> str:

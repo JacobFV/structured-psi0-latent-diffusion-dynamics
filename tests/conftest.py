@@ -7,12 +7,14 @@ Markers (registered in pyproject.toml):
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
 
 REPO = Path(__file__).resolve().parents[1]
-MENAGERIE = REPO / ".cache" / "assets" / "mujoco_menagerie"
+# rrp.bodies.importers reads the assets from rrp_home() ($RRP_HOME, else this checkout): skip on the same path
+MENAGERIE = Path(os.environ.get("RRP_HOME", REPO)).expanduser() / ".cache" / "assets" / "mujoco_menagerie"
 PACKED = REPO / "artifacts" / "packed" / "latent_pp_v3dart_s1_H16"
 
 _REQUIREMENTS = {
@@ -25,7 +27,7 @@ def pytest_collection_modifyitems(config, items):
     for marker, (path, reason) in _REQUIREMENTS.items():
         if path.exists():
             continue
-        skip = pytest.mark.skip(reason=f"{reason}: {path.relative_to(REPO)}")
+        skip = pytest.mark.skip(reason=f"{reason}: {path}")
         for item in items:
             if marker in item.keywords:
                 item.add_marker(skip)

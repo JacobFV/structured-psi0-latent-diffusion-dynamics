@@ -10,7 +10,6 @@ import copy
 import json
 import math
 from dataclasses import dataclass, field
-from pathlib import Path
 
 import mujoco
 import numpy as np

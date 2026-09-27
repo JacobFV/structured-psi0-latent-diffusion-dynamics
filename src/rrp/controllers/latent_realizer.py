@@ -11,15 +11,11 @@ Knot consumption: learned attention over knot tokens keyed by (knot_time - phase
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 import numpy as np
 import torch
 import torch.nn as nn
 
 from rrp.contracts.action import NativeCommand
-from rrp.contracts.latent_action import LatentActionChunk, check_packet
-from rrp.contracts.errors import ControllerRejection, StaleActionError
 from rrp.models.attention import MHA
 from rrp.models.batch import NODE_DIM
 from rrp.models.flow import MLP, sinusoidal
