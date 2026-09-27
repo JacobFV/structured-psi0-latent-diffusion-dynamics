@@ -6,7 +6,7 @@ Scope: docs/strategy.md W3 and docs/repo_structure_audit.md section 3 / Phase 1.
 State: **verified** (code, unit tests, smoke runs below).
 
 ## API (`src/rrp/contracts/provenance.py`)
-- `physics_provenance(model, contact_version="contact_v1") -> PhysicsProvenance`: mujoco_version, timestep,
+- `physics_provenance(model, contact_version=None) -> PhysicsProvenance`: mujoco_version, timestep,
   integrator, cone, impratio, solver, iterations, ls_iterations, noslip_iterations, contact_version.
   The contact track (W1) plugs in via `contact_version`: an explicit value, else the model's `contact_version` text
   element (track/contact `apply_world`), else contact_v1; a contradiction raises. Legged collectors pass the scenario's `meta["contact_model"]`
