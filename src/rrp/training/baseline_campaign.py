@@ -51,6 +51,9 @@ def source_config(method: str, seed: int, cell: Path, smoke: bool = False, sourc
     cfg["policy"] = dict(base["policy"], name=f"{method}_seed{seed}")
     if snapshot_steps:
         cfg["snapshot_steps"] = list(snapshot_steps)
+    mp = Path(source_pack) / "meta.json"
+    if mp.exists():                   # W7/D-110: the grasp physics the demonstrations were collected under
+        cfg["grasp_contact_version"] = json.loads(mp.read_text()).get("grasp_contact_version") or "grasp_v1"
     if method == "baseline_action_only_codec":
         ccfg = json.loads(Path("configs/model/codec-small.json").read_text())
         cfg["codec_checkpoint"] = str(cell / "codec" / "codec.pt")

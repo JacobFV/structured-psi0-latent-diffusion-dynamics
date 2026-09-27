@@ -18,6 +18,9 @@ def _job(args):
     args = list(args)
     args += [0.0, None, None][len(args) - 6:]     # defaults: noise 0.0, patient None (unpaired), teacher v1 default
     robot_key, task, seed, n_distr, out_dir, split, noise, patient, teacher_version = args[:9]
+    gc = args[9] if len(args) > 9 else None
+    if gc:                                   # grasp contact version for this worker's scenes (rrp.physics.grasp_contact)
+        os.environ["RRP_GRASP_CONTACT"] = gc
     eid = f"{task}_{robot_key}_s{seed}" + (f"_p{patient}" if patient is not None else "") + \
         (f"_dart{int(noise * 1000)}" if noise else "")
     done = Path(out_dir) / "episodes" / f"{eid}.public.pkl.gz"
@@ -56,6 +59,7 @@ def generate(config: dict) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     jobs = []
     tv = config.get("teacher_version")          # None = the v1 default teacher (historical datasets)
+    gcv = config.get("grasp_contact")           # None = $RRP_GRASP_CONTACT or grasp_v1 (historical datasets)
     for item in config["items"]:
         for k in range(item["episodes"]):
             seed = item["seed_start"] + k
@@ -65,10 +69,10 @@ def generate(config: dict) -> dict:
                     lo, hi = config.get("paired_objects", [2, 3])
                     n_obj = lo + k % (hi - lo + 1)
                     for p in range(n_obj):
-                        jobs.append((item["robot"], task, seed, n_obj - 1, str(out), item["split"], noise, p, tv))
+                        jobs.append((item["robot"], task, seed, n_obj - 1, str(out), item["split"], noise, p, tv, gcv))
                     continue
                 jobs.append((item["robot"], task, seed,
-                             k % (config.get("max_distractors", 2) + 1), str(out), item["split"], noise, None, tv))
+                             k % (config.get("max_distractors", 2) + 1), str(out), item["split"], noise, None, tv, gcv))
     t0 = time.time()
     metas = []
     import multiprocessing as mp
@@ -89,6 +93,8 @@ def generate(config: dict) -> dict:
         from rrp.teachers.arm_smooth import teacher_source, teacher_version_id
         src = teacher_source(tv)
         flags["teacher_version"] = teacher_version_id(tv)
+    gvs = sorted({(m.get("physics") or {}).get("grasp_contact_version") or "grasp_v1" for m in metas if m.get("physics")})
+    flags["grasp_contact_version"] = gvs[0] if len(gvs) == 1 else gvs
     prov = dataset_provenance(metas, source=src, featurizer_version=FEATURIZER_VERSION, flags=flags)
     man = write_manifest(out, config["name"], metas, extra=dict(config=config, wall_s=time.time() - t0,
                                                                 source=prov.source, privileged_teacher=True,

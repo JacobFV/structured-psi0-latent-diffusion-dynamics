@@ -55,6 +55,7 @@ def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, s
     out_dir.mkdir(parents=True, exist_ok=True)
     man = json.loads((ds_dir / "manifest.json").read_text())
     per, ids = {}, []
+    grasp_versions: set = set()
     for m in man["episodes"]:          # global selection (limit applies across the whole dataset)
         rk = m.get("robot_key") or m.get("split_lineage", {}).get("robot_key")
         ok = m.get("status") in statuses or (include_dart_failures and m.get("exec_noise", 0) > 0
@@ -67,6 +68,9 @@ def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, s
             continue
         per[rk] = per.get(rk, 0) + 1
         ids.append(m["episode_id"])
+        grasp_versions.add((m.get("physics") or {}).get("grasp_contact_version") or "grasp_v1")
+    if len(grasp_versions) > 1:        # W7/D-110: never mix grasp contact physics in one training pack
+        raise ValueError(f"episodes with mixed grasp contact versions {sorted(grasp_versions)} in {ds_dir}")
     # streaming: load episodes in groups to bound memory while packing
     arrays = {}
     n = 0
@@ -185,7 +189,8 @@ def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, s
                 # (PackedChunkDataset/LatentData), recorded in every training checkpoint config.
                 prev_action=dict(column=PREV_ACTION_COL, stored="raw_teacher_prev_command_if_collected_pre_D021",
                                  zeroed_in_pack=False, zero_prev_action_is_load_time_flag=True),
-                dataset_provenance=_dataset_provenance(ds_dir))
+                dataset_provenance=_dataset_provenance(ds_dir),
+                grasp_contact_version=(sorted(grasp_versions)[0] if grasp_versions else None))
     (out_dir / "meta.json").write_text(json.dumps(meta, indent=1))
     return meta
 
