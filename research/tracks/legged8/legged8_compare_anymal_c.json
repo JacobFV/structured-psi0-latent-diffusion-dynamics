@@ -842,8 +842,26 @@
   }
  },
  "references": {
-  "teacher": null,
-  "bc": null
+  "teacher": {
+   "success": 30,
+   "n": 30,
+   "fell": 0,
+   "file": "artifacts/runs/legged8/legged8-anymal_c-v2data/eval_r2-teacher_s0/anymal_c/teacher_v2_teacher_anymal_c.jsonl",
+   "source": "scripted_teacher",
+   "contact_versions": [
+    "contact_v2"
+   ]
+  },
+  "bc": {
+   "success": 30,
+   "n": 30,
+   "fell": 0,
+   "file": "artifacts/runs/legged8/legged8-anymal_c-v2data/eval_r2-bc_s0/anymal_c/bc_v2_bc_anymal_c.jsonl",
+   "source": "bc:train_bc_s0/policy.pt",
+   "contact_versions": [
+    "contact_v2"
+   ]
+  }
  },
  "tests_fixsem_vs_nosem": {
   "ctx halt \u0394forward m": {

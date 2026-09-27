@@ -21,8 +21,8 @@
 
 References on the same R2 dev seeds:
 
-- teacher: –
-- bc: –
+- teacher: 30/30 (0 fell), source `scripted_teacher`, physics ['contact_v2']
+- bc: 30/30 (0 fell), source `bc:train_bc_s0/policy.pt`, physics ['contact_v2']
 
 fixsem vs nosem (per-seed means; exact permutation over the 3 vs 3 training seeds; pooled difference with bootstrap CI):
 

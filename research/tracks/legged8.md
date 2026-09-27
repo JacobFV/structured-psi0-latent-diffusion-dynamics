@@ -85,8 +85,15 @@ learned_tracker:anymal_c:iter2499:contact_v2 (sha 2a16532b...), commands scripte
   every seed ordered (p = 0.05 one-sided). Unlike go2/hexapod6 (equal), on anymal_c semfix steers ~2x more.
 - z edits: halt strong in both (-0.64 vs -0.76, not ordered); turn +0.6 +0.26 vs +0.20 (ordered, p 0.05), -0.6 -0.25 vs -0.20; goal readout
   +0.025 vs +0.011 (random |dz| 8: -0.006 both). Random |dz| 16/25 perturb semfix forward progress in both directions by seed (+0.14..-0.22).
-- References (teacher, BC) on the same seeds: added below when the BC reference finishes (the first DAG run skipped the global
-  reference nodes because of a --point filter bug, fixed in rrp: global nodes are never filtered out).
+- References on the same 30 dev seeds: scripted_teacher 30/30, bc:legged8-anymal_c-v2data/train_bc_s0/policy.pt 30/30, no falls
+  (both run after the --point filter bug fix; the BC was shed once at 07:50 and rerun from scratch, lease 1790520661_7050cb).
+- Clips (artifacts/video/INDEX.md): `2026-09-27_learned_ctxhalt_anymal_c_trainseed0_s10002_fixsem-vs-nosem_effect.mp4` (fixsem 2.12 -> 0.99 m,
+  nosem 2.02 -> 1.80 m over t=2-8 s) and `..._s10017_..._noeffect.mp4` (fixsem 1.97 -> 1.70, nosem 2.39 -> 2.92). Reviewed a frame: the
+  halted fixsem robot stops short of waypoint A; nosem reaches it.
+- 08:28 second peer memory emergency (a W10 psi1z job grew ~23 GB in 2 min from 08:26 while the peer sat at ~114 GB): shed go2 rep
+  semfix s1/s2 and t1 rep semfix s1 (the three old-code leases above the 2-lease allocation) at ~step 9000. They are retried with
+  --retry-failed and resume from rep_last.pt, INEXACTLY (their checkpoints predate the CUDA-RNG fix; numpy/torch-CPU RNG restored).
+  Recorded here; these runs are flagged in the wave-2 tables.
 
 ## WAVE 2 (D-103): go2 and t1 on contact_v2 (started 2026-09-27 06:02)
 - Trackers (installed from the contact worktree into artifacts/trackers/<body>/contact_v2/ locally and in the peer store):
