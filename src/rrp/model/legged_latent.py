@@ -24,7 +24,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from rrp.control.legged_latent import NODE_STATIC_DIM, ASM_DIM, GLOBAL_DIM, KNOT_TIMES
+from rrp.features.legged import NODE_STATIC_DIM, ASM_DIM, GLOBAL_DIM, KNOT_TIMES
 from .attention import MHA
 from .flow import MLP, sinusoidal
 

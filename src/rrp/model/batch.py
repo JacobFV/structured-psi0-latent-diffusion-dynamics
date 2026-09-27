@@ -13,7 +13,7 @@ from dataclasses import dataclass
 import numpy as np
 import torch
 
-from rrp.data.features import BANKS, N_REL, HASH_DIM
+from rrp.features.featurizer import BANKS, N_REL, HASH_DIM
 
 MORPH_DIM = 44
 BANK_DIMS = {"morph": MORPH_DIM, "scene": 27, "task": 59, "interact": 32}

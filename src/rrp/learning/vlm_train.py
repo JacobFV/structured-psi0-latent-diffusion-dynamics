@@ -23,7 +23,7 @@ from rrp.learning.checkpoint import save_checkpoint, load_checkpoint
 from rrp.learning.data import episode_samples, collate_samples
 from rrp.model.backbone import Resampler
 from rrp.model.flow import FlowPolicy, PolicyConfig
-from rrp.ops.jobs import CheckpointSignal
+from rrp.contracts.workload import CheckpointSignal
 
 from rrp.learning.behavior import FEAT_VERSION  # noqa: E402  (feat-v2)
 
@@ -251,7 +251,7 @@ def evaluate_main(a):
     import os
     os.environ.setdefault("MUJOCO_GL", "egl")
     from rrp.evaluation.runner import evaluate, summarize
-    from rrp.ops.gpu import apply_cap
+    from rrp.contracts.workload import apply_cap
     from rrp.model.backbone import BackboneSpec, VLMBackbone, PSI0, FALLBACK
     ginfo = apply_cap()
     dev = "cuda"

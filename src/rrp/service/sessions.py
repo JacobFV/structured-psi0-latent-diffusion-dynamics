@@ -422,8 +422,8 @@ def packet_view(ws) -> dict:
                 z_norm_per_knot=[float(np.linalg.norm(p.z[k])) for k in range(p.z.shape[0])])
     probe = ws.policy.probe if hasattr(ws.policy, "probe") else None
     if probe is not None:
-        from rrp.data.features import text_hash  # noqa: F401  (no feature leaks: probe gets only z + handles)
-        from rrp.learning.packed import OPERATORS
+        from rrp.features.featurizer import text_hash  # noqa: F401  (no feature leaks: probe gets only z + handles)
+        from rrp.features.derived import OPERATORS
         dev = next(probe.parameters()).device
         with torch.no_grad():
             z = torch.from_numpy(np.asarray(p.z, np.float32))[None].to(dev)

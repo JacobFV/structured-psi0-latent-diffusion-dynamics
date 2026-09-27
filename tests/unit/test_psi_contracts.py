@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from rrp.control.psi_contracts import ContractBodyError, ContractWidthError, psi0_original, psi0_sonic
+from rrp.contracts.psi import ContractBodyError, ContractWidthError, psi0_original, psi0_sonic
 
 
 def test_layouts_match_audit():

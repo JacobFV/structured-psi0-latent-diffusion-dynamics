@@ -16,7 +16,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from rrp.data.features import BANKS, HASH_DIM, N_REL
+from rrp.features.featurizer import BANKS, HASH_DIM, N_REL
 from .attention import MHA, StructuralBias, transform_relations
 from .batch import Batch, BANK_DIMS, NODE_DIM
 

@@ -1,7 +1,7 @@
 """Leakage guards for the legged latent packet: system 0 must not read task/goal context; probes see only z."""
 import torch
 
-from rrp.control.legged_latent import NODE_STATIC_DIM, ASM_DIM, GLOBAL_DIM
+from rrp.features.legged import NODE_STATIC_DIM, ASM_DIM, GLOBAL_DIM
 from rrp.model.legged_latent import LeggedRealizer, LeggedProbe, LeggedFlow
 
 

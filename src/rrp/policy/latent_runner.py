@@ -8,7 +8,7 @@ import numpy as np
 import torch
 
 from rrp.contracts.latent_action import LatentActionChunk, AssemblyHandle, EntityHandle
-from rrp.data.collect import featurizer_for
+from rrp.features.featurizer import featurizer_for
 from rrp.learning.checkpoint import load_checkpoint
 from rrp.model.batch import collate_inputs
 from rrp.model.flow import FlowPolicy, PolicyConfig

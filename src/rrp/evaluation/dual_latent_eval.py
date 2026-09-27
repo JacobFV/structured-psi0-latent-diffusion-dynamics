@@ -26,7 +26,7 @@ from rrp.contracts.action import NativeCommand
 from rrp.contracts.errors import ControllerRejection, StaleActionError
 from rrp.contracts.latent_action import LatentActionChunk, AssemblyHandle, EntityHandle, check_packet
 from rrp.control.latent_realizer import LatentSystem0
-from rrp.data.features_multi import MultiFeaturizer
+from rrp.features.multi import MultiFeaturizer
 from rrp.learning import dual_latent as DL
 from rrp.learning.packed import OPERATORS, _focus
 from rrp.model.batch import collate_inputs

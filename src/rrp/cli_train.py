@@ -33,7 +33,7 @@ def cmd_evaluate(a):
     from rrp.evaluation.runner import evaluate, summarize
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     if dev == "cuda":
-        from rrp.ops.gpu import apply_cap
+        from rrp.contracts.workload import apply_cap
         apply_cap()
     pol = LearnedPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=a.nfe, execute_prefix=a.prefix)
     seeds = list(range(a.seed_start, a.seed_start + a.episodes))
@@ -75,7 +75,7 @@ def cmd_campaign_cell(a):
     from rrp.evaluation.campaign import run_cell
     protocol = json.loads(open(a.protocol).read())
     if torch_cuda():
-        from rrp.ops.gpu import apply_cap
+        from rrp.contracts.workload import apply_cap
         apply_cap()
     print(json.dumps(run_cell(protocol, a.method, a.seed), indent=1))
 
@@ -84,7 +84,7 @@ def cmd_baseline_cell(a):
     from rrp.evaluation.baseline_campaign import run_baseline_cell
     protocol = json.loads(open(a.protocol).read())
     if torch_cuda():
-        from rrp.ops.gpu import apply_cap
+        from rrp.contracts.workload import apply_cap
         apply_cap()
     for t in a.target.split(","):
         for bud in ([int(x) for x in str(a.budget).split(",")]):

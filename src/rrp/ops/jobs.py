@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .broker import ResourceBroker, LeaseError
+from rrp.contracts.workload import CheckpointSignal  # noqa: F401  (moved to the workload contract, W4)
 
 
 def pid_start_ticks(pid: int) -> int | None:
@@ -103,17 +104,3 @@ def _kill_group(proc: subprocess.Popen, sig):
         os.killpg(proc.pid, sig)
     except ProcessLookupError:
         pass
-
-
-class CheckpointSignal:
-    """Workload helper: set flag on SIGUSR1/SIGTERM so training loops checkpoint and exit."""
-
-    def __init__(self):
-        self.requested = False
-        self.reason = None
-        signal.signal(signal.SIGUSR1, self._h)
-        signal.signal(signal.SIGTERM, self._h)
-
-    def _h(self, signum, frame):
-        self.requested = True
-        self.reason = signal.Signals(signum).name

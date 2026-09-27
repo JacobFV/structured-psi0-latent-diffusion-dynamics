@@ -16,17 +16,11 @@ import mujoco
 import numpy as np
 
 from rrp.control.teachers import PickPlaceTeacher
-from rrp.data.features import Featurizer
+from rrp.features.featurizer import Featurizer, featurizer_for  # noqa: F401  (featurizer_for moved to rrp.features)
 from rrp.sim.native import Session
 from rrp.sim.sensors import camera_visibility
 
 from rrp.contracts.provenance import FEATURIZER_VERSION, physics_provenance  # noqa: E402,F401  (single constant; alias kept)
-
-
-def featurizer_for(session: Session, robot: int = 0) -> Featurizer:
-    mr = session.scenario.robots[robot]
-    return Featurizer(session.model, mr.robot_spec, mr.prefix, mr.meta, mr.base_pos, mr.base_yaw,
-                      mr.manipulator_bindings, robot_index=robot)
 
 
 def privileged_labels(session: Session, feat: Featurizer) -> dict:

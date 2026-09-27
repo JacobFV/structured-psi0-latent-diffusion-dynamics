@@ -28,7 +28,8 @@ def replay_render(robot_key: str, seed: int, n_distractors: int, task: str = "pi
     """Re-simulate a teacher episode and render keyframes. Mirrors collect_teacher_episode."""
     os.environ.setdefault("MUJOCO_GL", "egl")
     from rrp.control.teachers import PickPlaceTeacher
-    from rrp.data.collect import featurizer_for, privileged_labels
+    from rrp.data.collect import privileged_labels
+    from rrp.features.featurizer import featurizer_for
     from rrp.model.backbone import Renderer, task_text
     from rrp.morphology.catalog import workbench_robots
     from rrp.sim.native import Session
@@ -104,7 +105,7 @@ def build_cache(cfg: dict) -> dict:
     import torch
     from rrp.data.collect import read_episode
     from rrp.model.backbone import BackboneSpec, VLMBackbone, PSI0, FALLBACK, image_hash, text_hash
-    from rrp.ops.gpu import apply_cap
+    from rrp.contracts.workload import apply_cap
     ginfo = apply_cap()
     src = FALLBACK if cfg.get("fallback") else PSI0
     spec = BackboneSpec(source=dict(src), taps=tuple(cfg.get("taps", (16, 28))), n_text=cfg.get("n_text", 8))

@@ -40,7 +40,7 @@ def flatten_input(pi) -> np.ndarray:
 def audit_counterfactuals(session_factory) -> list[dict]:
     """Build matched counterfactual pairs on a real session and compare encoded inputs.
     Returns one row per mandatory intervention with its identifiability status."""
-    from rrp.data.collect import featurizer_for
+    from rrp.features.featurizer import featurizer_for
     from rrp.tasks.receipts import Receipt
     rows = []
 

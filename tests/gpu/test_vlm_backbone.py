@@ -12,7 +12,7 @@ os.environ.setdefault("MUJOCO_GL", "egl")
 
 
 def test_real_images_through_adapter_and_resampler():
-    from rrp.ops.gpu import apply_cap
+    from rrp.contracts.workload import apply_cap
     from rrp.model.backbone import BackboneSpec, VLMBackbone, Resampler, Renderer, task_text
     from rrp.sim.fixtures import make_pick_place_session
     apply_cap()

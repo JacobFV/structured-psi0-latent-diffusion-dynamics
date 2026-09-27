@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from rrp.sim.fixtures import make_arm_session, make_pick_place_session
-from rrp.sim.snapshot_contract import Snapshot, SnapshotError
+from rrp.physics.snapshot import Snapshot, SnapshotError
 from rrp.contracts.action import NativeCommand, ActionChunk, GroupCommand
 from rrp.contracts.errors import ControllerRejection, StaleActionError
 from rrp.contracts.channels import serialize_public

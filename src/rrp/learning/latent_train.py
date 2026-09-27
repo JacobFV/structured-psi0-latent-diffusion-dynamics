@@ -33,12 +33,12 @@ from rrp.model.flow import FlowPolicy, PolicyConfig, interpolate_target, masked_
 from rrp.model.latent_probes import PacketProbe, probe_loss, probe_metrics
 from rrp.model.semantic_latent import LatentConfig, TargetEncoder, assembly_tokens
 from rrp.control.latent_realizer import LatentRealizer, REALIZER_RECURRENT_STATE
-from rrp.ops.jobs import CheckpointSignal
+from rrp.contracts.workload import CheckpointSignal
 
 
 def _dev():
     if torch.cuda.is_available():
-        from rrp.ops.gpu import apply_cap
+        from rrp.contracts.workload import apply_cap
         apply_cap()
         return torch.device("cuda")
     return torch.device("cpu")

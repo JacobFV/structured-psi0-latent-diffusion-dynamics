@@ -15,7 +15,7 @@ from rrp.learning.flow_sde import SDEConfig
 
 def _device():
     if torch.cuda.is_available():
-        from rrp.ops.gpu import apply_cap
+        from rrp.contracts.workload import apply_cap
         info = apply_cap()
         torch.backends.cuda.matmul.allow_tf32 = False     # likelihood ratios: keep full fp32 matmuls
         return "cuda", info
@@ -252,7 +252,7 @@ def run(cfg: dict) -> dict:
         from rrp.sim.native import Session
         ecfg = ExpoConfig(nfe=nfe, **cfg.get("expo", {}))
         probe = Session(make(cfg["eval_seed_start"]), seed=0)
-        from rrp.data.collect import featurizer_for
+        from rrp.features.featurizer import featurizer_for
         n_nodes = len(featurizer_for(probe).aspace.node_group)
         agent = ExpoAgent(model, codec, dev, ecfg, execute_prefix=execute_prefix, action_nodes=n_nodes,
                           seed=cfg.get("seed", 0))

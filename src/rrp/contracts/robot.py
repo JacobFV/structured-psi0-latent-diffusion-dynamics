@@ -5,6 +5,7 @@ never a learned robot-name table. Names are presentation metadata only.
 """
 from __future__ import annotations
 
+import hashlib
 from typing import Literal
 
 from pydantic import Field, model_validator
@@ -214,3 +215,8 @@ class RobotSpec(Strict):
 
     def generalized_coordinates(self) -> int:
         return sum(j.qpos_width for j in self.joints)
+
+
+def combined_hash(hashes: list[str]) -> str:
+    """Spec hash of a multi-robot session (rrp.features.multi re-exports it)."""
+    return "multi:" + hashlib.sha256("|".join(hashes).encode()).hexdigest()[:16]

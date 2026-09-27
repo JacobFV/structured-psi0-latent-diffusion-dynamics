@@ -367,7 +367,7 @@ def train_latent_grpo(cfg: LatentGRPORunConfig) -> dict:
         raise ValueError(f"{cfg.robot} is a sealed target body (D-025); pass allow_target for the campaign stage only")
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     if dev == "cuda":
-        from rrp.ops.gpu import apply_cap
+        from rrp.contracts.workload import apply_cap
         apply_cap()
     torch.manual_seed(cfg.seed)
     out = Path(cfg.out_dir)

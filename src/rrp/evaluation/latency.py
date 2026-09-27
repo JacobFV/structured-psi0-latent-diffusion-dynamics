@@ -88,7 +88,7 @@ def bench_policy(model: FlowPolicy, pi, dev, *, nfe_list=(1, 2, 4, 8, 16), reps:
 def run_latency_suite(checkpoints: dict[str, str], out_path: Path, dev=None, node_counts=(7, 16, 32, 64, 128)):
     from rrp.policy.runner import LearnedPolicy
     from rrp.sim.fixtures import make_pick_place_session
-    from rrp.data.collect import featurizer_for
+    from rrp.features.featurizer import featurizer_for
     dev = dev or torch.device("cuda" if torch.cuda.is_available() else "cpu")
     s = make_pick_place_session(seed=5, n_distractors=2)
     f = featurizer_for(s)

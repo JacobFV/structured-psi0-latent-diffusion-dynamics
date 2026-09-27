@@ -23,7 +23,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from rrp.control.legged_latent import public_context, active_event, MAX_N
+from rrp.features.legged import public_context, active_event, MAX_N
 from rrp.learning.legged_latent_train import LeggedData, load_rep, rep_step, _dev, _save, MAX_J, H
 
 
@@ -55,7 +55,7 @@ class Recorder:
         self.rows["ev"].append(active_event(ad.s.runtime)); self.rows["pose"].append(ad.s.base_pose_truth().astype(np.float32))
         self.rows["contact"].append(np.asarray(fc, bool))
         if self.diag:
-            from rrp.control.legged_latent import TICKS_PER_PACKET
+            from rrp.features.legged import TICKS_PER_PACKET
             at = ad.ticks % TICKS_PER_PACKET == 0
             self.rows["pk"].append(bool(at))
             z = np.zeros((4, 11, 32), np.float16)
@@ -104,7 +104,7 @@ def collect(a):
         print(json.dumps(dict(seed=sd, route=a.route, success=row["success"], stage=row["failure_stage"],
                               ticks=len(arr["a"]))), flush=True)
         if morph is None:
-            from rrp.control.legged_latent import LeggedMorph
+            from rrp.features.legged import LeggedMorph
             from rrp.sim.legged import LeggedSession, build_waypoint_contact
             sc = build_waypoint_contact(a.body, sd)
             s = LeggedSession(sc, tracker_kind="cpg", seed=sd) if a.body not in ("go2", "t1", "g1") else \

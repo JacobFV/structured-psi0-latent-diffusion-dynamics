@@ -15,7 +15,8 @@ import torch
 
 from rrp.contracts.errors import ControllerRejection, StaleActionError
 from rrp.control.latent_realizer import LatentSystem0
-from rrp.data.collect import featurizer_for, privileged_labels
+from rrp.data.collect import privileged_labels
+from rrp.features.featurizer import featurizer_for
 from rrp.learning.packed import active_operator, _focus
 from rrp.model.latent_probes import probe_metrics
 

@@ -23,7 +23,7 @@ from rrp.control.ik import IKSolver
 from rrp.tasks.runtime import TaskRuntime
 from .scenario import Scenario
 from .sensors import DetectorConfig, ObjectTracker, camera_visibility, read_sensor
-from .snapshot_contract import Snapshot
+from rrp.physics.snapshot import Snapshot
 
 _obs_counter = itertools.count()
 

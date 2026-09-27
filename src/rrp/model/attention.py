@@ -14,7 +14,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from rrp.data.features import N_REL
+from rrp.features.featurizer import N_REL
 
 
 class StructuralBias(nn.Module):

@@ -239,7 +239,7 @@ class _Skip(Exception):
 def _flat(c):
     """Teacher command -> flat group dict (single robot: NativeCommand.groups; multi: MultiFeaturizer.flatten)."""
     if isinstance(c, dict):
-        from rrp.data.features_multi import MultiFeaturizer
+        from rrp.features.multi import MultiFeaturizer
         return MultiFeaturizer.flatten({i: x.groups for i, x in c.items()})
     return c.groups
 
@@ -266,7 +266,7 @@ def _featurizer(s):
             from rrp.evaluation.dual_latent_eval import multi_featurizer
             f = multi_featurizer(s)
         else:
-            from rrp.data.collect import featurizer_for
+            from rrp.features.featurizer import featurizer_for
             f = s._rrp_featurizer = featurizer_for(s)
     return f
 

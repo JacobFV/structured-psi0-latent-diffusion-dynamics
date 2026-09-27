@@ -109,7 +109,7 @@ def install_prev_action(s, mode: str):
 
 
 def _featurizer(s):
-    from rrp.data.collect import featurizer_for
+    from rrp.features.featurizer import featurizer_for
     f = getattr(s, "_rrp_featurizer", None)
     if f is None:
         f = s._rrp_featurizer = featurizer_for(s)
@@ -517,7 +517,7 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
                     lg = plan[min(row["j"], len(plan) - 1)] if plan else None
                 if lg is not None:
                     a1 = np.zeros(12, np.float32); a1[:n_] = f.aspace.normalize([lg], pi_c.q0)[0]
-                    from rrp.learning.packed import local_sensors
+                    from rrp.features.derived import local_sensors
                     collect["rows"].append((collect["cur"][k], row["j"], nd, n_, local_sensors(pi_c).astype(np.float16), a1))
             if c0 is not None:              # system-0 output (executed in R1/R2; shadow-only in R0) vs teacher label
                 q0z = np.zeros(len(f.aspace.node_group))       # the q0 offset cancels in the difference
@@ -608,7 +608,7 @@ def _cmp_by_phase(rp, T):
 def _compare(models, s, zg, zo, device) -> dict:
     """Same state: generated z vs oracle z (distance), system-0 first-tick action from each vs the teacher label,
     and packet-probe readouts of each against privileged labels (diagnostic)."""
-    from rrp.learning.packed import local_sensors
+    from rrp.features.derived import local_sensors
     from rrp.evaluation.latent_eval import packet_labels
     from rrp.model.latent_probes import probe_metrics
     f = _featurizer(s)

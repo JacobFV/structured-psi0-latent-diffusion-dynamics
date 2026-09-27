@@ -23,7 +23,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from rrp.control.legged_latent import NODE_STATIC_DIM, ASM_DIM, GLOBAL_DIM
+from rrp.features.legged import NODE_STATIC_DIM, ASM_DIM, GLOBAL_DIM
 from rrp.model.flow import MLP, sinusoidal
 from rrp.model.legged_latent import block, run_block
 from rrp.learning.legged_latent_train import LeggedData, _dev, _save, H

@@ -1,32 +1,11 @@
-"""Full continuation snapshot contract: physics AND controller/runtime/sensor/belief/RNG state.
+"""Deprecated import path (W4 restructure, docs/strategy.md): moved to `rrp.physics.snapshot`.
 
-Restoring qpos/qvel alone is not a continuation; every component below must be present.
+This old path stays importable and is the SAME module object (sys.modules alias), so private names, monkeypatching and
+pickles that reference the old path keep working. New code must import `rrp.physics.snapshot` (tests/unit/test_layering.py).
 """
-from __future__ import annotations
+import importlib as _importlib
+import sys as _sys
+import warnings as _warnings
 
-from dataclasses import dataclass, field
-
-REQUIRED_COMPONENTS = ("physics", "controller_state", "task_runtime", "sensor_filters", "entity_tracker",
-                       "belief_state", "command_queue", "sampler_rng", "env_rng", "source_versions", "step_count")
-
-PHYSICS_FIELDS = ("time", "qpos", "qvel", "act", "ctrl", "qacc_warmstart", "mocap_pos", "mocap_quat",
-                  "qfrc_applied", "xfrc_applied")
-
-
-class SnapshotError(ValueError):
-    code = "snapshot_incomplete"
-
-
-@dataclass
-class Snapshot:
-    components: dict = field(default_factory=dict)
-
-    def validate(self) -> "Snapshot":
-        missing = [c for c in REQUIRED_COMPONENTS if c not in self.components]
-        if missing:
-            raise SnapshotError(f"snapshot missing components: {missing}")
-        ph = self.components["physics"]
-        miss_ph = [f for f in PHYSICS_FIELDS if f not in ph]
-        if miss_ph:
-            raise SnapshotError(f"physics snapshot missing fields: {miss_ph}")
-        return self
+_warnings.warn("rrp.sim.snapshot_contract is deprecated; import rrp.physics.snapshot", DeprecationWarning, stacklevel=2)
+_sys.modules[__name__] = _importlib.import_module("rrp.physics.snapshot")

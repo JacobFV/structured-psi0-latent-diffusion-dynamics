@@ -39,7 +39,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from rrp.control.legged_latent import MAX_N
+from rrp.features.legged import MAX_N
 from rrp.learning.legged_latent_train import LeggedData, load_rep, _dev
 from rrp.model.legged_latent import LeggedFlow
 

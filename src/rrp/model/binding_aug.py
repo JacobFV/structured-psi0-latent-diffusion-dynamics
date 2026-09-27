@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import torch
 
-from rrp.data.features import HASH_DIM
+from rrp.features.featurizer import HASH_DIM
 from .batch import Batch
 
 FOCUS_RELS = (4, 5, 6)          # patient_of, target_of, destination_of

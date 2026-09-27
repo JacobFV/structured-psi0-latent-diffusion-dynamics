@@ -500,7 +500,7 @@ class DualSession(Session):
     # ------------------------------------------------------------------ multi-robot commands
     @property
     def multi_spec_hash(self) -> str:
-        from rrp.data.features_multi import combined_hash
+        from rrp.contracts.robot import combined_hash
         return combined_hash([r.spec.spec_hash for r in self.robots])
 
     @property

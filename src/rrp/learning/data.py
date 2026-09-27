@@ -76,7 +76,7 @@ def zero_prev_action_input(pi):
 
 
 def episode_samples(pub: dict, prv: dict, H: int, stride: int = 1) -> list[Sample]:
-    from rrp.data.features import ActionSpace
+    from rrp.features.featurizer import ActionSpace
     asd = pub["action_space"]
     aspace = ActionSpace(**asd)
     T = len(pub["inputs"])
@@ -168,7 +168,7 @@ def collate_samples(chunk: list[Sample]):
         so = 0
         act_events = set()
         tt, tk = pi.tokens["task"], pi.token_kind["task"]
-        from rrp.data.features import HASH_DIM
+        from rrp.features.featurizer import HASH_DIM
         ev_idx = [j for j in range(len(tk)) if tk[j] == 0]
         for j in ev_idx:
             if tt[j, HASH_DIM + 2] > 0.5:       # status one-hot index 2 == active

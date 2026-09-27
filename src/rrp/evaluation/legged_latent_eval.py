@@ -32,7 +32,7 @@ import torch
 
 from rrp.contracts.action import NativeCommand
 from rrp.contracts.latent_action import LatentActionChunk, AssemblyHandle, check_packet
-from rrp.control.legged_latent import (LeggedMorph, public_context, local_state, active_event, TICK_DT,
+from rrp.features.legged import (LeggedMorph, public_context, local_state, active_event, TICK_DT,
                                        TICKS_PER_PACKET, KNOT_TIMES, MAX_N, MAX_M, EVENTS)
 from rrp.learning.legged_latent_train import load_rep, _dev
 from rrp.model.legged_latent import LeggedFlow, LeggedProbe

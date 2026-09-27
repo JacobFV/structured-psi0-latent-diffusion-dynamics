@@ -40,7 +40,7 @@ def cmd_eval(a):
     from rrp.learning.latent_train import load_representation
     dev = "cuda" if torch.cuda.is_available() and not a.cpu else "cpu"
     if dev == "cuda":
-        from rrp.ops.gpu import apply_cap
+        from rrp.contracts.workload import apply_cap
         apply_cap()
     pol = DualLatentPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=a.nfe)
     rep = load_checkpoint(a.checkpoint, map_location="cpu")["config"]["representation"]

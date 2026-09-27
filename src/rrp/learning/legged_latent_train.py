@@ -23,7 +23,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from rrp.control.legged_latent import MAX_N, MAX_M, KNOT_TIMES, TICK_DT
+from rrp.features.legged import MAX_N, MAX_M, KNOT_TIMES, TICK_DT
 from rrp.model.legged_latent import (LeggedEncoder, LeggedRealizer, LeggedProbe, LeggedFlow, probe_loss,
                                      probe_metrics)
 
@@ -35,7 +35,7 @@ KNOT_TICKS = [int(round(k / TICK_DT)) for k in KNOT_TIMES]
 def _dev():
     if torch.cuda.is_available():
         try:
-            from rrp.ops.gpu import apply_cap
+            from rrp.contracts.workload import apply_cap
             apply_cap()
         except Exception:
             pass

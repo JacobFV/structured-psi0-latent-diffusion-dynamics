@@ -15,41 +15,12 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from rrp.data.features import BANKS, HASH_DIM, N_REL
+from rrp.features.featurizer import BANKS, HASH_DIM, N_REL
+from rrp.features.derived import OPERATORS, local_sensors, active_operator  # noqa: F401  (moved to features, W4)
 from rrp.learning.data import load_episodes, episode_samples
 from rrp.model.batch import Batch, BANK_DIMS, NODE_DIM
 
 MAX_T = {"morph": 16, "scene": 8, "task": 24, "interact": 12}
-OPERATORS = ["none", "grasp", "place", "reach", "maintain_support", "estimate_frame", "align_axis", "insert",
-             "give", "receive", "walk_to", "halt", "maintain_hold", "release"]   # appended only (indices are stable)
-
-
-def local_sensors(pi) -> np.ndarray:
-    """Declared local sensors for system 0: touch summary (log max, count>0.2N, log mean) + gripper width."""
-    from rrp.data.features import text_hash
-    th = text_hash("touch")
-    out = np.zeros(4, np.float32)
-    it, ik = pi.tokens["interact"], pi.token_kind["interact"]
-    for j in range(len(ik)):
-        if ik[j] != 1:
-            continue
-        if np.allclose(it[j, 16:], th):
-            out[:3] = it[j, 13:16]
-        else:
-            out[3] = it[j, 13]
-    return out
-
-
-def active_operator(pi) -> int:
-    """Public subtask label: operator of the first ACTIVE event (runtime status is public)."""
-    from rrp.data.features import text_hash
-    tt, tk = pi.tokens["task"], pi.token_kind["task"]
-    for j in range(len(tk)):
-        if tk[j] == 0 and tt[j, HASH_DIM + 2] > 0.5:
-            for k, op in enumerate(OPERATORS):
-                if np.allclose(tt[j, :HASH_DIM], text_hash(op), atol=1e-5):
-                    return k
-    return 0
 MAX_N, MAX_S, MAX_R, MAX_P = 12, 8, 160, 32
 # Bug B-1 (ladder track, 2026-09-25): the node feature layout is [static(26) | q, qd, PREV_ACTION, anchor, axis, jp,
 # jr, lever]; datasets collected before D-021 store the teacher's previous 1-step command at column 28, and the D-021

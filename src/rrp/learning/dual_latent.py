@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from rrp.data.features import HASH_DIM, text_hash
+from rrp.features.featurizer import HASH_DIM, text_hash
 
 REL_NODE_IN_ASM, REL_NODE_ACTOR_OF, REL_KIN_PARENT = 1, 13, 16
 BANK_MORPH, BANK_TASK, BANK_INTERACT = 0, 2, 3

@@ -20,7 +20,7 @@ import torch
 
 from rrp.contracts.action import ActionChunk, GroupCommand
 from rrp.contracts.errors import StaleActionError
-from rrp.data.collect import featurizer_for
+from rrp.features.featurizer import featurizer_for
 from rrp.model.batch import collate_inputs
 from rrp.learning.flow_sde import SDEConfig, sample_sde
 

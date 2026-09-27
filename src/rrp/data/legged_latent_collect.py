@@ -21,7 +21,7 @@ from pathlib import Path
 
 import numpy as np
 
-from rrp.control.legged_latent import LeggedMorph, public_context, local_state, active_event, TICK_DT
+from rrp.features.legged import LeggedMorph, public_context, local_state, active_event, TICK_DT
 from rrp.control.legged_teachers import WaypointTeacher
 from rrp.sim.legged import LeggedSession, build_waypoint_contact
 from rrp.contracts.provenance import CONTACT_VERSION_DEFAULT, parse_source, physics_provenance

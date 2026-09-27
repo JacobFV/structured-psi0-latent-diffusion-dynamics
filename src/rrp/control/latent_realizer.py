@@ -142,7 +142,7 @@ class LatentSystem0:
 
     def local_inputs(self, obs):
         """Only proprio/FK node features and declared local sensors — no scene/task tokens."""
-        from rrp.learning.packed import local_sensors
+        from rrp.features.derived import local_sensors
         pi = self.f(obs)
         return pi, local_sensors(pi)
 

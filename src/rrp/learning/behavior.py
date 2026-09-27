@@ -18,14 +18,14 @@ from rrp.learning.checkpoint import save_checkpoint, load_checkpoint
 from rrp.learning.data import ChunkDataset, load_episodes
 from rrp.model.codec import ActionCodec, CodecConfig
 from rrp.model.flow import FlowPolicy, PolicyConfig
-from rrp.ops.jobs import CheckpointSignal
+from rrp.contracts.workload import CheckpointSignal
 
 from rrp.contracts.provenance import FEATURIZER_VERSION as FEAT_VERSION  # noqa: E402  (alias of the single constant)
 
 
 def device_setup():
     if torch.cuda.is_available():
-        from rrp.ops.gpu import apply_cap
+        from rrp.contracts.workload import apply_cap
         info = apply_cap()
         torch.backends.cuda.matmul.allow_tf32 = True
         return torch.device("cuda"), info
