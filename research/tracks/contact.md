@@ -297,7 +297,9 @@ Compared each installed tracker's training-time effort (`meta.actuator_adapter.a
 Affected results: every t1 tracker (v1, all contact_v2 rounds incl. the turn-trained W8 tracker, and all t1 validations in this file except
 the `*-v1lat-*` / `t1lat*` rows) ran with 2-3x the real t1 torque; W8's t1 data. g1: all g1 trackers and validations (hip roll 58% too strong).
 go2 / anymal_c / h1: unaffected.
-### (3) sourced torque limits are now the body-model DEFAULT (branch track/contact; main merge held for the lead's go-ahead)
+### (3) sourced torque limits are now the body-model DEFAULT (merged to main 2026-09-27 on the lead's go-ahead)
+> **NOTE: the pre-D-107 t1 and g1 trackers (all of them, including the installed contact_v2 t1 used by W8 and the installed g1) need
+> `RRP_ACTUATOR_LIMITS=legacy_gains_v0` to load and to reproduce their recorded results.** Also noted in `artifacts/trackers/README.md`.
 `rrp.bodies.legged.legged_body(key, limits=None)`: `sourced_v1` (default) replaces the gains-table effort by `rrp.physics.actuator.SOURCED` for
 every listed joint; `legacy_gains_v0` (or `RRP_ACTUATOR_LIMITS=legacy_gains_v0`) restores the old physics. The version is in body meta
 (`actuator_limits`), in the compiled model (text element `actuator_limits`) and in `PhysicsProvenance.actuator_limits`; trainers record it in
