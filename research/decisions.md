@@ -472,3 +472,17 @@ Reading: the D-095 nosem deficit is not caused by the two sem-tuned recipe choic
 ## D-100 2026-09-26 third repo `psi1z` (LOCAL ONLY) for the Ψ₀ line; rrp becomes an installable core
 Owner decision: "do the third repo, psi1z, keep it local for now". ~/work/psi1z (git init, no remote; publishing needs owner approval). psi1z contains only adapters: G1 + hands body, SIMPLE env wrapper, Ψ₀ trunk features, structured packet head, packet → Ψ₀ action mapping, datasets, eval entrypoints, upstream patch files. It depends on the rrp core by a pinned git sha, and never copies rrp code: shared pieces (packet contract, system 0, probes, statistics, edit tests, provenance, pipeline/run-dag, ops broker) are changed in rrp and the pin is bumped. Ψ₀ / SIMPLE / Isaac Sim run in isolated Python 3.11 envs under ~/work/ext.
 rrp consequences (W11): rrp source is 3.11-compatible (compiles and the core imports under 3.11), so requires-python is relaxed to >=3.11,<3.13. Define and document a stable public core API; test the core under 3.11.
+
+## D-101 2026-09-27 CONTACT v2: skating fixed on every accepted v2 tracker; full gate only on anymal_c; W8 starts with anymal_c, go2 after a swing-floor fix, humanoids after a turn-in-place fix
+contact agent (research/tracks/contact.md; lead checked `artifacts/runs/contact_v2/val/*_{v1trk_physv1,v2trk*_physv2}.json`). Contact v2: elliptic cones, impratio 10, compliant sole (8 ms), friction 0.9 randomized 0.4–1.25, plus stiffness/mass/CoM/0–8 ms latency randomization. Slope test: creep at 90% of μ 0.1 mm/s (v1 8–13). Staged reward schedule as designed (D-093).
+Stance slip ratio (v1 → v2): t1 0.86 → 0.151; h1 0.57 → 0.13; g1 0.42 → 0.08; go2 0.26 → 0.02; anymal_c 0.34 → 0.03. CoT t1 3.42 → 1.39, go2 2.34 → 0.65, anymal_c 1.06 → 0.34. No falls anywhere.
+Gate failures: humanoids cannot turn in place (turn ratio 0.02–0.03; v1 "turned" by twisting feet on the floor), but turning while walking works (yaw ratio 0.98/0.64/1.15 for t1/h1/g1). go2's swing apex drops to 6 mm once energy terms dominate (the schedule's one failure mode). hexapod6: all learned trackers (v1 too) hold legs off the ground; three v2 runs rejected; the CPG is kept (slip 0.20 in v2 physics).
+Bugs fixed on the way: touchdown clearance penalty made standing optimal; foot-summed slip/swing terms rewarded lifting legs (now per-foot means); lr cap 1e-2 exploded warm starts (--max-lr).
+Decisions:
+(1) Make swing clearance a permanent hinge floor (not a decaying prior) and fine-tune go2.
+(2) Humanoids: turn-in-place curriculum with a stepping-turn reward.
+(3) W8 legged regeneration starts now with anymal_c (passes the full gate), go2 joins after (1), t1 after (2). Meanwhile the arc_only teacher variant (declared) is acceptable for humanoid data collection only if (2) fails.
+(4) hexapod6 stays on the CPG, labelled cpg_tracker; its slip ratio 0.20 is reported as a limitation.
+(5) Then actuator realism (armature, joint friction, torque–speed) and 0–30 ms latency.
+(6) W4 phase 6 (move the legged physics/tracker modules) can proceed.
+v1 remains the default until W8 data is regenerated.
