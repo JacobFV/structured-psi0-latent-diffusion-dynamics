@@ -85,3 +85,22 @@ def test_loop_revokes_only_owned_leases_and_hard_stops_after_grace(tmp_path):
     assert b.totals()["admission_stopped"]
     assert l1.lease_id not in be.leases  # hard stop after (zero) emergency grace
     assert b.leases()[l1.lease_id]['state'] == 'released'
+
+
+def test_peer_ram_store_shmem_is_subtracted_from_the_startup_cap():
+    # D-111 follow-up (fake peer sample): 108 GiB cap sized on an empty RAM store; 48 GiB now in tmpfs (Shmem).
+    # MemAvailable already excludes Shmem, so only the static startup term is reduced: 108 - 48 = 60 GiB.
+    peer = dict(memory_reserve_bytes=6 * G, disk_reserve_bytes=10 * G, startup_memory_bytes=108 * G,
+                startup_cpu_cores=19.97, disk_path="/", fraction=1.0, psi_full_avg10_shed=101.0)
+    s = ok_sample(memory_available=70 * G, project_memory=5 * G, shmem=48 * G)
+    assert evaluate(s, cfg(**peer), WatchdogState()).live_memory_bytes == 69 * G        # min(108, 75, 75 - 6)
+    s2 = ok_sample(memory_available=100 * G, project_memory=5 * G, shmem=48 * G)
+    off = evaluate(s2, cfg(**peer), WatchdogState())
+    on = evaluate(s2, cfg(**peer, subtract_shmem=True), WatchdogState())
+    assert off.live_memory_bytes == 99 * G and on.live_memory_bytes == 60 * G
+    # a store larger than the cap clamps at 0 (admission of new declared memory stops; nothing negative)
+    assert evaluate(ok_sample(memory_available=100 * G, project_memory=0, shmem=200 * G), cfg(**peer, subtract_shmem=True),
+                    WatchdogState()).live_memory_bytes == 0
+    # unknown Shmem (telemetry gap) leaves the limit unchanged
+    assert evaluate(ok_sample(memory_available=100 * G, project_memory=5 * G), cfg(**peer, subtract_shmem=True),
+                    WatchdogState()).live_memory_bytes == 99 * G

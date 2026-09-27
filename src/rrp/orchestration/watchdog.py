@@ -38,6 +38,11 @@ class WatchdogConfig:
     cpu_freq_throttle_ratio: float = 0.7   # shed if hot AND clocks dropped below this fraction of max
     stable_window_samples: int = 15
     project_disk_limit_bytes: int | None = None
+    # D-111 follow-up: the peer's artifact store lives in RAM (tmpfs /dev/shm). Its pages (meminfo Shmem) are not
+    # reclaimable and not part of any lease, but the static admission cap (startup_memory_bytes, D-106) was sized
+    # on an empty store. With this on, the startup term of the live limit becomes startup - Shmem. (The dynamic
+    # terms already exclude Shmem: MemAvailable does not count shared-memory pages as available.)
+    subtract_shmem: bool = False
 
 
 @dataclass
@@ -59,7 +64,7 @@ class Verdict:
 
 
 def evaluate(sample: dict, cfg: WatchdogConfig, st: WatchdogState) -> Verdict:
-    """sample keys: memory_available, swap_free, psi_full_avg10, project_memory,
+    """sample keys: memory_available, swap_free, shmem, psi_full_avg10, project_memory,
     project_psi_full_avg10, disk_free, thermal_c, gpu_temp_c, idle_cores, project_cpu_cores,
     telemetry_errors, project_disk_bytes."""
     reasons, level = [], "ok"
@@ -79,8 +84,12 @@ def evaluate(sample: dict, cfg: WatchdogConfig, st: WatchdogState) -> Verdict:
     if avail is None or avail < 0:
         bump("stop_admission", "memory_telemetry_unavailable")
     else:
+        startup = cfg.startup_memory_bytes
+        shm = sample.get("shmem")
+        if cfg.subtract_shmem and shm is not None and shm >= 0:
+            startup = max(0, startup - int(shm))
         live_mem = live_memory_limit_bytes(
-            startup_limit=cfg.startup_memory_bytes, available_now=avail,
+            startup_limit=startup, available_now=avail,
             project_resident=proj or 0, reserve=cfg.memory_reserve_bytes, fraction=cfg.fraction,
             project_attribution_accurate=proj is not None)
         if avail < cfg.memory_reserve_bytes:
@@ -179,7 +188,7 @@ def collect_sample(cfg: WatchdogConfig, st: WatchdogState, project_slice="rrp.sl
         except ValueError:
             gthrot = None
     return dict(
-        memory_available=mi.get("MemAvailable"), swap_free=mi.get("SwapFree"),
+        memory_available=mi.get("MemAvailable"), swap_free=mi.get("SwapFree"), shmem=mi.get("Shmem"),
         psi_full_avg10=(psi or {}).get("full", {}).get("avg10"),
         project_memory=((cg or {}).get("memory_current") + (telemetry.project_gpu_bytes() or 0 if gpu else 0))
         if (cg or {}).get("memory_current") is not None else None,

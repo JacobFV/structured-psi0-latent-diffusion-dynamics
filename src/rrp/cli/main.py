@@ -62,7 +62,8 @@ def cmd_ops_watchdog(a):
                         startup_memory_bytes=cfg["enforced"]["memory_bytes"],
                         startup_cpu_cores=cfg["enforced"]["cpu_cores"], disk_path=str(a.disk_path or repo_root()),
                         fraction=0.8 if role == "host" else 1.0, psi_full_avg10_shed=25.0 if role == "host" else 101.0,
-                        cpu_fraction=0.8 if role == "host" else 1.0)          # D-033 host CPU 80% of free
+                        cpu_fraction=0.8 if role == "host" else 1.0,          # D-033 host CPU 80% of free
+                        subtract_shmem=role == "peer")                         # D-111: RAM artifact store
     if cfg.get("unrestricted"):
         wc.startup_memory_bytes = 10 ** 15
         wc.startup_cpu_cores = 10000.0
