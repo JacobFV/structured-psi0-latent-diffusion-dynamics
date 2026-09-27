@@ -216,7 +216,7 @@ transfer between placements (cross-placement deps are refused; moving the partia
 needed a pre-made symlink on the peer); (d) no wait-for-admission across memory-PSI admission stops (only capacity
 refusals are waited for), hence the bounded wrapper `scripts/armexpert_dag_loop.sh`.
 Manifest: `artifacts/runs/armexpert/v4dart/collect-v4dart_s1/manifest.json` (+ pipeline_manifest.json), provenance
-source `scripts_teacher` -> `scripted_teacher:pick_place_v2_minjerk`, flags.teacher_version, git 25817c1 (clean).
+source `scripted_teacher:pick_place_v2_minjerk`, flags.teacher_version, git 25817c1 (clean).
 
 Gate (clean episodes per body >= v3dart): **passed on every body** (v4 clean successes 3897/3897 feasible vs v3
 3820/3897; the tf3 bodies gain: ur5e_tf3 257 -> 300, sawyer_tf3 292 -> 300, panda_tf3 140 -> 150, xarm7_tf3 139 -> 150,
