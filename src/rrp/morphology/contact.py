@@ -68,6 +68,16 @@ def version_str(contact: str | None) -> str:
     return CONTACT_MODELS[resolve(contact)]["version"]
 
 
+def model_contact_version(model: mujoco.MjModel) -> str | None:
+    """The contact version a compiled legged world was built with ("contact_v1" | "contact_v2"), read from the
+    model's `contact_version` text element (set by legged_world); None for models not built by legged_world."""
+    tid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_TEXT, "contact_version")
+    if tid < 0:
+        return None
+    adr, n = model.text_adr[tid], model.text_size[tid]
+    return bytes(model.text_data[adr:adr + n - 1]).decode()
+
+
 def floor_friction(mu: float, c: str = "v2") -> list:
     f = CONTACT_MODELS[resolve(c)]["floor"]
     return [float(mu), float(mu * f["torsional_per_mu"]), float(mu * f["rolling_per_mu"])]
@@ -76,6 +86,7 @@ def floor_friction(mu: float, c: str = "v2") -> list:
 def apply_world(spec: mujoco.MjSpec, contact: str | None, source_options: dict | None) -> dict:
     """Set physics options for the world spec; returns kwargs for the floor geom."""
     c = resolve(contact)
+    spec.add_text(name="contact_version", data=CONTACT_MODELS[c]["version"])   # queryable from the compiled model
     if c == "v1":           # legacy, byte-identical to the pre-v2 legged_world
         if source_options:
             spec.option.timestep = source_options["timestep"]
