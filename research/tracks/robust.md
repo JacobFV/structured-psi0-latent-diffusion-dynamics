@@ -376,3 +376,25 @@ shmem + kernel (+ project GPU bytes as now), falling back to memory.current if m
 was used); budget.live_memory_limit_bytes unchanged. Tests: fake memory.stat with cache (P_nr < memory.current; limit and
 shed use P_nr) and with a store (counted once). Caveat: tmpfs files written from outside rrp.slice (e.g. rsync/scp over ssh
 into /dev/shm, ~7 GB of the 29.8 GB now) are not in the project and correctly reduce A only.
+
+## D-116 (b) IMPLEMENTED (lead-approved; merged, NOT deployed: the lead restarts the peer watchdog at a calm moment)
+- `telemetry.read_cgroup` also returns `memory_stat` (parsed memory.stat); `telemetry.nonreclaimable_bytes` = anon + shmem +
+  kernel (older kernels without `kernel`: slab + kernel_stack + pagetables + percpu + sock).
+- `watchdog.project_memory_fields(cg, gpu_bytes)`: project_memory = non-reclaimable rrp.slice usage + CUDA/unified GPU bytes
+  (when the watchdog runs with gpu); falls back to memory.current when memory.stat is unreadable. The sample records
+  `project_memory_source`, `project_memory_current` and `project_gpu_bytes`. `live_memory_limit_bytes` is unchanged.
+- Tests (tests/unit/test_watchdog.py): non-reclaimable only (cache excluded, current recorded); fallback path; GPU bytes added
+  (both paths); parser + kernel-key fallback; the D-116 case with memory.stat (23 G store + 11 G cache in the slice, A 31.5 G,
+  PSI 0 -> ok; limit 81 G vs 92 G with memory.current, i.e. the cache is no longer counted twice). Suite: see commit.
+- Replay / record (`scripts/watchdog_replay_d116.py`, read-only, peer lease 1790550710_5285aa;
+  `artifacts/runs/robust/watchdog_d116_replay.json`):
+  - last 200 LOGGED peer samples (9 min before 16:07): logged 146 stop_admission / 54 ok, all stop_admissions the D-116
+    RAM-store double count at PSI 0; re-evaluated with the deployed config (subtract_shmem off) 193 ok / 7 stop_admission
+    (all `cpu_hot`, thermal, not memory). The logs have no memory.stat, so the NEW definition cannot be replayed on them;
+  - 200 LIVE samples (16:08-16:18, 2-3 s apart), both definitions evaluated on each: old (memory.current + GPU) 198 ok / 2 shed,
+    new (anon + shmem + kernel + GPU) 198 ok / 2 shed, 0 disagreements. P old 71.6-104.9 GiB vs new 66.2-99.4 GiB (5.4 GiB of
+    reclaimable cache); live limit old 107.3-108.0 vs new 101.8-108.0 GiB; MemAvailable min 14.7 GiB, system PSI max 59.
+    The 2 "shed" samples are `sustained_project_memory_psi` (rrp.slice PSI 60.4/61.1 > 60 on 3 consecutive of MY samples),
+    independent of the project-memory definition; the real watchdog (its own sampling) stayed ok throughout.
+Conclusion: the new measure removes the cache double count (limit ~5-11 GB tighter, more accurate), and in the observed
+window it would not have blocked admission or shed anything the old one did not.
