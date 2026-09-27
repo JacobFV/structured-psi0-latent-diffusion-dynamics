@@ -180,7 +180,7 @@ Placement note: the lead asked for host placement at 19:50, but the host broker 
 host attempt stalled under external memory pressure (swap 15/15 GB, memory PSI full 13 %); it was stopped with
 `rrp ops stop --owned-only --lease 1790477714_81f5ec` and the run went to the peer (4 CPU).
 
-## step 2 part 1 (D-097 approval): v4dart data, pack, v2 stateless BC expert — state: running
+## step 2 part 1 (D-097 approval): v4dart data, pack, v2 stateless BC expert — state: verified (completed)
 Scope (lead, after D-097): collect `pick_place_primary_v4dart` = v3dart config + `"teacher_version": "v2"`; pack like
 `latent_pp_v3dart_s1_H16`; train the stateless direct BC at seeds 1701/1702 and evaluate exactly like sprint_bc; report
 BC output smoothness vs the v1 BC expert. Latent lineages NOT started (the lead launches them).
@@ -230,3 +230,102 @@ per failure episode vs 250 in v4dart). Pack rows: v4 1,367,967 vs v3 2,242,823 (
 rows 845k vs 1,776k). Consequence: 6 epochs = ~16k updates for v4 vs 26.3k for v3 (the recipe is epochs-based;
 u12000 is compared at equal updates). If the BC shows weak recovery in late phases, a v2.1 that accepts the grasp after
 the corrections when within 1.6 cm (as v1 does) would restore late-phase DART coverage.
+
+### v2 stateless BC expert (learned:bcv2_direct1701 / bcv2_direct1702)
+Recipe = sprint_bc's direct-action BC unchanged (`rrp campaign baseline-cell --method baseline_direct_action`,
+policy-small-structured, packed stride 2, 6 epochs, batch 256, exact resume, zero_prev_action) except the source pack
+(`--source-pack artifacts/packed/latent_pp_v4dart_s1_H16`, new CLI option; default = the sealed protocol's pack) and a
+kept snapshot at 12,000 updates (`--snapshot-steps 12000`, new; the same weights sprint_bc copied from policy_last).
+Both seeds: 16,068 updates (6 epochs of 685,748 stride-2 chunks; v1: 26,304), ~97 min each on the peer GPU (leases
+1790484137_9d0046 for 1701, then 1702 sequentially: one peer GPU lease at a time; the host broker was full / the host
+shed jobs). Checkpoints (peer store, not in git) `artifacts/runs/armexpert_bcv2/baseline_direct_action/seed<k>/source/`:
+policy.pt sha256[:16] 56e6a6c6cbb8a8fb (1701), 7f5d2d398338881b (1702); policy_u12000.pt 6afcb8efdc277708 (1701),
+b247c01babe85a55 (1702). Driver `scripts/armexpert_bcv2_chain.sh` (all steps rc-checked; one peer memory-reserve shed of
+the 1702 xarm7_pg2 b0 cell was rerun).
+Evaluation = sprint_bc's sets: ladder `learned` route (replan 8, NFE 8, prev-action 0, 300 ticks, privileged
+evaluator) on panda_pg2 / parm6_tf3, first 30 feasible from 3,000,000 (dev) and 3,000,200 (fresh); held-out source
+bodies with the protocol harness (50 seeds from 2,000,000, infeasible excluded) for u12000 (helper
+`research/scripts/2026-09-26/armexpert_bc_heldout.py` = `evaluate_checkpoint`) and final (the protocol source cell);
+budget-0 zero-shot cells (100 each) for final. v1 reference rows are sprint_bc's raw summaries (no v1 final run exists
+on the fresh 3,000,200 set). Raw: `artifacts/runs/armexpert_bcv2_eval/<robot>/learned_bcv2_direct<seed>_<ck>_s<start>.*`,
+`.../heldout/`, `artifacts/runs/armexpert_bcv2/baseline_direct_action/seed<seed>/cells/*.json`; table
+`artifacts/runs/armexpert_bcv2_eval/compare_bc_v1_v2.json` (`research/scripts/2026-09-26/armexpert_bc_compare.py`).
+
+| checkpoint | panda_pg2 dev | parm6_tf3 dev | panda_pg2 fresh 3,000,200 | parm6_tf3 fresh | held-out source (parm5s_tf3, parm5l_pg2) | b0 panda_tf3 / xarm7_pg2 / xarm7_tf3 | cmd_step_rad dev (panda / parm6) |
+|---|---|---|---|---|---|---|---|
+| v1 data: learned:direct1701 (sprint_bc) u12000 | 25/30 | 27/30 | 24/30 | 27/30 | parm5s_tf3 44/47 parm5l_pg2 30/33 | - | 0.085 / 0.048 |
+| v1 data: learned:direct1701 (sprint_bc) final | 30/30 | 30/30 | - | - | 79/80 pooled | 78/100 / 0/100 / 0/100 | 0.097 / 0.047 |
+| v2 data: learned:bcv2_direct1701 u12000 | 29/30 | 30/30 | 30/30 | 30/30 | parm5s_tf3 47/47 parm5l_pg2 33/33 | - | 0.066 / 0.029 |
+| v2 data: learned:bcv2_direct1701 final | 30/30 | 30/30 | 30/30 | 30/30 | 80/80 pooled | 99/100 / 0/100 / 0/100 | 0.065 / 0.028 |
+| v2 data: learned:bcv2_direct1702 u12000 | 26/30 | 30/30 | 29/30 | 30/30 | parm5s_tf3 47/47 parm5l_pg2 33/33 | - | 0.062 / 0.028 |
+| v2 data: learned:bcv2_direct1702 final | 30/30 | 30/30 | 30/30 | 30/30 | 79/80 pooled | 99/100 / 0/100 / 0/100 | 0.064 / 0.028 |
+
+Pooled over the ladder sets (panda + parm6, dev + fresh = 120 episodes): u12000 v1 103/120 (dev+fresh as available:
+25+27+24+27) vs v2 119/120 (1701) and 115/120 (1702); final v1 60/60 (dev only) vs v2 120/120 and 120/120. Held-out
+source: u12000 v1 74/80 vs v2 80/80, 80/80; final v1 79/80 vs v2 80/80, 79/80. Zero-shot panda_tf3 (new gripper
+pairing) 78/100 -> 99/100 (both seeds); unseen xarm7 arms stay 0/100 (a new kinematic chain is not solved without
+target data, as before). **The v2-data expert is at least as competent as the v1-data one on every set, clearly
+better at the u12000 point used for DAgger labels, with fewer updates.** Caveat: v1 has one training seed.
+
+Smoothness of the BC outputs (executed commands of closed-loop rollouts; `teacher_quality --policy`; bodies panda_pg2,
+parm6_tf3, parm5s_tf3, parm5l_pg2, seeds 3,000,000-039, feasible only; the teachers on the same seeds for scale;
+"max joint-velocity step" is per episode, the largest step between consecutive ticks, which for BC is at chunk
+boundaries; BC time stops at the public success, the teachers run to the end of their retreat, so times are not
+comparable). Raw `artifacts/runs/armexpert_bcv2_eval/motion/*.jsonl.gz`, table `motion/compare_motion.json`
+(`research/scripts/2026-09-26/armexpert_bc_motion.py`):
+
+| source | body | success | jerk cmd peak med | jerk cmd rms med | jerk meas peak med | TCP jerk meas med (m/s^3) | max joint-velocity step (rad/s per tick) med | time med (s) |
+|---|---|---|---|---|---|---|---|---|
+| learned:bcv2_direct1701_final | panda_pg2 | 40/40 | 354 | 66 | 53 | 26.6 | 0.59 | 6.9 |
+| learned:bcv2_direct1701_final | parm5l_pg2 | 27/27 | 500 | 65 | 180 | 68.4 | 0.67 | 6.2 |
+| learned:bcv2_direct1701_final | parm5s_tf3 | 36/36 | 588 | 67 | 211 | 70.3 | 0.85 | 6.0 |
+| learned:bcv2_direct1701_final | parm6_tf3 | 28/28 | 333 | 47 | 128 | 63.0 | 0.56 | 6.0 |
+| learned:bcv2_direct1701_u12000 | panda_pg2 | 40/40 | 564 | 75 | 77 | 29.8 | 0.81 | 7.0 |
+| learned:bcv2_direct1701_u12000 | parm5l_pg2 | 27/27 | 655 | 71 | 242 | 71.6 | 0.90 | 6.1 |
+| learned:bcv2_direct1701_u12000 | parm5s_tf3 | 36/36 | 638 | 69 | 245 | 73.8 | 1.00 | 6.0 |
+| learned:bcv2_direct1701_u12000 | parm6_tf3 | 28/28 | 240 | 48 | 114 | 51.8 | 0.51 | 5.9 |
+| learned:bcv2_direct1702_final | panda_pg2 | 40/40 | 341 | 64 | 51 | 28.2 | 0.57 | 6.9 |
+| learned:bcv2_direct1702_final | parm5l_pg2 | 27/27 | 577 | 60 | 225 | 74.2 | 0.86 | 6.2 |
+| learned:bcv2_direct1702_final | parm5s_tf3 | 36/36 | 920 | 88 | 309 | 84.8 | 1.32 | 6.0 |
+| learned:bcv2_direct1702_final | parm6_tf3 | 28/28 | 382 | 47 | 137 | 58.9 | 0.60 | 6.0 |
+| learned:bcv2_direct1702_u12000 | panda_pg2 | 33/40 | 698 | 77 | 92 | 39.7 | 0.97 | 7.0 |
+| learned:bcv2_direct1702_u12000 | parm5l_pg2 | 26/27 | 468 | 59 | 199 | 66.3 | 0.68 | 6.2 |
+| learned:bcv2_direct1702_u12000 | parm5s_tf3 | 36/36 | 835 | 86 | 312 | 97.2 | 1.14 | 6.0 |
+| learned:bcv2_direct1702_u12000 | parm6_tf3 | 28/28 | 811 | 66 | 246 | 98.7 | 1.07 | 6.0 |
+| learned:direct1701_final | panda_pg2 | 39/40 | 856 | 130 | 137 | 52.0 | 1.27 | 5.3 |
+| learned:direct1701_final | parm5l_pg2 | 27/27 | 581 | 105 | 932 | 107.6 | 0.99 | 4.0 |
+| learned:direct1701_final | parm5s_tf3 | 34/36 | 728 | 118 | 577 | 115.6 | 1.37 | 4.0 |
+| learned:direct1701_final | parm6_tf3 | 28/28 | 515 | 87 | 437 | 105.3 | 0.90 | 4.0 |
+| learned:direct1701_u12000 | panda_pg2 | 33/40 | 2074 | 253 | 257 | 101.3 | 2.76 | 5.4 |
+| learned:direct1701_u12000 | parm5l_pg2 | 26/27 | 1340 | 187 | 672 | 199.9 | 1.82 | 4.3 |
+| learned:direct1701_u12000 | parm5s_tf3 | 28/36 | 2351 | 269 | 909 | 312.3 | 3.10 | 4.6 |
+| learned:direct1701_u12000 | parm6_tf3 | 27/28 | 1736 | 191 | 922 | 216.7 | 2.41 | 4.4 |
+| scripted_teacher:pick_place_v1_waypoint | panda_pg2 | 40/40 | 560 | 83 | 141 | 33.5 | 1.27 | 6.0 |
+| scripted_teacher:pick_place_v1_waypoint | parm5l_pg2 | 27/27 | 410 | 80 | 742 | 94.2 | 0.96 | 5.0 |
+| scripted_teacher:pick_place_v1_waypoint | parm5s_tf3 | 36/36 | 618 | 109 | 957 | 86.9 | 1.47 | 4.8 |
+| scripted_teacher:pick_place_v1_waypoint | parm6_tf3 | 28/28 | 382 | 71 | 757 | 93.6 | 0.92 | 5.0 |
+| scripted_teacher:pick_place_v2_minjerk | panda_pg2 | 40/40 | 47 | 7 | 25 | 9.9 | 0.22 | 7.5 |
+| scripted_teacher:pick_place_v2_minjerk | parm5l_pg2 | 27/27 | 40 | 8 | 38 | 15.0 | 0.24 | 6.9 |
+| scripted_teacher:pick_place_v2_minjerk | parm5s_tf3 | 36/36 | 54 | 10 | 42 | 14.6 | 0.31 | 6.7 |
+| scripted_teacher:pick_place_v2_minjerk | parm6_tf3 | 28/28 | 44 | 8 | 38 | 14.8 | 0.25 | 6.7 |
+
+Reading: v2-data BC is smoother than v1-data BC at matched checkpoints: u12000 commanded jerk RMS 48-86 vs 187-269
+rad/s^3 (2.5-4x), peak 240-838 vs 1340-2351, joint-velocity steps 0.5-1.1 vs 1.8-3.1 rad/s per tick, measured TCP jerk
+30-99 vs 101-312 m/s^3. At the final checkpoints the RMS jerk is 1.3-2x lower (47-88 vs 87-130) and measured joint /
+TCP jerk 1.5-4x lower, but peaks overlap (parm5s_tf3 seed 1702: 920 vs v1 728). Both BCs remain far rougher than the v2
+teacher (RMS 7-10): the chunked executor replans every 8 ticks and each new chunk starts from a fresh sample, so the
+largest velocity steps sit at chunk boundaries. Smoothing across chunk boundaries (temporal ensembling / blending the
+overlap, or conditioning on the executing chunk) is the remaining lever; it is a policy-side change, not a data one.
+
+Videos (learned, public observations): `artifacts/video/2026-09-27_learned_bcv2_direct1701_u12000_{panda_pg2_pick_place_s3000001,panda_pg2_pick_place_s3000023,parm6_tf3_pick_place_s3000001}_success.mp4`,
+`2026-09-27_learned_bcv2_direct1701_final_panda_pg2_pick_place_s3000002_success.mp4`, FAILURE
+`2026-09-27_learned_bcv2_direct1701_final_zeroshot_newbody_xarm7_pg2_pick_place_s2000000_failure.mp4` (unseen arm,
+budget 0). Rendered on the peer GPU (leases 1790495783_0ee4f8, 1790495810_c774a0).
+
+### recommendation (for the lead; nothing launched)
+The v2-data BC expert passes the gate (not worse on any set, better at u12000, smoother outputs), so it can replace
+learned:direct1701_u12000 as the DAgger labeller for the v2 lineage set: use `bcv2_direct1701` u12000 (same update
+point as v1's expert) or final; 1702 is the seed-noise check (u12000 panda 26/30 dev vs 29/30 for 1701). Open items
+before the lineage launch: (1) the DART-coverage difference (v4dart DART failures stop at approach); (2) the lineage
+configs must point every pack reference at latent_pp_v4dart_s1_H16 and every BC expert reference at the v2 expert, no
+mixing with v1 components.

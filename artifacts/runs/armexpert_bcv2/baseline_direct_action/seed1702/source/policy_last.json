@@ -1,0 +1,34 @@
+{
+ "path": "artifacts/runs/armexpert_bcv2/baseline_direct_action/seed1702/source/policy_last.pt",
+ "sha256_16": "e75416cc47bce53f",
+ "step": 16000,
+ "versions": {
+  "policy": "baseline_direct_action_seed1702",
+  "featurizer": "feat-v2",
+  "codec": null
+ },
+ "provenance": {
+  "schema_version": "provenance-1",
+  "source": "learned:source/policy_last.pt",
+  "physics": null,
+  "featurizer_version": "feat-v2",
+  "code": {
+   "git_sha": "25817c131781b7b22b57aa4ae6aeb024636d837e",
+   "dirty": false
+  },
+  "weights": {
+   "model": "9f16cf632c4c"
+  },
+  "bundle_fingerprint": "4638451bd6e1",
+  "versions": {
+   "policy": "baseline_direct_action_seed1702",
+   "featurizer": "feat-v2"
+  },
+  "flags": {
+   "zero_prev_action": true
+  },
+  "legacy": false,
+  "created_at": 1790495724.3931322,
+  "notes": ""
+ }
+}

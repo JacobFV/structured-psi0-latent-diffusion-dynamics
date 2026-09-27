@@ -1,0 +1,84 @@
+{
+ "protocol": "latent_slice1",
+ "protocol_status": "SEALED_BEFORE_RESULTS",
+ "method": "baseline_direct_action",
+ "seed": 1701,
+ "target": "source",
+ "budget": 0,
+ "smoke": false,
+ "controller_source": "learned:artifacts/runs/armexpert_bcv2/baseline_direct_action/seed1701/source/policy.pt",
+ "action_path": "native_ActionChunk",
+ "kind": "source_competence",
+ "successes": 80,
+ "attempted": 80,
+ "success_rate": 1.0,
+ "wilson95": [
+  0.9541818697747756,
+  0.9999999999999999
+ ],
+ "per_robot": {
+  "parm5s_tf3": {
+   "attempted": 47,
+   "successes": 47,
+   "success_rate": 1.0,
+   "wilson95": [
+    0.9244423947340892,
+    1.0
+   ],
+   "infeasible": 3,
+   "outcomes": {
+    "infeasible": 3,
+    "success": 47
+   },
+   "public_private_agreement": 1.0,
+   "policy_calls": 728,
+   "control_steps": 5658
+  },
+  "parm5l_pg2": {
+   "attempted": 33,
+   "successes": 33,
+   "success_rate": 1.0,
+   "wilson95": [
+    0.8957300009841286,
+    0.9999999999999999
+   ],
+   "infeasible": 17,
+   "outcomes": {
+    "infeasible": 17,
+    "success": 33
+   },
+   "public_private_agreement": 1.0,
+   "policy_calls": 525,
+   "control_steps": 4096
+  }
+ },
+ "eval_meta": {
+  "controller_source": "learned:artifacts/runs/armexpert_bcv2/baseline_direct_action/seed1701/source/policy.pt",
+  "device": "cpu",
+  "wall_s": 206.7033863067627,
+  "seed_start": 2000000,
+  "episodes": 50,
+  "nfe": 8,
+  "execute_prefix": 8,
+  "max_steps": 300
+ },
+ "acquisition": {
+  "target_demo_episodes": 0,
+  "target_demo_transitions": 0,
+  "target_optimizer_updates": 0,
+  "target_chunk_presentations": 0,
+  "source_pretraining": {
+   "source_policy": {
+    "optimizer_updates": 16068,
+    "batch_size": 256,
+    "chunk_presentations": 4113408,
+    "train_chunks": 685748,
+    "wall_s": 5825.025464296341,
+    "data": "artifacts/packed/latent_pp_v4dart_s1_H16",
+    "stride": 2
+   }
+  }
+ },
+ "sft": null,
+ "eval_rows": "artifacts/runs/armexpert_bcv2/baseline_direct_action/seed1701/eval/source.jsonl"
+}

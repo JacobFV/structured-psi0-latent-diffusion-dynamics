@@ -1,0 +1,43 @@
+{
+ "n": 30,
+ "success": 30,
+ "rate": 1.0,
+ "wilson95": [
+  0.8864829086095221,
+  1.0
+ ],
+ "failed_stage": {
+  "success": 30
+ },
+ "track_q_rad": 0.004315359521902178,
+ "track_tcp_m": 0.004418302422865076,
+ "lab_err_arm": 0.1655639656149175,
+ "lab_err_grip": 0.5938566171238775,
+ "min_tcp_cube_m": 0.0033955976974297994,
+ "cmd_step_rad": 0.02822414401757874,
+ "route": "learned",
+ "robot": "parm6_tf3",
+ "seeds": [
+  3000003,
+  3000041,
+  30
+ ],
+ "replan": 8,
+ "nfe": 8,
+ "prev_action": "zero",
+ "reanchor": false,
+ "oracle_expert": "teacher",
+ "policy_label": "learned:bcv2_direct1702_final",
+ "keep_ticks": false,
+ "oracle_reanchor": false,
+ "object_shift": null,
+ "checkpoints": {
+  "policy": {
+   "path": "artifacts/runs/armexpert_bcv2/baseline_direct_action/seed1702/source/policy.pt",
+   "sha256": "7f5d2d398338881ba3a2e07f24e802f94ddc2cf0533d5f16cbaa1e4280d1a50b",
+   "nfe": 8,
+   "execute_prefix": 8,
+   "label": "learned:bcv2_direct1702_final"
+  }
+ }
+}

@@ -1,0 +1,46 @@
+{
+ "parm5s_tf3": {
+  "attempted": 47,
+  "successes": 47,
+  "success_rate": 1.0,
+  "wilson95": [
+   0.9244423947340892,
+   1.0
+  ],
+  "infeasible": 3,
+  "outcomes": {
+   "infeasible": 3,
+   "success": 47
+  },
+  "public_private_agreement": 1.0,
+  "policy_calls": 728,
+  "control_steps": 5664
+ },
+ "parm5l_pg2": {
+  "attempted": 33,
+  "successes": 33,
+  "success_rate": 1.0,
+  "wilson95": [
+   0.8957300009841286,
+   0.9999999999999999
+  ],
+  "infeasible": 17,
+  "outcomes": {
+   "infeasible": 17,
+   "success": 33
+  },
+  "public_private_agreement": 1.0,
+  "policy_calls": 530,
+  "control_steps": 4112
+ },
+ "_meta": {
+  "controller_source": "learned:artifacts/runs/armexpert_bcv2/baseline_direct_action/seed1701/source/policy_u12000.pt",
+  "device": "cpu",
+  "wall_s": 211.0728747844696,
+  "seed_start": 2000000,
+  "episodes": 50,
+  "nfe": 8,
+  "execute_prefix": 8,
+  "max_steps": 300
+ }
+}

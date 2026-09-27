@@ -1,0 +1,48 @@
+{
+ "steps": 16068,
+ "wall_s": 5825.025464296341,
+ "train_chunks": 685748,
+ "swap_pairs": 0,
+ "n_params": 14923016,
+ "gpu": {
+  "cuda": true,
+  "declared_bytes": 17179869184,
+  "device_total_bytes": 128453668864,
+  "fraction": 0.13374370180262538
+ },
+ "interrupted": false,
+ "checkpoint": {
+  "path": "artifacts/runs/armexpert_bcv2/baseline_direct_action/seed1701/source/policy.pt",
+  "sha256_16": "56e6a6c6cbb8a8fb",
+  "step": 16068,
+  "versions": {
+   "policy": "baseline_direct_action_seed1701",
+   "featurizer": "feat-v2",
+   "codec": null
+  },
+  "provenance": {
+   "schema_version": "provenance-1",
+   "source": "learned:source/policy.pt",
+   "physics": null,
+   "featurizer_version": "feat-v2",
+   "code": {
+    "git_sha": "25817c131781b7b22b57aa4ae6aeb024636d837e",
+    "dirty": false
+   },
+   "weights": {
+    "model": "b50f236a31c2"
+   },
+   "bundle_fingerprint": "5db2aa7eb81a",
+   "versions": {
+    "policy": "baseline_direct_action_seed1701",
+    "featurizer": "feat-v2"
+   },
+   "flags": {
+    "zero_prev_action": true
+   },
+   "legacy": false,
+   "created_at": 1790489965.3858874,
+   "notes": ""
+  }
+ }
+}

@@ -1,0 +1,29 @@
+{
+ "panda_tf3": {
+  "attempted": 100,
+  "successes": 99,
+  "success_rate": 0.99,
+  "wilson95": [
+   0.9455138032509935,
+   0.9982325679553905
+  ],
+  "infeasible": 0,
+  "outcomes": {
+   "success": 99,
+   "timeout": 1
+  },
+  "public_private_agreement": 1.0,
+  "policy_calls": 1814,
+  "control_steps": 14209
+ },
+ "_meta": {
+  "controller_source": "learned:artifacts/runs/armexpert_bcv2/baseline_direct_action/seed1701/source/policy.pt",
+  "device": "cpu",
+  "wall_s": 440.1693832874298,
+  "seed_start": 2000000,
+  "episodes": 100,
+  "nfe": 8,
+  "execute_prefix": 8,
+  "max_steps": 300
+ }
+}

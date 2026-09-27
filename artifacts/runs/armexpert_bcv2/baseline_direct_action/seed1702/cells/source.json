@@ -1,0 +1,85 @@
+{
+ "protocol": "latent_slice1",
+ "protocol_status": "SEALED_BEFORE_RESULTS",
+ "method": "baseline_direct_action",
+ "seed": 1702,
+ "target": "source",
+ "budget": 0,
+ "smoke": false,
+ "controller_source": "learned:artifacts/runs/armexpert_bcv2/baseline_direct_action/seed1702/source/policy.pt",
+ "action_path": "native_ActionChunk",
+ "kind": "source_competence",
+ "successes": 79,
+ "attempted": 80,
+ "success_rate": 0.9875,
+ "wilson95": [
+  0.9325372985264325,
+  0.9977900245039738
+ ],
+ "per_robot": {
+  "parm5s_tf3": {
+   "attempted": 47,
+   "successes": 47,
+   "success_rate": 1.0,
+   "wilson95": [
+    0.9244423947340892,
+    1.0
+   ],
+   "infeasible": 3,
+   "outcomes": {
+    "infeasible": 3,
+    "success": 47
+   },
+   "public_private_agreement": 1.0,
+   "policy_calls": 729,
+   "control_steps": 5679
+  },
+  "parm5l_pg2": {
+   "attempted": 33,
+   "successes": 32,
+   "success_rate": 0.9696969696969697,
+   "wilson95": [
+    0.8468127447352589,
+    0.9946305895225589
+   ],
+   "infeasible": 17,
+   "outcomes": {
+    "infeasible": 17,
+    "success": 32,
+    "timeout": 1
+   },
+   "public_private_agreement": 1.0,
+   "policy_calls": 565,
+   "control_steps": 4397
+  }
+ },
+ "eval_meta": {
+  "controller_source": "learned:artifacts/runs/armexpert_bcv2/baseline_direct_action/seed1702/source/policy.pt",
+  "device": "cpu",
+  "wall_s": 131.2922167778015,
+  "seed_start": 2000000,
+  "episodes": 50,
+  "nfe": 8,
+  "execute_prefix": 8,
+  "max_steps": 300
+ },
+ "acquisition": {
+  "target_demo_episodes": 0,
+  "target_demo_transitions": 0,
+  "target_optimizer_updates": 0,
+  "target_chunk_presentations": 0,
+  "source_pretraining": {
+   "source_policy": {
+    "optimizer_updates": 16068,
+    "batch_size": 256,
+    "chunk_presentations": 4113408,
+    "train_chunks": 685748,
+    "wall_s": 5770.870876312256,
+    "data": "artifacts/packed/latent_pp_v4dart_s1_H16",
+    "stride": 2
+   }
+  }
+ },
+ "sft": null,
+ "eval_rows": "artifacts/runs/armexpert_bcv2/baseline_direct_action/seed1702/eval/source.jsonl"
+}
