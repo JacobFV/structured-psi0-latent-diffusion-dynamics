@@ -37,7 +37,8 @@
    "air_time_s": 0.0,
    "swing_apex_m": 0.0,
    "step_hz": 0.0,
-   "peak_force_bw": 3.5440410176593002,
+   "peak_force_bw": 2.0315499489595323,
+   "peak_force_raw_bw": 3.5440410176593002,
    "joint_limit_margin_min": -0.041626094818364906,
    "cmd": [
     0.0,
@@ -60,7 +61,8 @@
    "air_time_s": 0.09028421052631581,
    "swing_apex_m": 0.04259835007290489,
    "step_hz": 3.2775919732441468,
-   "peak_force_bw": 4.207498903102579,
+   "peak_force_bw": 2.005841088283059,
+   "peak_force_raw_bw": 4.207498903102579,
    "joint_limit_margin_min": -0.04111819975069301,
    "cmd": [
     0.48,
@@ -83,7 +85,8 @@
    "air_time_s": 0.09174545454545456,
    "swing_apex_m": 0.03573515352845682,
    "step_hz": 2.1338912133891212,
-   "peak_force_bw": 3.514252732373977,
+   "peak_force_bw": 2.4103192388306707,
+   "peak_force_raw_bw": 3.514252732373977,
    "joint_limit_margin_min": -0.05331906867913457,
    "cmd": [
     0.0,
@@ -106,7 +109,8 @@
    "air_time_s": 0.09884675324675327,
    "swing_apex_m": 0.039782162939422834,
    "step_hz": 2.196652719665272,
-   "peak_force_bw": 4.456216428699378,
+   "peak_force_bw": 2.7422978612864553,
+   "peak_force_raw_bw": 4.456216428699378,
    "joint_limit_margin_min": -0.04542750631557699,
    "cmd": [
     0.0,
@@ -129,7 +133,8 @@
    "air_time_s": 0.10483157894736843,
    "swing_apex_m": 0.047600122211343784,
    "step_hz": 3.3110367892976584,
-   "peak_force_bw": 4.025546377808499,
+   "peak_force_bw": 1.9980817992753683,
+   "peak_force_raw_bw": 4.025546377808499,
    "joint_limit_margin_min": -0.043953600912088005,
    "cmd": [
     0.4,
@@ -152,7 +157,8 @@
    "air_time_s": 0.09199068825910932,
    "swing_apex_m": 0.04317792165496498,
    "step_hz": 3.2943143812709024,
-   "peak_force_bw": 4.207498903102579,
+   "peak_force_bw": 2.005841088283059,
+   "peak_force_raw_bw": 4.207498903102579,
    "joint_limit_margin_min": -0.04111819975069301,
    "cmd": [
     0.48,
@@ -165,7 +171,6 @@
   "verdict": "fail",
   "failed": [
    "cot_forward=2.1330465076318412 (threshold <= 2.0 (biped))",
-   "peak_foot_force_bw=4.456216428699378 (threshold <= 3.5)",
    "joint_limit_margin=-0.05331906867913457 (threshold >= 0.02)"
   ],
   "not_evaluated": []

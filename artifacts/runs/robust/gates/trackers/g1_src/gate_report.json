@@ -27,9 +27,9 @@
   {
    "name": "peak_foot_force_bw",
    "status": "fail",
-   "value": 9.749074701931104,
-   "threshold": "<= 3.5",
-   "note": "max over trials and physics substeps (contact normal force per foot / body weight)"
+   "value": 4.091500249154985,
+   "threshold": "<= 3.0 (biped; 20 ms moving average)",
+   "note": "max over trials of the peak 20 ms moving-average contact normal force per foot / body weight; unfiltered per-step peak 9.75"
   },
   {
    "name": "joint_limit_margin",
@@ -56,7 +56,7 @@
  "failed": [
   "slip_ratio_forward=0.3822147791841948 (threshold < 0.15)",
   "cot_forward=2.8713357366757704 (threshold <= 2.0 (biped))",
-  "peak_foot_force_bw=9.749074701931104 (threshold <= 3.5)",
+  "peak_foot_force_bw=4.091500249154985 (threshold <= 3.0 (biped; 20 ms moving average))",
   "joint_limit_margin=-0.08853345662296917 (threshold >= 0.02)"
  ],
  "not_evaluated": []

@@ -43,7 +43,8 @@
    "air_time_s": 0.0,
    "swing_apex_m": 0.0,
    "step_hz": 0.0,
-   "peak_force_bw": 1.279257701578775,
+   "peak_force_bw": 0.9490692642402166,
+   "peak_force_raw_bw": 1.279257701578775,
    "joint_limit_margin_min": 0.26917138269225327,
    "cmd": [
     0.0,
@@ -66,7 +67,8 @@
    "air_time_s": 0.246,
    "swing_apex_m": 0.0375550018779469,
    "step_hz": 2.0066889632107023,
-   "peak_force_bw": 1.6609056605129673,
+   "peak_force_bw": 1.2213295140233853,
+   "peak_force_raw_bw": 1.6609056605129673,
    "joint_limit_margin_min": 0.1118798233531812,
    "cmd": [
     0.6,
@@ -89,7 +91,8 @@
    "air_time_s": 0.48160000000000014,
    "swing_apex_m": 0.03261276701725796,
    "step_hz": 1.0460251046025104,
-   "peak_force_bw": 1.5879156816249047,
+   "peak_force_bw": 1.0567122581420147,
+   "peak_force_raw_bw": 1.5879156816249047,
    "joint_limit_margin_min": 0.26201018572527274,
    "cmd": [
     0.0,
@@ -112,7 +115,8 @@
    "air_time_s": 0.37350000000000005,
    "swing_apex_m": 0.03243729408175383,
    "step_hz": 1.2552301255230125,
-   "peak_force_bw": 1.8197121453811358,
+   "peak_force_bw": 1.115321668813293,
+   "peak_force_raw_bw": 1.8197121453811358,
    "joint_limit_margin_min": 0.2593814402458636,
    "cmd": [
     0.0,
@@ -135,7 +139,8 @@
    "air_time_s": 0.2703636363636363,
    "swing_apex_m": 0.033160621330307005,
    "step_hz": 1.8394648829431435,
-   "peak_force_bw": 1.6110648889223649,
+   "peak_force_bw": 1.1619117576530007,
+   "peak_force_raw_bw": 1.6110648889223649,
    "joint_limit_margin_min": 0.1480434723468509,
    "cmd": [
     0.5,
@@ -158,7 +163,8 @@
    "air_time_s": 0.24533333333333332,
    "swing_apex_m": 0.0373108384605195,
    "step_hz": 2.0066889632107023,
-   "peak_force_bw": 2.237614459657799,
+   "peak_force_bw": 1.5385970984526642,
+   "peak_force_raw_bw": 2.237614459657799,
    "joint_limit_margin_min": 0.1096809813113812,
    "cmd": [
     0.6,
@@ -177,7 +183,8 @@
     "mean_wz": 0.0003827067095127057,
     "slip_mps": 0.003601914182604434,
     "cot": null,
-    "peak_force_bw": 1.193677939686046,
+    "peak_force_bw": 0.9266170658872848,
+    "peak_force_raw_bw": 1.193677939686046,
     "joint_limit_margin_min": 0.2694503451943575,
     "cmd": [
      0.0,
@@ -207,7 +214,8 @@
     "mean_wz": 0.00037452702486675827,
     "slip_mps": 0.003929924320819134,
     "cot": null,
-    "peak_force_bw": 1.279257701578775,
+    "peak_force_bw": 0.9490692642402166,
+    "peak_force_raw_bw": 1.279257701578775,
     "joint_limit_margin_min": 0.27490562574686545,
     "cmd": [
      0.0,
@@ -237,7 +245,8 @@
     "mean_wz": 0.00048474997769754107,
     "slip_mps": 0.0034775231329964578,
     "cot": null,
-    "peak_force_bw": 1.1154549491646475,
+    "peak_force_bw": 0.8772052987824641,
+    "peak_force_raw_bw": 1.1154549491646475,
     "joint_limit_margin_min": 0.27117759036771805,
     "cmd": [
      0.0,
@@ -267,7 +276,8 @@
     "mean_wz": 0.0005114695250492977,
     "slip_mps": 0.003768527806633208,
     "cot": null,
-    "peak_force_bw": 1.0262936905120337,
+    "peak_force_bw": 0.8354330202904328,
+    "peak_force_raw_bw": 1.0262936905120337,
     "joint_limit_margin_min": 0.27015680771777434,
     "cmd": [
      0.0,
@@ -297,7 +307,8 @@
     "mean_wz": 0.0006343890698652701,
     "slip_mps": 0.0038541378793711676,
     "cot": null,
-    "peak_force_bw": 1.1174684757132816,
+    "peak_force_bw": 0.9267969091836133,
+    "peak_force_raw_bw": 1.1174684757132816,
     "joint_limit_margin_min": 0.26917138269225327,
     "cmd": [
      0.0,
@@ -329,7 +340,8 @@
     "mean_wz": -0.08817269155707598,
     "slip_mps": 0.1958166169284349,
     "cot": 0.8785312671248132,
-    "peak_force_bw": 1.5325394264917065,
+    "peak_force_bw": 1.2000251193346585,
+    "peak_force_raw_bw": 1.5325394264917065,
     "joint_limit_margin_min": 0.11402422695231124,
     "cmd": [
      0.6,
@@ -359,7 +371,8 @@
     "mean_wz": -0.08784168590095356,
     "slip_mps": 0.19300239966123747,
     "cot": 0.8786964272772497,
-    "peak_force_bw": 1.5325382952230884,
+    "peak_force_bw": 1.1972802951773875,
+    "peak_force_raw_bw": 1.5325382952230884,
     "joint_limit_margin_min": 0.11407153037541642,
     "cmd": [
      0.6,
@@ -389,7 +402,8 @@
     "mean_wz": -0.08757731456826388,
     "slip_mps": 0.20295310342413225,
     "cot": 0.8768475951036359,
-    "peak_force_bw": 1.6609056605129673,
+    "peak_force_bw": 1.2213295140233853,
+    "peak_force_raw_bw": 1.6609056605129673,
     "joint_limit_margin_min": 0.1118798233531812,
     "cmd": [
      0.6,
@@ -419,7 +433,8 @@
     "mean_wz": -0.08791297667941567,
     "slip_mps": 0.19291535869313725,
     "cot": 0.8788224368818175,
-    "peak_force_bw": 1.6230241161297163,
+    "peak_force_bw": 1.2110783401171732,
+    "peak_force_raw_bw": 1.6230241161297163,
     "joint_limit_margin_min": 0.11358827161936093,
     "cmd": [
      0.6,
@@ -449,7 +464,8 @@
     "mean_wz": -0.08784081019295215,
     "slip_mps": 0.19434793431482225,
     "cot": 0.879546443942183,
-    "peak_force_bw": 1.5651618112102126,
+    "peak_force_bw": 1.1949597846192406,
+    "peak_force_raw_bw": 1.5651618112102126,
     "joint_limit_margin_min": 0.11189366506473222,
     "cmd": [
      0.6,
@@ -481,7 +497,8 @@
     "mean_wz": 0.4737207158923937,
     "slip_mps": 0.04618172848493486,
     "cot": null,
-    "peak_force_bw": 1.419614824545328,
+    "peak_force_bw": 1.0567122581420147,
+    "peak_force_raw_bw": 1.419614824545328,
     "joint_limit_margin_min": 0.26201018572527274,
     "cmd": [
      0.0,
@@ -511,7 +528,8 @@
     "mean_wz": 0.4744612560673833,
     "slip_mps": 0.04510778274273001,
     "cot": null,
-    "peak_force_bw": 1.5879156816249047,
+    "peak_force_bw": 1.0493537106459738,
+    "peak_force_raw_bw": 1.5879156816249047,
     "joint_limit_margin_min": 0.2651476439914419,
     "cmd": [
      0.0,
@@ -541,7 +559,8 @@
     "mean_wz": 0.47912671743207996,
     "slip_mps": 0.04710235836436293,
     "cot": null,
-    "peak_force_bw": 1.4305851961189189,
+    "peak_force_bw": 1.0241912882791933,
+    "peak_force_raw_bw": 1.4305851961189189,
     "joint_limit_margin_min": 0.26231611240659947,
     "cmd": [
      0.0,
@@ -571,7 +590,8 @@
     "mean_wz": 0.4728758270852799,
     "slip_mps": 0.04602791433628925,
     "cot": null,
-    "peak_force_bw": 1.3619923998083416,
+    "peak_force_bw": 0.9719745258270768,
+    "peak_force_raw_bw": 1.3619923998083416,
     "joint_limit_margin_min": 0.2630241634922605,
     "cmd": [
      0.0,
@@ -601,7 +621,8 @@
     "mean_wz": 0.473891540770874,
     "slip_mps": 0.046434531781402395,
     "cot": null,
-    "peak_force_bw": 1.394283420559637,
+    "peak_force_bw": 1.049302795430486,
+    "peak_force_raw_bw": 1.394283420559637,
     "joint_limit_margin_min": 0.2621527653417443,
     "cmd": [
      0.0,
@@ -633,7 +654,8 @@
     "mean_wz": 0.7245195332639207,
     "slip_mps": 0.06429310918038572,
     "cot": null,
-    "peak_force_bw": 1.8197121453811358,
+    "peak_force_bw": 1.0583324415382351,
+    "peak_force_raw_bw": 1.8197121453811358,
     "joint_limit_margin_min": 0.2593890825491077,
     "cmd": [
      0.0,
@@ -663,7 +685,8 @@
     "mean_wz": 0.7221061532420467,
     "slip_mps": 0.06446993327532423,
     "cot": null,
-    "peak_force_bw": 1.7469856841060174,
+    "peak_force_bw": 1.1132753879577666,
+    "peak_force_raw_bw": 1.7469856841060174,
     "joint_limit_margin_min": 0.2593814402458636,
     "cmd": [
      0.0,
@@ -693,7 +716,8 @@
     "mean_wz": 0.7264604949883828,
     "slip_mps": 0.06435341816306082,
     "cot": null,
-    "peak_force_bw": 1.7155648277714513,
+    "peak_force_bw": 1.057800224295302,
+    "peak_force_raw_bw": 1.7155648277714513,
     "joint_limit_margin_min": 0.2600368606371453,
     "cmd": [
      0.0,
@@ -723,7 +747,8 @@
     "mean_wz": 0.7211750133016993,
     "slip_mps": 0.06503502865811917,
     "cot": null,
-    "peak_force_bw": 1.6670264442457692,
+    "peak_force_bw": 1.0608714030782398,
+    "peak_force_raw_bw": 1.6670264442457692,
     "joint_limit_margin_min": 0.26019066645591016,
     "cmd": [
      0.0,
@@ -753,7 +778,8 @@
     "mean_wz": 0.7248441753918934,
     "slip_mps": 0.06492063804245315,
     "cot": null,
-    "peak_force_bw": 1.8086755271737707,
+    "peak_force_bw": 1.115321668813293,
+    "peak_force_raw_bw": 1.8086755271737707,
     "joint_limit_margin_min": 0.25962447189177634,
     "cmd": [
      0.0,
@@ -785,7 +811,8 @@
     "mean_wz": 0.31298848075327973,
     "slip_mps": 0.16173945724042532,
     "cot": 1.2616472410515451,
-    "peak_force_bw": 1.6110570115887966,
+    "peak_force_bw": 1.16190991938654,
+    "peak_force_raw_bw": 1.6110570115887966,
     "joint_limit_margin_min": 0.15087649100274278,
     "cmd": [
      0.5,
@@ -815,7 +842,8 @@
     "mean_wz": 0.31169530851770605,
     "slip_mps": 0.16291667878876917,
     "cot": 1.2525279742537578,
-    "peak_force_bw": 1.4516221117231207,
+    "peak_force_bw": 1.0980253298439662,
+    "peak_force_raw_bw": 1.4516221117231207,
     "joint_limit_margin_min": 0.14805352510270142,
     "cmd": [
      0.5,
@@ -845,7 +873,8 @@
     "mean_wz": 0.31295391543829887,
     "slip_mps": 0.1633867990559116,
     "cot": 1.2577518616807428,
-    "peak_force_bw": 1.5082831860387031,
+    "peak_force_bw": 1.1026600708942986,
+    "peak_force_raw_bw": 1.5082831860387031,
     "joint_limit_margin_min": 0.14922445725335076,
     "cmd": [
      0.5,
@@ -875,7 +904,8 @@
     "mean_wz": 0.3123486424074239,
     "slip_mps": 0.16265167273149891,
     "cot": 1.2520935399794644,
-    "peak_force_bw": 1.6109693156466398,
+    "peak_force_bw": 1.1618892829773617,
+    "peak_force_raw_bw": 1.6109693156466398,
     "joint_limit_margin_min": 0.1480434723468509,
     "cmd": [
      0.5,
@@ -905,7 +935,8 @@
     "mean_wz": 0.312988550721693,
     "slip_mps": 0.16205537372532983,
     "cot": 1.2562860602780326,
-    "peak_force_bw": 1.6110648889223649,
+    "peak_force_bw": 1.1619117576530007,
+    "peak_force_raw_bw": 1.6110648889223649,
     "joint_limit_margin_min": 0.15087661937039115,
     "cmd": [
      0.5,
@@ -937,7 +968,8 @@
     "mean_wz": -0.0780626058421492,
     "slip_mps": 0.19732303182890587,
     "cot": 0.877188026720467,
-    "peak_force_bw": 1.8951241996217156,
+    "peak_force_bw": 1.4784666723112783,
+    "peak_force_raw_bw": 1.8951241996217156,
     "joint_limit_margin_min": 0.11188027679898332,
     "cmd": [
      0.6,
@@ -967,7 +999,8 @@
     "mean_wz": -0.08077043338035053,
     "slip_mps": 0.1934427205428748,
     "cot": 0.8779269640931491,
-    "peak_force_bw": 2.173428041373698,
+    "peak_force_bw": 1.5210962680263251,
+    "peak_force_raw_bw": 2.173428041373698,
     "joint_limit_margin_min": 0.10996451655656689,
     "cmd": [
      0.6,
@@ -997,7 +1030,8 @@
     "mean_wz": -0.07802786791146625,
     "slip_mps": 0.19569241889895728,
     "cot": 0.8762077519466452,
-    "peak_force_bw": 1.7122054467551453,
+    "peak_force_bw": 1.3780080214920043,
+    "peak_force_raw_bw": 1.7122054467551453,
     "joint_limit_margin_min": 0.1118798233531812,
     "cmd": [
      0.6,
@@ -1027,7 +1061,8 @@
     "mean_wz": -0.08091981496439128,
     "slip_mps": 0.19309584553817194,
     "cot": 0.8783693897025464,
-    "peak_force_bw": 2.237614459657799,
+    "peak_force_bw": 1.5385970984526642,
+    "peak_force_raw_bw": 2.237614459657799,
     "joint_limit_margin_min": 0.1096809813113812,
     "cmd": [
      0.6,
@@ -1057,7 +1092,8 @@
     "mean_wz": -0.07767387051752525,
     "slip_mps": 0.1955902728398429,
     "cot": 0.87687841782674,
-    "peak_force_bw": 1.8396820365398612,
+    "peak_force_bw": 1.4655102152731772,
+    "peak_force_raw_bw": 1.8396820365398612,
     "joint_limit_margin_min": 0.11159878094531026,
     "cmd": [
      0.6,
@@ -1081,7 +1117,7 @@
    }
   ]
  },
- "wall_s": 8.197801113128662,
+ "wall_s": 10.10852336883545,
  "contact_model": "contact_v2",
  "actuator": "v1",
  "actuator_limits": "sourced_v1",
@@ -1177,9 +1213,9 @@
    {
     "name": "peak_foot_force_bw",
     "status": "pass",
-    "value": 2.237614459657799,
-    "threshold": "<= 3.5",
-    "note": "max over trials and physics substeps (contact normal force per foot / body weight)"
+    "value": 1.5385970984526642,
+    "threshold": "<= 3.5 (quadruped; 20 ms moving average)",
+    "note": "max over trials of the peak 20 ms moving-average contact normal force per foot / body weight; unfiltered per-step peak 2.24"
    },
    {
     "name": "joint_limit_margin",

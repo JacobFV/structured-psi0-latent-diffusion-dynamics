@@ -43,7 +43,8 @@
    "air_time_s": 0.0,
    "swing_apex_m": 0.0,
    "step_hz": 0.0,
-   "peak_force_bw": 3.5440410176593002,
+   "peak_force_bw": 2.0315499489595323,
+   "peak_force_raw_bw": 3.5440410176593002,
    "joint_limit_margin_min": -0.041626094818364906,
    "cmd": [
     0.0,
@@ -66,7 +67,8 @@
    "air_time_s": 0.09028421052631581,
    "swing_apex_m": 0.04259835007290489,
    "step_hz": 3.2775919732441468,
-   "peak_force_bw": 4.207498903102579,
+   "peak_force_bw": 2.005841088283059,
+   "peak_force_raw_bw": 4.207498903102579,
    "joint_limit_margin_min": -0.04111819975069301,
    "cmd": [
     0.48,
@@ -89,7 +91,8 @@
    "air_time_s": 0.09174545454545456,
    "swing_apex_m": 0.03573515352845682,
    "step_hz": 2.1338912133891212,
-   "peak_force_bw": 3.514252732373977,
+   "peak_force_bw": 2.4103192388306707,
+   "peak_force_raw_bw": 3.514252732373977,
    "joint_limit_margin_min": -0.05331906867913457,
    "cmd": [
     0.0,
@@ -112,7 +115,8 @@
    "air_time_s": 0.09884675324675327,
    "swing_apex_m": 0.039782162939422834,
    "step_hz": 2.196652719665272,
-   "peak_force_bw": 4.456216428699378,
+   "peak_force_bw": 2.7422978612864553,
+   "peak_force_raw_bw": 4.456216428699378,
    "joint_limit_margin_min": -0.04542750631557699,
    "cmd": [
     0.0,
@@ -135,7 +139,8 @@
    "air_time_s": 0.10483157894736843,
    "swing_apex_m": 0.047600122211343784,
    "step_hz": 3.3110367892976584,
-   "peak_force_bw": 4.025546377808499,
+   "peak_force_bw": 1.9980817992753683,
+   "peak_force_raw_bw": 4.025546377808499,
    "joint_limit_margin_min": -0.043953600912088005,
    "cmd": [
     0.4,
@@ -158,7 +163,8 @@
    "air_time_s": 0.09199068825910932,
    "swing_apex_m": 0.04317792165496498,
    "step_hz": 3.2943143812709024,
-   "peak_force_bw": 4.207498903102579,
+   "peak_force_bw": 2.005841088283059,
+   "peak_force_raw_bw": 4.207498903102579,
    "joint_limit_margin_min": -0.04111819975069301,
    "cmd": [
     0.48,
@@ -177,7 +183,8 @@
     "mean_wz": -0.011614323634278502,
     "slip_mps": 0.00662600613365936,
     "cot": null,
-    "peak_force_bw": 3.3783990340265433,
+    "peak_force_bw": 2.0315499489595323,
+    "peak_force_raw_bw": 3.3783990340265433,
     "joint_limit_margin_min": -0.03766904800165227,
     "cmd": [
      0.0,
@@ -205,7 +212,8 @@
     "mean_wz": -0.012064629465060513,
     "slip_mps": 0.005612281403365731,
     "cot": null,
-    "peak_force_bw": 3.083968546197104,
+    "peak_force_bw": 1.7609382904398077,
+    "peak_force_raw_bw": 3.083968546197104,
     "joint_limit_margin_min": -0.041626094818364906,
     "cmd": [
      0.0,
@@ -233,7 +241,8 @@
     "mean_wz": -0.017373536788663255,
     "slip_mps": 0.005118692582357841,
     "cot": null,
-    "peak_force_bw": 3.115078219477967,
+    "peak_force_bw": 1.8391513303123523,
+    "peak_force_raw_bw": 3.115078219477967,
     "joint_limit_margin_min": -0.03731256723807285,
     "cmd": [
      0.0,
@@ -261,7 +270,8 @@
     "mean_wz": -0.010153422829910717,
     "slip_mps": 0.006298576281446547,
     "cot": null,
-    "peak_force_bw": 3.5440410176593002,
+    "peak_force_bw": 1.7725702362770714,
+    "peak_force_raw_bw": 3.5440410176593002,
     "joint_limit_margin_min": -0.03670408579894622,
     "cmd": [
      0.0,
@@ -289,7 +299,8 @@
     "mean_wz": -0.016009160443319126,
     "slip_mps": 0.006056572578677442,
     "cot": null,
-    "peak_force_bw": 3.212024123025532,
+    "peak_force_bw": 1.907655911842676,
+    "peak_force_raw_bw": 3.212024123025532,
     "joint_limit_margin_min": -0.0392913354754397,
     "cmd": [
      0.0,
@@ -319,7 +330,8 @@
     "mean_wz": 0.211282022996963,
     "slip_mps": 0.08747321570400543,
     "cot": 2.0699318805885327,
-    "peak_force_bw": 3.770648362321207,
+    "peak_force_bw": 1.9814678549944205,
+    "peak_force_raw_bw": 3.770648362321207,
     "joint_limit_margin_min": -0.03751454713731168,
     "cmd": [
      0.48,
@@ -347,7 +359,8 @@
     "mean_wz": 0.21972386932257168,
     "slip_mps": 0.09658051914625465,
     "cot": 2.1534429358035427,
-    "peak_force_bw": 3.8462116442061887,
+    "peak_force_bw": 2.005841088283059,
+    "peak_force_raw_bw": 3.8462116442061887,
     "joint_limit_margin_min": -0.04111819975069301,
     "cmd": [
      0.48,
@@ -375,7 +388,8 @@
     "mean_wz": 0.22230618024709312,
     "slip_mps": 0.09219708521085403,
     "cot": 2.1092727567508804,
-    "peak_force_bw": 3.4957858612168855,
+    "peak_force_bw": 1.9188960387756469,
+    "peak_force_raw_bw": 3.4957858612168855,
     "joint_limit_margin_min": -0.03754382033924743,
     "cmd": [
      0.48,
@@ -403,7 +417,8 @@
     "mean_wz": 0.2157313413112673,
     "slip_mps": 0.09228320168368116,
     "cot": 2.165056550033374,
-    "peak_force_bw": 3.843594233450153,
+    "peak_force_bw": 1.9630780682402758,
+    "peak_force_raw_bw": 3.843594233450153,
     "joint_limit_margin_min": -0.036777316683698456,
     "cmd": [
      0.48,
@@ -431,7 +446,8 @@
     "mean_wz": 0.2210757823385157,
     "slip_mps": 0.08204339933972271,
     "cot": 2.167528414982875,
-    "peak_force_bw": 4.207498903102579,
+    "peak_force_bw": 1.9757720915018202,
+    "peak_force_raw_bw": 4.207498903102579,
     "joint_limit_margin_min": -0.039158019350754456,
     "cmd": [
      0.48,
@@ -461,7 +477,8 @@
     "mean_wz": 0.40458307540152505,
     "slip_mps": 0.034205877798098465,
     "cot": 6.957278978294454,
-    "peak_force_bw": 3.514252732373977,
+    "peak_force_bw": 2.195459314617012,
+    "peak_force_raw_bw": 3.514252732373977,
     "joint_limit_margin_min": -0.04128797652433734,
     "cmd": [
      0.0,
@@ -489,7 +506,8 @@
     "mean_wz": 0.3870650721057519,
     "slip_mps": 0.03196154709436323,
     "cot": 7.096762396663745,
-    "peak_force_bw": 3.1728514721729204,
+    "peak_force_bw": 1.803652849464547,
+    "peak_force_raw_bw": 3.1728514721729204,
     "joint_limit_margin_min": -0.04875705511302163,
     "cmd": [
      0.0,
@@ -517,7 +535,8 @@
     "mean_wz": 0.3928039982258981,
     "slip_mps": 0.033260712443158216,
     "cot": 7.42670378863083,
-    "peak_force_bw": 3.380621531992839,
+    "peak_force_bw": 1.9622825675692153,
+    "peak_force_raw_bw": 3.380621531992839,
     "joint_limit_margin_min": -0.051109995534396845,
     "cmd": [
      0.0,
@@ -545,7 +564,8 @@
     "mean_wz": 0.3938084001334576,
     "slip_mps": 0.03454392178727751,
     "cot": 7.237821068488642,
-    "peak_force_bw": 3.0518300868519295,
+    "peak_force_bw": 1.9919213999718708,
+    "peak_force_raw_bw": 3.0518300868519295,
     "joint_limit_margin_min": -0.049192146169307074,
     "cmd": [
      0.0,
@@ -573,7 +593,8 @@
     "mean_wz": 0.3897934679065932,
     "slip_mps": 0.031288050341149634,
     "cot": 7.081883774016163,
-    "peak_force_bw": 3.247344918081228,
+    "peak_force_bw": 2.4103192388306707,
+    "peak_force_raw_bw": 3.247344918081228,
     "joint_limit_margin_min": -0.05331906867913457,
     "cmd": [
      0.0,
@@ -603,7 +624,8 @@
     "mean_wz": 0.4623462744169918,
     "slip_mps": 0.03713460687520189,
     "cot": 8.610871967753456,
-    "peak_force_bw": 3.485521730473588,
+    "peak_force_bw": 2.2799761110662087,
+    "peak_force_raw_bw": 3.485521730473588,
     "joint_limit_margin_min": -0.04211099984136664,
     "cmd": [
      0.0,
@@ -631,7 +653,8 @@
     "mean_wz": 0.45371965661067803,
     "slip_mps": 0.03921029701121331,
     "cot": 9.445931917253391,
-    "peak_force_bw": 3.7273826177003477,
+    "peak_force_bw": 2.3221954166065557,
+    "peak_force_raw_bw": 3.7273826177003477,
     "joint_limit_margin_min": -0.04542750631557699,
     "cmd": [
      0.0,
@@ -659,7 +682,8 @@
     "mean_wz": 0.46611169889794113,
     "slip_mps": 0.035037298102049606,
     "cot": 8.725753838005172,
-    "peak_force_bw": 3.311696552795381,
+    "peak_force_bw": 2.087134040347952,
+    "peak_force_raw_bw": 3.311696552795381,
     "joint_limit_margin_min": -0.03823578495249684,
     "cmd": [
      0.0,
@@ -687,7 +711,8 @@
     "mean_wz": 0.4599626515622497,
     "slip_mps": 0.03454685205436167,
     "cot": 9.420965034880457,
-    "peak_force_bw": 3.1826326770536437,
+    "peak_force_bw": 1.9558137233362538,
+    "peak_force_raw_bw": 3.1826326770536437,
     "joint_limit_margin_min": -0.041528958126662185,
     "cmd": [
      0.0,
@@ -715,7 +740,8 @@
     "mean_wz": 0.46643165892586214,
     "slip_mps": 0.03885832197119013,
     "cot": 8.274570649844177,
-    "peak_force_bw": 4.456216428699378,
+    "peak_force_bw": 2.7422978612864553,
+    "peak_force_raw_bw": 4.456216428699378,
     "joint_limit_margin_min": -0.042104944404963734,
     "cmd": [
      0.0,
@@ -745,7 +771,8 @@
     "mean_wz": 0.4603267577781512,
     "slip_mps": 0.08196258913235792,
     "cot": 5.503558313179319,
-    "peak_force_bw": 3.6509719762504864,
+    "peak_force_bw": 1.9185402640371143,
+    "peak_force_raw_bw": 3.6509719762504864,
     "joint_limit_margin_min": -0.04030799945119067,
     "cmd": [
      0.4,
@@ -773,7 +800,8 @@
     "mean_wz": 0.44748634981321966,
     "slip_mps": 0.08582880146698503,
     "cot": 4.739806371845095,
-    "peak_force_bw": 4.0156943314147595,
+    "peak_force_bw": 1.8789850968333357,
+    "peak_force_raw_bw": 4.0156943314147595,
     "joint_limit_margin_min": -0.043953600912088005,
     "cmd": [
      0.4,
@@ -801,7 +829,8 @@
     "mean_wz": 0.4622651538068037,
     "slip_mps": 0.07664826439605761,
     "cot": 5.59211256549985,
-    "peak_force_bw": 3.7465870056830206,
+    "peak_force_bw": 1.9272167225880215,
+    "peak_force_raw_bw": 3.7465870056830206,
     "joint_limit_margin_min": -0.04089341914880528,
     "cmd": [
      0.4,
@@ -829,7 +858,8 @@
     "mean_wz": 0.46522531208248774,
     "slip_mps": 0.08504248798250721,
     "cot": 5.419428002632189,
-    "peak_force_bw": 4.025546377808499,
+    "peak_force_bw": 1.8626002231775167,
+    "peak_force_raw_bw": 4.025546377808499,
     "joint_limit_margin_min": -0.040094393351870566,
     "cmd": [
      0.4,
@@ -857,7 +887,8 @@
     "mean_wz": 0.4654024010384813,
     "slip_mps": 0.08158222443183225,
     "cot": 5.303366355844905,
-    "peak_force_bw": 3.7248718771772666,
+    "peak_force_bw": 1.9980817992753683,
+    "peak_force_raw_bw": 3.7248718771772666,
     "joint_limit_margin_min": -0.04101351354186955,
     "cmd": [
      0.4,
@@ -887,7 +918,8 @@
     "mean_wz": 0.22489262417008202,
     "slip_mps": 0.0946807370952105,
     "cot": 2.163428915319198,
-    "peak_force_bw": 3.770648362321207,
+    "peak_force_bw": 1.9814678549944205,
+    "peak_force_raw_bw": 3.770648362321207,
     "joint_limit_margin_min": -0.03751454713731168,
     "cmd": [
      0.48,
@@ -915,7 +947,8 @@
     "mean_wz": 0.22849539070508407,
     "slip_mps": 0.08934157265966963,
     "cot": 2.193821591503562,
-    "peak_force_bw": 3.8462116442061887,
+    "peak_force_bw": 2.005841088283059,
+    "peak_force_raw_bw": 3.8462116442061887,
     "joint_limit_margin_min": -0.04111819975069301,
     "cmd": [
      0.48,
@@ -943,7 +976,8 @@
     "mean_wz": 0.22332889694957697,
     "slip_mps": 0.09540040359733622,
     "cot": 2.1257593142703186,
-    "peak_force_bw": 3.4957858612168855,
+    "peak_force_bw": 1.9188960387756469,
+    "peak_force_raw_bw": 3.4957858612168855,
     "joint_limit_margin_min": -0.03754382033924743,
     "cmd": [
      0.48,
@@ -971,7 +1005,8 @@
     "mean_wz": 0.21926533787892966,
     "slip_mps": 0.08896375222254439,
     "cot": 2.1959276681656967,
-    "peak_force_bw": 3.843594233450153,
+    "peak_force_bw": 1.9630780682402758,
+    "peak_force_raw_bw": 3.843594233450153,
     "joint_limit_margin_min": -0.036777316683698456,
     "cmd": [
      0.48,
@@ -999,7 +1034,8 @@
     "mean_wz": 0.23243837550771237,
     "slip_mps": 0.09329661296798021,
     "cot": 2.22233961458687,
-    "peak_force_bw": 4.207498903102579,
+    "peak_force_bw": 1.9757720915018202,
+    "peak_force_raw_bw": 4.207498903102579,
     "joint_limit_margin_min": -0.039158019350754456,
     "cmd": [
      0.48,
@@ -1021,7 +1057,7 @@
    }
   ]
  },
- "wall_s": 15.538535594940186,
+ "wall_s": 18.29515314102173,
  "contact_model": "contact_v2",
  "actuator": "v1",
  "actuator_limits": "sourced_v1",
@@ -1116,10 +1152,10 @@
    },
    {
     "name": "peak_foot_force_bw",
-    "status": "fail",
-    "value": 4.456216428699378,
-    "threshold": "<= 3.5",
-    "note": "max over trials and physics substeps (contact normal force per foot / body weight)"
+    "status": "pass",
+    "value": 2.7422978612864553,
+    "threshold": "<= 3.0 (biped; 20 ms moving average)",
+    "note": "max over trials of the peak 20 ms moving-average contact normal force per foot / body weight; unfiltered per-step peak 4.46"
    },
    {
     "name": "joint_limit_margin",
@@ -1145,7 +1181,6 @@
   ],
   "failed": [
    "cot_forward=2.1330465076318412 (threshold <= 2.0 (biped))",
-   "peak_foot_force_bw=4.456216428699378 (threshold <= 3.5)",
    "joint_limit_margin=-0.05331906867913457 (threshold >= 0.02)"
   ],
   "not_evaluated": []

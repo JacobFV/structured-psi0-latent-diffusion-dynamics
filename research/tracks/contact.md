@@ -497,3 +497,15 @@ unchanged); hexapod6 restarted with `--max-lr 1e-3`. go2/t1/anymal_c/h1/g1 ran w
    `scripts/contact_validate.sh <list>` with lines `<body> v2 v2 v2trk` and `<body> runs/.../actor_alpha0.pt v2 v2a0`.
 3. Videos: `scripts/render_contact_compare.py --body <b>`. Host: GPU lease, and imageio/pillow from an isolated
    `--target` dir (`uv pip install --target <scratch>/pylib imageio imageio-ffmpeg pillow`); the host venv has neither.
+
+## NOTE from W6 (2026-09-27, lead decision after D-112): permanent joint-limit-margin penalty in the gait_v2 reward
+The D-112 tracker gate backfill (`research/tracks/robust.md`, `artifacts/runs/robust/gates/`) found the t1 w8c / installed w8d
+trackers and the g1_src candidate driving joints PAST their ranges (min margin -0.04 / -0.05 / -0.09 of range; soft limits
+penetrated). Added (W6, legged_core.py): `RewardCfg.limit_margin` (PERMANENT; gait_v2 default -1.0, gait_v1 0) x
+`limit_margin_penalty(q, jlo, jhi, m0=0.02)` = mean over policy joints of (max(0, 0.02 - margin) / 0.02)^2 (0 inside the gate
+band, 1 at the limit, 4 at 2% past it), on top of the existing -2 x overshoot-beyond-5%-soft-limit term. It applies to FUTURE
+tracker training (it is in `weights()`, so trainers record it); installed t1/g1 trackers are labelled, not retrained.
+Test: tests/unit/test_reward_schedule.py::test_limit_margin_penalty_is_permanent_and_hinged. W1 owner: please review the
+weight when the next tracker run starts (it is not tuned).
+Also: the tracker gate's foot force is now the peak of the 20 ms moving average (quadruped <= 3.5, biped <= 3.0 BW);
+tracker_validation reports it as `peak_force_bw` plus the unfiltered `peak_force_raw_bw`.

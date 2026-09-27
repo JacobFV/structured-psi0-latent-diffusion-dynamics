@@ -465,3 +465,12 @@ v2 teacher needs no change (4811/4811). Regenerating the arm data under grasp_v2
 every arm lineage's physics (record `grasp_contact_version` and do not mix with grasp_v1 data or checkpoints), and the
 learned policies' closing commands (v1 labels close fully) will now meet a 40 N / 2.2 N m limit with stiff contact:
 re-evaluate any existing checkpoint under grasp_v2 before comparing.
+
+## BACKLOG (added by W6 per the lead, after D-112): limit-aware IK with margin for the procedural arms
+The v2 teacher drives the procedural parm5/5l/6/7 arms into their joint limits: in 13-36% of feasible episodes (18 bodies x 300
+seeds, grasp_v2, `artifacts/runs/armexpert_grasp/final_graspv2_18bodies.jsonl.gz`) the minimum joint-limit margin is ~0
+(median 0.033-0.064), while panda/sawyer/ur5e/xarm7 keep >= 0.02 in every episode. Teacher defect (the IK solves to the range
+edge; the procedural ranges are invented). Fix: limit-aware IK (a margin term or clamped null-space objective, e.g. keep
+margin >= 0.05 of range) and re-check with `rrp.evaluation.gates.check_arm_dataset` on teacher_quality rows. Until then
+the D-112 arm dataset gate REPORTS (labels) the margin on parm* bodies and enforces it on menagerie arms
+(`joint_limit_margin_procedural` vs `joint_limit_margin`), so v5dart is not blocked. W6 notes: research/tracks/robust.md.

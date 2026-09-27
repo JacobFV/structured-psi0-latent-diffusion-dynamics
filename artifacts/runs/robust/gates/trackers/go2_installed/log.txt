@@ -1,13 +1,13 @@
 WARNING: Attach conflict when attaching 'go2' to 'go2_world', policy is 'warning'
 impratio: parent has 10 (default), child has 100, keeping parent value
 
-/home/brandonin/work/rrp-wt/robust/src/rrp/bodies/legged.py:529: UserWarning: Attach conflict when attaching 'go2' to 'go2_world', policy is 'warning'
+/dev/shm/rrp-brandonin/wt/robust/src/rrp/bodies/legged.py:529: UserWarning: Attach conflict when attaching 'go2' to 'go2_world', policy is 'warning'
 impratio: parent has 10 (default), child has 100, keeping parent value
   model = scene.compile()
 WARNING: Attach conflict when attaching 'go2' to 'go2_world', policy is 'warning'
 impratio: parent has 10 (default), child has 100, keeping parent value
 
-/home/brandonin/work/rrp-wt/robust/src/rrp/bodies/legged.py:529: UserWarning: Attach conflict when attaching 'go2' to 'go2_world', policy is 'warning'
+/dev/shm/rrp-brandonin/wt/robust/src/rrp/bodies/legged.py:529: UserWarning: Attach conflict when attaching 'go2' to 'go2_world', policy is 'warning'
 impratio: parent has 10 (default), child has 100, keeping parent value
   model = scene.compile()
 WARNING: Attach conflict when attaching 'go2' to 'go2_world', policy is 'warning'
@@ -64,7 +64,8 @@ impratio: parent has 10 (default), child has 100, keeping parent value
    "air_time_s": 0.0,
    "swing_apex_m": 0.0,
    "step_hz": 0.0,
-   "peak_force_bw": 1.279257701578775,
+   "peak_force_bw": 0.9490692642402166,
+   "peak_force_raw_bw": 1.279257701578775,
    "joint_limit_margin_min": 0.26917138269225327,
    "cmd": [
     0.0,
@@ -87,7 +88,8 @@ impratio: parent has 10 (default), child has 100, keeping parent value
    "air_time_s": 0.246,
    "swing_apex_m": 0.0375550018779469,
    "step_hz": 2.0066889632107023,
-   "peak_force_bw": 1.6609056605129673,
+   "peak_force_bw": 1.2213295140233853,
+   "peak_force_raw_bw": 1.6609056605129673,
    "joint_limit_margin_min": 0.1118798233531812,
    "cmd": [
     0.6,
@@ -110,7 +112,8 @@ impratio: parent has 10 (default), child has 100, keeping parent value
    "air_time_s": 0.48160000000000014,
    "swing_apex_m": 0.03261276701725796,
    "step_hz": 1.0460251046025104,
-   "peak_force_bw": 1.5879156816249047,
+   "peak_force_bw": 1.0567122581420147,
+   "peak_force_raw_bw": 1.5879156816249047,
    "joint_limit_margin_min": 0.26201018572527274,
    "cmd": [
     0.0,
@@ -133,7 +136,8 @@ impratio: parent has 10 (default), child has 100, keeping parent value
    "air_time_s": 0.37350000000000005,
    "swing_apex_m": 0.03243729408175383,
    "step_hz": 1.2552301255230125,
-   "peak_force_bw": 1.8197121453811358,
+   "peak_force_bw": 1.115321668813293,
+   "peak_force_raw_bw": 1.8197121453811358,
    "joint_limit_margin_min": 0.2593814402458636,
    "cmd": [
     0.0,
@@ -156,7 +160,8 @@ impratio: parent has 10 (default), child has 100, keeping parent value
    "air_time_s": 0.2703636363636363,
    "swing_apex_m": 0.033160621330307005,
    "step_hz": 1.8394648829431435,
-   "peak_force_bw": 1.6110648889223649,
+   "peak_force_bw": 1.1619117576530007,
+   "peak_force_raw_bw": 1.6110648889223649,
    "joint_limit_margin_min": 0.1480434723468509,
    "cmd": [
     0.5,
@@ -179,7 +184,8 @@ impratio: parent has 10 (default), child has 100, keeping parent value
    "air_time_s": 0.24533333333333332,
    "swing_apex_m": 0.0373108384605195,
    "step_hz": 2.0066889632107023,
-   "peak_force_bw": 2.237614459657799,
+   "peak_force_bw": 1.5385970984526642,
+   "peak_force_raw_bw": 2.237614459657799,
    "joint_limit_margin_min": 0.1096809813113812,
    "cmd": [
     0.6,

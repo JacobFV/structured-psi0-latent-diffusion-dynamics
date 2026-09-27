@@ -316,3 +316,31 @@ Unit suite after the rebase: 379 passed, 2 skipped (peer lease 1790544821_524322
    not for panda/sawyer/ur5e/xarm7. Either the procedural joint ranges are too tight for the task or the threshold should be a
    "no limit contact" rule for these bodies; with the gate as adopted, v5dart data on parm bodies would FAIL the collect node
    (use `gate: report` until decided).
+
+## D-112 FOLLOW-UPS (lead decisions on the four points + watchdog hysteresis; state: verified)
+1. W8 t1: lead set `gate: report` (D-113).
+2. Foot force = peak of the 20 ms moving-average per-foot contact normal force (tracker_validation `peak_force_bw`; the
+   unfiltered per-step peak stays as `peak_force_raw_bw`; LeggedMotionRecorder adds `peak_contact_force_20ms_bw`).
+   Thresholds quadruped <= 3.5, biped <= 3.0 BW. Backfill rerun (peer lease 1790545424_0d9ae6, `scripts/robust_backfill_trackers.sh`):
+   | tracker | filtered peak BW (max trial) | raw | verdict (other failures) |
+   |---|---|---|---|
+   | anymal_c | 1.04 | 2.61 | PASS |
+   | go2 | 1.54 (push) | 2.24 | PASS |
+   | g1 r1 installed (legacy limits) | 2.16 | 4.61 | PASS (now) |
+   | t1 w8d installed | 2.74 (turn_fast; stand 2.03) | 4.46 | FAIL: CoT 2.13, joint margin -0.053 |
+   | t1 w8c | 2.75 (turn_fast; stand 2.28) | 4.22 | FAIL: slip 0.152, CoT 2.36, margin -0.044 |
+   | g1_src candidate | **4.09** (turn_fast; turn 3.70) | 9.75 | FAIL: + slip 0.38, CoT 2.87, margin -0.089 |
+   So the humanoid failures were impact transients except g1_src, which STOMPS in turns (3.7-4.1 BW filtered): a real signal
+   for W1. Side observation: t1 loads one foot with 2.0-2.3 BW (filtered) even in the `stand` trial (weight shifting while
+   standing).
+3. Permanent joint-limit-margin hinge added to the gait_v2 reward (`RewardCfg.limit_margin` = -1.0, `limit_margin_penalty`,
+   m0 = 0.02; details and the W1 note in research/tracks/contact.md); test in test_reward_schedule.py. Installed t1/g1 labelled.
+4. Arm joint margin: enforced on menagerie arms, reported (`joint_limit_margin_procedural`, status labelled) on parm*.
+   Re-gated teacher rows: v2 teacher PASSES under grasp_v2 (margin 99.9% on menagerie arms; parm* 74% labelled) and under grasp_v1
+   (penetration labelled); v1 teacher fails (steps, jerk). W7 backlog item written in research/tracks/armexpert.md.
+5. Watchdog hysteresis: when the project exceeds the live limit ONLY because of the RAM-store (Shmem) term, the watchdog stops
+   admission at once and sheds only after the excess has persisted together with memory pressure (PSI full avg10 >= 10, or
+   MemAvailable < 2x reserve) for 30 s (15 consecutive 2 s samples; `shmem_shed_grace_s`, `shmem_shed_psi`,
+   `sample_interval_s` = the watchdog's --interval). An excess that exists without the store term sheds immediately, and the
+   reserve emergency is unchanged. Test: test_watchdog.py::test_ram_store_excess_sheds_only_after_sustained_pressure (calm
+   40 samples: never shed; PSI 43: shed at sample 15; a calm sample resets). Needs a peer watchdog restart to take effect.

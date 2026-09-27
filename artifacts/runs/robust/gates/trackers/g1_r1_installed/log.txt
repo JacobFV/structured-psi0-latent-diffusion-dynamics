@@ -37,7 +37,8 @@
    "air_time_s": 0.0,
    "swing_apex_m": 0.0,
    "step_hz": 0.0,
-   "peak_force_bw": 2.60417157547317,
+   "peak_force_bw": 1.1976490897227026,
+   "peak_force_raw_bw": 2.60417157547317,
    "joint_limit_margin_min": 0.0735102750411596,
    "cmd": [
     0.0,
@@ -60,7 +61,8 @@
    "air_time_s": 0.07740522875816995,
    "swing_apex_m": 0.08498115278676172,
    "step_hz": 2.9096989966555182,
-   "peak_force_bw": 4.311821760554112,
+   "peak_force_bw": 2.15508955249833,
+   "peak_force_raw_bw": 4.311821760554112,
    "joint_limit_margin_min": 0.03492552735288497,
    "cmd": [
     0.48,
@@ -83,7 +85,8 @@
    "air_time_s": 0.0,
    "swing_apex_m": 0.0,
    "step_hz": 0.0,
-   "peak_force_bw": 2.300306043346568,
+   "peak_force_bw": 1.182972853810981,
+   "peak_force_raw_bw": 2.300306043346568,
    "joint_limit_margin_min": 0.07297821968695137,
    "cmd": [
     0.0,
@@ -106,7 +109,8 @@
    "air_time_s": 0.0,
    "swing_apex_m": 0.0,
    "step_hz": 0.0,
-   "peak_force_bw": 2.266356695428078,
+   "peak_force_bw": 1.1988218776397126,
+   "peak_force_raw_bw": 2.266356695428078,
    "joint_limit_margin_min": 0.07261580409007583,
    "cmd": [
     0.0,
@@ -129,7 +133,8 @@
    "air_time_s": 0.07833155080213905,
    "swing_apex_m": 0.08371385529086059,
    "step_hz": 2.759197324414716,
-   "peak_force_bw": 4.213655068006601,
+   "peak_force_bw": 2.1085303838304714,
+   "peak_force_raw_bw": 4.213655068006601,
    "joint_limit_margin_min": 0.038284549835380835,
    "cmd": [
     0.4,
@@ -152,7 +157,8 @@
    "air_time_s": 0.07639869281045752,
    "swing_apex_m": 0.08439160380391217,
    "step_hz": 2.9431438127090295,
-   "peak_force_bw": 4.6087454586805885,
+   "peak_force_bw": 2.141527842466143,
+   "peak_force_raw_bw": 4.6087454586805885,
    "joint_limit_margin_min": 0.03492552735288497,
    "cmd": [
     0.48,
@@ -162,10 +168,8 @@
   }
  },
  "w6_gate": {
-  "verdict": "fail",
-  "failed": [
-   "peak_foot_force_bw=4.6087454586805885 (threshold <= 3.5)"
-  ],
+  "verdict": "pass",
+  "failed": [],
   "not_evaluated": []
  }
 }

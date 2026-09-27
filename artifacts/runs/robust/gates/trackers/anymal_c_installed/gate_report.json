@@ -27,9 +27,9 @@
   {
    "name": "peak_foot_force_bw",
    "status": "pass",
-   "value": 2.611466185551896,
-   "threshold": "<= 3.5",
-   "note": "max over trials and physics substeps (contact normal force per foot / body weight)"
+   "value": 1.0442230036918048,
+   "threshold": "<= 3.5 (quadruped; 20 ms moving average)",
+   "note": "max over trials of the peak 20 ms moving-average contact normal force per foot / body weight; unfiltered per-step peak 2.61"
   },
   {
    "name": "joint_limit_margin",

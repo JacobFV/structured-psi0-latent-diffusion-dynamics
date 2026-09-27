@@ -8,7 +8,7 @@
   "contact_model": "contact_v2",
   "family": "humanoid"
  },
- "verdict": "pass",
+ "verdict": "fail",
  "criteria": [
   {
    "name": "slip_ratio_forward",
@@ -26,10 +26,10 @@
   },
   {
    "name": "peak_foot_force_bw",
-   "status": "pass",
-   "value": 2.15508955249833,
-   "threshold": "<= 3.0 (biped; 20 ms moving average)",
-   "note": "max over trials of the peak 20 ms moving-average contact normal force per foot / body weight; unfiltered per-step peak 4.61"
+   "status": "fail",
+   "value": 4.6087454586805885,
+   "threshold": "<= 3.5",
+   "note": "max over trials and physics substeps (contact normal force per foot / body weight)"
   },
   {
    "name": "joint_limit_margin",
@@ -53,6 +53,8 @@
    "note": "training range: {'contact': 'v2', 'mu': [0.45, 1.2], 'root_mass_scale': [0.9, 1.1], 'latency_ms': 8.0, 'train_actuator': 'v1', 'push_mps': 0.2}"
   }
  ],
- "failed": [],
+ "failed": [
+  "peak_foot_force_bw=4.6087454586805885 (threshold <= 3.5)"
+ ],
  "not_evaluated": []
 }
