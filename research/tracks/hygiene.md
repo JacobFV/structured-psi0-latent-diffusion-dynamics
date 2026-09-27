@@ -49,7 +49,7 @@ The demo page (`scripts/demo/build_page.py`, `refresh.sh`) reads only the `*.sum
 - Fresh `git clone` of origin/main (96f2e08) in a scratch dir: 152 passed, 3 skipped; 0 tracked `.npz/.pkl/.pt`.
 
 ## left for W4 (found, not changed)
-- `docs/handoff/check_package.py` already reported 3 checksum mismatches before W2 (README.md, config/sources.seed.json,
+- `docs/handoff/scripts/check_package.py` already reported 3 checksum mismatches before W2 (README.md, config/sources.seed.json,
   reference/original-design-v0.1.md); the "preserved verbatim" claim for docs/handoff is not strictly true.
 - `docs/demo/raw/artifacts` duplicates ~176 blobs from `artifacts/` (24 MB); left tracked because the demo page reads it.
 - `research/tracks/ladder/sprint_final/` and `armnosem/ladder_v1/<body>/` hold raw result files that belong in `artifacts/`.
