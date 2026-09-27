@@ -224,6 +224,31 @@ Results (`val/{go2,anymal_c}_v2act2ft*-lat*`):
 anymal_c 1.00 (already robust; fine-tune not needed) | go2 1.00 -> 1.00 (turn +0.05-0.11) | g1 **0.40 -> 1.00** (fwd 0 -> 0.72) |
 t1 (turn-trained) 1.00, but fwd 0.37 -> 0.67 and turning lost in the fine-tune | h1 **0.24 -> 0.24 (not fixed)**. Pre-turn t1: 1.00, fwd 0.74.
 
+## W1 round 3 (lead D-103, 2026-09-27)
+### (1) sourced actuator limits: DONE
+Every accepted body has manufacturer per-joint limits (`<limit effort velocity>`) in its official URDF. They are now used in
+`rrp.physics.actuator.SOURCED` (torque = min(adapter, source); speed = URDF velocity used as the zero-torque speed of the envelope, which is our
+modelling choice). Sources (sha256 first 16 hex of the files read on 2026-09-27):
+| body | source | hip / knee / ankle torque (N m) | speed (rad/s) |
+|---|---|---|---|
+| t1 | BoosterRobotics/booster_gym resources/T1/T1_serial.urdf (027a5333ce4ed0a1); same torques as menagerie t1.xml | 45 pitch, 30 roll/yaw / 60 / 20 pitch, 15 roll | 12.5, 10.9 / 11.7 / 18.8, 12.4 |
+| h1 | unitreerobotics/unitree_ros robots/h1_description/urdf/h1.urdf (ebd495cba7887406) | 200 / 300 / 40 | 23 / 14 / 9 |
+| g1 | unitreerobotics/unitree_ros robots/g1_description/g1_29dof.urdf (e1dc89366bf96aa3) | 88 / 139 / 35 | 32 / 20 / 30 |
+| go2 | unitreerobotics/unitree_ros robots/go2_description/urdf/go2_description.urdf (7d19fe48e2e689ee) | 23.7 hip, thigh / 45.43 calf | 30.1 / 15.7 |
+| anymal_c | ANYbotics/anymal_c_simple_description urdf/anymal.urdf (3902c3957ac82176) | 80 all | 7.5 all |
+| procedural | none | model | ESTIMATE 8 rad/s (labelled `limit_source: estimate`) |
+Findings: (a) **our t1 adapter torques are 2-3x the manufacturer's**: the legacy gains table set hip 60, knee 130, ankle 50 N m; Booster (and the menagerie
+t1.xml) say hip 45/30, knee 60, ankle 20/15. The ideal actuator_v1 physics every t1 tracker was trained in therefore overstates t1's strength.
+(b) My earlier speed estimates were too high for anymal_c (12 vs 7.5) and h1 ankles (20 vs 9). (c) g1 hip roll: the menagerie MJCF allows 139 N m, the
+URDF 88; the conservative min is used. New actuator mode `v1lat` = ideal joints + sourced torque/speed limits + 0-30 ms latency, as the lead asked.
+### (2) h1/g1 slow stepping gait then turning: running (h1)
+PERMANENT `stance_cap` (-1): during moving or turning commands, each foot in contact longer than 0.75 of a gait period costs
+clip((t - cap)/period, 0, 1), which sets a minimum swing frequency. Plus `--slow-frac 0.3` (30% of walking commands rescaled to 0.05-0.2 m/s), the turn
+terms and curriculum, clearance_floor -2. h1: host (resumable), `artifacts/runs/contact_h1_step`, 3000 iters from the installed h1. g1 follows.
+### (3) t1 turning + latency under v1lat: running
+`artifacts/runs/contact_t1_lat` (host, resumable), from the installed turn-trained t1, `--actuator v1lat` (sourced limits, 0-30 ms latency), turn
+terms, alpha 1, 1500 iters. Baseline of all installed trackers under v1lat at 0/30 ms: queued on the peer (when load < 15).
+
 ## runs
 ### gait_v2a: failed_hypothesis (stopped at iter 500-1400)
 t1/h1 (host) and g1/go2 (peer) with a clearance PENALTY at touchdown ((target - apex)/target)^2 x -2. After 1200-1400 iters
