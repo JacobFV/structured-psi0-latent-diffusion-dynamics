@@ -1,0 +1,1153 @@
+{
+ "frozen sem, seed 1 (D-078)": {
+  "panda_pg2": {
+   "grasp_v1": [
+    36,
+    90
+   ],
+   "grasp_v2": null,
+   "per_set": {
+    "3000000": {
+     "grasp_v1": [
+      14,
+      30,
+      {
+       "approach": 7,
+       "success": 14,
+       "place": 3,
+       "grasp": 1,
+       "lift": 5
+      }
+     ],
+     "grasp_v2": null
+    },
+    "3000100": {
+     "grasp_v1": [
+      11,
+      30,
+      {
+       "success": 11,
+       "approach": 13,
+       "lift": 2,
+       "grasp": 1,
+       "transport": 1,
+       "place": 2
+      }
+     ],
+     "grasp_v2": null
+    },
+    "3000200": {
+     "grasp_v1": [
+      11,
+      30,
+      {
+       "lift": 6,
+       "transport": 4,
+       "approach": 7,
+       "success": 11,
+       "place": 1,
+       "grasp": 1
+      }
+     ],
+     "grasp_v2": null
+    }
+   }
+  },
+  "parm6_tf3": {
+   "grasp_v1": [
+    70,
+    90
+   ],
+   "grasp_v2": [
+    9,
+    90
+   ],
+   "per_set": {
+    "3000000": {
+     "grasp_v1": [
+      24,
+      30,
+      {
+       "success": 24,
+       "approach": 4,
+       "lift": 1,
+       "transport": 1
+      }
+     ],
+     "grasp_v2": [
+      3,
+      30,
+      {
+       "transport": 20,
+       "approach": 4,
+       "grasp": 3,
+       "success": 3
+      }
+     ]
+    },
+    "3000100": {
+     "grasp_v1": [
+      24,
+      30,
+      {
+       "success": 24,
+       "approach": 1,
+       "place": 3,
+       "lift": 2
+      }
+     ],
+     "grasp_v2": [
+      3,
+      30,
+      {
+       "success": 3,
+       "approach": 5,
+       "transport": 21,
+       "grasp": 1
+      }
+     ]
+    },
+    "3000200": {
+     "grasp_v1": [
+      22,
+      30,
+      {
+       "success": 22,
+       "approach": 4,
+       "lift": 3,
+       "transport": 1
+      }
+     ],
+     "grasp_v2": [
+      3,
+      30,
+      {
+       "transport": 23,
+       "approach": 3,
+       "success": 3,
+       "grasp": 1
+      }
+     ]
+    }
+   }
+  },
+  "parm5s_tf3": {
+   "grasp_v1": [
+    20,
+    30
+   ],
+   "grasp_v2": [
+    2,
+    30
+   ],
+   "per_set": {
+    "3000000": {
+     "grasp_v1": [
+      20,
+      30,
+      {
+       "success": 20,
+       "place": 2,
+       "approach": 4,
+       "transport": 3,
+       "lift": 1
+      }
+     ],
+     "grasp_v2": [
+      2,
+      30,
+      {
+       "transport": 19,
+       "grasp": 2,
+       "approach": 7,
+       "success": 2
+      }
+     ]
+    }
+   }
+  },
+  "parm5l_pg2": {
+   "grasp_v1": [
+    20,
+    30
+   ],
+   "grasp_v2": [
+    22,
+    30
+   ],
+   "per_set": {
+    "3000000": {
+     "grasp_v1": [
+      20,
+      30,
+      {
+       "success": 20,
+       "lift": 5,
+       "approach": 4,
+       "grasp": 1
+      }
+     ],
+     "grasp_v2": [
+      22,
+      30,
+      {
+       "success": 22,
+       "approach": 5,
+       "lift": 2,
+       "place": 1
+      }
+     ]
+    }
+   }
+  }
+ },
+ "semfix, seed 1": {
+  "panda_pg2": {
+   "grasp_v1": [
+    49,
+    90
+   ],
+   "grasp_v2": null,
+   "per_set": {
+    "3000000": {
+     "grasp_v1": [
+      19,
+      30,
+      {
+       "success": 19,
+       "lift": 3,
+       "place": 1,
+       "approach": 5,
+       "grasp": 1,
+       "transport": 1
+      }
+     ],
+     "grasp_v2": null
+    },
+    "3000100": {
+     "grasp_v1": [
+      16,
+      30,
+      {
+       "approach": 6,
+       "success": 16,
+       "place": 2,
+       "lift": 4,
+       "grasp": 1,
+       "transport": 1
+      }
+     ],
+     "grasp_v2": null
+    },
+    "3000200": {
+     "grasp_v1": [
+      14,
+      30,
+      {
+       "success": 14,
+       "lift": 5,
+       "approach": 6,
+       "transport": 2,
+       "grasp": 3
+      }
+     ],
+     "grasp_v2": null
+    }
+   }
+  },
+  "parm6_tf3": {
+   "grasp_v1": [
+    45,
+    90
+   ],
+   "grasp_v2": [
+    62,
+    90
+   ],
+   "per_set": {
+    "3000000": {
+     "grasp_v1": [
+      15,
+      30,
+      {
+       "transport": 4,
+       "success": 15,
+       "lift": 8,
+       "approach": 3
+      }
+     ],
+     "grasp_v2": [
+      21,
+      30,
+      {
+       "success": 21,
+       "approach": 6,
+       "grasp": 2,
+       "place": 1
+      }
+     ]
+    },
+    "3000100": {
+     "grasp_v1": [
+      15,
+      30,
+      {
+       "transport": 6,
+       "success": 15,
+       "lift": 8,
+       "approach": 1
+      }
+     ],
+     "grasp_v2": [
+      21,
+      30,
+      {
+       "grasp": 3,
+       "success": 21,
+       "approach": 4,
+       "place": 1,
+       "lift": 1
+      }
+     ]
+    },
+    "3000200": {
+     "grasp_v1": [
+      15,
+      30,
+      {
+       "transport": 5,
+       "success": 15,
+       "lift": 5,
+       "approach": 2,
+       "place": 2,
+       "grasp": 1
+      }
+     ],
+     "grasp_v2": [
+      20,
+      30,
+      {
+       "success": 20,
+       "lift": 2,
+       "approach": 5,
+       "grasp": 2,
+       "transport": 1
+      }
+     ]
+    }
+   }
+  },
+  "parm5s_tf3": {
+   "grasp_v1": [
+    8,
+    30
+   ],
+   "grasp_v2": [
+    19,
+    30
+   ],
+   "per_set": {
+    "3000000": {
+     "grasp_v1": [
+      8,
+      30,
+      {
+       "lift": 8,
+       "approach": 9,
+       "place": 2,
+       "success": 8,
+       "transport": 3
+      }
+     ],
+     "grasp_v2": [
+      19,
+      30,
+      {
+       "success": 19,
+       "approach": 5,
+       "grasp": 4,
+       "lift": 1,
+       "place": 1
+      }
+     ]
+    }
+   }
+  },
+  "parm5l_pg2": {
+   "grasp_v1": [
+    22,
+    30
+   ],
+   "grasp_v2": [
+    24,
+    30
+   ],
+   "per_set": {
+    "3000000": {
+     "grasp_v1": [
+      22,
+      30,
+      {
+       "success": 22,
+       "approach": 1,
+       "lift": 2,
+       "place": 1,
+       "grasp": 4
+      }
+     ],
+     "grasp_v2": [
+      24,
+      30,
+      {
+       "success": 24,
+       "grasp": 2,
+       "approach": 2,
+       "lift": 2
+      }
+     ]
+    }
+   }
+  }
+ },
+ "nosem, seed 1": {
+  "panda_pg2": {
+   "grasp_v1": [
+    0,
+    90
+   ],
+   "grasp_v2": null,
+   "per_set": {
+    "3000000": {
+     "grasp_v1": [
+      0,
+      30,
+      {
+       "approach": 30
+      }
+     ],
+     "grasp_v2": null
+    },
+    "3000100": {
+     "grasp_v1": [
+      0,
+      30,
+      {
+       "approach": 30
+      }
+     ],
+     "grasp_v2": null
+    },
+    "3000200": {
+     "grasp_v1": [
+      0,
+      30,
+      {
+       "approach": 30
+      }
+     ],
+     "grasp_v2": null
+    }
+   }
+  },
+  "parm6_tf3": {
+   "grasp_v1": [
+    3,
+    90
+   ],
+   "grasp_v2": null,
+   "per_set": {
+    "3000000": {
+     "grasp_v1": [
+      1,
+      30,
+      {
+       "lift": 3,
+       "approach": 25,
+       "success": 1,
+       "transport": 1
+      }
+     ],
+     "grasp_v2": null
+    },
+    "3000100": {
+     "grasp_v1": [
+      0,
+      30,
+      {
+       "approach": 25,
+       "transport": 3,
+       "lift": 2
+      }
+     ],
+     "grasp_v2": null
+    },
+    "3000200": {
+     "grasp_v1": [
+      2,
+      30,
+      {
+       "approach": 26,
+       "success": 2,
+       "grasp": 2
+      }
+     ],
+     "grasp_v2": null
+    }
+   }
+  },
+  "parm5s_tf3": {
+   "grasp_v1": [
+    0,
+    30
+   ],
+   "grasp_v2": null,
+   "per_set": {
+    "3000000": {
+     "grasp_v1": [
+      0,
+      30,
+      {
+       "approach": 28,
+       "lift": 2
+      }
+     ],
+     "grasp_v2": null
+    }
+   }
+  },
+  "parm5l_pg2": {
+   "grasp_v1": [
+    0,
+    30
+   ],
+   "grasp_v2": null,
+   "per_set": {
+    "3000000": {
+     "grasp_v1": [
+      0,
+      30,
+      {
+       "grasp": 2,
+       "approach": 26,
+       "transport": 2
+      }
+     ],
+     "grasp_v2": null
+    }
+   }
+  }
+ },
+ "frozen sem, seed 2 (D-095)": {
+  "panda_pg2": {
+   "grasp_v1": [
+    23,
+    90
+   ],
+   "grasp_v2": null,
+   "per_set": {
+    "3000000": {
+     "grasp_v1": [
+      6,
+      30,
+      {
+       "place": 11,
+       "grasp": 4,
+       "success": 6,
+       "approach": 2,
+       "lift": 5,
+       "transport": 2
+      }
+     ],
+     "grasp_v2": null
+    },
+    "3000100": {
+     "grasp_v1": [
+      5,
+      30,
+      {
+       "success": 5,
+       "grasp": 5,
+       "place": 11,
+       "lift": 3,
+       "approach": 2,
+       "transport": 4
+      }
+     ],
+     "grasp_v2": null
+    },
+    "3000200": {
+     "grasp_v1": [
+      12,
+      30,
+      {
+       "success": 12,
+       "transport": 4,
+       "approach": 1,
+       "lift": 4,
+       "place": 6,
+       "grasp": 3
+      }
+     ],
+     "grasp_v2": null
+    }
+   }
+  },
+  "parm6_tf3": {
+   "grasp_v1": [
+    44,
+    90
+   ],
+   "grasp_v2": [
+    66,
+    90
+   ],
+   "per_set": {
+    "3000000": {
+     "grasp_v1": [
+      18,
+      30,
+      {
+       "success": 18,
+       "lift": 8,
+       "transport": 2,
+       "approach": 2
+      }
+     ],
+     "grasp_v2": [
+      18,
+      30,
+      {
+       "success": 18,
+       "lift": 8,
+       "transport": 4
+      }
+     ]
+    },
+    "3000100": {
+     "grasp_v1": [
+      12,
+      30,
+      {
+       "transport": 7,
+       "lift": 10,
+       "success": 12,
+       "approach": 1
+      }
+     ],
+     "grasp_v2": [
+      24,
+      30,
+      {
+       "lift": 3,
+       "success": 24,
+       "transport": 2,
+       "grasp": 1
+      }
+     ]
+    },
+    "3000200": {
+     "grasp_v1": [
+      14,
+      30,
+      {
+       "transport": 6,
+       "success": 14,
+       "lift": 8,
+       "approach": 1,
+       "place": 1
+      }
+     ],
+     "grasp_v2": [
+      24,
+      30,
+      {
+       "success": 24,
+       "transport": 3,
+       "lift": 2,
+       "grasp": 1
+      }
+     ]
+    }
+   }
+  },
+  "parm5s_tf3": {
+   "grasp_v1": [
+    7,
+    30
+   ],
+   "grasp_v2": [
+    17,
+    30
+   ],
+   "per_set": {
+    "3000000": {
+     "grasp_v1": [
+      7,
+      30,
+      {
+       "lift": 6,
+       "approach": 15,
+       "transport": 2,
+       "success": 7
+      }
+     ],
+     "grasp_v2": [
+      17,
+      30,
+      {
+       "lift": 7,
+       "success": 17,
+       "approach": 2,
+       "transport": 3,
+       "grasp": 1
+      }
+     ]
+    }
+   }
+  },
+  "parm5l_pg2": {
+   "grasp_v1": [
+    27,
+    30
+   ],
+   "grasp_v2": [
+    22,
+    30
+   ],
+   "per_set": {
+    "3000000": {
+     "grasp_v1": [
+      27,
+      30,
+      {
+       "success": 27,
+       "lift": 2,
+       "transport": 1
+      }
+     ],
+     "grasp_v2": [
+      22,
+      30,
+      {
+       "lift": 5,
+       "success": 22,
+       "approach": 2,
+       "transport": 1
+      }
+     ]
+    }
+   }
+  }
+ },
+ "semfix, seed 2": {
+  "panda_pg2": {
+   "grasp_v1": [
+    58,
+    90
+   ],
+   "grasp_v2": null,
+   "per_set": {
+    "3000000": {
+     "grasp_v1": [
+      21,
+      30,
+      {
+       "success": 21,
+       "lift": 2,
+       "grasp": 1,
+       "approach": 4,
+       "transport": 1,
+       "place": 1
+      }
+     ],
+     "grasp_v2": null
+    },
+    "3000100": {
+     "grasp_v1": [
+      20,
+      30,
+      {
+       "success": 20,
+       "approach": 5,
+       "lift": 1,
+       "grasp": 3,
+       "place": 1
+      }
+     ],
+     "grasp_v2": null
+    },
+    "3000200": {
+     "grasp_v1": [
+      17,
+      30,
+      {
+       "lift": 2,
+       "success": 17,
+       "grasp": 4,
+       "approach": 4,
+       "place": 2,
+       "transport": 1
+      }
+     ],
+     "grasp_v2": null
+    }
+   }
+  },
+  "parm6_tf3": {
+   "grasp_v1": [
+    38,
+    90
+   ],
+   "grasp_v2": [
+    60,
+    90
+   ],
+   "per_set": {
+    "3000000": {
+     "grasp_v1": [
+      15,
+      30,
+      {
+       "success": 15,
+       "lift": 3,
+       "place": 1,
+       "approach": 11
+      }
+     ],
+     "grasp_v2": [
+      22,
+      30,
+      {
+       "approach": 8,
+       "success": 22
+      }
+     ]
+    },
+    "3000100": {
+     "grasp_v1": [
+      11,
+      30,
+      {
+       "place": 3,
+       "approach": 12,
+       "lift": 3,
+       "transport": 1,
+       "success": 11
+      }
+     ],
+     "grasp_v2": [
+      20,
+      30,
+      {
+       "success": 20,
+       "approach": 8,
+       "grasp": 2
+      }
+     ]
+    },
+    "3000200": {
+     "grasp_v1": [
+      12,
+      30,
+      {
+       "success": 12,
+       "lift": 3,
+       "approach": 11,
+       "grasp": 1,
+       "transport": 2,
+       "place": 1
+      }
+     ],
+     "grasp_v2": [
+      18,
+      30,
+      {
+       "success": 18,
+       "approach": 9,
+       "grasp": 3
+      }
+     ]
+    }
+   }
+  },
+  "parm5s_tf3": {
+   "grasp_v1": [
+    15,
+    30
+   ],
+   "grasp_v2": [
+    22,
+    30
+   ],
+   "per_set": {
+    "3000000": {
+     "grasp_v1": [
+      15,
+      30,
+      {
+       "success": 15,
+       "approach": 9,
+       "place": 4,
+       "lift": 1,
+       "grasp": 1
+      }
+     ],
+     "grasp_v2": [
+      22,
+      30,
+      {
+       "success": 22,
+       "approach": 5,
+       "transport": 2,
+       "grasp": 1
+      }
+     ]
+    }
+   }
+  },
+  "parm5l_pg2": {
+   "grasp_v1": [
+    18,
+    30
+   ],
+   "grasp_v2": [
+    18,
+    30
+   ],
+   "per_set": {
+    "3000000": {
+     "grasp_v1": [
+      18,
+      30,
+      {
+       "lift": 5,
+       "success": 18,
+       "approach": 3,
+       "transport": 1,
+       "grasp": 1,
+       "place": 2
+      }
+     ],
+     "grasp_v2": [
+      18,
+      30,
+      {
+       "success": 18,
+       "approach": 5,
+       "grasp": 4,
+       "place": 1,
+       "transport": 1,
+       "lift": 1
+      }
+     ]
+    }
+   }
+  }
+ },
+ "nosem, seed 2": {
+  "panda_pg2": {
+   "grasp_v1": [
+    0,
+    90
+   ],
+   "grasp_v2": null,
+   "per_set": {
+    "3000000": {
+     "grasp_v1": [
+      0,
+      30,
+      {
+       "approach": 26,
+       "place": 1,
+       "lift": 3
+      }
+     ],
+     "grasp_v2": null
+    },
+    "3000100": {
+     "grasp_v1": [
+      0,
+      30,
+      {
+       "approach": 27,
+       "transport": 2,
+       "lift": 1
+      }
+     ],
+     "grasp_v2": null
+    },
+    "3000200": {
+     "grasp_v1": [
+      0,
+      30,
+      {
+       "approach": 29,
+       "grasp": 1
+      }
+     ],
+     "grasp_v2": null
+    }
+   }
+  },
+  "parm6_tf3": {
+   "grasp_v1": [
+    8,
+    90
+   ],
+   "grasp_v2": null,
+   "per_set": {
+    "3000000": {
+     "grasp_v1": [
+      4,
+      30,
+      {
+       "success": 4,
+       "place": 9,
+       "approach": 6,
+       "transport": 7,
+       "grasp": 2,
+       "lift": 2
+      }
+     ],
+     "grasp_v2": null
+    },
+    "3000100": {
+     "grasp_v1": [
+      1,
+      30,
+      {
+       "approach": 4,
+       "place": 8,
+       "transport": 7,
+       "grasp": 6,
+       "success": 1,
+       "lift": 4
+      }
+     ],
+     "grasp_v2": null
+    },
+    "3000200": {
+     "grasp_v1": [
+      3,
+      30,
+      {
+       "approach": 13,
+       "success": 3,
+       "grasp": 2,
+       "transport": 5,
+       "place": 6,
+       "lift": 1
+      }
+     ],
+     "grasp_v2": null
+    }
+   }
+  },
+  "parm5s_tf3": {
+   "grasp_v1": [
+    2,
+    30
+   ],
+   "grasp_v2": null,
+   "per_set": {
+    "3000000": {
+     "grasp_v1": [
+      2,
+      30,
+      {
+       "approach": 10,
+       "transport": 4,
+       "success": 2,
+       "place": 8,
+       "lift": 2,
+       "grasp": 4
+      }
+     ],
+     "grasp_v2": null
+    }
+   }
+  },
+  "parm5l_pg2": {
+   "grasp_v1": [
+    16,
+    30
+   ],
+   "grasp_v2": null,
+   "per_set": {
+    "3000000": {
+     "grasp_v1": [
+      16,
+      30,
+      {
+       "success": 16,
+       "approach": 3,
+       "grasp": 1,
+       "place": 3,
+       "transport": 6,
+       "lift": 1
+      }
+     ],
+     "grasp_v2": null
+    }
+   }
+  }
+ },
+ "BC direct1701 final (sprint_bc)": {
+  "panda_pg2": {
+   "grasp_v1": null,
+   "grasp_v2": null,
+   "per_set": {
+    "3000000": {
+     "grasp_v1": null,
+     "grasp_v2": null
+    },
+    "3000100": {
+     "grasp_v1": null,
+     "grasp_v2": null
+    },
+    "3000200": {
+     "grasp_v1": null,
+     "grasp_v2": null
+    }
+   }
+  },
+  "parm6_tf3": {
+   "grasp_v1": null,
+   "grasp_v2": null,
+   "per_set": {
+    "3000000": {
+     "grasp_v1": null,
+     "grasp_v2": null
+    },
+    "3000100": {
+     "grasp_v1": null,
+     "grasp_v2": null
+    },
+    "3000200": {
+     "grasp_v1": null,
+     "grasp_v2": null
+    }
+   }
+  },
+  "parm5s_tf3": {
+   "grasp_v1": null,
+   "grasp_v2": null,
+   "per_set": {
+    "3000000": {
+     "grasp_v1": null,
+     "grasp_v2": null
+    }
+   }
+  },
+  "parm5l_pg2": {
+   "grasp_v1": null,
+   "grasp_v2": null,
+   "per_set": {
+    "3000000": {
+     "grasp_v1": null,
+     "grasp_v2": null
+    }
+   }
+  }
+ }
+}

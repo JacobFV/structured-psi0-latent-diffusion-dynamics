@@ -497,3 +497,30 @@ the D-112 arm dataset gate REPORTS (labels) the margin on parm* bodies and enfor
   `gate_posthoc/replay.jsonl`, `gate_report.json`). D-114 (3) (margin report-only on parm*) is on main (W6, 9ad6728).
 - D-115: all heavy compute on the peer. The grasp_v2 re-evaluation was moved from the host (20/56 jobs done there, same
   code and inputs; summaries copied to the peer store) to the peer (`PLACE=peer scripts/armexpert_gc2_reeval.sh`).
+
+### status 2026-09-27 16:10 (peer admission stopped since ~15:05; everything below is queued, not failed)
+Peer broker: admission stopped (project memory 99 GB > live limit 92.6 GB, RAM-store term; declared leases of other
+tracks: psi1z_cl_* 2 x 16 GB, l8u_* 3 x 3 GB). My queued work waits with bounded retries (no host compute, D-115):
+- pack node (`run-dag --retry-failed --only pack`, 18G declared) — waiting (bounded 3 h by run-dag);
+- post-hoc gate replay (`armexpert_gate_replay.py`, 3 CPU / 6G, retry loop `../armexpert_v5gate.log`) — waiting;
+- v5 BC chain (`../armexpert_bcv5_launch.sh`: waits for the pack, then SEED=1701 then 1702, GC=v2, pack gate
+  grasp_v2 checked before training) — waiting for the pack;
+- grasp_v2 re-evaluation: 20 of 56 cells done (host, before D-115), 36 queued on the peer
+  (`PLACE=peer scripts/armexpert_gc2_reeval.sh`, then BC direct1701 final under grasp_v1 for the matched reference).
+Partial grasp_v1 (recorded) -> grasp_v2 table (cells with "-" are still queued; per-cell rows in
+`artifacts/runs/armexpert_gc2eval/grasp_v2/<body>/*.summary.json`, table script
+`research/scripts/2026-09-27/armexpert_gc2_table.py`):
+| route | panda_pg2 (90) v1 -> v2 | parm6_tf3 (90) v1 -> v2 | parm5s_tf3 (30) v1 -> v2 | parm5l_pg2 (30) v1 -> v2 | total v1 -> v2 |
+|---|---|---|---|---|---|
+| frozen sem, seed 1 (D-078) | 36/90 -> - | 70/90 -> 9/90 | 20/30 -> 2/30 | 20/30 -> 22/30 | 110/150 -> 33/150 |
+| semfix, seed 1 | 49/90 -> - | 45/90 -> 62/90 | 8/30 -> 19/30 | 22/30 -> 24/30 | 75/150 -> 105/150 |
+| nosem, seed 1 | 0/90 -> - | 3/90 -> - | 0/30 -> - | 0/30 -> - | 0/0 -> 0/0 |
+| frozen sem, seed 2 (D-095) | 23/90 -> - | 44/90 -> 66/90 | 7/30 -> 17/30 | 27/30 -> 22/30 | 78/150 -> 105/150 |
+| semfix, seed 2 | 58/90 -> - | 38/90 -> 60/90 | 15/30 -> 22/30 | 18/30 -> 18/30 | 71/150 -> 100/150 |
+| nosem, seed 2 | 0/90 -> - | 8/90 -> - | 2/30 -> - | 16/30 -> - | 0/0 -> 0/0 |
+| BC direct1701 final (sprint_bc) | - -> - | - -> - | - -> - | - -> - | 0/0 -> 0/0 |
+Early reading (partial, do not cite as final): on the three-finger bodies the frozen-sem SEED-1 route collapses under
+grasp_v2 (parm6_tf3 70/90 -> 9/90, parm5s_tf3 20/30 -> 2/30; 64 of its 81 parm6 failures are at TRANSPORT, i.e. the
+cube is dropped after lifting: its grasps held by interpenetration), while seed-2 frozen sem and both semfix seeds hold
+or IMPROVE on tf3 (parm6 44 -> 66, 45 -> 62, 38 -> 60; parm5s 7 -> 17, 8 -> 19, 15 -> 22). parm5l_pg2 is unchanged
+within noise. panda_pg2 and all nosem cells are pending.
