@@ -5,7 +5,7 @@
 # (declared; checked in shards and teacher rows), contact_v2, ideal PD actuators with no latency model.
 # Superseded run (not used): dags/legged_v2_t1.yaml = "t1 torque limits 2-3x manufacturer" (D-107).
 # Compute: W8 may hold 3 GPU leases in total for now (lead, after D-110); memory as measured (D-106).
-caveat: "t1 dataset fails D-112 slip gate (86.2% < 95%), tracker w8d fails lab forward 0.72; trained as a recorded exception (D-113)"
+caveat: "t1 dataset fails D-112 slip gate (86.2% < 95%), tracker w8d fails lab forward 0.72; t1 tracker w8d exceeds joint limits (margin -0.053) and peak foot force 4.46 BW (W6 gate backfill); trained as a recorded exception (D-113)"
 name: legged_v2_t1sl
 schema: dag-1
 family: legged
@@ -55,7 +55,7 @@ nodes:
     scope: global
     resources: {cpu: 6, mem: 16G, max_seconds: 10800}
     config:
-      options: {body: '{body}', seeds: '{cseeds}', shard_size: '{shard}', workers: 6, sigmas: '0,0.05,0.1,0.15', tracker_sha256: 36e9146792743115878c34e0bbf7cc46ccb5419417921358da3658c8377fc591, actuator_limits: sourced_v1}
+      options: {body: '{body}', seeds: '{cseeds}', shard_size: '{shard}', workers: 6, sigmas: '0,0.05,0.1,0.15', tracker_sha256: 36e9146792743115878c34e0bbf7cc46ccb5419417921358da3658c8377fc591, actuator_limits: sourced_v1, gate: report}
   bc:
     stage: train_bc
     scope: global
