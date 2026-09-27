@@ -87,3 +87,32 @@ learned_tracker:anymal_c:iter2499:contact_v2 (sha 2a16532b...), commands scripte
   +0.025 vs +0.011 (random |dz| 8: -0.006 both). Random |dz| 16/25 perturb semfix forward progress in both directions by seed (+0.14..-0.22).
 - References (teacher, BC) on the same seeds: added below when the BC reference finishes (the first DAG run skipped the global
   reference nodes because of a --point filter bug, fixed in rrp: global nodes are never filtered out).
+
+## WAVE 2 (D-103): go2 and t1 on contact_v2 (started 2026-09-27 06:02)
+- Trackers (installed from the contact worktree into artifacts/trackers/<body>/contact_v2/ locally and in the peer store):
+  go2 clearance-floor cf2 = learned_tracker:go2:iter799:contact_v2, sha256 af3f06f4e029e9f92fafc50e6174ffdb171c5512fbab4cd6fac18e6ce23cf18b
+  (run artifacts/runs/contact_go2_cf2); t1 turn-trained = learned_tracker:t1:iter1199:contact_v2, sha256
+  0d77322c0248e019403413da11aa118d782a08db42c8b7050cc40ed8b8f6c804 (run artifacts/runs/contact_t1_turn2).
+  **t1 limitation (D-103):** wide lunging stance, forward ratio 0.84, CoT 1.77; every t1 result carries it.
+- Provenance: collect episodes now record tracker_sha256, tracker_run and actuator; the dataset provenance versions carry
+  tracker_sha256/actuator; eval rows carry tracker_sha256. The DAGs declare the sha (collect and teacher nodes) and the pipeline
+  refuses a mismatch. Actuators: ideal PD servo (the default; the waypoint sim never applies the realistic actuator model of D-103).
+- DAGs dags/legged_v2_{go2,t1}.yaml, generated from the anymal_c DAG. Differences: body, DART sigmas (go2 0/0.1/0.2/0.3, t1
+  0/0.05/0.1/0.15, as each body's v1 data), names, declared tracker sha. Training seeds 0/1/2 for both (the D-087 t1 runs used 0/1/3).
+- Data (verified): go2 600 episodes, 0 falls, end-check success 574/600; t1 600, 0 falls, 587/600. Teacher reference 30/30 on both
+  (tracker sha as declared, contact_v2 rows).
+
+## INCIDENTS / RESOURCE CHANGES (2026-09-27)
+- 07:50 peer memory emergency (project memory ~115 GB of 119 across all agents): the watchdog shed 8 jobs, 3 of them W8 (anymal_c BC
+  1790518634_6f0913, go2 flow s0 1790519727_dc576b, t1 rep s0 1790518687_411dc4). Just before the stop, my restart race let W8 hold 4 GPU
+  leases (the old go2/t1 coordinators launched on the admission reopening while the anymal BC ran). Running leases were left to finish.
+- Lead allocation (08:00): W8 <= 2 GPU leases, <= 8 CPU, <= 28 GiB declared in total. Implemented in rrp: run-dag `shared_budget`
+  (caps over every DAG ledger of the track, so the three coordinators share them) + `max_mem_gib`; all DAGs capped 2/8/28.
+  Declared memory from measurements: eval processes peak ~2.1 GB (gc fix) -> 4 workers = 10G; trainers' cgroup peak 1.6-2.0 GB, plus
+  CUDA (unified memory; not in the cgroup): now logged as cuda_peak_mb every 200 steps, declarations to be tightened from it (7G for now).
+- Exact resume: legged rep/flow/BC checkpoints now include the CUDA RNG state (numpy and torch CPU were already saved); resume prints
+  exact/INEXACT (the anymal/go2/t1 runs already in flight were started before this; a resume of those would be INEXACT and is logged so).
+- Bug fixed: run-dag `--point` filtering dropped scope-global nodes, so the first anymal_c run skipped the teacher/BC references.
+  anymal_c teacher reference now run; BC (shed at 07:50) rerunning.
+- Clips: `artifacts/runs/legged8/videos_claim.sh` claims one GPU slot in the shared budget, then renders anymal_c training seed 0,
+  eval seeds 10002 (effect) and 10017 (no effect).
