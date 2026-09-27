@@ -66,6 +66,11 @@ system-wide pressure) at steps 1174/1175 (they ran at ~1.7 s/step while W8/W10 h
 the python/torch/CUDA RNG states (verified), so they are resumed EXACTLY via `--retry-failed` (bounded manual retry,
 logged; the job log prints `exact: RNG restored`). Stage A declaration raised to 12G (measured slice peak 9.5G + 20%).
 Runner `rrp-armv2-dag6` (08:30); nosem Stage As (running) re-adopted; semfix waits for a GPU slot (cap 2).
+D-106 (lead): root cause of the sheds = two W10 Isaac jobs whose unified CUDA memory exceeded their declarations (peer
+broker was unrestricted; now capped at 108 GiB declared RAM+GPU, 8 GPU slots). Our declarations include CUDA memory:
+the sampler (`scripts/armv2_mem_sampler.sh`, unit `rrp-armv2-memsampler2`) now also records each lease's CUDA memory
+(nvidia-smi processes mapped to the lease via /proc/<pid>/cgroup; not part of the cgroup figure on the GB10). Stage A:
+RAM slice peak 8.5-9.5 GB, CUDA 957 MiB -> declared 12G RAM + 2G GPU.
 RESUME: `cd ~/work/rrp-wt/ladder && systemd-run --user --unit rrp-armv2-dag7 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv2 --setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/ladder ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_lineage_v2.yaml`
 (completed nodes skipped, running leases re-adopted; failed nodes only with --retry-failed, a manual decision).
 
