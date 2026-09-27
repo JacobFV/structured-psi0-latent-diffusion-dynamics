@@ -1,6 +1,7 @@
 # W7 D-110: v5dart = the v4dart config + "grasp_contact": "v2" (teacher v2 + grasp contact v2), packed like
 # latent_pp_v4dart_s1_H16 (13 source-train bodies, H16, stride 1, DART failures included). The pack refuses mixed grasp
 # physics and records grasp_contact_version in meta.json. Peer placement; the pack dir is a symlink to the peer disk.
+# Measured peaks (declared +20%): collect 14.2 GB (4 workers), pack 14.2 GB RSS -> mem 18G (D-106).
 name: armexpert_v5dart
 schema: dag-1
 family: arm
@@ -28,7 +29,7 @@ nodes:
     stage: pack
     tag: v5dart_s1_H16
     deps: [collect]
-    resources: {cpu: 2, mem: 16G, max_seconds: 14400}
+    resources: {cpu: 2, mem: 18G, max_seconds: 14400}
     config:
       inputs: {dataset: '@collect'}
       params: {"name": "latent_pp_v5dart_s1_H16", "train_robots": ["panda_pg2", "parm5_pg2", "parm5_tf3", "parm5l_tf3", "parm5s_pg2", "parm6_pg2", "parm6_tf3", "parm7_pg2", "parm7_tf3", "sawyer_pg2", "sawyer_tf3", "ur5e_pg2", "ur5e_tf3"], "horizon": 16, "stride": 1, "include_dart_failures": true}
