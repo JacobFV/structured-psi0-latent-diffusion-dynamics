@@ -1,0 +1,126 @@
+# W8 t1 RERUN on SOURCED torque limits (D-107 follow-up): fresh lineage + ledger from collection. Generated from
+# dags/legged_v2_anymal.yaml via dags/legged_v2_t1.yaml (same protocol, recipe, seeds and suites; DART sigmas 0/0.05/0.1/0.15).
+# Tracker: t1 w8d, sha256 36e9146792743115878c34e0bbf7cc46ccb5419417921358da3658c8377fc591, label "t1 sourced-limits w8d:
+# waypoint 20/20; lab gate fails forward 0.72 (slip 0.137 passes); arc no-fall 0.83 at 30 ms". actuator_limits sourced_v1
+# (declared; checked in shards and teacher rows), contact_v2, ideal PD actuators with no latency model.
+# Superseded run (not used): dags/legged_v2_t1.yaml = "t1 torque limits 2-3x manufacturer" (D-107).
+# Compute: W8 may hold 3 GPU leases in total for now (lead, after D-110); memory as measured (D-106).
+name: legged_v2_t1sl
+schema: dag-1
+family: legged
+track: legged8
+lineage: 'legged8-{body}sl-{variant}'
+global_lineage: 'legged8-{body}sl-v2data'
+label_prefix: 'l8u_{tg}{seed}'
+global_label_prefix: 'l8u'
+matrix:
+  variant: [semfix, nosem]
+  seed: [0, 1, 2]
+axis_vars:
+  variant:
+    semfix: {sw: 1.0, lv: -4.0, psw: 0.5, tg: fs}
+    nosem: {sw: 0.0, lv: -8.0, psw: 0.0, tg: ns}
+vars:
+  body: t1
+  cseeds: 0-599
+  shard: 100
+  rep_steps: 12000
+  flow_steps: 12000
+  snap_every: 4000
+  snap: snap_s4000
+  probe_steps: 4000
+  bc_steps: 20000
+  bc_snap: 5000
+  r2seeds: 10000-10029
+  edseeds: 10000-10019
+  pfx: 'legged8sl_{variant}_{body}_s{seed}'
+lists:
+  z_edits: [none, 'probe_yaw:0.6', 'probe_yaw:-0.6', probe_goal_mirror, probe_halt, 'contact:0:1', 'contact:0:0', 'rand_norm:1', 'rand_norm:2', 'rand_norm:4', 'rand_norm:8', 'rand_norm:12', 'rand_norm:16', 'rand_norm:25', zero]
+  ctx_edits: [none, mirror_goal, mirror_active, mirror_inactive, halt]
+defaults:
+  placement: peer
+  retries: 0
+  max_parallel: 6
+  max_parallel_gpu: 3
+  max_cpu: 8
+  max_mem_gib: 28      # D-106: RAM + GPU declared, summed
+  shared_budget: true
+  resources: {cpu: 4, mem: 11G, gpu: false, max_seconds: 14400}
+base:
+  flags: {contact_version: contact_v2}
+nodes:
+  collect:
+    stage: collect
+    scope: global
+    resources: {cpu: 6, mem: 16G, max_seconds: 10800}
+    config:
+      options: {body: '{body}', seeds: '{cseeds}', shard_size: '{shard}', workers: 6, sigmas: '0,0.05,0.1,0.15', tracker_sha256: 36e9146792743115878c34e0bbf7cc46ccb5419417921358da3658c8377fc591, actuator_limits: sourced_v1}
+  bc:
+    stage: train_bc
+    scope: global
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
+    config:
+      inputs: {data: '@collect'}
+      params: {name: 'legged8_bc_{body}', bodies: ['{body}'], model: {width: 192, enc_layers: 2, dec_layers: 3}, steps: '{bc_steps}', batch_size: 256, lr: 0.0003, seed: 0, ckpt_every: 500, snap_every: '{bc_snap}'}
+  teacher:
+    stage: eval_r2
+    scope: global
+    resources: {cpu: 10, mem: 24G}
+    tag: teacher
+    deps: [collect]
+    config:
+      options: {body: '{body}', tag: 'v2_teacher_{body}', route: teacher, seeds: '{r2seeds}', workers: 10, tracker_sha256: 36e9146792743115878c34e0bbf7cc46ccb5419417921358da3658c8377fc591, actuator_limits: sourced_v1}
+  bcr2:
+    stage: eval_r2
+    scope: global
+    resources: {cpu: 10, mem: 24G}
+    tag: bc
+    config:
+      inputs: {bc: '@bc:policy.pt'}
+      options: {body: '{body}', tag: 'v2_bc_{body}', route: bc, seeds: '{r2seeds}', workers: 10}
+  rep:
+    stage: train_rep
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
+    config:
+      flags: {probe_lv_min: '{lv}', qd_dropout: 0.5}
+      inputs: {data: '@collect'}
+      params: {name: '{pfx}_rep', bodies: ['{body}'], latent: {dz: 32, width: 192, semantic_weight: '{sw}', beta_kl: 0.001}, steps: '{rep_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: '{snap_every}'}
+  probe:
+    stage: probes
+    only: {variant: [nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 1, mem: 3G, max_seconds: 7200}
+    config:
+      inputs: {representation: '@rep:representation.pt'}
+      options: {steps: '{probe_steps}'}
+  flow:
+    stage: train_flow
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
+    config:
+      inputs: {representation: '@rep:representation.pt'}
+      params: {name: '{pfx}_flow', width: 256, layers: 4, packet_semantic_weight: '{psw}', packet_tau_min: 0.6, steps: '{flow_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: '{snap_every}'}
+  r2snap:
+    stage: eval_r2
+    tag: snap
+    config:
+      inputs: {flow: '@flow:{snap}.pt'}
+      options: {body: '{body}', tag: 'v2_{variant}_{body}_s{seed}_{snap}', route: r2, seeds: '{r2seeds}', workers: 4}
+  r2final:
+    stage: eval_r2
+    tag: policy
+    config:
+      inputs: {flow: '@flow:policy.pt'}
+      options: {body: '{body}', tag: 'v2_{variant}_{body}_s{seed}_policy', route: r2, seeds: '{r2seeds}', workers: 4}
+  zedits:
+    stage: edits
+    tag: z
+    per: {variant: {nosem: {inputs: {posthoc_probe: '@probe:probe_posthoc.pt'}}}}
+    config:
+      inputs: {flow: '@flow:{snap}.pt'}
+      options: {body: '{body}', suite: 'r2_v2_{variant}_{body}_s{seed}_{snap}', route: r2, edits: $z_edits, seeds: '{edseeds}', t_edit: 2.0, max_s: 5.0, workers: 4, mirror_effect: [probe_goal_mirror, rand_norm_8]}
+  ctxedits:
+    stage: edits
+    tag: ctx
+    per: {variant: {nosem: {inputs: {posthoc_probe: '@probe:probe_posthoc.pt'}}}}
+    config:
+      inputs: {flow: '@flow:{snap}.pt'}
+      options: {body: '{body}', suite: 'r2ctx_v2_{variant}_{body}_s{seed}_{snap}', route: r2, edits: $ctx_edits, seeds: '{edseeds}', t_edit: 2.0, max_s: 5.0, workers: 4, mirror_effect: [mirror_goal, mirror_active, mirror_inactive, halt]}
