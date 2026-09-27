@@ -80,6 +80,13 @@ def collect_episode(body: str, seed: int, sigma: float, tracker_kind="auto", max
     rng = np.random.default_rng([seed, 77])
     sc = build_waypoint_contact(body, seed)
     s = LeggedSession(sc, tracker_kind=tracker_kind, seed=seed)
+    # W8/D-112: the W6 motion-quality recorder (read-only; install_legged with the nominal perturbation performs the
+    # original tick operations in the same order), so every episode meta carries slip_ratio/cot/... for the dataset gate
+    from rrp.envs.perturb import PhysicsPerturbation, install_legged
+    from rrp.evaluation.motion_quality import LeggedMotionRecorder
+    mrec = LeggedMotionRecorder(s)
+    install_legged(s, PhysicsPerturbation(), seed, on_substep=mrec.on_substep, on_tick=mrec.on_tick,
+                   on_reset=mrec.on_reset)
     morph = LeggedMorph(s.model, s.binding, sc.robots[0].robot_spec.spec_hash)
     rt = RecordingTracker(s, morph, sigma, rng)
     s.tracker = rt
@@ -115,7 +122,8 @@ def collect_episode(body: str, seed: int, sigma: float, tracker_kind="auto", max
                 privileged_teacher=True, teacher_variant="arc_only" if arc_only else "default",
                 speed_frac=te.vmax / te.r["vx"][1], turn_gain=te.k, waypoints=sc.meta["waypoints"],
                 spec_hash=morph.spec_hash, wall_s=time.time() - t0, tracker_source_label=str(parse_source(rt.source)),
-                physics=physics_provenance(s.model, sc.meta.get("contact_model", CONTACT_VERSION_DEFAULT)).to_dict())
+                physics=physics_provenance(s.model, sc.meta.get("contact_model", CONTACT_VERSION_DEFAULT)).to_dict(),
+                motion=mrec.summary())
     return arr, meta, morph
 
 

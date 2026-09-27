@@ -104,6 +104,9 @@ def check_rows_contact(ctx: StageContext, rows: list[dict], where: str) -> dict:
     for r in rows:
         got = r.get("contact_version")
         seen.add(got)
+        want_lim = ctx.opts.get("actuator_limits")
+        if want_lim and r.get("actuator_limits") != want_lim:
+            bad.append(f"seed {r.get('seed')}: actuator limits {r.get('actuator_limits')} != declared {want_lim}")
         want_sha = ctx.opts.get("tracker_sha256")
         if want_sha and r.get("tracker_sha256") != want_sha:
             bad.append(f"seed {r.get('seed')}: tracker sha {r.get('tracker_sha256')} != declared {want_sha}")
@@ -143,7 +146,7 @@ def collect(ctx: StageContext) -> dict:
                      ctx.root / out / body / f"log_s{s}.txt"))
     ctx.run_parallel(jobs, int(o.get("workers", 1)))
     from rrp.data.manifest import read_manifest
-    eps, cvs, trk, shas = [], set(), set(), set()
+    eps, cvs, trk, shas, lims = [], set(), set(), set(), set()
     for s in range(a, b + 1, size):
         e = min(s + size - 1, b)
         sh = ctx.root / out / body / f"s{s}-{e}.json"
@@ -155,9 +158,12 @@ def collect(ctx: StageContext) -> dict:
         cvs.add(getattr(getattr(prov, "physics", None), "contact_version", None))
         trk |= {str(m.get("tracker_version")) for m in d["episodes"]}
         shas |= {str(m.get("tracker_sha256")) for m in d["episodes"]}
+        lims |= {str((m.get("physics") or {}).get("actuator_limits")) for m in d["episodes"]}
     want = ctx.rc.flags.contact_version
     if o.get("tracker_sha256") and shas != {o["tracker_sha256"]}:
         raise StageError(f"collected with tracker sha {sorted(shas)}, DAG declares {o['tracker_sha256']}")
+    if o.get("actuator_limits") and lims != {o["actuator_limits"]}:
+        raise StageError(f"collected with actuator limits {sorted(lims)}, DAG declares {o['actuator_limits']}")
     if cvs != {want}:
         raise StageError(f"collected shards record contact version(s) {sorted(map(str, cvs))} != {want!r}")
     if len(eps) != b - a + 1:
@@ -167,8 +173,25 @@ def collect(ctx: StageContext) -> dict:
                                                     success=st.count("success"), fell=st.count("fell"),
                                                     failure=st.count("failure"), contact_version=want,
                                                     tracker_versions=sorted(trk), tracker_sha256=sorted(shas),
+                                                    actuator_limits=sorted(lims), dataset_gate=dataset_gate(eps),
                                                     ticks=int(sum(m["ticks"] for m in eps))),
                 source_detail=f"scripted_teacher:waypoint -> {'|'.join(sorted(trk))}")
+
+
+def dataset_gate(eps: list[dict]) -> dict:
+    """D-112 legged dataset gate: stance slip ratio < 0.15 on >= 95% of episodes, and 0 falls at DART noise 0.
+    Episodes without a motion record (collected before W8 recorded it) make the slip part `unmeasured`."""
+    sl = [(e.get("motion") or {}).get("slip_ratio") for e in eps]
+    have = [x for x in sl if x is not None]
+    n0 = [e for e in eps if float(e.get("sigma", 0)) == 0.0]
+    falls0 = sum(e.get("status") == "fell" for e in n0)
+    frac = (sum(x < 0.15 for x in have) / len(have)) if have else None
+    slip_ok = None if len(have) < len(eps) else bool(frac >= 0.95)
+    return dict(gate="D-112 legged dataset", n=len(eps), slip_measured=len(have),
+                slip_lt_0p15_frac=None if frac is None else round(frac, 4),
+                slip_median=None if not have else round(float(sorted(have)[len(have) // 2]), 4),
+                slip_ok=slip_ok, noise0_episodes=len(n0), noise0_falls=falls0, falls_ok=falls0 == 0,
+                passed=None if slip_ok is None else bool(slip_ok and falls0 == 0))
 
 
 @register("legged", "train_bc", source="bc")

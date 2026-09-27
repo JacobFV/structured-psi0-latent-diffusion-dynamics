@@ -184,3 +184,14 @@ def test_legged_eval_refuses_checkpoint_trained_on_other_contact(tmp_path):
         check_checkpoints_contact(ctx("legacy.pt"))
     with pytest.raises(StageError, match="trained on contact_v2"):
         check_checkpoints_contact(ctx("flow2.pt", "contact_v1"))
+
+
+def test_legged_dataset_gate_d112():
+    from rrp.pipelines.legged import dataset_gate
+    ep = lambda sr, sig=0.1, st="success": dict(sigma=sig, status=st, motion=dict(slip_ratio=sr))
+    g = dataset_gate([ep(0.05)] * 95 + [ep(0.3)] * 5)
+    assert g["slip_ok"] and g["passed"] and g["slip_lt_0p15_frac"] == 0.95
+    assert not dataset_gate([ep(0.05)] * 94 + [ep(0.3)] * 6)["passed"]
+    assert not dataset_gate([ep(0.05)] * 99 + [ep(0.05, 0.0, "fell")])["passed"]        # a fall at noise 0
+    assert dataset_gate([ep(0.05)] * 99 + [ep(0.05, 0.3, "fell")])["passed"]            # falls under noise allowed
+    assert dataset_gate([dict(sigma=0.0, status="success")])["passed"] is None         # unmeasured

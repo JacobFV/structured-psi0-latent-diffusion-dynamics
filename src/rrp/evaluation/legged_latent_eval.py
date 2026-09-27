@@ -460,6 +460,11 @@ def default_tracker_kind(body):
     return "auto" if body in LEARNED_TRACKER_BODIES else "cpg"
 
 
+def _limits(model):
+    from rrp.physics.actuator import model_actuator_limits
+    return model_actuator_limits(model)
+
+
 def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=None, arc_only=False, frame_every=2,
                 cam_scale=1.0, size=(368, 480), perturb=None):
     """perturb: rrp.envs.perturb.PhysicsPerturbation (W6 robustness sweeps; None = nominal, unchanged behaviour).
@@ -531,7 +536,7 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
                final_pose=s.base_pose_truth().tolist(), waypoints=sc.meta["waypoints"],
                tracker=getattr(s, "tracker_version_str", None), n_steps=steps,
                contact_version=model_contact_version(s.model) or sc.meta.get("contact_model"),
-               tracker_sha256=trk_sha)
+               tracker_sha256=trk_sha, actuator_limits=_limits(s.model))
     if ctl is not None:
         row.update(stats=ad.stats, packets=ctl.packets, packet_log=ad.log[:20],
                    latent_space_version=getattr(ctl, "lsv", None), realizer_compat_version=getattr(ctl, "rcv", None),
