@@ -21,6 +21,18 @@ Placement: all three on the PEER in parallel (the host broker was full: t1 agent
 state `artifacts/runs/ladder_arm<lin>_state/` (peer store).
 RESUME: `ssh gb10-direct 'systemd-run --user --unit rrp-arm-<lin>-r --setenv=LIN=<lin> --working-directory=/dev/shm/rrp-brandonin/wt/ladder bash scripts/arm_lineage_chain.sh'`
 (done nodes skipped; trainers resume from *_last.pt; collections skip existing buffers; a .failed node is not retried).
+17:15 HOST TAKEOVER (lead: peer CPU load 57 on 20 cores, host idle): at that point every lineage had Stage A, flow 20k,
+bc1-3, gen1, rz bcdag1/bcdag1_long/bcdag2/gendag1 done, and flow_ft, the gen2 collection and edit-suite wave 1 in flight.
+The three peer driver units were stopped (their in-flight jobs kept running; checked that no later job had been
+launched). `scripts/arm_seed2_host.sh` (host units `rrp-arm-<lin>-host2`) now ADOPTS the in-flight nodes by waiting for
+those exact peer jobs' exit codes (flow_ft, gen2 x4, edit wave 1) and runs the not-yet-launched stages: GPU training
+(rz gendag2/gendag3, flow gdag1/gdag2h) on the PEER GPU; DAgger collections (gen3, gdag1, gdag2), edit-suite wave 2
+(parm6 shards 6-11, panda 3-5) and all evaluations on the HOST CPU (bounded wait for host admission; outputs pushed to
+the peer store). Markers stay in the peer state dir. Same commands, seeds and shards; the host collection path was
+smoke-tested (2 episodes, rc 0). One fix-and-relaunch: the first takeover's host edit shards failed at load (the
+Stage-A dir had not been pulled to the host; rc 1, no rows, no markers); fixed (pull() also fetches Stage A) and
+relaunched once. RESUME (seed 2, after the takeover): `systemd-run --user --unit rrp-arm-<lin>-host3 --setenv=LIN=<lin>
+--working-directory=$HOME/work/rrp-wt/ladder bash scripts/arm_seed2_host.sh` (done nodes skipped).
 
 ## ARM NOSEM COUNTERPART RESULT (FINAL, 2026-09-26 14:00 PDT; three arm lineages; state: completed)
 Three lineages, IDENTICAL recipe (Stage A -> flow 20k -> 3 BC-expert system-0 DAgger rounds incl. generated-packet states,
