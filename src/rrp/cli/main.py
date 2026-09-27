@@ -63,7 +63,7 @@ def cmd_ops_watchdog(a):
                         startup_cpu_cores=cfg["enforced"]["cpu_cores"], disk_path=str(a.disk_path or repo_root()),
                         fraction=0.8 if role == "host" else 1.0, psi_full_avg10_shed=25.0 if role == "host" else 101.0,
                         cpu_fraction=0.8 if role == "host" else 1.0,          # D-033 host CPU 80% of free
-                        subtract_shmem=role == "peer",                         # D-111: RAM artifact store
+                        subtract_shmem=False,  # D-116: tmpfs pages are already charged to rrp.slice memory.current; subtracting Shmem double-counted it
                         sample_interval_s=a.interval)
     if cfg.get("unrestricted"):
         wc.startup_memory_bytes = 10 ** 15
