@@ -6,6 +6,10 @@ set -u
 LABEL=$1; OUT=$2; ITERS=$3; CPU=$4; MEM=$5; shift 6
 PY=$HOME/work/relational-robot-policy/.venv/bin/python
 last=$((ITERS - 1))
+mkdir -p "$OUT"
+# one owner per run dir: the lock fd is inherited by the retry loop, so an orphaned launcher still holds it (2026-09-27 duplicate-trainer incident)
+exec 9>"$OUT/.launcher.lock"
+flock -n 9 || { echo "another launcher owns $OUT"; exit 5; }
 for a in $(seq 1 "${ATTEMPTS:-8}"); do
   if [ -f "$OUT/train_log.jsonl" ] && grep -q "\"iter\": $last," "$OUT/train_log.jsonl"; then echo "done"; exit 0; fi
   out=$(TRIES=60 scripts/contact_launch_retry.sh --cpu "$CPU" --mem "$MEM" --label "$LABEL" --max-seconds 21600 -- \
