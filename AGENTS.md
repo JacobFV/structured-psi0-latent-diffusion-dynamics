@@ -23,10 +23,10 @@ are BASELINES ONLY. Integration branch: `main`.
   the GB10 (pack small jobs, watch memory). The watchdog acts only on emergencies. Keep it busy.
 - **Peer code dirs:** the lead's checkout syncs to `/dev/shm/rrp-brandonin/repo` (running chains live there). Every other
   agent/worktree uses its OWN dir. ALWAYS export `RRP_PEER_REPO` before `scripts/peer_sync.sh` (D-090 incident):
-  `scripts/peer_sync.sh push` now enforces this (D-096): it refuses without RRP_PEER_REPO, refuses the shared `repo` dir unless RRP_ALLOW_SHARED_REPO=1, and refuses a dir that running jobs use as their cwd.
   `export RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/<track>; scripts/peer_sync.sh push`, then
   `scripts/peer_run.sh --gpu --gpu-mem 12G --cpu 4 --mem 24G --label <track>_x --max-seconds N [--detach] -- PY -m rrp.cli ...`.
   Never sync into a dir whose jobs are running. Name outputs `artifacts/runs/<track>_...`; never overwrite another track's run.
+  `scripts/peer_sync.sh push` now enforces this (D-096): it refuses without RRP_PEER_REPO, refuses the shared `repo` dir unless RRP_ALLOW_SHARED_REPO=1, and refuses a dir that running jobs use as their cwd.
 - NEVER run `rrp ops stop` without `--lease <your lease id>` (2026-09-21 incident: an unscoped stop killed every peer job).
   Launch loops must check exit codes and be bounded (D-061).
 - No paid compute/API calls, sudo/global upgrades, network reconfiguration, public listeners or physical robot commands.
