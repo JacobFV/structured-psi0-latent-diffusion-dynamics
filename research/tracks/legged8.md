@@ -64,3 +64,26 @@ Everything goes through `rrp run-dag dags/legged_v2_anymal.yaml` (61 nodes; deri
 while DAG jobs run from that dir. Relaunch the coordinator (it resumes from the ledger and re-adopts running leases):
 `PYTHONPATH=src ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/legged_v2_anymal.yaml [--point variant=semfix --point variant=nosem]`.
 Outputs live in the peer store `/dev/shm/rrp-brandonin/repo/artifacts/runs/legged8/`.
+
+## ANYMAL_C RESULT (contact_v2; wave 1). Table: `research/tracks/legged8/legged8_compare_anymal_c.{md,json}` (built by
+`scripts/legged8_compare.py anymal_c` from the raw rows in the peer store `artifacts/runs/legged8/legged8-anymal_c-*`)
+DAG `legged_v2_anymal`: 40/40 nodes completed (host log `artifacts/runs/legged8/full_rundag.log`). Sources:
+learned:legged8-anymal_c-{semfix,nosem}/train_flow_s{0,1,2}/{snap_s4000,policy}.pt (DEPLOYABLE R2 route), gait
+learned_tracker:anymal_c:iter2499:contact_v2 (sha 2a16532b...), commands scripted_teacher. Same protocol and statistics as D-090.
+- Stage A clip scale (lead's check; `clipscale_stageA_all.json`): semfix 0.125 / 0.132 / 0.138 (median gn 14.4 / 10.2 / 11.3),
+  nosem 0.968 / 0.978 / 0.970 (median gn 0.14 / 0.15 / 0.17). go2 D-088/D-090 references: fixed sem 0.17-0.18, nosem 0.94.
+- Task-context HALT Δforward (t=2-5 s), training seeds 0 / 1 / 2 -> pooled 60: semfix -0.32 / -0.10 / -0.16 -> **-0.19 [-0.26, -0.13]**;
+  nosem +0.08 / +0.43 / +0.12 -> **+0.21 [+0.14, +0.28]**. Every semfix seed below every nosem seed: exact one-sided permutation p = 0.05
+  (two-sided 0.10); pooled difference -0.40 [-0.50, -0.30]. Relative size 7-26% of the unedited 1.2-1.5 m. Irrelevant control (mirror
+  INACTIVE) Δforward +0.002 / -0.003. **D-088/D-090 replicates on a third body under contact_v2**, and nosem again walks FURTHER under halt.
+- R2 success (30 dev seeds, no falls anywhere): semfix snap 28/26/30, final 26/26/26; nosem snap 29/29/27, final 30/28/25. Pooled final
+  78/90 vs 83/90. Of the 25 non-successes over all 12 R2 runs, 22 are at the HALT stage with the task runtime reporting success
+  (public success) but the privileged end check failing (a foot momentarily off the ground at the last tick: the same v2 anymal_c
+  stance flicker as in collection); only 3 are real failures (60 s timeouts: semfix s0 snap 2 x drift toward waypoint a, nosem s2 snap 1).
+  Counting public success, both variants are at 88-90/90 per checkpoint; the privileged-success gap is not a competence difference.
+- Context goal steering (ACTIVE-INACTIVE toward): semfix +0.21 / +0.25 / +0.20 vs nosem +0.10 / +0.12 / +0.13 -> pooled +0.22 vs +0.12,
+  every seed ordered (p = 0.05 one-sided). Unlike go2/hexapod6 (equal), on anymal_c semfix steers ~2x more.
+- z edits: halt strong in both (-0.64 vs -0.76, not ordered); turn +0.6 +0.26 vs +0.20 (ordered, p 0.05), -0.6 -0.25 vs -0.20; goal readout
+  +0.025 vs +0.011 (random |dz| 8: -0.006 both). Random |dz| 16/25 perturb semfix forward progress in both directions by seed (+0.14..-0.22).
+- References (teacher, BC) on the same seeds: added below when the BC reference finishes (the first DAG run skipped the global
+  reference nodes because of a --point filter bug, fixed in rrp: global nodes are never filtered out).
