@@ -1,9 +1,12 @@
 """Performance-gated reward schedule for gait_v2 tracker training.
 
-alpha in [0, 1] moves the reward from gait-shaping PRIORS (air time, swing clearance, contact phase,
-stand_contact; they decay to a floor) to NATURAL objectives (power / cost of transport, torque, action rate,
-jerk, touchdown impact; they ramp up). PERMANENT terms (tracking, falls, orientation/height, stance slip,
-joint limits) never change. See RewardCfg.effective in rrp.control.legged_core.
+alpha in [0, 1] moves the reward from gait-shaping PRIORS (air time, swing clearance, contact phase; they decay
+to a floor) to NATURAL objectives (power / cost of transport, torque, action rate, jerk, touchdown impact; they
+ramp up). PERMANENT terms (tracking, falls, orientation/height, stance slip, joint limits, clearance floor, and the
+zero-command standing terms stand_contact / stand_still / stand_vel) never change. See PRIOR_TERMS / NATURAL_TERMS /
+PERMANENT_STANDING_TERMS and RewardCfg.effective in rrp.envs.legged_core.
+Revision 2026-09-27: stand_contact moved PRIOR -> PERMANENT (standing still on command is a task requirement, W8 halt
+failures), and every command sampler issues at least MIN_STOP_SHARE (10%) zero commands.
 
 alpha advances by `step` only when a whole evaluation window (`every` iterations) is within the ADVANCE
 thresholds. It backs off one step when any metric crosses the BACK-OFF thresholds. It never moves on

@@ -47,8 +47,9 @@ All legged results up to D-092 were produced with contact v1 and must be read wi
 
 ## 3. Reward schedule: shaping priors → natural objectives (design, D-093)
 Three groups of terms:
-- **Permanent:** velocity tracking, falls/termination, orientation/height sanity, joint limits, **stance-foot slip** (never decays).
-- **Shaping priors (decay to ~10%):** air time, swing height / foot clearance, contact phase / gait clock, biped symmetry, stand contact.
+- **Permanent:** velocity tracking, falls/termination, orientation/height sanity, joint limits, **stance-foot slip** (never decays),
+  the swing **clearance floor**, and **standing on a zero command** (both feet down, no joint drift, no body sway).
+- **Shaping priors (decay to ~10%):** air time, swing height / foot clearance, contact phase / gait clock, biped symmetry.
 - **Natural objectives (ramp up):** cost of transport Σ|τ·q̇| / (m·g·|v|), torque², action rate / jerk, foot impact force.
 
 Schedule:
@@ -58,6 +59,16 @@ Schedule:
 - α and all effective weights are logged per iteration and in checkpoint metadata.
 
 Test: compare α = 0 against the final α for slip ratio, tracking, falls, duty factor and CoT, with videos. Report a collapse to shuffling if it happens.
+
+**Revision 2026-09-27 (W1, lead request): standing is permanent, and stops are ≥ 10% of commands.**
+- *Change:* `stand_contact` (both feet down under a zero command) moved from the shaping priors to the permanent group, together with
+  `stand_still` and a new `stand_vel` (−1.5 × |v_xy| at zero command). Every command sampler now issues at least 10% zero commands
+  (`MIN_STOP_SHARE`; the W8 teacher-mix sampler had 3%).
+- *Reason:* standing still on command is a task requirement, not a gait prior. The W8 `halt` event checks both feet down and body
+  speed ≤ 0.1 m/s. With `stand_contact` at its 10% prior floor (α = 1) and few stop commands, the sourced-limit t1 swayed at the halt (3/15
+  waypoint failures). A strong speed penalty alone (−4) made it step in place instead (9/20 failures).
+- *Scope:* new trainings only. Installed trackers need no retraining unless they fail the halt check.
+- Code: `rrp.envs.legged_core` (`PRIOR_TERMS`, `PERMANENT_STANDING_TERMS`, `MIN_STOP_SHARE`); test `tests/unit/test_reward_schedule.py`.
 
 ## 4. Checklist
 

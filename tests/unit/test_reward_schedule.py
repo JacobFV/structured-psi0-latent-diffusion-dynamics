@@ -1,7 +1,7 @@
 """gait_v2 reward schedule: priors decay to a floor, natural terms ramp, permanent terms fixed; gated alpha."""
 import pytest
 
-from rrp.envs.legged_core import NATURAL_TERMS, PRIOR_TERMS, RewardCfg
+from rrp.envs.legged_core import MIN_STOP_SHARE, NATURAL_TERMS, PERMANENT_STANDING_TERMS, PRIOR_TERMS, RewardCfg
 from rrp.training.reward_schedule import AlphaGate, window_metrics
 
 
@@ -17,8 +17,10 @@ def test_effective_weights(kind):
         assert getattr(e0, t) == pytest.approx(getattr(c0, t))
         assert getattr(e1, t) == pytest.approx(c0.natural_max[t])
         assert abs(getattr(e1, t)) >= abs(getattr(e0, t))
-    for t in ("track_lin", "track_ang", "slip", "termination", "orient", "limits", "height"):
+    for t in ("track_lin", "track_ang", "slip", "termination", "orient", "limits", "height") + PERMANENT_STANDING_TERMS:
         assert getattr(e1, t) == getattr(c0, t)          # permanent
+    assert not set(PERMANENT_STANDING_TERMS) & set(PRIOR_TERMS)
+    assert c0.stand_contact > 0 and c0.stand_vel < 0
     assert c0.slip < 0 and c0.effective(3.0).alpha == 1.0
 
 
@@ -40,3 +42,21 @@ def test_window_metrics():
     m = window_metrics(st)
     assert m["fall_rate"] == 0.5 and m["track_rel_err"] == pytest.approx(0.2)
     assert m["slip_ratio"] == pytest.approx(0.1) and m["cot"] == pytest.approx(0.5)
+
+
+def test_stop_share_in_every_sampler():
+    """At least MIN_STOP_SHARE zero commands from the default and the teacher-mix samplers (standing is trained)."""
+    import warnings
+    import numpy as np
+    from rrp.bodies.legged import legged_body
+    from rrp.envs.legged_core import LeggedEnv
+    warnings.filterwarnings("ignore")
+    for body in ("t1", "go2"):
+        env = LeggedEnv(lambda: legged_body(body), 1, 0, contact="v2")
+        for mix in ("default", "teacher"):
+            env.cmd_mix = mix
+            zeros = 0
+            for _ in range(3000):
+                env._sample_cmd(0)
+                zeros += not np.any(env.cmd[0])
+            assert zeros / 3000 >= MIN_STOP_SHARE - 0.02, (body, mix, zeros / 3000)

@@ -269,10 +269,15 @@ class LeggedBinding:
         return float(math.acos(max(-1.0, min(1.0, -g[2]))))
 
 
-PRIOR_TERMS = ("air_time", "clearance", "contact_phase", "stand_contact")        # gait-shaping priors: decay
+PRIOR_TERMS = ("air_time", "clearance", "contact_phase")                        # gait-shaping priors: decay
 NATURAL_TERMS = ("torque", "action_rate", "smooth", "power", "impact")           # natural objectives: ramp up
-# everything else is PERMANENT (tracking, termination, orientation/height, lin_z/ang_xy, slip, limits, alive,
-# stand_still): the stance-slip penalty never decays, otherwise skating returns.
+# PERMANENT = everything else, notably: tracking, termination, orientation/height, lin_z/ang_xy, limits, alive, stance slip
+# (never decays, or skating returns), clearance_floor, and the zero-command STANDING terms stand_contact / stand_still /
+# stand_vel. Revision 2026-09-27 (lead): stand_contact moved from PRIOR to PERMANENT. Standing still on a zero command is a task
+# requirement (the W8 `halt` event checks both feet down and speed <= 0.1), not a gait prior. At its 10% prior floor, t1 stepped in place
+# while halting and failed 3-9/20 waypoint episodes.
+PERMANENT_STANDING_TERMS = ("stand_contact", "stand_still", "stand_vel")
+MIN_STOP_SHARE = 0.10     # curriculum: at least this share of sampled commands are zero commands (every sampler)
 
 
 @dataclass
@@ -320,7 +325,8 @@ class RewardCfg:
     ref_amp: float = 0.2
     turn_lin: float = 0.0
     yaw_lin_all: float = 0.0
-    stand_vel: float = 0.0         # PERMANENT: zero command -> x |base v_xy| (m/s); removes standing sway (W8 halt event needs speed <= 0.1)       # 1 -> the turn_lin dense yaw-progress term also applies to arcs (any |wz| command), not only pure turns          # dense yaw progress during pure-turn commands: x clip(w_z sign(c)/|c|, -0.5, 1.2)
+    stand_vel: float = 0.0         # PERMANENT: zero command -> x |base v_xy| (m/s); removes standing sway (W8 halt event needs speed <= 0.1)
+                                   # gait_v2 default -1.5 (2026-09-27; -4 made t1 step in place)       # 1 -> the turn_lin dense yaw-progress term also applies to arcs (any |wz| command), not only pure turns          # dense yaw progress during pure-turn commands: x clip(w_z sign(c)/|c|, -0.5, 1.2)
     sigma_ang: float = 0.0         # yaw-rate tracking kernel width; 0 -> sigma (a sharper kernel keeps small turn commands informative)
     version: str = "gait_v1"
     # schedule (gait_v2): alpha in [0,1]; priors w0*(floor + (1-floor)(1-alpha)); natural w_min + alpha(w_max-w_min)
@@ -354,9 +360,9 @@ class RewardCfg:
                 return RewardCfg(orient=-5.0, alive=0.3, contact_phase=1.0, height=-20.0, air_time=1.0,
                                  stand_still=-0.5, termination=-10.0, sigma=0.1, track_lin=2.5, track_ang=2.0,
                                  feet_slip=0.0, slip=-1.0, clearance=1.0, torque=-0.02, action_rate=-0.02,
-                                 smooth=-0.01, power=-0.02, impact=0.0, version=version, natural_max=nat)
+                                 smooth=-0.01, power=-0.02, impact=0.0, stand_vel=-1.5, version=version, natural_max=nat)
             return RewardCfg(feet_slip=0.0, slip=-0.5, clearance=0.5, torque=-0.02, action_rate=-0.02, smooth=-0.01,
-                             power=-0.02, impact=0.0, version=version, natural_max=nat)
+                             power=-0.02, impact=0.0, stand_vel=-1.5, version=version, natural_max=nat)
         if kind in ("humanoid", "biped"):
             # v3: track_ang 1.0 -> 2.0 + turn-in-place commands (v2 walked but never turned)
             # v2 (after v1 converged to a stable non-walking stander): sharper tracking kernel, more
@@ -412,7 +418,7 @@ class LeggedEnv:
         self.ref_ff = 0.0         # feed-forward stepping reference amplitude (rad); recorded in the actor meta (LearnedTracker applies it)
         self.slow_frac = 0.0      # bipeds: fraction of translational commands rescaled to 0.05-0.2 m/s (slow-gait mix)
         self.cmd_mix = "default"  # "teacher": 70% of commands from the W8 waypoint-teacher mix
-        self.teacher_stop = 0.03  # stop share within the teacher mix (W8 halts at each episode end; 0.10 for halt training)
+        self.teacher_stop = MIN_STOP_SHARE   # stop share within the teacher mix (>= MIN_STOP_SHARE; was 0.03, see PRIOR_TERMS note)
         self.stance_t = np.zeros((n_envs, self.b.nf))
         import re as _re
         acts = self.meta["legged"]["policy_actuators"]

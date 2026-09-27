@@ -340,7 +340,9 @@ planted). Fix attempt `artifacts/runs/contact_t1_w8b` (500 iters, permanent `sta
 turn at 0.48 1.30, arc 1.97, slip 0.13; closed loop 11/20 (`w8loop/t1_w8b_sourced.json`), all failures the same halt speed check, now with stepping
 while standing (truth stance fraction drops to 0). Cause: at alpha 1 the stand_contact prior sits at its 10% floor, and the teacher mix has only 3%
 zero commands. Attempt w8c (host, `artifacts/runs/contact_t1_w8c`, 400 iters from w8): stand_contact=5 (0.5 effective at alpha 1), stand_vel -1.5,
-10% stops in the mix (`--cmd-mix teacher:0.10`). 50-episode fall checks (`fallrate/t1_{w8,w8b}_*.json`): **0/50 falls** for both on turn, turn at 0.48,
+10% stops in the mix (`--cmd-mix teacher:0.10`). **Generalised (lead, 2026-09-27):** stand_contact is now PERMANENT in the schedule for all
+bodies, the default stand_vel is -1.5 and every sampler issues >= 10% stops (`MIN_STOP_SHARE`); docs/robot_training_considerations.md §3 revision.
+w8c (launched on the previous code with stand_contact=5 x 0.1 floor = 0.5 effective) is therefore equivalent to the new defaults. 50-episode fall checks (`fallrate/t1_{w8,w8b}_*.json`): **0/50 falls** for both on turn, turn at 0.48,
 arc and forward.
 Videos (reviewed): `artifacts/video/2026-09-27_contact_t1_{turn,turn_fast,arc,forward}_w8installed-vs-w8mix_iter1499_ok_ok.mp4`
 (left: W8 installed t1 under LEGACY limits, right: candidate under SOURCED limits).
