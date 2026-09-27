@@ -12,4 +12,3 @@
 {'seed': 10011, 'status': 'success', 'steps': 123, 'sim_s': 12.3, 'pure_turn_frac': 0.0, 'contact_model': 'contact_v2', 'actuator_limits': 'sourced_v1'}
 {'seed': 10012, 'status': 'success', 'steps': 131, 'sim_s': 13.100000000000001, 'pure_turn_frac': 0.0, 'contact_model': 'contact_v2', 'actuator_limits': 'sourced_v1'}
 {'seed': 10013, 'status': 'success', 'steps': 127, 'sim_s': 12.700000000000001, 'pure_turn_frac': 0.0, 'contact_model': 'contact_v2', 'actuator_limits': 'sourced_v1'}
-{'seed': 10014, 'status': 'success', 'steps': 119, 'sim_s': 11.9, 'pure_turn_frac': 0.06722689075630252, 'contact_model': 'contact_v2', 'actuator_limits': 'sourced_v1'}

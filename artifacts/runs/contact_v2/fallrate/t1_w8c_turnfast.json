@@ -1,0 +1,215 @@
+{
+ "body": "t1",
+ "actor": "artifacts/runs/contact_t1_w8c/actor.pt",
+ "cmd": [
+  0.0,
+  0,
+  0.48
+ ],
+ "T": 8.0,
+ "n": 50,
+ "falls": 0,
+ "actuator_limits": "sourced_v1",
+ "rows": [
+  {
+   "seed": 1000,
+   "fell_t": null
+  },
+  {
+   "seed": 1001,
+   "fell_t": null
+  },
+  {
+   "seed": 1002,
+   "fell_t": null
+  },
+  {
+   "seed": 1003,
+   "fell_t": null
+  },
+  {
+   "seed": 1004,
+   "fell_t": null
+  },
+  {
+   "seed": 1005,
+   "fell_t": null
+  },
+  {
+   "seed": 1006,
+   "fell_t": null
+  },
+  {
+   "seed": 1007,
+   "fell_t": null
+  },
+  {
+   "seed": 1008,
+   "fell_t": null
+  },
+  {
+   "seed": 1009,
+   "fell_t": null
+  },
+  {
+   "seed": 1010,
+   "fell_t": null
+  },
+  {
+   "seed": 1011,
+   "fell_t": null
+  },
+  {
+   "seed": 1012,
+   "fell_t": null
+  },
+  {
+   "seed": 1013,
+   "fell_t": null
+  },
+  {
+   "seed": 1014,
+   "fell_t": null
+  },
+  {
+   "seed": 1015,
+   "fell_t": null
+  },
+  {
+   "seed": 1016,
+   "fell_t": null
+  },
+  {
+   "seed": 1017,
+   "fell_t": null
+  },
+  {
+   "seed": 1018,
+   "fell_t": null
+  },
+  {
+   "seed": 1019,
+   "fell_t": null
+  },
+  {
+   "seed": 1020,
+   "fell_t": null
+  },
+  {
+   "seed": 1021,
+   "fell_t": null
+  },
+  {
+   "seed": 1022,
+   "fell_t": null
+  },
+  {
+   "seed": 1023,
+   "fell_t": null
+  },
+  {
+   "seed": 1024,
+   "fell_t": null
+  },
+  {
+   "seed": 1025,
+   "fell_t": null
+  },
+  {
+   "seed": 1026,
+   "fell_t": null
+  },
+  {
+   "seed": 1027,
+   "fell_t": null
+  },
+  {
+   "seed": 1028,
+   "fell_t": null
+  },
+  {
+   "seed": 1029,
+   "fell_t": null
+  },
+  {
+   "seed": 1030,
+   "fell_t": null
+  },
+  {
+   "seed": 1031,
+   "fell_t": null
+  },
+  {
+   "seed": 1032,
+   "fell_t": null
+  },
+  {
+   "seed": 1033,
+   "fell_t": null
+  },
+  {
+   "seed": 1034,
+   "fell_t": null
+  },
+  {
+   "seed": 1035,
+   "fell_t": null
+  },
+  {
+   "seed": 1036,
+   "fell_t": null
+  },
+  {
+   "seed": 1037,
+   "fell_t": null
+  },
+  {
+   "seed": 1038,
+   "fell_t": null
+  },
+  {
+   "seed": 1039,
+   "fell_t": null
+  },
+  {
+   "seed": 1040,
+   "fell_t": null
+  },
+  {
+   "seed": 1041,
+   "fell_t": null
+  },
+  {
+   "seed": 1042,
+   "fell_t": null
+  },
+  {
+   "seed": 1043,
+   "fell_t": null
+  },
+  {
+   "seed": 1044,
+   "fell_t": null
+  },
+  {
+   "seed": 1045,
+   "fell_t": null
+  },
+  {
+   "seed": 1046,
+   "fell_t": null
+  },
+  {
+   "seed": 1047,
+   "fell_t": null
+  },
+  {
+   "seed": 1048,
+   "fell_t": null
+  },
+  {
+   "seed": 1049,
+   "fell_t": null
+  }
+ ]
+}
