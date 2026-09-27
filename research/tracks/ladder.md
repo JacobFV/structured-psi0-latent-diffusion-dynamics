@@ -71,7 +71,11 @@ broker was unrestricted; now capped at 108 GiB declared RAM+GPU, 8 GPU slots). O
 the sampler (`scripts/armv2_mem_sampler.sh`, unit `rrp-armv2-memsampler2`) now also records each lease's CUDA memory
 (nvidia-smi processes mapped to the lease via /proc/<pid>/cgroup; not part of the cgroup figure on the GB10). Stage A:
 RAM slice peak 8.5-9.5 GB, CUDA 957 MiB -> declared 12G RAM + 2G GPU.
-RESUME: `cd ~/work/rrp-wt/ladder && systemd-run --user --unit rrp-armv2-dag7 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv2 --setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/ladder ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_lineage_v2.yaml`
+08:55 (lead): the two running flow leases were shrunk 4 -> 2 declared CPU (`rrp ops shrink`; measured ~1.0 core). All
+GPU-training nodes (Stage A, flows, refits) now declare 2 CPU (declared CPU also sets the OpenMP thread count, which only
+feeds data preparation for these GPU jobs; config hashes unchanged). Runner `rrp-armv2-dag7`. Both semfix Stage As
+completed after the exact resume.
+RESUME: `cd ~/work/rrp-wt/ladder && systemd-run --user --unit rrp-armv2-dag8 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv2 --setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/ladder ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_lineage_v2.yaml`
 (completed nodes skipped, running leases re-adopted; failed nodes only with --retry-failed, a manual decision).
 
 ## ARM NOSEM RECIPE ABLATION RESULT (2026-09-26 22:45 PDT; state: completed; all nodes rc 0 after one OOM relaunch)

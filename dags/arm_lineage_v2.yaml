@@ -29,19 +29,20 @@ nodes:
   # Resources (lead 08:05): declare measured peak memory + 20% so the broker admits correctly. Peaks = cgroup
   # memory.peak of the lease slice (page cache included), sampled by scripts/armv2_mem_sampler.sh into
   # artifacts/runs/armv2/_dags/arm_lineage_v2/memory_peaks.json and, from the next code push, logged by rrp.orchestration.child.
+  # cpu 2 for GPU-training nodes (lead 08:55: flows and Stage A measured ~1.0 core; threads only feed data prep).
   # gpu_mem = measured process GPU memory (nvidia-smi) + margin. max_seconds = the broker's 6 h cap on GPU nodes (06:05:
   # under contention Stage A ran at 1.28 s/step and was stopped at 4 h). None of this enters the node config hashes.
-  stageA: {resources: {mem: 12G, gpu_mem: 2G, max_seconds: 21600}}           # measured slice peak 9.5G / ~1 GB GPU
-  F0: {resources: {mem: 10G, gpu_mem: 4G, max_seconds: 21600}}               # provisional until measured
-  Fft: {resources: {mem: 10G, gpu_mem: 4G, max_seconds: 21600}}
-  Fgdag1: {resources: {mem: 10G, gpu_mem: 4G, max_seconds: 21600}}
-  Fgdag2h: {resources: {mem: 10G, gpu_mem: 4G, max_seconds: 14400}}
-  rzbcdag1: {resources: {mem: 8G, gpu_mem: 3G, max_seconds: 21600}}          # provisional until measured
-  rzbcdag1long: {resources: {mem: 8G, gpu_mem: 3G, max_seconds: 21600}}
-  rzbcdag2: {resources: {mem: 8G, gpu_mem: 3G, max_seconds: 21600}}
-  rzgendag1: {resources: {mem: 8G, gpu_mem: 3G, max_seconds: 21600}}
-  rzgendag2: {resources: {mem: 8G, gpu_mem: 3G, max_seconds: 21600}}
-  rzgendag3: {resources: {mem: 8G, gpu_mem: 3G, max_seconds: 21600}}
+  stageA: {resources: {cpu: 2, mem: 12G, gpu_mem: 2G, max_seconds: 21600}}           # measured slice peak 9.5G / ~1 GB GPU
+  F0: {resources: {cpu: 2, mem: 10G, gpu_mem: 4G, max_seconds: 21600}}               # provisional until measured
+  Fft: {resources: {cpu: 2, mem: 10G, gpu_mem: 4G, max_seconds: 21600}}
+  Fgdag1: {resources: {cpu: 2, mem: 10G, gpu_mem: 4G, max_seconds: 21600}}
+  Fgdag2h: {resources: {cpu: 2, mem: 10G, gpu_mem: 4G, max_seconds: 14400}}
+  rzbcdag1: {resources: {cpu: 2, mem: 8G, gpu_mem: 3G, max_seconds: 21600}}          # provisional until measured
+  rzbcdag1long: {resources: {cpu: 2, mem: 8G, gpu_mem: 3G, max_seconds: 21600}}
+  rzbcdag2: {resources: {cpu: 2, mem: 8G, gpu_mem: 3G, max_seconds: 21600}}
+  rzgendag1: {resources: {cpu: 2, mem: 8G, gpu_mem: 3G, max_seconds: 21600}}
+  rzgendag2: {resources: {cpu: 2, mem: 8G, gpu_mem: 3G, max_seconds: 21600}}
+  rzgendag3: {resources: {cpu: 2, mem: 8G, gpu_mem: 3G, max_seconds: 21600}}
   bc1: {resources: {cpu: 8, mem: 20G}, config: {options: {workers: 4, threads: 2}}}    # a v1 gen2 group needed > 8G (OOM), 16G ran
   bc2: {resources: {cpu: 8, mem: 20G}, config: {options: {workers: 4, threads: 2}}}
   bc3: {resources: {cpu: 8, mem: 20G}, config: {options: {workers: 4, threads: 2}}}
