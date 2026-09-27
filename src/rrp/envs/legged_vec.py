@@ -28,6 +28,9 @@ def _worker(conn, body, n_envs, seed, friction, kw):
         elif msg == "turn":
             env.set_turn_scale(payload)
             conn.send(("ok", env.turn_scale))
+        elif msg == "refff":
+            env.ref_ff = float(payload)
+            conn.send(("ok", env.ref_ff))
         elif msg == "slowfrac":
             env.slow_frac = float(payload)
             conn.send(("ok", env.slow_frac))
@@ -82,6 +85,11 @@ class VecPool:
     def set_turn_scale(self, scale: float) -> float:
         for c in self.conns:
             c.send(("turn", float(scale)))
+        return [c.recv()[1] for c in self.conns][0]
+
+    def set_ref_ff(self, amp: float) -> float:
+        for c in self.conns:
+            c.send(("refff", float(amp)))
         return [c.recv()[1] for c in self.conns][0]
 
     def set_slow_frac(self, frac: float) -> float:

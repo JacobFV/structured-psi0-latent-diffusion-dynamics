@@ -148,8 +148,37 @@ class LeggedBinding:
                                d.qvel[self.pol_dadr] * 0.05, last_action,
                                [math.sin(2 * math.pi * phase), math.cos(2 * math.pi * phase)]]).astype(np.float32)
 
-    def targets(self, action) -> np.ndarray:
-        return np.clip(self.q0 + self.action_scale * np.asarray(action), self.lo, self.hi)
+    def targets(self, action, ref=None) -> np.ndarray:
+        q = self.q0 + self.action_scale * np.asarray(action)
+        if ref is not None:
+            q = q + ref
+        return np.clip(q, self.lo, self.hi)
+
+    def pitch_idx(self):
+        """(left, right) indices of [hip_pitch, knee, ankle_pitch] among the policy actuators (bipeds), or None."""
+        if not hasattr(self, "_pitch_idx"):
+            import re
+            acts = self.L["policy_actuators"]
+            f = lambda side, pat: [k for k, a in enumerate(acts) if re.search(side, a, re.I) and re.search(pat, a, re.I)]
+            try:
+                self._pitch_idx = tuple(np.array([f(sd, "hip_pitch")[0], f(sd, "knee")[0], f(sd, "ankle_pitch|ankle$")[0]])
+                                        for sd in ("left", "right")) if self.biped else None
+            except IndexError:
+                self._pitch_idx = None
+        return self._pitch_idx
+
+    def ref_offset(self, phase: float, cmd, amp: float) -> np.ndarray:
+        """Clock-driven stepping reference (feed-forward, ref_ff): swing leg hip_pitch -a, knee +2a, ankle_pitch -a,
+        a = amp x |sin 2 pi phase| (left swings for phase >= 0.5); zero when the command is ~0 or the body is not a biped."""
+        out = np.zeros(self.n)
+        idx = self.pitch_idx()
+        c = np.asarray(cmd, float)
+        if idx is None or not amp or (np.linalg.norm(c[:2]) <= 0.05 and abs(c[2]) <= 0.05):
+            return out
+        sp = math.sin(2 * math.pi * phase)
+        for ii, a_ in ((idx[0], amp * max(-sp, 0.0)), (idx[1], amp * max(sp, 0.0))):
+            out[ii] += np.array([-a_, 2 * a_, -a_])
+        return out
 
     # ---------------------------------------------------------------- privileged quantities
     def base_lin_vel_body(self, d):
@@ -375,6 +404,7 @@ class LeggedEnv:
                                      mode=actuator)
         self.actuator = actuator
         self.turn_vx = 0.0
+        self.ref_ff = 0.0         # feed-forward stepping reference amplitude (rad); recorded in the actor meta (LearnedTracker applies it)
         self.slow_frac = 0.0      # bipeds: fraction of translational commands rescaled to 0.05-0.2 m/s (slow-gait mix)
         self.stance_t = np.zeros((n_envs, self.b.nf))
         import re as _re
@@ -508,7 +538,7 @@ class LeggedEnv:
         for i in range(self.n):
             d = self.data[i]
             a = np.clip(actions[i], -5, 5)
-            new_t = b.targets(a)
+            new_t = b.targets(a, b.ref_offset(self.phase[i], self.cmd[i], self.ref_ff) if self.ref_ff else None)
             lat = int(self.latency[i])
             if self.act is not None:
                 self.act.command(i, new_t)

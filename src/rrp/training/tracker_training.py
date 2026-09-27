@@ -63,6 +63,8 @@ def train(args):
     turn_scale = None
     if args.slow_frac > 0:
         pool.set_slow_frac(args.slow_frac)
+    if args.ref_ff > 0:
+        pool.set_ref_ff(args.ref_ff)
     if args.turn_curriculum > 0:
         turn_scale = pool.set_turn_scale(args.turn_curriculum)
         pool.set_turn_frac(args.turn_frac)
@@ -105,7 +107,7 @@ def train(args):
                 actor_inputs="public: imu gyro, imu gravity, command, joint pos/vel, last action, gait clock",
                 critic_inputs="public + privileged: base lin vel, height, foot contacts, friction, push flag",
                 source_label="learned_tracker (trained with privileged critic)", args=vars(args), gpu=gpu_info,
-                contact_model=sp["contact"], reward_version=sp["reward"], init_from=args.init_actor,
+                contact_model=sp["contact"], reward_version=sp["reward"], init_from=args.init_actor, ref_ff=args.ref_ff,
                 alpha_schedule=("gated" if sched else args.alpha_schedule),
                 critic_extras=("+ reward-schedule alpha" if sp["reward"] == "gait_v2" else ""))
     (out / "meta.json").write_text(json.dumps(meta, indent=1))
@@ -292,6 +294,8 @@ def main(argv=None):
                     help="bipeds: start pure-turn yaw-rate scale (e.g. 0.4); 0 = off (full range)")
     ap.add_argument("--turn-vx0", type=float, default=0.0,
                     help="arc-to-in-place curriculum: initial forward speed (m/s) added to pure-turn commands, shrunk to 0 in 4 steps")
+    ap.add_argument("--ref-ff", type=float, default=0.0,
+                    help="bipeds: feed-forward clock stepping reference amplitude (rad) added to targets; stored in actor meta")
     ap.add_argument("--slow-frac", type=float, default=0.0, help="bipeds: fraction of walking commands rescaled to 0.05-0.2 m/s")
     ap.add_argument("--turn-frac", type=float, default=0.25, help="probability of a pure-turn command (bipeds)")
     ap.add_argument("--turn-advance", type=float, default=0.6, help="window turn ratio needed to widen the turn range")
