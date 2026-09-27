@@ -232,7 +232,7 @@ def create_app(token: str | None = None, port: int = 8765, allowed_origins: list
     @app.get("/api/resources")
     def resources():
         try:
-            from rrp.ops.runtime import make_broker
+            from rrp.orchestration.runtime import make_broker
             br, _ = make_broker(require_watchdog=False)
             t = br.totals()
             stj = json.loads((br.state_dir / "state.json").read_text())

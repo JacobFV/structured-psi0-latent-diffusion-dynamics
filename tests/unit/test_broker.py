@@ -1,5 +1,5 @@
 import pytest
-from rrp.ops.broker import ResourceBroker, ResourceRequest, CapacityError, AdmissionStopped, LeaseError
+from rrp.orchestration.broker import ResourceBroker, ResourceRequest, CapacityError, AdmissionStopped, LeaseError
 from tests.support import fake_enforcement_backend
 
 

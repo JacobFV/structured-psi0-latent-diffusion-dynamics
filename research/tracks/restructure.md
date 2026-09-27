@@ -53,8 +53,8 @@ Deviations from the audit's target text, forced by the layering rule (recorded h
 |---|---|---|
 | P1 | skeleton packages; contracts (psi, workload), physics (snapshot), features (featurizer, multi, legged, derived) | merged 0882cce |
 | P2 | bodies, envs, teachers, controllers, models | merged 4a9030e |
-| P3 | data, training, evaluation (break evaluation↔training) | verified |
-| P4 | CLI package without silent ImportError; ops → orchestration | planned |
+| P3 | data, training, evaluation (break evaluation↔training) | merged 3788f57 |
+| P4 | CLI package without silent ImportError; ops → orchestration | verified |
 | P5 | research diagnostics; dedup | planned |
 | P6 | legged files excluded until W1 (contact) merges | blocked on W1 |
 
@@ -104,6 +104,21 @@ Deviations from the audit's target text, forced by the layering rule (recorded h
   `artifacts/runs/restructure_parity/p3_{base_15984f7,track_restructure}.json`.
 - checks: unit 241 passed / 2 skipped; safe integration 27 passed; imports resolve (1509 names); pyflakes: no new
   undefined names; demo page identical except the 2 timestamp lines.
+
+### P4 (CLI / orchestration)
+- ops.{broker,budget,cgroup,child,discovery,jobs,runtime,telemetry,watchdog} → orchestration.* (ops.gpu went to
+  contracts.workload in P1). The leased child is now spawned as `-m rrp.orchestration.child` (the old `-m rrp.ops.child`
+  still works through the shim).
+- `rrp/cli.py` → package `rrp/cli/` (`main.py` = root parser, doctor, ops; `__main__.py`; `__init__` re-exports
+  main/build_parser/_parse_bytes). cli_ext → cli.ext, cli_ml → cli.data, cli_train → cli.train, cli_latent → cli.latent,
+  cli_dual_latent → cli.dual_latent, cli_adapt → cli.adapt. `python -m rrp.cli` and the `rrp` console script unchanged.
+- The `try/except ImportError` chain is gone: build_parser registers ext, data, train, latent, adapt explicitly (same
+  order). The command modules are stdlib-only at import, so the full tree also registers on the bootstrap python.
+- checks: the complete argparse tree (48 parsers, every `--help` text) is byte-identical to pre-W4 (scratch
+  `clitree.py`); `tests/unit/test_cli.py` (bootstrap run with numpy/torch/mujoco/pydantic/fastapi blocked, 39 commands
+  used by scripts parse, no swallowed ImportError, stdlib-only command modules); a real leased job through the new
+  orchestration (lease 1790474978_b8c267, rc 0); test_host_gpu_exclusion same as pre-W4 (1 passed, 1 skipped);
+  unit 264 passed / 1 skipped; safe integration 27 passed; imports resolve (1535 names); demo page unchanged.
 
 ## excluded until W1 merges (P6)
 morphology/legged.py, morphology/contact.py, sim/legged.py, control/{legged_core, legged_vec, legged_tracker,

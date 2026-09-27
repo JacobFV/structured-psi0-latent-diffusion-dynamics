@@ -13,11 +13,11 @@ from pathlib import Path
 
 import pytest
 
-from rrp.ops.cgroup import SystemdUserBackend
-from rrp.ops.broker import ResourceBroker, ResourceRequest
-from rrp.ops.jobs import run_leased_child, pid_start_ticks, same_process, is_owned
-from rrp.ops import telemetry
-from rrp.ops.watchdog import WatchdogConfig, WatchdogState, evaluate, run_loop
+from rrp.orchestration.cgroup import SystemdUserBackend
+from rrp.orchestration.broker import ResourceBroker, ResourceRequest
+from rrp.orchestration.jobs import run_leased_child, pid_start_ticks, same_process, is_owned
+from rrp.orchestration import telemetry
+from rrp.orchestration.watchdog import WatchdogConfig, WatchdogState, evaluate, run_loop
 
 pytestmark = pytest.mark.cgroup
 M = 1024 ** 2
@@ -199,7 +199,7 @@ def test_owned_only_shutdown_does_not_touch_foreign_processes(tslice):
     _run_in_slice(parent, "import time; time.sleep(30)", f"rrp-{tag}-owned", wait=False)
     time.sleep(1)
     assert _systemctl("is-active", f"rrp-{tag}-owned.service").stdout.strip() == "active"
-    from rrp.ops.cgroup import SystemdUserBackend as B
+    from rrp.orchestration.cgroup import SystemdUserBackend as B
     b = B()
     for u in b.list_owned_units():
         if u.startswith(f"rrp-{tag}"):

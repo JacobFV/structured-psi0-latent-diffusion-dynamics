@@ -1,6 +1,6 @@
 import math
 import pytest
-from rrp.ops.budget import host_budget, compute_budget, BudgetError, live_memory_limit_bytes, live_cpu_limit, RolePolicy
+from rrp.orchestration.budget import host_budget, compute_budget, BudgetError, live_memory_limit_bytes, live_cpu_limit, RolePolicy
 
 
 def test_half_free_not_half_total():

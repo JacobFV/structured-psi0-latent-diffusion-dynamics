@@ -8,7 +8,7 @@ HANDOFF = Path(__file__).resolve().parents[1] / "docs" / "handoff"
 
 
 def fake_enforcement_backend():
-    from rrp.ops.cgroup import FakeEnforcementBackend
+    from rrp.orchestration.cgroup import FakeEnforcementBackend
     return FakeEnforcementBackend()
 
 

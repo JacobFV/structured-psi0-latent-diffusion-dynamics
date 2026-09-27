@@ -92,7 +92,8 @@ def rewrite_file(p: Path, mapping: dict[str, str], own_old: str | None = None) -
             new = None
             if absmod in mapping:
                 new = mapping[absmod]
-            elif own_old and mod.startswith("."):
+            elif own_old and mod.startswith(".") and not any(f"{absmod}.{n.strip().split(' ')[0]}" in mapping
+                                                             for n in m["rest"].strip("()").split(",")):
                 new = absmod                        # moved file: relative import -> absolute (old target)
                 new = mapping.get(new, new)
             if new is None:

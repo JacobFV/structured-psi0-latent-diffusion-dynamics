@@ -1,5 +1,6 @@
-"""`rrp` command-line interface. Subcommands are registered by modules lazily so that
-the ops layer works with only the standard library (bootstrap before the venv exists)."""
+"""`rrp` command-line interface: the root parser, `doctor` and the `ops` commands (from the former rrp/cli.py).
+The other command groups live in rrp.cli.{ext,data,train,latent,dual_latent,adapt}. Every command module imports only
+the standard library at module level, so the ops layer works before the venv exists (bootstrap python)."""
 from __future__ import annotations
 
 import argparse
@@ -20,8 +21,8 @@ def _parse_bytes(s: str) -> int:
 
 # ---------------------------------------------------------------- ops
 def cmd_ops_init(a):
-    from rrp.ops.runtime import measure_and_budget, config_path, repo_root
-    from rrp.ops.cgroup import SystemdUserBackend
+    from rrp.orchestration.runtime import measure_and_budget, config_path, repo_root
+    from rrp.orchestration.cgroup import SystemdUserBackend
     role = a.role
     m = measure_and_budget(role, repo_root(), window_s=a.window)
     b = m["budget"]
@@ -49,8 +50,8 @@ def cmd_ops_init(a):
 
 
 def cmd_ops_watchdog(a):
-    from rrp.ops.runtime import make_broker, load_config, repo_root, node_role
-    from rrp.ops.watchdog import WatchdogConfig, run_loop
+    from rrp.orchestration.runtime import make_broker, load_config, repo_root, node_role
+    from rrp.orchestration.watchdog import WatchdogConfig, run_loop
     role = node_role()
     cfg = load_config()[role]
     br, be = make_broker(require_watchdog=False)
@@ -75,7 +76,7 @@ def cmd_ops_watchdog(a):
 def cmd_ops_start_watchdog(a):
     """Start the watchdog as an owned user service inside rrp.slice (small, 0.1 CPU)."""
     import subprocess
-    from rrp.ops.runtime import repo_root, node_role
+    from rrp.orchestration.runtime import repo_root, node_role
     unit = f"rrp-watchdog-{node_role()}.service"
     r = subprocess.run(["systemctl", "--user", "is-active", unit], capture_output=True, text=True)
     if r.stdout.strip() == "active":
@@ -93,7 +94,7 @@ def cmd_ops_start_watchdog(a):
 
 
 def cmd_ops_run(a):
-    from rrp.ops.runtime import run_leased
+    from rrp.orchestration.runtime import run_leased
     cmd = a.cmd[1:] if a.cmd and a.cmd[0] == "--" else a.cmd
     if not cmd:
         raise SystemExit("no command")
@@ -108,9 +109,9 @@ def cmd_ops_run(a):
 
 
 def cmd_ops_status(a):
-    from rrp.ops.runtime import make_broker, node_role
-    from rrp.ops.cgroup import SystemdUserBackend
-    from rrp.ops import telemetry
+    from rrp.orchestration.runtime import make_broker, node_role
+    from rrp.orchestration.cgroup import SystemdUserBackend
+    from rrp.orchestration import telemetry
     br, be = make_broker(require_watchdog=False)
     t = br.totals()
     leases = {k: v for k, v in br.leases().items() if v["state"] in ("active", "revoke_requested")}
@@ -125,15 +126,15 @@ def cmd_ops_status(a):
 
 
 def cmd_ops_shrink(a):
-    from rrp.ops.runtime import make_broker
+    from rrp.orchestration.runtime import make_broker
     br, _ = make_broker(require_watchdog=False)
     print(json.dumps(br.shrink(a.lease, memory_bytes=_parse_bytes(a.mem) if a.mem else None,
                                gpu_memory_bytes=_parse_bytes(a.gpu_mem) if a.gpu_mem else None, cpu_cores=a.cpu)))
 
 
 def cmd_ops_stop(a):
-    from rrp.ops.runtime import stop_owned
-    from rrp.ops.cgroup import SystemdUserBackend, job_unit
+    from rrp.orchestration.runtime import stop_owned
+    from rrp.orchestration.cgroup import SystemdUserBackend, job_unit
     if not a.owned_only:
         raise SystemExit("refusing: pass --owned-only (this tool never stops unrelated processes)")
     if a.lease:
@@ -149,7 +150,7 @@ def cmd_ops_stop(a):
 
 
 def cmd_ops_discover(a):
-    from rrp.ops.discovery import discover
+    from rrp.orchestration.discovery import discover
     res = discover(a.peer)
     txt = json.dumps(res, indent=1)
     if a.write:
@@ -159,8 +160,8 @@ def cmd_ops_discover(a):
 
 
 def cmd_doctor(a):
-    from rrp.ops.runtime import measure_and_budget, repo_root
-    from rrp.ops import telemetry
+    from rrp.orchestration.runtime import measure_and_budget, repo_root
+    from rrp.orchestration import telemetry
     import platform
     m = measure_and_budget(a.role, repo_root(), window_s=a.window)
     m["platform"] = platform.platform()
@@ -228,12 +229,11 @@ def build_parser() -> argparse.ArgumentParser:
     o.add_argument("--write")
     o.set_defaults(fn=cmd_ops_discover)
 
-    try:
-        from rrp import cli_ext
-        cli_ext.register(sub)
-    except ImportError as e:  # heavy deps (torch/mujoco) may be absent on the bootstrap python
-        if "cli_ext" not in str(e) and os.environ.get("RRP_DEBUG_CLI"):
-            print(f"[rrp] extended commands unavailable: {e}", file=sys.stderr)
+    # The command modules are stdlib-only at import time (heavy imports live inside the command functions), so the
+    # full tree registers on the bootstrap python too. No ImportError is swallowed (W4): a broken import fails loudly.
+    from rrp.cli import adapt, data, ext, latent, train
+    for mod in (ext, data, train, latent, adapt):         # registration order = subcommand order in --help
+        mod.register(sub)
     return p
 
 

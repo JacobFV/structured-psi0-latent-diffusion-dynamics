@@ -225,7 +225,7 @@ def latent_latency_suite(flow_ckpt: str, out_path: Path, dev=None, nfe_list=(1, 
             per_replan_compute_p95_ratio=(L["p95"] + 7 * tick_p95) / D["p95"],
             threshold_p95_ratio=1.25)
         try:
-            from rrp.ops.runtime import make_broker  # external load: other leases active during the measurement
+            from rrp.orchestration.runtime import make_broker  # external load: other leases active during the measurement
             br, _ = make_broker(require_watchdog=False)
             res["active_leases_during_measurement"] = [
                 dict(label=v["request"].get("label"), gpu=v["request"].get("gpu"))

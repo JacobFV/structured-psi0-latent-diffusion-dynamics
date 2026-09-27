@@ -1,5 +1,5 @@
-from rrp.ops.watchdog import evaluate, WatchdogConfig, WatchdogState, run_loop
-from rrp.ops.broker import ResourceBroker, ResourceRequest
+from rrp.orchestration.watchdog import evaluate, WatchdogConfig, WatchdogState, run_loop
+from rrp.orchestration.broker import ResourceBroker, ResourceRequest
 from tests.support import fake_enforcement_backend
 
 G = 1024 ** 3
