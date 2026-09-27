@@ -24,10 +24,10 @@ import mujoco  # noqa: E402
 import numpy as np  # noqa: E402
 from PIL import Image, ImageDraw  # noqa: E402
 
-from rrp.control.legged_core import LeggedBinding  # noqa: E402
-from rrp.control.legged_tracker import LearnedTracker, tracker_path  # noqa: E402
-from rrp.control.tracker_validation import scripts  # noqa: E402
-from rrp.morphology.legged import legged_body, standalone_model  # noqa: E402
+from rrp.envs.legged_core import LeggedBinding  # noqa: E402
+from rrp.envs.legged_tracker import LearnedTracker, tracker_path  # noqa: E402
+from rrp.evaluation.tracker_validation import scripts  # noqa: E402
+from rrp.bodies.legged import legged_body, standalone_model  # noqa: E402
 
 W, H = 480, 360
 

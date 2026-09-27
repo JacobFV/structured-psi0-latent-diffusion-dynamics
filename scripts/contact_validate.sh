@@ -10,7 +10,7 @@ run_one() {
   body=$1; actor=$2; phys=$3; tag=$4
   case $actor in v1) a=artifacts/trackers/$body/actor.pt;; v2) a=artifacts/trackers/$body/contact_v2/actor.pt;; *) a=$actor;; esac
   o=$OUT/${body}_${tag}_phys${phys}.json
-  PYTHONPATH=src timeout 3000 "$PY" -m rrp.control.tracker_validation --body "$body" --kind learned --actor "$a" \
+  PYTHONPATH=src timeout 3000 "$PY" -m rrp.evaluation.tracker_validation --body "$body" --kind learned --actor "$a" \
      --contact "$phys" --seeds "$SEEDS" --out "$o" > "$o.log" 2>&1
   rc=$?; echo "$body $tag phys$phys rc=$rc"; return $rc
 }
