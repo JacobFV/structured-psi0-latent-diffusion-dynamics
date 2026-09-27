@@ -450,6 +450,7 @@ def main(argv=None):
     ap.add_argument("--device", default="cpu")
     ap.add_argument("--obj-friction", default="1.0", help="comma list: x friction of the cube and finger pads")
     ap.add_argument("--obj-mass", default="1.0", help="comma list: x cube mass")
+    ap.add_argument("--resume", action="store_true", help="keep rows of complete chunks already in --out")
     a = ap.parse_args(argv)
     seeds = _parse_seeds(a.seeds)
     if a.policy:
@@ -460,6 +461,20 @@ def main(argv=None):
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     rows = []
+    if a.resume and out.exists():       # keep complete chunks of an interrupted run (rows are written per chunk)
+        for l in out.read_text().splitlines():
+            try:
+                rows.append(json.loads(l))
+            except ValueError:
+                pass
+
+        def key(rk, sd, v, of, om):
+            return (rk, sd, v, float(of), float(om))
+        have = {key(r["robot"], r["seed"], r["version"], (r.get("perturbation") or {}).get("obj_friction_scale", 1.0),
+                    (r.get("perturbation") or {}).get("obj_mass_scale", 1.0)) for r in rows}
+        jobs = [j for j in jobs if not all(key(j[0], sd, j[2], j[4], j[5]) in have for sd in j[1])]
+        out.write_text("".join(json.dumps(r, default=float) + "\n" for r in rows))
+        print(f"[teacher_quality] resume: {len(rows)} rows kept, {len(jobs)} chunks to run", flush=True)
     t0 = time.time()
     if a.workers <= 1:
         results = map(_job, jobs)
@@ -468,7 +483,7 @@ def main(argv=None):
         from concurrent.futures import ProcessPoolExecutor
         ex = ProcessPoolExecutor(max_workers=a.workers, mp_context=mp.get_context("spawn"))
         results = ex.map(_job, jobs)
-    with open(out, "w") as f:
+    with open(out, "a" if a.resume else "w") as f:
         for i, rs in enumerate(results):
             for r in rs:
                 f.write(json.dumps(r, default=float) + "\n")

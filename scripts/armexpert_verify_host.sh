@@ -19,11 +19,10 @@ for pass in 1 2 3 4 5 6; do
   echo "$(date +%T) pass $pass: ${#todo[@]} bodies"
   i=0
   for b in "${todo[@]}"; do
-    rm -f $OUT/$b.jsonl
     admit || { echo "admission stopped for 40 min"; exit 2; }
     PYTHONPATH=src $PY -m rrp.cli ops run --cpu ${WK:-2} --mem 5G --label axver_$b --max-seconds 3000 -- env PYTHONPATH=src RRP_GRASP_CONTACT=${GC:-v1} \
       OMP_NUM_THREADS=1 $PY -m rrp.evaluation.teacher_quality --bodies $b --seeds 0-199,3000000-3000099 --versions $VER \
-      --workers ${WK:-2} --chunk 25 --out $OUT/$b.jsonl > $OUT/$b.log 2>&1 &
+      --workers ${WK:-2} --chunk ${CH:-10} --resume --out $OUT/$b.jsonl > $OUT/$b.log 2>&1 &
     i=$((i+1)); [ $((i % PAR)) -eq 0 ] && wait
   done
   wait
