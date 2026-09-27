@@ -26,7 +26,7 @@ Principles:
 | W3 | Provenance and contracts (phase 1) | provenance agent | — | verified 2026-09-26 (main 510f052; 165 unit tests pass; arm/dual/legged smoke manifests carry full provenance; 22 configs made explicit zero_prev_action) |
 | W4 | Package restructure with shims (phase 2) | restructure agent | W2, W3 | completed 2026-09-27 (P6 f1db76d: 338 unit tests, parity byte-identical, host audit 391 / peer audit post-P6 0 errors; legacy packages are shims only) |
 | W5 | Unified pipeline + DAG orchestration (phases 3–4) | pipeline agent | W4; arm seed 2 finished | arm verified 2026-09-26 (D-096: R2/R1 parity row-identical; refit bit-identical to step 2900); legged smoke only; dual skeleton; ladder.py main → rrp.evaluation pending |
-| W6 | Robustness sweeps + motion-quality gates | robustness agent | W1 v2 trackers | planned |
+| W6 | Robustness sweeps + motion-quality gates | robustness agent | W1 v2 trackers | running on host (2026-09-27 09:40): harness + motion metrics; sweeps on anymal_c semfix/nosem/teacher/BC and arm frozen route vs BC |
 | W7 | Arm expert: smooth scripted trajectories, then GRPO fine-tuning with anchor evals | arm agent | arm seed 2 finished | v2 data + BC expert verified (D-102); v2 lineage set (semfix, nosem × 2 seeds) running via run-dag; then GRPO; backlog: chunk blending |
 | W8 | Legged regeneration on contact v2 (data → Stage A → flow → R2 → edits) | legged agent | W1 gate, W3 | wave 1 anymal_c done (D-105); go2 running; t1 PAUSED (D-107: torque limits 2–3× real) |
 | W9 | Open claims: held-out target bodies; one loco-manipulation task | later | W5, W8 | planned |
