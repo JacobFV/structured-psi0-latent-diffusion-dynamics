@@ -1,5 +1,6 @@
 """Replay the W8 anymal_c collection (same seeds, sigmas and teacher draws) with the read-only motion recorder, check
-that every episode reproduces (status, steps, ticks), and gate the dataset (report only)."""
+that every episode reproduces (status, steps, ticks), and gate the dataset (report only).
+PEER ONLY (D-115): launch with scripts/peer_run.sh ... -- PY scripts/robust_backfill_w8data.py 2"""
 import gc, glob, json, sys
 from multiprocessing import get_context
 D = "artifacts/runs/robust/gates/w8_anymal_c_data"

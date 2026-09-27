@@ -188,7 +188,7 @@ own nominal; the arm grid mostly probes a regime where the simulated grasp is in
 - n = 20 resolves only large effects; semfix vs nosem on anymal_c would need seeds 1/2 (W8 trained 3 seeds) to generalize.
 
 ## resume
-`cd ~/work/rrp-wt/robust`; rerun/extend with `scripts/robust_host_run.sh LABEL CPU MEM MAX_ATTEMPTS -- <run args>` (finished
+`cd ~/work/rrp-wt/robust`; rerun/extend with `scripts/robust_peer_run.sh LABEL CPU MEM MAX_ATTEMPTS -- <run args>` (PEER ONLY since D-115; the host launcher was removed) (finished
 shards are skipped; arm leases need --mem 6G: at 3-4G the lease's memory.high throttles the 3.7 GB worker to ~5% CPU);
 rebuild tables with `python -m rrp.evaluation.robustness report --out artifacts/runs/robust/<dir>`. Videos render on the
 peer (the host venv has no imageio/PIL): `RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/robust scripts/peer_run.sh --cpu 1 --mem 5G
@@ -344,3 +344,11 @@ Unit suite after the rebase: 379 passed, 2 skipped (peer lease 1790544821_524322
    `sample_interval_s` = the watchdog's --interval). An excess that exists without the store term sheds immediately, and the
    reserve emergency is unchanged. Test: test_watchdog.py::test_ram_store_excess_sheds_only_after_sustained_pressure (calm
    40 samples: never shed; PSI 43: shed at sample 15; a calm sample resets). Needs a peer watchdog restart to take effect.
+
+## D-115 (user rule: no training or heavy compute on the host; peer only)
+`scripts/robust_host_run.sh` is REMOVED; `scripts/robust_peer_run.sh LABEL CPU MEM MAX_ATTEMPTS -- <robustness run args>` places
+every sweep lease on the peer (requires RRP_PEER_REPO; bounded retries; outputs in the shared peer store, fetch with rsync).
+`scripts/robust_backfill_trackers.sh` refuses to run unless RRP_NODE=peer (set by scripts/peer_run.sh);
+`scripts/robust_backfill_w8data.py` documents peer-only launch. Host use by W6 is limited to git, unit tests of pure code
+and report building from saved rows. (The worktree's configs/resources.local.json carries the lead's D-115 host cap,
+2 CPU / 0 GPU, uncommitted as the lead applied it.)
