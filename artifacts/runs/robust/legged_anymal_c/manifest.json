@@ -1,0 +1,134 @@
+{
+ "family": "legged",
+ "robots": [
+  "anymal_c"
+ ],
+ "routes": [
+  {
+   "name": "semfix",
+   "kind": "flow",
+   "ckpt": "artifacts/runs/legged8/legged8-anymal_c-semfix/train_flow_s0/policy.pt"
+  },
+  {
+   "name": "nosem",
+   "kind": "flow",
+   "ckpt": "artifacts/runs/legged8/legged8-anymal_c-nosem/train_flow_s0/policy.pt"
+  },
+  {
+   "name": "bc",
+   "kind": "bc",
+   "ckpt": "artifacts/runs/legged8/legged8-anymal_c-v2data/train_bc_s0/policy.pt"
+  },
+  {
+   "name": "teacher",
+   "kind": "teacher"
+  }
+ ],
+ "factors": {
+  "friction": {
+   "levels": [
+    0.4,
+    0.6,
+    0.8,
+    1.25,
+    1.5
+   ],
+   "nominal": 1.0
+  },
+  "mass": {
+   "levels": [
+    0.8,
+    0.9,
+    1.1,
+    1.2
+   ],
+   "nominal": 1.0
+  },
+  "com_x": {
+   "levels": [
+    -0.02,
+    -0.01,
+    0.01,
+    0.02
+   ],
+   "nominal": 0.0
+  },
+  "com_y": {
+   "levels": [
+    0.01,
+    0.02
+   ],
+   "nominal": 0.0
+  },
+  "kp": {
+   "levels": [
+    0.7,
+    0.85,
+    1.15,
+    1.3
+   ],
+   "nominal": 1.0
+  },
+  "latency_ms": {
+   "levels": [
+    0,
+    10,
+    20,
+    30
+   ],
+   "nominal": null
+  },
+  "push_dv": {
+   "levels": [
+    0.25,
+    0.5,
+    0.75,
+    1.0,
+    1.5
+   ],
+   "nominal": 0.0
+  },
+  "terrain_m": {
+   "levels": [
+    0.01,
+    0.02,
+    0.03,
+    0.05,
+    0.08
+   ],
+   "nominal": 0.0
+  }
+ },
+ "break_drop": 0.2,
+ "seeds": {
+  "anymal_c": [
+   10000,
+   10001,
+   10002,
+   10003,
+   10004,
+   10005,
+   10006,
+   10007,
+   10008,
+   10009,
+   10010,
+   10011,
+   10012,
+   10013,
+   10014,
+   10015,
+   10016,
+   10017,
+   10018,
+   10019
+  ]
+ },
+ "checkpoints": {
+  "artifacts/runs/legged8/legged8-anymal_c-semfix/train_flow_s0/policy.pt": "cf69264bf7c191e82475ea18b4476e582c358ef83f1ae58edbe726d2e742fadb",
+  "artifacts/runs/legged8/legged8-anymal_c-nosem/train_flow_s0/policy.pt": "b49dd41f1c176830a89d34d623eef5365f80eb12fc10228b0f365af20ead9c8e",
+  "artifacts/runs/legged8/legged8-anymal_c-v2data/train_bc_s0/policy.pt": "fe5ff4851e727b3cbe9ee25d36e7743d32dd59df3c015a343e89cfe090eac494"
+ },
+ "contact_model": "v2",
+ "created": "2026-09-27T10:02:17"
+}

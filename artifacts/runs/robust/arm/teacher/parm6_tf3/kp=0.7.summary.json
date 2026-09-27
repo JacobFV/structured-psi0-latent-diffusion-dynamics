@@ -1,0 +1,105 @@
+{
+ "n": 20,
+ "success": 20,
+ "rate": 1.0,
+ "wilson95": [
+  0.8388748398148705,
+  1.0
+ ],
+ "falls": 0,
+ "stages": {
+  "success": 20
+ },
+ "task": {
+  "public_success": 20,
+  "median_min_tcp_cube_m": 0.002774422382600764,
+  "mean_steps": 100.65
+ },
+ "motion_median": {
+  "joint_jerk_rms": 50.806523973343275,
+  "joint_jerk_peak": 874.3438365202462,
+  "chunk_vel_step_max": null,
+  "vel_step_any_max": 0.9158874114817994,
+  "penetration_max_m": 0.01788744346992366,
+  "joint_limit_margin_min": 0.030960368603529187
+ },
+ "sources": [
+  "scripted_teacher(privileged)"
+ ],
+ "seeds": [
+  3000003,
+  3000004,
+  3000005,
+  3000006,
+  3000008,
+  3000010,
+  3000011,
+  3000012,
+  3000014,
+  3000015,
+  3000016,
+  3000017,
+  3000019,
+  3000020,
+  3000021,
+  3000022,
+  3000023,
+  3000024,
+  3000025,
+  3000027
+ ],
+ "success_by_seed": {
+  "3000003": true,
+  "3000004": true,
+  "3000005": true,
+  "3000006": true,
+  "3000008": true,
+  "3000010": true,
+  "3000011": true,
+  "3000012": true,
+  "3000014": true,
+  "3000015": true,
+  "3000016": true,
+  "3000017": true,
+  "3000019": true,
+  "3000020": true,
+  "3000021": true,
+  "3000022": true,
+  "3000023": true,
+  "3000024": true,
+  "3000025": true,
+  "3000027": true
+ },
+ "route": {
+  "name": "teacher",
+  "kind": "teacher"
+ },
+ "robot": "parm6_tf3",
+ "condition": {
+  "factor": "kp",
+  "level": 0.7,
+  "key": "kp=0.7"
+ },
+ "perturbation": {
+  "friction_scale": 1.0,
+  "mass_scale": 1.0,
+  "com_offset_m": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "kp_scale": 0.7,
+  "kd_scale": null,
+  "latency_ms": null,
+  "push_impulse_Ns": 0.0,
+  "push_time_s": 4.0,
+  "push_duration_s": 0.1,
+  "push_dir_rad": null,
+  "terrain_amp_m": 0.0,
+  "object_mass_scale": 1.0,
+  "object_friction_scale": 1.0,
+  "version": "rrp.envs.perturb/v1"
+ },
+ "wall_s": 1.85447096824646,
+ "family": "arm"
+}

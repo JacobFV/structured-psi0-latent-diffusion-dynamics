@@ -1,0 +1,111 @@
+{
+ "n": 20,
+ "success": 12,
+ "rate": 0.6,
+ "wilson95": [
+  0.3865814992347542,
+  0.7811934687282198
+ ],
+ "falls": 0,
+ "stages": {
+  "success": 12,
+  "approach": 3,
+  "place": 1,
+  "lift": 2,
+  "transport": 2
+ },
+ "task": {
+  "public_success": 12,
+  "median_min_tcp_cube_m": 0.009244335381456744,
+  "mean_steps": 193.05
+ },
+ "motion_median": {
+  "joint_jerk_rms": 80.49592974186183,
+  "joint_jerk_peak": 609.9884801942608,
+  "chunk_vel_step_max": 1.9620192423462868,
+  "vel_step_any_max": 1.9620192423462868,
+  "penetration_max_m": 0.01729540509362852,
+  "joint_limit_margin_min": 0.046059758224535896
+ },
+ "sources": [
+  "learned(system-i flow)"
+ ],
+ "seeds": [
+  3000003,
+  3000004,
+  3000005,
+  3000006,
+  3000008,
+  3000010,
+  3000011,
+  3000012,
+  3000014,
+  3000015,
+  3000016,
+  3000017,
+  3000019,
+  3000020,
+  3000021,
+  3000022,
+  3000023,
+  3000024,
+  3000025,
+  3000027
+ ],
+ "success_by_seed": {
+  "3000003": true,
+  "3000004": true,
+  "3000005": false,
+  "3000006": false,
+  "3000008": false,
+  "3000010": true,
+  "3000011": true,
+  "3000012": false,
+  "3000014": false,
+  "3000015": true,
+  "3000016": true,
+  "3000017": false,
+  "3000019": true,
+  "3000020": false,
+  "3000021": false,
+  "3000022": true,
+  "3000023": true,
+  "3000024": true,
+  "3000025": true,
+  "3000027": true
+ },
+ "route": {
+  "name": "frozen_sem",
+  "kind": "generated",
+  "flow": "artifacts/runs/ladder_flow_jointfix_gdag2h/policy.pt",
+  "rep": "artifacts/runs/ladder_rz_jointfix_gendag3_noqd/representation.pt"
+ },
+ "robot": "parm6_tf3",
+ "condition": {
+  "factor": "nominal",
+  "level": null,
+  "key": "nominal"
+ },
+ "perturbation": {
+  "friction_scale": 1.0,
+  "mass_scale": 1.0,
+  "com_offset_m": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "kp_scale": 1.0,
+  "kd_scale": null,
+  "latency_ms": null,
+  "push_impulse_Ns": 0.0,
+  "push_time_s": 4.0,
+  "push_duration_s": 0.1,
+  "push_dir_rad": null,
+  "terrain_amp_m": 0.0,
+  "object_mass_scale": 1.0,
+  "object_friction_scale": 1.0,
+  "version": "rrp.envs.perturb/v1"
+ },
+ "wall_s": 16.376949548721313,
+ "family": "arm"
+}

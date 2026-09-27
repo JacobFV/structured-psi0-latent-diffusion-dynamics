@@ -156,3 +156,40 @@ packet routes do not). All learned routes share the same break-points on frictio
 servos (kp 0.7), well inside the teacher's envelope; none breaks under 0-30 ms latency or +-2 cm CoM.
 Arm: the frozen semantic route is less competent than BC at every level but not measurably less robust relative to its
 own nominal; the arm grid mostly probes a regime where the simulated grasp is insensitive (penetration holding).
+
+### checks
+- compare_oracle neutrality (`artifacts/runs/robust/arm_compare_oracle_check.json`): frozen route nominal on the sweep's 20
+  seeds with compare_oracle True vs False: parm6 13 vs 12, panda 10 vs 9 (5 discordant seeds each: chaotic divergence, same
+  rate). The False run reproduces the sweep's nominal shards exactly (12, 9). The sweep's parm6 nominal 12/20 vs the
+  recorded 24/30 dev (D-078) is seed-set / n = 20 noise, not the flag.
+- Every video below re-ran its sweep episode and reproduced the recorded outcome.
+
+### videos (artifacts/video/INDEX.md)
+- `2026-09-27_robust_semfix_anymal_c_push_dv1_s10001_fell.mp4`: semfix at its push break-point (dv 1.0 m/s = 45 N s at
+  t = 4 s) falls; nosem succeeds on the same seed (`..._nosem_..._success.mp4`, 5.7 MB, kept only in the peer store
+  `artifacts/runs/robust/video/`).
+- `2026-09-27_robust_frozen_sem_parm6_tf3_object_mass10_s3000003_failure-transport.mp4`: frozen arm route with a x10 cube
+  drops it in transport (plain BC succeeds on this seed).
+
+## state
+| step | state | evidence |
+|---|---|---|
+| harness, perturbations, terrain flag, motion metrics + tests | verified | commits dbb95a0..; tests/unit 364 passed / 1 skipped (host lease 1790530264_01ccc2); nominal-identity checks above |
+| legged anymal_c sweep (4 routes x 35 conditions x 20 seeds) | completed | artifacts/runs/robust/legged_anymal_c/ (report + summaries in git; rows local + peer store) |
+| arm sweep (3 routes x 2 bodies x 37 conditions x 20 seeds) | completed | artifacts/runs/robust/arm/ |
+| failure videos | completed | artifacts/video/INDEX.md (2 clips) |
+
+## next (not done)
+- Nominal-condition trackers/datasets "must pass the gates" (W6 scope item 3): gate thresholds are not yet defined; the
+  motion metrics are now in every eval row, so a gate can be a pure function of the rows (proposal: legged slip ratio < 0.15,
+  CoT < 2x teacher, no joint-limit violation (margin >= 0); arm chunk-boundary velocity step < 1.5 rad/s, penetration < 5 mm).
+- Arm grid does not reach the grasp's physical limits because the simulated grasp holds by penetration; a friction-dependent
+  grasp needs contact tuning (softer solref/solimp with lower penetration) before arm friction sweeps mean anything.
+- n = 20 resolves only large effects; semfix vs nosem on anymal_c would need seeds 1/2 (W8 trained 3 seeds) to generalize.
+
+## resume
+`cd ~/work/rrp-wt/robust`; rerun/extend with `scripts/robust_host_run.sh LABEL CPU MEM MAX_ATTEMPTS -- <run args>` (finished
+shards are skipped; arm leases need --mem 6G: at 3-4G the lease's memory.high throttles the 3.7 GB worker to ~5% CPU);
+rebuild tables with `python -m rrp.evaluation.robustness report --out artifacts/runs/robust/<dir>`. Videos render on the
+peer (the host venv has no imageio/PIL): `RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/robust scripts/peer_run.sh --cpu 1 --mem 5G
+--label robust_video -- env MUJOCO_GL=egl PY -m rrp.evaluation.robustness video --family ... --condition KEY --seed S`.

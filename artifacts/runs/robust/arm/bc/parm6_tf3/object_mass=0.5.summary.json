@@ -1,0 +1,108 @@
+{
+ "n": 20,
+ "success": 16,
+ "rate": 0.8,
+ "wilson95": [
+  0.583982565906683,
+  0.9193423379822393
+ ],
+ "falls": 0,
+ "stages": {
+  "transport": 3,
+  "success": 16,
+  "place": 1
+ },
+ "task": {
+  "public_success": 16,
+  "median_min_tcp_cube_m": 0.00601654309767616,
+  "mean_steps": 142.75
+ },
+ "motion_median": {
+  "joint_jerk_rms": 95.39274903008803,
+  "joint_jerk_peak": 985.37148296343,
+  "chunk_vel_step_max": 2.3408982157707214,
+  "vel_step_any_max": 2.3408982157707214,
+  "penetration_max_m": 0.02055278868791012,
+  "joint_limit_margin_min": 0.03692322171546808
+ },
+ "sources": [
+  "learned:direct1701_u12000"
+ ],
+ "seeds": [
+  3000003,
+  3000004,
+  3000005,
+  3000006,
+  3000008,
+  3000010,
+  3000011,
+  3000012,
+  3000014,
+  3000015,
+  3000016,
+  3000017,
+  3000019,
+  3000020,
+  3000021,
+  3000022,
+  3000023,
+  3000024,
+  3000025,
+  3000027
+ ],
+ "success_by_seed": {
+  "3000003": false,
+  "3000004": true,
+  "3000005": true,
+  "3000006": true,
+  "3000008": true,
+  "3000010": false,
+  "3000011": true,
+  "3000012": true,
+  "3000014": true,
+  "3000015": true,
+  "3000016": false,
+  "3000017": true,
+  "3000019": true,
+  "3000020": true,
+  "3000021": true,
+  "3000022": true,
+  "3000023": true,
+  "3000024": false,
+  "3000025": true,
+  "3000027": true
+ },
+ "route": {
+  "name": "bc",
+  "kind": "learned",
+  "ckpt": "artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt"
+ },
+ "robot": "parm6_tf3",
+ "condition": {
+  "factor": "object_mass",
+  "level": 0.5,
+  "key": "object_mass=0.5"
+ },
+ "perturbation": {
+  "friction_scale": 1.0,
+  "mass_scale": 1.0,
+  "com_offset_m": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "kp_scale": 1.0,
+  "kd_scale": null,
+  "latency_ms": null,
+  "push_impulse_Ns": 0.0,
+  "push_time_s": 4.0,
+  "push_duration_s": 0.1,
+  "push_dir_rad": null,
+  "terrain_amp_m": 0.0,
+  "object_mass_scale": 0.5,
+  "object_friction_scale": 1.0,
+  "version": "rrp.envs.perturb/v1"
+ },
+ "wall_s": 49.969480991363525,
+ "family": "arm"
+}

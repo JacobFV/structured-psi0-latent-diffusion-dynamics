@@ -1,0 +1,109 @@
+{
+ "n": 20,
+ "success": 15,
+ "rate": 0.75,
+ "wilson95": [
+  0.5312991206074114,
+  0.8881382993000237
+ ],
+ "falls": 0,
+ "stages": {
+  "success": 15,
+  "place": 1,
+  "lift": 3,
+  "approach": 1
+ },
+ "task": {
+  "public_success": 15,
+  "median_min_tcp_cube_m": 0.009070756708460399,
+  "mean_steps": 174.55
+ },
+ "motion_median": {
+  "joint_jerk_rms": 34.785638729538434,
+  "joint_jerk_peak": 262.0116845278021,
+  "chunk_vel_step_max": 2.9051487147808075,
+  "vel_step_any_max": 2.9051487147808075,
+  "penetration_max_m": 0.009758723221969176,
+  "joint_limit_margin_min": 0.09012692644701838
+ },
+ "sources": [
+  "learned:direct1701_u12000"
+ ],
+ "seeds": [
+  3000000,
+  3000001,
+  3000002,
+  3000003,
+  3000004,
+  3000005,
+  3000006,
+  3000007,
+  3000008,
+  3000009,
+  3000010,
+  3000011,
+  3000012,
+  3000013,
+  3000014,
+  3000015,
+  3000016,
+  3000017,
+  3000018,
+  3000019
+ ],
+ "success_by_seed": {
+  "3000000": true,
+  "3000001": true,
+  "3000002": false,
+  "3000003": true,
+  "3000004": true,
+  "3000005": true,
+  "3000006": false,
+  "3000007": true,
+  "3000008": true,
+  "3000009": true,
+  "3000010": true,
+  "3000011": true,
+  "3000012": true,
+  "3000013": false,
+  "3000014": false,
+  "3000015": true,
+  "3000016": false,
+  "3000017": true,
+  "3000018": true,
+  "3000019": true
+ },
+ "route": {
+  "name": "bc",
+  "kind": "learned",
+  "ckpt": "artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt"
+ },
+ "robot": "panda_pg2",
+ "condition": {
+  "factor": "friction",
+  "level": 0.6,
+  "key": "friction=0.6"
+ },
+ "perturbation": {
+  "friction_scale": 0.6,
+  "mass_scale": 1.0,
+  "com_offset_m": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "kp_scale": 1.0,
+  "kd_scale": null,
+  "latency_ms": null,
+  "push_impulse_Ns": 0.0,
+  "push_time_s": 4.0,
+  "push_duration_s": 0.1,
+  "push_dir_rad": null,
+  "terrain_amp_m": 0.0,
+  "object_mass_scale": 1.0,
+  "object_friction_scale": 1.0,
+  "version": "rrp.envs.perturb/v1"
+ },
+ "wall_s": 69.75818467140198,
+ "family": "arm"
+}

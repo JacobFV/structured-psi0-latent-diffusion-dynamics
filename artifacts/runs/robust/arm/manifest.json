@@ -1,0 +1,155 @@
+{
+ "family": "arm",
+ "robots": [
+  "panda_pg2",
+  "parm6_tf3"
+ ],
+ "routes": [
+  {
+   "name": "frozen_sem",
+   "kind": "generated",
+   "flow": "artifacts/runs/ladder_flow_jointfix_gdag2h/policy.pt",
+   "rep": "artifacts/runs/ladder_rz_jointfix_gendag3_noqd/representation.pt"
+  },
+  {
+   "name": "bc",
+   "kind": "learned",
+   "ckpt": "artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt"
+  },
+  {
+   "name": "teacher",
+   "kind": "teacher"
+  }
+ ],
+ "factors": {
+  "friction": {
+   "levels": [
+    0.4,
+    0.6,
+    0.8,
+    1.25,
+    1.5
+   ],
+   "nominal": 1.0
+  },
+  "mass": {
+   "levels": [
+    0.8,
+    0.9,
+    1.1,
+    1.2
+   ],
+   "nominal": 1.0
+  },
+  "com_x": {
+   "levels": [
+    -0.02,
+    -0.01,
+    0.01,
+    0.02
+   ],
+   "nominal": 0.0
+  },
+  "kp": {
+   "levels": [
+    0.7,
+    0.85,
+    1.15,
+    1.3
+   ],
+   "nominal": 1.0
+  },
+  "latency_ms": {
+   "levels": [
+    10,
+    20,
+    30
+   ],
+   "nominal": 0
+  },
+  "push_Ns": {
+   "levels": [
+    2.0,
+    5.0,
+    10.0,
+    20.0,
+    40.0
+   ],
+   "nominal": 0.0
+  },
+  "object_mass": {
+   "levels": [
+    0.5,
+    2.0,
+    5.0,
+    10.0,
+    20.0
+   ],
+   "nominal": 1.0
+  },
+  "object_friction": {
+   "levels": [
+    0.05,
+    0.1,
+    0.2,
+    0.4,
+    0.7
+   ],
+   "nominal": 1.0
+  }
+ },
+ "break_drop": 0.2,
+ "seeds": {
+  "panda_pg2": [
+   3000000,
+   3000001,
+   3000002,
+   3000003,
+   3000004,
+   3000005,
+   3000006,
+   3000007,
+   3000008,
+   3000009,
+   3000010,
+   3000011,
+   3000012,
+   3000013,
+   3000014,
+   3000015,
+   3000016,
+   3000017,
+   3000018,
+   3000019
+  ],
+  "parm6_tf3": [
+   3000003,
+   3000004,
+   3000005,
+   3000006,
+   3000008,
+   3000010,
+   3000011,
+   3000012,
+   3000014,
+   3000015,
+   3000016,
+   3000017,
+   3000019,
+   3000020,
+   3000021,
+   3000022,
+   3000023,
+   3000024,
+   3000025,
+   3000027
+  ]
+ },
+ "checkpoints": {
+  "artifacts/runs/ladder_flow_jointfix_gdag2h/policy.pt": "d0d6491892a60431d6354bbaa16ff3b704a07ae6ad437692706023ad0207f9dd",
+  "artifacts/runs/ladder_rz_jointfix_gendag3_noqd/representation.pt": "f60cde41ed0671b84d1f698288d5a69a086f7d89f187b6562e195a287ff23622",
+  "artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt": "5e6586bd6000412c541fb7b22f4cac324de63905acd4bcf46ab2fea0fb366ff5"
+ },
+ "contact_model": "arm pick_place world (no contact version)",
+ "created": "2026-09-27T10:24:06"
+}

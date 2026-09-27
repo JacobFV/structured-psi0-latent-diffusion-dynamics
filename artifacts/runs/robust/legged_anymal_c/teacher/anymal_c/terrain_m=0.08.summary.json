@@ -1,0 +1,105 @@
+{
+ "n": 20,
+ "success": 13,
+ "rate": 0.65,
+ "wilson95": [
+  0.4328542750684442,
+  0.818808176876017
+ ],
+ "falls": 0,
+ "stages": {
+  "drift_b": 7,
+  "success": 13
+ },
+ "task": {
+  "public_success": 12,
+  "mean_sim_time": 31.680000000011507
+ },
+ "motion_median": {
+  "slip_ratio": 0.06029269201699966,
+  "cot": 0.43153660025944984,
+  "joint_jerk_rms": 1972.7274928964043,
+  "joint_jerk_peak": 25168.805236267403,
+  "peak_contact_force_bw": 3.327474356349084,
+  "joint_limit_margin_min": 0.25278777156322985
+ },
+ "sources": [
+  "scripted_teacher"
+ ],
+ "seeds": [
+  10000,
+  10001,
+  10002,
+  10003,
+  10004,
+  10005,
+  10006,
+  10007,
+  10008,
+  10009,
+  10010,
+  10011,
+  10012,
+  10013,
+  10014,
+  10015,
+  10016,
+  10017,
+  10018,
+  10019
+ ],
+ "success_by_seed": {
+  "10000": false,
+  "10001": false,
+  "10002": true,
+  "10003": false,
+  "10004": true,
+  "10005": true,
+  "10006": false,
+  "10007": false,
+  "10008": true,
+  "10009": false,
+  "10010": true,
+  "10011": true,
+  "10012": true,
+  "10013": false,
+  "10014": true,
+  "10015": true,
+  "10016": true,
+  "10017": true,
+  "10018": true,
+  "10019": true
+ },
+ "route": {
+  "name": "teacher",
+  "kind": "teacher"
+ },
+ "robot": "anymal_c",
+ "condition": {
+  "factor": "terrain_m",
+  "level": 0.08,
+  "key": "terrain_m=0.08"
+ },
+ "perturbation": {
+  "friction_scale": 1.0,
+  "mass_scale": 1.0,
+  "com_offset_m": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "kp_scale": 1.0,
+  "kd_scale": null,
+  "latency_ms": null,
+  "push_impulse_Ns": 0.0,
+  "push_time_s": 4.0,
+  "push_duration_s": 0.1,
+  "push_dir_rad": null,
+  "terrain_amp_m": 0.08,
+  "object_mass_scale": 1.0,
+  "object_friction_scale": 1.0,
+  "version": "rrp.envs.perturb/v1"
+ },
+ "wall_s": 38.46101522445679,
+ "family": "legged"
+}
