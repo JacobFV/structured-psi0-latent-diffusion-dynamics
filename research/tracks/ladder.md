@@ -3,7 +3,43 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
-## ARM NOSEM RECIPE ABLATION (lead request after D-095; started 2026-09-26 19:24 PDT; state: running)
+## ARM NOSEM RECIPE ABLATION RESULT (2026-09-26 22:45 PDT; state: completed; all nodes rc 0 after one OOM relaunch)
+Question: is seed-1 nosem's failure (3/240 vs sem 146/240, D-091) caused by the two system-0 recipe choices that were
+tuned on the sem bundle (z-noise 0.3; joint-velocity input removed)? Answer: NO. Neither change, nor both together,
+rescues it. Source labels: learned (DEPLOYABLE route) unless marked ORACLE DIAGNOSTIC; training seed 1 for all rows.
+R2 deployable route (final flow gdag2h -> final system 0 gendag3), successes (approach failures):
+| lineage | recipe | panda_pg2 dev / 3.0001M / 3.0002M = 90 | parm6_tf3 = 90 | parm5s_tf3 30 | parm5l_pg2 30 | all 240 |
+|---|---|---|---|---|---|---|
+| sem (frozen, D-078) | z-noise 0.3, no qd | 14/11/11 = 36 (27) | 24/24/22 = 70 (9) | 20 (4) | 20 (4) | **146** |
+| nosem `nsjf` (D-091) | z-noise 0.3, no qd | 0/0/0 = 0 (90) | 1/0/2 = 3 (76) | 0 (28) | 0 (26) | **3** |
+| `nszn` | z-noise 0, no qd | 0/0/0 = 0 (90) | 0/0/0 = 0 (77) | 0 (25) | 0 (24) | **0** |
+| `nsqd` | z-noise 0.3, qd KEPT | 0/0/0 = 0 (90) | 1/1/0 = 2 (77) | 1 (27) | 0 (24) | **3** |
+| `nszq` | z-noise 0, qd KEPT | 0/0/0 = 0 (90) | 0/0/0 = 0 (76) | 0 (28) | 0 (23) | **0** |
+Progression (dev; panda / parm6): flow 20k -> gendag1: nsjf 0/3, nszn 0/0, nsqd 0/1, nszq 0/1 (sem 0/9); flow_gdag1 ->
+gendag3: 0/0, 0/0, 0/1, 0/1 (sem 10/22). Stateless R1 (ORACLE DIAGNOSTIC) -> gendag3: 0/0, 0/2, 0/1, 0/1 (sem 13/27).
+On-policy DAgger collections (success/312, approach failures) gen2 / gen3 / gdag1 / gdag2: nszn 4 (239) / 0 (293) /
+2 (281) / 0 (282); nsqd 3 (240) / 1 (297) / 2 (284) / 0 (281); nszq 2 (234) / 2 (295) / 4 (281) / 0 (290); nsjf 6 / 0 /
+1 / 0 (approach 235-293). All variants fail at APPROACH like nsjf.
+Edit suite (flow 20k -> gendag1; parm6 82 feasible seeds each, panda 48): unedited task success parm6 nsjf 1, nszn 1,
+nsqd 3, nszq 1 (sem 26/80); goal edit, cube at the new goal: 3, 0, 0, 1 (sem 23; controls <= 2 everywhere); rebind
+first approach on the new cube parm6 0, 0, 1, 0 (sem 60/80) and panda 0, 0, 2, 2 of 48 (sem 48/48); rebind min-distance
+effect beyond the irrelevant edit +2.8 / +2.9 / +2.6 / +1.7 cm parm6 (sem +23.1), +1.5 / +1.4 / +1.2 / +1.2 cm panda
+(sem +29.2). No variant carries the binding into behaviour.
+READING: the seed-1 nosem failure is NOT explained by z-noise 0.3 or by removing the joint-velocity input; it is
+already present before those settings enter. The shared upstream (nosem Stage A seed 1 and the BC-DAgger rounds
+bcdag1..bcdag2, which all variants reuse unchanged) leaves system 0 at approach failures (bc1 1/312, bc3 4/312 with
+251-282 approach failures, vs sem 4 -> 99/312), and no gendag-stage change recovers from that. Combined with seed 2
+(nosem 26/240, partly working; D-095), the arm nosem deficit is robust to these two recipe choices but seed-sensitive.
+What this does NOT test: recipe choices upstream of gendag1 (the BC-expert DAgger schedule itself, refit lengths, the
+realizer_anchor input, Stage-A beta_kl), and other nosem seeds. Checkpoints (final flow / final system 0, sha256
+prefix): nszn fef564e6 / c8a8047c (drop_qd true), nsqd 70bb5e57 / 97c47597 (drop_qd false), nszq d1c83f2c / d1749b4a
+(drop_qd false); dirs `ladder_flow_<lin>_gdag2h`, `ladder_rz_<lin>_gendag3{_noqd,_qd}` (peer store).
+Raw: peer store `ladder_v1/<robot>/generated_zero_flow{nszn,nsqd,nszq}*_s<set>.{jsonl,summary.json}`,
+`oracle_zero_{nszn,nsqd,nszq}gendag3_orcbc.*`, `acceptance_arm{nszn,nsqd,nszq}_gen_{parm6,panda}/shard*/`,
+`ladder_dagger_{nszn,nsqd,nszq}_{gen2,gen3,gdag1,gdag2}/`, state `ladder_arm<lin>_state/`; repo copies
+`research/tracks/ladder/armnosem/ablation/` (R2/R1 summaries, merged edit summaries, compare_ablation.json).
+
+## ARM NOSEM RECIPE ABLATION (lead request after D-095; started 2026-09-26 19:24 PDT; state: completed 22:37)
 Fairness check: is the nosem failure (seed 1: 3/240 vs sem 146/240, D-091) caused by recipe choices that were tuned on
 the sem bundle? Two system-0 recipe changes, seed-1 nosem otherwise:
 - `nszn`: z-noise 0 (instead of `z_noise_rel` 0.3); joint velocity still removed.

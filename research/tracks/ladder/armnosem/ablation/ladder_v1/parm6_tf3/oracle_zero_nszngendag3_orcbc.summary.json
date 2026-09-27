@@ -1,0 +1,54 @@
+{
+ "n": 30,
+ "success": 2,
+ "rate": 0.06666666666666667,
+ "wilson95": [
+  0.01847663532769335,
+  0.21323817721072091
+ ],
+ "failed_stage": {
+  "approach": 18,
+  "lift": 4,
+  "grasp": 1,
+  "transport": 4,
+  "success": 2,
+  "place": 1
+ },
+ "track_q_rad": 0.005757153963244747,
+ "track_tcp_m": 0.007567221549794048,
+ "lab_err_arm": 0.2516857113320027,
+ "lab_err_grip": 0.6312857886657518,
+ "min_tcp_cube_m": 0.05189258014896487,
+ "cmd_step_rad": 0.02934570276522163,
+ "route": "oracle",
+ "robot": "parm6_tf3",
+ "seeds": [
+  3000003,
+  3000041,
+  30
+ ],
+ "replan": 8,
+ "nfe": 8,
+ "prev_action": "zero",
+ "reanchor": false,
+ "oracle_expert": "bc",
+ "policy_label": "direct1701_u12000",
+ "keep_ticks": false,
+ "oracle_reanchor": false,
+ "object_shift": null,
+ "checkpoints": {
+  "policy": {
+   "path": "artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt",
+   "sha256": "5e6586bd6000412c541fb7b22f4cac324de63905acd4bcf46ab2fea0fb366ff5",
+   "nfe": 8,
+   "execute_prefix": 8,
+   "label": "direct1701_u12000"
+  },
+  "representation": {
+   "path": "artifacts/runs/ladder_rz_nszn_gendag3_noqd/representation.pt",
+   "sha256": "c8a8047c4bf67552dcc599b35aac4f4d66c7b1fe259545ce80946e92247a3d95",
+   "latent_space_version": "ls-041f79337259-wf4f5c031348e",
+   "realizer_compat_version": "rz-ls-041f79337259-wf4f5c031348e-r238d9602b783-none-v1"
+  }
+ }
+}
