@@ -1,0 +1,15 @@
+{
+ "width": 64,
+ "layers": 2,
+ "packet_semantic_weight": 0.5,
+ "packet_tau_min": 0.6,
+ "steps": 60,
+ "batch_size": 32,
+ "lr": 0.0003,
+ "seed": 0,
+ "ckpt_every": 20,
+ "snap_every": 0,
+ "representation": "artifacts/runs/pipeline/smoke-legged-go2/train_rep_s0/representation.pt",
+ "out_dir": "artifacts/runs/pipeline/smoke-legged-go2/train_flow_s0",
+ "name": "pipeline_smoke-legged-go2_train_flow_s0"
+}

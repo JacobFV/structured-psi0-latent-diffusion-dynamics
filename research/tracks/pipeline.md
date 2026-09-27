@@ -95,7 +95,34 @@ State: see the table at the end (RunConfig, pipelines, run-dag, DAG files: verif
   (through scripts/ladder.py), so it has one path.
 - Source enum for eval rows: recorded in the stage manifest (rows unchanged for comparability).
 
-## parity (PENDING: filled in below when the runs finish)
+## parity (verified 2026-09-26, peer, via `rrp run-dag dags/parity_arm.yaml`)
+Re-ran three stages of the completed seed-2 semfix lineage (sfjf2) through the pipeline with identical seeds and inputs
+(the inputs are the legacy runs, referenced by run-index aliases), placement peer, same lease sizes as the chain.
+Comparison: `research/scripts/2026-09-26/w5_parity_compare.py`; raw outputs and comparisons in
+`artifacts/runs/pipeline/parity-sfjf2/` (compare_refit.json, compare_evals.json, per-stage pipeline_manifest.json),
+ledger `artifacts/runs/pipeline/_dags/parity_arm/ledger.json`.
+
+| stage | pipeline (lease) | legacy (lease) | result |
+|---|---|---|---|
+| R2 frozen route (flow gdag2h + system 0 gendag3_noqd), panda_pg2, 30 dev seeds from 3,000,000 | 1790477542_cdbd0b: 21/30 | ladder_v1/panda_pg2/generated_zero_flowsf2gdag2h_rzsf2gendag3_noqd_s3000000 (1790474992_98f9d3): 21/30 | all 30 episode rows identical, every key (floats exact) |
+| R1 stateless-BC oracle (DIAGNOSTIC) on gendag3_noqd, panda_pg2, 30 seeds (exercises the merged packet builder) | 1790477543_43b130: 19/30 | ladder_v1/panda_pg2/oracle_zero_sfjf2gendag3noqd_orcbc (1790473721_0c453a): 19/30 | all 30 rows identical |
+| system-0 refit rz_sfjf2_bcdag1 (4000 steps, GPU) from the stored bc1 buffers | 1790476795_c22f81 | ladder_rz_sfjf2_bcdag1 (1790459301_1a72f6) | train_log identical (every logged loss, bitwise) through step 2900; from step 3000 differences at the 7th significant digit (max relative 5.5e-7 in the logged values); final realize_mse 0.0343914695 vs 0.0343914703, probes equal to <= 1e-8. E and P weights identical (same digests); R differs in the last bits (digest c48139cad84a vs 59793ddd510c, hence a new realizer_compat_version). Explained: non-deterministic CUDA reductions (the first 2900 steps are bitwise equal, so data order, seeds and config are identical). |
+
+The first attempt of the two evaluations was killed by the peer's global OOM killer (unit Result oom-kill; the peer was
+~100% memory-reserved by other agents' jobs); run-dag recorded rc -1 and `--retry-failed` reran them. The manifests of
+this run were written before the fix that maps ladder row sources (`learned(system-i flow)`) to Source kinds, so they show
+`unparsed`; recomputed: R2 30 x learned, R1 30 x oracle.
+
+Legged smoke (host, `rrp run-dag dags/smoke_legged.yaml`, leases 1790477468_74dc62, 1790477535_b653f2,
+1790477600_460430; rep 30 steps, probe 20, flow 60 on the W3 go2 smoke shards): all three nodes completed with manifests
+(plumbing only; not results). This run also exercised adoption: a first coordinator mis-read the rc file (fixed, test
+added) and the rerun adopted the finished rep from its manifest without a new lease.
+
+INCIDENT (2026-09-26 19:57, W5 agent): one `scripts/peer_sync.sh push` ran without RRP_PEER_REPO and synced
+track/pipeline (6de5754) into `/dev/shm/rrp-brandonin/repo` with --delete. At that time only the ops watchdog ran from
+that dir (checked /proc/*/cwd). Restored at 19:58 by pushing a clean export of origin/main (c733248) into it; files that
+existed only in that dir (not in origin/main) could not be recovered. Lesson: always pass RRP_PEER_REPO on the same
+command line as peer_sync.sh.
 
 ## tests
 `tests/unit/test_runconfig.py` (round-trip of all configs, flags, variant check, overlays/matrix/templates),

@@ -1,0 +1,41 @@
+{
+ "steps": 60,
+ "wall_s": 5.673560857772827,
+ "representation": "artifacts/runs/pipeline/smoke-legged-go2/train_rep_s0/representation.pt",
+ "latent_space_version": "legged-ls-pipeline_smoke-legged-go2_train_rep_s0",
+ "eval": {
+  "split": "held_out_episodes",
+  "realize_mse": {
+   "oracle": 1.2329057733217874,
+   "free": 1.2343964417775473,
+   "zero": 1.437749441464742
+  },
+  "oracle": {
+   "contact_acc": 0.7405029296875,
+   "contact_swing_acc": 0.0,
+   "goal_err": 0.41599413919712147,
+   "disp_xy_err": 0.49784746567408245,
+   "disp_yaw_err": 0.2194293349981308,
+   "subtask_acc": 0.36302083333333335,
+   "fall_acc": 1.0
+  },
+  "free": {
+   "contact_acc": 0.7405029296875,
+   "contact_swing_acc": 0.0,
+   "goal_err": 0.41118920372517015,
+   "disp_xy_err": 0.5288619518280029,
+   "disp_yaw_err": 0.21726323713858922,
+   "subtask_acc": 0.36302083333333335,
+   "fall_acc": 1.0
+  },
+  "free_shuffled": {
+   "contact_acc": 0.7405029296875,
+   "contact_swing_acc": 0.0,
+   "goal_err": 0.41102452210235374,
+   "disp_xy_err": 0.5302004754543305,
+   "disp_yaw_err": 0.21731715102990468,
+   "subtask_acc": 0.36302083333333335,
+   "fall_acc": 1.0
+  }
+ }
+}

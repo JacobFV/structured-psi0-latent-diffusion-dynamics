@@ -1,0 +1,202 @@
+{
+ "schema": "dag-ledger-1",
+ "created": 1790476795.011831,
+ "nodes": {
+  "rz_bcdag1": {
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790476795_c22f81",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790476795_c22f81_w5par_rz_bcdag1.log",
+     "unit": "rrp-job-1790476795_c22f81.service",
+     "placement": "peer",
+     "started": 1790476796.0259793,
+     "rc": 0,
+     "finished": 1790477854.0855083
+    }
+   ],
+   "config_hash": "88acc93a97a0717d",
+   "run_id": "runs/pipeline/parity-sfjf2/refit-bcdag1_s2",
+   "out": "artifacts/runs/pipeline/parity-sfjf2/refit-bcdag1_s2",
+   "stage": "refit",
+   "placement": "peer",
+   "updated": 1790477855.0046296,
+   "metrics": {
+    "config_latent_space_version": "ls-6f6f9b3eb46b",
+    "eval": {
+     "binding_counterfactual": {
+      "cf_acting_on": 0.9844500742552634,
+      "cf_acting_on_pos": 0.8498789346246973,
+      "cf_desired_delta_err_m": 0.008989448514871538,
+      "cf_focus_follows": 0.0,
+      "cf_focused_on": 0.5595352494103258,
+      "cf_focused_on_pos": 0.43297345928924874,
+      "cf_held_by": 0.9972045077312833,
+      "cf_held_by_pos": 0.9516728624535316,
+      "cf_observed_effect_err_m": 0.008989448514871538,
+      "cf_rel_pos_err_m": 0.024471143286145077,
+      "cf_rel_z_dist": 0.12032456696033478,
+      "cf_subtask": 1.0,
+      "cf_visible": 0.9593780029702106,
+      "cf_visible_pos": 0.9840573933838183
+     },
+     "probes": {
+      "acting_on": 0.9835764829212894,
+      "acting_on_pos": 0.8401937046004843,
+      "desired_delta_err_m": 0.008811334933819725,
+      "focused_on": 1.0,
+      "focused_on_pos": 1.0,
+      "held_by": 0.9969424303310911,
+      "held_by_pos": 0.949814126394052,
+      "observed_effect_err_m": 0.008811334933819725,
+      "rel_pos_err_m": 0.01666270762830361,
+      "subtask": 1.0,
+      "visible": 0.9935354241285926,
+      "visible_pos": 0.9952172180151455
+     },
+     "probes_shuffled_z": {
+      "acting_on": 0.8885297457849218,
+      "acting_on_pos": 0.18159806295399517,
+      "desired_delta_err_m": 0.019612596453022435,
+      "focused_on": 0.8759500305756966,
+      "focused_on_pos": 0.8403058929374719,
+      "held_by": 0.919192801607408,
+      "held_by_pos": 0.12267657992565056,
+      "observed_effect_err_m": 0.019612596453022435,
+      "rel_pos_err_m": 0.3785744063289986,
+      "subtask": 0.6421875,
+      "visible": 0.8086834978597013,
+      "visible_pos": 0.8922877640494221
+     },
+     "realize_mse": 0.0343914695084095,
+     "zero_action_mse": 0.21274671355883282
+    },
+    "interrupted": false,
+    "latent_space_version": "ls-6f6f9b3eb46b-w0403691b2027",
+    "realizer_compat_version": "rz-ls-6f6f9b3eb46b-w0403691b2027-rc48139cad84a-none-v1",
+    "refit_name": "rz_sfjf2_bcdag1",
+    "refit_of": "artifacts/runs/ladder_latent_semfix_b1fix_anchor_s2/representation.pt",
+    "steps": 15000,
+    "steps_refit": 4000,
+    "wall_s": 1018.7800891399384,
+    "zero_prev_action": true
+   }
+  },
+  "r2_final": {
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790477542_cdbd0b",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790477542_cdbd0b_w5par_r2_final.log",
+     "unit": "rrp-job-1790477542_cdbd0b.service",
+     "placement": "peer",
+     "started": 1790477542.1983123,
+     "rc": 0,
+     "finished": 1790478286.9229949
+    }
+   ],
+   "config_hash": "81a8ac21cd9b9bad",
+   "run_id": "runs/pipeline/parity-sfjf2/eval_r2-final_s2",
+   "out": "artifacts/runs/pipeline/parity-sfjf2/eval_r2-final_s2",
+   "stage": "eval_r2",
+   "placement": "peer",
+   "updated": 1790478287.3155966,
+   "last_error": "exit code -1 (log /dev/shm/rrp-brandonin/repo/ops/logs/1790476796_dbcf27_w5par_r2_final.log)",
+   "previous_attempts": [
+    {
+     "lease_id": "1790476796_dbcf27",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790476796_dbcf27_w5par_r2_final.log",
+     "unit": "rrp-job-1790476796_dbcf27.service",
+     "placement": "peer",
+     "started": 1790476797.0001028,
+     "_gone": 3,
+     "rc": -1,
+     "finished": 1790476922.345696
+    }
+   ],
+   "metrics": {
+    "_total": {
+     "n": 30,
+     "success": 21
+    },
+    "panda_pg2/s3000000": {
+     "failed_stage": {
+      "approach": 4,
+      "grasp": 1,
+      "lift": 2,
+      "place": 1,
+      "success": 21,
+      "transport": 1
+     },
+     "n": 30,
+     "rate": 0.7,
+     "source_kinds": {
+      "unparsed": 30
+     },
+     "success": 21,
+     "wilson95": [
+      0.5212387898833981,
+      0.8333543735604105
+     ]
+    }
+   }
+  },
+  "r1_orcbc": {
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790477543_43b130",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790477543_43b130_w5par_r1_orcbc.log",
+     "unit": "rrp-job-1790477543_43b130.service",
+     "placement": "peer",
+     "started": 1790477543.276946,
+     "rc": 0,
+     "finished": 1790478256.123277
+    }
+   ],
+   "config_hash": "38da079aa7ffa812",
+   "run_id": "runs/pipeline/parity-sfjf2/eval_r1-orcbc_s2",
+   "out": "artifacts/runs/pipeline/parity-sfjf2/eval_r1-orcbc_s2",
+   "stage": "eval_r1",
+   "placement": "peer",
+   "updated": 1790478256.4861522,
+   "last_error": "exit code -1 (log /dev/shm/rrp-brandonin/repo/ops/logs/1790476797_dc7f7f_w5par_r1_orcbc.log)",
+   "previous_attempts": [
+    {
+     "lease_id": "1790476797_dc7f7f",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790476797_dc7f7f_w5par_r1_orcbc.log",
+     "unit": "rrp-job-1790476797_dc7f7f.service",
+     "placement": "peer",
+     "started": 1790476797.8936722,
+     "_gone": 3,
+     "rc": -1,
+     "finished": 1790477415.1626868
+    }
+   ],
+   "metrics": {
+    "_total": {
+     "n": 30,
+     "success": 19
+    },
+    "panda_pg2/s3000000": {
+     "failed_stage": {
+      "approach": 4,
+      "grasp": 3,
+      "lift": 4,
+      "success": 19
+     },
+     "n": 30,
+     "rate": 0.6333333333333333,
+     "source_kinds": {
+      "unparsed": 30
+     },
+     "success": 19,
+     "wilson95": [
+      0.45513246433604937,
+      0.7812629779598231
+     ]
+    }
+   }
+  }
+ }
+}

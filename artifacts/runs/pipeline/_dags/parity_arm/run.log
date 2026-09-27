@@ -1,0 +1,12 @@
+2026-09-26 19:39:56 [run-dag] rz_bcdag1: launched lease 1790476795_c22f81 on peer
+2026-09-26 19:39:56 [run-dag] r2_final: launched lease 1790476796_dbcf27 on peer
+2026-09-26 19:39:57 [run-dag] r1_orcbc: launched lease 1790476797_dc7f7f on peer
+2026-09-26 19:42:02 [run-dag] r2_final: FAILED exit code -1 (log /dev/shm/rrp-brandonin/repo/ops/logs/1790476796_dbcf27_w5par_r2_final.log)
+2026-09-26 19:50:15 [run-dag] r1_orcbc: FAILED exit code -1 (log /dev/shm/rrp-brandonin/repo/ops/logs/1790476797_dc7f7f_w5par_r1_orcbc.log)
+2026-09-26 19:52:22 [run-dag] r2_final: launched lease 1790477542_cdbd0b on peer
+2026-09-26 19:52:23 [run-dag] r1_orcbc: launched lease 1790477543_43b130 on peer
+2026-09-26 19:57:35 [run-dag] rz_bcdag1: completed (lease 1790476795_c22f81)
+2026-09-26 20:04:16 [run-dag] r1_orcbc: completed (lease 1790477543_43b130)
+2026-09-26 20:04:47 [run-dag] r2_final: completed (lease 1790477542_cdbd0b)
+2026-09-26 20:04:47 [run-dag] done: {'completed': 3, 'failed': 0, 'blocked': 0, 'planned': 0, 'running': 0}
+parity rc=0

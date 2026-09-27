@@ -1,0 +1,122 @@
+{
+ "config_hash": "38da079aa7ffa812",
+ "episodes": [],
+ "finished": 1790478250.6384883,
+ "inputs": {
+  "bc_policy": [
+   {
+    "digest": "5e6586bd6000412c",
+    "path": "artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt"
+   }
+  ],
+  "representation": [
+   {
+    "digest": "bac9bb6ecdc51502",
+    "path": "artifacts/runs/ladder_rz_sfjf2_gendag3_noqd/representation.pt"
+   }
+  ]
+ },
+ "manifest_hash": "0c11f91ffafde508",
+ "metrics": {
+  "_total": {
+   "n": 30,
+   "success": 19
+  },
+  "panda_pg2/s3000000": {
+   "failed_stage": {
+    "approach": 4,
+    "grasp": 3,
+    "lift": 4,
+    "success": 19
+   },
+   "n": 30,
+   "rate": 0.6333333333333333,
+   "source_kinds": {
+    "unparsed": 30
+   },
+   "success": 19,
+   "wilson95": [
+    0.45513246433604937,
+    0.7812629779598231
+   ]
+  }
+ },
+ "n_episodes": 0,
+ "name": "runs/pipeline/parity-sfjf2/eval_r1-orcbc_s2",
+ "native_config": {
+  "bc_policy": "artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt",
+  "name": "pipeline_parity-sfjf2_eval_r1-orcbc_s2",
+  "out_dir": "artifacts/runs/pipeline/parity-sfjf2/eval_r1-orcbc_s2",
+  "representation": "artifacts/runs/ladder_rz_sfjf2_gendag3_noqd/representation.pt"
+ },
+ "outputs": {
+  "panda_pg2/s3000000": {
+   "digest": "a1f3f46ac3502abe",
+   "path": "artifacts/runs/pipeline/parity-sfjf2/eval_r1-orcbc_s2/panda_pg2/oracle_zero_sfjf2gendag3noqd_orcbc.summary.json"
+  },
+  "panda_pg2/s3000000/rows": {
+   "digest": "2cffafd2c6bdcb7e",
+   "path": "artifacts/runs/pipeline/parity-sfjf2/eval_r1-orcbc_s2/panda_pg2/oracle_zero_sfjf2gendag3noqd_orcbc.jsonl"
+  }
+ },
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": false,
+   "git_sha": "6de575475f7c93d00413d6eb170e9b826bb39491"
+  },
+  "created_at": 1790478250.6381345,
+  "featurizer_version": null,
+  "flags": {
+   "contact_version": "contact_v1",
+   "zero_prev_action": true
+  },
+  "legacy": false,
+  "notes": "pipeline arm/eval_r1 runs/pipeline/parity-sfjf2/eval_r1-orcbc_s2",
+  "physics": null,
+  "schema_version": "provenance-1",
+  "source": "oracle",
+  "versions": {},
+  "weights": {}
+ },
+ "run_id": "runs/pipeline/parity-sfjf2/eval_r1-orcbc_s2",
+ "runconfig": {
+  "family": "arm",
+  "flags": {
+   "contact_version": "contact_v1",
+   "probe_lv_min": null,
+   "qd_dropout": null,
+   "realizer_anchor": null,
+   "realizer_drop_qd": null,
+   "zero_prev_action": true
+  },
+  "inputs": {
+   "bc_policy": "arm/bc/direct1701_u12000:direct1701_u12000.pt",
+   "representation": "arm/semfix/s2/refit-gendag3_noqd:representation.pt"
+  },
+  "legacy": null,
+  "lineage": "parity-sfjf2",
+  "note": "",
+  "options": {
+   "bc_label": "direct1701_u12000",
+   "episodes": 30,
+   "robots": [
+    "panda_pg2"
+   ],
+   "seed_starts": [
+    3000000
+   ],
+   "tag": "sfjf2gendag3noqd"
+  },
+  "params": {},
+  "schema_version": "runconfig-1",
+  "seed": 2,
+  "stage": "eval_r1",
+  "tag": "orcbc",
+  "track": "pipeline",
+  "variant": "semfix"
+ },
+ "schema": "pipeline-manifest-1",
+ "started": 1790477543.6376016,
+ "status_counts": {}
+}

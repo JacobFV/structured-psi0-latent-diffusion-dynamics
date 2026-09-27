@@ -1,0 +1,119 @@
+{
+ "config_hash": "f0d158ef36c2a8fe",
+ "episodes": [],
+ "finished": 1790477598.025957,
+ "inputs": {
+  "representation": [
+   {
+    "digest": "05f486af3646e38c",
+    "path": "artifacts/runs/pipeline/smoke-legged-go2/train_rep_s0/representation.pt"
+   }
+  ]
+ },
+ "manifest_hash": "01bc37261e0a31f0",
+ "metrics": {
+  "metadata_only": {
+   "heldout": {
+    "contact_acc": 0.741192626953125,
+    "contact_swing_acc": 0.0,
+    "disp_xy_err": 0.516339436918497,
+    "disp_yaw_err": 0.2156845211982727,
+    "fall_acc": 1.0,
+    "goal_err": 0.41579904060409895,
+    "subtask_acc": 0.375
+   },
+   "heldout_shuffled_z": {
+    "contact_acc": 0.741192626953125,
+    "contact_swing_acc": 0.0,
+    "disp_xy_err": 0.516339436918497,
+    "disp_yaw_err": 0.2156845211982727,
+    "fall_acc": 1.0,
+    "goal_err": 0.41579904060409895,
+    "subtask_acc": 0.375
+   }
+  },
+  "z": {
+   "heldout": {
+    "contact_acc": 0.741192626953125,
+    "contact_swing_acc": 0.0,
+    "disp_xy_err": 0.4802719622850418,
+    "disp_yaw_err": 0.2133811105042696,
+    "fall_acc": 1.0,
+    "goal_err": 0.43117635826940287,
+    "subtask_acc": 0.35654296875
+   },
+   "heldout_shuffled_z": {
+    "contact_acc": 0.741192626953125,
+    "contact_swing_acc": 0.0,
+    "disp_xy_err": 0.5306754887104035,
+    "disp_yaw_err": 0.21346369273960591,
+    "fall_acc": 1.0,
+    "goal_err": 0.43417575362751587,
+    "subtask_acc": 0.35654296875
+   }
+  }
+ },
+ "n_episodes": 0,
+ "name": "runs/pipeline/smoke-legged-go2/probes_s0",
+ "native_config": {
+  "name": "pipeline_smoke-legged-go2_probes_s0",
+  "out_dir": "artifacts/runs/pipeline/smoke-legged-go2/probes_s0",
+  "representation": "artifacts/runs/pipeline/smoke-legged-go2/train_rep_s0/representation.pt"
+ },
+ "outputs": {
+  "probe": {
+   "digest": "e0fb9189f7fb23d1",
+   "path": "artifacts/runs/pipeline/smoke-legged-go2/probes_s0/probe_posthoc.pt"
+  }
+ },
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": true,
+   "git_sha": "16839a682d62c85947573360cd989995f5284945"
+  },
+  "created_at": 1790477598.0253167,
+  "featurizer_version": null,
+  "flags": {
+   "contact_version": "contact_v1"
+  },
+  "legacy": false,
+  "notes": "pipeline legged/probes runs/pipeline/smoke-legged-go2/probes_s0",
+  "physics": null,
+  "schema_version": "provenance-1",
+  "source": "learned:artifacts/runs/pipeline/smoke-legged-go2/train_rep_s0/representation.pt",
+  "versions": {},
+  "weights": {}
+ },
+ "run_id": "runs/pipeline/smoke-legged-go2/probes_s0",
+ "runconfig": {
+  "family": "legged",
+  "flags": {
+   "contact_version": "contact_v1",
+   "probe_lv_min": null,
+   "qd_dropout": null,
+   "realizer_anchor": null,
+   "realizer_drop_qd": null,
+   "zero_prev_action": null
+  },
+  "inputs": {
+   "representation": "runs/pipeline/smoke-legged-go2/train_rep_s0:representation.pt"
+  },
+  "legacy": null,
+  "lineage": "smoke-legged-go2",
+  "note": "",
+  "options": {
+   "steps": 20
+  },
+  "params": {},
+  "schema_version": "runconfig-1",
+  "seed": 0,
+  "stage": "probes",
+  "tag": null,
+  "track": "pipeline",
+  "variant": "semfix"
+ },
+ "schema": "pipeline-manifest-1",
+ "started": 1790477535.8178267,
+ "status_counts": {}
+}

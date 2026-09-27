@@ -1,0 +1,123 @@
+{
+ "config_hash": "81a8ac21cd9b9bad",
+ "episodes": [],
+ "finished": 1790478264.7485387,
+ "inputs": {
+  "flow": [
+   {
+    "digest": "c64248b4ef5c177a",
+    "path": "artifacts/runs/ladder_flow_sfjf2_gdag2h/policy.pt"
+   }
+  ],
+  "representation": [
+   {
+    "digest": "bac9bb6ecdc51502",
+    "path": "artifacts/runs/ladder_rz_sfjf2_gendag3_noqd/representation.pt"
+   }
+  ]
+ },
+ "manifest_hash": "7838a2cb9513feff",
+ "metrics": {
+  "_total": {
+   "n": 30,
+   "success": 21
+  },
+  "panda_pg2/s3000000": {
+   "failed_stage": {
+    "approach": 4,
+    "grasp": 1,
+    "lift": 2,
+    "place": 1,
+    "success": 21,
+    "transport": 1
+   },
+   "n": 30,
+   "rate": 0.7,
+   "source_kinds": {
+    "unparsed": 30
+   },
+   "success": 21,
+   "wilson95": [
+    0.5212387898833981,
+    0.8333543735604105
+   ]
+  }
+ },
+ "n_episodes": 0,
+ "name": "runs/pipeline/parity-sfjf2/eval_r2-final_s2",
+ "native_config": {
+  "flow": "artifacts/runs/ladder_flow_sfjf2_gdag2h/policy.pt",
+  "name": "pipeline_parity-sfjf2_eval_r2-final_s2",
+  "out_dir": "artifacts/runs/pipeline/parity-sfjf2/eval_r2-final_s2",
+  "representation": "artifacts/runs/ladder_rz_sfjf2_gendag3_noqd/representation.pt"
+ },
+ "outputs": {
+  "panda_pg2/s3000000": {
+   "digest": "6915c242b1b5b2fd",
+   "path": "artifacts/runs/pipeline/parity-sfjf2/eval_r2-final_s2/panda_pg2/generated_zero_flowsf2gdag2h_rzsf2gendag3_noqd_s3000000.summary.json"
+  },
+  "panda_pg2/s3000000/rows": {
+   "digest": "efe140f328320c7a",
+   "path": "artifacts/runs/pipeline/parity-sfjf2/eval_r2-final_s2/panda_pg2/generated_zero_flowsf2gdag2h_rzsf2gendag3_noqd_s3000000.jsonl"
+  }
+ },
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": false,
+   "git_sha": "6de575475f7c93d00413d6eb170e9b826bb39491"
+  },
+  "created_at": 1790478264.7482114,
+  "featurizer_version": null,
+  "flags": {
+   "contact_version": "contact_v1",
+   "zero_prev_action": true
+  },
+  "legacy": false,
+  "notes": "pipeline arm/eval_r2 runs/pipeline/parity-sfjf2/eval_r2-final_s2",
+  "physics": null,
+  "schema_version": "provenance-1",
+  "source": "learned:artifacts/runs/ladder_flow_sfjf2_gdag2h/policy.pt",
+  "versions": {},
+  "weights": {}
+ },
+ "run_id": "runs/pipeline/parity-sfjf2/eval_r2-final_s2",
+ "runconfig": {
+  "family": "arm",
+  "flags": {
+   "contact_version": "contact_v1",
+   "probe_lv_min": null,
+   "qd_dropout": null,
+   "realizer_anchor": null,
+   "realizer_drop_qd": null,
+   "zero_prev_action": true
+  },
+  "inputs": {
+   "flow": "arm/semfix/s2/flow_ft-gdag2h:policy.pt",
+   "representation": "arm/semfix/s2/refit-gendag3_noqd:representation.pt"
+  },
+  "legacy": null,
+  "lineage": "parity-sfjf2",
+  "note": "",
+  "options": {
+   "episodes": 30,
+   "robots": [
+    "panda_pg2"
+   ],
+   "seed_starts": [
+    3000000
+   ],
+   "tag": "flowsf2gdag2h_rzsf2gendag3_noqd"
+  },
+  "params": {},
+  "schema_version": "runconfig-1",
+  "seed": 2,
+  "stage": "eval_r2",
+  "tag": "final",
+  "track": "pipeline",
+  "variant": "semfix"
+ },
+ "schema": "pipeline-manifest-1",
+ "started": 1790477542.6031933,
+ "status_counts": {}
+}

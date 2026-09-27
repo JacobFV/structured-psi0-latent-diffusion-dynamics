@@ -1,0 +1,137 @@
+{
+ "config_hash": "b79d2fb18e051d27",
+ "episodes": [],
+ "finished": 1790477650.871391,
+ "inputs": {
+  "representation": [
+   {
+    "digest": "05f486af3646e38c",
+    "path": "artifacts/runs/pipeline/smoke-legged-go2/train_rep_s0/representation.pt"
+   }
+  ]
+ },
+ "manifest_hash": "5f3609d81d94fb19",
+ "metrics": {
+  "eval": {
+   "free": {
+    "contact_acc": 0.7405029296875,
+    "contact_swing_acc": 0.0,
+    "disp_xy_err": 0.5288619518280029,
+    "disp_yaw_err": 0.21726323713858922,
+    "fall_acc": 1.0,
+    "goal_err": 0.41118920372517015,
+    "subtask_acc": 0.36302083333333335
+   },
+   "free_shuffled": {
+    "contact_acc": 0.7405029296875,
+    "contact_swing_acc": 0.0,
+    "disp_xy_err": 0.5302004754543305,
+    "disp_yaw_err": 0.21731715102990468,
+    "fall_acc": 1.0,
+    "goal_err": 0.41102452210235374,
+    "subtask_acc": 0.36302083333333335
+   },
+   "oracle": {
+    "contact_acc": 0.7405029296875,
+    "contact_swing_acc": 0.0,
+    "disp_xy_err": 0.49784746567408245,
+    "disp_yaw_err": 0.2194293349981308,
+    "fall_acc": 1.0,
+    "goal_err": 0.41599413919712147,
+    "subtask_acc": 0.36302083333333335
+   },
+   "realize_mse": {
+    "free": 1.2343964417775473,
+    "oracle": 1.2329057733217874,
+    "zero": 1.437749441464742
+   },
+   "split": "held_out_episodes"
+  },
+  "latent_space_version": "legged-ls-pipeline_smoke-legged-go2_train_rep_s0",
+  "representation": "artifacts/runs/pipeline/smoke-legged-go2/train_rep_s0/representation.pt",
+  "steps": 60,
+  "wall_s": 5.673560857772827
+ },
+ "n_episodes": 0,
+ "name": "runs/pipeline/smoke-legged-go2/train_flow_s0",
+ "native_config": {
+  "batch_size": 32,
+  "ckpt_every": 20,
+  "layers": 2,
+  "lr": 0.0003,
+  "name": "pipeline_smoke-legged-go2_train_flow_s0",
+  "out_dir": "artifacts/runs/pipeline/smoke-legged-go2/train_flow_s0",
+  "packet_semantic_weight": 0.5,
+  "packet_tau_min": 0.6,
+  "representation": "artifacts/runs/pipeline/smoke-legged-go2/train_rep_s0/representation.pt",
+  "seed": 0,
+  "snap_every": 0,
+  "steps": 60,
+  "width": 64
+ },
+ "outputs": {
+  "policy": {
+   "digest": "badc61f3f00ff6f9",
+   "path": "artifacts/runs/pipeline/smoke-legged-go2/train_flow_s0/policy.pt"
+  }
+ },
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": true,
+   "git_sha": "16839a682d62c85947573360cd989995f5284945"
+  },
+  "created_at": 1790477650.8706596,
+  "featurizer_version": null,
+  "flags": {
+   "contact_version": "contact_v1"
+  },
+  "legacy": false,
+  "notes": "pipeline legged/train_flow runs/pipeline/smoke-legged-go2/train_flow_s0",
+  "physics": null,
+  "schema_version": "provenance-1",
+  "source": "learned:artifacts/runs/pipeline/smoke-legged-go2/train_flow_s0/policy.pt",
+  "versions": {},
+  "weights": {}
+ },
+ "run_id": "runs/pipeline/smoke-legged-go2/train_flow_s0",
+ "runconfig": {
+  "family": "legged",
+  "flags": {
+   "contact_version": "contact_v1",
+   "probe_lv_min": null,
+   "qd_dropout": null,
+   "realizer_anchor": null,
+   "realizer_drop_qd": null,
+   "zero_prev_action": null
+  },
+  "inputs": {
+   "representation": "runs/pipeline/smoke-legged-go2/train_rep_s0:representation.pt"
+  },
+  "legacy": null,
+  "lineage": "smoke-legged-go2",
+  "note": "",
+  "options": {},
+  "params": {
+   "batch_size": 32,
+   "ckpt_every": 20,
+   "layers": 2,
+   "lr": 0.0003,
+   "packet_semantic_weight": 0.5,
+   "packet_tau_min": 0.6,
+   "seed": 0,
+   "snap_every": 0,
+   "steps": 60,
+   "width": 64
+  },
+  "schema_version": "runconfig-1",
+  "seed": 0,
+  "stage": "train_flow",
+  "tag": null,
+  "track": "pipeline",
+  "variant": "semfix"
+ },
+ "schema": "pipeline-manifest-1",
+ "started": 1790477601.083421,
+ "status_counts": {}
+}

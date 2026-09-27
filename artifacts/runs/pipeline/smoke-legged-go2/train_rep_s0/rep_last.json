@@ -1,0 +1,28 @@
+{
+ "path": "/home/brandonin/work/rrp-wt/pipeline/artifacts/runs/pipeline/smoke-legged-go2/train_rep_s0/rep_last.pt",
+ "sha256_16": "6fdfd4caac51f037",
+ "step": 20,
+ "provenance": {
+  "schema_version": "provenance-1",
+  "source": "learned:train_rep_s0/rep_last.pt",
+  "physics": null,
+  "featurizer_version": null,
+  "code": {
+   "git_sha": "16839a682d62c85947573360cd989995f5284945",
+   "dirty": true
+  },
+  "weights": {
+   "E": "7966e74a917f",
+   "R": "71f767fab257",
+   "P": "04466cbc4d31"
+  },
+  "bundle_fingerprint": "159f16d1c9eb",
+  "versions": {},
+  "flags": {
+   "prev_action_input": false
+  },
+  "legacy": false,
+  "created_at": 1790477472.575041,
+  "notes": ""
+ }
+}

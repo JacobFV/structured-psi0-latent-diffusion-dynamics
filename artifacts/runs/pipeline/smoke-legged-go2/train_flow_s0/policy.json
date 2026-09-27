@@ -1,0 +1,32 @@
+{
+ "path": "/home/brandonin/work/rrp-wt/pipeline/artifacts/runs/pipeline/smoke-legged-go2/train_flow_s0/policy.pt",
+ "sha256_16": "badc61f3f00ff6f9",
+ "step": null,
+ "provenance": {
+  "schema_version": "provenance-1",
+  "source": "learned:train_flow_s0/policy.pt",
+  "physics": null,
+  "featurizer_version": null,
+  "code": {
+   "git_sha": "16839a682d62c85947573360cd989995f5284945",
+   "dirty": true
+  },
+  "weights": {
+   "flow": "265a855b10ad"
+  },
+  "bundle_fingerprint": "aba6f01d178e",
+  "versions": {
+   "latent_space_version": "legged-ls-pipeline_smoke-legged-go2_train_rep_s0",
+   "representation": "artifacts/runs/pipeline/smoke-legged-go2/train_rep_s0/representation.pt",
+   "name": "pipeline_smoke-legged-go2_train_flow_s0"
+  },
+  "flags": {
+   "prev_action_input": false,
+   "packet_semantic_weight": 0.5,
+   "packet_tau_min": 0.6
+  },
+  "legacy": false,
+  "created_at": 1790477650.8639226,
+  "notes": ""
+ }
+}

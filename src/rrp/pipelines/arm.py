@@ -212,6 +212,8 @@ def _source_counts(rows_path: Path) -> dict:
         for line in rows_path.read_text().splitlines():
             if line.strip():
                 s = json.loads(line).get("source")
+                if isinstance(s, str) and "(" in s:        # ladder rows: "learned(system-i flow)", "target_encoder_oracle(...)"
+                    s = s.split("(", 1)[0]
                 try:
                     c[str(parse_source(s).kind.value)] += 1
                 except (ValueError, AttributeError):

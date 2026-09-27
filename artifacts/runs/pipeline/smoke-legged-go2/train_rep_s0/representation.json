@@ -1,0 +1,47 @@
+{
+ "path": "/home/brandonin/work/rrp-wt/pipeline/artifacts/runs/pipeline/smoke-legged-go2/train_rep_s0/representation.pt",
+ "sha256_16": "05f486af3646e38c",
+ "step": null,
+ "provenance": {
+  "schema_version": "provenance-1",
+  "source": "learned:train_rep_s0/representation.pt",
+  "physics": {
+   "mujoco_version": "3.14.0",
+   "timestep": 0.002,
+   "integrator": "euler",
+   "cone": "elliptic",
+   "impratio": 100.0,
+   "solver": "newton",
+   "iterations": 100,
+   "ls_iterations": 50,
+   "noslip_iterations": 0,
+   "contact_version": "contact_v1"
+  },
+  "featurizer_version": null,
+  "code": {
+   "git_sha": "16839a682d62c85947573360cd989995f5284945",
+   "dirty": true
+  },
+  "weights": {
+   "E": "bb31fad54fdc",
+   "R": "266ca84fb944",
+   "P": "a53bd248d536"
+  },
+  "bundle_fingerprint": "580c1008f391",
+  "versions": {
+   "latent_space_version": "legged-ls-pipeline_smoke-legged-go2_train_rep_s0",
+   "data": "artifacts/datasets/w5_smoke_legged",
+   "name": "pipeline_smoke-legged-go2_train_rep_s0"
+  },
+  "flags": {
+   "prev_action_input": false,
+   "semantic_weight": 1.0,
+   "beta_kl": 0.001,
+   "qd_dropout": 0.5,
+   "probe_lv_min": -4.0
+  },
+  "legacy": false,
+  "created_at": 1790477493.5330658,
+  "notes": ""
+ }
+}

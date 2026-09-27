@@ -78,7 +78,7 @@ def test_arm_eval_r2_runs_ladder_with_deployment_input(tmp_path, monkeypatch):
         out = self.root / argv[argv.index("--out") + 1]
         out.mkdir(parents=True, exist_ok=True)
         name = f"generated_{argv[argv.index('--tag') + 1]}"
-        (out / f"{name}.jsonl").write_text(json.dumps({"source": "learned:flow.pt"}) + "\n")
+        (out / f"{name}.jsonl").write_text(json.dumps({"source": "learned(system-i flow)"}) + "\n")
         (out / f"{name}.summary.json").write_text(json.dumps(dict(n=30, success=21, rate=0.7, wilson95=[0.5, 0.8])))
     monkeypatch.setattr(pbase.StageContext, "run", fake_run)
     rc = _rc(stage="eval_r2", tag="final", inputs={"flow": "runs/f:policy.pt", "representation": "runs/r:representation.pt"},

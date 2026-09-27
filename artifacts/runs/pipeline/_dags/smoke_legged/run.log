@@ -1,0 +1,10 @@
+2026-09-26 19:51:08 [run-dag] rep: launched lease 1790477468_74dc62 on host
+2026-09-26 19:51:38 [run-dag] rep: FAILED exit code -1 (log /home/brandonin/work/relational-robot-policy/ops/logs/1790477468_74dc62_w5smoke_rep.log)
+2026-09-26 19:51:38 [run-dag] done: {'completed': 0, 'failed': 1, 'blocked': 2, 'planned': 0, 'running': 0}
+2026-09-26 19:52:10 [run-dag] rep: adopted existing outputs
+2026-09-26 19:52:15 [run-dag] probe: launched lease 1790477535_b653f2 on host
+2026-09-26 19:53:20 [run-dag] probe: completed (lease 1790477535_b653f2)
+2026-09-26 19:53:20 [run-dag] flow: launched lease 1790477600_460430 on host
+2026-09-26 19:54:15 [run-dag] flow: completed (lease 1790477600_460430)
+2026-09-26 19:54:15 [run-dag] done: {'completed': 3, 'failed': 0, 'blocked': 0, 'planned': 0, 'running': 0}
+smoke rc=0

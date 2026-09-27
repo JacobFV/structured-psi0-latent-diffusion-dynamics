@@ -1,0 +1,53 @@
+[
+ {
+  "kind": "train",
+  "new": "artifacts/runs/pipeline/parity-sfjf2/refit-bcdag1_s2",
+  "old": "artifacts/runs/ladder_rz_sfjf2_bcdag1",
+  "log_rows": [
+   40,
+   40
+  ],
+  "identical_log_rows": 29,
+  "first_diff_step": 3000,
+  "max_rel_diff_logged": 5.546596090956287e-07,
+  "result_diffs": {
+   "eval.binding_counterfactual.cf_desired_delta_err_m": [
+    0.008989448514871538,
+    0.00898944855652762
+   ],
+   "eval.binding_counterfactual.cf_observed_effect_err_m": [
+    0.008989448514871538,
+    0.00898944855652762
+   ],
+   "eval.binding_counterfactual.cf_rel_pos_err_m": [
+    0.024471143286145077,
+    0.024471143369457236
+   ],
+   "eval.probes.rel_pos_err_m": [
+    0.01666270762830361,
+    0.01666270766995969
+   ],
+   "eval.realize_mse": [
+    0.0343914695084095,
+    0.03439147034659982
+   ],
+   "realizer_compat_version": [
+    "rz-ls-6f6f9b3eb46b-w0403691b2027-rc48139cad84a-none-v1",
+    "rz-ls-6f6f9b3eb46b-w0403691b2027-r59793ddd510c-none-v1"
+   ]
+  },
+  "weights_digest_new_old": [
+   {
+    "E": "0403691b2027",
+    "R": "c48139cad84a",
+    "P": "a218cf6c71d9"
+   },
+   {
+    "E": "0403691b2027",
+    "R": "59793ddd510c",
+    "P": "a218cf6c71d9"
+   }
+  ],
+  "weights_identical": false
+ }
+]

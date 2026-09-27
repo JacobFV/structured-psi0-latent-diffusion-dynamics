@@ -1,0 +1,190 @@
+{
+ "schema": "dag-ledger-1",
+ "created": 1790477468.4365,
+ "nodes": {
+  "rep": {
+   "state": "completed",
+   "attempts": [],
+   "config_hash": "7157f9adfd6958d7",
+   "run_id": "runs/pipeline/smoke-legged-go2/train_rep_s0",
+   "out": "artifacts/runs/pipeline/smoke-legged-go2/train_rep_s0",
+   "stage": "train_rep",
+   "placement": "host",
+   "updated": 1790477530.5880473,
+   "last_error": "exit code -1 (log /home/brandonin/work/relational-robot-policy/ops/logs/1790477468_74dc62_w5smoke_rep.log)",
+   "previous_attempts": [
+    {
+     "lease_id": "1790477468_74dc62",
+     "log": "/home/brandonin/work/relational-robot-policy/ops/logs/1790477468_74dc62_w5smoke_rep.log",
+     "unit": "rrp-job-1790477468_74dc62.service",
+     "placement": "host",
+     "started": 1790477468.5432675,
+     "rc": -1,
+     "finished": 1790477498.5909302
+    }
+   ],
+   "adopted": true,
+   "metrics": {
+    "bodies": [
+     "go2"
+    ],
+    "eval": {
+     "probes": {
+      "contact_acc": 0.74305419921875,
+      "contact_swing_acc": 0.0,
+      "disp_xy_err": 0.49367071241140364,
+      "disp_yaw_err": 0.21999475881457328,
+      "fall_acc": 1.0,
+      "goal_err": 0.4175992142649928,
+      "subtask_acc": 0.35712890625
+     },
+     "probes_shuffled_z": {
+      "contact_acc": 0.74305419921875,
+      "contact_swing_acc": 0.0,
+      "disp_xy_err": 0.5262765437364578,
+      "disp_yaw_err": 0.217150092497468,
+      "fall_acc": 1.0,
+      "goal_err": 0.4137143083447405,
+      "subtask_acc": 0.35712890625
+     },
+     "realize_mse": 1.2141695111989974,
+     "split": "held_out_episodes",
+     "zero_action_mse": 1.414165762066841
+    },
+    "latent_space_version": "legged-ls-pipeline_smoke-legged-go2_train_rep_s0",
+    "n_heldout_rows": 505,
+    "n_rows": 11525,
+    "n_train_rows": 11020,
+    "steps": 30,
+    "wall_s": 3.8595499992370605
+   }
+  },
+  "probe": {
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790477535_b653f2",
+     "log": "/home/brandonin/work/relational-robot-policy/ops/logs/1790477535_b653f2_w5smoke_probe.log",
+     "unit": "rrp-job-1790477535_b653f2.service",
+     "placement": "host",
+     "started": 1790477535.6875467,
+     "rc": 0,
+     "finished": 1790477600.7917073
+    }
+   ],
+   "config_hash": "f0d158ef36c2a8fe",
+   "run_id": "runs/pipeline/smoke-legged-go2/probes_s0",
+   "out": "artifacts/runs/pipeline/smoke-legged-go2/probes_s0",
+   "stage": "probes",
+   "placement": "host",
+   "last_error": "dependency failed",
+   "updated": 1790477600.7919064,
+   "previous_attempts": [],
+   "metrics": {
+    "metadata_only": {
+     "heldout": {
+      "contact_acc": 0.741192626953125,
+      "contact_swing_acc": 0.0,
+      "disp_xy_err": 0.516339436918497,
+      "disp_yaw_err": 0.2156845211982727,
+      "fall_acc": 1.0,
+      "goal_err": 0.41579904060409895,
+      "subtask_acc": 0.375
+     },
+     "heldout_shuffled_z": {
+      "contact_acc": 0.741192626953125,
+      "contact_swing_acc": 0.0,
+      "disp_xy_err": 0.516339436918497,
+      "disp_yaw_err": 0.2156845211982727,
+      "fall_acc": 1.0,
+      "goal_err": 0.41579904060409895,
+      "subtask_acc": 0.375
+     }
+    },
+    "z": {
+     "heldout": {
+      "contact_acc": 0.741192626953125,
+      "contact_swing_acc": 0.0,
+      "disp_xy_err": 0.4802719622850418,
+      "disp_yaw_err": 0.2133811105042696,
+      "fall_acc": 1.0,
+      "goal_err": 0.43117635826940287,
+      "subtask_acc": 0.35654296875
+     },
+     "heldout_shuffled_z": {
+      "contact_acc": 0.741192626953125,
+      "contact_swing_acc": 0.0,
+      "disp_xy_err": 0.5306754887104035,
+      "disp_yaw_err": 0.21346369273960591,
+      "fall_acc": 1.0,
+      "goal_err": 0.43417575362751587,
+      "subtask_acc": 0.35654296875
+     }
+    }
+   }
+  },
+  "flow": {
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790477600_460430",
+     "log": "/home/brandonin/work/relational-robot-policy/ops/logs/1790477600_460430_w5smoke_flow.log",
+     "unit": "rrp-job-1790477600_460430.service",
+     "placement": "host",
+     "started": 1790477600.8895183,
+     "rc": 0,
+     "finished": 1790477655.9745247
+    }
+   ],
+   "config_hash": "b79d2fb18e051d27",
+   "run_id": "runs/pipeline/smoke-legged-go2/train_flow_s0",
+   "out": "artifacts/runs/pipeline/smoke-legged-go2/train_flow_s0",
+   "stage": "train_flow",
+   "placement": "host",
+   "last_error": "dependency failed",
+   "updated": 1790477655.9748082,
+   "previous_attempts": [],
+   "metrics": {
+    "eval": {
+     "free": {
+      "contact_acc": 0.7405029296875,
+      "contact_swing_acc": 0.0,
+      "disp_xy_err": 0.5288619518280029,
+      "disp_yaw_err": 0.21726323713858922,
+      "fall_acc": 1.0,
+      "goal_err": 0.41118920372517015,
+      "subtask_acc": 0.36302083333333335
+     },
+     "free_shuffled": {
+      "contact_acc": 0.7405029296875,
+      "contact_swing_acc": 0.0,
+      "disp_xy_err": 0.5302004754543305,
+      "disp_yaw_err": 0.21731715102990468,
+      "fall_acc": 1.0,
+      "goal_err": 0.41102452210235374,
+      "subtask_acc": 0.36302083333333335
+     },
+     "oracle": {
+      "contact_acc": 0.7405029296875,
+      "contact_swing_acc": 0.0,
+      "disp_xy_err": 0.49784746567408245,
+      "disp_yaw_err": 0.2194293349981308,
+      "fall_acc": 1.0,
+      "goal_err": 0.41599413919712147,
+      "subtask_acc": 0.36302083333333335
+     },
+     "realize_mse": {
+      "free": 1.2343964417775473,
+      "oracle": 1.2329057733217874,
+      "zero": 1.437749441464742
+     },
+     "split": "held_out_episodes"
+    },
+    "latent_space_version": "legged-ls-pipeline_smoke-legged-go2_train_rep_s0",
+    "representation": "artifacts/runs/pipeline/smoke-legged-go2/train_rep_s0/representation.pt",
+    "steps": 60,
+    "wall_s": 5.673560857772827
+   }
+  }
+ }
+}

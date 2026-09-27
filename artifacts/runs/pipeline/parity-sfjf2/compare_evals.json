@@ -1,0 +1,30 @@
+[
+ {
+  "kind": "rows",
+  "new": "artifacts/runs/pipeline/parity-sfjf2/eval_r2-final_s2/panda_pg2/generated_zero_flowsf2gdag2h_rzsf2gendag3_noqd_s3000000.jsonl",
+  "old": "artifacts/runs/ladder_v1/panda_pg2/generated_zero_flowsf2gdag2h_rzsf2gendag3_noqd_s3000000.jsonl",
+  "n_new": 30,
+  "n_old": 30,
+  "seeds_equal": true,
+  "success_new": 21,
+  "success_old": 21,
+  "outcome_equal": true,
+  "identical_rows": 30,
+  "differing_keys": [],
+  "example": {}
+ },
+ {
+  "kind": "rows",
+  "new": "artifacts/runs/pipeline/parity-sfjf2/eval_r1-orcbc_s2/panda_pg2/oracle_zero_sfjf2gendag3noqd_orcbc.jsonl",
+  "old": "artifacts/runs/ladder_v1/panda_pg2/oracle_zero_sfjf2gendag3noqd_orcbc.jsonl",
+  "n_new": 30,
+  "n_old": 30,
+  "seeds_equal": true,
+  "success_new": 19,
+  "success_old": 19,
+  "outcome_equal": true,
+  "identical_rows": 30,
+  "differing_keys": [],
+  "example": {}
+ }
+]

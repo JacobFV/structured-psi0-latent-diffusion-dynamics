@@ -1,0 +1,34 @@
+{
+ "path": "artifacts/runs/pipeline/parity-sfjf2/refit-bcdag1_s2/rz_last.pt",
+ "sha256_16": "86b5552ca09268d7",
+ "step": 4000,
+ "versions": {
+  "latent": "ls-6f6f9b3eb46b-w0403691b2027"
+ },
+ "provenance": {
+  "schema_version": "provenance-1",
+  "source": "learned:refit-bcdag1_s2/rz_last.pt",
+  "physics": null,
+  "featurizer_version": null,
+  "code": {
+   "git_sha": "16839a682d62c85947573360cd989995f5284945",
+   "dirty": false
+  },
+  "weights": {
+   "model": "c48139cad84a"
+  },
+  "bundle_fingerprint": "8475e7677944",
+  "versions": {
+   "latent": "ls-6f6f9b3eb46b-w0403691b2027"
+  },
+  "flags": {
+   "zero_prev_action": true,
+   "realizer_drop_qd": false,
+   "realizer_anchor": true,
+   "init": "old"
+  },
+  "legacy": false,
+  "created_at": 1790477822.8138034,
+  "notes": ""
+ }
+}
