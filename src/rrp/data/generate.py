@@ -16,8 +16,8 @@ _ROBOT_CACHE = {}
 
 def _job(args):
     args = list(args)
-    args += [0.0, None][len(args) - 6:]           # defaults: noise 0.0, patient None (unpaired)
-    robot_key, task, seed, n_distr, out_dir, split, noise, patient = args[:8]
+    args += [0.0, None, None][len(args) - 6:]     # defaults: noise 0.0, patient None (unpaired), teacher v1 default
+    robot_key, task, seed, n_distr, out_dir, split, noise, patient, teacher_version = args[:9]
     eid = f"{task}_{robot_key}_s{seed}" + (f"_p{patient}" if patient is not None else "") + \
         (f"_dart{int(noise * 1000)}" if noise else "")
     done = Path(out_dir) / "episodes" / f"{eid}.public.pkl.gz"
@@ -43,7 +43,7 @@ def _job(args):
         kw = {"n_objects": n_distr + 1, "patient": patient}
     sess = Session(BUILDERS[task](robot, seed, **kw), seed=seed)
     rec = collect_teacher_episode(sess, episode_id=eid, split_lineage=dict(split=split, robot_key=robot_key),
-                                  exec_noise=noise, noise_seed=seed)
+                                  exec_noise=noise, noise_seed=seed, teacher_version=teacher_version)
     rec.public["meta"]["robot_key"] = robot_key
     if task == "pick_place_paired":
         rec.public["meta"]["pair"] = dict(sess.scenario.meta, pair_id=f"{robot_key}_s{seed}" +
@@ -55,6 +55,7 @@ def generate(config: dict) -> dict:
     out = Path(config["out_dir"])
     out.mkdir(parents=True, exist_ok=True)
     jobs = []
+    tv = config.get("teacher_version")          # None = the v1 default teacher (historical datasets)
     for item in config["items"]:
         for k in range(item["episodes"]):
             seed = item["seed_start"] + k
@@ -64,10 +65,10 @@ def generate(config: dict) -> dict:
                     lo, hi = config.get("paired_objects", [2, 3])
                     n_obj = lo + k % (hi - lo + 1)
                     for p in range(n_obj):
-                        jobs.append((item["robot"], task, seed, n_obj - 1, str(out), item["split"], noise, p))
+                        jobs.append((item["robot"], task, seed, n_obj - 1, str(out), item["split"], noise, p, tv))
                     continue
                 jobs.append((item["robot"], task, seed,
-                             k % (config.get("max_distractors", 2) + 1), str(out), item["split"], noise))
+                             k % (config.get("max_distractors", 2) + 1), str(out), item["split"], noise, None, tv))
     t0 = time.time()
     metas = []
     import multiprocessing as mp
@@ -82,8 +83,13 @@ def generate(config: dict) -> dict:
             if i % 200 == 0:
                 print(f"[generate] {i + 1}/{len(jobs)} {time.time() - t0:.0f}s", flush=True)
     metas = sorted(metas, key=lambda m: m.get("episode_id", ""))
-    prov = dataset_provenance(metas, source="scripted_teacher", featurizer_version=FEATURIZER_VERSION,
-                              flags=dict(privileged_teacher=True, dart_noise=config.get("dart_noise", [])))
+    src = "scripted_teacher"
+    flags = dict(privileged_teacher=True, dart_noise=config.get("dart_noise", []))
+    if tv:
+        from rrp.teachers.arm_smooth import teacher_source, teacher_version_id
+        src = teacher_source(tv)
+        flags["teacher_version"] = teacher_version_id(tv)
+    prov = dataset_provenance(metas, source=src, featurizer_version=FEATURIZER_VERSION, flags=flags)
     man = write_manifest(out, config["name"], metas, extra=dict(config=config, wall_s=time.time() - t0,
                                                                 source=prov.source, privileged_teacher=True,
                                                                 featurizer=FEATURIZER_VERSION), provenance=prov)

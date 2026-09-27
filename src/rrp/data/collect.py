@@ -71,11 +71,15 @@ class EpisodeRecord:
 
 def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_steps: int = 600,
                             episode_id: str = "", split_lineage: dict | None = None,
-                            exec_noise: float = 0.0, noise_seed: int = 0) -> EpisodeRecord:
+                            exec_noise: float = 0.0, noise_seed: int = 0,
+                            teacher_version: str | None = None) -> EpisodeRecord:
     """exec_noise > 0 (DART): executed ARM command = teacher command + N(0, exec_noise) held for a few
-    steps; the recorded LABEL is always the clean teacher command, so data covers recovery states."""
+    steps; the recorded LABEL is always the clean teacher command, so data covers recovery states.
+    teacher_version (rrp.teachers.arm_smooth.TEACHER_VERSIONS key) selects a registered arm teacher version;
+    None keeps `teacher_cls` (the v1 default) and the historical meta."""
+    from rrp.teachers.arm_smooth import make_arm_teacher, teacher_source, teacher_version_id
     feat = featurizer_for(session)
-    teacher = teacher_cls(session)
+    teacher = make_arm_teacher(session, teacher_version) if teacher_version else teacher_cls(session)
     f = teacher.feasibility() if hasattr(teacher, "feasibility") else {"feasible": True}
     t0 = time.time()
     inputs, actions, labels, phases, statuses, q0s = [], [], [], [], [], []
@@ -122,6 +126,8 @@ def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_
                 wall_s=time.time() - t0, split_lineage=split_lineage or {}, exec_noise=exec_noise,
                 n_distractors=session.scenario.meta.get("n_distractors", 0),
                 physics=physics_provenance(session.model).to_dict())
+    if teacher_version:                  # new selectable versions record themselves; v1-default meta is unchanged
+        meta.update(source=teacher_source(teacher_version), teacher_version=teacher_version_id(teacher_version))
     public = dict(meta=meta, inputs=inputs, actions=actions, q0=q0s, statuses=statuses,
                   action_space=dict(node_group=feat.aspace.node_group, node_col=feat.aspace.node_col,
                                     lower=feat.aspace.lower, upper=feat.aspace.upper,
