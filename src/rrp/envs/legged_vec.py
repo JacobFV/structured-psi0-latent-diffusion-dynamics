@@ -29,6 +29,9 @@ def _worker(conn, body, n_envs, seed, friction, kw):
         elif msg == "turn":
             env.set_turn_scale(payload)
             conn.send(("ok", env.turn_scale))
+        elif msg == "cmdmix":
+            env.cmd_mix = str(payload)
+            conn.send(("ok", env.cmd_mix))
         elif msg == "refff":
             env.ref_ff = float(payload)
             conn.send(("ok", env.ref_ff))
@@ -86,6 +89,11 @@ class VecPool:
     def set_turn_scale(self, scale: float) -> float:
         for c in self.conns:
             c.send(("turn", float(scale)))
+        return [c.recv()[1] for c in self.conns][0]
+
+    def set_cmd_mix(self, mix: str) -> str:
+        for c in self.conns:
+            c.send(("cmdmix", mix))
         return [c.recv()[1] for c in self.conns][0]
 
     def set_ref_ff(self, amp: float) -> float:

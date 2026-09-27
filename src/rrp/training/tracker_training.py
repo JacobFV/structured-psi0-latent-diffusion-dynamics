@@ -65,6 +65,8 @@ def train(args):
         pool.set_slow_frac(args.slow_frac)
     if args.ref_ff > 0:
         pool.set_ref_ff(args.ref_ff)
+    if args.cmd_mix != "default":
+        pool.set_cmd_mix(args.cmd_mix)
     if args.turn_curriculum > 0:
         turn_scale = pool.set_turn_scale(args.turn_curriculum)
         pool.set_turn_frac(args.turn_frac)
@@ -295,6 +297,7 @@ def main(argv=None):
                     help="bipeds: start pure-turn yaw-rate scale (e.g. 0.4); 0 = off (full range)")
     ap.add_argument("--turn-vx0", type=float, default=0.0,
                     help="arc-to-in-place curriculum: initial forward speed (m/s) added to pure-turn commands, shrunk to 0 in 4 steps")
+    ap.add_argument("--cmd-mix", default="default", help="default | teacher (W8 waypoint-teacher command mix, 70%%)")
     ap.add_argument("--ref-ff", type=float, default=0.0,
                     help="bipeds: feed-forward clock stepping reference amplitude (rad) added to targets; stored in actor meta")
     ap.add_argument("--slow-frac", type=float, default=0.0, help="bipeds: fraction of walking commands rescaled to 0.05-0.2 m/s")

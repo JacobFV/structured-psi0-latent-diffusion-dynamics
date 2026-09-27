@@ -50,6 +50,7 @@ def scripts(b: LeggedBinding):
         "stand": dict(T=6.0, cmd=[0, 0, 0]),
         "forward": dict(T=10.0, cmd=[0.6 * vx, 0, 0]),
         "turn": dict(T=8.0, cmd=[0, 0, 0.6 * wz]),
+        "turn_fast": dict(T=8.0, cmd=[0, 0, 0.8 * wz]),      # the W8 waypoint teacher's pure-turn rate (reported, not in the gate)
         "arc": dict(T=10.0, cmd=[0.5 * vx, 0, 0.4 * wz]),
         "push_fwd": dict(T=10.0, cmd=[0.6 * vx, 0, 0], push=(4.0, kick)),
     }
@@ -167,10 +168,13 @@ def validate(body: str, kind: str, actor: str | None, seeds: int, contact: str |
     no_fall = float(np.mean([not e["fell"] for e in eps]))
     fwd = [e["mean_vx"] / e["cmd"][0] for e in res["forward"] if e["mean_vx"] is not None and not e["fell"]]
     trn = [e["mean_wz"] / e["cmd"][2] for e in res["turn"] if e["mean_wz"] is not None and not e["fell"]]
+    arc = [e["mean_wz"] / e["cmd"][2] for e in res["arc"] if e["mean_wz"] is not None and not e["fell"]]
+    tf = [e["mean_wz"] / e["cmd"][2] for e in res.get("turn_fast", []) if e["mean_wz"] is not None and not e["fell"]]
     stand_ok = not any(e["fell"] for e in res["stand"])
     fr = float(np.mean(fwd)) if fwd else 0.0
     tr = float(np.mean(trn)) if trn else 0.0
     gate = dict(no_fall_rate=no_fall, forward_ratio=fr, turn_ratio=tr, stand_ok=stand_ok,
+                arc_yaw_ratio=float(np.mean(arc)) if arc else 0.0, turn_fast_ratio=float(np.mean(tf)) if tf else None,
                 passed=bool(no_fall >= 0.9 and 0.5 <= fr <= 1.5 and 0.4 <= tr <= 1.6 and stand_ok))
     summary = {k: dict(fall_rate=float(np.mean([e["fell"] for e in v])),
                        dist_m=float(np.mean([e["dist_m"] for e in v])),

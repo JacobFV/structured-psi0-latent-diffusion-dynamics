@@ -318,7 +318,8 @@ class RewardCfg:
     # 0.2 min(|q - q_ref|, 0.5)) over the six pitch joints. Gives the MEAN policy a stepping target (noise-only stepping was the h1/g1 failure).
     ref_step: float = 0.0
     ref_amp: float = 0.2
-    turn_lin: float = 0.0          # dense yaw progress during pure-turn commands: x clip(w_z sign(c)/|c|, -0.5, 1.2)
+    turn_lin: float = 0.0
+    yaw_lin_all: float = 0.0       # 1 -> the turn_lin dense yaw-progress term also applies to arcs (any |wz| command), not only pure turns          # dense yaw progress during pure-turn commands: x clip(w_z sign(c)/|c|, -0.5, 1.2)
     sigma_ang: float = 0.0         # yaw-rate tracking kernel width; 0 -> sigma (a sharper kernel keeps small turn commands informative)
     version: str = "gait_v1"
     # schedule (gait_v2): alpha in [0,1]; priors w0*(floor + (1-floor)(1-alpha)); natural w_min + alpha(w_max-w_min)
@@ -409,6 +410,7 @@ class LeggedEnv:
         self.turn_vx = 0.0
         self.ref_ff = 0.0         # feed-forward stepping reference amplitude (rad); recorded in the actor meta (LearnedTracker applies it)
         self.slow_frac = 0.0      # bipeds: fraction of translational commands rescaled to 0.05-0.2 m/s (slow-gait mix)
+        self.cmd_mix = "default"  # "teacher": 70% of commands from the W8 waypoint-teacher mix
         self.stance_t = np.zeros((n_envs, self.b.nf))
         import re as _re
         acts = self.meta["legged"]["policy_actuators"]
@@ -465,7 +467,30 @@ class LeggedEnv:
         """Turn-in-place curriculum: pure-turn yaw-rate commands are drawn from +-[0.3, 1.0] x scale x wz_max."""
         self.turn_scale = float(min(1.0, max(0.05, scale)))
 
+    def _sample_teacher_mix(self, i):
+        """W8 waypoint-teacher command mix (kinematic proxy of rrp.teachers.legged.WaypointTeacher, 2026-09-27): 47% straight,
+        35% arcs (vx ~0.2-0.48, |wz| 0.15-0.48), 15% pure turns at |wz| 0.3-0.48, 3% stop (fractions scaled to the body's ranges)."""
+        r = self.b.cmd_ranges
+        vm, wm = 0.6 * r["vx"][1], 0.8 * r["wz"][1]
+        u, s = self.rng.random(), self.rng.choice([-1, 1])
+        c = np.zeros(3)
+        if u < 0.03:
+            pass
+        elif u < 0.50:
+            c[0], c[2] = self.rng.uniform(0.3, 1.0) * vm, self.rng.uniform(-0.1, 0.1)
+        elif u < 0.85:
+            c[0], c[2] = self.rng.uniform(0.2, 1.0) * vm, s * self.rng.uniform(0.3, 1.0) * wm
+        else:
+            c[2] = s * self.rng.uniform(0.6, 1.0) * wm
+        if abs(c[2]) < 0.05:
+            c[2] = 0
+        self.turn_cmd[i] = bool(c[0] == 0 and c[2] != 0)
+        self.cmd[i] = c
+        self.cmd_timer[i] = int(self.rng.integers(100, 250))
+
     def _sample_cmd(self, i):
+        if self.cmd_mix == "teacher" and self.rng.random() < 0.7:
+            return self._sample_teacher_mix(i)
         r = self.b.cmd_ranges
         c = np.array([self.rng.uniform(*r["vx"]), self.rng.uniform(*r["vy"]), self.rng.uniform(*r["wz"])])
         u = self.rng.random()
@@ -653,7 +678,7 @@ class LeggedEnv:
             if cfg.stance_cap and moving:
                 cap = cfg.stance_cap_frac * b.period
                 r += cfg.stance_cap * float(np.sum(np.clip((self.stance_t[i] - cap) / b.period, 0.0, 1.0)))
-            if cfg.turn_lin and pure_turn:
+            if cfg.turn_lin and (pure_turn or (cfg.yaw_lin_all and abs(c[2]) > 0.05)):
                 r += cfg.turn_lin * float(np.clip(w[2] * np.sign(c[2]) / abs(c[2]), -0.5, 1.2))
             if cfg.turn_step and pure_turn and b.nf == 2:
                 want = np.array([self.phase[i] < 0.55, self.phase[i] >= 0.45])
