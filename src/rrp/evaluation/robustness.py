@@ -623,8 +623,10 @@ def render_video(family: str, route: dict, robot: str, key: str, seed: int, out_
     os.environ.setdefault("MUJOCO_GL", "egl")
     cond = _cond_by_key(family, robot, key)
     out_dir.mkdir(parents=True, exist_ok=True)
-    pert_s = json.dumps({k: v for k, v in cond["pert"].to_dict().items()
-                         if k != "version" and v not in (None, 0.0, 1.0, [0.0, 0.0, 0.0])})
+    nom = PhysicsPerturbation().to_dict()
+    pd = cond["pert"].to_dict()
+    pert_s = json.dumps({k: v for k, v in pd.items() if k != "version" and v != nom[k]
+                         and not (k.startswith("push_") and k != "push_impulse_Ns" and not pd["push_impulse_Ns"])})
     if family == "legged":
         import torch
         from rrp.evaluation.legged_latent_eval import BCController, LatentLeggedController, run_episode, _caption
@@ -632,7 +634,8 @@ def render_video(family: str, route: dict, robot: str, key: str, seed: int, out_
         ctl = (BCController(Path(route["ckpt"]), dev, nfe=8, replan=5, seed=seed) if route["kind"] == "bc" else
                LatentLeggedController(Path(route["ckpt"]), dev, nfe=8, edit="none", t_edit=1.0, seed=seed)
                if route["kind"] == "flow" else None)
-        row, frames = run_episode(ctl, robot, seed, 60.0, video=True, perturb=cond["pert"])
+        row, frames = run_episode(ctl, robot, seed, 60.0, video=True, perturb=cond["pert"], frame_every=1)
+        fps = 10                                     # one frame per 0.1 s control step: real time
         src = row["source"]
         ok, tag = row["success"], ("success" if row["success"] else ("fell" if row["fell"] else f"failure-{row['failure_stage']}"))
         lab = dict(teacher="SCRIPTED TEACHER (privileged)", bc="LEARNED BC (positive control)",
