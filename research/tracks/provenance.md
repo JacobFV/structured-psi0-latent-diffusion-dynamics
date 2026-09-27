@@ -8,7 +8,8 @@ State: **verified** (code, unit tests, smoke runs below).
 ## API (`src/rrp/contracts/provenance.py`)
 - `physics_provenance(model, contact_version="contact_v1") -> PhysicsProvenance`: mujoco_version, timestep,
   integrator, cone, impratio, solver, iterations, ls_iterations, noslip_iterations, contact_version.
-  The contact track (W1) plugs in via `contact_version`. Legged collectors pass the scenario's `meta["contact_model"]`
+  The contact track (W1) plugs in via `contact_version`: an explicit value, else the model's `contact_version` text
+  element (track/contact `apply_world`), else contact_v1; a contradiction raises. Legged collectors pass the scenario's `meta["contact_model"]`
   (`rrp.morphology.contact.version_str`). Everything else defaults to `contact_v1`.
 - `FEATURIZER_VERSION = "feat-v2"`: the single featurizer constant. `rrp.data.collect.FEATURIZER_VERSION` and
   `rrp.learning.behavior.FEAT_VERSION` are now aliases of it. The dual version stays derived: `feat-multi-v1+feat-v2`.

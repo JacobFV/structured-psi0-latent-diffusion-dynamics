@@ -29,6 +29,12 @@ def test_physics_provenance_from_model():
     assert p.mujoco_version == mujoco.__version__ and p.contact_version == "contact_v2"
     assert physics_provenance(mujoco.MjModel.from_xml_string("<mujoco/>")).contact_version == "contact_v1"
     assert physics_provenance(mujoco.MjModel.from_xml_string("<mujoco/>")).cone == "pyramidal"
+    # contact track (W1) embeds the version in the compiled model; it is picked up, and contradictions fail
+    tagged = mujoco.MjModel.from_xml_string('<mujoco><custom><text name="contact_version" data="contact_v2"/>'
+                                            '</custom></mujoco>')
+    assert physics_provenance(tagged).contact_version == "contact_v2"
+    with pytest.raises(ValueError):
+        physics_provenance(tagged, contact_version="contact_v1")
 
 
 def test_provenance_json_roundtrip_and_legacy():

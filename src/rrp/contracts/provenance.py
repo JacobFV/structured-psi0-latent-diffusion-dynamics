@@ -64,9 +64,26 @@ def _enum_name(enum_cls, value) -> str:
         return str(int(value))
 
 
-def physics_provenance(model, contact_version: str = CONTACT_VERSION_DEFAULT) -> PhysicsProvenance:
-    """Extract the dynamics-relevant solver options from an MjModel."""
+def model_contact_version(model) -> str | None:
+    """The `contact_version` text element of a compiled model (written by the contact track's legged_world,
+    rrp.morphology.contact.apply_world); None when the model has none."""
     import mujoco
+    tid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_TEXT, "contact_version")
+    if tid < 0:
+        return None
+    adr, n = model.text_adr[tid], model.text_size[tid]
+    return bytes(model.text_data[adr:adr + n - 1]).decode()
+
+
+def physics_provenance(model, contact_version: str | None = None) -> PhysicsProvenance:
+    """Extract the dynamics-relevant solver options from an MjModel. contact_version: explicit value, else the
+    model's `contact_version` text element, else CONTACT_VERSION_DEFAULT. An explicit value that contradicts the
+    model's element is an error (never record a physics version the model was not built with)."""
+    import mujoco
+    embedded = model_contact_version(model)
+    if contact_version is not None and embedded is not None and contact_version != embedded:
+        raise ValueError(f"contact_version {contact_version!r} contradicts the model's {embedded!r}")
+    contact_version = contact_version or embedded or CONTACT_VERSION_DEFAULT
     o = model.opt
     return PhysicsProvenance(mujoco_version=mujoco.__version__, timestep=float(o.timestep),
                              integrator=_enum_name(mujoco.mjtIntegrator, o.integrator),
@@ -275,7 +292,7 @@ def bundle_fingerprint(weights: dict[str, str]) -> str | None:
     return hashlib.sha256(json.dumps(weights, sort_keys=True).encode()).hexdigest()[:12]
 
 
-def make_provenance(source: str | Source | SourceLabel, *, model=None, contact_version: str = CONTACT_VERSION_DEFAULT,
+def make_provenance(source: str | Source | SourceLabel, *, model=None, contact_version: str | None = None,
                     physics: PhysicsProvenance | dict | None = None, featurizer_version: str | None = None,
                     weights: dict | None = None, versions: dict | None = None, flags: dict | None = None,
                     notes: str = "") -> Provenance:
