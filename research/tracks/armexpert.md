@@ -329,3 +329,139 @@ point as v1's expert) or final; 1702 is the seed-noise check (u12000 panda 26/30
 before the lineage launch: (1) the DART-coverage difference (v4dart DART failures stop at approach); (2) the lineage
 configs must point every pack reference at latent_pp_v4dart_s1_H16 and every BC expert reference at the v2 expert, no
 mixing with v1 components.
+
+## grasp contact v2 (D-108) — state: verified (arm data NOT regenerated; lead decides)
+Problem (W6, D-108): arm grasps hold by interpenetration (cube-finger overlap 17-20 mm on parm6_tf3), so grasps were
+insensitive to friction x0.05; the arm counterpart of legged skating (D-093).
+
+Cause. MuJoCo's soft contact scales its stiffness with the constraint's effective mass; the cube weighs 42 g, and the
+legacy pad/object contacts use the default solref 0.02 s / solimp (0.9, 0.95). A position-servo gripper closing to its
+limit then sinks in: rig (below) with the actuator at its force limit: three-finger 10-13 mm during a held lift (it also
+slips 10-14 mm during the lift and holds only 1.1x the cube's weight by friction), parallel jaw 1.3 mm. In the pick-place
+teacher runs (v2 teacher, grasp_v1) the median post-approach penetration is 6-7 mm on every tf3 body (max 10 mm) and
+1.6-4.8 mm on pg2. The tf3 hinge torque limit (8 N m, ~145 N at the fingertip) is also unrealistic.
+
+Implementation (`src/rrp/physics/grasp_contact.py`, selectable, default v1 = byte-identical legacy build):
+`RRP_GRASP_CONTACT=v2` (or `grasp_contact.apply(spec, "v2")`); every arm scenario builder compiles through
+`rrp.envs.scenario.compile_scene` (pick_place, paired, reach; dual support_insert / handover / assign).
+- finger pads: priority 1 (the pad's parameters define every pad-object contact, no max-mixing), friction
+  [1.0, 0.004, 0.0001] (rubber-like pad, mu 1.0), condim 4 (torsional friction, 4 mm patch radius);
+- objects: friction [0.9, 0.004, 0.0001], condim 4;
+- pads and objects: solref [0.004, 1.0] (time constant = 2 physics steps, critically damped), solimp
+  [0.99, 0.999, 0.0005, 0.5, 2]; margin = gap = 0;
+- grip force (sourced): parallel jaw unchanged at 40 N per finger actuator (the measured squeeze, i.e. the normal force
+  on each pad, is 20 N at the limit; Franka Hand: 70 N continuous / 140 N max grasping force [1]); three-finger hinge
+  torque 8 -> 2.2 N m = 40 N at the 55 mm fingertip (Robotiq 3-Finger Adaptive Gripper: 30-70 N adjustable grip
+  force [2]); measured sum of finger normal forces at the limit 43-48 N.
+- provenance: the model carries a text element `grasp_contact_version`; `physics_provenance(model)` records
+  `grasp_contact_version: "grasp_v2"` (W3 API; the key is omitted for legacy models so old records stay identical);
+  teacher_quality rows carry `grasp_contact`.
+Sources: [1] Franka Emika Panda datasheet / Franka Hand product manual (https://www.generationrobots.com/media/panda-franka-emika-datasheet.pdf,
+https://download.franka.de/documents/220010_Product%20Manual_Franka%20Hand_1.2_EN.pdf); [2] Robotiq 3-Finger
+specifications (https://qviro.com/product/robotiq/3-finger-robotiq/specifications,
+https://assets.robotiq.com/website-assets/support_documents/document/3-Finger_PDF_20190221.pdf). Retrieved via web search 2026-09-27.
+
+Tuning choice: solref time constant 0.004 vs candidates 0.006 / 0.008 on the bodies with the most held-contact flicker
+(sawyer_pg2, xarm7_pg2, 60 seeds, partial runs before host sheds, `artifacts/runs/armexpert_grasp/tc/`): carry
+penetration median 0.01-0.02 mm (0.004) vs 0.04 (0.006) vs 0.06 mm (0.008), max 0.7 / 1.3 / 2.5 mm; held fraction
+during lift/transport 1.00 / 1.00 / 0.87-0.97; so 0.004 (the stiffest MuJoCo allows at dt 2 ms).
+
+### rig: held lift + slip under load (`python -m rrp.evaluation.grasp_rig`, tests `tests/unit/test_grasp_contact.py`)
+The real gripper modules on a vertical carriage; close to the force limit (the worst case a policy can command), lift
+10 cm (min-jerk, 0.5 s), hold, then ramp the cube mass x1.08 every 0.25 s until it moves > 5 mm relative to the palm.
+Coulomb prediction for the parallel jaw: m* = mu * sum(N) / g.
+| version | gripper | friction x | penetration during lift (mm) | slip during lift (mm) | sum N (N) | slip mass (kg) | Coulomb m* (kg) | ratio |
+|---|---|---|---|---|---|---|---|---|
+| grasp_v1 | pg2 | 1 | 1.35 | 0.05 | 40.0 | 1.47 | 6.12 (mu 1.5) | 0.24 |
+| grasp_v1 | pg2 | 0.05 | 1.34 | 0.05 | 40.0 | 0.315 | 0.306 | 1.03 |
+| grasp_v1 | tf3 | 1 | 11.2 (yaw 0) / 12.9 (yaw 15) | 10.5 / 14.2 | 45.3 / 1.2 | 0.046 | - | slips at 1.1x the cube weight |
+| grasp_v1 | tf3 | 0.05 | 0.4 | dropped (102 mm) | 0 | - | - | not held |
+| **grasp_v2** | pg2 | 1 | **0.03** | 0.0 | 40.0 | 4.31 | 4.08 | **1.06** |
+| **grasp_v2** | pg2 | 0.05 | **0.03** | 0.0 | 40.0 | 0.214 | 0.204 | **1.05** |
+| **grasp_v2** | tf3 | 1 | **0.07-0.09** | 0.0-0.2 | 42.6-48.1 | 0.37 (2 fingers touch, yaw 0/30) / 6.8-10.1 (3 fingers, yaw 15/45) | - | - |
+Reading: v2 removes interpenetration (< 0.1 mm) and the parallel jaw slips where Coulomb friction says it should
+(1.05-1.06; v1's soft friction let it creep at 0.24 of the Coulomb load). The three-finger hand is not an antipodal
+grasp: with three converging fingers around a 44 mm cube it holds by enveloping (caging) support once the cube settles a
+few mm onto the fingertips, 160-240x the cube's weight when all three fingers touch; this is geometric support, not
+interpenetration (0.07 mm). Raw: `artifacts/runs/armexpert_grasp/rig.jsonl`.
+
+### object friction / mass sweep in the pick-place task (W6 semantics: x friction of cube AND pads; x cube mass)
+v2 teacher, panda_pg2 and parm6_tf3, 30 dev seeds from 3,000,000 (22 feasible on parm6), grasp v1 vs v2
+(`scripts/armexpert_gc_sweep.sh`, raw `artifacts/runs/armexpert_grasp/sweep/*.jsonl`, table `sweep/compare_sweep.json`):
+| body | object friction x | cube mass x | grasp_v1 success | grasp_v2 success | grasp_v2 failures | slip median mm v1 -> v2 |
+|---|---|---|---|---|---|---|
+| panda_pg2 | 1 | 100 | 0/30 | 0/30 | {'gave_up': 30} | 32.0 -> 33.3 |
+| panda_pg2 | 1 | 30 | 30/30 | 15/30 | {'gave_up': 15} | 3.7 -> 31.5 |
+| panda_pg2 | 1 | 10 | 30/30 | 30/30 | - | 2.5 -> 0.7 |
+| panda_pg2 | 1 | 1 | 30/30 | 30/30 | - | 2.5 -> 0.6 |
+| panda_pg2 | 0.3 | 1 | 30/30 | 30/30 | - | 2.5 -> 3.0 |
+| panda_pg2 | 0.1 | 1 | 30/30 | 30/30 | - | 2.5 -> 7.3 |
+| panda_pg2 | 0.05 | 1 | 30/30 | 30/30 | - | 2.7 -> 25.3 |
+| panda_pg2 | 0.02 | 1 | 30/30 | 0/30 | {'gave_up': 30} | 4.1 -> 34.0 |
+| parm6_tf3 | 1 | 100 | 22/22 | 0/22 | {'gave_up': 22} | 5.8 -> 8.5 |
+| parm6_tf3 | 1 | 30 | 22/22 | 22/22 | - | 3.0 -> 16.8 |
+| parm6_tf3 | 1 | 10 | 22/22 | 22/22 | - | 2.3 -> 0.7 |
+| parm6_tf3 | 1 | 1 | 22/22 | 22/22 | - | 1.9 -> 0.6 |
+| parm6_tf3 | 0.3 | 1 | 22/22 | 22/22 | - | 2.2 -> 0.6 |
+| parm6_tf3 | 0.1 | 1 | 22/22 | 22/22 | - | 2.7 -> 0.6 |
+| parm6_tf3 | 0.05 | 1 | 22/22 | 22/22 | - | 2.6 -> 0.6 |
+| parm6_tf3 | 0.02 | 1 | 22/22 | 22/22 | - | 30.3 -> 8.4 |
+Reading: under grasp_v2 the parallel-jaw grasp behaves like Coulomb friction with the TEACHER's actual squeeze
+(v2 teacher: 3 mm past contact x kp 4000 N/m = 12 N actuator force, sum N ~ 12 N): capacity mu * 12 N. It fails at
+friction x0.02 (0.24 N < 0.42 N cube weight), slips but holds at x0.05 (0.6 N, 25 mm median slip), and splits 15/30 at
+mass x30 (12.5 N weight vs 12 N capacity: exactly at the threshold). Under grasp_v1 the same grasp was indifferent
+to friction down to x0.02 (the D-108 symptom). The three-finger grasp stays robust to friction under v2 by
+enveloping support (see the rig), fails at mass x100 (4.3 kg vs 2.2 N m fingers), and slips 17 mm at x30.
+Consequence for W6-style robustness: arm friction/mass sweeps are meaningful under grasp_v2 for parallel-jaw bodies;
+for three-finger bodies friction matters little by design of the hand (caging), mass does.
+
+### videos (closeup camera following the cube; artifacts/video/, INDEX.md lines)
+- side by side, left grasp_v1, right grasp_v2, v2 teacher, same seed:
+  `2026-09-27_scripted_teacher_v2_grasp_v1_vs_v2_parm6_tf3_pick_place_s3000003_closeup.mp4` (v1: a finger visibly
+  sunk into the cube; v2: fingers on the surface), `..._ur5e_tf3_pick_place_s10_closeup.mp4`,
+  `..._panda_pg2_pick_place_s3000001_closeup.mp4`
+- FAILURE (physically expected): object and pad friction x0.02 on panda_pg2 s3000001: grasp_v1 still carries the cube,
+  grasp_v2 lets it slip out, the teacher re-grasps three times and gives up:
+  `2026-09-27_scripted_teacher_v2_grasp_v1_vs_v2_objfric0.02_panda_pg2_pick_place_s3000001_closeup.mp4`,
+  `2026-09-27_scripted_teacher_v2_graspv2_objfric0.02_panda_pg2_pick_place_s3000001_failure.mp4`
+Rendered on the peer GPU (leases 1790535979_c5492e, 1790536020_5a14a7, 1790536564_a44073; side-by-sides 1790536039_698590).
+
+### v2 teacher under grasp_v1 vs grasp_v2: 18 bodies x 300 seeds (identical seeds and harness as D-097/D-102)
+`RRP_GRASP_CONTACT=<v> python -m rrp.evaluation.teacher_quality --versions v2 --seeds 0-199,3000000-3000099 --resume`,
+per-body host leases (`GC=<v> scripts/armexpert_verify_host.sh`; sheds by the host memory-PSI watchdog were resumed
+chunk-wise). New metrics: penetration while the object is HELD during lift/transport (the D-108 gate), held fraction
+during lift/transport. Raw `artifacts/runs/armexpert_grasp/final_grasp{v1,v2}_18bodies.jsonl.gz` (+ per-body
+summaries), table `artifacts/runs/armexpert_grasp/compare_final_grasp_v1_v2.json`.
+| body | success grasp_v1 -> grasp_v2 | held-lift penetration median / max (mm) v1 -> v2 | post-approach penetration max (mm) v1 -> v2 | slip while carried median / max (mm) v1 -> v2 | held fraction lift/transport min v1 -> v2 |
+|---|---|---|---|---|---|
+| panda_pg2 | 300/300 -> 300/300 | 0.85 / 1.5 -> 0.02 / 0.6 | 5.7 -> 1.6 | 2.3 / 7.0 -> 0.6 / 1.6 | 1.00 -> 1.00 |
+| panda_tf3 | 300/300 -> 300/300 | 3.43 / 5.0 -> 0.09 / 0.1 | 9.6 -> 0.4 | 3.6 / 9.7 -> 0.9 / 2.0 | 1.00 -> 1.00 |
+| parm5_pg2 | 290/290 -> 290/290 | 0.68 / 0.9 -> 0.02 / 0.4 | 5.7 -> 3.3 | 2.4 / 3.8 -> 0.4 / 0.7 | 1.00 -> 1.00 |
+| parm5_tf3 | 290/290 -> 290/290 | 3.28 / 3.8 -> 0.09 / 0.1 | 7.6 -> 0.3 | 2.0 / 5.0 -> 0.6 / 0.9 | 1.00 -> 1.00 |
+| parm5l_pg2 | 190/190 -> 190/190 | 0.68 / 1.0 -> 0.02 / 0.7 | 5.5 -> 2.9 | 2.3 / 3.7 -> 0.4 / 0.8 | 1.00 -> 1.00 |
+| parm5l_tf3 | 191/191 -> 191/191 | 3.28 / 3.9 -> 0.09 / 0.1 | 9.9 -> 0.4 | 2.0 / 6.8 -> 0.6 / 1.0 | 1.00 -> 1.00 |
+| parm5s_pg2 | 277/277 -> 277/277 | 0.68 / 0.8 -> 0.02 / 0.7 | 1.7 -> 3.3 | 2.6 / 4.4 -> 0.5 / 1.0 | 1.00 -> 0.97 |
+| parm5s_tf3 | 276/276 -> 276/276 | 3.29 / 3.8 -> 0.09 / 0.1 | 6.2 -> 0.1 | 2.0 / 5.8 -> 0.6 / 0.9 | 1.00 -> 1.00 |
+| parm6_pg2 | 208/208 -> 208/208 | 0.68 / 0.9 -> 0.02 / 0.6 | 4.1 -> 3.0 | 2.2 / 3.6 -> 0.4 / 0.7 | 1.00 -> 1.00 |
+| parm6_tf3 | 210/210 -> 210/210 | 3.28 / 3.7 -> 0.09 / 0.1 | 9.5 -> 0.8 | 1.9 / 6.4 -> 0.6 / 0.9 | 1.00 -> 1.00 |
+| parm7_pg2 | 238/238 -> 238/238 | 0.68 / 0.9 -> 0.02 / 0.8 | 4.7 -> 4.2 | 2.2 / 3.5 -> 0.4 / 0.7 | 1.00 -> 0.76 |
+| parm7_tf3 | 241/241 -> 241/241 | 3.28 / 4.4 -> 0.09 / 0.1 | 10.3 -> 0.2 | 2.1 / 9.8 -> 0.6 / 2.7 | 0.93 -> 1.00 |
+| sawyer_pg2 | 300/300 -> 300/300 | 0.69 / 0.9 -> 0.01 / 0.1 | 4.6 -> 2.1 | 1.9 / 4.2 -> 0.4 / 7.6 | 1.00 -> 1.00 |
+| sawyer_tf3 | 300/300 -> 300/300 | 3.27 / 4.5 -> 0.09 / 0.5 | 10.4 -> 4.0 | 2.9 / 11.2 -> 0.6 / 17.8 | 0.87 -> 0.79 |
+| ur5e_pg2 | 300/300 -> 300/300 | 0.68 / 1.0 -> 0.02 / 0.7 | 5.6 -> 3.2 | 3.5 / 6.5 -> 0.8 / 1.5 | 1.00 -> 0.94 |
+| ur5e_tf3 | 300/300 -> 300/300 | 3.31 / 4.8 -> 0.09 / 0.3 | 9.9 -> 0.9 | 3.2 / 7.3 -> 0.7 / 1.6 | 1.00 -> 1.00 |
+| xarm7_pg2 | 300/300 -> 300/300 | 0.68 / 1.0 -> 0.02 / 0.9 | 2.4 -> 3.0 | 2.5 / 4.0 -> 0.5 / 5.2 | 1.00 -> 0.96 |
+| xarm7_tf3 | 300/300 -> 300/300 | 3.34 / 4.4 -> 0.09 / 0.3 | 10.3 -> 0.6 | 3.7 / 12.5 -> 0.7 / 4.6 | 0.91 -> 0.96 |
+Gate: held-lift penetration < 3 mm: grasp_v2 max 0.92 mm over all 4811 episodes (p99 0.15 mm), 0 episodes above 3 mm;
+grasp_v1 2407 / 4811 episodes above 3 mm (every tf3 body: median 3.3 mm with this gentle-squeeze teacher; W6 saw
+17-20 mm with learned policies that close fully at 145 N). Success is unchanged (4811/4811 both), slip while carried
+drops (tf3 median 2-4 -> 0.6-0.9 mm), timing unchanged. Remaining observations: pg2 "held" (>= 2 hand bodies in contact)
+flickers more often under v2 during lift/transport on a few bodies (held-fraction minimum 0.76-0.97 on parm7_pg2,
+ur5e_pg2, xarm7_pg2, parm5s_pg2) without drops or failures: a stiffer contact makes one pad lose contact for a tick
+under arm vibration; sawyer_tf3 has one 17.8 mm slip episode (still placed).
+
+Recommendation: adopt grasp_v2 for new arm results (D-108 rule: no new arm results on the old grasp physics). The
+v2 teacher needs no change (4811/4811). Regenerating the arm data under grasp_v2 is the lead's call; it would change
+every arm lineage's physics (record `grasp_contact_version` and do not mix with grasp_v1 data or checkpoints), and the
+learned policies' closing commands (v1 labels close fully) will now meet a 40 N / 2.2 N m limit with stiff contact:
+re-evaluate any existing checkpoint under grasp_v2 before comparing.

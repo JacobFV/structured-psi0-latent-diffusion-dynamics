@@ -1,0 +1,446 @@
+{
+ "per_body": {
+  "panda_pg2": {
+   "grasp_v1": {
+    "success": 300,
+    "feasible": 300,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.8530092041493743,
+    "pen_carry_max_mm": 1.487329930989113,
+    "pen_post_approach_max_mm": 5.746170937865464,
+    "slip_med_mm": 2.291605349523918,
+    "slip_max_mm": 6.953300761094527,
+    "held_frac_lift_transport_min": 1.0
+   },
+   "grasp_v2": {
+    "success": 300,
+    "feasible": 300,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.022553274251507077,
+    "pen_carry_max_mm": 0.6171668573680142,
+    "pen_post_approach_max_mm": 1.5854275817148598,
+    "slip_med_mm": 0.5548313497042807,
+    "slip_max_mm": 1.5933912770986391,
+    "held_frac_lift_transport_min": 1.0
+   }
+  },
+  "panda_tf3": {
+   "grasp_v1": {
+    "success": 300,
+    "feasible": 300,
+    "failure_stages": {},
+    "pen_carry_med_mm": 3.4288406960359388,
+    "pen_carry_max_mm": 5.014330574195475,
+    "pen_post_approach_max_mm": 9.647615617019616,
+    "slip_med_mm": 3.5701021767484287,
+    "slip_max_mm": 9.690389869914002,
+    "held_frac_lift_transport_min": 1.0
+   },
+   "grasp_v2": {
+    "success": 300,
+    "feasible": 300,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.09184410054247169,
+    "pen_carry_max_mm": 0.11852833105446652,
+    "pen_post_approach_max_mm": 0.3561091785121012,
+    "slip_med_mm": 0.8892520642502542,
+    "slip_max_mm": 1.9659116579794533,
+    "held_frac_lift_transport_min": 1.0
+   }
+  },
+  "parm5_pg2": {
+   "grasp_v1": {
+    "success": 290,
+    "feasible": 290,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.6792051613048414,
+    "pen_carry_max_mm": 0.8939639399821736,
+    "pen_post_approach_max_mm": 5.6524118002927395,
+    "slip_med_mm": 2.3583974416318236,
+    "slip_max_mm": 3.7670144084877233,
+    "held_frac_lift_transport_min": 1.0
+   },
+   "grasp_v2": {
+    "success": 290,
+    "feasible": 290,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.01953718007050017,
+    "pen_carry_max_mm": 0.3633924671947446,
+    "pen_post_approach_max_mm": 3.292994907901095,
+    "slip_med_mm": 0.4420041542607516,
+    "slip_max_mm": 0.6952004045622269,
+    "held_frac_lift_transport_min": 1.0
+   }
+  },
+  "parm5_tf3": {
+   "grasp_v1": {
+    "success": 290,
+    "feasible": 290,
+    "failure_stages": {},
+    "pen_carry_med_mm": 3.282012004762822,
+    "pen_carry_max_mm": 3.75870722772703,
+    "pen_post_approach_max_mm": 7.565684881120831,
+    "slip_med_mm": 1.9999493659131453,
+    "slip_max_mm": 5.024631554659005,
+    "held_frac_lift_transport_min": 1.0
+   },
+   "grasp_v2": {
+    "success": 290,
+    "feasible": 290,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.08989280250564814,
+    "pen_carry_max_mm": 0.09501197090063147,
+    "pen_post_approach_max_mm": 0.25804042947782413,
+    "slip_med_mm": 0.604176333427558,
+    "slip_max_mm": 0.8675297438541841,
+    "held_frac_lift_transport_min": 1.0
+   }
+  },
+  "parm5l_pg2": {
+   "grasp_v1": {
+    "success": 190,
+    "feasible": 190,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.6780090873384833,
+    "pen_carry_max_mm": 0.9505868817463925,
+    "pen_post_approach_max_mm": 5.499968116508483,
+    "slip_med_mm": 2.285219108928333,
+    "slip_max_mm": 3.72707948793744,
+    "held_frac_lift_transport_min": 1.0
+   },
+   "grasp_v2": {
+    "success": 190,
+    "feasible": 190,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.01617083244301082,
+    "pen_carry_max_mm": 0.6598402636688456,
+    "pen_post_approach_max_mm": 2.8562537250820488,
+    "slip_med_mm": 0.42882805882774033,
+    "slip_max_mm": 0.8021752924752253,
+    "held_frac_lift_transport_min": 1.0
+   }
+  },
+  "parm5l_tf3": {
+   "grasp_v1": {
+    "success": 191,
+    "feasible": 191,
+    "failure_stages": {},
+    "pen_carry_med_mm": 3.2797189698735383,
+    "pen_carry_max_mm": 3.887728219000226,
+    "pen_post_approach_max_mm": 9.918282020694223,
+    "slip_med_mm": 1.9874906055721018,
+    "slip_max_mm": 6.805364080912797,
+    "held_frac_lift_transport_min": 1.0
+   },
+   "grasp_v2": {
+    "success": 191,
+    "feasible": 191,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.08983019348793309,
+    "pen_carry_max_mm": 0.09440900944310791,
+    "pen_post_approach_max_mm": 0.35552228859546225,
+    "slip_med_mm": 0.6153645972142152,
+    "slip_max_mm": 0.9659782112855257,
+    "held_frac_lift_transport_min": 1.0
+   }
+  },
+  "parm5s_pg2": {
+   "grasp_v1": {
+    "success": 277,
+    "feasible": 277,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.6808874439027579,
+    "pen_carry_max_mm": 0.8244658806780907,
+    "pen_post_approach_max_mm": 1.747335623971373,
+    "slip_med_mm": 2.5842243106827563,
+    "slip_max_mm": 4.368178654816013,
+    "held_frac_lift_transport_min": 1.0
+   },
+   "grasp_v2": {
+    "success": 277,
+    "feasible": 277,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.02005635437268642,
+    "pen_carry_max_mm": 0.7278482092772758,
+    "pen_post_approach_max_mm": 3.293918438679504,
+    "slip_med_mm": 0.4784096067848354,
+    "slip_max_mm": 0.9781671393868062,
+    "held_frac_lift_transport_min": 0.9705882352941176
+   }
+  },
+  "parm5s_tf3": {
+   "grasp_v1": {
+    "success": 276,
+    "feasible": 276,
+    "failure_stages": {},
+    "pen_carry_med_mm": 3.287184891455199,
+    "pen_carry_max_mm": 3.795665702284847,
+    "pen_post_approach_max_mm": 6.212441991545416,
+    "slip_med_mm": 2.0469388180464585,
+    "slip_max_mm": 5.8126086512169035,
+    "held_frac_lift_transport_min": 1.0
+   },
+   "grasp_v2": {
+    "success": 276,
+    "feasible": 276,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.09001512253209963,
+    "pen_carry_max_mm": 0.09523030064031122,
+    "pen_post_approach_max_mm": 0.13789424975989806,
+    "slip_med_mm": 0.6136550793823955,
+    "slip_max_mm": 0.8686243052698849,
+    "held_frac_lift_transport_min": 1.0
+   }
+  },
+  "parm6_pg2": {
+   "grasp_v1": {
+    "success": 208,
+    "feasible": 208,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.6792118097990578,
+    "pen_carry_max_mm": 0.938581687116409,
+    "pen_post_approach_max_mm": 4.141737629259933,
+    "slip_med_mm": 2.224614305540449,
+    "slip_max_mm": 3.633432485341211,
+    "held_frac_lift_transport_min": 1.0
+   },
+   "grasp_v2": {
+    "success": 208,
+    "feasible": 208,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.020858660458499555,
+    "pen_carry_max_mm": 0.5786841923958493,
+    "pen_post_approach_max_mm": 3.029037105567632,
+    "slip_med_mm": 0.41672602332083253,
+    "slip_max_mm": 0.6580618183176983,
+    "held_frac_lift_transport_min": 1.0
+   }
+  },
+  "parm6_tf3": {
+   "grasp_v1": {
+    "success": 210,
+    "feasible": 210,
+    "failure_stages": {},
+    "pen_carry_med_mm": 3.280818552835388,
+    "pen_carry_max_mm": 3.7238913739947606,
+    "pen_post_approach_max_mm": 9.450173362979557,
+    "slip_med_mm": 1.9222925301304048,
+    "slip_max_mm": 6.364346803684121,
+    "held_frac_lift_transport_min": 1.0
+   },
+   "grasp_v2": {
+    "success": 210,
+    "feasible": 210,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.09005658004665376,
+    "pen_carry_max_mm": 0.09419271330646413,
+    "pen_post_approach_max_mm": 0.8390049459919159,
+    "slip_med_mm": 0.5983779144104328,
+    "slip_max_mm": 0.8840073741045477,
+    "held_frac_lift_transport_min": 1.0
+   }
+  },
+  "parm7_pg2": {
+   "grasp_v1": {
+    "success": 238,
+    "feasible": 238,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.6823333110138954,
+    "pen_carry_max_mm": 0.897898094399152,
+    "pen_post_approach_max_mm": 4.697616258316946,
+    "slip_med_mm": 2.182633186197808,
+    "slip_max_mm": 3.519691112966103,
+    "held_frac_lift_transport_min": 1.0
+   },
+   "grasp_v2": {
+    "success": 238,
+    "feasible": 238,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.016869530111211214,
+    "pen_carry_max_mm": 0.7948527116306947,
+    "pen_post_approach_max_mm": 4.171382663020679,
+    "slip_med_mm": 0.40540444490159,
+    "slip_max_mm": 0.6614799788428629,
+    "held_frac_lift_transport_min": 0.7575757575757576
+   }
+  },
+  "parm7_tf3": {
+   "grasp_v1": {
+    "success": 241,
+    "feasible": 241,
+    "failure_stages": {},
+    "pen_carry_med_mm": 3.2842772956422577,
+    "pen_carry_max_mm": 4.375890924375904,
+    "pen_post_approach_max_mm": 10.28556031482016,
+    "slip_med_mm": 2.0639069020421075,
+    "slip_max_mm": 9.772377843584518,
+    "held_frac_lift_transport_min": 0.9253731343283582
+   },
+   "grasp_v2": {
+    "success": 241,
+    "feasible": 241,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.090287155740984,
+    "pen_carry_max_mm": 0.09831672961036451,
+    "pen_post_approach_max_mm": 0.2455089104557665,
+    "slip_med_mm": 0.6200987962280488,
+    "slip_max_mm": 2.72621586755754,
+    "held_frac_lift_transport_min": 1.0
+   }
+  },
+  "sawyer_pg2": {
+   "grasp_v1": {
+    "success": 300,
+    "feasible": 300,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.6926448658323683,
+    "pen_carry_max_mm": 0.9448116145479819,
+    "pen_post_approach_max_mm": 4.579276424577505,
+    "slip_med_mm": 1.921347938936021,
+    "slip_max_mm": 4.194083425084608,
+    "held_frac_lift_transport_min": 1.0
+   },
+   "grasp_v2": {
+    "success": 300,
+    "feasible": 300,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.014836822558615468,
+    "pen_carry_max_mm": 0.07436061271975931,
+    "pen_post_approach_max_mm": 2.1258117261756206,
+    "slip_med_mm": 0.3966827423845671,
+    "slip_max_mm": 7.551323357025112,
+    "held_frac_lift_transport_min": 1.0
+   }
+  },
+  "sawyer_tf3": {
+   "grasp_v1": {
+    "success": 300,
+    "feasible": 300,
+    "failure_stages": {},
+    "pen_carry_med_mm": 3.270786785219499,
+    "pen_carry_max_mm": 4.498397307798311,
+    "pen_post_approach_max_mm": 10.38836714103609,
+    "slip_med_mm": 2.9455539115783216,
+    "slip_max_mm": 11.150722300604084,
+    "held_frac_lift_transport_min": 0.868421052631579
+   },
+   "grasp_v2": {
+    "success": 300,
+    "feasible": 300,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.08818178426064135,
+    "pen_carry_max_mm": 0.5411361726501436,
+    "pen_post_approach_max_mm": 3.975587492441248,
+    "slip_med_mm": 0.6062729374641698,
+    "slip_max_mm": 17.84884281084026,
+    "held_frac_lift_transport_min": 0.7857142857142857
+   }
+  },
+  "ur5e_pg2": {
+   "grasp_v1": {
+    "success": 300,
+    "feasible": 300,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.6781014084583543,
+    "pen_carry_max_mm": 0.9610016809709302,
+    "pen_post_approach_max_mm": 5.558475894368874,
+    "slip_med_mm": 3.5451956264134235,
+    "slip_max_mm": 6.510168700968857,
+    "held_frac_lift_transport_min": 1.0
+   },
+   "grasp_v2": {
+    "success": 300,
+    "feasible": 300,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.016780012133547767,
+    "pen_carry_max_mm": 0.7288011797331139,
+    "pen_post_approach_max_mm": 3.2394898602134146,
+    "slip_med_mm": 0.8291886765314453,
+    "slip_max_mm": 1.4840519798308618,
+    "held_frac_lift_transport_min": 0.9375
+   }
+  },
+  "ur5e_tf3": {
+   "grasp_v1": {
+    "success": 300,
+    "feasible": 300,
+    "failure_stages": {},
+    "pen_carry_med_mm": 3.306204099922302,
+    "pen_carry_max_mm": 4.7904816253642855,
+    "pen_post_approach_max_mm": 9.85371604965119,
+    "slip_med_mm": 3.201153848754608,
+    "slip_max_mm": 7.349387897149122,
+    "held_frac_lift_transport_min": 1.0
+   },
+   "grasp_v2": {
+    "success": 300,
+    "feasible": 300,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.0903768491534989,
+    "pen_carry_max_mm": 0.33321054124344984,
+    "pen_post_approach_max_mm": 0.9369442030415561,
+    "slip_med_mm": 0.7445258892601143,
+    "slip_max_mm": 1.62308554894621,
+    "held_frac_lift_transport_min": 1.0
+   }
+  },
+  "xarm7_pg2": {
+   "grasp_v1": {
+    "success": 300,
+    "feasible": 300,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.684033398811816,
+    "pen_carry_max_mm": 1.0364279948057877,
+    "pen_post_approach_max_mm": 2.3546348161029105,
+    "slip_med_mm": 2.4890969707546806,
+    "slip_max_mm": 4.049570807480005,
+    "held_frac_lift_transport_min": 1.0
+   },
+   "grasp_v2": {
+    "success": 300,
+    "feasible": 300,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.019406115015505297,
+    "pen_carry_max_mm": 0.9160737267615265,
+    "pen_post_approach_max_mm": 3.003841908070374,
+    "slip_med_mm": 0.5046023190090195,
+    "slip_max_mm": 5.24183329510509,
+    "held_frac_lift_transport_min": 0.9615384615384616
+   }
+  },
+  "xarm7_tf3": {
+   "grasp_v1": {
+    "success": 300,
+    "feasible": 300,
+    "failure_stages": {},
+    "pen_carry_med_mm": 3.335288131569151,
+    "pen_carry_max_mm": 4.352425225305672,
+    "pen_post_approach_max_mm": 10.3400988908899,
+    "slip_med_mm": 3.7478213223572676,
+    "slip_max_mm": 12.533843795613695,
+    "held_frac_lift_transport_min": 0.9074074074074074
+   },
+   "grasp_v2": {
+    "success": 300,
+    "feasible": 300,
+    "failure_stages": {},
+    "pen_carry_med_mm": 0.08934930594316215,
+    "pen_carry_max_mm": 0.28214622822857194,
+    "pen_post_approach_max_mm": 0.6303128721506217,
+    "slip_med_mm": 0.6514233049046093,
+    "slip_max_mm": 4.5511568052169125,
+    "held_frac_lift_transport_min": 0.9642857142857143
+   }
+  }
+ },
+ "totals": {
+  "grasp_v1": [
+   4811,
+   4811
+  ],
+  "grasp_v2": [
+   4811,
+   4811
+  ]
+ }
+}
