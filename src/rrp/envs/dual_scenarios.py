@@ -23,7 +23,7 @@ import numpy as np
 
 from rrp.bodies.compiler import compile_robot_spec
 from rrp.bodies.generators import workspace_spec, add_target_zone, _quat_from_axis_angle
-from rrp.envs.scenario import ObjectDecl, MountedRobot, Scenario, mount_robots, load_task, COLORS
+from rrp.envs.scenario import ObjectDecl, MountedRobot, Scenario, mount_robots, load_task, COLORS, compile_scene
 
 PEG_RADIUS = 0.012
 PEG_HALF_LEN = 0.045
@@ -133,7 +133,7 @@ def build_support_insert(robots: list, seed: int, *, task: dict | None = None) -
         ObjectDecl("fixture", "workpiece", "object", (FIX_HALF, FIX_HALF, FIX_HEIGHT / 2), task_entity="fixture"),
         ObjectDecl("peg", "peg", "object", (PEG_RADIUS, PEG_RADIUS, PEG_HALF_LEN), task_entity="peg"),
     ]
-    model = scene.compile()
+    model = compile_scene(scene)
     rob = _mounted(model, mounted)
     hole_world = np.r_[fx + _rot2(fyaw, hole_off), FIX_HEIGHT]
     sup_world = np.r_[fx + _rot2(fyaw, support_off), FIX_HEIGHT]
@@ -162,7 +162,7 @@ def build_handover(robots: list, seed: int, *, task: dict | None = None) -> Scen
     add_target_zone(scene, "target_zone", [*tgt_xy, 0.0005], radius=0.05)
     objects = [ObjectDecl("bar", "cyan bar", "object", BAR_HALF, task_entity="bar"),
                ObjectDecl("target_zone", "green target zone", "feature", radius=0.05, task_entity="target")]
-    model = scene.compile()
+    model = compile_scene(scene)
     rob = _mounted(model, mounted)
     return Scenario("handover", task or load_task("handover"), scene, model, rob, objects, seed,
                     meta=dict(declared_geometry=dict(bar=dict(half_extents=list(BAR_HALF), grasp_offset=BAR_GRASP_D)),
@@ -205,7 +205,7 @@ def build_assign(robots: list, seed: int, *, arm: str = "left", task: dict | Non
     add_target_zone(scene, "target_zone", [*tgt_xy, 0.0005], radius=0.05)
     objects = [ObjectDecl("bar", "cyan bar", "object", BAR_HALF, task_entity="bar"),
                ObjectDecl("target_zone", "green target zone", "feature", radius=0.05, task_entity="target")]
-    model = scene.compile()
+    model = compile_scene(scene)
     rob = _mounted(model, mounted)
     return Scenario(f"assign_{arm}", task or assign_task(arm), scene, model, rob, objects, seed,
                     meta=dict(declared_geometry=dict(bar=dict(half_extents=list(BAR_HALF), grasp_offset=BAR_GRASP_D)),

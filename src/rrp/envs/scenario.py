@@ -75,6 +75,14 @@ def _robot_module(r) -> tuple[mujoco.MjSpec, dict]:
     raise TypeError("robot must be a Module or Assembled")
 
 
+def compile_scene(scene: mujoco.MjSpec) -> mujoco.MjModel:
+    """Compile an arm world with the selected grasp contact version (rrp.physics.grasp_contact; $RRP_GRASP_CONTACT,
+    default grasp_v1 = unchanged legacy build)."""
+    from rrp.physics import grasp_contact
+    grasp_contact.apply(scene)
+    return scene.compile()
+
+
 def mount_robots(scene: mujoco.MjSpec, robots: list, mounts: list[tuple]) -> list[tuple[str, dict, list, float]]:
     out = []
     for i, (r, (pos, yaw)) in enumerate(zip(robots, mounts)):
@@ -117,7 +125,7 @@ def build_pick_place(robot, seed: int, *, n_distractors: int = 0, cube_color: st
         b = add_box_object(scene, f"distractor{k}", [*xy, cube_size + 0.001], size=(cube_size,) * 3, rgba=COLORS[col])
         b.quat = _quat_from_axis_angle([0, 0, 1], rng.uniform(-1, 1))
         objects.append(ObjectDecl(f"distractor{k}", f"{col} cube", "object", (cube_size,) * 3))
-    model = scene.compile()
+    model = compile_scene(scene)
     robots = []
     for prefix, meta, pos, yaw in mounted:
         rs = compile_robot_spec(model, meta, prefix=prefix, name=meta.get("name"))
@@ -135,7 +143,7 @@ def build_reach(robot, seed: int, task: dict | None = None, base=((0.0, 0.0, 0.0
     b = scene.worldbody.add_body(name="goal_marker", pos=goal, mocap=True)
     b.add_geom(name="goal_marker_geom", type=mujoco.mjtGeom.mjGEOM_SPHERE, size=[0.02, 0, 0],
                rgba=[0.1, 0.3, 0.95, 0.6], contype=0, conaffinity=0)
-    model = scene.compile()
+    model = compile_scene(scene)
     robots = []
     for prefix, meta, pos, yaw in mounted:
         rs = compile_robot_spec(model, meta, prefix=prefix, name=meta.get("name"))
@@ -191,7 +199,7 @@ def build_pick_place_paired(robot, seed: int, *, patient: int = 0, n_objects: in
                        task_entity="cube" if i == patient else None) for i in range(n_objects)]
     decl.append(ObjectDecl("target_zone", "green target zone", "feature", radius=0.05, task_entity="target"))
     objects = [decl[i] for i in order]
-    model = scene.compile()
+    model = compile_scene(scene)
     robots = []
     for prefix, meta, pos, yaw in mounted:
         rs = compile_robot_spec(model, meta, prefix=prefix, name=meta.get("name"))

@@ -53,9 +53,13 @@ class PhysicsProvenance(Strict):
     noslip_iterations: int
     contact_version: str = CONTACT_VERSION_DEFAULT
     actuator_limits: str | None = None      # legged bodies: torque-limit version embedded in the model (W1, D-107)
+    grasp_contact_version: str | None = None  # arm worlds: finger/object contact model (W7, D-108); None = grasp_v1 (legacy)
 
     def to_dict(self) -> dict:
-        return self.model_dump(mode="json")
+        d = self.model_dump(mode="json")
+        if d.get("grasp_contact_version") is None:     # legacy records stay byte-identical (no new key)
+            d.pop("grasp_contact_version", None)
+        return d
 
 
 def _enum_name(enum_cls, value) -> str:
@@ -91,7 +95,17 @@ def physics_provenance(model, contact_version: str | None = None) -> PhysicsProv
                              cone=_enum_name(mujoco.mjtCone, o.cone), impratio=float(o.impratio),
                              solver=_enum_name(mujoco.mjtSolver, o.solver), iterations=int(o.iterations),
                              ls_iterations=int(o.ls_iterations), noslip_iterations=int(o.noslip_iterations),
-                             contact_version=contact_version, actuator_limits=_model_actuator_limits(model))
+                             contact_version=contact_version, actuator_limits=_model_actuator_limits(model),
+                             grasp_contact_version=_model_text(model, "grasp_contact_version"))
+
+
+def _model_text(model, name):
+    import mujoco
+    tid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_TEXT, name)
+    if tid < 0:
+        return None
+    adr, n = model.text_adr[tid], model.text_size[tid]
+    return bytes(model.text_data[adr:adr + n - 1]).decode()
 
 
 def _model_actuator_limits(model):

@@ -85,8 +85,9 @@ def run_quality_episode(robot_key: str, seed: int, version: str = "v1", *, max_s
     robot = robot or workbench_robots()[robot_key]()
     s = Session(BUILDERS["pick_place"](robot, seed, n_distractors=seed % 3), seed=seed)
     m, d = s.model, s.data
+    from rrp.physics.grasp_contact import model_grasp_version
     row = dict(robot=robot_key, seed=seed, version=version, source=teacher_source(version), privileged=True,
-               n_distractors=seed % 3)
+               n_distractors=seed % 3, grasp_contact=model_grasp_version(s.model) or "grasp_v1")
     # the v1 feasibility check defines the seed set for every version (identical evaluation seeds)
     feas = PickPlaceTeacher(s).feasibility()
     row["feasible"] = bool(feas["feasible"])
