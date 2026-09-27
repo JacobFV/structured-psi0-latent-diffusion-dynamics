@@ -128,3 +128,4 @@ Conflict rules:
 
 
 | R1 | Arm nosem recipe ablation (z-noise 0; keep qd; both), seed 1 | arm agent | R0 | running (fairness check for D-095) |
+| W10 | Ψ₀ / SIMPLE benchmark: probe → Ψ₀ baseline → Ψ₀ base models fine-tuned with our structure vs Ψ₀ direct expert | psi0 agent | — | running: step 0 probe (D-098) |
