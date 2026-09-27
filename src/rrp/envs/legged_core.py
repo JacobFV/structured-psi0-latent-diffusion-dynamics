@@ -277,6 +277,7 @@ class RewardCfg:
     # pure-turn commands (a stepping turn), independent of the decaying contact_phase prior.
     yaw_slip: float = 0.0
     turn_step: float = 0.0
+    turn_lin: float = 0.0          # dense yaw progress during pure-turn commands: x clip(w_z sign(c)/|c|, -0.5, 1.2)
     sigma_ang: float = 0.0         # yaw-rate tracking kernel width; 0 -> sigma (a sharper kernel keeps small turn commands informative)
     version: str = "gait_v1"
     # schedule (gait_v2): alpha in [0,1]; priors w0*(floor + (1-floor)(1-alpha)); natural w_min + alpha(w_max-w_min)
@@ -563,6 +564,8 @@ class LeggedEnv:
                         mujoco.mj_objectVelocity(m, d, mujoco.mjtObj.mjOBJ_XBODY, fb, v6, 0)
                         ys += abs(float(v6[2]))
                 r += cfg.yaw_slip * ys
+            if cfg.turn_lin and pure_turn:
+                r += cfg.turn_lin * float(np.clip(w[2] * np.sign(c[2]) / abs(c[2]), -0.5, 1.2))
             if cfg.turn_step and pure_turn and b.nf == 2:
                 want = np.array([self.phase[i] < 0.55, self.phase[i] >= 0.45])
                 r += cfg.turn_step * float(np.mean(fc == want))
