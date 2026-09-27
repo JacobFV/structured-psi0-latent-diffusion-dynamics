@@ -1,9 +1,20 @@
-# brief for parallel track agents (2026-09-25, lead: main session)
+# brief for parallel track agents (lead: main session)
+
+## CURRENT (2026-09-26, D-094) — read this first
+- What we do, in what order, and who owns which paths: `docs/strategy.md` (workstreams W1–W9, R0, gates, conflict rules).
+  Rules: `AGENTS.md` (resources D-033/D-086: host ≤80% of free CPU/memory with host GPU, peer 100%, ≥100 GB host disk free).
+  State: `STATUS.md`; evidence: `research/reports/evidence_matrix.md`; lineage codes: `research/naming.md`.
+- **Always `export RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/<track>` before `scripts/peer_sync.sh`.** Without it the
+  script syncs (with `--delete`) into the lead's `/dev/shm/rrp-brandonin/repo`, where chains run (D-090 incident).
+  Never sync into a dir whose jobs are still running (R0 runs from `wt/ladder`).
+- The worktree/merge workflow below ("how to work") still applies. The host budget numbers in it are historical; ask the
+  broker (`rrp ops status`) instead. "the big picture" and "DEMO SPRINT" are HISTORICAL context (2026-09-25/26).
+
+## the big picture (historical, 2026-09-25)
 
 Read first: `CLAUDE.md` (operating rules; resources D-033), `STATUS.md`, `research/corrections/controller-facing-semantic-latent.md`,
 `research/reports/latent_slice1_progress.md`, and `research/decisions.md` D-029..D-033.
 
-## the big picture
 We are building and testing ONE architecture: system i (a flow model) generates a structured continuous latent packet
 z[knots=4, assemblies, 64]. Semantic objectives supervise THAT packet. System 0 consumes the SAME packet together with
 morphology, current proprioception/touch and phase, and emits native joint targets every 50 ms. Evidence of meaning must come
@@ -29,7 +40,7 @@ Known state:
 - Host jobs: `PYTHONPATH=src ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli ops run --cpu X --mem Y [--gpu --gpu-mem G] --label <track>_x --max-seconds N -- cmd`.
   The host broker is shared (11 CPU, 33 GiB, 2 GPU leases in total across ALL agents). Take at most ~3 CPU / 10 GiB / 1 GPU lease
   unless the host is idle. If admission is refused, use the peer.
-- Peer (the main compute): `export RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/<track>`; `scripts/peer_sync.sh push` from your worktree;
+- Peer (the main compute): ALWAYS `export RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/<track>` first, then `scripts/peer_sync.sh push` from your worktree;
   then `scripts/peer_run.sh --gpu --gpu-mem 16G --cpu 4 --mem 24G --label <track>_x --max-seconds N [--detach] -- PY -m rrp.cli ...`.
   The peer GB10 is shared by ~6 agents plus the lead's chain: at most 2 concurrent GPU jobs per track, and each <=20 GiB GPU memory.
   CPU-only sim/eval jobs can use more (the peer has 20 cores). Name every output `artifacts/runs/<track>_...`.
@@ -52,7 +63,7 @@ Known state:
 - Finish with a concise report: what is done and verified, the numbers with artifact paths, what is still running
   (lease ids and output paths), and exact next steps.
 
-## DEMO SPRINT (2026-09-25 19:00 → 2026-09-26 05:00 PDT) — read this section first; it overrides older track scopes
+## DEMO SPRINT (2026-09-25 19:00 → 2026-09-26 05:00 PDT) — HISTORICAL (ended; superseded by docs/strategy.md)
 Goal: ready-to-demonstrate, HONEST artifacts in 10 h. Scope is frozen: no new variants beyond what is listed for your track.
 The state is in research/decisions.md D-044..D-049 and research/reports/evidence_matrix.md. Key facts:
 - Bug B-1 (D-044/D-045): train with `"zero_prev_action": true`. Anything trained without it is contaminated; never use it.
