@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from rrp.evaluation import latent_semantic_edits as se  # noqa: E402
 from rrp.evaluation.statistics import wilson  # noqa: E402
 
-R2 = {  # (sem, nosem, semfix) tags; the sem dev-seed file has no _s suffix for the 3,000,000 set
+R2 = R2_SEED1 = {  # (sem, nosem, semfix) tags; the sem dev-seed file has no _s suffix for the 3,000,000 set
     "final": ("generated_zero_flowgdag2h_rzgendag3_noqd_s{s}", "generated_zero_flownsgdag2h_rznsgendag3_noqd_s{s}",
               "generated_zero_flowsfgdag2h_rzsfgendag3_noqd_s{s}"),
     "flow20k_gendag1": ("generated_zero_ladder_flow_jointfix_snap_final_s20000_rzgendag1noqd", "generated_zero_flowns20k_rznsgendag1_noqd_s3000000",
@@ -21,6 +21,15 @@ R2 = {  # (sem, nosem, semfix) tags; the sem dev-seed file has no _s suffix for 
     "flowgdag1_gendag3": ("generated_zero_flowgdag1_rzgendag3_noqd", "generated_zero_flownsgdag1_rznsgendag3_noqd_s3000000",
                           "generated_zero_flowsfgdag1_rzsfgendag3_noqd_s3000000"),
     "r1_stateless_gendag3": ("oracle_zero_gendag3noqd_orcbc", "oracle_zero_nsjfgendag3noqd_orcbc", "oracle_zero_sfjfgendag3noqd_orcbc"),
+}
+
+
+R2_SEED2 = {  # ARM SEED-2 REPLICATION (sejf2 = frozen-sem recipe, nsjf2, sfjf2)
+    "final": ("generated_zero_flowse2gdag2h_rzse2gendag3_noqd_s{s}", "generated_zero_flowns2gdag2h_rzns2gendag3_noqd_s{s}",
+              "generated_zero_flowsf2gdag2h_rzsf2gendag3_noqd_s{s}"),
+    "flow20k_gendag1": tuple(f"generated_zero_flow{t}20k_rz{t}gendag1_noqd_s3000000" for t in ("se2", "ns2", "sf2")),
+    "flowgdag1_gendag3": tuple(f"generated_zero_flow{t}gdag1_rz{t}gendag3_noqd_s3000000" for t in ("se2", "ns2", "sf2")),
+    "r1_stateless_gendag3": tuple(f"oracle_zero_{t}gendag3noqd_orcbc" for t in ("sejf2", "nsjf2", "sfjf2")),
 }
 
 
@@ -51,7 +60,7 @@ def r2_table(d):
         rows = {}
         for s in sets:
             st, nt, ft = R2["final"]
-            sem = load(d, robot, st.format(s=s)) or (load(d, robot, "generated_zero_flowgdag2h_rzgendag3_noqd") if s == 3000000 else None)
+            sem = load(d, robot, st.format(s=s)) or (load(d, robot, "generated_zero_flowgdag2h_rzgendag3_noqd") if s == 3000000 and R2 is R2_SEED1 else None)
             rows[s] = dict(sem=sem, nosem=load(d, robot, nt.format(s=s)), semfix=load(d, robot, ft.format(s=s)))
         pooled = {}
         for v in ("sem", "nosem", "semfix"):
@@ -176,7 +185,10 @@ if __name__ == "__main__":
     for k in ("sem-parm6", "nosem-parm6", "semfix-parm6", "sem-panda", "nosem-panda", "semfix-panda"):
         ap.add_argument(f"--{k}", nargs="*", default=[])
     ap.add_argument("--out", required=True)
+    ap.add_argument("--seed2", action="store_true", help="use the ARM SEED-2 REPLICATION tags")
     a = ap.parse_args()
+    if a.seed2:
+        R2 = R2_SEED2
     res = dict(r2=r2_table(a.ladder))
     for body in ("parm6", "panda"):
         sets = {v: rows_of(getattr(a, f"{v}_{body}")) for v in ("sem", "nosem", "semfix") if getattr(a, f"{v}_{body}")}

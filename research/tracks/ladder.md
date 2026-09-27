@@ -3,7 +3,71 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
-## ARM SEED-2 REPLICATION (lead request after D-091; started 2026-09-26 13:50 PDT; state: running)
+## ARM SEED-2 REPLICATION RESULT (2026-09-26 19:30 PDT; state: completed; all nodes rc 0 after the documented relaunches)
+Training seed 2 of all three arm lineages (setup and placement history in the section below). Same recipe, same
+evaluation sets and commands as seed 1 (D-091). Source labels: learned (DEPLOYABLE route: system i flow -> system 0)
+unless marked ORACLE DIAGNOSTIC. Wilson / Newcombe 95%.
+Stage A (seed 2): median grad norm / mean clip scale: sem 283 / 0.0050, semfix 33.7 / 0.035, nosem 0.47 / 0.95 (seed 1:
+300 / 0.0049, 42.8 / 0.036, 0.47 / 0.95): the starvation pattern replicates exactly.
+
+R2 deployable route (final flow gdag2h -> system 0 gendag3_noqd), sem / semfix / nosem:
+| body (seed sets) | seed 2 | seed 1 (D-091) | both seeds |
+|---|---|---|---|
+| panda_pg2 dev / 3.0001M / 3.0002M | 6/21/0, 5/20/0, 12/17/0 | 14/19/0, 11/16/0, 11/14/0 | |
+| **panda_pg2 pooled** | **23 / 58 / 0** of 90 | 36 / 49 / 0 of 90 | **59 / 107 / 0 of 180** |
+| parm6_tf3 dev / 3.0001M / 3.0002M | 18/15/4, 12/11/1, 14/12/3 | 24/15/1, 24/15/0, 22/15/2 | |
+| **parm6_tf3 pooled** | **44 / 38 / 8** of 90 | 70 / 45 / 3 of 90 | **114 / 83 / 11 of 180** |
+| held-out parm5s_tf3 (dev) | 7 / 15 / 2 of 30 | 20 / 8 / 0 | 27 / 23 / 2 of 60 |
+| held-out parm5l_pg2 (dev) | 27 / 18 / 16 of 30 | 20 / 22 / 0 | 47 / 40 / 16 of 60 |
+| **all 4 bodies** | **101 / 129 / 26 of 240** | 146 / 124 / 3 of 240 | **247 / 253 / 29 of 480** |
+Seed-2 differences (pooled 90): panda semfix - sem +0.39 [0.25, 0.51], nosem - sem -0.26 [-0.35, -0.17]; parm6
+semfix - sem -0.07 [-0.21, 0.08], nosem - sem -0.40 [-0.51, -0.27]; semfix - nosem +0.64 (panda), +0.33 (parm6).
+Progression (dev, panda / parm6; sem / semfix / nosem): flow 20k -> gendag1: 1/12/1, 3/19/5; flow_gdag1 -> gendag3:
+9/21/0, 11/16/2. Stateless R1 (ORACLE DIAGNOSTIC) -> gendag3: panda 17/19/1, parm6 28/25/6.
+DAgger collections (success/312 on the 13 training bodies; approach failures), sem / semfix / nosem: bc1 6 (131) /
+33 (88) / 10 (161); bc3 73 (10) / 188 (13) / 66 (103); gdag2 195 (2) / 175 (48) / 57 (74). Unlike seed 1 (nosem gdag2
+0/312), the seed-2 nosem lineage does learn partially, but stays far below both semantic lineages.
+
+Task-context edit suite (route flow 20k -> gendag1_noqd; parm6 3,000,000-119, 82 feasible each; panda
+3,000,000-047, 48 each), sem / semfix / nosem, seed 2 (seed 1 in parentheses):
+| metric | parm6 | panda |
+|---|---|---|
+| unedited control: task success | 7 / 56 / 8 (26 / 64 / 1) | 0 / 13 / 1 (0 / 7 / 0) |
+| goal_shift: cube at NEW goal | 6 / 41 / 11 (23 / 58 / 3) | 0 / 12 / 3 (1 / 7 / 0) |
+| goal controls at new goal (max over control/irrel./orth./replay) | 1 / 3 / 2 | 0 / 2 / 1 |
+| goal end-pos. effect beyond irrelevant (cm) | +7.6 / +12.6 / +6.1 (+9.0 / +14.8 / +2.5) | -0.8 / +8.5 / +1.5 |
+| rebind: first APPROACH new cube | 78 / 68 / 26 (60 / 38 / 0) | 41 / 32 / 27 (48 / 36 / 0) |
+| rebind: first contact new (unedited) | 74 / 49 / 23 (9 / 7 / 2 unedited) | 36 / 27 / 27 (1 / 0 / 3) |
+| rebind: original cube lifted | 0 / 0 / 0 (unedited 26 / 66 / 37) | 0 / 0 / 1 |
+| rebind min-dist effect beyond irrel. (cm) | +30.6 / +23.7 / +19.8 (+23.1 / +21.0 / +2.8) | +27.7 / +24.7 / +19.9 (+29.2 / +25.7 / +1.5) |
+Both seeds pooled: rebind first approach on the new cube parm6 138/162 (sem) / 106/164 (semfix) / 26/164 (nosem);
+panda 89/96 / 68/96 / 27/96. Goal edit, cube at the new goal (parm6): 29/162 / 99/164 / 14/164.
+
+READING (two training seeds per lineage):
+1. REPLICATES: the no-semantic lineage is far worse than both semantic lineages on the arm's deployable route
+   (29/480 vs 247/480 and 253/480; nosem below sem in every body x seed cell except parm5s seed 2, where 2 vs 7 is
+   within noise). The seed-1 zero (3/240) was an extreme: at seed 2 nosem reaches 26/240 (incl. 16/30 on parm5l).
+2. PARTLY REPLICATES: the binding edit. At seed 2 the nosem packet DOES redirect the approach (26/82 parm6, 27/48 panda;
+   min-dist effect +20 cm), so "nosem carries no binding" (seed 1) does not hold in general; it is consistently WEAKER
+   than both semantic lineages at the approach level (pooled 26/164 vs 138/162 and 106/164 on parm6).
+3. Frozen sem vs semfix is seed-dependent on competence (seed 1: 146 vs 124; seed 2: 101 vs 129; pooled 247 vs 253,
+   i.e. no difference overall; semfix better on panda in both seeds, sem better on parm6 in seed 1), while semfix gives
+   the strongest GOAL control in both seeds (99/164 at the new goal vs 29/162 sem and 14/164 nosem, with controls <= 3)
+   and more competent early routes. The frozen sem gives the strongest BINDING redirection in both seeds.
+4. Seed variance is large for every lineage (e.g. frozen sem parm6 70 -> 44 /90; edit-route control success 26 -> 7 /82),
+   so single-seed differences of 10-20 points between the two semantic lineages should not be read as effects.
+Caveats kept from D-091: the recipe was developed on the sem bundle and applied unchanged; nosem's orthogonal control is a
+random matched-norm direction; the edit-suite goal comparison is confounded with route competence on parm6.
+Raw: peer store `ladder_v1/<robot>/generated_zero_flow{se2,sf2,ns2}*_s<set>.{jsonl,summary.json}`,
+`oracle_zero_{sejf2,sfjf2,nsjf2}gendag3noqd_orcbc.*`, `acceptance_arm{sejf2,sfjf2,nsjf2}_gen_{parm6,panda}/shard*/`,
+`ladder_dagger_{sejf2,sfjf2,nsjf2}_<buf>/`, state `ladder_arm<lin>_state/`; repo copies under
+`research/tracks/ladder/armnosem/seed2/` (R2/R1 summaries, merged edit summaries, compare_three_way_seed2.json from
+`scripts/armnosem_compare.py --seed2`).
+Checkpoints (sha256 prefix; final flow / final system 0 / flow 20k / edit-route system 0 gendag1): sejf2 3624267b /
+d81381a6 / ce6548ed / e203bc97; sfjf2 c64248b4 / bac9bb6e / d91eaeab / 3d8b15c3; nsjf2 0b966093 / fcb180bf / 2e1894c0 /
+55351608 (dirs `ladder_flow_<lin>{,_gdag2h}`, `ladder_rz_<lin>_{gendag1,gendag3}_noqd`).
+
+## ARM SEED-2 REPLICATION (lead request after D-091; started 2026-09-26 13:50 PDT; state: completed 19:15)
 Goal: replicate the three-way arm comparison (D-091: sem 146/240, semfix 124/240, nosem 3/240, one training seed each)
 with a second TRAINING seed for all three lineages, seed-matched, same recipe and same evaluation sets.
 Lineages (configs `configs/ladder/armseed2/<lin>/`, generated from the frozen-sem configs by name substitution):
