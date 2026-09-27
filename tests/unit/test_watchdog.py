@@ -146,3 +146,52 @@ def test_d116_deployed_peer_watchdog_does_not_subtract_shmem():
     import inspect
     src = inspect.getsource(importlib.import_module("rrp.cli.main").cmd_ops_watchdog)
     assert "subtract_shmem=False" in src
+
+
+# ------------------------------------------------------------ D-116 (b): project memory = anon + shmem + kernel
+def _cg(anon=None, shmem=None, kernel=None, file=0, current=None):
+    stat = {k: v for k, v in dict(anon=anon, shmem=shmem, kernel=kernel, file=file).items() if v is not None}
+    return dict(memory_current=current, memory_stat=stat or None)
+
+
+def test_project_memory_counts_nonreclaimable_only():
+    from rrp.orchestration.watchdog import project_memory_fields
+    # 32 G anon + 23 G RAM store (shmem) + 0.5 G kernel; 11 G reclaimable cache; memory.current 66.5 G
+    f = project_memory_fields(_cg(anon=32 * G, shmem=23 * G, kernel=G // 2, file=34 * G, current=66 * G + G // 2), None)
+    assert f["project_memory"] == 55 * G + G // 2 and f["project_memory_source"].startswith("memory.stat")
+    assert f["project_memory_current"] == 66 * G + G // 2                      # recorded for comparison
+
+
+def test_project_memory_fallback_and_gpu():
+    from rrp.orchestration.watchdog import project_memory_fields
+    f = project_memory_fields(_cg(current=40 * G), None)                          # memory.stat unreadable
+    assert f["project_memory"] == 40 * G and "fallback" in f["project_memory_source"]
+    f = project_memory_fields(_cg(anon=10 * G, shmem=2 * G, kernel=0, current=20 * G), 5 * G)   # + CUDA/unified GPU bytes
+    assert f["project_memory"] == 17 * G and f["project_gpu_bytes"] == 5 * G
+    f = project_memory_fields(_cg(current=40 * G), 3 * G)
+    assert f["project_memory"] == 43 * G
+    assert project_memory_fields(None, None)["project_memory"] is None
+
+
+def test_kernel_key_fallback_and_parser():
+    from rrp.orchestration.telemetry import nonreclaimable_bytes, parse_memory_stat
+    s = parse_memory_stat("anon 100\nfile 50\nshmem 20\nslab 5\nkernel_stack 1\npagetables 2\nbogus x\n")
+    assert s["anon"] == 100 and "bogus" not in s
+    assert nonreclaimable_bytes(s) == 100 + 20 + 5 + 1 + 2                       # no `kernel` key (older kernels)
+    assert nonreclaimable_bytes(dict(s, kernel=9)) == 129
+    assert nonreclaimable_bytes({"anon": 1}) is None and parse_memory_stat("") is None
+
+
+def test_d116_case_with_memory_stat_project_is_ok():
+    """D-116 with the new project measure: a 23 G RAM store and 11 G of cache inside rrp.slice, MemAvailable 31.6 G, PSI 0 ->
+    ok (no stop_admission, no shed) under the deployed peer config; cache no longer inflates the limit."""
+    from rrp.orchestration.watchdog import project_memory_fields
+    peer = cfg(memory_reserve_bytes=6 * G, disk_reserve_bytes=10 * G, startup_memory_bytes=108 * G, startup_cpu_cores=19.97,
+               disk_path="/", fraction=1.0, psi_full_avg10_shed=101.0, subtract_shmem=False)
+    pm = project_memory_fields(_cg(anon=32 * G, shmem=23 * G, kernel=G // 2, file=34 * G, current=66 * G + G // 2), None)
+    s = ok_sample(memory_available=31 * G + G // 2, psi_full_avg10=0.0, shmem=23 * G, **{k: pm[k] for k in ("project_memory",)})
+    v = evaluate(s, peer, WatchdogState())
+    assert v.level == "ok"
+    assert v.live_memory_bytes == 87 * G - 6 * G                                  # A + P_nr - R = 31.5 + 55.5 - 6
+    old = evaluate(dict(s, project_memory=66 * G + G // 2), peer, WatchdogState())
+    assert old.live_memory_bytes == 98 * G - 6 * G                                # memory.current counted the 11 G cache twice

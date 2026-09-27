@@ -105,6 +105,30 @@ def slice_cgroup_path(slice_name: str) -> Path:
     return path
 
 
+def parse_memory_stat(text: str | None) -> dict | None:
+    """cgroup v2 memory.stat -> {key: bytes}; None if unreadable/empty."""
+    if not text:
+        return None
+    out = {}
+    for line in text.splitlines():
+        parts = line.split()
+        if len(parts) == 2 and parts[1].isdigit():
+            out[parts[0]] = int(parts[1])
+    return out or None
+
+
+def nonreclaimable_bytes(stat: dict | None) -> int | None:
+    """anon + shmem + kernel of a cgroup's memory.stat (D-116): memory the kernel cannot reclaim by dropping page cache.
+    shmem includes the tmpfs RAM store pages charged to the cgroup (counted once). `kernel` exists on kernels >= 5.18;
+    older ones: slab + kernel_stack + pagetables + percpu + sock. None if anon or shmem is missing."""
+    if not stat or "anon" not in stat or "shmem" not in stat:
+        return None
+    k = stat.get("kernel")
+    if k is None:
+        k = sum(stat.get(x, 0) for x in ("slab", "kernel_stack", "pagetables", "percpu", "sock"))
+    return int(stat["anon"] + stat["shmem"] + k)
+
+
 def read_cgroup(path: Path) -> dict | None:
     if not path.exists():
         return None
@@ -123,6 +147,7 @@ def read_cgroup(path: Path) -> dict | None:
     mpeak = rd("memory.peak")                      # cgroup v2 high-water mark (kernel >= 5.19)
     return {
         "path": str(path),
+        "memory_stat": parse_memory_stat(rd("memory.stat")),
         "memory_current": int(mcur) if mcur and mcur.isdigit() else None,
         "memory_peak": int(mpeak) if mpeak and mpeak.isdigit() else None,
         "memory_max": rd("memory.max"), "memory_high": rd("memory.high"),

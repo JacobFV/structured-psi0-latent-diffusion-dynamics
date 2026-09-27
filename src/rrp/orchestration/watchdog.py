@@ -173,6 +173,24 @@ def evaluate(sample: dict, cfg: WatchdogConfig, st: WatchdogState) -> Verdict:
     return Verdict(level, reasons, live_mem, live_cpu)
 
 
+def project_memory_fields(cg: dict | None, gpu_bytes: int | None) -> dict:
+    """Project memory for the live limit (D-116, lead-approved): NON-RECLAIMABLE usage of rrp.slice = anon + shmem + kernel
+    from memory.stat (the RAM store counted once; reclaimable page cache excluded, since MemAvailable already counts it),
+    falling back to memory.current when memory.stat is unreadable; plus the project's CUDA/unified GPU bytes (gpu nodes;
+    invisible to memcg on GB10). The source used is recorded in the sample."""
+    cg = cg or {}
+    nr = telemetry.nonreclaimable_bytes(cg.get("memory_stat"))
+    cur = cg.get("memory_current")
+    if nr is not None:
+        base, src = nr, "memory.stat:anon+shmem+kernel"
+    elif cur is not None:
+        base, src = cur, "memory.current (fallback: memory.stat unreadable)"
+    else:
+        return dict(project_memory=None, project_memory_source=None, project_memory_current=None, project_gpu_bytes=gpu_bytes)
+    return dict(project_memory=base + (gpu_bytes or 0), project_memory_source=src, project_memory_current=cur,
+                project_gpu_bytes=gpu_bytes)
+
+
 def collect_sample(cfg: WatchdogConfig, st: WatchdogState, project_slice="rrp.slice",
                    idle_window_s: float = 1.0, project_dir: Path | None = None,
                    gpu: bool = False) -> dict:
@@ -210,8 +228,7 @@ def collect_sample(cfg: WatchdogConfig, st: WatchdogState, project_slice="rrp.sl
     return dict(
         memory_available=mi.get("MemAvailable"), swap_free=mi.get("SwapFree"), shmem=mi.get("Shmem"),
         psi_full_avg10=(psi or {}).get("full", {}).get("avg10"),
-        project_memory=((cg or {}).get("memory_current") + (telemetry.project_gpu_bytes() or 0 if gpu else 0))
-        if (cg or {}).get("memory_current") is not None else None,
+        **project_memory_fields(cg, telemetry.project_gpu_bytes() if gpu else None),
         project_psi_full_avg10=((cg or {}).get("memory_pressure") or {}).get("full", {}).get("avg10"),
         disk_free=disk_free, thermal_c=telemetry.cpu_thermal_max_c(), gpu_temp_c=gtemp,
         idle_cores=idle, project_cpu_cores=proj_cpu, telemetry_errors=errors,
