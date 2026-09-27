@@ -83,7 +83,7 @@ def test_ops_run_declaration_warning(tmp_path):
                                                      dict(label="w7_pack", memory_peak_bytes=9 * G),
                                                      dict(label="other", memory_peak_bytes=50 * G)]) + "\nnot json\n")
     w = mem_declaration_warning("w7_pack", int(10.8 * G), led)                   # 1.2 x the 9 G peak (D-117 case)
-    assert w and "9.00G" in w and "11.7G" in w
-    assert mem_declaration_warning("w7_pack", 12 * G, led) is None              # >= 1.3 x peak
+    assert w and "9.00G" in w and "12.2G" in w
+    assert mem_declaration_warning("w7_pack", int(12.5 * G), led) is None        # >= 1.35 x peak
     assert mem_declaration_warning("new_label", 1 * G, led) is None             # no history
     assert mem_declaration_warning("w7_pack", 1 * G, tmp_path / "missing.jsonl") is None

@@ -38,7 +38,7 @@ def main(argv=None):
                label=req.get("label"), cpu_quota=req.get("cpu_cores"), memory_bytes=req.get("memory_bytes"),
                gpu=req.get("gpu"), gpu_memory_bytes=req.get("gpu_memory_bytes"),
                cpu_core_s=(info.get("cpu_usage_usec") or 0) / 1e6,
-               memory_peak_bytes=info.get("memory_peak"),     # measured high-water mark: declare >= 1.3 x peak (D-117)
+               memory_peak_bytes=info.get("memory_peak"),     # measured high-water mark: declare >= 1.35 x peak (D-117)
                memory_high_events=ev.get("high"), memory_max_events=ev.get("max"), oom_kill=ev.get("oom_kill"),
                gpu_device_s=(time.time() - t0) if req.get("gpu") else 0.0,
                returncode=res.returncode, stopped_by=res.stopped_by, cmd=" ".join(cmd)[:300])
@@ -49,7 +49,7 @@ def main(argv=None):
     mp = info.get("memory_peak")
     print(f"[rrp.child] lease={a.lease} rc={res.returncode} stopped_by={res.stopped_by} heartbeats={res.heartbeats}"
           + (f" memory_peak={mp / 2**30:.2f}G" if mp else "") + f" memory_high_events={ev.get('high')}"
-          + (" (THROTTLED at memory.high = 0.8 x declared; declare >= 1.3 x peak)" if ev.get("high") else ""), flush=True)
+          + (" (THROTTLED at memory.high = 0.8 x declared; declare >= 1.35 x peak)" if ev.get("high") else ""), flush=True)
     try:
         br.release(a.lease, cleanup_backend=False)
     except Exception as e:  # noqa: BLE001
