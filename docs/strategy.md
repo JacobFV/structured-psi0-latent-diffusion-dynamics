@@ -23,8 +23,8 @@ Principles:
 |---|---|---|---|---|
 | W1 | Physics realism: contact v2, reward schedule, slip gate; then actuator realism and latency | contact agent | — | running |
 | W2 | Repo hygiene (phase 0) | hygiene agent | — | verified 2026-09-26 (main 3c796fd; tests 152 pass / 3 skip on a fresh clone; 78 dataset/weight files, 391 MB, untracked; copy in ~/work/rrp-data/git-untracked-2026-09-26) |
-| W3 | Provenance and contracts (phase 1) | provenance agent | — | started |
-| W4 | Package restructure with shims (phase 2) | restructure agent | W2, W3 | planned |
+| W3 | Provenance and contracts (phase 1) | provenance agent | — | verified 2026-09-26 (main 510f052; 165 unit tests pass; arm/dual/legged smoke manifests carry full provenance; 22 configs made explicit zero_prev_action) |
+| W4 | Package restructure with shims (phase 2) | restructure agent | W2, W3 | running (files W1 is editing excluded until W1 merges) |
 | W5 | Unified pipeline + DAG orchestration (phases 3–4) | pipeline agent | W4; arm seed 2 finished | planned |
 | W6 | Robustness sweeps + motion-quality gates | robustness agent | W1 v2 trackers | planned |
 | W7 | Arm expert: smooth scripted trajectories, then GRPO fine-tuning with anchor evals | arm agent | arm seed 2 finished | planned |
