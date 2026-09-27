@@ -120,9 +120,11 @@ def read_cgroup(path: Path) -> dict | None:
             k, v = line.split()
             stat[k] = int(v)
     mcur = rd("memory.current")
+    mpeak = rd("memory.peak")                      # cgroup v2 high-water mark (kernel >= 5.19)
     return {
         "path": str(path),
         "memory_current": int(mcur) if mcur and mcur.isdigit() else None,
+        "memory_peak": int(mpeak) if mpeak and mpeak.isdigit() else None,
         "memory_max": rd("memory.max"), "memory_high": rd("memory.high"),
         "memory_swap_max": rd("memory.swap.max"), "cpu_max": rd("cpu.max"),
         "pids_max": rd("pids.max"), "pids_current": rd("pids.current"),

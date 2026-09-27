@@ -52,7 +52,16 @@ were restarted from scratch (dirs kept at `ladder_smoke/armv2_aborted/<variant>_
 used) after pushing the RNG-fix code to wt/armv2 (no job was running from it). Caps back to the base allocation
 (2 GPU leases, 10 CPU): W8 holds 4 peer GPU leases again. From now on a shed Stage A can be resumed exactly
 (`--retry-failed` after checking the log says `exact: RNG restored`). Runner unit `rrp-armv2-dag4` (07:54).
-RESUME: `cd ~/work/rrp-wt/ladder && systemd-run --user --unit rrp-armv2-dag5 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv2 --setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/ladder ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_lineage_v2.yaml`
+07:59 ALLOCATION (lead): arm v2 = 2 peer GPU leases (W8 capped at 2, W10 has 2). Memory declared per lease as measured
+peak + 20%: peaks are the lease slice's cgroup memory.peak (page cache included). New in rrp: read_cgroup reports
+memory.peak and the job wrapper (rrp.orchestration.child) logs `memory_peak=` in its exit line and `memory_peak_bytes` in
+ops/resource-ledger.jsonl (test tests/unit/test_cgroup_peak.py); effective on the peer at the next idle code push. For
+the jobs already running, `scripts/armv2_mem_sampler.sh` (host unit `rrp-armv2-memsampler`) samples each a2* lease
+slice every 60 s into `artifacts/runs/armv2/_dags/arm_lineage_v2/memory_peaks.json`. Declarations now: Stage A 10G RAM +
+2G GPU (measured 7.25G and rising / ~1 GB GPU); flows 10G + 4G and refits 8G + 3G (provisional until measured);
+collections 20G (a v1 gen2 group OOMed at 8G and ran at 16G); R2/R1/held-out evals 6G; edit suite 12G. Each is refined to
+peak + 20% once that stage type has been measured. Config hashes unchanged; runner restarted as `rrp-armv2-dag5`.
+RESUME: `cd ~/work/rrp-wt/ladder && systemd-run --user --unit rrp-armv2-dag6 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv2 --setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/ladder ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_lineage_v2.yaml`
 (completed nodes skipped, running leases re-adopted; failed nodes only with --retry-failed, a manual decision).
 
 ## ARM NOSEM RECIPE ABLATION RESULT (2026-09-26 22:45 PDT; state: completed; all nodes rc 0 after one OOM relaunch)

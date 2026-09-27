@@ -37,14 +37,16 @@ def main(argv=None):
                label=req.get("label"), cpu_quota=req.get("cpu_cores"), memory_bytes=req.get("memory_bytes"),
                gpu=req.get("gpu"), gpu_memory_bytes=req.get("gpu_memory_bytes"),
                cpu_core_s=(info.get("cpu_usage_usec") or 0) / 1e6,
+               memory_peak_bytes=info.get("memory_peak"),     # measured high-water mark: declare peak + 20% next time
                gpu_device_s=(time.time() - t0) if req.get("gpu") else 0.0,
                returncode=res.returncode, stopped_by=res.stopped_by, cmd=" ".join(cmd)[:300])
     ledger = ops_root() / "ops" / "resource-ledger.jsonl"
     with open(ledger, "a") as lf:
         lf.write(json.dumps(rec) + "\n")
     log.with_suffix(".rc").write_text(str(res.returncode if res.returncode is not None else -1))
-    print(f"[rrp.child] lease={a.lease} rc={res.returncode} stopped_by={res.stopped_by} heartbeats={res.heartbeats}",
-          flush=True)
+    mp = info.get("memory_peak")
+    print(f"[rrp.child] lease={a.lease} rc={res.returncode} stopped_by={res.stopped_by} heartbeats={res.heartbeats}"
+          + (f" memory_peak={mp / 2**30:.2f}G" if mp else ""), flush=True)
     try:
         br.release(a.lease, cleanup_backend=False)
     except Exception as e:  # noqa: BLE001
