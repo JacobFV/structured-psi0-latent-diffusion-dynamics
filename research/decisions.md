@@ -594,3 +594,15 @@ Decisions:
 
 ## D-111 2026-09-27 ops: cold peer run directories moved from RAM (/dev/shm) to the peer disk behind symlinks
 The peer artifact store lives in RAM (/dev/shm, 48 GB in use), which the D-106 admission cap (108 GiB declared) does not account for; at 13:24 peer MemAvailable was 12 GB. The lead moved 253 run directories that were cold (no file written in ≥24 h, not referenced by any running process) to `~/rrp-peer-data/runs-archive/` on the peer disk, byte-size verified, each replaced by a symlink so all existing paths resolve. Freed ~22 GB RAM (MemAvailable 12 → 37 GB). Peer disk: 45 GB free (reserve 20). The list is in `~/rrp-peer-data/runs-archive/_moved_2026-09-27.txt`. Follow-up: have the broker/watchdog subtract /dev/shm usage when setting the peer's live memory limit, and repeat the cold-archive routinely (it is cheap and reversible).
+
+## D-112 2026-09-27 W6: at variant level, semantic supervision costs anymal_c ~4.6 points of robustness (3/3 training seeds) and moves no break-point; motion and robustness gates adopted
+W6 (research/tracks/robust.md; `artifacts/runs/robust/variant_anymal_c_semfix_vs_nosem.{md,json}`, main 33f453a). Same grid, 20 eval seeds and contact_v2; training seeds 1–2 added (shards finished on the peer after repeated host sheds; per-episode seeding makes placement irrelevant).
+- Paired semfix − nosem, public success averaged over 33 single-factor levels: seed 0 −0.032, seed 1 −0.062, seed 2 −0.044; pooled −0.046 [−0.056, −0.036]. Seed means: semfix 0.836/0.832/0.830 vs nosem 0.868/0.894/0.874. Every semfix seed is below every nosem seed (exact one-sided permutation p = 0.05). all_moderate public 14/60 vs 41/60.
+- Break-points are identical for both variants on every seed (friction 0.4, gain 0.7, push 1.0 m/s, terrain 8 cm), except semfix s2 terrain 5 cm and nosem s2 push 0.75 m/s. No break under 0–30 ms latency, ±20% mass or ±2 cm CoM.
+Reading (with D-105): on anymal_c the semantic packet trades a small, consistent robustness loss, largest under combined perturbations, for stronger task-level control (halt, goal steering). BC/teacher comparisons remain seed-0 only.
+Gates adopted (W6 proposal, lead edits):
+- Legged trackers: slip ratio < 0.15; CoT quadruped ≤ 1.0, biped ≤ 2.0; peak foot force ≤ 3.5 BW; joint-limit margin ≥ 0.02; no break-point and no-fall ≥ 0.9 inside the tracker's own training randomization range.
+- Legged datasets: slip < 0.15 on ≥ 95% of episodes; 0 falls at noise 0.
+- Arm teacher/datasets: phase-switch velocity step ≤ 0.5 rad/s; jerk RMS ≤ 2× the v2 teacher; joint-limit margin ≥ 0.02. Penetration ≤ 3 mm under grasp_v2 (tightened from the proposed 10 mm, since grasp_v2 achieves < 1 mm), applied to grasp_v2 data and policies only; grasp_v1 results are labelled, not gated.
+- Learned policies: chunk-boundary velocity step reported, flagged > 1.5 rad/s.
+The gates are enforced for new trackers and datasets from now on (W1, W7, W8 regeneration). Enforcement code is a W6 follow-up.
