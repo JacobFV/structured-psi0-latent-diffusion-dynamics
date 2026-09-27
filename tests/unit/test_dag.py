@@ -289,3 +289,16 @@ def test_legged_dag_reproduces_legacy_configs():
         assert got == want, nid
         n += 1
     assert n == 16
+
+
+def test_ops_runner_poll_reads_rc_file(tmp_path):
+    from rrp.orchestration.dag import OpsRunner
+    log = tmp_path / "1_x.log"
+    (tmp_path / "1_x.rc").write_text("0")                       # the child writes the rc without a newline
+    r = OpsRunner(tmp_path)
+    assert r.poll(dict(lease_id="1", log=str(log), unit="rrp-job-w5-test-none.service", placement="host")) == 0
+    (tmp_path / "1_x.rc").write_text("3")
+    assert r.poll(dict(lease_id="1", log=str(log), unit="rrp-job-w5-test-none.service", placement="host")) == 3
+    (tmp_path / "1_x.rc").unlink()
+    h = dict(lease_id="1", log=str(log), unit="rrp-job-w5-test-none.service", placement="host")
+    assert [r.poll(h) for _ in range(3)] == [None, None, -1] and h["unit_result"]

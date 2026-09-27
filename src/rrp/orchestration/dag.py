@@ -298,7 +298,6 @@ class Ledger:
 
     def __init__(self, path: Path):
         self.path = Path(path)
-        self.path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = None
         self.data = json.loads(self.path.read_text()) if self.path.exists() else \
             dict(schema=LEDGER_SCHEMA, created=time.time(), nodes={})
@@ -306,6 +305,7 @@ class Ledger:
             raise DagError(f"{self.path}: not a {LEDGER_SCHEMA} ledger")
 
     def lock(self):
+        self.path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = open(self.path.with_suffix(".lock"), "w")
         try:
             fcntl.flock(self._lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -320,6 +320,7 @@ class Ledger:
         self.save()
 
     def save(self):
+        self.path.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.path.with_suffix(".tmp")
         tmp.write_text(json.dumps(self.data, indent=1, default=str))
         tmp.replace(self.path)
@@ -386,7 +387,7 @@ class OpsRunner:
         """Exit code of a launched job, None while it runs; -1 if the unit is gone without an exit code."""
         rc_file = str(Path(handle["log"]).with_suffix(".rc"))
         unit = handle.get("unit") or f"rrp-job-{handle['lease_id']}.service"
-        out = self._sh(handle["placement"], f"cat {shlex.quote(rc_file)} 2>/dev/null || echo NORC; "
+        out = self._sh(handle["placement"], f"(cat {shlex.quote(rc_file)} && echo) 2>/dev/null || echo NORC; "
                                             f"systemctl --user is-active {shlex.quote(unit)} 2>/dev/null || true")
         lines = out.split()
         if lines and lines[0] != "NORC":
@@ -398,7 +399,11 @@ class OpsRunner:
         if state in ("active", "activating", "reloading"):
             return None
         handle["_gone"] = handle.get("_gone", 0) + 1
-        return -1 if handle["_gone"] >= 3 else None      # grace: the rc file is written just before the unit ends
+        if handle["_gone"] < 3:                          # grace: the rc file is written just before the unit ends
+            return None
+        res = self._sh(handle["placement"], f"systemctl --user show -p Result --value {shlex.quote(unit)} 2>/dev/null").strip()
+        handle["unit_result"] = res or "unknown"         # e.g. oom-kill (recorded in the ledger attempt)
+        return -1
 
     def manifest(self, node: PlannedNode) -> dict | None:
         if node.placement == "host":
@@ -450,6 +455,9 @@ class Executor:
                 try:
                     h = self.runner.launch(self.plan.nodes[nid])
                 except AdmissionRefused as e:
+                    if nid not in waiting_since:
+                        self.log(f"{nid}: broker refused admission ({str(e).strip().splitlines()[-1][:160]}); waiting "
+                                 f"(bounded {self.admission_timeout_s:.0f} s, not an attempt)")
                     t0 = waiting_since.setdefault(nid, time.time())
                     if time.time() - t0 > self.admission_timeout_s:
                         self._fail(nid, f"admission refused for {self.admission_timeout_s:.0f} s: {e}", final=True)
@@ -499,7 +507,8 @@ class Executor:
                 return
             reason = "exit 0 but no manifest with the node's config_hash"
         else:
-            reason = f"exit code {rc} (log {att.get('log')})"
+            reason = f"exit code {rc}" + (f" unit {att['unit_result']}" if att.get("unit_result") else "") + \
+                f" (log {att.get('log')})"
         attempts = len(e["attempts"])
         if attempts <= node.retries:
             self.ledger.set(nid, state="planned", last_error=reason)
