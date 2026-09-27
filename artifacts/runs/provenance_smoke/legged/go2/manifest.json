@@ -1,0 +1,109 @@
+{
+ "body": "go2",
+ "episodes": [
+  {
+   "episode_id": "go2_wpc_s0",
+   "event_status": {
+    "halt": "succeeded",
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded"
+   },
+   "files": {
+    "go2_wpc_s0.private.pkl.gz": "e5b654bd510ab5c7",
+    "go2_wpc_s0.public.pkl.gz": "08e42384460eb420"
+   },
+   "physics": {
+    "cone": "elliptic",
+    "contact_version": "contact_v1",
+    "impratio": 100.0,
+    "integrator": "euler",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "mujoco_version": "3.14.0",
+    "noslip_iterations": 0,
+    "solver": "newton",
+    "timestep": 0.002
+   },
+   "source": "scripted_teacher",
+   "status": "success",
+   "steps": 94,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "legged_tracker:lt-1.0:learned_tracker:go2:iter1199:de2b2474739a4640"
+  },
+  {
+   "episode_id": "go2_wpc_s1",
+   "event_status": {
+    "halt": "succeeded",
+    "walk_to_a": "succeeded",
+    "walk_to_b": "succeeded"
+   },
+   "files": {
+    "go2_wpc_s1.private.pkl.gz": "4c1a437a48acff57",
+    "go2_wpc_s1.public.pkl.gz": "6a9960ed794c29a9"
+   },
+   "physics": {
+    "cone": "elliptic",
+    "contact_version": "contact_v1",
+    "impratio": 100.0,
+    "integrator": "euler",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "mujoco_version": "3.14.0",
+    "noslip_iterations": 0,
+    "solver": "newton",
+    "timestep": 0.002
+   },
+   "source": "scripted_teacher",
+   "status": "success",
+   "steps": 106,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "legged_tracker:lt-1.0:learned_tracker:go2:iter1199:de2b2474739a4640"
+  }
+ ],
+ "fell": 0,
+ "manifest_hash": "878fb3d4d61fd3af",
+ "n": 2,
+ "n_episodes": 2,
+ "name": "legged_waypoint_contact_go2",
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": true,
+   "git_sha": "b4bae007a29757ef56412094c4204a36027eafe2"
+  },
+  "created_at": 1790472725.6585252,
+  "featurizer_version": null,
+  "flags": {
+   "arc_only": false,
+   "prev_action_input": false,
+   "privileged_teacher": true,
+   "tracker": "auto"
+  },
+  "legacy": false,
+  "notes": "native actions = base_velocity commands executed by the body tracker",
+  "physics": {
+   "cone": "elliptic",
+   "contact_version": "contact_v1",
+   "impratio": 100.0,
+   "integrator": "euler",
+   "iterations": 100,
+   "ls_iterations": 50,
+   "mujoco_version": "3.14.0",
+   "noslip_iterations": 0,
+   "solver": "newton",
+   "timestep": 0.002
+  },
+  "schema_version": "provenance-1",
+  "source": "scripted_teacher",
+  "versions": {
+   "tracker_source": "learned_tracker",
+   "tracker_version": "legged_tracker:lt-1.0:learned_tracker:go2:iter1199:de2b2474739a4640"
+  },
+  "weights": {}
+ },
+ "source": "scripted_teacher",
+ "status_counts": {
+  "success": 2
+ },
+ "success": 2
+}

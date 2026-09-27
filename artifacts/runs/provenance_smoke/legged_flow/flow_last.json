@@ -1,0 +1,26 @@
+{
+ "path": "artifacts/runs/provenance_smoke/legged_flow/flow_last.pt",
+ "sha256_16": "1d5151ff81e7d40f",
+ "step": 40,
+ "provenance": {
+  "schema_version": "provenance-1",
+  "source": "learned:legged_flow/flow_last.pt",
+  "physics": null,
+  "featurizer_version": null,
+  "code": {
+   "git_sha": "b4bae007a29757ef56412094c4204a36027eafe2",
+   "dirty": true
+  },
+  "weights": {
+   "flow": "5abc9d46d6af"
+  },
+  "bundle_fingerprint": "6fdaa4251668",
+  "versions": {},
+  "flags": {
+   "prev_action_input": false
+  },
+  "legacy": false,
+  "created_at": 1790472890.3790202,
+  "notes": ""
+ }
+}

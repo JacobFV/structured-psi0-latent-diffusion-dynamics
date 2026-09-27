@@ -1,0 +1,2 @@
+{"name":"provenance_smoke_dual","task":"support_insert","out_dir":"artifacts/runs/provenance_smoke/dual","workers":1,"max_steps":1200,
+ "items":[{"task":"support_insert","pair":"parm5_pg2__parm5_pg2","split":"source_train","seed_start":0,"episodes":2}]}

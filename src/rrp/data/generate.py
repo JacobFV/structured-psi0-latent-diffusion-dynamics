@@ -8,7 +8,8 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 from rrp.data.collect import collect_teacher_episode, write_episode
-from rrp.data.manifest import write_manifest
+from rrp.data.manifest import write_manifest, dataset_provenance
+from rrp.contracts.provenance import FEATURIZER_VERSION
 
 _ROBOT_CACHE = {}
 
@@ -80,7 +81,11 @@ def generate(config: dict) -> dict:
                 metas.append(dict(status="generation_error", error=repr(e)[:300]))
             if i % 200 == 0:
                 print(f"[generate] {i + 1}/{len(jobs)} {time.time() - t0:.0f}s", flush=True)
-    man = write_manifest(out, config["name"], sorted(metas, key=lambda m: m.get("episode_id", "")),
-                         extra=dict(config=config, wall_s=time.time() - t0))
+    metas = sorted(metas, key=lambda m: m.get("episode_id", ""))
+    prov = dataset_provenance(metas, source="scripted_teacher", featurizer_version=FEATURIZER_VERSION,
+                              flags=dict(privileged_teacher=True, dart_noise=config.get("dart_noise", [])))
+    man = write_manifest(out, config["name"], metas, extra=dict(config=config, wall_s=time.time() - t0,
+                                                                source=prov.source, privileged_teacher=True,
+                                                                featurizer=FEATURIZER_VERSION), provenance=prov)
     print(json.dumps({"name": config["name"], "status_counts": man["status_counts"], "wall_s": time.time() - t0}))
     return man

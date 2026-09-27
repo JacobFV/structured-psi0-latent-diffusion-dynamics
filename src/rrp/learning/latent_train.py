@@ -25,6 +25,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+from rrp.contracts.provenance import resolve_zero_prev_action
 from rrp.learning.checkpoint import save_checkpoint, load_checkpoint
 from rrp.learning.packed import PackedChunkDataset
 from rrp.model.batch import Batch
@@ -205,7 +206,16 @@ def binding_cf_metrics(E, P, batch, a, v, lab, gen=None) -> dict:
     return res
 
 
+def _explicit_zpa(cfg_json: dict, out_dir: Path, last_name: str, where: str) -> dict:
+    """B-1: the config must state zero_prev_action for a NEW run; a resumed legacy run warns and keeps False.
+    The resolved value is written back so every checkpoint config carries it explicitly."""
+    from rrp.contracts.provenance import resolve_zero_prev_action
+    new_run = not (Path(out_dir) / last_name).exists()
+    return dict(cfg_json, zero_prev_action=resolve_zero_prev_action(cfg_json, where=where, new_run=new_run))
+
+
 def train_representation(cfg_json: dict, out_dir: Path) -> dict:
+    cfg_json = _explicit_zpa(cfg_json, out_dir, "rep_last.pt", f"train_representation({out_dir})")
     dev = _dev()
     sig = CheckpointSignal()
     cfg = LatentConfig(**cfg_json["latent"])
@@ -323,6 +333,7 @@ def load_representation(path: Path, dev):
 def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
     """Stage B: system-i flow generating z (knots x assemblies) toward the frozen encoder mean."""
     from rrp.model.latent_batch import assembly_batch
+    cfg_json = _explicit_zpa(cfg_json, out_dir, "policy_last.pt", f"train_latent_flow({out_dir})")
     dev = _dev()
     sig = CheckpointSignal()
     seed = cfg_json.get("seed", 0)
@@ -483,7 +494,8 @@ def fit_probes_on_frozen(rep_path: Path, packed_dir: Path, out_path: Path, steps
     dev = _dev()
     lcfg, E, R, _, rep_res = load_representation(rep_path, dev)
     rep_cfg = load_checkpoint(rep_path, map_location="cpu")["config"]
-    data = LatentData(packed_dir, zero_prev_action=rep_cfg.get("zero_prev_action", False))   # same inputs as E saw (B-1)
+    data = LatentData(packed_dir, zero_prev_action=resolve_zero_prev_action(      # same inputs as E saw (B-1)
+        rep_cfg, where=f"fit_probes_on_frozen: representation {rep_path}", new_run=False))
     pk = rep_cfg.get("probe", {})
     P = PacketProbe(lcfg.dz, lcfg.knots, metadata_only=metadata_only, seed=seed, **pk).to(dev)
     opt = torch.optim.AdamW(P.parameters(), lr=3e-4, weight_decay=1e-4)
@@ -544,7 +556,8 @@ def sft_latent_flow(flow_ckpt: Path, target_packed_dir: Path, budget: int, *, se
     pcfg = PolicyConfig(**dict(cfgj["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz, aux=False))
     model = FlowPolicy(pcfg).to(dev)
     model.load_state_dict(st["model"])
-    data = LatentData(target_packed_dir, zero_prev_action=cfgj.get("zero_prev_action", False))   # as the source flow (B-1)
+    data = LatentData(target_packed_dir, zero_prev_action=resolve_zero_prev_action(   # as the source flow (B-1)
+        cfgj, where=f"sft_latent_flow: source flow {flow_ckpt}", new_run=False))
     eps = sorted(set(data.ep.tolist()))
     chosen = [eps[i] for i in nested_budget_indices(len(eps), [budget], seed)[budget]]
     pool = [int(i) for i in np.nonzero(np.isin(data.ep, chosen))[0]]
@@ -588,6 +601,7 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
     Motivated by bug B-1 (config "zero_prev_action": true) and by closed-loop robustness variants. The latent space
     version is unchanged (E identical), so flows trained on it stay valid; the realizer compat version changes.
     cfg: representation, packed_dir, steps, batch_size, lr, seed, name, zero_prev_action, init ("fresh"|"old")."""
+    cfg_json = _explicit_zpa(cfg_json, out_dir, "rz_last.pt", f"refit_realizer({out_dir})")
     dev = _dev()
     sig = CheckpointSignal()
     seed = cfg_json.get("seed", 0)

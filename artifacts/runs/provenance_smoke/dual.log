@@ -1,0 +1,5 @@
+[collect_dual] resumed 0, to generate 2
+[collect_dual] 1/2 1s
+{"name": "provenance_smoke_dual", "status_counts": {"success": 2}, "wall_s": 1.1997342109680176}
+[rrp.child] lease=1790472734_5aecc3 rc=0 stopped_by=None heartbeats=0
+{"lease_id": "1790472734_5aecc3", "unit": "rrp-job-1790472734_5aecc3.service", "log": "/home/brandonin/work/relational-robot-policy/ops/logs/1790472734_5aecc3_provenance_smoke_dual.log", "returncode": 0, "unit_result": "success", "exec_status": "0"}

@@ -173,14 +173,7 @@ class LatentSystem0:
         return NativeCommand(controller_version=controller_version, groups=groups, source="learned")
 
 
-def weights_digest(state_dict: dict) -> str:
-    """sha256 over parameter/buffer names and raw bytes (dtype-exact), sorted by name."""
-    h = hashlib.sha256()
-    for k in sorted(state_dict):
-        t = state_dict[k].detach().cpu().contiguous()
-        h.update(k.encode()); h.update(str(t.dtype).encode()); h.update(str(tuple(t.shape)).encode())
-        h.update(t.reshape(-1).view(torch.uint8).numpy().tobytes())
-    return h.hexdigest()[:12]
+from rrp.contracts.provenance import weights_digest  # noqa: E402,F401  (moved; same algorithm)
 
 
 def bundle_versions(config_version: str, encoder_state: dict, realizer_state: dict) -> tuple[str, str]:

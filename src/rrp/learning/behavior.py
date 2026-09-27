@@ -20,7 +20,7 @@ from rrp.model.codec import ActionCodec, CodecConfig
 from rrp.model.flow import FlowPolicy, PolicyConfig
 from rrp.ops.jobs import CheckpointSignal
 
-FEAT_VERSION = "feat-v2"
+from rrp.contracts.provenance import FEATURIZER_VERSION as FEAT_VERSION  # noqa: E402  (alias of the single constant)
 
 
 def device_setup():
@@ -136,8 +136,12 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
     rng = random.Random(cfg["seed"])
     if cfg.get("packed_dir"):
         from rrp.learning.packed import PackedChunkDataset
+        from rrp.contracts.provenance import resolve_zero_prev_action
+        zpa = resolve_zero_prev_action(cfg, where=f"train_policy({out_dir})",               # B-1 (D-044): explicit
+                                       new_run=not any(Path(out_dir).glob("*last*.pt")))
+        cfg["zero_prev_action"] = zpa
         ds = PackedChunkDataset(Path(cfg["packed_dir"]), stride=cfg.get("packed_stride", 1),   # memory-mapped, shared
-                                zero_prev_action=cfg.get("zero_prev_action", False))       # B-1 (D-044)
+                                zero_prev_action=zpa)
         eps = []
     else:
         eps = load_episodes(Path(cfg["dataset"]), robots=set(cfg["train_robots"]),

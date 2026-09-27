@@ -20,7 +20,7 @@ from rrp.data.features import Featurizer
 from rrp.sim.native import Session
 from rrp.sim.sensors import camera_visibility
 
-FEATURIZER_VERSION = "feat-v2"
+from rrp.contracts.provenance import FEATURIZER_VERSION, physics_provenance  # noqa: E402,F401  (single constant; alias kept)
 
 
 def featurizer_for(session: Session, robot: int = 0) -> Featurizer:
@@ -126,7 +126,8 @@ def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_
                 steps=steps, status=status, feasibility=f, source="scripted_teacher", privileged_teacher=True,
                 public_runtime_success=bool(session.runtime.succeeded()), featurizer=FEATURIZER_VERSION,
                 wall_s=time.time() - t0, split_lineage=split_lineage or {}, exec_noise=exec_noise,
-                n_distractors=session.scenario.meta.get("n_distractors", 0))
+                n_distractors=session.scenario.meta.get("n_distractors", 0),
+                physics=physics_provenance(session.model).to_dict())
     public = dict(meta=meta, inputs=inputs, actions=actions, q0=q0s, statuses=statuses,
                   action_space=dict(node_group=feat.aspace.node_group, node_col=feat.aspace.node_col,
                                     lower=feat.aspace.lower, upper=feat.aspace.upper,

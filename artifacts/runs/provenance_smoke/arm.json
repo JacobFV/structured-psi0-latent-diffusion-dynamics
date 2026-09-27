@@ -1,0 +1,2 @@
+{"name":"provenance_smoke_arm","out_dir":"artifacts/runs/provenance_smoke/arm","workers":1,"max_distractors":1,"dart_noise":[0.05],
+ "items":[{"robot":"parm5_pg2","split":"source_train","seed_start":0,"episodes":2}]}

@@ -1,0 +1,24 @@
+{"seed": 0, "sigma": 0.0, "status": "success", "steps": 106, "ticks": 580}
+{"seed": 1, "sigma": 0.1, "status": "success", "steps": 96, "ticks": 530}
+{"seed": 2, "sigma": 0.2, "status": "success", "steps": 123, "ticks": 665}
+{"seed": 3, "sigma": 0.3, "status": "success", "steps": 101, "ticks": 555}
+{"seed": 4, "sigma": 0.0, "status": "success", "steps": 111, "ticks": 605}
+{"seed": 5, "sigma": 0.1, "status": "success", "steps": 111, "ticks": 605}
+{"seed": 6, "sigma": 0.2, "status": "success", "steps": 95, "ticks": 525}
+{"seed": 7, "sigma": 0.3, "status": "success", "steps": 116, "ticks": 630}
+{"seed": 8, "sigma": 0.0, "status": "success", "steps": 84, "ticks": 470}
+{"seed": 9, "sigma": 0.1, "status": "success", "steps": 110, "ticks": 600}
+{"seed": 10, "sigma": 0.2, "status": "success", "steps": 114, "ticks": 620}
+{"seed": 11, "sigma": 0.3, "status": "success", "steps": 103, "ticks": 565}
+{"seed": 12, "sigma": 0.0, "status": "success", "steps": 81, "ticks": 455}
+{"seed": 13, "sigma": 0.1, "status": "success", "steps": 86, "ticks": 480}
+{"seed": 14, "sigma": 0.2, "status": "success", "steps": 107, "ticks": 585}
+{"seed": 15, "sigma": 0.3, "status": "success", "steps": 107, "ticks": 585}
+{"seed": 16, "sigma": 0.0, "status": "success", "steps": 71, "ticks": 405}
+{"seed": 17, "sigma": 0.1, "status": "success", "steps": 126, "ticks": 680}
+{"seed": 18, "sigma": 0.2, "status": "success", "steps": 87, "ticks": 485}
+{"seed": 19, "sigma": 0.3, "status": "success", "steps": 91, "ticks": 505}
+{"seed": 20, "sigma": 0.0, "status": "success", "steps": 69, "ticks": 395}
+{"body": "go2", "shard": "s0-20", "n": 21, "success": 21, "ticks": 11525}
+[rrp.child] lease=1790472818_167390 rc=0 stopped_by=None heartbeats=2
+{"lease_id": "1790472818_167390", "unit": "rrp-job-1790472818_167390.service", "log": "/home/brandonin/work/relational-robot-policy/ops/logs/1790472818_167390_provenance_smoke_legged_latent.log", "returncode": 0, "unit_result": "success", "exec_status": "0"}

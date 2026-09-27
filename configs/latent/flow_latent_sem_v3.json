@@ -1,4 +1,5 @@
 {
+ "zero_prev_action": false,
  "name": "flow_latent_sem_v3",
  "out_dir": "artifacts/runs/flow_latent_sem_v3",
  "representation": "artifacts/runs/latent_sem_v1/representation.pt",

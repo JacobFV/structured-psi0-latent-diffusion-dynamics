@@ -216,9 +216,78 @@ def eval_rep(E, R, P, data, n_batches=40, seed=99):
                 probes=_fin(agg), probes_shuffled_z=_fin(sh))
 
 
+LEGGED_FLAG_KEYS = ("semantic_weight", "beta_kl", "qd_dropout", "probe_lv_min", "packet_semantic_weight",
+                    "packet_tau_min", "gen_frac", "zero_qd")
+
+
+def legged_flags(cfg: dict | None) -> dict:
+    """Training flags that change what a legged checkpoint means. Legged system 0 has no previous-action input,
+    so the arm B-1 flag does not apply (recorded as prev_action_input=False instead of a zero_prev_action value)."""
+    cfg = cfg or {}
+    fl = dict(prev_action_input=False)
+    for src in (cfg, cfg.get("latent") or {}):
+        for k in LEGGED_FLAG_KEYS:
+            if k in src:
+                fl[k] = src[k]
+    return fl
+
+
+def _data_physics(cfg: dict | None):
+    """Physics record of the training data (first shard carrying provenance), or None (legacy data / no data)."""
+    if not cfg or not cfg.get("data"):
+        return None
+    found = {}
+    for body in cfg.get("bodies") or []:
+        for sh in sorted((Path(cfg["data"]) / body).glob("s*.json")):
+            if sh.name.endswith(".manifest.json"):
+                continue
+            try:
+                ph = (json.loads(sh.read_text()).get("provenance") or {}).get("physics")
+            except Exception:  # noqa: BLE001
+                ph = None
+            if ph:
+                found[json.dumps(ph, sort_keys=True)] = ph
+                break
+        else:
+            return None                         # a body without recorded physics: do not guess
+    return next(iter(found.values())) if len(found) == 1 else None   # bodies differ (e.g. go2 impratio): None
+
+
 def _save(path, **kw):
+    """Legged checkpoint writer (bare dict, as before) plus `_provenance`: weights fingerprints of every state_dict
+    entry (E/R/P/flow/model), git sha, flags and version IDs; and a `<name>.json` sidecar with the file digest."""
+    from rrp.contracts.provenance import make_provenance, is_state_dict, file_digest
+    path = Path(path)
+    cfg = kw.get("cfg")
+    res = kw.get("result") or {}
+    kind = "bc" if "model" in kw and "E" not in kw else "learned"
+    versions = {k: res[k] for k in ("latent_space_version",) if k in res}
+    if cfg:
+        versions.update({k: str(cfg[k]) for k in ("data", "representation", "name") if k in cfg})
+    prov = make_provenance(f"{kind}:{path.parent.name}/{path.name}", physics=_data_physics(cfg),
+                           weights={k: v for k, v in kw.items() if is_state_dict(v)}, versions=versions,
+                           flags=legged_flags(cfg))
+    kw["_provenance"] = prov.to_dict()
     torch.save(kw, str(path) + ".tmp")
+    digest = file_digest(Path(str(path) + ".tmp"))
     Path(str(path) + ".tmp").rename(path)
+    path.with_suffix(".json").write_text(json.dumps(dict(path=str(path), sha256_16=digest, step=kw.get("step"),
+                                                         provenance=prov.to_dict()), indent=1, default=str))
+
+
+def checkpoint_provenance(st: dict, path=None, verify: bool = True):
+    """Provenance of a loaded legged checkpoint dict. Bare (pre-W3) checkpoints -> legacy=True,
+    'unfingerprinted'. With verify, stored weight fingerprints must match the loaded tensors."""
+    from rrp.contracts.provenance import Provenance, legacy_provenance, weights_digest, is_state_dict, UNFINGERPRINTED
+    if isinstance(st.get("_provenance"), dict):
+        prov = Provenance.from_json(st["_provenance"])
+        if verify:
+            for k, d in prov.weights.items():
+                if k in st and is_state_dict(st[k]) and weights_digest(st[k]) != d:
+                    raise ValueError(f"{path}: weights fingerprint mismatch for {k!r} (file modified after save?)")
+        return prov
+    src = f"learned:{Path(path).parent.name}/{Path(path).name}" if path else "learned:unknown"
+    return legacy_provenance(src, flags=legged_flags(st.get("cfg")), notes=UNFINGERPRINTED)
 
 
 def train_rep(cfg, out: Path):
@@ -275,6 +344,10 @@ def train_rep(cfg, out: Path):
 
 def load_rep(path, dev):
     st = torch.load(str(path), map_location=dev, weights_only=False)
+    prov = checkpoint_provenance(st, path)           # raises on a fingerprint mismatch; legacy files are marked
+    if prov.legacy:
+        print(f"[legged] {path}: legacy checkpoint ({prov.notes}); compatibility IDs are fingerprinted at load",
+              flush=True)
     lc = st["cfg"]["latent"]
     E = LeggedEncoder(dz=lc["dz"], D=lc["width"], H=H).to(dev)
     R = LeggedRealizer(dz=lc["dz"], D=lc["width"]).to(dev)

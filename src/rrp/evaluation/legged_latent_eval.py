@@ -38,7 +38,17 @@ from rrp.learning.legged_latent_train import load_rep, _dev
 from rrp.model.legged_latent import LeggedFlow, LeggedProbe
 from rrp.sim.legged import LeggedSession, build_waypoint_contact
 
-REALIZER_COMPAT = "legged-rz-osc-v1"
+REALIZER_COMPAT = "legged-rz-osc-v1"     # base of the system-0 compatibility ID (osc-v1 phase input)
+
+
+def legged_bundle_versions(base_lsv: str, encoder_state: dict, realizer_state: dict) -> tuple[str, str]:
+    """Fingerprinted compatibility IDs (as the arm bundle_versions, D-038): the latent space is defined by the
+    encoder weights, system-0 compatibility additionally by the realizer weights, so a refit realizer
+    (--realizer) gets a new ID and packets for the original are rejected instead of silently reinterpreted."""
+    from rrp.contracts.provenance import weights_digest
+    import re
+    lsv = base_lsv if re.search(r"-w[0-9a-f]{12}$", base_lsv) else f"{base_lsv}-w{weights_digest(encoder_state)}"
+    return lsv, f"{REALIZER_COMPAT}-{lsv}-r{weights_digest(realizer_state)}"
 
 
 def static_batch(morph: LeggedMorph, dev):
@@ -99,7 +109,7 @@ class System0Adapter:
                                                                        and now >= self.c.t_edit):
             try:
                 p = self.c.generate(self, now)
-                check_packet(p, latent_space_version=self.c.lsv, realizer_compat_version=REALIZER_COMPAT,
+                check_packet(p, latent_space_version=self.c.lsv, realizer_compat_version=self.c.rcv,
                              robot_spec_hash=self.m.spec_hash, now=now)
                 self.packet = p
                 self.stats["packets"] += 1
@@ -141,7 +151,8 @@ class BCController:
         self.model, st = load_bc(ckpt, dev)
         self.dev, self.nfe, self.replan = dev, nfe, replan
         self.gen = torch.Generator(device=dev).manual_seed(seed)
-        self.policy_version = f"learned:{Path(ckpt).parent.name}/{Path(ckpt).name}"
+        from rrp.contracts.provenance import source_label
+        self.policy_version = source_label("bc", f"{Path(ckpt).parent.name}/{Path(ckpt).name}")   # was "learned:" (W3)
         self.edit, self.t_edit, self.trace, self.packets = "none", None, [], []
 
     def bind(self, session, morph):
@@ -219,8 +230,17 @@ class LatentLeggedController:
         st = torch.load(str(flow_ckpt), map_location=dev, weights_only=False) if flow_ckpt else None
         self.cfg = st["cfg"] if st else dict(representation=str(rep))
         rcfg, self.E, self.R, self.P, rres = load_rep(Path(rep or self.cfg["representation"]), dev)
+        from rrp.learning.legged_latent_train import checkpoint_provenance
+        self.checkpoint_provenance = dict(representation=checkpoint_provenance(
+            torch.load(str(rep or self.cfg["representation"]), map_location="cpu", weights_only=False),
+            rep or self.cfg["representation"]).model_dump(mode="json", include={"legacy", "weights", "notes"}))
+        if st:
+            self.checkpoint_provenance["flow"] = checkpoint_provenance(st, flow_ckpt).model_dump(
+                mode="json", include={"legacy", "weights", "notes"})
         if realizer:                                   # refit system 0 (same encoder / latent space)
             rs = torch.load(str(realizer), map_location=dev, weights_only=False)
+            self.checkpoint_provenance["realizer"] = checkpoint_provenance(rs, realizer).model_dump(
+                mode="json", include={"legacy", "weights", "notes"})
             self.R.load_state_dict(rs["R"])
         self.zero_qd = zero_qd
         if posthoc_probe:                              # measurement probe for latent_nosem (frozen, detached z)
@@ -231,7 +251,9 @@ class LatentLeggedController:
         if st:
             self.F = LeggedFlow(dz=rcfg["latent"]["dz"], D=self.cfg.get("width", 256), layers=self.cfg.get("layers", 4)).to(dev)
             self.F.load_state_dict(st["flow"]); self.F.eval()
-        self.lsv = rres["latent_space_version"]
+        # fingerprinted IDs computed from the weights actually loaded (legacy checkpoints included)
+        self.lsv, self.rcv = legged_bundle_versions(rres["latent_space_version"], self.E.state_dict(),
+                                                    self.R.state_dict())
         self.policy_version = (f"learned:{Path(flow_ckpt).parent.name}/{Path(flow_ckpt).name}" if flow_ckpt else
                                f"rep:{Path(rep).parent.name}") + (f"+rz:{Path(realizer).parent.name}/{Path(realizer).name}"
                                                                     if realizer else "")
@@ -296,7 +318,7 @@ class LatentLeggedController:
             pout = self.P(z, b["asm_mask"], b["body_asm"])
         M = self.morph.M
         zz = z[0, :, :M].cpu().numpy().astype(np.float32)
-        p = LatentActionChunk(latent_space_version=self.lsv, realizer_compat_version=REALIZER_COMPAT, z=zz,
+        p = LatentActionChunk(latent_space_version=self.lsv, realizer_compat_version=self.rcv, z=zz,
                               knot_times=list(KNOT_TIMES),
                               assemblies=[AssemblyHandle(handle=h, robot_index=0) for h in self.morph.handles],
                               assembly_mask=[True] * M, observation_id=f"lg{ad.ticks}",
@@ -486,7 +508,9 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
                final_pose=s.base_pose_truth().tolist(), waypoints=sc.meta["waypoints"],
                tracker=getattr(s, "tracker_version_str", None), n_steps=steps)
     if ctl is not None:
-        row.update(stats=ad.stats, packets=ctl.packets, packet_log=ad.log[:20])
+        row.update(stats=ad.stats, packets=ctl.packets, packet_log=ad.log[:20],
+                   latent_space_version=getattr(ctl, "lsv", None), realizer_compat_version=getattr(ctl, "rcv", None),
+                   checkpoint_provenance=getattr(ctl, "checkpoint_provenance", None))
         row["trace"] = ctl.trace[::5]
         if getattr(ctl, "zero_qd", False):
             row["zero_qd"] = True

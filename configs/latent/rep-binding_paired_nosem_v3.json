@@ -1,4 +1,5 @@
 {
+ "zero_prev_action": false,
  "dataset": "artifacts/datasets/pick_place_paired_v1 + artifacts/datasets/assign_pick_place_v1 (see configs/latent/pack-binding_combined_v1.json)",
  "train_robots": [
   "parm5_pg2",

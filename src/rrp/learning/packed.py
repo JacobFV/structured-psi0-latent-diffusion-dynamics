@@ -209,9 +209,22 @@ def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, s
         buf[k2] = None
     meta = dict(n=n, H=H, stride=stride, source=str(ds_dir), robot_ids=robot_ids, operators=OPERATORS, robots=sorted(set(r for r in robots_seen if r)),
                 max=dict(T=MAX_T_, N=MAX_N_, S=MAX_S, R=MAX_R_, P=MAX_P_), truncated_rows=trunc, include_dart_failures=include_dart_failures,
-                multi_m=multi_m, statuses=list(statuses), episode_index=episode_index)
+                multi_m=multi_m, statuses=list(statuses), episode_index=episode_index,
+                # W3/B-1: the pack stores the raw column; zero_prev_action is a LOAD-time flag of the consumer
+                # (PackedChunkDataset/LatentData), recorded in every training checkpoint config.
+                prev_action=dict(column=PREV_ACTION_COL, stored="raw_teacher_prev_command_if_collected_pre_D021",
+                                 zeroed_in_pack=False, zero_prev_action_is_load_time_flag=True),
+                dataset_provenance=_dataset_provenance(ds_dir))
     (out_dir / "meta.json").write_text(json.dumps(meta, indent=1))
     return meta
+
+
+def _dataset_provenance(ds_dir: Path) -> dict | None:
+    try:
+        from rrp.data.manifest import read_manifest
+        return read_manifest(Path(ds_dir)).get("provenance").to_dict()
+    except Exception:  # noqa: BLE001 - no/odd manifest: record nothing rather than guess
+        return None
 
 
 class PackedChunkDataset:
@@ -222,7 +235,9 @@ class PackedChunkDataset:
         self.meta = json.loads((self.dir / "meta.json").read_text())
         self.arr = {p.stem: np.load(p, mmap_mode="r") for p in self.dir.glob("*.npy")}
         self.H = self.meta["H"]
-        self.zero_prev_action = zero_prev_action
+        if zero_prev_action is None:
+            raise ValueError("zero_prev_action must be explicit (True/False), got None")
+        self.zero_prev_action = bool(zero_prev_action)      # B-1 load-time flag (see meta['prev_action'] and PREV_ACTION_COL)
         self.rows = None
         if stride > 1:
             if self.meta["stride"] != 1:

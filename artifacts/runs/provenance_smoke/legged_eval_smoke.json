@@ -1,0 +1,98 @@
+[
+ {
+  "case": "fingerprinted",
+  "source": "learned:legged_flow/policy.pt",
+  "lsv": "legged-ls-provenance_smoke_rep_go2-wbb31fad54fdc",
+  "rcv": "legged-rz-osc-v1-legged-ls-provenance_smoke_rep_go2-wbb31fad54fdc-r266ca84fb944",
+  "stats": {
+   "ticks": 135,
+   "packets": 7,
+   "rejected": 0,
+   "fallback": 20
+  },
+  "checkpoint_provenance": {
+   "representation": {
+    "weights": {
+     "E": "bb31fad54fdc",
+     "R": "266ca84fb944",
+     "P": "a53bd248d536"
+    },
+    "legacy": false,
+    "notes": ""
+   },
+   "flow": {
+    "weights": {
+     "flow": "265a855b10ad"
+    },
+    "legacy": false,
+    "notes": ""
+   }
+  },
+  "success": false
+ },
+ {
+  "case": "legacy",
+  "source": "learned:legged_flow/policy.pt",
+  "lsv": "legged-ls-provenance_smoke_rep_go2-wbb31fad54fdc",
+  "rcv": "legged-rz-osc-v1-legged-ls-provenance_smoke_rep_go2-wbb31fad54fdc-r266ca84fb944",
+  "stats": {
+   "ticks": 135,
+   "packets": 7,
+   "rejected": 0,
+   "fallback": 20
+  },
+  "checkpoint_provenance": {
+   "representation": {
+    "weights": {},
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "flow": {
+    "weights": {
+     "flow": "265a855b10ad"
+    },
+    "legacy": false,
+    "notes": ""
+   }
+  },
+  "success": false
+ },
+ {
+  "case": "refit",
+  "source": "learned:legged_flow/policy.pt+rz:legged_refit/realizer.pt",
+  "lsv": "legged-ls-provenance_smoke_rep_go2-wbb31fad54fdc",
+  "rcv": "legged-rz-osc-v1-legged-ls-provenance_smoke_rep_go2-wbb31fad54fdc-rccde349c4652",
+  "stats": {
+   "ticks": 30,
+   "packets": 2,
+   "rejected": 0,
+   "fallback": 20
+  },
+  "checkpoint_provenance": {
+   "representation": {
+    "weights": {
+     "E": "bb31fad54fdc",
+     "R": "266ca84fb944",
+     "P": "a53bd248d536"
+    },
+    "legacy": false,
+    "notes": ""
+   },
+   "flow": {
+    "weights": {
+     "flow": "265a855b10ad"
+    },
+    "legacy": false,
+    "notes": ""
+   },
+   "realizer": {
+    "weights": {
+     "R": "ccde349c4652"
+    },
+    "legacy": false,
+    "notes": ""
+   }
+  },
+  "success": false
+ }
+]

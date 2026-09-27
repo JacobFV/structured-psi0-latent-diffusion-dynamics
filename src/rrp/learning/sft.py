@@ -87,7 +87,9 @@ def sft_packed(source_ckpt: Path, target_packed_dir: Path, budget: int, *, seed:
         codec.load_state_dict(cs["model"])
         for p in codec.parameters():
             p.requires_grad_(False)
-    data = PackedChunkDataset(target_packed_dir, zero_prev_action=cfgj.get("zero_prev_action", False))   # as source (B-1)
+    from rrp.contracts.provenance import resolve_zero_prev_action
+    data = PackedChunkDataset(target_packed_dir, zero_prev_action=resolve_zero_prev_action(   # as source (B-1)
+        cfgj, where="sft: source checkpoint config", new_run=False))
     if data.meta["stride"] != 1:
         raise ValueError("target pack must be stride-1 (same rows as the latent methods)")
     ep = np.asarray(data.arr["ep_idx"])

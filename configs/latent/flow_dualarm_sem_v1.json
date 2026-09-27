@@ -1,4 +1,5 @@
 {
+ "zero_prev_action": false,
  "name": "dualarm_flow_sem_v1",
  "out_dir": "artifacts/runs/dualarm_flow_sem_v1",
  "representation": "artifacts/runs/dualarm_latent_sem_v1/representation.pt",

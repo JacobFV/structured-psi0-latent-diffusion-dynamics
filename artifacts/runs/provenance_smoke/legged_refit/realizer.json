@@ -1,0 +1,28 @@
+{
+ "path": "artifacts/runs/provenance_smoke/legged_refit/realizer.pt",
+ "sha256_16": "518f0d94a65c0b55",
+ "step": 1,
+ "provenance": {
+  "schema_version": "provenance-1",
+  "source": "learned:legged_refit/realizer.pt",
+  "physics": null,
+  "featurizer_version": null,
+  "code": {
+   "git_sha": "b4bae007a29757ef56412094c4204a36027eafe2",
+   "dirty": true
+  },
+  "weights": {
+   "R": "ccde349c4652"
+  },
+  "bundle_fingerprint": "904dce99cf91",
+  "versions": {
+   "representation": "artifacts/runs/provenance_smoke/legged_rep/representation.pt"
+  },
+  "flags": {
+   "prev_action_input": false
+  },
+  "legacy": false,
+  "created_at": 1790473110.9656034,
+  "notes": ""
+ }
+}

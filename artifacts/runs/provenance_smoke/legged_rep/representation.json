@@ -1,0 +1,36 @@
+{
+ "path": "artifacts/runs/provenance_smoke/legged_rep/representation.pt",
+ "sha256_16": "d63d64326d304d7b",
+ "step": null,
+ "provenance": {
+  "schema_version": "provenance-1",
+  "source": "learned:legged_rep/representation.pt",
+  "physics": null,
+  "featurizer_version": null,
+  "code": {
+   "git_sha": "b4bae007a29757ef56412094c4204a36027eafe2",
+   "dirty": true
+  },
+  "weights": {
+   "E": "bb31fad54fdc",
+   "R": "266ca84fb944",
+   "P": "a53bd248d536"
+  },
+  "bundle_fingerprint": "580c1008f391",
+  "versions": {
+   "latent_space_version": "legged-ls-provenance_smoke_rep_go2",
+   "data": "artifacts/runs/provenance_smoke/legged_latent",
+   "name": "provenance_smoke_rep_go2"
+  },
+  "flags": {
+   "prev_action_input": false,
+   "semantic_weight": 1.0,
+   "beta_kl": 0.001,
+   "qd_dropout": 0.5,
+   "probe_lv_min": -4.0
+  },
+  "legacy": false,
+  "created_at": 1790472870.3235602,
+  "notes": ""
+ }
+}

@@ -1,0 +1,279 @@
+{
+ "config": {
+  "items": [
+   {
+    "episodes": 2,
+    "pair": "parm5_pg2__parm5_pg2",
+    "seed_start": 0,
+    "split": "source_train",
+    "task": "support_insert"
+   }
+  ],
+  "max_steps": 1200,
+  "name": "provenance_smoke_dual",
+  "out_dir": "artifacts/runs/provenance_smoke/dual",
+  "task": "support_insert",
+  "workers": 1
+ },
+ "episodes": [
+  {
+   "control_dt": 0.05,
+   "controller_version": "joint_targets:jt-1.0:d0bf59e143187a48|joint_targets:jt-1.0:6d9270c904dbeb50",
+   "episode_id": "support_insert_parm5_pg2__parm5_pg2_s0",
+   "exec_noise": 0.0,
+   "feasibility": {
+    "feasible": true,
+    "ik_errors": {
+     "left.support": 4.9429346811243485e-05,
+     "left.support_hover": 4.939929359427225e-05,
+     "right.grasp": 5.959071988833544e-05,
+     "right.inserted": 0.0006957346973040608,
+     "right.pregrasp": 5.958711486119631e-05,
+     "right.transit": 0.0006957358029998331
+    },
+    "unreachable": []
+   },
+   "featurizer": "feat-multi-v1+feat-v2",
+   "files": {
+    "support_insert_parm5_pg2__parm5_pg2_s0.private.pkl.gz": "49083cb670df442f",
+    "support_insert_parm5_pg2__parm5_pg2_s0.public.pkl.gz": "13e3ab65cdbf1a78"
+   },
+   "frame": {
+    "name": "table_world",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "yaw": 0.0
+   },
+   "hole_frame_used": {
+    "attempt": 0,
+    "event": "locate",
+    "pos": [
+     0.4110158615464206,
+     -0.018635232994490252,
+     0.044077339083011945
+    ],
+    "version": 0
+   },
+   "insertion_truth": {
+    "axis_err": 0.001273306728656433,
+    "depth": 0.03911127551690393,
+    "fixture_shift": 0.00044060107027778884,
+    "fixture_tilt": 4.3252401152043455e-06,
+    "lateral": 0.001113854867057194
+   },
+   "lineage": [
+    "procedural_arm_family/v1",
+    "procedural_arm_family/v1/parm5",
+    "procedural_gripper/v1",
+    "procedural_gripper/v1/pg2"
+   ],
+   "n_distractors": 0,
+   "noise_burst": null,
+   "physics": {
+    "cone": "elliptic",
+    "contact_version": "contact_v1",
+    "impratio": 10.0,
+    "integrator": "implicitfast",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "mujoco_version": "3.14.0",
+    "noslip_iterations": 0,
+    "solver": "newton",
+    "timestep": 0.002
+   },
+   "physics_dt": 0.002,
+   "privileged_teacher": true,
+   "public_runtime_success": true,
+   "retries": {},
+   "robot": "parm5+pg2 + parm5+pg2",
+   "robot_key": "parm5_pg2__parm5_pg2",
+   "robot_spec_hashes": [
+    "d0bf59e143187a48",
+    "6d9270c904dbeb50"
+   ],
+   "roles": {
+    "left": {
+     "assembly": "gripper",
+     "gripper_kind": "parallel",
+     "robot": 0,
+     "robot_name": "parm5+pg2"
+    },
+    "right": {
+     "assembly": "gripper",
+     "gripper_kind": "parallel",
+     "robot": 1,
+     "robot_name": "parm5+pg2"
+    }
+   },
+   "seed": 0,
+   "source": "scripted_teacher",
+   "spec_hash": "multi:4a4c1db5bdcfd2b4",
+   "split_lineage": {
+    "robot_key": "parm5_pg2__parm5_pg2",
+    "split": "source_train"
+   },
+   "status": "success",
+   "steps": 199,
+   "stop_after_success": null,
+   "task": "support_insert",
+   "task_hash": "276da7146c5cf1b0",
+   "wall_s": 0.5605297088623047
+  },
+  {
+   "control_dt": 0.05,
+   "controller_version": "joint_targets:jt-1.0:d0bf59e143187a48|joint_targets:jt-1.0:6d9270c904dbeb50",
+   "episode_id": "support_insert_parm5_pg2__parm5_pg2_s1",
+   "exec_noise": 0.0,
+   "feasibility": {
+    "feasible": true,
+    "ik_errors": {
+     "left.support": 0.0009072321462892924,
+     "left.support_hover": 0.0009073165600257249,
+     "right.grasp": 0.0006049137760854367,
+     "right.inserted": 0.0001474017791000127,
+     "right.pregrasp": 0.0006049170712708595,
+     "right.transit": 0.00014740344487708862
+    },
+    "unreachable": []
+   },
+   "featurizer": "feat-multi-v1+feat-v2",
+   "files": {
+    "support_insert_parm5_pg2__parm5_pg2_s1.private.pkl.gz": "40a95d7d446f335d",
+    "support_insert_parm5_pg2__parm5_pg2_s1.public.pkl.gz": "8d614c3418b6e5bd"
+   },
+   "frame": {
+    "name": "table_world",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "yaw": 0.0
+   },
+   "hole_frame_used": {
+    "attempt": 0,
+    "event": "locate",
+    "pos": [
+     0.4243313837725627,
+     -0.0732476131836919,
+     0.0442170178835023
+    ],
+    "version": 0
+   },
+   "insertion_truth": {
+    "axis_err": 0.0009718730163978819,
+    "depth": 0.03911089398834071,
+    "fixture_shift": 0.00036373811364839046,
+    "fixture_tilt": 5.504158963551812e-06,
+    "lateral": 0.0011566672184955636
+   },
+   "lineage": [
+    "procedural_arm_family/v1",
+    "procedural_arm_family/v1/parm5",
+    "procedural_gripper/v1",
+    "procedural_gripper/v1/pg2"
+   ],
+   "n_distractors": 0,
+   "noise_burst": null,
+   "physics": {
+    "cone": "elliptic",
+    "contact_version": "contact_v1",
+    "impratio": 10.0,
+    "integrator": "implicitfast",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "mujoco_version": "3.14.0",
+    "noslip_iterations": 0,
+    "solver": "newton",
+    "timestep": 0.002
+   },
+   "physics_dt": 0.002,
+   "privileged_teacher": true,
+   "public_runtime_success": true,
+   "retries": {},
+   "robot": "parm5+pg2 + parm5+pg2",
+   "robot_key": "parm5_pg2__parm5_pg2",
+   "robot_spec_hashes": [
+    "d0bf59e143187a48",
+    "6d9270c904dbeb50"
+   ],
+   "roles": {
+    "left": {
+     "assembly": "gripper",
+     "gripper_kind": "parallel",
+     "robot": 0,
+     "robot_name": "parm5+pg2"
+    },
+    "right": {
+     "assembly": "gripper",
+     "gripper_kind": "parallel",
+     "robot": 1,
+     "robot_name": "parm5+pg2"
+    }
+   },
+   "seed": 1,
+   "source": "scripted_teacher",
+   "spec_hash": "multi:4a4c1db5bdcfd2b4",
+   "split_lineage": {
+    "robot_key": "parm5_pg2__parm5_pg2",
+    "split": "source_train"
+   },
+   "status": "success",
+   "steps": 189,
+   "stop_after_success": null,
+   "task": "support_insert",
+   "task_hash": "276da7146c5cf1b0",
+   "wall_s": 0.5052986145019531
+  }
+ ],
+ "featurizer": "feat-multi-v1+feat-v2",
+ "manifest_hash": "d593d7fe0272e5bb",
+ "n_episodes": 2,
+ "name": "provenance_smoke_dual",
+ "privileged_teacher": true,
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": true,
+   "git_sha": "b4bae007a29757ef56412094c4204a36027eafe2"
+  },
+  "created_at": 1790472735.6042492,
+  "featurizer_version": "feat-multi-v1+feat-v2",
+  "flags": {
+   "noise_burst": [
+    1,
+    1
+   ],
+   "noise_levels": [
+    0.0
+   ],
+   "privileged_teacher": true
+  },
+  "legacy": false,
+  "notes": "",
+  "physics": {
+   "cone": "elliptic",
+   "contact_version": "contact_v1",
+   "impratio": 10.0,
+   "integrator": "implicitfast",
+   "iterations": 100,
+   "ls_iterations": 50,
+   "mujoco_version": "3.14.0",
+   "noslip_iterations": 0,
+   "solver": "newton",
+   "timestep": 0.002
+  },
+  "schema_version": "provenance-1",
+  "source": "scripted_teacher",
+  "versions": {},
+  "weights": {}
+ },
+ "source": "scripted_teacher",
+ "status_counts": {
+  "success": 2
+ },
+ "wall_s": 1.1991496086120605
+}

@@ -1,4 +1,5 @@
 {
+ "zero_prev_action": false,
  "dataset": "artifacts/packed/dualarm_latent_v1_H16 (pack-dual config configs/latent/pack-dualarm_latent_v1.json)",
  "horizon": 16,
  "stride": 1,

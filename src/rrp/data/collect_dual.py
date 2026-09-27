@@ -23,7 +23,8 @@ import numpy as np
 from rrp.data.collect import EpisodeRecord, privileged_labels, write_episode, read_episode
 from rrp.data.collect import FEATURIZER_VERSION as BASE_FEATURIZER_VERSION
 from rrp.data.features_multi import MultiFeaturizer
-from rrp.data.manifest import write_manifest
+from rrp.data.manifest import write_manifest, dataset_provenance
+from rrp.contracts.provenance import physics_provenance
 
 FEATURIZER_VERSION = f"feat-multi-v1+{BASE_FEATURIZER_VERSION}"
 
@@ -112,7 +113,7 @@ def collect_dual_episode(session, teacher, max_steps: int = 1200, episode_id: st
                 n_distractors=0, retries={e: v.attempt for e, v in session.runtime.instances.items() if v.attempt},
                 hole_frame_used=getattr(teacher, "hole_frame_used", None),
                 insertion_truth=session.insertion_truth() if session.scenario.name == "support_insert"
-                and f["feasible"] else None)
+                and f["feasible"] else None, physics=physics_provenance(session.model).to_dict())
     public = dict(meta=meta, inputs=inputs, actions=actions, q0=q0s, statuses=statuses,
                   action_space=dict(node_group=feat.aspace.node_group, node_col=feat.aspace.node_col,
                                     lower=feat.aspace.lower, upper=feat.aspace.upper,
@@ -190,9 +191,13 @@ def generate(config: dict) -> dict:
                 metas.append(dict(status="generation_error", error=repr(e)[:300]))
             if i % 50 == 0:
                 print(f"[collect_dual] {i + 1}/{len(jobs)} {time.time() - t0:.0f}s", flush=True)
-    man = write_manifest(out, config["name"], sorted(metas, key=lambda m: m.get("episode_id", "")),
+    metas = sorted(metas, key=lambda m: m.get("episode_id", ""))
+    prov = dataset_provenance(metas, source="scripted_teacher", featurizer_version=FEATURIZER_VERSION,
+                              flags=dict(privileged_teacher=True, noise_levels=config.get("noise_levels", [0.0]),
+                                         noise_burst=config.get("noise_burst", (1, 1))))
+    man = write_manifest(out, config["name"], metas,
                          extra=dict(config=config, wall_s=time.time() - t0, featurizer=FEATURIZER_VERSION,
-                                    source="scripted_teacher", privileged_teacher=True))
+                                    source=prov.source, privileged_teacher=True), provenance=prov)
     print(json.dumps({"name": config["name"], "status_counts": man["status_counts"], "wall_s": time.time() - t0}))
     return man
 

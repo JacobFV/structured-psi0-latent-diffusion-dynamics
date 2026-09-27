@@ -1,0 +1,32 @@
+{
+ "path": "artifacts/runs/provenance_smoke/legged_flow/policy.pt",
+ "sha256_16": "1523d7c9a5446b15",
+ "step": null,
+ "provenance": {
+  "schema_version": "provenance-1",
+  "source": "learned:legged_flow/policy.pt",
+  "physics": null,
+  "featurizer_version": null,
+  "code": {
+   "git_sha": "b4bae007a29757ef56412094c4204a36027eafe2",
+   "dirty": true
+  },
+  "weights": {
+   "flow": "265a855b10ad"
+  },
+  "bundle_fingerprint": "aba6f01d178e",
+  "versions": {
+   "latent_space_version": "legged-ls-provenance_smoke_rep_go2",
+   "representation": "artifacts/runs/provenance_smoke/legged_rep/representation.pt",
+   "name": "provenance_smoke_flow_go2"
+  },
+  "flags": {
+   "prev_action_input": false,
+   "packet_semantic_weight": 0.5,
+   "packet_tau_min": 0.6
+  },
+  "legacy": false,
+  "created_at": 1790472929.2325535,
+  "notes": ""
+ }
+}

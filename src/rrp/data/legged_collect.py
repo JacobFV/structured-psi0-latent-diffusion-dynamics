@@ -21,7 +21,9 @@ from pathlib import Path
 import numpy as np
 
 from rrp.control.legged_teachers import WaypointTeacher
+from rrp.contracts.provenance import CONTACT_VERSION_DEFAULT, parse_source, physics_provenance
 from rrp.data.collect import EpisodeRecord, write_episode
+from rrp.data.manifest import dataset_provenance, write_manifest
 from rrp.sim.legged import LeggedSession, build_waypoint_contact
 
 
@@ -78,7 +80,9 @@ def collect_episode(body: str, seed: int, tracker_kind: str = "auto", max_steps:
                 status=status, public_runtime_success=bool(s.runtime.succeeded()),
                 event_status={e: i.status for e, i in s.runtime.instances.items()},
                 source="scripted_teacher", privileged_teacher=True, teacher_variant="arc_only" if arc_only else "default", waypoints=sc.meta["waypoints"],
-                wall_s=time.time() - t0, split_lineage=split_lineage or {"lineage": rs.lineage})
+                wall_s=time.time() - t0, split_lineage=split_lineage or {"lineage": rs.lineage},
+                tracker_source_label=str(parse_source(s.tracker.source)),
+                physics=physics_provenance(s.model, sc.meta.get("contact_model", CONTACT_VERSION_DEFAULT)).to_dict())
     public = dict(meta=meta, inputs=inputs, actions=actions,
                   action_space=dict(group="base_velocity", units=["m/s", "m/s", "rad/s"],
                                     lower=s.tracker_contract.command_groups[0].lower,
@@ -116,11 +120,21 @@ def main(argv=None):
             rec = collect_episode(a.body, sd, a.tracker, arc_only=a.arc_only)
             m = write_episode(rec, out)
         rows.append(dict(episode_id=m["episode_id"], status=m["status"], steps=m["steps"], files=m["files"],
-                         tracker_source=m["tracker_source"], event_status=m["event_status"]))
+                         tracker_source=m["tracker_source"], event_status=m["event_status"],
+                         source=m.get("source", "scripted_teacher"), physics=m.get("physics"),
+                         tracker_version=m.get("controller_version")))
         print(json.dumps(rows[-1]), flush=True)
     summ = dict(body=a.body, n=len(rows), success=sum(r["status"] == "success" for r in rows),
                 fell=sum(r["status"] == "fell" for r in rows), episodes=rows)
-    (out / "manifest.json").write_text(json.dumps(summ, indent=1))
+    trk = sorted({r["tracker_source"] for r in rows})
+    prov = dataset_provenance(rows, source="scripted_teacher",
+                              flags=dict(privileged_teacher=True, arc_only=a.arc_only, tracker=a.tracker,
+                                         prev_action_input=False),
+                              notes="native actions = base_velocity commands executed by the body tracker")
+    prov.versions.update(tracker_source="|".join(str(parse_source(t)) for t in trk),
+                         tracker_version="|".join(sorted({str(r.get("tracker_version")) for r in rows})))
+    write_manifest(out, f"legged_waypoint_contact_{a.body}", rows,
+                   extra={k: v for k, v in summ.items() if k != "episodes"} | dict(source=prov.source), provenance=prov)
     if a.teacher_report:
         rep = Path(__file__).resolve().parents[3] / "artifacts" / "assets" / "legged_teacher" / (
             f"{a.body}_arc_only.json" if a.arc_only else f"{a.body}.json")

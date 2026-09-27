@@ -1,0 +1,4 @@
+[generate] 1/4 0s
+{"name": "provenance_smoke_arm", "status_counts": {"failure": 2, "success": 2}, "wall_s": 1.5442636013031006}
+[rrp.child] lease=1790472732_ba9f27 rc=0 stopped_by=None heartbeats=0
+{"lease_id": "1790472732_ba9f27", "unit": "rrp-job-1790472732_ba9f27.service", "log": "/home/brandonin/work/relational-robot-policy/ops/logs/1790472732_ba9f27_provenance_smoke_arm.log", "returncode": 0, "unit_result": "success", "exec_status": "0"}

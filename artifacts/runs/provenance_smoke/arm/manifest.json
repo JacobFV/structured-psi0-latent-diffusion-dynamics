@@ -1,0 +1,297 @@
+{
+ "config": {
+  "dart_noise": [
+   0.05
+  ],
+  "items": [
+   {
+    "episodes": 2,
+    "robot": "parm5_pg2",
+    "seed_start": 0,
+    "split": "source_train"
+   }
+  ],
+  "max_distractors": 1,
+  "name": "provenance_smoke_arm",
+  "out_dir": "artifacts/runs/provenance_smoke/arm",
+  "workers": 1
+ },
+ "episodes": [
+  {
+   "control_dt": 0.05,
+   "controller_version": "joint_targets:jt-1.0:f88c4d7d34000d6d",
+   "episode_id": "pick_place_parm5_pg2_s0",
+   "exec_noise": 0.0,
+   "feasibility": {
+    "feasible": true,
+    "ik_errors": {
+     "grasp": 0.002351511979704547,
+     "lift": 0.0023515119797045945,
+     "place": 0.005566117634018953,
+     "pregrasp": 0.00235151197970454,
+     "transport": 0.005566117634018887
+    },
+    "unreachable": []
+   },
+   "featurizer": "feat-v2",
+   "files": {
+    "pick_place_parm5_pg2_s0.private.pkl.gz": "131ee7e0c3c8199d",
+    "pick_place_parm5_pg2_s0.public.pkl.gz": "0553126d813a7a88"
+   },
+   "lineage": [
+    "procedural_arm_family/v1",
+    "procedural_arm_family/v1/parm5",
+    "procedural_gripper/v1",
+    "procedural_gripper/v1/pg2"
+   ],
+   "n_distractors": 0,
+   "physics": {
+    "cone": "elliptic",
+    "contact_version": "contact_v1",
+    "impratio": 10.0,
+    "integrator": "implicitfast",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "mujoco_version": "3.14.0",
+    "noslip_iterations": 0,
+    "solver": "newton",
+    "timestep": 0.002
+   },
+   "physics_dt": 0.002,
+   "privileged_teacher": true,
+   "public_runtime_success": true,
+   "robot": "parm5+pg2",
+   "robot_key": "parm5_pg2",
+   "seed": 0,
+   "source": "scripted_teacher",
+   "spec_hash": "f88c4d7d34000d6d",
+   "split_lineage": {
+    "robot_key": "parm5_pg2",
+    "split": "source_train"
+   },
+   "status": "success",
+   "steps": 95,
+   "task": "pick_place",
+   "task_hash": "e3ce26c7123c288d",
+   "wall_s": 0.08722496032714844
+  },
+  {
+   "control_dt": 0.05,
+   "controller_version": "joint_targets:jt-1.0:f88c4d7d34000d6d",
+   "episode_id": "pick_place_parm5_pg2_s0_dart50",
+   "exec_noise": 0.05,
+   "feasibility": {
+    "feasible": true,
+    "ik_errors": {
+     "grasp": 0.002351511979704547,
+     "lift": 0.0023515119797045945,
+     "place": 0.005566117634018953,
+     "pregrasp": 0.00235151197970454,
+     "transport": 0.005566117634018887
+    },
+    "unreachable": []
+   },
+   "featurizer": "feat-v2",
+   "files": {
+    "pick_place_parm5_pg2_s0_dart50.private.pkl.gz": "7295f5b5a366e1b8",
+    "pick_place_parm5_pg2_s0_dart50.public.pkl.gz": "3607286681776af2"
+   },
+   "lineage": [
+    "procedural_arm_family/v1",
+    "procedural_arm_family/v1/parm5",
+    "procedural_gripper/v1",
+    "procedural_gripper/v1/pg2"
+   ],
+   "n_distractors": 0,
+   "physics": {
+    "cone": "elliptic",
+    "contact_version": "contact_v1",
+    "impratio": 10.0,
+    "integrator": "implicitfast",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "mujoco_version": "3.14.0",
+    "noslip_iterations": 0,
+    "solver": "newton",
+    "timestep": 0.002
+   },
+   "physics_dt": 0.002,
+   "privileged_teacher": true,
+   "public_runtime_success": false,
+   "robot": "parm5+pg2",
+   "robot_key": "parm5_pg2",
+   "seed": 0,
+   "source": "scripted_teacher",
+   "spec_hash": "f88c4d7d34000d6d",
+   "split_lineage": {
+    "robot_key": "parm5_pg2",
+    "split": "source_train"
+   },
+   "status": "failure",
+   "steps": 600,
+   "task": "pick_place",
+   "task_hash": "e3ce26c7123c288d",
+   "wall_s": 0.5579550266265869
+  },
+  {
+   "control_dt": 0.05,
+   "controller_version": "joint_targets:jt-1.0:f88c4d7d34000d6d",
+   "episode_id": "pick_place_parm5_pg2_s1",
+   "exec_noise": 0.0,
+   "feasibility": {
+    "feasible": true,
+    "ik_errors": {
+     "grasp": 6.637416636857976e-05,
+     "lift": 0.0004774031886467317,
+     "place": 0.002242346262951117,
+     "pregrasp": 0.00010853088709586122,
+     "transport": 0.0022423462629510824
+    },
+    "unreachable": []
+   },
+   "featurizer": "feat-v2",
+   "files": {
+    "pick_place_parm5_pg2_s1.private.pkl.gz": "e73463b982e20835",
+    "pick_place_parm5_pg2_s1.public.pkl.gz": "237bbdb220ded29d"
+   },
+   "lineage": [
+    "procedural_arm_family/v1",
+    "procedural_arm_family/v1/parm5",
+    "procedural_gripper/v1",
+    "procedural_gripper/v1/pg2"
+   ],
+   "n_distractors": 1,
+   "physics": {
+    "cone": "elliptic",
+    "contact_version": "contact_v1",
+    "impratio": 10.0,
+    "integrator": "implicitfast",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "mujoco_version": "3.14.0",
+    "noslip_iterations": 0,
+    "solver": "newton",
+    "timestep": 0.002
+   },
+   "physics_dt": 0.002,
+   "privileged_teacher": true,
+   "public_runtime_success": true,
+   "robot": "parm5+pg2",
+   "robot_key": "parm5_pg2",
+   "seed": 1,
+   "source": "scripted_teacher",
+   "spec_hash": "f88c4d7d34000d6d",
+   "split_lineage": {
+    "robot_key": "parm5_pg2",
+    "split": "source_train"
+   },
+   "status": "success",
+   "steps": 99,
+   "task": "pick_place",
+   "task_hash": "e3ce26c7123c288d",
+   "wall_s": 0.09956812858581543
+  },
+  {
+   "control_dt": 0.05,
+   "controller_version": "joint_targets:jt-1.0:f88c4d7d34000d6d",
+   "episode_id": "pick_place_parm5_pg2_s1_dart50",
+   "exec_noise": 0.05,
+   "feasibility": {
+    "feasible": true,
+    "ik_errors": {
+     "grasp": 6.637416636857976e-05,
+     "lift": 0.0004774031886467317,
+     "place": 0.002242346262951117,
+     "pregrasp": 0.00010853088709586122,
+     "transport": 0.0022423462629510824
+    },
+    "unreachable": []
+   },
+   "featurizer": "feat-v2",
+   "files": {
+    "pick_place_parm5_pg2_s1_dart50.private.pkl.gz": "4949029624c9922a",
+    "pick_place_parm5_pg2_s1_dart50.public.pkl.gz": "93c11f87166fb673"
+   },
+   "lineage": [
+    "procedural_arm_family/v1",
+    "procedural_arm_family/v1/parm5",
+    "procedural_gripper/v1",
+    "procedural_gripper/v1/pg2"
+   ],
+   "n_distractors": 1,
+   "physics": {
+    "cone": "elliptic",
+    "contact_version": "contact_v1",
+    "impratio": 10.0,
+    "integrator": "implicitfast",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "mujoco_version": "3.14.0",
+    "noslip_iterations": 0,
+    "solver": "newton",
+    "timestep": 0.002
+   },
+   "physics_dt": 0.002,
+   "privileged_teacher": true,
+   "public_runtime_success": false,
+   "robot": "parm5+pg2",
+   "robot_key": "parm5_pg2",
+   "seed": 1,
+   "source": "scripted_teacher",
+   "spec_hash": "f88c4d7d34000d6d",
+   "split_lineage": {
+    "robot_key": "parm5_pg2",
+    "split": "source_train"
+   },
+   "status": "failure",
+   "steps": 430,
+   "task": "pick_place",
+   "task_hash": "e3ce26c7123c288d",
+   "wall_s": 0.4355173110961914
+  }
+ ],
+ "featurizer": "feat-v2",
+ "manifest_hash": "9c818c770a5f7b52",
+ "n_episodes": 4,
+ "name": "provenance_smoke_arm",
+ "privileged_teacher": true,
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": true,
+   "git_sha": "b4bae007a29757ef56412094c4204a36027eafe2"
+  },
+  "created_at": 1790472733.7867756,
+  "featurizer_version": "feat-v2",
+  "flags": {
+   "dart_noise": [
+    0.05
+   ],
+   "privileged_teacher": true
+  },
+  "legacy": false,
+  "notes": "",
+  "physics": {
+   "cone": "elliptic",
+   "contact_version": "contact_v1",
+   "impratio": 10.0,
+   "integrator": "implicitfast",
+   "iterations": 100,
+   "ls_iterations": 50,
+   "mujoco_version": "3.14.0",
+   "noslip_iterations": 0,
+   "solver": "newton",
+   "timestep": 0.002
+  },
+  "schema_version": "provenance-1",
+  "source": "scripted_teacher",
+  "versions": {},
+  "weights": {}
+ },
+ "source": "scripted_teacher",
+ "status_counts": {
+  "failure": 2,
+  "success": 2
+ },
+ "wall_s": 1.543757677078247
+}
