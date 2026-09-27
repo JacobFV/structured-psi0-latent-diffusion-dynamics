@@ -4,7 +4,7 @@ Owner: restructure agent. Worktree `~/work/rrp-wt/restructure`, branch `track/re
 Scope: docs/strategy.md W4; docs/repo_structure_audit.md "Target structure" and "Migration plan" phase 2.
 Rule: moves only, no behaviour change (numerics, defaults, config semantics, on-disk formats unchanged).
 
-State: **implementing** (phase table below).
+State: **verified** for P1–P5 (merged to main); P6 **blocked_external** on the W1 contact track merging.
 
 ## how the moves work
 - `research/scripts/2026-09-26/w4_move.py old.mod=new.mod ...` does `git mv`, writes a shim at the old path and rewrites
@@ -55,8 +55,8 @@ Deviations from the audit's target text, forced by the layering rule (recorded h
 | P2 | bodies, envs, teachers, controllers, models | merged 4a9030e |
 | P3 | data, training, evaluation (break evaluation↔training) | merged 3788f57 |
 | P4 | CLI package without silent ImportError; ops → orchestration | merged aaf9201 |
-| P5 | research diagnostics; dedup; peer_sync .rrp_revision | verified |
-| P6 | legged files excluded until W1 (contact) merges | blocked on W1 |
+| P5 | research diagnostics; dedup; peer_sync .rrp_revision | merged ff0d867 |
+| P6 | legged files excluded until W1 (contact) merges | blocked_external (W1 still editing legged_core, tracker_training) |
 
 ### P1 (contracts / physics / features)
 - moves: control.psi_contracts → contracts.psi; sim.snapshot_contract → physics.snapshot; data.features →
@@ -156,10 +156,75 @@ Deviations from the audit's target text, forced by the layering rule (recorded h
   page must build unchanged); remaining one-off scripts (t1_diag_*.sh, chain scripts) → W5 run-dag.
 - remove shims after the audit's phase-5 condition; keep `rrp/data/features.py` permanently (pickle path).
 
+## module map (old → new; the full list is `PLANNED` in tests/unit/test_layering.py)
+- contracts: control.psi_contracts → contracts.psi; ops.gpu (+ ops.jobs.CheckpointSignal) → contracts.workload;
+  `combined_hash` → contracts.robot; `parse_seed_spec` (new, dedup) in contracts.runs.
+- physics: sim.snapshot_contract → physics.snapshot; P6: morphology.contact → physics.contact.
+- bodies: morphology.{aloha,catalog,compiler,fixtures,generators,importers,surgery,variants} → bodies.*; control.ik →
+  bodies.ik; P6: morphology.legged → bodies.legged.
+- envs: sim.{native,dual,scenario,dual_scenarios,sensors,fixtures} → envs.*; control.joint_targets → envs.joint_targets;
+  P6: sim.legged, control.{legged_core,legged_vec,legged_tracker,tracker_nets} → envs.*.
+- features: data.features → features.featurizer (+ featurizer_for, cached_featurizer); data.features_multi →
+  features.multi; control.legged_latent → features.legged (+ H, MAX_J, KNOT_TICKS); features.derived (local_sensors,
+  active_operator, OPERATORS from learning.packed).
+- teachers: control.teachers → teachers.arm; control.dual_teachers → teachers.dual; control.legged_teachers →
+  teachers.legged; control.dual_validate → teachers.dual_validate; control.functional_composition →
+  teachers.functional_composition.
+- models: model.{attention,backbone,batch,binding_aug,codec,flow,latent_batch,latent_probes,legged_latent,qa,
+  semantic_latent} → models.*; learning.checkpoint → models.checkpoint; learning.critics → models.critics;
+  models.legged_bc (LeggedBC/build/load_bc from learning.legged_bc).
+- controllers: control.latent_realizer → controllers.latent_realizer (+ batched_ticks); policy.runner →
+  controllers.policy_runner; policy.latent_runner → controllers.latent_runner; controllers.bundles (load_representation;
+  legged load_rep, checkpoint_provenance, legged_flags, _dev).
+- data: learning.data → data.chunks; learning.packed → data.packed; learning.dual_latent → data.dual_latent;
+  data.latent (LatentData).
+- evaluation: morphology.legged_catalog → evaluation.legged_catalog; evaluation.checkpoint_audit (new);
+  P6: control.tracker_validation → evaluation.tracker_validation.
+- training: learning.{adapt,behavior,branching,expo,flow_sde,grpo,latent_grpo,latent_train,legged_bc,legged_dagger,
+  legged_latent_train,replay_buffer,rollout,sft,swap_alignment,synthetic,vlm_train} → training.*;
+  evaluation.{campaign,baseline_campaign,latent_campaign} → training.*; P6: control.{reward_schedule,tracker_training}.
+- pipelines: empty skeleton (W5).
+- orchestration: ops.{broker,budget,cgroup,child,discovery,jobs,runtime,telemetry,watchdog} → orchestration.*.
+- cli: cli.py → cli/main.py (package rrp.cli); cli_ext → cli.ext; cli_ml → cli.data; cli_train → cli.train;
+  cli_latent → cli.latent; cli_dual_latent → cli.dual_latent; cli_adapt → cli.adapt.
+- service: policy.registry → service.policy_registry.
+- research: learning.legged_t1_diag, learning.qa_train, evaluation.system2_eval, evaluation.bc_semantic_edits,
+  evaluation.latent_slice1_report, model.system2 → research.*.
+
 ## excluded until W1 merges (P6)
 morphology/legged.py, morphology/contact.py, sim/legged.py, control/{legged_core, legged_vec, legged_tracker,
 tracker_nets, tracker_training, tracker_validation, reward_schedule}.py. Check before each merge:
 `git diff origin/main...origin/track/contact --stat` (and the local `track/contact` branch).
+
+## P6 procedure (after W1 merges; do not start while track/contact edits these files)
+1. `git fetch origin && git diff origin/main...origin/track/contact --stat` must not list the P6 files, and the lead must
+   confirm W1 is merged/idle. Rebase this branch on origin/main.
+2. In `research/scripts/2026-09-26/w4_move.py` empty the `EXCLUDED` set, then run
+   `python research/scripts/2026-09-26/w4_move.py rrp.morphology.contact=rrp.physics.contact
+   rrp.morphology.legged=rrp.bodies.legged rrp.sim.legged=rrp.envs.legged rrp.control.legged_core=rrp.envs.legged_core
+   rrp.control.legged_vec=rrp.envs.legged_vec rrp.control.legged_tracker=rrp.envs.legged_tracker
+   rrp.control.tracker_nets=rrp.envs.tracker_nets rrp.control.reward_schedule=rrp.training.reward_schedule
+   rrp.control.tracker_training=rrp.training.tracker_training
+   rrp.control.tracker_validation=rrp.evaluation.tracker_validation` (all targets match PLANNED).
+   Check `from . import x` lines in the moved files (the tool now maps them; verify with the layering test).
+3. Checks: `pytest tests/unit` (layering: the legacy packages then hold only shims; test_cli; test_restructure_compat
+   runs `python -m <old> --help` for every moved argparse module, e.g. rrp.control.tracker_training); numerics parity
+   `python research/scripts/2026-09-26/w4_parity.py OUT.json ~/work/rrp-wt/provenance/artifacts/runs/provenance_smoke
+   ~/work/relational-robot-policy` (under `rrp ops run`; PYTHONPATH = this tree's src) must equal
+   `artifacts/runs/restructure_parity/p3_base_15984f7.json` (its legged half runs LeggedSession with the go2 tracker and
+   needs `artifacts/trackers/go2/actor.pt`); the checkpoint audit (trackers); a short tracker-training smoke
+   (`python -m rrp.control.tracker_training --body go2` with a tiny iteration count under `rrp ops run`).
+4. Decide the tracker home: `envs/` (planned; LeggedSession embeds the tracker) or `controllers/` with the tracker
+   injected into LeggedSession (a W5 refactor, behaviour-neutral but not a pure move).
+
+## remaining steps (for the lead)
+- Peer checkpoint store (strategy W4 gate; W4 did not touch the peer): sync main into a FRESH dir and run the audit, e.g.
+  `export RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/restructure; scripts/peer_sync.sh push; scripts/peer_run.sh --cpu 2
+  --mem 8G --label restructure_ckpt_audit --max-seconds 3600 -- PY -m rrp.evaluation.checkpoint_audit
+  --out artifacts/runs/restructure_ckpt_audit/peer.json /dev/shm/rrp-brandonin/repo/artifacts`
+  (the host audit found no pickled rrp classes in 347 files, so import paths cannot break loading; this checks the rest).
+- P6 above once W1 merges.
+- Other branches rebasing onto main: edits to a moved file's OLD path conflict with its shim; port them to the new path.
 
 ## resume steps
 1. `cd ~/work/rrp-wt/restructure && git fetch origin && git status && git log --oneline -5`.
