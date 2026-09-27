@@ -1,0 +1,190 @@
+{
+ "body": "t1",
+ "actor": "artifacts/runs/contact_t1_w8b/actor.pt",
+ "n": 20,
+ "success": 11,
+ "fell": 0,
+ "mean_sim_s_success": 16.572727272727274,
+ "rows": [
+  {
+   "seed": 10000,
+   "status": "failure",
+   "steps": 162,
+   "sim_s": 16.2,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10001,
+   "status": "success",
+   "steps": 179,
+   "sim_s": 17.900000000000002,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10002,
+   "status": "success",
+   "steps": 175,
+   "sim_s": 17.5,
+   "pure_turn_frac": 0.045714285714285714,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10003,
+   "status": "failure",
+   "steps": 187,
+   "sim_s": 18.7,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10004,
+   "status": "failure",
+   "steps": 171,
+   "sim_s": 17.1,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10005,
+   "status": "success",
+   "steps": 167,
+   "sim_s": 16.7,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10006,
+   "status": "failure",
+   "steps": 146,
+   "sim_s": 14.600000000000001,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10007,
+   "status": "failure",
+   "steps": 178,
+   "sim_s": 17.8,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10008,
+   "status": "success",
+   "steps": 169,
+   "sim_s": 16.900000000000002,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10009,
+   "status": "success",
+   "steps": 165,
+   "sim_s": 16.5,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10010,
+   "status": "success",
+   "steps": 171,
+   "sim_s": 17.1,
+   "pure_turn_frac": 0.04678362573099415,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10011,
+   "status": "failure",
+   "steps": 177,
+   "sim_s": 17.7,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10012,
+   "status": "success",
+   "steps": 203,
+   "sim_s": 20.3,
+   "pure_turn_frac": 0.024630541871921183,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10013,
+   "status": "failure",
+   "steps": 177,
+   "sim_s": 17.7,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10014,
+   "status": "failure",
+   "steps": 145,
+   "sim_s": 14.5,
+   "pure_turn_frac": 0.013793103448275862,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10015,
+   "status": "failure",
+   "steps": 195,
+   "sim_s": 19.5,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10016,
+   "status": "success",
+   "steps": 129,
+   "sim_s": 12.9,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10017,
+   "status": "success",
+   "steps": 161,
+   "sim_s": 16.1,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10018,
+   "status": "success",
+   "steps": 148,
+   "sim_s": 14.8,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10019,
+   "status": "success",
+   "steps": 156,
+   "sim_s": 15.600000000000001,
+   "pure_turn_frac": 0.019230769230769232,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  }
+ ]
+}

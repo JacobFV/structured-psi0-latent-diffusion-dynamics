@@ -336,7 +336,12 @@ Closed-loop W8 check (`scripts/contact_waypoint_eval.py`, WaypointTeacher, conta
 installed W8 t1 under legacy limits 20/20 success (mean 14.6 s). Candidate under sourced limits: 12 success / 3 failure / 0 falls in the first 15
 episodes (the host watchdog shed the job at 15; mean about 12.7 s). All 3 failures are the privileged `halt` check: every task event succeeded and the robot
 stood 0.20 m from waypoint b with both feet down, but the instantaneous TRUE base speed was 0.101 > 0.1 m/s (standing sway of 0.01-0.09 m/s with feet
-planted). Fix in progress: permanent `stand_vel` (-4 x |v_xy| at zero command), 500-iter fine-tune `artifacts/runs/contact_t1_w8b` (peer).
+planted). Fix attempt `artifacts/runs/contact_t1_w8b` (500 iters, permanent `stand_vel` -4): WORSE. `val/t1_w8b-ideal`: fwd 0.67 (gate fails), turn 1.48,
+turn at 0.48 1.30, arc 1.97, slip 0.13; closed loop 11/20 (`w8loop/t1_w8b_sourced.json`), all failures the same halt speed check, now with stepping
+while standing (truth stance fraction drops to 0). Cause: at alpha 1 the stand_contact prior sits at its 10% floor, and the teacher mix has only 3%
+zero commands. Attempt w8c (host, `artifacts/runs/contact_t1_w8c`, 400 iters from w8): stand_contact=5 (0.5 effective at alpha 1), stand_vel -1.5,
+10% stops in the mix (`--cmd-mix teacher:0.10`). 50-episode fall checks (`fallrate/t1_{w8,w8b}_*.json`): **0/50 falls** for both on turn, turn at 0.48,
+arc and forward.
 Videos (reviewed): `artifacts/video/2026-09-27_contact_t1_{turn,turn_fast,arc,forward}_w8installed-vs-w8mix_iter1499_ok_ok.mp4`
 (left: W8 installed t1 under LEGACY limits, right: candidate under SOURCED limits).
 ### (4) h1: PARKED
