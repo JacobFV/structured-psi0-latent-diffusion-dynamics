@@ -123,6 +123,20 @@ pure-turn samples plus a stepping-turn prior; a yaw-aligned foot placement rewar
 Next track item after this gate (strategy W1): actuator realism (armature, joint friction/damping, torque-speed limits) and 0-30 ms
 latency randomisation (v2 currently randomises 0-8 ms).
 
+## W1 follow-up (lead D-101, 2026-09-27)
+### (1) go2 permanent clearance floor: running
+New PERMANENT term `clearance_floor` (via `--reward-set clearance_floor=-2`): at each touchdown during a moving command,
+-2 x clip((floor - apex)/floor, 0, 1)^2 per foot, where floor = 0.6 x swing_height (go2 3.6 cm, humanoids 4.8 cm). It is never scheduled.
+Run: host lease 1790495753_12bd09, `artifacts/runs/contact_go2_cf`, warm from go2 contact_v2 iter3499, 1500 iters, lr ceiling 1e-3,
+schedule restarted (warm-up 100). alpha was back at 1.0 by iter ~700; window slip 0.05, CoT 1.13-1.23 (vs 0.93 before the floor).
+### (2) turn in place: running (t1, h1; g1 queued)
+PERMANENT `yaw_slip` (-0.5 x sum over stance feet of |foot yaw rate|: no pivoting on a planted foot) and `turn_step` (+1 x agreement of
+contacts with the alternating gait clock during pure-turn commands), plus clearance_floor -2. Curriculum: pure-turn probability 0.35;
+yaw-rate range +-[0.3, 1] x scale x wz_max, scale starting at 0.4 and widened by 0.1 each 25-iteration window with turn ratio >= 0.6 and falls
+<= 0.2 (`turn_scale` in train log and checkpoint). Humanoid alpha thresholds as in t1 r2. Runs (PEER, dir wt/contact3, warm from the
+installed contact_v2 trackers): t1 lease 1790497102_81e726 `artifacts/runs/contact_t1_turn`, h1 lease 1790497102_12a17b
+`artifacts/runs/contact_h1_turn`, 2500 iters each.
+
 ## runs
 ### gait_v2a: failed_hypothesis (stopped at iter 500-1400)
 t1/h1 (host) and g1/go2 (peer) with a clearance PENALTY at touchdown ((target - apex)/target)^2 x -2. After 1200-1400 iters
