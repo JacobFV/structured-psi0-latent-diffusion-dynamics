@@ -7,11 +7,17 @@ DAG file (YAML; see dags/arm_lineage.yaml):
   axis_vars: {variant: {sem: {...}}, seed: {...}}   # variables per axis value
   vars: {name: template}                        # evaluated in order after the axis vars (may use them)
   lists: {name: [...]}                          # referenced as "$name" anywhere in a node config
-  defaults: {placement, retries, resources: {cpu, mem, gpu, gpu_mem, max_seconds}, max_parallel, admission_timeout_s}
+  defaults: {placement, retries, resources: {cpu, mem, gpu, gpu_mem, max_seconds}, max_parallel, admission_timeout_s,
+             max_parallel_gpu, max_cpu}      # caps over this DAG's running nodes (declared resources)
   base: RunConfig fields shared by every node (flags!, params, options)
   nodes: {name: {stage, tag, deps, resources, placement, retries, only: {axis: [values]},
-                 per: {axis: {value: <config overlay>}}, config: <RunConfig overlay>}}
+                 per: {axis: {value: <config overlay>}}, config: <RunConfig overlay>, scope: point|global}}
 Inputs reference upstream nodes as "@node" or "@node:file" (the planner adds the dependency) and existing runs by id.
+scope: global (W8): the node is planned ONCE, outside the matrix (id without "@..." suffix; lineage `global_lineage`,
+default the DAG name; templates see only `vars` that render without axis values, and the base is rendered the same
+way, so axis-dependent flags belong in the point nodes' own config). Point nodes may reference a global node
+("@collect"); a global node may reference only global nodes. Use it for shared inputs (data collection, a BC
+positive control, the teacher reference) that must not be duplicated per matrix point.
 
 Execution: every node is ONE leased job through the existing broker: `rrp ops run --detach` on the host or
 scripts/peer_run.sh --detach on the peer (RRP_PEER_REPO), running `python -m rrp.pipelines run --config-b64 ...`.
@@ -156,6 +162,24 @@ def _env_for(spec: dict, point: dict) -> dict:
     return env
 
 
+def _global_env(spec: dict) -> dict:
+    """Template variables for scope-global nodes: the `vars` that render without any axis value."""
+    env = {}
+    for k, v in (spec.get("vars") or {}).items():
+        try:
+            env[k] = render(v, env)
+        except Exception:      # needs an axis value: not available to global nodes
+            continue
+    return env
+
+
+def _is_global(n: dict) -> bool:
+    sc = n.get("scope", "point")
+    if sc not in ("point", "global"):
+        raise DagError(f"scope {sc!r} (point|global)")
+    return sc == "global"
+
+
 def plan_dag(spec: dict, *, source: str = "") -> Plan:
     name = spec["name"]
     family = spec["family"]
@@ -164,14 +188,38 @@ def plan_dag(spec: dict, *, source: str = "") -> Plan:
     lists = spec.get("lists") or {}
     dres = defaults.get("resources") or {}
     nodes: dict[str, PlannedNode] = {}
+    gspec = {k: v for k, v in spec["nodes"].items() if _is_global(v)}
+    grids: dict[str, str] = {}              # global node -> run id (visible to every point)
+    if gspec:
+        genv = _global_env(spec)
+        gl = render(spec.get("global_lineage", name), genv)
+        _plan_point(spec, {}, genv, "", gl, gspec, {}, nodes, grids, family, track, defaults, lists, dres)
     for point in _points(spec.get("matrix") or {}):
         env = _env_for(spec, point)
         sfx = _suffix(point)
         lineage = render(spec.get("lineage", name), env)
+        pspec = {k: v for k, v in spec["nodes"].items() if not _is_global(v)}
+        _plan_point(spec, point, env, sfx, lineage, pspec, grids, nodes, {}, family, track, defaults, lists, dres)
+    for nid, n in nodes.items():
+        for d in n.deps:
+            if d not in nodes:
+                raise DagError(f"{nid}: unknown dependency {d}")
+    order = _toposort(nodes)
+    if len({n.rc.run_id for n in nodes.values()}) != len(nodes):
+        raise DagError("two nodes derive the same output directory (give them distinct tags)")
+    return Plan(name, nodes, order, defaults, track, source)
+
+
+def _plan_point(spec, point, env, sfx, lineage, node_specs, grids, nodes, out_rids, family, track, defaults, lists,
+                dres):
+    """Plan `node_specs` at one matrix point (point={} and sfx="" for the global nodes). `grids`: run ids of the
+    global nodes (referenced without suffix); `out_rids` receives this pass's run ids."""
+    name = spec["name"]
+    if True:
         # pass 1: run ids of every node at this point (for @refs)
         rids = {}
         raw = {}
-        for nname, n in spec["nodes"].items():
+        for nname, n in node_specs.items():
             only = n.get("only") or {}                 # {axis: [values]}: the node exists only at these points
             if any(str(point.get(ax)) not in {str(v) for v in vals} for ax, vals in only.items()):
                 continue
@@ -181,33 +229,36 @@ def plan_dag(spec: dict, *, source: str = "") -> Plan:
                 if ov:
                     n["config"] = overlay(n.get("config") or {}, ov)
             n.pop("only", None)
+            n.pop("scope", None)
             n = _subst_lists(render(n, env), lists)
             raw[nname] = n
         for nname, n in raw.items():
             rc = _build_rc(spec, n, nname, point, lineage, track, family, env, lists, resolve_refs=None)
             rids[nname] = rc.run_id
+        out_rids.update(rids)
+        allr = {**grids, **rids}                 # a point node shadows a global node of the same name
+
+        def dep_id(d, me):
+            if d in rids:
+                return d + sfx
+            if d in grids:
+                return d
+            raise DagError(f"{me}: reference to unknown node @{d}")
         for nname, n in raw.items():
             refs: set[str] = set()
             rc = _build_rc(spec, n, nname, point, lineage, track, family, env, lists,
-                           resolve_refs=lambda r: _resolve_ref(r, rids, refs, nname))
-            deps = sorted({d + sfx for d in (n.get("deps") or [])} | {d + sfx for d in refs})
+                           resolve_refs=lambda r: _resolve_ref(r, allr, refs, nname))
+            deps = sorted({dep_id(d, nname) for d in (n.get("deps") or [])} | {dep_id(d, nname) for d in refs})
             res = Resources(**{**dres, **(n.get("resources") or {})})
             placement = n.get("placement", defaults.get("placement", "host"))
             if placement == "auto":
                 placement = "peer" if res.gpu else defaults.get("cpu_placement", "host")
             if placement not in ("host", "peer"):
                 raise DagError(f"{nname}: placement {placement!r}")
-            label = re.sub(r"[^A-Za-z0-9_]", "_", render(spec.get("label_prefix", name), env) + "_" + nname)[:60]
+            lp = spec.get("global_label_prefix", name) if not point else spec.get("label_prefix", name)
+            label = re.sub(r"[^A-Za-z0-9_]", "_", render(lp, env) + "_" + nname)[:60]
             nodes[nname + sfx] = PlannedNode(nname + sfx, nname, point, rc, deps, res, placement,
                                              int(n.get("retries", defaults.get("retries", 0))), label)
-    for nid, n in nodes.items():
-        for d in n.deps:
-            if d not in nodes:
-                raise DagError(f"{nid}: unknown dependency {d}")
-    order = _toposort(nodes)
-    if len({n.rc.run_id for n in nodes.values()}) != len(nodes):
-        raise DagError("two nodes derive the same output directory (give them distinct tags)")
-    return Plan(name, nodes, order, defaults, track, source)
 
 
 def _resolve_ref(r: str, rids: dict, refs: set, me: str) -> str:
@@ -421,6 +472,8 @@ class Executor:
     ledger: Ledger
     runner: OpsRunner
     max_parallel: int = 4
+    max_parallel_gpu: int | None = None     # cap on running GPU nodes (a share of a shared GPU; W8)
+    max_cpu: float | None = None            # cap on the summed declared CPU of running nodes
     poll_s: float = 30.0
     admission_timeout_s: float = 10800.0
     log: callable = field(default=lambda m: print(f"{time.strftime('%F %T')} [run-dag] {m}", flush=True))
@@ -451,6 +504,8 @@ class Executor:
             for nid in ready:
                 if len(running) >= self.max_parallel:
                     break
+                if not self._fits(nid, running):
+                    continue
                 if self._adopt_existing(nid):
                     continue
                 try:
@@ -482,6 +537,18 @@ class Executor:
                    for s in ("completed", "failed", "blocked", "planned", "running")}
         self.log(f"done: {summary}")
         return summary
+
+    def _fits(self, nid: str, running: list[str]) -> bool:
+        """Per-DAG resource caps (declared resources of the running nodes; the broker still enforces the host/peer
+        limits). A node larger than max_cpu alone may still run when nothing else is running."""
+        r = self.plan.nodes[nid].resources
+        if r.gpu and self.max_parallel_gpu is not None and \
+                sum(self.plan.nodes[k].resources.gpu for k in running) >= self.max_parallel_gpu:
+            return False
+        if self.max_cpu is not None and running and \
+                sum(self.plan.nodes[k].resources.cpu for k in running) + r.cpu > self.max_cpu:
+            return False
+        return True
 
     def _adopt_existing(self, nid: str) -> bool:
         """Outputs already complete (manifest with this config_hash, e.g. run by hand): mark completed, no lease."""

@@ -134,3 +134,25 @@ def test_legged_train_rep_calls_trainer_and_checks_contact(tmp_path, monkeypatch
                    filename="s0-1.manifest.json")
     with pytest.raises(StageError, match="contact version"):
         Pipeline("legged").run(rc, root=tmp_path, index=RunIndex())
+
+
+def test_legged_contact_v2_refuses_unversioned_data_and_mismatched_rows(tmp_path):
+    from rrp.pipelines.legged import check_contact_version, check_rows_contact
+    from rrp.pipelines.base import StageContext
+    rc = RunConfig.model_validate(dict(
+        schema_version="runconfig-1", family="legged", stage="eval_r2", variant="semfix", seed=1, lineage="l",
+        track="t", inputs={"flow": "runs/x:policy.pt"},
+        flags=dict(zero_prev_action=None, realizer_anchor=None, realizer_drop_qd=None, probe_lv_min=None,
+                   qd_dropout=None, contact_version="contact_v2"), options={"body": "anymal_c"}))
+    ctx = StageContext(rc=rc, index=RunIndex(), root=tmp_path)
+    (tmp_path / "d").mkdir()
+    with pytest.raises(StageError, match="legacy data = contact_v1"):
+        check_contact_version(ctx, "d")
+    ok = dict(seed=1, contact_version="contact_v2",
+              checkpoint_provenance={"flow": {"physics": {"contact_version": "contact_v2"}}, "representation": {}})
+    assert check_rows_contact(ctx, [ok], "w") == {"contact_versions": ["contact_v2"]}
+    with pytest.raises(StageError, match="scene contact_v1"):
+        check_rows_contact(ctx, [dict(ok, contact_version="contact_v1")], "w")
+    with pytest.raises(StageError, match="trained on contact_v1"):
+        check_rows_contact(ctx, [dict(ok, checkpoint_provenance={"flow": {"physics": {"contact_version": "contact_v1"}}})], "w")
+    assert __import__("rrp.pipelines.legged", fromlist=["physics_env"]).physics_env(ctx)["RRP_CONTACT_MODEL"] == "contact_v2"

@@ -37,6 +37,7 @@ from rrp.features.legged import (LeggedMorph, public_context, local_state, activ
 from rrp.controllers.bundles import load_rep, _dev
 from rrp.models.legged_latent import LeggedFlow, LeggedProbe
 from rrp.sim.legged import LeggedSession, build_waypoint_contact
+from rrp.morphology.contact import model_contact_version
 from rrp.contracts.runs import parse_seed_spec
 
 REALIZER_COMPAT = "legged-rz-osc-v1"     # base of the system-0 compatibility ID (osc-v1 phase input)
@@ -507,7 +508,8 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
                public_success=bool(s.runtime.succeeded()), sim_time=float(s.data.time), wall_s=time.time() - t0,
                events={e: v.status for e, v in s.runtime.instances.items()},
                final_pose=s.base_pose_truth().tolist(), waypoints=sc.meta["waypoints"],
-               tracker=getattr(s, "tracker_version_str", None), n_steps=steps)
+               tracker=getattr(s, "tracker_version_str", None), n_steps=steps,
+               contact_version=model_contact_version(s.model) or sc.meta.get("contact_model"))
     if ctl is not None:
         row.update(stats=ad.stats, packets=ctl.packets, packet_log=ad.log[:20],
                    latent_space_version=getattr(ctl, "lsv", None), realizer_compat_version=getattr(ctl, "rcv", None),

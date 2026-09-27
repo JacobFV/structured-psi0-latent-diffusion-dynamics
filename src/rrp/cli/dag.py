@@ -52,12 +52,19 @@ def cmd_run_dag(a):
                 e.update(state="planned", attempts=[], previous_attempts=e.get("attempts", []))
     ledger.save()
     ex = Executor(plan, ledger, runner, max_parallel=a.max_parallel or int(plan.defaults.get("max_parallel", 4)),
-                  poll_s=a.poll, admission_timeout_s=float(plan.defaults.get("admission_timeout_s", 10800)))
+                  poll_s=a.poll, admission_timeout_s=float(plan.defaults.get("admission_timeout_s", 10800)),
+                  max_parallel_gpu=_opt(a.max_parallel_gpu, plan.defaults.get("max_parallel_gpu"), int),
+                  max_cpu=_opt(a.max_cpu, plan.defaults.get("max_cpu"), float))
     try:
         summ = ex.run()
     except DagError as e:
         raise SystemExit(str(e))
     return 0 if summ.get("failed", 0) == 0 and summ.get("blocked", 0) == 0 else 1
+
+
+def _opt(cli, dflt, typ):
+    v = cli if cli is not None else dflt
+    return None if v is None else typ(v)
 
 
 def register(sub):
@@ -70,6 +77,8 @@ def register(sub):
     p.add_argument("--reset", action="append", help="forget a node's ledger entry (repeatable)")
     p.add_argument("--retry-failed", action="store_true", help="re-plan failed/blocked nodes (a manual decision, D-061)")
     p.add_argument("--max-parallel", type=int)
+    p.add_argument("--max-parallel-gpu", type=int, help="cap on running GPU nodes (default defaults.max_parallel_gpu)")
+    p.add_argument("--max-cpu", type=float, help="cap on summed declared CPU of running nodes (default defaults.max_cpu)")
     p.add_argument("--poll", type=float, default=30.0)
     p.add_argument("--peer-repo", help="peer code dir (default $RRP_PEER_REPO; must be /dev/shm/rrp-brandonin/wt/<track>)")
     p.add_argument("--allow-cross-placement", action="store_true")

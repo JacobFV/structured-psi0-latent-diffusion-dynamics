@@ -302,3 +302,106 @@ def test_ops_runner_poll_reads_rc_file(tmp_path):
     (tmp_path / "1_x.rc").unlink()
     h = dict(lease_id="1", log=str(log), unit="rrp-job-w5-test-none.service", placement="host")
     assert [r.poll(h) for _ in range(3)] == [None, None, -1] and h["unit_result"]
+
+
+GLOBAL_TOY = """
+name: gtoy
+family: legged
+track: t
+lineage: 'l-{variant}'
+label_prefix: 'g_{variant}{seed}'
+matrix:
+  variant: [semfix, nosem]
+  seed: [0, 1]
+axis_vars:
+  variant:
+    semfix: {sw: 1.0, lv: -4.0}
+    nosem: {sw: 0.0, lv: -8.0}
+vars:
+  body: anymal_c
+  pfx: 'p_{variant}_{seed}'
+defaults:
+  resources: {cpu: 1, mem: 1G}
+base:
+  flags: {contact_version: contact_v2}
+nodes:
+  collect:
+    stage: collect
+    scope: global
+    config:
+      options: {body: '{body}', seeds: 0-9}
+  bc:
+    stage: train_bc
+    scope: global
+    config:
+      inputs: {data: '@collect'}
+      params: {bodies: ['{body}'], steps: 1}
+  rep:
+    stage: train_rep
+    config:
+      flags: {probe_lv_min: '{lv}', qd_dropout: 0.5}
+      inputs: {data: '@collect'}
+      params: {name: '{pfx}', bodies: ['{body}'], latent: {semantic_weight: '{sw}'}, seed: '{seed}'}
+  r2:
+    stage: eval_r2
+    config:
+      inputs: {flow: '@rep:representation.pt', bc: '@bc:policy.pt'}
+      options: {body: '{body}'}
+"""
+
+
+def test_global_scope_nodes_are_planned_once_and_shared():
+    p = plan_dag(loads(GLOBAL_TOY))
+    assert sorted(k for k in p.nodes if "@" not in k) == ["bc", "collect"]
+    assert len([k for k in p.nodes if k.startswith("rep@")]) == 4
+    assert p.nodes["bc"].deps == ["collect"]
+    for k in ("rep@semfix.s0", "rep@nosem.s1"):
+        assert p.nodes[k].deps == ["collect"]
+        assert p.nodes[k].rc.inputs["data"] == p.nodes["collect"].rc.run_id
+    assert p.nodes["r2@nosem.s1"].deps == ["bc", "rep@nosem.s1"]
+    assert p.nodes["collect"].rc.lineage == "gtoy" and p.nodes["collect"].rc.variant == "na"
+    assert p.nodes["collect"].rc.flags.contact_version == "contact_v2"
+    assert p.order.index("collect") < p.order.index("rep@semfix.s0")
+    # a global node cannot use axis values
+    with pytest.raises(Exception):
+        plan_dag(loads(GLOBAL_TOY.replace("options: {body: '{body}', seeds: 0-9}", "options: {body: '{variant}', seeds: 0-9}")))
+
+
+def test_gpu_and_cpu_caps(tmp_path):
+    spec = loads(GLOBAL_TOY.replace("""  rep:
+    stage: train_rep
+""", """  rep:
+    stage: train_rep
+    resources: {gpu: true, cpu: 3, mem: 1G}
+""").replace("""  r2:
+    stage: eval_r2
+""", """  r2:
+    stage: eval_r2
+    resources: {cpu: 10, mem: 1G}
+"""))
+    plan = plan_dag(spec)
+
+    class Slow(FakeRunner):
+        def __init__(self, *a, **k):
+            super().__init__(*a, **k)
+            self.left, self.live, self.peak_gpu, self.peak_cpu = {}, set(), 0, 0
+
+        def launch(self, node):
+            h = super().launch(node)
+            self.left[h["lease_id"]], h["nid"] = 2, node.id
+            self.live.add(node.id)
+            self.peak_gpu = max(self.peak_gpu, sum(plan.nodes[k].resources.gpu for k in self.live))
+            self.peak_cpu = max(self.peak_cpu, sum(plan.nodes[k].resources.cpu for k in self.live))
+            return h
+
+        def poll(self, h):
+            self.left[h["lease_id"]] -= 1
+            if self.left[h["lease_id"]] > 0:
+                return None
+            self.live.discard(h["nid"])
+            return self.jobs[h["lease_id"]]
+    r = Slow(tmp_path)
+    ex = Executor(plan, Ledger(tmp_path / "l.json"), r, max_parallel=8, max_parallel_gpu=2, max_cpu=16,
+                  poll_s=0, sleep=lambda s: None, log=lambda m: None)
+    assert ex.run()["completed"] == len(plan.nodes)
+    assert r.peak_gpu == 2 and r.peak_cpu <= 16

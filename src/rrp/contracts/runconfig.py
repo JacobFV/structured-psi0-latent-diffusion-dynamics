@@ -35,9 +35,10 @@ SCHEMA_VERSION = "runconfig-1"
 BUILTIN_FAMILIES = ("arm", "dual", "legged")
 Variant = Literal["sem", "nosem", "semfix", "na"]
 PIPELINE_STAGES = ("collect", "pack", "train_rep", "probes", "train_flow", "flow_ft", "dagger_collect", "refit",
-                   "eval_r1", "eval_r2", "heldout", "edits")
-# kinds of legacy configs that are not pipeline stages (read for provenance; the pipeline does not run them)
-LEGACY_ONLY_STAGES = ("train_bc", "train_policy", "adapt", "vlm", "protocol")
+                   "eval_r1", "eval_r2", "heldout", "edits", "train_bc")
+# kinds of legacy configs that are not pipeline stages (read for provenance; the pipeline does not run them).
+# train_bc moved to PIPELINE_STAGES (W8: legged BC positive control through run-dag); arm/dual do not implement it.
+LEGACY_ONLY_STAGES = ("train_policy", "adapt", "vlm", "protocol")
 Stage = Literal[PIPELINE_STAGES + LEGACY_ONLY_STAGES]  # type: ignore[valid-type]
 FLAG_NAMES = ("zero_prev_action", "realizer_anchor", "realizer_drop_qd", "probe_lv_min", "qd_dropout", "contact_version")
 META = "@meta"          # flag recorded in the RunConfig/provenance only (no native key; e.g. contact_version)

@@ -2,7 +2,8 @@
 
 | stage | existing code |
 |---|---|
-| collect | `python -m rrp.data.legged_latent_collect --body B --seeds S --out D` |
+| collect | `python -m rrp.data.legged_latent_collect --body B --seeds S --out D` per shard (options shard_size, workers) |
+| train_bc | rrp.training.legged_bc.train (`python -m rrp.learning.legged_bc train`; BC POSITIVE CONTROL, source bc) |
 | train_rep | rrp.training.legged_latent_train.train_rep (`python -m rrp.learning.legged_latent_train rep`) |
 | probes | rrp.training.legged_latent_train.fit_probe (post-hoc probe for nosem; `... probe`) |
 | train_flow, flow_ft | rrp.training.legged_latent_train.train_flow (`... flow`) |
@@ -12,7 +13,11 @@
 | edits | legged_latent_eval --edit per edit + scripts/legged_edit_effects.py (scripts/legged_edit_suite.sh) |
 
 Legged system 0 has no previous-action input (zero_prev_action does not apply). A legged dataset whose manifest
-records a contact version different from flags.contact_version is refused (no silent mixing of physics versions).
+records a contact version different from flags.contact_version is refused (no silent mixing of physics versions);
+data without a recorded version counts as contact_v1 (legacy), so it is refused for any other declared version.
+Physics selection (W8): every simulating subprocess (collect, DAgger, evaluations, edits) runs with
+RRP_CONTACT_MODEL = flags.contact_version, collected shards must record that version, and evaluation rows must
+report a scene built with it and checkpoints whose training data (when recorded) used it.
 """
 from __future__ import annotations
 
@@ -49,23 +54,97 @@ def check_contact_version(ctx: StageContext, data_dir: str | None) -> None:
                 found.add(cv)
         except Exception:   # unreadable/legacy manifests carry no contact version: legacy = contact_v1 (W3)
             continue
+    if not found and want != "contact_v1":
+        raise StageError(f"{data_dir}: no manifest records a contact version (legacy data = contact_v1), "
+                         f"but flags.contact_version is {want!r}")
     if found and found != {want}:
         raise StageError(f"{data_dir}: data contact version(s) {sorted(found)} != flags.contact_version {want!r}")
 
 
+def physics_env(ctx: StageContext, **extra) -> dict:
+    """Subprocess env whose simulator uses the declared contact model ($RRP_CONTACT_MODEL, rrp.morphology.contact)."""
+    cv = ctx.rc.flags.contact_version
+    return ctx.env(**({"RRP_CONTACT_MODEL": cv} if cv else {}), **extra)
+
+
+def check_rows_contact(ctx: StageContext, rows: list[dict], where: str) -> dict:
+    """Every evaluation row must come from a scene built with flags.contact_version, and every checkpoint that
+    records its training-data physics must have been trained on that version. Returns the versions seen."""
+    want = ctx.rc.flags.contact_version
+    bad, seen = [], set()
+    for r in rows:
+        got = r.get("contact_version")
+        seen.add(got)
+        if want and got != want:
+            bad.append(f"seed {r.get('seed')}: scene {got}")
+        for k, pv in (r.get("checkpoint_provenance") or {}).items():
+            cv = ((pv or {}).get("physics") or {}).get("contact_version") if isinstance(pv, dict) else None
+            if want and cv and cv != want:
+                bad.append(f"seed {r.get('seed')}: {k} trained on {cv}")
+    if bad:
+        raise StageError(f"{where}: contact version != {want!r}: " + "; ".join(bad[:5]))
+    return dict(contact_versions=sorted(str(x) for x in seen))
+
+
 @register("legged", "collect", source="scripted_teacher")
 def collect(ctx: StageContext) -> dict:
-    """Legged latent dataset shards (waypoint teacher + tracker; DART sigmas cycled over seeds)."""
+    """Legged latent dataset shards (waypoint teacher + tracker; DART sigmas cycled over seeds). The seed range is
+    split into shards of `shard_size` (default: one shard) run `workers` at a time, as scripts/legged_latent_collect.sh
+    (shard files s<a>-<b>.npz). Output: <out>/<body>/ (the `data` root for train_rep/train_bc)."""
     o = ctx.opts
+    body = o["body"]
     out = o.get("out_dir", ctx.rc.out)
-    argv = ["-m", "rrp.data.legged_latent_collect", "--body", o["body"], "--seeds", o["seeds"], "--out", out]
-    for k in ("tracker", "sigmas", "shard"):
+    a, b = _seed_range(o["seeds"])
+    size = int(o.get("shard_size", b - a + 1))
+    extra = []
+    for k in ("tracker", "sigmas"):
         if k in o:
-            argv += [f"--{k}", str(o[k])]
+            extra += [f"--{k}", str(o[k])]
     if o.get("arc_only"):
-        argv += ["--arc-only"]
-    ctx.run(argv)
-    return dict(outputs={}, metrics=dict(body=o["body"], seeds=o["seeds"]))
+        extra += ["--arc-only"]
+    (ctx.root / out / body).mkdir(parents=True, exist_ok=True)
+    jobs = []
+    for s in range(a, b + 1, size):
+        e = min(s + size - 1, b)
+        argv = ["-m", "rrp.data.legged_latent_collect", "--body", body, "--seeds", f"{s}-{e}", "--out", out, *extra]
+        jobs.append((argv, physics_env(ctx, OMP_NUM_THREADS=1, CUDA_VISIBLE_DEVICES=""),
+                     ctx.root / out / body / f"log_s{s}.txt"))
+    ctx.run_parallel(jobs, int(o.get("workers", 1)))
+    from rrp.data.manifest import read_manifest
+    eps, cvs, trk = [], set(), set()
+    for s in range(a, b + 1, size):
+        e = min(s + size - 1, b)
+        sh = ctx.root / out / body / f"s{s}-{e}.json"
+        if not sh.exists():
+            raise StageError(f"missing shard {sh}")
+        d = json.loads(sh.read_text())
+        eps += d["episodes"]
+        prov = read_manifest(sh.with_suffix(".manifest.json")).get("provenance")
+        cvs.add(getattr(getattr(prov, "physics", None), "contact_version", None))
+        trk |= {str(m.get("tracker_version")) for m in d["episodes"]}
+    want = ctx.rc.flags.contact_version
+    if cvs != {want}:
+        raise StageError(f"collected shards record contact version(s) {sorted(map(str, cvs))} != {want!r}")
+    if len(eps) != b - a + 1:
+        raise StageError(f"{len(eps)} episodes collected, expected {b - a + 1}")
+    st = [m["status"] for m in eps]
+    return dict(outputs={"data": out}, metrics=dict(body=body, seeds=o["seeds"], episodes=len(eps),
+                                                    success=st.count("success"), fell=st.count("fell"),
+                                                    failure=st.count("failure"), contact_version=want,
+                                                    tracker_versions=sorted(trk),
+                                                    ticks=int(sum(m["ticks"] for m in eps))),
+                source_detail=f"scripted_teacher:waypoint -> {'|'.join(sorted(trk))}")
+
+
+@register("legged", "train_bc", source="bc")
+def train_bc(ctx: StageContext) -> dict:
+    """Legged BC POSITIVE CONTROL (no packet; behaviour cloning of the scripted teacher -> tracker targets)."""
+    from rrp.training.legged_bc import train as fn
+    cfg = ctx.native
+    check_contact_version(ctx, cfg.get("data"))
+    res = fn(cfg, ctx.out)
+    pol = str(Path(ctx.rc.out) / "policy.pt")
+    return dict(outputs={"policy": pol}, metrics=_json_safe(res), source_detail=pol)
 
 
 @register("legged", "train_rep", source="learned")
@@ -121,7 +200,7 @@ def dagger_collect(ctx: StageContext) -> dict:
             argv += [f"--{k}", v]
     if "max_s" in o:
         argv += ["--max-s", str(o["max_s"])]
-    ctx.run(argv, env=ctx.env(CUDA_VISIBLE_DEVICES=""))
+    ctx.run(argv, env=physics_env(ctx, CUDA_VISIBLE_DEVICES=""))
     return dict(outputs={}, metrics=dict(body=o["body"], seeds=o["seeds"]), source_detail=ctx.inp("bc"))
 
 
@@ -170,14 +249,16 @@ def _ladder(ctx: StageContext, default_route: str) -> dict:
         part = out / f"{route}_{tag}.part{s}.jsonl"
         parts.append(part)
         argv = ["-m", EVAL, *_route_args(ctx, route), "--bodies", body, "--seeds", f"{s}-{e}", "--out", str(part)]
-        jobs.append((argv, ctx.env(OMP_NUM_THREADS=1, CUDA_VISIBLE_DEVICES=""), ctx.out / f"{route}_{tag}.part{s}.log"))
+        jobs.append((argv, physics_env(ctx, OMP_NUM_THREADS=1, CUDA_VISIBLE_DEVICES=""), ctx.out / f"{route}_{tag}.part{s}.log"))
     ctx.run_parallel(jobs, par)
     rows = out / f"{route}_{tag}.jsonl"
     rows.write_text("".join(p.read_text() for p in parts))
     for p in parts:
         p.unlink()
+    cv = check_rows_contact(ctx, [json.loads(x) for x in rows.read_text().splitlines() if x.strip()], str(rows))
     ctx.run(["scripts/legged_ladder_summary.py", str(rows)])
     summ = json.loads(rows.with_suffix(".summary.json").read_text())
+    summ.update(cv)
     if summ["n"] != b - a + 1:
         raise StageError(f"{rows}: {summ['n']} rows, expected {b - a + 1}")
     rel = str(Path(ctx.rc.out) / body / rows.name)
@@ -222,10 +303,13 @@ def edits(ctx: StageContext) -> dict:
         f.unlink(missing_ok=True)
         argv = ["-m", EVAL, *_route_args(ctx, route), "--bodies", body, "--seeds", o.get("seeds", "10000-10019"),
                 "--edit", ed, "--t-edit", str(o.get("t_edit", 2.0)), "--max-s", str(o.get("max_s", 5.0)), "--out", str(f)]
-        jobs.append((argv, ctx.env(OMP_NUM_THREADS=1, CUDA_VISIBLE_DEVICES=""), out / f"{ed.replace(':', '_')}.log"))
+        jobs.append((argv, physics_env(ctx, OMP_NUM_THREADS=1, CUDA_VISIBLE_DEVICES=""), out / f"{ed.replace(':', '_')}.log"))
     ctx.run_parallel(jobs, int(o.get("workers", 1)))
+    for ed in eds:
+        f = out / f"{ed.replace(':', '_')}.jsonl"
+        check_rows_contact(ctx, [json.loads(x) for x in f.read_text().splitlines() if x.strip()], str(f))
     ctx.run(["scripts/legged_edit_effects.py", str(out)])
     if o.get("mirror_effect"):         # scripts/legged_fixrep_eval.sh: paired effect toward the mirrored goal side
         ctx.run(["scripts/legged_mirror_effect.py", str(out), *o["mirror_effect"]])
-    return dict(outputs={"suite": str(Path(ctx.rc.out) / out.name)}, metrics=dict(edits=eds),
+    return dict(outputs={"suite": str(Path(ctx.rc.out) / out.name)}, metrics=dict(edits=eds, contact_version=ctx.rc.flags.contact_version),
                 source_detail=ctx.inp("flow", required=False) or "")

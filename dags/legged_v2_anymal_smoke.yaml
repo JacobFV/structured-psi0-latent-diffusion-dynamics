@@ -1,0 +1,133 @@
+# GATE 0 SMOKE of dags/legged_v2_anymal.yaml (generated from it by changing only the sizes in `vars`, the matrix
+# and the names): 20 episodes, 300 training steps, 2 eval episodes per condition. Plumbing check, NOT a result.
+# W8 LEGGED REGENERATION ON CONTACT v2, wave 1 = anymal_c (the only body whose contact_v2 tracker passes the full
+# contact gate, D-101). Derived from dags/legged_fixrep.yaml (D-090 protocol) with:
+# - flags.contact_version contact_v2 everywhere (every simulating subprocess gets RRP_CONTACT_MODEL=contact_v2; the
+#   pipeline refuses data/rows/checkpoints recorded with another contact version);
+# - scope-global nodes (planned once, shared by every matrix point): `collect` (scripted waypoint teacher ->
+#   learned_tracker:anymal_c:iter2499:contact_v2, 600 episodes s0-599 in shards of 100, DART sigmas 0/0.1/0.2/0.3
+#   cycled over seeds, held-out = seed % 20 == 19; same counts/splits as the go2 legged_latent_v1 data), `bc`
+#   (BC POSITIVE CONTROL, recipe of configs/legged_bc/bc_go2_v1.json), and the reference evals `teacher`
+#   (scripted_teacher) and `bcr2` (bc:<ckpt>) on the same 30 dev seeds;
+# - variant x seed matrix: semfix (probe_lv_min -4), nosem, sem (original recipe, lv -8; optional) x seeds 0/1/2.
+#   Per point: Stage A -> [nosem: post-hoc probe] -> flow -> R2 (snap_s4000 and final flow, dev 10000-10029) ->
+#   z-edit suite (incl. random |dz| 1-25) and task-context suite (halt, mirror active/inactive) on snap_s4000,
+#   dev 10000-10019, t_edit 2 s, window 2-5 s, with paired mirror effects.
+# Outputs: artifacts/runs/legged8/legged8-anymal_c-<variant>/<stage>[-<tag>]_s<seed>; shared nodes under
+# artifacts/runs/legged8/legged8-anymal_c-v2data/. Compute (W8 brief): <= 2 GPU nodes, CPU nodes <= 10 cores.
+name: legged_v2_anymal_smoke
+schema: dag-1
+family: legged
+track: legged8
+lineage: 'legged8smoke-{body}-{variant}'
+global_lineage: 'legged8smoke-{body}-v2data'
+label_prefix: 'l8s_{tg}{seed}'
+global_label_prefix: 'l8s'
+matrix:
+  variant: [semfix, nosem]
+  seed: [0]
+axis_vars:
+  variant:
+    semfix: {sw: 1.0, lv: -4.0, psw: 0.5, tg: fs}
+    nosem: {sw: 0.0, lv: -8.0, psw: 0.0, tg: ns}
+    sem: {sw: 1.0, lv: -8.0, psw: 0.5, tg: se}
+vars:
+  body: anymal_c
+  cseeds: 0-19
+  shard: 10
+  rep_steps: 300
+  flow_steps: 300
+  snap_every: 200
+  snap: snap_s200
+  probe_steps: 100
+  bc_steps: 300
+  bc_snap: 200
+  r2seeds: 10000-10001
+  edseeds: 10000-10001
+  pfx: 'legged8smoke_{variant}_{body}_s{seed}'
+lists:
+  z_edits: [none, 'probe_yaw:0.6', 'probe_yaw:-0.6', probe_goal_mirror, probe_halt, 'contact:0:1', 'contact:0:0', 'rand_norm:1', 'rand_norm:2', 'rand_norm:4', 'rand_norm:8', 'rand_norm:12', 'rand_norm:16', 'rand_norm:25', zero]
+  ctx_edits: [none, mirror_goal, mirror_active, mirror_inactive, halt]
+defaults:
+  placement: peer
+  retries: 0
+  max_parallel: 6
+  max_parallel_gpu: 2
+  max_cpu: 16
+  resources: {cpu: 10, mem: 12G, gpu: false, max_seconds: 14400}
+base:
+  flags: {contact_version: contact_v2}
+nodes:
+  collect:
+    stage: collect
+    scope: global
+    resources: {cpu: 6, mem: 8G, max_seconds: 10800}
+    config:
+      options: {body: '{body}', seeds: '{cseeds}', shard_size: '{shard}', workers: 6, sigmas: '0,0.1,0.2,0.3'}
+  bc:
+    stage: train_bc
+    scope: global
+    resources: {gpu: true, gpu_mem: 5G, cpu: 3, mem: 8G, max_seconds: 14400}
+    config:
+      inputs: {data: '@collect'}
+      params: {name: 'legged8_bc_{body}', bodies: ['{body}'], model: {width: 192, enc_layers: 2, dec_layers: 3}, steps: '{bc_steps}', batch_size: 256, lr: 0.0003, seed: 0, ckpt_every: 500, snap_every: '{bc_snap}'}
+  teacher:
+    stage: eval_r2
+    scope: global
+    tag: teacher
+    deps: [collect]
+    config:
+      options: {body: '{body}', tag: 'v2_teacher_{body}', route: teacher, seeds: '{r2seeds}', workers: 10}
+  bcr2:
+    stage: eval_r2
+    scope: global
+    tag: bc
+    config:
+      inputs: {bc: '@bc:policy.pt'}
+      options: {body: '{body}', tag: 'v2_bc_{body}', route: bc, seeds: '{r2seeds}', workers: 10}
+  rep:
+    stage: train_rep
+    resources: {gpu: true, gpu_mem: 5G, cpu: 3, mem: 8G, max_seconds: 14400}
+    config:
+      flags: {probe_lv_min: '{lv}', qd_dropout: 0.5}
+      inputs: {data: '@collect'}
+      params: {name: '{pfx}_rep', bodies: ['{body}'], latent: {dz: 32, width: 192, semantic_weight: '{sw}', beta_kl: 0.001}, steps: '{rep_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: '{snap_every}'}
+  probe:
+    stage: probes
+    only: {variant: [nosem]}
+    resources: {gpu: true, gpu_mem: 3G, cpu: 2, mem: 6G, max_seconds: 7200}
+    config:
+      inputs: {representation: '@rep:representation.pt'}
+      options: {steps: '{probe_steps}'}
+  flow:
+    stage: train_flow
+    resources: {gpu: true, gpu_mem: 5G, cpu: 3, mem: 8G, max_seconds: 14400}
+    config:
+      inputs: {representation: '@rep:representation.pt'}
+      params: {name: '{pfx}_flow', width: 256, layers: 4, packet_semantic_weight: '{psw}', packet_tau_min: 0.6, steps: '{flow_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: '{snap_every}'}
+  r2snap:
+    stage: eval_r2
+    tag: snap
+    config:
+      inputs: {flow: '@flow:{snap}.pt'}
+      options: {body: '{body}', tag: 'v2_{variant}_{body}_s{seed}_{snap}', route: r2, seeds: '{r2seeds}', workers: 10}
+  r2final:
+    stage: eval_r2
+    tag: policy
+    config:
+      inputs: {flow: '@flow:policy.pt'}
+      options: {body: '{body}', tag: 'v2_{variant}_{body}_s{seed}_policy', route: r2, seeds: '{r2seeds}', workers: 10}
+  zedits:
+    stage: edits
+    tag: z
+    per: {variant: {nosem: {inputs: {posthoc_probe: '@probe:probe_posthoc.pt'}}}}
+    config:
+      inputs: {flow: '@flow:{snap}.pt'}
+      options: {body: '{body}', suite: 'r2_v2_{variant}_{body}_s{seed}_{snap}', route: r2, edits: $z_edits, seeds: '{edseeds}', t_edit: 2.0, max_s: 5.0, workers: 10, mirror_effect: [probe_goal_mirror, rand_norm_8]}
+  ctxedits:
+    stage: edits
+    tag: ctx
+    per: {variant: {nosem: {inputs: {posthoc_probe: '@probe:probe_posthoc.pt'}}}}
+    config:
+      inputs: {flow: '@flow:{snap}.pt'}
+      options: {body: '{body}', suite: 'r2ctx_v2_{variant}_{body}_s{seed}_{snap}', route: r2, edits: $ctx_edits, seeds: '{edseeds}', t_edit: 2.0, max_s: 5.0, workers: 10, mirror_effect: [mirror_goal, mirror_active, mirror_inactive, halt]}
