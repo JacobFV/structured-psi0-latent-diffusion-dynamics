@@ -193,7 +193,7 @@ class SmoothPickPlaceTeacher(PickPlaceTeacher):
         path = [q_start + (q_end - q_start) * float(minjerk((k + 1) / n)) for k in range(n)]
         return dict(kind="joint", phase=phase, q_start=q_start, q_end=q_end, path=path, T=n * dt)
 
-    def _cart_seg(self, q_start, p_end, yaw, phase, vmax, tmin=0.3):
+    def _cart_seg(self, q_start, p_end, yaw, phase, vmax, tmin=0.3, reach_retry=False):
         """Straight TCP line from FK(q_start) to p_end (tool down, fixed yaw), min-jerk timed, IK-tracked.
         Stretched until the joint path meets the joint limits; falls back to a joint quintic if IK tracking fails."""
         dt = self.s.dt
@@ -223,8 +223,16 @@ class SmoothPickPlaceTeacher(PickPlaceTeacher):
                 return dict(kind="cart", phase=phase, q_start=q_start, q_end=path[-1], path=path, T=n * dt, **info)
             T *= f * 1.03
             info["stretch"] = round(info["stretch"] * f * 1.03, 3)
-        # IK tracking failed (joint limit / local minimum / singular): joint quintic to a seeded IK solution
+        # IK tracking failed. If the END point itself is out of reach (joint limit), track the straight line to the
+        # closest reachable end point instead (a joint-space arc near the cube knocks it away); otherwise (local
+        # minimum / singular path) fall back to a joint quintic to a seeded IK solution.
         q_end, e = self._ik_point(p_end, yaw, q_start)
+        if e > 2e-3 and not reach_retry:
+            p_reach = self._fk(q_end)[0]
+            seg = self._cart_seg(q_start, p_reach, yaw, phase, vmax, tmin, reach_retry=True)
+            if not seg.get("fallback"):
+                seg.update(reach_limited=True, ik_worst=round(max(seg.get("ik_worst", 0.0), e), 4))
+                return seg
         seg = self._joint_seg(q_start, q_end, phase, tmin=tmin)
         seg.update(fallback=True, fallback_err=round(e, 4), **info)
         return seg
@@ -266,7 +274,7 @@ class SmoothPickPlaceTeacher(PickPlaceTeacher):
         self.plan_reach_err = float(last.get("fallback_err", last.get("ik_worst", 0.0)) or 0.0)
         self.diag["plans"].append(dict(name=name, ticks=len(qs), T=round(len(qs) * dt, 3), blend=blend,
                                        segs=[dict(phase=sg["phase"], kind=sg["kind"], T=round(sg["T"], 3),
-                                                  **{k: sg[k] for k in ("stretch", "ik_worst", "fallback",
+                                                  **{k: sg[k] for k in ("stretch", "ik_worst", "fallback", "reach_limited",
                                                                         "fallback_err") if k in sg})
                                              for sg in segs]))
 
@@ -294,13 +302,16 @@ class SmoothPickPlaceTeacher(PickPlaceTeacher):
                               clear=round(clear, 4), margin=round(min(self._margin(q_h), self._margin(q_g)), 4),
                               dyaw=round(abs(y - cur), 3), q_h=q_h))
         # reachable first, then fingertip clearance >= 1.5 cm, then joint margin >= 2 %, then the smallest wrist roll
-        cands.sort(key=lambda c: (not c["ok"], c["clear"] < 0.015, c["margin"] < 0.02, 0.0 if c["ok"] else c["err"],
+        cands.sort(key=lambda c: (not c["ok"], 0.0 if c["ok"] else c["err"], c["clear"] < 0.015, c["margin"] < 0.02,
                                   c["dyaw"]))
         return cands
 
     def _start_approach(self):
         cands = self._yaw_candidates()
-        c = cands[min(self.yaw_rank, len(cands) - 1)]
+        ok = [c for c in cands if c["ok"]] or [c for c in cands if c["err"] < 0.016] or cands[:1]
+        # retries cycle through the reachable yaws (or the near-reachable ones, within the 1.6 cm grasp acceptance),
+        # repeating the best one rather than trying a yaw that cannot reach the cube
+        c = ok[self.yaw_rank % len(ok)]
         self.yaw = c["yaw"]
         self.diag["yaw_choice"] = dict({k: v for k, v in c.items() if k != "q_h"}, rank=self.yaw_rank, n=len(cands))
         _, _, hover, grasp = self._grasp_targets()
