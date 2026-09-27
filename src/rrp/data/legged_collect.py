@@ -21,6 +21,7 @@ from pathlib import Path
 import numpy as np
 
 from rrp.teachers.legged import WaypointTeacher
+from rrp.contracts.paths import rrp_home
 from rrp.contracts.provenance import CONTACT_VERSION_DEFAULT, parse_source, physics_provenance
 from rrp.data.collect import EpisodeRecord, write_episode
 from rrp.data.manifest import dataset_provenance, write_manifest
@@ -133,7 +134,7 @@ def main(argv=None):
     write_manifest(out, f"legged_waypoint_contact_{a.body}", rows,
                    extra={k: v for k, v in summ.items() if k != "episodes"} | dict(source=prov.source), provenance=prov)
     if a.teacher_report:
-        rep = Path(__file__).resolve().parents[3] / "artifacts" / "assets" / "legged_teacher" / (
+        rep = rrp_home() / "artifacts" / "assets" / "legged_teacher" / (
             f"{a.body}_arc_only.json" if a.arc_only else f"{a.body}.json")
         rep.parent.mkdir(parents=True, exist_ok=True)
         rep.write_text(json.dumps(dict(body=a.body, task="waypoint_contact", n=len(rows),

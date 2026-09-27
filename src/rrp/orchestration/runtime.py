@@ -15,7 +15,9 @@ from rrp.orchestration.budget import compute_budget, GIB
 from rrp.orchestration.cgroup import SystemdUserBackend, job_unit, lease_slice
 from rrp.orchestration import telemetry
 
-REPO = Path(__file__).resolve().parents[3]
+from rrp.contracts.paths import rrp_home
+
+REPO = rrp_home()          # the rrp checkout (unchanged there); $RRP_HOME or the cwd for an installed rrp
 CONFIG = REPO / "configs" / "resources.local.json"
 
 

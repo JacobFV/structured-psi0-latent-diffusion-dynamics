@@ -21,7 +21,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
-from rrp.contracts.runconfig import PIPELINE_STAGES, RunConfig, RunIndex
+from rrp.contracts.paths import rrp_home
+from rrp.contracts.runconfig import BUILTIN_FAMILIES, PIPELINE_STAGES, RunConfig, RunIndex, ensure_family
 
 MANIFEST = "pipeline_manifest.json"
 
@@ -106,8 +107,12 @@ _REGISTRY: dict[tuple[str, str], StageSpec] = {}
 
 
 def register(family: str, stage: str, *, source: str):
+    """Decorator: register `fn(ctx) -> {"outputs", "metrics", ...}` as `family`'s `stage`. An extension family must be
+    registered first (rrp.contracts.runconfig.register_family); stages are the fixed PIPELINE_STAGES."""
     if stage not in PIPELINE_STAGES:
         raise ValueError(f"unknown stage {stage}")
+    if family not in BUILTIN_FAMILIES:
+        ensure_family(family)
 
     def deco(fn):
         _REGISTRY[(family, stage)] = StageSpec(family, stage, fn, source, (fn.__doc__ or "").strip().split("\n")[0])
@@ -119,11 +124,19 @@ def _load_families():
     from rrp.pipelines import arm, dual, legged  # noqa: F401  (registration side effects)
 
 
+def unregister_stages(family: str) -> None:
+    """Drop every stage of an extension family (tests)."""
+    if family in BUILTIN_FAMILIES:
+        raise ValueError(f"{family} is built in")
+    for k in [k for k in _REGISTRY if k[0] == family]:
+        del _REGISTRY[k]
+
+
 class Pipeline:
     def __init__(self, family: str):
         _load_families()
-        if family not in ("arm", "dual", "legged"):
-            raise ValueError(family)
+        if family not in BUILTIN_FAMILIES:
+            ensure_family(family)                    # extension families: registered or loaded from entry points
         self.family = family
 
     def stages(self) -> list[str]:
@@ -140,7 +153,7 @@ class Pipeline:
         if rc.family != self.family:
             raise StageError(f"config family {rc.family} != pipeline {self.family}")
         spec = self.spec(rc.stage)
-        root = Path(root or Path.cwd()).resolve()
+        root = Path(root or rrp_home()).resolve()     # rrp_home(): the checkout, $RRP_HOME or the cwd (installed)
         index = index or RunIndex.load(root=root)
         ctx = StageContext(rc=rc, index=index, root=root)
         missing = [p for p in _flat(rc.input_paths(index).values()) if check_inputs and not (root / p).exists()]

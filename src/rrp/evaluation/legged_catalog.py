@@ -27,7 +27,9 @@ import numpy as np
 from rrp.bodies.importers import MENAGERIE, MENAGERIE_SHA
 from rrp.morphology.legged import ALL_LEGGED, LEGGED_ASSETS, PROCEDURAL, legged_body, standalone_model
 
-REPO = Path(__file__).resolve().parents[3]
+from rrp.contracts.paths import rrp_home  # noqa: E402
+
+REPO = rrp_home()                  # checkout (unchanged); $RRP_HOME / cwd for an installed rrp
 OUT = REPO / "artifacts" / "assets" / "legged_catalog.json"
 TRACKERS = REPO / "artifacts" / "trackers"
 TEACH = REPO / "artifacts" / "assets" / "legged_teacher"

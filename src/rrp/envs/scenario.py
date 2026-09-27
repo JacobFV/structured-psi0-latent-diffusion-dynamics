@@ -21,7 +21,9 @@ from rrp.bodies.surgery import Assembled
 from rrp.bodies.compiler import compile_robot_spec
 from rrp.contracts.robot import RobotSpec
 
-TASKS_DIR = Path(__file__).resolve().parents[3] / "tasks"
+from rrp.contracts.paths import data_path  # noqa: E402
+
+TASKS_DIR = data_path("tasks")     # the checkout's tasks/ (unchanged); packaged rrp/_data/tasks when installed
 
 COLORS = {"red": (0.85, 0.12, 0.1, 1), "blue": (0.12, 0.25, 0.85, 1), "yellow": (0.9, 0.8, 0.1, 1),
           "purple": (0.55, 0.15, 0.7, 1), "orange": (0.95, 0.5, 0.1, 1), "cyan": (0.1, 0.8, 0.85, 1)}

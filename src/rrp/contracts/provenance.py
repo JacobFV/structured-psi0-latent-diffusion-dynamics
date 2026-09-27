@@ -181,7 +181,19 @@ def source_label(kind: Source | str, detail: str | None = None) -> str:
 
 # ------------------------------------------------------------------------------------------------ code / weights
 def repo_root() -> Path:
-    return Path(__file__).resolve().parents[3]
+    """The rrp source checkout (or $RRP_HOME; the cwd when rrp is an installed package): rrp.contracts.paths."""
+    from .paths import rrp_home
+    return rrp_home()
+
+
+def installed_revision(dist: str = "rrp") -> str | None:
+    """Commit of an rrp installed from git (pip/uv record it in direct_url.json); None otherwise."""
+    try:
+        from importlib.metadata import distribution
+        d = json.loads(distribution(dist).read_text("direct_url.json") or "{}")
+    except Exception:  # noqa: BLE001 - not installed / no direct_url
+        return None
+    return (d.get("vcs_info") or {}).get("commit_id")
 
 
 @functools.lru_cache(maxsize=4)
@@ -212,6 +224,13 @@ class CodeProvenance(Strict):
 
 
 def code_provenance(root: Path | None = None) -> CodeProvenance:
+    """git sha/dirty of `root` (default: the rrp checkout). An INSTALLED rrp (no checkout, no RRP_HOME) records the
+    commit it was installed from, never the git state of whatever directory the consumer runs in."""
+    if root is None and not os.environ.get("RRP_HOME"):
+        from .paths import is_checkout
+        if not is_checkout():
+            rev = installed_revision()
+            return CodeProvenance(git_sha=rev or os.environ.get("RRP_GIT_SHA"), dirty=False if rev else None)
     sha, dirty = _git_info(str(root or repo_root()))
     return CodeProvenance(git_sha=sha, dirty=dirty)
 

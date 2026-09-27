@@ -27,12 +27,12 @@ import json
 import operator
 import re
 from pathlib import Path
-from typing import Any, Literal, Union
+from typing import Annotated, Any, Literal, Union
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
 SCHEMA_VERSION = "runconfig-1"
-Family = Literal["arm", "dual", "legged"]
+BUILTIN_FAMILIES = ("arm", "dual", "legged")
 Variant = Literal["sem", "nosem", "semfix", "na"]
 PIPELINE_STAGES = ("collect", "pack", "train_rep", "probes", "train_flow", "flow_ft", "dagger_collect", "refit",
                    "eval_r1", "eval_r2", "heldout", "edits")
@@ -71,6 +71,97 @@ def _flag_spec() -> dict[tuple[str, str], dict[str, str]]:
 
 
 FLAG_SPEC = _flag_spec()
+
+# ------------------------------------------------------------------------------------ family registry (W11)
+# External packages (e.g. psi1z) add a body family WITHOUT editing rrp: either call register_family(...) at import
+# time, or declare an entry point in the group "rrp.families" whose target is a module (registration on import) or a
+# zero-argument callable. Entry points are loaded lazily, the first time an unknown family name is looked up.
+FAMILY_ENTRY_POINT_GROUP = "rrp.families"
+_EXTERNAL_FAMILIES: dict[str, dict] = {}
+_PLUGINS_LOADED = False
+
+
+def register_family(name: str, *, flag_spec: dict[str, dict[str, str]] | None = None,
+                    default_stage_flags: dict[str, str] | None = None,
+                    legacy_flag_defaults: dict[str, Any] | None = None, doc: str = "") -> None:
+    """Register an extension body family.
+
+    flag_spec: {stage: {flag: where}} for the stages where meaning-changing flags apply (`where` is the native config
+    path the stage reads, or META / CLI); every other stage gets `default_stage_flags` (default: no flag applies).
+    Flags must be names from FLAG_NAMES (Flags is a closed schema). Re-registering the same spec is a no-op;
+    a different spec for an existing name, or a built-in name, raises."""
+    if name in BUILTIN_FAMILIES:
+        raise RunConfigError(f"family {name!r} is built in")
+    if not re.fullmatch(r"[a-z][a-z0-9_]*", name):
+        raise RunConfigError(f"bad family name {name!r} (lowercase identifier)")
+    flag_spec = {k: dict(v) for k, v in (flag_spec or {}).items()}
+    default_stage_flags = dict(default_stage_flags or {})
+    for st, table in list(flag_spec.items()) + [("*", default_stage_flags)]:
+        if st != "*" and st not in PIPELINE_STAGES + LEGACY_ONLY_STAGES:
+            raise RunConfigError(f"{name}: unknown stage {st!r}")
+        bad = [f for f in table if f not in FLAG_NAMES]
+        if bad:
+            raise RunConfigError(f"{name}/{st}: unknown flags {bad} (known: {FLAG_NAMES})")
+    info = dict(flag_spec=flag_spec, default_stage_flags=default_stage_flags,
+                legacy_flag_defaults=dict(legacy_flag_defaults or {}), doc=doc)
+    if name in _EXTERNAL_FAMILIES:
+        if _EXTERNAL_FAMILIES[name] != info:
+            raise RunConfigError(f"family {name!r} is already registered with a different spec")
+        return
+    _EXTERNAL_FAMILIES[name] = info
+    for st in PIPELINE_STAGES + LEGACY_ONLY_STAGES:
+        FLAG_SPEC[(name, st)] = dict(flag_spec.get(st, default_stage_flags))
+    for k, v in info["legacy_flag_defaults"].items():
+        LEGACY_FLAG_DEFAULTS[(name, k)] = v
+
+
+def unregister_family(name: str) -> None:
+    """Remove an extension family (tests)."""
+    if _EXTERNAL_FAMILIES.pop(name, None) is None:
+        return
+    for k in [k for k in FLAG_SPEC if k[0] == name]:
+        del FLAG_SPEC[k]
+    for k in [k for k in LEGACY_FLAG_DEFAULTS if k[0] == name]:
+        del LEGACY_FLAG_DEFAULTS[k]
+
+
+def load_family_plugins(force: bool = False) -> list[str]:
+    """Import every entry point of the group "rrp.families" (once). Returns the entry point names loaded.
+    A broken plugin raises (no silent skip)."""
+    global _PLUGINS_LOADED
+    if _PLUGINS_LOADED and not force:
+        return []
+    _PLUGINS_LOADED = True
+    from importlib.metadata import entry_points
+    names = []
+    for ep in entry_points(group=FAMILY_ENTRY_POINT_GROUP):
+        try:
+            obj = ep.load()
+        except Exception as e:
+            raise RunConfigError(f"rrp.families entry point {ep.name!r} ({ep.value}) failed to load: {e}") from e
+        if callable(obj):
+            obj()
+        names.append(ep.name)
+    return names
+
+
+def families() -> tuple[str, ...]:
+    """Built-in + registered families (entry points are NOT loaded here; see ensure_family)."""
+    return BUILTIN_FAMILIES + tuple(_EXTERNAL_FAMILIES)
+
+
+def ensure_family(name: str) -> str:
+    """Validate a family name, loading entry-point plugins once if it is not known yet."""
+    if name in BUILTIN_FAMILIES or name in _EXTERNAL_FAMILIES:
+        return name
+    load_family_plugins()
+    if name not in _EXTERNAL_FAMILIES:
+        raise ValueError(f"unknown family {name!r} (known: {families()}; extensions register via "
+                         f"rrp.contracts.runconfig.register_family or the {FAMILY_ENTRY_POINT_GROUP!r} entry points)")
+    return name
+
+
+Family = Annotated[str, AfterValidator(ensure_family)]
 # the value the existing code uses when a legacy config omits the key (where it is read: see the comments)
 LEGACY_FLAG_DEFAULTS = {
     ("arm", "realizer_anchor"): False,        # training/latent_train.py cfg_json.get("realizer_anchor", False)
@@ -300,8 +391,9 @@ class RunIndex:
     @classmethod
     def load(cls, path: Path | str = "configs/run_index.json", root: Path | None = None) -> "RunIndex":
         p = Path(path)
-        if not p.is_absolute() and root is not None:
-            p = root / p
+        if not p.is_absolute():            # relative to root, else to the rrp checkout / $RRP_HOME (not the cwd)
+            from rrp.contracts.paths import rrp_home
+            p = (root if root is not None else rrp_home()) / p
         d = json.loads(p.read_text()) if p.exists() else {}
         return cls(d.get("aliases", {}), root)
 

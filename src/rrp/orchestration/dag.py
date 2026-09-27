@@ -35,7 +35,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from rrp.contracts.runconfig import (FLAG_NAMES, FLAG_SPEC, SCHEMA_VERSION, RunConfig, RunIndex, overlay, render)
+from rrp.contracts.runconfig import (FLAG_NAMES, FLAG_SPEC, ensure_family, SCHEMA_VERSION, RunConfig, RunIndex, overlay, render)
 
 LEDGER_SCHEMA = "dag-ledger-1"
 TERMINAL = ("completed", "failed", "blocked")
@@ -246,6 +246,7 @@ def _build_rc(spec, n, nname, point, lineage, track, family, env, lists, resolve
     base = _subst_lists(render(copy.deepcopy(spec.get("base") or {}), env), lists)
     cfg = overlay(base, n.get("config") or {})
     flags_in = cfg.pop("flags", {}) or {}
+    ensure_family(family)                      # extension families (entry points) before the FLAG_SPEC lookup
     applicable = FLAG_SPEC[(family, stage)]
     flags = {}
     for f in FLAG_NAMES:

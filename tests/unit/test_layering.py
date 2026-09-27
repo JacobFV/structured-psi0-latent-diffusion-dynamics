@@ -1,7 +1,8 @@
 """Import layering of the rrp package (W4, docs/repo_structure_audit.md "Target structure").
 
 contracts -> physics -> bodies -> tasks -> envs -> features -> {teachers, models} -> controllers -> data
--> evaluation -> training -> pipelines -> {orchestration, service, cli}; research may import anything, nothing imports it.
+-> evaluation -> training -> pipelines -> {orchestration, service, cli, core (the public re-export module, W11)};
+research may import anything, nothing imports it.
 Within the audit's "teachers/controllers/models" and "training/evaluation" layers the order is fixed as shown
 (controllers load models; training runs evaluation rollouts, evaluation never imports training).
 
@@ -23,7 +24,7 @@ SRC = Path(__file__).resolve().parents[2] / "src"
 LAYER = {
     "contracts": 0, "physics": 1, "bodies": 2, "tasks": 3, "envs": 4, "features": 5,
     "teachers": 6, "models": 6, "controllers": 6.5, "data": 7, "evaluation": 8, "training": 8.5, "pipelines": 9,
-    "orchestration": 10, "cli": 10, "service": 10, "research": 11,
+    "orchestration": 10, "cli": 10, "service": 10, "core": 10, "research": 11,
 }
 
 # old module -> new module. Moved entries are shims at the old path; the rest are still PENDING (real code at the old path).

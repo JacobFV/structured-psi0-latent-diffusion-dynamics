@@ -21,7 +21,9 @@ def main(argv=None) -> int:
     a = ap.parse_args(argv)
     from rrp.pipelines.base import Pipeline
     if a.cmd == "stages":
-        for fam in ("arm", "legged", "dual"):
+        from rrp.contracts.runconfig import families, load_family_plugins
+        load_family_plugins()
+        for fam in ("arm", "legged", "dual") + families()[3:]:
             print(fam, " ".join(Pipeline(fam).stages()))
         return 0
     from rrp.contracts.runconfig import RunConfig

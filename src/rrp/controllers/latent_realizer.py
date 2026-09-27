@@ -78,12 +78,7 @@ class LatentRealizer(nn.Module):
         return self.out(x).squeeze(-1) * node_mask
 
 
-@dataclass
-class System0Stats:
-    ticks: int = 0
-    packets: int = 0
-    rejected: int = 0
-    fallback_holds: int = 0
+from rrp.contracts.system0 import System0Base, System0Stats  # noqa: E402,F401  (W11: shared acceptance protocol)
 
 
 Q_COL, QD_COL, ANCHOR_COL = 26, 27, 28     # node-feature layout: normalized joint position; (formerly prev-action, bug B-1) column
@@ -107,8 +102,9 @@ def realizer_node_feats(s0, pi) -> np.ndarray:
     return nf
 
 
-class LatentSystem0:
-    """Runtime wrapper: holds the current packet, realizes it every tick from fresh local state."""
+class LatentSystem0(System0Base):
+    """Runtime wrapper: holds the current packet, realizes it every tick from fresh local state.
+    receive / invalidate / stats: rrp.contracts.system0.System0Base (the shared acceptance protocol)."""
 
     def __init__(self, realizer: LatentRealizer, featurizer, *, latent_space_version: str,
                  realizer_compat_version: str, device="cpu", fallback: str = "hold_measured"):
@@ -116,29 +112,13 @@ class LatentSystem0:
         self.f = featurizer
         # the realizer's OWN frozen-bundle fingerprint (set by load_representation) is authoritative; the
         # caller-supplied IDs are only used for legacy realizers without one
-        self.lsv, self.rcv = getattr(realizer, "bundle_versions", None) or (latent_space_version, realizer_compat_version)
+        lsv, rcv = getattr(realizer, "bundle_versions", None) or (latent_space_version, realizer_compat_version)
+        super().__init__(latent_space_version=lsv, realizer_compat_version=rcv, fallback=fallback)
         self.device = device
-        self.packet: LatentActionChunk | None = None
-        self.fallback = fallback
-        self.stats = System0Stats()
-        self.log: list[dict] = []
 
-    def receive(self, packet: LatentActionChunk, *, now: float, graph_version: int | None = None):
-        try:
-            check_packet(packet, latent_space_version=self.lsv, realizer_compat_version=self.rcv,
-                         robot_spec_hash=self.f.spec.spec_hash, now=now, graph_version=graph_version)
-        except (ControllerRejection, StaleActionError) as e:
-            self.stats.rejected += 1
-            self.log.append(dict(t=now, event="packet_rejected", code=e.code))
-            raise
-        self.packet = packet
-        self.stats.packets += 1
-        self.log.append(dict(t=now, event="packet_accepted", obs=packet.observation_id))
-
-    def invalidate(self, reason: str, now: float):
-        if self.packet is not None:
-            self.log.append(dict(t=now, event="packet_invalidated", reason=reason))
-        self.packet = None
+    @property
+    def robot_spec_hash(self) -> str:
+        return self.f.spec.spec_hash
 
     def local_inputs(self, obs):
         """Only proprio/FK node features and declared local sensors — no scene/task tokens."""
