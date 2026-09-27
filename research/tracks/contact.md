@@ -81,17 +81,24 @@ Zero-shot v2 physics alone lowers the slip ratio (t1 0.86 -> 0.58, go2 0.26 -> 0
 humanoids still shuffle (duty 0.8-0.95, air 0.02-0.03 s) and their turn ratio collapses (t1 0.02, h1 0.04).
 go2's v1 tracker passes the contact gate in v2 physics zero-shot.
 
-## runs (host, `rrp ops run`, D-033 limits; peer load was 43 at start, so peer CPU is unused)
-- t1: lease 1790471817_bf1051, `artifacts/runs/contact_t1_v2` (4000 iters, 4x48 envs, 512-256-128), about 1.75 s/iter.
-- h1: lease 1790471940_06f0b9, `artifacts/runs/contact_h1_v2` (same).
-- g1: PEER lease 1790472668_dddd06 (peer load had dropped to 6), dir wt/contact, `artifacts/runs/contact_g1_v2` in the shared
-  store, 4000 iters x 4x48 (v1: 3600 x 1x128).
-- go2: PEER lease 1790472681_274657, `artifacts/runs/contact_go2_v2`, 3500 iters x 4x48 (v1: 3000).
-- queued: anymal_c (v1 2000 -> 2500), hexapod6 (v1 1500 -> 2000).
-- Pull peer runs: `RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/contact scripts/peer_sync.sh pull artifacts/runs/contact_g1_v2 artifacts/runs/contact_g1_v2`.
-- Progress: `python3 scripts/contact_status.py artifacts/runs/contact_*_v2/train_log.jsonl`.
-- Extra baseline: CPG hexapod6 (scripted_controller) slip ratio 0.41 (v1 physics) / 0.20 (v2). Even the scripted tripod
-  gait slips at the contact points, so the < 0.15 target is strict for the sprawl hexapod.
+## runs
+### gait_v2a: failed_hypothesis (stopped at iter 500-1400)
+t1/h1 (host) and g1/go2 (peer) with a clearance PENALTY at touchdown ((target - apex)/target)^2 x -2. After 1200-1400 iters
+(t1/h1) and about 800 (go2), every run was a stander: gate-window track_rel_err 1.02-1.15 (a zero-velocity policy scores
+about 1.0). The t1 checkpoint at iter 1200 lifts a foot on the clock and tips over (validation: falls in 9/10 episodes).
+Diagnosis (scratchpad rdiag: the v1 walker vs a zero-action stander on the same forward command in v2 physics, return per step):
+the gait_v2a optimum is still walking (go2 1.83 vs 1.24; t1 3.13 vs 2.98, a thin margin). But a touchdown-only
+penalty is avoided entirely by never lifting a foot, and early foot flicker pays it, which makes a stander basin.
+Logs: `artifacts/runs/contact_{t1,h1}_v2a/` (host), `artifacts/runs/contact_{g1,go2}_v2a/` (peer shared store).
+### gait_v2b (current)
+The clearance term is now a positive humanoid-gym-style swing-height reward: sum over feet in a bounded swing
+(off the floor for < 0.6 period, moving command) of min(h / target, 1); w0 = 1.0 bipeds, 0.5 others; still a decaying prior.
+Margins: go2 walker 2.42 vs stander 1.27, t1 3.59 vs 2.99.
+Two t1 runs on the host test warm start (A/B):
+- `contact_t1_v2_scratch`: lease 1790474219_eaad24, from scratch, 4000 iters x 4x48.
+- `contact_t1_v2_warm`: lease 1790474219_cd8a6d, `--init-actor artifacts/trackers/t1/actor.pt --init-std 0.3` (actor and obs
+  normaliser from the v1 tracker, sha 185df8519a8ca280; fresh critic); labelled `init_from` in meta.
+The peer was at load 55 (other users), so no peer runs; g1/go2/h1/anymal_c/hexapod6 are queued behind the A/B result.
 
 ## resume steps
 1. `tail -1 artifacts/runs/contact_<body>_v2/train_log.jsonl` (alpha, gate). The ops log is in the main checkout
