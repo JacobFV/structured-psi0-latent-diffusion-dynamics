@@ -37,16 +37,16 @@ Task-context edit suite (route flow 20k -> gendag1_noqd; parm6 3,000,000-119, 82
 | goal controls at new goal (max over control/irrel./orth./replay) | 1 / 3 / 2 | 0 / 2 / 1 |
 | goal end-pos. effect beyond irrelevant (cm) | +7.6 / +12.6 / +6.1 (+9.0 / +14.8 / +2.5) | -0.8 / +8.5 / +1.5 |
 | rebind: first APPROACH new cube | 78 / 68 / 26 (60 / 38 / 0) | 41 / 32 / 27 (48 / 36 / 0) |
-| rebind: first contact new (unedited) | 74 / 49 / 23 (9 / 7 / 2 unedited) | 36 / 27 / 27 (1 / 0 / 3) |
-| rebind: original cube lifted | 0 / 0 / 0 (unedited 26 / 66 / 37) | 0 / 0 / 1 |
+| rebind: first contact new; seed 2 (unedited control at seed 2) | 74 / 49 / 23 (9 / 7 / 2) | 36 / 27 / 27 (1 / 0 / 3) |
+| rebind: original cube lifted; seed 2 (unedited control at seed 2) | 0 / 0 / 0 (26 / 66 / 37) | 0 / 0 / 1 (2 / 17 / 5) |
 | rebind min-dist effect beyond irrel. (cm) | +30.6 / +23.7 / +19.8 (+23.1 / +21.0 / +2.8) | +27.7 / +24.7 / +19.9 (+29.2 / +25.7 / +1.5) |
 Both seeds pooled: rebind first approach on the new cube parm6 138/162 (sem) / 106/164 (semfix) / 26/164 (nosem);
 panda 89/96 / 68/96 / 27/96. Goal edit, cube at the new goal (parm6): 29/162 / 99/164 / 14/164.
 
 READING (two training seeds per lineage):
 1. REPLICATES: the no-semantic lineage is far worse than both semantic lineages on the arm's deployable route
-   (29/480 vs 247/480 and 253/480; nosem below sem in every body x seed cell except parm5s seed 2, where 2 vs 7 is
-   within noise). The seed-1 zero (3/240) was an extreme: at seed 2 nosem reaches 26/240 (incl. 16/30 on parm5l).
+   (29/480 vs 247/480 and 253/480; nosem is below frozen sem in all 8 body x seed cells and below semfix in 7 of 8,
+   the exception being parm5l seed 2, 16 vs 18). The seed-1 zero (3/240) was an extreme: at seed 2 nosem reaches 26/240 (incl. 16/30 on parm5l).
 2. PARTLY REPLICATES: the binding edit. At seed 2 the nosem packet DOES redirect the approach (26/82 parm6, 27/48 panda;
    min-dist effect +20 cm), so "nosem carries no binding" (seed 1) does not hold in general; it is consistently WEAKER
    than both semantic lineages at the approach level (pooled 26/164 vs 138/162 and 106/164 on parm6).
