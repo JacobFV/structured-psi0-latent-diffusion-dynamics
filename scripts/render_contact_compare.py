@@ -60,17 +60,23 @@ def parse(spec, body):
     return Path(path), phys
 
 
-def episode(body, actor, phys, cmd, T, seed, label_extra=""):
+def episode(body, actor, phys, cmd, T, seed, label_extra="", actuator="v1", latency_ms=0.0):
     mod = legged_body(body)
     model, _, meta = standalone_model(mod, contact=phys)
     model.vis.global_.offwidth, model.vis.global_.offheight = W, H
     b = LeggedBinding(model, meta)
     tr = LearnedTracker(actor, b, body)
+    act = None
+    if actuator != "v1":
+        from rrp.physics.actuator import ActuatorModel
+        act = ActuatorModel(model, b, 1, None, name=meta["name"], randomize=False, latency_ms=latency_ms, mode=actuator)
     rng = np.random.default_rng(seed)
     d = mujoco.MjData(model)
     b.set_default(d, yaw=0.0, noise=0.03, rng=rng)
     mujoco.mj_forward(model, d)
     tr.reset(0.0)
+    if act is not None:
+        act.reset(0, d.ctrl[b.pol_act].copy())
     ren = mujoco.Renderer(model, H, W)
     cam = mujoco.MjvCamera()
     cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING
@@ -84,8 +90,14 @@ def episode(body, actor, phys, cmd, T, seed, label_extra=""):
     frames, slips, speeds, fell = [], [], [], False
     src = f"learned_tracker:{body}:iter{tr.meta.get('iter')}"
     for k in range(int(T / 0.02)):
-        d.ctrl[b.pol_act] = tr.act(d, cmd)
+        tgt = tr.act(d, cmd)
+        if act is not None:
+            act.command(0, tgt)
+        else:
+            d.ctrl[b.pol_act] = tgt
         for _ in range(sub):
+            if act is not None:
+                d.ctrl[b.pol_act] = act.substep_ctrl(0, d)
             mujoco.mj_step(model, d)
         fc, fn, sl, bad = b.stance(d)
         if k > 50:
@@ -99,7 +111,8 @@ def episode(body, actor, phys, cmd, T, seed, label_extra=""):
             add_grid(ren.scene, d.qpos[b.qa], d.qpos[b.qa + 1])
             sr = (np.mean(slips) / max(np.mean(speeds), 0.02)) if slips else float("nan")
             frames.append(caption(ren.render().copy(), [
-                f"{src}  {label_extra}", f"trained {tr.contact_model} | PHYSICS {meta['contact_model']} | "
+                f"{src}  {label_extra}", f"trained {tr.contact_model} | PHYSICS {meta['contact_model']} actuator {actuator}"
+                f"{'' if actuator == 'v1' else ' %dms' % latency_ms} | "
                 f"cmd vx={cmd[0]:.2f} wz={cmd[2]:.2f}",
                 f"t={k * 0.02:4.1f}s  stance slip ratio={sr:.2f}  {'FELL' if fell else ''}"]))
         if fell and k > 0 and len(frames) > 25:
@@ -121,6 +134,8 @@ def main():
     ap.add_argument("--T", type=float, default=8.0)
     ap.add_argument("--seed", type=int, default=1000)
     ap.add_argument("--tag", default="v1-vs-v2")
+    ap.add_argument("--actuator", default="v1", help="v1 | v2 | v1lat (rrp.physics.actuator, nominal params) for both panels")
+    ap.add_argument("--latency-ms", type=float, default=0.0)
     ap.add_argument("--out", default="artifacts/video")
     a = ap.parse_args()
     mod = legged_body(a.body)
@@ -130,7 +145,7 @@ def main():
     panels = []
     for spec, lab in ((a.left, a.left_label), (a.right, a.right_label)):
         path, phys = parse(spec, a.body)
-        panels.append(episode(a.body, path, phys, cmd, a.T, a.seed, lab))
+        panels.append(episode(a.body, path, phys, cmd, a.T, a.seed, lab, a.actuator, a.latency_ms))
     n = max(len(p[0]) for p in panels)
     out_frames = []
     for i in range(n):
@@ -146,6 +161,7 @@ def main():
                        f"stance slip ratio {x['slip_ratio']:.2f} at {x['speed']:.2f} m/s{', FELL' if x['fell'] else ''}"
                        for x, lab in zip(m, (a.left_label, a.right_label)))
     line = (f"- `{out.name}` — CONTACT TRACK ({a.tag}). {a.body}, validation `{a.cmd}` command {cmd.tolist()}, seed {a.seed}, "
+            f"actuator {a.actuator}{'' if a.actuator == 'v1' else ' latency %d ms' % a.latency_ms}, "
             f"{a.T:.0f} s; left | right: {desc}. source=learned_tracker (PPO actor, privileged critic in training only).\n")
     with open(Path(a.out) / "INDEX.md", "a") as f:
         f.write(line)

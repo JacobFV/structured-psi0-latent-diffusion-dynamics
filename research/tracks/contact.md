@@ -252,7 +252,10 @@ Attempts for (2):
 - c (`_step_c`): + `ref_ff 0.2` (the reference added FEED-FORWARD to the targets, a residual over a stepping pattern; the deployed
   LearnedTracker applies the same offset from its actor meta, `tests/unit/test_ref_ff.py`). FAILED: training fall rate 0.97-1.00 for h1
   (530 iters) and g1 (350 iters), with no recovery.
-- d (running): ref_ff 0.08 rad and ONLY for slow/turn-in-place commands (|v| < 0.25 m/s), so normal walking is untouched. h1 host
+- d: ref_ff 0.08 rad and ONLY for slow/turn-in-place commands (|v| < 0.25 m/s), so normal walking is untouched. h1 FAILED
+  (`val/h1_stepd_physv2.json`, 3000 iters): turn 0.02 with stance fraction 1.0 and air 0 in the turn trial (the feet never lift), although fwd 0.69->1.19,
+  slip 0.12, arc yaw 1.33 and one arc fall (no-fall 0.96). Note: from iter ~560 to ~620 a DUPLICATE trainer (an orphaned retry loop from the
+  c->d restart) wrote the same run dir. It was stopped, and the launcher now takes a per-dir flock. h1 host
   `artifacts/runs/contact_h1_step` (lease 1790518222_a2ad53), g1 peer `artifacts/runs/contact_g1_step` (lease 1790517947_132a38). A process
   mix-up during the c->d restart (an old wrapper relaunched once into the new dir) was caught; that output is in `contact_h1_step_junk`, not used.
 ### (3) t1 turning + latency under v1lat: running
@@ -263,7 +266,19 @@ t1 1.00/0.87/0.92/0.12 -> 0.88/0.59/1.06/0.14 | h1 0.72/0.84/0.03/0.16 -> 0.40/0
 go2 1.00/1.03/0.79/0.02 -> 1.00/0.91/0.79/0.02 | anymal_c 1.00/1.09/0.80/0.03 -> 1.00/1.07/1.10/0.04. With the real (lower) torques, h1 falls even at 0 ms.
 t1_lat result (`val/t1_t1lat-*`): under v1lat at 30 ms, **no-fall 0.88 -> 1.00, fwd 0.59 -> 0.90, turn 1.06 -> 1.35**; at 0 ms fwd 0.96, turn 1.65.
 BUT slip 0.17 (0 ms) / 0.15 (30 ms) / 0.21 (ideal actuators), contact gate FAILS on slip; arc yaw 0.55-0.81, arc vx 0.67-0.69; apex 4.1-6.6 cm.
-Follow-up (running): `artifacts/runs/contact_t1_lat2`, 700 iters from t1_lat with slip -2.0 (was -1.0), peer lease 1790518263_8f9ef7.
+Follow-up `artifacts/runs/contact_t1_lat2` (700 iters from t1_lat, slip -2.0; shed once by the PEER watchdog at iter 636 and resumed):
+**contact gate PASSES in all three conditions** (`val/t1_t1lat2-*`):
+| t1 | no-fall | fwd | turn in place | slip | arc yaw / vx | CoT |
+|---|---|---|---|---|---|---|
+| installed, v1lat 0 ms | 1.00 | 0.87 | 0.92 | 0.12 | - | 1.64 |
+| installed, v1lat 30 ms | **0.88** | **0.59** | 1.06 | 0.14 | - | 1.95 |
+| lat2, v1lat 0 ms | 1.00 | 0.88 | 0.52 | 0.12 | 0.16 / 0.92 | 1.87 |
+| lat2, v1lat 30 ms | **1.00** | **0.84** | 0.66 | 0.10 | 0.79 / 0.87 | 1.69 |
+| lat2, ideal actuators | 1.00 | 0.88 | 0.52 | 0.09 | 0.12 / 0.92 | 2.08 |
+Trade-off (honest): latency robustness and slip are fixed, and turning in place still clears 0.5, but it is halved (1.15 -> 0.52-0.66) and the
+walk-and-turn yaw collapses at 0 ms (arc yaw 0.98 for the pre-turn t1, 0.66 installed, 0.12-0.16 lat2). NOT installed (W8 uses the installed
+t1); candidate at `artifacts/runs/contact_t1_lat2/actor.pt` (sha 7bb4d6d105fcc540). Video (reviewed): the fine-tune turns with a narrower, less lunging stance.
+`artifacts/video/2026-09-27_contact_t1_{turn,forward}_installed-vs-lat2_v1lat30ms_ok_ok.mp4` (the renderer now takes --actuator/--latency-ms).
 
 ## runs
 ### gait_v2a: failed_hypothesis (stopped at iter 500-1400)
