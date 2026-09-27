@@ -352,3 +352,27 @@ every sweep lease on the peer (requires RRP_PEER_REPO; bounded retries; outputs 
 `scripts/robust_backfill_w8data.py` documents peer-only launch. Host use by W6 is limited to git, unit tests of pure code
 and report building from saved rows. (The worktree's configs/resources.local.json carries the lead's D-115 host cap,
 2 CPU / 0 GPU, uncommitted as the lead applied it.)
+
+## D-116 follow-up (lead: the Shmem subtraction double-counted the RAM store; subtract_shmem=False on the peer)
+My D-111 implementation was wrong for the same reason the lead gives: tmpfs pages written by leased jobs are charged to
+rrp.slice (memory.current and memory.stat `shmem`), so project_memory already held them; subtracting meminfo Shmem from the
+startup cap counted them twice, and my fake-sample test encoded the wrong premise (store outside the project). The hysteresis
+added after the 14:35 sheds only masked it.
+(a) Regression tests (tests/unit/test_watchdog.py): `test_d116_ram_store_in_project_memory_does_not_block_admission` (48 GiB store
+inside 70 GiB project memory, MemAvailable 60 GiB, PSI 0 -> ok, live limit 108 GiB; with subtract_shmem=True -> stop_admission at
+60 GiB, the failure mode) and `test_d116_deployed_peer_watchdog_does_not_subtract_shmem` (the CLI config keeps it off).
+The earlier `test_peer_ram_store_shmem_is_subtracted_from_the_startup_cap` / hysteresis tests still test the (now unused) code path.
+(b) PROPOSAL, not deployed (shared ops; the lead decides): count the project as NON-RECLAIMABLE memory,
+P = anon + shmem + kernel from rrp.slice memory.stat, instead of memory.current (which adds reclaimable page cache).
+Peer snapshot 2026-09-27 (rrp.slice): memory.current 66.4 GB = anon 32.0 + file 33.7 (of which shmem 22.8; active+inactive
+file cache 11.0) + kernel 0.5; MemAvailable 31.6 GB (system Shmem 22.8 GB, /dev/shm 29.8 GB used).
+Why: the live limit is min(startup, f (A + P), A + P - R) with A = MemAvailable. A already counts the project's reclaimable
+cache (11 GB here) as available, so A + memory.current counts it twice: the limit is ~11 GB too generous (98.0 vs 86.9 GB here),
+while the shed test `P > live` compares a P inflated by droppable cache against the limit (spurious sheds when jobs read big
+files). With P_nr = anon + shmem + kernel both errors go away: A + P_nr = memory that would be available without the project
+(the store is counted once, inside P_nr, and never in A because shmem is not reclaimable).
+Change sketch: telemetry.read_cgroup also returns memory.stat anon/shmem/kernel; collect_sample sets project_memory = anon +
+shmem + kernel (+ project GPU bytes as now), falling back to memory.current if memory.stat is unreadable (and recording which
+was used); budget.live_memory_limit_bytes unchanged. Tests: fake memory.stat with cache (P_nr < memory.current; limit and
+shed use P_nr) and with a store (counted once). Caveat: tmpfs files written from outside rrp.slice (e.g. rsync/scp over ssh
+into /dev/shm, ~7 GB of the 29.8 GB now) are not in the project and correctly reduce A only.

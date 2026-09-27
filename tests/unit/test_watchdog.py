@@ -126,3 +126,23 @@ def test_ram_store_excess_sheds_only_after_sustained_pressure():
     # an excess that exists WITHOUT the store term still sheds immediately (unchanged behaviour)
     over = ok_sample(memory_available=40 * G, project_memory=120 * G, shmem=60 * G)    # > 108 even without the store
     assert evaluate(over, c, WatchdogState()).level == "shed"
+
+
+def test_d116_ram_store_in_project_memory_does_not_block_admission():
+    """D-116: tmpfs pages written by jobs are charged to rrp.slice memory.current, so project_memory already contains the
+    RAM store. With the deployed peer config (subtract_shmem=False) a large store, high MemAvailable and PSI 0 must give
+    'ok' (no stop_admission); subtracting Shmem again (the D-111 follow-up design) double-counts it and blocks admission."""
+    peer = dict(memory_reserve_bytes=6 * G, disk_reserve_bytes=10 * G, startup_memory_bytes=108 * G, startup_cpu_cores=19.97,
+                disk_path="/", fraction=1.0, psi_full_avg10_shed=101.0)
+    s = ok_sample(memory_available=60 * G, project_memory=70 * G, shmem=48 * G, psi_full_avg10=0.0)   # 48 G store inside 70 G
+    v = evaluate(s, cfg(**peer, subtract_shmem=False), WatchdogState())
+    assert v.level == "ok" and v.live_memory_bytes == 108 * G
+    bad = evaluate(s, cfg(**peer, subtract_shmem=True), WatchdogState())
+    assert bad.level == "stop_admission" and bad.live_memory_bytes == 60 * G                         # the D-116 failure mode
+
+
+def test_d116_deployed_peer_watchdog_does_not_subtract_shmem():
+    import importlib
+    import inspect
+    src = inspect.getsource(importlib.import_module("rrp.cli.main").cmd_ops_watchdog)
+    assert "subtract_shmem=False" in src
