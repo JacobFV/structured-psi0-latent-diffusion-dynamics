@@ -486,3 +486,14 @@ Decisions:
 (5) Then actuator realism (armature, joint friction, torque–speed) and 0–30 ms latency.
 (6) W4 phase 6 (move the legged physics/tracker modules) can proceed.
 v1 remains the default until W8 data is regenerated.
+
+## D-102 2026-09-27 v2 arm data and BC expert verified; v2 arm lineage set launched (semfix + nosem × 2 seeds)
+W7 (research/tracks/armexpert.md, main b683b7a; lead spot-checked `artifacts/runs/armexpert_bcv2/baseline_direct_action/seed{1701,1702}/eval/*.summary.json`).
+- Teacher v2 revised (5de2b45: straight-line fallback to the closest reachable point, reachable-yaw retries): 4811/4811 feasible on 18 bodies × 300 seeds (D-097 figures described c8cfd6a).
+- v4dart collected and packed through `rrp run-dag` (clean successes 3897/3897 vs v3dart 3820/3897). Under DART noise v2 gives up more (63 vs 193 successes), so its recovery rows concentrate on approach/descent. The pack is smaller (1.37M vs 2.24M rows).
+- v2 BC expert: at u12000 (the DAgger-label checkpoint) panda/parm6 dev 29/30 and 30/30 (v1 25, 27), fresh 30/30 and 30/30 (v1 24, 27), held-out source 80/80 (v1 74/80). Finals 30/30 everywhere, held-out 80/80 and 79/80. Zero-shot panda_tf3 99/100 (v1 78), xarm7 0/100 (v1 0). Outputs 2.5–4× smoother at u12000, but still far rougher than the teacher; the largest steps are at chunk boundaries (a policy-side issue: chunk blending).
+Decisions:
+(1) bcv2_direct1701 u12000 replaces direct1701_u12000 as the DAgger labeller for the v2 set.
+(2) Do NOT block on the DART-tolerance fix: the BC trained on v4dart is already better than v1's, so the reduced late-phase coverage has no measured cost. Record it as a candidate for a later data version, never mixed in.
+(3) Launch the v2 lineage set with semfix and nosem × seeds 1–2 (the defective original sem is dropped, as in W8), entirely on v4dart + the v2 expert, through `rrp run-dag` (dags/arm_lineage.yaml overlays); same eval sets and edit suites as D-095.
+(4) Chunk-boundary smoothing (overlapping-chunk blending) is added to the W7 backlog, for BC and system 0 alike, evaluated as a separate controlled change.
