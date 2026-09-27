@@ -25,7 +25,7 @@ equal the v1 recipe node by node.
 NOT changed on purpose: the evaluation harness (R2 / edit-suite scene seeds and their feasibility filter, and the
 diagnostic label-error metric) still uses the v1 scripted teacher's feasibility check, so the v2 lineages are scored on
 exactly the same eval scenes as the v1 set; no teacher acts in the R2 control loop.
-Smoke: Stage A on v4dart 200 steps rc 0 (1.37 s/step on the shared peer GPU); a 2-episode BC-expert collection with the v2
+Throughput (02:10): Stage A runs at 1.28 s/step with 2 concurrent leases on the shared peer GPU (94% utilized, W8 holds 3 leases), i.e. ~5.3 h per Stage A; with <= 2 GPU leases the whole set needs roughly 30-40 h. Smoke: Stage A on v4dart 200 steps rc 0 (1.37 s/step on the shared peer GPU); a 2-episode BC-expert collection with the v2
 expert rc 0 (label bcv2_direct1701_u12000).
 Placement: peer only (the pack lives on the peer disk; run-dag does not transfer artifacts across placements), code dir
 `/dev/shm/rrp-brandonin/wt/armv2`; driver = host user unit `rrp-armv2-dag` (the runner only launches/monitors peer
