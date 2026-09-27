@@ -108,6 +108,7 @@ def train(args):
                 critic_inputs="public + privileged: base lin vel, height, foot contacts, friction, push flag",
                 source_label="learned_tracker (trained with privileged critic)", args=vars(args), gpu=gpu_info,
                 contact_model=sp["contact"], reward_version=sp["reward"], init_from=args.init_actor, ref_ff=args.ref_ff,
+                actuator_limits=sp.get("actuator_limits"), actuator=args.actuator,
                 alpha_schedule=("gated" if sched else args.alpha_schedule),
                 critic_extras=("+ reward-schedule alpha" if sp["reward"] == "gait_v2" else ""))
     (out / "meta.json").write_text(json.dumps(meta, indent=1))

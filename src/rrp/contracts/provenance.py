@@ -52,6 +52,7 @@ class PhysicsProvenance(Strict):
     ls_iterations: int
     noslip_iterations: int
     contact_version: str = CONTACT_VERSION_DEFAULT
+    actuator_limits: str | None = None      # legged bodies: torque-limit version embedded in the model (W1, D-107)
 
     def to_dict(self) -> dict:
         return self.model_dump(mode="json")
@@ -90,7 +91,17 @@ def physics_provenance(model, contact_version: str | None = None) -> PhysicsProv
                              cone=_enum_name(mujoco.mjtCone, o.cone), impratio=float(o.impratio),
                              solver=_enum_name(mujoco.mjtSolver, o.solver), iterations=int(o.iterations),
                              ls_iterations=int(o.ls_iterations), noslip_iterations=int(o.noslip_iterations),
-                             contact_version=contact_version)
+                             contact_version=contact_version, actuator_limits=_model_actuator_limits(model))
+
+
+def _model_actuator_limits(model):
+    """Legged-body actuator-limit version from the model's `*actuator_limits` text element (attach may prefix it), or None."""
+    import mujoco
+    for t in range(model.ntext):
+        if (mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_TEXT, t) or "").endswith("actuator_limits"):
+            adr, n = model.text_adr[t], model.text_size[t]
+            return bytes(model.text_data[adr:adr + n - 1]).decode()
+    return None
 
 
 # ------------------------------------------------------------------------------------------------------ source

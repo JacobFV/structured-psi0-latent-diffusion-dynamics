@@ -13,6 +13,7 @@ def _worker(conn, body, n_envs, seed, friction, kw):
     from rrp.bodies.legged import legged_body
     env = LeggedEnv(lambda: legged_body(body), n_envs, seed, friction_scale=friction, **kw)
     conn.send(("spec", dict(obs_dim=env.b.obs_dim, priv_dim=env.priv_dim, contact=env.meta["contact_model"],
+                            actuator_limits=env.meta.get("actuator_limits"),
                             reward=env.cfg0.version, reward_weights0=env.cfg.weights(), act_dim=env.b.n, dt=env.dt,
                             substeps=env.substeps, kind=env.b.kind)))
     while True:

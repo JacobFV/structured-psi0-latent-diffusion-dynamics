@@ -298,7 +298,11 @@ def _foot_site(spec: mujoco.MjSpec, model: mujoco.MjModel, data: mujoco.MjData, 
     return g
 
 
-def menagerie_legged(key: str) -> Module:
+def menagerie_legged(key: str, limits: str | None = None) -> Module:
+    """limits: actuator torque-limit version ('sourced_v1' default | 'legacy_gains_v0'); None -> $RRP_ACTUATOR_LIMITS or default.
+    sourced_v1 replaces the gains-table effort of every joint listed in rrp.physics.actuator.SOURCED by the manufacturer value."""
+    from rrp.physics.actuator import resolve_limits, sourced_effort
+    limits = resolve_limits(limits)
     info = LEGGED_ASSETS[key]
     path = MENAGERIE / info["dir"] / info["file"]
     if not path.exists():
@@ -339,6 +343,10 @@ def menagerie_legged(key: str) -> Module:
             raise ValueError(f"{key}: no PD gain rule for motor actuator {a.name}")
         kp, kd, eff = r if r else (kp0, kd0, eff0)
         eff = eff if eff is not None else (eff0 if eff0 is not None else 1e3)
+        eff_legacy = eff
+        if limits == "sourced_v1":
+            se = sourced_effort(key, jname)
+            eff = se if se is not None else eff
         jr = m0.jnt_range[jid] if m0.jnt_limited[jid] else [-math.pi, math.pi]
         a.gear = [1, 0, 0, 0, 0, 0]
         a.gaintype = mujoco.mjtGain.mjGAIN_FIXED
@@ -351,7 +359,7 @@ def menagerie_legged(key: str) -> Module:
         a.forcelimited = LIM
         a.forcerange = [-eff, eff]
         adapter.append(dict(actuator=a.name, joint=jname, source_kind="position" if is_pos else "motor",
-                            source_gear=gear, source_kp=kp0, kp=kp, kd=kd, effort=eff))
+                            source_gear=gear, source_kp=kp0, kp=kp, kd=kd, effort=eff, effort_legacy=eff_legacy))
     # joint equalities whose DEPENDENT side (joint1) is an actuated joint: invert the (linear) relation
     # so the actuated joint is the driver (physics unchanged: q1 = c0 + c1 q2  <=>  q2 = -c0/c1 + q1/c1)
     actuated = {a.target for a in spec.actuators}
@@ -366,6 +374,7 @@ def menagerie_legged(key: str) -> Module:
             else:
                 raise ValueError(f"{key}: nonlinear equality drives actuated joint {eq.name1}")
     imu = add_imu(spec, root_body)
+    spec.add_text(name="actuator_limits", data=limits)       # queryable from any compiled model containing this body
     model = spec.copy().compile()
     data = mujoco.MjData(model)
     # default pose
@@ -419,8 +428,9 @@ def menagerie_legged(key: str) -> Module:
                     g for g in (dict(name="legs", actuators=policy, semantic="joint_position", units="rad"),
                                 dict(name="upper", actuators=held, semantic="joint_position", units="rad"))
                     if g["actuators"]]),
-                actuator_adapter=dict(kind="joint_pd_position_servo", note="motor actuators converted to PD servos "
-                                      "with original torque limits; position actuators re-gained per table",
+                actuator_limits=limits,
+                actuator_adapter=dict(kind="joint_pd_position_servo", note="motor actuators converted to PD servos; torque "
+                                      f"limits = {limits} (see rrp.physics.actuator.SOURCED); position actuators re-gained per table",
                                       actuators=adapter, inverted_joint_equalities=inverted),
                 params=dict(lengths=[nominal]),
                 legged=dict(root_body=root_body, imu=imu, foot_bodies=list(info["feet"]), foot_sites=foot_sites,
@@ -437,10 +447,12 @@ def menagerie_legged(key: str) -> Module:
     return Module(spec, meta)
 
 
-def legged_body(key: str) -> Module:
+def legged_body(key: str, limits: str | None = None) -> Module:
     if key in PROCEDURAL:
-        return PROCEDURAL[key]()
-    return menagerie_legged(key)
+        m = PROCEDURAL[key]()
+        m.meta["actuator_limits"] = "procedural_params"     # no manufacturer source; limits are the generator's parameters
+        return m
+    return menagerie_legged(key, limits)
 
 
 ALL_LEGGED = list(PROCEDURAL) + list(LEGGED_ASSETS)

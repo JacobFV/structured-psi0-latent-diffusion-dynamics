@@ -26,7 +26,10 @@ import numpy as np
 #   t1       BoosterRobotics/booster_gym resources/T1/T1_serial.urdf (027a5333ce4ed0a1); torques also equal the
 #            menagerie booster_t1/t1.xml actuatorfrcrange
 #   h1       unitreerobotics/unitree_ros robots/h1_description/urdf/h1.urdf (ebd495cba7887406)
-#   g1       unitreerobotics/unitree_ros robots/g1_description/g1_29dof.urdf (e1dc89366bf96aa3)
+#   g1       unitreerobotics/unitree_mujoco unitree_robots/g1/g1_29dof.xml (423e28bd718b19f7; motor ctrlrange) and
+#            unitreerobotics/unitree_rl_gym resources/robots/g1_description/g1_29dof.urdf (f055210bb33df351) AGREE: hip 88,
+#            knee 139, ankle 50 N m; speeds hip 32, knee 20, ankle 37. (Conflicting older files: unitree_ros g1_29dof.urdf
+#            ankle 35 / 30 rad/s; g1_12dof.urdf and the menagerie g1.xml hip_roll 139. The two current Unitree files win.)
 #   go2      unitreerobotics/unitree_ros robots/go2_description/urdf/go2_description.urdf (7d19fe48e2e689ee)
 #   anymal_c ANYbotics/anymal_c_simple_description urdf/anymal.urdf (3902c3957ac82176)
 # The URDF velocity is used as the zero-torque speed of the linear torque-speed envelope (a modelling choice, labelled).
@@ -35,10 +38,47 @@ SOURCED = {
     "t1": [("Hip_Pitch", 45.0, 12.5), ("Hip_Roll|Hip_Yaw", 30.0, 10.9), ("Knee", 60.0, 11.7), ("Ankle_Pitch", 20.0, 18.8),
            ("Ankle_Roll", 15.0, 12.4)],
     "h1": [("hip", 200.0, 23.0), ("knee", 300.0, 14.0), ("ankle", 40.0, 9.0)],
-    "g1": [("hip", 88.0, 32.0), ("knee", 139.0, 20.0), ("ankle", 35.0, 30.0)],
+    "g1": [("hip", 88.0, 32.0), ("knee", 139.0, 20.0), ("ankle", 50.0, 37.0)],
     "go2": [("hip_joint|thigh", 23.7, 30.1), ("calf", 45.43, 15.70)],
     "anymal_c": [("HAA|HFE|KFE", 80.0, 7.5)],
 }
+
+# Body-model default (W1, D-107): the legged body adapter uses these SOURCED peak torques as the PD servo force limits.
+# "legacy_gains_v0" = the pre-2026-09-27 hand-written gains table (t1 2-3x too strong, g1 hip_roll 139).
+ACTUATOR_LIMITS_DEFAULT = "sourced_v1"
+ACTUATOR_LIMITS = ("legacy_gains_v0", "sourced_v1")
+# bodies whose effective limits DIFFER between the two versions (all others have identical values, so trackers stay compatible)
+LIMITS_CHANGED = {"t1", "g1"}
+
+
+def resolve_limits(limits: str | None = None) -> str:
+    import os
+    v = limits if limits is not None else os.environ.get("RRP_ACTUATOR_LIMITS", ACTUATOR_LIMITS_DEFAULT)
+    if v not in ACTUATOR_LIMITS:
+        raise ValueError(f"unknown actuator limits {v!r}; known {ACTUATOR_LIMITS}")
+    return v
+
+
+def sourced_effort(body: str, joint: str) -> float | None:
+    import re
+    for pat, e, _v in SOURCED.get(body, []):
+        if re.search(pat, joint):
+            return e
+    return None
+
+
+def model_actuator_limits(model) -> str | None:
+    """Actuator-limits version embedded by the legged body builder (text element `actuator_limits`), or None."""
+    import mujoco
+    tid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_TEXT, "actuator_limits")
+    if tid < 0:
+        tid = next((t for t in range(model.ntext)
+                    if (mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_TEXT, t) or "").endswith("actuator_limits")), -1)
+    if tid < 0:
+        return None
+    adr, n = model.text_adr[tid], model.text_size[tid]
+    return bytes(model.text_data[adr:adr + n - 1]).decode()
+
 
 ARMATURE_PER_NM = 4e-4
 VMAX = {"humanoid": 20.0, "biped": 20.0, "quadruped:go2": 30.0, "quadruped:anymal_c": 12.0, "quadruped": 20.0,

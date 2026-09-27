@@ -46,6 +46,13 @@ class LearnedTracker:
         self.torch = torch
         self.dt = float(meta["control_dt"])
         self.contact_model = meta.get("contact_model", "contact_v1")   # pre-v2 actors carry no key: v1 physics
+        # torque-limit version the actor was trained with (pre-2026-09-27 actors: the legacy gains table)
+        self.actuator_limits = meta.get("actuator_limits", "legacy_gains_v0")
+        from rrp.physics.actuator import LIMITS_CHANGED
+        scene_limits = binding.meta.get("actuator_limits")
+        if body_key in LIMITS_CHANGED and scene_limits and scene_limits != self.actuator_limits:
+            raise TrackerMismatch(f"{body_key} tracker trained with actuator limits {self.actuator_limits}, scene uses "
+                                  f"{scene_limits} (set RRP_ACTUATOR_LIMITS={self.actuator_limits} to run it)")
         cv = "" if self.contact_model == "contact_v1" else f":{self.contact_model}"
         self.version = f"learned_tracker:{body_key}:iter{meta.get('iter')}{cv}"
         import hashlib                                  # W8: exact actor identity (two v2 actors can share an iter)
