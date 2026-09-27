@@ -1,0 +1,92 @@
+{
+ "data": "artifacts/runs/legged8/diag/replay_anymal_c",
+ "body": "anymal_c",
+ "shards": [
+  "s0-99.json",
+  "s100-199.json",
+  "s200-299.json",
+  "s300-399.json",
+  "s400-499.json",
+  "s500-599.json"
+ ],
+ "gate": {
+  "gate": "D-112 legged dataset",
+  "n": 600,
+  "slip_measured": 600,
+  "slip_lt_0p15_frac": 1.0,
+  "slip_median": 0.0576,
+  "slip_ok": true,
+  "noise0_episodes": 150,
+  "noise0_falls": 0,
+  "falls_ok": true,
+  "passed": true
+ },
+ "by_sigma": {
+  "0.0": {
+   "n": 150,
+   "slip_lt_0p15": 150,
+   "fell": 0,
+   "slip_median": 0.0484
+  },
+  "0.1": {
+   "n": 150,
+   "slip_lt_0p15": 150,
+   "fell": 0,
+   "slip_median": 0.051
+  },
+  "0.2": {
+   "n": 150,
+   "slip_lt_0p15": 150,
+   "fell": 0,
+   "slip_median": 0.063
+  },
+  "0.3": {
+   "n": 150,
+   "slip_lt_0p15": 150,
+   "fell": 0,
+   "slip_median": 0.0876
+  }
+ },
+ "tracker_sha256": [
+  "2a16532bbd07f7abc662bdda10df6bfb70fca2ec11d59f9567142e92a2f22d95"
+ ],
+ "actuator_limits": [
+  "sourced_v1"
+ ],
+ "replay_vs_reference": {
+  "reference": "artifacts/runs/legged8/legged8-anymal_c-v2data/collect_s0",
+  "all_identical": true,
+  "shards": [
+   {
+    "shard": "s0-99.json",
+    "identical": true,
+    "differing_arrays": []
+   },
+   {
+    "shard": "s100-199.json",
+    "identical": true,
+    "differing_arrays": []
+   },
+   {
+    "shard": "s200-299.json",
+    "identical": true,
+    "differing_arrays": []
+   },
+   {
+    "shard": "s300-399.json",
+    "identical": true,
+    "differing_arrays": []
+   },
+   {
+    "shard": "s400-499.json",
+    "identical": true,
+    "differing_arrays": []
+   },
+   {
+    "shard": "s500-599.json",
+    "identical": true,
+    "differing_arrays": []
+   }
+  ]
+ }
+}

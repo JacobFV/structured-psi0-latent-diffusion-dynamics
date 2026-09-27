@@ -1,0 +1,56 @@
+{
+ "data": "artifacts/runs/legged8/legged8-t1sl-v2data/collect_s0",
+ "body": "t1",
+ "shards": [
+  "s0-99.json",
+  "s100-199.json",
+  "s200-299.json",
+  "s300-399.json",
+  "s400-499.json",
+  "s500-599.json"
+ ],
+ "gate": {
+  "gate": "D-112 legged dataset",
+  "n": 600,
+  "slip_measured": 600,
+  "slip_lt_0p15_frac": 0.8617,
+  "slip_median": 0.1313,
+  "slip_ok": false,
+  "noise0_episodes": 150,
+  "noise0_falls": 0,
+  "falls_ok": true,
+  "passed": false
+ },
+ "by_sigma": {
+  "0.0": {
+   "n": 150,
+   "slip_lt_0p15": 140,
+   "fell": 0,
+   "slip_median": 0.1228
+  },
+  "0.05": {
+   "n": 150,
+   "slip_lt_0p15": 133,
+   "fell": 0,
+   "slip_median": 0.1297
+  },
+  "0.1": {
+   "n": 150,
+   "slip_lt_0p15": 132,
+   "fell": 0,
+   "slip_median": 0.1304
+  },
+  "0.15": {
+   "n": 150,
+   "slip_lt_0p15": 112,
+   "fell": 0,
+   "slip_median": 0.1404
+  }
+ },
+ "tracker_sha256": [
+  "36e9146792743115878c34e0bbf7cc46ccb5419417921358da3658c8377fc591"
+ ],
+ "actuator_limits": [
+  "sourced_v1"
+ ]
+}

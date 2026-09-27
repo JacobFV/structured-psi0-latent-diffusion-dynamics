@@ -91,7 +91,7 @@ learned_tracker:anymal_c:iter2499:contact_v2 (sha 2a16532b...), commands scripte
   nosem 2.02 -> 1.80 m over t=2-8 s) and `..._s10017_..._noeffect.mp4` (fixsem 1.97 -> 1.70, nosem 2.39 -> 2.92). Reviewed a frame: the
   halted fixsem robot stops short of waypoint A; nosem reaches it.
 - 08:28 second peer memory emergency (a W10 psi1z job grew ~23 GB in 2 min from 08:26 while the peer sat at ~114 GB): shed go2 rep
-  semfix s1/s2 and t1 rep semfix s1 (the three old-code leases above the 2-lease allocation) at ~step 9000. They are retried with
+  semfix s1/s2 and t1 rep semfix s1 (the three old-code leases above the 2-lease allocation); the go2 ones resumed from step 5500. They are retried with
   --retry-failed and resume from rep_last.pt, INEXACTLY (their checkpoints predate the CUDA-RNG fix; numpy/torch-CPU RNG restored).
   Recorded here; these runs are flagged in the wave-2 tables.
 
@@ -144,3 +144,33 @@ turn-trained learned_tracker:t1:iter1199:contact_v2 (sha 0d77322c) used here, wa
 - dags/legged_v2_t1.yaml carries a PAUSED header. A rerun starts from collection with the sourced-limit tracker; its sha must be
   declared anew (the pipeline refuses data and rows from any other tracker), with a fresh lineage/ledger.
 - go2 keeps running and now has both W8 GPU slots (the track-wide cap is 2; t1 holds none).
+
+## GO2 RESULT (contact_v2, clearance-floor tracker; wave 2). Table `research/tracks/legged8/legged8_compare_go2.{md,json}`
+DAG `legged_v2_go2` 43/43 (host log artifacts/runs/legged8/go2_rundag.log). Gait learned_tracker:go2:iter799:contact_v2 (sha af3f06f4...),
+commands scripted_teacher; learned:legged8-go2-{semfix,nosem}/train_flow_s{0,1,2}. INEXACT resumes (checkpoints before the CUDA-RNG
+fix, logged by the trainer): semfix flow s0 from step 1500, semfix Stage A s1 and s2 from step 5500 (07:50 / 08:28 sheds).
+- Context HALT Δforward, seeds 0/1/2 -> pooled: semfix -0.34 / -0.22 / -0.30 -> **-0.29 [-0.34, -0.24]**; nosem +0.54 / +0.21 / +0.35 ->
+  **+0.37 [+0.32, +0.42]**; every seed ordered, exact one-sided p = 0.05; pooled difference -0.66 [-0.73, -0.59]. Irrelevant control
+  -0.02 / -0.01. (v1 go2, D-090: -0.13 vs +0.46; the effect is larger and more consistent under contact_v2.)
+- R2 success: semfix snap 30/30/27 (3 falls, s2), final 30/30/27; nosem snap 30/29/29, final 27 (2 falls)/30/30. Teacher 30/30, BC 30/30.
+- Goal steering ACTIVE-INACTIVE: semfix +0.43 vs nosem +0.58 (not ordered, p 0.15): equal-or-weaker, unlike anymal_c (where semfix was 2x).
+- z edits: halt -1.07 vs -0.76 (ordered, p 0.05); turn +0.19/-0.33 vs +0.11/-0.16 (ordered); goal readout +0.096 vs +0.025 (ordered);
+  random |dz| 8 toward -0.001 vs +0.011.
+
+## D-112 DATASET GATES (slip < 0.15 on >= 95% of episodes; 0 falls at noise 0). Raw: research/tracks/legged8/gate_*.json
+The collector now records the W6 motion metrics per episode (rrp.evaluation.motion_quality, read-only). go2 and anymal_c were collected
+before that, so their collections were REPLAYED with the recorder (same seeds; every array bit-identical to the stored shards, checked)
+and the replay's metrics gated.
+| dataset | slip < 0.15 | slip median | by sigma (pass / 150) | falls at noise 0 | gate |
+|---|---|---|---|---|---|
+| anymal_c (legged8-anymal_c-v2data) | 100% | 0.058 | 150 / 150 / 150 / 150 | 0 | PASS |
+| go2 (legged8-go2-v2data) | 100% | 0.026 | 150 / 150 / 150 / 150 | 0 | PASS |
+| t1 w8d sourced limits (legged8-t1sl-v2data) | **86.2%** | 0.131 | 140 / 133 / 132 / 112 (sigma 0/0.05/0.1/0.15) | 0 | **FAIL (slip)** |
+
+## t1 RERUN on sourced limits (D-107 follow-up): collection done, training HELD pending the lead (gate failure)
+dags/legged_v2_t1sl.yaml (fresh lineage legged8-t1sl-*, fresh ledger): tracker t1 w8d sha 36e91467... ("t1 sourced-limits w8d: waypoint
+20/20; lab gate fails forward 0.72 (slip 0.137 passes); arc no-fall 0.83 at 30 ms"), actuator_limits sourced_v1 declared and verified in
+every shard and teacher row, contact_v2, ideal PD (no latency model). Collection 600 episodes, 0 falls, end-check 591/600; teacher 30/30.
+The dataset FAILS the D-112 slip gate (86% < 0.15; even noise-free 93%), so Stage A was not started. Options for the lead: (a) train anyway,
+reported with the gate failure; (b) wait for a tracker that passes under the waypoint mix.
+Verified in production: the teacher node was refused by the broker (CapacityError: cpu 21.00 > aggregate limit 19.97) and queued 8 min, then ran.
