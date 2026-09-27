@@ -47,7 +47,7 @@ def train(args):
     from rrp.control.reward_schedule import AlphaGate, window_metrics
     pool = VecPool(args.body, args.workers, args.envs, args.seed,
                    env_kw=dict(push=not args.no_push, episode_s=args.episode_s, contact=args.contact,
-                               reward=args.reward))
+                               reward=args.reward, reward_overrides=_kv(args.reward_set)))
     sp = pool.spec
     sched = sp["reward"] == "gait_v2" and args.alpha_schedule != "off"
     gate = AlphaGate(step=args.alpha_step, every=args.alpha_every, warmup=args.alpha_warmup)
@@ -222,6 +222,10 @@ def train(args):
     print("done", flush=True)
 
 
+def _kv(spec: str) -> dict:
+    return {k: float(v) for k, v in (kv.split("=") for kv in filter(None, (spec or "").split(",")))}
+
+
 def export_actor(ac, meta: dict, path: Path, it: int):
     import torch
     st = dict(actor=ac.actor.state_dict(), obs_mean=ac.obs_norm.mean.cpu(), obs_var=ac.obs_norm.var.cpu(),
@@ -260,6 +264,7 @@ def main(argv=None):
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--ckpt-every", type=int, default=25)
     ap.add_argument("--resume", action="store_true")
+    ap.add_argument("--reward-set", default="", help="override base reward weights, e.g. clearance_floor=-2,floor_frac=0.6")
     ap.add_argument("--init-actor", default=None, help="warm-start actor + obs normaliser from an exported actor.pt")
     ap.add_argument("--contact", default="v1", help="contact model: v1 (legacy) | v2 (rrp.morphology.contact)")
     ap.add_argument("--reward", default=None, help="gait_v1 | gait_v2 (default: gait_v2 iff --contact v2)")

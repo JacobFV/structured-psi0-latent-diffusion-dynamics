@@ -268,6 +268,10 @@ class RewardCfg:
     smooth: float = 0.0            # x second difference of actions (a - 2a1 + a2)^2, like action_rate
     power: float = 0.0             # x mechanical power / (m g max(|cmd_xy|, 0.25)): a per-step cost of transport
     impact: float = 0.0            # x clip(touchdown normal force / (m g) - 1, 0, 3), per touchdown
+    # PERMANENT swing-clearance hinge floor (W1 task 1, 2026-09-27): at each touchdown during a moving command,
+    # x clip((floor - swing apex) / floor, 0, 1)^2 per foot, floor = floor_frac * body swing_height. Never decays.
+    clearance_floor: float = 0.0
+    floor_frac: float = 0.6
     version: str = "gait_v1"
     # schedule (gait_v2): alpha in [0,1]; priors w0*(floor + (1-floor)(1-alpha)); natural w_min + alpha(w_max-w_min)
     alpha: float = 0.0
@@ -317,7 +321,8 @@ class LeggedEnv:
 
     def __init__(self, module_factory, n_envs: int, seed: int, *, control_dt: float = 0.02,
                  episode_s: float = 20.0, friction_scale: float = 1.0, push: bool = True, obs_noise: float = 1.0,
-                 contact: str = "v1", reward: str | None = None, randomize: bool = True):
+                 contact: str = "v1", reward: str | None = None, randomize: bool = True,
+                 reward_overrides: dict | None = None):
         from rrp.morphology.contact import ContactRandomizer, resolve
         from rrp.morphology.legged import standalone_model
         mod = module_factory()
@@ -339,6 +344,11 @@ class LeggedEnv:
             # loses only ~0.18/step by standing still, less than the stance-slip cost, so gait_v2 converged to standing
             vmax = float(self.b.cmd_ranges["vx"][1])
             self.cfg0 = replace(self.cfg0, sigma=min(self.cfg0.sigma, (0.5 * vmax) ** 2))
+        if reward_overrides:   # e.g. {"clearance_floor": -2.0}; base (alpha=0) weights, recorded in the train meta
+            for k, v in reward_overrides.items():
+                if not hasattr(self.cfg0, k):
+                    raise KeyError(f"unknown reward term {k}")
+            self.cfg0 = replace(self.cfg0, **{k: type(getattr(self.cfg0, k))(v) for k, v in reward_overrides.items()})
         self.cfg = self.cfg0.effective(0.0) if self.cfg0.version == "gait_v2" else self.cfg0
         self.sched = self.cfg0.version == "gait_v2"      # alpha schedule (critic sees alpha; the actor never does)
         self.priv_dim = self.b.priv_dim + (1 if self.sched else 0)
@@ -502,6 +512,14 @@ class LeggedEnv:
                     # gait_v2c (non-bipeds): mean over swinging feet, i.e. swing quality, not the number of feet in the air
                     # (the sum rewarded lifting more legs: anymal_c kicked its shanks, hexapod6 held legs up)
                     r += cfg.clearance * float(np.mean(clr[swing]))
+            if cfg.clearance_floor:
+                clr_f = b.foot_clearance(d)
+                self.apex[i] = np.where(fc, self.apex[i], np.maximum(self.apex[i], clr_f))
+                if moving:
+                    fl = cfg.floor_frac * b.swing_height
+                    short = np.clip((fl - self.apex[i]) / fl, 0.0, 1.0) ** 2
+                    r += cfg.clearance_floor * float(np.sum(short * first))
+                self.apex[i] = np.where(fc, 0.0, self.apex[i])
             if cfg.slip:
                 # bipeds: sum over feet; gait_v2c non-bipeds: mean over feet in contact, so lifting legs does not reduce it
                 r += cfg.slip * (float(np.sum(slip_v)) if b.biped else (float(np.mean(slip_v[fc])) * 2.0 if fc.any() else 0.0))
