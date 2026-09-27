@@ -100,6 +100,10 @@ def cmd_ops_run(a):
     cmd = a.cmd[1:] if a.cmd and a.cmd[0] == "--" else a.cmd
     if not cmd:
         raise SystemExit("no command")
+    from rrp.orchestration.runtime import mem_declaration_warning
+    w = mem_declaration_warning(a.label, _parse_bytes(a.mem))
+    if w:
+        print(f"[rrp ops run] WARNING {w}", file=sys.stderr, flush=True)
     res = run_leased(cmd, cpu=a.cpu, memory_bytes=_parse_bytes(a.mem), label=a.label, gpu=a.gpu,
                      gpu_memory_bytes=_parse_bytes(a.gpu_mem) if a.gpu_mem else 0,
                      disk_bytes=_parse_bytes(a.disk) if getattr(a, "disk", None) else 0,

@@ -398,3 +398,19 @@ into /dev/shm, ~7 GB of the 29.8 GB now) are not in the project and correctly re
     independent of the project-memory definition; the real watchdog (its own sampling) stayed ok throughout.
 Conclusion: the new measure removes the cache double count (limit ~5-11 GB tighter, more accurate), and in the observed
 window it would not have blocked admission or shed anything the old one did not.
+
+## D-117 follow-up (lease memory.high throttling visibility; merged, NOT deployed: the lead deploys with D-116 b)
+- `telemetry.parse_memory_events`, `telemetry.lease_memory_events()` (every rrp-lease-*.slice under rrp.slice/rrp-lease.slice).
+- Watchdog sample: `lease_memory_high` = {lease: {high: total, delta: since the previous sample}} for leases with high events,
+  `throttled_leases` = leases with delta > 0 (`lease_high_fields`; a lease seen first counts its total). The loop prints
+  `[watchdog] WARNING lease <id> (<label>) throttled at memory.high: +N events (total M); declared XG -> memory.high 0.8X G;
+  declare >= 1.3 x measured peak` and writes the same strings into the log record (`warnings`). Level/shedding unchanged.
+- Job exit record (resource-ledger.jsonl): `memory_high_events`, `memory_max_events`, `oom_kill` from the lease's memory.events;
+  the `[rrp.child]` line adds `memory_high_events=N` and "(THROTTLED at memory.high ...)" when N > 0.
+- `rrp ops run` warns (stderr, does not refuse) when --mem < 1.3 x the largest `memory_peak_bytes` recorded in the resource
+  ledger for the same label (`runtime.mem_declaration_warning`; 1.3 because memory.high = 0.8 x declared needs >= 1.25 x peak).
+- Tests (fake cgroup files): tests/unit/test_lease_throttle.py (parse + scan incl. a lease without memory.events; deltas across
+  samples incl. first sight and lease end; warning text with label and 0.8 x declared; the child's exit record and line with a
+  fake lease slice (42 high events); the ops-run warning on the D-117 case (10.8G declared vs 9G peak) and its non-cases).
+  Smoke: a live read-only collect_sample on the host (source memory.stat, no throttled leases) and a tiny host job whose ledger
+  record carries memory_high_events 0.

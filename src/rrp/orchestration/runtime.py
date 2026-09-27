@@ -171,3 +171,29 @@ def stop_owned(role: str | None = None) -> list[str]:
             be.stop_unit(unit)
             stopped.append(unit)
     return stopped
+
+
+DECLARE_PEAK_FACTOR = 1.3     # D-117: memory.high = 0.8 x declared, so declared must be >= peak / 0.8 = 1.25 x peak (+ margin)
+
+
+def mem_declaration_warning(label: str, memory_bytes: int, ledger: Path | None = None) -> str | None:
+    """Warn when --mem is below 1.3 x the largest memory peak recorded in the resource ledger for the same label."""
+    p = ledger if ledger is not None else ops_root() / "ops" / "resource-ledger.jsonl"
+    try:
+        lines = p.read_text().splitlines()
+    except OSError:
+        return None
+    peaks = []
+    for l in lines:
+        try:
+            r = json.loads(l)
+        except ValueError:
+            continue
+        if r.get("label") == label and r.get("memory_peak_bytes"):
+            peaks.append(int(r["memory_peak_bytes"]))
+    if not peaks or memory_bytes >= DECLARE_PEAK_FACTOR * max(peaks):
+        return None
+    pk = max(peaks)
+    return (f"--mem {memory_bytes / 2**30:.2f}G < {DECLARE_PEAK_FACTOR} x the recorded peak {pk / 2**30:.2f}G of label "
+            f"{label!r} ({len(peaks)} runs): memory.high (0.8 x declared = {0.8 * memory_bytes / 2**30:.2f}G) will throttle it; "
+            f"declare >= {DECLARE_PEAK_FACTOR * pk / 2**30:.1f}G")

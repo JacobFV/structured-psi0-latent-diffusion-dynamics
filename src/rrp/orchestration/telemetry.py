@@ -105,6 +105,37 @@ def slice_cgroup_path(slice_name: str) -> Path:
     return path
 
 
+def parse_memory_events(text: str | None) -> dict | None:
+    """cgroup v2 memory.events -> {low, high, max, oom, oom_kill, ...} (event COUNTS since the cgroup was created)."""
+    if not text:
+        return None
+    out = {}
+    for line in text.splitlines():
+        parts = line.split()
+        if len(parts) == 2 and parts[1].isdigit():
+            out[parts[0]] = int(parts[1])
+    return out or None
+
+
+def lease_memory_events(lease_parent: Path | None = None) -> dict:
+    """{lease_id: parsed memory.events} for every lease slice under rrp.slice/rrp-lease.slice (D-117: `high` counts the times a
+    lease was throttled at memory.high, which the broker sets to 0.8 x the declared memory)."""
+    root = lease_parent if lease_parent is not None else slice_cgroup_path("rrp-lease.slice")
+    out = {}
+    try:
+        subs = sorted(root.glob("rrp-lease-*.slice"))
+    except OSError:
+        return out
+    for d in subs:
+        try:
+            ev = parse_memory_events((d / "memory.events").read_text())
+        except OSError:
+            continue
+        if ev is not None:
+            out[d.name[len("rrp-lease-"):-len(".slice")]] = ev
+    return out
+
+
 def parse_memory_stat(text: str | None) -> dict | None:
     """cgroup v2 memory.stat -> {key: bytes}; None if unreadable/empty."""
     if not text:

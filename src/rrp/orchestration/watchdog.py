@@ -63,6 +63,7 @@ class WatchdogState:
     last_cpu_usage_usec: int | None = None
     last_t: float | None = None
     shmem_excess_count: int = 0           # consecutive samples with a RAM-store-caused excess under memory pressure
+    lease_high: dict = field(default_factory=dict)   # lease id -> last seen memory.events `high` count (D-117)
 
 
 @dataclass
@@ -191,6 +192,35 @@ def project_memory_fields(cg: dict | None, gpu_bytes: int | None) -> dict:
                 project_gpu_bytes=gpu_bytes)
 
 
+def lease_high_fields(st: "WatchdogState", events: dict) -> dict:
+    """D-117: per-lease memory.high throttling since the previous sample. events = {lease: parsed memory.events}.
+    Returns sample fields: lease_memory_high = {lease: {"high": total, "delta": new events}} for leases with any high events,
+    throttled_leases = [leases with delta > 0]. A lease seen for the first time counts its whole total as the delta."""
+    now = {lid: int((ev or {}).get("high", 0)) for lid, ev in events.items()}
+    out, throttled = {}, []
+    for lid, n in now.items():
+        d = n - st.lease_high.get(lid, 0)
+        if n > 0:
+            out[lid] = dict(high=n, delta=max(d, 0))
+        if d > 0:
+            throttled.append(lid)
+    st.lease_high = now                      # leases that ended drop out
+    return dict(lease_memory_high=out, throttled_leases=sorted(throttled))
+
+
+def throttle_warnings(sample: dict, leases: dict | None = None) -> list[str]:
+    """Human-readable warnings for leases throttled at memory.high in this sample (label and declared memory if known)."""
+    out = []
+    for lid in sample.get("throttled_leases") or []:
+        e = (sample.get("lease_memory_high") or {}).get(lid, {})
+        req = ((leases or {}).get(lid) or {}).get("request", {})
+        mem = req.get("memory_bytes")
+        out.append(f"lease {lid} ({req.get('label', '?')}) throttled at memory.high: +{e.get('delta')} events "
+                   f"(total {e.get('high')})" + (f"; declared {mem / 2**30:.1f}G -> memory.high {0.8 * mem / 2**30:.1f}G; "
+                                                  "declare >= 1.3 x measured peak" if mem else ""))
+    return out
+
+
 def collect_sample(cfg: WatchdogConfig, st: WatchdogState, project_slice="rrp.slice",
                    idle_window_s: float = 1.0, project_dir: Path | None = None,
                    gpu: bool = False) -> dict:
@@ -234,6 +264,7 @@ def collect_sample(cfg: WatchdogConfig, st: WatchdogState, project_slice="rrp.sl
         idle_cores=idle, project_cpu_cores=proj_cpu, telemetry_errors=errors,
         cpu_freq_ratio=telemetry.cpu_freq_ratio(), gpu_thermal_throttle=gthrot,
         project_disk_bytes=None,
+        **lease_high_fields(st, telemetry.lease_memory_events()),
     )
 
 
@@ -286,9 +317,18 @@ def run_loop(broker, backend, cfg: WatchdogConfig, *, interval_s: float = 2.0, l
                 pass
         if log_path.exists() and log_path.stat().st_size > max_log_bytes:
             os.replace(log_path, log_path.with_suffix(".1.jsonl"))
+        warns = []
+        if sample.get("throttled_leases"):
+            try:
+                warns = throttle_warnings(sample, broker.leases())
+            except Exception:  # noqa: BLE001 - a warning must never break the loop
+                warns = throttle_warnings(sample)
+            for w in warns:
+                print(f"[watchdog] WARNING {w}", flush=True)
         with open(log_path, "a") as f:
             f.write(json.dumps(dict(t=time.time(), level=v.level, reasons=v.reasons, sample=sample,
-                                    live_mem=v.live_memory_bytes, live_cpu=v.live_cpu_cores)) + "\n")
+                                    live_mem=v.live_memory_bytes, live_cpu=v.live_cpu_cores,
+                                    **({"warnings": warns} if warns else {}))) + "\n")
         dt = time.monotonic() - t0
         if dt < interval_s:
             time.sleep(interval_s - dt)
