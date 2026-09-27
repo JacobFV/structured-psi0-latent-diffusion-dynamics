@@ -497,3 +497,14 @@ Decisions:
 (2) Do NOT block on the DART-tolerance fix: the BC trained on v4dart is already better than v1's, so the reduced late-phase coverage has no measured cost. Record it as a candidate for a later data version, never mixed in.
 (3) Launch the v2 lineage set with semfix and nosem × seeds 1–2 (the defective original sem is dropped, as in W8), entirely on v4dart + the v2 expert, through `rrp run-dag` (dags/arm_lineage.yaml overlays); same eval sets and edit suites as D-095.
 (4) Chunk-boundary smoothing (overlapping-chunk blending) is added to the W7 backlog, for BC and system 0 alike, evaluated as a separate controlled change.
+
+## D-103 2026-09-27 CONTACT follow-ups: go2 passes with a permanent clearance floor; t1 learns a stepping turn in place (gate passes, with regressions); h1/g1 cannot turn yet; actuator realism implemented but not default
+contact agent (research/tracks/contact.md; installed trackers and hashes there).
+- go2: permanent touchdown hinge floor (below 60% of the target apex, weight −6): swing 0.6 → 3.8 cm; slip 0.02; CoT 0.65 → 0.88; forward 1.03, turn 0.79. Contact gate passes.
+- t1: turn in place 0.02 → 1.15 (sharper yaw kernel, dense yaw-progress reward, second phase at α = 1). Slip 0.11, no falls, contact gate passes. Regressions: forward 0.99 → 0.84, CoT 1.39 → 1.77, walk-and-turn yaw 0.98 → 0.66, and a wide lunging stance.
+- h1/g1: stand with feet down under turn commands; h1's slow gait is still a shuffle (≈90% double support). 4 attempts failed (turn 0.03).
+- actuator_v1 (`src/rrp/physics/actuator.py`): armature, damping, friction, torque–speed limit (max joint speeds are ESTIMATES from spec sheets), 0–30 ms latency. No-fall at 30 ms: anymal_c 1.00; go2 1.00; g1 0.40 → 1.00 after a fine-tune (but 0 ms forward 0.99 → 0.79); t1 1.00 (its fine-tune loses turning); h1 0.24 (not fixed).
+Decisions:
+(1) W8 wave 2: go2 with the clearance-floor tracker, and t1 with the turn-trained tracker (passes the gate and can execute the teacher's in-place turns; the lunge is reported as a limitation, with videos). The previous t1 tracker is kept as a labelled alternative.
+(2) Ideal actuators remain the default for W8, for consistency across bodies. The actuator_v1 results are reported as a robustness limitation. Making realistic actuators the default needs replacing the estimated joint speeds with sourced values, plus trackers that keep their gaits under them (h1 in particular).
+(3) Contact track next: a slow stepping gait for h1/g1 (then the turn curriculum), sourced actuator limits, and a joint turning + latency fine-tune for t1.
