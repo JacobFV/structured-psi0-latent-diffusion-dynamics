@@ -520,3 +520,12 @@ Decisions:
 (2) 2 peer GPU leases during reproduction (memory headroom ≥20 GB).
 (3) Path tracing is acceptable only if the checkpoint reproduces under it, with calibration on non-eval frames, documented.
 (4) Diagnose the structured arm's vx error before any closed-loop run.
+
+## D-105 2026-09-27 W8 wave 1 (anymal_c, contact v2): the semantic context-halt effect replicates on a third body under realistic contact
+W8 (research/tracks/legged8.md "ANYMAL_C RESULT"; lead read `research/tracks/legged8/legged8_compare_anymal_c.md`). Protocol and statistics as D-090: semfix vs nosem × training seeds 0/1/2, R2 deployable route, 20 dev seeds per model. The gait is learned_tracker:anymal_c:iter2499:contact_v2; commands come from scripted_teacher.
+- Stage A clip scale: semfix 0.125–0.138, nosem 0.97 (not starved; go2 fixed-sem reference 0.17).
+- Context HALT Δforward: semfix −0.32 / −0.10 / −0.16 → −0.19 [−0.26, −0.13]; nosem +0.08 / +0.43 / +0.12 → +0.21 [+0.14, +0.28]. Every semfix seed is below every nosem seed (exact one-sided permutation p = 0.05); pooled difference −0.40 [−0.50, −0.30]. Irrelevant control ≈0 (+0.002 / −0.003).
+- Context goal steering: semfix +0.22 vs nosem +0.12 pooled, every seed ordered (p = 0.05). This differs from go2/hexapod6, where steering was equal.
+- R2 success (final flow): 78/90 vs 83/90. 22 of 25 non-successes are a privileged end-check artifact (a foot flickers off the ground at the last tick; the public task runtime reports success); counting public success, both are at 88–90/90.
+- z edits: halt strong in both; turn and goal-readout handles larger for semfix (goal +0.025 vs +0.011; random |dz| 8 gives −0.006).
+Reading: with physically credible contact, the halt effect holds on anymal_c as on go2/hexapod6 (contact v1), and semfix additionally steers more strongly toward context goals. Pending: teacher and BC references (a --point filter bug skipped them; fixed), go2 and t1 under contact v2 (wave 2). The anymal_c privileged end check should be relaxed to tolerate a one-tick stance flicker, or reported alongside public success.
