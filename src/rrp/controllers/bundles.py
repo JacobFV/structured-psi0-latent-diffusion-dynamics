@@ -42,14 +42,8 @@ def load_representation(path: Path, dev):
 
 # ------------------------------------------------------------------ legged
 def _dev():
-    if torch.cuda.is_available():
-        try:
-            from rrp.contracts.workload import apply_cap
-            apply_cap()
-        except Exception:
-            pass
-        return torch.device("cuda")
-    return torch.device("cpu")
+    from rrp.contracts.workload import select_device
+    return select_device(on_cap_error="ignore")
 
 
 LEGGED_FLAG_KEYS = ("semantic_weight", "beta_kl", "qd_dropout", "probe_lv_min", "packet_semantic_weight",

@@ -233,18 +233,10 @@ class OraclePacketPolicy:
 
 
 def make_packet(s, f, z, knot_times, lsv, rcv, validity, *, source, policy_version):
-    from rrp.contracts.latent_action import LatentActionChunk, AssemblyHandle, EntityHandle
-    o = s.observe()
-    M = z.shape[1]
-    gasms = [a for a in f.spec.assemblies if a.kind in ("gripper", "hand")][:M]
-    now = float(s.data.time)
-    return LatentActionChunk(
-        latent_space_version=lsv, realizer_compat_version=rcv, z=np.asarray(z, np.float32), knot_times=list(knot_times),
-        assemblies=[AssemblyHandle(handle=f"asm:{f.spec.spec_hash}:{a.frame.link}", robot_index=0) for a in gasms],
-        assembly_mask=[True] * M, entity_registry=[EntityHandle(handle=f"ent:{d.slot}") for d in o.object_descriptors],
-        observation_id=o.observation_id, graph_version=s.runtime.graph_version, runtime_version=s.runtime.runtime_version,
-        robot_spec_hash=f.spec.spec_hash, generated_at=time.time(), valid_from=now, valid_until=now + validity,
-        source=source, policy_version=policy_version)
+    """Single-robot packet at the session's current observation (W5: delegates to evaluation.packets.arm_packet)."""
+    from rrp.evaluation.packets import arm_packet
+    return arm_packet(f, s, s.observe(), z, lsv=lsv, rcv=rcv, knot_times=knot_times, source=source,
+                      name=policy_version, validity=validity)
 
 
 # ------------------------------------------------------------------ privileged measurement helpers

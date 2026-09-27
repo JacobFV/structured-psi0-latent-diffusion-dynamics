@@ -39,11 +39,8 @@ from rrp.contracts.workload import CheckpointSignal
 
 
 def _dev():
-    if torch.cuda.is_available():
-        from rrp.contracts.workload import apply_cap
-        apply_cap()
-        return torch.device("cuda")
-    return torch.device("cpu")
+    from rrp.contracts.workload import select_device
+    return select_device(on_cap_error="raise")
 
 
 _PF_DATA = None

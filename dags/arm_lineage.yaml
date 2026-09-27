@@ -1,0 +1,260 @@
+# ARM LINEAGE (pick_place, 13 training bodies): the structure of scripts/arm_lineage_chain.sh (and its copies
+# armnosem_chain.sh, arm_lineage_hybrid.sh, arm_seed2_host.sh) as a variant x seed matrix.
+#   stageA -> F0 -> Fft ; bc1 -> rzbcdag1/rzbcdag1long -> bc2/bc3/gen1 -> rzbcdag2 -> rzgendag1 -> gen2 -> rzgendag2
+#   -> gen3/gdag1 -> rzgendag3/Fgdag1 -> gdag2 -> Fgdag2h -> final evals (R2 dev seeds, held-out bodies), progression
+#   evals (R2 of F0 and Fgdag1, R1 stateless-BC oracle), task-context semantic edits.
+# Recipes are the committed configs (configs/ladder/armsemfix, armnosem, armseed2/*): seed s = seed-1 recipe + 1000*(s-1)
+# on every training seed and + 1,100,000*(s-1) on every DAgger collection seed (naming.md). Variants: sem = semantic
+# NLL with the unbounded log-variance floor (-8, the frozen jointfix/sejf2 recipe), semfix = bounded NLL (-4), nosem =
+# no semantic objective (capacity matched). tests/unit/test_dag.py checks every planned native config against the
+# committed legacy config of the same lineage (all six: seed 1 = jointfix, sfjf, nsjf; seed 2 = sejf2, sfjf2, nsjf2).
+# Outputs: artifacts/runs/pipeline/arm-<variant>/<stage>[-<tag>]_s<seed>. Usage:
+#   rrp run-dag dags/arm_lineage.yaml --dry-run --point variant=semfix,seed=2
+#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/pipeline rrp run-dag dags/arm_lineage.yaml --point variant=semfix,seed=3
+name: arm_lineage
+schema: dag-1
+family: arm
+track: pipeline
+lineage: 'arm-{variant}'
+label_prefix: 'w5a_{tg}{seed}'
+matrix:
+  variant: [sem, semfix, nosem]
+  seed: [1, 2]
+axis_vars:
+  variant:
+    sem: {sw: 1.0, lv: -8.0, psw: 1.0, tg: se}
+    semfix: {sw: 1.0, lv: -4.0, psw: 1.0, tg: sf}
+    nosem: {sw: 0.0, lv: -8.0, psw: 0.0, tg: ns}
+vars:
+  so: '{1000 * (seed - 1)}'
+  soff: '{1100000 * (seed - 1)}'
+  pfx: 'w5_arm_{variant}_s{seed}'
+lists:
+
+  bodies: [panda_pg2, parm5_pg2, parm5_tf3, parm5l_tf3, parm5s_pg2, parm6_pg2, parm6_tf3, parm7_pg2, parm7_tf3, sawyer_pg2, sawyer_tf3, ur5e_pg2, ur5e_tf3]
+  rep_bodies: [parm5_pg2, parm5_tf3, parm5s_pg2, parm5l_tf3, parm6_pg2, parm6_tf3, parm7_pg2, parm7_tf3, panda_pg2, ur5e_pg2, ur5e_tf3, sawyer_pg2, sawyer_tf3]
+  npz: [panda_pg2.npz, parm5_pg2.npz, parm5_tf3.npz, parm5l_tf3.npz, parm5s_pg2.npz, parm6_pg2.npz, parm6_tf3.npz, parm7_pg2.npz, parm7_tf3.npz, sawyer_pg2.npz, sawyer_tf3.npz, ur5e_pg2.npz, ur5e_tf3.npz]
+  npz_gen1: [panda_pg2.npz, parm5_pg2.npz, parm5_tf3.npz, parm5l_tf3.npz, parm5s_pg2.npz, parm6_pg2.npz, parm6_tf3.npz, parm7_pg2.npz, parm7_tf3.npz, sawyer_pg2.npz, sawyer_tf3.npz, ur5e_pg2.npz]   # recipe quirk kept: gendag1 omits gen1/ur5e_tf3 and lists bc1, bc2, gen1, bc3 (every lineage since jointfix)
+  genctx: [panda_pg2.npz.genctx.pkl, parm5_pg2.npz.genctx.pkl, parm5_tf3.npz.genctx.pkl, parm5l_tf3.npz.genctx.pkl, parm5s_pg2.npz.genctx.pkl, parm6_pg2.npz.genctx.pkl, parm6_tf3.npz.genctx.pkl, parm7_pg2.npz.genctx.pkl, parm7_tf3.npz.genctx.pkl, sawyer_pg2.npz.genctx.pkl, sawyer_tf3.npz.genctx.pkl, ur5e_pg2.npz.genctx.pkl, ur5e_tf3.npz.genctx.pkl]
+defaults:
+  placement: peer          # one placement for the whole lineage (the peer store holds every artifact)
+  retries: 0               # D-061: a failed node blocks its dependants; --retry-failed is a manual decision
+  max_parallel: 6
+  admission_timeout_s: 10800
+  resources: {cpu: 3, mem: 8G, gpu: false, max_seconds: 10800}
+base:
+  flags: {zero_prev_action: true, realizer_anchor: true, realizer_drop_qd: false, probe_lv_min: '{lv}', contact_version: contact_v1}
+nodes:
+  stageA:
+    stage: train_rep
+    resources: {gpu: true, gpu_mem: 16G, cpu: 4, mem: 24G, max_seconds: 14400}
+    config:
+      inputs: {dataset: datasets/pick_place_primary_v3dart, packed_dir: packed/latent_pp_v3dart_s1_H16}
+      params:
+        train_robots: $rep_bodies
+        horizon: 16
+        stride: 1
+        include_dart_failures: true
+        seed: '{1706 + so}'
+        steps: 15000
+        batch_size: 128
+        lr: 0.0003
+        name: '{pfx}_stageA'
+        latent: {name: '{pfx}_stageA', semantic_weight: '{sw}'}
+  F0:
+    stage: train_flow
+    resources: {gpu: true, gpu_mem: 16G, cpu: 4, mem: 24G, max_seconds: 14400}
+    config:
+      inputs: {representation: '@stageA:representation.pt', packed_dir: packed/latent_pp_v3dart_s1_H16}
+      options: {final_snapshot_alias: snap_final_s20000.pt}
+      params: {name: '{pfx}_F0', seed: '{1701 + so}', steps: 20000, batch_size: 128, lr: 0.0003, packet_semantic_weight: '{psw}', normalize_target: true, snapshot_every: 1000, packet_tau_min: 0.6, policy: {width: 256, heads: 4, ctx_layers: 3, blocks: 6, structured: true, bias_mode: 'true', attention: factorized, name: '{pfx}_F0'}}
+
+  Fft:
+    stage: flow_ft
+    tag: ft
+    resources: {gpu: true, gpu_mem: 16G, cpu: 4, mem: 24G, max_seconds: 10800}
+    config:
+      inputs: {representation: '@stageA:representation.pt', packed_dir: packed/latent_pp_v3dart_s1_H16, init_from: '@F0:snap_final_s20000.pt'}
+      params: {name: '{pfx}_Fft', seed: '{1702 + so}', steps: 10000, batch_size: 128, lr: 0.0001, packet_semantic_weight: '{psw}', normalize_target: true, snapshot_every: 1000, packet_tau_min: 0.6, policy: {width: 256, heads: 4, ctx_layers: 3, blocks: 6, structured: true, bias_mode: 'true', attention: factorized, name: '{pfx}_Fft'}}
+  bc1:
+    stage: dagger_collect
+    tag: bc1
+    resources: {cpu: 12, mem: 32G, max_seconds: 10800}
+    config:
+      inputs: {representation: '@stageA:representation.pt', bc_policy: 'runs/baselines_bc_ckpts:direct1701_u12000.pt'}
+      options: {mode: bc, genctx: false, expert: bc, bc_label: direct1701_u12000, robots: $bodies, episodes: 24, seed_start: '{3200000 + soff}', workers: 4, threads: 3}
+  rzbcdag1:
+    stage: refit
+    tag: bcdag1
+    resources: {gpu: true, gpu_mem: 8G, cpu: 3, mem: 20G, max_seconds: 7200}
+    config:
+      inputs: {representation: '@stageA:representation.pt', packed_dir: packed/latent_pp_v3dart_s1_H16, dagger: {runs: ['@bc1'], files: $npz}}
+      params: {name: '{pfx}_rzbcdag1', dagger_frac: 0.5, prefetch_workers: 0, steps: 4000, batch_size: 128, lr: 0.0001, seed: '{1711 + so}', init: old}
+  rzbcdag1long:
+    stage: refit
+    tag: bcdag1_long
+    resources: {gpu: true, gpu_mem: 8G, cpu: 3, mem: 20G, max_seconds: 10800}
+    config:
+      inputs: {representation: '@stageA:representation.pt', packed_dir: packed/latent_pp_v3dart_s1_H16, dagger: {runs: ['@bc1'], files: $npz}}
+      params: {name: '{pfx}_rzbcdag1long', dagger_frac: 0.5, prefetch_workers: 0, steps: 16000, batch_size: 128, lr: 0.0003, seed: '{1712 + so}', init: old}
+  bc2:
+    stage: dagger_collect
+    tag: bc2
+    resources: {cpu: 12, mem: 32G, max_seconds: 10800}
+    config:
+      inputs: {representation: '@rzbcdag1:representation.pt', bc_policy: 'runs/baselines_bc_ckpts:direct1701_u12000.pt'}
+      options: {mode: bc, genctx: false, expert: bc, bc_label: direct1701_u12000, robots: $bodies, episodes: 24, seed_start: '{3300000 + soff}', workers: 4, threads: 3}
+  bc3:
+    stage: dagger_collect
+    tag: bc3
+    resources: {cpu: 12, mem: 32G, max_seconds: 10800}
+    config:
+      inputs: {representation: '@rzbcdag1long:representation.pt', bc_policy: 'runs/baselines_bc_ckpts:direct1701_u12000.pt'}
+      options: {mode: bc, genctx: false, expert: bc, bc_label: direct1701_u12000, robots: $bodies, episodes: 24, seed_start: '{3400000 + soff}', workers: 4, threads: 3}
+  gen1:
+    stage: dagger_collect
+    tag: gen1
+    resources: {cpu: 12, mem: 32G, max_seconds: 10800}
+    config:
+      inputs: {representation: '@rzbcdag1long:representation.pt', flow: '@F0:snap_final_s20000.pt', bc_policy: 'runs/baselines_bc_ckpts:direct1701_u12000.pt'}
+      options: {mode: gen, genctx: false, expert: bc, bc_label: direct1701_u12000, robots: $bodies, episodes: 24, seed_start: '{3500000 + soff}', workers: 4, threads: 3}
+  rzbcdag2:
+    stage: refit
+    tag: bcdag2
+    resources: {gpu: true, gpu_mem: 8G, cpu: 3, mem: 20G, max_seconds: 10800}
+    config:
+      inputs: {representation: '@rzbcdag1long:representation.pt', packed_dir: packed/latent_pp_v3dart_s1_H16, dagger: {runs: ['@bc1', '@bc2'], files: $npz}}
+      params: {name: '{pfx}_rzbcdag2', dagger_frac: 0.5, prefetch_workers: 0, steps: 16000, batch_size: 128, lr: 0.0003, seed: '{1715 + so}', init: old}
+  rzgendag1:
+    stage: refit
+    tag: gendag1_noqd
+    resources: {gpu: true, gpu_mem: 8G, cpu: 3, mem: 20G, max_seconds: 7200}
+    config:
+      inputs: {representation: '@rzbcdag2:representation.pt', packed_dir: packed/latent_pp_v3dart_s1_H16, dagger: [{runs: ['@bc1', '@bc2'], files: $npz}, {runs: ['@gen1'], files: $npz_gen1}, {runs: ['@bc3'], files: $npz}]}
+      params: {name: '{pfx}_rzgendag1', dagger_frac: 0.6, prefetch_workers: 0, steps: 8000, batch_size: 128, lr: 0.0002, seed: '{1761 + so}', init: old, z_noise_rel: 0.3}
+      flags: {zero_prev_action: true, realizer_anchor: true, realizer_drop_qd: true, contact_version: contact_v1}
+  gen2:
+    stage: dagger_collect
+    tag: gen2
+    resources: {cpu: 12, mem: 32G, max_seconds: 10800}
+    config:
+      inputs: {representation: '@rzgendag1:representation.pt', flow: '@F0:snap_final_s20000.pt', bc_policy: 'runs/baselines_bc_ckpts:direct1701_u12000.pt'}
+      options: {mode: gen, genctx: false, expert: bc, bc_label: direct1701_u12000, robots: $bodies, episodes: 24, seed_start: '{3700000 + soff}', workers: 4, threads: 3}
+  rzgendag2:
+    stage: refit
+    tag: gendag2_noqd
+    resources: {gpu: true, gpu_mem: 8G, cpu: 3, mem: 20G, max_seconds: 7200}
+    config:
+      inputs: {representation: '@rzgendag1:representation.pt', packed_dir: packed/latent_pp_v3dart_s1_H16, dagger: {runs: ['@bc1', '@bc2', '@bc3', '@gen1', '@gen2'], files: $npz}}
+      params: {name: '{pfx}_rzgendag2', dagger_frac: 0.6, prefetch_workers: 0, steps: 8000, batch_size: 128, lr: 0.0002, seed: '{1790 + so}', init: old, z_noise_rel: 0.3}
+      flags: {zero_prev_action: true, realizer_anchor: true, realizer_drop_qd: true, contact_version: contact_v1}
+  gen3:
+    stage: dagger_collect
+    tag: gen3
+    resources: {cpu: 12, mem: 32G, max_seconds: 10800}
+    config:
+      inputs: {representation: '@rzgendag2:representation.pt', flow: '@Fft:policy.pt', bc_policy: 'runs/baselines_bc_ckpts:direct1701_u12000.pt'}
+      options: {mode: gen, genctx: false, expert: bc, bc_label: direct1701_u12000, robots: $bodies, episodes: 24, seed_start: '{3800000 + soff}', workers: 4, threads: 3}
+  gdag1:
+    stage: dagger_collect
+    tag: gdag1
+    resources: {cpu: 12, mem: 32G, max_seconds: 10800}
+    config:
+      inputs: {representation: '@rzgendag2:representation.pt', flow: '@Fft:policy.pt', bc_policy: 'runs/baselines_bc_ckpts:direct1701_u12000.pt'}
+      options: {mode: gen, genctx: true, expert: bc, bc_label: direct1701_u12000, robots: $bodies, episodes: 24, seed_start: '{3900000 + soff}', workers: 4, threads: 3}
+  rzgendag3:
+    stage: refit
+    tag: gendag3_noqd
+    resources: {gpu: true, gpu_mem: 8G, cpu: 3, mem: 20G, max_seconds: 7200}
+    config:
+      inputs: {representation: '@rzgendag2:representation.pt', packed_dir: packed/latent_pp_v3dart_s1_H16, dagger: {runs: ['@bc1', '@bc2', '@bc3', '@gen1', '@gen2', '@gen3'], files: $npz}}
+      params: {name: '{pfx}_rzgendag3', dagger_frac: 0.6, prefetch_workers: 0, steps: 8000, batch_size: 128, lr: 0.0002, seed: '{1820 + so}', init: old, z_noise_rel: 0.3}
+      flags: {zero_prev_action: true, realizer_anchor: true, realizer_drop_qd: true, contact_version: contact_v1}
+  Fgdag1:
+    stage: flow_ft
+    tag: gdag1
+    resources: {gpu: true, gpu_mem: 16G, cpu: 4, mem: 24G, max_seconds: 7200}
+    config:
+      inputs: {representation: '@stageA:representation.pt', packed_dir: packed/latent_pp_v3dart_s1_H16, init_from: '@F0:snap_final_s20000.pt', gen_dagger: {runs: ['@gdag1'], files: $genctx}}
+      params: {name: '{pfx}_Fgdag1', seed: '{1703 + so}', steps: 4000, batch_size: 128, lr: 0.0001, packet_semantic_weight: '{psw}', normalize_target: true, snapshot_every: 1000, packet_tau_min: 0.6, gen_dagger_frac: 0.5, policy: {width: 256, heads: 4, ctx_layers: 3, blocks: 6, structured: true, bias_mode: 'true', attention: factorized, name: '{pfx}_Fgdag1'}}
+  gdag2:
+    stage: dagger_collect
+    tag: gdag2
+    resources: {cpu: 12, mem: 32G, max_seconds: 10800}
+    config:
+      inputs: {representation: '@rzgendag3:representation.pt', flow: '@Fgdag1:policy.pt', bc_policy: 'runs/baselines_bc_ckpts:direct1701_u12000.pt'}
+      options: {mode: gen, genctx: true, expert: bc, bc_label: direct1701_u12000, robots: $bodies, episodes: 24, seed_start: '{4000000 + soff}', workers: 4, threads: 3}
+  Fgdag2h:
+    stage: flow_ft
+    tag: gdag2h
+    resources: {gpu: true, gpu_mem: 16G, cpu: 4, mem: 24G, max_seconds: 7200}
+    config:
+      inputs: {representation: '@stageA:representation.pt', packed_dir: packed/latent_pp_v3dart_s1_H16, init_from: '@Fgdag1:policy.pt', gen_dagger: {runs: ['@gdag1', '@gdag2'], files: $genctx}}
+      params: {name: '{pfx}_Fgdag2h', seed: '{1860 + so}', steps: 1500, batch_size: 128, lr: 5e-05, packet_semantic_weight: '{psw}', normalize_target: true, snapshot_every: 500, packet_tau_min: 0.6, gen_dagger_frac: 1.0, policy: {width: 256, heads: 4, ctx_layers: 3, blocks: 6, structured: true, bias_mode: 'true', attention: factorized, name: '{pfx}_Fgdag2h'}}
+  # ---- final evaluations of the deployable route (frozen flow Fgdag2h + final system 0 rzgendag3)
+  finalevals:
+    stage: eval_r2
+    tag: final
+    resources: {cpu: 3, mem: 8G, max_seconds: 10800}
+    config:
+      inputs: {flow: '@Fgdag2h:policy.pt', representation: '@rzgendag3:representation.pt'}
+      options: {tag: final, robots: [parm6_tf3, panda_pg2], seed_starts: [3000000, 3000100, 3000200], episodes: 30, workers: 1}
+  heldout:
+    stage: heldout
+    tag: final
+    resources: {cpu: 3, mem: 8G, max_seconds: 10800}
+    config:
+      inputs: {flow: '@Fgdag2h:policy.pt', representation: '@rzgendag3:representation.pt'}
+      options: {tag: final, robots: [parm5s_tf3, parm5l_pg2], seed_starts: [3000000], episodes: 30, workers: 1}
+  # ---- progression rows on the dev seeds
+  prog20k:
+    stage: eval_r2
+    tag: prog20k
+    resources: {cpu: 3, mem: 8G, max_seconds: 10800}
+    config:
+      inputs: {flow: '@F0:snap_final_s20000.pt', representation: '@rzgendag1:representation.pt'}
+      options: {tag: prog20k, robots: [parm6_tf3, panda_pg2], seed_starts: [3000000], episodes: 30, workers: 1}
+  proggdag1:
+    stage: eval_r2
+    tag: proggdag1
+    resources: {cpu: 3, mem: 8G, max_seconds: 10800}
+    config:
+      inputs: {flow: '@Fgdag1:policy.pt', representation: '@rzgendag3:representation.pt'}
+      options: {tag: proggdag1, robots: [parm6_tf3, panda_pg2], seed_starts: [3000000], episodes: 30, workers: 1}
+  orcbc:
+    stage: eval_r1
+    tag: orcbc
+    resources: {cpu: 3, mem: 10G, max_seconds: 10800}
+    config:
+      inputs: {representation: '@rzgendag3:representation.pt', bc_policy: 'runs/baselines_bc_ckpts:direct1701_u12000.pt'}
+      options: {tag: gendag3noqd, bc_label: direct1701_u12000, robots: [panda_pg2, parm6_tf3], seed_starts: [3000000], episodes: 30}
+  # ---- task-context semantic-edit suite (D-074/075/077 command) on F0 + rzgendag1, 120 parm6 + 48 panda episodes
+  semedits:
+    stage: edits
+    tag: gen
+    resources: {cpu: 9, mem: 18G, max_seconds: 28800}
+    config:
+      inputs: {flow: '@F0:snap_final_s20000.pt', representation: '@rzgendag1:representation.pt'}
+      options:
+        workers: 9
+        max_steps: 400
+        conditions: control,goal_shift,rebind_desc,irrelevant_distractor,orthogonal_matched,control_replay
+        shards:
+          - {name: parm6/shard0, robot: parm6_tf3, seed_start: 3000000, episodes: 10}
+          - {name: parm6/shard1, robot: parm6_tf3, seed_start: 3000010, episodes: 10}
+          - {name: parm6/shard2, robot: parm6_tf3, seed_start: 3000020, episodes: 10}
+          - {name: parm6/shard3, robot: parm6_tf3, seed_start: 3000030, episodes: 10}
+          - {name: parm6/shard4, robot: parm6_tf3, seed_start: 3000040, episodes: 10}
+          - {name: parm6/shard5, robot: parm6_tf3, seed_start: 3000050, episodes: 10}
+          - {name: parm6/shard6, robot: parm6_tf3, seed_start: 3000060, episodes: 10}
+          - {name: parm6/shard7, robot: parm6_tf3, seed_start: 3000070, episodes: 10}
+          - {name: parm6/shard8, robot: parm6_tf3, seed_start: 3000080, episodes: 10}
+          - {name: parm6/shard9, robot: parm6_tf3, seed_start: 3000090, episodes: 10}
+          - {name: parm6/shard10, robot: parm6_tf3, seed_start: 3000100, episodes: 10}
+          - {name: parm6/shard11, robot: parm6_tf3, seed_start: 3000110, episodes: 10}
+          - {name: panda/shard0, robot: panda_pg2, seed_start: 3000000, episodes: 8}
+          - {name: panda/shard1, robot: panda_pg2, seed_start: 3000008, episodes: 8}
+          - {name: panda/shard2, robot: panda_pg2, seed_start: 3000016, episodes: 8}
+          - {name: panda/shard3, robot: panda_pg2, seed_start: 3000024, episodes: 8}
+          - {name: panda/shard4, robot: panda_pg2, seed_start: 3000032, episodes: 8}
+          - {name: panda/shard5, robot: panda_pg2, seed_start: 3000040, episodes: 8}

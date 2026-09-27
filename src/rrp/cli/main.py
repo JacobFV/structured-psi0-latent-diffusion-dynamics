@@ -231,8 +231,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     # The command modules are stdlib-only at import time (heavy imports live inside the command functions), so the
     # full tree registers on the bootstrap python too. No ImportError is swallowed (W4): a broken import fails loudly.
-    from rrp.cli import adapt, data, ext, latent, train
-    for mod in (ext, data, train, latent, adapt):         # registration order = subcommand order in --help
+    from rrp.cli import adapt, dag, data, ext, latent, train
+    for mod in (ext, data, train, latent, adapt, dag):    # registration order = subcommand order in --help
         mod.register(sub)
     return p
 

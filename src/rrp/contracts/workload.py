@@ -41,3 +41,21 @@ class CheckpointSignal:
     def _h(self, signum, frame):
         self.requested = True
         self.reason = signal.Signals(signum).name
+
+
+def select_device(*, on_cap_error: str = "raise"):
+    """THE device choice of a workload (W5 dedup of the `_dev` helpers): cuda when available, with the in-process
+    cap applied first, else cpu. on_cap_error="raise" (arm trainers, former latent_train._dev) propagates an
+    apply_cap failure; "ignore" (legged, former controllers.bundles._dev) runs uncapped. `training.adapt._device`
+    stays separate: it also returns the cap info and disables TF32 matmuls (likelihood ratios)."""
+    import torch
+    if on_cap_error not in ("raise", "ignore"):
+        raise ValueError(on_cap_error)
+    if torch.cuda.is_available():
+        try:
+            apply_cap()
+        except Exception:
+            if on_cap_error == "raise":
+                raise
+        return torch.device("cuda")
+    return torch.device("cpu")

@@ -142,19 +142,7 @@ def make_teacher(cond, s, goal_off):
 
 
 # ------------------------------------------------------------------ packet sources
-def build_packet(f, s, o, z, *, lsv, rcv, knot_times, source, name, sampling, validity=0.8):
-    from rrp.contracts.latent_action import LatentActionChunk, AssemblyHandle, EntityHandle
-    M = z.shape[1]
-    gasms = [a for a in f.spec.assemblies if a.kind in ("gripper", "hand")][:M]
-    now = float(s.data.time)
-    return LatentActionChunk(
-        latent_space_version=lsv, realizer_compat_version=rcv, z=np.ascontiguousarray(z, np.float32),
-        knot_times=list(knot_times),
-        assemblies=[AssemblyHandle(handle=f"asm:{f.spec.spec_hash}:{a.frame.link}", robot_index=0) for a in gasms],
-        assembly_mask=[True] * M, entity_registry=[EntityHandle(handle=f"ent:{d.slot}") for d in o.object_descriptors],
-        observation_id=o.observation_id, graph_version=s.runtime.graph_version,
-        runtime_version=s.runtime.runtime_version, robot_spec_hash=f.spec.spec_hash, generated_at=time.time(),
-        valid_from=now, valid_until=now + validity, source=source, policy_version=name, sampling=sampling)
+from rrp.evaluation.packets import arm_packet as build_packet  # noqa: E402  (W5: one builder; old name kept)
 
 
 class OracleSource:
@@ -244,19 +232,7 @@ def _flat(c):
     return c.groups
 
 
-def dual_packet(f, s, o, z, *, lsv, rcv, knot_times, source, name, sampling, validity=0.8):
-    from rrp.contracts.latent_action import LatentActionChunk, EntityHandle
-    from rrp.evaluation.dual_latent_eval import assembly_handles
-    hs, mask = assembly_handles(f, z.shape[1])
-    z = np.ascontiguousarray(z, np.float32)
-    z[:, ~np.array(mask)] = 0.0
-    now = float(s.data.time)
-    return LatentActionChunk(
-        latent_space_version=lsv, realizer_compat_version=rcv, z=z, knot_times=list(knot_times), assemblies=hs,
-        assembly_mask=mask, entity_registry=[EntityHandle(handle=f"ent:{d.slot}") for d in o.object_descriptors],
-        observation_id=o.observation_id, graph_version=s.runtime.graph_version,
-        runtime_version=s.runtime.runtime_version, robot_spec_hash=f.spec_hash, generated_at=time.time(),
-        valid_from=now, valid_until=now + validity, source=source, policy_version=name, sampling=sampling)
+from rrp.evaluation.packets import dual_packet  # noqa: E402,F811  (moved unchanged, W5)
 
 
 def _featurizer(s):

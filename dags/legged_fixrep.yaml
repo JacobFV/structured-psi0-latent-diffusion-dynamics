@@ -1,0 +1,80 @@
+# LEGGED FIXED-SEM REPLICATION (D-090; contact model v1): scripts/legged_fixrep_train.sh + legged_fixrep_eval.sh as a
+# variant x body x seed matrix. Per point: Stage A (rep) -> [nosem: post-hoc measurement probe] -> flow -> R2 on the
+# 4k snapshot and the final flow (30 dev seeds) -> z-edit suite and task-context edit suite on the 4k snapshot, with
+# the paired mirror effects. Recipes = configs/legged_fixsem/{rep,flow}_{fixsem,nosem}_<body>_s<seed>.json
+# (tests/unit/test_dag.py checks the planned native configs against them). semfix = probe_lv_min -4 with semantic
+# weight 1 and packet_semantic_weight 0.5 (the legged "sem" flow weight); nosem = both 0.
+# For contact v2 (W8) change base.flags.contact_version and the dataset input; stages refuse data recorded with a
+# different contact version. Outputs: artifacts/runs/pipeline/legged-<body>-<variant>/<stage>[-<tag>]_s<seed>.
+name: legged_fixrep
+schema: dag-1
+family: legged
+track: pipeline
+lineage: 'legged-{body}-{variant}'
+label_prefix: 'w5l_{tg}_{body}{seed}'
+matrix:
+  variant: [semfix, nosem]
+  body: [go2, hexapod6]
+  seed: [1, 2]
+axis_vars:
+  variant:
+    semfix: {sw: 1.0, lv: -4.0, psw: 0.5, tg: fs}
+    nosem: {sw: 0.0, lv: -8.0, psw: 0.0, tg: ns}
+vars:
+  pfx: 'w5_legged_{variant}_{body}_s{seed}'
+lists:
+  z_edits: [none, 'probe_yaw:0.6', 'probe_yaw:-0.6', probe_goal_mirror, probe_halt, 'contact:0:1', 'contact:0:0', 'rand_norm:1', 'rand_norm:2', 'rand_norm:4', 'rand_norm:8', 'rand_norm:12', 'rand_norm:16', 'rand_norm:25', zero]
+  ctx_edits: [none, mirror_goal, mirror_active, mirror_inactive, halt]
+defaults:
+  placement: peer
+  retries: 0
+  max_parallel: 6
+  resources: {cpu: 10, mem: 12G, gpu: false, max_seconds: 14400}
+base:
+  flags: {probe_lv_min: '{lv}', qd_dropout: 0.5, contact_version: contact_v1}
+nodes:
+  rep:
+    stage: train_rep
+    resources: {gpu: true, gpu_mem: 5G, cpu: 3, mem: 8G, max_seconds: 14400}
+    config:
+      inputs: {data: datasets/legged_latent_v1}
+      params: {name: '{pfx}_rep', bodies: ['{body}'], latent: {dz: 32, width: 192, semantic_weight: '{sw}', beta_kl: 0.001}, steps: 12000, batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 4000}
+  probe:
+    stage: probes
+    only: {variant: [nosem]}
+    resources: {gpu: true, gpu_mem: 3G, cpu: 2, mem: 6G, max_seconds: 7200}
+    config:
+      inputs: {representation: '@rep:representation.pt'}
+      options: {steps: 4000}
+  flow:
+    stage: train_flow
+    resources: {gpu: true, gpu_mem: 5G, cpu: 3, mem: 8G, max_seconds: 14400}
+    config:
+      inputs: {representation: '@rep:representation.pt'}
+      params: {name: '{pfx}_flow', width: 256, layers: 4, packet_semantic_weight: '{psw}', packet_tau_min: 0.6, steps: 12000, batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 4000}
+  r2snap:
+    stage: eval_r2
+    tag: snap_s4000
+    config:
+      inputs: {flow: '@flow:snap_s4000.pt'}
+      options: {body: '{body}', tag: 'fixrep_{variant}_{body}_s{seed}_snap_s4000', route: r2, seeds: 10000-10029, workers: 10}
+  r2final:
+    stage: eval_r2
+    tag: policy
+    config:
+      inputs: {flow: '@flow:policy.pt'}
+      options: {body: '{body}', tag: 'fixrep_{variant}_{body}_s{seed}_policy', route: r2, seeds: 10000-10029, workers: 10}
+  zedits:
+    stage: edits
+    tag: z
+    per: {variant: {nosem: {inputs: {posthoc_probe: '@probe:probe_posthoc.pt'}}}}
+    config:
+      inputs: {flow: '@flow:snap_s4000.pt'}
+      options: {body: '{body}', suite: 'r2_fixrep_{variant}_{body}_s{seed}_snap_s4000', route: r2, edits: $z_edits, seeds: 10000-10019, t_edit: 2.0, max_s: 5.0, workers: 10, mirror_effect: [probe_goal_mirror, rand_norm_8]}
+  ctxedits:
+    stage: edits
+    tag: ctx
+    per: {variant: {nosem: {inputs: {posthoc_probe: '@probe:probe_posthoc.pt'}}}}
+    config:
+      inputs: {flow: '@flow:snap_s4000.pt'}
+      options: {body: '{body}', suite: 'r2ctx_fixrep_{variant}_{body}_s{seed}_snap_s4000', route: r2, edits: $ctx_edits, seeds: 10000-10019, t_edit: 2.0, max_s: 5.0, workers: 10, mirror_effect: [mirror_goal, mirror_active, mirror_inactive, halt]}
