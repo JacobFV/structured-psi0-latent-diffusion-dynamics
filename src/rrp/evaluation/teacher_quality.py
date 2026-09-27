@@ -364,6 +364,12 @@ def _metrics(T, dt, lo, hi, teacher) -> dict:
     out["pen_hand_max_m"] = float(np.max(T["pen_hand"]))
     grasp_ticks = [k for k in range(len(ph)) if ph[k] not in ("pregrasp", "descend", "approach")]
     out["pen_hand_max_grasp_m"] = float(max(T["pen_hand"][k] for k in grasp_ticks)) if grasp_ticks else 0.0
+    # the D-108 gate: penetration while the object is HELD during the lift / transport (carry) phases
+    lc = [k for k in range(len(ph)) if ph[k] in ("lift", "transport")]
+    lch = [k for k in lc if held[k]]
+    out["pen_hand_max_carry_m"] = float(max((T["pen_hand"][k] for k in lch), default=0.0))
+    out["pen_hand_med_carry_m"] = float(np.median([T["pen_hand"][k] for k in lch])) if lch else 0.0
+    out["held_frac_lift_transport"] = float(np.mean([held[k] for k in lc])) if lc else None
     ik = np.array(T["ik"], float)
     per = {}
     for p in dict.fromkeys(ph):
