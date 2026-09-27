@@ -1,3 +1,6 @@
+# PAUSED (D-107, 2026-09-27): the t1 body had joint torque limits 2-3x the manufacturer limits (knee 130 vs 60 N m, ankle 50 vs
+# 20). Do not run this DAG. Rerun t1 from collection once the contact agent delivers a sourced-limit tracker: update the
+# declared tracker_sha256 (the pipeline refuses data/rows from any other tracker) and use a fresh lineage/ledger.
 # W8 WAVE 2 (D-103): t1 on contact_v2. Generated from dags/legged_v2_anymal.yaml (same protocol, recipe, seeds and suites);
 # changes: body, DART sigmas (0,0.05,0.1,0.15, as the body's v1 legged_latent data), names/labels, and the declared tracker
 # learned_tracker:t1:contact_v2 turn-trained (artifacts/runs/contact_t1_turn2) (sha256 0d77322c0248e019403413da11aa118d782a08db42c8b7050cc40ed8b8f6c804), checked in the collect shards and the teacher rows. Ideal PD actuators (the default; the

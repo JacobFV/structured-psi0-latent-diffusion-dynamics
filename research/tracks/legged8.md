@@ -132,3 +132,15 @@ learned_tracker:anymal_c:iter2499:contact_v2 (sha 2a16532b...), commands scripte
   "broker refused admission (CapacityError: memory 158913789952 > aggregate limit 115964116992); waiting (not an attempt)", made 0
   attempts, and failed only when my deliberately short 150 s bound expired. Real DAG nodes use the default 10800 s bound. Cosmetic fix:
   the refusal reason logged is now the broker's error line (was a traceback caret line).
+
+## t1 PAUSED (D-107, 2026-09-27 ~08:45): "t1 torque limits 2-3x manufacturer"
+The t1 body model's joint torque limits were 2-3x Booster's (knee 130 vs 60 N m, ankle 50 vs 20), so every t1 tracker, including the
+turn-trained learned_tracker:t1:iter1199:contact_v2 (sha 0d77322c) used here, was trained on an unrealistically strong robot.
+- The t1 coordinator is stopped (no new nodes). No t1 lease was running at that moment (the two t1 Stage A runs shed at 07:50/08:28 had
+  not been relaunched), so nothing had to be stopped.
+- Labelled "t1 torque limits 2-3x manufacturer": the ledger `artifacts/runs/legged8/_dags/legged_v2_t1/ledger.json` (top-level caveat +
+  paused record + per node) and a `CAVEAT_t1_torque_limits.json` in every t1 output dir of the peer store (collect_s0 600 episodes,
+  train_bc_s0, eval_r2-teacher_s0 30/30, eval_r2-bc_s0, partial train_rep_s0/s1 semfix). None of these enter any result.
+- dags/legged_v2_t1.yaml carries a PAUSED header. A rerun starts from collection with the sourced-limit tracker; its sha must be
+  declared anew (the pipeline refuses data and rows from any other tracker), with a fresh lineage/ledger.
+- go2 keeps running and now has both W8 GPU slots (the track-wide cap is 2; t1 holds none).
