@@ -138,3 +138,18 @@ refit/eval_r2/heldout, legged train_rep + contact-version refusal), `test_packet
    legged summary/effects scripts.
 4. Cross-placement artifact transfer (rsync pull/push per edge) if a DAG ever mixes host and peer.
 5. Retire the chain scripts once no lease references them (`rrp ops status` on both nodes; labels a*_/ans_/asf_).
+
+## state and resume steps
+| piece | state |
+|---|---|
+| RunConfig + legacy round-trip | verified (263 configs) |
+| arm pipeline | verified (parity above) |
+| legged pipeline | verified as wiring + host smoke (rep/probe/flow); rollout stages not yet run through the pipeline |
+| dual | skeleton (planned) |
+| run-dag + DAG files | verified (unit tests; real runs: parity_arm on the peer, smoke_legged on the host) |
+
+Resume: `cd ~/work/rrp-wt/pipeline && git fetch origin && git rebase origin/main`;
+`PYTHONPATH=src ~/work/relational-robot-policy/.venv/bin/python -m pytest -q tests/unit`;
+plan anything with `rrp run-dag dags/<x>.yaml --dry-run`; run on the peer ONLY with
+`RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/pipeline scripts/peer_sync.sh push` (same command line) and
+`RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/pipeline rrp run-dag ...`. Then the "remaining steps" list.
