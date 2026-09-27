@@ -81,11 +81,11 @@ nodes:
   bcr2:
     stage: eval_r2
     scope: global
-    resources: {cpu: 10, mem: 24G}
+    resources: {cpu: 4, mem: 10G}
     tag: bc
     config:
       inputs: {bc: '@bc:policy.pt'}
-      options: {body: '{body}', tag: 'v2_bc_{body}', route: bc, seeds: '{r2seeds}', workers: 10}
+      options: {body: '{body}', tag: 'v2_bc_{body}', route: bc, seeds: '{r2seeds}', workers: 4}
   rep:
     stage: train_rep
     resources: {gpu: true, gpu_mem: 5G, cpu: 2, mem: 7G, max_seconds: 14400}
