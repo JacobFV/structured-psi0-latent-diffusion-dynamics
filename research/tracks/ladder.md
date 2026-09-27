@@ -3,7 +3,25 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
-## ARM V2-TEACHER LINEAGES (D-102; started 2026-09-27 02:00 PDT; state: running)
+## ARM V2-TEACHER LINEAGES (D-102; started 2026-09-27 02:00 PDT; state: STOPPED 09:10 by D-110 — grasp_v1, superseded)
+**D-110 (lead, 09:05): W7 found that arm grasps in the data were held by interpenetration (grasp contact v1; up to 17-20 mm,
+median 3.3 mm even with teacher v2). v4dart and everything trained on it are grasp_v1, so this set is STOPPED and
+SUPERSEDED.** Stopped: runner unit `rrp-armv2-dag7`; my two running leases only (`rrp ops stop --owned-only --lease`
+1790532830_292842 a2sf1_F0, 1790532830_b7a391 a2sf2_F0; both processes ended, lease records expired; no other track's
+lease touched); the memory sampler. Nothing of this set holds a peer lease now. Completed outputs are KEPT for reference
+and labelled "grasp_v1, superseded by D-110": ledger `artifacts/runs/armv2/_dags/arm_lineage_v2/ledger.json` (DAG-level
+`status` + per-node `superseded`; the two interrupted F0 nodes set to failed with that reason) and a
+`SUPERSEDED_D-110.txt` in each completed output dir (peer store): Stage A `arm2-semfix/train_rep_s{1,2}`,
+`arm2-nosem/train_rep_s{1,2}` (semfix s1/s2 after the exact RNG resume at steps 1174/1175; nosem uninterrupted).
+F0 (flow) partial dirs `arm2-semfix/train_flow_s{1,2}` are interrupted, not complete. No evaluation results exist.
+NEXT (when the lead says the inputs are ready): W7 produces v5dart (teacher v2 + grasp v2) and a new BC expert; relaunch
+the set from `dags/arm_lineage_v2.yaml` with the v5 inputs as a FRESH lineage: a new DAG file that `extends:` it with a
+new name, track, lineage (e.g. `arm3-<variant>`), labels, a new ledger, and the four input vars (dataset, pack,
+bc_policy, bc_label). Keep: 2 GPU leases, measured peak + 20% declarations incl. CUDA memory (Stage A 12G RAM + 2G GPU,
+2 CPU; flows/refits to be measured), exact-resume Stage A code, `--retry-failed` only as a logged manual decision.
+Lessons carried over: max_seconds <= 6 h broker cap; check that `rep_last.pt` carries RNG state before resuming.
+
+### setup and history of the stopped v2 set (grasp_v1)
 Four lineages, semfix and nosem x training seeds 1 and 2 (the defective original sem is dropped), with the IDENTICAL
 recipe, rounds, seeds, DAgger collection seeds, evaluation sets (R2 dev + fresh 3.0001M / 3.0002M x 30 on panda_pg2 and
 parm6_tf3; held-out parm5s_tf3 / parm5l_pg2 dev 30; progression; stateless R1) and edit suite (parm6 3,000,000-119, panda
