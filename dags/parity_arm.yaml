@@ -1,0 +1,47 @@
+# W5 PARITY: re-run stages of the COMPLETED arm seed-2 semfix lineage (sfjf2) through the pipeline with identical
+# seeds and inputs (existing runs referenced through configs/run_index.json aliases) and compare with the recorded
+# outputs (research/scripts/2026-09-26/w5_parity_compare.py):
+#   rz_bcdag1: system-0 refit from the stored bc1 DAgger buffers = configs/ladder/armseed2/sfjf2/rz_sfjf2_bcdag1.json
+#              (legacy: artifacts/runs/ladder_rz_sfjf2_bcdag1, lease 1790459301_1a72f6, peer GPU, --cpu 3)
+#   r2_final:  R2 of the frozen route (flow gdag2h + system 0 gendag3_noqd), panda_pg2, 30 dev seeds from 3,000,000
+#              (legacy: ladder_v1/panda_pg2/generated_zero_flowsf2gdag2h_rzsf2gendag3_noqd_s3000000, lease 1790474992_5e5e99)
+#   r1_orcbc:  R1 stateless-BC oracle diagnostic on system 0 gendag3_noqd, panda_pg2 (exercises the merged packet builder)
+#              (legacy: ladder_v1/panda_pg2/oracle_zero_sfjf2gendag3noqd_orcbc, lease 1790473721_0c453a)
+name: parity_arm
+schema: dag-1
+family: arm
+track: pipeline
+lineage: parity-sfjf2
+label_prefix: w5par
+lists:
+  npz: [panda_pg2.npz, parm5_pg2.npz, parm5_tf3.npz, parm5l_tf3.npz, parm5s_pg2.npz, parm6_pg2.npz, parm6_tf3.npz, parm7_pg2.npz, parm7_tf3.npz, sawyer_pg2.npz, sawyer_tf3.npz, ur5e_pg2.npz, ur5e_tf3.npz]
+defaults:
+  placement: peer
+  retries: 0
+  max_parallel: 3
+  resources: {cpu: 3, mem: 8G, gpu: false, max_seconds: 7200}
+base:
+  variant: semfix
+  seed: 2
+  flags: {zero_prev_action: true, realizer_anchor: true, realizer_drop_qd: false, probe_lv_min: -4.0, contact_version: contact_v1}
+nodes:
+  rz_bcdag1:
+    stage: refit
+    tag: bcdag1
+    resources: {gpu: true, gpu_mem: 8G, cpu: 3, mem: 20G, max_seconds: 7200}
+    config:
+      inputs: {representation: 'arm/semfix/s2/train_rep:representation.pt', packed_dir: packed/latent_pp_v3dart_s1_H16, dagger: {runs: [arm/semfix/s2/dagger_collect-bc1], files: $npz}}
+      params: {name: rz_sfjf2_bcdag1, dagger_frac: 0.5, prefetch_workers: 0, steps: 4000, batch_size: 128, lr: 0.0001, seed: 2711, init: old}
+  r2_final:
+    stage: eval_r2
+    tag: final
+    config:
+      inputs: {flow: 'arm/semfix/s2/flow_ft-gdag2h:policy.pt', representation: 'arm/semfix/s2/refit-gendag3_noqd:representation.pt'}
+      options: {tag: flowsf2gdag2h_rzsf2gendag3_noqd, robots: [panda_pg2], seed_starts: [3000000], episodes: 30}
+  r1_orcbc:
+    stage: eval_r1
+    tag: orcbc
+    resources: {cpu: 3, mem: 10G, max_seconds: 7200}
+    config:
+      inputs: {representation: 'arm/semfix/s2/refit-gendag3_noqd:representation.pt', bc_policy: 'arm/bc/direct1701_u12000:direct1701_u12000.pt'}
+      options: {tag: sfjf2gendag3noqd, bc_label: direct1701_u12000, robots: [panda_pg2], seed_starts: [3000000], episodes: 30}
