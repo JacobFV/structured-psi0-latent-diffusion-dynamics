@@ -546,3 +546,18 @@ Decisions:
 (3) Confirm go2/anymal_c/g1/h1 tracker torque limits match the sourced values; if any is inflated, flag the affected results.
 (4) Sourced limits become the default in the body models (not only the actuator mode); latency and actuator dynamics stay opt-in until trackers pass under them.
 D-107 addendum (torque audit, contact agent): installed trackers vs manufacturer limits. go2, anymal_c and h1 match. g1 hip roll was trained at 139 N·m vs source 88 (current Unitree g1_29dof files; older menagerie/unitree_ros files disagree), so every g1 tracker and validation had a hip-roll limit 58% too strong. t1: all 12 leg joints 2–3× too strong. Lead approved merging sourced limits as the body-model default (`sourced_v1`; `legacy_gains_v0` via RRP_ACTUATOR_LIMITS, recorded in provenance). Pre-D-107 t1/g1 trackers refuse to load without the legacy flag. The W8 t1 command mix (from the waypoint teacher law, 400 episodes): 47% straight, 35% arcs (0.39 m/s at 0.36 rad/s), 15% turns in place at 0.48 rad/s, 3% slow arcs. The t1 retrain targets this mix under sourced limits.
+
+## D-108 2026-09-27 W6 robustness: on anymal_c the semantic packet route is slightly LESS robust than nosem (both beat BC); arm grasps hold by interpenetration (a physics-credibility defect)
+W6 (research/tracks/robust.md; lead read `artifacts/runs/robust/legged_anymal_c/robustness_report.md` and `artifacts/runs/robust/arm/robustness_report.md`, main a0aa15c).
+Harness `rrp.evaluation.robustness` (one factor at a time + all_moderate; paired seeds; Wilson CIs; break-point = first level >20 points below the route's own nominal), perturbations in `rrp.envs.perturb`, a terrain heightfield flag (default off), motion-quality metrics in every eval row (`rrp.evaluation.motion_quality`, unit-tested). Eval rows without perturbation are byte-identical apart from the new field.
+- anymal_c (training seed 0 per route; 20 seeds per level), public success averaged over perturbed levels: semfix 0.836, nosem 0.868, BC 0.774, teacher 0.964.
+  - semfix − nosem −0.032 [−0.048, −0.017] (p = 0.002); semfix − BC +0.062; nosem − BC +0.094.
+  - Break-points: friction scale 0.4 for all learned routes (the teacher's tracker keeps walking); gain 0.7–0.85; push 1.0 m/s (teacher 1.5); terrain 8 cm (BC 5 cm); latency 0–30 ms and CoM ±2 cm no break.
+  - all_moderate: teacher 20/20, nosem 10/20, semfix 3/20, BC 0/20.
+  CAVEAT: one training seed per route, so these are checkpoint-level differences, not yet variant-level.
+- Arm (panda_pg2 / parm6_tf3): frozen route below BC at every level, but the drop from its own nominal does not differ (p = 0.86 / 0.23). The arm barely reacts to friction, mass, CoM, gains or delay because grasps hold by interpenetration (cube–finger overlap 17–20 mm on parm6). Arm friction and mass robustness is therefore not meaningful until grasp contact is fixed.
+- Reproducibility notes: the ladder's compare_oracle diagnostic makes individual arm episodes irreproducible across that setting (no leak; now refused together with step-level perturbations); arm policy noise is shared per batch of 16.
+Reading: semantic supervision buys task-level control (D-088/090/105) but not robustness; on anymal_c at this checkpoint it costs a little. Next:
+(1) Repeat the legged sweep on training seeds 1–2 so the claim is variant-level.
+(2) Arm grasp-contact realism (finger/object solref/solimp, margin, condim, friction), measured by penetration < 3 mm and slip under load, as the arm counterpart of D-093. Arm regeneration follows the same rule as legged: no new arm results on the old grasp physics once v2 grasp contact exists.
+(3) Gate thresholds for trackers and datasets (W6 proposal in the notes) are to be adopted after review.
