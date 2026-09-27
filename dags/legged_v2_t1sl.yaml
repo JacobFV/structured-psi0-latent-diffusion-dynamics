@@ -46,7 +46,7 @@ defaults:
   max_cpu: 8
   max_mem_gib: 28      # D-106: RAM + GPU declared, summed
   shared_budget: true
-  resources: {cpu: 4, mem: 11G, gpu: false, max_seconds: 14400}
+  resources: {cpu: 4, mem: 6G, gpu: false, max_seconds: 14400}   # D-117: >= 1.35 x measured 4-worker eval peak 3.23 GB
 base:
   flags: {contact_version: contact_v2}
 nodes:
