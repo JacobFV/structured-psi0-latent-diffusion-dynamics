@@ -31,7 +31,7 @@ v2 trackers pass the W1 gate. Do not sync into peer dirs with running jobs (`/de
   - BC ignores the binding edit (D-065).
 - Competence: the latent route matches BC on go2 and hexapod6 (D-070, D-076), and on t1 only for nosem (D-079, D-082) until the D-085 fix; with it t1 fixed sem ≈ nosem (81/90 vs 83/90, D-087).
   - Arm is partial: frozen route pooled 36/90 panda_pg2, 70/90 parm6_tf3 (D-078, D-080).
-- Semantic supervision (after the D-085 bounded-NLL fix): essential on the arm (nosem route 3/240 vs frozen sem 146/240 vs bounded-NLL sem 124/240 deployable successes; D-089, D-091, one seed; seed 2 running); on go2/hexapod6 a task-context "halt" slows only the sem packet, replicated in direction over 3 seeds (D-088, D-090), and pooled-only on the t1 humanoid (D-092); t1 success equal (81/90 vs 83/90, D-087). The D-084 "sem hurts" reading was the D-085 defect.
+- Semantic supervision (after the D-085 bounded-NLL fix): essential on the arm (both training seeds: nosem 29/480 vs frozen sem 247/480 vs bounded-NLL sem 253/480 deployable successes; nosem lowest in every body × seed cell; D-089, D-091, D-095); on go2/hexapod6 a task-context "halt" slows only the sem packet, replicated in direction over 3 seeds (D-088, D-090), and pooled-only on the t1 humanoid (D-092); t1 success equal (81/90 vs 83/90, D-087). The D-084 "sem hurts" reading was the D-085 defect.
 - Not tested: the latent route on the sealed target bodies. BC: new gripper 78–85/100, unseen xarm7 0/100 (D-064). g1 has no competent BC.
 - Root-cause fixes along the way: B-1 prev-action column (D-044/045); system-0 velocity-copy shortcut (D-056); stale stateful teacher as oracle/DAgger expert (D-050); compatibility-ID fingerprinting (D-038).
 

@@ -30,7 +30,7 @@ Principles:
 | W7 | Arm expert: smooth scripted trajectories, then GRPO fine-tuning with anchor evals | arm agent | arm seed 2 finished | planned |
 | W8 | Legged regeneration on contact v2 (data → Stage A → flow → R2 → edits) | legged agent | W1 gate, W3 | planned |
 | W9 | Open claims: held-out target bodies; one loco-manipulation task | later | W5, W8 | planned |
-| R0 | Arm seed-2 replication (running experiment) | arm agent | — | running |
+| R0 | Arm seed-2 replication (running experiment) | arm agent | — | completed 2026-09-26 (D-095) |
 
 ### W1 Physics realism (running)
 - **Scope:**
