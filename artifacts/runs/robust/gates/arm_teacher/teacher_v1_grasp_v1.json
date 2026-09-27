@@ -1,0 +1,88 @@
+{
+ "gate": "arm_dataset",
+ "version": "rrp.evaluation.gates/v1 (D-112)",
+ "subject": {
+  "bodies": [
+   "panda_pg2",
+   "panda_tf3",
+   "parm5_pg2",
+   "parm5_tf3",
+   "parm5l_pg2",
+   "parm5l_tf3",
+   "parm5s_pg2",
+   "parm5s_tf3",
+   "parm6_pg2",
+   "parm6_tf3",
+   "parm7_pg2",
+   "parm7_tf3",
+   "sawyer_pg2",
+   "sawyer_tf3",
+   "ur5e_pg2",
+   "ur5e_tf3",
+   "xarm7_pg2",
+   "xarm7_tf3"
+  ],
+  "n": 4811,
+  "grasp": [
+   "grasp_v1"
+  ],
+  "name": "teacher_v1_grasp_v1 (teacher_quality rows, noise 0, 18 bodies)"
+ },
+ "verdict": "fail",
+ "criteria": [
+  {
+   "name": "phase_switch_vel_step",
+   "status": "fail",
+   "value": 0.0,
+   "threshold": ">= 0.95 of episodes with step <= 0.5 rad/s",
+   "note": "median 1.1090998238267114, max 6.559241891151888"
+  },
+  {
+   "name": "joint_limit_margin",
+   "status": "fail",
+   "value": 0.8568,
+   "threshold": ">= 0.95 of episodes with margin >= 0.02",
+   "note": "min -0.0003326101707029627"
+  },
+  {
+   "name": "cmd_jerk_rms_vs_v2_teacher",
+   "status": "fail",
+   "value": {
+    "panda_pg2": 11.467,
+    "panda_tf3": 12.006,
+    "parm5_pg2": 10.494,
+    "parm5_tf3": 10.267,
+    "parm5l_pg2": 10.058,
+    "parm5l_tf3": 9.548,
+    "parm5s_pg2": 11.272,
+    "parm5s_tf3": 11.007,
+    "parm6_pg2": 10.038,
+    "parm6_tf3": 9.688,
+    "parm7_pg2": 9.65,
+    "parm7_tf3": 9.489,
+    "sawyer_pg2": 10.482,
+    "sawyer_tf3": 10.936,
+    "ur5e_pg2": 13.955,
+    "ur5e_tf3": 13.926,
+    "xarm7_pg2": 11.834,
+    "xarm7_tf3": 11.771
+   },
+   "threshold": "median per body <= 2.0x v2 teacher",
+   "note": "reference artifacts/runs/armexpert_grasp/final_graspv2_18bodies.summary.json (scripted_teacher:pick_place_v2_minjerk, grasp_v2, 300 seeds per body; D-110)"
+  },
+  {
+   "name": "penetration",
+   "status": "labelled",
+   "value": 0.0025,
+   "threshold": "<= 3 mm gated under grasp_v2 only",
+   "note": "grasp ['grasp_v1']; median 0.010749613015614808 m, max 0.08244635683471548 m"
+  }
+ ],
+ "failed": [
+  "phase_switch_vel_step=0.0 (threshold >= 0.95 of episodes with step <= 0.5 rad/s)",
+  "joint_limit_margin=0.8568 (threshold >= 0.95 of episodes with margin >= 0.02)",
+  "cmd_jerk_rms_vs_v2_teacher={'panda_pg2': 11.467, 'panda_tf3': 12.006, 'parm5_pg2': 10.494, 'parm5_tf3': 10.267, 'parm5l_pg2': 10.058, 'parm5l_tf3': 9.548, 'parm5s_pg2': 11.272, 'parm5s_tf3': 11.007, 'parm6_pg2': 10.038, 'parm6_tf3': 9.688, 'parm7_pg2': 9.65, 'parm7_tf3': 9.489, 'sawyer_pg2': 10.482, 'sawyer_tf3': 10.936, 'ur5e_pg2': 13.955, 'ur5e_tf3': 13.926, 'xarm7_pg2': 11.834, 'xarm7_tf3': 11.771} (threshold median per body <= 2.0x v2 teacher)"
+ ],
+ "not_evaluated": [],
+ "source_rows": "artifacts/runs/armexpert_diag/v1_18bodies.jsonl.gz"
+}

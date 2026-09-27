@@ -1,0 +1,86 @@
+{
+ "gate": "arm_dataset",
+ "version": "rrp.evaluation.gates/v1 (D-112)",
+ "subject": {
+  "bodies": [
+   "panda_pg2",
+   "panda_tf3",
+   "parm5_pg2",
+   "parm5_tf3",
+   "parm5l_pg2",
+   "parm5l_tf3",
+   "parm5s_pg2",
+   "parm5s_tf3",
+   "parm6_pg2",
+   "parm6_tf3",
+   "parm7_pg2",
+   "parm7_tf3",
+   "sawyer_pg2",
+   "sawyer_tf3",
+   "ur5e_pg2",
+   "ur5e_tf3",
+   "xarm7_pg2",
+   "xarm7_tf3"
+  ],
+  "n": 4811,
+  "grasp": [
+   "grasp_v2"
+  ],
+  "name": "teacher_v2_grasp_v2 (teacher_quality rows, noise 0, 18 bodies)"
+ },
+ "verdict": "fail",
+ "criteria": [
+  {
+   "name": "phase_switch_vel_step",
+   "status": "pass",
+   "value": 0.9992,
+   "threshold": ">= 0.95 of episodes with step <= 0.5 rad/s",
+   "note": "median 0.21943538937893692, max 0.7644939998112932"
+  },
+  {
+   "name": "joint_limit_margin",
+   "status": "fail",
+   "value": 0.8707,
+   "threshold": ">= 0.95 of episodes with margin >= 0.02",
+   "note": "min -0.00012867711359643152"
+  },
+  {
+   "name": "cmd_jerk_rms_vs_v2_teacher",
+   "status": "pass",
+   "value": {
+    "panda_pg2": 1.0,
+    "panda_tf3": 1.0,
+    "parm5_pg2": 1.0,
+    "parm5_tf3": 1.0,
+    "parm5l_pg2": 1.0,
+    "parm5l_tf3": 1.0,
+    "parm5s_pg2": 1.0,
+    "parm5s_tf3": 1.0,
+    "parm6_pg2": 1.0,
+    "parm6_tf3": 1.0,
+    "parm7_pg2": 1.0,
+    "parm7_tf3": 1.0,
+    "sawyer_pg2": 1.0,
+    "sawyer_tf3": 1.0,
+    "ur5e_pg2": 1.0,
+    "ur5e_tf3": 1.0,
+    "xarm7_pg2": 1.0,
+    "xarm7_tf3": 1.0
+   },
+   "threshold": "median per body <= 2.0x v2 teacher",
+   "note": "reference artifacts/runs/armexpert_grasp/final_graspv2_18bodies.summary.json (scripted_teacher:pick_place_v2_minjerk, grasp_v2, 300 seeds per body; D-110)"
+  },
+  {
+   "name": "penetration",
+   "status": "pass",
+   "value": 0.9952,
+   "threshold": ">= 0.99 of episodes <= 3 mm (grasp_v2)",
+   "note": "grasp ['grasp_v2']; median 0.0002065099584528194 m, max 0.004171382663020679 m"
+  }
+ ],
+ "failed": [
+  "joint_limit_margin=0.8707 (threshold >= 0.95 of episodes with margin >= 0.02)"
+ ],
+ "not_evaluated": [],
+ "source_rows": "artifacts/runs/armexpert_grasp/final_graspv2_18bodies.jsonl.gz"
+}

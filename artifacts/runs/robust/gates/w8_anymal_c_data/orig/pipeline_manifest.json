@@ -1,0 +1,84 @@
+{
+ "config_hash": "b8ec38851869f30d",
+ "episodes": [],
+ "finished": 1790497456.6125169,
+ "inputs": {},
+ "manifest_hash": "18313352335a30ee",
+ "metrics": {
+  "body": "anymal_c",
+  "contact_version": "contact_v2",
+  "episodes": 600,
+  "failure": 136,
+  "fell": 0,
+  "seeds": "0-599",
+  "success": 464,
+  "ticks": 433145,
+  "tracker_versions": [
+   "learned_tracker:anymal_c:iter2499:contact_v2"
+  ]
+ },
+ "n_episodes": 0,
+ "name": "runs/legged8/legged8-anymal_c-v2data/collect_s0",
+ "native_config": {
+  "name": "legged8_legged8-anymal_c-v2data_collect_s0",
+  "out_dir": "artifacts/runs/legged8/legged8-anymal_c-v2data/collect_s0"
+ },
+ "outputs": {
+  "data": {
+   "digest": null,
+   "path": "artifacts/runs/legged8/legged8-anymal_c-v2data/collect_s0"
+  }
+ },
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": false,
+   "git_sha": "823673793ecdabeabcb35044f3194e29dac8e001"
+  },
+  "created_at": 1790497456.6124055,
+  "featurizer_version": null,
+  "flags": {
+   "contact_version": "contact_v2"
+  },
+  "legacy": false,
+  "notes": "pipeline legged/collect runs/legged8/legged8-anymal_c-v2data/collect_s0",
+  "physics": null,
+  "schema_version": "provenance-1",
+  "source": "scripted_teacher",
+  "versions": {},
+  "weights": {}
+ },
+ "run_id": "runs/legged8/legged8-anymal_c-v2data/collect_s0",
+ "runconfig": {
+  "family": "legged",
+  "flags": {
+   "contact_version": "contact_v2",
+   "probe_lv_min": null,
+   "qd_dropout": null,
+   "realizer_anchor": null,
+   "realizer_drop_qd": null,
+   "zero_prev_action": null
+  },
+  "inputs": {},
+  "legacy": null,
+  "lineage": "legged8-anymal_c-v2data",
+  "note": "",
+  "options": {
+   "body": "anymal_c",
+   "seeds": "0-599",
+   "shard_size": 100,
+   "sigmas": "0,0.1,0.2,0.3",
+   "workers": 6
+  },
+  "params": {},
+  "schema_version": "runconfig-1",
+  "seed": 0,
+  "stage": "collect",
+  "tag": null,
+  "track": "legged8",
+  "variant": "na"
+ },
+ "schema": "pipeline-manifest-1",
+ "started": 1790497229.715664,
+ "status_counts": {}
+}

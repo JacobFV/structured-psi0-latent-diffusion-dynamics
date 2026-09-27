@@ -1,0 +1,44 @@
+{
+ "gate": "legged_dataset",
+ "version": "rrp.evaluation.gates/v1 (D-112)",
+ "subject": {
+  "body": [
+   "anymal_c"
+  ],
+  "n": 600,
+  "statuses": {
+   "success": 464,
+   "failure": 136
+  },
+  "tracker_sha256": [
+   "2a16532bbd07f7abc662bdda10df6bfb70fca2ec11d59f9567142e92a2f22d95"
+  ],
+  "name": "legged8-anymal_c-v2data/collect_s0 (W8 wave 1), replayed with motion recording"
+ },
+ "verdict": "pass",
+ "criteria": [
+  {
+   "name": "slip_ok_fraction",
+   "status": "pass",
+   "value": 1.0,
+   "threshold": ">= 0.95 of episodes with slip < 0.15",
+   "note": "600/600 episodes measured; median slip 0.057572505809643244; max 0.13292361979251063"
+  },
+  {
+   "name": "falls_at_sigma0",
+   "status": "pass",
+   "value": 0,
+   "threshold": "<= 0",
+   "note": "150 sigma-0 episodes"
+  }
+ ],
+ "failed": [],
+ "not_evaluated": [],
+ "replay": {
+  "n": 600,
+  "reproduced": 600,
+  "tracker_sha256": [
+   "2a16532bbd07f7abc662bdda10df6bfb70fca2ec11d59f9567142e92a2f22d95"
+  ]
+ }
+}

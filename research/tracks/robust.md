@@ -247,3 +247,67 @@ All quantities are the `motion` fields now in every eval row (rrp.evaluation.mot
 | learned policies (reported, not gated) | chunk-boundary velocity step, jerk, penetration, all robustness break-points | flag chunk step > 1.5 rad/s | a quality report for every eval, not an acceptance gate; BC 2.2-3.3, frozen route 2.0-2.2 rad/s (D-102 chunk-seam issue) |
 Open point: the arm penetration gate currently FAILS the learned-route rollouts on parm6 (17-20 mm at nominal, same as the v1
 teacher its data came from); applying it to v2-data policies only is consistent with D-097/D-102.
+
+## GATES AS CODE (lead request after D-112; state: verified) + D-111 follow-up
+### code
+- `rrp.evaluation.gates` (thresholds in `GATES`, D-112 as adopted, penetration <= 3 mm gated for grasp_v2 only):
+  `check_tracker(validation)`, `check_dataset(manifest, episodes)` -> `check_legged_dataset` / `check_arm_dataset`,
+  `policy_flags(rows)` (reported, never gated). Report = {gate, verdict pass|fail|incomplete, criteria [{name, status
+  pass|fail|not_evaluated|labelled, value, threshold, note}], failed}. Only "fail" fails a node; "incomplete" (a measurement
+  missing) is recorded. Arm jerk reference = v2 teacher median joint_cmd_jerk_rms per body (grasp_v2, 300 seeds; embedded
+  `ARM_TEACHER_V2_REFERENCE`, source sha 8083c464).
+  Where a criterion needed interpretation: legged dataset slip uses episodes with a slip measurement (motion.slip_ratio);
+  arm step / margin are ">= 95% of episodes", penetration ">= 99% of episodes <= 3 mm" (D-110 had 0 episodes > 3 mm).
+- Measurements added (read-only; data byte-identical, verified old vs new code on 2 legged (sigma 0 / 0.2) and 2 arm
+  (v1 noise 0, v2 DART 0.05) episodes: arrays, actions and inputs hash-equal):
+  - `rrp.data.legged_latent_collect`: every episode meta has `motion` (LeggedMotionRecorder via install_legged).
+  - `rrp.data.collect.collect_teacher_episode` (arm): `motion` with the CLEAN teacher command (the label, also in DART
+    episodes): `phase_switch_vel_step_max`, `cmd_jerk_rms`, measured jerk, limit margin, penetration, grasp_contact_version.
+    Equal to rrp.evaluation.teacher_quality on the same episode (3 panda seeds, v2, grasp_v2: step / jerk / penetration identical).
+  - `rrp.evaluation.tracker_validation`: per-trial `peak_force_bw` (max per physics substep of the per-foot contact normal
+    force / weight) and `joint_limit_margin_min`; `--robust` = forward trial under the tracker's OWN training randomization
+    (floor mu 0.45 / 1.2, root mass x0.9 / x1.1, v1lat latency at the trained maximum (8 ms for contact_v2 randomization, 30 ms if
+    trained with --actuator v1lat/v2), lateral kick 0.4 m/s (biped 0.2) at t = 4 s); output `w6_gate`; `--gate-dir`,
+    `--gate-exit` (exit 86 on fail); `--freeze` records the W6 verdict next to the (unchanged) eligibility.
+  - The recorders moved to `rrp.envs.motion_quality` (data collectors sit below evaluation in the layer order);
+    `rrp.evaluation.motion_quality` re-exports.
+- Pipelines: legged `collect` and arm `collect` compute the dataset gate from the collected metas / manifest, write
+  `<out>/gate_report.json` and raise `GateFailed` on fail (option `gate: report` = record only); new legged stage
+  `validate_tracker` (options body, actor, kind, seeds, robust) runs the validation + tracker gate. `python -m rrp.pipelines run`
+  exits 86 on GateFailed; a stale gate report is removed at stage start.
+- run-dag: a node that exits non-zero with a `gate_report.json` verdict fail is marked FAILED at once (no retries) with
+  last_error "gate <name> failed: <criteria>"; dependants are blocked as usual.
+- D-111 follow-up: the watchdog config `subtract_shmem` (on for the peer role in `rrp ops watchdog`): the startup term of the
+  live memory limit becomes startup - meminfo Shmem (the RAM artifact store). MemAvailable already excludes Shmem, so the
+  dynamic terms are unchanged. Fake-sample test: 108 GiB cap, 48 GiB Shmem -> 60 GiB; clamps at 0; unknown Shmem -> unchanged.
+  Takes effect when the peer watchdog restarts (`rrp ops start-watchdog` on the peer; the lead's call, it is shared ops).
+- Tests: tests/unit/test_gates.py (each criterion pass/fail/incomplete/labelled with synthetic inputs, teacher_quality rows,
+  policy flags, apply_gate report-only mode, run-dag gated failure without retry), test_watchdog.py (+1).
+
+### backfill (report only; `artifacts/runs/robust/gates/`, summary `SUMMARY.md`)
+Trackers: `tracker_validation --contact v2 --seeds 5 --robust` on the actor files below (host lease 1790542233_95f525).
+| tracker (sha256 prefix) | verdict | slip | CoT | peak force BW | limit margin | robust (in training range) |
+|---|---|---|---|---|---|---|
+| anymal_c installed (2a16532b) | PASS | 0.035 | 0.34 | 2.61 | 0.155 | ok |
+| go2 installed (af3f06f4) | PASS | 0.023 | 0.88 | 2.24 | 0.110 | ok |
+| t1 installed w8d (36e91467) | FAIL | 0.137 | **2.13** | **4.46** | **-0.053** | ok |
+| t1 w8c (863d2469) | FAIL | **0.152** | **2.36** | **4.22** | **-0.044** | ok |
+| g1 installed r1 (8b8a99cb; LEGACY limits, loaded with RRP_ACTUATOR_LIMITS=legacy_gains_v0) | FAIL | 0.083 | 1.19 | **4.61** | 0.035 | ok |
+| g1 sourced-limit candidate contact_g1_src (f0a4daaa) | FAIL | **0.382** | **2.87** | **9.75** | **-0.089** | ok (fwd 0.5-0.7 everywhere) |
+Dataset: W8 anymal_c `legged8-anymal_c-v2data/collect_s0` (600 episodes) replayed with the recorder (same seeds/sigmas/
+teacher draws; `scripts/robust_backfill_w8data.py`, peer lease 1790544017_c48ba9): 600/600 episodes reproduce status, steps
+and ticks with the declared tracker sha 2a16532b. Gate PASS: slip < 0.15 in 600/600 (median 0.058, max 0.133); 0 falls in
+the 150 sigma-0 episodes. Raw `w8_anymal_c_data/replay.jsonl`.
+Arm (extra, from existing teacher_quality rows, noise 0, 18 bodies x 300 seeds): v2 teacher grasp_v2 FAILS only on joint-limit
+margin (87% of episodes >= 0.02; step 99.9%, jerk ratio 1.0, penetration 99.5% <= 3 mm); v2 grasp_v1 the same with penetration
+labelled; v1 teacher fails step (0% <= 0.5 rad/s), jerk (9.5-14x) and margin.
+### findings for the lead
+1. Every humanoid tracker fails peak foot force (4.2-9.7 BW, validation trials at per-substep resolution). The 3.5 BW threshold
+   was calibrated on quadruped waypoint rollouts; bipeds land on one foot. Suggest a biped threshold (e.g. <= 5 BW) or an
+   impact-rate metric; the quadrupeds pass at 2.2-2.6.
+2. The t1 trackers (w8c, installed w8d) and the g1 candidate drive joints PAST their ranges (margin -0.04 to -0.09: soft joint
+   limits are penetrated), and their CoT exceeds the biped bound of 2.0. Robustness inside their training range is fine.
+3. Arm joint-limit margin fails for the procedural arms parm5/5l/6/7 (13-36% of v2-teacher episodes touch a limit, margin ~0),
+   not for panda/sawyer/ur5e/xarm7. Either the procedural joint ranges are too tight for the task or the threshold should be a
+   "no limit contact" rule for these bodies; with the gate as adopted, v5dart data on parm bodies would FAIL the collect node
+   (use `gate: report` until decided).

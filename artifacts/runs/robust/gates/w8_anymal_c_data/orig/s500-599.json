@@ -1,0 +1,4063 @@
+{
+ "body": "anymal_c",
+ "episodes": [
+  {
+   "body": "anymal_c",
+   "seed": 500,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 155,
+   "ticks": 825,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.4022325927089765,
+   "turn_gain": 1.5603165509722317,
+   "waypoints": {
+    "a": [
+     1.8291774260947873,
+     1.6748030152108393
+    ],
+    "b": [
+     3.8648970289766,
+     2.6891359644774626
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.830458641052246,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 501,
+   "sigma": 0.1,
+   "status": "success",
+   "steps": 107,
+   "ticks": 585,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.7388770574470163,
+   "turn_gain": 1.1280044367597828,
+   "waypoints": {
+    "a": [
+     2.868638082538762,
+     0.8632518306814184
+    ],
+    "b": [
+     4.646199802413819,
+     1.7857788549239326
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.423090934753418,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 502,
+   "sigma": 0.2,
+   "status": "success",
+   "steps": 100,
+   "ticks": 550,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.7004173235956843,
+   "turn_gain": 1.6515952622999315,
+   "waypoints": {
+    "a": [
+     1.9036119636138367,
+     -0.4973643291998122
+    ],
+    "b": [
+     4.220511528511361,
+     -1.3757702567894299
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.2977876663208008,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 503,
+   "sigma": 0.3,
+   "status": "failure",
+   "steps": 290,
+   "ticks": 1500,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8620988625614551,
+   "turn_gain": 1.786160616163439,
+   "waypoints": {
+    "a": [
+     1.9808480167181381,
+     -1.1568728394837844
+    ],
+    "b": [
+     4.058774105830154,
+     -2.246837576022954
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 3.379396677017212,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 504,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 103,
+   "ticks": 565,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.61546213642568,
+   "turn_gain": 1.456660776149495,
+   "waypoints": {
+    "a": [
+     0.9855068732821323,
+     -1.524808988824377
+    ],
+    "b": [
+     3.086813201420235,
+     -2.2176012398591123
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.3392107486724854,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 505,
+   "sigma": 0.1,
+   "status": "success",
+   "steps": 109,
+   "ticks": 595,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.6908197442645732,
+   "turn_gain": 1.9992832276107788,
+   "waypoints": {
+    "a": [
+     2.568578479833519,
+     1.1651898954406712
+    ],
+    "b": [
+     1.9436618795584661,
+     2.5517856375659376
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.2796430587768555,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 506,
+   "sigma": 0.2,
+   "status": "success",
+   "steps": 123,
+   "ticks": 665,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8795100827906417,
+   "turn_gain": 1.0654782227843083,
+   "waypoints": {
+    "a": [
+     2.1014594863614247,
+     -0.5049318291408148
+    ],
+    "b": [
+     3.5482374128348457,
+     -1.9589254882000389
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.1791653633117676,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 507,
+   "sigma": 0.3,
+   "status": "failure",
+   "steps": 414,
+   "ticks": 2120,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.4483528266146719,
+   "turn_gain": 1.5927148326400145,
+   "waypoints": {
+    "a": [
+     1.8067987366100475,
+     -1.1142481447740864
+    ],
+    "b": [
+     3.6864229975219636,
+     -2.291902029783285
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 4.80218243598938,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 508,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 110,
+   "ticks": 600,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8038124575504824,
+   "turn_gain": 1.6872287453163288,
+   "waypoints": {
+    "a": [
+     2.3419531558935196,
+     -1.5619362841554776
+    ],
+    "b": [
+     2.048683205835668,
+     -4.168652617833766
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.3551230430603027,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 509,
+   "sigma": 0.1,
+   "status": "success",
+   "steps": 137,
+   "ticks": 735,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.44897766197293326,
+   "turn_gain": 1.2511181185562705,
+   "waypoints": {
+    "a": [
+     1.3410912002326885,
+     1.8101887241782144
+    ],
+    "b": [
+     1.7914053895136697,
+     4.0154911897333445
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.6753506660461426,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 510,
+   "sigma": 0.2,
+   "status": "success",
+   "steps": 81,
+   "ticks": 455,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8683896448548922,
+   "turn_gain": 1.0976034606655158,
+   "waypoints": {
+    "a": [
+     2.471982923608171,
+     -0.2683909512149087
+    ],
+    "b": [
+     4.098724325651528,
+     -0.907771874038507
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 0.815666913986206,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 511,
+   "sigma": 0.3,
+   "status": "failure",
+   "steps": 164,
+   "ticks": 870,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.5914362885122828,
+   "turn_gain": 2.1750039970664057,
+   "waypoints": {
+    "a": [
+     2.918107722971724,
+     -0.3202736511740791
+    ],
+    "b": [
+     3.71085342697048,
+     1.3267484493968806
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.8618812561035156,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 512,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 102,
+   "ticks": 560,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.5094126353333044,
+   "turn_gain": 1.387084809474027,
+   "waypoints": {
+    "a": [
+     1.1749326593260283,
+     1.6342003704249124
+    ],
+    "b": [
+     2.7097594403038947,
+     1.7994497723218519
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.3235037326812744,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 513,
+   "sigma": 0.1,
+   "status": "success",
+   "steps": 111,
+   "ticks": 605,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.6125856924641857,
+   "turn_gain": 1.6424554554885176,
+   "waypoints": {
+    "a": [
+     1.9909250199204696,
+     -1.0646388097766086
+    ],
+    "b": [
+     3.495358245634267,
+     -2.5824719854138785
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.2358970642089844,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 514,
+   "sigma": 0.2,
+   "status": "failure",
+   "steps": 136,
+   "ticks": 730,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.49998822191783765,
+   "turn_gain": 1.7881571282810493,
+   "waypoints": {
+    "a": [
+     2.0974566858566317,
+     1.5573076660549199
+    ],
+    "b": [
+     3.6947729310499993,
+     2.123952487636063
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.5448832511901855,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 515,
+   "sigma": 0.3,
+   "status": "failure",
+   "steps": 132,
+   "ticks": 710,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.7870693041353535,
+   "turn_gain": 1.7024439472969735,
+   "waypoints": {
+    "a": [
+     1.7171194800759835,
+     -1.9403801628518342
+    ],
+    "b": [
+     3.986714246092891,
+     -0.5853421166451493
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.4032044410705566,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 516,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 73,
+   "ticks": 415,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8521161434318998,
+   "turn_gain": 1.8323444897212537,
+   "waypoints": {
+    "a": [
+     1.797104119385502,
+     0.6013735893677279
+    ],
+    "b": [
+     3.30759859849693,
+     0.8455044681568973
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.0144000053405762,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 517,
+   "sigma": 0.1,
+   "status": "failure",
+   "steps": 113,
+   "ticks": 615,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.7771013640623037,
+   "turn_gain": 1.6513595911281256,
+   "waypoints": {
+    "a": [
+     2.6631693340981055,
+     -0.6347995675311165
+    ],
+    "b": [
+     3.0622371100976014,
+     -2.370402047587577
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.407682180404663,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 518,
+   "sigma": 0.2,
+   "status": "failure",
+   "steps": 90,
+   "ticks": 500,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.7632171684613088,
+   "turn_gain": 1.7096106143858756,
+   "waypoints": {
+    "a": [
+     1.2973813210112508,
+     1.59853731767511
+    ],
+    "b": [
+     1.1113347156087987,
+     3.6210718744667667
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.0248689651489258,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 519,
+   "sigma": 0.3,
+   "status": "success",
+   "steps": 147,
+   "ticks": 785,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.46166435818078505,
+   "turn_gain": 1.8232491890332114,
+   "waypoints": {
+    "a": [
+     1.0486488921634616,
+     -1.698185787499727
+    ],
+    "b": [
+     1.8195035406302131,
+     -3.6645432751670337
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.7898359298706055,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 520,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 118,
+   "ticks": 640,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.4301737220498028,
+   "turn_gain": 2.151471242006905,
+   "waypoints": {
+    "a": [
+     2.0810726976969813,
+     -0.46015060179996004
+    ],
+    "b": [
+     3.159903886849935,
+     -1.7365046371366155
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.345144510269165,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 521,
+   "sigma": 0.1,
+   "status": "success",
+   "steps": 105,
+   "ticks": 575,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.869250659992503,
+   "turn_gain": 1.7035493871356964,
+   "waypoints": {
+    "a": [
+     2.413278735739272,
+     -1.3151097242111893
+    ],
+    "b": [
+     1.7787719103961916,
+     -3.2942574654169103
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.2429683208465576,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 522,
+   "sigma": 0.2,
+   "status": "success",
+   "steps": 103,
+   "ticks": 565,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8878503671346888,
+   "turn_gain": 1.0241430923304349,
+   "waypoints": {
+    "a": [
+     1.7188977119270183,
+     0.5801571968598664
+    ],
+    "b": [
+     3.993499913112861,
+     -0.8456778552081388
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.2985622882843018,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 523,
+   "sigma": 0.3,
+   "status": "success",
+   "steps": 123,
+   "ticks": 665,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.5173925202071468,
+   "turn_gain": 1.536089221263536,
+   "waypoints": {
+    "a": [
+     0.9372427390750977,
+     1.5479522436879078
+    ],
+    "b": [
+     1.42759744552487,
+     3.3961833368207017
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.686326026916504,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 524,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 104,
+   "ticks": 570,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.5647355403366849,
+   "turn_gain": 1.6267001464894562,
+   "waypoints": {
+    "a": [
+     1.9212937310320117,
+     0.02597527627471209
+    ],
+    "b": [
+     3.321322018809533,
+     -1.340875900238641
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.2632522583007812,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 525,
+   "sigma": 0.1,
+   "status": "success",
+   "steps": 120,
+   "ticks": 650,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8446790841575208,
+   "turn_gain": 1.7898590869737254,
+   "waypoints": {
+    "a": [
+     1.5076458100567658,
+     -2.2295725420500685
+    ],
+    "b": [
+     0.5378380744300251,
+     -3.3912207894616957
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.4582796096801758,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 526,
+   "sigma": 0.2,
+   "status": "success",
+   "steps": 114,
+   "ticks": 620,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.7240848346281218,
+   "turn_gain": 1.3692917376390135,
+   "waypoints": {
+    "a": [
+     1.2835738961813445,
+     -1.7953397820065229
+    ],
+    "b": [
+     2.833916469383168,
+     -1.3110872903357034
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 0.9453673362731934,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 527,
+   "sigma": 0.3,
+   "status": "failure",
+   "steps": 173,
+   "ticks": 915,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.48111759200392334,
+   "turn_gain": 1.2133392563751113,
+   "waypoints": {
+    "a": [
+     2.4115825708316074,
+     -0.13679699842543944
+    ],
+    "b": [
+     4.308368038939678,
+     -0.08073068705610215
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.8057804107666016,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 528,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 156,
+   "ticks": 830,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.47166060265807885,
+   "turn_gain": 1.0825438372054497,
+   "waypoints": {
+    "a": [
+     2.517848623173417,
+     -1.3518118991867774
+    ],
+    "b": [
+     2.628148296350445,
+     -3.562724872393126
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.8751912117004395,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 529,
+   "sigma": 0.1,
+   "status": "success",
+   "steps": 114,
+   "ticks": 620,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.5994991953756021,
+   "turn_gain": 2.1495610664577143,
+   "waypoints": {
+    "a": [
+     1.8767255806393357,
+     -0.5129589196820347
+    ],
+    "b": [
+     3.2485283306456614,
+     -2.7803820310495477
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.2968645095825195,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 530,
+   "sigma": 0.2,
+   "status": "success",
+   "steps": 120,
+   "ticks": 650,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.7936828147848438,
+   "turn_gain": 1.316378146920799,
+   "waypoints": {
+    "a": [
+     1.8580434577423157,
+     -1.7507719804999136
+    ],
+    "b": [
+     4.068159856501457,
+     -3.1188689198916673
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.2074124813079834,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 531,
+   "sigma": 0.3,
+   "status": "success",
+   "steps": 143,
+   "ticks": 765,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8354604498184848,
+   "turn_gain": 1.1131838946662391,
+   "waypoints": {
+    "a": [
+     1.7284790907349272,
+     2.2057568598308515
+    ],
+    "b": [
+     1.2071483783529309,
+     4.236747001157017
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.6450653076171875,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 532,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 89,
+   "ticks": 495,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8412842566974718,
+   "turn_gain": 1.3189032998674748,
+   "waypoints": {
+    "a": [
+     1.3002258109482634,
+     -1.5174933085545879
+    ],
+    "b": [
+     2.7215600957333317,
+     -0.9608016288402791
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.2644202709197998,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 533,
+   "sigma": 0.1,
+   "status": "success",
+   "steps": 159,
+   "ticks": 845,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.40326919479206313,
+   "turn_gain": 1.1734149768374467,
+   "waypoints": {
+    "a": [
+     2.3796642052321295,
+     0.6924219146574303
+    ],
+    "b": [
+     4.875531279919196,
+     0.03368421066703564
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.9156196117401123,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 534,
+   "sigma": 0.2,
+   "status": "success",
+   "steps": 114,
+   "ticks": 620,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.6451991564995629,
+   "turn_gain": 1.5914276824230655,
+   "waypoints": {
+    "a": [
+     1.571285011256025,
+     1.7920766306039733
+    ],
+    "b": [
+     0.49653876509742334,
+     3.014361082172612
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.2831275463104248,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 535,
+   "sigma": 0.3,
+   "status": "failure",
+   "steps": 137,
+   "ticks": 735,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.7198973120405134,
+   "turn_gain": 1.0405771557989913,
+   "waypoints": {
+    "a": [
+     2.5503816827725796,
+     -1.5420684026191949
+    ],
+    "b": [
+     4.376768452063159,
+     -1.6537478699375907
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.5520639419555664,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 536,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 89,
+   "ticks": 495,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8736780191717961,
+   "turn_gain": 1.6469021118311093,
+   "waypoints": {
+    "a": [
+     1.3644181781375242,
+     -1.5240909172211652
+    ],
+    "b": [
+     2.981686846871561,
+     -1.177379152973135
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 0.9185307025909424,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 537,
+   "sigma": 0.1,
+   "status": "success",
+   "steps": 119,
+   "ticks": 645,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.5686541599743067,
+   "turn_gain": 2.159544502155363,
+   "waypoints": {
+    "a": [
+     1.6173334029008093,
+     1.5332685805302637
+    ],
+    "b": [
+     2.9089440448036488,
+     2.9073359392723397
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.305375099182129,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 538,
+   "sigma": 0.2,
+   "status": "success",
+   "steps": 126,
+   "ticks": 680,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.7163201244202192,
+   "turn_gain": 1.9594256876550453,
+   "waypoints": {
+    "a": [
+     1.3950672022291177,
+     1.9903826012440766
+    ],
+    "b": [
+     3.4716570100495145,
+     0.5677559230486096
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.50925874710083,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 539,
+   "sigma": 0.3,
+   "status": "failure",
+   "steps": 126,
+   "ticks": 680,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.655740545738143,
+   "turn_gain": 1.5618487045677139,
+   "waypoints": {
+    "a": [
+     1.8055545422420716,
+     -0.24421752262783733
+    ],
+    "b": [
+     3.379343732452412,
+     -1.9813392672642398
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.592562198638916,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 540,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 105,
+   "ticks": 575,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.6959416085270753,
+   "turn_gain": 1.031956365353171,
+   "waypoints": {
+    "a": [
+     1.9517735821129827,
+     -0.8057219003426432
+    ],
+    "b": [
+     2.5855044480325535,
+     0.6041820319729427
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.3670377731323242,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 541,
+   "sigma": 0.1,
+   "status": "success",
+   "steps": 115,
+   "ticks": 625,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.518743866776205,
+   "turn_gain": 2.116876332562958,
+   "waypoints": {
+    "a": [
+     2.603692565997855,
+     -0.6394978991484466
+    ],
+    "b": [
+     4.43224281988182,
+     -0.7434071059363172
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.5630345344543457,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 542,
+   "sigma": 0.2,
+   "status": "success",
+   "steps": 119,
+   "ticks": 645,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.7176102593513534,
+   "turn_gain": 1.6564516049524445,
+   "waypoints": {
+    "a": [
+     2.010694856893242,
+     2.193572253267426
+    ],
+    "b": [
+     3.2261852778158673,
+     1.2743070373821541
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.4936726093292236,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 543,
+   "sigma": 0.3,
+   "status": "failure",
+   "steps": 241,
+   "ticks": 1255,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.5190291096145807,
+   "turn_gain": 1.5150702170707127,
+   "waypoints": {
+    "a": [
+     2.2247915814502077,
+     0.7805984198865391
+    ],
+    "b": [
+     4.231985248461869,
+     1.117970554350345
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 2.862382411956787,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 544,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 132,
+   "ticks": 710,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.41486154723876467,
+   "turn_gain": 1.481513442497669,
+   "waypoints": {
+    "a": [
+     1.5317604912766558,
+     1.5708979995393944
+    ],
+    "b": [
+     3.221066248444079,
+     2.5651803673691917
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.6712300777435303,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 545,
+   "sigma": 0.1,
+   "status": "success",
+   "steps": 108,
+   "ticks": 590,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8294606276987884,
+   "turn_gain": 1.6092675868180049,
+   "waypoints": {
+    "a": [
+     1.6098176506958086,
+     1.2571922388524226
+    ],
+    "b": [
+     0.3477914277086043,
+     3.159387930840733
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.3124852180480957,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 546,
+   "sigma": 0.2,
+   "status": "success",
+   "steps": 112,
+   "ticks": 610,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.6864820151708959,
+   "turn_gain": 1.0717475726752874,
+   "waypoints": {
+    "a": [
+     2.7164376222440896,
+     0.07091406867854812
+    ],
+    "b": [
+     4.653214051172337,
+     0.21193221428852416
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.4310970306396484,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 547,
+   "sigma": 0.3,
+   "status": "success",
+   "steps": 153,
+   "ticks": 815,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.47061351080493724,
+   "turn_gain": 1.5268282844230896,
+   "waypoints": {
+    "a": [
+     1.791394518254031,
+     0.4267015622679205
+    ],
+    "b": [
+     4.452907996618055,
+     0.8558334090995136
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.954247236251831,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 548,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 86,
+   "ticks": 480,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.7922647579608413,
+   "turn_gain": 1.0344135698966914,
+   "waypoints": {
+    "a": [
+     2.0047511896561896,
+     0.3924117212886776
+    ],
+    "b": [
+     4.243383373932982,
+     0.992639114928711
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.122800588607788,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 549,
+   "sigma": 0.1,
+   "status": "success",
+   "steps": 89,
+   "ticks": 495,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8002876790477544,
+   "turn_gain": 2.158416601596052,
+   "waypoints": {
+    "a": [
+     1.8765589338236757,
+     0.20894111703881968
+    ],
+    "b": [
+     3.3179636983887413,
+     -0.6728868939515511
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 0.855168342590332,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 550,
+   "sigma": 0.2,
+   "status": "success",
+   "steps": 103,
+   "ticks": 565,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.792687527840216,
+   "turn_gain": 1.4387253347538311,
+   "waypoints": {
+    "a": [
+     1.4352037474752692,
+     1.6496535132283985
+    ],
+    "b": [
+     1.7397922234905752,
+     4.304101802659346
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 0.9938039779663086,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 551,
+   "sigma": 0.3,
+   "status": "failure",
+   "steps": 237,
+   "ticks": 1235,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.7621717341214501,
+   "turn_gain": 2.063734041905031,
+   "waypoints": {
+    "a": [
+     2.457751963226641,
+     -1.6424138275068045
+    ],
+    "b": [
+     2.2686713911840926,
+     -4.072269284005915
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 2.290719747543335,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 552,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 89,
+   "ticks": 495,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8220321882736931,
+   "turn_gain": 1.5049822649000406,
+   "waypoints": {
+    "a": [
+     1.687924901405538,
+     -0.9700699604051688
+    ],
+    "b": [
+     3.7892223427403517,
+     -0.7491831166852893
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.174208641052246,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 553,
+   "sigma": 0.1,
+   "status": "success",
+   "steps": 101,
+   "ticks": 555,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8131405904395506,
+   "turn_gain": 2.0832474782659496,
+   "waypoints": {
+    "a": [
+     2.5530957773282075,
+     0.7151772929334618
+    ],
+    "b": [
+     3.1831705662996437,
+     2.478892637720636
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.3283534049987793,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 554,
+   "sigma": 0.2,
+   "status": "success",
+   "steps": 98,
+   "ticks": 540,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8388764142839995,
+   "turn_gain": 1.6850225851435214,
+   "waypoints": {
+    "a": [
+     2.9555706802584223,
+     -0.44406014386754994
+    ],
+    "b": [
+     3.817574250561287,
+     0.8904548360686309
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.1414451599121094,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 555,
+   "sigma": 0.3,
+   "status": "failure",
+   "steps": 95,
+   "ticks": 525,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8718803341847164,
+   "turn_gain": 1.7828780165920524,
+   "waypoints": {
+    "a": [
+     1.075458010996077,
+     -1.7556987331536418
+    ],
+    "b": [
+     2.5250934165305488,
+     -2.2495505457667093
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.2529032230377197,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 556,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 105,
+   "ticks": 575,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8705527376148064,
+   "turn_gain": 2.0067578091653995,
+   "waypoints": {
+    "a": [
+     1.9191461616176457,
+     -1.8693912295728266
+    ],
+    "b": [
+     0.9417383935010853,
+     -3.169560378239749
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 0.95947265625,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 557,
+   "sigma": 0.1,
+   "status": "success",
+   "steps": 144,
+   "ticks": 770,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.4123922165894895,
+   "turn_gain": 1.3445106061863814,
+   "waypoints": {
+    "a": [
+     2.712305720146157,
+     -0.6197129901963666
+    ],
+    "b": [
+     3.926472114018426,
+     0.39923755099413183
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.5250070095062256,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 558,
+   "sigma": 0.2,
+   "status": "success",
+   "steps": 118,
+   "ticks": 640,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.6037730128520737,
+   "turn_gain": 1.0579451504968689,
+   "waypoints": {
+    "a": [
+     1.9673574372326634,
+     -1.6743282434350275
+    ],
+    "b": [
+     1.4430010612667918,
+     -3.8030743421264095
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.2324714660644531,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 559,
+   "sigma": 0.3,
+   "status": "success",
+   "steps": 194,
+   "ticks": 1020,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.6456167978961322,
+   "turn_gain": 2.05026954763739,
+   "waypoints": {
+    "a": [
+     2.405275570532797,
+     1.4179603026720429
+    ],
+    "b": [
+     4.051609854088454,
+     3.2955886720757577
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 2.403520345687866,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 560,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 165,
+   "ticks": 875,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.41446532338666703,
+   "turn_gain": 1.7749005590300313,
+   "waypoints": {
+    "a": [
+     1.2266260529653579,
+     -2.028330235702153
+    ],
+    "b": [
+     0.08629480572585724,
+     -3.8223525871383544
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.958130121231079,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 561,
+   "sigma": 0.1,
+   "status": "failure",
+   "steps": 159,
+   "ticks": 845,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.4121964020961701,
+   "turn_gain": 1.4514851305904044,
+   "waypoints": {
+    "a": [
+     2.145264514811423,
+     1.5382498762612804
+    ],
+    "b": [
+     2.922310438084821,
+     2.9837663778557886
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.910452127456665,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 562,
+   "sigma": 0.2,
+   "status": "success",
+   "steps": 113,
+   "ticks": 615,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.7579710201724005,
+   "turn_gain": 2.1409549962222325,
+   "waypoints": {
+    "a": [
+     1.7853266905358391,
+     -1.8570783129178867
+    ],
+    "b": [
+     0.9112488908923843,
+     -4.270384692928468
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.3465752601623535,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 563,
+   "sigma": 0.3,
+   "status": "failure",
+   "steps": 243,
+   "ticks": 1265,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8519270909198741,
+   "turn_gain": 1.3990122066656778,
+   "waypoints": {
+    "a": [
+     1.3341669140135244,
+     1.515211606670799
+    ],
+    "b": [
+     1.5681364363679782,
+     4.013780998526584
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 2.6547293663024902,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 564,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 86,
+   "ticks": 480,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8255791031710084,
+   "turn_gain": 1.2258359359633009,
+   "waypoints": {
+    "a": [
+     2.5907320109774647,
+     0.13112837603845637
+    ],
+    "b": [
+     4.387514511091809,
+     -0.5275143339775542
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.0988759994506836,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 565,
+   "sigma": 0.1,
+   "status": "failure",
+   "steps": 163,
+   "ticks": 865,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.4024525780104994,
+   "turn_gain": 1.403930712472313,
+   "waypoints": {
+    "a": [
+     2.352945672997774,
+     0.27434723316065224
+    ],
+    "b": [
+     3.894442196645194,
+     2.4566830410720946
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.2589128017425537,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 566,
+   "sigma": 0.2,
+   "status": "success",
+   "steps": 108,
+   "ticks": 590,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.7433752411685951,
+   "turn_gain": 2.0715846828579902,
+   "waypoints": {
+    "a": [
+     2.3446425737070355,
+     1.8181867253951614
+    ],
+    "b": [
+     3.943302740434567,
+     1.2058381495962591
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.1765141487121582,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 567,
+   "sigma": 0.3,
+   "status": "success",
+   "steps": 146,
+   "ticks": 780,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.5871307481591078,
+   "turn_gain": 1.9746869837090113,
+   "waypoints": {
+    "a": [
+     2.166553085984361,
+     1.4071586571098702
+    ],
+    "b": [
+     3.24767947201443,
+     2.875197300988879
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.7898008823394775,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 568,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 86,
+   "ticks": 480,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8854223758676736,
+   "turn_gain": 1.7786696191180786,
+   "waypoints": {
+    "a": [
+     1.6152111300396292,
+     2.1638574774950063
+    ],
+    "b": [
+     2.6529155525997385,
+     3.560809082956794
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.108079433441162,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 569,
+   "sigma": 0.1,
+   "status": "success",
+   "steps": 134,
+   "ticks": 720,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8041139470396437,
+   "turn_gain": 1.481915524385494,
+   "waypoints": {
+    "a": [
+     2.1459937316659508,
+     -1.73985334822449
+    ],
+    "b": [
+     4.525800592790334,
+     -1.4499941617931862
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.6355509757995605,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 570,
+   "sigma": 0.2,
+   "status": "success",
+   "steps": 194,
+   "ticks": 1020,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.47557049601888696,
+   "turn_gain": 1.503519699583925,
+   "waypoints": {
+    "a": [
+     1.4126330991546212,
+     -2.259800327215585
+    ],
+    "b": [
+     0.2710430852491015,
+     -3.8502356132869604
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 2.1032509803771973,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 571,
+   "sigma": 0.3,
+   "status": "success",
+   "steps": 158,
+   "ticks": 840,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.5597742874224998,
+   "turn_gain": 1.7860650512582237,
+   "waypoints": {
+    "a": [
+     2.6338589401519146,
+     -0.08834795857760704
+    ],
+    "b": [
+     4.5904072917531,
+     -0.9676978834330506
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.523420810699463,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 572,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 116,
+   "ticks": 630,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.7603971734935756,
+   "turn_gain": 1.9232493613363302,
+   "waypoints": {
+    "a": [
+     2.153377406629182,
+     -1.3206953415574785
+    ],
+    "b": [
+     3.6272612278320833,
+     0.7838632827353016
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.3157176971435547,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 573,
+   "sigma": 0.1,
+   "status": "success",
+   "steps": 153,
+   "ticks": 815,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.43679913260143366,
+   "turn_gain": 1.4887067596319057,
+   "waypoints": {
+    "a": [
+     1.144760186525599,
+     1.6329528418402575
+    ],
+    "b": [
+     3.366843750913935,
+     0.5347208517661319
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.8958184719085693,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 574,
+   "sigma": 0.2,
+   "status": "failure",
+   "steps": 112,
+   "ticks": 610,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.6293789012067417,
+   "turn_gain": 2.1178967631685817,
+   "waypoints": {
+    "a": [
+     1.824992617564999,
+     1.5791902512827651
+    ],
+    "b": [
+     3.180986134245421,
+     2.592430641414209
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.5428388118743896,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 575,
+   "sigma": 0.3,
+   "status": "success",
+   "steps": 120,
+   "ticks": 650,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8654279411661883,
+   "turn_gain": 1.216033466030387,
+   "waypoints": {
+    "a": [
+     1.8712026041680998,
+     -0.350100632050934
+    ],
+    "b": [
+     4.0843846921082685,
+     0.25220204233906574
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.3334178924560547,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 576,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 137,
+   "ticks": 735,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8531469028026772,
+   "turn_gain": 1.3944630519585912,
+   "waypoints": {
+    "a": [
+     2.0212813973107444,
+     1.8991617328921593
+    ],
+    "b": [
+     4.157596159864951,
+     0.3750449754566383
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.5896947383880615,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 577,
+   "sigma": 0.1,
+   "status": "success",
+   "steps": 158,
+   "ticks": 840,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.46982687259025585,
+   "turn_gain": 1.5532942074814198,
+   "waypoints": {
+    "a": [
+     1.4296852562568014,
+     -2.1516016073413744
+    ],
+    "b": [
+     -0.38905829954810733,
+     -3.4901514780418794
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.8101959228515625,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 578,
+   "sigma": 0.2,
+   "status": "failure",
+   "steps": 101,
+   "ticks": 555,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.5902257087647254,
+   "turn_gain": 2.0688302880264438,
+   "waypoints": {
+    "a": [
+     1.8394666316912476,
+     -1.2737317984652212
+    ],
+    "b": [
+     3.609277577941233,
+     -1.4904008999059737
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.385256052017212,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 579,
+   "sigma": 0.3,
+   "status": "failure",
+   "steps": 125,
+   "ticks": 675,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.5331420551177513,
+   "turn_gain": 2.166724893364424,
+   "waypoints": {
+    "a": [
+     1.263162558078312,
+     1.6806403602105395
+    ],
+    "b": [
+     2.6137033337552267,
+     2.6422492026758313
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 0.6374433040618896,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 580,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 106,
+   "ticks": 580,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.46365745124926055,
+   "turn_gain": 1.5696865597289822,
+   "waypoints": {
+    "a": [
+     1.2408432918058774,
+     -1.3773807463901704
+    ],
+    "b": [
+     2.801122690304653,
+     -1.5747953561975225
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.2330043315887451,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 581,
+   "sigma": 0.1,
+   "status": "success",
+   "steps": 117,
+   "ticks": 635,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.5726344088907187,
+   "turn_gain": 1.6040752339021682,
+   "waypoints": {
+    "a": [
+     1.3932531584482633,
+     -2.046308950126483
+    ],
+    "b": [
+     3.3569251018997526,
+     -2.8017674238777186
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.5324571132659912,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 582,
+   "sigma": 0.2,
+   "status": "success",
+   "steps": 132,
+   "ticks": 710,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.4349391759517109,
+   "turn_gain": 1.4017198704809741,
+   "waypoints": {
+    "a": [
+     1.5763792010892057,
+     -1.3559616296018877
+    ],
+    "b": [
+     0.9929008265085646,
+     -3.182236487269158
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.6610844135284424,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 583,
+   "sigma": 0.3,
+   "status": "success",
+   "steps": 106,
+   "ticks": 580,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.559492393052379,
+   "turn_gain": 1.5305121297866195,
+   "waypoints": {
+    "a": [
+     1.777533696370086,
+     -0.6344934360884066
+    ],
+    "b": [
+     3.4825830143960568,
+     -1.1278722334699667
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.4807536602020264,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 584,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 137,
+   "ticks": 735,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.5587361739961849,
+   "turn_gain": 1.592379096162936,
+   "waypoints": {
+    "a": [
+     2.915738991387319,
+     0.32034817406865734
+    ],
+    "b": [
+     5.1264987496301035,
+     -0.3573774815248717
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.5383505821228027,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 585,
+   "sigma": 0.1,
+   "status": "success",
+   "steps": 116,
+   "ticks": 630,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.6711424065271594,
+   "turn_gain": 1.754020341173534,
+   "waypoints": {
+    "a": [
+     1.1310547392609904,
+     1.816111646765664
+    ],
+    "b": [
+     -0.11176688567340465,
+     3.511973342719439
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.4782087802886963,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 586,
+   "sigma": 0.2,
+   "status": "success",
+   "steps": 133,
+   "ticks": 715,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.48318735226232323,
+   "turn_gain": 1.746061440319324,
+   "waypoints": {
+    "a": [
+     2.090294169827567,
+     0.1508365624279451
+    ],
+    "b": [
+     3.3360632215870165,
+     0.9919503975870299
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.7996957302093506,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 587,
+   "sigma": 0.3,
+   "status": "success",
+   "steps": 180,
+   "ticks": 950,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8733817144090523,
+   "turn_gain": 1.2883423514274028,
+   "waypoints": {
+    "a": [
+     1.129970069201921,
+     -1.8439710967670935
+    ],
+    "b": [
+     1.2011801258434929,
+     -4.305492183778574
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 2.211754322052002,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 588,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 120,
+   "ticks": 650,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.778442522188006,
+   "turn_gain": 1.3465800612696417,
+   "waypoints": {
+    "a": [
+     1.5315365620758274,
+     2.5774589498263873
+    ],
+    "b": [
+     3.7601759733663007,
+     2.0046478288671095
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.3856658935546875,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 589,
+   "sigma": 0.1,
+   "status": "success",
+   "steps": 117,
+   "ticks": 635,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.82577904422051,
+   "turn_gain": 1.724415105869217,
+   "waypoints": {
+    "a": [
+     2.273600467440605,
+     -1.21612776828387
+    ],
+    "b": [
+     4.044708538025832,
+     0.46118038172430853
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.413254976272583,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 590,
+   "sigma": 0.2,
+   "status": "success",
+   "steps": 155,
+   "ticks": 825,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.7182787026723373,
+   "turn_gain": 1.8473350403755324,
+   "waypoints": {
+    "a": [
+     2.321106662900607,
+     -1.2650941574902381
+    ],
+    "b": [
+     3.6054376295188897,
+     0.7478876754130424
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.7489073276519775,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 591,
+   "sigma": 0.3,
+   "status": "failure",
+   "steps": 153,
+   "ticks": 815,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.6975308375492049,
+   "turn_gain": 1.9444861409787668,
+   "waypoints": {
+    "a": [
+     2.0529943146498972,
+     -0.6723545379552828
+    ],
+    "b": [
+     2.9315187926210977,
+     0.8024426038201519
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.93534255027771,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 592,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 95,
+   "ticks": 525,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.5783863653597329,
+   "turn_gain": 1.89882463043197,
+   "waypoints": {
+    "a": [
+     1.1457619807967363,
+     -1.5077297357775792
+    ],
+    "b": [
+     2.5803475193128733,
+     -2.6441060114670023
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.271806240081787,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 593,
+   "sigma": 0.1,
+   "status": "success",
+   "steps": 116,
+   "ticks": 630,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8292205925850341,
+   "turn_gain": 1.4473844145181483,
+   "waypoints": {
+    "a": [
+     1.8686451680777156,
+     1.8170150283581599
+    ],
+    "b": [
+     4.528400196964174,
+     1.7560940777251184
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 0.9685428142547607,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 594,
+   "sigma": 0.2,
+   "status": "success",
+   "steps": 86,
+   "ticks": 480,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.8555906409460292,
+   "turn_gain": 1.8042785775747092,
+   "waypoints": {
+    "a": [
+     2.1120253132584326,
+     -0.219669004723492
+    ],
+    "b": [
+     3.5765343869793975,
+     1.3561864940464914
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 0.996598482131958,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 595,
+   "sigma": 0.3,
+   "status": "success",
+   "steps": 156,
+   "ticks": 830,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.4633298120265771,
+   "turn_gain": 1.5744045413648242,
+   "waypoints": {
+    "a": [
+     1.412684934304646,
+     2.072163760136097
+    ],
+    "b": [
+     0.9952572100291517,
+     4.706982311933024
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.932044267654419,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 596,
+   "sigma": 0.0,
+   "status": "success",
+   "steps": 126,
+   "ticks": 680,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.5156446849705006,
+   "turn_gain": 1.6740040968411736,
+   "waypoints": {
+    "a": [
+     2.4034752093060314,
+     -0.9054637569768853
+    ],
+    "b": [
+     4.180860070843167,
+     -2.4979180889705654
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.5212254524230957,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 597,
+   "sigma": 0.1,
+   "status": "success",
+   "steps": 134,
+   "ticks": 720,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.4726679640902688,
+   "turn_gain": 1.668543515314819,
+   "waypoints": {
+    "a": [
+     2.665337551537605,
+     0.4619744960977131
+    ],
+    "b": [
+     4.626217634785272,
+     0.8423341663659627
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.3203926086425781,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 598,
+   "sigma": 0.2,
+   "status": "success",
+   "steps": 176,
+   "ticks": 930,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.631756662674321,
+   "turn_gain": 2.151108840216455,
+   "waypoints": {
+    "a": [
+     1.6164671487530176,
+     2.5020690342010483
+    ],
+    "b": [
+     3.3546578952535278,
+     1.9436559826417261
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 1.9391436576843262,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  },
+  {
+   "body": "anymal_c",
+   "seed": 599,
+   "sigma": 0.3,
+   "status": "success",
+   "steps": 320,
+   "ticks": 1650,
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2",
+   "source": "scripted_teacher",
+   "privileged_teacher": true,
+   "teacher_variant": "default",
+   "speed_frac": 0.6107015506319622,
+   "turn_gain": 1.5953323272929965,
+   "waypoints": {
+    "a": [
+     2.384388079902592,
+     1.14480282374464
+    ],
+    "b": [
+     2.44757323285301,
+     3.51890660966259
+    ]
+   },
+   "spec_hash": "b7a100b36f7ee20a",
+   "wall_s": 3.5043413639068604,
+   "tracker_source_label": "learned_tracker",
+   "physics": {
+    "mujoco_version": "3.14.0",
+    "timestep": 0.002,
+    "integrator": "euler",
+    "cone": "elliptic",
+    "impratio": 10.0,
+    "solver": "newton",
+    "iterations": 100,
+    "ls_iterations": 50,
+    "noslip_iterations": 0,
+    "contact_version": "contact_v2"
+   }
+  }
+ ],
+ "handles": [
+  "asm:605dfa7886bc08e4:leg0",
+  "asm:605dfa7886bc08e4:leg1",
+  "asm:605dfa7886bc08e4:leg2",
+  "asm:605dfa7886bc08e4:leg3",
+  "asm:605dfa7886bc08e4:body4"
+ ],
+ "asm_kind": [
+  "leg",
+  "leg",
+  "leg",
+  "leg",
+  "body"
+ ],
+ "body_kind": "quadruped",
+ "gait_period": 0.6,
+ "provenance": {
+  "schema_version": "provenance-1",
+  "source": "scripted_teacher",
+  "physics": {
+   "mujoco_version": "3.14.0",
+   "timestep": 0.002,
+   "integrator": "euler",
+   "cone": "elliptic",
+   "impratio": 10.0,
+   "solver": "newton",
+   "iterations": 100,
+   "ls_iterations": 50,
+   "noslip_iterations": 0,
+   "contact_version": "contact_v2"
+  },
+  "featurizer_version": null,
+  "code": {
+   "git_sha": "823673793ecdabeabcb35044f3194e29dac8e001",
+   "dirty": false
+  },
+  "weights": {},
+  "bundle_fingerprint": null,
+  "versions": {
+   "tracker_source": "learned_tracker",
+   "tracker_version": "learned_tracker:anymal_c:iter2499:contact_v2"
+  },
+  "flags": {
+   "privileged_teacher": true,
+   "arc_only": false,
+   "tracker": "auto",
+   "dart_sigmas": [
+    0.0,
+    0.1,
+    0.2,
+    0.3
+   ],
+   "prev_action_input": false
+  },
+  "legacy": false,
+  "created_at": 1790497449.706083,
+  "notes": "tick-level labels = clean body-tracker joint targets (native expert)"
+ }
+}

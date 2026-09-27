@@ -1,0 +1,86 @@
+{
+ "gate": "arm_dataset",
+ "version": "rrp.evaluation.gates/v1 (D-112)",
+ "subject": {
+  "bodies": [
+   "panda_pg2",
+   "panda_tf3",
+   "parm5_pg2",
+   "parm5_tf3",
+   "parm5l_pg2",
+   "parm5l_tf3",
+   "parm5s_pg2",
+   "parm5s_tf3",
+   "parm6_pg2",
+   "parm6_tf3",
+   "parm7_pg2",
+   "parm7_tf3",
+   "sawyer_pg2",
+   "sawyer_tf3",
+   "ur5e_pg2",
+   "ur5e_tf3",
+   "xarm7_pg2",
+   "xarm7_tf3"
+  ],
+  "n": 4811,
+  "grasp": [
+   "grasp_v1"
+  ],
+  "name": "teacher_v2_grasp_v1 (teacher_quality rows, noise 0, 18 bodies)"
+ },
+ "verdict": "fail",
+ "criteria": [
+  {
+   "name": "phase_switch_vel_step",
+   "status": "pass",
+   "value": 0.9988,
+   "threshold": ">= 0.95 of episodes with step <= 0.5 rad/s",
+   "note": "median 0.2194248260146603, max 0.9636623276082501"
+  },
+  {
+   "name": "joint_limit_margin",
+   "status": "fail",
+   "value": 0.8705,
+   "threshold": ">= 0.95 of episodes with margin >= 0.02",
+   "note": "min -0.0001289058425877343"
+  },
+  {
+   "name": "cmd_jerk_rms_vs_v2_teacher",
+   "status": "pass",
+   "value": {
+    "panda_pg2": 0.999,
+    "panda_tf3": 1.001,
+    "parm5_pg2": 1.0,
+    "parm5_tf3": 1.0,
+    "parm5l_pg2": 1.0,
+    "parm5l_tf3": 0.998,
+    "parm5s_pg2": 1.0,
+    "parm5s_tf3": 1.0,
+    "parm6_pg2": 1.0,
+    "parm6_tf3": 1.0,
+    "parm7_pg2": 1.002,
+    "parm7_tf3": 1.001,
+    "sawyer_pg2": 0.998,
+    "sawyer_tf3": 1.012,
+    "ur5e_pg2": 1.0,
+    "ur5e_tf3": 1.0,
+    "xarm7_pg2": 0.999,
+    "xarm7_tf3": 1.02
+   },
+   "threshold": "median per body <= 2.0x v2 teacher",
+   "note": "reference artifacts/runs/armexpert_grasp/final_graspv2_18bodies.summary.json (scripted_teacher:pick_place_v2_minjerk, grasp_v2, 300 seeds per body; D-110)"
+  },
+  {
+   "name": "penetration",
+   "status": "labelled",
+   "value": 0.4211,
+   "threshold": "<= 3 mm gated under grasp_v2 only",
+   "note": "grasp ['grasp_v1']; median 0.006161113942760367 m, max 0.01038836714103609 m"
+  }
+ ],
+ "failed": [
+  "joint_limit_margin=0.8705 (threshold >= 0.95 of episodes with margin >= 0.02)"
+ ],
+ "not_evaluated": [],
+ "source_rows": "artifacts/runs/armexpert_grasp/final_graspv1_18bodies.jsonl.gz"
+}
