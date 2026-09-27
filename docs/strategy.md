@@ -116,6 +116,16 @@ Conflict rules:
 - W3 owns `contracts/`; W1 registers its contact version through W3's API.
   If W1 lands first, W1 adds a minimal `physics_version` field that W3 absorbs.
 
+
+### Current peer allocation (2026-09-27 08:00, lead; revise here)
+The peer's memory watchdog stopped every agent's jobs at 07:50 because the peer was oversubscribed. Until revised:
+- W10 (Isaac): 2 GPU leases.
+- W8: 2 GPU leases, ≤8 CPU.
+- Arm v2 (W7): 2 GPU leases, ≤10 CPU.
+- Contact (W1): peer CPU only when load < 15.
+Every lease declares its measured peak memory + 20%, so the broker, not the emergency watchdog, does admission control.
+Peer disk is 97% used (69 GB free): no new large downloads without checking.
+
 ## 4. Supervision
 - **Lead (main session):**
   - Assigns scopes and checks gates against raw outputs.
