@@ -438,7 +438,8 @@ class OpsRunner:
         info = _parse_ops_json(r.stderr + "\n" + r.stdout)
         if not info.get("lease_id"):
             if _CAPACITY.search(r.stderr + r.stdout):
-                raise AdmissionRefused((r.stderr or r.stdout)[-300:])
+                lines = [ln.strip() for ln in (r.stderr + "\n" + r.stdout).splitlines() if _CAPACITY.search(ln)]
+                raise AdmissionRefused(lines[-1][:300] if lines else (r.stderr or r.stdout)[-300:])
             raise RuntimeError(f"launch failed (exit {r.returncode}): {(r.stderr or r.stdout)[-500:]}")
         return dict(lease_id=info["lease_id"], log=info.get("log"), unit=info.get("unit"), placement=node.placement)
 
@@ -486,7 +487,7 @@ class Executor:
     max_parallel: int = 4
     max_parallel_gpu: int | None = None     # cap on running GPU nodes (a share of a shared GPU; W8)
     max_cpu: float | None = None            # cap on the summed declared CPU of running nodes
-    max_mem_gib: float | None = None        # cap on the summed declared memory of running nodes
+    max_mem_gib: float | None = None        # cap on the summed declared memory (RAM + GPU, as the broker, D-106)
     budget_dir: Path | None = None          # shared budget: also count running nodes of every other ledger under this
     #                                         dir (<dir>/*/ledger.json), so several DAGs of one track share the caps
     poll_s: float = 30.0
@@ -532,7 +533,8 @@ class Executor:
                                  f"(bounded {self.admission_timeout_s:.0f} s, not an attempt)")
                     t0 = waiting_since.setdefault(nid, time.time())
                     if time.time() - t0 > self.admission_timeout_s:
-                        self._fail(nid, f"admission refused for {self.admission_timeout_s:.0f} s: {e}", final=True)
+                        self._fail(nid, f"admission refused for {self.admission_timeout_s:.0f} s: "
+                                        f"{str(e).strip().splitlines()[-1][:200] if str(e).strip() else e}", final=True)
                     continue
                 except Exception as e:  # launch error (not a job failure of a started lease)
                     self._fail(nid, f"launch error: {e}", final=True)
@@ -579,8 +581,8 @@ class Executor:
             return False
         if self.max_cpu is not None and live and sum(float(x.get("cpu", 0)) for x in live) + r.cpu > self.max_cpu:
             return False
-        if self.max_mem_gib is not None and live and \
-                sum(_gib(x.get("mem")) for x in live) + _gib(r.mem) > self.max_mem_gib:
+        mem = lambda x: _gib(x.get("mem")) + (_gib(x.get("gpu_mem")) if x.get("gpu") else 0.0)   # D-106: RAM + GPU summed
+        if self.max_mem_gib is not None and live and sum(mem(x) for x in live) + mem(r.__dict__) > self.max_mem_gib:
             return False
         return True
 

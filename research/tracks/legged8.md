@@ -123,3 +123,12 @@ learned_tracker:anymal_c:iter2499:contact_v2 (sha 2a16532b...), commands scripte
   anymal_c teacher reference now run; BC (shed at 07:50) rerunning.
 - Clips: `artifacts/runs/legged8/videos_claim.sh` claims one GPU slot in the shared budget, then renders anymal_c training seed 0,
   eval seeds 10002 (effect) and 10017 (no effect).
+
+## D-106 (peer admission capped at 108 GiB RAM+GPU declared, 19.97 CPU, 8 GPU slots): W8 declarations and queue check
+- Measured (08:30, new-code trainers): process peak (cgroup MemoryPeak) 1.95-2.09 GB; CUDA max_memory_reserved 1.96-2.14 GB (+ ~0.5 GB
+  CUDA context not counted by torch). Declared per trainer/probe/BC node: mem 3G + gpu_mem 4G (was 7G + 5G). Eval/edit nodes: 4 workers x
+  ~2.1 GB -> mem 11G. run-dag's track cap `max_mem_gib` now sums RAM + GPU, like the broker (test updated).
+- Queue check on the live broker (scratch DAG, one teacher-eval node declaring 100 GiB, admission bound 150 s): run-dag logged
+  "broker refused admission (CapacityError: memory 158913789952 > aggregate limit 115964116992); waiting (not an attempt)", made 0
+  attempts, and failed only when my deliberately short 150 s bound expired. Real DAG nodes use the default 10800 s bound. Cosmetic fix:
+  the refusal reason logged is now the broker's error line (was a traceback caret line).

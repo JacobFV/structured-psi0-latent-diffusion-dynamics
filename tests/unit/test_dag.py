@@ -418,13 +418,13 @@ def test_shared_budget_counts_other_ledgers(tmp_path):
     other = tmp_path / "_dags" / "other" / "ledger.json"
     other.parent.mkdir(parents=True)
     other.write_text(json.dumps(dict(schema="dag-ledger-1", nodes={
-        "x": dict(state="running", resources=dict(cpu=2, mem="6G", gpu=True)),
+        "x": dict(state="running", resources=dict(cpu=2, mem="4G", gpu=True, gpu_mem="2G")),
         "y": dict(state="completed", resources=dict(cpu=9, mem="20G", gpu=True))})))
     plan = plan_dag(loads(GLOBAL_TOY.replace("""  rep:
     stage: train_rep
 """, """  rep:
     stage: train_rep
-    resources: {gpu: true, cpu: 2, mem: 6G}
+    resources: {gpu: true, cpu: 2, mem: 4G, gpu_mem: 2G}
 """)))
     ex = Executor(plan, Ledger(tmp_path / "_dags" / "gtoy" / "ledger.json"), FakeRunner(tmp_path), max_parallel_gpu=2,
                   max_cpu=8, max_mem_gib=28, budget_dir=tmp_path / "_dags", poll_s=0, sleep=lambda s: None, log=lambda m: None)
