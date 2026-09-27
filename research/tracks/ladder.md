@@ -45,7 +45,14 @@ Throughput after the cap change (06:08, 4 Stage As concurrent, GPU 94%, 46 GB av
 (vs 1.28 under W8 contention, 0.24 with 2 alone) -> Stage A ~1.6 h (nosem ~07:35, semfix ~07:45). Revised ETA for the
 whole set: ~14:00-16:00 PDT 2026-09-27 (the 32 DAgger collections, <= 2 concurrent under the 16-CPU cap, dominate).
 One launch error on the way: max_seconds 43200 is above the broker cap (6 h) and was refused before any job started.
-RESUME: `cd ~/work/rrp-wt/ladder && systemd-run --user --unit rrp-armv2-dag4 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv2 --setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/ladder ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_lineage_v2.yaml`
+07:50 INCIDENT 2: all four Stage As (semfix at step ~6,100, nosem at ~7,200; rate had fallen back to ~0.9 s/step as W8
+returned) were stopped by the peer watchdog (stopped_by available_memory_below_reserve, 3 GB reserve; other agents' jobs
+were shed the same way). Their checkpoints were written by code synced before the RNG fix (inexact resume), so all four
+were restarted from scratch (dirs kept at `ladder_smoke/armv2_aborted/<variant>_train_rep_s<seed>_memshed_0750`, not
+used) after pushing the RNG-fix code to wt/armv2 (no job was running from it). Caps back to the base allocation
+(2 GPU leases, 10 CPU): W8 holds 4 peer GPU leases again. From now on a shed Stage A can be resumed exactly
+(`--retry-failed` after checking the log says `exact: RNG restored`). Runner unit `rrp-armv2-dag4` (07:54).
+RESUME: `cd ~/work/rrp-wt/ladder && systemd-run --user --unit rrp-armv2-dag5 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv2 --setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/ladder ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_lineage_v2.yaml`
 (completed nodes skipped, running leases re-adopted; failed nodes only with --retry-failed, a manual decision).
 
 ## ARM NOSEM RECIPE ABLATION RESULT (2026-09-26 22:45 PDT; state: completed; all nodes rc 0 after one OOM relaunch)
