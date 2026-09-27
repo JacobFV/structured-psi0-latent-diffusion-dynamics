@@ -49,7 +49,7 @@ def train(args):
                    env_kw=dict(push=not args.no_push, episode_s=args.episode_s, contact=args.contact,
                                reward=args.reward, reward_overrides=_kv(args.reward_set), actuator=args.actuator))
     sp = pool.spec
-    sched = sp["reward"] == "gait_v2" and args.alpha_schedule != "off"
+    sched = sp["reward"] == "gait_v2" and args.alpha_schedule == "gated"     # fixed:<a> and off never move alpha
     gate = AlphaGate(step=args.alpha_step, every=args.alpha_every, warmup=args.alpha_warmup)
     for spec_s, dst in ((args.alpha_advance, gate.advance), (args.alpha_backoff, gate.backoff)):
         for kv in filter(None, (spec_s or "").split(",")):
