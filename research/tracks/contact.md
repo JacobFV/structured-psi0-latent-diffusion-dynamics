@@ -347,7 +347,11 @@ w8c (launched on the previous code with stand_contact=5 x 0.1 floor = 0.5 effect
 identical to the installed legacy-limit W8 t1 (20/20, 14.6 s). 50-episode fall checks: 0/50 on turn, turn at 0.48, arc and forward. BUT the lab gate FAILS:
 `val/t1_w8c-ideal`: no-fall 1.00, **fwd 0.64**, turn 0.82, turn at 0.48 0.91, arc 1.97, **slip 0.152**, CoT 2.36 (v1lat 30 ms: no-fall 0.97, fwd 0.51).
 The w8 candidate had the reverse: gate passed, closed loop 11-12 of 14-15 (the w8 20-episode rerun was shed at 14: 11 success / 3 halt failures).
-w8d (running, host, `artifacts/runs/contact_t1_w8d`): 800 more iters from w8c with the new permanent-standing defaults, to recover forward speed and slip. 50-episode fall checks (`fallrate/t1_{w8,w8b}_*.json`): **0/50 falls** for both on turn, turn at 0.48,
+w8d (running, host, `artifacts/runs/contact_t1_w8d`): 800 more iters from w8c with the new permanent-standing defaults, to recover forward speed and slip.
+**LEAD DECISION RULE (2026-09-27):** install w8d as `artifacts/trackers/t1/contact_v2/actor.pt` iff it passes the lab gate (no-fall 1.0, fwd >= 0.8,
+turn >= 0.5, turn at 0.48 >= 0.5, arc yaw >= 0.6, slip < 0.15) AND >= 19/20 waypoint episodes AND 0/50 falls per command. Otherwise, or if w8d is not validated
+when the lead reports that W8's go2 run has freed its GPU slots, install w8c labelled "t1 sourced-limits w8c: waypoint 20/20; lab gate fails forward 0.64 and slip 0.152".
+Record the chosen sha here and tell the lead. 50-episode fall checks (`fallrate/t1_{w8,w8b}_*.json`): **0/50 falls** for both on turn, turn at 0.48,
 arc and forward.
 Videos (reviewed): `artifacts/video/2026-09-27_contact_t1_{turn,turn_fast,arc,forward}_w8installed-vs-w8mix_iter1499_ok_ok.mp4`
 (left: W8 installed t1 under LEGACY limits, right: candidate under SOURCED limits).
