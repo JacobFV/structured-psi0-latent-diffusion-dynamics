@@ -25,6 +25,7 @@ from rrp.contracts.provenance import CONTACT_VERSION_DEFAULT, parse_source, phys
 from rrp.data.collect import EpisodeRecord, write_episode
 from rrp.data.manifest import dataset_provenance, write_manifest
 from rrp.sim.legged import LeggedSession, build_waypoint_contact
+from rrp.contracts.runs import parse_seed_spec
 
 
 def public_record(obs) -> dict:
@@ -91,11 +92,7 @@ def collect_episode(body: str, seed: int, tracker_kind: str = "auto", max_steps:
     return EpisodeRecord(public, private)
 
 
-def _seeds(spec: str):
-    if "-" in spec:
-        a, b = spec.split("-")
-        return list(range(int(a), int(b) + 1))
-    return [int(x) for x in spec.split(",")]
+_seeds = parse_seed_spec          # W4 dedup: one implementation in rrp.contracts.runs
 
 
 def main(argv=None):

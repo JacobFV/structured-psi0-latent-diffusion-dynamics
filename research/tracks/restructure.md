@@ -54,8 +54,8 @@ Deviations from the audit's target text, forced by the layering rule (recorded h
 | P1 | skeleton packages; contracts (psi, workload), physics (snapshot), features (featurizer, multi, legged, derived) | merged 0882cce |
 | P2 | bodies, envs, teachers, controllers, models | merged 4a9030e |
 | P3 | data, training, evaluation (break evaluation↔training) | merged 3788f57 |
-| P4 | CLI package without silent ImportError; ops → orchestration | verified |
-| P5 | research diagnostics; dedup | planned |
+| P4 | CLI package without silent ImportError; ops → orchestration | merged aaf9201 |
+| P5 | research diagnostics; dedup; peer_sync .rrp_revision | verified |
 | P6 | legged files excluded until W1 (contact) merges | blocked on W1 |
 
 ### P1 (contracts / physics / features)
@@ -119,6 +119,42 @@ Deviations from the audit's target text, forced by the layering rule (recorded h
   used by scripts parse, no swallowed ImportError, stdlib-only command modules); a real leased job through the new
   orchestration (lease 1790474978_b8c267, rc 0); test_host_gpu_exclusion same as pre-W4 (1 passed, 1 skipped);
   unit 264 passed / 1 skipped; safe integration 27 passed; imports resolve (1535 names); demo page unchanged.
+
+### P5 (research diagnostics / dedup / peer_sync)
+- → rrp.research (referenced only from research docs or one-off diagnostics; old paths are shims, `python -m` forwards):
+  learning.legged_t1_diag, learning.qa_train, evaluation.system2_eval, evaluation.bc_semantic_edits,
+  evaluation.latent_slice1_report, model.system2 (used only by system2_eval).
+- peek scripts `scripts/ladder_{peek,locpeek,sumpeek,t0_check}.py` → `research/scripts/2026-09-26/` (git mv; referenced
+  only from research/tracks/ladder.md and decisions.md; nothing runs them).
+- dedup (provably identical; old names kept as aliases; tests in test_restructure_compat.py):
+  - `wilson`: `rrp.evaluation.ladder.wilson` = the ladder convention (z=1.96, (0,1) at n=0) over
+    `rrp.evaluation.statistics.wilson` (same expression, bitwise-equal on all k ≤ n ≤ 60).
+  - `_seeds` (legged_collect, legged_latent_collect, legged_latent_eval) → `rrp.contracts.runs.parse_seed_spec`.
+  - session featurizer cache: `ladder._featurizer`, `latent_semantic_edits._featurizer` (single-robot branch) and
+    `LatentPolicy.featurizer` → `rrp.features.featurizer.cached_featurizer`.
+- `scripts/peer_sync.sh push` now also writes `$R/.rrp_revision` = {git_sha, dirty (tracked changes, as W3), branch,
+  synced_at, source}; `peer_sync.sh revision` prints it locally (tested; W3 `code_provenance` reads it). Not run
+  against the peer (W4 did not touch the peer).
+- checks: unit 274 passed / 1 skipped; safe integration 27 passed; numerics parity after the dedup still byte-identical
+  to pre-W4 (`parity_p5`); argparse tree identical; imports resolve (1552 names incl. research/scripts); demo page
+  unchanged.
+
+### deferred to W5 (not provably identical, or a behaviour/format change)
+- `_dev` helpers: `latent_train._dev` (apply_cap errors raise) vs legged `_dev` (now `controllers.bundles._dev`;
+  apply_cap errors swallowed) vs `adapt._device` (returns (name, info), disables TF32). Different behaviour.
+- oracle wrappers: `ladder.OraclePacketPolicy` (batched shadow teacher / BC lookahead), `latent_semantic_edits.OracleSource`
+  (per-call context edits, teacher or BC demo), `legged_latent_eval.OracleShadow` (legged). Different interfaces.
+- packet builders: `ladder.make_packet` = `build_packet(f, s, s.observe(), z, sampling={})` except that it keeps a
+  non-contiguous z (`np.asarray` vs `np.ascontiguousarray`); `latent_semantic_edits.dual_packet` masks assemblies and uses
+  dual handles. Merge in W5 with a layout-insensitive packet test.
+- featurizer patching: `ladder.install_prev_action` (wraps step/snapshot/restore) vs the inline
+  `PrevActionFeaturizer` install in `run_ladder` (recording is done by the loop): different.
+- `policy_runner.LearnedPolicy.featurizer` also resets `_rrp_prev_action`: not merged into cached_featurizer.
+- W3 follow-ups that change written strings: eval rows of arm ladder / dual still write free source strings
+  (should use `source_label()`); `contracts.action.Source` Literal → enum.
+- wilson copies in `scripts/legged_ladder_summary.py` and `scripts/demo/build_page.py` (scripts are frozen; the demo
+  page must build unchanged); remaining one-off scripts (t1_diag_*.sh, chain scripts) → W5 run-dag.
+- remove shims after the audit's phase-5 condition; keep `rrp/data/features.py` permanently (pickle path).
 
 ## excluded until W1 merges (P6)
 morphology/legged.py, morphology/contact.py, sim/legged.py, control/{legged_core, legged_vec, legged_tracker,

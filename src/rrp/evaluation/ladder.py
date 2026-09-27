@@ -31,6 +31,8 @@ import numpy as np
 import torch
 
 from rrp.contracts.errors import ControllerRejection, StaleActionError
+from rrp.evaluation.statistics import wilson as _stats_wilson
+from rrp.features.featurizer import cached_featurizer
 
 STAGES = ["approach", "grasp", "lift", "transport", "place"]
 
@@ -44,13 +46,10 @@ def sha256_file(p) -> str:
 
 
 def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
+    """Ladder convention of rrp.evaluation.statistics.wilson (same formula): z=1.96 and (0, 1) for n == 0 (W4 dedup)."""
     if n == 0:
         return (0.0, 1.0)
-    p = k / n
-    d = 1 + z * z / n
-    c = (p + z * z / (2 * n)) / d
-    w = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
-    return (max(0.0, c - w), min(1.0, c + w))
+    return _stats_wilson(k, n, z)
 
 
 class PrevActionFeaturizer:
@@ -108,12 +107,7 @@ def install_prev_action(s, mode: str):
     return f
 
 
-def _featurizer(s):
-    from rrp.features.featurizer import featurizer_for
-    f = getattr(s, "_rrp_featurizer", None)
-    if f is None:
-        f = s._rrp_featurizer = featurizer_for(s)
-    return f
+_featurizer = cached_featurizer      # W4 dedup (rrp.features.featurizer)
 
 
 class ShadowTeacher:

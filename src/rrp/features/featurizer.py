@@ -557,3 +557,13 @@ def featurizer_for(session: "Session", robot: int = 0) -> Featurizer:
     mr = session.scenario.robots[robot]
     return Featurizer(session.model, mr.robot_spec, mr.prefix, mr.meta, mr.base_pos, mr.base_yaw,
                       mr.manipulator_bindings, robot_index=robot)
+
+
+def cached_featurizer(s):
+    """The session's featurizer, cached on the session as `s._rrp_featurizer` (so a PrevActionFeaturizer installed there
+    is found too). W4: one copy of the identical helpers `rrp.evaluation.ladder._featurizer`,
+    `rrp.evaluation.latent_semantic_edits._featurizer` (single-robot branch) and `LatentPolicy.featurizer`."""
+    f = getattr(s, "_rrp_featurizer", None)
+    if f is None:
+        f = s._rrp_featurizer = featurizer_for(s)
+    return f

@@ -8,7 +8,7 @@ import numpy as np
 import torch
 
 from rrp.contracts.latent_action import LatentActionChunk, AssemblyHandle, EntityHandle
-from rrp.features.featurizer import featurizer_for
+from rrp.features.featurizer import cached_featurizer, featurizer_for  # noqa: F401
 from rrp.models.checkpoint import load_checkpoint
 from rrp.models.batch import collate_inputs
 from rrp.models.flow import FlowPolicy, PolicyConfig
@@ -51,10 +51,7 @@ class LatentPolicy:
         return pol
 
     def featurizer(self, s):
-        f = getattr(s, "_rrp_featurizer", None)
-        if f is None:
-            f = s._rrp_featurizer = featurizer_for(s)
-        return f
+        return cached_featurizer(s)             # W4 dedup (rrp.features.featurizer)
 
     @torch.no_grad()
     def packets(self, sessions, noise_keys=None) -> list[LatentActionChunk]:

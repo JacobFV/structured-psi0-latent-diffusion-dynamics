@@ -266,8 +266,8 @@ def _featurizer(s):
             from rrp.evaluation.dual_latent_eval import multi_featurizer
             f = multi_featurizer(s)
         else:
-            from rrp.features.featurizer import featurizer_for
-            f = s._rrp_featurizer = featurizer_for(s)
+            from rrp.features.featurizer import cached_featurizer
+            f = cached_featurizer(s)          # W4 dedup: same caching as before (attribute is None here)
     return f
 
 

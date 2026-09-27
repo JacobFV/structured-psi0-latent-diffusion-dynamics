@@ -27,3 +27,4 @@ artifacts/video/raw/
 *.safetensors
 *.npz
 *.pkl
+/.rrp_revision

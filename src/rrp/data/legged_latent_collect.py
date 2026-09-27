@@ -26,6 +26,7 @@ from rrp.teachers.legged import WaypointTeacher
 from rrp.sim.legged import LeggedSession, build_waypoint_contact
 from rrp.contracts.provenance import CONTACT_VERSION_DEFAULT, parse_source, physics_provenance
 from rrp.data.manifest import dataset_provenance, write_manifest
+from rrp.contracts.runs import parse_seed_spec
 
 
 class RecordingTracker:
@@ -115,11 +116,7 @@ def collect_episode(body: str, seed: int, sigma: float, tracker_kind="auto", max
     return arr, meta, morph
 
 
-def _seeds(spec):
-    if "-" in spec:
-        a, b = spec.split("-")
-        return list(range(int(a), int(b) + 1))
-    return [int(x) for x in spec.split(",")]
+_seeds = parse_seed_spec          # W4 dedup: one implementation in rrp.contracts.runs
 
 
 def main(argv=None):

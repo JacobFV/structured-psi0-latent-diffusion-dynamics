@@ -63,3 +63,63 @@ def test_python_dash_m_old_path_forwards():
     for old in mains:
         r = subprocess.run([sys.executable, "-m", old, "--help"], capture_output=True, text=True, env=env, timeout=120)
         assert r.returncode == 0 and "usage" in r.stdout.lower(), (old, r.stdout[-500:], r.stderr[-2000:])
+
+
+# ------------------------------------------------------------------ W4 deduplication: provably identical behaviour
+def _old_ladder_wilson(k, n, z=1.96):          # verbatim copy of the pre-W4 rrp.evaluation.ladder.wilson
+    import math
+    if n == 0:
+        return (0.0, 1.0)
+    p = k / n
+    d = 1 + z * z / n
+    c = (p + z * z / (2 * n)) / d
+    w = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
+    return (max(0.0, c - w), min(1.0, c + w))
+
+
+def test_ladder_wilson_is_bitwise_unchanged():
+    from rrp.evaluation.ladder import wilson
+    for n in range(0, 61):
+        for k in range(0, n + 1):
+            assert wilson(k, n) == _old_ladder_wilson(k, n)
+            assert wilson(k, n, 1.959964) == _old_ladder_wilson(k, n, 1.959964)
+    assert type(wilson(3, 10)) is tuple
+
+
+def test_seed_spec_single_implementation():
+    from rrp.contracts.runs import parse_seed_spec
+    import rrp.data.legged_collect as a, rrp.data.legged_latent_collect as b, rrp.evaluation.legged_latent_eval as c
+    assert a._seeds is b._seeds is c._seeds is parse_seed_spec
+    assert parse_seed_spec("3-6") == [3, 4, 5, 6] and parse_seed_spec("7") == [7] and parse_seed_spec("1,5") == [1, 5]
+
+
+def test_cached_featurizer_single_implementation():
+    from types import SimpleNamespace
+    import rrp.features.featurizer as F
+    from rrp.evaluation import ladder
+    assert ladder._featurizer is F.cached_featurizer
+    calls = []
+    orig = F.featurizer_for
+    F.featurizer_for = lambda s: calls.append(s) or object()
+    try:
+        s = SimpleNamespace()
+        f1 = F.cached_featurizer(s)
+        assert F.cached_featurizer(s) is f1 and s._rrp_featurizer is f1 and len(calls) == 1
+        s2 = SimpleNamespace(_rrp_featurizer="installed")
+        assert F.cached_featurizer(s2) == "installed" and len(calls) == 1
+    finally:
+        F.featurizer_for = orig
+
+
+def test_peer_sync_revision_record():
+    """scripts/peer_sync.sh push writes this JSON as .rrp_revision on the peer (read by W3 code_provenance)."""
+    import json
+    import shutil
+    if not shutil.which("git") or not (REPO / ".git").exists():
+        pytest.skip("not a git checkout")
+    r = subprocess.run(["bash", str(REPO / "scripts" / "peer_sync.sh"), "revision"], capture_output=True, text=True,
+                       timeout=60)
+    assert r.returncode == 0, r.stderr
+    d = json.loads(r.stdout)
+    head = subprocess.run(["git", "-C", str(REPO), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    assert d["git_sha"] == head and isinstance(d["dirty"], bool)

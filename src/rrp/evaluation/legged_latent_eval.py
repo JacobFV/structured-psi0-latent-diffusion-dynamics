@@ -37,6 +37,7 @@ from rrp.features.legged import (LeggedMorph, public_context, local_state, activ
 from rrp.controllers.bundles import load_rep, _dev
 from rrp.models.legged_latent import LeggedFlow, LeggedProbe
 from rrp.sim.legged import LeggedSession, build_waypoint_contact
+from rrp.contracts.runs import parse_seed_spec
 
 REALIZER_COMPAT = "legged-rz-osc-v1"     # base of the system-0 compatibility ID (osc-v1 phase input)
 
@@ -580,11 +581,7 @@ def save_video(frames, row, video_dir: Path, label: str):
     return name
 
 
-def _seeds(spec):
-    if "-" in spec:
-        a, b = spec.split("-")
-        return list(range(int(a), int(b) + 1))
-    return [int(x) for x in spec.split(",")]
+_seeds = parse_seed_spec          # W4 dedup: one implementation in rrp.contracts.runs
 
 
 def main(argv=None):
