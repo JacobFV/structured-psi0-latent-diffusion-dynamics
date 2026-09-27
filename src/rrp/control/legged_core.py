@@ -496,9 +496,15 @@ class LeggedEnv:
                 # lifting a foot optimal early in training (stander basin), so it was replaced.
                 clr = np.clip(b.foot_clearance(d) / b.swing_height, 0.0, 1.0)
                 swing = (~fc) & (self.air[i] < 0.6 * b.period)
-                r += cfg.clearance * float(np.sum(clr * swing))
+                if b.biped:
+                    r += cfg.clearance * float(np.sum(clr * swing))
+                elif swing.any():
+                    # gait_v2c (non-bipeds): mean over swinging feet, i.e. swing quality, not the number of feet in the air
+                    # (the sum rewarded lifting more legs: anymal_c kicked its shanks, hexapod6 held legs up)
+                    r += cfg.clearance * float(np.mean(clr[swing]))
             if cfg.slip:
-                r += cfg.slip * float(np.sum(slip_v))
+                # bipeds: sum over feet; gait_v2c non-bipeds: mean over feet in contact, so lifting legs does not reduce it
+                r += cfg.slip * (float(np.sum(slip_v)) if b.biped else (float(np.mean(slip_v[fc])) * 2.0 if fc.any() else 0.0))
             if v2:
                 cspd = float(np.linalg.norm(c[:2]))
                 r += cfg.power * pw / (self.mass * 9.81 * max(cspd, 0.25))
