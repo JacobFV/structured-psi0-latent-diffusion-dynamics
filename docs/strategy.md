@@ -127,5 +127,5 @@ Conflict rules:
   - Never touch other agents' leases, other users' processes, or other projects' files.
 
 
-| R1 | Arm nosem recipe ablation (z-noise 0; keep qd; both), seed 1 | arm agent | R0 | running (fairness check for D-095) |
+| R1 | Arm nosem recipe ablation (z-noise 0; keep qd; both), seed 1 | arm agent | R0 | completed (D-099): recipe does not explain nosem failure |
 | W10 | Ψ₀ / SIMPLE benchmark: probe → Ψ₀ baseline → Ψ₀ base models fine-tuned with our structure vs Ψ₀ direct expert | psi0 agent | — | running: step 0 probe (D-098) |
