@@ -1,164 +1,165 @@
 # structured-psi0-latent-diffusion-dynamics
 
-> Public research repo, shared openly. Formerly `relational-robot-policy` (renamed 2026-09-25). The Python package/CLI is still `rrp`, and the working checkout on the GB10 hosts is still `~/work/relational-robot-policy`.
+> Public research repo (github.com/JacobFV/structured-psi0-latent-diffusion-dynamics), shared openly. Formerly
+> `relational-robot-policy` (renamed 2026-09-25, D-030). The Python package and CLI are still `rrp`; the working
+> checkout on the GB10 hosts is still `~/work/relational-robot-policy`.
 
-Research system for **morphology-general robot control with a structured, semantic action latent**:
-a ψ₀-inspired stack where a planner ("system i") emits a continuous latent action packet `z` that carries the task's
-meaning (which object, which manipulator, what relation should change, relative geometry, contact frames,
-uncertainty), and a fast embodiment-specific controller ("system 0") realizes that same `z` online from the robot's
-own proprioception and touch sensing. Simulation is native MuJoCo; everything runs on two NVIDIA GB10 machines.
+Research system for **morphology-general robot control with a structured, semantic latent packet**: a ψ₀-inspired stack
+in which a planner ("system i") emits a continuous latent packet `z` that carries the task's meaning (which object, which
+manipulator, what relation should change, relative geometry, contact, uncertainty), and a fast embodiment-specific
+controller ("system 0") realizes that same `z` online from the robot's own proprioception and touch. Simulation is
+native MuJoCo on two NVIDIA GB10 machines.
 
-> **Status (2026-09-25):** research code, not a product. The corrected architecture (below) is on `main`.
-> The earlier direct-action policy is kept only as a baseline. **No learned policy is competent in closed loop yet, and
-> causal packet semantics are not shown.** See [`research/reports/evidence_matrix.md`](research/reports/evidence_matrix.md)
-> for what is and is not established, and [`STATUS.md`](STATUS.md) / [`research/decisions.md`](research/decisions.md)
-> for the running work and its history.
+> **Status (2026-09-26):** research code, not a product. On deployable routes (no teacher, oracle or BC at run time) the
+> latent route is competent on legged go2, hexapod6 and the t1 humanoid, and partly competent on arms (below plain BC).
+> Task-context edits reach behaviour through the generated packet (goal and binding on arms, goal and halt on legs).
+> Semantic supervision of the packet is essential on the arm and adds a halt channel on legs (D-089..D-092). All legged
+> results so far use contact model v1, whose trackers skate (D-093); they are being redone on contact v2.
+> What is and is not shown: [`research/reports/evidence_matrix.md`](research/reports/evidence_matrix.md).
+> Plan and workstreams: [`docs/strategy.md`](docs/strategy.md). Problem checklist for physically credible training:
+> [`docs/robot_training_considerations.md`](docs/robot_training_considerations.md). Running work: [`STATUS.md`](STATUS.md).
 
 ---
 
-## architecture in one picture
+## architecture
 
 ```text
-system ii (optional VLM: ψ₀ System-II / Qwen3-VL) + supplied task graph (events, roles, dependencies)
-        │  observations, task/event structure, morphology            ← public inputs only
+system ii (optional VLM) + supplied task graph (events, roles, dependencies)
+        │  public observations, task/event structure, morphology
         ▼
-system i   cached typed context (morphology · scene · task/events · interaction) + flow sampling
+system i   typed context (morphology · scene · task/events · interaction) → rectified-flow sampling of z
         │
         ▼
-LatentActionChunk  z[knots=4, assemblies=M, 64]     ← the SAME tensor is (a) supervised for semantics,
-        │                                              (b) transmitted, (c) consumed by system 0
+latent packet z[knots, assemblies, 64]   ← the SAME tensor is (a) supervised for semantics (probes),
+        │                                   (b) transmitted, (c) consumed by system 0
         ▼
-system 0   z + morphology + current joint state + touch/grip sensors + elapsed phase → joint targets, every 50 ms
+system 0   z + morphology + current joint state + touch/IMU + elapsed phase → native joint targets
         ▼
-joint-target tracker (500 Hz physics)  →  MuJoCo
+joint-target tracking in MuJoCo
 ```
 
-- **Semantics live on the packet.** `probe(received_packet, query, opaque_handle)` answers visible / looking_at /
-  focused_on / held_by / acting_on / relative position / desired change / manipulator subtask. The probe never sees
-  scene features or labels, only `z` and opaque handles.
-- **System 0 never sees the task.** No task graph, instruction, object estimates or planner hidden state reach it.
-  Task meaning arrives only through `z`; current sensor feedback arrives every tick.
-- **Four clocks:** system-i replan 0.4 s · latent knots 4 × 0.2 s · system-0 feedback 20 Hz · physics 500 Hz.
-- Design contract and audit: [`research/corrections/controller-facing-semantic-latent.md`](research/corrections/controller-facing-semantic-latent.md).
-  Original assignment: [`docs/handoff/`](docs/handoff/).
+- **Semantics live on the packet.** A probe reads `z` with opaque handles only (never scene features or labels). Evidence
+  of meaning comes from probes and causal edits of the received packet.
+- **System 0 never sees the task.** Task meaning arrives only through `z`; sensor feedback arrives every tick.
+- **Clocks differ by body family:**
+
+  | family | system-i replan | system 0 | physics |
+  |---|---|---|---|
+  | arm (single, dual) | 0.4 s, 4 knots × 0.2 s | 20 Hz (50 ms) | 500 Hz |
+  | legged / humanoid | 0.4 s (every 20 ticks), 0.8 s packet horizon | 50 Hz (20 ms) | body-specific substeps |
+
+- Semantic vs no-semantic ("nosem") variants are capacity-matched: nosem sets the semantic loss weights to 0. The
+  bounded-NLL fix (`latent.probe_lv_min: -4`, D-085) is part of the current sem recipe ("semfix"/"fixsem").
+- Design contract: [`research/corrections/controller-facing-semantic-latent.md`](research/corrections/controller-facing-semantic-latent.md).
+  Original assignment (historical): [`docs/handoff/`](docs/handoff/).
+
+## pipelines
+
+Three pipelines currently exist side by side (unifying them is W4/W5 in `docs/strategy.md`). Lineage codes in config and
+run names (`sfjf`, `nsjf2`, `fixsem`, `gendag3_noqd`, …) are decoded in [`research/naming.md`](research/naming.md).
+
+- **Arm ladder** (pick_place, 13 source bodies). Scripted teacher data → pack → Stage A representation (encoder E,
+  system 0 R, probes P) → system-i flow → system-0 refits with DAgger labelled by a stateless learned BC expert,
+  including states visited with generated packets (`rz_*`) → generator DAgger for the flow (`gdag*`). Evaluation
+  routes on matched seeds: R0 teacher, R1 oracle packet E(expert chunk) (DIAGNOSTIC), R2 generated packet (deployable),
+  plus a BC positive control and task-context edit suites. Driver: `scripts/arm_lineage_chain.sh`.
+- **Legged** (go2, hexapod6, t1; others blocked at the positive control). PPO body trackers → tick-level teacher data →
+  Stage A → flow → stateless-BC-expert DAgger and system-0 refit → R1/R2 ladder → context and z edit suites.
+- **Dual arm** (support_insert, handover; M=2 assemblies): scripted teachers, paired arm-assignment data, pack and
+  training smoke only; learned dual-arm control is not shown (D-043).
+
+## entry points
+
+`rrp` = `PYTHONPATH=src .venv/bin/python -m rrp.cli`; wrap anything heavy in `rrp ops run` (see resources).
+
+| goal | command |
+|---|---|
+| generate / pack arm data | `rrp data generate --config configs/data/…`; `rrp data pack --config … --out artifacts/packed/<name>` |
+| arm Stage A / flow / probes | `rrp latent train-representation --config …`; `rrp latent train-flow --config …`; `rrp latent fit-probes …` |
+| arm system-0 refit | `python scripts/ladder_refit.py configs/ladder/<…>/rz_<…>.json` |
+| arm ladder evaluation (R0/R1/R2) | `python scripts/ladder.py --route {teacher,oracle,generated} --robot panda_pg2 --n 30 --out …` |
+| arm task-context edits | `rrp latent semantic-edits --route {teacher,oracle,generated,bc} …` |
+| arm lineage end to end | `LIN=<lineage> bash scripts/arm_lineage_chain.sh` (peer) |
+| legged trackers (PPO) | `python -m rrp.control.tracker_training …` |
+| legged data / Stage A / flow | `python -m rrp.data.legged_latent_collect …`; `python -m rrp.learning.legged_latent_train …` |
+| legged BC control / DAgger | `python -m rrp.learning.legged_bc …`; `python -m rrp.learning.legged_dagger {collect,gate,refit} …` |
+| legged ladder / edits | `bash scripts/legged_ladder.sh BODY TAG PAR ROUTES …`; `python -m rrp.evaluation.legged_latent_eval …` |
+| dual arm | `rrp latent {pair-index-dual,pack-dual,evaluate-dual,teacher-ref-dual} …` |
+| packet-policy GRPO | `rrp latent grpo …` (latent path; on hold until a competent base, D-042) |
+| latency | `rrp latent latency --checkpoint … --out …` |
+| labelled video | `scripts/render_episode.py`, `scripts/render_legged_episode.py`, `scripts/render_dual_episode.py` |
+| demo page | `scripts/demo/refresh.sh` (builds `docs/demo/` from raw results) |
+| workbench UI (loopback) | `rrp workbench --port 8765` |
+
+The old direct-action path (`rrp train policy`, `rrp train codec`, `rrp adapt grpo|expo`) is kept for baselines only.
 
 ## quickstart
 
-Requirements: Linux aarch64 or x86_64, Python 3.12, [`uv`](https://github.com/astral-sh/uv), systemd user session
-(the resource broker uses user cgroups), Node 20+ only for the UI.
+Requirements: Linux aarch64 or x86_64, Python 3.12, [`uv`](https://github.com/astral-sh/uv), a systemd user session
+(the broker uses user cgroups), Node 20+ only for the UI.
 
 ```bash
 git clone https://github.com/JacobFV/structured-psi0-latent-diffusion-dynamics.git && cd structured-psi0-latent-diffusion-dynamics
 uv venv --python 3.12 .venv
 uv pip install --python .venv/bin/python -e '.[sim,service,ml,dev]'   # CPU torch is fine for tests
+.venv/bin/python -m pytest tests/unit -q                               # ~10 s; Menagerie/data tests skip if absent
 scripts/fetch_menagerie.sh                                             # pinned third-party robot assets (~1.7 GB)
 
 # one-time: measure free capacity and create the enforced project slice + watchdog
 PYTHONPATH=src python3 -m rrp.cli ops init --role host
 PYTHONPATH=src python3 -m rrp.cli ops start-watchdog
-
-# fast checks (CPU, ~1 min)
-.venv/bin/python -m pytest tests/unit -q
-```
-
-Everything non-trivial runs **inside a broker lease** (a systemd unit with CPU/memory caps and heartbeats):
-
-```bash
 PYTHONPATH=src python3 -m rrp.cli ops run --cpu 2 --mem 4G --label my_job -- <command>
-PYTHONPATH=src python3 -m rrp.cli ops status
 PYTHONPATH=src python3 -m rrp.cli ops stop --owned-only --lease <lease_id>   # never stop other people's jobs
 ```
 
-## common tasks
-
-| goal | command |
-|---|---|
-| validate a robot asset / attachment | `rrp assets validate --robot panda_tf3` |
-| validate a task graph | `rrp task validate tasks/support_and_insert.json` |
-| generate teacher demonstrations | `rrp data generate --config configs/data/pick_place_primary_v3dart.json` |
-| pack a dataset for training (memory-mapped) | `rrp data pack --config configs/latent/rep-latent_sem_v1.json --out artifacts/packed/<name>` |
-| train latent representation (encoder + system 0 + probes) | `rrp latent train-representation --config configs/latent/rep-latent_sem_v1.json` |
-| train system-i flow over the latent | `rrp latent train-flow --config configs/latent/flow_latent_sem_v1.json` |
-| measurement probes / metadata-only control | `rrp latent fit-probes --representation … --packed-dir … --out … [--metadata-only]` |
-| closed-loop evaluation (packet probes scored online) | `rrp latent evaluate --checkpoint … --robots panda_pg2 --episodes 20 --out …` |
-| held-packet disturbance test | `rrp latent disturbance --checkpoint … --robots panda_pg2 --out …` |
-| latency (NFE sweep, system-0 deadlines) | `rrp latent latency --checkpoint … --out …` |
-| campaign cell (sealed protocol) | `rrp latent cell --method latent_sem --seed 1701 --base-flow-config configs/latent/flow_latent_sem_v1.json` |
-| render a labelled demo video | `scripts/render_episode.py --robot panda_pg2 --seeds 3000001 --source learned --checkpoint …` |
-| interactive workbench (loopback only) | `rrp workbench --port 8765` then open `http://127.0.0.1:8765/?token=$(cat ops/workbench-token)` |
-
-(`rrp` = `PYTHONPATH=src .venv/bin/python -m rrp.cli`; wrap heavy commands in `ops run`.)
-
-Baselines (old path, kept for comparison only): `rrp train policy --config configs/model/policy-small-structured.json`
-(direct actions + hidden-state auxiliaries) and `rrp train codec --config configs/model/codec-small.json`
-(action-only codec). `rrp adapt grpo|expo` holds the verified flow-SDE GRPO / EXPO-FT-inspired code (currently wired
-to the old action path; being re-targeted to latent packets).
+Datasets, packed data and checkpoints are not in git; they live on the peer store and a host mirror (`~/work/rrp-data`).
 
 ## repository map
 
 ```text
 src/rrp/
-  contracts/   typed schemas: RobotSpec, PolicyObservation vs PrivilegedTruth, TaskDefinition,
-               ActionChunk (native, old path), LatentActionChunk (the system-i → system-0 packet)
-  ops/         resource broker, cgroup enforcement, watchdog, peer discovery (see "resources")
-  morphology/  procedural arms/grippers/legged bodies, MuJoCo Menagerie importers, module surgery + validation
-  sim/         MuJoCo sessions, sensors + object tracker, privileged truth, snapshots, dual-arm + legged scenes
-  tasks/       event-hypergraph compiler, runtime guards, receipts/provenance, versioned graph edits
-  control/     joint-target controller, IK, scripted teachers, legged trackers, ψ₀ contracts,
-               latent_realizer.py (system 0)
-  data/        featurizer (the only definition of what a policy may see), collection, generation, packing
-  model/       context banks + flow policy, semantic_latent.py (target encoder), latent_probes.py,
-               codec.py (baseline), attention with typed structural bias
-  learning/    latent_train.py (representation, flow, SFT, probes), behavior.py (baselines), GRPO/EXPO
-  policy/      latent_runner.py (system i), runner.py (old native path), workbench policy registry
-  evaluation/  closed-loop evaluators, latency, statistics, identifiability audit, campaigns, release gate
-  service/     FastAPI + WebSocket workbench backend
-ui/            React + TypeScript workbench (three.js scene, React Flow task graph, Packet inspector)
-tasks/         supplied task graphs (pick_place, reach_pose, support_and_insert, handover, waypoint_contact)
-configs/       data / model / latent / eval / adapt / vlm configs; resources.local.json (machine-specific)
-research/      decisions.md (append-only decision log), corrections/, splits/, methods/, reports/, registry.jsonl
-artifacts/     receipts, assets ledgers, videos (large datasets/checkpoints are not committed)
-docs/handoff/  the original assignment package (preserved verbatim)
-tests/         unit/, integration/, browser/ (Playwright), gpu/
+  contracts/   typed schemas: RobotSpec, PolicyObservation vs PrivilegedTruth, TaskDefinition, LatentActionChunk
+  ops/         resource broker, cgroup enforcement, watchdog, peer discovery
+  morphology/  procedural arms/grippers/legged bodies, Menagerie importers, module surgery, contact model versions
+  sim/         MuJoCo sessions (arm, dual, legged), sensors, privileged truth, snapshots
+  tasks/       event-hypergraph compiler, runtime guards, receipts
+  control/     IK, joint-target control, scripted teachers, legged trackers (PPO), latent_realizer (arm system 0)
+  data/        featurizer (the only definition of what a policy may see), collection, packing (arm, dual, legged)
+  model/       context banks + flow, semantic_latent (encoder), latent_probes, legged_latent, codec (baseline)
+  learning/    latent_train (arm Stage A/flow/refit), legged_* (legged training, BC, DAgger), GRPO/EXPO
+  evaluation/  ladder, closed-loop evals, semantic edits, latency, statistics, campaigns
+  policy/, service/   system-i runner, workbench backend
+ui/            React + TypeScript workbench
+configs/       data / latent / ladder / legged / eval configs
+scripts/       chain drivers, peer transport (peer_run/sync/bootstrap), renderers, demo builder
+research/      decisions.md (append-only), naming.md, tracks/, reports/ (evidence_matrix.md), registry.jsonl
+artifacts/     small raw results (JSON/JSONL), receipts, labelled videos
+docs/          strategy.md, robot_training_considerations.md, repo_structure_audit.md, demo/, handoff/
+tests/         unit/, integration/, browser/, gpu/
 ```
 
-## data and information boundaries
+## rules that shape the results
 
-- **Public vs privileged.** Policies see only `PolicyObservation` (proprioception, declared sensors, tracked object
-  estimates with uncertainty, the supplied task graph and its runtime status). Simulator truth goes on a separate
-  `PrivilegedTruth` bus and is used only as training labels, rewards and evaluation.
-- **Teachers are labelled.** Scripted teachers use privileged state and are always marked `scripted_teacher`; they
-  produce demonstrations, never "learned" results.
-- **Splits are frozen before results.** Held-out arm family (xArm7), held-out attachment combination (Panda +
-  three-finger); see `research/splits/` and the sealed protocol `configs/eval/latent_slice1.json`.
-
-## resources and machines
-
-- **Host** (shared): at most 80% of currently free CPU and memory, a fixed 300 GB shared-disk reserve, GPU authorized
-  (user decisions D-027, D-033, D-036). Enforced by the broker plus a watchdog that sheds our own jobs under external
-  pressure; `rrp ops run --disk` reserves disk for downloads/transfers up front.
-- **Peer** (`gb10-direct`, dedicated): unrestricted per user instruction (D-026), with a whole-project 100 GiB
-  memory ceiling to protect the OS. The code/venv workspace is RAM-backed (`/dev/shm/rrp-brandonin`); datasets and
-  packs live on `~/rrp-peer-data`. Rebuild after a reboot with `scripts/peer_bootstrap.sh`; sync code with
-  `scripts/peer_sync.sh push`. Parallel agents each use their own peer code dir (`RRP_PEER_REPO`) with one shared
-  broker and artifact store (`scripts/peer_run.sh`).
-- No cloud spend, no public services (loopback only), no physical robots.
+- **Public vs privileged.** Policies see only `PolicyObservation`. Simulator truth is used only as training labels,
+  rewards and evaluation.
+- **Labels.** scripted_teacher (privileged) / oracle (teacher- or expert-encoded packet: diagnostic, not deployable) /
+  bc / learned:<ckpt>. Every number comes from a saved raw output; failures are kept.
+- **Splits are sealed before results** (`research/splits/`, `configs/eval/latent_slice1.json`).
+- **Resources.** Host: ≤80% of currently free CPU and memory, host GPU allowed, ≥100 GB disk kept free; peer: all of it
+  (D-026, D-033, D-086). Details and the peer workflow: [`AGENTS.md`](AGENTS.md). No cloud spend, no public listeners,
+  no physical robots.
 
 ## development conventions
 
-- **Branch:** active work is on `correction/controller-facing-latent`; `main` holds the pre-correction line (tag
-  `pre-correction-272c689`). Commit small, push often (private remote).
-- **Testing:** research stage, so keep it light (see `AGENTS.md`). Test math that defines losses/likelihoods, information
-  leakage, resource safety and split leakage. Otherwise prefer a short real run over a new unit suite.
-- **Honesty rules:** every reported number comes from a saved raw run; failed experiments are preserved; interventions
-  and teacher/privileged sources are labelled everywhere (UI included).
-- **Decisions:** anything that changes a plan, threshold, gate or interpretation goes into `research/decisions.md`
-  with evidence.
+- **Branch:** `main` is the integration branch; parallel agents work in `track/<track>` worktrees and rebase onto main
+  (`research/tracks/BRIEF.md`). Commit small, push often.
+- **Testing:** light at this research stage (policy in [`AGENTS.md`](AGENTS.md)): test loss/likelihood math, leakage,
+  resource safety and split leakage; otherwise prefer a short real run.
+- **Decisions:** anything that changes a plan, gate or interpretation goes into `research/decisions.md` with evidence.
 
 ## where to look next
 
-- current state and resume steps → [`STATUS.md`](STATUS.md)
-- why things are the way they are → [`research/decisions.md`](research/decisions.md)
-- the correction driving current work → [`research/corrections/controller-facing-semantic-latent.md`](research/corrections/controller-facing-semantic-latent.md)
-- agent operating rules → [`AGENTS.md`](AGENTS.md)
-- original assignment and acceptance criteria → [`docs/handoff/`](docs/handoff/)
+- current state and workstreams → [`STATUS.md`](STATUS.md), [`docs/strategy.md`](docs/strategy.md)
+- what is shown → [`research/reports/evidence_matrix.md`](research/reports/evidence_matrix.md)
+- why → [`research/decisions.md`](research/decisions.md); names → [`research/naming.md`](research/naming.md)
+- agent rules → [`AGENTS.md`](AGENTS.md)
