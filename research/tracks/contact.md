@@ -148,6 +148,29 @@ Cause: the sigma 0.1 yaw kernel. Ignoring a 0.1-0.2 rad/s curriculum command cos
 Fix: separate `sigma_ang` (0.02: ignoring 0.2 rad/s now costs 1.7). Attempt b: peer dir wt/contact5, t1 lease 1790498747_1b719b,
 h1 lease 1790498748_824e00, same outputs, `--reward-set clearance_floor=-2,yaw_slip=-0.5,turn_step=1,sigma_ang=0.02`.
 
+Attempt c (after a and b): a deterministic check of the attempt-b checkpoint (`turndiag.py`) showed the policy stands with both feet down on
+a pure yaw command (turn ratio 0.01 at 0.1/0.2/0.36 rad/s). The training-window turn ratio came from exploration noise and
+carry-over from walking. It is an exploration problem, and the sharp exponential kernel gives almost no gradient far from the target. Added
+permanent `turn_lin` (dense yaw progress during pure turns: x clip(w sign(c)/|c|, -0.5, 1.2)). Attempt c:
+`--reward-set clearance_floor=-2,yaw_slip=-2,turn_step=2,turn_lin=1.5,sigma_ang=0.03`, curriculum start 0.5, init std 0.35. Peer dir
+wt/contact6, t1 lease 1790499833_d772c7, h1 lease 1790499833_bfbb2f, `artifacts/runs/contact_{t1,h1}_turn` (a/b kept as `_turn_a`/`_turn_b`).
+
+### (3) actuator realism: implemented; baseline measured; fine-tunes running
+`src/rrp/physics/actuator.py` (actuator_v2; test `tests/unit/test_actuator.py`): armature max(model, 4e-4 x peak torque) x U(0.8, 1.2);
+dof damping and frictionloss = model + U(0, 1%) of peak torque; linear torque-speed derating from 0.5 vmax to vmax (vmax ASSUMED:
+humanoid 20, go2 30, anymal_c 12, procedural 8 rad/s; not in the MJCFs), enforced exactly per substep on the affine PD; 0-30 ms latency
+per episode through a cross-tick pending-target queue. Train `--actuator v2` (randomised); validate `--actuator v2 --latency-ms L` (nominal).
+Baseline (installed trackers, no fine-tune; `val/*_v2trk-act2-lat{0,15,30}_physv2.json`):
+| body | no-fall 0 / 15 / 30 ms | fwd ratio 0 / 15 / 30 | slip ratio 0 / 15 / 30 | contact gate 0 / 15 / 30 |
+|---|---|---|---|---|
+| t1 | 1.00 / 1.00 / 1.00 | 0.80 / 0.78 / 0.74 | 0.08 / 0.08 / 0.09 | F / F / F (turn) |
+| h1 | 0.80 / 1.00 / **0.24** | 0.84 / 0.57 / 0.00 | 0.16 / 0.07 / 0.24 | F / F / F |
+| g1 | 1.00 / 1.00 / **0.40** | 0.99 / 0.96 / 0.00 | 0.07 / 0.11 / 0.16 | F / F / F |
+| go2 | 1.00 / 1.00 / 1.00 | 0.98 / 0.90 / 0.85 | 0.02 / 0.02 / 0.02 | T / T / T |
+| anymal_c | 1.00 / 1.00 / 1.00 | 1.00 / 1.00 / 0.95 | 0.03 / 0.04 / 0.03 | T / T / T |
+Short actuator_v2 fine-tunes (600 iters, alpha fixed at 1, same reward overrides): go2 lease 1790500149_3ce1f7, anymal_c lease 1790500149_6c670d
+(`artifacts/runs/contact_{go2,anymal_c}_act2`). h1/g1 (the fragile ones) and t1 come after their turn runs.
+
 ## runs
 ### gait_v2a: failed_hypothesis (stopped at iter 500-1400)
 t1/h1 (host) and g1/go2 (peer) with a clearance PENALTY at touchdown ((target - apex)/target)^2 x -2. After 1200-1400 iters
