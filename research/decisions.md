@@ -606,3 +606,14 @@ Gates adopted (W6 proposal, lead edits):
 - Arm teacher/datasets: phase-switch velocity step ≤ 0.5 rad/s; jerk RMS ≤ 2× the v2 teacher; joint-limit margin ≥ 0.02. Penetration ≤ 3 mm under grasp_v2 (tightened from the proposed 10 mm, since grasp_v2 achieves < 1 mm), applied to grasp_v2 data and policies only; grasp_v1 results are labelled, not gated.
 - Learned policies: chunk-boundary velocity step reported, flagged > 1.5 rad/s.
 The gates are enforced for new trackers and datasets from now on (W1, W7, W8 regeneration). Enforcement code is a W6 follow-up.
+
+## D-113 2026-09-27 W8 go2 on contact v2: the context-halt effect replicates more strongly; t1 dataset trained under a recorded exception to the D-112 slip gate
+W8 (research/tracks/legged8.md; `research/tracks/legged8/legged8_compare_go2.{md,json}`, main 30f8416). go2 clearance-floor tracker, contact_v2, sourced limits (go2 unchanged under sourced_v1), semfix vs nosem × training seeds 0/1/2, D-090 protocol.
+- Context HALT Δforward pooled: semfix −0.29 m [−0.34, −0.24] vs nosem +0.37 m [+0.32, +0.42]. Every seed ordered (exact one-sided p = 0.05); difference −0.66 m. For comparison, go2 on contact v1 (D-090) gave −0.13 vs +0.46.
+- R2 success 27–30/30 per model (3 falls semfix s2 snap; 2 falls nosem s0 final). Teacher 30/30, BC 30/30.
+- Goal steering semfix +0.43 vs nosem +0.58 m (not ordered; anymal_c's 2× semfix advantage does not repeat). z halt, turn and goal-readout handles are stronger for semfix on every seed.
+- Three go2 nodes resumed inexactly (pre-CUDA-RNG-fix checkpoints: semfix flow s0 from step 1500, semfix Stage A s1/s2 from step 5500). This is flagged in the table.
+- D-112 dataset gates (replayed collections, arrays verified identical): anymal_c slip < 0.15 on 100% of episodes (median 0.058); go2 100% (0.026). Both pass.
+t1 (w8d tracker, sourced limits): collection has 0 falls and teacher 30/30, but slip < 0.15 on only 86.2% of episodes (gate 95%; median 0.131; by DART noise level 140/133/132/112 of 150).
+Decision: EXCEPTION. Train t1 with the gate failure attached to every t1 result. The gate targets skating (old t1 data: slip 0.86), and this data is at the margin with no falls; waiting would block on a tracker nobody currently owns. Label: "t1 dataset fails D-112 slip gate (86.2% < 95%), tracker w8d fails lab forward 0.72".
+Across contact_v2 bodies so far (anymal_c D-105, go2 here): the semantic halt effect replicates on 2/2 bodies × 3/3 seeds.
