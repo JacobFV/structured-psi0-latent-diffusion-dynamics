@@ -67,6 +67,35 @@ def physics_env(ctx: StageContext, **extra) -> dict:
     return ctx.env(**({"RRP_CONTACT_MODEL": cv} if cv else {}), **extra)
 
 
+def _ckpt_contact(path: Path, depth: int = 0) -> str | None:
+    """Training-data contact version recorded in a legged checkpoint's `_provenance.physics`; a flow checkpoint
+    (no data of its own) inherits it from the representation named in its cfg. None = not recorded (legacy)."""
+    import torch
+    st = torch.load(str(path), map_location="cpu", weights_only=False)
+    ph = (st.get("_provenance") or {}).get("physics") or {}
+    if ph.get("contact_version"):
+        return ph["contact_version"]
+    rep = (st.get("cfg") or {}).get("representation")
+    if rep and depth < 2 and Path(rep).exists():
+        return _ckpt_contact(Path(rep), depth + 1)
+    return None
+
+
+def check_checkpoints_contact(ctx: StageContext, keys=("representation", "flow", "bc", "realizer")) -> dict:
+    """Refuse to evaluate a checkpoint trained on data of another contact version (unrecorded = contact_v1)."""
+    want = ctx.rc.flags.contact_version
+    seen = {}
+    for k in keys:
+        pth = ctx.inp(k, required=False)
+        if not pth:
+            continue
+        cv = _ckpt_contact(ctx.root / pth) or "contact_v1"
+        seen[k] = cv
+        if want and cv != want:
+            raise StageError(f"{k} {pth} was trained on {cv} data; flags.contact_version is {want!r}")
+    return seen
+
+
 def check_rows_contact(ctx: StageContext, rows: list[dict], where: str) -> dict:
     """Every evaluation row must come from a scene built with flags.contact_version, and every checkpoint that
     records its training-data physics must have been trained on that version. Returns the versions seen."""
@@ -239,6 +268,7 @@ def _ladder(ctx: StageContext, default_route: str) -> dict:
     o = ctx.opts
     body, tag, par = o["body"], o["tag"], int(o.get("workers", 1))
     route = o.get("route", default_route)
+    ck = check_checkpoints_contact(ctx)
     a, b = _seed_range(o.get("seeds", "10000-10029"))
     n = (b - a + 1 + par - 1) // par
     out = ctx.out / body
@@ -258,7 +288,7 @@ def _ladder(ctx: StageContext, default_route: str) -> dict:
     cv = check_rows_contact(ctx, [json.loads(x) for x in rows.read_text().splitlines() if x.strip()], str(rows))
     ctx.run(["scripts/legged_ladder_summary.py", str(rows)])
     summ = json.loads(rows.with_suffix(".summary.json").read_text())
-    summ.update(cv)
+    summ.update(cv, checkpoint_contact=ck)
     if summ["n"] != b - a + 1:
         raise StageError(f"{rows}: {summ['n']} rows, expected {b - a + 1}")
     rel = str(Path(ctx.rc.out) / body / rows.name)
@@ -293,6 +323,7 @@ def edits(ctx: StageContext) -> dict:
     """Causal packet edits with irrelevant-edit controls (scripts/legged_edit_suite.sh) + paired effects."""
     o = ctx.opts
     body, route = o["body"], o.get("route", "r2")
+    ck = check_checkpoints_contact(ctx)
     eds = o.get("edits") or ["none", "probe_yaw:0.6", "probe_yaw:-0.6", "probe_goal_mirror", "probe_halt", "contact:0:1",
                              "contact:0:0", "rand_norm:1", "rand_norm:2", "rand_norm:4", "rand_norm:8", "rand_norm:12", "zero"]
     out = ctx.out / o.get("suite", "edits")
@@ -311,5 +342,5 @@ def edits(ctx: StageContext) -> dict:
     ctx.run(["scripts/legged_edit_effects.py", str(out)])
     if o.get("mirror_effect"):         # scripts/legged_fixrep_eval.sh: paired effect toward the mirrored goal side
         ctx.run(["scripts/legged_mirror_effect.py", str(out), *o["mirror_effect"]])
-    return dict(outputs={"suite": str(Path(ctx.rc.out) / out.name)}, metrics=dict(edits=eds, contact_version=ctx.rc.flags.contact_version),
+    return dict(outputs={"suite": str(Path(ctx.rc.out) / out.name)}, metrics=dict(edits=eds, contact_version=ctx.rc.flags.contact_version, checkpoint_contact=ck),
                 source_detail=ctx.inp("flow", required=False) or "")

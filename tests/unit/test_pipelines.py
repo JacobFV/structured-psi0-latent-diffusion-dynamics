@@ -156,3 +156,27 @@ def test_legged_contact_v2_refuses_unversioned_data_and_mismatched_rows(tmp_path
     with pytest.raises(StageError, match="trained on contact_v1"):
         check_rows_contact(ctx, [dict(ok, checkpoint_provenance={"flow": {"physics": {"contact_version": "contact_v1"}}})], "w")
     assert __import__("rrp.pipelines.legged", fromlist=["physics_env"]).physics_env(ctx)["RRP_CONTACT_MODEL"] == "contact_v2"
+
+
+def test_legged_eval_refuses_checkpoint_trained_on_other_contact(tmp_path):
+    import torch
+    from rrp.pipelines.legged import check_checkpoints_contact
+    from rrp.pipelines.base import StageContext
+    d = tmp_path / "artifacts/runs/x"
+    d.mkdir(parents=True)
+    torch.save({"_provenance": {"physics": {"contact_version": "contact_v2"}}, "cfg": {}}, d / "rep2.pt")
+    torch.save({"_provenance": {"physics": None}, "cfg": {"representation": str(d / "rep2.pt")}}, d / "flow2.pt")
+    torch.save({"cfg": {}}, d / "legacy.pt")
+
+    def ctx(flow, cv="contact_v2"):
+        rc = RunConfig.model_validate(dict(
+            schema_version="runconfig-1", family="legged", stage="eval_r2", variant="semfix", seed=1, lineage="l",
+            track="t", inputs={"flow": f"runs/x:{flow}"},
+            flags=dict(zero_prev_action=None, realizer_anchor=None, realizer_drop_qd=None, probe_lv_min=None,
+                       qd_dropout=None, contact_version=cv), options={"body": "anymal_c"}))
+        return StageContext(rc=rc, index=RunIndex(), root=tmp_path)
+    assert check_checkpoints_contact(ctx("flow2.pt")) == {"flow": "contact_v2"}     # inherited from its rep
+    with pytest.raises(StageError, match="trained on contact_v1"):
+        check_checkpoints_contact(ctx("legacy.pt"))
+    with pytest.raises(StageError, match="trained on contact_v2"):
+        check_checkpoints_contact(ctx("flow2.pt", "contact_v1"))

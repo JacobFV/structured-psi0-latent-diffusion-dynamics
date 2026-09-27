@@ -1,0 +1,63 @@
+# track legged8 (W8): legged semantic-supervision study regenerated on contact v2
+
+Owner: W8 legged agent. Worktree `~/work/rrp-wt/legged8`, branch `track/legged8`, peer code dir
+`/dev/shm/rrp-brandonin/wt/legged8` (RRP_PEER_REPO). Started 2026-09-27 ~00:55.
+
+Question: do the D-088/D-090/D-092 legged results (fixed sem = nosem on success and goal steering; a task-context
+`halt` that slows only the semantic packet) hold when the data, trackers and evaluation physics are contact_v2 (D-093,
+D-101)? Wave 1 = anymal_c (the only body whose contact_v2 tracker passes the full contact gate). go2 joins after the
+contact agent's swing-floor fix, t1 after its turn-in-place fix (lead decides).
+
+Sources (labels in every row/manifest): commands = `scripted_teacher` (privileged waypoint teacher); gait =
+`learned_tracker:anymal_c:iter2499:contact_v2` (sha256 2a16532bbd07f7ab..., installed from the contact worktree into
+`artifacts/trackers/anymal_c/contact_v2/` locally and in the shared peer store); our models = `learned:<ckpt>`; BC
+positive control = `bc:<ckpt>`.
+
+## how it runs
+Everything goes through `rrp run-dag dags/legged_v2_anymal.yaml` (61 nodes; derived from dags/legged_fixrep.yaml):
+- global nodes (planned once): `collect` (anymal_c seeds 0-599, shards of 100, DART sigmas 0/0.1/0.2/0.3, held-out =
+  seed % 20 == 19: the go2 legged_latent_v1 counts/splits), `bc` (recipe of configs/legged_bc/bc_go2_v1.json, seed 0),
+  `teacher` and `bcr2` (reference R2 evals, dev seeds 10000-10029);
+- matrix variant {semfix (probe_lv_min -4), nosem, sem (original, optional)} x training seed {0, 1, 2}: rep ->
+  [nosem probe] -> flow -> R2 snap_s4000 + final -> z-edit suite + task-context suite (dev 10000-10019, t_edit 2 s,
+  window 2-5 s), exactly the D-090 recipe and suites.
+- caps: <= 2 GPU nodes (defaults.max_parallel_gpu), summed declared CPU <= 16 (one 10-CPU eval + two 3-CPU GPU jobs).
+- table: `python scripts/legged8_compare.py anymal_c` -> `artifacts/runs/legged8/legged8_compare_anymal_c.{md,json}`.
+
+## rrp changes (small, tested; the legged pipeline's first real use)
+1. `rrp.orchestration.dag`: `scope: global` nodes (planned once outside the matrix; point nodes reference them with
+   "@collect"; global nodes cannot use axis values) — the fixrep DAG had no way to share a dataset/BC/teacher across
+   points. Executor caps `max_parallel_gpu` / `max_cpu` (defaults or CLI `--max-parallel-gpu/--max-cpu`).
+   Tests: test_global_scope_nodes_are_planned_once_and_shared, test_gpu_and_cpu_caps.
+2. `rrp.pipelines.legged`:
+   - GAP FOUND: flags.contact_version was recorded only; collect/evals/edits/DAgger subprocesses built their scenes from
+     $RRP_CONTACT_MODEL (default v1), so a "contact_v2" DAG would have silently simulated contact_v1. Now every
+     simulating subprocess gets RRP_CONTACT_MODEL = flags.contact_version (`physics_env`).
+   - collect: sharded + parallel (`shard_size`, `workers`), verifies every shard manifest records the declared contact
+     version and the episode count; output `data` root; metrics (success/fell, tracker versions).
+   - eval_r*/edits: every row must report a scene built with the declared version and checkpoints whose recorded
+     training-data physics match (`check_rows_contact`); eval rows now carry `contact_version` (legged_latent_eval).
+   - check_contact_version: data with no recorded version (legacy = contact_v1) is refused for any other declared version.
+   - new stage `train_bc` (legged BC positive control; moved from LEGACY_ONLY_STAGES to PIPELINE_STAGES).
+   Test: test_legged_contact_v2_refuses_unversioned_data_and_mismatched_rows. Full suite on the peer: 323 passed, 2 skipped.
+
+## findings so far
+- Probe collection (40 episodes each, seeds 0-39, peer): v1 tracker in v1 physics 38/40 "success"; v2 tracker in v2
+  physics 28/40, no falls in either. All v2 "failures" have the task runtime (public estimates) succeeded; the
+  privileged end-of-episode check fails because the DART noise (sigma > 0) keeps making the v2 anymal_c lift a foot
+  momentarily during the 1 s post-halt stand (truth stance_fraction 0.75 < 0.99 at the last tick; noise-free replays of
+  those seeds stand with all four feet down). Training does not filter on status, so this changes no data; it is
+  recorded as a property of the v2 gait under DART noise. The teacher reference (sigma 0) measures the clean rate.
+
+## state
+| step | state | evidence |
+|---|---|---|
+| worktree, tracker install, rrp changes + tests | verified | commit 7f39e66; peer pytest lease 1790496346_ab6066 rc=0 |
+| gate 0 smoke (`dags/legged_v2_anymal_smoke.yaml`: 20 episodes, 300 steps, 2 eval episodes) | running | `artifacts/runs/legged8/smoke_rundag.log`, ledger `artifacts/runs/legged8/_dags/legged_v2_anymal_smoke/` |
+| full DAG | planned | |
+
+## resume
+`cd ~/work/rrp-wt/legged8; export RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/legged8`; never `scripts/peer_sync.sh push`
+while DAG jobs run from that dir. Relaunch the coordinator (it resumes from the ledger and re-adopts running leases):
+`PYTHONPATH=src ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/legged_v2_anymal.yaml [--point variant=semfix --point variant=nosem]`.
+Outputs live in the peer store `/dev/shm/rrp-brandonin/repo/artifacts/runs/legged8/`.
