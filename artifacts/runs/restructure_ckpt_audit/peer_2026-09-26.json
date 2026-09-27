@@ -1,0 +1,5618 @@
+{
+ "n": 508,
+ "n_errors": 0,
+ "kinds": {
+  "arm_policy": 27,
+  "arm_checkpoint": 63,
+  "resume_state": 53,
+  "arm_representation": 90,
+  "other": 18,
+  "tracker": 16,
+  "arm_latent_flow": 96,
+  "legged_bc": 4,
+  "legged_flow": 68,
+  "legged_representation": 61,
+  "legged_refit_realizer": 12
+ },
+ "rrp_pickled_classes": [],
+ "rows": [
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/baselines_bc_ckpts/codec1701_u13152.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.31
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/baselines_bc_ckpts/codec1701_u17000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.19
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/baselines_bc_ckpts/codec1701_u20000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.19
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/baselines_bc_ckpts/codec1701_u23000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.22
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/baselines_bc_ckpts/codec1701_u26000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.17
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/baselines_bc_ckpts/codec1701_ufinal.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.2
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.16
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/baselines_bc_ckpts/direct1701_u15000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.18
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/baselines_bc_ckpts/direct1701_u18000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.21
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/baselines_bc_ckpts/direct1701_u21000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.18
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/baselines_bc_ckpts/direct1701_u24000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.18
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/baselines_bc_ckpts/direct1701_ufinal.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.19
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/baselines_smoke/baseline_action_only_codec/seed1/codec/codec.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/baselines_smoke/baseline_action_only_codec/seed1/sft/xarm7_pg2_b5/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.1
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/baselines_smoke/baseline_action_only_codec/seed1/source/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.2
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/baselines_smoke/baseline_direct_action/seed1/sft/panda_tf3_b100/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/baselines_smoke/baseline_direct_action/seed1/sft/xarm7_tf3_b100/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/baselines_smoke/baseline_direct_action/seed1/source/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.17
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/baselines_smoke/baseline_direct_action/seed2/source/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.16
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/binding_latent_nosem_v2/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.05
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/binding_latent_nosem_v2/representation_interrupted.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-b77960b3f5f3-wee6d68b9842f"
+   },
+   "seconds": 0.07
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/binding_latent_sem_v2/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.05
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/binding_latent_sem_v2/representation_interrupted.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-0a308bea97e5-w473f7248372d"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/binding_paired_nosem_v3/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.05
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/binding_paired_nosem_v3/representation_interrupted.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-554a8c9ad891-wafee38d73d5d"
+   },
+   "seconds": 0.07
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/binding_paired_nosem_v4/probe_bindcf.pt",
+   "rrp_pickled_classes": [],
+   "kind": "other",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/binding_paired_nosem_v4/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.05
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/binding_paired_nosem_v4/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-af96778ac916-we6c6bb9b26b9"
+   },
+   "seconds": 0.07
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/binding_paired_sem_v3/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.05
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/binding_paired_sem_v3/representation_interrupted.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-1e56aefa44d1-w606880489ac9"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/binding_paired_sem_v4/probe_bindcf.pt",
+   "rrp_pickled_classes": [],
+   "kind": "other",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/binding_paired_sem_v4/probe_metadata_bindcf.pt",
+   "rrp_pickled_classes": [],
+   "kind": "other",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/binding_paired_sem_v4/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.05
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/binding_paired_sem_v4/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6d2448d800d3-w055335ee546a"
+   },
+   "seconds": 0.07
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/binding_v1_reeval/nosem_probe_bindcf.pt",
+   "rrp_pickled_classes": [],
+   "kind": "other",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/binding_v1_reeval/sem_probe_bindcf.pt",
+   "rrp_pickled_classes": [],
+   "kind": "other",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/binding_v1_reeval/sem_probe_metadata_bindcf.pt",
+   "rrp_pickled_classes": [],
+   "kind": "other",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/contact_g1_v2_warm/actor.pt",
+   "rrp_pickled_classes": [],
+   "kind": "tracker",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/contact_g1_v2_warm/checkpoint.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/contact_g1_v2a/actor.pt",
+   "rrp_pickled_classes": [],
+   "kind": "tracker",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/contact_g1_v2a/checkpoint.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/contact_go2_v2a/actor.pt",
+   "rrp_pickled_classes": [],
+   "kind": "tracker",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/contact_go2_v2a/checkpoint.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/contact_h1_v2_warm/actor.pt",
+   "rrp_pickled_classes": [],
+   "kind": "tracker",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/contact_h1_v2_warm/checkpoint.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/contact_v1_actors/anymal_c/actor.pt",
+   "rrp_pickled_classes": [],
+   "kind": "tracker",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/contact_v1_actors/g1/actor.pt",
+   "rrp_pickled_classes": [],
+   "kind": "tracker",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/contact_v1_actors/go2/actor.pt",
+   "rrp_pickled_classes": [],
+   "kind": "tracker",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/contact_v1_actors/h1/actor.pt",
+   "rrp_pickled_classes": [],
+   "kind": "tracker",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/contact_v1_actors/hexapod6/actor.pt",
+   "rrp_pickled_classes": [],
+   "kind": "tracker",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/flow_latent_nosem_v1/policy_interrupted.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-dc6ca4a55d80-w6bd281b88d5b"
+   },
+   "seconds": 0.15
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/flow_latent_sem_v1/policy_interrupted.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/flow_latent_sem_v2/policy_interrupted.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.12
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/flow_latent_sem_v2/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.22
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/flow_latent_sem_v3/policy_interrupted.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/flow_latent_sem_v3/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.19
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/grpo_base_snapshots/flow_latent_sem_v2_step22000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.19
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/grpo_latent_diag_v1/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.14
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/grpo_latent_ref_v1/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.1
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/grpo_latent_ref_v2s22k/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/grpo_latent_smoke_v1/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.1
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/grpo_latent_v2s22k_p40_v1/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.1
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_ckpts/flow_latent_sem_v2_step24543.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.12
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_bindv4nosem/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-af96778ac916-we6c6bb9b26b9"
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_bindv4nosem/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-af96778ac916-we6c6bb9b26b9"
+   },
+   "seconds": 0.22
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_bindv4nosem_gdag1/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-af96778ac916-we6c6bb9b26b9"
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_bindv4sem/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6d2448d800d3-w055335ee546a"
+   },
+   "seconds": 0.12
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_bindv4sem/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6d2448d800d3-w055335ee546a"
+   },
+   "seconds": 0.25
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_bindv4sem_gdag1/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6d2448d800d3-w055335ee546a"
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix/snap_final_s20000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix/snap_s12000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.24
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix/snap_s16000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.22
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.21
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.2
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix_ft/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.17
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix_ft/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.23
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix_gdag1/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.12
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix_gdag1/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.21
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix_gdag2/policy_interrupted.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.12
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix_gdag2/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.2
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix_gdag2h/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix_gdag2h/snap_s1000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.25
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix_gdag3h/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.12
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix_nosem/policy_interrupted.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix_nosem/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.23
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix_peerabort/policy_interrupted.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.12
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix_peerabort/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.21
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix_pfA/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix_pfA/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.26
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix_pfB/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix_pfB/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.24
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix_pfC/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix_pfC/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.24
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix_pfD/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.12
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_jointfix_pfD/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.24
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_nsjf/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-041f79337259-wf4f5c031348e"
+   },
+   "seconds": 0.12
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_nsjf/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-041f79337259-wf4f5c031348e"
+   },
+   "seconds": 0.23
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_nsjf/snap_final_s20000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-041f79337259-wf4f5c031348e"
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_nsjf2/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-22623fe2b543-w4167b28e8d89"
+   },
+   "seconds": 0.13
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_nsjf2/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-22623fe2b543-w4167b28e8d89"
+   },
+   "seconds": 0.24
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_nsjf2/snap_final_s20000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-22623fe2b543-w4167b28e8d89"
+   },
+   "seconds": 0.12
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_nsjf2_ft/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-22623fe2b543-w4167b28e8d89"
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_nsjf2_ft/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-22623fe2b543-w4167b28e8d89"
+   },
+   "seconds": 0.23
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_nsjf2_gdag1/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-22623fe2b543-w4167b28e8d89"
+   },
+   "seconds": 0.12
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_nsjf2_gdag1/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-22623fe2b543-w4167b28e8d89"
+   },
+   "seconds": 0.24
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_nsjf2_gdag2h/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-22623fe2b543-w4167b28e8d89"
+   },
+   "seconds": 0.12
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_nsjf2_gdag2h/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-22623fe2b543-w4167b28e8d89"
+   },
+   "seconds": 0.22
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_nsjf_ft/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-041f79337259-wf4f5c031348e"
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_nsjf_ft/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-041f79337259-wf4f5c031348e"
+   },
+   "seconds": 0.21
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_nsjf_gdag1/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-041f79337259-wf4f5c031348e"
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_nsjf_gdag1/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-041f79337259-wf4f5c031348e"
+   },
+   "seconds": 0.27
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_nsjf_gdag2h/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-041f79337259-wf4f5c031348e"
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_nsjf_gdag2h/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-041f79337259-wf4f5c031348e"
+   },
+   "seconds": 0.23
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sejf2/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-e01d65a468e9-w3434039ad820"
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sejf2/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-e01d65a468e9-w3434039ad820"
+   },
+   "seconds": 0.21
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sejf2/snap_final_s20000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-e01d65a468e9-w3434039ad820"
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sejf2_ft/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-e01d65a468e9-w3434039ad820"
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sejf2_ft/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-e01d65a468e9-w3434039ad820"
+   },
+   "seconds": 0.26
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sejf2_gdag1/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-e01d65a468e9-w3434039ad820"
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sejf2_gdag1/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-e01d65a468e9-w3434039ad820"
+   },
+   "seconds": 0.22
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sejf2_gdag2h/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-e01d65a468e9-w3434039ad820"
+   },
+   "seconds": 0.12
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sejf2_gdag2h/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-e01d65a468e9-w3434039ad820"
+   },
+   "seconds": 0.24
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sem_v2_b1fix/policy_interrupted.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sem_v2_b1fix/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.22
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sem_v2_b1fix_ft/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.17
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sem_v2_b1fix_ft/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.25
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sfjf/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+   },
+   "seconds": 0.12
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sfjf/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+   },
+   "seconds": 0.23
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sfjf/snap_final_s20000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sfjf2/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6f6f9b3eb46b-w0403691b2027"
+   },
+   "seconds": 0.13
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sfjf2/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6f6f9b3eb46b-w0403691b2027"
+   },
+   "seconds": 0.24
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sfjf2/snap_final_s20000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6f6f9b3eb46b-w0403691b2027"
+   },
+   "seconds": 0.17
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sfjf2_ft/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6f6f9b3eb46b-w0403691b2027"
+   },
+   "seconds": 0.13
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sfjf2_ft/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6f6f9b3eb46b-w0403691b2027"
+   },
+   "seconds": 0.24
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sfjf2_gdag1/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6f6f9b3eb46b-w0403691b2027"
+   },
+   "seconds": 0.12
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sfjf2_gdag1/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6f6f9b3eb46b-w0403691b2027"
+   },
+   "seconds": 0.26
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sfjf2_gdag2h/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6f6f9b3eb46b-w0403691b2027"
+   },
+   "seconds": 0.12
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sfjf2_gdag2h/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6f6f9b3eb46b-w0403691b2027"
+   },
+   "seconds": 0.23
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sfjf_ft/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+   },
+   "seconds": 0.16
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sfjf_ft/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+   },
+   "seconds": 0.24
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sfjf_gdag1/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+   },
+   "seconds": 0.12
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sfjf_gdag1/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+   },
+   "seconds": 0.24
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sfjf_gdag2h/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+   },
+   "seconds": 0.12
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_flow_sfjf_gdag2h/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+   },
+   "seconds": 0.24
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_latent_nosem_b1fix_anchor/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.05
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_latent_nosem_b1fix_anchor/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-041f79337259-wf4f5c031348e"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_latent_nosem_b1fix_anchor_s2/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.1
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_latent_nosem_b1fix_anchor_s2/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-22623fe2b543-w4167b28e8d89"
+   },
+   "seconds": 0.07
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_latent_sem_b1fix_anchor/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.05
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_latent_sem_b1fix_anchor/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.07
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_latent_sem_b1fix_anchor_s2/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.05
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_latent_sem_b1fix_anchor_s2/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-e01d65a468e9-w3434039ad820"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_latent_semfix_b1fix_anchor/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_latent_semfix_b1fix_anchor/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_latent_semfix_b1fix_anchor_s2/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_latent_semfix_b1fix_anchor_s2/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6f6f9b3eb46b-w0403691b2027"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_bindv4nosem_bcdag1/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-af96778ac916-we6c6bb9b26b9"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_bindv4nosem_bcdag1/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_bindv4nosem_bcdag2_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-af96778ac916-we6c6bb9b26b9"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_bindv4nosem_bcdag2_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_bindv4nosem_bcdag3_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-af96778ac916-we6c6bb9b26b9"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_bindv4nosem_bcdag3_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_bindv4nosem_gendag1_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-af96778ac916-we6c6bb9b26b9"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_bindv4nosem_gendag1_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_bindv4nosem_gendag1_noqd_gpuabort/representation_interrupted.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-af96778ac916-we6c6bb9b26b9"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_bindv4nosem_gendag1_noqd_gpuabort/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_bindv4sem_bcdag1/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6d2448d800d3-w055335ee546a"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_bindv4sem_bcdag1/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_bindv4sem_bcdag2_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6d2448d800d3-w055335ee546a"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_bindv4sem_bcdag2_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_bindv4sem_bcdag3_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6d2448d800d3-w055335ee546a"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_bindv4sem_bcdag3_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_bindv4sem_gendag1_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6d2448d800d3-w055335ee546a"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_bindv4sem_gendag1_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_bindv4sem_noqd/representation_interrupted.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6d2448d800d3-w055335ee546a"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_bindv4sem_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_bcdag1/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_bcdag1_long/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_bcdag2/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_bcdag3/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_bcdag3/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_big32k/representation_interrupted.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.09
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_big32k/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_big_bcdag1/representation_interrupted.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.1
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_big_bcdag1/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_dagger1/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.07
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_dagger1/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_dagger2/representation_interrupted.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_dagger2/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_dagger2_df08/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.07
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_dagger2_df08/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_gendag1/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_gendag1/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_gendag1_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_gendag1_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_gendag1_qdd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_gendag1_qdd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_gendag2_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_gendag2_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_gendag3_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_gendag3_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_gendag4_noqd/representation_interrupted.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_gendag4_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_gendag4b_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_gendag4b_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_znoise/representation_interrupted.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_jointfix_znoise/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_nsjf2_bcdag1/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-22623fe2b543-w4167b28e8d89"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_nsjf2_bcdag1/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_nsjf2_bcdag1_long/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-22623fe2b543-w4167b28e8d89"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_nsjf2_bcdag1_long/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_nsjf2_bcdag2/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-22623fe2b543-w4167b28e8d89"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_nsjf2_bcdag2/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_nsjf2_gendag1_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-22623fe2b543-w4167b28e8d89"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_nsjf2_gendag1_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_nsjf2_gendag2_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-22623fe2b543-w4167b28e8d89"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_nsjf2_gendag2_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_nsjf2_gendag3_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-22623fe2b543-w4167b28e8d89"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_nsjf2_gendag3_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_nsjf_bcdag1/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-041f79337259-wf4f5c031348e"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_nsjf_bcdag1/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_nsjf_bcdag1_long/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-041f79337259-wf4f5c031348e"
+   },
+   "seconds": 0.07
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_nsjf_bcdag1_long/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_nsjf_bcdag2/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-041f79337259-wf4f5c031348e"
+   },
+   "seconds": 0.07
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_nsjf_bcdag2/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_nsjf_gendag1_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-041f79337259-wf4f5c031348e"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_nsjf_gendag1_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_nsjf_gendag2_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-041f79337259-wf4f5c031348e"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_nsjf_gendag2_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_nsjf_gendag3_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-041f79337259-wf4f5c031348e"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_nsjf_gendag3_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sejf2_bcdag1/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-e01d65a468e9-w3434039ad820"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sejf2_bcdag1/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sejf2_bcdag1_long/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-e01d65a468e9-w3434039ad820"
+   },
+   "seconds": 0.07
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sejf2_bcdag1_long/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sejf2_bcdag2/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-e01d65a468e9-w3434039ad820"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sejf2_bcdag2/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sejf2_gendag1_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-e01d65a468e9-w3434039ad820"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sejf2_gendag1_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sejf2_gendag2_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-e01d65a468e9-w3434039ad820"
+   },
+   "seconds": 0.09
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sejf2_gendag2_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sejf2_gendag3_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-e01d65a468e9-w3434039ad820"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sejf2_gendag3_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sem_v1_anchor/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sem_v1_anchor/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sem_v1_b1fix_ft/rep_s2000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sem_v1_b1fix_ft/rep_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sem_v1_b1fix_ft/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sem_v1_b1fix_ft/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sem_v1_b1fix_ft/rz_s2000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sem_v1_b1fix_ft/rz_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sem_v1_dagger1/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.07
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sem_v1_dagger1/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sem_v1_dagger2/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sem_v1_dagger2/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sfjf2_bcdag1/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6f6f9b3eb46b-w0403691b2027"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sfjf2_bcdag1/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sfjf2_bcdag1_long/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6f6f9b3eb46b-w0403691b2027"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sfjf2_bcdag1_long/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sfjf2_bcdag2/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6f6f9b3eb46b-w0403691b2027"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sfjf2_bcdag2/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sfjf2_gendag1_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6f6f9b3eb46b-w0403691b2027"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sfjf2_gendag1_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sfjf2_gendag2_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6f6f9b3eb46b-w0403691b2027"
+   },
+   "seconds": 0.07
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sfjf2_gendag2_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sfjf2_gendag3_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-6f6f9b3eb46b-w0403691b2027"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sfjf2_gendag3_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sfjf_bcdag1/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sfjf_bcdag1/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sfjf_bcdag1_long/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sfjf_bcdag1_long/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sfjf_bcdag2/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sfjf_bcdag2/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sfjf_gendag1_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sfjf_gendag1_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sfjf_gendag2_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sfjf_gendag2_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sfjf_gendag3_noqd/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_rz_sfjf_gendag3_noqd/rz_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_smoke/armnosem_stageA_smoke/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-041f79337259-webc802fb5a55"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_smoke/armsemfix_smoke_s8/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-5e35e892c000-w93153c9b9464"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_smoke/armsemfix_smoke_sf/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-b3975ca84351-wb78efa46d1f4"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_smoke/flow_jointfix_smoke/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.15
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_smoke/gdag_flow/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_latent_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.12
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_smoke/noqd_smoke/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_smoke/qdd_smoke/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.07
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_smoke/rz_anchor_smoke/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.07
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_smoke/rz_dag_smoke2/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_smoke/rz_smoke/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_smoke/rz_smoke2/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_smoke/rzbig_smoke/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.12
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_smoke/semfix_peer_aborted_s200_interrupt/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_smoke/semfix_peer_aborted_s200_interrupt/representation_interrupted.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-b3975ca84351-w639203e7cb80"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/ladder_smoke/znoise_smoke/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/latent_nosem_v1/probe_posthoc.pt",
+   "rrp_pickled_classes": [],
+   "kind": "other",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/latent_nosem_v1/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/latent_nosem_v1/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-dc6ca4a55d80-w6bd281b88d5b"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/latent_sem_v1/probe_metadata_only.pt",
+   "rrp_pickled_classes": [],
+   "kind": "other",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/latent_sem_v1/probe_posthoc.pt",
+   "rrp_pickled_classes": [],
+   "kind": "other",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/latent_sem_v1/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/latent_sem_v1/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+   },
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/latent_slice1/baseline_action_only_codec/seed1701/codec/codec.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/latent_slice1/baseline_action_only_codec/seed1701/source/policy_interrupted.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.27
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/latent_slice1/baseline_action_only_codec/seed1701/source/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.24
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/latent_slice1/baseline_direct_action/seed1701/source/policy_interrupted.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.24
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/latent_slice1/baseline_direct_action/seed1701/source/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.2
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/latent_slice1_b1fix/baseline_action_only_codec/seed1701/codec/codec.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_checkpoint",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "seconds": 0.01
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/latent_slice1_b1fix/baseline_action_only_codec/seed1701/source/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.2
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/latent_slice1_b1fix/baseline_action_only_codec/seed1701/source/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.2
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/source/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.2
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/source/policy_interrupted.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.29
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/latent_slice1_b1fix/baseline_direct_action/seed1701/source/policy_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "arm_policy",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "LearnedPolicy",
+   "seconds": 0.22
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_bc_g1_v1/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_bc",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_bc",
+   "seconds": 0.02
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_bc_go2_v1/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_bc",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_bc",
+   "seconds": 0.02
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_bc_hexapod6_v1/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_bc",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_bc",
+   "seconds": 0.02
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_bc_t1_v1/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_bc",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_bc",
+   "seconds": 0.02
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_fixsem_go2_s1/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.1
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_fixsem_go2_s1/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.09
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_fixsem_go2_s1/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_fixsem_go2_s2/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.09
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_fixsem_go2_s2/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_fixsem_go2_s2/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.09
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_fixsem_hexapod6_s1/flow_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_fixsem_hexapod6_s1/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_fixsem_hexapod6_s1/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_fixsem_hexapod6_s1/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_fixsem_hexapod6_s2/flow_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_fixsem_hexapod6_s2/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_fixsem_hexapod6_s2/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.14
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_fixsem_hexapod6_s2/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.09
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_nosem_go2_s1/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_nosem_go2_s1/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.09
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_nosem_go2_s1/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_nosem_go2_s2/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.09
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_nosem_go2_s2/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_nosem_go2_s2/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_nosem_hexapod6_s1/flow_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_nosem_hexapod6_s1/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_nosem_hexapod6_s1/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_nosem_hexapod6_s1/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_nosem_hexapod6_s2/flow_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_nosem_hexapod6_s2/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_nosem_hexapod6_s2/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_flow_nosem_hexapod6_s2/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_fixsem_go2_s1/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_fixsem_go2_s1/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_fixsem_go2_s1/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_fixsem_go2_s1/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_fixsem_go2_s2/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_fixsem_go2_s2/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_fixsem_go2_s2/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_fixsem_go2_s2/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_fixsem_hexapod6_s1/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_fixsem_hexapod6_s1/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_fixsem_hexapod6_s1/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_fixsem_hexapod6_s1/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_fixsem_hexapod6_s2/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_fixsem_hexapod6_s2/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_fixsem_hexapod6_s2/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_fixsem_hexapod6_s2/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_nosem_go2_s1/probe_posthoc.pt",
+   "rrp_pickled_classes": [],
+   "kind": "other",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_nosem_go2_s1/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_nosem_go2_s2/probe_posthoc.pt",
+   "rrp_pickled_classes": [],
+   "kind": "other",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_nosem_go2_s2/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_nosem_go2_s2/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_nosem_go2_s2/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_nosem_go2_s2/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_nosem_hexapod6_s1/probe_posthoc.pt",
+   "rrp_pickled_classes": [],
+   "kind": "other",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_nosem_hexapod6_s1/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_nosem_hexapod6_s1/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_nosem_hexapod6_s1/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_nosem_hexapod6_s1/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_nosem_hexapod6_s2/probe_posthoc.pt",
+   "rrp_pickled_classes": [],
+   "kind": "other",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_nosem_hexapod6_s2/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_nosem_hexapod6_s2/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.07
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_nosem_hexapod6_s2/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixrep_rep_nosem_hexapod6_s2/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixsem_flow_sem_go2_lv4/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixsem_flow_sem_go2_lv4/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixsem_flow_sem_go2_lv4/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixsem_flow_sem_hexapod6_lv4/flow_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixsem_flow_sem_hexapod6_lv4/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixsem_flow_sem_hexapod6_lv4/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixsem_flow_sem_hexapod6_lv4/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.09
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixsem_rep_sem_go2_lv4/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixsem_rep_sem_hexapod6_lv4/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixsem_rep_sem_hexapod6_lv4/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixsem_rep_sem_hexapod6_lv4/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_fixsem_rep_sem_hexapod6_lv4/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_nosem_go2_v2/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.09
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_nosem_go2_v2/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.09
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_nosem_go2_v2/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.09
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_nosem_hexapod6_v2/flow_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_nosem_hexapod6_v2/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.1
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_nosem_hexapod6_v2/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_nosem_t1_v2/flow_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_nosem_t1_v2/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_nosem_t1_v2/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_nosem_t1_v2/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_nosem_t1_v2s1/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.09
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_nosem_t1_v2s2/flow_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_nosem_t1_v2s2/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.09
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_nosem_t1_v2s2/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_nosem_t1_v2s2/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_nosem_t1_v2s3/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_sem_go2_v2/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_sem_go2_v2/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_sem_go2_v2/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_sem_hexapod6_v2/flow_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_sem_hexapod6_v2/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_sem_hexapod6_v2/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.09
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_sem_t1_v2/flow_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_sem_t1_v2/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.09
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_sem_t1_v2/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_sem_t1_v2/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_sem_t1_v2s1/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_sem_t1_v2s2/flow_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_sem_t1_v2s2/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.09
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_sem_t1_v2s2/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.11
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_sem_t1_v2s2/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_flow_sem_t1_v2s3/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_nosem_go2_v2/probe_posthoc.pt",
+   "rrp_pickled_classes": [],
+   "kind": "other",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_nosem_go2_v2/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_nosem_hexapod6_v2/probe_posthoc.pt",
+   "rrp_pickled_classes": [],
+   "kind": "other",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_nosem_hexapod6_v2/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_nosem_hexapod6_v2/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_nosem_hexapod6_v2/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_nosem_hexapod6_v2/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_nosem_t1_v2/probe_posthoc.pt",
+   "rrp_pickled_classes": [],
+   "kind": "other",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_nosem_t1_v2/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_nosem_t1_v2/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_nosem_t1_v2/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_nosem_t1_v2/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_nosem_t1_v2s1/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_nosem_t1_v2s2/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_nosem_t1_v2s2/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_nosem_t1_v2s2/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_nosem_t1_v2s2/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_nosem_t1_v2s3/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_nosem_t1_v2s3/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_nosem_t1_v2s3/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_sem_go2_v2/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_sem_hexapod6_v2/probe_posthoc.pt",
+   "rrp_pickled_classes": [],
+   "kind": "other",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_sem_hexapod6_v2/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_sem_hexapod6_v2/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_sem_hexapod6_v2/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_sem_hexapod6_v2/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_sem_t1_v2/probe_posthoc.pt",
+   "rrp_pickled_classes": [],
+   "kind": "other",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_sem_t1_v2/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_sem_t1_v2/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_sem_t1_v2/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.07
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_sem_t1_v2/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_sem_t1_v2s1/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_sem_t1_v2s2/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_sem_t1_v2s2/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_sem_t1_v2s2/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_sem_t1_v2s2/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_sem_t1_v2s3/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_sem_t1_v2s3/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rep_sem_t1_v2s3/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rz_nosem_t1_dag1/realizer.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_refit_realizer",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "refit realizer",
+   "seconds": 0.05
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rz_nosem_t1_dag2/realizer.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_refit_realizer",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "refit realizer",
+   "seconds": 0.05
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rz_nosem_t1s1_dag1/realizer.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_refit_realizer",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "refit realizer",
+   "seconds": 0.05
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rz_sem_t1_dag1/realizer.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_refit_realizer",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "refit realizer",
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rz_sem_t1_dag2/realizer.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_refit_realizer",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "refit realizer",
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/legged_rz_sem_t1s1_dag1/realizer.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_refit_realizer",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "refit realizer",
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_flow_sem_lv4/flow_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.05
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_flow_sem_lv4/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.09
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_flow_sem_lv4/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.09
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_flow_sem_lv4/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.09
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_flow_sem_lv4_s1/flow_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_flow_sem_lv4_s1/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_flow_sem_lv4_s1/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_flow_sem_lv4_s1/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_flow_sem_lv4_s3/flow_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_flow_sem_lv4_s3/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_flow_sem_lv4_s3/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_flow_sem_lv4_s3/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.08
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_flow_sem_w0/flow_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.03
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_flow_sem_w0/policy.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.09
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_flow_sem_w0/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.12
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_flow_sem_w0/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_flow",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": {
+    "flow": true
+   },
+   "seconds": 0.09
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_rep_sem_lv4/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_rep_sem_lv4/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_rep_sem_lv4/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_rep_sem_lv4/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_rep_sem_lv4_s1/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_rep_sem_lv4_s1/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_rep_sem_lv4_s1/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_rep_sem_lv4_s1/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_rep_sem_lv4_s3/rep_last.pt",
+   "rrp_pickled_classes": [],
+   "kind": "resume_state",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_rep_sem_lv4_s3/representation.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_rep_sem_lv4_s3/snap_s4000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_rep_sem_lv4_s3/snap_s8000.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_representation",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "load_rep",
+   "seconds": 0.04
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_rz_nosem_ctl/realizer.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_refit_realizer",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "refit realizer",
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_rz_nosem_ctl12k/realizer.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_refit_realizer",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "refit realizer",
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_rz_nosem_genz/realizer.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_refit_realizer",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "refit realizer",
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_rz_sem_ctl/realizer.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_refit_realizer",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "refit realizer",
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_rz_sem_ctl12k/realizer.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_refit_realizer",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "refit realizer",
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/runs/t1diag_rz_sem_genz/realizer.pt",
+   "rrp_pickled_classes": [],
+   "kind": "legged_refit_realizer",
+   "provenance": {
+    "legacy": true,
+    "notes": "unfingerprinted"
+   },
+   "loaded": "refit realizer",
+   "seconds": 0.06
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/trackers/anymal_c/actor.pt",
+   "rrp_pickled_classes": [],
+   "kind": "tracker",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/trackers/g1/actor.pt",
+   "rrp_pickled_classes": [],
+   "kind": "tracker",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/trackers/go2/actor.pt",
+   "rrp_pickled_classes": [],
+   "kind": "tracker",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/trackers/go2/rejected_iter1999/actor.pt",
+   "rrp_pickled_classes": [],
+   "kind": "tracker",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/trackers/h1/actor.pt",
+   "rrp_pickled_classes": [],
+   "kind": "tracker",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/trackers/hexapod6/actor.pt",
+   "rrp_pickled_classes": [],
+   "kind": "tracker",
+   "seconds": 0.0
+  },
+  {
+   "path": "/dev/shm/rrp-brandonin/repo/artifacts/trackers/t1/actor.pt",
+   "rrp_pickled_classes": [],
+   "kind": "tracker",
+   "seconds": 0.0
+  }
+ ]
+}

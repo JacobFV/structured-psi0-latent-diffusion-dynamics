@@ -172,6 +172,7 @@ def main(argv=None):
     rep = audit(a.roots, a.per_kind)
     txt = json.dumps(rep, indent=1, default=str)
     if a.out:
+        Path(a.out).parent.mkdir(parents=True, exist_ok=True)
         Path(a.out).write_text(txt)
     print(json.dumps({k: rep[k] for k in ("n", "n_errors", "kinds", "rrp_pickled_classes")}, indent=1))
     for r in rep["rows"]:
