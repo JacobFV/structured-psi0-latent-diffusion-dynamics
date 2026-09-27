@@ -155,6 +155,17 @@ permanent `turn_lin` (dense yaw progress during pure turns: x clip(w sign(c)/|c|
 `--reward-set clearance_floor=-2,yaw_slip=-2,turn_step=2,turn_lin=1.5,sigma_ang=0.03`, curriculum start 0.5, init std 0.35. Peer dir
 wt/contact6, t1 lease 1790499833_d772c7, h1 lease 1790499833_bfbb2f, `artifacts/runs/contact_{t1,h1}_turn` (a/b kept as `_turn_a`/`_turn_b`).
 
+Attempt c result. t1 WORKS: the window turn ratio went 0.79 -> 1.0-1.28 and the curriculum widened to full range by iter ~520. Deterministic check at
+iter 591: a stepping turn (duty 0.5-0.78, small foot yaw slip) that overshot about 2x. Full validation of the iter-1100 snapshot
+(`val/t1_turnc-it1100_physv2.json`): **turn ratio 0.02 -> 1.35**, no falls, fwd 0.99, duty 0.50-0.53, apex 9.9 cm. But forward slip ratio
+0.15 -> 0.27 and CoT 1.39 -> 3.25: alpha stayed 0 all run (the training-window track error of 0.56-0.6 never met the 0.5 threshold), so the priors were on
+and the energy terms off. h1 did NOT work: window about 0.4, deterministic validation turn 0.10 (`val/h1_turnc-it1250_physv2.json`). Both stopped
+(t1 at ~1150, h1 at ~1300; kept as `contact_{t1,h1}_turn_c`).
+Phase 2 for t1: `artifacts/runs/contact_t1_turn2` (peer lease 1790502983_4e0ad0), init from the turn policy, alpha FIXED at 1 (the
+accepted t1's setting), full turn range, same turn terms, 1200 iters, to recover slip and CoT while keeping the turn.
+g1 with the t1 recipe: peer lease 1790502984_51ec56, `artifacts/runs/contact_g1_turn`. The h1 retry (stronger turn_lin, more turn samples)
+is queued behind these.
+
 ### (3) actuator realism: implemented; baseline measured; fine-tunes running
 `src/rrp/physics/actuator.py` (actuator_v2; test `tests/unit/test_actuator.py`): armature max(model, 4e-4 x peak torque) x U(0.8, 1.2);
 dof damping and frictionloss = model + U(0, 1%) of peak torque; linear torque-speed derating from 0.5 vmax to vmax (vmax ASSUMED:
@@ -168,8 +179,13 @@ Baseline (installed trackers, no fine-tune; `val/*_v2trk-act2-lat{0,15,30}_physv
 | g1 | 1.00 / 1.00 / **0.40** | 0.99 / 0.96 / 0.00 | 0.07 / 0.11 / 0.16 | F / F / F |
 | go2 | 1.00 / 1.00 / 1.00 | 0.98 / 0.90 / 0.85 | 0.02 / 0.02 / 0.02 | T / T / T |
 | anymal_c | 1.00 / 1.00 / 1.00 | 1.00 / 1.00 / 0.95 | 0.03 / 0.04 / 0.03 | T / T / T |
-Short actuator_v2 fine-tunes (600 iters, alpha fixed at 1, same reward overrides): go2 lease 1790500149_3ce1f7, anymal_c lease 1790500149_6c670d
-(`artifacts/runs/contact_{go2,anymal_c}_act2`). h1/g1 (the fragile ones) and t1 come after their turn runs.
+Short actuator_v2 fine-tunes (600 iters, `--actuator v2`, alpha fixed at 1). The host watchdog shed them, so they were rerun on the peer (wt/contact7).
+Results (`val/{go2,anymal_c}_v2act2ft*-lat*`):
+- go2 (with clearance_floor=-6): no-fall 1.00 at 0/15/30 ms; turn 0.74 -> 0.85/0.82/0.79; fwd 1.02/0.93/0.87 (before: 0.98/0.90/0.85);
+  slip 0.03/0.04/0.02; CoT 0.88 -> 0.97. Contact gate passes at every latency. The change is neutral to slightly positive: go2 was already robust.
+- anymal_c WITHOUT a clearance floor: the swing flattened to 1.1 cm and the contact gate FAILED, so it was not installed (`..._act2_nofloor`). Rerun with
+  clearance_floor=-6: peer lease 1790502938_f00be9. The installed anymal_c is already robust to actuator_v2 at 30 ms (table above).
+- h1/g1 are the fragile ones (falls at 30 ms). They get the actuator fine-tune after their turn training.
 
 ## runs
 ### gait_v2a: failed_hypothesis (stopped at iter 500-1400)
