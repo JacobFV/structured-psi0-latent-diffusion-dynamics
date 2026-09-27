@@ -245,9 +245,25 @@ URDF 88; the conservative min is used. New actuator mode `v1lat` = ideal joints 
 PERMANENT `stance_cap` (-1): during moving or turning commands, each foot in contact longer than 0.75 of a gait period costs
 clip((t - cap)/period, 0, 1), which sets a minimum swing frequency. Plus `--slow-frac 0.3` (30% of walking commands rescaled to 0.05-0.2 m/s), the turn
 terms and curriculum, clearance_floor -2. h1: host (resumable), `artifacts/runs/contact_h1_step`, 3000 iters from the installed h1. g1 follows.
+Attempts for (2):
+- a (`contact_h1_step_a`, `_g1_step_a`): stance_cap -1 + slow mix + turn terms. Training turn about 0.5, but deterministic h1 still stands with both feet down
+  on pure turns: stepping came only from exploration noise.
+- b (`_step_b`): + `ref_step` 1.5 (reward for following a clock-driven stepping reference). Same deterministic result at iter 540.
+- c (`_step_c`): + `ref_ff 0.2` (the reference added FEED-FORWARD to the targets, a residual over a stepping pattern; the deployed
+  LearnedTracker applies the same offset from its actor meta, `tests/unit/test_ref_ff.py`). FAILED: training fall rate 0.97-1.00 for h1
+  (530 iters) and g1 (350 iters), with no recovery.
+- d (running): ref_ff 0.08 rad and ONLY for slow/turn-in-place commands (|v| < 0.25 m/s), so normal walking is untouched. h1 host
+  `artifacts/runs/contact_h1_step` (lease 1790518222_a2ad53), g1 peer `artifacts/runs/contact_g1_step` (lease 1790517947_132a38). A process
+  mix-up during the c->d restart (an old wrapper relaunched once into the new dir) was caught; that output is in `contact_h1_step_junk`, not used.
 ### (3) t1 turning + latency under v1lat: running
 `artifacts/runs/contact_t1_lat` (host, resumable), from the installed turn-trained t1, `--actuator v1lat` (sourced limits, 0-30 ms latency), turn
-terms, alpha 1, 1500 iters. Baseline of all installed trackers under v1lat at 0/30 ms: queued on the peer (when load < 15).
+terms, alpha 1, 1500 iters.
+Baseline, installed trackers under v1lat (`val/*_v2trk-v1lat-lat{0,30}`), no-fall / fwd / turn / slip at 0 ms -> 30 ms:
+t1 1.00/0.87/0.92/0.12 -> 0.88/0.59/1.06/0.14 | h1 0.72/0.84/0.03/0.16 -> 0.40/0.00/0.06/0.16 | g1 1.00/1.10/0.02/0.08 -> 1.00/0.97/0.04/0.13 |
+go2 1.00/1.03/0.79/0.02 -> 1.00/0.91/0.79/0.02 | anymal_c 1.00/1.09/0.80/0.03 -> 1.00/1.07/1.10/0.04. With the real (lower) torques, h1 falls even at 0 ms.
+t1_lat result (`val/t1_t1lat-*`): under v1lat at 30 ms, **no-fall 0.88 -> 1.00, fwd 0.59 -> 0.90, turn 1.06 -> 1.35**; at 0 ms fwd 0.96, turn 1.65.
+BUT slip 0.17 (0 ms) / 0.15 (30 ms) / 0.21 (ideal actuators), contact gate FAILS on slip; arc yaw 0.55-0.81, arc vx 0.67-0.69; apex 4.1-6.6 cm.
+Follow-up (running): `artifacts/runs/contact_t1_lat2`, 700 iters from t1_lat with slip -2.0 (was -1.0), peer lease 1790518263_8f9ef7.
 
 ## runs
 ### gait_v2a: failed_hypothesis (stopped at iter 500-1400)
