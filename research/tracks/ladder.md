@@ -16,6 +16,26 @@ bcdag2). Re-run per variant, same seeds / collection seeds / bodies / buffer com
 (3.7M) -> rz gendag2 -> gen3 (3.8M) + gdag1 ctx (3.9M) -> rz gendag3, flow gdag1 -> gdag2 ctx (4.0M) -> flow gdag2h;
 evaluation = R2 dev + fresh 3.0001M / 3.0002M on panda_pg2 / parm6_tf3, held-out parm5s_tf3 / parm5l_pg2, progression,
 stateless R1, and the edit suite on flow 20k -> rz gendag1 (parm6 3,000,000-119, panda 3,000,000-047).
+REUSE AUDIT (lead 19:35; checked from configs, code defaults and the saved checkpoints): the ablated settings are
+`z_noise_rel`, `realizer_drop_qd` and `realizer_qd_dropout`, read ONLY by the system-0 refit (`rrp.training.latent_train`
+refit path; defaults 0.0 / False / 0.0). Reused stages:
+| reused stage | config fields (z_noise_rel / realizer_drop_qd / realizer_qd_dropout) | saved checkpoint records | system 0 that collected it |
+|---|---|---|---|
+| Stage A `ladder_latent_nosem_b1fix_anchor` (e0e70fde) | absent / absent / absent (not refit keys; no qd/noise keys in `latent`) | no drop_qd flag (joint velocity used) | - |
+| rz `bcdag1` (f828c602) | absent / absent / absent -> 0 / False / 0 | `realizer_drop_qd` False | - |
+| rz `bcdag1_long` (6dca8973) | absent / absent / absent | `realizer_drop_qd` False | - |
+| rz `bcdag2` (init for gendag1) | absent / absent / absent | `realizer_drop_qd` False | - |
+| flow 20k, flow_ft | no system-0 keys (flows do not train system 0) | - | - |
+| buffer bc1 (3.2M) | - | - | Stage A system 0 (qd kept, no z-noise) |
+| buffer bc2 (3.3M) | - | - | rz bcdag1 (qd kept, no z-noise) |
+| buffer bc3 (3.4M) | - | - | rz bcdag1_long (qd kept, no z-noise) |
+| buffer gen1 (3.5M) | - | - | rz bcdag1_long + flow 20k (qd kept, no z-noise) |
+Buffers store the raw joint-velocity column; `_load_dagger(drop_qd=...)` zeroes it at load time only when the consuming
+refit sets `realizer_drop_qd`, so the same buffers feed a qd-kept refit with real qd. The FIRST stage that uses any
+ablated setting is rz gendag1 (nsjf: `realizer_drop_qd` True, `z_noise_rel` 0.3, recorded in its checkpoint), and every
+variant re-runs from rz gendag1 on, including all later on-policy collections (gen2, gen3, gdag1, gdag2, each driven by
+the variant's own system 0). The same holds in the sem lineage (its bcdag1/bcdag1_long/bcdag2 also had qd kept and no
+z-noise). So the reuse is exact (identical configs and inputs) and does not confound the ablation; no restart needed.
 Configs `configs/ladder/armnosemabl/<lin>/` (all set `zero_prev_action` true explicitly, W3); lineage codes in
 research/naming.md. Driver `scripts/arm_nosem_ablation.sh` (LIN=<lin>), run ON THE PEER from its own code dir
 `/dev/shm/rrp-brandonin/wt/armabl` (not wt/ladder), units `rrp-arm-{nszn,nsqd,nszq}`, state
