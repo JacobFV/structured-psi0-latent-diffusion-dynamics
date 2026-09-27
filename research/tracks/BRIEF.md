@@ -38,7 +38,7 @@ Known state:
   `artifacts/datasets` and `artifacts/packed` in the main checkout are symlinks to `~/work/rrp-data`, which is being mirrored from the peer now.
   In your worktree, create the same two symlinks.
 - Host jobs: `PYTHONPATH=src ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli ops run --cpu X --mem Y [--gpu --gpu-mem G] --label <track>_x --max-seconds N -- cmd`.
-  The host broker is shared (11 CPU, 33 GiB, 2 GPU leases in total across ALL agents). Take at most ~3 CPU / 10 GiB / 1 GPU lease
+  The host broker is shared (2026-09-25 numbers: 11 CPU, 33 GiB, 2 GPU leases across ALL agents; now 3 GPU leases, D-086). Take at most ~3 CPU / 10 GiB / 1 GPU lease
   unless the host is idle. If admission is refused, use the peer.
 - Peer (the main compute): ALWAYS `export RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/<track>` first, then `scripts/peer_sync.sh push` from your worktree;
   then `scripts/peer_run.sh --gpu --gpu-mem 16G --cpu 4 --mem 24G --label <track>_x --max-seconds N [--detach] -- PY -m rrp.cli ...`.
