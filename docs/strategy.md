@@ -27,7 +27,7 @@ Principles:
 | W4 | Package restructure with shims (phase 2) | restructure agent | W2, W3 | P1–P5 verified 2026-09-26 (main 817b3b3; 274 unit tests pass; layering test passes; byte-identical parity episodes; checkpoint audit 347 host + 508 peer *.pt load, 0 errors; demo page unchanged). P6 (legged files) waits for W1 merge |
 | W5 | Unified pipeline + DAG orchestration (phases 3–4) | pipeline agent | W4; arm seed 2 finished | arm verified 2026-09-26 (D-096: R2/R1 parity row-identical; refit bit-identical to step 2900); legged smoke only; dual skeleton; ladder.py main → rrp.evaluation pending |
 | W6 | Robustness sweeps + motion-quality gates | robustness agent | W1 v2 trackers | planned |
-| W7 | Arm expert: smooth scripted trajectories, then GRPO fine-tuning with anchor evals | arm agent | arm seed 2 finished | running: step 1 smoothing (diagnosis + smoothed teacher version); GRPO after lead approval |
+| W7 | Arm expert: smooth scripted trajectories, then GRPO fine-tuning with anchor evals | arm agent | arm seed 2 finished | step 1 verified (D-097: teacher v2 4810/4811 vs v1 4703/4811, jerk ~10× lower); step 2 = v2 data + BC expert + full lineage set via run-dag after R1; GRPO after that |
 | W8 | Legged regeneration on contact v2 (data → Stage A → flow → R2 → edits) | legged agent | W1 gate, W3 | planned |
 | W9 | Open claims: held-out target bodies; one loco-manipulation task | later | W5, W8 | planned |
 | R0 | Arm seed-2 replication (running experiment) | arm agent | — | completed 2026-09-26 (D-095) |

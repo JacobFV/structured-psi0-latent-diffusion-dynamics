@@ -443,3 +443,20 @@ Reading: semantic supervision of the packet is strongly associated with arm comp
 ## D-096 2026-09-26 W5 unified pipeline verified by parity; peer_sync guarded after a third shared-dir overwrite
 W5 (research/tracks/pipeline.md, main 2c7fe16): RunConfig (all 263 legacy configs round-trip exactly; required flags; derived outputs), `rrp.pipelines` (arm 12 stages; legged 11 stages, only smoke-tested; dual skeleton), `rrp run-dag` (broker leases, bounded retries, JSON ledger, resume; dags/arm_lineage.yaml reproduces all six arm lineages' configs; dags/legged_fixrep.yaml). Parity against the completed sfjf2 lineage, same seeds/inputs: R2 panda 21/30 = recorded 21/30 with all 30 episode rows identical; R1 oracle 19/30 = 19/30 identical; the system-0 refit's losses are bit-identical through step 2900, then differ at relative ≤5.5e-7 (CUDA reduction nondeterminism). Raw: `artifacts/runs/pipeline/parity-sfjf2/`. 301 unit tests pass.
 Incident: the W5 agent pushed its branch into the shared peer code dir /dev/shm/rrp-brandonin/repo (no RRP_PEER_REPO), restored it a minute later from origin/main; only the ops watchdog ran from it. This is the third such incident (D-090 legged, arm agent earlier). Fix (lead): `scripts/peer_sync.sh push` now refuses without RRP_PEER_REPO, refuses the shared repo unless RRP_ALLOW_SHARED_REPO=1, and refuses when any peer process has the target dir as its cwd (tested: refused wt/armabl with running ablation jobs; allowed an idle dir).
+
+## D-097 2026-09-26 ARM TEACHER v2 (minimum-jerk, contact-confirmed grasp) verified; arm data regeneration approved as a complete new lineage set, after the nosem ablation
+W7 (research/tracks/armexpert.md, main c8cfd6a; lead checked `artifacts/runs/armexpert_diag/compare_v1_v2.json`). 18 bodies × 300 identical seeds.
+- v1 diagnosis: the gripper point moves at a constant 0.35 m/s with dead stops and phase switches; the gripper jumps in one tick (joint velocity steps 0.9–1.4 rad/s per tick; commanded jerk 385–625 rad/s³).
+  All 108 v1 failures are on three-finger grippers:
+  - over-squeeze (close target 0.1 rad past contact → ~145 N per fingertip; the cube slides out);
+  - lifting on a fixed 0.7 s timer before the grasp forms (panda_tf3 204/300, xarm7_tf3 190/300 episodes);
+  - fingers splayed onto clutter with no timeout;
+  - a feasibility check that tests only one wrist angle.
+  The demo's "parm7_pg2 never completes" clip was a 400-tick render cap artifact.
+- v2 (`src/rrp/teachers/arm_smooth.py`, source `scripted_teacher:pick_place_v2_minjerk`):
+  - overlapping minimum-jerk segments with limit-derived durations; joint-space free moves; straight approach/retreat along the gripper axis;
+  - wrist-angle selection; minimal finger opening; touch-confirmed close, settle, lift only when held; retries.
+- Results: success 4703/4811 → 4810/4811 feasible episodes (no body worse; the one v2 failure is unreachable for both). Commanded jerk 385–625 → 36–55 rad/s³; phase-switch velocity steps 0.9–1.4 → 0.18–0.28 rad/s; three-finger penetration 18–24 → 6–7 mm; early lifts 394 → 0; median episode time +~1.5 s.
+Decision: v1 remains the default for existing lineages. Regenerate arm data with v2 only as a COMPLETE new set, never mixed with v1-trained components:
+v4dart collection → v2 stateless BC expert (seeds 1701/1702; adopted as the DAgger labeller only if not worse and smoother) → sem/semfix/nosem × 2 seeds through `rrp run-dag` (W5) → R2 / held-out / edits.
+Starts when the R1 nosem ablation frees the peer. Risk noted: v2's timed segments are hidden state a stateless BC must infer.
