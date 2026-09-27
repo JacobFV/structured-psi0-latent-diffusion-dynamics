@@ -61,7 +61,7 @@ collect() {  # name rep seed flow [genctx]
   local name=$1 rep=$2 seed=$3 flow=$4 gc=${5:-} out=$RUNS/ladder_dagger_${LIN}_$1 pids=() i=0 ok=0
   for g in "$G1" "$G2" "$G3" "$G4"; do
     i=$((i+1))
-    ops --cpu 3 --mem 8G --label a${LIN}_col_${name}_$i --max-seconds 10800 -- env EXPERT=bc FLOW=$flow ${gc:+GENCTX=1} SEED=$seed \
+    ops --cpu 3 --mem 16G --label a${LIN}_col_${name}_$i --max-seconds 10800 -- env EXPERT=bc FLOW=$flow ${gc:+GENCTX=1} SEED=$seed \
       bash scripts/ladder_dagger_collect.sh $rep $out 24 $g &
     pids+=($!)
   done

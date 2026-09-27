@@ -42,6 +42,12 @@ research/naming.md. Driver `scripts/arm_nosem_ablation.sh` (LIN=<lin>), run ON T
 `artifacts/runs/ladder_arm<lin>_state/`. Smoke on the restructured main (W4 shims): 200-step nsqd refit rc 0 (bundle
 records `realizer_drop_qd: false`), 1-episode R2 with it rc 0.
 RESUME: `ssh gb10-direct 'systemd-run --user --unit rrp-arm-<lin>-r --setenv=LIN=<lin> --working-directory=/dev/shm/rrp-brandonin/wt/armabl bash scripts/arm_nosem_ablation.sh'`.
+20:25 one resource relaunch: in nszn and nsqd, collection group 1 of gen2 (panda_pg2, parm5_pg2, parm5_tf3, parm5l_tf3)
+was OOM-killed at its 8G cgroup limit (unit_result oom-kill, panda at 16/24 episodes; groups 2-4 rc 0), which failed
+gen2 and its dependants. Earlier lineages ran the same collections under 8G without OOM (cause not isolated). Collections
+now declare 16G; failed markers moved to `<state>/failed_oom1/`; both drivers relaunched ONCE (units
+`rrp-arm-{nszn,nsqd}-r1`); the collection script skips the 9 existing buffers per lineage and re-collects the 4 missing
+bodies on the same seeds. nszq's gen2 passed; its running driver still declares 8G for later collections.
 
 ## ARM SEED-2 REPLICATION RESULT (2026-09-26 19:30 PDT; state: completed; all nodes rc 0 after the documented relaunches)
 Training seed 2 of all three arm lineages (setup and placement history in the section below). Same recipe, same
