@@ -1,22 +1,29 @@
-.cache/
-.venv/
-ops/broker/
-ops/logs/
-ops/watchdog/
+# environments and caches (no trailing slash: these are symlinks in some checkouts/worktrees)
+.venv
+.cache
 __pycache__/
 *.pyc
 node_modules/
-artifacts/datasets/
+ui/dist/
+*.tmp
+MUJOCO_LOG.TXT
+
+# ops runtime state (broker, logs, watchdog, token)
+ops/broker/
+ops/logs/
+ops/watchdog/
+ops/workbench-token
+ops/**/*.log
+
+# data and weights never go in git (public repo): they live in the peer store / ~/work/rrp-data
+artifacts/datasets
+artifacts/packed
 artifacts/checkpoints/
 artifacts/episodes/
 artifacts/video/raw/
-ui/dist/
-
-ops/workbench-token
 *.pt
-*.tmp
-MUJOCO_LOG.TXT
-.cache/
-.venv
-artifacts/datasets
-artifacts/packed
+*.pth
+*.ckpt
+*.safetensors
+*.npz
+*.pkl
