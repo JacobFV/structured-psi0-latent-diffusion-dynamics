@@ -178,6 +178,99 @@ def _rms(x):
     return float(np.sqrt(np.mean(x ** 2))) if x.size else 0.0
 
 
+def run_policy_quality_episode(policy, robot_key: str, seed: int, *, label: str, max_steps: int = 300, robot=None) -> dict:
+    """The same motion metrics for a LEARNED chunk policy (rrp.controllers.policy_runner.LearnedPolicy), rolled out
+    like the ladder `learned` route (execute_prefix rows per chunk, public observations only). Phases are the chunk
+    index, so `vel_jump_switch_max` = the largest joint-velocity step at chunk boundaries."""
+    from rrp.bodies.catalog import workbench_robots
+    from rrp.envs.native import Session
+    from rrp.envs.scenario import BUILDERS
+    from rrp.teachers.arm import PickPlaceTeacher
+    robot = robot or workbench_robots()[robot_key]()
+    s = Session(BUILDERS["pick_place"](robot, seed, n_distractors=seed % 3), seed=seed)
+    m, d = s.model, s.data
+    row = dict(robot=robot_key, seed=seed, version="policy", source=label, privileged=False, n_distractors=seed % 3)
+    feas = PickPlaceTeacher(s).feasibility()          # same seed-set definition as every other route
+    row["feasible"] = bool(feas["feasible"])
+    if not feas["feasible"]:
+        row.update(outcome="infeasible", success=False)
+        return row
+    r = s.robots[0]
+    tcp_site = r.tcp_sites[next(a.id for a in r.spec.assemblies if a.kind in ("gripper", "hand"))]
+    sid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_SITE, tcp_site)
+    cube_bid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, "cube")
+    robot_bodies, hand_bodies = _robot_bodies(s, r), _hand_bodies(s, r)
+    body_name = [m.body(i).name for i in range(m.nbody)]
+    T = dict(phase=[], q_cmd=[], grip=[], q=[], tcp=[], tcp_R=[], obj=[], held=[], pen=[], pen_hand=[], ik=[],
+             tcp_cmd_fk=[], n_hand_contacts=[])
+    nchunk, steps, error, t0 = 0, 0, None, time.time()
+    q_last = r.controller.current_targets(d)["arm"].copy()
+    try:
+        for k in range(max_steps):
+            if not s.executor.queue:
+                s.submit_chunk(policy.chunks([s])[0], execute_prefix=policy.execute_prefix)
+                nchunk += 1
+            out = s.step(None)
+            steps = k + 1
+            cmd = out.command or {}
+            q_cmd = np.asarray(cmd.get("arm", q_last), float)
+            q_last = q_cmd
+            T["phase"].append(f"chunk{nchunk}")
+            T["q_cmd"].append(q_cmd)
+            T["grip"].append(float(cmd["gripper"][0]) if "gripper" in cmd else np.nan)
+            T["q"].append(d.qpos[r.ik.qadr].copy())
+            T["tcp"].append(d.site_xpos[sid].copy())
+            T["tcp_R"].append(d.site_xmat[sid].reshape(3, 3).copy())
+            T["obj"].append(d.xpos[cube_bid].copy())
+            T["ik"].append(np.nan)
+            pen = pen_h = 0.0
+            touching = set()
+            for c in range(d.ncon):
+                con = d.contact[c]
+                b1, b2 = body_name[m.geom_bodyid[con.geom1]], body_name[m.geom_bodyid[con.geom2]]
+                if "cube" not in (b1, b2):
+                    continue
+                other = b2 if b1 == "cube" else b1
+                if other in robot_bodies:
+                    pen = max(pen, -float(con.dist))
+                    if other in hand_bodies:
+                        pen_h = max(pen_h, -float(con.dist))
+                        touching.add(other)
+            T["pen"].append(pen)
+            T["pen_hand"].append(pen_h)
+            T["n_hand_contacts"].append(len(touching))
+            T["held"].append(len(touching) >= 2)
+            T["tcp_cmd_fk"].append(r.ik.fk(d.qpos.copy(), q_cmd)[0])
+            if s.runtime.succeeded():
+                break
+        s.step(None)
+    except Exception as e:  # noqa: BLE001 - recorded failure
+        error = repr(e)[:300]
+    ok = bool(s.privileged_success()) if error is None else False
+    row.update(success=ok, outcome="success" if ok else "failure", steps=steps, time_s=round(steps * s.dt, 3),
+               error=error, wall_s=round(time.time() - t0, 2), dt=s.dt, n_chunks=nchunk)
+    met = _metrics(T, s.dt, r.ik.lo, r.ik.hi, None)
+    met["chunk_vel_jump_max"] = met.pop("vel_jump_switch_max", None)
+    met["chunk_tcp_vel_jump_max"] = met.pop("tcp_vel_jump_switch_max", None)
+    g = np.array(T["grip"], float)
+    if g.size > 3 and np.isfinite(g).all():
+        met["grip_cmd_step_max"] = float(np.max(np.abs(np.diff(g))))
+    row.update(met)
+    row["failure_stage"] = None if ok else ("crash" if error else "timeout_or_drop")
+    return row
+
+
+def _policy_job(args):
+    ck, label, rk, seeds, max_steps, device = args
+    from rrp.bodies.catalog import workbench_robots
+    from rrp.controllers.policy_runner import LearnedPolicy
+    import torch
+    torch.set_num_threads(1)
+    pol = LearnedPolicy.from_checkpoint(ck, device=device, nfe=8, execute_prefix=8, seed=0)
+    robot = workbench_robots()[rk]()
+    return [run_policy_quality_episode(pol, rk, sd, label=label, max_steps=max_steps, robot=robot) for sd in seeds]
+
+
 def _metrics(T, dt, lo, hi, teacher) -> dict:
     out = {}
     if len(T["q"]) < 5:
@@ -329,8 +422,12 @@ def main(argv=None):
     ap.add_argument("--workers", type=int, default=1)
     ap.add_argument("--chunk", type=int, default=10)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--policy", action="append", default=[], help="label=checkpoint (learned chunk policy mode)")
+    ap.add_argument("--device", default="cpu")
     a = ap.parse_args(argv)
     seeds = _parse_seeds(a.seeds)
+    if a.policy:
+        return _main_policy(a, seeds)
     jobs = [(rk, seeds[i:i + a.chunk], v, a.max_steps) for v in a.versions.split(",") for rk in a.bodies.split(",")
             for i in range(0, len(seeds), a.chunk)]
     out = Path(a.out)
@@ -357,6 +454,56 @@ def main(argv=None):
         print(k, f"{e['success']}/{e['feasible']}", e["failure_stages"],
               "jerk_cmd_peak_med=%.1f" % e.get("joint_cmd_jerk_peak", {}).get("median", np.nan),
               "vjump_sw_med=%.2f" % e.get("vel_jump_switch_max", {}).get("median", np.nan), flush=True)
+
+
+def _main_policy(a, seeds):
+    import multiprocessing as mp
+    from concurrent.futures import ProcessPoolExecutor
+    jobs = []
+    for spec in a.policy:
+        label, ck = spec.split("=", 1)
+        for rk in a.bodies.split(","):
+            for i in range(0, len(seeds), a.chunk):
+                jobs.append((ck, label, rk, seeds[i:i + a.chunk], min(a.max_steps, 300), a.device))
+    out = Path(a.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    ex = ProcessPoolExecutor(max_workers=max(1, a.workers), mp_context=mp.get_context("spawn"))
+    rows = []
+    with open(out, "w") as f:
+        for i, rs in enumerate(ex.map(_policy_job, jobs)):
+            for r in rs:
+                f.write(json.dumps(r, default=float) + "\n")
+                rows.append(r)
+            f.flush()
+            print(f"[policy_quality] {i + 1}/{len(jobs)}", flush=True)
+    ex.shutdown(wait=True)
+    for r in rows:
+        r["version"] = r["source"]
+    summ = summarize_policy(rows)
+    Path(str(out).replace(".jsonl", ".summary.json")).write_text(json.dumps(summ, indent=1))
+    for k, e in summ.items():
+        print(k, json.dumps(e)[:400], flush=True)
+
+
+def summarize_policy(rows):
+    import collections
+    g = collections.defaultdict(list)
+    for r in rows:
+        g[(r["robot"], r["source"])].append(r)
+    keys = ["joint_cmd_jerk_peak", "joint_cmd_jerk_rms", "joint_cmd_acc_peak", "joint_meas_jerk_peak", "joint_meas_jerk_rms",
+            "tcp_meas_jerk_peak", "tcp_meas_jerk_rms", "chunk_vel_jump_max", "vel_jump_any_max", "grip_cmd_step_max",
+            "time_s", "pen_hand_max_m"]
+    out = {}
+    for (rb, src), rs in sorted(g.items()):
+        fe = [r for r in rs if r.get("feasible")]
+        e = dict(n=len(rs), feasible=len(fe), success=sum(r["success"] for r in fe))
+        for k in keys:
+            vals = np.array([r[k] for r in fe if r.get(k) is not None], float)
+            vals = vals[np.isfinite(vals)]
+            if vals.size:
+                e[k] = dict(median=float(np.median(vals)), p90=float(np.percentile(vals, 90)), max=float(vals.max()))
+        out[f"{rb}|{src}"] = e
+    return out
 
 
 if __name__ == "__main__":
