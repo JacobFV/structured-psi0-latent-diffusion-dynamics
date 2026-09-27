@@ -293,6 +293,8 @@ def _job(args):
     s.update(route=route, robot=robot, condition=dict(factor=cond["factor"], level=cond["level"], key=cond["key"]),
              perturbation=cond["pert"].to_dict(), wall_s=time.time() - t0, family=family)
     summ.write_text(json.dumps(s, indent=1, default=str))
+    del rows
+    gc.collect()              # sessions/models of a shard sit in reference cycles; keep the worker's RSS flat
     return cond["key"], f"{s['success']}/{s['n']}"
 
 
