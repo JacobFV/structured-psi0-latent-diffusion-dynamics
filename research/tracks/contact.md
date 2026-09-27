@@ -156,6 +156,20 @@ turn 1.05, but slip 0.29 (the v1 tracker zero-shot in v2 physics gives 0.17), Co
 and backwards in swing, an unnatural gait. Moved to `artifacts/trackers/anymal_c/contact_v2_rejected_iter2499/` (not loadable as contact_v2).
 Video with a FAILURE label in INDEX: `2026-09-26_contact_anymal_c_{forward,turn}_v1-vs-v2_iter2499_ok_ok.mp4`. Rerun r2 (lease
 1790485178_e1b7ca, `artifacts/runs/contact_anymal_c_v2_r2`) uses `--max-lr 1e-3` and the range-scaled tracking sigma 0.16.
+### h1 round 1: completed (alpha 0; gate fails)
+`artifacts/runs/contact_h1_v2_warm` (peer, 4000 iters, sha fca86e8f89996326...; pulled to the host run dir). Validation
+`val/h1_v2trk-r1_physv2.json`: slip ratio 0.57 (v1) -> 0.18, fwd 0.69 -> 1.14, apex 1.1 -> 4.2 cm, air 0.03 -> 0.08 s, duty 0.63-0.80, CoT 2.74 -> 2.84,
+but no-fall 0.92 and turn 0.18 (v1 0.33). Round 2 (humanoid thresholds, lr ceiling 1e-3): peer lease 1790488049_a8d76d, dir wt/contact2,
+`artifacts/runs/contact_h1_v2_r2` to 5500. At iter 4486 alpha is still 0 (training-window track_rel_err 0.61 > 0.5).
+### hexapod6 run 3 and anymal_c round 2: REJECTED; the reward flaw found (gait_v2c)
+hexapod6 run 3 (`contact_hexapod6_v2_warm`, sigma 0.0225): fwd 1.05, turn 1.07, slip 0.46, duty 0.09-0.33, CoT 13.5. Legs are held off the ground.
+anymal_c round 2 (`contact_anymal_c_v2_r2`): slip 0.16, fwd 0.98, turn 1.05, but shanks kicked out (apex 21.5 cm, duty 0.31-0.43, CoT 1.98).
+Both are rejected (`trackers/<b>/contact_v2_rejected_*`, FAILURE lines in INDEX). The v1 hexapod6 tracker also holds its front legs up (duty min 0.00).
+**Diagnosis:** the stance-slip penalty and the swing-height reward were SUMS over feet, so keeping fewer feet on the ground reduced
+the penalty and raised the reward. Bipeds are protected by the contact-phase clock; go2 happened not to exploit it.
+**gait_v2c (non-bipeds only):** slip = 2 x mean over feet in contact (x2 keeps a trot's scale), clearance = mean over swinging feet. Runs on
+the PEER (load 6; host limit fell to 9 CPU): anymal_c lease 1790489199_66f489, hexapod6 lease 1790489200_781fbf, dir wt/contact3,
+`artifacts/runs/contact_{anymal_c,hexapod6}_v2c`.
 ### hexapod6 run 2: failed (stander) -> run 3
 With the lr cap, the run was stable but converged to standing (track_rel_err 0.88-0.96 at iter 1000): the sigma 0.25 tracking kernel is too
 flat for a 0.18 m/s command. gait_v2 now uses sigma = min(0.25, (0.5 vx_max)^2) for non-bipeds (hexapod6 0.0225, anymal_c 0.16, go2 0.25
