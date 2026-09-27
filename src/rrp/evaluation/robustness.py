@@ -501,15 +501,114 @@ def cross_route_md(rep: dict) -> list[str]:
     return L
 
 
+def load_outcomes(out: Path, family: str) -> dict:
+    """{route: {robot: {condition key: {seed: (privileged success, public success)}}}} from the raw shard rows."""
+    res = {}
+    for f in sorted(out.glob("*/*/*.jsonl")):
+        route, robot, key = f.parent.parent.name, f.parent.name, f.stem
+        d = res.setdefault(route, {}).setdefault(robot, {}).setdefault(key, {})
+        for l in f.read_text().splitlines():
+            r = json.loads(l)
+            d[int(r["seed"])] = (_success(r, family), bool(r["public_success"]))
+    return res
+
+
+def _signflip_p(x: np.ndarray, n_perm: int = 200000, seed: int = 0) -> float:
+    """Two-sided sign-flip permutation p-value for mean(x) = 0 (paired differences over independent seeds)."""
+    x = np.asarray(x, float)
+    if not np.any(x):
+        return 1.0
+    rng = np.random.default_rng(seed)
+    obs = abs(x.mean())
+    s = rng.choice([-1.0, 1.0], size=(n_perm, len(x)))
+    return float((np.sum(np.abs((s * x).mean(1)) >= obs - 1e-12) + 1) / (n_perm + 1))
+
+
+def paired_route_comparison(oc: dict, robot: str, a: str, b: str, which: int = 0, exclude=("all_moderate",)) -> dict:
+    """Paired over seeds (the only independent unit). For each seed: level_mean = mean success over all perturbed
+    single-factor levels; drop = nominal success - level_mean. Reports mean(level_mean_a - level_mean_b) (absolute
+    robustness) and mean(drop_a - drop_b) (robustness relative to each route's own nominal), with sign-flip permutation
+    p-values and seed-bootstrap 95% CIs. which: 0 = privileged success, 1 = public success."""
+    A, B = oc[a][robot], oc[b][robot]
+    keys = sorted(k for k in A if k != NOMINAL and k not in exclude and k in B)
+    seeds = sorted(set(A[NOMINAL]) & set(B[NOMINAL]))
+    def per_seed(D):
+        lm = np.array([np.mean([D[k][s][which] for k in keys]) for s in seeds])
+        nom = np.array([float(D[NOMINAL][s][which]) for s in seeds])
+        return lm, nom - lm
+    la, da = per_seed(A)
+    lb, db = per_seed(B)
+    rng = np.random.default_rng(1)
+    def boot(x):
+        bs = [x[rng.integers(0, len(x), len(x))].mean() for _ in range(4000)]
+        return [float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5))]
+    return dict(a=a, b=b, robot=robot, metric=("privileged" if which == 0 else "public") + "_success", n_seeds=len(seeds),
+                n_levels=len(keys), level_mean_a=float(la.mean()), level_mean_b=float(lb.mean()),
+                diff_level_mean=float((la - lb).mean()), diff_level_mean_ci=boot(la - lb), p_level_mean=_signflip_p(la - lb),
+                drop_a=float(da.mean()), drop_b=float(db.mean()), diff_drop=float((da - db).mean()),
+                diff_drop_ci=boot(da - db), p_drop=_signflip_p(da - db))
+
+
+def comparisons(out: Path, family: str) -> list[dict]:
+    oc = load_outcomes(out, family)
+    pairs = [("semfix", "nosem"), ("semfix", "bc"), ("nosem", "bc"), ("bc", "teacher"), ("semfix", "teacher")] \
+        if family == "legged" else [("frozen_sem", "bc"), ("frozen_sem", "teacher"), ("bc", "teacher")]
+    res = []
+    for robot in sorted({r for x in oc.values() for r in x}):
+        for a, b in pairs:
+            if a in oc and b in oc and robot in oc[a] and robot in oc[b]:
+                for which in ((0, 1) if family == "legged" else (0,)):
+                    res.append(paired_route_comparison(oc, robot, a, b, which))
+    return res
+
+
+def comparisons_md(cs: list[dict]) -> list[str]:
+    L = ["## paired route comparison (seeds are the unit; single-factor levels pooled; all_moderate excluded)", "",
+         "level mean = mean success over the perturbed levels; drop = nominal - level mean (per seed, then averaged). "
+         "Differences a - b with seed-bootstrap 95% CI and two-sided sign-flip permutation p.", "",
+         "| robot | a vs b | metric | level mean a / b | diff [95% CI] p | drop a / b | diff drop [95% CI] p |",
+         "|---|---|---|---|---|---|---|"]
+    for c in cs:
+        L.append(f"| {c['robot']} | {c['a']} vs {c['b']} | {c['metric']} | {c['level_mean_a']:.3f} / {c['level_mean_b']:.3f} | "
+                 f"{c['diff_level_mean']:+.3f} [{c['diff_level_mean_ci'][0]:+.3f}, {c['diff_level_mean_ci'][1]:+.3f}] "
+                 f"p={c['p_level_mean']:.3g} | {c['drop_a']:+.3f} / {c['drop_b']:+.3f} | {c['diff_drop']:+.3f} "
+                 f"[{c['diff_drop_ci'][0]:+.3f}, {c['diff_drop_ci'][1]:+.3f}] p={c['p_drop']:.3g} |")
+    L.append("")
+    return L
+
+
 def cmd_report(a):
     out = Path(a.out)
     rep = build_report(out)
-    (out / "robustness_report.json").write_text(json.dumps(rep["table"], indent=1, default=str))
-    (out / "robustness_report.md").write_text(render_md(rep))
-    print(render_md(rep))
+    cs = comparisons(out, rep["family"])
+    (out / "robustness_report.json").write_text(json.dumps(dict(table=rep["table"], comparisons=cs), indent=1, default=str))
+    md = render_md(rep)
+    head, sep, tail = md.partition("## cross-route summary")
+    md = head + "\n".join(comparisons_md(cs)) + "\n" + sep + tail
+    (out / "robustness_report.md").write_text(md)
+    print(md)
 
 
 # ------------------------------------------------------------------ labelled failure videos
+def _write_mp4(path: Path, imgs, fps: int):
+    """imageio in this interpreter, else (the host venv has no imageio) the interpreter named by $RRP_VIDEO_PY."""
+    try:
+        import imageio
+        imageio.mimsave(path, imgs, fps=fps, quality=6)
+        return
+    except ModuleNotFoundError:
+        py = os.environ.get("RRP_VIDEO_PY")
+        if not py:
+            raise
+    import subprocess
+    import tempfile
+    with tempfile.TemporaryDirectory(dir=path.parent) as td:
+        fr = Path(td) / "frames.npy"
+        np.save(fr, np.stack(imgs))
+        subprocess.run([py, "-c", "import sys, numpy as np, imageio; imageio.mimsave(sys.argv[2], list(np.load(sys.argv[1])), "
+                        "fps=int(sys.argv[3]), quality=6)", str(fr), str(path), str(fps)], check=True)
+
+
 def _cond_by_key(family, robot, key):
     return next(c for c in conditions(family, robot) if c["key"] == key)
 
@@ -521,7 +620,6 @@ def render_video(family: str, route: dict, robot: str, key: str, seed: int, out_
     controller source and the physics condition."""
     import datetime as dt
     import re
-    import imageio
     os.environ.setdefault("MUJOCO_GL", "egl")
     cond = _cond_by_key(family, robot, key)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -578,7 +676,7 @@ def render_video(family: str, route: dict, robot: str, key: str, seed: int, out_
         tag = "success" if ok else f"failure-{row['failed_stage']}"
     s_ = re.sub(r"[^A-Za-z0-9_.+-]+", "-", f"{route['name']}")[:40]
     name = f"{dt.date.today()}_robust_{s_}_{robot}_{key.replace('=', '')}_s{seed}_{tag}.mp4"
-    imageio.mimsave(out_dir / name, imgs, fps=fps, quality=6)
+    _write_mp4(out_dir / name, imgs, fps)
     with open(out_dir / "INDEX.md", "a") as fh:
         fh.write(f"- `{name}` — W6 robustness sweep, source={src} (route {route['name']}) robot={robot} "
                  f"task={'waypoint_contact' if family == 'legged' else 'pick_place'} seed={seed} condition={key} "
