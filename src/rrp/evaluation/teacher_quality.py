@@ -164,7 +164,8 @@ def run_quality_episode(robot_key: str, seed: int, version: str = "v1", *, max_s
             p_fk, _ = r.ik.fk(d.qpos.copy(), q_cmd)
             T["tcp_cmd_fk"].append(p_fk)
             if frames is not None and k % frames.get("every", 1) == 0:
-                frames["renderer"].update_scene(d, camera=frames.get("camera", "front"))
+                cam = frames.get("camera", "front")
+                frames["renderer"].update_scene(d, camera=cam(m, d) if callable(cam) else cam)
                 frames["out"].append(frames["caption"](frames["renderer"].render().copy(), s, teacher, k))
             if teacher.done:
                 break

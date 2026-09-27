@@ -43,12 +43,24 @@ def render(robot_key, seed, version, args):
     rend = mujoco.Renderer(s0.model, args.height, args.width)
     frames = []
 
+    gc = os.environ.get("RRP_GRASP_CONTACT", "v1")
+
     def cap(img, s, teacher, k):
         return _caption(img, [f"SCRIPTED TEACHER {NAMES[version]} (privileged) | {robot_key} | pick_place | seed {seed}",
-                              f"t={s.data.time:4.1f}s  phase={teacher.phase}"])
+                              f"t={s.data.time:4.1f}s  phase={teacher.phase}  grasp contact grasp_{gc}"])
 
+    cam = args.camera
+    if cam == "closeup":        # free camera following the task cube (shows finger/cube overlap)
+        vc = mujoco.MjvCamera()
+        vc.type = mujoco.mjtCamera.mjCAMERA_FREE
+        vc.distance, vc.elevation, vc.azimuth = 0.28, -12.0, 150.0
+        cb = mujoco.mj_name2id(s0.model, mujoco.mjtObj.mjOBJ_BODY, "cube")
+
+        def cam(m, d):
+            vc.lookat[:] = d.xpos[cb]
+            return vc
     row = run_quality_episode(robot_key, seed, version, max_steps=args.max_steps, robot=robot,
-                              frames=dict(renderer=rend, camera=args.camera, every=1, out=frames, caption=cap))
+                              frames=dict(renderer=rend, camera=cam, every=1, out=frames, caption=cap))
     rend.close()
     return row, frames
 
@@ -85,13 +97,15 @@ def main():
             last = _caption(frames[-1].copy(), [f"SCRIPTED TEACHER {NAMES[v]} (privileged) | {a.robot} | seed {sd}",
                                                 f"END: {tag.upper()} (privileged evaluator) | {stats[:90]}"])
             frames = frames + [last] * a.fps          # hold the outcome card 1 s
-            name = f"{today}_scripted_teacher_{v}_{a.robot}_pick_place_s{sd}_{tag}.mp4"
+            gct = os.environ.get("RRP_GRASP_CONTACT")
+            name = f"{today}_scripted_teacher_{v}{('_grasp' + gct) if gct else ''}_{a.robot}_pick_place_s{sd}_{tag}.mp4"
             imageio.mimsave(out / name, frames, fps=a.fps, quality=6)
             clips[v] = (frames, tag, row)
             with open(out / "INDEX.md", "a") as f:
                 f.write(f"- `{name}` — source=scripted_teacher:{row['source'].split(':', 1)[1]} (privileged; W7 teacher "
                         f"{'before' if v == 'v1' else 'after'}) robot={a.robot} task=pick_place seed={sd} outcome={tag} "
-                        f"(privileged evaluator); {stats}{('; ' + a.note) if a.note else ''}\n")
+                        f"(privileged evaluator); grasp contact grasp_{os.environ.get('RRP_GRASP_CONTACT', 'v1')}; {stats}"
+                        f"{('; ' + a.note) if a.note else ''}\n")
             print(name, tag, stats, flush=True)
         if a.sbs and len(clips) >= 2:
             (fa, ta, _), (fb, tb, _) = clips[vers[0]], clips[vers[1]]
