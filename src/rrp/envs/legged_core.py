@@ -277,6 +277,10 @@ class RewardCfg:
     # pure-turn commands (a stepping turn), independent of the decaying contact_phase prior.
     yaw_slip: float = 0.0
     turn_step: float = 0.0
+    # PERMANENT stepping floor (W1, D-103 task 2): during any moving/turning command, each foot that has stayed in contact longer than
+    # stance_cap_frac x gait period is penalised: x clip((stance time - cap) / period, 0, 1) per foot. Forces a minimum swing frequency.
+    stance_cap: float = 0.0
+    stance_cap_frac: float = 0.75
     turn_lin: float = 0.0          # dense yaw progress during pure-turn commands: x clip(w_z sign(c)/|c|, -0.5, 1.2)
     sigma_ang: float = 0.0         # yaw-rate tracking kernel width; 0 -> sigma (a sharper kernel keeps small turn commands informative)
     version: str = "gait_v1"
@@ -366,6 +370,8 @@ class LeggedEnv:
                                      mode=actuator)
         self.actuator = actuator
         self.turn_vx = 0.0
+        self.slow_frac = 0.0      # bipeds: fraction of translational commands rescaled to 0.05-0.2 m/s (slow-gait mix)
+        self.stance_t = np.zeros((n_envs, self.b.nf))
         self.turn_cmd = np.zeros(n_envs, bool)
         self.turn_scale = 1.0     # curriculum (set_turn_scale); 1.0 = the v3 sampler unchanged
         self.turn_frac = 0.25
@@ -425,6 +431,9 @@ class LeggedEnv:
             c[:2] = 0
         if abs(c[2]) < 0.05:
             c[2] = 0
+        if self.slow_frac and self.b.biped and np.linalg.norm(c[:2]) > 0.05 and self.rng.random() < self.slow_frac:
+            c[:2] *= self.rng.uniform(0.05, 0.2) / np.linalg.norm(c[:2])
+            c[2] *= 0.3
         self.turn_cmd[i] = bool(self.b.biped and 0.45 <= u < 0.45 + self.turn_frac and abs(c[2]) > 0)
         self.cmd[i] = c
         self.cmd_timer[i] = int(self.rng.integers(150, 300))
@@ -438,6 +447,7 @@ class LeggedEnv:
         self.last_a2[i] = 0
         self.apex[i] = 0
         self.latency[i] = self.cdr.latency() if (self.cdr and self.act is None) else 0
+        self.stance_t[i] = 0
         if self.act is not None:
             self.act.reset(i, d.ctrl[self.b.pol_act].copy())
         self.phase[i] = self.rng.random()
@@ -580,6 +590,10 @@ class LeggedEnv:
                         mujoco.mj_objectVelocity(m, d, mujoco.mjtObj.mjOBJ_XBODY, fb, v6, 0)
                         ys += abs(float(v6[2]))
                 r += cfg.yaw_slip * ys
+            self.stance_t[i] = np.where(fc, self.stance_t[i] + self.dt, 0.0)
+            if cfg.stance_cap and moving:
+                cap = cfg.stance_cap_frac * b.period
+                r += cfg.stance_cap * float(np.sum(np.clip((self.stance_t[i] - cap) / b.period, 0.0, 1.0)))
             if cfg.turn_lin and pure_turn:
                 r += cfg.turn_lin * float(np.clip(w[2] * np.sign(c[2]) / abs(c[2]), -0.5, 1.2))
             if cfg.turn_step and pure_turn and b.nf == 2:

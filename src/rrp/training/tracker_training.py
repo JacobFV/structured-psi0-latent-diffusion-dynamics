@@ -61,6 +61,8 @@ def train(args):
     win = []
     saved_alpha0 = False
     turn_scale = None
+    if args.slow_frac > 0:
+        pool.set_slow_frac(args.slow_frac)
     if args.turn_curriculum > 0:
         turn_scale = pool.set_turn_scale(args.turn_curriculum)
         pool.set_turn_frac(args.turn_frac)
@@ -290,6 +292,7 @@ def main(argv=None):
                     help="bipeds: start pure-turn yaw-rate scale (e.g. 0.4); 0 = off (full range)")
     ap.add_argument("--turn-vx0", type=float, default=0.0,
                     help="arc-to-in-place curriculum: initial forward speed (m/s) added to pure-turn commands, shrunk to 0 in 4 steps")
+    ap.add_argument("--slow-frac", type=float, default=0.0, help="bipeds: fraction of walking commands rescaled to 0.05-0.2 m/s")
     ap.add_argument("--turn-frac", type=float, default=0.25, help="probability of a pure-turn command (bipeds)")
     ap.add_argument("--turn-advance", type=float, default=0.6, help="window turn ratio needed to widen the turn range")
     ap.add_argument("--actuator", default="v1", help="v1 ideal PD | v2 rrp.physics.actuator (randomised)")
