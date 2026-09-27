@@ -1,0 +1,4816 @@
+{
+ "table": {
+  "nosem_s1": {
+   "anymal_c": {
+    "nominal": {
+     "success": 19,
+     "n": 20,
+     "rate": 0.95,
+     "wilson95": [
+      0.7638688045357189,
+      0.9911185512976646
+     ],
+     "public_success": 20,
+     "falls": 0,
+     "motion": {
+      "slip_ratio": 0.04437621126087703,
+      "cot": 0.38923567306224316,
+      "joint_jerk_rms": 2337.383827746435,
+      "joint_jerk_peak": 19303.05707724079,
+      "peak_contact_force_bw": 2.790621468486859,
+      "joint_limit_margin_min": 0.2590332589775637
+     },
+     "sources": [
+      "learned:train_flow_s1/policy.pt"
+     ]
+    },
+    "factors": {
+     "friction": {
+      "levels": [
+       {
+        "level": 0.4,
+        "key": "friction=0.4",
+        "success": 5,
+        "n": 20,
+        "rate": 0.25,
+        "wilson95": [
+         0.11186170069997625,
+         0.46870087939258864
+        ],
+        "falls": 13,
+        "drop": 0.7,
+        "stages": {
+         "fell": 13,
+         "success": 5,
+         "drift_a": 2
+        },
+        "task": {
+         "public_success": 5,
+         "mean_sim_time": 19.820000000004228
+        },
+        "motion": {
+         "slip_ratio": 0.6139757525091512,
+         "cot": 2.545029561681832,
+         "joint_jerk_rms": 806.2036415579091,
+         "joint_jerk_peak": 6701.6117779503675,
+         "peak_contact_force_bw": 0.6310101070764536,
+         "joint_limit_margin_min": -0.007856351417586378
+        },
+        "lost": 14,
+        "gained": 0
+       },
+       {
+        "level": 0.6,
+        "key": "friction=0.6",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 10.72500000000025
+        },
+        "motion": {
+         "slip_ratio": 0.048772208477006626,
+         "cot": 0.3869620133759013,
+         "joint_jerk_rms": 2305.878295877641,
+         "joint_jerk_peak": 18748.03317994351,
+         "peak_contact_force_bw": 2.7220009377019982,
+         "joint_limit_margin_min": 0.26052356639150165
+        },
+        "lost": 1,
+        "gained": 1
+       },
+       {
+        "level": 0.8,
+        "key": "friction=0.8",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.04999999999999993,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 10.855000000000294
+        },
+        "motion": {
+         "slip_ratio": 0.04590802930790065,
+         "cot": 0.3881542291498601,
+         "joint_jerk_rms": 2338.274909302263,
+         "joint_jerk_peak": 18644.441807854295,
+         "peak_contact_force_bw": 3.003328904559779,
+         "joint_limit_margin_min": 0.25955318084437395
+        },
+        "lost": 2,
+        "gained": 1
+       },
+       {
+        "level": 1.25,
+        "key": "friction=1.25",
+        "success": 20,
+        "n": 20,
+        "rate": 1.0,
+        "wilson95": [
+         0.8388748398148705,
+         1.0
+        ],
+        "falls": 0,
+        "drop": -0.050000000000000044,
+        "stages": {
+         "success": 20
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.11000000000038
+        },
+        "motion": {
+         "slip_ratio": 0.042295188120877375,
+         "cot": 0.39176455435752977,
+         "joint_jerk_rms": 2305.159155586619,
+         "joint_jerk_peak": 19207.959505927894,
+         "peak_contact_force_bw": 2.7325917643220463,
+         "joint_limit_margin_min": 0.2595718659531623
+        },
+        "lost": 0,
+        "gained": 1
+       },
+       {
+        "level": 1.5,
+        "key": "friction=1.5",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.210000000000413
+        },
+        "motion": {
+         "slip_ratio": 0.04618549175715066,
+         "cot": 0.39309284528647714,
+         "joint_jerk_rms": 2317.6557374634203,
+         "joint_jerk_peak": 18857.174061786674,
+         "peak_contact_force_bw": 2.7999630796806474,
+         "joint_limit_margin_min": 0.2590562795218864
+        },
+        "lost": 1,
+        "gained": 1
+       }
+      ],
+      "nominal_level": 1.0,
+      "break_point": {
+       "low": 0.4,
+       "high": null
+      },
+      "break_point_public": {
+       "low": 0.4,
+       "high": null
+      }
+     },
+     "mass": {
+      "levels": [
+       {
+        "level": 0.8,
+        "key": "mass=0.8",
+        "success": 17,
+        "n": 20,
+        "rate": 0.85,
+        "wilson95": [
+         0.6395811333571357,
+         0.9476312545132735
+        ],
+        "falls": 0,
+        "drop": 0.09999999999999998,
+        "stages": {
+         "success": 17,
+         "halt": 3
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 9.62999999999989
+        },
+        "motion": {
+         "slip_ratio": 0.044570109171995484,
+         "cot": 0.4716587460797258,
+         "joint_jerk_rms": 2639.687250463905,
+         "joint_jerk_peak": 23083.477295403405,
+         "peak_contact_force_bw": 3.899952655339955,
+         "joint_limit_margin_min": 0.26637014855086466
+        },
+        "lost": 3,
+        "gained": 1
+       },
+       {
+        "level": 0.9,
+        "key": "mass=0.9",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 10.035000000000021
+        },
+        "motion": {
+         "slip_ratio": 0.0394899314457783,
+         "cot": 0.42280316926944583,
+         "joint_jerk_rms": 2487.214875225977,
+         "joint_jerk_peak": 21637.862210181273,
+         "peak_contact_force_bw": 3.1989710804291462,
+         "joint_limit_margin_min": 0.26175927631129314
+        },
+        "lost": 1,
+        "gained": 1
+       },
+       {
+        "level": 1.1,
+        "key": "mass=1.1",
+        "success": 20,
+        "n": 20,
+        "rate": 1.0,
+        "wilson95": [
+         0.8388748398148705,
+         1.0
+        ],
+        "falls": 0,
+        "drop": -0.050000000000000044,
+        "stages": {
+         "success": 20
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 13.775000000001137
+        },
+        "motion": {
+         "slip_ratio": 0.05873827655599117,
+         "cot": 0.3740051135439476,
+         "joint_jerk_rms": 1911.4786015005843,
+         "joint_jerk_peak": 17951.62848803674,
+         "peak_contact_force_bw": 2.49771852036595,
+         "joint_limit_margin_min": 0.2503252169202837
+        },
+        "lost": 0,
+        "gained": 1
+       },
+       {
+        "level": 1.2,
+        "key": "mass=1.2",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 22.68999999999945
+        },
+        "motion": {
+         "slip_ratio": 0.08831886480495103,
+         "cot": 0.4078186480891804,
+         "joint_jerk_rms": 1527.6425084298953,
+         "joint_jerk_peak": 19046.295327304873,
+         "peak_contact_force_bw": 2.641506298379684,
+         "joint_limit_margin_min": 0.2386400096820321
+        },
+        "lost": 1,
+        "gained": 1
+       }
+      ],
+      "nominal_level": 1.0,
+      "break_point": {
+       "low": null,
+       "high": null
+      },
+      "break_point_public": {
+       "low": null,
+       "high": null
+      }
+     },
+     "com_x": {
+      "levels": [
+       {
+        "level": -0.02,
+        "key": "com_x=-0.02",
+        "success": 20,
+        "n": 20,
+        "rate": 1.0,
+        "wilson95": [
+         0.8388748398148705,
+         1.0
+        ],
+        "falls": 0,
+        "drop": -0.050000000000000044,
+        "stages": {
+         "success": 20
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.000000000000345
+        },
+        "motion": {
+         "slip_ratio": 0.0488007816509599,
+         "cot": 0.38717420568441574,
+         "joint_jerk_rms": 2235.0849729665697,
+         "joint_jerk_peak": 19093.45729332218,
+         "peak_contact_force_bw": 2.7822164903569258,
+         "joint_limit_margin_min": 0.25835201050887396
+        },
+        "lost": 0,
+        "gained": 1
+       },
+       {
+        "level": -0.01,
+        "key": "com_x=-0.01",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.04999999999999993,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 10.99500000000034
+        },
+        "motion": {
+         "slip_ratio": 0.046708707970711236,
+         "cot": 0.3887772851366154,
+         "joint_jerk_rms": 2247.0607697687346,
+         "joint_jerk_peak": 19112.38737667598,
+         "peak_contact_force_bw": 2.7389954626257635,
+         "joint_limit_margin_min": 0.25833592441789455
+        },
+        "lost": 2,
+        "gained": 1
+       },
+       {
+        "level": 0.01,
+        "key": "com_x=0.01",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.04999999999999993,
+        "stages": {
+         "halt": 2,
+         "success": 18
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 10.90000000000031
+        },
+        "motion": {
+         "slip_ratio": 0.04303668758972155,
+         "cot": 0.3930408696197762,
+         "joint_jerk_rms": 2371.344213284644,
+         "joint_jerk_peak": 19669.015784242416,
+         "peak_contact_force_bw": 2.8728298569991613,
+         "joint_limit_margin_min": 0.2587838755638826
+        },
+        "lost": 2,
+        "gained": 1
+       },
+       {
+        "level": 0.02,
+        "key": "com_x=0.02",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.045000000000359
+        },
+        "motion": {
+         "slip_ratio": 0.042369359773037706,
+         "cot": 0.3944222040633115,
+         "joint_jerk_rms": 2352.036613417035,
+         "joint_jerk_peak": 19473.67532221441,
+         "peak_contact_force_bw": 2.8330034739046743,
+         "joint_limit_margin_min": 0.2580736241057211
+        },
+        "lost": 1,
+        "gained": 1
+       }
+      ],
+      "nominal_level": 0.0,
+      "break_point": {
+       "low": null,
+       "high": null
+      },
+      "break_point_public": {
+       "low": null,
+       "high": null
+      }
+     },
+     "com_y": {
+      "levels": [
+       {
+        "level": 0.01,
+        "key": "com_y=0.01",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.04999999999999993,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.10500000000038
+        },
+        "motion": {
+         "slip_ratio": 0.04461734239819655,
+         "cot": 0.3895593137900486,
+         "joint_jerk_rms": 2329.014669098342,
+         "joint_jerk_peak": 19278.666802397493,
+         "peak_contact_force_bw": 2.735760571437412,
+         "joint_limit_margin_min": 0.2616706646754941
+        },
+        "lost": 2,
+        "gained": 1
+       },
+       {
+        "level": 0.02,
+        "key": "com_y=0.02",
+        "success": 20,
+        "n": 20,
+        "rate": 1.0,
+        "wilson95": [
+         0.8388748398148705,
+         1.0
+        ],
+        "falls": 0,
+        "drop": -0.050000000000000044,
+        "stages": {
+         "success": 20
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.035000000000354
+        },
+        "motion": {
+         "slip_ratio": 0.046358216891108764,
+         "cot": 0.390099919566678,
+         "joint_jerk_rms": 2338.3773764893767,
+         "joint_jerk_peak": 20036.12612840115,
+         "peak_contact_force_bw": 2.963134106960239,
+         "joint_limit_margin_min": 0.263457055465461
+        },
+        "lost": 0,
+        "gained": 1
+       }
+      ],
+      "nominal_level": 0.0,
+      "break_point": {
+       "high": null
+      },
+      "break_point_public": {
+       "high": null
+      }
+     },
+     "kp": {
+      "levels": [
+       {
+        "level": 0.7,
+        "key": "kp=0.7",
+        "success": 11,
+        "n": 20,
+        "rate": 0.55,
+        "wilson95": [
+         0.3420853410191274,
+         0.7418021429623598
+        ],
+        "falls": 1,
+        "drop": 0.3999999999999999,
+        "stages": {
+         "success": 11,
+         "drift_a": 6,
+         "halt": 1,
+         "drift_b": 1,
+         "fell": 1
+        },
+        "task": {
+         "public_success": 12,
+         "mean_sim_time": 52.520000000018214
+        },
+        "motion": {
+         "slip_ratio": 0.19952197614114447,
+         "cot": 0.6737644067686135,
+         "joint_jerk_rms": 1044.6659066479428,
+         "joint_jerk_peak": 18558.4264369625,
+         "peak_contact_force_bw": 2.4347002982926957,
+         "joint_limit_margin_min": 0.19993571315151765
+        },
+        "lost": 8,
+        "gained": 0
+       },
+       {
+        "level": 0.85,
+        "key": "kp=0.85",
+        "success": 20,
+        "n": 20,
+        "rate": 1.0,
+        "wilson95": [
+         0.8388748398148705,
+         1.0
+        ],
+        "falls": 0,
+        "drop": -0.050000000000000044,
+        "stages": {
+         "success": 20
+        },
+        "task": {
+         "public_success": 19,
+         "mean_sim_time": 21.895000000001218
+        },
+        "motion": {
+         "slip_ratio": 0.08234711681229406,
+         "cot": 0.4022034504332999,
+         "joint_jerk_rms": 1494.6085306359305,
+         "joint_jerk_peak": 17989.09792995911,
+         "peak_contact_force_bw": 2.5029984546532598,
+         "joint_limit_margin_min": 0.24308518440563825
+        },
+        "lost": 0,
+        "gained": 1
+       },
+       {
+        "level": 1.15,
+        "key": "kp=1.15",
+        "success": 15,
+        "n": 20,
+        "rate": 0.75,
+        "wilson95": [
+         0.5312991206074114,
+         0.8881382993000237
+        ],
+        "falls": 0,
+        "drop": 0.19999999999999996,
+        "stages": {
+         "success": 15,
+         "halt": 5
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 9.764999999999931
+        },
+        "motion": {
+         "slip_ratio": 0.03921482216255312,
+         "cot": 0.42904004851888555,
+         "joint_jerk_rms": 2599.8153142128267,
+         "joint_jerk_peak": 23533.135473422717,
+         "peak_contact_force_bw": 3.453530154380104,
+         "joint_limit_margin_min": 0.26163119246128874
+        },
+        "lost": 5,
+        "gained": 1
+       },
+       {
+        "level": 1.3,
+        "key": "kp=1.3",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.04999999999999993,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 19,
+         "mean_sim_time": 12.035000000001231
+        },
+        "motion": {
+         "slip_ratio": 0.04745248237714955,
+         "cot": 0.4783916434868698,
+         "joint_jerk_rms": 2764.5613742776954,
+         "joint_jerk_peak": 24767.338832441685,
+         "peak_contact_force_bw": 4.136677785795474,
+         "joint_limit_margin_min": 0.2591635309612544
+        },
+        "lost": 2,
+        "gained": 1
+       }
+      ],
+      "nominal_level": 1.0,
+      "break_point": {
+       "low": 0.7,
+       "high": null
+      },
+      "break_point_public": {
+       "low": 0.7,
+       "high": null
+      }
+     },
+     "latency_ms": {
+      "levels": [
+       {
+        "level": 0,
+        "key": "latency_ms=0",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.04999999999999993,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 10.880000000000305
+        },
+        "motion": {
+         "slip_ratio": 0.04386444995507134,
+         "cot": 0.3908603568148679,
+         "joint_jerk_rms": 2308.5510357636904,
+         "joint_jerk_peak": 18464.55633738554,
+         "peak_contact_force_bw": 2.7410096486552264,
+         "joint_limit_margin_min": 0.2589748387562357
+        },
+        "lost": 1,
+        "gained": 0
+       },
+       {
+        "level": 10,
+        "key": "latency_ms=10",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.04999999999999993,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.185000000000406
+        },
+        "motion": {
+         "slip_ratio": 0.04632993320539136,
+         "cot": 0.39203554767133103,
+         "joint_jerk_rms": 2189.5459159026204,
+         "joint_jerk_peak": 17883.27114497091,
+         "peak_contact_force_bw": 2.7712070361329295,
+         "joint_limit_margin_min": 0.25456350424026397
+        },
+        "lost": 2,
+        "gained": 1
+       },
+       {
+        "level": 20,
+        "key": "latency_ms=20",
+        "success": 17,
+        "n": 20,
+        "rate": 0.85,
+        "wilson95": [
+         0.6395811333571357,
+         0.9476312545132735
+        ],
+        "falls": 0,
+        "drop": 0.09999999999999998,
+        "stages": {
+         "success": 17,
+         "halt": 3
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.100000000000374
+        },
+        "motion": {
+         "slip_ratio": 0.043935568454493,
+         "cot": 0.39186871180182137,
+         "joint_jerk_rms": 2289.5916975286896,
+         "joint_jerk_peak": 19471.64409466597,
+         "peak_contact_force_bw": 3.001377500777455,
+         "joint_limit_margin_min": 0.25047316553952714
+        },
+        "lost": 3,
+        "gained": 1
+       },
+       {
+        "level": 30,
+        "key": "latency_ms=30",
+        "success": 20,
+        "n": 20,
+        "rate": 1.0,
+        "wilson95": [
+         0.8388748398148705,
+         1.0
+        ],
+        "falls": 0,
+        "drop": -0.050000000000000044,
+        "stages": {
+         "success": 20
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.280000000000435
+        },
+        "motion": {
+         "slip_ratio": 0.04988729243326556,
+         "cot": 0.40438968552274507,
+         "joint_jerk_rms": 2127.476213658562,
+         "joint_jerk_peak": 20598.086307035195,
+         "peak_contact_force_bw": 2.960167021917413,
+         "joint_limit_margin_min": 0.2477388405018402
+        },
+        "lost": 0,
+        "gained": 1
+       }
+      ],
+      "nominal_level": null,
+      "break_point": {
+       "high": null
+      },
+      "break_point_public": {
+       "high": null
+      }
+     },
+     "push_dv": {
+      "levels": [
+       {
+        "level": 0.25,
+        "key": "push_dv=0.25",
+        "success": 16,
+        "n": 20,
+        "rate": 0.8,
+        "wilson95": [
+         0.583982565906683,
+         0.9193423379822393
+        ],
+        "falls": 0,
+        "drop": 0.1499999999999999,
+        "stages": {
+         "success": 16,
+         "halt": 4
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 10.950000000000326
+        },
+        "motion": {
+         "slip_ratio": 0.04582782008460777,
+         "cot": 0.39015405150844956,
+         "joint_jerk_rms": 2308.9167437829656,
+         "joint_jerk_peak": 18683.9979070256,
+         "peak_contact_force_bw": 2.7710603743123903,
+         "joint_limit_margin_min": 0.2588699497836499
+        },
+        "lost": 3,
+        "gained": 0
+       },
+       {
+        "level": 0.5,
+        "key": "push_dv=0.5",
+        "success": 20,
+        "n": 20,
+        "rate": 1.0,
+        "wilson95": [
+         0.8388748398148705,
+         1.0
+        ],
+        "falls": 0,
+        "drop": -0.050000000000000044,
+        "stages": {
+         "success": 20
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.400000000000475
+        },
+        "motion": {
+         "slip_ratio": 0.04872711525656232,
+         "cot": 0.390333683205353,
+         "joint_jerk_rms": 2214.7741699162384,
+         "joint_jerk_peak": 19108.984749039402,
+         "peak_contact_force_bw": 2.8079556441725746,
+         "joint_limit_margin_min": 0.2584200978381173
+        },
+        "lost": 0,
+        "gained": 1
+       },
+       {
+        "level": 0.75,
+        "key": "push_dv=0.75",
+        "success": 17,
+        "n": 20,
+        "rate": 0.85,
+        "wilson95": [
+         0.6395811333571357,
+         0.9476312545132735
+        ],
+        "falls": 2,
+        "drop": 0.09999999999999998,
+        "stages": {
+         "fell": 2,
+         "success": 17,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 17,
+         "mean_sim_time": 13.910000000001972
+        },
+        "motion": {
+         "slip_ratio": 0.05136810743747956,
+         "cot": 0.3988662997731244,
+         "joint_jerk_rms": 2095.955397896539,
+         "joint_jerk_peak": 19680.86427942162,
+         "peak_contact_force_bw": 3.0839042997730894,
+         "joint_limit_margin_min": 0.24389908299799568
+        },
+        "lost": 3,
+        "gained": 1
+       },
+       {
+        "level": 1.0,
+        "key": "push_dv=1",
+        "success": 9,
+        "n": 20,
+        "rate": 0.45,
+        "wilson95": [
+         0.25819785703764037,
+         0.6579146589808726
+        ],
+        "falls": 11,
+        "drop": 0.49999999999999994,
+        "stages": {
+         "fell": 11,
+         "success": 9
+        },
+        "task": {
+         "public_success": 7,
+         "mean_sim_time": 13.290000000002872
+        },
+        "motion": {
+         "slip_ratio": 0.057039357447396674,
+         "cot": 0.41471692061364845,
+         "joint_jerk_rms": 2185.6493295903847,
+         "joint_jerk_peak": 20371.306592362893,
+         "peak_contact_force_bw": 3.0221483574394536,
+         "joint_limit_margin_min": 0.18581969013850494
+        },
+        "lost": 11,
+        "gained": 1
+       },
+       {
+        "level": 1.5,
+        "key": "push_dv=1.5",
+        "success": 3,
+        "n": 20,
+        "rate": 0.15,
+        "wilson95": [
+         0.05236874548672649,
+         0.36041886664286427
+        ],
+        "falls": 17,
+        "drop": 0.7999999999999999,
+        "stages": {
+         "fell": 17,
+         "success": 3
+        },
+        "task": {
+         "public_success": 3,
+         "mean_sim_time": 6.345000000000003
+        },
+        "motion": {
+         "slip_ratio": 0.06357812212620041,
+         "cot": 0.40385576193382755,
+         "joint_jerk_rms": 2499.6092691197628,
+         "joint_jerk_peak": 19726.046716910456,
+         "peak_contact_force_bw": 2.8549092677284165,
+         "joint_limit_margin_min": 0.1416426506673915
+        },
+        "lost": 17,
+        "gained": 1
+       }
+      ],
+      "nominal_level": 0.0,
+      "break_point": {
+       "high": 1.0
+      },
+      "break_point_public": {
+       "high": 1.0
+      }
+     },
+     "terrain_m": {
+      "levels": [
+       {
+        "level": 0.01,
+        "key": "terrain_m=0.01",
+        "success": 20,
+        "n": 20,
+        "rate": 1.0,
+        "wilson95": [
+         0.8388748398148705,
+         1.0
+        ],
+        "falls": 0,
+        "drop": -0.050000000000000044,
+        "stages": {
+         "success": 20
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.550000000000527
+        },
+        "motion": {
+         "slip_ratio": 0.04546440652056047,
+         "cot": 0.37732368292209373,
+         "joint_jerk_rms": 2117.432889019382,
+         "joint_jerk_peak": 18784.757790184063,
+         "peak_contact_force_bw": 2.738157855783904,
+         "joint_limit_margin_min": 0.259323609423136
+        },
+        "lost": 0,
+        "gained": 1
+       },
+       {
+        "level": 0.02,
+        "key": "terrain_m=0.02",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 12.385000000000804
+        },
+        "motion": {
+         "slip_ratio": 0.047383587425082946,
+         "cot": 0.37192746099352436,
+         "joint_jerk_rms": 2007.8463482321463,
+         "joint_jerk_peak": 18736.29745128214,
+         "peak_contact_force_bw": 2.625553707967187,
+         "joint_limit_margin_min": 0.2588711494326009
+        },
+        "lost": 1,
+        "gained": 1
+       },
+       {
+        "level": 0.03,
+        "key": "terrain_m=0.03",
+        "success": 20,
+        "n": 20,
+        "rate": 1.0,
+        "wilson95": [
+         0.8388748398148705,
+         1.0
+        ],
+        "falls": 0,
+        "drop": -0.050000000000000044,
+        "stages": {
+         "success": 20
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 13.675000000001187
+        },
+        "motion": {
+         "slip_ratio": 0.04668768811944552,
+         "cot": 0.3745775794363361,
+         "joint_jerk_rms": 1814.77794313201,
+         "joint_jerk_peak": 17411.580548430415,
+         "peak_contact_force_bw": 2.680556493435616,
+         "joint_limit_margin_min": 0.25941938250774466
+        },
+        "lost": 0,
+        "gained": 1
+       },
+       {
+        "level": 0.05,
+        "key": "terrain_m=0.05",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 16.15500000000138
+        },
+        "motion": {
+         "slip_ratio": 0.056936657393867635,
+         "cot": 0.3918601203950496,
+         "joint_jerk_rms": 1692.2472800511255,
+         "joint_jerk_peak": 17528.68451112309,
+         "peak_contact_force_bw": 2.678470083661439,
+         "joint_limit_margin_min": 0.25941263989999097
+        },
+        "lost": 0,
+        "gained": 0
+       },
+       {
+        "level": 0.08,
+        "key": "terrain_m=0.08",
+        "success": 9,
+        "n": 20,
+        "rate": 0.45,
+        "wilson95": [
+         0.25819785703764037,
+         0.6579146589808726
+        ],
+        "falls": 0,
+        "drop": 0.49999999999999994,
+        "stages": {
+         "drift_a": 9,
+         "success": 9,
+         "drift_b": 2
+        },
+        "task": {
+         "public_success": 8,
+         "mean_sim_time": 49.115000000016565
+        },
+        "motion": {
+         "slip_ratio": 0.059557998947935176,
+         "cot": 0.5007101939164885,
+         "joint_jerk_rms": 989.7371924697586,
+         "joint_jerk_peak": 18840.326555651438,
+         "peak_contact_force_bw": 2.9170712222824102,
+         "joint_limit_margin_min": 0.2582330045033345
+        },
+        "lost": 10,
+        "gained": 0
+       }
+      ],
+      "nominal_level": 0.0,
+      "break_point": {
+       "high": 0.08
+      },
+      "break_point_public": {
+       "high": 0.08
+      }
+     },
+     "all_moderate": {
+      "levels": [
+       {
+        "level": 1,
+        "key": "all_moderate",
+        "success": 15,
+        "n": 20,
+        "rate": 0.75,
+        "wilson95": [
+         0.5312991206074114,
+         0.8881382993000237
+        ],
+        "falls": 1,
+        "drop": 0.19999999999999996,
+        "stages": {
+         "success": 15,
+         "drift_b": 1,
+         "drift_a": 3,
+         "fell": 1
+        },
+        "task": {
+         "public_success": 14,
+         "mean_sim_time": 40.475000000006006
+        },
+        "motion": {
+         "slip_ratio": 0.14246928543865972,
+         "cot": 0.48180635956463014,
+         "joint_jerk_rms": 1051.4284764440831,
+         "joint_jerk_peak": 21006.91282823088,
+         "peak_contact_force_bw": 2.300243623855515,
+         "joint_limit_margin_min": 0.19826282661454248
+        },
+        "lost": 5,
+        "gained": 1
+       }
+      ],
+      "nominal_level": 0,
+      "break_point": {
+       "high": null
+      },
+      "break_point_public": {
+       "high": 1
+      }
+     }
+    },
+    "pooled_perturbed": {
+     "success": 558,
+     "n": 660,
+     "rate": 0.8454545454545455,
+     "wilson95": [
+      0.8158856868960376,
+      0.8710253125592391
+     ],
+     "lost": 96,
+     "gained": 27
+    }
+   }
+  },
+  "nosem_s2": {
+   "anymal_c": {
+    "nominal": {
+     "success": 18,
+     "n": 20,
+     "rate": 0.9,
+     "wilson95": [
+      0.6989663528135878,
+      0.9721335190383086
+     ],
+     "public_success": 20,
+     "falls": 0,
+     "motion": {
+      "slip_ratio": 0.04678564397138271,
+      "cot": 0.38375842035585406,
+      "joint_jerk_rms": 2358.2851203970063,
+      "joint_jerk_peak": 19747.427569473268,
+      "peak_contact_force_bw": 2.8456033549528597,
+      "joint_limit_margin_min": 0.2812826146301454
+     },
+     "sources": [
+      "learned:train_flow_s2/policy.pt"
+     ]
+    },
+    "factors": {
+     "friction": {
+      "levels": [
+       {
+        "level": 0.4,
+        "key": "friction=0.4",
+        "success": 0,
+        "n": 20,
+        "rate": 0.0,
+        "wilson95": [
+         0.0,
+         0.16112516018512965
+        ],
+        "falls": 17,
+        "drop": 0.9,
+        "stages": {
+         "fell": 17,
+         "drift_a": 3
+        },
+        "task": {
+         "public_success": 0,
+         "mean_sim_time": 23.08500000000895
+        },
+        "motion": {
+         "slip_ratio": 2.631070739424646,
+         "cot": 2.1742311828828704,
+         "joint_jerk_rms": 996.9197422050099,
+         "joint_jerk_peak": 5467.23947444129,
+         "peak_contact_force_bw": 0.6069247621390899,
+         "joint_limit_margin_min": 0.016836761598059927
+        },
+        "lost": 18,
+        "gained": 0
+       },
+       {
+        "level": 0.6,
+        "key": "friction=0.6",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 10.770000000000268
+        },
+        "motion": {
+         "slip_ratio": 0.046604528614886793,
+         "cot": 0.37908882067636085,
+         "joint_jerk_rms": 2321.084794256095,
+         "joint_jerk_peak": 19115.602038518373,
+         "peak_contact_force_bw": 2.865557669868277,
+         "joint_limit_margin_min": 0.2858348673726694
+        },
+        "lost": 2,
+        "gained": 2
+       },
+       {
+        "level": 0.8,
+        "key": "friction=0.8",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 10.945000000000324
+        },
+        "motion": {
+         "slip_ratio": 0.05065666966864603,
+         "cot": 0.3815130836395112,
+         "joint_jerk_rms": 2340.615632874028,
+         "joint_jerk_peak": 18707.227934903683,
+         "peak_contact_force_bw": 2.8278365438619293,
+         "joint_limit_margin_min": 0.28558842600983697
+        },
+        "lost": 2,
+        "gained": 2
+       },
+       {
+        "level": 1.25,
+        "key": "friction=1.25",
+        "success": 20,
+        "n": 20,
+        "rate": 1.0,
+        "wilson95": [
+         0.8388748398148705,
+         1.0
+        ],
+        "falls": 0,
+        "drop": -0.09999999999999998,
+        "stages": {
+         "success": 20
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.310000000000446
+        },
+        "motion": {
+         "slip_ratio": 0.04625482352121045,
+         "cot": 0.38483901452023417,
+         "joint_jerk_rms": 2420.259861182636,
+         "joint_jerk_peak": 20219.27277836464,
+         "peak_contact_force_bw": 2.861537503367871,
+         "joint_limit_margin_min": 0.28590972985160934
+        },
+        "lost": 0,
+        "gained": 2
+       },
+       {
+        "level": 1.5,
+        "key": "friction=1.5",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": -0.04999999999999993,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.38500000000043
+        },
+        "motion": {
+         "slip_ratio": 0.04234422095588734,
+         "cot": 0.38569943670714685,
+         "joint_jerk_rms": 2438.469771352522,
+         "joint_jerk_peak": 20252.456744013612,
+         "peak_contact_force_bw": 2.872176156636886,
+         "joint_limit_margin_min": 0.2848015915325554
+        },
+        "lost": 0,
+        "gained": 1
+       }
+      ],
+      "nominal_level": 1.0,
+      "break_point": {
+       "low": 0.4,
+       "high": null
+      },
+      "break_point_public": {
+       "low": 0.4,
+       "high": null
+      }
+     },
+     "mass": {
+      "levels": [
+       {
+        "level": 0.8,
+        "key": "mass=0.8",
+        "success": 20,
+        "n": 20,
+        "rate": 1.0,
+        "wilson95": [
+         0.8388748398148705,
+         1.0
+        ],
+        "falls": 0,
+        "drop": -0.09999999999999998,
+        "stages": {
+         "success": 20
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 9.619999999999894
+        },
+        "motion": {
+         "slip_ratio": 0.046993472973106645,
+         "cot": 0.47329214399275726,
+         "joint_jerk_rms": 2731.482784001206,
+         "joint_jerk_peak": 22924.810001426456,
+         "peak_contact_force_bw": 3.940365039876116,
+         "joint_limit_margin_min": 0.2733260153746844
+        },
+        "lost": 0,
+        "gained": 2
+       },
+       {
+        "level": 0.9,
+        "key": "mass=0.9",
+        "success": 20,
+        "n": 20,
+        "rate": 1.0,
+        "wilson95": [
+         0.8388748398148705,
+         1.0
+        ],
+        "falls": 0,
+        "drop": -0.09999999999999998,
+        "stages": {
+         "success": 20
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 9.980000000000002
+        },
+        "motion": {
+         "slip_ratio": 0.04236811129030024,
+         "cot": 0.4226818283217173,
+         "joint_jerk_rms": 2622.187018208703,
+         "joint_jerk_peak": 21774.794547495647,
+         "peak_contact_force_bw": 3.222220326771489,
+         "joint_limit_margin_min": 0.2772967680758318
+        },
+        "lost": 0,
+        "gained": 2
+       },
+       {
+        "level": 1.1,
+        "key": "mass=1.1",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": -0.04999999999999993,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 13.935000000000866
+        },
+        "motion": {
+         "slip_ratio": 0.05445254646409037,
+         "cot": 0.3767730153625301,
+         "joint_jerk_rms": 1914.2745820909267,
+         "joint_jerk_peak": 18508.47459930193,
+         "peak_contact_force_bw": 2.4921392163178164,
+         "joint_limit_margin_min": 0.2645703664104696
+        },
+        "lost": 1,
+        "gained": 2
+       },
+       {
+        "level": 1.2,
+        "key": "mass=1.2",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": -0.04999999999999993,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 19,
+         "mean_sim_time": 24.300000000000665
+        },
+        "motion": {
+         "slip_ratio": 0.0885568151447704,
+         "cot": 0.41098125682420544,
+         "joint_jerk_rms": 1469.4749437091132,
+         "joint_jerk_peak": 18785.055367031833,
+         "peak_contact_force_bw": 2.5816873914304885,
+         "joint_limit_margin_min": 0.24667848877680906
+        },
+        "lost": 1,
+        "gained": 2
+       }
+      ],
+      "nominal_level": 1.0,
+      "break_point": {
+       "low": null,
+       "high": null
+      },
+      "break_point_public": {
+       "low": null,
+       "high": null
+      }
+     },
+     "com_x": {
+      "levels": [
+       {
+        "level": -0.02,
+        "key": "com_x=-0.02",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": -0.04999999999999993,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 10.880000000000301
+        },
+        "motion": {
+         "slip_ratio": 0.04928736820630518,
+         "cot": 0.38083184539986503,
+         "joint_jerk_rms": 2400.00612151316,
+         "joint_jerk_peak": 19372.401159916797,
+         "peak_contact_force_bw": 2.8688442088349997,
+         "joint_limit_margin_min": 0.28705937193987985
+        },
+        "lost": 1,
+        "gained": 2
+       },
+       {
+        "level": -0.01,
+        "key": "com_x=-0.01",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": -0.04999999999999993,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.130000000000386
+        },
+        "motion": {
+         "slip_ratio": 0.04693948330039847,
+         "cot": 0.38391571889368825,
+         "joint_jerk_rms": 2353.6634715378946,
+         "joint_jerk_peak": 19064.200365547018,
+         "peak_contact_force_bw": 2.816497101786115,
+         "joint_limit_margin_min": 0.2831270169641934
+        },
+        "lost": 1,
+        "gained": 2
+       },
+       {
+        "level": 0.01,
+        "key": "com_x=0.01",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.120000000000381
+        },
+        "motion": {
+         "slip_ratio": 0.041191710630041706,
+         "cot": 0.3852711544826951,
+         "joint_jerk_rms": 2361.751495266725,
+         "joint_jerk_peak": 19930.57154704869,
+         "peak_contact_force_bw": 2.825719408898647,
+         "joint_limit_margin_min": 0.2817300101695761
+        },
+        "lost": 2,
+        "gained": 2
+       },
+       {
+        "level": 0.02,
+        "key": "com_x=0.02",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.08500000000037
+        },
+        "motion": {
+         "slip_ratio": 0.04256728750004275,
+         "cot": 0.38834393102397596,
+         "joint_jerk_rms": 2394.2571258959115,
+         "joint_jerk_peak": 19579.48896147876,
+         "peak_contact_force_bw": 2.861816312199207,
+         "joint_limit_margin_min": 0.28152020133534006
+        },
+        "lost": 2,
+        "gained": 2
+       }
+      ],
+      "nominal_level": 0.0,
+      "break_point": {
+       "low": null,
+       "high": null
+      },
+      "break_point_public": {
+       "low": null,
+       "high": null
+      }
+     },
+     "com_y": {
+      "levels": [
+       {
+        "level": 0.01,
+        "key": "com_y=0.01",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.195000000000409
+        },
+        "motion": {
+         "slip_ratio": 0.04336746260585097,
+         "cot": 0.38752675876487896,
+         "joint_jerk_rms": 2359.690774967796,
+         "joint_jerk_peak": 20009.52249070204,
+         "peak_contact_force_bw": 2.8873662143186696,
+         "joint_limit_margin_min": 0.2853508538564483
+        },
+        "lost": 2,
+        "gained": 2
+       },
+       {
+        "level": 0.02,
+        "key": "com_y=0.02",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": -0.04999999999999993,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 10.985000000000337
+        },
+        "motion": {
+         "slip_ratio": 0.04917968914448401,
+         "cot": 0.39208895665998134,
+         "joint_jerk_rms": 2540.962665814938,
+         "joint_jerk_peak": 19706.75987591834,
+         "peak_contact_force_bw": 2.98948619672678,
+         "joint_limit_margin_min": 0.28648330135908273
+        },
+        "lost": 0,
+        "gained": 1
+       }
+      ],
+      "nominal_level": 0.0,
+      "break_point": {
+       "high": null
+      },
+      "break_point_public": {
+       "high": null
+      }
+     },
+     "kp": {
+      "levels": [
+       {
+        "level": 0.7,
+        "key": "kp=0.7",
+        "success": 11,
+        "n": 20,
+        "rate": 0.55,
+        "wilson95": [
+         0.3420853410191274,
+         0.7418021429623598
+        ],
+        "falls": 3,
+        "drop": 0.35,
+        "stages": {
+         "success": 11,
+         "drift_a": 4,
+         "fell": 3,
+         "halt": 1,
+         "drift_b": 1
+        },
+        "task": {
+         "public_success": 10,
+         "mean_sim_time": 47.1500000000141
+        },
+        "motion": {
+         "slip_ratio": 0.16260189851835918,
+         "cot": 0.6545479959429217,
+         "joint_jerk_rms": 1027.0666149399144,
+         "joint_jerk_peak": 19943.946336756744,
+         "peak_contact_force_bw": 2.4821622080573915,
+         "joint_limit_margin_min": 0.1988293745091403
+        },
+        "lost": 8,
+        "gained": 1
+       },
+       {
+        "level": 0.85,
+        "key": "kp=0.85",
+        "success": 20,
+        "n": 20,
+        "rate": 1.0,
+        "wilson95": [
+         0.8388748398148705,
+         1.0
+        ],
+        "falls": 0,
+        "drop": -0.09999999999999998,
+        "stages": {
+         "success": 20
+        },
+        "task": {
+         "public_success": 19,
+         "mean_sim_time": 22.775000000000652
+        },
+        "motion": {
+         "slip_ratio": 0.08092090263272833,
+         "cot": 0.3995044384923686,
+         "joint_jerk_rms": 1452.5940470947585,
+         "joint_jerk_peak": 17871.80174074728,
+         "peak_contact_force_bw": 2.4879581160179054,
+         "joint_limit_margin_min": 0.24794076676047402
+        },
+        "lost": 0,
+        "gained": 2
+       },
+       {
+        "level": 1.15,
+        "key": "kp=1.15",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": -0.04999999999999993,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.520000000000344
+        },
+        "motion": {
+         "slip_ratio": 0.0410607974242224,
+         "cot": 0.424353003997193,
+         "joint_jerk_rms": 2660.006471838987,
+         "joint_jerk_peak": 22183.75943576589,
+         "peak_contact_force_bw": 3.4253174516738008,
+         "joint_limit_margin_min": 0.2752533146976911
+        },
+        "lost": 1,
+        "gained": 2
+       },
+       {
+        "level": 1.3,
+        "key": "kp=1.3",
+        "success": 17,
+        "n": 20,
+        "rate": 0.85,
+        "wilson95": [
+         0.6395811333571357,
+         0.9476312545132735
+        ],
+        "falls": 0,
+        "drop": 0.050000000000000044,
+        "stages": {
+         "success": 17,
+         "halt": 3
+        },
+        "task": {
+         "public_success": 19,
+         "mean_sim_time": 11.860000000001195
+        },
+        "motion": {
+         "slip_ratio": 0.04120355397458036,
+         "cot": 0.474379922279239,
+         "joint_jerk_rms": 2878.9530174327374,
+         "joint_jerk_peak": 26207.524734852246,
+         "peak_contact_force_bw": 4.197136589676338,
+         "joint_limit_margin_min": 0.2674512614877145
+        },
+        "lost": 2,
+        "gained": 1
+       }
+      ],
+      "nominal_level": 1.0,
+      "break_point": {
+       "low": 0.7,
+       "high": null
+      },
+      "break_point_public": {
+       "low": 0.7,
+       "high": null
+      }
+     },
+     "latency_ms": {
+      "levels": [
+       {
+        "level": 0,
+        "key": "latency_ms=0",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 10.915000000000314
+        },
+        "motion": {
+         "slip_ratio": 0.04673977424595982,
+         "cot": 0.3848926861978683,
+         "joint_jerk_rms": 2343.931309747223,
+         "joint_jerk_peak": 18580.00635789887,
+         "peak_contact_force_bw": 2.8291299051478815,
+         "joint_limit_margin_min": 0.282512857100113
+        },
+        "lost": 1,
+        "gained": 1
+       },
+       {
+        "level": 10,
+        "key": "latency_ms=10",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.255000000000427
+        },
+        "motion": {
+         "slip_ratio": 0.04714008515976289,
+         "cot": 0.3899588695983812,
+         "joint_jerk_rms": 2169.172372640278,
+         "joint_jerk_peak": 18514.98441330331,
+         "peak_contact_force_bw": 2.8678025889934835,
+         "joint_limit_margin_min": 0.27802260106926246
+        },
+        "lost": 2,
+        "gained": 2
+       },
+       {
+        "level": 20,
+        "key": "latency_ms=20",
+        "success": 17,
+        "n": 20,
+        "rate": 0.85,
+        "wilson95": [
+         0.6395811333571357,
+         0.9476312545132735
+        ],
+        "falls": 0,
+        "drop": 0.050000000000000044,
+        "stages": {
+         "halt": 3,
+         "success": 17
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.310000000000446
+        },
+        "motion": {
+         "slip_ratio": 0.046096692987092715,
+         "cot": 0.39332589002151097,
+         "joint_jerk_rms": 2165.2888043861067,
+         "joint_jerk_peak": 19344.402152719846,
+         "peak_contact_force_bw": 2.882406437385759,
+         "joint_limit_margin_min": 0.26986537573582825
+        },
+        "lost": 3,
+        "gained": 2
+       },
+       {
+        "level": 30,
+        "key": "latency_ms=30",
+        "success": 20,
+        "n": 20,
+        "rate": 1.0,
+        "wilson95": [
+         0.8388748398148705,
+         1.0
+        ],
+        "falls": 0,
+        "drop": -0.09999999999999998,
+        "stages": {
+         "success": 20
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.94000000000059
+        },
+        "motion": {
+         "slip_ratio": 0.04767239408336675,
+         "cot": 0.3964609093932455,
+         "joint_jerk_rms": 2035.317071002773,
+         "joint_jerk_peak": 19856.216926182526,
+         "peak_contact_force_bw": 2.9920566119687226,
+         "joint_limit_margin_min": 0.25961316227757275
+        },
+        "lost": 0,
+        "gained": 2
+       }
+      ],
+      "nominal_level": null,
+      "break_point": {
+       "high": null
+      },
+      "break_point_public": {
+       "high": null
+      }
+     },
+     "push_dv": {
+      "levels": [
+       {
+        "level": 0.25,
+        "key": "push_dv=0.25",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.160000000000398
+        },
+        "motion": {
+         "slip_ratio": 0.04628861402002357,
+         "cot": 0.38431325242937775,
+         "joint_jerk_rms": 2250.728873972889,
+         "joint_jerk_peak": 19274.289256270742,
+         "peak_contact_force_bw": 2.890065214006887,
+         "joint_limit_margin_min": 0.2792527988299358
+        },
+        "lost": 1,
+        "gained": 1
+       },
+       {
+        "level": 0.5,
+        "key": "push_dv=0.5",
+        "success": 20,
+        "n": 20,
+        "rate": 1.0,
+        "wilson95": [
+         0.8388748398148705,
+         1.0
+        ],
+        "falls": 0,
+        "drop": -0.09999999999999998,
+        "stages": {
+         "success": 20
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.430000000000486
+        },
+        "motion": {
+         "slip_ratio": 0.04805466897163201,
+         "cot": 0.38925474966778006,
+         "joint_jerk_rms": 2244.3371488775138,
+         "joint_jerk_peak": 19768.790594428814,
+         "peak_contact_force_bw": 2.890065214006887,
+         "joint_limit_margin_min": 0.2571801414950241
+        },
+        "lost": 0,
+        "gained": 2
+       },
+       {
+        "level": 0.75,
+        "key": "push_dv=0.75",
+        "success": 13,
+        "n": 20,
+        "rate": 0.65,
+        "wilson95": [
+         0.4328542750684442,
+         0.818808176876017
+        ],
+        "falls": 2,
+        "drop": 0.25,
+        "stages": {
+         "success": 13,
+         "halt": 3,
+         "fell": 2,
+         "drift_a": 2
+        },
+        "task": {
+         "public_success": 16,
+         "mean_sim_time": 15.760000000003117
+        },
+        "motion": {
+         "slip_ratio": 0.050854257493211805,
+         "cot": 0.40098835473301875,
+         "joint_jerk_rms": 2209.6575026329992,
+         "joint_jerk_peak": 19793.031744070504,
+         "peak_contact_force_bw": 3.0237709178569023,
+         "joint_limit_margin_min": 0.25240048995925346
+        },
+        "lost": 6,
+        "gained": 1
+       },
+       {
+        "level": 1.0,
+        "key": "push_dv=1",
+        "success": 9,
+        "n": 20,
+        "rate": 0.45,
+        "wilson95": [
+         0.25819785703764037,
+         0.6579146589808726
+        ],
+        "falls": 11,
+        "drop": 0.45,
+        "stages": {
+         "success": 9,
+         "fell": 11
+        },
+        "task": {
+         "public_success": 9,
+         "mean_sim_time": 10.280000000000737
+        },
+        "motion": {
+         "slip_ratio": 0.05277908285173058,
+         "cot": 0.42056975251186407,
+         "joint_jerk_rms": 2416.691693751497,
+         "joint_jerk_peak": 20298.192972432793,
+         "peak_contact_force_bw": 2.900889924834954,
+         "joint_limit_margin_min": 0.20288767011962416
+        },
+        "lost": 10,
+        "gained": 1
+       },
+       {
+        "level": 1.5,
+        "key": "push_dv=1.5",
+        "success": 1,
+        "n": 20,
+        "rate": 0.05,
+        "wilson95": [
+         0.008881448702335523,
+         0.23613119546428119
+        ],
+        "falls": 18,
+        "drop": 0.85,
+        "stages": {
+         "fell": 18,
+         "halt": 1,
+         "success": 1
+        },
+        "task": {
+         "public_success": 2,
+         "mean_sim_time": 5.714999999999854
+        },
+        "motion": {
+         "slip_ratio": 0.059387195163021024,
+         "cot": 0.3899719776059698,
+         "joint_jerk_rms": 2455.8900086449507,
+         "joint_jerk_peak": 19793.031744070504,
+         "peak_contact_force_bw": 2.8382797957943975,
+         "joint_limit_margin_min": 0.1480054581997412
+        },
+        "lost": 17,
+        "gained": 0
+       }
+      ],
+      "nominal_level": 0.0,
+      "break_point": {
+       "high": 0.75
+      },
+      "break_point_public": {
+       "high": 1.0
+      }
+     },
+     "terrain_m": {
+      "levels": [
+       {
+        "level": 0.01,
+        "key": "terrain_m=0.01",
+        "success": 20,
+        "n": 20,
+        "rate": 1.0,
+        "wilson95": [
+         0.8388748398148705,
+         1.0
+        ],
+        "falls": 0,
+        "drop": -0.09999999999999998,
+        "stages": {
+         "success": 20
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.760000000000531
+        },
+        "motion": {
+         "slip_ratio": 0.04844151076510847,
+         "cot": 0.3855725990804364,
+         "joint_jerk_rms": 2193.5232461452265,
+         "joint_jerk_peak": 19323.35529360042,
+         "peak_contact_force_bw": 2.835276617277383,
+         "joint_limit_margin_min": 0.2857035088484917
+        },
+        "lost": 0,
+        "gained": 2
+       },
+       {
+        "level": 0.02,
+        "key": "terrain_m=0.02",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 12.425000000000702
+        },
+        "motion": {
+         "slip_ratio": 0.048390992972406385,
+         "cot": 0.37872800436818643,
+         "joint_jerk_rms": 2036.7803897190206,
+         "joint_jerk_peak": 18857.077102723757,
+         "peak_contact_force_bw": 2.6693779741628005,
+         "joint_limit_margin_min": 0.28770036922844555
+        },
+        "lost": 2,
+        "gained": 2
+       },
+       {
+        "level": 0.03,
+        "key": "terrain_m=0.03",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 13.550000000001003
+        },
+        "motion": {
+         "slip_ratio": 0.049828159521861384,
+         "cot": 0.3817709288668192,
+         "joint_jerk_rms": 1864.2061708753981,
+         "joint_jerk_peak": 18163.78853795015,
+         "peak_contact_force_bw": 2.6238101369331943,
+         "joint_limit_margin_min": 0.28363208953299546
+        },
+        "lost": 2,
+        "gained": 2
+       },
+       {
+        "level": 0.05,
+        "key": "terrain_m=0.05",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": -0.04999999999999993,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 17.385000000000666
+        },
+        "motion": {
+         "slip_ratio": 0.05117541279794152,
+         "cot": 0.3968860750786585,
+         "joint_jerk_rms": 1672.963998183186,
+         "joint_jerk_peak": 18920.50412360747,
+         "peak_contact_force_bw": 2.7839793454338104,
+         "joint_limit_margin_min": 0.27753135493156367
+        },
+        "lost": 1,
+        "gained": 2
+       },
+       {
+        "level": 0.08,
+        "key": "terrain_m=0.08",
+        "success": 3,
+        "n": 20,
+        "rate": 0.15,
+        "wilson95": [
+         0.05236874548672649,
+         0.36041886664286427
+        ],
+        "falls": 5,
+        "drop": 0.75,
+        "stages": {
+         "fell": 5,
+         "drift_a": 12,
+         "success": 3
+        },
+        "task": {
+         "public_success": 3,
+         "mean_sim_time": 43.74500000001679
+        },
+        "motion": {
+         "slip_ratio": 0.0612534342667765,
+         "cot": 0.5704911427444999,
+         "joint_jerk_rms": 737.1588966459318,
+         "joint_jerk_peak": 19438.892080691792,
+         "peak_contact_force_bw": 2.7296830791173963,
+         "joint_limit_margin_min": 0.2647395697536524
+        },
+        "lost": 15,
+        "gained": 0
+       }
+      ],
+      "nominal_level": 0.0,
+      "break_point": {
+       "high": 0.08
+      },
+      "break_point_public": {
+       "high": 0.08
+      }
+     },
+     "all_moderate": {
+      "levels": [
+       {
+        "level": 1,
+        "key": "all_moderate",
+        "success": 12,
+        "n": 20,
+        "rate": 0.6,
+        "wilson95": [
+         0.3865814992347542,
+         0.7811934687282198
+        ],
+        "falls": 2,
+        "drop": 0.30000000000000004,
+        "stages": {
+         "success": 12,
+         "halt": 3,
+         "fell": 2,
+         "drift_a": 3
+        },
+        "task": {
+         "public_success": 14,
+         "mean_sim_time": 36.52000000000472
+        },
+        "motion": {
+         "slip_ratio": 0.12881683545103317,
+         "cot": 0.4813915277397971,
+         "joint_jerk_rms": 1066.3818606961213,
+         "joint_jerk_peak": 19636.898311682293,
+         "peak_contact_force_bw": 2.2367313594688096,
+         "joint_limit_margin_min": 0.20965915975981586
+        },
+        "lost": 8,
+        "gained": 2
+       }
+      ],
+      "nominal_level": 0,
+      "break_point": {
+       "high": 1
+      },
+      "break_point_public": {
+       "high": 1
+      }
+     }
+    },
+    "pooled_perturbed": {
+     "success": 543,
+     "n": 660,
+     "rate": 0.8227272727272728,
+     "wilson95": [
+      0.791748529287894,
+      0.8499709570453252
+     ],
+     "lost": 103,
+     "gained": 52
+    }
+   }
+  },
+  "semfix_s1": {
+   "anymal_c": {
+    "nominal": {
+     "success": 18,
+     "n": 20,
+     "rate": 0.9,
+     "wilson95": [
+      0.6989663528135878,
+      0.9721335190383086
+     ],
+     "public_success": 20,
+     "falls": 0,
+     "motion": {
+      "slip_ratio": 0.048564233056763266,
+      "cot": 0.3658827883186977,
+      "joint_jerk_rms": 1724.6625935228087,
+      "joint_jerk_peak": 16402.96480708324,
+      "peak_contact_force_bw": 2.2975106707747956,
+      "joint_limit_margin_min": 0.27954526176196676
+     },
+     "sources": [
+      "learned:train_flow_s1/policy.pt"
+     ]
+    },
+    "factors": {
+     "friction": {
+      "levels": [
+       {
+        "level": 0.4,
+        "key": "friction=0.4",
+        "success": 0,
+        "n": 20,
+        "rate": 0.0,
+        "wilson95": [
+         0.0,
+         0.16112516018512965
+        ],
+        "falls": 20,
+        "drop": 0.9,
+        "stages": {
+         "fell": 20
+        },
+        "task": {
+         "public_success": 0,
+         "mean_sim_time": 20.81999999999899
+        },
+        "motion": {
+         "slip_ratio": 1.455312806997553,
+         "cot": 2.3466527003464903,
+         "joint_jerk_rms": 295.79069231812133,
+         "joint_jerk_peak": 5194.031846076716,
+         "peak_contact_force_bw": 0.7263265270852464,
+         "joint_limit_margin_min": 0.0077029945719718825
+        },
+        "lost": 18,
+        "gained": 0
+       },
+       {
+        "level": 0.6,
+        "key": "friction=0.6",
+        "success": 20,
+        "n": 20,
+        "rate": 1.0,
+        "wilson95": [
+         0.8388748398148705,
+         1.0
+        ],
+        "falls": 0,
+        "drop": -0.09999999999999998,
+        "stages": {
+         "success": 20
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 12.885000000000975
+        },
+        "motion": {
+         "slip_ratio": 0.05110190775571473,
+         "cot": 0.35380504627128045,
+         "joint_jerk_rms": 1786.4042758165538,
+         "joint_jerk_peak": 15709.620129606901,
+         "peak_contact_force_bw": 2.239611086294853,
+         "joint_limit_margin_min": 0.2923453115453885
+        },
+        "lost": 0,
+        "gained": 2
+       },
+       {
+        "level": 0.8,
+        "key": "friction=0.8",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 13.175000000001068
+        },
+        "motion": {
+         "slip_ratio": 0.04880313930900586,
+         "cot": 0.36062156405416235,
+         "joint_jerk_rms": 1776.5152842507646,
+         "joint_jerk_peak": 16713.442225630883,
+         "peak_contact_force_bw": 2.2769260424863598,
+         "joint_limit_margin_min": 0.28406306018403993
+        },
+        "lost": 1,
+        "gained": 1
+       },
+       {
+        "level": 1.25,
+        "key": "friction=1.25",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": -0.04999999999999993,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 13.86500000000128
+        },
+        "motion": {
+         "slip_ratio": 0.048514115817488525,
+         "cot": 0.3667515637810903,
+         "joint_jerk_rms": 1734.7756299189648,
+         "joint_jerk_peak": 17341.453883403337,
+         "peak_contact_force_bw": 2.487429862488848,
+         "joint_limit_margin_min": 0.2823716541746596
+        },
+        "lost": 1,
+        "gained": 2
+       },
+       {
+        "level": 1.5,
+        "key": "friction=1.5",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": -0.04999999999999993,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 16.225000000002304
+        },
+        "motion": {
+         "slip_ratio": 0.045348120794377056,
+         "cot": 0.37254865125204284,
+         "joint_jerk_rms": 1735.7802554877703,
+         "joint_jerk_peak": 17280.95293361971,
+         "peak_contact_force_bw": 2.435659925296502,
+         "joint_limit_margin_min": 0.2821489549151354
+        },
+        "lost": 1,
+        "gained": 2
+       }
+      ],
+      "nominal_level": 1.0,
+      "break_point": {
+       "low": 0.4,
+       "high": null
+      },
+      "break_point_public": {
+       "low": 0.4,
+       "high": null
+      }
+     },
+     "mass": {
+      "levels": [
+       {
+        "level": 0.8,
+        "key": "mass=0.8",
+        "success": 20,
+        "n": 20,
+        "rate": 1.0,
+        "wilson95": [
+         0.8388748398148705,
+         1.0
+        ],
+        "falls": 0,
+        "drop": -0.09999999999999998,
+        "stages": {
+         "success": 20
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 10.225000000000083
+        },
+        "motion": {
+         "slip_ratio": 0.049043536976085,
+         "cot": 0.4486247518164172,
+         "joint_jerk_rms": 2454.468739850929,
+         "joint_jerk_peak": 22190.268606544625,
+         "peak_contact_force_bw": 3.7050791773979657,
+         "joint_limit_margin_min": 0.282030071339011
+        },
+        "lost": 0,
+        "gained": 2
+       },
+       {
+        "level": 0.9,
+        "key": "mass=0.9",
+        "success": 20,
+        "n": 20,
+        "rate": 1.0,
+        "wilson95": [
+         0.8388748398148705,
+         1.0
+        ],
+        "falls": 0,
+        "drop": -0.09999999999999998,
+        "stages": {
+         "success": 20
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.35000000000046
+        },
+        "motion": {
+         "slip_ratio": 0.04939074950287792,
+         "cot": 0.3977421322159254,
+         "joint_jerk_rms": 2100.1359043463535,
+         "joint_jerk_peak": 19328.971598280765,
+         "peak_contact_force_bw": 2.888861045661921,
+         "joint_limit_margin_min": 0.29116769604394865
+        },
+        "lost": 0,
+        "gained": 2
+       },
+       {
+        "level": 1.1,
+        "key": "mass=1.1",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 19,
+         "mean_sim_time": 23.10000000000175
+        },
+        "motion": {
+         "slip_ratio": 0.06158895268913712,
+         "cot": 0.3865857305124062,
+         "joint_jerk_rms": 1456.9097886959134,
+         "joint_jerk_peak": 17044.962724109915,
+         "peak_contact_force_bw": 2.2659925200915643,
+         "joint_limit_margin_min": 0.2686380040896377
+        },
+        "lost": 2,
+        "gained": 2
+       },
+       {
+        "level": 1.2,
+        "key": "mass=1.2",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 1,
+        "drop": -0.04999999999999993,
+        "stages": {
+         "success": 19,
+         "fell": 1
+        },
+        "task": {
+         "public_success": 13,
+         "mean_sim_time": 43.980000000008744
+        },
+        "motion": {
+         "slip_ratio": 0.06995548275046094,
+         "cot": 0.4788657072903037,
+         "joint_jerk_rms": 1109.153184891218,
+         "joint_jerk_peak": 18224.3822715851,
+         "peak_contact_force_bw": 2.339021223915428,
+         "joint_limit_margin_min": 0.21902939341293712
+        },
+        "lost": 1,
+        "gained": 2
+       }
+      ],
+      "nominal_level": 1.0,
+      "break_point": {
+       "low": null,
+       "high": null
+      },
+      "break_point_public": {
+       "low": null,
+       "high": 1.2
+      }
+     },
+     "com_x": {
+      "levels": [
+       {
+        "level": -0.02,
+        "key": "com_x=-0.02",
+        "success": 17,
+        "n": 20,
+        "rate": 0.85,
+        "wilson95": [
+         0.6395811333571357,
+         0.9476312545132735
+        ],
+        "falls": 0,
+        "drop": 0.050000000000000044,
+        "stages": {
+         "halt": 3,
+         "success": 17
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 13.580000000001203
+        },
+        "motion": {
+         "slip_ratio": 0.05401825386096354,
+         "cot": 0.36410917174389046,
+         "joint_jerk_rms": 1733.8933511311736,
+         "joint_jerk_peak": 16420.395768669736,
+         "peak_contact_force_bw": 2.441770954724469,
+         "joint_limit_margin_min": 0.27997167063126294
+        },
+        "lost": 3,
+        "gained": 2
+       },
+       {
+        "level": -0.01,
+        "key": "com_x=-0.01",
+        "success": 17,
+        "n": 20,
+        "rate": 0.85,
+        "wilson95": [
+         0.6395811333571357,
+         0.9476312545132735
+        ],
+        "falls": 0,
+        "drop": 0.050000000000000044,
+        "stages": {
+         "success": 17,
+         "halt": 3
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 13.680000000001176
+        },
+        "motion": {
+         "slip_ratio": 0.052013637655000916,
+         "cot": 0.3623689986944211,
+         "joint_jerk_rms": 1690.6201412641362,
+         "joint_jerk_peak": 15969.24062663926,
+         "peak_contact_force_bw": 2.4039326374065544,
+         "joint_limit_margin_min": 0.27310349287794095
+        },
+        "lost": 2,
+        "gained": 1
+       },
+       {
+        "level": 0.01,
+        "key": "com_x=0.01",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": -0.04999999999999993,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 13.73500000000119
+        },
+        "motion": {
+         "slip_ratio": 0.04835877336938668,
+         "cot": 0.3706721021244773,
+         "joint_jerk_rms": 1729.9584702136904,
+         "joint_jerk_peak": 17840.10963067573,
+         "peak_contact_force_bw": 2.3763281937501786,
+         "joint_limit_margin_min": 0.283711355249376
+        },
+        "lost": 1,
+        "gained": 2
+       },
+       {
+        "level": 0.02,
+        "key": "com_x=0.02",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 13.580000000001053
+        },
+        "motion": {
+         "slip_ratio": 0.04534380994074828,
+         "cot": 0.36648256080181485,
+         "joint_jerk_rms": 1814.4947022431281,
+         "joint_jerk_peak": 16348.242272681535,
+         "peak_contact_force_bw": 2.3610899460957437,
+         "joint_limit_margin_min": 0.29098252400647445
+        },
+        "lost": 1,
+        "gained": 1
+       }
+      ],
+      "nominal_level": 0.0,
+      "break_point": {
+       "low": null,
+       "high": null
+      },
+      "break_point_public": {
+       "low": null,
+       "high": null
+      }
+     },
+     "com_y": {
+      "levels": [
+       {
+        "level": 0.01,
+        "key": "com_y=0.01",
+        "success": 16,
+        "n": 20,
+        "rate": 0.8,
+        "wilson95": [
+         0.583982565906683,
+         0.9193423379822393
+        ],
+        "falls": 0,
+        "drop": 0.09999999999999998,
+        "stages": {
+         "success": 16,
+         "halt": 4
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 13.310000000001116
+        },
+        "motion": {
+         "slip_ratio": 0.05001835695720612,
+         "cot": 0.365346866575713,
+         "joint_jerk_rms": 1809.2986695711122,
+         "joint_jerk_peak": 17789.454870615817,
+         "peak_contact_force_bw": 2.464262960006326,
+         "joint_limit_margin_min": 0.2910614026488202
+        },
+        "lost": 4,
+        "gained": 2
+       },
+       {
+        "level": 0.02,
+        "key": "com_y=0.02",
+        "success": 20,
+        "n": 20,
+        "rate": 1.0,
+        "wilson95": [
+         0.8388748398148705,
+         1.0
+        ],
+        "falls": 0,
+        "drop": -0.09999999999999998,
+        "stages": {
+         "success": 20
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 13.200000000001078
+        },
+        "motion": {
+         "slip_ratio": 0.050515714917748436,
+         "cot": 0.36230463104685656,
+         "joint_jerk_rms": 1855.0958068874993,
+         "joint_jerk_peak": 17867.327536746165,
+         "peak_contact_force_bw": 2.495766667983157,
+         "joint_limit_margin_min": 0.2883644324283592
+        },
+        "lost": 0,
+        "gained": 2
+       }
+      ],
+      "nominal_level": 0.0,
+      "break_point": {
+       "high": null
+      },
+      "break_point_public": {
+       "high": null
+      }
+     },
+     "kp": {
+      "levels": [
+       {
+        "level": 0.7,
+        "key": "kp=0.7",
+        "success": 0,
+        "n": 20,
+        "rate": 0.0,
+        "wilson95": [
+         0.0,
+         0.16112516018512965
+        ],
+        "falls": 13,
+        "drop": 0.9,
+        "stages": {
+         "fell": 13,
+         "drift_a": 7
+        },
+        "task": {
+         "public_success": 0,
+         "mean_sim_time": 32.130000000009424
+        },
+        "motion": {
+         "slip_ratio": 0.08903552885380775,
+         "cot": 0.6609598883911283,
+         "joint_jerk_rms": 808.8351807365076,
+         "joint_jerk_peak": 18314.850794769372,
+         "peak_contact_force_bw": 1.600756926907866,
+         "joint_limit_margin_min": 0.07073900360705354
+        },
+        "lost": 18,
+        "gained": 0
+       },
+       {
+        "level": 0.85,
+        "key": "kp=0.85",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": -0.04999999999999993,
+        "stages": {
+         "success": 19,
+         "drift_a": 1
+        },
+        "task": {
+         "public_success": 15,
+         "mean_sim_time": 45.960000000010965
+        },
+        "motion": {
+         "slip_ratio": 0.0787817523070822,
+         "cot": 0.46014779580262544,
+         "joint_jerk_rms": 987.4122683060634,
+         "joint_jerk_peak": 16073.555302538898,
+         "peak_contact_force_bw": 2.1122901906466254,
+         "joint_limit_margin_min": 0.23403591755345882
+        },
+        "lost": 1,
+        "gained": 2
+       },
+       {
+        "level": 1.15,
+        "key": "kp=1.15",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 10.680000000000236
+        },
+        "motion": {
+         "slip_ratio": 0.04403910694596534,
+         "cot": 0.40946263422275386,
+         "joint_jerk_rms": 2314.3071593156556,
+         "joint_jerk_peak": 21688.619070690125,
+         "peak_contact_force_bw": 3.376514212224211,
+         "joint_limit_margin_min": 0.2865444148709668
+        },
+        "lost": 2,
+        "gained": 2
+       },
+       {
+        "level": 1.3,
+        "key": "kp=1.3",
+        "success": 16,
+        "n": 20,
+        "rate": 0.8,
+        "wilson95": [
+         0.583982565906683,
+         0.9193423379822393
+        ],
+        "falls": 0,
+        "drop": 0.09999999999999998,
+        "stages": {
+         "halt": 4,
+         "success": 16
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 10.01500000000002
+        },
+        "motion": {
+         "slip_ratio": 0.05313544639786325,
+         "cot": 0.4612803333426252,
+         "joint_jerk_rms": 2714.4273828056935,
+         "joint_jerk_peak": 26229.337951523732,
+         "peak_contact_force_bw": 4.014042054020539,
+         "joint_limit_margin_min": 0.27168475055572716
+        },
+        "lost": 2,
+        "gained": 0
+       }
+      ],
+      "nominal_level": 1.0,
+      "break_point": {
+       "low": 0.7,
+       "high": null
+      },
+      "break_point_public": {
+       "low": 0.85,
+       "high": null
+      }
+     },
+     "latency_ms": {
+      "levels": [
+       {
+        "level": 0,
+        "key": "latency_ms=0",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 13.555000000001195
+        },
+        "motion": {
+         "slip_ratio": 0.04685860744398261,
+         "cot": 0.3658877698194184,
+         "joint_jerk_rms": 1733.417128083226,
+         "joint_jerk_peak": 15618.468489481782,
+         "peak_contact_force_bw": 2.346527731049482,
+         "joint_limit_margin_min": 0.2795452617619667
+        },
+        "lost": 1,
+        "gained": 1
+       },
+       {
+        "level": 10,
+        "key": "latency_ms=10",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 13.925000000001265
+        },
+        "motion": {
+         "slip_ratio": 0.04472517601343072,
+         "cot": 0.3756035657373975,
+         "joint_jerk_rms": 1638.3973622062904,
+         "joint_jerk_peak": 16262.712550130858,
+         "peak_contact_force_bw": 2.355765208487881,
+         "joint_limit_margin_min": 0.2798700004153728
+        },
+        "lost": 2,
+        "gained": 2
+       },
+       {
+        "level": 20,
+        "key": "latency_ms=20",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 13.575000000001037
+        },
+        "motion": {
+         "slip_ratio": 0.051616918963908465,
+         "cot": 0.3727854179888199,
+         "joint_jerk_rms": 1607.6754786464412,
+         "joint_jerk_peak": 17931.334389614247,
+         "peak_contact_force_bw": 2.408112732010747,
+         "joint_limit_margin_min": 0.27328616937413497
+        },
+        "lost": 1,
+        "gained": 1
+       },
+       {
+        "level": 30,
+        "key": "latency_ms=30",
+        "success": 16,
+        "n": 20,
+        "rate": 0.8,
+        "wilson95": [
+         0.583982565906683,
+         0.9193423379822393
+        ],
+        "falls": 0,
+        "drop": 0.09999999999999998,
+        "stages": {
+         "success": 16,
+         "halt": 4
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 13.100000000001046
+        },
+        "motion": {
+         "slip_ratio": 0.046910390937176166,
+         "cot": 0.3847435013440075,
+         "joint_jerk_rms": 1681.9723357228434,
+         "joint_jerk_peak": 19083.702525796092,
+         "peak_contact_force_bw": 2.4731939140060835,
+         "joint_limit_margin_min": 0.2598137312856351
+        },
+        "lost": 4,
+        "gained": 2
+       }
+      ],
+      "nominal_level": null,
+      "break_point": {
+       "high": null
+      },
+      "break_point_public": {
+       "high": null
+      }
+     },
+     "push_dv": {
+      "levels": [
+       {
+        "level": 0.25,
+        "key": "push_dv=0.25",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 13.980000000001331
+        },
+        "motion": {
+         "slip_ratio": 0.04941636009353094,
+         "cot": 0.36774239016957594,
+         "joint_jerk_rms": 1707.992887200578,
+         "joint_jerk_peak": 16819.35609472396,
+         "peak_contact_force_bw": 2.3230366843629575,
+         "joint_limit_margin_min": 0.2830005718829285
+        },
+        "lost": 2,
+        "gained": 2
+       },
+       {
+        "level": 0.5,
+        "key": "push_dv=0.5",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 14.295000000001192
+        },
+        "motion": {
+         "slip_ratio": 0.052097690528527266,
+         "cot": 0.3800207743371666,
+         "joint_jerk_rms": 1703.6105382865821,
+         "joint_jerk_peak": 18057.85374858488,
+         "peak_contact_force_bw": 2.621191477049363,
+         "joint_limit_margin_min": 0.2736161000646463
+        },
+        "lost": 2,
+        "gained": 2
+       },
+       {
+        "level": 0.75,
+        "key": "push_dv=0.75",
+        "success": 14,
+        "n": 20,
+        "rate": 0.7,
+        "wilson95": [
+         0.4810271799475211,
+         0.8545227559784271
+        ],
+        "falls": 3,
+        "drop": 0.20000000000000007,
+        "stages": {
+         "drift_a": 1,
+         "success": 14,
+         "halt": 2,
+         "fell": 3
+        },
+        "task": {
+         "public_success": 16,
+         "mean_sim_time": 15.180000000002243
+        },
+        "motion": {
+         "slip_ratio": 0.054396228393686394,
+         "cot": 0.3921831035070069,
+         "joint_jerk_rms": 1793.4726046628607,
+         "joint_jerk_peak": 19228.07840630711,
+         "peak_contact_force_bw": 3.5149489294404694,
+         "joint_limit_margin_min": 0.24663025160244242
+        },
+        "lost": 6,
+        "gained": 2
+       },
+       {
+        "level": 1.0,
+        "key": "push_dv=1",
+        "success": 6,
+        "n": 20,
+        "rate": 0.3,
+        "wilson95": [
+         0.14547724402157294,
+         0.518972820052479
+        ],
+        "falls": 10,
+        "drop": 0.6000000000000001,
+        "stages": {
+         "drift_a": 3,
+         "fell": 10,
+         "success": 6,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 7,
+         "mean_sim_time": 16.725000000004485
+        },
+        "motion": {
+         "slip_ratio": 0.0585388183635745,
+         "cot": 0.38811301193670966,
+         "joint_jerk_rms": 1780.1188531805092,
+         "joint_jerk_peak": 20089.731883221182,
+         "peak_contact_force_bw": 2.6904863552893667,
+         "joint_limit_margin_min": 0.1939103455885269
+        },
+        "lost": 13,
+        "gained": 1
+       },
+       {
+        "level": 1.5,
+        "key": "push_dv=1.5",
+        "success": 0,
+        "n": 20,
+        "rate": 0.0,
+        "wilson95": [
+         0.0,
+         0.16112516018512965
+        ],
+        "falls": 20,
+        "drop": 0.9,
+        "stages": {
+         "fell": 20
+        },
+        "task": {
+         "public_success": 0,
+         "mean_sim_time": 4.924999999999679
+        },
+        "motion": {
+         "slip_ratio": 0.06698077085056417,
+         "cot": 0.415639431493979,
+         "joint_jerk_rms": 1874.8604495856548,
+         "joint_jerk_peak": 21268.84565290757,
+         "peak_contact_force_bw": 2.6673893003250875,
+         "joint_limit_margin_min": 0.09461533302081607
+        },
+        "lost": 18,
+        "gained": 0
+       }
+      ],
+      "nominal_level": 0.0,
+      "break_point": {
+       "high": 1.0
+      },
+      "break_point_public": {
+       "high": 1.0
+      }
+     },
+     "terrain_m": {
+      "levels": [
+       {
+        "level": 0.01,
+        "key": "terrain_m=0.01",
+        "success": 17,
+        "n": 20,
+        "rate": 0.85,
+        "wilson95": [
+         0.6395811333571357,
+         0.9476312545132735
+        ],
+        "falls": 0,
+        "drop": 0.050000000000000044,
+        "stages": {
+         "success": 17,
+         "halt": 3
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 14.43500000000139
+        },
+        "motion": {
+         "slip_ratio": 0.05242898041600094,
+         "cot": 0.36857944634396306,
+         "joint_jerk_rms": 1681.0930650595114,
+         "joint_jerk_peak": 17071.81698053363,
+         "peak_contact_force_bw": 2.5167990278245416,
+         "joint_limit_margin_min": 0.28268120036512556
+        },
+        "lost": 3,
+        "gained": 2
+       },
+       {
+        "level": 0.02,
+        "key": "terrain_m=0.02",
+        "success": 16,
+        "n": 20,
+        "rate": 0.8,
+        "wilson95": [
+         0.583982565906683,
+         0.9193423379822393
+        ],
+        "falls": 0,
+        "drop": 0.09999999999999998,
+        "stages": {
+         "success": 16,
+         "halt": 4
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 15.865000000001434
+        },
+        "motion": {
+         "slip_ratio": 0.050345419734780066,
+         "cot": 0.372695145701602,
+         "joint_jerk_rms": 1591.8140828075361,
+         "joint_jerk_peak": 17541.382126512442,
+         "peak_contact_force_bw": 2.41456886029784,
+         "joint_limit_margin_min": 0.29379104049750016
+        },
+        "lost": 3,
+        "gained": 1
+       },
+       {
+        "level": 0.03,
+        "key": "terrain_m=0.03",
+        "success": 17,
+        "n": 20,
+        "rate": 0.85,
+        "wilson95": [
+         0.6395811333571357,
+         0.9476312545132735
+        ],
+        "falls": 0,
+        "drop": 0.050000000000000044,
+        "stages": {
+         "success": 17,
+         "halt": 3
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 18.025000000000706
+        },
+        "motion": {
+         "slip_ratio": 0.04997034917964416,
+         "cot": 0.3843625123430649,
+         "joint_jerk_rms": 1542.7092277225825,
+         "joint_jerk_peak": 17208.68205973578,
+         "peak_contact_force_bw": 2.440044254476069,
+         "joint_limit_margin_min": 0.2957597757397731
+        },
+        "lost": 2,
+        "gained": 1
+       },
+       {
+        "level": 0.05,
+        "key": "terrain_m=0.05",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "drift_a": 2
+        },
+        "task": {
+         "public_success": 18,
+         "mean_sim_time": 37.00500000000849
+        },
+        "motion": {
+         "slip_ratio": 0.05737470495658968,
+         "cot": 0.4279776505411144,
+         "joint_jerk_rms": 1197.6294854691878,
+         "joint_jerk_peak": 18024.080309190642,
+         "peak_contact_force_bw": 2.565301190108807,
+         "joint_limit_margin_min": 0.2846756491002854
+        },
+        "lost": 2,
+        "gained": 2
+       },
+       {
+        "level": 0.08,
+        "key": "terrain_m=0.08",
+        "success": 1,
+        "n": 20,
+        "rate": 0.05,
+        "wilson95": [
+         0.008881448702335523,
+         0.23613119546428119
+        ],
+        "falls": 2,
+        "drop": 0.85,
+        "stages": {
+         "drift_a": 16,
+         "drift_b": 1,
+         "fell": 2,
+         "success": 1
+        },
+        "task": {
+         "public_success": 1,
+         "mean_sim_time": 55.095000000024314
+        },
+        "motion": {
+         "slip_ratio": 0.05944330254065172,
+         "cot": 0.5426373863621818,
+         "joint_jerk_rms": 599.860537209129,
+         "joint_jerk_peak": 15107.893579385127,
+         "peak_contact_force_bw": 2.389031344233376,
+         "joint_limit_margin_min": 0.27876440514291395
+        },
+        "lost": 17,
+        "gained": 0
+       }
+      ],
+      "nominal_level": 0.0,
+      "break_point": {
+       "high": 0.08
+      },
+      "break_point_public": {
+       "high": 0.08
+      }
+     },
+     "all_moderate": {
+      "levels": [
+       {
+        "level": 1,
+        "key": "all_moderate",
+        "success": 5,
+        "n": 20,
+        "rate": 0.25,
+        "wilson95": [
+         0.11186170069997625,
+         0.46870087939258864
+        ],
+        "falls": 3,
+        "drop": 0.65,
+        "stages": {
+         "drift_a": 7,
+         "halt": 2,
+         "success": 5,
+         "drift_b": 3,
+         "fell": 3
+        },
+        "task": {
+         "public_success": 6,
+         "mean_sim_time": 53.46500000002122
+        },
+        "motion": {
+         "slip_ratio": 0.0844714708436877,
+         "cot": 0.5343217304952845,
+         "joint_jerk_rms": 816.2768067652341,
+         "joint_jerk_peak": 17756.030709516657,
+         "peak_contact_force_bw": 2.053510351397693,
+         "joint_limit_margin_min": 0.1596783572950502
+        },
+        "lost": 14,
+        "gained": 1
+       }
+      ],
+      "nominal_level": 0,
+      "break_point": {
+       "high": 1
+      },
+      "break_point_public": {
+       "high": 1
+      }
+     }
+    },
+    "pooled_perturbed": {
+     "success": 508,
+     "n": 660,
+     "rate": 0.7696969696969697,
+     "wilson95": [
+      0.7360706190288462,
+      0.8002020033529049
+     ],
+     "lost": 134,
+     "gained": 48
+    }
+   }
+  },
+  "semfix_s2": {
+   "anymal_c": {
+    "nominal": {
+     "success": 18,
+     "n": 20,
+     "rate": 0.9,
+     "wilson95": [
+      0.6989663528135878,
+      0.9721335190383086
+     ],
+     "public_success": 20,
+     "falls": 0,
+     "motion": {
+      "slip_ratio": 0.04501664308249986,
+      "cot": 0.3743564306045985,
+      "joint_jerk_rms": 2080.444826095425,
+      "joint_jerk_peak": 18907.4322060517,
+      "peak_contact_force_bw": 2.420632175383761,
+      "joint_limit_margin_min": 0.28187591237475695
+     },
+     "sources": [
+      "learned:train_flow_s2/policy.pt"
+     ]
+    },
+    "factors": {
+     "friction": {
+      "levels": [
+       {
+        "level": 0.4,
+        "key": "friction=0.4",
+        "success": 0,
+        "n": 20,
+        "rate": 0.0,
+        "wilson95": [
+         0.0,
+         0.16112516018512965
+        ],
+        "falls": 4,
+        "drop": 0.9,
+        "stages": {
+         "drift_a": 16,
+         "fell": 4
+        },
+        "task": {
+         "public_success": 0,
+         "mean_sim_time": 48.55000000002187
+        },
+        "motion": {
+         "slip_ratio": 1.005849911982584,
+         "cot": 2.2478607027012654,
+         "joint_jerk_rms": 290.5964319601433,
+         "joint_jerk_peak": 7416.279333124387,
+         "peak_contact_force_bw": 0.6096911250059176,
+         "joint_limit_margin_min": 0.04371452850165837
+        },
+        "lost": 18,
+        "gained": 0
+       },
+       {
+        "level": 0.6,
+        "key": "friction=0.6",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.475000000000467
+        },
+        "motion": {
+         "slip_ratio": 0.051248967858425754,
+         "cot": 0.3699447210159035,
+         "joint_jerk_rms": 1986.4579345018483,
+         "joint_jerk_peak": 17606.77099266975,
+         "peak_contact_force_bw": 2.4942531041720826,
+         "joint_limit_margin_min": 0.28310498135304935
+        },
+        "lost": 2,
+        "gained": 2
+       },
+       {
+        "level": 0.8,
+        "key": "friction=0.8",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": -0.04999999999999993,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.700000000000577
+        },
+        "motion": {
+         "slip_ratio": 0.04565190886211477,
+         "cot": 0.37219279556723595,
+         "joint_jerk_rms": 1993.322590082907,
+         "joint_jerk_peak": 17590.443980741584,
+         "peak_contact_force_bw": 2.479948077167643,
+         "joint_limit_margin_min": 0.28432827503157004
+        },
+        "lost": 0,
+        "gained": 1
+       },
+       {
+        "level": 1.25,
+        "key": "friction=1.25",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": -0.04999999999999993,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 12.130000000000681
+        },
+        "motion": {
+         "slip_ratio": 0.042330290365921286,
+         "cot": 0.37796058594276805,
+         "joint_jerk_rms": 2081.8487210593007,
+         "joint_jerk_peak": 18406.80945710865,
+         "peak_contact_force_bw": 2.6274996750153687,
+         "joint_limit_margin_min": 0.28022054335468083
+        },
+        "lost": 1,
+        "gained": 2
+       },
+       {
+        "level": 1.5,
+        "key": "friction=1.5",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": -0.04999999999999993,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 12.395000000000781
+        },
+        "motion": {
+         "slip_ratio": 0.04275942176877313,
+         "cot": 0.3822561996800007,
+         "joint_jerk_rms": 2121.921092721681,
+         "joint_jerk_peak": 19126.7614524061,
+         "peak_contact_force_bw": 2.4893566680040067,
+         "joint_limit_margin_min": 0.2806604946477632
+        },
+        "lost": 0,
+        "gained": 1
+       }
+      ],
+      "nominal_level": 1.0,
+      "break_point": {
+       "low": 0.4,
+       "high": null
+      },
+      "break_point_public": {
+       "low": 0.4,
+       "high": null
+      }
+     },
+     "mass": {
+      "levels": [
+       {
+        "level": 0.8,
+        "key": "mass=0.8",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 9.934999999999986
+        },
+        "motion": {
+         "slip_ratio": 0.04664923124394507,
+         "cot": 0.4516933873348876,
+         "joint_jerk_rms": 2511.0827240030276,
+         "joint_jerk_peak": 22645.80443567985,
+         "peak_contact_force_bw": 3.793402087379807,
+         "joint_limit_margin_min": 0.2786800241344902
+        },
+        "lost": 2,
+        "gained": 2
+       },
+       {
+        "level": 0.9,
+        "key": "mass=0.9",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": -0.04999999999999993,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 10.685000000000235
+        },
+        "motion": {
+         "slip_ratio": 0.04461684116571983,
+         "cot": 0.4054377928419745,
+         "joint_jerk_rms": 2279.835980186393,
+         "joint_jerk_peak": 20439.918093723743,
+         "peak_contact_force_bw": 3.050087110155718,
+         "joint_limit_margin_min": 0.2874383854956639
+        },
+        "lost": 0,
+        "gained": 1
+       },
+       {
+        "level": 1.1,
+        "key": "mass=1.1",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 2,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "fell": 2
+        },
+        "task": {
+         "public_success": 18,
+         "mean_sim_time": 15.595000000000772
+        },
+        "motion": {
+         "slip_ratio": 0.0569484884328807,
+         "cot": 0.38538079262120517,
+         "joint_jerk_rms": 1754.0685040906594,
+         "joint_jerk_peak": 18254.594881292334,
+         "peak_contact_force_bw": 2.4765626498463744,
+         "joint_limit_margin_min": 0.26243871802862856
+        },
+        "lost": 2,
+        "gained": 2
+       },
+       {
+        "level": 1.2,
+        "key": "mass=1.2",
+        "success": 17,
+        "n": 20,
+        "rate": 0.85,
+        "wilson95": [
+         0.6395811333571357,
+         0.9476312545132735
+        ],
+        "falls": 1,
+        "drop": 0.050000000000000044,
+        "stages": {
+         "success": 17,
+         "fell": 1,
+         "drift_b": 1,
+         "drift_a": 1
+        },
+        "task": {
+         "public_success": 16,
+         "mean_sim_time": 35.34500000000443
+        },
+        "motion": {
+         "slip_ratio": 0.07457952600220921,
+         "cot": 0.46256620313298136,
+         "joint_jerk_rms": 1223.8291264458,
+         "joint_jerk_peak": 20232.727465773612,
+         "peak_contact_force_bw": 2.737147427465171,
+         "joint_limit_margin_min": 0.22456557130445995
+        },
+        "lost": 3,
+        "gained": 2
+       }
+      ],
+      "nominal_level": 1.0,
+      "break_point": {
+       "low": null,
+       "high": null
+      },
+      "break_point_public": {
+       "low": null,
+       "high": null
+      }
+     },
+     "com_x": {
+      "levels": [
+       {
+        "level": -0.02,
+        "key": "com_x=-0.02",
+        "success": 20,
+        "n": 20,
+        "rate": 1.0,
+        "wilson95": [
+         0.8388748398148705,
+         1.0
+        ],
+        "falls": 0,
+        "drop": -0.09999999999999998,
+        "stages": {
+         "success": 20
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 12.315000000000747
+        },
+        "motion": {
+         "slip_ratio": 0.05042967003923488,
+         "cot": 0.37563344666498133,
+         "joint_jerk_rms": 1958.8991988385103,
+         "joint_jerk_peak": 17731.436151137113,
+         "peak_contact_force_bw": 2.53661930423487,
+         "joint_limit_margin_min": 0.2789635002487347
+        },
+        "lost": 0,
+        "gained": 2
+       },
+       {
+        "level": -0.01,
+        "key": "com_x=-0.01",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 12.000000000000597
+        },
+        "motion": {
+         "slip_ratio": 0.04698840214818811,
+         "cot": 0.3721762982912168,
+         "joint_jerk_rms": 1986.0530234610858,
+         "joint_jerk_peak": 17936.083124737313,
+         "peak_contact_force_bw": 2.5462728129907206,
+         "joint_limit_margin_min": 0.28278781088968674
+        },
+        "lost": 1,
+        "gained": 1
+       },
+       {
+        "level": 0.01,
+        "key": "com_x=0.01",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": -0.04999999999999993,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.720000000000557
+        },
+        "motion": {
+         "slip_ratio": 0.041511727552739956,
+         "cot": 0.3809575540886321,
+         "joint_jerk_rms": 1997.963668644823,
+         "joint_jerk_peak": 18398.516908089314,
+         "peak_contact_force_bw": 2.5569398604476317,
+         "joint_limit_margin_min": 0.2791080716135411
+        },
+        "lost": 1,
+        "gained": 2
+       },
+       {
+        "level": 0.02,
+        "key": "com_x=0.02",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": -0.04999999999999993,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.790000000000584
+        },
+        "motion": {
+         "slip_ratio": 0.04170055566785822,
+         "cot": 0.38288364111203826,
+         "joint_jerk_rms": 2064.5607420081815,
+         "joint_jerk_peak": 17917.82336219655,
+         "peak_contact_force_bw": 2.698495727180886,
+         "joint_limit_margin_min": 0.27840448285991404
+        },
+        "lost": 1,
+        "gained": 2
+       }
+      ],
+      "nominal_level": 0.0,
+      "break_point": {
+       "low": null,
+       "high": null
+      },
+      "break_point_public": {
+       "low": null,
+       "high": null
+      }
+     },
+     "com_y": {
+      "levels": [
+       {
+        "level": 0.01,
+        "key": "com_y=0.01",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.955000000000563
+        },
+        "motion": {
+         "slip_ratio": 0.049036087893237004,
+         "cot": 0.3765631715874359,
+         "joint_jerk_rms": 2051.943298774966,
+         "joint_jerk_peak": 18269.98614369258,
+         "peak_contact_force_bw": 2.6311909975766845,
+         "joint_limit_margin_min": 0.2886144636250991
+        },
+        "lost": 2,
+        "gained": 2
+       },
+       {
+        "level": 0.02,
+        "key": "com_y=0.02",
+        "success": 20,
+        "n": 20,
+        "rate": 1.0,
+        "wilson95": [
+         0.8388748398148705,
+         1.0
+        ],
+        "falls": 0,
+        "drop": -0.09999999999999998,
+        "stages": {
+         "success": 20
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.790000000000607
+        },
+        "motion": {
+         "slip_ratio": 0.04805675450382022,
+         "cot": 0.37766659157093074,
+         "joint_jerk_rms": 2102.821321017085,
+         "joint_jerk_peak": 18682.16677109443,
+         "peak_contact_force_bw": 2.7233540782012806,
+         "joint_limit_margin_min": 0.2904866020886724
+        },
+        "lost": 0,
+        "gained": 2
+       }
+      ],
+      "nominal_level": 0.0,
+      "break_point": {
+       "high": null
+      },
+      "break_point_public": {
+       "high": null
+      }
+     },
+     "kp": {
+      "levels": [
+       {
+        "level": 0.7,
+        "key": "kp=0.7",
+        "success": 0,
+        "n": 20,
+        "rate": 0.0,
+        "wilson95": [
+         0.0,
+         0.16112516018512965
+        ],
+        "falls": 18,
+        "drop": 0.9,
+        "stages": {
+         "fell": 18,
+         "drift_a": 2
+        },
+        "task": {
+         "public_success": 0,
+         "mean_sim_time": 15.070000000003017
+        },
+        "motion": {
+         "slip_ratio": 0.12289034620332924,
+         "cot": 0.6788286893187838,
+         "joint_jerk_rms": 962.5764081449145,
+         "joint_jerk_peak": 19811.280994380933,
+         "peak_contact_force_bw": 2.3390182162435433,
+         "joint_limit_margin_min": 0.058415636349698444
+        },
+        "lost": 18,
+        "gained": 0
+       },
+       {
+        "level": 0.85,
+        "key": "kp=0.85",
+        "success": 15,
+        "n": 20,
+        "rate": 0.75,
+        "wilson95": [
+         0.5312991206074114,
+         0.8881382993000237
+        ],
+        "falls": 2,
+        "drop": 0.15000000000000002,
+        "stages": {
+         "fell": 2,
+         "success": 15,
+         "halt": 1,
+         "drift_a": 2
+        },
+        "task": {
+         "public_success": 15,
+         "mean_sim_time": 33.39000000000246
+        },
+        "motion": {
+         "slip_ratio": 0.07525731343408748,
+         "cot": 0.46691247644638,
+         "joint_jerk_rms": 1190.957400472501,
+         "joint_jerk_peak": 17675.8918749308,
+         "peak_contact_force_bw": 2.3813561828747782,
+         "joint_limit_margin_min": 0.21647076668334328
+        },
+        "lost": 4,
+        "gained": 1
+       },
+       {
+        "level": 1.15,
+        "key": "kp=1.15",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": -0.04999999999999993,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 10.115000000000048
+        },
+        "motion": {
+         "slip_ratio": 0.04309401606900143,
+         "cot": 0.41380137453443244,
+         "joint_jerk_rms": 2519.7924006852245,
+         "joint_jerk_peak": 21827.402037574073,
+         "peak_contact_force_bw": 3.3729164564597123,
+         "joint_limit_margin_min": 0.28093568852886286
+        },
+        "lost": 0,
+        "gained": 1
+       },
+       {
+        "level": 1.3,
+        "key": "kp=1.3",
+        "success": 17,
+        "n": 20,
+        "rate": 0.85,
+        "wilson95": [
+         0.6395811333571357,
+         0.9476312545132735
+        ],
+        "falls": 0,
+        "drop": 0.050000000000000044,
+        "stages": {
+         "success": 17,
+         "halt": 3
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 9.494999999999845
+        },
+        "motion": {
+         "slip_ratio": 0.04304986107312055,
+         "cot": 0.45897998646963445,
+         "joint_jerk_rms": 2763.2146956368833,
+         "joint_jerk_peak": 24822.84821745536,
+         "peak_contact_force_bw": 4.2096184648198705,
+         "joint_limit_margin_min": 0.27377183223984486
+        },
+        "lost": 3,
+        "gained": 2
+       }
+      ],
+      "nominal_level": 1.0,
+      "break_point": {
+       "low": 0.7,
+       "high": null
+      },
+      "break_point_public": {
+       "low": 0.85,
+       "high": null
+      }
+     },
+     "latency_ms": {
+      "levels": [
+       {
+        "level": 0,
+        "key": "latency_ms=0",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 12.05500000000067
+        },
+        "motion": {
+         "slip_ratio": 0.045443979913681494,
+         "cot": 0.3732634850373536,
+         "joint_jerk_rms": 2027.6895472152123,
+         "joint_jerk_peak": 17321.112814304433,
+         "peak_contact_force_bw": 2.4215482458343156,
+         "joint_limit_margin_min": 0.2818532776076068
+        },
+        "lost": 0,
+        "gained": 0
+       },
+       {
+        "level": 10,
+        "key": "latency_ms=10",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": -0.04999999999999993,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.725000000000527
+        },
+        "motion": {
+         "slip_ratio": 0.04745490614514708,
+         "cot": 0.3749629162578408,
+         "joint_jerk_rms": 1951.3347856969797,
+         "joint_jerk_peak": 17678.69348508968,
+         "peak_contact_force_bw": 2.7456319259618205,
+         "joint_limit_margin_min": 0.28171569370805083
+        },
+        "lost": 1,
+        "gained": 2
+       },
+       {
+        "level": 20,
+        "key": "latency_ms=20",
+        "success": 18,
+        "n": 20,
+        "rate": 0.9,
+        "wilson95": [
+         0.6989663528135878,
+         0.9721335190383086
+        ],
+        "falls": 0,
+        "drop": 0.0,
+        "stages": {
+         "success": 18,
+         "halt": 2
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.605000000000496
+        },
+        "motion": {
+         "slip_ratio": 0.04694947975107648,
+         "cot": 0.3762873799398322,
+         "joint_jerk_rms": 1955.7679862674304,
+         "joint_jerk_peak": 18898.21993478826,
+         "peak_contact_force_bw": 2.666478824373563,
+         "joint_limit_margin_min": 0.2692794478991378
+        },
+        "lost": 2,
+        "gained": 2
+       },
+       {
+        "level": 30,
+        "key": "latency_ms=30",
+        "success": 17,
+        "n": 20,
+        "rate": 0.85,
+        "wilson95": [
+         0.6395811333571357,
+         0.9476312545132735
+        ],
+        "falls": 0,
+        "drop": 0.050000000000000044,
+        "stages": {
+         "success": 17,
+         "halt": 3
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 11.480000000000505
+        },
+        "motion": {
+         "slip_ratio": 0.04343361008053319,
+         "cot": 0.3851463341482999,
+         "joint_jerk_rms": 1941.3399690222222,
+         "joint_jerk_peak": 18901.895738942898,
+         "peak_contact_force_bw": 2.6720047397741187,
+         "joint_limit_margin_min": 0.25433975158379774
+        },
+        "lost": 3,
+        "gained": 2
+       }
+      ],
+      "nominal_level": null,
+      "break_point": {
+       "high": null
+      },
+      "break_point_public": {
+       "high": null
+      }
+     },
+     "push_dv": {
+      "levels": [
+       {
+        "level": 0.25,
+        "key": "push_dv=0.25",
+        "success": 20,
+        "n": 20,
+        "rate": 1.0,
+        "wilson95": [
+         0.8388748398148705,
+         1.0
+        ],
+        "falls": 0,
+        "drop": -0.09999999999999998,
+        "stages": {
+         "success": 20
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 12.480000000000816
+        },
+        "motion": {
+         "slip_ratio": 0.044348286596995336,
+         "cot": 0.3756724216429812,
+         "joint_jerk_rms": 1979.41074207053,
+         "joint_jerk_peak": 17952.83475069703,
+         "peak_contact_force_bw": 2.555683541924226,
+         "joint_limit_margin_min": 0.28265007356271354
+        },
+        "lost": 0,
+        "gained": 2
+       },
+       {
+        "level": 0.5,
+        "key": "push_dv=0.5",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": -0.04999999999999993,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 12.72000000000082
+        },
+        "motion": {
+         "slip_ratio": 0.0465936467384737,
+         "cot": 0.3876206403699005,
+         "joint_jerk_rms": 2128.077276052243,
+         "joint_jerk_peak": 18406.18092608805,
+         "peak_contact_force_bw": 2.872386434931471,
+         "joint_limit_margin_min": 0.2562612785625838
+        },
+        "lost": 1,
+        "gained": 2
+       },
+       {
+        "level": 0.75,
+        "key": "push_dv=0.75",
+        "success": 17,
+        "n": 20,
+        "rate": 0.85,
+        "wilson95": [
+         0.6395811333571357,
+         0.9476312545132735
+        ],
+        "falls": 3,
+        "drop": 0.050000000000000044,
+        "stages": {
+         "success": 17,
+         "fell": 3
+        },
+        "task": {
+         "public_success": 17,
+         "mean_sim_time": 12.005000000000635
+        },
+        "motion": {
+         "slip_ratio": 0.05248506499699534,
+         "cot": 0.4138077138190517,
+         "joint_jerk_rms": 2050.5595255315147,
+         "joint_jerk_peak": 20622.250405817496,
+         "peak_contact_force_bw": 3.012252490183208,
+         "joint_limit_margin_min": 0.23903408365926768
+        },
+        "lost": 2,
+        "gained": 1
+       },
+       {
+        "level": 1.0,
+        "key": "push_dv=1",
+        "success": 6,
+        "n": 20,
+        "rate": 0.3,
+        "wilson95": [
+         0.14547724402157294,
+         0.518972820052479
+        ],
+        "falls": 13,
+        "drop": 0.6000000000000001,
+        "stages": {
+         "fell": 13,
+         "success": 6,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 6,
+         "mean_sim_time": 10.825000000001648
+        },
+        "motion": {
+         "slip_ratio": 0.051230290318777655,
+         "cot": 0.41106461069960365,
+         "joint_jerk_rms": 2061.3049803370577,
+         "joint_jerk_peak": 20351.78141841582,
+         "peak_contact_force_bw": 2.8755615408670474,
+         "joint_limit_margin_min": 0.11017747924386458
+        },
+        "lost": 13,
+        "gained": 1
+       },
+       {
+        "level": 1.5,
+        "key": "push_dv=1.5",
+        "success": 2,
+        "n": 20,
+        "rate": 0.1,
+        "wilson95": [
+         0.02786648096169142,
+         0.3010336471864123
+        ],
+        "falls": 18,
+        "drop": 0.8,
+        "stages": {
+         "fell": 18,
+         "success": 2
+        },
+        "task": {
+         "public_success": 2,
+         "mean_sim_time": 5.854999999999907
+        },
+        "motion": {
+         "slip_ratio": 0.05348690920238301,
+         "cot": 0.39882430604063057,
+         "joint_jerk_rms": 2189.303025058722,
+         "joint_jerk_peak": 20477.377249237383,
+         "peak_contact_force_bw": 2.760933357163694,
+         "joint_limit_margin_min": 0.1401478301936444
+        },
+        "lost": 16,
+        "gained": 0
+       }
+      ],
+      "nominal_level": 0.0,
+      "break_point": {
+       "high": 1.0
+      },
+      "break_point_public": {
+       "high": 1.0
+      }
+     },
+     "terrain_m": {
+      "levels": [
+       {
+        "level": 0.01,
+        "key": "terrain_m=0.01",
+        "success": 20,
+        "n": 20,
+        "rate": 1.0,
+        "wilson95": [
+         0.8388748398148705,
+         1.0
+        ],
+        "falls": 0,
+        "drop": -0.09999999999999998,
+        "stages": {
+         "success": 20
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 13.11500000000095
+        },
+        "motion": {
+         "slip_ratio": 0.04561734378488886,
+         "cot": 0.37136993447094246,
+         "joint_jerk_rms": 1814.5802128525256,
+         "joint_jerk_peak": 17473.08047916724,
+         "peak_contact_force_bw": 2.6342430627924927,
+         "joint_limit_margin_min": 0.28456060130882094
+        },
+        "lost": 0,
+        "gained": 2
+       },
+       {
+        "level": 0.02,
+        "key": "terrain_m=0.02",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": -0.04999999999999993,
+        "stages": {
+         "success": 19,
+         "halt": 1
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 13.96500000000107
+        },
+        "motion": {
+         "slip_ratio": 0.04650231311540577,
+         "cot": 0.37354202785670854,
+         "joint_jerk_rms": 1738.4646934430216,
+         "joint_jerk_peak": 17203.458465259464,
+         "peak_contact_force_bw": 2.4513555403423646,
+         "joint_limit_margin_min": 0.2846527898430934
+        },
+        "lost": 1,
+        "gained": 2
+       },
+       {
+        "level": 0.03,
+        "key": "terrain_m=0.03",
+        "success": 19,
+        "n": 20,
+        "rate": 0.95,
+        "wilson95": [
+         0.7638688045357189,
+         0.9911185512976646
+        ],
+        "falls": 0,
+        "drop": -0.04999999999999993,
+        "stages": {
+         "halt": 1,
+         "success": 19
+        },
+        "task": {
+         "public_success": 20,
+         "mean_sim_time": 17.16000000000062
+        },
+        "motion": {
+         "slip_ratio": 0.049007494181088976,
+         "cot": 0.3862641794187176,
+         "joint_jerk_rms": 1615.873790088568,
+         "joint_jerk_peak": 18399.838884564575,
+         "peak_contact_force_bw": 2.4946493151961953,
+         "joint_limit_margin_min": 0.2734201008693531
+        },
+        "lost": 1,
+        "gained": 2
+       },
+       {
+        "level": 0.05,
+        "key": "terrain_m=0.05",
+        "success": 13,
+        "n": 20,
+        "rate": 0.65,
+        "wilson95": [
+         0.4328542750684442,
+         0.818808176876017
+        ],
+        "falls": 1,
+        "drop": 0.25,
+        "stages": {
+         "fell": 1,
+         "drift_a": 3,
+         "success": 13,
+         "halt": 2,
+         "drift_b": 1
+        },
+        "task": {
+         "public_success": 14,
+         "mean_sim_time": 35.09500000000576
+        },
+        "motion": {
+         "slip_ratio": 0.054006131297737736,
+         "cot": 0.448169069789762,
+         "joint_jerk_rms": 1190.2290474282509,
+         "joint_jerk_peak": 17764.295214620703,
+         "peak_contact_force_bw": 2.5459082154445984,
+         "joint_limit_margin_min": 0.2800515034517653
+        },
+        "lost": 6,
+        "gained": 1
+       },
+       {
+        "level": 0.08,
+        "key": "terrain_m=0.08",
+        "success": 0,
+        "n": 20,
+        "rate": 0.0,
+        "wilson95": [
+         0.0,
+         0.16112516018512965
+        ],
+        "falls": 2,
+        "drop": 0.9,
+        "stages": {
+         "drift_a": 15,
+         "drift_b": 3,
+         "fell": 2
+        },
+        "task": {
+         "public_success": 0,
+         "mean_sim_time": 54.68500000002457
+        },
+        "motion": {
+         "slip_ratio": 0.052988821539159056,
+         "cot": 0.6034049184294149,
+         "joint_jerk_rms": 562.5335141133314,
+         "joint_jerk_peak": 16360.66015455328,
+         "peak_contact_force_bw": 2.3379743890689424,
+         "joint_limit_margin_min": 0.2771176650436281
+        },
+        "lost": 18,
+        "gained": 0
+       }
+      ],
+      "nominal_level": 0.0,
+      "break_point": {
+       "high": 0.05
+      },
+      "break_point_public": {
+       "high": 0.05
+      }
+     },
+     "all_moderate": {
+      "levels": [
+       {
+        "level": 1,
+        "key": "all_moderate",
+        "success": 7,
+        "n": 20,
+        "rate": 0.35,
+        "wilson95": [
+         0.18119182312398308,
+         0.5671457249315559
+        ],
+        "falls": 5,
+        "drop": 0.55,
+        "stages": {
+         "success": 7,
+         "fell": 5,
+         "drift_a": 5,
+         "drift_b": 3
+        },
+        "task": {
+         "public_success": 7,
+         "mean_sim_time": 44.91500000001465
+        },
+        "motion": {
+         "slip_ratio": 0.10802694311786168,
+         "cot": 0.5440165774031769,
+         "joint_jerk_rms": 800.563652474763,
+         "joint_jerk_peak": 19561.367146866774,
+         "peak_contact_force_bw": 2.028023712256733,
+         "joint_limit_margin_min": 0.1534306747743947
+        },
+        "lost": 12,
+        "gained": 1
+       }
+      ],
+      "nominal_level": 0,
+      "break_point": {
+       "high": 1
+      },
+      "break_point_public": {
+       "high": 1
+      }
+     }
+    },
+    "pooled_perturbed": {
+     "success": 519,
+     "n": 660,
+     "rate": 0.7863636363636364,
+     "wilson95": [
+      0.7534833108380969,
+      0.8159297544998299
+     ],
+     "lost": 122,
+     "gained": 47
+    }
+   }
+  }
+ },
+ "comparisons": []
+}

@@ -194,6 +194,40 @@ rebuild tables with `python -m rrp.evaluation.robustness report --out artifacts/
 peer (the host venv has no imageio/PIL): `RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/robust scripts/peer_run.sh --cpu 1 --mem 5G
 --label robust_video -- env MUJOCO_GL=egl PY -m rrp.evaluation.robustness video --family ... --condition KEY --seed S`.
 
+## VARIANT-LEVEL SEMFIX vs NOSEM (lead request after D-108; training seeds 0/1/2; state: completed)
+Seeds 1/2 sweep: same grid, eval seeds 10000-10019, contact_v2, same host code. The host memory-PSI watchdog shed or refused
+every attempt from 11:49 on (9 attempts per lease), so all four shards were moved to the PEER (CPU leases 1 CPU / 2.5 GiB,
+measured peak 1.8-1.9 GB; leases 1790535604_8730ee, 1790535605_4aa83f, 1790536247_3174c4, 1790536247_a80e99, all rc 0).
+Episodes finished on the host before the move were copied, not rerun (episode-level resume; per-seed controllers
+are seeded, so the placement does not change outcomes). Checkpoints (sha256 prefix): semfix s1 bd0b6abe (Stage A 77c3b286),
+s2 5aca8200 (22bd361a); nosem s1 7ada18a2 (a065d7b2), s2 f891f74c (5d15ad6a). Raw: `artifacts/runs/robust/legged_anymal_c_s12/`
+(rows local + peer store); comparison: `python -m rrp.evaluation.robustness variant --robot anymal_c --a semfix --b nosem
+--spec semfix:0=artifacts/runs/robust/legged_anymal_c/semfix --spec nosem:0=.../nosem --spec semfix:1=.../legged_anymal_c_s12/semfix_s1
+... ` -> `artifacts/runs/robust/variant_anymal_c_semfix_vs_nosem.{md,json}`.
+Per eval seed: level mean = mean success over the 33 perturbed single-factor levels; drop = nominal - level mean.
+
+| training seed | nominal semfix / nosem (public) | level mean, public: semfix / nosem, diff [95% CI] p | privileged diff [95% CI] p | all_moderate public |
+|---|---|---|---|---|
+| 0 | 17 (20) / 20 (20) | 0.836 / 0.868, -0.032 [-0.048, -0.017] p=0.002 | -0.089 [-0.115, -0.064] p<1e-4 | 1 / 13 |
+| 1 | 18 (20) / 19 (20) | 0.832 / 0.894, -0.062 [-0.077, -0.047] p<1e-4 | -0.076 [-0.108, -0.042] p=6e-4 | 6 / 14 |
+| 2 | 18 (20) / 18 (20) | 0.830 / 0.874, -0.044 [-0.065, -0.023] p=0.001 | -0.036 [-0.077, +0.006] p=0.13 | 7 / 14 |
+| pooled (per eval seed, averaged over training seeds) | - | -0.046 [-0.056, -0.036] p<1e-4 | -0.067 [-0.090, -0.045] p<1e-4 | 14 / 41 of 60 |
+Variant level (3 vs 3 training-seed means, exact permutation over the 20 relabellings, as D-090): public level mean
+semfix 0.836 / 0.832 / 0.830 vs nosem 0.868 / 0.894 / 0.874: every semfix seed below every nosem seed, one-sided p = 0.05
+(the minimum possible), two-sided 0.10. Privileged: 0.744 / 0.770 / 0.786 vs 0.833 / 0.845 / 0.823, also fully separated,
+p = 0.05 / 0.10. Drop relative to own nominal (public): semfix 0.164 / 0.168 / 0.170 vs nosem 0.132 / 0.106 / 0.126, fully
+separated (p = 0.05); privileged drop does not separate (+0.001, p = 1.0) because semfix's privileged nominal is lowered by
+the end-check flicker.
+Break-points are the SAME for both variants on every seed (friction 0.4, kp 0.7, push 1.0 m/s, terrain 8 cm; exceptions
+semfix s2 terrain 5 cm, nosem s2 push 0.75 m/s); none under latency 0-30 ms, mass +-20%, CoM +-2 cm. The difference is a
+consistent few-point loss spread over levels, largest under combined moderate perturbations (all_moderate public 14/60 vs
+41/60).
+READING: at variant level (3 training seeds), semantic packet supervision (semfix) makes the anymal_c R2 route slightly LESS
+robust to physics shifts than the capacity-matched nosem packet, by 4.6 points of public success pooled over 33 perturbed
+levels (-6.7 privileged), replicated on every training seed (exact p = 0.05, the floor of a 3-vs-3 test). It does not move
+any break-point. Together with D-105 (semfix has the stronger context-halt and goal-steering effects), the semantic packet
+buys controllability at a small robustness cost on this body. Both packet routes remain more robust than BC (seed 0).
+
 ## PROPOSED GATES for trackers and datasets (for lead review; not enforced yet)
 All quantities are the `motion` fields now in every eval row (rrp.evaluation.motion_quality) or the robustness report;
 "nominal" = the deployed physics (contact_v2, ideal actuators, sourced limits). Numbers in brackets are what we measure now.

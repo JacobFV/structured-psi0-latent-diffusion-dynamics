@@ -1,0 +1,105 @@
+{
+ "n": 20,
+ "success": 0,
+ "rate": 0.0,
+ "wilson95": [
+  0.0,
+  0.16112516018512965
+ ],
+ "falls": 20,
+ "stages": {
+  "fell": 20
+ },
+ "task": {
+  "public_success": 0,
+  "mean_sim_time": 20.81999999999899
+ },
+ "motion_median": {
+  "slip_ratio": 1.455312806997553,
+  "cot": 2.3466527003464903,
+  "joint_jerk_rms": 295.79069231812133,
+  "joint_jerk_peak": 5194.031846076716,
+  "peak_contact_force_bw": 0.7263265270852464,
+  "joint_limit_margin_min": 0.0077029945719718825
+ },
+ "sources": [
+  "learned:train_flow_s1/policy.pt"
+ ],
+ "seeds": [
+  10000,
+  10001,
+  10002,
+  10003,
+  10004,
+  10005,
+  10006,
+  10007,
+  10008,
+  10009,
+  10010,
+  10011,
+  10012,
+  10013,
+  10014,
+  10015,
+  10016,
+  10017,
+  10018,
+  10019
+ ],
+ "success_by_seed": {
+  "10000": false,
+  "10001": false,
+  "10002": false,
+  "10003": false,
+  "10004": false,
+  "10005": false,
+  "10006": false,
+  "10007": false,
+  "10008": false,
+  "10009": false,
+  "10010": false,
+  "10011": false,
+  "10012": false,
+  "10013": false,
+  "10014": false,
+  "10015": false,
+  "10016": false,
+  "10017": false,
+  "10018": false,
+  "10019": false
+ },
+ "route": {
+  "name": "semfix_s1",
+  "kind": "flow",
+  "ckpt": "artifacts/runs/legged8/legged8-anymal_c-semfix/train_flow_s1/policy.pt"
+ },
+ "robot": "anymal_c",
+ "condition": {
+  "factor": "friction",
+  "level": 0.4,
+  "key": "friction=0.4"
+ },
+ "perturbation": {
+  "friction_scale": 0.4,
+  "mass_scale": 1.0,
+  "com_offset_m": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "kp_scale": 1.0,
+  "kd_scale": null,
+  "latency_ms": null,
+  "push_impulse_Ns": 0.0,
+  "push_time_s": 4.0,
+  "push_duration_s": 0.1,
+  "push_dir_rad": null,
+  "terrain_amp_m": 0.0,
+  "object_mass_scale": 1.0,
+  "object_friction_scale": 1.0,
+  "version": "rrp.envs.perturb/v1"
+ },
+ "wall_s": 15.80535101890564,
+ "family": "legged"
+}
