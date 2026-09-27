@@ -276,6 +276,16 @@ NATURAL_TERMS = ("torque", "action_rate", "smooth", "power", "impact")          
 # stand_vel. Revision 2026-09-27 (lead): stand_contact moved from PRIOR to PERMANENT. Standing still on a zero command is a task
 # requirement (the W8 `halt` event checks both feet down and speed <= 0.1), not a gait prior. At its 10% prior floor, t1 stepped in place
 # while halting and failed 3-9/20 waypoint episodes.
+def limit_margin_penalty(q, lo, hi, m0: float = 0.02) -> float:
+    """mean over joints with a range of (max(0, m0 - margin) / m0)^2, margin = min(q - lo, hi - q) / (hi - lo)."""
+    q, lo, hi = np.asarray(q, float), np.asarray(lo, float), np.asarray(hi, float)
+    keep = hi > lo
+    if not keep.any():
+        return 0.0
+    m = np.minimum(q - lo, hi - q)[keep] / (hi - lo)[keep]
+    return float(np.mean((np.clip(m0 - m, 0.0, None) / m0) ** 2))
+
+
 PERMANENT_STANDING_TERMS = ("stand_contact", "stand_still", "stand_vel")
 MIN_STOP_SHARE = 0.10     # curriculum: at least this share of sampled commands are zero commands (every sampler)
 
@@ -326,6 +336,11 @@ class RewardCfg:
     turn_lin: float = 0.0
     yaw_lin_all: float = 0.0
     stand_vel: float = 0.0         # PERMANENT: zero command -> x |base v_xy| (m/s); removes standing sway (W8 halt event needs speed <= 0.1)
+    # PERMANENT joint-limit-margin hinge (W6, D-112 gate: margin >= 0.02 of the range; t1/g1 trackers drove joints PAST their
+    # ranges, margin -0.04..-0.09): x mean over policy joints of (max(0, m0 - margin) / m0)^2, margin = min(q - lo, hi - q) / range.
+    # 0 inside the gate band, 1 at the limit, 4 at 2% past it. Default 0 (gait_v1 unchanged); gait_v2 -1.
+    limit_margin: float = 0.0
+    limit_margin_m0: float = 0.02
                                    # gait_v2 default -1.5 (2026-09-27; -4 made t1 step in place)       # 1 -> the turn_lin dense yaw-progress term also applies to arcs (any |wz| command), not only pure turns          # dense yaw progress during pure-turn commands: x clip(w_z sign(c)/|c|, -0.5, 1.2)
     sigma_ang: float = 0.0         # yaw-rate tracking kernel width; 0 -> sigma (a sharper kernel keeps small turn commands informative)
     version: str = "gait_v1"
@@ -345,7 +360,7 @@ class RewardCfg:
         return e
 
     def weights(self) -> dict:
-        return {k: v for k, v in asdict(self).items() if isinstance(v, float) and k not in ("alpha", "prior_floor")}
+        return {k: v for k, v in asdict(self).items() if isinstance(v, float) and k not in ("alpha", "prior_floor", "limit_margin_m0")}
 
     @staticmethod
     def for_kind(kind: str, version: str = "gait_v1") -> "RewardCfg":
@@ -360,9 +375,10 @@ class RewardCfg:
                 return RewardCfg(orient=-5.0, alive=0.3, contact_phase=1.0, height=-20.0, air_time=1.0,
                                  stand_still=-0.5, termination=-10.0, sigma=0.1, track_lin=2.5, track_ang=2.0,
                                  feet_slip=0.0, slip=-1.0, clearance=1.0, torque=-0.02, action_rate=-0.02,
-                                 smooth=-0.01, power=-0.02, impact=0.0, stand_vel=-1.5, version=version, natural_max=nat)
+                                 smooth=-0.01, power=-0.02, impact=0.0, stand_vel=-1.5, limit_margin=-1.0, version=version,
+                                 natural_max=nat)
             return RewardCfg(feet_slip=0.0, slip=-0.5, clearance=0.5, torque=-0.02, action_rate=-0.02, smooth=-0.01,
-                             power=-0.02, impact=0.0, stand_vel=-1.5, version=version, natural_max=nat)
+                             power=-0.02, impact=0.0, stand_vel=-1.5, limit_margin=-1.0, version=version, natural_max=nat)
         if kind in ("humanoid", "biped"):
             # v3: track_ang 1.0 -> 2.0 + turn-in-place commands (v2 walked but never turned)
             # v2 (after v1 converged to a stable non-walking stander): sharper tracking kernel, more
@@ -620,6 +636,8 @@ class LeggedEnv:
             span = b.jhi - b.jlo
             soft_lo, soft_hi = b.jlo + 0.05 * span, b.jhi - 0.05 * span
             r += cfg.limits * float(np.sum(np.clip(soft_lo - q, 0, None) + np.clip(q - soft_hi, 0, None)))
+            if cfg.limit_margin:
+                r += cfg.limit_margin * limit_margin_penalty(q, b.jlo, b.jhi, cfg.limit_margin_m0)
             moving = np.linalg.norm(c[:2]) > 0.05 or abs(c[2]) > 0.05
             first = fc & (self.air[i] > 0)
             r += cfg.air_time * float(np.sum((self.air[i] - 0.5 * b.period) * first)) * moving

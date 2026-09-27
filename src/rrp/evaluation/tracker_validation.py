@@ -79,7 +79,9 @@ def run_episode(model, b: LeggedBinding, tracker, script: dict, seed: int, recor
     p0 = d.qpos[b.qa:b.qa + 2].copy()
     fell, fell_t = False, None
     traj = []
-    peak_fn, margin = 0.0, float("inf")
+    peak_fn, peak_raw, margin = 0.0, 0.0, float("inf")
+    fwin = max(1, int(round(FORCE_WINDOW_S / model.opt.timestep)))      # 20 ms moving average (D-112 revision)
+    fbuf = []
     rng_j = np.maximum(b.jhi - b.jlo, 1e-9)
     lim_j = b.jhi > b.jlo
     for k in range(steps):
@@ -98,7 +100,13 @@ def run_episode(model, b: LeggedBinding, tracker, script: dict, seed: int, recor
                 d.ctrl[b.pol_act] = act.substep_ctrl(0, d)
             mujoco.mj_step(model, d)
             energy += float(np.sum(np.abs(d.actuator_force[b.pol_act] * d.qvel[b.pol_dadr]))) * model.opt.timestep
-            peak_fn = max(peak_fn, float(np.max(b.stance(d)[1])))           # W6 gate: per-foot normal force (N)
+            fn_s = b.stance(d)[1]                                            # W6 gate: per-foot normal force (N)
+            peak_raw = max(peak_raw, float(np.max(fn_s)))
+            fbuf.append(fn_s)
+            if len(fbuf) > fwin:
+                fbuf.pop(0)
+            if len(fbuf) == fwin:
+                peak_fn = max(peak_fn, float(np.max(np.mean(fbuf, axis=0))))
         v = b.base_lin_vel_body(d)
         w = d.qvel[b.da + 3:b.da + 6]
         fc, fn, slip_cp, bad = b.stance(d)
@@ -145,7 +153,7 @@ def run_episode(model, b: LeggedBinding, tracker, script: dict, seed: int, recor
     out = dict(fell=fell, fell_t=fell_t, dist_m=dist, mean_vx=float(np.mean(vxs)) if vxs else None,
                mean_wz=float(np.mean(wzs)) if wzs else None, slip_mps=float(np.mean(slips)) if slips else None,
                cot=float(energy / (mass * 9.81 * max(dist, 1e-3))) if dist > 0.2 else None,
-               peak_force_bw=peak_fn / (mass * 9.81), joint_limit_margin_min=margin if math.isfinite(margin) else None,
+               peak_force_bw=peak_fn / (mass * 9.81), peak_force_raw_bw=peak_raw / (mass * 9.81), joint_limit_margin_min=margin if math.isfinite(margin) else None,
                cmd=cmd.tolist(), **gait)
     if record:
         out["traj"] = traj
@@ -191,6 +199,7 @@ def validate(body: str, kind: str, actor: str | None, seeds: int, contact: str |
                        slip_mps=_nanmean([e["slip_mps"] for e in v]), cot=_nanmean([e["cot"] for e in v]),
                        **{g: _nanmean([e[g] for e in v]) for g in GAIT_KEYS},
                        peak_force_bw=_nanmax([e.get("peak_force_bw") for e in v]),
+                       peak_force_raw_bw=_nanmax([e.get("peak_force_raw_bw") for e in v]),
                        joint_limit_margin_min=_nanmin([e.get("joint_limit_margin_min") for e in v]),
                        cmd=v[0]["cmd"]) for k, v in res.items()}
     fw = summary["forward"]
@@ -275,6 +284,7 @@ def robust_check(body: str, tracker_path_: str | None, kind: str, seeds: int, co
                 protocol="rrp.evaluation.tracker_validation.robust_check/v1 (W6, D-112)")
 
 
+FORCE_WINDOW_S = 0.02    # peak foot force = peak of the 20 ms moving average (impact transients filtered; lead, D-112 revision)
 GATE_EXIT = 86          # exit code of a validation whose W6 gate verdict is "fail" (the pipeline marks the node failed)
 
 GAIT_KEYS = ("slip_cp_mps", "body_speed_mps", "slip_ratio", "duty_min", "duty_max", "air_time_s", "swing_apex_m",

@@ -104,3 +104,25 @@ def test_peer_ram_store_shmem_is_subtracted_from_the_startup_cap():
     # unknown Shmem (telemetry gap) leaves the limit unchanged
     assert evaluate(ok_sample(memory_available=100 * G, project_memory=5 * G), cfg(**peer, subtract_shmem=True),
                     WatchdogState()).live_memory_bytes == 99 * G
+
+
+def test_ram_store_excess_sheds_only_after_sustained_pressure():
+    # 108 GiB cap, 60 GiB in the RAM store -> startup term 48 GiB; project 50 GiB exceeds it ONLY because of the store term.
+    peer = dict(memory_reserve_bytes=6 * G, disk_reserve_bytes=10 * G, startup_memory_bytes=108 * G, startup_cpu_cores=19.97,
+                disk_path="/", fraction=1.0, psi_full_avg10_shed=101.0, subtract_shmem=True, shmem_shed_grace_s=30.0,
+                sample_interval_s=2.0)
+    c, st = cfg(**peer), WatchdogState()
+    calm = ok_sample(memory_available=40 * G, project_memory=50 * G, shmem=60 * G, psi_full_avg10=0.0)
+    for _ in range(40):                                   # no pressure: never shed, admission stays stopped
+        v = evaluate(calm, c, st)
+        assert v.level == "stop_admission" and v.live_memory_bytes == 48 * G
+    hot = dict(calm, psi_full_avg10=43.0)
+    levels = [evaluate(hot, c, st).level for _ in range(15)]
+    assert levels[:14] == ["stop_admission"] * 14 and levels[14] == "shed"      # 15 samples x 2 s = 30 s
+    st2 = WatchdogState()
+    for _ in range(10):
+        evaluate(hot, c, st2)
+    assert evaluate(calm, c, st2).level == "stop_admission" and st2.shmem_excess_count == 0   # a calm sample resets
+    # an excess that exists WITHOUT the store term still sheds immediately (unchanged behaviour)
+    over = ok_sample(memory_available=40 * G, project_memory=120 * G, shmem=60 * G)    # > 108 even without the store
+    assert evaluate(over, c, WatchdogState()).level == "shed"

@@ -60,3 +60,20 @@ def test_stop_share_in_every_sampler():
                 env._sample_cmd(0)
                 zeros += not np.any(env.cmd[0])
             assert zeros / 3000 >= MIN_STOP_SHARE - 0.02, (body, mix, zeros / 3000)
+
+
+def test_limit_margin_penalty_is_permanent_and_hinged():
+    """W6/D-112: joint-limit-margin hinge; 0 inside the 2% band, 1 at the limit, 4 at 2% past it; never decays."""
+    import numpy as np
+    from rrp.envs.legged_core import RewardCfg, limit_margin_penalty
+    lo, hi = np.array([-1.0, 0.0, 0.0]), np.array([1.0, 1.0, 0.0])        # third joint unlimited: ignored
+    assert limit_margin_penalty([0.0, 0.5, 9.0], lo, hi) == 0.0
+    assert limit_margin_penalty([1.0, 0.5, 0.0], lo, hi) == pytest.approx(0.5)            # (1 + 0) / 2
+    assert limit_margin_penalty([1.04, 0.5, 0.0], lo, hi) == pytest.approx(4.0 / 2)       # 2% of range past the limit
+    assert limit_margin_penalty([0.96, 0.5, 0.0], lo, hi) == pytest.approx(0.0, abs=1e-12)  # the 2% band edge (range 2)
+    for kind in ("quadruped", "humanoid"):
+        c = RewardCfg.for_kind(kind, "gait_v2")
+        assert c.limit_margin < 0
+        assert c.effective(0.0).limit_margin == c.effective(1.0).limit_margin == c.limit_margin
+    assert RewardCfg.for_kind("quadruped").limit_margin == 0.0                            # gait_v1 unchanged
+    assert "limit_margin_m0" not in RewardCfg.for_kind("quadruped", "gait_v2").weights()

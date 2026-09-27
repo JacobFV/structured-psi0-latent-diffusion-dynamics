@@ -6,6 +6,8 @@ stop admission -> ask owned jobs to checkpoint -> terminate their units after gr
 """
 from __future__ import annotations
 
+import math
+
 import json
 import os
 import time
@@ -43,6 +45,13 @@ class WatchdogConfig:
     # on an empty store. With this on, the startup term of the live limit becomes startup - Shmem. (The dynamic
     # terms already exclude Shmem: MemAvailable does not count shared-memory pages as available.)
     subtract_shmem: bool = False
+    # Hysteresis for the RAM-store term (lead, 2026-09-27 14:35: the first restart with subtract_shmem shed two jobs): when the
+    # project exceeds the live limit ONLY because of the Shmem subtraction, stop admission at once but shed only after the
+    # excess has persisted together with real memory pressure (PSI full avg10 >= shmem_shed_psi, or MemAvailable below
+    # 2x the reserve) for shmem_shed_grace_s (consecutive samples at sample_interval_s).
+    shmem_shed_grace_s: float = 30.0
+    shmem_shed_psi: float = 10.0
+    sample_interval_s: float = 2.0
 
 
 @dataclass
@@ -53,6 +62,7 @@ class WatchdogState:
     stable_count: int = 0
     last_cpu_usage_usec: int | None = None
     last_t: float | None = None
+    shmem_excess_count: int = 0           # consecutive samples with a RAM-store-caused excess under memory pressure
 
 
 @dataclass
@@ -88,14 +98,24 @@ def evaluate(sample: dict, cfg: WatchdogConfig, st: WatchdogState) -> Verdict:
         shm = sample.get("shmem")
         if cfg.subtract_shmem and shm is not None and shm >= 0:
             startup = max(0, startup - int(shm))
-        live_mem = live_memory_limit_bytes(
-            startup_limit=startup, available_now=avail,
-            project_resident=proj or 0, reserve=cfg.memory_reserve_bytes, fraction=cfg.fraction,
-            project_attribution_accurate=proj is not None)
+        kw = dict(available_now=avail, project_resident=proj or 0, reserve=cfg.memory_reserve_bytes, fraction=cfg.fraction,
+                  project_attribution_accurate=proj is not None)
+        live_mem = live_memory_limit_bytes(startup_limit=startup, **kw)
+        live_mem_no_store = live_memory_limit_bytes(startup_limit=cfg.startup_memory_bytes, **kw) \
+            if startup != cfg.startup_memory_bytes else live_mem
+        store_caused = proj is not None and live_mem < proj <= live_mem_no_store
+        psi_now = sample.get("psi_full_avg10")
+        pressure = (psi_now is not None and psi_now >= cfg.shmem_shed_psi) or avail < 2 * cfg.memory_reserve_bytes
+        st.shmem_excess_count = st.shmem_excess_count + 1 if (store_caused and pressure) else 0
+        need = max(1, int(math.ceil(cfg.shmem_shed_grace_s / cfg.sample_interval_s)))
         if avail < cfg.memory_reserve_bytes:
             bump("emergency", f"available_memory_below_reserve:{avail}")
+        elif store_caused and st.shmem_excess_count < need:
+            bump("stop_admission", f"project_memory_{proj}_exceeds_live_limit_{live_mem}_(ram_store_term; "
+                                   f"pressure {st.shmem_excess_count}/{need} samples)")
         elif proj is not None and proj > live_mem:
-            bump("shed", f"project_memory_{proj}_exceeds_live_limit_{live_mem}")
+            bump("shed", f"project_memory_{proj}_exceeds_live_limit_{live_mem}" + ("_(ram_store_term, sustained)"
+                                                                                  if store_caused else ""))
     sf = sample.get("swap_free")
     if sf is not None and sf >= 0:
         # swap GROWTH over a recent window (~60 s at 2 s sampling); already-swapped pages that

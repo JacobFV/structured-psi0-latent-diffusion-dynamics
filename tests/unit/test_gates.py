@@ -29,6 +29,8 @@ def test_tracker_pass_and_each_failure():
     assert _status(check_tracker(_val(fw=dict(cot=1.2))), "cot_forward") == "fail"            # quadruped <= 1.0
     assert _status(check_tracker(_val(fw=dict(cot=1.2), family="humanoid")), "cot_forward") == "pass"   # biped <= 2.0
     assert _status(check_tracker(_val(fw=dict(peak_force_bw=3.6))), "peak_foot_force_bw") == "fail"
+    assert _status(check_tracker(_val(fw=dict(peak_force_bw=3.2))), "peak_foot_force_bw") == "pass"      # quadruped <= 3.5
+    assert _status(check_tracker(_val(fw=dict(peak_force_bw=3.2), family="humanoid")), "peak_foot_force_bw") == "fail"  # biped <= 3.0
     assert _status(check_tracker(_val(fw=dict(joint_limit_margin_min=0.01))), "joint_limit_margin") == "fail"
     v = _val()
     v["gate"]["no_fall_rate"] = 0.8
@@ -75,6 +77,13 @@ def test_arm_dataset():
     assert _status(check_arm_dataset(_arm(20, step=0.9), reference=ref), "phase_switch_vel_step") == "fail"
     assert _status(check_arm_dataset(_arm(20, jerk=11.0), reference=ref), "cmd_jerk_rms_vs_v2_teacher") == "fail"   # 2.2x
     assert _status(check_arm_dataset(_arm(20, margin=0.01), reference=ref), "joint_limit_margin") == "fail"
+    # procedural parm* arms: the margin is reported (labelled), never gated; menagerie arms in the same dataset stay enforced
+    ref2 = dict(source="test", bodies=dict(panda_pg2=5.0, parm6_tf3=5.0))
+    r = check_arm_dataset(_arm(20, margin=0.0, body="parm6_tf3"), reference=ref2)
+    assert _status(r, "joint_limit_margin_procedural") == "labelled" and r["verdict"] == "pass"
+    assert all(c["name"] != "joint_limit_margin" for c in r["criteria"])
+    r = check_arm_dataset(_arm(20, margin=0.0, body="parm6_tf3") + _arm(20, margin=0.01), reference=ref2)
+    assert _status(r, "joint_limit_margin") == "fail" and _status(r, "joint_limit_margin_procedural") == "labelled"
     assert _status(check_arm_dataset(_arm(20, pen=0.004), reference=ref), "penetration") == "fail"          # grasp_v2: gated
     r = check_arm_dataset(_arm(20, pen=0.02, grasp="grasp_v1"), reference=ref)                              # grasp_v1: labelled
     assert _status(r, "penetration") == "labelled" and r["verdict"] == "pass"

@@ -24,7 +24,7 @@ GATES_VERSION = "rrp.evaluation.gates/v1 (D-112)"
 GATE_REPORT = "gate_report.json"
 
 GATES = dict(
-    tracker=dict(slip_ratio_max=0.15, cot_max=dict(quadruped=1.0, biped=2.0), peak_force_bw_max=3.5,
+    tracker=dict(slip_ratio_max=0.15, cot_max=dict(quadruped=1.0, biped=2.0), peak_force_bw_max=dict(quadruped=3.5, biped=3.0),
                  joint_limit_margin_min=0.02, no_fall_min=0.9, robust_forward_drop_max=0.20, robust_no_fall_min=0.9),
     legged_dataset=dict(slip_ratio_max=0.15, slip_ok_frac_min=0.95, falls_at_sigma0_max=0),
     arm_dataset=dict(phase_switch_vel_step_max=0.5, cmd_jerk_rms_ratio_max=2.0, joint_limit_margin_min=0.02,
@@ -105,9 +105,12 @@ def check_tracker(v: dict) -> dict:
               None if fw.get("cot") is None else fw["cot"] <= G["cot_max"][kind]),
     ]
     pk = [x.get("peak_force_bw") for x in s.values() if x.get("peak_force_bw") is not None]
-    crits.append(_crit("peak_foot_force_bw", max(pk) if pk else None, f"<= {G['peak_force_bw_max']}",
-                       (max(pk) <= G["peak_force_bw_max"]) if pk else None,
-                       "max over trials and physics substeps (contact normal force per foot / body weight)"))
+    pmax = G["peak_force_bw_max"][kind]
+    raw = [x.get("peak_force_raw_bw") for x in s.values() if x.get("peak_force_raw_bw") is not None]
+    crits.append(_crit("peak_foot_force_bw", max(pk) if pk else None, f"<= {pmax} ({kind}; 20 ms moving average)",
+                       (max(pk) <= pmax) if pk else None,
+                       "max over trials of the peak 20 ms moving-average contact normal force per foot / body weight"
+                       + (f"; unfiltered per-step peak {max(raw):.2f}" if raw else "")))
     mg = [x.get("joint_limit_margin_min") for x in s.values() if x.get("joint_limit_margin_min") is not None]
     crits.append(_crit("joint_limit_margin", min(mg) if mg else None, f">= {G['joint_limit_margin_min']}",
                        (min(mg) >= G["joint_limit_margin_min"]) if mg else None, "min over trials, ticks and joints"))
@@ -194,6 +197,13 @@ def _arm_row(e: dict) -> dict:
                 noise=float(pick(e.get("exec_noise"), 0.0) or 0.0))
 
 
+PROCEDURAL_ARM_PREFIXES = ("parm",)
+
+
+def _procedural(body) -> bool:
+    return str(body).startswith(PROCEDURAL_ARM_PREFIXES)
+
+
 def load_arm_reference(path: Path | None = None) -> dict:
     return json.loads(Path(path).read_text()) if path else ARM_TEACHER_V2_REFERENCE
 
@@ -211,17 +221,30 @@ def check_arm_dataset(episodes: list[dict], manifest: dict | None = None, refere
         xs = [r[key] for r in R if r[key] is not None]
         return ((sum(ok(x) for x in xs) / len(xs)) if xs else None), xs
     f_step, steps = frac("step", lambda x: x <= G["phase_switch_vel_step_max"])
-    f_mg, mgs = frac("margin", lambda x: x >= G["joint_limit_margin_min"])
     crits = [
         _crit("phase_switch_vel_step", None if f_step is None else round(f_step, 4),
               f">= {G['ok_frac_min']} of episodes with step <= {G['phase_switch_vel_step_max']} rad/s",
               None if f_step is None else f_step >= G["ok_frac_min"],
               f"median {float(np.median(steps)) if steps else None}, max {max(steps) if steps else None}"),
-        _crit("joint_limit_margin", None if f_mg is None else round(f_mg, 4),
-              f">= {G['ok_frac_min']} of episodes with margin >= {G['joint_limit_margin_min']}",
-              None if f_mg is None else f_mg >= G["ok_frac_min"],
-              f"min {min(mgs) if mgs else None}"),
     ]
+    # joint-limit margin: ENFORCED on menagerie arms; REPORTED (labelled) on the procedural parm* arms, whose joint ranges
+    # are invented and which the v2 teacher drives into their limits (lead decision after D-112; W7 backlog: limit-aware IK)
+    thr = f">= {G['ok_frac_min']} of episodes with margin >= {G['joint_limit_margin_min']}"
+    for name, sel, gated in (("joint_limit_margin", lambda b: not _procedural(b), True),
+                             ("joint_limit_margin_procedural", _procedural, False)):
+        xs = [r["margin"] for r in R if r["margin"] is not None and sel(r["body"])]
+        if not xs and not gated:
+            continue
+        f = (sum(x >= G["joint_limit_margin_min"] for x in xs) / len(xs)) if xs else None
+        bodies = sorted({str(r["body"]) for r in R if sel(r["body"])})
+        note = f"bodies {bodies}; min {min(xs) if xs else None}"
+        if gated:
+            if not xs:
+                continue                                   # no menagerie episodes in this dataset
+            crits.append(_crit(name, round(f, 4), thr, f >= G["ok_frac_min"], note))
+        else:
+            crits.append(_crit(name, round(f, 4), thr + " (procedural arms: reported, not gated)", None, note,
+                               status="labelled"))
     per_body, bad, missing = {}, [], []
     for b in sorted({r["body"] for r in R}):
         js = [r["jerk"] for r in R if r["body"] == b and r["jerk"] is not None]

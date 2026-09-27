@@ -17,6 +17,7 @@ Legged recorder (`LeggedMotionRecorder`, 50 Hz ticks + per physics substep):
                                  per-tick horizontal base displacements
   joint_jerk_rms / _peak         measured policy joints at 50 Hz (rad/s^3)
   peak_contact_force_bw          max over substeps and feet of the foot touch-sensor normal force / body weight
+  peak_contact_force_20ms_bw     the same on the 20 ms moving average (impact transients filtered; the gated form)
   joint_limit_margin_min         measured policy joints vs jnt_range
 Arm recorder (`ArmMotionRecorder`, per control tick):
   joint_jerk_rms / _peak         measured arm joints (rad/s^3)
@@ -113,6 +114,8 @@ class LeggedMotionRecorder:
         self.q = []
         self.slips, self.speeds = [], []
         self.peak_touch = 0.0
+        self.peak_touch_20ms = 0.0
+        self.tbuf = []
         self.p_last = None
         self.ticks = 0
 
@@ -129,7 +132,14 @@ class LeggedMotionRecorder:
         b = self.b
         self.energy += float(np.sum(np.abs(d.actuator_force[b.pol_act] * d.qvel[b.pol_dadr]))) * dt
         if len(self.touch_adr):
-            self.peak_touch = max(self.peak_touch, float(np.max(d.sensordata[self.touch_adr])))
+            tv = d.sensordata[self.touch_adr].copy()
+            self.peak_touch = max(self.peak_touch, float(np.max(tv)))
+            self.tbuf.append(tv)
+            n = max(1, int(round(0.02 / dt)))
+            if len(self.tbuf) > n:
+                self.tbuf.pop(0)
+            if len(self.tbuf) == n:
+                self.peak_touch_20ms = max(self.peak_touch_20ms, float(np.max(np.mean(self.tbuf, axis=0))))
 
     def on_tick(self, d):
         if not self.on:
@@ -158,6 +168,7 @@ class LeggedMotionRecorder:
                    moving_ticks=len(self.speeds), path_m=self.path, energy_J=self.energy,
                    cot=cost_of_transport(self.energy, self.mass, self.path),
                    peak_contact_force_bw=(self.peak_touch / (self.mass * G)) if len(self.touch_adr) else None,
+                   peak_contact_force_20ms_bw=(self.peak_touch_20ms / (self.mass * G)) if len(self.touch_adr) else None,
                    joint_limit_margin_min=joint_limit_margin(q, b.jlo, b.jhi))
         out.update(jerk_stats(q, dt))
         return out
