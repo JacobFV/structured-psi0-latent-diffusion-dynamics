@@ -19,10 +19,17 @@ print(n)
 PY
 }
 for i in $(seq 1 720); do [ "$(others)" -le $((MAXGPU - 1)) ] && break; sleep 30; done
+set -o pipefail
 rc=0
 for job in "$@"; do set -- $job
-  RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/legged8 scripts/peer_run.sh --gpu --gpu-mem 2G --cpu 2 --mem 8G --label l8_video_$1_$4 --max-seconds 1800 -- \
-    env PY=/dev/shm/rrp-brandonin/venv/bin/python LB=${5:-$1} CAVEAT="${CAVEAT:-}" bash scripts/legged8_videos.sh $1 $2 $3 $4 2>&1 | tail -4 || rc=1
+  ok=0
+  for try in $(seq 1 30); do     # admission refusals (capacity / AdmissionStopped) are waited for, bounded (30 x 60 s)
+    o=$(RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/legged8 scripts/peer_run.sh --gpu --gpu-mem 2G --cpu 2 --mem 8G --label l8_video_$1_$4 --max-seconds 1800 -- \
+      env PY=/dev/shm/rrp-brandonin/venv/bin/python LB=${5:-$1} CAVEAT="${CAVEAT:-}" bash scripts/legged8_videos.sh $1 $2 $3 $4 2>&1); r=$?
+    if grep -qE "AdmissionStopped|CapacityError" <<<"$o" && ! grep -q '"lease_id"' <<<"$o"; then echo "admission refused ($1 $4), waiting"; sleep 60; continue; fi
+    echo "$o" | tail -4; [ $r = 0 ] && grep -q '"returncode": 0' <<<"$o" && ok=1; break
+  done
+  [ $ok = 1 ] || { echo "FAIL video $1 $3 $4"; rc=1; }
 done
 claim completed
 echo "videos $NAME rc=$rc"
