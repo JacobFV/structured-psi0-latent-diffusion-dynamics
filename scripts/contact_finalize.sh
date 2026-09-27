@@ -10,7 +10,7 @@ python3 -c "import json,sys; o=open(sys.argv[2],\"w\"); [o.write(l) for l in ope
 cp "$RUN/meta.json" artifacts/trackers/$B/contact_v2/meta.json
 L=$(mktemp); echo "$B v2 v2 v2trk" > $L
 [ -f "$RUN/actor_alpha0.pt" ] && echo "$B $RUN/actor_alpha0.pt v2 v2alpha0" >> $L
-SEEDS=5 bash scripts/contact_validate.sh $L 2
+SEEDS=5 bash scripts/contact_validate.sh $L ${PAR:-2}
 cp artifacts/runs/contact_v2/val/${B}_v2trk_physv2.json artifacts/trackers/$B/contact_v2/validation_learned.json
 export PYTHONPATH=src:${PYLIB:-}
 IT=$($PY -c "import torch;print(torch.load('artifacts/trackers/$B/contact_v2/actor.pt',weights_only=False)['meta']['iter'])")

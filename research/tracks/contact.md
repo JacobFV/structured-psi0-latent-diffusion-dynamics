@@ -111,6 +111,22 @@ Warm runs:
 - queued: anymal_c (2500), hexapod6 (2000), warm.
 v1 actors for the peer runs: `artifacts/runs/contact_v1_actors/<body>/actor.pt` in the shared peer store (same sha as local).
 
+## results (contact_v2 trackers, validation protocol v2 in contact_v2 physics, 5 seeds x 5 trials)
+### go2: completed (verified)
+Run `artifacts/runs/contact_go2_v2_warm` (host lease 1790475352_0f5f7a, 3500 iters, warm from v1 iter1199). Installed at
+`artifacts/trackers/go2/contact_v2/actor.pt` (gitignored; sha256 48c632d75b2795c9...). alpha=0 snapshot:
+`artifacts/runs/contact_go2_v2_warm/actor_alpha0.pt` (sha 6839f2e84238eec7..., iter 324).
+Schedule: alpha advanced from iter 324, backed off twice at alpha 0.4 (fall-rate spikes 0.26/0.32), and reached 1.0 at iter 699.
+Training-window CoT went 5.3 -> 1.7 (iter 699) -> 0.93 (iter 3499); slip ratio 0.17 -> 0.08.
+Validation (`artifacts/runs/contact_v2/val/go2_*`): v2 final: slip ratio 0.02 (v1: 0.26), no falls, fwd 1.04, turn 0.75,
+duty 0.44-0.55, air 0.18 s, CoT 0.65 (v1: 2.34). Legacy gate passes. **The contact gate fails only on clearance**: mean swing apex
+is 6 mm (target 0.3 x 6 cm). The alpha=0 policy lifted 10 cm, ran in a low crouch, and had CoT 3.56 and slip 0.10.
+So the priors-to-natural shift kept planted stance feet and a stepping trot (no return to shuffling or skating), removed the crouch and cut
+CoT 5x, but it flattened the swing to mm clearance. That is fine on flat ground and fragile on rough terrain. Candidate fix (not run):
+make a minimum clearance a permanent term like slip, or raise the clearance floor from 10% to about 50%.
+Videos (reviewed): `artifacts/video/2026-09-26_contact_go2_{forward,turn}_v1-vs-v2_iter3499_ok_ok.mp4`,
+`artifacts/video/2026-09-26_contact_go2_forward_alpha0-vs-final_iter3499_ok_ok.mp4`.
+
 ## resume steps
 1. `tail -1 artifacts/runs/contact_<body>_v2/train_log.jsonl` (alpha, gate). The ops log is in the main checkout
    `ops/logs/<lease>_contact_<body>_v2.log`. `--resume` continues from checkpoint.pt, including the gate state.
