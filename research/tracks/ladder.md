@@ -19,6 +19,9 @@ the set from `dags/arm_lineage_v2.yaml` with the v5 inputs as a FRESH lineage: a
 new name, track, lineage (e.g. `arm3-<variant>`), labels, a new ledger, and the four input vars (dataset, pack,
 bc_policy, bc_label). Keep: 2 GPU leases, measured peak + 20% declarations incl. CUDA memory (Stage A 12G RAM + 2G GPU,
 2 CPU; flows/refits to be measured), exact-resume Stage A code, `--retry-failed` only as a logged manual decision.
+D-115 (user rule, 09:30): no training or heavy compute on the HOST (host broker 2 CPU / 0 GPU); every node of the
+relaunch runs on the PEER, collections and evals included (checked: all 100 planned nodes of dags/arm_lineage_v2.yaml
+have placement peer; the relaunch file must not override it). The host runs only the run-dag coordinator.
 Lessons carried over: max_seconds <= 6 h broker cap; check that `rep_last.pt` carries RNG state before resuming.
 
 ### setup and history of the stopped v2 set (grasp_v1)
