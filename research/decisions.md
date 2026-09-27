@@ -617,3 +617,17 @@ W8 (research/tracks/legged8.md; `research/tracks/legged8/legged8_compare_go2.{md
 t1 (w8d tracker, sourced limits): collection has 0 falls and teacher 30/30, but slip < 0.15 on only 86.2% of episodes (gate 95%; median 0.131; by DART noise level 140/133/132/112 of 150).
 Decision: EXCEPTION. Train t1 with the gate failure attached to every t1 result. The gate targets skating (old t1 data: slip 0.86), and this data is at the margin with no falls; waiting would block on a tracker nobody currently owns. Label: "t1 dataset fails D-112 slip gate (86.2% < 95%), tracker w8d fails lab forward 0.72".
 Across contact_v2 bodies so far (anymal_c D-105, go2 here): the semantic halt effect replicates on 2/2 bodies × 3/3 seeds.
+
+## D-114 2026-09-27 gates enforced in code; backfill findings; gate refinements
+W6 (`rrp.evaluation.gates`, main 0adce10; backfill `artifacts/runs/robust/gates/SUMMARY.md`): check_tracker / check_dataset / policy_flags. Collect stages write gate_report.json and stop on fail (`gate: report` = record only); run-dag marks gate failures failed without retries; there is a new `validate_tracker` stage.
+Backfill: anymal_c and go2 trackers PASS; the W8 anymal_c dataset PASSES. Failures:
+- t1 w8d: CoT 2.13, peak foot force 4.46 BW, joint-limit margin −0.053;
+- g1 r1: peak force 4.61;
+- g1_src: slip 0.38 and more;
+- arm v2 teacher under grasp_v2: joint-limit margin only (procedural arms touch limits in 13–36% of episodes).
+Decisions:
+(1) Foot force is measured as the peak of a 20 ms moving average (per-step peaks are impact transients); quadruped ≤ 3.5 BW, biped ≤ 3.0 BW; backfill rerun.
+(2) Negative joint-limit margin is a real defect: a permanent joint-limit-margin term goes in the reward schedule for future tracker training. The installed t1/g1 are labelled; the t1 W8 label gains "exceeds joint limits (margin −0.053)".
+(3) The arm joint-margin criterion is report-only on procedural (parm*) bodies for v5dart; menagerie arms stay enforced; limit-aware IK goes on the W7 backlog.
+(4) W8 t1 collect runs with gate: report under the D-113 exception.
+Ops: restarting the peer watchdog with the RAM-store (Shmem) correction lowered its live limit during genuine pressure (PSI 43%), shedding W8's t1 Stage A and one W10 Isaac run at 14:35 (both resumable). A W6 follow-up adds hysteresis for limit drops driven by the RAM-store term.
