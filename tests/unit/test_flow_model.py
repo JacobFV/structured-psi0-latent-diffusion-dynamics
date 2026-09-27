@@ -134,7 +134,7 @@ def test_padding_nodes_do_not_change_valid_outputs(inputs):
 
 
 def test_aux_readout_gradients_reach_action_expert_blocks(inputs):
-    from rrp.learning.data import Sample, collate_samples
+    from rrp.data.chunks import Sample, collate_samples
     m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=3, horizon=4, aux=True))
     S = inputs[0].tokens["scene"].shape[0]
     N = inputs[0].act_node_feats.shape[0]

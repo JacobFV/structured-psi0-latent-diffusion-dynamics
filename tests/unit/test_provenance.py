@@ -79,7 +79,7 @@ def test_source_mapping_covers_legacy_strings():
 
 def test_featurizer_constant_is_single():
     from rrp.data.collect import FEATURIZER_VERSION as A
-    from rrp.learning.behavior import FEAT_VERSION as B
+    from rrp.training.behavior import FEAT_VERSION as B
     assert A is FEATURIZER_VERSION and B is FEATURIZER_VERSION
 
 
@@ -120,7 +120,7 @@ def test_manifest_writer_and_legacy_readers(tmp_path):
 
 
 def test_legged_checkpoints_fingerprinted_and_legacy(tmp_path):
-    from rrp.learning.legged_latent_train import _save, checkpoint_provenance
+    from rrp.training.legged_latent_train import _save, checkpoint_provenance
     from rrp.evaluation.legged_latent_eval import legged_bundle_versions
     E, R = torch.nn.Linear(3, 2), torch.nn.Linear(2, 2)
     cfg = dict(name="t", latent=dict(dz=2, width=4, probe_lv_min=-4.0, semantic_weight=1.0))

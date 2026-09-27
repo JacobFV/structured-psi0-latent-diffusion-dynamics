@@ -138,11 +138,6 @@ PLANNED = {
 # Remaining layer violations (importer, imported) -> the phase that removes them. The test fails when a violation is not
 # listed here AND when a listed one no longer occurs (so this list only shrinks).
 KNOWN: dict[tuple[str, str], str] = {
-    ("rrp.evaluation.ladder", "rrp.learning.latent_grpo"): "P3: batched_ticks -> evaluation",
-    ("rrp.evaluation.ladder", "rrp.learning.latent_train"): "P3: load_representation -> controllers, LatentData -> data",
-    ("rrp.evaluation.latency", "rrp.learning.latent_train"): "P3: load_representation -> controllers",
-    ("rrp.evaluation.legged_latent_eval", "rrp.learning.legged_latent_train"): "P3: load_rep/_dev -> controllers",
-    ("rrp.evaluation.legged_latent_eval", "rrp.learning.legged_bc"): "P3: load_bc -> controllers",
 }
 
 # Permanent, justified exceptions.

@@ -134,7 +134,7 @@ def latent_latency_suite(flow_ckpt: str, out_path: Path, dev=None, nfe_list=(1, 
     system 0: per-tick realization (featurize local state + realizer forward + denormalize) vs 50 ms deadline
     end-to-end: observation -> first native command after a replan."""
     from rrp.controllers.latent_runner import LatentPolicy
-    from rrp.learning.latent_train import load_representation
+    from rrp.controllers.bundles import load_representation
     from rrp.models.checkpoint import load_checkpoint
     from rrp.controllers.latent_realizer import LatentSystem0
     from rrp.envs.fixtures import make_pick_place_session

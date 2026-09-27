@@ -122,7 +122,7 @@ def closed_loop(flow: Path, out: Path, seeds=range(10000, 10020), body="go2"):
     """Legged latent policy with three public task bindings (see module doc)."""
     from rrp.model.system2 import System2
     from rrp.evaluation.legged_latent_eval import LatentLeggedController, run_episode
-    from rrp.learning.legged_latent_train import _dev
+    from rrp.controllers.bundles import _dev
     dev = _dev()
     s2 = System2()
     # probe readout fit on the stage-`ground` training rows (color family)

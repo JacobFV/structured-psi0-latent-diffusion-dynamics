@@ -186,3 +186,50 @@ def bundle_versions(config_version: str, encoder_state: dict, realizer_state: di
 
 def is_fingerprinted(latent_space_version: str) -> bool:
     return "-w" in latent_space_version
+
+
+# W4: moved unchanged from rrp.learning.latent_grpo (re-exported there); batched system-0 ticks.
+@torch.no_grad()
+def batched_ticks(s0s, sessions) -> list:
+    """LatentSystem0.tick for several sessions with ONE realizer forward (same inputs/rules per session: graph-edit
+    invalidation, expiry fallback hold, fresh proprio/local sensors every tick). Returns NativeCommand|None each."""
+    from rrp.contracts.action import NativeCommand
+    cmds, work = [None] * len(sessions), []
+    for i, (s0, s) in enumerate(zip(s0s, sessions)):
+        now = float(s.data.time)
+        if s0.packet is not None and s.runtime.graph_version != s0.packet.graph_version:
+            s0.invalidate("graph_edit", now)
+        obs = s.observe()
+        if s0.packet is None or now > s0.packet.valid_until:
+            if s0.packet is not None:
+                s0.invalidate("expired", now)
+            s0.stats.fallback_holds += 1
+            continue
+        pi, loc = s0.local_inputs(obs)
+        work.append((i, now, pi, loc))
+    if not work:
+        return cmds
+    s0 = s0s[work[0][0]]
+    dev, net = s0.device, s0.net
+    B = len(work)
+    Nmax = max(w[2].act_node_feats.shape[0] for w in work)
+    F = work[0][2].act_node_feats.shape[1]
+    zs = [np.asarray(s0s[i].packet.z, np.float32) for i, *_ in work]
+    Kk, Mmax, dz = zs[0].shape[0], max(z.shape[1] for z in zs), zs[0].shape[2]
+    z = np.zeros((B, Kk, Mmax, dz), np.float32); zm = np.zeros((B, Mmax), bool)
+    nf = np.zeros((B, Nmax, F), np.float32); nm = np.zeros((B, Nmax), bool)
+    for b, (i, now, pi, loc) in enumerate(work):
+        z[b, :, :zs[b].shape[1]] = zs[b]; zm[b] = False; zm[b, :zs[b].shape[1]] = s0s[i].packet.assembly_mask
+        from rrp.controllers.latent_realizer import realizer_node_feats
+        n = pi.act_node_feats.shape[0]; nf[b, :n] = realizer_node_feats(s0s[i], pi); nm[b, :n] = True
+    kt = torch.tensor(s0s[work[0][0]].packet.knot_times, dtype=torch.float32, device=dev)
+    ph = torch.tensor([now - s0s[i].packet.valid_from for i, now, _, _ in work], dtype=torch.float32, device=dev)
+    lc = torch.from_numpy(np.stack([w[3] for w in work]).astype(np.float32)).to(dev)
+    a = net(torch.from_numpy(z).to(dev), torch.from_numpy(zm).to(dev), kt, ph, torch.from_numpy(nf).to(dev),
+            torch.from_numpy(nm).to(dev), lc).cpu().numpy()
+    for b, (i, now, pi, loc) in enumerate(work):
+        n = pi.act_node_feats.shape[0]
+        groups = s0s[i].f.aspace.denormalize(np.clip(a[b, :n], -6, 6)[None], pi.q0)[0]
+        s0s[i].stats.ticks += 1
+        cmds[i] = NativeCommand(controller_version=sessions[i].controller_version(), groups=groups, source="learned")
+    return cmds

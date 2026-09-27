@@ -344,7 +344,7 @@ class LadderConfig:
 
 
 def load_models(cfg: LadderConfig):
-    from rrp.learning.latent_train import load_representation
+    from rrp.controllers.bundles import load_representation
     from rrp.models.checkpoint import load_checkpoint
     rep = cfg.representation
     if cfg.flow and not rep:
@@ -393,7 +393,7 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
     from rrp.envs.scenario import BUILDERS
     from rrp.envs.native import Session
     from rrp.controllers.latent_realizer import LatentSystem0
-    from rrp.learning.latent_grpo import batched_ticks
+    from rrp.controllers.latent_realizer import batched_ticks
     if models is None:
         models, ids = load_models(cfg)
     robot = workbench_robots()[cfg.robot]()
@@ -661,7 +661,8 @@ def packed_realization_check(rep_path: str, packed_dir: str, robot_key: str | No
     """Stage-A realization error on the TRAINING pack split into arm / gripper nodes and by phase j
     (encoded-target oracle, the same quantity the ladder measures online as lab_err_*)."""
     import random
-    from rrp.learning.latent_train import load_representation, LatentData
+    from rrp.controllers.bundles import load_representation
+    from rrp.data.latent import LatentData
     from rrp.models.semantic_latent import assembly_tokens
     lcfg, E, R, P, res = load_representation(Path(rep_path), device)
     data = LatentData(Path(packed_dir), zero_prev_action=zero_prev_action, anchor=getattr(R, "anchor", False),

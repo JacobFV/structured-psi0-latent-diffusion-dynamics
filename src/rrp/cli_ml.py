@@ -14,7 +14,7 @@ def cmd_data_generate(a):
 
 
 def cmd_data_pack(a):
-    from rrp.learning.packed import pack_dataset
+    from rrp.data.packed import pack_dataset
     cfg = json.loads(open(a.config).read())
     meta = pack_dataset(Path(cfg["dataset"]), Path(a.out), set(cfg["train_robots"]), cfg["horizon"],
                         stride=cfg.get("stride", 1), include_dart_failures=cfg.get("include_dart_failures", False),

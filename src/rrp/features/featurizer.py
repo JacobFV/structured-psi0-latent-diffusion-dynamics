@@ -21,6 +21,8 @@ from dataclasses import dataclass, field
 import mujoco
 import numpy as np
 
+from typing import TYPE_CHECKING
+
 from rrp.contracts.observation import PolicyObservation
 from rrp.contracts.robot import RobotSpec
 from rrp.contracts.task import EntityBinding, OutputBinding
@@ -545,6 +547,10 @@ BANK_DIMS = {"morph": None, "scene": 3 + 3 + 2 + HASH_DIM + 3,
 
 def morph_dim(static_dim: int) -> int:
     return static_dim + 18
+
+
+if TYPE_CHECKING:
+    from rrp.envs.native import Session
 
 
 def featurizer_for(session: "Session", robot: int = 0) -> Featurizer:

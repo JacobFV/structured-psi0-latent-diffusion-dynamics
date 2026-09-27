@@ -3,7 +3,7 @@ import math
 import pytest
 import torch
 
-from rrp.learning.replay_buffer import ReplayBuffer, ReplayRecord
+from rrp.training.replay_buffer import ReplayBuffer, ReplayRecord
 from rrp.models.critics import squashed_log_prob, td_target, min_of_random_pair
 
 

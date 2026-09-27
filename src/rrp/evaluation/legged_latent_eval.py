@@ -34,7 +34,7 @@ from rrp.contracts.action import NativeCommand
 from rrp.contracts.latent_action import LatentActionChunk, AssemblyHandle, check_packet
 from rrp.features.legged import (LeggedMorph, public_context, local_state, active_event, TICK_DT,
                                        TICKS_PER_PACKET, KNOT_TIMES, MAX_N, MAX_M, EVENTS)
-from rrp.learning.legged_latent_train import load_rep, _dev
+from rrp.controllers.bundles import load_rep, _dev
 from rrp.models.legged_latent import LeggedFlow, LeggedProbe
 from rrp.sim.legged import LeggedSession, build_waypoint_contact
 
@@ -147,7 +147,7 @@ class BCController:
     every `replan` ticks from the same public inputs (context + local state) and executes it open-loop between."""
 
     def __init__(self, ckpt: Path, dev, nfe=8, replan=5, seed=0):
-        from rrp.learning.legged_bc import load_bc
+        from rrp.models.legged_bc import load_bc
         self.model, st = load_bc(ckpt, dev)
         self.dev, self.nfe, self.replan = dev, nfe, replan
         self.gen = torch.Generator(device=dev).manual_seed(seed)
@@ -230,7 +230,7 @@ class LatentLeggedController:
         st = torch.load(str(flow_ckpt), map_location=dev, weights_only=False) if flow_ckpt else None
         self.cfg = st["cfg"] if st else dict(representation=str(rep))
         rcfg, self.E, self.R, self.P, rres = load_rep(Path(rep or self.cfg["representation"]), dev)
-        from rrp.learning.legged_latent_train import checkpoint_provenance
+        from rrp.controllers.bundles import checkpoint_provenance
         self.checkpoint_provenance = dict(representation=checkpoint_provenance(
             torch.load(str(rep or self.cfg["representation"]), map_location="cpu", weights_only=False),
             rep or self.cfg["representation"]).model_dump(mode="json", include={"legacy", "weights", "notes"}))
@@ -627,7 +627,7 @@ def main(argv=None):
                                                  t_edit=a.t_edit, seed=sd, posthoc_probe=a.posthoc_probe, rep=a.rep,
                                                  realizer=a.realizer, zero_qd=a.zero_qd)
                     if a.oracle_bc:
-                        from rrp.learning.legged_bc import load_bc
+                        from rrp.models.legged_bc import load_bc
                         ctl.bc, _ = load_bc(a.bc, dev)
                         ctl.bc_version = f"{Path(a.bc).parent.name}/{Path(a.bc).name}"
                 else:

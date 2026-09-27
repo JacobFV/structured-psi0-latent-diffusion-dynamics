@@ -43,9 +43,9 @@ def grad_report(qa: ObjectQA, policy) -> dict:
 
 
 def run(cfg: dict) -> dict:
-    from rrp.learning.behavior import device_setup
-    from rrp.learning.data import collate_samples
-    from rrp.learning.vlm_train import VLMFlowPolicy, load_split
+    from rrp.training.behavior import device_setup
+    from rrp.data.chunks import collate_samples
+    from rrp.training.vlm_train import VLMFlowPolicy, load_split
     dev, ginfo = device_setup()
     out = Path(cfg["out_dir"])
     out.mkdir(parents=True, exist_ok=True)
@@ -116,7 +116,7 @@ def run(cfg: dict) -> dict:
 
 @torch.no_grad()
 def evaluate(qa, policy, held, store, slots_of, dev, nv, cfg) -> dict:
-    from rrp.learning.data import collate_samples
+    from rrp.data.chunks import collate_samples
     qa.eval()
     rng = random.Random(12345)
     gen = torch.Generator(device=dev).manual_seed(12345)

@@ -1,0 +1,3195 @@
+{
+"n": 347,
+"n_errors": 0,
+"kinds": {
+"arm_policy": 6,
+"arm_latent_flow": 36,
+"arm_representation": 39,
+"other": 18,
+"resume_state": 39,
+"tracker": 54,
+"arm_checkpoint": 14,
+"legged_bc": 16,
+"legged_flow": 61,
+"legged_representation": 53,
+"legged_refit_realizer": 11
+},
+"rrp_pickled_classes": [],
+"rows": [
+{
+"path": "/home/brandonin/work/relational-robot-policy/artifacts/runs/baselines_bc_ckpts/direct1701_u18000.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_policy",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "LearnedPolicy"
+},
+{
+"path": "/home/brandonin/work/relational-robot-policy/artifacts/runs/flow_latent_nosem_v2/policy_interrupted.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-dc6ca4a55d80-w6bd281b88d5b"
+}
+},
+{
+"path": "/home/brandonin/work/relational-robot-policy/artifacts/runs/flow_latent_nosem_v2/policy_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-dc6ca4a55d80-w6bd281b88d5b"
+}
+},
+{
+"path": "/home/brandonin/work/relational-robot-policy/artifacts/runs/flow_latent_sem_v2/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+}
+},
+{
+"path": "/home/brandonin/work/relational-robot-policy/artifacts/runs/flow_latent_sem_v2/policy_interrupted.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+}
+},
+{
+"path": "/home/brandonin/work/relational-robot-policy/artifacts/runs/flow_latent_sem_v2/policy_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+}
+},
+{
+"path": "/home/brandonin/work/relational-robot-policy/artifacts/runs/ladder_flow_jointfix/snap_final_s20000.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/relational-robot-policy/artifacts/runs/ladder_latent_sem_b1fix_anchor/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/relational-robot-policy/artifacts/runs/ladder_rz_jointfix_gendag1_noqd/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/relational-robot-policy/artifacts/runs/latent_nosem_v1/probe_posthoc.pt",
+"rrp_pickled_classes": [],
+"kind": "other"
+},
+{
+"path": "/home/brandonin/work/relational-robot-policy/artifacts/runs/latent_nosem_v1/rep_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/relational-robot-policy/artifacts/runs/latent_nosem_v1/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-dc6ca4a55d80-w6bd281b88d5b"
+}
+},
+{
+"path": "/home/brandonin/work/relational-robot-policy/artifacts/runs/latent_sem_v1/probe_metadata_only.pt",
+"rrp_pickled_classes": [],
+"kind": "other"
+},
+{
+"path": "/home/brandonin/work/relational-robot-policy/artifacts/runs/latent_sem_v1/probe_posthoc.pt",
+"rrp_pickled_classes": [],
+"kind": "other"
+},
+{
+"path": "/home/brandonin/work/relational-robot-policy/artifacts/runs/latent_sem_v1/rep_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/relational-robot-policy/artifacts/runs/latent_sem_v1/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+}
+},
+{
+"path": "/home/brandonin/work/relational-robot-policy/artifacts/trackers/go2/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/relational-robot-policy/artifacts/trackers/go2/rejected_iter1999/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/relational-robot-policy/artifacts/trackers/hexapod6/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-data/contact-v1-actors/anymal_c/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-data/contact-v1-actors/g1/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-data/contact-v1-actors/go2/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-data/contact-v1-actors/h1/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-data/contact-v1-actors/hexapod6/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-data/contact-v1-actors/t1/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-data/frozen/direct1701_source_host_u12869/policy_interrupted.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_policy",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "LearnedPolicy"
+},
+{
+"path": "/home/brandonin/work/rrp-data/frozen/direct1701_source_host_u12869/policy_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_policy",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "LearnedPolicy"
+},
+{
+"path": "/home/brandonin/work/rrp-data/git-untracked-2026-09-26/artifacts/trackers/go2/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-data/git-untracked-2026-09-26/artifacts/trackers/go2/rejected_iter1999/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-data/git-untracked-2026-09-26/artifacts/trackers/hexapod6/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/acceptance/artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_policy",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "LearnedPolicy"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/acceptance/artifacts/runs/binding_paired_nosem_v4/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-af96778ac916-we6c6bb9b26b9"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/acceptance/artifacts/runs/binding_paired_sem_v4/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-6d2448d800d3-w055335ee546a"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/acceptance/artifacts/runs/flow_latent_nosem_v1/policy_interrupted.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-dc6ca4a55d80-w6bd281b88d5b"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/acceptance/artifacts/runs/ladder_flow_jointfix/snap_final_s20000.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/acceptance/artifacts/runs/ladder_latent_sem_b1fix_anchor/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/acceptance/artifacts/runs/ladder_rz_jointfix_bcdag2/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/acceptance/artifacts/runs/ladder_rz_jointfix_gendag1_noqd/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/acceptance/artifacts/runs/latent_nosem_v1/probe_posthoc.pt",
+"rrp_pickled_classes": [],
+"kind": "other"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/acceptance/artifacts/runs/latent_nosem_v1/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-dc6ca4a55d80-w6bd281b88d5b"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/acceptance/artifacts/trackers/go2/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/acceptance/artifacts/trackers/go2/rejected_iter1999/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/acceptance/artifacts/trackers/hexapod6/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/baselines/artifacts/runs/baselines_bc_ckpts/direct1701_u11000.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_policy",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "LearnedPolicy"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/baselines/artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_policy",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "LearnedPolicy"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/baselines/artifacts/trackers/go2/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/baselines/artifacts/trackers/go2/rejected_iter1999/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/baselines/artifacts/trackers/hexapod6/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/binding/artifacts/runs/binding_v1_reeval/sem_probe_bindcf.pt",
+"rrp_pickled_classes": [],
+"kind": "other"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/binding/artifacts/runs/latent_nosem_v1/probe_posthoc.pt",
+"rrp_pickled_classes": [],
+"kind": "other"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/binding/artifacts/runs/latent_nosem_v1/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-dc6ca4a55d80-w6bd281b88d5b"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/binding/artifacts/runs/latent_sem_v1/probe_posthoc.pt",
+"rrp_pickled_classes": [],
+"kind": "other"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/binding/artifacts/runs/latent_sem_v1/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/binding/artifacts/trackers/go2/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/binding/artifacts/trackers/go2/rejected_iter1999/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/binding/artifacts/trackers/hexapod6/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/bodies/artifacts/trackers/go2/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/bodies/artifacts/trackers/go2/rejected_iter1999/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/bodies/artifacts/trackers/hexapod6/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/contact/artifacts/runs/contact_h1_v2a/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/contact/artifacts/runs/contact_h1_v2a/checkpoint.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/contact/artifacts/runs/contact_t1_v2_scratch/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/contact/artifacts/runs/contact_t1_v2_scratch/checkpoint.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/contact/artifacts/runs/contact_t1_v2_warm/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/contact/artifacts/runs/contact_t1_v2_warm/checkpoint.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/contact/artifacts/runs/contact_t1_v2a/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/contact/artifacts/runs/contact_t1_v2a/checkpoint.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/contact/artifacts/trackers/anymal_c/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/contact/artifacts/trackers/g1/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/contact/artifacts/trackers/go2/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/contact/artifacts/trackers/h1/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/contact/artifacts/trackers/hexapod6/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/contact/artifacts/trackers/t1/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/dualarm/artifacts/trackers/go2/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/dualarm/artifacts/trackers/go2/rejected_iter1999/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/dualarm/artifacts/trackers/hexapod6/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/grpo/artifacts/trackers/go2/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/grpo/artifacts/trackers/go2/rejected_iter1999/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/grpo/artifacts/trackers/hexapod6/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_jointfix/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_jointfix/policy_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_jointfix/snap_final_s20000.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_jointfix/snap_s12000.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_jointfix/snap_s16000.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_jointfix/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_jointfix/snap_s8000.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_jointfix_gdag1/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_jointfix_gdag2h/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_jointfix_gdag2h/policy_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_jointfix_gdag2h/snap_s1000.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_jointfix_gdag3h/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_jointfix_gdag3h/policy_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_nsjf2/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-22623fe2b543-w4167b28e8d89"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_nsjf2/policy_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-22623fe2b543-w4167b28e8d89"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_nsjf2/snap_final_s20000.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-22623fe2b543-w4167b28e8d89"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_sejf2/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-e01d65a468e9-w3434039ad820"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_sejf2/policy_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-e01d65a468e9-w3434039ad820"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_sejf2/snap_final_s20000.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-e01d65a468e9-w3434039ad820"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_sfjf/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_sfjf/policy_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_sfjf/snap_final_s20000.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_sfjf2/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-6f6f9b3eb46b-w0403691b2027"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_sfjf2/policy_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-6f6f9b3eb46b-w0403691b2027"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_sfjf2/snap_final_s20000.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-6f6f9b3eb46b-w0403691b2027"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_flow_sfjf_ft/policy_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_latent_nosem_b1fix_anchor_s2/rep_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_latent_nosem_b1fix_anchor_s2/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-22623fe2b543-w4167b28e8d89"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_latent_sem_b1fix_anchor/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_latent_sem_b1fix_anchor_s2/rep_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_latent_sem_b1fix_anchor_s2/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-e01d65a468e9-w3434039ad820"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_latent_semfix_b1fix_anchor/rep_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_latent_semfix_b1fix_anchor/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_latent_semfix_b1fix_anchor_s2/rep_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_latent_semfix_b1fix_anchor_s2/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-6f6f9b3eb46b-w0403691b2027"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_bindv4nosem_bcdag1/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-af96778ac916-we6c6bb9b26b9"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_bindv4sem_bcdag1/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-6d2448d800d3-w055335ee546a"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_jointfix_bcdag1/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_jointfix_bcdag1/rz_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_checkpoint",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_jointfix_bcdag1_long/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_jointfix_bcdag1_long/rz_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_checkpoint",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_jointfix_bcdag2/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_jointfix_bcdag2/rz_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_checkpoint",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_jointfix_big32k/representation_interrupted.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_jointfix_big32k/rz_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_checkpoint",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_jointfix_big_pack/representation_interrupted.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_jointfix_big_pack/rz_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_checkpoint",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_jointfix_dagger1/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_jointfix_gendag1_noqd/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_jointfix_gendag2_noqd/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_jointfix_gendag3_noqd/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_jointfix_noqd/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_jointfix_noqd/rz_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_checkpoint",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_jointfix_znoise/representation_interrupted.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_jointfix_znoise/rz_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_checkpoint",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_nsjf2_gendag1_noqd/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-22623fe2b543-w4167b28e8d89"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_nsjf2_gendag1_noqd/rz_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_checkpoint",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_sejf2_gendag1_noqd/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-e01d65a468e9-w3434039ad820"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_sejf2_gendag1_noqd/rz_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_checkpoint",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_sfjf2_gendag1_noqd/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-6f6f9b3eb46b-w0403691b2027"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_sfjf2_gendag1_noqd/rz_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_checkpoint",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_sfjf_bcdag1/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_sfjf_bcdag1/rz_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_checkpoint",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_sfjf_bcdag1_long/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_sfjf_bcdag1_long/rz_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_checkpoint",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_sfjf_bcdag2/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_sfjf_bcdag2/rz_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_checkpoint",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_sfjf_gendag1_noqd/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_rz_sfjf_gendag1_noqd/rz_last.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_checkpoint",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_smoke/flow_jointfix_smoke/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-80e5f25be2f0-wf22fe70f99d5"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/ladder_smoke_host/policy_interrupted.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_latent_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-b3975ca84351-w2ff161387b0e"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/latent_nosem_v1/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-dc6ca4a55d80-w6bd281b88d5b"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/runs/latent_sem_v1/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "arm_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"latent_space_version": "ls-8db814f941f5-wd246dff9b00b"
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/trackers/go2/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/trackers/go2/rejected_iter1999/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/ladder/artifacts/trackers/hexapod6/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_bc_g1_v1/bc_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_bc_g1_v1/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_bc",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_bc"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_bc_g1_v1/snap_s10000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_bc",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_bc"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_bc_g1_v1/snap_s15000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_bc",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_bc"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_bc_g1_v1/snap_s5000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_bc",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_bc"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_bc_go2_v1/bc_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_bc_go2_v1/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_bc",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_bc"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_bc_go2_v1/snap_s10000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_bc",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_bc"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_bc_go2_v1/snap_s15000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_bc",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_bc"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_bc_go2_v1/snap_s5000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_bc",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_bc"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_bc_hexapod6_v1/bc_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_bc_hexapod6_v1/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_bc",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_bc"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_bc_hexapod6_v1/snap_s10000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_bc",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_bc"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_bc_hexapod6_v1/snap_s15000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_bc",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_bc"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_bc_hexapod6_v1/snap_s5000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_bc",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_bc"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_bc_t1_v1/bc_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_bc_t1_v1/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_bc",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_bc"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_bc_t1_v1/snap_s10000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_bc",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_bc"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_bc_t1_v1/snap_s15000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_bc",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_bc"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_bc_t1_v1/snap_s5000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_bc",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_bc"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_flow_fixsem_go2_s1/flow_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_flow_fixsem_go2_s1/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_flow_fixsem_go2_s1/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_flow_fixsem_go2_s1/snap_s8000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_flow_fixsem_go2_s2/flow_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_flow_fixsem_go2_s2/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_flow_fixsem_go2_s2/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_flow_fixsem_go2_s2/snap_s8000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_flow_nosem_go2_s1/flow_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_flow_nosem_go2_s1/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_flow_nosem_go2_s1/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_flow_nosem_go2_s1/snap_s8000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_flow_nosem_go2_s2/flow_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_flow_nosem_go2_s2/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_flow_nosem_go2_s2/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_flow_nosem_go2_s2/snap_s8000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_rep_fixsem_go2_s1/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_rep_fixsem_go2_s2/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_rep_nosem_go2_s1/probe_posthoc.pt",
+"rrp_pickled_classes": [],
+"kind": "other"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_rep_nosem_go2_s1/rep_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_rep_nosem_go2_s1/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_rep_nosem_go2_s1/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_rep_nosem_go2_s1/snap_s8000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_rep_nosem_go2_s2/probe_posthoc.pt",
+"rrp_pickled_classes": [],
+"kind": "other"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixrep_rep_nosem_go2_s2/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixsem_flow_sem_go2_lv4/flow_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixsem_flow_sem_go2_lv4/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixsem_flow_sem_go2_lv4/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixsem_flow_sem_go2_lv4/snap_s8000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixsem_rep_sem_go2_lv4/rep_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixsem_rep_sem_go2_lv4/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixsem_rep_sem_go2_lv4/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixsem_rep_sem_go2_lv4/snap_s8000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_fixsem_rep_sem_hexapod6_lv4/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_nosem_go2_v2/flow_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_nosem_go2_v2/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_nosem_go2_v2/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_nosem_go2_v2/snap_s8000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_nosem_hexapod6_v2/flow_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_nosem_hexapod6_v2/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_nosem_hexapod6_v2/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_nosem_hexapod6_v2/snap_s8000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_nosem_t1_v2/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_nosem_t1_v2s1/flow_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_nosem_t1_v2s1/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_nosem_t1_v2s1/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_nosem_t1_v2s1/snap_s8000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_nosem_t1_v2s2/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_nosem_t1_v2s3/flow_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_nosem_t1_v2s3/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_nosem_t1_v2s3/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_nosem_t1_v2s3/snap_s8000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_sem_go2_v2/flow_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_sem_go2_v2/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_sem_go2_v2/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_sem_go2_v2/snap_s8000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_sem_hexapod6_v2/flow_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_sem_hexapod6_v2/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_sem_hexapod6_v2/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_sem_hexapod6_v2/snap_s8000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_sem_t1_v2/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_sem_t1_v2s1/flow_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_sem_t1_v2s1/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_sem_t1_v2s1/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_sem_t1_v2s1/snap_s8000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_sem_t1_v2s2/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_sem_t1_v2s3/flow_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_sem_t1_v2s3/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_sem_t1_v2s3/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_flow_sem_t1_v2s3/snap_s8000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_nosem_g1_v2/rep_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_nosem_g1_v2/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_nosem_g1_v2/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_nosem_g1_v2/snap_s8000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_nosem_go2_v2/probe_posthoc.pt",
+"rrp_pickled_classes": [],
+"kind": "other"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_nosem_go2_v2/rep_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_nosem_go2_v2/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_nosem_go2_v2/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_nosem_go2_v2/snap_s8000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_nosem_hexapod6_v2/probe_posthoc.pt",
+"rrp_pickled_classes": [],
+"kind": "other"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_nosem_hexapod6_v2/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_nosem_t1_v2/probe_posthoc.pt",
+"rrp_pickled_classes": [],
+"kind": "other"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_nosem_t1_v2/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_nosem_t1_v2s1/rep_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_nosem_t1_v2s1/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_nosem_t1_v2s1/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_nosem_t1_v2s1/snap_s8000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_nosem_t1_v2s2/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_nosem_t1_v2s3/rep_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_nosem_t1_v2s3/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_nosem_t1_v2s3/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_nosem_t1_v2s3/snap_s8000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_sem_g1_v2/rep_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_sem_g1_v2/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_sem_g1_v2/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_sem_g1_v2/snap_s8000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_sem_go2_v2/probe_posthoc.pt",
+"rrp_pickled_classes": [],
+"kind": "other"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_sem_go2_v2/rep_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_sem_go2_v2/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_sem_go2_v2/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_sem_go2_v2/snap_s8000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_sem_hexapod6_v2/probe_posthoc.pt",
+"rrp_pickled_classes": [],
+"kind": "other"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_sem_hexapod6_v2/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_sem_t1_v2/probe_posthoc.pt",
+"rrp_pickled_classes": [],
+"kind": "other"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_sem_t1_v2/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_sem_t1_v2s1/rep_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_sem_t1_v2s1/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_sem_t1_v2s1/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_sem_t1_v2s1/snap_s8000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_sem_t1_v2s2/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_sem_t1_v2s3/rep_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_sem_t1_v2s3/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_sem_t1_v2s3/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rep_sem_t1_v2s3/snap_s8000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rz_nosem_t1_dag1/realizer.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_refit_realizer",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "refit realizer"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rz_nosem_t1_dag2/realizer.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_refit_realizer",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "refit realizer"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rz_sem_t1_dag1/realizer.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_refit_realizer",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "refit realizer"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/legged_rz_sem_t1_dag2/realizer.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_refit_realizer",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "refit realizer"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/t1diag_flow_sem_lv4/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/t1diag_rep_sem_lv4/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/t1diag_rz_nosem_ctl/realizer.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_refit_realizer",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "refit realizer"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/t1diag_rz_nosem_ctl12k/realizer.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_refit_realizer",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "refit realizer"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/t1diag_rz_nosem_genz/realizer.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_refit_realizer",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "refit realizer"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/t1diag_rz_sem_ctl/realizer.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_refit_realizer",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "refit realizer"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/t1diag_rz_sem_ctl12k/realizer.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_refit_realizer",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "refit realizer"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/runs/t1diag_rz_sem_genz/realizer.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_refit_realizer",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "refit realizer"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/trackers/anymal_c/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/trackers/g1/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/trackers/go2/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/trackers/go2/rejected_iter1999/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/trackers/h1/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/trackers/hexapod6/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/legged_vlm/artifacts/trackers/t1/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/provenance/artifacts/runs/provenance_smoke/legged_flow/flow_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/provenance/artifacts/runs/provenance_smoke/legged_flow/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": false,
+"notes": ""
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/provenance/artifacts/runs/provenance_smoke/legged_refit/realizer.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_refit_realizer",
+"provenance": {
+"legacy": false,
+"notes": ""
+},
+"loaded": "refit realizer"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/provenance/artifacts/runs/provenance_smoke/legged_rep/rep_last.pt",
+"rrp_pickled_classes": [],
+"kind": "resume_state"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/provenance/artifacts/runs/provenance_smoke/legged_rep/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": false,
+"notes": ""
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/provenance/artifacts/runs/provenance_smoke/legged_rep_legacy/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/legged_fixrep_flow_fixsem_go2_s2/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/legged_fixrep_flow_fixsem_hexapod6_s2/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/legged_fixrep_flow_nosem_go2_s2/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/legged_fixrep_flow_nosem_hexapod6_s2/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/legged_fixrep_rep_fixsem_go2_s2/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/legged_fixrep_rep_fixsem_hexapod6_s2/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/legged_fixrep_rep_nosem_go2_s2/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/legged_fixrep_rep_nosem_hexapod6_s2/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/legged_flow_nosem_t1_v2/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/legged_flow_nosem_t1_v2/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/legged_flow_nosem_t1_v2s1/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/legged_flow_nosem_t1_v2s1/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/legged_flow_nosem_t1_v2s3/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/legged_flow_nosem_t1_v2s3/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/legged_rep_nosem_t1_v2/probe_posthoc.pt",
+"rrp_pickled_classes": [],
+"kind": "other"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/legged_rep_nosem_t1_v2/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/legged_rep_nosem_t1_v2s1/probe_posthoc.pt",
+"rrp_pickled_classes": [],
+"kind": "other"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/legged_rep_nosem_t1_v2s1/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/legged_rep_nosem_t1_v2s3/probe_posthoc.pt",
+"rrp_pickled_classes": [],
+"kind": "other"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/legged_rep_nosem_t1_v2s3/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/t1diag_flow_sem_lv4/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/t1diag_flow_sem_lv4/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/t1diag_flow_sem_lv4_s1/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/t1diag_flow_sem_lv4_s1/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/t1diag_flow_sem_lv4_s3/policy.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/t1diag_flow_sem_lv4_s3/snap_s4000.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_flow",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": {
+"flow": true
+}
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/t1diag_rep_sem_lv4/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/t1diag_rep_sem_lv4_s1/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/runs/t1diag_rep_sem_lv4_s3/representation.pt",
+"rrp_pickled_classes": [],
+"kind": "legged_representation",
+"provenance": {
+"legacy": true,
+"notes": "unfingerprinted"
+},
+"loaded": "load_rep"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/trackers/go2/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/trackers/go2/rejected_iter1999/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/trackers/hexapod6/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+},
+{
+"path": "/home/brandonin/work/rrp-wt/t1_edits/artifacts/trackers/t1/actor.pt",
+"rrp_pickled_classes": [],
+"kind": "tracker"
+}
+],
+"command": "PYTHONPATH=src python -m rrp.cli ops run --cpu 1.5 --mem 6G --label restructure_ckpt_audit -- python -m rrp.evaluation.checkpoint_audit ~/work/relational-robot-policy/artifacts ~/work/rrp-data/{frozen,contact-v1-actors,git-untracked-2026-09-26/artifacts} ~/work/rrp-wt/*/artifacts (lease 1790474631_1a4221, 20 s)",
+"code": "track/restructure P3 (after the loader moves)"
+}

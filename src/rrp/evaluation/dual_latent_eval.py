@@ -27,8 +27,8 @@ from rrp.contracts.errors import ControllerRejection, StaleActionError
 from rrp.contracts.latent_action import LatentActionChunk, AssemblyHandle, EntityHandle, check_packet
 from rrp.controllers.latent_realizer import LatentSystem0
 from rrp.features.multi import MultiFeaturizer
-from rrp.learning import dual_latent as DL
-from rrp.learning.packed import OPERATORS, _focus
+from rrp.data import dual_latent as DL
+from rrp.data.packed import OPERATORS, _focus
 from rrp.models.batch import collate_inputs
 from rrp.models.latent_batch import assembly_batch
 from rrp.controllers.latent_runner import LatentPolicy

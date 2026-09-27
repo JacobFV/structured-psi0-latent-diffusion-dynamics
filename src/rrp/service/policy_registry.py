@@ -11,7 +11,7 @@ def _latent_loader(ck: Path):
         import torch
         from rrp.controllers.latent_runner import LatentPolicy
         from rrp.models.checkpoint import load_checkpoint
-        from rrp.learning.latent_train import load_representation
+        from rrp.controllers.bundles import load_representation
         from rrp.service.sessions import LatentStack
         dev = "cpu"                                   # host workbench: CPU unless a GPU lease runs it
         pol = LatentPolicy.from_checkpoint(ck, device=dev)

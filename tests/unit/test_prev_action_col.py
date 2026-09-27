@@ -3,7 +3,7 @@ hit exactly that column on node rows (a silent mismatch here invalidates every c
 import numpy as np
 import pytest
 
-from rrp.learning.packed import PREV_ACTION_COL
+from rrp.data.packed import PREV_ACTION_COL
 
 pytestmark = pytest.mark.menagerie      # panda_pg2 is a Menagerie body
 
@@ -23,7 +23,7 @@ def test_prev_action_col_matches_featurizer_layout():
 
 def test_load_time_zeroing_hits_prev_action_col_not_col2():
     """D-045: the D-021 load-time fix must zero PREV_ACTION_COL on node rows (it used to zero static column 2)."""
-    from rrp.learning.data import zero_prev_action_input
+    from rrp.data.chunks import zero_prev_action_input
     from rrp.bodies.catalog import workbench_robots
     from rrp.envs.scenario import BUILDERS
     from rrp.envs.native import Session

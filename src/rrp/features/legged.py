@@ -38,6 +38,9 @@ BODY_KINDS = ("quadruped", "hexapod", "humanoid", "other")
 EVENTS = ("walk_to_a", "walk_to_b", "halt")
 MAX_N = 32                              # padded actuated joints (policy + held; g1 has 29)
 MAX_M = 11                              # padded assemblies (8 legs + body + 2 arms)
+H = 40                    # demonstrated ticks seen by E (0.8 s)
+MAX_J = 27                # realizer phases 0..0.54 s
+KNOT_TICKS = [int(round(k / TICK_DT)) for k in KNOT_TIMES]
 
 
 def _body_kind(L, nf):

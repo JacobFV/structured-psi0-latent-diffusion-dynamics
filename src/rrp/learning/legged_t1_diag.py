@@ -40,7 +40,7 @@ import numpy as np
 import torch
 
 from rrp.features.legged import MAX_N
-from rrp.learning.legged_latent_train import LeggedData, load_rep, _dev
+from rrp.training.legged_latent_train import LeggedData, load_rep, _dev
 from rrp.models.legged_latent import LeggedFlow
 
 import os
@@ -541,7 +541,7 @@ def feedback(ts, out):
     packet fixed (oracle E(BC chunk)); compared with the stateless BC expert's own change at the same state (paired
     noise). Reported: RMS |dR|, RMS |dBC|, cosine(dR, dBC), gain = <dR, dBC>/|dBC|^2. Also the same for joint-velocity
     feedback (qd scaled by 1.2)."""
-    from rrp.learning.legged_bc import load_bc
+    from rrp.models.legged_bc import load_bc
     dev = _dev()
     Ms = {v: load_models(v, ts, dev) for v in ("sem", "nosem")}
     bc, _ = load_bc("artifacts/runs/legged_bc_t1_v1/policy.pt", dev)

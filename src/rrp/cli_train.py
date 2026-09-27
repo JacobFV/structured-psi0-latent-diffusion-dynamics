@@ -13,13 +13,13 @@ def _run_dir(cfg, name):
 
 
 def cmd_train_codec(a):
-    from rrp.learning.behavior import train_codec
+    from rrp.training.behavior import train_codec
     cfg = json.loads(open(a.config).read())
     print(json.dumps(train_codec(cfg, _run_dir(cfg, cfg["name"])), indent=1, default=str))
 
 
 def cmd_train_policy(a):
-    from rrp.learning.behavior import train_policy
+    from rrp.training.behavior import train_policy
     cfg = json.loads(open(a.config).read())
     if a.seed is not None:
         cfg["seed"] = a.seed
@@ -72,7 +72,7 @@ def register(sub):
 
 
 def cmd_campaign_cell(a):
-    from rrp.evaluation.campaign import run_cell
+    from rrp.training.campaign import run_cell
     protocol = json.loads(open(a.protocol).read())
     if torch_cuda():
         from rrp.contracts.workload import apply_cap
@@ -81,7 +81,7 @@ def cmd_campaign_cell(a):
 
 
 def cmd_baseline_cell(a):
-    from rrp.evaluation.baseline_campaign import run_baseline_cell
+    from rrp.training.baseline_campaign import run_baseline_cell
     protocol = json.loads(open(a.protocol).read())
     if torch_cuda():
         from rrp.contracts.workload import apply_cap

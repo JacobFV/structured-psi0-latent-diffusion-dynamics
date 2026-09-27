@@ -10,7 +10,7 @@ import copy
 import numpy as np
 import torch
 
-from rrp.learning.data import load_episodes, episode_samples
+from rrp.data.chunks import load_episodes, episode_samples
 from rrp.models.batch import collate_inputs
 from rrp.models.semantic_latent import assembly_tokens
 

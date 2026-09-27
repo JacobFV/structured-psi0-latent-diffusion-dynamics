@@ -6,8 +6,8 @@ from pathlib import Path
 
 
 def cmd_pack(a):
-    from rrp.learning.packed import pack_dataset
-    from rrp.learning.dual_latent import concat_packed
+    from rrp.data.packed import pack_dataset
+    from rrp.data.dual_latent import concat_packed
     cfg = json.loads(open(a.config).read())
     out = Path(cfg["out_dir"])
     parts = []
@@ -37,7 +37,7 @@ def cmd_eval(a):
     from rrp.evaluation.dual_latent_eval import DualLatentPolicy, evaluate_dual_latent
     from rrp.evaluation.statistics import wilson
     from rrp.models.checkpoint import load_checkpoint
-    from rrp.learning.latent_train import load_representation
+    from rrp.controllers.bundles import load_representation
     dev = "cuda" if torch.cuda.is_available() and not a.cpu else "cpu"
     if dev == "cuda":
         from rrp.contracts.workload import apply_cap

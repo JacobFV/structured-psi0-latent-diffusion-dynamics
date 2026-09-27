@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 def cmd_rep(a):
-    from rrp.learning.latent_train import train_representation
+    from rrp.training.latent_train import train_representation
     cfg = json.loads(open(a.config).read())
     d = Path(cfg["out_dir"]); d.mkdir(parents=True, exist_ok=True)
     (d / "config.json").write_text(json.dumps(cfg, indent=1))
@@ -33,7 +33,7 @@ def register(sub):
 
 
 def cmd_flow(a):
-    from rrp.learning.latent_train import train_latent_flow
+    from rrp.training.latent_train import train_latent_flow
     cfg = json.loads(open(a.config).read())
     d = Path(cfg["out_dir"]); d.mkdir(parents=True, exist_ok=True)
     (d / "config.json").write_text(json.dumps(cfg, indent=1))
@@ -43,7 +43,7 @@ def cmd_flow(a):
 def _load(a):
     import torch
     from rrp.controllers.latent_runner import LatentPolicy
-    from rrp.learning.latent_train import load_representation
+    from rrp.controllers.bundles import load_representation
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     if dev == "cuda":
         from rrp.contracts.workload import apply_cap
@@ -156,7 +156,7 @@ def register_more(p):
 
 
 def cmd_fit_probes(a):
-    from rrp.learning.latent_train import fit_probes_on_frozen
+    from rrp.training.latent_train import fit_probes_on_frozen
     res = fit_probes_on_frozen(Path(a.representation), Path(a.packed_dir), Path(a.out), steps=a.steps,
                                metadata_only=a.metadata_only, binding_cf=a.binding_cf)
     print(json.dumps(res, indent=1))
@@ -176,7 +176,7 @@ def register_probe_cmd(p):
 
 def cmd_cell(a):
     import torch
-    from rrp.evaluation.latent_campaign import run_latent_cell
+    from rrp.training.latent_campaign import run_latent_cell
     if torch.cuda.is_available():
         from rrp.contracts.workload import apply_cap
         apply_cap()
@@ -213,7 +213,7 @@ def register_latency(p):
 def cmd_counterfactuals(a):
     import torch
     from rrp.evaluation.latent_counterfactuals import counterexample, counterexample_v1, embodiment_swap
-    from rrp.learning.latent_train import load_representation
+    from rrp.controllers.bundles import load_representation
     dev = "cuda" if a.gpu and torch.cuda.is_available() else "cpu"
     _, E, _, P, res = load_representation(Path(a.representation), dev)
     if a.probe:                                   # measurement probe fitted post hoc on frozen z (fair across variants)
@@ -250,9 +250,9 @@ def register_counterfactuals(p):
 
 
 def cmd_grpo(a):
-    from rrp.learning.flow_sde import SDEConfig
-    from rrp.learning.grpo import GRPOConfig
-    from rrp.learning.latent_grpo import LatentGRPORunConfig, RewardConfig, train_latent_grpo
+    from rrp.training.flow_sde import SDEConfig
+    from rrp.training.grpo import GRPOConfig
+    from rrp.training.latent_grpo import LatentGRPORunConfig, RewardConfig, train_latent_grpo
     g = GRPOConfig(group_size=a.group_size, lr=a.lr, epochs=a.epochs, minibatch=a.minibatch, kl_coef=a.kl_coef,
                    clip=a.clip, trainable=a.trainable,
                    sde=SDEConfig(nfe=a.nfe, noise_level=a.noise_level, first_step="clamp", last_step=a.last_step))
@@ -386,7 +386,7 @@ def cmd_semantic(a):
     import torch
     from rrp.evaluation import latent_semantic_edits as se
     from rrp.evaluation import latent_causal as lc
-    from rrp.learning.latent_train import load_representation
+    from rrp.controllers.bundles import load_representation
     robots = a.robots.split(",")
     if a.seed_start < 3_000_000 or any(r in TARGET_BODIES for r in robots):
         raise SystemExit("dev rule (D-025): source/dev bodies and dev seeds >= 3,000,000 only")
@@ -467,7 +467,7 @@ def cmd_arm(a):
     import torch
     from rrp.evaluation import latent_semantic_edits as se
     from rrp.evaluation import latent_causal as lc
-    from rrp.learning.latent_train import load_representation
+    from rrp.controllers.bundles import load_representation
     if a.seed_start < 3_000_000:
         raise SystemExit("dev rule (D-025): dev seeds >= 3,000,000 only")
     dev = "cuda" if a.gpu and torch.cuda.is_available() else "cpu"
