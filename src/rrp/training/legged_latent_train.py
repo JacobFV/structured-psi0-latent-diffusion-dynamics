@@ -203,6 +203,29 @@ def eval_rep(E, R, P, data, n_batches=40, seed=99):
                 probes=_fin(agg), probes_shuffled_z=_fin(sh))
 
 
+
+def rng_state(rng) -> dict:
+    """Every RNG a legged trainer draws from (numpy batch sampling; torch CPU; torch CUDA: posterior noise, qd dropout), so a
+    resumed run continues the uninterrupted one exactly (W8; same as the arm fix 3d6e927)."""
+    st = dict(rng=rng.bit_generator.state, torch_rng=torch.get_rng_state())
+    if torch.cuda.is_available():
+        st["cuda_rng"] = torch.cuda.get_rng_state_all()
+    return st
+
+
+def restore_rng(st: dict, rng) -> bool:
+    """Restore rng_state(); returns False (INEXACT) for checkpoints written without the CUDA state."""
+    rng.bit_generator.state = st["rng"]
+    torch.set_rng_state(st["torch_rng"].cpu())
+    if "cuda_rng" in st and torch.cuda.is_available():
+        torch.cuda.set_rng_state_all([t.cpu() for t in st["cuda_rng"]])
+        return True
+    return not torch.cuda.is_available()
+
+
+def cuda_peak_mb() -> float | None:
+    return round(torch.cuda.max_memory_reserved() / 2**20, 1) if torch.cuda.is_available() else None
+
 def _data_physics(cfg: dict | None):
     """Physics record of the training data (first shard carrying provenance), or None (legacy data / no data)."""
     if not cfg or not cfg.get("data"):
@@ -266,8 +289,8 @@ def train_rep(cfg, out: Path):
         st = torch.load(str(last), map_location=dev, weights_only=False)
         E.load_state_dict(st["E"]); R.load_state_dict(st["R"]); P.load_state_dict(st["P"])
         opt.load_state_dict(st["opt"]); sch.load_state_dict(st["sch"])
-        step0 = st["step"]; rng.bit_generator.state = st["rng"]; torch.set_rng_state(st["torch_rng"].cpu())
-        print(f"resumed at step {step0}", flush=True)
+        step0 = st["step"]; exact = restore_rng(st, rng)
+        print(f"resumed at step {step0} ({'exact: RNG restored' if exact else 'INEXACT: no CUDA RNG state in checkpoint'})", flush=True)
     log = open(out / "train_log.jsonl", "a")
     t0 = time.time()
     B = cfg.get("batch_size", 256)
@@ -282,11 +305,11 @@ def train_rep(cfg, out: Path):
         gn = torch.nn.utils.clip_grad_norm_(params, 1.0)
         opt.step(); sch.step()
         if step % 200 == 0:
-            log.write(json.dumps(dict(step=step, t=time.time() - t0, loss=float(loss.detach()), gn=float(gn), **logs)) + "\n")
+            log.write(json.dumps(dict(step=step, t=time.time() - t0, loss=float(loss.detach()), gn=float(gn), cuda_peak_mb=cuda_peak_mb(), **logs)) + "\n")
             log.flush()
         if step % ck == 0 and step < steps:
             _save(last, E=E.state_dict(), R=R.state_dict(), P=P.state_dict(), opt=opt.state_dict(),
-                  sch=sch.state_dict(), step=step, rng=rng.bit_generator.state, torch_rng=torch.get_rng_state())
+                  sch=sch.state_dict(), step=step, **rng_state(rng))
         if sn and step % sn == 0 and step < steps:
             _save(out / f"snap_s{step}.pt", E=E.state_dict(), R=R.state_dict(), P=P.state_dict(), cfg=cfg,
                   result=dict(latent_space_version=f"legged-ls-{cfg['name']}", step=step))
@@ -363,8 +386,8 @@ def train_flow(cfg, out: Path):
     if last.exists():
         st = torch.load(str(last), map_location=dev, weights_only=False)
         F_.load_state_dict(st["flow"]); opt.load_state_dict(st["opt"]); sch.load_state_dict(st["sch"])
-        step0 = st["step"]; rng.bit_generator.state = st["rng"]; torch.set_rng_state(st["torch_rng"].cpu())
-        print(f"resumed at step {step0}", flush=True)
+        step0 = st["step"]; exact = restore_rng(st, rng)
+        print(f"resumed at step {step0} ({'exact: RNG restored' if exact else 'INEXACT: no CUDA RNG state in checkpoint'})", flush=True)
     log = open(out / "train_log.jsonl", "a")
     t0 = time.time()
     B = cfg.get("batch_size", 256)
@@ -372,7 +395,7 @@ def train_flow(cfg, out: Path):
     for step in range(step0 + 1, steps + 1):
         if step > step0 + 1 and step % ck == 1 and step - 1 < steps:
             _save(last, flow=F_.state_dict(), opt=opt.state_dict(), sch=sch.state_dict(), step=step - 1,
-                  rng=rng.bit_generator.state, torch_rng=torch.get_rng_state())
+                  **rng_state(rng))
         if sn and step > 1 and (step - 1) % sn == 0:
             _save(out / f"snap_s{step - 1}.pt", flow=F_.state_dict(), cfg=cfg,
                   result=dict(latent_space_version=rres["latent_space_version"], step=step - 1))
@@ -388,7 +411,7 @@ def train_flow(cfg, out: Path):
         gn = torch.nn.utils.clip_grad_norm_(F_.parameters(), 1.0)
         opt.step(); sch.step()
         if step % 200 == 0:
-            log.write(json.dumps(dict(step=step, t=time.time() - t0, loss=float(loss.detach()), gn=float(gn), **logs)) + "\n")
+            log.write(json.dumps(dict(step=step, t=time.time() - t0, loss=float(loss.detach()), gn=float(gn), cuda_peak_mb=cuda_peak_mb(), **logs)) + "\n")
             log.flush()
     res = dict(steps=steps, wall_s=time.time() - t0, representation=cfg["representation"],
                latent_space_version=rres["latent_space_version"], eval=eval_flow(F_, E, R, P, data))

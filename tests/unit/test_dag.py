@@ -410,3 +410,28 @@ def test_gpu_and_cpu_caps(tmp_path):
 def test_point_filter_keeps_global_nodes():
     p = plan_dag(loads(GLOBAL_TOY)).select(None, [{"variant": "semfix"}])
     assert {"collect", "bc"} <= set(p.nodes) and "r2@semfix.s0" in p.nodes and "rep@nosem.s0" not in p.nodes
+
+
+def test_shared_budget_counts_other_ledgers(tmp_path):
+    from rrp.orchestration.dag import _gib
+    assert _gib("24G") == 24 and _gib("512M") == 0.5
+    other = tmp_path / "_dags" / "other" / "ledger.json"
+    other.parent.mkdir(parents=True)
+    other.write_text(json.dumps(dict(schema="dag-ledger-1", nodes={
+        "x": dict(state="running", resources=dict(cpu=2, mem="6G", gpu=True)),
+        "y": dict(state="completed", resources=dict(cpu=9, mem="20G", gpu=True))})))
+    plan = plan_dag(loads(GLOBAL_TOY.replace("""  rep:
+    stage: train_rep
+""", """  rep:
+    stage: train_rep
+    resources: {gpu: true, cpu: 2, mem: 6G}
+""")))
+    ex = Executor(plan, Ledger(tmp_path / "_dags" / "gtoy" / "ledger.json"), FakeRunner(tmp_path), max_parallel_gpu=2,
+                  max_cpu=8, max_mem_gib=28, budget_dir=tmp_path / "_dags", poll_s=0, sleep=lambda s: None, log=lambda m: None)
+    assert ex._fits("rep@semfix.s0", [])                     # 1 GPU elsewhere + 1 = 2
+    assert not ex._fits("rep@semfix.s1", ["rep@semfix.s0"])  # would be 3 GPU nodes in the track
+    assert ex._fits("collect", ["rep@semfix.s0", "rep@nosem.s0"])      # cpu 2+2+2+1 = 7 <= 8, mem 18+1 <= 28
+    ex.max_cpu = 6
+    assert not ex._fits("collect", ["rep@semfix.s0", "rep@nosem.s0"])  # cpu 7 > 6
+    ex.max_cpu, ex.max_mem_gib = 8, 18.5
+    assert not ex._fits("collect", ["rep@semfix.s0", "rep@nosem.s0"])  # mem 19 > 18.5

@@ -54,7 +54,9 @@ def cmd_run_dag(a):
     ex = Executor(plan, ledger, runner, max_parallel=a.max_parallel or int(plan.defaults.get("max_parallel", 4)),
                   poll_s=a.poll, admission_timeout_s=float(plan.defaults.get("admission_timeout_s", 10800)),
                   max_parallel_gpu=_opt(a.max_parallel_gpu, plan.defaults.get("max_parallel_gpu"), int),
-                  max_cpu=_opt(a.max_cpu, plan.defaults.get("max_cpu"), float))
+                  max_cpu=_opt(a.max_cpu, plan.defaults.get("max_cpu"), float),
+                  max_mem_gib=_opt(a.max_mem_gib, plan.defaults.get("max_mem_gib"), float),
+                  budget_dir=ledger_path.parent.parent if plan.defaults.get("shared_budget") else None)
     try:
         summ = ex.run()
     except DagError as e:
@@ -79,6 +81,7 @@ def register(sub):
     p.add_argument("--max-parallel", type=int)
     p.add_argument("--max-parallel-gpu", type=int, help="cap on running GPU nodes (default defaults.max_parallel_gpu)")
     p.add_argument("--max-cpu", type=float, help="cap on summed declared CPU of running nodes (default defaults.max_cpu)")
+    p.add_argument("--max-mem-gib", type=float, help="cap on summed declared memory (GiB) of running nodes (default defaults.max_mem_gib)")
     p.add_argument("--poll", type=float, default=30.0)
     p.add_argument("--peer-repo", help="peer code dir (default $RRP_PEER_REPO; must be /dev/shm/rrp-brandonin/wt/<track>)")
     p.add_argument("--allow-cross-placement", action="store_true")

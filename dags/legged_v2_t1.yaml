@@ -38,9 +38,11 @@ defaults:
   placement: peer
   retries: 0
   max_parallel: 6
-  max_parallel_gpu: 3
-  max_cpu: 19
-  resources: {cpu: 10, mem: 24G, gpu: false, max_seconds: 14400}
+  max_parallel_gpu: 2
+  max_cpu: 8
+  max_mem_gib: 28
+  shared_budget: true
+  resources: {cpu: 4, mem: 10G, gpu: false, max_seconds: 14400}
 base:
   flags: {contact_version: contact_v2}
 nodes:
@@ -53,13 +55,14 @@ nodes:
   bc:
     stage: train_bc
     scope: global
-    resources: {gpu: true, gpu_mem: 5G, cpu: 3, mem: 8G, max_seconds: 14400}
+    resources: {gpu: true, gpu_mem: 5G, cpu: 2, mem: 7G, max_seconds: 14400}
     config:
       inputs: {data: '@collect'}
       params: {name: 'legged8_bc_{body}', bodies: ['{body}'], model: {width: 192, enc_layers: 2, dec_layers: 3}, steps: '{bc_steps}', batch_size: 256, lr: 0.0003, seed: 0, ckpt_every: 500, snap_every: '{bc_snap}'}
   teacher:
     stage: eval_r2
     scope: global
+    resources: {cpu: 10, mem: 24G}
     tag: teacher
     deps: [collect]
     config:
@@ -67,13 +70,14 @@ nodes:
   bcr2:
     stage: eval_r2
     scope: global
+    resources: {cpu: 10, mem: 24G}
     tag: bc
     config:
       inputs: {bc: '@bc:policy.pt'}
       options: {body: '{body}', tag: 'v2_bc_{body}', route: bc, seeds: '{r2seeds}', workers: 10}
   rep:
     stage: train_rep
-    resources: {gpu: true, gpu_mem: 5G, cpu: 3, mem: 8G, max_seconds: 14400}
+    resources: {gpu: true, gpu_mem: 5G, cpu: 2, mem: 7G, max_seconds: 14400}
     config:
       flags: {probe_lv_min: '{lv}', qd_dropout: 0.5}
       inputs: {data: '@collect'}
@@ -81,13 +85,13 @@ nodes:
   probe:
     stage: probes
     only: {variant: [nosem]}
-    resources: {gpu: true, gpu_mem: 3G, cpu: 2, mem: 6G, max_seconds: 7200}
+    resources: {gpu: true, gpu_mem: 3G, cpu: 1, mem: 5G, max_seconds: 7200}
     config:
       inputs: {representation: '@rep:representation.pt'}
       options: {steps: '{probe_steps}'}
   flow:
     stage: train_flow
-    resources: {gpu: true, gpu_mem: 5G, cpu: 3, mem: 8G, max_seconds: 14400}
+    resources: {gpu: true, gpu_mem: 5G, cpu: 2, mem: 7G, max_seconds: 14400}
     config:
       inputs: {representation: '@rep:representation.pt'}
       params: {name: '{pfx}_flow', width: 256, layers: 4, packet_semantic_weight: '{psw}', packet_tau_min: 0.6, steps: '{flow_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: '{snap_every}'}
@@ -96,24 +100,24 @@ nodes:
     tag: snap
     config:
       inputs: {flow: '@flow:{snap}.pt'}
-      options: {body: '{body}', tag: 'v2_{variant}_{body}_s{seed}_{snap}', route: r2, seeds: '{r2seeds}', workers: 10}
+      options: {body: '{body}', tag: 'v2_{variant}_{body}_s{seed}_{snap}', route: r2, seeds: '{r2seeds}', workers: 4}
   r2final:
     stage: eval_r2
     tag: policy
     config:
       inputs: {flow: '@flow:policy.pt'}
-      options: {body: '{body}', tag: 'v2_{variant}_{body}_s{seed}_policy', route: r2, seeds: '{r2seeds}', workers: 10}
+      options: {body: '{body}', tag: 'v2_{variant}_{body}_s{seed}_policy', route: r2, seeds: '{r2seeds}', workers: 4}
   zedits:
     stage: edits
     tag: z
     per: {variant: {nosem: {inputs: {posthoc_probe: '@probe:probe_posthoc.pt'}}}}
     config:
       inputs: {flow: '@flow:{snap}.pt'}
-      options: {body: '{body}', suite: 'r2_v2_{variant}_{body}_s{seed}_{snap}', route: r2, edits: $z_edits, seeds: '{edseeds}', t_edit: 2.0, max_s: 5.0, workers: 10, mirror_effect: [probe_goal_mirror, rand_norm_8]}
+      options: {body: '{body}', suite: 'r2_v2_{variant}_{body}_s{seed}_{snap}', route: r2, edits: $z_edits, seeds: '{edseeds}', t_edit: 2.0, max_s: 5.0, workers: 4, mirror_effect: [probe_goal_mirror, rand_norm_8]}
   ctxedits:
     stage: edits
     tag: ctx
     per: {variant: {nosem: {inputs: {posthoc_probe: '@probe:probe_posthoc.pt'}}}}
     config:
       inputs: {flow: '@flow:{snap}.pt'}
-      options: {body: '{body}', suite: 'r2ctx_v2_{variant}_{body}_s{seed}_{snap}', route: r2, edits: $ctx_edits, seeds: '{edseeds}', t_edit: 2.0, max_s: 5.0, workers: 10, mirror_effect: [mirror_goal, mirror_active, mirror_inactive, halt]}
+      options: {body: '{body}', suite: 'r2ctx_v2_{variant}_{body}_s{seed}_{snap}', route: r2, edits: $ctx_edits, seeds: '{edseeds}', t_edit: 2.0, max_s: 5.0, workers: 4, mirror_effect: [mirror_goal, mirror_active, mirror_inactive, halt]}

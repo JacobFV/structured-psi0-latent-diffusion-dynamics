@@ -26,7 +26,7 @@ import torch.nn as nn
 from rrp.features.legged import NODE_STATIC_DIM, ASM_DIM, GLOBAL_DIM
 from rrp.models.flow import MLP, sinusoidal
 from rrp.models.legged_latent import block, run_block
-from rrp.training.legged_latent_train import LeggedData, _dev, _save, H
+from rrp.training.legged_latent_train import LeggedData, _dev, _save, H, rng_state, restore_rng, cuda_peak_mb
 from rrp.models.legged_bc import LeggedBC, _mha, build, load_bc  # noqa: F401  (moved to models, W4)
 
 
@@ -74,8 +74,8 @@ def train(cfg, out: Path):
     if last.exists():
         st = torch.load(str(last), map_location=dev, weights_only=False)
         model.load_state_dict(st["model"]); opt.load_state_dict(st["opt"]); sch.load_state_dict(st["sch"])
-        step0 = st["step"]; rng.bit_generator.state = st["rng"]; torch.set_rng_state(st["torch_rng"].cpu())
-        print(f"resumed at step {step0}", flush=True)
+        step0 = st["step"]; exact = restore_rng(st, rng)
+        print(f"resumed at step {step0} ({'exact: RNG restored' if exact else 'INEXACT: no CUDA RNG state in checkpoint'})", flush=True)
     (out / "config.json").write_text(json.dumps(cfg, indent=1))
     log = open(out / "train_log.jsonl", "a")
     B = cfg.get("batch_size", 256)
@@ -89,11 +89,11 @@ def train(cfg, out: Path):
         gn = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         opt.step(); sch.step()
         if step % 200 == 0:
-            log.write(json.dumps(dict(step=step, t=time.time() - t0, loss=float(loss.detach()), gn=float(gn))) + "\n")
+            log.write(json.dumps(dict(step=step, t=time.time() - t0, loss=float(loss.detach()), gn=float(gn), cuda_peak_mb=cuda_peak_mb())) + "\n")
             log.flush()
         if step % ck == 0 or step == steps:
             _save(last, model=model.state_dict(), opt=opt.state_dict(), sch=sch.state_dict(), step=step,
-                  rng=rng.bit_generator.state, torch_rng=torch.get_rng_state(), cfg=cfg)
+                  **rng_state(rng), cfg=cfg)
         if step % sn == 0 and step < steps:
             ev = eval_bc(model, data)
             log.write(json.dumps(dict(step=step, eval=ev)) + "\n"); log.flush()

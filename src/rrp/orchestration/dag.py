@@ -8,7 +8,8 @@ DAG file (YAML; see dags/arm_lineage.yaml):
   vars: {name: template}                        # evaluated in order after the axis vars (may use them)
   lists: {name: [...]}                          # referenced as "$name" anywhere in a node config
   defaults: {placement, retries, resources: {cpu, mem, gpu, gpu_mem, max_seconds}, max_parallel, admission_timeout_s,
-             max_parallel_gpu, max_cpu}      # caps over this DAG's running nodes (declared resources)
+             max_parallel_gpu, max_cpu, max_mem_gib, shared_budget}   # caps over the running nodes (declared
+             # resources) of this DAG, or with shared_budget: true of every DAG ledger of the same track
   base: RunConfig fields shared by every node (flags!, params, options)
   nodes: {name: {stage, tag, deps, resources, placement, retries, only: {axis: [values]},
                  per: {axis: {value: <config overlay>}}, config: <RunConfig overlay>, scope: point|global}}
@@ -485,6 +486,9 @@ class Executor:
     max_parallel: int = 4
     max_parallel_gpu: int | None = None     # cap on running GPU nodes (a share of a shared GPU; W8)
     max_cpu: float | None = None            # cap on the summed declared CPU of running nodes
+    max_mem_gib: float | None = None        # cap on the summed declared memory of running nodes
+    budget_dir: Path | None = None          # shared budget: also count running nodes of every other ledger under this
+    #                                         dir (<dir>/*/ledger.json), so several DAGs of one track share the caps
     poll_s: float = 30.0
     admission_timeout_s: float = 10800.0
     log: callable = field(default=lambda m: print(f"{time.strftime('%F %T')} [run-dag] {m}", flush=True))
@@ -498,7 +502,8 @@ class Executor:
                 raise DagError(f"{nid}: the ledger ran config {e['config_hash']} but the DAG now gives {h}; "
                                f"use --reset {nid} (outputs go to the same dir {n.rc.out})")
             e.setdefault("config_hash", h)
-            e.update(run_id=n.rc.run_id, out=n.rc.out, stage=n.rc.stage, placement=n.placement)
+            e.update(run_id=n.rc.run_id, out=n.rc.out, stage=n.rc.stage, placement=n.placement,
+                     resources=n.resources.__dict__)
         self.ledger.save()
 
     def run(self) -> dict:
@@ -549,15 +554,33 @@ class Executor:
         self.log(f"done: {summary}")
         return summary
 
+    def _others_running(self) -> list[dict]:
+        """Declared resources of running nodes in the other ledgers of the shared budget dir."""
+        if self.budget_dir is None:
+            return []
+        out = []
+        for f in Path(self.budget_dir).glob("*/ledger.json"):
+            if f.resolve() == self.ledger.path.resolve():
+                continue
+            try:
+                d = json.loads(f.read_text())
+            except Exception:    # a ledger being replaced right now: skip this poll
+                continue
+            out += [e["resources"] for e in d.get("nodes", {}).values() if e.get("state") == "running" and e.get("resources")]
+        return out
+
     def _fits(self, nid: str, running: list[str]) -> bool:
-        """Per-DAG resource caps (declared resources of the running nodes; the broker still enforces the host/peer
-        limits). A node larger than max_cpu alone may still run when nothing else is running."""
+        """Resource caps over the declared resources of the running nodes (this DAG plus, with budget_dir, every other
+        DAG ledger of the track); the broker still enforces the host/peer limits. A node larger than max_cpu /
+        max_mem_gib alone may still run when nothing else is running."""
         r = self.plan.nodes[nid].resources
-        if r.gpu and self.max_parallel_gpu is not None and \
-                sum(self.plan.nodes[k].resources.gpu for k in running) >= self.max_parallel_gpu:
+        live = [self.plan.nodes[k].resources.__dict__ for k in running] + self._others_running()
+        if r.gpu and self.max_parallel_gpu is not None and sum(bool(x.get("gpu")) for x in live) >= self.max_parallel_gpu:
             return False
-        if self.max_cpu is not None and running and \
-                sum(self.plan.nodes[k].resources.cpu for k in running) + r.cpu > self.max_cpu:
+        if self.max_cpu is not None and live and sum(float(x.get("cpu", 0)) for x in live) + r.cpu > self.max_cpu:
+            return False
+        if self.max_mem_gib is not None and live and \
+                sum(_gib(x.get("mem")) for x in live) + _gib(r.mem) > self.max_mem_gib:
             return False
         return True
 
@@ -609,6 +632,16 @@ class Executor:
                                                    for d in self.plan.nodes[k].deps):
                     self.ledger.set(k, state="blocked", last_error="dependency failed")
                     changed = True
+
+
+def _gib(mem) -> float:
+    """'12G' / '512M' / bytes -> GiB."""
+    if mem is None:
+        return 0.0
+    m = re.fullmatch(r"\s*([0-9.]+)\s*([KMGT]?)i?B?\s*", str(mem), re.I)
+    if not m:
+        raise DagError(f"bad memory {mem!r}")
+    return float(m.group(1)) * {"": 2**-30, "K": 2**-20, "M": 2**-10, "G": 1, "T": 1024}[m.group(2).upper()]
 
 
 def default_ledger_path(root: Path, plan: Plan) -> Path:
