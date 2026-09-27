@@ -9,6 +9,8 @@ from rrp.bodies.legged import legged_body, standalone_model
 from rrp.contracts.provenance import physics_provenance
 from rrp.physics.actuator import SOURCED
 
+pytestmark = pytest.mark.menagerie      # every test builds Menagerie legged bodies
+
 
 @pytest.mark.parametrize("body", ["t1", "g1", "h1", "go2", "anymal_c"])
 def test_default_is_sourced(body):

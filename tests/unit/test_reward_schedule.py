@@ -44,6 +44,7 @@ def test_window_metrics():
     assert m["slip_ratio"] == pytest.approx(0.1) and m["cot"] == pytest.approx(0.5)
 
 
+@pytest.mark.menagerie                      # builds t1/go2 Menagerie bodies
 def test_stop_share_in_every_sampler():
     """At least MIN_STOP_SHARE zero commands from the default and the teacher-mix samplers (standing is trained)."""
     import warnings

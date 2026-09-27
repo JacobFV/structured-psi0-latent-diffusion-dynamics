@@ -1,12 +1,15 @@
 """Feed-forward stepping reference: the deployed tracker adds exactly what the training env adds (same phase convention)."""
 import warnings
 
+import pytest
+
 import numpy as np
 
 from rrp.bodies.legged import legged_body, standalone_model
 from rrp.envs.legged_core import LeggedBinding
 
 
+@pytest.mark.menagerie                      # builds the t1 Menagerie body
 def test_ref_offset_shape_and_phase():
     warnings.filterwarnings("ignore")
     m, _, meta = standalone_model(legged_body("t1"), contact="v2")
