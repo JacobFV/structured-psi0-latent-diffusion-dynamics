@@ -1,0 +1,15 @@
+{'seed': 10000, 'status': 'success', 'steps': 122, 'sim_s': 12.200000000000001, 'pure_turn_frac': 0.0, 'contact_model': 'contact_v2', 'actuator_limits': 'sourced_v1'}
+{'seed': 10001, 'status': 'failure', 'steps': 119, 'sim_s': 11.9, 'pure_turn_frac': 0.0, 'contact_model': 'contact_v2', 'actuator_limits': 'sourced_v1'}
+{'seed': 10002, 'status': 'failure', 'steps': 141, 'sim_s': 14.100000000000001, 'pure_turn_frac': 0.0425531914893617, 'contact_model': 'contact_v2', 'actuator_limits': 'sourced_v1'}
+{'seed': 10003, 'status': 'success', 'steps': 140, 'sim_s': 14.0, 'pure_turn_frac': 0.0, 'contact_model': 'contact_v2', 'actuator_limits': 'sourced_v1'}
+{'seed': 10004, 'status': 'success', 'steps': 135, 'sim_s': 13.5, 'pure_turn_frac': 0.0, 'contact_model': 'contact_v2', 'actuator_limits': 'sourced_v1'}
+{'seed': 10005, 'status': 'success', 'steps': 136, 'sim_s': 13.600000000000001, 'pure_turn_frac': 0.0, 'contact_model': 'contact_v2', 'actuator_limits': 'sourced_v1'}
+{'seed': 10006, 'status': 'failure', 'steps': 108, 'sim_s': 10.8, 'pure_turn_frac': 0.0, 'contact_model': 'contact_v2', 'actuator_limits': 'sourced_v1'}
+{'seed': 10007, 'status': 'success', 'steps': 147, 'sim_s': 14.700000000000001, 'pure_turn_frac': 0.027210884353741496, 'contact_model': 'contact_v2', 'actuator_limits': 'sourced_v1'}
+{'seed': 10008, 'status': 'success', 'steps': 135, 'sim_s': 13.5, 'pure_turn_frac': 0.037037037037037035, 'contact_model': 'contact_v2', 'actuator_limits': 'sourced_v1'}
+{'seed': 10009, 'status': 'success', 'steps': 123, 'sim_s': 12.3, 'pure_turn_frac': 0.0, 'contact_model': 'contact_v2', 'actuator_limits': 'sourced_v1'}
+{'seed': 10010, 'status': 'success', 'steps': 145, 'sim_s': 14.5, 'pure_turn_frac': 0.10344827586206896, 'contact_model': 'contact_v2', 'actuator_limits': 'sourced_v1'}
+{'seed': 10011, 'status': 'success', 'steps': 123, 'sim_s': 12.3, 'pure_turn_frac': 0.0, 'contact_model': 'contact_v2', 'actuator_limits': 'sourced_v1'}
+{'seed': 10012, 'status': 'success', 'steps': 131, 'sim_s': 13.100000000000001, 'pure_turn_frac': 0.0, 'contact_model': 'contact_v2', 'actuator_limits': 'sourced_v1'}
+{'seed': 10013, 'status': 'success', 'steps': 127, 'sim_s': 12.700000000000001, 'pure_turn_frac': 0.0, 'contact_model': 'contact_v2', 'actuator_limits': 'sourced_v1'}
+{'seed': 10014, 'status': 'success', 'steps': 119, 'sim_s': 11.9, 'pure_turn_frac': 0.06722689075630252, 'contact_model': 'contact_v2', 'actuator_limits': 'sourced_v1'}

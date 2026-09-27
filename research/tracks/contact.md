@@ -313,6 +313,17 @@ W8 command mix (kinematic rollout of `WaypointTeacher`'s law over 400 random two
 Training: `--cmd-mix teacher` (70% of commands from that mix), `yaw_lin_all=1` (the dense yaw-progress term also on arcs), sourced limits
 (body default), ideal actuators at 0 ms (W8's condition), from the t1_lat2 candidate. Host, resumable: `artifacts/runs/contact_t1_w8`, 1500 iters.
 Validation adds `turn_fast` (0.48 rad/s, reported) and `arc_yaw_ratio` to the gate dict.
+**Result `artifacts/runs/contact_t1_w8` (1500 iters, shed once and resumed; actor meta actuator_limits=sourced_v1; sha 31841f44c55b2e95): LEAD GATE PASSED at
+0 ms / ideal actuators / sourced limits** (`val/t1_w8-ideal_physv2.json`): no-fall 1.00 (no falls in any of 30 episodes), fwd 0.93, turn in place 1.48,
+turn at 0.48 rad/s 1.34, walk-and-turn yaw 1.72, slip 0.10, apex 7.1 cm, CoT 1.52, contact gate TRUE. At v1lat 30 ms: no-fall 1.00, fwd 0.77, turn
+1.34 / 1.25, arc yaw 1.76, slip 0.08. Caveat: the yaw rate overshoots (arc 1.7x, turn 1.3-1.5x the command).
+Closed-loop W8 check (`scripts/contact_waypoint_eval.py`, WaypointTeacher, contact_v2, dev seeds 10000+; `w8loop/*.log|json`):
+installed W8 t1 under legacy limits 20/20 success (mean 14.6 s). Candidate under sourced limits: 12 success / 3 failure / 0 falls in the first 15
+episodes (the host watchdog shed the job at 15; mean about 12.7 s). All 3 failures are the privileged `halt` check: every task event succeeded and the robot
+stood 0.20 m from waypoint b with both feet down, but the instantaneous TRUE base speed was 0.101 > 0.1 m/s (standing sway of 0.01-0.09 m/s with feet
+planted). Fix in progress: permanent `stand_vel` (-4 x |v_xy| at zero command), 500-iter fine-tune `artifacts/runs/contact_t1_w8b` (peer).
+Videos (reviewed): `artifacts/video/2026-09-27_contact_t1_{turn,turn_fast,arc,forward}_w8installed-vs-w8mix_iter1499_ok_ok.mp4`
+(left: W8 installed t1 under LEGACY limits, right: candidate under SOURCED limits).
 ### (4) h1: PARKED
 Recommendation: h1 does not lift its feet under turn or very-slow commands in any of 8 attempts (curricula, a stance cap, a reference-motion reward,
 a feed-forward reference). With sourced limits it also falls at 0 ms (no-fall 0.72 under v1lat), and its ankle speed limit is 9 rad/s. Next step, if
