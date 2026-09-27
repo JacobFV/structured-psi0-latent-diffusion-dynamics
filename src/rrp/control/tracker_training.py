@@ -173,7 +173,7 @@ def train(args):
                         if kl > 2 * args.desired_kl:
                             lr = max(args.min_lr, lr / 1.5)
                         elif 0 < kl < args.desired_kl / 2:
-                            lr = min(1e-2, lr * 1.5)
+                            lr = min(args.max_lr, lr * 1.5)
                         for g in opt.param_groups:
                             g["lr"] = lr
         with torch.no_grad():
@@ -243,6 +243,9 @@ def main(argv=None):
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--desired-kl", type=float, default=0.02)
     ap.add_argument("--min-lr", type=float, default=1e-4)
+    ap.add_argument("--max-lr", type=float, default=1e-2,
+                    help="adaptive-lr ceiling; use about 1e-3 for warm starts (a converged policy has tiny KL, so the lr climbs to the "
+                         "ceiling within one iteration and a few 1e-2 Adam steps can blow the policy up: hexapod6 contact_v2 run 1)")
     ap.add_argument("--gamma", type=float, default=0.99)
     ap.add_argument("--lam", type=float, default=0.95)
     ap.add_argument("--clip", type=float, default=0.2)
