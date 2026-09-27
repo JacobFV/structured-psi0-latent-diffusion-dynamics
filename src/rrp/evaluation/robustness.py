@@ -640,7 +640,7 @@ def render_video(family: str, route: dict, robot: str, key: str, seed: int, out_
         ok, tag = row["success"], ("success" if row["success"] else ("fell" if row["fell"] else f"failure-{row['failure_stage']}"))
         lab = dict(teacher="SCRIPTED TEACHER (privileged)", bc="LEARNED BC (positive control)",
                    flow="LEARNED latent sys-i -> packet -> sys-0")[route["kind"]]
-        imgs = [_caption(f, [f"{lab} | {src}"[:90], f"ROBUSTNESS {key} {pert_s}"[:90], f"{robot} waypoint_contact seed {seed} | {st}"[:90]])
+        imgs = [_caption(f, [f"{lab} | route {route['name']} | {src}"[:90], f"ROBUSTNESS {key} {pert_s}"[:90], f"{robot} waypoint_contact seed {seed} | {st}"[:90]])
                 for f, st in frames]
     else:
         import mujoco
@@ -668,7 +668,7 @@ def render_video(family: str, route: dict, robot: str, key: str, seed: int, out_
                     rend["r"] = mujoco.Renderer(s.model, 360, 480)
                 rend["r"].update_scene(s.data, camera="front")
                 st = " ".join(f"{e}:{v.status}" for e, v in s.runtime.instances.items())
-                imgs.append(_caption(rend["r"].render().copy(), [f"{lab}"[:90], f"ROBUSTNESS {key} {pert_s}"[:90],
+                imgs.append(_caption(rend["r"].render().copy(), [f"{lab} | route {route['name']}"[:90], f"ROBUSTNESS {key} {pert_s}"[:90],
                                                                  f"{robot} pick_place seed {seed} t={s.data.time:.1f}s {st}"[:90]]))
             rows = run_ladder(replace(cfg, seeds=b), None, models, ids, frame_cb=cb if tgt is not None else None)
             if tgt is not None:
