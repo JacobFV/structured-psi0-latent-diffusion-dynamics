@@ -84,7 +84,14 @@ go2's v1 tracker passes the contact gate in v2 physics zero-shot.
 ## runs (host, `rrp ops run`, D-033 limits; peer load was 43 at start, so peer CPU is unused)
 - t1: lease 1790471817_bf1051, `artifacts/runs/contact_t1_v2` (4000 iters, 4x48 envs, 512-256-128), about 1.75 s/iter.
 - h1: lease 1790471940_06f0b9, `artifacts/runs/contact_h1_v2` (same).
-- queued: g1 (v1 budget 3600 iters), then go2 (3000), anymal_c (2000), hexapod6 (1500), each with the same or larger budget.
+- g1: PEER lease 1790472668_dddd06 (peer load had dropped to 6), dir wt/contact, `artifacts/runs/contact_g1_v2` in the shared
+  store, 4000 iters x 4x48 (v1: 3600 x 1x128).
+- go2: PEER lease 1790472681_274657, `artifacts/runs/contact_go2_v2`, 3500 iters x 4x48 (v1: 3000).
+- queued: anymal_c (v1 2000 -> 2500), hexapod6 (v1 1500 -> 2000).
+- Pull peer runs: `RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/contact scripts/peer_sync.sh pull artifacts/runs/contact_g1_v2 artifacts/runs/contact_g1_v2`.
+- Progress: `python3 scripts/contact_status.py artifacts/runs/contact_*_v2/train_log.jsonl`.
+- Extra baseline: CPG hexapod6 (scripted_controller) slip ratio 0.41 (v1 physics) / 0.20 (v2). Even the scripted tripod
+  gait slips at the contact points, so the < 0.15 target is strict for the sprawl hexapod.
 
 ## resume steps
 1. `tail -1 artifacts/runs/contact_<body>_v2/train_log.jsonl` (alpha, gate). The ops log is in the main checkout
