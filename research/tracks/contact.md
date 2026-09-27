@@ -273,7 +273,15 @@ Attempts for (2):
   in a pure turn. A 50-episode pure-turn fall check from the render's initial condition (`scripts/contact_fall_rate.py`,
   `fallrate/g1_stepd_turn_{legacy,sourced}.json`) gives **2/50 (legacy) and 3/50 (sourced) falls**, at 2.5-3.2 s (one at 6.6 s). Video (FAILURE):
   `artifacts/video/2026-09-27_contact_g1_turn_installed-vs-stepd_iter2999_ok_fell.mp4`; forward: `..._g1_forward_installed-vs-stepd_iter2999_ok_ok.mp4`.
-  Lesson: the 5-seed validation undersamples rare falls, so the 50-episode fall check is now run before any install. Next: an 800-iter fine-tune under SOURCED limits with the
+  Lesson: the 5-seed validation undersamples rare falls, so the 50-episode fall check is now run before any install.
+  **g1_src** (`artifacts/runs/contact_g1_src`, 800 iters from step d under SOURCED limits with the W8 teacher mix, yaw_lin_all, stand_vel; peer):
+  fall checks **0/50 on all four commands** (the rare falls are gone), but validation (`val/g1_src_physv2.json`, 10 seeds): fwd 0.68, turn **3.11**, turn at
+  0.48 2.40, arc yaw **4.07**, slip **0.37**, CoT 2.89, contact gate FAILS. It spins 2.4-4x faster than commanded: the dense yaw-progress term
+  (`turn_lin`, capped at 1.2x the command but applied to every turning command) plus the sharp sigma_ang reward over-rotation more than the tracking
+  kernel punishes it on g1. NOT installed.
+  **g1 status (task 4 closed):** no g1 tracker passes the lead gate. Best candidates: step d (turn 1.04, fwd 0.77, slip 0.14, 2-3/50 pure-turn falls, trained under
+  legacy limits) and g1_src (0/50 falls, but over-rotation and slip 0.37). The installed g1 stays r1 (no in-place turning; needs legacy limits).
+  Next step if resumed: fine-tune g1_src with turn_lin capped at 1.0x the command and yaw_lin_all off for |wz| > 0.3, or a symmetric yaw kernel. Next: an 800-iter fine-tune under SOURCED limits with the
   W8-style command mix + stand_vel (`artifacts/runs/contact_g1_src`, peer, queued: the peer broker was full). h1 host
   `artifacts/runs/contact_h1_step` (lease 1790518222_a2ad53), g1 peer `artifacts/runs/contact_g1_step` (lease 1790517947_132a38). A process
   mix-up during the c->d restart (an old wrapper relaunched once into the new dir) was caught; that output is in `contact_h1_step_junk`, not used.
