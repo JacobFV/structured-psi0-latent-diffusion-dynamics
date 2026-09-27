@@ -44,7 +44,7 @@ have() {   # file exists on the placement's store
 for attempt in 1 2 3 4; do
   have $SRC/policy.pt && break
   log "train attempt $attempt ($PLACE)"
-  run_job axbc_train_s$SEED 3 24G 21000 1 PY -m rrp.cli campaign baseline-cell --method baseline_direct_action \
+  run_job axbc_train_s$SEED ${TRAIN_CPU:-3} 24G 21000 1 PY -m rrp.cli campaign baseline-cell --method baseline_direct_action \
     --seed $SEED --target source --train-only --root $ROOT --source-pack $PACK --snapshot-steps 12000 \
     || log "train lease ended without success (attempt $attempt); exact resume on the next lease"
 done
