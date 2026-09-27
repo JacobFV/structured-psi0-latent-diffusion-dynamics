@@ -474,3 +474,26 @@ edge; the procedural ranges are invented). Fix: limit-aware IK (a margin term or
 margin >= 0.05 of range) and re-check with `rrp.evaluation.gates.check_arm_dataset` on teacher_quality rows. Until then
 the D-112 arm dataset gate REPORTS (labels) the margin on parm* bodies and enforces it on menagerie arms
 (`joint_limit_margin_procedural` vs `joint_limit_margin`), so v5dart is not blocked. W6 notes: research/tracks/robust.md.
+
+## backlog (W7)
+- Limit-aware IK with margin for the procedural arms (D-114 (3)): the v2 teacher's DLS IK drives the parm* elbows into
+  their joint limits on near-base reaches (joint-limit margin 0 in 13-36 % of episodes). Add a joint-limit-margin term
+  (null-space / weighted DLS with a limit barrier) and prefer IK solutions with margin >= 0.02 when choosing hover/grasp
+  configurations; then re-verify the teacher (18 x 300) and make the margin criterion gated on parm* too.
+- Grasp-accept tolerance under DART noise (v4dart finding): accept the grasp within 1.6 cm after corrections to restore
+  late-phase DART coverage.
+
+## D-110 regeneration (v5dart) and grasp_v2 re-evaluation of the existing routes — state: running
+- v5dart collection (teacher v2 + grasp_v2) via `rrp run-dag dags/armexpert_v5dart.yaml`, peer, lease
+  1790538336_ba6e45 (rc 0, measured peak 14.2 GB): 8250 episodes, ALL grasp_contact_version grasp_v2 (manifest flags and
+  every episode's physics record), git 5173cf7 (clean). Clean success per source-train body equals v4dart on every body
+  (3897 feasible clean episodes incl. target-demo bodies: 3896 vs 3897; the one difference is xarm7_pg2, a target-demo
+  body not in the pack: 149/150). DART successes 82 (v4dart 63).
+- The first pack attempt (lease 1790542727_e38f24) was shed at 14:36 (peer project-memory PSI; measured peak 14.2 GB).
+  Rerun with `--retry-failed --only pack`, declaring 18G (D-106); queued behind the peer broker's memory cap.
+- Post-hoc W6 dataset gate (the collection predates the gated collector): every feasible episode is replayed with the
+  same generator inputs through the gated collector and must reproduce the stored commands exactly; the gate is computed
+  on the exact replays (`research/scripts/2026-09-27/armexpert_gate_replay.py`, output next to the collection:
+  `gate_posthoc/replay.jsonl`, `gate_report.json`). D-114 (3) (margin report-only on parm*) is on main (W6, 9ad6728).
+- D-115: all heavy compute on the peer. The grasp_v2 re-evaluation was moved from the host (20/56 jobs done there, same
+  code and inputs; summaries copied to the peer store) to the peer (`PLACE=peer scripts/armexpert_gc2_reeval.sh`).
