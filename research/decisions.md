@@ -426,3 +426,7 @@ Decisions:
 (4) The physics/contact version becomes part of dataset/model provenance.
 Downstream legged latent data is NOT regenerated until v2 trackers pass. All legged results through D-092 are contact v1.
 Owner: track `contact` (research/tracks/contact.md). Full problem checklist and the scripted-vs-RL policy (literature: Ψ₀ 2603.12263, 2601.15419, Z-1 2606.31846): `docs/robot_training_considerations.md`.
+
+## D-094 2026-09-26 STRATEGY adopted: physics credibility first, one pipeline for all bodies, additive-then-subtractive restructure
+Inputs: the repo structure audit (`docs/repo_structure_audit.md`: three parallel pipelines arm/dual/legged, 89 copy-derived shell drivers, 264 configs in 5 naming schemes, import cycles between 10 subpackage pairs, no physics version in provenance, 2 checkpoint and 3 manifest formats, datasets tracked in git, stale README/STATUS/registry; tests 143 pass / 2 fail on missing assets) and `docs/robot_training_considerations.md` (D-093).
+Workstreams W1–W9 with owners, gates and sequencing: `docs/strategy.md`. Immediate: W1 contact physics (running), W2 hygiene, W3 provenance/contracts; R0 arm seed 2 continues untouched (peer synced copies are never re-synced while jobs run).

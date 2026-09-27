@@ -1,0 +1,127 @@
+# strategy (adopted 2026-09-26, D-094)
+
+Inputs: `docs/robot_training_considerations.md` (problem checklist, D-093), `docs/repo_structure_audit.md` (structure audit),
+`research/reports/evidence_matrix.md` (current evidence). This file says what we do, in what order, who owns it, and how each step
+is judged done. Update the status column when a gate passes, citing the decision or track note.
+
+## 1. Goal and principles
+Goal: a clean, trustworthy platform on which the central claim (a semantically supervised latent packet from system i gives
+causal task control through system 0 across bodies) is tested on physically credible behaviour, with fair baselines.
+
+Principles:
+1. **Physics credibility before new claims.** No new legged results on contact v1. Every dataset and model records its physics version.
+2. **One pipeline, many bodies.** Arm, dual and legged share contracts, provenance, config schema, pipeline stages and orchestration.
+3. **Additive then subtractive.** New structure lands next to the old one with shims; old paths are removed only once nothing uses them.
+4. **Running experiments are never disturbed.** In-flight peer jobs run from synced copies (`/dev/shm/rrp-brandonin/wt/<track>`, `repo`).
+   Never sync into a copy that has running jobs. Main can change freely.
+5. **Gates, not vibes.** Every workstream step has a measurable acceptance gate (tests, parity numbers, validation metrics, videos).
+6. **Honest labels.** Existing contract rules stand (sources, privileged info, fair budgets, no fake success).
+
+## 2. Workstreams
+
+| id | workstream | owner | depends on | status |
+|---|---|---|---|---|
+| W1 | Physics realism: contact v2, reward schedule, slip gate; then actuator realism and latency | contact agent | — | running |
+| W2 | Repo hygiene (phase 0) | hygiene agent | — | started |
+| W3 | Provenance and contracts (phase 1) | provenance agent | — | started |
+| W4 | Package restructure with shims (phase 2) | restructure agent | W2, W3 | planned |
+| W5 | Unified pipeline + DAG orchestration (phases 3–4) | pipeline agent | W4; arm seed 2 finished | planned |
+| W6 | Robustness sweeps + motion-quality gates | robustness agent | W1 v2 trackers | planned |
+| W7 | Arm expert: smooth scripted trajectories, then GRPO fine-tuning with anchor evals | arm agent | arm seed 2 finished | planned |
+| W8 | Legged regeneration on contact v2 (data → Stage A → flow → R2 → edits) | legged agent | W1 gate, W3 | planned |
+| W9 | Open claims: held-out target bodies; one loco-manipulation task | later | W5, W8 | planned |
+| R0 | Arm seed-2 replication (running experiment) | arm agent | — | running |
+
+### W1 Physics realism (running)
+- **Scope:**
+  - Contact v2 (elliptic cone, impratio, noslip, compliant sole, friction/restitution/mass randomization).
+  - Slope stick/slide unit test.
+  - Staged reward schedule (permanent / shaping-prior / natural-objective terms, gated α).
+  - Slip-ratio and duty-factor gate.
+  - Retrain trackers, humanoids first; v1 vs v2 videos.
+  - Then: armature, joint friction and damping, motor torque–speed limits, randomized actuation latency 0–30 ms.
+- **Gate:** slip ratio < 0.15 and tracking and no-fall at v1 levels or better on t1, h1, g1, go2, anymal_c, hexapod6; reviewed videos.
+- **Status:** running.
+
+### W2 Repo hygiene (phase 0)
+- **Scope:**
+  - Skip asset-dependent tests when the menagerie assets are absent.
+  - Deduplicate `.gitignore`.
+  - Stop tracking datasets (`.npz`, `.pkl`, `.pt`) and `ops/*.log`: untrack only; history is left as is.
+  - Reconcile README / AGENTS / CLAUDE / STATUS / BRIEF with reality (resource rule D-033/D-086, public repo, current pipelines, rates).
+  - Refresh `research/registry.jsonl` and `artifacts/requirements.json`.
+  - Record the naming map (`research/naming.md`: sfjf/nsjf/sejf2/fixsem/jointfix … → variant × seed × stage).
+- **Gate:** `pytest tests/unit` green on a fresh checkout without assets. No tracked dataset files. Docs consistent (checklist in the PR/commit).
+
+### W3 Provenance and contracts (phase 1)
+- **Scope:**
+  - `rrp/contracts/provenance.py`: physics version incl. contact version and MuJoCo version, featurizer version (one constant),
+    bundle fingerprint, git sha, flags such as `zero_prev_action`.
+  - A single manifest writer used by arm, dual and legged collection.
+  - A `Source` enum replacing free strings (scripted_teacher, privileged, oracle, learned:<ckpt>, bc, random, mock).
+  - Weight-fingerprinted legged checkpoints and legged system-0 compatibility IDs.
+  - Legacy runs readable, marked `legacy=true`.
+  - `zero_prev_action` becomes explicit: configs that omit it are migrated by writing the old default.
+- **Gate:** unit tests for each piece. A new tiny arm, dual and legged run each produce manifests with full provenance. Old checkpoints still load.
+
+### W4 Package restructure (phase 2)
+- **Scope:** the target layout in the audit
+  (`contracts, physics, bodies, tasks, envs, features, teachers, controllers, models, data, training, evaluation, pipelines, orchestration, cli, research`),
+  moved with re-export shims and a DeprecationWarning.
+  - Remove the silent `try/except ImportError` in the CLI chain.
+  - Break the import cycles; add an import-layering check to the tests.
+  - Move one-off diagnostics (`learning/legged_t1_diag.py`, peek scripts) to `research/`.
+  - Deduplicate helpers (wilson, featurizer, seeds, dev, oracle wrappers, packet builders).
+- **Gate:** all tests green. Import-layer check passes. A load test of every `*.pt` on the peer store succeeds. The demo page builds unchanged.
+
+### W5 Unified pipeline + orchestration (phases 3–4)
+- **Scope:**
+  - `Pipeline(family)` with stages collect / pack / train-rep / train-flow / dagger / refit / eval / edits.
+  - A config schema (pydantic `RunConfig`, schema version, required flags, derived output paths, overlays and matrices).
+  - `rrp run-dag dags/<lineage>.yaml` replaces the chain shell scripts (resources, dependencies, retries, JSON state ledger, host/peer placement).
+  - Arm first, with a parity check, then legged, then dual.
+- **Gate:** the new arm pipeline reproduces an existing lineage's gate metrics with fixed seeds (within seed noise). The chain scripts
+  are retired once no lease references them.
+
+### W6 Robustness sweeps + motion-quality gates
+- **Scope:**
+  - Evaluate any policy over a physics grid (friction, mass/CoM, PD gains, latency, pushes, terrain) and report break-points.
+  - Motion-quality metrics (slip ratio, CoT, jerk, contact forces, joint-limit margin) in every eval.
+  - Trackers and datasets must pass the gates.
+- **Gate:** sweep reports for BC and latent routes on one arm and one legged body.
+
+### W7 Arm expert and RL fine-tuning
+- **Scope:**
+  - Smooth, time-parameterized (minimum-jerk) scripted trajectories. Teacher success must not drop.
+  - Regenerate arm data only with the gate passed.
+  - Then GRPO with a success reward on the latent route and on BC under matched budgets, with anchor evals to catch forgetting.
+- **Gate:** teacher jerk and success report. GRPO improves R2 success beyond seed noise without anchor regression, or an honest failed_hypothesis.
+
+### W8 Legged regeneration on contact v2
+- **Scope:** recollect with v2 trackers, then Stage A (sem / nosem / fixed sem), flows, R2, context and z edit suites, 3 seeds. Re-test D-088/090/092.
+- **Gate:** the same statistical protocol as D-090. Results replace v1 results in the evidence matrix. v1 results are kept, labelled.
+
+## 3. Sequencing and resources
+1. **Now:** W1 (host CPU); W2 and W3 (code only, host); R0 (peer).
+2. **After R0 completes (~2–3 h):** record D-095. Then W7 smoothing (host CPU), W4 restructure (code), and W5 design.
+3. **After the W1 gate:** W6 sweeps on the peer CPU; W8 regeneration on the peer GPU (the biggest compute consumer, several GPU-days).
+4. **After W4/W5:** W8 runs through the new pipeline where possible. W9 afterwards.
+
+Compute: peer GPU for training and flows; peer CPU for simulation evals; host CPU for tracker PPO and code/test work. Host memory is
+constrained by an external process, so keep host jobs ≤24 GiB. The utilization watchdog stays on.
+
+Conflict rules:
+- Each agent owns a worktree and a set of paths.
+- W4 does not move files W1 or W3 are editing until they merge.
+- W3 owns `contracts/`; W1 registers its contact version through W3's API.
+  If W1 lands first, W1 adds a minimal `physics_version` field that W3 absorbs.
+
+## 4. Supervision
+- **Lead (main session):**
+  - Assigns scopes and checks gates against raw outputs.
+  - Records decisions, keeps STATUS, this table and the evidence matrix current.
+  - Keeps the machines busy (utilization watchdog), cleans up finished agents and waiters.
+- **Agents:**
+  - Report with the exact commands, raw paths and numbers.
+  - Merge verified work to main with rebase.
+  - Never touch other agents' leases, other users' processes, or other projects' files.
