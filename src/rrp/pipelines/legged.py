@@ -24,7 +24,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from rrp.pipelines.base import StageContext, StageError, register
+from rrp.pipelines.base import apply_gate, StageContext, StageError, register
 
 EVAL = "rrp.evaluation.legged_latent_eval"
 
@@ -169,7 +169,9 @@ def collect(ctx: StageContext) -> dict:
     if len(eps) != b - a + 1:
         raise StageError(f"{len(eps)} episodes collected, expected {b - a + 1}")
     st = [m["status"] for m in eps]
-    return dict(outputs={"data": out}, metrics=dict(body=body, seeds=o["seeds"], episodes=len(eps),
+    from rrp.evaluation.gates import check_legged_dataset
+    gate = apply_gate(ctx, check_legged_dataset(eps, dict(name=ctx.rc.run_id)))       # W6 dataset gate (D-112)
+    return dict(outputs={"data": out}, metrics=dict(body=body, seeds=o["seeds"], episodes=len(eps), gate=gate,
                                                     success=st.count("success"), fell=st.count("fell"),
                                                     failure=st.count("failure"), contact_version=want,
                                                     tracker_versions=sorted(trk), tracker_sha256=sorted(shas),
@@ -192,6 +194,30 @@ def dataset_gate(eps: list[dict]) -> dict:
                 slip_median=None if not have else round(float(sorted(have)[len(have) // 2]), 4),
                 slip_ok=slip_ok, noise0_episodes=len(n0), noise0_falls=falls0, falls_ok=falls0 == 0,
                 passed=None if slip_ok is None else bool(slip_ok and falls0 == 0))
+
+
+@register("legged", "validate_tracker", source="learned_tracker")
+def validate_tracker(ctx: StageContext) -> dict:
+    """Tracker validation (rrp.evaluation.tracker_validation protocol v2 + the W6 robustness check) and the D-112 tracker
+    gate. options: body, actor (default: the installed tracker for the contact version), kind (learned|cpg), seeds (5),
+    robust (true). A gate verdict 'fail' fails the node (exit GATE_EXIT, reason in gate_report.json)."""
+    o = ctx.opts
+    body = o["body"]
+    out = ctx.out / "validation.json"
+    argv = ["-m", "rrp.evaluation.tracker_validation", "--body", body, "--kind", o.get("kind", "learned"),
+            "--seeds", str(o.get("seeds", 5)), "--contact", str(ctx.rc.flags.contact_version).replace("contact_", ""),
+            "--out", str(out), "--gate-dir", str(ctx.out)]
+    if o.get("actor"):
+        argv += ["--actor", str(o["actor"])]
+    if o.get("robust", True):
+        argv += ["--robust"]
+    ctx.run(argv, env=physics_env(ctx, OMP_NUM_THREADS=1, CUDA_VISIBLE_DEVICES=""))
+    v = json.loads(out.read_text())
+    gate = apply_gate(ctx, v["w6_gate"])
+    return dict(outputs={"validation": str(out.relative_to(ctx.root))},
+                metrics=dict(body=body, gate=gate, contact_gate=v["gate"].get("contact_gate", {}).get("passed"),
+                             tracker_version=v.get("tracker_version"), tracker_sha=v.get("tracker_sha")),
+                source_detail=v.get("tracker_version"))
 
 
 @register("legged", "train_bc", source="bc")

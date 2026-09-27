@@ -89,6 +89,8 @@ def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_
     nrng = np.random.default_rng([noise_seed, 7])
     nz = None
     steps = 0
+    from rrp.envs.motion_quality import ArmMotionRecorder
+    mrec = ArmMotionRecorder(session, boundary_kind="phase_switch")   # W6 gates: read-only, the CLEAN label is recorded
     if f["feasible"]:
         for k in range(max_steps):
             pi = feat(obs, prev)
@@ -109,6 +111,7 @@ def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_
             phases.append(teacher.phase)
             statuses.append({e: v.status for e, v in session.runtime.instances.items()})
             res = session.step(cmd)
+            mrec.tick(actions[-1], k > 0 and phases[-1] != phases[-2])
             obs = res.observation
             prev = a
             steps += 1
@@ -128,6 +131,8 @@ def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_
                 physics=physics_provenance(session.model).to_dict())
     if teacher_version:                  # new selectable versions record themselves; v1-default meta is unchanged
         meta.update(source=teacher_source(teacher_version), teacher_version=teacher_version_id(teacher_version))
+    if f["feasible"]:
+        meta["motion"] = mrec.summary()  # rrp.envs.motion_quality (W6 dataset gates, rrp.evaluation.gates)
     public = dict(meta=meta, inputs=inputs, actions=actions, q0=q0s, statuses=statuses,
                   action_space=dict(node_group=feat.aspace.node_group, node_col=feat.aspace.node_col,
                                     lower=feat.aspace.lower, upper=feat.aspace.upper,

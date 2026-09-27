@@ -31,6 +31,28 @@ class StageError(RuntimeError):
     pass
 
 
+class GateFailed(StageError):
+    """The stage's output failed its W6 gate (rrp.evaluation.gates); <out>/gate_report.json holds the report. The job
+    exits GATE_EXIT and run-dag marks the node failed with the gate's reason, without retries (D-112)."""
+
+    def __init__(self, report: dict):
+        self.report = report
+        super().__init__("gate failed: " + "; ".join(report.get("failed", [])))
+
+
+GATE_EXIT = 86
+
+
+def apply_gate(ctx: "StageContext", report: dict) -> dict:
+    """Write <out>/gate_report.json; raise GateFailed on verdict 'fail' unless options.gate == 'report' (report only)."""
+    from rrp.evaluation.gates import write_report
+    write_report(report, ctx.out)
+    ctx.log(f"gate {report['gate']}: {report['verdict']}" + (f" ({'; '.join(report['failed'])})" if report["failed"] else ""))
+    if report["verdict"] == "fail" and ctx.opts.get("gate", "enforce") != "report":
+        raise GateFailed(report)
+    return dict(verdict=report["verdict"], failed=report["failed"], not_evaluated=report["not_evaluated"])
+
+
 @dataclass
 class StageContext:
     rc: RunConfig
@@ -162,6 +184,7 @@ class Pipeline:
         out = ctx.out
         out.mkdir(parents=True, exist_ok=True)
         (out / MANIFEST).unlink(missing_ok=True)        # a stale manifest must never mark a rerun done
+        (out / "gate_report.json").unlink(missing_ok=True)   # nor a stale gate report fail it
         t0 = time.time()
         cwd = os.getcwd()
         os.chdir(root)                                   # existing code resolves artifacts/... relative to the repo

@@ -473,10 +473,17 @@ class OpsRunner:
         return -1
 
     def manifest(self, node: PlannedNode) -> dict | None:
+        return self._read_json(node, "pipeline_manifest.json")
+
+    def gate_report(self, node: PlannedNode) -> dict | None:
+        """<out>/gate_report.json written by a gated stage (rrp.evaluation.gates, W6), or None."""
+        return self._read_json(node, "gate_report.json")
+
+    def _read_json(self, node: PlannedNode, name: str) -> dict | None:
         if node.placement == "host":
-            p = self.root / node.rc.out / "pipeline_manifest.json"
+            p = self.root / node.rc.out / name
             return json.loads(p.read_text()) if p.exists() else None
-        txt = self._sh("peer", f"cat {shlex.quote(self.peer_repo + '/' + node.rc.out + '/pipeline_manifest.json')} 2>/dev/null")
+        txt = self._sh("peer", f"cat {shlex.quote(self.peer_repo + '/' + node.rc.out + '/' + name)} 2>/dev/null")
         return json.loads(txt) if txt.strip() else None
 
 
@@ -617,6 +624,13 @@ class Executor:
         else:
             reason = f"exit code {rc}" + (f" unit {att['unit_result']}" if att.get("unit_result") else "") + \
                 f" (log {att.get('log')})"
+            gr = self.runner.gate_report(node) if hasattr(self.runner, "gate_report") else None
+            if gr and gr.get("verdict") == "fail":
+                # a gate failure is a property of the output, not a transient fault: fail now, never retry (D-112)
+                att["gate"] = dict(gate=gr.get("gate"), failed=gr.get("failed"))
+                self._fail(nid, f"gate {gr.get('gate')} failed: " + "; ".join(gr.get("failed") or []) +
+                           f" (exit {rc}, log {att.get('log')})", final=True)
+                return
         attempts = len(e["attempts"])
         if attempts <= node.retries:
             self.ledger.set(nid, state="planned", last_error=reason)

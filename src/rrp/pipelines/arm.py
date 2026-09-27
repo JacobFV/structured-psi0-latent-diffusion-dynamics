@@ -24,7 +24,7 @@ import shutil
 from collections import Counter
 from pathlib import Path
 
-from rrp.pipelines.base import StageContext, StageError, register
+from rrp.pipelines.base import apply_gate, StageContext, StageError, register
 
 LADDER = "scripts/ladder.py"
 TRAIN_BODIES = ("panda_pg2", "parm5_pg2", "parm5_tf3", "parm5l_tf3", "parm5s_pg2", "parm6_pg2", "parm6_tf3",
@@ -61,7 +61,11 @@ def collect(ctx: StageContext) -> dict:
     if ctx.opts.get("workers"):
         argv += ["--workers", str(ctx.opts["workers"])]
     ctx.run(argv)
-    return dict(outputs={"manifest": str(Path(cfg["out_dir"]) / "manifest.json")})
+    man_p = ctx.root / cfg["out_dir"] / "manifest.json"
+    from rrp.evaluation.gates import check_arm_dataset
+    man = json.loads(man_p.read_text())
+    gate = apply_gate(ctx, check_arm_dataset(man.get("episodes") or [], man))        # W6 dataset gate (D-112)
+    return dict(outputs={"manifest": str(Path(cfg["out_dir"]) / "manifest.json")}, metrics=dict(gate=gate))
 
 
 @register("arm", "pack", source="scripted_teacher")

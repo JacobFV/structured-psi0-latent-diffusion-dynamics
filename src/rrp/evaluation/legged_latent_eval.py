@@ -470,7 +470,7 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
     """perturb: rrp.envs.perturb.PhysicsPerturbation (W6 robustness sweeps; None = nominal, unchanged behaviour).
     Every row carries `motion` (rrp.evaluation.motion_quality, read-only recording) and, if perturbed, `perturbation`."""
     from rrp.envs.perturb import apply_model, install_legged
-    from rrp.evaluation.motion_quality import LeggedMotionRecorder
+    from rrp.envs.motion_quality import LeggedMotionRecorder
     if scenario is not None:
         sc = scenario
     elif perturb is not None and perturb.terrain_amp_m > 0:

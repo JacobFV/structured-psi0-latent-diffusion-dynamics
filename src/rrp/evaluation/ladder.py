@@ -390,7 +390,7 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
     lp = models.get("learned")
     if cfg.route == "learned" and lp is None:
         raise ValueError("route learned needs cfg.policy")
-    from rrp.evaluation.motion_quality import ArmMotionRecorder
+    from rrp.envs.motion_quality import ArmMotionRecorder
     if cfg.perturb is not None and cfg.perturb.step_hooks and (cfg.route == "oracle" or (cfg.route == "generated"
                                                                                             and cfg.compare_oracle)):
         # the oracle look-ahead rolls the real session forward and restores it; the step hooks (ctrl-delay FIFO, push

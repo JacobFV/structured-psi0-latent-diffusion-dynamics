@@ -29,7 +29,12 @@ def main(argv=None) -> int:
     from rrp.contracts.runconfig import RunConfig
     d = json.loads(base64.b64decode(a.config_b64)) if a.config_b64 else json.loads(Path(a.config).read_text())
     rc = RunConfig.model_validate(d)
-    body = Pipeline(rc.family).run(rc, root=Path(a.root), check_inputs=not a.no_check_inputs)
+    from rrp.pipelines.base import GATE_EXIT, GateFailed
+    try:
+        body = Pipeline(rc.family).run(rc, root=Path(a.root), check_inputs=not a.no_check_inputs)
+    except GateFailed as e:
+        print(f"[pipeline] {e}", flush=True)
+        return GATE_EXIT
     print(json.dumps(dict(run_id=body["run_id"], config_hash=body["config_hash"], metrics=body["metrics"]), default=str)[:4000])
     return 0
 

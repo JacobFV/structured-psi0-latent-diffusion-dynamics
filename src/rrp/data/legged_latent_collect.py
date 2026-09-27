@@ -83,7 +83,7 @@ def collect_episode(body: str, seed: int, sigma: float, tracker_kind="auto", max
     # W8/D-112: the W6 motion-quality recorder (read-only; install_legged with the nominal perturbation performs the
     # original tick operations in the same order), so every episode meta carries slip_ratio/cot/... for the dataset gate
     from rrp.envs.perturb import PhysicsPerturbation, install_legged
-    from rrp.evaluation.motion_quality import LeggedMotionRecorder
+    from rrp.envs.motion_quality import LeggedMotionRecorder
     mrec = LeggedMotionRecorder(s)
     install_legged(s, PhysicsPerturbation(), seed, on_substep=mrec.on_substep, on_tick=mrec.on_tick,
                    on_reset=mrec.on_reset)
