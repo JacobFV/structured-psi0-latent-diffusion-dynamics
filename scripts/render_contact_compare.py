@@ -60,8 +60,8 @@ def parse(spec, body):
     return Path(path), phys
 
 
-def episode(body, actor, phys, cmd, T, seed, label_extra="", actuator="v1", latency_ms=0.0):
-    mod = legged_body(body)
+def episode(body, actor, phys, cmd, T, seed, label_extra="", actuator="v1", latency_ms=0.0, limits=None):
+    mod = legged_body(body, limits=limits)
     model, _, meta = standalone_model(mod, contact=phys)
     model.vis.global_.offwidth, model.vis.global_.offheight = W, H
     b = LeggedBinding(model, meta)
@@ -112,6 +112,7 @@ def episode(body, actor, phys, cmd, T, seed, label_extra="", actuator="v1", late
             sr = (np.mean(slips) / max(np.mean(speeds), 0.02)) if slips else float("nan")
             frames.append(caption(ren.render().copy(), [
                 f"{src}  {label_extra}", f"trained {tr.contact_model} | PHYSICS {meta['contact_model']} actuator {actuator}"
+                f" limits {meta.get('actuator_limits')}"
                 f"{'' if actuator == 'v1' else ' %dms' % latency_ms} | "
                 f"cmd vx={cmd[0]:.2f} wz={cmd[2]:.2f}",
                 f"t={k * 0.02:4.1f}s  stance slip ratio={sr:.2f}  {'FELL' if fell else ''}"]))
@@ -136,6 +137,8 @@ def main():
     ap.add_argument("--tag", default="v1-vs-v2")
     ap.add_argument("--actuator", default="v1", help="v1 | v2 | v1lat (rrp.physics.actuator, nominal params) for both panels")
     ap.add_argument("--latency-ms", type=float, default=0.0)
+    ap.add_argument("--left-limits", default=None, help="actuator limits for the left panel body (legacy_gains_v0 | sourced_v1)")
+    ap.add_argument("--right-limits", default=None)
     ap.add_argument("--out", default="artifacts/video")
     a = ap.parse_args()
     mod = legged_body(a.body)
@@ -143,9 +146,9 @@ def main():
     sc = scripts(LeggedBinding(m0, meta0))[a.cmd]
     cmd = np.array(sc["cmd"], float)
     panels = []
-    for spec, lab in ((a.left, a.left_label), (a.right, a.right_label)):
+    for spec, lab, lim in ((a.left, a.left_label, a.left_limits), (a.right, a.right_label, a.right_limits)):
         path, phys = parse(spec, a.body)
-        panels.append(episode(a.body, path, phys, cmd, a.T, a.seed, lab, a.actuator, a.latency_ms))
+        panels.append(episode(a.body, path, phys, cmd, a.T, a.seed, lab, a.actuator, a.latency_ms, lim))
     n = max(len(p[0]) for p in panels)
     out_frames = []
     for i in range(n):

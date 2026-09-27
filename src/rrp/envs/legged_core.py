@@ -319,7 +319,8 @@ class RewardCfg:
     ref_step: float = 0.0
     ref_amp: float = 0.2
     turn_lin: float = 0.0
-    yaw_lin_all: float = 0.0       # 1 -> the turn_lin dense yaw-progress term also applies to arcs (any |wz| command), not only pure turns          # dense yaw progress during pure-turn commands: x clip(w_z sign(c)/|c|, -0.5, 1.2)
+    yaw_lin_all: float = 0.0
+    stand_vel: float = 0.0         # PERMANENT: zero command -> x |base v_xy| (m/s); removes standing sway (W8 halt event needs speed <= 0.1)       # 1 -> the turn_lin dense yaw-progress term also applies to arcs (any |wz| command), not only pure turns          # dense yaw progress during pure-turn commands: x clip(w_z sign(c)/|c|, -0.5, 1.2)
     sigma_ang: float = 0.0         # yaw-rate tracking kernel width; 0 -> sigma (a sharper kernel keeps small turn commands informative)
     version: str = "gait_v1"
     # schedule (gait_v2): alpha in [0,1]; priors w0*(floor + (1-floor)(1-alpha)); natural w_min + alpha(w_max-w_min)
@@ -655,6 +656,8 @@ class LeggedEnv:
             self.air[i] = np.where(fc, 0.0, self.air[i] + self.dt)
             if not moving:
                 r += cfg.stand_still * float(np.sum(np.abs(q - b.q0))) / b.n * 4
+                if cfg.stand_vel:
+                    r += cfg.stand_vel * float(np.linalg.norm(v[:2]))
                 r += cfg.stand_contact * float(np.mean(fc))
             pure_turn = bool(self.turn_cmd[i]) or (np.linalg.norm(c[:2]) < 0.05 and abs(c[2]) > 0.05)
             if cfg.yaw_slip:
