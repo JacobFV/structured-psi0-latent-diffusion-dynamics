@@ -64,6 +64,7 @@ def train(args):
     if args.turn_curriculum > 0:
         turn_scale = pool.set_turn_scale(args.turn_curriculum)
         pool.set_turn_frac(args.turn_frac)
+        turn_vx = pool.set_turn_vx(args.turn_vx0)
         if args.resume and (out / "checkpoint.pt").exists():
             ts = torch.load(out / "checkpoint.pt", map_location="cpu", weights_only=False).get("turn_scale")
             if ts is not None:
@@ -204,11 +205,16 @@ def train(args):
             gate_rec = dict(action=act, **wm)
             if turn_scale is not None and it >= args.alpha_warmup and wm.get("turn_ratio") is not None:
                 # turn-in-place curriculum: widen the pure-turn yaw-rate range when turning is tracked
-                if wm["turn_ratio"] >= args.turn_advance and wm["fall_rate"] <= 0.2 and turn_scale < 1.0:
-                    turn_scale = pool.set_turn_scale(turn_scale + 0.1)
-                    gate_rec["turn_action"] = "widen"
+                if wm["turn_ratio"] >= args.turn_advance and wm["fall_rate"] <= 0.2:
+                    if turn_vx > 1e-6:      # arc-to-in-place: shrink the forward component first
+                        turn_vx = pool.set_turn_vx(max(0.0, turn_vx - 0.25 * args.turn_vx0))
+                        gate_rec["turn_action"] = "shrink_vx"
+                    elif turn_scale < 1.0:
+                        turn_scale = pool.set_turn_scale(turn_scale + 0.1)
+                        gate_rec["turn_action"] = "widen"
             if turn_scale is not None:
                 gate_rec["turn_scale"] = turn_scale
+                gate_rec["turn_vx"] = turn_vx
         elif sp["reward"] == "gait_v2" and (it + 1) % gate.every == 0:
             gate_rec = dict(action="off", **window_metrics(win))
             win = []
@@ -229,7 +235,7 @@ def train(args):
             print(json.dumps(rec), flush=True)
         if (it + 1) % args.ckpt_every == 0 or it == args.iters - 1:
             st = dict(model=ac.state_dict(), opt=opt.state_dict(), iter=it, meta=meta, gate=gate.state(),
-                      turn_scale=turn_scale)
+                      turn_scale=turn_scale, turn_vx=turn_vx if turn_scale is not None else None)
             torch.save(st, str(ck) + ".tmp")
             os.replace(str(ck) + ".tmp", ck)
             export_actor(ac, dict(meta, alpha=gate.alpha, reward_weights=weights, gate_history=gate.history[-50:]),
@@ -282,6 +288,8 @@ def main(argv=None):
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--turn-curriculum", type=float, default=0.0,
                     help="bipeds: start pure-turn yaw-rate scale (e.g. 0.4); 0 = off (full range)")
+    ap.add_argument("--turn-vx0", type=float, default=0.0,
+                    help="arc-to-in-place curriculum: initial forward speed (m/s) added to pure-turn commands, shrunk to 0 in 4 steps")
     ap.add_argument("--turn-frac", type=float, default=0.25, help="probability of a pure-turn command (bipeds)")
     ap.add_argument("--turn-advance", type=float, default=0.6, help="window turn ratio needed to widen the turn range")
     ap.add_argument("--actuator", default="v1", help="v1 ideal PD | v2 rrp.physics.actuator (randomised)")

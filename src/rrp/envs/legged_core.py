@@ -364,6 +364,8 @@ class LeggedEnv:
             from rrp.physics.actuator import ActuatorModel
             self.act = ActuatorModel(self.model, self.b, n_envs, np.random.default_rng([seed, 91]), name=self.meta["name"])
         self.actuator = actuator
+        self.turn_vx = 0.0
+        self.turn_cmd = np.zeros(n_envs, bool)
         self.turn_scale = 1.0     # curriculum (set_turn_scale); 1.0 = the v3 sampler unchanged
         self.turn_frac = 0.25
         self.mass = float(self.model.body_subtreemass[self.b.root_bid])
@@ -416,11 +418,13 @@ class LeggedEnv:
             c[1] = 0
         elif self.b.biped and u < 0.45 + self.turn_frac:   # v3 (bipeds): pure turn-in-place commands
             c[:2] = 0
+            c[0] = self.turn_vx        # arc-to-in-place curriculum: a forward component that shrinks to 0
             c[2] = self.rng.choice([-1, 1]) * self.rng.uniform(0.3, 1.0) * self.turn_scale * self.b.cmd_ranges["wz"][1]
         if np.linalg.norm(c[:2]) < 0.05:
             c[:2] = 0
         if abs(c[2]) < 0.05:
             c[2] = 0
+        self.turn_cmd[i] = bool(self.b.biped and 0.45 <= u < 0.45 + self.turn_frac and abs(c[2]) > 0)
         self.cmd[i] = c
         self.cmd_timer[i] = int(self.rng.integers(150, 300))
 
@@ -566,7 +570,7 @@ class LeggedEnv:
             if not moving:
                 r += cfg.stand_still * float(np.sum(np.abs(q - b.q0))) / b.n * 4
                 r += cfg.stand_contact * float(np.mean(fc))
-            pure_turn = np.linalg.norm(c[:2]) < 0.05 and abs(c[2]) > 0.05
+            pure_turn = bool(self.turn_cmd[i]) or (np.linalg.norm(c[:2]) < 0.05 and abs(c[2]) > 0.05)
             if cfg.yaw_slip:
                 ys = 0.0
                 for k, fb in enumerate(b.foot_bids):

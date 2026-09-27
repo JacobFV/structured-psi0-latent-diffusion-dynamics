@@ -28,6 +28,9 @@ def _worker(conn, body, n_envs, seed, friction, kw):
         elif msg == "turn":
             env.set_turn_scale(payload)
             conn.send(("ok", env.turn_scale))
+        elif msg == "turnvx":
+            env.turn_vx = float(payload)
+            conn.send(("ok", env.turn_vx))
         elif msg == "turnfrac":
             env.turn_frac = float(payload)
             conn.send(("ok", env.turn_frac))
@@ -76,6 +79,11 @@ class VecPool:
     def set_turn_scale(self, scale: float) -> float:
         for c in self.conns:
             c.send(("turn", float(scale)))
+        return [c.recv()[1] for c in self.conns][0]
+
+    def set_turn_vx(self, vx: float) -> float:
+        for c in self.conns:
+            c.send(("turnvx", float(vx)))
         return [c.recv()[1] for c in self.conns][0]
 
     def set_turn_frac(self, frac: float) -> float:
