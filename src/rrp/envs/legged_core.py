@@ -329,7 +329,7 @@ class LeggedEnv:
     def __init__(self, module_factory, n_envs: int, seed: int, *, control_dt: float = 0.02,
                  episode_s: float = 20.0, friction_scale: float = 1.0, push: bool = True, obs_noise: float = 1.0,
                  contact: str = "v1", reward: str | None = None, randomize: bool = True,
-                 reward_overrides: dict | None = None):
+                 reward_overrides: dict | None = None, actuator: str = "v1"):
         from rrp.physics.contact import ContactRandomizer, resolve
         from rrp.bodies.legged import standalone_model
         mod = module_factory()
@@ -359,6 +359,11 @@ class LeggedEnv:
         self.cfg = self.cfg0.effective(0.0) if self.cfg0.version == "gait_v2" else self.cfg0
         self.sched = self.cfg0.version == "gait_v2"      # alpha schedule (critic sees alpha; the actor never does)
         self.priv_dim = self.b.priv_dim + (1 if self.sched else 0)
+        self.act = None
+        if actuator == "v2":      # rrp.physics.actuator: armature, joint damping/friction, torque-speed, 0-30 ms latency
+            from rrp.physics.actuator import ActuatorModel
+            self.act = ActuatorModel(self.model, self.b, n_envs, np.random.default_rng([seed, 91]), name=self.meta["name"])
+        self.actuator = actuator
         self.turn_scale = 1.0     # curriculum (set_turn_scale); 1.0 = the v3 sampler unchanged
         self.turn_frac = 0.25
         self.mass = float(self.model.body_subtreemass[self.b.root_bid])
@@ -427,7 +432,9 @@ class LeggedEnv:
         self.last_a[i] = 0
         self.last_a2[i] = 0
         self.apex[i] = 0
-        self.latency[i] = self.cdr.latency() if self.cdr else 0
+        self.latency[i] = self.cdr.latency() if (self.cdr and self.act is None) else 0
+        if self.act is not None:
+            self.act.reset(i, d.ctrl[self.b.pol_act].copy())
         self.phase[i] = self.rng.random()
         self.t[i] = 0
         self.air[i] = 0
@@ -471,11 +478,15 @@ class LeggedEnv:
             a = np.clip(actions[i], -5, 5)
             new_t = b.targets(a)
             lat = int(self.latency[i])
-            if lat == 0:
+            if self.act is not None:
+                self.act.command(i, new_t)
+            elif lat == 0:
                 d.ctrl[b.pol_act] = new_t
             pw = 0.0
             for k in range(self.substeps):
-                if lat and k == lat:
+                if self.act is not None:
+                    d.ctrl[b.pol_act] = self.act.substep_ctrl(i, d)
+                elif lat and k == lat:
                     d.ctrl[b.pol_act] = new_t      # actuator/PD latency: previous targets for `lat` substeps
                 mujoco.mj_step(m, d)
                 if v2:

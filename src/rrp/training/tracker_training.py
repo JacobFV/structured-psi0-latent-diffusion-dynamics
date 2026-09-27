@@ -47,7 +47,7 @@ def train(args):
     from rrp.training.reward_schedule import AlphaGate, window_metrics
     pool = VecPool(args.body, args.workers, args.envs, args.seed,
                    env_kw=dict(push=not args.no_push, episode_s=args.episode_s, contact=args.contact,
-                               reward=args.reward, reward_overrides=_kv(args.reward_set)))
+                               reward=args.reward, reward_overrides=_kv(args.reward_set), actuator=args.actuator))
     sp = pool.spec
     sched = sp["reward"] == "gait_v2" and args.alpha_schedule != "off"
     gate = AlphaGate(step=args.alpha_step, every=args.alpha_every, warmup=args.alpha_warmup)
@@ -284,6 +284,7 @@ def main(argv=None):
                     help="bipeds: start pure-turn yaw-rate scale (e.g. 0.4); 0 = off (full range)")
     ap.add_argument("--turn-frac", type=float, default=0.25, help="probability of a pure-turn command (bipeds)")
     ap.add_argument("--turn-advance", type=float, default=0.6, help="window turn ratio needed to widen the turn range")
+    ap.add_argument("--actuator", default="v1", help="v1 ideal PD | v2 rrp.physics.actuator (randomised)")
     ap.add_argument("--reward-set", default="", help="override base reward weights, e.g. clearance_floor=-2,floor_frac=0.6")
     ap.add_argument("--init-actor", default=None, help="warm-start actor + obs normaliser from an exported actor.pt")
     ap.add_argument("--contact", default="v1", help="contact model: v1 (legacy) | v2 (rrp.morphology.contact)")

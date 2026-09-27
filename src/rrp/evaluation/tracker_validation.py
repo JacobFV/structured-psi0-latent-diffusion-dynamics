@@ -55,12 +55,14 @@ def scripts(b: LeggedBinding):
     }
 
 
-def run_episode(model, b: LeggedBinding, tracker, script: dict, seed: int, record=False):
+def run_episode(model, b: LeggedBinding, tracker, script: dict, seed: int, record=False, act=None):
     rng = np.random.default_rng(seed)
     d = mujoco.MjData(model)
     b.set_default(d, yaw=rng.uniform(-math.pi, math.pi), noise=0.03, rng=rng)
     mujoco.mj_forward(model, d)
     tracker.reset(phase=0.0)
+    if act is not None:
+        act.reset(0, d.ctrl[b.pol_act].copy())
     dt = 0.02
     sub = max(1, int(round(dt / model.opt.timestep)))
     steps = int(script["T"] / dt)
@@ -81,8 +83,14 @@ def run_episode(model, b: LeggedBinding, tracker, script: dict, seed: int, recor
             yaw = yaw_of(d.qpos[b.qa + 3:b.qa + 7])
             s = script["push"][1]
             d.qvel[b.da:b.da + 2] += [-math.sin(yaw) * s, math.cos(yaw) * s]
-        d.ctrl[b.pol_act] = tracker.act(d, cmd)
+        tgt = tracker.act(d, cmd)
+        if act is not None:
+            act.command(0, tgt)
+        else:
+            d.ctrl[b.pol_act] = tgt
         for _ in range(sub):
+            if act is not None:
+                d.ctrl[b.pol_act] = act.substep_ctrl(0, d)
             mujoco.mj_step(model, d)
             energy += float(np.sum(np.abs(d.actuator_force[b.pol_act] * d.qvel[b.pol_dadr]))) * model.opt.timestep
         v = b.base_lin_vel_body(d)
@@ -134,7 +142,8 @@ def run_episode(model, b: LeggedBinding, tracker, script: dict, seed: int, recor
     return out
 
 
-def validate(body: str, kind: str, actor: str | None, seeds: int, contact: str | None = "v1") -> dict:
+def validate(body: str, kind: str, actor: str | None, seeds: int, contact: str | None = "v1", actuator: str = "v1",
+             latency_ms: float = 0.0) -> dict:
     from rrp.envs.legged_tracker import tracker_path
     mod = legged_body(body)
     model, _, meta = standalone_model(mod, contact=contact)
@@ -146,10 +155,14 @@ def validate(body: str, kind: str, actor: str | None, seeds: int, contact: str |
     else:
         tracker = CPGTracker(b, meta)
         tsha = "scripted"
+    act = None
+    if actuator == "v2":
+        from rrp.physics.actuator import ActuatorModel
+        act = ActuatorModel(model, b, 1, None, name=meta["name"], randomize=False, latency_ms=latency_ms)
     res = {}
     t0 = time.time()
     for name, sc in scripts(b).items():
-        res[name] = [run_episode(model, b, tracker, sc, 1000 + s) for s in range(seeds)]
+        res[name] = [run_episode(model, b, tracker, sc, 1000 + s, act=act) for s in range(seeds)]
     eps = [e for v in res.values() for e in v]
     no_fall = float(np.mean([not e["fell"] for e in eps]))
     fwd = [e["mean_vx"] / e["cmd"][0] for e in res["forward"] if e["mean_vx"] is not None and not e["fell"]]
@@ -178,7 +191,8 @@ def validate(body: str, kind: str, actor: str | None, seeds: int, contact: str |
     return dict(body=body, tracker_kind=kind, tracker_source=tracker.source, tracker_version=tracker.version,
                 tracker_sha=tsha, family=meta["family"], synthetic=meta.get("synthetic", False),
                 seeds=seeds, gate=gate, summary=summary, episodes=res, wall_s=time.time() - t0,
-                contact_model=meta["contact_model"], tracker_contact_model=getattr(tracker, "contact_model", None),
+                contact_model=meta["contact_model"], actuator=actuator, latency_ms=latency_ms if actuator == "v2" else None,
+                actuator_params=act.params if act is not None else None, tracker_contact_model=getattr(tracker, "contact_model", None),
                 protocol="rrp.control.tracker_validation/v2", mujoco=mujoco.__version__)
 
 
@@ -199,9 +213,11 @@ def main(argv=None):
     ap.add_argument("--seeds", type=int, default=5)
     ap.add_argument("--out")
     ap.add_argument("--contact", default="v1", help="physics contact model to validate in (v1 | v2)")
+    ap.add_argument("--actuator", default="v1", help="v1 ideal PD | v2 rrp.physics.actuator (nominal params, fixed latency)")
+    ap.add_argument("--latency-ms", type=float, default=0.0, help="actuation latency for --actuator v2")
     ap.add_argument("--freeze", action="store_true", help="write eligibility.json next to the frozen tracker")
     a = ap.parse_args(argv)
-    r = validate(a.body, a.kind, a.actor, a.seeds, a.contact)
+    r = validate(a.body, a.kind, a.actor, a.seeds, a.contact, a.actuator, a.latency_ms)
     print(json.dumps(dict(body=r["body"], kind=r["tracker_kind"], gate=r["gate"], summary=r["summary"]), indent=1))
     from rrp.physics.contact import resolve
     sub = "" if resolve(a.contact) == "v1" else f"contact_{resolve(a.contact)}/"
