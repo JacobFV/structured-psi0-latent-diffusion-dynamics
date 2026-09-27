@@ -44,9 +44,18 @@ def train(args):
         gpu_info = apply_cap()
     torch.set_num_threads(max(1, args.torch_threads))
     torch.manual_seed(args.seed)
+    from rrp.control.reward_schedule import AlphaGate, window_metrics
     pool = VecPool(args.body, args.workers, args.envs, args.seed,
-                   env_kw=dict(push=not args.no_push, episode_s=args.episode_s))
+                   env_kw=dict(push=not args.no_push, episode_s=args.episode_s, contact=args.contact,
+                               reward=args.reward))
     sp = pool.spec
+    sched = sp["reward"] == "gait_v2" and args.alpha_schedule != "off"
+    gate = AlphaGate(step=args.alpha_step, every=args.alpha_every, warmup=args.alpha_warmup)
+    if args.alpha_schedule.startswith("fixed:"):
+        gate.alpha = float(args.alpha_schedule.split(":")[1])
+    weights = pool.set_alpha(gate.alpha) if sp["reward"] == "gait_v2" else sp["reward_weights0"]
+    win = []
+    saved_alpha0 = False
     N = args.workers * args.envs
     hidden = tuple(int(h) for h in args.hidden.split(","))
     ac = ActorCritic(sp["obs_dim"], sp["priv_dim"], sp["act_dim"], hidden=hidden, init_std=args.init_std).to(dev)
@@ -59,12 +68,21 @@ def train(args):
         ac.load_state_dict(st["model"])
         opt.load_state_dict(st["opt"])
         it0 = st["iter"] + 1
+        if st.get("gate"):
+            g = st["gate"]
+            gate.alpha, gate.history = g["alpha"], g["history"]
+            saved_alpha0 = gate.alpha > 0
+            if sp["reward"] == "gait_v2":
+                weights = pool.set_alpha(gate.alpha)
         print(f"resumed from iter {it0}", flush=True)
     meta = dict(body=args.body, obs_dim=sp["obs_dim"], priv_dim=sp["priv_dim"], act_dim=sp["act_dim"],
                 control_dt=sp["dt"], hidden=list(hidden), kind=sp["kind"], algo="ppo_asymmetric_actor_critic",
                 actor_inputs="public: imu gyro, imu gravity, command, joint pos/vel, last action, gait clock",
                 critic_inputs="public + privileged: base lin vel, height, foot contacts, friction, push flag",
-                source_label="learned_tracker (trained with privileged critic)", args=vars(args), gpu=gpu_info)
+                source_label="learned_tracker (trained with privileged critic)", args=vars(args), gpu=gpu_info,
+                contact_model=sp["contact"], reward_version=sp["reward"],
+                alpha_schedule=("gated" if sched else args.alpha_schedule),
+                critic_extras=("+ reward-schedule alpha" if sp["reward"] == "gait_v2" else ""))
     (out / "meta.json").write_text(json.dumps(meta, indent=1))
     obs, priv = pool.reset()
     H = args.horizon
@@ -90,6 +108,7 @@ def train(args):
                 v = ac.value(o, p)
                 obs, priv, r, d, tmo, st = pool.step(a.cpu().numpy().astype(np.float64))
                 stats += st
+                win += st
                 r = torch.as_tensor(r, dtype=torch.float32)
                 tmo = torch.as_tensor(tmo, dtype=torch.float32)
                 r = r + args.gamma * v.cpu() * tmo      # bootstrap time-outs
@@ -149,21 +168,42 @@ def train(args):
             ac.obs_norm.update(fo)
             ac.priv_norm.update(fp)
         el = time.time() - t0
+        gate_rec = None
+        if sched and (it + 1) % gate.every == 0:
+            wm = window_metrics(win)
+            win = []
+            a_before = gate.alpha
+            act = gate.update(it, wm)
+            if act in ("advance", "backoff"):
+                if a_before == 0.0 and not saved_alpha0:     # keep the priors-only policy for the alpha=0 comparison
+                    export_actor(ac, dict(meta, alpha=0.0), out / "actor_alpha0.pt", it)
+                    saved_alpha0 = True
+                weights = pool.set_alpha(gate.alpha)
+            gate_rec = dict(action=act, **wm)
+        elif sp["reward"] == "gait_v2" and (it + 1) % gate.every == 0:
+            gate_rec = dict(action="off", **window_metrics(win))
+            win = []
+        stats = [s_ for s_ in stats if "fell" in s_]      # episode records (gate accumulators are separate)
         rec = dict(iter=it, reward_per_step=float(br.mean()), episodes=len(stats),
                    ep_ret=float(np.mean([s["ret"] for s in stats])) if stats else None,
                    ep_len=float(np.mean([s["len"] for s in stats])) if stats else None,
                    fall_rate=float(np.mean([s["fell"] for s in stats])) if stats else None,
                    std=float(ac.log_std.detach().exp().mean()), lr=lr, kl=kl_mean, value_loss=float(vl.detach()), rollout_s=t_roll, iter_s=el,
                    samples=int((it + 1) * H * N), wall_s=time.time() - t_start)
+        if sp["reward"] == "gait_v2":
+            rec.update(alpha=gate.alpha, weights=weights)
+            if gate_rec:
+                rec["gate"] = gate_rec
         with open(log_path, "a") as f:
             f.write(json.dumps(rec) + "\n")
         if it % 10 == 0:
             print(json.dumps(rec), flush=True)
         if (it + 1) % args.ckpt_every == 0 or it == args.iters - 1:
-            st = dict(model=ac.state_dict(), opt=opt.state_dict(), iter=it, meta=meta)
+            st = dict(model=ac.state_dict(), opt=opt.state_dict(), iter=it, meta=meta, gate=gate.state())
             torch.save(st, str(ck) + ".tmp")
             os.replace(str(ck) + ".tmp", ck)
-            export_actor(ac, meta, out / "actor.pt", it)
+            export_actor(ac, dict(meta, alpha=gate.alpha, reward_weights=weights, gate_history=gate.history[-50:]),
+                         out / "actor.pt", it)
     pool.close()
     print("done", flush=True)
 
@@ -203,6 +243,12 @@ def main(argv=None):
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--ckpt-every", type=int, default=25)
     ap.add_argument("--resume", action="store_true")
+    ap.add_argument("--contact", default="v1", help="contact model: v1 (legacy) | v2 (rrp.morphology.contact)")
+    ap.add_argument("--reward", default=None, help="gait_v1 | gait_v2 (default: gait_v2 iff --contact v2)")
+    ap.add_argument("--alpha-schedule", default="gated", help="gated | off | fixed:<alpha> (gait_v2 only)")
+    ap.add_argument("--alpha-step", type=float, default=0.1)
+    ap.add_argument("--alpha-every", type=int, default=25)
+    ap.add_argument("--alpha-warmup", type=int, default=300)
     train(ap.parse_args(argv))
 
 

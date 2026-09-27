@@ -12,7 +12,8 @@ def _worker(conn, body, n_envs, seed, friction, kw):
     from rrp.control.legged_core import LeggedEnv
     from rrp.morphology.legged import legged_body
     env = LeggedEnv(lambda: legged_body(body), n_envs, seed, friction_scale=friction, **kw)
-    conn.send(("spec", dict(obs_dim=env.b.obs_dim, priv_dim=env.b.priv_dim, act_dim=env.b.n, dt=env.dt,
+    conn.send(("spec", dict(obs_dim=env.b.obs_dim, priv_dim=env.priv_dim, contact=env.meta["contact_model"],
+                            reward=env.cfg0.version, reward_weights0=env.cfg.weights(), act_dim=env.b.n, dt=env.dt,
                             substeps=env.substeps, kind=env.b.kind)))
     while True:
         msg, payload = conn.recv()
@@ -21,6 +22,9 @@ def _worker(conn, body, n_envs, seed, friction, kw):
         elif msg == "step":
             o, p, r, d, t = env.step(payload)
             conn.send((o, p, r, d, t, env.pop_stats()))
+        elif msg == "alpha":
+            env.set_alpha(payload)
+            conn.send(("ok", env.cfg.weights()))
         elif msg == "close":
             conn.close()
             return
@@ -57,6 +61,11 @@ class VecPool:
         return (np.concatenate([r[0] for r in res]), np.concatenate([r[1] for r in res]),
                 np.concatenate([r[2] for r in res]), np.concatenate([r[3] for r in res]),
                 np.concatenate([r[4] for r in res]), stats)
+
+    def set_alpha(self, alpha: float) -> dict:
+        for c in self.conns:
+            c.send(("alpha", float(alpha)))
+        return [c.recv()[1] for c in self.conns][0]
 
     def close(self):
         for c in self.conns:

@@ -12,6 +12,17 @@ slip (mean contact-foot horizontal speed), cost of transport (sum|tau*qdot| dt /
 Gate (frozen in eligibility.json): no fall in >= 90% of episodes AND forward ratio in [0.5, 1.5]
 AND turn ratio in [0.4, 1.6] AND not falling while standing.
 
+Contact/gait metrics (protocol v2, 2026-09-26, contact track; measured the same way for every tracker):
+  slip_cp_mps    normal-force-weighted horizontal speed of each foot AT ITS FLOOR CONTACT POINTS, averaged over
+                 (tick, loaded foot) with foot load > 2% of body weight (true stance slip; `slip_mps` is the legacy
+                 foot-body-origin speed of any touching foot)
+  slip_ratio     slip_cp_mps / mean horizontal body speed (same ticks, last 60%)
+  duty_factor    per foot, fraction of ticks in contact (last 60%); `duty_min/max` over feet
+  air_time_s     mean duration of completed swings; `swing_apex_m` mean apex foot-site clearance per swing
+  step_hz        touchdowns per second per foot
+contact gate: the gate above AND forward slip_ratio < 0.15 AND every foot steps in the forward trial
+(0.3 <= duty <= 0.9) AND mean forward swing apex >= 0.3 * the body's swing_height target.
+
 usage: python -m rrp.control.tracker_validation --body go2 --kind learned [--actor path] --seeds 5
 """
 from __future__ import annotations
@@ -56,6 +67,11 @@ def run_episode(model, b: LeggedBinding, tracker, script: dict, seed: int, recor
     cmd = np.array(script["cmd"], float)
     mass = float(model.body_subtreemass[b.root_bid])
     vxs, wzs, slips, energy = [], [], [], 0.0
+    cp_slip, speeds, contact_hist = [], [], []
+    air = np.zeros(b.nf)
+    apex = np.zeros(b.nf)
+    swings, apexes, touchdowns = [], [], 0
+    w_load = 0.02 * mass * 9.81
     p0 = d.qpos[b.qa:b.qa + 2].copy()
     fell, fell_t = False, None
     traj = []
@@ -71,10 +87,22 @@ def run_episode(model, b: LeggedBinding, tracker, script: dict, seed: int, recor
             energy += float(np.sum(np.abs(d.actuator_force[b.pol_act] * d.qvel[b.pol_dadr]))) * model.opt.timestep
         v = b.base_lin_vel_body(d)
         w = d.qvel[b.da + 3:b.da + 6]
-        fc, bad = b.contacts(d)
+        fc, fn, slip_cp, bad = b.stance(d)
+        clr = b.foot_clearance(d)
         if k > 0.4 * steps:
             vxs.append(v[0])
             wzs.append(w[2])
+            speeds.append(float(np.hypot(*d.qvel[b.da:b.da + 2])))
+            loaded = fn > w_load
+            cp_slip += [float(x) for x in slip_cp[loaded]]
+            contact_hist.append(fc.copy())
+            first = fc & (air > 0)
+            for i in np.flatnonzero(first):
+                swings.append(air[i])
+                apexes.append(apex[i])
+                touchdowns += 1
+        apex = np.where(fc, 0.0, np.maximum(apex, clr))
+        air = np.where(fc, 0.0, air + dt)
         for i, fb in enumerate(b.foot_bids):
             if fc[i]:
                 vel = np.zeros(6)
@@ -86,21 +114,33 @@ def run_episode(model, b: LeggedBinding, tracker, script: dict, seed: int, recor
             fell, fell_t = True, t
             break
     dist = float(np.linalg.norm(d.qpos[b.qa:b.qa + 2] - p0))
+    ch = np.array(contact_hist) if contact_hist else np.zeros((0, b.nf))
+    duty = ch.mean(0) if len(ch) else np.full(b.nf, np.nan)
+    slip_cp_m = float(np.mean(cp_slip)) if cp_slip else None
+    spd = float(np.mean(speeds)) if speeds else None
+    gait = dict(slip_cp_mps=slip_cp_m, body_speed_mps=spd,
+                slip_ratio=(slip_cp_m / max(spd, 0.02)) if (slip_cp_m is not None and spd is not None) else None,
+                duty_factor=[float(x) for x in duty], duty_min=float(np.min(duty)) if len(ch) else None,
+                duty_max=float(np.max(duty)) if len(ch) else None,
+                air_time_s=float(np.mean(swings)) if swings else 0.0,
+                swing_apex_m=float(np.mean(apexes)) if apexes else 0.0,
+                step_hz=touchdowns / max(len(ch) * dt, 1e-9) / b.nf if len(ch) else 0.0)
     out = dict(fell=fell, fell_t=fell_t, dist_m=dist, mean_vx=float(np.mean(vxs)) if vxs else None,
                mean_wz=float(np.mean(wzs)) if wzs else None, slip_mps=float(np.mean(slips)) if slips else None,
                cot=float(energy / (mass * 9.81 * max(dist, 1e-3))) if dist > 0.2 else None,
-               cmd=cmd.tolist())
+               cmd=cmd.tolist(), **gait)
     if record:
         out["traj"] = traj
     return out
 
 
-def validate(body: str, kind: str, actor: str | None, seeds: int) -> dict:
+def validate(body: str, kind: str, actor: str | None, seeds: int, contact: str | None = "v1") -> dict:
+    from rrp.control.legged_tracker import tracker_path
     mod = legged_body(body)
-    model, _, meta = standalone_model(mod)
+    model, _, meta = standalone_model(mod, contact=contact)
     b = LeggedBinding(model, meta)
     if kind == "learned":
-        path = Path(actor) if actor else TRACKER_DIR / body / "actor.pt"
+        path = Path(actor) if actor else tracker_path(body, contact)
         tracker = LearnedTracker(path, b, body)
         tsha = hashlib.sha256(path.read_bytes()).hexdigest()[:16]
     else:
@@ -123,11 +163,27 @@ def validate(body: str, kind: str, actor: str | None, seeds: int) -> dict:
                        dist_m=float(np.mean([e["dist_m"] for e in v])),
                        mean_vx=_nanmean([e["mean_vx"] for e in v]), mean_wz=_nanmean([e["mean_wz"] for e in v]),
                        slip_mps=_nanmean([e["slip_mps"] for e in v]), cot=_nanmean([e["cot"] for e in v]),
+                       **{g: _nanmean([e[g] for e in v]) for g in GAIT_KEYS},
                        cmd=v[0]["cmd"]) for k, v in res.items()}
+    fw = summary["forward"]
+    fw_duty = [x for e in res["forward"] if not e["fell"] for x in e["duty_factor"]]
+    sr = fw["slip_ratio"]
+    cg = dict(slip_ratio=sr, slip_ok=bool(sr is not None and sr < 0.15),
+              duty_min=min(fw_duty) if fw_duty else None, duty_max=max(fw_duty) if fw_duty else None,
+              stepping_ok=bool(fw_duty and min(fw_duty) >= 0.3 and max(fw_duty) <= 0.9),
+              swing_apex_m=fw["swing_apex_m"], swing_target_m=b.swing_height,
+              clearance_ok=bool((fw["swing_apex_m"] or 0) >= 0.3 * b.swing_height))
+    cg["passed"] = bool(gate["passed"] and cg["slip_ok"] and cg["stepping_ok"] and cg["clearance_ok"])
+    gate["contact_gate"] = cg
     return dict(body=body, tracker_kind=kind, tracker_source=tracker.source, tracker_version=tracker.version,
                 tracker_sha=tsha, family=meta["family"], synthetic=meta.get("synthetic", False),
                 seeds=seeds, gate=gate, summary=summary, episodes=res, wall_s=time.time() - t0,
-                protocol="rrp.control.tracker_validation/v1", mujoco=mujoco.__version__)
+                contact_model=meta["contact_model"], tracker_contact_model=getattr(tracker, "contact_model", None),
+                protocol="rrp.control.tracker_validation/v2", mujoco=mujoco.__version__)
+
+
+GAIT_KEYS = ("slip_cp_mps", "body_speed_mps", "slip_ratio", "duty_min", "duty_max", "air_time_s", "swing_apex_m",
+             "step_hz")
 
 
 def _nanmean(xs):
@@ -142,11 +198,14 @@ def main(argv=None):
     ap.add_argument("--actor")
     ap.add_argument("--seeds", type=int, default=5)
     ap.add_argument("--out")
+    ap.add_argument("--contact", default="v1", help="physics contact model to validate in (v1 | v2)")
     ap.add_argument("--freeze", action="store_true", help="write eligibility.json next to the frozen tracker")
     a = ap.parse_args(argv)
-    r = validate(a.body, a.kind, a.actor, a.seeds)
+    r = validate(a.body, a.kind, a.actor, a.seeds, a.contact)
     print(json.dumps(dict(body=r["body"], kind=r["tracker_kind"], gate=r["gate"], summary=r["summary"]), indent=1))
-    out = Path(a.out) if a.out else TRACKER_DIR / a.body / f"validation_{a.kind}.json"
+    from rrp.morphology.contact import resolve
+    sub = "" if resolve(a.contact) == "v1" else f"contact_{resolve(a.contact)}/"
+    out = Path(a.out) if a.out else TRACKER_DIR / a.body / f"{sub}validation_{a.kind}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(r, indent=1))
     if a.freeze:

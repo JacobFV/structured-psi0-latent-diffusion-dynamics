@@ -447,29 +447,28 @@ ALL_LEGGED = list(PROCEDURAL) + list(LEGGED_ASSETS)
 
 
 # ------------------------------------------------------------------ world + standalone model for training/validation
-def legged_world(name: str, source_options: dict | None = None, *, size: float = 20.0) -> mujoco.MjSpec:
+def legged_world(name: str, source_options: dict | None = None, *, size: float = 20.0,
+                 contact: str | None = None) -> mujoco.MjSpec:
+    """Floor world. `contact`: 'v1' (legacy default) | 'v2' (rrp.morphology.contact); None -> $RRP_CONTACT_MODEL."""
+    from .contact import apply_world
     s = _base_spec(name)
-    if source_options:
-        s.option.timestep = source_options["timestep"]
-        s.option.integrator = source_options["integrator"]
-        s.option.cone = source_options["cone"]
-        s.option.impratio = source_options["impratio"]
-        s.option.iterations = source_options["iterations"]
-    else:
-        s.option.cone = mujoco.mjtCone.mjCONE_PYRAMIDAL
-        s.option.impratio = 1
+    floor_kw = apply_world(s, contact, source_options)
     s.visual.global_.offwidth = 640
     s.visual.global_.offheight = 480
     s.worldbody.add_light(pos=[0, 0, 4], dir=[0, 0, -1], diffuse=[0.7, 0.7, 0.7], type=mujoco.mjtLightType.mjLIGHT_DIRECTIONAL)
     s.worldbody.add_geom(name="floor", type=G.mjGEOM_PLANE, size=[size, size, 0.1], rgba=[0.45, 0.47, 0.44, 1],
-                         friction=[1.0, 0.02, 0.001])
+                         **floor_kw)
     return s
 
 
-def standalone_model(module: Module, prefix: str = "r0_") -> tuple[mujoco.MjModel, mujoco.MjSpec, dict]:
-    """Robot on a floor (no task objects): used by trainers and validation."""
+def standalone_model(module: Module, prefix: str = "r0_", contact: str | None = None
+                     ) -> tuple[mujoco.MjModel, mujoco.MjSpec, dict]:
+    """Robot on a floor (no task objects): used by trainers and validation. meta['contact_model'] records
+    the contact version the model was built with (compatibility/provenance)."""
+    from .contact import version_str
     meta = copy.deepcopy(module.meta)
-    scene = legged_world(f"{meta['name']}_world", meta.get("source_options"))
+    scene = legged_world(f"{meta['name']}_world", meta.get("source_options"), contact=contact)
+    meta["contact_model"] = version_str(contact)
     site = scene.worldbody.add_site(name="mount0", pos=[0, 0, 0])
     scene.attach(module.spec.copy(), prefix=prefix, site=site)
     scene.memory = 3 * 2 ** 20      # per-MjData arena (contacts/constraints); default 14 MiB is wasteful x100s

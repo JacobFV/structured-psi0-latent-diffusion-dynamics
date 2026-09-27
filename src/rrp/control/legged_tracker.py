@@ -45,7 +45,9 @@ class LearnedTracker:
         self.b = binding
         self.torch = torch
         self.dt = float(meta["control_dt"])
-        self.version = f"learned_tracker:{body_key}:iter{meta.get('iter')}"
+        self.contact_model = meta.get("contact_model", "contact_v1")   # pre-v2 actors carry no key: v1 physics
+        cv = "" if self.contact_model == "contact_v1" else f":{self.contact_model}"
+        self.version = f"learned_tracker:{body_key}:iter{meta.get('iter')}{cv}"
         self.reset()
 
     def reset(self, phase: float = 0.0):
@@ -137,11 +139,23 @@ class CPGTracker:
 TRACKER_DIR = Path(__file__).resolve().parents[3] / "artifacts" / "trackers"
 
 
+def tracker_path(body_key: str, contact: str | None = "v1") -> Path:
+    """v1 trackers live at trackers/<body>/actor.pt; contact_v2 ones at trackers/<body>/contact_v2/actor.pt."""
+    from rrp.morphology.contact import resolve
+    c = resolve(contact)
+    return TRACKER_DIR / body_key / ("actor.pt" if c == "v1" else f"contact_{c}/actor.pt")
+
+
 def load_tracker(body_key: str, binding: LeggedBinding, meta: dict, kind: str = "auto"):
-    """kind: learned | cpg | auto (learned if a frozen, validated actor exists, else cpg for procedural)."""
-    p = TRACKER_DIR / body_key / "actor.pt"
+    """kind: learned | cpg | auto (learned if a frozen, validated actor exists, else cpg for procedural).
+    The actor is chosen to match the physics the scene was built with (meta['contact_model'], default v1)."""
+    contact = meta.get("contact_model", "contact_v1")
+    p = tracker_path(body_key, contact)
     if kind in ("learned", "auto") and p.exists():
-        return LearnedTracker(p, binding, body_key)
+        t = LearnedTracker(p, binding, body_key)
+        if t.contact_model != contact:
+            raise TrackerMismatch(f"tracker trained in {t.contact_model}, scene uses {contact}")
+        return t
     if kind == "learned":
         raise FileNotFoundError(p)
     if meta.get("synthetic"):

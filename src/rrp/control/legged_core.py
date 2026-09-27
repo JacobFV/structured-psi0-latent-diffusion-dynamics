@@ -13,12 +13,14 @@ PRIVILEGED critic extras (training only, never fed to the actor):
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, field, replace
 
 import mujoco
 import numpy as np
 
 CMD_SCALE = np.array([2.0, 2.0, 0.25])
+# default swing-apex targets (m) when the body meta has no `swing_height` (gait_v2 clearance term)
+SWING_HEIGHT = {"humanoid": 0.08, "biped": 0.08, "quadruped": 0.06, "hexapod": 0.03, "multipod": 0.03}
 
 
 def quat_rotate_inv(q, v):
@@ -92,6 +94,9 @@ class LeggedBinding:
         self.cmd_ranges = L["command_ranges"]
         self.min_h = float(L["min_height_frac"]) * self.nominal_height()
         self.tilt_limit = float(L["tilt_limit"])
+        self.foot_sids = [nid(O.mjOBJ_SITE, f) for f in L["foot_sites"]]
+        self.swing_height = float(L.get("swing_height") or SWING_HEIGHT.get(self.kind, 0.05))
+        self._foot_z0 = None
         imu = L["imu"]
         self.imu_quat = self._sensor_adr(prefix + imu["quat"])
         self.imu_gyro = self._sensor_adr(prefix + imu["gyro"])
@@ -175,9 +180,67 @@ class LeggedBinding:
                 bad = True
         return fc, bad
 
+    def stance(self, d):
+        """Contact-point stance measurements (privileged; training reward + validation).
+
+        Returns (fc, fn, slip, bad): per-foot contact flag, total normal force (N), normal-force-weighted
+        horizontal speed of the foot AT ITS FLOOR CONTACT POINTS (m/s; true slip, not the ankle-origin speed),
+        and whether a non-foot robot body touches the floor."""
+        m = self.model
+        fc = np.zeros(self.nf, bool)
+        fn = np.zeros(self.nf)
+        sv = np.zeros(self.nf)
+        bad = False
+        f6 = np.zeros(6)
+        vel = {}
+        for i in range(d.ncon):
+            c = d.contact[i]
+            if c.geom1 == self.floor:
+                b = m.geom_bodyid[c.geom2]
+            elif c.geom2 == self.floor:
+                b = m.geom_bodyid[c.geom1]
+            else:
+                continue
+            if not self.allowed_ground[b]:
+                if self.is_robot_body[b]:
+                    bad = True
+                continue
+            p = b
+            while self.body_is_foot[p] < 0:
+                p = m.body_parentid[p]
+            k = self.body_is_foot[p]
+            fc[k] = True
+            mujoco.mj_contactForce(m, d, i, f6)
+            n = max(float(f6[0]), 0.0)
+            if b not in vel:
+                v6 = np.zeros(6)
+                mujoco.mj_objectVelocity(m, d, mujoco.mjtObj.mjOBJ_XBODY, b, v6, 0)
+                vel[b] = v6
+            v6 = vel[b]
+            vp = v6[3:6] + np.cross(v6[0:3], c.pos - d.xpos[b])
+            fn[k] += n
+            sv[k] += n * math.hypot(vp[0], vp[1])
+        slip = np.where(fn > 1e-9, sv / np.maximum(fn, 1e-9), 0.0)
+        return fc, fn, slip, bad
+
+    def foot_clearance(self, d) -> np.ndarray:
+        """Foot-site height above its standing height (m), per foot."""
+        if self._foot_z0 is None:
+            d0 = mujoco.MjData(self.model)
+            self.set_default(d0)
+            mujoco.mj_kinematics(self.model, d0)
+            self._foot_z0 = np.array([d0.site_xpos[s][2] for s in self.foot_sids]) - 0.005
+        return np.array([d.site_xpos[s][2] for s in self.foot_sids]) - self._foot_z0
+
     def tilt(self, d) -> float:
         g = quat_rotate_inv(d.qpos[self.qa + 3:self.qa + 7], np.array([0, 0, -1.0]))
         return float(math.acos(max(-1.0, min(1.0, -g[2]))))
+
+
+PRIOR_TERMS = ("air_time", "clearance", "contact_phase", "stand_contact")        # gait-shaping priors: decay
+NATURAL_TERMS = ("torque", "action_rate", "smooth", "power", "impact")           # natural objectives: ramp up
+# everything else is PERMANENT (tracking, termination, orientation/height, lin_z/ang_xy, slip, limits, alive,
+# stand_still): the stance-slip penalty never decays, otherwise skating returns.
 
 
 @dataclass
@@ -199,9 +262,47 @@ class RewardCfg:
     termination: float = -5.0
     stand_contact: float = 0.5     # zero command: all feet down (stance transition)
     sigma: float = 0.25
+    # gait_v2 terms (0 in the legacy config)
+    slip: float = 0.0              # x sum over feet of contact-point slip speed |v_xy| (m/s), loaded feet
+    clearance: float = 0.0         # x ((target - swing apex)/target)^2 clipped to [0,1], at each touchdown
+    smooth: float = 0.0            # x second difference of actions (a - 2a1 + a2)^2, like action_rate
+    power: float = 0.0             # x mechanical power / (m g max(|cmd_xy|, 0.25)): a per-step cost of transport
+    impact: float = 0.0            # x clip(touchdown normal force / (m g) - 1, 0, 3), per touchdown
+    version: str = "gait_v1"
+    # schedule (gait_v2): alpha in [0,1]; priors w0*(floor + (1-floor)(1-alpha)); natural w_min + alpha(w_max-w_min)
+    alpha: float = 0.0
+    prior_floor: float = 0.1
+    natural_max: dict = field(default_factory=dict)
+
+    def effective(self, alpha: float) -> "RewardCfg":
+        """Weights at schedule position alpha (self holds the alpha=0 weights; natural_max the alpha=1 ones)."""
+        a = float(min(1.0, max(0.0, alpha)))
+        e = replace(self, alpha=a)
+        for t in PRIOR_TERMS:
+            setattr(e, t, getattr(self, t) * (self.prior_floor + (1 - self.prior_floor) * (1 - a)))
+        for t, wmax in self.natural_max.items():
+            setattr(e, t, getattr(self, t) + a * (wmax - getattr(self, t)))
+        return e
+
+    def weights(self) -> dict:
+        return {k: v for k, v in asdict(self).items() if isinstance(v, float) and k not in ("alpha", "prior_floor")}
 
     @staticmethod
-    def for_kind(kind: str) -> "RewardCfg":
+    def for_kind(kind: str, version: str = "gait_v1") -> "RewardCfg":
+        if version == "gait_v2":
+            # gait_v2 (contact track, 2026-09-26): v1 skated (stance-foot slip ~ body speed). Slip is now a
+            # PERMANENT linear contact-point speed penalty (x20-40 stronger at 0.3 m/s than v1's -0.05 v^2);
+            # swing-apex clearance, air time, contact phase and stand_contact are decaying priors; torque,
+            # action rate, jerk, power (CoT) and impact are natural objectives that ramp with alpha.
+            # Reference values: research/tracks/contact.md (legged_gym, humanoid-gym, unitree_rl_gym).
+            nat = dict(torque=-0.1, action_rate=-0.08, smooth=-0.04, power=-0.3, impact=-0.2)
+            if kind in ("humanoid", "biped"):
+                return RewardCfg(orient=-5.0, alive=0.3, contact_phase=1.0, height=-20.0, air_time=1.0,
+                                 stand_still=-0.5, termination=-10.0, sigma=0.1, track_lin=2.5, track_ang=2.0,
+                                 feet_slip=0.0, slip=-1.0, clearance=-2.0, torque=-0.02, action_rate=-0.02,
+                                 smooth=-0.01, power=-0.02, impact=0.0, version=version, natural_max=nat)
+            return RewardCfg(feet_slip=0.0, slip=-0.5, clearance=-2.0, torque=-0.02, action_rate=-0.02, smooth=-0.01,
+                             power=-0.02, impact=0.0, version=version, natural_max=nat)
         if kind in ("humanoid", "biped"):
             # v3: track_ang 1.0 -> 2.0 + turn-in-place commands (v2 walked but never turned)
             # v2 (after v1 converged to a stable non-walking stander): sharper tracking kernel, more
@@ -215,15 +316,29 @@ class LeggedEnv:
     """N independent MjData sharing one model; 50 Hz tracker rate, PD on physics substeps."""
 
     def __init__(self, module_factory, n_envs: int, seed: int, *, control_dt: float = 0.02,
-                 episode_s: float = 20.0, friction_scale: float = 1.0, push: bool = True, obs_noise: float = 1.0):
+                 episode_s: float = 20.0, friction_scale: float = 1.0, push: bool = True, obs_noise: float = 1.0,
+                 contact: str = "v1", reward: str | None = None, randomize: bool = True):
+        from rrp.morphology.contact import ContactRandomizer, resolve
         from rrp.morphology.legged import standalone_model
         mod = module_factory()
-        self.model, _, self.meta = standalone_model(mod)
-        if friction_scale != 1.0:
-            self.model.geom_friction[:, 0] *= friction_scale
-        self.friction_scale = friction_scale
+        self.contact = resolve(contact)
+        self.model, _, self.meta = standalone_model(mod, contact=self.contact)
         self.b = LeggedBinding(self.model, self.meta)
-        self.cfg = RewardCfg.for_kind(self.b.kind)
+        self.cdr = None
+        if self.contact == "v1":
+            if friction_scale != 1.0:
+                self.model.geom_friction[:, 0] *= friction_scale
+            self.friction_scale = friction_scale
+        else:   # contact_v2: per-worker contact/mass/CoM randomisation + per-episode latency
+            self.cdr = ContactRandomizer(self.model, self.b.root_bid, np.random.default_rng([seed, 77])) \
+                if randomize else None
+            self.friction_scale = (self.cdr.mu / self.cdr.nominal_mu) if self.cdr else 1.0
+        self.cfg0 = RewardCfg.for_kind(self.b.kind, reward or ("gait_v2" if self.contact == "v2" else "gait_v1"))
+        self.cfg = self.cfg0.effective(0.0) if self.cfg0.version == "gait_v2" else self.cfg0
+        self.sched = self.cfg0.version == "gait_v2"      # alpha schedule (critic sees alpha; the actor never does)
+        self.priv_dim = self.b.priv_dim + (1 if self.sched else 0)
+        self.mass = float(self.model.body_subtreemass[self.b.root_bid])
+        self._gm_reset()
         self.n = n_envs
         self.rng = np.random.default_rng(seed)
         self.data = [mujoco.MjData(self.model) for _ in range(n_envs)]
@@ -235,6 +350,10 @@ class LeggedEnv:
         nA, nf = self.b.n, self.b.nf
         self.cmd = np.zeros((n_envs, 3))
         self.last_a = np.zeros((n_envs, nA))
+        self.last_a2 = np.zeros((n_envs, nA))
+        self.latency = np.zeros(n_envs, int)
+        self.apex = np.zeros((n_envs, nf))
+        self.ticks = 0
         self.phase = np.zeros(n_envs)
         self.t = np.zeros(n_envs, int)
         self.air = np.zeros((n_envs, nf))
@@ -244,6 +363,14 @@ class LeggedEnv:
         self.stats = []
         for i in range(n_envs):
             self._reset(i)
+
+    def set_alpha(self, alpha: float):
+        if self.sched:
+            self.cfg = self.cfg0.effective(alpha)
+
+    def _gm_reset(self):
+        # gate metrics accumulated over steps with a translational command (read by the trainer's alpha gate)
+        self.gm = dict(steps=0, track_err=0.0, cmd=0.0, slip=0.0, speed=0.0, power=0.0, cot_den=0.0)
 
     def _sample_cmd(self, i):
         r = self.b.cmd_ranges
@@ -269,6 +396,9 @@ class LeggedEnv:
         self.b.set_default(d, yaw=self.rng.uniform(-math.pi, math.pi), noise=0.05, rng=self.rng)
         mujoco.mj_forward(self.model, d)
         self.last_a[i] = 0
+        self.last_a2[i] = 0
+        self.apex[i] = 0
+        self.latency[i] = self.cdr.latency() if self.cdr else 0
         self.phase[i] = self.rng.random()
         self.t[i] = 0
         self.air[i] = 0
@@ -290,7 +420,8 @@ class LeggedEnv:
         if fc is None:
             fc, _ = self.b.contacts(d)
         return np.concatenate([self.b.base_lin_vel_body(d), [d.qpos[self.b.qa + 2] - self.b.nominal_height()],
-                               fc.astype(float), [self.friction_scale - 1.0, self.push_flag[i]]]).astype(np.float32)
+                               fc.astype(float), [self.friction_scale - 1.0, self.push_flag[i]]]
+                              + ([[self.cfg.alpha]] if self.sched else [])).astype(np.float32)
 
     def observe_all(self):
         return np.stack([self.obs(i) for i in range(self.n)]), np.stack([self.priv(i) for i in range(self.n)])
@@ -301,13 +432,26 @@ class LeggedEnv:
         R = np.zeros(self.n)
         D = np.zeros(self.n, bool)
         T = np.zeros(self.n, bool)   # time-out (bootstrap)
+        self.ticks += 1
+        if self.cdr and self.ticks % self.cdr.R["resample_steps"] == 0:
+            self.cdr.resample()
+            self.friction_scale = self.cdr.mu / self.cdr.nominal_mu
+        v2 = cfg.version == "gait_v2"
         for i in range(self.n):
             d = self.data[i]
             a = np.clip(actions[i], -5, 5)
-            d.ctrl[b.pol_act] = b.targets(a)
-            tau2 = 0.0
-            for _ in range(self.substeps):
+            new_t = b.targets(a)
+            lat = int(self.latency[i])
+            if lat == 0:
+                d.ctrl[b.pol_act] = new_t
+            pw = 0.0
+            for k in range(self.substeps):
+                if lat and k == lat:
+                    d.ctrl[b.pol_act] = new_t      # actuator/PD latency: previous targets for `lat` substeps
                 mujoco.mj_step(m, d)
+                if v2:
+                    pw += float(np.sum(np.abs(d.actuator_force[b.pol_act] * d.qvel[b.pol_dadr])))
+            pw /= self.substeps                    # mean mechanical power over the tick (W)
             tau2 = float(np.sum((d.actuator_force[b.pol_act] / b.effort) ** 2))
             self.phase[i] = (self.phase[i] + self.dt / b.period) % 1.0
             self.t[i] += 1
@@ -318,7 +462,10 @@ class LeggedEnv:
                 self.push_flag[i] = 1.0
             else:
                 self.push_flag[i] *= 0.9
-            fc, bad = b.contacts(d)
+            if v2:
+                fc, fn, slip_v, bad = b.stance(d)
+            else:
+                fc, bad = b.contacts(d)
             v = b.base_lin_vel_body(d)
             quat, w = b.imu(d)
             g = quat_rotate_inv(quat, np.array([0, 0, -1.0]))
@@ -329,6 +476,8 @@ class LeggedEnv:
             r += cfg.orient * float(np.sum(g[:2] ** 2))
             r += cfg.torque * tau2 / b.n
             r += cfg.action_rate * float(np.sum((a - self.last_a[i]) ** 2)) / b.n * 4
+            if cfg.smooth:
+                r += cfg.smooth * float(np.sum((a - 2 * self.last_a[i] + self.last_a2[i]) ** 2)) / b.n * 4
             q = d.qpos[b.pol_qadr]
             span = b.jhi - b.jlo
             soft_lo, soft_hi = b.jlo + 0.05 * span, b.jhi - 0.05 * span
@@ -336,6 +485,28 @@ class LeggedEnv:
             moving = np.linalg.norm(c[:2]) > 0.05 or abs(c[2]) > 0.05
             first = fc & (self.air[i] > 0)
             r += cfg.air_time * float(np.sum((self.air[i] - 0.5 * b.period) * first)) * moving
+            if cfg.clearance:
+                clr = b.foot_clearance(d)
+                self.apex[i] = np.where(fc, self.apex[i], np.maximum(self.apex[i], clr))
+                short = np.clip((b.swing_height - self.apex[i]) / b.swing_height, 0.0, 1.0) ** 2
+                r += cfg.clearance * float(np.sum(short * first)) * moving
+                self.apex[i] = np.where(fc, 0.0, self.apex[i])
+            if cfg.slip:
+                r += cfg.slip * float(np.sum(slip_v))
+            if v2:
+                cspd = float(np.linalg.norm(c[:2]))
+                r += cfg.power * pw / (self.mass * 9.81 * max(cspd, 0.25))
+                if cfg.impact:
+                    r += cfg.impact * float(np.sum(np.clip(fn / (self.mass * 9.81) - 1.0, 0, 3) * first))
+                if cspd > 0.05:
+                    gm = self.gm
+                    gm["steps"] += 1
+                    gm["track_err"] += float(np.linalg.norm(c[:2] - v[:2]))
+                    gm["cmd"] += cspd
+                    gm["slip"] += float(np.mean(slip_v[fc])) if fc.any() else 0.0
+                    gm["speed"] += float(np.linalg.norm(v[:2]))
+                    gm["power"] += pw
+                    gm["cot_den"] += self.mass * 9.81 * float(np.linalg.norm(v[:2]))
             self.air[i] = np.where(fc, 0.0, self.air[i] + self.dt)
             if not moving:
                 r += cfg.stand_still * float(np.sum(np.abs(q - b.q0))) / b.n * 4
@@ -363,6 +534,7 @@ class LeggedEnv:
             fell = bad or h < b.min_h or b.tilt(d) > b.tilt_limit or not np.isfinite(d.qpos).all()
             if fell:
                 r += cfg.termination
+            self.last_a2[i] = self.last_a[i]
             self.last_a[i] = a
             self.ep_ret[i] += r
             R[i] = r
@@ -381,4 +553,7 @@ class LeggedEnv:
 
     def pop_stats(self):
         s, self.stats = self.stats, []
+        if self.sched and self.gm["steps"]:
+            s.append(dict(gm=self.gm))
+            self._gm_reset()
         return s
