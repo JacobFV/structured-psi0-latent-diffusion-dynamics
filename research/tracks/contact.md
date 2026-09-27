@@ -259,7 +259,17 @@ Attempts for (2):
   g1 (attempt d, peer): shed by the PEER memory watchdog at iter 763 (training fall rate 0.66-0.79). Deterministic check of that checkpoint: g1 now
   STEPS and TURNS in place at low yaw rates (turn ratio 0.89 / 0.84 at 0.1 / 0.2 rad/s, both feet down only 56-74% of the time), but not at 0.36
   (0.16; the curriculum was still at half range). Resumed on the peer (lease 1790524556_be3e29, `--resume`, to 3000). g1 is the first biped where the
-  slow-stepping recipe produced deterministic turning in place. h1 host
+  slow-stepping recipe produced deterministic turning in place.
+  **g1 attempt d FINAL** (`artifacts/runs/contact_g1_step`, 3000 iters, sha 2a7af31c40f826ca, trained under LEGACY limits: the peer copy predates the
+  default flip). Validation (`val/g1_stepd-legacy_physv2.json`; transfer `val/g1_stepd-sourced-transfer_physv2.json` with the evaluation-only
+  `RRP_ALLOW_LIMITS_MISMATCH=1`, recorded in the file):
+  | g1 | no-fall | fwd | turn in place | turn at 0.48 | arc yaw | slip | CoT | contact gate |
+  |---|---|---|---|---|---|---|---|---|
+  | installed r1 (legacy) | 1.00 | 1.10 | 0.02 | - | 1.15 | 0.08 | 1.19 | F (turn) |
+  | step d, legacy limits | 1.00 | 0.76 | **1.14** | 0.79 | 1.34 | 0.14 | 1.70 | T |
+  | step d, sourced limits (transfer) | 1.00 | 0.78 | **1.10** | 0.82 | 1.38 | 0.13 | 1.70 | T |
+  Lead gate (turn >= 0.5, fwd >= 0.8, slip < 0.15, no falls): FAILS only on forward (0.76-0.78). Next: an 800-iter fine-tune under SOURCED limits with the
+  W8-style command mix + stand_vel (`artifacts/runs/contact_g1_src`, peer, queued: the peer broker was full). h1 host
   `artifacts/runs/contact_h1_step` (lease 1790518222_a2ad53), g1 peer `artifacts/runs/contact_g1_step` (lease 1790517947_132a38). A process
   mix-up during the c->d restart (an old wrapper relaunched once into the new dir) was caught; that output is in `contact_h1_step_junk`, not used.
 ### (3) t1 turning + latency under v1lat: running
