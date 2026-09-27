@@ -46,8 +46,10 @@ def render(robot_key, seed, version, args):
     gc = os.environ.get("RRP_GRASP_CONTACT", "v1")
 
     def cap(img, s, teacher, k):
+        pt = (f"  obj friction x{args.obj_friction:g}" if args.obj_friction != 1.0 else "") + \
+            (f"  cube mass x{args.obj_mass:g}" if args.obj_mass != 1.0 else "")
         return _caption(img, [f"SCRIPTED TEACHER {NAMES[version]} (privileged) | {robot_key} | pick_place | seed {seed}",
-                              f"t={s.data.time:4.1f}s  phase={teacher.phase}  grasp contact grasp_{gc}"])
+                              f"t={s.data.time:4.1f}s  phase={teacher.phase}  grasp contact grasp_{gc}{pt}"])
 
     cam = args.camera
     if cam == "closeup":        # free camera following the task cube (shows finger/cube overlap)
@@ -60,7 +62,8 @@ def render(robot_key, seed, version, args):
             vc.lookat[:] = d.xpos[cb]
             return vc
     row = run_quality_episode(robot_key, seed, version, max_steps=args.max_steps, robot=robot,
-                              frames=dict(renderer=rend, camera=cam, every=1, out=frames, caption=cap))
+                              frames=dict(renderer=rend, camera=cam, every=1, out=frames, caption=cap),
+                              obj_friction=args.obj_friction, obj_mass=args.obj_mass)
     rend.close()
     return row, frames
 
@@ -78,6 +81,8 @@ def main():
     ap.add_argument("--fps", type=int, default=20)
     ap.add_argument("--max-steps", type=int, default=400)
     ap.add_argument("--note", default="")
+    ap.add_argument("--obj-friction", type=float, default=1.0, help="x friction of the cube and finger pads")
+    ap.add_argument("--obj-mass", type=float, default=1.0, help="x cube mass")
     a = ap.parse_args()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -98,7 +103,8 @@ def main():
                                                 f"END: {tag.upper()} (privileged evaluator) | {stats[:90]}"])
             frames = frames + [last] * a.fps          # hold the outcome card 1 s
             gct = os.environ.get("RRP_GRASP_CONTACT")
-            name = f"{today}_scripted_teacher_{v}{('_grasp' + gct) if gct else ''}_{a.robot}_pick_place_s{sd}_{tag}.mp4"
+            pt = (f"_objfric{a.obj_friction:g}" if a.obj_friction != 1.0 else "") + (f"_objmass{a.obj_mass:g}" if a.obj_mass != 1.0 else "")
+            name = f"{today}_scripted_teacher_{v}{('_grasp' + gct) if gct else ''}{pt}_{a.robot}_pick_place_s{sd}_{tag}.mp4"
             imageio.mimsave(out / name, frames, fps=a.fps, quality=6)
             clips[v] = (frames, tag, row)
             with open(out / "INDEX.md", "a") as f:
