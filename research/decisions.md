@@ -577,3 +577,17 @@ Decisions:
 (1) Step 1 per task: a task counts as reproduced when its CI overlaps the published number.
 (2) Step 2 (Ψ₀ direct vs Ψ₀ + structure) only on reproduced tasks with public training data; new budget ≤40 peer GPU-h over ~3 days.
 (3) XMovePick: finish the render test plus one RTC variant, then write up as not reproduced.
+
+## D-110 2026-09-27 grasp contact v2 verified; the running v2-teacher arm lineage set is stopped (4/100 nodes, grasp v1 data) and regenerated on teacher v2 + grasp v2
+W7 (research/tracks/armexpert.md "grasp contact v2 (D-108)", main 20342c1/13ee714; lead checked `artifacts/runs/armexpert_grasp/compare_final_grasp_v1_v2.json`: 4811/4811 both).
+Cause of interpenetration: MuJoCo soft contact is weakest on the light 42 g cube, and the tf3 hinge limit was unrealistic (8 N·m ≈ 145 N per fingertip).
+grasp_v2 (`src/rrp/physics/grasp_contact.py`, `RRP_GRASP_CONTACT=v2`, recorded in provenance as grasp_contact_version):
+- finger-pad contact priority; pad μ 1.0, object μ 0.9 with torsional friction; the stiffest stable contact at dt 2 ms;
+- sourced grip forces (parallel jaw 40 N actuator; tf3 hinge 2.2 N·m ≈ 40 N per fingertip; Franka Hand 70 N continuous; Robotiq 3-finger 30–70 N).
+Rig: parallel-jaw slip load matches the friction prediction (1.06× / 1.05× at μ ×1 / ×0.05; v1 0.24× / 1.03×); penetration 0.03 mm (v1 1.3 mm). tf3 holds by enclosure (penetration < 0.1 mm; v1 11–13 mm).
+v2 teacher, 18 bodies × 300 seeds: success 4811/4811 under both; held penetration median tf3 3.3 → 0.09 mm, pg2 0.7 → 0.02 mm; episodes > 3 mm: 2407 → 0; carry slip tf3 2–4 → 0.6–0.9 mm. Parallel-jaw success now depends on friction as physics predicts (0/30 at μ ×0.02); tf3 stays friction-insensitive because the fingers enclose the cube (mass sweeps are the informative ones).
+Decisions:
+(1) grasp_v2 is used for all new arm results.
+(2) STOP the running v2-teacher lineage set (only 4/100 nodes done; its data v4dart and everything downstream were collected under grasp v1).
+(3) Regenerate: v5dart collection (teacher v2 + grasp v2), pack, v2 BC expert (seeds 1701/1702), then the lineage set semfix/nosem × 2 seeds via run-dag, never mixing grasp v1 artifacts.
+(4) Re-evaluate the existing arm routes (frozen sem, semfix and nosem seed-1/2 routes from D-095, BC direct1701) under grasp_v2 on the standard R2 90-seed sets. This shows how much the D-089/D-091/D-095 conclusions depended on penetration holding.
