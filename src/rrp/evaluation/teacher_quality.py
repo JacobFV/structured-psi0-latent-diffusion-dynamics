@@ -72,8 +72,26 @@ class _IKRecorder:
         self.ik.solve = self.orig
 
 
+def _scale_object(s, obj_friction: float, obj_mass: float) -> dict:
+    """W6-style object perturbation: x friction of the task cube AND the finger pads, x mass of the cube."""
+    m = s.model
+    if obj_friction == 1.0 and obj_mass == 1.0:
+        return {}
+    from rrp.physics.grasp_contact import PAD_RE
+    cube = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, "cube")
+    gs = [g for g in range(m.ngeom) if m.geom_bodyid[g] == cube or PAD_RE.search(m.geom(g).name or "")]
+    for g in gs:
+        m.geom_friction[g] *= obj_friction
+    if obj_mass != 1.0:
+        m.body_mass[cube] *= obj_mass
+        m.body_inertia[cube] *= obj_mass
+        mujoco.mj_setConst(m, s.data)
+    return dict(obj_friction_scale=obj_friction, obj_mass_scale=obj_mass, cube_mass_kg=float(m.body_mass[cube]))
+
+
 def run_quality_episode(robot_key: str, seed: int, version: str = "v1", *, max_steps: int = 600,
-                        robot=None, frames: dict | None = None, keep_trace: bool = False) -> dict:
+                        robot=None, frames: dict | None = None, keep_trace: bool = False,
+                        obj_friction: float = 1.0, obj_mass: float = 1.0) -> dict:
     """One teacher episode with full diagnostics. `frames` = dict(renderer=..., camera=..., every=..., out=[...],
     caption=callable) to also collect rendered frames."""
     from rrp.bodies.catalog import workbench_robots
@@ -95,6 +113,7 @@ def run_quality_episode(robot_key: str, seed: int, version: str = "v1", *, max_s
     if not feas["feasible"]:
         row.update(outcome="infeasible", success=False)
         return row
+    row["perturbation"] = _scale_object(s, obj_friction, obj_mass)
     teacher = make_arm_teacher(s, version)
     r = teacher.r
     rec = _IKRecorder(r.ik)
@@ -381,7 +400,9 @@ def summarize(rows: list[dict]) -> dict:
     import collections
     g = collections.defaultdict(list)
     for r in rows:
-        g[(r["robot"], r["version"])].append(r)
+        pz = r.get("perturbation") or {}
+        tag = r["version"] + (f"|of{pz.get('obj_friction_scale', 1.0):g}|om{pz.get('obj_mass_scale', 1.0):g}" if pz else "")
+        g[(r["robot"], tag)].append(r)
     keys = ["joint_cmd_jerk_peak", "joint_cmd_jerk_rms", "joint_cmd_acc_peak", "joint_meas_jerk_peak",
             "joint_meas_jerk_rms", "joint_meas_acc_peak", "tcp_meas_jerk_peak", "tcp_meas_jerk_rms", "tcp_meas_acc_peak",
             "tcp_cmd_jerk_peak", "vel_jump_switch_max", "vel_jump_any_max", "tcp_vel_jump_switch_max",
@@ -405,12 +426,13 @@ def summarize(rows: list[dict]) -> dict:
 
 
 def _job(args):
-    rk, seeds, version, max_steps = args
+    rk, seeds, version, max_steps = args[:4]
+    of, om = (list(args[4:6]) + [1.0, 1.0])[:2] if len(args) > 4 else (1.0, 1.0)
     from rrp.bodies.catalog import workbench_robots
     robot = workbench_robots()[rk]()
     rows = []
     for sd in seeds:
-        rows.append(run_quality_episode(rk, sd, version, max_steps=max_steps, robot=robot))
+        rows.append(run_quality_episode(rk, sd, version, max_steps=max_steps, robot=robot, obj_friction=of, obj_mass=om))
     return rows
 
 
@@ -425,11 +447,14 @@ def main(argv=None):
     ap.add_argument("--out", required=True)
     ap.add_argument("--policy", action="append", default=[], help="label=checkpoint (learned chunk policy mode)")
     ap.add_argument("--device", default="cpu")
+    ap.add_argument("--obj-friction", default="1.0", help="comma list: x friction of the cube and finger pads")
+    ap.add_argument("--obj-mass", default="1.0", help="comma list: x cube mass")
     a = ap.parse_args(argv)
     seeds = _parse_seeds(a.seeds)
     if a.policy:
         return _main_policy(a, seeds)
-    jobs = [(rk, seeds[i:i + a.chunk], v, a.max_steps) for v in a.versions.split(",") for rk in a.bodies.split(",")
+    jobs = [(rk, seeds[i:i + a.chunk], v, a.max_steps, of, om) for v in a.versions.split(",") for rk in a.bodies.split(",")
+            for of in [float(x) for x in a.obj_friction.split(",")] for om in [float(x) for x in a.obj_mass.split(",")]
             for i in range(0, len(seeds), a.chunk)]
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
