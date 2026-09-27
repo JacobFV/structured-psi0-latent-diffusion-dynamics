@@ -28,6 +28,7 @@ for seed in range(s0, s0 + n):
     rows.append(dict(seed=seed, status=status, steps=steps, sim_s=steps * s.dt, pure_turn_frac=float(np.mean((c[:, 0] < 0.05) & (np.abs(c[:, 2]) > 0.05))),
                      contact_model=sc.meta.get("contact_model"), actuator_limits=s.binding.meta.get("actuator_limits")))
     print(rows[-1], flush=True)
+    json.dump(dict(body=body, actor=actor, n_done=len(rows), partial=True, rows=rows), open(out + ".partial", "w"), indent=1)
 summ = dict(body=body, actor=actor, n=n, success=sum(r["status"] == "success" for r in rows), fell=sum(r["status"] == "fell" for r in rows),
             mean_sim_s_success=float(np.mean([r["sim_s"] for r in rows if r["status"] == "success"] or [0])), rows=rows)
 json.dump(summ, open(out, "w"), indent=1)
