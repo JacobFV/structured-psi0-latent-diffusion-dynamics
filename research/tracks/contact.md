@@ -360,7 +360,10 @@ w8d is at least as good as w8c on every lab metric and passes slip (0.137 vs 0.1
 **sha256 863d2469430231f65d8f9a475fdd25f78aedae9e23aa8c008b8d5f3a3ad768a9**, meta.install_label = "t1 sourced-limits w8c: waypoint 20/20; lab gate fails
 forward 0.64 and slip 0.152". It loads under the default sourced limits. Previous (legacy-limit turn-trained) t1 backed up at
 `~/work/rrp-data/contact-v1-actors/t1_prev_install/` and peer `artifacts/runs/contact_installed/t1_prev_turn2_legacy/`.
-Recommendation to the lead: swap to w8d (`artifacts/runs/contact_t1_w8d/actor.pt`, sha 36e9146792743115); it dominates w8c.
+**SWAPPED (lead, 2026-09-27): INSTALLED t1 = w8d, sha256 36e9146792743115878c34e0bbf7cc46ccb5419417921358da3658c8377fc591** (host worktree and peer
+shared store, verified identical). Label: "t1 sourced-limits w8d: waypoint 20/20; lab gate fails forward 0.72 (slip 0.137 passes); arc no-fall 0.83 at 30 ms".
+Also recorded in `artifacts/trackers/README.md`. (w8c, 863d2469..., was installed first per the rule and is superseded.)
+Earlier recommendation to the lead: swap to w8d (`artifacts/runs/contact_t1_w8d/actor.pt`, sha 36e9146792743115); it dominates w8c.
 Correction: an earlier message to the lead quoted w8c's sha as be4bb80c3b43da68. That was wrong; the file's sha is 863d2469430231f6. 50-episode fall checks (`fallrate/t1_{w8,w8b}_*.json`): **0/50 falls** for both on turn, turn at 0.48,
 arc and forward.
 Videos (reviewed): `artifacts/video/2026-09-27_contact_t1_{turn,turn_fast,arc,forward}_w8installed-vs-w8mix_iter1499_ok_ok.mp4`
