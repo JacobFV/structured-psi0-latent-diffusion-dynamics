@@ -128,4 +128,5 @@ Conflict rules:
 
 
 | R1 | Arm nosem recipe ablation (z-noise 0; keep qd; both), seed 1 | arm agent | R0 | completed (D-099): recipe does not explain nosem failure |
-| W10 | Ψ₀ / SIMPLE benchmark: probe → Ψ₀ baseline → Ψ₀ base models fine-tuned with our structure vs Ψ₀ direct expert | psi0 agent | — | running: step 0 probe (D-098) |
+| W10 | Ψ₀ / SIMPLE benchmark in the local repo ~/work/psi1z (D-100): probe → Ψ₀ baseline → Ψ₀ + our structure vs Ψ₀ direct expert | psi0 agent | W11 for packaging | running: step 0 probe (D-098) |
+| W11 | rrp as an installable core for psi1z: Python 3.11 support, public API doc, core tests under 3.11 | core agent | W4, W5 | running (D-100) |
