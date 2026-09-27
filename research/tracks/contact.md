@@ -81,6 +81,47 @@ Zero-shot v2 physics alone lowers the slip ratio (t1 0.86 -> 0.58, go2 0.26 -> 0
 humanoids still shuffle (duty 0.8-0.95, air 0.02-0.03 s) and their turn ratio collapses (t1 0.02, h1 0.04).
 go2's v1 tracker passes the contact gate in v2 physics zero-shot.
 
+## SUMMARY: v1 vs v2 (state 2026-09-27 ~00:50; raw: `artifacts/runs/contact_v2/val/`, table: `python3 scripts/contact_summary.py`)
+v1 = the v1 tracker in contact_v1 physics (the currently deployed pair). v2 = the installed contact_v2 tracker in contact_v2 physics. Validation protocol v2,
+5 seeds x 5 trials; slip ratio = forward-trial contact-point stance slip / body speed (target < 0.15).
+
+| body | v2 tracker | no-fall v1 -> v2 | fwd ratio v1 -> v2 | turn ratio v1 -> v2 | **slip ratio** v1 -> v2 | duty v1 -> v2 | swing apex cm v1 -> v2 | CoT v1 -> v2 | legacy gate v1 / v2 | contact gate v2 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| t1 | v2trk | 1.00 -> 1.00 | 0.74 -> 0.99 | 0.30 -> 0.02 | 0.86 -> **0.15** | 0.85-1.00 -> 0.72-0.82 | 1.4 -> 6.6 | 3.42 -> 1.39 | False / False | False |
+| h1 | v2trk-r2 | 1.00 -> 1.00 | 0.69 -> 0.90 | 0.33 -> 0.03 | 0.57 -> **0.13** | 0.88-0.94 -> 0.80-0.86 | 1.1 -> 4.2 | 2.74 -> 3.03 | False / False | False |
+| g1 | v2trk-r1 | 1.00 -> 1.00 | 0.91 -> 1.10 | 0.08 -> 0.02 | 0.42 -> **0.08** | 0.80-0.87 -> 0.76-0.78 | 4.0 -> 8.5 | 1.53 -> 1.19 | False / False | False |
+| go2 | v2trk | 1.00 -> 1.00 | 1.05 -> 1.04 | 0.59 -> 0.75 | 0.26 -> **0.02** | 0.48-0.76 -> 0.44-0.55 | 3.0 -> 0.6 | 2.34 -> 0.65 | True / True | False |
+| anymal_c | v2trk | 1.00 -> 1.00 | 0.98 -> 1.09 | 0.72 -> 0.80 | 0.34 -> **0.03** | 0.76-0.79 -> 0.46-0.65 | 3.0 -> 2.5 | 1.06 -> 0.34 | True / True | True |
+| hexapod6 | v2trk-v2c-rejected | 1.00 -> 1.00 | 0.88 -> 1.05 | 0.93 -> 0.04 | 0.85 -> **0.17** | 0.00-0.87 -> 0.00-0.71 | 2.1 -> 2.9 | 7.45 -> 6.38 | True / False | False |
+
+Installed contact_v2 trackers (gitignored weights; `artifacts/trackers/<body>/contact_v2/actor.pt`, selectable with contact="v2" /
+$RRP_CONTACT_MODEL=v2; v1 stays the default): t1 iter5099 (sha 87e233c6c01f449b), h1 r2 iter5499 (92bff757bf334109), g1 r1 iter3999
+(8b8a99cbc833f150), go2 iter3499 (48c632d75b2795c9), anymal_c v2c iter2499 (2a16532bbd07f7ab; alpha0 snapshot 3796df094f2ce85e).
+hexapod6: no acceptable learned v2 tracker (3 rejected runs); the scripted CPG tripod stays (slip 0.20 in v2 physics).
+Arc trial (walk + turn): yaw-rate ratio v1 -> v2: t1 0.71 -> 0.98, h1 0.13 -> 0.64, g1 0.49 -> 1.15, go2 1.05 -> 1.10, anymal_c 0.63 -> 1.05;
+no falls in any stand/arc/push trial.
+
+Findings:
+1. Skating is fixed on every accepted body: slip ratio 0.26-0.86 -> 0.02-0.15. Humanoids now step (air 0.07-0.08 s vs 0.02-0.04;
+   apex 4-9 cm vs 1-4 cm) and forward tracking improved. Only anymal_c passes the full contact gate.
+2. The humanoids fail the gate only on TURN IN PLACE (turn ratio 0.02-0.03). v1 "turned" by twisting its feet on the floor (0.30/0.33 in v1
+   physics; the v1 trackers also score 0.02-0.04 in v2 physics). In-place stepping turns were not learned. Arcs work (above).
+3. Priors -> natural schedule (lead's claim), checked with alpha=0 vs final validations: go2 (slip 0.10 -> 0.02, CoT 3.56 -> 0.65; the swing
+   flattened to 0.6 cm), anymal_c (0.10 -> 0.03, CoT 1.40 -> 0.34, apex 14.5 -> 2.5 cm), t1 (0.28 -> 0.15, CoT 2.79 -> 1.39, apex 7.9 -> 6.6 cm).
+   None collapsed back into shuffling or skating. Energy minimisation lowers swing height, severely on go2. h1/g1 never passed their
+   training-window gates, so they stayed at alpha=0.
+4. Reward bugs found and fixed along the way (each is a recorded failure): gait_v2a touchdown-apex penalty -> stander basin; summed-over-feet
+   slip/clearance -> legs held up or kicked out (non-bipeds; gait_v2c uses per-foot means); adaptive-lr ceiling 1e-2 -> warm-start
+   collapse (`--max-lr`); sigma 0.25 too flat for small robots (range-scaled sigma).
+
+Recommended next step for downstream data (the lead decides): regenerate legged datasets under contact_v2 for go2 and anymal_c now (anymal_c
+passes everything; go2 passes everything except the mm swing clearance, which is fine on flat ground). For t1/h1/g1, the v2 trackers are
+clearly better walkers than v1 (planted feet, real steps, arcs), but they cannot turn in place. Either restrict the teacher to arcs /
+forward+turn commands (|vx| >= ~0.1 while turning), or first fix in-place turning (candidates: a turn-in-place curriculum with more
+pure-turn samples plus a stepping-turn prior; a yaw-aligned foot placement reward), then regenerate. Keep hexapod6 on the CPG.
+Next track item after this gate (strategy W1): actuator realism (armature, joint friction/damping, torque-speed limits) and 0-30 ms
+latency randomisation (v2 currently randomises 0-8 ms).
+
 ## runs
 ### gait_v2a: failed_hypothesis (stopped at iter 500-1400)
 t1/h1 (host) and g1/go2 (peer) with a clearance PENALTY at touchdown ((target - apex)/target)^2 x -2. After 1200-1400 iters
