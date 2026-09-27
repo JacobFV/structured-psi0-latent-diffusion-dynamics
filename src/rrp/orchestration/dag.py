@@ -98,6 +98,7 @@ class Plan:
     defaults: dict
     track: str
     source: str = ""
+    caveat: str | None = None       # DAG-level label (e.g. a gate exception): ledger + every node's RunConfig note
 
     def select(self, only: str | None = None, points: list[dict] | None = None) -> "Plan":
         keep = set()
@@ -115,7 +116,7 @@ class Plan:
                     keep.add(d)
                     stack.append(d)
         return Plan(self.name, {k: v for k, v in self.nodes.items() if k in keep},
-                    [k for k in self.order if k in keep], self.defaults, self.track, self.source)
+                    [k for k in self.order if k in keep], self.defaults, self.track, self.source, self.caveat)
 
 
 def load_dag(path: Path | str, _seen: tuple = ()) -> dict:
@@ -219,7 +220,7 @@ def plan_dag(spec: dict, *, source: str = "") -> Plan:
     order = _toposort(nodes)
     if len({n.rc.run_id for n in nodes.values()}) != len(nodes):
         raise DagError("two nodes derive the same output directory (give them distinct tags)")
-    return Plan(name, nodes, order, defaults, track, source)
+    return Plan(name, nodes, order, defaults, track, source, spec.get("caveat"))
 
 
 def _plan_point(spec, point, env, sfx, lineage, node_specs, grids, nodes, out_rids, family, track, defaults, lists,
@@ -327,7 +328,8 @@ def _build_rc(spec, n, nname, point, lineage, track, family, env, lists, resolve
     d = dict(schema_version=SCHEMA_VERSION, family=family, stage=stage, variant=point.get("variant", cfg.pop("variant", "na")),
              seed=int(point.get("seed", cfg.pop("seed", 0))), lineage=lineage, track=track,
              tag=n.get("tag"), inputs=inputs, flags=flags, params=cfg.pop("params", {}) or {},
-             options=cfg.pop("options", {}) or {}, note=n.get("note", ""))
+             options=cfg.pop("options", {}) or {},
+             note=" | ".join(x for x in (spec.get("caveat"), n.get("note")) if x))   # caveat: every manifest (not hashed)
     cfg.pop("variant", None)
     cfg.pop("seed", None)
     if cfg:
@@ -496,6 +498,8 @@ class Executor:
     sleep: callable = time.sleep
 
     def _check_ledger(self):
+        if self.plan.caveat:
+            self.ledger.data["caveat"] = self.plan.caveat
         for nid in self.plan.order:
             n, e = self.plan.nodes[nid], self.ledger.node(nid)
             h = n.rc.config_hash()

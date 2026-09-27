@@ -5,6 +5,7 @@
 # (declared; checked in shards and teacher rows), contact_v2, ideal PD actuators with no latency model.
 # Superseded run (not used): dags/legged_v2_t1.yaml = "t1 torque limits 2-3x manufacturer" (D-107).
 # Compute: W8 may hold 3 GPU leases in total for now (lead, after D-110); memory as measured (D-106).
+caveat: "t1 dataset fails D-112 slip gate (86.2% < 95%), tracker w8d fails lab forward 0.72; trained as a recorded exception (D-113)"
 name: legged_v2_t1sl
 schema: dag-1
 family: legged

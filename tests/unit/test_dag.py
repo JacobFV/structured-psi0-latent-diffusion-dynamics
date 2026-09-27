@@ -435,3 +435,13 @@ def test_shared_budget_counts_other_ledgers(tmp_path):
     assert not ex._fits("collect", ["rep@semfix.s0", "rep@nosem.s0"])  # cpu 7 > 6
     ex.max_cpu, ex.max_mem_gib = 8, 18.5
     assert not ex._fits("collect", ["rep@semfix.s0", "rep@nosem.s0"])  # mem 19 > 18.5
+
+
+def test_caveat_goes_to_notes_and_ledger_without_changing_hashes(tmp_path):
+    a = plan_dag(loads(GLOBAL_TOY))
+    b = plan_dag(loads("caveat: 'gate exception X'\n" + GLOBAL_TOY))
+    assert b.nodes["rep@semfix.s0"].rc.note == "gate exception X"
+    assert all(a.nodes[k].rc.config_hash() == b.nodes[k].rc.config_hash() for k in a.nodes)
+    ex = Executor(b, Ledger(tmp_path / "l.json"), FakeRunner(tmp_path), poll_s=0, sleep=lambda s: None, log=lambda m: None)
+    ex.run()
+    assert json.loads((tmp_path / "l.json").read_text())["caveat"] == "gate exception X"
