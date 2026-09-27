@@ -1,0 +1,190 @@
+{
+ "body": "t1",
+ "actor": "artifacts/runs/contact_t1_w8d/actor.pt",
+ "n": 20,
+ "success": 20,
+ "fell": 0,
+ "mean_sim_s_success": 14.654999999999998,
+ "rows": [
+  {
+   "seed": 10000,
+   "status": "success",
+   "steps": 145,
+   "sim_s": 14.5,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10001,
+   "status": "success",
+   "steps": 149,
+   "sim_s": 14.9,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10002,
+   "status": "success",
+   "steps": 156,
+   "sim_s": 15.600000000000001,
+   "pure_turn_frac": 0.038461538461538464,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10003,
+   "status": "success",
+   "steps": 165,
+   "sim_s": 16.5,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10004,
+   "status": "success",
+   "steps": 150,
+   "sim_s": 15.0,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10005,
+   "status": "success",
+   "steps": 151,
+   "sim_s": 15.100000000000001,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10006,
+   "status": "success",
+   "steps": 131,
+   "sim_s": 13.100000000000001,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10007,
+   "status": "success",
+   "steps": 162,
+   "sim_s": 16.2,
+   "pure_turn_frac": 0.006172839506172839,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10008,
+   "status": "success",
+   "steps": 156,
+   "sim_s": 15.600000000000001,
+   "pure_turn_frac": 0.00641025641025641,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10009,
+   "status": "success",
+   "steps": 145,
+   "sim_s": 14.5,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10010,
+   "status": "success",
+   "steps": 164,
+   "sim_s": 16.400000000000002,
+   "pure_turn_frac": 0.06707317073170732,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10011,
+   "status": "success",
+   "steps": 144,
+   "sim_s": 14.4,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10012,
+   "status": "success",
+   "steps": 150,
+   "sim_s": 15.0,
+   "pure_turn_frac": 0.006666666666666667,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10013,
+   "status": "success",
+   "steps": 144,
+   "sim_s": 14.4,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10014,
+   "status": "success",
+   "steps": 136,
+   "sim_s": 13.600000000000001,
+   "pure_turn_frac": 0.029411764705882353,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10015,
+   "status": "success",
+   "steps": 131,
+   "sim_s": 13.100000000000001,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10016,
+   "status": "success",
+   "steps": 126,
+   "sim_s": 12.600000000000001,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10017,
+   "status": "success",
+   "steps": 149,
+   "sim_s": 14.9,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10018,
+   "status": "success",
+   "steps": 135,
+   "sim_s": 13.5,
+   "pure_turn_frac": 0.0,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  },
+  {
+   "seed": 10019,
+   "status": "success",
+   "steps": 142,
+   "sim_s": 14.200000000000001,
+   "pure_turn_frac": 0.014084507042253521,
+   "contact_model": "contact_v2",
+   "actuator_limits": "sourced_v1"
+  }
+ ]
+}

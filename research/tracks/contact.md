@@ -351,7 +351,17 @@ w8d (running, host, `artifacts/runs/contact_t1_w8d`): 800 more iters from w8c wi
 **LEAD DECISION RULE (2026-09-27):** install w8d as `artifacts/trackers/t1/contact_v2/actor.pt` iff it passes the lab gate (no-fall 1.0, fwd >= 0.8,
 turn >= 0.5, turn at 0.48 >= 0.5, arc yaw >= 0.6, slip < 0.15) AND >= 19/20 waypoint episodes AND 0/50 falls per command. Otherwise, or if w8d is not validated
 when the lead reports that W8's go2 run has freed its GPU slots, install w8c labelled "t1 sourced-limits w8c: waypoint 20/20; lab gate fails forward 0.64 and slip 0.152".
-Record the chosen sha here and tell the lead. 50-episode fall checks (`fallrate/t1_{w8,w8b}_*.json`): **0/50 falls** for both on turn, turn at 0.48,
+Record the chosen sha here and tell the lead.
+**w8d result** (`artifacts/runs/contact_t1_w8d`, 800 iters from w8c on the new permanent-standing defaults; host-shed 10x, finished on the peer at 3 workers x 64
+envs): `val/t1_w8d-ideal`: no-fall 1.00, **fwd 0.72** (gate FAILS), turn 1.09, turn at 0.48 0.96, arc 1.92, slip 0.137, CoT 2.13, contact gate TRUE; waypoint
+**20/20** (mean 14.7 s, `w8loop/t1_w8d_sourced.json`); fall checks 0/50 on all four commands. At v1lat 30 ms: no-fall 0.83 (falls in the arc trial).
+w8d is at least as good as w8c on every lab metric and passes slip (0.137 vs 0.152), but misses fwd >= 0.8.
+**INSTALLED (per the rule): w8c** -> `artifacts/trackers/t1/contact_v2/actor.pt` on the host worktree and the peer shared store,
+**sha256 863d2469430231f65d8f9a475fdd25f78aedae9e23aa8c008b8d5f3a3ad768a9**, meta.install_label = "t1 sourced-limits w8c: waypoint 20/20; lab gate fails
+forward 0.64 and slip 0.152". It loads under the default sourced limits. Previous (legacy-limit turn-trained) t1 backed up at
+`~/work/rrp-data/contact-v1-actors/t1_prev_install/` and peer `artifacts/runs/contact_installed/t1_prev_turn2_legacy/`.
+Recommendation to the lead: swap to w8d (`artifacts/runs/contact_t1_w8d/actor.pt`, sha 36e9146792743115); it dominates w8c.
+Correction: an earlier message to the lead quoted w8c's sha as be4bb80c3b43da68. That was wrong; the file's sha is 863d2469430231f6. 50-episode fall checks (`fallrate/t1_{w8,w8b}_*.json`): **0/50 falls** for both on turn, turn at 0.48,
 arc and forward.
 Videos (reviewed): `artifacts/video/2026-09-27_contact_t1_{turn,turn_fast,arc,forward}_w8installed-vs-w8mix_iter1499_ok_ok.mp4`
 (left: W8 installed t1 under LEGACY limits, right: candidate under SOURCED limits).
