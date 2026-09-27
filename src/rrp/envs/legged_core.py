@@ -167,13 +167,16 @@ class LeggedBinding:
                 self._pitch_idx = None
         return self._pitch_idx
 
+    REF_VMAX = 0.25      # the reference is applied only for slow/turn-in-place commands (|v_xy| < REF_VMAX m/s)
+
     def ref_offset(self, phase: float, cmd, amp: float) -> np.ndarray:
         """Clock-driven stepping reference (feed-forward, ref_ff): swing leg hip_pitch -a, knee +2a, ankle_pitch -a,
         a = amp x |sin 2 pi phase| (left swings for phase >= 0.5); zero when the command is ~0 or the body is not a biped."""
         out = np.zeros(self.n)
         idx = self.pitch_idx()
         c = np.asarray(cmd, float)
-        if idx is None or not amp or (np.linalg.norm(c[:2]) <= 0.05 and abs(c[2]) <= 0.05):
+        if idx is None or not amp or (np.linalg.norm(c[:2]) <= 0.05 and abs(c[2]) <= 0.05) \
+                or np.linalg.norm(c[:2]) >= self.REF_VMAX:
             return out
         sp = math.sin(2 * math.pi * phase)
         for ii, a_ in ((idx[0], amp * max(-sp, 0.0)), (idx[1], amp * max(sp, 0.0))):
