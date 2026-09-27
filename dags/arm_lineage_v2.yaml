@@ -1,0 +1,37 @@
+# ARM V2-TEACHER LINEAGES (D-102): the arm lineage DAG (dags/arm_lineage.yaml, same recipe, rounds, seeds, collection
+# seeds, eval sets and edit suite) on v2 components ONLY:
+#   data  = datasets/pick_place_primary_v4dart + pack latent_pp_v4dart_s1_H16 (scripted_teacher:pick_place_v2_minjerk)
+#   DAgger labeller / stateless-R1 expert = learned:bcv2_direct1701 at u12000 (sha256[:16] 6afcb8efdc277708; trained on
+#   v4dart, research/tracks/armexpert.md), replacing direct1701_u12000 (v1 data).
+# Variants: semfix and nosem (the defective original sem is dropped) x training seeds 1, 2. Everything else is inherited.
+# Resources (lead: <= 2 concurrent GPU leases, <= 10 CPU on the peer): collections run 4 workers x 2 threads (8 CPU;
+# threads do not change results), the edit suite 6 workers. Outputs artifacts/runs/armv2/arm2-<variant>/...
+#   rrp run-dag dags/arm_lineage_v2.yaml --dry-run
+#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv2 rrp run-dag dags/arm_lineage_v2.yaml
+extends: arm_lineage.yaml
+name: arm_lineage_v2
+track: armv2
+lineage: 'arm2-{variant}'
+label_prefix: 'a2{tg}{seed}'
+matrix:
+  variant: [semfix, nosem]
+  seed: [1, 2]
+vars:
+  pfx: 'arm2_{variant}_s{seed}'
+  dataset: datasets/pick_place_primary_v4dart
+  pack: packed/latent_pp_v4dart_s1_H16
+  bc_policy: 'runs/armexpert_bcv2/baseline_direct_action/seed1701/source:policy_u12000.pt'
+  bc_label: bcv2_direct1701_u12000
+defaults:
+  max_parallel_gpu: 2
+  max_cpu: 10
+nodes:
+  bc1: {resources: {cpu: 8, mem: 32G}, config: {options: {workers: 4, threads: 2}}}
+  bc2: {resources: {cpu: 8, mem: 32G}, config: {options: {workers: 4, threads: 2}}}
+  bc3: {resources: {cpu: 8, mem: 32G}, config: {options: {workers: 4, threads: 2}}}
+  gen1: {resources: {cpu: 8, mem: 32G}, config: {options: {workers: 4, threads: 2}}}
+  gen2: {resources: {cpu: 8, mem: 32G}, config: {options: {workers: 4, threads: 2}}}
+  gen3: {resources: {cpu: 8, mem: 32G}, config: {options: {workers: 4, threads: 2}}}
+  gdag1: {resources: {cpu: 8, mem: 32G}, config: {options: {workers: 4, threads: 2}}}
+  gdag2: {resources: {cpu: 8, mem: 32G}, config: {options: {workers: 4, threads: 2}}}
+  semedits: {resources: {cpu: 6, mem: 12G}, config: {options: {workers: 6}}}

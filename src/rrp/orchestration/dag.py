@@ -117,11 +117,22 @@ class Plan:
                     [k for k in self.order if k in keep], self.defaults, self.track, self.source)
 
 
-def load_dag(path: Path | str) -> dict:
+def load_dag(path: Path | str, _seen: tuple = ()) -> dict:
+    """Load a DAG file. `extends: <parent.yaml>` (path relative to this file) deep-merges this file over the parent
+    (runconfig.overlay: dicts merge, lists and scalars replace, None deletes), e.g. a new data/expert set that changes
+    only names, matrix and input vars of an existing DAG (dags/arm_lineage_v2.yaml)."""
     from rrp.orchestration.yamlmini import load
     p = Path(path)
     d = load(p.read_text())
-    if not isinstance(d, dict) or "nodes" not in d:
+    if not isinstance(d, dict):
+        raise DagError(f"{p}: not a DAG file")
+    parent = d.pop("extends", None)
+    if parent:
+        pp = (p.parent / parent).resolve()
+        if pp in _seen:
+            raise DagError(f"{p}: circular extends ({pp})")
+        d = overlay(load_dag(pp, _seen + (p.resolve(),)), d)
+    if "nodes" not in d:
         raise DagError(f"{p}: not a DAG file (no nodes)")
     return d
 
