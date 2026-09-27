@@ -255,7 +255,11 @@ Attempts for (2):
 - d: ref_ff 0.08 rad and ONLY for slow/turn-in-place commands (|v| < 0.25 m/s), so normal walking is untouched. h1 FAILED
   (`val/h1_stepd_physv2.json`, 3000 iters): turn 0.02 with stance fraction 1.0 and air 0 in the turn trial (the feet never lift), although fwd 0.69->1.19,
   slip 0.12, arc yaw 1.33 and one arc fall (no-fall 0.96). Note: from iter ~560 to ~620 a DUPLICATE trainer (an orphaned retry loop from the
-  c->d restart) wrote the same run dir. It was stopped, and the launcher now takes a per-dir flock. h1 host
+  c->d restart) wrote the same run dir. It was stopped, and the launcher now takes a per-dir flock.
+  g1 (attempt d, peer): shed by the PEER memory watchdog at iter 763 (training fall rate 0.66-0.79). Deterministic check of that checkpoint: g1 now
+  STEPS and TURNS in place at low yaw rates (turn ratio 0.89 / 0.84 at 0.1 / 0.2 rad/s, both feet down only 56-74% of the time), but not at 0.36
+  (0.16; the curriculum was still at half range). Resumed on the peer (lease 1790524556_be3e29, `--resume`, to 3000). g1 is the first biped where the
+  slow-stepping recipe produced deterministic turning in place. h1 host
   `artifacts/runs/contact_h1_step` (lease 1790518222_a2ad53), g1 peer `artifacts/runs/contact_g1_step` (lease 1790517947_132a38). A process
   mix-up during the c->d restart (an old wrapper relaunched once into the new dir) was caught; that output is in `contact_h1_step_junk`, not used.
 ### (3) t1 turning + latency under v1lat: running
