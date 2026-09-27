@@ -6,7 +6,7 @@ B=$1; RUN=$2
 PY=${PY:-$HOME/work/relational-robot-policy/.venv/bin/python}
 mkdir -p artifacts/trackers/$B/contact_v2
 cp "$RUN/actor.pt" artifacts/trackers/$B/contact_v2/actor.pt
-cp "$RUN/train_log.jsonl" artifacts/trackers/$B/contact_v2/train_log.jsonl
+python3 -c "import json,sys; o=open(sys.argv[2],\"w\"); [o.write(l) for l in open(sys.argv[1]) if (lambda r: r[\"iter\"] % 10 == 0 or r.get(\"gate\"))(json.loads(l))]" "$RUN/train_log.jsonl" artifacts/trackers/$B/contact_v2/train_log_every10.jsonl
 cp "$RUN/meta.json" artifacts/trackers/$B/contact_v2/meta.json
 L=$(mktemp); echo "$B v2 v2 v2trk" > $L
 [ -f "$RUN/actor_alpha0.pt" ] && echo "$B $RUN/actor_alpha0.pt v2 v2alpha0" >> $L

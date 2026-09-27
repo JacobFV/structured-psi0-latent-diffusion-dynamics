@@ -1,0 +1,135 @@
+WARNING: Attach conflict when attaching 'go2' to 'go2_world', policy is 'warning'
+impratio: parent has 10 (default), child has 100, keeping parent value
+
+/home/brandonin/work/rrp-wt/contact/src/rrp/morphology/legged.py:475: UserWarning: Attach conflict when attaching 'go2' to 'go2_world', policy is 'warning'
+impratio: parent has 10 (default), child has 100, keeping parent value
+  model = scene.compile()
+{
+ "body": "go2",
+ "kind": "learned",
+ "gate": {
+  "no_fall_rate": 1.0,
+  "forward_ratio": 1.0393180386124279,
+  "turn_ratio": 0.7478832859689492,
+  "stand_ok": true,
+  "passed": true,
+  "contact_gate": {
+   "slip_ratio": 0.022078905403708292,
+   "slip_ok": true,
+   "duty_min": 0.43812709030100333,
+   "duty_max": 0.5518394648829431,
+   "stepping_ok": true,
+   "swing_apex_m": 0.005613832867472425,
+   "swing_target_m": 0.06,
+   "clearance_ok": false,
+   "passed": false
+  }
+ },
+ "summary": {
+  "stand": {
+   "fall_rate": 0.0,
+   "dist_m": 0.02767340063824781,
+   "mean_vx": -8.267382373416214e-05,
+   "mean_wz": -0.0007251297763309998,
+   "slip_mps": 0.0033426388361265337,
+   "cot": null,
+   "slip_cp_mps": 0.0004887167085261979,
+   "body_speed_mps": 0.0017500526984111607,
+   "slip_ratio": 0.024435835426309897,
+   "duty_min": 1.0,
+   "duty_max": 1.0,
+   "air_time_s": 0.0,
+   "swing_apex_m": 0.0,
+   "step_hz": 0.0,
+   "cmd": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  "forward": {
+   "fall_rate": 0.0,
+   "dist_m": 6.182135599365275,
+   "mean_vx": 0.6235908231674566,
+   "mean_wz": 0.015347522213100992,
+   "slip_mps": 0.2081930932267413,
+   "cot": 0.6480496995290552,
+   "slip_cp_mps": 0.013773612012953462,
+   "body_speed_mps": 0.6238532515802869,
+   "slip_ratio": 0.022078905403708292,
+   "duty_min": 0.4414715719063545,
+   "duty_max": 0.5498327759197325,
+   "air_time_s": 0.18169696969696963,
+   "swing_apex_m": 0.005613832867472425,
+   "step_hz": 2.7591973244147154,
+   "cmd": [
+    0.6,
+    0.0,
+    0.0
+   ]
+  },
+  "turn": {
+   "fall_rate": 0.0,
+   "dist_m": 0.03753182122974055,
+   "mean_vx": 0.009351550680923122,
+   "mean_wz": 0.44872997158136946,
+   "slip_mps": 0.034532293050133986,
+   "cot": null,
+   "slip_cp_mps": 0.008376725449974398,
+   "body_speed_mps": 0.037417966794750665,
+   "slip_ratio": 0.22371617628090568,
+   "duty_min": 0.6326359832635984,
+   "duty_max": 0.8058577405857742,
+   "air_time_s": 0.14162517654158518,
+   "swing_apex_m": 0.000620410316729376,
+   "step_hz": 1.8828451882845187,
+   "cmd": [
+    0.0,
+    0.0,
+    0.6
+   ]
+  },
+  "arc": {
+   "fall_rate": 0.0,
+   "dist_m": 1.8934513377862943,
+   "mean_vx": 0.5033025576463641,
+   "mean_wz": 0.4396825342503462,
+   "slip_mps": 0.17947938364644336,
+   "cot": 1.850618129775895,
+   "slip_cp_mps": 0.019599180688060526,
+   "body_speed_mps": 0.5040763374213254,
+   "slip_ratio": 0.03887966164512331,
+   "duty_min": 0.47625418060200675,
+   "duty_max": 0.5919732441471572,
+   "air_time_s": 0.16571880457850607,
+   "swing_apex_m": 0.005457613783735692,
+   "step_hz": 2.7675585284280935,
+   "cmd": [
+    0.5,
+    0.0,
+    0.4
+   ]
+  },
+  "push_fwd": {
+   "fall_rate": 0.0,
+   "dist_m": 6.156208058098043,
+   "mean_vx": 0.6195486950380565,
+   "mean_wz": 0.018600201217323642,
+   "slip_mps": 0.20814102425080513,
+   "cot": 0.6496196611215368,
+   "slip_cp_mps": 0.01575932857097089,
+   "body_speed_mps": 0.620389511058625,
+   "slip_ratio": 0.025404267715459405,
+   "duty_min": 0.44280936454849495,
+   "duty_max": 0.5498327759197325,
+   "air_time_s": 0.18000723654454995,
+   "swing_apex_m": 0.005667976726791224,
+   "step_hz": 2.7675585284280935,
+   "cmd": [
+    0.6,
+    0.0,
+    0.0
+   ]
+  }
+ }
+}
