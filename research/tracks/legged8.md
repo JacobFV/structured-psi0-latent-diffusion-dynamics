@@ -53,7 +53,7 @@ Everything goes through `rrp run-dag dags/legged_v2_anymal.yaml` (61 nodes; deri
 | step | state | evidence |
 |---|---|---|
 | worktree, tracker install, rrp changes + tests | verified | commit 7f39e66; peer pytest lease 1790496346_ab6066 rc=0 |
-| gate 0 smoke (`dags/legged_v2_anymal_smoke.yaml`: 20 episodes, 300 steps, 2 eval episodes) | running | `artifacts/runs/legged8/smoke_rundag.log`, ledger `artifacts/runs/legged8/_dags/legged_v2_anymal_smoke/` |
+| gate 0 smoke (`dags/legged_v2_anymal_smoke.yaml`: 20 episodes, 300 steps, 2 eval episodes; semfix + nosem, seed 0) | verified | 17/17 nodes completed 01:03-01:10 (host log `artifacts/runs/legged8/smoke_rundag.log`, ledger `artifacts/runs/legged8/_dags/legged_v2_anymal_smoke/ledger.json`; outputs peer store `artifacts/runs/legged8/legged8smoke-anymal_c-*`). Every manifest records contact_version contact_v2 and git sha 7f39e66; eval rows: scene contact_v2, tracker `learned_tracker:anymal_c:iter2499:contact_v2`. After the checkpoint-contact check was added, 3 eval nodes were rerun (leases 1790496679_df690f, 1790496691_b94fe9, 1790496713_3e7266): checkpoint_contact flow/bc = contact_v2. Plumbing only (300-step models): teacher 2/2, BC 0/2 (falls), R2 0/2. Unit suite on the peer: 324 passed, 2 skipped (lease 1790496752_d09826). |
 | full DAG | planned | |
 
 ## resume
