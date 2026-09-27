@@ -97,6 +97,7 @@ v1 = the v1 tracker in contact_v1 physics (the currently deployed pair). v2 = th
 Installed contact_v2 trackers (gitignored weights; `artifacts/trackers/<body>/contact_v2/actor.pt`, selectable with contact="v2" /
 $RRP_CONTACT_MODEL=v2; v1 stays the default): t1 iter5099 (sha 87e233c6c01f449b), h1 r2 iter5499 (92bff757bf334109), g1 r1 iter3999
 (8b8a99cbc833f150), go2 iter3499 (48c632d75b2795c9), anymal_c v2c iter2499 (2a16532bbd07f7ab; alpha0 snapshot 3796df094f2ce85e).
+g1 round 2 (`artifacts/runs/contact_g1_v2_r2`, iter5499, alpha stayed 0) validated as a close alternative: slip 0.08, CoT 0.90, fwd 0.96, apex 5.7 cm, turn 0.01 (`val/g1_v2trk-r2_physv2.json`); round 1 stays installed (better tracking and clearance).
 hexapod6: no acceptable learned v2 tracker (3 rejected runs); the scripted CPG tripod stays (slip 0.20 in v2 physics).
 Arc trial (walk + turn): yaw-rate ratio v1 -> v2: t1 0.71 -> 0.98, h1 0.13 -> 0.64, g1 0.49 -> 1.15, go2 1.05 -> 1.10, anymal_c 0.63 -> 1.05;
 no falls in any stand/arc/push trial.
