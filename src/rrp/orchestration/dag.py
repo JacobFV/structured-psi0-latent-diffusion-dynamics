@@ -391,7 +391,7 @@ def _parse_ops_json(text: str) -> dict:
     return {}
 
 
-_CAPACITY = re.compile(r"aggregate limit|gpu owners|CapacityError|capacity|insufficient", re.I)
+_CAPACITY = re.compile(r"aggregate limit|gpu owners|CapacityError|capacity|insufficient|AdmissionStopped|admission stopped", re.I)
 
 
 class OpsRunner:

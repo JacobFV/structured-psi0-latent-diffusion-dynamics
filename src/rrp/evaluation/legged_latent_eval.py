@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import gc
 import json
 import math
 import os
@@ -644,6 +645,8 @@ def main(argv=None):
                     nv += 1
                 rows.append(row)
                 f.write(json.dumps(row) + "\n"); f.flush()
+                del frames, ctl
+                gc.collect()      # W8: sessions sit in reference cycles (~0.45 GB each in contact_v2); free per episode
                 print(json.dumps({k: row[k] for k in ("body", "seed", "source", "edit", "success", "fell", "sim_time",
                                                       "failure_stage")}),
                       flush=True)

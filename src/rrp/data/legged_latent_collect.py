@@ -15,6 +15,7 @@ usage: python -m rrp.data.legged_latent_collect --body go2 --seeds 0-399 --out a
 from __future__ import annotations
 
 import argparse
+import gc
 import json
 import time
 from pathlib import Path
@@ -143,6 +144,8 @@ def main(argv=None):
         arr, meta, morph = collect_episode(a.body, sd, sig[i % len(sig)], a.tracker, arc_only=a.arc_only)
         eps.append(arr)
         metas.append(meta)
+        gc.collect()      # W8: each episode's session (~0.45 GB in contact_v2) sits in reference cycles; without a full
+        #                   collection a 100-episode shard grew to ~13+ GB RSS and the peer watchdog shed the job
         print(json.dumps({k: meta[k] for k in ("seed", "sigma", "status", "steps", "ticks")}), flush=True)
     cat = {k: np.concatenate([e[k] for e in eps]) for k in eps[0]}
     cat["ep"] = np.concatenate([np.full(len(e["a"]), i) for i, e in enumerate(eps)])

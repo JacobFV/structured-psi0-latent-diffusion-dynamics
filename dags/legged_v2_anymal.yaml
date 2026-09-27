@@ -12,7 +12,7 @@
 #   z-edit suite (incl. random |dz| 1-25) and task-context suite (halt, mirror active/inactive) on snap_s4000,
 #   dev 10000-10019, t_edit 2 s, window 2-5 s, with paired mirror effects.
 # Outputs: artifacts/runs/legged8/legged8-anymal_c-<variant>/<stage>[-<tag>]_s<seed>; shared nodes under
-# artifacts/runs/legged8/legged8-anymal_c-v2data/. Compute (W8 brief): <= 2 GPU nodes, CPU nodes <= 10 cores.
+# artifacts/runs/legged8/legged8-anymal_c-v2data/. Compute: <= 3 GPU nodes (lead, 2026-09-27 while the peer GPU is free), CPU nodes <= 10 cores (sum <= 19 with 3 GPU jobs); ~2 GB RSS per eval/collect process after the gc fix.
 name: legged_v2_anymal
 schema: dag-1
 family: legged
@@ -50,16 +50,16 @@ defaults:
   placement: peer
   retries: 0
   max_parallel: 6
-  max_parallel_gpu: 2
-  max_cpu: 16
-  resources: {cpu: 10, mem: 12G, gpu: false, max_seconds: 14400}
+  max_parallel_gpu: 3
+  max_cpu: 19
+  resources: {cpu: 10, mem: 24G, gpu: false, max_seconds: 14400}
 base:
   flags: {contact_version: contact_v2}
 nodes:
   collect:
     stage: collect
     scope: global
-    resources: {cpu: 6, mem: 8G, max_seconds: 10800}
+    resources: {cpu: 6, mem: 16G, max_seconds: 10800}
     config:
       options: {body: '{body}', seeds: '{cseeds}', shard_size: '{shard}', workers: 6, sigmas: '0,0.1,0.2,0.3'}
   bc:
