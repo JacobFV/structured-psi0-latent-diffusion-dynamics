@@ -34,12 +34,16 @@
    ],
    "contract": "docs/00_scope_and_acceptance.md",
    "expected_evidence": "proof-linked release matrix; no scaffold-only closure",
-   "status": "not_started",
-   "evidence_paths": [],
+   "status": "implementing",
+   "evidence_paths": [
+    "STATUS.md",
+    "docs/strategy.md",
+    "research/decisions.md"
+   ],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "overall in_progress: architecture built and tested on several bodies; sealed target-body campaign, contact v2 legged regeneration and restructure (W1-W9) outstanding"
   },
   {
    "id": "R02",
@@ -50,44 +54,66 @@
    ],
    "contract": "docs/03_resource_safety.md",
    "expected_evidence": "redacted distinct-host capability receipts",
-   "status": "not_started",
-   "evidence_paths": [],
-   "test_command": null,
-   "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "status": "verified",
+   "evidence_paths": [
+    "artifacts/receipts/ops/peer-discovery.json",
+    "research/decisions.md"
+   ],
+   "test_command": ".venv/bin/python -m pytest tests/unit -q -k budget",
+   "artifact_paths": [
+    "artifacts/receipts/ops/peer-discovery.json"
+   ],
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": null,
+   "decisions": [
+    "D-002"
+   ]
   },
   {
    "id": "R03",
-   "description": "aggregate host use \u226450% CURRENTLY FREE resources",
+   "description": "aggregate host use ≤50% CURRENTLY FREE resources",
    "tasks": [
     "P02",
     "P03"
    ],
    "contract": "docs/03_resource_safety.md",
    "expected_evidence": "effective parent quotas, measured baseline, load-change and child tests",
-   "status": "not_started",
-   "evidence_paths": [],
-   "test_command": null,
-   "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "status": "verified",
+   "evidence_paths": [
+    "artifacts/receipts/ops/enforcement-tests-host.txt",
+    "tests/integration/test_resource_enforcement.py",
+    "research/decisions.md"
+   ],
+   "test_command": ".venv/bin/python -m pytest tests/integration/test_resource_enforcement.py",
+   "artifact_paths": [
+    "artifacts/receipts/ops/enforcement-tests-host.txt"
+   ],
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "limit changed by the user: host 80% of free CPU/memory with host GPU and >=100 GB free disk (D-027, D-033, D-086); peer unrestricted (D-026). Enforcement mechanism unchanged.",
+   "decisions": [
+    "D-004"
+   ]
   },
   {
    "id": "R04",
-   "description": "fresh implementation with meaningful \u03c8\u2080 pretrained integration",
+   "description": "fresh implementation with meaningful ψ₀ pretrained integration",
    "tasks": [
     "P14",
     "P16"
    ],
    "contract": "docs/01_architecture.md",
    "expected_evidence": "source-locked backbone; real image features and learned rollout",
-   "status": "not_started",
-   "evidence_paths": [],
+   "status": "implementing",
+   "evidence_paths": [
+    "research/decisions.md"
+   ],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "VLM system II (Qwen3-VL) only smoke-tested (weights hash-verified); no trained psi0/VLM integration result",
+   "decisions": [
+    "D-040"
+   ]
   },
   {
    "id": "R05",
@@ -99,28 +125,43 @@
    ],
    "contract": "docs/07_research_protocol.md",
    "expected_evidence": "zero-update and adaptation curves; controller/integration accounting",
-   "status": "not_started",
-   "evidence_paths": [],
+   "status": "implementing",
+   "evidence_paths": [
+    "research/reports/latent_slice1_b1fix_baselines_tables.md",
+    "research/decisions.md"
+   ],
    "test_command": null,
-   "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "artifact_paths": [
+    "artifacts/runs/latent_slice1_b1fix/"
+   ],
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "BC budget-0 transfer measured (panda_tf3 78-85/100, xarm7 0/100); latent methods and SFT budgets on the sealed targets not run (W9)",
+   "decisions": [
+    "D-064"
+   ]
   },
   {
    "id": "R06",
-   "description": "\u03c8\u2080-style low-level tracking and controller-specific action contracts",
+   "description": "ψ₀-style low-level tracking and controller-specific action contracts",
    "tasks": [
     "P08",
     "P12"
    ],
    "contract": "docs/04_simulation_robots_and_surgery.md",
    "expected_evidence": "separate validated original/SONIC/native command contracts",
-   "status": "not_started",
-   "evidence_paths": [],
-   "test_command": null,
+   "status": "implementing",
+   "evidence_paths": [
+    "tests/unit/test_psi_contracts.py",
+    "research/tracks/contact.md",
+    "research/decisions.md"
+   ],
+   "test_command": ".venv/bin/python -m pytest tests/unit -q -k 'psi or tracker'",
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "arm joint-target tracking works; legged trackers skate under contact v1 and fail the slip gate (D-093); contact v2 retraining running (W1)",
+   "decisions": [
+    "D-093"
+   ]
   },
   {
    "id": "R07",
@@ -133,12 +174,16 @@
    ],
    "contract": "docs/02_interfaces.md",
    "expected_evidence": "serialized public/private separation and leakage tests",
-   "status": "not_started",
-   "evidence_paths": [],
-   "test_command": null,
+   "status": "verified",
+   "evidence_paths": [
+    "tests/unit/test_latent_boundary.py",
+    "tests/unit/test_contracts.py",
+    "src/rrp/data/features.py"
+   ],
+   "test_command": ".venv/bin/python -m pytest tests/unit -q -k 'boundary or contracts'",
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "leakage is guarded by tests of the contracts and latent boundary; the featurizer itself has no direct test (repo_structure_audit.md section 6)"
   },
   {
    "id": "R08",
@@ -149,11 +194,14 @@
    ],
    "contract": "docs/02_interfaces.md",
    "expected_evidence": "ordered role/incidence, predicates/effects, actual output binding",
-   "status": "not_started",
-   "evidence_paths": [],
-   "test_command": null,
+   "status": "verified",
+   "evidence_paths": [
+    "tasks/",
+    "tests/unit/test_task_runtime.py"
+   ],
+   "test_command": ".venv/bin/python -m pytest tests/unit -q -k task_runtime",
    "artifact_paths": [],
-   "source_revision": null,
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
    "limitations": null
   },
   {
@@ -165,12 +213,17 @@
    ],
    "contract": "docs/05_workbench.md",
    "expected_evidence": "actual browser commands, versioned edits, stale chunk rejection",
-   "status": "not_started",
-   "evidence_paths": [],
-   "test_command": null,
-   "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "status": "verified",
+   "evidence_paths": [
+    "tests/browser/workbench.spec.ts",
+    "artifacts/video/workbench-demo.webm"
+   ],
+   "test_command": "python tests/browser/run_browser_tests.py",
+   "artifact_paths": [
+    "artifacts/video/workbench-demo.webm"
+   ],
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "verified 2026-09-21 (15/15 browser tests); not re-run since"
   },
   {
    "id": "R10",
@@ -182,12 +235,17 @@
    ],
    "contract": "docs/05_workbench.md",
    "expected_evidence": "physics-backed selection/movement/replay browser evidence",
-   "status": "not_started",
-   "evidence_paths": [],
-   "test_command": null,
-   "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "status": "verified",
+   "evidence_paths": [
+    "tests/browser/workbench.spec.ts",
+    "artifacts/video/workbench-demo.webm"
+   ],
+   "test_command": "python tests/browser/run_browser_tests.py",
+   "artifact_paths": [
+    "artifacts/video/workbench-demo.webm"
+   ],
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "verified 2026-09-21; not re-run since"
   },
   {
    "id": "R11",
@@ -199,12 +257,19 @@
    ],
    "contract": "docs/04_simulation_robots_and_surgery.md",
    "expected_evidence": "catalogue plus distinct executed family/controller/policy ledger",
-   "status": "not_started",
-   "evidence_paths": [],
+   "status": "implementing",
+   "evidence_paths": [
+    "research/tracks/bodies.md",
+    "research/tracks/legged_vlm.md",
+    "research/decisions.md"
+   ],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "bodies and scripted teachers exist for arms, dual arms, quadrupeds, hexapod and humanoids; learned latent control on go2, hexapod6, t1 (contact v1) and arms; g1 blocked at the BC positive control; no mobile manipulators",
+   "decisions": [
+    "D-073"
+   ]
   },
   {
    "id": "R12",
@@ -215,12 +280,15 @@
    ],
    "contract": "docs/04_simulation_robots_and_surgery.md",
    "expected_evidence": "validated attachments, physics lineage and heldout combinations",
-   "status": "not_started",
-   "evidence_paths": [],
-   "test_command": null,
+   "status": "verified",
+   "evidence_paths": [
+    "tests/unit/test_surgery.py",
+    "src/rrp/morphology/surgery.py"
+   ],
+   "test_command": ".venv/bin/python -m pytest tests/unit -q -k surgery",
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "gripper/arm module swaps verified; whole-body swaps limited to the catalog"
   },
   {
    "id": "R13",
@@ -231,12 +299,15 @@
    ],
    "contract": "docs/01_architecture.md",
    "expected_evidence": "hierarchical pooling/FK and geometry/identity tests",
-   "status": "not_started",
-   "evidence_paths": [],
+   "status": "implementing",
+   "evidence_paths": [
+    "src/rrp/model/semantic_latent.py",
+    "src/rrp/model/legged_latent.py"
+   ],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "not re-audited in W2"
   },
   {
    "id": "R14",
@@ -247,12 +318,14 @@
    ],
    "contract": "docs/01_architecture.md",
    "expected_evidence": "variable n, permutation, masks and independent actuator tests",
-   "status": "not_started",
-   "evidence_paths": [],
-   "test_command": null,
+   "status": "implementing",
+   "evidence_paths": [
+    "tests/unit/test_flow_model.py"
+   ],
+   "test_command": ".venv/bin/python -m pytest tests/unit -q -k flow_model",
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "not re-audited in W2"
   },
   {
    "id": "R15",
@@ -262,12 +335,14 @@
    ],
    "contract": "docs/01_architecture.md",
    "expected_evidence": "graph bias/input tests independent of VLM encoding",
-   "status": "not_started",
-   "evidence_paths": [],
+   "status": "implementing",
+   "evidence_paths": [
+    "src/rrp/model/semantic_latent.py"
+   ],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "not re-audited in W2"
   },
   {
    "id": "R16",
@@ -278,12 +353,14 @@
    ],
    "contract": "docs/01_architecture.md",
    "expected_evidence": "cached/uncached equivalence; packed versus naive latency",
-   "status": "not_started",
-   "evidence_paths": [],
-   "test_command": null,
+   "status": "implementing",
+   "evidence_paths": [
+    "tests/unit/test_flow_model.py"
+   ],
+   "test_command": ".venv/bin/python -m pytest tests/unit -q -k flow_model",
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "not re-audited in W2"
   },
   {
    "id": "R17",
@@ -293,12 +370,20 @@
    ],
    "contract": "docs/01_architecture.md",
    "expected_evidence": "canonical slot probes, occluded-action and multiobject tests",
-   "status": "not_started",
-   "evidence_paths": [],
+   "status": "implementing",
+   "evidence_paths": [
+    "research/decisions.md",
+    "research/reports/evidence_matrix.md"
+   ],
    "test_command": null,
-   "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "artifact_paths": [
+    "artifacts/runs/"
+   ],
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "probe distinctions decodable from the packet (D-031); causal use shown only for goal/binding/halt edits, not for visibility vs focus",
+   "decisions": [
+    "D-031"
+   ]
   },
   {
    "id": "R18",
@@ -309,12 +394,12 @@
    ],
    "contract": "docs/01_architecture.md",
    "expected_evidence": "entity correspondence and prompt-invariance controls",
-   "status": "not_started",
+   "status": "planned",
    "evidence_paths": [],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "not re-audited in W2"
   },
   {
    "id": "R19",
@@ -325,12 +410,14 @@
    ],
    "contract": "docs/06_learning_and_adaptation.md",
    "expected_evidence": "live slot/projector gradients, frozen decoder, blank/shuffle controls",
-   "status": "not_started",
-   "evidence_paths": [],
-   "test_command": null,
+   "status": "implementing",
+   "evidence_paths": [
+    "tests/unit/test_object_qa.py"
+   ],
+   "test_command": ".venv/bin/python -m pytest tests/unit -q -k object_qa",
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": "superseded interpretation: must be satisfied on the transmitted latent packet (R38)"
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "test skips without transformers; no trained result"
   },
   {
    "id": "R20",
@@ -340,12 +427,17 @@
    ],
    "contract": "docs/01_architecture.md",
    "expected_evidence": "held-by relation per manipulator including handover/dual hold",
-   "status": "not_started",
-   "evidence_paths": [],
+   "status": "implementing",
+   "evidence_paths": [
+    "research/decisions.md"
+   ],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "held_by probe on the packet 0.956 (diagnostic only)",
+   "decisions": [
+    "D-031"
+   ]
   },
   {
    "id": "R21",
@@ -356,12 +448,17 @@
    ],
    "contract": "docs/01_architecture.md",
    "expected_evidence": "frame-aware poses/distances and analytic FK baseline",
-   "status": "not_started",
-   "evidence_paths": [],
+   "status": "implementing",
+   "evidence_paths": [
+    "research/decisions.md"
+   ],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "relative-position probe 0.054 m (diagnostic); goal edits causal on arm and legged (D-074, D-071)",
+   "decisions": [
+    "D-031"
+   ]
   },
   {
    "id": "R22",
@@ -372,12 +469,18 @@
    ],
    "contract": "docs/02_interfaces.md",
    "expected_evidence": "role/set readout, bimanual overlap and role intervention",
-   "status": "not_started",
-   "evidence_paths": [],
+   "status": "implementing",
+   "evidence_paths": [
+    "research/decisions.md"
+   ],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": "superseded interpretation: must be satisfied on the transmitted latent packet (R38)"
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "task-context goal and binding edits propagate through the packet on arms; dual-arm per-manipulator assignment not trained (D-043)",
+   "decisions": [
+    "D-074",
+    "D-091"
+   ]
   },
   {
    "id": "R23",
@@ -388,12 +491,17 @@
    ],
    "contract": "docs/06_learning_and_adaptation.md",
    "expected_evidence": "paired feasible swap alignment without capability erasure",
-   "status": "not_started",
-   "evidence_paths": [],
+   "status": "implementing",
+   "evidence_paths": [
+    "research/decisions.md"
+   ],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "encoded-z embodiment swap pg2<->tf3 focus agreement 0.98; no learned-route test across bodies",
+   "decisions": [
+    "D-032"
+   ]
   },
   {
    "id": "R24",
@@ -406,12 +514,18 @@
    ],
    "contract": "docs/02_interfaces.md",
    "expected_evidence": "real output-to-input dependence versus supplied stage sequence",
-   "status": "not_started",
-   "evidence_paths": [],
+   "status": "implementing",
+   "evidence_paths": [
+    "research/reports/functional_composition.md",
+    "research/decisions.md"
+   ],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "scripted-teacher functional composition only; learned dual-arm not shown",
+   "decisions": [
+    "D-043"
+   ]
   },
   {
    "id": "R25",
@@ -423,12 +537,12 @@
    ],
    "contract": "docs/09_sources_and_topoformer.md",
    "expected_evidence": "read-only source lock; provenance/failure-memory counterfactual tests",
-   "status": "not_started",
+   "status": "planned",
    "evidence_paths": [],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "not re-audited in W2"
   },
   {
    "id": "R26",
@@ -440,12 +554,12 @@
    ],
    "contract": "docs/01_architecture.md",
    "expected_evidence": "contact creation/slip/expiry/tangent uncertainty and causal ablation",
-   "status": "not_started",
+   "status": "implementing",
    "evidence_paths": [],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "per-leg contact semantics barely decodable/steerable (D-071, D-088); not re-audited in W2"
   },
   {
    "id": "R27",
@@ -457,12 +571,14 @@
    ],
    "contract": "docs/01_architecture.md",
    "expected_evidence": "calibration, null channels, risk/coverage and partial observation",
-   "status": "not_started",
-   "evidence_paths": [],
-   "test_command": null,
+   "status": "implementing",
+   "evidence_paths": [
+    "tests/unit/test_contracts.py"
+   ],
+   "test_command": ".venv/bin/python -m pytest tests/unit -q -k contracts",
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "known/confidence fields in predicate estimates; not re-audited in W2"
   },
   {
    "id": "R28",
@@ -473,12 +589,18 @@
    ],
    "contract": "docs/06_learning_and_adaptation.md",
    "expected_evidence": "valid path likelihood math and actual online update/outcomes",
-   "status": "not_started",
-   "evidence_paths": [],
+   "status": "planned",
+   "evidence_paths": [
+    "research/decisions.md",
+    "docs/strategy.md"
+   ],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "packet-policy GRPO built and likelihood-tested but no signal from a non-competent base (D-042); GRPO with anchor evals is W7",
+   "decisions": [
+    "D-042"
+   ]
   },
   {
    "id": "R29",
@@ -490,12 +612,14 @@
    ],
    "contract": "docs/06_learning_and_adaptation.md",
    "expected_evidence": "complete continuation snapshots and correct credit/accounting",
-   "status": "not_started",
-   "evidence_paths": [],
-   "test_command": null,
+   "status": "verified",
+   "evidence_paths": [
+    "tests/integration/test_adapt_branching.py"
+   ],
+   "test_command": ".venv/bin/python -m pytest tests/integration/test_adapt_branching.py",
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "code-level, on the old direct-action path; needs Menagerie assets"
   },
   {
    "id": "R30",
@@ -506,12 +630,14 @@
    ],
    "contract": "docs/06_learning_and_adaptation.md",
    "expected_evidence": "verified source-derived objective and actual short learning run",
-   "status": "not_started",
-   "evidence_paths": [],
+   "status": "planned",
+   "evidence_paths": [
+    "research/registry.jsonl"
+   ],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "old-path EXPO runs had a 0%-success base (registry adapt_expo_*); to be redone on the latent route (W7)"
   },
   {
    "id": "R31",
@@ -522,12 +648,19 @@
    ],
    "contract": "docs/01_architecture.md",
    "expected_evidence": "codec reconstruction/rollout gates plus direct-action comparator",
-   "status": "not_started",
-   "evidence_paths": [],
-   "test_command": null,
+   "status": "verified",
+   "evidence_paths": [
+    "research/decisions.md"
+   ],
+   "test_command": ".venv/bin/python -m pytest tests/unit -q -k latent",
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": "superseded interpretation: must be satisfied on the transmitted latent packet (R38)"
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "trainable packet with a standardized valid target; deployable routes competent on go2/hexapod6/t1 (contact v1) and partial on arms",
+   "decisions": [
+    "D-031",
+    "D-070",
+    "D-078"
+   ]
   },
   {
    "id": "R32",
@@ -539,12 +672,19 @@
    ],
    "contract": "docs/07_research_protocol.md",
    "expected_evidence": "same public information, independent seeds, raw counts and failures",
-   "status": "not_started",
-   "evidence_paths": [],
+   "status": "implementing",
+   "evidence_paths": [
+    "research/reports/evidence_matrix.md",
+    "research/decisions.md"
+   ],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "BC positive controls on identical seeds and inputs; sealed four-way campaign not run; compute not matched (D-035)",
+   "decisions": [
+    "D-050",
+    "D-083"
+   ]
   },
   {
    "id": "R33",
@@ -555,12 +695,19 @@
    ],
    "contract": "docs/07_research_protocol.md",
    "expected_evidence": "synchronized components, NFE/node-size sweep and memory telemetry",
-   "status": "not_started",
-   "evidence_paths": [],
+   "status": "verified",
+   "evidence_paths": [
+    "research/decisions.md"
+   ],
    "test_command": null,
-   "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "artifact_paths": [
+    "artifacts/runs/lead_latency_final/flowjf20k_vs_direct18k.json"
+   ],
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "p95 overhead 1.014x on a quiet GPU",
+   "decisions": [
+    "D-058"
+   ]
   },
   {
    "id": "R34",
@@ -571,12 +718,12 @@
    ],
    "contract": "docs/01_architecture.md",
    "expected_evidence": "actual VLM-backed run and larger profile receipt or explicit resource boundary",
-   "status": "not_started",
+   "status": "planned",
    "evidence_paths": [],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "only small profiles trained"
   },
   {
    "id": "R35",
@@ -589,12 +736,19 @@
    ],
    "contract": "docs/10_autonomy_and_recovery.md",
    "expected_evidence": "lease expiry, ownership, checkpoint/restart and owned-only shutdown",
-   "status": "not_started",
-   "evidence_paths": [],
+   "status": "implementing",
+   "evidence_paths": [
+    "AGENTS.md",
+    "research/decisions.md"
+   ],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "resumable chains and leases work; incidents D-061 (duplicate launches) and D-090 (sync into the lead's dir) show gaps; DAG runner is W5",
+   "decisions": [
+    "D-061",
+    "D-090"
+   ]
   },
   {
    "id": "R36",
@@ -605,12 +759,16 @@
    ],
    "contract": "docs/08_tests_and_release.md",
    "expected_evidence": "real commands, local paths+hashes, videos/brief and clean-environment check",
-   "status": "not_started",
-   "evidence_paths": [],
-   "test_command": null,
+   "status": "implementing",
+   "evidence_paths": [
+    "docs/strategy.md",
+    "research/naming.md",
+    "research/tracks/hygiene.md"
+   ],
+   "test_command": ".venv/bin/python -m pytest tests/unit -q",
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "W2 hygiene done; provenance (physics/contact version, one manifest writer) is W3; checkpoints and datasets live off-git on the peer store"
   },
   {
    "id": "R37",
@@ -622,12 +780,18 @@
    ],
    "contract": "docs/01_architecture.md",
    "expected_evidence": "nonzero intended action-expert gradients and controlled rollout interventions",
-   "status": "not_started",
-   "evidence_paths": [],
+   "status": "implementing",
+   "evidence_paths": [
+    "research/decisions.md"
+   ],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": null,
-   "limitations": "superseded interpretation: must be satisfied on the transmitted latent packet (R38)"
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "packet-semantic loss in the flow; semantic supervision essential on the arm route (D-089/D-091), adds a halt channel on legs (D-090)",
+   "decisions": [
+    "D-089",
+    "D-091"
+   ]
   },
   {
    "id": "R38",
@@ -642,12 +806,25 @@
    ],
    "contract": "research/corrections/controller-facing-semantic-latent.md",
    "expected_evidence": "independent-consumer, no-bypass, metadata-only, output-gradient, sampled-semantics, causal, disturbance tests + closed-loop results",
-   "status": "implementing",
-   "evidence_paths": [],
-   "test_command": null,
-   "artifact_paths": [],
-   "source_revision": null,
-   "limitations": null
+   "status": "verified",
+   "evidence_paths": [
+    "research/corrections/controller-facing-semantic-latent.md",
+    "research/reports/evidence_matrix.md",
+    "research/decisions.md"
+   ],
+   "test_command": ".venv/bin/python -m pytest tests/unit -q -k 'latent'",
+   "artifact_paths": [
+    "artifacts/runs/legged_fixrep_compare_go2.json",
+    "research/tracks/ladder/armnosem/compare_three_way.json"
+   ],
+   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
+   "limitations": "implemented and tested on arm and legged deployable routes; not on sealed target bodies; legged results use contact v1 (D-093)",
+   "decisions": [
+    "D-070",
+    "D-074",
+    "D-089",
+    "D-090"
+   ]
   }
  ],
  "rules": {
@@ -656,5 +833,17 @@
   "blocked_is_not_complete": true,
   "teacher_is_not_learned": true,
   "asset_is_not_controller": true
- }
+ },
+ "updated": "2026-09-26 (W2 hygiene; D-094)",
+ "status_vocabulary": [
+  "planned",
+  "implementing",
+  "test_failed",
+  "verified",
+  "running",
+  "completed",
+  "failed_hypothesis",
+  "blocked_external",
+  "budget_exhausted"
+ ]
 }
