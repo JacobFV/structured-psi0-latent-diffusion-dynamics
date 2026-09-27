@@ -281,6 +281,11 @@ class RewardCfg:
     # stance_cap_frac x gait period is penalised: x clip((stance time - cap) / period, 0, 1) per foot. Forces a minimum swing frequency.
     stance_cap: float = 0.0
     stance_cap_frac: float = 0.75
+    # clock-driven reference stepping motion (bipeds; humanoid-gym style "joint_pos" reward): during moving/turning commands the swing leg
+    # of the gait clock follows hip_pitch -a, knee +2a, ankle_pitch -a (a = ref_amp x |sin 2 pi phase|). Reward x (exp(-2|q - q_ref|) -
+    # 0.2 min(|q - q_ref|, 0.5)) over the six pitch joints. Gives the MEAN policy a stepping target (noise-only stepping was the h1/g1 failure).
+    ref_step: float = 0.0
+    ref_amp: float = 0.2
     turn_lin: float = 0.0          # dense yaw progress during pure-turn commands: x clip(w_z sign(c)/|c|, -0.5, 1.2)
     sigma_ang: float = 0.0         # yaw-rate tracking kernel width; 0 -> sigma (a sharper kernel keeps small turn commands informative)
     version: str = "gait_v1"
@@ -372,6 +377,18 @@ class LeggedEnv:
         self.turn_vx = 0.0
         self.slow_frac = 0.0      # bipeds: fraction of translational commands rescaled to 0.05-0.2 m/s (slow-gait mix)
         self.stance_t = np.zeros((n_envs, self.b.nf))
+        import re as _re
+        acts = self.meta["legged"]["policy_actuators"]
+        def _idx(side, pat):
+            return [k for k, a in enumerate(acts) if _re.search(side, a, _re.I) and _re.search(pat, a, _re.I)]
+        self.ref_idx = None
+        if self.b.biped:
+            try:
+                L = [_idx("left", "hip_pitch")[0], _idx("left", "knee")[0], _idx("left", "ankle_pitch|ankle$")[0]]
+                Rr = [_idx("right", "hip_pitch")[0], _idx("right", "knee")[0], _idx("right", "ankle_pitch|ankle$")[0]]
+                self.ref_idx = (np.array(L), np.array(Rr))
+            except IndexError:
+                self.ref_idx = None
         self.turn_cmd = np.zeros(n_envs, bool)
         self.turn_scale = 1.0     # curriculum (set_turn_scale); 1.0 = the v3 sampler unchanged
         self.turn_frac = 0.25
@@ -591,6 +608,15 @@ class LeggedEnv:
                         ys += abs(float(v6[2]))
                 r += cfg.yaw_slip * ys
             self.stance_t[i] = np.where(fc, self.stance_t[i] + self.dt, 0.0)
+            if cfg.ref_step and moving and self.ref_idx is not None:
+                sp = math.sin(2 * math.pi * self.phase[i])
+                aL, aR = cfg.ref_amp * max(-sp, 0.0), cfg.ref_amp * max(sp, 0.0)   # left swings when phase >= 0.5
+                qr = b.q0.copy()
+                for idx, a_ in ((self.ref_idx[0], aL), (self.ref_idx[1], aR)):
+                    qr[idx] += np.array([-a_, 2 * a_, -a_])
+                sel = np.concatenate(self.ref_idx)
+                dn = float(np.linalg.norm(q[sel] - qr[sel]))
+                r += cfg.ref_step * (math.exp(-2 * dn) - 0.2 * min(dn, 0.5))
             if cfg.stance_cap and moving:
                 cap = cfg.stance_cap_frac * b.period
                 r += cfg.stance_cap * float(np.sum(np.clip((self.stance_t[i] - cap) / b.period, 0.0, 1.0)))
