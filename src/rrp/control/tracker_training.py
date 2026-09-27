@@ -51,6 +51,10 @@ def train(args):
     sp = pool.spec
     sched = sp["reward"] == "gait_v2" and args.alpha_schedule != "off"
     gate = AlphaGate(step=args.alpha_step, every=args.alpha_every, warmup=args.alpha_warmup)
+    for spec_s, dst in ((args.alpha_advance, gate.advance), (args.alpha_backoff, gate.backoff)):
+        for kv in filter(None, (spec_s or "").split(",")):
+            k, v = kv.split("=")
+            dst[k] = float(v)
     if args.alpha_schedule.startswith("fixed:"):
         gate.alpha = float(args.alpha_schedule.split(":")[1])
     weights = pool.set_alpha(gate.alpha) if sp["reward"] == "gait_v2" else sp["reward_weights0"]
@@ -249,6 +253,8 @@ def main(argv=None):
     ap.add_argument("--alpha-step", type=float, default=0.1)
     ap.add_argument("--alpha-every", type=int, default=25)
     ap.add_argument("--alpha-warmup", type=int, default=300)
+    ap.add_argument("--alpha-advance", default="", help="override advance thresholds, e.g. slip_ratio=0.2,fall_rate=0.1")
+    ap.add_argument("--alpha-backoff", default="", help="override back-off thresholds")
     train(ap.parse_args(argv))
 
 
