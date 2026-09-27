@@ -163,6 +163,16 @@ and the energy terms off. h1 did NOT work: window about 0.4, deterministic valid
 (t1 at ~1150, h1 at ~1300; kept as `contact_{t1,h1}_turn_c`).
 Phase 2 for t1: `artifacts/runs/contact_t1_turn2` (peer lease 1790502983_4e0ad0), init from the turn policy, alpha FIXED at 1 (the
 accepted t1's setting), full turn range, same turn terms, 1200 iters, to recover slip and CoT while keeping the turn.
+**t1 phase 2 result: TURN GATE PASSED.** Run `artifacts/runs/contact_t1_turn2` (1200 iters, alpha fixed at 1, full turn range). Installed as
+`artifacts/trackers/t1/contact_v2/actor.pt` (sha 0d77322c0248e019). The previous no-turn tracker is kept at
+`artifacts/runs/contact_t1_turn2/before.pt` = `~/work/rrp-data/contact-v1-actors/t1_contact_v2_iter5099_noturn.pt`.
+Validation `val/t1_turn2_physv2.json` vs the previous t1 v2 (`val/t1_v2trk_physv2.json`): **turn in place 0.02 -> 1.15**, no falls in any trial,
+**forward slip 0.15 -> 0.11**, duty 0.72-0.82 -> 0.69-0.72, air 0.08 -> 0.10 s, apex 6.6 -> 6.4 cm, contact gate FALSE -> **TRUE**.
+Regressions (honest): forward ratio 0.99 -> 0.84 (v1 was 0.74), CoT 1.39 -> 1.77, arc yaw ratio 0.98 -> 0.66 and arc vx 1.00 -> 0.72.
+Video (reviewed): the turn is a stepping turn, but with a wide, lunging stance; functional, not natural.
+`artifacts/video/2026-09-27_contact_t1_turn_turn-before-vs-after_iter1199_ok_ok.mp4`, `..._t1_{turn,forward}_v1-vs-v2turn_iter1199_ok_ok.mp4`.
+If W8 mostly needs arcs/forward+turn, the previous tracker is the better choice for that; both are kept.
+
 g1 with the t1 recipe (`contact_g1_turn_c`, stopped at ~815): the same stall as h1 (window 0.26-0.40). Deterministic: both h1 and g1 STAND with
 both feet down under pure yaw commands (turn 0.03/0.0, duty 1.0/1.0). They never start stepping from rest, although they turn well in arcs.
 **Arc-to-in-place curriculum** (`--turn-vx0 V`): pure-turn commands start with forward speed V (0.2 m/s). Each window with turn ratio >= 0.6
