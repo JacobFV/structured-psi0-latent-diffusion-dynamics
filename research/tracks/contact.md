@@ -284,6 +284,39 @@ walk-and-turn yaw collapses at 0 ms (arc yaw 0.98 for the pre-turn t1, 0.66 inst
 t1); candidate at `artifacts/runs/contact_t1_lat2/actor.pt` (sha 7bb4d6d105fcc540). Video (reviewed): the fine-tune turns with a narrower, less lunging stance.
 `artifacts/video/2026-09-27_contact_t1_{turn,forward}_installed-vs-lat2_v1lat30ms_ok_ok.mp4` (the renderer now takes --actuator/--latency-ms).
 
+## W1 round 4 (lead D-107, 2026-09-27)
+### (2) torque limits used in training vs sourced: AUDIT
+Compared each installed tracker's training-time effort (`meta.actuator_adapter.actuators[].effort`) with the sourced value, per policy joint:
+| body | installed tracker | mismatch |
+|---|---|---|
+| go2 | contact_v2 af3f06f4 | none (23.7 / 23.7 / 45.43 = unitree_ros URDF) |
+| anymal_c | contact_v2 2a16532b | none (80 = ANYbotics URDF) |
+| h1 | contact_v2 92bff757 | none (200 / 300 / 40 = unitree_ros URDF) |
+| g1 | contact_v2 8b8a99cb | **hip_roll trained 139, source 88** (knee 139 and ankle 50 match). Sources conflicted: the menagerie g1.xml, unitree_ros g1_12dof.urdf say hip_roll 139; unitree_ros g1_29dof.urdf says ankle 35. The two CURRENT Unitree files (unitree_mujoco g1_29dof.xml, unitree_rl_gym g1_29dof.urdf) agree on hip 88 / knee 139 / ankle 50, and those are used. |
+| t1 | contact_v2 0d77322c (W8) | **all 12 joints**: trained hip 60 / knee 130 / ankle 50; source hip 45 pitch, 30 roll/yaw / knee 60 / ankle 20 pitch, 15 roll |
+Affected results: every t1 tracker (v1, all contact_v2 rounds incl. the turn-trained W8 tracker, and all t1 validations in this file except
+the `*-v1lat-*` / `t1lat*` rows) ran with 2-3x the real t1 torque; W8's t1 data. g1: all g1 trackers and validations (hip roll 58% too strong).
+go2 / anymal_c / h1: unaffected.
+### (3) sourced torque limits are now the body-model DEFAULT (branch track/contact; main merge held for the lead's go-ahead)
+`rrp.bodies.legged.legged_body(key, limits=None)`: `sourced_v1` (default) replaces the gains-table effort by `rrp.physics.actuator.SOURCED` for
+every listed joint; `legacy_gains_v0` (or `RRP_ACTUATOR_LIMITS=legacy_gains_v0`) restores the old physics. The version is in body meta
+(`actuator_limits`), in the compiled model (text element `actuator_limits`) and in `PhysicsProvenance.actuator_limits`; trainers record it in
+actor meta. `LearnedTracker` raises TrackerMismatch for t1/g1 (`LIMITS_CHANGED`) when the actor's limits differ from the scene's (pre-change
+actors count as legacy). Test: `tests/unit/test_actuator_limits.py`. Latency and actuator dynamics stay opt-in (`--actuator v1lat|v2`).
+**go2, anymal_c and h1 limits do not change** (identical values), so W8's go2 is unaffected. Merging flips t1 and g1: the installed t1 (W8) and g1
+trackers then refuse to load unless `RRP_ACTUATOR_LIMITS=legacy_gains_v0`.
+### (1) t1 for the W8 command mix: running
+W8 command mix (kinematic rollout of `WaypointTeacher`'s law over 400 random two-waypoint episodes, 46,806 commands): 47% straight (|wz| <= 0.1),
+35% arcs (mean vx 0.39, |wz| 0.36), 15% pure turns (all at 0.48 rad/s = 0.8 wz_max, faster than the validation turn at 0.36), 3% slow arcs.
+Training: `--cmd-mix teacher` (70% of commands from that mix), `yaw_lin_all=1` (the dense yaw-progress term also on arcs), sourced limits
+(body default), ideal actuators at 0 ms (W8's condition), from the t1_lat2 candidate. Host, resumable: `artifacts/runs/contact_t1_w8`, 1500 iters.
+Validation adds `turn_fast` (0.48 rad/s, reported) and `arc_yaw_ratio` to the gate dict.
+### (4) h1: PARKED
+Recommendation: h1 does not lift its feet under turn or very-slow commands in any of 8 attempts (curricula, a stance cap, a reference-motion reward,
+a feed-forward reference). With sourced limits it also falls at 0 ms (no-fall 0.72 under v1lat), and its ankle speed limit is 9 rad/s. Next step, if
+resumed: train from scratch under sourced limits with a phase-clocked reference gait from the start (humanoid-gym style, ~4096 envs), rather
+than fine-tuning the shuffle-prone warm start. Best existing h1: installed contact_v2 (walks, arcs; no in-place turning).
+
 ## runs
 ### gait_v2a: failed_hypothesis (stopped at iter 500-1400)
 t1/h1 (host) and g1/go2 (peer) with a clearance PENALTY at touchdown ((target - apex)/target)^2 x -2. After 1200-1400 iters
