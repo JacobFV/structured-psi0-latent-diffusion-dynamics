@@ -1,3 +1,8 @@
+> **HISTORICAL COPY (original assignment package).** The current contract is the repository root `AGENTS.md`.
+> Superseded here by user decisions: host limit 80% of free CPU/memory (was ≤50%), host GPU allowed (was off),
+> whole peer usable, host disk reserve 100 GB free (D-008, D-026, D-027, D-033, D-036, D-086 in `research/decisions.md`).
+> This banner was added 2026-09-26; `SHA256SUMS` records the original bytes (everything below the banner).
+
 # agent operating contract
 
 The master prompt is `AUTONOMOUS_AGENT_PROMPT.md`. This file is the short, persistent contract for all child agents and resumed sessions.
