@@ -21,6 +21,25 @@ from __future__ import annotations
 
 import numpy as np
 
+# SOURCED per-joint limits (W1 follow-up, 2026-09-27): (joint-name regex, peak torque N m, max joint speed rad/s), read from
+# the manufacturers' published URDFs (<limit effort= velocity=>). Sources and sha256 (first 16 hex) of the files read:
+#   t1       BoosterRobotics/booster_gym resources/T1/T1_serial.urdf (027a5333ce4ed0a1); torques also equal the
+#            menagerie booster_t1/t1.xml actuatorfrcrange
+#   h1       unitreerobotics/unitree_ros robots/h1_description/urdf/h1.urdf (ebd495cba7887406)
+#   g1       unitreerobotics/unitree_ros robots/g1_description/g1_29dof.urdf (e1dc89366bf96aa3)
+#   go2      unitreerobotics/unitree_ros robots/go2_description/urdf/go2_description.urdf (7d19fe48e2e689ee)
+#   anymal_c ANYbotics/anymal_c_simple_description urdf/anymal.urdf (3902c3957ac82176)
+# The URDF velocity is used as the zero-torque speed of the linear torque-speed envelope (a modelling choice, labelled).
+# Procedural bodies have no source: they keep the ESTIMATED VMAX below.
+SOURCED = {
+    "t1": [("Hip_Pitch", 45.0, 12.5), ("Hip_Roll|Hip_Yaw", 30.0, 10.9), ("Knee", 60.0, 11.7), ("Ankle_Pitch", 20.0, 18.8),
+           ("Ankle_Roll", 15.0, 12.4)],
+    "h1": [("hip", 200.0, 23.0), ("knee", 300.0, 14.0), ("ankle", 40.0, 9.0)],
+    "g1": [("hip", 88.0, 32.0), ("knee", 139.0, 20.0), ("ankle", 35.0, 30.0)],
+    "go2": [("hip_joint|thigh", 23.7, 30.1), ("calf", 45.43, 15.70)],
+    "anymal_c": [("HAA|HFE|KFE", 80.0, 7.5)],
+}
+
 ARMATURE_PER_NM = 4e-4
 VMAX = {"humanoid": 20.0, "biped": 20.0, "quadruped:go2": 30.0, "quadruped:anymal_c": 12.0, "quadruped": 20.0,
         "hexapod": 8.0, "multipod": 8.0}
@@ -36,7 +55,9 @@ class ActuatorModel:
     """Applies actuator_v2 to a compiled model (joint params) and wraps target application (latency + torque-speed)."""
 
     def __init__(self, model, binding, n_envs: int, rng: np.random.Generator | None, *, name: str = "",
-                 randomize: bool = True, latency_ms: float | None = None):
+                 randomize: bool = True, latency_ms: float | None = None, mode: str = "v2"):
+        """mode "v2": all effects. mode "v1lat": ideal joints (no armature/damping/friction change) plus SOURCED torque and
+        speed limits plus 0-30 ms latency (the lead's "actuator_v1 with sourced limits and latency")."""
         b = binding
         self.m, self.b, self.n = model, b, n_envs
         self.rng = rng if rng is not None else np.random.default_rng(0)
@@ -48,20 +69,35 @@ class ActuatorModel:
         a0 = model.dof_armature[self.dof].copy()
         d0 = model.dof_damping[self.dof].copy()
         f0 = model.dof_frictionloss[self.dof].copy()
-        if randomize:
+        if mode == "v1lat":
+            arm_s, dfr, ffr = None, 0.0, 0.0
+        elif randomize:
             arm_s = self.rng.uniform(*RAND["armature"])
             dfr, ffr = self.rng.uniform(*RAND["damping_frac"]), self.rng.uniform(*RAND["friction_frac"])
         else:
             arm_s, dfr, ffr = 1.0, 0.005, 0.005
-        model.dof_armature[self.dof] = np.maximum(a0, ARMATURE_PER_NM * eff) * arm_s
+        if arm_s is not None:
+            model.dof_armature[self.dof] = np.maximum(a0, ARMATURE_PER_NM * eff) * arm_s
         model.dof_damping[self.dof] = d0 + dfr * eff
         model.dof_frictionloss[self.dof] = f0 + ffr * eff
-        self.params = dict(armature_scale=float(arm_s), damping_frac=float(dfr), friction_frac=float(ffr),
+        self.params = dict(mode=mode, armature_scale=None if arm_s is None else float(arm_s), damping_frac=float(dfr), friction_frac=float(ffr),
                            armature=model.dof_armature[self.dof].round(4).tolist())
         self.kp = model.actuator_gainprm[b.pol_act, 0].copy()
         self.kd = -model.actuator_biasprm[b.pol_act, 2].copy()
         self.eff = eff.copy()
-        self.vmax = vmax_for(b.kind, name)
+        self.vmax = np.full(b.n, vmax_for(b.kind, name))
+        self.limit_source = "estimate"
+        if name in SOURCED:
+            import re
+            jn = [model.joint(int(x)).name[len(b.prefix):] for x in j]
+            for k, n in enumerate(jn):
+                hit = next(((e, v) for pat, e, v in SOURCED[name] if re.search(pat, n)), None)
+                if hit is None:
+                    raise KeyError(f"{name}: no sourced limit for joint {n}")
+                self.eff[k] = min(self.eff[k], hit[0])
+                self.vmax[k] = hit[1]
+            self.limit_source = "sourced_urdf"
+        self.params.update(limit_source=self.limit_source, effort=self.eff.round(2).tolist(), vmax=self.vmax.round(2).tolist())
         self.dt = float(model.opt.timestep)
         self.lat = np.zeros(n_envs, int)
         self.pending = [[] for _ in range(n_envs)]     # [(remaining substeps, target)]

@@ -156,9 +156,9 @@ def validate(body: str, kind: str, actor: str | None, seeds: int, contact: str |
         tracker = CPGTracker(b, meta)
         tsha = "scripted"
     act = None
-    if actuator == "v2":
+    if actuator in ("v2", "v1lat"):
         from rrp.physics.actuator import ActuatorModel
-        act = ActuatorModel(model, b, 1, None, name=meta["name"], randomize=False, latency_ms=latency_ms)
+        act = ActuatorModel(model, b, 1, None, name=meta["name"], randomize=False, latency_ms=latency_ms, mode=actuator)
     res = {}
     t0 = time.time()
     for name, sc in scripts(b).items():
@@ -191,7 +191,7 @@ def validate(body: str, kind: str, actor: str | None, seeds: int, contact: str |
     return dict(body=body, tracker_kind=kind, tracker_source=tracker.source, tracker_version=tracker.version,
                 tracker_sha=tsha, family=meta["family"], synthetic=meta.get("synthetic", False),
                 seeds=seeds, gate=gate, summary=summary, episodes=res, wall_s=time.time() - t0,
-                contact_model=meta["contact_model"], actuator=actuator, latency_ms=latency_ms if actuator == "v2" else None,
+                contact_model=meta["contact_model"], actuator=actuator, latency_ms=latency_ms if actuator != "v1" else None,
                 actuator_params=act.params if act is not None else None, tracker_contact_model=getattr(tracker, "contact_model", None),
                 protocol="rrp.control.tracker_validation/v2", mujoco=mujoco.__version__)
 

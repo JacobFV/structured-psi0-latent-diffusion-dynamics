@@ -360,9 +360,10 @@ class LeggedEnv:
         self.sched = self.cfg0.version == "gait_v2"      # alpha schedule (critic sees alpha; the actor never does)
         self.priv_dim = self.b.priv_dim + (1 if self.sched else 0)
         self.act = None
-        if actuator == "v2":      # rrp.physics.actuator: armature, joint damping/friction, torque-speed, 0-30 ms latency
+        if actuator in ("v2", "v1lat"):   # rrp.physics.actuator (v1lat: ideal joints + sourced limits + 0-30 ms latency)
             from rrp.physics.actuator import ActuatorModel
-            self.act = ActuatorModel(self.model, self.b, n_envs, np.random.default_rng([seed, 91]), name=self.meta["name"])
+            self.act = ActuatorModel(self.model, self.b, n_envs, np.random.default_rng([seed, 91]), name=self.meta["name"],
+                                     mode=actuator)
         self.actuator = actuator
         self.turn_vx = 0.0
         self.turn_cmd = np.zeros(n_envs, bool)
