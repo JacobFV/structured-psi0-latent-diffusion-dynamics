@@ -508,3 +508,15 @@ Decisions:
 (1) W8 wave 2: go2 with the clearance-floor tracker, and t1 with the turn-trained tracker (passes the gate and can execute the teacher's in-place turns; the lunge is reported as a limitation, with videos). The previous t1 tracker is kept as a labelled alternative.
 (2) Ideal actuators remain the default for W8, for consistency across bodies. The actuator_v1 results are reported as a robustness limitation. Making realistic actuators the default needs replacing the estimated joint speeds with sourced values, plus trackers that keep their gaits under them (h1 in particular).
 (3) Contact track next: a slow stepping gait for h1/g1 (then the turn curriculum), sourced actuator limits, and a joint turning + latency fine-tune for t1.
+
+## D-104 2026-09-27 W10 gate 0: Isaac Sim runs on the GB10, but the released Ψ₀ checkpoint does not reproduce closed loop (0/10 vs 10/10 published); a bounded reproduction phase comes before any comparison
+psi1z (local; research/notes.md, decisions P-002..P-004, commit e32c2f9). The lead read the agent's report; raw outputs are under ~/work/ext/runs/psi1z (not in git).
+- Setup: SIMPLE pins Isaac Sim 4.5 / Python 3.10, which has no aarch64 wheel, so Isaac Sim 5.1 / Python 3.11 was used on the peer. The host sheds any job >~10 GB because of external swap pressure. Workarounds (no upstream edits): library preload order, torch 2.14+cu130 for sm_121, PyAV decoder, stubs for the unused cuRobo/envlogger, cyclonedds built from source, a USD reference fallback. Isaac's real-time renderer draws SIMPLE scenes ~8× too dark on this build, so path tracing at ISO 65 is used (a rendering deviation).
+- Open loop: the released XMovePickTeleop checkpoint predicts recorded actions closely (hand 0.019 rad, arm 0.054 rad, vx 0.016 m/s over 563 frames).
+- Closed loop: 0/10 at DR level 0 (Wilson [0, 0.28]) vs 10/10 published. The robot walks too little (0.11 m vs ~0.26 m in the demos). Ruled out: controller timing (replayed commands walk 0.265 m), first-frame rendering, instruction wording.
+- Step-2 groundwork: direct and structured fine-tunes trained on frozen Ψ₀ features. Held-out open loop: the structured arm's vx error is 0.136 vs direct 0.036 (undiagnosed). Packet probes: contact 97.8% vs 60.8% control; active hand 91.9% vs 55.0%.
+Decisions:
+(1) Bounded reproduction (≤24 h wall, ≤20 peer GPU-h): cadence/timing and observation audits, another released checkpoint at its native DR level, and ISO recalibration on training frames only. No step-1/2 closed-loop comparison until the released checkpoint reproduces.
+(2) 2 peer GPU leases during reproduction (memory headroom ≥20 GB).
+(3) Path tracing is acceptable only if the checkpoint reproduces under it, with calibration on non-eval frames, documented.
+(4) Diagnose the structured arm's vx error before any closed-loop run.
