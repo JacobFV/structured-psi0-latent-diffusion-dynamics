@@ -173,6 +173,9 @@ def train_representation(cfg_json: dict, out_dir: Path) -> dict:
         st = load_checkpoint(last, map_location=dev)
         E.load_state_dict(st["model"]["E"]); R.load_state_dict(st["model"]["R"]); P.load_state_dict(st["model"]["P"])
         opt.load_state_dict(st["optimizer"]); sched.load_state_dict(st["extra"]["sched"]); step = st["step"]
+        exact = _restore_rng(st["extra"], rng)      # checkpoints written before 2026-09-27 carry no RNG state
+        print(f"resumed {last} at step {step} ({'exact: RNG restored' if exact else 'INEXACT: no RNG state in checkpoint'})",
+              flush=True)
     B = cfg_json.get("batch_size", 128)
     feed = _prefetch(data, B, rng, cfg.max_phase_ticks, dev) if cfg_json.get("prefetch") else None
     while step < steps and not sig.requested:
@@ -193,7 +196,7 @@ def train_representation(cfg_json: dict, out_dir: Path) -> dict:
             log.flush()
         if step % 2000 == 0 or sig.requested:
             save_checkpoint(last, model=_bundle(E, R, P), optimizer=opt, step=step, versions=dict(latent=cfg.version()),
-                            config=cfg_json, extra=dict(sched=sched.state_dict()))
+                            config=cfg_json, extra=dict(sched=sched.state_dict(), **_rng_state(rng)))
     res = dict(steps=step, wall_s=time.time() - t0, interrupted=sig.requested, latent_space_version=cfg.version(),
                realizer_compat_version=f"rz-{cfg.version()}-{REALIZER_RECURRENT_STATE}",
                eval=evaluate_representation(E, R, P, data, cfg, dev) if not sig.requested else None)
@@ -202,6 +205,25 @@ def train_representation(cfg_json: dict, out_dir: Path) -> dict:
                     versions=dict(latent=cfg.version()), config=cfg_json, extra=dict(result=res))
     (out_dir / "result.json").write_text(json.dumps(res, indent=1, default=str))
     return res
+
+
+def _rng_state(rng: random.Random) -> dict:
+    """Resume state of every RNG the representation loop draws from (batch sampling: python rng; posterior noise and
+    dropout: torch CPU/CUDA generators), so a resumed Stage A continues the uninterrupted run exactly."""
+    st = dict(rng_py=rng.getstate(), torch_rng=torch.get_rng_state())
+    if torch.cuda.is_available():
+        st["cuda_rng"] = torch.cuda.get_rng_state_all()
+    return st
+
+
+def _restore_rng(extra: dict, rng: random.Random) -> bool:
+    if "rng_py" not in extra:
+        return False
+    rng.setstate(extra["rng_py"])
+    torch.set_rng_state(extra["torch_rng"].cpu())
+    if "cuda_rng" in extra and torch.cuda.is_available():
+        torch.cuda.set_rng_state_all([t.cpu() for t in extra["cuda_rng"]])
+    return True
 
 
 def _bundle(E, R, P):

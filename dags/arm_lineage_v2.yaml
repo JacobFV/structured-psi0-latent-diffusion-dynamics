@@ -23,9 +23,22 @@ vars:
   bc_policy: 'runs/armexpert_bcv2/baseline_direct_action/seed1701/source:policy_u12000.pt'
   bc_label: bcv2_direct1701_u12000
 defaults:
-  max_parallel_gpu: 2
-  max_cpu: 10
+  max_parallel_gpu: 4     # 06:05 raised from 2 (lead: W8 GPU leases ended; peer >= 20 GB free); Stage A uses ~1 core
+  max_cpu: 16             # declared CPU (4 Stage As x 4 declared; measured ~1 core / 3-4 GB each)
 nodes:
+  # 06:05 max_seconds raised to the broker cap (6 h): under contention Stage A ran at 1.28 s/step and both semfix Stage As were stopped at the
+  # 4 h limit (step ~12,200); limits only bound runaway jobs and do not enter the config hash.
+  stageA: {resources: {max_seconds: 21600}}
+  F0: {resources: {max_seconds: 21600}}
+  Fft: {resources: {max_seconds: 21600}}
+  Fgdag1: {resources: {max_seconds: 21600}}
+  Fgdag2h: {resources: {max_seconds: 14400}}
+  rzbcdag1: {resources: {max_seconds: 21600}}
+  rzbcdag1long: {resources: {max_seconds: 21600}}
+  rzbcdag2: {resources: {max_seconds: 21600}}
+  rzgendag1: {resources: {max_seconds: 21600}}
+  rzgendag2: {resources: {max_seconds: 21600}}
+  rzgendag3: {resources: {max_seconds: 21600}}
   bc1: {resources: {cpu: 8, mem: 32G}, config: {options: {workers: 4, threads: 2}}}
   bc2: {resources: {cpu: 8, mem: 32G}, config: {options: {workers: 4, threads: 2}}}
   bc3: {resources: {cpu: 8, mem: 32G}, config: {options: {workers: 4, threads: 2}}}

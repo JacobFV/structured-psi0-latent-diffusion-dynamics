@@ -30,7 +30,19 @@ expert rc 0 (label bcv2_direct1701_u12000).
 Placement: peer only (the pack lives on the peer disk; run-dag does not transfer artifacts across placements), code dir
 `/dev/shm/rrp-brandonin/wt/armv2`; driver = host user unit `rrp-armv2-dag` (the runner only launches/monitors peer
 leases). Ledger `artifacts/runs/armv2/_dags/arm_lineage_v2/ledger.json` (host checkout ~/work/rrp-wt/ladder).
-RESUME: `cd ~/work/rrp-wt/ladder && systemd-run --user --unit rrp-armv2-dag2 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv2 --setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/ladder ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_lineage_v2.yaml`
+06:00 INCIDENT + 06:05 RELAUNCH: both semfix Stage As were stopped by their 4 h max_seconds at step 12,206 (rc 1,
+stopped_by max_seconds_exceeded; contention with W8 made them 1.28 s/step, ~5.3 h); 48 dependants blocked. The Stage-A
+resume turned out NOT exact (rep_last.pt stored model/optimizer/scheduler but no RNG state, so a resume would redraw
+batches from the seed start), so instead of resuming I restarted both from scratch (~1 h at the now uncontended
+0.24 s/step); the partial dirs are kept at `ladder_smoke/armv2_aborted/semfix_train_rep_s{1,2}_timeout_step12206`
+(not used). Fixes: (1) Stage-A checkpoints now carry the python/torch/CUDA RNG states and a resume restores them
+(`_rng_state` / `_restore_rng` in rrp.training.latent_train; logs "exact" or "INEXACT"; test
+tests/unit/test_rep_resume_rng.py); (2) the v2 DAG raises max_seconds of GPU nodes to the broker's 6 h cap; (3) caps
+raised to 4 GPU leases / 16 declared CPU (lead; W8's GPU leases ended, peer 40 GB available; Stage A measured ~1 core,
+3-4 GB each). Limits and caps do not enter the node config hashes (checked: all 100 planned configs identical). The
+runner was relaunched with `--retry-failed` (manual decision); the running nosem Stage As were re-adopted.
+One launch error on the way: max_seconds 43200 is above the broker cap (6 h) and was refused before any job started.
+RESUME: `cd ~/work/rrp-wt/ladder && systemd-run --user --unit rrp-armv2-dag4 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv2 --setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/ladder ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_lineage_v2.yaml`
 (completed nodes skipped, running leases re-adopted; failed nodes only with --retry-failed, a manual decision).
 
 ## ARM NOSEM RECIPE ABLATION RESULT (2026-09-26 22:45 PDT; state: completed; all nodes rc 0 after one OOM relaunch)
