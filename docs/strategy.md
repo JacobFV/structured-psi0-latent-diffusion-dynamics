@@ -138,5 +138,5 @@ Peer disk is 97% used (69 GB free): no new large downloads without checking.
 
 
 | R1 | Arm nosem recipe ablation (z-noise 0; keep qd; both), seed 1 | arm agent | R0 | completed (D-099): recipe does not explain nosem failure |
-| W10 | Ψ₀ / SIMPLE benchmark in the local repo ~/work/psi1z (D-100): probe → Ψ₀ baseline → Ψ₀ + our structure vs Ψ₀ direct expert | psi0 agent | W11 for packaging | running: step 0 probe (D-098) |
+| W10 | Ψ₀ / SIMPLE benchmark in the local repo ~/work/psi1z (D-100): probe → Ψ₀ baseline → Ψ₀ + our structure vs Ψ₀ direct expert | psi0 agent | W11 for packaging | step 0 done (D-104/D-109: stack reproduces TabletopGraspMP; XMovePick not); step 1 per-task reproduction; step 2 on reproduced tasks (≤40 GPU-h) |
 | W11 | rrp as an installable core for psi1z: Python 3.11 support, public API doc, core tests under 3.11 | core agent | W4, W5 | verified 2026-09-26 (main b7dc677: rrp.core API 1.0; py3.11 + 3.12 venvs 318 pass / 4 skip each; lead .venv 321 pass; register_family / rrp.families entry points; psi1z pinned at b7dc677, no remote) |

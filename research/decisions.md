@@ -561,3 +561,19 @@ Reading: semantic supervision buys task-level control (D-088/090/105) but not ro
 (1) Repeat the legged sweep on training seeds 1–2 so the claim is variant-level.
 (2) Arm grasp-contact realism (finger/object solref/solimp, margin, condim, friction), measured by penetration < 3 mm and slip under load, as the arm counterpart of D-093. Arm regeneration follows the same rule as legged: no new arm results on the old grasp physics once v2 grasp contact exists.
 (3) Gate thresholds for trackers and datasets (W6 proposal in the notes) are to be adopted after review.
+
+## D-109 2026-09-27 W10: the Ψ₀ stack reproduces on TabletopGraspMP; XMovePick failure is task-specific; step 1–2 proceed on reproduced tasks
+psi1z (local; decisions P-005..P-009, commit 869ae06; lead read the agent's report).
+- The released TabletopGraspMP checkpoint scored 9/9 on configs 0–8 (config 9 running; published 10/10), after fixes: AMO weights sha-verified; TorchScript GPU fusers off on torch 2.7/sm_121. So the Isaac 5.1 / aarch64 / path-tracing stack is sound.
+- XMovePickTeleop still 0/15. The diagnosis:
+  - cadence is correct (24 rows per query at 50 Hz in training and eval);
+  - the policy asks for roughly the demos' total distance but as graded, fragmented speeds, which our replay shows stops short (0.09–0.12 m vs 0.20–0.26 m for demo-like commands);
+  - RTC chunk smoothing is sticky and turns walk uncertainty into standing still;
+  - without RTC the walk decision flips between queries;
+  - the out-of-distribution first torso state [0,0,0,0.74] is not the cause (feedback variant 0/4).
+  Open: whether our rendering induces the uncertainty (walking-frame render test running). Rendering recalibrated on the one comparable training episode (ISO 55, weak).
+- Structured arm vx error fixed offline: 0.136 → 0.015 m/s (oracle route). The cause was on the packet → realizer side, with silently broken grad-norm logging; stage A v2e adds a vx/yaw-rate probe and reconstruction weighting.
+Decisions:
+(1) Step 1 per task: a task counts as reproduced when its CI overlaps the published number.
+(2) Step 2 (Ψ₀ direct vs Ψ₀ + structure) only on reproduced tasks with public training data; new budget ≤40 peer GPU-h over ~3 days.
+(3) XMovePick: finish the render test plus one RTC variant, then write up as not reproduced.
