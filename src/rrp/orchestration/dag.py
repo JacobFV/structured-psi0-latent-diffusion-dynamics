@@ -103,8 +103,8 @@ class Plan:
         for nid, n in self.nodes.items():
             if only and not re.search(only, nid):
                 continue
-            if points and not any(all(str(n.point.get(k)) == str(v) for k, v in p.items()) for p in points):
-                continue
+            if points and n.point and not any(all(str(n.point.get(k)) == str(v) for k, v in p.items()) for p in points):
+                continue                       # global nodes (empty point) are shared by every point: never filtered out
             keep.add(nid)
         # a selected node needs its dependencies (they are resumed from the ledger or run first)
         stack = list(keep)

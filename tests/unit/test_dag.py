@@ -405,3 +405,8 @@ def test_gpu_and_cpu_caps(tmp_path):
                   poll_s=0, sleep=lambda s: None, log=lambda m: None)
     assert ex.run()["completed"] == len(plan.nodes)
     assert r.peak_gpu == 2 and r.peak_cpu <= 16
+
+
+def test_point_filter_keeps_global_nodes():
+    p = plan_dag(loads(GLOBAL_TOY)).select(None, [{"variant": "semfix"}])
+    assert {"collect", "bc"} <= set(p.nodes) and "r2@semfix.s0" in p.nodes and "rep@nosem.s0" not in p.nodes
