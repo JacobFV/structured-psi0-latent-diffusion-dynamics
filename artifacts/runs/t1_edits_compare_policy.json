@@ -1,0 +1,872 @@
+{
+ "body": "t1",
+ "ckpt": "policy",
+ "variants": {
+  "fixsem": {
+   "0": {
+    "r2": {
+     "success": 29,
+     "n": 30,
+     "fell": 1,
+     "file": "artifacts/runs/legged_ladder/t1/r2_t1edits_fixsem_s0_policy.jsonl"
+    },
+    "unedited_forward_mean": 1.035,
+    "effects": {
+     "ctx halt \u0394forward m": [
+      -0.413,
+      -0.498,
+      -0.338
+     ],
+     "ctx mirror INACTIVE \u0394forward m": [
+      -0.02,
+      -0.043,
+      0.002
+     ],
+     "ctx mirror ACTIVE toward m": [
+      0.449,
+      0.323,
+      0.576
+     ],
+     "ctx mirror INACTIVE toward m": [
+      0.009,
+      -0.001,
+      0.018
+     ],
+     "ctx ACTIVE\u2212INACTIVE toward m": [
+      0.44,
+      0.313,
+      0.567
+     ],
+     "z halt \u0394forward m": [
+      -0.621,
+      -0.677,
+      -0.562
+     ],
+     "z turn +0.6 \u0394yaw": [
+      -0.116,
+      -0.187,
+      -0.041
+     ],
+     "z turn \u22120.6 \u0394yaw": [
+      -0.132,
+      -0.161,
+      -0.101
+     ],
+     "z goal-mirror toward m": [
+      0.054,
+      0.036,
+      0.073
+     ],
+     "z random 8 toward m": [
+      0.011,
+      -0.004,
+      0.031
+     ],
+     "z random 16 \u0394forward m": [
+      -0.003,
+      -0.032,
+      0.026
+     ],
+     "z random 25 \u0394forward m": [
+      -0.069,
+      -0.109,
+      -0.029
+     ],
+     "z random 25 \u0394yaw": [
+      0.098,
+      0.053,
+      0.147
+     ],
+     "ctx halt \u0394forward m, pairs without a fall": [
+      -0.413,
+      -0.498,
+      -0.338
+     ],
+     "ctx mirror INACTIVE \u0394forward m, pairs without a fall": [
+      -0.02,
+      -0.043,
+      0.002
+     ]
+    },
+    "falls_t2_5s": {
+     "ctx:none": "0/20",
+     "ctx:mirror_goal": "1/20",
+     "ctx:mirror_active": "1/20",
+     "ctx:mirror_inactive": "0/20",
+     "ctx:halt": "0/20",
+     "z:none": "0/20",
+     "z:probe_halt": "5/20",
+     "z:probe_yaw_0.6": "20/20",
+     "z:probe_yaw_-0.6": "0/20",
+     "z:probe_goal_mirror": "0/20",
+     "z:contact_0_1": "0/20",
+     "z:contact_0_0": "10/20",
+     "z:rand_norm_8": "0/20",
+     "z:rand_norm_16": "0/20",
+     "z:rand_norm_25": "0/20",
+     "z:zero": "20/20"
+    },
+    "dirs": [
+     "artifacts/runs/legged_edits/t1/r2_t1edits_fixsem_s0_policy",
+     "artifacts/runs/legged_edits/t1/r2ctx_t1edits_fixsem_s0_policy"
+    ]
+   },
+   "1": {
+    "r2": {
+     "success": 25,
+     "n": 30,
+     "fell": 5,
+     "file": "artifacts/runs/legged_ladder/t1/r2_t1edits_fixsem_s1_policy.jsonl"
+    },
+    "unedited_forward_mean": 1.126,
+    "effects": {
+     "ctx halt \u0394forward m": [
+      -0.06,
+      -0.128,
+      -0.0
+     ],
+     "ctx mirror INACTIVE \u0394forward m": [
+      -0.011,
+      -0.029,
+      0.006
+     ],
+     "ctx mirror ACTIVE toward m": [
+      0.379,
+      0.291,
+      0.467
+     ],
+     "ctx mirror INACTIVE toward m": [
+      0.011,
+      -0.026,
+      0.047
+     ],
+     "ctx ACTIVE\u2212INACTIVE toward m": [
+      0.368,
+      0.272,
+      0.462
+     ],
+     "z halt \u0394forward m": [
+      -0.459,
+      -0.576,
+      -0.363
+     ],
+     "z turn +0.6 \u0394yaw": [
+      0.143,
+      0.115,
+      0.167
+     ],
+     "z turn \u22120.6 \u0394yaw": [
+      -0.189,
+      -0.239,
+      -0.131
+     ],
+     "z goal-mirror toward m": [
+      0.032,
+      0.002,
+      0.061
+     ],
+     "z random 8 toward m": [
+      0.011,
+      -0.01,
+      0.033
+     ],
+     "z random 16 \u0394forward m": [
+      -0.14,
+      -0.199,
+      -0.089
+     ],
+     "z random 25 \u0394forward m": [
+      -0.335,
+      -0.431,
+      -0.259
+     ],
+     "z random 25 \u0394yaw": [
+      0.083,
+      -0.012,
+      0.179
+     ],
+     "ctx halt \u0394forward m, pairs without a fall": [
+      -0.043,
+      -0.091,
+      0.002
+     ],
+     "ctx mirror INACTIVE \u0394forward m, pairs without a fall": [
+      -0.013,
+      -0.029,
+      0.005
+     ]
+    },
+    "falls_t2_5s": {
+     "ctx:none": "1/20",
+     "ctx:mirror_goal": "2/20",
+     "ctx:mirror_active": "2/20",
+     "ctx:mirror_inactive": "1/20",
+     "ctx:halt": "2/20",
+     "z:none": "1/20",
+     "z:probe_halt": "2/20",
+     "z:probe_yaw_0.6": "1/20",
+     "z:probe_yaw_-0.6": "2/20",
+     "z:probe_goal_mirror": "2/20",
+     "z:contact_0_1": "2/20",
+     "z:contact_0_0": "2/20",
+     "z:rand_norm_8": "1/20",
+     "z:rand_norm_16": "2/20",
+     "z:rand_norm_25": "3/20",
+     "z:zero": "20/20"
+    },
+    "dirs": [
+     "artifacts/runs/legged_edits/t1/r2_t1edits_fixsem_s1_policy",
+     "artifacts/runs/legged_edits/t1/r2ctx_t1edits_fixsem_s1_policy"
+    ]
+   },
+   "3": {
+    "r2": {
+     "success": 27,
+     "n": 30,
+     "fell": 3,
+     "file": "artifacts/runs/legged_ladder/t1/r2_t1edits_fixsem_s3_policy.jsonl"
+    },
+    "unedited_forward_mean": 1.027,
+    "effects": {
+     "ctx halt \u0394forward m": [
+      -0.279,
+      -0.37,
+      -0.19
+     ],
+     "ctx mirror INACTIVE \u0394forward m": [
+      0.013,
+      -0.004,
+      0.032
+     ],
+     "ctx mirror ACTIVE toward m": [
+      0.307,
+      0.179,
+      0.438
+     ],
+     "ctx mirror INACTIVE toward m": [
+      0.001,
+      -0.016,
+      0.02
+     ],
+     "ctx ACTIVE\u2212INACTIVE toward m": [
+      0.306,
+      0.168,
+      0.442
+     ],
+     "z halt \u0394forward m": [
+      -0.521,
+      -0.567,
+      -0.472
+     ],
+     "z turn +0.6 \u0394yaw": [
+      -0.089,
+      -0.164,
+      -0.016
+     ],
+     "z turn \u22120.6 \u0394yaw": [
+      -0.091,
+      -0.13,
+      -0.051
+     ],
+     "z goal-mirror toward m": [
+      0.007,
+      -0.019,
+      0.03
+     ],
+     "z random 8 toward m": [
+      0.002,
+      -0.025,
+      0.025
+     ],
+     "z random 16 \u0394forward m": [
+      -0.135,
+      -0.165,
+      -0.105
+     ],
+     "z random 25 \u0394forward m": [
+      -0.262,
+      -0.299,
+      -0.227
+     ],
+     "z random 25 \u0394yaw": [
+      -0.116,
+      -0.14,
+      -0.09
+     ],
+     "ctx halt \u0394forward m, pairs without a fall": [
+      -0.279,
+      -0.37,
+      -0.19
+     ],
+     "ctx mirror INACTIVE \u0394forward m, pairs without a fall": [
+      0.013,
+      -0.004,
+      0.032
+     ]
+    },
+    "falls_t2_5s": {
+     "ctx:none": "0/20",
+     "ctx:mirror_goal": "0/20",
+     "ctx:mirror_active": "1/20",
+     "ctx:mirror_inactive": "0/20",
+     "ctx:halt": "0/20",
+     "z:none": "0/20",
+     "z:probe_halt": "2/20",
+     "z:probe_yaw_0.6": "2/20",
+     "z:probe_yaw_-0.6": "1/20",
+     "z:probe_goal_mirror": "0/20",
+     "z:contact_0_1": "0/20",
+     "z:contact_0_0": "2/20",
+     "z:rand_norm_8": "0/20",
+     "z:rand_norm_16": "0/20",
+     "z:rand_norm_25": "1/20",
+     "z:zero": "1/20"
+    },
+    "dirs": [
+     "artifacts/runs/legged_edits/t1/r2_t1edits_fixsem_s3_policy",
+     "artifacts/runs/legged_edits/t1/r2ctx_t1edits_fixsem_s3_policy"
+    ]
+   },
+   "pooled": {
+    "effects": {
+     "ctx halt \u0394forward m": [
+      -0.251,
+      -0.312,
+      -0.191
+     ],
+     "ctx mirror INACTIVE \u0394forward m": [
+      -0.006,
+      -0.018,
+      0.006
+     ],
+     "ctx mirror ACTIVE toward m": [
+      0.378,
+      0.31,
+      0.449
+     ],
+     "ctx mirror INACTIVE toward m": [
+      0.007,
+      -0.008,
+      0.021
+     ],
+     "ctx ACTIVE\u2212INACTIVE toward m": [
+      0.371,
+      0.302,
+      0.443
+     ],
+     "z halt \u0394forward m": [
+      -0.534,
+      -0.58,
+      -0.488
+     ],
+     "z turn +0.6 \u0394yaw": [
+      -0.021,
+      -0.068,
+      0.027
+     ],
+     "z turn \u22120.6 \u0394yaw": [
+      -0.137,
+      -0.165,
+      -0.112
+     ],
+     "z goal-mirror toward m": [
+      0.031,
+      0.015,
+      0.047
+     ],
+     "z random 8 toward m": [
+      0.008,
+      -0.005,
+      0.019
+     ],
+     "z random 16 \u0394forward m": [
+      -0.093,
+      -0.122,
+      -0.065
+     ],
+     "z random 25 \u0394forward m": [
+      -0.222,
+      -0.269,
+      -0.181
+     ],
+     "z random 25 \u0394yaw": [
+      0.022,
+      -0.021,
+      0.068
+     ],
+     "ctx halt \u0394forward m, pairs without a fall": [
+      -0.252,
+      -0.313,
+      -0.193
+     ],
+     "ctx mirror INACTIVE \u0394forward m, pairs without a fall": [
+      -0.006,
+      -0.018,
+      0.005
+     ]
+    },
+    "falls_t2_5s": {
+     "ctx:none": "1/60",
+     "ctx:mirror_goal": "3/60",
+     "ctx:mirror_active": "4/60",
+     "ctx:mirror_inactive": "1/60",
+     "ctx:halt": "2/60",
+     "z:none": "1/60",
+     "z:probe_halt": "9/60",
+     "z:probe_yaw_0.6": "23/60",
+     "z:probe_yaw_-0.6": "3/60",
+     "z:probe_goal_mirror": "2/60",
+     "z:contact_0_1": "2/60",
+     "z:contact_0_0": "14/60",
+     "z:rand_norm_8": "1/60",
+     "z:rand_norm_16": "2/60",
+     "z:rand_norm_25": "4/60",
+     "z:zero": "41/60"
+    },
+    "training_seeds": [
+     0,
+     1,
+     3
+    ],
+    "r2": [
+     "29/30",
+     "25/30",
+     "27/30"
+    ]
+   }
+  },
+  "nosem": {
+   "0": {
+    "r2": {
+     "success": 28,
+     "n": 30,
+     "fell": 2,
+     "file": "artifacts/runs/legged_ladder/t1/r2_t1edits_nosem_s0_policy.jsonl"
+    },
+    "unedited_forward_mean": 1.007,
+    "effects": {
+     "ctx halt \u0394forward m": [
+      0.052,
+      -0.091,
+      0.182
+     ],
+     "ctx mirror INACTIVE \u0394forward m": [
+      -0.007,
+      -0.031,
+      0.018
+     ],
+     "ctx mirror ACTIVE toward m": [
+      0.331,
+      0.195,
+      0.476
+     ],
+     "ctx mirror INACTIVE toward m": [
+      0.008,
+      -0.0,
+      0.016
+     ],
+     "ctx ACTIVE\u2212INACTIVE toward m": [
+      0.323,
+      0.188,
+      0.47
+     ],
+     "z halt \u0394forward m": [
+      -0.403,
+      -0.474,
+      -0.329
+     ],
+     "z turn +0.6 \u0394yaw": [
+      0.227,
+      0.191,
+      0.269
+     ],
+     "z turn \u22120.6 \u0394yaw": [
+      -0.256,
+      -0.306,
+      -0.213
+     ],
+     "z goal-mirror toward m": [
+      0.025,
+      -0.002,
+      0.058
+     ],
+     "z random 8 toward m": [
+      0.043,
+      0.016,
+      0.072
+     ],
+     "z random 16 \u0394forward m": [
+      -0.149,
+      -0.204,
+      -0.091
+     ],
+     "z random 25 \u0394forward m": [
+      -0.332,
+      -0.388,
+      -0.264
+     ],
+     "z random 25 \u0394yaw": [
+      0.058,
+      -0.005,
+      0.13
+     ],
+     "ctx halt \u0394forward m, pairs without a fall": [
+      0.052,
+      -0.091,
+      0.182
+     ],
+     "ctx mirror INACTIVE \u0394forward m, pairs without a fall": [
+      -0.007,
+      -0.031,
+      0.018
+     ]
+    },
+    "falls_t2_5s": {
+     "ctx:none": "0/20",
+     "ctx:mirror_goal": "0/20",
+     "ctx:mirror_active": "0/20",
+     "ctx:mirror_inactive": "0/20",
+     "ctx:halt": "0/20",
+     "z:none": "0/20",
+     "z:probe_halt": "1/20",
+     "z:probe_yaw_0.6": "0/20",
+     "z:probe_yaw_-0.6": "0/20",
+     "z:probe_goal_mirror": "0/20",
+     "z:contact_0_1": "0/20",
+     "z:contact_0_0": "1/20",
+     "z:rand_norm_8": "0/20",
+     "z:rand_norm_16": "0/20",
+     "z:rand_norm_25": "2/20",
+     "z:zero": "20/20"
+    },
+    "dirs": [
+     "artifacts/runs/legged_edits/t1/r2_t1edits_nosem_s0_policy",
+     "artifacts/runs/legged_edits/t1/r2ctx_t1edits_nosem_s0_policy"
+    ]
+   },
+   "1": {
+    "r2": {
+     "success": 27,
+     "n": 30,
+     "fell": 3,
+     "file": "artifacts/runs/legged_ladder/t1/r2_t1edits_nosem_s1_policy.jsonl"
+    },
+    "unedited_forward_mean": 1.181,
+    "effects": {
+     "ctx halt \u0394forward m": [
+      0.084,
+      0.031,
+      0.137
+     ],
+     "ctx mirror INACTIVE \u0394forward m": [
+      0.016,
+      -0.001,
+      0.033
+     ],
+     "ctx mirror ACTIVE toward m": [
+      0.316,
+      0.191,
+      0.462
+     ],
+     "ctx mirror INACTIVE toward m": [
+      -0.001,
+      -0.013,
+      0.016
+     ],
+     "ctx ACTIVE\u2212INACTIVE toward m": [
+      0.317,
+      0.192,
+      0.462
+     ],
+     "z halt \u0394forward m": [
+      -0.549,
+      -0.637,
+      -0.476
+     ],
+     "z turn +0.6 \u0394yaw": [
+      0.176,
+      0.11,
+      0.257
+     ],
+     "z turn \u22120.6 \u0394yaw": [
+      -0.217,
+      -0.31,
+      -0.153
+     ],
+     "z goal-mirror toward m": [
+      0.009,
+      -0.02,
+      0.039
+     ],
+     "z random 8 toward m": [
+      -0.021,
+      -0.045,
+      -0.0
+     ],
+     "z random 16 \u0394forward m": [
+      -0.028,
+      -0.12,
+      0.034
+     ],
+     "z random 25 \u0394forward m": [
+      -0.116,
+      -0.213,
+      -0.041
+     ],
+     "z random 25 \u0394yaw": [
+      0.066,
+      0.018,
+      0.11
+     ],
+     "ctx halt \u0394forward m, pairs without a fall": [
+      0.084,
+      0.031,
+      0.137
+     ],
+     "ctx mirror INACTIVE \u0394forward m, pairs without a fall": [
+      0.016,
+      -0.001,
+      0.033
+     ]
+    },
+    "falls_t2_5s": {
+     "ctx:none": "0/20",
+     "ctx:mirror_goal": "1/20",
+     "ctx:mirror_active": "2/20",
+     "ctx:mirror_inactive": "0/20",
+     "ctx:halt": "0/20",
+     "z:none": "0/20",
+     "z:probe_halt": "4/20",
+     "z:probe_yaw_0.6": "2/20",
+     "z:probe_yaw_-0.6": "1/20",
+     "z:probe_goal_mirror": "0/20",
+     "z:contact_0_1": "0/20",
+     "z:contact_0_0": "4/20",
+     "z:rand_norm_8": "2/20",
+     "z:rand_norm_16": "2/20",
+     "z:rand_norm_25": "4/20",
+     "z:zero": "18/20"
+    },
+    "dirs": [
+     "artifacts/runs/legged_edits/t1/r2_t1edits_nosem_s1_policy",
+     "artifacts/runs/legged_edits/t1/r2ctx_t1edits_nosem_s1_policy"
+    ]
+   },
+   "3": {
+    "r2": {
+     "success": 28,
+     "n": 30,
+     "fell": 2,
+     "file": "artifacts/runs/legged_ladder/t1/r2_t1edits_nosem_s3_policy.jsonl"
+    },
+    "unedited_forward_mean": 1.048,
+    "effects": {
+     "ctx halt \u0394forward m": [
+      -0.365,
+      -0.482,
+      -0.249
+     ],
+     "ctx mirror INACTIVE \u0394forward m": [
+      -0.005,
+      -0.021,
+      0.01
+     ],
+     "ctx mirror ACTIVE toward m": [
+      0.363,
+      0.226,
+      0.51
+     ],
+     "ctx mirror INACTIVE toward m": [
+      -0.004,
+      -0.02,
+      0.011
+     ],
+     "ctx ACTIVE\u2212INACTIVE toward m": [
+      0.367,
+      0.232,
+      0.507
+     ],
+     "z halt \u0394forward m": [
+      -0.758,
+      -0.81,
+      -0.694
+     ],
+     "z turn +0.6 \u0394yaw": [
+      0.16,
+      0.11,
+      0.215
+     ],
+     "z turn \u22120.6 \u0394yaw": [
+      -0.159,
+      -0.19,
+      -0.126
+     ],
+     "z goal-mirror toward m": [
+      0.019,
+      -0.003,
+      0.04
+     ],
+     "z random 8 toward m": [
+      -0.038,
+      -0.069,
+      -0.01
+     ],
+     "z random 16 \u0394forward m": [
+      -0.021,
+      -0.057,
+      0.014
+     ],
+     "z random 25 \u0394forward m": [
+      -0.183,
+      -0.245,
+      -0.112
+     ],
+     "z random 25 \u0394yaw": [
+      0.157,
+      0.058,
+      0.278
+     ],
+     "ctx halt \u0394forward m, pairs without a fall": [
+      -0.365,
+      -0.482,
+      -0.249
+     ],
+     "ctx mirror INACTIVE \u0394forward m, pairs without a fall": [
+      -0.005,
+      -0.021,
+      0.01
+     ]
+    },
+    "falls_t2_5s": {
+     "ctx:none": "0/20",
+     "ctx:mirror_goal": "0/20",
+     "ctx:mirror_active": "0/20",
+     "ctx:mirror_inactive": "0/20",
+     "ctx:halt": "0/20",
+     "z:none": "0/20",
+     "z:probe_halt": "2/20",
+     "z:probe_yaw_0.6": "0/20",
+     "z:probe_yaw_-0.6": "0/20",
+     "z:probe_goal_mirror": "0/20",
+     "z:contact_0_1": "0/20",
+     "z:contact_0_0": "0/20",
+     "z:rand_norm_8": "0/20",
+     "z:rand_norm_16": "0/20",
+     "z:rand_norm_25": "2/20",
+     "z:zero": "20/20"
+    },
+    "dirs": [
+     "artifacts/runs/legged_edits/t1/r2_t1edits_nosem_s3_policy",
+     "artifacts/runs/legged_edits/t1/r2ctx_t1edits_nosem_s3_policy"
+    ]
+   },
+   "pooled": {
+    "effects": {
+     "ctx halt \u0394forward m": [
+      -0.076,
+      -0.162,
+      0.0
+     ],
+     "ctx mirror INACTIVE \u0394forward m": [
+      0.001,
+      -0.01,
+      0.013
+     ],
+     "ctx mirror ACTIVE toward m": [
+      0.337,
+      0.259,
+      0.422
+     ],
+     "ctx mirror INACTIVE toward m": [
+      0.001,
+      -0.006,
+      0.009
+     ],
+     "ctx ACTIVE\u2212INACTIVE toward m": [
+      0.336,
+      0.257,
+      0.419
+     ],
+     "z halt \u0394forward m": [
+      -0.57,
+      -0.627,
+      -0.516
+     ],
+     "z turn +0.6 \u0394yaw": [
+      0.188,
+      0.155,
+      0.22
+     ],
+     "z turn \u22120.6 \u0394yaw": [
+      -0.211,
+      -0.247,
+      -0.18
+     ],
+     "z goal-mirror toward m": [
+      0.018,
+      0.002,
+      0.033
+     ],
+     "z random 8 toward m": [
+      -0.005,
+      -0.024,
+      0.012
+     ],
+     "z random 16 \u0394forward m": [
+      -0.066,
+      -0.105,
+      -0.031
+     ],
+     "z random 25 \u0394forward m": [
+      -0.21,
+      -0.259,
+      -0.161
+     ],
+     "z random 25 \u0394yaw": [
+      0.094,
+      0.049,
+      0.145
+     ],
+     "ctx halt \u0394forward m, pairs without a fall": [
+      -0.076,
+      -0.162,
+      0.0
+     ],
+     "ctx mirror INACTIVE \u0394forward m, pairs without a fall": [
+      0.001,
+      -0.01,
+      0.013
+     ]
+    },
+    "falls_t2_5s": {
+     "ctx:none": "0/60",
+     "ctx:mirror_goal": "1/60",
+     "ctx:mirror_active": "2/60",
+     "ctx:mirror_inactive": "0/60",
+     "ctx:halt": "0/60",
+     "z:none": "0/60",
+     "z:probe_halt": "7/60",
+     "z:probe_yaw_0.6": "2/60",
+     "z:probe_yaw_-0.6": "1/60",
+     "z:probe_goal_mirror": "0/60",
+     "z:contact_0_1": "0/60",
+     "z:contact_0_0": "5/60",
+     "z:rand_norm_8": "2/60",
+     "z:rand_norm_16": "2/60",
+     "z:rand_norm_25": "8/60",
+     "z:zero": "58/60"
+    },
+    "training_seeds": [
+     0,
+     1,
+     3
+    ],
+    "r2": [
+     "28/30",
+     "27/30",
+     "28/30"
+    ]
+   }
+  }
+ }
+}

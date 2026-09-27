@@ -1,0 +1,20 @@
+{"body": "hexapod6", "seed": 10008, "source": "learned:legged_fixrep_flow_nosem_hexapod6_s2/snap_s4000.pt", "edit": "none", "success": false, "fell": false, "sim_time": 8.099999999999374, "failure_stage": "drift_a"}
+{
+ "hexapod6": {
+  "n": 1,
+  "success": 0,
+  "fell": 0,
+  "stages": {
+   "drift_a": 1
+  },
+  "seeds": "10008",
+  "mean_sim_time": 8.099999999999374,
+  "packet_probes": {
+   "subtask": 0.0,
+   "contact": 0.481981981981982,
+   "goal_err": 3.683886961377096,
+   "disp_yaw_err": 0.11775610155733057,
+   "disp_xy_err": 0.41891134455968143
+  }
+ }
+}

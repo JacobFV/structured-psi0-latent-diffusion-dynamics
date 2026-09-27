@@ -533,3 +533,72 @@ the end); (2) the tracker actors for anymal_c/g1/h1/t1 on the peer came from the
 peer reboot copy them again from `~/.archive/relational-robot-policy-2026-09-25-original/artifacts/trackers/`;
 (3) `scripts/peer_sync.sh` previously deleted a worktree's `artifacts` symlink on push (exclude `artifacts/` does not
 match a symlink); fixed here by anchoring the excludes (`/artifacts`, `/.cache`). Use absolute output paths anyway.
+
+## T1 CONTEXT-HALT SUITE (t1_edits agent, 2026-09-26 13:15 → 17:50; worktree ~/work/rrp-wt/t1_edits, peer dir wt/t1_edits)
+Question: does the D-088/D-090 semantic-specific context `halt` effect also hold on the t1 HUMANOID? Setup: the EXISTING D-087 t1 models, with NO new training. Irrelevant control: mirror the INACTIVE waypoint.
+- fixed sem (bounded NLL): `t1diag_flow_sem_lv4{,_s1,_s3}`
+- nosem: `legged_flow_nosem_t1_v2{,s1,s3}`
+- training seeds 0/1/3
+Protocol: identical to `scripts/legged_fixrep_eval.sh`.
+- Same z-edit list, including random |dz| 1–25 and zero, and the same task-context list.
+- Edit at t=2 s, window t=2–5 s, dev seeds 10000–10019, paired against the unedited run of the same model; R2 over 10000–10029.
+- The go2/hexapod6 suites used flow snap_s4000. On t1, snap_s4000 is less competent than the final flow `policy.pt` (the D-087 checkpoint), so the whole suite was run on BOTH checkpoints.
+- nosem z edits go through post-hoc probes. Seed 0's probe already existed. Seeds 1 and 3 were fitted here with the same 4000-step probe recipe (`legged_latent_train probe`; a readout on the frozen encoder, not a model change): `artifacts/runs/legged_rep_nosem_t1_v2s{1,3}/probe_posthoc.json` (held-out goal err 0.135 / 0.179, subtask acc 0.85 / 0.79; seed 0: 0.163 / 0.88).
+Labels: learned:t1diag_flow_sem_lv4*/<ckpt> (FIXED sem) and learned:legged_flow_nosem_t1_v2*/<ckpt> (nosem). All are DEPLOYABLE R2.
+
+Commands (host, all rc=0, no FAIL lines):
+- probes: host GPU lease 1790454078_3d34cf
+- fixsem: `bash scripts/t1_edits_eval.sh 8 {snap_s4000,policy} fixsem_s0 fixsem_s1 fixsem_s3`, host CPU lease 1790454553_155750. A first attempt, lease 1790454137_018b42, was shed by the host watchdog (`live_limit_reduced`); it was relaunched with a smaller reservation.
+- nosem: `bash scripts/t1_edits_eval.sh 4 {snap_s4000,policy} nosem_s0 nosem_s1 nosem_s3`, host CPU lease 1790454680_610ae1
+- tables: `python scripts/t1_edits_compare.py {snap_s4000,policy}`
+Raw outputs:
+- `artifacts/runs/legged_ladder/t1/r2_t1edits_{fixsem,nosem}_s{0,1,3}_{snap_s4000,policy}.jsonl`
+- `artifacts/runs/legged_edits/t1/r2{,ctx}_t1edits_{fixsem,nosem}_s{0,1,3}_{snap_s4000,policy}/`
+Tables: `artifacts/runs/t1_edits_compare_{snap_s4000,policy}.{md,json}`. They use the legged_fixrep_compare format, plus falls per condition and the context-halt effect restricted to pairs where neither episode fell.
+
+**Task-context `halt` Δforward (m) over t=2–5 s. Per training seed 0 / 1 / 3 → pooled over 60 episodes [bootstrap 95% CI]**
+| t1 | fixed sem | nosem |
+|---|---|---|
+| final flow `policy` | −0.41 [−0.50, −0.34] / −0.06 [−0.13, −0.00] / −0.28 [−0.37, −0.19] → **−0.25 [−0.31, −0.19]** | +0.05 [−0.09, +0.18] / +0.08 [+0.03, +0.14] / **−0.37 [−0.48, −0.25]** → **−0.08 [−0.16, +0.00]** |
+| snap_s4000 | −0.43 / −0.06 [−0.13, +0.01] / −0.27 → **−0.25 [−0.32, −0.19]** | −0.19 [−0.36, −0.05] / +0.12 / −0.08 [−0.19, +0.02] → **−0.05 [−0.13, +0.02]** |
+| same, pairs without a fall (policy / snap) | −0.25 [−0.31, −0.19] / −0.32 [−0.39, −0.25] | −0.08 / −0.05 |
+| irrelevant control, mirror INACTIVE Δforward (policy / snap) | −0.006 [−0.018, +0.006] / +0.018 | +0.001 / +0.003 |
+Unedited forward in the window is 1.0–1.3 m, so the pooled fixed-sem slow-down is about 20–25%. By seed, fixed sem slows 6–40%.
+
+**Falls (t1 can fall, so this was checked).**
+- The context `halt` edit does NOT cause falls. Final flow: fixsem 2/60 vs 1/60 unedited; nosem 0/60 vs 0/60. snap_s4000: fixsem 7/60 vs 10/60 unedited; nosem 4/60 vs 4/60. The slow-down is not a fall artefact: it stays the same, or grows, on no-fall pairs.
+- z edits DO knock t1 over. This is a failure mode, reported as such.
+  - Fixed sem, final flow:
+    - probe turn +0.6: 23/60 falls, including 20/20 on seed 0
+    - leg-0 swing: 14/60
+    - probe halt: 9/60
+  - nosem, final flow: probe halt 7/60, rand |dz| 25: 8/60.
+  - zero packet: 41/60 and 58/60.
+  - At snap_s4000 everything falls more. Random |dz| 25 gives 23/60 in both variants, and probe halt 24/60 vs 23/60.
+- R2 success (full episode, 30 dev seeds):
+  - final flow: fixsem 29/25/27 = 81/90, nosem 28/27/28 = 83/90. This reproduces D-087 exactly.
+  - snap_s4000: fixsem 23/21/21 = 65/90, nosem 25/23/27 = 75/90.
+
+**Other measures, pooled (fixed sem vs nosem; final flow, snap_s4000 in parentheses)**
+- Context goal steering, ACTIVE−INACTIVE toward-mirror: +0.37 [0.30, 0.44] vs +0.34 [0.26, 0.42] (+0.38 vs +0.33). Equal, as on go2 and hexapod6.
+- z halt Δforward: −0.53 vs −0.57 (−0.62 vs −0.52). Both strong. The edit norm |dz| is 14–18 for fixsem vs 9–11 for nosem. Random |dz| 16 gives −0.09 / −0.07, and random |dz| 25 gives −0.22 / −0.21.
+- z turn ±0.6 Δyaw: fixsem +turn is BROKEN, at −0.02 pooled. The seeds disagree in sign (−0.12 / +0.14 / −0.09), and on seed 0 the robot falls. −turn is −0.14. nosem gives +0.19 / −0.21. On t1 the nosem turn handle is the better one.
+- z goal readout toward-mirror: +0.031 [0.015, 0.047] vs +0.018 [0.002, 0.033] (+0.046 vs +0.020). Random |dz| 8 gives ≈0. fixsem is a little larger, with overlapping CIs.
+
+**Verdict.**
+1. The context-`halt` effect REPLICATES IN POOLED DIRECTION AND SIZE on t1.
+   - Fixed sem pooled −0.25 m on both checkpoints, CI well below 0, with no extra falls.
+   - nosem pooled −0.05 to −0.08, CI touching 0.
+   - The pooled CIs do not overlap on either checkpoint.
+   - The irrelevant control is ≈0 for both.
+2. BUT it is less clean than on go2/hexapod6, where every fixed-sem seed was below every nosem seed.
+   - On t1, fixsem seed 1 is weak (−0.06). nosem seed 3 on the final flow slows as much as a fixed-sem seed (−0.37 [−0.48, −0.25]); at snap_s4000, nosem seed 0 slows −0.19.
+   - The seed ordering therefore does not hold on t1 (no permutation p < 0.05).
+   - Reading: on the humanoid the semantic packet makes a context halt reliably effective on average (2 of 3 seeds strong). The nosem packet can also carry it in some seeds. Most nosem seeds do not slow, and one walks further (+0.08 / +0.12).
+3. Unchanged: goal steering through the task context is equal.
+4. Humanoid-specific failure mode: probe-direction z edits often cause falls, especially fixed-sem +turn and leg-contact edits. On t1, z handles are not safe controls. The context-level halt is safe.
+
+Clips (rendered on the peer, EGL lease 1790454235_ef9711, rc=0; `scripts/t1_edits_videos.sh`, tiled 2×2 by `scripts/t1_edits_tile.py`; INDEX.md lines, labelled learned:<ckpt>). Both are replication seed 2, snap_s4000, with the halt task view from t=2 s and an 8 s cap:
+- `artifacts/video/2026-09-26_learned_ctxhalt_hexapod6_trainseed2_s10008_fixsem-vs-nosem_effect.mp4` — hexapod6, dev seed 10008. Forward progress over t=2–8 s: fixed sem 1.30 → 0.84 m (slows); nosem 0.93 → 1.24 m (does not slow).
+- `artifacts/video/2026-09-26_learned_ctxhalt_go2_trainseed2_s10000_fixsem-vs-nosem_noeffect.mp4` — NO-EFFECT clip: go2, dev seed 10000, from the seed whose pooled CI spans 0. Fixed sem 2.15 → 2.16 m (no slow-down); nosem 2.17 → 3.09 m (walks further). No falls.
+Per-clip rows: `artifacts/runs/t1_edits_video/*/*.jsonl`. No t1 clip was rendered.

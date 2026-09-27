@@ -1,0 +1,22 @@
+{
+ "file": "artifacts/runs/legged_ladder/t1/r2_t1edits_fixsem_s0_snap_s4000.jsonl",
+ "source": "learned:t1diag_flow_sem_lv4/snap_s4000.pt",
+ "edit": "none",
+ "n": 30,
+ "success": 23,
+ "wilson95": [
+  0.591,
+  0.882
+ ],
+ "stages": {
+  "success": 23,
+  "fell": 6,
+  "halt": 1
+ },
+ "seeds": [
+  10000,
+  10029
+ ],
+ "events_a": 26,
+ "events_b": 25
+}

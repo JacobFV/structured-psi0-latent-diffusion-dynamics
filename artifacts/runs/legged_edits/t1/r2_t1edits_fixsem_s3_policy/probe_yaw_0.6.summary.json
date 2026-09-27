@@ -1,0 +1,24 @@
+{
+ "source": "learned:t1diag_flow_sem_lv4_s3/policy.pt",
+ "edit": "probe_yaw:0.6",
+ "per_body": {
+  "t1": {
+   "n": 20,
+   "success": 0,
+   "fell": 2,
+   "stages": {
+    "drift_a": 18,
+    "fell": 2
+   },
+   "seeds": "10000-10019",
+   "mean_sim_time": 5.059999999999664,
+   "packet_probes": {
+    "subtask": 1.0,
+    "contact": 0.9578125,
+    "goal_err": 0.058314433708016644,
+    "disp_yaw_err": 0.05614000229628131,
+    "disp_xy_err": 0.052604134192783966
+   }
+  }
+ }
+}

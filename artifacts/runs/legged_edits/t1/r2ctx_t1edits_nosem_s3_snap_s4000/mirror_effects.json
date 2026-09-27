@@ -1,0 +1,54 @@
+{
+ "mirror_goal": {
+  "n": 20,
+  "toward_mirror_lateral_m": [
+   0.318,
+   0.187,
+   0.455
+  ],
+  "toward_mirror_yaw_rad": [
+   0.716,
+   0.431,
+   1.0
+  ]
+ },
+ "mirror_active": {
+  "n": 20,
+  "toward_mirror_lateral_m": [
+   0.367,
+   0.226,
+   0.502
+  ],
+  "toward_mirror_yaw_rad": [
+   0.7,
+   0.44,
+   0.963
+  ]
+ },
+ "mirror_inactive": {
+  "n": 20,
+  "toward_mirror_lateral_m": [
+   0.013,
+   -0.004,
+   0.034
+  ],
+  "toward_mirror_yaw_rad": [
+   0.028,
+   -0.007,
+   0.064
+  ]
+ },
+ "halt": {
+  "n": 20,
+  "toward_mirror_lateral_m": [
+   0.075,
+   0.018,
+   0.133
+  ],
+  "toward_mirror_yaw_rad": [
+   0.122,
+   0.003,
+   0.241
+  ]
+ }
+}

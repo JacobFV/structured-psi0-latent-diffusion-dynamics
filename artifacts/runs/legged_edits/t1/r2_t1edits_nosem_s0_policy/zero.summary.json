@@ -1,0 +1,23 @@
+{
+ "source": "learned:legged_flow_nosem_t1_v2/policy.pt",
+ "edit": "zero",
+ "per_body": {
+  "t1": {
+   "n": 20,
+   "success": 0,
+   "fell": 20,
+   "stages": {
+    "fell": 20
+   },
+   "seeds": "10000-10019",
+   "mean_sim_time": 2.999999999999891,
+   "packet_probes": {
+    "subtask": 1.0,
+    "contact": 0.9765625,
+    "goal_err": 0.3615733737009477,
+    "disp_yaw_err": 0.06791037524652872,
+    "disp_xy_err": 0.051347094997179196
+   }
+  }
+ }
+}

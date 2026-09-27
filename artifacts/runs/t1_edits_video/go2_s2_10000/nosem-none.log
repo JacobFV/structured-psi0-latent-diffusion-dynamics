@@ -1,0 +1,20 @@
+{"body": "go2", "seed": 10000, "source": "learned:legged_fixrep_flow_nosem_go2_s2/snap_s4000.pt", "edit": "none", "success": false, "fell": false, "sim_time": 8.099999999999374, "failure_stage": "drift_b"}
+{
+ "go2": {
+  "n": 1,
+  "success": 0,
+  "fell": 0,
+  "stages": {
+   "drift_b": 1
+  },
+  "seeds": "10000",
+  "mean_sim_time": 8.099999999999374,
+  "packet_probes": {
+   "subtask": 0.0,
+   "contact": 0.31756756756756754,
+   "goal_err": 3.297334195919688,
+   "disp_yaw_err": 0.15717651865720936,
+   "disp_xy_err": 0.6280876892842724
+  }
+ }
+}

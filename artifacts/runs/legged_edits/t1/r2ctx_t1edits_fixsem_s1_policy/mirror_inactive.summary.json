@@ -1,0 +1,25 @@
+{
+ "source": "learned:t1diag_flow_sem_lv4_s1/policy.pt",
+ "edit": "mirror_inactive",
+ "per_body": {
+  "t1": {
+   "n": 20,
+   "success": 0,
+   "fell": 1,
+   "stages": {
+    "drift_a": 16,
+    "drift_b": 3,
+    "fell": 1
+   },
+   "seeds": "10000-10019",
+   "mean_sim_time": 5.064999999999662,
+   "packet_probes": {
+    "subtask": 1.0,
+    "contact": 0.9421875,
+    "goal_err": 0.055730863570512344,
+    "disp_yaw_err": 0.060157380455660506,
+    "disp_xy_err": 0.05312750687060418
+   }
+  }
+ }
+}

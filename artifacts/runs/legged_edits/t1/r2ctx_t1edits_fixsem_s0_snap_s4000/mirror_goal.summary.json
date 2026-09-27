@@ -1,0 +1,25 @@
+{
+ "source": "learned:t1diag_flow_sem_lv4/snap_s4000.pt",
+ "edit": "mirror_goal",
+ "per_body": {
+  "t1": {
+   "n": 20,
+   "success": 0,
+   "fell": 4,
+   "stages": {
+    "fell": 4,
+    "drift_a": 15,
+    "drift_b": 1
+   },
+   "seeds": "10000-10019",
+   "mean_sim_time": 4.864999999999685,
+   "packet_probes": {
+    "subtask": 1.0,
+    "contact": 0.909375,
+    "goal_err": 0.10844896843798961,
+    "disp_yaw_err": 0.0946436347369883,
+    "disp_xy_err": 0.05802418602101071
+   }
+  }
+ }
+}

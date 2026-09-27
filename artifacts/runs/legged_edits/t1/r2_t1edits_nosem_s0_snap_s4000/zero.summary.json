@@ -1,0 +1,23 @@
+{
+ "source": "learned:legged_flow_nosem_t1_v2/snap_s4000.pt",
+ "edit": "zero",
+ "per_body": {
+  "t1": {
+   "n": 20,
+   "success": 0,
+   "fell": 20,
+   "stages": {
+    "fell": 20
+   },
+   "seeds": "10000-10019",
+   "mean_sim_time": 2.859999999999906,
+   "packet_probes": {
+    "subtask": 0.9875,
+    "contact": 0.9484375,
+    "goal_err": 0.3846198333663875,
+    "disp_yaw_err": 0.10712743497952264,
+    "disp_xy_err": 0.06558652717085142
+   }
+  }
+ }
+}
