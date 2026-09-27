@@ -26,10 +26,17 @@ Variants:
 | `nszn` | nosem, recipe ablation: system-0 z-noise 0 (instead of 0.3); qd still removed | s1 | `arm/nosem-zn0/s1` | ladder.md "ARM NOSEM RECIPE ABLATION" | `configs/ladder/armnosemabl/nszn/rz_nszn_gendag1_noqd.json` |
 | `nsqd` | nosem, recipe ablation: joint velocity KEPT (`realizer_drop_qd` false, no qd dropout); z-noise 0.3 | s1 | `arm/nosem-qd/s1` | same | `configs/ladder/armnosemabl/nsqd/rz_nsqd_gendag1_qd.json` |
 | `nszq` | nosem, both ablations (z-noise 0 AND qd kept) | s1 | `arm/nosem-zn0-qd/s1` | same | `configs/ladder/armnosemabl/nszq/rz_nszq_gendag1_qd.json` |
+| `arm2-semfix` s1/s2 (labels `a2sf1_…`, `a2sf2_…`; dirs `artifacts/runs/armv2/arm2-semfix/<stage>[-<tag>]_s<seed>`) | semfix on v2 components | s1, s2 | `arm2/semfix/s{1,2}` | D-102; ladder.md "ARM V2-TEACHER LINEAGES" | `dags/arm_lineage_v2.yaml` |
+| `arm2-nosem` s1/s2 (labels `a2ns1_…`, `a2ns2_…`) | nosem on v2 components | s1, s2 | `arm2/nosem/s{1,2}` | same | same |
 | `b1fix` | any | — | flag: `zero_prev_action` (B-1 fix) | D-044, D-045 | `configs/ladder/rz_sem_v1_b1fix.json` |
 | `anchor` | any | — | flag: `realizer_anchor` (column 28 = joint displacement since packet anchor) | D-045, ladder.md | `configs/ladder/rep-latent_sem_b1fix_anchor.json` |
 | `latent_{sem,nosem}_v1`, `flow_latent_sem_v{1,2,3}` | sem / nosem | s1 | pre-B-1 lineage (contaminated; v2 = standardized flow target D-031, v3 = +`packet_tau_min`; all reuse the v1 encoder) | D-031, D-045 | `configs/latent/rep-latent_sem_v1.json` |
 | `flow_jointfix_nosem` | sem encoder + nosem flow | s1 | Stage-B-only ablation; no results found (uncertain purpose) | commit 9fce481 | `configs/ladder/flow_jointfix_nosem.json` |
+
+v2-teacher set (`arm2-*`, D-102): identical recipe, seeds and collection seeds to the v1 lineages of the same variant/seed,
+but data = `pick_place_primary_v4dart` / pack `latent_pp_v4dart_s1_H16` (scripted_teacher:pick_place_v2_minjerk) and DAgger
+labeller / stateless-R1 expert = learned:bcv2_direct1701 u12000 (sha256[:16] 6afcb8efdc277708) instead of direct1701_u12000;
+planned by `dags/arm_lineage_v2.yaml` (`extends: arm_lineage.yaml`). Native names `arm2_<variant>_s<seed>_<node>`.
 
 Recipe ablations (`nszn`, `nsqd`, `nszq`) differ from `nsjf` ONLY in the gendag1/2/3 refits; every upstream stage
 (Stage A, flow 20k, flow_ft, bc1-3, gen1, bcdag1/bcdag1_long/bcdag2) is config-identical and is reused from `nsjf`.

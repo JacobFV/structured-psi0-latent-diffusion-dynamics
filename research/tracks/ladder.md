@@ -3,6 +3,36 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
+## ARM V2-TEACHER LINEAGES (D-102; started 2026-09-27 02:00 PDT; state: running)
+Four lineages, semfix and nosem x training seeds 1 and 2 (the defective original sem is dropped), with the IDENTICAL
+recipe, rounds, seeds, DAgger collection seeds, evaluation sets (R2 dev + fresh 3.0001M / 3.0002M x 30 on panda_pg2 and
+parm6_tf3; held-out parm5s_tf3 / parm5l_pg2 dev 30; progression; stateless R1) and edit suite (parm6 3,000,000-119, panda
+3,000,000-047) as the v1 set (D-091/D-095), but entirely on v2 components:
+- data: `artifacts/datasets/pick_place_primary_v4dart`, pack `artifacts/packed/latent_pp_v4dart_s1_H16` (teacher v2,
+  scripted_teacher:pick_place_v2_minjerk; D-097/D-102);
+- DAgger labeller and stateless-R1 expert: learned:bcv2_direct1701 u12000
+  (`artifacts/runs/armexpert_bcv2/baseline_direct_action/seed1701/source/policy_u12000.pt`, sha256[:16] 6afcb8efdc277708);
+- no v1-trained piece: every training stage starts from this DAG's own outputs (Stage A from scratch on v4dart).
+How it runs: `rrp run-dag dags/arm_lineage_v2.yaml` (W5 pipeline). The DAG file `extends:` dags/arm_lineage.yaml (new
+loader feature: deep overlay of a parent DAG; the parent's v1 data/expert inputs became vars with unchanged values,
+`tests/unit/test_dag.py` still checks all six v1 lineages' configs) and overrides only names (track `armv2`, lineage
+`arm2-<variant>`, labels `a2<tg><seed>`), the matrix, the four input vars, and resources (lead cap <= 2 GPU leases, <= 10
+CPU: collections 4 workers x 2 threads = 8 CPU, edit suite 6 workers; threads/workers do not change results).
+Input audit (planned RunConfigs of all 100 nodes, `tests/unit/test_dag_extends.py`): no v3dart / direct1701_u12000 /
+v1 run reference anywhere; external inputs are only the v4dart dataset (4 Stage-A nodes), the v4dart pack (44 training
+nodes) and the v2 expert (32 collections + 4 R1 evals); every node sets zero_prev_action true; training params and flags
+equal the v1 recipe node by node.
+NOT changed on purpose: the evaluation harness (R2 / edit-suite scene seeds and their feasibility filter, and the
+diagnostic label-error metric) still uses the v1 scripted teacher's feasibility check, so the v2 lineages are scored on
+exactly the same eval scenes as the v1 set; no teacher acts in the R2 control loop.
+Smoke: Stage A on v4dart 200 steps rc 0 (1.37 s/step on the shared peer GPU); a 2-episode BC-expert collection with the v2
+expert rc 0 (label bcv2_direct1701_u12000).
+Placement: peer only (the pack lives on the peer disk; run-dag does not transfer artifacts across placements), code dir
+`/dev/shm/rrp-brandonin/wt/armv2`; driver = host user unit `rrp-armv2-dag` (the runner only launches/monitors peer
+leases). Ledger `artifacts/runs/armv2/_dags/arm_lineage_v2/ledger.json` (host checkout ~/work/rrp-wt/ladder).
+RESUME: `cd ~/work/rrp-wt/ladder && systemd-run --user --unit rrp-armv2-dag2 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv2 --setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/ladder ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_lineage_v2.yaml`
+(completed nodes skipped, running leases re-adopted; failed nodes only with --retry-failed, a manual decision).
+
 ## ARM NOSEM RECIPE ABLATION RESULT (2026-09-26 22:45 PDT; state: completed; all nodes rc 0 after one OOM relaunch)
 Question: is seed-1 nosem's failure (3/240 vs sem 146/240, D-091) caused by the two system-0 recipe choices that were
 tuned on the sem bundle (z-noise 0.3; joint-velocity input removed)? Answer: NO. Neither change, nor both together,
