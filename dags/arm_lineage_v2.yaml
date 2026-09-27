@@ -31,7 +31,7 @@ nodes:
   # artifacts/runs/armv2/_dags/arm_lineage_v2/memory_peaks.json and, from the next code push, logged by rrp.orchestration.child.
   # gpu_mem = measured process GPU memory (nvidia-smi) + margin. max_seconds = the broker's 6 h cap on GPU nodes (06:05:
   # under contention Stage A ran at 1.28 s/step and was stopped at 4 h). None of this enters the node config hashes.
-  stageA: {resources: {mem: 10G, gpu_mem: 2G, max_seconds: 21600}}           # measured 7.25G (rising) / ~1 GB GPU
+  stageA: {resources: {mem: 12G, gpu_mem: 2G, max_seconds: 21600}}           # measured slice peak 9.5G / ~1 GB GPU
   F0: {resources: {mem: 10G, gpu_mem: 4G, max_seconds: 21600}}               # provisional until measured
   Fft: {resources: {mem: 10G, gpu_mem: 4G, max_seconds: 21600}}
   Fgdag1: {resources: {mem: 10G, gpu_mem: 4G, max_seconds: 21600}}

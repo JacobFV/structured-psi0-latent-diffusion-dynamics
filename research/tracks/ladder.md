@@ -61,7 +61,12 @@ slice every 60 s into `artifacts/runs/armv2/_dags/arm_lineage_v2/memory_peaks.js
 2G GPU (measured 7.25G and rising / ~1 GB GPU); flows 10G + 4G and refits 8G + 3G (provisional until measured);
 collections 20G (a v1 gen2 group OOMed at 8G and ran at 16G); R2/R1/held-out evals 6G; edit suite 12G. Each is refined to
 peak + 20% once that stage type has been measured. Config hashes unchanged; runner restarted as `rrp-armv2-dag5`.
-RESUME: `cd ~/work/rrp-wt/ladder && systemd-run --user --unit rrp-armv2-dag6 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv2 --setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/ladder ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_lineage_v2.yaml`
+08:28 INCIDENT 3: both semfix Stage As shed again by the peer memory watchdog (available below the 2 GB reserve;
+system-wide pressure) at steps 1174/1175 (they ran at ~1.7 s/step while W8/W10 held the GPU). Their checkpoints now carry
+the python/torch/CUDA RNG states (verified), so they are resumed EXACTLY via `--retry-failed` (bounded manual retry,
+logged; the job log prints `exact: RNG restored`). Stage A declaration raised to 12G (measured slice peak 9.5G + 20%).
+Runner `rrp-armv2-dag6` (08:30); nosem Stage As (running) re-adopted; semfix waits for a GPU slot (cap 2).
+RESUME: `cd ~/work/rrp-wt/ladder && systemd-run --user --unit rrp-armv2-dag7 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv2 --setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/ladder ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_lineage_v2.yaml`
 (completed nodes skipped, running leases re-adopted; failed nodes only with --retry-failed, a manual decision).
 
 ## ARM NOSEM RECIPE ABLATION RESULT (2026-09-26 22:45 PDT; state: completed; all nodes rc 0 after one OOM relaunch)
