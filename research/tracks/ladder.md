@@ -45,8 +45,8 @@ panda 89/96 / 68/96 / 27/96. Goal edit, cube at the new goal (parm6): 29/162 / 9
 
 READING (two training seeds per lineage):
 1. REPLICATES: the no-semantic lineage is far worse than both semantic lineages on the arm's deployable route
-   (29/480 vs 247/480 and 253/480; nosem is below frozen sem in all 8 body x seed cells and below semfix in 7 of 8,
-   the exception being parm5l seed 2, 16 vs 18). The seed-1 zero (3/240) was an extreme: at seed 2 nosem reaches 26/240 (incl. 16/30 on parm5l).
+   (29/480 vs 247/480 and 253/480; nosem is below BOTH semantic lineages in all 8 body x seed cells; the
+   closest is parm5l seed 2, 16 vs 18 semfix). The seed-1 zero (3/240) was an extreme: at seed 2 nosem reaches 26/240 (incl. 16/30 on parm5l).
 2. PARTLY REPLICATES: the binding edit. At seed 2 the nosem packet DOES redirect the approach (26/82 parm6, 27/48 panda;
    min-dist effect +20 cm), so "nosem carries no binding" (seed 1) does not hold in general; it is consistently WEAKER
    than both semantic lineages at the approach level (pooled 26/164 vs 138/162 and 106/164 on parm6).
