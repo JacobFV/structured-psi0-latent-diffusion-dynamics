@@ -151,6 +151,10 @@ def test_legged_contact_v2_refuses_unversioned_data_and_mismatched_rows(tmp_path
     ok = dict(seed=1, contact_version="contact_v2",
               checkpoint_provenance={"flow": {"physics": {"contact_version": "contact_v2"}}, "representation": {}})
     assert check_rows_contact(ctx, [ok], "w") == {"contact_versions": ["contact_v2"]}
+    rc2 = rc.model_copy(update={"options": {"body": "anymal_c", "tracker_sha256": "abc"}})
+    with pytest.raises(StageError, match="tracker sha"):
+        check_rows_contact(StageContext(rc=rc2, index=RunIndex(), root=tmp_path), [dict(ok, tracker_sha256="def")], "w")
+    assert check_rows_contact(StageContext(rc=rc2, index=RunIndex(), root=tmp_path), [dict(ok, tracker_sha256="abc")], "w")
     with pytest.raises(StageError, match="scene contact_v1"):
         check_rows_contact(ctx, [dict(ok, contact_version="contact_v1")], "w")
     with pytest.raises(StageError, match="trained on contact_v1"):

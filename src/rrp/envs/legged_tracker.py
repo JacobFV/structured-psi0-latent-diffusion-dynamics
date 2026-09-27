@@ -48,6 +48,10 @@ class LearnedTracker:
         self.contact_model = meta.get("contact_model", "contact_v1")   # pre-v2 actors carry no key: v1 physics
         cv = "" if self.contact_model == "contact_v1" else f":{self.contact_model}"
         self.version = f"learned_tracker:{body_key}:iter{meta.get('iter')}{cv}"
+        import hashlib                                  # W8: exact actor identity (two v2 actors can share an iter)
+        self.path = str(path)
+        self.sha256 = hashlib.sha256(Path(path).read_bytes()).hexdigest()
+        self.run = (meta.get("args") or {}).get("out")
         self.reset()
 
     def reset(self, phase: float = 0.0):

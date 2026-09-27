@@ -461,6 +461,7 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
                 cam_scale=1.0, size=(368, 480)):
     sc = scenario if scenario is not None else build_waypoint_contact(body, seed)
     s = LeggedSession(sc, tracker_kind=default_tracker_kind(body), seed=seed)
+    trk_sha = getattr(s.tracker, "sha256", None)   # the body tracker (drives the teacher route; label source for ours)
     morph = LeggedMorph(s.model, s.binding, sc.robots[0].robot_spec.spec_hash)
     is_bc = isinstance(ctl, BCController)
     ad = (BCAdapter if is_bc else System0Adapter)(ctl, s, morph) if ctl is not None else None
@@ -510,7 +511,8 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
                events={e: v.status for e, v in s.runtime.instances.items()},
                final_pose=s.base_pose_truth().tolist(), waypoints=sc.meta["waypoints"],
                tracker=getattr(s, "tracker_version_str", None), n_steps=steps,
-               contact_version=model_contact_version(s.model) or sc.meta.get("contact_model"))
+               contact_version=model_contact_version(s.model) or sc.meta.get("contact_model"),
+               tracker_sha256=trk_sha)
     if ctl is not None:
         row.update(stats=ad.stats, packets=ctl.packets, packet_log=ad.log[:20],
                    latent_space_version=getattr(ctl, "lsv", None), realizer_compat_version=getattr(ctl, "rcv", None),

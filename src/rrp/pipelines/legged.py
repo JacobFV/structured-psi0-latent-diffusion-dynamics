@@ -104,6 +104,9 @@ def check_rows_contact(ctx: StageContext, rows: list[dict], where: str) -> dict:
     for r in rows:
         got = r.get("contact_version")
         seen.add(got)
+        want_sha = ctx.opts.get("tracker_sha256")
+        if want_sha and r.get("tracker_sha256") != want_sha:
+            bad.append(f"seed {r.get('seed')}: tracker sha {r.get('tracker_sha256')} != declared {want_sha}")
         if want and got != want:
             bad.append(f"seed {r.get('seed')}: scene {got}")
         for k, pv in (r.get("checkpoint_provenance") or {}).items():
@@ -140,7 +143,7 @@ def collect(ctx: StageContext) -> dict:
                      ctx.root / out / body / f"log_s{s}.txt"))
     ctx.run_parallel(jobs, int(o.get("workers", 1)))
     from rrp.data.manifest import read_manifest
-    eps, cvs, trk = [], set(), set()
+    eps, cvs, trk, shas = [], set(), set(), set()
     for s in range(a, b + 1, size):
         e = min(s + size - 1, b)
         sh = ctx.root / out / body / f"s{s}-{e}.json"
@@ -151,7 +154,10 @@ def collect(ctx: StageContext) -> dict:
         prov = read_manifest(sh.with_suffix(".manifest.json")).get("provenance")
         cvs.add(getattr(getattr(prov, "physics", None), "contact_version", None))
         trk |= {str(m.get("tracker_version")) for m in d["episodes"]}
+        shas |= {str(m.get("tracker_sha256")) for m in d["episodes"]}
     want = ctx.rc.flags.contact_version
+    if o.get("tracker_sha256") and shas != {o["tracker_sha256"]}:
+        raise StageError(f"collected with tracker sha {sorted(shas)}, DAG declares {o['tracker_sha256']}")
     if cvs != {want}:
         raise StageError(f"collected shards record contact version(s) {sorted(map(str, cvs))} != {want!r}")
     if len(eps) != b - a + 1:
@@ -160,7 +166,7 @@ def collect(ctx: StageContext) -> dict:
     return dict(outputs={"data": out}, metrics=dict(body=body, seeds=o["seeds"], episodes=len(eps),
                                                     success=st.count("success"), fell=st.count("fell"),
                                                     failure=st.count("failure"), contact_version=want,
-                                                    tracker_versions=sorted(trk),
+                                                    tracker_versions=sorted(trk), tracker_sha256=sorted(shas),
                                                     ticks=int(sum(m["ticks"] for m in eps))),
                 source_detail=f"scripted_teacher:waypoint -> {'|'.join(sorted(trk))}")
 
@@ -285,7 +291,10 @@ def _ladder(ctx: StageContext, default_route: str) -> dict:
     rows.write_text("".join(p.read_text() for p in parts))
     for p in parts:
         p.unlink()
-    cv = check_rows_contact(ctx, [json.loads(x) for x in rows.read_text().splitlines() if x.strip()], str(rows))
+    rl = [json.loads(x) for x in rows.read_text().splitlines() if x.strip()]
+    cv = check_rows_contact(ctx, rl, str(rows))
+    cv["tracker_sha256"] = sorted({str(r.get("tracker_sha256")) for r in rl})
+    cv["trackers"] = sorted({str(r.get("tracker")) for r in rl})
     ctx.run(["scripts/legged_ladder_summary.py", str(rows)])
     summ = json.loads(rows.with_suffix(".summary.json").read_text())
     summ.update(cv, checkpoint_contact=ck)

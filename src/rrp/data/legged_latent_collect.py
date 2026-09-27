@@ -110,6 +110,8 @@ def collect_episode(body: str, seed: int, sigma: float, tracker_kind="auto", max
     arr = {k: np.asarray(v) for k, v in rt.rec.items()}
     meta = dict(body=body, seed=seed, sigma=sigma, status=status, steps=steps, ticks=len(arr["a"]),
                 tracker_source=rt.source, tracker_version=rt.version, source="scripted_teacher",
+                tracker_sha256=getattr(rt.inner, "sha256", None), tracker_run=getattr(rt.inner, "run", None),
+                actuator="ideal_pd_servo (legacy; the realistic actuator model is not applied)",
                 privileged_teacher=True, teacher_variant="arc_only" if arc_only else "default",
                 speed_frac=te.vmax / te.r["vx"][1], turn_gain=te.k, waypoints=sc.meta["waypoints"],
                 spec_hash=morph.spec_hash, wall_s=time.time() - t0, tracker_source_label=str(parse_source(rt.source)),
@@ -157,7 +159,9 @@ def main(argv=None):
                                          dart_sigmas=sig, prev_action_input=False),
                               notes="tick-level labels = clean body-tracker joint targets (native expert)")
     prov.versions.update(tracker_source="|".join(sorted({m["tracker_source_label"] for m in metas})),
-                         tracker_version="|".join(sorted({str(m["tracker_version"]) for m in metas})))
+                         tracker_version="|".join(sorted({str(m["tracker_version"]) for m in metas})),
+                         tracker_sha256="|".join(sorted({str(m["tracker_sha256"]) for m in metas})),
+                         actuator="|".join(sorted({m["actuator"] for m in metas})))
     f.with_suffix(".json").write_text(json.dumps(dict(body=a.body, episodes=metas, handles=morph.handles,
                                                       asm_kind=morph.asm_kind, body_kind=morph.body_kind,
                                                       gait_period=morph.gait_period, provenance=prov.to_dict()),
