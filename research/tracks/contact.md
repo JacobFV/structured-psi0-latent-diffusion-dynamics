@@ -163,8 +163,11 @@ and the energy terms off. h1 did NOT work: window about 0.4, deterministic valid
 (t1 at ~1150, h1 at ~1300; kept as `contact_{t1,h1}_turn_c`).
 Phase 2 for t1: `artifacts/runs/contact_t1_turn2` (peer lease 1790502983_4e0ad0), init from the turn policy, alpha FIXED at 1 (the
 accepted t1's setting), full turn range, same turn terms, 1200 iters, to recover slip and CoT while keeping the turn.
-g1 with the t1 recipe: peer lease 1790502984_51ec56, `artifacts/runs/contact_g1_turn`. The h1 retry (stronger turn_lin, more turn samples)
-is queued behind these.
+g1 with the t1 recipe (`contact_g1_turn_c`, stopped at ~815): the same stall as h1 (window 0.26-0.40). Deterministic: both h1 and g1 STAND with
+both feet down under pure yaw commands (turn 0.03/0.0, duty 1.0/1.0). They never start stepping from rest, although they turn well in arcs.
+**Arc-to-in-place curriculum** (`--turn-vx0 V`): pure-turn commands start with forward speed V (0.2 m/s). Each window with turn ratio >= 0.6
+shrinks it by V/4 until 0, and only then widens the yaw range. h1 on the HOST (peer load > 15), with automatic resume after watchdog sheds
+(`scripts/contact_host_resumable.sh`, bounded to 8 launches): `artifacts/runs/contact_h1_turnarc`, 2500 iters. g1 follows the h1 result.
 
 ### (3) actuator realism: implemented; baseline measured; fine-tunes running
 `src/rrp/physics/actuator.py` (actuator_v2; test `tests/unit/test_actuator.py`): armature max(model, 4e-4 x peak torque) x U(0.8, 1.2);
