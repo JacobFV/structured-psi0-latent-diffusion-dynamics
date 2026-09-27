@@ -382,6 +382,7 @@ def build_report(out: Path) -> dict:
             if nom is None:
                 continue
             t = dict(nominal=dict(success=nom["success"], n=nom["n"], rate=nom["rate"], wilson95=nom["wilson95"],
+                                  public_success=nom["task"]["public_success"],
                                   falls=nom["falls"], motion=nom["motion_median"], sources=nom["sources"]), factors={})
             for f, spec in list(ft.items()) + [("all_moderate", dict(levels=[1], nominal=0))]:
                 lv = []
@@ -394,8 +395,11 @@ def build_report(out: Path) -> dict:
                                    falls=c["falls"], drop=(nom["rate"] - c["rate"]), stages=c["stages"], task=c["task"],
                                    motion=c["motion_median"], **_paired(nom["success_by_seed"], c["success_by_seed"])))
                 if lv:
+                    pn = nom["task"]["public_success"] / nom["n"]
+                    lvp = [dict(level=l["level"], rate=l["task"]["public_success"] / l["n"]) for l in lv]
                     t["factors"][f] = dict(levels=lv, nominal_level=spec["nominal"],
-                                           break_point=break_points(lv, nom["rate"], spec["nominal"]))
+                                           break_point=break_points(lv, nom["rate"], spec["nominal"]),
+                                           break_point_public=break_points(lvp, pn, spec["nominal"]))
             allk = [l for f, x in t["factors"].items() if f != "all_moderate" for l in x["levels"]]
             ks, ns = sum(l["success"] for l in allk), sum(l["n"] for l in allk)
             t["pooled_perturbed"] = dict(success=ks, n=ns, rate=(ks / ns if ns else None), wilson95=list(wilson(ks, ns)),
@@ -412,10 +416,13 @@ def _pct(x):
 def render_md(rep: dict) -> str:
     fam = rep["family"]
     L = [f"# robustness sweep ({fam})", "",
+         "Cells: privileged success k/n (public task-runtime success in parentheses; fN = N falls"
+         + (", i.e. dropped cube)" if fam == "arm" else ")") + ". ",
          f"Break-point = first level (moving away from nominal) whose success rate is > {int(BREAK_DROP * 100)} points below "
          "nominal; `lost/gained` = paired seeds that succeed at nominal and fail at the level / the reverse. Wilson 95% CIs. "
          "Motion columns are medians over episodes. Checkpoint sha256: see manifest.", ""]
     mk = MOTION_KEYS[fam]
+    L += cross_route_md(rep)
     for rn, per in rep["table"].items():
         for robot, t in per.items():
             nm = t["nominal"]
@@ -440,6 +447,56 @@ def render_md(rep: dict) -> str:
                              f"{bp if i == 0 else ''} |")
             L.append("")
     return "\n".join(L)
+
+
+def cross_route_md(rep: dict) -> list[str]:
+    """One table per robot: success k/n of every route at every level side by side, then break-points per route."""
+    L = []
+    robots = sorted({r for per in rep["table"].values() for r in per})
+    for robot in robots:
+        routes = [rn for rn in rep["table"] if robot in rep["table"][rn]]
+        T = {rn: rep["table"][rn][robot] for rn in routes}
+        L += [f"## cross-route summary: {robot}", "",
+              "| factor | level | " + " | ".join(routes) + " |", "|---|---|" + "---|" * len(routes)]
+        L.append("| nominal | - | " + " | ".join(f"{T[r]['nominal']['success']}/{T[r]['nominal']['n']} "
+                                                 f"({T[r]['nominal']['public_success']})" for r in routes) + " |")
+        facs = []
+        for r in routes:
+            for f in T[r]["factors"]:
+                if f not in facs:
+                    facs.append(f)
+        for f in facs:
+            levels = []
+            for r in routes:
+                for l in T[r]["factors"].get(f, {}).get("levels", []):
+                    if l["level"] not in levels:
+                        levels.append(l["level"])
+            for v in levels:
+                cells = []
+                for r in routes:
+                    l = next((x for x in T[r]["factors"].get(f, {}).get("levels", []) if x["level"] == v), None)
+                    if l is None:
+                        cells.append("-")
+                    else:
+                        broke = l["rate"] < T[r]["nominal"]["rate"] - BREAK_DROP - 1e-9
+                        cells.append(f"{'**' if broke else ''}{l['success']}/{l['n']}{'**' if broke else ''}"
+                                     + f" ({l['task']['public_success']})" + (f" f{l['falls']}" if l["falls"] else ""))
+                L.append(f"| {f} | {_fmt(v)} | " + " | ".join(cells) + " |")
+        L.append("| pooled perturbed | - | " + " | ".join(
+            f"{T[r]['pooled_perturbed']['success']}/{T[r]['pooled_perturbed']['n']} (lost {T[r]['pooled_perturbed']['lost']})"
+            for r in routes) + " |")
+        L += ["", f"Break-points ({robot}; first level > {int(BREAK_DROP * 100)} points below the route's own nominal; "
+              "privileged success, **bold** cells above; [public-success break-point in brackets]):", "",
+              "| factor | " + " | ".join(routes) + " |", "|---|" + "---|" * len(routes)]
+        fb = lambda bp: "-" if bp is None else ", ".join(f"{k} {_fmt(v) if v is not None else 'none'}" for k, v in bp.items())
+        for f in facs:
+            cells = []
+            for r in routes:
+                x = T[r]["factors"].get(f, {})
+                cells.append(f"{fb(x.get('break_point'))} [{fb(x.get('break_point_public'))}]" if x else "-")
+            L.append(f"| {f} | " + " | ".join(cells) + " |")
+        L.append("")
+    return L
 
 
 def cmd_report(a):
