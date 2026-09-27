@@ -277,6 +277,7 @@ class RewardCfg:
     # pure-turn commands (a stepping turn), independent of the decaying contact_phase prior.
     yaw_slip: float = 0.0
     turn_step: float = 0.0
+    sigma_ang: float = 0.0         # yaw-rate tracking kernel width; 0 -> sigma (a sharper kernel keeps small turn commands informative)
     version: str = "gait_v1"
     # schedule (gait_v2): alpha in [0,1]; priors w0*(floor + (1-floor)(1-alpha)); natural w_min + alpha(w_max-w_min)
     alpha: float = 0.0
@@ -498,7 +499,7 @@ class LeggedEnv:
             g = quat_rotate_inv(quat, np.array([0, 0, -1.0]))
             c = self.cmd[i]
             r = cfg.track_lin * math.exp(-float(np.sum((c[:2] - v[:2]) ** 2)) / cfg.sigma)
-            r += cfg.track_ang * math.exp(-float((c[2] - w[2]) ** 2) / cfg.sigma)
+            r += cfg.track_ang * math.exp(-float((c[2] - w[2]) ** 2) / (cfg.sigma_ang or cfg.sigma))
             r += cfg.lin_z * v[2] ** 2 + cfg.ang_xy * float(np.sum(w[:2] ** 2))
             r += cfg.orient * float(np.sum(g[:2] ** 2))
             r += cfg.torque * tau2 / b.n
