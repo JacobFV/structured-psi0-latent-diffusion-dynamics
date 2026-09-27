@@ -195,7 +195,9 @@ def validate(body: str, kind: str, actor: str | None, seeds: int, contact: str |
     return dict(body=body, tracker_kind=kind, tracker_source=tracker.source, tracker_version=tracker.version,
                 tracker_sha=tsha, family=meta["family"], synthetic=meta.get("synthetic", False),
                 seeds=seeds, gate=gate, summary=summary, episodes=res, wall_s=time.time() - t0,
-                contact_model=meta["contact_model"], actuator=actuator, latency_ms=latency_ms if actuator != "v1" else None,
+                contact_model=meta["contact_model"], actuator=actuator, actuator_limits=meta.get("actuator_limits"),
+                tracker_actuator_limits=getattr(tracker, "actuator_limits", None),
+                limits_mismatch_override=getattr(tracker, "limits_override", False), latency_ms=latency_ms if actuator != "v1" else None,
                 actuator_params=act.params if act is not None else None, tracker_contact_model=getattr(tracker, "contact_model", None),
                 protocol="rrp.control.tracker_validation/v2", mujoco=mujoco.__version__)
 

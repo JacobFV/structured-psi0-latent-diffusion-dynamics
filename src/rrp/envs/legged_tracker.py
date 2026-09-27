@@ -50,7 +50,9 @@ class LearnedTracker:
         self.actuator_limits = meta.get("actuator_limits", "legacy_gains_v0")
         from rrp.physics.actuator import LIMITS_CHANGED
         scene_limits = binding.meta.get("actuator_limits")
-        if body_key in LIMITS_CHANGED and scene_limits and scene_limits != self.actuator_limits:
+        import os
+        self.limits_override = bool(os.environ.get("RRP_ALLOW_LIMITS_MISMATCH"))   # EVALUATION ONLY (transfer checks); recorded
+        if body_key in LIMITS_CHANGED and scene_limits and scene_limits != self.actuator_limits and not self.limits_override:
             raise TrackerMismatch(f"{body_key} tracker trained with actuator limits {self.actuator_limits}, scene uses "
                                   f"{scene_limits} (set RRP_ACTUATOR_LIMITS={self.actuator_limits} to run it)")
         cv = "" if self.contact_model == "contact_v1" else f":{self.contact_model}"
