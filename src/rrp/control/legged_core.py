@@ -334,6 +334,11 @@ class LeggedEnv:
                 if randomize else None
             self.friction_scale = (self.cdr.mu / self.cdr.nominal_mu) if self.cdr else 1.0
         self.cfg0 = RewardCfg.for_kind(self.b.kind, reward or ("gait_v2" if self.contact == "v2" else "gait_v1"))
+        if self.cfg0.version == "gait_v2" and not self.b.biped:
+            # tracking kernel scaled to the body's command range: with sigma 0.25 a small robot (hexapod6, vx_max 0.3)
+            # loses only ~0.18/step by standing still, less than the stance-slip cost, so gait_v2 converged to standing
+            vmax = float(self.b.cmd_ranges["vx"][1])
+            self.cfg0 = replace(self.cfg0, sigma=min(self.cfg0.sigma, (0.5 * vmax) ** 2))
         self.cfg = self.cfg0.effective(0.0) if self.cfg0.version == "gait_v2" else self.cfg0
         self.sched = self.cfg0.version == "gait_v2"      # alpha schedule (critic sees alpha; the actor never does)
         self.priv_dim = self.b.priv_dim + (1 if self.sched else 0)
