@@ -21,6 +21,7 @@ are BASELINES ONLY. Integration branch: `main`.
   `PYTHONPATH=src .venv/bin/python -m rrp.cli ops run --cpu X --mem Y [--gpu --gpu-mem G] [--disk D] --label L -- cmd`.
 - **Peer** (`gb10-direct`): ALL of it (D-008, D-026, D-033). The broker is a registry only; several GPU jobs may share
   the GB10 (pack small jobs, watch memory). The watchdog acts only on emergencies. Keep it busy.
+- **Host vs peer (D-115, user):** NO training, simulation evals, sweeps, data collection, rendering or other heavy compute on the host. Everything heavy runs on the peer. The host is for editing, git, unit tests, small analysis and orchestration only (its broker is capped at 2 CPU / 8 GiB / 0 GPU).
 - **Peer code dirs:** the lead's checkout syncs to `/dev/shm/rrp-brandonin/repo` (running chains live there). Every other
   agent/worktree uses its OWN dir. ALWAYS export `RRP_PEER_REPO` before `scripts/peer_sync.sh` (D-090 incident):
   `export RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/<track>; scripts/peer_sync.sh push`, then

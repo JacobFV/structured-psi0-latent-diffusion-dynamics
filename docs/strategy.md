@@ -117,6 +117,8 @@ Conflict rules:
   If W1 lands first, W1 adds a minimal `physics_version` field that W3 absorbs.
 
 
+### Host: no heavy compute (D-115, user). All heavy work on the peer.
+
 ### Current peer allocation (2026-09-27 08:00, lead; revise here)
 The peer's memory watchdog stopped every agent's jobs at 07:50 because the peer was oversubscribed. Until revised:
 - W10 (Isaac): 2 GPU leases.
