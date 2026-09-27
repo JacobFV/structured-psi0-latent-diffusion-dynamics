@@ -105,7 +105,7 @@ def collect(a):
                               ticks=len(arr["a"]))), flush=True)
         if morph is None:
             from rrp.features.legged import LeggedMorph
-            from rrp.sim.legged import LeggedSession, build_waypoint_contact
+            from rrp.envs.legged import LeggedSession, build_waypoint_contact
             sc = build_waypoint_contact(a.body, sd)
             s = LeggedSession(sc, tracker_kind="cpg", seed=sd) if a.body not in ("go2", "t1", "g1") else \
                 LeggedSession(sc, seed=sd)

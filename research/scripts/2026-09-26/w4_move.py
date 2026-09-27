@@ -17,11 +17,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 SRC = ROOT / "src"
-EXCLUDED = {
-    "rrp.morphology.legged", "rrp.morphology.contact", "rrp.sim.legged",
-    "rrp.control.legged_core", "rrp.control.tracker_training", "rrp.control.tracker_validation",
-    "rrp.control.tracker_nets", "rrp.control.legged_tracker", "rrp.control.legged_vec", "rrp.control.reward_schedule",
-}
+EXCLUDED: set[str] = set()      # P6 done (W1 merged, D-101); was the legged files being edited on track/contact
 SHIM_MARK = "_sys.modules[__name__] = _importlib.import_module("
 
 SHIM = '''"""Deprecated import path (W4 restructure, docs/strategy.md): moved to `{new}`.

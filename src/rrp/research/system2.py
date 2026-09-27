@@ -82,7 +82,7 @@ def public_task(order):
 def scenario_with_truth(body, seed, truth_order, public_order):
     """Scene is unchanged (orange at a, cyan at b). PUBLIC task graph = public_order binding; PRIVILEGED
     ObjectDecl.task_entity mapping = the instruction truth (used only by the privileged evaluator)."""
-    from rrp.sim.legged import build_waypoint_contact
+    from rrp.envs.legged import build_waypoint_contact
     from rrp.envs.scenario import ObjectDecl
     sc = build_waypoint_contact(body, seed, task=public_task(public_order))
     phys = {"orange": "waypoint_a", "cyan": "waypoint_b"}
@@ -102,7 +102,7 @@ def render_public(sc, size=384, camera="system2"):
     d = mujoco.MjData(sc.model)
     mujoco.mj_forward(sc.model, d)
     # place the body at its default standing pose for the render
-    from rrp.control.legged_core import LeggedBinding
+    from rrp.envs.legged_core import LeggedBinding
     b = LeggedBinding(sc.model, sc.robots[0].meta, sc.robots[0].prefix)
     b.set_default(d)
     mujoco.mj_forward(sc.model, d)

@@ -25,7 +25,7 @@ from rrp.contracts.paths import rrp_home
 from rrp.contracts.provenance import CONTACT_VERSION_DEFAULT, parse_source, physics_provenance
 from rrp.data.collect import EpisodeRecord, write_episode
 from rrp.data.manifest import dataset_provenance, write_manifest
-from rrp.sim.legged import LeggedSession, build_waypoint_contact
+from rrp.envs.legged import LeggedSession, build_waypoint_contact
 from rrp.contracts.runs import parse_seed_spec
 
 

@@ -24,7 +24,7 @@ import numpy as np
 
 from rrp.features.legged import LeggedMorph, public_context, local_state, active_event, TICK_DT
 from rrp.teachers.legged import WaypointTeacher
-from rrp.sim.legged import LeggedSession, build_waypoint_contact
+from rrp.envs.legged import LeggedSession, build_waypoint_contact
 from rrp.contracts.provenance import CONTACT_VERSION_DEFAULT, parse_source, physics_provenance
 from rrp.data.manifest import dataset_provenance, write_manifest
 from rrp.contracts.runs import parse_seed_spec

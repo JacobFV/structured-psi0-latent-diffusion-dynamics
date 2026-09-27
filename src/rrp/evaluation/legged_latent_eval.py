@@ -37,8 +37,8 @@ from rrp.features.legged import (LeggedMorph, public_context, local_state, activ
                                        TICKS_PER_PACKET, KNOT_TIMES, MAX_N, MAX_M, EVENTS)
 from rrp.controllers.bundles import load_rep, _dev
 from rrp.models.legged_latent import LeggedFlow, LeggedProbe
-from rrp.sim.legged import LeggedSession, build_waypoint_contact
-from rrp.morphology.contact import model_contact_version
+from rrp.envs.legged import LeggedSession, build_waypoint_contact
+from rrp.physics.contact import model_contact_version
 from rrp.contracts.runs import parse_seed_spec
 
 REALIZER_COMPAT = "legged-rz-osc-v1"     # base of the system-0 compatibility ID (osc-v1 phase input)
@@ -403,14 +403,14 @@ class OracleShadow:
 
     def __init__(self, ctl, session, inner):
         import mujoco
-        from rrp.control.legged_tracker import load_tracker
+        from rrp.envs.legged_tracker import load_tracker
         self.c, self.s = ctl, session
         self.inner = load_tracker(session.body_key, session.binding, session.robots[0].meta, session.tracker_kind)
         self.mj = mujoco
         self.shadow = mujoco.MjData(session.model)
 
     def demo(self, ad):
-        from rrp.control.legged_core import yaw_of
+        from rrp.envs.legged_core import yaw_of
         mj, s, b = self.mj, self.s, self.s.binding
         mj.mj_copyData(self.shadow, s.model, s.data)
         d = self.shadow

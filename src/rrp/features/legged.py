@@ -25,7 +25,7 @@ import math
 import mujoco
 import numpy as np
 
-from rrp.control.legged_core import quat_rotate_inv
+from rrp.envs.legged_core import quat_rotate_inv
 
 TICK_DT = 0.02
 TICKS_PER_PACKET = 20                    # 0.4 s replan

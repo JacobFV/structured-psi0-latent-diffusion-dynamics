@@ -1,8 +1,8 @@
 import mujoco
 import numpy as np
 
-from rrp.control.legged_core import LeggedBinding
-from rrp.morphology.legged import hexapod, standalone_model
+from rrp.envs.legged_core import LeggedBinding
+from rrp.bodies.legged import hexapod, standalone_model
 
 
 def _setup():

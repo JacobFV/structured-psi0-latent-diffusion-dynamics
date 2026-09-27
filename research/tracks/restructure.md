@@ -4,7 +4,7 @@ Owner: restructure agent. Worktree `~/work/rrp-wt/restructure`, branch `track/re
 Scope: docs/strategy.md W4; docs/repo_structure_audit.md "Target structure" and "Migration plan" phase 2.
 Rule: moves only, no behaviour change (numerics, defaults, config semantics, on-disk formats unchanged).
 
-State: **verified** for P1–P5 (merged to main); P6 **blocked_external** on the W1 contact track merging.
+State: **verified**, P1–P6 (see the phase table).
 
 ## how the moves work
 - `research/scripts/2026-09-26/w4_move.py old.mod=new.mod ...` does `git mv`, writes a shim at the old path and rewrites
@@ -56,7 +56,7 @@ Deviations from the audit's target text, forced by the layering rule (recorded h
 | P3 | data, training, evaluation (break evaluation↔training) | merged 3788f57 |
 | P4 | CLI package without silent ImportError; ops → orchestration | merged aaf9201 |
 | P5 | research diagnostics; dedup; peer_sync .rrp_revision | merged ff0d867 |
-| P6 | legged files excluded until W1 (contact) merges | blocked_external (W1 still editing legged_core, tracker_training) |
+| P6 | legged physics/bodies/envs/tracker files (after W1 merged, D-101) | see P6 section |
 
 ### P1 (contracts / physics / features)
 - moves: control.psi_contracts → contracts.psi; sim.snapshot_contract → physics.snapshot; data.features →
@@ -191,7 +191,28 @@ Deviations from the audit's target text, forced by the layering rule (recorded h
 - research: learning.legged_t1_diag, learning.qa_train, evaluation.system2_eval, evaluation.bc_semantic_edits,
   evaluation.latent_slice1_report, model.system2 → research.*.
 
-## excluded until W1 merges (P6)
+### P6 (legged files, after W1 merged, D-101)
+- morphology.contact → physics.contact; morphology.legged → bodies.legged; sim.legged → envs.legged;
+  control.{legged_core, legged_vec, legged_tracker, tracker_nets} → envs.*; control.{reward_schedule, tracker_training}
+  → training.*; control.tracker_validation → evaluation.tracker_validation. `EXCLUDED` in w4_move.py is now empty.
+- The legacy packages (control, sim, morphology, model, learning, policy, ops, cli_*) hold only shims; the layering test
+  now fails on any real module there. `TRACKER_DIR` keeps `parents[3]` (same depth), not W11's rrp_home (no behaviour change).
+- Redone on main a292505 (the first attempt conflicted with W1/W8 edits to legged_core, legged_vec, reward_schedule,
+  tracker_training and legged_latent_eval that landed meanwhile; the moves are scripted, so they were simply rerun).
+- checks (all under lease 1790499008_9f54b3 unless noted): unit 335 passed / 1 skipped (CUDA hidden: host GPU full);
+  layering test green with the legacy packages shim-only; argparse tree and demo page identical to builds from main
+  a292505; numerics parity (arm + legged episode through envs.legged / legged_tracker / contact) byte-identical to main
+  a292505 (`artifacts/runs/restructure_parity/p6_{base_a292505,track_restructure}.json`; differs from the pre-W4 file
+  only because W1/W8 changed legged code on main); checkpoint audit **391 files, 0 errors, 0 pickled rrp classes**
+  (`artifacts/runs/restructure_ckpt_audit/host_p6_2026-09-27.json`); tiny tracker-training smoke through the OLD path
+  `python -m rrp.control.tracker_training --body go2 --iters 2 --workers 1 --envs 8 --horizon 16 --contact v2 --seed 3`
+  (spawned VecPool worker included): train_log identical to main's except timing fields.
+- For branches still on old paths (track/contact): rebase; edits to control/legged_core.py, legged_vec.py,
+  legged_tracker.py, tracker_nets.py, reward_schedule.py, tracker_training.py, tracker_validation.py, sim/legged.py,
+  morphology/{legged,contact}.py must be ported to envs/, training/, evaluation/, bodies/, physics/ (the shim docstring
+  names the new path); `python -m rrp.control.tracker_training` keeps working.
+
+## formerly excluded until W1 merged (P6, done)
 morphology/legged.py, morphology/contact.py, sim/legged.py, control/{legged_core, legged_vec, legged_tracker,
 tracker_nets, tracker_training, tracker_validation, reward_schedule}.py. Check before each merge:
 `git diff origin/main...origin/track/contact --stat` (and the local `track/contact` branch).

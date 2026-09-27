@@ -34,7 +34,7 @@ TEST_SEEDS = range(5000, 5080)
 
 def ground(out: Path, body="go2", batch=8):
     from rrp.research.system2 import System2
-    from rrp.sim.legged import build_waypoint_contact
+    from rrp.envs.legged import build_waypoint_contact
     s2 = System2()
     rows, feats = [], []
     t0 = time.time()
@@ -134,7 +134,7 @@ def closed_loop(flow: Path, out: Path, seeds=range(10000, 10020), body="go2"):
     res_rows = []
     with open(out / "closed_loop.jsonl", "w") as f:
         for sd in seeds:
-            from rrp.sim.legged import build_waypoint_contact
+            from rrp.envs.legged import build_waypoint_contact
             sc0 = build_waypoint_contact(body, sd)
             text, truth, ti = make_instruction(sd, "color", sc0.meta["waypoints"])
             img = render_public(sc0)

@@ -1,8 +1,8 @@
 """gait_v2 reward schedule: priors decay to a floor, natural terms ramp, permanent terms fixed; gated alpha."""
 import pytest
 
-from rrp.control.legged_core import NATURAL_TERMS, PRIOR_TERMS, RewardCfg
-from rrp.control.reward_schedule import AlphaGate, window_metrics
+from rrp.envs.legged_core import NATURAL_TERMS, PRIOR_TERMS, RewardCfg
+from rrp.training.reward_schedule import AlphaGate, window_metrics
 
 
 @pytest.mark.parametrize("kind", ["humanoid", "quadruped"])

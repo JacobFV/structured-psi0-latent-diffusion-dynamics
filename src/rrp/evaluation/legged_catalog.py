@@ -24,7 +24,7 @@ import mujoco
 import numpy as np
 
 from rrp.bodies.importers import MENAGERIE, MENAGERIE_SHA
-from rrp.morphology.legged import ALL_LEGGED, LEGGED_ASSETS, PROCEDURAL, legged_body, standalone_model
+from rrp.bodies.legged import ALL_LEGGED, LEGGED_ASSETS, PROCEDURAL, legged_body, standalone_model
 
 from rrp.contracts.paths import rrp_home  # noqa: E402
 
@@ -39,7 +39,7 @@ def _stage(ok, reason=None, **ev):
 
 
 def physics_check(model, meta) -> dict:
-    from rrp.control.legged_core import LeggedBinding
+    from rrp.envs.legged_core import LeggedBinding
     b = LeggedBinding(model, meta)
     d = mujoco.MjData(model)
     b.set_default(d)
@@ -91,7 +91,7 @@ def body_entry(key: str) -> dict:
     if not e["stages"]["source_verified"]["ok"]:
         return e
     try:
-        from rrp.sim.legged import build_waypoint_contact
+        from rrp.envs.legged import build_waypoint_contact
         mod = legged_body(key)
         sc = build_waypoint_contact(mod, 0, body_key=key)
         rs = sc.robots[0].robot_spec

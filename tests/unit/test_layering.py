@@ -249,7 +249,7 @@ def test_shims_point_where_planned_and_legacy_code_is_pending():
             assert PLANNED[old] == new, f"shim {old} -> {new}, PLANNED says {PLANNED[old]}"
         assert new in MODS, f"shim {old} points to a missing module {new}"
     legacy_real = [n for n in _real_modules() if n.split(".")[1] not in LAYER]
-    unplanned = [n for n in legacy_real if n not in PLANNED]
+    unplanned = legacy_real            # W4 P6 done: legacy packages hold only shims (every move in PLANNED is made)
     assert not unplanned, (f"new code in a legacy package (control/sim/morphology/model/learning/policy/ops): {unplanned}. "
                            "Put new modules in the layout packages (research/tracks/restructure.md), or add the planned "
                            "home to PLANNED if the file must stay put until a move.")
