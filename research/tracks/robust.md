@@ -301,6 +301,11 @@ the 150 sigma-0 episodes. Raw `w8_anymal_c_data/replay.jsonl`.
 Arm (extra, from existing teacher_quality rows, noise 0, 18 bodies x 300 seeds): v2 teacher grasp_v2 FAILS only on joint-limit
 margin (87% of episodes >= 0.02; step 99.9%, jerk ratio 1.0, penetration 99.5% <= 3 mm); v2 grasp_v1 the same with penetration
 labelled; v1 teacher fails step (0% <= 0.5 rad/s), jerk (9.5-14x) and margin.
+Merge note: W8 (d83293a, 30f8416) had meanwhile added the same recorder to the legged collector and a report-only
+`dataset_gate` metric plus its own bit-exact replay (anymal_c, go2 pass; t1 w8d fails slip). On rebase the collector keeps ONE
+recorder (W8's placement; import moved to rrp.envs.motion_quality for the layer order), the collect metrics keep W8's
+`dataset_gate` field and add the enforced `gate` (rrp.evaluation.gates). My anymal_c replay agrees with W8's (pass).
+Unit suite after the rebase: 379 passed, 2 skipped (peer lease 1790544821_524322; the host refused admission).
 ### findings for the lead
 1. Every humanoid tracker fails peak foot force (4.2-9.7 BW, validation trials at per-substep resolution). The 3.5 BW threshold
    was calibrated on quadruped waypoint rollouts; bipeds land on one foot. Suggest a biped threshold (e.g. <= 5 BW) or an
