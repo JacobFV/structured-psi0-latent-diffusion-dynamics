@@ -28,7 +28,7 @@ Principles:
 | W5 | Unified pipeline + DAG orchestration (phases 3–4) | pipeline agent | W4; arm seed 2 finished | arm verified 2026-09-26 (D-096: R2/R1 parity row-identical; refit bit-identical to step 2900); legged smoke only; dual skeleton; ladder.py main → rrp.evaluation pending |
 | W6 | Robustness sweeps + motion-quality gates | robustness agent | W1 v2 trackers | planned |
 | W7 | Arm expert: smooth scripted trajectories, then GRPO fine-tuning with anchor evals | arm agent | arm seed 2 finished | v2 data + BC expert verified (D-102); v2 lineage set (semfix, nosem × 2 seeds) running via run-dag; then GRPO; backlog: chunk blending |
-| W8 | Legged regeneration on contact v2 (data → Stage A → flow → R2 → edits) | legged agent | W1 gate, W3 | running: wave 1 anymal_c; wave 2 go2 + t1 cleared (D-103) |
+| W8 | Legged regeneration on contact v2 (data → Stage A → flow → R2 → edits) | legged agent | W1 gate, W3 | wave 1 anymal_c done (D-105); go2 running; t1 PAUSED (D-107: torque limits 2–3× real) |
 | W9 | Open claims: held-out target bodies; one loco-manipulation task | later | W5, W8 | planned |
 | R0 | Arm seed-2 replication (running experiment) | arm agent | — | completed 2026-09-26 (D-095) |
 
