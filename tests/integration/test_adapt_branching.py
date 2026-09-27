@@ -1,5 +1,6 @@
 """Full-state deterministic branching at the public `grasp` boundary + GRPO ratio==1 on the real FlowPolicy."""
 import numpy as np
+import pytest
 import torch
 
 from rrp.control.teachers import PickPlaceTeacher
@@ -10,6 +11,8 @@ from rrp.model.flow import FlowPolicy, PolicyConfig
 from rrp.morphology.catalog import workbench_robots
 from rrp.sim.native import Session
 from rrp.sim.scenario import BUILDERS
+
+pytestmark = pytest.mark.menagerie      # xarm7_pg2 is a Menagerie body
 
 
 def _session(seed=2000001):

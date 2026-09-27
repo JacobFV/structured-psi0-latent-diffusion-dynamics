@@ -6,10 +6,10 @@ import numpy as np
 import pytest
 import torch
 
-PACKED = Path("artifacts/packed/latent_pp_v3dart_s1_H16")
+PACKED = Path(__file__).resolve().parents[2] / "artifacts" / "packed" / "latent_pp_v3dart_s1_H16"
+pytestmark = pytest.mark.packed_data
 
 
-@pytest.mark.skipif(not PACKED.exists(), reason="packed data not present")
 def test_rebind_focus_follows_binding():
     from rrp.learning.packed import PackedChunkDataset
     from rrp.model.binding_aug import augment, focus_from_batch, slot_has_edges
@@ -33,7 +33,6 @@ def test_rebind_focus_follows_binding():
     assert changed > 0.5
 
 
-@pytest.mark.skipif(not PACKED.exists(), reason="packed data not present")
 def test_goal_effect_follows_binding():
     from rrp.learning.packed import PackedChunkDataset
     from rrp.model.binding_aug import augment, goal_effect_from_batch

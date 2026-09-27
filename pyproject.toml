@@ -28,10 +28,12 @@ packages = ["src/rrp"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src", "."]
-addopts = "-q"
+addopts = "-ra"
 markers = [
   "gpu: requires the verified peer GPU (tier 3)",
   "browser: requires a real browser (tier 2)",
   "slow: longer integration tests",
   "cgroup: exercises real user cgroup enforcement with bounded fixtures",
+  "menagerie: needs the MuJoCo Menagerie assets in .cache/assets (skipped when absent; see tests/conftest.py)",
+  "packed_data: needs artifacts/packed/latent_pp_v3dart_s1_H16 (skipped when absent)",
 ]

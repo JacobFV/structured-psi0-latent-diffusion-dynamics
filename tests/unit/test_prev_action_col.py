@@ -1,8 +1,11 @@
 """Bug B-1 guard: the prev-action node column must be where PREV_ACTION_COL says, and the load-time zeroing must
 hit exactly that column on node rows (a silent mismatch here invalidates every closed-loop result)."""
 import numpy as np
+import pytest
 
 from rrp.learning.packed import PREV_ACTION_COL
+
+pytestmark = pytest.mark.menagerie      # panda_pg2 is a Menagerie body
 
 
 def test_prev_action_col_matches_featurizer_layout():
