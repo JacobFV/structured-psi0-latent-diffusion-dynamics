@@ -190,3 +190,10 @@ notes are not hashed), the L8_CAVEAT header of the table, and a banner on every 
   bounded wait on admission refusals) and re-rendered. The first go2 "effect" clip (dev seed 10014, chosen from the 2-5 s edit window)
   did not show the effect over the clip's 2-8 s window (unedited semfix only 0.93 m: it reaches waypoint A and turns); it was
   discarded (not committed) and replaced by seed 10007 (unedited 2.29 m in 2-5 s, semfix halt -0.76 m, nosem +0.19 m).
+
+- D-115 check (2026-09-27 15:35): nothing heavy of W8 runs on the host. All W8 DAG nodes are placement peer (no `placement: host`
+  anywhere); the host broker holds no W8 lease; host processes are only the run-dag coordinators and the video-claim shell loop.
+  Collection, training, evals, edits, D-112 gate replays, table building and rendering all ran on the peer (the two earlier host pytest
+  attempts were refused by the host broker and never ran).
+- go2 clips: `2026-09-27_learned_ctxhalt_go2_trainseed0_s10007_fixsem-vs-nosem_effect.mp4` (t=2-8 s: fixsem 3.77 -> 2.40 m, nosem
+  3.49 -> 3.58 m; reviewed) and `..._s10003_..._noeffect.mp4` (fixsem 2.51 -> 2.48 m, nosem 2.49 -> 3.55 m).
