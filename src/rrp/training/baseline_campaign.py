@@ -42,12 +42,15 @@ def _lock(path: Path):
             fcntl.flock(f, fcntl.LOCK_UN)
 
 
-def source_config(method: str, seed: int, cell: Path, smoke: bool = False) -> dict:
+def source_config(method: str, seed: int, cell: Path, smoke: bool = False, source_pack: str = SOURCE_PACK,
+                  snapshot_steps: list | None = None) -> dict:
     base = json.loads(Path("configs/model/policy-small-structured.json").read_text())
     cfg = dict(base, seed=seed, out_dir=str(cell / "source"), name=f"{method}_seed{seed}",
-               packed_dir=SOURCE_PACK, packed_stride=base.get("stride", 2), prefetch=True, exact_resume=True,
+               packed_dir=source_pack, packed_stride=base.get("stride", 2), prefetch=True, exact_resume=True,
                checkpoint_every_steps=1000, zero_prev_action=True)   # D-045: deployment-consistent input (B-1)
     cfg["policy"] = dict(base["policy"], name=f"{method}_seed{seed}")
+    if snapshot_steps:
+        cfg["snapshot_steps"] = list(snapshot_steps)
     if method == "baseline_action_only_codec":
         ccfg = json.loads(Path("configs/model/codec-small.json").read_text())
         cfg["codec_checkpoint"] = str(cell / "codec" / "codec.pt")
@@ -67,7 +70,8 @@ def codec_config(seed: int, cell: Path, smoke: bool = False) -> dict:
     return cfg
 
 
-def ensure_source(method: str, seed: int, cell: Path, smoke: bool = False) -> Path:
+def ensure_source(method: str, seed: int, cell: Path, smoke: bool = False, source_pack: str = SOURCE_PACK,
+                  snapshot_steps: list | None = None) -> Path:
     from rrp.training.behavior import train_codec, train_policy
     src = cell / "source"
     with _lock(cell / ".source.lock"):
@@ -77,7 +81,7 @@ def ensure_source(method: str, seed: int, cell: Path, smoke: bool = False) -> Pa
             (cell / "codec" / "config.json").write_text(json.dumps(cc, indent=1))
             train_codec(cc, cell / "codec")
         if not _done(src / "policy.pt"):
-            cfg = source_config(method, seed, cell, smoke)
+            cfg = source_config(method, seed, cell, smoke, source_pack, snapshot_steps)
             src.mkdir(parents=True, exist_ok=True)
             (src / "config.json").write_text(json.dumps(cfg, indent=1))
             res = train_policy(cfg, src)
@@ -128,7 +132,8 @@ def evaluate_checkpoint(ck: Path, robots: list[str], out: Path, *, protocol: dic
 
 def run_baseline_cell(protocol: dict, method: str, seed: int, target: str, budget: int, *,
                       root: Path = Path("artifacts/runs/latent_slice1"), target_packed: str = "artifacts/packed/latent_targets",
-                      eval_device: str | None = None, train_only: bool = False, smoke: bool = False) -> dict:
+                      eval_device: str | None = None, train_only: bool = False, smoke: bool = False,
+                      source_pack: str = SOURCE_PACK, snapshot_steps: list | None = None) -> dict:
     import torch
     if method not in BASELINE_METHODS:
         raise ValueError(f"not a baseline method: {method}")
@@ -139,7 +144,7 @@ def run_baseline_cell(protocol: dict, method: str, seed: int, target: str, budge
     cell = root / method / f"seed{seed}"
     cell.mkdir(parents=True, exist_ok=True)
     dev = eval_device or ("cuda" if torch.cuda.is_available() else "cpu")
-    src_ck = ensure_source(method, seed, cell, smoke)
+    src_ck = ensure_source(method, seed, cell, smoke, source_pack, snapshot_steps)
     ck, sft_res = src_ck, None
     if target != "source" and budget > 0:
         from rrp.training.sft import sft_packed

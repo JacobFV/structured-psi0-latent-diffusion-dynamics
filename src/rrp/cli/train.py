@@ -89,7 +89,8 @@ def cmd_baseline_cell(a):
     for t in a.target.split(","):
         for bud in ([int(x) for x in str(a.budget).split(",")]):
             r = run_baseline_cell(protocol, a.method, a.seed, t, bud, root=Path(a.root), eval_device=a.eval_device,
-                                  train_only=a.train_only, smoke=a.smoke)
+                                  train_only=a.train_only, smoke=a.smoke, source_pack=a.source_pack,
+                                  snapshot_steps=[int(x) for x in a.snapshot_steps.split(",") if x])
             print(json.dumps({k: r.get(k) for k in ("method", "seed", "target", "budget", "successes", "attempted",
                                                      "wilson95", "trained")}), flush=True)
 
@@ -122,6 +123,9 @@ def register_campaign(sub):
     b.add_argument("--eval-device", default=None, help="cpu|cuda (default: cuda if available)")
     b.add_argument("--train-only", action="store_true", help="build source/SFT checkpoints, skip evaluation")
     b.add_argument("--smoke", action="store_true", help="tiny run (30 source steps, 10 SFT steps, 3 episodes)")
+    b.add_argument("--source-pack", default="artifacts/packed/latent_pp_v3dart_s1_H16",
+                   help="packed source data (default = the sealed protocol's pack)")
+    b.add_argument("--snapshot-steps", default="", help="comma list of update counts to keep as policy_u<step>.pt")
     b.set_defaults(fn=cmd_baseline_cell)
     l = sub.add_parser("latency", help="synchronized latency suite")
     l.add_argument("--models", nargs="+", required=True, help="name=checkpoint")

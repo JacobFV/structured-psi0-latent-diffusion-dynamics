@@ -1,0 +1,35 @@
+# W7 step 2 part 1 (D-097): v2-teacher arm data = the v3dart config + "teacher_version": "v2" (only change), packed
+# like latent_pp_v3dart_s1_H16 (13 source-train bodies, H16, stride 1, DART failures included). Host placement (the
+# pack is ~30 GB; the peer /dev/shm cannot hold it). BC training / sprint_bc evaluation are NOT pipeline stages
+# (train_policy/train_bc are legacy-only kinds): they run through `rrp campaign baseline-cell --source-pack`.
+name: armexpert_v4dart
+schema: dag-1
+family: arm
+track: armexpert
+lineage: v4dart
+label_prefix: axv4
+defaults:
+  placement: host
+  retries: 0
+  max_parallel: 1
+  resources: {cpu: 6, mem: 12G, gpu: false, max_seconds: 14400}
+base:
+  variant: na
+  seed: 1
+  flags: {zero_prev_action: null, realizer_anchor: null, realizer_drop_qd: null, probe_lv_min: null, qd_dropout: null, contact_version: contact_v1}
+nodes:
+  collect:
+    stage: collect
+    tag: v4dart
+    resources: {cpu: 6, mem: 16G, max_seconds: 14400, disk: 5G}
+    config:
+      options: {workers: 6}
+      params: {"name": "pick_place_primary_v4dart", "workers": 6, "max_distractors": 2, "items": [{"robot": "parm5_pg2", "split": "source_train", "seed_start": 0, "episodes": 300, "dart_noise": [0.08]}, {"robot": "parm5_tf3", "split": "source_train", "seed_start": 0, "episodes": 300, "dart_noise": [0.08]}, {"robot": "parm5s_pg2", "split": "source_train", "seed_start": 0, "episodes": 300, "dart_noise": [0.08]}, {"robot": "parm5l_tf3", "split": "source_train", "seed_start": 0, "episodes": 300, "dart_noise": [0.08]}, {"robot": "parm6_pg2", "split": "source_train", "seed_start": 0, "episodes": 300, "dart_noise": [0.08]}, {"robot": "parm6_tf3", "split": "source_train", "seed_start": 0, "episodes": 300, "dart_noise": [0.08]}, {"robot": "parm7_pg2", "split": "source_train", "seed_start": 0, "episodes": 300, "dart_noise": [0.08]}, {"robot": "parm7_tf3", "split": "source_train", "seed_start": 0, "episodes": 300, "dart_noise": [0.08]}, {"robot": "panda_pg2", "split": "source_train", "seed_start": 0, "episodes": 300, "dart_noise": [0.08]}, {"robot": "ur5e_pg2", "split": "source_train", "seed_start": 0, "episodes": 300, "dart_noise": [0.08]}, {"robot": "ur5e_tf3", "split": "source_train", "seed_start": 0, "episodes": 300, "dart_noise": [0.08]}, {"robot": "sawyer_pg2", "split": "source_train", "seed_start": 0, "episodes": 300, "dart_noise": [0.08]}, {"robot": "sawyer_tf3", "split": "source_train", "seed_start": 0, "episodes": 300, "dart_noise": [0.08]}, {"robot": "xarm7_pg2", "split": "target_demos", "seed_start": 1000000, "episodes": 150}, {"robot": "xarm7_tf3", "split": "target_demos", "seed_start": 1000000, "episodes": 150}, {"robot": "panda_tf3", "split": "target_demos", "seed_start": 1000000, "episodes": 150}], "split_file": "research/splits/primary_v1.json", "teacher_version": "v2"}
+  pack:
+    stage: pack
+    tag: v4dart_s1_H16
+    deps: [collect]
+    resources: {cpu: 2, mem: 12G, max_seconds: 14400, disk: 40G}
+    config:
+      inputs: {dataset: '@collect'}
+      params: {"name": "latent_pp_v4dart_s1_H16", "train_robots": ["panda_pg2", "parm5_pg2", "parm5_tf3", "parm5l_tf3", "parm5s_pg2", "parm6_pg2", "parm6_tf3", "parm7_pg2", "parm7_tf3", "sawyer_pg2", "sawyer_tf3", "ur5e_pg2", "ur5e_tf3"], "horizon": 16, "stride": 1, "include_dart_failures": true}

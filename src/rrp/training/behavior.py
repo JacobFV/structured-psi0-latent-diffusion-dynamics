@@ -189,6 +189,7 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
             gen.set_state(st["extra"]["gen"].to("cpu") if hasattr(st["extra"]["gen"], "to") else st["extra"]["gen"])
     every = cfg.get("checkpoint_every_epochs", 1)
     every_steps = cfg.get("checkpoint_every_steps", 1000)
+    snap_steps = set(cfg.get("snapshot_steps") or [])
 
     def save_last(next_epoch, nskip):
         save_checkpoint(last, model=model, optimizer=opt, step=step,
@@ -230,6 +231,10 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
                 bi += 1
                 if step % every_steps == 0 or sig.requested:
                     save_last(epoch, bi)       # exact cursor: weights after `bi` batches of `epoch`
+            if step in snap_steps:             # named snapshots (e.g. the u12000 DAgger expert); same file as policy_last
+                save_checkpoint(out_dir / f"policy_u{step}.pt", model=model, optimizer=opt, step=step,
+                                versions=dict(policy=pcfg.name, featurizer=FEAT_VERSION,
+                                              codec=(codec.cfg.version if codec else None)), config=cfg)
             if sig.requested or step >= cfg.get("smoke_max_steps", 1 << 62):
                 break
         if sig.requested and exact:
