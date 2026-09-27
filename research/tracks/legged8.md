@@ -174,3 +174,19 @@ every shard and teacher row, contact_v2, ideal PD (no latency model). Collection
 The dataset FAILS the D-112 slip gate (86% < 0.15; even noise-free 93%), so Stage A was not started. Options for the lead: (a) train anyway,
 reported with the gate failure; (b) wait for a tracker that passes under the waypoint mix.
 Verified in production: the teacher node was refused by the broker (CapacityError: cpu 21.00 > aggregate limit 19.97) and queued 8 min, then ran.
+
+## t1 sourced-limit TRAINING (D-113 exception; running from 14:10)
+Label on every t1 table, caption and video: "t1 dataset fails D-112 slip gate (86.2% < 95%), tracker w8d fails lab forward 0.72;
+t1 tracker w8d exceeds joint limits (margin -0.053) and peak foot force 4.46 BW (W6 gate backfill)". It is the DAG-level `caveat`
+of dags/legged_v2_t1sl.yaml (new run-dag feature: written to the ledger and to every node's RunConfig note, i.e. every stage manifest;
+notes are not hashed), the L8_CAVEAT header of the table, and a banner on every video frame (TILE_BANNER) plus the INDEX line.
+- The collect node now carries `options.gate: report` (D-113; W6's gate enforcement on main would otherwise fail a re-run). Adding it
+  changed the node's config hash; the completed node's ledger entry was migrated (16d74884 -> 0af756f2) with the reason recorded
+  (`config_hash_migration`: it ran on pre-enforcement code, so the option is a no-op for its outputs).
+- 14:35-14:36 the peer watchdog (restarted with W6's RAM-store correction, peer PSI 62-64%) shed all three running t1 GPU leases
+  (bc 3ad6d7, rep semfix s0 d027ee, s1 9566ea). Retried with --retry-failed at 14:37: all three resumed EXACTLY (trainer log
+  "exact: RNG restored"; Stage A from step 6000, BC from 13500).
+- Clips: the video launcher reported rc=0 for a render refused at admission (the `| tail` hid the exit code); fixed (pipefail,
+  bounded wait on admission refusals) and re-rendered. The first go2 "effect" clip (dev seed 10014, chosen from the 2-5 s edit window)
+  did not show the effect over the clip's 2-8 s window (unedited semfix only 0.93 m: it reaches waypoint A and turns); it was
+  discarded (not committed) and replaced by seed 10007 (unedited 2.29 m in 2-5 s, semfix halt -0.76 m, nosem +0.19 m).
