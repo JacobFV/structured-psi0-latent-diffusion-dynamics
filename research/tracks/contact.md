@@ -140,6 +140,14 @@ Videos (reviewed: v2 visibly lifts and places feet, v1 glides): `artifacts/video
 Round 2 (queued with admission retries): `artifacts/runs/contact_t1_v2_r2`, resumed from the iter-3599 checkpoint to 5100 iters with
 humanoid gate thresholds (advance track 0.5 / fall 0.25 / slip 0.3; back off 0.65 / 0.4 / 0.45), so the schedule is exercised on a humanoid.
 
+### hexapod6 run 1: failed (training instability, not physics)
+`artifacts/runs/contact_hexapod6_v2_warm_collapsed`: the policy collapsed at iter ~185-200. Per-iteration KL went 25 -> 340 -> 1341 and the fall
+rate 0 -> 0.9, with episodes of 30-110 ticks, and it never recovered. Physics was checked: the v1 hexapod actor plus N(0, 0.3) exploration noise in the
+v2 training env (DR on) has no falls, no BADQACC warnings and |qvel| <= 18, the same as v1. Cause: the adaptive-lr rule multiplies lr by
+1.5 per minibatch while KL < desired/2, up to a hard-coded 1e-2. A converged warm-started policy has tiny KL, so the lr reaches 1e-2 within an
+iteration (every warm run logged max lr 0.01; go2/anymal_c had KL spikes of 7.9/9.5 and recovered). Fix: `--max-lr` (default 1e-2
+unchanged); hexapod6 restarted with `--max-lr 1e-3`. go2/t1/anymal_c/h1/g1 ran with the 1e-2 ceiling (recorded in their meta args).
+
 ## compute incidents
 - Host memory-PSI watchdog (another project holds 3 x 20 GB processes): shed t1 (iter 3605), the t1 resume, the go2 finalize (renders
   redone), anymal_c and hexapod6 (twice, within about 20 iterations). New launches go through `scripts/contact_launch_retry.sh`
