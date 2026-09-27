@@ -33,6 +33,13 @@ smoke-tested (2 episodes, rc 0). One fix-and-relaunch: the first takeover's host
 Stage-A dir had not been pulled to the host; rc 1, no rows, no markers); fixed (pull() also fetches Stage A) and
 relaunched once. RESUME (seed 2, after the takeover): `systemd-run --user --unit rrp-arm-<lin>-host3 --setenv=LIN=<lin>
 --working-directory=$HOME/work/rrp-wt/ladder bash scripts/arm_seed2_host.sh` (done nodes skipped).
+17:30 BACK TO PEER CPU: the host's memory-PSI watchdog shed 7 host edit shards (rc -10, stopped_by
+sustained_system_memory_psi) and refused admission to 8 more; the pressure comes from another project's processes
+(~60 GB RSS, 8 days old; not ours, not touched). The driver got `PLACE=peer` (collections, edit shards and evaluations
+on the peer; GPU unchanged) and a fill mode for the edit suite: only shards WITHOUT a completed summary are rerun, once,
+after deleting their partial rows (15 shards: sem parm6 6/7/9/10/11 + panda 3-5; semfix parm6 9 + panda 3-5; nosem
+panda 3-5); complete shards (wave 1 on the peer + 12 host wave-2 shards) are kept. semedits.failed markers renamed
+`semedits.failed_hostpsi`. Units `rrp-arm-<lin>-host3` (PLACE=peer). RESUME: same command with `--setenv=PLACE=peer`.
 
 ## ARM NOSEM COUNTERPART RESULT (FINAL, 2026-09-26 14:00 PDT; three arm lineages; state: completed)
 Three lineages, IDENTICAL recipe (Stage A -> flow 20k -> 3 BC-expert system-0 DAgger rounds incl. generated-packet states,

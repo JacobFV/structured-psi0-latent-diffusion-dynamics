@@ -24,6 +24,7 @@ case $LIN in
   *) echo "unknown LIN"; exit 2 ;;
 esac
 SOFF=1100000
+PLACE=${PLACE:-host}     # host | peer: where collections, edit shards and evaluations run (GPU training is always on the peer)
 RUNS=artifacts/runs; mkdir -p $RUNS
 PST=$PR/ladder_arm${LIN}_state
 HST=$RUNS/ladder_arm${LIN}_hoststate; mkdir -p $HST
@@ -112,6 +113,34 @@ adopt_semedits() {  # wave 1 already on the peer; wave 2 (never launched) on the
   for b in parm6 panda; do push acceptance_arm${LIN}_gen_$b || ok=1; done
   return $ok
 }
+# ---- PLACE=peer variants (17:30: host jobs were shed by the host memory-PSI watchdog; other projects hold ~60 GB) ----
+semedit_peer() {
+  scripts/peer_run.sh --cpu 1 --mem 2G --label a${TG}_sem_${4//\//_} --max-seconds 14400 -- env OMP_NUM_THREADS=1 PY -m rrp.cli latent semantic-edits --route generated \
+    --checkpoint $F0 --representation $(rz gendag1_noqd) --robots $1 --episodes $3 --seed-start $2 --max-steps 400 \
+    --conditions control,goal_shift,rebind_desc,irrelevant_distractor,orthogonal_matched,control_replay \
+    --out artifacts/runs/acceptance_arm${LIN}_gen_$4
+}
+collect_peer() {  # name repdir seed flowdir flowfile [genctx]
+  local name=$1 repd=$2 seed=$3 fd=$4 ff=$5 gc=${6:-} d=ladder_dagger_${LIN}_$1 pids=() i=0 ok=0
+  for g in "$G1" "$G2" "$G3" "$G4"; do
+    i=$((i+1))
+    scripts/peer_run.sh --cpu 3 --mem 8G --label a${TG}_col_${name}_$i --max-seconds 14400 -- env EXPERT=bc FLOW=$RUNS/$fd/$ff ${gc:+GENCTX=1} SEED=$seed \
+      bash scripts/ladder_dagger_collect.sh $RUNS/$repd/representation.pt $RUNS/$d 24 $g &
+    pids+=($!)
+  done
+  for p in "${pids[@]}"; do wait $p || ok=1; done
+  peer_has_bufs $name $gc || ok=1
+  return $ok
+}
+r2peer() {  # tag flowdir flowfile repdir seedstart robots...
+  local tag=$1 fd=$2 ff=$3 repd=$4 s=$5; shift 5
+  local rs="$*"
+  scripts/peer_run.sh --cpu 3 --mem 8G --label a${TG}_r2_${tag}_$s --max-seconds 14400 -- bash -c "export CUDA_VISIBLE_DEVICES=; set -e; sha256sum $RUNS/$fd/$ff $RUNS/$repd/representation.pt; for r in $rs; do $PPY scripts/ladder.py --route generated --flow $RUNS/$fd/$ff --rep $RUNS/$repd/representation.pt --prev-action zero --robot \$r --n 30 --seed-start $s --tag zero_${tag}_s$s --out $RUNS/ladder_v1/\$r; done"
+}
+orcbc_peer() {  # repdir tag
+  scripts/peer_run.sh --cpu 3 --mem 10G --label a${TG}_orcbc_$2 --max-seconds 14400 -- bash -c "set -e; bash scripts/ladder_eval_orcbc.sh $RUNS/$1/representation.pt $2; for r in panda_pg2 parm6_tf3; do test -f artifacts/runs/ladder_v1/\$r/oracle_zero_$2_orcbc.summary.json; done"
+}
+
 # ---- new nodes ----
 train_peer() {  # label cfg kind
   case $3 in
@@ -163,10 +192,31 @@ prog_evals() {
   return $ok
 }
 
+if [ "$PLACE" = peer ]; then
+  semedit_host() { semedit_peer "$@"; }
+  collect_host() { collect_peer "$@"; }
+  r2host() { r2peer "$@"; }
+  orcbc_host() { orcbc_peer "$@"; }
+fi
+semedits_fill() {  # run ONLY shards without a completed summary (partial rows deleted first); one launch per shard
+  local ok=0 pids=() spec b st n e dir
+  for spec in $(for i in $(seq 0 11); do echo parm6:$i:$((3000000 + 10*i)):10; done; for i in $(seq 0 5); do echo panda:$i:$((3000000 + 8*i)):8; done); do
+    IFS=: read b i st n <<< "$spec"; dir=acceptance_arm${LIN}_gen_$b/shard$i
+    ssh gb10-direct "test -f $PR/$dir/semantic_summary_generated.json" && continue
+    echo "rerun $dir"; ssh gb10-direct "rm -rf $PR/$dir"; rm -rf $RUNS/$dir
+    e=parm6_tf3; [ $b = panda ] && e=panda_pg2
+    semedit_host $e $st $n $b/shard$i & pids+=($!)
+  done
+  for p in "${pids[@]}"; do wait $p || ok=1; done
+  [ "$PLACE" = host ] && for b in parm6 panda; do push acceptance_arm${LIN}_gen_$b || ok=1; done
+  for b in parm6:12 panda:6; do n=$(ssh gb10-direct "ls $PR/acceptance_arm${LIN}_gen_${b%%:*}/shard*/semantic_summary_generated.json 2>/dev/null | wc -l"); [ $n -ge ${b##*:} ] || { echo "only $n complete ${b%%:*} shards"; ok=1; }; done
+  return $ok
+}
+
 all_nodes() {
   node Fft F0 adopt_Fft &
   node gen2 rzgendag1,F0 adopt_gen2 &
-  node semedits rzgendag1,F0 adopt_semedits &
+  node semedits rzgendag1,F0 semedits_fill &
   node rzgendag2 gen2 train_peer a${TG}_rz_gendag2 $C/rz_${LIN}_gendag2_noqd.json rz &
   node gen3 rzgendag2,Fft collect_host gen3 ladder_rz_${LIN}_gendag2_noqd $((3800000 + SOFF)) ladder_flow_${LIN}_ft policy.pt &
   node gdag1 rzgendag2,Fft collect_host gdag1 ladder_rz_${LIN}_gendag2_noqd $((3900000 + SOFF)) ladder_flow_${LIN}_ft policy.pt 1 &
