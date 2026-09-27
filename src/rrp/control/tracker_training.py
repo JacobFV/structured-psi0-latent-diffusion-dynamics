@@ -65,6 +65,16 @@ def train(args):
     ac = ActorCritic(sp["obs_dim"], sp["priv_dim"], sp["act_dim"], hidden=hidden, init_std=args.init_std).to(dev)
     opt = torch.optim.Adam(ac.parameters(), lr=args.lr)
     it0 = 0
+    if args.init_actor and not (args.resume and (out / "checkpoint.pt").exists()):
+        # warm start: actor + observation normaliser from an exported actor (e.g. the contact_v1 tracker); the
+        # critic starts fresh (its privileged inputs differ). Recorded as meta["init_from"].
+        ist = torch.load(args.init_actor, map_location=dev, weights_only=False)
+        ac.actor.load_state_dict(ist["actor"])
+        ac.obs_norm.mean.copy_(ist["obs_mean"])
+        ac.obs_norm.var.copy_(ist["obs_var"])
+        ac.obs_norm.count.fill_(1e6)       # keep the v1 normaliser nearly frozen at first
+        with torch.no_grad():
+            ac.log_std.fill_(math.log(args.init_std))
     log_path = out / "train_log.jsonl"
     ck = out / "checkpoint.pt"
     if args.resume and ck.exists():
@@ -84,7 +94,7 @@ def train(args):
                 actor_inputs="public: imu gyro, imu gravity, command, joint pos/vel, last action, gait clock",
                 critic_inputs="public + privileged: base lin vel, height, foot contacts, friction, push flag",
                 source_label="learned_tracker (trained with privileged critic)", args=vars(args), gpu=gpu_info,
-                contact_model=sp["contact"], reward_version=sp["reward"],
+                contact_model=sp["contact"], reward_version=sp["reward"], init_from=args.init_actor,
                 alpha_schedule=("gated" if sched else args.alpha_schedule),
                 critic_extras=("+ reward-schedule alpha" if sp["reward"] == "gait_v2" else ""))
     (out / "meta.json").write_text(json.dumps(meta, indent=1))
@@ -247,6 +257,7 @@ def main(argv=None):
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--ckpt-every", type=int, default=25)
     ap.add_argument("--resume", action="store_true")
+    ap.add_argument("--init-actor", default=None, help="warm-start actor + obs normaliser from an exported actor.pt")
     ap.add_argument("--contact", default="v1", help="contact model: v1 (legacy) | v2 (rrp.morphology.contact)")
     ap.add_argument("--reward", default=None, help="gait_v1 | gait_v2 (default: gait_v2 iff --contact v2)")
     ap.add_argument("--alpha-schedule", default="gated", help="gated | off | fixed:<alpha> (gait_v2 only)")

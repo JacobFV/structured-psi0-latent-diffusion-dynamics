@@ -264,7 +264,7 @@ class RewardCfg:
     sigma: float = 0.25
     # gait_v2 terms (0 in the legacy config)
     slip: float = 0.0              # x sum over feet of contact-point slip speed |v_xy| (m/s), loaded feet
-    clearance: float = 0.0         # x ((target - swing apex)/target)^2 clipped to [0,1], at each touchdown
+    clearance: float = 0.0         # x sum over swinging feet of min(foot height / swing target, 1) (moving only)
     smooth: float = 0.0            # x second difference of actions (a - 2a1 + a2)^2, like action_rate
     power: float = 0.0             # x mechanical power / (m g max(|cmd_xy|, 0.25)): a per-step cost of transport
     impact: float = 0.0            # x clip(touchdown normal force / (m g) - 1, 0, 3), per touchdown
@@ -299,9 +299,9 @@ class RewardCfg:
             if kind in ("humanoid", "biped"):
                 return RewardCfg(orient=-5.0, alive=0.3, contact_phase=1.0, height=-20.0, air_time=1.0,
                                  stand_still=-0.5, termination=-10.0, sigma=0.1, track_lin=2.5, track_ang=2.0,
-                                 feet_slip=0.0, slip=-1.0, clearance=-2.0, torque=-0.02, action_rate=-0.02,
+                                 feet_slip=0.0, slip=-1.0, clearance=1.0, torque=-0.02, action_rate=-0.02,
                                  smooth=-0.01, power=-0.02, impact=0.0, version=version, natural_max=nat)
-            return RewardCfg(feet_slip=0.0, slip=-0.5, clearance=-2.0, torque=-0.02, action_rate=-0.02, smooth=-0.01,
+            return RewardCfg(feet_slip=0.0, slip=-0.5, clearance=0.5, torque=-0.02, action_rate=-0.02, smooth=-0.01,
                              power=-0.02, impact=0.0, version=version, natural_max=nat)
         if kind in ("humanoid", "biped"):
             # v3: track_ang 1.0 -> 2.0 + turn-in-place commands (v2 walked but never turned)
@@ -485,12 +485,13 @@ class LeggedEnv:
             moving = np.linalg.norm(c[:2]) > 0.05 or abs(c[2]) > 0.05
             first = fc & (self.air[i] > 0)
             r += cfg.air_time * float(np.sum((self.air[i] - 0.5 * b.period) * first)) * moving
-            if cfg.clearance:
-                clr = b.foot_clearance(d)
-                self.apex[i] = np.where(fc, self.apex[i], np.maximum(self.apex[i], clr))
-                short = np.clip((b.swing_height - self.apex[i]) / b.swing_height, 0.0, 1.0) ** 2
-                r += cfg.clearance * float(np.sum(short * first)) * moving
-                self.apex[i] = np.where(fc, 0.0, self.apex[i])
+            if cfg.clearance and moving:
+                # swing-height reward (humanoid-gym style, positive): each foot in a bounded swing (off the floor
+                # for < 0.6 gait period) earns min(height / target, 1). v2a's touchdown-apex PENALTY made never
+                # lifting a foot optimal early in training (stander basin), so it was replaced.
+                clr = np.clip(b.foot_clearance(d) / b.swing_height, 0.0, 1.0)
+                swing = (~fc) & (self.air[i] < 0.6 * b.period)
+                r += cfg.clearance * float(np.sum(clr * swing))
             if cfg.slip:
                 r += cfg.slip * float(np.sum(slip_v))
             if v2:
