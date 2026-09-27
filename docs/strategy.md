@@ -22,7 +22,7 @@ Principles:
 | id | workstream | owner | depends on | status |
 |---|---|---|---|---|
 | W1 | Physics realism: contact v2, reward schedule, slip gate; then actuator realism and latency | contact agent | — | running |
-| W2 | Repo hygiene (phase 0) | hygiene agent | — | started |
+| W2 | Repo hygiene (phase 0) | hygiene agent | — | verified 2026-09-26 (main 3c796fd; tests 152 pass / 3 skip on a fresh clone; 78 dataset/weight files, 391 MB, untracked; copy in ~/work/rrp-data/git-untracked-2026-09-26) |
 | W3 | Provenance and contracts (phase 1) | provenance agent | — | started |
 | W4 | Package restructure with shims (phase 2) | restructure agent | W2, W3 | planned |
 | W5 | Unified pipeline + DAG orchestration (phases 3–4) | pipeline agent | W4; arm seed 2 finished | planned |
