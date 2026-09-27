@@ -98,7 +98,18 @@ Two t1 runs on the host test warm start (A/B):
 - `contact_t1_v2_scratch`: lease 1790474219_eaad24, from scratch, 4000 iters x 4x48.
 - `contact_t1_v2_warm`: lease 1790474219_cd8a6d, `--init-actor artifacts/trackers/t1/actor.pt --init-std 0.3` (actor and obs
   normaliser from the v1 tracker, sha 185df8519a8ca280; fresh critic); labelled `init_from` in meta.
-The peer was at load 55 (other users), so no peer runs; g1/go2/h1/anymal_c/hexapod6 are queued behind the A/B result.
+A/B result at iter ~520: scratch was still a stander (fall 0.38-0.69, track_rel_err 1.05-1.08, slip 0.8-1.0), while warm had
+fall 0.12-0.21, track_rel_err 0.43-0.46, slip ratio 0.64 -> 0.53 and falling. The scratch run was stopped at iter ~560 to free CPU
+(log kept: `artifacts/runs/contact_t1_v2_scratch/`). **Decision: all v2 trackers are warm-started from their v1 tracker**
+(label: fine-tuned from contact_v1 tracker, `init_from` in meta). A from-scratch v2 humanoid is an open item and needs
+far more samples than this setup gives (legged_gym-style runs use about 4096 envs).
+Warm runs:
+- t1: host lease 1790474219_cd8a6d, `artifacts/runs/contact_t1_v2_warm` (4000 iters).
+- h1: peer lease 1790475226_5b8177, `artifacts/runs/contact_h1_v2_warm` (4000; 6 h cap, `--resume` if cut).
+- g1: peer lease 1790475227_f4019d, `artifacts/runs/contact_g1_v2_warm` (4000; same).
+- go2: host lease 1790475352_0f5f7a, `artifacts/runs/contact_go2_v2_warm` (3500).
+- queued: anymal_c (2500), hexapod6 (2000), warm.
+v1 actors for the peer runs: `artifacts/runs/contact_v1_actors/<body>/actor.pt` in the shared peer store (same sha as local).
 
 ## resume steps
 1. `tail -1 artifacts/runs/contact_<body>_v2/train_log.jsonl` (alpha, gate). The ops log is in the main checkout
