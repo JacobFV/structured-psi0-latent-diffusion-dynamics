@@ -48,6 +48,7 @@ def main():
     man = json.loads((ds / "manifest.json").read_text())
     eps = [e for e in man["episodes"] if e.get("status") in ("success", "failure")]
     rows_path = out.with_suffix(".jsonl")
+    rows_path.parent.mkdir(parents=True, exist_ok=True)
     done = set()
     if rows_path.exists():
         for l in rows_path.read_text().splitlines():
