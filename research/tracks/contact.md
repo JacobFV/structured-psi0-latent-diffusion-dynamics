@@ -140,6 +140,27 @@ Videos (reviewed: v2 visibly lifts and places feet, v1 glides): `artifacts/video
 Round 2 (queued with admission retries): `artifacts/runs/contact_t1_v2_r2`, resumed from the iter-3599 checkpoint to 5100 iters with
 humanoid gate thresholds (advance track 0.5 / fall 0.25 / slip 0.3; back off 0.65 / 0.4 / 0.45), so the schedule is exercised on a humanoid.
 
+### t1 round 2: completed (verified; the contact gate misses by slip 0.151 vs 0.15 and turn 0.02)
+`artifacts/runs/contact_t1_v2_r2` (host lease 1790482385_a87fcf): resumed from the iter-3599 checkpoint to 5100 with humanoid gate
+thresholds. alpha first advanced at iter 3824 (alpha0 snapshot `actor_alpha0.pt`, sha 6cfc2121b2b2c6e5..., iter 3824) and reached 1.0 by
+about 4800. Training-window CoT went 2.8 -> 2.0 and slip 0.27 -> 0.23. The final is installed at `artifacts/trackers/t1/contact_v2/actor.pt` (sha
+87e233c6c01f449b..., iter 5099). The iter-3599 tracker is kept at `~/work/rrp-data/contact-v1-actors/t1_contact_v2_iter3599.pt`.
+Validation (`val/t1_v2alpha0_physv2.json` vs `val/t1_v2trk_physv2.json`): alpha=0 -> final gives slip ratio 0.28 -> **0.151**, CoT 2.79 -> **1.39**,
+apex 7.9 -> 6.6 cm (above the 2.4 cm floor), duty 0.66-0.75 -> 0.72-0.82, air 0.08 -> 0.08 s, fwd 1.11 -> 0.99, no falls. **On t1 the lead's
+claim holds: as the priors fade, the stance feet stay planted, swings stay clear and CoT halves; it does not collapse into shuffling.** Turn
+in place is still 0.02, so the gate fails. Videos (reviewed): `2026-09-26_contact_t1_{forward,turn}_v1-vs-v2_iter5099_ok_ok.mp4`,
+`2026-09-26_contact_t1_forward_alpha0-vs-final_iter5099_ok_ok.mp4`.
+### anymal_c run 1: REJECTED (failure example)
+`artifacts/runs/contact_anymal_c_v2_warm_r1` (2500 iters, lr ceiling 1e-2, KL spikes to 9.5, alpha stayed 0). Validation: no falls, fwd 0.85,
+turn 1.05, but slip 0.29 (the v1 tracker zero-shot in v2 physics gives 0.17), CoT 2.85 (1.03), swing apex 32 cm. The video shows the shanks kicked high
+and backwards in swing, an unnatural gait. Moved to `artifacts/trackers/anymal_c/contact_v2_rejected_iter2499/` (not loadable as contact_v2).
+Video with a FAILURE label in INDEX: `2026-09-26_contact_anymal_c_{forward,turn}_v1-vs-v2_iter2499_ok_ok.mp4`. Rerun r2 (lease
+1790485178_e1b7ca, `artifacts/runs/contact_anymal_c_v2_r2`) uses `--max-lr 1e-3` and the range-scaled tracking sigma 0.16.
+### hexapod6 run 2: failed (stander) -> run 3
+With the lr cap, the run was stable but converged to standing (track_rel_err 0.88-0.96 at iter 1000): the sigma 0.25 tracking kernel is too
+flat for a 0.18 m/s command. gait_v2 now uses sigma = min(0.25, (0.5 vx_max)^2) for non-bipeds (hexapod6 0.0225, anymal_c 0.16, go2 0.25
+unchanged). The v1 walker then beats a stander 1.84 vs 1.30 per step. Run 3: lease 1790484707_890cde, `artifacts/runs/contact_hexapod6_v2_warm`.
+Kept: `..._v2_warm_collapsed` (run 1), `..._v2_warm_stander` (run 2).
 ### hexapod6 run 1: failed (training instability, not physics)
 `artifacts/runs/contact_hexapod6_v2_warm_collapsed`: the policy collapsed at iter ~185-200. Per-iteration KL went 25 -> 340 -> 1341 and the fall
 rate 0 -> 0.9, with episodes of 30-110 ticks, and it never recovered. Physics was checked: the v1 hexapod actor plus N(0, 0.3) exploration noise in the
