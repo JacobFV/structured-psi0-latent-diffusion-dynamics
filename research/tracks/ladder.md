@@ -41,6 +41,9 @@ tests/unit/test_rep_resume_rng.py); (2) the v2 DAG raises max_seconds of GPU nod
 raised to 4 GPU leases / 16 declared CPU (lead; W8's GPU leases ended, peer 40 GB available; Stage A measured ~1 core,
 3-4 GB each). Limits and caps do not enter the node config hashes (checked: all 100 planned configs identical). The
 runner was relaunched with `--retry-failed` (manual decision); the running nosem Stage As were re-adopted.
+Throughput after the cap change (06:08, 4 Stage As concurrent, GPU 94%, 46 GB available): 0.385-0.395 s/step each
+(vs 1.28 under W8 contention, 0.24 with 2 alone) -> Stage A ~1.6 h (nosem ~07:35, semfix ~07:45). Revised ETA for the
+whole set: ~14:00-16:00 PDT 2026-09-27 (the 32 DAgger collections, <= 2 concurrent under the 16-CPU cap, dominate).
 One launch error on the way: max_seconds 43200 is above the broker cap (6 h) and was refused before any job started.
 RESUME: `cd ~/work/rrp-wt/ladder && systemd-run --user --unit rrp-armv2-dag4 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv2 --setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/ladder ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_lineage_v2.yaml`
 (completed nodes skipped, running leases re-adopted; failed nodes only with --retry-failed, a manual decision).
