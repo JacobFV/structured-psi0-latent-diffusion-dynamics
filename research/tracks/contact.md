@@ -184,7 +184,12 @@ Results (`val/{go2,anymal_c}_v2act2ft*-lat*`):
 - go2 (with clearance_floor=-6): no-fall 1.00 at 0/15/30 ms; turn 0.74 -> 0.85/0.82/0.79; fwd 1.02/0.93/0.87 (before: 0.98/0.90/0.85);
   slip 0.03/0.04/0.02; CoT 0.88 -> 0.97. Contact gate passes at every latency. The change is neutral to slightly positive: go2 was already robust.
 - anymal_c WITHOUT a clearance floor: the swing flattened to 1.1 cm and the contact gate FAILED, so it was not installed (`..._act2_nofloor`). Rerun with
-  clearance_floor=-6: peer lease 1790502938_f00be9. The installed anymal_c is already robust to actuator_v2 at 30 ms (table above).
+  clearance_floor=-6 (`artifacts/runs/contact_anymal_c_act2`): no-fall 1.00, contact gate passes at 0/15/30 ms, apex 4.8-6.2 cm, slip 0.05, but
+  fwd 0.87/0.85/0.79 (installed: 1.00/1.00/0.95) and CoT 0.56 (installed 0.36-0.39). Not installed: the installed anymal_c is already robust to
+  actuator_v2 at 30 ms and tracks better.
+- Decision: actuator_v1 stays the deployed physics. The go2/anymal_c actuator fine-tunes are recorded as candidates for when actuator_v2 becomes the default.
+- Bug found: `--alpha-schedule fixed:<a>` still ran the alpha gate. Fixed. Audit: the go2 cf2, go2 act2 and anymal_c act2 runs stayed at alpha 1.0
+  throughout (unaffected). t1 phase 2 had drifted to 0.5, was stopped (`contact_t1_turn2_alphabug`) and was restarted (peer lease 1790504263_a43726).
 - h1/g1 are the fragile ones (falls at 30 ms). They get the actuator fine-tune after their turn training.
 
 ## runs
