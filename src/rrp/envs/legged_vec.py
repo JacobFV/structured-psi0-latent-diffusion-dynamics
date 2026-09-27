@@ -30,7 +30,10 @@ def _worker(conn, body, n_envs, seed, friction, kw):
             env.set_turn_scale(payload)
             conn.send(("ok", env.turn_scale))
         elif msg == "cmdmix":
-            env.cmd_mix = str(payload)
+            mix, _, stop = str(payload).partition(":")
+            env.cmd_mix = mix
+            if stop:
+                env.teacher_stop = float(stop)
             conn.send(("ok", env.cmd_mix))
         elif msg == "refff":
             env.ref_ff = float(payload)

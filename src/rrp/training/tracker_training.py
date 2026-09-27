@@ -297,7 +297,7 @@ def main(argv=None):
                     help="bipeds: start pure-turn yaw-rate scale (e.g. 0.4); 0 = off (full range)")
     ap.add_argument("--turn-vx0", type=float, default=0.0,
                     help="arc-to-in-place curriculum: initial forward speed (m/s) added to pure-turn commands, shrunk to 0 in 4 steps")
-    ap.add_argument("--cmd-mix", default="default", help="default | teacher (W8 waypoint-teacher command mix, 70%%)")
+    ap.add_argument("--cmd-mix", default="default", help="default | teacher[:stop_share] (W8 waypoint-teacher command mix, 70%%; e.g. teacher:0.10)")
     ap.add_argument("--ref-ff", type=float, default=0.0,
                     help="bipeds: feed-forward clock stepping reference amplitude (rad) added to targets; stored in actor meta")
     ap.add_argument("--slow-frac", type=float, default=0.0, help="bipeds: fraction of walking commands rescaled to 0.05-0.2 m/s")

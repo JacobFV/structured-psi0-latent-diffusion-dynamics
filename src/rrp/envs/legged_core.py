@@ -412,6 +412,7 @@ class LeggedEnv:
         self.ref_ff = 0.0         # feed-forward stepping reference amplitude (rad); recorded in the actor meta (LearnedTracker applies it)
         self.slow_frac = 0.0      # bipeds: fraction of translational commands rescaled to 0.05-0.2 m/s (slow-gait mix)
         self.cmd_mix = "default"  # "teacher": 70% of commands from the W8 waypoint-teacher mix
+        self.teacher_stop = 0.03  # stop share within the teacher mix (W8 halts at each episode end; 0.10 for halt training)
         self.stance_t = np.zeros((n_envs, self.b.nf))
         import re as _re
         acts = self.meta["legged"]["policy_actuators"]
@@ -475,7 +476,7 @@ class LeggedEnv:
         vm, wm = 0.6 * r["vx"][1], 0.8 * r["wz"][1]
         u, s = self.rng.random(), self.rng.choice([-1, 1])
         c = np.zeros(3)
-        if u < 0.03:
+        if u < self.teacher_stop:
             pass
         elif u < 0.50:
             c[0], c[2] = self.rng.uniform(0.3, 1.0) * vm, self.rng.uniform(-0.1, 0.1)
