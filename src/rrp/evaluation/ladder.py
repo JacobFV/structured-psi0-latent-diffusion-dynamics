@@ -325,6 +325,7 @@ class LadderConfig:
     prev_action: str = "zero"        # zero (current deployment) | own (training-consistent input, bug B-1)
     policy: str | None = None        # route learned: LearnedPolicy checkpoint (baseline FlowPolicy)
     policy_label: str | None = None  # label for the source string (default: checkpoint path)
+    perturb: object = None           # W6: rrp.envs.perturb.PhysicsPerturbation (None = nominal physics, unchanged)
     oracle_expert: str = "teacher"   # R1 packet source: teacher (shadow FSM look-ahead) | bc (stateless: E(chunk the
                                      # learned BC policy `policy` would execute from the current state); ORACLE DIAGNOSTIC
 
@@ -389,9 +390,23 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
     lp = models.get("learned")
     if cfg.route == "learned" and lp is None:
         raise ValueError("route learned needs cfg.policy")
-    S, s0, meters, shadows, meta = [], [], [], [], []
+    from rrp.evaluation.motion_quality import ArmMotionRecorder
+    if cfg.perturb is not None and cfg.perturb.step_hooks and (cfg.route == "oracle" or (cfg.route == "generated"
+                                                                                            and cfg.compare_oracle)):
+        # the oracle look-ahead rolls the real session forward and restores it; the step hooks (ctrl-delay FIFO, push
+        # bookkeeping) are not part of the snapshot, so they would be corrupted by the look-ahead
+        raise ValueError("step-level perturbations need a route without look-ahead rollouts (compare_oracle=False)")
+    S, s0, meters, shadows, meta, mrecs, perts = [], [], [], [], [], [], []
     for sd in cfg.seeds:
         s = Session(BUILDERS[cfg.task](robot, sd, n_distractors=sd % 3), seed=sd)
+        if cfg.perturb is not None:
+            from rrp.envs.perturb import apply_model, install_arm, arm_parts
+            ap_ = arm_parts(s.model, s.robots[0])
+            cube_ = [mujoco.mj_name2id(s.model, mujoco.mjtObj.mjOBJ_BODY, "cube")]
+            rec_ = apply_model(s.model, cfg.perturb, robot_bodies=ap_["bodies"], com_body=ap_["last_link"],
+                               act_ids=ap_["act_ids"], object_bodies=cube_, object_contact_geoms=ap_["finger_geoms"])
+            perts.append((rec_, install_arm(s, cfg.perturb, sd)))
+        mrecs.append(ArmMotionRecorder(s))
         f = s._rrp_featurizer = PrevActionFeaturizer(_featurizer(s), cfg.prev_action)
         S.append(s)
         meters.append(Meter(s))
@@ -448,6 +463,7 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
                     s0[k].receive(p, now=float(S[k].data.time), graph_version=S[k].runtime.graph_version)
                 except (ControllerRejection, StaleActionError):
                     rec["rejected"] = True
+        needl = []
         if cfg.route == "learned":
             needl = [k for k in act if step % cfg.replan_ticks == 0 or not S[k].executor.queue]
             if needl:
@@ -458,6 +474,7 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
                         S[k].submit_chunk(ch, execute_prefix=cfg.replan_ticks)
                     except (ControllerRejection, StaleActionError):
                         meta[k]["replans"][-1]["rejected"] = True
+        bnd = set(need) | (set(needl) if cfg.route == "learned" else set())
         labels = {k: shadows[k].label(S[k]) for k in act}
         sys0 = batched_ticks([s0[k] for k in act], [S[k] for k in act]) if s0 else [None] * len(act)
         if cfg.route == "learned":
@@ -521,6 +538,7 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
             f.record(cmd, f.base(s.observe()).q0 if cmd is not None and f.mode == "own" else None)
             s.step(cmd)
             meta[k]["steps"] += 1
+            mrecs[k].tick(None if cmd is None else cmd.groups, k in bnd)
             if cmd is not None:
                 row["track_q"] = float(np.abs(s.data.qpos[mt.qadr] - qc).mean())
                 row["track_tcp"] = float(np.linalg.norm(mt.tcp() - tcp_cmd))
@@ -572,7 +590,13 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
                         + ("teacher future actions)" if cfg.oracle_expert == "teacher" else
                            f"chunk of learned:{cfg.policy_label or cfg.policy} at the current state)"), generated="learned(system-i flow)",
                         learned=f"learned:{cfg.policy_label or cfg.policy}")[cfg.route],
-            checkpoints=ids))
+            checkpoints=ids, motion=mrecs[k].summary()))
+        if cfg.perturb is not None:
+            rec_, st_ = perts[k]
+            out[-1]["perturbation"] = dict(cfg.perturb.to_dict(), applied=rec_,
+                                           ctrl_delay=(dict(version=st_["delay"].version, substeps=st_["delay"].n)
+                                                       if st_["delay"] is not None else None),
+                                           push=(st_["push"].record() if st_["push"] is not None else None))
     if out_path:
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with open(out_path, "a") as fh:

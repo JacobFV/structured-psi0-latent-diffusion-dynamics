@@ -64,9 +64,10 @@ def tracker_contract(meta: dict, rs) -> ControllerContract:
 
 
 def build_waypoint_contact(robot, seed: int, task: dict | None = None, body_key: str | None = None,
-                           contact: str | None = None) -> Scenario:
+                           contact: str | None = None, terrain: dict | None = None) -> Scenario:
     """robot: Module from rrp.morphology.legged (or a body key string). contact: foot-floor contact model
-    ('v1' legacy default | 'v2'); None -> $RRP_CONTACT_MODEL or v1. Recorded in meta/scenario meta."""
+    ('v1' legacy default | 'v2'); None -> $RRP_CONTACT_MODEL or v1. Recorded in meta/scenario meta.
+    terrain: rough-terrain flag for rrp.bodies.legged.legged_world (W6 robustness; default None = flat, unchanged)."""
     from rrp.physics.contact import version_str
     if isinstance(robot, str):
         body_key, robot = robot, legged_body(robot)
@@ -75,7 +76,7 @@ def build_waypoint_contact(robot, seed: int, task: dict | None = None, body_key:
     rng = np.random.default_rng(seed)
     meta = copy.deepcopy(robot.meta)
     body_key = body_key or meta["name"]
-    scene = legged_world(f"waypoint_contact_{seed}", meta.get("source_options"), contact=contact)
+    scene = legged_world(f"waypoint_contact_{seed}", meta.get("source_options"), contact=contact, terrain=terrain)
     meta["contact_model"] = version_str(contact)
     scene.worldbody.add_camera(name="overhead", pos=[0, 0, 12.0], xyaxes=[1, 0, 0, 0, 1, 0], fovy=100)
     scene.worldbody.add_camera(name="front", pos=[-3.0, -3.0, 2.5], xyaxes=[0.707, -0.707, 0, 0.35, 0.35, 0.87],
@@ -101,7 +102,8 @@ def build_waypoint_contact(robot, seed: int, task: dict | None = None, body_key:
                ObjectDecl("waypoint_b", "cyan waypoint marker", "feature", radius=0.12, task_entity="waypoint_b")]
     return Scenario("waypoint_contact", task or load_task("waypoint_contact"), scene, model, [mr], objects, seed,
                     meta=dict(body_key=body_key, waypoints=dict(a=pa.tolist(), b=pb.tolist()), reach_m=reach,
-                              contact_model=meta["contact_model"]))
+                              contact_model=meta["contact_model"],
+                              **({"terrain": dict(terrain)} if terrain and float(terrain.get("amp_m", 0)) > 0 else {})))
 
 
 class LeggedSession(Session):

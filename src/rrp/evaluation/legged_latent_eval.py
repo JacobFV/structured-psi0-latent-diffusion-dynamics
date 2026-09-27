@@ -450,6 +450,9 @@ class OracleShadow:
         return torch.from_numpy(a)[None].to(self.c.dev)
 
 
+from rrp.envs.perturb import PhysicsPerturbation as _PP
+_NOMINAL = _PP()
+
 LEARNED_TRACKER_BODIES = ("go2", "t1", "g1", "h1", "anymal_c")   # frozen learned trackers; procedural bodies use CPG
 
 
@@ -458,10 +461,26 @@ def default_tracker_kind(body):
 
 
 def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=None, arc_only=False, frame_every=2,
-                cam_scale=1.0, size=(368, 480)):
-    sc = scenario if scenario is not None else build_waypoint_contact(body, seed)
+                cam_scale=1.0, size=(368, 480), perturb=None):
+    """perturb: rrp.envs.perturb.PhysicsPerturbation (W6 robustness sweeps; None = nominal, unchanged behaviour).
+    Every row carries `motion` (rrp.evaluation.motion_quality, read-only recording) and, if perturbed, `perturbation`."""
+    from rrp.envs.perturb import apply_model, install_legged
+    from rrp.evaluation.motion_quality import LeggedMotionRecorder
+    if scenario is not None:
+        sc = scenario
+    elif perturb is not None and perturb.terrain_amp_m > 0:
+        sc = build_waypoint_contact(body, seed, terrain=perturb.terrain(seed))
+    else:
+        sc = build_waypoint_contact(body, seed)
     s = LeggedSession(sc, tracker_kind=default_tracker_kind(body), seed=seed)
     trk_sha = getattr(s.tracker, "sha256", None)   # the body tracker (drives the teacher route; label source for ours)
+    pert_rec = None
+    if perturb is not None:
+        b_ = s.binding
+        pert_rec = apply_model(s.model, perturb, robot_bodies=b_.robot_bodies, com_body=b_.root_bid, act_ids=b_.pol_act)
+    mrec = LeggedMotionRecorder(s)
+    pst = install_legged(s, perturb if perturb is not None else _NOMINAL, seed, on_substep=mrec.on_substep,
+                         on_tick=mrec.on_tick, on_reset=mrec.on_reset)
     morph = LeggedMorph(s.model, s.binding, sc.robots[0].robot_spec.spec_hash)
     is_bc = isinstance(ctl, BCController)
     ad = (BCAdapter if is_bc else System0Adapter)(ctl, s, morph) if ctl is not None else None
@@ -521,6 +540,11 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
         if getattr(ctl, "zero_qd", False):
             row["zero_qd"] = True
     row["failure_stage"] = failure_stage(row)
+    row["motion"] = mrec.summary()
+    if perturb is not None:
+        row["perturbation"] = dict(perturb.to_dict(), applied=pert_rec, terrain=sc.meta.get("terrain"),
+                                   actuator=(pst["actuator"].params if pst["actuator"] is not None else None),
+                                   push=(pst["push"].record() if pst["push"] is not None else None))
     return row, frames
 
 

@@ -459,15 +459,57 @@ ALL_LEGGED = list(PROCEDURAL) + list(LEGGED_ASSETS)
 
 
 # ------------------------------------------------------------------ world + standalone model for training/validation
+TERRAIN_VERSION = "bumps_v1"
+
+
+def bump_heights(amp_m: float, seed: int, *, half_m: float = 8.0, cell_m: float = 0.05, bump_sigma_m: float = 0.1,
+                 flat_r_m: float = 0.6) -> np.ndarray:
+    """Rough-terrain elevation grid (W6 robustness, `bumps_v1`): white noise smoothed with a Gaussian of sigma
+    `bump_sigma_m`, rescaled to [0, amp_m], flattened (0) within `flat_r_m` of the origin (spawn) with a smooth ramp.
+    Deterministic in `seed`. Returns heights in metres, shape (n, n), row = y, col = x."""
+    n = int(round(2 * half_m / cell_m)) + 1
+    rng = np.random.default_rng([int(seed), 7331])
+    w = rng.standard_normal((n, n))
+    k = max(1, int(round(3 * bump_sigma_m / cell_m)))
+    x = np.arange(-k, k + 1) * cell_m
+    g = np.exp(-0.5 * (x / bump_sigma_m) ** 2)
+    g /= g.sum()
+    pad = np.pad(w, k, mode="wrap")
+    sm = np.apply_along_axis(lambda r: np.convolve(r, g, mode="valid"), 1, pad)
+    sm = np.apply_along_axis(lambda c: np.convolve(c, g, mode="valid"), 0, sm)
+    sm = (sm - sm.min()) / max(float(np.ptp(sm)), 1e-12)
+    xs = np.linspace(-half_m, half_m, n)
+    r = np.hypot(*np.meshgrid(xs, xs))
+    ramp = np.clip((r - flat_r_m) / 0.4, 0.0, 1.0)
+    return amp_m * sm * ramp
+
+
 def legged_world(name: str, source_options: dict | None = None, *, size: float = 20.0,
-                 contact: str | None = None) -> mujoco.MjSpec:
-    """Floor world. `contact`: 'v1' (legacy default) | 'v2' (rrp.morphology.contact); None -> $RRP_CONTACT_MODEL."""
+                 contact: str | None = None, terrain: dict | None = None) -> mujoco.MjSpec:
+    """Floor world. `contact`: 'v1' (legacy default) | 'v2' (rrp.morphology.contact); None -> $RRP_CONTACT_MODEL.
+    `terrain` (W6; default None = flat plane, unchanged): {"amp_m": A, "seed": S[, "half_m", "cell_m", "bump_sigma_m"]}
+    replaces the plane by a heightfield of small bumps (`bump_heights`, 0..A m) named "floor" (so foot-contact and
+    fall logic keep working) over +-half_m, with a plane `floor_outer` beyond it. amp_m <= 0 -> the flat plane."""
     from rrp.physics.contact import apply_world
     s = _base_spec(name)
     floor_kw = apply_world(s, contact, source_options)
     s.visual.global_.offwidth = 640
     s.visual.global_.offheight = 480
     s.worldbody.add_light(pos=[0, 0, 4], dir=[0, 0, -1], diffuse=[0.7, 0.7, 0.7], type=mujoco.mjtLightType.mjLIGHT_DIRECTIONAL)
+    if terrain and float(terrain.get("amp_m", 0.0)) > 0:
+        amp = float(terrain["amp_m"])
+        half = float(terrain.get("half_m", 8.0))
+        h = bump_heights(amp, int(terrain.get("seed", 0)), half_m=half, cell_m=float(terrain.get("cell_m", 0.05)),
+                         bump_sigma_m=float(terrain.get("bump_sigma_m", 0.1)))
+        n = h.shape[0]
+        s.add_hfield(name="terrain_bumps", size=[half, half, amp, 0.05], nrow=n, ncol=n,
+                     userdata=(h / amp).ravel().tolist())
+        s.worldbody.add_geom(name="floor", type=G.mjGEOM_HFIELD, hfieldname="terrain_bumps", pos=[0, 0, 0],
+                             rgba=[0.45, 0.47, 0.44, 1], **floor_kw)
+        s.worldbody.add_geom(name="floor_outer", type=G.mjGEOM_PLANE, size=[size, size, 0.1], pos=[0, 0, -0.001],
+                             rgba=[0.35, 0.37, 0.34, 1], **floor_kw)
+        s.add_text(name="terrain_version", data=f"{TERRAIN_VERSION}:amp={amp:g}:seed={int(terrain.get('seed', 0))}")
+        return s
     s.worldbody.add_geom(name="floor", type=G.mjGEOM_PLANE, size=[size, size, 0.1], rgba=[0.45, 0.47, 0.44, 1],
                          **floor_kw)
     return s
