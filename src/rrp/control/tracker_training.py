@@ -60,6 +60,14 @@ def train(args):
     weights = pool.set_alpha(gate.alpha) if sp["reward"] == "gait_v2" else sp["reward_weights0"]
     win = []
     saved_alpha0 = False
+    turn_scale = None
+    if args.turn_curriculum > 0:
+        turn_scale = pool.set_turn_scale(args.turn_curriculum)
+        pool.set_turn_frac(args.turn_frac)
+        if args.resume and (out / "checkpoint.pt").exists():
+            ts = torch.load(out / "checkpoint.pt", map_location="cpu", weights_only=False).get("turn_scale")
+            if ts is not None:
+                turn_scale = pool.set_turn_scale(ts)
     N = args.workers * args.envs
     hidden = tuple(int(h) for h in args.hidden.split(","))
     ac = ActorCritic(sp["obs_dim"], sp["priv_dim"], sp["act_dim"], hidden=hidden, init_std=args.init_std).to(dev)
@@ -194,6 +202,13 @@ def train(args):
                     saved_alpha0 = True
                 weights = pool.set_alpha(gate.alpha)
             gate_rec = dict(action=act, **wm)
+            if turn_scale is not None and it >= args.alpha_warmup and wm.get("turn_ratio") is not None:
+                # turn-in-place curriculum: widen the pure-turn yaw-rate range when turning is tracked
+                if wm["turn_ratio"] >= args.turn_advance and wm["fall_rate"] <= 0.2 and turn_scale < 1.0:
+                    turn_scale = pool.set_turn_scale(turn_scale + 0.1)
+                    gate_rec["turn_action"] = "widen"
+            if turn_scale is not None:
+                gate_rec["turn_scale"] = turn_scale
         elif sp["reward"] == "gait_v2" and (it + 1) % gate.every == 0:
             gate_rec = dict(action="off", **window_metrics(win))
             win = []
@@ -205,7 +220,7 @@ def train(args):
                    std=float(ac.log_std.detach().exp().mean()), lr=lr, kl=kl_mean, value_loss=float(vl.detach()), rollout_s=t_roll, iter_s=el,
                    samples=int((it + 1) * H * N), wall_s=time.time() - t_start)
         if sp["reward"] == "gait_v2":
-            rec.update(alpha=gate.alpha, weights=weights)
+            rec.update(alpha=gate.alpha, weights=weights, turn_scale=turn_scale)
             if gate_rec:
                 rec["gate"] = gate_rec
         with open(log_path, "a") as f:
@@ -213,7 +228,8 @@ def train(args):
         if it % 10 == 0:
             print(json.dumps(rec), flush=True)
         if (it + 1) % args.ckpt_every == 0 or it == args.iters - 1:
-            st = dict(model=ac.state_dict(), opt=opt.state_dict(), iter=it, meta=meta, gate=gate.state())
+            st = dict(model=ac.state_dict(), opt=opt.state_dict(), iter=it, meta=meta, gate=gate.state(),
+                      turn_scale=turn_scale)
             torch.save(st, str(ck) + ".tmp")
             os.replace(str(ck) + ".tmp", ck)
             export_actor(ac, dict(meta, alpha=gate.alpha, reward_weights=weights, gate_history=gate.history[-50:]),
@@ -264,6 +280,10 @@ def main(argv=None):
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--ckpt-every", type=int, default=25)
     ap.add_argument("--resume", action="store_true")
+    ap.add_argument("--turn-curriculum", type=float, default=0.0,
+                    help="bipeds: start pure-turn yaw-rate scale (e.g. 0.4); 0 = off (full range)")
+    ap.add_argument("--turn-frac", type=float, default=0.25, help="probability of a pure-turn command (bipeds)")
+    ap.add_argument("--turn-advance", type=float, default=0.6, help="window turn ratio needed to widen the turn range")
     ap.add_argument("--reward-set", default="", help="override base reward weights, e.g. clearance_floor=-2,floor_frac=0.6")
     ap.add_argument("--init-actor", default=None, help="warm-start actor + obs normaliser from an exported actor.pt")
     ap.add_argument("--contact", default="v1", help="contact model: v1 (legacy) | v2 (rrp.morphology.contact)")

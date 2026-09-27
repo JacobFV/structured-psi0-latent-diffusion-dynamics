@@ -272,6 +272,11 @@ class RewardCfg:
     # x clip((floor - swing apex) / floor, 0, 1)^2 per foot, floor = floor_frac * body swing_height. Never decays.
     clearance_floor: float = 0.0
     floor_frac: float = 0.6
+    # turn-in-place terms (W1 task 2), PERMANENT: yaw_slip x sum over stance feet of |foot yaw rate| (rad/s), which forbids
+    # pivoting on a planted foot; turn_step x agreement of foot contacts with the alternating gait clock during
+    # pure-turn commands (a stepping turn), independent of the decaying contact_phase prior.
+    yaw_slip: float = 0.0
+    turn_step: float = 0.0
     version: str = "gait_v1"
     # schedule (gait_v2): alpha in [0,1]; priors w0*(floor + (1-floor)(1-alpha)); natural w_min + alpha(w_max-w_min)
     alpha: float = 0.0
@@ -352,6 +357,8 @@ class LeggedEnv:
         self.cfg = self.cfg0.effective(0.0) if self.cfg0.version == "gait_v2" else self.cfg0
         self.sched = self.cfg0.version == "gait_v2"      # alpha schedule (critic sees alpha; the actor never does)
         self.priv_dim = self.b.priv_dim + (1 if self.sched else 0)
+        self.turn_scale = 1.0     # curriculum (set_turn_scale); 1.0 = the v3 sampler unchanged
+        self.turn_frac = 0.25
         self.mass = float(self.model.body_subtreemass[self.b.root_bid])
         self._gm_reset()
         self.n = n_envs
@@ -385,7 +392,12 @@ class LeggedEnv:
 
     def _gm_reset(self):
         # gate metrics accumulated over steps with a translational command (read by the trainer's alpha gate)
-        self.gm = dict(steps=0, track_err=0.0, cmd=0.0, slip=0.0, speed=0.0, power=0.0, cot_den=0.0)
+        self.gm = dict(steps=0, track_err=0.0, cmd=0.0, slip=0.0, speed=0.0, power=0.0, cot_den=0.0,
+                       turn_steps=0, turn_cmd=0.0, turn_w=0.0)
+
+    def set_turn_scale(self, scale: float):
+        """Turn-in-place curriculum: pure-turn yaw-rate commands are drawn from +-[0.3, 1.0] x scale x wz_max."""
+        self.turn_scale = float(min(1.0, max(0.05, scale)))
 
     def _sample_cmd(self, i):
         r = self.b.cmd_ranges
@@ -395,9 +407,9 @@ class LeggedEnv:
             c[:] = 0
         elif u < 0.45:        # forward + turn (the waypoint-teacher regime)
             c[1] = 0
-        elif self.b.biped and u < 0.7:   # v3 (bipeds): pure turn-in-place commands
+        elif self.b.biped and u < 0.45 + self.turn_frac:   # v3 (bipeds): pure turn-in-place commands
             c[:2] = 0
-            c[2] = self.rng.choice([-1, 1]) * self.rng.uniform(0.3, 1.0) * self.b.cmd_ranges["wz"][1]
+            c[2] = self.rng.choice([-1, 1]) * self.rng.uniform(0.3, 1.0) * self.turn_scale * self.b.cmd_ranges["wz"][1]
         if np.linalg.norm(c[:2]) < 0.05:
             c[:2] = 0
         if abs(c[2]) < 0.05:
@@ -541,6 +553,22 @@ class LeggedEnv:
             if not moving:
                 r += cfg.stand_still * float(np.sum(np.abs(q - b.q0))) / b.n * 4
                 r += cfg.stand_contact * float(np.mean(fc))
+            pure_turn = np.linalg.norm(c[:2]) < 0.05 and abs(c[2]) > 0.05
+            if cfg.yaw_slip:
+                ys = 0.0
+                for k, fb in enumerate(b.foot_bids):
+                    if fc[k]:
+                        v6 = np.zeros(6)
+                        mujoco.mj_objectVelocity(m, d, mujoco.mjtObj.mjOBJ_XBODY, fb, v6, 0)
+                        ys += abs(float(v6[2]))
+                r += cfg.yaw_slip * ys
+            if cfg.turn_step and pure_turn and b.nf == 2:
+                want = np.array([self.phase[i] < 0.55, self.phase[i] >= 0.45])
+                r += cfg.turn_step * float(np.mean(fc == want))
+            if v2 and pure_turn:
+                self.gm["turn_steps"] += 1
+                self.gm["turn_cmd"] += abs(float(c[2]))
+                self.gm["turn_w"] += float(w[2]) * float(np.sign(c[2]))
             if cfg.contact_phase and b.nf == 2:
                 if moving:
                     want = np.array([self.phase[i] < 0.55, self.phase[i] >= 0.45])  # left stance / right stance

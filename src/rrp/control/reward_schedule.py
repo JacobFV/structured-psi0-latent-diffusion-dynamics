@@ -25,6 +25,9 @@ def window_metrics(stats: list) -> dict:
                 gm[k] += s["gm"][k]
     out = dict(steps=gm["steps"], episodes=len(eps),
                fall_rate=(sum(e["fell"] for e in eps) / len(eps)) if eps else 0.0)   # no episode ended: no falls
+    tc = sum(s["gm"].get("turn_cmd", 0.0) for s in stats if "gm" in s)
+    if tc > 0:
+        out["turn_ratio"] = sum(s["gm"].get("turn_w", 0.0) for s in stats if "gm" in s) / tc
     if gm["steps"]:
         out.update(track_rel_err=gm["track_err"] / max(gm["cmd"], 1e-9),
                    slip_ratio=gm["slip"] / max(gm["speed"], 1e-9),

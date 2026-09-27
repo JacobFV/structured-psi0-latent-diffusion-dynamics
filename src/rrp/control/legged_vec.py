@@ -25,6 +25,12 @@ def _worker(conn, body, n_envs, seed, friction, kw):
         elif msg == "alpha":
             env.set_alpha(payload)
             conn.send(("ok", env.cfg.weights()))
+        elif msg == "turn":
+            env.set_turn_scale(payload)
+            conn.send(("ok", env.turn_scale))
+        elif msg == "turnfrac":
+            env.turn_frac = float(payload)
+            conn.send(("ok", env.turn_frac))
         elif msg == "close":
             conn.close()
             return
@@ -65,6 +71,16 @@ class VecPool:
     def set_alpha(self, alpha: float) -> dict:
         for c in self.conns:
             c.send(("alpha", float(alpha)))
+        return [c.recv()[1] for c in self.conns][0]
+
+    def set_turn_scale(self, scale: float) -> float:
+        for c in self.conns:
+            c.send(("turn", float(scale)))
+        return [c.recv()[1] for c in self.conns][0]
+
+    def set_turn_frac(self, frac: float) -> float:
+        for c in self.conns:
+            c.send(("turnfrac", float(frac)))
         return [c.recv()[1] for c in self.conns][0]
 
     def close(self):
