@@ -23,10 +23,17 @@ Variants:
 | `sejf2` | sem | s2 | `arm/sem/s2` | ladder.md "ARM SEED-2 REPLICATION" (R0) | `configs/ladder/armseed2/sejf2/flow_sejf2.json` |
 | `sfjf2` | semfix | s2 | `arm/semfix/s2` | same | `configs/ladder/armseed2/sfjf2/flow_sfjf2.json` |
 | `nsjf2` | nosem | s2 | `arm/nosem/s2` | same | `configs/ladder/armseed2/nsjf2/flow_nsjf2.json` |
+| `nszn` | nosem, recipe ablation: system-0 z-noise 0 (instead of 0.3); qd still removed | s1 | `arm/nosem-zn0/s1` | ladder.md "ARM NOSEM RECIPE ABLATION" | `configs/ladder/armnosemabl/nszn/rz_nszn_gendag1_noqd.json` |
+| `nsqd` | nosem, recipe ablation: joint velocity KEPT (`realizer_drop_qd` false, no qd dropout); z-noise 0.3 | s1 | `arm/nosem-qd/s1` | same | `configs/ladder/armnosemabl/nsqd/rz_nsqd_gendag1_qd.json` |
+| `nszq` | nosem, both ablations (z-noise 0 AND qd kept) | s1 | `arm/nosem-zn0-qd/s1` | same | `configs/ladder/armnosemabl/nszq/rz_nszq_gendag1_qd.json` |
 | `b1fix` | any | — | flag: `zero_prev_action` (B-1 fix) | D-044, D-045 | `configs/ladder/rz_sem_v1_b1fix.json` |
 | `anchor` | any | — | flag: `realizer_anchor` (column 28 = joint displacement since packet anchor) | D-045, ladder.md | `configs/ladder/rep-latent_sem_b1fix_anchor.json` |
 | `latent_{sem,nosem}_v1`, `flow_latent_sem_v{1,2,3}` | sem / nosem | s1 | pre-B-1 lineage (contaminated; v2 = standardized flow target D-031, v3 = +`packet_tau_min`; all reuse the v1 encoder) | D-031, D-045 | `configs/latent/rep-latent_sem_v1.json` |
 | `flow_jointfix_nosem` | sem encoder + nosem flow | s1 | Stage-B-only ablation; no results found (uncertain purpose) | commit 9fce481 | `configs/ladder/flow_jointfix_nosem.json` |
+
+Recipe ablations (`nszn`, `nsqd`, `nszq`) differ from `nsjf` ONLY in the gendag1/2/3 refits; every upstream stage
+(Stage A, flow 20k, flow_ft, bc1-3, gen1, bcdag1/bcdag1_long/bcdag2) is config-identical and is reused from `nsjf`.
+Suffix `_qd` (instead of `_noqd`) on their refits = joint velocity kept.
 
 Seed 1 → seed 2: every training seed +1000 (Stage A 1706 → 2706; flows 1701/1702/1703/1860 → 2701/…/2860; refits
 1711/1712/1715/1761/1790/1820 → 2711/…/2820) and every DAgger collection seed +1,100,000 (`SOFF`). Nothing else differs.
@@ -55,7 +62,7 @@ Seed 1 → seed 2: every training seed +1000 (Stage A 1706 → 2706; flows 1701/
 | `rz_sem_v1_*`, `rz_nosem_v1_b1fix` | rz | refits on the pre-fix v1 encoders; fail | D-046 | `rz_sem_v1_b1fix_ft.json` |
 | `bc1..bc4`, `gen1..gen3`, `gdag1..gdag3` (buffers) | dagN-bc, dagN-gen, gdag contexts | DAgger buffers `artifacts/runs/ladder_dagger_[<lin>_]<buf>`: bcN = BC-expert oracle-route states; genN = generated-packet states; gdagN = `.genctx.pkl` contexts for generator DAgger. Seed-1 collection seeds 3.2M–4.1M | ladder.md | listed inside rz/flow configs |
 
-Lease labels and eval tags: `a<TG>_…` (e.g. `asf_rz_gendag2`, `ans_col_bc1_1`) with TG ∈ {sf, ns, sf2, ns2, se2}; eval rows
+Lease labels and eval tags: `a<TG>_…` (e.g. `asf_rz_gendag2`, `ans_col_bc1_1`) with TG ∈ {sf, ns, sf2, ns2, se2} (ablations use the full code: `anszn_…`, eval tag `flownszngdag2h_rznszngendag3`); eval rows
 `generated_zero_flow<TG>gdag2h_rz<TG>gendag3_noqd_s<seedset>.summary.json` (TG empty = jointfix sem).
 
 ## binding, dual arm, data

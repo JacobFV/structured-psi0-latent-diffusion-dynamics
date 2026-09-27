@@ -3,6 +3,26 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
+## ARM NOSEM RECIPE ABLATION (lead request after D-095; started 2026-09-26 19:24 PDT; state: running)
+Fairness check: is the nosem failure (seed 1: 3/240 vs sem 146/240, D-091) caused by recipe choices that were tuned on
+the sem bundle? Two system-0 recipe changes, seed-1 nosem otherwise:
+- `nszn`: z-noise 0 (instead of `z_noise_rel` 0.3); joint velocity still removed.
+- `nsqd`: joint velocity KEPT (`realizer_drop_qd` false, `realizer_qd_dropout` 0); z-noise 0.3.
+- `nszq`: both.
+Where the changes enter: only the gendag1/2/3 system-0 refits carry `z_noise_rel` / `realizer_drop_qd` (checked in the
+configs and in `rrp.training.latent_train`). Every upstream stage of the nosem lineage is therefore config-identical and
+is REUSED from `nsjf` (Stage A e0e70fde, flow 20k b37d5dfa, flow_ft, buffers bc1-3 + gen1, refits bcdag1 / bcdag1_long /
+bcdag2). Re-run per variant, same seeds / collection seeds / bodies / buffer compositions as nsjf: rz gendag1 -> gen2
+(3.7M) -> rz gendag2 -> gen3 (3.8M) + gdag1 ctx (3.9M) -> rz gendag3, flow gdag1 -> gdag2 ctx (4.0M) -> flow gdag2h;
+evaluation = R2 dev + fresh 3.0001M / 3.0002M on panda_pg2 / parm6_tf3, held-out parm5s_tf3 / parm5l_pg2, progression,
+stateless R1, and the edit suite on flow 20k -> rz gendag1 (parm6 3,000,000-119, panda 3,000,000-047).
+Configs `configs/ladder/armnosemabl/<lin>/` (all set `zero_prev_action` true explicitly, W3); lineage codes in
+research/naming.md. Driver `scripts/arm_nosem_ablation.sh` (LIN=<lin>), run ON THE PEER from its own code dir
+`/dev/shm/rrp-brandonin/wt/armabl` (not wt/ladder), units `rrp-arm-{nszn,nsqd,nszq}`, state
+`artifacts/runs/ladder_arm<lin>_state/`. Smoke on the restructured main (W4 shims): 200-step nsqd refit rc 0 (bundle
+records `realizer_drop_qd: false`), 1-episode R2 with it rc 0.
+RESUME: `ssh gb10-direct 'systemd-run --user --unit rrp-arm-<lin>-r --setenv=LIN=<lin> --working-directory=/dev/shm/rrp-brandonin/wt/armabl bash scripts/arm_nosem_ablation.sh'`.
+
 ## ARM SEED-2 REPLICATION RESULT (2026-09-26 19:30 PDT; state: completed; all nodes rc 0 after the documented relaunches)
 Training seed 2 of all three arm lineages (setup and placement history in the section below). Same recipe, same
 evaluation sets and commands as seed 1 (D-091). Source labels: learned (DEPLOYABLE route: system i flow -> system 0)
