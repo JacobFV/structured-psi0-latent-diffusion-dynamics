@@ -188,15 +188,21 @@ class FrameCollector:
         self._tick += 1
 
     def frame(self, data, t: float | None = None, **signals):
+        """One frame. A signal (or probe key) absent in some frames is None there (e.g. before the first packet)."""
+        n = len(self.t)
         self.t.append(round(float(data.time if t is None else t), 4))
         self.pos.append(r4(data.xpos[self.bids]))
         self.quat.append(r4(data.xquat[self.bids]))
         for k, v in signals.items():
             if k == "probe":
                 for pk, pv in (v or {}).items():
-                    self.probe.setdefault(pk, []).append(_clean(pv))
+                    self.probe.setdefault(pk, [None] * n).append(_clean(pv))
             else:
-                self.signals.setdefault(k, []).append(_clean(v))
+                self.signals.setdefault(k, [None] * n).append(_clean(v))
+        for d in (self.signals, self.probe):
+            for v in d.values():
+                if len(v) < n + 1:
+                    v.append(None)
 
     def events(self, t: float, statuses: dict[str, str]):
         """Task-event status changes (sparse): statuses = {event_id: status}."""
