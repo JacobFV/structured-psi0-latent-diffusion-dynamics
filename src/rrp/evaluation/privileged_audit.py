@@ -327,7 +327,8 @@ def dynamic_tripwire(body: str = "hexapod6", seed: int = 0, base_state_source: s
     from rrp.envs.legged import LeggedSession, build_waypoint_contact
     from rrp.features.legged import LeggedMorph, local_state, public_context
     sc = build_waypoint_contact(body, seed)
-    s = LeggedSession(sc, tracker_kind="cpg", seed=seed, base_state_source=base_state_source)
+    from rrp.evaluation.legged_latent_eval import default_tracker_kind
+    s = LeggedSession(sc, tracker_kind=default_tracker_kind(body), seed=seed, base_state_source=base_state_source)
     s.reset()
 
     def trip(name):
