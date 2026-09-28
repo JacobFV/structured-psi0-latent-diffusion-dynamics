@@ -30,8 +30,8 @@ CAVEAT_RULES = [
 ]
 INTERIM_RULES = [
     (re.compile(r"partial|interim"), "file marked partial/interim", None),
-    (re.compile(r"armexpert_gc2eval/(?!compare_gc2_final)"), "grasp_v2 re-evaluation of old arm routes (interim)", "D-121"),
-    (re.compile(r"legged8[-_/].*t1|t1sl|legged_v2_t1"), "t1 sourced-limit lineage is interim (W8 track notes)", "D-113"),
+    # (lead, D-127/D-124): the grasp_v2 re-evaluation is COMPLETE (D-127) and the W8 t1 lineage is final-but-untestable
+    # (D-124; its caveat is carried by T1_LABEL), so neither is marked interim any more.
 ]
 T1_LABEL = ("t1 dataset fails D-112 slip gate (86.2% < 95%), tracker w8d fails lab forward 0.72 (D-113 exception); "
             "learned t1 routes mostly fall (D-114)")
