@@ -95,6 +95,19 @@ def test_arm_dataset():
     assert check_arm_dataset(tq, reference=ref)["verdict"] == "pass"
 
 
+def test_arm_joint_margin_reported_for_dart_episodes():
+    """D-118 (2): the joint-limit margin is enforced on clean episodes, reported (not gated) on DART episodes."""
+    ref = dict(source="test", bodies=dict(panda_pg2=5.0))
+    dart = _arm(20, margin=-0.01)
+    for e in dart:
+        e["exec_noise"] = 0.08
+    r = check_arm_dataset(_arm(20) + dart, reference=ref)
+    assert _status(r, "joint_limit_margin") == "pass" and _status(r, "joint_limit_margin_dart") == "labelled"
+    assert r["verdict"] == "pass"
+    r = check_arm_dataset(_arm(20, margin=-0.01) + dart, reference=ref)
+    assert _status(r, "joint_limit_margin") == "fail"
+
+
 def test_policy_flags_are_reported_only():
     r = policy_flags([dict(motion=dict(chunk_vel_step_max=x)) for x in (1.0, 2.0, 3.0)])
     assert r["verdict"] == "reported" and r["flagged"] == 2

@@ -230,20 +230,24 @@ def check_arm_dataset(episodes: list[dict], manifest: dict | None = None, refere
     # joint-limit margin: ENFORCED on menagerie arms; REPORTED (labelled) on the procedural parm* arms, whose joint ranges
     # are invented and which the v2 teacher drives into their limits (lead decision after D-112; W7 backlog: limit-aware IK)
     thr = f">= {G['ok_frac_min']} of episodes with margin >= {G['joint_limit_margin_min']}"
-    for name, sel, gated in (("joint_limit_margin", lambda b: not _procedural(b), True),
-                             ("joint_limit_margin_procedural", _procedural, False)):
-        xs = [r["margin"] for r in R if r["margin"] is not None and sel(r["body"])]
+    # D-118 (2): under DART execution noise the arm is perturbed, so touching a joint limit is expected and physical:
+    # the margin is ENFORCED on clean (noise-free) menagerie-arm episodes and REPORTED on DART episodes.
+    for name, sel, gated in (("joint_limit_margin", lambda r: not _procedural(r["body"]) and r["noise"] == 0.0, True),
+                             ("joint_limit_margin_dart", lambda r: not _procedural(r["body"]) and r["noise"] > 0.0, False),
+                             ("joint_limit_margin_procedural", lambda r: _procedural(r["body"]), False)):
+        xs = [r["margin"] for r in R if r["margin"] is not None and sel(r)]
         if not xs and not gated:
             continue
         f = (sum(x >= G["joint_limit_margin_min"] for x in xs) / len(xs)) if xs else None
-        bodies = sorted({str(r["body"]) for r in R if sel(r["body"])})
+        bodies = sorted({str(r["body"]) for r in R if sel(r)})
         note = f"bodies {bodies}; min {min(xs) if xs else None}"
         if gated:
             if not xs:
                 continue                                   # no menagerie episodes in this dataset
             crits.append(_crit(name, round(f, 4), thr, f >= G["ok_frac_min"], note))
         else:
-            crits.append(_crit(name, round(f, 4), thr + " (procedural arms: reported, not gated)", None, note,
+            why = "procedural arms" if name.endswith("procedural") else "DART episodes (D-118)"
+            crits.append(_crit(name, round(f, 4), thr + f" ({why}: reported, not gated)", None, note,
                                status="labelled"))
     per_body, bad, missing = {}, [], []
     for b in sorted({r["body"] for r in R}):
