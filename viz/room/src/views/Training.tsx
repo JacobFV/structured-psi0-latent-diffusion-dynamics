@@ -1,0 +1,184 @@
+import { useMemo, useState } from 'react';
+import { Lines } from '../components/charts';
+import { Card, Caveat, DataTable, Did, Gate, ModeBanner, PageHead, Provenance, SourceBadge, Status } from '../components/ui';
+import { useDoc, type Envelope } from '../lib/api';
+import { arr, isObj, num, pick, rows, sortNatural, str, uniq, type Row } from '../lib/format';
+import { SERIES } from '../lib/labels';
+import { useUrlState } from '../lib/url';
+
+type Run = { name: string; kind: string; step: number[]; series: Record<string, (number | null)[]>; raw: Row };
+
+function toRun(r: Row): Run {
+  const step = arr(pick(r, 'step', 'steps')).map((x) => num(x) ?? NaN);
+  const series: Record<string, (number | null)[]> = {};
+  const add = (k: string, v: unknown) => { if (Array.isArray(v) && v.length === step.length) series[k] = v.map((x) => num(x)); };
+  const losses = pick(r, 'losses', 'loss');
+  if (isObj(losses)) for (const [k, v] of Object.entries(losses)) add(`loss:${k}`, v);
+  else add('loss:loss', losses);
+  for (const k of ['grad_norm', 'clip_scale', 'lr', 'alpha']) add(k, r[k]);
+  const probes = pick(r, 'probes');
+  if (isObj(probes)) for (const [k, v] of Object.entries(probes)) add(`probe:${k}`, v);
+  const extra = pick(r, 'metrics', 'series');
+  if (isObj(extra)) for (const [k, v] of Object.entries(extra)) add(`metric:${k}`, v);
+  return { name: str(pick(r, 'run', 'name', 'id')), kind: str(pick(r, 'kind', 'type')), step, series, raw: r };
+}
+
+export default function Training() {
+  const { result, reload, busy } = useDoc<Envelope>('training');
+  return (
+    <>
+      <PageHead
+        title="Training"
+        sub="Loss curves and gradient health per run (stageA, flow, refit, bc, tracker, grpo, psi1z): grad norm with clip-active regions shaded (D-085 clip scale), learning rate, reward-schedule α, DAgger rounds and probes. Series are downsampled to ≤ 2000 points by the exporter; nothing is smoothed here."
+      />
+      <ModeBanner result={result} reload={reload} busy={busy} />
+      <Gate result={result} what="training (/api/training)">
+        {(d) => <TrainingBody runs={rows(pick(d, 'runs', 'series', 'curves')).map(toRun).filter((r) => r.name)} />}
+      </Gate>
+      <Provenance result={result} />
+    </>
+  );
+}
+
+function TrainingBody({ runs }: { runs: Run[] }) {
+  const [kind, setKind] = useUrlState('kind', '');
+  const [sel, setSel] = useUrlState('runs', runs[0]?.name || '');
+  const [log, setLog] = useUrlState('log', '1');
+  const [q, setQ] = useState('');
+  const kinds = uniq(runs.map((r) => r.kind)).filter(Boolean).sort();
+  const selected = sel.split(',').filter(Boolean);
+  const chosen = runs.filter((r) => selected.includes(r.name));
+  const list = runs.filter((r) => (!kind || r.kind === kind) && (!q || r.name.toLowerCase().includes(q.toLowerCase())));
+  const toggle = (name: string, multi: boolean) => {
+    const next = multi ? (selected.includes(name) ? selected.filter((x) => x !== name) : [...selected, name].slice(-4)) : [name];
+    setSel(next.join(','));
+  };
+  if (!runs.length) return <p className="muted">The training document has no runs.</p>;
+  return (
+    <div className="theatre" style={{ gridTemplateColumns: '300px minmax(0, 1fr)' }}>
+      <aside className="card" style={{ alignSelf: 'start' }}>
+        <header><h2>Runs</h2><span className="hint">{list.length} of {runs.length} · shift-click compares up to 4</span></header>
+        <div className="body">
+          <div className="filters" style={{ marginBottom: 8 }}>
+            <label>kind<select value={kind} onChange={(e) => setKind(e.target.value)}><option value="">all</option>{kinds.map((k) => <option key={k}>{k}</option>)}</select></label>
+            <label>search<input type="search" value={q} onChange={(e) => setQ(e.target.value)} /></label>
+          </div>
+          <div className="picker" style={{ maxHeight: 620 }}>
+            {list.sort((a, b) => sortNatural(a.name, b.name)).map((r) => (
+              <button key={r.name} aria-pressed={selected.includes(r.name)} onClick={(e) => toggle(r.name, e.shiftKey || e.metaKey || e.ctrlKey)}>
+                <span className="small" style={{ wordBreak: 'break-all', fontWeight: 600 }}>{r.name}</span>
+                <span className="small muted">{r.kind || 'kind ?'} · {r.step.length} pts · last step {r.step[r.step.length - 1] ?? '—'}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </aside>
+      <div className="stack" style={{ minWidth: 0 }}>
+        {chosen.length === 0 ? <p className="muted">Select a run.</p> : (
+          <>
+            <div className="row">
+              <label className="small"><input type="checkbox" checked={log === '1'} onChange={(e) => setLog(e.target.checked ? '1' : '0')} /> log scale for losses and grad norm (positive values only)</label>
+            </div>
+            {chosen.map((r, i) => <RunHeader key={r.name} r={r} color={SERIES[i]} />)}
+            <RunCharts runs={chosen} log={log === '1'} />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RunHeader({ r, color }: { r: Run; color: string }) {
+  const gate = pick(r.raw, 'gate', 'gate_state');
+  const refs = arr(pick(r.raw, 'decision_refs', 'decisions')).map(str);
+  const dec = str(pick(r.raw, 'decision'));
+  return (
+    <div className="label-banner" style={{ borderLeft: `4px solid ${color}` }}>
+      <div className="row">
+        <b style={{ wordBreak: 'break-all' }}>{r.name}</b>
+        <span className="badge">{r.kind || 'kind ?'}</span>
+        {pick(r.raw, 'source_label') ? <SourceBadge label={pick(r.raw, 'source_label')} /> : null}
+        {gate != null && <Status state={isObj(gate) ? pick(gate, 'state', 'status') : gate}>gate: {isObj(gate) ? str(pick(gate, 'state', 'status')) : str(gate)}</Status>}
+        {[dec, ...refs].filter(Boolean).map((d) => <Did key={d} id={d} />)}
+        {pick(r.raw, 'interim') ? <span className="badge interim">interim</span> : null}
+        <Caveat text={pick(r.raw, 'caveat')} />
+      </div>
+      <div className="kv">
+        {['source_file', 'ckpt', 'ckpt_sha', 'body', 'variant', 'seed', 'downsampled_from'].filter((k) => r.raw[k] != null).map((k) => <span key={k}>{k} <b className="mono">{str(r.raw[k])}</b></span>)}
+      </div>
+    </div>
+  );
+}
+
+function RunCharts({ runs, log }: { runs: Run[]; log: boolean }) {
+  const keys = uniq(runs.flatMap((r) => Object.keys(r.series)));
+  const lossKeys = keys.filter((k) => k.startsWith('loss:'));
+  const probeKeys = keys.filter((k) => k.startsWith('probe:') || k.startsWith('metric:'));
+  const multi = runs.length > 1;
+  // merge runs on step for shared charts
+  const merged = useMemo(() => {
+    const bySstep = new Map<number, Row>();
+    runs.forEach((r, ri) => r.step.forEach((s, i) => {
+      if (!Number.isFinite(s)) return;
+      const row = bySstep.get(s) || { step: s };
+      for (const [k, v] of Object.entries(r.series)) row[`${ri}|${k}`] = v[i];
+      bySstep.set(s, row);
+    }));
+    return Array.from(bySstep.values()).sort((a, b) => (a.step as number) - (b.step as number));
+  }, [runs]);
+  const series = (k: string) => runs.map((r, ri) => ({ key: `${ri}|${k}`, label: multi ? r.name : k.replace(/^\w+:/, ''), color: SERIES[ri % SERIES.length] })).filter((_, ri) => runs[ri].series[k]);
+  // clip-active shading (clip_scale < 1) for the first run
+  const shades = useMemo(() => {
+    const r = runs[0];
+    const cs = r.series.clip_scale;
+    if (!cs) return [];
+    const out: { x1: number; x2: number }[] = [];
+    let s: number | null = null;
+    cs.forEach((v, i) => {
+      const on = v !== null && v < 0.999;
+      if (on && s === null) s = r.step[i];
+      if (!on && s !== null) { out.push({ x1: s, x2: r.step[i] }); s = null; }
+    });
+    if (s !== null) out.push({ x1: s, x2: r.step[r.step.length - 1] });
+    return out.slice(0, 400);
+  }, [runs]);
+  const dagger = rows(pick(runs[0].raw, 'dagger_rounds', 'rounds')).map((d) => ({ x: num(pick(d, 'step', 'start_step')) ?? NaN, label: `DAgger ${str(pick(d, 'round', 'id'))}` })).filter((d) => Number.isFinite(d.x));
+  const gates = rows(pick(runs[0].raw, 'gate_events', 'events')).map((d) => ({ x: num(pick(d, 'step')) ?? NaN, label: str(pick(d, 'event', 'state', 'label')) })).filter((d) => Number.isFinite(d.x));
+  const refs = [...dagger, ...gates].map((r) => ({ ...r, color: 'var(--s7)' }));
+  return (
+    <>
+      <Card title="Losses" hint={multi ? 'one colour per run' : 'one panel per loss term'}>
+        {lossKeys.length ? (
+          <div className="grid g2">
+            {lossKeys.map((k) => (
+              <Lines key={k} title={<b>{k.slice(5)}</b>} data={merged} xKey="step" series={series(k)} logY={log} height={200} syncId="train" refs={refs} xLabel="step" />
+            ))}
+          </div>
+        ) : <p className="muted small">No loss series recorded for the selected run(s).</p>}
+      </Card>
+      <Card title="Gradient health" hint="grad norm (clip-active steps shaded, clip_scale < 1) and clip scale on its own axis — never a dual axis">
+        <div className="grid g2">
+          {keys.includes('grad_norm') ? <Lines title={<b>grad norm</b>} right={shades.length ? <span className="small muted">{shades.length} clip-active interval(s) shaded{multi ? ' (first run)' : ''}</span> : undefined}
+            data={merged} xKey="step" series={series('grad_norm')} logY={log} height={200} syncId="train" shades={shades} xLabel="step" /> : <p className="muted small">grad_norm not recorded.</p>}
+          {keys.includes('clip_scale') ? <Lines title={<b>clip scale</b>} data={merged} xKey="step" series={series('clip_scale')} height={200} syncId="train" yDomain={[0, 'auto']} refs={[{ y: 1, label: 'no clip' }]} xLabel="step" /> : <p className="muted small">clip_scale not recorded.</p>}
+        </div>
+      </Card>
+      <Card title="Schedules">
+        <div className="grid g2">
+          {keys.includes('lr') ? <Lines title={<b>learning rate</b>} data={merged} xKey="step" series={series('lr')} height={180} syncId="train" xLabel="step" /> : <p className="muted small">lr not recorded.</p>}
+          {keys.includes('alpha') ? <Lines title={<b>reward-schedule α</b>} data={merged} xKey="step" series={series('alpha')} height={180} syncId="train" xLabel="step" /> : <p className="muted small">α not recorded (only reward-scheduled runs have it).</p>}
+        </div>
+      </Card>
+      {probeKeys.length > 0 && (
+        <Card title="Probes and metrics" hint="diagnostics recorded during training">
+          <div className="grid g2">
+            {probeKeys.map((k) => <Lines key={k} title={<b>{k}</b>} data={merged} xKey="step" series={series(k)} height={180} syncId="train" xLabel="step" />)}
+          </div>
+        </Card>
+      )}
+      {(dagger.length > 0 || gates.length > 0) && (
+        <Card title="Rounds and gate events"><DataTable rows={[...dagger, ...gates].map((r) => ({ step: r.x, event: r.label }))} /></Card>
+      )}
+    </>
+  );
+}
