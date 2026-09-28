@@ -32,6 +32,6 @@ for k,v in new.items():
     for f,x in v.items(): o[f]=max(o.get(f,0),x)
     old[k]=o
 json.dump(old,open(p,'w'),indent=1,sort_keys=True)"
-  systemctl --user is-active -q rrp-armv6-dag2 || systemctl --user is-active -q rrp-armv6-dag3 || break
+  systemctl --user is-active -q rrp-armv6-dag3 || systemctl --user is-active -q rrp-armv6-dag4 || break
   sleep 60
 done

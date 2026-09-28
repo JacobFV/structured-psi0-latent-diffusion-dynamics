@@ -49,4 +49,4 @@ nodes:
   prog20k: {config: {options: {grasp_contact: v2.1}}}
   proggdag1: {config: {options: {grasp_contact: v2.1}}}
   orcbc: {config: {options: {grasp_contact: v2.1}}}
-  semedits: {config: {options: {grasp_contact: v2.1}}}
+  semedits: {resources: {mem: 20G}, config: {options: {grasp_contact: v2.1}}}   # 04:35: throttled at 0.8 x 12G (peak >= 9.9G) -> 20G

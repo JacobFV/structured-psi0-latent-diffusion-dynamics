@@ -34,7 +34,13 @@ Collections measured up to 15.8G on v6dart -> declared 22G (>= 1.35x). Measured 
 CUDA, flows 2.25G / 1.12G, refits 1.7G / <= 0.9G, collections 11.5-15.8G, progression eval 0.73G. Runner relaunched as
 `rrp-armv6-dag3` with `--retry-failed` (the failed node never started a job); sampler unit `rrp-armv6-memsampler2`.
 Progress at 04:21: 15 nodes completed (semfix s1 through gen2 and its progression eval; Stage A of three lineages).
-RESUME: `cd ~/work/rrp-wt/ladder && systemd-run --user --unit rrp-armv6-dag4 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv6 --setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/ladder ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_lineage_v6.yaml`
+04:35 INCIDENT (mine): the semfix s1 edit suite (6 workers) was the memory culprit: peak >= 9.9G against 12G declared,
+throttled at memory.high = 0.8 x declared, then stopped on sustained project memory PSI (rc -10). Edit suite now
+declared 20G (all four lineages). The rows file is appended per episode, so a partial shard cannot be rerun in place:
+the 12 complete parm6 shards (60 rows + summary each) are kept and skipped by the stage; the 6 partial panda shards were
+moved to `ladder_smoke/armv6_aborted/semfix_s1_edits_partial/` (not used) and are rerun fresh. Runner `rrp-armv6-dag4`
+(`--retry-failed`, logged), sampler `rrp-armv6-memsampler3`.
+RESUME: `cd ~/work/rrp-wt/ladder && systemd-run --user --unit rrp-armv6-dag5 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv6 --setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/ladder ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_lineage_v6.yaml`
 (completed nodes skipped, running leases re-adopted; `--retry-failed` only as a logged manual decision; before
 resuming a shed Stage A, check its log says `exact: RNG restored`).
 DAG `dags/arm_lineage_v6.yaml` (`extends: arm_lineage_v2.yaml`): semfix and nosem x training seeds 1, 2; fresh lineage
