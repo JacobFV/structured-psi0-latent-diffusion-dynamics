@@ -61,10 +61,31 @@ def check_contact_version(ctx: StageContext, data_dir: str | None) -> None:
         raise StageError(f"{data_dir}: data contact version(s) {sorted(found)} != flags.contact_version {want!r}")
 
 
+def declared_actuator_mode(ctx: StageContext) -> str | None:
+    """options.actuator_mode (D-126 #14; ideal | v1lat | v2, alias v1 = ideal), canonicalised; None when not declared."""
+    am = ctx.opts.get("actuator_mode")
+    if am is None:
+        return None
+    from rrp.physics.actuator import resolve_mode
+    return resolve_mode(str(am))
+
+
 def physics_env(ctx: StageContext, **extra) -> dict:
-    """Subprocess env whose simulator uses the declared contact model ($RRP_CONTACT_MODEL, rrp.morphology.contact)."""
+    """Subprocess env whose simulator uses the declared contact model ($RRP_CONTACT_MODEL, rrp.morphology.contact) and, when
+    options.actuator_mode is declared (D-126 #14), the declared actuator mode ($RRP_ACTUATOR_MODE, plus
+    $RRP_ACTUATOR_LATENCY_MS from options.actuator_latency_ms). Undeclared -> the environment is exactly as before."""
     cv = ctx.rc.flags.contact_version
-    return ctx.env(**({"RRP_CONTACT_MODEL": cv} if cv else {}), **extra)
+    am = declared_actuator_mode(ctx)
+    act = {}
+    if am is not None:
+        act["RRP_ACTUATOR_MODE"] = am
+        if ctx.opts.get("actuator_latency_ms") is not None:
+            act["RRP_ACTUATOR_LATENCY_MS"] = float(ctx.opts["actuator_latency_ms"])
+    return ctx.env(**({"RRP_CONTACT_MODEL": cv} if cv else {}), **act, **extra)
+
+
+def _row_actuator_mode(r: dict) -> str:
+    return ((r.get("actuator_mode") or {}).get("actuator_mode")) or "ideal"
 
 
 def _ckpt_contact(path: Path, depth: int = 0) -> str | None:
@@ -107,6 +128,9 @@ def check_rows_contact(ctx: StageContext, rows: list[dict], where: str) -> dict:
         want_lim = ctx.opts.get("actuator_limits")
         if want_lim and r.get("actuator_limits") != want_lim:
             bad.append(f"seed {r.get('seed')}: actuator limits {r.get('actuator_limits')} != declared {want_lim}")
+        want_am = declared_actuator_mode(ctx)
+        if want_am and _row_actuator_mode(r) != want_am:
+            bad.append(f"seed {r.get('seed')}: actuator mode {_row_actuator_mode(r)} != declared {want_am}")
         want_sha = ctx.opts.get("tracker_sha256")
         if want_sha and r.get("tracker_sha256") != want_sha:
             bad.append(f"seed {r.get('seed')}: tracker sha {r.get('tracker_sha256')} != declared {want_sha}")
@@ -164,6 +188,11 @@ def collect(ctx: StageContext) -> dict:
         raise StageError(f"collected with tracker sha {sorted(shas)}, DAG declares {o['tracker_sha256']}")
     if o.get("actuator_limits") and lims != {o["actuator_limits"]}:
         raise StageError(f"collected with actuator limits {sorted(lims)}, DAG declares {o['actuator_limits']}")
+    want_am = declared_actuator_mode(ctx)
+    if want_am:
+        ams = {_row_actuator_mode(m) for m in eps}
+        if ams != {want_am}:
+            raise StageError(f"collected with actuator mode(s) {sorted(ams)}, DAG declares {want_am}")
     if cvs != {want}:
         raise StageError(f"collected shards record contact version(s) {sorted(map(str, cvs))} != {want!r}")
     if len(eps) != b - a + 1:
@@ -232,6 +261,12 @@ def validate_tracker(ctx: StageContext) -> dict:
             "--out", str(out), "--gate-dir", str(ctx.out)]
     if o.get("actor"):
         argv += ["--actor", str(o["actor"])]
+    elif ctx.inp("actor", required=False):          # D-126: a freshly trained tracker (train_tracker output)
+        argv += ["--actor", str(ctx.inp("actor"))]
+    am = declared_actuator_mode(ctx)
+    if am is not None:                  # D-126 #14: validate under the declared actuator mode (legacy CLI name v1 = ideal)
+        from rrp.physics.actuator import legacy_mode_name
+        argv += ["--actuator", legacy_mode_name(am), "--latency-ms", str(float(o.get("actuator_latency_ms", 0.0)))]
     if o.get("robust", True):
         argv += ["--robust"]
     ctx.run(argv, env=physics_env(ctx, OMP_NUM_THREADS=1, CUDA_VISIBLE_DEVICES=""))
@@ -239,8 +274,49 @@ def validate_tracker(ctx: StageContext) -> dict:
     gate = apply_gate(ctx, v["w6_gate"])
     return dict(outputs={"validation": str(out.relative_to(ctx.root))},
                 metrics=dict(body=body, gate=gate, contact_gate=v["gate"].get("contact_gate", {}).get("passed"),
-                             tracker_version=v.get("tracker_version"), tracker_sha=v.get("tracker_sha")),
+                             tracker_version=v.get("tracker_version"), tracker_sha=v.get("tracker_sha"),
+                             **({"actuator_mode": am} if am is not None else {})),
                 source_detail=v.get("tracker_version"))
+
+
+@register("legged", "train_tracker", source="learned_tracker")
+def train_tracker(ctx: StageContext) -> dict:
+    """D-126 #13: tracker training (rrp.training.tracker_training) through run-dag. options: body, recipe (a name in
+    rrp.training.tracker_recipes or a JSON path; optional), args ({option dest: value}, explicit overrides; True = bare flag),
+    resume (default true: a retried lease continues from checkpoint.pt), actuator_mode (D-126 #14; wins over the recipe).
+    Output: actor.pt in the run dir (a NEW tracker; nothing is installed). The contact model is flags.contact_version."""
+    o = ctx.opts
+    argv = ["-m", "rrp.training.tracker_training", "--out", ctx.rc.out,
+            "--contact", str(ctx.rc.flags.contact_version).replace("contact_", "")]
+    if o.get("body"):
+        argv += ["--body", str(o["body"])]
+    if o.get("recipe"):
+        argv += ["--recipe", str(o["recipe"])]
+    for k, v in (o.get("args") or {}).items():
+        flag = "--" + str(k).replace("_", "-")
+        if v is True:
+            argv.append(flag)
+        elif v not in (False, None):
+            argv += [flag, str(v)]
+    am = declared_actuator_mode(ctx)
+    if am is not None:
+        from rrp.physics.actuator import legacy_mode_name
+        argv += ["--actuator", legacy_mode_name(am)]
+    if o.get("resume", True):
+        argv.append("--resume")
+    ctx.run(argv, env=physics_env(ctx, OMP_NUM_THREADS=1, **({} if o.get("gpu") else {"CUDA_VISIBLE_DEVICES": ""})))
+    import hashlib
+    actor = ctx.out / "actor.pt"
+    if not actor.exists():
+        raise StageError(f"{actor} missing after training")
+    meta = json.loads((ctx.out / "meta.json").read_text())
+    rel = str(Path(ctx.rc.out) / "actor.pt")
+    return dict(outputs={"actor": rel}, metrics=dict(body=meta["body"], actor_sha256=hashlib.sha256(actor.read_bytes()).hexdigest(),
+                                                     recipe=(meta.get("recipe") or {}).get("name") or (meta.get("recipe") or {}).get("path"),
+                                                     reward_options=meta.get("reward_options"),
+                                                     terrain_curriculum=bool(meta.get("terrain_curriculum")),
+                                                     actuator=meta.get("actuator"), contact_model=meta.get("contact_model")),
+                source_detail=f"learned_tracker:{meta['body']}:{rel}")
 
 
 @register("legged", "train_bc", source="bc")

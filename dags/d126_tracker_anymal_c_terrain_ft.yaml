@@ -1,0 +1,13 @@
+# D-126 (NOT RUN; ready to launch when the lead schedules it): tracker recipe anymal_c_terrain_ft (rrp.training.tracker_recipes; rationale,
+# cost and gate in the recipe's _what/_why/_cost fields). Launch: rrp run-dag dags/d126_tracker_anymal_c_terrain_ft.yaml (peer; D-115).
+# Resources are ESTIMATES (workers + 1 CPU; ~0.35 GB per worker + 2 GB): measure a 20-iteration smoke first and redeclare >= 1.35 x peak (D-117).
+extends: templates/tracker_recipe_gated.yaml
+name: d126_tracker_anymal_c_terrain_ft
+lineage: 'tracker-anymal_c_terrain_ft'
+label_prefix: 'd126trk_anymal_c'
+vars:
+  recipe: anymal_c_terrain_ft
+  body: anymal_c
+nodes:
+  train:
+    resources: {cpu: 9, mem: 10G}

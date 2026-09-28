@@ -1,0 +1,38 @@
+# TEMPLATE (D-126 #13/#14/#15; NOT RUN): train a NEW tracker from a named recipe (rrp.training.tracker_recipes), then validate it
+# through the D-112 tracker gate. Nothing is installed: installing a tracker stays a lead decision (contact.md install rule).
+# A child DAG does `extends: templates/tracker_recipe_gated.yaml` and sets name, lineage, label_prefix, vars.recipe, vars.body
+# and the train node's resources (MEASURE a 20-iteration smoke of the recipe first and declare >= 1.35 x its peak RSS, D-117).
+# The placeholder recipe below makes the train node fail at once (unknown recipe file), before any compute.
+# Options on or off per D-126: every recipe records its options (reward_options, ref_gait, terrain_curriculum, actuator) in actor
+# meta; the validate node runs under options.actuator_mode when a child declares it (default: the ideal PD, as every installed tracker).
+name: tracker_recipe_gated_template
+schema: dag-1
+family: legged
+track: trackers
+lineage: 'tracker-{recipe}'
+label_prefix: 'trk'
+vars:
+  recipe: SET_IN_CHILD_DAG
+  body: SET_IN_CHILD_DAG
+  val_seeds: 10
+defaults:
+  placement: peer
+  retries: 2                    # a watchdog shed resumes from checkpoint.pt (train_tracker passes --resume)
+  max_parallel: 1
+  resources: {cpu: 5, mem: 8G, gpu: false, max_seconds: 86400}
+base:
+  variant: na
+  seed: 1
+  flags: {contact_version: contact_v2}
+nodes:
+  train:
+    stage: train_tracker
+    config:
+      options: {body: '{body}', recipe: '{recipe}', resume: true}
+  validate:
+    stage: validate_tracker
+    resources: {cpu: 1, mem: 4G, max_seconds: 7200}      # D-117: 1.35 x the 2.63 GB backfill peak (as legged_v2_gated)
+    retries: 0
+    config:
+      inputs: {actor: '@train:actor.pt'}
+      options: {body: '{body}', kind: learned, seeds: '{val_seeds}', robust: true}

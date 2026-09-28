@@ -225,7 +225,13 @@ def refit(cfg, out: Path):
     for p in R.parameters():
         p.requires_grad_(True)
     base = LeggedData(Path(rcfg["data"]), cfg.get("bodies", rcfg["bodies"]), dev)
-    dag = [LeggedData(Path(r), cfg.get("bodies", rcfg["bodies"]), dev) for r in cfg.get("dagger", [])]
+    bodies = cfg.get("bodies", rcfg["bodies"])
+    if cfg.get("dagger_present_bodies"):
+        # D-126 #11 (opt-in; default off = unchanged): per-body DAgger buffers (one body each) mixed with a refit over more bodies
+        # (e.g. the held-out adaptation refit): each buffer loads only the listed bodies it actually contains.
+        dag = [LeggedData(Path(r), [b for b in bodies if (Path(r) / b).is_dir()], dev) for r in cfg.get("dagger", [])]
+    else:
+        dag = [LeggedData(Path(r), bodies, dev) for r in cfg.get("dagger", [])]
     F_ = None
     if cfg.get("gen_flow"):          # generator-aware system 0: train on packets the deployed flow actually emits
         from rrp.models.legged_latent import LeggedFlow

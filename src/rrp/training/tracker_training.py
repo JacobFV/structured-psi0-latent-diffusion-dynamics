@@ -44,10 +44,22 @@ def train(args):
         gpu_info = apply_cap()
     torch.set_num_threads(max(1, args.torch_threads))
     torch.manual_seed(args.seed)
-    from rrp.training.reward_schedule import AlphaGate, window_metrics
-    pool = VecPool(args.body, args.workers, args.envs, args.seed,
-                   env_kw=dict(push=not args.no_push, episode_s=args.episode_s, contact=args.contact,
-                               reward=args.reward, reward_overrides=_kv(args.reward_set), actuator=args.actuator))
+    from rrp.training.reward_schedule import AlphaGate, TerrainCurriculum, window_metrics
+    overrides = reward_overrides(args)
+    env_kw = dict(push=not args.no_push, episode_s=args.episode_s, contact=args.contact,
+                  reward=args.reward, reward_overrides=overrides, actuator=args.actuator)
+    tcur = None
+    if args.terrain_curriculum == "gated":      # D-126 #15 (default off: flat floor, env_kw unchanged)
+        tcur = TerrainCurriculum(amp_max=args.terrain_amp_max, step=args.terrain_step, every=args.alpha_every,
+                                 warmup=args.terrain_warmup, after_alpha=args.terrain_after_alpha)
+        for spec_s, dst in ((args.terrain_advance, tcur.advance), (args.terrain_backoff, tcur.backoff)):
+            for kv in filter(None, (spec_s or "").split(",")):
+                k, v = kv.split("=")
+                dst[k] = float(v)
+        env_kw["terrain"] = dict(amp_max=args.terrain_amp_max, half_m=args.terrain_half_m)
+    elif args.terrain_curriculum != "off":
+        raise SystemExit(f"--terrain-curriculum {args.terrain_curriculum!r}: off | gated")
+    pool = VecPool(args.body, args.workers, args.envs, args.seed, env_kw=env_kw)
     sp = pool.spec
     sched = sp["reward"] == "gait_v2" and args.alpha_schedule == "gated"     # fixed:<a> and off never move alpha
     gate = AlphaGate(step=args.alpha_step, every=args.alpha_every, warmup=args.alpha_warmup)
@@ -65,6 +77,8 @@ def train(args):
         pool.set_slow_frac(args.slow_frac)
     if args.ref_ff > 0:
         pool.set_ref_ff(args.ref_ff)
+    if args.ref_ff_vmax is not None:
+        pool.set_ref_ff_vmax(args.ref_ff_vmax)
     if args.cmd_mix != "default":
         pool.set_cmd_mix(args.cmd_mix)
     if args.turn_curriculum > 0:
@@ -83,6 +97,11 @@ def train(args):
     if args.init_actor and not (args.resume and (out / "checkpoint.pt").exists()):
         # warm start: actor + observation normaliser from an exported actor (e.g. the contact_v1 tracker); the
         # critic starts fresh (its privileged inputs differ). Recorded as meta["init_from"].
+        if getattr(args, "init_actor_sha256", None):
+            import hashlib
+            got = hashlib.sha256(Path(args.init_actor).read_bytes()).hexdigest()
+            if got != args.init_actor_sha256:
+                raise SystemExit(f"--init-actor {args.init_actor} sha256 {got} != declared {args.init_actor_sha256}")
         ist = torch.load(args.init_actor, map_location=dev, weights_only=False)
         ac.actor.load_state_dict(ist["actor"])
         ac.obs_norm.mean.copy_(ist["obs_mean"])
@@ -97,6 +116,8 @@ def train(args):
         ac.load_state_dict(st["model"])
         opt.load_state_dict(st["opt"])
         it0 = st["iter"] + 1
+        if tcur is not None and st.get("terrain"):
+            tcur.level, tcur.history = st["terrain"]["level"], st["terrain"]["history"]
         if st.get("gate"):
             g = st["gate"]
             gate.alpha, gate.history = g["alpha"], g["history"]
@@ -113,7 +134,9 @@ def train(args):
                 actuator_limits=sp.get("actuator_limits"), actuator=args.actuator,
                 alpha_schedule=("gated" if sched else args.alpha_schedule),
                 critic_extras=("+ reward-schedule alpha" if sp["reward"] == "gait_v2" else ""))
+    meta.update(d126_meta(args, sp, tcur))      # D-126 options: keys only when an option is on (default meta unchanged)
     (out / "meta.json").write_text(json.dumps(meta, indent=1))
+    terrain_amps = pool.set_terrain(tcur.level) if tcur is not None else None
     obs, priv = pool.reset()
     H = args.horizon
     t_start = time.time()
@@ -225,6 +248,16 @@ def train(args):
         elif sp["reward"] == "gait_v2" and (it + 1) % gate.every == 0:
             gate_rec = dict(action="off", **window_metrics(win))
             win = []
+        if tcur is not None and (it + 1) % tcur.every == 0:
+            # terrain curriculum on the same window as the alpha gate (gait_v2) or its own window (gait_v1)
+            wm_t = gate_rec if gate_rec is not None else window_metrics(win)
+            if gate_rec is None:
+                win = []
+            act_t = tcur.update(it, wm_t, alpha=gate.alpha if sp["reward"] == "gait_v2" else 1.0)
+            if act_t in ("advance", "backoff"):
+                terrain_amps = pool.set_terrain(tcur.level)
+            if gate_rec is not None:
+                gate_rec["terrain_action"] = act_t
         stats = [s_ for s_ in stats if "fell" in s_]      # episode records (gate accumulators are separate)
         rec = dict(iter=it, reward_per_step=float(br.mean()), episodes=len(stats),
                    ep_ret=float(np.mean([s["ret"] for s in stats])) if stats else None,
@@ -236,6 +269,8 @@ def train(args):
             rec.update(alpha=gate.alpha, weights=weights, turn_scale=turn_scale)
             if gate_rec:
                 rec["gate"] = gate_rec
+        if tcur is not None:
+            rec.update(terrain_level=tcur.level, terrain_amp_m=terrain_amps)
         with open(log_path, "a") as f:
             f.write(json.dumps(rec) + "\n")
         if it % 10 == 0:
@@ -243,16 +278,63 @@ def train(args):
         if (it + 1) % args.ckpt_every == 0 or it == args.iters - 1:
             st = dict(model=ac.state_dict(), opt=opt.state_dict(), iter=it, meta=meta, gate=gate.state(),
                       turn_scale=turn_scale, turn_vx=turn_vx if turn_scale is not None else None)
+            if tcur is not None:
+                st["terrain"] = tcur.state()
             torch.save(st, str(ck) + ".tmp")
             os.replace(str(ck) + ".tmp", ck)
-            export_actor(ac, dict(meta, alpha=gate.alpha, reward_weights=weights, gate_history=gate.history[-50:]),
+            export_actor(ac, dict(meta, alpha=gate.alpha, reward_weights=weights, gate_history=gate.history[-50:],
+                                  **({"terrain_level": tcur.level, "terrain_history": tcur.history[-50:]} if tcur is not None else {})),
                          out / "actor.pt", it)
     pool.close()
     print("done", flush=True)
 
 
+def _num_or_str(v: str):
+    try:
+        return float(v)
+    except ValueError:
+        return v            # D-126: string-valued reward options (ref_gait=clock, limit_margin_agg=max)
+
+
 def _kv(spec: str) -> dict:
-    return {k: float(v) for k, v in (kv.split("=") for kv in filter(None, (spec or "").split(",")))}
+    return {k: _num_or_str(v) for k, v in (kv.split("=") for kv in filter(None, (spec or "").split(",")))}
+
+
+def reward_overrides(args) -> dict:
+    """--reward-set plus the explicit D-126 #13 flags (which win). Empty/unchanged for a pre-D-126 command line."""
+    ov = _kv(args.reward_set)
+    if args.ref_gait == "clock" and args.ref_gait_mode in ("reward", "both"):
+        ov["ref_gait"] = "clock"
+        ov.setdefault("ref_lift", 1.0)
+        ov.setdefault("ref_contact", 0.5)
+    for flag, key in (("yaw_progress_cap", "yaw_progress_cap"), ("yaw_overshoot", "yaw_overshoot"),
+                      ("yaw_lin_all_max", "yaw_lin_all_max"), ("limit_margin", "limit_margin"),
+                      ("limit_margin_agg", "limit_margin_agg")):
+        v = getattr(args, flag)
+        if v is not None:
+            ov[key] = v
+    return ov
+
+
+def d126_meta(args, sp: dict, tcur) -> dict:
+    """Provenance of the D-126 tracker options (only the ones that are on)."""
+    from rrp.envs.legged_core import TRACKER_OPTIONS_VERSION
+    m = {}
+    if sp.get("reward_options"):
+        m["reward_options"] = sp["reward_options"]
+    if args.ref_gait != "none":
+        m["ref_gait"] = dict(kind=args.ref_gait, mode=args.ref_gait_mode)
+    if args.ref_ff_vmax is not None:
+        m["ref_ff_vmax"] = float(args.ref_ff_vmax)          # LearnedTracker applies ref_ff below this speed
+    if sp.get("actuator_speed_estimated"):
+        m["actuator_speed_estimated"] = sp["actuator_speed_estimated"]   # D-126 #14: joints whose max speed is an ESTIMATE
+    if tcur is not None:
+        m["terrain_curriculum"] = dict(tcur.state(), history=[], terrain=sp.get("terrain"))
+    if getattr(args, "recipe_record", None):
+        m["recipe"] = args.recipe_record
+    if m:
+        m["tracker_options_version"] = TRACKER_OPTIONS_VERSION
+    return m
 
 
 def export_actor(ac, meta: dict, path: Path, it: int):
@@ -265,8 +347,10 @@ def export_actor(ac, meta: dict, path: Path, it: int):
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("--body", required=True)
-    ap.add_argument("--out", required=True)
+    ap.add_argument("--recipe", default=None, help="D-126: JSON file of argument defaults (keys = option dests, e.g. "
+                    "configs/tracker/h1_clock_scratch.json); explicit command-line options override it; recorded in meta")
+    ap.add_argument("--body", default=None, help="(required, here or in --recipe)")
+    ap.add_argument("--out", default=None, help="(required, here or in --recipe)")
     ap.add_argument("--iters", type=int, default=1000)
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--envs", type=int, default=48)
@@ -303,9 +387,11 @@ def main(argv=None):
     ap.add_argument("--slow-frac", type=float, default=0.0, help="bipeds: fraction of walking commands rescaled to 0.05-0.2 m/s")
     ap.add_argument("--turn-frac", type=float, default=0.25, help="probability of a pure-turn command (bipeds)")
     ap.add_argument("--turn-advance", type=float, default=0.6, help="window turn ratio needed to widen the turn range")
-    ap.add_argument("--actuator", default="v1", help="v1 ideal PD | v2 rrp.physics.actuator (randomised)")
+    ap.add_argument("--actuator", default=None, help="v1 (= ideal) PD | v1lat | v2 rrp.physics.actuator (randomised); default "
+                    "$RRP_ACTUATOR_MODE, else rrp.physics.actuator.ACTUATOR_MODE_DEFAULT (ideal; recorded as v1)")
     ap.add_argument("--reward-set", default="", help="override base reward weights, e.g. clearance_floor=-2,floor_frac=0.6")
     ap.add_argument("--init-actor", default=None, help="warm-start actor + obs normaliser from an exported actor.pt")
+    ap.add_argument("--init-actor-sha256", default=None, help="D-126: refuse unless --init-actor has this sha256")
     ap.add_argument("--contact", default="v1", help="contact model: v1 (legacy) | v2 (rrp.morphology.contact)")
     ap.add_argument("--reward", default=None, help="gait_v1 | gait_v2 (default: gait_v2 iff --contact v2)")
     ap.add_argument("--alpha-schedule", default="gated", help="gated | off | fixed:<alpha> (gait_v2 only)")
@@ -314,7 +400,54 @@ def main(argv=None):
     ap.add_argument("--alpha-warmup", type=int, default=300)
     ap.add_argument("--alpha-advance", default="", help="override advance thresholds, e.g. slip_ratio=0.2,fall_rate=0.1")
     ap.add_argument("--alpha-backoff", default="", help="override back-off thresholds")
-    train(ap.parse_args(argv))
+    # ---- D-126 #13 (all default off) ----
+    ap.add_argument("--ref-gait", default="none", choices=["none", "clock"],
+                    help="clock: phase-locked foot-lift reference gait (bipeds), see RewardCfg.ref_gait")
+    ap.add_argument("--ref-gait-mode", default="reward", choices=["reward", "residual", "both"],
+                    help="clock reference as reward terms (ref_lift 1.0 / ref_contact 0.5 unless --reward-set), as a feed-forward "
+                         "residual (ref_ff, default 0.1 rad, at every speed), or both")
+    ap.add_argument("--ref-ff-vmax", type=float, default=None,
+                    help="apply ref_ff below this speed (m/s; default None = 0.25 as before); stored in actor meta")
+    ap.add_argument("--yaw-progress-cap", type=float, default=None, help="turn_lin upper clip (default 1.2); g1: 1.0")
+    ap.add_argument("--yaw-overshoot", type=float, default=None, help="penalty weight on yaw rate above the command (e.g. -1)")
+    ap.add_argument("--yaw-lin-all-max", type=float, default=None, help="yaw_lin_all only for |wz| <= this (rad/s)")
+    ap.add_argument("--limit-margin", type=float, default=None, help="joint-limit-margin weight (gait_v2 default -1.0, untuned)")
+    ap.add_argument("--limit-margin-agg", default=None, choices=["mean", "max", "sum"], help="joint aggregation (default mean)")
+    # ---- D-126 #15 terrain curriculum (default off) ----
+    ap.add_argument("--terrain-curriculum", default="off", help="off | gated (bumps_v1 heightfield, gated like alpha)")
+    ap.add_argument("--terrain-amp-max", type=float, default=0.10, help="amplitude at level 1 (m); D-112 break-point 0.08")
+    ap.add_argument("--terrain-step", type=float, default=0.1)
+    ap.add_argument("--terrain-warmup", type=int, default=300)
+    ap.add_argument("--terrain-after-alpha", type=float, default=0.0, help="advance only once alpha >= this")
+    ap.add_argument("--terrain-half-m", type=float, default=12.0, help="heightfield half-size (m); beyond it a plane")
+    ap.add_argument("--terrain-advance", default="", help="e.g. fall_rate=0.1,track_rel_err=0.4")
+    ap.add_argument("--terrain-backoff", default="", help="e.g. fall_rate=0.25,track_rel_err=0.6")
+    train(parse_args(ap, argv))
+
+
+def parse_args(ap, argv=None):
+    """Parse with optional --recipe defaults (explicit options win). The recipe's path, sha256 and content go to meta."""
+    a = ap.parse_args(argv)
+    if a.recipe:
+        from rrp.training.tracker_recipes import recipe_record
+        rec, record = recipe_record(a.recipe)
+        dests = {x.dest for x in ap._actions}
+        bad = sorted(set(rec) - dests)
+        if bad:
+            raise SystemExit(f"recipe {a.recipe}: unknown options {bad}")
+        ap.set_defaults(**rec)
+        a = ap.parse_args(argv)
+        a.recipe_record = record
+    if not a.body or not a.out:
+        raise SystemExit("--body and --out are required (on the command line or in --recipe)")
+    from rrp.physics.actuator import legacy_mode_name
+    a.actuator = legacy_mode_name(a.actuator)      # D-126 #14: canonical mode; default "v1" (ideal), as before
+    if a.ref_gait == "clock" and a.ref_gait_mode in ("residual", "both"):
+        if not a.ref_ff:
+            a.ref_ff = 0.1
+        if a.ref_ff_vmax is None:
+            a.ref_ff_vmax = 1e3                       # every speed
+    return a
 
 
 if __name__ == "__main__":

@@ -1,0 +1,21 @@
+# D-126 (NOT RUN; ready to launch when the lead schedules it): tracker recipe t1_turn_latency_ft (rrp.training.tracker_recipes; rationale,
+# cost and gate in the recipe's _what/_why/_cost fields). Launch: rrp run-dag dags/d126_tracker_t1_turn_latency_ft.yaml (peer; D-115).
+# Resources are ESTIMATES (workers + 1 CPU; ~0.35 GB per worker + 2 GB): measure a 20-iteration smoke first and redeclare >= 1.35 x peak (D-117).
+extends: templates/tracker_recipe_gated.yaml
+name: d126_tracker_t1_turn_latency_ft
+lineage: 'tracker-t1_turn_latency_ft'
+label_prefix: 'd126trk_t1'
+vars:
+  recipe: t1_turn_latency_ft
+  body: t1
+nodes:
+  train:
+    resources: {cpu: 5, mem: 7G}
+  validate_lat30:            # tag lat30; the same gate under the training actuator mode at the worst trained latency (D-126 #14)
+    tag: lat30
+    stage: validate_tracker
+    resources: {cpu: 1, mem: 4G, max_seconds: 7200}
+    retries: 0
+    config:
+      inputs: {actor: '@train:actor.pt'}
+      options: {body: '{body}', kind: learned, seeds: '{val_seeds}', robust: true, actuator_mode: v1lat, actuator_latency_ms: 30, gate: report}

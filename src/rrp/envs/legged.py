@@ -110,8 +110,17 @@ class LeggedSession(Session):
     LOC_SIGMA = 0.02
     YAW_SIGMA = 0.02
 
-    def __init__(self, scenario: Scenario, *, tracker_kind: str = "auto", seed: int = 0, **kw):
+    def __init__(self, scenario: Scenario, *, tracker_kind: str = "auto", seed: int = 0, actuator_mode: str | None = None,
+                 actuator_latency_ms: float | None = None, **kw):
+        """actuator_mode (D-126 #14): None -> $RRP_ACTUATOR_MODE, else rrp.physics.actuator.ACTUATOR_MODE_DEFAULT ("ideal": the
+        bounded PD servo, byte-identical to before). "v1lat" / "v2" route every tracker tick through ActuatorModel (nominal
+        parameters, a fixed per-episode latency: actuator_latency_ms, else $RRP_ACTUATOR_LATENCY_MS, else drawn from the seed)."""
+        from rrp.physics.actuator import resolve_mode
         self.tracker_kind = tracker_kind
+        self.actuator_mode = resolve_mode(actuator_mode)
+        self._act_latency_req = actuator_latency_ms
+        self.actuator_model = None
+        self.actuator_latency_ms = None
         kw.setdefault("detector", DetectorConfig(camera="overhead", pos_sigma=0.01, dropout=0.02, max_range=40.0))
         kw.setdefault("control_hz", 10.0)
         super().__init__(scenario, seed=seed, **kw)
@@ -129,6 +138,10 @@ class LeggedSession(Session):
         tc = next(c for c in mr.robot_spec.controller_contracts if c.kind == "legged_tracker")
         self.tracker_contract = tc
         self.tracker_version_str = f"{tc.id}:{tc.version}:{self.tracker.version}:{mr.robot_spec.spec_hash}"
+        if self.actuator_mode != "ideal":
+            from rrp.physics.actuator import ActuatorModel
+            self.actuator_model = ActuatorModel(m, self.binding, 1, None, name=mr.meta["name"], randomize=False,
+                                                latency_ms=0.0, mode=self.actuator_mode)
         return RobotRuntime(i, mr.prefix, mr.robot_spec, mr.meta, ctrl, jn, np.array([m.jnt_qposadr[j] for j in jids]),
                             np.array([m.jnt_dofadr[j] for j in jids]), {"body": mr.prefix + mr.meta["legged"]["imu"]["site"]},
                             touch, None, None, [])
@@ -143,6 +156,11 @@ class LeggedSession(Session):
         b = self.binding
         b.set_default(self.data, yaw=0.0)
         mujoco.mj_forward(self.model, self.data)
+        if self.actuator_model is not None:
+            from rrp.physics.actuator import resolve_latency_ms
+            self.actuator_latency_ms = resolve_latency_ms(seed, self._act_latency_req)
+            self.actuator_model.fixed_latency_ms = self.actuator_latency_ms
+            self.actuator_model.reset(0, self.data.ctrl[b.pol_act].copy())
         r = self.robots[0]
         r.controller.prev = r.controller.current_targets(self.data)
         r.controller.target = dict(r.controller.prev)
@@ -316,12 +334,25 @@ class LeggedSession(Session):
     def _tracker_tick(self, cmd):
         b = self.binding
         tgt = self.tracker.act(self.data, cmd)
-        self.data.ctrl[b.pol_act] = tgt
+        act = self.actuator_model
+        if act is not None:
+            act.command(0, tgt)
+        else:
+            self.data.ctrl[b.pol_act] = tgt
         if len(b.held_act):
             self.data.ctrl[b.held_act] = b.q0_held
         n = max(1, int(round(1.0 / (TRACKER_HZ * self.model.opt.timestep))))
         for _ in range(n):
+            if act is not None:
+                self.data.ctrl[b.pol_act] = act.substep_ctrl(0, self.data)
             mujoco.mj_step(self.model, self.data)
+
+    def actuator_record(self) -> dict | None:
+        """Provenance of a non-ideal actuator mode (None for the ideal default, so default rows stay unchanged)."""
+        if self.actuator_model is None:
+            return None
+        from rrp.physics.actuator import mode_record
+        return mode_record(self.actuator_mode, self.model, self.binding, self.robots[0].meta["name"], self.actuator_latency_ms)
 
     def step(self, command: NativeCommand | dict | None = None, robot: int = 0) -> StepResult:
         rejected, source, executed = None, None, None
@@ -370,6 +401,11 @@ class LeggedSession(Session):
         c = snap.components
         c["controller_state"] = [dict(joint_targets=c["controller_state"][0], tracker=self.tracker.state(),
                                       cmd=self.cmd.tolist(), fell=self.fell)]
+        if self.actuator_model is not None:     # D-126 #14: pending-target queue (absent in ideal mode: snapshots unchanged)
+            a = self.actuator_model
+            c["controller_state"][0]["actuator"] = dict(
+                latency_ms=self.actuator_latency_ms, lat=a.lat.tolist(), current=[None if x is None else x.tolist() for x in a.current],
+                pending=[[[int(k), t.tolist()] for k, t in p] for p in a.pending])
         c["sensor_filters"]["localization"] = dict(loc=None if self.loc is None else self.loc.tolist(),
                                                    speed_est=self.speed_est,
                                                    hist=[h.tolist() for h in self.loc_hist])
@@ -392,6 +428,13 @@ class LeggedSession(Session):
         self.tracker.load(st["tracker"])
         self.cmd = np.array(st["cmd"])
         self.fell = st["fell"]
+        if self.actuator_model is not None and st.get("actuator"):
+            a, sa = self.actuator_model, st["actuator"]
+            self.actuator_latency_ms = sa["latency_ms"]
+            a.fixed_latency_ms = sa["latency_ms"]
+            a.lat[:] = sa["lat"]
+            a.current = [None if x is None else np.array(x, float) for x in sa["current"]]
+            a.pending = [[[int(k), np.array(t, float)] for k, t in p] for p in sa["pending"]]
         loc = c["sensor_filters"].get("localization", {})
         self.loc = None if loc.get("loc") is None else np.array(loc["loc"])
         self.speed_est = loc.get("speed_est", float("nan"))

@@ -196,10 +196,16 @@ def install_legged(session, pert: PhysicsPerturbation, seed: int, *, on_substep=
     s = session
     b = s.binding
     st = dict(actuator=None, push=None, first=True)
+    # D-126 #14: a session built with a non-ideal actuator mode keeps ITS actuator model (reset by the session itself) unless
+    # the perturbation sets its own latency (which then wins, as before). Ideal sessions: unchanged.
+    own = pert.latency_ms is None and getattr(s, "actuator_model", None) is not None
     if pert.latency_ms is not None:
         from rrp.physics.actuator import ActuatorModel
         st["actuator"] = ActuatorModel(s.model, b, 1, None, name=s.robots[0].meta["name"], randomize=False,
                                        latency_ms=float(pert.latency_ms), mode="v1lat")
+    elif own:
+        st["actuator"] = s.actuator_model
+        st["first"] = False
     if pert.push_impulse_Ns > 0:
         st["push"] = PushHook(b.root_bid, pert, seed)
     act, push = st["actuator"], st["push"]
@@ -233,7 +239,7 @@ def install_legged(session, pert: PhysicsPerturbation, seed: int, *, on_substep=
     orig_reset = s.reset
 
     def reset(*a, **k):
-        st["first"] = True
+        st["first"] = not own
         if on_reset is not None:
             on_reset(False)
         obs = orig_reset(*a, **k)

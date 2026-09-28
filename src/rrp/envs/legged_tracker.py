@@ -75,7 +75,7 @@ class LearnedTracker:
         a = np.clip(a, -5, 5)
         self.last_a = a
         amp = float(self.meta.get("ref_ff") or 0.0)
-        ref = self.b.ref_offset(self.phase, cmd, amp) if amp else None
+        ref = self.b.ref_offset(self.phase, cmd, amp, self.meta.get("ref_ff_vmax")) if amp else None
         self.phase = (self.phase + self.dt / self.b.period) % 1.0
         return self.b.targets(a, ref)
 

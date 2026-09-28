@@ -219,6 +219,7 @@ def validate(body: str, kind: str, actor: str | None, seeds: int, contact: str |
                 tracker_actuator_limits=getattr(tracker, "actuator_limits", None),
                 limits_mismatch_override=getattr(tracker, "limits_override", False), latency_ms=latency_ms if actuator != "v1" else None,
                 actuator_params=act.params if act is not None else None, tracker_contact_model=getattr(tracker, "contact_model", None),
+                **({"actuator_speed_estimated": act.speed_estimated} if act is not None else {}),
                 protocol="rrp.control.tracker_validation/v2", mujoco=mujoco.__version__)
     if robust:
         out["robustness"] = robust_check(body, actor, kind, seeds, contact, fr)
@@ -314,13 +315,16 @@ def main(argv=None):
     ap.add_argument("--seeds", type=int, default=5)
     ap.add_argument("--out")
     ap.add_argument("--contact", default="v1", help="physics contact model to validate in (v1 | v2)")
-    ap.add_argument("--actuator", default="v1", help="v1 ideal PD | v2 rrp.physics.actuator (nominal params, fixed latency)")
+    ap.add_argument("--actuator", default=None, help="v1 (= ideal) PD | v1lat | v2 rrp.physics.actuator (nominal params, fixed "
+                    "latency); default $RRP_ACTUATOR_MODE, else rrp.physics.actuator.ACTUATOR_MODE_DEFAULT (ideal)")
     ap.add_argument("--latency-ms", type=float, default=0.0, help="actuation latency for --actuator v2")
     ap.add_argument("--freeze", action="store_true", help="write eligibility.json next to the frozen tracker")
     ap.add_argument("--gate-dir", default=None, help="also write the W6 gate report (gate_report.json) here")
     ap.add_argument("--gate-exit", action="store_true", help=f"exit {GATE_EXIT} when the W6 gate verdict is fail")
     ap.add_argument("--robust", action="store_true", help="W6 gate: forward trial under the tracker's training randomization")
     a = ap.parse_args(argv)
+    from rrp.physics.actuator import legacy_mode_name
+    a.actuator = legacy_mode_name(a.actuator)      # D-126 #14: canonical name; the default stays "v1" (records unchanged)
     r = validate(a.body, a.kind, a.actor, a.seeds, a.contact, a.actuator, a.latency_ms, robust=a.robust)
     print(json.dumps(dict(body=r["body"], kind=r["tracker_kind"], gate=r["gate"], summary=r["summary"],
                           w6_gate={k: r["w6_gate"][k] for k in ("verdict", "failed", "not_evaluated")}), indent=1))

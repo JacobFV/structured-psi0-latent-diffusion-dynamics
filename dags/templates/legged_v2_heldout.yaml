@@ -1,0 +1,224 @@
+# TEMPLATE (D-126 #11; NOT RUN): legged HELD-OUT-BODY transfer with a small-budget REFIT, gated by validate_tracker.
+# Question (roadmap #11): does a legged latent route trained on bodies A + B work zero-shot on a held-out body H, and how much does a
+# system-0 refit on a small, EQUAL data budget from H recover, compared with BC given the same H data?
+# Protocol (recipe = dags/legged_v2_go2.yaml / templates/legged_v2_gated.yaml, D-090, with the W8 contact_v2 physics):
+# - validate_{a,b,h} (global, first): tracker gate on all three bodies (D-112/D-114); a FAIL blocks everything downstream.
+#   Learned trackers are pinned by sha256 (vars.sha_*); a CPG body (kind cpg) has no weights to pin.
+# - collect_{a,b} (global): the training data (seeds cseeds per body) into ONE shared data root (vars.data_run), so train_rep /
+#   train_bc read both bodies; collect_h (global): the ADAPTATION BUDGET on H (adapt_seeds, default 50 episodes) into the same
+#   root. Stage A, the flow and the zero-shot BC list bodies [A, B] only (LeggedData loads only the listed bodies), so H data
+#   never enters them.
+# - per (variant, seed): rep [A, B] -> flow -> r2 on A and B (in-distribution) -> heldout_zs = R2 on H ZERO-SHOT (stage heldout,
+#   which refuses a training body) -> dagger_{a,b} (route generated, labels = the stateless BC expert) -> refit_h = system-0 refit on
+#   the frozen encoder with bodies [A, B, H] (+ the DAgger buffers) -> heldout_refit = R2 on H with the refit realizer (stage
+#   eval_r2, tag adapt: H is no longer held out for system 0, so it is reported as ADAPTED, never as zero-shot).
+# - references (global): teacher on H; bc_zs = BC trained on [A, B] evaluated on H; bc_adapt = BC trained on [A, B, H] (the SAME
+#   H budget as refit_h: fair acquisition accounting, AGENTS.md) evaluated on H.
+# Sources: commands = scripted_teacher; gaits = the pinned trackers; routes learned / bc labelled by the stages.
+# A child DAG `extends: templates/legged_v2_heldout.yaml` and sets name, label prefixes, vars.body_* / kind_* / sha_* / sigmas_*.
+# The SET_IN_CHILD_DAG sha placeholders make the validate nodes refuse at once, before any compute.
+# Resources copy legged_v2_gated.yaml (measured W8 peaks, D-117) except collect_h (a 50-episode shard; 16G as a 100-episode shard).
+name: legged_v2_heldout_template
+schema: dag-1
+family: legged
+track: legged_heldout
+lineage: 'legged-heldout-{body_h}-{variant}'
+global_lineage: 'legged-heldout-{body_h}-data'
+label_prefix: 'lho_{tg}{seed}'
+global_label_prefix: 'lho'
+matrix:
+  variant: [semfix, nosem]
+  seed: [0]
+axis_vars:
+  variant:
+    semfix: {sw: 1.0, lv: -4.0, psw: 0.5, tg: fs}
+    nosem: {sw: 0.0, lv: -8.0, psw: 0.0, tg: ns}
+vars:
+  body_a: go2
+  kind_a: learned
+  sha_a: SET_IN_CHILD_DAG
+  sigmas_a: '0,0.1,0.2,0.3'
+  body_b: hexapod6
+  kind_b: cpg
+  gate_b: report         # hexapod6 CPG slip 0.20 fails the D-112 gates (D-101(4) recorded limitation); a passing body -> enforce
+  sigmas_b: '0,0.1,0.2,0.3'
+  body_h: anymal_c
+  kind_h: learned
+  sha_h: SET_IN_CHILD_DAG
+  sigmas_h: '0,0.1,0.2,0.3'
+  data_run: 'runs/legged_heldout/legged-heldout-{body_h}-data/data_shared'
+  actuator_limits: sourced_v1
+  cseeds: 0-599
+  adapt_seeds: 0-49
+  shard: 100
+  val_seeds: 5
+  rep_steps: 12000
+  flow_steps: 12000
+  snap_every: 4000
+  bc_steps: 20000
+  bc_snap: 5000
+  dagger_seeds: 20000-20039
+  refit_steps: 4000
+  r2seeds: 10000-10029
+  pfx: 'lho_{variant}_{body_h}_s{seed}'
+defaults:
+  placement: peer
+  retries: 0
+  max_parallel: 6
+  max_parallel_gpu: 2
+  max_cpu: 8
+  max_mem_gib: 28
+  shared_budget: true
+  resources: {cpu: 4, mem: 6G, gpu: false, max_seconds: 14400}
+base:
+  flags: {contact_version: contact_v2}
+nodes:
+  # ------------------------------------------------------------------ gates (global)
+  validate_a:
+    stage: validate_tracker
+    scope: global
+    tag: a
+    resources: {cpu: 1, mem: 4G, max_seconds: 3600}
+    config:
+      options: {body: '{body_a}', kind: '{kind_a}', seeds: '{val_seeds}', robust: true, tracker_sha256: '{sha_a}'}
+  validate_b:
+    stage: validate_tracker
+    scope: global
+    tag: b
+    resources: {cpu: 1, mem: 4G, max_seconds: 3600}
+    config:
+      options: {body: '{body_b}', kind: '{kind_b}', seeds: '{val_seeds}', robust: true, gate: '{gate_b}'}
+  validate_h:
+    stage: validate_tracker
+    scope: global
+    tag: h
+    resources: {cpu: 1, mem: 4G, max_seconds: 3600}
+    config:
+      options: {body: '{body_h}', kind: '{kind_h}', seeds: '{val_seeds}', robust: true, tracker_sha256: '{sha_h}'}
+  # ------------------------------------------------------------------ data (global; one shared root)
+  collect_a:
+    stage: collect
+    scope: global
+    tag: a
+    deps: [validate_a, validate_b, validate_h]
+    resources: {cpu: 6, mem: 16G, max_seconds: 10800}
+    config:
+      options: {body: '{body_a}', seeds: '{cseeds}', shard_size: '{shard}', workers: 6, sigmas: '{sigmas_a}', out_dir: 'artifacts/{data_run}', tracker_sha256: '{sha_a}', actuator_limits: '{actuator_limits}'}
+  collect_b:
+    stage: collect
+    scope: global
+    tag: b
+    deps: [validate_a, validate_b, validate_h]
+    resources: {cpu: 6, mem: 16G, max_seconds: 10800}
+    config:
+      options: {body: '{body_b}', seeds: '{cseeds}', shard_size: '{shard}', workers: 6, sigmas: '{sigmas_b}', out_dir: 'artifacts/{data_run}', tracker: '{kind_b}', gate: '{gate_b}'}
+  collect_h:
+    stage: collect
+    scope: global
+    tag: h
+    deps: [validate_a, validate_b, validate_h]
+    resources: {cpu: 6, mem: 16G, max_seconds: 10800}
+    config:
+      options: {body: '{body_h}', seeds: '{adapt_seeds}', shard_size: '{shard}', workers: 6, sigmas: '{sigmas_h}', out_dir: 'artifacts/{data_run}', tracker_sha256: '{sha_h}', actuator_limits: '{actuator_limits}'}
+  # ------------------------------------------------------------------ references (global)
+  bc_zs:
+    stage: train_bc
+    scope: global
+    tag: zs
+    deps: [collect_a, collect_b]
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
+    config:
+      inputs: {data: '{data_run}'}
+      params: {name: 'lho_bc_zs_{body_h}', bodies: ['{body_a}', '{body_b}'], model: {width: 192, enc_layers: 2, dec_layers: 3}, steps: '{bc_steps}', batch_size: 256, lr: 0.0003, seed: 0, ckpt_every: 500, snap_every: '{bc_snap}'}
+  bc_adapt:
+    stage: train_bc
+    scope: global
+    tag: adapt
+    deps: [collect_a, collect_b, collect_h]
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
+    config:
+      inputs: {data: '{data_run}'}
+      params: {name: 'lho_bc_adapt_{body_h}', bodies: ['{body_a}', '{body_b}', '{body_h}'], model: {width: 192, enc_layers: 2, dec_layers: 3}, steps: '{bc_steps}', batch_size: 256, lr: 0.0003, seed: 0, ckpt_every: 500, snap_every: '{bc_snap}'}
+  teacher_h:
+    stage: eval_r2
+    scope: global
+    tag: teacher_h
+    deps: [collect_h]
+    resources: {cpu: 10, mem: 24G}
+    config:
+      options: {body: '{body_h}', tag: 'lho_teacher_{body_h}', route: teacher, seeds: '{r2seeds}', workers: 10, tracker_sha256: '{sha_h}'}
+  bc_zs_h:
+    stage: heldout
+    scope: global
+    tag: bc_zs_h
+    resources: {cpu: 10, mem: 24G}
+    config:
+      inputs: {bc: '@bc_zs:policy.pt'}
+      options: {body: '{body_h}', train_bodies: ['{body_a}', '{body_b}'], tag: 'lho_bczs_{body_h}', route: bc, seeds: '{r2seeds}', workers: 10}
+  bc_adapt_h:
+    stage: eval_r2
+    scope: global
+    tag: bc_adapt_h
+    resources: {cpu: 10, mem: 24G}
+    config:
+      inputs: {bc: '@bc_adapt:policy.pt'}
+      options: {body: '{body_h}', tag: 'lho_bcadapt_{body_h}', route: bc, seeds: '{r2seeds}', workers: 10}
+  # ------------------------------------------------------------------ latent route per (variant, seed)
+  rep:
+    stage: train_rep
+    deps: [collect_a, collect_b]
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
+    config:
+      flags: {probe_lv_min: '{lv}', qd_dropout: 0.5}
+      inputs: {data: '{data_run}'}
+      params: {name: '{pfx}_rep', bodies: ['{body_a}', '{body_b}'], latent: {dz: 32, width: 192, semantic_weight: '{sw}', beta_kl: 0.001}, steps: '{rep_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: '{snap_every}'}
+  flow:
+    stage: train_flow
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
+    config:
+      inputs: {representation: '@rep:representation.pt'}
+      params: {name: '{pfx}_flow', width: 256, layers: 4, packet_semantic_weight: '{psw}', packet_tau_min: 0.6, steps: '{flow_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: '{snap_every}'}
+  r2_a:
+    stage: eval_r2
+    tag: a
+    config:
+      inputs: {flow: '@flow:policy.pt'}
+      options: {body: '{body_a}', tag: 'lho_{variant}_{body_a}_s{seed}', route: r2, seeds: '{r2seeds}', workers: 4}
+  r2_b:
+    stage: eval_r2
+    tag: b
+    config:
+      inputs: {flow: '@flow:policy.pt'}
+      options: {body: '{body_b}', tag: 'lho_{variant}_{body_b}_s{seed}', route: r2, seeds: '{r2seeds}', workers: 4}
+  heldout_zs:
+    stage: heldout
+    tag: zs
+    config:
+      inputs: {flow: '@flow:policy.pt'}
+      options: {body: '{body_h}', train_bodies: ['{body_a}', '{body_b}'], tag: 'lho_zs_{variant}_{body_h}_s{seed}', route: r2, seeds: '{r2seeds}', workers: 4}
+  dagger_a:
+    stage: dagger_collect
+    tag: a
+    config:
+      inputs: {bc: '@bc_zs:policy.pt', rep: '@rep:representation.pt', flow: '@flow:policy.pt'}
+      options: {body: '{body_a}', route: generated, seeds: '{dagger_seeds}'}
+  dagger_b:
+    stage: dagger_collect
+    tag: b
+    config:
+      inputs: {bc: '@bc_zs:policy.pt', rep: '@rep:representation.pt', flow: '@flow:policy.pt'}
+      options: {body: '{body_b}', route: generated, seeds: '{dagger_seeds}'}
+  refit_h:
+    stage: refit
+    deps: [collect_h]
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {representation: '@rep:representation.pt', dagger: ['@dagger_a', '@dagger_b']}
+      params: {name: '{pfx}_refit_h', bodies: ['{body_a}', '{body_b}', '{body_h}'], steps: '{refit_steps}', batch_size: 256, lr: 0.0003, dagger_frac: 0.5, dagger_present_bodies: true, seed: '{seed}'}
+  heldout_refit:
+    stage: eval_r2
+    tag: adapt
+    config:
+      inputs: {flow: '@flow:policy.pt', realizer: '@refit_h:realizer.pt'}
+      options: {body: '{body_h}', tag: 'lho_adapt_{variant}_{body_h}_s{seed}', route: r2, seeds: '{r2seeds}', workers: 4}

@@ -547,6 +547,9 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
         if getattr(ctl, "zero_qd", False):
             row["zero_qd"] = True
     row["failure_stage"] = failure_stage(row)
+    ar = s.actuator_record() if hasattr(s, "actuator_record") else None
+    if ar is not None:                 # D-126 #14: only non-ideal actuator modes add the key (default rows unchanged)
+        row["actuator_mode"] = ar
     row["motion"] = mrec.summary()
     if cfm:
         from rrp.evaluation.contact_metrics import legged_contact_motion

@@ -66,3 +66,48 @@ class AlphaGate:
 
     def state(self) -> dict:
         return asdict(self)
+
+
+TERRAIN_CURRICULUM_VERSION = "terrain_curriculum_v1"
+
+
+@dataclass
+class TerrainCurriculum:
+    """D-126 #15: rough-terrain curriculum for tracker training, gated like AlphaGate (never on wall time).
+
+    `level` in [0, 1] scales the envs/perturb.py `bumps_v1` heightfield: worker w of W trains at level x (w + 1) / W x amp_max,
+    so the pool always covers [0, level x amp_max]. Every `every` iterations after `warmup`, when alpha >= after_alpha: +step when the
+    window's metrics are all within ADVANCE, -step when any crosses BACK-OFF. track_rel_err is used only when the window has it
+    (gait_v2); fall_rate always. Default OFF (the trainer only builds terrain worlds with --terrain-curriculum gated)."""
+    amp_max: float = 0.10
+    step: float = 0.1
+    every: int = 25
+    warmup: int = 300
+    after_alpha: float = 0.0
+    advance: dict = field(default_factory=lambda: dict(fall_rate=0.10, track_rel_err=0.40))
+    backoff: dict = field(default_factory=lambda: dict(fall_rate=0.25, track_rel_err=0.60))
+    level: float = 0.0
+    history: list = field(default_factory=list)
+
+    @property
+    def amp_m(self) -> float:
+        return self.level * self.amp_max
+
+    def update(self, it: int, m: dict, alpha: float = 1.0) -> str:
+        """Returns 'advance' | 'backoff' | 'hold' | 'skip' and updates level."""
+        if it < self.warmup or m.get("fall_rate") is None:
+            return "skip"
+        keys = [k for k in ("fall_rate", "track_rel_err") if m.get(k) is not None]
+        if any(m[k] > self.backoff[k] for k in keys) and self.level > 0:
+            self.level = round(max(0.0, self.level - self.step), 6)
+            act = "backoff"
+        elif alpha + 1e-9 >= self.after_alpha and all(m[k] <= self.advance[k] for k in keys) and self.level < 1.0:
+            self.level = round(min(1.0, self.level + self.step), 6)
+            act = "advance"
+        else:
+            act = "hold"
+        self.history.append(dict(iter=it, action=act, level=self.level, amp_max_m=self.amp_m, **{k: m[k] for k in keys}))
+        return act
+
+    def state(self) -> dict:
+        return dict(asdict(self), version=TERRAIN_CURRICULUM_VERSION)

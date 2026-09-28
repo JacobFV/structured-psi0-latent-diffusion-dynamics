@@ -15,7 +15,11 @@ def _worker(conn, body, n_envs, seed, friction, kw):
     conn.send(("spec", dict(obs_dim=env.b.obs_dim, priv_dim=env.priv_dim, contact=env.meta["contact_model"],
                             actuator_limits=env.meta.get("actuator_limits"),
                             reward=env.cfg0.version, reward_weights0=env.cfg.weights(), act_dim=env.b.n, dt=env.dt,
-                            substeps=env.substeps, kind=env.b.kind)))
+                            substeps=env.substeps, kind=env.b.kind,
+                            **({"reward_options": env.cfg0.options()} if env.cfg0.options() else {}),
+                            **({"actuator_speed_estimated": env.act.speed_estimated} if env.act is not None else {}),
+                            **({"terrain": dict(env.terrain, version=env.meta.get("terrain", {}).get("version"))}
+                               if env.terrain else {}))))
     while True:
         msg, payload = conn.recv()
         if msg == "reset":
@@ -38,6 +42,11 @@ def _worker(conn, body, n_envs, seed, friction, kw):
         elif msg == "refff":
             env.ref_ff = float(payload)
             conn.send(("ok", env.ref_ff))
+        elif msg == "refffvmax":        # D-126 #13
+            env.ref_ff_vmax = None if payload is None else float(payload)
+            conn.send(("ok", env.ref_ff_vmax))
+        elif msg == "terrain":          # D-126 #15: curriculum level -> this worker's amplitude (m)
+            conn.send(("ok", env.set_terrain_amp(float(payload))))
         elif msg == "slowfrac":
             env.slow_frac = float(payload)
             conn.send(("ok", env.slow_frac))
@@ -62,7 +71,10 @@ class VecPool:
         for w in range(workers):
             a, b = ctx.Pipe()
             fr = float(frng.uniform(0.6, 1.25)) if workers > 1 else 1.0
-            p = ctx.Process(target=_worker, args=(b, body, envs, seed * 1000 + w, fr, env_kw or {}), daemon=True)
+            kw = env_kw or {}
+            if kw.get("terrain"):       # D-126 #15: per-worker terrain pattern and amplitude fraction (spread over the level)
+                kw = dict(kw, terrain=dict(kw["terrain"], seed=seed * 1000 + w, frac=(w + 1) / workers))
+            p = ctx.Process(target=_worker, args=(b, body, envs, seed * 1000 + w, fr, kw), daemon=True)
             p.start()
             self.conns.append(a)
             self.procs.append(p)
@@ -103,6 +115,17 @@ class VecPool:
         for c in self.conns:
             c.send(("refff", float(amp)))
         return [c.recv()[1] for c in self.conns][0]
+
+    def set_ref_ff_vmax(self, vmax) -> float | None:
+        for c in self.conns:
+            c.send(("refffvmax", vmax))
+        return [c.recv()[1] for c in self.conns][0]
+
+    def set_terrain(self, level: float) -> list:
+        """Curriculum level in [0, 1] -> per-worker amplitudes (m)."""
+        for c in self.conns:
+            c.send(("terrain", float(level)))
+        return [c.recv()[1] for c in self.conns]
 
     def set_slow_frac(self, frac: float) -> float:
         for c in self.conns:

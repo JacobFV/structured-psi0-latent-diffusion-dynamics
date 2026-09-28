@@ -80,6 +80,72 @@ def model_actuator_limits(model) -> str | None:
     return bytes(model.text_data[adr:adr + n - 1]).decode()
 
 
+# ------------------------------------------------------------------ actuator MODE switch (D-126 #14)
+# One place decides which actuator model every legged consumer uses (tracker training, tracker validation, the legged pipeline's
+# collect / DAgger / eval / edit subprocesses, legged_latent_eval). The DEFAULT stays the ideal PD servo ("ideal" = the legacy
+# "v1"), so nothing changes unless a caller or $RRP_ACTUATOR_MODE asks. Flipping the project default later is this one constant.
+#   ideal  bounded joint PD servo, targets applied within the tick (legacy "v1"; contact_v2 training adds 0-8 ms intra-tick latency)
+#   v1lat  ideal joints + SOURCED torque/speed envelope + 0-30 ms actuation latency (ActuatorModel mode "v1lat")
+#   v2     armature + joint damping/friction + torque-speed envelope + 0-30 ms latency (ActuatorModel mode "v2")
+ACTUATOR_MODE_VERSION = "actuator_mode_v1"
+ACTUATOR_MODES = ("ideal", "v1lat", "v2")
+ACTUATOR_MODE_DEFAULT = "ideal"
+_MODE_ALIASES = {"v1": "ideal", "ideal_pd": "ideal", "ideal": "ideal", "v1lat": "v1lat", "v2": "v2"}
+
+
+def resolve_mode(mode: str | None = None) -> str:
+    """Canonical actuator mode: explicit value, else $RRP_ACTUATOR_MODE, else ACTUATOR_MODE_DEFAULT ("v1" is an alias of "ideal")."""
+    import os
+    v = mode if mode is not None else (os.environ.get("RRP_ACTUATOR_MODE") or ACTUATOR_MODE_DEFAULT)
+    if v not in _MODE_ALIASES:
+        raise ValueError(f"unknown actuator mode {v!r}; known {ACTUATOR_MODES} (alias v1 = ideal)")
+    return _MODE_ALIASES[v]
+
+
+def legacy_mode_name(mode: str | None) -> str:
+    """The name the tracker trainer / validator historically record ("v1" for ideal), so default records stay byte-identical."""
+    m = resolve_mode(mode)
+    return "v1" if m == "ideal" else m
+
+
+def resolve_latency_ms(seed: int | None = None, latency_ms: float | None = None) -> float:
+    """Deployment/eval latency for a non-ideal mode: explicit value, else $RRP_ACTUATOR_LATENCY_MS, else drawn per episode from
+    U(RAND latency) with rng([seed, 9101]) (reproducible from the episode seed)."""
+    import os
+    if latency_ms is not None:
+        return float(latency_ms)
+    env = os.environ.get("RRP_ACTUATOR_LATENCY_MS")
+    if env not in (None, ""):
+        return float(env)
+    lo, hi = RAND["latency_ms"]
+    return float(np.random.default_rng([int(seed or 0), 9101]).uniform(lo, hi))
+
+
+def speed_sources(name: str, joint_names) -> dict:
+    """Per-joint provenance of the max joint speed used by the torque-speed envelope: 'sourced_urdf' (manufacturer URDF) or
+    'estimate' (VMAX family default). D-103/D-107: any 'estimate' must be flagged wherever a result depends on it."""
+    import re
+    out = {}
+    for n in joint_names:
+        hit = any(re.search(pat, n) for pat, _e, _v in SOURCED.get(name, []))
+        out[n] = "sourced_urdf" if hit else "estimate"
+    return out
+
+
+def mode_record(mode: str, model=None, binding=None, name: str = "", latency_ms: float | None = None) -> dict:
+    """Provenance block for a non-ideal actuator mode (eval rows, collect metadata, tracker meta)."""
+    rec = dict(actuator_mode=resolve_mode(mode), version=ACTUATOR_MODE_VERSION)
+    if latency_ms is not None:
+        rec["latency_ms"] = float(latency_ms)
+    if model is not None and binding is not None:
+        j = model.actuator_trnid[binding.pol_act, 0]
+        jn = [model.joint(int(x)).name[len(binding.prefix):] for x in j]
+        src = speed_sources(name, jn)
+        est = sorted(k for k, v in src.items() if v == "estimate")
+        rec.update(speed_source="estimate" if est else "sourced_urdf", speed_estimated_joints=est)
+    return rec
+
+
 ARMATURE_PER_NM = 4e-4
 VMAX = {"humanoid": 20.0, "biped": 20.0, "quadruped:go2": 30.0, "quadruped:anymal_c": 12.0, "quadruped": 20.0,
         "hexapod": 8.0, "multipod": 8.0}
@@ -138,6 +204,9 @@ class ActuatorModel:
                 self.vmax[k] = hit[1]
             self.limit_source = "sourced_urdf"
         self.params.update(limit_source=self.limit_source, effort=self.eff.round(2).tolist(), vmax=self.vmax.round(2).tolist())
+        # D-126 #14: joints whose max speed is still an ESTIMATE (kept out of `params`, which existing rows embed)
+        self.speed_estimated = [] if self.limit_source == "sourced_urdf" else [
+            model.joint(int(x)).name[len(b.prefix):] for x in j]
         self.dt = float(model.opt.timestep)
         self.lat = np.zeros(n_envs, int)
         self.pending = [[] for _ in range(n_envs)]     # [(remaining substeps, target)]

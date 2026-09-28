@@ -118,7 +118,9 @@ def collect_episode(body: str, seed: int, sigma: float, tracker_kind="auto", max
     meta = dict(body=body, seed=seed, sigma=sigma, status=status, steps=steps, ticks=len(arr["a"]),
                 tracker_source=rt.source, tracker_version=rt.version, source="scripted_teacher",
                 tracker_sha256=getattr(rt.inner, "sha256", None), tracker_run=getattr(rt.inner, "run", None),
-                actuator="ideal_pd_servo (legacy; the realistic actuator model is not applied)",
+                actuator=("ideal_pd_servo (legacy; the realistic actuator model is not applied)" if s.actuator_model is None
+                          else f"{s.actuator_mode} (rrp.physics.actuator, nominal params, latency {s.actuator_latency_ms:.1f} ms)"),
+                **({"actuator_mode": s.actuator_record()} if s.actuator_model is not None else {}),
                 privileged_teacher=True, teacher_variant="arc_only" if arc_only else "default",
                 speed_frac=te.vmax / te.r["vx"][1], turn_gain=te.k, waypoints=sc.meta["waypoints"],
                 spec_hash=morph.spec_hash, wall_s=time.time() - t0, tracker_source_label=str(parse_source(rt.source)),

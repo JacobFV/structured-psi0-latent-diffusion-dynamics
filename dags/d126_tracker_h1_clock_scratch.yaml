@@ -1,0 +1,13 @@
+# D-126 (NOT RUN; ready to launch when the lead schedules it): tracker recipe h1_clock_scratch (rrp.training.tracker_recipes; rationale,
+# cost and gate in the recipe's _what/_why/_cost fields). Launch: rrp run-dag dags/d126_tracker_h1_clock_scratch.yaml (peer; D-115).
+# Resources are ESTIMATES (workers + 1 CPU; ~0.35 GB per worker + 2 GB): measure a 20-iteration smoke first and redeclare >= 1.35 x peak (D-117).
+extends: templates/tracker_recipe_gated.yaml
+name: d126_tracker_h1_clock_scratch
+lineage: 'tracker-h1_clock_scratch'
+label_prefix: 'd126trk_h1'
+vars:
+  recipe: h1_clock_scratch
+  body: h1
+nodes:
+  train:
+    resources: {cpu: 17, mem: 16G}

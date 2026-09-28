@@ -71,6 +71,8 @@ class LeggedBinding:
         self.foot_bids = [nid(O.mjOBJ_BODY, f) for f in L["foot_bodies"]]
         self.nf = len(self.foot_bids)
         self.floor = mujoco.mj_name2id(model, O.mjOBJ_GEOM, "floor")
+        # D-126 #15: terrain worlds add a plane `floor_outer` beyond the heightfield; it counts as floor. Flat worlds: -1 (never matches)
+        self.floor2 = mujoco.mj_name2id(model, O.mjOBJ_GEOM, "floor_outer")
         self.body_is_foot = np.full(model.nbody, -1)
         for i, b in enumerate(self.foot_bids):
             self.body_is_foot[b] = i
@@ -169,14 +171,15 @@ class LeggedBinding:
 
     REF_VMAX = 0.25      # the reference is applied only for slow/turn-in-place commands (|v_xy| < REF_VMAX m/s)
 
-    def ref_offset(self, phase: float, cmd, amp: float) -> np.ndarray:
+    def ref_offset(self, phase: float, cmd, amp: float, vmax: float | None = None) -> np.ndarray:
         """Clock-driven stepping reference (feed-forward, ref_ff): swing leg hip_pitch -a, knee +2a, ankle_pitch -a,
-        a = amp x |sin 2 pi phase| (left swings for phase >= 0.5); zero when the command is ~0 or the body is not a biped."""
+        a = amp x |sin 2 pi phase| (left swings for phase >= 0.5); zero when the command is ~0 or the body is not a biped.
+        vmax (D-126 #13, `ref_ff_vmax` in actor meta): the speed below which it applies; None = REF_VMAX (unchanged)."""
         out = np.zeros(self.n)
         idx = self.pitch_idx()
         c = np.asarray(cmd, float)
         if idx is None or not amp or (np.linalg.norm(c[:2]) <= 0.05 and abs(c[2]) <= 0.05) \
-                or np.linalg.norm(c[:2]) >= self.REF_VMAX:
+                or np.linalg.norm(c[:2]) >= (self.REF_VMAX if vmax is None else vmax):
             return out
         sp = math.sin(2 * math.pi * phase)
         for ii, a_ in ((idx[0], amp * max(-sp, 0.0)), (idx[1], amp * max(sp, 0.0))):
@@ -194,9 +197,9 @@ class LeggedBinding:
         m = self.model
         for i in range(d.ncon):
             c = d.contact[i]
-            if c.geom1 == self.floor:
+            if c.geom1 == self.floor or c.geom1 == self.floor2:
                 b = m.geom_bodyid[c.geom2]
-            elif c.geom2 == self.floor:
+            elif c.geom2 == self.floor or c.geom2 == self.floor2:
                 b = m.geom_bodyid[c.geom1]
             else:
                 continue
@@ -227,9 +230,9 @@ class LeggedBinding:
         vel = {}
         for i in range(d.ncon):
             c = d.contact[i]
-            if c.geom1 == self.floor:
+            if c.geom1 == self.floor or c.geom1 == self.floor2:
                 b = m.geom_bodyid[c.geom2]
-            elif c.geom2 == self.floor:
+            elif c.geom2 == self.floor or c.geom2 == self.floor2:
                 b = m.geom_bodyid[c.geom1]
             else:
                 continue
@@ -276,14 +279,23 @@ NATURAL_TERMS = ("torque", "action_rate", "smooth", "power", "impact")          
 # stand_vel. Revision 2026-09-27 (lead): stand_contact moved from PRIOR to PERMANENT. Standing still on a zero command is a task
 # requirement (the W8 `halt` event checks both feet down and speed <= 0.1), not a gait prior. At its 10% prior floor, t1 stepped in place
 # while halting and failed 3-9/20 waypoint episodes.
-def limit_margin_penalty(q, lo, hi, m0: float = 0.02) -> float:
-    """mean over joints with a range of (max(0, m0 - margin) / m0)^2, margin = min(q - lo, hi - q) / (hi - lo)."""
+def limit_margin_penalty(q, lo, hi, m0: float = 0.02, agg: str = "mean") -> float:
+    """agg over joints with a range of (max(0, m0 - margin) / m0)^2, margin = min(q - lo, hi - q) / (hi - lo).
+    agg: "mean" (W6 default) | "max" (D-126 #13: the worst joint, matching the D-112 gate, which checks the MIN margin; with "mean"
+    one joint at its limit costs only 1/n, e.g. 0.083 per step for t1's 12 leg joints) | "sum"."""
     q, lo, hi = np.asarray(q, float), np.asarray(lo, float), np.asarray(hi, float)
     keep = hi > lo
     if not keep.any():
         return 0.0
     m = np.minimum(q - lo, hi - q)[keep] / (hi - lo)[keep]
-    return float(np.mean((np.clip(m0 - m, 0.0, None) / m0) ** 2))
+    pen = (np.clip(m0 - m, 0.0, None) / m0) ** 2
+    if agg == "mean":
+        return float(np.mean(pen))
+    if agg == "max":
+        return float(np.max(pen))
+    if agg == "sum":
+        return float(np.sum(pen))
+    raise ValueError(f"limit_margin agg {agg!r}")
 
 
 PERMANENT_STANDING_TERMS = ("stand_contact", "stand_still", "stand_vel")
@@ -341,7 +353,23 @@ class RewardCfg:
     # 0 inside the gate band, 1 at the limit, 4 at 2% past it. Default 0 (gait_v1 unchanged); gait_v2 -1.
     limit_margin: float = 0.0
     limit_margin_m0: float = 0.02
-                                   # gait_v2 default -1.5 (2026-09-27; -4 made t1 step in place)       # 1 -> the turn_lin dense yaw-progress term also applies to arcs (any |wz| command), not only pure turns          # dense yaw progress during pure-turn commands: x clip(w_z sign(c)/|c|, -0.5, 1.2)
+    # (stand_vel: gait_v2 default -1.5 (2026-09-27; -4 made t1 step in place). turn_lin: dense yaw progress during pure-turn commands,
+    # x clip(w_z sign(c)/|c|, -0.5, yaw_progress_cap). yaw_lin_all = 1 -> turn_lin also applies to arcs (any |wz| command).)
+    # ---- D-126 #13 tracker-training options. All default OFF: the defaults reproduce the pre-D-126 reward exactly, and weights()
+    # lists these keys only when they differ from D126_DEFAULTS (so default train logs / actor meta are unchanged). ----
+    yaw_progress_cap: float = 1.2  # upper clip of the turn_lin ratio; g1_src (1.2 + yaw_lin_all) spun 2.4-4x faster than commanded
+    yaw_lin_all_max: float = 0.0   # > 0: yaw_lin_all applies only to arcs with |wz| <= this (rad/s); 0 = every arc (as before)
+    yaw_overshoot: float = 0.0     # PERMANENT, any turning command: x max(0, w_z sign(c)/|c| - 1) (spinning faster than commanded)
+    limit_margin_agg: str = "mean"  # mean (as before) | max | sum, see limit_margin_penalty
+    # phase-locked reference gait ("clock"; humanoid-gym style, bipeds; contact.md h1 recommendation): foot k's lift target is
+    # h_ref = ref_lift_frac x swing_height x max(0, -sin 2 pi phase) (left) / max(0, sin 2 pi phase) (right) during moving/turning
+    # commands (0 when standing). PERMANENT: ref_lift x mean_k exp(-((clearance_k - h_ref_k) / ref_lift_sigma)^2) and
+    # ref_contact x mean_k [contact_k == (h_ref_k == 0)]. The residual variant is ref_ff with ref_ff_vmax (LeggedEnv / actor meta).
+    ref_gait: str = "none"         # none | clock
+    ref_lift: float = 0.0
+    ref_lift_sigma: float = 0.03
+    ref_lift_frac: float = 1.0
+    ref_contact: float = 0.0
     sigma_ang: float = 0.0         # yaw-rate tracking kernel width; 0 -> sigma (a sharper kernel keeps small turn commands informative)
     version: str = "gait_v1"
     # schedule (gait_v2): alpha in [0,1]; priors w0*(floor + (1-floor)(1-alpha)); natural w_min + alpha(w_max-w_min)
@@ -360,7 +388,12 @@ class RewardCfg:
         return e
 
     def weights(self) -> dict:
-        return {k: v for k, v in asdict(self).items() if isinstance(v, float) and k not in ("alpha", "prior_floor", "limit_margin_m0")}
+        return {k: v for k, v in asdict(self).items() if isinstance(v, float) and k not in ("alpha", "prior_floor", "limit_margin_m0")
+                and not (k in D126_DEFAULTS and v == D126_DEFAULTS[k])}
+
+    def options(self) -> dict:
+        """D-126 #13 options that differ from their defaults (recorded in actor meta; {} for every pre-D-126 config)."""
+        return {k: getattr(self, k) for k, v0 in D126_DEFAULTS.items() if getattr(self, k) != v0}
 
     @staticmethod
     def for_kind(kind: str, version: str = "gait_v1") -> "RewardCfg":
@@ -388,18 +421,41 @@ class RewardCfg:
         return RewardCfg()
 
 
+D126_DEFAULTS = dict(yaw_progress_cap=1.2, yaw_lin_all_max=0.0, yaw_overshoot=0.0, limit_margin_agg="mean", ref_gait="none",
+                     ref_lift=0.0, ref_lift_sigma=0.03, ref_lift_frac=1.0, ref_contact=0.0)
+TRACKER_OPTIONS_VERSION = "d126_tracker_opts_v1"     # recorded in actor meta whenever any D-126 option is on
+
+
+def clock_lift_targets(phase: float, swing_height: float, frac: float = 1.0) -> np.ndarray:
+    """Phase-locked (left, right) foot-lift targets (m) of the `clock` reference gait: left swings for phase in (0.5, 1),
+    right for (0, 0.5), the same convention as contact_phase / ref_offset."""
+    sp = math.sin(2 * math.pi * phase)
+    return frac * swing_height * np.array([max(-sp, 0.0), max(sp, 0.0)])
+
+
 class LeggedEnv:
     """N independent MjData sharing one model; 50 Hz tracker rate, PD on physics substeps."""
 
     def __init__(self, module_factory, n_envs: int, seed: int, *, control_dt: float = 0.02,
                  episode_s: float = 20.0, friction_scale: float = 1.0, push: bool = True, obs_noise: float = 1.0,
                  contact: str = "v1", reward: str | None = None, randomize: bool = True,
-                 reward_overrides: dict | None = None, actuator: str = "v1"):
+                 reward_overrides: dict | None = None, actuator: str = "v1", terrain: dict | None = None):
+        """terrain (D-126 #15; default None = the flat floor, unchanged): {"amp_max": A, "seed": S, "frac": f[, "half_m",
+        "cell_m", "bump_sigma_m"]} builds the envs/perturb.py `bumps_v1` heightfield (rrp.bodies.legged.legged_world) at amplitude A;
+        set_terrain_amp(level) then rescales it at run time to level x f x A (the curriculum; f spreads workers over the level)."""
         from rrp.physics.contact import ContactRandomizer, resolve
         from rrp.bodies.legged import standalone_model
         mod = module_factory()
         self.contact = resolve(contact)
-        self.model, _, self.meta = standalone_model(mod, contact=self.contact)
+        self.terrain = dict(terrain) if terrain else None
+        if self.terrain:
+            tw = dict(amp_m=float(self.terrain["amp_max"]), seed=int(self.terrain.get("seed", seed)),
+                      **{k: float(self.terrain[k]) for k in ("half_m", "cell_m", "bump_sigma_m") if k in self.terrain})
+            self.model, _, self.meta = standalone_model(mod, contact=self.contact, terrain=tw)
+            self.hfield_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_HFIELD, "terrain_bumps")
+            self.terrain_amp = None
+        else:
+            self.model, _, self.meta = standalone_model(mod, contact=self.contact)
         self.b = LeggedBinding(self.model, self.meta)
         self.cdr = None
         if self.contact == "v1":
@@ -424,7 +480,12 @@ class LeggedEnv:
         self.cfg = self.cfg0.effective(0.0) if self.cfg0.version == "gait_v2" else self.cfg0
         self.sched = self.cfg0.version == "gait_v2"      # alpha schedule (critic sees alpha; the actor never does)
         self.priv_dim = self.b.priv_dim + (1 if self.sched else 0)
+        if self.cfg0.ref_gait not in ("none", "clock"):
+            raise ValueError(f"ref_gait {self.cfg0.ref_gait!r} (none | clock)")
+        if self.cfg0.ref_gait == "clock" and self.b.nf != 2:
+            raise ValueError("ref_gait=clock is defined for bipeds (2 feet) only")
         self.act = None
+        actuator = "v1" if actuator == "ideal" else actuator     # D-126 #14: canonical mode name "ideal" = legacy "v1"
         if actuator in ("v2", "v1lat"):   # rrp.physics.actuator (v1lat: ideal joints + sourced limits + 0-30 ms latency)
             from rrp.physics.actuator import ActuatorModel
             self.act = ActuatorModel(self.model, self.b, n_envs, np.random.default_rng([seed, 91]), name=self.meta["name"],
@@ -432,6 +493,7 @@ class LeggedEnv:
         self.actuator = actuator
         self.turn_vx = 0.0
         self.ref_ff = 0.0         # feed-forward stepping reference amplitude (rad); recorded in the actor meta (LearnedTracker applies it)
+        self.ref_ff_vmax = None   # D-126 #13: speed below which ref_ff applies (None = LeggedBinding.REF_VMAX, unchanged)
         self.slow_frac = 0.0      # bipeds: fraction of translational commands rescaled to 0.05-0.2 m/s (slow-gait mix)
         self.cmd_mix = "default"  # "teacher": 70% of commands from the W8 waypoint-teacher mix
         self.teacher_stop = MIN_STOP_SHARE   # stop share within the teacher mix (>= MIN_STOP_SHARE; was 0.03, see PRIOR_TERMS note)
@@ -477,6 +539,19 @@ class LeggedEnv:
         self.stats = []
         for i in range(n_envs):
             self._reset(i)
+        if self.terrain:
+            self.set_terrain_amp(float(self.terrain.get("level0", 0.0)))
+
+    def set_terrain_amp(self, level: float) -> float:
+        """D-126 #15 terrain curriculum: heightfield amplitude = level x frac x amp_max (m), applied at run time through the
+        hfield elevation scale (hfield_size[2]); the compiled model keeps amp_max, so collision bounds stay conservative.
+        Returns the amplitude in metres."""
+        if not self.terrain:
+            raise RuntimeError("terrain curriculum needs LeggedEnv(terrain=...)")
+        amp = float(min(1.0, max(0.0, level))) * float(self.terrain.get("frac", 1.0)) * float(self.terrain["amp_max"])
+        self.model.hfield_size[self.hfield_id, 2] = max(amp, 1e-5)   # 0 is not a valid elevation scale; 10 um = flat
+        self.terrain_amp = amp
+        return amp
 
     def set_alpha(self, alpha: float):
         if self.sched:
@@ -590,7 +665,7 @@ class LeggedEnv:
         for i in range(self.n):
             d = self.data[i]
             a = np.clip(actions[i], -5, 5)
-            new_t = b.targets(a, b.ref_offset(self.phase[i], self.cmd[i], self.ref_ff) if self.ref_ff else None)
+            new_t = b.targets(a, b.ref_offset(self.phase[i], self.cmd[i], self.ref_ff, self.ref_ff_vmax) if self.ref_ff else None)
             lat = int(self.latency[i])
             if self.act is not None:
                 self.act.command(i, new_t)
@@ -637,7 +712,7 @@ class LeggedEnv:
             soft_lo, soft_hi = b.jlo + 0.05 * span, b.jhi - 0.05 * span
             r += cfg.limits * float(np.sum(np.clip(soft_lo - q, 0, None) + np.clip(q - soft_hi, 0, None)))
             if cfg.limit_margin:
-                r += cfg.limit_margin * limit_margin_penalty(q, b.jlo, b.jhi, cfg.limit_margin_m0)
+                r += cfg.limit_margin * limit_margin_penalty(q, b.jlo, b.jhi, cfg.limit_margin_m0, cfg.limit_margin_agg)
             moving = np.linalg.norm(c[:2]) > 0.05 or abs(c[2]) > 0.05
             first = fc & (self.air[i] > 0)
             r += cfg.air_time * float(np.sum((self.air[i] - 0.5 * b.period) * first)) * moving
@@ -706,8 +781,18 @@ class LeggedEnv:
             if cfg.stance_cap and moving:
                 cap = cfg.stance_cap_frac * b.period
                 r += cfg.stance_cap * float(np.sum(np.clip((self.stance_t[i] - cap) / b.period, 0.0, 1.0)))
-            if cfg.turn_lin and (pure_turn or (cfg.yaw_lin_all and abs(c[2]) > 0.05)):
-                r += cfg.turn_lin * float(np.clip(w[2] * np.sign(c[2]) / abs(c[2]), -0.5, 1.2))
+            if cfg.turn_lin and (pure_turn or (cfg.yaw_lin_all and abs(c[2]) > 0.05
+                                               and (not cfg.yaw_lin_all_max or abs(c[2]) <= cfg.yaw_lin_all_max))):
+                r += cfg.turn_lin * float(np.clip(w[2] * np.sign(c[2]) / abs(c[2]), -0.5, cfg.yaw_progress_cap))
+            if cfg.yaw_overshoot and abs(c[2]) > 0.05:
+                r += cfg.yaw_overshoot * max(0.0, float(w[2] * np.sign(c[2]) / abs(c[2])) - 1.0)
+            if cfg.ref_gait == "clock":
+                h_ref = clock_lift_targets(self.phase[i], b.swing_height, cfg.ref_lift_frac) if moving else np.zeros(2)
+                if cfg.ref_lift:
+                    clr = b.foot_clearance(d)
+                    r += cfg.ref_lift * float(np.mean(np.exp(-((clr - h_ref) / cfg.ref_lift_sigma) ** 2)))
+                if cfg.ref_contact:
+                    r += cfg.ref_contact * float(np.mean(fc == (h_ref <= 1e-9)))
             if cfg.turn_step and pure_turn and b.nf == 2:
                 want = np.array([self.phase[i] < 0.55, self.phase[i] >= 0.45])
                 r += cfg.turn_step * float(np.mean(fc == want))

@@ -515,14 +515,17 @@ def legged_world(name: str, source_options: dict | None = None, *, size: float =
     return s
 
 
-def standalone_model(module: Module, prefix: str = "r0_", contact: str | None = None
+def standalone_model(module: Module, prefix: str = "r0_", contact: str | None = None, terrain: dict | None = None
                      ) -> tuple[mujoco.MjModel, mujoco.MjSpec, dict]:
     """Robot on a floor (no task objects): used by trainers and validation. meta['contact_model'] records
-    the contact version the model was built with (compatibility/provenance)."""
+    the contact version the model was built with (compatibility/provenance). terrain (D-126 #15, default None = flat,
+    unchanged): the legged_world heightfield flag, recorded as meta['terrain']."""
     from rrp.physics.contact import version_str
     meta = copy.deepcopy(module.meta)
-    scene = legged_world(f"{meta['name']}_world", meta.get("source_options"), contact=contact)
+    scene = legged_world(f"{meta['name']}_world", meta.get("source_options"), contact=contact, terrain=terrain)
     meta["contact_model"] = version_str(contact)
+    if terrain and float(terrain.get("amp_m", 0.0)) > 0:
+        meta["terrain"] = dict(terrain, version=TERRAIN_VERSION)
     site = scene.worldbody.add_site(name="mount0", pos=[0, 0, 0])
     scene.attach(module.spec.copy(), prefix=prefix, site=site)
     scene.memory = 3 * 2 ** 20      # per-MjData arena (contacts/constraints); default 14 MiB is wasteful x100s
