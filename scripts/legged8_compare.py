@@ -155,7 +155,8 @@ for v in VARIANTS:
         continue
     seeds = res["variants"][v]
     pooled = {lab: ci([x for s in raw[v].values() if s.get(lab) for x in s[lab]]) for lab, *_ in M}
-    seeds["pooled"] = dict(effects=pooled, training_seeds=sorted(k for k in seeds if k != "pooled"),
+    pooled_n = {lab: sum(len(s[lab]) for s in raw[v].values() if s.get(lab)) for lab, *_ in M}
+    seeds["pooled"] = dict(effects=pooled, n_pairs=pooled_n, training_seeds=sorted(k for k in seeds if k != "pooled"),
                            r2_snap_s4000=[s["r2"]["r2_snap_s4000"] and f"{s['r2']['r2_snap_s4000']['success']}/{s['r2']['r2_snap_s4000']['n']}" for k, s in seeds.items() if k != "pooled"],
                            r2_final=[s["r2"]["r2_final"] and f"{s['r2']['r2_final']['success']}/{s['r2']['r2_final']['n']}" for k, s in seeds.items() if k != "pooled"])
 tests = {}
@@ -193,8 +194,15 @@ def r2cell(v, s, k):
 md.append("| R2 success snap_s4000 | " + " | ".join(r2cell(v, s, "r2_snap_s4000") for v, s in cols) + " |")
 md.append("| R2 success final flow | " + " | ".join(r2cell(v, s, "r2_final") for v, s in cols) + " |")
 md.append("| unedited forward in window (m) | " + " | ".join("" if s == "pooled" else str(V[v][s]["unedited_forward_mean"]) for v, s in cols) + " |")
+def fn(v, s, lab):
+    """effect cell; n pairs shown when below the full design (20 per training seed, 60 pooled): falls before t_edit drop pairs"""
+    n = V[v][s].get("n_pairs", {}).get(lab)
+    full = 20 * (len(V[v][s]["training_seeds"]) if s == "pooled" else 1)
+    return f(V[v][s]["effects"][lab]) + (f" (n={n})" if n is not None and n < full else "")
+
+
 for lab, *_ in M:
-    md.append(f"| {lab} | " + " | ".join(f(V[v][s]["effects"][lab]) for v, s in cols) + " |")
+    md.append(f"| {lab} | " + " | ".join(fn(v, s, lab) for v, s in cols) + " |")
 md += ["", "References on the same R2 dev seeds:", ""]
 for k, d in res["references"].items():
     md.append(f"- {k}: " + ("–" if d is None else f"{d['success']}/{d['n']} ({d['fell']} fell), source `{d['source']}`, physics {d['contact_versions']}"))
