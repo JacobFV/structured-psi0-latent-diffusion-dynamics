@@ -14,6 +14,9 @@ collections 20G, evals 6G, edit suite 12G provisional until measured (sampler `s
 `rrp-armv6-memsampler` -> artifacts/runs/armv6/_dags/arm_lineage_v6/memory_peaks.json). The BC seed-1702 chain
 (axbcv6_train_s1702) is untouched. At launch only one Stage A was admitted; the others wait for broker admission
 (aggregate declared memory full; bounded, not attempts).
+Throughput (01:14): Stage A semfix s1 0.73 s/step (GPU 94%, shared with psi1z training and the v6 BC seed-1702 chain);
+only 1 of my 2 GPU leases admitted so far (declared-memory aggregate full) -> ~3 h per Stage A. ETA for the full set:
+~18:00-22:00 PDT 2026-09-28 (uncertain while admission is memory-bound).
 RESUME: `cd ~/work/rrp-wt/ladder && systemd-run --user --unit rrp-armv6-dag2 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv6 --setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/ladder ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_lineage_v6.yaml`
 (completed nodes skipped, running leases re-adopted; `--retry-failed` only as a logged manual decision; before
 resuming a shed Stage A, check its log says `exact: RNG restored`).
