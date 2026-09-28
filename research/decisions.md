@@ -826,3 +826,13 @@ Built by three agents on shared worktree branches: data exporter + API; replay r
 
 ## D-132 2026-09-28 owner correction: public listeners are allowed
 Owner: "public listeners are actually not against project rules". AGENTS.md, README and viz/CONTRACT.md are corrected. The viz room's bind host is configurable (`RRP_ROOM_HOST`, default 127.0.0.1; 0.0.0.0 to serve it on the network). The room stays read-only. Unchanged: no paid compute, no sudo, no network reconfiguration, no physical robot commands.
+
+## D-133 2026-09-28 viz room complete: 160 peer-recorded replays reproduce their original eval outcomes; trader-terminal redesign; host watchdog restored
+- Replays (research/tracks/room.md "replays"; main 700fe73): 160 episodes, 67 successes and 93 failures, 48.5 MB, on the host at ~/work/rrp-data/viz/replays:
+  - arm 92: R2 routes under grasp_v1/v2, BC, teacher, edits, grasp rig;
+  - legged 58: W8 unedited/halt/control, references, robustness break-points, tracker v1 vs v2;
+  - dual 10.
+  All 160 reproduce the original row's outcome for the same seed, and 414 further row fields match exactly. Recording is observation-only (read-only callbacks/wrappers, no harness edits); a determinism test shows recorded and unrecorded commands are identical. The packet PCA basis is fitted per bundle on its training data and stored in meta.
+- Frontend redesigned on owner feedback into a dense trader-terminal board after IBM-2's workbench (main bbca444): live ticker, KPI strip, 1px-seam panel grid, inline bars/sparklines, heatmap wall with deltas, mini forest plot, break-point strip, keyboard views 1–0. Served at http://127.0.0.1:3013/ (RRP_ROOM_HOST=0.0.0.0 for the network, D-132).
+- Exporter fix: the grasp_v2 re-evaluation (D-127) and W8 t1 (D-124) are final, not interim (68c02e2).
+- Host watchdog: a transient unit that did not survive the 00:34 reboot, so host admission had been stuck since. Restarted with `RRP_NODE=host rrp ops start-watchdog`; admission is open. AGENTS.md: after any host reboot, restart it.
