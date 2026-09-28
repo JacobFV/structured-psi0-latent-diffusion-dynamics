@@ -1,0 +1,152 @@
+{
+ "v2.1_proximity_random": {
+  "n": 150,
+  "frac_le_3mm": 0.94,
+  "p99_mm": 10.171507290344874,
+  "max_mm": 14.592214991897196,
+  "worst": {
+   "('pad', 'lower')": 1,
+   "('pad', 'close')": 4,
+   "('palm', 'close')": 2,
+   "('palm', 'descend')": 2
+  },
+  "statuses": {
+   "failure": 112,
+   "success": 38
+  },
+  "retained_frac": 0.7562522207341406,
+  "perturbed_share_by_phase": {
+   "close": 0.05,
+   "descend": 0.411,
+   "lift": 0.038,
+   "lower": 0.065,
+   "open": 0.013,
+   "pregrasp": 0.277,
+   "regrasp": 0.091,
+   "retreat": 0.023,
+   "transport": 0.032
+  },
+  "retained_by_phase": {
+   "pregrasp": 0.9780835881753313,
+   "descend": 0.6966354109211252,
+   "regrasp": 0.7650273224043715,
+   "close": 0.4640239840106596,
+   "lift": 0.7762081784386617,
+   "transport": 0.9887892376681614,
+   "lower": 0.7751402675873975,
+   "open": 0.5242424242424243,
+   "retreat": 0.7072368421052632
+  },
+  "ticks_by_phase": {
+   "pregrasp": 7848,
+   "descend": 16317,
+   "regrasp": 3294,
+   "close": 3002,
+   "lift": 1345,
+   "transport": 892,
+   "lower": 2317,
+   "open": 660,
+   "retreat": 912
+  }
+ },
+ "v2.1_proximity_worst": {
+  "n": 169,
+  "frac_le_3mm": 0.9704142011834319,
+  "p99_mm": 7.846352662284543,
+  "max_mm": 14.628722222630484,
+  "worst": {
+   "('palm', 'descend')": 3,
+   "('palm', 'regrasp')": 1,
+   "('palm', 'open')": 1
+  },
+  "statuses": {
+   "failure": 121,
+   "success": 48
+  },
+  "retained_frac": 0.7469988288112435,
+  "perturbed_share_by_phase": {
+   "close": 0.047,
+   "descend": 0.411,
+   "lift": 0.045,
+   "lower": 0.077,
+   "open": 0.015,
+   "pregrasp": 0.255,
+   "regrasp": 0.078,
+   "retreat": 0.03,
+   "transport": 0.042
+  },
+  "retained_by_phase": {
+   "pregrasp": 0.9816120906801008,
+   "descend": 0.693716555414575,
+   "close": 0.4311163895486936,
+   "regrasp": 0.740340030911901,
+   "lift": 0.7711721817162086,
+   "transport": 0.9923254029163469,
+   "lower": 0.7671854734111544,
+   "open": 0.49445676274944567,
+   "retreat": 0.7399355877616747
+  },
+  "ticks_by_phase": {
+   "pregrasp": 7940,
+   "descend": 18127,
+   "close": 3368,
+   "regrasp": 3235,
+   "lift": 1783,
+   "transport": 1303,
+   "lower": 3084,
+   "open": 902,
+   "retreat": 1242
+  }
+ },
+ "v2_count_random": {
+  "n": 150,
+  "frac_le_3mm": 0.6933333333333334,
+  "p99_mm": 27.276792774889643,
+  "max_mm": 40.16008534416856,
+  "worst": {
+   "('pad', 'descend')": 4,
+   "('palm', 'descend')": 37,
+   "('pad', 'close')": 2,
+   "('palm', 'regrasp')": 2,
+   "('palm', 'close')": 1
+  },
+  "statuses": {
+   "failure": 146,
+   "success": 4
+  },
+  "retained_frac": 1.0,
+  "perturbed_share_by_phase": {
+   "close": 0.014,
+   "descend": 0.596,
+   "lift": 0.002,
+   "lower": 0.003,
+   "open": 0.001,
+   "pregrasp": 0.259,
+   "regrasp": 0.121,
+   "retreat": 0.001,
+   "transport": 0.002
+  },
+  "retained_by_phase": {
+   "pregrasp": 1.0,
+   "descend": 1.0,
+   "regrasp": 1.0,
+   "close": 1.0,
+   "lift": 1.0,
+   "transport": 1.0,
+   "lower": 1.0,
+   "open": 1.0,
+   "retreat": 1.0
+  },
+  "ticks_by_phase": {
+   "pregrasp": 9775,
+   "descend": 22462,
+   "regrasp": 4575,
+   "close": 531,
+   "lift": 88,
+   "transport": 57,
+   "lower": 126,
+   "open": 33,
+   "retreat": 45
+  }
+ }
+}

@@ -566,3 +566,28 @@ within noise. panda_pg2 and all nosem cells are pending.
   within 5 mm of the cube/table (fall back to the clean command). Either keeps DART's recovery coverage where it matters
   (off-trajectory approach and carry states) without crushing states that no real arm would reach. Alternatively reduce
   the noise to 0.03 rad. I can implement and verify the phase-gated variant on the same DART subsets in ~30 min.
+
+### D-118 addendum: contact-safe DART — kinematic proximity tried first, phase gating adopted (fallback)
+All variants: grasp_v2.1, exec noise 0.08 rad, re-simulated on the SAME two v5dart DART subsets (random 150; 160
+biased to the worst), `armexpert_pen_bodies.py` with `DART_SAFETY=<mode>`; raw
+`artifacts/runs/armexpert/v5dart/gate_posthoc/pen_resim_*.jsonl.gz`. Criterion: penetration <= 3 mm on >= 99 %.
+| DART mode | random <= 3 mm | worst <= 3 mm | noisy ticks retained | notes |
+|---|---|---|---|---|
+| unguarded (v5dart, grasp_v2) | 0.693 | 0.125 | 1.00 | palm crushes the cube during the noisy descent |
+| unguarded, grasp_v2.1 | 0.907 | 0.700 | 1.00 | |
+| proximity (FK of the commanded joints; reject a noisy command bringing a robot geom < 5 mm of cube/table and closer than the clean command; held cube carried rigidly; hold the last command if the chosen one would penetrate > 1 mm) | 0.953 | 0.964 | 0.72 (+0.09 held) | residual: pad/palm during close, cube knocked into motion (FK cannot foresee a moving cube) |
+| proximity_strict (no noise while the clean command is itself within 5 mm) | 0.953 | 0.982 | 0.64 | |
+| margin 10 / 20 mm | 0.940 | 0.970 | 0.76 | identical decisions (the binding cases have the clean command in contact) |
+| **phase** (noise only in pregrasp and transport, `DART_FREE_PHASES`) | **1.000** (max 2.5 mm) | **1.000** (max 2.5 mm) | 0.22 | adopted for v6dart |
+Proximity guarding took > 1 h and stalls at 0.95-0.98, so per the D-118 addendum I fell back to phase gating (the
+proximity code stays, selectable as `dart_safety: proximity|proximity_strict`, `rrp.data.collect.DartProximityGuard`).
+Coverage cost (perturbed-tick share by phase; unguarded v5dart vs phase-gated): v5dart pregrasp 0.26, descend 0.60,
+regrasp 0.12, close 0.014, carry/lower/open/retreat < 0.01; phase-gated pregrasp 0.58-0.60, transport 0.40-0.42, and
+none in descend/close/lower (the proximity mode kept descend 0.40, lift/lower/transport 0.04-0.09). So v6dart DART
+covers off-trajectory approach states above the cube (pregrasp is the 13 cm hover approach) and carry states, but not
+misalignment in the final 13 cm descent or at the grasp. Also note: DART episodes now mostly SUCCEED (150/150 on the
+random subset vs 4/150 unguarded), so the pack's "include DART failures" rows shrink and its DART rows are successes.
+Provenance: episode meta `dart` = {mode, free_phases|margin_m, ticks/applied/rejected/held by phase}; manifest flags
+`dart_safety`. v6dart = v5dart config + `grasp_contact: v2.1` + `dart_safety: phase` (`dags/armexpert_v6dart.yaml`),
+collect gated in the pipeline; v5 BC 1701 kept unused. Launched 18:54 (queued on peer admission); BC chain queued after
+the pack (`../armexpert_bcv6_launch.sh`, GC=v2.1, pack grasp check).
