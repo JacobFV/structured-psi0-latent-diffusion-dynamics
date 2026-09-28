@@ -46,6 +46,29 @@ All JSON. Every document has `{schema: "rrp-viz/<name>/v1", generated_at, git_sh
 | `/api/replay/<id>` | a replay file (below) |
 | `/api/videos` | `artifacts/video/INDEX.md` entries with labels; files served from `/media/<name>` |
 | `/api/doc?path=` | allowlisted markdown document (docs/, research/, STATUS.md, README.md, AGENTS.md, psi1z README/notes/decisions) |
+| `/api/training/<id>` | one training series (`rrp-viz/training-series/v1`: step[], losses{…}, grad_norm, clip_scale, lr, alpha, gate_state); ids from `/api/training` `runs[].id` |
+
+Provenance fields on every row (results, edits, physics, robustness, training runs): `source_file` (path relative to its checkout),
+`location` (`repo` = this checkout, i.e. in git / `main` / `wt:<worktree>` / `rrp-data:<dir>` / `peer:<host>`), `in_git`, `sha1`,
+`copies` (identical copies found; deduplicated by content hash), `alt_paths`, `decision` (latest D-entry whose text names the file or
+its run directory), `decisions`, `decision_match` (the token that matched), `track_notes`. Results rows also carry `key_path`
+(location inside the file), `body_from` / `route_from` / `source_label_from` / `version_from` (json | key_path | path | missing),
+`body_hint` (a short arm name such as `panda` when the file does not give the gripper), `interim_reason`, `ci_method`
+(`recorded` | `wilson95_computed`). Unknown values are null, never guessed.
+
+## plugin interface (exporter ↔ Vite plugin)
+- `viz/data/<name>.json` for every name above, `viz/data/training/<id>.json`, and `viz/data/_manifest.json`
+  (`documents.<name>: {generated_at, bytes, rows, seconds, error}`, `last_run.timings`). Runs are serialized by a flock on
+  `viz/data/_cache/lock`; per-source caches live in `viz/data/_cache/`.
+- The plugin shells out with cwd = repo root, `PYTHONPATH=src`, `OMP_NUM_THREADS=1`, `.venv/bin/python`, a 20 s timeout and a
+  15 s cache (live: 10 s), like IBM-2's progress plugin:
+  `python -m rrp.viz.api get <name> [--live] [--max-age S]` prints the absolute path of the fresh document (it re-exports only that
+  document when older than S); then the plugin reads that file. `/api/live` uses `get live --live` (one bounded ssh read of the
+  peer, ≤ 5 s; `stale` when the last good read is older than 60 s).
+- `python -m rrp.viz.api doc <path>` prints `{schema: rrp-viz/doc/v1, path, markdown, mtime}` (exit 2 if not allowlisted);
+  `api replay <id>`, `api media <name>`, `api training <id>` print an absolute file path (exit 2 if unknown). `api routes` prints the table.
+- `python -m rrp.viz.export --sync-psi1z` rsyncs small psi1z summary files from the peer into `~/work/rrp-data/viz/psi1z/` (≤ 50 MB);
+  it is never part of a periodic refresh.
 
 ## replay file (`rrp-viz/replay/v1`, JSON; gzip allowed)
 ```
