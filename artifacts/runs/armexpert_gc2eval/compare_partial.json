@@ -454,7 +454,10 @@
     3,
     90
    ],
-   "grasp_v2": null,
+   "grasp_v2": [
+    1,
+    90
+   ],
    "per_set": {
     "3000000": {
      "grasp_v1": [
@@ -467,7 +470,15 @@
        "transport": 1
       }
      ],
-     "grasp_v2": null
+     "grasp_v2": [
+      0,
+      30,
+      {
+       "approach": 28,
+       "place": 1,
+       "transport": 1
+      }
+     ]
     },
     "3000100": {
      "grasp_v1": [
@@ -479,7 +490,16 @@
        "lift": 2
       }
      ],
-     "grasp_v2": null
+     "grasp_v2": [
+      0,
+      30,
+      {
+       "approach": 26,
+       "grasp": 1,
+       "transport": 2,
+       "place": 1
+      }
+     ]
     },
     "3000200": {
      "grasp_v1": [
@@ -491,7 +511,16 @@
        "grasp": 2
       }
      ],
-     "grasp_v2": null
+     "grasp_v2": [
+      1,
+      30,
+      {
+       "approach": 25,
+       "transport": 3,
+       "success": 1,
+       "grasp": 1
+      }
+     ]
     }
    }
   },
@@ -500,7 +529,10 @@
     0,
     30
    ],
-   "grasp_v2": null,
+   "grasp_v2": [
+    0,
+    30
+   ],
    "per_set": {
     "3000000": {
      "grasp_v1": [
@@ -511,7 +543,13 @@
        "lift": 2
       }
      ],
-     "grasp_v2": null
+     "grasp_v2": [
+      0,
+      30,
+      {
+       "approach": 30
+      }
+     ]
     }
    }
   },
@@ -520,7 +558,10 @@
     0,
     30
    ],
-   "grasp_v2": null,
+   "grasp_v2": [
+    0,
+    30
+   ],
    "per_set": {
     "3000000": {
      "grasp_v1": [
@@ -532,7 +573,15 @@
        "transport": 2
       }
      ],
-     "grasp_v2": null
+     "grasp_v2": [
+      0,
+      30,
+      {
+       "approach": 27,
+       "grasp": 1,
+       "transport": 2
+      }
+     ]
     }
    }
   }
@@ -994,7 +1043,10 @@
     8,
     90
    ],
-   "grasp_v2": null,
+   "grasp_v2": [
+    19,
+    90
+   ],
    "per_set": {
     "3000000": {
      "grasp_v1": [
@@ -1009,7 +1061,17 @@
        "lift": 2
       }
      ],
-     "grasp_v2": null
+     "grasp_v2": [
+      6,
+      30,
+      {
+       "grasp": 8,
+       "transport": 10,
+       "approach": 4,
+       "success": 6,
+       "place": 2
+      }
+     ]
     },
     "3000100": {
      "grasp_v1": [
@@ -1024,7 +1086,17 @@
        "lift": 4
       }
      ],
-     "grasp_v2": null
+     "grasp_v2": [
+      9,
+      30,
+      {
+       "grasp": 6,
+       "success": 9,
+       "transport": 10,
+       "approach": 4,
+       "place": 1
+      }
+     ]
     },
     "3000200": {
      "grasp_v1": [
@@ -1039,7 +1111,17 @@
        "lift": 1
       }
      ],
-     "grasp_v2": null
+     "grasp_v2": [
+      4,
+      30,
+      {
+       "transport": 7,
+       "place": 4,
+       "approach": 8,
+       "grasp": 7,
+       "success": 4
+      }
+     ]
     }
    }
   },
@@ -1048,7 +1130,10 @@
     2,
     30
    ],
-   "grasp_v2": null,
+   "grasp_v2": [
+    4,
+    30
+   ],
    "per_set": {
     "3000000": {
      "grasp_v1": [
@@ -1063,7 +1148,16 @@
        "grasp": 4
       }
      ],
-     "grasp_v2": null
+     "grasp_v2": [
+      4,
+      30,
+      {
+       "approach": 13,
+       "transport": 8,
+       "success": 4,
+       "grasp": 5
+      }
+     ]
     }
    }
   },
@@ -1072,7 +1166,10 @@
     16,
     30
    ],
-   "grasp_v2": null,
+   "grasp_v2": [
+    16,
+    30
+   ],
    "per_set": {
     "3000000": {
      "grasp_v1": [
@@ -1087,7 +1184,17 @@
        "lift": 1
       }
      ],
-     "grasp_v2": null
+     "grasp_v2": [
+      16,
+      30,
+      {
+       "success": 16,
+       "approach": 2,
+       "place": 7,
+       "transport": 4,
+       "grasp": 1
+      }
+     ]
     }
    }
   }
@@ -1113,39 +1220,89 @@
   },
   "parm6_tf3": {
    "grasp_v1": null,
-   "grasp_v2": null,
+   "grasp_v2": [
+    68,
+    90
+   ],
    "per_set": {
     "3000000": {
      "grasp_v1": null,
-     "grasp_v2": null
+     "grasp_v2": [
+      26,
+      30,
+      {
+       "success": 26,
+       "approach": 2,
+       "transport": 1,
+       "grasp": 1
+      }
+     ]
     },
     "3000100": {
      "grasp_v1": null,
-     "grasp_v2": null
+     "grasp_v2": [
+      22,
+      30,
+      {
+       "approach": 7,
+       "success": 22,
+       "lift": 1
+      }
+     ]
     },
     "3000200": {
      "grasp_v1": null,
-     "grasp_v2": null
+     "grasp_v2": [
+      20,
+      30,
+      {
+       "lift": 1,
+       "success": 20,
+       "approach": 7,
+       "grasp": 2
+      }
+     ]
     }
    }
   },
   "parm5s_tf3": {
    "grasp_v1": null,
-   "grasp_v2": null,
+   "grasp_v2": [
+    24,
+    30
+   ],
    "per_set": {
     "3000000": {
      "grasp_v1": null,
-     "grasp_v2": null
+     "grasp_v2": [
+      24,
+      30,
+      {
+       "success": 24,
+       "grasp": 1,
+       "approach": 4,
+       "lift": 1
+      }
+     ]
     }
    }
   },
   "parm5l_pg2": {
    "grasp_v1": null,
-   "grasp_v2": null,
+   "grasp_v2": [
+    30,
+    30
+   ],
    "per_set": {
     "3000000": {
      "grasp_v1": null,
-     "grasp_v2": null
+     "grasp_v2": [
+      30,
+      30,
+      {
+       "success": 30
+      }
+     ]
     }
    }
   }

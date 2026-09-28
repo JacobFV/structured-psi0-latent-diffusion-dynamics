@@ -605,3 +605,20 @@ the pack (`../armexpert_bcv6_launch.sh`, GC=v2.1, pack grasp check).
   grasp_v2.1; peer disk ~/rrp-peer-data/packed/latent_pp_v6dart_s1_H16 (11 GB); summary meta in git.
 - BC expert: seed 1701 training started 19:41 (peer GPU, `../armexpert_bcv6_launch.sh`: pack grasp checked, evals under
   RRP_GRASP_CONTACT=v2.1, ROOT artifacts/runs/armexpert_bcv6, EV artifacts/runs/armexpert_bcv6_eval), then 1702.
+
+### status 2026-09-27 20:50
+- v6 BC 1701: queued since 19:41 on peer admission (24G + 16G GPU declared; refusals: memory cap while other GPU jobs
+  ran, then "watchdog heartbeat missing or stale"); the chain retries each minute (<= 3 h per lease attempt).
+- Incident (mine): the v5 BC chain for seed 1701 was NOT fully stopped at 17:20 (its retry loop survived the kill of my
+  shell) and relaunched training at 17:21 (lease 1790554441_b42cb1) until I found and stopped it at 20:05 (step 9600,
+  ~2.7 GPU-hours spent on an unused v5 expert; checkpoint kept, unused, D-118 (3)). Now checked: no v5 processes remain.
+- grasp_v2 re-evaluation: 35 of 56 cells (partial table below); still running on the peer.
+| route | panda_pg2 (90) v1 -> v2 | parm6_tf3 (90) v1 -> v2 | parm5s_tf3 (30) v1 -> v2 | parm5l_pg2 (30) v1 -> v2 | total v1 -> v2 |
+|---|---|---|---|---|---|
+| frozen sem, seed 1 (D-078) | 36/90 -> - | 70/90 -> 9/90 | 20/30 -> 2/30 | 20/30 -> 22/30 | 110/150 -> 33/150 |
+| semfix, seed 1 | 49/90 -> - | 45/90 -> 62/90 | 8/30 -> 19/30 | 22/30 -> 24/30 | 75/150 -> 105/150 |
+| nosem, seed 1 | 0/90 -> - | 3/90 -> 1/90 | 0/30 -> 0/30 | 0/30 -> 0/30 | 3/150 -> 1/150 |
+| frozen sem, seed 2 (D-095) | 23/90 -> - | 44/90 -> 66/90 | 7/30 -> 17/30 | 27/30 -> 22/30 | 78/150 -> 105/150 |
+| semfix, seed 2 | 58/90 -> - | 38/90 -> 60/90 | 15/30 -> 22/30 | 18/30 -> 18/30 | 71/150 -> 100/150 |
+| nosem, seed 2 | 0/90 -> - | 8/90 -> 19/90 | 2/30 -> 4/30 | 16/30 -> 16/30 | 26/150 -> 39/150 |
+| BC direct1701 final (sprint_bc) | - -> - | - -> 68/90 | - -> 24/30 | - -> 30/30 | 0/0 -> 0/0 |
