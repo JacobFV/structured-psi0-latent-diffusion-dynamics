@@ -1,0 +1,1721 @@
+{
+"pair": "parm5_pg2__parm5_pg2",
+"seed": 0,
+"grasp_contact_version": "grasp_v1",
+"source": "scripted_teacher (privileged diagnostic)",
+"grasp_depth": 0.02,
+"closed_value": 0.0,
+"open_value": 0.045,
+"rows": [
+{
+"k": 41,
+"t": 2.2,
+"phase": "r_close",
+"grip_cmd": 0.045,
+"grip_force": [
+-2.6043315699553204e-06
+],
+"grip_q": [
+0.04499997660783387
+],
+"n_contacts": 0,
+"normal_force_N": 0.0,
+"max_tan_over_normal": 0.0,
+"contact_geoms": [],
+"peg_along_tool_m": 0.0222,
+"peg_tilt_deg": 0.29,
+"held_truth": false
+},
+{
+"k": 42,
+"t": 2.25,
+"phase": "r_close",
+"grip_cmd": 0.0,
+"grip_force": [
+-9.019971383141916
+],
+"grip_q": [
+0.004957566816413842
+],
+"n_contacts": 0,
+"normal_force_N": 0.0,
+"max_tan_over_normal": 0.0,
+"contact_geoms": [],
+"peg_along_tool_m": 0.0236,
+"peg_tilt_deg": 0.12,
+"held_truth": false
+},
+{
+"k": 43,
+"t": 2.3,
+"phase": "r_close",
+"grip_cmd": 0.0,
+"grip_force": [
+-14.718489120964211
+],
+"grip_q": [
+0.0034629922097045504
+],
+"n_contacts": 4,
+"normal_force_N": 15.233,
+"max_tan_over_normal": 0.325,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0244,
+"peg_tilt_deg": 0.96,
+"held_truth": true
+},
+{
+"k": 44,
+"t": 2.35,
+"phase": "r_close",
+"grip_cmd": 0.0,
+"grip_force": [
+-17.065333368496145
+],
+"grip_q": [
+0.004289926196450103
+],
+"n_contacts": 4,
+"normal_force_N": 16.97,
+"max_tan_over_normal": 0.226,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0244,
+"peg_tilt_deg": 0.66,
+"held_truth": true
+},
+{
+"k": 45,
+"t": 2.4,
+"phase": "r_close",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.205484590891214
+],
+"grip_q": [
+0.004054185940614588
+],
+"n_contacts": 4,
+"normal_force_N": 16.207,
+"max_tan_over_normal": 0.134,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0244,
+"peg_tilt_deg": 0.47,
+"held_truth": true
+},
+{
+"k": 46,
+"t": 2.45,
+"phase": "r_close",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.29977372873308
+],
+"grip_q": [
+0.004073631425948933
+],
+"n_contacts": 4,
+"normal_force_N": 16.303,
+"max_tan_over_normal": 0.064,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0244,
+"peg_tilt_deg": 0.37,
+"held_truth": true
+},
+{
+"k": 47,
+"t": 2.5,
+"phase": "r_close",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.309020948151556
+],
+"grip_q": [
+0.004077408176309586
+],
+"n_contacts": 4,
+"normal_force_N": 16.308,
+"max_tan_over_normal": 0.039,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0244,
+"peg_tilt_deg": 0.32,
+"held_truth": true
+},
+{
+"k": 48,
+"t": 2.55,
+"phase": "r_close",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319011642697895
+],
+"grip_q": [
+0.004079781313855046
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.084,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0244,
+"peg_tilt_deg": 0.25,
+"held_truth": true
+},
+{
+"k": 49,
+"t": 2.6,
+"phase": "r_close",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.3204821278997
+],
+"grip_q": [
+0.00408015019684029
+],
+"n_contacts": 4,
+"normal_force_N": 16.32,
+"max_tan_over_normal": 0.063,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0244,
+"peg_tilt_deg": 0.18,
+"held_truth": true
+},
+{
+"k": 50,
+"t": 2.65,
+"phase": "r_close",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319055212076776
+],
+"grip_q": [
+0.004079774628105771
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.051,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0244,
+"peg_tilt_deg": 0.13,
+"held_truth": true
+},
+{
+"k": 51,
+"t": 2.7,
+"phase": "r_close",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.318892502628117
+],
+"grip_q": [
+0.004079723865612293
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.041,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0244,
+"peg_tilt_deg": 0.1,
+"held_truth": true
+},
+{
+"k": 52,
+"t": 2.75,
+"phase": "r_close",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.318898563098376
+],
+"grip_q": [
+0.00407972409691228
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.035,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0244,
+"peg_tilt_deg": 0.07,
+"held_truth": true
+},
+{
+"k": 53,
+"t": 2.8,
+"phase": "r_close",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.3189596474727
+],
+"grip_q": [
+0.004079739027444924
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.03,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0244,
+"peg_tilt_deg": 0.06,
+"held_truth": true
+},
+{
+"k": 54,
+"t": 2.85,
+"phase": "r_close",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.318983406537637
+],
+"grip_q": [
+0.004079745798236314
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.026,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0245,
+"peg_tilt_deg": 0.05,
+"held_truth": true
+},
+{
+"k": 55,
+"t": 2.9,
+"phase": "r_close",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.318968543764022
+],
+"grip_q": [
+0.004079742414658545
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.024,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0245,
+"peg_tilt_deg": 0.04,
+"held_truth": true
+},
+{
+"k": 56,
+"t": 2.95,
+"phase": "r_close",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.318956547178352
+],
+"grip_q": [
+0.004079739239693017
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.022,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0245,
+"peg_tilt_deg": 0.03,
+"held_truth": true
+},
+{
+"k": 57,
+"t": 3.0,
+"phase": "r_lift",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.320864531038183
+],
+"grip_q": [
+0.004080261743782705
+],
+"n_contacts": 4,
+"normal_force_N": 16.321,
+"max_tan_over_normal": 0.019,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0244,
+"peg_tilt_deg": 0.03,
+"held_truth": true
+},
+{
+"k": 58,
+"t": 3.05,
+"phase": "r_lift",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.28735440733953
+],
+"grip_q": [
+0.0040707791176044904
+],
+"n_contacts": 4,
+"normal_force_N": 16.288,
+"max_tan_over_normal": 0.056,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.13,
+"held_truth": true
+},
+{
+"k": 59,
+"t": 3.1,
+"phase": "r_lift",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319134892405078
+],
+"grip_q": [
+0.004079495279249086
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.056,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0248,
+"peg_tilt_deg": 0.17,
+"held_truth": true
+},
+{
+"k": 60,
+"t": 3.15,
+"phase": "r_lift",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.321132737033743
+],
+"grip_q": [
+0.004080276989014829
+],
+"n_contacts": 4,
+"normal_force_N": 16.321,
+"max_tan_over_normal": 0.049,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0248,
+"peg_tilt_deg": 0.14,
+"held_truth": true
+},
+{
+"k": 61,
+"t": 3.2,
+"phase": "r_lift",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.320067856759355
+],
+"grip_q": [
+0.004080018019523159
+],
+"n_contacts": 4,
+"normal_force_N": 16.32,
+"max_tan_over_normal": 0.041,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0248,
+"peg_tilt_deg": 0.1,
+"held_truth": true
+},
+{
+"k": 62,
+"t": 3.25,
+"phase": "r_lift",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319391975913668
+],
+"grip_q": [
+0.0040798419843655846
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.035,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0248,
+"peg_tilt_deg": 0.08,
+"held_truth": true
+},
+{
+"k": 63,
+"t": 3.3,
+"phase": "r_lift",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319385261220273
+],
+"grip_q": [
+0.004079831305192436
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.031,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0248,
+"peg_tilt_deg": 0.07,
+"held_truth": true
+},
+{
+"k": 64,
+"t": 3.35,
+"phase": "r_lift",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319612324611857
+],
+"grip_q": [
+0.004079887928300839
+],
+"n_contacts": 4,
+"normal_force_N": 16.32,
+"max_tan_over_normal": 0.028,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0248,
+"peg_tilt_deg": 0.06,
+"held_truth": true
+},
+{
+"k": 65,
+"t": 3.4,
+"phase": "r_lift",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319683086053942
+],
+"grip_q": [
+0.004079908300053136
+],
+"n_contacts": 4,
+"normal_force_N": 16.32,
+"max_tan_over_normal": 0.025,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0248,
+"peg_tilt_deg": 0.06,
+"held_truth": true
+},
+{
+"k": 66,
+"t": 3.45,
+"phase": "r_lift",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319650016097185
+],
+"grip_q": [
+0.004079900568768049
+],
+"n_contacts": 4,
+"normal_force_N": 16.32,
+"max_tan_over_normal": 0.024,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0248,
+"peg_tilt_deg": 0.06,
+"held_truth": true
+},
+{
+"k": 67,
+"t": 3.5,
+"phase": "r_lift",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319626207153483
+],
+"grip_q": [
+0.004079893763237329
+],
+"n_contacts": 4,
+"normal_force_N": 16.32,
+"max_tan_over_normal": 0.023,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0248,
+"peg_tilt_deg": 0.05,
+"held_truth": true
+},
+{
+"k": 68,
+"t": 3.55,
+"phase": "r_lift",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.3196269785681
+],
+"grip_q": [
+0.004079893061293272
+],
+"n_contacts": 4,
+"normal_force_N": 16.32,
+"max_tan_over_normal": 0.022,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0248,
+"peg_tilt_deg": 0.05,
+"held_truth": true
+},
+{
+"k": 69,
+"t": 3.6,
+"phase": "r_lift",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319629048971887
+],
+"grip_q": [
+0.004079892794446303
+],
+"n_contacts": 4,
+"normal_force_N": 16.32,
+"max_tan_over_normal": 0.021,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0248,
+"peg_tilt_deg": 0.05,
+"held_truth": true
+},
+{
+"k": 70,
+"t": 3.65,
+"phase": "r_lift",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319622545330684
+],
+"grip_q": [
+0.004079890187428776
+],
+"n_contacts": 4,
+"normal_force_N": 16.32,
+"max_tan_over_normal": 0.021,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0248,
+"peg_tilt_deg": 0.05,
+"held_truth": true
+},
+{
+"k": 71,
+"t": 3.7,
+"phase": "r_lift",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.317253200412473
+],
+"grip_q": [
+0.004079137967719263
+],
+"n_contacts": 4,
+"normal_force_N": 16.317,
+"max_tan_over_normal": 0.025,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0248,
+"peg_tilt_deg": 0.06,
+"held_truth": true
+},
+{
+"k": 72,
+"t": 3.75,
+"phase": "r_lift",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.336335566497958
+],
+"grip_q": [
+0.00408497053151837
+],
+"n_contacts": 4,
+"normal_force_N": 16.336,
+"max_tan_over_normal": 0.034,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0248,
+"peg_tilt_deg": 0.09,
+"held_truth": true
+},
+{
+"k": 73,
+"t": 3.8,
+"phase": "r_wait",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.32466581356039
+],
+"grip_q": [
+0.0040815646297796895
+],
+"n_contacts": 4,
+"normal_force_N": 16.325,
+"max_tan_over_normal": 0.048,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0247,
+"peg_tilt_deg": 0.14,
+"held_truth": true
+},
+{
+"k": 74,
+"t": 3.85,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.32089466392815
+],
+"grip_q": [
+0.0040803564876726595
+],
+"n_contacts": 4,
+"normal_force_N": 16.321,
+"max_tan_over_normal": 0.049,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.14,
+"held_truth": true
+},
+{
+"k": 75,
+"t": 3.9,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.318028433177233
+],
+"grip_q": [
+0.004079512361540493
+],
+"n_contacts": 4,
+"normal_force_N": 16.318,
+"max_tan_over_normal": 0.045,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0247,
+"peg_tilt_deg": 0.11,
+"held_truth": true
+},
+{
+"k": 76,
+"t": 3.95,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319697065068453
+],
+"grip_q": [
+0.004079881828095031
+],
+"n_contacts": 4,
+"normal_force_N": 16.32,
+"max_tan_over_normal": 0.036,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0247,
+"peg_tilt_deg": 0.07,
+"held_truth": true
+},
+{
+"k": 77,
+"t": 4.0,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319553454157617
+],
+"grip_q": [
+0.004079876802980651
+],
+"n_contacts": 4,
+"normal_force_N": 16.32,
+"max_tan_over_normal": 0.029,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0247,
+"peg_tilt_deg": 0.05,
+"held_truth": true
+},
+{
+"k": 78,
+"t": 4.05,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319407177237874
+],
+"grip_q": [
+0.004079836913764601
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.025,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0247,
+"peg_tilt_deg": 0.04,
+"held_truth": true
+},
+{
+"k": 79,
+"t": 4.1,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319420978335184
+],
+"grip_q": [
+0.004079840416797069
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.022,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0247,
+"peg_tilt_deg": 0.03,
+"held_truth": true
+},
+{
+"k": 80,
+"t": 4.15,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319417605920098
+],
+"grip_q": [
+0.00407983959308479
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.02,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0247,
+"peg_tilt_deg": 0.03,
+"held_truth": true
+},
+{
+"k": 81,
+"t": 4.2,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319418862568806
+],
+"grip_q": [
+0.004079839606902738
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.019,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0247,
+"peg_tilt_deg": 0.02,
+"held_truth": true
+},
+{
+"k": 82,
+"t": 4.25,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.31942171881637
+],
+"grip_q": [
+0.004079840163088529
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.017,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0247,
+"peg_tilt_deg": 0.02,
+"held_truth": true
+},
+{
+"k": 83,
+"t": 4.3,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.31941663993236
+],
+"grip_q": [
+0.004079838705664902
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.017,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0247,
+"peg_tilt_deg": 0.02,
+"held_truth": true
+},
+{
+"k": 84,
+"t": 4.35,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319407583004015
+],
+"grip_q": [
+0.004079836072416211
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.018,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0247,
+"peg_tilt_deg": 0.02,
+"held_truth": true
+},
+{
+"k": 85,
+"t": 4.4,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319398613171032
+],
+"grip_q": [
+0.004079833340258149
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.019,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0247,
+"peg_tilt_deg": 0.02,
+"held_truth": true
+},
+{
+"k": 86,
+"t": 4.45,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319389427361987
+],
+"grip_q": [
+0.00407983048626793
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.019,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0247,
+"peg_tilt_deg": 0.02,
+"held_truth": true
+},
+{
+"k": 87,
+"t": 4.5,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319378829921664
+],
+"grip_q": [
+0.004079827209664089
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.019,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.02,
+"held_truth": true
+},
+{
+"k": 88,
+"t": 4.55,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319366628026756
+],
+"grip_q": [
+0.004079823446825834
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.02,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.02,
+"held_truth": true
+},
+{
+"k": 89,
+"t": 4.6,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.31936672762175
+],
+"grip_q": [
+0.004079823294915022
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.02,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.02,
+"held_truth": true
+},
+{
+"k": 90,
+"t": 4.65,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.31933823893762
+],
+"grip_q": [
+0.004079814741125314
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.02,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.02,
+"held_truth": true
+},
+{
+"k": 91,
+"t": 4.7,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.31932389663804
+],
+"grip_q": [
+0.004079810077797456
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.02,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.02,
+"held_truth": true
+},
+{
+"k": 92,
+"t": 4.75,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.31930834865609
+],
+"grip_q": [
+0.00407980512238457
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.02,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.02,
+"held_truth": true
+},
+{
+"k": 93,
+"t": 4.8,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.31929222487155
+],
+"grip_q": [
+0.004079799899051045
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.021,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.02,
+"held_truth": true
+},
+{
+"k": 94,
+"t": 4.85,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.31930031839811
+],
+"grip_q": [
+0.004079801986591256
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.021,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0245,
+"peg_tilt_deg": 0.02,
+"held_truth": true
+},
+{
+"k": 95,
+"t": 4.9,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.31757770193523
+],
+"grip_q": [
+0.004079248732643241
+],
+"n_contacts": 4,
+"normal_force_N": 16.318,
+"max_tan_over_normal": 0.025,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0245,
+"peg_tilt_deg": 0.03,
+"held_truth": true
+},
+{
+"k": 96,
+"t": 4.95,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.322267365231152
+],
+"grip_q": [
+0.004080733826826271
+],
+"n_contacts": 4,
+"normal_force_N": 16.322,
+"max_tan_over_normal": 0.019,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0245,
+"peg_tilt_deg": 0.01,
+"held_truth": true
+},
+{
+"k": 97,
+"t": 5.0,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.316213718119638
+],
+"grip_q": [
+0.0040788316102748174
+],
+"n_contacts": 4,
+"normal_force_N": 16.316,
+"max_tan_over_normal": 0.024,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0244,
+"peg_tilt_deg": 0.03,
+"held_truth": true
+},
+{
+"k": 98,
+"t": 5.05,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.320760747168766
+],
+"grip_q": [
+0.004080234941574203
+],
+"n_contacts": 4,
+"normal_force_N": 16.321,
+"max_tan_over_normal": 0.023,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0244,
+"peg_tilt_deg": 0.02,
+"held_truth": true
+},
+{
+"k": 99,
+"t": 5.1,
+"phase": "r_transit",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.318565309316032
+],
+"grip_q": [
+0.004079863238505121
+],
+"n_contacts": 4,
+"normal_force_N": 16.318,
+"max_tan_over_normal": 0.026,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0245,
+"peg_tilt_deg": 0.03,
+"held_truth": true
+},
+{
+"k": 100,
+"t": 5.15,
+"phase": "r_approach",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.317896538508396
+],
+"grip_q": [
+0.004079538268570183
+],
+"n_contacts": 4,
+"normal_force_N": 16.318,
+"max_tan_over_normal": 0.03,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.05,
+"held_truth": true
+},
+{
+"k": 101,
+"t": 5.2,
+"phase": "r_approach",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.326691223529146
+],
+"grip_q": [
+0.004082004233835908
+],
+"n_contacts": 4,
+"normal_force_N": 16.327,
+"max_tan_over_normal": 0.034,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.1,
+"held_truth": true
+},
+{
+"k": 102,
+"t": 5.25,
+"phase": "r_approach",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.321333439485947
+],
+"grip_q": [
+0.0040804725347151774
+],
+"n_contacts": 4,
+"normal_force_N": 16.321,
+"max_tan_over_normal": 0.035,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.13,
+"held_truth": true
+},
+{
+"k": 103,
+"t": 5.3,
+"phase": "r_approach",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319638342030363
+],
+"grip_q": [
+0.00407993990159477
+],
+"n_contacts": 4,
+"normal_force_N": 16.32,
+"max_tan_over_normal": 0.034,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0245,
+"peg_tilt_deg": 0.13,
+"held_truth": true
+},
+{
+"k": 104,
+"t": 5.35,
+"phase": "r_approach",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319097173796443
+],
+"grip_q": [
+0.004079776217669519
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.031,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.12,
+"held_truth": true
+},
+{
+"k": 105,
+"t": 5.4,
+"phase": "r_approach",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319050310543137
+],
+"grip_q": [
+0.004079754615894401
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.027,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.11,
+"held_truth": true
+},
+{
+"k": 106,
+"t": 5.45,
+"phase": "r_approach",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319107661901505
+],
+"grip_q": [
+0.004079768825110157
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.024,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.1,
+"held_truth": true
+},
+{
+"k": 107,
+"t": 5.5,
+"phase": "r_approach",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.31910515421558
+],
+"grip_q": [
+0.004079769582097535
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.021,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.1,
+"held_truth": true
+},
+{
+"k": 108,
+"t": 5.55,
+"phase": "r_approach",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319077555605393
+],
+"grip_q": [
+0.004079763209860614
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.02,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.1,
+"held_truth": true
+},
+{
+"k": 109,
+"t": 5.6,
+"phase": "r_approach",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319064871033493
+],
+"grip_q": [
+0.004079760161123205
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.019,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.1,
+"held_truth": true
+},
+{
+"k": 110,
+"t": 5.65,
+"phase": "r_approach",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.31906910823516
+],
+"grip_q": [
+0.0040797613885210325
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.018,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.1,
+"held_truth": true
+},
+{
+"k": 111,
+"t": 5.7,
+"phase": "r_approach",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319078244032283
+],
+"grip_q": [
+0.004079763985888029
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.018,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.1,
+"held_truth": true
+},
+{
+"k": 112,
+"t": 5.75,
+"phase": "r_approach",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319082825297727
+],
+"grip_q": [
+0.004079765504056185
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.017,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.09,
+"held_truth": true
+},
+{
+"k": 113,
+"t": 5.8,
+"phase": "r_approach",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.31908195356607
+],
+"grip_q": [
+0.0040797655954531425
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.017,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.09,
+"held_truth": true
+},
+{
+"k": 114,
+"t": 5.85,
+"phase": "r_approach",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319070018549745
+],
+"grip_q": [
+0.0040797631345399765
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.018,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.09,
+"held_truth": true
+},
+{
+"k": 115,
+"t": 5.9,
+"phase": "r_approach",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.31907950398886
+],
+"grip_q": [
+0.004079765295119114
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.018,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.09,
+"held_truth": true
+},
+{
+"k": 116,
+"t": 5.95,
+"phase": "r_approach",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.319082985639273
+],
+"grip_q": [
+0.004079766384886407
+],
+"n_contacts": 4,
+"normal_force_N": 16.319,
+"max_tan_over_normal": 0.018,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.09,
+"held_truth": true
+},
+{
+"k": 117,
+"t": 6.0,
+"phase": "r_approach",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.315721639813308
+],
+"grip_q": [
+0.004078782194431003
+],
+"n_contacts": 4,
+"normal_force_N": 16.316,
+"max_tan_over_normal": 0.023,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0246,
+"peg_tilt_deg": 0.08,
+"held_truth": true
+},
+{
+"k": 118,
+"t": 6.05,
+"phase": "r_align",
+"grip_cmd": 0.0,
+"grip_force": [
+-16.31191467566122
+],
+"grip_q": [
+0.00407763713849461
+],
+"n_contacts": 4,
+"normal_force_N": 16.312,
+"max_tan_over_normal": 0.034,
+"contact_geoms": [
+"r1_wrist_pad_a",
+"r1_wrist_pad_b"
+],
+"peg_along_tool_m": 0.0247,
+"peg_tilt_deg": 0.07,
+"held_truth": true
+}
+]
+}
