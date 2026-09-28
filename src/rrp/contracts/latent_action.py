@@ -18,6 +18,11 @@ from .base import Strict, NDArray
 from .errors import ControllerRejection, StaleActionError
 
 LATENT_SCHEMA = "latent-action-1.0"
+# Packet `source`: the 4 original values (unchanged on the wire) plus the canonical rrp.contracts.provenance.Source
+# kinds (D-126; "unknown" excluded). Admission (check_packet) does not look at the source.
+LatentSource = Literal["learned", "target_encoder_oracle", "debug", "replay",
+                       "scripted_teacher", "privileged_teacher", "oracle", "bc", "random", "mock", "cpg_tracker",
+                       "learned_tracker", "user"]
 
 
 class AssemblyHandle(Strict):
@@ -47,7 +52,7 @@ class LatentActionChunk(Strict):
     generated_at: float
     valid_from: float                     # simulation/controller time the knot times are relative to
     valid_until: float
-    source: Literal["learned", "target_encoder_oracle", "debug", "replay"]
+    source: LatentSource
     policy_version: str
     sampling: dict = Field(default_factory=dict)   # seed, nfe, sampler — provenance only
 

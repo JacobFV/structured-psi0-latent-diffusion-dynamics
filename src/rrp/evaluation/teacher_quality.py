@@ -199,7 +199,8 @@ def _rms(x):
     return float(np.sqrt(np.mean(x ** 2))) if x.size else 0.0
 
 
-def run_policy_quality_episode(policy, robot_key: str, seed: int, *, label: str, max_steps: int = 300, robot=None) -> dict:
+def run_policy_quality_episode(policy, robot_key: str, seed: int, *, label: str, max_steps: int = 300, robot=None,
+                               ckpt: str | None = None, source_labels: bool | None = None) -> dict:
     """The same motion metrics for a LEARNED chunk policy (rrp.controllers.policy_runner.LearnedPolicy), rolled out
     like the ladder `learned` route (execute_prefix rows per chunk, public observations only). Phases are the chunk
     index, so `vel_jump_switch_max` = the largest joint-velocity step at chunk boundaries."""
@@ -211,6 +212,13 @@ def run_policy_quality_episode(policy, robot_key: str, seed: int, *, label: str,
     s = Session(BUILDERS["pick_place"](robot, seed, n_distractors=seed % 3), seed=seed)
     m, d = s.model, s.data
     row = dict(robot=robot_key, seed=seed, version="policy", source=label, privileged=False, n_distractors=seed % 3)
+    if ckpt is not None:        # D-126 sl-1 (default off): the free `label` stays; the canonical label names the checkpoint
+        from rrp.contracts.provenance import Source, parse_legacy_source, stamp_source_label
+        try:
+            kind = "bc" if parse_legacy_source(label).kind is Source.BC else "learned"
+        except ValueError:
+            kind = "learned"
+        stamp_source_label(row, kind, str(ckpt), enabled=source_labels)
     feas = PickPlaceTeacher(s).feasibility()          # same seed-set definition as every other route
     row["feasible"] = bool(feas["feasible"])
     if not feas["feasible"]:
@@ -289,7 +297,7 @@ def _policy_job(args):
     torch.set_num_threads(1)
     pol = LearnedPolicy.from_checkpoint(ck, device=device, nfe=8, execute_prefix=8, seed=0)
     robot = workbench_robots()[rk]()
-    return [run_policy_quality_episode(pol, rk, sd, label=label, max_steps=max_steps, robot=robot) for sd in seeds]
+    return [run_policy_quality_episode(pol, rk, sd, label=label, max_steps=max_steps, robot=robot, ckpt=ck) for sd in seeds]
 
 
 def _metrics(T, dt, lo, hi, teacher) -> dict:

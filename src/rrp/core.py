@@ -45,7 +45,8 @@ _add("rrp.evaluation.edit_harness", "EditCondition", "EDIT_KINDS", "PacketSource
 _add("rrp.contracts.provenance", "Provenance", "PhysicsProvenance", "CodeProvenance", "Source", "SourceLabel",
      "source_label", "parse_source", "make_provenance", "legacy_provenance", "read_provenance", "code_provenance",
      "physics_provenance", "weights_digest", "file_digest", "training_flags", "resolve_zero_prev_action",
-     "MissingFlagError", "FEATURIZER_VERSION")
+     "MissingFlagError", "FEATURIZER_VERSION", "row_source", "stamp_source_label", "parse_legacy_source",
+     "canonical_source_labels", "SOURCE_LABELS_ENV", "SOURCE_LABEL_VERSION")
 _add("rrp.data.manifest", "write_manifest", "read_manifest", "dataset_provenance", "assert_disjoint_lineages")
 # 7. RunConfig, pipeline registry, run-dag, family/robot extension hooks
 _add("rrp.contracts.runconfig", "RunConfig", "Flags", "RunIndex", "RunConfigError", "PIPELINE_STAGES", "FLAG_NAMES",

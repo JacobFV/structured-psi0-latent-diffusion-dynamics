@@ -30,6 +30,7 @@ import mujoco
 import numpy as np
 import torch
 
+from rrp.contracts.provenance import stamp_source_label
 from rrp.contracts.errors import ControllerRejection, StaleActionError
 from rrp.evaluation.statistics import wilson as _stats_wilson
 from rrp.features.featurizer import cached_featurizer
@@ -328,6 +329,22 @@ class LadderConfig:
     perturb: object = None           # W6: rrp.envs.perturb.PhysicsPerturbation (None = nominal physics, unchanged)
     oracle_expert: str = "teacher"   # R1 packet source: teacher (shadow FSM look-ahead) | bc (stateless: E(chunk the
                                      # learned BC policy `policy` would execute from the current state); ORACLE DIAGNOSTIC
+    source_labels: bool | None = None  # D-126: also write a canonical `source_label` (None = $RRP_SOURCE_LABELS, default off)
+
+
+def route_source(cfg: LadderConfig) -> tuple[str, str, str | None]:
+    """(legacy row `source` string, canonical kind, detail) of a ladder route. The legacy string is exactly what rows
+    have always carried; the canonical pair feeds `source_label` when RRP_SOURCE_LABELS=canonical (D-126, sl-1)."""
+    pl = cfg.policy_label or cfg.policy
+    legacy = dict(teacher="scripted_teacher(privileged)", oracle="target_encoder_oracle(ORACLE DIAGNOSTIC: "
+                  + ("teacher future actions)" if cfg.oracle_expert == "teacher" else
+                     f"chunk of learned:{pl} at the current state)"), generated="learned(system-i flow)",
+                  learned=f"learned:{pl}")[cfg.route]
+    kind, detail = dict(teacher=("scripted_teacher", "privileged"),
+                        oracle=("oracle", "teacher_future" if cfg.oracle_expert == "teacher" else f"learned_chunk:{pl}"),
+                        generated=("learned", cfg.flow),
+                        learned=("learned", pl))[cfg.route]
+    return legacy, kind, detail
 
 
 def load_models(cfg: LadderConfig):
@@ -593,11 +610,9 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
             oracle_cmp_by_phase=_cmp_by_phase(rp, T) if rp else None,
             ticks=T if cfg.keep_ticks else None, replans=m["replans"] if cfg.keep_ticks else None,
             interventions=s.intervention_log, wall_s=time.time() - m["t0"],
-            source=dict(teacher="scripted_teacher(privileged)", oracle="target_encoder_oracle(ORACLE DIAGNOSTIC: "
-                        + ("teacher future actions)" if cfg.oracle_expert == "teacher" else
-                           f"chunk of learned:{cfg.policy_label or cfg.policy} at the current state)"), generated="learned(system-i flow)",
-                        learned=f"learned:{cfg.policy_label or cfg.policy}")[cfg.route],
+            source=route_source(cfg)[0],
             checkpoints=ids, motion=mrecs[k].summary()))
+        stamp_source_label(out[-1], *route_source(cfg)[1:], enabled=cfg.source_labels)
         if cfrecs is not None:
             from rrp.evaluation.contact_metrics import arm_contact_motion
             out[-1]["motion"].update(arm_contact_motion(cfrecs[k].recording()))

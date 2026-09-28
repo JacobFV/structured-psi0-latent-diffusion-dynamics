@@ -266,9 +266,14 @@ def summarize_shard(rows: list[dict], family: str) -> dict:
                     median_min_tcp_cube_m=float(np.median([r["min_tcp_cube_m"] for r in rows])) if rows else None,
                     mean_steps=float(np.mean([r["steps"] for r in rows])) if rows else None)
     src = sorted({(r["source"] if isinstance(r["source"], str) else json.dumps(r["source"])) for r in rows})
-    return dict(n=n, success=k, rate=(k / n if n else None), wilson95=[lo, hi], falls=fl, stages=stages, task=task,
-                motion_median=mot, sources=src, seeds=sorted(r["seed"] for r in rows),
-                success_by_seed={str(r["seed"]): _success(r, family) for r in rows})
+    out = dict(n=n, success=k, rate=(k / n if n else None), wilson95=[lo, hi], falls=fl, stages=stages, task=task,
+               motion_median=mot, sources=src, seeds=sorted(r["seed"] for r in rows),
+               success_by_seed={str(r["seed"]): _success(r, family) for r in rows})
+    if any("source_label" in r for r in rows):      # D-126 sl-1 rows only: legacy summaries stay byte-identical
+        from rrp.contracts.provenance import SourceLabel, Source, row_source
+        unk = SourceLabel(kind=Source.UNKNOWN)
+        out["source_labels"] = sorted({str(row_source(r, default=unk)) for r in rows})
+    return out
 
 
 # ------------------------------------------------------------------ run

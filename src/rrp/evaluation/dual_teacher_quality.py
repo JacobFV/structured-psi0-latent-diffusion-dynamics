@@ -28,6 +28,7 @@ from pathlib import Path
 import mujoco
 import numpy as np
 
+from rrp.contracts.provenance import stamp_source_label
 from rrp.envs.motion_quality import chunk_boundary_steps, jerk_stats, joint_limit_margin
 
 AUDIT_VERSION = "rrp.evaluation.dual_teacher_quality/v1"
@@ -37,7 +38,8 @@ MARGIN_GATE = 0.02
 
 
 def run_audit_episode(task: str, pair: str, seed: int, *, max_steps: int = 1200, noise: float = 0.0,
-                      burst: tuple = (1, 1), stop_after_success: int | None = 10) -> dict:
+                      burst: tuple = (1, 1), stop_after_success: int | None = 10,
+                      source_labels: bool | None = None) -> dict:
     from rrp.data.contact_labels import ContactFrameRecorder
     from rrp.evaluation.contact_metrics import dual_contact_motion
     from rrp.physics.grasp_contact import model_grasp_version
@@ -51,6 +53,7 @@ def run_audit_episode(task: str, pair: str, seed: int, *, max_steps: int = 1200,
     row = dict(version=AUDIT_VERSION, task=task, pair=pair, seed=seed, source="scripted_teacher", privileged_teacher=True,
                noise=noise, burst=list(burst), grasp_contact_version=model_grasp_version(m) or "grasp_v1",
                feasible=bool(f["feasible"]))
+    stamp_source_label(row, "scripted_teacher", f"dual_{task}", enabled=source_labels)   # D-126 sl-1 (default off)
     if not f["feasible"]:
         row.update(status="infeasible", unreachable=f["unreachable"], wall_s=time.time() - t0)
         return row

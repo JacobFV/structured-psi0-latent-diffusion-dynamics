@@ -110,3 +110,14 @@ none needed migration. Legged configs are out of scope: the legged system 0 has 
   peer `*.pt` should include `checkpoint_provenance`.
 - Chain scripts that generate configs on the fly must now include `zero_prev_action`. New runs without it error
   by design.
+
+## D-126 source labels (sl-1)
+Switch: `RRP_SOURCE_LABELS=canonical` (env) or an explicit `source_labels=True` argument; **default off**
+(unset / "" / "legacy"; any other value raises). `canonical_source_labels(enabled=None)` resolves it.
+When on, `stamp_source_label(row, kind, detail)` ADDS `source_label` (strict `source_label()`) and
+`source_label_version: "sl-1"` to a new row; the legacy `source` string is never changed and must agree in kind.
+Off, rows are byte-identical to before. Readers use `row_source(row, default=None)`: `source_label` first, else the
+legacy `source` via `parse_legacy_source` (also reads the ladder's "learned(system-i flow)" /
+"target_encoder_oracle(...)" / "scripted_teacher(privileged)" forms). `contracts.action.Source` and
+`LatentActionChunk.source` now also accept the canonical kinds (not "unknown"); old values serialize unchanged.
+Notes: `research/tracks/d126_deploy.md` "source labels".

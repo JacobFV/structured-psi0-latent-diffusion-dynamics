@@ -208,19 +208,17 @@ def dagger_collect(ctx: StageContext) -> dict:
 
 
 def _source_counts(rows_path: Path) -> dict:
-    """Eval rows keep their legacy free-string source; the manifest records the canonical Source enum per row
-    (contracts.provenance.parse_source) so reports can group by it."""
-    from rrp.contracts.provenance import parse_source
+    """Eval rows keep their legacy free-string source; the manifest records the canonical Source enum per row so
+    reports can group by it. Reads both formats (contracts.provenance.row_source: sl-1 `source_label` first, else
+    the legacy `source`, including the ladder's "learned(system-i flow)" / "target_encoder_oracle(...)" forms)."""
+    from rrp.contracts.provenance import row_source
     c = Counter()
     if rows_path.exists():
         for line in rows_path.read_text().splitlines():
             if line.strip():
-                s = json.loads(line).get("source")
-                if isinstance(s, str) and "(" in s:        # ladder rows: "learned(system-i flow)", "target_encoder_oracle(...)"
-                    s = s.split("(", 1)[0]
                 try:
-                    c[str(parse_source(s).kind.value)] += 1
-                except (ValueError, AttributeError):
+                    c[str(row_source(json.loads(line)).kind.value)] += 1
+                except (ValueError, TypeError, AttributeError):
                     c["unparsed"] += 1
     return dict(c)
 

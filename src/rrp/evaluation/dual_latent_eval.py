@@ -25,6 +25,7 @@ import torch
 from rrp.contracts.action import NativeCommand
 from rrp.contracts.errors import ControllerRejection, StaleActionError
 from rrp.contracts.latent_action import LatentActionChunk, AssemblyHandle, EntityHandle, check_packet
+from rrp.contracts.provenance import stamp_source_label
 from rrp.controllers.latent_realizer import LatentSystem0
 from rrp.features.multi import MultiFeaturizer
 from rrp.data import dual_latent as DL
@@ -229,8 +230,8 @@ def _acc(d, res):
 
 def evaluate_dual_latent(policy: DualLatentPolicy, realizer, probe, task: str, pair: str, seeds: list[int], *,
                          method: str, replan_ticks: int = 8, max_steps: int = 800, batch: int = 20,
-                         out_path: Path | None = None, device="cpu", packet_edit: str | None = None
-                         ) -> list[DualLatentEpisode]:
+                         out_path: Path | None = None, device="cpu", packet_edit: str | None = None,
+                         source_labels: bool | None = None) -> list[DualLatentEpisode]:
     """packet_edit='swap_slots' (causal intervention): system 0 receives each packet with its two slots' z values
     exchanged (handles unchanged), i.e. the left arm is driven by the right arm's latent and vice versa."""
     from rrp.teachers.dual_validate import make_session
@@ -297,7 +298,9 @@ def evaluate_dual_latent(policy: DualLatentPolicy, realizer, probe, task: str, p
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with open(out_path, "a") as fh:
             for r in results:
-                fh.write(json.dumps(asdict(r)) + "\n")
+                row = stamp_source_label(asdict(r), "learned", policy.name + (f"+edit:{packet_edit}" if packet_edit else ""),
+                                         enabled=source_labels)      # D-126 sl-1; default off = unchanged rows
+                fh.write(json.dumps(row) + "\n")
     return results
 
 

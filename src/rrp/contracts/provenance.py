@@ -204,6 +204,71 @@ def source_label(kind: Source | str, detail: str | None = None) -> str:
     return str(parse_source(SourceLabel(kind=k, detail=detail), strict=True))
 
 
+
+# --------------------------------------------------------------------------- source labels on rows (D-126, sl-1)
+# Eval/data rows historically carry a free-string `source` ("scripted_teacher(privileged)", "learned:x+edit:y",
+# "target_encoder_oracle(ORACLE DIAGNOSTIC: ...)"). Those strings are never rewritten. A default-OFF, versioned
+# switch makes NEW rows additionally carry a strict canonical `source_label` plus `source_label_version`.
+# Readers use `row_source(row)`, which prefers `source_label` and falls back to parsing the legacy `source`.
+SOURCE_LABELS_ENV = "RRP_SOURCE_LABELS"      # "canonical" = on; unset / "" / "legacy" = off (the default)
+SOURCE_LABEL_VERSION = "sl-1"
+
+
+def canonical_source_labels(enabled: bool | None = None) -> bool:
+    """Whether new rows get a canonical `source_label`. An explicit argument wins; else $RRP_SOURCE_LABELS
+    ("canonical" -> on; unset, "" or "legacy" -> off). Any other value is an error (no silent typo)."""
+    if enabled is not None:
+        return bool(enabled)
+    v = os.environ.get(SOURCE_LABELS_ENV, "").strip().lower()
+    if v in ("", "legacy", "off", "0"):
+        return False
+    if v in ("canonical", "on", "1", SOURCE_LABEL_VERSION):
+        return True
+    raise ValueError(f"{SOURCE_LABELS_ENV}={v!r}: expected 'canonical' or 'legacy'")
+
+
+def parse_legacy_source(s) -> SourceLabel:
+    """Lenient reader for on-disk row strings: parse_source plus the ladder's annotated forms
+    "scripted_teacher(privileged)", "learned(system-i flow)", "target_encoder_oracle(ORACLE DIAGNOSTIC: ...)"
+    (the annotation becomes no detail). Raises ValueError for unparseable values."""
+    if isinstance(s, str):
+        head = s.split("(", 1)[0] if "(" in s.split(":", 1)[0] else s
+        return parse_source(head)
+    return parse_source(s)
+
+
+def row_source(row: dict, *, default: SourceLabel | None = None) -> SourceLabel:
+    """Canonical source of an eval/data row in either format: the `source_label` key (sl-1 rows) if present,
+    else the legacy `source` key. `default` is returned for a missing/unparseable legacy source (None: raise)."""
+    if row.get("source_label") is not None:
+        return parse_source(row["source_label"], strict=True)
+    try:
+        return parse_legacy_source(row.get("source"))
+    except (ValueError, TypeError):
+        if default is not None:
+            return default
+        raise
+
+
+def stamp_source_label(row: dict, kind: Source | str, detail: str | None = None, *,
+                       enabled: bool | None = None) -> dict:
+    """Add `source_label` (strict `source_label(kind, detail)`) and `source_label_version` to a NEW row when the
+    switch is on (see canonical_source_labels); a no-op otherwise, so default rows stay byte-identical. The
+    legacy `source` key is never touched; if it parses, its kind must agree with `kind` (catches mislabels)."""
+    if not canonical_source_labels(enabled):
+        return row
+    lab = source_label(kind, detail)
+    if "source" in row:
+        try:
+            old = parse_legacy_source(row["source"]).kind
+        except (ValueError, TypeError):
+            old = None
+        if old is not None and old is not Source(kind):
+            raise ValueError(f"source_label {lab!r} contradicts the row's legacy source {row['source']!r}")
+    row["source_label"] = lab
+    row["source_label_version"] = SOURCE_LABEL_VERSION
+    return row
+
 # ------------------------------------------------------------------------------------------------ code / weights
 def repo_root() -> Path:
     """The rrp source checkout (or $RRP_HOME; the cwd when rrp is an installed package): rrp.contracts.paths."""
