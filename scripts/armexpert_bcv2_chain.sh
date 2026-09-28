@@ -24,7 +24,7 @@ log() { echo "$(date '+%F %T') [bcv2 s$SEED] $*"; }
 
 run_job() {   # $1 label $2 cpu $3 mem $4 max_s $5 gpu(0/1) -- cmd...   (python = "PY")
   local label=$1 cpu=$2 mem=$3 maxs=$4 gpu=$5; shift 5
-  local g=(); [ "$gpu" = 1 ] && g=(--gpu --gpu-mem 16G)
+  local g=(); [ "$gpu" = 1 ] && g=(--gpu --gpu-mem ${TRAIN_GPU_MEM:-8G})  # D-117: v6 1701 measured 2.2 GB RSS + ~4.5 GB CUDA
   set -- env RRP_GRASP_CONTACT=$GC "$@"
   if [ "$PLACE" = peer ]; then
     for _try in $(seq 1 180); do       # wait (<= 3 h) for peer admission (memory-capped broker, D-106)
@@ -58,7 +58,7 @@ log "pack $PACK grasp contact $pg"
 for attempt in 1 2 3 4; do
   have $SRC/policy.pt && break
   log "train attempt $attempt ($PLACE)"
-  run_job ax${TAGP}_train_s$SEED ${TRAIN_CPU:-3} 24G 21000 1 PY -m rrp.cli campaign baseline-cell --method baseline_direct_action \
+  run_job ax${TAGP}_train_s$SEED ${TRAIN_CPU:-3} ${TRAIN_MEM:-6G} 21000 1 PY -m rrp.cli campaign baseline-cell --method baseline_direct_action \
     --seed $SEED --target source --train-only --root $ROOT --source-pack $PACK --snapshot-steps 12000 \
     || log "train lease ended without success (attempt $attempt); exact resume on the next lease"
 done
