@@ -250,18 +250,10 @@ def run_episodes(policy, realizer, robot_key: str, seeds: list[int], *, replan_t
 
 
 def feasible_seeds(robot_key: str, start: int, n: int, task="pick_place") -> list[int]:
-    from rrp.bodies.catalog import workbench_robots
-    from rrp.envs.scenario import BUILDERS
-    from rrp.envs.native import Session
-    from rrp.teachers.arm import PickPlaceTeacher
-    robot = workbench_robots()[robot_key]()
-    out, sd = [], start
-    while len(out) < n:
-        s = Session(BUILDERS[task](robot, sd, n_distractors=sd % 3), seed=sd)
-        if PickPlaceTeacher(s).feasibility()["feasible"]:
-            out.append(sd)
-        sd += 1
-    return out
+    """The ladder's seed set; the one definition lives in rrp.evaluation.robustness.feasible_arm_seeds (D-126: the
+    body was identical; moved down so the evaluation-layer ladder CLI can use it without importing training)."""
+    from rrp.evaluation.robustness import feasible_arm_seeds
+    return feasible_arm_seeds(robot_key, start, n, task)
 
 
 # ------------------------------------------------------------------ training loop

@@ -21,13 +21,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 
-def caption(frame: np.ndarray, lines: list[str]) -> np.ndarray:
-    im = Image.fromarray(frame)
-    d = ImageDraw.Draw(im)
-    d.rectangle([0, 0, im.width, 14 * len(lines) + 6], fill=(0, 0, 0))
-    for i, t in enumerate(lines):
-        d.text((6, 3 + 14 * i), t, fill=(255, 255, 255))
-    return np.asarray(im)
+from rrp.evaluation.captions import caption  # noqa: E402,F401  (moved to the library, D-126; re-exported here)
 
 
 def run(args):
