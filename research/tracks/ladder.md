@@ -3,7 +3,20 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
-## ARM V6 LINEAGES (D-110 relaunch; prepared 2026-09-28; state: planned — NOT started, waiting for the lead's go after the v6 BC is evaluated)
+## ARM V6 LINEAGES (D-110 relaunch; LAUNCHED 2026-09-28 01:06 PDT after the lead's GO; state: running)
+GO (lead): the v6 BC expert (seed 1701 final) passes the D-121 condition (panda 29/30 + 29/30, parm6 30/30 + 30/30
+under grasp_v2.1). Launch checks: code pushed to wt/armv6 (revision 520916e, clean); expert sha256[:16] a29810bd0168ee1a
+re-checked = the prepared value; dataset manifest present. Coordinator = host user unit `rrp-armv6-dag` (the run-dag
+orchestrator only: imports neither torch nor mujoco, ~46 MB RSS; it launches and polls peer leases; nothing simulated or
+trained on the host, D-127). 2 GPU leases (W7 lineages first, then W10, then W12). Declared memory >= 1.35 x measured
+peak: Stage A 14G RAM + 2G GPU (measured 10.2G / 1.14G on v4dart), flows 9G + 2G (6.6G / 1.12G); refits 8G + 3G,
+collections 20G, evals 6G, edit suite 12G provisional until measured (sampler `scripts/armv6_mem_sampler.sh`, unit
+`rrp-armv6-memsampler` -> artifacts/runs/armv6/_dags/arm_lineage_v6/memory_peaks.json). The BC seed-1702 chain
+(axbcv6_train_s1702) is untouched. At launch only one Stage A was admitted; the others wait for broker admission
+(aggregate declared memory full; bounded, not attempts).
+RESUME: `cd ~/work/rrp-wt/ladder && systemd-run --user --unit rrp-armv6-dag2 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv6 --setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/ladder ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_lineage_v6.yaml`
+(completed nodes skipped, running leases re-adopted; `--retry-failed` only as a logged manual decision; before
+resuming a shed Stage A, check its log says `exact: RNG restored`).
 DAG `dags/arm_lineage_v6.yaml` (`extends: arm_lineage_v2.yaml`): semfix and nosem x training seeds 1, 2; fresh lineage
 `arm6-<variant>`, track `armv6`, labels `a6<tg><seed>`, new ledger `artifacts/runs/armv6/_dags/arm_lineage_v6/ledger.json`,
 peer code dir `/dev/shm/rrp-brandonin/wt/armv6`. Inputs, v6 only:
