@@ -129,6 +129,7 @@ def test_research_path_reexports_library_objects():
     assert r.make_instruction(3, "color", {"a": (1, 0), "b": (2, 0)}) == s2.make_instruction(3, "color", {})
 
 
+@pytest.mark.menagerie                  # builds go2 (Menagerie assets; skipped in a fresh clone)
 def test_episode_wiring_binds_public_graph_and_privileged_truth():
     pytest.importorskip("mujoco")
     sd = next(s for s in range(10000, 10040) if s2.make_instruction(s, "color", {})[1][0] == "cyan")
