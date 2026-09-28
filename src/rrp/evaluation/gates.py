@@ -29,7 +29,7 @@ GATES = dict(
     legged_dataset=dict(slip_ratio_max=0.15, slip_ok_frac_min=0.95, falls_at_sigma0_max=0),
     arm_dataset=dict(phase_switch_vel_step_max=0.5, cmd_jerk_rms_ratio_max=2.0, joint_limit_margin_min=0.02,
                      ok_frac_min=0.95, penetration_max_m=0.003, penetration_ok_frac_min=0.99,
-                     penetration_gated_grasp=("grasp_v2",)),
+                     penetration_gated_grasp=("grasp_v2", "grasp_v2.1")),
     policy=dict(chunk_vel_step_flag=1.5),
 )
 BIPED_FAMILIES = ("humanoid", "biped")
@@ -187,7 +187,8 @@ def _arm_row(e: dict) -> dict:
     m = e.get("motion") or {}
     phys = e.get("physics") or {}
     grasp = m.get("grasp_contact_version") or phys.get("grasp_contact_version") or e.get("grasp_contact")
-    grasp = "grasp_v2" if str(grasp) in ("v2", "grasp_v2") else ("grasp_v1" if grasp in (None, "v1", "grasp_v1") else str(grasp))
+    grasp = ("grasp_v1" if grasp in (None, "v1", "grasp_v1") else
+             str(grasp) if str(grasp).startswith("grasp_") else f"grasp_{grasp}")      # v2 -> grasp_v2, v2.1 -> grasp_v2.1
     pick = lambda *ks: next((x for x in ks if x is not None), None)
     return dict(body=pick(e.get("robot_key"), e.get("robot")), status=pick(e.get("status"), e.get("outcome")),
                 step=pick(m.get("phase_switch_vel_step_max"), e.get("vel_jump_switch_max")),

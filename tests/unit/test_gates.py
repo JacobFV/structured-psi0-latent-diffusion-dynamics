@@ -108,6 +108,12 @@ def test_arm_joint_margin_reported_for_dart_episodes():
     assert _status(r, "joint_limit_margin") == "fail"
 
 
+def test_arm_penetration_gated_for_grasp_v2_1():
+    ref = dict(source="test", bodies=dict(panda_pg2=5.0))
+    assert _status(check_arm_dataset(_arm(20, pen=0.004, grasp="grasp_v2.1"), reference=ref), "penetration") == "fail"
+    assert _status(check_arm_dataset(_arm(20, pen=0.001, grasp="v2.1"), reference=ref), "penetration") == "pass"
+
+
 def test_policy_flags_are_reported_only():
     r = policy_flags([dict(motion=dict(chunk_vel_step_max=x)) for x in (1.0, 2.0, 3.0)])
     assert r["verdict"] == "reported" and r["flagged"] == 2
