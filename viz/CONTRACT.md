@@ -61,7 +61,19 @@ All JSON. Every document has `{schema: "rrp-viz/<name>/v1", generated_at, git_sh
             edit_active:[bool], forward_progress:[..], object_pose:[[..]], penetration_mm:[..], slip:[..] },
  annotations: [{t, text}] }
 ```
-Missing signals are omitted, never faked. The packet PCA basis is fitted per bundle on training packets and stored in `meta`.
+Missing signals are omitted, never faked.
+
+Frontend additions (v1.1, proposed by the frontend agent; all optional, the theatre degrades without them):
+- `geoms[].pos` `[x,y,z]` and `geoms[].quat` `[w,x,y,z]`: the geom pose **in its body frame** (MuJoCo `geom_pos`/`geom_quat`);
+  identity when absent. Sizes use MuJoCo semantics (box half-extents, capsule/cylinder `[r, half-length]` along local z,
+  plane `[hx, hy, grid]`). World frame is z-up. `body` is a name in `bodies`; the world body may be omitted from `frames`.
+- `meta.contact_bodies: [names]`: the body for each column of `signals.contacts` (enables 3D contact markers).
+- `meta.base_body`, `meta.object_body`: bodies drawn with a ghost trail (defaults: first non-world body; `object_pose`).
+- `meta.joint_names: [names]`: names for the columns of `joint_target` / `joint_pos`.
+- `meta.packet_pca: {fit_on, explained_variance: [3]}`: provenance of the PCA basis.
+- `/api/meta`: plugin status `{exporter_available, exporter, root, replays_dir, video_dir, cache_s}`; the UI uses it to decide
+  between live data and clearly-labelled FIXTURES (fixtures are only used while the exporter module does not exist).
+- `/api/doc?path=` is served by the plugin directly from the allowlist (no exporter call). The packet PCA basis is fitted per bundle on training packets and stored in `meta`.
 
 ## views (frontend)
 1. **Overview**: what is established vs open, key numbers, caveats, latest decisions.
