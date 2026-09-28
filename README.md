@@ -169,3 +169,4 @@ The Ψ₀ / SIMPLE benchmark (workstream W10) lives in [JacobFV/psi1z](https://g
 as a library (`rrp.core`, pinned by git sha) and never copies its code; shared pieces change here first. Full map, dependency rules
 and the decision crosswalk (rrp D-xxx ↔ psi1z P-xxx): [docs/related_repos.md](docs/related_repos.md). Current W10 status: D-120 in
 [research/decisions.md](research/decisions.md) and psi1z's [research/notes.md](https://github.com/JacobFV/psi1z/blob/main/research/notes.md).
+Open questions and planned experiments (what is still uncertain but in scope): [docs/experiments_roadmap.md](docs/experiments_roadmap.md).

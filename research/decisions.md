@@ -741,3 +741,9 @@ Decisions:
 (2) Dual teacher v3: contact-confirmed grasp, minimum-jerk, limit-aware IK for sawyer, slip/drift limits, phase-gated noise; plus a dual dataset gate.
 (3) Phase C1 go/no-go (B0 / A1 / A3 at seed 0, ~9–24 GPU-h) only after (1)–(2), and after the arm v6 lineages.
 (4) Tests: the push-despite-failing-tests pattern happened twice (lead and W12), caused by CUDA OOM on the busy host GPU. tests/conftest.py now hides CUDA unless RRP_TEST_GPU=1 (401 pass / 12 skip without assets). Rule: check pytest's exit code before pushing, not just its tail.
+
+## D-126 2026-09-27 experiments roadmap recorded; every code-only item implemented now behind ablation flags
+Owner: "make sure this is recorded in our codebase so that we can see what's still uncertain but that we're interested in", then "implement all the things that are just a code problem … designed to be ablatable".
+(1) docs/experiments_roadmap.md lists 35 open questions (arm, cross-body, legged/humanoid, W12, Ψ₀, deployment credibility, new task families), each with dependency, cost, experiment status and code status. It is linked from README, STATUS and strategy.
+(2) Code-only items are implemented now by parallel agents with file ownership, as ADDITIVE, default-off, versioned options recorded in provenance. Existing configs must stay byte-identical (checked by tests) and running DAGs are untouched. Tests and the layering test stay green. No heavy compute (D-115); at most tiny peer smoke runs at the lowest priority.
+Items that are not code problems (render-gap research #25, final experiment designs #22/#31) are left as open.

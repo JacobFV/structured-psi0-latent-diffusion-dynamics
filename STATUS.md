@@ -1,4 +1,5 @@
 # project status — structured-psi0-latent-diffusion-dynamics (formerly relational robot policy)
+Open questions / planned experiments: docs/experiments_roadmap.md (D-126). Stated-but-unimplemented code: docs/intentions_backlog.md (D-123).
 
 Related repository: Ψ₀ line in [psi1z](https://github.com/JacobFV/psi1z); map and decision crosswalk in docs/related_repos.md.
 
