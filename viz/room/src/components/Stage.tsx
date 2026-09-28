@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { frameAt, relTimes, type Clock, type Geom, type Replay } from '../lib/replay';
 
-function geomObject(g: Geom): THREE.Mesh | null {
+export function geomObject(g: Geom): THREE.Mesh | null {
   const s = g.size || [];
   let geo: THREE.BufferGeometry | null = null;
   let alongZ = false;

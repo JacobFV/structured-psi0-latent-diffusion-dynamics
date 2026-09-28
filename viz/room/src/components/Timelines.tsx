@@ -250,15 +250,20 @@ function JointTracks({ sides, t, duration, onSeek }: { sides: Side[]; t: number;
   const pn = (primary.meta.joint_names as string[] | undefined) || Array.from({ length: width(pos) }, (_, j) => `joint ${j}`);
   const tn = (primary.meta.joint_target_names as string[] | undefined) || (width(tgt) === width(pos) ? pn : Array.from({ length: width(tgt) }, (_, j) => `target ${j}`));
   // rows: every measured joint with its same-named target (if any), then targets with no measured joint
-  const rowsJ: { name: string; p: number; tIdx: number }[] = pn.map((name, j) => ({ name, p: j, tIdx: tn.indexOf(name) }));
-  tn.forEach((name, k) => { if (!pn.includes(name)) rowsJ.push({ name, p: -1, tIdx: k }); });
+  // names shared -> pair by name; no shared name -> pair by column order and say so on every row (e.g. r0_joint1 ↔ arm[0])
+  const shared = pn.some((n) => tn.includes(n));
+  const rowsJ: { name: string; p: number; tIdx: number }[] = shared
+    ? pn.map((name, j) => ({ name, p: j, tIdx: tn.indexOf(name) }))
+    : pn.map((name, j) => ({ name: j < tn.length ? `${name} ↔ ${tn[j]}` : name, p: j, tIdx: j < tn.length ? j : -1 }));
+  if (shared) tn.forEach((name, k) => { if (!pn.includes(name)) rowsJ.push({ name, p: -1, tIdx: k }); });
+  else for (let k = pn.length; k < tn.length; k++) rowsJ.push({ name: tn[k], p: -1, tIdx: k });
   const shown = showAll ? rowsJ : rowsJ.slice(0, 8);
   return (
     <div className="tl-panel">
       <div className="h">
         <b>Joint targets (dashed) vs positions (solid)</b>
         {noteOf(sides, 'joint_target')}
-        <span className="muted small">{sides.length > 1 ? `replay ${sides[0].tag} only` : ''}{!primary.meta.joint_target_names && width(tgt) !== width(pos) ? ' · target and position columns differ and are not named: not overlaid' : ''}</span>
+        <span className="muted small">{sides.length > 1 ? `replay ${sides[0].tag} only` : ''}{!shared && tgt && pos ? ' · target and position names differ: paired by column order (shown as position ↔ target)' : ''}</span>
         {rowsJ.length > 8 && <button className="ghost small" onClick={() => setShowAll(!showAll)} style={{ marginLeft: 'auto' }}>{showAll ? 'fewer' : `all ${rowsJ.length}`}</button>}
       </div>
       <div style={{ display: 'grid', gap: 2 }}>
@@ -276,18 +281,18 @@ function JointRow({ name, tgt, pos, side, t, duration, onSeek }: {
   const [ref, w] = useWidth();
   const h = 30;
   const [lo, hi] = extent([...(tgt || []), ...(pos || [])]);
-  const x = (tt: number) => 90 + (duration > 0 ? (tt / duration) * (w - 94) : 0);
+  const x = (tt: number) => 96 + (duration > 0 ? (tt / duration) * (w - 100) : 0);
   const y = (v: number) => h - 3 - ((v - lo) / (hi - lo)) * (h - 6);
   const f = frameAt(side.times, t);
   return (
     <div ref={ref}>
       <svg width={w} height={h} onPointerDown={(e) => {
         const r = e.currentTarget.getBoundingClientRect();
-        onSeek(Math.max(0, Math.min(duration, ((e.clientX - r.left - 90) / (r.width - 94)) * duration)));
+        onSeek(Math.max(0, Math.min(duration, ((e.clientX - r.left - 96) / (r.width - 100)) * duration)));
       }}>
-        <text x={0} y={12} fontSize={10.5} fill="var(--ink-2)">{name.slice(0, 14)}</text>
+        <text x={0} y={12} fontSize={10.5} fill="var(--ink-2)"><title>{name}</title>{name.length > 15 ? `${name.slice(0, 14)}…` : name}</text>
         <text x={0} y={25} fontSize={9.5} fill="var(--muted)" className="num">{fmtNum(pos?.[f])} / {fmtNum(tgt?.[f])}</text>
-        <line x1={90} x2={w} y1={h - 1} y2={h - 1} stroke="var(--grid)" />
+        <line x1={96} x2={w} y1={h - 1} y2={h - 1} stroke="var(--grid)" />
         {tgt && <path d={linePath(side.times, tgt, x, y)} fill="none" stroke="var(--s2)" strokeWidth={1.3} strokeDasharray="4 3" />}
         {pos && <path d={linePath(side.times, pos, x, y)} fill="none" stroke="var(--s1)" strokeWidth={1.5} />}
         <line x1={x(t)} x2={x(t)} y1={0} y2={h} stroke="var(--ink)" />

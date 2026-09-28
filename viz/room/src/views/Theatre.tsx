@@ -119,7 +119,8 @@ function TheatreBody({ entries, videos }: { entries: Row[]; videos: DocResult<En
   }, [snap.t, snap.playing]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement)?.tagName === 'INPUT' || (e.target as HTMLElement)?.tagName === 'SELECT') return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || (tag === 'BUTTON' && e.key === ' ')) return;
       const dt = 1 / Math.max(1, sides[0]?.replay.fps || 30);
       if (e.key === ' ') { e.preventDefault(); clock.toggle(); }
       else if (e.key === 'ArrowRight') clock.set(clock.t + (e.shiftKey ? 1 : dt));
@@ -238,7 +239,10 @@ function LabelBanner({ r, tag, color, fixture }: { r: Replay; tag?: string; colo
         <span>variant <b>{str(m.variant) || '—'}</b></span>
         <span>seed <b className="num">{str(m.seed) || '—'}</b></span>
         <span>condition <b>{str(m.condition) || '—'}</b></span>
-        <span>checkpoint <b className="mono">{m.ckpt_sha ? shortSha(m.ckpt_sha) : '— (no checkpoint)'}</b></span>
+        <span>checkpoint <b className="mono">{!m.ckpt_sha ? '— (no checkpoint)' : typeof m.ckpt_sha === 'object'
+          ? Object.entries(m.ckpt_sha as Record<string, unknown>).map(([k, v]) => `${k} ${shortSha(v)}`).join(' · ') : shortSha(m.ckpt_sha)}</b></span>
+        {m.harness ? <span>harness <b>{str(m.harness)}</b></span> : null}
+        {m.recorded_at ? <span>recorded <b>{str(m.recorded_at).slice(0, 16).replace('T', ' ')}</b></span> : null}
         {Object.entries(phys).map(([k, v]) => <span key={k}>{k.replace(/_version$/, '')} <b>{str(v)}</b></span>)}
         {m.recorded_success !== undefined && <span>recorded outcome <b>{m.recorded_success === true ? 'success' : m.recorded_success === false ? 'failure' : '—'}</b></span>}
         {m.reproduced !== undefined && <span>reproduced <b>{m.reproduced === true ? 'yes' : m.reproduced === false ? 'NO (replay differs from the recorded run)' : '—'}</b></span>}

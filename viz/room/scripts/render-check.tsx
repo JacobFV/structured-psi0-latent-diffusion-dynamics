@@ -4,6 +4,7 @@
  * Build + run: RRP_NO_SNAPSHOT=1 npx vite build --ssr scripts/render-check.tsx --outDir <tmp> && node <tmp>/render-check.js <repo>
  */
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { gunzipSync } from 'node:zlib';
 import { resolve } from 'node:path';
 import type { ComponentType } from 'react';
 import { renderToString } from 'react-dom/server';
@@ -45,6 +46,37 @@ async function main() {
   // the theatre with fixture replays preloaded (index + both replays)
   const fx = sets[1][1];
   for (const f of readdirSync(resolve(repo, 'viz/room/fixtures/replays'))) fx[`replay:${f.replace(/\.json$/, '')}`] = JSON.parse(readFileSync(resolve(repo, 'viz/room/fixtures/replays', f), 'utf8'));
+  // optional: real replay files (REPLAY_DIR=<dir of *.json.gz>) rendered in the theatre with an index built from their meta
+  const rdir = process.env.REPLAY_DIR;
+  if (rdir) {
+    const docs: Record<string, unknown> = { ...sets[0][1] };
+    const idx: Record<string, unknown>[] = [];
+    for (const f of readdirSync(rdir).filter((x) => x.endsWith('.json.gz'))) {
+      const r = JSON.parse(gunzipSync(readFileSync(resolve(rdir, f))).toString('utf8'));
+      docs[`replay:${r.id}`] = r;
+      const m = r.meta;
+      idx.push({ id: r.id, family: m.family, task: m.task, body: m.body, route: m.route, source_label: m.source_label, variant: m.variant, seed: m.seed, condition: m.condition, success: m.success, n_frames: r.n_frames, fps: r.fps });
+    }
+    docs.replays = { schema: 'rrp-viz/replays/v1', replays: idx };
+    // geometry: every geom must build a three.js mesh with a finite bounding box (no WebGL needed)
+    const { geomObject } = await import('../src/components/Stage');
+    for (const [k, r] of Object.entries(docs)) {
+      if (!k.startsWith('replay:')) continue;
+      const geoms = (r as { geoms: Parameters<typeof geomObject>[0][] }).geoms;
+      let built = 0, bad = 0;
+      for (const gm of geoms) {
+        const o = geomObject(gm);
+        if (!o) { bad++; continue; }
+        o.geometry.computeBoundingBox();
+        const b = o.geometry.boundingBox!;
+        if (![b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z].every(Number.isFinite)) bad++; else built++;
+      }
+      console.log(`geom ${k.slice(7)}: ${built} built, ${bad} skipped/bad of ${geoms.length}`);
+      if (bad) failures++;
+    }
+    sets.push(['replays', docs]);
+    VIEWS.splice(0, VIEWS.length, ['theatre', () => import('../src/views/Theatre'), idx.flatMap((a, i) => [`a=${a.id}`, `a=${a.id}&b=${idx[(i + 1) % idx.length].id}`])]);
+  }
   for (const [label, docs] of sets) {
     g.__RRP_PRELOAD__ = docs;
     for (const [name, loader, queries] of VIEWS) {

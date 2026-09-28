@@ -51,7 +51,7 @@ export default function App() {
         <div className="foot">
           <div>data: <b className={dataMode.startsWith('FIXTURES') ? 'badge src t-fixture' : ''}>{dataMode}</b></div>
           {meta && <div title={meta.exporter}>exporter <code>rrp.viz.export</code> · cache {meta.cache_s}s / live {meta.live_cache_s}s</div>}
-          <div>127.0.0.1 only · read-only</div>
+          <div>served at <code>{window.location.host}</code> · read-only</div>
           <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Toggle colour theme">
             {theme === 'dark' ? 'Light theme' : 'Dark theme'}
           </button>

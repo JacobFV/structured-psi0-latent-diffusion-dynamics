@@ -116,13 +116,17 @@ What exists
 Verification (2026-09-28): `npm run typecheck` and `npm run build` pass. An HTTP smoke test on 127.0.0.1:3013 gave 200 for all
 12 documents, 304 on a matching ETag, 200 for `/api/training/<id>`, 200/206 for `/media` (Range), 400 for traversal attempts
 on doc/media/training, 404 for an unknown replay or API path, and 405 for POST; the server was stopped afterwards. An SSR render
-check (`scripts/render-check.tsx`) renders all ten views, with 48 URL states over the real documents and the fixtures, with no
+check (`scripts/render-check.tsx`; `REPLAY_DIR=<dir>` adds real replays) renders all ten views, with 48 URL states over the real documents and the fixtures, with no
 exception and no NaN/undefined/[object Object] in the output. No browser was run on the host (D-127), so WebGL and chart
 interaction are untested here.
 
 Known gaps
-- No replay had been recorded when this was written: the theatre says "No replays yet", offers an opt-in FIXTURE demo, and was
-  checked only on synthetic replays. It should be checked on the first real arm, legged and dual replays.
+- The recorder's first arm replays were on the peer but not yet in `~/work/rrp-data/viz/replays` when this was written. Three of
+  them (panda gv1/gv2 and parm6, copied to a scratch dir) pass the SSR render check, alone and as A/B pairs, and every one of
+  their 130 geoms (49 meshes each on panda) builds a three.js mesh with a finite bounding box. Until the index exists the
+  theatre says "No replays yet" and offers an opt-in FIXTURE demo. Legged and dual replays have not been checked yet.
+- Joint targets and positions are paired by name. When the names differ (arm: `arm[i]`/`gripper[0]` targets against
+  `r0_joint*` positions) they are paired by column order, and each row says so (`r0_joint1 ↔ arm[0]`).
 - clip_scale is not logged by the trainers (data notes), so the clip overlay appears only where a series has it. GPU
   utilisation history is only the readings a page has seen, because the watchdog samples carry no GPU utilisation.
 - Results heatmap: a cell holding several rows shows the one with the largest n, or pools k/n when asked. The default metric

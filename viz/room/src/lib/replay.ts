@@ -8,7 +8,7 @@ export type Geom = {
 export type Replay = {
   schema: string; id: string;
   meta: {
-    family?: string; task?: string; body?: string; route?: string; source_label?: string; ckpt_sha?: string | null; variant?: string;
+    family?: string; task?: string; body?: string; route?: string; source_label?: string; ckpt_sha?: string | Record<string, string> | null; variant?: string;
     seed?: number | string; condition?: string; success?: boolean | null; failure_stage?: string | null;
     physics?: Record<string, unknown>; decision_refs?: string[]; caveat?: string; contact_bodies?: string[]; base_body?: string;
     object_body?: string; joint_names?: string[]; packet_pca_basis?: Record<string, unknown>; packet_pca?: Record<string, unknown>;
