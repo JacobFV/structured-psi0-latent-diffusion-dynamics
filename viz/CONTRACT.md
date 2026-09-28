@@ -98,6 +98,18 @@ Frontend additions (v1.1, proposed by the frontend agent; all optional, the thea
 - `meta.packet_pca: {fit_on, explained_variance: [3]}`: provenance of the PCA basis.
 - `/api/meta`: plugin status `{exporter_available, exporter, root, replays_dir, video_dir, cache_s}`; the UI uses it to decide
   between live data and clearly-labelled FIXTURES (fixtures are only used while the exporter module does not exist).
+Run-history signals (v1.2, proposed by the frontend for the run-history panels; all optional, per frame unless noted,
+omitted when not recorded; privileged ones listed in `meta.signal_notes` as privileged):
+- `joint_vel: [[rad/s or m/s per joint_names]]`: joint velocities (phase portraits).
+- `joint_torque: [[N·m per actuated joint]]`, with `meta.joint_torque_names`: actuator torque/force applied.
+- `contact_force: [[N per contact_bodies]]`: normal contact force for each contact body (gait/contact diagram, force traces).
+- `probe_truth: {contact: [[..]], halt: [..], goal: [[x,y]], held_by: [[..]], subtask: [..], fall: [..]}`: the privileged
+  ground truth for the same keys as `probe` in the same units (calibration panels). Display only; never an observation.
+- `packet_z: [[float]]`: the full packet executed, downsampled, flattened in the order given by
+  `meta.packet_shape: [knots, assemblies, dims]` (packet heatmap, norm, change rate).
+- `energy: [J per frame interval]` (or `power: [W]`) and optional `cot: [..]`: mechanical energy/cost of transport per step.
+- `base_vel: [[vx,vy,vz]]`, `object_vel: [[vx,vy,vz]]`: world-frame linear velocities.
+- `meta.waypoints: [[x,y]...]`, `meta.t_edit`, `meta.goal: [x,y]`: already recorded for legged; used by the top-down map.
 - `/api/doc?path=` is served by the plugin directly from the allowlist (no exporter call). The packet PCA basis is fitted per bundle on training packets and stored in `meta`.
 
 ## views (frontend)
