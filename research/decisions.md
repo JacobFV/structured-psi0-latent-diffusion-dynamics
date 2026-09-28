@@ -663,3 +663,11 @@ Decision: keep grasp_v2.1 and the 0.08 rad noise, and make DART contact-safe by 
 
 ## D-119 2026-09-27 psi1z has a GitHub remote (owner's decision); pushes allowed
 The owner added origin = https://github.com/JacobFV/psi1z (not publicly visible) and asked to push. main was pushed (3968d58, then the README update) after a check: no secrets, no tracked weights/datasets/videos, .git 3.6 MB. Supersedes D-100's "local only". Agents may push psi1z main after the same check; third-party code/weights/data stay out of git.
+
+## D-120 2026-09-27 W10 step 1: 3 of 6 released Ψ₀ checkpoints reproduce on our Isaac-5.1/aarch64/path-traced stack; step 2 proceeds on those 3
+psi1z (research/notes.md; P-012..P-017; pushed to github.com/JacobFV/psi1z). Level 0, released ckpt_40000, ISO 55 path tracing. Criterion: our Wilson 95% CI contains the published rate.
+- Reproduced: TabletopGraspMP 10/10 (pub 10/10), BendPickMP 10/10 (pub 10/10), HandoverTeleop 7/10 (pub 7/10).
+- Not reproduced: XMoveBendPickTeleop 3/6 (stopped; CI [0.19, 0.81] excludes 1.0), LocomotionPickBetweenTablesTeleop 0/5 (excludes 0.7), XMovePickTeleop 0/10 plus variants.
+- XMovePick diagnosis: at demo walking frames the policy chooses to walk 88% of the time on the training image but 53% on our render of the same pose (a rendering/material confound, since the training configs don't record materials), amplified by sticky RTC. The teleop tasks with walking are the ones that fail, consistent with a render gap on locomotion cues.
+- Stack fixes: AMO weights sha-verified, TorchScript fusers off, the SIMPLE uid/registry mismatch aligned at runtime, per-job policy ports.
+Step 2 (Ψ₀ direct fine-tune vs Ψ₀ + our structure, matched data/steps/eval) runs on the three reproduced tasks, starting with TabletopGraspMP: 20 closed-loop episodes per arm; edits are probe-guided target shifts and hand binding with random-direction controls (the Tabletop instruction names no object, so there is no object rebinding). Budget ≤ 40 peer GPU-h. Caveat for the write-up: the comparison is valid on our stack for manipulation-dominant tasks; walking-heavy teleop tasks are excluded by the reproduction gate.
