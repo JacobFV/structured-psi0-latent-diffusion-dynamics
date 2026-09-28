@@ -1,0 +1,19 @@
+# ARM V6 TARGET BODIES, latent route (roadmap core claim #9; D-134 lead request): the v6 lineages (dags/arm_lineage_v6.yaml,
+# D-134: semfix / nosem x seeds 1, 2) on the SEALED target bodies xarm7_pg2 / xarm7_tf3 / panda_tf3 under
+# configs/eval/latent_slice1.json: zero-shot, flow SFT and system-0 refit at budgets 5 / 20 / 100 (adapt seed 1700+seed),
+# plus the source-competence cells on the protocol's held-out source bodies. Everything else from the template
+# (dags/templates/arm_targets_latent.yaml). grasp_contact v2.1 on every node (template base.options). Peer only.
+#   rrp run-dag dags/arm_targets_v6_latent.yaml --dry-run
+#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armtgt rrp run-dag dags/arm_targets_v6_latent.yaml
+extends: templates/arm_targets_latent.yaml
+name: arm_targets_v6_latent
+track: armtgt
+lineage: 'armtgt6-{variant}-{target}'
+global_lineage: 'armtgt6-data'
+label_prefix: 'at6{tg}{seed}{tk}'
+global_label_prefix: 'at6d'
+vars:
+  flow_ref: 'runs/armv6/arm6-{variant}/flow_ft-gdag2h_s{seed}:policy.pt'
+  rep_ref: 'runs/armv6/arm6-{variant}/refit-gendag3_noqd_s{seed}:representation.pt'
+  dataset: runs/armexpert/v6dart/collect-v6dart_s1
+  grasp_contact: v2.1

@@ -1,0 +1,24 @@
+# ARM V6 TARGET BODIES, direct-action BC baselines (roadmap #10; D-134 lead request): the v6 BC expert seeds 1701 / 1702
+# (REUSED, not retrained: armexpert_bcv6 final checkpoints; 1701 is also the lineages' DAgger labeller) on the same data
+# (v6dart target demos), sealed protocol, harness, budgets and acquisition as dags/arm_targets_v6_latent.yaml.
+# adapt_seed = the BC seed (template). Training nodes dropped. grasp_contact v2.1 on every node. Peer only.
+#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armtgt rrp run-dag dags/arm_targets_v6_bc.yaml
+extends: templates/arm_targets_bc.yaml
+name: arm_targets_v6_bc
+track: armtgt
+lineage: 'armtgt6-bc{seed}-{target}'
+global_lineage: 'armtgt6-bcsrc'
+label_prefix: 'at6b{seed}{tk}'
+global_label_prefix: 'at6bs'
+matrix:
+  seed: [1701, 1702]
+  target: [xarm7_pg2, xarm7_tf3, panda_tf3]
+vars:
+  dataset: runs/armexpert/v6dart/collect-v6dart_s1
+  source_pack: packed/latent_pp_v6dart_s1_H16
+  grasp_contact: v2.1
+  bc_ref: 'runs/armexpert_bcv6/baseline_direct_action/seed{seed}/source:policy.pt'
+  bc_label: 'bcv6_direct{seed}_final'
+nodes:
+  train_bc1702: null
+  train_bc1703: null
