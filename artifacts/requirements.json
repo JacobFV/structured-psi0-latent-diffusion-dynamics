@@ -38,12 +38,17 @@
    "evidence_paths": [
     "STATUS.md",
     "docs/strategy.md",
-    "research/decisions.md"
+    "research/decisions.md",
+    "docs/intentions_backlog.md"
    ],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
-   "limitations": "overall in_progress: architecture built and tested on several bodies; sealed target-body campaign, contact v2 legged regeneration and restructure (W1-W9) outstanding"
+   "source_revision": "origin/main 2026-09-27 (records refresh, D-123 item 10: from research/decisions.md D-095..D-123 and track notes; a documentation audit, not a re-run)",
+   "limitations": "overall in_progress: W2-W6 and W11 verified/completed; W1, W7, W8, W10 running; W9 (sealed target bodies, loco-manipulation) planned; W12 implementing; 44 open intentions in docs/intentions_backlog.md (D-123)",
+   "decisions": [
+    "D-094",
+    "D-123"
+   ]
   },
   {
    "id": "R02",
@@ -88,10 +93,14 @@
    "artifact_paths": [
     "artifacts/receipts/ops/enforcement-tests-host.txt"
    ],
-   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
-   "limitations": "limit changed by the user: host 80% of free CPU/memory with host GPU and >=100 GB free disk (D-027, D-033, D-086); peer unrestricted (D-026). Enforcement mechanism unchanged.",
+   "source_revision": "origin/main 2026-09-27 (records refresh, D-123 item 10: from research/decisions.md D-095..D-123 and track notes; a documentation audit, not a re-run)",
+   "limitations": "limit changed by the user: host now does no heavy compute (broker 2 CPU / 8 GiB / 0 GPU, D-115; supersedes the host parts of D-033/D-086); >=100 GB free disk (D-086). Peer: whole machine for this project but admission-capped at 108 GiB declared RAM+GPU, 19.97 CPU, 8 GPU slots (D-106); memory declared >= 1.35 x measured peak (D-117); watchdog counts anon+shmem+kernel (D-116). Enforcement mechanism unchanged.",
    "decisions": [
-    "D-004"
+    "D-004",
+    "D-106",
+    "D-115",
+    "D-116",
+    "D-117"
    ]
   },
   {
@@ -105,14 +114,21 @@
    "expected_evidence": "source-locked backbone; real image features and learned rollout",
    "status": "implementing",
    "evidence_paths": [
-    "research/decisions.md"
+    "research/decisions.md",
+    "docs/related_repos.md"
    ],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
-   "limitations": "VLM system II (Qwen3-VL) only smoke-tested (weights hash-verified); no trained psi0/VLM integration result",
+   "source_revision": "origin/main 2026-09-27 (records refresh, D-123 item 10: from research/decisions.md D-095..D-123 and track notes; a documentation audit, not a re-run)",
+   "limitations": "W10 (psi1z): upstream Psi0 stack reproduces on Isaac 5.1/aarch64 (path-traced) for 3/6 released checkpoints (D-120); step 2 (Psi0 direct vs Psi0 + our structure, matched) running on TabletopGraspMP, no result yet; walking-heavy teleop tasks excluded by the reproduction gate. VLM system II (Qwen3-VL) still smoke-test only",
    "decisions": [
-    "D-040"
+    "D-040",
+    "D-098",
+    "D-100",
+    "D-104",
+    "D-109",
+    "D-119",
+    "D-120"
    ]
   },
   {
@@ -134,10 +150,12 @@
    "artifact_paths": [
     "artifacts/runs/latent_slice1_b1fix/"
    ],
-   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
-   "limitations": "BC budget-0 transfer measured (panda_tf3 78-85/100, xarm7 0/100); latent methods and SFT budgets on the sealed targets not run (W9)",
+   "source_revision": "origin/main 2026-09-27 (records refresh, D-123 item 10: from research/decisions.md D-095..D-123 and track notes; a documentation audit, not a re-run)",
+   "limitations": "BC budget-0 transfer measured (v1 BC panda_tf3 78-85/100, xarm7 0/100, D-064; v2 BC panda_tf3 99/100, xarm7 0/100, D-102, grasp_v1); latent route and SFT budgets on the sealed targets not run (D-123 top 1-2)",
    "decisions": [
-    "D-064"
+    "D-064",
+    "D-102",
+    "D-123"
    ]
   },
   {
@@ -155,12 +173,16 @@
     "research/tracks/contact.md",
     "research/decisions.md"
    ],
-   "test_command": ".venv/bin/python -m pytest tests/unit -q -k 'psi or tracker'",
+   "test_command": ".venv/bin/python -m pytest tests/unit -q -k 'psi or tracker or contact or actuator'",
    "artifact_paths": [],
-   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
-   "limitations": "arm joint-target tracking works; legged trackers skate under contact v1 and fail the slip gate (D-093); contact v2 retraining running (W1)",
+   "source_revision": "origin/main 2026-09-27 (records refresh, D-123 item 10: from research/decisions.md D-095..D-123 and track notes; a documentation audit, not a re-run)",
+   "limitations": "arm joint-target tracking works; legged contact v2 trackers installed for anymal_c, go2 and t1 (sourced limits, fails the lab gate: forward 0.72, joint margin -0.053); h1 cannot turn in place, g1 sourced-limit candidate stomps (D-101, D-103, D-107, D-114); actuator dynamics/latency implemented but opt-in",
    "decisions": [
-    "D-093"
+    "D-093",
+    "D-101",
+    "D-103",
+    "D-107",
+    "D-114"
    ]
   },
   {
@@ -265,10 +287,12 @@
    ],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
-   "limitations": "bodies and scripted teachers exist for arms, dual arms, quadrupeds, hexapod and humanoids; learned latent control on go2, hexapod6, t1 (contact v1) and arms; g1 blocked at the BC positive control; no mobile manipulators",
+   "source_revision": "origin/main 2026-09-27 (records refresh, D-123 item 10: from research/decisions.md D-095..D-123 and track notes; a documentation audit, not a re-run)",
+   "limitations": "bodies and scripted teachers for arms, dual arms, quadrupeds, hexapod and humanoids; learned latent control under contact v2 on anymal_c and go2 (D-105, D-113); t1 learned routes fall on the sourced-limit tracker (interim); h1/g1 have no gated tracker",
    "decisions": [
-    "D-073"
+    "D-073",
+    "D-101",
+    "D-107"
    ]
   },
   {
@@ -558,8 +582,11 @@
    "evidence_paths": [],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
-   "limitations": "per-leg contact semantics barely decodable/steerable (D-071, D-088); not re-audited in W2"
+   "source_revision": "origin/main 2026-09-27 (records refresh, D-123 item 10: from research/decisions.md D-095..D-123 and track notes; a documentation audit, not a re-run)",
+   "limitations": "per-leg contact semantics barely decodable/steerable (D-071, D-088); anchor-relative packet targets and contact-event-aligned knots are W12 (phase A, D-122), not yet trained",
+   "decisions": [
+    "D-122"
+   ]
   },
   {
    "id": "R27",
@@ -596,10 +623,11 @@
    ],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
-   "limitations": "packet-policy GRPO built and likelihood-tested but no signal from a non-competent base (D-042); GRPO with anchor evals is W7",
+   "source_revision": "origin/main 2026-09-27 (records refresh, D-123 item 10: from research/decisions.md D-095..D-123 and track notes; a documentation audit, not a re-run)",
+   "limitations": "packet-policy GRPO built and likelihood-tested but no signal from a non-competent base (D-042); GRPO with anchor evals (W7) not started: no anchor/forgetting eval, no pipeline stage (D-123)",
    "decisions": [
-    "D-042"
+    "D-042",
+    "D-123"
    ]
   },
   {
@@ -679,11 +707,15 @@
    ],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
-   "limitations": "BC positive controls on identical seeds and inputs; sealed four-way campaign not run; compute not matched (D-035)",
+   "source_revision": "origin/main 2026-09-27 (records refresh, D-123 item 10: from research/decisions.md D-095..D-123 and track notes; a documentation audit, not a re-run)",
+   "limitations": "BC positive controls on identical seeds and inputs (legged teacher/BC 30/30 references in W8; arm v2 BC expert); nosem recipe ablation done (D-099); robustness compared on matched grids (D-108, D-112); sealed four-way campaign (BC seeds 1702/1703, SFT budgets) not run",
    "decisions": [
     "D-050",
-    "D-083"
+    "D-083",
+    "D-099",
+    "D-102",
+    "D-108",
+    "D-112"
    ]
   },
   {
@@ -743,11 +775,15 @@
    ],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
-   "limitations": "resumable chains and leases work; incidents D-061 (duplicate launches) and D-090 (sync into the lead's dir) show gaps; DAG runner is W5",
+   "source_revision": "origin/main 2026-09-27 (records refresh, D-123 item 10: from research/decisions.md D-095..D-123 and track notes; a documentation audit, not a re-run)",
+   "limitations": "run-dag gives idempotent resumable ledgers (W5, D-096) and peer_sync refuses shared/running dirs (D-096); incidents since: a live cgroup change OOM-killed a lease (D-117 correction), a chain retry loop survived a stop (~2.7 GPU-h, D-121); rules recorded",
    "decisions": [
     "D-061",
-    "D-090"
+    "D-090",
+    "D-096",
+    "D-111",
+    "D-117",
+    "D-121"
    ]
   },
   {
@@ -763,12 +799,19 @@
    "evidence_paths": [
     "docs/strategy.md",
     "research/naming.md",
-    "research/tracks/hygiene.md"
+    "research/tracks/hygiene.md",
+    "src/rrp/contracts/provenance.py"
    ],
-   "test_command": ".venv/bin/python -m pytest tests/unit -q",
+   "test_command": ".venv/bin/python -m pytest tests/unit -q -k 'provenance or gates'",
    "artifact_paths": [],
-   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
-   "limitations": "W2 hygiene done; provenance (physics/contact version, one manifest writer) is W3; checkpoints and datasets live off-git on the peer store"
+   "source_revision": "origin/main 2026-09-27 (records refresh, D-123 item 10: from research/decisions.md D-095..D-123 and track notes; a documentation audit, not a re-run)",
+   "limitations": "provenance records contact_version, actuator_limits and grasp_contact_version (W3, D-107, D-110); gate reports written per collect/validation (D-114); checkpoints and datasets live off-git on the peer store; demo page not republished (owner decides)",
+   "decisions": [
+    "D-107",
+    "D-110",
+    "D-114",
+    "D-123"
+   ]
   },
   {
    "id": "R37",
@@ -786,11 +829,15 @@
    ],
    "test_command": null,
    "artifact_paths": [],
-   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
-   "limitations": "packet-semantic loss in the flow; semantic supervision essential on the arm route (D-089/D-091), adds a halt channel on legs (D-090)",
+   "source_revision": "origin/main 2026-09-27 (records refresh, D-123 item 10: from research/decisions.md D-095..D-123 and track notes; a documentation audit, not a re-run)",
+   "limitations": "semantic supervision essential on the arm route over 2 seeds (D-095; grasp_v1 physics; grasp_v2 re-eval interim, D-121); the legged context-halt replicates under contact v2 on anymal_c and go2 over 3/3 seeds (D-105, D-113); it costs anymal_c ~4.6 points of robustness (D-112)",
    "decisions": [
     "D-089",
-    "D-091"
+    "D-091",
+    "D-095",
+    "D-099",
+    "D-105",
+    "D-113"
    ]
   },
   {
@@ -815,15 +862,127 @@
    "test_command": ".venv/bin/python -m pytest tests/unit -q -k 'latent'",
    "artifact_paths": [
     "artifacts/runs/legged_fixrep_compare_go2.json",
-    "research/tracks/ladder/armnosem/compare_three_way.json"
+    "research/tracks/ladder/armnosem/compare_three_way.json",
+    "research/tracks/legged8/legged8_compare_anymal_c.json",
+    "research/tracks/legged8/legged8_compare_go2.json",
+    "research/tracks/ladder/armnosem/seed2/compare_three_way_seed2.json"
    ],
-   "source_revision": "origin/main 2026-09-26 (W2 refresh from STATUS/decisions; statuses are a documentation audit, not a fresh re-run)",
-   "limitations": "implemented and tested on arm and legged deployable routes; not on sealed target bodies; legged results use contact v1 (D-093)",
+   "source_revision": "origin/main 2026-09-27 (records refresh, D-123 item 10: from research/decisions.md D-095..D-123 and track notes; a documentation audit, not a re-run)",
+   "limitations": "tested on arm (grasp_v1; grasp_v2 re-eval interim, D-121) and legged deployable routes (contact v2 on anymal_c and go2, D-105, D-113); not on sealed target bodies",
    "decisions": [
     "D-070",
     "D-074",
     "D-089",
-    "D-090"
+    "D-090",
+    "D-095",
+    "D-105",
+    "D-113"
+   ]
+  },
+  {
+   "id": "R39",
+   "description": "physically credible simulation and data: contact v2 (legged), grasp contact v2/v2.1 (arm), sourced actuator limits, smooth scripted experts; physics versions recorded in provenance; no new results on superseded physics",
+   "tasks": [
+    "W1",
+    "W7",
+    "W3"
+   ],
+   "contract": "docs/strategy.md (D-094), docs/robot_training_considerations.md",
+   "expected_evidence": "physics unit tests (slope, grasp rig), tracker/dataset gate reports, v1 vs v2 comparisons and videos",
+   "status": "implementing",
+   "evidence_paths": [
+    "research/tracks/contact.md",
+    "research/tracks/armexpert.md",
+    "research/decisions.md"
+   ],
+   "test_command": ".venv/bin/python -m pytest tests/unit -q -k 'contact or grasp or actuator or provenance'",
+   "artifact_paths": [
+    "artifacts/runs/contact_v2/slope_table.json",
+    "artifacts/runs/armexpert_grasp/compare_final_grasp_v1_v2.json"
+   ],
+   "source_revision": "origin/main 2026-09-27 (records refresh, D-123 item 10: from research/decisions.md D-095..D-123 and track notes; a documentation audit, not a re-run)",
+   "limitations": "contact v2, grasp v2/v2.1, sourced limits and teacher v2 verified; actuator dynamics/latency opt-in (trackers do not hold gaits under them); h1/g1 trackers missing; MJX, terrain curriculum and link/encoder randomization missing (D-123)",
+   "decisions": [
+    "D-097",
+    "D-101",
+    "D-102",
+    "D-103",
+    "D-107",
+    "D-110",
+    "D-118",
+    "D-121"
+   ]
+  },
+  {
+   "id": "R40",
+   "description": "robustness sweeps with break-points and motion-quality gates for trackers, datasets and policies",
+   "tasks": [
+    "W6"
+   ],
+   "contract": "docs/strategy.md W6",
+   "expected_evidence": "sweep reports for BC and latent routes on one arm and one legged body; gates enforced in code",
+   "status": "verified",
+   "evidence_paths": [
+    "research/tracks/robust.md",
+    "artifacts/runs/robust/variant_anymal_c_semfix_vs_nosem.md",
+    "artifacts/runs/robust/gates/SUMMARY.md"
+   ],
+   "test_command": ".venv/bin/python -m pytest tests/unit -q -k 'gates or motion_quality or watchdog'",
+   "artifact_paths": [
+    "artifacts/runs/robust/variant_anymal_c_semfix_vs_nosem.json"
+   ],
+   "source_revision": "origin/main 2026-09-27 (records refresh, D-123 item 10: from research/decisions.md D-095..D-123 and track notes; a documentation audit, not a re-run)",
+   "limitations": "legged sweep variant-level on anymal_c only; arm sweep under grasp_v1 not meaningful (D-108), not repeated under grasp_v2; validate_tracker wired into DAG templates only for future runs (records refresh); long-duration drift runs missing",
+   "decisions": [
+    "D-108",
+    "D-112",
+    "D-114"
+   ]
+  },
+  {
+   "id": "R41",
+   "description": "one pipeline and orchestration for all bodies: RunConfig schema, rrp.pipelines stages, rrp run-dag with leases, bounded retries and a JSON ledger",
+   "tasks": [
+    "W4",
+    "W5"
+   ],
+   "contract": "docs/strategy.md W4/W5",
+   "expected_evidence": "arm lineage parity within seed noise; legged and dual pipelines; chain scripts retired",
+   "status": "implementing",
+   "evidence_paths": [
+    "research/tracks/pipeline.md",
+    "research/tracks/restructure.md"
+   ],
+   "test_command": ".venv/bin/python -m pytest tests/unit -q -k 'dag or pipelines or runconfig or layering'",
+   "artifact_paths": [
+    "artifacts/runs/pipeline/parity-sfjf2/"
+   ],
+   "source_revision": "origin/main 2026-09-27 (records refresh, D-123 item 10: from research/decisions.md D-095..D-123 and track notes; a documentation audit, not a re-run)",
+   "limitations": "arm verified by parity (D-096) and legged in production (W8); dual pipeline is a skeleton; ladder.py main and legged summary scripts not in the library; 13 chain scripts remain (D-123)",
+   "decisions": [
+    "D-096",
+    "D-114"
+   ]
+  },
+  {
+   "id": "R42",
+   "description": "feature-centric coordination: anchor-relative packet targets, contact-event-aligned knots, orientation-drift / contact-sequence / re-anchoring metrics, anchor and sequence edits",
+   "tasks": [
+    "W12"
+   ],
+   "contract": "docs/strategy.md W12 (D-122)",
+   "expected_evidence": "anchor-relative vs base-frame packet x 2 seeds with causal edits (phase C/D)",
+   "status": "implementing",
+   "evidence_paths": [
+    "docs/strategy.md",
+    "research/decisions.md"
+   ],
+   "test_command": null,
+   "artifact_paths": [],
+   "source_revision": "origin/main 2026-09-27 (records refresh, D-123 item 10: from research/decisions.md D-095..D-123 and track notes; a documentation audit, not a re-run)",
+   "limitations": "phase A (design + additive code) only; compute queued after the arm v6 lineages",
+   "decisions": [
+    "D-122"
    ]
   }
  ],
@@ -834,7 +993,7 @@
   "teacher_is_not_learned": true,
   "asset_is_not_controller": true
  },
- "updated": "2026-09-26 (W2 hygiene; D-094)",
+ "updated": "2026-09-27 (records refresh; D-095..D-123)",
  "status_vocabulary": [
   "planned",
   "implementing",
