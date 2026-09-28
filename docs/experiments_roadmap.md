@@ -51,9 +51,9 @@ Code: ✅ exists · 🔧 implementing (D-126) · ❌ not a code problem / needs 
 | # | question | depends on | cost | experiment | code |
 |---|---|---|---|---|---|
 | 23 | TabletopGrasp: released vs Ψ₀ direct fine-tune vs Ψ₀ + our structure; hand-binding and goal edits | – | ~1 day | running | ✅ |
-| 24 | BendPickMP, HandoverTeleop step 2, with a grasp-region affordance head | 23 | 2–3 days | planned | 🔧 head (psi1z) |
+| 24 | BendPickMP, HandoverTeleop step 2, with a grasp-region affordance head | 23 | 2–3 days | planned | ✅ head (psi1z P-022, default off; needs re-replay labels) |
 | 25 | Can a better render (materials/lighting) reproduce the walking tasks (XMovePick, LocoPick, XMoveBendPick)? | – | open-ended | open | ❌ research |
-| 26 | Higher DR levels (1–2) on reproduced tasks | 23 | ~1 day/task | planned | 🔧 eval flags |
+| 26 | Higher DR levels (1–2) on reproduced tasks | 23 | ~1 day/task | planned | ✅ eval flags (psi1z P-023) |
 
 ## F. Representation and deployment credibility
 | # | question | depends on | cost | experiment | code |
