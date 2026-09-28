@@ -261,6 +261,8 @@ def _clean(v):
         return v
     if isinstance(v, dict):
         return {k: _clean(x) for k, x in v.items()}
+    if isinstance(v, (list, tuple)) and any(x is None or isinstance(x, (list, tuple, dict, np.ndarray)) for x in v):
+        return [_clean(x) for x in v]                 # nested / ragged / with nulls (e.g. contact_pos in swing)
     a = np.asarray(v)
     if a.dtype == bool:
         return a.astype(bool).tolist()
