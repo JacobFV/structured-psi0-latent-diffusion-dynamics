@@ -96,6 +96,12 @@ def test_long_mode_estimator_and_safety_enforce_teacher():
     lr = row["long_run"]
     assert lr["window_s"] == 0.5 and len(lr["windows"]) >= 3
     assert all("est_vel_rmse" in w for w in lr["windows"])
+    # the estimator actually runs inside run_episode (perturb.install_legged replaces _tracker_tick): estimated speed
+    # tracks the true speed (regression: the first peer smoke had est = 0 everywhere)
+    moving = [w for w in lr["windows"] if w["mean_speed_true"] > 0.05]
+    assert moving and all(w["mean_speed_est"] > 0.3 * w["mean_speed_true"] for w in moving
+                          if w["mean_speed_est"] is not None)                # None: first 1 s (no baseline yet)
+    assert np.mean([w["est_vel_rmse"] for w in moving]) < 0.5 * np.mean([w["mean_speed_true"] for w in moving])
     assert row["deploy"]["component_versions"]["estimator"] == "bse-1"
     assert row["safety"]["mode"] == "enforce" and row["safety"]["limit_source"]
     json.dumps(row)                                               # rows stay JSON-serializable

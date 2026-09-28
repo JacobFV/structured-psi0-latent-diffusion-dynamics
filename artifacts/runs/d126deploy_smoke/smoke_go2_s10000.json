@@ -1,0 +1,291 @@
+{
+ "static": {
+  "version": "paudit-1",
+  "violations": [],
+  "declared": [
+   {
+    "function": "rrp.envs.legged:LeggedSession._sense",
+    "line": "14",
+    "name": "qa",
+    "reason": "declared localization sensor = true base x, y, yaw + Gaussian noise (TRUTH_DERIVED; see ctx.speed/waypoint groups). base_state_source=estimator replaces its speed with bse-1"
+   },
+   {
+    "function": "rrp.envs.legged:LeggedSession._sense",
+    "line": "15",
+    "name": "qa",
+    "reason": "declared localization sensor = true base x, y, yaw + Gaussian noise (TRUTH_DERIVED; see ctx.speed/waypoint groups). base_state_source=estimator replaces its speed with bse-1"
+   },
+   {
+    "function": "rrp.envs.legged_core:LeggedBinding.imu",
+    "line": "4",
+    "name": "da",
+    "reason": "IMU gyro == the gyro sensor (tests/unit/test_legged.py)"
+   },
+   {
+    "function": "rrp.envs.legged_core:LeggedBinding.imu",
+    "line": "4",
+    "name": "qa",
+    "reason": "IMU quaternion == the framequat sensor (IMU site == root frame; tests/unit/test_legged.py)"
+   },
+   {
+    "function": "rrp.envs.state_estimator:LegKinematics.feet",
+    "line": "5",
+    "name": "qa",
+    "reason": "writes the PRIVATE kinematics copy's free joint to the identity pose (never reads the sim state)"
+   }
+  ],
+  "functions": [
+   "rrp.envs.legged:LeggedSession._estimator_tick",
+   "rrp.envs.legged:LeggedSession._imu",
+   "rrp.envs.legged:LeggedSession._sense",
+   "rrp.envs.legged:LeggedSession._touch",
+   "rrp.envs.legged:LeggedSession._track",
+   "rrp.envs.legged:LeggedSession.estimate",
+   "rrp.envs.legged:LeggedSession.observe",
+   "rrp.envs.legged_core:LeggedBinding.imu",
+   "rrp.envs.state_estimator:BaseStateEstimator.update",
+   "rrp.envs.state_estimator:LegKinematics.feet",
+   "rrp.evaluation.legged_latent_eval:LatentLeggedController._ctx",
+   "rrp.evaluation.legged_latent_eval:System0Adapter.dyn_batch",
+   "rrp.features.legged:local_state",
+   "rrp.features.legged:public_context"
+  ]
+ },
+ "tripwire": [
+  {
+   "body": "go2",
+   "base_state_source": "truth_noise",
+   "ctx_dim": 22,
+   "local_dims": [
+    12,
+    12,
+    6,
+    4
+   ],
+   "observation_public": true
+  },
+  {
+   "body": "go2",
+   "base_state_source": "estimator",
+   "ctx_dim": 22,
+   "local_dims": [
+    12,
+    12,
+    6,
+    4
+   ],
+   "observation_public": true
+  }
+ ],
+ "est_long": {
+  "source": "scripted_teacher",
+  "success": true,
+  "fell": false,
+  "sim_time": 12.000000000000677,
+  "failure_stage": "success",
+  "safety": null,
+  "long_run": {
+   "window_s": 2.0,
+   "windows": [
+    {
+     "t0": 0.4000000000000003,
+     "t1": 2.3999999999999573,
+     "disp_m": 1.233849449375902,
+     "path_m": 1.2346279418023223,
+     "yaw_change": -0.13117091277635806,
+     "mean_speed_true": 0.610303722877695,
+     "mean_speed_est": 0.4981334143726465,
+     "height_mean": 0.23298139502130108,
+     "tilt_max": 0.06492209531742961,
+     "fell": false,
+     "est_vel_rmse": 0.12980081464563437,
+     "est_pos_err_end": 0.2256585866918279
+    },
+    {
+     "t0": 2.4999999999999463,
+     "t1": 4.3999999999997375,
+     "disp_m": 1.0931413988559049,
+     "path_m": 1.0957998410756342,
+     "yaw_change": -0.23913469242933916,
+     "mean_speed_true": 0.5727000059701534,
+     "mean_speed_est": 0.49040152501826845,
+     "height_mean": 0.23103534836318654,
+     "tilt_max": 0.06428252394769375,
+     "fell": false,
+     "est_vel_rmse": 0.1483782875842775,
+     "est_pos_err_end": 0.5059965832170737
+    },
+    {
+     "t0": 4.499999999999726,
+     "t1": 6.399999999999517,
+     "disp_m": 1.0554920807933503,
+     "path_m": 1.0624995751254576,
+     "yaw_change": -0.5888547381909346,
+     "mean_speed_true": 0.5502609665897017,
+     "mean_speed_est": 0.3804169965140998,
+     "height_mean": 0.23077089608306958,
+     "tilt_max": 0.07294384061390026,
+     "fell": false,
+     "est_vel_rmse": 0.12910696157883877,
+     "est_pos_err_end": 0.7023979001969242
+    },
+    {
+     "t0": 6.499999999999506,
+     "t1": 8.399999999999475,
+     "disp_m": 0.9225491705218758,
+     "path_m": 0.9559311544594322,
+     "yaw_change": -0.08631312849325479,
+     "mean_speed_true": 0.501239154293279,
+     "mean_speed_est": 0.4702912978404695,
+     "height_mean": 0.2363741487849346,
+     "tilt_max": 0.058985903475341835,
+     "fell": false,
+     "est_vel_rmse": 0.13726235639738424,
+     "est_pos_err_end": 0.8890730589045841
+    },
+    {
+     "t0": 8.499999999999508,
+     "t1": 10.300000000000109,
+     "disp_m": 0.05349957976698884,
+     "path_m": 0.06728297262597095,
+     "yaw_change": 0.005623940377330605,
+     "mean_speed_true": 0.03843912393616742,
+     "mean_speed_est": 0.030137131017492668,
+     "height_mean": 0.2658780742191376,
+     "tilt_max": 0.07098582932585214,
+     "fell": false,
+     "est_vel_rmse": 0.028939494060744256,
+     "est_pos_err_end": 0.8555814815979457
+    },
+    {
+     "t0": 10.400000000000142,
+     "t1": 12.000000000000677,
+     "disp_m": 0.006565731435225872,
+     "path_m": 0.042746252583689526,
+     "yaw_change": 0.012580810100288886,
+     "mean_speed_true": 0.028462378059349855,
+     "mean_speed_est": 0.0010667603737582907,
+     "height_mean": 0.2637979734689135,
+     "tilt_max": 0.0757384588724416,
+     "fell": false,
+     "est_vel_rmse": 0.007689031691942732,
+     "est_pos_err_end": 0.8474249293948299
+    }
+   ],
+   "duration_s": 11.600000000000676,
+   "task_done_t": 9.799999999999942,
+   "post_task_drift_m": 0.01522409278568003,
+   "post_task_yaw_drift": 0.01964307121368103,
+   "post_task_s": 2.2000000000007347,
+   "est_pos_err_final": 0.8474249293948299
+  },
+  "base_state": null,
+  "deploy": {
+   "base_state_source": "estimator",
+   "packet_ood": "off",
+   "ood_model": null,
+   "ood_fallback": "hold_default",
+   "safety": "off",
+   "safety_cfg": {},
+   "eval_mode": "long",
+   "long_s": 12.0,
+   "window_s": 2.0,
+   "measure_latency": false,
+   "record_packets": false,
+   "version": "deploy-1",
+   "component_versions": {
+    "estimator": "bse-1",
+    "packet_ood": null,
+    "safety": null
+   }
+  },
+  "wall_s": 0.8029184341430664
+ },
+ "est_safety": {
+  "source": "scripted_teacher",
+  "success": true,
+  "fell": false,
+  "sim_time": 9.299999999999775,
+  "failure_stage": "success",
+  "safety": {
+   "version": "safety-1",
+   "mode": "enforce",
+   "cfg": {
+    "margin": 0.02,
+    "rate_max": null,
+    "qd_factor": 1.0,
+    "fall_tilt_frac": 0.8,
+    "fall_ticks": 5,
+    "stop_s": 1.0,
+    "version": "safety-1"
+   },
+   "limit_source": "sourced_urdf",
+   "ticks": 465,
+   "clamp_pos": 5,
+   "clamp_rate": 146,
+   "clamp_torque": 0,
+   "vel_guard": 0,
+   "modified": 146,
+   "max_abs_change": 0.5967169613838195,
+   "fall_detected_t": null,
+   "safe_stop_t": null,
+   "safe_stop_reason": null,
+   "events": []
+  },
+  "long_run": null,
+  "base_state": {
+   "window_s": 10.0,
+   "windows": [
+    {
+     "t0": 0.4000000000000003,
+     "t1": 9.299999999999775,
+     "disp_m": 4.033577152916004,
+     "path_m": 4.538339992123137,
+     "yaw_change": -1.107284622588005,
+     "mean_speed_true": 0.5063530709296652,
+     "mean_speed_est": 0.3803085161901396,
+     "height_mean": 0.2351720123898871,
+     "tilt_max": 0.08539364482427968,
+     "fell": false,
+     "est_vel_rmse": 0.16216594327837497,
+     "est_pos_err_end": 1.1105155441485537
+    }
+   ],
+   "duration_s": 8.899999999999775,
+   "task_done_t": 9.299999999999775,
+   "est_pos_err_final": 1.1105155441485537
+  },
+  "deploy": {
+   "base_state_source": "estimator",
+   "packet_ood": "off",
+   "ood_model": null,
+   "ood_fallback": "hold_default",
+   "safety": "enforce",
+   "safety_cfg": {},
+   "eval_mode": "standard",
+   "long_s": 180.0,
+   "window_s": 10.0,
+   "measure_latency": false,
+   "record_packets": false,
+   "version": "deploy-1",
+   "component_versions": {
+    "estimator": "bse-1",
+    "packet_ood": null,
+    "safety": "safety-1"
+   }
+  },
+  "wall_s": 0.5943620204925537
+ },
+ "default": {
+  "source": "scripted_teacher",
+  "success": true,
+  "fell": false,
+  "sim_time": 9.799999999999942,
+  "failure_stage": "success",
+  "safety": null,
+  "long_run": null,
+  "base_state": null,
+  "deploy": null,
+  "wall_s": 0.6239020824432373
+ }
+}

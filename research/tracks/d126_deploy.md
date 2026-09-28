@@ -90,7 +90,7 @@ The D-092 t1 edit packets are NOT available locally (the t1_edits rows store pro
 peer), so the t1 test is an experiment step (below), not a unit test.
 
 ### #30 safety layer (safety-1)
-Per tick on the policy joints: position clamp (joint range ∩ ctrlrange − margin), rate limit, exact PD torque clamp
+Per tick on the policy joints: position clamp (joint range ∩ ctrlrange − margin), rate limit (default: the joint speed limit qd_max; a 10 rad/s guess clamped 56% of go2 ticks in the smoke), exact PD torque clamp
 (u ∈ q + (kd qd ± effort)/kp), velocity guard (u = q when |qd| > qd_max), fall detection (tilt > 0.8 tilt_limit for 5
 ticks → hook, default safe stop), safe stop (linear ramp to the default stance over stop_s). Limits SOURCED
 (physics.actuator.SOURCED peak torque / URDF speed) for go2/anymal_c/t1/h1/g1, else model ranges + labelled VMAX estimate
@@ -128,3 +128,23 @@ semfix/nosem flows of `dags/legged_v2_*` (their eval_r2 nodes name the exact pol
   --measure-latency --out artifacts/runs/d126deploy_long/go2.jsonl` (≈ 5 × 180 s sim per body); arm latency:
   `rrp latent latency --checkpoint FLOW --representation REFIT/representation.pt --out
   artifacts/runs/d126deploy_latency/arm_<route>.json` on an idle GPU lease.
+
+## peer smokes (lowest priority, nice 19; plumbing/sanity, 1 seed each: NOT results)
+`RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/d126deploy scripts/peer_run.sh --cpu 1 --mem 4G --label d126deploy_smoke
+--max-seconds 700 -- nice -n 19 PY research/scripts/2026-09-28/d126_deploy_smoke.py artifacts/runs/d126deploy_smoke`
+(leases 1790582396_1e66df, 1790582437_5cae8f; peak 1.0 GB). Raw: `artifacts/runs/d126deploy_smoke/smoke_go2_s10000.json`.
+go2, learned tracker, scripted_teacher route (privileged), dev seed 10000:
+- The FIRST smoke found a bug the unit tests had missed: inside run_episode the estimate stayed 0, because
+  `envs.perturb.install_legged` replaces `_tracker_tick` per instance and so bypassed the estimator hook. Fixed (the
+  session wraps an instance-level `_tracker_tick`); regression assert added to
+  `test_deploy_eval.py::test_long_mode_estimator_and_safety_enforce_teacher`.
+- Estimator (bse-1), long mode 12 s, 2 s windows: velocity RMSE 0.13 / 0.15 / 0.13 / 0.14 m/s while walking at true
+  0.61 / 0.57 / 0.55 / 0.50 m/s; the estimated speed feature reads 0.50 / 0.49 / 0.38 / 0.47 (15–30% low, likely foot
+  slip and touch-threshold stance); standing afterwards 0.03 / 0.01. Dead-reckoning error at 12 s: 0.85 m. For
+  comparison, the truth+noise speed path has a noise of ~2.8 cm/s by construction. So #27 is a real test: the estimated
+  speed is biased low on go2.
+- Safety enforce (sourced go2 limits): the teacher still succeeds on this seed, but the rate limit modified 146/465 ticks
+  (max 0.60 rad) even at the sourced joint speed (the default after this smoke; an unsourced 10 rad/s default had
+  modified 286/515 ticks, max 0.82 rad). Learned-tracker PD targets step faster than the joints move, so #30 must report
+  the success cost per rate setting (`--safety-cfg '{"rate_max": X}'`), not only the default.
+- Static check: 0 violations; tripwire passes on go2 for both base-state sources.

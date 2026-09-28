@@ -244,6 +244,15 @@ class LeggedSession(Session):
             self._leg_kin = LegKinematics.from_binding(self.binding, r.qadr, r.dadr)
         self.base_estimator.reset()
         self.est_hist = []
+        # an instance-level _tracker_tick (rrp.envs.perturb.install_legged replaces it) bypasses the class hook: wrap it
+        tt = self.__dict__.get("_tracker_tick")
+        if tt is not None and not getattr(tt, "_bse_wrapped", False):
+            def _tracker_tick(cmd, _inner=tt):
+                _inner(cmd)
+                self._estimator_tick(max(1, int(round(1.0 / (TRACKER_HZ * self.model.opt.timestep))))
+                                     * self.model.opt.timestep)
+            _tracker_tick._bse_wrapped = True
+            self._tracker_tick = _tracker_tick
 
     def _estimator_tick(self, dt: float):
         """DEPLOYABLE inputs only: IMU (quat, gyro, acc), joint encoders, touch sensors."""

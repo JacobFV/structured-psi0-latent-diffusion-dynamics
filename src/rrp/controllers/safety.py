@@ -4,7 +4,7 @@ legged-body constructor that reads the compiled model).
 Per control tick, for joint-position targets u of the policy joints, given the MEASURED joint positions q and
 velocities qd (encoders) and the IMU gravity direction (public):
   1. position clamp:  u in [lo + margin, hi - margin]        (joint range intersected with the actuator ctrlrange)
-  2. rate limit:      |u - u_prev| <= rate_max * dt           (per joint, rad/s)
+  2. rate limit:      |u - u_prev| <= rate_max * dt           (per joint; default rate_max = qd_max, the joint's speed limit)
   3. torque clamp:    the PD torque kp (u - q) - kd qd stays within +-effort (sourced peak torques) by clamping u to
                       q + (kd qd +- effort) / kp  (exact for the affine PD servo used by the legged bodies)
   4. velocity guard:  a joint whose |qd| exceeds qd_max gets u = q (no further drive in that direction this tick)
@@ -25,7 +25,7 @@ from typing import Callable
 
 import numpy as np
 
-SAFETY_VERSION = "safety-1"
+SAFETY_VERSION = "safety-1"          # rate_max default = qd_max (fixed before any result)
 SAFETY_MODES = ("off", "monitor", "enforce")
 
 
@@ -48,7 +48,7 @@ class SafetyLimits:
 @dataclass
 class SafetyConfig:
     margin: float = 0.02               # rad inside the position limits
-    rate_max: float = 10.0             # rad/s max target change
+    rate_max: float | None = None      # rad/s max target change; None = the joint's (sourced) speed limit qd_max
     qd_factor: float = 1.0             # velocity guard at qd_factor * qd_max
     fall_tilt_frac: float = 0.8        # fall when tilt > frac * tilt_limit ...
     fall_ticks: int = 5                # ... for this many consecutive ticks
@@ -136,7 +136,7 @@ class SafetyLayer:
         st.clamp_pos += bool(np.any(y != x))
         # 2. rate
         if self.prev is not None:
-            dmax = c.rate_max * dt
+            dmax = (L.qd_max if c.rate_max is None else c.rate_max) * dt
             z = np.clip(y, self.prev - dmax, self.prev + dmax)
             st.clamp_rate += bool(np.any(z != y))
             y = z
