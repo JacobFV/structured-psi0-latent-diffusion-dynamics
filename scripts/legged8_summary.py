@@ -17,7 +17,12 @@ def f(x):
 
 
 def seeds(v, lab):
-    return " / ".join(f"{v[s]['effects'][lab][0]:+.2f}" for s in sorted(k for k in v if k != "pooled"))
+    return " / ".join(("–" if v[s]['effects'][lab] is None else f"{v[s]['effects'][lab][0]:+.2f}")
+                      for s in sorted(k for k in v if k != "pooled"))
+
+
+def g0(x, fmt):
+    return "–" if x is None else format(x[0], fmt)
 
 
 def succ(v, k):
@@ -48,11 +53,18 @@ for key, label in bodies:
                references={k: (None if d is None else f"{d['success']}/{d['n']}") for k, d in ref.items()})
     res[key] = row
     p, q = th["permutation"], ts["permutation"]
-    md.append(f"| {key} | {label} | {gate} | {seeds(V['semfix'], HALT)} → {f(V['semfix']['pooled']['effects'][HALT])} | "
-              f"{seeds(V['nosem'], HALT)} → {f(V['nosem']['pooled']['effects'][HALT])} | {f(th['pooled_diff_fixsem_minus_nosem'])} | "
-              f"{p['every_seed_ordered']} ({p['p_one_sided']}) | {V['semfix']['pooled']['effects'][CTRL][0]:+.3f} / "
-              f"{V['nosem']['pooled']['effects'][CTRL][0]:+.3f} | {V['semfix']['pooled']['effects'][STEER][0]:+.2f} / "
-              f"{V['nosem']['pooled']['effects'][STEER][0]:+.2f} ({q['every_seed_ordered']}, {q['p_one_sided']} {q['direction']}) | "
+    na = dict(every_seed_ordered="n/a (too few seeds with usable pairs)", p_one_sided="–", direction="")
+    p, q = p or na, q or na
+
+    def npairs(v, lab):
+        n = V[v]["pooled"].get("n_pairs", {}).get(lab)
+        full = 20 * len(V[v]["pooled"]["training_seeds"])
+        return "" if n is None or n >= full else f" (n={n})"
+    md.append(f"| {key} | {label} | {gate} | {seeds(V['semfix'], HALT)} → {f(V['semfix']['pooled']['effects'][HALT])}{npairs('semfix', HALT)} | "
+              f"{seeds(V['nosem'], HALT)} → {f(V['nosem']['pooled']['effects'][HALT])}{npairs('nosem', HALT)} | {f(th['pooled_diff_fixsem_minus_nosem'])} | "
+              f"{p['every_seed_ordered']} ({p['p_one_sided']}) | {g0(V['semfix']['pooled']['effects'][CTRL], '+.3f')} / "
+              f"{g0(V['nosem']['pooled']['effects'][CTRL], '+.3f')} | {g0(V['semfix']['pooled']['effects'][STEER], '+.2f')} / "
+              f"{g0(V['nosem']['pooled']['effects'][STEER], '+.2f')} ({q['every_seed_ordered']}, {q['p_one_sided']} {q['direction']}) | "
               f"{row['r2_final']['semfix']} / {row['r2_final']['nosem']} | {row['references'].get('teacher')} / {row['references'].get('bc')} |")
 cav = [(k, r["caveat"]) for k, r in res.items() if r["caveat"]]
 if cav:
