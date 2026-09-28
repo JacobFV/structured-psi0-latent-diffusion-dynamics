@@ -61,3 +61,34 @@ class PrivateBus:
     def write(self, truth: PrivilegedTruth):
         with open(self.path, "a") as f:
             f.write(truth.model_dump_json() + "\n")
+
+
+def schema_privileged_fields(model_cls=PolicyObservation) -> list[str]:
+    """Static contract check (D-126 #28): JSON-schema paths of a public contract type whose FIELD NAME is a
+    privileged key. Empty for PolicyObservation; a contract edit that adds e.g. `object_poses` shows up here
+    before any payload is ever built."""
+    schema = model_cls.model_json_schema()
+    defs = schema.get("$defs", {})
+    out: list[str] = []
+
+    def walk(node, path, seen):
+        if not isinstance(node, dict):
+            return
+        ref = node.get("$ref")
+        if ref:
+            name = ref.rsplit("/", 1)[-1]
+            if name not in seen:
+                walk(defs.get(name, {}), path, seen | {name})
+            return
+        for k, v in (node.get("properties") or {}).items():
+            if k in PRIVILEGED_KEYS:
+                out.append(f"{path}.{k}")
+            walk(v, f"{path}.{k}", seen)
+        for key in ("items", "additionalProperties"):
+            if isinstance(node.get(key), dict):
+                walk(node[key], f"{path}[]", seen)
+        for key in ("anyOf", "allOf", "oneOf"):
+            for sub in node.get(key) or []:
+                walk(sub, path, seen)
+    walk(schema, "$", frozenset())
+    return sorted(set(out))

@@ -128,27 +128,42 @@ def run_latency_suite(checkpoints: dict[str, str], out_path: Path, dev=None, nod
 
 @torch.no_grad()
 def latent_latency_suite(flow_ckpt: str, out_path: Path, dev=None, nfe_list=(1, 2, 4, 8), reps=40,
-                         direct_ckpt: str | None = None, direct_config: str | None = None) -> dict:
+                         direct_ckpt: str | None = None, direct_config: str | None = None,
+                         representation: str | None = None) -> dict:
     """R38 test 12: synchronized timings of the actual corrected inference path.
     system i: observe+featurize+collate+prepare+sample+packet construction (per replan, NFE sweep)
     system 0: per-tick realization (featurize local state + realizer forward + denormalize) vs 50 ms deadline
-    end-to-end: observation -> first native command after a replan."""
+    end-to-end: observation -> first native command after a replan.
+    representation (D-126 #32, optional): the system-0 bundle actually deployed with this flow (a refit
+    representation.pt in the same latent space, as the ladder's --rep): its realizer is timed and packets are
+    addressed to its compatibility ID (recorded under `route`). None = the flow's own representation (unchanged)."""
     from rrp.controllers.latent_runner import LatentPolicy
     from rrp.controllers.bundles import load_representation
     from rrp.models.checkpoint import load_checkpoint
     from rrp.controllers.latent_realizer import LatentSystem0
     from rrp.envs.fixtures import make_pick_place_session
     dev = dev or torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    rep = load_checkpoint(flow_ckpt, map_location="cpu")["config"]["representation"]
-    _, _, R, _, _ = load_representation(Path(rep), dev)
+    rep = representation or load_checkpoint(flow_ckpt, map_location="cpu")["config"]["representation"]
+    _, _, R, _, rres = load_representation(Path(rep), dev)
     s = make_pick_place_session(seed=5, n_distractors=2)
     for _ in range(10):
         s.step(None)
     res = dict(device=str(dev), gpu=torch.cuda.get_device_name(0) if dev.type == "cuda" else None, t=time.time(),
                system_i={}, note="physics paused during inference (offline loop): these are compute latencies, "
                                  "not a real-time claim")
+
+    def _route(pol):
+        """refit system 0 (same latent space): packets are addressed to the deployed realizer, as in the ladder."""
+        if representation is None:
+            return pol
+        if pol.lsv != rres["latent_space_version"]:
+            raise ValueError(f"flow latent space {pol.lsv} != representation {rres['latent_space_version']}")
+        res["route"] = dict(flow=str(flow_ckpt), representation=str(representation), flow_rcv=pol.rcv,
+                            used_rcv=rres["realizer_compat_version"])
+        pol.rcv = rres["realizer_compat_version"]
+        return pol
     for nfe in nfe_list:
-        pol = LatentPolicy.from_checkpoint(flow_ckpt, device=dev, nfe=nfe)
+        pol = _route(LatentPolicy.from_checkpoint(flow_ckpt, device=dev, nfe=nfe))
         for _ in range(3):
             pol.packets([s])
         ts = []
@@ -203,7 +218,7 @@ def latent_latency_suite(flow_ckpt: str, out_path: Path, dev=None, nfe_list=(1, 
         res["baseline_direct_action_obs_to_chunk"] = _pct(dd)
         # interleaved pairs under the same external load: latent obs->first command vs direct obs->chunk (NFE 8)
         lat, dirc = [], []
-        pol8 = LatentPolicy.from_checkpoint(flow_ckpt, device=dev, nfe=8)
+        pol8 = _route(LatentPolicy.from_checkpoint(flow_ckpt, device=dev, nfe=8))
         for _ in range(reps * 2):
             t0 = time.perf_counter()
             q = pol8.packets([s])[0]

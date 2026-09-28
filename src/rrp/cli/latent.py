@@ -197,7 +197,8 @@ def register_cell(p):
 
 def cmd_latency(a):
     from rrp.evaluation.latency import latent_latency_suite
-    print(json.dumps(latent_latency_suite(a.checkpoint, Path(a.out), direct_ckpt=a.direct, direct_config=a.direct_config, reps=a.reps), indent=1))
+    print(json.dumps(latent_latency_suite(a.checkpoint, Path(a.out), direct_ckpt=a.direct, direct_config=a.direct_config, reps=a.reps,
+                                          **({"representation": a.representation} if a.representation else {})), indent=1))
 
 
 def register_latency(p):
@@ -206,6 +207,7 @@ def register_latency(p):
     c.add_argument("--direct")
     c.add_argument("--reps", type=int, default=40)
     c.add_argument("--direct-config", help="time the direct-action architecture with random init (no checkpoint)")
+    c.add_argument("--representation", help="D-126 #32: the deployed (refit) system-0 representation.pt for this flow")
     c.add_argument("--out", required=True)
     c.set_defaults(fn=cmd_latency)
 

@@ -747,7 +747,11 @@ def main(argv=None):
     ap.add_argument("--device", default="cpu", help="cpu (default; eval runs in CPU leases) or cuda")
     from rrp.evaluation.deploy_eval import DeployOptions, add_deploy_args
     add_deploy_args(ap)
+    ap.add_argument("--system2", default="off", help="D-126 #31 system II harness (rrp.evaluation.system2): off (default) "
+                    "| oracle (DIAGNOSTIC) | default | mock[:name] | vlm[:<weights dir>]; instruction -> target -> context")
     a = ap.parse_args(argv)
+    from rrp.evaluation.system2 import make_system2
+    sys2 = make_system2(a.system2)
     deploy = DeployOptions.from_args(a)
     deploy = None if deploy.is_default() else deploy
     dev = _dev() if a.device == "cuda" else torch.device("cpu")
@@ -772,9 +776,18 @@ def main(argv=None):
                 else:
                     ctl = None
                 want = a.video_dir is not None and nv < a.video_n
+                s2kw, s2rec = {}, None
+                if sys2 is not None:
+                    from rrp.evaluation.system2 import _attach_provider, system2_episode
+                    sc2, prov, s2rec = system2_episode(sys2, body, sd)
+                    s2kw["scenario"] = sc2
+                    if ctl is not None and not isinstance(ctl, BCController):
+                        _attach_provider(ctl, prov)
                 row, frames = run_episode(ctl, body, sd, a.max_s, video=True if want else None, oracle=a.oracle,
                                          arc_only=(a.flow is None and (a.arc_only == "all" or body in a.arc_only.split(","))),
-                                         **({} if deploy is None else dict(deploy=deploy)))
+                                         **({} if deploy is None else dict(deploy=deploy)), **s2kw)
+                if s2rec is not None:
+                    row["system2"] = s2rec
                 if "_packet_z" in row:
                     _save_packets(row.pop("_packet_z"), Path(a.record_packets), row)
                 if want:

@@ -136,3 +136,13 @@ def test_ood_fit_packets_and_score_cli(tmp_path):
     assert s["n_edited"] == 3 and s["n_unedited"] == 10 and s["n_falls"] == 3
     assert s["auroc_edited_vs_unedited"] == 1.0 and s["auroc_fall"] == 1.0 and s["flagged_edited"] == 3
     assert auroc([1, 2], [0, 0]) == 1.0 and auroc([0], [0]) == 0.5 and auroc([], [1]) is None
+
+
+def test_system2_flag_wires_harness(bundle, tmp_path):
+    from rrp.evaluation.legged_latent_eval import main
+    out = tmp_path / "rows.jsonl"
+    main(["--flow", str(bundle[1]), "--bodies", "hexapod6", "--seeds", "3-3", "--nfe", "2", "--max-s", "0.5",
+          "--out", str(out), "--system2", "oracle"])
+    row = json.loads(out.read_text().splitlines()[0])
+    assert row["system2"]["harness_version"] == "s2h-1" and row["system2"]["binding_correct"] is True
+    assert row["system2"]["target"]["source"].startswith("oracle")
