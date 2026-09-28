@@ -230,7 +230,7 @@ def pca_basis(spec: dict | None, cache: dict) -> dict | None:
         from rrp.training.legged_latent_train import LeggedData
         rcfg, E, _R, _P, _res = load_rep(Path(spec["rep"]), torch.device("cpu"))
         data = LeggedData(Path(rcfg["data"]), [spec["body"]], torch.device("cpu"))
-        M = int(spec["M"])
+        M = int(spec.get("M") or data.S["asm_mask"][0].sum())            # the body's packet assemblies
         zs = []
         with torch.no_grad():
             for _ in range(max(1, n // 256)):
@@ -238,7 +238,7 @@ def pca_basis(spec: dict | None, cache: dict) -> dict | None:
                 mu, _ = E(data.ctx_batch(i), data.beh(i))
                 zs.append(mu[:, :, :M].reshape(len(i), -1).numpy())
         b = RP.fit_pca(np.concatenate(zs))
-        b.update(fit_source=dict(kind=kind, rep=spec["rep"], data=str(rcfg["data"]), body=spec["body"],
+        b.update(fit_source=dict(kind=kind, rep=spec["rep"], data=str(rcfg["data"]), body=spec["body"], M=M,
                                  note="mu = E(ctx, demonstrated targets) on training rows (the flow's targets)"))
         del data
     else:
