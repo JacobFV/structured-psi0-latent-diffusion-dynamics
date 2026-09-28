@@ -785,3 +785,19 @@ Default-behaviour pinning: tracker env reward/observation hashes are identical t
 Finding: the joint-limit-margin penalty averaged over joints (one joint at its limit counts 1/n), consistent with t1's negative margins; recipes use -1.0 with `max` aggregation.
 Nothing trained. The first run of each template must be measured and redeclared at ≥ 1.35 × peak (D-117).
 D-121 condition met (lead, 2026-09-28 ~01:30): the v6 BC expert (seed 1701, final checkpoint, under grasp_v2.1) scores panda_pg2 29/30 + 29/30 and parm6_tf3 30/30 + 30/30 on the standard dev/fresh sets (armexpert_bcv6_eval/*/learned_bcv6_direct1701_final_*.summary.json). The v2 expert (D-102) scored 30/30 on these sets under grasp_v1, the easier physics. Equal within seed noise, so the v6 data and expert are accepted. The held-out source and zero-shot cells are still running; they are reported but don't gate the labeller. The v6 lineage set (dags/arm_lineage_v6.yaml, main 4fb865b; grasp_contact v2.1 on all 56 simulated nodes, enforced by a test) is launched.
+
+## D-129 2026-09-28 D-126 deployment-credibility items landed; first findings: the estimator under-reads speed; the safety rate limit edits ~31% of tracker ticks
+Deployment agent (research/tracks/d126_deploy.md; main 5b3bc49). Default outputs are byte-identical to golden hashes from 733b02a. Suite: 539 passed / 3 skipped with assets; 517 passed / 19 skipped on a fresh clone without them (both exit 0).
+Items:
+- #27 base-state estimator (envs/state_estimator.py; --base-state-source estimator);
+- #28 privileged-information audit (11 input groups × zero/shuffle/noise vs a rerun control; code scan 0 violations with 3 declared exceptions; runtime tripwire);
+- #29 packet OOD detector with hold/safe-stop fallbacks (fingerprinted, bundle-bound);
+- #30 safety layer (sourced limits, rate limit, fall detection, ramped safe stop);
+- #31 system II wired into the legged eval;
+- #32 long-run drift and latency modes;
+- canonical source labels; the ladder / legged-summary library move.
+Peer smoke (go2, scripted teacher, 1 seed; artifacts/runs/d126deploy_smoke/smoke_go2_s10000.json):
+(a) Estimator bug: the robustness perturbation hook bypassed the estimator step. Fixed and tested.
+(b) The estimator's velocity error is 0.13–0.15 m/s at 0.5–0.6 m/s true speed (reads 15–30% low while walking), vs the truth+noise channel it replaces (~2.8 cm/s noise). So roadmap #27 is a substantive test of deployability, and a better estimator may be needed.
+(c) The safety rate limit at the sourced joint speed still edits 31% of ticks (up to 0.60 rad), because learned tracker targets step faster than the joints can follow. #30 must report the success cost across several rate_max values.
+Pending as experiments: t1 packet OOD on recorded edit packets (the D-092 rows lack z, so they must be re-recorded with --record-packets), and arm latency with real refit weights.
