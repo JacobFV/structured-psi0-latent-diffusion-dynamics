@@ -3,6 +3,29 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
+## ARM V6 TARGET BODIES — PART (1) RESULT: v1 checkpoints under grasp_v2.1 (like-for-like with v6; completed 09:59)
+All 56 cells (`scripts/armexpert_gc2_reeval.sh`, GC=v2.1; the recorded ladder commands with only RRP_GRASP_CONTACT
+changed; one pass, every job rc 0). Successes over the R2 sets (panda / parm6: dev + 3.0001M + 3.0002M = 90 each;
+parm5s / parm5l dev 30), recorded grasp_v1 -> D-127 grasp_v2 -> grasp_v2.1:
+| route (v1 checkpoints) | panda_pg2 | parm6_tf3 | parm5s_tf3 | parm5l_pg2 | total 240: v1 -> v2 -> **v2.1** | v6 lineage (grasp_v2.1, D-134) |
+|---|---|---|---|---|---|---|
+| frozen sem s1 | 36 -> 31 -> 31 | 70 -> 9 -> 9 | 20 -> 2 -> 2 | 20 -> 22 -> 22 | 146 -> 64 -> **64** | (dropped) |
+| frozen sem s2 | 23 -> 27 -> 27 | 44 -> 66 -> 66 | 7 -> 17 -> 17 | 27 -> 22 -> 22 | 101 -> 132 -> **132** | (dropped) |
+| semfix s1 | 49 -> 49 -> 49 | 45 -> 62 -> 62 | 8 -> 19 -> 19 | 22 -> 24 -> 24 | 124 -> 154 -> **154** | **218** |
+| semfix s2 | 58 -> 57 -> 53 | 38 -> 60 -> 60 | 15 -> 22 -> 22 | 18 -> 18 -> 18 | 129 -> 157 -> **153** | **207** |
+| nosem s1 | 0 -> 0 -> 0 | 3 -> 1 -> 1 | 0 -> 0 -> 0 | 0 -> 0 -> 0 | 3 -> 1 -> **1** | **148** |
+| nosem s2 | 0 -> 0 -> 0 | 8 -> 19 -> 19 | 2 -> 4 -> 4 | 16 -> 16 -> 16 | 26 -> 39 -> **39** | **166** |
+| BC direct1701 final | 89 -> 90 -> 90 | 88 -> 68 -> 68 | 29 -> 24 -> 24 | 29 -> 30 -> 30 | 235 -> 212 -> **212** | (v6 BC expert: D-121 cells) |
+Pooled over both seeds, under the SAME physics (grasp_v2.1): semfix v1 307/480 -> v6 425/480 (+0.25); nosem v1 40/480
+-> v6 314/480 (+0.57). So the v1 -> v6 gain is due to the v6 data/expert (teacher v2, grasp_v2.1 data, phase-gated DART,
+v6 BC labeller), not to the evaluation physics: grasp_v2.1 vs grasp_v2 changes 1 cell of 28 (semfix s2 panda 57 -> 53).
+Check that the physics really changed: every v2.1 row records grasp_contact_version `grasp_v2.1` (v2 rows `grasp_v2`);
+v2.1 differs from v2 only in contacts of non-pad robot geoms (palm/wrist/links) with the object, so routes whose palm
+never touches the cube give bit-identical episodes (semfix s1 panda dev: 30/30 identical), while semfix s2 panda dev has
+14/30 identical episodes and a different outcome count.
+Raw (peer store): `artifacts/runs/armexpert_gc2eval/grasp_v2.1/<robot>/{generated_zero_<tag>,learned_bc_direct1701_final}_s<set>.{jsonl,summary.json}`;
+table `research/tracks/ladder/armv6/v1_checkpoints_grasp_v2_1.json`.
+
 ## ARM V6 TARGET BODIES (D-134 lead request; started 2026-09-28 09:30 PDT; state: running)
 Two jobs, in order.
 (1) LIKE-FOR-LIKE v1 -> v6: the v1 checkpoints (frozen sem s1/s2, semfix s1/s2, nosem s1/s2, BC direct1701 final)
