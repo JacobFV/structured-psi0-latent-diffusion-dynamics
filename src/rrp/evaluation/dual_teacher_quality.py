@@ -168,6 +168,15 @@ def summarize(rows: list[dict]) -> dict:
         mx = lambda xs: float(np.max([x for x in xs if x is not None])) if any(x is not None for x in xs) else None
         frac = lambda xs: float(np.mean(xs)) if xs else None
         c = [r["contact"] for r in done]
+        # commanded-jerk ratio vs the arm v2 teacher on the same body (D-112 arm gate: <= 2x); left = first body of the pair
+        from rrp.evaluation.gates import ARM_TEACHER_V2_REFERENCE
+        ref = ARM_TEACHER_V2_REFERENCE["bodies"]
+        ratios = []
+        for r in done:
+            bodies = dict(zip(("left", "right"), r["pair"].split("__"))) if "__" in r["pair"] else {}
+            for e, p in r["per_arm"].items():
+                if bodies.get(e) in ref and p.get("cmd_jerk_rms") is not None:
+                    ratios.append(p["cmd_jerk_rms"] / ref[bodies[e]])
         out[f"{key[0]}|noise={key[1]}"] = dict(
             n=len(rs), success=sum(r["status"] == "success" for r in rs), failure=sum(r["status"] == "failure" for r in rs),
             infeasible=sum(r["status"] == "infeasible" for r in rs), error=sum(r["status"] == "error" for r in rs),
@@ -182,6 +191,8 @@ def summarize(rows: list[dict]) -> dict:
             vel_step_any_median=med([p["vel_step_any_max"] for p in arm]),
             cmd_jerk_rms_median=med([p["cmd_jerk_rms"] for p in arm]),
             joint_jerk_rms_median=med([p["joint_jerk_rms"] for p in arm]),
+            cmd_jerk_ratio_vs_arm_v2_median=med(ratios), cmd_jerk_ratio_vs_arm_v2_max=mx(ratios),
+            gate_jerk_2x_pass=frac([x <= 2.0 for x in ratios]),
             joint_margin_min_median=med([p["joint_limit_margin_min"] for p in arm]),
             held_rot_drift_grip_max_rad_median=med([x.get("cf_held_rot_drift_grip_max_rad") for x in c]),
             held_rot_drift_grip_max_rad_max=mx([x.get("cf_held_rot_drift_grip_max_rad") for x in c]),
