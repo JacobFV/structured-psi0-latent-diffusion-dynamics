@@ -1,0 +1,393 @@
+{
+ "schema_version": "1.0",
+ "task_id": "pivot_against_surface",
+ "graph_version": 0,
+ "entity_declarations": [
+  {
+   "id": "left",
+   "type": "manipulator",
+   "descriptor": "assembly assigned the bracing role"
+  },
+  {
+   "id": "right",
+   "type": "manipulator",
+   "descriptor": "assembly assigned the pivoting role"
+  },
+  {
+   "id": "stop",
+   "type": "object",
+   "descriptor": "heavy stop block that serves as the pivot surface"
+  },
+  {
+   "id": "box",
+   "type": "object",
+   "descriptor": "flat box to pivot up against the stop"
+  }
+ ],
+ "events": [
+  {
+   "id": "brace",
+   "operator": "maintain_support",
+   "roles": [
+    {
+     "role": "actor",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "left",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "patient",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "stop",
+       "version": 0
+      }
+     }
+    }
+   ],
+   "requires_completed": [],
+   "requires_active": [],
+   "preconditions": [
+    {
+     "predicate": "reachable",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "left",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "stop",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.0
+    }
+   ],
+   "invariants": [],
+   "desired_effects": [
+    {
+     "predicate": "supported",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "stop",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "desired_effect",
+     "persistence_seconds": 0.0
+    }
+   ],
+   "completion": [
+    {
+     "predicate": "event_succeeded",
+     "arguments": [
+      {
+       "kind": "event_output",
+       "event_id": "pivot",
+       "attempt": 0,
+       "output_name": "pivoted"
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "validated_receipt",
+     "persistence_seconds": 0.0
+    }
+   ],
+   "resources": [
+    {
+     "entity": {
+      "id": "left",
+      "version": 0
+     },
+     "mode": "exclusive_control"
+    }
+   ],
+   "produces": [
+    {
+     "name": "anchor",
+     "type": "contact_anchor",
+     "availability": "while_active_and_valid"
+    }
+   ],
+   "timeout_seconds": 120,
+   "recovery": {
+    "max_attempts": 2,
+    "on_failure": "reobserve_then_retry"
+   }
+  },
+  {
+   "id": "contact",
+   "operator": "make_contact",
+   "roles": [
+    {
+     "role": "actor",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "right",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "patient",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "box",
+       "version": 0
+      }
+     }
+    }
+   ],
+   "requires_completed": [],
+   "requires_active": [],
+   "preconditions": [
+    {
+     "predicate": "reachable",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "right",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "box",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.0
+    }
+   ],
+   "invariants": [],
+   "desired_effects": [],
+   "completion": [
+    {
+     "predicate": "event_succeeded",
+     "arguments": [
+      {
+       "kind": "event_output",
+       "event_id": "pivot",
+       "attempt": 0,
+       "output_name": "pivoted"
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "validated_receipt",
+     "persistence_seconds": 0.0
+    }
+   ],
+   "resources": [
+    {
+     "entity": {
+      "id": "right",
+      "version": 0
+     },
+     "mode": "shared_support"
+    }
+   ],
+   "produces": [
+    {
+     "name": "anchor",
+     "type": "contact_anchor",
+     "availability": "while_active_and_valid"
+    }
+   ],
+   "timeout_seconds": 120,
+   "recovery": {
+    "max_attempts": 2,
+    "on_failure": "reobserve_then_retry"
+   }
+  },
+  {
+   "id": "pivot",
+   "operator": "pivot",
+   "roles": [
+    {
+     "role": "actor",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "right",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "patient",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "box",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "reference",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "stop",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "support",
+     "ordinal": 0,
+     "binding": {
+      "kind": "event_output",
+      "event_id": "brace",
+      "attempt": 0,
+      "output_name": "anchor"
+     }
+    },
+    {
+     "role": "source",
+     "ordinal": 0,
+     "binding": {
+      "kind": "event_output",
+      "event_id": "contact",
+      "attempt": 0,
+      "output_name": "anchor"
+     }
+    }
+   ],
+   "requires_completed": [],
+   "requires_active": [
+    "brace",
+    "contact"
+   ],
+   "preconditions": [],
+   "invariants": [
+    {
+     "predicate": "anchor_valid",
+     "arguments": [
+      {
+       "kind": "event_output",
+       "event_id": "brace",
+       "attempt": 0,
+       "output_name": "anchor"
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "validated_receipt",
+     "persistence_seconds": 0.0
+    },
+    {
+     "predicate": "anchor_valid",
+     "arguments": [
+      {
+       "kind": "event_output",
+       "event_id": "contact",
+       "attempt": 0,
+       "output_name": "anchor"
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "validated_receipt",
+     "persistence_seconds": 0.0
+    }
+   ],
+   "desired_effects": [
+    {
+     "predicate": "pivot_angle_rad",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "box",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "ge",
+     "value": 1.0,
+     "source": "desired_effect",
+     "persistence_seconds": 0.0
+    }
+   ],
+   "completion": [
+    {
+     "predicate": "pivot_angle_rad",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "box",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "ge",
+     "value": 1.0,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.3
+    }
+   ],
+   "resources": [
+    {
+     "entity": {
+      "id": "right",
+      "version": 0
+     },
+     "mode": "exclusive_control"
+    }
+   ],
+   "produces": [
+    {
+     "name": "pivoted",
+     "type": "completion_receipt",
+     "availability": "on_success"
+    }
+   ],
+   "timeout_seconds": 60,
+   "recovery": {
+    "max_attempts": 2,
+    "on_failure": "reobserve_then_retry"
+   }
+  }
+ ],
+ "success_events": [
+  "pivot"
+ ]
+}

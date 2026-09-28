@@ -1,0 +1,498 @@
+{
+ "schema_version": "1.0",
+ "task_id": "carry_tray_level",
+ "graph_version": 0,
+ "entity_declarations": [
+  {
+   "id": "left",
+   "type": "manipulator",
+   "descriptor": "assembly holding the tray's left handle"
+  },
+  {
+   "id": "right",
+   "type": "manipulator",
+   "descriptor": "assembly holding the tray's right handle"
+  },
+  {
+   "id": "tray",
+   "type": "object",
+   "descriptor": "two-handled tray"
+  },
+  {
+   "id": "cup",
+   "type": "object",
+   "descriptor": "cup resting on the tray"
+  },
+  {
+   "id": "target",
+   "type": "feature",
+   "descriptor": "green target zone"
+  }
+ ],
+ "events": [
+  {
+   "id": "grasp_l",
+   "operator": "grasp",
+   "roles": [
+    {
+     "role": "actor",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "left",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "patient",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "tray",
+       "version": 0
+      }
+     }
+    }
+   ],
+   "requires_completed": [],
+   "requires_active": [],
+   "preconditions": [],
+   "invariants": [],
+   "desired_effects": [],
+   "completion": [
+    {
+     "predicate": "held_by",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "tray",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "left",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.1
+    }
+   ],
+   "resources": [
+    {
+     "entity": {
+      "id": "left",
+      "version": 0
+     },
+     "mode": "exclusive_control"
+    }
+   ],
+   "produces": [],
+   "timeout_seconds": 40,
+   "recovery": {
+    "max_attempts": 2,
+    "on_failure": "reobserve_then_retry"
+   }
+  },
+  {
+   "id": "grasp_r",
+   "operator": "grasp",
+   "roles": [
+    {
+     "role": "actor",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "right",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "patient",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "tray",
+       "version": 0
+      }
+     }
+    }
+   ],
+   "requires_completed": [],
+   "requires_active": [],
+   "preconditions": [],
+   "invariants": [],
+   "desired_effects": [],
+   "completion": [
+    {
+     "predicate": "held_by",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "tray",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "right",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.1
+    }
+   ],
+   "resources": [
+    {
+     "entity": {
+      "id": "right",
+      "version": 0
+     },
+     "mode": "exclusive_control"
+    }
+   ],
+   "produces": [],
+   "timeout_seconds": 40,
+   "recovery": {
+    "max_attempts": 2,
+    "on_failure": "reobserve_then_retry"
+   }
+  },
+  {
+   "id": "carry",
+   "operator": "carry_level",
+   "roles": [
+    {
+     "role": "actor",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "left",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "cooperating_actor",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "right",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "patient",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "tray",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "destination",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "target",
+       "version": 0
+      }
+     }
+    }
+   ],
+   "requires_completed": [
+    "grasp_l",
+    "grasp_r"
+   ],
+   "requires_active": [],
+   "preconditions": [
+    {
+     "predicate": "held_by",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "tray",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "left",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.0
+    },
+    {
+     "predicate": "held_by",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "tray",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "right",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.0
+    }
+   ],
+   "invariants": [
+    {
+     "predicate": "level_error_rad",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "tray",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "le",
+     "value": 0.087,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.0
+    }
+   ],
+   "desired_effects": [
+    {
+     "predicate": "in_region",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "tray",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "target",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "desired_effect",
+     "persistence_seconds": 0.0
+    }
+   ],
+   "completion": [
+    {
+     "predicate": "in_region",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "tray",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "target",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.3
+    }
+   ],
+   "resources": [
+    {
+     "entity": {
+      "id": "left",
+      "version": 0
+     },
+     "mode": "exclusive_control"
+    },
+    {
+     "entity": {
+      "id": "right",
+      "version": 0
+     },
+     "mode": "exclusive_control"
+    }
+   ],
+   "produces": [],
+   "timeout_seconds": 60,
+   "recovery": {
+    "max_attempts": 2,
+    "on_failure": "reobserve_then_retry"
+   }
+  },
+  {
+   "id": "release",
+   "operator": "release",
+   "roles": [
+    {
+     "role": "actor",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "left",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "cooperating_actor",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "right",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "patient",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "tray",
+       "version": 0
+      }
+     }
+    }
+   ],
+   "requires_completed": [
+    "carry"
+   ],
+   "requires_active": [],
+   "preconditions": [],
+   "invariants": [],
+   "desired_effects": [],
+   "completion": [
+    {
+     "predicate": "held_by",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "tray",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "left",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": false,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.3
+    },
+    {
+     "predicate": "held_by",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "tray",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "right",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": false,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.3
+    }
+   ],
+   "resources": [
+    {
+     "entity": {
+      "id": "left",
+      "version": 0
+     },
+     "mode": "exclusive_control"
+    },
+    {
+     "entity": {
+      "id": "right",
+      "version": 0
+     },
+     "mode": "exclusive_control"
+    }
+   ],
+   "produces": [
+    {
+     "name": "released",
+     "type": "completion_receipt",
+     "availability": "on_success"
+    }
+   ],
+   "timeout_seconds": 30,
+   "recovery": {
+    "max_attempts": 2,
+    "on_failure": "reobserve_then_retry"
+   }
+  }
+ ],
+ "success_events": [
+  "release"
+ ]
+}
