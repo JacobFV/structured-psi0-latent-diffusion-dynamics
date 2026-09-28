@@ -710,3 +710,16 @@ Owner request. A read-only audit found 44 partial or missing items across physic
 10. record keeping (registry, requirements, STATUS, considerations checklist, validate_tracker in DAGs, psi1z pin bump, demo republish).
 Immediate action: item 10 (small, contract-required) is assigned now. The rest is scheduled into workstreams by the lead against peer capacity.
 D-123 note (lead, 21:39): host disk fell below its 100 GB reserve (93 GB free), stopping host admission even for light jobs. Removed the host copy of latent_pp_v4dart_s1_H16 (15 GB; superseded grasp_v1 data per D-110). A byte-identical copy (15,355,716,066 B, 42 files) remains on the peer disk at ~/rrp-peer-data/packed/. No process referenced it.
+
+## D-124 2026-09-27 W8 COMPLETE: the semantic context-halt effect replicates under contact v2 on anymal_c and go2 (3/3 seeds each); t1 with sourced torque limits is not testable because learned controllers fall
+W8 (research/tracks/legged8/summary_contact_v2.{md,json}, main 5aa86cf; the lead checked the permutation results in the JSON). All three DAGs completed 43/43 through rrp run-dag; contact_v2; ideal PD actuators; sourced limits (go2/anymal_c unchanged; t1 changed).
+Context HALT Δforward (t = 2–5 s), pooled semfix − nosem:
+- anymal_c −0.40 [−0.50, −0.30]; go2 −0.66 [−0.72, −0.59]. Every seed ordered on both (exact one-sided p = 0.05 each).
+- Irrelevant control ≤ 0.02 m everywhere.
+- Goal steering: anymal_c semfix > nosem (ordered, p = 0.05); go2 not ordered.
+- R2 success comparable: anymal_c 78 vs 83/90 (end-check artifact; public 88–90); go2 87 vs 87. Teacher 30/30, BC 30/30 on both.
+t1 (w8d tracker, sourced limits; D-113/D-114 caveats on every number): no learned controller imitates the teacher reliably.
+- BC 0/30; R2 30 vs 33/90 with 57–60 falls, dominated by training seed. Usable halt pairs: semfix 17/9/1, nosem 0/0/14.
+- Direction is the same (semfix −0.31 m pooled, n = 27; nosem +0.14 m, n = 14, one seed), but the permutation test is undefined.
+- By contrast, t1 on the old inflated-torque tracker reached 81–83/90 (D-087). A realistically-limited t1 gait is not yet learnable by our routes (backlog item 3: humanoid trackers).
+Reading: on physically credible legged contact, a semantically supervised packet carries a task-context halt request into behaviour on 2/2 quadruped bodies × 3/3 seeds, at equal task success; nosem walks further. The humanoid remains open. Evidence matrix updated; W8 closed; its peer GPU share returns to the pool (priority: W7 / arm lineages > W10 > W12).
