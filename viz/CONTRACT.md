@@ -5,7 +5,7 @@ everything about our policy trained and evaled on all the tasks". Pattern mirror
 read-only local data API with a short cache, and a static snapshot fallback that says it is a snapshot.
 
 ## ground rules
-- Bound to **127.0.0.1:3013 only** (AGENTS.md: no public listeners). Nothing is published.
+- Listens on port 3013; the bind host is configurable with `RRP_ROOM_HOST` (default 127.0.0.1; set 0.0.0.0 to view it from other machines; public listeners are allowed per D-132). The room stays read-only.
 - **Read-only.** The room never starts, stops or modifies jobs, experiments or files outside `viz/data/`
   and `~/work/rrp-data/viz/`.
 - **Host-light (D-127).** The host exporter is pure file/JSON work: ≤ 1 CPU, ≤ 500 MB, runs at most every 15 s

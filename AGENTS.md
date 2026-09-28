@@ -33,7 +33,7 @@ are BASELINES ONLY. Integration branch: `main`.
   `scripts/peer_sync.sh push` now enforces this (D-096): it refuses without RRP_PEER_REPO, refuses the shared `repo` dir unless RRP_ALLOW_SHARED_REPO=1, and refuses a dir that running jobs use as their cwd.
 - NEVER run `rrp ops stop` without `--lease <your lease id>` (2026-09-21 incident: an unscoped stop killed every peer job).
   Launch loops must check exit codes and be bounded (D-061).
-- No paid compute/API calls, sudo/global upgrades, network reconfiguration, public listeners or physical robot commands.
+- No paid compute/API calls, sudo/global upgrades, network reconfiguration or physical robot commands. Public listeners (e.g. the viz room on a LAN interface) are allowed (owner, D-132); keep them read-only.
 
 ## repository
 - Public repo `github.com/JacobFV/structured-psi0-latent-diffusion-dynamics` (renamed from relational-robot-policy,

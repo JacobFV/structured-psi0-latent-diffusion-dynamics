@@ -146,7 +146,7 @@ tests/         unit/, integration/, browser/, gpu/
   bc / learned:<ckpt>. Every number comes from a saved raw output; failures are kept.
 - **Splits are sealed before results** (`research/splits/`, `configs/eval/latent_slice1.json`).
 - **Resources.** Host: ≤80% of currently free CPU and memory, host GPU allowed, ≥100 GB disk kept free; peer: all of it
-  (D-026, D-033, D-086). Details and the peer workflow: [`AGENTS.md`](AGENTS.md). No cloud spend, no public listeners,
+  (D-026, D-033, D-086). Details and the peer workflow: [`AGENTS.md`](AGENTS.md). No cloud spend,
   no physical robots.
 
 ## development conventions
