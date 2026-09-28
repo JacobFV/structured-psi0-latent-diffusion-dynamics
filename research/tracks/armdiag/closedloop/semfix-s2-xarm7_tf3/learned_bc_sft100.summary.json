@@ -1,0 +1,46 @@
+{
+ "n": 30,
+ "success": 28,
+ "rate": 0.9333333333333333,
+ "wilson95": [
+  0.7867618227892791,
+  0.9815233646723066
+ ],
+ "failed_stage": {
+  "success": 28,
+  "transport": 1,
+  "approach": 1
+ },
+ "track_q_rad": 0.016483112251425583,
+ "track_tcp_m": 0.017960132105605976,
+ "lab_err_arm": 0.31163597557490375,
+ "lab_err_grip": 0.7814039309416324,
+ "min_tcp_cube_m": 0.00729418044893346,
+ "cmd_step_rad": 0.06197822596021318,
+ "route": "learned",
+ "robot": "xarm7_tf3",
+ "seeds": [
+  3000000,
+  3000029,
+  30
+ ],
+ "replan": 8,
+ "nfe": 8,
+ "prev_action": "zero",
+ "reanchor": false,
+ "oracle_expert": "teacher",
+ "policy_label": "bcv6_1702_sft_b100",
+ "keep_ticks": false,
+ "oracle_reanchor": false,
+ "object_shift": null,
+ "checkpoints": {
+  "policy": {
+   "path": "artifacts/runs/armtgt/armtgt6-bc1702-xarm7_tf3/target_adapt-bc_sft_b100_s1702/policy.pt",
+   "sha256": "e1288c30f7b80b02929121559e8ae3c3bb5fea8c7ad6c1f5a8062ecac313ab30",
+   "nfe": 8,
+   "execute_prefix": 8,
+   "label": "bcv6_1702_sft_b100"
+  }
+ },
+ "label": "NON-SEALED DIAGNOSTIC (target body, dev seeds >= 3,000,000; not a sealed-protocol result)"
+}

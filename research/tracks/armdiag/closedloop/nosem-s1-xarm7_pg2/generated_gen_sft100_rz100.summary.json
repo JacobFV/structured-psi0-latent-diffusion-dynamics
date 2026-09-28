@@ -1,0 +1,58 @@
+{
+ "n": 30,
+ "success": 10,
+ "rate": 0.3333333333333333,
+ "wilson95": [
+  0.19230295526846194,
+  0.5122027418616973
+ ],
+ "failed_stage": {
+  "transport": 3,
+  "lift": 7,
+  "approach": 9,
+  "success": 10,
+  "grasp": 1
+ },
+ "track_q_rad": 0.011068189860166609,
+ "track_tcp_m": 0.014955705759815394,
+ "lab_err_arm": 0.36198217001400407,
+ "lab_err_grip": 1.5095391494598116,
+ "min_tcp_cube_m": 0.023130246060567503,
+ "cmd_step_rad": 0.042873958254190776,
+ "route": "generated",
+ "robot": "xarm7_pg2",
+ "seeds": [
+  3000000,
+  3000029,
+  30
+ ],
+ "replan": 8,
+ "nfe": 8,
+ "prev_action": "zero",
+ "reanchor": false,
+ "oracle_expert": "teacher",
+ "policy_label": null,
+ "keep_ticks": false,
+ "oracle_reanchor": false,
+ "object_shift": null,
+ "checkpoints": {
+  "representation": {
+   "path": "artifacts/runs/armtgt/armtgt6-nosem-xarm7_pg2/target_adapt-system0_refit_b100_s1/representation.pt",
+   "sha256": "01d552def17d8ae8bded84735d3c476535a090aea293758e8344e127368efc61",
+   "latent_space_version": "ls-6bbf3506786b-wfab51ac5025a",
+   "realizer_compat_version": "rz-ls-6bbf3506786b-wfab51ac5025a-r641ceb27e5f1-none-v1"
+  },
+  "realizer_override": {
+   "flow_rcv": "rz-ls-6bbf3506786b-wfab51ac5025a-rd3654c02959b-none-v1",
+   "used_rcv": "rz-ls-6bbf3506786b-wfab51ac5025a-r641ceb27e5f1-none-v1"
+  },
+  "flow": {
+   "path": "artifacts/runs/armtgt/armtgt6-nosem-xarm7_pg2/target_adapt-flow_sft_b100_s1/policy.pt",
+   "sha256": "be99093828fa3b1f07bf60ff3cab31e6e3c1ace1d6c9dba2e76cd2597529a245",
+   "nfe": 8,
+   "sampler": "euler-ode",
+   "noise_scale": 1.0
+  }
+ },
+ "label": "NON-SEALED DIAGNOSTIC (target body, dev seeds >= 3,000,000; not a sealed-protocol result)"
+}

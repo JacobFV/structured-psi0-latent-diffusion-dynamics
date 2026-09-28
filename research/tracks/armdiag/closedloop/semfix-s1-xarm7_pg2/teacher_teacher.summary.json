@@ -1,0 +1,36 @@
+{
+ "n": 30,
+ "success": 30,
+ "rate": 1.0,
+ "wilson95": [
+  0.8864829086095221,
+  1.0
+ ],
+ "failed_stage": {
+  "success": 30
+ },
+ "track_q_rad": 0.02439922179413938,
+ "track_tcp_m": 0.023592383354564664,
+ "lab_err_arm": null,
+ "lab_err_grip": null,
+ "min_tcp_cube_m": 0.005220780609780581,
+ "cmd_step_rad": 0.09903324483494355,
+ "route": "teacher",
+ "robot": "xarm7_pg2",
+ "seeds": [
+  3000000,
+  3000029,
+  30
+ ],
+ "replan": 8,
+ "nfe": 8,
+ "prev_action": "zero",
+ "reanchor": false,
+ "oracle_expert": "teacher",
+ "policy_label": null,
+ "keep_ticks": false,
+ "oracle_reanchor": false,
+ "object_shift": null,
+ "checkpoints": {},
+ "label": "NON-SEALED DIAGNOSTIC (target body, dev seeds >= 3,000,000; not a sealed-protocol result)"
+}
