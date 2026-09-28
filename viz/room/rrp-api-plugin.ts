@@ -23,10 +23,10 @@ import type { Plugin } from 'vite';
 export const DOCS = [
   'overview', 'live', 'dags', 'results', 'edits', 'training', 'robustness', 'physics', 'psi0', 'knowledge', 'replays', 'videos',
 ] as const;
-const LIVE_DOCS = new Set(['live', 'dags']);
+const LIVE_DOCS = new Set(['live']);
 const TTL_MS = 15_000;
 const LIVE_TTL_MS = 10_000;
-const EXPORT_TIMEOUT_MS = 90_000;
+const EXPORT_TIMEOUT_MS = 30_000; // contract: 20 s exporter timeout (+ margin for a cold first export)
 
 type Paths = {
   root: string; python: string; exporter: string; out: string; replays: string; video: string; psi1z: string;
@@ -43,7 +43,7 @@ function paths(): Paths {
   return {
     root,
     python: candidates.find((p) => existsSync(p)) || candidates[candidates.length - 1],
-    exporter: resolve(root, 'src/rrp/viz/export.py'),
+    exporter: resolve(root, 'src/rrp/viz/api.py'),
     out: resolve(root, 'viz/data'),
     replays: resolve(process.env.RRP_REPLAYS || resolve(home, 'work/rrp-data/viz/replays')),
     video: resolve(root, 'artifacts/video'),
@@ -71,21 +71,26 @@ function serial<T>(job: () => Promise<T>): Promise<T> {
   return next;
 }
 
-function runExport(p: Paths, doc: string): Promise<void> {
-  const args = ['-n', '10', p.python, '-m', 'rrp.viz.export', '--only', doc];
-  if (LIVE_DOCS.has(doc)) args.push('--live');
-  args.push('--out', p.out);
+function helper(p: Paths, args: string[], timeout = EXPORT_TIMEOUT_MS): Promise<string> {
   return new Promise((ok, fail) => {
-    execFile('nice', args, {
+    execFile('nice', ['-n', '10', p.python, '-m', 'rrp.viz.api', ...args], {
       cwd: p.root,
-      timeout: EXPORT_TIMEOUT_MS,
+      timeout,
       maxBuffer: 1 << 20,
       env: { ...process.env, PYTHONPATH: resolve(p.root, 'src'), OMP_NUM_THREADS: '1', OPENBLAS_NUM_THREADS: '1', MKL_NUM_THREADS: '1' },
-    }, (error, _stdout, stderr) => {
+    }, (error, stdout, stderr) => {
       if (error) fail(new Error(`${error.message}\n${String(stderr).slice(-2000)}`));
-      else ok();
+      else ok(String(stdout).trim());
     });
   });
+}
+
+/** `python -m rrp.viz.api get <doc> [--live] --max-age S` re-exports only when older than S and prints the file path. */
+async function runExport(p: Paths, doc: string): Promise<void> {
+  const live = LIVE_DOCS.has(doc);
+  const args = ['get', doc, '--max-age', String((live ? LIVE_TTL_MS : TTL_MS) / 1000)];
+  if (live) args.push('--live');
+  await helper(p, args);
 }
 
 type Entry = { at: number; pending?: Promise<void>; error?: string };
@@ -106,18 +111,24 @@ function docApi(p: Paths) {
     await entry.pending;
     return entry;
   }
-  return async (doc: string, res: ServerResponse) => {
+  return async (doc: string, req: IncomingMessage, res: ServerResponse) => {
     const file = resolve(p.out, `${doc}.json`);
     const available = existsSync(p.exporter);
     const entry = available ? await refresh(doc) : { at: 0, error: `exporter not found: ${p.exporter}` };
     try {
       const info = await stat(file);
-      const text = await readFile(file, 'utf8');
+      const etag = `"${Math.round(info.mtimeMs)}-${info.size}"`;
       const headers: Record<string, string> = {
-        'X-RRP-Source-File': file, 'X-RRP-File-Mtime': new Date(info.mtimeMs).toISOString(),
+        'X-RRP-Source-File': file, 'X-RRP-File-Mtime': new Date(info.mtimeMs).toISOString(), ETag: etag,
       };
       if (entry.error) headers['X-RRP-Export-Error'] = encodeURIComponent(entry.error.slice(0, 600));
-      send(res, 200, text, headers);
+      if (req.headers['if-none-match'] === etag && !entry.error) {
+        res.statusCode = 304;
+        for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
+        res.setHeader('Cache-Control', 'no-cache');
+        return res.end();
+      }
+      send(res, 200, await readFile(file, 'utf8'), { ...headers, 'Cache-Control': 'no-cache' });
     } catch {
       send(res, 503, {
         error: 'no data', doc, expected: file, exporter: p.exporter, exporter_available: available,
@@ -166,6 +177,14 @@ async function serveReplay(p: Paths, id: string, res: ServerResponse) {
   createReadStream(file).pipe(res);
 }
 
+/** One training series: viz/data/training/<id>.json (written by the training export). */
+async function serveTraining(p: Paths, id: string, res: ServerResponse) {
+  if (!ID_RE.test(id)) return send(res, 400, { error: 'bad training id' });
+  const file = resolve(p.out, 'training', `${id}.json`);
+  if (!within(resolve(p.out, 'training'), file) || !existsSync(file)) return send(res, 404, { error: 'no data', expected: file });
+  send(res, 200, await readFile(file, 'utf8'), { 'X-RRP-Source-File': file });
+}
+
 const MEDIA_RE = /^[A-Za-z0-9][A-Za-z0-9._+=-]{0,250}$/;
 const MEDIA_TYPES: Record<string, string> = {
   '.mp4': 'video/mp4', '.webm': 'video/webm', '.gif': 'image/gif', '.png': 'image/png', '.jpg': 'image/jpeg',
@@ -175,7 +194,13 @@ async function serveMedia(p: Paths, name: string, req: IncomingMessage, res: Ser
   const file = resolve(p.video, name);
   if (!MEDIA_RE.test(name) || !type || !within(p.video, file)) return send(res, 400, { error: 'not an allowlisted media file' });
   let size = 0;
-  try { size = (await stat(file)).size; } catch { return send(res, 404, { error: 'no data', expected: file }); }
+  try { size = (await stat(file)).size; } catch {
+    const alt = resolve(homedir(), 'work/relational-robot-policy/artifacts/video', name);
+    try { size = (await stat(alt)).size; return serveFile(alt, size, type, req, res); } catch { return send(res, 404, { error: 'no data', expected: file }); }
+  }
+  return serveFile(file, size, type, req, res);
+}
+function serveFile(file: string, size: number, type: string, req: IncomingMessage, res: ServerResponse) {
   res.setHeader('Content-Type', type);
   res.setHeader('Accept-Ranges', 'bytes');
   res.setHeader('Cache-Control', 'no-store');
@@ -209,7 +234,7 @@ function docPath(p: Paths, raw: string): string | null {
   if (raw.startsWith('psi1z/')) {
     const rel = raw.slice('psi1z/'.length);
     const file = resolve(p.psi1z, rel);
-    const ok = /^(README\.md|DECISIONS\.md|decisions\.md|NOTES\.md|notes\.md|notes\/[A-Za-z0-9._/-]+\.md|docs\/[A-Za-z0-9._/-]+\.md)$/.test(rel);
+    const ok = /^(README\.md|research\/notes\.md|research\/decisions\.md)$/.test(rel);
     return ok && within(p.psi1z, file) ? file : null;
   }
   if (!/^(STATUS\.md|README\.md|AGENTS\.md|(docs|research)\/[A-Za-z0-9._/ -]+\.md)$/.test(raw)) return null;
@@ -248,7 +273,7 @@ async function listDocs(p: Paths): Promise<string[]> {
   }
   await walk('docs', 0);
   await walk('research', 0);
-  for (const f of ['README.md', 'DECISIONS.md', 'decisions.md', 'NOTES.md', 'notes.md'])
+  for (const f of ['README.md', 'research/notes.md', 'research/decisions.md'])
     if (existsSync(resolve(p.psi1z, f))) out.push(`psi1z/${f}`);
   return out.sort();
 }
@@ -278,7 +303,8 @@ export function rrpApi(): Plugin {
           if (rest === 'doc') return await serveDoc(p, url.searchParams.get('path') || '', res);
           if (rest === 'doclist') return send(res, 200, { schema: 'rrp-viz/doclist/v1', generated_at: new Date().toISOString(), docs: await listDocs(p) });
           if (rest.startsWith('replay/')) return await serveReplay(p, rest.slice('replay/'.length), res);
-          if ((DOCS as readonly string[]).includes(rest)) return await docs(rest, res);
+          if (rest.startsWith('training/')) return await serveTraining(p, rest.slice('training/'.length), res);
+          if ((DOCS as readonly string[]).includes(rest)) return await docs(rest, req, res);
           return send(res, 404, { error: 'unknown API path', path });
         } catch (e) {
           return send(res, 500, { error: String((e as Error).message || e).slice(0, 500) });

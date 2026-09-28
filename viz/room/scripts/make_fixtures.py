@@ -44,98 +44,115 @@ for fam, tasks, bodies in [("arm", ["pick_place", "pick_place_paired"], ["fixtur
                                      caveat="FIXTURE row: synthetic" if route == "bc" else None))
 dump("results", env("results", rows=rows))
 
-# ---------------------------------------------------------------- overview
-dump("overview", env("overview",
-    established=[dict(claim="FIXTURE: an established claim appears here with its decision id", decision="D-000"),
-                 dict(claim="FIXTURE: a second claim, qualified by a caveat", decision="D-000", caveat="FIXTURE caveat")],
-    open=[dict(item="FIXTURE: an open question linked to the roadmap", roadmap="1")],
-    caveats=[dict(text="FIXTURE: caveats are listed, never hidden", decision="D-000")],
-    key_numbers=[dict(label="FIXTURE success rate", value=0.5, k=15, n=30, ci_lo=0.33, ci_hi=0.67, source_label="fixture", decision="D-000",
-                      source_file="viz/room/fixtures/overview.json", interim=True)],
-    decisions=[dict(id=f"D-{i:03d}", date="2026-09-28", title=f"FIXTURE decision {i}") for i in range(3, 0, -1)]))
+# ---------------------------------------------------------------- overview (shape of rrp.viz.export overview)
+dump("overview", env("overview", status_updated="FIXTURE", current_state_markdown="**FIXTURE** current state text.",
+    claims=[dict(title="FIXTURE claim", text="an established claim appears here with its decision id", decisions=["D-000"], status="established", interim=False, source_file="STATUS.md", line=1),
+            dict(title="FIXTURE interim claim", text="a claim still being checked", decisions=["D-000"], status="interim", interim=True, source_file="STATUS.md", line=2)],
+    open=[dict(n="1", section="FIXTURE", question="FIXTURE: an open roadmap question", status="running", status_text="running", decisions=[], source_file="docs/experiments_roadmap.md", line=1)],
+    caveats=[dict(text="FIXTURE: caveats are listed, never hidden", decisions=["D-000"], source_file="STATUS.md", line=3)],
+    key_numbers=[dict(k=15, n=30, text="15/30", context="FIXTURE context", claim="FIXTURE claim", decisions=["D-000"], interim=True, source_file="STATUS.md", line=1)],
+    latest_decisions=[dict(id=f"D-{i:03d}", date="2026-09-28", title=f"FIXTURE decision {i}") for i in range(3, 0, -1)],
+    workstreams=[dict(id="W0", workstream="FIXTURE workstream", state="running", where="research/tracks/room.md", decisions=["D-000"])],
+    results_summary=dict(n_rows=len(rows), n_files=1, n_interim=0, n_with_caveat=0)))
 
 # ---------------------------------------------------------------- live + dags
 now = 1790553600
+GB = 1024 ** 3
 samples = []
 for i in range(120):
     t = now - (120 - i) * 10
     samples.append(dict(t=t, level="warn" if 60 <= i < 66 else "ok", reasons=["FIXTURE: psi above threshold"] if 60 <= i < 66 else [],
-                        gpu_util=round(50 + 40 * math.sin(i / 9), 1), gpu_temp_c=round(55 + 10 * math.sin(i / 15), 1),
-                        cpu_temp_c=round(60 + 8 * math.sin(i / 11), 1), mem_available_gb=round(80 - 20 * math.sin(i / 20), 2),
-                        psi_mem_some_avg10=round(max(0, 6 * math.sin(i / 7)), 2)))
-dump("live", env("live", stale=False,
-    peer=dict(host="fixture-peer", gpu_util=61.0, gpu_temp_c=58.0, cpu_temp_c=63.0, mem_available_gb=74.2, psi_mem_some_avg10=0.4,
-              project_mem_gb=21.5, disk_free_gb=512.0, admission=dict(state="open", reason="FIXTURE: headroom available")),
-    leases=[dict(id=f"fx-lease-{j}", label=f"FIXTURE job {j}", workstream=w, declared=dict(mem_gb=d, gpu=1 if j < 2 else 0, cpu=4),
-                 measured=dict(current_gb=round(d * f, 2), peak_gb=round(d * min(1.1, f + 0.15), 2)), memory_high_events=e, age_s=600 * (j + 1))
-            for j, (w, d, f, e) in enumerate([("ladder", 24, 0.62, 0), ("legged", 16, 0.95, 3), ("room", 2, 0.3, 0)])],
-    watchdog=samples, host=dict(load_1m=4.2, mem_available_gb=90.1, note="FIXTURE")))
+                        gpu_temp_c=round(55 + 10 * math.sin(i / 15), 1), thermal_c=round(60 + 8 * math.sin(i / 11), 1),
+                        memory_available=int((80 - 20 * math.sin(i / 20)) * GB), project_memory=int((30 + 10 * math.sin(i / 13)) * GB),
+                        psi_full_avg10=round(max(0, 6 * math.sin(i / 7)), 2), idle_cores=round(12 + 4 * math.sin(i / 9), 2),
+                        project_cpu_cores=round(5 + 2 * math.sin(i / 8), 2), project_gpu_bytes=int(20 * GB), throttled_leases=[], gpu_thermal_throttle=False))
+dump("live", env("live", peer="fixture-peer", peer_read_at=GEN, stale=False, stale_after_s=60, peer_errors=[], last_error=None,
+    node=dict(gpu=[dict(name="FIXTURE GPU", util_pct="61", temp_c="58", power_w="40")], gpu_temp_c=58.0, cpu_temp_c=63.0,
+              memory_available=int(74 * GB), mem_total=int(120 * GB), psi_memory="some avg10=0.40 avg60=0.2 avg300=0.1 total=1\nfull avg10=0.10 avg60=0 avg300=0 total=1",
+              psi_cpu="some avg10=3.00 avg60=3 avg300=3 total=1", loadavg="6.1 5.9 5.7 5/1000 1", project_memory=int(21 * GB), disk_free=int(500 * GB),
+              home_free_bytes=int(90 * GB), shm_free_bytes=int(29 * GB), admission=dict(stopped=False, reason=None),
+              limits=dict(cpu_cores=20, memory_bytes=int(108 * GB), gpu_slots=8), watchdog_last=dict(level="ok", reasons=[]), watchdog_heartbeat_age_s=1.0),
+    leases=[dict(id=f"fx-lease-{j}", label=f"FIXTURE job {j}", workstream=w, dag="fixture_dag", dag_node=f"n{j}",
+                 declared=dict(memory_bytes=int(dm * GB), cpu_cores=2.0, gpu=j < 2, gpu_memory_bytes=int(2 * GB) if j < 2 else 0),
+                 measured=dict(memory_current=int(dm * f * GB), memory_peak=int(dm * min(1.1, f + 0.15) * GB), memory_high=str(int(dm * 0.8 * GB)), memory_high_events=e, oom_events=0, oom_kill_events=0),
+                 age_s=600 * (j + 1), heartbeat_at=now)
+            for j, (w, dm, f, e) in enumerate([("ladder", 24, 0.62, 0), ("legged", 16, 0.95, 3), ("room", 2, 0.3, 0)])],
+    n_leases_total=3, broker_events=[dict(kind="lease_acquired", label="FIXTURE job 0", lease_id="fx-lease-0", mem=int(24 * GB), cpu=2.0, gpu=True, t=now - 900),
+                                     dict(kind="admission_stopped", reason="FIXTURE: sustained psi", t=now - 400)],
+    watchdog=samples, host=dict(loadavg=["4.2", "4.0", "3.9"], cpus=20, mem_available="90 GB", gpu="host GPU work is off (FIXTURE)")))
 dags = []
 for name, ws, states in [("fixture_ladder_dag", "ladder", "cccccrrppp"), ("fixture_legged_dag", "legged", "ccfcbpp"), ("fixture_room_dag", "room", "cccc")]:
     m = dict(c="completed", r="running", p="pending", f="failed", b="blocked")
-    nodes = [dict(id=f"{name}.n{i}", stage=f"stage{i // 3}", state=m[s], lease=None, started=None, ended=None, rc=1 if s == "f" else None,
-                  caveat=None) for i, s in enumerate(states)]
+    nodes = [dict(id=f"n{i}", stage=f"stage{i // 3}", state=m[s], lease=None, started=None, ended=None, rc=1 if s == "f" else None, caveat=None) for i, s in enumerate(states)]
     counts = {}
     for n in nodes: counts[n["state"]] = counts.get(n["state"], 0) + 1
-    dags.append(dict(name=name, workstream=ws, host="peer", nodes=nodes, counts=counts, eta=None))
+    dags.append(dict(track=ws, dag=name, location="repo", nodes=nodes, counts=counts, n_nodes=len(nodes), complete=all(n["state"] == "completed" for n in nodes), eta_statements=[], updated=GEN))
 dump("dags", env("dags", dags=dags))
 
 # ---------------------------------------------------------------- edits
 edits = []
 for body in ["fixture_arm_a", "fixture_quad"]:
-    for seed in ["1701", "1702", "1703"]:
-        for edit, eff in [("ctx_halt", -0.4), ("z_turn", 0.3), ("mirror_active", -0.25), ("mirror_inactive", 0.0)]:
+    for seed in ["0", "1", "2"]:
+        for edit, eff in [("halt", -0.4), ("z_turn", 0.3), ("mirror_active", -0.25), ("mirror_inactive", 0.0)]:
             e = eff + rng.uniform(-0.08, 0.08); w = rng.uniform(0.06, 0.15)
-            edits.append(dict(body=body, variant="v1", seed=seed, edit=edit, control=edit == "mirror_inactive", effect=round(e, 3),
-                              ci=[round(e - w, 3), round(e + w, 3)], n_pairs=64, permutation_p=0.4 if edit == "mirror_inactive" else 0.002,
-                              metric="FIXTURE effect", decision="D-000"))
+            edits.append(dict(body=body, variant="fixsem", seed=seed, edit=edit, role="control" if edit == "mirror_inactive" else "edit", control=edit == "mirror_inactive",
+                              effect=round(e, 3), ci=[round(e - w, 3), round(e + w, 3)], n_pairs=64, kind="effect", metric="forward", decision="D-000",
+                              source_file="viz/room/fixtures/edits.json", location="fixture"))
+edits.append(dict(body="fixture_quad", variant="fixsem", edit="halt", kind="permutation", metric="forward", p_one_sided=0.004, p_two_sided=0.008, n_perm=252, direction="fixsem<nosem"))
 dump("edits", env("edits", rows=edits))
 
-# ---------------------------------------------------------------- training
+# ---------------------------------------------------------------- training (series embedded: fixtures only)
 runs = []
 for name, kind in [("fixture_flow_run", "flow"), ("fixture_bc_run", "bc")]:
     steps = list(range(0, 20000, 100))
     loss = [round(2.0 * math.exp(-s / 5000) + 0.1 + rng.uniform(0, 0.03), 4) for s in steps]
     gn = [round(3 * math.exp(-s / 8000) + rng.uniform(0, 0.8) + (4 if 6000 < s < 6800 else 0), 4) for s in steps]
-    runs.append(dict(run=name, kind=kind, step=steps, losses=dict(total=loss, flow=[round(x * 0.7, 4) for x in loss]), grad_norm=gn,
-                     clip_scale=[round(min(1.0, 2.0 / g), 4) if g > 0 else 1.0 for g in gn], lr=[3e-4 * min(1, s / 1000) for s in steps],
-                     alpha=[round(min(1, s / 15000), 4) for s in steps] if kind == "flow" else None,
-                     gate="pass" if kind == "flow" else "pending", dagger_rounds=[dict(round=1, step=10000)] if kind == "bc" else [],
-                     source_label="fixture", source_file="viz/room/fixtures/training.json", decision="D-000"))
-for r in runs:
-    if r["alpha"] is None: del r["alpha"]
-dump("training", env("training", runs=runs))
+    r = dict(id=name, run=f"FIXTURE/{name}", kind=kind, n_points=len(steps), stride=1, step=steps, losses=dict(loss=loss, flow=[round(x * 0.7, 4) for x in loss]),
+             grad_norm=gn, grad_norm_key="grad_norm", clip_scale=[round(min(1.0, 2.0 / g), 4) if g > 0 else 1.0 for g in gn], clip_scale_key="clip_scale",
+             lr=[3e-4 * min(1, s / 1000) for s in steps], gate_state="pass" if kind == "flow" else None,
+             dagger_rounds=[dict(round=1, step=10000)] if kind == "bc" else [], source_file="viz/room/fixtures/training.json", location="fixture", decision="D-000")
+    if kind == "flow": r["alpha"] = [round(min(1, s / 15000), 4) for s in steps]; r["has_alpha"] = True
+    runs.append(r)
+dump("training", env("training", runs=runs, grad_health=[]))
 
 # ---------------------------------------------------------------- robustness
-sweeps = []
+levels = []
+reports = []
 for route in ["flow_sem", "bc"]:
-    for factor, levels in [("friction_scale", [0.25, 0.5, 1.0, 1.5, 2.0]), ("push_n", [0, 5, 10, 20, 40])]:
-        for li, lv in enumerate(levels):
-            n = 20; k = max(0, min(20, int(18 - (abs(li - 2) if factor == "friction_scale" else li) * (4 if route == "bc" else 2.5))))
+    for factor, lv in [("friction", [0.25, 0.5, 1.0, 1.5, 2.0]), ("push_Ns", [0, 5, 10, 20, 40])]:
+        for li, x in enumerate(lv):
+            n = 20; k = max(0, min(20, int(18 - (abs(li - 2) if factor == "friction" else li) * (4 if route == "bc" else 2.5))))
             lo, hi = wilson(k, n)
-            sweeps.append(dict(route=route, factor=factor, level=lv, k=k, n=n, rate=k / n, ci_lo=lo, ci_hi=hi, source_label="fixture"))
-dump("robustness", env("robustness", sweeps=sweeps,
-    break_points=[dict(route="bc", factor="push_n", level=10, criterion="FIXTURE: rate < 0.5"), dict(route="flow_sem", factor="push_n", level=20, criterion="FIXTURE: rate < 0.5")],
-    motion_quality=[dict(route=r, jerk_median=round(rng.uniform(1, 3), 3), foot_slip_median=round(rng.uniform(0, 0.02), 4), source_label="fixture") for r in ["flow_sem", "bc"]],
-    variant_diffs=[dict(variant_a="v1", variant_b="v2", factor="push_n", diff=0.12, ci=[0.02, 0.22], p=0.01, n_pairs=40, decision="D-000")]))
+            levels.append(dict(route=route, robot="fixture_arm", factor=factor, level=x, k=k, n=n, rate=k / n, ci=[lo, hi], drop=round(0.9 - k / n, 3),
+                               motion=dict(joint_jerk_rms=round(rng.uniform(20, 40), 2), penetration_max_m=round(rng.uniform(0, 0.01), 4))))
+    reports.append(dict(route=route, robot="fixture_arm", nominal=dict(k=18, n=20, rate=0.9, ci=list(wilson(18, 20)), sources=["fixture"]),
+                        break_points=dict(push_Ns=dict(high=10.0 if route == "bc" else 20.0), friction=dict(low=None, high=None)),
+                        pooled_perturbed=dict(success=150, n=200, rate=0.75, wilson95=list(wilson(150, 200)), lost=30, gained=5), decision="D-000"))
+dump("robustness", env("robustness", levels=levels, reports=reports,
+    comparisons=[dict(a="flow_sem", b="bc", robot="fixture_arm", metric="privileged_success", n_seeds=20, n_levels=10, level_mean_a=0.7, level_mean_b=0.6,
+                      diff_level_mean=0.1, diff_level_mean_ci=[0.02, 0.18], p_level_mean=0.01, diff_drop=0.02, p_drop=0.6, decision="D-000")],
+    variant_diffs=[]))
 
-# ---------------------------------------------------------------- physics, psi0, knowledge, videos, replays index
+# ---------------------------------------------------------------- physics, psi0, knowledge, videos
 dump("physics", env("physics",
-    contact_v2=[dict(tracker=f"fixture_tracker_{i}", contact_version=v, slip=round(rng.uniform(0.001, 0.03), 4), cot=round(rng.uniform(0.3, 1.2), 3)) for i in range(3) for v in ["contact_v1", "contact_v2"]],
-    grasp_rig=[dict(rig="fixture_rig", grasp_contact_version=v, hold_rate=r, n=20) for v, r in [("grasp_v1", 0.6), ("grasp_v2", 0.95)]],
-    tracker_validation=[dict(tracker="fixture_tracker_0", check="FIXTURE check", verdict="pass")],
-    gates=[dict(gate=f"FIXTURE gate {i}", decision="D-000", verdict=v) for i, v in enumerate(["pass", "pass", "fail", "pending"])]))
+    trackers=[dict(body=f"fixture_body_{i}", tracker_version=f"learned_tracker:fixture_body_{i}:v1", synthetic=True, passed=i != 2,
+                   gate=dict(no_fall_rate=1.0, forward_ratio=0.95, turn_ratio=0.7, passed=i != 2),
+                   contact_gate=dict(slip_ratio=round(0.1 + 0.15 * i, 3), slip_ok=i == 0, duty_min=0.6, duty_max=0.7, stepping_ok=True, clearance_ok=True, passed=i == 0),
+                   modes=dict(forward=dict(cot=round(0.8 + 0.1 * i, 2), slip_mps=0.1, duty_min=0.6, duty_max=0.7, swing_apex_m=0.04)), source_file="fixture") for i in range(3)],
+    gates=[dict(gate=f"FIXTURE gate {i}", version="fixture", subject=dict(name="fixture", n=100, bodies=["fixture_body_0"]), verdict=v, decision="D-000",
+                criteria=[dict(name="criterion", status=v, value=0.9, threshold=">= 0.95", note="FIXTURE")]) for i, v in enumerate(["pass", "pass", "fail"])],
+    dataset_gates=[], gate_tables=[dict(heading="FIXTURE table", header=["kind", "verdict"], rows=[["tracker", "pass"]], source_file="fixture.md", line=1)]))
 dump("psi0", env("psi0",
-    reproduction=[dict(metric="FIXTURE metric", paper=0.8, ours=0.78, n=50)],
-    step2=[dict(config="FIXTURE step-2", result=0.5)],
-    p_decisions=[dict(id="P-001", date="2026-09-20", title="FIXTURE P-decision", body="FIXTURE body linking **D-000**.")],
-    crosswalk=[dict(d="D-000", p="P-001", relation="FIXTURE: informs")]))
+    runs=[dict(run="fixture_run", task="FIXTURE task", level=None, k=3, n=10, rate=0.3, ci=list(wilson(3, 10)), interim=True, interim_reason="FIXTURE")],
+    p_decisions=[dict(id="P-001", date="2026-09-20", title="FIXTURE P-decision", body="FIXTURE body linking D-000.", refs_d=["D-000"])],
+    crosswalk=[dict(rrp=["D-000"], psi1z=["P-001"], topic="FIXTURE: informs", source_file="docs/related_repos.md", line=1)],
+    p_to_d_table=[], rrp_w10_decisions=[], notes_tables=[], notes_markdown="FIXTURE notes", readme_markdown="FIXTURE readme", missing=[]))
 dump("knowledge", env("knowledge",
-    decisions=[dict(id=f"D-{i:03d}", date=f"2026-09-{20 + i % 8:02d}", title=f"FIXTURE decision {i}",
-                    body=f"FIXTURE body for decision {i}. See D-{max(1, i - 1):03d}.\n\n- a list item\n- `code`") for i in range(1, 12)],
-    roadmap=[dict(n=1, item="FIXTURE roadmap item", status="open")], backlog=[dict(item="FIXTURE backlog item", status="planned")],
-    strategy=[dict(workstream="FIXTURE workstream", goal="FIXTURE goal")], status="# FIXTURE STATUS\n\nThis is fixture text, not the real STATUS.md.",
-    crosswalk=[dict(d="D-000", p="P-001", relation="FIXTURE: informs")], docs=["STATUS.md", "README.md"]))
+    decisions=[dict(id=f"D-{i:03d}", date=f"2026-09-{20 + i % 8:02d}", title=f"FIXTURE decision {i}", refs_p=[], workstreams=[], paths=[],
+                    body=f"FIXTURE body for decision {i}. See D-{max(1, i - 1):03d}.\n\n- a list item\n- `code`", source_file="fixture", line=i) for i in range(1, 12)],
+    roadmap=[dict(n="1", question="FIXTURE roadmap item", status="running")], backlog=[dict(item="FIXTURE backlog item", status="planned")],
+    workstreams=[dict(id="W0", workstream="FIXTURE workstream", status="FIXTURE", decisions=["D-000"], detail_markdown="- FIXTURE scope")],
+    status_markdown="# FIXTURE STATUS\n\nThis is fixture text, not the real STATUS.md.", docs=[dict(path="STATUS.md", title="STATUS")]))
 dump("videos", env("videos", videos=[]))
 
 

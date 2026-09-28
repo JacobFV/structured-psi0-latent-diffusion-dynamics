@@ -3,7 +3,7 @@ import Stage, { type StageOptions } from '../components/Stage';
 import Timelines, { type Side } from '../components/Timelines';
 import { Caveat, Did, Gate, Loading, ModeBanner, NoData, ErrorState, PageHead, Provenance, Select, SourceBadge, Tabs } from '../components/ui';
 import { useDoc, useReplay, type DocResult, type Envelope } from '../lib/api';
-import { fmtNum, pick, rows, shortSha, sortNatural, str, uniq, type Row } from '../lib/format';
+import { arr, fmtNum, pick, rows, shortSha, sortNatural, str, uniq, type Row } from '../lib/format';
 import { Clock, relTimes, useClock, type Replay } from '../lib/replay';
 import { readParam, useUrlState, writeParams } from '../lib/url';
 
@@ -30,13 +30,58 @@ export default function Theatre() {
         <>
           <ModeBanner result={index.result} reload={index.reload} busy={index.busy} />
           <Gate result={index.result} what="replay index (/api/replays)">
-            {(d) => <TheatreBody entries={rows(pick(d, 'replays', 'rows', 'entries'))} videos={videos.result} />}
+            {(d) => <IndexOrDemo d={d} videos={videos.result} />}
           </Gate>
           <Provenance result={index.result} />
         </>
       )}
     </>
   );
+}
+
+/**
+ * No recorded replays yet -> say so (with what the exporter reported). A synthetic FIXTURE demo of the theatre is
+ * available only on request (?demo=1) and is labelled as fixture everywhere; it never stands in for real replays.
+ */
+function IndexOrDemo({ d, videos }: { d: Envelope; videos: DocResult<Envelope> }) {
+  const [demo, setDemo] = useUrlState('demo', '0');
+  const real = rows(pick(d, 'replays', 'rows', 'entries'));
+  const fixtureIndex = useFixtureIndex(demo === '1' && !real.length);
+  if (real.length) return <TheatreBody entries={real} videos={videos} />;
+  if (demo === '1') {
+    return (
+      <>
+        <div className="mode-banner fixture" role="status">
+          <span className="badge src t-fixture">FIXTURE DEMO</span>
+          <span>No replays have been recorded yet. These two synthetic episodes (scripted kinematics, no physics) only demonstrate the theatre. <b>They are not results.</b></span>
+          <button className="ghost" style={{ marginLeft: 'auto' }} onClick={() => setDemo('0')}>leave demo</button>
+        </div>
+        {fixtureIndex ? <TheatreBody entries={fixtureIndex} videos={videos} /> : <Loading what="fixture index" />}
+      </>
+    );
+  }
+  const missing = arr(pick(d, 'missing')).map(str);
+  return (
+    <div className="stack">
+      <div className="state" role="status">
+        <h3>No replays yet</h3>
+        <div>The recorder (peer-only, <code>python -m rrp.viz.record</code>) has not written <code>~/work/rrp-data/viz/replays/index.json</code> yet.</div>
+        {missing.length > 0 && <ul className="small">{missing.map((m) => <li key={m}>{m}</li>)}</ul>}
+        <div className="row" style={{ marginTop: 8 }}>
+          <button onClick={() => setDemo('1')}>Open the theatre with a synthetic FIXTURE demo</button>
+          <a href="#theatre?tab=videos">or browse the recorded videos →</a>
+        </div>
+      </div>
+    </div>
+  );
+}
+function useFixtureIndex(on: boolean) {
+  const [idx, setIdx] = useState<Row[] | null>(null);
+  useEffect(() => {
+    if (!on) return;
+    import('../../fixtures/replays.json').then((m) => setIdx(rows((m.default as Row).replays)));
+  }, [on]);
+  return idx;
 }
 
 function TheatreBody({ entries, videos }: { entries: Row[]; videos: DocResult<Envelope> }) {
@@ -274,13 +319,20 @@ function videoCandidates(entry: Row | undefined, videos: DocResult<Envelope>): {
   if (direct) {
     const name = direct.split('/').pop()!;
     const v = all.find((x) => videoName(x) === name);
-    return [{ name, label: v ? str(pick(v, 'label', 'text', 'description')) : 'linked from the replay index', exact: true }];
+    return [{ name, label: v ? str(pick(v, 'description', 'text', 'label')) : 'linked from the replay index', exact: true }];
   }
   const seed = str(entry.seed), body = str(entry.body), task = str(entry.task);
   return all
-    .filter((v) => { const n = videoName(v); return seed && n.includes(`s${seed}`) && (!body || n.includes(body)) && (!task || n.includes(task) || /ladder|triptych/.test(n)); })
+    .filter((v) => {
+      const n = videoName(v);
+      const vseed = str(v.seed), vbodies = arr(v.bodies).map(str).concat(str(v.robot));
+      const seedOk = seed && (vseed ? vseed === seed : n.includes(`s${seed}`));
+      const bodyOk = !body || vbodies.includes(body) || n.includes(body);
+      const taskOk = !task || !v.task || str(v.task) === task;
+      return seedOk && bodyOk && taskOk && v.exists_locally !== false;
+    })
     .slice(0, 6)
-    .map((v) => ({ name: videoName(v), label: str(pick(v, 'label', 'text', 'description')), exact: false }));
+    .map((v) => ({ name: videoName(v), label: str(pick(v, 'description', 'text', 'label')), exact: false }));
 }
 
 function VideoPanel({ vids, reason }: { vids: { name: string; label: string; exact: boolean }[]; reason?: string }) {
@@ -303,7 +355,10 @@ function VideoLibrary({ d }: { d: Envelope }) {
   const vids = rows(pick(d, 'videos', 'entries', 'rows'));
   const [sel, setSel] = useUrlState('video', '');
   const [q, setQ] = useState('');
-  const shown = vids.filter((v) => !q || JSON.stringify(v).toLowerCase().includes(q.toLowerCase()));
+  const dims = ['source', 'robot', 'task', 'outcome', 'date'];
+  const [f, setF] = useState<Record<string, string>>({});
+  const opt = (k: string) => uniq(vids.map((v) => str(v[k]))).filter(Boolean).sort(sortNatural);
+  const shown = vids.filter((v) => dims.every((k) => !f[k] || str(v[k]) === f[k]) && (!q || JSON.stringify(v).toLowerCase().includes(q.toLowerCase())));
   const cur = vids.find((v) => videoName(v) === sel) || shown[0];
   if (!vids.length) return <NoData expected="artifacts/video/INDEX.md (via /api/videos)" />;
   return (
@@ -312,23 +367,34 @@ function VideoLibrary({ d }: { d: Envelope }) {
         {cur && (
           <section className="card">
             <header><h2 style={{ wordBreak: 'break-all' }}>{videoName(cur)}</h2></header>
-            <div className="body">
-              <video className="media" key={videoName(cur)} src={`/media/${encodeURIComponent(videoName(cur))}`} controls loop playsInline preload="metadata" />
-              <p>{str(pick(cur, 'label', 'text', 'description'))}</p>
-              <div className="row">{pick(cur, 'source_label') ? <SourceBadge label={pick(cur, 'source_label')} /> : null}</div>
+            <div className="body stack" style={{ gap: 8 }}>
+              {cur.exists_locally === false
+                ? <NoData expected={`artifacts/video/${videoName(cur)}`} detail="listed in INDEX.md but the file is not present locally" />
+                : <video className="media" key={videoName(cur)} src={`/media/${encodeURIComponent(videoName(cur))}`} controls loop playsInline preload="metadata" />}
+              <div className="row">
+                <SourceBadge label={pick(cur, 'source', 'label')} />
+                {cur.outcome ? <span className={`status ${/success|followed/.test(str(cur.outcome)) ? 'good' : /fail/.test(str(cur.outcome)) ? 'critical' : 'neutral'}`}><i />{str(cur.outcome)}</span> : null}
+                {arr(cur.decisions).map((x) => <Did key={str(x)} id={x} />)}
+                <span className="small muted">{[cur.robot, cur.task, cur.seed ? `seed ${str(cur.seed)}` : '', cur.ckpt && cur.ckpt !== '-' ? `ckpt ${str(cur.ckpt)}` : '', cur.date].map(str).filter(Boolean).join(' · ')}</span>
+              </div>
+              <p style={{ margin: 0 }}>{str(pick(cur, 'description', 'text'))}</p>
+              <code className="small muted">{str(cur.source_file)}:{str(cur.line)}</code>
             </div>
           </section>
         )}
       </div>
       <aside className="card">
-        <header><h2>Videos</h2><span className="hint">{shown.length} of {vids.length}</span></header>
+        <header><h2>Videos</h2><span className="hint">{shown.length} of {vids.length} · labels from artifacts/video/INDEX.md</span></header>
         <div className="body">
-          <input type="search" placeholder="filter" value={q} onChange={(e) => setQ(e.target.value)} style={{ width: '100%', marginBottom: 8 }} />
-          <div className="picker" style={{ maxHeight: 640 }}>
+          <div className="filters" style={{ marginBottom: 8 }}>
+            {dims.map((k) => <Select key={k} label={k} value={f[k] || ''} options={opt(k)} onChange={(v) => setF({ ...f, [k]: v })} width={150} />)}
+            <label>search<input type="search" placeholder="text" value={q} onChange={(e) => setQ(e.target.value)} /></label>
+          </div>
+          <div className="picker" style={{ maxHeight: 620 }}>
             {shown.map((v) => (
               <button key={videoName(v)} aria-pressed={cur === v} onClick={() => setSel(videoName(v))}>
                 <span className="small" style={{ wordBreak: 'break-all' }}>{videoName(v)}</span>
-                {pick(v, 'source_label') ? <SourceBadge label={pick(v, 'source_label')} /> : null}
+                <span className="row" style={{ gap: 4 }}><SourceBadge label={pick(v, 'source', 'label')} />{v.outcome ? <span className="small muted">{str(v.outcome)}</span> : null}</span>
               </button>
             ))}
           </div>

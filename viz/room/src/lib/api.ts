@@ -16,7 +16,7 @@ export type Meta = {
 };
 export type DocResult<T> =
   | { status: 'loading' }
-  | { status: 'ok'; data: T; mode: Mode; sourceFile?: string; fileMtime?: string; exportError?: string; fetchedAt: number }
+  | { status: 'ok'; data: T; mode: Mode; sourceFile?: string; fileMtime?: string; exportError?: string; fetchedAt: number; etag?: string }
   | { status: 'missing'; expected: string; detail?: string; mode: Mode | 'api' }
   | { status: 'error'; message: string };
 
@@ -60,7 +60,7 @@ async function loadFixture<T>(name: string): Promise<T | null> {
   return loader ? ((await loader()) as T) : null;
 }
 
-export async function fetchDoc<T = Envelope>(name: string): Promise<DocResult<T>> {
+export async function fetchDoc<T = Envelope>(name: string, prevEtag?: string): Promise<DocResult<T>> {
   const meta = await getMeta();
   const useFixture = forceFixture() || (meta !== null && !meta.exporter_available);
   if (useFixture) {
@@ -79,16 +79,19 @@ export async function fetchDoc<T = Envelope>(name: string): Promise<DocResult<T>
     }
   }
   try {
-    const r = await fetch(`/api/${name}`, { cache: 'no-store' });
+    // no-cache: the browser revalidates with the plugin's ETag (file mtime + size), so an unchanged 10 MB document is not re-sent
+    const r = await fetch(`/api/${name}`, { cache: 'no-cache' });
     if (r.status === 503 || r.status === 404) {
       const body = await r.json().catch(() => ({}));
       return { status: 'missing', mode: 'api', expected: body.expected || `/api/${name}`, detail: body.detail };
     }
     if (!r.ok) return { status: 'error', message: `HTTP ${r.status} for /api/${name}` };
+    const etag = r.headers.get('ETag') || undefined;
+    if (prevEtag && etag === prevEtag) return { status: 'unchanged' } as unknown as DocResult<T>;
     const data = (await r.json()) as T;
     const exportError = r.headers.get('X-RRP-Export-Error');
     return {
-      status: 'ok', data, mode: exportError ? 'stale' : 'live', fetchedAt: Date.now(),
+      status: 'ok', data, mode: exportError ? 'stale' : 'live', fetchedAt: Date.now(), etag,
       sourceFile: r.headers.get('X-RRP-Source-File') || undefined,
       fileMtime: r.headers.get('X-RRP-File-Mtime') || undefined,
       exportError: exportError ? decodeURIComponent(exportError) : undefined,
@@ -103,11 +106,14 @@ export function useDoc<T = Envelope>(name: string, pollMs = 60_000) {
   const [result, setResult] = useState<DocResult<T>>({ status: 'loading' });
   const [busy, setBusy] = useState(false);
   const alive = useRef(true);
+  const etag = useRef<string | undefined>(undefined);
   const load = useCallback(async () => {
     setBusy(true);
-    const next = await fetchDoc<T>(name);
+    const next = await fetchDoc<T>(name, etag.current);
     if (!alive.current) return;
     setBusy(false);
+    if ((next.status as string) === 'unchanged') return; // same file as before: keep the parsed document
+    if (next.status === 'ok') etag.current = next.etag;
     setResult((prev) => (next.status === 'error' && prev.status === 'ok' ? prev : next));
   }, [name]);
   useEffect(() => {
@@ -165,4 +171,27 @@ export async function fetchMarkdown(path: string): Promise<DocResult<{ markdown:
   } catch (e) {
     return { status: 'error', message: String(e) };
   }
+}
+
+const seriesCache = new Map<string, Promise<DocResult<Record<string, unknown>>>>();
+/** One training series (`rrp-viz/training-series/v1`) by run id; fixtures embed their series in the index. */
+export function fetchTrainingSeries(id: string): Promise<DocResult<Record<string, unknown>>> {
+  if (!seriesCache.has(id)) {
+    seriesCache.set(id, (async () => {
+      const meta = await getMeta();
+      const url = meta === null ? `./data/training/${encodeURIComponent(id)}.json` : `/api/training/${encodeURIComponent(id)}`;
+      try {
+        const r = await fetch(url, { cache: 'no-cache' });
+        if (!r.ok) {
+          const body = await r.json().catch(() => ({}));
+          return { status: 'missing', mode: meta === null ? 'snapshot' : 'api', expected: body.expected || url } as DocResult<Record<string, unknown>>;
+        }
+        return { status: 'ok', data: await r.json(), mode: meta === null ? 'snapshot' : 'live', fetchedAt: Date.now() } as DocResult<Record<string, unknown>>;
+      } catch (e) {
+        return { status: 'error', message: String(e) } as DocResult<Record<string, unknown>>;
+      }
+    })());
+    setTimeout(() => seriesCache.delete(id), 60_000);
+  }
+  return seriesCache.get(id)!;
 }

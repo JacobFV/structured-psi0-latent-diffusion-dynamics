@@ -25,11 +25,18 @@ export default function Knowledge() {
             {(d) => {
               if (tab === 'decisions') return <Decisions d={d} psi0={psi0.result} />;
               if (tab === 'crosswalk') return <Crosswalk d={d} psi0={psi0.result} />;
-              if (tab === 'roadmap') return <ListTab rs={rows(pick(d, 'roadmap', 'roadmap_items'))} what="roadmap items" />;
-              if (tab === 'backlog') return <ListTab rs={rows(pick(d, 'backlog', 'backlog_items'))} what="backlog items" />;
-              if (tab === 'strategy') return <ListTab rs={rows(pick(d, 'strategy', 'workstreams', 'strategy_workstreams'))} what="strategy workstreams" />;
-              const status = str(pick(d, 'status', 'status_markdown', 'STATUS'));
-              return status ? <Card title="STATUS.md"><Markdown source={status} /></Card> : <NoData expected="knowledge.status (STATUS.md markdown)" />;
+              if (tab === 'roadmap') return <ListTab rs={rows(pick(d, 'roadmap', 'roadmap_items')).map(flatCw)} what="roadmap items" />;
+              if (tab === 'backlog') return <ListTab rs={rows(pick(d, 'backlog', 'backlog_items')).map(flatCw)} what="backlog items" />;
+              if (tab === 'strategy') return <Strategy rs={rows(pick(d, 'workstreams', 'strategy', 'strategy_workstreams'))} />;
+              const status = str(pick(d, 'status_markdown', 'status', 'STATUS'));
+              const evidence = str(pick(d, 'evidence_matrix_markdown'));
+              return (
+                <div className="stack">
+                  {rows(pick(d, 'status_table')).length > 0 && <Card title="Workstream status table"><DataTable rows={rows(pick(d, 'status_table')).map(flatCw)} /></Card>}
+                  {status ? <Card title="STATUS.md"><Markdown source={status} /></Card> : <NoData expected="knowledge.status_markdown (STATUS.md)" />}
+                  {evidence && <Card title="Evidence matrix"><Markdown source={evidence} /></Card>}
+                </div>
+              );
             }}
           </Gate>
           <Provenance result={result} />
@@ -59,7 +66,7 @@ function Decisions({ d, psi0 }: { d: Row; psi0: DocResult<Envelope> }) {
   const cur = all.find((r) => str(r.id) === sel);
   const maxDay = Math.max(1, ...byDate.map((x) => x[1]));
   if (!all.length) return <NoData expected="knowledge.decisions (parsed from research/decisions.md)" />;
-  const linked = cur ? cw.filter((r) => Object.values(r).some((v) => str(v).split(/[\s,;]+/).includes(str(cur.id)))) : [];
+  const linked = cur ? cw.filter((r) => Object.values(r).some((v) => (Array.isArray(v) ? v.map(str) : str(v).split(/[\s,;]+/)).includes(str(cur.id)))) : [];
   return (
     <div className="theatre" style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.2fr)' }}>
       <div className="stack">
@@ -90,7 +97,11 @@ function Decisions({ d, psi0 }: { d: Row; psi0: DocResult<Envelope> }) {
             {decisionIds(str(cur.body)).filter((x) => x !== str(cur.id)).length > 0 && (
               <p className="small">Mentions: {decisionIds(str(cur.body)).filter((x) => x !== str(cur.id)).map((x) => <a key={x} className="did" href={href('knowledge', { tab: 'decisions', d: x })} style={{ marginRight: 4 }}>{x}</a>)}</p>
             )}
-            {linked.length > 0 && <><h3 style={{ fontSize: 13 }}>Crosswalk</h3><DataTable rows={linked} /></>}
+            {arr(cur.refs_p).length > 0 && <p className="small">psi1z: {arr(cur.refs_p).map((x) => <Did key={str(x)} id={x} />)}</p>}
+            {arr(cur.workstreams).length > 0 && <p className="small">workstreams: {arr(cur.workstreams).map(str).join(', ')}</p>}
+            {arr(cur.paths).length > 0 && <p className="small">paths: {arr(cur.paths).map((x) => str(x).endsWith('.md') ? <a key={str(x)} href={href('knowledge', { tab: 'docs', doc: str(x) })} style={{ marginRight: 6 }}>{str(x)}</a> : <code key={str(x)} style={{ marginRight: 6 }}>{str(x)}</code>)}</p>}
+            <p className="small muted">{str(cur.source_file)}:{str(cur.line)}{cur.line_end ? `–${str(cur.line_end)}` : ''}</p>
+            {linked.length > 0 && <><h3 style={{ fontSize: 13 }}>Crosswalk</h3><DataTable rows={linked.map(flatCw)} /></>}
           </Card>
         ) : <div className="state">Select a decision.</div>}
       </div>
@@ -101,7 +112,11 @@ function Decisions({ d, psi0 }: { d: Row; psi0: DocResult<Envelope> }) {
 function Crosswalk({ d, psi0 }: { d: Row; psi0: DocResult<Envelope> }) {
   const cw = crosswalkRows(d, psi0);
   if (!cw.length) return <NoData expected="knowledge.crosswalk or psi0.crosswalk (D ↔ P)" />;
-  return <Card title="D ↔ P crosswalk" hint={`${cw.length} links between rrp decisions (D) and psi1z decisions (P)`}><DataTable rows={cw} tall /></Card>;
+  return <Card title="D ↔ P crosswalk" hint={`${cw.length} links between rrp decisions (D) and psi1z decisions (P)`}><DataTable rows={cw.map(flatCw)} tall /></Card>;
+}
+
+function flatCw(r: Row): Row {
+  return Object.fromEntries(Object.entries(r).map(([k, v]) => [k, Array.isArray(v) ? v.map(str).join(' ') : v]));
 }
 
 function ListTab({ rs, what }: { rs: Row[]; what: string }) {
@@ -114,6 +129,21 @@ function ListTab({ rs, what }: { rs: Row[]; what: string }) {
       right={<input type="search" placeholder="filter" value={q} onChange={(e) => setQ(e.target.value)} />}>
       <DataTable rows={shown} tall max={1000} />
     </Card>
+  );
+}
+
+function Strategy({ rs }: { rs: Row[] }) {
+  if (!rs.length) return <NoData expected="knowledge.workstreams (docs/strategy.md)" />;
+  return (
+    <div className="stack">
+      {rs.map((w, i) => (
+        <Card key={i} title={<>{str(w.id)} · {str(w.workstream)}</>} hint={[w.owner ? `owner ${str(w.owner)}` : '', w.depends_on ? `depends on ${str(w.depends_on)}` : ''].filter(Boolean).join(' · ')}
+          right={arr(w.decisions).map((x) => <Did key={str(x)} id={x} />)}>
+          <p style={{ marginTop: 0 }}><b>Status:</b> {str(w.status)}</p>
+          {w.detail_markdown ? <details><summary className="small">scope and detail</summary><Markdown source={str(w.detail_markdown)} /></details> : null}
+        </Card>
+      ))}
+    </div>
   );
 }
 

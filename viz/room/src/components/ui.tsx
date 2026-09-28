@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
+import { writeParams } from '../lib/url';
 import type { DocResult, Envelope } from '../lib/api';
-import { ago, fmtNum, fmtTime, num, shortSha, sortNatural, str, timeOf, type Row } from '../lib/format';
+import { ago, arr, fmtNum, fmtTime, num, shortSha, sortNatural, str, timeOf, type Row } from '../lib/format';
 import { sourceStyle, stateTone } from '../lib/labels';
 
 export function Card({ title, hint, right, children, flush, className }: {
@@ -317,6 +318,53 @@ export function RawDoc({ data, skip = [] }: { data: Row; skip?: string[] }) {
           <RawDoc data={v as Row} />
         </Card>
       ))}
+    </div>
+  );
+}
+
+/** Markdown-derived table: {heading, header[], rows[][], source_file, line}. Cells keep their text; D-ids become chips. */
+export function ArrayTable({ t }: { t: Row }) {
+  const header = Array.isArray(t.header) ? t.header.map(str) : [];
+  const body = Array.isArray(t.rows) ? (t.rows as unknown[]).filter(Array.isArray) as unknown[][] : [];
+  return (
+    <div className="table-wrap tall">
+      <table className="t">
+        <thead><tr>{header.map((h, i) => <th key={i}>{h}</th>)}</tr></thead>
+        <tbody>{body.map((r, i) => <tr key={i}>{r.map((c, j) => <td key={j} className={/^[-+]?[0-9.,/%]+$/.test(str(c)) ? 'n' : ''}>{str(c).replace(/\*\*/g, '')}</td>)}</tr>)}</tbody>
+      </table>
+    </div>
+  );
+}
+
+/** Browse many markdown tables: pick by file and heading, with provenance. */
+export function TablesBrowser({ tables, param = 'table' }: { tables: Row[]; param?: string }) {
+  const [q, setQ] = useState('');
+  const [sel, setSel] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] || '').get(param) || '0');
+  const label = (t: Row) => `${str(t.source_file)}${t.line != null ? `:${str(t.line)}` : ''}${t.heading ? ` · ${str(t.heading)}` : ''}`;
+  const shown = tables.map((t, i) => ({ t, i })).filter(({ t }) => !q || JSON.stringify(t).toLowerCase().includes(q.toLowerCase()));
+  const cur = tables[Number(sel)] || shown[0]?.t;
+  if (!tables.length) return <p className="muted small">No tables in the document.</p>;
+  return (
+    <div className="stack" style={{ gap: 8 }}>
+      <div className="filters" style={{ marginBottom: 0 }}>
+        <label>search<input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="file, heading, cell text" /></label>
+        <label style={{ flex: 1, minWidth: 260 }}>table ({shown.length} of {tables.length})
+          <select value={sel} onChange={(e) => { setSel(e.target.value); writeParams({ [param]: e.target.value }); }}>
+            {shown.slice(0, 800).map(({ t, i }) => <option key={i} value={String(i)}>{label(t).slice(0, 160)}</option>)}
+          </select>
+        </label>
+      </div>
+      {cur && (
+        <>
+          <div className="row small">
+            <b>{str(cur.heading) || '(no heading)'}</b>
+            <code className="muted">{label(cur)}</code>
+            {cur.location ? <span className="badge">{str(cur.location)}</span> : null}
+            {arr(cur.decisions).map((d) => <Did key={str(d)} id={d} />)}
+          </div>
+          <ArrayTable t={cur} />
+        </>
+      )}
     </div>
   );
 }

@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Lines } from '../components/charts';
-import { Card, Caveat, DataTable, Did, Gate, ModeBanner, PageHead, Provenance, SourceBadge, Status } from '../components/ui';
-import { useDoc, type Envelope } from '../lib/api';
-import { arr, isObj, num, pick, rows, sortNatural, str, uniq, type Row } from '../lib/format';
+import { Card, Caveat, DataTable, Did, ErrorState, Gate, Loading, ModeBanner, NoData, PageHead, Provenance, SourceBadge, Status } from '../components/ui';
+import { fetchTrainingSeries, useDoc, type DocResult, type Envelope } from '../lib/api';
+import { arr, fmtNum, isObj, num, pick, rows, sortNatural, str, uniq, type Row } from '../lib/format';
 import { SERIES } from '../lib/labels';
 import { useUrlState } from '../lib/url';
 
@@ -20,7 +20,7 @@ function toRun(r: Row): Run {
   if (isObj(probes)) for (const [k, v] of Object.entries(probes)) add(`probe:${k}`, v);
   const extra = pick(r, 'metrics', 'series');
   if (isObj(extra)) for (const [k, v] of Object.entries(extra)) add(`metric:${k}`, v);
-  return { name: str(pick(r, 'run', 'name', 'id')), kind: str(pick(r, 'kind', 'type')), step, series, raw: r };
+  return { name: str(pick(r, 'id', 'run', 'name')), kind: str(pick(r, 'kind', 'type')), step, series, raw: r };
 }
 
 export default function Training() {
@@ -33,63 +33,125 @@ export default function Training() {
       />
       <ModeBanner result={result} reload={reload} busy={busy} />
       <Gate result={result} what="training (/api/training)">
-        {(d) => <TrainingBody runs={rows(pick(d, 'runs', 'series', 'curves')).map(toRun).filter((r) => r.name)} />}
+        {(d) => (
+          <>
+            <TrainingBody index={rows(pick(d, 'runs', 'series', 'curves'))} />
+            <GradHealth rs={rows(pick(d, 'grad_health'))} />
+            {arr(d.notes).length > 0 && <ul className="small muted">{arr(d.notes).map((n, i) => <li key={i}>{str(n)}</li>)}</ul>}
+          </>
+        )}
       </Gate>
       <Provenance result={result} />
     </>
   );
 }
 
-function TrainingBody({ runs }: { runs: Run[] }) {
+/** Loads the selected runs' series (index rows may already embed them, as fixtures do). */
+function useSeries(index: Row[], ids: string[]) {
+  const [state, setState] = useState<Record<string, DocResult<Record<string, unknown>>>>({});
+  useEffect(() => {
+    let live = true;
+    for (const id of ids) {
+      const row = index.find((r) => str(r.id) === id || str(r.run) === id);
+      if (!row) continue;
+      if (Array.isArray(row.step)) { setState((s) => ({ ...s, [id]: { status: 'ok', data: row, mode: 'fixture', fetchedAt: Date.now() } })); continue; }
+      setState((s) => (s[id] ? s : { ...s, [id]: { status: 'loading' } }));
+      fetchTrainingSeries(str(row.id)).then((r) => live && setState((s) => ({ ...s, [id]: r })));
+    }
+    return () => { live = false; };
+  }, [index, ids.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+  return state;
+}
+
+function TrainingBody({ index }: { index: Row[] }) {
+  const idOf = (r: Row) => str(pick(r, 'id', 'run', 'name'));
   const [kind, setKind] = useUrlState('kind', '');
-  const [sel, setSel] = useUrlState('runs', runs[0]?.name || '');
+  const [sel, setSel] = useUrlState('runs', '');
   const [log, setLog] = useUrlState('log', '1');
+  const [gn, setGn] = useUrlState('gn', '0');
   const [q, setQ] = useState('');
-  const kinds = uniq(runs.map((r) => r.kind)).filter(Boolean).sort();
-  const selected = sel.split(',').filter(Boolean);
-  const chosen = runs.filter((r) => selected.includes(r.name));
-  const list = runs.filter((r) => (!kind || r.kind === kind) && (!q || r.name.toLowerCase().includes(q.toLowerCase())));
+  const kinds = uniq(index.map((r) => str(r.kind))).filter(Boolean).sort();
+  const firstWithGrad = index.find((r) => r.grad_norm_key) || index[0];
+  const selected = (sel || (firstWithGrad ? idOf(firstWithGrad) : '')).split(',').filter(Boolean);
+  const series = useSeries(index, selected);
+  const list = index.filter((r) => (!kind || str(r.kind) === kind) && (gn !== '1' || r.grad_norm_key || Array.isArray(r.grad_norm)) && (!q || JSON.stringify([r.run, r.id, r.body]).toLowerCase().includes(q.toLowerCase())));
   const toggle = (name: string, multi: boolean) => {
     const next = multi ? (selected.includes(name) ? selected.filter((x) => x !== name) : [...selected, name].slice(-4)) : [name];
     setSel(next.join(','));
   };
-  if (!runs.length) return <p className="muted">The training document has no runs.</p>;
+  if (!index.length) return <p className="muted">The training document has no runs.</p>;
+  const chosen: Run[] = [];
+  const pending: string[] = [];
+  const problems: DocResult<Record<string, unknown>>[] = [];
+  for (const id of selected) {
+    const r = series[id];
+    const row = index.find((x) => idOf(x) === id);
+    if (!r || r.status === 'loading') pending.push(id);
+    else if (r.status === 'ok') chosen.push(toRun({ ...(row || {}), ...r.data, id }));
+    else problems.push(r);
+  }
   return (
-    <div className="theatre" style={{ gridTemplateColumns: '300px minmax(0, 1fr)' }}>
+    <div className="theatre" style={{ gridTemplateColumns: '320px minmax(0, 1fr)' }}>
       <aside className="card" style={{ alignSelf: 'start' }}>
-        <header><h2>Runs</h2><span className="hint">{list.length} of {runs.length} · shift-click compares up to 4</span></header>
+        <header><h2>Runs</h2><span className="hint">{list.length} of {index.length} · shift-click compares up to 4</span></header>
         <div className="body">
           <div className="filters" style={{ marginBottom: 8 }}>
-            <label>kind<select value={kind} onChange={(e) => setKind(e.target.value)}><option value="">all</option>{kinds.map((k) => <option key={k}>{k}</option>)}</select></label>
+            <label>kind<select value={kind} onChange={(e) => setKind(e.target.value)}><option value="">all ({kinds.length})</option>{kinds.map((k) => <option key={k}>{k}</option>)}</select></label>
             <label>search<input type="search" value={q} onChange={(e) => setQ(e.target.value)} /></label>
+            <label className="small" style={{ display: 'flex', gap: 4, alignItems: 'center' }}><input type="checkbox" checked={gn === '1'} onChange={(e) => setGn(e.target.checked ? '1' : '0')} /> has grad norm</label>
           </div>
-          <div className="picker" style={{ maxHeight: 620 }}>
-            {list.sort((a, b) => sortNatural(a.name, b.name)).map((r) => (
-              <button key={r.name} aria-pressed={selected.includes(r.name)} onClick={(e) => toggle(r.name, e.shiftKey || e.metaKey || e.ctrlKey)}>
-                <span className="small" style={{ wordBreak: 'break-all', fontWeight: 600 }}>{r.name}</span>
-                <span className="small muted">{r.kind || 'kind ?'} · {r.step.length} pts · last step {r.step[r.step.length - 1] ?? '—'}</span>
+          <div className="picker" style={{ maxHeight: 640 }}>
+            {list.slice().sort((a, b) => sortNatural(str(a.run), str(b.run))).map((r) => (
+              <button key={idOf(r)} aria-pressed={selected.includes(idOf(r))} onClick={(e) => toggle(idOf(r), e.shiftKey || e.metaKey || e.ctrlKey)}>
+                <span className="small" style={{ wordBreak: 'break-all', fontWeight: 600 }}>{str(r.run || r.id).replace(/^artifacts\/runs\//, '')}</span>
+                <span className="small muted">
+                  {str(r.kind) || 'kind ?'} · {fmtNum(pick(r, 'n_points'))} pts{r.stride && r.stride !== 1 ? ` (stride ${str(r.stride)})` : ''}
+                  {r.grad_norm_key ? ' · grad' : ''}{r.clip_scale_key ? ' · clip' : ''}{r.has_alpha ? ' · α' : ''}{r.location && r.location !== 'repo' ? ` · ${str(r.location)}` : ''}
+                </span>
               </button>
             ))}
           </div>
         </div>
       </aside>
       <div className="stack" style={{ minWidth: 0 }}>
-        {chosen.length === 0 ? <p className="muted">Select a run.</p> : (
-          <>
-            <div className="row">
-              <label className="small"><input type="checkbox" checked={log === '1'} onChange={(e) => setLog(e.target.checked ? '1' : '0')} /> log scale for losses and grad norm (positive values only)</label>
-            </div>
-            {chosen.map((r, i) => <RunHeader key={r.name} r={r} color={SERIES[i]} />)}
-            <RunCharts runs={chosen} log={log === '1'} />
-          </>
-        )}
+        <div className="row">
+          <label className="small"><input type="checkbox" checked={log === '1'} onChange={(e) => setLog(e.target.checked ? '1' : '0')} /> log scale for losses and grad norm (non-positive values are dropped, not clamped)</label>
+        </div>
+        {chosen.map((r, i) => <RunHeader key={r.name} r={r} color={SERIES[i]} />)}
+        {pending.length > 0 && <Loading what={`series for ${pending.join(', ')}`} />}
+        {problems.map((p, i) => p.status === 'missing' ? <NoData key={i} expected={p.expected} /> : p.status === 'error' ? <ErrorState key={i} message={p.message} /> : null)}
+        {chosen.length > 0 && <RunCharts runs={chosen} log={log === '1'} />}
+        {!selected.length && <p className="muted">Select a run.</p>}
       </div>
     </div>
   );
 }
 
+function GradHealth({ rs }: { rs: Row[] }) {
+  if (!rs.length) return null;
+  return (
+    <Card title="Gradient-health reports" hint="per-run medians and mean update (clip) scale by training third, as recorded (D-085)">
+      {rs.map((g, i) => {
+        const doc = isObj(g.doc) ? g.doc : {};
+        const flatRows = Object.entries(doc).flatMap(([name, v]) => {
+          if (!isObj(v)) return [];
+          const thirds = arr(v.by_third).filter(isObj);
+          return [{ run: name, steps: 'all', median_grad_norm: v.median_grad_norm, mean_update_scale: v.mean_update_scale, n_logged: v.n_logged, last_step: v.last_step },
+            ...thirds.map((t) => ({ run: name, steps: t.steps, median_grad_norm: t.median_grad_norm, mean_update_scale: t.mean_update_scale }))];
+        });
+        return (
+          <div key={i} style={{ marginBottom: 12 }}>
+            <div className="row small"><code>{str(g.source_file)}</code>{g.decision ? <Did id={g.decision} /> : null}</div>
+            <DataTable rows={flatRows as Row[]} tall />
+          </div>
+        );
+      })}
+    </Card>
+  );
+}
+
 function RunHeader({ r, color }: { r: Run; color: string }) {
-  const gate = pick(r.raw, 'gate', 'gate_state');
+  const gate = pick(r.raw, 'gate_state', 'gate');
   const refs = arr(pick(r.raw, 'decision_refs', 'decisions')).map(str);
   const dec = str(pick(r.raw, 'decision'));
   return (
@@ -104,7 +166,7 @@ function RunHeader({ r, color }: { r: Run; color: string }) {
         <Caveat text={pick(r.raw, 'caveat')} />
       </div>
       <div className="kv">
-        {['source_file', 'ckpt', 'ckpt_sha', 'body', 'variant', 'seed', 'downsampled_from'].filter((k) => r.raw[k] != null).map((k) => <span key={k}>{k} <b className="mono">{str(r.raw[k])}</b></span>)}
+        {['run', 'source_file', 'location', 'step_key', 'n_records', 'n_points', 'stride', 'ckpt', 'ckpt_sha', 'body', 'variant', 'seed'].filter((k) => r.raw[k] != null).map((k) => <span key={k}>{k} <b className="mono">{str(r.raw[k])}</b></span>)}
       </div>
     </div>
   );
@@ -147,7 +209,7 @@ function RunCharts({ runs, log }: { runs: Run[]; log: boolean }) {
   const refs = [...dagger, ...gates].map((r) => ({ ...r, color: 'var(--s7)' }));
   return (
     <>
-      <Card title="Losses" hint={multi ? 'one colour per run' : 'one panel per loss term'}>
+      <Card title="Logged series" hint={multi ? 'losses and counters as logged · one colour per run' : 'losses and counters as logged · one panel each'}>
         {lossKeys.length ? (
           <div className="grid g2">
             {lossKeys.map((k) => (

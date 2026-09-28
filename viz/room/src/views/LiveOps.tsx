@@ -1,302 +1,338 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Lines } from '../components/charts';
-import type { ReactNode } from 'react';
-import { Card, cellValue, DataTable, Gate, KV, ModeBanner, PageHead, Provenance, Stat, Status } from '../components/ui';
-import { useDoc, type Envelope } from '../lib/api';
+import { Card, DataTable, Gate, KV, ModeBanner, PageHead, Provenance, Stat, Status } from '../components/ui';
+import { useDoc, type DocResult, type Envelope } from '../lib/api';
 import { ageSeconds, ago, arr, fmtBytes, fmtNum, fmtTime, isObj, num, pick, rows, str, timeOf, uniq, type Row } from '../lib/format';
 import { stateTone } from '../lib/labels';
 import { useUrlState } from '../lib/url';
 
-/** One level of flattening: {declared: {mem_gb: 3}} -> {"declared.mem_gb": 3}. */
-function flat(r: Row, prefix = '', depth = 0): Row {
-  const out: Row = {};
-  for (const [k, v] of Object.entries(r)) {
-    const key = prefix ? `${prefix}.${k}` : k;
-    if (isObj(v) && depth < 2) Object.assign(out, flat(v, key, depth + 1));
-    else out[key] = v;
-  }
-  return out;
+const GB = 1024 ** 3;
+function psiAvg10(s: unknown, which: 'some' | 'full' = 'some') {
+  const m = new RegExp(`${which} avg10=([0-9.]+)`).exec(str(s));
+  return m ? Number(m[1]) : null;
 }
-function findKey(keys: string[], ...res: RegExp[]) {
-  for (const re of res) {
-    const k = keys.find((x) => re.test(x));
-    if (k) return k;
-  }
-  return undefined;
+function gpuUtil(node: Row) {
+  const g = arr(node.gpu)[0];
+  return num(pick(g, 'util_pct', 'utilization', 'util'));
 }
-
-const VITALS: { id: string; title: string; unit: string; res: RegExp[] }[] = [
-  { id: 'gpu', title: 'GPU utilisation', unit: '%', res: [/gpu.*util/i] },
-  { id: 'temp', title: 'Temperatures', unit: '°C', res: [/gpu.*temp/i, /cpu.*temp/i, /temp/i] },
-  { id: 'mem', title: 'Memory available', unit: 'GB', res: [/mem.*avail/i, /avail.*mem/i, /available/i] },
-  { id: 'psi', title: 'Pressure stall (PSI)', unit: '%', res: [/psi/i] },
-];
 
 export default function LiveOps() {
   const live = useDoc<Envelope>('live', 10_000);
-  const dags = useDoc<Envelope>('dags', 10_000);
+  const dags = useDoc<Envelope>('dags', 30_000);
+  const [tab, setTab] = useUrlState('tab', 'peer');
   return (
     <>
       <PageHead
         title="Live ops"
-        sub="Peer vitals, admission, leases (declared vs measured), watchdog events and run-DAG progress. Read-only: the room never starts or stops anything. Polls every 10 s."
+        sub="Peer vitals, admission, leases (declared vs measured), broker and watchdog events, and run-DAG progress per workstream. Read-only: the room never starts or stops anything. Live polls every 10 s (one bounded ssh read of the peer per export)."
         right={<StaleFlag result={live.result} />}
       />
-      <ModeBanner result={live.result} reload={live.reload} busy={live.busy} />
-      <Gate result={live.result} what="live ops (/api/live)">
-        {(d) => <LiveBody d={d} />}
-      </Gate>
-      <h2 style={{ fontSize: 16, margin: '22px 0 8px' }}>Run DAGs</h2>
-      <ModeBanner result={dags.result} reload={dags.reload} busy={dags.busy} />
-      <Gate result={dags.result} what="run DAGs (/api/dags)">
-        {(d) => <Dags d={d} />}
-      </Gate>
-      <Provenance result={live.result} />
-      <Provenance result={dags.result} />
+      <div className="tabs" role="tablist">
+        {[['peer', 'Peer & leases'], ['dags', 'Run DAGs']].map(([id, label]) => (
+          <button key={id} role="tab" aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</button>
+        ))}
+      </div>
+      {tab === 'peer' ? (
+        <>
+          <ModeBanner result={live.result} reload={live.reload} busy={live.busy} />
+          <Gate result={live.result} what="live ops (/api/live)">{(d) => <LiveBody d={d} />}</Gate>
+          <Provenance result={live.result} />
+        </>
+      ) : (
+        <>
+          <ModeBanner result={dags.result} reload={dags.reload} busy={dags.busy} />
+          <Gate result={dags.result} what="run DAGs (/api/dags)">{(d) => <Dags d={d} />}</Gate>
+          <Provenance result={dags.result} />
+        </>
+      )}
     </>
   );
 }
 
-function StaleFlag({ result }: { result: ReturnType<typeof useDoc<Envelope>>['result'] }) {
+function StaleFlag({ result }: { result: DocResult<Envelope> }) {
+  const [, tick] = useState(0);
+  useEffect(() => { const id = window.setInterval(() => tick((x) => x + 1), 5000); return () => window.clearInterval(id); }, []);
   if (result.status !== 'ok') return null;
-  const age = ageSeconds(result.data.generated_at);
-  const stale = result.data.stale === true || result.mode === 'stale' || (result.mode !== 'fixture' && age !== null && age > 60);
+  const d = result.data;
+  const readAt = pick(d, 'peer_read_at', 'generated_at');
+  const age = ageSeconds(readAt);
+  const stale = d.stale === true || result.mode === 'stale' || (result.mode !== 'fixture' && age !== null && age > 60);
   return (
-    <span className={`badge ${stale ? 'caveat' : ''}`} style={{ fontSize: 13, padding: '3px 10px' }} title="stale if the live document is older than 60 s">
-      <Status state={stale ? 'stale' : 'ok'}>{stale ? `STALE · ${ago(result.data.generated_at)}` : `fresh · ${ago(result.data.generated_at)}`}</Status>
+    <span className={`badge ${stale ? 'caveat' : ''}`} style={{ fontSize: 13, padding: '3px 10px' }} title="stale when the last good peer read is older than 60 s">
+      <Status state={stale ? 'stale' : 'ok'}>{stale ? `STALE · peer read ${readAt ? ago(readAt) : 'never'}` : `live · peer read ${ago(readAt)}`}</Status>
     </span>
   );
 }
 
 function LiveBody({ d }: { d: Envelope }) {
-  const peer = (isObj(d.peer) ? d.peer : isObj(d.node) ? d.node : {}) as Row;
-  const pf = flat(peer);
-  const keys = Object.keys(pf);
-  const admission = pick(peer, 'admission') ?? pick(d, 'admission');
-  const admState = isObj(admission) ? pick(admission, 'state', 'status') : admission;
-  const admReason = isObj(admission) ? pick(admission, 'reason', 'reasons') : pick(peer, 'admission_reason');
-  const samples = rows(pick(d, 'watchdog', 'watchdog_samples', 'samples')).map((r) => flat(r));
-  const leases = rows(pick(d, 'leases', 'active_leases'));
-  const host = isObj(d.host) ? flat(d.host) : null;
-  const stat = (label: string, ...res: RegExp[]) => {
-    const k = findKey(keys, ...res);
-    return { label, key: k, v: k ? pf[k] : undefined };
-  };
-  const tiles = [
-    stat('GPU util %', /gpu.*util/i),
-    stat('GPU temp °C', /gpu.*temp/i),
-    stat('CPU temp °C', /cpu.*temp/i),
-    stat('Memory available', /mem.*avail/i, /avail/i),
-    stat('PSI (memory, some avg10)', /psi.*mem.*some.*10/i, /psi.*mem/i, /psi/i),
-    stat('Project memory', /project.*mem/i),
-    stat('Disk free', /disk.*free/i),
-  ];
+  const node = (isObj(d.node) ? d.node : isObj(d.peer) ? d.peer : {}) as Row;
+  const adm = isObj(node.admission) ? node.admission : {};
+  const stopped = adm.stopped;
+  const wl = isObj(node.watchdog_last) ? node.watchdog_last : null;
+  const samples = rows(pick(d, 'watchdog', 'watchdog_samples'));
+  const leases = rows(pick(d, 'leases'));
+  const events = rows(pick(d, 'broker_events'));
+  const host = isObj(d.host) ? d.host : null;
+  const limits = isObj(node.limits) ? node.limits : null;
+  const memAvail = num(node.memory_available), memTotal = num(node.mem_total);
+  const gpuHist = useGpuHistory(d);
   return (
     <div className="stack">
+      {arr(d.peer_errors).length > 0 && <div className="state error">Peer read errors: {arr(d.peer_errors).map(str).join('; ')}</div>}
+      {d.last_error ? <div className="state error">Last error: {str(d.last_error)}</div> : null}
       <div className="grid g4">
-        <Stat k="Admission" v={<Status state={admState}>{str(admState) || '—'}</Status>} s={str(admReason) || 'no reason recorded'} />
-        {tiles.map((t) => (
-          <Stat key={t.label} k={t.label} v={t.v === undefined ? <span className="muted">—</span> : fmtVital(t.key || '', t.v)} s={t.key ? <code>{t.key}</code> : 'not in document'} />
-        ))}
+        <Stat k={`Admission (${str(d.peer) || 'peer'})`}
+          v={<Status state={stopped === true ? 'blocked' : stopped === false ? 'ok' : 'unknown'}>{stopped === true ? 'STOPPED' : stopped === false ? 'open' : '—'}</Status>}
+          s={str(adm.reason) || (stopped === false ? 'admitting new leases' : 'no reason recorded')} />
+        <Stat k="GPU utilisation" v={<span className="num">{gpuUtil(node) !== null ? `${gpuUtil(node)}%` : '—'}</span>}
+          s={arr(node.gpu).map((g) => `${str(pick(g, 'name'))} · ${str(pick(g, 'temp_c'))} °C · ${str(pick(g, 'power_w'))} W`).join(' · ') || 'not in document'} />
+        <Stat k="Temperatures" v={<span className="num">{fmtNum(node.gpu_temp_c)} / {fmtNum(node.cpu_temp_c)} °C</span>} s="GPU / CPU" />
+        <Stat k="Memory available" v={<span className="num">{memAvail !== null ? fmtBytes(memAvail) : '—'}</span>}
+          s={memTotal ? `of ${fmtBytes(memTotal)} · project ${fmtBytes(node.project_memory)}` : ''} />
+        <Stat k="PSI memory (avg10)" v={<span className="num">{fmtNum(psiAvg10(node.psi_memory))} / {fmtNum(psiAvg10(node.psi_memory, 'full'))}</span>} s={`some / full · cpu some ${fmtNum(psiAvg10(node.psi_cpu))}`} />
+        <Stat k="Load average" v={<span className="num">{str(node.loadavg).split(' ').slice(0, 3).join(' ') || '—'}</span>} s={limits ? `limit ${fmtNum(limits.cpu_cores)} cores` : ''} />
+        <Stat k="Disk free" v={<span className="num">{fmtBytes(node.disk_free)}</span>} s={`home ${fmtBytes(node.home_free_bytes)} · shm ${fmtBytes(node.shm_free_bytes)}`} />
+        <Stat k="Watchdog" v={<Status state={wl ? pick(wl, 'level') : 'unknown'}>{wl ? str(pick(wl, 'level')) : '—'}</Status>}
+          s={`heartbeat ${node.watchdog_heartbeat_age_s != null ? `${fmtNum(node.watchdog_heartbeat_age_s)} s ago` : '—'}${wl && arr(wl.reasons).length ? ` · ${arr(wl.reasons).map(str).join('; ')}` : ''}`} />
       </div>
-      <Card title="Peer vitals timeline" hint={`${samples.length} watchdog samples (the document carries the last 200)`}>
-        <Vitals samples={samples} />
+      <Card title="Peer vitals timeline" hint={`${samples.length} watchdog samples (last 200) · dashed lines mark samples whose level is not ok`}>
+        <Vitals samples={samples} gpuHist={gpuHist} />
       </Card>
-      <Card title="Leases" hint={`${leases.length} active · declared vs measured memory, throttle (memory.high) events`}>
+      <Card title="Leases" hint={`${leases.length} active${d.n_leases_total != null ? ` · ${fmtNum(d.n_leases_total)} total in the broker` : ''} · declared vs measured memory, memory.high throttle and OOM events`}>
         <Leases leases={leases} />
       </Card>
       <div className="grid g2">
+        <Card title="Broker events" hint="lease, admission, revoke and throttle events (most recent first)">
+          <BrokerEvents events={events} />
+        </Card>
         <Card title="Watchdog events" hint="samples whose level is not ok">
           <WatchdogEvents samples={samples} />
         </Card>
-        <Card title="Host basics">
-          {host ? <KV data={host} /> : <p className="muted small">No host section in the document.</p>}
-        </Card>
       </div>
-      <Card title="Peer (all fields)"><KV data={pf} /></Card>
+      <div className="grid g2">
+        <Card title="Peer limits">{limits ? <KV data={Object.fromEntries(Object.entries(limits).map(([k, v]) => [k, /bytes/.test(k) ? fmtBytes(v) : v]))} /> : <p className="muted small">Not in the document.</p>}</Card>
+        <Card title="Host basics" hint={str(pick(host, 'gpu'))}>{host ? <KV data={host} /> : <p className="muted small">No host section in the document.</p>}</Card>
+      </div>
+      {arr(d.notes).length > 0 && <ul className="small muted">{arr(d.notes).map((n, i) => <li key={i}>{str(n)}</li>)}</ul>}
     </div>
   );
 }
 
-function fmtVital(key: string, v: unknown) {
-  const n = num(v);
-  if (n === null) return str(v);
-  if (/bytes/i.test(key)) return fmtBytes(n);
-  if (/_mb$/i.test(key)) return `${fmtNum(n / 1024)} GB`;
-  if (/_gb$|gib$/i.test(key)) return `${fmtNum(n)} GB`;
-  return fmtNum(n);
+/** GPU utilisation is only a point reading in each live document; this keeps the readings this browser has seen. */
+function useGpuHistory(d: Envelope) {
+  const hist = useRef<{ t: number; util: number }[]>([]);
+  const node = isObj(d.node) ? d.node : {};
+  const t = timeOf(pick(d, 'peer_read_at', 'generated_at'));
+  const u = gpuUtil(node as Row);
+  if (t !== null && u !== null && !hist.current.some((h) => h.t === t)) {
+    hist.current = [...hist.current, { t, util: u }].slice(-360);
+  }
+  return hist.current;
 }
 
-function Vitals({ samples }: { samples: Row[] }) {
-  const tKey = samples.length ? findKey(Object.keys(samples[0]), /^t$/, /^ts$/, /^time/, /timestamp/, /^at$/) : undefined;
-  const data = useMemo(() => samples.map((s) => ({ ...s, __t: tKey ? timeOf(s[tKey]) : null })).filter((s) => s.__t !== null), [samples, tKey]);
-  if (!samples.length) return <p className="muted small">No watchdog samples in the document.</p>;
-  if (!tKey) return <p className="muted small">Samples have no time field (looked for t / ts / time / timestamp).</p>;
-  const numericKeys = uniq(samples.flatMap((s) => Object.keys(s).filter((k) => typeof s[k] === 'number' && k !== tKey)));
-  const fmtClock = (v: number) => new Date(v).toISOString().slice(11, 19);
-  const colors = ['var(--s1)', 'var(--s2)', 'var(--s3)', 'var(--s7)'];
-  const panels = VITALS.map((p) => {
-    const ks = uniq(p.res.flatMap((re) => numericKeys.filter((k) => re.test(k)))).slice(0, 4);
-    return { ...p, ks };
-  }).filter((p) => p.ks.length);
-  if (!panels.length) return <p className="muted small">No numeric vitals in the samples (fields: {numericKeys.join(', ') || 'none'}).</p>;
-  const warn = data.filter((s) => { const lv = str(pick(s, 'level')); return lv && stateTone(lv) !== 'good' && !/^ok|normal|info$/i.test(lv); });
+const PANELS: { id: string; title: string; unit: string; keys: RegExp[]; scale?: number }[] = [
+  { id: 'temp', title: 'Temperatures', unit: '°C', keys: [/^gpu_temp_c$/, /^thermal_c$/, /cpu.*temp/] },
+  { id: 'mem', title: 'Memory', unit: 'GB', keys: [/^memory_available$/, /^project_memory$/, /^project_memory_current$/, /^swap_free$/], scale: GB },
+  { id: 'psi', title: 'PSI (full avg10)', unit: '%', keys: [/^psi/] },
+  { id: 'cpu', title: 'CPU cores', unit: 'cores', keys: [/^idle_cores$/, /^project_cpu_cores$/] },
+  { id: 'gpumem', title: 'Project GPU memory', unit: 'GB', keys: [/^project_gpu_bytes$/], scale: GB },
+];
+const COLORS = ['var(--s1)', 'var(--s2)', 'var(--s3)', 'var(--s7)'];
+
+function Vitals({ samples, gpuHist }: { samples: Row[]; gpuHist: { t: number; util: number }[] }) {
+  const data = useMemo(() => samples.map((s) => {
+    const o: Row = { __t: timeOf(pick(s, 't', 'ts', 'time')) };
+    for (const [k, v] of Object.entries(s)) if (typeof v === 'number') o[k] = v;
+    return o;
+  }).filter((s) => s.__t !== null), [samples]);
+  const fmtClock = (v: number) => new Date(v).toTimeString().slice(0, 8);
+  const numericKeys = uniq(data.flatMap((s) => Object.keys(s).filter((k) => k !== '__t' && k !== 't')));
+  const warn = samples.filter((s) => !/^(ok|normal)$/i.test(str(s.level))).map((s) => timeOf(s.t)).filter((x): x is number => x !== null);
   return (
-    <div className="grid g2">
-      {panels.map((p) => (
-        <Lines
-          key={p.id} title={<b>{p.title}</b>} right={<span className="muted small">{p.unit}</span>} data={data} xKey="__t" syncId="vitals" height={170}
-          xFormat={fmtClock} series={p.ks.map((k, i) => ({ key: k, label: k, color: colors[i] }))}
-          refs={warn.slice(-20).map((w) => ({ x: w.__t as number, color: 'var(--serious)' }))}
-        />
-      ))}
+    <div className="grid g3">
+      {PANELS.map((p) => {
+        const ks = uniq(p.keys.flatMap((re) => numericKeys.filter((k) => re.test(k)))).slice(0, 4);
+        if (!ks.length) return <div key={p.id} className="muted small">{p.title}: not in the samples.</div>;
+        const scaled = p.scale ? data.map((s) => Object.fromEntries(Object.entries(s).map(([k, v]) => [k, k !== '__t' && typeof v === 'number' ? v / p.scale! : v]))) : data;
+        return (
+          <Lines key={p.id} title={<b>{p.title}</b>} right={<span className="muted small">{p.unit}</span>} data={scaled} xKey="__t" syncId="vitals" height={170}
+            xFormat={fmtClock} series={ks.map((k, i) => ({ key: k, label: k, color: COLORS[i] }))}
+            refs={warn.slice(-12).map((x) => ({ x, color: 'var(--serious)' }))} />
+        );
+      })}
+      <Lines title={<b>GPU utilisation</b>} right={<span className="muted small">% · readings seen by this page ({gpuHist.length})</span>}
+        data={gpuHist.map((h) => ({ __t: h.t, util: h.util }))} xKey="__t" height={170} xFormat={fmtClock} yDomain={[0, 100]}
+        series={[{ key: 'util', label: 'util_pct', color: COLORS[0], dots: gpuHist.length < 20 }]} />
     </div>
   );
+}
+
+function bytesOrNum(v: unknown) {
+  const n = num(v);
+  return n !== null && n > 1e6 ? fmtBytes(n) : fmtNum(v);
 }
 
 function Leases({ leases }: { leases: Row[] }) {
   const [sel, setSel] = useUrlState('lease', '');
   if (!leases.length) return <p className="muted small">No active leases in the document.</p>;
-  const flatRows = leases.map((r) => flat(r));
-  const keys = uniq(flatRows.flatMap((r) => Object.keys(r)));
-  const dKey = findKey(keys, /declared.*mem/i, /mem.*declared/i, /^mem(ory)?(_gb|_mb)?$/i);
-  const cKey = findKey(keys, /measured.*(current|now)/i, /current.*mem/i, /mem.*current/i, /^measured.*mem/i);
-  const pKey = findKey(keys, /measured.*peak/i, /peak/i);
-  const eKey = findKey(keys, /memory\.?high/i, /throttl/i, /high_events/i);
-  const shaped = flatRows.map((r) => {
-    const dv = dKey ? num(r[dKey]) : null, cv = cKey ? num(r[cKey]) : null, pv = pKey ? num(r[pKey]) : null;
-    const lead: Row = {
-      id: pick(r, 'id', 'lease', 'lease_id'), label: pick(r, 'label', 'name'), workstream: pick(r, 'workstream', 'track'),
-    };
-    return {
-      ...lead,
-      'measured / declared': dv && (cv !== null || pv !== null)
-        ? <LeaseBar declared={dv} current={cv} peak={pv} />
-        : '—',
-      throttle: eKey ? r[eKey] : undefined,
-      age: pick(r, 'age_s', 'age') != null ? `${fmtNum(num(pick(r, 'age_s', 'age')))} s` : undefined,
-      ...Object.fromEntries(Object.entries(r).filter(([k]) => !['id', 'label', 'workstream', 'name', 'lease', 'lease_id', 'track'].includes(k))),
-    } as Row;
-  });
+  const cur = leases.find((l) => str(l.id) === sel);
   return (
     <>
-      <p className="muted small" style={{ marginTop: 0 }}>
-        Bar = measured current memory (fill) against the declared memory (full width); the tick marks the measured peak. Columns used:
-        declared <code>{dKey || '—'}</code>, current <code>{cKey || '—'}</code>, peak <code>{pKey || '—'}</code>, throttle <code>{eKey || '—'}</code>.
-      </p>
-      <LeaseTable rows={shaped} sel={sel} setSel={setSel} />
+      <div className="table-wrap tall">
+        <table className="t">
+          <thead><tr>
+            <th>label</th><th>workstream · DAG node</th><th>memory: measured / declared</th><th className="n">memory.high</th><th className="n">throttle ev.</th><th className="n">OOM</th>
+            <th className="n">CPU</th><th>GPU</th><th className="n">age</th><th className="n">heartbeat</th>
+          </tr></thead>
+          <tbody>
+            {leases.map((l) => {
+              const dec = isObj(l.declared) ? l.declared : {}, mea = isObj(l.measured) ? l.measured : {};
+              const hi = num(mea.memory_high_events) || 0, oom = (num(mea.oom_events) || 0) + (num(mea.oom_kill_events) || 0);
+              return (
+                <tr key={str(l.id)} className={str(l.id) === sel ? 'sel' : ''} onClick={() => setSel(str(l.id) === sel ? '' : str(l.id))} style={{ cursor: 'pointer' }}>
+                  <td><b style={{ fontWeight: 600 }}>{str(l.label)}</b><div className="small muted mono">{str(l.id)}</div></td>
+                  <td>{str(l.workstream) || <span className="muted">—</span>}<div className="small muted">{[l.dag, l.dag_node].map(str).filter(Boolean).join(' · ')}</div></td>
+                  <td><LeaseBar declared={num(dec.memory_bytes)} current={num(mea.memory_current)} peak={num(mea.memory_peak)} high={num(mea.memory_high)} /></td>
+                  <td className="n">{bytesOrNum(mea.memory_high)}</td>
+                  <td className="n">{hi ? <Status state="throttled">{hi}</Status> : '0'}</td>
+                  <td className="n">{oom ? <Status state="failed">{oom}</Status> : '0'}</td>
+                  <td className="n">{fmtNum(dec.cpu_cores)}</td>
+                  <td>{dec.gpu ? `yes · ${fmtBytes(dec.gpu_memory_bytes)}` : 'no'}</td>
+                  <td className="n">{l.age_s != null ? `${fmtNum(Math.round((num(l.age_s) || 0) / 60))} min` : '—'}</td>
+                  <td className="n">{l.heartbeat_at != null ? ago(l.heartbeat_at) : '—'}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="muted small">Bar: measured current memory (fill) against the declared memory (full width); black tick = measured peak; orange tick = memory.high (throttle threshold). Click a row for all fields.</p>
+      {cur && <KV data={cur} />}
     </>
   );
 }
-function LeaseTable({ rows: rs, sel, setSel }: { rows: Row[]; sel: string; setSel: (s: string) => void }) {
-  const cols = Object.keys(rs[0] || {}).slice(0, 14);
-  return (
-    <div className="table-wrap tall">
-      <table className="t">
-        <thead><tr>{cols.map((c) => <th key={c}>{c}</th>)}</tr></thead>
-        <tbody>
-          {rs.map((r, i) => (
-            <tr key={i} className={str(r.id) === sel ? 'sel' : ''} onClick={() => setSel(str(r.id))} style={{ cursor: 'pointer' }}>
-              {cols.map((c) => {
-                const v = r[c];
-                const node = v !== null && typeof v === 'object' && '$$typeof' in (v as object) ? (v as ReactNode) : cellValue(c, v);
-                return <td key={c} className={typeof v === 'number' ? 'n' : ''}>{node}</td>;
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-function LeaseBar({ declared, current, peak }: { declared: number; current: number | null; peak: number | null }) {
+function LeaseBar({ declared, current, peak, high }: { declared: number | null; current: number | null; peak: number | null; high: number | null }) {
+  if (!declared) return <span className="muted">no declared memory</span>;
   const f = (v: number) => `${Math.min(100, (v / declared) * 100)}%`;
   const over = (peak ?? current ?? 0) > declared;
   return (
-    <div style={{ display: 'grid', gap: 2, minWidth: 140 }} title={`current ${fmtNum(current)} · peak ${fmtNum(peak)} · declared ${fmtNum(declared)}`}>
+    <div style={{ display: 'grid', gap: 2, minWidth: 170 }}>
       <div className="cell-bar">
         {current !== null && <i style={{ width: f(current), background: over ? 'var(--critical)' : 'var(--accent)' }} />}
+        {high !== null && <b style={{ left: f(high), background: 'var(--serious)' }} />}
         {peak !== null && <b style={{ left: f(peak) }} />}
       </div>
-      <span className="small num muted">{fmtNum(current)} / {fmtNum(declared)}{peak !== null ? ` · peak ${fmtNum(peak)}` : ''}{over ? ' · OVER' : ''}</span>
+      <span className="small num muted">{fmtBytes(current)} / {fmtBytes(declared)} · peak {fmtBytes(peak)}{over ? ' · OVER' : ''}</span>
     </div>
+  );
+}
+
+function BrokerEvents({ events }: { events: Row[] }) {
+  const [kind, setKind] = useState('');
+  if (!events.length) return <p className="muted small">No broker events in the document.</p>;
+  const kinds = uniq(events.map((e) => str(e.kind))).sort();
+  const shown = events.filter((e) => !kind || str(e.kind) === kind).slice().reverse();
+  return (
+    <>
+      <div className="filters" style={{ marginBottom: 6 }}>
+        <label>kind<select value={kind} onChange={(e) => setKind(e.target.value)}><option value="">all ({events.length})</option>{kinds.map((k) => <option key={k}>{k}</option>)}</select></label>
+      </div>
+      <div className="table-wrap tall">
+        <table className="t">
+          <thead><tr><th>time</th><th>kind</th><th>lease / label</th><th>reason · resources</th></tr></thead>
+          <tbody>
+            {shown.map((e, i) => {
+              const k = str(e.kind);
+              const tone = /stopped|revoke|throttl|kill|oom/.test(k) ? 'critical' : /released/.test(k) ? 'neutral' : /acquired|resumed|started/.test(k) ? 'good' : 'warning';
+              return (
+                <tr key={i}>
+                  <td className="num small">{fmtTime(timeOf(e.t)).slice(11)}</td>
+                  <td><span className={`status ${tone}`}><i />{k}</span></td>
+                  <td className="small">{str(e.label) || <span className="mono muted">{str(e.lease_id)}</span>}</td>
+                  <td className="small">{str(e.reason)}{e.mem != null ? ` mem ${fmtBytes(e.mem)}` : ''}{e.cpu != null ? ` · cpu ${fmtNum(e.cpu)}` : ''}{e.gpu ? ' · gpu' : ''}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
 function WatchdogEvents({ samples }: { samples: Row[] }) {
-  const events = samples.filter((s) => {
-    const lv = str(pick(s, 'level'));
-    return lv && !/^(ok|normal|info|green)$/i.test(lv);
-  });
+  const events = samples.filter((s) => { const lv = str(pick(s, 'level')); return lv && !/^(ok|normal|info)$/i.test(lv); });
+  const throttled = samples.filter((s) => arr(s.throttled_leases).length || s.gpu_thermal_throttle === true);
   if (!samples.length) return <p className="muted small">No watchdog samples in the document.</p>;
-  if (!events.length) return <p className="muted small">All {samples.length} samples are at level ok.</p>;
+  if (!events.length && !throttled.length) return <p className="muted small">All {samples.length} samples are at level ok, with no throttled leases and no GPU thermal throttle.</p>;
   return (
-    <DataTable
-      tall
-      rows={events.slice().reverse().map((s) => ({
-        time: fmtTime(timeOf(pick(s, 't', 'ts', 'time', 'timestamp'))), level: pick(s, 'level'),
-        reasons: arr(pick(s, 'reasons')).map(str).join('; ') || str(pick(s, 'reasons', 'reason')),
-        action: pick(s, 'action', 'shed', 'killed'),
-      }))}
-    />
+    <DataTable tall rows={[...events, ...throttled.filter((t) => !events.includes(t))].reverse().map((s) => ({
+      time: fmtTime(timeOf(s.t)), level: s.level, reasons: arr(s.reasons).map(str).join('; '),
+      throttled_leases: arr(s.throttled_leases).map(str).join(', ') || undefined, gpu_thermal_throttle: s.gpu_thermal_throttle || undefined,
+    }))} />
   );
 }
 
 function Dags({ d }: { d: Envelope }) {
-  const list = rows(pick(d, 'dags', 'ledgers'));
+  const list = rows(pick(d, 'dags'));
   const [open, setOpen] = useUrlState('dag', '');
-  const [ws, setWs] = useState('');
+  const [ws, setWs] = useUrlState('ws', '');
+  const [hideDone, setHideDone] = useUrlState('active', '0');
   if (!list.length) return <p className="muted small">No run-DAG ledgers in the document.</p>;
-  const wsOf = (g: Row) => str(pick(g, 'workstream', 'track')) || str(pick(g, 'name', 'dag')).split(/[_/.-]/)[0] || 'other';
+  const wsOf = (g: Row) => str(pick(g, 'workstream', 'track')) || 'other';
   const workstreams = uniq(list.map(wsOf)).sort();
-  const shown = list.filter((g) => !ws || wsOf(g) === ws);
+  const shown = list.filter((g) => (!ws || wsOf(g) === ws) && (hideDone !== '1' || g.complete !== true));
+  const legend: [string, string][] = [['good', 'completed'], ['active', 'running'], ['neutral', 'pending / planned'], ['serious', 'blocked / held'], ['critical', 'failed']];
   return (
     <div className="stack">
       <div className="filters">
-        <label>workstream
-          <select value={ws} onChange={(e) => setWs(e.target.value)}>
-            <option value="">all ({workstreams.length})</option>
-            {workstreams.map((w) => <option key={w}>{w}</option>)}
-          </select>
-        </label>
-        <span className="legend">
-          {(['good', 'active', 'neutral', 'serious', 'critical'] as const).map((t) => (
-            <span key={t}><i className="sw" style={{ background: t === 'active' ? 'var(--accent)' : t === 'neutral' ? 'var(--axis)' : `var(--${t})` }} />
-              {{ good: 'completed', active: 'running', neutral: 'pending / planned', serious: 'blocked / held', critical: 'failed' }[t]}</span>
-          ))}
-        </span>
+        <label>workstream<select value={ws} onChange={(e) => setWs(e.target.value)}><option value="">all ({workstreams.length})</option>{workstreams.map((w) => <option key={w}>{w}</option>)}</select></label>
+        <label className="small" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={hideDone === '1'} onChange={(e) => setHideDone(e.target.checked ? '1' : '0')} /> only incomplete</label>
+        <span className="legend">{legend.map(([t, l]) => <span key={t}><i className="sw" style={{ background: t === 'active' ? 'var(--accent)' : t === 'neutral' ? 'var(--axis)' : `var(--${t})` }} />{l}</span>)}</span>
       </div>
-      {workstreams.filter((w) => !ws || w === ws).map((w) => (
-        <Card key={w} title={w} hint={`${shown.filter((g) => wsOf(g) === w).length} DAG(s)`}>
-          <div className="stack" style={{ gap: 10 }}>
-            {shown.filter((g) => wsOf(g) === w).map((g, i) => {
-              const name = str(pick(g, 'name', 'dag')) || `dag ${i}`;
-              const where = str(pick(g, 'host', 'location', 'copy'));
-              const nodes = rows(pick(g, 'nodes'));
-              const counts = isObj(g.counts) ? g.counts : null;
-              const eta = pick(g, 'eta', 'stated_eta');
-              const key = `${name}@${where}`;
-              return (
-                <div key={key}>
-                  <div className="row" style={{ marginBottom: 4 }}>
-                    <b style={{ fontWeight: 600 }}>{name}</b>
-                    {where && <span className="badge">{where}</span>}
-                    <span className="muted small num">{counts ? Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(' · ') : `${nodes.length} nodes`}</span>
-                    {eta ? <span className="small">ETA (stated in notes): {str(eta)}</span> : <span className="muted small">no stated ETA</span>}
-                    <button className="ghost small" onClick={() => setOpen(open === key ? '' : key)}>{open === key ? 'hide nodes' : 'nodes'}</button>
+      {arr(d.notes).length > 0 && <ul className="small muted" style={{ margin: 0 }}>{arr(d.notes).map((n, i) => <li key={i}>{str(n)}</li>)}</ul>}
+      {workstreams.filter((w) => shown.some((g) => wsOf(g) === w)).map((w) => {
+        const gs = shown.filter((g) => wsOf(g) === w);
+        return (
+          <Card key={w} title={w} hint={`${gs.length} DAG(s)`}>
+            <div className="stack" style={{ gap: 12 }}>
+              {gs.map((g, i) => {
+                const name = str(pick(g, 'dag', 'name')) || `dag ${i}`;
+                const where = str(pick(g, 'location', 'host'));
+                const nodes = rows(pick(g, 'nodes'));
+                const counts = isObj(g.counts) ? g.counts : null;
+                const etas = arr(pick(g, 'eta_statements', 'eta'));
+                const key = `${name}@${where}`;
+                const stages = uniq(nodes.map((n) => str(n.stage)));
+                return (
+                  <div key={key}>
+                    <div className="row" style={{ marginBottom: 4 }}>
+                      <b style={{ fontWeight: 600 }}>{name}</b>
+                      {where && <span className="badge">{where}</span>}
+                      {g.complete === true && <Status state="completed">complete</Status>}
+                      <span className="muted small num">{counts ? Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(' · ') : `${nodes.length} nodes`}</span>
+                      <span className="small muted">updated {ago(pick(g, 'updated', 'mtime'))}</span>
+                      <span className="spacer" />
+                      <button className="ghost small" onClick={() => setOpen(open === key ? '' : key)}>{open === key ? 'hide nodes' : `${nodes.length} nodes`}</button>
+                    </div>
+                    <div className="bars" role="img" aria-label={`${name}: ${nodes.length} nodes by state`}>
+                      {nodes.map((n, j) => (
+                        <i key={j} className={stateTone(n.state)} style={{ flex: 1 }}
+                          title={`${str(n.id)} · ${str(n.stage)} · ${str(n.state)}${n.rc != null ? ` · rc ${str(n.rc)}` : ''}${n.gate_verdict ? ` · gate ${str(n.gate_verdict)}` : ''}${n.caveat ? ` · ${str(n.caveat)}` : ''}`} />
+                      ))}
+                    </div>
+                    <div className="small muted" style={{ marginTop: 2 }}>
+                      {etas.length ? <>ETA as stated in track notes: {etas.map((e) => (isObj(e) ? `${str(pick(e, 'text', 'eta'))} (${str(pick(e, 'source_file', 'source'))})` : str(e))).join(' · ')}</> : 'no ETA stated in track notes (none is estimated here)'}
+                      {stages.length > 1 && <> · stages: {stages.join(' → ')}</>}
+                    </div>
+                    {open === key && <div style={{ marginTop: 8 }}><DataTable tall rows={nodes.map((n) => ({ id: n.id, stage: n.stage, state: n.state, placement: n.placement, lease: n.lease, rc: n.rc, attempts: n.attempts, gate_verdict: n.gate_verdict, caveat: n.caveat, started: n.started, ended: n.ended, out: n.out }))} /></div>}
                   </div>
-                  <div className="bars" role="img" aria-label={`${name}: ${nodes.length} nodes by state`}>
-                    {nodes.map((n, j) => (
-                      <i key={j} className={stateTone(pick(n, 'state'))} style={{ flex: 1 }} title={`${str(pick(n, 'id'))} · ${str(pick(n, 'stage'))} · ${str(pick(n, 'state'))}${pick(n, 'rc') != null ? ` · rc ${str(pick(n, 'rc'))}` : ''}`} />
-                    ))}
-                  </div>
-                  {open === key && <div style={{ marginTop: 8 }}><DataTable rows={nodes} tall /></div>}
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      ))}
+                );
+              })}
+            </div>
+          </Card>
+        );
+      })}
     </div>
   );
 }
