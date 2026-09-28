@@ -28,3 +28,6 @@ artifacts/video/raw/
 *.npz
 *.pkl
 /.rrp_revision
+viz/data/
+viz/room/node_modules/
+viz/room/dist/
