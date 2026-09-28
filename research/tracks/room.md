@@ -134,4 +134,20 @@ Known gaps
 - No browser/visual QA was done on the host, only SSR; layout at narrow widths and the three.js scenes need a look in a real
   browser.
 
+Redesign (owner: "more compact, visually-oriented, wall-street trader"; lessons from IBM-2's board):
+- dark-first terminal styling: seams in place of cards, a 22px ticker and a 28px top bar with the views numbered 1–0;
+- `#board` as the landing page (KPI strip plus about 14 dense panels, each drilling into its full view);
+- theatre with a large stage and a right rail of compact timelines;
+- keyboard shortcuts;
+- a shared per-document fetch store, so the ticker, board and views share their polls.
+
+Two aggregations are named on the board where they appear:
+- the arm KPI and lineage panel sum the `[lineage, body, grasp_v2]` rows of `compare_gc2_final.json` (311/480 semfix vs
+  40/480 nosem, INTERIM per D-121);
+- the halt tiles show the median halt/ctx_halt effect over rows of the semantic variants against nosem, on the edit's most
+  common metric.
+
+Commits are not in any exporter document, so the ticker does not show them (the data layer is unchanged). The render check
+now covers the ticker and the board (58 states, plus 6 on real replays).
+
 Resume: `cd ~/work/rrp-wt/roomui/viz/room && npm install && npm run dev` (add `RRP_ROOM_HOST=0.0.0.0` for the network).

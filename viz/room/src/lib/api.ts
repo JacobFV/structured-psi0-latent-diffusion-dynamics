@@ -6,7 +6,7 @@
  *  - fixture:  the exporter module does not exist yet (or ?fixture=1): small hand-written FIXTURE JSON, never real results
  * A document that cannot be found is "no data" with the path that was expected. Nothing is filled in.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 export type Mode = 'live' | 'stale' | 'snapshot' | 'fixture';
 export type Envelope = { schema?: string; generated_at?: string; git_sha?: string | null; sources?: string[]; stale?: boolean } & Record<string, unknown>;
@@ -101,7 +101,6 @@ export async function fetchDoc<T = Envelope>(name: string, prevEtag?: string): P
   }
 }
 
-/** Polls a document (default: 60 s; live ops pass 10 s). Keeps the last good value while refreshing. */
 /** Test hook only: scripts/render-check.tsx seeds documents here to server-render every view with real data. */
 declare global { var __RRP_PRELOAD__: Record<string, unknown> | undefined }
 function preloaded<T>(name: string): DocResult<T> | null {
@@ -109,28 +108,41 @@ function preloaded<T>(name: string): DocResult<T> | null {
   return d ? { status: 'ok', data: d as T, mode: 'live', fetchedAt: 0 } : null;
 }
 
+/** Shared per-document store: several panels (ticker, board, views) polling one document share one request. */
+const store = new Map<string, { at: number; res: DocResult<unknown>; pending?: Promise<DocResult<unknown>> }>();
+const listeners = new Map<string, Set<() => void>>();
+async function refreshShared(name: string, maxAgeMs: number) {
+  const cur = store.get(name);
+  if (cur && Date.now() - cur.at < maxAgeMs) return;
+  if (cur?.pending) { await cur.pending; return; }
+  const etag = cur && cur.res.status === 'ok' ? (cur.res as { etag?: string }).etag : undefined;
+  const pending = fetchDoc<unknown>(name, etag);
+  store.set(name, { at: cur?.at ?? 0, res: cur?.res ?? { status: 'loading' }, pending });
+  const next = await pending;
+  const prev = store.get(name)!;
+  let res = prev.res;
+  if ((next.status as string) !== 'unchanged' && !(next.status === 'error' && prev.res.status === 'ok')) res = next;
+  store.set(name, { at: Date.now(), res });
+  listeners.get(name)?.forEach((f) => f());
+}
+
+/** Polls a document (default: 60 s; live ops pass 10 s). Keeps the last good value while refreshing. */
 export function useDoc<T = Envelope>(name: string, pollMs = 60_000) {
-  const [result, setResult] = useState<DocResult<T>>(() => preloaded<T>(name) ?? { status: 'loading' });
+  const initial = (): DocResult<T> => preloaded<T>(name) ?? (store.get(name)?.res as DocResult<T> | undefined) ?? { status: 'loading' };
+  const [result, setResult] = useState<DocResult<T>>(initial);
   const [busy, setBusy] = useState(false);
-  const alive = useRef(true);
-  const etag = useRef<string | undefined>(undefined);
-  const load = useCallback(async () => {
-    setBusy(true);
-    const next = await fetchDoc<T>(name, etag.current);
-    if (!alive.current) return;
-    setBusy(false);
-    if ((next.status as string) === 'unchanged') return; // same file as before: keep the parsed document
-    if (next.status === 'ok') etag.current = next.etag;
-    setResult((prev) => (next.status === 'error' && prev.status === 'ok' ? prev : next));
-  }, [name]);
   useEffect(() => {
-    alive.current = true;
-    setResult({ status: 'loading' });
-    load();
-    const id = pollMs > 0 ? window.setInterval(load, pollMs) : undefined;
-    return () => { alive.current = false; if (id) window.clearInterval(id); };
-  }, [load, pollMs]);
-  return { result, reload: load, busy };
+    let set = listeners.get(name);
+    if (!set) listeners.set(name, (set = new Set()));
+    const on = () => setResult((store.get(name)?.res as DocResult<T>) ?? { status: 'loading' });
+    set.add(on);
+    const tick = (force = false) => { setBusy(true); refreshShared(name, force ? 0 : Math.min(pollMs, 60_000) / 2).finally(() => { setBusy(false); on(); }); };
+    tick();
+    const id = pollMs > 0 ? window.setInterval(() => tick(), pollMs) : undefined;
+    return () => { set!.delete(on); if (id) window.clearInterval(id); };
+  }, [name, pollMs]);
+  const reload = useCallback(async () => { setBusy(true); await refreshShared(name, 0); setBusy(false); }, [name]);
+  return { result, reload, busy };
 }
 
 export async function fetchReplay<T>(id: string): Promise<DocResult<T>> {

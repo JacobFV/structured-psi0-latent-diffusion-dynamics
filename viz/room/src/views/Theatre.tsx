@@ -122,6 +122,13 @@ function TheatreBody({ entries, videos }: { entries: Row[]; videos: DocResult<En
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || (tag === 'BUTTON' && e.key === ' ')) return;
       const dt = 1 / Math.max(1, sides[0]?.replay.fps || 30);
+      if (e.key === '[' || e.key === ']') {
+        const ids = entries.map((x) => str(x.id));
+        const i = ids.indexOf(idA);
+        const next = ids[(i + (e.key === ']' ? 1 : -1) + ids.length) % ids.length];
+        if (next) { setA(next); clock.set(0); }
+        return;
+      }
       if (e.key === ' ') { e.preventDefault(); clock.toggle(); }
       else if (e.key === 'ArrowRight') clock.set(clock.t + (e.shiftKey ? 1 : dt));
       else if (e.key === 'ArrowLeft') clock.set(clock.t - (e.shiftKey ? 1 : dt));
@@ -129,46 +136,52 @@ function TheatreBody({ entries, videos }: { entries: Row[]; videos: DocResult<En
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [clock, sides]);
+  }, [clock, sides, entries, idA, setA]);
 
   const opts: StageOptions = { follow: follow === '1', contacts: contacts === '1', trails: trails === '1', ghost: null };
   const entryA = entries.find((e) => str(e.id) === idA);
   const entryB = entries.find((e) => str(e.id) === b);
-  const stageH = b ? 380 : 480;
+  const stageH = b ? 420 : 580;
   if (!entries.length) return <NoData expected="~/work/rrp-data/viz/replays/index.json (via /api/replays)" detail="The replay index is empty: no episodes have been recorded yet." />;
   return (
     <div className="theatre">
       <div style={{ minWidth: 0 }}>
-        {sides.map((s) => {
-          const res = s.tag === 'A' ? ra : rb;
-          return <LabelBanner key={s.tag} r={s.replay} tag={b ? s.tag : undefined} color={s.color} fixture={res?.status === 'ok' && res.mode === 'fixture'} />;
-        })}
-        <div className={b ? 'stage-pair' : ''}>
+        <details className="card" open={!a} style={{ marginBottom: -1 }}>
+          <summary style={{ padding: '2px 8px', cursor: 'pointer', fontFamily: 'var(--mono)', fontSize: 10.5, textTransform: 'uppercase' }}>
+            replays ({entries.length}) · A {idA || '—'}{b ? ` · B ${b}` : ''} · [ ] step A
+          </summary>
+          <div className="grid g2" style={{ padding: 4 }}>
+            <Picker entries={entries} a={idA} b={b} setA={(v) => { setA(v); clock.set(0); }} setB={(v) => { setB(v); clock.set(0); }} />
+          </div>
+        </details>
+        <div className={b ? 'stage-pair' : ''} style={{ gap: 0 }}>
           <StageSlot result={ra} clock={clock} opts={opts} height={stageH} tag={b ? 'A' : undefined} color="var(--s1)" entry={entryA} videos={videos} />
           {b && <StageSlot result={rb} clock={clock} opts={opts} height={stageH} tag="B" color="var(--s2)" entry={entryB} videos={videos} />}
         </div>
-        <div className="transport" role="group" aria-label="Playback">
-          <button className="primary" onClick={() => clock.toggle()} disabled={!sides.length} aria-label={snap.playing ? 'Pause' : 'Play'} style={{ minWidth: 64 }}>
-            {snap.playing ? 'Pause' : 'Play'}
+        <div className="transport" role="group" aria-label="Playback" style={{ padding: '3px 0' }}>
+          <button className="primary" onClick={() => clock.toggle()} disabled={!sides.length} aria-label={snap.playing ? 'Pause' : 'Play'} style={{ minWidth: 52 }}>
+            {snap.playing ? 'PAUSE' : 'PLAY'}
           </button>
           <button onClick={() => clock.set(clock.t - 1 / Math.max(1, sides[0]?.replay.fps || 30))} aria-label="Previous frame">◀︎</button>
           <button onClick={() => clock.set(clock.t + 1 / Math.max(1, sides[0]?.replay.fps || 30))} aria-label="Next frame">▶︎</button>
           <input type="range" min={0} max={snap.duration || 0} step={0.001} value={snap.t} onChange={(e) => clock.set(Number(e.target.value))} aria-label="Scrub" />
-          <span className="time">{snap.t.toFixed(2)} / {snap.duration.toFixed(2)} s{sides[0] ? ` · f${frameLabel(sides[0], snap.t)}` : ''}</span>
-          <label className="small">speed <select value={speed} onChange={(e) => setSpeed(e.target.value)}>{SPEEDS.map((s) => <option key={s} value={s}>{s}×</option>)}</select></label>
+          <span className="time mono">{snap.t.toFixed(2)}/{snap.duration.toFixed(2)}s{sides[0] ? ` f${frameLabel(sides[0], snap.t)}` : ''}</span>
+          <select value={speed} onChange={(e) => setSpeed(e.target.value)} aria-label="speed">{SPEEDS.map((s) => <option key={s} value={s}>{s}×</option>)}</select>
           <label className="small"><input type="checkbox" checked={loop === '1'} onChange={(e) => setLoop(e.target.checked ? '1' : '0')} /> loop</label>
-          <label className="small"><input type="checkbox" checked={follow === '1'} onChange={(e) => setFollow(e.target.checked ? '1' : '0')} /> follow base</label>
+          <label className="small"><input type="checkbox" checked={follow === '1'} onChange={(e) => setFollow(e.target.checked ? '1' : '0')} /> follow</label>
           <label className="small"><input type="checkbox" checked={contacts === '1'} onChange={(e) => setContacts(e.target.checked ? '1' : '0')} /> contacts</label>
           <label className="small"><input type="checkbox" checked={trails === '1'} onChange={(e) => setTrails(e.target.checked ? '1' : '0')} /> trails</label>
         </div>
-        <p className="muted small" style={{ margin: '0 0 8px' }}>
-          Space play/pause · ←/→ frame · shift+←/→ 1 s · drag to orbit, scroll to zoom. Trails: green = object, violet = base (last 1.5 s bright, whole episode faint).
-          {b ? ' Compare: both stages share one clock (seconds from each episode start).' : ''}
+        <p className="muted small" style={{ margin: '0 0 4px', fontSize: 10 }}>
+          space play · ←/→ frame · shift 1 s · [ ] previous/next replay · drag orbit · trails: green object, violet base (1.5 s bright){b ? ' · A/B share one clock' : ''}
         </p>
-        {sides.length > 0 && <Timelines sides={sides} clock={clock} t={snap.t} duration={snap.duration} />}
       </div>
-      <aside className="stack" style={{ alignContent: 'start' }}>
-        <Picker entries={entries} a={idA} b={b} setA={(v) => { setA(v); clock.set(0); }} setB={(v) => { setB(v); clock.set(0); }} />
+      <aside className="rail">
+        {sides.map((s) => {
+          const res = s.tag === 'A' ? ra : rb;
+          return <LabelBanner key={s.tag} r={s.replay} tag={b ? s.tag : undefined} color={s.color} fixture={res?.status === 'ok' && res.mode === 'fixture'} />;
+        })}
+        {sides.length > 0 ? <Timelines sides={sides} clock={clock} t={snap.t} duration={snap.duration} /> : <p className="board-note" style={{ padding: 6 }}>choose a replay</p>}
       </aside>
     </div>
   );

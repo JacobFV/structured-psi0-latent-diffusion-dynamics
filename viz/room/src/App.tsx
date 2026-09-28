@@ -1,21 +1,25 @@
 import { lazy, Suspense, useEffect, useState, type ComponentType } from 'react';
+import Ticker from './components/Ticker';
 import { Loading } from './components/ui';
 import { forceFixture, useMeta } from './lib/api';
-import { href, useHashView } from './lib/url';
+import { go, href, useHashView } from './lib/url';
 
-const views: { id: string; title: string; load: () => Promise<{ default: ComponentType }> }[] = [
-  { id: 'overview', title: 'Overview', load: () => import('./views/Overview') },
-  { id: 'live', title: 'Live ops', load: () => import('./views/LiveOps') },
-  { id: 'results', title: 'Results matrix', load: () => import('./views/Results') },
-  { id: 'theatre', title: 'Episode theatre', load: () => import('./views/Theatre') },
-  { id: 'edits', title: 'Causal edits', load: () => import('./views/Edits') },
-  { id: 'training', title: 'Training', load: () => import('./views/Training') },
-  { id: 'robustness', title: 'Robustness', load: () => import('./views/Robustness') },
-  { id: 'physics', title: 'Physics credibility', load: () => import('./views/Physics') },
-  { id: 'psi0', title: 'Ψ₀ line', load: () => import('./views/Psi0') },
-  { id: 'knowledge', title: 'Knowledge', load: () => import('./views/Knowledge') },
+const views: { id: string; key: string; title: string; load: () => Promise<{ default: ComponentType }> }[] = [
+  { id: 'board', key: '1', title: 'Board', load: () => import('./views/Board') },
+  { id: 'live', key: '2', title: 'Live ops', load: () => import('./views/LiveOps') },
+  { id: 'results', key: '3', title: 'Results', load: () => import('./views/Results') },
+  { id: 'theatre', key: '4', title: 'Theatre', load: () => import('./views/Theatre') },
+  { id: 'edits', key: '5', title: 'Edits', load: () => import('./views/Edits') },
+  { id: 'training', key: '6', title: 'Training', load: () => import('./views/Training') },
+  { id: 'robustness', key: '7', title: 'Robustness', load: () => import('./views/Robustness') },
+  { id: 'physics', key: '8', title: 'Physics', load: () => import('./views/Physics') },
+  { id: 'psi0', key: '9', title: 'Ψ₀', load: () => import('./views/Psi0') },
+  { id: 'knowledge', key: '0', title: 'Knowledge', load: () => import('./views/Knowledge') },
 ];
-const lazyViews = Object.fromEntries(views.map((v) => [v.id, lazy(v.load)]));
+// not numbered: the claims/caveats page the board drills into
+const extra = [{ id: 'overview', key: '', title: 'Claims', load: () => import('./views/Overview') }];
+const all = [...views, ...extra];
+const lazyViews = Object.fromEntries(all.map((v) => [v.id, lazy(v.load)]));
 
 type Theme = 'light' | 'dark';
 function initialTheme(): Theme {
@@ -23,12 +27,12 @@ function initialTheme(): Theme {
     const s = localStorage.getItem('rrp-room-theme');
     if (s === 'light' || s === 'dark') return s;
   } catch { /* storage may be unavailable */ }
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  return 'dark'; // dark-first terminal
 }
 
 export default function App() {
-  const view = useHashView('overview');
-  const current = views.find((v) => v.id === view) || views[0];
+  const view = useHashView('board');
+  const current = all.find((v) => v.id === view) || views[0];
   const View = lazyViews[current.id];
   const [theme, setTheme] = useState<Theme>(initialTheme);
   const meta = useMeta();
@@ -36,30 +40,45 @@ export default function App() {
     document.documentElement.dataset.theme = theme;
     try { localStorage.setItem('rrp-room-theme', theme); } catch { /* ignore */ }
   }, [theme]);
-  useEffect(() => { document.title = `rrp room · ${current.title}`; }, [current.title]);
-  const dataMode = meta === undefined ? '…' : forceFixture() ? 'FIXTURES (forced by URL)' : meta === null ? 'static snapshot'
-    : meta.exporter_available ? 'live API' : 'FIXTURES (exporter not built yet)';
+  useEffect(() => { document.title = `rrp · ${current.title}`; }, [current.title]);
+  // keyboard: 1–0 switch views, / focuses the page's first filter/search, [ ] step replays (theatre handles those)
+  useEffect(() => {
+    const on = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (e.ctrlKey || e.metaKey || e.altKey || ['INPUT', 'SELECT', 'TEXTAREA'].includes(t?.tagName)) return;
+      const v = views.find((x) => x.key === e.key);
+      if (v) { e.preventDefault(); go(v.id); return; }
+      if (e.key === '/') {
+        const el = document.querySelector<HTMLElement>('main input[type=search], main .filters select, main select');
+        if (el) { e.preventDefault(); el.focus(); }
+      }
+    };
+    window.addEventListener('keydown', on);
+    return () => window.removeEventListener('keydown', on);
+  }, []);
+  const dataMode = meta === undefined ? '…' : forceFixture() ? 'FIXTURES (URL)' : meta === null ? 'STATIC SNAPSHOT' : meta.exporter_available ? 'API' : 'FIXTURES (no exporter)';
   return (
     <div className="shell">
-      <nav className="nav" aria-label="Views">
-        <div className="brand"><span className="mark">R</span>rrp room</div>
-        {views.map((v, i) => (
-          <a key={v.id} href={href(v.id)} aria-current={v.id === current.id ? 'page' : undefined}>
-            <span className="idx">{i + 1}</span>{v.title}
-          </a>
-        ))}
-        <div className="foot">
-          <div>data: <b className={dataMode.startsWith('FIXTURES') ? 'badge src t-fixture' : ''}>{dataMode}</b></div>
-          {meta && <div title={meta.exporter}>exporter <code>rrp.viz.export</code> · cache {meta.cache_s}s / live {meta.live_cache_s}s</div>}
-          <div>served at <code>{window.location.host}</code> · read-only</div>
-          <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Toggle colour theme">
-            {theme === 'dark' ? 'Light theme' : 'Dark theme'}
-          </button>
+      <header className="topbar">
+        <a className="brand" href={href('board')} style={{ color: 'inherit', textDecoration: 'none' }}>RRP▮ROOM</a>
+        <nav aria-label="Views">
+          {views.map((v) => (
+            <a key={v.id} href={href(v.id)} aria-current={v.id === current.id ? 'page' : undefined} title={`${v.title} (key ${v.key})`}>
+              <kbd>{v.key}</kbd>{v.title}
+            </a>
+          ))}
+        </nav>
+        <div className="right">
+          <span title={meta ? `exporter ${meta.exporter} · cache ${meta.cache_s}s / live ${meta.live_cache_s}s` : ''}>{dataMode}</span>
+          <span>{window.location.host} · read-only</span>
+          <span title="keys: 1–0 views · / filter · [ ] previous/next replay · space play">⌨ 1–0 / [ ]</span>
+          <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Toggle colour theme">{theme === 'dark' ? 'LIGHT' : 'DARK'}</button>
         </div>
-      </nav>
+      </header>
+      <Ticker />
       <main className="main" id="main">
-        <Suspense fallback={<Loading what={current.title} />}>
-          <View key={current.id} />
+        <Suspense fallback={<div className="view"><Loading what={current.title} /></div>}>
+          <div className="view"><View key={current.id} /></div>
         </Suspense>
       </main>
     </div>

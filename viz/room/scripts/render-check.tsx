@@ -18,6 +18,8 @@ g.window = {
 g.localStorage = { getItem: () => null, setItem() {} };
 
 const VIEWS: [string, () => Promise<{ default: ComponentType }>, string[]][] = [
+  ['ticker', () => import('../src/components/Ticker'), ['']],
+  ['board', () => import('../src/views/Board'), ['', 'bb=teacher', 'bf=legged&bb=bc', 'bf=']],
   ['overview', () => import('../src/views/Overview'), ['']],
   ['live', () => import('../src/views/LiveOps'), ['', 'tab=dags']],
   ['results', () => import('../src/views/Results'), ['', 'mode=delta&dd=grasp_version', 'agg=pool&r1=route&c=metric&metric=']],

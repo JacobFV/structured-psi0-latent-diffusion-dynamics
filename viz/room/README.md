@@ -40,9 +40,23 @@ node node_modules/.cache/render-check/render-check.js ../..
   Every source label (scripted teacher, oracle, learned, BC, tracker, synthetic) is spelled out, and signals the recorder
   marks privileged are flagged as display-only.
 
+## Layout (terminal redesign, owner feedback 2026-09-28)
+
+Dark-first "trader terminal", modelled on IBM-2's board: a top bar with the numbered views; a live ticker of real events
+(broker lease/admission events, non-ok watchdog samples, DAG node starts/ends, new decisions), which pauses on hover and stays
+static under reduced motion; then the view. The landing page `#board` shows everything at once:
+- a KPI strip: peer GPU, memory, PSI, admission, leases, DAG done/total per active workstream, arm grasp_v2 semfix|nosem,
+  halt effect per legged body (sem|nosem), Ψ₀ step 2, gates, decisions, roadmap, claims, replays;
+- seam panels: vitals sparklines, leases with inline memory bars (current, peak, memory.high), DAG node-state bars, the
+  results tile wall (Δ against a chosen baseline route), arm lineages, the causal-edit mini forest, the latest training
+  sparklines, the robustness break-point strip, Ψ₀, gates, decisions, claims and caveats, and the theatre.
+
+Every panel carries a LIVE/STALE/SNAPSHOT/FIXTURE/NO DATA badge, and clicking it opens its full view. Keys: `1`–`0` switch
+views, `/` focuses the first filter, and `[` `]` step through replays in the theatre.
+
 ## Views (deep links: `#<view>?<state>`)
 
-1. `#overview`: claims by status, caveats, roadmap, key numbers from STATUS, latest decisions, workstreams.
+1. `#board` (landing; see above). `#overview` (not numbered): claims by status, caveats, roadmap, key numbers from STATUS, latest decisions, workstreams.
 2. `#live`: peer vitals, admission, leases (declared vs measured, memory.high and OOM), broker and watchdog events, the
    stale flag, and run-DAG node-state bars per workstream (`tab=dags`).
 3. `#results`: heatmap of rate with CI, any row/column dimensions, filters, a delta mode A → B (Newcombe CI) and every

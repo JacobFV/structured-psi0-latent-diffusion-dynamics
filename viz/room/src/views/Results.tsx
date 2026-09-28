@@ -192,7 +192,7 @@ function Matrix({ all }: { all: Entry[] }) {
                             onClick={() => setSel(sel === k ? '' : k)}
                             title={`${rk} × ${ck}\n${A}: ${pct(best.a.__rate)} (${best.a.__k}/${best.a.__n}) → ${B}: ${pct(best.b.__rate)} (${best.b.__k}/${best.b.__n})\nΔ ${fmtNum(best.d)} [${fmtNum(best.lo)}, ${fmtNum(best.hi)}]`}>
                             {ps.length > 1 && <span className="more">×{ps.length}</span>}
-                            <div className="r">{best.d === null ? '—' : `${best.d > 0 ? '+' : ''}${(best.d * 100).toFixed(0)}`}{sig ? '*' : ''}</div>
+                            <div className="r">{best.d === null ? '—' : `${best.d > 0 ? '▲' : best.d < 0 ? '▼' : '■'}${Math.abs(best.d * 100).toFixed(0)}`}{sig ? '*' : ''}</div>
                             <div className="ci">{best.lo !== null ? `[${(best.lo * 100).toFixed(0)}, ${(best.hi! * 100).toFixed(0)}]` : 'no k/n'}</div>
                           </td>
                         );
