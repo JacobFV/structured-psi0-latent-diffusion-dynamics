@@ -6,6 +6,7 @@ stop admission -> ask owned jobs to checkpoint -> terminate their units after gr
 """
 from __future__ import annotations
 
+import collections
 import math
 
 import json
@@ -34,6 +35,17 @@ class WatchdogConfig:
     psi_full_avg10_shed: float = 25.0
     psi_sustain_samples: int = 3
     project_psi_full_avg10_shed: float = 60.0
+    # D-127 addendum: when the sustained project PSI coincides with per-lease memory.high throttling, the throttled lease(s)
+    # are the likely cause (a stalled lease drives the slice-wide PSI). Shed ONLY those culprits first (at most
+    # max_culprits, ranked by throttle events over the PSI window); if the project PSI is still above the threshold
+    # culprit_grace_s after that, fall back to the default shed policy (newest lease).
+    culprit_shed: bool = True
+    max_culprits: int = 3
+    culprit_grace_s: float = 30.0
+    # OPT-IN, default off (D-117 lesson: live cgroup changes of a running lease are not allowed without the lead): before
+    # shedding a culprit, raise its lease slice memory.high to its memory.max (never touches memory.max) and wait
+    # culprit_grace_s; see research/tracks/robust.md "D-127 addendum" for the safety analysis.
+    raise_high_first: bool = False
     thermal_shed_c: float = 100.0          # hard ceiling (no firmware trip points exposed on GB10)
     thermal_stop_admission_c: float = 97.0
     gpu_thermal_shed_c: float = 95.0
@@ -64,6 +76,10 @@ class WatchdogState:
     last_t: float | None = None
     shmem_excess_count: int = 0           # consecutive samples with a RAM-store-caused excess under memory pressure
     lease_high: dict = field(default_factory=dict)   # lease id -> last seen memory.events `high` count (D-117)
+    recent_throttle: list = field(default_factory=list)   # per-sample {lease: high delta} over the PSI sustain window
+    culprit_phase: str | None = None      # None | "raised" | "shed" (D-127 addendum)
+    culprit_since: int = 0                # samples since the current culprit phase started
+    culprits: list = field(default_factory=list)
 
 
 @dataclass
@@ -72,6 +88,8 @@ class Verdict:
     reasons: list = field(default_factory=list)
     live_memory_bytes: int | None = None
     live_cpu_cores: float | None = None
+    victims: list | None = None       # shed: these lease ids only (culprits); None = the default policy (newest lease)
+    raise_high: list | None = None    # opt-in: raise memory.high to memory.max for these lease ids (no shed this sample)
 
 
 def evaluate(sample: dict, cfg: WatchdogConfig, st: WatchdogState) -> Verdict:
@@ -138,12 +156,20 @@ def evaluate(sample: dict, cfg: WatchdogConfig, st: WatchdogState) -> Verdict:
     else:
         st.psi_high_count = 0
     ppsi = sample.get("project_psi_full_avg10")
+    deltas = {lid: e.get("delta", 0) for lid, e in (sample.get("lease_memory_high") or {}).items() if e.get("delta", 0) > 0}
+    st.recent_throttle = (st.recent_throttle + [deltas])[-max(cfg.psi_sustain_samples, 1):]
+    victims = raise_high = None
     if ppsi is not None and ppsi > cfg.project_psi_full_avg10_shed:
         st.project_psi_high_count += 1
         if st.project_psi_high_count >= cfg.psi_sustain_samples:
-            bump("shed", f"sustained_project_memory_psi:{ppsi}")
+            victims, raise_high, why = _culprit_step(cfg, st)
+            if why:
+                bump("shed" if victims else "stop_admission", f"sustained_project_memory_psi:{ppsi}:{why}")
+            else:
+                bump("shed", f"sustained_project_memory_psi:{ppsi}")
     else:
         st.project_psi_high_count = 0
+        st.culprit_phase, st.culprit_since, st.culprits = None, 0, []
     df = sample.get("disk_free")
     if df is None:
         bump("stop_admission", "disk_telemetry_unavailable")
@@ -171,7 +197,43 @@ def evaluate(sample: dict, cfg: WatchdogConfig, st: WatchdogState) -> Verdict:
                                   project_usage=sample.get("project_cpu_cores") or 0.0,
                                   fraction=cfg.cpu_fraction)
     st.stable_count = st.stable_count + 1 if level == "ok" else 0
-    return Verdict(level, reasons, live_mem, live_cpu)
+    v = Verdict(level, reasons, live_mem, live_cpu)
+    if level == "shed" and victims is not None:
+        only_psi = all(r.startswith("sustained_project_memory_psi") for r in reasons)
+        v.victims = victims if only_psi else None          # another shed reason present: default policy
+    if raise_high and level != "emergency":
+        v.raise_high = raise_high
+    return v
+
+
+def _culprit_step(cfg: WatchdogConfig, st: WatchdogState):
+    """Sustained project PSI: returns (victims | None, raise_high | None, reason | None).
+    Phase None: rank throttled leases in the PSI window; none -> (None, None, None) = default shed. Otherwise either raise
+    their memory.high (opt-in) or shed them. Phases wait culprit_grace_s; if PSI persists: raised -> shed culprits,
+    shed -> default policy."""
+    need = max(1, int(math.ceil(cfg.culprit_grace_s / cfg.sample_interval_s)))
+    if not cfg.culprit_shed:
+        return None, None, None
+    if st.culprit_phase is None:
+        tot = collections.Counter()
+        for d in st.recent_throttle:
+            tot.update(d)
+        if not tot:
+            return None, None, None
+        st.culprits = [lid for lid, _ in tot.most_common(cfg.max_culprits)]
+        st.culprit_since = 0
+        if cfg.raise_high_first:
+            st.culprit_phase = "raised"
+            return None, list(st.culprits), f"raise_memory_high:{','.join(st.culprits)}"
+        st.culprit_phase = "shed"
+        return list(st.culprits), None, f"throttled_culprits:{','.join(st.culprits)}"
+    st.culprit_since += 1
+    if st.culprit_since < need:
+        return None, None, f"awaiting_{st.culprit_phase}_culprits:{','.join(st.culprits)}:{st.culprit_since}/{need}"
+    if st.culprit_phase == "raised":
+        st.culprit_phase, st.culprit_since = "shed", 0
+        return list(st.culprits), None, f"throttled_culprits_after_raise:{','.join(st.culprits)}"
+    return None, None, None                                  # culprits already shed; pressure persists: default policy
 
 
 def project_memory_fields(cg: dict | None, gpu_bytes: int | None) -> dict:
@@ -291,11 +353,21 @@ def run_loop(broker, backend, cfg: WatchdogConfig, *, interval_s: float = 2.0, l
                 broker.resume_admission()
         else:
             broker.stop_admission(";".join(v.reasons))
+        if v.raise_high:                                          # opt-in (cfg.raise_high_first), default off
+            for lid in v.raise_high:
+                try:
+                    r = backend.raise_memory_high(lid)
+                    print(f"[watchdog] raised memory.high of lease {lid} to its memory.max: {r}", flush=True)
+                except Exception as e:  # noqa: BLE001 - a failed raise falls through to the culprit shed after the grace
+                    print(f"[watchdog] raise memory.high of lease {lid} failed: {e}", flush=True)
         if v.level in ("shed", "emergency"):
             leases = broker.leases()
             active = sorted(((k, l) for k, l in leases.items() if l["state"] in ("active", "revoke_requested")),
                             key=lambda kv: -kv[1]["created"])
-            victims = active if v.level == "emergency" else active[:1]
+            if v.level == "shed" and v.victims is not None:        # D-127 addendum: the throttled culprits only
+                victims = [(k, l) for k, l in active if k in set(v.victims)]
+            else:
+                victims = active if v.level == "emergency" else active[:1]
             for lid, l in victims:
                 broker.revoke(lid, ";".join(v.reasons))
                 shed_started.setdefault(lid, time.monotonic())

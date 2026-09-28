@@ -195,3 +195,94 @@ def test_d116_case_with_memory_stat_project_is_ok():
     assert v.live_memory_bytes == 87 * G - 6 * G                                  # A + P_nr - R = 31.5 + 55.5 - 6
     old = evaluate(dict(s, project_memory=66 * G + G // 2), peer, WatchdogState())
     assert old.live_memory_bytes == 98 * G - 6 * G                                # memory.current counted the 11 G cache twice
+
+
+# ------------------------------------------------------------ D-127 addendum: shed the throttled culprit(s) first
+def _psi(ppsi, throttle=None):
+    s = ok_sample(memory_available=80 * G, project_memory=40 * G, psi_full_avg10=5.0, project_psi_full_avg10=ppsi)
+    s["lease_memory_high"] = {k: dict(high=1000, delta=d) for k, d in (throttle or {}).items()}
+    s["throttled_leases"] = sorted(k for k, d in (throttle or {}).items() if d > 0)
+    return s
+
+
+def _peer(**kw):
+    base = dict(memory_reserve_bytes=6 * G, disk_reserve_bytes=10 * G, startup_memory_bytes=108 * G, startup_cpu_cores=19.97,
+                disk_path="/", fraction=1.0, psi_full_avg10_shed=101.0, sample_interval_s=2.0, culprit_grace_s=30.0)
+    base.update(kw)
+    return cfg(**base)
+
+
+def test_project_psi_sheds_only_the_throttled_culprit_then_falls_back():
+    c, st = _peer(), WatchdogState()
+    hot = _psi(70.0, {"b0": 40000, "quiet": 0})
+    vs = [evaluate(hot, c, st) for _ in range(3)]                # PSI sustain window (3 samples)
+    assert [v.level for v in vs[:2]] == ["ok", "ok"]
+    assert vs[2].level == "shed" and vs[2].victims == ["b0"] and "throttled_culprits:b0" in vs[2].reasons[0]
+    # after the culprit shed: wait culprit_grace_s (15 samples) with admission stopped, no further shedding
+    waits = [evaluate(_psi(70.0), c, st) for _ in range(14)]
+    assert all(v.level == "stop_admission" and v.victims is None for v in waits)
+    fb = evaluate(_psi(70.0), c, st)                            # pressure persisted: the default policy (newest lease)
+    assert fb.level == "shed" and fb.victims is None and fb.reasons == ["sustained_project_memory_psi:70.0"]
+    # calm resets; a new episode starts with culprit detection again
+    assert evaluate(_psi(10.0), c, st).level == "ok" and st.culprit_phase is None
+
+
+def test_culprits_ranked_and_capped_and_no_culprit_keeps_default():
+    c, st = _peer(max_culprits=2), WatchdogState()
+    for _ in range(3):
+        v = evaluate(_psi(70.0, {"a": 10, "b": 500, "c": 50}), c, st)
+    assert v.level == "shed" and v.victims == ["b", "c"]
+    st2 = WatchdogState()
+    for _ in range(3):
+        v = evaluate(_psi(70.0), c, st2)                        # no throttled lease: unchanged behaviour
+    assert v.level == "shed" and v.victims is None
+    st3 = WatchdogState()
+    for _ in range(3):
+        v = evaluate(_psi(70.0, {"a": 10}), _peer(culprit_shed=False), st3)
+    assert v.victims is None                                    # feature off: default policy
+
+
+def test_other_shed_reason_uses_default_policy():
+    c, st = _peer(), WatchdogState()
+    for _ in range(3):
+        s = _psi(70.0, {"b0": 100})
+        s.update(project_memory=200 * G)                       # also over the live limit -> a non-PSI shed reason
+        v = evaluate(s, c, st)
+    assert v.level == "shed" and v.victims is None
+
+
+def test_opt_in_raise_high_then_shed_culprit():
+    c, st = _peer(raise_high_first=True), WatchdogState()
+    for _ in range(3):
+        v = evaluate(_psi(70.0, {"b0": 40000}), c, st)
+    assert v.level == "stop_admission" and v.raise_high == ["b0"] and v.victims is None
+    for _ in range(14):
+        v = evaluate(_psi(70.0), c, st)
+        assert v.level == "stop_admission" and not v.raise_high
+    v = evaluate(_psi(70.0), c, st)                              # still pressured after the raise: shed the culprit
+    assert v.level == "shed" and v.victims == ["b0"]
+    assert _peer().raise_high_first is False                     # default off (D-117 lesson)
+
+
+def test_loop_revokes_only_the_culprit_lease(tmp_path):
+    be = fake_enforcement_backend()
+    b = ResourceBroker(cpu_limit=8, memory_limit_bytes=64 * G, backend=be, state_dir=tmp_path / "b")
+    old = b.acquire(ResourceRequest(cpu_cores=1, memory_bytes=G, label="v6_semfix"))
+    culprit = b.acquire(ResourceRequest(cpu_cores=1, memory_bytes=6 * G, label="w7_b0"))
+    newest = b.acquire(ResourceRequest(cpu_cores=1, memory_bytes=G, label="v6_bc"))
+    hot = _psi(70.0, {culprit.lease_id: 40000})
+    c = _peer(memory_reserve_bytes=1 * G)
+    samples = iter([hot] * 3)
+    run_loop(b, be, c, interval_s=0.0, log_path=tmp_path / "wd.jsonl", max_iterations=3, checkpoint_grace_s=1e6,
+             sample_fn=lambda cc, s: next(samples))
+    st = {k: v["state"] for k, v in b.leases().items()}
+    assert st[culprit.lease_id] == "revoke_requested"
+    assert st[old.lease_id] == "active" and st[newest.lease_id] == "active"     # default policy would have hit `newest`
+    # opt-in raise: the backend is asked to lift memory.high, nothing is revoked
+    be2 = fake_enforcement_backend()
+    b2 = ResourceBroker(cpu_limit=8, memory_limit_bytes=64 * G, backend=be2, state_dir=tmp_path / "b2")
+    cu2 = b2.acquire(ResourceRequest(cpu_cores=1, memory_bytes=6 * G, label="w7_b0"))
+    samples2 = iter([_psi(70.0, {cu2.lease_id: 40000})] * 3)
+    run_loop(b2, be2, _peer(memory_reserve_bytes=1 * G, raise_high_first=True), interval_s=0.0,
+             log_path=tmp_path / "wd2.jsonl", max_iterations=3, sample_fn=lambda cc, s: next(samples2))
+    assert ("raise_memory_high", cu2.lease_id) in be2.calls and b2.leases()[cu2.lease_id]["state"] == "active"

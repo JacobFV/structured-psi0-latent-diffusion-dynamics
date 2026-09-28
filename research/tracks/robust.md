@@ -414,3 +414,36 @@ window it would not have blocked admission or shed anything the old one did not.
   fake lease slice (42 high events); the ops-run warning on the D-117 case (10.8G declared vs 9G peak) and its non-cases).
   Smoke: a live read-only collect_sample on the host (source memory.stat, no throttled leases) and a tiny host job whose ledger
   record carries memory_high_events 0.
+
+## D-127 addendum: shed the throttled culprit first (merged, NOT deployed; the lead deploys at a calm moment)
+Problem (02:16): the project-PSI shed (`sustained_project_memory_psi`, rrp.slice PSI full > 60 on 3 samples) removed good
+jobs while 75-83 GB was available; the cause was ONE lease (W7 b0 eval: declared 6G, peak 5.6G, memory.high 4.8G, 128k high
+events) whose stall drove the slice-wide PSI. The default policy sheds the NEWEST lease, not the cause.
+Change (`rrp.orchestration.watchdog`, config fields `culprit_shed` (on), `max_culprits` 3, `culprit_grace_s` 30):
+- The watchdog keeps the per-lease memory.high deltas of the last `psi_sustain_samples` samples (D-117 telemetry).
+- When the project PSI shed triggers and some leases were throttled in that window, the verdict is `shed` with
+  `victims` = those leases (at most 3, ranked by throttle events); run_loop revokes ONLY them (checkpoint grace as usual).
+- Then `culprit_grace_s` (15 samples at 2 s) of `stop_admission` without further shedding; if the project PSI is still above
+  the threshold after that, the default policy (newest lease) resumes; PSI below the threshold resets the episode.
+- Unchanged: no throttled lease in the window -> default policy; any other shed reason in the same sample (live-limit
+  excess, swap growth, thermal) -> default policy; emergencies unchanged.
+- Reasons in the log name the phase: `...:throttled_culprits:<ids>`, `...:awaiting_shed_culprits:<ids>:k/15`.
+OPT-IN, default OFF: `raise_high_first` (SystemdUserBackend.raise_memory_high: `systemctl --user set-property --runtime
+<lease slice> MemoryHigh=<its memory.max>`, same unit, no restart, memory.max never touched, refused if memory.max is not a
+number). With it on, the first step is to lift the culprits' memory.high to their memory.max and wait 30 s; the culprit shed
+follows only if the PSI persists.
+Safety judgment on the raise (why it is off): lifting memory.high removes the brake between 0.8x and 1.0x of the declaration.
+If the job's true working set fits under memory.max (the b0 case: 5.6G peak vs 6G max) it simply runs on, with no kill and no
+lost work, which is strictly better. If it does NOT fit, the job now grows into memory.max and the kernel OOM-kills it
+(SIGKILL, no checkpoint grace), which is worse than a watchdog revoke. The watchdog cannot tell the two apart from a
+throttled lease (a throttled job sits AT memory.high; its demand is unknown). That matches the D-117 correction: the pack was
+OOM-killed seconds after its MemoryHigh was lifted, at a peak (15.5G) below the unit's new MemoryMax (26G). My reading (not
+verified): the lease SLICE's memory.max (the original declaration) still bounded the job, so lifting the throttle let it reach
+the slice limit. A live `set-property` also rewrites a runtime drop-in and re-applies the unit's properties, which is
+exactly the "live change" D-117 now forbids. Recommendation: keep it off. If wanted, validate it first in a controlled peer
+trial on a synthetic lease (declared 2G; a working set of 1.8G, which should complete after the raise, and one of 2.2G, which
+should be OOM-killed at 2G) before enabling, as a lead decision.
+Tests (tests/unit/test_watchdog.py, fake samples): culprit-only shed, then 15 waiting samples, then fallback, then reset;
+ranking and cap; no culprit / feature off -> default; another shed reason -> default; opt-in raise -> wait -> culprit shed;
+run_loop with a fake broker/backend revokes ONLY the throttled lease (the default would have hit the newest), and the
+opt-in raise calls the backend and revokes nothing.

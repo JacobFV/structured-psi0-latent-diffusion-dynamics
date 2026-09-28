@@ -79,6 +79,18 @@ class SystemdUserBackend:
                    f"CPUQuota={_quota_percent(cpu_cores)}", f"MemoryMax={int(memory_bytes)}",
                    f"MemoryHigh={high}", "MemorySwapMax=0", f"TasksMax={int(tasks_max)}"])
 
+    def raise_memory_high(self, lease_id: str) -> dict:
+        """OPT-IN watchdog action (WatchdogConfig.raise_high_first, default off; D-127 addendum): set the lease SLICE's
+        memory.high to its current memory.max, runtime-only, same unit, no restart; memory.max is never changed. The job is
+        then bounded by its declared memory (an OOM kill at memory.max instead of an indefinite stall at memory.high)."""
+        from rrp.orchestration import telemetry
+        cg = telemetry.slice_cgroup_path(lease_slice(lease_id))
+        mx = (cg / "memory.max").read_text().strip()
+        if not mx.isdigit():
+            raise EnforcementError(f"lease {lease_id}: memory.max is {mx!r}; refusing to lift memory.high without a bound")
+        self._run(["systemctl", "--user", "set-property", "--runtime", lease_slice(lease_id), f"MemoryHigh={int(mx)}"])
+        return dict(lease=lease_id, memory_high=int(mx), memory_max=int(mx))
+
     def ensure_parent(self, *, cpu_cores: float, memory_bytes: int, tasks_max: int = 4096) -> None:
         # a slice unit must be loaded before set-property; starting it is harmless
         self._run(["systemctl", "--user", "start", PARENT_SLICE])
@@ -150,6 +162,10 @@ class FakeEnforcementBackend:
         self.leases[lease_id] = dict(cpu_cores=cpu_cores, memory_bytes=memory_bytes)
         self.calls.append(("lease", lease_id))
         return lease_slice(lease_id)
+
+    def raise_memory_high(self, lease_id):
+        self.calls.append(("raise_memory_high", lease_id))
+        return dict(lease=lease_id)
 
     def remove_lease(self, lease_id):
         self.leases.pop(lease_id, None)
