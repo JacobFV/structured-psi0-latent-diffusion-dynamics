@@ -55,3 +55,11 @@ def test_v6_training_recipe_equals_v1():
             if "policy" in p: p["policy"] = {k: v for k, v in p["policy"].items() if k != "name"}
         assert pa == pb, nid
         assert a["flags"] == b["flags"], nid
+
+
+def test_all_arm_dags_respect_broker_time_cap():
+    """The broker refuses max_seconds > 21600 at launch (a node that exceeds it fails before running)."""
+    for f in ("arm_lineage.yaml", "arm_lineage_v2.yaml", "arm_lineage_v6.yaml"):
+        plan = _plan(f)
+        for nid in plan.order:
+            assert 0 < plan.nodes[nid].resources.max_seconds <= 21600, (f, nid)

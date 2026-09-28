@@ -237,7 +237,7 @@ nodes:
   semedits:
     stage: edits
     tag: gen
-    resources: {cpu: 9, mem: 18G, max_seconds: 28800}
+    resources: {cpu: 9, mem: 18G, max_seconds: 21600}   # broker cap 6 h (was 28800: refused at launch)
     config:
       inputs: {flow: '@F0:snap_final_s20000.pt', representation: '@rzgendag1:representation.pt'}
       options:

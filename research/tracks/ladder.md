@@ -27,7 +27,14 @@ decision, logged); running leases (bc1 semfix s1, Stage A nosem s1) re-adopted. 
 Follow-up (code, main): flow checkpoints (policy_last.pt) now also save/restore the global torch/CUDA RNG, so a shed flow
 resumes exactly (same helpers as Stage A). wt/armv6 keeps the launch revision while its jobs run (peer_sync refuses a
 busy dir), so for THIS run a shed flow is restarted from scratch, not resumed.
-RESUME: `cd ~/work/rrp-wt/ladder && systemd-run --user --unit rrp-armv6-dag3 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv6 --setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/ladder ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_lineage_v6.yaml`
+04:21 LAUNCH ERROR: semedits@semfix.s1 was refused by the broker before starting: the base DAG declared max_seconds 28800
+for the edit suite, above the broker's 6 h cap. Fixed at the source (dags/arm_lineage.yaml -> 21600; limits do not
+enter config hashes, checked for all three arm DAGs) and a test now asserts every arm DAG node is within the cap.
+Collections measured up to 15.8G on v6dart -> declared 22G (>= 1.35x). Measured (v6dart): Stage A 1.97G RAM / 957 MiB
+CUDA, flows 2.25G / 1.12G, refits 1.7G / <= 0.9G, collections 11.5-15.8G, progression eval 0.73G. Runner relaunched as
+`rrp-armv6-dag3` with `--retry-failed` (the failed node never started a job); sampler unit `rrp-armv6-memsampler2`.
+Progress at 04:21: 15 nodes completed (semfix s1 through gen2 and its progression eval; Stage A of three lineages).
+RESUME: `cd ~/work/rrp-wt/ladder && systemd-run --user --unit rrp-armv6-dag4 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv6 --setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/ladder ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_lineage_v6.yaml`
 (completed nodes skipped, running leases re-adopted; `--retry-failed` only as a logged manual decision; before
 resuming a shed Stage A, check its log says `exact: RNG restored`).
 DAG `dags/arm_lineage_v6.yaml` (`extends: arm_lineage_v2.yaml`): semfix and nosem x training seeds 1, 2; fresh lineage
