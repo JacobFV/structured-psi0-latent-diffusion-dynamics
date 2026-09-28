@@ -11,7 +11,7 @@ import { PcaPlot } from './Stage';
 export type Side = { replay: Replay; times: number[]; color: string; tag: string };
 
 /** The recorder's own description of a signal (meta.signal_notes); privileged signals are flagged. */
-function noteOf(sides: Side[], key?: string) {
+export function noteOf(sides: Side[], key?: string) {
   if (!key) return null;
   const notes = sides[0]?.replay.meta.signal_notes as Record<string, string> | undefined;
   const n = notes?.[key];
@@ -24,7 +24,7 @@ function noteOf(sides: Side[], key?: string) {
   );
 }
 
-function useWidth() {
+export function useWidth() {
   const ref = useRef<HTMLDivElement>(null);
   const [w, setW] = useState(600);
   useEffect(() => {
@@ -38,7 +38,7 @@ function useWidth() {
   return [ref, w] as const;
 }
 
-function Track({ title, value, t, duration, onSeek, sides, height = 60, children, legend }: {
+export function Track({ title, value, t, duration, onSeek, sides, height = 60, children, legend }: {
   title: ReactNode; value?: ReactNode; t: number; duration: number; onSeek: (t: number) => void; sides: Side[]; height?: number;
   children: (x: (t: number) => number, w: number, h: number) => ReactNode; legend?: ReactNode;
 }) {
@@ -75,7 +75,7 @@ function Track({ title, value, t, duration, onSeek, sides, height = 60, children
   );
 }
 
-function linePath(times: number[], vals: (number | null | undefined)[], x: (t: number) => number, y: (v: number) => number, maxPts = 1200) {
+export function linePath(times: number[], vals: (number | null | undefined)[], x: (t: number) => number, y: (v: number) => number, maxPts = 1200) {
   const step = Math.max(1, Math.floor(vals.length / maxPts));
   let d = '', pen = false;
   for (let i = 0; i < vals.length; i += step) {
@@ -86,7 +86,7 @@ function linePath(times: number[], vals: (number | null | undefined)[], x: (t: n
   }
   return d;
 }
-function extent(xs: (number | null | undefined)[]) {
+export function extent(xs: (number | null | undefined)[]) {
   let lo = Infinity, hi = -Infinity;
   for (const v of xs) if (v !== null && v !== undefined && Number.isFinite(v)) { if (v < lo) lo = v; if (v > hi) hi = v; }
   if (!Number.isFinite(lo)) return [0, 1];
@@ -94,8 +94,8 @@ function extent(xs: (number | null | undefined)[]) {
   return [lo, hi];
 }
 
-type Val = number | null | undefined | (number | null)[];
-function ScalarTrack({ title, get, sides, t, duration, onSeek, unit, height = 56, noteKey, names }: {
+export type Val = number | null | undefined | (number | null)[];
+export function ScalarTrack({ title, get, sides, t, duration, onSeek, unit, height = 56, noteKey, names }: {
   title: string; get: (r: Replay) => Val[] | undefined; sides: Side[]; t: number; duration: number;
   onSeek: (t: number) => void; unit?: string; height?: number; noteKey?: string; names?: (r: Replay) => string[] | undefined;
 }) {
@@ -123,7 +123,7 @@ function ScalarTrack({ title, get, sides, t, duration, onSeek, unit, height = 56
   );
 }
 
-function Missing({ title, why }: { title: string; why?: string }) {
+export function Missing({ title, why }: { title: string; why?: string }) {
   return (
     <div className="tl-panel">
       <div className="h"><b>{title}</b></div>
@@ -132,7 +132,7 @@ function Missing({ title, why }: { title: string; why?: string }) {
   );
 }
 
-function RasterTrack({ title, get, names, sides, t, duration, onSeek, prob, noteKey }: {
+export function RasterTrack({ title, get, names, sides, t, duration, onSeek, prob, noteKey }: {
   title: string; get: (r: Replay) => unknown[] | undefined; names?: (r: Replay) => string[] | undefined; sides: Side[]; t: number; duration: number;
   onSeek: (t: number) => void; prob?: boolean; noteKey?: string;
 }) {
@@ -181,7 +181,7 @@ function RasterTrack({ title, get, names, sides, t, duration, onSeek, prob, note
   );
 }
 
-function CategoryTrack({ title, get, sides, t, duration, onSeek, noteKey }: {
+export function CategoryTrack({ title, get, sides, t, duration, onSeek, noteKey }: {
   title: string; get: (r: Replay) => unknown[] | undefined; sides: Side[]; t: number; duration: number; onSeek: (t: number) => void; noteKey?: string;
 }) {
   const data = sides.map((s) => get(s.replay));
@@ -210,7 +210,7 @@ function CategoryTrack({ title, get, sides, t, duration, onSeek, noteKey }: {
   );
 }
 
-function EventsTrack({ sides, t, duration, onSeek }: { sides: Side[]; t: number; duration: number; onSeek: (t: number) => void }) {
+export function EventsTrack({ sides, t, duration, onSeek }: { sides: Side[]; t: number; duration: number; onSeek: (t: number) => void }) {
   const ev = sides.map((s) => {
     const t0 = s.replay.frames.t[0] || 0;
     return [
@@ -241,7 +241,7 @@ function EventsTrack({ sides, t, duration, onSeek }: { sides: Side[]; t: number;
   );
 }
 
-function JointTracks({ sides, t, duration, onSeek }: { sides: Side[]; t: number; duration: number; onSeek: (t: number) => void }) {
+export function JointTracks({ sides, t, duration, onSeek }: { sides: Side[]; t: number; duration: number; onSeek: (t: number) => void }) {
   const primary = sides[0].replay;
   const tgt = primary.signals.joint_target, pos = primary.signals.joint_pos;
   const [showAll, setShowAll] = useState(false);
@@ -301,7 +301,7 @@ function JointRow({ name, tgt, pos, side, t, duration, onSeek }: {
   );
 }
 
-function ProbeTracks({ sides, t, duration, onSeek }: { sides: Side[]; t: number; duration: number; onSeek: (t: number) => void }) {
+export function ProbeTracks({ sides, t, duration, onSeek }: { sides: Side[]; t: number; duration: number; onSeek: (t: number) => void }) {
   const keys = Array.from(new Set(sides.flatMap((s) => Object.keys(s.replay.signals.probe || {}))));
   if (!keys.length) return <Missing title="Probe readouts" why="no probe signals in this replay (probes are diagnostics, not evidence of use)" />;
   return (

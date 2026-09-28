@@ -1,3 +1,4 @@
+import { SideGroup, SidebarControls } from '../components/shell';
 import { useState } from 'react';
 import { Card, DataTable, Did, Gate, KV, ModeBanner, PageHead, Provenance, RawDoc, Select, Status, TablesBrowser } from '../components/ui';
 import { useDoc, type Envelope } from '../lib/api';
@@ -58,10 +59,14 @@ function Trackers({ trackers }: { trackers: Row[] }) {
   const cur = trackers.find((t) => `${str(t.tracker_version)}@${str(t.source_file)}` === sel);
   return (
     <>
-      <div className="filters">
-        <Select label="body" value={body} options={bodies} onChange={setBody} />
-        <Select label="mode for the metrics columns" value={mode} options={modes} onChange={setMode} all={false} />
-      </div>
+      <SidebarControls>
+        <SideGroup title="Trackers">
+          <div className="filters">
+            <Select label="body" value={body} options={bodies} onChange={setBody} />
+            <Select label="metrics mode" value={mode} options={modes} onChange={setMode} all={false} />
+          </div>
+        </SideGroup>
+      </SidebarControls>
       <div className="table-wrap tall">
         <table className="t">
           <thead><tr>

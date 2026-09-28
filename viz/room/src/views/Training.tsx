@@ -1,3 +1,4 @@
+import { SidebarControls } from '../components/shell';
 import { useEffect, useMemo, useState } from 'react';
 import { Lines } from '../components/charts';
 import { Card, Caveat, DataTable, Did, ErrorState, Gate, Loading, ModeBanner, NoData, PageHead, Provenance, SourceBadge, Status } from '../components/ui';
@@ -91,8 +92,9 @@ function TrainingBody({ index }: { index: Row[] }) {
     else problems.push(r);
   }
   return (
-    <div className="theatre" style={{ gridTemplateColumns: '320px minmax(0, 1fr)' }}>
-      <aside className="card" style={{ alignSelf: 'start' }}>
+    <div>
+      <SidebarControls>
+      <section className="card">
         <header><h2>Runs</h2><span className="hint">{list.length} of {index.length} · shift-click compares up to 4</span></header>
         <div className="body">
           <div className="filters" style={{ marginBottom: 8 }}>
@@ -112,7 +114,8 @@ function TrainingBody({ index }: { index: Row[] }) {
             ))}
           </div>
         </div>
-      </aside>
+      </section>
+      </SidebarControls>
       <div className="stack" style={{ minWidth: 0 }}>
         <div className="row">
           <label className="small"><input type="checkbox" checked={log === '1'} onChange={(e) => setLog(e.target.checked ? '1' : '0')} /> log scale for losses and grad norm (non-positive values are dropped, not clamped)</label>

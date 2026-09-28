@@ -1,3 +1,4 @@
+import { SideGroup, SidebarControls } from '../components/shell';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Lines } from '../components/charts';
 import { Card, DataTable, Gate, KV, ModeBanner, PageHead, Provenance, Stat, Status } from '../components/ui';
@@ -19,7 +20,6 @@ function gpuUtil(node: Row) {
 export default function LiveOps() {
   const live = useDoc<Envelope>('live', 10_000);
   const dags = useDoc<Envelope>('dags', 30_000);
-  const [tab, setTab] = useUrlState('tab', 'peer');
   return (
     <>
       <PageHead
@@ -27,24 +27,13 @@ export default function LiveOps() {
         sub="Peer vitals, admission, leases (declared vs measured), broker and watchdog events, and run-DAG progress per workstream. Read-only: the room never starts or stops anything. Live polls every 10 s (one bounded ssh read of the peer per export)."
         right={<StaleFlag result={live.result} />}
       />
-      <div className="tabs" role="tablist">
-        {[['peer', 'Peer & leases'], ['dags', 'Run DAGs']].map(([id, label]) => (
-          <button key={id} role="tab" aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</button>
-        ))}
-      </div>
-      {tab === 'peer' ? (
-        <>
-          <ModeBanner result={live.result} reload={live.reload} busy={live.busy} />
-          <Gate result={live.result} what="live ops (/api/live)">{(d) => <LiveBody d={d} />}</Gate>
-          <Provenance result={live.result} />
-        </>
-      ) : (
-        <>
-          <ModeBanner result={dags.result} reload={dags.reload} busy={dags.busy} />
-          <Gate result={dags.result} what="run DAGs (/api/dags)">{(d) => <Dags d={d} />}</Gate>
-          <Provenance result={dags.result} />
-        </>
-      )}
+      <ModeBanner result={live.result} reload={live.reload} busy={live.busy} />
+      <Gate result={live.result} what="live ops (/api/live)">{(d) => <LiveBody d={d} />}</Gate>
+      <h2 className="sect">Run DAGs</h2>
+      <ModeBanner result={dags.result} reload={dags.reload} busy={dags.busy} />
+      <Gate result={dags.result} what="run DAGs (/api/dags)">{(d) => <Dags d={d} />}</Gate>
+      <Provenance result={live.result} />
+      <Provenance result={dags.result} />
     </>
   );
 }
@@ -285,11 +274,15 @@ function Dags({ d }: { d: Envelope }) {
   const legend: [string, string][] = [['good', 'completed'], ['active', 'running'], ['neutral', 'pending / planned'], ['serious', 'blocked / held'], ['critical', 'failed']];
   return (
     <div className="stack">
-      <div className="filters">
-        <label>workstream<select value={ws} onChange={(e) => setWs(e.target.value)}><option value="">all ({workstreams.length})</option>{workstreams.map((w) => <option key={w}>{w}</option>)}</select></label>
-        <label className="small" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={hideDone === '1'} onChange={(e) => setHideDone(e.target.checked ? '1' : '0')} /> only incomplete</label>
-        <span className="legend">{legend.map(([t, l]) => <span key={t}><i className="sw" style={{ background: t === 'active' ? 'var(--accent)' : t === 'neutral' ? 'var(--axis)' : `var(--${t})` }} />{l}</span>)}</span>
-      </div>
+      <SidebarControls>
+        <SideGroup title="Run DAGs">
+          <div className="filters">
+            <label>workstream<select value={ws} onChange={(e) => setWs(e.target.value)}><option value="">all ({workstreams.length})</option>{workstreams.map((w) => <option key={w}>{w}</option>)}</select></label>
+            <label className="check"><input type="checkbox" checked={hideDone === '1'} onChange={(e) => setHideDone(e.target.checked ? '1' : '0')} /> only incomplete</label>
+            <span className="legend">{legend.map(([t, l]) => <span key={t}><i className="sw" style={{ background: t === 'active' ? 'var(--accent)' : t === 'neutral' ? 'var(--axis)' : `var(--${t})` }} />{l}</span>)}</span>
+          </div>
+        </SideGroup>
+      </SidebarControls>
       {arr(d.notes).length > 0 && <ul className="small muted" style={{ margin: 0 }}>{arr(d.notes).map((n, i) => <li key={i}>{str(n)}</li>)}</ul>}
       {workstreams.filter((w) => shown.some((g) => wsOf(g) === w)).map((w) => {
         const gs = shown.filter((g) => wsOf(g) === w);

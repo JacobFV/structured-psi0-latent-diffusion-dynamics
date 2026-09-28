@@ -1,3 +1,4 @@
+import { SideGroup, SidebarControls } from '../components/shell';
 import { useMemo, useState } from 'react';
 import { divColor, DivLegend, seqColor, seqInk, SeqLegend } from '../components/charts';
 import { Card, Caveat, DataTable, Did, Gate, Interim, ModeBanner, PageHead, Provenance, Seg, Select, SourceBadge, TablesBrowser } from '../components/ui';
@@ -63,6 +64,7 @@ function Matrix({ all }: { all: Entry[] }) {
   const [db, setDb] = useUrlState('db', '');
   const [interim, setInterim] = useUrlState('interim', 'show');
   const [sel, setSel] = useUrlState('cell', '');
+  const [q, setQ] = useUrlState('q', '');
   const filterDims = ['family', 'task', 'body_or_hint', 'route', 'variant', 'seed', 'condition', 'source_kind', 'location', ...versionDims];
   const [filters, setFilters] = useState<Record<string, string>>(() => {
     const q = new URLSearchParams(window.location.hash.split('?')[1] || '');
@@ -74,7 +76,8 @@ function Matrix({ all }: { all: Entry[] }) {
   };
   const options = (f: string) => uniq(all.map((r) => str(r[f]))).filter((x) => x !== '').sort(sortNatural);
 
-  const filtered = all.filter((r) => (!metric || str(r.metric) === metric) && filterDims.every((f) => !filters[f] || str(r[f]) === filters[f]) && (interim === 'show' || !r.interim));
+  const ql = q.toLowerCase();
+  const filtered = all.filter((r) => (!ql || `${str(r.source_file)} ${str(r.source_label)} ${arr(r.key_path).map(str).join('/')}`.toLowerCase().includes(ql)) && (!metric || str(r.metric) === metric) && filterDims.every((f) => !filters[f] || str(r[f]) === filters[f]) && (interim === 'show' || !r.interim));
   const rowDims = [rowA, rowB].filter((x, i, a) => x && a.indexOf(x) === i);
   const rowKeys = uniq(filtered.map((r) => keyOf(r, rowDims))).sort(sortNatural);
   const colKeys = uniq(filtered.map((r) => keyOf(r, [col]))).sort(sortNatural);
@@ -123,8 +126,10 @@ function Matrix({ all }: { all: Entry[] }) {
   if (!all.length) return <p className="muted">The results document has no rows.</p>;
   return (
     <div className="stack">
-      <div className="card" style={{ padding: '10px 14px' }}>
+      <SidebarControls>
+        <SideGroup title="Matrix">      <div>
         <div className="filters" style={{ marginBottom: 6 }}>
+          <label>search<input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="file, label, key path" /></label>
           <Seg value={mode as 'rate' | 'delta'} onChange={(v) => setMode(v)} options={[{ id: 'rate', label: 'Rates' }, { id: 'delta', label: 'Delta A → B' }]} label="mode" />
           <Select label="rows" value={rowA} options={dims} onChange={setRowA} all={false} />
           <Select label="then" value={rowB} options={['', ...dims]} onChange={setRowB} all={false} />
@@ -159,6 +164,8 @@ function Matrix({ all }: { all: Entry[] }) {
           {filterDims.map((f) => <Select key={f} label={f} value={filters[f] || ''} options={options(f)} onChange={(v) => setFilter(f, v)} width={130} />)}
         </div>
       </div>
+        </SideGroup>
+      </SidebarControls>
       <Card
         title={mode === 'delta' ? `Δ ${ddim}: ${A || '?'} → ${B || '?'}` : 'Rate with 95% CI'}
         hint={mode === 'delta'

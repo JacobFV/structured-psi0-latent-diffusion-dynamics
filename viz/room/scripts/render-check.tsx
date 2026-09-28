@@ -17,19 +17,15 @@ g.window = {
 };
 g.localStorage = { getItem: () => null, setItem() {} };
 
+// [label, component, hashes (view?query)]: every consolidated view and every lens
 const VIEWS: [string, () => Promise<{ default: ComponentType }>, string[]][] = [
-  ['ticker', () => import('../src/components/Ticker'), ['']],
-  ['board', () => import('../src/views/Board'), ['', 'bb=teacher', 'bf=legged&bb=bc', 'bf=']],
-  ['overview', () => import('../src/views/Overview'), ['']],
-  ['live', () => import('../src/views/LiveOps'), ['', 'tab=dags']],
-  ['results', () => import('../src/views/Results'), ['', 'mode=delta&dd=grasp_version', 'agg=pool&r1=route&c=metric&metric=']],
-  ['theatre', () => import('../src/views/Theatre'), ['', 'tab=videos', 'demo=1']],
-  ['edits', () => import('../src/views/Edits'), ['', 'body=go2']],
-  ['training', () => import('../src/views/Training'), ['']],
-  ['robustness', () => import('../src/views/Robustness'), ['', 'm=motion.joint_jerk_rms']],
-  ['physics', () => import('../src/views/Physics'), ['']],
-  ['psi0', () => import('../src/views/Psi0'), ['']],
-  ['knowledge', () => import('../src/views/Knowledge'), ['', 'tab=crosswalk', 'tab=roadmap', 'tab=backlog', 'tab=strategy', 'tab=status', 'tab=docs', 'tab=decisions&d=D-100']],
+  ['ticker', () => import('../src/components/Ticker'), ['board']],
+  ['board', () => import('../src/views/Board'), ['board']],
+  ['evidence', () => import('../src/views/Evidence'), ['results', 'results?mode=delta&dd=grasp_version', 'results?agg=pool&r1=route&c=metric&metric=', 'results?q=compare_gc2_final&metric=grasp_v2',
+    'edits', 'edits?body=go2', 'robustness', 'robustness?m=motion.joint_jerk_rms', 'physics', 'psi0']],
+  ['runs', () => import('../src/views/RunHistory'), ['runs', 'runs?list=videos', 'runs?demo=1']],
+  ['ops', () => import('../src/views/Ops'), ['live', 'training']],
+  ['library', () => import('../src/views/Library'), ['knowledge', 'knowledge?tab=crosswalk', 'knowledge?tab=roadmap&q=%2313', 'knowledge?tab=backlog', 'knowledge?tab=strategy', 'knowledge?tab=status', 'knowledge?tab=docs', 'knowledge?tab=decisions&d=D-100', 'overview']],
 ];
 const DOCS = ['overview', 'live', 'dags', 'results', 'edits', 'training', 'robustness', 'physics', 'psi0', 'knowledge', 'replays', 'videos'];
 
@@ -41,6 +37,9 @@ function load(dir: string) {
 
 async function main() {
   let failures = 0;
+  const lensMods = await Promise.all([import('../src/views/Evidence'), import('../src/views/Ops'), import('../src/views/Library')]);
+  g.__RRP_LENS__ = {};
+  for (const l of [...lensMods[0].EVIDENCE, ...lensMods[1].OPS, ...lensMods[2].LIBRARY]) (g.__RRP_LENS__ as Record<string, unknown>)[l.id] = (await l.load()).default;
   const sets: [string, Record<string, unknown>][] = [
     ['real', load(resolve(repo, 'viz/data'))],
     ['fixture', load(resolve(repo, 'viz/room/fixtures'))],
@@ -77,15 +76,16 @@ async function main() {
       if (bad) failures++;
     }
     sets.push(['replays', docs]);
-    VIEWS.splice(0, VIEWS.length, ['theatre', () => import('../src/views/Theatre'), idx.flatMap((a, i) => [`a=${a.id}`, `a=${a.id}&b=${idx[(i + 1) % idx.length].id}`])]);
+    VIEWS.splice(0, VIEWS.length, ['runs', () => import('../src/views/RunHistory'), idx.flatMap((a, i) => [`runs?a=${a.id}`, `runs?a=${a.id}&b=${idx[(i + 1) % idx.length].id}`])]);
   }
   for (const [label, docs] of sets) {
     g.__RRP_PRELOAD__ = docs;
+    g.__RRP_EAGER__ = true;
     for (const [name, loader, queries] of VIEWS) {
       const View = (await loader()).default;
       for (const q of queries) {
-        const extra = label === 'fixture' && name === 'theatre' ? '&a=fixture-arm-unedited&b=fixture-arm-halt' : '';
-        (g.window as { location: { hash: string } }).location.hash = `#${name}?${q}${extra}`;
+        const extra = label === 'fixture' && name === 'runs' ? '&a=fixture-arm-unedited&b=fixture-arm-halt' : '';
+        (g.window as { location: { hash: string } }).location.hash = `#${q}${q.includes('?') ? '' : '?'}${extra}`;
         const t0 = performance.now();
         try {
           const html = renderToString(<View />);

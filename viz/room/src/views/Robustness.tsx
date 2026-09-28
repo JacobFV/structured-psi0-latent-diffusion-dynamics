@@ -1,3 +1,4 @@
+import { SideGroup, SidebarControls } from '../components/shell';
 import { Forest, Lines, type ForestRow } from '../components/charts';
 import { Card, DataTable, Did, Gate, ModeBanner, PageHead, Provenance, Select } from '../components/ui';
 import { useDoc, type Envelope } from '../lib/api';
@@ -57,7 +58,8 @@ function RobustBody({ d }: { d: Envelope }) {
   const rep = (route: string) => reports.find((x) => str(x.route) === route && str(pick(x, 'robot', 'body')) === robot);
   return (
     <div className="stack">
-      <div className="card" style={{ padding: '10px 14px' }}>
+      <SidebarControls>
+        <SideGroup title="Sweep">      <div>
         <div className="filters" style={{ marginBottom: 6 }}>
           <Select label="robot" value={robot} options={robots} onChange={setRobot} all={false} />
           <Select label="y value" value={metric} options={metricOpts} onChange={setMetric} all={false} />
@@ -72,6 +74,8 @@ function RobustBody({ d }: { d: Envelope }) {
           <span className="muted">click a route to hide it · dashed verticals: recorded break-points (low / high) · bands: 95% CI</span>
         </div>
       </div>
+        </SideGroup>
+      </SidebarControls>
       {factors.length === 0 ? <p className="muted">No sweep levels for this robot.</p> : (
         <div className="grid g2">
           {factors.map((f) => {

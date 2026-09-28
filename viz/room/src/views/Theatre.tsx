@@ -43,7 +43,7 @@ export default function Theatre() {
  * No recorded replays yet -> say so (with what the exporter reported). A synthetic FIXTURE demo of the theatre is
  * available only on request (?demo=1) and is labelled as fixture everywhere; it never stands in for real replays.
  */
-function IndexOrDemo({ d, videos }: { d: Envelope; videos: DocResult<Envelope> }) {
+export function IndexOrDemo({ d, videos }: { d: Envelope; videos: DocResult<Envelope> }) {
   const [demo, setDemo] = useUrlState('demo', '0');
   const real = rows(pick(d, 'replays', 'rows', 'entries'));
   const fixtureIndex = useFixtureIndex(demo === '1' && !real.length);
@@ -75,7 +75,7 @@ function IndexOrDemo({ d, videos }: { d: Envelope; videos: DocResult<Envelope> }
     </div>
   );
 }
-function useFixtureIndex(on: boolean) {
+export function useFixtureIndex(on: boolean) {
   const [idx, setIdx] = useState<Row[] | null>(null);
   useEffect(() => {
     if (!on) return;
@@ -187,13 +187,13 @@ function TheatreBody({ entries, videos }: { entries: Row[]; videos: DocResult<En
   );
 }
 
-function frameLabel(s: Side, t: number) {
+export function frameLabel(s: Side, t: number) {
   let i = 0;
   while (i + 1 < s.times.length && s.times[i + 1] <= t) i++;
   return `${i + 1}/${s.times.length}`;
 }
 
-function StageSlot({ result, clock, opts, height, tag, color, entry, videos }: {
+export function StageSlot({ result, clock, opts, height, tag, color, entry, videos }: {
   result: DocResult<Replay> | null; clock: Clock; opts: StageOptions; height: number; tag?: string; color: string; entry?: Row; videos: DocResult<Envelope>;
 }) {
   const [showVideo, setShowVideo] = useState(false);
@@ -233,7 +233,7 @@ function StageClock({ clock, r }: { clock: Clock; r: Replay }) {
   return <div className="hud-br">{Math.min(snap.t, end).toFixed(2)} s{snap.t > end + 1e-6 ? ' (episode ended)' : ''} · {fmtNum(r.fps)} fps · {r.n_frames} frames</div>;
 }
 
-function LabelBanner({ r, tag, color, fixture }: { r: Replay; tag?: string; color: string; fixture?: boolean }) {
+export function LabelBanner({ r, tag, color, fixture }: { r: Replay; tag?: string; color: string; fixture?: boolean }) {
   const m = r.meta;
   const phys = m.physics || {};
   const outcome = m.success === true ? 'success' : m.success === false ? `failure${m.failure_stage ? ` (${m.failure_stage})` : ''}` : 'outcome undefined';
@@ -327,13 +327,13 @@ function Picker({ entries, a, b, setA, setB }: { entries: Row[]; a: string; b: s
   );
 }
 
-function videoRows(videos: DocResult<Envelope>): Row[] {
+export function videoRows(videos: DocResult<Envelope>): Row[] {
   return videos.status === 'ok' ? rows(pick(videos.data, 'videos', 'entries', 'rows')) : [];
 }
-function videoName(v: Row) {
+export function videoName(v: Row) {
   return str(pick(v, 'file', 'name', 'path')).split('/').pop() || '';
 }
-function videoCandidates(entry: Row | undefined, videos: DocResult<Envelope>): { name: string; label: string; exact: boolean }[] {
+export function videoCandidates(entry: Row | undefined, videos: DocResult<Envelope>): { name: string; label: string; exact: boolean }[] {
   if (!entry) return [];
   const all = videoRows(videos);
   const direct = str(entry.video);
@@ -356,7 +356,7 @@ function videoCandidates(entry: Row | undefined, videos: DocResult<Envelope>): {
     .map((v) => ({ name: videoName(v), label: str(pick(v, 'description', 'text', 'label')), exact: false }));
 }
 
-function VideoPanel({ vids, reason }: { vids: { name: string; label: string; exact: boolean }[]; reason?: string }) {
+export function VideoPanel({ vids, reason }: { vids: { name: string; label: string; exact: boolean }[]; reason?: string }) {
   const [i, setI] = useState(0);
   const v = vids[Math.min(i, vids.length - 1)];
   const ref = useRef<HTMLVideoElement>(null);
@@ -372,7 +372,7 @@ function VideoPanel({ vids, reason }: { vids: { name: string; label: string; exa
   );
 }
 
-function VideoLibrary({ d }: { d: Envelope }) {
+export function VideoLibrary({ d }: { d: Envelope }) {
   const vids = rows(pick(d, 'videos', 'entries', 'rows'));
   const [sel, setSel] = useUrlState('video', '');
   const [q, setQ] = useState('');

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Markdown from '../components/Markdown';
-import { Card, DataTable, Did, Gate, Loading, ModeBanner, NoData, ErrorState, PageHead, Provenance, Tabs } from '../components/ui';
+import { Card, DataTable, Did, Gate, Loading, ModeBanner, NoData, ErrorState, PageHead, Provenance } from '../components/ui';
+import { SideGroup, SidebarControls } from '../components/shell';
 import { fetchMarkdown, getMeta, useDoc, type DocResult, type Envelope } from '../lib/api';
 import { ago, arr, decisionIds, pick, rows, sortNatural, str, uniq, type Row } from '../lib/format';
 import { href, useUrlState } from '../lib/url';
@@ -14,10 +15,15 @@ export default function Knowledge() {
   return (
     <>
       <PageHead title="Knowledge" sub="Decisions timeline with the D ↔ P crosswalk, roadmap, backlog, strategy workstreams, STATUS and a reader for the allowlisted markdown documents." />
-      <Tabs value={tab as Tab} onChange={setTab} options={[
-        { id: 'decisions', label: 'Decisions' }, { id: 'crosswalk', label: 'D ↔ P crosswalk' }, { id: 'roadmap', label: 'Roadmap' },
-        { id: 'backlog', label: 'Backlog' }, { id: 'strategy', label: 'Strategy' }, { id: 'status', label: 'STATUS' }, { id: 'docs', label: 'Docs reader' },
-      ]} />
+      <SidebarControls>
+        <SideGroup title="Section">
+          <div className="side-list">
+            {([['decisions', 'Decisions timeline'], ['crosswalk', 'D ↔ P crosswalk'], ['roadmap', 'Roadmap'], ['backlog', 'Backlog'], ['strategy', 'Strategy workstreams'], ['status', 'STATUS'], ['docs', 'Docs reader']] as [Tab, string][]).map(([id, label]) => (
+              <button key={id} aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</button>
+            ))}
+          </div>
+        </SideGroup>
+      </SidebarControls>
       {tab === 'docs' ? <DocsReader knowledge={result} /> : (
         <>
           <ModeBanner result={result} reload={reload} busy={busy} />
@@ -120,8 +126,9 @@ function flatCw(r: Row): Row {
 }
 
 function ListTab({ rs, what }: { rs: Row[]; what: string }) {
-  const [q, setQ] = useState('');
-  const shown = rs.filter((r) => !q || JSON.stringify(r).toLowerCase().includes(q.toLowerCase()));
+  const [q, setQ] = useUrlState('q', '');
+  const qq = q.startsWith('#') ? q.slice(1) : '';
+  const shown = rs.filter((r) => (qq ? str(r.n) === qq : !q || JSON.stringify(r).toLowerCase().includes(q.toLowerCase())));
   if (!rs.length) return <NoData expected={`knowledge: ${what}`} />;
   const statuses = uniq(rs.map((r) => str(pick(r, 'status', 'state')))).filter(Boolean).sort(sortNatural);
   return (
@@ -173,8 +180,9 @@ function DocsReader({ knowledge }: { knowledge: DocResult<Envelope> }) {
   }, [doc]);
   const shown = (list || []).filter((p) => !q || p.toLowerCase().includes(q.toLowerCase()));
   return (
-    <div className="theatre" style={{ gridTemplateColumns: '300px minmax(0, 1fr)' }}>
-      <aside className="card" style={{ alignSelf: 'start' }}>
+    <div>
+      <SidebarControls>
+      <section className="card">
         <header><h2>Documents</h2><span className="hint">{list ? `${shown.length} of ${list.length}` : '…'}</span></header>
         <div className="body">
           <input type="search" placeholder="filter" value={q} onChange={(e) => setQ(e.target.value)} style={{ width: '100%', marginBottom: 8 }} />
@@ -184,7 +192,8 @@ function DocsReader({ knowledge }: { knowledge: DocResult<Envelope> }) {
             ))}
           </div>
         </div>
-      </aside>
+      </section>
+      </SidebarControls>
       <section className="card">
         <header><h2 style={{ wordBreak: 'break-all' }}>{doc}</h2>{res.status === 'ok' && res.data.modified && <span className="hint">modified {ago(res.data.modified)}</span>}</header>
         <div className="body">

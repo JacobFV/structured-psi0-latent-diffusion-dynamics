@@ -1,6 +1,5 @@
-import { useState } from 'react';
 import Markdown from '../components/Markdown';
-import { Card, DataTable, Did, Gate, ModeBanner, PageHead, Provenance, TablesBrowser, Tabs } from '../components/ui';
+import { Card, DataTable, Did, Gate, ModeBanner, PageHead, Provenance, TablesBrowser } from '../components/ui';
 import { useDoc, type Envelope } from '../lib/api';
 import { arr, fmtNum, num, pick, rows, str, wilson, type Row } from '../lib/format';
 import { href } from '../lib/url';
@@ -58,7 +57,6 @@ function RunsTable({ runs }: { runs: Row[] }) {
 }
 
 function Psi0Body({ d }: { d: Envelope }) {
-  const [tab, setTab] = useState<'runs' | 'decisions' | 'crosswalk' | 'notes' | 'readme'>('runs');
   const runs = rows(pick(d, 'runs'));
   const pd = rows(pick(d, 'p_decisions'));
   const cw = rows(pick(d, 'crosswalk'));
@@ -68,12 +66,8 @@ function Psi0Body({ d }: { d: Envelope }) {
     <div className="stack">
       {arr(d.notes).length > 0 && <ul className="small muted" style={{ margin: 0 }}>{arr(d.notes).map((n, i) => <li key={i}>{str(n)}</li>)}</ul>}
       {missing.length > 0 && <div className="state"><h3>Missing inputs</h3><ul className="small">{missing.map((m) => <li key={m}>{m}</li>)}</ul></div>}
-      <Tabs value={tab} onChange={setTab} options={[
-        { id: 'runs', label: `Runs (${runs.length})` }, { id: 'decisions', label: `P-decisions (${pd.length})` }, { id: 'crosswalk', label: `D ↔ P (${cw.length})` },
-        { id: 'notes', label: 'Track notes' }, { id: 'readme', label: 'README' },
-      ]} />
-      {tab === 'runs' && <Card title="Reproduction and step-2 runs" hint="released-checkpoint and psi1z runs; counts as recorded"><RunsTable runs={runs} /></Card>}
-      {tab === 'decisions' && (
+      {<Card title="Reproduction and step-2 runs" hint="released-checkpoint and psi1z runs; counts as recorded"><RunsTable runs={runs} /></Card>}
+      {(
         <div className="grid g2">
           <Card title="psi1z P-decisions">
             <div className="dlist">
@@ -91,20 +85,20 @@ function Psi0Body({ d }: { d: Envelope }) {
           </Card>
         </div>
       )}
-      {tab === 'crosswalk' && (
+      {(
         <Card title="D ↔ P crosswalk" hint="docs/related_repos.md and the psi1z decision table">
           <DataTable rows={cw.map((r) => ({ rrp: arr(r.rrp).join(' '), psi1z: arr(r.psi1z).join(' '), topic: r.topic, source: `${str(r.source_file)}:${str(r.line)}` }))} />
           <div style={{ height: 12 }} />
           <TablesBrowser tables={rows(pick(d, 'p_to_d_table'))} param="ptable" />
         </Card>
       )}
-      {tab === 'notes' && (
+      {(
         <>
           <Card title="psi1z research/notes.md">{str(d.notes_markdown) ? <Markdown source={str(d.notes_markdown)} /> : <p className="muted">Not in the document.</p>}</Card>
           <Card title="Tables in the notes"><TablesBrowser tables={rows(pick(d, 'notes_tables'))} param="ntable" /></Card>
         </>
       )}
-      {tab === 'readme' && <Card title="psi1z README.md">{str(d.readme_markdown) ? <Markdown source={str(d.readme_markdown)} /> : <p className="muted">Not in the document.</p>}</Card>}
+      {<Card title="psi1z README.md">{str(d.readme_markdown) ? <Markdown source={str(d.readme_markdown)} /> : <p className="muted">Not in the document.</p>}</Card>}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { SideGroup, SidebarControls } from '../components/shell';
 import { Forest, type ForestRow } from '../components/charts';
 import { Card, DataTable, Did, Gate, ModeBanner, PageHead, Provenance, Select } from '../components/ui';
 import { useDoc, type Envelope } from '../lib/api';
@@ -66,7 +67,8 @@ function EditsBody({ all: raw }: { all: Row[] }) {
   const bodyRows = all.filter((r) => !body || str(r.body) === body);
   return (
     <div className="stack">
-      <div className="card" style={{ padding: '10px 14px' }}>
+      <SidebarControls>
+        <SideGroup title="Filter effects">      <div>
         <div className="filters" style={{ marginBottom: 0 }}>
           <Select label="body" value={body} options={opt('body')} onChange={setBody} />
           <Select label="variant" value={variant} options={opt('variant', bodyRows)} onChange={setVariant} />
@@ -87,6 +89,8 @@ function EditsBody({ all: raw }: { all: Row[] }) {
           <span className="muted">bars: recorded 95% interval · effect = mean paired difference (edited − unedited)</span>
         </div>
       </div>
+        </SideGroup>
+      </SidebarControls>
       <div className="grid g4">
         <div className="card stat"><div className="k">effects shown</div><div className="v num">{shown.length}</div><div className="s">{groups.length} body · variant · metric groups</div></div>
         <div className="card stat"><div className="k">edits whose CI excludes 0</div><div className="v num">{excl}</div><div className="s">of {nonCtl.length} edit / difference rows</div></div>
