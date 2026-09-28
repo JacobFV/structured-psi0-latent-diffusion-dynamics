@@ -64,6 +64,9 @@ def privileged_labels(session: Session, feat: Featurizer) -> dict:
 
 
 DART_FREE_PHASES = ("pregrasp", "transport")      # D-118 phase-gated DART: hover approach and carry at 18 cm
+# D-126 #5 (D-121 fallback): small-amplitude noise in the final descent, behind the kinematic proximity guard. Only with
+# dart_safety "phase" and dart_descent_sigma > 0 (default 0 = the v6dart behaviour, unchanged).
+DART_DESCENT_PHASES = ("descend",)
 
 
 class DartProximityGuard:
@@ -171,14 +174,22 @@ class EpisodeRecord:
 def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_steps: int = 600,
                             episode_id: str = "", split_lineage: dict | None = None,
                             exec_noise: float = 0.0, noise_seed: int = 0,
-                            teacher_version: str | None = None, dart_safety: str | None = None) -> EpisodeRecord:
+                            teacher_version: str | None = None, dart_safety: str | None = None,
+                            dart_descent_sigma: float = 0.0, teacher_kw: dict | None = None) -> EpisodeRecord:
     """exec_noise > 0 (DART): executed ARM command = teacher command + N(0, exec_noise) held for a few
     steps; the recorded LABEL is always the clean teacher command, so data covers recovery states.
     teacher_version (rrp.teachers.arm_smooth.TEACHER_VERSIONS key) selects a registered arm teacher version;
-    None keeps `teacher_cls` (the v1 default) and the historical meta."""
+    None keeps `teacher_cls` (the v1 default) and the historical meta.
+    dart_descent_sigma > 0 (D-126 #5; needs dart_safety "phase"): in the DART_DESCENT_PHASES the executed arm command
+    is clean + (dart_descent_sigma / exec_noise) x the SAME held noise draw (so the noise RNG stream is unchanged),
+    passed through DartProximityGuard (5 mm, non-strict); episode meta dart.descent records sigma, phases and counts.
+    teacher_kw: extra keyword arguments for the teacher version (e.g. ik_limit_margin for v2lim; recorded in meta)."""
     from rrp.teachers.arm_smooth import make_arm_teacher, teacher_source, teacher_version_id
     feat = featurizer_for(session)
-    teacher = make_arm_teacher(session, teacher_version) if teacher_version else teacher_cls(session)
+    if teacher_kw and not teacher_version:
+        raise ValueError("teacher_kw needs a teacher_version")
+    teacher = (make_arm_teacher(session, teacher_version, **(teacher_kw or {})) if teacher_version
+               else teacher_cls(session))
     f = teacher.feasibility() if hasattr(teacher, "feasibility") else {"feasible": True}
     t0 = time.time()
     inputs, actions, labels, phases, statuses, q0s = [], [], [], [], [], []
@@ -197,6 +208,14 @@ def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_
         dart_stats["margin_m"] = guard.margin
     if ds_mode == "phase":
         dart_stats["free_phases"] = list(DART_FREE_PHASES)
+    dguard = None
+    if dart_descent_sigma and dart_descent_sigma > 0:
+        if ds_mode != "phase":
+            raise ValueError("dart_descent_sigma needs dart_safety 'phase' (D-121 phase-gated DART)")
+        if exec_noise > 0:
+            dguard = DartProximityGuard(session, margin=0.005, strict=False)
+            dart_stats["descent"] = dict(sigma=float(dart_descent_sigma), phases=list(DART_DESCENT_PHASES),
+                                         margin_m=dguard.margin, guard="proximity")
     steps = 0
     from rrp.envs.motion_quality import ArmMotionRecorder
     mrec = ArmMotionRecorder(session, boundary_kind="phase_switch")   # W6 gates: read-only, the CLEAN label is recorded
@@ -218,6 +237,10 @@ def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_
                 dart_stats["ticks_by_phase"][ph] = dart_stats["ticks_by_phase"].get(ph, 0) + 1
                 if ds_mode == "phase":   # D-118 fallback: perturb only in the free-space phases
                     kind, q_exec = ("noisy", noisy) if ph in DART_FREE_PHASES else ("clean", None)
+                    if dguard is not None and ph in DART_DESCENT_PHASES:     # D-126 #5: small, guarded descent noise
+                        clean_arm = np.array(cmd.groups["arm"])
+                        small = np.clip(clean_arm + nz * (dart_descent_sigma / exec_noise), arm_lo, arm_hi)
+                        kind, q_exec = dguard.choose(clean_arm, small, last_exec)
                 else:
                     kind, q_exec = ("noisy", noisy) if guard is None else guard.choose(
                         np.array(cmd.groups["arm"]), noisy, last_exec)
@@ -254,6 +277,10 @@ def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_
         meta["dart"] = dart_stats
     if teacher_version:                  # new selectable versions record themselves; v1-default meta is unchanged
         meta.update(source=teacher_source(teacher_version), teacher_version=teacher_version_id(teacher_version))
+    if teacher_kw:
+        meta["teacher_kw"] = dict(teacher_kw)
+    if session.scenario.meta.get("object_spec"):     # D-126 #35 task-object variant (absent for the default scene)
+        meta["object_spec"] = dict(session.scenario.meta["object_spec"])
     if f["feasible"]:
         meta["motion"] = mrec.summary()  # rrp.envs.motion_quality (W6 dataset gates, rrp.evaluation.gates)
     public = dict(meta=meta, inputs=inputs, actions=actions, q0=q0s, statuses=statuses,

@@ -9,6 +9,7 @@ from __future__ import annotations
 import copy
 import json
 import math
+import os
 from dataclasses import dataclass, field
 
 import mujoco
@@ -75,12 +76,72 @@ def _robot_module(r) -> tuple[mujoco.MjSpec, dict]:
     raise TypeError("robot must be a Module or Assembled")
 
 
-def compile_scene(scene: mujoco.MjSpec) -> mujoco.MjModel:
+def compile_scene(scene: mujoco.MjSpec, post_contact=None) -> mujoco.MjModel:
     """Compile an arm world with the selected grasp contact version (rrp.physics.grasp_contact; $RRP_GRASP_CONTACT,
-    default grasp_v1 = unchanged legacy build)."""
+    default grasp_v1 = unchanged legacy build). post_contact(scene): optional edit applied AFTER the grasp contact
+    model (D-126 #35 object friction must not be overwritten by it); None = the historical build."""
     from rrp.physics import grasp_contact
     grasp_contact.apply(scene)
+    if post_contact is not None:
+        post_contact(scene)
     return scene.compile()
+
+
+# ------------------------------------------------------------------------------ D-126 #35: richer task objects
+# Default OFF: build_pick_place(object_spec=None) is the historical scene. An object spec changes ONLY the task object
+# ("cube" in the privileged sim name; its public descriptor stays "<color> cube" unless descriptor_shape is true, so the
+# task binding is unchanged). Distractors and all placement draws are unchanged.
+OBJECT_SHAPES = ("cube", "cylinder", "box_tall", "box_flat")
+OBJECT_SPEC_VERSION = "object_spec_v1"
+OBJECT_VARIATION_ENV = "RRP_OBJECT_VARIATION"
+
+
+def object_half_extents(shape: str, half: float) -> tuple:
+    """(x, y, z) half extents of the task object (cylinder: radius, radius, half height). Every horizontal extent is
+    <= 1.2 x half, so a gripper that takes the cube takes every variant."""
+    if shape == "cube":
+        return (half, half, half)
+    if shape == "cylinder":
+        return (half, half, half)
+    if shape == "box_tall":
+        return (half, half, 1.5 * half)
+    if shape == "box_flat":
+        return (1.2 * half, 1.2 * half, 0.6 * half)
+    raise ValueError(f"unknown object shape {shape!r} (known: {OBJECT_SHAPES})")
+
+
+def sample_object_spec(variation: dict, seed: int) -> dict:
+    """Per-episode object spec from ranges, with its own RNG stream ([seed, 35]; the scene RNG is untouched):
+    variation = {"size": [lo, hi] half size (m), "mass": [lo, hi] (kg), "friction": [lo, hi] sliding mu,
+                 "shapes": [...], "descriptor_shape": bool}. Missing keys keep the default for that property."""
+    rng = np.random.default_rng([int(seed), 35])
+    spec = {}
+    if variation.get("shapes"):
+        shapes = list(variation["shapes"])
+        spec["shape"] = shapes[int(rng.integers(len(shapes)))]
+    for k in ("size", "mass", "friction"):
+        if variation.get(k) is not None:
+            lo, hi = variation[k]
+            spec[k] = float(rng.uniform(lo, hi))
+    if variation.get("descriptor_shape"):
+        spec["descriptor_shape"] = True
+    return spec
+
+
+def _check_object_spec(spec: dict) -> dict:
+    bad = set(spec) - {"shape", "size", "mass", "friction", "descriptor_shape"}
+    if bad:
+        raise ValueError(f"unknown object_spec keys {sorted(bad)}")
+    out = dict(shape=spec.get("shape", "cube"))
+    object_half_extents(out["shape"], 0.022)
+    for k, lo, hi in (("size", 0.01, 0.04), ("mass", 0.005, 2.0), ("friction", 0.05, 3.0)):
+        if spec.get(k) is not None:
+            v = float(spec[k])
+            if not lo <= v <= hi:
+                raise ValueError(f"object_spec {k}={v} outside [{lo}, {hi}]")
+            out[k] = v
+    out["descriptor_shape"] = bool(spec.get("descriptor_shape", False))
+    return out
 
 
 def mount_robots(scene: mujoco.MjSpec, robots: list, mounts: list[tuple]) -> list[tuple[str, dict, list, float]]:
@@ -104,7 +165,18 @@ def _free_xy(rng, lo, hi, others, min_d):
 
 def build_pick_place(robot, seed: int, *, n_distractors: int = 0, cube_color: str = "red",
                      distractor_colors=("blue", "yellow", "purple"), task: dict | None = None,
-                     cube_size: float = 0.022, base=((0.0, 0.0, 0.0), 0.0)) -> Scenario:
+                     cube_size: float = 0.022, base=((0.0, 0.0, 0.0), 0.0), object_spec: dict | None = None) -> Scenario:
+    """object_spec (D-126 #35; default None = the historical scene): shape (OBJECT_SHAPES), size (half size, m; replaces
+    cube_size for the task object only), mass (kg), friction (sliding mu of the object geom, set after the grasp contact
+    model), descriptor_shape (public descriptor "<color> <shape>" instead of "<color> cube"). Recorded in meta.
+    $RRP_OBJECT_VARIATION (JSON ranges, sample_object_spec) applies a per-seed spec when object_spec is None, so the
+    evaluation harnesses (ladder, GRPO, robustness) can use varied objects without new arguments; unset = unchanged."""
+    if object_spec is None and os.environ.get(OBJECT_VARIATION_ENV):
+        object_spec = sample_object_spec(json.loads(os.environ[OBJECT_VARIATION_ENV]), seed)
+    if object_spec is not None:
+        return _build_pick_place_obj(robot, seed, n_distractors=n_distractors, cube_color=cube_color,
+                                     distractor_colors=distractor_colors, task=task, cube_size=cube_size, base=base,
+                                     object_spec=_check_object_spec(object_spec))
     rng = np.random.default_rng(seed)
     scene = workspace_spec(f"pick_place_{seed}")
     mounted = mount_robots(scene, [robot], [base])
@@ -133,6 +205,66 @@ def build_pick_place(robot, seed: int, *, n_distractors: int = 0, cube_color: st
         robots.append(MountedRobot(prefix, meta, rs, pos, yaw, {"gripper": manip}))
     return Scenario("pick_place", task or _task("pick_place"), scene, model, robots, objects, seed,
                     meta=dict(cube_color=cube_color, n_distractors=n_distractors))
+
+
+def _build_pick_place_obj(robot, seed, *, n_distractors, cube_color, distractor_colors, task, cube_size, base,
+                          object_spec) -> Scenario:
+    """build_pick_place with a task-object spec: identical RNG draws and placement as the default builder."""
+    rng = np.random.default_rng(seed)
+    scene = workspace_spec(f"pick_place_{seed}")
+    mounted = mount_robots(scene, [robot], [base])
+    placed = []
+    cube_xy = _free_xy(rng, [0.32, -0.18], [0.50, 0.18], placed, 0.1)
+    placed.append(cube_xy)
+    tgt_xy = _free_xy(rng, [0.30, -0.25], [0.52, 0.25], placed, 0.14)
+    placed.append(tgt_xy)
+    shape = object_spec["shape"]
+    half = object_spec.get("size", cube_size)
+    ext = object_half_extents(shape, half)
+    b = scene.worldbody.add_body(name="cube", pos=[*cube_xy, ext[2] + 0.001])
+    b.add_freejoint(name="cube_free")
+    gkw = dict(name="cube_geom", rgba=list(COLORS[cube_color]), density=500.0, friction=[1.2, 0.02, 0.002], condim=4)
+    if shape == "cylinder":
+        g = b.add_geom(type=mujoco.mjtGeom.mjGEOM_CYLINDER, size=[ext[0], ext[2], 0], **gkw)
+    else:
+        g = b.add_geom(type=mujoco.mjtGeom.mjGEOM_BOX, size=list(ext), **gkw)
+    if object_spec.get("mass") is not None:
+        g.mass = object_spec["mass"]
+    b.quat = _quat_from_axis_angle([0, 0, 1], rng.uniform(-math.pi / 4, math.pi / 4))
+    add_target_zone(scene, "target_zone", [*tgt_xy, 0.0005], radius=0.05)
+    noun = shape.replace("_", " ") if object_spec.get("descriptor_shape") else "cube"
+    objects = [ObjectDecl("cube", f"{cube_color} {noun}", "object", ext, task_entity="cube"),
+               ObjectDecl("target_zone", "green target zone", "feature", radius=0.05, task_entity="target")]
+    for k in range(n_distractors):
+        xy = _free_xy(rng, [0.28, -0.3], [0.55, 0.3], placed, 0.09)
+        placed.append(xy)
+        col = distractor_colors[k % len(distractor_colors)]
+        bd = add_box_object(scene, f"distractor{k}", [*xy, cube_size + 0.001], size=(cube_size,) * 3, rgba=COLORS[col])
+        bd.quat = _quat_from_axis_angle([0, 0, 1], rng.uniform(-1, 1))
+        objects.append(ObjectDecl(f"distractor{k}", f"{col} cube", "object", (cube_size,) * 3))
+    fr = object_spec.get("friction")
+
+    def post(sc):                     # after the grasp contact model, which sets object friction under grasp_v2+
+        if fr is not None:
+            gg = next(x for x in sc.geoms if x.name == "cube_geom")
+            gg.friction = [fr, gg.friction[1], gg.friction[2]]
+    model = compile_scene(scene, post_contact=post)
+    robots = []
+    for prefix, meta, pos, yaw in mounted:
+        rs = compile_robot_spec(model, meta, prefix=prefix, name=meta.get("name"))
+        manip = next(a.id for a in rs.assemblies if "grasp" in a.capabilities)
+        robots.append(MountedRobot(prefix, meta, rs, pos, yaw, {"gripper": manip}))
+    tk = task or _task("pick_place")
+    if object_spec.get("descriptor_shape"):
+        tk = copy.deepcopy(tk)
+        for e in tk["entity_declarations"]:
+            if e["id"] == "cube":
+                e["descriptor"] = f"{cube_color} {noun}"
+    rec = dict(object_spec, version=OBJECT_SPEC_VERSION, half_extents=[float(x) for x in ext],
+               mass_kg=float(model.body_mass[model.body("cube").id]),
+               friction=float(model.geom_friction[model.geom("cube_geom").id][0]))
+    return Scenario("pick_place", tk, scene, model, robots, objects, seed,
+                    meta=dict(cube_color=cube_color, n_distractors=n_distractors, object_spec=rec))
 
 
 def build_reach(robot, seed: int, task: dict | None = None, base=((0.0, 0.0, 0.0), 0.0)) -> Scenario:

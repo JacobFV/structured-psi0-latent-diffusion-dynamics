@@ -38,7 +38,9 @@ from rrp.contracts.provenance import Source, source_label
 from rrp.teachers.arm import SOURCE, PickPlaceTeacher, _yaw_of_quat
 
 DEFAULT_ARM_TEACHER = "v1"
-TEACHER_VERSIONS = {"v1": "pick_place_v1_waypoint", "v2": "pick_place_v2_minjerk"}
+TEACHER_VERSIONS = {"v1": "pick_place_v1_waypoint", "v2": "pick_place_v2_minjerk",
+                    "v2lim": "pick_place_v2_minjerk_lim"}     # D-126 #8: v2 + limit-aware IK (bodies/ik.py limit_margin)
+V2LIM_DEFAULT_MARGIN = 0.05     # fraction of each joint's range (the D-112 gate asks >= 0.02; the backlog: keep >= 0.05)
 
 
 def _wrap(a):
@@ -83,8 +85,16 @@ class SmoothPickPlaceTeacher(PickPlaceTeacher):
     BLEND = 0.3            # fraction of a segment overlapped by the next one
     TOUCH_THR = 0.2        # N, the same threshold as the public held_by estimate
     MAX_ATTEMPTS = 3
+    IK_LIMIT_MARGIN = 0.0  # D-126 #8: 0 = historical IK (v2); > 0 only in the version-bumped v2lim teacher
+    VERSION_KEY = "v2"
 
-    def __init__(self, session, robot: int = 0, obj: str = "cube", zone: str = "target_zone", rng=None, **kw):
+    def __init__(self, session, robot: int = 0, obj: str = "cube", zone: str = "target_zone", rng=None,
+                 ik_limit_margin: float | None = None, **kw):
+        self.ik_limit_margin = float(self.IK_LIMIT_MARGIN if ik_limit_margin is None else ik_limit_margin)
+        if self.ik_limit_margin > 0 and self.VERSION_KEY == "v2":
+            raise ValueError("ik_limit_margin > 0 changes the teacher: use version 'v2lim' (pick_place_v2_minjerk_lim)")
+        # extra IK keyword for the limit-aware solve; empty for v2 so its calls are exactly the historical ones
+        self._ikkw = dict(limit_margin=self.ik_limit_margin) if self.ik_limit_margin > 0 else {}
         super().__init__(session, robot=robot, obj=obj, zone=zone, rng=rng)
         m, d = session.model, session.data
         self.three = (self.r.meta.get("gripper_params") or {}).get("kind") == "three_finger"
@@ -120,9 +130,11 @@ class SmoothPickPlaceTeacher(PickPlaceTeacher):
             self.a_joint = np.minimum(self.a_joint, a_act)
         except Exception as ex:  # noqa: BLE001 - limits stay nominal; recorded
             err = repr(ex)[:200]
-        self.diag = dict(version=TEACHER_VERSIONS["v2"], v_joint=self.v_joint.tolist(), a_joint=self.a_joint.tolist(),
+        self.diag = dict(version=TEACHER_VERSIONS[self.VERSION_KEY], v_joint=self.v_joint.tolist(), a_joint=self.a_joint.tolist(),
                          a_actuator=None if a_act is None else np.asarray(a_act).tolist(), limits_error=err,
                          attempts=0, plans=[], yaw_choice=None, contact_grip=None, events=[])
+        if self._ikkw:
+            self.diag["ik_limit_margin"] = self.ik_limit_margin
         self.phase = "pregrasp"
         self.t_phase = 0.0
         self.q_plan: list = []          # precomputed arm commands of the active plan
@@ -173,7 +185,7 @@ class SmoothPickPlaceTeacher(PickPlaceTeacher):
 
     def _ik_point(self, p, yaw, q0):
         q, e = self.r.ik.solve(self.s.data.qpos.copy(), q0, p, down_rotation(yaw), iters=150, tol=2e-4,
-                               seeds=self._ik_seeds(p))
+                               seeds=self._ik_seeds(p), **self._ikkw)
         return q, float(e)
 
     def _margin(self, q):
@@ -209,7 +221,7 @@ class SmoothPickPlaceTeacher(PickPlaceTeacher):
             path, worst = [], 0.0
             for k in range(n):
                 p = p0 + (p_end - p0) * float(minjerk((k + 1) / n))
-                q, e = self.r.ik.solve(qfull, q, p, R, iters=80, tol=2e-4)
+                q, e = self.r.ik.solve(qfull, q, p, R, iters=80, tol=2e-4, **self._ikkw)
                 worst = max(worst, float(e))
                 path.append(q.copy())
             Q = np.vstack([q_start, *path])
@@ -528,8 +540,16 @@ class SmoothPickPlaceTeacher(PickPlaceTeacher):
         return self.done_flag or self.stage == "failed"
 
 
+class LimitAwarePickPlaceTeacher(SmoothPickPlaceTeacher):
+    """v2lim (D-126 #8, D-114 (3)): v2 with limit-aware IK (bodies/ik.py `limit_margin`) in every hover / grasp / line
+    solve, so the procedural arms keep a joint-limit margin. A different teacher version (never mixed with v2 data);
+    `ik_limit_margin` may override the default 0.05 and is recorded in diag and the dataset flags."""
+    IK_LIMIT_MARGIN = V2LIM_DEFAULT_MARGIN
+    VERSION_KEY = "v2lim"
+
+
 def ARM_TEACHERS():
-    return {"v1": PickPlaceTeacher, "v2": SmoothPickPlaceTeacher}
+    return {"v1": PickPlaceTeacher, "v2": SmoothPickPlaceTeacher, "v2lim": LimitAwarePickPlaceTeacher}
 
 
 def teacher_version_id(version: str) -> str:
