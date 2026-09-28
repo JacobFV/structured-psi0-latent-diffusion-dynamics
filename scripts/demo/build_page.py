@@ -883,7 +883,9 @@ def body_clips():
             continue
         f, desc = m.group(1), m.group(2)
         low = (f + " " + desc).lower()
-        if "scripted_teacher" not in low or any(t in f for t in ("causal_edit", "semantic_edit", "triptych", "ladder_", "bc_semantic")):
+        if "scripted_teacher" not in f or any(t in f for t in ("causal_edit", "semantic_edit", "triptych", "ladder_", "bc_semantic")):
+            # source label from the FILE NAME (contract): a learned clip's description may name scripted_teacher as its
+            # command source, which mislabelled learned clips as scripted_teacher here (found 2026-09-27)
             continue
         src_ = ROOT / "artifacts/video" / f
         if not src_.exists() or src_.stat().st_size > 2_500_000:
@@ -1405,6 +1407,84 @@ try{var s=localStorage.getItem('rrp-theme');if(s)r.dataset.theme=s}catch(e){}})(
 """
 
 
+def sec_since_d095():
+    """Results since D-095 (records refresh 2026-09-27). Legged and robustness numbers are read from git-tracked raw
+    outputs; arm grasp-physics and Psi0 numbers live only in decisions/track notes and cite them (the arm re-evaluation is
+    INTERIM). Clips are copied from artifacts/video (labelled learned in their file names)."""
+    import shutil
+    rows = []
+    for body, dec in (("anymal_c", "D-105"), ("go2", "D-113")):
+        f = f"research/tracks/legged8/legged8_compare_{body}.json"
+        if not have(f):
+            continue
+        d = J(f)
+        t = d["tests_fixsem_vs_nosem"]["ctx halt Δforward m"]
+        pm, ref = t["permutation"], d["references"]
+        seeds = lambda xs: " / ".join(f"{x:+.2f}" for x in xs)
+        mean = lambda xs: sum(xs) / len(xs)
+        rows.append([f"<b>{esc(body)}</b> · {esc(d['contact_version'])}",
+                     f"{badge('learned', 'learned: semfix R2')} {seeds(pm['seeds_fixsem'])} (mean {mean(pm['seeds_fixsem']):+.2f})",
+                     f"{badge('learned', 'learned: nosem R2')} {seeds(pm['seeds_nosem'])} (mean {mean(pm['seeds_nosem']):+.2f})",
+                     f"{pm['diff']:+.2f} m; every seed ordered: {'yes' if pm['every_seed_ordered'] else 'no'}; one-sided p = {pm['p_one_sided']}",
+                     f"{badge('teacher', 'scripted_teacher')} {ref['teacher']['success']}/{ref['teacher']['n']} · {badge('bc', 'BC')} {ref['bc']['success']}/{ref['bc']['n']}",
+                     src(f, dec)])
+    legged = (table(["body · physics", "semfix halt Δforward per training seed (m)", "nosem halt Δforward per training seed (m)",
+                     "semfix − nosem", "references (30 dev seeds)", "source"], rows) if rows else "<p>raw legged tables not found</p>")
+    rob = ""
+    f = "artifacts/runs/robust/variant_anymal_c_semfix_vs_nosem.json"
+    if have(f):
+        m = J(f)["metrics"]["public_success"]
+        pool, vl = m["pooled"], m["variant_level"]
+        rob = (f"<p>{badge('learned')} <b>Robustness (anymal_c, 3 training seeds × 33 single-factor perturbation levels × 20 seeds).</b> "
+               f"Public success averaged over perturbed levels: semfix {' / '.join(f'{x:.3f}' for x in vl['level_mean_a'])} vs nosem "
+               f"{' / '.join(f'{x:.3f}' for x in vl['level_mean_b'])}; pooled difference {pool['diff_level_mean']:+.3f} "
+               f"[{pool['ci'][0]:+.3f}, {pool['ci'][1]:+.3f}]; every semfix seed below every nosem seed: "
+               f"{'yes' if vl['level_mean_all_a_below_all_b'] else 'no'}. No break-point moves (friction 0.4, gain 0.7, push 1.0 m/s, "
+               f"terrain 8 cm). The semantic packet buys task-level control, not robustness. {src(f, 'D-108', 'D-112')}</p>")
+    clips = []
+    for fn, title, cap in (
+            ("2026-09-27_learned_ctxhalt_go2_trainseed0_s10007_fixsem-vs-nosem_effect.mp4", "go2 context halt: effect",
+             "top semfix, bottom nosem (both deployable R2, contact_v2); left unedited, right halt requested in the task context from t = 2 s. "
+             "Forward progress t = 2–8 s: semfix 3.77 → 2.40 m, nosem 3.49 → 3.58 m."),
+            ("2026-09-27_learned_ctxhalt_go2_trainseed0_s10003_fixsem-vs-nosem_noeffect.mp4", "go2 context halt: no effect (failure example)",
+             "same setup, dev seed 10003: the halt request does not slow semfix (2.51 → 2.48 m); nosem 2.49 → 3.55 m.")):
+        s_ = ROOT / "artifacts/video" / fn
+        if not s_.exists():
+            continue
+        VID.mkdir(parents=True, exist_ok=True)
+        if not (VID / fn).exists():
+            shutil.copy2(s_, VID / fn)
+        clips.append(f'<figure class="vid"><video controls muted loop playsinline preload="metadata" src="video/{esc(fn)}"></video>'
+                     f'<figcaption>{badge("learned", "learned: legged8 go2 train_flow_s0 snap_s4000 (semfix | nosem)")} <b>{esc(title)}</b><br>'
+                     f'{esc(cap)}<br>{src("artifacts/video/INDEX.md", "D-113")} <span class="muted">· {esc(fn)}</span></figcaption></figure>')
+    return f"""<section id="since"><h2>Since D-095 (2026-09-26 → 09-27): physics first, then re-test</h2>
+<p class="muted">Added by the records refresh on 2026-09-27. Everything further down this page predates it: its legged results use contact v1
+(trackers skated, D-093) and its arm results use grasp contact v1 (grasps held by interpenetration, D-108).</p>
+<h3>Legged: the context-halt effect replicates under realistic contact (contact v2)</h3>
+<p>Skating was fixed on every accepted contact-v2 tracker (stance slip go2 0.26 → 0.02, anymal_c 0.34 → 0.03, t1 0.86 → 0.15; D-101, D-103),
+with sourced torque limits as the default (D-107). The W8 regeneration re-ran the D-090 protocol (semfix vs nosem × 3 training seeds, deployable R2).
+Asking for a halt in the task context slows only the semantic packet's robot, on both bodies and every seed (D-105, D-113):</p>
+{legged}
+<div class="grid">{''.join(clips)}</div>
+<p>{badge('learned')} t1 humanoid on the sourced-limit tracker (interim, W8 notes): the learned routes mostly fall at gait onset (BC 0/30), so the halt
+comparison is not measurable there. Label: "t1 dataset fails D-112 slip gate (86.2% &lt; 95%), tracker w8d fails lab forward 0.72" (D-113 exception). {src('D-113')}</p>
+{rob}
+<h3>Arm: grasp physics re-check (INTERIM, not final)</h3>
+<p>Grasp contact v2 removed interpenetration holding (held penetration on three-finger grippers 3.3 → 0.09 mm; episodes above 3 mm 2407 → 0) with the
+{badge('teacher', 'scripted_teacher v2')} still solving 4811/4811 feasible episodes (D-110). The old arm routes are being re-evaluated under grasp v2:
+at 35 of 56 cells, {badge('learned', 'learned: semfix')} holds or improves (parm6 seed 1 45 → 62/90, seed 2 38 → 60/90), {badge('learned', 'learned: frozen sem')}
+seed 2 improves (44 → 66/90) but seed 1 collapses on the three-finger gripper (parm6 70 → 9/90), {badge('learned', 'learned: nosem')} stays far below (1/90 and 19/90 on parm6),
+and {badge('bc', 'BC direct1701')} gets 68/90 on parm6. {badge('run')} The re-evaluation is still running; these numbers will change. {src('D-121', 'research/tracks/armexpert.md')}</p>
+<p>New arm data (v6dart: teacher v2 + grasp v2.1 + DART noise only in free-space phases) passes every dataset gate (penetration ≤ 3 mm on 99.4% of episodes)
+and is accepted on condition that its BC expert matches the previous one; the v6 lineages follow (D-118, D-121).</p>
+<h3>Ψ₀ reproduction (W10, psi1z)</h3>
+<p>{badge('none', 'third-party: released Ψ₀ checkpoints (upstream), not our model')} On our stack (Isaac Sim 5.1, aarch64, path-traced rendering),
+3 of 6 released SIMPLE checkpoints reproduce: TabletopGraspMP 10/10, BendPickMP 10/10, HandoverTeleop 7/10 (published 10/10, 10/10, 7/10). The three walking-heavy
+teleop tasks do not (0/10, 3/6, 0/5), consistent with a rendering gap on locomotion cues. The comparison of Ψ₀ direct vs Ψ₀ + our structure
+runs on the reproduced tasks and has no result yet. {src('D-104', 'D-109', 'D-120')}</p>
+</section>"""
+
+
 def build(updates_html: str = ""):
     now = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
     bcs = [J(str(f.relative_to(ROOT)))["success"] for f in (ROOT / "artifacts/runs/baselines_bc_ladder").glob("*/learned_*.summary.json")
@@ -1483,9 +1563,10 @@ def build(updates_html: str = ""):
 <p class="muted">Built {now} PDT from saved raw outputs by <code>scripts/demo/build_page.py</code>. Research state, not a product.</p>
 <div class="legend">Controller-source labels:
 {badge('teacher')} {badge('oracle')} {badge('learned', 'learned:<ckpt>')} {badge('bc', 'learned BC baseline')} {badge('none')} {badge('run')}</div>
-<nav><a href="#sprint">sprint update</a><a href="#arch">architecture</a><a href="#works">what works</a><a href="#bodies">bodies</a><a href="#matrix">evidence</a><a href="#debug">debugging</a>
+<nav><a href="#since">since D-095</a><a href="#sprint">sprint update</a><a href="#arch">architecture</a><a href="#works">what works</a><a href="#bodies">bodies</a><a href="#matrix">evidence</a><a href="#debug">debugging</a>
 <a href="#semantic">semantic edits</a><a href="#bc">BC control</a><a href="#next">next</a><a href="#sources">sources</a></nav>
 </header>
+{sec_since_d095()}
 <div class="update" id="supports"><h2 style="border:0;margin:.2rem 0 .4rem">What the evidence supports</h2>
 <ul>
 <li><b>Supported, on deployable routes (no teacher, oracle or BC at run time):</b> the central claim task → packet → behaviour. On the go2 quadruped,
