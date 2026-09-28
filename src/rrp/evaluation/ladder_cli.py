@@ -53,6 +53,9 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--chunk-blend", choices=["none", "crossfade", "ensemble"], default="none", help=argparse.SUPPRESS)
     ap.add_argument("--blend-ticks", type=int, default=4, help=argparse.SUPPRESS)
     ap.add_argument("--blend-decay", type=float, default=0.0, help=argparse.SUPPRESS)
+    # armdiag (D-135 follow-up): NON-SEALED diagnostic on a target body with DEV seeds (>= 3,000,000) only; the summary
+    # is labelled and must never be reported as a sealed-protocol result. Hidden (CLI parity test).
+    ap.add_argument("--target-dev-diagnostic", action="store_true", help=argparse.SUPPRESS)
     return ap
 
 
@@ -60,7 +63,7 @@ def main(argv=None):
     a = build_parser().parse_args(argv)
     if a.seed_start < 3_000_000:
         sys.exit("dev seeds must be >= 3,000,000")
-    if a.robot in ("xarm7_pg2", "xarm7_tf3", "panda_tf3"):
+    if a.robot in ("xarm7_pg2", "xarm7_tf3", "panda_tf3") and not a.target_dev_diagnostic:
         sys.exit("target bodies are not allowed in the ladder")
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     if dev == "cuda":
@@ -116,6 +119,8 @@ def main(argv=None):
                 replan=a.replan, nfe=a.nfe, prev_action=a.prev_action, reanchor=a.reanchor, oracle_expert=a.oracle_expert, policy_label=a.policy_label, keep_ticks=a.keep_ticks, oracle_reanchor=a.reanchor, object_shift=a.object_shift, checkpoints=ids)
     if a.chunk_blend != "none":
         summ["chunk_blend"] = ids.get("chunk_blend")
+    if a.target_dev_diagnostic:
+        summ["label"] = "NON-SEALED DIAGNOSTIC (target body, dev seeds >= 3,000,000; not a sealed-protocol result)"
     (out / f"{name}.summary.json").write_text(json.dumps(summ, indent=1, default=str))
     print(json.dumps({k: v for k, v in summ.items() if k != "checkpoints"}, default=str))
 
