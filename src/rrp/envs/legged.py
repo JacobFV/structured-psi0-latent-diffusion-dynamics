@@ -111,11 +111,21 @@ class LeggedSession(Session):
     YAW_SIGMA = 0.02
 
     def __init__(self, scenario: Scenario, *, tracker_kind: str = "auto", seed: int = 0, actuator_mode: str | None = None,
-                 actuator_latency_ms: float | None = None, **kw):
+                 actuator_latency_ms: float | None = None, base_state_source: str = "truth_noise", estimator_cfg=None,
+                 **kw):
         """actuator_mode (D-126 #14): None -> $RRP_ACTUATOR_MODE, else rrp.physics.actuator.ACTUATOR_MODE_DEFAULT ("ideal": the
         bounded PD servo, byte-identical to before). "v1lat" / "v2" route every tracker tick through ActuatorModel (nominal
-        parameters, a fixed per-episode latency: actuator_latency_ms, else $RRP_ACTUATOR_LATENCY_MS, else drawn from the seed)."""
+        parameters, a fixed per-episode latency: actuator_latency_ms, else $RRP_ACTUATOR_LATENCY_MS, else drawn from the seed).
+        base_state_source (D-126 #27): "truth_noise" (default, unchanged) = speed from the declared noisy
+        localization sensor; "estimator" = speed from rrp.envs.state_estimator (IMU + leg kinematics + contact),
+        and NodeState.base_vel_estimate is filled. Localization still provides x, y, yaw for waypoint geometry."""
         from rrp.physics.actuator import resolve_mode
+        from rrp.envs.state_estimator import BASE_STATE_SOURCES
+        if base_state_source not in BASE_STATE_SOURCES:
+            raise ValueError(f"base_state_source {base_state_source!r} not in {BASE_STATE_SOURCES}")
+        self.base_state_source = base_state_source
+        self._estimator_cfg = estimator_cfg
+        self.base_estimator = None
         self.tracker_kind = tracker_kind
         self.actuator_mode = resolve_mode(actuator_mode)
         self._act_latency_req = actuator_latency_ms
@@ -182,6 +192,8 @@ class LeggedSession(Session):
         self.loc = None
         self.loc_hist = []
         self.speed_est = float("nan")
+        if self.base_state_source == "estimator":
+            self._reset_estimator()
         # settle 0.3 s under the tracker holding a zero command
         for _ in range(int(0.3 * TRACKER_HZ)):
             self._tracker_tick(np.zeros(3))
@@ -216,6 +228,30 @@ class LeggedSession(Session):
         else:
             self.speed_est = float("nan")
         self.loc = x
+        if self.base_estimator is not None:          # D-126 #27: same 1 s baseline, dead-reckoned position
+            self.est_hist.append(self.base_estimator.p_w[:2].copy())
+            self.est_hist = self.est_hist[-w:]
+            self.speed_est = (float(np.linalg.norm(self.est_hist[-1] - self.est_hist[0])) / ((w - 1) * self.dt)
+                              if len(self.est_hist) >= w else float("nan"))
+
+    # ------------------------------------------------------------------ base-state estimator (D-126 #27)
+    def _reset_estimator(self):
+        from rrp.envs.state_estimator import BaseStateEstimator, LegKinematics
+        r = self.robots[0]
+        if self.base_estimator is None:
+            self.base_estimator = BaseStateEstimator(self._estimator_cfg)
+            # encoders of every robot hinge/slide joint (the same arrays observe() publishes)
+            self._leg_kin = LegKinematics.from_binding(self.binding, r.qadr, r.dadr)
+        self.base_estimator.reset()
+        self.est_hist = []
+
+    def _estimator_tick(self, dt: float):
+        """DEPLOYABLE inputs only: IMU (quat, gyro, acc), joint encoders, touch sensors."""
+        r = self.robots[0]
+        imu = self._imu()
+        pos, vel = self._leg_kin.feet(self.data.qpos[r.qadr], self.data.qvel[r.dadr])
+        self.base_estimator.update(quat=imu["quat"], gyro=imu["gyro"], acc=imu["acc"], foot_pos_b=pos,
+                                   foot_vel_b=vel, touch=self._touch(), dt=dt)
 
     def _track(self, entity: str):
         s = self.entity_slots.get(entity)
@@ -290,6 +326,10 @@ class LeggedSession(Session):
         addrs = [f"0:{j.address}" for j in r.spec.joints if j.type in ("hinge", "slide")]
         ns = NodeState(joint_addresses=addrs, qpos=q.copy(), qvel=v.copy(), qpos_mask=np.ones_like(q, dtype=bool),
                        timestamp=t)
+        if self.base_estimator is not None:          # D-126 #27: body-frame base linear velocity (m/s), bse-1
+            ns = ns.model_copy(update=dict(base_vel_estimate=self.base_estimator.v_b.copy(),
+                                           units=dict(ns.units, base_vel_estimate=f"m/s body frame "
+                                                                                  f"({self.base_estimator.cfg.version})")))
         imu = self._imu()
         tv = self._touch()
         chans = [SensorChannel(name="0:imu", kind="imu", values=np.concatenate([imu["quat"], imu["gyro"], imu["acc"]]),
@@ -346,6 +386,8 @@ class LeggedSession(Session):
             if act is not None:
                 self.data.ctrl[b.pol_act] = act.substep_ctrl(0, self.data)
             mujoco.mj_step(self.model, self.data)
+        if self.base_estimator is not None:
+            self._estimator_tick(n * self.model.opt.timestep)
 
     def actuator_record(self) -> dict | None:
         """Provenance of a non-ideal actuator mode (None for the ideal default, so default rows stay unchanged)."""
@@ -410,6 +452,9 @@ class LeggedSession(Session):
                                                    speed_est=self.speed_est,
                                                    hist=[h.tolist() for h in self.loc_hist])
         c["entity_tracker"] = self.tracker_obj.state()
+        if self.base_estimator is not None:
+            c["sensor_filters"]["base_estimator"] = dict(self.base_estimator.state(),
+                                                         hist=[h.tolist() for h in self.est_hist])
         return snap
 
     def restore(self, snap):
@@ -439,6 +484,10 @@ class LeggedSession(Session):
         self.loc = None if loc.get("loc") is None else np.array(loc["loc"])
         self.speed_est = loc.get("speed_est", float("nan"))
         self.loc_hist = [np.array(h) for h in loc.get("hist", [])]
+        if self.base_estimator is not None and "base_estimator" in c["sensor_filters"]:
+            be = c["sensor_filters"]["base_estimator"]
+            self.base_estimator.load(be)
+            self.est_hist = [np.array(h) for h in be.get("hist", [])]
         self._last_obs = self.observe()
         return self._last_obs
 
