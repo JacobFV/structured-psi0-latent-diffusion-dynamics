@@ -1,0 +1,235 @@
+"""Dual-arm scripted-teacher audit (W12 phase B): W6/D-112 motion gates + W12 contact-frame metrics per episode.
+
+Runs the dual teachers (rrp.teachers.dual, label scripted_teacher, PRIVILEGED inputs) under the CURRENT physics
+($RRP_GRASP_CONTACT, recorded per row) and records per control tick, read-only:
+  commanded and measured arm joints per manipulator, the teacher phase per arm, robot<->object penetration, robot<->robot
+  contacts, and the privileged contact frames (rrp.data.contact_labels.ContactFrameRecorder).
+Per episode and manipulator (the arm-teacher gate definitions of D-112/D-114, rrp.evaluation.gates):
+  jerk RMS / peak of measured and commanded joints; phase-switch velocity step (commanded joint velocity step at the
+  arm's teacher phase switches, +-1 tick; gate <= 0.5 rad/s); joint-limit margin (gate >= 0.02); penetration max over
+  task objects (gate <= 3 mm), ticks above 3 mm, arm-arm contact ticks.
+Plus the W12 keys (rrp.evaluation.contact_metrics.dual_contact_motion): held-object drift vs gripper and vs the
+supporting hand, support-anchor slip, contact-sequence order error vs the task spec, re-anchoring latency.
+Optional DART (burst noise on executed arm commands, as rrp.data.collect_dual) to audit noisy-episode penetration.
+
+CLI (peer CPU, under a lease):
+  python -m rrp.evaluation.dual_teacher_quality --task support_insert --pairs A__B,C__D --seeds 0:8 \
+      [--noise 0.04 --burst 20,4] --out artifacts/runs/w12_dualaudit/support_insert.jsonl --workers 2
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from pathlib import Path
+
+import mujoco
+import numpy as np
+
+from rrp.envs.motion_quality import chunk_boundary_steps, jerk_stats, joint_limit_margin
+
+AUDIT_VERSION = "rrp.evaluation.dual_teacher_quality/v1"
+PEN_GATE_M = 0.003
+PHASE_STEP_GATE = 0.5
+MARGIN_GATE = 0.02
+
+
+def run_audit_episode(task: str, pair: str, seed: int, *, max_steps: int = 1200, noise: float = 0.0,
+                      burst: tuple = (1, 1), stop_after_success: int | None = 10) -> dict:
+    from rrp.data.contact_labels import ContactFrameRecorder
+    from rrp.evaluation.contact_metrics import dual_contact_motion
+    from rrp.physics.grasp_contact import model_grasp_version
+    from rrp.teachers.dual import TEACHERS
+    from rrp.teachers.dual_validate import make_session
+    t0 = time.time()
+    s = make_session(task, pair, seed)
+    teacher = TEACHERS[task](s)
+    m, d = s.model, s.data
+    f = teacher.feasibility()
+    row = dict(version=AUDIT_VERSION, task=task, pair=pair, seed=seed, source="scripted_teacher", privileged_teacher=True,
+               noise=noise, burst=list(burst), grasp_contact_version=model_grasp_version(m) or "grasp_v1",
+               feasible=bool(f["feasible"]))
+    if not f["feasible"]:
+        row.update(status="infeasible", unreachable=f["unreachable"], wall_s=time.time() - t0)
+        return row
+    ents = list(s.handles)
+    qadr, lo, hi, robot_bodies = {}, {}, {}, {}
+    for e, h in s.handles.items():
+        jid = [mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_JOINT, j) for j in h.arm_joints]
+        qadr[e] = np.array([m.jnt_qposadr[j] for j in jid])
+        lo[e], hi[e] = m.jnt_range[jid, 0].copy(), m.jnt_range[jid, 1].copy()
+    for ri, r in enumerate(s.robots):
+        names = {l.name for l in r.spec.links}
+        robot_bodies[ri] = {b for b in range(m.nbody) if m.body(b).name in names}
+    body_robot = {b: ri for ri, bs in robot_bodies.items() for b in bs}
+    obj_bodies = {mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, o.sim_body) for o in s.detectables}
+    obj_bodies.discard(-1)
+    cf = ContactFrameRecorder(s)
+    q = {e: [] for e in ents}
+    cmdq = {e: [] for e in ents}
+    last = {e: None for e in ents}
+    switches = {e: [] for e in ents}
+    prev_phase = dict(teacher.phase)
+    pen, pen_ticks, arm_arm = 0.0, 0, 0
+    rng = np.random.default_rng([seed, 7])
+    nz: dict = {}
+    succ_at, steps = None, 0
+    for k in range(max_steps):
+        cmds = teacher.act()
+        for e in ents:
+            if teacher.phase[e] != prev_phase[e]:
+                switches[e].append(k)
+        prev_phase = dict(teacher.phase)
+        for e, h in s.handles.items():
+            g = cmds[h.robot].groups
+            if h.arm_group in g:
+                last[e] = np.asarray(g[h.arm_group], float).copy()
+            cmdq[e].append(last[e] if last[e] is not None else d.qpos[qadr[e]].copy())
+        if noise > 0 and k % burst[0] < burst[1]:
+            noisy = {}
+            for i, c in cmds.items():
+                g2 = dict(c.groups)
+                for e, h in s.handles.items():
+                    if h.robot != i or h.arm_group not in g2:
+                        continue
+                    if k % 5 == 0 or e not in nz:
+                        nz[e] = rng.normal(0, noise, len(g2[h.arm_group]))
+                    g2[h.arm_group] = np.clip(np.asarray(g2[h.arm_group], float) + nz[e], lo[e], hi[e]).tolist()
+                noisy[i] = c.model_copy(update={"groups": g2})
+            cmds = noisy
+        cf.tick()
+        s.step(cmds)
+        steps += 1
+        for e in ents:
+            q[e].append(d.qpos[qadr[e]].copy())
+        pt = 0.0
+        touching_arms = False
+        for i in range(d.ncon):
+            c = d.contact[i]
+            b1, b2 = int(m.geom_bodyid[c.geom1]), int(m.geom_bodyid[c.geom2])
+            r1, r2 = body_robot.get(b1), body_robot.get(b2)
+            if (r1 is not None and b2 in obj_bodies) or (r2 is not None and b1 in obj_bodies):
+                pt = max(pt, -float(c.dist))
+            if r1 is not None and r2 is not None and r1 != r2:
+                touching_arms = True
+        pen = max(pen, pt)
+        pen_ticks += int(pt > PEN_GATE_M)
+        arm_arm += int(touching_arms)
+        if teacher.done:
+            break
+        if stop_after_success is not None:
+            if succ_at is None and s.runtime.succeeded():
+                succ_at = steps
+            if succ_at is not None and steps - succ_at >= stop_after_success:
+                break
+    for _ in range(5):
+        s.step(None)
+    ok = bool(s.privileged_success())
+    dt = float(s.dt)
+    per = {}
+    for e in ents:
+        Q, C = np.array(q[e]), np.array(cmdq[e])
+        js, cj = jerk_stats(Q, dt), jerk_stats(C, dt)
+        cb = chunk_boundary_steps(C, dt, switches[e])
+        per[e] = dict(joint_jerk_rms=js["joint_jerk_rms"], joint_jerk_peak=js["joint_jerk_peak"],
+                      cmd_jerk_rms=cj["joint_jerk_rms"], cmd_jerk_peak=cj["joint_jerk_peak"],
+                      phase_switch_vel_step_max=cb["chunk_vel_step_max"], vel_step_any_max=cb["vel_step_any_max"],
+                      n_phase_switches=len(switches[e]), joint_limit_margin_min=joint_limit_margin(Q, lo[e], hi[e]))
+    rec = cf.recording()
+    cfm = dual_contact_motion(rec, task=task, receipt_log=s.runtime.receipts.log)
+    gate = dict(penetration=pen <= PEN_GATE_M,
+                phase_switch=all((p["phase_switch_vel_step_max"] or 0) <= PHASE_STEP_GATE for p in per.values()),
+                joint_margin=all((p["joint_limit_margin_min"] is not None and p["joint_limit_margin_min"] >= MARGIN_GATE)
+                                 for p in per.values()))
+    row.update(status="success" if ok else "failure", public_runtime_success=bool(s.runtime.succeeded()),
+               failure_phase=None if ok else teacher.phase_label, steps=steps, dt=dt, per_arm=per,
+               penetration_max_m=pen, penetration_ticks_over_3mm=pen_ticks, arm_arm_contact_ticks=arm_arm,
+               gate=gate, contact=cfm, phase_switch_ticks=switches,
+               statuses={e: v.status for e, v in s.runtime.instances.items()}, wall_s=time.time() - t0)
+    return row
+
+
+def _job(a):
+    try:
+        return run_audit_episode(*a[:3], **a[3])
+    except Exception as e:  # noqa: BLE001 - errors are data
+        return dict(task=a[0], pair=a[1], seed=a[2], status="error", error=repr(e)[:400], **{k: a[3][k] for k in ("noise",)})
+
+
+def summarize(rows: list[dict]) -> dict:
+    out = {}
+    for key in sorted({(r["task"], r.get("noise", 0.0)) for r in rows}):
+        rs = [r for r in rows if (r["task"], r.get("noise", 0.0)) == key]
+        done = [r for r in rs if r.get("status") in ("success", "failure")]
+        arm = [p for r in done for p in r["per_arm"].values()]
+        med = lambda xs: float(np.median([x for x in xs if x is not None])) if any(x is not None for x in xs) else None
+        mx = lambda xs: float(np.max([x for x in xs if x is not None])) if any(x is not None for x in xs) else None
+        frac = lambda xs: float(np.mean(xs)) if xs else None
+        c = [r["contact"] for r in done]
+        out[f"{key[0]}|noise={key[1]}"] = dict(
+            n=len(rs), success=sum(r["status"] == "success" for r in rs), failure=sum(r["status"] == "failure" for r in rs),
+            infeasible=sum(r["status"] == "infeasible" for r in rs), error=sum(r["status"] == "error" for r in rs),
+            gate_penetration_pass=frac([r["gate"]["penetration"] for r in done]),
+            gate_phase_switch_pass=frac([r["gate"]["phase_switch"] for r in done]),
+            gate_joint_margin_pass=frac([r["gate"]["joint_margin"] for r in done]),
+            penetration_max_m_median=med([r["penetration_max_m"] for r in done]),
+            penetration_max_m_max=mx([r["penetration_max_m"] for r in done]),
+            arm_arm_contact_episodes=sum(r["arm_arm_contact_ticks"] > 0 for r in done),
+            phase_switch_step_median=med([p["phase_switch_vel_step_max"] for p in arm]),
+            phase_switch_step_max=mx([p["phase_switch_vel_step_max"] for p in arm]),
+            vel_step_any_median=med([p["vel_step_any_max"] for p in arm]),
+            cmd_jerk_rms_median=med([p["cmd_jerk_rms"] for p in arm]),
+            joint_jerk_rms_median=med([p["joint_jerk_rms"] for p in arm]),
+            joint_margin_min_median=med([p["joint_limit_margin_min"] for p in arm]),
+            held_rot_drift_grip_max_rad_median=med([x.get("cf_held_rot_drift_grip_max_rad") for x in c]),
+            held_rot_drift_grip_max_rad_max=mx([x.get("cf_held_rot_drift_grip_max_rad") for x in c]),
+            held_pos_drift_grip_max_m_median=med([x.get("cf_held_pos_drift_grip_max_m") for x in c]),
+            held_rot_drift_support_max_rad_median=med([x.get("cf_held_rot_drift_support_max_rad") for x in c]),
+            support_anchor_slip_max_m_median=med([x.get("cf_support_anchor_slip_max_m") for x in c]),
+            support_anchor_slip_max_m_max=mx([x.get("cf_support_anchor_slip_max_m") for x in c]),
+            contact_order_error_mean=frac([x["cf_contact_order_error"] for x in c if x.get("cf_contact_order_error") is not None]),
+            contact_missing_episodes=sum((x.get("cf_contact_missing") or 0) > 0 for x in c),
+            reanchor_settle_mean_s_median=med([x.get("cf_reanchor_settle_mean_s") for x in c]),
+            anchor_receipt_latency_mean_s_median=med([x.get("cf_anchor_receipt_latency_mean_s") for x in c]),
+            failure_phases=sorted({r.get("failure_phase") for r in rs if r["status"] == "failure"}),
+            grasp_contact_versions=sorted({r.get("grasp_contact_version") for r in rs if r.get("grasp_contact_version")}))
+    return out
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--task", required=True)
+    ap.add_argument("--pairs", required=True)
+    ap.add_argument("--seeds", default="0:8")
+    ap.add_argument("--noise", type=float, default=0.0)
+    ap.add_argument("--burst", default="1,1")
+    ap.add_argument("--max-steps", type=int, default=1200)
+    ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) // 2))
+    ap.add_argument("--out", required=True)
+    a = ap.parse_args(argv)
+    lo_, hi_ = map(int, a.seeds.split(":"))
+    burst = tuple(int(x) for x in a.burst.split(","))
+    out = Path(a.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    rows = [json.loads(ln) for ln in out.read_text().splitlines() if ln.strip()] if out.exists() else []
+    done = {(r["task"], r["pair"], r["seed"], r.get("noise", 0.0)) for r in rows}
+    jobs = [(a.task, p, sd, dict(max_steps=a.max_steps, noise=a.noise, burst=burst))
+            for p in a.pairs.split(",") for sd in range(lo_, hi_) if (a.task, p, sd, a.noise) not in done]
+    t0 = time.time()
+    with ProcessPoolExecutor(max_workers=a.workers) as ex, out.open("a") as fh:
+        for i, fu in enumerate(as_completed([ex.submit(_job, j) for j in jobs])):
+            r = fu.result()
+            rows.append(r)
+            fh.write(json.dumps(r, default=lambda o: o.tolist() if isinstance(o, np.ndarray) else str(o)) + "\n")
+            fh.flush()
+            print(f"[dual_audit] {i + 1}/{len(jobs)} {r['task']} {r['pair']} s{r['seed']} {r['status']} "
+                  f"{time.time() - t0:.0f}s", flush=True)
+    summ = summarize(rows)
+    out.with_suffix(".summary.json").write_text(json.dumps(summ, indent=1, sort_keys=True))
+    print(json.dumps(summ, indent=1, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()

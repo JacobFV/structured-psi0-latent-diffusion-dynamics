@@ -483,7 +483,9 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
     if perturb is not None:
         b_ = s.binding
         pert_rec = apply_model(s.model, perturb, robot_bodies=b_.robot_bodies, com_body=b_.root_bid, act_ids=b_.pol_act)
-    mrec = LeggedMotionRecorder(s)
+    from rrp.evaluation.contact_metrics import contact_metrics_enabled
+    cfm = contact_metrics_enabled()             # W12 stance-drift keys (RRP_CONTACT_METRICS=1; off = rows unchanged)
+    mrec = LeggedMotionRecorder(s, record_stance=cfm)
     pst = install_legged(s, perturb if perturb is not None else _NOMINAL, seed, on_substep=mrec.on_substep,
                          on_tick=mrec.on_tick, on_reset=mrec.on_reset)
     morph = LeggedMorph(s.model, s.binding, sc.robots[0].robot_spec.spec_hash)
@@ -546,6 +548,9 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
             row["zero_qd"] = True
     row["failure_stage"] = failure_stage(row)
     row["motion"] = mrec.summary()
+    if cfm:
+        from rrp.evaluation.contact_metrics import legged_contact_motion
+        row["motion"].update(legged_contact_motion(mrec.stance_trace()))
     if perturb is not None:
         row["perturbation"] = dict(perturb.to_dict(), applied=pert_rec, terrain=sc.meta.get("terrain"),
                                    actuator=(pst["actuator"].params if pst["actuator"] is not None else None),

@@ -32,12 +32,14 @@ FEATURIZER_VERSION = f"feat-multi-v1+{BASE_FEATURIZER_VERSION}"
 def collect_dual_episode(session, teacher, max_steps: int = 1200, episode_id: str = "",
                          split_lineage: dict | None = None, pair_key: str = "", exec_noise: float = 0.0,
                          noise_seed: int = 0, stop_after_success: int | None = None, noise_period: int = 1,
-                         noise_on: int = 1) -> EpisodeRecord:
+                         noise_on: int = 1, contact_labels: bool = False) -> EpisodeRecord:
     """exec_noise > 0 (DART): every robot's executed ARM command = teacher command + N(0, exec_noise) (resampled
     every 5 steps, clipped to joint limits) during bursts of `noise_on` of every `noise_period` control steps (the
     precise dual teachers never converge under continuous noise); the recorded LABEL is always the clean command.
     stop_after_success: end the episode this many control steps after the PUBLIC runtime reports success (the
-    handover teacher otherwise idles until max_steps)."""
+    handover teacher otherwise idles until max_steps).
+    contact_labels (W12, default off = byte-identical files): also record the privileged per-tick contact frames
+    (rrp.data.contact_labels) into the PRIVATE file under `contact_frames` (labels only)."""
     feat = MultiFeaturizer(session.model, session.scenario.robots)
     nrng = np.random.default_rng([noise_seed, 7])
     nz: dict = {}
@@ -45,6 +47,10 @@ def collect_dual_episode(session, teacher, max_steps: int = 1200, episode_id: st
     for n, (g, c) in enumerate(zip(feat.aspace.node_group, feat.aspace.node_col)):
         lim.setdefault(g, {})[c] = (feat.aspace.lower[n], feat.aspace.upper[n])
     succ_at = None
+    cfrec = None
+    if contact_labels:
+        from rrp.data.contact_labels import ContactFrameRecorder
+        cfrec = ContactFrameRecorder(session)
     f = teacher.feasibility()
     t0 = time.time()
     inputs, actions, labels, phases, statuses, q0s = [], [], [], [], [], []
@@ -65,6 +71,8 @@ def collect_dual_episode(session, teacher, max_steps: int = 1200, episode_id: st
             if session.scenario.name == "support_insert":
                 lab["insertion_truth"] = session.insertion_truth()
             labels.append(lab)
+            if cfrec is not None:
+                cfrec.tick()
             phases.append(teacher.phase_label)
             statuses.append({e: v.status for e, v in session.runtime.instances.items()})
             if exec_noise > 0 and steps % noise_period < noise_on:
@@ -122,11 +130,16 @@ def collect_dual_episode(session, teacher, max_steps: int = 1200, episode_id: st
     private = dict(meta=dict(episode_id=episode_id, kind="privileged_labels"), labels=labels, phases=phases,
                    manipulators=list(session.manip_map), slots=[o.sim_body for o in session.detectables],
                    layout=session.scenario.meta.get("privileged_layout"))
+    if cfrec is not None:
+        from rrp.data.contact_labels import CONTACT_LABEL_VERSION
+        private["contact_frames"] = cfrec.recording().to_dict()
+        private["contact_label_version"] = CONTACT_LABEL_VERSION
     return EpisodeRecord(public, private)
 
 
 def _job(args):
-    task, pair, seed, out_dir, split, max_steps, noise, stop_after, burst = args
+    task, pair, seed, out_dir, split, max_steps, noise, stop_after, burst, *rest = args
+    contact_labels = bool(rest[0]) if rest else False
     eid = f"{task}_{pair}_s{seed}" + (f"_dart{int(noise * 1000)}" if noise else "")
     ep_dir = Path(out_dir) / "episodes"
     done = ep_dir / f"{eid}.public.pkl.gz"
@@ -143,7 +156,7 @@ def _job(args):
     rec = collect_dual_episode(sess, TEACHERS[task](sess), max_steps=max_steps, episode_id=eid,
                                split_lineage=dict(split=split, robot_key=pair), pair_key=pair,
                                exec_noise=noise, noise_seed=seed, stop_after_success=stop_after,
-                               noise_period=burst[0], noise_on=burst[1])
+                               noise_period=burst[0], noise_on=burst[1], contact_labels=contact_labels)
     meta = write_episode(rec, ep_dir)
     del rec, sess
     import gc
@@ -161,7 +174,8 @@ def generate(config: dict) -> dict:
             for nl in noises:
                 jobs.append((item.get("task", config.get("task", "support_insert")), item["pair"], item["seed_start"] + k,
                              str(out), item["split"], config.get("max_steps", 1200), float(nl),
-                             config.get("stop_after_success"), tuple(config.get("noise_burst", (1, 1)))))
+                             config.get("stop_after_success"), tuple(config.get("noise_burst", (1, 1))))
+                            + ((True,) if config.get("contact_labels") else ()))
     t0 = time.time()
     metas = []
     # resume in the parent: completed, readable episodes are not resubmitted. (Submitting them made

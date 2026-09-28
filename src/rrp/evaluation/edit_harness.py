@@ -192,3 +192,68 @@ def probe_guided_edit(z0: np.ndarray, target_loss: Callable, *, anchor_loss: Cal
         if anchor_loss is not None:
             info["anchor_residual"] = float(anchor_loss(z + d, z))
     return (z + d).detach().cpu().numpy(), info
+
+
+# ------------------------------------------------------------------------------------ W12 contact / anchor causal specs
+# Declared before running (predictions are falsifiable). Units: metres, packet slot order (left, right).
+# The "anchor" of a hand is its contact_anchor receipt (rrp.envs.dual); the anchor-relative packet (anchor-targets-v1)
+# plans hand poses relative to it. Two ways to shift it:
+#   context edit  : the runtime receipt value seen by system i (and by the anchor-input system 0, rz-anchor-in-v1)
+#                   is shifted by delta (shift_receipt_value); this is a valid, deploy-time information change
+#   packet edit   : probe-guided z edit moving the anchor-relative readout of the dependent hand by -delta
+#                   (anchor_shift_target), all other anchor/semantic readouts anchored
+def contact_edit_conditions(delta_m=(0.03, 0.0, 0.0), task: str = "support_insert") -> list[EditCondition]:
+    d = [float(x) for x in delta_m]
+    hand = "right (inserting) hand relative to the support anchor" if task == "support_insert" else \
+        "right (receiving) hand relative to the giver's anchor"
+    return [
+        EditCondition("control", "control", "reference"),
+        EditCondition("replay", "replay", "noise floor: same seed, same packet source"),
+        EditCondition("anchor_shift_context", "semantic",
+                      f"re-anchoring: the {hand} follows the shifted anchor; its contact / final position moves by "
+                      f"~delta (projected gain in [0.5, 1.5]) and the task still succeeds", dict(delta_m=d, level="context")),
+        EditCondition("anchor_shift_packet", "semantic",
+                      f"same prediction as the context shift, through a probe-guided z edit of the {hand}",
+                      dict(delta_m=d, level="packet")),
+        EditCondition("contact_order_swap", "semantic",
+                      "the other hand makes its first task contact first: the observed sequence satisfies the swapped "
+                      "spec (swap_hands) better than the original (order_error drops vs control)",
+                      dict(level="context_or_packet")),
+        EditCondition("anchor_shift_matched_random", "irrelevant_control",
+                      "matched-norm random z direction: projected shift gain within the replay noise floor",
+                      dict(delta_m=d, level="packet", like="anchor_shift_packet")),
+        EditCondition("anchor_shift_probe_orthogonal", "irrelevant_control",
+                      "matched-norm z direction orthogonal to the anchor-probe Jacobian: no re-anchoring",
+                      dict(delta_m=d, level="packet", like="anchor_shift_packet")),
+        EditCondition("irrelevant_anchor_shift", "irrelevant_control",
+                      "shift an anchor no active event consumes (a completed event's receipt, or the other hand's "
+                      "released contact) by the same delta: no behaviour change", dict(delta_m=d, level="context")),
+        EditCondition("zero_packet", "negative_control", "z = 0: a system 0 that ignores z would not change"),
+    ]
+
+
+def shift_receipt_value(value: dict, delta_m) -> dict:
+    """Copy of a contact_anchor / frame_estimate receipt value with its position shifted (context-level edit)."""
+    v = dict(value)
+    v["pos"] = [float(a) + float(b) for a, b in zip(value["pos"], delta_m)]
+    return v
+
+
+def anchor_shift_target(readout: Callable, z0: np.ndarray, delta_anchor_frame, slot: int,
+                        query: str = "tcp_in_support") -> Callable:
+    """Target loss for probe_guided_edit: move the anchor-relative position readout of `slot` (all knots) by
+    -delta (expressed in the anchor frame, metres) -- "the anchor is delta further along". readout(z) returns the
+    AnchorProbe output dict for a single packet (batch 1)."""
+    import torch
+    with torch.no_grad():
+        r0 = readout(torch.as_tensor(np.asarray(z0, np.float32)))[query][0, :, slot, :3].clone()
+    tgt = r0 - torch.as_tensor(np.asarray(delta_anchor_frame, np.float32) * 10.0)          # probe positions in dm
+    return lambda z: ((readout(z)[query][0, :, slot, :3] - tgt) ** 2).mean()
+
+
+def projected_shift(key: str, delta_m) -> Callable[[dict], float | None]:
+    """Metric for paired_effect: row[key] (a 3-vector, e.g. the hand's contact point at insertion) projected on the unit
+    edit direction; paired_effect(...).mean_diff / |delta| is the re-anchoring gain."""
+    u = np.asarray(delta_m, float)
+    u = u / max(np.linalg.norm(u), 1e-12)
+    return lambda r: None if r.get(key) is None else float(np.dot(np.asarray(r[key], float), u))

@@ -397,6 +397,8 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
         # bookkeeping) are not part of the snapshot, so they would be corrupted by the look-ahead
         raise ValueError("step-level perturbations need a route without look-ahead rollouts (compare_oracle=False)")
     S, s0, meters, shadows, meta, mrecs, perts = [], [], [], [], [], [], []
+    from rrp.evaluation.contact_metrics import contact_metrics_enabled
+    cfrecs = [] if contact_metrics_enabled() else None     # W12 held-object drift keys (RRP_CONTACT_METRICS=1)
     for sd in cfg.seeds:
         s = Session(BUILDERS[cfg.task](robot, sd, n_distractors=sd % 3), seed=sd)
         if cfg.perturb is not None:
@@ -407,6 +409,9 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
                                act_ids=ap_["act_ids"], object_bodies=cube_, object_contact_geoms=ap_["finger_geoms"])
             perts.append((rec_, install_arm(s, cfg.perturb, sd)))
         mrecs.append(ArmMotionRecorder(s))
+        if cfrecs is not None:
+            from rrp.data.contact_labels import ContactFrameRecorder
+            cfrecs.append(ContactFrameRecorder(s))
         f = s._rrp_featurizer = PrevActionFeaturizer(_featurizer(s), cfg.prev_action)
         S.append(s)
         meters.append(Meter(s))
@@ -539,6 +544,8 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
             s.step(cmd)
             meta[k]["steps"] += 1
             mrecs[k].tick(None if cmd is None else cmd.groups, k in bnd)
+            if cfrecs is not None:
+                cfrecs[k].tick()
             if cmd is not None:
                 row["track_q"] = float(np.abs(s.data.qpos[mt.qadr] - qc).mean())
                 row["track_tcp"] = float(np.linalg.norm(mt.tcp() - tcp_cmd))
@@ -591,6 +598,9 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
                            f"chunk of learned:{cfg.policy_label or cfg.policy} at the current state)"), generated="learned(system-i flow)",
                         learned=f"learned:{cfg.policy_label or cfg.policy}")[cfg.route],
             checkpoints=ids, motion=mrecs[k].summary()))
+        if cfrecs is not None:
+            from rrp.evaluation.contact_metrics import arm_contact_motion
+            out[-1]["motion"].update(arm_contact_motion(cfrecs[k].recording()))
         if cfg.perturb is not None:
             rec_, st_ = perts[k]
             out[-1]["perturbation"] = dict(cfg.perturb.to_dict(), applied=rec_,

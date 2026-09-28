@@ -92,8 +92,11 @@ class LeggedMotionRecorder:
     """Read-only per-substep/per-tick recorder for a LeggedSession (attach via rrp.envs.perturb.install_legged)."""
     MOVING = 0.1
 
-    def __init__(self, session):
+    def __init__(self, session, record_stance: bool = False):
+        """record_stance (W12, default off): also record per-tick foot poses and loaded-stance flags for the stance
+        drift metrics (rrp.evaluation.contact_metrics.legged_contact_motion via stance_trace()); summary() is unchanged."""
         s = self.s = session
+        self.record_stance = bool(record_stance)
         b = self.b = s.binding
         m = s.model
         self.dt_sub = float(m.opt.timestep)
@@ -118,6 +121,7 @@ class LeggedMotionRecorder:
         self.tbuf = []
         self.p_last = None
         self.ticks = 0
+        self.st_pos, self.st_yaw, self.st_on = [], [], []
 
     def on_reset(self, done: bool):
         self.on = bool(done)
@@ -151,11 +155,22 @@ class LeggedMotionRecorder:
             self.path += float(np.linalg.norm(p - self.p_last))
         self.p_last = p
         self.q.append(d.qpos[b.pol_qadr].copy())
+        if self.record_stance:
+            fb = b.foot_bids
+            self.st_pos.append(d.xpos[fb].copy())
+            xm = d.xmat[fb].reshape(-1, 3, 3)
+            self.st_yaw.append(np.arctan2(xm[:, 1, 0], xm[:, 0, 0]))
+            self.st_on.append(b.stance(d)[1] > self.w_load)
         spd = float(np.hypot(*d.qvel[b.da:b.da + 2]))
         if spd > self.MOVING:
             _fc, fn, slip, _bad = b.stance(d)
             self.slips += [float(x) for x in slip[fn > self.w_load]]
             self.speeds.append(spd)
+
+    def stance_trace(self) -> dict:
+        nf = len(self.b.foot_bids)
+        return dict(foot_pos=np.array(self.st_pos).reshape(-1, nf, 3), foot_yaw=np.array(self.st_yaw).reshape(-1, nf),
+                    stance=np.array(self.st_on, bool).reshape(-1, nf))
 
     def summary(self) -> dict:
         b = self.b
