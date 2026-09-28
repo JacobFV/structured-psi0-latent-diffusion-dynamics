@@ -763,3 +763,24 @@ Grasp_v2 re-evaluation COMPLETE (artifacts/runs/armexpert_gc2eval/compare_gc2_fi
 - nosem s1 3 → 1; nosem s2 26 → 39;
 - BC direct1701 235 → 212.
 Reading: the D-095 arm conclusion survives realistic grasp physics and strengthens for semfix (311/480 vs nosem 40/480 across both seeds). BC remains the strongest single route on these source bodies (212/240), as before.
+
+## D-128 2026-09-28 D-126 arm and legged code items landed (default-off, untrained)
+Arm agent (research/tracks/d126_arm.md; main a2808da, e952936):
+- #6 GRPO stage with anchor evaluations (regression → restore last good) for latent and BC at equal budget, template arm_grpo;
+- #9/#10 target_eval / target_adapt / train_bc stages and templates on the sealed protocol, with a matched-inputs test;
+- #7 chunk_blend none|crossfade|ensemble;
+- #8 limit-aware IK (teacher v2lim; margin 0 is bit-identical);
+- #5 dart_descent_sigma behind the proximity guard;
+- #35 object_spec / object_variation;
+- #4 recipe overlays (extends accepts a list).
+Found and fixed: stages had no way to set the grasp contact version, so a v6 DAG would have evaluated under grasp_v1. A `grasp_contact` stage option was added (CORE_API 1.1); the v6 lineage must set v2.1 on every node.
+Legged agent (research/tracks/d126_legged.md; main ec82e22):
+- #13 tracker options: --ref-gait clock, --yaw-progress-cap, --limit-margin-agg; recipes h1_clock_scratch / g1_yawcap_ft / t1_turn_latency_ft / anymal_c_terrain_ft with a train_tracker stage and gated DAGs;
+- #14 actuator_mode ideal|v1lat|v2 threaded end to end; estimated joint speeds flagged (all procedural bodies; t1/h1/g1/go2/anymal_c are sourced);
+- #15 gated terrain curriculum; MJX prototype (parity 1.2e-5 rad CPU / 3.2e-3 GPU with a no_self_collision adaptation; not yet faster: 512 vs 4518 env-ticks/s on a busy GPU);
+- #11 held-out template (train go2 + hexapod6, zero-shot anymal_c, then an "adapt" refit vs BC on the same 50 episodes);
+- #34 loco_pick task/scene on spot_arm (teacher is a STUB; no spot tracker; spot limits unsourced);
+- #22 foothold_steps task/scene.
+Default-behaviour pinning: tracker env reward/observation hashes are identical to pre-D-126 code.
+Finding: the joint-limit-margin penalty averaged over joints (one joint at its limit counts 1/n), consistent with t1's negative margins; recipes use -1.0 with `max` aggregation.
+Nothing trained. The first run of each template must be measured and redeclared at ≥ 1.35 × peak (D-117).
