@@ -79,6 +79,9 @@ class System0Adapter:
         self.ticks = 0
         self.log = []
         self.stats = dict(ticks=0, packets=0, rejected=0, fallback=0)
+        self.ood = None                    # D-126 #29: rrp.controllers.packet_ood.PacketOODMonitor (None = off)
+        self.fallback_mode = "hold_default"
+        self.safety = None                 # the SafetyLayer, when the OOD fallback is the safe stop
 
     def reset(self, phase=0.0):
         self.ticks = 0
@@ -96,6 +99,9 @@ class System0Adapter:
 
     def dyn_batch(self):
         q, qd, imu, touch = local_state(self.s, self.m)
+        lt = getattr(self.c, "local_transform", None)       # D-126 #28 audit hook (None = unchanged)
+        if lt is not None:
+            q, qd, imu, touch = lt(q.copy(), qd.copy(), imu.copy(), touch.copy(), self)
         dev = self.c.dev
         qq = np.zeros(MAX_N, np.float32); qq[:len(q)] = q
         dd = np.zeros(MAX_N, np.float32); dd[:len(qd)] = qd
@@ -114,6 +120,8 @@ class System0Adapter:
                 p = self.c.generate(self, now)
                 check_packet(p, latent_space_version=self.c.lsv, realizer_compat_version=self.c.rcv,
                              robot_spec_hash=self.m.spec_hash, now=now)
+                if self.ood is not None:
+                    self._ood_check(p, now)
                 self.packet = p
                 self.stats["packets"] += 1
             except Exception as e:                      # rejected -> keep fallback semantics below
@@ -136,13 +144,26 @@ class System0Adapter:
             self.stats["ticks"] += 1
         else:
             self.stats["fallback"] += 1
-            tgt = np.clip(b.q0, b.lo, b.hi)          # declared fallback: hold the default stance
+            if self.fallback_mode == "hold_measured":
+                tgt = np.clip(data.qpos[b.pol_qadr], b.lo, b.hi)
+            else:
+                tgt = np.clip(b.q0, b.lo, b.hi)          # declared fallback: hold the default stance
         fc, _ = b.contacts(data)
         self.c.trace.append(dict(t=now, pose=self.s.base_pose_truth().tolist(), contact=fc.astype(int).tolist()))
         if getattr(self.c, "recorder", None) is not None and self.armed:
             self.c.recorder(self, fc)
         self.ticks += 1
         return tgt
+
+
+    def _ood_check(self, p, now):
+        """D-126 #29: score the accepted-by-compatibility packet; in enforce mode an OOD packet is rejected like an
+        incompatible one (counted, logged, previous packet kept until it expires, then the declared fallback)."""
+        rec = self.ood.check(p.z, t=now)
+        if rec is not None and rec["rejected"]:
+            if self.fallback_mode == "safe_stop" and self.safety is not None:
+                self.safety.safe_stop(now, reason="packet_ood")
+            raise ValueError(f"packet_ood: score {rec['score']:.1f} > {self.ood.model.thresholds['enforce']:.1f}")
 
 
 class BCController:
@@ -191,7 +212,10 @@ class BCAdapter:
         now = float(data.time)
         if self.armed and (self.chunk is None or self.k >= self.c.replan):
             bb = self.dyn_batch()
-            bb["ctx"] = torch.from_numpy(public_context(self.s, self.osc()))[None].to(self.c.dev)
+            cx = public_context(self.s, self.osc())
+            if getattr(self.c, "ctx_transform", None) is not None:     # D-126 #28 audit hook (same as the latent route)
+                cx = np.asarray(self.c.ctx_transform(cx.copy(), self), np.float32)
+            bb["ctx"] = torch.from_numpy(cx)[None].to(self.c.dev)
             self.chunk = self.c.model.sample(bb, nfe=self.c.nfe, generator=self.c.gen)[0, :b.n].cpu().numpy()
             self.k = 0
             self.stats["packets"] += 1
@@ -264,6 +288,8 @@ class LatentLeggedController:
         self.dev, self.nfe, self.edit, self.t_edit = dev, nfe, edit, t_edit
         self.gen = torch.Generator(device=dev).manual_seed(seed)
         self.packets, self.trace = [], []
+        self.ctx_transform = None          # D-126 #28 audit: f(ctx np[22], adapter) -> ctx (None = unchanged)
+        self.record_z = None               # D-126 #29: list of (t, edit, z) when packets are recorded
 
     def bind(self, session, morph):
         self.static = static_batch(morph, self.dev)
@@ -284,6 +310,8 @@ class LatentLeggedController:
         if mode == "halt":
             c = c.copy()
             c[16:20] = np.eye(4)[EVENTS.index("halt")]
+        if self.ctx_transform is not None:
+            c = np.asarray(self.ctx_transform(c.copy(), ad), np.float32)
         return torch.from_numpy(c)[None].to(self.dev)
 
     def _sample(self, b):
@@ -321,6 +349,8 @@ class LatentLeggedController:
             pout = self.P(z, b["asm_mask"], b["body_asm"])
         M = self.morph.M
         zz = z[0, :, :M].cpu().numpy().astype(np.float32)
+        if self.record_z is not None:
+            self.record_z.append((now, edit, zz.copy()))
         p = LatentActionChunk(latent_space_version=self.lsv, realizer_compat_version=self.rcv, z=zz,
                               knot_times=list(KNOT_TIMES),
                               assemblies=[AssemblyHandle(handle=h, robot_index=0) for h in self.morph.handles],
@@ -466,9 +496,15 @@ def _limits(model):
 
 
 def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=None, arc_only=False, frame_every=2,
-                cam_scale=1.0, size=(368, 480), perturb=None):
+                cam_scale=1.0, size=(368, 480), perturb=None, deploy=None):
     """perturb: rrp.envs.perturb.PhysicsPerturbation (W6 robustness sweeps; None = nominal, unchanged behaviour).
-    Every row carries `motion` (rrp.evaluation.motion_quality, read-only recording) and, if perturbed, `perturbation`."""
+    Every row carries `motion` (rrp.evaluation.motion_quality, read-only recording) and, if perturbed, `perturbation`.
+    deploy: rrp.evaluation.deploy_eval.DeployOptions (D-126: estimator, packet OOD, safety, long runs, latency;
+    None or the default instance = unchanged behaviour and rows)."""
+    if deploy is not None and deploy.is_default():
+        deploy = None
+    if deploy is not None and deploy.eval_mode == "long":
+        max_s = deploy.long_s
     from rrp.envs.perturb import apply_model, install_legged
     from rrp.envs.motion_quality import LeggedMotionRecorder
     if scenario is not None:
@@ -477,7 +513,8 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
         sc = build_waypoint_contact(body, seed, terrain=perturb.terrain(seed))
     else:
         sc = build_waypoint_contact(body, seed)
-    s = LeggedSession(sc, tracker_kind=default_tracker_kind(body), seed=seed)
+    s = LeggedSession(sc, tracker_kind=default_tracker_kind(body), seed=seed,
+                      **({} if deploy is None else dict(base_state_source=deploy.base_state_source)))
     trk_sha = getattr(s.tracker, "sha256", None)   # the body tracker (drives the teacher route; label source for ours)
     pert_rec = None
     if perturb is not None:
@@ -497,7 +534,11 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
         if not is_bc:
             ctl.oracle = OracleShadow(ctl, s, s.tracker) if oracle else None
         s.tracker = ad
+    dep = _deploy_setup(s, ctl, ad, deploy) if deploy is not None else None
     s.reset()
+    if dep is not None and deploy.measure_latency and ad is not None:
+        from rrp.evaluation.deploy_eval import instrument_latency
+        dep["timers"] = instrument_latency(ctl, s.tracker)
     if ctl is None:
         from rrp.teachers.legged import WaypointTeacher
         teacher = WaypointTeacher(s, arc_only=arc_only)
@@ -520,11 +561,14 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
         cmd = teacher.act() if teacher else zero
         s.step(cmd)
         steps += 1
+        if dep is not None and dep["rec"] is not None:
+            dep["rec"].on_step()
         if rend is not None and steps % frame_every == 0:
             rend.update_scene(s.data, camera=cam)
             st = " ".join(f"{e}:{v.status}" for e, v in s.runtime.instances.items())
             frames.append((rend.render().copy(), f"t={s.data.time:.1f}s {st}"))
-        if s.fell or s.runtime.succeeded() or (teacher is not None and teacher.done):
+        if s.fell or ((s.runtime.succeeded() or (teacher is not None and teacher.done))
+                      and not (dep is not None and deploy.eval_mode == "long")):
             break
     ok = bool(s.privileged_success() and not s.fell)
     src = ("scripted_teacher" + (":arc_only" if arc_only else "")) if ctl is None else (
@@ -550,6 +594,8 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
     ar = s.actuator_record() if hasattr(s, "actuator_record") else None
     if ar is not None:                 # D-126 #14: only non-ideal actuator modes add the key (default rows unchanged)
         row["actuator_mode"] = ar
+    if dep is not None:
+        row.update(_deploy_row(dep, deploy, ctl, ad))
     row["motion"] = mrec.summary()
     if cfm:
         from rrp.evaluation.contact_metrics import legged_contact_motion
@@ -559,6 +605,46 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
                                    actuator=(pst["actuator"].params if pst["actuator"] is not None else None),
                                    push=(pst["push"].record() if pst["push"] is not None else None))
     return row, frames
+
+
+def _deploy_setup(s, ctl, ad, deploy) -> dict:
+    """D-126: attach the non-default deployment options to a built session (before reset)."""
+    from rrp.evaluation.deploy_eval import LongRunRecorder, SafeTracker, make_safety
+    dep = dict(ood=None, safety=None, rec=None, timers=None)
+    if deploy.packet_ood != "off" and isinstance(ad, System0Adapter):
+        from rrp.controllers.packet_ood import PacketOODModel, PacketOODMonitor
+        model = PacketOODModel.load(Path(deploy.ood_model), expect_lsv=ctl.lsv)
+        if model.n_assemblies is not None and model.feature == "packet" and model.n_assemblies != ad.m.M:
+            raise ValueError(f"OOD model for {model.n_assemblies} assemblies, body has {ad.m.M}")
+        dep["ood"] = ad.ood = PacketOODMonitor(model, deploy.packet_ood, deploy.ood_fallback)
+        ad.fallback_mode = deploy.ood_fallback
+    layer = make_safety(s, deploy)
+    if layer is not None:
+        dep["safety"] = layer
+        s.tracker = SafeTracker(s.tracker, s, layer)
+        if ad is not None:
+            ad.safety = layer
+    if deploy.eval_mode == "long" or deploy.base_state_source == "estimator":
+        dep["rec"] = LongRunRecorder(s, deploy.window_s)
+    if deploy.record_packets and ctl is not None and hasattr(ctl, "record_z"):
+        ctl.record_z = []
+    return dep
+
+
+def _deploy_row(dep, deploy, ctl, ad) -> dict:
+    out = dict(deploy=deploy.record())
+    if dep["ood"] is not None:
+        out["packet_ood"] = dep["ood"].summary()
+    if dep["safety"] is not None:
+        out["safety"] = dep["safety"].summary()
+    if dep["rec"] is not None:
+        out["long_run" if deploy.eval_mode == "long" else "base_state"] = dep["rec"].summary()
+    if dep["timers"] is not None:
+        from rrp.evaluation.deploy_eval import latency_summary
+        out["latency"] = latency_summary(dep["timers"])
+    if getattr(ctl, "record_z", None) is not None:
+        out["_packet_z"] = ctl.record_z                  # popped by main() into <out>.packets/*.npz
+    return out
 
 
 def packet_probe_accuracy(rows):
@@ -623,6 +709,16 @@ def save_video(frames, row, video_dir: Path, label: str):
     return name
 
 
+def _save_packets(zs, out_dir: Path, row):
+    """D-126 #29: one .npz per episode: t [P], edit [P], z [P, K, M, dz] (+ outcome, for OOD scoring)."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    name = f"{row['body']}_s{row['seed']}_{str(row['edit']).replace(':', '')}.npz"
+    np.savez_compressed(out_dir / name, t=np.array([x[0] for x in zs]), edit=np.array([x[1] for x in zs]),
+                        z=np.stack([x[2] for x in zs]) if zs else np.zeros((0,)), fell=row["fell"],
+                        success=row["success"], source=row["source"], lsv=str(row.get("latent_space_version")))
+    row["packets_file"] = str(out_dir / name)
+
+
 _seeds = parse_seed_spec          # W4 dedup: one implementation in rrp.contracts.runs
 
 
@@ -649,7 +745,11 @@ def main(argv=None):
     ap.add_argument("--video-n", type=int, default=0)
     ap.add_argument("--arc-only", default="none", help="teacher arc_only variant: none | all | comma list of bodies")
     ap.add_argument("--device", default="cpu", help="cpu (default; eval runs in CPU leases) or cuda")
+    from rrp.evaluation.deploy_eval import DeployOptions, add_deploy_args
+    add_deploy_args(ap)
     a = ap.parse_args(argv)
+    deploy = DeployOptions.from_args(a)
+    deploy = None if deploy.is_default() else deploy
     dev = _dev() if a.device == "cuda" else torch.device("cpu")
     torch.set_num_threads(2)
     out = Path(a.out)
@@ -673,7 +773,10 @@ def main(argv=None):
                     ctl = None
                 want = a.video_dir is not None and nv < a.video_n
                 row, frames = run_episode(ctl, body, sd, a.max_s, video=True if want else None, oracle=a.oracle,
-                                         arc_only=(a.flow is None and (a.arc_only == "all" or body in a.arc_only.split(","))))
+                                         arc_only=(a.flow is None and (a.arc_only == "all" or body in a.arc_only.split(","))),
+                                         **({} if deploy is None else dict(deploy=deploy)))
+                if "_packet_z" in row:
+                    _save_packets(row.pop("_packet_z"), Path(a.record_packets), row)
                 if want:
                     lab = ("SCRIPTED TEACHER (privileged)" if ctl is None else (
                         "PRIVILEGED ORACLE packets (E on shadow teacher) + LEARNED sys-0" if a.oracle
