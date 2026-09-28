@@ -1,0 +1,40 @@
+# ARM V6 LINEAGES (D-110 relaunch; D-127): the arm lineage set on v6 components ONLY, as a FRESH lineage (new names,
+# new ledger) that inherits every recipe detail, seed, collection seed, eval set and edit suite from
+# dags/arm_lineage_v2.yaml -> dags/arm_lineage.yaml:
+#   data  = v6dart: teacher v2 + grasp contact v2.1 + phase-gated DART (dags/armexpert_v6dart.yaml; dataset
+#           runs/armexpert/v6dart/collect-v6dart_s1, pack packed/latent_pp_v6dart_s1_H16; gate PASS)
+#   DAgger labeller / stateless-R1 expert = learned:bcv6_direct1701 FINAL checkpoint (D-127: the v6 pack ends at ~11.9k
+#           updates, so no u12000 snapshot exists; the final checkpoint is the matching training point)
+#   grasp contact v2.1 in EVERY simulated stage: `options.grasp_contact: v2.1` on all DAgger collections, R2/R1/held-out
+#           evaluations and the edit suite (D-126 stage option; without it these stages would simulate grasp_v1).
+#           Training stages (Stage A, flows, refits) read packs only and simulate nothing.
+# Variants semfix and nosem x training seeds 1, 2. Placement: every node on the PEER (D-115/D-127: no training, sims or
+# evals on the host; the host only runs the run-dag coordinator). Outputs artifacts/runs/armv6/arm6-<variant>/...
+#   rrp run-dag dags/arm_lineage_v6.yaml --dry-run
+#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv6 rrp run-dag dags/arm_lineage_v6.yaml
+extends: arm_lineage_v2.yaml
+name: arm_lineage_v6
+track: armv6
+lineage: 'arm6-{variant}'
+label_prefix: 'a6{tg}{seed}'
+vars:
+  pfx: 'arm6_{variant}_s{seed}'
+  dataset: runs/armexpert/v6dart/collect-v6dart_s1
+  pack: packed/latent_pp_v6dart_s1_H16
+  bc_policy: 'runs/armexpert_bcv6/baseline_direct_action/seed1701/source:policy.pt'
+  bc_label: bcv6_direct1701_final
+nodes:
+  bc1: {config: {options: {grasp_contact: v2.1}}}
+  bc2: {config: {options: {grasp_contact: v2.1}}}
+  bc3: {config: {options: {grasp_contact: v2.1}}}
+  gen1: {config: {options: {grasp_contact: v2.1}}}
+  gen2: {config: {options: {grasp_contact: v2.1}}}
+  gen3: {config: {options: {grasp_contact: v2.1}}}
+  gdag1: {config: {options: {grasp_contact: v2.1}}}
+  gdag2: {config: {options: {grasp_contact: v2.1}}}
+  finalevals: {config: {options: {grasp_contact: v2.1}}}
+  heldout: {config: {options: {grasp_contact: v2.1}}}
+  prog20k: {config: {options: {grasp_contact: v2.1}}}
+  proggdag1: {config: {options: {grasp_contact: v2.1}}}
+  orcbc: {config: {options: {grasp_contact: v2.1}}}
+  semedits: {config: {options: {grasp_contact: v2.1}}}

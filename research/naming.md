@@ -28,10 +28,15 @@ Variants:
 | `nszq` | nosem, both ablations (z-noise 0 AND qd kept) | s1 | `arm/nosem-zn0-qd/s1` | same | `configs/ladder/armnosemabl/nszq/rz_nszq_gendag1_qd.json` |
 | `arm2-semfix` s1/s2 (labels `a2sf1_…`, `a2sf2_…`; dirs `artifacts/runs/armv2/arm2-semfix/<stage>[-<tag>]_s<seed>`) | semfix on v2 components | s1, s2 | `arm2/semfix/s{1,2}` | D-102; ladder.md "ARM V2-TEACHER LINEAGES" | `dags/arm_lineage_v2.yaml` |
 | `arm2-nosem` s1/s2 (labels `a2ns1_…`, `a2ns2_…`) | nosem on v2 components | s1, s2 | `arm2/nosem/s{1,2}` | same | same |
+| `arm6-semfix`, `arm6-nosem` s1/s2 (labels `a6sf<s>_…`, `a6ns<s>_…`; dirs `artifacts/runs/armv6/arm6-<variant>/…`) | semfix / nosem on v6 components (teacher v2 + grasp contact v2.1, v6dart; DAgger labeller learned:bcv6_direct1701 FINAL) | s1, s2 | `arm6/<variant>/s{1,2}` | D-110, D-127; ladder.md "ARM V6 LINEAGES" | `dags/arm_lineage_v6.yaml` |
 | `b1fix` | any | — | flag: `zero_prev_action` (B-1 fix) | D-044, D-045 | `configs/ladder/rz_sem_v1_b1fix.json` |
 | `anchor` | any | — | flag: `realizer_anchor` (column 28 = joint displacement since packet anchor) | D-045, ladder.md | `configs/ladder/rep-latent_sem_b1fix_anchor.json` |
 | `latent_{sem,nosem}_v1`, `flow_latent_sem_v{1,2,3}` | sem / nosem | s1 | pre-B-1 lineage (contaminated; v2 = standardized flow target D-031, v3 = +`packet_tau_min`; all reuse the v1 encoder) | D-031, D-045 | `configs/latent/rep-latent_sem_v1.json` |
 | `flow_jointfix_nosem` | sem encoder + nosem flow | s1 | Stage-B-only ablation; no results found (uncertain purpose) | commit 9fce481 | `configs/ladder/flow_jointfix_nosem.json` |
+
+v6 set (`arm6-*`, D-110/D-127): `dags/arm_lineage_v6.yaml` extends the v2 file; inputs v6dart dataset/pack and the v6 BC
+expert's FINAL checkpoint (no u12000 snapshot exists for the v6 pack); every simulated stage sets `grasp_contact: v2.1`.
+The `arm2-*` set (grasp_v1) is superseded by D-110.
 
 v2-teacher set (`arm2-*`, D-102): identical recipe, seeds and collection seeds to the v1 lineages of the same variant/seed,
 but data = `pick_place_primary_v4dart` / pack `latent_pp_v4dart_s1_H16` (scripted_teacher:pick_place_v2_minjerk) and DAgger

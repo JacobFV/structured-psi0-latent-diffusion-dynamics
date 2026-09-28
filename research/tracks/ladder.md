@@ -3,6 +3,31 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
+## ARM V6 LINEAGES (D-110 relaunch; prepared 2026-09-28; state: planned — NOT started, waiting for the lead's go after the v6 BC is evaluated)
+DAG `dags/arm_lineage_v6.yaml` (`extends: arm_lineage_v2.yaml`): semfix and nosem x training seeds 1, 2; fresh lineage
+`arm6-<variant>`, track `armv6`, labels `a6<tg><seed>`, new ledger `artifacts/runs/armv6/_dags/arm_lineage_v6/ledger.json`,
+peer code dir `/dev/shm/rrp-brandonin/wt/armv6`. Inputs, v6 only:
+- dataset `artifacts/runs/armexpert/v6dart/collect-v6dart_s1`, pack `artifacts/packed/latent_pp_v6dart_s1_H16`
+  (teacher v2 + grasp contact v2.1 + phase-gated DART; W6 gate PASS; research/tracks/armexpert.md);
+- DAgger labeller / stateless-R1 expert: learned:bcv6_direct1701 FINAL checkpoint
+  `artifacts/runs/armexpert_bcv6/baseline_direct_action/seed1701/source/policy.pt` (sha256[:16] a29810bd0168ee1a at
+  preparation time; D-127: the v6 pack ends at ~11.9k updates, so no u12000 snapshot exists), label `bcv6_direct1701_final`.
+Grasp contact: `options.grasp_contact: v2.1` (D-126 stage option, CORE_API 1.1) on EVERY simulated stage: 8 DAgger
+collections, R2 final + held-out, both progression evals, stateless R1 and the edit suite (14 per variant x seed = 56).
+Training stages (Stage A, flows, refits) read the pack only. Test `tests/unit/test_dag_arm_v6.py` plans the DAG and
+asserts: every non-training stage has grasp_contact v2.1 (so a new simulated stage without it fails); no v3/v4/v5 data,
+v1/v2 expert or v1 BC reference anywhere; placement peer for all 100 nodes; zero_prev_action true; training params and
+flags equal the v1 recipe node by node. Unit suite 538 passed (pytest rc 0).
+Rules (D-115/D-127): every node on the PEER (collections and evals included); nothing simulated or trained on the host;
+the host coordinator is shell-only (the run-dag driver process only launches and polls peer leases). Resources as for
+the stopped v2 set: 2 GPU leases, declared memory = measured peak + 20% incl. CUDA (Stage A 12G + 2G, 2 CPU; flows 10G +
+4G and refits 8G + 3G, 2 CPU, to be refined from memory.peak), collections 20G, evals 6G, edit suite 12G; max_seconds <= 6 h.
+LAUNCH (only after the lead's go): push code to wt/armv6 (`RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv6 scripts/peer_sync.sh push`),
+re-check the expert sha, then `systemd-run --user --unit rrp-armv6-dag --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv6
+--setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/ladder ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_lineage_v6.yaml`.
+Comparison for the report: v1 (D-091/D-095) and the grasp_v2 re-evaluation of the v1 checkpoints (D-127: semfix
+154+157, nosem 1+39, frozen sem 64+132 of 240 per seed) vs v6 semfix / nosem.
+
 ## ARM V2-TEACHER LINEAGES (D-102; started 2026-09-27 02:00 PDT; state: STOPPED 09:10 by D-110 — grasp_v1, superseded)
 **D-110 (lead, 09:05): W7 found that arm grasps in the data were held by interpenetration (grasp contact v1; up to 17-20 mm,
 median 3.3 mm even with teacher v2). v4dart and everything trained on it are grasp_v1, so this set is STOPPED and
