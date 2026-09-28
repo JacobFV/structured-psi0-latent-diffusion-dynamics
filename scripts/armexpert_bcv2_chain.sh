@@ -18,6 +18,7 @@ SRC=$ROOT/baseline_direct_action/seed$SEED/source
 EV=${EV:-artifacts/runs/armexpert_bcv2_eval}
 GC=${GC:-v1}                     # grasp contact version for every evaluation (must match the pack's)
 TAGP=${TAGP:-bcv2}
+CKS=${CKS:-"u12000 final"}      # checkpoints to evaluate; v6 (D-127): "final" only (its pack ends at ~11.9k updates, no u12000 snapshot)
 HPY=$HOME/work/relational-robot-policy/.venv/bin/python
 log() { echo "$(date '+%F %T') [bcv2 s$SEED] $*"; }
 
@@ -65,8 +66,8 @@ have $SRC/policy.pt || { log "FAILED: no policy.pt after 4 leases"; exit 1; }
 log "trained"
 
 # ---------------------------------------------------------------- evaluations (CPU)
-for ck in u12000 final; do
-  f=$SRC/policy_u12000.pt; [ $ck = final ] && f=$SRC/policy.pt
+for ck in $CKS; do
+  f=$SRC/policy_$ck.pt; [ $ck = final ] && f=$SRC/policy.pt
   tag=${TAGP}_direct${SEED}_$ck
   for r in panda_pg2 parm6_tf3; do
     for ss in 3000000 3000200; do
@@ -92,6 +93,6 @@ for t in panda_tf3 xarm7_pg2 xarm7_tf3; do
 done
 have $EV/motion/${TAGP}_s$SEED.jsonl || run_job ax${TAGP}_mot_$SEED 2 6G 7200 0 env CUDA_VISIBLE_DEVICES= PY -m rrp.evaluation.teacher_quality \
   --bodies panda_pg2,parm6_tf3,parm5s_tf3,parm5l_pg2 --seeds 3000000-3000039 --workers 2 --chunk 20 \
-  --policy learned:${TAGP}_direct${SEED}_u12000=$SRC/policy_u12000.pt --policy learned:${TAGP}_direct${SEED}_final=$SRC/policy.pt \
+  $(for ck in $CKS; do f=$SRC/policy_$ck.pt; [ $ck = final ] && f=$SRC/policy.pt; printf -- "--policy learned:%s_direct%s_%s=%s " $TAGP $SEED $ck $f; done) \
   --out $EV/motion/${TAGP}_s$SEED.jsonl || { log "FAILED motion"; exit 1; }
 log "DONE"
