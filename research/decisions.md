@@ -723,3 +723,21 @@ t1 (w8d tracker, sourced limits; D-113/D-114 caveats on every number): no learne
 - Direction is the same (semfix −0.31 m pooled, n = 27; nosem +0.14 m, n = 14, one seed), but the permutation test is undefined.
 - By contrast, t1 on the old inflated-torque tracker reached 81–83/90 (D-087). A realistically-limited t1 gait is not yet learnable by our routes (backlog item 3: humanoid trackers).
 Reading: on physically credible legged contact, a semantically supervised packet carries a task-context halt request into behaviour on 2/2 quadruped bodies × 3/3 seeds, at equal task success; nosem walks further. The humanoid remains open. Evidence matrix updated; W8 closed; its peer GPU share returns to the pool (priority: W7 / arm lineages > W10 > W12).
+
+## D-125 2026-09-27 W12 phase A landed; phase B blocked on a grasp_v2.1 peg-grip failure and a non-conforming dual teacher; unit tests hide CUDA by default
+W12 (research/tracks/w12.md, main 6796fd3). Design:
+- H1: anchor-relative packets give less orientation drift during maintained contact, better contact-sequence fidelity and follow a shifted anchor, at equal success.
+- H2: better held-out transfer.
+- Variants B0 / A1 / A2 / A3 / A3-ctrl / nosem, with fairness rules and decision rules.
+Additive, versioned code: anchor frames from deploy-time inputs only; contact segmentation and event-aligned knots; a privileged label recorder; anchor probes with bounded NLL; an anchor realizer (zero-initialized extra input); contact metrics (cf_* keys); edit specs; a dual teacher audit tool. 15 unit tests.
+Phase B audit (50 episodes/task, peer CPU; artifacts/runs/w12_dualaudit/):
+- support_insert under grasp_v2.1 succeeds on 6/24 feasible episodes (grasp_v1 9/10 on the same pairs): the peg slides ~2.5 cm through the parallel-jaw grip and drops.
+- Cause: the grip reaches only ~16–20 N (position control stops ~4 mm short of the 40 N design), and under grasp_v2.1 the pad–cylinder contacts sit at the friction limit. The grasp rig only ever tested cubes.
+- The dual teacher fails the smoothness gates (phase-switch step 0% pass; jerk 5–7× the arm v2 teacher), joint margin (sawyer inserter) and noise safety (support slip up to 5.8 cm).
+- The anchor receipt lags physical contact by 0.1–0.4 s. The handover in-grip drift (median 0.08 rad) is exactly H1's quantity.
+- The old dual configs predate the B-1 fix (zero_prev_action false) and must not be reused.
+Decisions:
+(1) W7 adds a peg/cylinder case to the grasp rig and fixes pad–cylinder contact and the gripper force shortfall (a new grasp version if needed), before any dual re-collection.
+(2) Dual teacher v3: contact-confirmed grasp, minimum-jerk, limit-aware IK for sawyer, slip/drift limits, phase-gated noise; plus a dual dataset gate.
+(3) Phase C1 go/no-go (B0 / A1 / A3 at seed 0, ~9–24 GPU-h) only after (1)–(2), and after the arm v6 lineages.
+(4) Tests: the push-despite-failing-tests pattern happened twice (lead and W12), caused by CUDA OOM on the busy host GPU. tests/conftest.py now hides CUDA unless RRP_TEST_GPU=1 (401 pass / 12 skip without assets). Rule: check pytest's exit code before pushing, not just its tail.

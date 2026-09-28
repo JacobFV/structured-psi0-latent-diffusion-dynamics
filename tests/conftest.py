@@ -5,7 +5,16 @@ Markers (registered in pyproject.toml):
   (fetch with ``scripts/fetch_menagerie.sh``; the main checkout symlinks them).
 - ``packed_data``: needs the packed training data ``artifacts/packed/latent_pp_v3dart_s1_H16`` (not in git).
 """
+
+
 from __future__ import annotations
+
+import os as _os
+
+# D-115 / D-125: the host has no GPU slots and its GPU is often full (other projects). Tests that touch CUDA (e.g. torch
+# Adam's device check) then fail with CUDA OOM. Hide CUDA for the unit suite unless explicitly requested.
+if _os.environ.get("RRP_TEST_GPU") != "1":
+    _os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 import os
 from pathlib import Path
