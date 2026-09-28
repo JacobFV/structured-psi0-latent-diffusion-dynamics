@@ -21,6 +21,7 @@ are BASELINES ONLY. Integration branch: `main`.
   `PYTHONPATH=src .venv/bin/python -m rrp.cli ops run --cpu X --mem Y [--gpu --gpu-mem G] [--disk D] --label L -- cmd`.
 - **Peer** (`gb10-direct`): ALL of it (D-008, D-026, D-033). The broker is a registry only; several GPU jobs may share
   the GB10 (pack small jobs, watch memory). The watchdog acts only on emergencies. Keep it busy.
+- **Two repositories (D-100, D-119):** this repo (rrp; GitHub structured-psi0-latent-diffusion-dynamics; folder relational-robot-policy) and psi1z (the Ψ₀ line, github.com/JacobFV/psi1z). Read docs/related_repos.md for the glossary (Ψ₀ upstream vs psi1z vs system 0) and the D-xxx ↔ P-xxx crosswalk; keep the crosswalk current when you add a W10 decision.
 - **Memory declarations (D-117):** declare ≥ 1.35 × measured peak memory (plus CUDA/unified bytes). The lease soft cap is 0.8 × declared, so "+20%" throttles the job.
 - **Host vs peer (D-115, user):** NO training, simulation evals, sweeps, data collection, rendering or other heavy compute on the host. Everything heavy runs on the peer. The host is for editing, git, unit tests, small analysis and orchestration only (its broker is capped at 2 CPU / 8 GiB / 0 GPU).
 - **Peer code dirs:** the lead's checkout syncs to `/dev/shm/rrp-brandonin/repo` (running chains live there). Every other
