@@ -62,6 +62,8 @@ in [AGENTS.md](../AGENTS.md) (D-106 peer admission, D-115 host = no heavy comput
 | D-117 | P-016 | memory declarations ≥ 1.35 × peak (memory.high = 0.8 × declared) |
 | D-119 | P-017 | psi1z GitHub remote (owner); pushes allowed after pre-push check |
 | D-120 | P-012, P-015 | step 1: 3/6 released checkpoints reproduce (TabletopGraspMP, BendPickMP, HandoverTeleop); XMovePick closed out; early stops |
+| D-109 | P-018 | step-2 packet-edit design on TabletopGrasp: hand-binding edit (left hand; demos use right in 96/100), 10 cm goal shift, random-direction controls |
+| D-117, D-121 | P-019 | Isaac eval declarations (20G + 20G GPU from a measured 14.1 + 16.0 GB peak); W10 yields the peer to the W7 v6 BC expert |
 | W11 (strategy) | pin in pyproject | rrp.core 1.0, Python 3.11 support, extension hooks |
 Keep this table current: every psi1z P-entry that reflects a lead decision cites its rrp D-number, and every rrp D-entry about W10
 cites the P-numbers.
