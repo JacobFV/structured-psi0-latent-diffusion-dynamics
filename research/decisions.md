@@ -686,3 +686,12 @@ Scheduling: the v6 BC (declared 40 GiB) waited from 19:41 because W10 leases hel
 Incident: the v5 BC chain's retry loop survived a stop and retrained from 17:21 to 20:05 (~2.7 GPU-h wasted). Rule: stopping a chain means stopping its retry loop and verifying no successor lease appears.
 Grasp_v2 re-evaluation, 35/56 cells so far (not final): the semantic routes hold or improve (semfix s1 parm6 45 → 62, s2 38 → 60; frozen sem s2 44 → 66); frozen sem s1 collapses on tf3 (70 → 9 parm6); nosem stays far below (s1 1/90, s2 19/90 parm6); BC grasp_v2 parm6 68/90.
 D-120 addendum (step 2, psi1z P-018/P-019): released Ψ₀ on TabletopGraspMP 20/20 closed loop (Wilson [0.84, 1.0]; 10 configs × 2, ISO 55). Direct-arm training done (8000 steps); structured arm and probes training; direct/structured evals start once the W7 BC expert is admitted (D-121). Step-2 compute ≈ 2.8 of 40 GPU-h.
+
+## D-122 2026-09-27 W12 feature-centric coordination opened (owner): phase A (design + code, no heavy compute) now; compute after the arm v6 lineages
+Owner question: orientation stability while active contact is maintained (relative to another contact point or to the most recent one), target motion decomposed by contact sequence, and related coordination. Lead finding: the task contract has contact_anchor / frame_estimate / alignment receipts and maintained_during edges reaching the featurizer, but the trained packets, supervision, system 0 inputs, tasks and metrics are base-frame and time-uniform. There are no orientation-relative targets, no contact normals, no contact-event-aligned knots, no drift or contact-sequence metrics, and no learned dual-arm model.
+Plan (owner chose option 1: no slip to current work):
+- A: design + additive, versioned code + metrics + edit specs; host-light only; ~1 day.
+- B: dual-arm teacher audit/smoothing + support_insert data; peer CPU; ~0.5–2 days.
+- C: anchor-relative vs base-frame packet × 2 seeds; ~24–30 peer GPU-h.
+- D: evaluation + causal tests.
+B–D queue after the arm v6 lineages; first result ~Thursday–Friday. Peer priority: W8 > W7 / arm lineages > W10 > W12.
