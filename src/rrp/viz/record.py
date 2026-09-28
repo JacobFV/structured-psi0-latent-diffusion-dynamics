@@ -913,9 +913,19 @@ REQUIRED = ("id", "harness", "family", "source_label", "decision_refs", "seeds")
 
 
 # ------------------------------------------------------------------ spec + CLI
-def load_spec(path: Path) -> list[dict]:
+def load_spec(path) -> list[dict]:
+    """One spec file, or several comma-separated (entries concatenated; ids must stay unique)."""
     from rrp.orchestration.yamlmini import load
-    doc = load(Path(path).read_text())
+    out = []
+    for one in str(path).split(","):
+        out += _load_one(load(Path(one).read_text()))
+    ids = [e["id"] for e in out]
+    if len(ids) != len(set(ids)):
+        raise ValueError("duplicate entry ids")
+    return out
+
+
+def _load_one(doc: dict) -> list[dict]:
     defaults = doc.get("defaults") or {}
     out = []
     for e in doc["entries"]:
@@ -927,9 +937,6 @@ def load_spec(path: Path) -> list[dict]:
         if e["harness"] not in HARNESSES:
             raise ValueError(f"spec entry {e['id']}: unknown harness {e['harness']}")
         out.append(e)
-    ids = [e["id"] for e in out]
-    if len(ids) != len(set(ids)):
-        raise ValueError("duplicate entry ids")
     return out
 
 
@@ -957,7 +964,7 @@ def main(argv=None):
         idx = RP.write_index(out, _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"), _git_sha())
         print(json.dumps(dict(n=idx["n"], total_bytes=idx["total_bytes"])))
         return 0
-    entries = load_spec(Path(a.spec))
+    entries = load_spec(a.spec)
     if a.only:
         keep = set(a.only.split(","))
         entries = [e for e in entries if e["id"] in keep]
