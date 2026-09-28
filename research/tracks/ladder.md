@@ -53,6 +53,11 @@ episode choice and 150/300/600 updates, lr 1e-4; adapt seeds in the protocol see
   attempt there ran 0 episodes); the adaptation functions (flow SFT, budgeted system-0 refit, BC SFT) for 5 steps on
   the NON-target v6 source pack (the target_adapt stage accepts only target packs, which stay untouched until the
   sealed runs). Note: a refit's result `steps` is the SOURCE Stage A's count; the refit's own count is `steps_refit`.
+- Incidents during part (2) (resource only; each failed node rerun once via `--retry-failed`, a logged manual decision;
+  a rerun of target_eval deletes the partial rows file first, so every sealed cell still yields exactly one result):
+  09:41 BC SFT b20 hit CUDA OOM under the per-process GPU cap = declared 3G -> adaptation nodes 8G GPU; 10:03 four
+  panda_tf3 sealed evals were throttled at 0.8 x 4G (peaks >= 3.45-3.55G; xarm7 evals 1.8-2.0G) and stopped on project
+  memory PSI -> sealed evals 8G. Runners `rrp-armtgt-{lat,bc}-3`.
 - Memory (D-117 rule): the first node of each new stage type (target pack, sealed target_eval, flow SFT, system-0 refit,
   BC SFT; semfix s1 / BC 1701 on xarm7_pg2) runs first via `--only`; declarations are then set to >= 1.35 x the
   measured peak before the rest is launched.
