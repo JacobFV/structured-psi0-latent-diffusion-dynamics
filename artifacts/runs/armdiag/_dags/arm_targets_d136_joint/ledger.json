@@ -1,0 +1,1313 @@
+{
+ "schema": "dag-ledger-1",
+ "created": 1790622954.7951477,
+ "nodes": {
+  "ja5@semfix.s1.xarm7_pg2": {
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790622955_821d91",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790622955_821d91_jasf1x7p_ja5.log",
+     "unit": "rrp-job-1790622955_821d91.service",
+     "placement": "peer",
+     "started": 1790622955.5847833,
+     "rc": 0,
+     "finished": 1790622986.7024834
+    }
+   ],
+   "config_hash": "55f257d33652ddd2",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_adapt-joint_adapt_b5_s1",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_adapt-joint_adapt_b5_s1",
+   "stage": "target_adapt",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": true,
+    "gpu_mem": "6G",
+    "max_seconds": 3600,
+    "disk": null
+   },
+   "updated": 1790622987.0160081,
+   "metrics": {
+    "adapt_seed": 1701,
+    "budget": 5,
+    "lr": 0.0001,
+    "method": "joint_adapt",
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "result": {
+     "batch_size": 128,
+     "budget": 5,
+     "changed_modules": "system_i_flow+system0_realizer",
+     "demo_control_transitions": 742,
+     "demo_episodes": 5,
+     "flow_updates": 75,
+     "frozen": [
+      "target_encoder",
+      "packet_probes"
+     ],
+     "gen_frac": 0.5,
+     "latent_space_version": "ls-00d9a2cb1049-w1d0223875298",
+     "log": [
+      {
+       "flow": -6.236837387084961,
+       "real": null,
+       "step": 50
+      },
+      {
+       "flow": null,
+       "real": 0.0006059834267944098,
+       "step": 100
+      },
+      {
+       "flow": null,
+       "real": 0.0002680765464901924,
+       "step": 150
+      }
+     ],
+     "lr": 0.0001,
+     "mode": "split",
+     "nfe": 8,
+     "optimizer_updates": 150,
+     "realizer_updates": 75,
+     "seed": 1701,
+     "source_flow": "artifacts/runs/armv6/arm6-semfix/flow_ft-gdag2h_s1/policy.pt",
+     "source_representation": "artifacts/runs/armv6/arm6-semfix/refit-gendag3_noqd_s1/representation.pt",
+     "version": "joint_adapt_v1",
+     "wall_s": 10.915162563323975
+    },
+    "smoke": false,
+    "steps": 150,
+    "target": "xarm7_pg2"
+   }
+  },
+  "jev5@semfix.s1.xarm7_pg2": {
+   "state": "running",
+   "attempts": [
+    {
+     "lease_id": "1790622988_665911",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790622988_665911_jasf1x7p_jev5.log",
+     "unit": "rrp-job-1790622988_665911.service",
+     "placement": "peer",
+     "started": 1790622988.179253
+    }
+   ],
+   "config_hash": "ef8822785254f023",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b5_s1",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b5_s1",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   },
+   "updated": 1790622988.1792545
+  },
+  "ja20@semfix.s1.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "a91158c41742003c",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_adapt-joint_adapt_b20_s1",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_adapt-joint_adapt_b20_s1",
+   "stage": "target_adapt",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": true,
+    "gpu_mem": "6G",
+    "max_seconds": 3600,
+    "disk": null
+   }
+  },
+  "jev20@semfix.s1.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "b34223cc9f6e05ec",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b20_s1",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b20_s1",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "ja100@semfix.s1.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "c7f19f8d909605ed",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_adapt-joint_adapt_b100_s1",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_adapt-joint_adapt_b100_s1",
+   "stage": "target_adapt",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": true,
+    "gpu_mem": "6G",
+    "max_seconds": 3600,
+    "disk": null
+   }
+  },
+  "jev100@semfix.s1.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "d49a6b8699339039",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b100_s1",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b100_s1",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "pev5@semfix.s1.xarm7_pg2": {
+   "state": "running",
+   "attempts": [
+    {
+     "lease_id": "1790622956_e2c0f6",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790622956_e2c0f6_jasf1x7p_pev5.log",
+     "unit": "rrp-job-1790622956_e2c0f6.service",
+     "placement": "peer",
+     "started": 1790622956.3726974
+    }
+   ],
+   "config_hash": "edb591cd86c699d6",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b5_s1",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b5_s1",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   },
+   "updated": 1790622956.3726995
+  },
+  "pev20@semfix.s1.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "6a74214bca2b49b1",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b20_s1",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b20_s1",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "pev100@semfix.s1.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "2c20fab7e98c1095",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b100_s1",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b100_s1",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "ja5@semfix.s1.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "703295f82c847f14",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_adapt-joint_adapt_b5_s1",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_adapt-joint_adapt_b5_s1",
+   "stage": "target_adapt",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": true,
+    "gpu_mem": "6G",
+    "max_seconds": 3600,
+    "disk": null
+   }
+  },
+  "jev5@semfix.s1.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "79fca68796fe4c49",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b5_s1",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b5_s1",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "ja20@semfix.s1.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "2b6224ed91c7938a",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_adapt-joint_adapt_b20_s1",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_adapt-joint_adapt_b20_s1",
+   "stage": "target_adapt",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": true,
+    "gpu_mem": "6G",
+    "max_seconds": 3600,
+    "disk": null
+   }
+  },
+  "jev20@semfix.s1.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "47de278f1f42c770",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b20_s1",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b20_s1",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "ja100@semfix.s1.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "6becf0838d7ae8dd",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_adapt-joint_adapt_b100_s1",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_adapt-joint_adapt_b100_s1",
+   "stage": "target_adapt",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": true,
+    "gpu_mem": "6G",
+    "max_seconds": 3600,
+    "disk": null
+   }
+  },
+  "jev100@semfix.s1.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "31177cdd61240d5f",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b100_s1",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b100_s1",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "pev5@semfix.s1.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "c9e7e1f61a373cd8",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b5_s1",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b5_s1",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "pev20@semfix.s1.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "325b23ef2b96bf44",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b20_s1",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b20_s1",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "pev100@semfix.s1.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "e102ddb60fd8f467",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b100_s1",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b100_s1",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "ja5@semfix.s2.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "ffeaca1307949cab",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_adapt-joint_adapt_b5_s2",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_adapt-joint_adapt_b5_s2",
+   "stage": "target_adapt",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": true,
+    "gpu_mem": "6G",
+    "max_seconds": 3600,
+    "disk": null
+   }
+  },
+  "jev5@semfix.s2.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "956fcdd48ab98ab1",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b5_s2",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b5_s2",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "ja20@semfix.s2.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "9f28a958a3086f72",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_adapt-joint_adapt_b20_s2",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_adapt-joint_adapt_b20_s2",
+   "stage": "target_adapt",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": true,
+    "gpu_mem": "6G",
+    "max_seconds": 3600,
+    "disk": null
+   }
+  },
+  "jev20@semfix.s2.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "8824fffdb4a4f14b",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b20_s2",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b20_s2",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "ja100@semfix.s2.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "c5b761e89e663dc6",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_adapt-joint_adapt_b100_s2",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_adapt-joint_adapt_b100_s2",
+   "stage": "target_adapt",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": true,
+    "gpu_mem": "6G",
+    "max_seconds": 3600,
+    "disk": null
+   }
+  },
+  "jev100@semfix.s2.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "8c1a45a486ee5db0",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b100_s2",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b100_s2",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "pev5@semfix.s2.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "ffbe58e889a9e9e7",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b5_s2",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b5_s2",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "pev20@semfix.s2.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "c1f1e56dde465220",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b20_s2",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b20_s2",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "pev100@semfix.s2.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "23b052400bb3bf06",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b100_s2",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b100_s2",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "ja5@semfix.s2.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "777c3b886ccfd652",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_adapt-joint_adapt_b5_s2",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_adapt-joint_adapt_b5_s2",
+   "stage": "target_adapt",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": true,
+    "gpu_mem": "6G",
+    "max_seconds": 3600,
+    "disk": null
+   }
+  },
+  "jev5@semfix.s2.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "77c61f085fbd64be",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b5_s2",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b5_s2",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "ja20@semfix.s2.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "d0033b43c43695b3",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_adapt-joint_adapt_b20_s2",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_adapt-joint_adapt_b20_s2",
+   "stage": "target_adapt",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": true,
+    "gpu_mem": "6G",
+    "max_seconds": 3600,
+    "disk": null
+   }
+  },
+  "jev20@semfix.s2.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "63eee858ef9c52f1",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b20_s2",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b20_s2",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "ja100@semfix.s2.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "1171f07ffcd5f928",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_adapt-joint_adapt_b100_s2",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_adapt-joint_adapt_b100_s2",
+   "stage": "target_adapt",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": true,
+    "gpu_mem": "6G",
+    "max_seconds": 3600,
+    "disk": null
+   }
+  },
+  "jev100@semfix.s2.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "e7167eb69940aaae",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b100_s2",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b100_s2",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "pev5@semfix.s2.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "8a267fb9ee77e299",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b5_s2",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b5_s2",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "pev20@semfix.s2.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "c9751d0e7eb797cf",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b20_s2",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b20_s2",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "pev100@semfix.s2.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "050330d440002487",
+   "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b100_s2",
+   "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b100_s2",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "ja5@nosem.s1.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "733668f964458aeb",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b5_s1",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b5_s1",
+   "stage": "target_adapt",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": true,
+    "gpu_mem": "6G",
+    "max_seconds": 3600,
+    "disk": null
+   }
+  },
+  "jev5@nosem.s1.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "23ed0206e9b16e95",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b5_s1",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b5_s1",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "ja20@nosem.s1.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "a7421c307d1134c8",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b20_s1",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b20_s1",
+   "stage": "target_adapt",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": true,
+    "gpu_mem": "6G",
+    "max_seconds": 3600,
+    "disk": null
+   }
+  },
+  "jev20@nosem.s1.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "627010f20613b615",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b20_s1",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b20_s1",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "ja100@nosem.s1.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "dba50b3e07e6c4b7",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b100_s1",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b100_s1",
+   "stage": "target_adapt",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": true,
+    "gpu_mem": "6G",
+    "max_seconds": 3600,
+    "disk": null
+   }
+  },
+  "jev100@nosem.s1.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "51fa4fd879515ab8",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b100_s1",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b100_s1",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "pev5@nosem.s1.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "a326bbdd0b5607b8",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b5_s1",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b5_s1",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "pev20@nosem.s1.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "8d3cce4e431ac5fc",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b20_s1",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b20_s1",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "pev100@nosem.s1.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "7c60ba71c89b9cee",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b100_s1",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b100_s1",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "ja5@nosem.s1.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "570615c9f86a45be",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b5_s1",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b5_s1",
+   "stage": "target_adapt",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": true,
+    "gpu_mem": "6G",
+    "max_seconds": 3600,
+    "disk": null
+   }
+  },
+  "jev5@nosem.s1.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "26640dcfa9ab72f3",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b5_s1",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b5_s1",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "ja20@nosem.s1.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "6dce64ce5bb5b133",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b20_s1",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b20_s1",
+   "stage": "target_adapt",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": true,
+    "gpu_mem": "6G",
+    "max_seconds": 3600,
+    "disk": null
+   }
+  },
+  "jev20@nosem.s1.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "983c1a9e6dcda4b4",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b20_s1",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b20_s1",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "ja100@nosem.s1.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "3c617c2a29e23362",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b100_s1",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b100_s1",
+   "stage": "target_adapt",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": true,
+    "gpu_mem": "6G",
+    "max_seconds": 3600,
+    "disk": null
+   }
+  },
+  "jev100@nosem.s1.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "33245e70e4f0a419",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b100_s1",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b100_s1",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "pev5@nosem.s1.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "630d559fab6a80ee",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b5_s1",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b5_s1",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "pev20@nosem.s1.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "a02dbbade42c3cbc",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b20_s1",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b20_s1",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "pev100@nosem.s1.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "cea5352690b7115d",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b100_s1",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b100_s1",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "ja5@nosem.s2.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "51b7806325bf68bf",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b5_s2",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b5_s2",
+   "stage": "target_adapt",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": true,
+    "gpu_mem": "6G",
+    "max_seconds": 3600,
+    "disk": null
+   }
+  },
+  "jev5@nosem.s2.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "8866b3f420ce0365",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b5_s2",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b5_s2",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "ja20@nosem.s2.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "8d3aaefa4123d5ac",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b20_s2",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b20_s2",
+   "stage": "target_adapt",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": true,
+    "gpu_mem": "6G",
+    "max_seconds": 3600,
+    "disk": null
+   }
+  },
+  "jev20@nosem.s2.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "fae60c9d39b06a16",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b20_s2",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b20_s2",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "ja100@nosem.s2.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "e2ed0ec8d6d8562c",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b100_s2",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b100_s2",
+   "stage": "target_adapt",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": true,
+    "gpu_mem": "6G",
+    "max_seconds": 3600,
+    "disk": null
+   }
+  },
+  "jev100@nosem.s2.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "62539978d5f64101",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b100_s2",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b100_s2",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "pev5@nosem.s2.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "4884924267108a5c",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b5_s2",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b5_s2",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "pev20@nosem.s2.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "bac3002ecd6b788e",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b20_s2",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b20_s2",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "pev100@nosem.s2.xarm7_pg2": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "d8484effa78cd14c",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b100_s2",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b100_s2",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "ja5@nosem.s2.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "2bb4a396d6abfc61",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b5_s2",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b5_s2",
+   "stage": "target_adapt",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": true,
+    "gpu_mem": "6G",
+    "max_seconds": 3600,
+    "disk": null
+   }
+  },
+  "jev5@nosem.s2.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "ebc8ebb00b71a30c",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b5_s2",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b5_s2",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "ja20@nosem.s2.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "067e07ebc551d72e",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b20_s2",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b20_s2",
+   "stage": "target_adapt",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": true,
+    "gpu_mem": "6G",
+    "max_seconds": 3600,
+    "disk": null
+   }
+  },
+  "jev20@nosem.s2.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "8a3baa0b28bbdacd",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b20_s2",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b20_s2",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "ja100@nosem.s2.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "0d09db06153c7949",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b100_s2",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b100_s2",
+   "stage": "target_adapt",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": true,
+    "gpu_mem": "6G",
+    "max_seconds": 3600,
+    "disk": null
+   }
+  },
+  "jev100@nosem.s2.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "adf1991c5bbf305c",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b100_s2",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b100_s2",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "pev5@nosem.s2.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "077bd1572ae243f8",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b5_s2",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b5_s2",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "pev20@nosem.s2.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "0cecf2d82f1401b3",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b20_s2",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b20_s2",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  },
+  "pev100@nosem.s2.xarm7_tf3": {
+   "state": "planned",
+   "attempts": [],
+   "config_hash": "93e55396d96c3251",
+   "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b100_s2",
+   "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b100_s2",
+   "stage": "target_eval",
+   "placement": "peer",
+   "resources": {
+    "cpu": 3,
+    "mem": "4G",
+    "gpu": false,
+    "gpu_mem": null,
+    "max_seconds": 14400,
+    "disk": null
+   }
+  }
+ }
+}
