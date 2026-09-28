@@ -1,0 +1,97 @@
+{
+ "gate": "arm_dataset",
+ "version": "rrp.evaluation.gates/v1 (D-112)",
+ "subject": {
+  "bodies": [
+   "panda_pg2",
+   "panda_tf3",
+   "parm5_pg2",
+   "parm5_tf3",
+   "parm5l_tf3",
+   "parm5s_pg2",
+   "parm6_pg2",
+   "parm6_tf3",
+   "parm7_pg2",
+   "parm7_tf3",
+   "sawyer_pg2",
+   "sawyer_tf3",
+   "ur5e_pg2",
+   "ur5e_tf3",
+   "xarm7_pg2",
+   "xarm7_tf3"
+  ],
+  "n": 7344,
+  "grasp": [
+   "grasp_v2"
+  ],
+  "name": "pick_place_primary_v5dart"
+ },
+ "verdict": "fail",
+ "criteria": [
+  {
+   "name": "phase_switch_vel_step",
+   "status": "pass",
+   "value": 0.989,
+   "threshold": ">= 0.95 of episodes with step <= 0.5 rad/s",
+   "note": "median 0.23529131217002952, max 1.0551775687760845"
+  },
+  {
+   "name": "joint_limit_margin",
+   "status": "fail",
+   "value": 0.9493,
+   "threshold": ">= 0.95 of episodes with margin >= 0.02",
+   "note": "bodies ['panda_pg2', 'panda_tf3', 'sawyer_pg2', 'sawyer_tf3', 'ur5e_pg2', 'ur5e_tf3', 'xarm7_pg2', 'xarm7_tf3']; min -0.011916441414108239"
+  },
+  {
+   "name": "joint_limit_margin_procedural",
+   "status": "labelled",
+   "value": 0.5473,
+   "threshold": ">= 0.95 of episodes with margin >= 0.02 (procedural arms: reported, not gated)",
+   "note": "bodies ['parm5_pg2', 'parm5_tf3', 'parm5l_tf3', 'parm5s_pg2', 'parm6_pg2', 'parm6_tf3', 'parm7_pg2', 'parm7_tf3']; min -0.004423689326989666"
+  },
+  {
+   "name": "cmd_jerk_rms_vs_v2_teacher",
+   "status": "pass",
+   "value": {
+    "panda_pg2": 1.32,
+    "panda_tf3": 1.066,
+    "parm5_pg2": 1.167,
+    "parm5_tf3": 1.158,
+    "parm5l_tf3": 1.163,
+    "parm5s_pg2": 1.153,
+    "parm6_pg2": 1.188,
+    "parm6_tf3": 1.155,
+    "parm7_pg2": 1.154,
+    "parm7_tf3": 1.169,
+    "sawyer_pg2": 1.103,
+    "sawyer_tf3": 1.134,
+    "ur5e_pg2": 1.434,
+    "ur5e_tf3": 1.602,
+    "xarm7_pg2": 1.002,
+    "xarm7_tf3": 0.994
+   },
+   "threshold": "median per body <= 2.0x v2 teacher",
+   "note": "reference artifacts/runs/armexpert_grasp/final_graspv2_18bodies.summary.json (scripted_teacher:pick_place_v2_minjerk, grasp_v2, 300 seeds per body; D-110)"
+  },
+  {
+   "name": "penetration",
+   "status": "fail",
+   "value": 0.867,
+   "threshold": ">= 0.99 of episodes <= 3 mm (grasp_v2)",
+   "note": "grasp ['grasp_v2']; median 0.0004540490839470239 m, max 0.06783732845562762 m"
+  }
+ ],
+ "failed": [
+  "joint_limit_margin=0.9493 (threshold >= 0.95 of episodes with margin >= 0.02)",
+  "penetration=0.867 (threshold >= 0.99 of episodes <= 3 mm (grasp_v2))"
+ ],
+ "not_evaluated": [],
+ "replay": {
+  "episodes": 7344,
+  "exact": 7344,
+  "not_exact": [],
+  "source_manifest": "artifacts/runs/armexpert/v5dart/collect-v5dart_s1/manifest.json",
+  "manifest_hash": "91d06f23bec24a64",
+  "method": "replayed with the same generator inputs through the gated collector; actions compared"
+ }
+}

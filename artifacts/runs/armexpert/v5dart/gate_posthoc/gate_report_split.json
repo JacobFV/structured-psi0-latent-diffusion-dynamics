@@ -1,0 +1,171 @@
+{
+ "clean_only": {
+  "gate": "arm_dataset",
+  "version": "rrp.evaluation.gates/v1 (D-112)",
+  "subject": {
+   "bodies": [
+    "panda_pg2",
+    "panda_tf3",
+    "parm5_pg2",
+    "parm5_tf3",
+    "parm5l_tf3",
+    "parm5s_pg2",
+    "parm6_pg2",
+    "parm6_tf3",
+    "parm7_pg2",
+    "parm7_tf3",
+    "sawyer_pg2",
+    "sawyer_tf3",
+    "ur5e_pg2",
+    "ur5e_tf3",
+    "xarm7_pg2",
+    "xarm7_tf3"
+   ],
+   "n": 3897,
+   "grasp": [
+    "grasp_v2"
+   ],
+   "name": "pick_place_primary_v5dart"
+  },
+  "verdict": "pass",
+  "criteria": [
+   {
+    "name": "phase_switch_vel_step",
+    "status": "pass",
+    "value": 0.9985,
+    "threshold": ">= 0.95 of episodes with step <= 0.5 rad/s",
+    "note": "median 0.21870296906550235, max 0.9967350172196277"
+   },
+   {
+    "name": "joint_limit_margin",
+    "status": "pass",
+    "value": 0.9985,
+    "threshold": ">= 0.95 of episodes with margin >= 0.02",
+    "note": "bodies ['panda_pg2', 'panda_tf3', 'sawyer_pg2', 'sawyer_tf3', 'ur5e_pg2', 'ur5e_tf3', 'xarm7_pg2', 'xarm7_tf3']; min -1.6111165120303043e-05"
+   },
+   {
+    "name": "joint_limit_margin_procedural",
+    "status": "labelled",
+    "value": 0.7494,
+    "threshold": ">= 0.95 of episodes with margin >= 0.02 (procedural arms: reported, not gated)",
+    "note": "bodies ['parm5_pg2', 'parm5_tf3', 'parm5l_tf3', 'parm5s_pg2', 'parm6_pg2', 'parm6_tf3', 'parm7_pg2', 'parm7_tf3']; min -0.00012867711359643152"
+   },
+   {
+    "name": "cmd_jerk_rms_vs_v2_teacher",
+    "status": "pass",
+    "value": {
+     "panda_pg2": 0.938,
+     "panda_tf3": 1.066,
+     "parm5_pg2": 1.004,
+     "parm5_tf3": 0.997,
+     "parm5l_tf3": 1.011,
+     "parm5s_pg2": 1.004,
+     "parm6_pg2": 1.039,
+     "parm6_tf3": 1.007,
+     "parm7_pg2": 1.008,
+     "parm7_tf3": 1.003,
+     "sawyer_pg2": 1.001,
+     "sawyer_tf3": 1.009,
+     "ur5e_pg2": 0.996,
+     "ur5e_tf3": 0.997,
+     "xarm7_pg2": 1.002,
+     "xarm7_tf3": 0.994
+    },
+    "threshold": "median per body <= 2.0x v2 teacher",
+    "note": "reference artifacts/runs/armexpert_grasp/final_graspv2_18bodies.summary.json (scripted_teacher:pick_place_v2_minjerk, grasp_v2, 300 seeds per body; D-110)"
+   },
+   {
+    "name": "penetration",
+    "status": "pass",
+    "value": 0.9944,
+    "threshold": ">= 0.99 of episodes <= 3 mm (grasp_v2)",
+    "note": "grasp ['grasp_v2']; median 0.00021069004319757868 m, max 0.004171382663020679 m"
+   }
+  ],
+  "failed": [],
+  "not_evaluated": []
+ },
+ "dart_only": {
+  "gate": "arm_dataset",
+  "version": "rrp.evaluation.gates/v1 (D-112)",
+  "subject": {
+   "bodies": [
+    "panda_pg2",
+    "parm5_pg2",
+    "parm5_tf3",
+    "parm5l_tf3",
+    "parm5s_pg2",
+    "parm6_pg2",
+    "parm6_tf3",
+    "parm7_pg2",
+    "parm7_tf3",
+    "sawyer_pg2",
+    "sawyer_tf3",
+    "ur5e_pg2",
+    "ur5e_tf3"
+   ],
+   "n": 3447,
+   "grasp": [
+    "grasp_v2"
+   ],
+   "name": "pick_place_primary_v5dart"
+  },
+  "verdict": "fail",
+  "criteria": [
+   {
+    "name": "phase_switch_vel_step",
+    "status": "pass",
+    "value": 0.9782,
+    "threshold": ">= 0.95 of episodes with step <= 0.5 rad/s",
+    "note": "median 0.2515921639112495, max 1.0551775687760845"
+   },
+   {
+    "name": "joint_limit_margin",
+    "status": "fail",
+    "value": 0.8853,
+    "threshold": ">= 0.95 of episodes with margin >= 0.02",
+    "note": "bodies ['panda_pg2', 'sawyer_pg2', 'sawyer_tf3', 'ur5e_pg2', 'ur5e_tf3']; min -0.011916441414108239"
+   },
+   {
+    "name": "joint_limit_margin_procedural",
+    "status": "labelled",
+    "value": 0.3451,
+    "threshold": ">= 0.95 of episodes with margin >= 0.02 (procedural arms: reported, not gated)",
+    "note": "bodies ['parm5_pg2', 'parm5_tf3', 'parm5l_tf3', 'parm5s_pg2', 'parm6_pg2', 'parm6_tf3', 'parm7_pg2', 'parm7_tf3']; min -0.004423689326989666"
+   },
+   {
+    "name": "cmd_jerk_rms_vs_v2_teacher",
+    "status": "pass",
+    "value": {
+     "panda_pg2": 1.504,
+     "parm5_pg2": 1.466,
+     "parm5_tf3": 1.523,
+     "parm5l_tf3": 1.522,
+     "parm5s_pg2": 1.437,
+     "parm6_pg2": 1.511,
+     "parm6_tf3": 1.596,
+     "parm7_pg2": 1.425,
+     "parm7_tf3": 1.503,
+     "sawyer_pg2": 1.338,
+     "sawyer_tf3": 1.363,
+     "ur5e_pg2": 1.766,
+     "ur5e_tf3": 1.979
+    },
+    "threshold": "median per body <= 2.0x v2 teacher",
+    "note": "reference artifacts/runs/armexpert_grasp/final_graspv2_18bodies.summary.json (scripted_teacher:pick_place_v2_minjerk, grasp_v2, 300 seeds per body; D-110)"
+   },
+   {
+    "name": "penetration",
+    "status": "fail",
+    "value": 0.7229,
+    "threshold": ">= 0.99 of episodes <= 3 mm (grasp_v2)",
+    "note": "grasp ['grasp_v2']; median 0.001198111663639677 m, max 0.06783732845562762 m"
+   }
+  ],
+  "failed": [
+   "joint_limit_margin=0.8853 (threshold >= 0.95 of episodes with margin >= 0.02)",
+   "penetration=0.7229 (threshold >= 0.99 of episodes <= 3 mm (grasp_v2))"
+  ],
+  "not_evaluated": []
+ }
+}

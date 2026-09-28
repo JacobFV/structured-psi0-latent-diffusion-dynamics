@@ -524,3 +524,20 @@ grasp_v2 (parm6_tf3 70/90 -> 9/90, parm5s_tf3 20/30 -> 2/30; 64 of its 81 parm6 
 cube is dropped after lifting: its grasps held by interpenetration), while seed-2 frozen sem and both semfix seeds hold
 or IMPROVE on tf3 (parm6 44 -> 66, 45 -> 62, 38 -> 60; parm5s 7 -> 17, 8 -> 19, 15 -> 22). parm5l_pg2 is unchanged
 within noise. panda_pg2 and all nosem cells are pending.
+
+### v5dart pack + post-hoc gate (2026-09-27 17:20) — GATE FAILS on DART episodes; BC training stopped pending a lead decision
+- Pack: completed (run-dag `--retry-failed --only pack`, lease 1790553729_1e57d2, rc 0, 9 min, peak 17.2 GB with the
+  cgroup's page cache): `latent_pp_v5dart_s1_H16`, 1,369,801 rows, meta `grasp_contact_version: grasp_v2` (peer disk
+  ~/rrp-peer-data/packed/latent_pp_v5dart_s1_H16). Earlier attempts: shed at 14:36 (PSI), OOM-killed 16:30 (lease limits
+  changed live), shed 16:59 (20.4 GB, thrashing at memory.high). Fix: the packer now streams each episode group to part
+  files and assembles memory-mapped outputs (byte-identical to the old writer on a 2237-row smoke pack, 39 arrays).
+- Post-hoc gate (`artifacts/runs/armexpert/v5dart/gate_posthoc/`: replay.jsonl, gate_report.json,
+  gate_report_split.json; lease 1790552066_2a61cb, peak 6.6 GB): all 7344 feasible episodes replay EXACTLY. Verdict FAIL:
+  joint_limit_margin (menagerie arms) 0.9493 < 0.95 and penetration 0.867 < 0.99 (<= 3 mm). Split: CLEAN episodes PASS
+  every criterion (margin 0.9985, penetration 0.9944); DART episodes (exec noise 0.08 rad, executed arm command perturbed,
+  labels clean) FAIL both (margin 0.885, penetration 0.723; 955/3447 DART episodes > 3 mm, 174 > 10 mm, 51 > 30 mm, max
+  68 mm on tf3). The recorder takes the max over the WHOLE episode and over ANY robot body touching the cube, so these are
+  noise-driven arm/finger pushes into the cube (a DART episode is a failure-recovery demonstration by construction), not
+  grasps held by overlap. Per the lead's instruction ("if it fails on anything other than the parm* margin, stop"), the
+  v5 BC chain was stopped (training lease 1790554251_af6d6e stopped with --owned-only after ~10 min; resumable from its
+  checkpoint). Decision needed: gate DART episodes on the executed-state criteria or not (label-only criteria already pass).
