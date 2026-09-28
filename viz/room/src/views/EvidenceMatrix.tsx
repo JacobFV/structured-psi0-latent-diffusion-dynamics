@@ -32,6 +32,20 @@ export function armSets(rs: Row[]) {
   }
   return { v1, v2, bodies: [...bodies].sort(), lines };
 }
+export function v6Set(rs: Row[]) {
+  const m: Cells = new Map();
+  const bodies: string[] = [], lines: string[] = [];
+  for (const r of rs) {
+    const kp = arr(r.key_path).map(str);
+    if (kp.length !== 3 || kp[0] !== 'v6' || !/compare_v6\.json$/.test(str(r.source_file)) || kp[2] === 'all' || !/^(semfix|nosem)_s/.test(kp[1])) continue;
+    const k = num(r.k), n = num(r.n);
+    if (k === null || !n) continue;
+    if (!bodies.includes(kp[2])) bodies.push(kp[2]);
+    if (!lines.includes(kp[1])) lines.push(kp[1]);
+    add(m, `${kp[2]}|${kp[1]}`, k, n, `${kp[1]} · grasp_v2.1 · compare_v6.json (${str(r.decision) || 'D-134'})`, href('results', { q: 'compare_v6', data: '1' }));
+  }
+  return { m, bodies, lines: lines.sort() };
+}
 export function leggedSet(rs: Row[]) {
   const m: Cells = new Map();
   const bodies = new Set<string>();
@@ -117,7 +131,7 @@ export default function EvidenceMatrix() {
   const edits = useDoc<Envelope>('edits');
   const [data] = useUrlState('data', '0');
   const rs = result.status === 'ok' ? rows(result.data.rows) : [];
-  const arm = armSets(rs), leg = leggedSet(rs);
+  const arm = armSets(rs), leg = leggedSet(rs), a6 = v6Set(rs);
   return (
     <div className="ev-grid">
       {leg.bodies.length > 0 && (
@@ -126,15 +140,21 @@ export default function EvidenceMatrix() {
           <Heat rows={leg.bodies} cols={leg.cols} cell={(r, c) => leg.m.get(`${r}|${c}`) ?? null} />
         </section>
       )}
+      {a6.bodies.length > 0 && (
+        <section className="ev-panel">
+          <header>Arm v6 · grasp_v2.1 · success<ModeBadge result={result} /><span className="meta" title="teacher v2 + grasp_v2.1 + v6 BC expert; semfix 425/480 vs nosem 314/480 pooled; 2 seeds per variant; D-134">compare_v6 · D-134 · current</span></header>
+          <Heat rows={a6.bodies} cols={a6.lines} colLabel={(c) => c.replace('_s', ' s')} cell={(r, c) => a6.m.get(`${r}|${c}`) ?? null} />
+        </section>
+      )}
       {arm.bodies.length > 0 && (
         <section className="ev-panel">
-          <header>Arm · grasp_v2 · success<ModeBadge result={result} /><span className="meta" title="deployable success per body and lineage, 2 training seeds, 90 episodes per cell; D-127">compare_gc2_final · D-127</span></header>
+          <header>Arm v1 · grasp_v2 · success<ModeBadge result={result} /><span className="meta" title="deployable success per body and lineage, 2 training seeds, 90 episodes per cell; D-127">compare_gc2_final · D-127</span></header>
           <Heat rows={arm.bodies} cols={arm.lines} colLabel={shortLine} cell={(r, c) => arm.v2.get(`${r}|${c}`) ?? null} />
         </section>
       )}
       {arm.bodies.length > 0 && (
         <section className="ev-panel">
-          <header>Arm · grasp v1 → v2 · Δ success<ModeBadge result={result} /><span className="meta" title="v2 − v1 on the same body, lineage and episodes; ˙ = CI includes 0">realistic grasp physics</span></header>
+          <header>Arm v1 · grasp v1 → v2 · Δ success<ModeBadge result={result} /><span className="meta" title="v2 − v1 on the same body, lineage and episodes; ˙ = CI includes 0">realistic grasp physics</span></header>
           <Heat rows={arm.bodies} cols={arm.lines} colLabel={shortLine} cell={(r, c) => arm.v2.get(`${r}|${c}`) ?? null} base={(r, c) => arm.v1.get(`${r}|${c}`) ?? null} />
         </section>
       )}

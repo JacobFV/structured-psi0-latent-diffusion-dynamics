@@ -38,6 +38,25 @@ function lineages(res: Envelope | null) {
   const sum = (re: RegExp) => [...by.entries()].filter(([l]) => re.test(l)).reduce((a, [, v]) => ({ k: a.k + v.k, n: a.n + v.n }), { k: 0, n: 0 });
   return { semfix: sum(/^semfix/i), nosem: sum(/^nosem/i) };
 }
+/** Arm v6 (D-134, compare_v6.json): per lineage (semfix/nosem × 2 seeds) and body; 'all' rows give the pooled totals. */
+function v6(res: Envelope | null) {
+  const cells = new Map<string, { k: number; n: number }>();
+  const bodies: string[] = [];
+  const tot = { semfix: { k: 0, n: 0 }, nosem: { k: 0, n: 0 } };
+  if (res) for (const r of rows(res.rows)) {
+    const kp = arr(r.key_path).map(str);
+    if (kp.length !== 3 || kp[0] !== 'v6' || !/compare_v6\.json$/.test(str(r.source_file))) continue;
+    const lin = /^semfix_s/.test(kp[1]) ? 'semfix' : /^nosem_s/.test(kp[1]) ? 'nosem' : null;
+    if (!lin) continue;
+    const k = num(r.k) || 0, n = num(r.n) || 0;
+    if (kp[2] === 'all') { tot[lin].k += k; tot[lin].n += n; continue; }
+    if (!bodies.includes(kp[2])) bodies.push(kp[2]);
+    const x = cells.get(`${kp[2]}|${lin}`) || { k: 0, n: 0 };
+    x.k += k; x.n += n;
+    cells.set(`${kp[2]}|${lin}`, x);
+  }
+  return { cells, bodies, tot };
+}
 function haltDiffs(ed: Envelope | null) {
   if (!ed) return [];
   const rs = rows(ed.rows);
@@ -81,12 +100,12 @@ const recentRuns = (t: Envelope | null) => (t ? rows(t.runs).map((x) => ({ x, t:
 
 /** Content height each panel needs (px); the render check asserts HEAD_H + need ≤ CELL_H (radar: ≤ 2 cells). */
 export function panelNeeds(docs: Record<string, Envelope | null>) {
-  const lc = leggedCells(docs.results ?? null), ac = armCells(docs.results ?? null);
+  const lc = leggedCells(docs.results ?? null), ac = armCells(docs.results ?? null), a6 = v6(docs.results ?? null);
   const reps = docs.robustness ? rows(docs.robustness.reports) : [];
   return {
     radar: { need: Math.min(2 * CELL_H - HEAD_H - 30, 520) + 20, cells: 2 },
-    claim: { need: (haltDiffs(docs.edits ?? null).length + 2) * 15 + 2 * 12 + 10, cells: 1 },
-    success: { need: (lc.bodies.length + ac.bodies.length + 2) * 17 + 8, cells: 1 },
+    claim: { need: (haltDiffs(docs.edits ?? null).length + 3) * 15 + 2 * 12 + 10, cells: 1 },
+    success: { need: (lc.bodies.length + Math.max(ac.bodies.length, a6.bodies.length) + 2) * 17 + 8, cells: 1 },
     robustness: { need: (reps.length + 1) * LINE + 6, cells: 1 },
     psi0: { need: (docs.psi0 ? rows(docs.psi0.runs).filter((r) => num(r.n) && (str(r.run).startsWith('step2') || !r.interim)).length : 0) * LINE + 4, cells: 1 },
     leases: { need: (docs.live ? rows(docs.live.leases).length : 0) * LINE + 4, cells: 1 },
@@ -143,6 +162,7 @@ function Kpis({ d }: { d: Record<string, { result: DocResult<Envelope> }> }) {
   const wd = l ? rows(l.watchdog) : [];
   const adm = node && isObj(node.admission) ? node.admission : null;
   const L = lineages(ok(d.results.result));
+  const V = v6(ok(d.results.result)).tot;
   const halts = haltDiffs(ok(d.edits.result));
   const s2 = ok(d.psi0.result) ? rows(ok(d.psi0.result)!.runs).filter((r) => str(r.run).startsWith('step2')) : [];
   const road = ok(d.knowledge.result) ? rows(ok(d.knowledge.result)!.roadmap) : [];
@@ -156,7 +176,7 @@ function Kpis({ d }: { d: Record<string, { result: DocResult<Envelope> }> }) {
       <Kpi k="mem avail" v={mem !== null ? `${(mem / GB).toFixed(0)}G` : '—'} spark={wd.map((s) => { const v = num(s.memory_available); return v === null ? null : v / GB; })} link={href('training')} />
       <Kpi k="PSI full" v={fmtNum(wd.length ? num(wd[wd.length - 1].psi_full_avg10) : null)} spark={wd.map((s) => num(s.psi_full_avg10))} link={href('training')} />
       <Kpi k="jobs · admission" v={`${l ? rows(l.leases).length : '—'} · ${adm ? (adm.stopped ? 'STOP' : 'open') : '—'}`} tone={adm?.stopped ? 'bad' : ''} s={l ? `${fmtNum(l.n_leases_total)} leases total` : ''} link={href('training')} />
-      <Kpi k="arm gv2 sf | ns" v={L.semfix.n ? `${pct(L.semfix.k / L.semfix.n)}|${pct(L.nosem.k / L.nosem.n)}%` : '—'} tone="good" s={`${L.semfix.k}/${L.semfix.n} vs ${L.nosem.k}/${L.nosem.n}`} link={href('results')} tip="compare_gc2_final.json, grasp_v2, D-127" />
+      <Kpi k="arm v6 sf | ns" v={V.semfix.n ? `${pct(V.semfix.k / V.semfix.n)}|${pct(V.nosem.k / V.nosem.n)}%` : '—'} tone="good" s={`${V.semfix.k}/${V.semfix.n} vs ${V.nosem.k}/${V.nosem.n} · v1 ${L.semfix.k} vs ${L.nosem.k}`} link={href('results')} tip={`arm v6 (grasp_v2.1, compare_v6.json, D-134): semfix ${V.semfix.k}/${V.semfix.n} vs nosem ${V.nosem.k}/${V.nosem.n}. v1 under grasp_v2 (compare_gc2_final.json, D-127): ${L.semfix.k}/${L.semfix.n} vs ${L.nosem.k}/${L.nosem.n}`} />
       {halts.map((h) => <Kpi key={h.body} k={`halt Δ ${h.body}`} v={`${h.v.toFixed(2)}m`} s={`[${h.lo.toFixed(2)}, ${h.hi.toFixed(2)}]`} link={href('edits', { body: h.body })} tip={`semantic − nosem forward travel after a halt edit, contact v2 (${str(h.row.decision)}, ${str(h.row.source_file)})`} />)}
       <Kpi k="Ψ₀ step 2" v={s2.map((r) => `${str(r.k)}/${str(r.n)}`).join(' · ') || '—'} s={s2.map((r) => str(r.run).replace(/^step2_\w+?_/, '')).join(' · ')} link={href('psi0')} tip="released · direct · structured (structured is interim)" />
       <a className="k5" href={href('knowledge', { tab: 'roadmap' })} title="roadmap items by status (hover a square)">
@@ -179,16 +199,20 @@ function RadarPanel({ r }: { r: DocResult<Envelope> }) {
 function ClaimPanel({ ed, res }: { ed: DocResult<Envelope>; res: DocResult<Envelope> }) {
   const halts = haltDiffs(ok(ed));
   const L = lineages(ok(res));
+  const V = v6(ok(res)).tot;
   const W = 290;
   const legged = halts.length ? (
     <Mini items={halts.map((h) => ({ label: `halt Δ ${h.body}`, v: h.v, lo: h.lo, hi: h.hi, tip: `${h.v} m [${h.lo}, ${h.hi}] · ${str(h.row.decision)} ${str(h.row.source_file)}` }))} lo={-0.8} hi={0.2} fmt={(v) => v.toFixed(2)} W={W} unit="m" />
   ) : null;
   let arm: ReactNode = null;
-  if (L.semfix.n && L.nosem.n) {
-    const dv = L.semfix.k / L.semfix.n - L.nosem.k / L.nosem.n;
-    const [lo, hi] = newcombe(L.nosem.k, L.nosem.n, L.semfix.k, L.semfix.n);
-    arm = <Mini items={[{ label: 'arm sf − ns', v: dv * 100, lo: lo * 100, hi: hi * 100, tip: `${L.semfix.k}/${L.semfix.n} − ${L.nosem.k}/${L.nosem.n}, Newcombe CI · D-127` }]} lo={-10} hi={70} fmt={(v) => `+${v.toFixed(0)}`} W={W} unit="pts" />;
+  const armItems: { label: string; v: number; lo: number; hi: number; tip: string }[] = [];
+  for (const [label, a, b, src] of [['arm v6 sf − ns', V.semfix, V.nosem, 'grasp_v2.1 · compare_v6.json · D-134'], ['arm v1 sf − ns', L.semfix, L.nosem, 'grasp_v2 · compare_gc2_final.json · D-127']] as const) {
+    if (!a.n || !b.n) continue;
+    const dv = a.k / a.n - b.k / b.n;
+    const [lo, hi] = newcombe(b.k, b.n, a.k, a.n);
+    armItems.push({ label, v: dv * 100, lo: lo * 100, hi: hi * 100, tip: `${a.k}/${a.n} − ${b.k}/${b.n}, Newcombe CI · ${src}` });
   }
+  if (armItems.length) arm = <Mini items={armItems} lo={-10} hi={70} fmt={(v) => `+${v.toFixed(0)}`} W={W} unit="pts" />;
   return <P title="Claim · causal control" link={href('edits')} result={ed}>{legged}{arm}</P>;
 }
 function Mini({ items, lo, hi, fmt, W, unit }: { items: { label: string; v: number; lo: number; hi: number; tip: string }[]; lo: number; hi: number; fmt: (v: number) => string; W: number; unit: string }) {
@@ -212,7 +236,8 @@ function Mini({ items, lo, hi, fmt, W, unit }: { items: { label: string; v: numb
   );
 }
 function SuccessPanel({ res }: { res: DocResult<Envelope> }) {
-  const lc = leggedCells(ok(res)), ac = armCells(ok(res));
+  const lc = leggedCells(ok(res)), ac = armCells(ok(res)), a6 = v6(ok(res));
+  for (const [key, val] of ac.m) a6.cells.set(`${key.split('|')[0]}|${key.split('|')[1]} v1`, val);
   const cell = (x: { k: number; n: number } | undefined, tip: string) => {
     if (!x || !x.n) return <i className="c e" />;
     const p = x.k / x.n;
@@ -228,7 +253,9 @@ function SuccessPanel({ res }: { res: DocResult<Envelope> }) {
   return (
     <P title="Success · curated" link={href('results')} result={res}>
       {block('legged cv2', lc.bodies, ['semfix', 'nosem', 'bc', 'teacher'], lc.m, 'summary_contact_v2 D-124')}
-      {block('arm gv2', ac.bodies, ['semfix', 'nosem', 'frozen', 'bc'], ac.m, 'compare_gc2_final D-127')}
+      {a6.bodies.length
+        ? block('arm v6 | v1', a6.bodies, ['semfix', 'nosem', 'semfix v1', 'nosem v1', 'bc v1'], a6.cells, 'v6: compare_v6 D-134 (grasp_v2.1) · v1: compare_gc2_final D-127 (grasp_v2)')
+        : block('arm gv2', ac.bodies, ['semfix', 'nosem', 'frozen', 'bc'], ac.m, 'compare_gc2_final D-127')}
     </P>
   );
 }

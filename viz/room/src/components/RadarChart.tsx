@@ -12,7 +12,7 @@ export type RadarAxis = { id: string; label: string; metric: string; direction: 
   floor: { value: number | null; meaning?: string; reference_multiple?: number }; reference: { series?: string; value?: number; resolved_value?: number | null; meaning?: string }; series: Record<string, RadarValue> };
 export type RadarDoc = { normalization: { clamp: [number, number]; rule: string }; series: { id: string; label: string }[]; axes: RadarAxis[] };
 
-export const SERIES_COLOR: Record<string, string> = { teacher: 'var(--warning)', bc: 'var(--ink-2)', semfix: 'var(--s1)', nosem: 'var(--s2)', frozen_sem: 'var(--s7)', latent_jointfix: 'var(--s3)' };
+export const SERIES_COLOR: Record<string, string> = { teacher: 'var(--s6)', bc: 'var(--ink-2)', semfix_v6: 'var(--s1)', nosem_v6: 'var(--s2)', semfix: 'var(--s5)', nosem: 'var(--s8)', frozen_sem: 'var(--s7)', latent_jointfix: 'var(--s3)' };
 
 export function radarEdges(present: boolean[]) {
   const n = present.length;

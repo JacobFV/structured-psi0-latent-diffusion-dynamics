@@ -19,12 +19,20 @@
    "label": "BC (direct action)"
   },
   {
+   "id": "semfix_v6",
+   "label": "latent semfix v6 (arm, grasp_v2.1 · D-134)"
+  },
+  {
+   "id": "nosem_v6",
+   "label": "latent nosem v6 (arm, grasp_v2.1 · D-134)"
+  },
+  {
    "id": "semfix",
-   "label": "latent · semantic (semfix)"
+   "label": "latent semfix (arm v1 · D-127; legged: legged8)"
   },
   {
    "id": "nosem",
-   "label": "latent · no semantics (nosem)"
+   "label": "latent nosem (arm v1 · D-127; legged: legged8)"
   },
   {
    "id": "frozen_sem",
@@ -42,8 +50,8 @@
    "label": "arm gv2 panda",
    "metric": "deployable success rate",
    "direction": "max",
-   "protocol": "pick_place on panda_pg2, grasp_v2 physics, 90 episodes per lineage seed (armexpert_gc2eval/compare_gc2_final.json)",
-   "decision": "D-127",
+   "protocol": "pick_place on panda_pg2, grasp_v2 physics, 90 episodes per lineage seed (armexpert_gc2eval/compare_gc2_final.json) · v6 series: grasp_v2.1, v6 BC expert, 2 seeds (compare_v6.json, D-134); reference BC is the v1-era direct BC under grasp_v2",
+   "decision": "D-127 · D-134",
    "floor": {
     "value": 0.0,
     "meaning": "no success"
@@ -110,6 +118,32 @@
     },
     "teacher": {
      "missing": "teacher not evaluated in this comparison"
+    },
+    "semfix_v6": {
+     "doc": "results",
+     "where": {
+      "source_file": "research/tracks/ladder/armv6/compare_v6.json$"
+     },
+     "key_path": [
+      "^v6$",
+      "^semfix_s",
+      "^panda_pg2$"
+     ],
+     "agg": "sum_kn",
+     "group": 1
+    },
+    "nosem_v6": {
+     "doc": "results",
+     "where": {
+      "source_file": "research/tracks/ladder/armv6/compare_v6.json$"
+     },
+     "key_path": [
+      "^v6$",
+      "^nosem_s",
+      "^panda_pg2$"
+     ],
+     "agg": "sum_kn",
+     "group": 1
     }
    }
   },
@@ -118,8 +152,8 @@
    "label": "arm gv2 parm6",
    "metric": "deployable success rate",
    "direction": "max",
-   "protocol": "pick_place on parm6_tf3, grasp_v2 physics, 90 episodes per lineage seed (armexpert_gc2eval/compare_gc2_final.json)",
-   "decision": "D-127",
+   "protocol": "pick_place on parm6_tf3, grasp_v2 physics, 90 episodes per lineage seed (armexpert_gc2eval/compare_gc2_final.json) · v6 series: grasp_v2.1, v6 BC expert, 2 seeds (compare_v6.json, D-134); reference BC is the v1-era direct BC under grasp_v2",
+   "decision": "D-127 · D-134",
    "floor": {
     "value": 0.0,
     "meaning": "no success"
@@ -186,6 +220,32 @@
     },
     "teacher": {
      "missing": "teacher not evaluated in this comparison"
+    },
+    "semfix_v6": {
+     "doc": "results",
+     "where": {
+      "source_file": "research/tracks/ladder/armv6/compare_v6.json$"
+     },
+     "key_path": [
+      "^v6$",
+      "^semfix_s",
+      "^parm6_tf3$"
+     ],
+     "agg": "sum_kn",
+     "group": 1
+    },
+    "nosem_v6": {
+     "doc": "results",
+     "where": {
+      "source_file": "research/tracks/ladder/armv6/compare_v6.json$"
+     },
+     "key_path": [
+      "^v6$",
+      "^nosem_s",
+      "^parm6_tf3$"
+     ],
+     "agg": "sum_kn",
+     "group": 1
     }
    }
   },
@@ -194,8 +254,8 @@
    "label": "arm gv2 parm5s",
    "metric": "deployable success rate",
    "direction": "max",
-   "protocol": "pick_place on parm5s_tf3, grasp_v2 physics, 90 episodes per lineage seed (armexpert_gc2eval/compare_gc2_final.json) · procedural body",
-   "decision": "D-127",
+   "protocol": "pick_place on parm5s_tf3, grasp_v2 physics, 90 episodes per lineage seed (armexpert_gc2eval/compare_gc2_final.json) · procedural body · v6 series: grasp_v2.1, v6 BC expert, 2 seeds (compare_v6.json, D-134); reference BC is the v1-era direct BC under grasp_v2",
+   "decision": "D-127 · D-134",
    "floor": {
     "value": 0.0,
     "meaning": "no success"
@@ -262,6 +322,32 @@
     },
     "teacher": {
      "missing": "teacher not evaluated in this comparison"
+    },
+    "semfix_v6": {
+     "doc": "results",
+     "where": {
+      "source_file": "research/tracks/ladder/armv6/compare_v6.json$"
+     },
+     "key_path": [
+      "^v6$",
+      "^semfix_s",
+      "^parm5s_tf3$"
+     ],
+     "agg": "sum_kn",
+     "group": 1
+    },
+    "nosem_v6": {
+     "doc": "results",
+     "where": {
+      "source_file": "research/tracks/ladder/armv6/compare_v6.json$"
+     },
+     "key_path": [
+      "^v6$",
+      "^nosem_s",
+      "^parm5s_tf3$"
+     ],
+     "agg": "sum_kn",
+     "group": 1
     }
    }
   },
@@ -270,8 +356,8 @@
    "label": "arm gv2 parm5l",
    "metric": "deployable success rate",
    "direction": "max",
-   "protocol": "pick_place on parm5l_pg2, grasp_v2 physics, 90 episodes per lineage seed (armexpert_gc2eval/compare_gc2_final.json) · procedural body",
-   "decision": "D-127",
+   "protocol": "pick_place on parm5l_pg2, grasp_v2 physics, 90 episodes per lineage seed (armexpert_gc2eval/compare_gc2_final.json) · procedural body · v6 series: grasp_v2.1, v6 BC expert, 2 seeds (compare_v6.json, D-134); reference BC is the v1-era direct BC under grasp_v2",
+   "decision": "D-127 · D-134",
    "floor": {
     "value": 0.0,
     "meaning": "no success"
@@ -338,6 +424,32 @@
     },
     "teacher": {
      "missing": "teacher not evaluated in this comparison"
+    },
+    "semfix_v6": {
+     "doc": "results",
+     "where": {
+      "source_file": "research/tracks/ladder/armv6/compare_v6.json$"
+     },
+     "key_path": [
+      "^v6$",
+      "^semfix_s",
+      "^parm5l_pg2$"
+     ],
+     "agg": "sum_kn",
+     "group": 1
+    },
+    "nosem_v6": {
+     "doc": "results",
+     "where": {
+      "source_file": "research/tracks/ladder/armv6/compare_v6.json$"
+     },
+     "key_path": [
+      "^v6$",
+      "^nosem_s",
+      "^parm5l_pg2$"
+     ],
+     "agg": "sum_kn",
+     "group": 1
     }
    }
   },
@@ -406,6 +518,12 @@
     },
     "frozen_sem": {
      "missing": "no frozen-sem legged lineage"
+    },
+    "semfix_v6": {
+     "missing": "not an arm v6 axis"
+    },
+    "nosem_v6": {
+     "missing": "not an arm v6 axis"
     }
    }
   },
@@ -474,6 +592,12 @@
     },
     "frozen_sem": {
      "missing": "no frozen-sem legged lineage"
+    },
+    "semfix_v6": {
+     "missing": "not an arm v6 axis"
+    },
+    "nosem_v6": {
+     "missing": "not an arm v6 axis"
     }
    }
   },
@@ -523,6 +647,12 @@
     },
     "frozen_sem": {
      "missing": "no frozen-sem legged lineage"
+    },
+    "semfix_v6": {
+     "missing": "not an arm v6 axis"
+    },
+    "nosem_v6": {
+     "missing": "not an arm v6 axis"
     }
    }
   },
@@ -572,6 +702,12 @@
     },
     "frozen_sem": {
      "missing": "no frozen-sem legged lineage"
+    },
+    "semfix_v6": {
+     "missing": "not an arm v6 axis"
+    },
+    "nosem_v6": {
+     "missing": "not an arm v6 axis"
     }
    }
   },
@@ -621,6 +757,12 @@
     },
     "frozen_sem": {
      "missing": "no frozen-sem legged lineage"
+    },
+    "semfix_v6": {
+     "missing": "not an arm v6 axis"
+    },
+    "nosem_v6": {
+     "missing": "not an arm v6 axis"
     }
    }
   },
@@ -670,16 +812,22 @@
     },
     "frozen_sem": {
      "missing": "no frozen-sem legged lineage"
+    },
+    "semfix_v6": {
+     "missing": "not an arm v6 axis"
+    },
+    "nosem_v6": {
+     "missing": "not an arm v6 axis"
     }
    }
   },
   {
-   "id": "arm_rebind_first_contact_new",
-   "label": "arm rebind following",
-   "metric": "rebind_first_contact_new rate",
+   "id": "arm_rebind_first_approach_new",
+   "label": "arm rebind (first approach, new cube)",
+   "metric": "rebind_first_approach_new rate",
    "direction": "max",
-   "protocol": "parm6, seed-2 lineages, 82 edited episodes each (ladder/armnosem/seed2/compare_three_way_seed2.json)",
-   "decision": "D-095",
+   "protocol": "parm6 edit suite, 82 edited episodes per seed: v1 = seed-2 lineages (compare_three_way_seed2.json, D-095); v6 = 2 seeds pooled (compare_v6.json, D-134; early route checkpoint, competence-confounded)",
+   "decision": "D-095 · D-134",
    "floor": {
     "value": 0.0,
     "meaning": "never follows"
@@ -693,14 +841,14 @@
      "doc": "results",
      "where": {
       "source_file": "compare_three_way_seed2.json$",
-      "metric": "^rebind_first_contact_new$",
+      "metric": "^rebind_first_approach_new$",
       "variant": "^semfix$"
      },
      "key_path": [
       "^edits_parm6$",
       "^semfix$",
       "^key$",
-      "^rebind_first_contact_new$"
+      "^rebind_first_approach_new$"
      ],
      "agg": "sum_kn"
     },
@@ -708,14 +856,14 @@
      "doc": "results",
      "where": {
       "source_file": "compare_three_way_seed2.json$",
-      "metric": "^rebind_first_contact_new$",
+      "metric": "^rebind_first_approach_new$",
       "variant": "^nosem$"
      },
      "key_path": [
       "^edits_parm6$",
       "^nosem$",
       "^key$",
-      "^rebind_first_contact_new$"
+      "^rebind_first_approach_new$"
      ],
      "agg": "sum_kn"
     },
@@ -723,14 +871,14 @@
      "doc": "results",
      "where": {
       "source_file": "compare_three_way_seed2.json$",
-      "metric": "^rebind_first_contact_new$",
+      "metric": "^rebind_first_approach_new$",
       "variant": "^sem$"
      },
      "key_path": [
       "^edits_parm6$",
       "^sem$",
       "^key$",
-      "^rebind_first_contact_new$"
+      "^rebind_first_approach_new$"
      ],
      "agg": "sum_kn"
     },
@@ -739,6 +887,40 @@
     },
     "teacher": {
      "missing": "not in this comparison"
+    },
+    "semfix_v6": {
+     "doc": "results",
+     "where": {
+      "source_file": "research/tracks/ladder/armv6/compare_v6.json$",
+      "metric": "^rebind_first_approach_new$"
+     },
+     "key_path": [
+      "^v6$",
+      "^semfix_s",
+      "^edits$",
+      "^parm6$",
+      "^key$",
+      "^rebind_first_approach_new$"
+     ],
+     "agg": "sum_kn",
+     "group": 1
+    },
+    "nosem_v6": {
+     "doc": "results",
+     "where": {
+      "source_file": "research/tracks/ladder/armv6/compare_v6.json$",
+      "metric": "^rebind_first_approach_new$"
+     },
+     "key_path": [
+      "^v6$",
+      "^nosem_s",
+      "^edits$",
+      "^parm6$",
+      "^key$",
+      "^rebind_first_approach_new$"
+     ],
+     "agg": "sum_kn",
+     "group": 1
     }
    }
   },
@@ -747,8 +929,8 @@
    "label": "arm goal edit",
    "metric": "goal_cube_at_new_goal rate",
    "direction": "max",
-   "protocol": "parm6, seed-2 lineages, 82 edited episodes each (ladder/armnosem/seed2/compare_three_way_seed2.json)",
-   "decision": "D-095",
+   "protocol": "parm6 edit suite, 82 edited episodes per seed: v1 = seed-2 lineages (compare_three_way_seed2.json, D-095); v6 = 2 seeds pooled (compare_v6.json, D-134; early route checkpoint, competence-confounded)",
+   "decision": "D-095 · D-134",
    "floor": {
     "value": 0.0,
     "meaning": "never follows"
@@ -808,6 +990,40 @@
     },
     "teacher": {
      "missing": "not in this comparison"
+    },
+    "semfix_v6": {
+     "doc": "results",
+     "where": {
+      "source_file": "research/tracks/ladder/armv6/compare_v6.json$",
+      "metric": "^goal_cube_at_new_goal$"
+     },
+     "key_path": [
+      "^v6$",
+      "^semfix_s",
+      "^edits$",
+      "^parm6$",
+      "^key$",
+      "^goal_cube_at_new_goal$"
+     ],
+     "agg": "sum_kn",
+     "group": 1
+    },
+    "nosem_v6": {
+     "doc": "results",
+     "where": {
+      "source_file": "research/tracks/ladder/armv6/compare_v6.json$",
+      "metric": "^goal_cube_at_new_goal$"
+     },
+     "key_path": [
+      "^v6$",
+      "^nosem_s",
+      "^edits$",
+      "^parm6$",
+      "^key$",
+      "^goal_cube_at_new_goal$"
+     ],
+     "agg": "sum_kn",
+     "group": 1
     }
    }
   },
@@ -950,6 +1166,12 @@
       "pooled_perturbed",
       "n"
      ]
+    },
+    "semfix_v6": {
+     "missing": "not an arm v6 axis"
+    },
+    "nosem_v6": {
+     "missing": "not an arm v6 axis"
     }
    }
   },
@@ -1092,6 +1314,12 @@
       "pooled_perturbed",
       "n"
      ]
+    },
+    "semfix_v6": {
+     "missing": "not an arm v6 axis"
+    },
+    "nosem_v6": {
+     "missing": "not an arm v6 axis"
     }
    }
   },
@@ -1219,6 +1447,12 @@
      "n": [
       "n"
      ]
+    },
+    "semfix_v6": {
+     "missing": "not an arm v6 axis"
+    },
+    "nosem_v6": {
+     "missing": "not an arm v6 axis"
     }
    }
   },
@@ -1306,6 +1540,12 @@
       "motion",
       "chunk_vel_step_max"
      ]
+    },
+    "semfix_v6": {
+     "missing": "not an arm v6 axis"
+    },
+    "nosem_v6": {
+     "missing": "not an arm v6 axis"
     }
    }
   },
@@ -1349,6 +1589,12 @@
     },
     "teacher": {
      "missing": "no scripted teacher for zero-shot transfer"
+    },
+    "semfix_v6": {
+     "missing": "not an arm v6 axis"
+    },
+    "nosem_v6": {
+     "missing": "not an arm v6 axis"
     }
    }
   },
@@ -1404,6 +1650,12 @@
     },
     "teacher": {
      "missing": "scripted teacher is not a learned controller"
+    },
+    "semfix_v6": {
+     "missing": "not an arm v6 axis"
+    },
+    "nosem_v6": {
+     "missing": "not an arm v6 axis"
     }
    }
   }
