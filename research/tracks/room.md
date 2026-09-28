@@ -90,6 +90,46 @@ for i in 0 1; do scripts/peer_run.sh --cpu 2 --mem 5G --label roomrec_record_$i 
 ```
 Host copy: `rsync gb10-direct:/dev/shm/rrp-brandonin/repo/artifacts/runs/roomrec_replays/ ~/work/rrp-data/viz/replays/`.
 
+### catalogue (2026-09-28, 160 replays, 48.5 MB; peer `artifacts/runs/roomrec_replays/`, host `~/work/rrp-data/viz/replays/`)
+Outcome per seed as re-run (S/F). Every replay's meta carries the seed, checkpoint shas, physics versions, env, the
+eval config (ladder: seed-list, batch index, position in batch) and decision_refs.
+| family / task | route | cells | replays |
+|---|---|---|---|
+| arm pick_place, panda_pg2 + parm6_tf3 | R2 (flow gdag2h → system 0 gendag3_noqd): frozen sem s1/s2, semfix s1/s2, nosem s1/s2 × grasp_v1 (as recorded) and grasp_v2 (D-127) | 24 | 50 (2 per cell, 3 for frozen sem s1 parm6; S and F where the first batch has them) |
+| arm pick_place | BC direct1701_final × grasp_v1/v2 (panda 3000000, 3000111; parm6 3000003, 3000004) | 4 | 8 |
+| arm pick_place | scripted teacher v2 × grasp_v1/v2 (no recorded failure exists: 4810/4811) | 4 | 8 |
+| arm pick_place, semantic edits (grasp_v1) | control / rebind_desc / goal_shift: semfix s1, nosem s1, semfix s2, nosem s2 on parm6 (3000003); semfix s1, nosem s2 on panda (3000000) | 6 | 18 |
+| arm grasp rig | v1 vs v2 × pg2/tf3 × friction ×1 / ×0.05 (tf3 v1 at ×0.05 drops the cube) | 8 | 8 |
+| legged W8 contact_v2 | semfix s0 / nosem s0 × {unedited, ctx halt, mirror_inactive control} × anymal_c (10002, 10017), go2 (10007, 10003), t1 (10019, 10000); 5 s edit windows, t_edit 2 s | 18 | 36 |
+| legged W8 | teacher and BC references (60 s; 10002, t1 also 10019; t1 BC 0/30 as recorded) | 6 | 8 |
+| legged robustness (anymal_c, policy.pt s0) | semfix vs nosem: push 1 m/s (10001: semfix falls, nosem succeeds), friction 0.4 (10010), terrain 8 cm (10003, 10000) | 6 | 8 |
+| legged tracker validation | forward trial seed 1000: v1 tracker on contact_v1 vs accepted v2 tracker on contact_v2, anymal_c / go2 / t1 (t1 v1 under legacy_gains_v0) | 6 | 6 |
+| dual (W12) | teacher v3 smoke under grasp_v2.1 (support_insert, handover × parm5_pg2×2 and panda_pg2+ur5e_pg2 × seeds 0, 1); peg case: support_insert v2 teacher parm5×2 seed 0, grasp_v1 success vs grasp_v2.1 failure (L:l_hold|R:r_transit) | 6 | 10 |
+Totals: arm 92, legged 58, dual 10; 67 successes, 93 failures. Largest file 0.82 MB (t1 60 s BC episode).
+
+### reproduction check
+All 160 re-runs reproduce the recorded outcome of the original eval row for the same seed (meta.reproduced = true,
+160/160), and every compared detail field matches exactly (414 fields: arm outcome + steps; legged fell, sim_time,
+final pose to 1 mm; tracker fell, distance, slip; dual status, steps, failure phase; rig lift_held, slip mass,
+penetration; edits privileged_success, first contact, lifted). This includes the grasp_v1 arm rows (older code
+commits), the W8 rows (commits 82367379 / 4b030fd6 / 9bf74f95) and the D-108 robustness rows that ran on the host venv.
+No episode could not be reproduced.
+
+### caveats and notes
+- Legged 5 s context-edit episodes have success = false by construction (the task cannot finish in the window; D-090
+  protocol); `meta.success_definition` says so. The effect is in `signals.forward_progress` after `t_edit`.
+- Arm edit replays define success as `followed` (lifted the new cube / placed at the shifted goal / placed in the zone);
+  the D-074 rebind measure is "approached the new cube first", in `meta.edit_row.approached_first`.
+- The grasp rig has no peg/cylinder case (D-125 item 1 is still open); the peg case is the dual support_insert pair.
+- `phase` for arm R2 is the SHADOW scripted teacher's FSM phase at the real state (privileged diagnostic label).
+- Host transfer: the host broker's admission has been latched `available_memory_below_reserve` since before the 00:34
+  host crash (state.json last event 1790579657; no host watchdog process is running), so no host lease can be admitted.
+  The 48 MB rsync was run directly with nice/ionice and a 20 MB/s limit (host disk 576 GB free); flagged for the lead.
+
+### resume
+Re-record anything: `--skip-done` skips entries logged ok in `<out>/record_log.jsonl`; `--index-only` rewrites
+`index.json`. New episodes: edit `scripts/viz_record_specs.py`, regenerate the specs, push, run with `--only <ids>`.
+
 ## frontend
 
 Owner: the room frontend agent (worktree `~/work/rrp-wt/roomui`, branch `track/roomui`). The app is in `viz/room/` (see its README).
