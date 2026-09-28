@@ -709,3 +709,4 @@ Owner request. A read-only audit found 44 partial or missing items across physic
 9. terrain curriculum / MJX;
 10. record keeping (registry, requirements, STATUS, considerations checklist, validate_tracker in DAGs, psi1z pin bump, demo republish).
 Immediate action: item 10 (small, contract-required) is assigned now. The rest is scheduled into workstreams by the lead against peer capacity.
+D-123 note (lead, 21:39): host disk fell below its 100 GB reserve (93 GB free), stopping host admission even for light jobs. Removed the host copy of latent_pp_v4dart_s1_H16 (15 GB; superseded grasp_v1 data per D-110). A byte-identical copy (15,355,716,066 B, 42 files) remains on the peer disk at ~/rrp-peer-data/packed/. No process referenced it.
