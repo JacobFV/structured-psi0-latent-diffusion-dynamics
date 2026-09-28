@@ -26,7 +26,8 @@ defaults:
 nodes:
   # Memory (D-117, measured on the first node of each stage type, 09:37-09:39, xarm7_pg2): target_eval 1.83G, flow SFT
   # 1.75G, system-0 refit 1.61G, BC SFT 1.59G, pack 1.59G (cgroup memory.peak) -> 4G each (>= 1.35x); adaptation GPU
-  # 3G (flows measured ~1.1G CUDA). Limits do not enter config hashes.
+  # 8G: the lease caps each process at the declared gpu_mem; BC SFT b20 hit CUDA OOM at 3.19G under a 3G cap (09:41),
+  # so the true peak is > 3.2G and unmeasured -> 8G. Limits do not enter config hashes.
   pack_xarm7_pg2: {resources: {mem: 4G}}
   pack_xarm7_tf3: {resources: {mem: 4G}}
   pack_panda_tf3: {resources: {mem: 4G}}
@@ -36,8 +37,8 @@ nodes:
   ev5: {resources: {mem: 4G}}
   ev20: {resources: {mem: 4G}}
   ev100: {resources: {mem: 4G}}
-  sft5: {resources: {mem: 4G, gpu_mem: 3G}}
-  sft20: {resources: {mem: 4G, gpu_mem: 3G}}
-  sft100: {resources: {mem: 4G, gpu_mem: 3G}}
+  sft5: {resources: {mem: 4G, gpu_mem: 8G}}
+  sft20: {resources: {mem: 4G, gpu_mem: 8G}}
+  sft100: {resources: {mem: 4G, gpu_mem: 8G}}
   train_bc1702: null
   train_bc1703: null
