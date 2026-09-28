@@ -35,7 +35,8 @@ SCHEMA_VERSION = "runconfig-1"
 BUILTIN_FAMILIES = ("arm", "dual", "legged")
 Variant = Literal["sem", "nosem", "semfix", "na"]
 PIPELINE_STAGES = ("collect", "pack", "train_rep", "probes", "train_flow", "flow_ft", "dagger_collect", "refit",
-                   "eval_r1", "eval_r2", "heldout", "edits", "train_bc", "validate_tracker", "train_tracker")
+                   "eval_r1", "eval_r2", "heldout", "edits", "train_bc", "validate_tracker", "train_tracker",
+                   "grpo", "target_eval", "target_adapt")   # D-126 (arm): GRPO + anchors; sealed target-body eval / adaptation
 # kinds of legacy configs that are not pipeline stages (read for provenance; the pipeline does not run them).
 # train_bc moved to PIPELINE_STAGES (W8: legged BC positive control through run-dag); arm/dual do not implement it.
 LEGACY_ONLY_STAGES = ("train_policy", "adapt", "vlm", "protocol")
@@ -60,10 +61,14 @@ def _flag_spec() -> dict[tuple[str, str], dict[str, str]]:
                   "realizer_drop_qd": "realizer_drop_qd", "contact_version": META},
         "dagger_collect": arm_eval, "eval_r1": arm_eval, "eval_r2": arm_eval, "heldout": arm_eval, "edits": arm_eval,
     }
+    dual = dict(arm)                  # (D-126: the dual table is the arm table BEFORE the arm-only stages below)
+    arm.update({                      # D-126 arm-only stages
+        "grpo": arm_eval, "target_eval": arm_eval, "target_adapt": {"contact_version": META},
+        "train_bc": {"zero_prev_action": "zero_prev_action", "contact_version": META},
+    })
     legged = {s: {"contact_version": META} for s in PIPELINE_STAGES}
     legged["train_rep"] = {"probe_lv_min": "latent.probe_lv_min", "qd_dropout": "latent.qd_dropout", "contact_version": META}
     legged["refit"] = {"qd_dropout": "qd_dropout", "contact_version": META}
-    dual = dict(arm)
     spec = {}
     for fam, table in (("arm", arm), ("legged", legged), ("dual", dual)):
         for st in PIPELINE_STAGES + LEGACY_ONLY_STAGES:

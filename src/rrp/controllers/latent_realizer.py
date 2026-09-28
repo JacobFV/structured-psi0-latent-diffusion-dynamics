@@ -111,6 +111,34 @@ class LatentSystem0(System0Base):
         lsv, rcv = getattr(realizer, "bundle_versions", None) or (latent_space_version, realizer_compat_version)
         super().__init__(latent_space_version=lsv, realizer_compat_version=rcv, fallback=fallback)
         self.device = device
+        self.blender = None          # D-126 #7 chunk blending (rrp.controllers.chunk_blend); None = historical ticks
+
+    def configure_blend(self, mode: str = "none", ticks: int = 4, decay: float = 0.0):
+        """Overlapping-packet blending (default none). Set before the first packet is received."""
+        from rrp.controllers.chunk_blend import BlendConfig, PacketBlender
+        cfg = BlendConfig(mode, ticks, decay)
+        self.blender = PacketBlender(cfg) if cfg.on else None
+        return self
+
+    def receive(self, packet, *, now: float, graph_version: int | None = None):
+        super().receive(packet, now=now, graph_version=graph_version)
+        if self.blender is not None:
+            self.blender.accepted(packet, now)
+
+    def invalidate(self, reason: str, now: float):
+        super().invalidate(reason, now)
+        if self.blender is not None:        # never blend across an invalidation (graph edit, expiry)
+            self.blender.clear()
+
+    @torch.no_grad()
+    def realize_packet(self, packet, now: float, nf, nm, lc) -> np.ndarray:
+        """Normalized realizer output for `packet` at this tick's inputs (nf, nm, lc: batch-1 tensors) and its own phase."""
+        dev = self.device
+        z = torch.from_numpy(np.asarray(packet.z, np.float32))[None].to(dev)
+        zm = torch.tensor([packet.assembly_mask], device=dev)
+        kt = torch.tensor(packet.knot_times, dtype=torch.float32, device=dev)
+        ph = torch.tensor([now - packet.valid_from], dtype=torch.float32, device=dev)
+        return self.net(z, zm, kt, ph, nf, nm, lc)[0].cpu().numpy()
 
     @property
     def robot_spec_hash(self) -> str:
@@ -144,6 +172,8 @@ class LatentSystem0(System0Base):
         nm = torch.ones(1, nf.shape[1], dtype=torch.bool, device=dev)
         lc = torch.from_numpy(loc)[None].to(dev)
         a = self.net(z, zm, kt, ph, nf, nm, lc)[0].cpu().numpy()
+        if self.blender is not None:
+            a = self.blender.blend(a, now, session.dt, lambda p_: self.realize_packet(p_, now, nf, nm, lc))
         groups = self.f.aspace.denormalize(np.clip(a, -6, 6)[None], pi.q0)[0]
         self.stats.ticks += 1
         return NativeCommand(controller_version=controller_version, groups=groups, source="learned")
@@ -205,7 +235,16 @@ def batched_ticks(s0s, sessions) -> list:
             torch.from_numpy(nm).to(dev), lc).cpu().numpy()
     for b, (i, now, pi, loc) in enumerate(work):
         n = pi.act_node_feats.shape[0]
-        groups = s0s[i].f.aspace.denormalize(np.clip(a[b, :n], -6, 6)[None], pi.q0)[0]
+        ab = a[b, :n]
+        if getattr(s0s[i], "blender", None) is not None:          # D-126 #7 (default None: unchanged)
+            s0b = s0s[i]
+            nf1 = torch.from_numpy(nf[b:b + 1, :n]).to(dev)
+            nm1 = torch.ones(1, n, dtype=torch.bool, device=dev)
+            lc1 = lc[b:b + 1]
+            ab = s0b.blender.blend(ab, now, sessions[i].dt,
+                                   lambda p_, s0b=s0b, nf1=nf1, nm1=nm1, lc1=lc1, now=now:
+                                   s0b.realize_packet(p_, now, nf1, nm1, lc1))
+        groups = s0s[i].f.aspace.denormalize(np.clip(ab, -6, 6)[None], pi.q0)[0]
         s0s[i].stats.ticks += 1
         cmds[i] = NativeCommand(controller_version=sessions[i].controller_version(), groups=groups, source="learned")
     return cmds

@@ -15,17 +15,17 @@ Code: ✅ exists · 🔧 implementing (D-126) · ❌ not a code problem / needs 
 | 1 | Do the arm semantic results (D-095) survive grasp_v2? Re-eval of existing routes | – | ~free | done → D-127 (yes; semfix 311/480 vs nosem 40/480; frozen sem s1 collapses) | ✅ |
 | 2 | Is v6dart data good enough: v6 BC expert ≥ v2 expert (D-121 condition)? | – | ~3 h | running | ✅ |
 | 3 | Do semfix vs nosem arm results hold on realistic physics + teacher v2 + v6dart? | 2 | 24–30 h | queued | ✅ |
-| 4 | Can upstream recipe choices (Stage A β, BC-DAgger schedule, refit lengths) rescue nosem? (D-099 fairness) | 3 | ~1 day | planned | 🔧 ablation overlays |
-| 5 | Does small-amplitude descent-phase DART restore near-grasp recovery without penetration? (D-121 fallback) | 2 | ~0.5 day | conditional | 🔧 |
-| 6 | Can GRPO (success reward, anchor/forgetting evals) lift the latent route past the scripted ceiling vs BC at equal budget? | 3 | 6–10 h | planned | 🔧 stage + evals |
-| 7 | Does overlapping-chunk blending remove chunk-boundary steps without losing success (BC and system 0)? | – | 0.5–1 day | planned | 🔧 |
-| 8 | Does limit-aware IK remove procedural-arm joint-limit contact so the gate can be enforced? | – | ~1 day + data | planned | 🔧 |
+| 4 | Can upstream recipe choices (Stage A β, BC-DAgger schedule, refit lengths) rescue nosem? (D-099 fairness) | 3 | ~1 day | planned | ✅ overlays (dags/overlays/arm_recipe) |
+| 5 | Does small-amplitude descent-phase DART restore near-grasp recovery without penetration? (D-121 fallback) | 2 | ~0.5 day | conditional | ✅ `dart_descent_sigma` |
+| 6 | Can GRPO (success reward, anchor/forgetting evals) lift the latent route past the scripted ceiling vs BC at equal budget? | 3 | 6–10 h | planned | ✅ grpo stage + anchors (dags/templates/arm_grpo.yaml) |
+| 7 | Does overlapping-chunk blending remove chunk-boundary steps without losing success (BC and system 0)? | – | 0.5–1 day | planned | ✅ `chunk_blend` |
+| 8 | Does limit-aware IK remove procedural-arm joint-limit contact so the gate can be enforced? | – | ~1 day + data | planned | ✅ `ik_limit_margin` / teacher v2lim |
 
 ## B. Cross-body transfer (the untested core claim)
 | # | question | depends on | cost | experiment | code |
 |---|---|---|---|---|---|
-| 9 | Does the latent route transfer to the sealed target bodies (xarm7_pg2/tf3, panda_tf3): zero-shot and with small adaptation budgets? | 3 | 1–2 days | planned (priority) | 🔧 DAG nodes |
-| 10 | Fair baselines on those bodies: BC seeds 1702/1703, SFT budgets on the same data | – | ~1 day | planned (priority) | 🔧 DAG nodes |
+| 9 | Does the latent route transfer to the sealed target bodies (xarm7_pg2/tf3, panda_tf3): zero-shot and with small adaptation budgets? | 3 | 1–2 days | planned (priority) | ✅ DAG template arm_targets_latent |
+| 10 | Fair baselines on those bodies: BC seeds 1702/1703, SFT budgets on the same data | – | ~1 day | planned (priority) | ✅ DAG template arm_targets_bc |
 | 11 | Legged held-out body transfer (heldout + refit stages) | – | ~1 day | planned | 🔧 DAG template |
 | 12 | Do anchor-relative packets transfer better than base-frame ones? (W12 H2) | 20 | in W12 | planned | ✅ (W12 A) |
 
@@ -73,7 +73,7 @@ default off; defaults golden-identical to pre-D-126 rows.
 |---|---|---|---|---|---|
 | 33 | First dual-arm learned models (M=2 "across bodies") | 18 | 2–3 days | planned | 🔧 dual pipeline stages |
 | 34 | Loco-manipulation (walk to a table, then pick) | 13 | 3+ days | open | 🔧 task + scene |
-| 35 | Richer arm objects (sizes, masses, friction, shapes) | – | 1–2 days + data | planned | 🔧 scenario flags |
+| 35 | Richer arm objects (sizes, masses, friction, shapes) | – | 1–2 days + data | planned | ✅ `object_spec` / `object_variation` |
 
 ## ordering once current runs finish (lead)
 1–3 (running/queued) → 9–10 (core claim) → 23 (queued) → 13 (unblocks humanoid) → 18–19 (W12 go/no-go). The rest fits

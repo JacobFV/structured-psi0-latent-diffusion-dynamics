@@ -119,7 +119,7 @@ class Plan:
                     [k for k in self.order if k in keep], self.defaults, self.track, self.source, self.caveat)
 
 
-def load_dag(path: Path | str, _seen: tuple = ()) -> dict:
+def load_dag(path: Path | str, _seen: tuple = (), fragment: bool = False) -> dict:
     """Load a DAG file. `extends: <parent.yaml>` (path relative to this file) deep-merges this file over the parent
     (runconfig.overlay: dicts merge, lists and scalars replace, None deletes), e.g. a new data/expert set that changes
     only names, matrix and input vars of an existing DAG (dags/arm_lineage_v2.yaml)."""
@@ -130,11 +130,18 @@ def load_dag(path: Path | str, _seen: tuple = ()) -> dict:
         raise DagError(f"{p}: not a DAG file")
     parent = d.pop("extends", None)
     if parent:
-        pp = (p.parent / parent).resolve()
-        if pp in _seen:
-            raise DagError(f"{p}: circular extends ({pp})")
-        d = overlay(load_dag(pp, _seen + (p.resolve(),)), d)
-    if "nodes" not in d:
+        # D-126: a list [base.yaml, overlay1.yaml, ...] folds left (base, then each overlay fragment, then this file);
+        # fragments (dags/overlays/**) may omit `nodes`. A single path is the historical behaviour.
+        parents = parent if isinstance(parent, list) else [parent]
+        acc = None
+        for i, par in enumerate(parents):
+            pp = (p.parent / par).resolve()
+            if pp in _seen or pp == p.resolve():
+                raise DagError(f"{p}: circular extends ({pp})")
+            sub = load_dag(pp, _seen + (p.resolve(),), fragment=i > 0)
+            acc = sub if acc is None else overlay(acc, sub)
+        d = overlay(acc, d)
+    if "nodes" not in d and not fragment:
         raise DagError(f"{p}: not a DAG file (no nodes)")
     return d
 

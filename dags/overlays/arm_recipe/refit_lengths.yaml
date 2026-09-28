@@ -1,0 +1,16 @@
+# D-126 #4 overlay: system-0 refit lengths (untested upstream choice named in D-099). Resources are raised with the
+# step counts (the parent's max_seconds were sized for the shorter refits).
+name: arm_recipe_abl_refitlen
+track: armabl
+lineage: 'armabl-refitlen-{variant}'
+label_prefix: 'ab_rl{tg}{seed}'
+matrix:
+  variant: [nosem]
+vars:
+  abl_refit_steps: 16000
+nodes:
+  rzbcdag1: {resources: {max_seconds: 21600}, config: {params: {steps: '{abl_refit_steps}'}}}
+  rzbcdag2: {resources: {max_seconds: 21600}, config: {params: {steps: '{abl_refit_steps}'}}}
+  rzgendag1: {resources: {max_seconds: 21600}, config: {params: {steps: '{abl_refit_steps}'}}}
+  rzgendag2: {resources: {max_seconds: 21600}, config: {params: {steps: '{abl_refit_steps}'}}}
+  rzgendag3: {resources: {max_seconds: 21600}, config: {params: {steps: '{abl_refit_steps}'}}}

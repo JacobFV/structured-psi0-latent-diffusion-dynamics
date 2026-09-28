@@ -48,6 +48,11 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--render-seeds", help="comma list: render these seeds (one episode each) instead of evaluating")
     ap.add_argument("--video-out", default="artifacts/video")
     ap.add_argument("--out", required=True)
+    # D-126 #7 overlapping-chunk blending (BC chunks / system-0 packets; rrp.controllers.chunk_blend): none = unchanged.
+    # Hidden from --help so the CLI's usage text stays identical to the frozen legacy script (tests/unit/test_ladder_cli_parity.py).
+    ap.add_argument("--chunk-blend", choices=["none", "crossfade", "ensemble"], default="none", help=argparse.SUPPRESS)
+    ap.add_argument("--blend-ticks", type=int, default=4, help=argparse.SUPPRESS)
+    ap.add_argument("--blend-decay", type=float, default=0.0, help=argparse.SUPPRESS)
     return ap
 
 
@@ -66,7 +71,8 @@ def main(argv=None):
     seeds = feasible_arm_seeds(a.robot, a.seed_start, a.n)
     cfg = LadderConfig(route=a.route, robot=a.robot, seeds=seeds, representation=a.rep, flow=a.flow, policy=a.policy, policy_label=a.policy_label, oracle_expert=a.oracle_expert, noise_scale=a.noise_scale,
                        replan_ticks=a.replan, max_steps=a.max_steps, nfe=a.nfe, compare_oracle=not a.no_compare,
-                       device=dev, prev_action=a.prev_action, keep_ticks=a.keep_ticks, oracle_reanchor=a.reanchor, object_shift=tuple(float(x) for x in a.object_shift.split(",")) if a.object_shift else None)
+                       device=dev, prev_action=a.prev_action, keep_ticks=a.keep_ticks, oracle_reanchor=a.reanchor, object_shift=tuple(float(x) for x in a.object_shift.split(",")) if a.object_shift else None,
+                       chunk_blend=a.chunk_blend, blend_ticks=a.blend_ticks, blend_decay=a.blend_decay)
     if cfg.object_shift:
         cfg.object_shift = (int(cfg.object_shift[0]),) + cfg.object_shift[1:]
     models, ids = load_models(cfg) if (a.route != "teacher" or a.rep) else (dict(E=None, R=None, P=None, lcfg=None, res=None, flow=None), {})
@@ -108,6 +114,8 @@ def main(argv=None):
                                                            reanchor=a.reanchor, prev_action=a.prev_action, oracle_expert=a.oracle_expert, policy_label=a.policy_label, ids=ids))
     summ = dict(summarize(rows), route=a.route, robot=a.robot, seeds=[seeds[0], seeds[-1], len(seeds)],
                 replan=a.replan, nfe=a.nfe, prev_action=a.prev_action, reanchor=a.reanchor, oracle_expert=a.oracle_expert, policy_label=a.policy_label, keep_ticks=a.keep_ticks, oracle_reanchor=a.reanchor, object_shift=a.object_shift, checkpoints=ids)
+    if a.chunk_blend != "none":
+        summ["chunk_blend"] = ids.get("chunk_blend")
     (out / f"{name}.summary.json").write_text(json.dumps(summ, indent=1, default=str))
     print(json.dumps({k: v for k, v in summ.items() if k != "checkpoints"}, default=str))
 

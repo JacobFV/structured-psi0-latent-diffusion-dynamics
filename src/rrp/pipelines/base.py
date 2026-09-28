@@ -187,11 +187,23 @@ class Pipeline:
         (out / "gate_report.json").unlink(missing_ok=True)   # nor a stale gate report fail it
         t0 = time.time()
         cwd = os.getcwd()
+        gc = rc.options.get("grasp_contact")            # D-126: arm grasp contact version for the whole stage (opt-in)
+        gc_old = os.environ.get("RRP_GRASP_CONTACT")
+        if gc is not None:
+            from rrp.physics.grasp_contact import resolve
+            if gc_old is not None and resolve(gc_old) != resolve(gc):
+                raise StageError(f"options.grasp_contact {gc!r} contradicts $RRP_GRASP_CONTACT={gc_old!r}")
+            os.environ["RRP_GRASP_CONTACT"] = resolve(gc)   # in-process code and every subprocess (ctx.env) see it
         os.chdir(root)                                   # existing code resolves artifacts/... relative to the repo
         try:
             res = spec.fn(ctx) or {}
         finally:
             os.chdir(cwd)
+            if gc is not None:
+                if gc_old is None:
+                    os.environ.pop("RRP_GRASP_CONTACT", None)
+                else:
+                    os.environ["RRP_GRASP_CONTACT"] = gc_old
         return write_stage_manifest(ctx, spec, res, started=t0)
 
 

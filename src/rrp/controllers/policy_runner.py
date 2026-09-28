@@ -30,7 +30,8 @@ class PolicyStats:
 
 class LearnedPolicy:
     def __init__(self, model: FlowPolicy, codec: ActionCodec | None, device, *, nfe: int = 8,
-                 execute_prefix: int = 8, name: str = "policy", seed: int = 0):
+                 execute_prefix: int = 8, name: str = "policy", seed: int = 0, chunk_blend: str = "none",
+                 blend_ticks: int = 4, blend_decay: float = 0.0):
         self.model = model.eval()
         self.codec = codec.eval() if codec is not None else None
         self.device = device
@@ -41,6 +42,8 @@ class LearnedPolicy:
         self.stats = PolicyStats()
         self._feat = {}
         self._prev = {}
+        from rrp.controllers.chunk_blend import BlendConfig
+        self.blend = BlendConfig(chunk_blend, blend_ticks, blend_decay)   # D-126 #7; "none" = historical chunks
 
     @classmethod
     def from_checkpoint(cls, path, device="cpu", **kw):
@@ -93,6 +96,9 @@ class LearnedPolicy:
             n = pi.act_node_feats.shape[0]
             ai = np.clip(a[i, :, :n], -6, 6)
             groups_seq = f.aspace.denormalize(ai, pi.q0)
+            if self.blend.on:
+                from rrp.controllers.chunk_blend import blend_bc_chunk
+                groups_seq = blend_bc_chunk(s, groups_seq, float(s.data.time), s.dt, self.blend)
             s._rrp_prev_action = ai[min(self.execute_prefix, H) - 1]
             gnames = sorted(set(f.aspace.node_group), key=f.aspace.node_group.index)
             cg = []

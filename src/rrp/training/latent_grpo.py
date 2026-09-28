@@ -275,10 +275,21 @@ class LatentGRPORunConfig:
     seed: int = 0
     prefix_steps: int = 0              # scripted-teacher curriculum prefix (labelled); 0 = learned from reset
     allow_target: bool = False
+    # D-126 #6 (all default off = the historical run): the deployed system 0 (the lineage's final refit bundle) instead
+    # of the flow config's Stage-A representation; a training budget in new control transitions (env steps incl. a
+    # teacher prefix, counted once per group; `iters` is then the cap); a policy_it<N>.pt at every eval point; and
+    # anchor / forgetting evaluations on the original training bodies (rrp.training.grpo_anchor.AnchorConfig fields).
+    representation: str | None = None
+    budget_env_steps: int | None = None
+    snapshot_evals: bool = False
+    anchor: dict | None = None
     reward: RewardConfig = field(default_factory=RewardConfig)
     grpo: GRPOConfig = field(default_factory=lambda: GRPOConfig(
         group_size=8, lr=1e-6, epochs=2, minibatch=64, kl_coef=0.05,
         sde=SDEConfig(nfe=8, noise_level=0.5, first_step="clamp", last_step="deterministic")))
+
+
+D126_FIELDS = ("representation", "budget_env_steps", "snapshot_evals", "anchor")
 
 
 def _eval(model, base, realizer, cfg: LatentGRPORunConfig, seeds, device, tag, out: Path, prefix: int = 0) -> dict:
@@ -319,11 +330,26 @@ def train_latent_grpo(cfg: LatentGRPORunConfig) -> dict:
     torch.manual_seed(cfg.seed)
     out = Path(cfg.out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    (out / "config.json").write_text(json.dumps(asdict(cfg), indent=1, default=str))
+    cfg_d = asdict(cfg)
+    for k_ in D126_FIELDS:            # unset D-126 options are left out: historical runs write the same config.json
+        if cfg_d.get(k_) in (None, False):
+            cfg_d.pop(k_)
+    (out / "config.json").write_text(json.dumps(cfg_d, indent=1, default=str))
     base = LatentPolicy.from_checkpoint(cfg.checkpoint, device=dev, nfe=cfg.nfe)
     model = base.model
     st = load_checkpoint(cfg.checkpoint, map_location="cpu")
-    _, _, R, _, _ = load_representation(Path(st["config"]["representation"]), dev)   # system 0: frozen
+    rep_path = cfg.representation or st["config"]["representation"]
+    _, _, R, _, rep_res = load_representation(Path(rep_path), dev)   # system 0: frozen
+    if cfg.representation:        # deployed (refit) system 0: same latent space, packets addressed to THIS realizer
+        if rep_res["latent_space_version"] != base.lsv:
+            raise ValueError(f"representation latent space {rep_res['latent_space_version']} != flow {base.lsv}")
+        base.rcv = rep_res["realizer_compat_version"]
+    tracker = None
+    if cfg.anchor:
+        from rrp.training.grpo_anchor import AnchorConfig, AnchorTracker, eval_latent_anchor
+        acfg = AnchorConfig.from_dict(cfg.anchor)
+        tracker = AnchorTracker(acfg, out, lambda tag: eval_latent_anchor(
+            model, base, rep_path, acfg, device=dev, out_rows=out / "anchor_episodes.jsonl", tag=tag))
     learner = GRPOLearner(model, cfg.grpo, dev, version_prefix="latent_grpo", collate_fn=latent_collate)
     actor = LatentSDEPolicy(model, sde=cfg.grpo.sde, version=learner.version, seed=cfg.seed,
                             knot_times=base.knot_times, latent_space_version=base.lsv,
@@ -345,8 +371,16 @@ def train_latent_grpo(cfg: LatentGRPORunConfig) -> dict:
             acct["eval_episodes"] += evals[-1]["episodes"]; acct["eval_env_steps"] += evals[-1]["env_steps"]
             print(json.dumps(evals[-1]), flush=True)
     do_eval("reference@0")
+    if tracker is not None:
+        tracker.reference(model)
+        acct["anchor_episodes"] = sum(v["n"] for v in tracker.ref["counts"].values())
+    budget_hit = False
     t_start = time.time()
     for it in range(cfg.iters):
+        if cfg.budget_env_steps is not None and (acct["train_env_steps"] + acct.get("train_teacher_prefix_steps", 0)
+                                                 >= cfg.budget_env_steps):
+            budget_hit = True
+            break
         t0 = time.time()
         seeds = train_pool[it * cfg.groups_per_iter:(it + 1) * cfg.groups_per_iter]
         actor.version = learner.version
@@ -387,8 +421,21 @@ def train_latent_grpo(cfg: LatentGRPORunConfig) -> dict:
                                               "informative_groups", "rollout_s", "iter_s")}),
               json.dumps({k: ust.get(k) for k in ("chunks", "ratio_mean", "clip_frac", "kl", "grad_norm",
                                                   "first_pass_max_abs_ratio_minus_1")}), flush=True)
-        if (it + 1) % cfg.eval_every == 0 or it + 1 == cfg.iters:
+        spent = acct["train_env_steps"] + acct.get("train_teacher_prefix_steps", 0)
+        last = it + 1 == cfg.iters or (cfg.budget_env_steps is not None and spent >= cfg.budget_env_steps)
+        if (it + 1) % cfg.eval_every == 0 or last:
             do_eval(f"latent_grpo@{it + 1}")
+            if cfg.snapshot_evals:
+                save_checkpoint(out / f"policy_it{it + 1}.pt", model=model, optimizer=None, step=learner.opt_steps,
+                                versions=dict(st["versions"], latent_grpo=learner.version), config=st["config"],
+                                extra=dict(result=dict((st.get("extra") or {}).get("result") or {}),
+                                           latent_grpo_iter=it + 1, accounting=dict(acct)))
+            if tracker is not None:
+                chk = tracker.check(model, f"latent_grpo@{it + 1}")
+                acct["anchor_episodes"] += sum(v["n"] for v in chk["counts"].values())
+                print(json.dumps(dict(anchor=chk["tag"], regressed=chk["regressed"], reasons=chk["reasons"])), flush=True)
+                if tracker.stopped:
+                    break
     res = dict(method="latent_grpo", source_checkpoint=cfg.checkpoint, robot=cfg.robot, reward_label=cfg.reward.label(),
                controller_source=f"learned:{cfg.checkpoint}+latent_grpo",
                curriculum=(f"scripted_teacher prefix {cfg.prefix_steps} ticks (privileged planner), learned suffix"
@@ -397,6 +444,16 @@ def train_latent_grpo(cfg: LatentGRPORunConfig) -> dict:
                eval_seeds=[eval_seeds[0], eval_seeds[-1], len(eval_seeds)], evals=evals, accounting=acct,
                train_wall_s=time.time() - t_start, kl_coef=cfg.grpo.kl_coef,
                note="Eval: deployed ODE sampler on held-out seeds; reference@0 = unmodified checkpoint.")
+    if cfg.representation:
+        res["system0_representation"] = rep_path
+    if cfg.budget_env_steps is not None:
+        res["budget"] = dict(counter="new_control_transitions (train env steps + teacher prefix, once per group)",
+                             budget=cfg.budget_env_steps, spent=acct["train_env_steps"] + acct.get("train_teacher_prefix_steps", 0),
+                             reached=budget_hit or acct["train_env_steps"] + acct.get("train_teacher_prefix_steps", 0)
+                             >= cfg.budget_env_steps)
+    if tracker is not None:
+        kept = tracker.restore_best(model) if tracker.stopped else None
+        res["anchor"] = dict(tracker.summary(), restored=kept)
     save_checkpoint(out / "policy.pt", model=model, optimizer=None, step=learner.opt_steps,
                     versions=dict(st["versions"], latent_grpo=learner.version), config=st["config"],
                     extra=dict(result=dict((st.get("extra") or {}).get("result") or dict(

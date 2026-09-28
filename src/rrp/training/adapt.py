@@ -330,12 +330,28 @@ def run(cfg: dict) -> dict:
         (out_dir / "result.json").write_text(json.dumps(prev, indent=1, default=str))
         print("EVAL", tag, json.dumps({k: ev[k] for k in ("attempted", "successes", "success_rate")}), flush=True)
         return prev
+    tracker = None
+    if cfg.get("anchor"):             # D-126 #6 anchor / forgetting evaluations (absent = the historical run)
+        if method not in ("grpo", "grpo_shared_prefix"):
+            raise ValueError("anchor evaluations are implemented for the GRPO methods")
+        from rrp.training.grpo_anchor import AnchorConfig, AnchorTracker, eval_bc_anchor
+        acfg = AnchorConfig.from_dict(cfg["anchor"])
+        tracker = AnchorTracker(acfg, out_dir, lambda tag: eval_bc_anchor(
+            model, codec, acfg, device=dev, out_rows=out_dir / "anchor_episodes.jsonl", tag=tag))
+        tracker.reference(model, "b0")
     for b in budgets:
         while counters[cfg.get("budget_counter", "new_transitions")] < b:
             train_iteration()
         tag = f"b{b}"
         if b > 0:
             save(tag)
+        if tracker is not None and b > 0:
+            chk = tracker.check(model, tag)
+            results.setdefault("anchor_checks", []).append({k: chk[k] for k in ("tag", "regressed", "reasons", "pooled")})
+            if tracker.stopped:
+                results["anchor"] = dict(tracker.summary(), restored=tracker.restore_best(model))
+                print("ANCHOR REGRESSION", tag, chk["reasons"], flush=True)
+                break
         ev = evaluate_now(tag)
         ev.update(budget=b, budget_counter=cfg.get("budget_counter", "new_transitions"),
                   actual_new_transitions=counters["new_transitions"],
@@ -348,5 +364,7 @@ def run(cfg: dict) -> dict:
         (out_dir / "result.json").write_text(json.dumps(results, indent=1, default=str))
     results["counters"] = counters
     results["wall_s"] = time.time() - t_start
+    if tracker is not None and "anchor" not in results:
+        results["anchor"] = tracker.summary()
     (out_dir / "result.json").write_text(json.dumps(results, indent=1, default=str))
     return results

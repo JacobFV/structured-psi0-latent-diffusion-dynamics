@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import importlib
 
-CORE_API_VERSION = "1.0"
+CORE_API_VERSION = "1.1"   # 1.1 (D-126): stages grpo, target_eval, target_adapt; arm train_bc
 
 # name -> defining module. Grouped as in docs/core_api.md.
 STABLE: dict[str, str] = {}

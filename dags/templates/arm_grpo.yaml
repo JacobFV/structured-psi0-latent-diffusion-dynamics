@@ -1,0 +1,123 @@
+# TEMPLATE (D-126 #6, roadmap #6): GRPO as a pipeline stage on the arm latent route, with anchor / forgetting
+# evaluations, and the matched-budget BC-GRPO baseline. Do not run this file directly: a child DAG does
+#     extends: templates/arm_grpo.yaml
+# and sets name, lineage / label_prefix / global_lineage / global_label_prefix, and the checkpoint vars:
+#   flow_ref  run id of the lineage's deployed system-i flow   (e.g. 'runs/armv6/arm6-{variant}/flow_ft-gdag2h_s{seed}:policy.pt')
+#   rep_ref   run id of the lineage's deployed system 0 bundle (e.g. 'runs/armv6/arm6-{variant}/refit-gendag3_noqd_s{seed}:representation.pt')
+#   bc_ref    run id of the direct-action BC expert of the SAME data (e.g. 'runs/armexpert_bcv6/baseline_direct_action:seed1701/source/policy.pt')
+#   bc_label  its label; grasp_contact: the data's grasp contact version (v6dart: v2.1)
+# The SET_IN_CHILD_DAG placeholders make every node fail at its missing inputs before any compute.
+# Design:
+# - grpo (per variant x seed): rrp.training.latent_grpo on system i only (system 0 = rep_ref, frozen; the deployed pair),
+#   reward = privileged sim success (training signal only), KL 0.05 to the pre-GRPO flow, budget = {budget} new control
+#   transitions, eval every 2 iterations (~13k transitions) on 64 held-out dev seeds of the GRPO body, a policy_it<N>.pt at each eval.
+#   Anchors: the pre-GRPO checkpoint and each GRPO checkpoint are evaluated with the lineage's R2 harness on the ORIGINAL
+#   training bodies $anchor_bodies (30 feasible dev seeds each); regression = pooled drop > 0.10 or any body > 0.20;
+#   action stop keeps the last non-regressed weights as policy.pt (anchor_report.json).
+# - grpo_bc (global): the same GRPO objective, groups, SDE sampler, KL, reward, seeds, anchors and budget on the
+#   direct-action BC expert (rrp.training.adapt method grpo; budget counter new_transitions; checkpoints and anchor
+#   checks at budget/4, budget/2, budget) = the fair baseline.
+# - final evaluations: the finalevals sets of the lineage (panda_pg2 / parm6_tf3, 3 x 30 dev seeds) plus the held-out
+#   source bodies, for GRPO latent and GRPO BC, on the same harness (ladder routes generated / learned).
+# Resources are PROVISIONAL (not yet measured): run one point first with --point and record measured peaks (D-117).
+name: arm_grpo_template
+schema: dag-1
+family: arm
+track: armgrpo
+lineage: 'armgrpo-{variant}'
+global_lineage: 'armgrpo-bc'
+label_prefix: 'ag_{tg}{seed}'
+global_label_prefix: 'agbc'
+matrix:
+  variant: [semfix, nosem]
+  seed: [1, 2]
+axis_vars:
+  variant:
+    semfix: {tg: sf}
+    nosem: {tg: ns}
+vars:
+  flow_ref: 'runs/SET_IN_CHILD_DAG:policy.pt'
+  rep_ref: 'runs/SET_IN_CHILD_DAG:representation.pt'
+  bc_ref: 'runs/SET_IN_CHILD_DAG:policy.pt'
+  bc_label: SET_IN_CHILD_DAG
+  grasp_contact: v2.1
+  grpo_robot: parm6_tf3
+  budget: 100000
+  iters_cap: 400
+lists:
+  anchor_bodies: [panda_pg2, parm5_pg2, ur5e_tf3, sawyer_pg2]
+  final_bodies: [parm6_tf3, panda_pg2]
+  heldout_bodies: [parm5s_tf3, parm5l_pg2]
+  grpo_hp: {group_size: 8, lr: 1.0e-6, epochs: 2, minibatch: 64, kl_coef: 0.05, sde: {nfe: 8, noise_level: 0.5, first_step: clamp, last_step: deterministic}}
+defaults:
+  placement: peer
+  retries: 0
+  max_parallel: 3
+  max_parallel_gpu: 2
+  admission_timeout_s: 10800
+  resources: {cpu: 3, mem: 8G, gpu: false, max_seconds: 10800}
+base:
+  flags: {zero_prev_action: true, contact_version: contact_v1}
+  options: {grasp_contact: '{grasp_contact}'}
+nodes:
+  grpo:
+    stage: grpo
+    resources: {gpu: true, gpu_mem: 8G, cpu: 6, mem: 24G, max_seconds: 43200}
+    config:
+      inputs: {flow: '{flow_ref}', representation: '{rep_ref}'}
+      options:
+        method: latent
+        anchor: {robots: $anchor_bodies, seed_start: 3000000, episodes: 30, max_drop: 0.1, max_drop_robot: 0.2, action: stop}
+      params:
+        robot: '{grpo_robot}'
+        iters: '{iters_cap}'
+        groups_per_iter: 8
+        budget_env_steps: '{budget}'
+        train_seed_start: '{3100000 + 100000 * seed}'
+        eval_seed_start: 3000000
+        eval_episodes: 64
+        eval_every: 2
+        seed: '{seed}'
+        grpo: $grpo_hp
+  grpo_bc:
+    stage: grpo
+    scope: global
+    resources: {gpu: true, gpu_mem: 8G, cpu: 6, mem: 24G, max_seconds: 43200}
+    config:
+      seed: 1701
+      inputs: {bc_policy: '{bc_ref}'}
+      options:
+        method: bc
+        anchor: {robots: $anchor_bodies, seed_start: 3000000, episodes: 30, max_drop: 0.1, max_drop_robot: 0.2, action: stop}
+      params:
+        robot: '{grpo_robot}'
+        budgets: [0, '{budget // 4}', '{budget // 2}', '{budget}']
+        train_seed_start: 3200000
+        eval_seed_start: 3000000
+        eval_episodes: 64
+        eval_batch: 32
+        max_steps: 300
+        execute_prefix: 8
+        nfe: 8
+        seed: 0
+        groups_per_iter: 8
+        grpo: $grpo_hp
+  final:
+    stage: eval_r2
+    tag: grpo_final
+    config:
+      inputs: {flow: '@grpo:policy.pt', representation: '{rep_ref}'}
+      options: {tag: grpo_final, robots: $final_bodies, seed_starts: [3000000, 3000100, 3000200], episodes: 30, workers: 1}
+  final_heldout:
+    stage: heldout
+    tag: grpo_final
+    config:
+      inputs: {flow: '@grpo:policy.pt', representation: '{rep_ref}'}
+      options: {tag: grpo_final, robots: $heldout_bodies, seed_starts: [3000000], episodes: 30, workers: 1}
+  final_bc:
+    stage: eval_r2
+    tag: grpo_bc_final
+    scope: global
+    config:
+      inputs: {bc_policy: '@grpo_bc:policy_b{budget}.pt'}
+      options: {tag: grpo_bc_final, route: learned, bc_label: '{bc_label}+bc_grpo', robots: $final_bodies, seed_starts: [3000000, 3000100, 3000200], episodes: 30, workers: 1}

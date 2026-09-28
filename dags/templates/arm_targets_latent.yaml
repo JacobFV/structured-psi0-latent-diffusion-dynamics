@@ -1,0 +1,156 @@
+# TEMPLATE (D-126 #9, roadmap #9 "the untested core claim"): the arm latent route on the SEALED target bodies
+# xarm7_pg2 / xarm7_tf3 / panda_tf3, zero-shot and with small adaptation budgets, under the sealed protocol
+# configs/eval/latent_slice1.json (eval scenes: 100 seeds from 2,000,000, infeasible excluded and counted; max_steps,
+# replan, NFE from the protocol; budgets {5, 20, 100} demo episodes, nested episode choice, updates {150, 300, 600},
+# lr 1e-4; adaptation seeds 1701/1702 = 1700 + lineage seed, both in the protocol's seed list).
+# A child DAG does `extends: templates/arm_targets_latent.yaml` and sets name / lineage / label prefixes and:
+#   flow_ref, rep_ref  the lineage's deployed system-i flow and system-0 bundle (templates with {variant}/{seed})
+#   dataset            the collection holding the target demos (v6dart: datasets/pick_place_primary_v6dart, split
+#                      target_demos, 150 clean episodes per target from seed 1,000,000)
+#   grasp_contact      the data's grasp contact version (v6dart: v2.1)
+# Nodes per (variant, seed, target):
+#   zs            zero-shot R2 route (system i -> system 0), sealed_run
+#   fsft<b>/fev<b>  system-i flow SFT on b target demos (latent meaning and system 0 frozen), then its sealed eval
+#   rz<b>/rev<b>    system-0 few-shot refit on b target demos (init = the deployed system 0; flow frozen), then its eval
+# plus, once per (variant, seed), the source competence on the protocol's held-out source bodies (src_*), and one
+# stride-1 target pack per target (global). Every result is labelled by kind (zero_shot | adapted:<method>:b<budget>).
+# The template's SET_IN_CHILD_DAG run ids make every node fail at its missing inputs before any compute.
+# Resources are PROVISIONAL (sealed evals: 100 episodes; ladder memory grows ~0.06 GB/episode, W7): measure one node first.
+name: arm_targets_latent_template
+schema: dag-1
+family: arm
+track: armtgt
+lineage: 'armtgt-{variant}-{target}'
+global_lineage: 'armtgt-data'
+label_prefix: 'at_{tg}{seed}_{tk}'
+global_label_prefix: 'atd'
+matrix:
+  variant: [semfix, nosem]
+  seed: [1, 2]
+  target: [xarm7_pg2, xarm7_tf3, panda_tf3]
+axis_vars:
+  variant:
+    semfix: {tg: sf}
+    nosem: {tg: ns}
+  target:
+    xarm7_pg2: {tk: x7p}
+    xarm7_tf3: {tk: x7t}
+    panda_tf3: {tk: pdt}
+vars:
+  flow_ref: 'runs/SET_IN_CHILD_DAG:policy.pt'
+  rep_ref: 'runs/SET_IN_CHILD_DAG:representation.pt'
+  dataset: datasets/SET_IN_CHILD_DAG
+  grasp_contact: v2.1
+  adapt_seed: '{1700 + seed}'
+defaults:
+  placement: peer
+  retries: 0
+  max_parallel: 4
+  max_parallel_gpu: 2
+  admission_timeout_s: 10800
+  resources: {cpu: 3, mem: 12G, gpu: false, max_seconds: 14400}
+base:
+  flags: {zero_prev_action: true, contact_version: contact_v1}
+  options: {grasp_contact: '{grasp_contact}'}
+nodes:
+  pack_xarm7_pg2: {stage: pack, tag: xarm7_pg2, scope: global, resources: {cpu: 2, mem: 8G, max_seconds: 3600}, config: {inputs: {dataset: '{dataset}'}, params: {name: tgt_xarm7_pg2_H16, train_robots: [xarm7_pg2], horizon: 16, stride: 1, include_dart_failures: false}}}
+  pack_xarm7_tf3: {stage: pack, tag: xarm7_tf3, scope: global, resources: {cpu: 2, mem: 8G, max_seconds: 3600}, config: {inputs: {dataset: '{dataset}'}, params: {name: tgt_xarm7_tf3_H16, train_robots: [xarm7_tf3], horizon: 16, stride: 1, include_dart_failures: false}}}
+  pack_panda_tf3: {stage: pack, tag: panda_tf3, scope: global, resources: {cpu: 2, mem: 8G, max_seconds: 3600}, config: {inputs: {dataset: '{dataset}'}, params: {name: tgt_panda_tf3_H16, train_robots: [panda_tf3], horizon: 16, stride: 1, include_dart_failures: false}}}
+  src_parm5s_tf3:
+    stage: target_eval
+    tag: src_parm5s_tf3
+    only: {target: [xarm7_pg2]}
+    config:
+      inputs: {flow: '{flow_ref}', representation: '{rep_ref}'}
+      options: {robot: parm5s_tf3, sealed_run: true, kind: source, tag: source}
+  src_parm5l_pg2:
+    stage: target_eval
+    tag: src_parm5l_pg2
+    only: {target: [xarm7_pg2]}
+    config:
+      inputs: {flow: '{flow_ref}', representation: '{rep_ref}'}
+      options: {robot: parm5l_pg2, sealed_run: true, kind: source, tag: source}
+  zs:
+    stage: target_eval
+    tag: zs
+    config:
+      inputs: {flow: '{flow_ref}', representation: '{rep_ref}'}
+      options: {robot: '{target}', sealed_run: true, kind: zero_shot, tag: b0}
+  fsft5:
+    stage: target_adapt
+    tag: flow_sft_b5
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 12G, max_seconds: 7200}
+    config:
+      inputs: {flow: '{flow_ref}', packed_dir: '@pack_{target}'}
+      options: {method: flow_sft, target: '{target}', budget: 5, adapt_seed: '{adapt_seed}'}
+  fev5:
+    stage: target_eval
+    tag: flow_sft_b5
+    config:
+      inputs: {flow: '@fsft5:policy.pt', representation: '{rep_ref}'}
+      options: {robot: '{target}', sealed_run: true, kind: 'adapted:flow_sft:b5', tag: flow_sft_b5}
+  rz5:
+    stage: target_adapt
+    tag: system0_refit_b5
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 12G, max_seconds: 7200}
+    config:
+      inputs: {representation: '{rep_ref}', packed_dir: '@pack_{target}'}
+      options: {method: system0_refit, target: '{target}', budget: 5, adapt_seed: '{adapt_seed}'}
+  rev5:
+    stage: target_eval
+    tag: system0_refit_b5
+    config:
+      inputs: {flow: '{flow_ref}', representation: '@rz5:representation.pt'}
+      options: {robot: '{target}', sealed_run: true, kind: 'adapted:system0_refit:b5', tag: system0_refit_b5}
+  fsft20:
+    stage: target_adapt
+    tag: flow_sft_b20
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 12G, max_seconds: 7200}
+    config:
+      inputs: {flow: '{flow_ref}', packed_dir: '@pack_{target}'}
+      options: {method: flow_sft, target: '{target}', budget: 20, adapt_seed: '{adapt_seed}'}
+  fev20:
+    stage: target_eval
+    tag: flow_sft_b20
+    config:
+      inputs: {flow: '@fsft20:policy.pt', representation: '{rep_ref}'}
+      options: {robot: '{target}', sealed_run: true, kind: 'adapted:flow_sft:b20', tag: flow_sft_b20}
+  rz20:
+    stage: target_adapt
+    tag: system0_refit_b20
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 12G, max_seconds: 7200}
+    config:
+      inputs: {representation: '{rep_ref}', packed_dir: '@pack_{target}'}
+      options: {method: system0_refit, target: '{target}', budget: 20, adapt_seed: '{adapt_seed}'}
+  rev20:
+    stage: target_eval
+    tag: system0_refit_b20
+    config:
+      inputs: {flow: '{flow_ref}', representation: '@rz20:representation.pt'}
+      options: {robot: '{target}', sealed_run: true, kind: 'adapted:system0_refit:b20', tag: system0_refit_b20}
+  fsft100:
+    stage: target_adapt
+    tag: flow_sft_b100
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 12G, max_seconds: 7200}
+    config:
+      inputs: {flow: '{flow_ref}', packed_dir: '@pack_{target}'}
+      options: {method: flow_sft, target: '{target}', budget: 100, adapt_seed: '{adapt_seed}'}
+  fev100:
+    stage: target_eval
+    tag: flow_sft_b100
+    config:
+      inputs: {flow: '@fsft100:policy.pt', representation: '{rep_ref}'}
+      options: {robot: '{target}', sealed_run: true, kind: 'adapted:flow_sft:b100', tag: flow_sft_b100}
+  rz100:
+    stage: target_adapt
+    tag: system0_refit_b100
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 12G, max_seconds: 7200}
+    config:
+      inputs: {representation: '{rep_ref}', packed_dir: '@pack_{target}'}
+      options: {method: system0_refit, target: '{target}', budget: 100, adapt_seed: '{adapt_seed}'}
+  rev100:
+    stage: target_eval
+    tag: system0_refit_b100
+    config:
+      inputs: {flow: '{flow_ref}', representation: '@rz100:representation.pt'}
+      options: {robot: '{target}', sealed_run: true, kind: 'adapted:system0_refit:b100', tag: system0_refit_b100}

@@ -34,7 +34,8 @@ def _touch(root: Path, *rels):
 
 def test_stage_registry():
     assert Pipeline("arm").stages() == ["collect", "pack", "train_rep", "probes", "train_flow", "flow_ft",
-                                        "dagger_collect", "refit", "eval_r1", "eval_r2", "heldout", "edits"]
+                                        "dagger_collect", "refit", "eval_r1", "eval_r2", "heldout", "edits", "train_bc",
+                                        "grpo", "target_eval", "target_adapt"]
     assert "pack" not in Pipeline("legged").stages() and "refit" in Pipeline("legged").stages()
     assert Pipeline("dual").stages() == ["train_rep", "train_flow"]
     with pytest.raises(StageError, match="not implemented"):

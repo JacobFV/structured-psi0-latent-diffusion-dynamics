@@ -327,6 +327,9 @@ class LadderConfig:
     policy: str | None = None        # route learned: LearnedPolicy checkpoint (baseline FlowPolicy)
     policy_label: str | None = None  # label for the source string (default: checkpoint path)
     perturb: object = None           # W6: rrp.envs.perturb.PhysicsPerturbation (None = nominal physics, unchanged)
+    chunk_blend: str = "none"        # D-126 #7: none | crossfade | ensemble (rrp.controllers.chunk_blend; none = unchanged)
+    blend_ticks: int = 4
+    blend_decay: float = 0.0
     oracle_expert: str = "teacher"   # R1 packet source: teacher (shadow FSM look-ahead) | bc (stateless: E(chunk the
                                      # learned BC policy `policy` would execute from the current state); ORACLE DIAGNOSTIC
     source_labels: bool | None = None  # D-126: also write a canonical `source_label` (None = $RRP_SOURCE_LABELS, default off)
@@ -357,10 +360,15 @@ def load_models(cfg: LadderConfig):
     out = dict(E=None, R=None, P=None, lcfg=None, res=None, flow=None, learned=None)
     if cfg.policy:
         from rrp.controllers.policy_runner import LearnedPolicy
+        bkw = dict(chunk_blend=cfg.chunk_blend, blend_ticks=cfg.blend_ticks, blend_decay=cfg.blend_decay) \
+            if cfg.chunk_blend != "none" else {}
         out["learned"] = LearnedPolicy.from_checkpoint(cfg.policy, device=cfg.device, nfe=cfg.nfe,
-                                                       execute_prefix=cfg.replan_ticks, seed=cfg.flow_seed)
+                                                       execute_prefix=cfg.replan_ticks, seed=cfg.flow_seed, **bkw)
         ids["policy"] = dict(path=str(cfg.policy), sha256=sha256_file(cfg.policy), nfe=cfg.nfe,
                              execute_prefix=cfg.replan_ticks, label=cfg.policy_label)
+    if cfg.chunk_blend != "none":
+        from rrp.controllers.chunk_blend import BlendConfig
+        ids["chunk_blend"] = BlendConfig(cfg.chunk_blend, cfg.blend_ticks, cfg.blend_decay).record()
     if rep:
         lcfg, E, R, P, res = load_representation(Path(rep), cfg.device)
         out.update(E=E, R=R, P=P, lcfg=lcfg, res=res)
@@ -442,6 +450,8 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
         if cfg.route not in ("teacher", "learned") or models["R"] is not None:     # teacher route + R: shadow system 0 (not executed)
             s0.append(LatentSystem0(models["R"], f, latent_space_version=models["res"]["latent_space_version"],
                                     realizer_compat_version=models["res"]["realizer_compat_version"], device=cfg.device))
+            if cfg.chunk_blend != "none" and cfg.route in ("oracle", "generated"):     # D-126 #7 (executed system 0)
+                s0[-1].configure_blend(cfg.chunk_blend, cfg.blend_ticks, cfg.blend_decay)
         meta.append(dict(done=False, outcome=None, steps=0, calls=0, t0=time.time(), ticks=[], replans=[],
                          teacher_done_tick=None))
     for step in range(cfg.max_steps):

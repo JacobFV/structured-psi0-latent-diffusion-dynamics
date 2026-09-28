@@ -1,0 +1,18 @@
+# D-126 #4 overlay: BC-DAgger schedule (D-099: the nosem deficit arises in the shared Stage A + BC-DAgger rounds,
+# bc rounds 1-4/312 vs sem 4 -> 99/312). More episodes per body per BC round and a larger DAgger share in the bc refits.
+name: arm_recipe_abl_bcdag
+track: armabl
+lineage: 'armabl-bcdag-{variant}'
+label_prefix: 'ab_bd{tg}{seed}'
+matrix:
+  variant: [nosem]
+vars:
+  abl_bc_episodes: 48
+  abl_bc_dagger_frac: 0.7
+nodes:
+  bc1: {config: {options: {episodes: '{abl_bc_episodes}'}}}
+  bc2: {config: {options: {episodes: '{abl_bc_episodes}'}}}
+  bc3: {config: {options: {episodes: '{abl_bc_episodes}'}}}
+  rzbcdag1: {config: {params: {dagger_frac: '{abl_bc_dagger_frac}'}}}
+  rzbcdag1long: {config: {params: {dagger_frac: '{abl_bc_dagger_frac}'}}}
+  rzbcdag2: {config: {params: {dagger_frac: '{abl_bc_dagger_frac}'}}}

@@ -53,7 +53,7 @@ def _pf_fetch(sel, tgt):
     return _PF_DATA.fetch(sel, tgt, "cpu")
 
 
-def _prefetch(data, B, rng, max_j, dev, depth: int = 6, workers: int = 3):
+def _prefetch(data, B, rng, max_j, dev, depth: int = 6, workers: int = 3, idx_pool=None):
     """Collate batches on CPU ahead of the GPU step in forked worker processes (the packed arrays are memory-mapped,
     so workers share the page cache). Batch order = the serial rng sequence (sampling happens here, in order)."""
     import collections
@@ -67,7 +67,7 @@ def _prefetch(data, B, rng, max_j, dev, depth: int = 6, workers: int = 3):
     try:
         while True:
             while len(pend) < depth:
-                sel, tgt, j = data.sample(B, rng, max_j)
+                sel, tgt, j = data.sample(B, rng, max_j) if idx_pool is None else data.sample(B, rng, max_j, idx_pool)
                 pend.append((ex.submit(_pf_fetch, sel, tgt), j))
             fut, j = pend.popleft()
             batch, a, v, lab, r = fut.result()
@@ -534,7 +534,10 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
     same objective as Stage A (L_real with reparameterized z ~ q(z|context, demonstrated chunk), phases j <= max).
     Motivated by bug B-1 (config "zero_prev_action": true) and by closed-loop robustness variants. The latent space
     version is unchanged (E identical), so flows trained on it stay valid; the realizer compat version changes.
-    cfg: representation, packed_dir, steps, batch_size, lr, seed, name, zero_prev_action, init ("fresh"|"old")."""
+    cfg: representation, packed_dir, steps, batch_size, lr, seed, name, zero_prev_action, init ("fresh"|"old").
+    D-126 #9 few-shot system-0 adaptation (default absent = unchanged): episode_budget (int) restricts the pack rows to
+    that many episodes, chosen exactly as the flow/BC SFT choose them (nested_budget_indices over the sorted episode
+    ids with budget_seed, default = seed); the result records demo_episodes / demo_control_transitions."""
     cfg_json = _explicit_zpa(cfg_json, out_dir, "rz_last.pt", f"refit_realizer({out_dir})")
     dev = _dev()
     sig = CheckpointSignal()
@@ -569,6 +572,15 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
                 zs.append(mu_[am_[:, None, :].expand(-1, mu_.shape[1], -1)].float())
         zc = torch.cat(zs)
         R.z_mean.copy_(zc.mean(0)); R.z_std.copy_(zc.std(0).clamp(min=1e-3))
+    pool, budget_rec = None, None
+    if cfg_json.get("episode_budget") is not None:          # D-126 #9: few-shot target adaptation of system 0
+        from rrp.evaluation.adaptation import nested_budget_indices
+        b_ = int(cfg_json["episode_budget"])
+        eps_ = sorted(set(data.ep.tolist()))
+        chosen = [eps_[i] for i in nested_budget_indices(len(eps_), [b_], int(cfg_json.get("budget_seed", seed)))[b_]]
+        pool = [int(i) for i in np.nonzero(np.isin(data.ep, chosen))[0]]
+        budget_rec = dict(budget=b_, budget_seed=int(cfg_json.get("budget_seed", seed)), demo_episodes=len(chosen),
+                          demo_control_transitions=len(pool))
     opt = torch.optim.AdamW(R.parameters(), lr=cfg_json.get("lr", 3e-4), weight_decay=1e-4)
     steps = cfg_json["steps"]
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=cfg_json.get("lr", 3e-4), total_steps=steps, pct_start=0.05)
@@ -590,9 +602,10 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
 
     def _serial():
         while True:
-            sel, tgt, j = data.sample(B - Bd, rng, lcfg.max_phase_ticks)
+            sel, tgt, j = (data.sample(B - Bd, rng, lcfg.max_phase_ticks) if pool is None else
+                           data.sample(B - Bd, rng, lcfg.max_phase_ticks, pool))
             yield (*data.fetch(sel, tgt, dev), j)
-    feed = _prefetch(data, B - Bd, rng, lcfg.max_phase_ticks, dev, workers=nw) if nw > 0 else _serial()
+    feed = _prefetch(data, B - Bd, rng, lcfg.max_phase_ticks, dev, workers=nw, idx_pool=pool) if nw > 0 else _serial()
     while step < steps and not sig.requested:
         batch, a, v, lab, r, j = next(feed)
         j = torch.as_tensor(j, device=dev)
@@ -659,6 +672,7 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
                realizer_compat_version=__import__("rrp.control.latent_realizer", fromlist=["x"]).bundle_versions(
                    lcfg.version(), E.state_dict(), R.state_dict())[1], refit_name=name,
                refit_of=str(rep_path), zero_prev_action=cfg_json.get("zero_prev_action", False),
+               **({"target_adaptation": budget_rec} if budget_rec else {}),
                eval=None if sig.requested else evaluate_representation(E, R, P, data, lcfg, dev))
     E.eval(); R.eval(); P.eval()
     save_checkpoint(out_dir / ("representation.pt" if not sig.requested else "representation_interrupted.pt"),

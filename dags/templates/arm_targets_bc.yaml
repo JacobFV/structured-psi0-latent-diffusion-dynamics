@@ -1,0 +1,113 @@
+# TEMPLATE (D-126 #10, roadmap #10): fair direct-action BC baselines for the sealed target bodies, on the SAME data,
+# protocol, harness and acquisition as dags/templates/arm_targets_latent.yaml (the latent route):
+#   train_bc<seed> (global): the stateless BC expert recipe (baseline_campaign.source_config: policy-small-structured,
+#       stride-2 rows of the stride-1 source pack, zero_prev_action) on `source_pack`, seeds 1702 / 1703 (protocol seeds;
+#       1701 is the lineage's DAgger labeller). Snapshot at 12,000 updates kept (the labeller checkpoint convention).
+#   per (seed, target): zero-shot sealed eval (ladder route learned), then SFT (sft_packed: identical nested episode
+#       choice, row sampler, batch, lr 1e-4, updates {5: 150, 20: 300, 100: 600} as the latent flow SFT) on b target
+#       demos and its sealed eval; adapt_seed = the BC seed.
+#   src_* : source competence on the protocol's held-out source bodies.
+# A child DAG `extends: templates/arm_targets_bc.yaml` and sets name / lineage / label prefixes, `dataset` (the target
+# demos: v6dart), `source_pack` (v6dart: packed/latent_pp_v6dart_s1_H16) and grasp_contact (v2.1). To reuse an already
+# trained expert of the same data (e.g. the v6 BC chain's seeds), the child sets `vars.bc_ref` to that run id template
+# (e.g. 'runs/armexpert_bcv6/baseline_direct_action:seed{seed}/source/policy.pt') and drops the training nodes
+# (`nodes: {train_bc1702: null, train_bc1703: null}`).
+# SET_IN_CHILD_DAG placeholders fail at the missing inputs before any compute. Resources PROVISIONAL (the v2 BC
+# expert: ~97 min per seed on the peer GPU, D-102; measure the first node).
+name: arm_targets_bc_template
+schema: dag-1
+family: arm
+track: armtgt
+lineage: 'armtgt-bc{seed}-{target}'
+global_lineage: 'armtgt-bcsrc'
+label_prefix: 'atb{seed}_{tk}'
+global_label_prefix: 'atbs'
+matrix:
+  seed: [1702, 1703]
+  target: [xarm7_pg2, xarm7_tf3, panda_tf3]
+axis_vars:
+  target:
+    xarm7_pg2: {tk: x7p}
+    xarm7_tf3: {tk: x7t}
+    panda_tf3: {tk: pdt}
+vars:
+  dataset: datasets/SET_IN_CHILD_DAG
+  source_pack: packed/SET_IN_CHILD_DAG
+  grasp_contact: v2.1
+  bc_ref: '@train_bc{seed}:policy.pt'
+  bc_label: 'bc_direct{seed}'
+defaults:
+  placement: peer
+  retries: 0
+  max_parallel: 4
+  max_parallel_gpu: 2
+  admission_timeout_s: 10800
+  resources: {cpu: 3, mem: 12G, gpu: false, max_seconds: 14400}
+base:
+  flags: {zero_prev_action: true, contact_version: contact_v1}
+  options: {grasp_contact: '{grasp_contact}'}
+nodes:
+  pack_xarm7_pg2: {stage: pack, tag: xarm7_pg2, scope: global, resources: {cpu: 2, mem: 8G, max_seconds: 3600}, config: {inputs: {dataset: '{dataset}'}, params: {name: tgtbc_xarm7_pg2_H16, train_robots: [xarm7_pg2], horizon: 16, stride: 1, include_dart_failures: false}}}
+  pack_xarm7_tf3: {stage: pack, tag: xarm7_tf3, scope: global, resources: {cpu: 2, mem: 8G, max_seconds: 3600}, config: {inputs: {dataset: '{dataset}'}, params: {name: tgtbc_xarm7_tf3_H16, train_robots: [xarm7_tf3], horizon: 16, stride: 1, include_dart_failures: false}}}
+  pack_panda_tf3: {stage: pack, tag: panda_tf3, scope: global, resources: {cpu: 2, mem: 8G, max_seconds: 3600}, config: {inputs: {dataset: '{dataset}'}, params: {name: tgtbc_panda_tf3_H16, train_robots: [panda_tf3], horizon: 16, stride: 1, include_dart_failures: false}}}
+  train_bc1702: {stage: train_bc, tag: bc1702, scope: global, resources: {gpu: true, gpu_mem: 16G, cpu: 4, mem: 32G, max_seconds: 21600}, config: {seed: 1702, inputs: {packed_dir: '{source_pack}'}, options: {snapshot_steps: [12000]}}}
+  train_bc1703: {stage: train_bc, tag: bc1703, scope: global, resources: {gpu: true, gpu_mem: 16G, cpu: 4, mem: 32G, max_seconds: 21600}, config: {seed: 1703, inputs: {packed_dir: '{source_pack}'}, options: {snapshot_steps: [12000]}}}
+  src_parm5s_tf3:
+    stage: target_eval
+    tag: src_parm5s_tf3
+    only: {target: [xarm7_pg2]}
+    config:
+      inputs: {bc_policy: '{bc_ref}'}
+      options: {robot: parm5s_tf3, route: learned, bc_label: '{bc_label}', sealed_run: true, kind: source, tag: source}
+  src_parm5l_pg2:
+    stage: target_eval
+    tag: src_parm5l_pg2
+    only: {target: [xarm7_pg2]}
+    config:
+      inputs: {bc_policy: '{bc_ref}'}
+      options: {robot: parm5l_pg2, route: learned, bc_label: '{bc_label}', sealed_run: true, kind: source, tag: source}
+  zs:
+    stage: target_eval
+    tag: zs
+    config:
+      inputs: {bc_policy: '{bc_ref}'}
+      options: {robot: '{target}', route: learned, bc_label: '{bc_label}', sealed_run: true, kind: zero_shot, tag: b0}
+  sft5:
+    stage: target_adapt
+    tag: bc_sft_b5
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 12G, max_seconds: 7200}
+    config:
+      inputs: {bc_policy: '{bc_ref}', packed_dir: '@pack_{target}'}
+      options: {method: bc_sft, target: '{target}', budget: 5, adapt_seed: '{seed}'}
+  ev5:
+    stage: target_eval
+    tag: bc_sft_b5
+    config:
+      inputs: {bc_policy: '@sft5:policy.pt'}
+      options: {robot: '{target}', route: learned, bc_label: '{bc_label}_sft_b5', sealed_run: true, kind: 'adapted:bc_sft:b5', tag: bc_sft_b5}
+  sft20:
+    stage: target_adapt
+    tag: bc_sft_b20
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 12G, max_seconds: 7200}
+    config:
+      inputs: {bc_policy: '{bc_ref}', packed_dir: '@pack_{target}'}
+      options: {method: bc_sft, target: '{target}', budget: 20, adapt_seed: '{seed}'}
+  ev20:
+    stage: target_eval
+    tag: bc_sft_b20
+    config:
+      inputs: {bc_policy: '@sft20:policy.pt'}
+      options: {robot: '{target}', route: learned, bc_label: '{bc_label}_sft_b20', sealed_run: true, kind: 'adapted:bc_sft:b20', tag: bc_sft_b20}
+  sft100:
+    stage: target_adapt
+    tag: bc_sft_b100
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 12G, max_seconds: 7200}
+    config:
+      inputs: {bc_policy: '{bc_ref}', packed_dir: '@pack_{target}'}
+      options: {method: bc_sft, target: '{target}', budget: 100, adapt_seed: '{seed}'}
+  ev100:
+    stage: target_eval
+    tag: bc_sft_b100
+    config:
+      inputs: {bc_policy: '@sft100:policy.pt'}
+      options: {robot: '{target}', route: learned, bc_label: '{bc_label}_sft_b100', sealed_run: true, kind: 'adapted:bc_sft:b100', tag: bc_sft_b100}
