@@ -107,7 +107,7 @@ function Decisions({ d, psi0 }: { d: Row; psi0: DocResult<Envelope> }) {
             {arr(cur.workstreams).length > 0 && <p className="small">workstreams: {arr(cur.workstreams).map(str).join(', ')}</p>}
             {arr(cur.paths).length > 0 && <p className="small">paths: {arr(cur.paths).map((x) => str(x).endsWith('.md') ? <a key={str(x)} href={href('knowledge', { tab: 'docs', doc: str(x) })} style={{ marginRight: 6 }}>{str(x)}</a> : <code key={str(x)} style={{ marginRight: 6 }}>{str(x)}</code>)}</p>}
             <p className="small muted">{str(cur.source_file)}:{str(cur.line)}{cur.line_end ? `–${str(cur.line_end)}` : ''}</p>
-            {linked.length > 0 && <><h3 style={{ fontSize: 13 }}>Crosswalk</h3><DataTable rows={linked.map(flatCw)} /></>}
+            {linked.length > 0 && <><h3 style={{ fontSize: 12 }}>Crosswalk</h3><DataTable rows={linked.map(flatCw)} /></>}
           </Card>
         ) : <div className="state">Select a decision.</div>}
       </div>

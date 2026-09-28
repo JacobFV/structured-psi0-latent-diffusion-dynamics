@@ -7,6 +7,6 @@ export const EVIDENCE: LensDef[] = [
   { id: 'physics', title: 'Physics gates', load: () => import('./Physics') },
   { id: 'psi0', title: 'Ψ₀ line', load: () => import('./Psi0') },
 ];
-export default function Evidence() {
+export default function Evaluations() {
   return <LensView lenses={EVIDENCE} fallback="results" />;
 }

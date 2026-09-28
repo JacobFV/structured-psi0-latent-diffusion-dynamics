@@ -56,7 +56,7 @@ export default function Overview() {
                 <Stat k="Claims in STATUS" v={<span className="num">{claims.length}</span>} s={statuses.map((s) => `${s} ${byStatus(s).length}`).join(' · ')} />
                 <Stat k="Roadmap items" v={<span className="num">{open.length}</span>} s={`${openRunning} running · ${openDone} done`} />
                 <Stat k="Result rows catalogued" v={<span className="num">{fmtNum(pick(summary, 'n_rows'))}</span>} s={summary ? `${fmtNum(pick(summary, 'n_files'))} files · ${fmtNum(pick(summary, 'n_interim'))} interim · ${fmtNum(pick(summary, 'n_with_caveat'))} with caveat` : 'no summary'} />
-                <Stat k="STATUS updated" v={<span style={{ fontSize: 16 }}>{str(pick(d, 'status_updated')) || '—'}</span>} s={<a href={href('knowledge', { tab: 'status' })}>read STATUS →</a>} />
+                <Stat k="STATUS updated" v={<span style={{ fontSize: 12 }}>{str(pick(d, 'status_updated')) || '—'}</span>} s={<a href={href('knowledge', { tab: 'status' })}>read STATUS →</a>} />
               </div>
               {current && <Card title="Current state" hint="STATUS.md"><Markdown source={current} /></Card>}
               <div className="grid g2">

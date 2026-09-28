@@ -46,7 +46,7 @@ function StaleFlag({ result }: { result: DocResult<Envelope> }) {
   const age = ageSeconds(readAt);
   const stale = d.stale === true || result.mode === 'stale' || (result.mode !== 'fixture' && age !== null && age > 60);
   return (
-    <span className={`badge ${stale ? 'caveat' : ''}`} style={{ fontSize: 13, padding: '3px 10px' }} title="stale when the last good peer read is older than 60 s">
+    <span className={`badge ${stale ? 'caveat' : ''}`} style={{ padding: '1px 6px' }} title="stale when the last good peer read is older than 60 s">
       <Status state={stale ? 'stale' : 'ok'}>{stale ? `STALE · peer read ${readAt ? ago(readAt) : 'never'}` : `live · peer read ${ago(readAt)}`}</Status>
     </span>
   );

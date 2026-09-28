@@ -100,7 +100,7 @@ export function TopDownMap({ sides, t, onSeek }: P) {
               {l.obj.length > 0 && <path d={path(l.obj)} fill="none" stroke="var(--s3)" strokeWidth={1.5} strokeDasharray={li === 1 ? '2 3' : undefined} />}
               {ep && <g><title>{`edit onset${l.s.replay.meta.edit ? ` (${str(l.s.replay.meta.edit)})` : ''} at ${fmtNum(l.s.times[l.ef])} s`}</title>
                 <circle cx={X(ep[0])} cy={Y(ep[1])} r={6} fill="none" stroke="var(--s2)" strokeWidth={2} /><text x={X(ep[0]) + 8} y={Y(ep[1]) - 6} fontSize={10} fill="var(--s2)">edit</text></g>}
-              {fell && lastBase && <g><title>fell (recorded meta.fell)</title><text x={X(lastBase[0])} y={Y(lastBase[1]) + 4} fontSize={14} textAnchor="middle" fill="var(--critical)">✕</text></g>}
+              {fell && lastBase && <g><title>fell (recorded meta.fell)</title><text x={X(lastBase[0])} y={Y(lastBase[1]) + 4} fontSize={12} textAnchor="middle" fill="var(--critical)">✕</text></g>}
               {bp && <circle cx={X(bp[0])} cy={Y(bp[1])} r={4.5} fill={l.s.color} stroke="var(--surface)" strokeWidth={1.5} />}
               {op && <rect x={X(op[0]) - 3.5} y={Y(op[1]) - 3.5} width={7} height={7} fill="var(--s3)" stroke="var(--surface)" />}
             </g>

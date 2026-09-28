@@ -96,10 +96,10 @@ function Dots({ items, lo, hi, fmt, zero }: { items: { label: string; v: number;
         const g = (
           <g key={it.label}>
             <title>{it.tip}</title>
-            <text x={left - 6} y={y + 4} fontSize={11.5} fill="var(--ink-2)" textAnchor="end">{it.label}</text>
+            <text x={left - 6} y={y + 4} fontSize={11} fill="var(--ink-2)" textAnchor="end">{it.label}</text>
             <line x1={x(it.lo)} x2={x(it.hi)} y1={y} y2={y} stroke={it.tone} strokeWidth={2.5} strokeLinecap="round" opacity={0.5} />
             <circle cx={x(it.v)} cy={y} r={4.5} fill={it.tone} />
-            <text x={W - right + 6} y={y + 4} fontSize={11.5} fill="var(--ink)" fontFamily="var(--mono)">{fmt(it.v)}</text>
+            <text x={W - right + 6} y={y + 4} fontSize={11} fill="var(--ink)" fontFamily="var(--mono)">{fmt(it.v)}</text>
           </g>
         );
         return it.link ? <a key={it.label} href={it.link}>{g}</a> : g;
@@ -169,7 +169,7 @@ function CompetenceTile({ robust, results }: { robust: DocResult<Envelope>; resu
           const y = i * ROW + 9;
           return (
             <g key={rt}>
-              <text x={left - 6} y={y + 4} fontSize={11.5} textAnchor="end" fill="var(--ink-2)">{rt}</text>
+              <text x={left - 6} y={y + 4} fontSize={11} textAnchor="end" fill="var(--ink-2)">{rt}</text>
               {c.robots.map((rb, j) => {
                 const r = c.reps.find((x) => str(x.robot) === rb && str(x.route) === rt);
                 const nm = r && isObj(r.nominal) ? r.nominal : null;

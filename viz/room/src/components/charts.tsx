@@ -123,7 +123,7 @@ export function DivLegend() {
 export type ForestRow = { key: string; label: ReactNode; group?: string; effect: number | null; lo: number | null; hi: number | null; control?: boolean; p?: number | null; n?: number | null; tone?: string; note?: string };
 
 /** Forest plot: effect ± 95% CI per row, zero line, controls drawn hollow and grey. */
-export function Forest({ rows, xLabel = 'effect', width = 760 }: { rows: ForestRow[]; xLabel?: string; width?: number }) {
+export function Forest({ rows, xLabel = 'effect', width = 640 }: { rows: ForestRow[]; xLabel?: string; width?: number }) {
   const [tip, setTip] = useState<{ x: number; y: number; r: ForestRow } | null>(null);
   const vals = rows.flatMap((r) => [r.lo, r.hi, r.effect]).filter((v): v is number => v !== null && Number.isFinite(v));
   let lo = Math.min(0, ...vals), hi = Math.max(0, ...vals);
@@ -135,7 +135,7 @@ export function Forest({ rows, xLabel = 'effect', width = 760 }: { rows: ForestR
   const ticks = niceTicks(lo, hi, 6);
   return (
     <>
-      <svg className="plot" viewBox={`0 0 ${width} ${h}`} role="img" aria-label={`forest plot of ${rows.length} effects`}>
+      <svg className="plot" width={width} height={h} viewBox={`0 0 ${width} ${h}`} role="img" aria-label={`forest plot of ${rows.length} effects`}>
         <g className="grid">{ticks.map((t) => <line key={t} x1={x(t)} x2={x(t)} y1={top} y2={h - 26} />)}</g>
         <line x1={x(0)} x2={x(0)} y1={top} y2={h - 26} stroke="var(--ink-2)" strokeWidth={1} />
         {ticks.map((t) => <text key={t} x={x(t)} y={h - 12} textAnchor="middle">{fmtNum(t)}</text>)}
