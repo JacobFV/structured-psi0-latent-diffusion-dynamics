@@ -48,7 +48,7 @@ READING (v6, two training seeds per variant):
    The v1 nosem collapse (D-091/D-099) was therefore largely a property of the v1 data/labeller/grasp-physics setting,
    not of the absence of semantic supervision alone.
 2. Semantic supervision (semfix) still gives a clear competence advantage on the deployable route: +0.23 [0.18, 0.28]
-   pooled; semfix >= nosem in 7 of 8 body x seed cells (the exception: panda s1, 72 vs 68). Its largest effect is on
+   pooled; semfix > nosem in all 8 body x seed cells (closest: parm5l s2, 26 vs 25; panda s1 72 vs 68). Its largest effect is on
    parm6_tf3 (89+89 vs 43+57 of 90) and parm5s_tf3 (29+29 vs 13+25 of 30); nosem's residual failures include approach
    failures (up to 17/90), semfix's almost never do.
 3. Task-context GOAL control follows competence: semfix moves the cube to the new goal 154/164 (parm6) and 69/96 (panda)
