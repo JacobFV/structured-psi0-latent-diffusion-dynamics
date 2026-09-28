@@ -462,6 +462,7 @@ v4dart collection → v2 stateless BC expert (seeds 1701/1702; adopted as the DA
 Starts when the R1 nosem ablation frees the peer. Risk noted: v2's timed segments are hidden state a stateless BC must infer.
 
 ## D-098 2026-09-26 W10 Ψ₀ / SIMPLE benchmark track opened; user accepts the NVIDIA Isaac Sim licence
+(psi1z P-001, P-004: https://github.com/JacobFV/psi1z/blob/main/research/decisions.md; crosswalk docs/related_repos.md)
 User instruction (2026-09-26 ~22:40 PDT): "start the probe including yes accepting the Isaac Sim licence and then fine-tuning its base models with the additional techniques we're using like morphology relations, object awareness, contact-centric manipulator awareness, affordance understanding". Ψ₀ (github.com/physical-superintelligence-lab/Psi0, Apache-2.0): released VLM backbone + ~500M flow action expert checkpoints, training code, 9 real-task G1 teleop datasets, and SIMPLE (MuJoCo physics + Isaac Sim rendering; 6 pre-collected whole-body loco-manipulation tasks; DR levels 0–2).
 Plan: (0) feasibility probe: Isaac Sim on the GB10 (arm64), Ψ₀ checkpoint load, reproduce Ψ₀ closed-loop on one SIMPLE task; (1) Ψ₀ baseline on all 6 tasks; (2) fine-tune Ψ₀'s base models with our structure (morphology-relation tokens, object entities, contact-centric manipulator awareness, affordance/binding supervision, structured latent packet → system 0) vs the Ψ₀ direct action expert fine-tuned on the same data; (3) matched evaluation. Real-robot parity and Ψ₀-scale pretraining are out of scope. Third-party code, weights, data and Isaac Sim stay outside the public repo (isolated env under ~/work/ext); reference repos are not mutated.
 
@@ -470,6 +471,7 @@ arm agent (research/tracks/ladder.md "ARM NOSEM RECIPE ABLATION RESULT", main a1
 Reading: the D-095 nosem deficit is not caused by the two sem-tuned recipe choices; it arises upstream (shared nosem Stage A + BC-DAgger rounds: bc rounds 1–4/312 vs sem 4 → 99/312). Seed-2 nosem partly worked (26/240), so the deficit is robust to the recipe but seed-sensitive. Untested: upstream choices (BC-DAgger schedule, refit lengths, anchor input, Stage-A beta_kl) and more nosem seeds; the v2-teacher lineage set (W7) will add 2 more seeds per variant.
 
 ## D-100 2026-09-26 third repo `psi1z` (LOCAL ONLY) for the Ψ₀ line; rrp becomes an installable core
+(psi1z P-001: https://github.com/JacobFV/psi1z/blob/main/research/decisions.md; crosswalk docs/related_repos.md)
 Owner decision: "do the third repo, psi1z, keep it local for now". ~/work/psi1z (git init, no remote; publishing needs owner approval). psi1z contains only adapters: G1 + hands body, SIMPLE env wrapper, Ψ₀ trunk features, structured packet head, packet → Ψ₀ action mapping, datasets, eval entrypoints, upstream patch files. It depends on the rrp core by a pinned git sha, and never copies rrp code: shared pieces (packet contract, system 0, probes, statistics, edit tests, provenance, pipeline/run-dag, ops broker) are changed in rrp and the pin is bumped. Ψ₀ / SIMPLE / Isaac Sim run in isolated Python 3.11 envs under ~/work/ext.
 rrp consequences (W11): rrp source is 3.11-compatible (compiles and the core imports under 3.11), so requires-python is relaxed to >=3.11,<3.13. Define and document a stable public core API; test the core under 3.11.
 
@@ -510,6 +512,7 @@ Decisions:
 (3) Contact track next: a slow stepping gait for h1/g1 (then the turn curriculum), sourced actuator limits, and a joint turning + latency fine-tune for t1.
 
 ## D-104 2026-09-27 W10 gate 0: Isaac Sim runs on the GB10, but the released Ψ₀ checkpoint does not reproduce closed loop (0/10 vs 10/10 published); a bounded reproduction phase comes before any comparison
+(psi1z P-002, P-003, P-005: https://github.com/JacobFV/psi1z/blob/main/research/decisions.md; crosswalk docs/related_repos.md)
 psi1z (local; research/notes.md, decisions P-002..P-004, commit e32c2f9). The lead read the agent's report; raw outputs are under ~/work/ext/runs/psi1z (not in git).
 - Setup: SIMPLE pins Isaac Sim 4.5 / Python 3.10, which has no aarch64 wheel, so Isaac Sim 5.1 / Python 3.11 was used on the peer. The host sheds any job >~10 GB because of external swap pressure. Workarounds (no upstream edits): library preload order, torch 2.14+cu130 for sm_121, PyAV decoder, stubs for the unused cuRobo/envlogger, cyclonedds built from source, a USD reference fallback. Isaac's real-time renderer draws SIMPLE scenes ~8× too dark on this build, so path tracing at ISO 65 is used (a rendering deviation).
 - Open loop: the released XMovePickTeleop checkpoint predicts recorded actions closely (hand 0.019 rad, arm 0.054 rad, vx 0.016 m/s over 563 frames).
@@ -563,6 +566,7 @@ Reading: semantic supervision buys task-level control (D-088/090/105) but not ro
 (3) Gate thresholds for trackers and datasets (W6 proposal in the notes) are to be adopted after review.
 
 ## D-109 2026-09-27 W10: the Ψ₀ stack reproduces on TabletopGraspMP; XMovePick failure is task-specific; step 1–2 proceed on reproduced tasks
+(psi1z P-007, P-009, P-010: https://github.com/JacobFV/psi1z/blob/main/research/decisions.md; crosswalk docs/related_repos.md)
 psi1z (local; decisions P-005..P-009, commit 869ae06; lead read the agent's report).
 - The released TabletopGraspMP checkpoint scored 9/9 on configs 0–8 (config 9 running; published 10/10), after fixes: AMO weights sha-verified; TorchScript GPU fusers off on torch 2.7/sm_121. So the Isaac 5.1 / aarch64 / path-tracing stack is sound.
 - XMovePickTeleop still 0/15. The diagnosis:
@@ -662,9 +666,11 @@ D-118 addendum: the DART penetration is palm contact (90/112 worst cases; pads 3
 Decision: keep grasp_v2.1 and the 0.08 rad noise, and make DART contact-safe by a kinematic proximity check: a noisy command that would bring any robot geom within 5 mm of the cube or table is replaced by the clean command for that tick. Fallback: phase-gated noise (free space only). Verify ≥ 99% of DART episodes ≤ 3 mm, report the coverage cost, record the DART variant in provenance, then collect v6dart.
 
 ## D-119 2026-09-27 psi1z has a GitHub remote (owner's decision); pushes allowed
+(psi1z P-017: https://github.com/JacobFV/psi1z/blob/main/research/decisions.md; crosswalk docs/related_repos.md)
 The owner added origin = https://github.com/JacobFV/psi1z (not publicly visible) and asked to push. main was pushed (3968d58, then the README update) after a check: no secrets, no tracked weights/datasets/videos, .git 3.6 MB. Supersedes D-100's "local only". Agents may push psi1z main after the same check; third-party code/weights/data stay out of git.
 
 ## D-120 2026-09-27 W10 step 1: 3 of 6 released Ψ₀ checkpoints reproduce on our Isaac-5.1/aarch64/path-traced stack; step 2 proceeds on those 3
+(psi1z P-012, P-015: https://github.com/JacobFV/psi1z/blob/main/research/decisions.md; crosswalk docs/related_repos.md)
 psi1z (research/notes.md; P-012..P-017; pushed to github.com/JacobFV/psi1z). Level 0, released ckpt_40000, ISO 55 path tracing. Criterion: our Wilson 95% CI contains the published rate.
 - Reproduced: TabletopGraspMP 10/10 (pub 10/10), BendPickMP 10/10 (pub 10/10), HandoverTeleop 7/10 (pub 7/10).
 - Not reproduced: XMoveBendPickTeleop 3/6 (stopped; CI [0.19, 0.81] excludes 1.0), LocomotionPickBetweenTablesTeleop 0/5 (excludes 0.7), XMovePickTeleop 0/10 plus variants.

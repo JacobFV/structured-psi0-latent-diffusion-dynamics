@@ -1,5 +1,7 @@
 # rrp core API (W11, D-100)
 
+Consumer: [psi1z](https://github.com/JacobFV/psi1z) (pin in its [pyproject.toml](https://github.com/JacobFV/psi1z/blob/main/pyproject.toml)); repository map: [related_repos.md](related_repos.md).
+
 rrp is both the multi-body research repo and an installable core for external packages (psi1z: Ψ₀ + structured
 packets, Python 3.11). This page says what is stable, how to extend rrp from outside, and how the pin is bumped.
 

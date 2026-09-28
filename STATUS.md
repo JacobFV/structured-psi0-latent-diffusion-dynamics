@@ -1,5 +1,7 @@
 # project status — structured-psi0-latent-diffusion-dynamics (formerly relational robot policy)
 
+Related repository: Ψ₀ line in [psi1z](https://github.com/JacobFV/psi1z); map and decision crosswalk in docs/related_repos.md.
+
 Updated: 2026-09-26 18:40 PDT. Overall: **in_progress** (not complete). Plan: `docs/strategy.md` (D-094).
 Evidence: `research/reports/evidence_matrix.md`. Decisions: `research/decisions.md` (D-001..D-094).
 
