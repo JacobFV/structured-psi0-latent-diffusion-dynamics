@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# W12 phase-B dual teacher audit (<= 50 episodes per task; peer CPU, 2 workers). Run from the peer code dir via
-#   scripts/peer_run.sh --cpu 2 --mem 4G --label w12_dualaudit --max-seconds 3600 --detach -- bash scripts/w12/dual_audit.sh
+# W12 phase-B dual teacher audit (<= 50 episodes per task; peer CPU, 1 worker by default (W=2 for two)). Run from the peer code dir via
+#   scripts/peer_run.sh --cpu 1 --mem 3G --label w12_dualaudit --max-seconds 3600 --detach -- bash scripts/w12/dual_audit.sh
 set -uo pipefail
 PY=${PY:-/dev/shm/rrp-brandonin/venv/bin/python}
 O=artifacts/runs/w12_dualaudit
 mkdir -p $O
 SI=panda_pg2__ur5e_pg2,parm5_pg2__parm5_pg2,parm6_tf3__parm6_pg2,ur5e_pg2__sawyer_pg2
 HO=panda_pg2__ur5e_pg2,parm5_pg2__parm5_pg2,parm5_pg2__parm6_tf3,ur5e_pg2__sawyer_pg2
-A="-m rrp.evaluation.dual_teacher_quality --workers 2"
+A="-m rrp.evaluation.dual_teacher_quality --workers ${W:-1}"
 rc=0
 for task in support_insert handover; do
   P=$SI; [ $task = handover ] && P=$HO
