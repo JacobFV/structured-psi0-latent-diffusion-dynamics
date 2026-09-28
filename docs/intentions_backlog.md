@@ -14,28 +14,28 @@ Two things to know first:
 ## Physics / sim
 | item | source | status | evidence | size | blocks |
 |---|---|---|---|---|---|
-| Actuator dynamics and latency on by default | W1; D-103(2), D-107(4) | partial | `physics/actuator.py` (armature, friction, torque–speed, 0–30 ms) is opt-in, by decision. Max joint speeds are still estimates, and trackers don't hold their gaits under it (h1 no-fall 0.72) | M–L | actuator-realism claim |
-| MJX GPU simulation | considerations §4.7, §5.5 | missing | no mjx or jax anywhere in `src/` | L | terrain curriculum at scale |
-| Terrain curriculum in tracker training | §4.2 | missing | terrain is eval-only: `envs/perturb.py` `terrain_amp_m` heightfield. `training/tracker_training.py` has only a turn curriculum | M | rough-terrain claims (break-point at 8 cm) |
+| Actuator dynamics and latency on by default | W1; D-103(2), D-107(4) | **code done 2026-09-28 (D-126 legged)**: `actuator_mode` switch, default still ideal; procedural-body speeds flagged `estimate` | `physics/actuator.py` (armature, friction, torque–speed, 0–30 ms) is opt-in, by decision. Max joint speeds are still estimates, and trackers don't hold their gaits under it (h1 no-fall 0.72) | M–L | actuator-realism claim |
+| MJX GPU simulation | considerations §4.7, §5.5 | **prototype 2026-09-28 (D-126)**: `envs/mjx_legged.py`, peer venv ~/work/ext/venvs/mjx; parity ok, not faster yet | no mjx or jax anywhere in `src/` | L | terrain curriculum at scale |
+| Terrain curriculum in tracker training | §4.2 | **code done 2026-09-28 (D-126)**: `--terrain-curriculum gated` (bumps_v1; not run) | terrain is eval-only: `envs/perturb.py` `terrain_amp_m` heightfield. `training/tracker_training.py` has only a turn curriculum | M | rough-terrain claims (break-point at 8 cm) |
 | Link-length, encoder-offset and motor-strength randomization in training | §4.2 | partial | mass, CoM and gains exist only as eval perturbations (`envs/perturb.py`). No link-length or joint-offset randomization anywhere | M | — |
 | IMU bias/drift, encoder quantization, tick jitter or missed-tick injection | §4.3, §4.4 | missing | none found; `evaluation/latency.py` only counts deadline misses | S–M | — |
 
 ## Robots / bodies
 | item | source | status | evidence | size | blocks |
 |---|---|---|---|---|---|
-| h1 tracker that can turn in place | D-103(3); contact.md "PARKED" | missing | `artifacts/trackers/h1/contact_v2` walks but has turn ratio 0.02. The planned phase-clocked gait was never started | L | h1 in W8; W1 gate |
-| g1 tracker with sourced limits that doesn't stomp | D-114 addendum | partial | g1_src fails the gates (slip 0.38, 4.09 BW); no run after that | M–L | g1 in W8 |
-| t1 tracker that passes the lab gate under the waypoint command mix | D-107(2), D-113 | partial | w8d has forward 0.72 and joint margin −0.053. Learned t1 routes fall (BC 0/30) | L | W8 t1 claim |
-| Retune the joint-limit-margin reward | D-114 addendum | partial | `RewardCfg.limit_margin=-1.0` is in `envs/legged_core.py`, but no tracker has been trained with it | S | next tracker run |
+| h1 tracker that can turn in place | D-103(3); contact.md "PARKED" | **recipe ready 2026-09-28 (D-126)**: `h1_clock_scratch` (not run) | `artifacts/trackers/h1/contact_v2` walks but has turn ratio 0.02. The planned phase-clocked gait was never started | L | h1 in W8; W1 gate |
+| g1 tracker with sourced limits that doesn't stomp | D-114 addendum | **recipe ready 2026-09-28 (D-126)**: `g1_yawcap_ft` (not run) | g1_src fails the gates (slip 0.38, 4.09 BW); no run after that | M–L | g1 in W8 |
+| t1 tracker that passes the lab gate under the waypoint command mix | D-107(2), D-113 | **recipe ready 2026-09-28 (D-126)**: `t1_turn_latency_ft` (not run) | w8d has forward 0.72 and joint margin −0.053. Learned t1 routes fall (BC 0/30) | L | W8 t1 claim |
+| Retune the joint-limit-margin reward | D-114 addendum | **exposed 2026-09-28 (D-126)**: `--limit-margin`, `--limit-margin-agg max` (mean dilutes one joint to 1/n); recipes use max | `RewardCfg.limit_margin=-1.0` is in `envs/legged_core.py`, but no tracker has been trained with it | S | next tracker run |
 | Latent route on the sealed target bodies | §4.8; W9 | code implemented (D-126 arm; experiment pending) | target demos (xarm7_*, panda_tf3) are collected in `dags/armexpert_v6dart.yaml`, and the arm/legged `heldout` stages exist. No DAG node evaluates or adapts the latent route on those bodies | M | central cross-body claim |
-| Legged held-out body, DAgger and refit in the v2 DAGs | W8/W9 | partial | `legged_v2_*.yaml` goes collect→…→eval_r2/edits; the `heldout` and `refit` stages are never used | S | legged held-out claim |
+| Legged held-out body, DAgger and refit in the v2 DAGs | W8/W9 | **template 2026-09-28 (D-126)**: `dags/templates/legged_v2_heldout.yaml` | `legged_v2_*.yaml` goes collect→…→eval_r2/edits; the `heldout` and `refit` stages are never used | S | legged held-out claim |
 
 ## Data / teachers
 | item | source | status | evidence | size | blocks |
 |---|---|---|---|---|---|
 | Limit-aware IK | D-114(3) | code implemented (D-126 arm; experiment pending) | no margin or barrier term in `bodies/ik.py` or `teachers/arm_smooth.py` (only a comment in `evaluation/gates.py:232`) | M | enforcing the parm* joint-margin gate |
 | Arm object variety (size, mass, friction, shape) | §4.2 | code implemented (D-126 arm; experiment pending) | distractors exist, and a `cube_size` parameter exists but is fixed at the default (`envs/scenario.py`). Mass and friction are eval perturbations only; no shape variety | M | — |
-| Loco-manipulation task | §4.9; W9 | missing | none in rrp (only `tasks/waypoint_contact.json`). psi1z drops walking-heavy tasks by D-120 | L | W9 |
+| Loco-manipulation task | §4.9; W9 | **task + scene 2026-09-28 (D-126)**: `tasks/loco_pick.json`, spot_arm scene, STUB teacher | none in rrp (only `tasks/waypoint_contact.json`). psi1z drops walking-heavy tasks by D-120 | L | W9 |
 | Grasp-accept tolerance under DART | armexpert.md backlog | partial | only the 1.6 cm reachability tolerance (`arm_smooth.py:312,408`) | S | — |
 
 ## Models / packet / representation

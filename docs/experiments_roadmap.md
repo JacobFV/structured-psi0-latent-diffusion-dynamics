@@ -26,15 +26,15 @@ Code: ✅ exists · 🔧 implementing (D-126) · ❌ not a code problem / needs 
 |---|---|---|---|---|---|
 | 9 | Does the latent route transfer to the sealed target bodies (xarm7_pg2/tf3, panda_tf3): zero-shot and with small adaptation budgets? | 3 | 1–2 days | planned (priority) | ✅ DAG template arm_targets_latent |
 | 10 | Fair baselines on those bodies: BC seeds 1702/1703, SFT budgets on the same data | – | ~1 day | planned (priority) | ✅ DAG template arm_targets_bc |
-| 11 | Legged held-out body transfer (heldout + refit stages) | – | ~1 day | planned | 🔧 DAG template |
+| 11 | Legged held-out body transfer (heldout + refit stages) | – | ~1 day | planned | ✅ code (D-126 legged): `dags/templates/legged_v2_heldout.yaml` (validate_tracker-gated; zero-shot `heldout` + equal-budget refit vs BC) |
 | 12 | Do anchor-relative packets transfer better than base-frame ones? (W12 H2) | 20 | in W12 | planned | ✅ (W12 A) |
 
 ## C. Legged and humanoid
 | # | question | depends on | cost | experiment | code |
 |---|---|---|---|---|---|
-| 13 | Can we train humanoid trackers under sourced limits that pass the gates (t1 lab gate, h1 clock-driven gait, g1 without stomp/overspin), and does the halt effect hold on t1 then? | – | 2–4 days | planned | 🔧 options (clock ref gait, yaw-progress cap) |
-| 14 | Do trackers and latent routes survive actuator dynamics + latency as default (sourced speeds)? | 13 | 1–2 days | planned | 🔧 switch |
-| 15 | Does a terrain curriculum (and MJX for throughput) move the 8 cm terrain break-point? | – | 2–4 days | planned | 🔧 curriculum; MJX prototype |
+| 13 | Can we train humanoid trackers under sourced limits that pass the gates (t1 lab gate, h1 clock-driven gait, g1 without stomp/overspin), and does the halt effect hold on t1 then? | – | 2–4 days | planned | ✅ code: `--ref-gait clock`, `--yaw-progress-cap`, `--yaw-overshoot`, `--limit-margin[-agg]`; recipes `rrp.training.tracker_recipes` + `dags/d126_tracker_*.yaml` (not run) |
+| 14 | Do trackers and latent routes survive actuator dynamics + latency as default (sourced speeds)? | 13 | 1–2 days | planned | ✅ code: `actuator_mode` ideal/v1lat/v2 (default ideal) through training, validation, pipeline (`options.actuator_mode`), eval; estimated speeds flagged |
+| 15 | Does a terrain curriculum (and MJX for throughput) move the 8 cm terrain break-point? | – | 2–4 days | planned | ✅ code: `--terrain-curriculum gated`; MJX prototype `envs/mjx_legged.py` (peer smoke: parity ok, no throughput win yet) |
 | 16 | Is the semantic robustness cost (D-112: −4.6 points) general beyond anymal_c (go2, later t1)? | – | ~1 day/body | planned | ✅ |
 | 17 | Why does semfix steer 2× more on anymal_c but not go2? Does it replicate? | – | ~1 day | open | ✅ |
 
@@ -45,7 +45,7 @@ Code: ✅ exists · 🔧 implementing (D-126) · ❌ not a code problem / needs 
 | 19 | H1 go/no-go: base-frame vs anchor-relative supervision vs anchor-input system 0 (seed 0) | 18, 3 | 9–24 GPU-h | planned | ✅ |
 | 20 | Full W12 matrix (+event-aligned knots, anchor-input control, 3 seeds) with anchor-shift and contact-sequence edits | 19 | 2–6 days | planned | ✅ |
 | 21 | Legged stance drift with the new contact metrics on existing W8 checkpoints | – | ~0.5 day | planned | ✅ |
-| 22 | Coordination tasks: pivot against a surface, carry a tray level, legged foothold stepping | – | design + data | open | 🔧 task defs + scenes |
+| 22 | Coordination tasks: pivot against a surface, carry a tray level, legged foothold stepping | – | design + data | open | 🔧 task defs + scenes (legged foothold ✅ `envs/legged_scenes.py`, `tasks/foothold_steps.json`; see research/tracks/d126_legged.md) |
 
 ## E. Ψ₀ line (psi1z, W10)
 | # | question | depends on | cost | experiment | code |
@@ -72,7 +72,7 @@ default off; defaults golden-identical to pre-D-126 rows.
 | # | question | depends on | cost | experiment | code |
 |---|---|---|---|---|---|
 | 33 | First dual-arm learned models (M=2 "across bodies") | 18 | 2–3 days | planned | 🔧 dual pipeline stages |
-| 34 | Loco-manipulation (walk to a table, then pick) | 13 | 3+ days | open | 🔧 task + scene |
+| 34 | Loco-manipulation (walk to a table, then pick) | 13 | 3+ days | open | ✅ task + scene (spot_arm) + STUB teacher; needs a spot tracker |
 | 35 | Richer arm objects (sizes, masses, friction, shapes) | – | 1–2 days + data | planned | ✅ `object_spec` / `object_variation` |
 
 ## ordering once current runs finish (lead)
