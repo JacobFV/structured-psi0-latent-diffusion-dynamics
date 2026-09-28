@@ -1,0 +1,112 @@
+{
+ "schema_version": "1.0",
+ "task_id": "foothold_steps",
+ "graph_version": 1,
+ "entity_declarations": [
+  {
+   "id": "body",
+   "type": "body",
+   "descriptor": "legged body assigned to step on the marked footholds"
+  },
+  {
+   "id": "foothold_00",
+   "type": "feature",
+   "descriptor": "foothold pad #00"
+  }
+ ],
+ "events": [
+  {
+   "id": "step_00",
+   "operator": "step_on",
+   "roles": [
+    {
+     "role": "actor",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "body",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "target",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "foothold_00",
+       "version": 0
+      }
+     }
+    }
+   ],
+   "requires_completed": [],
+   "requires_active": [],
+   "preconditions": [],
+   "invariants": [
+    {
+     "predicate": "upright",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "body",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.0
+    }
+   ],
+   "desired_effects": [],
+   "completion": [
+    {
+     "predicate": "foot_distance_m",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "body",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "foothold_00",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "le",
+     "value": 0.07,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.1
+    }
+   ],
+   "resources": [
+    {
+     "entity": {
+      "id": "body",
+      "version": 0
+     },
+     "mode": "exclusive_control"
+    }
+   ],
+   "produces": [],
+   "timeout_seconds": 20,
+   "recovery": {
+    "max_attempts": 1,
+    "on_failure": "fail"
+   }
+  }
+ ],
+ "success_events": [
+  "step_00"
+ ]
+}
