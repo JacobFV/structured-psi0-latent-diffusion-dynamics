@@ -23,7 +23,7 @@ This table mirrors the status column of `docs/strategy.md`.
 | W8 | legged regeneration on contact v2 | running | anymal_c done (D-105; robustness D-112); go2 done (D-113); t1 on sourced-limit w8d under the D-113 gate exception: 39/43 nodes, learned routes mostly fall (interim) | research/tracks/legged8.md |
 | W9 | held-out target bodies; loco-manipulation | planned | not started; top backlog item (D-123 #1) | docs/intentions_backlog.md |
 | W10 | Ψ₀ / SIMPLE benchmark (in psi1z) | running | step 0 (D-104, D-109); step 1: 3/6 released checkpoints reproduce (D-120); step 2 on TabletopGraspMP (released 20/20; direct arm trained; evals wait behind W7, D-121) | psi1z research/notes.md |
-| W11 | rrp as an installable core for psi1z | verified | 2026-09-26, main b7dc677 (rrp.core API 1.0, py3.11 + 3.12); psi1z pin stale (D-123) | research/tracks/core.md |
+| W11 | rrp as an installable core for psi1z | verified | 2026-09-26, main b7dc677 (rrp.core API 1.0, py3.11 + 3.12); psi1z pin bumped to 68a6657 (P-020) | research/tracks/core.md |
 | W12 | feature-centric coordination (anchor-relative packets, contact-event knots) | implementing | phase A (design + code, no heavy compute); compute after the arm v6 lineages (D-122) | docs/strategy.md W12 |
 | R0 | arm seed-2 replication | completed | D-095 | research/tracks/ladder.md |
 | R1 | arm nosem recipe ablation | completed | D-099 | research/tracks/ladder.md |

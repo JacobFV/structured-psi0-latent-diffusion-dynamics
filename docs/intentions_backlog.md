@@ -58,7 +58,7 @@ Two things to know first:
 ## Evaluation / metrics / gates
 | item | source | status | evidence | size | blocks |
 |---|---|---|---|---|---|
-| `validate_tracker` stage used in DAGs | D-114 | **done for future runs 2026-09-27** (commit 34c3d14: `dags/templates/legged_v2_gated.yaml` + sha check + tests/unit/test_dag_templates.py; running/completed DAGs untouched) — was partial | stage at `pipelines/legged.py:200`; no `dags/*.yaml` references it | S | W6 gate enforcement |
+| `validate_tracker` stage used in DAGs | D-114 | **done for future runs 2026-09-27** (commit feec007: `dags/templates/legged_v2_gated.yaml` + sha check + tests/unit/test_dag_templates.py; running/completed DAGs untouched) — was partial | stage at `pipelines/legged.py:200`; no `dags/*.yaml` references it | S | W6 gate enforcement |
 | Relax the anymal_c privileged end check | D-105 | partial | `legged_latent_eval.py:527` still uses `privileged_success()`; public success is only reported alongside | S | anymal_c R2 numbers |
 | BC seeds 1702/1703 and SFT budgets (four-way comparison) | baselines.md | missing (on hold) | campaign code exists; the cells were never run | M | fair baselines on target bodies |
 | Long-duration drift runs | §4.10 | missing | none found | S–M | — |
@@ -77,11 +77,11 @@ Two things to know first:
 ## Repo structure / docs
 | item | source | status | evidence | size | blocks |
 |---|---|---|---|---|---|
-| Registry and requirements kept current | AGENTS.md | **done 2026-09-27** (commit 8793fcd: D-095..D-123 entries, running entries closed, R39–R42) — was stale | `research/registry.jsonl` and `artifacts/requirements.json` were last committed 09-26 18:37; the newest entry is "W9 planned"; D-095..D-121 are absent | S | contract compliance |
-| `STATUS.md` kept current | AGENTS.md | **done 2026-09-27** (commit 7c0dff1: W1–W12 table, evidence through D-123, running work) — was stale | header says "Updated 2026-09-26 18:40"; it shows W3 implementing and W4–W8 planned; decisions cited only up to D-094 | S | resume correctness |
-| Demo page republished | demo.md | **rebuilt in the repo 2026-09-27** (commit 442ec9f: 'since D-095' section); NOT published — the owner decides — was missing | last `docs/demo` refresh was 09-26 19:21; nothing from D-101..D-121 is on it | S–M | outside communication |
+| Registry and requirements kept current | AGENTS.md | **done 2026-09-27** (commit a2f0248: D-095..D-123 entries, running entries closed, R39–R42) — was stale | `research/registry.jsonl` and `artifacts/requirements.json` were last committed 09-26 18:37; the newest entry is "W9 planned"; D-095..D-121 are absent | S | contract compliance |
+| `STATUS.md` kept current | AGENTS.md | **done 2026-09-27** (commit 9d16009: W1–W12 table, evidence through D-123, running work) — was stale | header says "Updated 2026-09-26 18:40"; it shows W3 implementing and W4–W8 planned; decisions cited only up to D-094 | S | resume correctness |
+| Demo page republished | demo.md | **rebuilt in the repo 2026-09-27** (commit ddc3468: 'since D-095' section); NOT published — the owner decides — was missing | last `docs/demo` refresh was 09-26 19:21; nothing from D-101..D-121 is on it | S–M | outside communication |
 | `robustness_checklist` file | your list | missing, and never stated | no such file and no reference to it anywhere; the closest thing is the considerations doc | S | — |
-| Considerations checklist kept current | its own header rule | **done 2026-09-27** (commit bd674d3: every §4 status re-checked, dated revision line) — was stale | still shows ❌ for robustness sweeps, latency and physics-version provenance, which are now implemented | S | — |
+| Considerations checklist kept current | its own header rule | **done 2026-09-27** (commit 616a90d: every §4 status re-checked, dated revision line) — was stale | still shows ❌ for robustness sweeps, latency and physics-version provenance, which are now implemented | S | — |
 | One-off scripts moved to `research/scripts/<date>/` | audit; restructure.md | partial | 9 `t1_diag_*.sh`, the `diag_*.py` scripts and `binding_diag_learnability.py` are still in `scripts/` | S | — |
 | Shim removal (phase 5) | audit phase 5 | pending (waiting on its precondition) | control/model/sim/morphology/ops/learning/policy (about 1000 lines) and the `cli_*.py` files are pure shims | S | — |
 | Decide where the tracker lives (envs vs controllers) | restructure.md step 4 | missing | still in `envs/legged_tracker.py` | S | — |
@@ -89,7 +89,7 @@ Two things to know first:
 ## psi1z
 | item | source | status | evidence | size | blocks |
 |---|---|---|---|---|---|
-| rrp pin kept current | README, "bump the pin" | stale | `pyproject.toml` pins `b7dc677`, which is 207 commits behind rrp origin/main | S | shared fixes (gates, provenance) |
+| rrp pin kept current | README, "bump the pin" | **done 2026-09-27** (psi1z P-020: pinned to rrp 68a6657) — was stale | `pyproject.toml` pins `b7dc677`, which is 207 commits behind rrp origin/main | S | shared fixes (gates, provenance) |
 | Uses the rrp core (system 0, provenance, statistics, run-dag, broker) | README "dependencies" | partial | psi1z imports only `rrp.core.probe_guided_edit` and `rrp.models` attention/flow/gnll. Queueing is shell (`scripts/peer_queue.sh`); no rrp provenance or statistics | M | cross-repo consistency |
 | "Affordance supervision" and "object entities" | README (the structure being tested) | partial | morphology-relation tokens, contact and binding (active hand) are in `structured.py`. Entity token positions are in `data.py`. No affordance head or loss was found | M | the W10 claim as worded |
 | Step 2 on BendPickMP and HandoverTeleop | D-120; notes "Next" | missing | only TabletopGraspMP has been started | M (compute) | W10 generality |
@@ -110,7 +110,7 @@ Two things to know first:
 Next tier: OOD packet fallback and a safety layer, loco-manipulation, `ladder.py` → library plus chain-script retirement.
 
 ## Checked and implemented
-- Records refresh (D-123 item 10, records agent, 2026-09-27): STATUS 7c0dff1, registry + requirements 8793fcd, considerations checklist bd674d3, validate_tracker DAG template 34c3d14, demo page rebuilt (not published) 442ec9f. Still open from item 10: the psi1z pin bump.
+- Records refresh (D-123 item 10, records agent, 2026-09-27): STATUS 9d16009, registry + requirements a2f0248, considerations checklist 616a90d, validate_tracker DAG template feec007, demo page rebuilt (not published) ddc3468. The psi1z pin bump was done by the psi0 agent (psi1z P-020: pinned to rrp 68a6657).
 - Contact v2, the reward schedule with permanent standing and `MIN_STOP_SHARE`, and the slip gate.
 - Sourced actuator limits as the default (`physics/actuator.py`); grasp contact v2/v2.1.
 - The robustness harness (`evaluation/robustness.py`, `envs/perturb.py`, including arm pushes and terrain); motion quality in every eval row.
