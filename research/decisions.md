@@ -867,3 +867,12 @@ Reading:
 - semfix > nosem on every target (semantic supervision helps transfer relative to no supervision) but not enough to reach BC.
 Caveats: 2 seeds; adaptation modes differ in parameters touched (flow SFT / refit adapt one module; BC SFT adapts the whole policy): "equal budget" means equal data and updates. Four panda_tf3 evals and one BC SFT were rerun once after memory under-declarations (partial rows deleted; one result per cell).
 Next (lead, proposed): (a) diagnose the realizer on new kinematics (joint-limit/IK-frame conditioning, morphology encoding reaching the realizer), (b) joint flow+realizer adaptation as a whole-policy comparison matched to BC SFT, (c) more source-arm diversity before claiming cross-arm transfer. Roadmap #9/#10 → done.
+
+### D-135 addendum 2026-09-28: diagnosis (non-sealed, dev seeds 3000000–3000029; research/tracks/armdiag.md, main a6a1c07)
+- No code bug: xarm7 morphology reaches system 0 correctly (node order, gripper flag, feature ranges inside the 13 source bodies, shared encoder).
+- The source realizer cannot drive xarm7 even from ideal encoder packets (TCP-step cosine 0.59 vs 0.96 on source bodies), so flow SFT alone cannot help.
+- After a refit, the unadapted flow's packets are 6× further from the encoder target than on source bodies; the error is in body-specific, non-probed packet directions (semantic probes still read cube offset within 5.6 mm, subtask 100%).
+- Pairing the sealed run's own flow-SFT and refit checkpoints works on dev seeds: semfix both-b100 82/120 vs refit-only 14/120 vs BC SFT 103/120. Update-matched (300 + 300 vs BC 600) on semfix s1 xarm7_pg2: 9/30 vs 18/30.
+- Refit is not underfitting (5k updates: 1/30 with the unadapted flow, 17/30 with the adapted one).
+Correction to the D-135 reading: the failure on a new arm is the protocol adapting one module at a time, not an inability of the latent route to adapt. It adapts roughly 2× slower per update than BC on dev seeds, and still does not beat BC. D-135's sealed numbers stand as measured for the pre-registered methods.
+Next: a joint flow + system-0 adaptation method, update-matched to BC SFT, pre-registered before any sealed run; to be clearly labelled as added AFTER D-135 (post-hoc method, same sealed scenes).
