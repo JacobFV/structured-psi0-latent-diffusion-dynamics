@@ -24,6 +24,9 @@ scratch instead; partial dir kept at `ladder_smoke/armv6_aborted/semfix_train_fl
 semfix s1 had completed at 02:16 (~70 min). Runner relaunched as `rrp-armv6-dag2` with `--retry-failed` (bounded manual
 decision, logged); running leases (bc1 semfix s1, Stage A nosem s1) re-adopted. Measured peaks so far on v6dart: Stage A
 1.8-2.0 GB RAM (cgroup peak from the job wrapper) / 957 MiB CUDA; bc1 collection 5.5 GB.
+Follow-up (code, main): flow checkpoints (policy_last.pt) now also save/restore the global torch/CUDA RNG, so a shed flow
+resumes exactly (same helpers as Stage A). wt/armv6 keeps the launch revision while its jobs run (peer_sync refuses a
+busy dir), so for THIS run a shed flow is restarted from scratch, not resumed.
 RESUME: `cd ~/work/rrp-wt/ladder && systemd-run --user --unit rrp-armv6-dag3 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv6 --setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/ladder ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_lineage_v6.yaml`
 (completed nodes skipped, running leases re-adopted; `--retry-failed` only as a logged manual decision; before
 resuming a shed Stage A, check its log says `exact: RNG restored`).

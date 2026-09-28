@@ -294,6 +294,8 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
         model.load_state_dict(st["model"]); opt.load_state_dict(st["optimizer"])
         sched.load_state_dict(st["extra"]["sched"]); step = st["step"]
         rng.setstate(st["extra"]["rng_py"]); gen.set_state(st["extra"]["gen"].cpu())
+        if "torch_rng" in st["extra"]:              # global torch/CUDA RNG (dropout etc.); older checkpoints lack it
+            _restore_rng(st["extra"], rng)
         print(f"resumed {last} at step {step}", flush=True)
     elif cfg_json.get("init_from"):            # warm start (e.g. bug B-1 fine-tune): weights incl. target-norm buffers
         model.load_state_dict(load_checkpoint(Path(cfg_json["init_from"]), map_location=dev)["model"])
@@ -307,7 +309,7 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
     def snapshot():
         save_checkpoint(last, model=model, optimizer=opt, step=step, versions=dict(latent=rep_res["latent_space_version"],
                         policy=pcfg.name), config=cfg_json,
-                        extra=dict(sched=sched.state_dict(), rng_py=rng.getstate(), gen=gen.get_state()))
+                        extra=dict(sched=sched.state_dict(), gen=gen.get_state(), **_rng_state(rng)))
 
     # generator DAgger (ladder sprint): (public context at learner-visited states, z* = E(stateless expert chunk))
     gd_items = []
