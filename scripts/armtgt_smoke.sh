@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ARM V6 TARGET BODIES smoke (plumbing only, NEVER reported; protocol dev_rule: no target data or eval scenes touched):
-# (1) target_eval --smoke on the NON-target source body parm6_tf3, dev seeds, 2 episodes, both routes (latent / BC);
+# (1) target_eval --smoke on the NON-target source body panda_pg2 (parm6_tf3's first 3 dev seeds are infeasible), dev seeds, 2 episodes, both routes (latent / BC);
 # (2) the adaptation functions the target_adapt stage calls (flow SFT, budgeted system-0 refit, BC SFT) for a few steps
 #     on the NON-target v6 source pack (the stage itself only accepts target packs, which stay untouched).
 # Runs inside ONE peer lease: RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armtgt scripts/peer_run.sh ... -- bash scripts/armtgt_smoke.sh
@@ -12,9 +12,9 @@ F=$R/armv6/arm6-semfix/flow_ft-gdag2h_s1/policy.pt
 REP=$R/armv6/arm6-semfix/refit-gendag3_noqd_s1/representation.pt
 BC=$R/armexpert_bcv6/baseline_direct_action/seed1701/source/policy.pt
 PK=artifacts/packed/latent_pp_v6dart_s1_H16
-$PY -m rrp.evaluation.target_eval --protocol configs/eval/latent_slice1.json --robot parm6_tf3 --route generated \
+$PY -m rrp.evaluation.target_eval --protocol configs/eval/latent_slice1.json --robot panda_pg2 --route generated \
   --prev-action zero --kind zero_shot --tag smoke_latent --out $O/eval_latent --flow $F --rep $REP --smoke --smoke-episodes 2
-$PY -m rrp.evaluation.target_eval --protocol configs/eval/latent_slice1.json --robot parm6_tf3 --route learned \
+$PY -m rrp.evaluation.target_eval --protocol configs/eval/latent_slice1.json --robot panda_pg2 --route learned \
   --prev-action zero --kind zero_shot --tag smoke_bc --out $O/eval_bc --policy $BC --policy-label bcv6_direct1701_final --smoke --smoke-episodes 2
 $PY - <<PY
 import json

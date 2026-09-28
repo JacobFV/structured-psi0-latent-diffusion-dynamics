@@ -3,6 +3,37 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
+## ARM V6 TARGET BODIES (D-134 lead request; started 2026-09-28 09:30 PDT; state: running)
+Two jobs, in order.
+(1) LIKE-FOR-LIKE v1 -> v6: the v1 checkpoints (frozen sem s1/s2, semfix s1/s2, nosem s1/s2, BC direct1701 final)
+re-evaluated under grasp_v2.1 on the same R2 sets (dev + fresh 3.0001M / 3.0002M on panda_pg2 / parm6_tf3; held-out
+parm5s_tf3 / parm5l_pg2 dev), with W7's recorded commands (`scripts/armexpert_gc2_reeval.sh`, GC=v2.1; only
+RRP_GRASP_CONTACT changes), so the v1 -> v6 comparison separates data/expert from physics. Shell-only host unit
+`rrp-gc21-reeval` (56 one-shot peer CPU jobs, 3 at a time, bounded passes; code dir wt/armv6; the script's peer dir is
+now overridable, default unchanged). Output `artifacts/runs/armexpert_gc2eval/grasp_v2.1/<robot>/`.
+(2) CORE CLAIM #9/#10 on the SEALED target bodies xarm7_pg2 / xarm7_tf3 / panda_tf3 (configs/eval/latent_slice1.json,
+sha256 323d3d93…; eval = 100 scenes from 2,000,000, infeasible excluded and counted; budgets 5/20/100 with nested
+episode choice and 150/300/600 updates, lr 1e-4; adapt seeds in the protocol seed list), run ONCE:
+- latent: `dags/arm_targets_v6_latent.yaml` (extends dags/templates/arm_targets_latent.yaml): v6 semfix / nosem x seeds
+  1, 2 (final flow gdag2h + final system 0 gendag3 of `artifacts/runs/armv6/arm6-<variant>/`): zero-shot, flow SFT and
+  system-0 refit at 5/20/100 (adapt seed 1700 + seed) with their sealed evals, plus source competence on the protocol's
+  held-out source bodies; 167 nodes.
+- BC: `dags/arm_targets_v6_bc.yaml` (extends dags/templates/arm_targets_bc.yaml): the v6 BC experts seeds 1701 / 1702
+  REUSED (final checkpoints, sha256[:16] a29810bd0168ee1a / 493679bdf9ec4d40; not retrained), zero-shot and BC SFT at
+  5/20/100 (adapt seed = BC seed) with sealed evals, plus source competence; 49 nodes. Same data (v6dart target demos,
+  150 clean episodes per target from seed 1,000,000), harness, budgets and acquisition as the latent route.
+- grasp_contact v2.1 on every node; peer placement only; run-dag coordinators are host user units; code dir
+  `/dev/shm/rrp-brandonin/wt/armtgt`. Test `tests/unit/test_dag_arm_targets_v6.py`: sealed_run on every target_eval,
+  budgets/seeds in the protocol, v6 inputs, and identical (target, budget, adapt seed) cells for BC and latent.
+- Smoke (plumbing only, never reported; `scripts/armtgt_smoke.sh`, one peer lease rc 0): target_eval `--smoke` on the
+  NON-target panda_pg2 with dev seeds, 2 episodes per route (parm6_tf3's first 3 dev seeds are infeasible, so a first
+  attempt there ran 0 episodes); the adaptation functions (flow SFT, budgeted system-0 refit, BC SFT) for 5 steps on
+  the NON-target v6 source pack (the target_adapt stage accepts only target packs, which stay untouched until the
+  sealed runs). Note: a refit's result `steps` is the SOURCE Stage A's count; the refit's own count is `steps_refit`.
+- Memory (D-117 rule): the first node of each new stage type (target pack, sealed target_eval, flow SFT, system-0 refit,
+  BC SFT; semfix s1 / BC 1701 on xarm7_pg2) runs first via `--only`; declarations are then set to >= 1.35 x the
+  measured peak before the rest is launched.
+
 ## ARM V6 LINEAGES RESULT (2026-09-28 09:45 PDT; state: completed — all 100 nodes rc 0, 09:24)
 Four lineages, semfix and nosem x training seeds 1, 2, with the IDENTICAL recipe and seeds as v1, on v6 components ONLY:
 v6dart data (teacher v2 + grasp contact v2.1 + phase-gated DART), DAgger labeller / stateless-R1 expert
