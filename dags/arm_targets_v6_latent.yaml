@@ -17,3 +17,29 @@ vars:
   rep_ref: 'runs/armv6/arm6-{variant}/refit-gendag3_noqd_s{seed}:representation.pt'
   dataset: runs/armexpert/v6dart/collect-v6dart_s1
   grasp_contact: v2.1
+defaults:
+  max_parallel: 6
+  max_parallel_gpu: 2   # lead: 2-3 peer GPU leases in total across the latent + BC coordinators
+  max_cpu: 9
+nodes:
+  # Memory (D-117, measured on the first node of each stage type, 09:37-09:39, xarm7_pg2): target_eval 1.83G, flow SFT
+  # 1.75G, system-0 refit 1.61G, BC SFT 1.59G, pack 1.59G (cgroup memory.peak) -> 4G each (>= 1.35x); adaptation GPU
+  # 3G (flows measured ~1.1G CUDA). Limits do not enter config hashes.
+  pack_xarm7_pg2: {resources: {mem: 4G}}
+  pack_xarm7_tf3: {resources: {mem: 4G}}
+  pack_panda_tf3: {resources: {mem: 4G}}
+  src_parm5s_tf3: {resources: {mem: 4G}}
+  src_parm5l_pg2: {resources: {mem: 4G}}
+  zs: {resources: {mem: 4G}}
+  fev5: {resources: {mem: 4G}}
+  fev20: {resources: {mem: 4G}}
+  fev100: {resources: {mem: 4G}}
+  rev5: {resources: {mem: 4G}}
+  rev20: {resources: {mem: 4G}}
+  rev100: {resources: {mem: 4G}}
+  fsft5: {resources: {mem: 4G, gpu_mem: 3G}}
+  fsft20: {resources: {mem: 4G, gpu_mem: 3G}}
+  fsft100: {resources: {mem: 4G, gpu_mem: 3G}}
+  rz5: {resources: {mem: 4G, gpu_mem: 3G}}
+  rz20: {resources: {mem: 4G, gpu_mem: 3G}}
+  rz100: {resources: {mem: 4G, gpu_mem: 3G}}
