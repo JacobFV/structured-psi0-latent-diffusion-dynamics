@@ -1,0 +1,174 @@
+# TEMPLATE for the FIRST dual-arm learned models (D-126 #33; W12 phase B/C, research/tracks/w12.md §8). Not run by
+# anyone yet: a child DAG `dags/dual_<name>.yaml` does `extends: templates/dual_lineage.yaml` and sets name / labels.
+# Recipe = the arm semfix/nosem recipe (bounded NLL -4 for semfix), zero_prev_action TRUE (B-1 fix; the v1 dual configs in
+# configs/latent/*dualarm*_v1.json predate it and are not used). Data = dual teacher v3 (rrp.teachers.dual_smooth), grasp
+# contact v2.1, W12 contact labels, phase-gated DART, dual dataset gate ENFORCED (check_dual_dataset; needs record_quality).
+# WAIT for W7's pad-cylinder / gripper-force fix (rrp.physics.grasp_contact) before running collect: under grasp_v2.1
+# the peg slips (W12 audit, 6/24 support_insert successes with teacher v2).
+# Dual DAgger does not exist yet (pipelines/dual.py: dagger_collect refuses), so the lineage is Stage A -> flow -> evals.
+#   rrp run-dag dags/dual_<name>.yaml --dry-run
+#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/w12 rrp run-dag dags/dual_<name>.yaml
+name: dual_lineage_template
+schema: dag-1
+family: dual
+track: w12
+lineage: 'dual-{variant}'
+global_lineage: 'dual-v3data'
+label_prefix: 'w12{tg}{seed}'
+global_label_prefix: 'w12d'
+matrix:
+  variant: [semfix, nosem]
+  seed: [0]
+axis_vars:
+  variant:
+    semfix: {sw: 1.0, lv: -4.0, psw: 1.0, tg: sf}
+    nosem: {sw: 0.0, lv: -8.0, psw: 0.0, tg: ns}
+vars:
+  pfx: 'w12_dual_{variant}_s{seed}'
+  so: '{1000 * seed}'
+lists:
+  si_pairs: [panda_pg2__ur5e_pg2, parm5_pg2__parm5_pg2, parm5_tf3__parm7_pg2, parm6_pg2__parm7_tf3, parm6_tf3__parm6_pg2, parm7_pg2__parm5_tf3, sawyer_tf3__ur5e_pg2, ur5e_pg2__sawyer_pg2]
+  ho_pairs: [panda_pg2__ur5e_pg2, parm5_pg2__parm5_pg2, parm5_pg2__parm6_tf3, parm6_pg2__parm7_pg2, parm7_tf3__parm5_pg2, ur5e_pg2__sawyer_pg2]
+  si_items:
+    - {pair: panda_pg2__ur5e_pg2, split: source_train, seed_start: 0, episodes: 100}
+    - {pair: parm5_pg2__parm5_pg2, split: source_train, seed_start: 0, episodes: 100}
+    - {pair: parm5_tf3__parm7_pg2, split: source_train, seed_start: 0, episodes: 100}
+    - {pair: parm6_pg2__parm7_tf3, split: source_train, seed_start: 0, episodes: 100}
+    - {pair: parm6_tf3__parm6_pg2, split: source_train, seed_start: 0, episodes: 100}
+    - {pair: parm7_pg2__parm5_tf3, split: source_train, seed_start: 0, episodes: 100}
+    - {pair: sawyer_tf3__ur5e_pg2, split: source_train, seed_start: 0, episodes: 100}
+    - {pair: ur5e_pg2__sawyer_pg2, split: source_train, seed_start: 0, episodes: 100}
+  ho_items:
+    - {pair: panda_pg2__ur5e_pg2, split: source_train, seed_start: 0, episodes: 100}
+    - {pair: parm5_pg2__parm5_pg2, split: source_train, seed_start: 0, episodes: 100}
+    - {pair: parm5_pg2__parm6_tf3, split: source_train, seed_start: 0, episodes: 100}
+    - {pair: parm6_pg2__parm7_pg2, split: source_train, seed_start: 0, episodes: 100}
+    - {pair: parm7_tf3__parm5_pg2, split: source_train, seed_start: 0, episodes: 100}
+    - {pair: ur5e_pg2__sawyer_pg2, split: source_train, seed_start: 0, episodes: 100}
+  dev_shards:
+    - {task: support_insert, pair: parm5_pg2__parm5_pg2, episodes: 20, seed_start: 3000000, max_steps: 1200}
+    - {task: support_insert, pair: panda_pg2__ur5e_pg2, episodes: 20, seed_start: 3000000, max_steps: 1200}
+    - {task: support_insert, pair: ur5e_pg2__sawyer_pg2, episodes: 20, seed_start: 3000000, max_steps: 1200}
+    - {task: handover, pair: parm5_pg2__parm5_pg2, episodes: 20, seed_start: 3000000}
+    - {task: handover, pair: panda_pg2__ur5e_pg2, episodes: 20, seed_start: 3000000}
+    - {task: handover, pair: ur5e_pg2__sawyer_pg2, episodes: 20, seed_start: 3000000}
+  heldout_shards:
+    - {task: support_insert, pair: xarm7_pg2__xarm7_pg2, episodes: 30, seed_start: 3100000, max_steps: 1200}
+    - {task: support_insert, pair: xarm7_tf3__xarm7_pg2, episodes: 30, seed_start: 3100000, max_steps: 1200}
+    - {task: support_insert, pair: parm6_pg2__panda_tf3, episodes: 30, seed_start: 3100000, max_steps: 1200}
+    - {task: support_insert, pair: ur5e_pg2__panda_tf3, episodes: 30, seed_start: 3100000, max_steps: 1200}
+    - {task: support_insert, pair: aloha, episodes: 30, seed_start: 3100000, max_steps: 1200}
+defaults:
+  placement: peer          # D-115: nothing heavy on the host
+  retries: 0
+  max_parallel: 4
+  max_parallel_gpu: 1      # lowest peer priority (W8 > W7/arm > W10 > W12)
+  max_cpu: 8
+  max_mem_gib: 60
+  resources: {cpu: 2, mem: 4G, gpu: false, max_seconds: 14400}
+base:
+  flags: {contact_version: contact_v1}       # arm/dual worlds: contact_v1 floor model; grasp contact v2.1 via options.grasp_contact
+nodes:
+  collect_si:
+    stage: collect
+    scope: global
+    tag: si
+    resources: {cpu: 8, mem: 14G, disk: 30G, max_seconds: 21600}       # 8 workers x ~1.2 GB x 1.35 (D-117; measure on the smoke)
+    config:
+      options: {workers: 8, grasp_contact: v2.1}
+      params:
+        name: support_insert_v3
+        task: support_insert
+        max_steps: 1200
+        noise_levels: [0.0, 0.04]
+        noise_burst: [25, 5]
+        teacher_version: v3
+        noise_phase_gate: true
+        contact_labels: true
+        record_quality: true
+        split_file: research/splits/primary_v1_support_insert.json
+        items: $si_items
+  collect_ho:
+    stage: collect
+    scope: global
+    tag: ho
+    resources: {cpu: 8, mem: 14G, disk: 30G, max_seconds: 21600}
+    config:
+      options: {workers: 8, grasp_contact: v2.1}
+      params:
+        name: handover_v3
+        task: handover
+        max_steps: 800
+        stop_after_success: 10
+        noise_levels: [0.0, 0.04]
+        noise_burst: [25, 5]
+        teacher_version: v3
+        noise_phase_gate: true
+        contact_labels: true
+        record_quality: true
+        split_file: research/splits/primary_v1_handover.json
+        items: $ho_items
+  pack:
+    stage: pack
+    scope: global
+    resources: {cpu: 2, mem: 28G, disk: 40G, max_seconds: 14400}      # v1 pack 14 GB for 525k rows; measure first
+    config:
+      inputs: {datasets: ['@collect_si', '@collect_ho']}
+      params:
+        horizon: 16
+        multi_m: 2
+        limits: {T: {morph: 24, scene: 8, task: 32, interact: 64}, N: 16, R: 1024, P: 128}
+        sources:
+          - {robots: $si_pairs, statuses: [success], include_dart_failures: false}
+          - {robots: $ho_pairs, statuses: [success], include_dart_failures: false}
+  stageA:
+    stage: train_rep
+    resources: {gpu: true, gpu_mem: 16G, cpu: 6, mem: 44G, max_seconds: 21600}   # v1 dual chain 32G x 1.35 (D-117)
+    config:
+      flags: {zero_prev_action: true, realizer_anchor: false, probe_lv_min: '{lv}'}
+      inputs: {packed_dir: '@pack'}
+      params:
+        horizon: 16
+        stride: 1
+        seed: '{1701 + so}'
+        steps: 8000
+        batch_size: 128
+        lr: 0.0003
+        probe: {n_operators: 14, max_assemblies: 2}
+        prefetch: true
+        name: '{pfx}_stageA'
+        latent: {name: '{pfx}_stageA', semantic_weight: '{sw}'}
+  probes:
+    stage: probes
+    resources: {gpu: true, gpu_mem: 8G, cpu: 2, mem: 24G, max_seconds: 10800}
+    config:
+      inputs: {representation: '@stageA:representation.pt', packed_dir: '@pack'}
+      options: {steps: 3000}
+  F0:
+    stage: train_flow
+    resources: {gpu: true, gpu_mem: 16G, cpu: 6, mem: 44G, max_seconds: 21600}
+    config:
+      flags: {zero_prev_action: true}
+      inputs: {representation: '@stageA:representation.pt', packed_dir: '@pack'}
+      params: {name: '{pfx}_F0', seed: '{1701 + so}', steps: 8000, batch_size: 128, lr: 0.0003, packet_semantic_weight: '{psw}', normalize_target: true, snapshot_every: 1000, packet_tau_min: 0.6, policy: {width: 256, heads: 4, ctx_layers: 3, blocks: 6, structured: true, bias_mode: 'true', attention: factorized, name: '{pfx}_F0'}}
+  r2:
+    stage: eval_r2
+    resources: {cpu: 4, mem: 12G}
+    config:
+      flags: {zero_prev_action: true}
+      inputs: {flow: '@F0:policy.pt'}
+      options: {workers: 4, shards: $dev_shards, grasp_contact: v2.1}
+  heldout:
+    stage: heldout
+    resources: {cpu: 4, mem: 12G}
+    config:
+      flags: {zero_prev_action: true}
+      inputs: {flow: '@F0:policy.pt'}
+      options: {workers: 4, heldout_shards: $heldout_shards, grasp_contact: v2.1}
+  edits:
+    stage: edits
+    resources: {cpu: 4, mem: 12G}
+    config:
+      flags: {zero_prev_action: true}
+      inputs: {flow: '@F0:policy.pt'}
+      options: {workers: 4, shards: $dev_shards, packet_edits: [swap_slots], grasp_contact: v2.1}

@@ -6,29 +6,9 @@ from pathlib import Path
 
 
 def cmd_pack(a):
-    from rrp.data.packed import pack_dataset
-    from rrp.data.dual_latent import concat_packed
+    from rrp.data.dual_latent import pack_dual
     cfg = json.loads(open(a.config).read())
-    out = Path(cfg["out_dir"])
-    parts = []
-    for k, src in enumerate(cfg["sources"]):
-        d = out.parent / f"{out.name}.part{k}"
-        if not (d / "meta.json").exists():
-            meta = pack_dataset(Path(src["dataset"]), d, set(src["robots"]), cfg["horizon"], stride=1,
-                                statuses=tuple(src.get("statuses", ["success"])),
-                                include_dart_failures=src.get("include_dart_failures", False),
-                                seeds=tuple(src["seeds"]) if src.get("seeds") else None,
-                                limits=cfg["limits"], multi_m=cfg["multi_m"],
-                                exclude_episodes=tuple(src.get("exclude_episodes", ())))
-            print(k, json.dumps({kk: meta[kk] for kk in ("n", "robots")}), flush=True)
-        parts.append(d)
-    meta = concat_packed(parts, out)
-    meta["config"] = cfg
-    (out / "meta.json").write_text(json.dumps(meta, indent=1))
-    if not a.keep_parts:
-        import shutil
-        for d in parts:
-            shutil.rmtree(d)
+    meta = pack_dual(cfg, keep_parts=a.keep_parts, log=lambda m: print(m, flush=True))
     print(json.dumps({k: meta[k] for k in ("n", "robots", "robot_ids")}))
 
 

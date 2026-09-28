@@ -194,3 +194,32 @@ def concat_packed(dirs: list, out_dir) -> dict:
                 robots=sorted({r for m in metas for r in m.get("robots", [])}))
     (out_dir / "meta.json").write_text(json.dumps(meta, indent=1))
     return meta
+
+
+def pack_dual(cfg: dict, keep_parts: bool = False, log=print) -> dict:
+    """`rrp latent pack-dual` (moved unchanged from rrp.cli.dual_latent.cmd_pack so pipelines can call it): pack every
+    source dataset with multi-assembly arrays into <out>.part<k>, concatenate into cfg["out_dir"], drop the parts."""
+    import json
+    import shutil
+    from pathlib import Path
+    from rrp.data.packed import pack_dataset
+    out = Path(cfg["out_dir"])
+    parts = []
+    for k, src in enumerate(cfg["sources"]):
+        d = out.parent / f"{out.name}.part{k}"
+        if not (d / "meta.json").exists():
+            meta = pack_dataset(Path(src["dataset"]), d, set(src["robots"]), cfg["horizon"], stride=1,
+                                statuses=tuple(src.get("statuses", ["success"])),
+                                include_dart_failures=src.get("include_dart_failures", False),
+                                seeds=tuple(src["seeds"]) if src.get("seeds") else None,
+                                limits=cfg["limits"], multi_m=cfg["multi_m"],
+                                exclude_episodes=tuple(src.get("exclude_episodes", ())))
+            log(f"{k} " + json.dumps({kk: meta[kk] for kk in ("n", "robots")}))
+        parts.append(d)
+    meta = concat_packed(parts, out)
+    meta["config"] = cfg
+    (out / "meta.json").write_text(json.dumps(meta, indent=1))
+    if not keep_parts:
+        for d in parts:
+            shutil.rmtree(d)
+    return meta

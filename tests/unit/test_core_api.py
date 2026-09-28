@@ -121,8 +121,9 @@ def test_external_family_registers_stages_and_runs(dummy_family, tmp_path):
         register_family("dummy_ext", flag_spec={})
     with pytest.raises(RunConfigError, match="built in"):
         register_family("arm")
-    # the built-ins are unchanged
-    assert Pipeline("dual").stages() == ["train_rep", "train_flow"]
+    # the built-ins are unchanged by registering an extension family (dual stages: D-126 #33)
+    assert Pipeline("dual").stages() == ["collect", "pack", "train_rep", "probes", "train_flow", "flow_ft",
+                                         "dagger_collect", "refit", "eval_r2", "heldout", "edits"]
 
 
 def test_external_family_in_run_dag(dummy_family):
