@@ -23,6 +23,7 @@ are BASELINES ONLY. Integration branch: `main`.
   the GB10 (pack small jobs, watch memory). The watchdog acts only on emergencies. Keep it busy.
 - **Two repositories (D-100, D-119):** this repo (rrp; GitHub structured-psi0-latent-diffusion-dynamics; folder relational-robot-policy) and psi1z (the Ψ₀ line, github.com/JacobFV/psi1z). Read docs/related_repos.md for the glossary (Ψ₀ upstream vs psi1z vs system 0) and the D-xxx ↔ P-xxx crosswalk; keep the crosswalk current when you add a W10 decision.
 - **Memory declarations (D-117):** declare ≥ 1.35 × measured peak memory (plus CUDA/unified bytes). The lease soft cap is 0.8 × declared, so "+20%" throttles the job.
+- **Host stability (D-127, user):** the host has had freeze-ups/OOM: no training, no simulation/smoke runs and no heavy python on the host at all; run only git, editing and the unit suite (CUDA hidden). Coordinators on the host are shell loops only. At most 3 agents run concurrently.
 - **Host vs peer (D-115, user):** NO training, simulation evals, sweeps, data collection, rendering or other heavy compute on the host. Everything heavy runs on the peer. The host is for editing, git, unit tests, small analysis and orchestration only (its broker is capped at 2 CPU / 8 GiB / 0 GPU).
 - **Peer code dirs:** the lead's checkout syncs to `/dev/shm/rrp-brandonin/repo` (running chains live there). Every other
   agent/worktree uses its OWN dir. ALWAYS export `RRP_PEER_REPO` before `scripts/peer_sync.sh` (D-090 incident):

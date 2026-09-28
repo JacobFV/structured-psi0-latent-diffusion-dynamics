@@ -12,7 +12,7 @@ Code: ✅ exists · 🔧 implementing (D-126) · ❌ not a code problem / needs 
 ## A. Arm: semantic packet under realistic physics
 | # | question | depends on | cost | experiment | code |
 |---|---|---|---|---|---|
-| 1 | Do the arm semantic results (D-095) survive grasp_v2? Re-eval of existing routes | – | ~free | running (35/56) | ✅ |
+| 1 | Do the arm semantic results (D-095) survive grasp_v2? Re-eval of existing routes | – | ~free | done → D-127 (yes; semfix 311/480 vs nosem 40/480; frozen sem s1 collapses) | ✅ |
 | 2 | Is v6dart data good enough: v6 BC expert ≥ v2 expert (D-121 condition)? | – | ~3 h | running | ✅ |
 | 3 | Do semfix vs nosem arm results hold on realistic physics + teacher v2 + v6dart? | 2 | 24–30 h | queued | ✅ |
 | 4 | Can upstream recipe choices (Stage A β, BC-DAgger schedule, refit lengths) rescue nosem? (D-099 fairness) | 3 | ~1 day | planned | 🔧 ablation overlays |

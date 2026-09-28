@@ -747,3 +747,19 @@ Owner: "make sure this is recorded in our codebase so that we can see what's sti
 (1) docs/experiments_roadmap.md lists 35 open questions (arm, cross-body, legged/humanoid, W12, Ψ₀, deployment credibility, new task families), each with dependency, cost, experiment status and code status. It is linked from README, STATUS and strategy.
 (2) Code-only items are implemented now by parallel agents with file ownership, as ADDITIVE, default-off, versioned options recorded in provenance. Existing configs must stay byte-identical (checked by tests) and running DAGs are untouched. Tests and the layering test stay green. No heavy compute (D-115); at most tiny peer smoke runs at the lowest priority.
 Items that are not code problems (render-gap research #25, final experiment designs #22/#31) are left as open.
+
+## D-127 2026-09-28 host crash (~00:34) and API session limit: interrupted state identified and resumed; final grasp_v2 re-eval table
+State at resume (00:40). The host had rebooted; the peer had not (up 2 days; /dev/shm store intact; watchdog active; 2 leases running: psi1z step-2 training/probes and the v6 BC seed-1702 training). The host-side coordinators died: the v6 BC chains, the W10 peer queue, the D-126 agents. All agents had also hit the API session limit (reset 02:20). Peer disk was at 14 GB free (100%).
+Actions (lead):
+- Peer disk: moved 4 superseded/old packs to the host (~/work/rrp-data/peer-archive/packed: v4dart, binding_combined, assign_pick_place; v3dart already on the host), each verified byte-equal before deleting it on the peer. Peer disk now 85 GB free.
+- v6 BC: seed 1701 trained, but its eval failed before the crash because the v6 pack (1.01M rows) ends at ~11.9k updates, so the chain's u12000 snapshot never exists. Decision: the v6 DAgger labeller is the FINAL checkpoint (~11.9k updates ≈ the u12000 training point). The chain gained a CKS option (main 101db9f). Resumed seed 1701 evals (final) and a waiter that starts seed 1702's chain only after its still-running training writes policy.pt (avoids a duplicate trainer).
+- W10 queue: the direct/structured TabletopGrasp evals had never been admitted (their retry loops died with the host). Queue relaunched (peer_queue_s2b).
+- D-126 agent worktrees (d126arm, d126legged, d126deploy, w12) hold uncommitted work on disk; agents resume after the limit reset. Already merged before the crash: source labels (sl-1), the ladder/legged-summary move into rrp.evaluation, and the system II harness.
+Owner (00:50): "please dont train on the host. it's been having periodic freeze-ups and OOM issues". D-115 already forbids training there. Tightened: at most 3 concurrent agents; agents run the unit suite only (no host smoke runs, no host python sims); host coordinators are shell-only.
+Grasp_v2 re-evaluation COMPLETE (artifacts/runs/armexpert_gc2eval/compare_gc2_final.json; 240 = 90 panda + 90 parm6 + 30 parm5s + 30 parm5l; recorded grasp_v1 → grasp_v2):
+- frozen sem s1 146 → 64 (its tf3 grasps relied on interpenetration);
+- frozen sem s2 101 → 132;
+- semfix s1 124 → 154; semfix s2 129 → 157;
+- nosem s1 3 → 1; nosem s2 26 → 39;
+- BC direct1701 235 → 212.
+Reading: the D-095 arm conclusion survives realistic grasp physics and strengthens for semfix (311/480 vs nosem 40/480 across both seeds). BC remains the strongest single route on these source bodies (212/240), as before.
