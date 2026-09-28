@@ -5,7 +5,7 @@ import json
 import re
 from pathlib import Path
 
-from .common import (Config, FileCache, bodies_in, envelope, family_of, parse_tables, rnd, source_label, wilson)
+from .common import (Config, FileCache, bodies_in, sha1_bytes, envelope, family_of, parse_tables, rnd, source_label, wilson)
 from .scan import Found, extract_edits, extract_results, parse_trainlog, provenance
 
 SMALL_DOC = 64_000
@@ -180,7 +180,8 @@ def norm_rows(cfg: Config, f: Found, prod: dict, dec, dag_outs) -> list[dict]:
         if fam == "arm":
             g = grasp if isinstance(grasp, str) else (grasp[0] if isinstance(grasp, list) and len(grasp) == 1 else grasp)
             if g is None:
-                caveats.append("grasp contact version not recorded (runs before D-110 used grasp_v1: grasps held by "
+                caveats.append("grasp contact version not recorded in this file (runs before D-110 used grasp_v1: "
+                                "grasps held by "
                                "interpenetration, D-108)")
             elif g == "grasp_v1":
                 caveats.append("grasp_v1 physics (interpenetration, D-108); superseded by grasp_v2/v2.1 (D-110, D-118)")
@@ -188,7 +189,8 @@ def norm_rows(cfg: Config, f: Found, prod: dict, dec, dag_outs) -> list[dict]:
             c = contact if isinstance(contact, str) else (contact[0] if isinstance(contact, list) and len(contact) == 1
                                                           else contact)
             if c is None:
-                caveats.append("contact version not recorded (legged runs before D-101 used contact_v1: skating "
+                caveats.append("contact version not recorded in this file (legged runs before D-101 used "
+                                "contact_v1: skating "
                                "trackers, D-093)")
             elif c == "contact_v1":
                 caveats.append("contact_v1 physics (skating trackers, D-093)")
@@ -212,7 +214,22 @@ def norm_rows(cfg: Config, f: Found, prod: dict, dec, dag_outs) -> list[dict]:
     return rows
 
 
-def build_results(cfg: Config, cache: FileCache, found: dict, dec, dag_outs) -> tuple[dict, dict]:
+def peer_only_files(cfg: Config, found: dict, peer: dict | None) -> list[tuple[Found, dict]]:
+    """Small summaries from the last --live read (modified in the last 24 h on the peer) whose path exists in NO local copy."""
+    local = {f.rel for f in found["json"]}
+    local |= {a.split(":", 2)[-1] for f in found["json"] for a in getattr(f, "alt", [])}
+    out = []
+    for e in (peer or {}).get("recent_summaries") or []:
+        if e.get("path") in local or not isinstance(e.get("doc"), (dict, list)):
+            continue
+        b = json.dumps(e["doc"], sort_keys=True).encode()
+        f = Found("json", Path(e["path"]), e["path"], f"peer:{cfg.peer}", e.get("mtime") or 0, len(b), sha1_bytes(b))
+        out.append((f, e["doc"]))
+    return out
+
+
+def build_results(cfg: Config, cache: FileCache, found: dict, dec, dag_outs,
+                  peer: dict | None = None) -> tuple[dict, dict]:
     rows, truncated, errors = [], [], []
     for f in found["json"]:
         prod = content(cfg, cache, f)
@@ -222,6 +239,13 @@ def build_results(cfg: Config, cache: FileCache, found: dict, dec, dag_outs) -> 
         if prod["results"].get("truncated"):
             truncated.append(f.rel)
         rows.extend(norm_rows(cfg, f, prod, dec, dag_outs))
+    peer_only = peer_only_files(cfg, found, peer)
+    for f, obj in peer_only:
+        prod = {"results": extract_results(obj)}
+        for r in norm_rows(cfg, f, prod, dec, dag_outs):
+            r["peer_only"] = True
+            r["caveat"] = "; ".join(x for x in (r["caveat"], "peer-only copy (not yet on the host), from the last --live read") if x)
+            rows.append(r)
     tables = []
     for f in found["md"]:
         p = cache.product("md", f.sha)
@@ -241,7 +265,7 @@ def build_results(cfg: Config, cache: FileCache, found: dict, dec, dag_outs) -> 
         fams[str(r["family"])] = fams.get(str(r["family"]), 0) + 1
     meta = {"n_rows": len(rows), "n_files": len(found["json"]), "by_family": fams,
             "n_interim": sum(r["interim"] for r in rows), "n_with_caveat": sum(bool(r["caveat"]) for r in rows),
-            "n_tables": len(tables)}
+            "n_tables": len(tables), "n_peer_only_files": len(peer_only)}
     doc = envelope("results", cfg, sorted({r["source_file"] for r in rows}),
                    **meta, truncated_files=truncated, unreadable=errors,
                    columns=["id", "family", "task", "body", "route", "variant", "seed", "grasp_version",

@@ -107,7 +107,7 @@ def _run(cfg: Config, only: list[str] | None = None, sync_psi1z: bool = False) -
         dag_outs = dags_m.dag_outputs(items)
         res_doc = None
         if want & {"results", "robustness", "overview"}:
-            r = timed("results", lambda: results.build_results(cfg, cache, found, dec, dag_outs))
+            r = timed("results", lambda: results.build_results(cfg, cache, found, dec, dag_outs, peer_data))
             if r:
                 res_doc, results_meta = r
                 manifest["results_meta"] = results_meta

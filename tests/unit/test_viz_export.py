@@ -273,3 +273,23 @@ def test_only_and_cache_reuse(exported):
     m = run(cfg, ["results"])
     assert m["last_run"]["only"] == ["results"] and time.time() - t0 < 5
     assert (cfg.out / "_cache/files.json").exists()
+
+
+def test_cached_peer_read_is_stale_and_peer_only_summaries_enter_results(tmp_path, monkeypatch):
+    monkeypatch.setattr(subprocess, "run", lambda args, *a, **k: (_ for _ in ()).throw(AssertionError(args))
+                        if args and args[0] in ("ssh", "rsync") else subprocess.CompletedProcess(args, 1, "", ""))
+    cfg = _fixture(tmp_path)
+    cfg.cache_dir.mkdir(parents=True)
+    (cfg.cache_dir / "peer_read.json").write_text(json.dumps({"ok": True, "t": time.time() - 120, "data": {
+        "broker": {"admission_stopped": False}, "watchdog": [{"t": 1.0, "level": "ok", "reasons": []}],
+        "leases": {"L2": {"state": "active", "created": time.time() - 200, "request": {"label": "x", "memory_bytes": 1},
+                          "cgroup": {"memory.current": "5", "memory.peak": "7", "memory.events": {"high": "0"}}}},
+        "recent_summaries": [{"path": "artifacts/runs/new_eval/panda_pg2/x.summary.json", "mtime": 1.0,
+                              "doc": {"n": 10, "success": 4, "robot": "panda_pg2", "route": "bc"}}]}}))
+    run(cfg, ["live", "results"])
+    live = _doc(cfg, "live")
+    assert live["stale"] is True and live["age_s"] >= 119 and live["refreshed_now"] is False
+    lease = live["leases"][0]
+    assert lease["workstream"] == "legged8" and lease["dag"] == "legged_v2_go2" and lease["measured"]["memory_peak"] == 7
+    r = next(r for r in _doc(cfg, "results")["rows"] if r.get("peer_only"))
+    assert (r["k"], r["n"], r["body"], r["location"]) == (4, 10, "panda_pg2", "peer:nonexistent-peer-for-tests")
