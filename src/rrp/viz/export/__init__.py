@@ -17,7 +17,7 @@ from .common import Config, FileCache, envelope, read_json, write_json
 
 DOCS = ("overview", "live", "dags", "results", "edits", "training", "robustness", "physics", "psi0", "knowledge",
         "replays", "videos")
-_SCAN_DOCS = {"results", "edits", "training", "robustness", "physics", "overview"}
+_SCAN_DOCS = {"results", "edits", "training", "robustness", "physics"}
 
 
 def _rows(doc: dict) -> int | None:
@@ -97,16 +97,19 @@ def _run(cfg: Config, only: list[str] | None = None, sync_psi1z: bool = False) -
 
     results_meta = (manifest.get("results_meta") or {})
     if want & _SCAN_DOCS:
-        from .scan import discover
-        cache = FileCache(cfg.cache_dir / "files.json")
+        from .scan import discover_cached
         t = time.time()
-        found = discover(cfg, cache)
+        cache = FileCache(cfg.cache_dir / "files.pkl")
+        timings["_cache_load"] = time.time() - t
+        t = time.time()
+        found, reused = discover_cached(cfg, cache, force=want >= _SCAN_DOCS)
         timings["_discover"] = time.time() - t
+        manifest["discovery_reused"] = reused
         dec.set_generic_stems(f.rel for k in ("json", "md") for f in found[k])
         manifest["discovered"] = {k: len(v) for k, v in found.items()}
         dag_outs = dags_m.dag_outputs(items)
         res_doc = None
-        if want & {"results", "robustness", "overview"}:
+        if want & {"results", "robustness"}:
             r = timed("results", lambda: results.build_results(cfg, cache, found, dec, dag_outs, peer_data))
             if r:
                 res_doc, results_meta = r

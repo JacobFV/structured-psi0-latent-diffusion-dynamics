@@ -368,3 +368,28 @@ def parse_trainlog(text: str) -> dict:
     last = {k: rnd(v, 6) for k, v in recs[-1].items() if isinstance(v, (int, float)) and not isinstance(v, bool)}
     return {"n": n, "stride": stride, "step_key": step_key, "step": steps, "series": series, "gate_state": gate_state,
             "last": last, "wall_s_last": rnd(wall, 1)}
+
+
+FOUND_TTL_S = 10.0
+
+
+def discover_cached(cfg: Config, cache: FileCache, force: bool = False) -> tuple[dict[str, list[Found]], bool]:
+    """discover(), reusing the previous file list when it is younger than FOUND_TTL_S (the plugin exports one document
+    per call, several in a row; one filesystem walk serves them all). Returns (found, reused)."""
+    import pickle
+    import time as _t
+    snap = cfg.cache_dir / "found.pkl"
+    if not force:
+        try:
+            if _t.time() - snap.stat().st_mtime < FOUND_TTL_S:
+                with open(snap, "rb") as fh:
+                    return pickle.load(fh), True
+        except Exception:
+            pass
+    found = discover(cfg, cache)
+    snap.parent.mkdir(parents=True, exist_ok=True)
+    tmp = snap.with_name(f".found.{os.getpid()}.tmp")
+    with open(tmp, "wb") as fh:
+        pickle.dump(found, fh, protocol=pickle.HIGHEST_PROTOCOL)
+    os.replace(tmp, snap)
+    return found, False

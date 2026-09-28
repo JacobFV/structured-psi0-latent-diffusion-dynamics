@@ -272,7 +272,7 @@ def test_only_and_cache_reuse(exported):
     t0 = time.time()
     m = run(cfg, ["results"])
     assert m["last_run"]["only"] == ["results"] and time.time() - t0 < 5
-    assert (cfg.out / "_cache/files.json").exists()
+    assert (cfg.out / "_cache/files.pkl").exists() and (cfg.out / "_cache/found.pkl").exists()
 
 
 def test_cached_peer_read_is_stale_and_peer_only_summaries_enter_results(tmp_path, monkeypatch):

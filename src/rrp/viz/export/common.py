@@ -10,6 +10,7 @@ import hashlib
 import json
 import math
 import os
+import pickle
 import re
 import subprocess
 import time
@@ -316,7 +317,11 @@ class FileCache:
 
     def __init__(self, path: Path):
         self.path = path
-        d = read_json(path, {}) or {}
+        try:
+            with open(path, "rb") as fh:
+                d = pickle.load(fh)
+        except Exception:
+            d = {}
         ok = d.get("version") == self.VERSION
         self.stat: dict[str, list] = d.get("stat", {}) if ok else {}
         self.products: dict[str, dict] = d.get("products", {}) if ok else {}
@@ -352,5 +357,10 @@ class FileCache:
                 del self.products[k]
                 self.dirty = True
         if self.dirty:
-            write_json(self.path, {"version": self.VERSION, "stat": self.stat, "products": self.products})
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = self.path.with_name(f".{self.path.name}.{os.getpid()}.tmp")
+            with open(tmp, "wb") as fh:
+                pickle.dump({"version": self.VERSION, "stat": self.stat, "products": self.products}, fh,
+                            protocol=pickle.HIGHEST_PROTOCOL)
+            os.replace(tmp, self.path)
             self.dirty = False
