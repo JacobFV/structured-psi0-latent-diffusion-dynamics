@@ -63,6 +63,9 @@ def privileged_labels(session: Session, feat: Featurizer) -> dict:
     return lab
 
 
+DART_FREE_PHASES = ("pregrasp", "transport")      # D-118 phase-gated DART: hover approach and carry at 18 cm
+
+
 class DartProximityGuard:
     """D-118 contact-safe DART: before a perturbed arm command is executed, forward kinematics on the COMMANDED joints
     (other joints and objects at their current state) gives the robot geom poses; the noisy command is rejected for this
@@ -70,9 +73,9 @@ class DartProximityGuard:
     closer than the clean command would bring it (so contacts the clean teacher makes itself, e.g. the grasp or a held
     cube, do not suppress the noise). Uses a private MjData; never touches the simulation."""
 
-    def __init__(self, session, margin: float = 0.005, obj: str = "cube"):
+    def __init__(self, session, margin: float = 0.005, obj: str = "cube", strict: bool = False):
         m = session.model
-        self.s, self.m, self.margin = session, m, float(margin)
+        self.s, self.m, self.margin, self.strict = session, m, float(margin), bool(strict)
         self.d = mujoco.MjData(m)
         r = session.robots[0]
         names = {l.name for l in r.spec.links}
@@ -87,6 +90,9 @@ class DartProximityGuard:
         self.hand_bodies = {b for b in range(m.nbody) if m.body(b).name in hand}
         self.tcp = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_SITE, r.tcp_sites[asm.id])
         self._ft = np.zeros(6)
+        # robot geoms that rest on / next to the table at the start (base, mount) are not checked against the table
+        self.table_geoms = [a for a in self.robot_geoms if self.table < 0 or
+                            mujoco.mj_geomDistance(m, session.data, a, self.table, 0.05, self._ft) > 0.02]
 
     def _held(self) -> bool:
         """Current state: the cube is in contact with >= 2 hand bodies (then it moves with the hand)."""
@@ -99,7 +105,13 @@ class DartProximityGuard:
                 touching.add(b2)
             elif b2 == self.cube and b1 in self.hand_bodies:
                 touching.add(b1)
-        return len(touching) >= 2
+        if len(touching) < 2:
+            return False
+        # carried only once it is off the table: while it rests on the table the hand moves relative to it (grasping)
+        for g in self.cube_geoms:
+            if self.table >= 0 and mujoco.mj_geomDistance(m, d, g, self.table, 0.01, self._ft) > 0.003:
+                return True
+        return False
 
     def _min_dist(self, q_arm, held: bool) -> float:
         m, d = self.m, self.d
@@ -114,7 +126,7 @@ class DartProximityGuard:
         mujoco.mj_kinematics(m, d)
         cap = self.margin + 0.05
         best = np.inf
-        pairs = [(a, self.table) for a in self.robot_geoms if self.table >= 0]
+        pairs = [(a, self.table) for a in self.table_geoms if self.table >= 0]
         if held:             # the carried cube must not be driven into the table
             pairs += [(c, self.table) for c in self.cube_geoms if self.table >= 0]
         else:
@@ -129,6 +141,25 @@ class DartProximityGuard:
         if dn >= self.margin:
             return False
         return dn < self._min_dist(clean, held) - 1e-4
+
+    def choose(self, clean, noisy, last):
+        """Executed arm command for a DART tick: 'noisy' if safe; else 'clean'; and if the chosen command itself would
+        drive a robot geom > 1 mm into the cube/table (after earlier perturbations displaced the cube, the teacher's own
+        plan can do that), hold the last executed command instead. Returns (kind, command)."""
+        held = self._held()
+        dn = self._min_dist(noisy, held)
+        if self.strict:      # no perturbation while the clean command itself is within the margin of the cube/table
+            dc = self._min_dist(clean, held)
+            ok = dn >= self.margin and dc >= self.margin
+        else:
+            dc = dn if dn >= self.margin else self._min_dist(clean, held)
+            ok = dn >= self.margin or dn >= dc - 1e-4
+        kind, q, dq = ("noisy", noisy, dn) if ok else ("clean", clean, dc)
+        if dq < -0.001 and last is not None:
+            dl = self._min_dist(last, held)
+            if dl > dq:
+                return "hold", last
+        return kind, q
 
 
 @dataclass
@@ -156,10 +187,16 @@ def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_
     status = "infeasible" if not f["feasible"] else "running"
     nrng = np.random.default_rng([noise_seed, 7])
     nz = None
-    dart_stats = dict(mode=dart_safety or "none", ticks_by_phase={}, applied_by_phase={}, rejected_by_phase={})
-    guard = DartProximityGuard(session) if (exec_noise > 0 and dart_safety == "proximity") else None
+    dart_stats = dict(mode=dart_safety or "none", ticks_by_phase={}, applied_by_phase={}, rejected_by_phase={},
+                      held_by_phase={})
+    last_exec = None
+    ds_mode, _, ds_arg = (dart_safety or "").partition(":")          # "proximity" or "proximity:<margin_m>"
+    guard = (DartProximityGuard(session, margin=float(ds_arg) if ds_arg else 0.005, strict=ds_mode == "proximity_strict")
+             if (exec_noise > 0 and ds_mode in ("proximity", "proximity_strict")) else None)
     if guard is not None:
         dart_stats["margin_m"] = guard.margin
+    if ds_mode == "phase":
+        dart_stats["free_phases"] = list(DART_FREE_PHASES)
     steps = 0
     from rrp.envs.motion_quality import ArmMotionRecorder
     mrec = ArmMotionRecorder(session, boundary_kind="phase_switch")   # W6 gates: read-only, the CLEAN label is recorded
@@ -179,11 +216,17 @@ def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_
                 noisy = np.clip(np.array(cmd.groups["arm"]) + nz, arm_lo, arm_hi)
                 ph = teacher.phase
                 dart_stats["ticks_by_phase"][ph] = dart_stats["ticks_by_phase"].get(ph, 0) + 1
-                if guard is not None and guard.unsafe(np.array(cmd.groups["arm"]), noisy):
-                    dart_stats["rejected_by_phase"][ph] = dart_stats["rejected_by_phase"].get(ph, 0) + 1
-                else:                    # execute the perturbed command (the recorded label stays clean)
-                    dart_stats["applied_by_phase"][ph] = dart_stats["applied_by_phase"].get(ph, 0) + 1
-                    cmd = cmd.model_copy(update={"groups": dict(cmd.groups, arm=noisy.tolist())})
+                if ds_mode == "phase":   # D-118 fallback: perturb only in the free-space phases
+                    kind, q_exec = ("noisy", noisy) if ph in DART_FREE_PHASES else ("clean", None)
+                else:
+                    kind, q_exec = ("noisy", noisy) if guard is None else guard.choose(
+                        np.array(cmd.groups["arm"]), noisy, last_exec)
+                key = dict(noisy="applied_by_phase", clean="rejected_by_phase", hold="held_by_phase")[kind]
+                dart_stats.setdefault(key, {})
+                dart_stats[key][ph] = dart_stats[key].get(ph, 0) + 1
+                if kind != "clean":      # execute the perturbed (or held) command; the recorded label stays clean
+                    cmd = cmd.model_copy(update={"groups": dict(cmd.groups, arm=np.asarray(q_exec).tolist())})
+                last_exec = np.array(cmd.groups["arm"])
             q0s.append(pi.q0)
             labels.append(privileged_labels(session, feat))
             phases.append(teacher.phase)
