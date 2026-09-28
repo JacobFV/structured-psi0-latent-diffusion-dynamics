@@ -703,6 +703,12 @@ def _run_legged(e: dict, out: Path, pcache: dict, robust: bool) -> list[dict]:
                                   sim_time=(round(row.get("sim_time", 0), 2), round(rec["sim_time"], 2) if rec and "sim_time" in rec else None),
                                   final_pose=(np.round(row["final_pose"], 3).tolist(),
                                               np.round(rec["final_pose"], 3).tolist() if rec and rec.get("final_pose") else None)))
+        max_s = float(a.get("max_s", 60.0))
+        meta["success_definition"] = (
+            "privileged end check (both waypoints reached) and not fallen" if max_s >= 30 else
+            f"privileged end check and not fallen; this is a {max_s:g} s context-edit window episode (D-090 protocol, "
+            "t_edit 2 s): the two-waypoint task cannot finish in it, so success is false by construction and the "
+            "measured quantity is forward progress after t_edit (edited minus unedited, paired by seed)")
         meta.update(edit=a.get("edit", "none"), t_edit=float(a.get("t_edit", 1.0)) if a.get("edit", "none") != "none" else None,
                     tracker=row.get("tracker"), tracker_sha256=row.get("tracker_sha256"), sim_time=row.get("sim_time"),
                     fell=row.get("fell"), row_source=row.get("source"), signal_notes=LEGGED_NOTES,
