@@ -16,9 +16,10 @@ Sources and how they are read
 - Files: repo (= in git), `~/work/relational-robot-policy`, every `~/work/rrp-wt/*` (artifacts/runs, artifacts/trackers,
   research/tracks), `~/work/rrp-data/{git-untracked-2026-09-26,frozen}`. ~60 k candidate files, deduplicated by sha1
   (~2.5 k unique JSON, ~160 unique train logs); the canonical copy is repo > main > worktrees > rrp-data, `copies`/`alt_paths` kept.
-- Cache: `viz/data/_cache/files.json` = (path, mtime_ns, size) -> sha1, and sha1 -> extracted products. Cold run ~8.5 s,
-  warm full run ~1.5–3 s, `--live --only live` ~0.7 s (one ssh; the remote script is time-boxed to 3.5 s, ssh timeout 5 s).
-  Peak RSS ~230 MB.
+- Cache: `viz/data/_cache/files.pkl` = (path, mtime_ns, size) -> sha1, and sha1 -> extracted products; `found.pkl` = the file
+  list, reused for 10 s so the plugin's per-document calls share one walk. Full run: ~3 s with a cold cache (first ever run
+  with a cold OS cache ~8.5 s), ~1.5 s warm; per-document calls 0.1–0.5 s; `--live --only live` ~0.7 s (one ssh; remote script
+  time-boxed to 3.5 s, ssh timeout 5 s). Peak RSS ~200–270 MB.
 - Decisions: a result's `decision` is the latest D-entry whose text names the file or one of its run directories (identifier-like
   tokens only; body names and stems shared by > 3 files never match). ~52% of result rows have a match; the rest are null.
 - Caveats attached by rule: t1 D-113 label (legged t1, contact_v2/legged8 lineage), grasp version missing/grasp_v1 (arm),
@@ -35,5 +36,7 @@ Gaps (missing stays missing)
 - Many arm rows have no recorded grasp version and many older rows have no source label (source_label null,
   `source_label_from: missing`); legged8 lineage evals are .jsonl (not summarized per file) and enter via the compare JSONs.
 - Replays: empty until the recorder writes `~/work/rrp-data/viz/replays/index.json`.
+
+Frontend plugin note: it must test `src/rrp/viz/export/__init__.py` (the exporter is a package), stated in the contract.
 
 Resume: `cd ~/work/rrp-wt/roomdata && PYTHONPATH=src .venv/bin/python -m rrp.viz.export --out viz/data` (add `--live`).
