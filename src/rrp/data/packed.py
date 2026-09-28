@@ -93,6 +93,11 @@ def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, s
                      subtask_m=((M_,), np.int8), local_m=((M_, 4), np.float16), node_asm=((MAX_N_,), np.int8),
                      slot_col=((M_,), np.int8))
     buf = {k: [] for k in specs}
+    parts_dir = out_dir / "_parts"
+    if parts_dir.exists():
+        for q in parts_dir.glob("*.npy"):
+            q.unlink()
+    parts_dir.mkdir(parents=True, exist_ok=True)
     robots_seen = []
     ep_counter = 0
     episode_index: dict[str, int] = {}          # episode_id -> ep_idx (rows of that episode)
@@ -178,10 +183,23 @@ def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, s
                 robots_seen.append(smp.meta.get("robot"))
                 n += 1
         del eps
+        # streaming (W7, D-117): flush this group's rows to part files so peak memory is one group, not the dataset
+        for k2, (shape, dt) in specs.items():
+            if buf[k2]:
+                np.save(parts_dir / f"{k2}.{g:08d}.npy", np.stack(buf[k2]).astype(dt))
+            buf[k2] = []
     for k2, (shape, dt) in specs.items():
-        arr = np.stack(buf[k2]).astype(dt) if buf[k2] else np.zeros((0,) + shape, dt)
-        np.save(out_dir / f"{k2}.npy", arr)
-        buf[k2] = None
+        ps = sorted(parts_dir.glob(f"{k2}.*.npy"))
+        lens = [np.load(q, mmap_mode="r").shape[0] for q in ps]
+        arr = np.lib.format.open_memmap(out_dir / f"{k2}.npy", mode="w+", dtype=dt, shape=(sum(lens),) + tuple(shape))
+        i0 = 0
+        for q, ln in zip(ps, lens):
+            arr[i0:i0 + ln] = np.load(q)
+            i0 += ln
+            q.unlink()
+        arr.flush()
+        del arr
+    parts_dir.rmdir()
     meta = dict(n=n, H=H, stride=stride, source=str(ds_dir), robot_ids=robot_ids, operators=OPERATORS, robots=sorted(set(r for r in robots_seen if r)),
                 max=dict(T=MAX_T_, N=MAX_N_, S=MAX_S, R=MAX_R_, P=MAX_P_), truncated_rows=trunc, include_dart_failures=include_dart_failures,
                 multi_m=multi_m, statuses=list(statuses), episode_index=episode_index,
