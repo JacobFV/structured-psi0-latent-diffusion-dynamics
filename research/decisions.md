@@ -695,3 +695,17 @@ Plan (owner chose option 1: no slip to current work):
 - C: anchor-relative vs base-frame packet × 2 seeds; ~24–30 peer GPU-h.
 - D: evaluation + causal tests.
 B–D queue after the arm v6 lineages; first result ~Thursday–Friday. Peer priority: W8 > W7 / arm lineages > W10 > W12.
+
+## D-123 2026-09-27 backlog of stated-but-unimplemented intentions recorded (`docs/intentions_backlog.md`)
+Owner request. A read-only audit found 44 partial or missing items across physics, bodies, teachers, representation, RL, evaluation, ops, docs and psi1z, each with evidence, size and what it blocks. Top 10 by value:
+1. latent route on the sealed target bodies (+ legged heldout);
+2. fair baselines on those bodies;
+3. humanoid trackers (t1 lab gate, h1, g1);
+4. state estimation + a per-group privileged-information audit;
+5. actuator dynamics/latency as default with sourced speeds;
+6. dual pipeline + first dual lineage;
+7. GRPO with anchor evals;
+8. chunk-boundary blending + limit-aware IK;
+9. terrain curriculum / MJX;
+10. record keeping (registry, requirements, STATUS, considerations checklist, validate_tracker in DAGs, psi1z pin bump, demo republish).
+Immediate action: item 10 (small, contract-required) is assigned now. The rest is scheduled into workstreams by the lead against peer capacity.
