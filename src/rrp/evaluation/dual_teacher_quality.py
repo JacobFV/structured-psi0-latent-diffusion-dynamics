@@ -29,7 +29,6 @@ import mujoco
 import numpy as np
 
 from rrp.contracts.provenance import stamp_source_label
-from rrp.envs.motion_quality import chunk_boundary_steps, jerk_stats, joint_limit_margin
 
 AUDIT_VERSION = "rrp.evaluation.dual_teacher_quality/v1"
 PEN_GATE_M = 0.003
@@ -38,58 +37,42 @@ MARGIN_GATE = 0.02
 
 
 def run_audit_episode(task: str, pair: str, seed: int, *, max_steps: int = 1200, noise: float = 0.0,
-                      burst: tuple = (1, 1), stop_after_success: int | None = 10,
+                      burst: tuple = (1, 1), stop_after_success: int | None = 10, teacher_version: str | None = None,
+                      teacher_options: dict | None = None, phase_gate: bool = False,
                       source_labels: bool | None = None) -> dict:
-    from rrp.data.contact_labels import ContactFrameRecorder
-    from rrp.evaluation.contact_metrics import dual_contact_motion
+    """One audited teacher episode. teacher_version None/'v2' = the default teacher; 'v3' = rrp.teachers.dual_smooth.
+    phase_gate: DART noise only in free-space phases (as collect_dual noise_phase_gate)."""
+    from rrp.data.dual_quality import DualQualityRecorder
     from rrp.physics.grasp_contact import model_grasp_version
-    from rrp.teachers.dual import TEACHERS
+    from rrp.teachers.dual_smooth import dart_phase_allowed, make_dual_teacher
     from rrp.teachers.dual_validate import make_session
     t0 = time.time()
     s = make_session(task, pair, seed)
-    teacher = TEACHERS[task](s)
+    teacher = make_dual_teacher(task, s, teacher_version, teacher_options)
     m, d = s.model, s.data
     f = teacher.feasibility()
     row = dict(version=AUDIT_VERSION, task=task, pair=pair, seed=seed, source="scripted_teacher", privileged_teacher=True,
                noise=noise, burst=list(burst), grasp_contact_version=model_grasp_version(m) or "grasp_v1",
                feasible=bool(f["feasible"]))
     stamp_source_label(row, "scripted_teacher", f"dual_{task}", enabled=source_labels)   # D-126 sl-1 (default off)
+    if teacher_version not in (None, "v2"):
+        row.update(teacher_version=teacher.teacher_version, teacher_options=dict(vars(teacher.o)))
+    if phase_gate:
+        row["dart_variant"] = "phase_gated_v1"
     if not f["feasible"]:
         row.update(status="infeasible", unreachable=f["unreachable"], wall_s=time.time() - t0)
         return row
-    ents = list(s.handles)
-    qadr, lo, hi, robot_bodies = {}, {}, {}, {}
+    lo, hi = {}, {}
     for e, h in s.handles.items():
         jid = [mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_JOINT, j) for j in h.arm_joints]
-        qadr[e] = np.array([m.jnt_qposadr[j] for j in jid])
         lo[e], hi[e] = m.jnt_range[jid, 0].copy(), m.jnt_range[jid, 1].copy()
-    for ri, r in enumerate(s.robots):
-        names = {l.name for l in r.spec.links}
-        robot_bodies[ri] = {b for b in range(m.nbody) if m.body(b).name in names}
-    body_robot = {b: ri for ri, bs in robot_bodies.items() for b in bs}
-    obj_bodies = {mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, o.sim_body) for o in s.detectables}
-    obj_bodies.discard(-1)
-    cf = ContactFrameRecorder(s)
-    q = {e: [] for e in ents}
-    cmdq = {e: [] for e in ents}
-    last = {e: None for e in ents}
-    switches = {e: [] for e in ents}
-    prev_phase = dict(teacher.phase)
-    pen, pen_ticks, arm_arm = 0.0, 0, 0
+    qrec = DualQualityRecorder(s, teacher)
     rng = np.random.default_rng([seed, 7])
     nz: dict = {}
     succ_at, steps = None, 0
     for k in range(max_steps):
         cmds = teacher.act()
-        for e in ents:
-            if teacher.phase[e] != prev_phase[e]:
-                switches[e].append(k)
-        prev_phase = dict(teacher.phase)
-        for e, h in s.handles.items():
-            g = cmds[h.robot].groups
-            if h.arm_group in g:
-                last[e] = np.asarray(g[h.arm_group], float).copy()
-            cmdq[e].append(last[e] if last[e] is not None else d.qpos[qadr[e]].copy())
+        clean = cmds
         if noise > 0 and k % burst[0] < burst[1]:
             noisy = {}
             for i, c in cmds.items():
@@ -99,27 +82,15 @@ def run_audit_episode(task: str, pair: str, seed: int, *, max_steps: int = 1200,
                         continue
                     if k % 5 == 0 or e not in nz:
                         nz[e] = rng.normal(0, noise, len(g2[h.arm_group]))
+                    if phase_gate and not dart_phase_allowed(task, teacher.phase.get(e, "")):
+                        continue
                     g2[h.arm_group] = np.clip(np.asarray(g2[h.arm_group], float) + nz[e], lo[e], hi[e]).tolist()
                 noisy[i] = c.model_copy(update={"groups": g2})
             cmds = noisy
-        cf.tick()
+        qrec.before_step(clean)
         s.step(cmds)
+        qrec.after_step()
         steps += 1
-        for e in ents:
-            q[e].append(d.qpos[qadr[e]].copy())
-        pt = 0.0
-        touching_arms = False
-        for i in range(d.ncon):
-            c = d.contact[i]
-            b1, b2 = int(m.geom_bodyid[c.geom1]), int(m.geom_bodyid[c.geom2])
-            r1, r2 = body_robot.get(b1), body_robot.get(b2)
-            if (r1 is not None and b2 in obj_bodies) or (r2 is not None and b1 in obj_bodies):
-                pt = max(pt, -float(c.dist))
-            if r1 is not None and r2 is not None and r1 != r2:
-                touching_arms = True
-        pen = max(pen, pt)
-        pen_ticks += int(pt > PEN_GATE_M)
-        arm_arm += int(touching_arms)
         if teacher.done:
             break
         if stop_after_success is not None:
@@ -130,27 +101,20 @@ def run_audit_episode(task: str, pair: str, seed: int, *, max_steps: int = 1200,
     for _ in range(5):
         s.step(None)
     ok = bool(s.privileged_success())
-    dt = float(s.dt)
-    per = {}
-    for e in ents:
-        Q, C = np.array(q[e]), np.array(cmdq[e])
-        js, cj = jerk_stats(Q, dt), jerk_stats(C, dt)
-        cb = chunk_boundary_steps(C, dt, switches[e])
-        per[e] = dict(joint_jerk_rms=js["joint_jerk_rms"], joint_jerk_peak=js["joint_jerk_peak"],
-                      cmd_jerk_rms=cj["joint_jerk_rms"], cmd_jerk_peak=cj["joint_jerk_peak"],
-                      phase_switch_vel_step_max=cb["chunk_vel_step_max"], vel_step_any_max=cb["vel_step_any_max"],
-                      n_phase_switches=len(switches[e]), joint_limit_margin_min=joint_limit_margin(Q, lo[e], hi[e]))
-    rec = cf.recording()
-    cfm = dual_contact_motion(rec, task=task, receipt_log=s.runtime.receipts.log)
+    q = qrec.summary(task)
+    per, pen = q["per_arm"], q["penetration_max_m"]
     gate = dict(penetration=pen <= PEN_GATE_M,
                 phase_switch=all((p["phase_switch_vel_step_max"] or 0) <= PHASE_STEP_GATE for p in per.values()),
                 joint_margin=all((p["joint_limit_margin_min"] is not None and p["joint_limit_margin_min"] >= MARGIN_GATE)
                                  for p in per.values()))
     row.update(status="success" if ok else "failure", public_runtime_success=bool(s.runtime.succeeded()),
-               failure_phase=None if ok else teacher.phase_label, steps=steps, dt=dt, per_arm=per,
-               penetration_max_m=pen, penetration_ticks_over_3mm=pen_ticks, arm_arm_contact_ticks=arm_arm,
-               gate=gate, contact=cfm, phase_switch_ticks=switches,
+               failure_phase=None if ok else teacher.phase_label, steps=steps, dt=q["dt"], per_arm=per,
+               penetration_max_m=pen, penetration_ticks_over_3mm=q["penetration_ticks_over_3mm"],
+               arm_arm_contact_ticks=q["arm_arm_contact_ticks"], gate=gate, contact=q["contact"],
+               phase_switch_ticks=q["phase_switch_ticks"],
                statuses={e: v.status for e, v in s.runtime.instances.items()}, wall_s=time.time() - t0)
+    if hasattr(teacher, "limits"):
+        row["teacher_limits"] = dict(teacher.limits)
     return row
 
 
@@ -221,6 +185,9 @@ def main(argv=None):
     ap.add_argument("--burst", default="1,1")
     ap.add_argument("--max-steps", type=int, default=1200)
     ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) // 2))
+    ap.add_argument("--teacher-version", default=None, help="v2 (default) | v3 (rrp.teachers.dual_smooth)")
+    ap.add_argument("--teacher-options", default=None, help="JSON dict of V3Options (ablations)")
+    ap.add_argument("--phase-gate", action="store_true", help="DART only in free-space phases (D-121 style)")
     ap.add_argument("--out", required=True)
     a = ap.parse_args(argv)
     lo_, hi_ = map(int, a.seeds.split(":"))
@@ -229,7 +196,9 @@ def main(argv=None):
     out.parent.mkdir(parents=True, exist_ok=True)
     rows = [json.loads(ln) for ln in out.read_text().splitlines() if ln.strip()] if out.exists() else []
     done = {(r["task"], r["pair"], r["seed"], r.get("noise", 0.0)) for r in rows}
-    jobs = [(a.task, p, sd, dict(max_steps=a.max_steps, noise=a.noise, burst=burst))
+    kw = dict(max_steps=a.max_steps, noise=a.noise, burst=burst, teacher_version=a.teacher_version,
+              teacher_options=json.loads(a.teacher_options) if a.teacher_options else None, phase_gate=a.phase_gate)
+    jobs = [(a.task, p, sd, kw)
             for p in a.pairs.split(",") for sd in range(lo_, hi_) if (a.task, p, sd, a.noise) not in done]
     t0 = time.time()
     with ProcessPoolExecutor(max_workers=a.workers) as ex, out.open("a") as fh:

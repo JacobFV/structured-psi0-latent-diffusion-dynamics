@@ -27,19 +27,28 @@ from rrp.data.manifest import write_manifest, dataset_provenance
 from rrp.contracts.provenance import physics_provenance
 
 FEATURIZER_VERSION = f"feat-multi-v1+{BASE_FEATURIZER_VERSION}"
+# optional config keys (W12 / D-126 #18), all default off: absent -> the v2 collection, byte-identical files
+EXTRA_KEYS = ("contact_labels", "teacher_version", "teacher_options", "noise_phase_gate", "record_quality")
 
 
 def collect_dual_episode(session, teacher, max_steps: int = 1200, episode_id: str = "",
                          split_lineage: dict | None = None, pair_key: str = "", exec_noise: float = 0.0,
                          noise_seed: int = 0, stop_after_success: int | None = None, noise_period: int = 1,
-                         noise_on: int = 1, contact_labels: bool = False) -> EpisodeRecord:
+                         noise_on: int = 1, contact_labels: bool = False, noise_phase_gate: bool = False,
+                         record_quality: bool = False) -> EpisodeRecord:
     """exec_noise > 0 (DART): every robot's executed ARM command = teacher command + N(0, exec_noise) (resampled
     every 5 steps, clipped to joint limits) during bursts of `noise_on` of every `noise_period` control steps (the
     precise dual teachers never converge under continuous noise); the recorded LABEL is always the clean command.
     stop_after_success: end the episode this many control steps after the PUBLIC runtime reports success (the
     handover teacher otherwise idles until max_steps).
     contact_labels (W12, default off = byte-identical files): also record the privileged per-tick contact frames
-    (rrp.data.contact_labels) into the PRIVATE file under `contact_frames` (labels only)."""
+    (rrp.data.contact_labels) into the PRIVATE file under `contact_frames` (labels only).
+    noise_phase_gate (D-126 #18, default off): DART noise is applied to an arm only while its teacher phase is a
+    free-space phase (rrp.teachers.dual_smooth.dart_phase_allowed); the noise stream is drawn identically either way.
+    record_quality (default off): the episode meta gains `motion` (rrp.data.dual_quality.DualQualityRecorder: per-arm
+    jerk / phase-switch steps / joint margin, penetration, W12 contact metrics) for rrp.evaluation.gates.check_dual_dataset.
+    The teacher version is recorded in the meta only when it is not v2 (`teacher_version`, `teacher_options`,
+    `teacher_limits`)."""
     feat = MultiFeaturizer(session.model, session.scenario.robots)
     nrng = np.random.default_rng([noise_seed, 7])
     nz: dict = {}
@@ -51,6 +60,11 @@ def collect_dual_episode(session, teacher, max_steps: int = 1200, episode_id: st
     if contact_labels:
         from rrp.data.contact_labels import ContactFrameRecorder
         cfrec = ContactFrameRecorder(session)
+    qrec = None
+    if record_quality:
+        from rrp.data.dual_quality import DualQualityRecorder
+        qrec = DualQualityRecorder(session, teacher)
+    arm_ent = {(h.robot, h.arm_group): e for e, h in session.handles.items()}
     f = teacher.feasibility()
     t0 = time.time()
     inputs, actions, labels, phases, statuses, q0s = [], [], [], [], [], []
@@ -75,6 +89,7 @@ def collect_dual_episode(session, teacher, max_steps: int = 1200, episode_id: st
                 cfrec.tick()
             phases.append(teacher.phase_label)
             statuses.append({e: v.status for e, v in session.runtime.instances.items()})
+            clean_cmds = cmds
             if exec_noise > 0 and steps % noise_period < noise_on:
                 noisy = {}
                 for i, c in cmds.items():
@@ -87,10 +102,19 @@ def collect_dual_episode(session, teacher, max_steps: int = 1200, episode_id: st
                             nz[key] = nrng.normal(0, exec_noise, len(v))
                         lo = np.array([lim[key][j][0] for j in range(len(v))])
                         hi = np.array([lim[key][j][1] for j in range(len(v))])
+                        if noise_phase_gate:
+                            from rrp.teachers.dual_smooth import dart_phase_allowed
+                            ent = arm_ent.get((i, g))
+                            if ent is None or not dart_phase_allowed(session.scenario.name, teacher.phase.get(ent, "")):
+                                continue                      # clean command in contact phases (D-121 gating)
                         g2[g] = np.clip(np.asarray(v, float) + nz[key], lo, hi).tolist()
                     noisy[i] = c.model_copy(update={"groups": g2})
                 cmds = noisy
+            if qrec is not None:
+                qrec.before_step(clean_cmds)
             res = session.step(cmds)
+            if qrec is not None:
+                qrec.after_step()
             obs = res.observation
             prev = a
             steps += 1
@@ -122,6 +146,15 @@ def collect_dual_episode(session, teacher, max_steps: int = 1200, episode_id: st
                 hole_frame_used=getattr(teacher, "hole_frame_used", None),
                 insertion_truth=session.insertion_truth() if session.scenario.name == "support_insert"
                 and f["feasible"] else None, physics=physics_provenance(session.model).to_dict())
+    tv = getattr(teacher, "version", "v2")
+    if tv != "v2":
+        meta.update(teacher_version=getattr(teacher, "teacher_version", tv),
+                    teacher_options=dict(vars(teacher.o)) if hasattr(teacher, "o") else None,
+                    teacher_limits=dict(getattr(teacher, "limits", {})))
+    if noise_phase_gate:
+        meta["dart_variant"] = "phase_gated_v1"
+    if qrec is not None:
+        meta["motion"] = qrec.summary(session.scenario.name)
     public = dict(meta=meta, inputs=inputs, actions=actions, q0=q0s, statuses=statuses,
                   action_space=dict(node_group=feat.aspace.node_group, node_col=feat.aspace.node_col,
                                     lower=feat.aspace.lower, upper=feat.aspace.upper,
@@ -139,7 +172,7 @@ def collect_dual_episode(session, teacher, max_steps: int = 1200, episode_id: st
 
 def _job(args):
     task, pair, seed, out_dir, split, max_steps, noise, stop_after, burst, *rest = args
-    contact_labels = bool(rest[0]) if rest else False
+    ex = dict(rest[0]) if rest else {}              # optional extras (W12 / D-126); absent = the v2 behaviour
     eid = f"{task}_{pair}_s{seed}" + (f"_dart{int(noise * 1000)}" if noise else "")
     ep_dir = Path(out_dir) / "episodes"
     done = ep_dir / f"{eid}.public.pkl.gz"
@@ -153,10 +186,15 @@ def _job(args):
     from rrp.teachers.dual_validate import make_session
     from rrp.teachers.dual import TEACHERS
     sess = make_session(task, pair, seed)
-    rec = collect_dual_episode(sess, TEACHERS[task](sess), max_steps=max_steps, episode_id=eid,
+    from rrp.teachers.dual_smooth import make_dual_teacher
+    teacher = make_dual_teacher(task, sess, ex.get("teacher_version"), ex.get("teacher_options")) \
+        if ex.get("teacher_version") not in (None, "v2") else TEACHERS[task](sess)
+    rec = collect_dual_episode(sess, teacher, max_steps=max_steps, episode_id=eid,
                                split_lineage=dict(split=split, robot_key=pair), pair_key=pair,
                                exec_noise=noise, noise_seed=seed, stop_after_success=stop_after,
-                               noise_period=burst[0], noise_on=burst[1], contact_labels=contact_labels)
+                               noise_period=burst[0], noise_on=burst[1], contact_labels=bool(ex.get("contact_labels")),
+                               noise_phase_gate=bool(ex.get("noise_phase_gate")),
+                               record_quality=bool(ex.get("record_quality")))
     meta = write_episode(rec, ep_dir)
     del rec, sess
     import gc
@@ -164,10 +202,11 @@ def _job(args):
     return meta
 
 
-def generate(config: dict) -> dict:
+def build_jobs(config: dict) -> tuple[list, dict]:
+    """Job tuples for generate(). Without any EXTRA_KEYS in the config the tuples are exactly the v2 9-tuples."""
     out = Path(config["out_dir"])
-    out.mkdir(parents=True, exist_ok=True)
     jobs = []
+    extras = {k: config[k] for k in EXTRA_KEYS if config.get(k) not in (None, False, "v2")}
     for item in config["items"]:
         noises = item.get("noise_levels", config.get("noise_levels", [0.0]))    # 0.0 = clean; >0 = DART
         for k in range(item["episodes"]):
@@ -175,7 +214,14 @@ def generate(config: dict) -> dict:
                 jobs.append((item.get("task", config.get("task", "support_insert")), item["pair"], item["seed_start"] + k,
                              str(out), item["split"], config.get("max_steps", 1200), float(nl),
                              config.get("stop_after_success"), tuple(config.get("noise_burst", (1, 1))))
-                            + ((True,) if config.get("contact_labels") else ()))
+                            + ((extras,) if extras else ()))
+    return jobs, extras
+
+
+def generate(config: dict) -> dict:
+    out = Path(config["out_dir"])
+    out.mkdir(parents=True, exist_ok=True)
+    jobs, extras = build_jobs(config)
     t0 = time.time()
     metas = []
     # resume in the parent: completed, readable episodes are not resubmitted. (Submitting them made
@@ -208,7 +254,8 @@ def generate(config: dict) -> dict:
     metas = sorted(metas, key=lambda m: m.get("episode_id", ""))
     prov = dataset_provenance(metas, source="scripted_teacher", featurizer_version=FEATURIZER_VERSION,
                               flags=dict(privileged_teacher=True, noise_levels=config.get("noise_levels", [0.0]),
-                                         noise_burst=config.get("noise_burst", (1, 1))))
+                                         noise_burst=config.get("noise_burst", (1, 1)),
+                                         **({"collect_options": extras} if extras else {})))
     man = write_manifest(out, config["name"], metas,
                          extra=dict(config=config, wall_s=time.time() - t0, featurizer=FEATURIZER_VERSION,
                                     source=prov.source, privileged_teacher=True), provenance=prov)
