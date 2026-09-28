@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ModeBadge } from '../components/board';
 import { EditPanel, EventGantt, GaitDiagram, hasEdit, hasMap, hasProbeTruth, JointHeatmap, PacketHeatmap, pcaSpeed, PhaseLanes, PhasePortrait, ProbeTruth, TopDownMap } from '../components/runpanels';
 import { SideGroup, SidebarControls } from '../components/shell';
+import { hasMorphology, hasPacketStructure, hasPipeline, Morphology, PacketStructure, PipelineFlow } from '../components/diagrams';
 import Stage, { PcaPlot, type StageOptions } from '../components/Stage';
 import { CategoryTrack, ProbeTracks, RasterTrack, ScalarTrack, type Side, type Val } from '../components/Timelines';
 import { Caveat, Did, ErrorState, Loading, NoData, SourceBadge } from '../components/ui';
@@ -275,6 +276,13 @@ function panes(sides: Side[], p: { sides: Side[]; t: number; duration: number; o
       </div>
     </Pane>,
   );
+  out.push(...sides.filter((s) => hasPipeline(s.replay)).map((s) => (
+    <Pane key={`flow-${s.tag}`} title={`Pipeline${sides.length > 1 ? ` · ${s.tag}` : ''}`} meta="task context → system i → packet → system 0 → targets → tracker → robot, at the cursor" lazy={false}>
+      <PipelineFlow r={s.replay} times={s.times} t={p.t} />
+    </Pane>
+  )));
+  if (hasMorphology(A)) out.push(<Pane key="morph" title="Morphology" meta="recorded body positions, contacts, torque"><Morphology r={A} times={sides[0].times} t={p.t} /></Pane>);
+  if (hasPacketStructure(A)) out.push(<Pane key="pstruct" title="Packet structure" meta="knots × assemblies with probe heads"><PacketStructure r={A} times={sides[0].times} t={p.t} /></Pane>);
   if (sides.some((s) => hasMap(s.replay))) out.push(<Pane key="map" title="Top-down trajectory" meta="base and object paths, waypoints, edit onset, fall"><TopDownMap {...p} /></Pane>);
   if (any((r) => r.signals.phase)) out.push(<Pane key="phase" title="Phase" meta={str((A.meta.signal_notes as Record<string, string> | undefined)?.phase)}><PhaseLanes {...p} /></Pane>);
   if (any((r) => r.signals.task_events)) out.push(<Pane key="events" title="Task events" meta="status of each task event over time"><EventGantt {...p} /></Pane>);
