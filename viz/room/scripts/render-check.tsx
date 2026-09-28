@@ -24,7 +24,7 @@ const VIEWS: [string, () => Promise<{ default: ComponentType }>, string[]][] = [
   ['evaluations', () => import('../src/views/Evidence'), ['results', 'results?data=1', 'results?data=1&mode=delta&dd=grasp_version', 'results?agg=pool&r1=route&c=metric&metric=', 'results?q=compare_gc2_final&metric=grasp_v2',
     'radar', 'edits', 'edits?body=go2', 'robustness', 'robustness?m=motion.joint_jerk_rms', 'physics', 'physics?data=1', 'psi0', 'psi0?data=1', 'edits?data=1', 'robustness?data=1']],
   ['runs', () => import('../src/views/RunHistory'), ['runs', 'runs?list=videos', 'runs?demo=1', 'runs?env=legged&res=failure', 'runs?env=physics&q=body:go2', 'runs?env=dual&task=handover%20%C2%B7%20teacher']],
-  ['training', () => import('../src/views/TrainingView'), ['training', 'live']],
+  ['training', () => import('../src/views/TrainingView'), ['training', 'training?data=1', 'live']],
   ['overview-docs', () => import('../src/views/OverviewView'), ['knowledge', 'knowledge?tab=crosswalk', 'knowledge?tab=roadmap&q=%2313', 'knowledge?tab=backlog', 'knowledge?tab=strategy', 'knowledge?tab=status', 'knowledge?tab=docs', 'knowledge?tab=decisions&d=D-100']],
 ];
 const DOCS = ['overview', 'live', 'dags', 'results', 'edits', 'training', 'robustness', 'physics', 'psi0', 'knowledge', 'replays', 'videos'];

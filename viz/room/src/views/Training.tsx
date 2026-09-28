@@ -1,3 +1,4 @@
+import { useShowData } from './Lens';
 import { SidebarControls } from '../components/shell';
 import { useEffect, useMemo, useState } from 'react';
 import { Lines } from '../components/charts';
@@ -130,25 +131,38 @@ function TrainingBody({ index }: { index: Row[] }) {
 }
 
 function GradHealth({ rs }: { rs: Row[] }) {
+  const show = useShowData();
   if (!rs.length) return null;
+  const runs = rs.flatMap((g) => Object.entries(isObj(g.doc) ? g.doc : {}).filter(([, v]) => isObj(v)).map(([name, v]) => ({ name, v: v as Row, src: str(g.source_file), decision: str(g.decision) })));
+  const gmax = Math.max(1e-9, ...runs.flatMap((r) => arr(r.v.by_third).filter(isObj).map((t) => num(t.median_grad_norm) || 0)));
   return (
-    <Card title="Gradient-health reports" hint="per-run medians and mean update (clip) scale by training third, as recorded (D-085)">
-      {rs.map((g, i) => {
-        const doc = isObj(g.doc) ? g.doc : {};
-        const flatRows = Object.entries(doc).flatMap(([name, v]) => {
-          if (!isObj(v)) return [];
-          const thirds = arr(v.by_third).filter(isObj);
-          return [{ run: name, steps: 'all', median_grad_norm: v.median_grad_norm, mean_update_scale: v.mean_update_scale, n_logged: v.n_logged, last_step: v.last_step },
-            ...thirds.map((t) => ({ run: name, steps: t.steps, median_grad_norm: t.median_grad_norm, mean_update_scale: t.mean_update_scale }))];
-        });
-        return (
-          <div key={i} style={{ marginBottom: 12 }}>
-            <div className="row small"><code>{str(g.source_file)}</code>{g.decision ? <Did id={g.decision} /> : null}</div>
-            <DataTable rows={flatRows as Row[]} tall />
-          </div>
-        );
-      })}
-    </Card>
+    <section className="ev-panel" style={{ border: 'var(--seam)', marginTop: 8 }}>
+      <header>Gradient health (D-085)<span className="meta">median grad norm per training third (bars) · mean update scale per third (dots, 0–1)</span></header>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 6 }}>
+        {runs.map((r) => {
+          const th = arr(r.v.by_third).filter(isObj);
+          return (
+            <div key={r.name} title={`${r.src}${r.decision ? ` · ${r.decision}` : ''}`} style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: 6, alignItems: 'end', fontSize: 10 }}>
+              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.name}</span>
+              <svg width={96} height={28} role="img" aria-label={`${r.name} grad health`}>
+                {th.map((t, i) => {
+                  const g = num(t.median_grad_norm) || 0, u = num(t.mean_update_scale);
+                  const h = (g / gmax) * 24;
+                  return (
+                    <g key={i}>
+                      <title>{`steps ${str(t.steps)}: median grad norm ${fmtNum(g)} · mean update scale ${fmtNum(u)}`}</title>
+                      <rect x={i * 32} y={27 - h} width={20} height={h} fill="var(--s1)" />
+                      {u !== null && <circle cx={i * 32 + 26} cy={27 - u * 24} r={2.5} fill="var(--s2)" />}
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
+          );
+        })}
+      </div>
+      {show && runs.map((r) => <DataTable key={r.name} rows={[{ run: r.name, median_grad_norm: r.v.median_grad_norm, mean_update_scale: r.v.mean_update_scale, n_logged: r.v.n_logged, last_step: r.v.last_step }]} />)}
+    </section>
   );
 }
 

@@ -1,29 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import Markdown from '../components/Markdown';
-import { Card, DataTable, Did, Gate, Loading, ModeBanner, NoData, ErrorState, PageHead, Provenance } from '../components/ui';
-import { SideGroup, SidebarControls } from '../components/shell';
+import { Card, DataTable, Did, Gate, Loading, ModeBanner, NoData, ErrorState, Provenance } from '../components/ui';
+import { SidebarControls } from '../components/shell';
 import { fetchMarkdown, getMeta, useDoc, type DocResult, type Envelope } from '../lib/api';
 import { ago, arr, decisionIds, pick, rows, sortNatural, str, uniq, type Row } from '../lib/format';
 import { href, useUrlState } from '../lib/url';
+import { useShowData } from './Lens';
 
-type Tab = 'decisions' | 'crosswalk' | 'roadmap' | 'backlog' | 'strategy' | 'status' | 'docs';
 
 export default function Knowledge() {
   const { result, reload, busy } = useDoc<Envelope>('knowledge');
   const psi0 = useDoc<Envelope>('psi0');
-  const [tab, setTab] = useUrlState('tab', 'decisions');
+  const [tab] = useUrlState('tab', 'decisions');
   return (
     <>
-      <PageHead title="Knowledge" sub="Decisions timeline with the D ↔ P crosswalk, roadmap, backlog, strategy workstreams, STATUS and a reader for the allowlisted markdown documents." />
-      <SidebarControls>
-        <SideGroup title="Section">
-          <div className="side-list">
-            {([['decisions', 'Decisions timeline'], ['crosswalk', 'D ↔ P crosswalk'], ['roadmap', 'Roadmap'], ['backlog', 'Backlog'], ['strategy', 'Strategy workstreams'], ['status', 'STATUS'], ['docs', 'Docs reader']] as [Tab, string][]).map(([id, label]) => (
-              <button key={id} aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</button>
-            ))}
-          </div>
-        </SideGroup>
-      </SidebarControls>
       {tab === 'docs' ? <DocsReader knowledge={result} /> : (
         <>
           <ModeBanner result={result} reload={reload} busy={busy} />
@@ -125,6 +115,20 @@ function flatCw(r: Row): Row {
   return Object.fromEntries(Object.entries(r).map(([k, v]) => [k, Array.isArray(v) ? v.map(str).join(' ') : v]));
 }
 
+function StatusGrid({ rs }: { rs: Row[] }) {
+  const st = (r: Row) => str(pick(r, 'status', 'state')).toLowerCase();
+  const col = (s: string) => (/done|complete|verified/.test(s) ? 'var(--good)' : /run|implement/.test(s) ? 'var(--accent)' : /block/.test(s) ? 'var(--critical)' : /open|conditional|queued/.test(s) ? 'var(--warning)' : 'var(--axis)');
+  const statuses = uniq(rs.map(st)).filter(Boolean).sort();
+  return (
+    <div style={{ display: 'grid', gap: 4, marginBottom: 6 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+        {rs.map((r, i) => <a key={i} href={href('knowledge', { tab: 'roadmap', q: `#${str(r.n)}` })} title={`${r.n ? `#${str(r.n)} ` : ''}${str(pick(r, 'status', 'state'))}: ${str(pick(r, 'question', 'item', 'title'))}`} style={{ width: 18, height: 12, background: col(st(r)) }} />)}
+      </div>
+      <div className="legend">{statuses.map((s) => <span key={s}><i className="sw" style={{ background: col(s) }} />{s} {rs.filter((r) => st(r) === s).length}</span>)}</div>
+    </div>
+  );
+}
+
 function ListTab({ rs, what }: { rs: Row[]; what: string }) {
   const [q, setQ] = useUrlState('q', '');
   const qq = q.startsWith('#') ? q.slice(1) : '';
@@ -134,7 +138,18 @@ function ListTab({ rs, what }: { rs: Row[]; what: string }) {
   return (
     <Card title={what} hint={`${shown.length} of ${rs.length}${statuses.length ? ` · ${statuses.map((s) => `${s} ${rs.filter((r) => str(pick(r, 'status', 'state')) === s).length}`).join(' · ')}` : ''}`}
       right={<input type="search" placeholder="filter" value={q} onChange={(e) => setQ(e.target.value)} />}>
-      <DataTable rows={shown} tall max={1000} />
+      <StatusGrid rs={rs} />
+      {useShowData() ? <DataTable rows={shown} tall max={1000} /> : (
+        <div className="dlist">
+          {shown.map((r, i) => (
+            <div key={i} className="d" style={{ gridTemplateColumns: '28px 90px minmax(0, 1fr)', cursor: 'default' }} title={JSON.stringify(r)}>
+              <span className="date">{str(r.n) ? `#${str(r.n)}` : ''}</span>
+              <span className="status neutral" style={{ fontSize: 10 }}>{str(pick(r, 'status', 'state')).replace(/\*\*/g, '').slice(0, 14)}</span>
+              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{str(pick(r, 'question', 'item', 'title', 'workstream'))}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </Card>
   );
 }
