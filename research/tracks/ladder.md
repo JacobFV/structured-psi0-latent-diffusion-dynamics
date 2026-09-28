@@ -3,7 +3,80 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
-## ARM V6 LINEAGES (D-110 relaunch; LAUNCHED 2026-09-28 01:06 PDT after the lead's GO; state: running)
+## ARM V6 LINEAGES RESULT (2026-09-28 09:45 PDT; state: completed — all 100 nodes rc 0, 09:24)
+Four lineages, semfix and nosem x training seeds 1, 2, with the IDENTICAL recipe and seeds as v1, on v6 components ONLY:
+v6dart data (teacher v2 + grasp contact v2.1 + phase-gated DART), DAgger labeller / stateless-R1 expert
+learned:bcv6_direct1701 FINAL (sha256[:16] a29810bd0168ee1a), and grasp_v2.1 in every simulated stage (collections,
+R2 / held-out / progression / R1 evals, edit suite). Source labels: learned (DEPLOYABLE: system i flow -> system 0)
+unless marked ORACLE DIAGNOSTIC. Same evaluation sets as v1 (R2 dev + fresh 3.0001M / 3.0002M x 30 on panda_pg2 and
+parm6_tf3; held-out parm5s_tf3 / parm5l_pg2 dev 30). Wilson / Newcombe 95%.
+
+R2 deployable route (final flow gdag2h -> final system 0 gendag3), successes:
+| lineage | panda_pg2 (90) | parm6_tf3 (90) | parm5s_tf3 (30) | parm5l_pg2 (30) | all 240 | v1 recorded, grasp_v1 (D-091/095) | v1 checkpoints under grasp_v2 (D-127) |
+|---|---|---|---|---|---|---|---|
+| **v6 semfix s1** | 72 | 89 | 29 | 28 | **218** | 124 | 154 |
+| **v6 semfix s2** | 63 | 89 | 29 | 26 | **207** | 129 | 157 |
+| **v6 nosem s1** | 68 | 43 | 13 | 24 | **148** | 3 | 1 |
+| **v6 nosem s2** | 59 | 57 | 25 | 25 | **166** | 26 | 39 |
+Pooled over both seeds (480): **v6 semfix 425/480 = 0.89 [0.85, 0.91]**, **v6 nosem 314/480 = 0.65 [0.61, 0.70]**;
+semfix - nosem +0.23 [0.18, 0.28]. v6 - v1(grasp_v2): semfix +0.24 [0.19, 0.29] (425 vs 311), nosem +0.57 [0.52, 0.62]
+(314 vs 40). (v1 recorded under grasp_v1: semfix 253, nosem 29.) Per-set R2 (dev / 3.0001M / 3.0002M) are in
+`research/tracks/ladder/armv6/compare_v6.json`.
+Approach failures (R2): semfix 0-2 per body, nosem up to 17 (parm6 s1) and 10 (parm5s s1). Reference: the v6 BC expert
+itself passes panda 29/30 + 29/30 and parm6 30/30 + 30/30 under grasp_v2.1 (lead, D-121 condition).
+Progression (dev; panda / parm6): flow 20k -> gendag1: semfix 26/26, 17/30; nosem 21/5, 15/23; flow_gdag1 -> gendag3:
+semfix 22/30, 20/30; nosem 22/13, 18/21. Stateless R1 (ORACLE DIAGNOSTIC) -> gendag3: semfix 26/28, 22/26; nosem 20/11,
+17/19 (s1, s2).
+DAgger collections (success/312; approach failures): semfix bc1 49 (104) / 49 (155), bc3 276 (1) / 251 (10), gdag2 294
+(4) / 293 (0); nosem bc1 20 (143) / 16 (170), bc3 96 (55) / 158 (34), gdag2 215 (31) / 217 (40) (s1 / s2).
+Stage A (v6): median grad norm semfix 24.2 / 23.0 (mean clip scale 0.076 / 0.072), nosem 0.05 / 0.05 (0.99).
+
+Task-context edit suite (route flow 20k -> gendag1; parm6 82 feasible seeds, panda 48; s1 / s2):
+| metric | semfix parm6 | nosem parm6 | semfix panda | nosem panda |
+|---|---|---|---|---|
+| unedited control: task success | 77 / 82 | 17 / 67 | 40 / 34 | 28 / 26 |
+| goal_shift: cube at NEW goal (max over 4 controls) | 76 / 78 (1 / 0) | 13 / 58 (1 / 1) | 34 / 35 (1 / 1) | 23 / 18 (0 / 1) |
+| goal end-position effect beyond irrelevant edit (cm) | +18.8 / +19.8 | +11.1 / +17.6 | +15.2 / +14.5 | +13.1 / +10.3 |
+| rebind: first APPROACH new cube (unedited first contact new) | 47 / 3 (0 / 0) | 31 / 29 (6 / 0) | 25 / 0 (0 / 0) | 39 / 15 (0 / 1) |
+| rebind: first contact new cube | 52 / 5 | 35 / 46 | 23 / 6 | 37 / 14 |
+| rebind: ORIGINAL cube lifted (unedited lifted) | 6 / 20 (78 / 82) | 2 / 1 (20 / 74) | 1 / 4 (40 / 35) | 0 / 0 (36 / 33) |
+| rebind min-distance effect beyond irrelevant (cm) | +25.0 / +9.7 | +20.5 / +24.8 | +25.2 / +8.1 | +27.1 / +22.7 |
+
+READING (v6, two training seeds per variant):
+1. Both variants become far more competent on the v6 components (realistic grasp physics, smooth teacher, v6 BC
+   labeller): semfix 425/480, and nosem is no longer broken (314/480 vs 40/480 for the v1 checkpoints under grasp_v2).
+   The v1 nosem collapse (D-091/D-099) was therefore largely a property of the v1 data/labeller/grasp-physics setting,
+   not of the absence of semantic supervision alone.
+2. Semantic supervision (semfix) still gives a clear competence advantage on the deployable route: +0.23 [0.18, 0.28]
+   pooled; semfix >= nosem in 7 of 8 body x seed cells (the exception: panda s1, 72 vs 68). Its largest effect is on
+   parm6_tf3 (89+89 vs 43+57 of 90) and parm5s_tf3 (29+29 vs 13+25 of 30); nosem's residual failures include approach
+   failures (up to 17/90), semfix's almost never do.
+3. Task-context GOAL control follows competence: semfix moves the cube to the new goal 154/164 (parm6) and 69/96 (panda)
+   vs nosem 71/164 and 41/96, all controls <= 1. Where nosem is competent (parm6 s2, 67/82 control) its goal control is
+   close to semfix's (58 vs 78; end-position effect +17.6 vs +19.8 cm).
+4. BINDING redirection is NOT specific to semantic supervision in v6: semfix s1 redirects the approach strongly (47/82
+   parm6, 25/48 panda) but semfix s2 barely does (3/82, 0/48; the original cube is lifted in 20/82 rebind runs), while
+   nosem redirects in both seeds (31 and 29 of 82; 39 and 15 of 48). Pooled first-approach-new: parm6 semfix 50/164 vs
+   nosem 60/164; panda 25/96 vs 54/96. So the v1-era reading "the semantic packet carries the binding, nosem's does
+   not" (D-091) does not hold on v6; binding redirection is seed-dependent for both variants.
+Caveats: two training seeds per variant; the edit suite runs on the early route (flow 20k -> gendag1), where semfix is
+far more competent on parm6 (goal/controllability comparisons are confounded with competence there); the v1 comparison
+column "under grasp_v2" is D-127's re-evaluation under grasp_v2, whereas v6 is trained and evaluated under grasp_v2.1
+(v2 + stiff contact on every robot geom), so v6 vs v1 mixes data, labeller and a small physics difference; nosem's
+orthogonal_matched control uses untrained probe gradients (a random matched-norm direction).
+Incidents (all logged below; none changes a result): two memory-pressure sheds (Stage A semfix s2 resumed exactly from
+step 14,548 with RNG state; F0 semfix s1 restarted from scratch at step 43), one broker time-cap refusal of the edit
+suite (fixed at the source), one self-inflicted edit-suite memory throttle (12G -> 20G; partial panda shards rerun
+fresh). Checkpoints (peer store `artifacts/runs/armv6/arm6-<variant>/`, sha256[:8] final flow gdag2h / final system 0 /
+Stage A): semfix s1 b4e9dff7 / d2360bb4 / 6cc278b3; semfix s2 854ad478 / f37b2c79 / b7d28fe7; nosem s1 5288d3a1 /
+c6f726ba / bb8c0665; nosem s2 26cef27b / 66dd44bb / 8f415b55.
+Raw (peer store): `artifacts/runs/armv6/arm6-<variant>/{eval_r2-final,heldout-final,eval_r2-prog20k,eval_r2-proggdag1,
+eval_r1-orcbc}_s<seed>/<robot>/*.{jsonl,summary.json}`, edit rows `edits-gen_s<seed>/{parm6,panda}/shard*/`,
+DAgger buffers `dagger_collect-*_s<seed>/`; ledger `artifacts/runs/armv6/_dags/arm_lineage_v6/ledger.json` (host
+checkout). In the repo: `research/tracks/ladder/armv6/` (summaries/, merged edit summaries, compare_v6.json from
+`scripts/armv6_compare.py`).
+
+## ARM V6 LINEAGES (D-110 relaunch; LAUNCHED 2026-09-28 01:06 PDT after the lead's GO; state: completed 09:24)
 GO (lead): the v6 BC expert (seed 1701 final) passes the D-121 condition (panda 29/30 + 29/30, parm6 30/30 + 30/30
 under grasp_v2.1). Launch checks: code pushed to wt/armv6 (revision 520916e, clean); expert sha256[:16] a29810bd0168ee1a
 re-checked = the prepared value; dataset manifest present. Coordinator = host user unit `rrp-armv6-dag` (the run-dag

@@ -1,0 +1,2125 @@
+{
+ "v6": {
+  "semfix_s1": {
+   "panda_pg2": {
+    "per_set": {
+     "3000000": {
+      "k": 24,
+      "n": 30,
+      "failed_stage": {
+       "success": 24,
+       "approach": 1,
+       "lift": 4,
+       "grasp": 1
+      },
+      "seeds": [
+       3000000,
+       3000029,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/eval_r2-final_s1/panda_pg2/generated_zero_final_s3000000.summary.json"
+     },
+     "3000100": {
+      "k": 24,
+      "n": 30,
+      "failed_stage": {
+       "grasp": 2,
+       "success": 24,
+       "lift": 4
+      },
+      "seeds": [
+       3000100,
+       3000129,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/eval_r2-final_s1/panda_pg2/generated_zero_final_s3000100.summary.json"
+     },
+     "3000200": {
+      "k": 24,
+      "n": 30,
+      "failed_stage": {
+       "success": 24,
+       "lift": 3,
+       "transport": 1,
+       "approach": 1,
+       "grasp": 1
+      },
+      "seeds": [
+       3000200,
+       3000229,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/eval_r2-final_s1/panda_pg2/generated_zero_final_s3000200.summary.json"
+     }
+    },
+    "k": 72,
+    "n": 90,
+    "approach": 2
+   },
+   "parm6_tf3": {
+    "per_set": {
+     "3000000": {
+      "k": 29,
+      "n": 30,
+      "failed_stage": {
+       "success": 29,
+       "approach": 1
+      },
+      "seeds": [
+       3000003,
+       3000041,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/eval_r2-final_s1/parm6_tf3/generated_zero_final_s3000000.summary.json"
+     },
+     "3000100": {
+      "k": 30,
+      "n": 30,
+      "failed_stage": {
+       "success": 30
+      },
+      "seeds": [
+       3000100,
+       3000138,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/eval_r2-final_s1/parm6_tf3/generated_zero_final_s3000100.summary.json"
+     },
+     "3000200": {
+      "k": 30,
+      "n": 30,
+      "failed_stage": {
+       "success": 30
+      },
+      "seeds": [
+       3000201,
+       3000241,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/eval_r2-final_s1/parm6_tf3/generated_zero_final_s3000200.summary.json"
+     }
+    },
+    "k": 89,
+    "n": 90,
+    "approach": 1
+   },
+   "parm5s_tf3": {
+    "per_set": {
+     "3000000": {
+      "k": 29,
+      "n": 30,
+      "failed_stage": {
+       "success": 29,
+       "approach": 1
+      },
+      "seeds": [
+       3000000,
+       3000032,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/heldout-final_s1/parm5s_tf3/generated_zero_final_s3000000.summary.json"
+     }
+    },
+    "k": 29,
+    "n": 30,
+    "approach": 1
+   },
+   "parm5l_pg2": {
+    "per_set": {
+     "3000000": {
+      "k": 28,
+      "n": 30,
+      "failed_stage": {
+       "success": 28,
+       "lift": 2
+      },
+      "seeds": [
+       3000003,
+       3000042,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/heldout-final_s1/parm5l_pg2/generated_zero_final_s3000000.summary.json"
+     }
+    },
+    "k": 28,
+    "n": 30,
+    "approach": 0
+   },
+   "all": {
+    "k": 218,
+    "n": 240
+   },
+   "progression": {
+    "panda_pg2": {
+     "flow20k_gendag1": {
+      "k": 26,
+      "n": 30,
+      "failed_stage": {
+       "success": 26,
+       "lift": 2,
+       "grasp": 1,
+       "approach": 1
+      },
+      "seeds": [
+       3000000,
+       3000029,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/eval_r2-prog20k_s1/panda_pg2/generated_zero_prog20k_s3000000.summary.json"
+     },
+     "flowgdag1_gendag3": {
+      "k": 22,
+      "n": 30,
+      "failed_stage": {
+       "success": 22,
+       "approach": 2,
+       "lift": 5,
+       "transport": 1
+      },
+      "seeds": [
+       3000000,
+       3000029,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/eval_r2-proggdag1_s1/panda_pg2/generated_zero_proggdag1_s3000000.summary.json"
+     },
+     "r1_stateless": {
+      "k": 26,
+      "n": 30,
+      "failed_stage": {
+       "success": 26,
+       "grasp": 3,
+       "approach": 1
+      },
+      "seeds": [
+       3000000,
+       3000029,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/eval_r1-orcbc_s1/panda_pg2/oracle_zero_gendag3noqd_orcbc.summary.json"
+     }
+    },
+    "parm6_tf3": {
+     "flow20k_gendag1": {
+      "k": 26,
+      "n": 30,
+      "failed_stage": {
+       "success": 26,
+       "grasp": 2,
+       "lift": 1,
+       "transport": 1
+      },
+      "seeds": [
+       3000003,
+       3000041,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/eval_r2-prog20k_s1/parm6_tf3/generated_zero_prog20k_s3000000.summary.json"
+     },
+     "flowgdag1_gendag3": {
+      "k": 30,
+      "n": 30,
+      "failed_stage": {
+       "success": 30
+      },
+      "seeds": [
+       3000003,
+       3000041,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/eval_r2-proggdag1_s1/parm6_tf3/generated_zero_proggdag1_s3000000.summary.json"
+     },
+     "r1_stateless": {
+      "k": 28,
+      "n": 30,
+      "failed_stage": {
+       "success": 28,
+       "approach": 1,
+       "grasp": 1
+      },
+      "seeds": [
+       3000003,
+       3000041,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/eval_r1-orcbc_s1/parm6_tf3/oracle_zero_gendag3noqd_orcbc.summary.json"
+     }
+    }
+   },
+   "edits": {
+    "parm6": {
+     "key": {
+      "n_feasible_seeds": 82,
+      "control_success": 77,
+      "control_cube_lifted": 78,
+      "goal_cube_at_new_goal": {
+       "k": 76,
+       "n": 82,
+       "rate": 0.926829268292683,
+       "wilson95": [
+        0.8494215611371225,
+        0.9660352229419784
+       ]
+      },
+      "goal_controls_at_new_goal": {
+       "control": 0,
+       "irrelevant_distractor": 0,
+       "orthogonal_matched": 1,
+       "control_replay": 0
+      },
+      "goal_effect_beyond_irrelevant_m": {
+       "mean": 0.18821520755322846,
+       "lo": 0.17575229735944825,
+       "hi": 0.19888494566991013,
+       "n": 82
+      },
+      "goal_effect_beyond_orthogonal_m": {
+       "mean": 0.14808294220019827,
+       "lo": 0.13498891554768117,
+       "hi": 0.16070875966789938,
+       "n": 81
+      },
+      "goal_effect_beyond_replay_m": {
+       "mean": 0.1980641989022407,
+       "lo": 0.18946384602747315,
+       "hi": 0.2054135257617852,
+       "n": 82
+      },
+      "rebind_original_cube_lifted": {
+       "k": 6,
+       "n": 82,
+       "rate": 0.07317073170731707,
+       "wilson95": [
+        0.03396477705802167,
+        0.15057843886287756
+       ]
+      },
+      "rebind_new_cube_lifted": {
+       "k": 20,
+       "n": 82,
+       "rate": 0.24390243902439024,
+       "wilson95": [
+        0.1637988503586909,
+        0.3469270791938486
+       ]
+      },
+      "rebind_new_cube_in_zone": 8,
+      "rebind_first_approach_new": {
+       "k": 47,
+       "n": 82,
+       "wilson95": [
+        0.4652120794468402,
+        0.6745805121095769
+       ]
+      },
+      "rebind_first_contact_new": {
+       "k": 52,
+       "n": 82,
+       "wilson95": [
+        0.526072667514144,
+        0.7302137503392876
+       ]
+      },
+      "control_first_contact_new": {
+       "k": 0,
+       "n": 82,
+       "wilson95": [
+        0.0,
+        0.04475062436448195
+       ]
+      },
+      "rebind_mindist_beyond_irrelevant_m": {
+       "mean": 0.2504611428859769,
+       "lo": 0.22216959439536627,
+       "hi": 0.2816573422699934,
+       "n": 82
+      },
+      "rebind_mindist_beyond_orthogonal_m": {
+       "mean": 0.2332430427393432,
+       "lo": 0.2042567895027155,
+       "hi": 0.2648693177811894,
+       "n": 82
+      },
+      "rebind_mindist_beyond_replay_m": {
+       "mean": 0.24039114721460456,
+       "lo": 0.214576869595323,
+       "hi": 0.26707242013892235,
+       "n": 82
+      }
+     },
+     "n_rows": 720,
+     "shards": 12
+    },
+    "panda": {
+     "key": {
+      "n_feasible_seeds": 48,
+      "control_success": 40,
+      "control_cube_lifted": 40,
+      "goal_cube_at_new_goal": {
+       "k": 34,
+       "n": 48,
+       "rate": 0.7083333333333334,
+       "wilson95": [
+        0.5682074007541851,
+        0.8175842114339482
+       ]
+      },
+      "goal_controls_at_new_goal": {
+       "control": 0,
+       "irrelevant_distractor": 0,
+       "orthogonal_matched": 1,
+       "control_replay": 0
+      },
+      "goal_effect_beyond_irrelevant_m": {
+       "mean": 0.15200729142516578,
+       "lo": 0.12689644686290338,
+       "hi": 0.1744189225339264,
+       "n": 46
+      },
+      "goal_effect_beyond_orthogonal_m": {
+       "mean": 0.11993409095276847,
+       "lo": 0.09411525845681619,
+       "hi": 0.14471718085045338,
+       "n": 44
+      },
+      "goal_effect_beyond_replay_m": {
+       "mean": 0.16139725627340296,
+       "lo": 0.13587820337316237,
+       "hi": 0.1847561159820624,
+       "n": 45
+      },
+      "rebind_original_cube_lifted": {
+       "k": 1,
+       "n": 48,
+       "rate": 0.020833333333333332,
+       "wilson95": [
+        0.003687110936731193,
+        0.10899218103056246
+       ]
+      },
+      "rebind_new_cube_lifted": {
+       "k": 3,
+       "n": 48,
+       "rate": 0.0625,
+       "wilson95": [
+        0.02148323274107221,
+        0.16835438166384809
+       ]
+      },
+      "rebind_new_cube_in_zone": 0,
+      "rebind_first_approach_new": {
+       "k": 25,
+       "n": 48,
+       "wilson95": [
+        0.3832923220175111,
+        0.6552868392013023
+       ]
+      },
+      "rebind_first_contact_new": {
+       "k": 23,
+       "n": 48,
+       "wilson95": [
+        0.34471316079869785,
+        0.6167076779824889
+       ]
+      },
+      "control_first_contact_new": {
+       "k": 0,
+       "n": 48,
+       "wilson95": [
+        0.0,
+        0.07410013074848033
+       ]
+      },
+      "rebind_mindist_beyond_irrelevant_m": {
+       "mean": 0.2520392609063556,
+       "lo": 0.22370255343366058,
+       "hi": 0.28247163093457067,
+       "n": 48
+      },
+      "rebind_mindist_beyond_orthogonal_m": {
+       "mean": 0.24943388670408076,
+       "lo": 0.22098026172282573,
+       "hi": 0.28043346413886827,
+       "n": 48
+      },
+      "rebind_mindist_beyond_replay_m": {
+       "mean": 0.24944012307720673,
+       "lo": 0.22115677289697205,
+       "hi": 0.27994597649700614,
+       "n": 48
+      }
+     },
+     "n_rows": 288,
+     "shards": 6
+    }
+   }
+  },
+  "semfix_s2": {
+   "panda_pg2": {
+    "per_set": {
+     "3000000": {
+      "k": 25,
+      "n": 30,
+      "failed_stage": {
+       "success": 25,
+       "place": 2,
+       "lift": 2,
+       "grasp": 1
+      },
+      "seeds": [
+       3000000,
+       3000029,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/eval_r2-final_s2/panda_pg2/generated_zero_final_s3000000.summary.json"
+     },
+     "3000100": {
+      "k": 22,
+      "n": 30,
+      "failed_stage": {
+       "grasp": 2,
+       "success": 22,
+       "approach": 1,
+       "lift": 4,
+       "place": 1
+      },
+      "seeds": [
+       3000100,
+       3000129,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/eval_r2-final_s2/panda_pg2/generated_zero_final_s3000100.summary.json"
+     },
+     "3000200": {
+      "k": 16,
+      "n": 30,
+      "failed_stage": {
+       "success": 16,
+       "grasp": 3,
+       "lift": 8,
+       "transport": 2,
+       "approach": 1
+      },
+      "seeds": [
+       3000200,
+       3000229,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/eval_r2-final_s2/panda_pg2/generated_zero_final_s3000200.summary.json"
+     }
+    },
+    "k": 63,
+    "n": 90,
+    "approach": 2
+   },
+   "parm6_tf3": {
+    "per_set": {
+     "3000000": {
+      "k": 30,
+      "n": 30,
+      "failed_stage": {
+       "success": 30
+      },
+      "seeds": [
+       3000003,
+       3000041,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/eval_r2-final_s2/parm6_tf3/generated_zero_final_s3000000.summary.json"
+     },
+     "3000100": {
+      "k": 29,
+      "n": 30,
+      "failed_stage": {
+       "success": 29,
+       "lift": 1
+      },
+      "seeds": [
+       3000100,
+       3000138,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/eval_r2-final_s2/parm6_tf3/generated_zero_final_s3000100.summary.json"
+     },
+     "3000200": {
+      "k": 30,
+      "n": 30,
+      "failed_stage": {
+       "success": 30
+      },
+      "seeds": [
+       3000201,
+       3000241,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/eval_r2-final_s2/parm6_tf3/generated_zero_final_s3000200.summary.json"
+     }
+    },
+    "k": 89,
+    "n": 90,
+    "approach": 0
+   },
+   "parm5s_tf3": {
+    "per_set": {
+     "3000000": {
+      "k": 29,
+      "n": 30,
+      "failed_stage": {
+       "success": 29,
+       "transport": 1
+      },
+      "seeds": [
+       3000000,
+       3000032,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/heldout-final_s2/parm5s_tf3/generated_zero_final_s3000000.summary.json"
+     }
+    },
+    "k": 29,
+    "n": 30,
+    "approach": 0
+   },
+   "parm5l_pg2": {
+    "per_set": {
+     "3000000": {
+      "k": 26,
+      "n": 30,
+      "failed_stage": {
+       "success": 26,
+       "lift": 4
+      },
+      "seeds": [
+       3000003,
+       3000042,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/heldout-final_s2/parm5l_pg2/generated_zero_final_s3000000.summary.json"
+     }
+    },
+    "k": 26,
+    "n": 30,
+    "approach": 0
+   },
+   "all": {
+    "k": 207,
+    "n": 240
+   },
+   "progression": {
+    "panda_pg2": {
+     "flow20k_gendag1": {
+      "k": 17,
+      "n": 30,
+      "failed_stage": {
+       "success": 17,
+       "lift": 6,
+       "approach": 5,
+       "grasp": 1,
+       "transport": 1
+      },
+      "seeds": [
+       3000000,
+       3000029,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/eval_r2-prog20k_s2/panda_pg2/generated_zero_prog20k_s3000000.summary.json"
+     },
+     "flowgdag1_gendag3": {
+      "k": 20,
+      "n": 30,
+      "failed_stage": {
+       "success": 20,
+       "transport": 1,
+       "place": 2,
+       "grasp": 2,
+       "lift": 4,
+       "approach": 1
+      },
+      "seeds": [
+       3000000,
+       3000029,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/eval_r2-proggdag1_s2/panda_pg2/generated_zero_proggdag1_s3000000.summary.json"
+     },
+     "r1_stateless": {
+      "k": 22,
+      "n": 30,
+      "failed_stage": {
+       "success": 22,
+       "place": 1,
+       "approach": 1,
+       "lift": 3,
+       "grasp": 3
+      },
+      "seeds": [
+       3000000,
+       3000029,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/eval_r1-orcbc_s2/panda_pg2/oracle_zero_gendag3noqd_orcbc.summary.json"
+     }
+    },
+    "parm6_tf3": {
+     "flow20k_gendag1": {
+      "k": 30,
+      "n": 30,
+      "failed_stage": {
+       "success": 30
+      },
+      "seeds": [
+       3000003,
+       3000041,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/eval_r2-prog20k_s2/parm6_tf3/generated_zero_prog20k_s3000000.summary.json"
+     },
+     "flowgdag1_gendag3": {
+      "k": 30,
+      "n": 30,
+      "failed_stage": {
+       "success": 30
+      },
+      "seeds": [
+       3000003,
+       3000041,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/eval_r2-proggdag1_s2/parm6_tf3/generated_zero_proggdag1_s3000000.summary.json"
+     },
+     "r1_stateless": {
+      "k": 26,
+      "n": 30,
+      "failed_stage": {
+       "success": 26,
+       "approach": 3,
+       "lift": 1
+      },
+      "seeds": [
+       3000003,
+       3000041,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-semfix/eval_r1-orcbc_s2/parm6_tf3/oracle_zero_gendag3noqd_orcbc.summary.json"
+     }
+    }
+   },
+   "edits": {
+    "parm6": {
+     "key": {
+      "n_feasible_seeds": 82,
+      "control_success": 82,
+      "control_cube_lifted": 82,
+      "goal_cube_at_new_goal": {
+       "k": 78,
+       "n": 82,
+       "rate": 0.9512195121951219,
+       "wilson95": [
+        0.8811853800327552,
+        0.9808689345651513
+       ]
+      },
+      "goal_controls_at_new_goal": {
+       "control": 0,
+       "irrelevant_distractor": 0,
+       "orthogonal_matched": 0,
+       "control_replay": 0
+      },
+      "goal_effect_beyond_irrelevant_m": {
+       "mean": 0.19813515709633078,
+       "lo": 0.18979571440925144,
+       "hi": 0.20531532158908197,
+       "n": 82
+      },
+      "goal_effect_beyond_orthogonal_m": {
+       "mean": 0.15156377722962078,
+       "lo": 0.13852226213229066,
+       "hi": 0.16394434806999683,
+       "n": 82
+      },
+      "goal_effect_beyond_replay_m": {
+       "mean": 0.19575981194623654,
+       "lo": 0.18560353536993948,
+       "hi": 0.20432727037667525,
+       "n": 82
+      },
+      "rebind_original_cube_lifted": {
+       "k": 20,
+       "n": 82,
+       "rate": 0.24390243902439024,
+       "wilson95": [
+        0.1637988503586909,
+        0.3469270791938486
+       ]
+      },
+      "rebind_new_cube_lifted": {
+       "k": 1,
+       "n": 82,
+       "rate": 0.012195121951219513,
+       "wilson95": [
+        0.002155992057983412,
+        0.0658933975659014
+       ]
+      },
+      "rebind_new_cube_in_zone": 0,
+      "rebind_first_approach_new": {
+       "k": 3,
+       "n": 82,
+       "wilson95": [
+        0.01251957298416867,
+        0.10212734715852193
+       ]
+      },
+      "rebind_first_contact_new": {
+       "k": 5,
+       "n": 82,
+       "wilson95": [
+        0.026323954901191667,
+        0.13492049576030468
+       ]
+      },
+      "control_first_contact_new": {
+       "k": 0,
+       "n": 82,
+       "wilson95": [
+        0.0,
+        0.04475062436448195
+       ]
+      },
+      "rebind_mindist_beyond_irrelevant_m": {
+       "mean": 0.0968236987908203,
+       "lo": 0.08337334349546598,
+       "hi": 0.11134128252340406,
+       "n": 82
+      },
+      "rebind_mindist_beyond_orthogonal_m": {
+       "mean": 0.09307819492284188,
+       "lo": 0.07503201121511123,
+       "hi": 0.11126963177407663,
+       "n": 82
+      },
+      "rebind_mindist_beyond_replay_m": {
+       "mean": 0.09805640144532979,
+       "lo": 0.08478222034464014,
+       "hi": 0.1126308837970702,
+       "n": 82
+      }
+     },
+     "n_rows": 720,
+     "shards": 12
+    },
+    "panda": {
+     "key": {
+      "n_feasible_seeds": 48,
+      "control_success": 34,
+      "control_cube_lifted": 35,
+      "goal_cube_at_new_goal": {
+       "k": 35,
+       "n": 48,
+       "rate": 0.7291666666666666,
+       "wilson95": [
+        0.590030349020167,
+        0.8343404243867794
+       ]
+      },
+      "goal_controls_at_new_goal": {
+       "control": 0,
+       "irrelevant_distractor": 0,
+       "orthogonal_matched": 1,
+       "control_replay": 0
+      },
+      "goal_effect_beyond_irrelevant_m": {
+       "mean": 0.14492734297570845,
+       "lo": 0.11852711237821958,
+       "hi": 0.16870162001694183,
+       "n": 45
+      },
+      "goal_effect_beyond_orthogonal_m": {
+       "mean": 0.10969700834927447,
+       "lo": 0.0895816519167683,
+       "hi": 0.12881638933072356,
+       "n": 48
+      },
+      "goal_effect_beyond_replay_m": {
+       "mean": 0.14579882645992373,
+       "lo": 0.11960072667927969,
+       "hi": 0.17053482228152067,
+       "n": 45
+      },
+      "rebind_original_cube_lifted": {
+       "k": 4,
+       "n": 48,
+       "rate": 0.08333333333333333,
+       "wilson95": [
+        0.032883756589523014,
+        0.1955330190342106
+       ]
+      },
+      "rebind_new_cube_lifted": {
+       "k": 0,
+       "n": 48,
+       "rate": 0.0,
+       "wilson95": [
+        0.0,
+        0.07410013074848033
+       ]
+      },
+      "rebind_new_cube_in_zone": 0,
+      "rebind_first_approach_new": {
+       "k": 0,
+       "n": 48,
+       "wilson95": [
+        0.0,
+        0.07410013074848033
+       ]
+      },
+      "rebind_first_contact_new": {
+       "k": 6,
+       "n": 48,
+       "wilson95": [
+        0.0585705140436488,
+        0.2470045840177115
+       ]
+      },
+      "control_first_contact_new": {
+       "k": 0,
+       "n": 48,
+       "wilson95": [
+        0.0,
+        0.07410013074848033
+       ]
+      },
+      "rebind_mindist_beyond_irrelevant_m": {
+       "mean": 0.08113788893198408,
+       "lo": 0.05726524805569239,
+       "hi": 0.10720036663313214,
+       "n": 48
+      },
+      "rebind_mindist_beyond_orthogonal_m": {
+       "mean": 0.07840883278737383,
+       "lo": 0.05510038830825173,
+       "hi": 0.10493481458139449,
+       "n": 48
+      },
+      "rebind_mindist_beyond_replay_m": {
+       "mean": 0.09156139095017506,
+       "lo": 0.06758304381052066,
+       "hi": 0.11859713516955628,
+       "n": 48
+      }
+     },
+     "n_rows": 288,
+     "shards": 6
+    }
+   }
+  },
+  "nosem_s1": {
+   "panda_pg2": {
+    "per_set": {
+     "3000000": {
+      "k": 25,
+      "n": 30,
+      "failed_stage": {
+       "success": 25,
+       "lift": 5
+      },
+      "seeds": [
+       3000000,
+       3000029,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/eval_r2-final_s1/panda_pg2/generated_zero_final_s3000000.summary.json"
+     },
+     "3000100": {
+      "k": 20,
+      "n": 30,
+      "failed_stage": {
+       "approach": 3,
+       "success": 20,
+       "lift": 4,
+       "transport": 3
+      },
+      "seeds": [
+       3000100,
+       3000129,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/eval_r2-final_s1/panda_pg2/generated_zero_final_s3000100.summary.json"
+     },
+     "3000200": {
+      "k": 23,
+      "n": 30,
+      "failed_stage": {
+       "success": 23,
+       "transport": 2,
+       "lift": 3,
+       "place": 1,
+       "approach": 1
+      },
+      "seeds": [
+       3000200,
+       3000229,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/eval_r2-final_s1/panda_pg2/generated_zero_final_s3000200.summary.json"
+     }
+    },
+    "k": 68,
+    "n": 90,
+    "approach": 4
+   },
+   "parm6_tf3": {
+    "per_set": {
+     "3000000": {
+      "k": 17,
+      "n": 30,
+      "failed_stage": {
+       "success": 17,
+       "approach": 7,
+       "lift": 5,
+       "transport": 1
+      },
+      "seeds": [
+       3000003,
+       3000041,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/eval_r2-final_s1/parm6_tf3/generated_zero_final_s3000000.summary.json"
+     },
+     "3000100": {
+      "k": 16,
+      "n": 30,
+      "failed_stage": {
+       "success": 16,
+       "lift": 8,
+       "approach": 4,
+       "transport": 2
+      },
+      "seeds": [
+       3000100,
+       3000138,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/eval_r2-final_s1/parm6_tf3/generated_zero_final_s3000100.summary.json"
+     },
+     "3000200": {
+      "k": 10,
+      "n": 30,
+      "failed_stage": {
+       "lift": 7,
+       "transport": 4,
+       "grasp": 1,
+       "approach": 6,
+       "place": 2,
+       "success": 10
+      },
+      "seeds": [
+       3000201,
+       3000241,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/eval_r2-final_s1/parm6_tf3/generated_zero_final_s3000200.summary.json"
+     }
+    },
+    "k": 43,
+    "n": 90,
+    "approach": 17
+   },
+   "parm5s_tf3": {
+    "per_set": {
+     "3000000": {
+      "k": 13,
+      "n": 30,
+      "failed_stage": {
+       "success": 13,
+       "approach": 10,
+       "lift": 4,
+       "place": 1,
+       "transport": 2
+      },
+      "seeds": [
+       3000000,
+       3000032,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/heldout-final_s1/parm5s_tf3/generated_zero_final_s3000000.summary.json"
+     }
+    },
+    "k": 13,
+    "n": 30,
+    "approach": 10
+   },
+   "parm5l_pg2": {
+    "per_set": {
+     "3000000": {
+      "k": 24,
+      "n": 30,
+      "failed_stage": {
+       "success": 24,
+       "grasp": 1,
+       "approach": 2,
+       "transport": 1,
+       "lift": 1,
+       "place": 1
+      },
+      "seeds": [
+       3000003,
+       3000042,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/heldout-final_s1/parm5l_pg2/generated_zero_final_s3000000.summary.json"
+     }
+    },
+    "k": 24,
+    "n": 30,
+    "approach": 2
+   },
+   "all": {
+    "k": 148,
+    "n": 240
+   },
+   "progression": {
+    "panda_pg2": {
+     "flow20k_gendag1": {
+      "k": 21,
+      "n": 30,
+      "failed_stage": {
+       "success": 21,
+       "lift": 3,
+       "place": 2,
+       "approach": 3,
+       "transport": 1
+      },
+      "seeds": [
+       3000000,
+       3000029,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/eval_r2-prog20k_s1/panda_pg2/generated_zero_prog20k_s3000000.summary.json"
+     },
+     "flowgdag1_gendag3": {
+      "k": 22,
+      "n": 30,
+      "failed_stage": {
+       "success": 22,
+       "lift": 4,
+       "transport": 3,
+       "grasp": 1
+      },
+      "seeds": [
+       3000000,
+       3000029,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/eval_r2-proggdag1_s1/panda_pg2/generated_zero_proggdag1_s3000000.summary.json"
+     },
+     "r1_stateless": {
+      "k": 20,
+      "n": 30,
+      "failed_stage": {
+       "transport": 3,
+       "lift": 4,
+       "success": 20,
+       "approach": 2,
+       "grasp": 1
+      },
+      "seeds": [
+       3000000,
+       3000029,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/eval_r1-orcbc_s1/panda_pg2/oracle_zero_gendag3noqd_orcbc.summary.json"
+     }
+    },
+    "parm6_tf3": {
+     "flow20k_gendag1": {
+      "k": 5,
+      "n": 30,
+      "failed_stage": {
+       "approach": 23,
+       "success": 5,
+       "lift": 2
+      },
+      "seeds": [
+       3000003,
+       3000041,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/eval_r2-prog20k_s1/parm6_tf3/generated_zero_prog20k_s3000000.summary.json"
+     },
+     "flowgdag1_gendag3": {
+      "k": 13,
+      "n": 30,
+      "failed_stage": {
+       "success": 13,
+       "grasp": 2,
+       "lift": 6,
+       "approach": 8,
+       "transport": 1
+      },
+      "seeds": [
+       3000003,
+       3000041,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/eval_r2-proggdag1_s1/parm6_tf3/generated_zero_proggdag1_s3000000.summary.json"
+     },
+     "r1_stateless": {
+      "k": 11,
+      "n": 30,
+      "failed_stage": {
+       "success": 11,
+       "transport": 2,
+       "lift": 6,
+       "place": 1,
+       "approach": 9,
+       "grasp": 1
+      },
+      "seeds": [
+       3000003,
+       3000041,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/eval_r1-orcbc_s1/parm6_tf3/oracle_zero_gendag3noqd_orcbc.summary.json"
+     }
+    }
+   },
+   "edits": {
+    "parm6": {
+     "key": {
+      "n_feasible_seeds": 82,
+      "control_success": 17,
+      "control_cube_lifted": 20,
+      "goal_cube_at_new_goal": {
+       "k": 13,
+       "n": 82,
+       "rate": 0.15853658536585366,
+       "wilson95": [
+        0.09505590260747504,
+        0.25257867012924434
+       ]
+      },
+      "goal_controls_at_new_goal": {
+       "control": 0,
+       "irrelevant_distractor": 1,
+       "orthogonal_matched": 0,
+       "control_replay": 0
+      },
+      "goal_effect_beyond_irrelevant_m": {
+       "mean": 0.11141578779876866,
+       "lo": 0.07875201882270162,
+       "hi": 0.14130516077135938,
+       "n": 25
+      },
+      "goal_effect_beyond_orthogonal_m": {
+       "mean": 0.1010009324925033,
+       "lo": 0.06824003210270142,
+       "hi": 0.13293051682667595,
+       "n": 24
+      },
+      "goal_effect_beyond_replay_m": {
+       "mean": 0.10993045562687312,
+       "lo": 0.0734295895374424,
+       "hi": 0.14253149021350076,
+       "n": 23
+      },
+      "rebind_original_cube_lifted": {
+       "k": 2,
+       "n": 82,
+       "rate": 0.024390243902439025,
+       "wilson95": [
+        0.006714370270737513,
+        0.0846337846125502
+       ]
+      },
+      "rebind_new_cube_lifted": {
+       "k": 6,
+       "n": 82,
+       "rate": 0.07317073170731707,
+       "wilson95": [
+        0.03396477705802167,
+        0.15057843886287756
+       ]
+      },
+      "rebind_new_cube_in_zone": 3,
+      "rebind_first_approach_new": {
+       "k": 31,
+       "n": 82,
+       "wilson95": [
+        0.28078371523417406,
+        0.4862286321717972
+       ]
+      },
+      "rebind_first_contact_new": {
+       "k": 35,
+       "n": 82,
+       "wilson95": [
+        0.325419487890423,
+        0.5347879205531598
+       ]
+      },
+      "control_first_contact_new": {
+       "k": 6,
+       "n": 82,
+       "wilson95": [
+        0.03396477705802167,
+        0.15057843886287756
+       ]
+      },
+      "rebind_mindist_beyond_irrelevant_m": {
+       "mean": 0.20501744924568394,
+       "lo": 0.17838075738336578,
+       "hi": 0.2336503960378284,
+       "n": 82
+      },
+      "rebind_mindist_beyond_orthogonal_m": {
+       "mean": 0.20974852126977028,
+       "lo": 0.18324739466484669,
+       "hi": 0.23772332721596606,
+       "n": 82
+      },
+      "rebind_mindist_beyond_replay_m": {
+       "mean": 0.21403788283204891,
+       "lo": 0.1873757032860984,
+       "hi": 0.2423481604748857,
+       "n": 82
+      }
+     },
+     "n_rows": 720,
+     "shards": 12
+    },
+    "panda": {
+     "key": {
+      "n_feasible_seeds": 48,
+      "control_success": 28,
+      "control_cube_lifted": 36,
+      "goal_cube_at_new_goal": {
+       "k": 23,
+       "n": 48,
+       "rate": 0.4791666666666667,
+       "wilson95": [
+        0.34471316079869785,
+        0.6167076779824889
+       ]
+      },
+      "goal_controls_at_new_goal": {
+       "control": 0,
+       "irrelevant_distractor": 0,
+       "orthogonal_matched": 0,
+       "control_replay": 0
+      },
+      "goal_effect_beyond_irrelevant_m": {
+       "mean": 0.13074048496941323,
+       "lo": 0.10961060515051227,
+       "hi": 0.15099340199400402,
+       "n": 45
+      },
+      "goal_effect_beyond_orthogonal_m": {
+       "mean": 0.1303918428502479,
+       "lo": 0.10870500731946312,
+       "hi": 0.15021892940832915,
+       "n": 46
+      },
+      "goal_effect_beyond_replay_m": {
+       "mean": 0.1354094401378018,
+       "lo": 0.11438951191124835,
+       "hi": 0.15503033144160103,
+       "n": 48
+      },
+      "rebind_original_cube_lifted": {
+       "k": 0,
+       "n": 48,
+       "rate": 0.0,
+       "wilson95": [
+        0.0,
+        0.07410013074848033
+       ]
+      },
+      "rebind_new_cube_lifted": {
+       "k": 6,
+       "n": 48,
+       "rate": 0.125,
+       "wilson95": [
+        0.0585705140436488,
+        0.2470045840177115
+       ]
+      },
+      "rebind_new_cube_in_zone": 0,
+      "rebind_first_approach_new": {
+       "k": 39,
+       "n": 48,
+       "wilson95": [
+        0.6806013273387145,
+        0.8980860909434855
+       ]
+      },
+      "rebind_first_contact_new": {
+       "k": 37,
+       "n": 48,
+       "wilson95": [
+        0.6346073579331621,
+        0.8669217379114111
+       ]
+      },
+      "control_first_contact_new": {
+       "k": 0,
+       "n": 48,
+       "wilson95": [
+        0.0,
+        0.07410013074848033
+       ]
+      },
+      "rebind_mindist_beyond_irrelevant_m": {
+       "mean": 0.270825109991998,
+       "lo": 0.2422592073100976,
+       "hi": 0.3013588293621768,
+       "n": 48
+      },
+      "rebind_mindist_beyond_orthogonal_m": {
+       "mean": 0.27823479677332497,
+       "lo": 0.24775211992192037,
+       "hi": 0.3114187375984287,
+       "n": 48
+      },
+      "rebind_mindist_beyond_replay_m": {
+       "mean": 0.2684860002072057,
+       "lo": 0.2403840762176645,
+       "hi": 0.29977565925216537,
+       "n": 48
+      }
+     },
+     "n_rows": 288,
+     "shards": 6
+    }
+   }
+  },
+  "nosem_s2": {
+   "panda_pg2": {
+    "per_set": {
+     "3000000": {
+      "k": 21,
+      "n": 30,
+      "failed_stage": {
+       "success": 21,
+       "lift": 6,
+       "transport": 1,
+       "approach": 1,
+       "grasp": 1
+      },
+      "seeds": [
+       3000000,
+       3000029,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/eval_r2-final_s2/panda_pg2/generated_zero_final_s3000000.summary.json"
+     },
+     "3000100": {
+      "k": 17,
+      "n": 30,
+      "failed_stage": {
+       "approach": 3,
+       "success": 17,
+       "lift": 5,
+       "transport": 3,
+       "place": 2
+      },
+      "seeds": [
+       3000100,
+       3000129,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/eval_r2-final_s2/panda_pg2/generated_zero_final_s3000100.summary.json"
+     },
+     "3000200": {
+      "k": 21,
+      "n": 30,
+      "failed_stage": {
+       "success": 21,
+       "lift": 5,
+       "place": 1,
+       "approach": 2,
+       "grasp": 1
+      },
+      "seeds": [
+       3000200,
+       3000229,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/eval_r2-final_s2/panda_pg2/generated_zero_final_s3000200.summary.json"
+     }
+    },
+    "k": 59,
+    "n": 90,
+    "approach": 6
+   },
+   "parm6_tf3": {
+    "per_set": {
+     "3000000": {
+      "k": 20,
+      "n": 30,
+      "failed_stage": {
+       "success": 20,
+       "place": 1,
+       "transport": 3,
+       "lift": 6
+      },
+      "seeds": [
+       3000003,
+       3000041,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/eval_r2-final_s2/parm6_tf3/generated_zero_final_s3000000.summary.json"
+     },
+     "3000100": {
+      "k": 17,
+      "n": 30,
+      "failed_stage": {
+       "lift": 12,
+       "success": 17,
+       "place": 1
+      },
+      "seeds": [
+       3000100,
+       3000138,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/eval_r2-final_s2/parm6_tf3/generated_zero_final_s3000100.summary.json"
+     },
+     "3000200": {
+      "k": 20,
+      "n": 30,
+      "failed_stage": {
+       "success": 20,
+       "place": 2,
+       "lift": 7,
+       "transport": 1
+      },
+      "seeds": [
+       3000201,
+       3000241,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/eval_r2-final_s2/parm6_tf3/generated_zero_final_s3000200.summary.json"
+     }
+    },
+    "k": 57,
+    "n": 90,
+    "approach": 0
+   },
+   "parm5s_tf3": {
+    "per_set": {
+     "3000000": {
+      "k": 25,
+      "n": 30,
+      "failed_stage": {
+       "success": 25,
+       "lift": 3,
+       "place": 1,
+       "approach": 1
+      },
+      "seeds": [
+       3000000,
+       3000032,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/heldout-final_s2/parm5s_tf3/generated_zero_final_s3000000.summary.json"
+     }
+    },
+    "k": 25,
+    "n": 30,
+    "approach": 1
+   },
+   "parm5l_pg2": {
+    "per_set": {
+     "3000000": {
+      "k": 25,
+      "n": 30,
+      "failed_stage": {
+       "success": 25,
+       "lift": 3,
+       "approach": 2
+      },
+      "seeds": [
+       3000003,
+       3000042,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/heldout-final_s2/parm5l_pg2/generated_zero_final_s3000000.summary.json"
+     }
+    },
+    "k": 25,
+    "n": 30,
+    "approach": 2
+   },
+   "all": {
+    "k": 166,
+    "n": 240
+   },
+   "progression": {
+    "panda_pg2": {
+     "flow20k_gendag1": {
+      "k": 15,
+      "n": 30,
+      "failed_stage": {
+       "place": 2,
+       "approach": 5,
+       "success": 15,
+       "lift": 6,
+       "transport": 2
+      },
+      "seeds": [
+       3000000,
+       3000029,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/eval_r2-prog20k_s2/panda_pg2/generated_zero_prog20k_s3000000.summary.json"
+     },
+     "flowgdag1_gendag3": {
+      "k": 18,
+      "n": 30,
+      "failed_stage": {
+       "success": 18,
+       "approach": 2,
+       "lift": 7,
+       "transport": 3
+      },
+      "seeds": [
+       3000000,
+       3000029,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/eval_r2-proggdag1_s2/panda_pg2/generated_zero_proggdag1_s3000000.summary.json"
+     },
+     "r1_stateless": {
+      "k": 17,
+      "n": 30,
+      "failed_stage": {
+       "lift": 8,
+       "success": 17,
+       "approach": 3,
+       "place": 1,
+       "transport": 1
+      },
+      "seeds": [
+       3000000,
+       3000029,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/eval_r1-orcbc_s2/panda_pg2/oracle_zero_gendag3noqd_orcbc.summary.json"
+     }
+    },
+    "parm6_tf3": {
+     "flow20k_gendag1": {
+      "k": 23,
+      "n": 30,
+      "failed_stage": {
+       "success": 23,
+       "lift": 4,
+       "approach": 1,
+       "place": 1,
+       "transport": 1
+      },
+      "seeds": [
+       3000003,
+       3000041,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/eval_r2-prog20k_s2/parm6_tf3/generated_zero_prog20k_s3000000.summary.json"
+     },
+     "flowgdag1_gendag3": {
+      "k": 21,
+      "n": 30,
+      "failed_stage": {
+       "success": 21,
+       "transport": 2,
+       "lift": 6,
+       "place": 1
+      },
+      "seeds": [
+       3000003,
+       3000041,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/eval_r2-proggdag1_s2/parm6_tf3/generated_zero_proggdag1_s3000000.summary.json"
+     },
+     "r1_stateless": {
+      "k": 19,
+      "n": 30,
+      "failed_stage": {
+       "success": 19,
+       "lift": 6,
+       "place": 2,
+       "transport": 3
+      },
+      "seeds": [
+       3000003,
+       3000041,
+       30
+      ],
+      "path": "artifacts/runs/armv6_pull/arm6-nosem/eval_r1-orcbc_s2/parm6_tf3/oracle_zero_gendag3noqd_orcbc.summary.json"
+     }
+    }
+   },
+   "edits": {
+    "parm6": {
+     "key": {
+      "n_feasible_seeds": 82,
+      "control_success": 67,
+      "control_cube_lifted": 74,
+      "goal_cube_at_new_goal": {
+       "k": 58,
+       "n": 82,
+       "rate": 0.7073170731707317,
+       "wilson95": [
+        0.6013423949896595,
+        0.7947366144201895
+       ]
+      },
+      "goal_controls_at_new_goal": {
+       "control": 0,
+       "irrelevant_distractor": 0,
+       "orthogonal_matched": 0,
+       "control_replay": 1
+      },
+      "goal_effect_beyond_irrelevant_m": {
+       "mean": 0.17578231442246145,
+       "lo": 0.16173063666598203,
+       "hi": 0.18862636262368984,
+       "n": 78
+      },
+      "goal_effect_beyond_orthogonal_m": {
+       "mean": 0.17528202225211031,
+       "lo": 0.1623488708401635,
+       "hi": 0.18701373987474085,
+       "n": 77
+      },
+      "goal_effect_beyond_replay_m": {
+       "mean": 0.170291574083691,
+       "lo": 0.15594791384006404,
+       "hi": 0.18346022850628127,
+       "n": 80
+      },
+      "rebind_original_cube_lifted": {
+       "k": 1,
+       "n": 82,
+       "rate": 0.012195121951219513,
+       "wilson95": [
+        0.002155992057983412,
+        0.0658933975659014
+       ]
+      },
+      "rebind_new_cube_lifted": {
+       "k": 8,
+       "n": 82,
+       "rate": 0.0975609756097561,
+       "wilson95": [
+        0.050268688024630706,
+        0.1808720584150743
+       ]
+      },
+      "rebind_new_cube_in_zone": 1,
+      "rebind_first_approach_new": {
+       "k": 29,
+       "n": 82,
+       "wilson95": [
+        0.258855682645304,
+        0.46155913424186135
+       ]
+      },
+      "rebind_first_contact_new": {
+       "k": 46,
+       "n": 82,
+       "wilson95": [
+        0.45322921017986706,
+        0.6632646161171475
+       ]
+      },
+      "control_first_contact_new": {
+       "k": 0,
+       "n": 82,
+       "wilson95": [
+        0.0,
+        0.04475062436448195
+       ]
+      },
+      "rebind_mindist_beyond_irrelevant_m": {
+       "mean": 0.24762777006796075,
+       "lo": 0.2254177573327785,
+       "hi": 0.27041597334202255,
+       "n": 82
+      },
+      "rebind_mindist_beyond_orthogonal_m": {
+       "mean": 0.2478229233862623,
+       "lo": 0.2256889668025694,
+       "hi": 0.27080029362128555,
+       "n": 82
+      },
+      "rebind_mindist_beyond_replay_m": {
+       "mean": 0.244869980861163,
+       "lo": 0.2217980571064534,
+       "hi": 0.269256617669151,
+       "n": 82
+      }
+     },
+     "n_rows": 720,
+     "shards": 12
+    },
+    "panda": {
+     "key": {
+      "n_feasible_seeds": 48,
+      "control_success": 26,
+      "control_cube_lifted": 33,
+      "goal_cube_at_new_goal": {
+       "k": 18,
+       "n": 48,
+       "rate": 0.375,
+       "wilson95": [
+        0.252152666774386,
+        0.5163723659127342
+       ]
+      },
+      "goal_controls_at_new_goal": {
+       "control": 0,
+       "irrelevant_distractor": 1,
+       "orthogonal_matched": 0,
+       "control_replay": 0
+      },
+      "goal_effect_beyond_irrelevant_m": {
+       "mean": 0.10334068830057973,
+       "lo": 0.08047785988110298,
+       "hi": 0.1259649731610867,
+       "n": 45
+      },
+      "goal_effect_beyond_orthogonal_m": {
+       "mean": 0.10259816564756498,
+       "lo": 0.07934605782161,
+       "hi": 0.1253340091854531,
+       "n": 44
+      },
+      "goal_effect_beyond_replay_m": {
+       "mean": 0.09026965192933281,
+       "lo": 0.06464644175620979,
+       "hi": 0.11454844338286434,
+       "n": 46
+      },
+      "rebind_original_cube_lifted": {
+       "k": 0,
+       "n": 48,
+       "rate": 0.0,
+       "wilson95": [
+        0.0,
+        0.07410013074848033
+       ]
+      },
+      "rebind_new_cube_lifted": {
+       "k": 0,
+       "n": 48,
+       "rate": 0.0,
+       "wilson95": [
+        0.0,
+        0.07410013074848033
+       ]
+      },
+      "rebind_new_cube_in_zone": 0,
+      "rebind_first_approach_new": {
+       "k": 15,
+       "n": 48,
+       "wilson95": [
+        0.199456833730646,
+        0.45333071530003416
+       ]
+      },
+      "rebind_first_contact_new": {
+       "k": 14,
+       "n": 48,
+       "wilson95": [
+        0.18241578856605184,
+        0.4317925992458151
+       ]
+      },
+      "control_first_contact_new": {
+       "k": 1,
+       "n": 48,
+       "wilson95": [
+        0.003687110936731193,
+        0.10899218103056246
+       ]
+      },
+      "rebind_mindist_beyond_irrelevant_m": {
+       "mean": 0.22704682121767852,
+       "lo": 0.1985974402203878,
+       "hi": 0.2561467205183214,
+       "n": 48
+      },
+      "rebind_mindist_beyond_orthogonal_m": {
+       "mean": 0.22500310414776026,
+       "lo": 0.19583464232865325,
+       "hi": 0.2549605918361849,
+       "n": 48
+      },
+      "rebind_mindist_beyond_replay_m": {
+       "mean": 0.23943809799651997,
+       "lo": 0.2068070338615495,
+       "hi": 0.27364677096014944,
+       "n": 48
+      }
+     },
+     "n_rows": 288,
+     "shards": 6
+    }
+   }
+  }
+ },
+ "v1": {
+  "semfix_s1": {
+   "panda_pg2": {
+    "grasp_v1": [
+     49,
+     90
+    ],
+    "grasp_v2": [
+     49,
+     90
+    ]
+   },
+   "parm6_tf3": {
+    "grasp_v1": [
+     45,
+     90
+    ],
+    "grasp_v2": [
+     62,
+     90
+    ]
+   },
+   "parm5s_tf3": {
+    "grasp_v1": [
+     8,
+     30
+    ],
+    "grasp_v2": [
+     19,
+     30
+    ]
+   },
+   "parm5l_pg2": {
+    "grasp_v1": [
+     22,
+     30
+    ],
+    "grasp_v2": [
+     24,
+     30
+    ]
+   }
+  },
+  "semfix_s2": {
+   "panda_pg2": {
+    "grasp_v1": [
+     58,
+     90
+    ],
+    "grasp_v2": [
+     57,
+     90
+    ]
+   },
+   "parm6_tf3": {
+    "grasp_v1": [
+     38,
+     90
+    ],
+    "grasp_v2": [
+     60,
+     90
+    ]
+   },
+   "parm5s_tf3": {
+    "grasp_v1": [
+     15,
+     30
+    ],
+    "grasp_v2": [
+     22,
+     30
+    ]
+   },
+   "parm5l_pg2": {
+    "grasp_v1": [
+     18,
+     30
+    ],
+    "grasp_v2": [
+     18,
+     30
+    ]
+   }
+  },
+  "nosem_s1": {
+   "panda_pg2": {
+    "grasp_v1": [
+     0,
+     90
+    ],
+    "grasp_v2": [
+     0,
+     90
+    ]
+   },
+   "parm6_tf3": {
+    "grasp_v1": [
+     3,
+     90
+    ],
+    "grasp_v2": [
+     1,
+     90
+    ]
+   },
+   "parm5s_tf3": {
+    "grasp_v1": [
+     0,
+     30
+    ],
+    "grasp_v2": [
+     0,
+     30
+    ]
+   },
+   "parm5l_pg2": {
+    "grasp_v1": [
+     0,
+     30
+    ],
+    "grasp_v2": [
+     0,
+     30
+    ]
+   }
+  },
+  "nosem_s2": {
+   "panda_pg2": {
+    "grasp_v1": [
+     0,
+     90
+    ],
+    "grasp_v2": [
+     0,
+     90
+    ]
+   },
+   "parm6_tf3": {
+    "grasp_v1": [
+     8,
+     90
+    ],
+    "grasp_v2": [
+     19,
+     90
+    ]
+   },
+   "parm5s_tf3": {
+    "grasp_v1": [
+     2,
+     30
+    ],
+    "grasp_v2": [
+     4,
+     30
+    ]
+   },
+   "parm5l_pg2": {
+    "grasp_v1": [
+     16,
+     30
+    ],
+    "grasp_v2": [
+     16,
+     30
+    ]
+   }
+  }
+ },
+ "diffs": {
+  "semfix": {
+   "v6": {
+    "k": 425,
+    "n": 480,
+    "rate": 0.8854166666666666,
+    "wilson95": [
+     0.8538109407809684,
+     0.91090236191014
+    ]
+   },
+   "v1_grasp_v2": {
+    "k": 311,
+    "n": 480,
+    "rate": 0.6479166666666667,
+    "wilson95": [
+     0.6041683117644163,
+     0.6893162530521713
+    ]
+   },
+   "v1_grasp_v1": {
+    "k": 253,
+    "n": 480,
+    "rate": 0.5270833333333333,
+    "wilson95": [
+     0.4823812581017647,
+     0.5713553523576106
+    ]
+   },
+   "v6_minus_v1_grasp_v2": {
+    "diff": 0.23749999999999993,
+    "ci95": [
+     0.18541499580826787,
+     0.28813041791943306
+    ]
+   }
+  },
+  "nosem": {
+   "v6": {
+    "k": 314,
+    "n": 480,
+    "rate": 0.6541666666666667,
+    "wilson95": [
+     0.6105436977079319,
+     0.6953416233685115
+    ]
+   },
+   "v1_grasp_v2": {
+    "k": 40,
+    "n": 480,
+    "rate": 0.08333333333333333,
+    "wilson95": [
+     0.06179325461008621,
+     0.1114896613995263
+    ]
+   },
+   "v1_grasp_v1": {
+    "k": 29,
+    "n": 480,
+    "rate": 0.06041666666666667,
+    "wilson95": [
+     0.04239213556965438,
+     0.08542134082048683
+    ]
+   },
+   "v6_minus_v1_grasp_v2": {
+    "diff": 0.5708333333333333,
+    "ci95": [
+     0.5189127956729256,
+     0.6173021621414976
+    ]
+   }
+  },
+  "v6_semfix_minus_nosem": {
+   "diff": 0.23124999999999996,
+   "ci95": [
+    0.17934336296618042,
+    0.28177211478964365
+   ]
+  }
+ }
+}
