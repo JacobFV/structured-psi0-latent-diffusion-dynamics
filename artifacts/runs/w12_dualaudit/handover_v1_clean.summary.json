@@ -1,0 +1,35 @@
+{
+ "handover|noise=0.0": {
+  "anchor_receipt_latency_mean_s_median": 0.39999999999992397,
+  "arm_arm_contact_episodes": 0,
+  "cmd_jerk_rms_median": 52.86426489286532,
+  "contact_missing_episodes": 0,
+  "contact_order_error_mean": 0.0,
+  "error": 0,
+  "failure": 0,
+  "failure_phases": [],
+  "gate_joint_margin_pass": 0.5,
+  "gate_penetration_pass": 0.75,
+  "gate_phase_switch_pass": 0.0,
+  "grasp_contact_versions": [
+   "grasp_v1"
+  ],
+  "held_pos_drift_grip_max_m_median": 0.004564860543191016,
+  "held_rot_drift_grip_max_rad_max": 0.15032183405945712,
+  "held_rot_drift_grip_max_rad_median": 0.05920366312530162,
+  "held_rot_drift_support_max_rad_median": null,
+  "infeasible": 0,
+  "joint_jerk_rms_median": 17.191565090849796,
+  "joint_margin_min_median": 0.07793938000010889,
+  "n": 12,
+  "penetration_max_m_max": 0.017037481470536187,
+  "penetration_max_m_median": 0.0018425445540321992,
+  "phase_switch_step_max": 2.130592652387555,
+  "phase_switch_step_median": 0.8903980870768757,
+  "reanchor_settle_mean_s_median": 0.1875,
+  "success": 12,
+  "support_anchor_slip_max_m_max": null,
+  "support_anchor_slip_max_m_median": null,
+  "vel_step_any_median": 1.4263846165732064
+ }
+}
