@@ -2,7 +2,7 @@
 
 contracts -> physics -> bodies -> tasks -> envs -> features -> {teachers, models} -> controllers -> data
 -> evaluation -> training -> pipelines -> {orchestration, service, cli, core (the public re-export module, W11)};
-research may import anything, nothing imports it.
+research may import anything, nothing imports it; viz (the room exporter/recorder, D-131) likewise sits on top.
 Within the audit's "teachers/controllers/models" and "training/evaluation" layers the order is fixed as shown
 (controllers load models; training runs evaluation rollouts, evaluation never imports training).
 
@@ -25,6 +25,8 @@ LAYER = {
     "contracts": 0, "physics": 1, "bodies": 2, "tasks": 3, "envs": 4, "features": 5,
     "teachers": 6, "models": 6, "controllers": 6.5, "data": 7, "evaluation": 8, "training": 8.5, "pipelines": 9,
     "orchestration": 10, "cli": 10, "service": 10, "core": 10, "research": 11,
+    # D-131 live visualization room: a top layer (may import anything below it; nothing imports it)
+    "viz": 12,
 }
 
 # old module -> new module. Moved entries are shims at the old path; the rest are still PENDING (real code at the old path).
@@ -296,6 +298,11 @@ def test_package_graph_is_acyclic():
 
 def test_nothing_imports_research():
     bad = [f"{a}:{ln}" for a, b, ln in _edges() if _real(b).startswith("rrp.research") and not a.startswith("rrp.research")]
+    assert not bad, bad
+
+
+def test_nothing_imports_viz():
+    bad = [f"{a}:{ln}" for a, b, ln in _edges() if _real(b).startswith("rrp.viz") and not a.startswith("rrp.viz")]
     assert not bad, bad
 
 
