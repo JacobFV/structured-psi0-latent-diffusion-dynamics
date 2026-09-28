@@ -1,0 +1,277 @@
+{
+ "anymal_c": {
+  "body": "anymal_c",
+  "label": "anymal_c v2c iter2499 (2a16532b)",
+  "caveat": null,
+  "gate": {
+   "gate": "D-112 legged dataset",
+   "n": 600,
+   "slip_measured": 600,
+   "slip_lt_0p15_frac": 1.0,
+   "slip_median": 0.0576,
+   "slip_ok": true,
+   "noise0_episodes": 150,
+   "noise0_falls": 0,
+   "falls_ok": true,
+   "passed": true
+  },
+  "halt": {
+   "permutation": {
+    "diff": -0.402,
+    "p_one_sided": 0.05,
+    "direction": "fixsem<nosem",
+    "p_two_sided": 0.1,
+    "n_perm": 20,
+    "seeds_fixsem": [
+     -0.322,
+     -0.096,
+     -0.156
+    ],
+    "seeds_nosem": [
+     0.08,
+     0.428,
+     0.123
+    ],
+    "every_seed_ordered": true
+   },
+   "pooled_diff_fixsem_minus_nosem": [
+    -0.402,
+    -0.498,
+    -0.301
+   ]
+  },
+  "steer": {
+   "permutation": {
+    "diff": 0.103,
+    "p_one_sided": 0.05,
+    "direction": "fixsem>nosem",
+    "p_two_sided": 0.1,
+    "n_perm": 20,
+    "seeds_fixsem": [
+     0.212,
+     0.248,
+     0.196
+    ],
+    "seeds_nosem": [
+     0.095,
+     0.122,
+     0.13
+    ],
+    "every_seed_ordered": true
+   },
+   "pooled_diff_fixsem_minus_nosem": [
+    0.103,
+    0.029,
+    0.182
+   ]
+  },
+  "halt_pooled": {
+   "semfix": [
+    -0.192,
+    -0.26,
+    -0.13
+   ],
+   "nosem": [
+    0.21,
+    0.136,
+    0.279
+   ]
+  },
+  "control": {
+   "semfix": [
+    0.002,
+    -0.006,
+    0.009
+   ],
+   "nosem": [
+    -0.003,
+    -0.01,
+    0.005
+   ]
+  },
+  "r2_final": {
+   "semfix": "78/90 (0 fell)",
+   "nosem": "83/90 (0 fell)"
+  },
+  "r2_snap": {
+   "semfix": "84/90 (0 fell)",
+   "nosem": "85/90 (0 fell)"
+  },
+  "references": {
+   "teacher": "30/30",
+   "bc": "30/30"
+  }
+ },
+ "go2": {
+  "body": "go2",
+  "label": "go2 clearance-floor cf2 iter799 (af3f06f4)",
+  "caveat": null,
+  "gate": {
+   "gate": "D-112 legged dataset",
+   "n": 600,
+   "slip_measured": 600,
+   "slip_lt_0p15_frac": 1.0,
+   "slip_median": 0.0261,
+   "slip_ok": true,
+   "noise0_episodes": 150,
+   "noise0_falls": 0,
+   "falls_ok": true,
+   "passed": true
+  },
+  "halt": {
+   "permutation": {
+    "diff": -0.655,
+    "p_one_sided": 0.05,
+    "direction": "fixsem<nosem",
+    "p_two_sided": 0.1,
+    "n_perm": 20,
+    "seeds_fixsem": [
+     -0.341,
+     -0.224,
+     -0.3
+    ],
+    "seeds_nosem": [
+     0.542,
+     0.213,
+     0.345
+    ],
+    "every_seed_ordered": true
+   },
+   "pooled_diff_fixsem_minus_nosem": [
+    -0.655,
+    -0.725,
+    -0.588
+   ]
+  },
+  "steer": {
+   "permutation": {
+    "diff": -0.151,
+    "p_one_sided": 0.15,
+    "direction": "fixsem<nosem",
+    "p_two_sided": 0.3,
+    "n_perm": 20,
+    "seeds_fixsem": [
+     0.6,
+     0.29,
+     0.394
+    ],
+    "seeds_nosem": [
+     0.515,
+     0.636,
+     0.588
+    ],
+    "every_seed_ordered": false
+   },
+   "pooled_diff_fixsem_minus_nosem": [
+    -0.151,
+    -0.305,
+    0.007
+   ]
+  },
+  "halt_pooled": {
+   "semfix": [
+    -0.288,
+    -0.338,
+    -0.241
+   ],
+   "nosem": [
+    0.367,
+    0.315,
+    0.416
+   ]
+  },
+  "control": {
+   "semfix": [
+    -0.019,
+    -0.031,
+    -0.008
+   ],
+   "nosem": [
+    -0.012,
+    -0.022,
+    -0.001
+   ]
+  },
+  "r2_final": {
+   "semfix": "87/90 (0 fell)",
+   "nosem": "87/90 (2 fell)"
+  },
+  "r2_snap": {
+   "semfix": "87/90 (3 fell)",
+   "nosem": "88/90 (0 fell)"
+  },
+  "references": {
+   "teacher": "30/30",
+   "bc": "30/30"
+  }
+ },
+ "t1sl": {
+  "body": "t1sl",
+  "label": "t1 w8d sourced limits iter799 (36e91467)",
+  "caveat": "t1 dataset fails D-112 slip gate (86.2% < 95%), tracker w8d fails lab forward 0.72; t1 tracker w8d exceeds joint limits (margin -0.053) and peak foot force 4.46 BW (W6 gate backfill); trained as a recorded exception (D-113)",
+  "gate": {
+   "gate": "D-112 legged dataset",
+   "n": 600,
+   "slip_measured": 600,
+   "slip_lt_0p15_frac": 0.8617,
+   "slip_median": 0.1313,
+   "slip_ok": false,
+   "noise0_episodes": 150,
+   "noise0_falls": 0,
+   "falls_ok": true,
+   "passed": false
+  },
+  "halt": {
+   "permutation": null,
+   "pooled_diff_fixsem_minus_nosem": [
+    -0.445,
+    -0.554,
+    -0.34
+   ]
+  },
+  "steer": {
+   "permutation": null,
+   "pooled_diff_fixsem_minus_nosem": [
+    0.004,
+    -0.045,
+    0.054
+   ]
+  },
+  "halt_pooled": {
+   "semfix": [
+    -0.307,
+    -0.372,
+    -0.237
+   ],
+   "nosem": [
+    0.138,
+    0.059,
+    0.22
+   ]
+  },
+  "control": {
+   "semfix": [
+    -0.003,
+    -0.015,
+    0.007
+   ],
+   "nosem": [
+    0.004,
+    -0.022,
+    0.031
+   ]
+  },
+  "r2_final": {
+   "semfix": "30/90 (60 fell)",
+   "nosem": "33/90 (57 fell)"
+  },
+  "r2_snap": {
+   "semfix": "34/90 (56 fell)",
+   "nosem": "19/90 (70 fell)"
+  },
+  "references": {
+   "teacher": "30/30",
+   "bc": "0/30"
+  }
+ }
+}

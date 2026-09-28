@@ -208,3 +208,18 @@ joint limits (margin -0.053) and peak foot force 4.46 BW (W6 gate backfill); tra
   the fixsem-vs-nosem context-halt comparison is NOT measurable on t1. Where measurable, semfix halts: seed 0 -0.43 [-0.47, -0.40] (every
   one of 17 pairs between -0.34 and -0.59 m), seed 1 -0.10; irrelevant control +0.00 / -0.01.
 - Tables now print the pair count wherever falls drop pairs below the design (go2: semfix s2 19/20, anymal_c: none).
+
+## t1 FINAL (sourced limits, w8d; D-113 exception) and COMBINED contact_v2 SUMMARY (2026-09-27 22:12)
+DAG legged_v2_t1sl 43/43. Tables: research/tracks/legged8/legged8_compare_t1sl.{md,json}; combined:
+research/tracks/legged8/summary_contact_v2.{md,json} (scripts/legged8_summary.py). The caveat is in the table header, the ledger, every
+stage manifest note and the video banner.
+- R2 (snap / final, of 30): semfix 24/20, 9/10, 1/0; nosem 1/9, 0/0, 18/24. Teacher 30/30; BC 0/30 (16 falls). Falls happen at gait
+  onset (~1.2-1.7 s). Competence is seed-dominated in both variants (semfix s0 and nosem s2 walk; the others mostly fall).
+- Context halt: usable pairs (robot upright at t=2 s) semfix 17 / 9 / 1, nosem 0 / 0 / 14. semfix -0.43 / -0.10 / -0.04 -> pooled
+  -0.31 [-0.37, -0.24] (n=27); nosem s2 +0.14 [+0.06, +0.22] (n=14); pooled difference -0.45 [-0.55, -0.34]. Irrelevant control
+  -0.003 / +0.004. The per-seed ordering / permutation test is UNDEFINED (only one nosem seed has pairs), so t1 gives direction, not a test.
+- The z halt handle works in both (-0.67 vs -0.56); goal steering is small and equal (+0.07 / +0.07).
+Combined (halt Δforward, pooled semfix vs nosem; per-seed ordering): anymal_c -0.19 vs +0.21, ordered, p = 0.05; go2 -0.29 vs +0.37,
+ordered, p = 0.05; t1 -0.31 (n=27) vs +0.14 (n=14), not testable. In every body where it can be measured, the semantic packet
+carries the context halt into a slowdown and the nosem packet does not (nosem walks further). This replicates D-088/D-090/D-092 on
+contact_v2 physics.

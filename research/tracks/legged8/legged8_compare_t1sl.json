@@ -1,0 +1,899 @@
+{
+ "body": "t1",
+ "contact_version": "contact_v2",
+ "variants": {
+  "semfix": {
+   "0": {
+    "r2": {
+     "r2_snap_s4000": {
+      "success": 24,
+      "n": 30,
+      "fell": 6,
+      "file": "artifacts/runs/legged8/legged8-t1sl-semfix/eval_r2-snap_s0/t1/r2_v2_semfix_t1_s0_snap_s4000.jsonl",
+      "source": "learned:train_flow_s0/snap_s4000.pt",
+      "contact_versions": [
+       "contact_v2"
+      ]
+     },
+     "r2_final": {
+      "success": 20,
+      "n": 30,
+      "fell": 10,
+      "file": "artifacts/runs/legged8/legged8-t1sl-semfix/eval_r2-policy_s0/t1/r2_v2_semfix_t1_s0_policy.jsonl",
+      "source": "learned:train_flow_s0/policy.pt",
+      "contact_versions": [
+       "contact_v2"
+      ]
+     }
+    },
+    "unedited_forward_mean": 1.23,
+    "effects": {
+     "ctx halt \u0394forward m": [
+      -0.433,
+      -0.471,
+      -0.397
+     ],
+     "ctx mirror INACTIVE \u0394forward m": [
+      0.004,
+      -0.01,
+      0.018
+     ],
+     "ctx mirror ACTIVE toward m": [
+      0.065,
+      0.031,
+      0.095
+     ],
+     "ctx mirror INACTIVE toward m": [
+      0.006,
+      -0.005,
+      0.016
+     ],
+     "ctx ACTIVE\u2212INACTIVE toward m": [
+      0.059,
+      0.031,
+      0.086
+     ],
+     "z halt \u0394forward m": [
+      -0.748,
+      -0.784,
+      -0.711
+     ],
+     "z turn +0.6 \u0394yaw": [
+      0.281,
+      0.249,
+      0.318
+     ],
+     "z turn \u22120.6 \u0394yaw": [
+      -0.367,
+      -0.406,
+      -0.329
+     ],
+     "z goal-mirror toward m": [
+      0.0,
+      -0.007,
+      0.007
+     ],
+     "z random 8 toward m": [
+      0.007,
+      -0.004,
+      0.017
+     ],
+     "z random 16 \u0394forward m": [
+      -0.007,
+      -0.027,
+      0.015
+     ],
+     "z random 25 \u0394forward m": [
+      -0.123,
+      -0.146,
+      -0.099
+     ],
+     "z random 25 \u0394yaw": [
+      0.125,
+      0.099,
+      0.158
+     ]
+    },
+    "n_pairs": {
+     "ctx halt \u0394forward m": 17,
+     "ctx mirror INACTIVE \u0394forward m": 17,
+     "ctx mirror ACTIVE toward m": 17,
+     "ctx mirror INACTIVE toward m": 17,
+     "ctx ACTIVE\u2212INACTIVE toward m": 17,
+     "z halt \u0394forward m": 17,
+     "z turn +0.6 \u0394yaw": 17,
+     "z turn \u22120.6 \u0394yaw": 17,
+     "z goal-mirror toward m": 17,
+     "z random 8 toward m": 17,
+     "z random 16 \u0394forward m": 17,
+     "z random 25 \u0394forward m": 17,
+     "z random 25 \u0394yaw": 17
+    },
+    "dirs": [
+     "artifacts/runs/legged8/legged8-t1sl-semfix/edits-z_s0/r2_v2_semfix_t1_s0_snap_s4000",
+     "artifacts/runs/legged8/legged8-t1sl-semfix/edits-ctx_s0/r2ctx_v2_semfix_t1_s0_snap_s4000"
+    ]
+   },
+   "1": {
+    "r2": {
+     "r2_snap_s4000": {
+      "success": 9,
+      "n": 30,
+      "fell": 21,
+      "file": "artifacts/runs/legged8/legged8-t1sl-semfix/eval_r2-snap_s1/t1/r2_v2_semfix_t1_s1_snap_s4000.jsonl",
+      "source": "learned:train_flow_s1/snap_s4000.pt",
+      "contact_versions": [
+       "contact_v2"
+      ]
+     },
+     "r2_final": {
+      "success": 10,
+      "n": 30,
+      "fell": 20,
+      "file": "artifacts/runs/legged8/legged8-t1sl-semfix/eval_r2-policy_s1/t1/r2_v2_semfix_t1_s1_policy.jsonl",
+      "source": "learned:train_flow_s1/policy.pt",
+      "contact_versions": [
+       "contact_v2"
+      ]
+     }
+    },
+    "unedited_forward_mean": 1.014,
+    "effects": {
+     "ctx halt \u0394forward m": [
+      -0.098,
+      -0.144,
+      -0.057
+     ],
+     "ctx mirror INACTIVE \u0394forward m": [
+      -0.013,
+      -0.03,
+      0.003
+     ],
+     "ctx mirror ACTIVE toward m": [
+      0.053,
+      0.037,
+      0.07
+     ],
+     "ctx mirror INACTIVE toward m": [
+      0.0,
+      -0.011,
+      0.011
+     ],
+     "ctx ACTIVE\u2212INACTIVE toward m": [
+      0.053,
+      0.039,
+      0.069
+     ],
+     "z halt \u0394forward m": [
+      -0.503,
+      -0.589,
+      -0.424
+     ],
+     "z turn +0.6 \u0394yaw": [
+      0.203,
+      0.18,
+      0.226
+     ],
+     "z turn \u22120.6 \u0394yaw": [
+      -0.216,
+      -0.253,
+      -0.174
+     ],
+     "z goal-mirror toward m": [
+      0.014,
+      0.006,
+      0.021
+     ],
+     "z random 8 toward m": [
+      0.005,
+      -0.007,
+      0.018
+     ],
+     "z random 16 \u0394forward m": [
+      -0.065,
+      -0.086,
+      -0.047
+     ],
+     "z random 25 \u0394forward m": [
+      -0.199,
+      -0.216,
+      -0.178
+     ],
+     "z random 25 \u0394yaw": [
+      -0.086,
+      -0.125,
+      -0.049
+     ]
+    },
+    "n_pairs": {
+     "ctx halt \u0394forward m": 9,
+     "ctx mirror INACTIVE \u0394forward m": 9,
+     "ctx mirror ACTIVE toward m": 9,
+     "ctx mirror INACTIVE toward m": 9,
+     "ctx ACTIVE\u2212INACTIVE toward m": 9,
+     "z halt \u0394forward m": 9,
+     "z turn +0.6 \u0394yaw": 9,
+     "z turn \u22120.6 \u0394yaw": 9,
+     "z goal-mirror toward m": 9,
+     "z random 8 toward m": 9,
+     "z random 16 \u0394forward m": 9,
+     "z random 25 \u0394forward m": 9,
+     "z random 25 \u0394yaw": 9
+    },
+    "dirs": [
+     "artifacts/runs/legged8/legged8-t1sl-semfix/edits-z_s1/r2_v2_semfix_t1_s1_snap_s4000",
+     "artifacts/runs/legged8/legged8-t1sl-semfix/edits-ctx_s1/r2ctx_v2_semfix_t1_s1_snap_s4000"
+    ]
+   },
+   "2": {
+    "r2": {
+     "r2_snap_s4000": {
+      "success": 1,
+      "n": 30,
+      "fell": 29,
+      "file": "artifacts/runs/legged8/legged8-t1sl-semfix/eval_r2-snap_s2/t1/r2_v2_semfix_t1_s2_snap_s4000.jsonl",
+      "source": "learned:train_flow_s2/snap_s4000.pt",
+      "contact_versions": [
+       "contact_v2"
+      ]
+     },
+     "r2_final": {
+      "success": 0,
+      "n": 30,
+      "fell": 30,
+      "file": "artifacts/runs/legged8/legged8-t1sl-semfix/eval_r2-policy_s2/t1/r2_v2_semfix_t1_s2_policy.jsonl",
+      "source": "learned:train_flow_s2/policy.pt",
+      "contact_versions": [
+       "contact_v2"
+      ]
+     }
+    },
+    "unedited_forward_mean": 0.885,
+    "effects": {
+     "ctx halt \u0394forward m": [
+      -0.045,
+      -0.045,
+      -0.045
+     ],
+     "ctx mirror INACTIVE \u0394forward m": [
+      -0.044,
+      -0.044,
+      -0.044
+     ],
+     "ctx mirror ACTIVE toward m": [
+      0.469,
+      0.469,
+      0.469
+     ],
+     "ctx mirror INACTIVE toward m": [
+      0.019,
+      0.019,
+      0.019
+     ],
+     "ctx ACTIVE\u2212INACTIVE toward m": [
+      0.449,
+      0.449,
+      0.449
+     ],
+     "z halt \u0394forward m": [
+      -0.737,
+      -0.737,
+      -0.737
+     ],
+     "z turn +0.6 \u0394yaw": [
+      -0.03,
+      -0.03,
+      -0.03
+     ],
+     "z turn \u22120.6 \u0394yaw": [
+      -0.266,
+      -0.266,
+      -0.266
+     ],
+     "z goal-mirror toward m": [
+      0.007,
+      0.007,
+      0.007
+     ],
+     "z random 8 toward m": [
+      -0.008,
+      -0.008,
+      -0.008
+     ],
+     "z random 16 \u0394forward m": [
+      -0.139,
+      -0.139,
+      -0.139
+     ],
+     "z random 25 \u0394forward m": [
+      -0.276,
+      -0.276,
+      -0.276
+     ],
+     "z random 25 \u0394yaw": [
+      -0.076,
+      -0.076,
+      -0.076
+     ]
+    },
+    "n_pairs": {
+     "ctx halt \u0394forward m": 1,
+     "ctx mirror INACTIVE \u0394forward m": 1,
+     "ctx mirror ACTIVE toward m": 1,
+     "ctx mirror INACTIVE toward m": 1,
+     "ctx ACTIVE\u2212INACTIVE toward m": 1,
+     "z halt \u0394forward m": 1,
+     "z turn +0.6 \u0394yaw": 1,
+     "z turn \u22120.6 \u0394yaw": 1,
+     "z goal-mirror toward m": 1,
+     "z random 8 toward m": 1,
+     "z random 16 \u0394forward m": 1,
+     "z random 25 \u0394forward m": 1,
+     "z random 25 \u0394yaw": 1
+    },
+    "dirs": [
+     "artifacts/runs/legged8/legged8-t1sl-semfix/edits-z_s2/r2_v2_semfix_t1_s2_snap_s4000",
+     "artifacts/runs/legged8/legged8-t1sl-semfix/edits-ctx_s2/r2ctx_v2_semfix_t1_s2_snap_s4000"
+    ]
+   },
+   "pooled": {
+    "effects": {
+     "ctx halt \u0394forward m": [
+      -0.307,
+      -0.372,
+      -0.237
+     ],
+     "ctx mirror INACTIVE \u0394forward m": [
+      -0.003,
+      -0.015,
+      0.007
+     ],
+     "ctx mirror ACTIVE toward m": [
+      0.076,
+      0.046,
+      0.113
+     ],
+     "ctx mirror INACTIVE toward m": [
+      0.005,
+      -0.004,
+      0.012
+     ],
+     "ctx ACTIVE\u2212INACTIVE toward m": [
+      0.071,
+      0.044,
+      0.106
+     ],
+     "z halt \u0394forward m": [
+      -0.666,
+      -0.723,
+      -0.608
+     ],
+     "z turn +0.6 \u0394yaw": [
+      0.244,
+      0.211,
+      0.276
+     ],
+     "z turn \u22120.6 \u0394yaw": [
+      -0.312,
+      -0.349,
+      -0.275
+     ],
+     "z goal-mirror toward m": [
+      0.005,
+      -0.0,
+      0.011
+     ],
+     "z random 8 toward m": [
+      0.006,
+      -0.002,
+      0.013
+     ],
+     "z random 16 \u0394forward m": [
+      -0.031,
+      -0.05,
+      -0.011
+     ],
+     "z random 25 \u0394forward m": [
+      -0.154,
+      -0.176,
+      -0.131
+     ],
+     "z random 25 \u0394yaw": [
+      0.047,
+      0.002,
+      0.091
+     ]
+    },
+    "n_pairs": {
+     "ctx halt \u0394forward m": 27,
+     "ctx mirror INACTIVE \u0394forward m": 27,
+     "ctx mirror ACTIVE toward m": 27,
+     "ctx mirror INACTIVE toward m": 27,
+     "ctx ACTIVE\u2212INACTIVE toward m": 27,
+     "z halt \u0394forward m": 27,
+     "z turn +0.6 \u0394yaw": 27,
+     "z turn \u22120.6 \u0394yaw": 27,
+     "z goal-mirror toward m": 27,
+     "z random 8 toward m": 27,
+     "z random 16 \u0394forward m": 27,
+     "z random 25 \u0394forward m": 27,
+     "z random 25 \u0394yaw": 27
+    },
+    "training_seeds": [
+     0,
+     1,
+     2
+    ],
+    "r2_snap_s4000": [
+     "24/30",
+     "9/30",
+     "1/30"
+    ],
+    "r2_final": [
+     "20/30",
+     "10/30",
+     "0/30"
+    ]
+   }
+  },
+  "nosem": {
+   "0": {
+    "r2": {
+     "r2_snap_s4000": {
+      "success": 1,
+      "n": 30,
+      "fell": 29,
+      "file": "artifacts/runs/legged8/legged8-t1sl-nosem/eval_r2-snap_s0/t1/r2_v2_nosem_t1_s0_snap_s4000.jsonl",
+      "source": "learned:train_flow_s0/snap_s4000.pt",
+      "contact_versions": [
+       "contact_v2"
+      ]
+     },
+     "r2_final": {
+      "success": 9,
+      "n": 30,
+      "fell": 21,
+      "file": "artifacts/runs/legged8/legged8-t1sl-nosem/eval_r2-policy_s0/t1/r2_v2_nosem_t1_s0_policy.jsonl",
+      "source": "learned:train_flow_s0/policy.pt",
+      "contact_versions": [
+       "contact_v2"
+      ]
+     }
+    },
+    "unedited_forward_mean": null,
+    "effects": {
+     "ctx halt \u0394forward m": null,
+     "ctx mirror INACTIVE \u0394forward m": null,
+     "ctx mirror ACTIVE toward m": null,
+     "ctx mirror INACTIVE toward m": null,
+     "ctx ACTIVE\u2212INACTIVE toward m": null,
+     "z halt \u0394forward m": null,
+     "z turn +0.6 \u0394yaw": null,
+     "z turn \u22120.6 \u0394yaw": null,
+     "z goal-mirror toward m": null,
+     "z random 8 toward m": null,
+     "z random 16 \u0394forward m": null,
+     "z random 25 \u0394forward m": null,
+     "z random 25 \u0394yaw": null
+    },
+    "n_pairs": {
+     "ctx halt \u0394forward m": 0,
+     "ctx mirror INACTIVE \u0394forward m": 0,
+     "ctx mirror ACTIVE toward m": 0,
+     "ctx mirror INACTIVE toward m": 0,
+     "ctx ACTIVE\u2212INACTIVE toward m": 0,
+     "z halt \u0394forward m": 0,
+     "z turn +0.6 \u0394yaw": 0,
+     "z turn \u22120.6 \u0394yaw": 0,
+     "z goal-mirror toward m": 0,
+     "z random 8 toward m": 0,
+     "z random 16 \u0394forward m": 0,
+     "z random 25 \u0394forward m": 0,
+     "z random 25 \u0394yaw": 0
+    },
+    "dirs": [
+     "artifacts/runs/legged8/legged8-t1sl-nosem/edits-z_s0/r2_v2_nosem_t1_s0_snap_s4000",
+     "artifacts/runs/legged8/legged8-t1sl-nosem/edits-ctx_s0/r2ctx_v2_nosem_t1_s0_snap_s4000"
+    ]
+   },
+   "1": {
+    "r2": {
+     "r2_snap_s4000": {
+      "success": 0,
+      "n": 30,
+      "fell": 30,
+      "file": "artifacts/runs/legged8/legged8-t1sl-nosem/eval_r2-snap_s1/t1/r2_v2_nosem_t1_s1_snap_s4000.jsonl",
+      "source": "learned:train_flow_s1/snap_s4000.pt",
+      "contact_versions": [
+       "contact_v2"
+      ]
+     },
+     "r2_final": {
+      "success": 0,
+      "n": 30,
+      "fell": 30,
+      "file": "artifacts/runs/legged8/legged8-t1sl-nosem/eval_r2-policy_s1/t1/r2_v2_nosem_t1_s1_policy.jsonl",
+      "source": "learned:train_flow_s1/policy.pt",
+      "contact_versions": [
+       "contact_v2"
+      ]
+     }
+    },
+    "unedited_forward_mean": null,
+    "effects": {
+     "ctx halt \u0394forward m": null,
+     "ctx mirror INACTIVE \u0394forward m": null,
+     "ctx mirror ACTIVE toward m": null,
+     "ctx mirror INACTIVE toward m": null,
+     "ctx ACTIVE\u2212INACTIVE toward m": null,
+     "z halt \u0394forward m": null,
+     "z turn +0.6 \u0394yaw": null,
+     "z turn \u22120.6 \u0394yaw": null,
+     "z goal-mirror toward m": null,
+     "z random 8 toward m": null,
+     "z random 16 \u0394forward m": null,
+     "z random 25 \u0394forward m": null,
+     "z random 25 \u0394yaw": null
+    },
+    "n_pairs": {
+     "ctx halt \u0394forward m": 0,
+     "ctx mirror INACTIVE \u0394forward m": 0,
+     "ctx mirror ACTIVE toward m": 0,
+     "ctx mirror INACTIVE toward m": 0,
+     "ctx ACTIVE\u2212INACTIVE toward m": 0,
+     "z halt \u0394forward m": 0,
+     "z turn +0.6 \u0394yaw": 0,
+     "z turn \u22120.6 \u0394yaw": 0,
+     "z goal-mirror toward m": 0,
+     "z random 8 toward m": 0,
+     "z random 16 \u0394forward m": 0,
+     "z random 25 \u0394forward m": 0,
+     "z random 25 \u0394yaw": 0
+    },
+    "dirs": [
+     "artifacts/runs/legged8/legged8-t1sl-nosem/edits-z_s1/r2_v2_nosem_t1_s1_snap_s4000",
+     "artifacts/runs/legged8/legged8-t1sl-nosem/edits-ctx_s1/r2ctx_v2_nosem_t1_s1_snap_s4000"
+    ]
+   },
+   "2": {
+    "r2": {
+     "r2_snap_s4000": {
+      "success": 18,
+      "n": 30,
+      "fell": 11,
+      "file": "artifacts/runs/legged8/legged8-t1sl-nosem/eval_r2-snap_s2/t1/r2_v2_nosem_t1_s2_snap_s4000.jsonl",
+      "source": "learned:train_flow_s2/snap_s4000.pt",
+      "contact_versions": [
+       "contact_v2"
+      ]
+     },
+     "r2_final": {
+      "success": 24,
+      "n": 30,
+      "fell": 6,
+      "file": "artifacts/runs/legged8/legged8-t1sl-nosem/eval_r2-policy_s2/t1/r2_v2_nosem_t1_s2_policy.jsonl",
+      "source": "learned:train_flow_s2/policy.pt",
+      "contact_versions": [
+       "contact_v2"
+      ]
+     }
+    },
+    "unedited_forward_mean": 0.914,
+    "effects": {
+     "ctx halt \u0394forward m": [
+      0.138,
+      0.059,
+      0.22
+     ],
+     "ctx mirror INACTIVE \u0394forward m": [
+      0.004,
+      -0.022,
+      0.031
+     ],
+     "ctx mirror ACTIVE toward m": [
+      0.084,
+      0.033,
+      0.142
+     ],
+     "ctx mirror INACTIVE toward m": [
+      0.016,
+      -0.009,
+      0.048
+     ],
+     "ctx ACTIVE\u2212INACTIVE toward m": [
+      0.068,
+      0.035,
+      0.102
+     ],
+     "z halt \u0394forward m": [
+      -0.562,
+      -0.67,
+      -0.453
+     ],
+     "z turn +0.6 \u0394yaw": [
+      -0.179,
+      -0.243,
+      -0.111
+     ],
+     "z turn \u22120.6 \u0394yaw": [
+      -0.088,
+      -0.116,
+      -0.057
+     ],
+     "z goal-mirror toward m": [
+      0.011,
+      0.002,
+      0.022
+     ],
+     "z random 8 toward m": [
+      0.03,
+      0.008,
+      0.05
+     ],
+     "z random 16 \u0394forward m": [
+      -0.217,
+      -0.262,
+      -0.169
+     ],
+     "z random 25 \u0394forward m": [
+      -0.409,
+      -0.478,
+      -0.34
+     ],
+     "z random 25 \u0394yaw": [
+      -0.249,
+      -0.368,
+      -0.163
+     ]
+    },
+    "n_pairs": {
+     "ctx halt \u0394forward m": 14,
+     "ctx mirror INACTIVE \u0394forward m": 14,
+     "ctx mirror ACTIVE toward m": 14,
+     "ctx mirror INACTIVE toward m": 14,
+     "ctx ACTIVE\u2212INACTIVE toward m": 14,
+     "z halt \u0394forward m": 14,
+     "z turn +0.6 \u0394yaw": 14,
+     "z turn \u22120.6 \u0394yaw": 14,
+     "z goal-mirror toward m": 14,
+     "z random 8 toward m": 14,
+     "z random 16 \u0394forward m": 14,
+     "z random 25 \u0394forward m": 14,
+     "z random 25 \u0394yaw": 14
+    },
+    "dirs": [
+     "artifacts/runs/legged8/legged8-t1sl-nosem/edits-z_s2/r2_v2_nosem_t1_s2_snap_s4000",
+     "artifacts/runs/legged8/legged8-t1sl-nosem/edits-ctx_s2/r2ctx_v2_nosem_t1_s2_snap_s4000"
+    ]
+   },
+   "pooled": {
+    "effects": {
+     "ctx halt \u0394forward m": [
+      0.138,
+      0.059,
+      0.22
+     ],
+     "ctx mirror INACTIVE \u0394forward m": [
+      0.004,
+      -0.022,
+      0.031
+     ],
+     "ctx mirror ACTIVE toward m": [
+      0.084,
+      0.033,
+      0.142
+     ],
+     "ctx mirror INACTIVE toward m": [
+      0.016,
+      -0.009,
+      0.048
+     ],
+     "ctx ACTIVE\u2212INACTIVE toward m": [
+      0.068,
+      0.035,
+      0.102
+     ],
+     "z halt \u0394forward m": [
+      -0.562,
+      -0.67,
+      -0.453
+     ],
+     "z turn +0.6 \u0394yaw": [
+      -0.179,
+      -0.243,
+      -0.111
+     ],
+     "z turn \u22120.6 \u0394yaw": [
+      -0.088,
+      -0.116,
+      -0.057
+     ],
+     "z goal-mirror toward m": [
+      0.011,
+      0.002,
+      0.022
+     ],
+     "z random 8 toward m": [
+      0.03,
+      0.008,
+      0.05
+     ],
+     "z random 16 \u0394forward m": [
+      -0.217,
+      -0.262,
+      -0.169
+     ],
+     "z random 25 \u0394forward m": [
+      -0.409,
+      -0.478,
+      -0.34
+     ],
+     "z random 25 \u0394yaw": [
+      -0.249,
+      -0.368,
+      -0.163
+     ]
+    },
+    "n_pairs": {
+     "ctx halt \u0394forward m": 14,
+     "ctx mirror INACTIVE \u0394forward m": 14,
+     "ctx mirror ACTIVE toward m": 14,
+     "ctx mirror INACTIVE toward m": 14,
+     "ctx ACTIVE\u2212INACTIVE toward m": 14,
+     "z halt \u0394forward m": 14,
+     "z turn +0.6 \u0394yaw": 14,
+     "z turn \u22120.6 \u0394yaw": 14,
+     "z goal-mirror toward m": 14,
+     "z random 8 toward m": 14,
+     "z random 16 \u0394forward m": 14,
+     "z random 25 \u0394forward m": 14,
+     "z random 25 \u0394yaw": 14
+    },
+    "training_seeds": [
+     0,
+     1,
+     2
+    ],
+    "r2_snap_s4000": [
+     "1/30",
+     "0/30",
+     "18/30"
+    ],
+    "r2_final": [
+     "9/30",
+     "0/30",
+     "24/30"
+    ]
+   }
+  }
+ },
+ "references": {
+  "teacher": {
+   "success": 30,
+   "n": 30,
+   "fell": 0,
+   "file": "artifacts/runs/legged8/legged8-t1sl-v2data/eval_r2-teacher_s0/t1/teacher_v2_teacher_t1.jsonl",
+   "source": "scripted_teacher",
+   "contact_versions": [
+    "contact_v2"
+   ]
+  },
+  "bc": {
+   "success": 0,
+   "n": 30,
+   "fell": 16,
+   "file": "artifacts/runs/legged8/legged8-t1sl-v2data/eval_r2-bc_s0/t1/bc_v2_bc_t1.jsonl",
+   "source": "bc:train_bc_s0/policy.pt",
+   "contact_versions": [
+    "contact_v2"
+   ]
+  }
+ },
+ "tests_fixsem_vs_nosem": {
+  "ctx halt \u0394forward m": {
+   "permutation": null,
+   "pooled_diff_fixsem_minus_nosem": [
+    -0.445,
+    -0.554,
+    -0.34
+   ]
+  },
+  "ctx mirror INACTIVE \u0394forward m": {
+   "permutation": null,
+   "pooled_diff_fixsem_minus_nosem": [
+    -0.007,
+    -0.035,
+    0.021
+   ]
+  },
+  "ctx mirror ACTIVE toward m": {
+   "permutation": null,
+   "pooled_diff_fixsem_minus_nosem": [
+    -0.008,
+    -0.077,
+    0.056
+   ]
+  },
+  "ctx mirror INACTIVE toward m": {
+   "permutation": null,
+   "pooled_diff_fixsem_minus_nosem": [
+    -0.012,
+    -0.046,
+    0.015
+   ]
+  },
+  "ctx ACTIVE\u2212INACTIVE toward m": {
+   "permutation": null,
+   "pooled_diff_fixsem_minus_nosem": [
+    0.004,
+    -0.045,
+    0.054
+   ]
+  },
+  "z halt \u0394forward m": {
+   "permutation": null,
+   "pooled_diff_fixsem_minus_nosem": [
+    -0.104,
+    -0.236,
+    0.021
+   ]
+  },
+  "z turn +0.6 \u0394yaw": {
+   "permutation": null,
+   "pooled_diff_fixsem_minus_nosem": [
+    0.422,
+    0.347,
+    0.497
+   ]
+  },
+  "z turn \u22120.6 \u0394yaw": {
+   "permutation": null,
+   "pooled_diff_fixsem_minus_nosem": [
+    -0.224,
+    -0.275,
+    -0.175
+   ]
+  },
+  "z goal-mirror toward m": {
+   "permutation": null,
+   "pooled_diff_fixsem_minus_nosem": [
+    -0.006,
+    -0.018,
+    0.004
+   ]
+  },
+  "z random 8 toward m": {
+   "permutation": null,
+   "pooled_diff_fixsem_minus_nosem": [
+    -0.025,
+    -0.048,
+    0.001
+   ]
+  },
+  "z random 16 \u0394forward m": {
+   "permutation": null,
+   "pooled_diff_fixsem_minus_nosem": [
+    0.186,
+    0.136,
+    0.236
+   ]
+  },
+  "z random 25 \u0394forward m": {
+   "permutation": null,
+   "pooled_diff_fixsem_minus_nosem": [
+    0.255,
+    0.181,
+    0.33
+   ]
+  },
+  "z random 25 \u0394yaw": {
+   "permutation": null,
+   "pooled_diff_fixsem_minus_nosem": [
+    0.297,
+    0.197,
+    0.421
+   ]
+  }
+ },
+ "caveat": "t1 dataset fails D-112 slip gate (86.2% < 95%), tracker w8d fails lab forward 0.72; t1 tracker w8d exceeds joint limits (margin -0.053) and peak foot force 4.46 BW (W6 gate backfill); trained as a recorded exception (D-113)"
+}
