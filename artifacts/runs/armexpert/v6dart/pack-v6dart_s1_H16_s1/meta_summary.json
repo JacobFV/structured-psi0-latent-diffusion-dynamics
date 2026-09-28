@@ -1,0 +1,123 @@
+{
+ "n": 1013185,
+ "H": 16,
+ "stride": 1,
+ "source": "artifacts/runs/armexpert/v6dart/collect-v6dart_s1",
+ "robot_ids": {
+  "panda_pg2": 0,
+  "parm5_pg2": 1,
+  "parm5_tf3": 2,
+  "parm5l_tf3": 3,
+  "parm5s_pg2": 4,
+  "parm6_pg2": 5,
+  "parm6_tf3": 6,
+  "parm7_pg2": 7,
+  "parm7_tf3": 8,
+  "sawyer_pg2": 9,
+  "sawyer_tf3": 10,
+  "ur5e_pg2": 11,
+  "ur5e_tf3": 12
+ },
+ "operators": [
+  "none",
+  "grasp",
+  "place",
+  "reach",
+  "maintain_support",
+  "estimate_frame",
+  "align_axis",
+  "insert",
+  "give",
+  "receive",
+  "walk_to",
+  "halt",
+  "maintain_hold",
+  "release"
+ ],
+ "robots": [
+  "panda_pg2",
+  "parm5_pg2",
+  "parm5_tf3",
+  "parm5l_tf3",
+  "parm5s_pg2",
+  "parm6_pg2",
+  "parm6_tf3",
+  "parm7_pg2",
+  "parm7_tf3",
+  "sawyer_pg2",
+  "sawyer_tf3",
+  "ur5e_pg2",
+  "ur5e_tf3"
+ ],
+ "max": {
+  "T": {
+   "morph": 16,
+   "scene": 8,
+   "task": 24,
+   "interact": 12
+  },
+  "N": 12,
+  "S": 8,
+  "R": 160,
+  "P": 32
+ },
+ "truncated_rows": {
+  "rel": 0,
+  "ptr": 0,
+  "morph": 0,
+  "scene": 0,
+  "task": 0,
+  "interact": 0
+ },
+ "include_dart_failures": true,
+ "multi_m": 0,
+ "statuses": [
+  "success"
+ ],
+ "prev_action": {
+  "column": 28,
+  "stored": "raw_teacher_prev_command_if_collected_pre_D021",
+  "zeroed_in_pack": false,
+  "zero_prev_action_is_load_time_flag": true
+ },
+ "dataset_provenance": {
+  "schema_version": "provenance-1",
+  "source": "scripted_teacher:pick_place_v2_minjerk",
+  "physics": {
+   "mujoco_version": "3.14.0",
+   "timestep": 0.002,
+   "integrator": "implicitfast",
+   "cone": "elliptic",
+   "impratio": 10.0,
+   "solver": "newton",
+   "iterations": 100,
+   "ls_iterations": 50,
+   "noslip_iterations": 0,
+   "contact_version": "contact_v1",
+   "actuator_limits": null,
+   "grasp_contact_version": "grasp_v2.1"
+  },
+  "featurizer_version": "feat-v2",
+  "code": {
+   "git_sha": "496fdc9d2bcb8e9eb4a8a83f045962e6e9fd0f9c",
+   "dirty": false
+  },
+  "weights": {},
+  "bundle_fingerprint": null,
+  "versions": {},
+  "flags": {
+   "dart_noise": [],
+   "dart_safety": {
+    "margin_m": 0.005,
+    "mode": "phase"
+   },
+   "grasp_contact_version": "grasp_v2.1",
+   "privileged_teacher": true,
+   "teacher_version": "pick_place_v2_minjerk"
+  },
+  "legacy": false,
+  "created_at": 1790561780.2073638,
+  "notes": ""
+ },
+ "grasp_contact_version": "grasp_v2.1"
+}

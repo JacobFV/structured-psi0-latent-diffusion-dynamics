@@ -591,3 +591,17 @@ Provenance: episode meta `dart` = {mode, free_phases|margin_m, ticks/applied/rej
 `dart_safety`. v6dart = v5dart config + `grasp_contact: v2.1` + `dart_safety: phase` (`dags/armexpert_v6dart.yaml`),
 collect gated in the pipeline; v5 BC 1701 kept unused. Launched 18:54 (queued on peer admission); BC chain queued after
 the pack (`../armexpert_bcv6_launch.sh`, GC=v2.1, pack grasp check).
+
+### v6dart (teacher v2 + grasp_v2.1 + phase-gated DART): collected, GATE PASS, packed — BC expert training
+- Collect (run-dag, peer, lease 1790561427_efc285, rc 0, 6.5 min, peak 20.1 GB): 8250 episodes, all grasp_v2.1, all
+  3900 DART episodes `dart.mode: phase`; code git 496fdc9 (clean; a first run 19:02 with a stale peer revision file was
+  discarded and re-collected, identical statuses 8250/8250). Statuses: 7341 success, 3 failure (2 parm7_tf3 DART, 1
+  xarm7_pg2 clean target-demo), 906 infeasible (same seeds as v5). DART successes 3445/3447 (v5dart 82).
+- W6 dataset gate (in the collect stage, `gate_report.json`): **PASS** — phase-switch step 0.998, menagerie joint
+  margin (clean) 0.9985, jerk <= 2x teacher on every body, **penetration <= 3 mm 0.9943 (gated for grasp_v2.1)**; reported
+  only: DART joint margin 0.997, procedural margin 0.747. (gates.py now gates penetration for grasp_v2.1 too.)
+- Pack (lease 1790562613_aa7a58, rc 0, peak 12.9 GB with the streaming packer): `latent_pp_v6dart_s1_H16`, 1,013,185
+  rows (v5dart 1,369,801: the DART episodes no longer stall to 600 ticks), 13 source-train bodies, H16, stride 1,
+  grasp_v2.1; peer disk ~/rrp-peer-data/packed/latent_pp_v6dart_s1_H16 (11 GB); summary meta in git.
+- BC expert: seed 1701 training started 19:41 (peer GPU, `../armexpert_bcv6_launch.sh`: pack grasp checked, evals under
+  RRP_GRASP_CONTACT=v2.1, ROOT artifacts/runs/armexpert_bcv6, EV artifacts/runs/armexpert_bcv6_eval), then 1702.

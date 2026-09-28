@@ -1,0 +1,362 @@
+{
+ "config_hash": "9df79e907b751bef",
+ "episodes": [],
+ "finished": 1790561781.9127188,
+ "inputs": {},
+ "manifest_hash": "29afc673345ce2aa",
+ "metrics": {
+  "gate": {
+   "failed": [],
+   "not_evaluated": [],
+   "verdict": "pass"
+  }
+ },
+ "n_episodes": 0,
+ "name": "runs/armexpert/v6dart/collect-v6dart_s1",
+ "native_config": {
+  "dart_safety": "phase",
+  "grasp_contact": "v2.1",
+  "items": [
+   {
+    "dart_noise": [
+     0.08
+    ],
+    "episodes": 300,
+    "robot": "parm5_pg2",
+    "seed_start": 0,
+    "split": "source_train"
+   },
+   {
+    "dart_noise": [
+     0.08
+    ],
+    "episodes": 300,
+    "robot": "parm5_tf3",
+    "seed_start": 0,
+    "split": "source_train"
+   },
+   {
+    "dart_noise": [
+     0.08
+    ],
+    "episodes": 300,
+    "robot": "parm5s_pg2",
+    "seed_start": 0,
+    "split": "source_train"
+   },
+   {
+    "dart_noise": [
+     0.08
+    ],
+    "episodes": 300,
+    "robot": "parm5l_tf3",
+    "seed_start": 0,
+    "split": "source_train"
+   },
+   {
+    "dart_noise": [
+     0.08
+    ],
+    "episodes": 300,
+    "robot": "parm6_pg2",
+    "seed_start": 0,
+    "split": "source_train"
+   },
+   {
+    "dart_noise": [
+     0.08
+    ],
+    "episodes": 300,
+    "robot": "parm6_tf3",
+    "seed_start": 0,
+    "split": "source_train"
+   },
+   {
+    "dart_noise": [
+     0.08
+    ],
+    "episodes": 300,
+    "robot": "parm7_pg2",
+    "seed_start": 0,
+    "split": "source_train"
+   },
+   {
+    "dart_noise": [
+     0.08
+    ],
+    "episodes": 300,
+    "robot": "parm7_tf3",
+    "seed_start": 0,
+    "split": "source_train"
+   },
+   {
+    "dart_noise": [
+     0.08
+    ],
+    "episodes": 300,
+    "robot": "panda_pg2",
+    "seed_start": 0,
+    "split": "source_train"
+   },
+   {
+    "dart_noise": [
+     0.08
+    ],
+    "episodes": 300,
+    "robot": "ur5e_pg2",
+    "seed_start": 0,
+    "split": "source_train"
+   },
+   {
+    "dart_noise": [
+     0.08
+    ],
+    "episodes": 300,
+    "robot": "ur5e_tf3",
+    "seed_start": 0,
+    "split": "source_train"
+   },
+   {
+    "dart_noise": [
+     0.08
+    ],
+    "episodes": 300,
+    "robot": "sawyer_pg2",
+    "seed_start": 0,
+    "split": "source_train"
+   },
+   {
+    "dart_noise": [
+     0.08
+    ],
+    "episodes": 300,
+    "robot": "sawyer_tf3",
+    "seed_start": 0,
+    "split": "source_train"
+   },
+   {
+    "episodes": 150,
+    "robot": "xarm7_pg2",
+    "seed_start": 1000000,
+    "split": "target_demos"
+   },
+   {
+    "episodes": 150,
+    "robot": "xarm7_tf3",
+    "seed_start": 1000000,
+    "split": "target_demos"
+   },
+   {
+    "episodes": 150,
+    "robot": "panda_tf3",
+    "seed_start": 1000000,
+    "split": "target_demos"
+   }
+  ],
+  "max_distractors": 2,
+  "name": "pick_place_primary_v6dart",
+  "out_dir": "artifacts/runs/armexpert/v6dart/collect-v6dart_s1",
+  "split_file": "research/splits/primary_v1.json",
+  "teacher_version": "v2",
+  "workers": 6
+ },
+ "outputs": {
+  "manifest": {
+   "digest": "04eb5ae84b0da9e3",
+   "path": "artifacts/runs/armexpert/v6dart/collect-v6dart_s1/manifest.json"
+  }
+ },
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": false,
+   "git_sha": "496fdc9d2bcb8e9eb4a8a83f045962e6e9fd0f9c"
+  },
+  "created_at": 1790561781.8939242,
+  "featurizer_version": null,
+  "flags": {
+   "contact_version": "contact_v1"
+  },
+  "legacy": false,
+  "notes": "pipeline arm/collect runs/armexpert/v6dart/collect-v6dart_s1",
+  "physics": null,
+  "schema_version": "provenance-1",
+  "source": "scripted_teacher",
+  "versions": {},
+  "weights": {}
+ },
+ "run_id": "runs/armexpert/v6dart/collect-v6dart_s1",
+ "runconfig": {
+  "family": "arm",
+  "flags": {
+   "contact_version": "contact_v1",
+   "probe_lv_min": null,
+   "qd_dropout": null,
+   "realizer_anchor": null,
+   "realizer_drop_qd": null,
+   "zero_prev_action": null
+  },
+  "inputs": {},
+  "legacy": null,
+  "lineage": "v6dart",
+  "note": "",
+  "options": {
+   "workers": 6
+  },
+  "params": {
+   "dart_safety": "phase",
+   "grasp_contact": "v2.1",
+   "items": [
+    {
+     "dart_noise": [
+      0.08
+     ],
+     "episodes": 300,
+     "robot": "parm5_pg2",
+     "seed_start": 0,
+     "split": "source_train"
+    },
+    {
+     "dart_noise": [
+      0.08
+     ],
+     "episodes": 300,
+     "robot": "parm5_tf3",
+     "seed_start": 0,
+     "split": "source_train"
+    },
+    {
+     "dart_noise": [
+      0.08
+     ],
+     "episodes": 300,
+     "robot": "parm5s_pg2",
+     "seed_start": 0,
+     "split": "source_train"
+    },
+    {
+     "dart_noise": [
+      0.08
+     ],
+     "episodes": 300,
+     "robot": "parm5l_tf3",
+     "seed_start": 0,
+     "split": "source_train"
+    },
+    {
+     "dart_noise": [
+      0.08
+     ],
+     "episodes": 300,
+     "robot": "parm6_pg2",
+     "seed_start": 0,
+     "split": "source_train"
+    },
+    {
+     "dart_noise": [
+      0.08
+     ],
+     "episodes": 300,
+     "robot": "parm6_tf3",
+     "seed_start": 0,
+     "split": "source_train"
+    },
+    {
+     "dart_noise": [
+      0.08
+     ],
+     "episodes": 300,
+     "robot": "parm7_pg2",
+     "seed_start": 0,
+     "split": "source_train"
+    },
+    {
+     "dart_noise": [
+      0.08
+     ],
+     "episodes": 300,
+     "robot": "parm7_tf3",
+     "seed_start": 0,
+     "split": "source_train"
+    },
+    {
+     "dart_noise": [
+      0.08
+     ],
+     "episodes": 300,
+     "robot": "panda_pg2",
+     "seed_start": 0,
+     "split": "source_train"
+    },
+    {
+     "dart_noise": [
+      0.08
+     ],
+     "episodes": 300,
+     "robot": "ur5e_pg2",
+     "seed_start": 0,
+     "split": "source_train"
+    },
+    {
+     "dart_noise": [
+      0.08
+     ],
+     "episodes": 300,
+     "robot": "ur5e_tf3",
+     "seed_start": 0,
+     "split": "source_train"
+    },
+    {
+     "dart_noise": [
+      0.08
+     ],
+     "episodes": 300,
+     "robot": "sawyer_pg2",
+     "seed_start": 0,
+     "split": "source_train"
+    },
+    {
+     "dart_noise": [
+      0.08
+     ],
+     "episodes": 300,
+     "robot": "sawyer_tf3",
+     "seed_start": 0,
+     "split": "source_train"
+    },
+    {
+     "episodes": 150,
+     "robot": "xarm7_pg2",
+     "seed_start": 1000000,
+     "split": "target_demos"
+    },
+    {
+     "episodes": 150,
+     "robot": "xarm7_tf3",
+     "seed_start": 1000000,
+     "split": "target_demos"
+    },
+    {
+     "episodes": 150,
+     "robot": "panda_tf3",
+     "seed_start": 1000000,
+     "split": "target_demos"
+    }
+   ],
+   "max_distractors": 2,
+   "name": "pick_place_primary_v6dart",
+   "split_file": "research/splits/primary_v1.json",
+   "teacher_version": "v2",
+   "workers": 6
+  },
+  "schema_version": "runconfig-1",
+  "seed": 1,
+  "stage": "collect",
+  "tag": "v6dart",
+  "track": "armexpert",
+  "variant": "na"
+ },
+ "schema": "pipeline-manifest-1",
+ "started": 1790561442.5073605,
+ "status_counts": {}
+}
