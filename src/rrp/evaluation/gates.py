@@ -6,6 +6,8 @@ API (pure functions of recorded outputs; nothing is re-simulated here):
   check_legged_dataset(episodes, manifest=None)           -> report   (rrp.data.legged_latent_collect episode metas)
   check_arm_dataset(episodes, manifest=None, reference=)  -> report   (rrp.data.collect metas with `motion`, or
                                                                        rrp.evaluation.teacher_quality rows)
+  check_dual_dataset(episodes, manifest=None)             -> report   (rrp.data.collect_dual metas with record_quality,
+                                                                       or rrp.evaluation.dual_teacher_quality rows)
   policy_flags(rows)                                      -> report   (learned-policy eval rows; REPORTED, never gated)
 A report is {gate, version, subject, verdict, criteria: [{name, status, value, threshold, note}], failed: [...]}.
 Criterion status: pass | fail | not_evaluated (the input lacks the measurement) | labelled (measured, reported, not
@@ -31,6 +33,13 @@ GATES = dict(
                      ok_frac_min=0.95, penetration_max_m=0.003, penetration_ok_frac_min=0.99,
                      penetration_gated_grasp=("grasp_v2", "grasp_v2.1")),
     policy=dict(chunk_vel_step_flag=1.5),
+    # D-126 #18 (W12 audit, research/tracks/w12.md §7): dual-arm teacher data. Arm criteria per arm as arm_dataset;
+    # maintained-contact criteria from the W12 contact metrics (rrp.data.contact_metrics).
+    dual_dataset=dict(phase_switch_vel_step_max=0.5, cmd_jerk_rms_ratio_max=2.0, joint_limit_margin_min=0.02,
+                      ok_frac_min=0.95, penetration_max_m=0.003, penetration_ok_frac_min=0.99,
+                      penetration_gated_grasp=("grasp_v2", "grasp_v2.1"), support_slip_max_m=0.005,
+                      grip_drift_pos_max_m=0.003, grip_drift_rot_max_rad=0.1, contact_order_error_max=0.0,
+                      success_min=None),
 )
 BIPED_FAMILIES = ("humanoid", "biped")
 # Commanded-jerk reference of the v2 scripted teacher per body (D-112 "jerk RMS <= 2x the v2 teacher"): median over
@@ -152,6 +161,8 @@ def check_dataset(manifest: dict | None, episodes: list[dict], **kw) -> dict:
         return check_legged_dataset(episodes, manifest)
     if fam == "arm":
         return check_arm_dataset(episodes, manifest, **kw)
+    if fam == "dual":
+        return check_dual_dataset(episodes, manifest, **kw)
     return _report("dataset", dict(n=len(episodes)), [_crit("family", None, "legged|arm", None, "unrecognised episodes")])
 
 
@@ -278,6 +289,104 @@ def check_arm_dataset(episodes: list[dict], manifest: dict | None = None, refere
                            status="labelled" if pens else "not_evaluated"))
     return _report("arm_dataset", dict(bodies=sorted({str(r['body']) for r in R}), n=len(R), grasp=grasps,
                                        name=(manifest or {}).get("name")), crits)
+
+
+# ------------------------------------------------------------------ dual-arm datasets (D-126 #18)
+def _dual_row(e: dict) -> dict:
+    """Normalise a collect_dual meta (`motion` from rrp.data.dual_quality, record_quality: true) or a
+    rrp.evaluation.dual_teacher_quality row."""
+    m = e.get("motion") if isinstance(e.get("motion"), dict) and e["motion"].get("family") == "dual" else e
+    pair = e.get("robot_key") or e.get("pair") or ""
+    bodies = dict(zip(("left", "right"), str(pair).split("__"))) if "__" in str(pair) else {}
+    grasp = m.get("grasp_contact_version") or (e.get("physics") or {}).get("grasp_contact_version") or "grasp_v1"
+    return dict(pair=pair, bodies=bodies, status=e.get("status"), per_arm=m.get("per_arm") or {},
+                pen=m.get("penetration_max_m"), contact=m.get("contact") or {}, grasp=grasp,
+                noise=float(e.get("exec_noise", e.get("noise", 0.0)) or 0.0))
+
+
+def check_dual_dataset(episodes: list[dict], manifest: dict | None = None, reference: dict | None = None) -> dict:
+    """Dual-arm teacher data (feasible episodes with a quality record). Per arm, as the arm gate: phase-switch step
+    <= 0.5 rad/s and (clean menagerie arms) joint margin >= 0.02 on >= 95% of episodes; commanded jerk RMS median per
+    body <= 2x the ARM v2 teacher on that body. Penetration <= 3 mm on >= 99% (grasp_v2*; labelled under grasp_v1).
+    Maintained contact (clean episodes): support-anchor slip <= 5 mm, held-object in-grip drift <= 3 mm and <= 0.1 rad,
+    contact-order error 0 vs the task spec, each on >= 95% of the episodes that have the measurement. DART episodes'
+    maintained-contact values are reported (labelled), not gated."""
+    G = GATES["dual_dataset"]
+    ref = reference if reference is not None else ARM_TEACHER_V2_REFERENCE
+    R = [_dual_row(e) for e in episodes if e.get("status") not in ("infeasible", "generation_error", "error")
+         and e.get("feasible", True) is not False]
+    R = [r for r in R if r["per_arm"]]
+    if not R:
+        return _report("dual_dataset", dict(n=0, name=(manifest or {}).get("name")),
+                       [_crit("quality_records", None, "episodes recorded with record_quality: true", None,
+                              "no dual quality records (collect with record_quality: true)")])
+    crits = []
+
+    def frac_crit(name, vals, ok, thr, gated=True, note=""):
+        xs = [v for v in vals if v is not None]
+        if not xs:
+            crits.append(_crit(name, None, thr, None, note or "no measurement", status="not_evaluated" if gated else "labelled"))
+            return
+        f = sum(ok(x) for x in xs) / len(xs)
+        crits.append(_crit(name, round(f, 4), f">= {G['ok_frac_min']} of episodes {thr}",
+                           (f >= G["ok_frac_min"]) if gated else None,
+                           note + f" n={len(xs)}, median {float(np.median(xs)):.4g}, max {max(xs):.4g}",
+                           status=None if gated else "labelled"))
+
+    steps = [max((p.get("phase_switch_vel_step_max") or 0.0) for p in r["per_arm"].values()) for r in R]
+    frac_crit("phase_switch_vel_step", steps, lambda x: x <= G["phase_switch_vel_step_max"],
+              f"with max over arms <= {G['phase_switch_vel_step_max']} rad/s")
+    clean = [r for r in R if r["noise"] == 0.0]
+    mg = [min(p["joint_limit_margin_min"] for e, p in r["per_arm"].items() if p.get("joint_limit_margin_min") is not None
+              and not _procedural(r["bodies"].get(e, "parm"))) for r in clean
+          if any(p.get("joint_limit_margin_min") is not None and not _procedural(r["bodies"].get(e, "parm"))
+                 for e, p in r["per_arm"].items())]
+    frac_crit("joint_limit_margin", mg, lambda x: x >= G["joint_limit_margin_min"],
+              f"with margin >= {G['joint_limit_margin_min']} (clean episodes, menagerie arms)", gated=bool(mg),
+              note="" if mg else "no menagerie arm in the clean episodes (procedural parm* margins are report-only, D-114)")
+    per_body, bad, missing = {}, [], set()
+    js: dict = {}
+    for r in R:
+        for e, p in r["per_arm"].items():
+            b = r["bodies"].get(e)
+            if b is not None and p.get("cmd_jerk_rms") is not None:
+                js.setdefault(b, []).append(p["cmd_jerk_rms"])
+    for b, xs in sorted(js.items()):
+        rf = (ref.get("bodies") or {}).get(b)
+        if rf is None:
+            missing.add(b)
+            continue
+        per_body[b] = round(float(np.median(xs)) / rf, 3)
+        if per_body[b] > G["cmd_jerk_rms_ratio_max"]:
+            bad.append(b)
+    crits.append(_crit("cmd_jerk_rms_vs_arm_v2_teacher", per_body or None,
+                       f"median per body <= {G['cmd_jerk_rms_ratio_max']}x the arm v2 teacher",
+                       None if not per_body else not bad, f"no reference for {sorted(missing)}" if missing else ""))
+    grasps = sorted({r["grasp"] for r in R})
+    pens = [r["pen"] for r in R if r["pen"] is not None]
+    if pens and all(g in G["penetration_gated_grasp"] for g in grasps):
+        fp = sum(x <= G["penetration_max_m"] for x in pens) / len(pens)
+        crits.append(_crit("penetration", round(fp, 4), f">= {G['penetration_ok_frac_min']} of episodes <= 3 mm",
+                           fp >= G["penetration_ok_frac_min"], f"grasp {grasps}; max {max(pens):.4g} m"))
+    else:
+        crits.append(_crit("penetration", None, "<= 3 mm gated under grasp_v2* only", None, f"grasp {grasps}",
+                           status="labelled" if pens else "not_evaluated"))
+    for sel, gated, sfx in ((clean, True, ""), ([r for r in R if r["noise"] > 0], False, "_dart")):
+        if not sel and not gated:
+            continue
+        c = [r["contact"] for r in sel]
+        frac_crit("support_slip" + sfx, [x.get("cf_support_anchor_slip_max_m") for x in c],
+                  lambda x: x <= G["support_slip_max_m"], f"<= {G['support_slip_max_m'] * 1000:.0f} mm", gated)
+        frac_crit("grip_drift_pos" + sfx, [x.get("cf_held_pos_drift_grip_max_m") for x in c],
+                  lambda x: x <= G["grip_drift_pos_max_m"], f"<= {G['grip_drift_pos_max_m'] * 1000:.0f} mm", gated)
+        frac_crit("grip_drift_rot" + sfx, [x.get("cf_held_rot_drift_grip_max_rad") for x in c],
+                  lambda x: x <= G["grip_drift_rot_max_rad"], f"<= {G['grip_drift_rot_max_rad']} rad", gated)
+        frac_crit("contact_order" + sfx, [x.get("cf_contact_order_error") for x in c],
+                  lambda x: x <= G["contact_order_error_max"], "order error 0 vs the task spec", gated)
+    succ = sum(r["status"] == "success" for r in R) / len(R)
+    crits.append(_crit("success_rate", round(succ, 4), "reported", None, "", status="labelled"))
+    return _report("dual_dataset", dict(pairs=sorted({str(r["pair"]) for r in R}), n=len(R), grasp=grasps,
+                                        name=(manifest or {}).get("name")), crits)
 
 
 # ------------------------------------------------------------------ learned policies (reported only)
