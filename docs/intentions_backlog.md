@@ -41,13 +41,13 @@ Two things to know first:
 ## Models / packet / representation
 | item | source | status | evidence | size | blocks |
 |---|---|---|---|---|---|
-| OOD packet detection with a fallback controller | §4.11 | partial | `contracts/system0.py` checks only version and staleness, with a `hold_measured` fallback. No distributional check | M | safe deployment claim |
-| Safety layer (clamp, rate limit), safe stop, fall recovery | §4.11 | missing | only `np.clip(±6)` in `controllers/policy_runner.py:94`. No `safe_stop` or recovery | M / L | hardware framing |
-| State estimation | §4.3 | partial | Tracker actors use IMU + encoders only; true base velocity goes only to the critic (`envs/legged_core.py` `priv`). System i's speed comes from a "declared localization" that is truth + Gaussian noise (`envs/legged.py _sense`). `base_vel_estimate` (`contracts/observation.py:26`) is never filled | M–L | deployable-observation credibility |
-| Privileged-information audit per input group | §4.3 | partial | `contracts/channels.py` rejects privileged keys on transport. No automated per-group causal or ablation audit | M | fairness and leak claims |
-| VLM system II | legged_vlm.md | partial | `research/system2_eval.py` (ground, closed_loop) sits in `research/`, smoke test only, no results | L | System II claim |
+| OOD packet detection with a fallback controller | §4.11 | **code done 2026-09-28 (D-126: `controllers/packet_ood.py`, `--packet-ood off\|monitor\|enforce`, fit/score tool; research/tracks/d126_deploy.md); experiment #29 pending** — was partial | `contracts/system0.py` checks only version and staleness, with a `hold_measured` fallback. No distributional check | M | safe deployment claim |
+| Safety layer (clamp, rate limit), safe stop, fall recovery | §4.11 | **code done 2026-09-28 (D-126: `controllers/safety.py`, `--safety off\|monitor\|enforce`; research/tracks/d126_deploy.md); experiment #30 pending** — was missing | only `np.clip(±6)` in `controllers/policy_runner.py:94`. No `safe_stop` or recovery | M / L | hardware framing |
+| State estimation | §4.3 | **code done 2026-09-28 (D-126: `envs/state_estimator.py` bse-1 fills `base_vel_estimate`; `--base-state-source estimator`; research/tracks/d126_deploy.md); experiment #27 pending** — was partial | Tracker actors use IMU + encoders only; true base velocity goes only to the critic (`envs/legged_core.py` `priv`). System i's speed comes from a "declared localization" that is truth + Gaussian noise (`envs/legged.py _sense`). `base_vel_estimate` (`contracts/observation.py:26`) is never filled | M–L | deployable-observation credibility |
+| Privileged-information audit per input group | §4.3 | **code done 2026-09-28 (D-126: `evaluation/privileged_audit.py` ablation runner + static/schema/tripwire checks; research/tracks/d126_deploy.md); experiment #28 pending** — was partial | `contracts/channels.py` rejects privileged keys on transport. No automated per-group causal or ablation audit | M | fairness and leak claims |
+| VLM system II | legged_vlm.md | **harness done 2026-09-28 (D-126: `evaluation/system2.py` 98a9beb, `--system2` in the legged eval); no model/result** — was partial | `research/system2_eval.py` (ground, closed_loop) sits in `research/`, smoke test only, no results | L | System II claim |
 | Dual-arm learned models | dualarm.md next 1–2 | missing | the `swap_slots` edit exists (`evaluation/dual_latent_eval.py:234`), but no dual lineage has ever been trained | L | M=2 "across bodies" |
-| Canonical source labels everywhere | provenance.md; audit §3 | partial | `contracts/action.py:10` is still a Literal with teacher / scripted_teacher / privileged_teacher. Ladder rows write a bare `"oracle"` (`evaluation/ladder.py:649`) | S–M | labelling contract |
+| Canonical source labels everywhere | provenance.md; audit §3 | **done 2026-09-28 (D-126 sl-1 switch 5aaea4d, default off; legged rows too)** — was partial | `contracts/action.py:10` is still a Literal with teacher / scripted_teacher / privileged_teacher. Ladder rows write a bare `"oracle"` (`evaluation/ladder.py:649`) | S–M | labelling contract |
 
 ## Training / RL
 | item | source | status | evidence | size | blocks |
@@ -61,14 +61,14 @@ Two things to know first:
 | `validate_tracker` stage used in DAGs | D-114 | **done for future runs 2026-09-27** (commit feec007: `dags/templates/legged_v2_gated.yaml` + sha check + tests/unit/test_dag_templates.py; running/completed DAGs untouched) — was partial | stage at `pipelines/legged.py:200`; no `dags/*.yaml` references it | S | W6 gate enforcement |
 | Relax the anymal_c privileged end check | D-105 | partial | `legged_latent_eval.py:527` still uses `privileged_success()`; public success is only reported alongside | S | anymal_c R2 numbers |
 | BC seeds 1702/1703 and SFT budgets (four-way comparison) | baselines.md | missing (on hold) | campaign code exists; the cells were never run | M | fair baselines on target bodies |
-| Long-duration drift runs | §4.10 | missing | none found | S–M | — |
-| Latency re-measured on current routes | acceptance.md next 4 | missing | `evaluation/latency.py` has only been run on old routes | S | — |
+| Long-duration drift runs | §4.10 | **code done 2026-09-28 (D-126: `--eval-mode long`, `long_run` drift metrics; research/tracks/d126_deploy.md)** — was missing | none found | S–M | — |
+| Latency re-measured on current routes | acceptance.md next 4 | **code done 2026-09-28 (D-126: legged `--measure-latency`; arm `rrp latent latency --representation` for refit routes); measurement pending** — was missing | `evaluation/latency.py` has only been run on old routes | S | — |
 
 ## Orchestration / ops / infra
 | item | source | status | evidence | size | blocks |
 |---|---|---|---|---|---|
-| `scripts/ladder.py` main moved into `rrp.evaluation` | W5; pipeline.md step 3 | missing | the 149-line `main()` is still called as a subprocess by `pipelines/arm.py` | S–M | in-process arm stages |
-| Legged summary/effects scripts moved into the library | pipeline.md step 3 | missing | `pipelines/legged.py:347` runs `scripts/legged_ladder_summary.py` | S | — |
+| `scripts/ladder.py` main moved into `rrp.evaluation` | W5; pipeline.md step 3 | **done 2026-09-28 (D-126 ade3628: `evaluation/ladder_cli.py`, script = wrapper, parity test)** — was missing | the 149-line `main()` is still called as a subprocess by `pipelines/arm.py` | S–M | in-process arm stages |
+| Legged summary/effects scripts moved into the library | pipeline.md step 3 | **done 2026-09-28 (D-126 ade3628: `evaluation/legged_summaries.py`, scripts = wrappers, parity test)** — was missing | `pipelines/legged.py:347` runs `scripts/legged_ladder_summary.py` | S | — |
 | Dual pipeline stages | W5; `pipelines/dual.py` TODO | missing (skeleton) | only `train_rep` and `train_flow`. Pack logic is still in `cli/dual_latent.cmd_pack`; there is no dual DAgger | M (L with DAgger) | dual models; "one pipeline" |
 | Chain-script retirement | W5 gate; audit phase 4 | missing | 13 `*_chain.sh` remain; there are 107 `.sh` scripts in total (89 at audit time) | S–M | phase 5 |
 | `rrp run-dag` host↔peer artifact transfer | pipeline.md step 4 | missing | `orchestration/dag.py:266-270` places jobs but has no transfer between nodes. Moot while D-115 keeps heavy work on the peer | M | mixed-node DAGs |

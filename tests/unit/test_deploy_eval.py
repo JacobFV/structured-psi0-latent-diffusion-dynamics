@@ -146,3 +146,10 @@ def test_system2_flag_wires_harness(bundle, tmp_path):
     row = json.loads(out.read_text().splitlines()[0])
     assert row["system2"]["harness_version"] == "s2h-1" and row["system2"]["binding_correct"] is True
     assert row["system2"]["target"]["source"].startswith("oracle")
+
+
+def test_legged_rows_canonical_source_label_when_switched_on(bundle, monkeypatch):
+    monkeypatch.setenv("RRP_SOURCE_LABELS", "canonical")
+    row, _ = run_episode(_ctl(bundle), "hexapod6", 3, max_s=0.3)
+    assert row["source_label"].startswith("learned:flow/policy.pt") and row["source_label_version"] == "sl-1"
+    assert row["source"] == _ctl(bundle).policy_version                      # legacy key unchanged

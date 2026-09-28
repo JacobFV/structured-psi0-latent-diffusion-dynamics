@@ -310,8 +310,9 @@ class LatentLeggedController:
         if mode == "halt":
             c = c.copy()
             c[16:20] = np.eye(4)[EVENTS.index("halt")]
-        if self.ctx_transform is not None:
-            c = np.asarray(self.ctx_transform(c.copy(), ad), np.float32)
+        ct = getattr(self, "ctx_transform", None)
+        if ct is not None:
+            c = np.asarray(ct(c.copy(), ad), np.float32)
         return torch.from_numpy(c)[None].to(self.dev)
 
     def _sample(self, b):
@@ -349,7 +350,7 @@ class LatentLeggedController:
             pout = self.P(z, b["asm_mask"], b["body_asm"])
         M = self.morph.M
         zz = z[0, :, :M].cpu().numpy().astype(np.float32)
-        if self.record_z is not None:
+        if getattr(self, "record_z", None) is not None:
             self.record_z.append((now, edit, zz.copy()))
         p = LatentActionChunk(latent_space_version=self.lsv, realizer_compat_version=self.rcv, z=zz,
                               knot_times=list(KNOT_TIMES),
@@ -583,6 +584,10 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
                tracker=getattr(s, "tracker_version_str", None), n_steps=steps,
                contact_version=model_contact_version(s.model) or sc.meta.get("contact_model"),
                tracker_sha256=trk_sha, actuator_limits=_limits(s.model))
+    from rrp.contracts.provenance import Source, parse_legacy_source, stamp_source_label
+    lab = parse_legacy_source(src)                  # sl-1 canonical label: a no-op unless RRP_SOURCE_LABELS=canonical
+    stamp_source_label(row, lab.kind, f"privileged_packet:{ctl.lsv}" if src.startswith("privileged_oracle_packet")
+                       else lab.detail)
     if ctl is not None:
         row.update(stats=ad.stats, packets=ctl.packets, packet_log=ad.log[:20],
                    latent_space_version=getattr(ctl, "lsv", None), realizer_compat_version=getattr(ctl, "rcv", None),

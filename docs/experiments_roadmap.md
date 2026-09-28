@@ -58,12 +58,15 @@ Code: ✅ exists · 🔧 implementing (D-126) · ❌ not a code problem / needs 
 ## F. Representation and deployment credibility
 | # | question | depends on | cost | experiment | code |
 |---|---|---|---|---|---|
-| 27 | Do routes still work with estimated (not truth+noise) base velocity? | – | 1–2 days | planned | 🔧 estimator |
-| 28 | Automated per-group privileged-information audit (ablate input groups, measure causal use) | – | ~1 day | planned | 🔧 harness |
-| 29 | Does an OOD packet detector + fallback catch the packet edits that make t1 fall? | – | 1–2 days | planned | 🔧 |
-| 30 | Safety layer (clamp, rate limit, safe stop, fall recovery): cost to success, benefit under perturbation | – | 1–2 days | planned | 🔧 |
-| 31 | VLM system II: language → packet, real evaluation | – | 3+ days | open | 🔧 harness only |
-| 32 | Minutes-long runs (drift) and latency on current routes | – | ~0.5 day | planned | 🔧 modes |
+| 27 | Do routes still work with estimated (not truth+noise) base velocity? | – | 1–2 days | planned | ✅ `--base-state-source estimator` (bse-1) |
+| 28 | Automated per-group privileged-information audit (ablate input groups, measure causal use) | – | ~1 day | planned | ✅ `rrp.evaluation.privileged_audit` (paudit-1) |
+| 29 | Does an OOD packet detector + fallback catch the packet edits that make t1 fall? | – | 1–2 days | planned | ✅ `--packet-ood`, `rrp.training.packet_ood_fit` (pood-1) |
+| 30 | Safety layer (clamp, rate limit, safe stop, fall recovery): cost to success, benefit under perturbation | – | 1–2 days | planned | ✅ `--safety` (safety-1) |
+| 31 | VLM system II: language → packet, real evaluation | – | 3+ days | open | ✅ harness only: `rrp.evaluation.system2` (s2h-1), `--system2` |
+| 32 | Minutes-long runs (drift) and latency on current routes | – | ~0.5 day | planned | ✅ `--eval-mode long`, `--measure-latency`; `rrp latent latency --representation` |
+
+Section F code (D-126, 2026-09-28): commands and flags in research/tracks/d126_deploy.md "exact configs". All options
+default off; defaults golden-identical to pre-D-126 rows.
 
 ## G. New task families
 | # | question | depends on | cost | experiment | code |
