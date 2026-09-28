@@ -87,13 +87,15 @@ def main():
                 t = real(sess, v, **kw); holder["t"] = t; return t
             A.make_arm_teacher = mk
             rec = C.collect_teacher_episode(s, episode_id=m["episode_id"], exec_noise=m.get("exec_noise", 0.0),
-                                            noise_seed=m["seed"], teacher_version=cfg.get("teacher_version"))
+                                            noise_seed=m["seed"], teacher_version=cfg.get("teacher_version"),
+                                            dart_safety=os.environ.get("DART_SAFETY") or None)
             A.make_arm_teacher = real
             stored = pickle.loads(gzip.decompress((ds / "episodes" / f"{m['episode_id']}.public.pkl.gz").read_bytes()))
             f.write(json.dumps(dict(episode_id=m["episode_id"], robot_key=rk, status=m["status"],
                                     grasp=os.environ["RRP_GRASP_CONTACT"],
                                     exact_replay=stored["actions"] == rec.public["actions"],
                                     pen_max_m=max([e["pen"] for e in per.values()] or [0.0]),
+                                    dart=rec.public["meta"].get("dart"), replay_status=rec.public["meta"]["status"],
                                     per_geom={k: v for k, v in per.items()})) + "\n")
             f.flush()
 

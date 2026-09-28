@@ -21,6 +21,9 @@ def _job(args):
     gc = args[9] if len(args) > 9 else None
     if gc:                                   # grasp contact version for this worker's scenes (rrp.physics.grasp_contact)
         os.environ["RRP_GRASP_CONTACT"] = gc
+    ds = args[10] if len(args) > 10 else None
+    if ds:                                   # D-118 contact-safe DART variant ("proximity")
+        os.environ["RRP_DART_SAFETY"] = ds
     eid = f"{task}_{robot_key}_s{seed}" + (f"_p{patient}" if patient is not None else "") + \
         (f"_dart{int(noise * 1000)}" if noise else "")
     done = Path(out_dir) / "episodes" / f"{eid}.public.pkl.gz"
@@ -46,7 +49,8 @@ def _job(args):
         kw = {"n_objects": n_distr + 1, "patient": patient}
     sess = Session(BUILDERS[task](robot, seed, **kw), seed=seed)
     rec = collect_teacher_episode(sess, episode_id=eid, split_lineage=dict(split=split, robot_key=robot_key),
-                                  exec_noise=noise, noise_seed=seed, teacher_version=teacher_version)
+                                  exec_noise=noise, noise_seed=seed, teacher_version=teacher_version,
+                                  dart_safety=os.environ.get("RRP_DART_SAFETY") or None)
     rec.public["meta"]["robot_key"] = robot_key
     if task == "pick_place_paired":
         rec.public["meta"]["pair"] = dict(sess.scenario.meta, pair_id=f"{robot_key}_s{seed}" +
@@ -60,6 +64,7 @@ def generate(config: dict) -> dict:
     jobs = []
     tv = config.get("teacher_version")          # None = the v1 default teacher (historical datasets)
     gcv = config.get("grasp_contact")           # None = $RRP_GRASP_CONTACT or grasp_v1 (historical datasets)
+    dsv = config.get("dart_safety")             # None = unguarded DART (historical datasets); "proximity" (D-118)
     for item in config["items"]:
         for k in range(item["episodes"]):
             seed = item["seed_start"] + k
@@ -69,10 +74,10 @@ def generate(config: dict) -> dict:
                     lo, hi = config.get("paired_objects", [2, 3])
                     n_obj = lo + k % (hi - lo + 1)
                     for p in range(n_obj):
-                        jobs.append((item["robot"], task, seed, n_obj - 1, str(out), item["split"], noise, p, tv, gcv))
+                        jobs.append((item["robot"], task, seed, n_obj - 1, str(out), item["split"], noise, p, tv, gcv, dsv))
                     continue
                 jobs.append((item["robot"], task, seed,
-                             k % (config.get("max_distractors", 2) + 1), str(out), item["split"], noise, None, tv, gcv))
+                             k % (config.get("max_distractors", 2) + 1), str(out), item["split"], noise, None, tv, gcv, dsv))
     t0 = time.time()
     metas = []
     import multiprocessing as mp
@@ -95,6 +100,8 @@ def generate(config: dict) -> dict:
         flags["teacher_version"] = teacher_version_id(tv)
     gvs = sorted({(m.get("physics") or {}).get("grasp_contact_version") or "grasp_v1" for m in metas if m.get("physics")})
     flags["grasp_contact_version"] = gvs[0] if len(gvs) == 1 else gvs
+    if dsv:
+        flags["dart_safety"] = dict(mode=dsv, margin_m=0.005)
     prov = dataset_provenance(metas, source=src, featurizer_version=FEATURIZER_VERSION, flags=flags)
     man = write_manifest(out, config["name"], metas, extra=dict(config=config, wall_s=time.time() - t0,
                                                                 source=prov.source, privileged_teacher=True,

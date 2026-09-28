@@ -63,6 +63,74 @@ def privileged_labels(session: Session, feat: Featurizer) -> dict:
     return lab
 
 
+class DartProximityGuard:
+    """D-118 contact-safe DART: before a perturbed arm command is executed, forward kinematics on the COMMANDED joints
+    (other joints and objects at their current state) gives the robot geom poses; the noisy command is rejected for this
+    tick (the clean command executes) if any robot geom would come within `margin` of the task cube or the table AND
+    closer than the clean command would bring it (so contacts the clean teacher makes itself, e.g. the grasp or a held
+    cube, do not suppress the noise). Uses a private MjData; never touches the simulation."""
+
+    def __init__(self, session, margin: float = 0.005, obj: str = "cube"):
+        m = session.model
+        self.s, self.m, self.margin = session, m, float(margin)
+        self.d = mujoco.MjData(m)
+        r = session.robots[0]
+        names = {l.name for l in r.spec.links}
+        self.qadr = np.array([m.jnt_qposadr[mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_JOINT, j)] for j in r.arm_joints])
+        self.robot_geoms = [g for g in range(m.ngeom) if m.body(m.geom_bodyid[g]).name in names
+                            and (m.geom_contype[g] or m.geom_conaffinity[g])]
+        self.cube = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, obj)
+        self.cube_geoms = [g for g in range(m.ngeom) if m.geom_bodyid[g] == self.cube]
+        self.table = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_GEOM, "table")
+        asm = next(a for a in r.spec.assemblies if a.kind in ("gripper", "hand"))
+        hand = {l.name for l in r.spec.links if l.address in asm.members}
+        self.hand_bodies = {b for b in range(m.nbody) if m.body(b).name in hand}
+        self.tcp = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_SITE, r.tcp_sites[asm.id])
+        self._ft = np.zeros(6)
+
+    def _held(self) -> bool:
+        """Current state: the cube is in contact with >= 2 hand bodies (then it moves with the hand)."""
+        d, m = self.s.data, self.m
+        touching = set()
+        for i in range(d.ncon):
+            c = d.contact[i]
+            b1, b2 = m.geom_bodyid[c.geom1], m.geom_bodyid[c.geom2]
+            if b1 == self.cube and b2 in self.hand_bodies:
+                touching.add(b2)
+            elif b2 == self.cube and b1 in self.hand_bodies:
+                touching.add(b1)
+        return len(touching) >= 2
+
+    def _min_dist(self, q_arm, held: bool) -> float:
+        m, d = self.m, self.d
+        d.qpos[:] = self.s.data.qpos
+        d.qpos[self.qadr] = q_arm
+        if held:             # a held cube moves rigidly with the hand: shift it by the commanded TCP displacement
+            mujoco.mj_kinematics(m, d)
+            dp = d.site_xpos[self.tcp] - self.s.data.site_xpos[self.tcp]
+            ja = m.body_jntadr[self.cube]
+            qa = m.jnt_qposadr[ja]
+            d.qpos[qa:qa + 3] = self.s.data.qpos[qa:qa + 3] + dp
+        mujoco.mj_kinematics(m, d)
+        cap = self.margin + 0.05
+        best = np.inf
+        pairs = [(a, self.table) for a in self.robot_geoms if self.table >= 0]
+        if held:             # the carried cube must not be driven into the table
+            pairs += [(c, self.table) for c in self.cube_geoms if self.table >= 0]
+        else:
+            pairs += [(a, c) for a in self.robot_geoms for c in self.cube_geoms]
+        for a, b in pairs:
+            best = min(best, mujoco.mj_geomDistance(m, d, a, b, cap, self._ft))
+        return best
+
+    def unsafe(self, clean, noisy) -> bool:
+        held = self._held()
+        dn = self._min_dist(noisy, held)
+        if dn >= self.margin:
+            return False
+        return dn < self._min_dist(clean, held) - 1e-4
+
+
 @dataclass
 class EpisodeRecord:
     public: dict
@@ -72,7 +140,7 @@ class EpisodeRecord:
 def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_steps: int = 600,
                             episode_id: str = "", split_lineage: dict | None = None,
                             exec_noise: float = 0.0, noise_seed: int = 0,
-                            teacher_version: str | None = None) -> EpisodeRecord:
+                            teacher_version: str | None = None, dart_safety: str | None = None) -> EpisodeRecord:
     """exec_noise > 0 (DART): executed ARM command = teacher command + N(0, exec_noise) held for a few
     steps; the recorded LABEL is always the clean teacher command, so data covers recovery states.
     teacher_version (rrp.teachers.arm_smooth.TEACHER_VERSIONS key) selects a registered arm teacher version;
@@ -88,6 +156,10 @@ def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_
     status = "infeasible" if not f["feasible"] else "running"
     nrng = np.random.default_rng([noise_seed, 7])
     nz = None
+    dart_stats = dict(mode=dart_safety or "none", ticks_by_phase={}, applied_by_phase={}, rejected_by_phase={})
+    guard = DartProximityGuard(session) if (exec_noise > 0 and dart_safety == "proximity") else None
+    if guard is not None:
+        dart_stats["margin_m"] = guard.margin
     steps = 0
     from rrp.envs.motion_quality import ArmMotionRecorder
     mrec = ArmMotionRecorder(session, boundary_kind="phase_switch")   # W6 gates: read-only, the CLEAN label is recorded
@@ -105,7 +177,13 @@ def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_
                 arm_lo = [lo for lo, grp in zip(g.lower, g.node_group) if grp == "arm"]
                 arm_hi = [hi for hi, grp in zip(g.upper, g.node_group) if grp == "arm"]
                 noisy = np.clip(np.array(cmd.groups["arm"]) + nz, arm_lo, arm_hi)
-                cmd = cmd.model_copy(update={"groups": dict(cmd.groups, arm=noisy.tolist())})
+                ph = teacher.phase
+                dart_stats["ticks_by_phase"][ph] = dart_stats["ticks_by_phase"].get(ph, 0) + 1
+                if guard is not None and guard.unsafe(np.array(cmd.groups["arm"]), noisy):
+                    dart_stats["rejected_by_phase"][ph] = dart_stats["rejected_by_phase"].get(ph, 0) + 1
+                else:                    # execute the perturbed command (the recorded label stays clean)
+                    dart_stats["applied_by_phase"][ph] = dart_stats["applied_by_phase"].get(ph, 0) + 1
+                    cmd = cmd.model_copy(update={"groups": dict(cmd.groups, arm=noisy.tolist())})
             q0s.append(pi.q0)
             labels.append(privileged_labels(session, feat))
             phases.append(teacher.phase)
@@ -129,6 +207,8 @@ def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_
                 wall_s=time.time() - t0, split_lineage=split_lineage or {}, exec_noise=exec_noise,
                 n_distractors=session.scenario.meta.get("n_distractors", 0),
                 physics=physics_provenance(session.model).to_dict())
+    if exec_noise > 0 and dart_safety:   # D-118: contact-safe DART variant + its coverage (v1-default meta unchanged)
+        meta["dart"] = dart_stats
     if teacher_version:                  # new selectable versions record themselves; v1-default meta is unchanged
         meta.update(source=teacher_source(teacher_version), teacher_version=teacher_version_id(teacher_version))
     if f["feasible"]:
