@@ -876,3 +876,13 @@ Next (lead, proposed): (a) diagnose the realizer on new kinematics (joint-limit/
 - Refit is not underfitting (5k updates: 1/30 with the unadapted flow, 17/30 with the adapted one).
 Correction to the D-135 reading: the failure on a new arm is the protocol adapting one module at a time, not an inability of the latent route to adapt. It adapts roughly 2× slower per update than BC on dev seeds, and still does not beat BC. D-135's sealed numbers stand as measured for the pre-registered methods.
 Next: a joint flow + system-0 adaptation method, update-matched to BC SFT, pre-registered before any sealed run; to be clearly labelled as added AFTER D-135 (post-hoc method, same sealed scenes).
+
+## D-136 2026-09-28 PRE-REGISTRATION: joint flow + system-0 adaptation on the sealed new-arm targets (method added AFTER D-135)
+armdiag agent (research/tracks/armdiag.md "STEP A" and "PREREG joint_adapt"). Step A (dev seeds only, 600 updates,
+3 semfix cells, 90 episodes): split 50/50 with flow-packet realizer training (gen_frac 0.5) 56/90, one-optimizer 51/90,
+split E-only 46/90, one-optimizer + gen 43/90; BC SFT b100 75/90 -> chosen variant split / gen_frac 0.5 (highest pooled).
+Pre-registered sealed run (dags/arm_targets_d136_joint.yaml, lineage armja136-*): xarm7_pg2 / xarm7_tf3 × semfix /
+nosem × seeds 1, 2 × budgets 5 / 20 / 100; primary = joint_adapt at BC SFT's update counts 150 / 300 / 600 on the same
+demos and adapt seeds; secondary = D-135's flow-SFT b + refit b checkpoints paired (2x updates, not matched). Same sealed
+scenes as D-135 (post-hoc method, labelled as such); each cell run once; metric success k/200 pooled over seeds with
+Wilson 95%, joint − BC SFT with Newcombe 95%. D-135 cells unchanged. Results: to be appended below this entry.

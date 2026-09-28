@@ -1,0 +1,101 @@
+# D-136 (PRE-REGISTERED in research/tracks/armdiag.md "PREREG joint_adapt"): a joint flow + system-0 adaptation method
+# ADDED AFTER D-135 (post-hoc method, chosen on DEV seeds only), run ONCE on the SAME sealed target scenes
+# (configs/eval/latent_slice1.json, 100 scenes from 2,000,000) on the new-arm targets xarm7_pg2 / xarm7_tf3.
+# Primary (update-matched to BC SFT): joint_adapt mode split, gen_frac 0.5: SFT_STEPS[b] total updates (75/150/300 flow
+#   SFT + 75/150/300 realizer updates) on the SAME b demo episodes (nested choice, adapt seed 1700 + seed), lr 1e-4.
+# Secondary (NOT update-matched, 2x BC SFT updates): D-135's own flow-SFT b and system-0 refit b checkpoints paired.
+# D-135 cells are not touched (new lineage armja136-*). Peer only; <= 2 concurrent leases (lead).
+#   rrp run-dag dags/arm_targets_d136_joint.yaml --dry-run
+name: arm_targets_d136_joint
+schema: dag-1
+family: arm
+track: armdiag
+lineage: 'armja136-{variant}-{target}'
+label_prefix: 'ja{tg}{seed}{tk}'
+matrix:
+  variant: [semfix, nosem]
+  seed: [1, 2]
+  target: [xarm7_pg2, xarm7_tf3]
+axis_vars:
+  variant:
+    semfix: {tg: sf}
+    nosem: {tg: ns}
+  target:
+    xarm7_pg2: {tk: x7p}
+    xarm7_tf3: {tk: x7t}
+vars:
+  flow_ref: 'runs/armv6/arm6-{variant}/flow_ft-gdag2h_s{seed}:policy.pt'
+  rep_ref: 'runs/armv6/arm6-{variant}/refit-gendag3_noqd_s{seed}:representation.pt'
+  pack_ref: 'runs/armtgt/armtgt6-data/pack-{target}_s0'
+  d135: 'runs/armtgt/armtgt6-{variant}-{target}'
+  grasp_contact: v2.1
+  adapt_seed: '{1700 + seed}'
+defaults:
+  placement: peer
+  retries: 0
+  max_parallel: 2
+  max_parallel_gpu: 1
+  admission_timeout_s: 10800
+  # memory (D-117): joint_adapt peak 2.59G (Step A lease, 12 trainings) -> 4G; xarm7 sealed evals 1.8-2.0G (D-135) -> 4G
+  resources: {cpu: 3, mem: 4G, gpu: false, max_seconds: 14400}
+base:
+  flags: {zero_prev_action: true, contact_version: contact_v1}
+  options: {grasp_contact: '{grasp_contact}'}
+nodes:
+  ja5:
+    stage: target_adapt
+    tag: joint_adapt_b5
+    resources: {gpu: true, gpu_mem: 6G, cpu: 3, mem: 4G, max_seconds: 3600}
+    config:
+      inputs: {flow: '{flow_ref}', representation: '{rep_ref}', packed_dir: '{pack_ref}'}
+      options: {method: joint_adapt, joint_mode: split, gen_frac: 0.5, target: '{target}', budget: 5, adapt_seed: '{adapt_seed}'}
+  jev5:
+    stage: target_eval
+    tag: joint_adapt_b5
+    config:
+      inputs: {flow: '@ja5:policy.pt', representation: '@ja5:representation.pt'}
+      options: {robot: '{target}', sealed_run: true, kind: 'adapted:joint_adapt:b5', tag: joint_adapt_b5}
+  ja20:
+    stage: target_adapt
+    tag: joint_adapt_b20
+    resources: {gpu: true, gpu_mem: 6G, cpu: 3, mem: 4G, max_seconds: 3600}
+    config:
+      inputs: {flow: '{flow_ref}', representation: '{rep_ref}', packed_dir: '{pack_ref}'}
+      options: {method: joint_adapt, joint_mode: split, gen_frac: 0.5, target: '{target}', budget: 20, adapt_seed: '{adapt_seed}'}
+  jev20:
+    stage: target_eval
+    tag: joint_adapt_b20
+    config:
+      inputs: {flow: '@ja20:policy.pt', representation: '@ja20:representation.pt'}
+      options: {robot: '{target}', sealed_run: true, kind: 'adapted:joint_adapt:b20', tag: joint_adapt_b20}
+  ja100:
+    stage: target_adapt
+    tag: joint_adapt_b100
+    resources: {gpu: true, gpu_mem: 6G, cpu: 3, mem: 4G, max_seconds: 3600}
+    config:
+      inputs: {flow: '{flow_ref}', representation: '{rep_ref}', packed_dir: '{pack_ref}'}
+      options: {method: joint_adapt, joint_mode: split, gen_frac: 0.5, target: '{target}', budget: 100, adapt_seed: '{adapt_seed}'}
+  jev100:
+    stage: target_eval
+    tag: joint_adapt_b100
+    config:
+      inputs: {flow: '@ja100:policy.pt', representation: '@ja100:representation.pt'}
+      options: {robot: '{target}', sealed_run: true, kind: 'adapted:joint_adapt:b100', tag: joint_adapt_b100}
+  pev5:
+    stage: target_eval
+    tag: paired_unmatched_b5
+    config:
+      inputs: {flow: '{d135}/target_adapt-flow_sft_b5_s{seed}:policy.pt', representation: '{d135}/target_adapt-system0_refit_b5_s{seed}:representation.pt'}
+      options: {robot: '{target}', sealed_run: true, kind: 'adapted:paired_flow_sft+refit_unmatched:b5', tag: paired_unmatched_b5}
+  pev20:
+    stage: target_eval
+    tag: paired_unmatched_b20
+    config:
+      inputs: {flow: '{d135}/target_adapt-flow_sft_b20_s{seed}:policy.pt', representation: '{d135}/target_adapt-system0_refit_b20_s{seed}:representation.pt'}
+      options: {robot: '{target}', sealed_run: true, kind: 'adapted:paired_flow_sft+refit_unmatched:b20', tag: paired_unmatched_b20}
+  pev100:
+    stage: target_eval
+    tag: paired_unmatched_b100
+    config:
+      inputs: {flow: '{d135}/target_adapt-flow_sft_b100_s{seed}:policy.pt', representation: '{d135}/target_adapt-system0_refit_b100_s{seed}:representation.pt'}
+      options: {robot: '{target}', sealed_run: true, kind: 'adapted:paired_flow_sft+refit_unmatched:b100', tag: paired_unmatched_b100}

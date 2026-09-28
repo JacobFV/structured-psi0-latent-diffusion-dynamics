@@ -514,8 +514,15 @@ def target_adapt(ctx: StageContext) -> dict:
             raise StageError("system-0 adaptation interrupted; rerun resumes from rz_last.pt")
         outs = {"representation": str(Path(ctx.rc.out) / "representation.pt")}
         detail = outs["representation"]
+    elif method == "joint_adapt":           # D-136 (added AFTER D-135): flow + system 0 at the SAME total update count
+        from rrp.training.joint_adapt import joint_adapt
+        res = joint_adapt(Path(ctx.inp("flow")), Path(ctx.inp("representation")), pack, budget, seed=seed, out_dir=out,
+                          steps=steps, lr=lr, mode=o.get("joint_mode", "joint"), gen_frac=float(o.get("gen_frac", 0.0)))
+        outs = {"policy": str(Path(ctx.rc.out) / "policy.pt"),
+                "representation": str(Path(ctx.rc.out) / "representation.pt")}
+        detail = outs["policy"]
     else:
-        raise StageError(f"target_adapt method {method!r} (flow_sft|system0_refit|bc_sft)")
+        raise StageError(f"target_adapt method {method!r} (flow_sft|system0_refit|bc_sft|joint_adapt)")
     metrics = dict(method=method, target=target, budget=budget, adapt_seed=seed, steps=steps, lr=lr, smoke=smoke,
                    protocol=dict(id=proto.get("id"), sha256=sha), result=_json_safe(res))
     return dict(outputs=outs, metrics=metrics, source="bc" if method == "bc_sft" else "learned", source_detail=detail,

@@ -89,3 +89,47 @@ source gendag refits did) closes the remaining per-update gap to BC.
   the summary is labelled NON-SEALED DIAGNOSTIC. Without the flag, behaviour is unchanged.
 - Incident: for about 6 minutes, three leases ran at once (the joint/rz5k training lease overlapped two closed-loop
   leases), one more than the requested limit of 2. Resource impact was small (peaks ≤ 1.74G).
+
+## STEP A (D-135 addendum; dev seeds 3,000,000–3,000,029 only): choosing the joint-adaptation variant
+All variants: budget 100 episodes (adapt seed 1700 + seed), **600 total updates** (= BC SFT b100), lr 1e-4, batch 128,
+`rrp.training.joint_adapt` (joint_adapt_v1). split = 300 flow-SFT then 300 realizer updates (separate AdamW, constant
+lr); joint = 600 updates of ONE AdamW over flow + realizer (each update touches both); g05 = half of every realizer
+batch uses the CURRENT flow's free sample (NFE 8, detached) at the demo state instead of E's posterior sample (g0 = E
+only). Trained in lease 1790621726_6cf932 (`V/S/TGT bash scripts/armdiag_stepA.sh`, peak 2.59G), evaluated with
+`ROUTES="ja_split_g0 ja_split_g05 ja_joint_g0 ja_joint_g05" bash scripts/armdiag_closedloop.sh` (leases
+1790622321_6e4aab, 1790622322_a02f24). Summaries: `research/tracks/armdiag/stepA/<cell>/`.
+
+| dev 30 eps | split g0 | split g05 | joint g0 | joint g05 | BC SFT b100 (same dev seeds) |
+|---|---|---|---|---|---|
+| semfix s1 xarm7_pg2 | 13 | 14 | 17 | 13 | 18 |
+| semfix s2 xarm7_pg2 | 11 | 16 | 15 | 6 | 27 |
+| semfix s1 xarm7_tf3 | 22 | 26 | 19 | 24 | 30 |
+| pooled / 90 | 46 | **56** | 51 | 43 | 75 |
+Reading: flow-packet realizer training helps the split schedule (+10/90) but hurts the one-optimizer schedule (-8/90);
+all four are within noise of each other (46–56 of 90), and none closes the gap to BC SFT (75/90): the per-update gap
+shrinks (best 56 vs 75, previously 9 vs 18 on s1 pg2) but does not close. Chosen by the pre-declared rule "highest
+pooled dev successes": **split, gen_frac 0.5**. (The earlier split probe `joint300x300`, 9/30 on s1 pg2, differs from
+split g0 = 13/30 by the realizer's OneCycle schedule and sampling; both are within noise.)
+
+## PREREG joint_adapt (D-136; committed and pushed BEFORE any sealed run)
+- Status: a method ADDED AFTER D-135 (post-hoc; the variant was chosen on DEV seeds after D-135's sealed results were
+  known), run on the SAME sealed target scenes as D-135. D-135 cells are not re-run or changed.
+- Method (primary, update-matched): `target_adapt` method `joint_adapt`, joint_mode split, gen_frac 0.5
+  (rrp.training.joint_adapt, joint_adapt_v1): total optimizer updates = BC SFT's SFT_STEPS = 150 / 300 / 600 at budgets
+  5 / 20 / 100 (75/150/300 flow-SFT + 75/150/300 realizer updates), lr 1e-4, batch 128, the SAME budgeted demo
+  episodes as flow SFT / refit / BC SFT (nested_budget_indices over the 150 v6dart target demos, adapt seed 1700 + seed),
+  encoder and probes frozen; initial flow = final flow gdag2h, initial system 0 = final gendag3 of each v6 lineage.
+- Secondary (NOT update-matched: 2x BC SFT's updates): D-135's own flow-SFT b + system-0 refit b checkpoints paired
+  (150+150 / 300+300 / 600+600), evaluated once on the same sealed scenes.
+- Cells: xarm7_pg2, xarm7_tf3 × semfix, nosem × lineage seeds 1, 2 × budgets 5 / 20 / 100 (primary 24 adaptations +
+  24 sealed evals; secondary 24 sealed evals). panda_tf3 is not included (latent already reaches BC level there).
+- Eval: configs/eval/latent_slice1.json sealed protocol unchanged (100 scenes from 2,000,000, infeasible excluded and
+  counted, max_steps 300, replan 8, NFE 8, prev-action zero, privileged success evaluator, grasp_v2.1), each cell run
+  exactly once (`dags/arm_targets_d136_joint.yaml`, lineage armja136-*; a resource-failed node may be rerun once after
+  deleting its partial rows, as in D-135, and logged).
+- Metric: privileged task success; per cell k/100 and pooled over the 2 seeds per (variant, target, budget) k/200 with
+  Wilson 95% CI. Primary comparison: joint_adapt (matched) vs BC SFT (D-135 cells, same target/budget/demos/updates),
+  pooled over seeds, difference with Newcombe 95% CI, per (variant, target, budget). Also reported against D-135's
+  system-0 refit and flow SFT cells. Reading rule fixed now: "latent adapts as well as BC at equal updates" only if the
+  Newcombe CI of (joint − BC) includes 0 or is positive; "worse than BC" if its upper bound is < 0.
+- Not changed after this commit: variant, budgets, update counts, seeds, scenes, metric.
