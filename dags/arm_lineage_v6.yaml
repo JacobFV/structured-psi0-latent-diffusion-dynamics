@@ -23,7 +23,18 @@ vars:
   pack: packed/latent_pp_v6dart_s1_H16
   bc_policy: 'runs/armexpert_bcv6/baseline_direct_action/seed1701/source:policy.pt'
   bc_label: bcv6_direct1701_final
+defaults:
+  max_parallel_gpu: 2     # lead GO 2026-09-28: 2 peer GPU leases (W7 lineages first, then W10, then W12)
+  max_cpu: 10
 nodes:
+  # Memory >= 1.35 x measured peak (lead GO): Stage A peak 10.2G RAM / 1.14G CUDA, flow F0 6.6G / 1.12G (v2 run on the
+  # larger v4dart pack, artifacts/runs/armv2/_dags/arm_lineage_v2/memory_peaks.json). Refits, collections, evals and edits
+  # keep the inherited provisional declarations until measured (8G+3G, 20G, 6G, 12G).
+  stageA: {resources: {mem: 14G, gpu_mem: 2G}}
+  F0: {resources: {mem: 9G, gpu_mem: 2G}}
+  Fft: {resources: {mem: 9G, gpu_mem: 2G}}
+  Fgdag1: {resources: {mem: 9G, gpu_mem: 2G}}
+  Fgdag2h: {resources: {mem: 9G, gpu_mem: 2G}}
   bc1: {config: {options: {grasp_contact: v2.1}}}
   bc2: {config: {options: {grasp_contact: v2.1}}}
   bc3: {config: {options: {grasp_contact: v2.1}}}
