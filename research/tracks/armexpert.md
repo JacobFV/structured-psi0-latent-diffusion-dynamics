@@ -541,3 +541,28 @@ within noise. panda_pg2 and all nosem cells are pending.
   grasps held by overlap. Per the lead's instruction ("if it fails on anything other than the parm* margin, stop"), the
   v5 BC chain was stopped (training lease 1790554251_af6d6e stopped with --owned-only after ~10 min; resumable from its
   checkpoint). Decision needed: gate DART episodes on the executed-state criteria or not (label-only criteria already pass).
+
+### D-118 diagnosis: DART penetration comes from the PALM (and wrist), not the pads; grasp_v2.1 is not enough
+- Joint margin (D-118 (2)): done — enforced on clean episodes, reported on DART episodes (`gates.py`, test; main 77611d3).
+- Which geom penetrates (`research/scripts/2026-09-27/armexpert_pen_bodies.py`, per-geom max -dist with the teacher
+  phase; 112 v5dart DART episodes, all exact replays): of the episodes > 3 mm, the WORST geom is the palm in 90 and a
+  pad in 2; geoms > 3 mm: palm 90, arm/wrist 20, pad 3. Phase: palm during DESCEND 82, regrasp 5, lower 2. The palm has
+  the default soft contact (solref 0.02, priority 0). Up to 68 mm (tf3 palm; the cube is 44 mm): the DART noise
+  (0.08 rad per joint, held 5 ticks) drives the palm down onto the cube, which is pressed into the table.
+- grasp_v2.1 (`physics/grasp_contact.py`: grasp_v2 + the stiff contact on every robot geom that can touch objects; pads
+  keep their priority) re-simulated on the same DART episodes (same generator inputs, new physics):
+  | subset | grasp_v2 (v5dart) <= 3 mm | grasp_v2.1 | grasp_v2.1 + stiff table (candidate "v2.1w") |
+  |---|---|---|---|
+  | random 150 DART episodes | 0.693 (max 40 mm) | 0.907 (p99 12 mm, max 19 mm) | 0.893 (max 51 mm) |
+  | worst-biased 160 | 0.125 (max 68 mm) | 0.700 (max 46 mm) | 0.844 (max 51 mm) |
+  The remaining > 3 mm cases are still mostly the palm during the noisy descent (random sample: palm 7, pad 7 of 14).
+  A stiffer impedance (dmax 0.9999) is numerically unstable in the rig (NaN). So v2.1 does NOT reach the 99 % DART
+  criterion; per D-118 I did not re-collect. Cause: MuJoCo's constraint softness scales with the effective mass of the
+  42 g cube; a position-servoed arm (80 N m joints) pressing it into the table with a noise-induced 2-4 cm command step
+  produces forces the soft contact cannot resist. In the real world this is a collision the arm would stall on.
+- Proposal (lead decision): keep grasp_v2.1 (it removes palm/wrist softness: 0.69 -> 0.91 on random DART episodes,
+  clean behaviour unchanged) AND make DART noise contact-safe: inject the execution noise only in free-space phases
+  (pregrasp above hover height, transport), or reject a noisy command whose forward kinematics puts any robot geom
+  within 5 mm of the cube/table (fall back to the clean command). Either keeps DART's recovery coverage where it matters
+  (off-trajectory approach and carry states) without crushing states that no real arm would reach. Alternatively reduce
+  the noise to 0.03 rad. I can implement and verify the phase-gated variant on the same DART subsets in ~30 min.
