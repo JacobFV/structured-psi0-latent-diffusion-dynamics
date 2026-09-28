@@ -133,3 +133,10 @@ split g0 = 13/30 by the realizer's OneCycle schedule and sampling; both are with
   system-0 refit and flow SFT cells. Reading rule fixed now: "latent adapts as well as BC at equal updates" only if the
   Newcombe CI of (joint − BC) includes 0 or is positive; "worse than BC" if its upper bound is < 0.
 - Not changed after this commit: variant, budgets, update counts, seeds, scenes, metric.
+
+## D-136 sealed run (state: running since 12:15 PDT)
+Coordinator: host user unit `rrp-armdiag-d136` (run-dag orchestrator only), peer code dir wt/armdiag at f43d8b7,
+`--max-parallel 2 --max-parallel-gpu 1`. Ledger `artifacts/runs/armdiag/_dags/arm_targets_d136_joint/ledger.json` (host).
+RESUME (completed nodes are skipped): `cd ~/work/rrp-wt/armdiag && systemd-run --user --unit rrp-armdiag-d136b
+--setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiag --setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/armdiag
+~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_targets_d136_joint.yaml --max-parallel 2 --max-parallel-gpu 1`
