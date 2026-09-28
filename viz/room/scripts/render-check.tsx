@@ -103,6 +103,17 @@ async function main() {
       }
     }
   }
+  // Board budget at 1440×900: every tile's chart must fit its tile (no vertical overflow).
+  const bm = await import('../src/views/Board');
+  for (const [label, docs] of sets.slice(0, 2)) {
+    const needs = bm.tileNeeds(docs as Record<string, never>);
+    for (const [tile, need] of Object.entries(needs)) {
+      const total = bm.TILE_CHROME + need;
+      const fits = total <= bm.TILE_H;
+      console.log(`${fits ? 'ok  ' : 'FAIL'} budget  ${label.padEnd(7)} board tile ${tile.padEnd(11)} needs ${total}px of ${bm.TILE_H}px (2 rows in ${bm.VIEWPORT_H}px)`);
+      if (!fits) failures++;
+    }
+  }
   process.exit(failures ? 1 : 0);
 }
 main();
