@@ -801,3 +801,18 @@ Peer smoke (go2, scripted teacher, 1 seed; artifacts/runs/d126deploy_smoke/smoke
 (b) The estimator's velocity error is 0.13–0.15 m/s at 0.5–0.6 m/s true speed (reads 15–30% low while walking), vs the truth+noise channel it replaces (~2.8 cm/s noise). So roadmap #27 is a substantive test of deployability, and a better estimator may be needed.
 (c) The safety rate limit at the sourced joint speed still edits 31% of ticks (up to 0.60 rad), because learned tracker targets step faster than the joints can follow. #30 must report the success cost across several rate_max values.
 Pending as experiments: t1 packet OOD on recorded edit packets (the D-092 rows lack z, so they must be re-recorded with --record-packets), and arm latency with real refit weights.
+
+## D-130 2026-09-28 D-126 complete: dual/W12 code landed; remaining stubs listed
+W12 agent (research/tracks/w12.md §10; main e51fe43).
+- #18 dual teacher v3 (teachers/dual_smooth.py): minimum-jerk, limit null-space, touch-confirmed grasp and regrasp, deeper peg grasp, in-grip drift and support-slip handling; two v2 bugs fixed (support-hand stall at touchdown; runaway giver retreat target). Tiny peer smoke under grasp_v2.1 (2 pairs × 3 seeds; artifacts/runs/w12_smoke/):
+  - support_insert v2 → v3: success 1/5 → 5/5; median phase-switch step 0.87 → 0.20 rad/s; jerk 4.6× → 1.3× the arm v2 teacher;
+  - handover v2 → v3: 6/6 both; step 1.36 → 0.82 and jerk 7.0× → 2.8×, still failing the gates on parm5 pairs (staging move; a joint-space staging move is next).
+- Dual dataset gate (check_dual_dataset), dual quality recorder, collection flags (teacher_version, noise_phase_gate, record_quality, contact_labels), all default-off with unchanged defaults.
+- #33 dual pipeline stages: collect (enforced gate), pack (moved into data/dual_latent.pack_dual), train_rep/flow/flow_ft/refit (refuse zero_prev_action false), probes, eval_r2, heldout, edits. dagger_collect refuses: no dual BC expert exists yet. Template dags/templates/dual_lineage.yaml.
+- #22 pivot_against_surface and carry_tray_level tasks + scenes + estimators; teachers are labelled STUB and unvalidated (smoke episodes fail).
+D-126 as a whole is complete as code (D-128 arm/legged, D-129 deployment, this entry dual/W12). Remaining non-experiment gaps:
+- a dual BC expert (needed for dual DAgger);
+- teachers for loco_pick and the coordination tasks (stubs);
+- a spot tracker and sourced spot limits;
+- handover v3 staging smoothness;
+- W7's pad–cylinder grasp fix (queued) before the full dual v3 re-audit and data collection.
