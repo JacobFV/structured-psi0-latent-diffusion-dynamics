@@ -1001,8 +1001,9 @@ def main(argv=None):
         if e["id"] in done:
             print(f"skip {e['id']} (done)", flush=True)
             continue
-        env = dict(os.environ, CUDA_VISIBLE_DEVICES="", OMP_NUM_THREADS=str(e.get("threads", 2)),
-                   MKL_NUM_THREADS=str(e.get("threads", 2)), **{k: str(v) for k, v in (e.get("env") or {}).items()})
+        env = dict(os.environ)
+        env.update(CUDA_VISIBLE_DEVICES="", OMP_NUM_THREADS=str(e.get("threads", 2)), MKL_NUM_THREADS=str(e.get("threads", 2)))
+        env.update({k: str(v) for k, v in (e.get("env") or {}).items()})       # the entry's recorded env wins
         cmd = [sys.executable, "-m", "rrp.viz.record", "--spec", a.spec, "--out", a.out, "--only", e["id"], "--inproc"]
         t0 = time.time()
         r = subprocess.run(cmd, env=env)
