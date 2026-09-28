@@ -197,3 +197,14 @@ notes are not hashed), the L8_CAVEAT header of the table, and a banner on every 
   attempts were refused by the host broker and never ran).
 - go2 clips: `2026-09-27_learned_ctxhalt_go2_trainseed0_s10007_fixsem-vs-nosem_effect.mp4` (t=2-8 s: fixsem 3.77 -> 2.40 m, nosem
   3.49 -> 3.58 m; reviewed) and `..._s10003_..._noeffect.mp4` (fixsem 2.51 -> 2.48 m, nosem 2.49 -> 3.55 m).
+
+## t1 sourced-limit results (interim 19:55; nosem s2 still training after a 19:1x PSI shed, resumed exactly from step 500)
+CAVEAT (every t1 number): "t1 dataset fails D-112 slip gate (86.2% < 95%), tracker w8d fails lab forward 0.72; t1 tracker w8d exceeds
+joint limits (margin -0.053) and peak foot force 4.46 BW (W6 gate backfill); trained as a recorded exception (D-113)".
+- The learned t1 routes mostly FALL at gait onset (median fall time 1.2-1.7 s), unlike the scripted teacher on the same tracker (30/30):
+  R2 snap / final: semfix s0 24/20, s1 9/10, s2 1/0 of 30; nosem s0 1/9, s1 0/0 of 30; BC positive control 0/30 (16 falls).
+  So on this body/tracker, imitation of the w8d tracker's targets (system 0 or BC) is not viable; the v1-tracker t1 (D-087) was 81-83/90.
+- Consequence for the halt test: pairs need an upright robot at t=2 s. semfix has 17 / 9 / 1 usable pairs (seeds 0/1/2), nosem 0 / 0, so
+  the fixsem-vs-nosem context-halt comparison is NOT measurable on t1. Where measurable, semfix halts: seed 0 -0.43 [-0.47, -0.40] (every
+  one of 17 pairs between -0.34 and -0.59 m), seed 1 -0.10; irrelevant control +0.00 / -0.01.
+- Tables now print the pair count wherever falls drop pairs below the design (go2: semfix s2 19/20, anymal_c: none).
