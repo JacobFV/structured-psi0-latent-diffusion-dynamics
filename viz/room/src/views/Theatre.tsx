@@ -240,7 +240,11 @@ function LabelBanner({ r, tag, color, fixture }: { r: Replay; tag?: string; colo
         <span>condition <b>{str(m.condition) || '—'}</b></span>
         <span>checkpoint <b className="mono">{m.ckpt_sha ? shortSha(m.ckpt_sha) : '— (no checkpoint)'}</b></span>
         {Object.entries(phys).map(([k, v]) => <span key={k}>{k.replace(/_version$/, '')} <b>{str(v)}</b></span>)}
-        <span className="muted">id <code>{r.id}</code></span>
+        {m.recorded_success !== undefined && <span>recorded outcome <b>{m.recorded_success === true ? 'success' : m.recorded_success === false ? 'failure' : '—'}</b></span>}
+        {m.reproduced !== undefined && <span>reproduced <b>{m.reproduced === true ? 'yes' : m.reproduced === false ? 'NO (replay differs from the recorded run)' : '—'}</b></span>}
+        {m.row_source ? <span>row <b className="mono">{str(m.row_source)}</b></span> : null}
+        {m.fell !== undefined && m.fell !== null ? <span>fell <b>{String(m.fell)}</b></span> : null}
+        <span className="muted">id <code>{r.id}</code> · {r.n_frames} frames @ {fmtNum(r.fps)} fps</span>
       </div>
     </div>
   );

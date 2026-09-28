@@ -89,3 +89,45 @@ for i in 0 1; do scripts/peer_run.sh --cpu 2 --mem 5G --label roomrec_record_$i 
   nice -n 19 PY -m rrp.viz.record --spec $S --out artifacts/runs/roomrec_replays --skip-done --shard $i/2; done
 ```
 Host copy: `rsync gb10-direct:/dev/shm/rrp-brandonin/repo/artifacts/runs/roomrec_replays/ ~/work/rrp-data/viz/replays/`.
+
+## frontend
+
+Owner: the room frontend agent (worktree `~/work/rrp-wt/roomui`, branch `track/roomui`). The app is in `viz/room/` (see its README).
+
+What exists
+- `viz/room/rrp-api-plugin.ts`: a Vite middleware that is read-only (GET/HEAD only). `/api/<doc>` calls
+  `python -m rrp.viz.api get <doc> [--live] --max-age S` (niced, serialized, 15 s cache, live 10 s, 30 s timeout) and serves
+  `viz/data/<doc>.json` with an ETag, which gives a 304 when nothing changed (results.json is about 10 MB). If an export fails
+  and an older file exists, that file is served with `X-RRP-Export-Error`, and the UI shows STALE plus the error.
+  `/api/training/<id>`, `/api/replay/<id>` (recursive id → file scan under the replay root, gzip passthrough),
+  `/media/<name>` (regex + extension allowlist, Range support, falls back to the main checkout), `/api/doc?path=` and
+  `/api/doclist` (the contract allowlist, including psi1z README/research notes/decisions), `/api/meta`.
+  Bind: `RRP_ROOM_HOST` (default 127.0.0.1; D-132), port 3013, strictPort.
+- Ten views with URL state (`#view?k=v`); see the README for what each one shows. Code split per view; three.js loads only in
+  the theatre.
+- Theatre: `components/Stage.tsx` (geoms → three meshes in MuJoCo semantics, z-up, body poses per frame, contact markers from
+  `meta.contact_bodies`, trails from `object_pose`/`base_body`, follow camera, render on demand), `components/Timelines.tsx`
+  (a shared clock, click/drag to scrub, edit-active shading, per-signal notes from `meta.signal_notes` with PRIVILEGED flags,
+  joints matched by name via `joint_names`/`joint_target_names`, per-foot arrays drawn as one line per column, packet PCA 3D
+  drawn only when A and B share a basis).
+- Fixtures: `viz/room/fixtures/*.json` and 2 synthetic replays (made by `scripts/make_fixtures.py`; they pass
+  `rrp.viz.replay.validate_replay`). Real data never falls back to fixtures.
+
+Verification (2026-09-28): `npm run typecheck` and `npm run build` pass. An HTTP smoke test on 127.0.0.1:3013 gave 200 for all
+12 documents, 304 on a matching ETag, 200 for `/api/training/<id>`, 200/206 for `/media` (Range), 400 for traversal attempts
+on doc/media/training, 404 for an unknown replay or API path, and 405 for POST; the server was stopped afterwards. An SSR render
+check (`scripts/render-check.tsx`) renders all ten views, with 48 URL states over the real documents and the fixtures, with no
+exception and no NaN/undefined/[object Object] in the output. No browser was run on the host (D-127), so WebGL and chart
+interaction are untested here.
+
+Known gaps
+- No replay had been recorded when this was written: the theatre says "No replays yet", offers an opt-in FIXTURE demo, and was
+  checked only on synthetic replays. It should be checked on the first real arm, legged and dual replays.
+- clip_scale is not logged by the trainers (data notes), so the clip overlay appears only where a series has it. GPU
+  utilisation history is only the readings a page has seen, because the watchdog samples carry no GPU utilisation.
+- Results heatmap: a cell holding several rows shows the one with the largest n, or pools k/n when asked. The default metric
+  filter is `success`, to avoid mixing metrics.
+- No browser/visual QA was done on the host, only SSR; layout at narrow widths and the three.js scenes need a look in a real
+  browser.
+
+Resume: `cd ~/work/rrp-wt/roomui/viz/room && npm install && npm run dev` (add `RRP_ROOM_HOST=0.0.0.0` for the network).

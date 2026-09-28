@@ -22,7 +22,7 @@ export type Replay = {
     probe?: Record<string, unknown[]>;
     phase?: (string | number | null)[]; task_events?: { t: number; event: string; status: string }[];
     edit_active?: (boolean | null)[]; forward_progress?: (number | null)[]; object_pose?: (number[] | null)[];
-    penetration_mm?: (number | null)[]; slip?: (number | null)[]; [k: string]: unknown;
+    penetration_mm?: (number | number[] | null)[]; slip?: (number | number[] | null)[]; [k: string]: unknown;
   };
   annotations?: { t: number; text: string }[];
 };

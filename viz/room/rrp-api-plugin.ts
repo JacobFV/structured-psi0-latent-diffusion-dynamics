@@ -314,10 +314,15 @@ export function rrpApi(): Plugin {
     /** Static builds carry a snapshot of viz/data (if present) under dist/data; the UI labels it "snapshot". */
     async writeBundle(options) {
       const dir = options.dir;
-      if (!dir || !existsSync(p.out)) return;
+      if (!dir || !existsSync(p.out) || process.env.RRP_NO_SNAPSHOT) return;
       await mkdir(resolve(dir, 'data'), { recursive: true });
       for (const name of await readdir(p.out)) {
-        if (name.endsWith('.json')) await copyFile(resolve(p.out, name), resolve(dir, 'data', name));
+        if (name.endsWith('.json') && !name.startsWith('_')) await copyFile(resolve(p.out, name), resolve(dir, 'data', name));
+      }
+      const tdir = resolve(p.out, 'training');
+      if (existsSync(tdir)) {
+        await mkdir(resolve(dir, 'data', 'training'), { recursive: true });
+        for (const name of await readdir(tdir)) if (name.endsWith('.json')) await copyFile(resolve(tdir, name), resolve(dir, 'data', 'training', name));
       }
     },
   };

@@ -10,6 +10,20 @@ import { PcaPlot } from './Stage';
 
 export type Side = { replay: Replay; times: number[]; color: string; tag: string };
 
+/** The recorder's own description of a signal (meta.signal_notes); privileged signals are flagged. */
+function noteOf(sides: Side[], key?: string) {
+  if (!key) return null;
+  const notes = sides[0]?.replay.meta.signal_notes as Record<string, string> | undefined;
+  const n = notes?.[key];
+  if (!n) return null;
+  return (
+    <span className="small muted" title={n} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 520 }}>
+      {/privileged/i.test(n) && <span className="badge src t-oracle" style={{ marginRight: 4 }}>PRIVILEGED · display only</span>}
+      {n}
+    </span>
+  );
+}
+
 function useWidth() {
   const ref = useRef<HTMLDivElement>(null);
   const [w, setW] = useState(600);
@@ -80,21 +94,31 @@ function extent(xs: (number | null | undefined)[]) {
   return [lo, hi];
 }
 
-function ScalarTrack({ title, get, sides, t, duration, onSeek, unit, height = 56 }: {
-  title: string; get: (r: Replay) => (number | null | undefined)[] | undefined; sides: Side[]; t: number; duration: number;
-  onSeek: (t: number) => void; unit?: string; height?: number;
+type Val = number | null | undefined | (number | null)[];
+function ScalarTrack({ title, get, sides, t, duration, onSeek, unit, height = 56, noteKey, names }: {
+  title: string; get: (r: Replay) => Val[] | undefined; sides: Side[]; t: number; duration: number;
+  onSeek: (t: number) => void; unit?: string; height?: number; noteKey?: string; names?: (r: Replay) => string[] | undefined;
 }) {
   const data = sides.map((s) => get(s.replay));
   if (data.every((d) => !d)) return <Missing title={title} />;
-  const [lo, hi] = extent(data.flatMap((d) => d || []));
-  const y = (v: number) => height - 4 - ((v - lo) / (hi - lo)) * (height - 8);
+  const multi = data.some((d) => d?.some((v) => Array.isArray(v)));
+  const cols = multi ? Math.max(...data.flatMap((d) => (d || []).map((v) => (Array.isArray(v) ? v.length : 0)))) : 1;
+  const colOf = (d: Val[], j: number) => d.map((v) => (Array.isArray(v) ? v[j] ?? null : multi ? null : v ?? null));
+  const flatVals = data.flatMap((d) => (d ? Array.from({ length: cols }, (_, j) => colOf(d, j)).flat() : []));
+  const [lo, hi] = extent(flatVals);
+  const h = multi ? Math.max(height, 70) : height;
+  const y = (v: number) => h - 4 - ((v - lo) / (hi - lo)) * (h - 8);
   const cur = sides.map((s, i) => { const d = data[i]; return d ? d[frameAt(s.times, t)] : undefined; });
+  const colors = ['var(--s1)', 'var(--s2)', 'var(--s3)', 'var(--s4)', 'var(--s5)', 'var(--s6)', 'var(--s7)', 'var(--s8)'];
+  const nm = names?.(sides[0].replay);
+  const fmtCur = (v: Val) => (Array.isArray(v) ? `[${v.map((x) => fmtNum(x)).join(', ')}]` : fmtNum(v));
   return (
-    <Track title={title} t={t} duration={duration} onSeek={onSeek} sides={sides} height={height}
-      value={<>{sides.map((s, i) => <span key={i} style={{ marginLeft: 8 }}>{sides.length > 1 ? `${s.tag} ` : ''}{data[i] ? fmtNum(cur[i]) : 'n/a'}</span>)}{unit ? ` ${unit}` : ''} <span className="muted">[{fmtNum(lo)}, {fmtNum(hi)}]</span></>}>
-      {(x) => sides.map((s, i) => data[i] && (
-        <path key={i} d={linePath(s.times, data[i]!, x, y)} fill="none" stroke={s.color} strokeWidth={1.6} strokeDasharray={i === 1 ? '5 3' : undefined} />
-      ))}
+    <Track title={title} t={t} duration={duration} onSeek={onSeek} sides={sides} height={h}
+      legend={<>{noteOf(sides, noteKey)}{multi && <span className="legend small">{Array.from({ length: Math.min(cols, 8) }, (_, j) => <span key={j}><i className="sw" style={{ background: colors[j] }} />{nm?.[j] || `#${j}`}</span>)}</span>}</>}
+      value={<>{sides.map((s, i) => <span key={i} style={{ marginLeft: 8 }}>{sides.length > 1 ? `${s.tag} ` : ''}{data[i] ? fmtCur(cur[i]) : 'n/a'}</span>)}{unit ? ` ${unit}` : ''} <span className="muted">[{fmtNum(lo)}, {fmtNum(hi)}]</span></>}>
+      {(x) => sides.map((s, i) => data[i] && Array.from({ length: Math.min(cols, 8) }, (_, j) => (
+        <path key={`${i}-${j}`} d={linePath(s.times, colOf(data[i]!, j), x, y)} fill="none" stroke={multi ? colors[j] : s.color} strokeWidth={1.5} strokeDasharray={i === 1 ? '5 3' : undefined} opacity={multi && i === 1 ? 0.7 : 1} />
+      )))}
     </Track>
   );
 }
@@ -108,9 +132,9 @@ function Missing({ title, why }: { title: string; why?: string }) {
   );
 }
 
-function RasterTrack({ title, get, names, sides, t, duration, onSeek, prob }: {
+function RasterTrack({ title, get, names, sides, t, duration, onSeek, prob, noteKey }: {
   title: string; get: (r: Replay) => unknown[] | undefined; names?: (r: Replay) => string[] | undefined; sides: Side[]; t: number; duration: number;
-  onSeek: (t: number) => void; prob?: boolean;
+  onSeek: (t: number) => void; prob?: boolean; noteKey?: string;
 }) {
   const data = sides.map((s) => get(s.replay) as (unknown[] | null)[] | undefined);
   if (data.every((d) => !d)) return <Missing title={title} />;
@@ -121,7 +145,7 @@ function RasterTrack({ title, get, names, sides, t, duration, onSeek, prob }: {
   const labels = sides.map((s, i) => names?.(s.replay) || Array.from({ length: rowsN[i] }, (_, k) => `#${k}`));
   const curFlags = sides.map((s, i) => { const f = data[i]?.[frameAt(s.times, t)]; return Array.isArray(f) ? f : []; });
   return (
-    <Track title={title} t={t} duration={duration} onSeek={onSeek} sides={sides} height={height}
+    <Track title={title} t={t} duration={duration} onSeek={onSeek} sides={sides} height={height} legend={noteOf(sides, noteKey)}
       value={<span className="small">{sides.map((s, i) => (
         <span key={i} style={{ marginLeft: 8 }}>{sides.length > 1 ? `${s.tag}: ` : ''}
           {labels[i].filter((_, k) => (prob ? Number(curFlags[i][k]) > 0.5 : !!curFlags[i][k])).join(', ') || 'none'}</span>
@@ -157,8 +181,8 @@ function RasterTrack({ title, get, names, sides, t, duration, onSeek, prob }: {
   );
 }
 
-function CategoryTrack({ title, get, sides, t, duration, onSeek }: {
-  title: string; get: (r: Replay) => unknown[] | undefined; sides: Side[]; t: number; duration: number; onSeek: (t: number) => void;
+function CategoryTrack({ title, get, sides, t, duration, onSeek, noteKey }: {
+  title: string; get: (r: Replay) => unknown[] | undefined; sides: Side[]; t: number; duration: number; onSeek: (t: number) => void; noteKey?: string;
 }) {
   const data = sides.map((s) => get(s.replay));
   if (data.every((d) => !d)) return <Missing title={title} />;
@@ -167,7 +191,7 @@ function CategoryTrack({ title, get, sides, t, duration, onSeek }: {
   const cats = Array.from(new Set(data.flatMap((d) => (d || []).map((v) => str(v))))).filter(Boolean);
   const cur = sides.map((s, i) => str(data[i]?.[frameAt(s.times, t)]));
   return (
-    <Track title={title} t={t} duration={duration} onSeek={onSeek} sides={sides} height={height}
+    <Track title={title} t={t} duration={duration} onSeek={onSeek} sides={sides} height={height} legend={noteOf(sides, noteKey)}
       value={sides.map((s, i) => <span key={i} style={{ marginLeft: 8 }}>{sides.length > 1 ? `${s.tag}: ` : ''}{cur[i] || '—'}</span>)}>
       {(x) => sides.map((s, si) => {
         const d = data[si];
@@ -222,19 +246,24 @@ function JointTracks({ sides, t, duration, onSeek }: { sides: Side[]; t: number;
   const tgt = primary.signals.joint_target, pos = primary.signals.joint_pos;
   const [showAll, setShowAll] = useState(false);
   if (!tgt && !pos) return <Missing title="Joint targets vs positions" />;
-  const nj = Math.max(...(tgt || pos || []).map((f) => (f ? f.length : 0)), 0);
-  const names = primary.meta.joint_names || Array.from({ length: nj }, (_, j) => `joint ${j}`);
-  const shown = showAll ? nj : Math.min(nj, 8);
+  const width = (xs?: (number[] | null)[]) => Math.max(0, ...(xs || []).map((f) => (f ? f.length : 0)));
+  const pn = (primary.meta.joint_names as string[] | undefined) || Array.from({ length: width(pos) }, (_, j) => `joint ${j}`);
+  const tn = (primary.meta.joint_target_names as string[] | undefined) || (width(tgt) === width(pos) ? pn : Array.from({ length: width(tgt) }, (_, j) => `target ${j}`));
+  // rows: every measured joint with its same-named target (if any), then targets with no measured joint
+  const rowsJ: { name: string; p: number; tIdx: number }[] = pn.map((name, j) => ({ name, p: j, tIdx: tn.indexOf(name) }));
+  tn.forEach((name, k) => { if (!pn.includes(name)) rowsJ.push({ name, p: -1, tIdx: k }); });
+  const shown = showAll ? rowsJ : rowsJ.slice(0, 8);
   return (
     <div className="tl-panel">
       <div className="h">
         <b>Joint targets (dashed) vs positions (solid)</b>
-        <span className="muted small">{sides.length > 1 ? `replay ${sides[0].tag} only` : ''}</span>
-        {nj > 8 && <button className="ghost small" onClick={() => setShowAll(!showAll)} style={{ marginLeft: 'auto' }}>{showAll ? 'fewer' : `all ${nj}`}</button>}
+        {noteOf(sides, 'joint_target')}
+        <span className="muted small">{sides.length > 1 ? `replay ${sides[0].tag} only` : ''}{!primary.meta.joint_target_names && width(tgt) !== width(pos) ? ' · target and position columns differ and are not named: not overlaid' : ''}</span>
+        {rowsJ.length > 8 && <button className="ghost small" onClick={() => setShowAll(!showAll)} style={{ marginLeft: 'auto' }}>{showAll ? 'fewer' : `all ${rowsJ.length}`}</button>}
       </div>
       <div style={{ display: 'grid', gap: 2 }}>
-        {Array.from({ length: shown }, (_, j) => (
-          <JointRow key={j} name={names[j] || `joint ${j}`} tgt={tgt?.map((f) => f?.[j] ?? null)} pos={pos?.map((f) => f?.[j] ?? null)}
+        {shown.map((r, j) => (
+          <JointRow key={j} name={r.name} tgt={r.tIdx >= 0 ? tgt?.map((f) => f?.[r.tIdx] ?? null) : undefined} pos={r.p >= 0 ? pos?.map((f) => f?.[r.p] ?? null) : undefined}
             side={sides[0]} t={t} duration={duration} onSeek={onSeek} />
         ))}
       </div>
@@ -285,11 +314,11 @@ function ProbeTracks({ sides, t, duration, onSeek }: { sides: Side[]; t: number;
               </div>
             );
           }
-          return <RasterTrack key={k} title={`${title} (probability)`} get={(r) => r.signals.probe?.[k]} sides={sides} t={t} duration={duration} onSeek={onSeek} prob
-            names={(r) => (k === 'contact' ? r.meta.contact_bodies : undefined)} />;
+          return <RasterTrack key={k} title={`${title} (per slot)`} get={(r) => r.signals.probe?.[k]} sides={sides} t={t} duration={duration} onSeek={onSeek} prob
+            names={(r) => (k === 'contact' && r.meta.contact_bodies?.length === first.length ? r.meta.contact_bodies : undefined)} noteKey="probe" />;
         }
-        if (typeof first === 'number') return <ScalarTrack key={k} title={title} get={(r) => r.signals.probe?.[k] as (number | null)[] | undefined} sides={sides} t={t} duration={duration} onSeek={onSeek} />;
-        return <CategoryTrack key={k} title={title} get={(r) => r.signals.probe?.[k]} sides={sides} t={t} duration={duration} onSeek={onSeek} />;
+        if (typeof first === 'number' && !/subtask|index|slot/.test(k)) return <ScalarTrack key={k} title={title} get={(r) => r.signals.probe?.[k] as (number | null)[] | undefined} sides={sides} t={t} duration={duration} onSeek={onSeek} noteKey="probe" />;
+        return <CategoryTrack key={k} title={title} get={(r) => r.signals.probe?.[k]} sides={sides} t={t} duration={duration} onSeek={onSeek} noteKey="probe" />;
       })}
     </>
   );
@@ -309,19 +338,21 @@ export default function Timelines({ sides, clock, t, duration }: { sides: Side[]
       })),
     };
   }, [sides]);
-  const ev = sides[0].replay.meta.packet_pca_basis?.explained_variance_ratio as number[] | undefined;
+  const pm = sides[0].replay.meta.packet_pca as { fit_on?: string; explained_variance?: number[] } | undefined;
+  const ev = (pm?.explained_variance || sides[0].replay.meta.packet_pca_basis?.explained_variance_ratio) as number[] | undefined;
   return (
     <div className="tl">
-      <ScalarTrack title="Forward progress" get={(r) => r.signals.forward_progress} {...p} />
-      <CategoryTrack title="Phase" get={(r) => r.signals.phase} {...p} />
+      <ScalarTrack title="Forward progress" get={(r) => r.signals.forward_progress} noteKey="forward_progress" {...p} />
+      <CategoryTrack title="Phase" get={(r) => r.signals.phase} noteKey="phase" {...p} />
       <EventsTrack {...p} />
-      <CategoryTrack title="Edit active" get={(r) => r.signals.edit_active?.map((v) => (v ? 'edit on' : v === false ? 'off' : null))} {...p} />
-      <RasterTrack title="Contacts (feet / fingers)" get={(r) => r.signals.contacts} names={(r) => r.meta.contact_bodies} {...p} />
+      <CategoryTrack title="Edit active" get={(r) => r.signals.edit_active?.map((v) => (v ? 'edit on' : v === false ? 'off' : null))} noteKey="edit_active" {...p} />
+      <RasterTrack title="Contacts (feet / fingers)" get={(r) => r.signals.contacts} names={(r) => r.meta.contact_bodies} noteKey="contacts" {...p} />
       <ProbeTracks {...p} />
       <div className="tl-panel">
         <div className="h">
           <b>Packet PCA trajectory (3D)</b>
-          <span className="muted small">
+          {noteOf(sides, 'packet_pca')}
+          <span className="muted small" title={pm?.fit_on}>
             {ev ? `explained variance ${ev.map((v) => fmtNum(v)).join(' / ')}` : ''}{' '}
             {!pcaSeries.same && '· bases differ between A and B: only A is drawn'}
           </span>
@@ -336,9 +367,9 @@ export default function Timelines({ sides, clock, t, duration }: { sides: Side[]
         </div>}
       </div>
       <JointTracks {...p} />
-      <ScalarTrack title="Object height (object_pose z)" get={(r) => r.signals.object_pose?.map((v) => (v && v.length >= 3 ? v[2] : null))} unit="m" {...p} />
-      <ScalarTrack title="Penetration" get={(r) => r.signals.penetration_mm} unit="mm" {...p} />
-      <ScalarTrack title="Slip" get={(r) => r.signals.slip} {...p} />
+      <ScalarTrack title="Object height (object_pose z)" get={(r) => r.signals.object_pose?.map((v) => (v && v.length >= 3 ? v[2] : null))} unit="m" noteKey="object_pose" {...p} />
+      <ScalarTrack title="Penetration" get={(r) => r.signals.penetration_mm as Val[] | undefined} unit="mm" noteKey="penetration_mm" {...p} />
+      <ScalarTrack title="Slip" get={(r) => r.signals.slip as Val[] | undefined} noteKey="slip" names={(r) => r.meta.contact_bodies} {...p} />
     </div>
   );
 }

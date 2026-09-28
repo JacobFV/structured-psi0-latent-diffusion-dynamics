@@ -102,8 +102,15 @@ export async function fetchDoc<T = Envelope>(name: string, prevEtag?: string): P
 }
 
 /** Polls a document (default: 60 s; live ops pass 10 s). Keeps the last good value while refreshing. */
+/** Test hook only: scripts/render-check.tsx seeds documents here to server-render every view with real data. */
+declare global { var __RRP_PRELOAD__: Record<string, unknown> | undefined }
+function preloaded<T>(name: string): DocResult<T> | null {
+  const d = globalThis.__RRP_PRELOAD__?.[name];
+  return d ? { status: 'ok', data: d as T, mode: 'live', fetchedAt: 0 } : null;
+}
+
 export function useDoc<T = Envelope>(name: string, pollMs = 60_000) {
-  const [result, setResult] = useState<DocResult<T>>({ status: 'loading' });
+  const [result, setResult] = useState<DocResult<T>>(() => preloaded<T>(name) ?? { status: 'loading' });
   const [busy, setBusy] = useState(false);
   const alive = useRef(true);
   const etag = useRef<string | undefined>(undefined);
@@ -149,7 +156,7 @@ export async function fetchReplay<T>(id: string): Promise<DocResult<T>> {
 }
 
 export function useReplay<T>(id: string | undefined) {
-  const [result, setResult] = useState<DocResult<T> | null>(null);
+  const [result, setResult] = useState<DocResult<T> | null>(() => (id ? preloaded<T>(`replay:${id}`) : null));
   useEffect(() => {
     if (!id) { setResult(null); return; }
     let live = true;
