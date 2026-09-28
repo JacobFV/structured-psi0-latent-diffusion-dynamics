@@ -1,0 +1,1 @@
+{"dataset": "artifacts/runs/armexpert/smoke5/ds", "train_robots": ["parm6_tf3", "panda_pg2"], "horizon": 16, "stride": 1, "include_dart_failures": true}

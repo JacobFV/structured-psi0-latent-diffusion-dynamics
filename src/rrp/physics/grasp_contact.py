@@ -53,12 +53,18 @@ GRASP_MODELS = {
 GRASP_MODELS["v2.1"] = dict(GRASP_MODELS["v2"], version="grasp_v2.1",
                             robot=dict(solref=[0.004, 1.0], solimp=[0.99, 0.999, 0.0005, 0.5, 2.0], margin=0.0, gap=0.0))
 ROBOT_BODY_RE = re.compile(r"^r\d+_")
+# research candidates for D-118 (not for data until verified): world support geoms (table/floor) stiff too; stiffer robot
+_STIFF = dict(solref=[0.004, 1.0], solimp=[0.99, 0.999, 0.0005, 0.5, 2.0], margin=0.0, gap=0.0)
+GRASP_MODELS["v2.1w"] = dict(GRASP_MODELS["v2.1"], version="grasp_v2.1w_candidate", world=dict(_STIFF))
+GRASP_MODELS["v2.1h"] = dict(GRASP_MODELS["v2.1"], version="grasp_v2.1h_candidate", world=dict(_STIFF),
+                             robot=dict(_STIFF, solimp=[0.999, 0.9999, 0.0005, 0.5, 2.0]),
+                             obj=dict(GRASP_MODELS["v2"]["obj"], solimp=[0.999, 0.9999, 0.0005, 0.5, 2.0]))
 
 
 def resolve(v: str | None = None) -> str:
     """'v1' | 'v2' (accepts 'grasp_v1'/'grasp_v2'); None -> $RRP_GRASP_CONTACT or 'v1'."""
     c = v if v is not None else os.environ.get(ENV, "v1")
-    c = str(c).lower().replace("grasp_", "").replace("v2_1", "v2.1")
+    c = str(c).lower().replace("grasp_", "").replace("v2_1", "v2.1").replace("_candidate", "")
     if c not in GRASP_MODELS:
         raise ValueError(f"unknown grasp contact model {v!r}; known: {sorted(GRASP_MODELS)}")
     return c
@@ -97,6 +103,8 @@ def apply(spec: mujoco.MjSpec, version: str | None = None) -> dict:
         elif "robot" in cm and ROBOT_BODY_RE.match(body or "") and (g.contype or g.conaffinity):
             p = cm["robot"]
             n_rob += 1
+        elif "world" in cm and body == "world" and (g.contype or g.conaffinity):
+            p = cm["world"]
         else:
             continue
         if "friction" in p:

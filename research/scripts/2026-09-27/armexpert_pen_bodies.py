@@ -26,12 +26,15 @@ def main():
     dart = [r for r in rows if r["exec_noise"]]
     over = sorted([r for r in dart if r["motion"]["penetration_max_m"] > 0.003], key=lambda r: -r["motion"]["penetration_max_m"])
     rng = np.random.default_rng(0)
-    pick = over[: n // 2] + [over[i] for i in rng.choice(len(over), size=min(n - n // 2, len(over)), replace=False)]
+    if os.environ.get("SAMPLE") == "random":        # unbiased DART sample (for the >= 99 % criterion)
+        pick = [dart[i] for i in rng.choice(len(dart), size=min(n, len(dart)), replace=False)]
+    else:
+        pick = over[: n // 2] + [over[i] for i in rng.choice(len(over), size=min(n - n // 2, len(over)), replace=False)]
     seen, sel = set(), []
     for r in pick:
         if r["episode_id"] not in seen:
             seen.add(r["episode_id"]); sel.append(r)
-    ctl = [r for r in dart if r["motion"]["penetration_max_m"] <= 0.003][:20]      # controls (should be small)
+    ctl = [] if os.environ.get("SAMPLE") == "random" else [r for r in dart if r["motion"]["penetration_max_m"] <= 0.003][:20]
     sel += ctl
     from rrp.bodies.catalog import workbench_robots
     from rrp.envs.native import Session
