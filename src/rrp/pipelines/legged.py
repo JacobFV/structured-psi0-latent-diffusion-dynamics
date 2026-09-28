@@ -196,13 +196,36 @@ def dataset_gate(eps: list[dict]) -> dict:
                 passed=None if slip_ok is None else bool(slip_ok and falls0 == 0))
 
 
+def check_tracker_sha(ctx: StageContext) -> str | None:
+    """validate_tracker: refuse when options.tracker_sha256 is declared and the actor file (options.actor, else the installed
+    tracker for flags.contact_version) has another sha256. Returns the file's sha256 (None when nothing is declared)."""
+    want = ctx.opts.get("tracker_sha256")
+    if not want:
+        return None
+    import hashlib
+    from rrp.envs.legged_tracker import tracker_path
+    path = Path(ctx.opts["actor"]) if ctx.opts.get("actor") else tracker_path(
+        ctx.opts["body"], str(ctx.rc.flags.contact_version).replace("contact_", ""))
+    if not path.is_absolute():
+        path = ctx.root / path
+    if not path.exists():
+        raise StageError(f"tracker {path} not found (declared sha256 {want})")
+    got = hashlib.sha256(path.read_bytes()).hexdigest()
+    if got != str(want):
+        raise StageError(f"tracker sha {got} != declared {want} ({path})")
+    return got
+
+
 @register("legged", "validate_tracker", source="learned_tracker")
 def validate_tracker(ctx: StageContext) -> dict:
     """Tracker validation (rrp.evaluation.tracker_validation protocol v2 + the W6 robustness check) and the D-112 tracker
     gate. options: body, actor (default: the installed tracker for the contact version), kind (learned|cpg), seeds (5),
-    robust (true). A gate verdict 'fail' fails the node (exit GATE_EXIT, reason in gate_report.json)."""
+    robust (true), tracker_sha256 (optional: the actor file must have this sha256, checked BEFORE validating, so a DAG
+    validates exactly the tracker its `collect` node declares). A gate verdict 'fail' fails the node (exit GATE_EXIT,
+    reason in gate_report.json)."""
     o = ctx.opts
     body = o["body"]
+    check_tracker_sha(ctx)
     out = ctx.out / "validation.json"
     argv = ["-m", "rrp.evaluation.tracker_validation", "--body", body, "--kind", o.get("kind", "learned"),
             "--seeds", str(o.get("seeds", 5)), "--contact", str(ctx.rc.flags.contact_version).replace("contact_", ""),
