@@ -20,7 +20,7 @@ for s in 3000000 3000100 3000200; do for r in panda_pg2 parm6_tf3; do JOBS+=("bc
 for r in parm5s_tf3 parm5l_pg2; do JOBS+=("bc|direct1701|bc_direct1701_final|$r|3000000"); done
 if [ -n "${KIND:-}" ]; then f=(); for j in "${JOBS[@]}"; do [ "${j%%|*}" = "$KIND" ] && f+=("$j"); done; JOBS=("${f[@]}"); fi
 PLACE=${PLACE:-peer}
-export RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armexpert
+export RRP_PEER_REPO=${RRP_PEER_REPO:-/dev/shm/rrp-brandonin/wt/armexpert}   # overridable (default W7's dir)
 PR=$RRP_PEER_REPO
 exists() { if [ $PLACE = peer ]; then ssh gb10-direct "test -s $PR/$1"; else test -s "$1"; fi; }
 admit() { [ $PLACE = peer ] && return 0; for _ in $(seq 1 240); do PYTHONPATH=src $PY -m rrp.cli ops status 2>/dev/null | grep -q '"admission_stopped": false' && return 0; sleep 10; done; return 1; }
