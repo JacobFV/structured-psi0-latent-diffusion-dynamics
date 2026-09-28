@@ -61,17 +61,18 @@
    }
   },
   "enforced": {
-   "cpu_cores": 12.98,
-   "memory_bytes": 34088055603,
-   "gpu_slots": 3,
+   "cpu_cores": 2.0,
+   "memory_bytes": 8589934592,
+   "gpu_slots": 0,
    "disk_bytes": 168020324352,
    "host_gpu": "authorized_by_user_D027_in_process_cap_plus_watchdog"
   },
   "lease_expiry_s": 120,
-  "gpu_authorized": true,
+  "gpu_authorized": false,
   "memory_reserve_bytes": 13059607756,
   "disk_reserve_bytes": 107374182400,
-  "startup_new_disk_bytes": 168020324352
+  "startup_new_disk_bytes": 168020324352,
+  "admission_note": "D-115 (user 2026-09-27): no training or heavy compute on the host; peer only. Host broker limited to 2 CPU / 8 GiB / 0 GPU for light tasks."
  },
  "peer": {
   "measurement": {
@@ -133,15 +134,17 @@
    }
   },
   "enforced": {
-   "cpu_cores": 15.92,
-   "memory_bytes": 94778012467,
-   "gpu_slots": 1,
+   "cpu_cores": 19.97,
+   "memory_bytes": 115964116992,
+   "gpu_slots": 8,
    "disk_bytes": 29277769728
   },
   "lease_expiry_s": 20,
   "memory_reserve_bytes": 12845366886,
   "disk_reserve_bytes": 21474836480,
-  "startup_new_disk_bytes": 29277769728
+  "startup_new_disk_bytes": 29277769728,
+  "unrestricted": false,
+  "admission_note": "D-106: admission capped at physical memory (was unrestricted per D-026) after repeated emergency sheds"
  },
  "peer_alias": "gb10-direct",
  "peer_root": "/dev/shm/rrp-brandonin"
