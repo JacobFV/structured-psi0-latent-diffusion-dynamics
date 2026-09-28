@@ -13,6 +13,23 @@ The Ψ₀ line lives in a second repository:
 | notes / resume | [STATUS.md](../STATUS.md), `research/tracks/<track>.md` | [research/notes.md](https://github.com/JacobFV/psi1z/blob/main/research/notes.md) |
 | Python | 3.11 and 3.12 | 3.11 (Ψ₀ / Isaac Sim 5.1 envs under `~/work/ext`) |
 
+## names and terms (read this first to avoid confusion)
+| name | what it is | what it is NOT |
+|---|---|---|
+| **rrp** | this repository and its Python package (`import rrp`, `rrp.core`) | not a separate project from the GitHub repo below |
+| **structured-psi0-latent-diffusion-dynamics** | the GitHub name of THIS repo (renamed 2026-09-25) | not the Ψ₀ upstream, not psi1z |
+| **relational-robot-policy** | the local folder name of THIS repo (`~/work/relational-robot-policy`), kept from before the rename | not a different repo |
+| **Ψ₀ / psi0** | the UPSTREAM model and code from physical-superintelligence-lab (github.com/physical-superintelligence-lab/Psi0, arXiv 2603.12263): a humanoid VLA plus the SIMPLE benchmark; used unmodified from `~/work/ext` | not our code; we never edit it (patches live as files in psi1z) |
+| **psi1z** | OUR repo for the Ψ₀ line: adapters that fine-tune Ψ₀ with our structure and evaluate it in SIMPLE | not a fork of Ψ₀; not a replacement for rrp |
+| **system i / system 0** | OUR architecture: system i (flow model) generates the latent packet z; system 0 (realizer) turns z into joint commands | "system 0" has nothing to do with Ψ₀ (psi-zero) despite the similar name |
+| **packet / z** | the structured latent packet z[knots × assemblies × 64] passed from system i to system 0 | not Ψ₀'s action tokens |
+| **SIMPLE** | Ψ₀'s humanoid benchmark (MuJoCo physics + Isaac Sim rendering) | not our MuJoCo scenes (arm/legged) |
+| **D-xxx** | decisions in rrp `research/decisions.md` | — |
+| **P-xxx** | decisions in psi1z `research/decisions.md` | not rrp decisions (the crosswalk below maps them) |
+| **W1…W11** | workstreams in rrp `docs/strategy.md` (W10 = the Ψ₀ line, carried out in psi1z) | — |
+| `~/work/rrp-wt/psi0`, branch `track/psi0`, peer dir `wt/psi0` | HISTORICAL: early W10 scratch in rrp before psi1z existed (D-100); nothing there is current | not where W10 lives now |
+| contact_v1/v2, grasp_v1/v2/v2.1, sourced_v1 | physics versions in rrp (legged contact, arm grasp contact, actuator limits); recorded in provenance | unrelated to Ψ₀ versions |
+
 ## dependency direction (never the reverse)
 psi1z → rrp. psi1z installs rrp as a library, pinned by git sha in
 [psi1z/pyproject.toml](https://github.com/JacobFV/psi1z/blob/main/pyproject.toml) and uses only the stable API in
