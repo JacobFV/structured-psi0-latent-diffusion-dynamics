@@ -87,7 +87,7 @@ have $ROOT/baseline_direct_action/seed$SEED/cells/source.json || run_job ax${TAG
   --source-pack $PACK --eval-device cpu || { log "FAILED source cell"; exit 1; }
 for t in panda_tf3 xarm7_pg2 xarm7_tf3; do
   have $ROOT/baseline_direct_action/seed$SEED/cells/${t}_b0.json && continue
-  run_job ax${TAGP}_b0_${SEED}_$t 2 6G 10800 0 env CUDA_VISIBLE_DEVICES= PY -m rrp.cli campaign baseline-cell \
+  run_job ax${TAGP}_b0_${SEED}_$t 2 ${B0_MEM:-10G} 10800 0 env CUDA_VISIBLE_DEVICES= PY -m rrp.cli campaign baseline-cell \
     --method baseline_direct_action --seed $SEED --target $t --budget 0 --root $ROOT --source-pack $PACK --eval-device cpu \
     || { log "FAILED b0 $t"; exit 1; }
 done
