@@ -169,8 +169,14 @@ class Episode:
 
     def ensure(self, model):
         if self.col is None:
+            import mujoco
             self.model = model
             self.geoms, bodies = RP.export_geoms(model)
+            ex = self.extra or {}
+            want = list(ex.get("contact_bodies") or []) + [ex.get("base_body"), ex.get("object_body")]
+            for n in want:                    # bodies named in meta get frames even without visible geoms
+                if n and n not in bodies and mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, n) >= 0:
+                    bodies.append(n)
             self.col = RP.FrameCollector(model, bodies, 1.0 / self.control_hz)
         return self.col
 
@@ -198,6 +204,26 @@ def _penetration_mm(m, d, geoms_a: set | None = None, bodies_b: set | None = Non
 
 def _statuses(runtime) -> dict:
     return {e: str(v.status) for e, v in runtime.instances.items()}
+
+
+def _sensor_bodies(m, names) -> list:
+    """Body of each (site-attached) sensor, for meta.contact_bodies (contract v1.1)."""
+    import mujoco
+    out = []
+    for n in names:
+        sid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_SENSOR, n)
+        if sid < 0:
+            out.append(None)
+            continue
+        oid, ot = int(m.sensor_objid[sid]), int(m.sensor_objtype[sid])
+        b = int(m.site_bodyid[oid]) if ot == int(mujoco.mjtObj.mjOBJ_SITE) else (oid if ot == int(mujoco.mjtObj.mjOBJ_BODY) else -1)
+        out.append(m.body(b).name if b >= 0 else None)
+    return out
+
+
+def _qadr_joint_names(m, qadr) -> list:
+    by = {int(m.jnt_qposadr[j]): m.joint(j).name for j in range(m.njnt)}
+    return [by.get(int(a)) for a in qadr]
 
 
 # ------------------------------------------------------------------ packet PCA bases (per bundle)
@@ -265,6 +291,16 @@ class _ArmSignals:
         self.tcp = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_SITE, grip.frame.site) if grip else -1
         self.cube_slot = next((i for i, o in enumerate(s.detectables) if o.sim_body == "cube"), 0)
         self.prev_rel, self._pcache = None, {}
+
+    def meta(self) -> dict:
+        m, r = self.s.model, self.r
+        c = r.controller
+        tg = c.target or {}
+        tnames = [f"{g}[{i}]" for g in c.groups if g in tg for i in range(np.atleast_1d(np.asarray(tg[g])).size)]
+        base = next((n for l in r.spec.links for n in ((r.prefix or "") + l.name, l.name)
+                     if n in {m.body(b).name for b in self.robot_bodies}), None)
+        return dict(contact_bodies=_sensor_bodies(m, r.touch), joint_names=_qadr_joint_names(m, r.qadr),
+                    joint_target_names=tnames, object_body="cube", base_body=base)
 
     def joint_target(self):
         c = self.r.controller
@@ -367,6 +403,7 @@ def run_ladder(e: dict, out: Path, pcache: dict) -> list[dict]:
                     return
                 if k not in eps:
                     eps[k] = (Episode(1.0 / s.dt), _ArmSignals(s, P))
+                    eps[k][0].extra = eps[k][1].meta()
                 ep, sig = eps[k]
                 col = ep.ensure(s.model)
                 if col.due():
@@ -435,6 +472,7 @@ def run_arm_teacher(e: dict, out: Path, pcache: dict) -> list[dict]:
         def make(s, version, *aa, **kk):
             t = orig_make(s, version, *aa, **kk)
             st.update(armed=True, teacher=t, ep=Episode(1.0 / s.dt), sig=_ArmSignals(s))
+            st["ep"].extra = st["sig"].meta()
             return t
 
         def step(self, *aa, **kk):
@@ -501,6 +539,7 @@ def run_arm_edit(e: dict, out: Path, pcache: dict) -> list[dict]:
             def on_step(s, step):
                 if ep[0] is None:
                     ep[0], ep[1] = Episode(1.0 / s.dt), _ArmSignals(s, P)
+                    ep[0].extra = ep[1].meta()
                 col = ep[0].ensure(s.model)
                 if col.due():
                     pk = tap.get(id(src.featurizer(s)))
@@ -539,6 +578,12 @@ class _LeggedSignals:
         self.t_edit, self.edit = t_edit, edit
         self.p0, self.yaw0 = None, None
         self._fg = set(g for g in (b.floor, getattr(b, "floor2", -1)) if g is not None and g >= 0)
+
+    def meta(self) -> dict:
+        b, m = self.b, self.b.model
+        names = [m.joint(int(j)).name for j in m.actuator_trnid[b.pol_act, 0]]
+        return dict(contact_bodies=[m.body(int(x)).name for x in b.foot_bids], base_body=m.body(int(b.root_bid)).name,
+                    joint_names=names, joint_target_names=names)
 
     def start(self, d):
         from rrp.envs.legged_core import yaw_of
@@ -624,6 +669,7 @@ def _run_legged(e: dict, out: Path, pcache: dict, robust: bool) -> list[dict]:
             st["ep"] = Episode(float(TRACKER_HZ()))
             st["sig"] = _LeggedSignals(session, session.binding, ctl=ctl, basis=basis,
                                        t_edit=float(a.get("t_edit", 1.0)), edit=a.get("edit", "none"))
+            st["ep"].extra = st["sig"].meta()
 
         def on_reset(self, done):
             o_reset(self, done)
@@ -714,6 +760,7 @@ def run_tracker_val(e: dict, out: Path, pcache: dict) -> list[dict]:
         sd = int(s_i)
         ep = Episode(50.0)                                   # tracker ticks at 50 Hz (dt 0.02)
         sig = _LeggedSignals(None, b)
+        ep.extra = sig.meta()
         sub = max(1, int(round(0.02 / model.opt.timestep)))
         cnt = dict(n=0)
 
@@ -764,6 +811,10 @@ def run_dual_teacher(e: dict, out: Path, pcache: dict) -> list[dict]:
             st["ep"] = Episode(1.0 / session.dt)
             st["objs"] = sorted(self.obj_bodies)
             st["rb"] = set(self.body_robot)
+            m = session.model
+            st["ep"].extra = dict(contact_bodies=[b for rr in session.robots for b in _sensor_bodies(m, rr.touch)],
+                                  joint_names=[n for rr in session.robots for n in _qadr_joint_names(m, rr.qadr)],
+                                  object_body=m.body(st["objs"][0]).name if st["objs"] else None)
 
         def after(self, *aa, **kk):
             r = o_after(self, *aa, **kk)
@@ -827,6 +878,9 @@ def run_grasp_rig(e: dict, out: Path, pcache: dict) -> list[dict]:
             pads = [g for g in range(m.ngeom) if GR.GC.PAD_RE.search(m.geom(g).name or "")]
             jn = [j for j in range(m.njnt) if m.jnt_type[j] in (2, 3)]
             st["sig"] = dict(cube=cube, palm=palm, cg=cg, pads=pads, qadr=[int(m.jnt_qposadr[j]) for j in jn], rel0=None)
+            st["ep"].extra = dict(contact_bodies=[m.body(int(m.geom_bodyid[p])).name for p in pads], object_body="cube",
+                                  base_body="carriage", joint_names=[m.joint(j).name for j in jn],
+                                  joint_target_names=[m.actuator(i).name for i in range(m.nu)])
         col = st["ep"].ensure(m)
         g = st["sig"]
         if col.due():
@@ -900,6 +954,14 @@ def _meta(e: dict, seed: int, model, *, success, failure_stage, ckpt_sha, record
 
 def _finish(e: dict, seed: int, meta: dict, ep: Episode, out: Path) -> dict:
     rid = f"{e['id']}-s{seed}"
+    for k, v in (ep.extra or {}).items():
+        if v is not None and k not in meta:
+            meta[k] = v
+    b = meta.get("packet_pca_basis")
+    if b is not None:                                   # contract v1.1 provenance summary of the basis
+        fs = b.get("fit_source", {})
+        meta["packet_pca"] = dict(fit_on=f"{fs.get('kind')}: {fs.get('glob') or fs.get('data')} ({b.get('n_fit')} packets); "
+                                  f"{fs.get('note')}", explained_variance=b.get("explained_variance_ratio"))
     doc = RP.build_replay(rid, meta, ep.geoms, ep.col.result())
     p = RP.write_replay(doc, out / e["family"])
     return dict(id=rid, file=str(p), bytes=p.stat().st_size, n_frames=doc["n_frames"], success=meta["success"],

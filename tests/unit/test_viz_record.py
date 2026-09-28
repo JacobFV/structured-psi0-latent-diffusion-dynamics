@@ -142,6 +142,10 @@ def test_recorded_arm_episode_actions_match_unrecorded(tmp_path):
     assert doc["n_frames"] == 6 and doc["meta"]["success"] == rows0[0]["privileged_success"]
     assert doc["meta"]["physics"]["grasp_contact_version"] == "grasp_v1"
     assert {"joint_target", "joint_pos", "object_pose", "phase"} <= set(doc["signals"])
+    m = doc["meta"]                                                  # contract v1.1 column names / bodies
+    assert len(m["joint_names"]) == len(doc["signals"]["joint_pos"][0])
+    assert len(m["joint_target_names"]) == len(doc["signals"]["joint_target"][0])
+    assert len(m["contact_bodies"]) == len(doc["signals"]["contacts"][0]) and set(m["contact_bodies"]) <= set(doc["bodies"])
 
 
 @pytest.mark.skipif(os.environ.get("RRP_NODE") != "peer", reason="legged episode: peer only (D-127 host = unit suite)")
