@@ -24,7 +24,6 @@ export default function LiveOps() {
     <>
       <PageHead
         title="Live ops"
-        sub="Peer vitals, admission, leases (declared vs measured), broker and watchdog events, and run-DAG progress per workstream. Read-only: the room never starts or stops anything. Live polls every 10 s (one bounded ssh read of the peer per export)."
         right={<StaleFlag result={live.result} />}
       />
       <ModeBanner result={live.result} reload={live.reload} busy={live.busy} />

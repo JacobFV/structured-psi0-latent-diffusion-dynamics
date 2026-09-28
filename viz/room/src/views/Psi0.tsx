@@ -1,3 +1,5 @@
+import { useShowData } from './Lens';
+import { RateBar } from '../components/board';
 import Markdown from '../components/Markdown';
 import { Card, DataTable, Did, Gate, ModeBanner, PageHead, Provenance, TablesBrowser } from '../components/ui';
 import { useDoc, type Envelope } from '../lib/api';
@@ -10,7 +12,6 @@ export default function Psi0() {
     <>
       <PageHead
         title="Ψ₀ line"
-        sub="Reproduction of Ψ₀ with the released checkpoints and the step-2 runs (psi1z), the psi1z P-decisions and their crosswalk to rrp D-decisions. Reads ~/work/psi1z and the local copies of its run summaries."
       />
       <ModeBanner result={result} reload={reload} busy={busy} />
       <Gate result={result} what="Ψ₀ line (/api/psi0)">{(d) => <Psi0Body d={d} />}</Gate>
@@ -57,11 +58,13 @@ function RunsTable({ runs }: { runs: Row[] }) {
 }
 
 function Psi0Body({ d }: { d: Envelope }) {
+  const showData = useShowData();
   const runs = rows(pick(d, 'runs'));
   const pd = rows(pick(d, 'p_decisions'));
   const cw = rows(pick(d, 'crosswalk'));
   const w10 = rows(pick(d, 'rrp_w10_decisions'));
   const missing = arr(d.missing).map(str);
+  if (!showData) return <Psi0Bars runs={runs} />;
   return (
     <div className="stack">
       {arr(d.notes).length > 0 && <ul className="small muted" style={{ margin: 0 }}>{arr(d.notes).map((n, i) => <li key={i}>{str(n)}</li>)}</ul>}
@@ -102,3 +105,27 @@ function Psi0Body({ d }: { d: Envelope }) {
     </div>
   );
 }
+
+function Psi0Bars({ runs }: { runs: Row[] }) {
+  const rs = runs.filter((r) => num(r.n)).sort((a, b) => Number(str(b.run).startsWith('step2')) - Number(str(a.run).startsWith('step2')));
+  return (
+    <section className="ev-panel" style={{ borderLeft: 'var(--seam)', borderTop: 'var(--seam)' }}>
+      <header>Ψ₀ runs · success with 95% CI<span className="meta">released checkpoints (rel) and step 2 (s2) · ◐ interim</span></header>
+      <div style={{ display: 'grid', gridTemplateColumns: '200px 240px 60px 20px', gap: '3px 10px', alignItems: 'center', fontSize: 11 }}>
+        {rs.map((r) => {
+          const k = num(r.k)!, n = num(r.n)!;
+          const ci = Array.isArray(r.ci) ? [num(r.ci[0]), num(r.ci[1])] : wilson(k, n);
+          return (
+            <FragRow key={str(r.run)} cells={[
+              <span key="a" title={`${str(r.task)} · ${str(r.interim_reason)}`} className="mono">{str(r.run).replace(/^psi0rel_/, 'rel ').replace(/^step2_/, 's2 ')}</span>,
+              <RateBar key="b" rate={k / n} lo={ci[0]} hi={ci[1]} width={230} />,
+              <span key="c" className="mono">{k}/{n}</span>,
+              <span key="d" className="warn-glyph" title={str(r.interim_reason)}>{r.interim ? '◐' : ''}</span>,
+            ]} />
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+function FragRow({ cells }: { cells: React.ReactNode[] }) { return <>{cells}</>; }

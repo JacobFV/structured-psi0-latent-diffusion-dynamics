@@ -1,3 +1,4 @@
+import { useShowData } from './Lens';
 import { SideGroup, SidebarControls } from '../components/shell';
 import { Forest, Lines, type ForestRow } from '../components/charts';
 import { Card, DataTable, Did, Gate, ModeBanner, PageHead, Provenance, Select } from '../components/ui';
@@ -12,7 +13,6 @@ export default function Robustness() {
     <>
       <PageHead
         title="Robustness"
-        sub="Perturbation sweeps per robot: success (or motion quality) against each factor's level for every route, with 95% CIs and the recorded break-points; route comparisons and variant-level paired differences (D-108 / D-112 / D-114)."
       />
       <ModeBanner result={result} reload={reload} busy={busy} />
       <Gate result={result} what="robustness (/api/robustness)">{(d) => <RobustBody d={d} />}</Gate>
@@ -28,6 +28,7 @@ function ciPair(r: Row, key = 'ci'): [number | null, number | null] {
 }
 
 function RobustBody({ d }: { d: Envelope }) {
+  const showData = useShowData();
   const levels = rows(pick(d, 'levels', 'sweeps'));
   const reports = rows(pick(d, 'reports'));
   const comps = rows(pick(d, 'comparisons'));
@@ -115,7 +116,7 @@ function RobustBody({ d }: { d: Envelope }) {
           })}
         </div>
       )}
-      <Card title="Reports" hint="nominal and pooled-perturbed success per route and robot">
+      {showData && <Card title="Reports" hint="nominal and pooled-perturbed success per route and robot">
         <DataTable rows={reports.map((r) => {
           const nom = isObj(r.nominal) ? r.nominal : {}, pool = isObj(r.pooled_perturbed) ? r.pooled_perturbed : {};
           return {
@@ -124,19 +125,18 @@ function RobustBody({ d }: { d: Envelope }) {
             sources: arr(nom.sources).map(str).join(', '), decision: r.decision, source_file: r.source_file,
           };
         })} />
-      </Card>
+      </Card>}
       <Card title="Route comparisons" hint="difference in level-mean success (A − B), recorded CI and p">
         <Forest xLabel="Δ level-mean success (A − B)" rows={comps.filter((c) => !robot || str(c.robot) === robot).map((c, i): ForestRow => {
           const [lo, hi] = ciPair(c, 'diff_level_mean_ci');
           return { key: `c${i}`, label: `${str(c.a)} vs ${str(c.b)} · ${str(c.robot)}`, effect: num(c.diff_level_mean), lo, hi, p: num(c.p_level_mean), n: num(c.n_seeds),
             tone: 'var(--s1)', note: `drop Δ ${fmtNum(c.diff_drop)} (p ${fmtNum(c.p_drop)}) · ${str(c.metric)} · ${str(c.decision)}` };
         })} />
-        <DataTable rows={comps.map((c) => ({ robot: c.robot, a: c.a, b: c.b, metric: c.metric, n_seeds: c.n_seeds, n_levels: c.n_levels, level_mean_a: c.level_mean_a, level_mean_b: c.level_mean_b, diff: c.diff_level_mean, ci: c.diff_level_mean_ci, p: c.p_level_mean, diff_drop: c.diff_drop, p_drop: c.p_drop, decision: c.decision }))} tall />
+        {showData && <DataTable rows={comps.map((c) => ({ robot: c.robot, a: c.a, b: c.b, metric: c.metric, n_seeds: c.n_seeds, n_levels: c.n_levels, level_mean_a: c.level_mean_a, level_mean_b: c.level_mean_b, diff: c.diff_level_mean, ci: c.diff_level_mean_ci, p: c.p_level_mean, diff_drop: c.diff_drop, p_drop: c.p_drop, decision: c.decision }))} tall />}
       </Card>
       <Card title="Variant-level paired differences" hint="per training seed (D-108 / D-112)">
         <VariantDiffs vd={vdiffs} />
       </Card>
-      {arr(d.notes).length > 0 && <ul className="small muted">{arr(d.notes).map((n, i) => <li key={i}>{str(n)}</li>)}</ul>}
     </div>
   );
 }
@@ -165,7 +165,7 @@ function VariantDiffs({ vd }: { vd: Row[] }) {
     <>
       {v0decisions(vd)}
       {out.length ? <Forest rows={out} xLabel="Δ level-mean success (A − B)" /> : null}
-      <DataTable rows={table} tall />
+      {useShowData() && <DataTable rows={table} tall />}
     </>
   );
 }

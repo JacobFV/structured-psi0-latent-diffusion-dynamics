@@ -30,7 +30,6 @@ export default function Results() {
     <>
       <PageHead
         title="Results matrix"
-        sub="Every normalised result row (summary.json, compare tables, gate reports) as a heatmap of rate with its 95% CI. Filter by family, body, route, variant, seed and physics version; delta mode compares two values of one dimension on otherwise-identical rows."
       />
       <ModeBanner result={result} reload={reload} busy={busy} />
       <Gate result={result} what="results (/api/results)">

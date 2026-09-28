@@ -1,3 +1,4 @@
+import { useShowData } from './Lens';
 import { SideGroup, SidebarControls } from '../components/shell';
 import { useState } from 'react';
 import { Card, DataTable, Did, Gate, KV, ModeBanner, PageHead, Provenance, RawDoc, Select, Status, TablesBrowser } from '../components/ui';
@@ -12,7 +13,6 @@ export default function Physics() {
     <>
       <PageHead
         title="Physics credibility"
-        sub="Whether the simulator and trackers can carry each claim: tracker validation and contact-v2 gates (slip ratio, duty, clearance, cost of transport per mode), grasp and dataset gates with their criteria, and the gate backfill tables (D-093..D-118)."
       />
       <ModeBanner result={result} reload={reload} busy={busy} />
       <Gate result={result} what="physics (/api/physics)">{(d) => <PhysicsBody d={d} />}</Gate>
@@ -22,6 +22,7 @@ export default function Physics() {
 }
 
 function PhysicsBody({ d }: { d: Envelope }) {
+  const showData = useShowData();
   const trackers = rows(pick(d, 'trackers'));
   const gates = rows(pick(d, 'gates'));
   const dsg = rows(pick(d, 'dataset_gates'));
@@ -31,6 +32,8 @@ function PhysicsBody({ d }: { d: Envelope }) {
   const cPass = trackers.filter((t) => isObj(t.contact_gate) && t.contact_gate.passed === true).length;
   return (
     <div className="stack">
+      <PhysicsVisual gates={gates} trackers={trackers} />
+      {showData && <>
       <div className="grid g3">
         <div className="card stat"><div className="k">Gate verdicts</div><div className="v row">{Object.entries(counts).map(([v, n]) => <Status key={v} state={v}>{n} {v}</Status>)}</div><div className="s">{gates.length} gate reports</div></div>
         <div className="card stat"><div className="k">Trackers passing the tracking gate</div><div className="v num">{tPass} / {trackers.length}</div><div className="s">{trackers.filter((t) => t.synthetic === true).length} synthetic (marked)</div></div>
@@ -44,6 +47,7 @@ function PhysicsBody({ d }: { d: Envelope }) {
       <Card title="Gate backfill and summary tables" hint={`${tables.length} tables`}><TablesBrowser tables={tables} param="gtable" /></Card>
       {arr(d.notes).length > 0 && <ul className="small muted">{arr(d.notes).map((n, i) => <li key={i}>{str(n)}</li>)}</ul>}
       {d.documents !== undefined && <Card title="Other physics documents" hint={`${str(d.n_documents)}`}><RawDoc data={{ documents: d.documents } as Row} /></Card>}
+      </>}
     </div>
   );
 }
@@ -124,6 +128,50 @@ function Gates({ gates }: { gates: Row[] }) {
           </details>
         );
       })}
+    </div>
+  );
+}
+
+/** Visual summary: each gate as a row of criterion squares; trackers per body as slip-ratio dots coloured by the contact gate. */
+function PhysicsVisual({ gates, trackers }: { gates: Row[]; trackers: Row[] }) {
+  const bodies = uniq(trackers.map((t) => str(t.body))).sort(sortNatural);
+  const smax = Math.max(0.01, ...trackers.map((t) => num(isObj(t.contact_gate) ? t.contact_gate.slip_ratio : null) || 0));
+  const col = (s: unknown) => { const t = stateTone(s); return t === 'good' ? 'var(--good)' : t === 'critical' ? 'var(--critical)' : t === 'serious' ? 'var(--serious)' : 'var(--axis)'; };
+  return (
+    <div className="ev-grid">
+      <section className="ev-panel">
+        <header>Gates · criteria<span className="meta">{gates.filter((g) => stateTone(g.verdict) === 'good').length}/{gates.length} pass</span></header>
+        <div style={{ display: 'grid', gap: 2 }}>
+          {gates.map((g, i) => (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '14px 180px 1fr', gap: 6, alignItems: 'center', fontSize: 11 }} title={`${str(g.gate)}: ${str(g.verdict)} (${str(g.decision)})`}>
+              <i style={{ width: 10, height: 10, background: col(g.verdict), display: 'inline-block' }} />
+              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{str(g.gate)}</span>
+              <span style={{ display: 'flex', gap: 2 }}>
+                {rows(g.criteria).map((c, j) => <i key={j} title={`${str(c.name)}: ${str(c.status)} · ${fmtNum(c.value)} (${str(c.threshold)})`} style={{ width: 14, height: 12, background: col(c.status), display: 'inline-block' }} />)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+      <section className="ev-panel">
+        <header>Trackers · contact slip ratio<span className="meta">dot = one tracker version · green = contact gate pass</span></header>
+        <svg viewBox={`0 0 420 ${bodies.length * 17 + 14}`} width="100%" height={bodies.length * 17 + 14}>
+          {bodies.map((b, i) => (
+            <g key={b}>
+              <text x={80} y={i * 17 + 12} fontSize={11} textAnchor="end" fill="var(--ink-2)">{b}</text>
+              <line x1={88} x2={410} y1={i * 17 + 8} y2={i * 17 + 8} stroke="var(--grid)" />
+              {trackers.filter((t) => str(t.body) === b && isObj(t.contact_gate)).map((t, j) => {
+                const c = t.contact_gate as Row;
+                const v = num(c.slip_ratio);
+                if (v === null) return null;
+                return <circle key={j} cx={88 + (v / smax) * 320} cy={i * 17 + 8} r={4} fill={c.passed ? 'var(--good)' : 'var(--critical)'} opacity={0.8}><title>{`${str(t.tracker_version)}: slip ratio ${fmtNum(v)} · ${c.passed ? 'pass' : 'fail'}${t.synthetic ? ' · synthetic' : ''}`}</title></circle>;
+              })}
+            </g>
+          ))}
+          <text x={88} y={bodies.length * 17 + 12} fontSize={10} fill="var(--muted)">0</text>
+          <text x={410} y={bodies.length * 17 + 12} fontSize={10} fill="var(--muted)" textAnchor="end">{fmtNum(smax)}</text>
+        </svg>
+      </section>
     </div>
   );
 }

@@ -30,7 +30,6 @@ export default function Training() {
     <>
       <PageHead
         title="Training"
-        sub="Loss curves and gradient health per run (stageA, flow, refit, bc, tracker, grpo, psi1z): grad norm with clip-active regions shaded (D-085 clip scale), learning rate, reward-schedule α, DAgger rounds and probes. Series are downsampled to ≤ 2000 points by the exporter; nothing is smoothed here."
       />
       <ModeBanner result={result} reload={reload} busy={busy} />
       <Gate result={result} what="training (/api/training)">

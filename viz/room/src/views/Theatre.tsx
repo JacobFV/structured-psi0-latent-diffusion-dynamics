@@ -17,7 +17,6 @@ export default function Theatre() {
     <>
       <PageHead
         title="Episode theatre"
-        sub="Recorded replays in 3D with synchronized signal timelines, side-by-side comparison on a shared clock, and the labelled video fallback. Everything drawn comes from the replay file; missing signals are omitted."
       />
       <Tabs value={tab as 'theatre' | 'videos'} onChange={setTab} options={[{ id: 'theatre', label: 'Theatre' }, { id: 'videos', label: 'Video library' }]} />
       {tab === 'videos' ? (

@@ -21,8 +21,8 @@ g.localStorage = { getItem: () => null, setItem() {} };
 const VIEWS: [string, () => Promise<{ default: ComponentType }>, string[]][] = [
   ['ticker', () => import('../src/components/Ticker'), ['board']],
   ['board', () => import('../src/views/Board'), ['board']],
-  ['evidence', () => import('../src/views/Evidence'), ['results', 'results?mode=delta&dd=grasp_version', 'results?agg=pool&r1=route&c=metric&metric=', 'results?q=compare_gc2_final&metric=grasp_v2',
-    'edits', 'edits?body=go2', 'robustness', 'robustness?m=motion.joint_jerk_rms', 'physics', 'psi0']],
+  ['evidence', () => import('../src/views/Evidence'), ['results', 'results?data=1', 'results?data=1&mode=delta&dd=grasp_version', 'results?agg=pool&r1=route&c=metric&metric=', 'results?q=compare_gc2_final&metric=grasp_v2',
+    'edits', 'edits?body=go2', 'robustness', 'robustness?m=motion.joint_jerk_rms', 'physics', 'physics?data=1', 'psi0', 'psi0?data=1', 'edits?data=1', 'robustness?data=1']],
   ['runs', () => import('../src/views/RunHistory'), ['runs', 'runs?list=videos', 'runs?demo=1']],
   ['ops', () => import('../src/views/Ops'), ['live', 'training']],
   ['library', () => import('../src/views/Library'), ['knowledge', 'knowledge?tab=crosswalk', 'knowledge?tab=roadmap&q=%2313', 'knowledge?tab=backlog', 'knowledge?tab=strategy', 'knowledge?tab=status', 'knowledge?tab=docs', 'knowledge?tab=decisions&d=D-100', 'overview']],

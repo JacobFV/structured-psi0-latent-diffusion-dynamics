@@ -1,3 +1,4 @@
+import { useShowData } from './Lens';
 import { SideGroup, SidebarControls } from '../components/shell';
 import { Forest, type ForestRow } from '../components/charts';
 import { Card, DataTable, Did, Gate, ModeBanner, PageHead, Provenance, Select } from '../components/ui';
@@ -29,7 +30,6 @@ export default function Edits() {
     <>
       <PageHead
         title="Causal edits"
-        sub="Effect of editing the runtime representation (context halt, mirror, z-halt/turn, goal, rebind…) on behaviour, per body, variant and seed, with controls and permutation tests. Probes are diagnostics; these edits and rollouts are the evidence of causal use."
       />
       <ModeBanner result={result} reload={reload} busy={busy} />
       <Gate result={result} what="edits (/api/edits)">
@@ -41,13 +41,19 @@ export default function Edits() {
 }
 
 function EditsBody({ all: raw }: { all: Row[] }) {
+  const showData = useShowData();
   const all = raw.filter((r) => str(r.kind) !== 'permutation');
   const perms = raw.filter((r) => str(r.kind) === 'permutation');
   const opt = (k: string, rs = all) => uniq(rs.map((r) => str(r[k]))).filter(Boolean).sort(sortNatural);
   const [body, setBody] = useUrlState('body', opt('body')[0] || '');
   const [variant, setVariant] = useUrlState('variant', '');
   const [edit, setEdit] = useUrlState('edit', '');
-  const [metric, setMetric] = useUrlState('metric', '');
+  // default lens: the body's most common metric (usually forward travel), so one forest per variant, not dozens
+  const bodyRows0 = all.filter((r) => !body || str(r.body) === body);
+  const counts = new Map<string, number>();
+  bodyRows0.forEach((r) => counts.set(str(r.metric), (counts.get(str(r.metric)) || 0) + 1));
+  const topMetric = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '';
+  const [metric, setMetric] = useUrlState('metric', topMetric);
   const [seed, setSeed] = useUrlState('seed', '');
   const [cop, setCop] = useUrlState('cop', '');
   const [alpha, setAlpha] = useUrlState('alpha', '0.05');
@@ -91,12 +97,12 @@ function EditsBody({ all: raw }: { all: Row[] }) {
       </div>
         </SideGroup>
       </SidebarControls>
-      <div className="grid g4">
+      {showData && <div className="grid g4">
         <div className="card stat"><div className="k">effects shown</div><div className="v num">{shown.length}</div><div className="s">{groups.length} body · variant · metric groups</div></div>
         <div className="card stat"><div className="k">edits whose CI excludes 0</div><div className="v num">{excl}</div><div className="s">of {nonCtl.length} edit / difference rows</div></div>
         <div className="card stat"><div className="k">controls whose CI excludes 0</div><div className="v num">{ctlExcl}</div><div className="s">of {ctl.length} control rows (should stay near 0)</div></div>
         <div className="card stat"><div className="k">rows with p &lt; {a}</div><div className="v num">{sig}</div><div className="s">uncorrected; p is recorded only where a test was run</div></div>
-      </div>
+      </div>}
       {groups.map((g) => {
         const rs = shown.filter((r) => `${str(r.body) || '∅'} · ${str(r.variant) || '∅'} · ${str(r.metric) || '∅'}` === g)
           .sort((x, y) => sortNatural(str(x.edit), str(y.edit)) || sortNatural(str(x.seed), str(y.seed)) || Number(isControl(x)) - Number(isControl(y)));
@@ -117,12 +123,14 @@ function EditsBody({ all: raw }: { all: Row[] }) {
           </Card>
         );
       })}
+      {showData && <>
       <Card title="Permutation tests" hint={`${perms.length} recorded exact tests (label permutations)`}>
         <DataTable rows={perms.map((r) => ({ body: r.body, variant: r.variant, edit: r.edit, metric: r.metric, direction: r.direction, p_one_sided: r.p_one_sided, p_two_sided: r.p_two_sided, n_perm: r.n_perm, every_seed_ordered: r.every_seed_ordered, effect: r.effect, decision: r.decision, source_file: r.source_file }))} tall empty="No permutation rows in the document." />
       </Card>
       <Card title="All effect rows (filtered)" hint={`${shown.length}`}>
         <DataTable rows={shown.map((r) => ({ body: r.body, variant: r.variant, seed: r.seed, edit: r.edit, role: r.role, metric: r.metric, effect: r.effect, ci: r.ci, n_pairs: r.n_pairs, p_two_sided: r.p_two_sided, context_or_packet: r.context_or_packet, decision: r.decision, location: r.location, source_file: r.source_file }))} tall />
       </Card>
+      </>}
     </div>
   );
 }
