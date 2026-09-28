@@ -8,7 +8,7 @@ import { ModeBadge } from '../components/board';
 import { EditPanel, EventGantt, GaitDiagram, hasEdit, hasMap, hasProbeTruth, JointHeatmap, PacketHeatmap, pcaSpeed, PhaseLanes, PhasePortrait, ProbeTruth, TopDownMap } from '../components/runpanels';
 import { SideGroup, SidebarControls } from '../components/shell';
 import Stage, { PcaPlot, type StageOptions } from '../components/Stage';
-import { ProbeTracks, ScalarTrack, type Side, type Val } from '../components/Timelines';
+import { CategoryTrack, ProbeTracks, RasterTrack, ScalarTrack, type Side, type Val } from '../components/Timelines';
 import { Caveat, Did, ErrorState, Loading, NoData, SourceBadge } from '../components/ui';
 import { useDoc, useReplay, type DocResult, type Envelope } from '../lib/api';
 import { arr, fmtNum, isObj, pick, rows, shortSha, sortNatural, str, uniq, type Row } from '../lib/format';
@@ -264,13 +264,30 @@ function panes(sides: Side[], p: { sides: Side[]; t: number; duration: number; o
   if (any((r) => r.signals.slip) || any((r) => r.signals.penetration_mm) || any((r) => r.signals.contact_force) || any((r) => r.signals.joint_torque)) out.push(
     <Pane key="force" title="Forces, slip, penetration" meta="privileged diagnostics (display only)">
       {any((r) => r.signals.contact_force) && <ScalarTrack title="Contact normal force" unit="N" noteKey="contact_force" names={(r) => r.meta.contact_bodies} get={(r) => r.signals.contact_force as Val[] | undefined} {...p} />}
+      {any((r) => r.signals.contact_force_tangential) && <ScalarTrack title="Contact tangential force" unit="N" noteKey="contact_force_tangential" names={(r) => r.meta.contact_bodies} get={(r) => r.signals.contact_force_tangential as Val[] | undefined} {...p} />}
       {any((r) => r.signals.slip) && <ScalarTrack title="Slip" noteKey="slip" names={(r) => r.meta.contact_bodies} get={(r) => r.signals.slip as Val[] | undefined} {...p} />}
       {any((r) => r.signals.penetration_mm) && <ScalarTrack title="Penetration" unit="mm" noteKey="penetration_mm" get={(r) => r.signals.penetration_mm as Val[] | undefined} {...p} />}
       {any((r) => r.signals.joint_torque) && <ScalarTrack title="Joint torque" unit="N·m" noteKey="joint_torque" names={(r) => r.meta.joint_torque_names as string[] | undefined} get={(r) => r.signals.joint_torque as Val[] | undefined} {...p} />}
     </Pane>,
   );
+  if (any((r) => r.signals.base_vel) || any((r) => r.signals.object_vel) || any((r) => r.signals.base_ang_vel)) out.push(
+    <Pane key="vel" title="Velocities" meta="world frame · privileged">
+      {any((r) => r.signals.base_vel) && <ScalarTrack title="Base velocity" unit="m/s" noteKey="base_vel" names={() => ['vx', 'vy', 'vz']} get={(r) => r.signals.base_vel as Val[] | undefined} {...p} />}
+      {any((r) => r.signals.base_ang_vel) && <ScalarTrack title="Base angular velocity" unit="rad/s" noteKey="base_ang_vel" names={() => ['wx', 'wy', 'wz']} get={(r) => r.signals.base_ang_vel as Val[] | undefined} {...p} />}
+      {any((r) => r.signals.object_vel) && <ScalarTrack title="Object velocity" unit="m/s" noteKey="object_vel" names={() => ['vx', 'vy', 'vz']} get={(r) => r.signals.object_vel as Val[] | undefined} {...p} />}
+    </Pane>,
+  );
+  if (any((r) => r.signals.gripper_aperture) || any((r) => r.signals.grasp_state) || any((r) => r.signals.grip_drift) || any((r) => r.signals.hand_contact)) out.push(
+    <Pane key="grasp" title="Grasp" meta="aperture, grasp state, hand contact, grip drift">
+      {any((r) => r.signals.grasp_state) && <CategoryTrack title="Grasp state (privileged)" noteKey="grasp_state" get={(r) => r.signals.grasp_state as unknown[] | undefined} {...p} />}
+      {any((r) => r.signals.gripper_aperture) && <ScalarTrack title="Gripper aperture" unit="m" noteKey="gripper_aperture" get={(r) => r.signals.gripper_aperture as Val[] | undefined} {...p} />}
+      {any((r) => r.signals.hand_contact) && <RasterTrack title="Hand contact (public touch)" noteKey="hand_contact" names={(r) => r.meta.hands as string[] | undefined} get={(r) => r.signals.hand_contact as unknown[] | undefined} {...p} />}
+      {any((r) => r.signals.grip_drift) && <ScalarTrack title="Grip drift since grasp (position)" unit="mm" noteKey="grip_drift" names={(r) => r.meta.hands as string[] | undefined}
+        get={(r) => (r.signals.grip_drift as (unknown[] | null)[] | undefined)?.map((f) => (Array.isArray(f) ? f.map((h) => (Array.isArray(h) && typeof h[0] === 'number' ? h[0] : null)) : null))} {...p} />}
+    </Pane>,
+  );
   if (any((r) => r.signals.energy) || any((r) => r.signals.power) || any((r) => r.signals.cot)) out.push(
-    <Pane key="energy" title="Energy and cost of transport" meta="per step, as recorded">
+    <Pane key="energy" title="Energy and cost of transport" meta={A.meta.energy_total_j != null ? `total ${fmtNum(A.meta.energy_total_j)} J (recorded)` : 'per step, as recorded'}>
       {any((r) => r.signals.energy) && <ScalarTrack title="Energy per step" unit="J" noteKey="energy" get={(r) => r.signals.energy as Val[] | undefined} {...p} />}
       {any((r) => r.signals.power) && <ScalarTrack title="Power" unit="W" noteKey="power" get={(r) => r.signals.power as Val[] | undefined} {...p} />}
       {any((r) => r.signals.cot) && <ScalarTrack title="Cost of transport" noteKey="cot" get={(r) => r.signals.cot as Val[] | undefined} {...p} />}
@@ -288,6 +305,7 @@ function panes(sides: Side[], p: { sides: Side[]; t: number; duration: number; o
         {series.length > 0 && <div className="legend small">{series.map((s) => <span key={s.label}><i className="sw" style={{ background: s.color }} />{s.label} PCA path</span>)}<span><i className="sw" style={{ background: 'var(--s2)' }} />edit-active frames</span>{!same && <span>bases differ: only A drawn</span>}</div>}
         {withP.length > 0 && <ScalarTrack title="Packet change rate ‖Δ PCA‖/Δt (3 of D dims; computed here)" get={(r) => pcaSpeed(r, relTimes(r))} {...p} />}
         <PacketHeatmap {...p} />
+        {sides[0].replay.signals.packet_norm ? <PacketHeatmap {...p} signal="packet_norm" label="full-dz ‖·‖ per knot × assembly" /> : null}
       </Pane>,
     );
   }

@@ -191,3 +191,45 @@ Commits are not in any exporter document, so the ticker does not show them (the 
 now covers the ticker and the board (58 states, plus 6 on real replays).
 
 Resume: `cd ~/work/rrp-wt/roomui/viz/room && npm install && npm run dev` (add `RRP_ROOM_HOST=0.0.0.0` for the network).
+
+### frontend v3 (owner feedback: IBM-2 sidebar, one-screen board, visuals over text); merges ae0e470, 2b82fa4, 3e202a4, then Runs
+- Shell: IBM-2's left sidebar (brand, a view picker, then that view's controls/filters), one workspace, a thin ticker, a
+  narrow-screen drawer, and no top bar or nested tabs. Five entries:
+  - Board;
+  - Evidence (lenses: success matrix, causal effects, robustness, physics gates, Ψ₀);
+  - Runs;
+  - Ops (peer/leases/DAGs, training health);
+  - Library (decisions, roadmap, docs, claims).
+  Old #results/#edits/… addresses still resolve to their lens.
+- Board: four tiles (claim, competence, open, live), each one chart plus one number with its CI, explanations on hover. The
+  render check asserts a per-tile pixel budget at 1440×900 (a layout-model check, not a browser measurement).
+- Evidence:
+  - curated heatmaps with CI whiskers: legged contact v2 (summary_contact_v2, D-124) and arm grasp_v2 (compare_gc2_final,
+    D-127);
+  - a grasp v1→v2 Δ multiple;
+  - a go2-only contact v1→v2 multiple (legged_fixrep_compare_go2 D-090 → legged8_compare_go2 D-113; anymal_c/t1 have no v1
+    match);
+  - forest plots, break-point curves, gate/tracker charts and Ψ₀ bars.
+  Raw tables and prose sit behind the sidebar "show data tables" toggle.
+- Runs: a vertical stack of linked panels with one shared time cursor, rendered lazily and shown only when the replay has the
+  data:
+  - 3D;
+  - top-down map (paths, waypoints, edit onset, fall, contact points);
+  - phase lanes; task-event Gantt;
+  - contact/gait diagram with duty factors;
+  - progress;
+  - edit and B − A difference traces (edit_dz_norm);
+  - joint heatmap (position/target/tracking error/velocity);
+  - phase portrait;
+  - forces/slip/penetration/torque; velocities; grasp (aperture, state, hand contact, drift); energy/power/CoT;
+  - packet (PCA 3D, change rate, packet_z and packet_norm heatmaps with packet events);
+  - probes, and probe vs truth with a calibration strip;
+  - video;
+  - evidence (the reproduction check table plus all meta).
+  v1.2 signals are read as recorder 872f753 defines them.
+- Checks: the SSR render check covers every view and lens (plus the data toggle). With `REPLAY_DIR=~/work/rrp-data/viz/replays`
+  it renders all 160 real replays alone and as A/B pairs (320 renders, every panel type that has data, 0 failures), plus a
+  geometry check of all their geoms.
+- Gap: the local 160 replays predate v1.2, so the velocity, grasp, energy, torque/force, packet_z and probe-truth panels have
+  only been exercised on the synthetic fixture replays (which carry every v1.2 signal and pass `validate_replay`) until the
+  re-recorded files are synced.

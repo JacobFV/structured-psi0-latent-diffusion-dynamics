@@ -48,8 +48,73 @@ export function leggedSet(rs: Row[]) {
   return { m, bodies: [...bodies], cols: ['semfix (R2)', 'nosem (R2)', 'bc', 'teacher'] };
 }
 
+/** go2 contact v1 → v2 (the only body with matched v1 rows): v1 = legged_fixrep_compare_go2.json (D-090), v2 = legged8_compare_go2.json (D-113). */
+const V1 = 'artifacts/runs/legged_fixrep_compare_go2.json', V2 = 'research/tracks/legged8/legged8_compare_go2.json';
+function go2Contact(res: Row[], eds: Row[]) {
+  const sem = (v: string) => (/nosem/.test(v) ? 'nosem' : /fixsem|semfix/.test(v) ? 'semantic' : null);
+  const halt: { variant: string; seed: string; v1?: Row; v2?: Row }[] = [];
+  for (const [file, ver] of [[V1, 'v1'], [V2, 'v2']] as const) {
+    for (const r of eds) {
+      if (str(r.source_file) !== file || str(r.edit) !== 'ctx_halt' || !/Δforward/.test(str(r.metric))) continue;
+      const v = sem(str(r.variant));
+      if (!v) continue;
+      const seed = r.seed === null || r.seed === undefined ? 'pooled' : `s${str(r.seed)}`;
+      let x = halt.find((h) => h.variant === v && h.seed === seed);
+      if (!x) halt.push((x = { variant: v, seed }));
+      x[ver] = r;
+    }
+  }
+  const succ = new Map<string, { k: number; n: number }>();
+  for (const r of res) {
+    const f = str(r.source_file);
+    if ((f !== V1 && f !== V2) || str(r.metric) !== 'success' || arr(r.key_path).map(str)[4] !== 'r2_final') continue;
+    const v = sem(str(r.variant));
+    if (!v) continue;
+    const key = `${v}|${f === V1 ? 'v1' : 'v2'}`;
+    const x = succ.get(key) || { k: 0, n: 0 };
+    x.k += num(r.k) || 0; x.n += num(r.n) || 0;
+    succ.set(key, x);
+  }
+  return { halt: halt.filter((h) => h.v1 && h.v2).sort((a, b) => a.variant.localeCompare(b.variant) || a.seed.localeCompare(b.seed)), succ };
+}
+function Go2Contact({ res, eds, result }: { res: Row[]; eds: Row[]; result: Parameters<typeof ModeBadge>[0]['result'] }) {
+  const { halt, succ } = go2Contact(res, eds);
+  if (!halt.length) return null;
+  const vals = halt.flatMap((h) => [h.v1, h.v2].flatMap((r) => [num(r!.effect)!, num(arr(r!.ci)[0])!, num(arr(r!.ci)[1])!]));
+  const lo = Math.min(0, ...vals), hi = Math.max(0, ...vals);
+  const W = 420, left = 110, right = 16, H = halt.length * 16 + 14;
+  const x = (v: number) => left + ((v - lo) / (hi - lo || 1)) * (W - left - right);
+  const tone = (v: string) => (v === 'nosem' ? 'var(--muted)' : 'var(--up)');
+  return (
+    <section className="ev-panel">
+      <header>go2 · contact v1 → v2<ModeBadge result={result} /><span className="meta" title="go2 only; anymal_c/t1 have no v1 match (hexapod6 has v1 only). v1: legged_fixrep_compare_go2.json (D-090); v2: legged8_compare_go2.json (D-113)">go2 only · D-090 → D-113</span></header>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img" aria-label="halt effect contact v1 vs v2">
+        <line x1={x(0)} x2={x(0)} y1={0} y2={H - 12} stroke="var(--ink-2)" strokeDasharray="2 2" />
+        <text x={left} y={H - 2} fontSize={10} fill="var(--muted)">{lo.toFixed(2)} m</text>
+        <text x={W - right} y={H - 2} fontSize={10} fill="var(--muted)" textAnchor="end">{hi.toFixed(2)} m · halt Δforward</text>
+        {halt.map((h, i) => {
+          const y = i * 16 + 8, a = num(h.v1!.effect)!, b = num(h.v2!.effect)!;
+          return (
+            <g key={`${h.variant}${h.seed}`}>
+              <title>{`${h.variant} ${h.seed}: contact v1 ${a} [${arr(h.v1!.ci).join(', ')}] → v2 ${b} [${arr(h.v2!.ci).join(', ')}]`}</title>
+              <text x={left - 6} y={y + 4} fontSize={11} textAnchor="end" fill="var(--ink-2)">{h.variant} {h.seed}</text>
+              <line x1={x(a)} x2={x(b)} y1={y} y2={y} stroke={tone(h.variant)} strokeWidth={1.2} />
+              <circle cx={x(a)} cy={y} r={3.5} fill="var(--surface)" stroke={tone(h.variant)} strokeWidth={1.5} />
+              <circle cx={x(b)} cy={y} r={4} fill={tone(h.variant)} />
+            </g>
+          );
+        })}
+      </svg>
+      <div className="legend small"><span>○ contact v1 → ● contact v2</span>
+        {['semantic', 'nosem'].map((v) => { const a = succ.get(`${v}|v1`), b = succ.get(`${v}|v2`); return a && b ? <span key={v} title="R2 (r2_final) success pooled over 3 seeds">{v} R2 success {a.k}/{a.n} → {b.k}/{b.n}</span> : null; })}
+      </div>
+    </section>
+  );
+}
+
 export default function EvidenceMatrix() {
   const { result } = useDoc<Envelope>('results');
+  const edits = useDoc<Envelope>('edits');
   const [data] = useUrlState('data', '0');
   const rs = result.status === 'ok' ? rows(result.data.rows) : [];
   const arm = armSets(rs), leg = leggedSet(rs);
@@ -73,6 +138,7 @@ export default function EvidenceMatrix() {
           <Heat rows={arm.bodies} cols={arm.lines} colLabel={shortLine} cell={(r, c) => arm.v2.get(`${r}|${c}`) ?? null} base={(r, c) => arm.v1.get(`${r}|${c}`) ?? null} />
         </section>
       )}
+      <Go2Contact res={rs} eds={edits.result.status === 'ok' ? rows(edits.result.data.rows) : []} result={edits.result} />
       {!leg.bodies.length && !arm.bodies.length && result.status === 'ok' && <p className="side-note">no curated comparison rows in /api/results</p>}
       {data === '1' && <section className="ev-panel wide"><header>All result rows (raw)</header><Results /></section>}
     </div>

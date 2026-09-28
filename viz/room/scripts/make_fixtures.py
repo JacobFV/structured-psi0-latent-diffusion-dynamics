@@ -227,12 +227,33 @@ def replay(rid, condition, halt):
         if f == int(0.4 * n): events.append(dict(t=T[-1], event="grasp", status="success" if held else "failure"))
         if f == n - 1: events.append(dict(t=T[-1], event="place", status="success" if not halt else "failure"))
     sig["probe"] = probe; sig["task_events"] = events
+    # v1.2 run-history signals (synthetic; exercise the panels)
+    import math as _m
+    q = sig["joint_pos"]
+    sig["joint_vel"] = [[round((q[min(i + 1, n - 1)][j] - q[max(i - 1, 0)][j]) * fps / 2, 4) for j in range(3)] for i in range(n)]
+    sig["joint_torque"] = [[round(3 * _m.sin(i / 7 + j), 3) for j in range(3)] for i in range(n)]
+    sig["contact_force"] = [[round(4.0 if c else 0.0, 2) for c in cs] for cs in sig["contacts"]]
+    sig["contact_force_tangential"] = [[round(0.5 if c else 0.0, 2) for c in cs] for cs in sig["contacts"]]
+    sig["contact_pos"] = [[P[i][4] if sig["contacts"][i][0] else None, P[i][5] if sig["contacts"][i][1] else None] for i in range(n)]
+    sig["probe_truth"] = dict(contact=[[1.0 if c else 0.0 for c in cs] for cs in sig["contacts"]], halt=[1.0 if e else 0.0 for e in sig["edit_active"]])
+    sig["packet_z"] = [[round(_m.sin(i / 9 + d) * (1.5 if sig["edit_active"][i] else 1), 3) for d in range(16)] for i in range(n)]
+    sig["packet_norm"] = [[[round(abs(_m.cos(i / 11 + a + k)), 3) for a in range(2)] for k in range(2)] for i in range(n)]
+    sig["packet_events"] = [dict(t=T[i], z_norm=1.0, edit=bool(sig["edit_active"][i])) for i in range(0, n, 10)]
+    sig["power"] = [round(abs(sum(sig["joint_torque"][i][j] * sig["joint_vel"][i][j] for j in range(3))), 3) for i in range(n)]
+    sig["energy"] = [round(p / fps, 4) for p in sig["power"]]
+    sig["base_vel"] = [[0.0, 0.0, 0.0] for _ in range(n)]
+    sig["object_vel"] = [[round((sig["object_pose"][min(i + 1, n - 1)][k] - sig["object_pose"][i][k]) * fps, 3) for k in range(3)] for i in range(n)]
+    sig["edit_dz_norm"] = [round(0.8, 3) if e else None for e in sig["edit_active"]]
+    sig["gripper_aperture"] = [round(0.024 if 0.33 < i / (n - 1) < 0.85 else 0.06, 3) for i in range(n)]
+    sig["grasp_state"] = ["held" if c[0] else "free" for c in sig["contacts"]]
     meta = dict(family="arm", task="pick_place", body="fixture_arm", route="flow_sem", source_label="fixture:learned:synthetic",
                 ckpt_sha=None, variant="v1", seed=1701, condition=condition, success=not halt, failure_stage="place" if halt else None,
                 physics=dict(contact_version="contact_v1", grasp_contact_version="grasp_v2", actuator_limits_version="act_v1", actuator_mode="position"),
                 decision_refs=["D-131"], caveat="FIXTURE: synthetic kinematics, no physics, not a recorded episode", fixture=True,
                 contact_bodies=["finger_l", "finger_r"], base_body="link2", joint_names=["yaw", "shoulder", "elbow"],
-                packet_pca_basis=dict(explained_variance_ratio=[0.4, 0.2, 0.1], n_fit=0, fit_on="FIXTURE"))
+                packet_pca_basis=dict(explained_variance_ratio=[0.4, 0.2, 0.1], n_fit=0, fit_on="FIXTURE"),
+                joint_torque_names=["yaw", "shoulder", "elbow"], packet_shape=[2, 2, 4], edit_onset_t=(1.8 if halt else None),
+                waypoints=dict(a=[0.45, 0.12], b=[0.45, -0.18]))
     doc = dict(schema="rrp-viz/replay/v1", id=rid, meta=meta, fps=fps, n_frames=n, geoms=geoms, bodies=bodies,
                frames=dict(t=T, body_pos=P, body_quat=Q), signals=sig, annotations=[dict(t=T[n // 2], text="FIXTURE annotation")])
     dump(rid, doc, "replays")

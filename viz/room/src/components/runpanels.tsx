@@ -32,7 +32,7 @@ function editFrame(r: Replay, times: number[]) {
   const ea = r.signals.edit_active;
   const i = ea ? ea.findIndex((v) => v === true) : -1;
   if (i >= 0) return i;
-  const te = num(r.meta.t_edit);
+  const te = num(r.meta.edit_onset_t) ?? num(r.meta.t_edit);
   return te !== null ? frameAt(times, te) : -1;
 }
 export function hasMap(r: Replay) {
@@ -95,6 +95,7 @@ export function TopDownMap({ sides, t, onSeek }: P) {
                   <rect x={X(p[0]) - 5} y={Y(p[1]) - 5} width={10} height={10} fill="none" stroke="var(--s4)" strokeWidth={1.5} transform={`rotate(45 ${X(p[0])} ${Y(p[1])})`} />
                   <text x={X(p[0]) + 8} y={Y(p[1]) + 4} fontSize={10} fill="var(--s4)">{k}</text></g>
               ))}
+              {Array.isArray(l.s.replay.signals.contact_pos) && (l.s.replay.signals.contact_pos as unknown[][]).map((fr, fi) => (Array.isArray(fr) ? fr : []).map((cp, ci) => (Array.isArray(cp) && cp.length >= 2 && fi % 2 === 0 ? <circle key={`${fi}-${ci}`} cx={X(cp[0] as number)} cy={Y(cp[1] as number)} r={1.4} fill={seriesColor(String(ci), ['0', '1', '2', '3', '4', '5'])} opacity={0.35} /> : null)))}
               {l.base.length > 0 && <path d={path(l.base)} fill="none" stroke={l.s.color} strokeWidth={1.8} strokeDasharray={dash} opacity={0.9} />}
               {l.obj.length > 0 && <path d={path(l.obj)} fill="none" stroke="var(--s3)" strokeWidth={1.5} strokeDasharray={li === 1 ? '2 3' : undefined} />}
               {ep && <g><title>{`edit onset${l.s.replay.meta.edit ? ` (${str(l.s.replay.meta.edit)})` : ''} at ${fmtNum(l.s.times[l.ef])} s`}</title>
@@ -109,6 +110,7 @@ export function TopDownMap({ sides, t, onSeek }: P) {
       <div className="legend small">
         {sides.map((s) => <span key={s.tag}><i className="sw" style={{ background: s.color }} />{sides.length > 1 ? `${s.tag} ` : ''}base path</span>)}
         <span><i className="sw" style={{ background: 'var(--s3)' }} />object</span>
+        {sides.some((s) => s.replay.signals.contact_pos) && <span>· contact points (privileged)</span>}
         <span style={{ color: 'var(--s4)' }}>◇ waypoint</span><span style={{ color: 'var(--s2)' }}>○ edit onset</span><span style={{ color: 'var(--critical)' }}>✕ fell</span>
         <span className="muted">click the map to seek</span>
       </div>
@@ -313,9 +315,17 @@ function packetShape(r: Replay) {
   const sh = r.meta.packet_shape as number[] | undefined;
   return Array.isArray(sh) && sh.length === 3 ? sh : null;
 }
-export function PacketHeatmap({ sides, t, duration, onSeek }: P) {
+function flatDeep(v: unknown): number[] | null {
+  if (!Array.isArray(v)) return null;
+  const out: number[] = [];
+  const walk = (x: unknown) => { if (Array.isArray(x)) x.forEach(walk); else out.push(typeof x === 'number' ? x : NaN); };
+  walk(v);
+  return out;
+}
+export function PacketHeatmap({ sides, t, duration, onSeek, signal = 'packet_z', label }: P & { signal?: string; label?: string }) {
   const r = sides[0].replay;
-  const z = r.signals.packet_z as (number[] | null)[] | undefined;
+  const raw = r.signals[signal] as unknown[] | undefined;
+  const z = useMemo(() => raw?.map(flatDeep), [raw]);
   const cv = useRef<HTMLCanvasElement>(null);
   const [ref, w] = useWidth();
   const sh = packetShape(r);
@@ -327,13 +337,13 @@ export function PacketHeatmap({ sides, t, duration, onSeek }: P) {
     const ctx = c.getContext('2d');
     if (!ctx) return;
     const img = ctx.createImageData(c.width, c.height);
-    const amax = Math.max(1e-9, ...z.flatMap((f) => (f || []).map((v) => Math.abs(v))));
+    const amax = Math.max(1e-9, ...z.flatMap((f) => (f || []).filter(Number.isFinite).map((v) => Math.abs(v))));
     for (let px = 0; px < c.width; px++) {
       const f = z[Math.floor((px / c.width) * z.length)];
       for (let d = 0; d < D; d++) {
         const o = (d * c.width + px) * 4;
         const v = f?.[d];
-        if (typeof v !== 'number') { img.data[o + 3] = 0; continue; }
+        if (typeof v !== 'number' || !Number.isFinite(v)) { img.data[o + 3] = 0; continue; }
         const k = Math.min(1, Math.abs(v) / amax);
         img.data[o] = 205 - 192 * k; img.data[o + 1] = 226 - 172 * k; img.data[o + 2] = 251 - 144 * k; img.data[o + 3] = 255;
       }
@@ -343,15 +353,18 @@ export function PacketHeatmap({ sides, t, duration, onSeek }: P) {
   if (!z || !D) return null;
   const H = Math.min(260, Math.max(80, D * 2));
   const x = (tt: number) => (duration > 0 ? (tt / duration) * w : 0);
-  const norm = z.map((f) => (f ? Math.sqrt(f.reduce((a, v) => a + v * v, 0)) : null));
+  const norm = z.map((f) => (f ? Math.sqrt(f.filter(Number.isFinite).reduce((a, v) => a + v * v, 0)) : null));
+  const events = signal === 'packet_z' && Array.isArray(r.signals.packet_events) ? (r.signals.packet_events as { t: number; edit?: unknown }[]) : [];
+  const t0 = r.frames.t[0] || 0;
   return (
     <div ref={ref}>
       <div style={{ position: 'relative', height: H }} onPointerDown={(e) => { const r0 = e.currentTarget.getBoundingClientRect(); onSeek(((e.clientX - r0.left) / r0.width) * duration); }}>
         <canvas ref={cv} className="heat" style={{ position: 'absolute', inset: 0, width: '100%', height: H }} />
+        {events.map((e, i) => <div key={i} title={`new packet at ${fmtNum(e.t - t0)} s${e.edit ? ' (edited)' : ''}`} style={{ position: 'absolute', left: x(e.t - t0), top: 0, height: 4, width: 1.5, background: e.edit ? 'var(--s2)' : 'var(--ink-2)' }} />)}
         <div style={{ position: 'absolute', left: x(t), top: 0, bottom: 0, width: 1.5, background: 'var(--ink)' }} />
       </div>
-      <p className="small muted" style={{ margin: '2px 0' }}>|z| per packet dimension over time ({D} dims{sh ? ` = ${sh[0]} knots × ${sh[1]} assemblies × ${sh[2]} dims` : ''}; rows in recorded order)</p>
-      <ScalarTrack title="Packet norm ‖z‖ (computed here)" get={(rr) => (rr === r ? norm : undefined)} {...{ sides: sides.slice(0, 1), t, duration, onSeek }} height={44} />
+      <p className="small muted" style={{ margin: '2px 0' }}>{label || '|z|'} over time ({D} values{sh && signal === 'packet_z' ? ` = ${sh[0]} knots × ${sh[1]} assemblies × ${sh[2]} dims` : ''}; rows in recorded order){events.length ? ` · ticks = new packets (${events.length})` : ''}</p>
+      {signal === 'packet_z' && <ScalarTrack title="Packet norm ‖z‖ of the recorded dims (computed here)" get={(rr) => (rr === r ? norm : undefined)} {...{ sides: sides.slice(0, 1), t, duration, onSeek }} height={44} />}
     </div>
   );
 }
@@ -473,6 +486,7 @@ export function EditPanel({ sides, t, duration, onSeek }: P) {
           </div>
         );
       })}
+      {sides.some((s) => s.replay.signals.edit_dz_norm) && <ScalarTrack title="|edited − unedited packet| (same flow noise)" noteKey="edit_dz_norm" get={(rr) => rr.signals.edit_dz_norm as (number | null)[] | undefined} sides={sides} t={t} duration={duration} onSeek={onSeek} />}
       {sides.length > 1 && DIFFS.map(([label, unit, get]) => {
         const d = diffSeries(sides[0], sides[1], get);
         if (!d || d.every((v) => v === null)) return null;

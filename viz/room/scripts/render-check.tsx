@@ -35,6 +35,7 @@ function load(dir: string) {
   return out;
 }
 
+const paneCount = new Map<string, number>();
 async function main() {
   let failures = 0;
   const lensMods = await Promise.all([import('../src/views/Evidence'), import('../src/views/Ops'), import('../src/views/Library')]);
@@ -52,8 +53,11 @@ async function main() {
   if (rdir) {
     const docs: Record<string, unknown> = { ...sets[0][1] };
     const idx: Record<string, unknown>[] = [];
-    for (const f of readdirSync(rdir).filter((x) => x.endsWith('.json.gz'))) {
-      const r = JSON.parse(gunzipSync(readFileSync(resolve(rdir, f))).toString('utf8'));
+    const files: string[] = [];
+    const walk = (d: string) => { for (const e of readdirSync(d, { withFileTypes: true })) { const p = resolve(d, e.name); if (e.isDirectory()) walk(p); else if (e.name.endsWith('.json.gz')) files.push(p); } };
+    walk(rdir);
+    for (const f of files) {
+      const r = JSON.parse(gunzipSync(readFileSync(f)).toString('utf8'));
       docs[`replay:${r.id}`] = r;
       const m = r.meta;
       idx.push({ id: r.id, family: m.family, task: m.task, body: m.body, route: m.route, source_label: m.source_label, variant: m.variant, seed: m.seed, condition: m.condition, success: m.success, n_frames: r.n_frames, fps: r.fps });
@@ -79,6 +83,7 @@ async function main() {
     VIEWS.splice(0, VIEWS.length, ['runs', () => import('../src/views/RunHistory'), idx.flatMap((a, i) => [`runs?a=${a.id}`, `runs?a=${a.id}&b=${idx[(i + 1) % idx.length].id}`])]);
   }
   for (const [label, docs] of sets) {
+    if (rdir && label !== 'replays') continue; // REPLAY_DIR mode renders only the real runs
     g.__RRP_PRELOAD__ = docs;
     g.__RRP_EAGER__ = true;
     for (const [name, loader, queries] of VIEWS) {
@@ -94,6 +99,7 @@ async function main() {
           const flags = [/No data/.test(html) ? 'NO-DATA' : '', /Could not load/.test(html) ? 'ERROR-STATE' : '',
             /\bNaN\b/.test(text) ? `NaN×${(text.match(/\bNaN\b/g) || []).length}` : '', /\bundefined\b/.test(text) ? `undefined×${(text.match(/\bundefined\b/g) || []).length}` : '',
             /\[object Object\]/.test(text) ? 'OBJECT-STRING' : ''].filter(Boolean).join(' ');
+          if (name === 'runs') for (const m of html.matchAll(/class="rh-pane"><header>([^<]+)/g)) paneCount.set(`${label}:${m[1]}`, (paneCount.get(`${label}:${m[1]}`) || 0) + 1);
           if (process.env.DUMP === `${label}:${name}:${q}`) console.log(text.replace(/\s+/g, ' ').slice(0, 20000));
           console.log(`ok   ${label.padEnd(7)} ${name.padEnd(10)} ${q.padEnd(40)} ${String(html.length).padStart(8)} chars ${ms.toFixed(0).padStart(5)} ms ${flags}`);
         } catch (e) {
@@ -103,6 +109,7 @@ async function main() {
       }
     }
   }
+  if (paneCount.size) console.log('run-history panels rendered (count over all run renders):', [...paneCount.entries()].map(([k, v]) => `${k} ${v}`).join(' · '));
   // Board budget at 1440×900: every tile's chart must fit its tile (no vertical overflow).
   const bm = await import('../src/views/Board');
   for (const [label, docs] of sets.slice(0, 2)) {
