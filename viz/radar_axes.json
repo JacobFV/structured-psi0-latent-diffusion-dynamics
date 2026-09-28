@@ -144,6 +144,9 @@
      ],
      "agg": "sum_kn",
      "group": 1
+    },
+    "latent_jointfix": {
+     "missing": "not declared for this axis"
     }
    }
   },
@@ -246,6 +249,9 @@
      ],
      "agg": "sum_kn",
      "group": 1
+    },
+    "latent_jointfix": {
+     "missing": "not declared for this axis"
     }
    }
   },
@@ -348,6 +354,9 @@
      ],
      "agg": "sum_kn",
      "group": 1
+    },
+    "latent_jointfix": {
+     "missing": "not declared for this axis"
     }
    }
   },
@@ -450,6 +459,9 @@
      ],
      "agg": "sum_kn",
      "group": 1
+    },
+    "latent_jointfix": {
+     "missing": "not declared for this axis"
     }
    }
   },
@@ -524,6 +536,9 @@
     },
     "nosem_v6": {
      "missing": "not an arm v6 axis"
+    },
+    "latent_jointfix": {
+     "missing": "not declared for this axis"
     }
    }
   },
@@ -598,6 +613,9 @@
     },
     "nosem_v6": {
      "missing": "not an arm v6 axis"
+    },
+    "latent_jointfix": {
+     "missing": "not declared for this axis"
     }
    }
   },
@@ -653,6 +671,9 @@
     },
     "nosem_v6": {
      "missing": "not an arm v6 axis"
+    },
+    "latent_jointfix": {
+     "missing": "not declared for this axis"
     }
    }
   },
@@ -708,6 +729,9 @@
     },
     "nosem_v6": {
      "missing": "not an arm v6 axis"
+    },
+    "latent_jointfix": {
+     "missing": "not declared for this axis"
     }
    }
   },
@@ -763,6 +787,9 @@
     },
     "nosem_v6": {
      "missing": "not an arm v6 axis"
+    },
+    "latent_jointfix": {
+     "missing": "not declared for this axis"
     }
    }
   },
@@ -818,6 +845,9 @@
     },
     "nosem_v6": {
      "missing": "not an arm v6 axis"
+    },
+    "latent_jointfix": {
+     "missing": "not declared for this axis"
     }
    }
   },
@@ -921,6 +951,9 @@
      ],
      "agg": "sum_kn",
      "group": 1
+    },
+    "latent_jointfix": {
+     "missing": "not declared for this axis"
     }
    }
   },
@@ -1024,6 +1057,9 @@
      ],
      "agg": "sum_kn",
      "group": 1
+    },
+    "latent_jointfix": {
+     "missing": "not declared for this axis"
     }
    }
   },
@@ -1172,6 +1208,9 @@
     },
     "nosem_v6": {
      "missing": "not an arm v6 axis"
+    },
+    "latent_jointfix": {
+     "missing": "not declared for this axis"
     }
    }
   },
@@ -1320,6 +1359,9 @@
     },
     "nosem_v6": {
      "missing": "not an arm v6 axis"
+    },
+    "latent_jointfix": {
+     "missing": "not declared for this axis"
     }
    }
   },
@@ -1453,6 +1495,9 @@
     },
     "nosem_v6": {
      "missing": "not an arm v6 axis"
+    },
+    "latent_jointfix": {
+     "missing": "not declared for this axis"
     }
    }
   },
@@ -1546,6 +1591,9 @@
     },
     "nosem_v6": {
      "missing": "not an arm v6 axis"
+    },
+    "latent_jointfix": {
+     "missing": "not declared for this axis"
     }
    }
   },
@@ -1554,8 +1602,8 @@
    "label": "held-out xarm7 zero-shot",
    "metric": "success rate, budget 0",
    "direction": "max",
-   "protocol": "sealed target body xarm7_pg2, no adaptation, 100 episodes (latent_slice1_b1fix/aggregate.json)",
-   "decision": "D-064",
+   "protocol": "sealed target body xarm7_pg2, no adaptation, 100 episodes (latent_slice1_b1fix/aggregate.json) · v6 latent zero-shot: 2 seeds × 100 sealed scenes (targets_v6.json, D-135)",
+   "decision": "D-064 · D-135",
    "floor": {
     "value": 0.0,
     "meaning": "no success"
@@ -1579,10 +1627,10 @@
      "agg": "sum_kn"
     },
     "semfix": {
-     "missing": "latent route not run on sealed targets yet (roadmap #9)"
+     "missing": "v1 checkpoints not run on sealed targets"
     },
     "nosem": {
-     "missing": "latent route not run on sealed targets yet (roadmap #9)"
+     "missing": "v1 checkpoints not run on sealed targets"
     },
     "frozen_sem": {
      "missing": "not run"
@@ -1591,10 +1639,106 @@
      "missing": "no scripted teacher for zero-shot transfer"
     },
     "semfix_v6": {
-     "missing": "not an arm v6 axis"
+     "doc": "results",
+     "where": {
+      "source_file": "research/tracks/ladder/armv6/targets_v6.json$"
+     },
+     "key_path": [
+      "^latent$",
+      "^semfix_s",
+      "^xarm7_pg2$",
+      "^zero_shot$"
+     ],
+     "agg": "sum_kn",
+     "group": 1
     },
     "nosem_v6": {
-     "missing": "not an arm v6 axis"
+     "doc": "results",
+     "where": {
+      "source_file": "research/tracks/ladder/armv6/targets_v6.json$"
+     },
+     "key_path": [
+      "^latent$",
+      "^nosem_s",
+      "^xarm7_pg2$",
+      "^zero_shot$"
+     ],
+     "agg": "sum_kn",
+     "group": 1
+    },
+    "latent_jointfix": {
+     "missing": "not declared for this axis"
+    }
+   }
+  },
+  {
+   "id": "newarm_transfer",
+   "label": "new-arm transfer (adapted)",
+   "metric": "success on sealed xarm7_pg2 + xarm7_tf3, pooled over budgets 5/20/100 and 2 seeds (k/1200)",
+   "direction": "max",
+   "protocol": "sealed scenes; latent = joint flow + system-0 adaptation update-matched to BC SFT (method added AFTER D-135, D-136); BC = BC SFT on the same demos and updates (D-135 cells)",
+   "decision": "D-135 · D-136",
+   "floor": {
+    "value": 0.0,
+    "meaning": "no success"
+   },
+   "reference": {
+    "series": "bc"
+   },
+   "series": {
+    "bc": {
+     "doc": "results",
+     "where": {
+      "source_file": "research/tracks/armdiag/d136_compare.json$"
+     },
+     "key_path": [
+      "^pooled$",
+      "^semfix/xarm7_(pg2|tf3)/b\\d+$",
+      "^bc_sft$"
+     ],
+     "agg": "sum_kn",
+     "group": 1
+    },
+    "semfix_v6": {
+     "doc": "results",
+     "where": {
+      "source_file": "research/tracks/armdiag/d136_compare.json$"
+     },
+     "key_path": [
+      "^pooled$",
+      "^semfix/xarm7_(pg2|tf3)/b\\d+$",
+      "^joint_adapt$"
+     ],
+     "agg": "sum_kn",
+     "group": 1
+    },
+    "nosem_v6": {
+     "doc": "results",
+     "where": {
+      "source_file": "research/tracks/armdiag/d136_compare.json$"
+     },
+     "key_path": [
+      "^pooled$",
+      "^nosem/xarm7_(pg2|tf3)/b\\d+$",
+      "^joint_adapt$"
+     ],
+     "agg": "sum_kn",
+     "group": 1
+    },
+    "semfix": {
+     "missing": "v1 checkpoints not run on sealed targets"
+    },
+    "nosem": {
+     "missing": "v1 checkpoints not run on sealed targets"
+    },
+    "frozen_sem": {
+     "missing": "not run"
+    },
+    "teacher": {
+     "missing": "no scripted teacher for the new arm"
+    },
+    "latent_jointfix": {
+     "missing": "not run"
     }
    }
   },

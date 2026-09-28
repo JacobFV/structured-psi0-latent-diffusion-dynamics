@@ -46,6 +46,36 @@ export function v6Set(rs: Row[]) {
   }
   return { m, bodies, lines: lines.sort() };
 }
+/** Sealed target bodies (D-135 targets_v6.json + D-136 d136_compare.json): k/200 pooled over 2 seeds per method × budget. */
+export const TARGETS = ['xarm7_pg2', 'xarm7_tf3', 'panda_tf3'];
+export function transferSet(rs: Row[], variant: 'semfix' | 'nosem') {
+  const m = new Map<string, { k: number; n: number; sealed: boolean; tip: string }>();
+  const put = (key: string, k: number, n: number, sealed: boolean, tip: string) => {
+    const x = m.get(key) || { k: 0, n: 0, sealed: true, tip };
+    x.k += k; x.n += n; x.sealed = x.sealed && sealed;
+    m.set(key, x);
+  };
+  for (const r of rs) {
+    const f = str(r.source_file), kp = arr(r.key_path).map(str);
+    const k = num(r.k), n = num(r.n);
+    if (k === null || !n) continue;
+    if (/ladder\/armv6\/targets_v6\.json$/.test(f) && kp.length === 4) {
+      const [who, lin, tgt, cell] = kp;
+      if (!TARGETS.includes(tgt)) continue;
+      if (who === 'latent' && lin.startsWith(`${variant}_s`)) {
+        const mm = /^(zero_shot|flow_sft|system0_refit)(?:_b(\d+))?$/.exec(cell);
+        if (mm) put(`${tgt}|${mm[1] === 'zero_shot' ? 'latent zero-shot' : mm[1] === 'flow_sft' ? 'flow SFT' : 'refit'}|${mm[2] || '0'}`, k, n, true, 'targets_v6.json · D-135');
+      } else if (who === 'bc') {
+        const mm = /^(zero_shot|bc_sft)(?:_b(\d+))?$/.exec(cell);
+        if (mm) put(`${tgt}|${mm[1] === 'zero_shot' ? 'BC zero-shot' : 'BC SFT'}|${mm[2] || '0'}`, k, n, true, 'targets_v6.json · D-135');
+      }
+    } else if (/armdiag\/d136_compare\.json$/.test(f) && kp.length === 3 && kp[0] === 'pooled' && kp[2] === 'joint_adapt') {
+      const mm = new RegExp(`^${variant}/(xarm7_(?:pg2|tf3))/b(\\d+)$`).exec(kp[1]);
+      if (mm) put(`${mm[1]}|joint (D-136)|${mm[2]}`, k, n, true, 'd136_compare.json · D-136 · method added AFTER D-135 (same sealed scenes)');
+    }
+  }
+  return m;
+}
 export function leggedSet(rs: Row[]) {
   const m: Cells = new Map();
   const bodies = new Set<string>();
@@ -126,6 +156,54 @@ function Go2Contact({ res, eds, result }: { res: Row[]; eds: Row[]; result: Para
   );
 }
 
+function TransferPanel({ rs, result }: { rs: Row[]; result: Parameters<typeof ModeBadge>[0]['result'] }) {
+  const [variant, setVariant] = useUrlState('tv', 'semfix');
+  const [budget, setBudget] = useUrlState('tb', '100');
+  const m = transferSet(rs, variant === 'nosem' ? 'nosem' : 'semfix');
+  if (!m.size) return null;
+  const cols: [string, string][] = [['latent zero-shot', '0'], ['flow SFT', budget], ['refit', budget], ['joint (D-136)', budget], ['BC zero-shot', '0'], ['BC SFT', budget]];
+  const W = 180, H = 70, xs = [5, 20, 100], X = (b: number) => 22 + ((Math.log(b) - Math.log(5)) / (Math.log(100) - Math.log(5))) * (W - 30), Y = (v: number) => H - 12 - v * (H - 18);
+  const curves: [string, string][] = [['BC SFT', 'var(--ink-2)'], ['joint (D-136)', 'var(--s1)'], ['refit', 'var(--s2)']];
+  return (
+    <section className="ev-panel wide">
+      <header>Cross-body transfer · sealed targets<ModeBadge result={result} />
+        <span className="meta" title="k/200 pooled over 2 seeds, each sealed cell run once. joint = joint flow + system-0 adaptation, update-matched to BC SFT: a method added AFTER D-135 (D-136), evaluated on the same sealed scenes. Not run on panda_tf3.">
+          <select value={variant} onChange={(e) => setVariant(e.target.value)} aria-label="latent variant"><option value="semfix">semfix v6</option><option value="nosem">nosem v6</option></select>{' '}
+          <select value={budget} onChange={(e) => setBudget(e.target.value)} aria-label="adaptation budget">{['5', '20', '100'].map((b) => <option key={b} value={b}>budget {b} demos</option>)}</select>
+          {' '}D-135 · D-136
+        </span>
+      </header>
+      <div className="row" style={{ alignItems: 'flex-start', gap: 16 }}>
+        <Heat showK rows={TARGETS} cols={cols.map(([c, b]) => `${c}${b !== '0' ? ` b${b}` : ''}`)}
+          colLabel={(c) => c.replace('(D-136)', '†')}
+          cell={(r, c) => { const [name, b] = cols.find(([n, bb]) => `${n}${bb !== '0' ? ` b${bb}` : ''}` === c)!; const x = m.get(`${r}|${name}|${b}`); return x ? { k: x.k, n: x.n, tip: `${x.tip} · sealed run`, link: href('results', { q: name.startsWith('joint') ? 'd136_compare' : 'targets_v6', data: '1' }) } : null; }} />
+        <div style={{ display: 'grid', gap: 2 }}>
+          {TARGETS.map((t) => (
+            <svg key={t} width={W} height={H} role="img" aria-label={`budget curves ${t}`}>
+              <text x={22} y={9} fill="var(--ink-2)">{t} · success vs demos</text>
+              <line x1={22} x2={W - 8} y1={Y(0)} y2={Y(0)} stroke="var(--grid)" />
+              {xs.map((b) => <text key={b} x={X(b)} y={H - 1} textAnchor="middle" fill="var(--muted)">{b}</text>)}
+              {curves.map(([name, col]) => {
+                const pts = xs.map((b) => { const x = m.get(`${t}|${name}|${b}`); return x && x.n ? [X(b), Y(x.k / x.n), x.k, x.n] as const : null; });
+                const ok = pts.filter(Boolean) as (readonly [number, number, number, number])[];
+                if (!ok.length) return null;
+                return (
+                  <g key={name}>
+                    <polyline points={ok.map((p) => `${p[0]},${p[1]}`).join(' ')} fill="none" stroke={col} strokeWidth={1.5} />
+                    {ok.map((p, i) => <circle key={i} cx={p[0]} cy={p[1]} r={2.5} fill={col}><title>{`${t} · ${name} · b${xs[pts.indexOf(p)]}: ${p[2]}/${p[3]}`}</title></circle>)}
+                  </g>
+                );
+              })}
+            </svg>
+          ))}
+          <div className="legend">{curves.map(([n, c]) => <span key={n}><i className="sw" style={{ background: c }} />{n}</span>)}</div>
+        </div>
+      </div>
+      <p className="side-note" style={{ padding: 0 }}>cells: successes of 200 (2 seeds × 100 sealed scenes; colour = rate). † joint adaptation was added after D-135 (D-136) and evaluated on the same sealed scenes; every cell is one sealed run per seed; — = not run.</p>
+    </section>
+  );
+}
+
 export default function EvidenceMatrix() {
   const { result } = useDoc<Envelope>('results');
   const edits = useDoc<Envelope>('edits');
@@ -158,6 +236,7 @@ export default function EvidenceMatrix() {
           <Heat rows={arm.bodies} cols={arm.lines} colLabel={shortLine} cell={(r, c) => arm.v2.get(`${r}|${c}`) ?? null} base={(r, c) => arm.v1.get(`${r}|${c}`) ?? null} />
         </section>
       )}
+      <TransferPanel rs={rs} result={result} />
       <Go2Contact res={rs} eds={edits.result.status === 'ok' ? rows(edits.result.data.rows) : []} result={edits.result} />
       {!leg.bodies.length && !arm.bodies.length && result.status === 'ok' && <p className="side-note">no curated comparison rows in /api/results</p>}
       {data === '1' && <section className="ev-panel wide"><header>All result rows (raw)</header><Results /></section>}

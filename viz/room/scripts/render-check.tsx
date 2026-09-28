@@ -21,7 +21,7 @@ g.localStorage = { getItem: () => null, setItem() {} };
 const VIEWS: [string, () => Promise<{ default: ComponentType }>, string[]][] = [
   ['ticker', () => import('../src/components/Ticker'), ['board']],
   ['overview', () => import('../src/views/OverviewView'), ['overview', 'claims']],
-  ['evaluations', () => import('../src/views/Evidence'), ['results', 'results?data=1', 'results?data=1&mode=delta&dd=grasp_version', 'results?agg=pool&r1=route&c=metric&metric=', 'results?q=compare_gc2_final&metric=grasp_v2',
+  ['evaluations', () => import('../src/views/Evidence'), ['results', 'results?tv=nosem&tb=5', 'results?data=1', 'results?data=1&mode=delta&dd=grasp_version', 'results?agg=pool&r1=route&c=metric&metric=', 'results?q=compare_gc2_final&metric=grasp_v2',
     'radar', 'edits', 'edits?body=go2', 'robustness', 'robustness?m=motion.joint_jerk_rms', 'physics', 'physics?data=1', 'psi0', 'psi0?data=1', 'edits?data=1', 'robustness?data=1']],
   ['runs', () => import('../src/views/RunHistory'), ['runs', 'runs?list=videos', 'runs?demo=1', 'runs?env=legged&res=failure', 'runs?env=physics&q=body:go2', 'runs?env=dual&task=handover%20%C2%B7%20teacher']],
   ['training', () => import('../src/views/TrainingView'), ['training', 'training?data=1', 'live']],
@@ -104,7 +104,7 @@ async function main() {
             /\bNaN\b/.test(text) ? `NaN×${(text.match(/\bNaN\b/g) || []).length}` : '', /\bundefined\b/.test(text) ? `undefined×${(text.match(/\bundefined\b/g) || []).length}` : '',
             /\[object Object\]/.test(text) ? 'OBJECT-STRING' : ''].filter(Boolean).join(' ');
           if (name === 'runs') for (const m of html.matchAll(/class="rh-pane"><header>([^<]+)/g)) paneCount.set(`${label}:${m[1]}`, (paneCount.get(`${label}:${m[1]}`) || 0) + 1);
-          if (process.env.DUMP === `${label}:${name}:${q}`) console.log(text.replace(/\s+/g, ' ').slice(0, 20000));
+          if (process.env.DUMP === `${label}:${name}:${q}`) console.log(text.replace(/\s+/g, ' ').slice(0, Number(process.env.DUMP_LEN || 20000)));
           console.log(`ok   ${label.padEnd(7)} ${name.padEnd(10)} ${q.padEnd(40)} ${String(html.length).padStart(8)} chars ${ms.toFixed(0).padStart(5)} ms ${flags}`);
         } catch (e) {
           failures++;

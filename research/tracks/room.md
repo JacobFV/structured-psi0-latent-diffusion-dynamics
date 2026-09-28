@@ -252,3 +252,19 @@ Resume: `cd ~/work/rrp-wt/roomui/viz/room && npm install && npm run dev` (add `R
 - Gap: the local 160 replays predate v1.2, so the velocity, grasp, energy, torque/force, packet_z and probe-truth panels have
   only been exercised on the synthetic fixture replays (which carry every v1.2 signal and pass `validate_replay`) until the
   re-recorded files are synced.
+
+### frontend: sealed-target transfer (D-135/D-136), 2026-09-28
+- Evaluations → Success matrix has a "Cross-body transfer · sealed targets" panel.
+  - Heatmap: targets (xarm7_pg2, xarm7_tf3, panda_tf3) × method at the chosen budget (latent zero-shot, flow SFT, refit,
+    joint † D-136, BC zero-shot, BC SFT). Cells are successes of 200; † marks the method added after D-135; — means not run.
+  - Budget curves (5/20/100) per target: BC SFT vs joint vs refit. A select switches between the semfix v6 and nosem v6
+    variants.
+- Board claims tile, three honest arm rows:
+  - arm v6 in-distribution semfix − nosem +23 pts (D-134);
+  - new arm, latent (joint) − BC SFT −21 pts (595 vs 842 of 1200, D-136);
+  - new gripper zero-shot, latent − BC −22 pts (154 vs 199 of 200, D-135).
+  The header says "new-arm transfer: NOT supported".
+- Radar:
+  - new axis "new-arm transfer (adapted)": d136_compare pooled k/1200, BC SFT = reference; semfix v6 595 (r 0.71), nosem v6
+    151 (r 0.18);
+  - the held-out xarm7 zero-shot axis now carries v6 latent zero-shot 0/200 (targets_v6).

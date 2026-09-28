@@ -57,6 +57,24 @@ function v6(res: Envelope | null) {
   }
   return { cells, bodies, tot };
 }
+/** Cross-body transfer (D-135/D-136): new arm (sealed xarm7, joint adaptation vs BC SFT, update-matched) and new gripper
+ * on a known arm (panda_tf3 zero-shot, latent semfix vs BC). k/n pooled over seeds, budgets and targets. */
+function transfer(res: Envelope | null) {
+  const z = () => ({ k: 0, n: 0 });
+  const t = { joint: z(), bcSft: z(), gripLatent: z(), gripBc: z() };
+  if (res) for (const r of rows(res.rows)) {
+    const f = str(r.source_file), kp = arr(r.key_path).map(str), k = num(r.k) || 0, n = num(r.n) || 0;
+    if (/armdiag\/d136_compare\.json$/.test(f) && kp.length === 3 && kp[0] === 'pooled' && /^semfix\/xarm7_(pg2|tf3)\/b\d+$/.test(kp[1])) {
+      if (kp[2] === 'joint_adapt') { t.joint.k += k; t.joint.n += n; }
+      if (kp[2] === 'bc_sft') { t.bcSft.k += k; t.bcSft.n += n; }
+    }
+    if (/ladder\/armv6\/targets_v6\.json$/.test(f) && kp.length === 4 && kp[2] === 'panda_tf3' && kp[3] === 'zero_shot') {
+      if (kp[0] === 'latent' && kp[1].startsWith('semfix_s')) { t.gripLatent.k += k; t.gripLatent.n += n; }
+      if (kp[0] === 'bc') { t.gripBc.k += k; t.gripBc.n += n; }
+    }
+  }
+  return t;
+}
 function haltDiffs(ed: Envelope | null) {
   if (!ed) return [];
   const rs = rows(ed.rows);
@@ -104,7 +122,7 @@ export function panelNeeds(docs: Record<string, Envelope | null>) {
   const reps = docs.robustness ? rows(docs.robustness.reports) : [];
   return {
     radar: { need: Math.min(2 * CELL_H - HEAD_H - 30, 520) + 20, cells: 2 },
-    claim: { need: (haltDiffs(docs.edits ?? null).length + 3) * 15 + 2 * 12 + 10, cells: 1 },
+    claim: { need: (haltDiffs(docs.edits ?? null).length + 3) * 15 + 2 * 12 + 10, cells: 1 },  // legged rows + 3 arm rows
     success: { need: (lc.bodies.length + Math.max(ac.bodies.length, a6.bodies.length) + 2) * 17 + 8, cells: 1 },
     robustness: { need: (reps.length + 1) * LINE + 6, cells: 1 },
     psi0: { need: (docs.psi0 ? rows(docs.psi0.runs).filter((r) => num(r.n) && (str(r.run).startsWith('step2') || !r.interim)).length : 0) * LINE + 4, cells: 1 },
@@ -205,18 +223,22 @@ function ClaimPanel({ ed, res }: { ed: DocResult<Envelope>; res: DocResult<Envel
     <Mini items={halts.map((h) => ({ label: `halt Δ ${h.body}`, v: h.v, lo: h.lo, hi: h.hi, tip: `${h.v} m [${h.lo}, ${h.hi}] · ${str(h.row.decision)} ${str(h.row.source_file)}` }))} lo={-0.8} hi={0.2} fmt={(v) => v.toFixed(2)} W={W} unit="m" />
   ) : null;
   let arm: ReactNode = null;
-  const armItems: { label: string; v: number; lo: number; hi: number; tip: string }[] = [];
-  for (const [label, a, b, src] of [['arm v6 sf − ns', V.semfix, V.nosem, 'grasp_v2.1 · compare_v6.json · D-134'], ['arm v1 sf − ns', L.semfix, L.nosem, 'grasp_v2 · compare_gc2_final.json · D-127']] as const) {
-    if (!a.n || !b.n) continue;
+  const T = transfer(ok(res));
+  const armItems: { label: string; v: number; lo: number; hi: number; tip: string; bad?: boolean }[] = [];
+  const rowOf = (label: string, a: { k: number; n: number }, b: { k: number; n: number }, src: string) => {
+    if (!a.n || !b.n) return;
     const dv = a.k / a.n - b.k / b.n;
     const [lo, hi] = newcombe(b.k, b.n, a.k, a.n);
-    armItems.push({ label, v: dv * 100, lo: lo * 100, hi: hi * 100, tip: `${a.k}/${a.n} − ${b.k}/${b.n}, Newcombe CI · ${src}` });
-  }
-  if (armItems.length) arm = <Mini items={armItems} lo={-10} hi={70} fmt={(v) => `+${v.toFixed(0)}`} W={W} unit="pts" />;
-  return <P title="Claim · causal control" link={href('edits')} result={ed}>{legged}{arm}</P>;
+    armItems.push({ label, v: dv * 100, lo: lo * 100, hi: hi * 100, tip: `${a.k}/${a.n} vs ${b.k}/${b.n}, Newcombe 95% · ${src}`, bad: hi < 0 });
+  };
+  rowOf('arm v6 sf − ns', V.semfix, V.nosem, 'in-distribution arm bodies · grasp_v2.1 · compare_v6.json · D-134 (v1: +' + (L.semfix.n ? Math.round((L.semfix.k / L.semfix.n - L.nosem.k / L.nosem.n) * 100) : '?') + ' pts, D-127)');
+  rowOf('new arm: latent − BC', T.joint, T.bcSft, 'sealed xarm7_pg2+tf3 · semfix joint adaptation (added after D-135) vs BC SFT, update-matched · worse in 12/12 cells · D-136');
+  rowOf('new gripper zs: latent − BC', T.gripLatent, T.gripBc, 'panda_tf3 zero-shot · semfix v6 vs BC · targets_v6.json · D-135');
+  if (armItems.length) arm = <Mini items={armItems} lo={-40} hi={60} fmt={(v) => `${v > 0 ? '+' : ''}${v.toFixed(0)}`} W={W} unit="pts" />;
+  return <P title="Claims" link={href('results')} result={ed} meta={T.joint.n ? 'new-arm transfer: NOT supported' : undefined}>{legged}{arm}</P>;
 }
-function Mini({ items, lo, hi, fmt, W, unit }: { items: { label: string; v: number; lo: number; hi: number; tip: string }[]; lo: number; hi: number; fmt: (v: number) => string; W: number; unit: string }) {
-  const left = 78, right = 40, H = items.length * 15 + 12;
+function Mini({ items, lo, hi, fmt, W, unit }: { items: { label: string; v: number; lo: number; hi: number; tip: string; bad?: boolean }[]; lo: number; hi: number; fmt: (v: number) => string; W: number; unit: string }) {
+  const left = 118, right = 36, H = items.length * 15 + 12;
   const x = (v: number) => left + ((Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo)) * (W - left - right);
   return (
     <svg width={W} height={H} role="img" aria-label={items.map((i) => `${i.label} ${fmt(i.v)}`).join('; ')}>
@@ -227,8 +249,8 @@ function Mini({ items, lo, hi, fmt, W, unit }: { items: { label: string; v: numb
         <g key={it.label}>
           <title>{it.tip}</title>
           <text x={left - 4} y={i * 15 + 10} textAnchor="end" fill="var(--ink-2)">{it.label}</text>
-          <line x1={x(it.lo)} x2={x(it.hi)} y1={i * 15 + 7} y2={i * 15 + 7} stroke="var(--up)" strokeWidth={2.5} opacity={0.5} />
-          <circle cx={x(it.v)} cy={i * 15 + 7} r={3.5} fill="var(--up)" />
+          <line x1={x(it.lo)} x2={x(it.hi)} y1={i * 15 + 7} y2={i * 15 + 7} stroke={it.bad ? 'var(--down)' : 'var(--up)'} strokeWidth={2.5} opacity={0.5} />
+          <circle cx={x(it.v)} cy={i * 15 + 7} r={3.5} fill={it.bad ? 'var(--down)' : 'var(--up)'} />
           <text x={W - right + 4} y={i * 15 + 10} fill="var(--ink)" fontFamily="var(--mono)">{fmt(it.v)}</text>
         </g>
       ))}
