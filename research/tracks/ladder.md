@@ -3,6 +3,63 @@
 Owner: ladder track agent. Branch `track/ladder`, worktree `~/work/rrp-wt/ladder`, peer dir `/dev/shm/rrp-brandonin/wt/ladder`.
 Raw outputs live on the peer store `artifacts/runs/ladder_*` (copied summaries under `research/tracks/ladder/` when final).
 
+## ARM V6 TARGET BODIES — PART (2) RESULT: sealed target bodies, latent vs BC (completed 11:20; 216/216 nodes rc 0)
+Sealed protocol configs/eval/latent_slice1.json (sha256 323d3d93…; run ONCE): each cell = 100 scenes from seed
+2,000,000 (all feasible on the targets), max_steps 300, replan 8, NFE 8, prev-action 0, privileged success evaluator,
+grasp_v2.1. Adaptation: b target demo episodes (v6dart target_demos, clean, nested choice by the adapt seed),
+150 / 300 / 600 updates at lr 1e-4, identical for every method (checked: 600 updates on the same 100 episodes / 15,384
+transitions for flow SFT, system-0 refit and BC SFT). Latent = v6 lineages semfix / nosem x training seeds 1, 2 (adapt
+seed 1701 / 1702); BC = v6 BC experts 1701 / 1702 (reused, adapt seed = own seed). Source labels: learned (latent
+DEPLOYABLE route system i -> system 0; BC direct action).
+| method (2 seeds pooled, 200 sealed scenes per cell) | xarm7_pg2 | xarm7_tf3 | panda_tf3 |
+|---|---|---|---|
+| latent semfix: zero-shot | 0/200 | 0/200 | 154/200 |
+| latent semfix: flow SFT b5 | 0/200 | 0/200 | 160/200 |
+| latent semfix: flow SFT b20 | 0/200 | 0/200 | 157/200 |
+| latent semfix: flow SFT b100 | 0/200 | 0/200 | 162/200 |
+| latent semfix: system-0 refit b5 | 2/200 | 30/200 | 187/200 |
+| latent semfix: system-0 refit b20 | 14/200 | 38/200 | 193/200 |
+| latent semfix: system-0 refit b100 | 10/200 | 36/200 | 194/200 |
+| latent nosem: zero-shot | 0/200 | 0/200 | 32/200 |
+| latent nosem: flow SFT b5 | 0/200 | 0/200 | 25/200 |
+| latent nosem: flow SFT b20 | 0/200 | 0/200 | 29/200 |
+| latent nosem: flow SFT b100 | 0/200 | 0/200 | 27/200 |
+| latent nosem: system-0 refit b5 | 0/200 | 1/200 | 120/200 |
+| latent nosem: system-0 refit b20 | 0/200 | 0/200 | 130/200 |
+| latent nosem: system-0 refit b100 | 0/200 | 1/200 | 89/200 |
+| BC (v6 experts 1701/1702): zero-shot | 0/200 | 0/200 | 199/200 |
+| BC SFT b5 | 69/200 | 143/200 | 190/200 |
+| BC SFT b20 | 112/200 | 192/200 | 199/200 |
+| BC SFT b100 | 140/200 | 186/200 | 192/200 |
+Source competence (protocol held-out source bodies; feasible scenes): latent semfix parm5s 88/93 + 90/93, parm5l 63/67 +
+63/67; latent nosem parm5s 41/93 + 74/93, parm5l 48/67 + 62/67; BC parm5s 92/93 + 93/93, parm5l 67/67 + 67/67.
+Per-seed cells: `research/tracks/ladder/armv6/targets_v6.json` (`scripts/armtgt_compare.py`).
+
+READING:
+1. New gripper on a known arm (panda_tf3): the latent semfix route transfers zero-shot (154/200) and system-0 refit
+   lifts it to BC level (187-194/200 at b5-b100 vs BC zero-shot 199/200, BC SFT 190-199/200). Semantic supervision matters
+   here: nosem transfers far worse (32/200 zero-shot; 89-130/200 after system-0 refit).
+2. New arm (xarm7_pg2 / xarm7_tf3): the latent route does NOT transfer and does NOT adapt with these budgets. Zero-shot
+   0/400 for every lineage (never approaches: min TCP-cube 0.43 m); flow SFT alone changes nothing (0/400 at every budget;
+   the packet generator is not the bottleneck); system-0 refit reaches the cube region (min distance ~0.045 m) but mostly
+   still fails at approach (semfix 2-14/200 on xarm7_pg2, 30-38/200 on xarm7_tf3; nosem <= 1/200). Direct-action BC also
+   fails zero-shot (0/400) but ADAPTS: BC SFT 69 / 112 / 140 of 200 on xarm7_pg2 and 143 / 192 / 186 of 200 on xarm7_tf3.
+3. So on the sealed targets the core claim (#9: the structured latent route transfers / adapts better to new bodies)
+   is NOT supported: for the unseen arm the latent route adapts far worse than BC at equal data and updates; for the new
+   gripper it matches BC only after system-0 refit, and BC is already at 199/200 zero-shot. The latent route's
+   bottleneck on a new arm is system 0 (the executor that maps the packet to joint targets), which the refit budgets
+   here (<= 600 updates, <= 100 demos) do not fix. Semantic supervision (semfix vs nosem) helps the latent route on every
+   target and on the source bodies, but not enough to reach BC.
+Caveats: two training seeds per method; one adaptation seed per lineage; system-0 refit and flow SFT are separate
+single-module adaptations (the protocol's methods), not joint fine-tuning of both; BC SFT updates the whole policy
+(changed_modules flow_policy_all), so the "equal budget" is equal data and updates, not equal parameters; the eval
+harness's scene feasibility uses the v1 scripted teacher (all 100 target scenes feasible).
+Incidents (resource only, all rerun once via `--retry-failed`, sealed cells still single results): CUDA OOM under a 3G
+GPU cap (BC SFT b20) -> 8G; five panda_tf3 evals throttled at 0.8 x 4G -> evals 8G.
+Raw (peer store): `artifacts/runs/armtgt/armtgt6-<variant>-<target>/target_{eval,adapt}-<tag>_s<seed>/`,
+`artifacts/runs/armtgt/armtgt6-bc<seed>-<target>/...` (rows `*.jsonl`, `*.summary.json`, adaptation manifests);
+ledgers `artifacts/runs/armtgt/_dags/arm_targets_v6_{latent,bc}/ledger.json` (host checkout).
+
 ## ARM V6 TARGET BODIES — PART (1) RESULT: v1 checkpoints under grasp_v2.1 (like-for-like with v6; completed 09:59)
 All 56 cells (`scripts/armexpert_gc2_reeval.sh`, GC=v2.1; the recorded ladder commands with only RRP_GRASP_CONTACT
 changed; one pass, every job rc 0). Successes over the R2 sets (panda / parm6: dev + 3.0001M + 3.0002M = 90 each;
@@ -26,7 +83,7 @@ never touches the cube give bit-identical episodes (semfix s1 panda dev: 30/30 i
 Raw (peer store): `artifacts/runs/armexpert_gc2eval/grasp_v2.1/<robot>/{generated_zero_<tag>,learned_bc_direct1701_final}_s<set>.{jsonl,summary.json}`;
 table `research/tracks/ladder/armv6/v1_checkpoints_grasp_v2_1.json`.
 
-## ARM V6 TARGET BODIES (D-134 lead request; started 2026-09-28 09:30 PDT; state: running)
+## ARM V6 TARGET BODIES (D-134 lead request; started 2026-09-28 09:30 PDT; state: completed 11:20)
 Two jobs, in order.
 (1) LIKE-FOR-LIKE v1 -> v6: the v1 checkpoints (frozen sem s1/s2, semfix s1/s2, nosem s1/s2, BC direct1701 final)
 re-evaluated under grasp_v2.1 on the same R2 sets (dev + fresh 3.0001M / 3.0002M on panda_pg2 / parm6_tf3; held-out

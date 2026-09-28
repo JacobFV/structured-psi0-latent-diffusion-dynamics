@@ -1,0 +1,2835 @@
+{
+ "latent": {
+  "semfix_s1": {
+   "xarm7_pg2": {
+    "zero_shot": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "zero_shot",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-zs_s1/generated_b0.summary.json"
+    },
+    "flow_sft_b5": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-flow_sft_b5_s1/generated_flow_sft_b5.summary.json"
+    },
+    "system0_refit_b5": {
+     "k": 1,
+     "n": 100,
+     "rate": 0.01,
+     "wilson95": [
+      0.0017673865655472645,
+      0.0544875247609346
+     ],
+     "failed_stage": {
+      "approach": 85,
+      "transport": 6,
+      "lift": 5,
+      "grasp": 2,
+      "success": 1,
+      "place": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-system0_refit_b5_s1/generated_system0_refit_b5.summary.json"
+    },
+    "flow_sft_b20": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-flow_sft_b20_s1/generated_flow_sft_b20.summary.json"
+    },
+    "system0_refit_b20": {
+     "k": 5,
+     "n": 100,
+     "rate": 0.05,
+     "wilson95": [
+      0.02154336145631356,
+      0.11175196527208817
+     ],
+     "failed_stage": {
+      "approach": 80,
+      "place": 1,
+      "success": 5,
+      "lift": 12,
+      "transport": 2
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-system0_refit_b20_s1/generated_system0_refit_b20.summary.json"
+    },
+    "flow_sft_b100": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-flow_sft_b100_s1/generated_flow_sft_b100.summary.json"
+    },
+    "system0_refit_b100": {
+     "k": 3,
+     "n": 100,
+     "rate": 0.03,
+     "wilson95": [
+      0.010254338223414816,
+      0.08452078080402699
+     ],
+     "failed_stage": {
+      "approach": 69,
+      "lift": 22,
+      "place": 3,
+      "grasp": 1,
+      "success": 3,
+      "transport": 2
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-system0_refit_b100_s1/generated_system0_refit_b100.summary.json"
+    }
+   },
+   "xarm7_tf3": {
+    "zero_shot": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "zero_shot",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-zs_s1/generated_b0.summary.json"
+    },
+    "flow_sft_b5": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-flow_sft_b5_s1/generated_flow_sft_b5.summary.json"
+    },
+    "system0_refit_b5": {
+     "k": 2,
+     "n": 100,
+     "rate": 0.02,
+     "wilson95": [
+      0.005501852234968185,
+      0.07001316294199365
+     ],
+     "failed_stage": {
+      "success": 2,
+      "approach": 73,
+      "lift": 3,
+      "transport": 17,
+      "place": 5
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-system0_refit_b5_s1/generated_system0_refit_b5.summary.json"
+    },
+    "flow_sft_b20": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-flow_sft_b20_s1/generated_flow_sft_b20.summary.json"
+    },
+    "system0_refit_b20": {
+     "k": 5,
+     "n": 100,
+     "rate": 0.05,
+     "wilson95": [
+      0.02154336145631356,
+      0.11175196527208817
+     ],
+     "failed_stage": {
+      "approach": 88,
+      "transport": 4,
+      "success": 5,
+      "place": 2,
+      "lift": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-system0_refit_b20_s1/generated_system0_refit_b20.summary.json"
+    },
+    "flow_sft_b100": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-flow_sft_b100_s1/generated_flow_sft_b100.summary.json"
+    },
+    "system0_refit_b100": {
+     "k": 5,
+     "n": 100,
+     "rate": 0.05,
+     "wilson95": [
+      0.02154336145631356,
+      0.11175196527208817
+     ],
+     "failed_stage": {
+      "approach": 87,
+      "success": 5,
+      "place": 4,
+      "lift": 2,
+      "transport": 2
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-system0_refit_b100_s1/generated_system0_refit_b100.summary.json"
+    }
+   },
+   "panda_tf3": {
+    "zero_shot": {
+     "k": 87,
+     "n": 100,
+     "rate": 0.87,
+     "wilson95": [
+      0.7901947810519012,
+      0.9224290614158575
+     ],
+     "failed_stage": {
+      "success": 87,
+      "lift": 9,
+      "approach": 1,
+      "grasp": 1,
+      "transport": 1,
+      "place": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "zero_shot",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-panda_tf3/target_eval-zs_s1/generated_b0.summary.json"
+    },
+    "flow_sft_b5": {
+     "k": 88,
+     "n": 100,
+     "rate": 0.88,
+     "wilson95": [
+      0.8018773199709163,
+      0.9300066263473222
+     ],
+     "failed_stage": {
+      "success": 88,
+      "lift": 2,
+      "transport": 4,
+      "approach": 1,
+      "grasp": 3,
+      "place": 2
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-panda_tf3/target_eval-flow_sft_b5_s1/generated_flow_sft_b5.summary.json"
+    },
+    "system0_refit_b5": {
+     "k": 96,
+     "n": 100,
+     "rate": 0.96,
+     "wilson95": [
+      0.9016278276739262,
+      0.984336949448152
+     ],
+     "failed_stage": {
+      "success": 96,
+      "lift": 3,
+      "transport": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-panda_tf3/target_eval-system0_refit_b5_s1/generated_system0_refit_b5.summary.json"
+    },
+    "flow_sft_b20": {
+     "k": 80,
+     "n": 100,
+     "rate": 0.8,
+     "wilson95": [
+      0.7111690380734977,
+      0.8666340774409013
+     ],
+     "failed_stage": {
+      "success": 80,
+      "approach": 1,
+      "transport": 6,
+      "place": 5,
+      "lift": 2,
+      "grasp": 6
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-panda_tf3/target_eval-flow_sft_b20_s1/generated_flow_sft_b20.summary.json"
+    },
+    "system0_refit_b20": {
+     "k": 97,
+     "n": 100,
+     "rate": 0.97,
+     "wilson95": [
+      0.915479219195973,
+      0.9897456617765851
+     ],
+     "failed_stage": {
+      "success": 97,
+      "lift": 3
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-panda_tf3/target_eval-system0_refit_b20_s1/generated_system0_refit_b20.summary.json"
+    },
+    "flow_sft_b100": {
+     "k": 90,
+     "n": 100,
+     "rate": 0.9,
+     "wilson95": [
+      0.8256326956323347,
+      0.9447714583868639
+     ],
+     "failed_stage": {
+      "success": 90,
+      "transport": 4,
+      "approach": 1,
+      "grasp": 2,
+      "lift": 3
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-panda_tf3/target_eval-flow_sft_b100_s1/generated_flow_sft_b100.summary.json"
+    },
+    "system0_refit_b100": {
+     "k": 97,
+     "n": 100,
+     "rate": 0.97,
+     "wilson95": [
+      0.915479219195973,
+      0.9897456617765851
+     ],
+     "failed_stage": {
+      "success": 97,
+      "transport": 1,
+      "lift": 2
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-panda_tf3/target_eval-system0_refit_b100_s1/generated_system0_refit_b100.summary.json"
+    }
+   },
+   "source": {
+    "parm5s_tf3": {
+     "k": 88,
+     "n": 93,
+     "rate": 0.946236559139785,
+     "wilson95": [
+      0.8802500214822403,
+      0.976819667577007
+     ],
+     "failed_stage": {
+      "success": 88,
+      "lift": 1,
+      "approach": 2,
+      "grasp": 1,
+      "transport": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 93,
+      "infeasible": 7
+     },
+     "sealed_run": true,
+     "kind": "source",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-src_parm5s_tf3_s1/generated_source.summary.json"
+    },
+    "parm5l_pg2": {
+     "k": 63,
+     "n": 67,
+     "rate": 0.9402985074626866,
+     "wilson95": [
+      0.8563029501122377,
+      0.9765410285669565
+     ],
+     "failed_stage": {
+      "lift": 3,
+      "success": 63,
+      "approach": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 67,
+      "infeasible": 33
+     },
+     "sealed_run": true,
+     "kind": "source",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-src_parm5l_pg2_s1/generated_source.summary.json"
+    }
+   }
+  },
+  "semfix_s2": {
+   "xarm7_pg2": {
+    "zero_shot": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "zero_shot",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-zs_s2/generated_b0.summary.json"
+    },
+    "flow_sft_b5": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-flow_sft_b5_s2/generated_flow_sft_b5.summary.json"
+    },
+    "system0_refit_b5": {
+     "k": 1,
+     "n": 100,
+     "rate": 0.01,
+     "wilson95": [
+      0.0017673865655472645,
+      0.0544875247609346
+     ],
+     "failed_stage": {
+      "approach": 91,
+      "lift": 7,
+      "success": 1,
+      "transport": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-system0_refit_b5_s2/generated_system0_refit_b5.summary.json"
+    },
+    "flow_sft_b20": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-flow_sft_b20_s2/generated_flow_sft_b20.summary.json"
+    },
+    "system0_refit_b20": {
+     "k": 9,
+     "n": 100,
+     "rate": 0.09,
+     "wilson95": [
+      0.04807199516388488,
+      0.16226374696643667
+     ],
+     "failed_stage": {
+      "approach": 81,
+      "lift": 10,
+      "success": 9
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-system0_refit_b20_s2/generated_system0_refit_b20.summary.json"
+    },
+    "flow_sft_b100": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-flow_sft_b100_s2/generated_flow_sft_b100.summary.json"
+    },
+    "system0_refit_b100": {
+     "k": 7,
+     "n": 100,
+     "rate": 0.07,
+     "wilson95": [
+      0.034318824364064096,
+      0.13749671006529757
+     ],
+     "failed_stage": {
+      "approach": 77,
+      "lift": 16,
+      "success": 7
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-system0_refit_b100_s2/generated_system0_refit_b100.summary.json"
+    }
+   },
+   "xarm7_tf3": {
+    "zero_shot": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "zero_shot",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-zs_s2/generated_b0.summary.json"
+    },
+    "flow_sft_b5": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-flow_sft_b5_s2/generated_flow_sft_b5.summary.json"
+    },
+    "system0_refit_b5": {
+     "k": 28,
+     "n": 100,
+     "rate": 0.28,
+     "wilson95": [
+      0.2013955916759837,
+      0.37488212361345724
+     ],
+     "failed_stage": {
+      "approach": 50,
+      "success": 28,
+      "transport": 12,
+      "place": 7,
+      "lift": 3
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-system0_refit_b5_s2/generated_system0_refit_b5.summary.json"
+    },
+    "flow_sft_b20": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-flow_sft_b20_s2/generated_flow_sft_b20.summary.json"
+    },
+    "system0_refit_b20": {
+     "k": 33,
+     "n": 100,
+     "rate": 0.33,
+     "wilson95": [
+      0.24562983793895452,
+      0.4269483966028862
+     ],
+     "failed_stage": {
+      "approach": 61,
+      "success": 33,
+      "lift": 5,
+      "transport": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-system0_refit_b20_s2/generated_system0_refit_b20.summary.json"
+    },
+    "flow_sft_b100": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-flow_sft_b100_s2/generated_flow_sft_b100.summary.json"
+    },
+    "system0_refit_b100": {
+     "k": 31,
+     "n": 100,
+     "rate": 0.31,
+     "wilson95": [
+      0.22779563206132378,
+      0.40626239477955695
+     ],
+     "failed_stage": {
+      "approach": 65,
+      "success": 31,
+      "transport": 2,
+      "place": 1,
+      "lift": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-system0_refit_b100_s2/generated_system0_refit_b100.summary.json"
+    }
+   },
+   "panda_tf3": {
+    "zero_shot": {
+     "k": 67,
+     "n": 100,
+     "rate": 0.67,
+     "wilson95": [
+      0.5730516033971139,
+      0.7543701620610456
+     ],
+     "failed_stage": {
+      "success": 67,
+      "lift": 6,
+      "transport": 9,
+      "grasp": 2,
+      "approach": 12,
+      "place": 4
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "zero_shot",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-panda_tf3/target_eval-zs_s2/generated_b0.summary.json"
+    },
+    "flow_sft_b5": {
+     "k": 72,
+     "n": 100,
+     "rate": 0.72,
+     "wilson95": [
+      0.6251178763865427,
+      0.7986044083240164
+     ],
+     "failed_stage": {
+      "success": 72,
+      "transport": 12,
+      "place": 5,
+      "grasp": 2,
+      "approach": 6,
+      "lift": 3
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-panda_tf3/target_eval-flow_sft_b5_s2/generated_flow_sft_b5.summary.json"
+    },
+    "system0_refit_b5": {
+     "k": 91,
+     "n": 100,
+     "rate": 0.91,
+     "wilson95": [
+      0.8377362530335634,
+      0.9519280048361151
+     ],
+     "failed_stage": {
+      "success": 91,
+      "transport": 2,
+      "lift": 5,
+      "place": 1,
+      "approach": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-panda_tf3/target_eval-system0_refit_b5_s2/generated_system0_refit_b5.summary.json"
+    },
+    "flow_sft_b20": {
+     "k": 77,
+     "n": 100,
+     "rate": 0.77,
+     "wilson95": [
+      0.6784543514317231,
+      0.841568452531236
+     ],
+     "failed_stage": {
+      "success": 77,
+      "lift": 3,
+      "place": 4,
+      "transport": 11,
+      "approach": 4,
+      "grasp": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-panda_tf3/target_eval-flow_sft_b20_s2/generated_flow_sft_b20.summary.json"
+    },
+    "system0_refit_b20": {
+     "k": 96,
+     "n": 100,
+     "rate": 0.96,
+     "wilson95": [
+      0.9016278276739262,
+      0.984336949448152
+     ],
+     "failed_stage": {
+      "success": 96,
+      "lift": 3,
+      "approach": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-panda_tf3/target_eval-system0_refit_b20_s2/generated_system0_refit_b20.summary.json"
+    },
+    "flow_sft_b100": {
+     "k": 72,
+     "n": 100,
+     "rate": 0.72,
+     "wilson95": [
+      0.6251178763865427,
+      0.7986044083240164
+     ],
+     "failed_stage": {
+      "success": 72,
+      "transport": 13,
+      "grasp": 2,
+      "approach": 7,
+      "lift": 6
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-panda_tf3/target_eval-flow_sft_b100_s2/generated_flow_sft_b100.summary.json"
+    },
+    "system0_refit_b100": {
+     "k": 97,
+     "n": 100,
+     "rate": 0.97,
+     "wilson95": [
+      0.915479219195973,
+      0.9897456617765851
+     ],
+     "failed_stage": {
+      "success": 97,
+      "lift": 2,
+      "place": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-panda_tf3/target_eval-system0_refit_b100_s2/generated_system0_refit_b100.summary.json"
+    }
+   },
+   "source": {
+    "parm5s_tf3": {
+     "k": 90,
+     "n": 93,
+     "rate": 0.967741935483871,
+     "wilson95": [
+      0.9094046653225201,
+      0.9889695870648838
+     ],
+     "failed_stage": {
+      "success": 90,
+      "lift": 1,
+      "approach": 1,
+      "transport": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 93,
+      "infeasible": 7
+     },
+     "sealed_run": true,
+     "kind": "source",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-src_parm5s_tf3_s2/generated_source.summary.json"
+    },
+    "parm5l_pg2": {
+     "k": 63,
+     "n": 67,
+     "rate": 0.9402985074626866,
+     "wilson95": [
+      0.8563029501122377,
+      0.9765410285669565
+     ],
+     "failed_stage": {
+      "lift": 2,
+      "success": 63,
+      "grasp": 1,
+      "approach": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 67,
+      "infeasible": 33
+     },
+     "sealed_run": true,
+     "kind": "source",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-src_parm5l_pg2_s2/generated_source.summary.json"
+    }
+   }
+  },
+  "nosem_s1": {
+   "xarm7_pg2": {
+    "zero_shot": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "zero_shot",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-zs_s1/generated_b0.summary.json"
+    },
+    "flow_sft_b5": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-flow_sft_b5_s1/generated_flow_sft_b5.summary.json"
+    },
+    "system0_refit_b5": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 99,
+      "place": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-system0_refit_b5_s1/generated_system0_refit_b5.summary.json"
+    },
+    "flow_sft_b20": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-flow_sft_b20_s1/generated_flow_sft_b20.summary.json"
+    },
+    "system0_refit_b20": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-system0_refit_b20_s1/generated_system0_refit_b20.summary.json"
+    },
+    "flow_sft_b100": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-flow_sft_b100_s1/generated_flow_sft_b100.summary.json"
+    },
+    "system0_refit_b100": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-system0_refit_b100_s1/generated_system0_refit_b100.summary.json"
+    }
+   },
+   "xarm7_tf3": {
+    "zero_shot": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "zero_shot",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-zs_s1/generated_b0.summary.json"
+    },
+    "flow_sft_b5": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-flow_sft_b5_s1/generated_flow_sft_b5.summary.json"
+    },
+    "system0_refit_b5": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-system0_refit_b5_s1/generated_system0_refit_b5.summary.json"
+    },
+    "flow_sft_b20": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-flow_sft_b20_s1/generated_flow_sft_b20.summary.json"
+    },
+    "system0_refit_b20": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 99,
+      "transport": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-system0_refit_b20_s1/generated_system0_refit_b20.summary.json"
+    },
+    "flow_sft_b100": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-flow_sft_b100_s1/generated_flow_sft_b100.summary.json"
+    },
+    "system0_refit_b100": {
+     "k": 1,
+     "n": 100,
+     "rate": 0.01,
+     "wilson95": [
+      0.0017673865655472645,
+      0.0544875247609346
+     ],
+     "failed_stage": {
+      "approach": 92,
+      "lift": 1,
+      "grasp": 4,
+      "transport": 1,
+      "success": 1,
+      "place": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-system0_refit_b100_s1/generated_system0_refit_b100.summary.json"
+    }
+   },
+   "panda_tf3": {
+    "zero_shot": {
+     "k": 19,
+     "n": 100,
+     "rate": 0.19,
+     "wilson95": [
+      0.1251465399270426,
+      0.27779024070807856
+     ],
+     "failed_stage": {
+      "lift": 16,
+      "approach": 48,
+      "success": 19,
+      "transport": 14,
+      "grasp": 2,
+      "place": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "zero_shot",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-panda_tf3/target_eval-zs_s1/generated_b0.summary.json"
+    },
+    "flow_sft_b5": {
+     "k": 6,
+     "n": 100,
+     "rate": 0.06,
+     "wilson95": [
+      0.02778574526665662,
+      0.12476968531222507
+     ],
+     "failed_stage": {
+      "success": 6,
+      "approach": 78,
+      "transport": 11,
+      "lift": 4,
+      "place": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-panda_tf3/target_eval-flow_sft_b5_s1/generated_flow_sft_b5.summary.json"
+    },
+    "system0_refit_b5": {
+     "k": 60,
+     "n": 100,
+     "rate": 0.6,
+     "wilson95": [
+      0.5020007846184025,
+      0.6906002538863971
+     ],
+     "failed_stage": {
+      "success": 60,
+      "transport": 24,
+      "approach": 6,
+      "place": 7,
+      "lift": 3
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-panda_tf3/target_eval-system0_refit_b5_s1/generated_system0_refit_b5.summary.json"
+    },
+    "flow_sft_b20": {
+     "k": 4,
+     "n": 100,
+     "rate": 0.04,
+     "wilson95": [
+      0.015663050551848016,
+      0.09837217232607373
+     ],
+     "failed_stage": {
+      "approach": 73,
+      "lift": 4,
+      "transport": 14,
+      "success": 4,
+      "grasp": 1,
+      "place": 4
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-panda_tf3/target_eval-flow_sft_b20_s1/generated_flow_sft_b20.summary.json"
+    },
+    "system0_refit_b20": {
+     "k": 74,
+     "n": 100,
+     "rate": 0.74,
+     "wilson95": [
+      0.6462882736813838,
+      0.8159542187301354
+     ],
+     "failed_stage": {
+      "success": 74,
+      "approach": 4,
+      "transport": 11,
+      "place": 10,
+      "lift": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-panda_tf3/target_eval-system0_refit_b20_s1/generated_system0_refit_b20.summary.json"
+    },
+    "flow_sft_b100": {
+     "k": 5,
+     "n": 100,
+     "rate": 0.05,
+     "wilson95": [
+      0.02154336145631356,
+      0.11175196527208817
+     ],
+     "failed_stage": {
+      "approach": 76,
+      "lift": 4,
+      "transport": 13,
+      "place": 1,
+      "success": 5,
+      "grasp": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-panda_tf3/target_eval-flow_sft_b100_s1/generated_flow_sft_b100.summary.json"
+    },
+    "system0_refit_b100": {
+     "k": 64,
+     "n": 100,
+     "rate": 0.64,
+     "wilson95": [
+      0.542352199811621,
+      0.7272892540950986
+     ],
+     "failed_stage": {
+      "success": 64,
+      "approach": 1,
+      "place": 24,
+      "transport": 11
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-panda_tf3/target_eval-system0_refit_b100_s1/generated_system0_refit_b100.summary.json"
+    }
+   },
+   "source": {
+    "parm5s_tf3": {
+     "k": 41,
+     "n": 93,
+     "rate": 0.44086021505376344,
+     "wilson95": [
+      0.34429218763853453,
+      0.5421202632090351
+     ],
+     "failed_stage": {
+      "success": 41,
+      "approach": 26,
+      "lift": 18,
+      "transport": 4,
+      "place": 4
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 93,
+      "infeasible": 7
+     },
+     "sealed_run": true,
+     "kind": "source",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-src_parm5s_tf3_s1/generated_source.summary.json"
+    },
+    "parm5l_pg2": {
+     "k": 48,
+     "n": 67,
+     "rate": 0.7164179104477612,
+     "wilson95": [
+      0.5990653510922904,
+      0.8102986384279914
+     ],
+     "failed_stage": {
+      "success": 48,
+      "lift": 11,
+      "grasp": 2,
+      "place": 3,
+      "approach": 3
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 67,
+      "infeasible": 33
+     },
+     "sealed_run": true,
+     "kind": "source",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-src_parm5l_pg2_s1/generated_source.summary.json"
+    }
+   }
+  },
+  "nosem_s2": {
+   "xarm7_pg2": {
+    "zero_shot": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "zero_shot",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-zs_s2/generated_b0.summary.json"
+    },
+    "flow_sft_b5": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-flow_sft_b5_s2/generated_flow_sft_b5.summary.json"
+    },
+    "system0_refit_b5": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 97,
+      "lift": 3
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-system0_refit_b5_s2/generated_system0_refit_b5.summary.json"
+    },
+    "flow_sft_b20": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-flow_sft_b20_s2/generated_flow_sft_b20.summary.json"
+    },
+    "system0_refit_b20": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-system0_refit_b20_s2/generated_system0_refit_b20.summary.json"
+    },
+    "flow_sft_b100": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-flow_sft_b100_s2/generated_flow_sft_b100.summary.json"
+    },
+    "system0_refit_b100": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-system0_refit_b100_s2/generated_system0_refit_b100.summary.json"
+    }
+   },
+   "xarm7_tf3": {
+    "zero_shot": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "zero_shot",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-zs_s2/generated_b0.summary.json"
+    },
+    "flow_sft_b5": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-flow_sft_b5_s2/generated_flow_sft_b5.summary.json"
+    },
+    "system0_refit_b5": {
+     "k": 1,
+     "n": 100,
+     "rate": 0.01,
+     "wilson95": [
+      0.0017673865655472645,
+      0.0544875247609346
+     ],
+     "failed_stage": {
+      "approach": 96,
+      "success": 1,
+      "lift": 3
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-system0_refit_b5_s2/generated_system0_refit_b5.summary.json"
+    },
+    "flow_sft_b20": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-flow_sft_b20_s2/generated_flow_sft_b20.summary.json"
+    },
+    "system0_refit_b20": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 94,
+      "lift": 6
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-system0_refit_b20_s2/generated_system0_refit_b20.summary.json"
+    },
+    "flow_sft_b100": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-flow_sft_b100_s2/generated_flow_sft_b100.summary.json"
+    },
+    "system0_refit_b100": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 99,
+      "lift": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-system0_refit_b100_s2/generated_system0_refit_b100.summary.json"
+    }
+   },
+   "panda_tf3": {
+    "zero_shot": {
+     "k": 13,
+     "n": 100,
+     "rate": 0.13,
+     "wilson95": [
+      0.07757093858414264,
+      0.20980521894809878
+     ],
+     "failed_stage": {
+      "lift": 43,
+      "approach": 38,
+      "success": 13,
+      "transport": 5,
+      "grasp": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "zero_shot",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-panda_tf3/target_eval-zs_s2/generated_b0.summary.json"
+    },
+    "flow_sft_b5": {
+     "k": 19,
+     "n": 100,
+     "rate": 0.19,
+     "wilson95": [
+      0.1251465399270426,
+      0.27779024070807856
+     ],
+     "failed_stage": {
+      "lift": 47,
+      "approach": 29,
+      "transport": 3,
+      "success": 19,
+      "grasp": 2
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-panda_tf3/target_eval-flow_sft_b5_s2/generated_flow_sft_b5.summary.json"
+    },
+    "system0_refit_b5": {
+     "k": 60,
+     "n": 100,
+     "rate": 0.6,
+     "wilson95": [
+      0.5020007846184025,
+      0.6906002538863971
+     ],
+     "failed_stage": {
+      "success": 60,
+      "transport": 16,
+      "approach": 4,
+      "place": 12,
+      "lift": 8
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-panda_tf3/target_eval-system0_refit_b5_s2/generated_system0_refit_b5.summary.json"
+    },
+    "flow_sft_b20": {
+     "k": 25,
+     "n": 100,
+     "rate": 0.25,
+     "wilson95": [
+      0.1754509400372426,
+      0.3430464637007583
+     ],
+     "failed_stage": {
+      "lift": 43,
+      "approach": 18,
+      "grasp": 8,
+      "success": 25,
+      "transport": 6
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-panda_tf3/target_eval-flow_sft_b20_s2/generated_flow_sft_b20.summary.json"
+    },
+    "system0_refit_b20": {
+     "k": 56,
+     "n": 100,
+     "rate": 0.56,
+     "wilson95": [
+      0.4622792771125631,
+      0.6532813459903167
+     ],
+     "failed_stage": {
+      "success": 56,
+      "transport": 11,
+      "approach": 8,
+      "place": 24,
+      "lift": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-panda_tf3/target_eval-system0_refit_b20_s2/generated_system0_refit_b20.summary.json"
+    },
+    "flow_sft_b100": {
+     "k": 22,
+     "n": 100,
+     "rate": 0.22,
+     "wilson95": [
+      0.15001174503655804,
+      0.3107053471500031
+     ],
+     "failed_stage": {
+      "lift": 34,
+      "approach": 35,
+      "transport": 6,
+      "success": 22,
+      "place": 1,
+      "grasp": 2
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:flow_sft:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-panda_tf3/target_eval-flow_sft_b100_s2/generated_flow_sft_b100.summary.json"
+    },
+    "system0_refit_b100": {
+     "k": 25,
+     "n": 100,
+     "rate": 0.25,
+     "wilson95": [
+      0.1754509400372426,
+      0.3430464637007583
+     ],
+     "failed_stage": {
+      "success": 25,
+      "lift": 2,
+      "place": 59,
+      "approach": 7,
+      "transport": 6,
+      "grasp": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:system0_refit:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-panda_tf3/target_eval-system0_refit_b100_s2/generated_system0_refit_b100.summary.json"
+    }
+   },
+   "source": {
+    "parm5s_tf3": {
+     "k": 74,
+     "n": 93,
+     "rate": 0.7956989247311828,
+     "wilson95": [
+      0.7028131210677944,
+      0.8651246246943574
+     ],
+     "failed_stage": {
+      "success": 74,
+      "lift": 12,
+      "place": 2,
+      "transport": 3,
+      "grasp": 1,
+      "approach": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 93,
+      "infeasible": 7
+     },
+     "sealed_run": true,
+     "kind": "source",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-src_parm5s_tf3_s2/generated_source.summary.json"
+    },
+    "parm5l_pg2": {
+     "k": 62,
+     "n": 67,
+     "rate": 0.9253731343283582,
+     "wilson95": [
+      0.8369075523798613,
+      0.967704427022072
+     ],
+     "failed_stage": {
+      "success": 62,
+      "approach": 2,
+      "lift": 3
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 67,
+      "infeasible": 33
+     },
+     "sealed_run": true,
+     "kind": "source",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-src_parm5l_pg2_s2/generated_source.summary.json"
+    }
+   }
+  }
+ },
+ "bc": {
+  "bc1701": {
+   "xarm7_pg2": {
+    "zero_shot": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "zero_shot",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-xarm7_pg2/target_eval-zs_s1701/learned_b0.summary.json"
+    },
+    "bc_sft_b5": {
+     "k": 32,
+     "n": 100,
+     "rate": 0.32,
+     "wilson95": [
+      0.2366901081545688,
+      0.4166280225367919
+     ],
+     "failed_stage": {
+      "approach": 12,
+      "success": 32,
+      "transport": 22,
+      "grasp": 24,
+      "lift": 10
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:bc_sft:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-xarm7_pg2/target_eval-bc_sft_b5_s1701/learned_bc_sft_b5.summary.json"
+    },
+    "bc_sft_b20": {
+     "k": 65,
+     "n": 100,
+     "rate": 0.65,
+     "wilson95": [
+      0.5525426042919797,
+      0.7363589534652197
+     ],
+     "failed_stage": {
+      "lift": 18,
+      "success": 65,
+      "grasp": 9,
+      "approach": 4,
+      "transport": 3,
+      "place": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:bc_sft:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-xarm7_pg2/target_eval-bc_sft_b20_s1701/learned_bc_sft_b20.summary.json"
+    },
+    "bc_sft_b100": {
+     "k": 65,
+     "n": 100,
+     "rate": 0.65,
+     "wilson95": [
+      0.5525426042919797,
+      0.7363589534652197
+     ],
+     "failed_stage": {
+      "success": 65,
+      "lift": 15,
+      "approach": 18,
+      "grasp": 2
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:bc_sft:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-xarm7_pg2/target_eval-bc_sft_b100_s1701/learned_bc_sft_b100.summary.json"
+    }
+   },
+   "xarm7_tf3": {
+    "zero_shot": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "zero_shot",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-xarm7_tf3/target_eval-zs_s1701/learned_b0.summary.json"
+    },
+    "bc_sft_b5": {
+     "k": 57,
+     "n": 100,
+     "rate": 0.57,
+     "wilson95": [
+      0.4721521169586435,
+      0.6626686099947162
+     ],
+     "failed_stage": {
+      "approach": 9,
+      "success": 57,
+      "place": 1,
+      "transport": 27,
+      "lift": 5,
+      "grasp": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:bc_sft:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-xarm7_tf3/target_eval-bc_sft_b5_s1701/learned_bc_sft_b5.summary.json"
+    },
+    "bc_sft_b20": {
+     "k": 95,
+     "n": 100,
+     "rate": 0.95,
+     "wilson95": [
+      0.8882480347279118,
+      0.9784566385436864
+     ],
+     "failed_stage": {
+      "success": 95,
+      "transport": 3,
+      "approach": 2
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:bc_sft:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-xarm7_tf3/target_eval-bc_sft_b20_s1701/learned_bc_sft_b20.summary.json"
+    },
+    "bc_sft_b100": {
+     "k": 91,
+     "n": 100,
+     "rate": 0.91,
+     "wilson95": [
+      0.8377362530335634,
+      0.9519280048361151
+     ],
+     "failed_stage": {
+      "approach": 7,
+      "success": 91,
+      "lift": 2
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:bc_sft:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-xarm7_tf3/target_eval-bc_sft_b100_s1701/learned_bc_sft_b100.summary.json"
+    }
+   },
+   "panda_tf3": {
+    "zero_shot": {
+     "k": 100,
+     "n": 100,
+     "rate": 1.0,
+     "wilson95": [
+      0.9630051925239981,
+      0.9999999999999999
+     ],
+     "failed_stage": {
+      "success": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "zero_shot",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-panda_tf3/target_eval-zs_s1701/learned_b0.summary.json"
+    },
+    "bc_sft_b5": {
+     "k": 96,
+     "n": 100,
+     "rate": 0.96,
+     "wilson95": [
+      0.9016278276739262,
+      0.984336949448152
+     ],
+     "failed_stage": {
+      "success": 96,
+      "transport": 3,
+      "approach": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:bc_sft:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-panda_tf3/target_eval-bc_sft_b5_s1701/learned_bc_sft_b5.summary.json"
+    },
+    "bc_sft_b20": {
+     "k": 99,
+     "n": 100,
+     "rate": 0.99,
+     "wilson95": [
+      0.9455124752390653,
+      0.9982326134344526
+     ],
+     "failed_stage": {
+      "success": 99,
+      "approach": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:bc_sft:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-panda_tf3/target_eval-bc_sft_b20_s1701/learned_bc_sft_b20.summary.json"
+    },
+    "bc_sft_b100": {
+     "k": 92,
+     "n": 100,
+     "rate": 0.92,
+     "wilson95": [
+      0.8500173312059693,
+      0.9589070305141891
+     ],
+     "failed_stage": {
+      "place": 1,
+      "success": 92,
+      "transport": 6,
+      "approach": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:bc_sft:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-panda_tf3/target_eval-bc_sft_b100_s1701/learned_bc_sft_b100.summary.json"
+    }
+   },
+   "source": {
+    "parm5s_tf3": {
+     "k": 92,
+     "n": 93,
+     "rate": 0.989247311827957,
+     "wilson95": [
+      0.9415794088135158,
+      0.9980994069020442
+     ],
+     "failed_stage": {
+      "success": 92,
+      "transport": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 93,
+      "infeasible": 7
+     },
+     "sealed_run": true,
+     "kind": "source",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-xarm7_pg2/target_eval-src_parm5s_tf3_s1701/learned_source.summary.json"
+    },
+    "parm5l_pg2": {
+     "k": 67,
+     "n": 67,
+     "rate": 1.0,
+     "wilson95": [
+      0.9457719757882374,
+      0.9999999999999999
+     ],
+     "failed_stage": {
+      "success": 67
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 67,
+      "infeasible": 33
+     },
+     "sealed_run": true,
+     "kind": "source",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-xarm7_pg2/target_eval-src_parm5l_pg2_s1701/learned_source.summary.json"
+    }
+   }
+  },
+  "bc1702": {
+   "xarm7_pg2": {
+    "zero_shot": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 99,
+      "lift": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "zero_shot",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-xarm7_pg2/target_eval-zs_s1702/learned_b0.summary.json"
+    },
+    "bc_sft_b5": {
+     "k": 37,
+     "n": 100,
+     "rate": 0.37,
+     "wilson95": [
+      0.28182212569509163,
+      0.46779652424866885
+     ],
+     "failed_stage": {
+      "approach": 14,
+      "success": 37,
+      "transport": 8,
+      "grasp": 21,
+      "place": 1,
+      "lift": 19
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:bc_sft:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-xarm7_pg2/target_eval-bc_sft_b5_s1702/learned_bc_sft_b5.summary.json"
+    },
+    "bc_sft_b20": {
+     "k": 47,
+     "n": 100,
+     "rate": 0.47,
+     "wilson95": [
+      0.3751065198210374,
+      0.5671131686275227
+     ],
+     "failed_stage": {
+      "success": 47,
+      "lift": 38,
+      "approach": 14,
+      "place": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:bc_sft:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-xarm7_pg2/target_eval-bc_sft_b20_s1702/learned_bc_sft_b20.summary.json"
+    },
+    "bc_sft_b100": {
+     "k": 75,
+     "n": 100,
+     "rate": 0.75,
+     "wilson95": [
+      0.6569535362992417,
+      0.8245490599627573
+     ],
+     "failed_stage": {
+      "success": 75,
+      "grasp": 8,
+      "lift": 12,
+      "transport": 2,
+      "place": 2,
+      "approach": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:bc_sft:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-xarm7_pg2/target_eval-bc_sft_b100_s1702/learned_bc_sft_b100.summary.json"
+    }
+   },
+   "xarm7_tf3": {
+    "zero_shot": {
+     "k": 0,
+     "n": 100,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.03699480747600191
+     ],
+     "failed_stage": {
+      "approach": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "zero_shot",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-xarm7_tf3/target_eval-zs_s1702/learned_b0.summary.json"
+    },
+    "bc_sft_b5": {
+     "k": 86,
+     "n": 100,
+     "rate": 0.86,
+     "wilson95": [
+      0.7786263961619276,
+      0.914737342455351
+     ],
+     "failed_stage": {
+      "success": 86,
+      "transport": 10,
+      "approach": 2,
+      "lift": 1,
+      "grasp": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:bc_sft:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-xarm7_tf3/target_eval-bc_sft_b5_s1702/learned_bc_sft_b5.summary.json"
+    },
+    "bc_sft_b20": {
+     "k": 97,
+     "n": 100,
+     "rate": 0.97,
+     "wilson95": [
+      0.915479219195973,
+      0.9897456617765851
+     ],
+     "failed_stage": {
+      "success": 97,
+      "transport": 1,
+      "grasp": 2
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:bc_sft:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-xarm7_tf3/target_eval-bc_sft_b20_s1702/learned_bc_sft_b20.summary.json"
+    },
+    "bc_sft_b100": {
+     "k": 95,
+     "n": 100,
+     "rate": 0.95,
+     "wilson95": [
+      0.8882480347279118,
+      0.9784566385436864
+     ],
+     "failed_stage": {
+      "success": 95,
+      "approach": 2,
+      "transport": 1,
+      "lift": 2
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:bc_sft:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-xarm7_tf3/target_eval-bc_sft_b100_s1702/learned_bc_sft_b100.summary.json"
+    }
+   },
+   "panda_tf3": {
+    "zero_shot": {
+     "k": 99,
+     "n": 100,
+     "rate": 0.99,
+     "wilson95": [
+      0.9455124752390653,
+      0.9982326134344526
+     ],
+     "failed_stage": {
+      "success": 99,
+      "place": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "zero_shot",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-panda_tf3/target_eval-zs_s1702/learned_b0.summary.json"
+    },
+    "bc_sft_b5": {
+     "k": 94,
+     "n": 100,
+     "rate": 0.94,
+     "wilson95": [
+      0.8752303146877748,
+      0.9722142547333433
+     ],
+     "failed_stage": {
+      "success": 94,
+      "grasp": 1,
+      "approach": 4,
+      "place": 1
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:bc_sft:b5",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-panda_tf3/target_eval-bc_sft_b5_s1702/learned_bc_sft_b5.summary.json"
+    },
+    "bc_sft_b20": {
+     "k": 100,
+     "n": 100,
+     "rate": 1.0,
+     "wilson95": [
+      0.9630051925239981,
+      0.9999999999999999
+     ],
+     "failed_stage": {
+      "success": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:bc_sft:b20",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-panda_tf3/target_eval-bc_sft_b20_s1702/learned_bc_sft_b20.summary.json"
+    },
+    "bc_sft_b100": {
+     "k": 100,
+     "n": 100,
+     "rate": 1.0,
+     "wilson95": [
+      0.9630051925239981,
+      0.9999999999999999
+     ],
+     "failed_stage": {
+      "success": 100
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 100,
+      "infeasible": 0
+     },
+     "sealed_run": true,
+     "kind": "adapted:bc_sft:b100",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-panda_tf3/target_eval-bc_sft_b100_s1702/learned_bc_sft_b100.summary.json"
+    }
+   },
+   "source": {
+    "parm5s_tf3": {
+     "k": 93,
+     "n": 93,
+     "rate": 1.0,
+     "wilson95": [
+      0.9603310973796383,
+      0.9999999999999999
+     ],
+     "failed_stage": {
+      "success": 93
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 93,
+      "infeasible": 7
+     },
+     "sealed_run": true,
+     "kind": "source",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-xarm7_pg2/target_eval-src_parm5s_tf3_s1702/learned_source.summary.json"
+    },
+    "parm5l_pg2": {
+     "k": 67,
+     "n": 67,
+     "rate": 1.0,
+     "wilson95": [
+      0.9457719757882374,
+      0.9999999999999999
+     ],
+     "failed_stage": {
+      "success": 67
+     },
+     "seeds": {
+      "start": 2000000,
+      "requested": 100,
+      "feasible": 67,
+      "infeasible": 33
+     },
+     "sealed_run": true,
+     "kind": "source",
+     "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-xarm7_pg2/target_eval-src_parm5l_pg2_s1702/learned_source.summary.json"
+    }
+   }
+  }
+ }
+}
