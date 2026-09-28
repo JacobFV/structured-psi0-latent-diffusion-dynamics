@@ -853,3 +853,17 @@ Next (lead):
 (1) Like-for-like: re-evaluate the v1 checkpoints under grasp_v2.1 (cheap).
 (2) The latent route is now competent (0.89), so the core cross-body claim can be tested: sealed target bodies (#9) with fair BC baselines (#10), templates from D-128.
 (3) A 3rd training seed for the binding question.
+
+## D-135 2026-09-28 SEALED TARGET BODIES (#9/#10): the core cross-body claim is NOT supported on a new arm; latent transfers only to a new gripper on a known arm, and never beats BC
+arm lineage agent (research/tracks/ladder.md "ARM V6 TARGET BODIES", main 1494501; lead checked research/tracks/ladder/armv6/targets_v6.json). Sealed protocol: each cell run once on 100 sealed scenes per seed; v6 semfix/nosem × 2 seeds vs v6 BC experts 1701/1702; same 100 target demos and 600 updates per adaptation budget; grasp_v2.1 everywhere.
+- Part 1 (like-for-like): v1 checkpoints under grasp_v2.1: semfix 307/480, nosem 40/480 (vs v6 425, 314). grasp_v2 → v2.1 changes 1 of 28 cells. The v1 → v6 gain is data/expert, not physics.
+- Part 2, pooled over 2 seeds (of 200): xarm7_pg2 / xarm7_tf3 / panda_tf3
+  - latent semfix zero-shot 0 / 0 / 154; flow SFT b5/20/100 0,0,0 / 0,0,0 / 160,157,162; system-0 refit 2,14,10 / 30,38,36 / 187,193,194
+  - latent nosem zero-shot 0 / 0 / 32; refit 0,0,0 / 1,0,1 / 120,130,89
+  - BC zero-shot 0 / 0 / 199; BC SFT 69,112,140 / 143,192,186 / 190,199,192
+Reading:
+- New arm (xarm7): nothing transfers zero-shot; BC adapts; the latent route does not. Flow SFT changes nothing (the arm stays ~0.4 m away); system-0 refit brings it to ~4.5 cm but approach still fails. The bottleneck is the realizer's adaptation to new kinematics.
+- New gripper on a known arm (panda_tf3): latent semfix transfers zero-shot (154/200) and reaches BC's level after refit, but BC is already at 199/200 zero-shot.
+- semfix > nosem on every target (semantic supervision helps transfer relative to no supervision) but not enough to reach BC.
+Caveats: 2 seeds; adaptation modes differ in parameters touched (flow SFT / refit adapt one module; BC SFT adapts the whole policy): "equal budget" means equal data and updates. Four panda_tf3 evals and one BC SFT were rerun once after memory under-declarations (partial rows deleted; one result per cell).
+Next (lead, proposed): (a) diagnose the realizer on new kinematics (joint-limit/IK-frame conditioning, morphology encoding reaching the realizer), (b) joint flow+realizer adaptation as a whole-policy comparison matched to BC SFT, (c) more source-arm diversity before claiming cross-arm transfer. Roadmap #9/#10 → done.

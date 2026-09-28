@@ -24,8 +24,8 @@ Code: ✅ exists · 🔧 implementing (D-126) · ❌ not a code problem / needs 
 ## B. Cross-body transfer (the untested core claim)
 | # | question | depends on | cost | experiment | code |
 |---|---|---|---|---|---|
-| 9 | Does the latent route transfer to the sealed target bodies (xarm7_pg2/tf3, panda_tf3): zero-shot and with small adaptation budgets? | 3 | 1–2 days | planned (priority) | ✅ DAG template arm_targets_latent |
-| 10 | Fair baselines on those bodies: BC seeds 1702/1703, SFT budgets on the same data | – | ~1 day | planned (priority) | ✅ DAG template arm_targets_bc |
+| 9 | Does the latent route transfer to the sealed target bodies (xarm7_pg2/tf3, panda_tf3): zero-shot and with small adaptation budgets? | 3 | 1–2 days | done → D-135 (no on new arm: latent refit ≤38/200 vs BC SFT up to 192/200; new gripper on panda transfers, still ≤ BC) | ✅ DAG template arm_targets_latent |
+| 10 | Fair baselines on those bodies: BC seeds 1702/1703, SFT budgets on the same data | – | ~1 day | done → D-135 | ✅ DAG template arm_targets_bc |
 | 11 | Legged held-out body transfer (heldout + refit stages) | – | ~1 day | planned | ✅ code (D-126 legged): `dags/templates/legged_v2_heldout.yaml` (validate_tracker-gated; zero-shot `heldout` + equal-budget refit vs BC) |
 | 12 | Do anchor-relative packets transfer better than base-frame ones? (W12 H2) | 20 | in W12 | planned | ✅ (W12 A) |
 
