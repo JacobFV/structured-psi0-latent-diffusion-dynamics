@@ -17,7 +17,14 @@ collections 20G, evals 6G, edit suite 12G provisional until measured (sampler `s
 Throughput (01:14): Stage A semfix s1 0.73 s/step (GPU 94%, shared with psi1z training and the v6 BC seed-1702 chain);
 only 1 of my 2 GPU leases admitted so far (declared-memory aggregate full) -> ~3 h per Stage A. ETA for the full set:
 ~18:00-22:00 PDT 2026-09-28 (uncertain while admission is memory-bound).
-RESUME: `cd ~/work/rrp-wt/ladder && systemd-run --user --unit rrp-armv6-dag2 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv6 --setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/ladder ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_lineage_v6.yaml`
+02:17 INCIDENT: the peer watchdog shed two leases on sustained project memory PSI (68-72; system-wide pressure, it had
+passed by 02:19, 65 GB available): Stage A semfix s2 at step 14,548/15,000 (checkpoint carries python/torch/CUDA RNG ->
+exact resume) and flow F0 semfix s1 at step 43 (the flow checkpoint lacks the global torch RNG state -> restarted from
+scratch instead; partial dir kept at `ladder_smoke/armv6_aborted/semfix_train_flow_s1_psi_step43`, not used). Stage A
+semfix s1 had completed at 02:16 (~70 min). Runner relaunched as `rrp-armv6-dag2` with `--retry-failed` (bounded manual
+decision, logged); running leases (bc1 semfix s1, Stage A nosem s1) re-adopted. Measured peaks so far on v6dart: Stage A
+1.8-2.0 GB RAM (cgroup peak from the job wrapper) / 957 MiB CUDA; bc1 collection 5.5 GB.
+RESUME: `cd ~/work/rrp-wt/ladder && systemd-run --user --unit rrp-armv6-dag3 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armv6 --setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/ladder ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_lineage_v6.yaml`
 (completed nodes skipped, running leases re-adopted; `--retry-failed` only as a logged manual decision; before
 resuming a shed Stage A, check its log says `exact: RNG restored`).
 DAG `dags/arm_lineage_v6.yaml` (`extends: arm_lineage_v2.yaml`): semfix and nosem x training seeds 1, 2; fresh lineage
