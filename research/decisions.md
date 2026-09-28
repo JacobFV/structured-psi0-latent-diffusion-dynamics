@@ -816,3 +816,4 @@ D-126 as a whole is complete as code (D-128 arm/legged, D-129 deployment, this e
 - a spot tracker and sourced spot limits;
 - handover v3 staging smoothness;
 - W7's pad–cylinder grasp fix (queued) before the full dual v3 re-audit and data collection.
+D-127 addendum (02:30): the 02:16 peer shed (project PSI 60–72% while 75–83 GB was AVAILABLE) was caused by W7's zero-shot b0 evals (declared 6G, peak 5.6 GB, so throttled at memory.high 4.8 GB: 128k high events), identified via the new per-lease throttle report (D-117 follow-up). The watchdog then shed v6 lineage jobs (semfix s2 Stage A resumes exactly; s1 F0 lost 43 steps) and the b0 evals themselves. Fix: b0 declares 10G, BC training 6G + 8G GPU (was 24G + 16G). Both v6 BC eval chains relaunched; completed steps are skipped. Lesson: a single throttled lease can trip the project-wide PSI shed. A watchdog improvement is proposed: shed only the throttled lease.
