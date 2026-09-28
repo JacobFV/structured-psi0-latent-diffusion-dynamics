@@ -85,14 +85,16 @@
    }
   },
   "jev5@semfix.s1.xarm7_pg2": {
-   "state": "running",
+   "state": "completed",
    "attempts": [
     {
      "lease_id": "1790622988_665911",
      "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790622988_665911_jasf1x7p_jev5.log",
      "unit": "rrp-job-1790622988_665911.service",
      "placement": "peer",
-     "started": 1790622988.179253
+     "started": 1790622988.179253,
+     "rc": 0,
+     "finished": 1790623080.9208987
     }
    ],
    "config_hash": "ef8822785254f023",
@@ -108,11 +110,53 @@
     "max_seconds": 14400,
     "disk": null
    },
-   "updated": 1790622988.1792545
+   "updated": 1790623081.2587612,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.98,
+    "chunk_vel_step_max_mean": 2.4490257292985915,
+    "failed_stage": {
+     "approach": 45,
+     "grasp": 2,
+     "lift": 16,
+     "place": 5,
+     "success": 13,
+     "transport": 19
+    },
+    "kind": "adapted:joint_adapt:b5",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.13,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 13,
+    "wilson95": [
+     0.07757093858414264,
+     0.20980521894809878
+    ]
+   }
   },
   "ja20@semfix.s1.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623050_ffd87f",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623050_ffd87f_jasf1x7p_ja20.log",
+     "unit": "rrp-job-1790623050_ffd87f.service",
+     "placement": "peer",
+     "started": 1790623050.5809176,
+     "rc": 0,
+     "finished": 1790623081.6057193
+    }
+   ],
    "config_hash": "a91158c41742003c",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_adapt-joint_adapt_b20_s1",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_adapt-joint_adapt_b20_s1",
@@ -125,11 +169,91 @@
     "gpu_mem": "6G",
     "max_seconds": 3600,
     "disk": null
+   },
+   "updated": 1790623081.9183843,
+   "metrics": {
+    "adapt_seed": 1701,
+    "budget": 20,
+    "lr": 0.0001,
+    "method": "joint_adapt",
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "result": {
+     "batch_size": 128,
+     "budget": 20,
+     "changed_modules": "system_i_flow+system0_realizer",
+     "demo_control_transitions": 3021,
+     "demo_episodes": 20,
+     "flow_updates": 150,
+     "frozen": [
+      "target_encoder",
+      "packet_probes"
+     ],
+     "gen_frac": 0.5,
+     "latent_space_version": "ls-00d9a2cb1049-w1d0223875298",
+     "log": [
+      {
+       "flow": -6.197890758514404,
+       "real": null,
+       "step": 50
+      },
+      {
+       "flow": -6.231610298156738,
+       "real": null,
+       "step": 100
+      },
+      {
+       "flow": -6.232236862182617,
+       "real": null,
+       "step": 150
+      },
+      {
+       "flow": null,
+       "real": 0.0008400290971621871,
+       "step": 200
+      },
+      {
+       "flow": null,
+       "real": 0.0004378033336251974,
+       "step": 250
+      },
+      {
+       "flow": null,
+       "real": 0.0004047393158543855,
+       "step": 300
+      }
+     ],
+     "lr": 0.0001,
+     "mode": "split",
+     "nfe": 8,
+     "optimizer_updates": 300,
+     "realizer_updates": 150,
+     "seed": 1701,
+     "source_flow": "artifacts/runs/armv6/arm6-semfix/flow_ft-gdag2h_s1/policy.pt",
+     "source_representation": "artifacts/runs/armv6/arm6-semfix/refit-gendag3_noqd_s1/representation.pt",
+     "version": "joint_adapt_v1",
+     "wall_s": 21.23829674720764
+    },
+    "smoke": false,
+    "steps": 300,
+    "target": "xarm7_pg2"
    }
   },
   "jev20@semfix.s1.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623082_4ba10b",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623082_4ba10b_jasf1x7p_jev20.log",
+     "unit": "rrp-job-1790623082_4ba10b.service",
+     "placement": "peer",
+     "started": 1790623082.7095132,
+     "rc": 0,
+     "finished": 1790623176.6928012
+    }
+   ],
    "config_hash": "b34223cc9f6e05ec",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b20_s1",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b20_s1",
@@ -142,11 +266,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790623177.015475,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.8,
+    "chunk_vel_step_max_mean": 1.8903643992729484,
+    "failed_stage": {
+     "approach": 11,
+     "grasp": 3,
+     "lift": 20,
+     "place": 1,
+     "success": 62,
+     "transport": 3
+    },
+    "kind": "adapted:joint_adapt:b20",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.62,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 62,
+    "wilson95": [
+     0.5220957382071033,
+     0.7090255079986562
+    ]
    }
   },
   "ja100@semfix.s1.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623083_d0dbe5",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623083_d0dbe5_jasf1x7p_ja100.log",
+     "unit": "rrp-job-1790623083_d0dbe5.service",
+     "placement": "peer",
+     "started": 1790623083.828654,
+     "rc": 0,
+     "finished": 1790623145.167009
+    }
+   ],
    "config_hash": "c7f19f8d909605ed",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_adapt-joint_adapt_b100_s1",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_adapt-joint_adapt_b100_s1",
@@ -159,11 +326,121 @@
     "gpu_mem": "6G",
     "max_seconds": 3600,
     "disk": null
+   },
+   "updated": 1790623145.484635,
+   "metrics": {
+    "adapt_seed": 1701,
+    "budget": 100,
+    "lr": 0.0001,
+    "method": "joint_adapt",
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "result": {
+     "batch_size": 128,
+     "budget": 100,
+     "changed_modules": "system_i_flow+system0_realizer",
+     "demo_control_transitions": 15384,
+     "demo_episodes": 100,
+     "flow_updates": 300,
+     "frozen": [
+      "target_encoder",
+      "packet_probes"
+     ],
+     "gen_frac": 0.5,
+     "latent_space_version": "ls-00d9a2cb1049-w1d0223875298",
+     "log": [
+      {
+       "flow": -6.1374053955078125,
+       "real": null,
+       "step": 50
+      },
+      {
+       "flow": -6.1709699630737305,
+       "real": null,
+       "step": 100
+      },
+      {
+       "flow": -6.241970539093018,
+       "real": null,
+       "step": 150
+      },
+      {
+       "flow": -6.2035722732543945,
+       "real": null,
+       "step": 200
+      },
+      {
+       "flow": -6.1852006912231445,
+       "real": null,
+       "step": 250
+      },
+      {
+       "flow": -6.168438911437988,
+       "real": null,
+       "step": 300
+      },
+      {
+       "flow": null,
+       "real": 0.0008949317270889878,
+       "step": 350
+      },
+      {
+       "flow": null,
+       "real": 0.0010704551823437214,
+       "step": 400
+      },
+      {
+       "flow": null,
+       "real": 0.0004733536916319281,
+       "step": 450
+      },
+      {
+       "flow": null,
+       "real": 0.0002943715371657163,
+       "step": 500
+      },
+      {
+       "flow": null,
+       "real": 0.0005146395415067673,
+       "step": 550
+      },
+      {
+       "flow": null,
+       "real": 0.00030117249116301537,
+       "step": 600
+      }
+     ],
+     "lr": 0.0001,
+     "mode": "split",
+     "nfe": 8,
+     "optimizer_updates": 600,
+     "realizer_updates": 300,
+     "seed": 1701,
+     "source_flow": "artifacts/runs/armv6/arm6-semfix/flow_ft-gdag2h_s1/policy.pt",
+     "source_representation": "artifacts/runs/armv6/arm6-semfix/refit-gendag3_noqd_s1/representation.pt",
+     "version": "joint_adapt_v1",
+     "wall_s": 42.28028082847595
+    },
+    "smoke": false,
+    "steps": 600,
+    "target": "xarm7_pg2"
    }
   },
   "jev100@semfix.s1.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623146_b0aac4",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623146_b0aac4_jasf1x7p_jev100.log",
+     "unit": "rrp-job-1790623146_b0aac4.service",
+     "placement": "peer",
+     "started": 1790623146.3589318,
+     "rc": 0,
+     "finished": 1790623239.3587534
+    }
+   ],
    "config_hash": "d49a6b8699339039",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b100_s1",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b100_s1",
@@ -176,17 +453,51 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790623239.7071114,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.61,
+    "chunk_vel_step_max_mean": 1.7274982400238514,
+    "failed_stage": {
+     "approach": 10,
+     "grasp": 2,
+     "lift": 25,
+     "place": 2,
+     "success": 61
+    },
+    "kind": "adapted:joint_adapt:b100",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.61,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 61,
+    "wilson95": [
+     0.5120283616749817,
+     0.699832780680298
+    ]
    }
   },
   "pev5@semfix.s1.xarm7_pg2": {
-   "state": "running",
+   "state": "completed",
    "attempts": [
     {
      "lease_id": "1790622956_e2c0f6",
      "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790622956_e2c0f6_jasf1x7p_pev5.log",
      "unit": "rrp-job-1790622956_e2c0f6.service",
      "placement": "peer",
-     "started": 1790622956.3726974
+     "started": 1790622956.3726974,
+     "rc": 0,
+     "finished": 1790623049.5002782
     }
    ],
    "config_hash": "edb591cd86c699d6",
@@ -202,11 +513,53 @@
     "max_seconds": 14400,
     "disk": null
    },
-   "updated": 1790622956.3726995
+   "updated": 1790623049.8077362,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.97,
+    "chunk_vel_step_max_mean": 2.3454305358231067,
+    "failed_stage": {
+     "approach": 41,
+     "grasp": 1,
+     "lift": 15,
+     "place": 5,
+     "success": 14,
+     "transport": 24
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b5",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.14,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 14,
+    "wilson95": [
+     0.08526265754464905,
+     0.22137360383807236
+    ]
+   }
   },
   "pev20@semfix.s1.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623178_4693db",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623178_4693db_jasf1x7p_pev20.log",
+     "unit": "rrp-job-1790623178_4693db.service",
+     "placement": "peer",
+     "started": 1790623178.318807,
+     "rc": 0,
+     "finished": 1790623271.1218185
+    }
+   ],
    "config_hash": "6a74214bca2b49b1",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b20_s1",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b20_s1",
@@ -219,11 +572,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790623271.4500175,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.62,
+    "chunk_vel_step_max_mean": 1.761914549395442,
+    "failed_stage": {
+     "approach": 3,
+     "grasp": 5,
+     "lift": 23,
+     "place": 8,
+     "success": 59,
+     "transport": 2
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b20",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.59,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 59,
+    "wilson95": [
+     0.4920125056109662,
+     0.6813284290433533
+    ]
    }
   },
   "pev100@semfix.s1.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623240_e7d4c8",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623240_e7d4c8_jasf1x7p_pev100.log",
+     "unit": "rrp-job-1790623240_e7d4c8.service",
+     "placement": "peer",
+     "started": 1790623240.7817311,
+     "rc": 0,
+     "finished": 1790623302.8788083
+    }
+   ],
    "config_hash": "2c20fab7e98c1095",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b100_s1",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b100_s1",
@@ -236,11 +632,53 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790623303.2143807,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.6,
+    "chunk_vel_step_max_mean": 1.665823240019381,
+    "failed_stage": {
+     "approach": 6,
+     "grasp": 2,
+     "lift": 17,
+     "place": 1,
+     "success": 74
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b100",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.74,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 74,
+    "wilson95": [
+     0.6462882736813838,
+     0.8159542187301354
+    ]
    }
   },
   "ja5@semfix.s1.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623272_166c97",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623272_166c97_jasf1x7t_ja5.log",
+     "unit": "rrp-job-1790623272_166c97.service",
+     "placement": "peer",
+     "started": 1790623272.55676,
+     "rc": 0,
+     "finished": 1790623303.5466883
+    }
+   ],
    "config_hash": "703295f82c847f14",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_adapt-joint_adapt_b5_s1",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_adapt-joint_adapt_b5_s1",
@@ -253,11 +691,76 @@
     "gpu_mem": "6G",
     "max_seconds": 3600,
     "disk": null
+   },
+   "updated": 1790623303.877926,
+   "metrics": {
+    "adapt_seed": 1701,
+    "budget": 5,
+    "lr": 0.0001,
+    "method": "joint_adapt",
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "result": {
+     "batch_size": 128,
+     "budget": 5,
+     "changed_modules": "system_i_flow+system0_realizer",
+     "demo_control_transitions": 734,
+     "demo_episodes": 5,
+     "flow_updates": 75,
+     "frozen": [
+      "target_encoder",
+      "packet_probes"
+     ],
+     "gen_frac": 0.5,
+     "latent_space_version": "ls-00d9a2cb1049-w1d0223875298",
+     "log": [
+      {
+       "flow": -6.2150187492370605,
+       "real": null,
+       "step": 50
+      },
+      {
+       "flow": null,
+       "real": 0.0009322746191173792,
+       "step": 100
+      },
+      {
+       "flow": null,
+       "real": 0.0003891908854711801,
+       "step": 150
+      }
+     ],
+     "lr": 0.0001,
+     "mode": "split",
+     "nfe": 8,
+     "optimizer_updates": 150,
+     "realizer_updates": 75,
+     "seed": 1701,
+     "source_flow": "artifacts/runs/armv6/arm6-semfix/flow_ft-gdag2h_s1/policy.pt",
+     "source_representation": "artifacts/runs/armv6/arm6-semfix/refit-gendag3_noqd_s1/representation.pt",
+     "version": "joint_adapt_v1",
+     "wall_s": 11.05035924911499
+    },
+    "smoke": false,
+    "steps": 150,
+    "target": "xarm7_tf3"
    }
   },
   "jev5@semfix.s1.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623304_ffd509",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623304_ffd509_jasf1x7t_jev5.log",
+     "unit": "rrp-job-1790623304_ffd509.service",
+     "placement": "peer",
+     "started": 1790623304.9238222,
+     "rc": 0,
+     "finished": 1790623398.4594533
+    }
+   ],
    "config_hash": "79fca68796fe4c49",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b5_s1",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b5_s1",
@@ -270,11 +773,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790623398.8013241,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.92,
+    "chunk_vel_step_max_mean": 2.2930991008877752,
+    "failed_stage": {
+     "approach": 34,
+     "grasp": 2,
+     "lift": 5,
+     "place": 7,
+     "success": 23,
+     "transport": 29
+    },
+    "kind": "adapted:joint_adapt:b5",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.23,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 23,
+    "wilson95": [
+     0.15843154746876406,
+     0.32154564856827694
+    ]
    }
   },
   "ja20@semfix.s1.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623305_884be6",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623305_884be6_jasf1x7t_ja20.log",
+     "unit": "rrp-job-1790623305_884be6.service",
+     "placement": "peer",
+     "started": 1790623305.7175844,
+     "rc": 0,
+     "finished": 1790623336.3589406
+    }
+   ],
    "config_hash": "2b6224ed91c7938a",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_adapt-joint_adapt_b20_s1",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_adapt-joint_adapt_b20_s1",
@@ -287,11 +833,91 @@
     "gpu_mem": "6G",
     "max_seconds": 3600,
     "disk": null
+   },
+   "updated": 1790623336.671446,
+   "metrics": {
+    "adapt_seed": 1701,
+    "budget": 20,
+    "lr": 0.0001,
+    "method": "joint_adapt",
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "result": {
+     "batch_size": 128,
+     "budget": 20,
+     "changed_modules": "system_i_flow+system0_realizer",
+     "demo_control_transitions": 2976,
+     "demo_episodes": 20,
+     "flow_updates": 150,
+     "frozen": [
+      "target_encoder",
+      "packet_probes"
+     ],
+     "gen_frac": 0.5,
+     "latent_space_version": "ls-00d9a2cb1049-w1d0223875298",
+     "log": [
+      {
+       "flow": -6.143857955932617,
+       "real": null,
+       "step": 50
+      },
+      {
+       "flow": -6.216495037078857,
+       "real": null,
+       "step": 100
+      },
+      {
+       "flow": -6.145815849304199,
+       "real": null,
+       "step": 150
+      },
+      {
+       "flow": null,
+       "real": 0.000585936417337507,
+       "step": 200
+      },
+      {
+       "flow": null,
+       "real": 0.000606891349889338,
+       "step": 250
+      },
+      {
+       "flow": null,
+       "real": 0.0002970989153254777,
+       "step": 300
+      }
+     ],
+     "lr": 0.0001,
+     "mode": "split",
+     "nfe": 8,
+     "optimizer_updates": 300,
+     "realizer_updates": 150,
+     "seed": 1701,
+     "source_flow": "artifacts/runs/armv6/arm6-semfix/flow_ft-gdag2h_s1/policy.pt",
+     "source_representation": "artifacts/runs/armv6/arm6-semfix/refit-gendag3_noqd_s1/representation.pt",
+     "version": "joint_adapt_v1",
+     "wall_s": 21.800567388534546
+    },
+    "smoke": false,
+    "steps": 300,
+    "target": "xarm7_tf3"
    }
   },
   "jev20@semfix.s1.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623337_207a6b",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623337_207a6b_jasf1x7t_jev20.log",
+     "unit": "rrp-job-1790623337_207a6b.service",
+     "placement": "peer",
+     "started": 1790623337.4331925,
+     "rc": 0,
+     "finished": 1790623430.2970912
+    }
+   ],
    "config_hash": "47de278f1f42c770",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b20_s1",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b20_s1",
@@ -304,11 +930,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790623430.6247394,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.85,
+    "chunk_vel_step_max_mean": 1.9199840545654296,
+    "failed_stage": {
+     "approach": 10,
+     "grasp": 5,
+     "lift": 3,
+     "place": 5,
+     "success": 67,
+     "transport": 10
+    },
+    "kind": "adapted:joint_adapt:b20",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.67,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 67,
+    "wilson95": [
+     0.5730516033971139,
+     0.7543701620610456
+    ]
    }
   },
   "ja100@semfix.s1.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623399_30af1b",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623399_30af1b_jasf1x7t_ja100.log",
+     "unit": "rrp-job-1790623399_30af1b.service",
+     "placement": "peer",
+     "started": 1790623399.9458857,
+     "rc": 0,
+     "finished": 1790623462.279705
+    }
+   ],
    "config_hash": "6becf0838d7ae8dd",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_adapt-joint_adapt_b100_s1",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_adapt-joint_adapt_b100_s1",
@@ -321,11 +990,121 @@
     "gpu_mem": "6G",
     "max_seconds": 3600,
     "disk": null
+   },
+   "updated": 1790623462.6085768,
+   "metrics": {
+    "adapt_seed": 1701,
+    "budget": 100,
+    "lr": 0.0001,
+    "method": "joint_adapt",
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "result": {
+     "batch_size": 128,
+     "budget": 100,
+     "changed_modules": "system_i_flow+system0_realizer",
+     "demo_control_transitions": 14918,
+     "demo_episodes": 100,
+     "flow_updates": 300,
+     "frozen": [
+      "target_encoder",
+      "packet_probes"
+     ],
+     "gen_frac": 0.5,
+     "latent_space_version": "ls-00d9a2cb1049-w1d0223875298",
+     "log": [
+      {
+       "flow": -6.075135231018066,
+       "real": null,
+       "step": 50
+      },
+      {
+       "flow": -6.203742027282715,
+       "real": null,
+       "step": 100
+      },
+      {
+       "flow": -6.171258926391602,
+       "real": null,
+       "step": 150
+      },
+      {
+       "flow": -6.183513641357422,
+       "real": null,
+       "step": 200
+      },
+      {
+       "flow": -6.0923848152160645,
+       "real": null,
+       "step": 250
+      },
+      {
+       "flow": -6.201876163482666,
+       "real": null,
+       "step": 300
+      },
+      {
+       "flow": null,
+       "real": 0.0007760552689433098,
+       "step": 350
+      },
+      {
+       "flow": null,
+       "real": 0.000845914997626096,
+       "step": 400
+      },
+      {
+       "flow": null,
+       "real": 0.0003436253173276782,
+       "step": 450
+      },
+      {
+       "flow": null,
+       "real": 0.00031621335074305534,
+       "step": 500
+      },
+      {
+       "flow": null,
+       "real": 0.00028520345222204924,
+       "step": 550
+      },
+      {
+       "flow": null,
+       "real": 0.0005839605582877994,
+       "step": 600
+      }
+     ],
+     "lr": 0.0001,
+     "mode": "split",
+     "nfe": 8,
+     "optimizer_updates": 600,
+     "realizer_updates": 300,
+     "seed": 1701,
+     "source_flow": "artifacts/runs/armv6/arm6-semfix/flow_ft-gdag2h_s1/policy.pt",
+     "source_representation": "artifacts/runs/armv6/arm6-semfix/refit-gendag3_noqd_s1/representation.pt",
+     "version": "joint_adapt_v1",
+     "wall_s": 42.93732261657715
+    },
+    "smoke": false,
+    "steps": 600,
+    "target": "xarm7_tf3"
    }
   },
   "jev100@semfix.s1.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623463_4acd36",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623463_4acd36_jasf1x7t_jev100.log",
+     "unit": "rrp-job-1790623463_4acd36.service",
+     "placement": "peer",
+     "started": 1790623463.741655,
+     "rc": 0,
+     "finished": 1790623524.7599626
+    }
+   ],
    "config_hash": "31177cdd61240d5f",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b100_s1",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b100_s1",
@@ -338,11 +1117,53 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790623525.084607,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.4,
+    "chunk_vel_step_max_mean": 1.4979910001158714,
+    "failed_stage": {
+     "approach": 3,
+     "grasp": 2,
+     "place": 3,
+     "success": 88,
+     "transport": 4
+    },
+    "kind": "adapted:joint_adapt:b100",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.88,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 88,
+    "wilson95": [
+     0.8018773199709163,
+     0.9300066263473222
+    ]
    }
   },
   "pev5@semfix.s1.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623431_e85e3e",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623431_e85e3e_jasf1x7t_pev5.log",
+     "unit": "rrp-job-1790623431_e85e3e.service",
+     "placement": "peer",
+     "started": 1790623431.9525008,
+     "rc": 0,
+     "finished": 1790623525.4170516
+    }
+   ],
    "config_hash": "c9e7e1f61a373cd8",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b5_s1",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b5_s1",
@@ -355,11 +1176,53 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790623525.739328,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.97,
+    "chunk_vel_step_max_mean": 2.34035560041666,
+    "failed_stage": {
+     "approach": 31,
+     "lift": 6,
+     "place": 10,
+     "success": 21,
+     "transport": 32
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b5",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.21,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 21,
+    "wilson95": [
+     0.14165549531645788,
+     0.2998014930196232
+    ]
    }
   },
   "pev20@semfix.s1.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623526_aec390",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623526_aec390_jasf1x7t_pev20.log",
+     "unit": "rrp-job-1790623526_aec390.service",
+     "placement": "peer",
+     "started": 1790623526.5132134,
+     "rc": 0,
+     "finished": 1790623620.1694875
+    }
+   ],
    "config_hash": "325b23ef2b96bf44",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b20_s1",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b20_s1",
@@ -372,11 +1235,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790623620.4763832,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.58,
+    "chunk_vel_step_max_mean": 1.6725198455154895,
+    "failed_stage": {
+     "approach": 4,
+     "grasp": 5,
+     "lift": 4,
+     "place": 4,
+     "success": 73,
+     "transport": 10
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b20",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.73,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 73,
+    "wilson95": [
+     0.6356769977376873,
+     0.8073053908233518
+    ]
    }
   },
   "pev100@semfix.s1.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623527_ddf9da",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623527_ddf9da_jasf1x7t_pev100.log",
+     "unit": "rrp-job-1790623527_ddf9da.service",
+     "placement": "peer",
+     "started": 1790623527.333819,
+     "rc": 0,
+     "finished": 1790623588.7263288
+    }
+   ],
    "config_hash": "e102ddb60fd8f467",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b100_s1",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b100_s1",
@@ -389,11 +1295,53 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790623589.0461373,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.34,
+    "chunk_vel_step_max_mean": 1.4265619922429322,
+    "failed_stage": {
+     "approach": 1,
+     "grasp": 2,
+     "lift": 3,
+     "success": 89,
+     "transport": 5
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b100",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.89,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 89,
+    "wilson95": [
+     0.8136853697209698,
+     0.9374586804477487
+    ]
    }
   },
   "ja5@semfix.s2.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623589_7fcb41",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623589_7fcb41_jasf2x7p_ja5.log",
+     "unit": "rrp-job-1790623589_7fcb41.service",
+     "placement": "peer",
+     "started": 1790623589.824603,
+     "rc": 0,
+     "finished": 1790623620.8157105
+    }
+   ],
    "config_hash": "ffeaca1307949cab",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_adapt-joint_adapt_b5_s2",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_adapt-joint_adapt_b5_s2",
@@ -406,11 +1354,76 @@
     "gpu_mem": "6G",
     "max_seconds": 3600,
     "disk": null
+   },
+   "updated": 1790623621.1437001,
+   "metrics": {
+    "adapt_seed": 1702,
+    "budget": 5,
+    "lr": 0.0001,
+    "method": "joint_adapt",
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "result": {
+     "batch_size": 128,
+     "budget": 5,
+     "changed_modules": "system_i_flow+system0_realizer",
+     "demo_control_transitions": 751,
+     "demo_episodes": 5,
+     "flow_updates": 75,
+     "frozen": [
+      "target_encoder",
+      "packet_probes"
+     ],
+     "gen_frac": 0.5,
+     "latent_space_version": "ls-085df1b2bc19-w0371942c4799",
+     "log": [
+      {
+       "flow": -6.255459785461426,
+       "real": null,
+       "step": 50
+      },
+      {
+       "flow": null,
+       "real": 0.000930128269828856,
+       "step": 100
+      },
+      {
+       "flow": null,
+       "real": 0.00024348949955310673,
+       "step": 150
+      }
+     ],
+     "lr": 0.0001,
+     "mode": "split",
+     "nfe": 8,
+     "optimizer_updates": 150,
+     "realizer_updates": 75,
+     "seed": 1702,
+     "source_flow": "artifacts/runs/armv6/arm6-semfix/flow_ft-gdag2h_s2/policy.pt",
+     "source_representation": "artifacts/runs/armv6/arm6-semfix/refit-gendag3_noqd_s2/representation.pt",
+     "version": "joint_adapt_v1",
+     "wall_s": 10.845388174057007
+    },
+    "smoke": false,
+    "steps": 150,
+    "target": "xarm7_pg2"
    }
   },
   "jev5@semfix.s2.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623621_15104e",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623621_15104e_jasf2x7p_jev5.log",
+     "unit": "rrp-job-1790623621_15104e.service",
+     "placement": "peer",
+     "started": 1790623621.9527075,
+     "rc": 0,
+     "finished": 1790623715.5273497
+    }
+   ],
    "config_hash": "956fcdd48ab98ab1",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b5_s2",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b5_s2",
@@ -423,11 +1436,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790623715.8578522,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.59,
+    "chunk_vel_step_max_mean": 1.5574520006775856,
+    "failed_stage": {
+     "approach": 43,
+     "grasp": 4,
+     "lift": 28,
+     "place": 4,
+     "success": 14,
+     "transport": 7
+    },
+    "kind": "adapted:joint_adapt:b5",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.14,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 14,
+    "wilson95": [
+     0.08526265754464905,
+     0.22137360383807236
+    ]
    }
   },
   "ja20@semfix.s2.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623622_76bfff",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623622_76bfff_jasf2x7p_ja20.log",
+     "unit": "rrp-job-1790623622_76bfff.service",
+     "placement": "peer",
+     "started": 1790623622.7132435,
+     "rc": 0,
+     "finished": 1790623653.3721304
+    }
+   ],
    "config_hash": "9f28a958a3086f72",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_adapt-joint_adapt_b20_s2",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_adapt-joint_adapt_b20_s2",
@@ -440,11 +1496,91 @@
     "gpu_mem": "6G",
     "max_seconds": 3600,
     "disk": null
+   },
+   "updated": 1790623653.6866071,
+   "metrics": {
+    "adapt_seed": 1702,
+    "budget": 20,
+    "lr": 0.0001,
+    "method": "joint_adapt",
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "result": {
+     "batch_size": 128,
+     "budget": 20,
+     "changed_modules": "system_i_flow+system0_realizer",
+     "demo_control_transitions": 3128,
+     "demo_episodes": 20,
+     "flow_updates": 150,
+     "frozen": [
+      "target_encoder",
+      "packet_probes"
+     ],
+     "gen_frac": 0.5,
+     "latent_space_version": "ls-085df1b2bc19-w0371942c4799",
+     "log": [
+      {
+       "flow": -6.153500080108643,
+       "real": null,
+       "step": 50
+      },
+      {
+       "flow": -6.204660892486572,
+       "real": null,
+       "step": 100
+      },
+      {
+       "flow": -6.205921649932861,
+       "real": null,
+       "step": 150
+      },
+      {
+       "flow": null,
+       "real": 0.0009872728260233998,
+       "step": 200
+      },
+      {
+       "flow": null,
+       "real": 0.0005525417509488761,
+       "step": 250
+      },
+      {
+       "flow": null,
+       "real": 0.00041300459997728467,
+       "step": 300
+      }
+     ],
+     "lr": 0.0001,
+     "mode": "split",
+     "nfe": 8,
+     "optimizer_updates": 300,
+     "realizer_updates": 150,
+     "seed": 1702,
+     "source_flow": "artifacts/runs/armv6/arm6-semfix/flow_ft-gdag2h_s2/policy.pt",
+     "source_representation": "artifacts/runs/armv6/arm6-semfix/refit-gendag3_noqd_s2/representation.pt",
+     "version": "joint_adapt_v1",
+     "wall_s": 21.780354499816895
+    },
+    "smoke": false,
+    "steps": 300,
+    "target": "xarm7_pg2"
    }
   },
   "jev20@semfix.s2.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623654_81c75c",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623654_81c75c_jasf2x7p_jev20.log",
+     "unit": "rrp-job-1790623654_81c75c.service",
+     "placement": "peer",
+     "started": 1790623654.4859242,
+     "rc": 0,
+     "finished": 1790623747.3783748
+    }
+   ],
    "config_hash": "8824fffdb4a4f14b",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b20_s2",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b20_s2",
@@ -457,11 +1593,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790623747.7131336,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.65,
+    "chunk_vel_step_max_mean": 1.8733840623870492,
+    "failed_stage": {
+     "approach": 46,
+     "grasp": 17,
+     "lift": 4,
+     "place": 1,
+     "success": 30,
+     "transport": 2
+    },
+    "kind": "adapted:joint_adapt:b20",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.3,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 30,
+    "wilson95": [
+     0.21894753866228117,
+     0.39585038432811953
+    ]
    }
   },
   "ja100@semfix.s2.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623716_0a6d47",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623716_0a6d47_jasf2x7p_ja100.log",
+     "unit": "rrp-job-1790623716_0a6d47.service",
+     "placement": "peer",
+     "started": 1790623717.006892,
+     "rc": 0,
+     "finished": 1790623779.1880887
+    }
+   ],
    "config_hash": "c5b761e89e663dc6",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_adapt-joint_adapt_b100_s2",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_adapt-joint_adapt_b100_s2",
@@ -474,11 +1653,121 @@
     "gpu_mem": "6G",
     "max_seconds": 3600,
     "disk": null
+   },
+   "updated": 1790623779.547164,
+   "metrics": {
+    "adapt_seed": 1702,
+    "budget": 100,
+    "lr": 0.0001,
+    "method": "joint_adapt",
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "result": {
+     "batch_size": 128,
+     "budget": 100,
+     "changed_modules": "system_i_flow+system0_realizer",
+     "demo_control_transitions": 15487,
+     "demo_episodes": 100,
+     "flow_updates": 300,
+     "frozen": [
+      "target_encoder",
+      "packet_probes"
+     ],
+     "gen_frac": 0.5,
+     "latent_space_version": "ls-085df1b2bc19-w0371942c4799",
+     "log": [
+      {
+       "flow": -6.151540756225586,
+       "real": null,
+       "step": 50
+      },
+      {
+       "flow": -6.188221454620361,
+       "real": null,
+       "step": 100
+      },
+      {
+       "flow": -6.1357221603393555,
+       "real": null,
+       "step": 150
+      },
+      {
+       "flow": -6.081961631774902,
+       "real": null,
+       "step": 200
+      },
+      {
+       "flow": -6.210750102996826,
+       "real": null,
+       "step": 250
+      },
+      {
+       "flow": -6.157924175262451,
+       "real": null,
+       "step": 300
+      },
+      {
+       "flow": null,
+       "real": 0.0006137501331977546,
+       "step": 350
+      },
+      {
+       "flow": null,
+       "real": 0.0005707486998289824,
+       "step": 400
+      },
+      {
+       "flow": null,
+       "real": 0.00048768892884254456,
+       "step": 450
+      },
+      {
+       "flow": null,
+       "real": 0.00035422638757154346,
+       "step": 500
+      },
+      {
+       "flow": null,
+       "real": 0.00040393503149971366,
+       "step": 550
+      },
+      {
+       "flow": null,
+       "real": 0.00026302458718419075,
+       "step": 600
+      }
+     ],
+     "lr": 0.0001,
+     "mode": "split",
+     "nfe": 8,
+     "optimizer_updates": 600,
+     "realizer_updates": 300,
+     "seed": 1702,
+     "source_flow": "artifacts/runs/armv6/arm6-semfix/flow_ft-gdag2h_s2/policy.pt",
+     "source_representation": "artifacts/runs/armv6/arm6-semfix/refit-gendag3_noqd_s2/representation.pt",
+     "version": "joint_adapt_v1",
+     "wall_s": 42.103630781173706
+    },
+    "smoke": false,
+    "steps": 600,
+    "target": "xarm7_pg2"
    }
   },
   "jev100@semfix.s2.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623780_92defa",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623780_92defa_jasf2x7p_jev100.log",
+     "unit": "rrp-job-1790623780_92defa.service",
+     "placement": "peer",
+     "started": 1790623780.69061,
+     "rc": 0,
+     "finished": 1790623873.4806886
+    }
+   ],
    "config_hash": "8c1a45a486ee5db0",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b100_s2",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b100_s2",
@@ -491,11 +1780,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790623873.8056664,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.58,
+    "chunk_vel_step_max_mean": 1.8061929017305374,
+    "failed_stage": {
+     "approach": 19,
+     "grasp": 15,
+     "lift": 17,
+     "place": 8,
+     "success": 40,
+     "transport": 1
+    },
+    "kind": "adapted:joint_adapt:b100",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.4,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 40,
+    "wilson95": [
+     0.3093997461136028,
+     0.4979992153815976
+    ]
    }
   },
   "pev5@semfix.s2.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623748_8a4f7c",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623748_8a4f7c_jasf2x7p_pev5.log",
+     "unit": "rrp-job-1790623748_8a4f7c.service",
+     "placement": "peer",
+     "started": 1790623748.8541052,
+     "rc": 0,
+     "finished": 1790623842.0373085
+    }
+   ],
    "config_hash": "ffbe58e889a9e9e7",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b5_s2",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b5_s2",
@@ -508,11 +1840,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790623842.3489695,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.47,
+    "chunk_vel_step_max_mean": 1.532924161106348,
+    "failed_stage": {
+     "approach": 33,
+     "grasp": 20,
+     "lift": 14,
+     "place": 6,
+     "success": 22,
+     "transport": 5
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b5",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.22,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 22,
+    "wilson95": [
+     0.15001174503655804,
+     0.3107053471500031
+    ]
    }
   },
   "pev20@semfix.s2.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623843_d56d27",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623843_d56d27_jasf2x7p_pev20.log",
+     "unit": "rrp-job-1790623843_d56d27.service",
+     "placement": "peer",
+     "started": 1790623843.1267297,
+     "rc": 0,
+     "finished": 1790623936.0141947
+    }
+   ],
    "config_hash": "c1f1e56dde465220",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b20_s2",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b20_s2",
@@ -525,11 +1900,53 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790623936.3458219,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.59,
+    "chunk_vel_step_max_mean": 1.7585520526394247,
+    "failed_stage": {
+     "approach": 17,
+     "grasp": 18,
+     "lift": 20,
+     "success": 40,
+     "transport": 5
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b20",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.4,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 40,
+    "wilson95": [
+     0.3093997461136028,
+     0.4979992153815976
+    ]
    }
   },
   "pev100@semfix.s2.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623874_76a83a",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623874_76a83a_jasf2x7p_pev100.log",
+     "unit": "rrp-job-1790623874_76a83a.service",
+     "placement": "peer",
+     "started": 1790623874.9540036,
+     "rc": 0,
+     "finished": 1790623936.661835
+    }
+   ],
    "config_hash": "23b052400bb3bf06",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b100_s2",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b100_s2",
@@ -542,11 +1959,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790623936.9857256,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.67,
+    "chunk_vel_step_max_mean": 1.8662542543374,
+    "failed_stage": {
+     "approach": 3,
+     "grasp": 12,
+     "lift": 18,
+     "place": 1,
+     "success": 63,
+     "transport": 3
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b100",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.63,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 63,
+    "wilson95": [
+     0.5322034757513312,
+     0.7181778743049083
+    ]
    }
   },
   "ja5@semfix.s2.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623937_3f20c0",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623937_3f20c0_jasf2x7t_ja5.log",
+     "unit": "rrp-job-1790623937_3f20c0.service",
+     "placement": "peer",
+     "started": 1790623937.7435522,
+     "rc": 0,
+     "finished": 1790623968.8802142
+    }
+   ],
    "config_hash": "777c3b886ccfd652",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_adapt-joint_adapt_b5_s2",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_adapt-joint_adapt_b5_s2",
@@ -559,11 +2019,76 @@
     "gpu_mem": "6G",
     "max_seconds": 3600,
     "disk": null
+   },
+   "updated": 1790623969.2264953,
+   "metrics": {
+    "adapt_seed": 1702,
+    "budget": 5,
+    "lr": 0.0001,
+    "method": "joint_adapt",
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "result": {
+     "batch_size": 128,
+     "budget": 5,
+     "changed_modules": "system_i_flow+system0_realizer",
+     "demo_control_transitions": 761,
+     "demo_episodes": 5,
+     "flow_updates": 75,
+     "frozen": [
+      "target_encoder",
+      "packet_probes"
+     ],
+     "gen_frac": 0.5,
+     "latent_space_version": "ls-085df1b2bc19-w0371942c4799",
+     "log": [
+      {
+       "flow": -6.188715934753418,
+       "real": null,
+       "step": 50
+      },
+      {
+       "flow": null,
+       "real": 0.000741307158023119,
+       "step": 100
+      },
+      {
+       "flow": null,
+       "real": 0.00029297152650542557,
+       "step": 150
+      }
+     ],
+     "lr": 0.0001,
+     "mode": "split",
+     "nfe": 8,
+     "optimizer_updates": 150,
+     "realizer_updates": 75,
+     "seed": 1702,
+     "source_flow": "artifacts/runs/armv6/arm6-semfix/flow_ft-gdag2h_s2/policy.pt",
+     "source_representation": "artifacts/runs/armv6/arm6-semfix/refit-gendag3_noqd_s2/representation.pt",
+     "version": "joint_adapt_v1",
+     "wall_s": 11.017071962356567
+    },
+    "smoke": false,
+    "steps": 150,
+    "target": "xarm7_tf3"
    }
   },
   "jev5@semfix.s2.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623970_5ccecd",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623970_5ccecd_jasf2x7t_jev5.log",
+     "unit": "rrp-job-1790623970_5ccecd.service",
+     "placement": "peer",
+     "started": 1790623970.332212,
+     "rc": 0,
+     "finished": 1790624063.1735609
+    }
+   ],
    "config_hash": "77c61f085fbd64be",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b5_s2",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b5_s2",
@@ -576,11 +2101,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790624063.4935157,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.64,
+    "chunk_vel_step_max_mean": 1.8297824893146752,
+    "failed_stage": {
+     "approach": 21,
+     "grasp": 4,
+     "lift": 2,
+     "place": 7,
+     "success": 52,
+     "transport": 14
+    },
+    "kind": "adapted:joint_adapt:b5",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.52,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 52,
+    "wilson95": [
+     0.4231640509017654,
+     0.6153561567991945
+    ]
    }
   },
   "ja20@semfix.s2.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624032_cb6850",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624032_cb6850_jasf2x7t_ja20.log",
+     "unit": "rrp-job-1790624032_cb6850.service",
+     "placement": "peer",
+     "started": 1790624032.8223329,
+     "rc": 0,
+     "finished": 1790624063.8174477
+    }
+   ],
    "config_hash": "d0033b43c43695b3",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_adapt-joint_adapt_b20_s2",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_adapt-joint_adapt_b20_s2",
@@ -593,11 +2161,91 @@
     "gpu_mem": "6G",
     "max_seconds": 3600,
     "disk": null
+   },
+   "updated": 1790624064.131345,
+   "metrics": {
+    "adapt_seed": 1702,
+    "budget": 20,
+    "lr": 0.0001,
+    "method": "joint_adapt",
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "result": {
+     "batch_size": 128,
+     "budget": 20,
+     "changed_modules": "system_i_flow+system0_realizer",
+     "demo_control_transitions": 2998,
+     "demo_episodes": 20,
+     "flow_updates": 150,
+     "frozen": [
+      "target_encoder",
+      "packet_probes"
+     ],
+     "gen_frac": 0.5,
+     "latent_space_version": "ls-085df1b2bc19-w0371942c4799",
+     "log": [
+      {
+       "flow": -6.163744926452637,
+       "real": null,
+       "step": 50
+      },
+      {
+       "flow": -6.1920647621154785,
+       "real": null,
+       "step": 100
+      },
+      {
+       "flow": -6.207953453063965,
+       "real": null,
+       "step": 150
+      },
+      {
+       "flow": null,
+       "real": 0.0009143288480117917,
+       "step": 200
+      },
+      {
+       "flow": null,
+       "real": 0.00038571280310861766,
+       "step": 250
+      },
+      {
+       "flow": null,
+       "real": 0.00021452379587572068,
+       "step": 300
+      }
+     ],
+     "lr": 0.0001,
+     "mode": "split",
+     "nfe": 8,
+     "optimizer_updates": 300,
+     "realizer_updates": 150,
+     "seed": 1702,
+     "source_flow": "artifacts/runs/armv6/arm6-semfix/flow_ft-gdag2h_s2/policy.pt",
+     "source_representation": "artifacts/runs/armv6/arm6-semfix/refit-gendag3_noqd_s2/representation.pt",
+     "version": "joint_adapt_v1",
+     "wall_s": 21.417176008224487
+    },
+    "smoke": false,
+    "steps": 300,
+    "target": "xarm7_tf3"
    }
   },
   "jev20@semfix.s2.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624064_245315",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624064_245315_jasf2x7t_jev20.log",
+     "unit": "rrp-job-1790624064_245315.service",
+     "placement": "peer",
+     "started": 1790624064.9479375,
+     "rc": 0,
+     "finished": 1790624158.5655384
+    }
+   ],
    "config_hash": "63eee858ef9c52f1",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b20_s2",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b20_s2",
@@ -610,11 +2258,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790624158.9027264,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.56,
+    "chunk_vel_step_max_mean": 1.6060964692384005,
+    "failed_stage": {
+     "approach": 14,
+     "grasp": 5,
+     "lift": 4,
+     "place": 2,
+     "success": 60,
+     "transport": 15
+    },
+    "kind": "adapted:joint_adapt:b20",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.6,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 60,
+    "wilson95": [
+     0.5020007846184025,
+     0.6906002538863971
+    ]
    }
   },
   "ja100@semfix.s2.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624065_a7c2b2",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624065_a7c2b2_jasf2x7t_ja100.log",
+     "unit": "rrp-job-1790624065_a7c2b2.service",
+     "placement": "peer",
+     "started": 1790624065.7125528,
+     "rc": 0,
+     "finished": 1790624127.1144674
+    }
+   ],
    "config_hash": "1171f07ffcd5f928",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_adapt-joint_adapt_b100_s2",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_adapt-joint_adapt_b100_s2",
@@ -627,11 +2318,121 @@
     "gpu_mem": "6G",
     "max_seconds": 3600,
     "disk": null
+   },
+   "updated": 1790624127.456414,
+   "metrics": {
+    "adapt_seed": 1702,
+    "budget": 100,
+    "lr": 0.0001,
+    "method": "joint_adapt",
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "result": {
+     "batch_size": 128,
+     "budget": 100,
+     "changed_modules": "system_i_flow+system0_realizer",
+     "demo_control_transitions": 14939,
+     "demo_episodes": 100,
+     "flow_updates": 300,
+     "frozen": [
+      "target_encoder",
+      "packet_probes"
+     ],
+     "gen_frac": 0.5,
+     "latent_space_version": "ls-085df1b2bc19-w0371942c4799",
+     "log": [
+      {
+       "flow": -6.1278839111328125,
+       "real": null,
+       "step": 50
+      },
+      {
+       "flow": -6.1249847412109375,
+       "real": null,
+       "step": 100
+      },
+      {
+       "flow": -6.16947603225708,
+       "real": null,
+       "step": 150
+      },
+      {
+       "flow": -6.136880874633789,
+       "real": null,
+       "step": 200
+      },
+      {
+       "flow": -6.221662521362305,
+       "real": null,
+       "step": 250
+      },
+      {
+       "flow": -6.154422283172607,
+       "real": null,
+       "step": 300
+      },
+      {
+       "flow": null,
+       "real": 0.0008538528345525265,
+       "step": 350
+      },
+      {
+       "flow": null,
+       "real": 0.0005147121846675873,
+       "step": 400
+      },
+      {
+       "flow": null,
+       "real": 0.0005075294175185263,
+       "step": 450
+      },
+      {
+       "flow": null,
+       "real": 0.00039381597889587283,
+       "step": 500
+      },
+      {
+       "flow": null,
+       "real": 0.00030262998188845813,
+       "step": 550
+      },
+      {
+       "flow": null,
+       "real": 0.0002135628747055307,
+       "step": 600
+      }
+     ],
+     "lr": 0.0001,
+     "mode": "split",
+     "nfe": 8,
+     "optimizer_updates": 600,
+     "realizer_updates": 300,
+     "seed": 1702,
+     "source_flow": "artifacts/runs/armv6/arm6-semfix/flow_ft-gdag2h_s2/policy.pt",
+     "source_representation": "artifacts/runs/armv6/arm6-semfix/refit-gendag3_noqd_s2/representation.pt",
+     "version": "joint_adapt_v1",
+     "wall_s": 42.9252028465271
+    },
+    "smoke": false,
+    "steps": 600,
+    "target": "xarm7_tf3"
    }
   },
   "jev100@semfix.s2.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624128_456f75",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624128_456f75_jasf2x7t_jev100.log",
+     "unit": "rrp-job-1790624128_456f75.service",
+     "placement": "peer",
+     "started": 1790624128.2434268,
+     "rc": 0,
+     "finished": 1790624190.369932
+    }
+   ],
    "config_hash": "e7167eb69940aaae",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b100_s2",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b100_s2",
@@ -644,11 +2445,53 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790624190.6676874,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.33,
+    "chunk_vel_step_max_mean": 1.4584354147315026,
+    "failed_stage": {
+     "approach": 5,
+     "grasp": 6,
+     "lift": 1,
+     "place": 3,
+     "success": 85
+    },
+    "kind": "adapted:joint_adapt:b100",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.85,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 85,
+    "wilson95": [
+     0.7671626666784216,
+     0.906940968088377
+    ]
    }
   },
   "pev5@semfix.s2.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790623938_bccf6c",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790623938_bccf6c_jasf2x7t_pev5.log",
+     "unit": "rrp-job-1790623938_bccf6c.service",
+     "placement": "peer",
+     "started": 1790623938.5111613,
+     "rc": 0,
+     "finished": 1790624031.6871305
+    }
+   ],
    "config_hash": "8a267fb9ee77e299",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b5_s2",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b5_s2",
@@ -661,11 +2504,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790624032.0262916,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.79,
+    "chunk_vel_step_max_mean": 1.9332296488806606,
+    "failed_stage": {
+     "approach": 19,
+     "grasp": 2,
+     "lift": 5,
+     "place": 7,
+     "success": 43,
+     "transport": 24
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b5",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.43,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 43,
+    "wilson95": [
+     0.3373313900052838,
+     0.5278478830413564
+    ]
    }
   },
   "pev20@semfix.s2.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624159_9ff4af",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624159_9ff4af_jasf2x7t_pev20.log",
+     "unit": "rrp-job-1790624159_9ff4af.service",
+     "placement": "peer",
+     "started": 1790624160.0182908,
+     "rc": 0,
+     "finished": 1790624252.8628054
+    }
+   ],
    "config_hash": "c9751d0e7eb797cf",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b20_s2",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b20_s2",
@@ -678,11 +2564,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790624253.1975024,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.57,
+    "chunk_vel_step_max_mean": 1.6063655331730842,
+    "failed_stage": {
+     "approach": 10,
+     "grasp": 4,
+     "lift": 7,
+     "place": 3,
+     "success": 74,
+     "transport": 2
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b20",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.74,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 74,
+    "wilson95": [
+     0.6462882736813838,
+     0.8159542187301354
+    ]
    }
   },
   "pev100@semfix.s2.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624191_7dd6cd",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624191_7dd6cd_jasf2x7t_pev100.log",
+     "unit": "rrp-job-1790624191_7dd6cd.service",
+     "placement": "peer",
+     "started": 1790624191.8451715,
+     "rc": 0,
+     "finished": 1790624253.5133789
+    }
+   ],
    "config_hash": "050330d440002487",
    "run_id": "runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b100_s2",
    "out": "artifacts/runs/armdiag/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b100_s2",
@@ -695,11 +2624,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790624253.847187,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.69,
+    "chunk_vel_step_max_mean": 1.7558917857706546,
+    "failed_stage": {
+     "approach": 5,
+     "grasp": 3,
+     "lift": 2,
+     "place": 6,
+     "success": 78,
+     "transport": 6
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b100",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.78,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 78,
+    "wilson95": [
+     0.6892946528499969,
+     0.849988254963442
+    ]
    }
   },
   "ja5@nosem.s1.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624254_b841c0",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624254_b841c0_jans1x7p_ja5.log",
+     "unit": "rrp-job-1790624254_b841c0.service",
+     "placement": "peer",
+     "started": 1790624254.62497,
+     "rc": 0,
+     "finished": 1790624285.703921
+    }
+   ],
    "config_hash": "733668f964458aeb",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b5_s1",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b5_s1",
@@ -712,11 +2684,76 @@
     "gpu_mem": "6G",
     "max_seconds": 3600,
     "disk": null
+   },
+   "updated": 1790624286.03063,
+   "metrics": {
+    "adapt_seed": 1701,
+    "budget": 5,
+    "lr": 0.0001,
+    "method": "joint_adapt",
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "result": {
+     "batch_size": 128,
+     "budget": 5,
+     "changed_modules": "system_i_flow+system0_realizer",
+     "demo_control_transitions": 742,
+     "demo_episodes": 5,
+     "flow_updates": 75,
+     "frozen": [
+      "target_encoder",
+      "packet_probes"
+     ],
+     "gen_frac": 0.5,
+     "latent_space_version": "ls-6bbf3506786b-wfab51ac5025a",
+     "log": [
+      {
+       "flow": 0.19844305515289307,
+       "real": null,
+       "step": 50
+      },
+      {
+       "flow": null,
+       "real": 0.0009798709070309997,
+       "step": 100
+      },
+      {
+       "flow": null,
+       "real": 0.0004917273763567209,
+       "step": 150
+      }
+     ],
+     "lr": 0.0001,
+     "mode": "split",
+     "nfe": 8,
+     "optimizer_updates": 150,
+     "realizer_updates": 75,
+     "seed": 1701,
+     "source_flow": "artifacts/runs/armv6/arm6-nosem/flow_ft-gdag2h_s1/policy.pt",
+     "source_representation": "artifacts/runs/armv6/arm6-nosem/refit-gendag3_noqd_s1/representation.pt",
+     "version": "joint_adapt_v1",
+     "wall_s": 10.396820306777954
+    },
+    "smoke": false,
+    "steps": 150,
+    "target": "xarm7_pg2"
    }
   },
   "jev5@nosem.s1.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624287_60e9b6",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624287_60e9b6_jans1x7p_jev5.log",
+     "unit": "rrp-job-1790624287_60e9b6.service",
+     "placement": "peer",
+     "started": 1790624287.1259563,
+     "rc": 0,
+     "finished": 1790624379.9261801
+    }
+   ],
    "config_hash": "23ed0206e9b16e95",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b5_s1",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b5_s1",
@@ -729,11 +2766,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790624380.251789,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.5,
+    "chunk_vel_step_max_mean": 1.6215869769454003,
+    "failed_stage": {
+     "approach": 51,
+     "grasp": 7,
+     "lift": 19,
+     "place": 1,
+     "success": 6,
+     "transport": 16
+    },
+    "kind": "adapted:joint_adapt:b5",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.06,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 6,
+    "wilson95": [
+     0.02778574526665662,
+     0.12476968531222507
+    ]
    }
   },
   "ja20@nosem.s1.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624349_fc7b74",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624349_fc7b74_jans1x7p_ja20.log",
+     "unit": "rrp-job-1790624349_fc7b74.service",
+     "placement": "peer",
+     "started": 1790624349.5960238,
+     "rc": 0,
+     "finished": 1790624380.5913367
+    }
+   ],
    "config_hash": "a7421c307d1134c8",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b20_s1",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b20_s1",
@@ -746,11 +2826,91 @@
     "gpu_mem": "6G",
     "max_seconds": 3600,
     "disk": null
+   },
+   "updated": 1790624380.8967965,
+   "metrics": {
+    "adapt_seed": 1701,
+    "budget": 20,
+    "lr": 0.0001,
+    "method": "joint_adapt",
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "result": {
+     "batch_size": 128,
+     "budget": 20,
+     "changed_modules": "system_i_flow+system0_realizer",
+     "demo_control_transitions": 3021,
+     "demo_episodes": 20,
+     "flow_updates": 150,
+     "frozen": [
+      "target_encoder",
+      "packet_probes"
+     ],
+     "gen_frac": 0.5,
+     "latent_space_version": "ls-6bbf3506786b-wfab51ac5025a",
+     "log": [
+      {
+       "flow": 0.1992577165365219,
+       "real": null,
+       "step": 50
+      },
+      {
+       "flow": 0.16576603055000305,
+       "real": null,
+       "step": 100
+      },
+      {
+       "flow": 0.1510070264339447,
+       "real": null,
+       "step": 150
+      },
+      {
+       "flow": null,
+       "real": 0.0011925852159038186,
+       "step": 200
+      },
+      {
+       "flow": null,
+       "real": 0.0007713197264820337,
+       "step": 250
+      },
+      {
+       "flow": null,
+       "real": 0.0005575451068580151,
+       "step": 300
+      }
+     ],
+     "lr": 0.0001,
+     "mode": "split",
+     "nfe": 8,
+     "optimizer_updates": 300,
+     "realizer_updates": 150,
+     "seed": 1701,
+     "source_flow": "artifacts/runs/armv6/arm6-nosem/flow_ft-gdag2h_s1/policy.pt",
+     "source_representation": "artifacts/runs/armv6/arm6-nosem/refit-gendag3_noqd_s1/representation.pt",
+     "version": "joint_adapt_v1",
+     "wall_s": 20.19974946975708
+    },
+    "smoke": false,
+    "steps": 300,
+    "target": "xarm7_pg2"
    }
   },
   "jev20@nosem.s1.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624381_723af9",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624381_723af9_jans1x7p_jev20.log",
+     "unit": "rrp-job-1790624381_723af9.service",
+     "placement": "peer",
+     "started": 1790624381.6325214,
+     "rc": 0,
+     "finished": 1790624475.4680908
+    }
+   ],
    "config_hash": "627010f20613b615",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b20_s1",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b20_s1",
@@ -763,11 +2923,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790624475.7978017,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.37,
+    "chunk_vel_step_max_mean": 1.6963608529418708,
+    "failed_stage": {
+     "approach": 10,
+     "grasp": 15,
+     "lift": 35,
+     "place": 4,
+     "success": 26,
+     "transport": 10
+    },
+    "kind": "adapted:joint_adapt:b20",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.26,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 26,
+    "wilson95": [
+     0.18404578126986462,
+     0.35371172631861636
+    ]
    }
   },
   "ja100@nosem.s1.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624382_b6339b",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624382_b6339b_jans1x7p_ja100.log",
+     "unit": "rrp-job-1790624382_b6339b.service",
+     "placement": "peer",
+     "started": 1790624382.4513736,
+     "rc": 0,
+     "finished": 1790624443.8350666
+    }
+   ],
    "config_hash": "dba50b3e07e6c4b7",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b100_s1",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b100_s1",
@@ -780,11 +2983,121 @@
     "gpu_mem": "6G",
     "max_seconds": 3600,
     "disk": null
+   },
+   "updated": 1790624444.1566505,
+   "metrics": {
+    "adapt_seed": 1701,
+    "budget": 100,
+    "lr": 0.0001,
+    "method": "joint_adapt",
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "result": {
+     "batch_size": 128,
+     "budget": 100,
+     "changed_modules": "system_i_flow+system0_realizer",
+     "demo_control_transitions": 15384,
+     "demo_episodes": 100,
+     "flow_updates": 300,
+     "frozen": [
+      "target_encoder",
+      "packet_probes"
+     ],
+     "gen_frac": 0.5,
+     "latent_space_version": "ls-6bbf3506786b-wfab51ac5025a",
+     "log": [
+      {
+       "flow": 0.28719061613082886,
+       "real": null,
+       "step": 50
+      },
+      {
+       "flow": 0.20688849687576294,
+       "real": null,
+       "step": 100
+      },
+      {
+       "flow": 0.16274982690811157,
+       "real": null,
+       "step": 150
+      },
+      {
+       "flow": 0.15531741082668304,
+       "real": null,
+       "step": 200
+      },
+      {
+       "flow": 0.1726895272731781,
+       "real": null,
+       "step": 250
+      },
+      {
+       "flow": 0.17344149947166443,
+       "real": null,
+       "step": 300
+      },
+      {
+       "flow": null,
+       "real": 0.001062620198354125,
+       "step": 350
+      },
+      {
+       "flow": null,
+       "real": 0.0008624112815596163,
+       "step": 400
+      },
+      {
+       "flow": null,
+       "real": 0.0005645822966471314,
+       "step": 450
+      },
+      {
+       "flow": null,
+       "real": 0.0005328356055542827,
+       "step": 500
+      },
+      {
+       "flow": null,
+       "real": 0.000612673640716821,
+       "step": 550
+      },
+      {
+       "flow": null,
+       "real": 0.00036164926132187247,
+       "step": 600
+      }
+     ],
+     "lr": 0.0001,
+     "mode": "split",
+     "nfe": 8,
+     "optimizer_updates": 600,
+     "realizer_updates": 300,
+     "seed": 1701,
+     "source_flow": "artifacts/runs/armv6/arm6-nosem/flow_ft-gdag2h_s1/policy.pt",
+     "source_representation": "artifacts/runs/armv6/arm6-nosem/refit-gendag3_noqd_s1/representation.pt",
+     "version": "joint_adapt_v1",
+     "wall_s": 40.734442710876465
+    },
+    "smoke": false,
+    "steps": 600,
+    "target": "xarm7_pg2"
    }
   },
   "jev100@nosem.s1.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624445_83c511",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624445_83c511_jans1x7p_jev100.log",
+     "unit": "rrp-job-1790624445_83c511.service",
+     "placement": "peer",
+     "started": 1790624445.1276984,
+     "rc": 0,
+     "finished": 1790624538.0779324
+    }
+   ],
    "config_hash": "51fa4fd879515ab8",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b100_s1",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b100_s1",
@@ -797,11 +3110,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790624538.436522,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.24,
+    "chunk_vel_step_max_mean": 1.2146544098854064,
+    "failed_stage": {
+     "approach": 74,
+     "grasp": 7,
+     "lift": 6,
+     "place": 1,
+     "success": 7,
+     "transport": 5
+    },
+    "kind": "adapted:joint_adapt:b100",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.07,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 7,
+    "wilson95": [
+     0.034318824364064096,
+     0.13749671006529757
+    ]
    }
   },
   "pev5@nosem.s1.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624255_3fecad",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624255_3fecad_jans1x7p_pev5.log",
+     "unit": "rrp-job-1790624255_3fecad.service",
+     "placement": "peer",
+     "started": 1790624255.3684556,
+     "rc": 0,
+     "finished": 1790624348.4838002
+    }
+   ],
    "config_hash": "a326bbdd0b5607b8",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b5_s1",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b5_s1",
@@ -814,11 +3170,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790624348.814484,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.74,
+    "chunk_vel_step_max_mean": 2.0376815386116505,
+    "failed_stage": {
+     "approach": 59,
+     "grasp": 6,
+     "lift": 14,
+     "place": 4,
+     "success": 4,
+     "transport": 13
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b5",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.04,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 4,
+    "wilson95": [
+     0.015663050551848016,
+     0.09837217232607373
+    ]
    }
   },
   "pev20@nosem.s1.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624476_b1a70b",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624476_b1a70b_jans1x7p_pev20.log",
+     "unit": "rrp-job-1790624476_b1a70b.service",
+     "placement": "peer",
+     "started": 1790624477.030508,
+     "rc": 0,
+     "finished": 1790624569.9567132
+    }
+   ],
    "config_hash": "8d3cce4e431ac5fc",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b20_s1",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b20_s1",
@@ -831,11 +3230,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790624570.2893865,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.2,
+    "chunk_vel_step_max_mean": 1.2895048761740326,
+    "failed_stage": {
+     "approach": 34,
+     "grasp": 1,
+     "lift": 21,
+     "place": 3,
+     "success": 31,
+     "transport": 10
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b20",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.31,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 31,
+    "wilson95": [
+     0.22779563206132378,
+     0.40626239477955695
+    ]
    }
   },
   "pev100@nosem.s1.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624539_5f09e0",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624539_5f09e0_jans1x7p_pev100.log",
+     "unit": "rrp-job-1790624539_5f09e0.service",
+     "placement": "peer",
+     "started": 1790624539.620299,
+     "rc": 0,
+     "finished": 1790624633.6762538
+    }
+   ],
    "config_hash": "7c60ba71c89b9cee",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b100_s1",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b100_s1",
@@ -848,11 +3290,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790624634.0183575,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.22,
+    "chunk_vel_step_max_mean": 1.2197572499513627,
+    "failed_stage": {
+     "approach": 15,
+     "grasp": 2,
+     "lift": 28,
+     "place": 2,
+     "success": 44,
+     "transport": 9
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b100",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.44,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 44,
+    "wilson95": [
+     0.34671865400968327,
+     0.537720722887437
+    ]
    }
   },
   "ja5@nosem.s1.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624571_a0b8c5",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624571_a0b8c5_jans1x7t_ja5.log",
+     "unit": "rrp-job-1790624571_a0b8c5.service",
+     "placement": "peer",
+     "started": 1790624571.389438,
+     "rc": 0,
+     "finished": 1790624602.093057
+    }
+   ],
    "config_hash": "570615c9f86a45be",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b5_s1",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b5_s1",
@@ -865,11 +3350,76 @@
     "gpu_mem": "6G",
     "max_seconds": 3600,
     "disk": null
+   },
+   "updated": 1790624602.4479299,
+   "metrics": {
+    "adapt_seed": 1701,
+    "budget": 5,
+    "lr": 0.0001,
+    "method": "joint_adapt",
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "result": {
+     "batch_size": 128,
+     "budget": 5,
+     "changed_modules": "system_i_flow+system0_realizer",
+     "demo_control_transitions": 734,
+     "demo_episodes": 5,
+     "flow_updates": 75,
+     "frozen": [
+      "target_encoder",
+      "packet_probes"
+     ],
+     "gen_frac": 0.5,
+     "latent_space_version": "ls-6bbf3506786b-wfab51ac5025a",
+     "log": [
+      {
+       "flow": 0.18877586722373962,
+       "real": null,
+       "step": 50
+      },
+      {
+       "flow": null,
+       "real": 0.0011219955049455166,
+       "step": 100
+      },
+      {
+       "flow": null,
+       "real": 0.00046051203389652073,
+       "step": 150
+      }
+     ],
+     "lr": 0.0001,
+     "mode": "split",
+     "nfe": 8,
+     "optimizer_updates": 150,
+     "realizer_updates": 75,
+     "seed": 1701,
+     "source_flow": "artifacts/runs/armv6/arm6-nosem/flow_ft-gdag2h_s1/policy.pt",
+     "source_representation": "artifacts/runs/armv6/arm6-nosem/refit-gendag3_noqd_s1/representation.pt",
+     "version": "joint_adapt_v1",
+     "wall_s": 10.539121150970459
+    },
+    "smoke": false,
+    "steps": 150,
+    "target": "xarm7_tf3"
    }
   },
   "jev5@nosem.s1.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624603_3f2e5f",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624603_3f2e5f_jans1x7t_jev5.log",
+     "unit": "rrp-job-1790624603_3f2e5f.service",
+     "placement": "peer",
+     "started": 1790624603.3134458,
+     "rc": 0,
+     "finished": 1790624697.6561024
+    }
+   ],
    "config_hash": "26640dcfa9ab72f3",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b5_s1",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b5_s1",
@@ -882,11 +3432,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790624697.9908113,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.63,
+    "chunk_vel_step_max_mean": 1.9454695399850608,
+    "failed_stage": {
+     "approach": 40,
+     "grasp": 5,
+     "lift": 8,
+     "place": 7,
+     "success": 11,
+     "transport": 29
+    },
+    "kind": "adapted:joint_adapt:b5",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.11,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 11,
+    "wilson95": [
+     0.06254131955225126,
+     0.18631463027903022
+    ]
    }
   },
   "ja20@nosem.s1.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624635_27e977",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624635_27e977_jans1x7t_ja20.log",
+     "unit": "rrp-job-1790624635_27e977.service",
+     "placement": "peer",
+     "started": 1790624635.3212667,
+     "rc": 0,
+     "finished": 1790624666.020737
+    }
+   ],
    "config_hash": "6dce64ce5bb5b133",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b20_s1",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b20_s1",
@@ -899,11 +3492,91 @@
     "gpu_mem": "6G",
     "max_seconds": 3600,
     "disk": null
+   },
+   "updated": 1790624666.349787,
+   "metrics": {
+    "adapt_seed": 1701,
+    "budget": 20,
+    "lr": 0.0001,
+    "method": "joint_adapt",
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "result": {
+     "batch_size": 128,
+     "budget": 20,
+     "changed_modules": "system_i_flow+system0_realizer",
+     "demo_control_transitions": 2976,
+     "demo_episodes": 20,
+     "flow_updates": 150,
+     "frozen": [
+      "target_encoder",
+      "packet_probes"
+     ],
+     "gen_frac": 0.5,
+     "latent_space_version": "ls-6bbf3506786b-wfab51ac5025a",
+     "log": [
+      {
+       "flow": 0.21977806091308594,
+       "real": null,
+       "step": 50
+      },
+      {
+       "flow": 0.16647469997406006,
+       "real": null,
+       "step": 100
+      },
+      {
+       "flow": 0.14197507500648499,
+       "real": null,
+       "step": 150
+      },
+      {
+       "flow": null,
+       "real": 0.0006647245609201491,
+       "step": 200
+      },
+      {
+       "flow": null,
+       "real": 0.0005338521441444755,
+       "step": 250
+      },
+      {
+       "flow": null,
+       "real": 0.00037262661498971283,
+       "step": 300
+      }
+     ],
+     "lr": 0.0001,
+     "mode": "split",
+     "nfe": 8,
+     "optimizer_updates": 300,
+     "realizer_updates": 150,
+     "seed": 1701,
+     "source_flow": "artifacts/runs/armv6/arm6-nosem/flow_ft-gdag2h_s1/policy.pt",
+     "source_representation": "artifacts/runs/armv6/arm6-nosem/refit-gendag3_noqd_s1/representation.pt",
+     "version": "joint_adapt_v1",
+     "wall_s": 20.49488878250122
+    },
+    "smoke": false,
+    "steps": 300,
+    "target": "xarm7_tf3"
    }
   },
   "jev20@nosem.s1.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624667_45320c",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624667_45320c_jans1x7t_jev20.log",
+     "unit": "rrp-job-1790624667_45320c.service",
+     "placement": "peer",
+     "started": 1790624667.301209,
+     "rc": 0,
+     "finished": 1790624760.3779883
+    }
+   ],
    "config_hash": "983c1a9e6dcda4b4",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b20_s1",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b20_s1",
@@ -916,11 +3589,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790624760.692738,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.43,
+    "chunk_vel_step_max_mean": 1.6593663558363914,
+    "failed_stage": {
+     "approach": 5,
+     "grasp": 1,
+     "lift": 7,
+     "place": 47,
+     "success": 29,
+     "transport": 11
+    },
+    "kind": "adapted:joint_adapt:b20",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.29,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 29,
+    "wilson95": [
+     0.21014706973984146,
+     0.38539074940007934
+    ]
    }
   },
   "ja100@nosem.s1.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624699_ce9605",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624699_ce9605_jans1x7t_ja100.log",
+     "unit": "rrp-job-1790624699_ce9605.service",
+     "placement": "peer",
+     "started": 1790624699.31701,
+     "rc": 0,
+     "finished": 1790624761.041899
+    }
+   ],
    "config_hash": "3c617c2a29e23362",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b100_s1",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b100_s1",
@@ -933,11 +3649,121 @@
     "gpu_mem": "6G",
     "max_seconds": 3600,
     "disk": null
+   },
+   "updated": 1790624761.3909924,
+   "metrics": {
+    "adapt_seed": 1701,
+    "budget": 100,
+    "lr": 0.0001,
+    "method": "joint_adapt",
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "result": {
+     "batch_size": 128,
+     "budget": 100,
+     "changed_modules": "system_i_flow+system0_realizer",
+     "demo_control_transitions": 14918,
+     "demo_episodes": 100,
+     "flow_updates": 300,
+     "frozen": [
+      "target_encoder",
+      "packet_probes"
+     ],
+     "gen_frac": 0.5,
+     "latent_space_version": "ls-6bbf3506786b-wfab51ac5025a",
+     "log": [
+      {
+       "flow": 0.23949208855628967,
+       "real": null,
+       "step": 50
+      },
+      {
+       "flow": 0.18195709586143494,
+       "real": null,
+       "step": 100
+      },
+      {
+       "flow": 0.15679362416267395,
+       "real": null,
+       "step": 150
+      },
+      {
+       "flow": 0.146128848195076,
+       "real": null,
+       "step": 200
+      },
+      {
+       "flow": 0.1593923717737198,
+       "real": null,
+       "step": 250
+      },
+      {
+       "flow": 0.13341426849365234,
+       "real": null,
+       "step": 300
+      },
+      {
+       "flow": null,
+       "real": 0.0007604567799717188,
+       "step": 350
+      },
+      {
+       "flow": null,
+       "real": 0.0005391259328462183,
+       "step": 400
+      },
+      {
+       "flow": null,
+       "real": 0.0003868563217110932,
+       "step": 450
+      },
+      {
+       "flow": null,
+       "real": 0.00032694422407075763,
+       "step": 500
+      },
+      {
+       "flow": null,
+       "real": 0.0002749969426076859,
+       "step": 550
+      },
+      {
+       "flow": null,
+       "real": 0.0002589694631751627,
+       "step": 600
+      }
+     ],
+     "lr": 0.0001,
+     "mode": "split",
+     "nfe": 8,
+     "optimizer_updates": 600,
+     "realizer_updates": 300,
+     "seed": 1701,
+     "source_flow": "artifacts/runs/armv6/arm6-nosem/flow_ft-gdag2h_s1/policy.pt",
+     "source_representation": "artifacts/runs/armv6/arm6-nosem/refit-gendag3_noqd_s1/representation.pt",
+     "version": "joint_adapt_v1",
+     "wall_s": 41.457878828048706
+    },
+    "smoke": false,
+    "steps": 600,
+    "target": "xarm7_tf3"
    }
   },
   "jev100@nosem.s1.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624762_08a33c",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624762_08a33c_jans1x7t_jev100.log",
+     "unit": "rrp-job-1790624762_08a33c.service",
+     "placement": "peer",
+     "started": 1790624762.2159572,
+     "rc": 0,
+     "finished": 1790624855.006733
+    }
+   ],
    "config_hash": "33245e70e4f0a419",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b100_s1",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b100_s1",
@@ -950,11 +3776,53 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790624855.3496437,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.59,
+    "chunk_vel_step_max_mean": 1.8416305482387543,
+    "failed_stage": {
+     "approach": 19,
+     "lift": 28,
+     "place": 35,
+     "success": 14,
+     "transport": 4
+    },
+    "kind": "adapted:joint_adapt:b100",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.14,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 14,
+    "wilson95": [
+     0.08526265754464905,
+     0.22137360383807236
+    ]
    }
   },
   "pev5@nosem.s1.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624763_cc4370",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624763_cc4370_jans1x7t_pev5.log",
+     "unit": "rrp-job-1790624763_cc4370.service",
+     "placement": "peer",
+     "started": 1790624763.3191369,
+     "rc": 0,
+     "finished": 1790624855.6834526
+    }
+   ],
    "config_hash": "630d559fab6a80ee",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b5_s1",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b5_s1",
@@ -967,11 +3835,53 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790624856.0140736,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.66,
+    "chunk_vel_step_max_mean": 1.8947186201810837,
+    "failed_stage": {
+     "approach": 49,
+     "lift": 8,
+     "place": 6,
+     "success": 8,
+     "transport": 29
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b5",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.08,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 8,
+    "wilson95": [
+     0.04109296948581091,
+     0.14998266879403072
+    ]
    }
   },
   "pev20@nosem.s1.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624856_0e3770",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624856_0e3770_jans1x7t_pev20.log",
+     "unit": "rrp-job-1790624856_0e3770.service",
+     "placement": "peer",
+     "started": 1790624856.7798061,
+     "rc": 0,
+     "finished": 1790624949.2760954
+    }
+   ],
    "config_hash": "a02dbbade42c3cbc",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b20_s1",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b20_s1",
@@ -984,11 +3894,53 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790624949.6174002,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.53,
+    "chunk_vel_step_max_mean": 1.8613364562392234,
+    "failed_stage": {
+     "approach": 5,
+     "lift": 12,
+     "place": 24,
+     "success": 37,
+     "transport": 22
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b20",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.37,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 37,
+    "wilson95": [
+     0.28182212569509163,
+     0.46779652424866885
+    ]
    }
   },
   "pev100@nosem.s1.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624857_1e0e1e",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624857_1e0e1e_jans1x7t_pev100.log",
+     "unit": "rrp-job-1790624857_1e0e1e.service",
+     "placement": "peer",
+     "started": 1790624857.6370237,
+     "rc": 0,
+     "finished": 1790624949.95339
+    }
+   ],
    "config_hash": "cea5352690b7115d",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b100_s1",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b100_s1",
@@ -1001,11 +3953,53 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790624950.3073485,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.44,
+    "chunk_vel_step_max_mean": 1.8036922119557857,
+    "failed_stage": {
+     "approach": 7,
+     "lift": 14,
+     "place": 47,
+     "success": 22,
+     "transport": 10
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b100",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.22,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 22,
+    "wilson95": [
+     0.15001174503655804,
+     0.3107053471500031
+    ]
    }
   },
   "ja5@nosem.s2.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624951_47303f",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624951_47303f_jans2x7p_ja5.log",
+     "unit": "rrp-job-1790624951_47303f.service",
+     "placement": "peer",
+     "started": 1790624951.0791004,
+     "rc": 0,
+     "finished": 1790624982.2388258
+    }
+   ],
    "config_hash": "51b7806325bf68bf",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b5_s2",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b5_s2",
@@ -1018,11 +4012,76 @@
     "gpu_mem": "6G",
     "max_seconds": 3600,
     "disk": null
+   },
+   "updated": 1790624982.562807,
+   "metrics": {
+    "adapt_seed": 1702,
+    "budget": 5,
+    "lr": 0.0001,
+    "method": "joint_adapt",
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "result": {
+     "batch_size": 128,
+     "budget": 5,
+     "changed_modules": "system_i_flow+system0_realizer",
+     "demo_control_transitions": 751,
+     "demo_episodes": 5,
+     "flow_updates": 75,
+     "frozen": [
+      "target_encoder",
+      "packet_probes"
+     ],
+     "gen_frac": 0.5,
+     "latent_space_version": "ls-ab98f11fb448-wa2760a384227",
+     "log": [
+      {
+       "flow": 0.20240211486816406,
+       "real": null,
+       "step": 50
+      },
+      {
+       "flow": null,
+       "real": 0.001369221368804574,
+       "step": 100
+      },
+      {
+       "flow": null,
+       "real": 0.0005223425105214119,
+       "step": 150
+      }
+     ],
+     "lr": 0.0001,
+     "mode": "split",
+     "nfe": 8,
+     "optimizer_updates": 150,
+     "realizer_updates": 75,
+     "seed": 1702,
+     "source_flow": "artifacts/runs/armv6/arm6-nosem/flow_ft-gdag2h_s2/policy.pt",
+     "source_representation": "artifacts/runs/armv6/arm6-nosem/refit-gendag3_noqd_s2/representation.pt",
+     "version": "joint_adapt_v1",
+     "wall_s": 10.315853834152222
+    },
+    "smoke": false,
+    "steps": 150,
+    "target": "xarm7_pg2"
    }
   },
   "jev5@nosem.s2.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624983_d4c925",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624983_d4c925_jans2x7p_jev5.log",
+     "unit": "rrp-job-1790624983_d4c925.service",
+     "placement": "peer",
+     "started": 1790624984.019886,
+     "rc": 0,
+     "finished": 1790625076.9933724
+    }
+   ],
    "config_hash": "8866b3f420ce0365",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b5_s2",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b5_s2",
@@ -1035,11 +4094,53 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790625077.3263185,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.46,
+    "chunk_vel_step_max_mean": 1.5389400243759155,
+    "failed_stage": {
+     "approach": 70,
+     "grasp": 13,
+     "lift": 7,
+     "success": 3,
+     "transport": 7
+    },
+    "kind": "adapted:joint_adapt:b5",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.03,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 3,
+    "wilson95": [
+     0.010254338223414816,
+     0.08452078080402699
+    ]
    }
   },
   "ja20@nosem.s2.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790625046_ca66e1",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790625046_ca66e1_jans2x7p_ja20.log",
+     "unit": "rrp-job-1790625046_ca66e1.service",
+     "placement": "peer",
+     "started": 1790625046.6325524,
+     "rc": 0,
+     "finished": 1790625077.6702092
+    }
+   ],
    "config_hash": "8d3aaefa4123d5ac",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b20_s2",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b20_s2",
@@ -1052,11 +4153,91 @@
     "gpu_mem": "6G",
     "max_seconds": 3600,
     "disk": null
+   },
+   "updated": 1790625078.0069785,
+   "metrics": {
+    "adapt_seed": 1702,
+    "budget": 20,
+    "lr": 0.0001,
+    "method": "joint_adapt",
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "result": {
+     "batch_size": 128,
+     "budget": 20,
+     "changed_modules": "system_i_flow+system0_realizer",
+     "demo_control_transitions": 3128,
+     "demo_episodes": 20,
+     "flow_updates": 150,
+     "frozen": [
+      "target_encoder",
+      "packet_probes"
+     ],
+     "gen_frac": 0.5,
+     "latent_space_version": "ls-ab98f11fb448-wa2760a384227",
+     "log": [
+      {
+       "flow": 0.27990466356277466,
+       "real": null,
+       "step": 50
+      },
+      {
+       "flow": 0.2079584002494812,
+       "real": null,
+       "step": 100
+      },
+      {
+       "flow": 0.18331441283226013,
+       "real": null,
+       "step": 150
+      },
+      {
+       "flow": null,
+       "real": 0.0009549803216941655,
+       "step": 200
+      },
+      {
+       "flow": null,
+       "real": 0.0004744755569845438,
+       "step": 250
+      },
+      {
+       "flow": null,
+       "real": 0.00048331415746361017,
+       "step": 300
+      }
+     ],
+     "lr": 0.0001,
+     "mode": "split",
+     "nfe": 8,
+     "optimizer_updates": 300,
+     "realizer_updates": 150,
+     "seed": 1702,
+     "source_flow": "artifacts/runs/armv6/arm6-nosem/flow_ft-gdag2h_s2/policy.pt",
+     "source_representation": "artifacts/runs/armv6/arm6-nosem/refit-gendag3_noqd_s2/representation.pt",
+     "version": "joint_adapt_v1",
+     "wall_s": 20.354289054870605
+    },
+    "smoke": false,
+    "steps": 300,
+    "target": "xarm7_pg2"
    }
   },
   "jev20@nosem.s2.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790625078_6eebf9",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790625078_6eebf9_jans2x7p_jev20.log",
+     "unit": "rrp-job-1790625078_6eebf9.service",
+     "placement": "peer",
+     "started": 1790625078.841743,
+     "rc": 0,
+     "finished": 1790625173.229232
+    }
+   ],
    "config_hash": "fae60c9d39b06a16",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b20_s2",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b20_s2",
@@ -1069,11 +4250,53 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790625173.5835993,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.72,
+    "chunk_vel_step_max_mean": 2.43508612960577,
+    "failed_stage": {
+     "approach": 71,
+     "grasp": 19,
+     "lift": 2,
+     "success": 6,
+     "transport": 2
+    },
+    "kind": "adapted:joint_adapt:b20",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.06,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 6,
+    "wilson95": [
+     0.02778574526665662,
+     0.12476968531222507
+    ]
    }
   },
   "ja100@nosem.s2.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790625079_49618a",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790625079_49618a_jans2x7p_ja100.log",
+     "unit": "rrp-job-1790625079_49618a.service",
+     "placement": "peer",
+     "started": 1790625079.6510818,
+     "rc": 0,
+     "finished": 1790625141.1694083
+    }
+   ],
    "config_hash": "e2ed0ec8d6d8562c",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b100_s2",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b100_s2",
@@ -1086,11 +4309,121 @@
     "gpu_mem": "6G",
     "max_seconds": 3600,
     "disk": null
+   },
+   "updated": 1790625141.5466497,
+   "metrics": {
+    "adapt_seed": 1702,
+    "budget": 100,
+    "lr": 0.0001,
+    "method": "joint_adapt",
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "result": {
+     "batch_size": 128,
+     "budget": 100,
+     "changed_modules": "system_i_flow+system0_realizer",
+     "demo_control_transitions": 15487,
+     "demo_episodes": 100,
+     "flow_updates": 300,
+     "frozen": [
+      "target_encoder",
+      "packet_probes"
+     ],
+     "gen_frac": 0.5,
+     "latent_space_version": "ls-ab98f11fb448-wa2760a384227",
+     "log": [
+      {
+       "flow": 0.2660171389579773,
+       "real": null,
+       "step": 50
+      },
+      {
+       "flow": 0.21932432055473328,
+       "real": null,
+       "step": 100
+      },
+      {
+       "flow": 0.20719489455223083,
+       "real": null,
+       "step": 150
+      },
+      {
+       "flow": 0.2316376268863678,
+       "real": null,
+       "step": 200
+      },
+      {
+       "flow": 0.1903972625732422,
+       "real": null,
+       "step": 250
+      },
+      {
+       "flow": 0.22913402318954468,
+       "real": null,
+       "step": 300
+      },
+      {
+       "flow": null,
+       "real": 0.0007109433645382524,
+       "step": 350
+      },
+      {
+       "flow": null,
+       "real": 0.000548840151168406,
+       "step": 400
+      },
+      {
+       "flow": null,
+       "real": 0.0004280855064280331,
+       "step": 450
+      },
+      {
+       "flow": null,
+       "real": 0.00041974143823608756,
+       "step": 500
+      },
+      {
+       "flow": null,
+       "real": 0.00036243529757484794,
+       "step": 550
+      },
+      {
+       "flow": null,
+       "real": 0.0003292929905001074,
+       "step": 600
+      }
+     ],
+     "lr": 0.0001,
+     "mode": "split",
+     "nfe": 8,
+     "optimizer_updates": 600,
+     "realizer_updates": 300,
+     "seed": 1702,
+     "source_flow": "artifacts/runs/armv6/arm6-nosem/flow_ft-gdag2h_s2/policy.pt",
+     "source_representation": "artifacts/runs/armv6/arm6-nosem/refit-gendag3_noqd_s2/representation.pt",
+     "version": "joint_adapt_v1",
+     "wall_s": 40.351622104644775
+    },
+    "smoke": false,
+    "steps": 600,
+    "target": "xarm7_pg2"
    }
   },
   "jev100@nosem.s2.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790625142_08861c",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790625142_08861c_jans2x7p_jev100.log",
+     "unit": "rrp-job-1790625142_08861c.service",
+     "placement": "peer",
+     "started": 1790625142.8140616,
+     "rc": 0,
+     "finished": 1790625236.219695
+    }
+   ],
    "config_hash": "62539978d5f64101",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b100_s2",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b100_s2",
@@ -1103,11 +4436,53 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790625236.621545,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.96,
+    "chunk_vel_step_max_mean": 3.0595900386571886,
+    "failed_stage": {
+     "approach": 95,
+     "grasp": 2,
+     "lift": 1,
+     "success": 1,
+     "transport": 1
+    },
+    "kind": "adapted:joint_adapt:b100",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.01,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 1,
+    "wilson95": [
+     0.0017673865655472645,
+     0.0544875247609346
+    ]
    }
   },
   "pev5@nosem.s2.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790624951_64d886",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790624951_64d886_jans2x7p_pev5.log",
+     "unit": "rrp-job-1790624951_64d886.service",
+     "placement": "peer",
+     "started": 1790624951.8984137,
+     "rc": 0,
+     "finished": 1790625045.4101849
+    }
+   ],
    "config_hash": "4884924267108a5c",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b5_s2",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b5_s2",
@@ -1120,11 +4495,53 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790625045.774035,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.46,
+    "chunk_vel_step_max_mean": 1.486788047850132,
+    "failed_stage": {
+     "approach": 50,
+     "grasp": 6,
+     "lift": 17,
+     "success": 8,
+     "transport": 19
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b5",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.08,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 8,
+    "wilson95": [
+     0.04109296948581091,
+     0.14998266879403072
+    ]
    }
   },
   "pev20@nosem.s2.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790625174_8ba2d3",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790625174_8ba2d3_jans2x7p_pev20.log",
+     "unit": "rrp-job-1790625174_8ba2d3.service",
+     "placement": "peer",
+     "started": 1790625175.0270095,
+     "rc": 0,
+     "finished": 1790625268.3404417
+    }
+   ],
    "config_hash": "bac3002ecd6b788e",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b20_s2",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b20_s2",
@@ -1137,11 +4554,53 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790625268.740812,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.65,
+    "chunk_vel_step_max_mean": 2.0638719994574783,
+    "failed_stage": {
+     "approach": 61,
+     "grasp": 6,
+     "lift": 7,
+     "success": 22,
+     "transport": 4
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b20",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.22,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 22,
+    "wilson95": [
+     0.15001174503655804,
+     0.3107053471500031
+    ]
    }
   },
   "pev100@nosem.s2.xarm7_pg2": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790625237_bf5358",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790625237_bf5358_jans2x7p_pev100.log",
+     "unit": "rrp-job-1790625237_bf5358.service",
+     "placement": "peer",
+     "started": 1790625237.9042716,
+     "rc": 0,
+     "finished": 1790625332.5093696
+    }
+   ],
    "config_hash": "d8484effa78cd14c",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b100_s2",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b100_s2",
@@ -1154,11 +4613,53 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790625332.8968415,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.59,
+    "chunk_vel_step_max_mean": 1.8592411987483501,
+    "failed_stage": {
+     "approach": 38,
+     "grasp": 20,
+     "lift": 11,
+     "success": 24,
+     "transport": 7
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b100",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.24,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 24,
+    "wilson95": [
+     0.16691211265459965,
+     0.3323251872329213
+    ]
    }
   },
   "ja5@nosem.s2.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790625270_1d3e28",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790625270_1d3e28_jans2x7t_ja5.log",
+     "unit": "rrp-job-1790625270_1d3e28.service",
+     "placement": "peer",
+     "started": 1790625270.0749547,
+     "rc": 0,
+     "finished": 1790625300.8371437
+    }
+   ],
    "config_hash": "2bb4a396d6abfc61",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b5_s2",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b5_s2",
@@ -1171,11 +4672,76 @@
     "gpu_mem": "6G",
     "max_seconds": 3600,
     "disk": null
+   },
+   "updated": 1790625301.1797328,
+   "metrics": {
+    "adapt_seed": 1702,
+    "budget": 5,
+    "lr": 0.0001,
+    "method": "joint_adapt",
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "result": {
+     "batch_size": 128,
+     "budget": 5,
+     "changed_modules": "system_i_flow+system0_realizer",
+     "demo_control_transitions": 761,
+     "demo_episodes": 5,
+     "flow_updates": 75,
+     "frozen": [
+      "target_encoder",
+      "packet_probes"
+     ],
+     "gen_frac": 0.5,
+     "latent_space_version": "ls-ab98f11fb448-wa2760a384227",
+     "log": [
+      {
+       "flow": 0.21495956182479858,
+       "real": null,
+       "step": 50
+      },
+      {
+       "flow": null,
+       "real": 0.0008937129750847816,
+       "step": 100
+      },
+      {
+       "flow": null,
+       "real": 0.0004851777630392462,
+       "step": 150
+      }
+     ],
+     "lr": 0.0001,
+     "mode": "split",
+     "nfe": 8,
+     "optimizer_updates": 150,
+     "realizer_updates": 75,
+     "seed": 1702,
+     "source_flow": "artifacts/runs/armv6/arm6-nosem/flow_ft-gdag2h_s2/policy.pt",
+     "source_representation": "artifacts/runs/armv6/arm6-nosem/refit-gendag3_noqd_s2/representation.pt",
+     "version": "joint_adapt_v1",
+     "wall_s": 10.499722003936768
+    },
+    "smoke": false,
+    "steps": 150,
+    "target": "xarm7_tf3"
    }
   },
   "jev5@nosem.s2.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790625302_54e6db",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790625302_54e6db_jans2x7t_jev5.log",
+     "unit": "rrp-job-1790625302_54e6db.service",
+     "placement": "peer",
+     "started": 1790625302.0690186,
+     "rc": 0,
+     "finished": 1790625396.622123
+    }
+   ],
    "config_hash": "ebc8ebb00b71a30c",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b5_s2",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b5_s2",
@@ -1188,11 +4754,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790625397.0178275,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.75,
+    "chunk_vel_step_max_mean": 1.9476153183728457,
+    "failed_stage": {
+     "approach": 26,
+     "grasp": 3,
+     "lift": 6,
+     "place": 27,
+     "success": 16,
+     "transport": 22
+    },
+    "kind": "adapted:joint_adapt:b5",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.16,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 16,
+    "wilson95": [
+     0.10095202349473717,
+     0.24420444558894414
+    ]
    }
   },
   "ja20@nosem.s2.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790625334_41c02c",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790625334_41c02c_jans2x7t_ja20.log",
+     "unit": "rrp-job-1790625334_41c02c.service",
+     "placement": "peer",
+     "started": 1790625334.202394,
+     "rc": 0,
+     "finished": 1790625364.9664462
+    }
+   ],
    "config_hash": "067e07ebc551d72e",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b20_s2",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b20_s2",
@@ -1205,11 +4814,91 @@
     "gpu_mem": "6G",
     "max_seconds": 3600,
     "disk": null
+   },
+   "updated": 1790625365.314765,
+   "metrics": {
+    "adapt_seed": 1702,
+    "budget": 20,
+    "lr": 0.0001,
+    "method": "joint_adapt",
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "result": {
+     "batch_size": 128,
+     "budget": 20,
+     "changed_modules": "system_i_flow+system0_realizer",
+     "demo_control_transitions": 2998,
+     "demo_episodes": 20,
+     "flow_updates": 150,
+     "frozen": [
+      "target_encoder",
+      "packet_probes"
+     ],
+     "gen_frac": 0.5,
+     "latent_space_version": "ls-ab98f11fb448-wa2760a384227",
+     "log": [
+      {
+       "flow": 0.21926414966583252,
+       "real": null,
+       "step": 50
+      },
+      {
+       "flow": 0.1887875497341156,
+       "real": null,
+       "step": 100
+      },
+      {
+       "flow": 0.15331847965717316,
+       "real": null,
+       "step": 150
+      },
+      {
+       "flow": null,
+       "real": 0.0007428128737956285,
+       "step": 200
+      },
+      {
+       "flow": null,
+       "real": 0.0005268617533147335,
+       "step": 250
+      },
+      {
+       "flow": null,
+       "real": 0.00032608589390292764,
+       "step": 300
+      }
+     ],
+     "lr": 0.0001,
+     "mode": "split",
+     "nfe": 8,
+     "optimizer_updates": 300,
+     "realizer_updates": 150,
+     "seed": 1702,
+     "source_flow": "artifacts/runs/armv6/arm6-nosem/flow_ft-gdag2h_s2/policy.pt",
+     "source_representation": "artifacts/runs/armv6/arm6-nosem/refit-gendag3_noqd_s2/representation.pt",
+     "version": "joint_adapt_v1",
+     "wall_s": 20.475749015808105
+    },
+    "smoke": false,
+    "steps": 300,
+    "target": "xarm7_tf3"
    }
   },
   "jev20@nosem.s2.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790625366_5ebee1",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790625366_5ebee1_jans2x7t_jev20.log",
+     "unit": "rrp-job-1790625366_5ebee1.service",
+     "placement": "peer",
+     "started": 1790625366.2563398,
+     "rc": 0,
+     "finished": 1790625459.454565
+    }
+   ],
    "config_hash": "8a3baa0b28bbdacd",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b20_s2",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b20_s2",
@@ -1222,11 +4911,53 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790625459.797016,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.43,
+    "chunk_vel_step_max_mean": 1.6449870988726616,
+    "failed_stage": {
+     "approach": 73,
+     "lift": 3,
+     "place": 17,
+     "success": 3,
+     "transport": 4
+    },
+    "kind": "adapted:joint_adapt:b20",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.03,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 3,
+    "wilson95": [
+     0.010254338223414816,
+     0.08452078080402699
+    ]
    }
   },
   "ja100@nosem.s2.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790625398_4397d3",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790625398_4397d3_jans2x7t_ja100.log",
+     "unit": "rrp-job-1790625398_4397d3.service",
+     "placement": "peer",
+     "started": 1790625398.2909803,
+     "rc": 0,
+     "finished": 1790625460.2309055
+    }
+   ],
    "config_hash": "0d09db06153c7949",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b100_s2",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b100_s2",
@@ -1239,11 +4970,121 @@
     "gpu_mem": "6G",
     "max_seconds": 3600,
     "disk": null
+   },
+   "updated": 1790625460.660633,
+   "metrics": {
+    "adapt_seed": 1702,
+    "budget": 100,
+    "lr": 0.0001,
+    "method": "joint_adapt",
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "result": {
+     "batch_size": 128,
+     "budget": 100,
+     "changed_modules": "system_i_flow+system0_realizer",
+     "demo_control_transitions": 14939,
+     "demo_episodes": 100,
+     "flow_updates": 300,
+     "frozen": [
+      "target_encoder",
+      "packet_probes"
+     ],
+     "gen_frac": 0.5,
+     "latent_space_version": "ls-ab98f11fb448-wa2760a384227",
+     "log": [
+      {
+       "flow": 0.2547667622566223,
+       "real": null,
+       "step": 50
+      },
+      {
+       "flow": 0.21094872057437897,
+       "real": null,
+       "step": 100
+      },
+      {
+       "flow": 0.16151073575019836,
+       "real": null,
+       "step": 150
+      },
+      {
+       "flow": 0.19404807686805725,
+       "real": null,
+       "step": 200
+      },
+      {
+       "flow": 0.11809104681015015,
+       "real": null,
+       "step": 250
+      },
+      {
+       "flow": 0.18698740005493164,
+       "real": null,
+       "step": 300
+      },
+      {
+       "flow": null,
+       "real": 0.0008328717667609453,
+       "step": 350
+      },
+      {
+       "flow": null,
+       "real": 0.0005600054282695055,
+       "step": 400
+      },
+      {
+       "flow": null,
+       "real": 0.0003573472495190799,
+       "step": 450
+      },
+      {
+       "flow": null,
+       "real": 0.0003945887729059905,
+       "step": 500
+      },
+      {
+       "flow": null,
+       "real": 0.0003857127157971263,
+       "step": 550
+      },
+      {
+       "flow": null,
+       "real": 0.0002498804242350161,
+       "step": 600
+      }
+     ],
+     "lr": 0.0001,
+     "mode": "split",
+     "nfe": 8,
+     "optimizer_updates": 600,
+     "realizer_updates": 300,
+     "seed": 1702,
+     "source_flow": "artifacts/runs/armv6/arm6-nosem/flow_ft-gdag2h_s2/policy.pt",
+     "source_representation": "artifacts/runs/armv6/arm6-nosem/refit-gendag3_noqd_s2/representation.pt",
+     "version": "joint_adapt_v1",
+     "wall_s": 41.17662286758423
+    },
+    "smoke": false,
+    "steps": 600,
+    "target": "xarm7_tf3"
    }
   },
   "jev100@nosem.s2.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790625461_881718",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790625461_881718_jans2x7t_jev100.log",
+     "unit": "rrp-job-1790625461_881718.service",
+     "placement": "peer",
+     "started": 1790625461.6223116,
+     "rc": 0,
+     "finished": 1790625554.3836615
+    }
+   ],
    "config_hash": "adf1991c5bbf305c",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b100_s2",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b100_s2",
@@ -1256,11 +5097,53 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790625554.7838144,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.45,
+    "chunk_vel_step_max_mean": 1.7035531520843505,
+    "failed_stage": {
+     "approach": 19,
+     "lift": 8,
+     "place": 35,
+     "success": 29,
+     "transport": 9
+    },
+    "kind": "adapted:joint_adapt:b100",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.29,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 29,
+    "wilson95": [
+     0.21014706973984146,
+     0.38539074940007934
+    ]
    }
   },
   "pev5@nosem.s2.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790625462_e0ec35",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790625462_e0ec35_jans2x7t_pev5.log",
+     "unit": "rrp-job-1790625462_e0ec35.service",
+     "placement": "peer",
+     "started": 1790625462.520104,
+     "rc": 0,
+     "finished": 1790625555.1653636
+    }
+   ],
    "config_hash": "077bd1572ae243f8",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b5_s2",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b5_s2",
@@ -1273,11 +5156,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790625555.5261497,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.87,
+    "chunk_vel_step_max_mean": 1.9226451417431236,
+    "failed_stage": {
+     "approach": 48,
+     "grasp": 8,
+     "lift": 11,
+     "place": 6,
+     "success": 15,
+     "transport": 12
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b5",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.15,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 15,
+    "wilson95": [
+     0.09305903191162297,
+     0.23283733332157835
+    ]
    }
   },
   "pev20@nosem.s2.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790625556_9316f3",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790625556_9316f3_jans2x7t_pev20.log",
+     "unit": "rrp-job-1790625556_9316f3.service",
+     "placement": "peer",
+     "started": 1790625556.4477975,
+     "rc": 0,
+     "finished": 1790625649.2870011
+    }
+   ],
    "config_hash": "0cecf2d82f1401b3",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b20_s2",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b20_s2",
@@ -1290,11 +5216,54 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790625649.6385572,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.54,
+    "chunk_vel_step_max_mean": 1.774538868665695,
+    "failed_stage": {
+     "approach": 14,
+     "grasp": 4,
+     "lift": 12,
+     "place": 28,
+     "success": 30,
+     "transport": 12
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b20",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.3,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 30,
+    "wilson95": [
+     0.21894753866228117,
+     0.39585038432811953
+    ]
    }
   },
   "pev100@nosem.s2.xarm7_tf3": {
-   "state": "planned",
-   "attempts": [],
+   "state": "completed",
+   "attempts": [
+    {
+     "lease_id": "1790625557_7598b4",
+     "log": "/dev/shm/rrp-brandonin/repo/ops/logs/1790625557_7598b4_jans2x7t_pev100.log",
+     "unit": "rrp-job-1790625557_7598b4.service",
+     "placement": "peer",
+     "started": 1790625557.3800406,
+     "rc": 0,
+     "finished": 1790625650.0490077
+    }
+   ],
    "config_hash": "93e55396d96c3251",
    "run_id": "runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b100_s2",
    "out": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b100_s2",
@@ -1307,6 +5276,39 @@
     "gpu_mem": null,
     "max_seconds": 14400,
     "disk": null
+   },
+   "updated": 1790625650.4107735,
+   "metrics": {
+    "chunk_vel_step_flag_frac": 0.48,
+    "chunk_vel_step_max_mean": 1.766926959902048,
+    "failed_stage": {
+     "approach": 4,
+     "grasp": 2,
+     "lift": 3,
+     "place": 51,
+     "success": 30,
+     "transport": 10
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b100",
+    "n": 100,
+    "protocol": {
+     "id": "latent_slice1",
+     "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+    },
+    "rate": 0.3,
+    "scene_kind": "target",
+    "seeds": {
+     "feasible": 100,
+     "infeasible": 0,
+     "requested": 100,
+     "start": 2000000
+    },
+    "smoke": false,
+    "success": 30,
+    "wilson95": [
+     0.21894753866228117,
+     0.39585038432811953
+    ]
    }
   }
  }

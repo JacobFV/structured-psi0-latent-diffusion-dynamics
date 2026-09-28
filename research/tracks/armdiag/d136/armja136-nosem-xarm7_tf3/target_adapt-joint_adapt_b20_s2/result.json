@@ -1,0 +1,56 @@
+{
+ "version": "joint_adapt_v1",
+ "mode": "split",
+ "gen_frac": 0.5,
+ "budget": 20,
+ "seed": 1702,
+ "demo_episodes": 20,
+ "demo_control_transitions": 2998,
+ "optimizer_updates": 300,
+ "flow_updates": 150,
+ "realizer_updates": 150,
+ "lr": 0.0001,
+ "batch_size": 128,
+ "nfe": 8,
+ "wall_s": 20.475749015808105,
+ "changed_modules": "system_i_flow+system0_realizer",
+ "frozen": [
+  "target_encoder",
+  "packet_probes"
+ ],
+ "latent_space_version": "ls-ab98f11fb448-wa2760a384227",
+ "source_flow": "artifacts/runs/armv6/arm6-nosem/flow_ft-gdag2h_s2/policy.pt",
+ "source_representation": "artifacts/runs/armv6/arm6-nosem/refit-gendag3_noqd_s2/representation.pt",
+ "log": [
+  {
+   "step": 50,
+   "flow": 0.21926414966583252,
+   "real": null
+  },
+  {
+   "step": 100,
+   "flow": 0.1887875497341156,
+   "real": null
+  },
+  {
+   "step": 150,
+   "flow": 0.15331847965717316,
+   "real": null
+  },
+  {
+   "step": 200,
+   "flow": null,
+   "real": 0.0007428128737956285
+  },
+  {
+   "step": 250,
+   "flow": null,
+   "real": 0.0005268617533147335
+  },
+  {
+   "step": 300,
+   "flow": null,
+   "real": 0.00032608589390292764
+  }
+ ]
+}

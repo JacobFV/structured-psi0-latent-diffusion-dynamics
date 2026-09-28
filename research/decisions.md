@@ -886,3 +886,17 @@ nosem × seeds 1, 2 × budgets 5 / 20 / 100; primary = joint_adapt at BC SFT's u
 demos and adapt seeds; secondary = D-135's flow-SFT b + refit b checkpoints paired (2x updates, not matched). Same sealed
 scenes as D-135 (post-hoc method, labelled as such); each cell run once; metric success k/200 pooled over seeds with
 Wilson 95%, joint − BC SFT with Newcombe 95%. D-135 cells unchanged. Results: to be appended below this entry.
+
+### D-136 result 2026-09-28 13:00 (72/72 nodes, each run once; research/tracks/armdiag.md "D-136 RESULT")
+Sealed xarm7 targets, pooled over 2 seeds, k/200 at budgets 5/20/100. joint_adapt is BC-update-matched (post-hoc
+method added after D-135). The other columns are D-135 cells.
+- semfix xarm7_pg2: joint 27 / 92 / 101; BC SFT 69 / 112 / 140; refit 2 / 14 / 10. xarm7_tf3: joint 75 / 127 / 173;
+  BC 143 / 192 / 186; refit 30 / 38 / 36.
+- nosem xarm7_pg2: joint 9 / 32 / 8. xarm7_tf3: 27 / 32 / 43 (refit <= 1).
+- Secondary, paired D-135 flow SFT + refit (2x updates): semfix pg2 36 / 99 / 137, tf3 64 / 147 / 167; nosem pg2
+  12 / 53 / 68, tf3 23 / 67 / 52.
+Reading: joint adaptation makes the latent route adapt to the new arm (beats refit-only in 12/12 cells; semfix 595 vs
+130 of 1,200). At equal data and updates it is still worse than BC SFT in 12/12 cells (Newcombe upper bounds < 0; semfix
+595 vs 842, gap −0.07 to −0.34; nosem −0.30 to −0.80). semfix >> nosem (595 vs 151). Claim #9 on a new arm therefore
+stays NOT supported (latent never beats BC), but D-135's "latent does not adapt" is superseded: it adapts when both
+modules are adapted, more slowly than BC. D-135 cells unchanged.

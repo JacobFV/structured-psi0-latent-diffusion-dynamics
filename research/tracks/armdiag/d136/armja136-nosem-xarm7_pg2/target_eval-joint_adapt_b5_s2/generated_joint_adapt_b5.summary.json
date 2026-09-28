@@ -1,0 +1,67 @@
+{
+ "n": 100,
+ "success": 3,
+ "rate": 0.03,
+ "wilson95": [
+  0.010254338223414816,
+  0.08452078080402699
+ ],
+ "failed_stage": {
+  "approach": 70,
+  "transport": 7,
+  "grasp": 13,
+  "lift": 7,
+  "success": 3
+ },
+ "track_q_rad": 0.00784082018731744,
+ "track_tcp_m": 0.011720676542253743,
+ "lab_err_arm": 0.3002237956837313,
+ "lab_err_grip": 1.3751509897656407,
+ "min_tcp_cube_m": 0.04568877528870208,
+ "cmd_step_rad": 0.03091431006796624,
+ "version": "target_eval_v1",
+ "route": "generated",
+ "robot": "xarm7_pg2",
+ "kind": "adapted:joint_adapt:b5",
+ "scene_kind": "target",
+ "smoke": false,
+ "sealed_run": true,
+ "controller_source": "learned:artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b5_s2/policy.pt",
+ "protocol": {
+  "id": "latent_slice1",
+  "status": "SEALED_BEFORE_RESULTS",
+  "path": "configs/eval/latent_slice1.json",
+  "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+ },
+ "seeds": {
+  "start": 2000000,
+  "requested": 100,
+  "feasible": 100,
+  "infeasible": 0
+ },
+ "replan": 8,
+ "nfe": 8,
+ "max_steps": 300,
+ "prev_action": "zero",
+ "chunk_vel_step_max_mean": 1.5389400243759155,
+ "chunk_vel_step_flag_frac": 0.46,
+ "checkpoints": {
+  "representation": {
+   "path": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b5_s2/representation.pt",
+   "sha256": "37870bd1f8e4e7825fe9cd617198fd814b9a693f1c07aedcc0bd9b7eee7837c7",
+   "latent_space_version": "ls-ab98f11fb448-wa2760a384227",
+   "realizer_compat_version": "rz-ls-ab98f11fb448-wa2760a384227-r7afd7babcf64-none-v1"
+  },
+  "realizer_override": {
+   "flow_rcv": "rz-ls-ab98f11fb448-wa2760a384227-rb23feb22faa1-none-v1",
+   "used_rcv": "rz-ls-ab98f11fb448-wa2760a384227-r7afd7babcf64-none-v1"
+  },
+  "flow": {
+   "path": "artifacts/runs/armdiag/armja136-nosem-xarm7_pg2/target_adapt-joint_adapt_b5_s2/policy.pt",
+   "sha256": "8ff64f1e7d04808bcfd7719294227632eb884a74ce818662cb5c6ae98c38435e",
+   "nfe": 8,
+   "sampler": "euler-ode",
+   "noise_scale": 1.0
+  }
+ }
+}

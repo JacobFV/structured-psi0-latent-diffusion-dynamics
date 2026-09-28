@@ -134,9 +134,49 @@ split g0 = 13/30 by the realizer's OneCycle schedule and sampling; both are with
   Newcombe CI of (joint − BC) includes 0 or is positive; "worse than BC" if its upper bound is < 0.
 - Not changed after this commit: variant, budgets, update counts, seeds, scenes, metric.
 
-## D-136 sealed run (state: running since 12:15 PDT)
+## D-136 sealed run (state: completed 13:00 PDT; 72/72 nodes rc 0, each launched once, no reruns)
 Coordinator: host user unit `rrp-armdiag-d136` (run-dag orchestrator only), peer code dir wt/armdiag at f43d8b7,
 `--max-parallel 2 --max-parallel-gpu 1`. Ledger `artifacts/runs/armdiag/_dags/arm_targets_d136_joint/ledger.json` (host).
 RESUME (completed nodes are skipped): `cd ~/work/rrp-wt/armdiag && systemd-run --user --unit rrp-armdiag-d136b
 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiag --setenv=PYTHONPATH=src --working-directory=$HOME/work/rrp-wt/armdiag
 ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli run-dag dags/arm_targets_d136_joint.yaml --max-parallel 2 --max-parallel-gpu 1`
+
+### D-136 RESULT (method added AFTER D-135, on the same sealed scenes; pooled over lineage seeds 1, 2; k/200)
+Checked: every joint_adapt run used BC SFT's update counts (150 / 300 / 600 = 75+75 / 150+150 / 300+300), split,
+gen_frac 0.5, adapt seeds 1701 / 1702, and 5 / 20 / 100 demo episodes. Every eval is sealed_run, scene_kind target.
+Memory: joint_adapt peak 1.70G and sealed eval peak 1.81G (declared 4G).
+| variant / target / budget | joint_adapt (matched, PRIMARY) | paired flow SFT + refit (2x updates) | BC SFT (D-135) | refit only (D-135) | flow SFT only (D-135) | joint − BC, Newcombe 95% |
+|---|---|---|---|---|---|---|
+| semfix xarm7_pg2 b5 | 27 | 36 | 69 | 2 | 0 | −0.21 [−0.29, −0.13] |
+| semfix xarm7_pg2 b20 | 92 | 99 | 112 | 14 | 0 | −0.10 [−0.20, −0.00] |
+| semfix xarm7_pg2 b100 | 101 | 137 | 140 | 10 | 0 | −0.20 [−0.29, −0.10] |
+| semfix xarm7_tf3 b5 | 75 | 64 | 143 | 30 | 0 | −0.34 [−0.43, −0.24] |
+| semfix xarm7_tf3 b20 | 127 | 147 | 192 | 38 | 0 | −0.33 [−0.40, −0.25] |
+| semfix xarm7_tf3 b100 | 173 | 167 | 186 | 36 | 0 | −0.07 [−0.13, −0.01] |
+| nosem xarm7_pg2 b5 | 9 | 12 | 69 | 0 | 0 | −0.30 [−0.37, −0.23] |
+| nosem xarm7_pg2 b20 | 32 | 53 | 112 | 0 | 0 | −0.40 [−0.48, −0.31] |
+| nosem xarm7_pg2 b100 | 8 | 68 | 140 | 0 | 0 | −0.66 [−0.72, −0.58] |
+| nosem xarm7_tf3 b5 | 27 | 23 | 143 | 1 | 0 | −0.58 [−0.65, −0.49] |
+| nosem xarm7_tf3 b20 | 32 | 67 | 192 | 0 | 0 | −0.80 [−0.85, −0.73] |
+| nosem xarm7_tf3 b100 | 43 | 52 | 186 | 1 | 0 | −0.72 [−0.77, −0.64] |
+Totals over the 6 target×budget cells (of 1,200): semfix: joint 595, paired 650, BC SFT 842, refit 130, flow SFT 0.
+nosem: joint 151, paired 275, BC SFT 842, refit 2, flow SFT 0.
+Per-seed values (joint s1 / s2): semfix pg2 13/14, 62/30, 61/40; tf3 23/52, 67/60, 88/85. nosem pg2 6/3, 26/6, 7/1;
+tf3 11/16, 29/3, 14/29. The full table is in `research/tracks/armdiag/d136_compare.json`
+(`scripts/armdiag_d136_compare.py`), with raw summaries in `research/tracks/armdiag/d136/`.
+
+READING (pre-registered rule):
+1. The latent route DOES adapt to the new arm once both modules are adapted. Joint adaptation beats D-135's refit-only
+   cell in every one of the 12 (variant, target, budget) cells (all joint − refit Newcombe CIs > 0; semfix 595 vs 130
+   of 1,200). semfix xarm7_tf3 b100 reaches 173/200 (BC 186).
+2. At equal data AND equal updates it is still WORSE than BC SFT in all 12 cells (every CI upper bound < 0). The gap
+   is smallest for semfix at b100 on tf3 (−0.07) and at b20 on pg2 (−0.10); it is large for nosem (−0.30 to −0.80).
+3. The Step A choice did not carry over at b100 on pg2. The secondary arm (D-135's own checkpoints paired, 2x updates)
+   equals or beats matched joint in most cells (semfix 650 vs 595); on semfix pg2 b100 it is 137 vs 101 and matches
+   BC's 140, at twice BC's updates.
+4. Semantic supervision matters a great deal for adaptability: semfix joint 595/1,200 vs nosem 151/1,200. nosem joint
+   is unstable across seeds and budgets (pg2 b100 7/1 below b20 26/6; nosem b100 failures are dominated by approach
+   95/100 in s2). This matches D-135's semfix > nosem ordering.
+Caveats: the method and its variant were chosen AFTER D-135's sealed results, on dev seeds, from 3 semfix cells
+(post-hoc). Two lineage seeds. BC SFT updates the whole policy per update; joint_adapt updates the flow or the
+realizer. panda_tf3 was not run.

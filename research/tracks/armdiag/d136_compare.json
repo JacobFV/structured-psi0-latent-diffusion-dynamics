@@ -1,0 +1,3106 @@
+{
+ "label": "D-136 (method added AFTER D-135; same sealed scenes)",
+ "pooled": {
+  "semfix/xarm7_pg2/b5": {
+   "joint_adapt": {
+    "k": 27,
+    "n": 200,
+    "wilson95": [
+     0.09446570427968658,
+     0.18929138418865638
+    ]
+   },
+   "paired_unmatched": {
+    "k": 36,
+    "n": 200,
+    "wilson95": [
+     0.13294625827141177,
+     0.2391147507967245
+    ]
+   },
+   "refit": {
+    "k": 2,
+    "n": 200,
+    "wilson95": [
+     0.00274665810884896,
+     0.035721762026734716
+    ]
+   },
+   "flow_sft": {
+    "k": 0,
+    "n": 200,
+    "wilson95": [
+     0.0,
+     0.018845326668962936
+    ]
+   },
+   "bc_sft": {
+    "k": 69,
+    "n": 200,
+    "wilson95": [
+     0.2825979433061415,
+     0.4132441079612369
+    ]
+   },
+   "joint_minus_bc_sft": {
+    "diff": -0.20999999999999996,
+    "newcombe95": [
+     -0.2893743497672061,
+     -0.1272862098755968
+    ]
+   },
+   "joint_minus_refit": {
+    "diff": 0.125,
+    "newcombe95": [
+     0.07699335284253031,
+     0.1797737653052099
+    ]
+   },
+   "joint_minus_paired_unmatched": {
+    "diff": -0.044999999999999984,
+    "newcombe95": [
+     -0.11667693416504824,
+     0.02684433873160065
+    ]
+   },
+   "prereg_reading": "worse than BC"
+  },
+  "semfix/xarm7_pg2/b20": {
+   "joint_adapt": {
+    "k": 92,
+    "n": 200,
+    "wilson95": [
+     0.39233051748177505,
+     0.529177108651742
+    ]
+   },
+   "paired_unmatched": {
+    "k": 99,
+    "n": 200,
+    "wilson95": [
+     0.4264584530693174,
+     0.5637300001973722
+    ]
+   },
+   "refit": {
+    "k": 14,
+    "n": 200,
+    "wilson95": [
+     0.04215217166140097,
+     0.11405480927390715
+    ]
+   },
+   "flow_sft": {
+    "k": 0,
+    "n": 200,
+    "wilson95": [
+     0.0,
+     0.018845326668962936
+    ]
+   },
+   "bc_sft": {
+    "k": 112,
+    "n": 200,
+    "wilson95": [
+     0.49071675280149213,
+     0.6270218079982324
+    ]
+   },
+   "joint_minus_bc_sft": {
+    "diff": -0.10000000000000003,
+    "newcombe95": [
+     -0.1952422259905567,
+     -0.0020937146870311646
+    ]
+   },
+   "joint_minus_refit": {
+    "diff": 0.39,
+    "newcombe95": [
+     0.3092535754076709,
+     0.46457193778219114
+    ]
+   },
+   "joint_minus_paired_unmatched": {
+    "diff": -0.034999999999999976,
+    "newcombe95": [
+     -0.13145191439994922,
+     0.06238283225017578
+    ]
+   },
+   "prereg_reading": "worse than BC"
+  },
+  "semfix/xarm7_pg2/b100": {
+   "joint_adapt": {
+    "k": 101,
+    "n": 200,
+    "wilson95": [
+     0.4362699998026278,
+     0.5735415469306826
+    ]
+   },
+   "paired_unmatched": {
+    "k": 137,
+    "n": 200,
+    "wilson95": [
+     0.6176504385930084,
+     0.7453767905394755
+    ]
+   },
+   "refit": {
+    "k": 10,
+    "n": 200,
+    "wilson95": [
+     0.027382645473457017,
+     0.08957814852860962
+    ]
+   },
+   "flow_sft": {
+    "k": 0,
+    "n": 200,
+    "wilson95": [
+     0.0,
+     0.018845326668962936
+    ]
+   },
+   "bc_sft": {
+    "k": 140,
+    "n": 200,
+    "wilson95": [
+     0.6332093157249852,
+     0.7592525536074295
+    ]
+   },
+   "joint_minus_bc_sft": {
+    "diff": -0.19499999999999995,
+    "newcombe95": [
+     -0.285745126789994,
+     -0.09929765331207557
+    ]
+   },
+   "joint_minus_refit": {
+    "diff": 0.455,
+    "newcombe95": [
+     0.3756889492688222,
+     0.5271767856130369
+    ]
+   },
+   "joint_minus_paired_unmatched": {
+    "diff": -0.18000000000000005,
+    "newcombe95": [
+     -0.27148316655526566,
+     -0.08390677923305362
+    ]
+   },
+   "prereg_reading": "worse than BC"
+  },
+  "semfix/xarm7_tf3/b5": {
+   "joint_adapt": {
+    "k": 75,
+    "n": 200,
+    "wilson95": [
+     0.3108543681052461,
+     0.4438569635619946
+    ]
+   },
+   "paired_unmatched": {
+    "k": 64,
+    "n": 200,
+    "wilson95": [
+     0.2592653327095053,
+     0.38751898489132125
+    ]
+   },
+   "refit": {
+    "k": 30,
+    "n": 200,
+    "wilson95": [
+     0.10713593533492478,
+     0.20605579333334928
+    ]
+   },
+   "flow_sft": {
+    "k": 0,
+    "n": 200,
+    "wilson95": [
+     0.0,
+     0.018845326668962936
+    ]
+   },
+   "bc_sft": {
+    "k": 143,
+    "n": 200,
+    "wilson95": [
+     0.6488465391585687,
+     0.7730499703737772
+    ]
+   },
+   "joint_minus_bc_sft": {
+    "diff": -0.33999999999999997,
+    "newcombe95": [
+     -0.42651278027883327,
+     -0.24451407531852332
+    ]
+   },
+   "joint_minus_refit": {
+    "diff": 0.225,
+    "newcombe95": [
+     0.13981247710252143,
+     0.3061086275965116
+    ]
+   },
+   "joint_minus_paired_unmatched": {
+    "diff": 0.05499999999999999,
+    "newcombe95": [
+     -0.03813149527378877,
+     0.14681492929728224
+    ]
+   },
+   "prereg_reading": "worse than BC"
+  },
+  "semfix/xarm7_tf3/b20": {
+   "joint_adapt": {
+    "k": 127,
+    "n": 200,
+    "wilson95": [
+     0.5663170259754062,
+     0.6985947358239737
+    ]
+   },
+   "paired_unmatched": {
+    "k": 147,
+    "n": 200,
+    "wilson95": [
+     0.669824237532593,
+     0.7913184589329944
+    ]
+   },
+   "refit": {
+    "k": 38,
+    "n": 200,
+    "wilson95": [
+     0.1416717149442203,
+     0.25001238759053673
+    ]
+   },
+   "flow_sft": {
+    "k": 0,
+    "n": 200,
+    "wilson95": [
+     0.0,
+     0.018845326668962936
+    ]
+   },
+   "bc_sft": {
+    "k": 192,
+    "n": 200,
+    "wilson95": [
+     0.9230679314255735,
+     0.9795943680389804
+    ]
+   },
+   "joint_minus_bc_sft": {
+    "diff": -0.32499999999999996,
+    "newcombe95": [
+     -0.3964233167789766,
+     -0.25145907184630356
+    ]
+   },
+   "joint_minus_refit": {
+    "diff": 0.445,
+    "newcombe95": [
+     0.3537923381223933,
+     0.5248743610988764
+    ]
+   },
+   "joint_minus_paired_unmatched": {
+    "diff": -0.09999999999999998,
+    "newcombe95": [
+     -0.18882071682580812,
+     -0.008938644652471475
+    ]
+   },
+   "prereg_reading": "worse than BC"
+  },
+  "semfix/xarm7_tf3/b100": {
+   "joint_adapt": {
+    "k": 173,
+    "n": 200,
+    "wilson95": [
+     0.8107086158113437,
+     0.9055342957203134
+    ]
+   },
+   "paired_unmatched": {
+    "k": 167,
+    "n": 200,
+    "wilson95": [
+     0.777342184108311,
+     0.8800314470234838
+    ]
+   },
+   "refit": {
+    "k": 36,
+    "n": 200,
+    "wilson95": [
+     0.13294625827141177,
+     0.2391147507967245
+    ]
+   },
+   "flow_sft": {
+    "k": 0,
+    "n": 200,
+    "wilson95": [
+     0.0,
+     0.018845326668962936
+    ]
+   },
+   "bc_sft": {
+    "k": 186,
+    "n": 200,
+    "wilson95": [
+     0.8859451907260928,
+     0.957847828338599
+    ]
+   },
+   "joint_minus_bc_sft": {
+    "diff": -0.06500000000000006,
+    "newcombe95": [
+     -0.12601684964250748,
+     -0.005134689930627129
+    ]
+   },
+   "joint_minus_refit": {
+    "diff": 0.685,
+    "newcombe95": [
+     0.6047372554737933,
+     0.7471054244024024
+    ]
+   },
+   "joint_minus_paired_unmatched": {
+    "diff": 0.030000000000000027,
+    "newcombe95": [
+     -0.04053641341994295,
+     0.10048015935667087
+    ]
+   },
+   "prereg_reading": "worse than BC"
+  },
+  "nosem/xarm7_pg2/b5": {
+   "joint_adapt": {
+    "k": 9,
+    "n": 200,
+    "wilson95": [
+     0.02385254288504434,
+     0.08329670438371192
+    ]
+   },
+   "paired_unmatched": {
+    "k": 12,
+    "n": 200,
+    "wilson95": [
+     0.034652194106514544,
+     0.10193169336217284
+    ]
+   },
+   "refit": {
+    "k": 0,
+    "n": 200,
+    "wilson95": [
+     0.0,
+     0.018845326668962936
+    ]
+   },
+   "flow_sft": {
+    "k": 0,
+    "n": 200,
+    "wilson95": [
+     0.0,
+     0.018845326668962936
+    ]
+   },
+   "bc_sft": {
+    "k": 69,
+    "n": 200,
+    "wilson95": [
+     0.2825979433061415,
+     0.4132441079612369
+    ]
+   },
+   "joint_minus_bc_sft": {
+    "diff": -0.3,
+    "newcombe95": [
+     -0.37144559618236694,
+     -0.22678351110387124
+    ]
+   },
+   "joint_minus_refit": {
+    "diff": 0.045,
+    "newcombe95": [
+     0.01667401758651936,
+     0.08329670438371192
+    ]
+   },
+   "joint_minus_paired_unmatched": {
+    "diff": -0.015,
+    "newcombe95": [
+     -0.06196255796534275,
+     0.03092547038700024
+    ]
+   },
+   "prereg_reading": "worse than BC"
+  },
+  "nosem/xarm7_pg2/b20": {
+   "joint_adapt": {
+    "k": 32,
+    "n": 200,
+    "wilson95": [
+     0.11567412001614788,
+     0.2171407021187469
+    ]
+   },
+   "paired_unmatched": {
+    "k": 53,
+    "n": 200,
+    "wilson95": [
+     0.2086815410670056,
+     0.33017576246740693
+    ]
+   },
+   "refit": {
+    "k": 0,
+    "n": 200,
+    "wilson95": [
+     0.0,
+     0.018845326668962936
+    ]
+   },
+   "flow_sft": {
+    "k": 0,
+    "n": 200,
+    "wilson95": [
+     0.0,
+     0.018845326668962936
+    ]
+   },
+   "bc_sft": {
+    "k": 112,
+    "n": 200,
+    "wilson95": [
+     0.49071675280149213,
+     0.6270218079982324
+    ]
+   },
+   "joint_minus_bc_sft": {
+    "diff": -0.4,
+    "newcombe95": [
+     -0.4803536332949219,
+     -0.3101933845365893
+    ]
+   },
+   "joint_minus_refit": {
+    "diff": 0.16,
+    "newcombe95": [
+     0.11183434861228608,
+     0.2171407021187469
+    ]
+   },
+   "joint_minus_paired_unmatched": {
+    "diff": -0.10500000000000001,
+    "newcombe95": [
+     -0.18382045197504715,
+     -0.024770151095675486
+    ]
+   },
+   "prereg_reading": "worse than BC"
+  },
+  "nosem/xarm7_pg2/b100": {
+   "joint_adapt": {
+    "k": 8,
+    "n": 200,
+    "wilson95": [
+     0.020405631961019504,
+     0.0769320685744264
+    ]
+   },
+   "paired_unmatched": {
+    "k": 68,
+    "n": 200,
+    "wilson95": [
+     0.2779154592508567,
+     0.4081150452832114
+    ]
+   },
+   "refit": {
+    "k": 0,
+    "n": 200,
+    "wilson95": [
+     0.0,
+     0.018845326668962936
+    ]
+   },
+   "flow_sft": {
+    "k": 0,
+    "n": 200,
+    "wilson95": [
+     0.0,
+     0.018845326668962936
+    ]
+   },
+   "bc_sft": {
+    "k": 140,
+    "n": 200,
+    "wilson95": [
+     0.6332093157249852,
+     0.7592525536074295
+    ]
+   },
+   "joint_minus_bc_sft": {
+    "diff": -0.6599999999999999,
+    "newcombe95": [
+     -0.7224083677710635,
+     -0.5836784879925008
+    ]
+   },
+   "joint_minus_refit": {
+    "diff": 0.04,
+    "newcombe95": [
+     0.012813871255602682,
+     0.0769320685744264
+    ]
+   },
+   "joint_minus_paired_unmatched": {
+    "diff": -0.30000000000000004,
+    "newcombe95": [
+     -0.3708773493633965,
+     -0.2277610362116249
+    ]
+   },
+   "prereg_reading": "worse than BC"
+  },
+  "nosem/xarm7_tf3/b5": {
+   "joint_adapt": {
+    "k": 27,
+    "n": 200,
+    "wilson95": [
+     0.09446570427968658,
+     0.18929138418865638
+    ]
+   },
+   "paired_unmatched": {
+    "k": 23,
+    "n": 200,
+    "wilson95": [
+     0.07786373208518774,
+     0.16664716944991373
+    ]
+   },
+   "refit": {
+    "k": 1,
+    "n": 200,
+    "wilson95": [
+     0.0008831687058453754,
+     0.02777370469642793
+    ]
+   },
+   "flow_sft": {
+    "k": 0,
+    "n": 200,
+    "wilson95": [
+     0.0,
+     0.018845326668962936
+    ]
+   },
+   "bc_sft": {
+    "k": 143,
+    "n": 200,
+    "wilson95": [
+     0.6488465391585687,
+     0.7730499703737772
+    ]
+   },
+   "joint_minus_bc_sft": {
+    "diff": -0.58,
+    "newcombe95": [
+     -0.6508013290125139,
+     -0.49442059372478053
+    ]
+   },
+   "joint_minus_refit": {
+    "diff": 0.13,
+    "newcombe95": [
+     0.08350622885652399,
+     0.1844472469186902
+    ]
+   },
+   "joint_minus_paired_unmatched": {
+    "diff": 0.020000000000000004,
+    "newcombe95": [
+     -0.04565408777623767,
+     0.08577732733823261
+    ]
+   },
+   "prereg_reading": "worse than BC"
+  },
+  "nosem/xarm7_tf3/b20": {
+   "joint_adapt": {
+    "k": 32,
+    "n": 200,
+    "wilson95": [
+     0.11567412001614788,
+     0.2171407021187469
+    ]
+   },
+   "paired_unmatched": {
+    "k": 67,
+    "n": 200,
+    "wilson95": [
+     0.27324086932910685,
+     0.40297808847165084
+    ]
+   },
+   "refit": {
+    "k": 0,
+    "n": 200,
+    "wilson95": [
+     0.0,
+     0.018845326668962936
+    ]
+   },
+   "flow_sft": {
+    "k": 0,
+    "n": 200,
+    "wilson95": [
+     0.0,
+     0.018845326668962936
+    ]
+   },
+   "bc_sft": {
+    "k": 192,
+    "n": 200,
+    "wilson95": [
+     0.9230679314255735,
+     0.9795943680389804
+    ]
+   },
+   "joint_minus_bc_sft": {
+    "diff": -0.7999999999999999,
+    "newcombe95": [
+     -0.8484636244537063,
+     -0.731962969437155
+    ]
+   },
+   "joint_minus_refit": {
+    "diff": 0.16,
+    "newcombe95": [
+     0.11183434861228608,
+     0.2171407021187469
+    ]
+   },
+   "joint_minus_paired_unmatched": {
+    "diff": -0.17500000000000002,
+    "newcombe95": [
+     -0.2561529675896233,
+     -0.0908617206032366
+    ]
+   },
+   "prereg_reading": "worse than BC"
+  },
+  "nosem/xarm7_tf3/b100": {
+   "joint_adapt": {
+    "k": 43,
+    "n": 200,
+    "wilson95": [
+     0.16371876218582487,
+     0.277023074015484
+    ]
+   },
+   "paired_unmatched": {
+    "k": 52,
+    "n": 200,
+    "wilson95": [
+     0.20413830023580237,
+     0.32490745656529973
+    ]
+   },
+   "refit": {
+    "k": 1,
+    "n": 200,
+    "wilson95": [
+     0.0008831687058453754,
+     0.02777370469642793
+    ]
+   },
+   "flow_sft": {
+    "k": 0,
+    "n": 200,
+    "wilson95": [
+     0.0,
+     0.018845326668962936
+    ]
+   },
+   "bc_sft": {
+    "k": 186,
+    "n": 200,
+    "wilson95": [
+     0.8859451907260928,
+     0.957847828338599
+    ]
+   },
+   "joint_minus_bc_sft": {
+    "diff": -0.7150000000000001,
+    "newcombe95": [
+     -0.7733546647229685,
+     -0.6389231445806904
+    ]
+   },
+   "joint_minus_refit": {
+    "diff": 0.21,
+    "newcombe95": [
+     0.15388933276680727,
+     0.27215955284777016
+    ]
+   },
+   "joint_minus_paired_unmatched": {
+    "diff": -0.04500000000000001,
+    "newcombe95": [
+     -0.1277208756574195,
+     0.03847090038375986
+    ]
+   },
+   "prereg_reading": "worse than BC"
+  }
+ },
+ "cells": {
+  "semfix/xarm7_pg2/b5": {
+   "joint_adapt_s1": {
+    "k": 13,
+    "n": 100,
+    "failed_stage": {
+     "lift": 16,
+     "approach": 45,
+     "transport": 19,
+     "place": 5,
+     "success": 13,
+     "grasp": 2
+    },
+    "kind": "adapted:joint_adapt:b5",
+    "path": "research/tracks/armdiag/d136/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b5_s1/generated_joint_adapt_b5.summary.json"
+   },
+   "paired_unmatched_s1": {
+    "k": 14,
+    "n": 100,
+    "failed_stage": {
+     "lift": 15,
+     "approach": 41,
+     "transport": 24,
+     "success": 14,
+     "place": 5,
+     "grasp": 1
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b5",
+    "path": "research/tracks/armdiag/d136/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b5_s1/generated_paired_unmatched_b5.summary.json"
+   },
+   "refit_s1": {
+    "k": 1,
+    "n": 100,
+    "rate": 0.01,
+    "wilson95": [
+     0.0017673865655472645,
+     0.0544875247609346
+    ],
+    "failed_stage": {
+     "approach": 85,
+     "transport": 6,
+     "lift": 5,
+     "grasp": 2,
+     "success": 1,
+     "place": 1
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:system0_refit:b5",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-system0_refit_b5_s1/generated_system0_refit_b5.summary.json"
+   },
+   "flow_sft_s1": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:flow_sft:b5",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-flow_sft_b5_s1/generated_flow_sft_b5.summary.json"
+   },
+   "bc_sft_s1": {
+    "k": 32,
+    "n": 100,
+    "rate": 0.32,
+    "wilson95": [
+     0.2366901081545688,
+     0.4166280225367919
+    ],
+    "failed_stage": {
+     "approach": 12,
+     "success": 32,
+     "transport": 22,
+     "grasp": 24,
+     "lift": 10
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:bc_sft:b5",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-xarm7_pg2/target_eval-bc_sft_b5_s1701/learned_bc_sft_b5.summary.json"
+   },
+   "joint_adapt_s2": {
+    "k": 14,
+    "n": 100,
+    "failed_stage": {
+     "approach": 43,
+     "lift": 28,
+     "success": 14,
+     "grasp": 4,
+     "transport": 7,
+     "place": 4
+    },
+    "kind": "adapted:joint_adapt:b5",
+    "path": "research/tracks/armdiag/d136/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b5_s2/generated_joint_adapt_b5.summary.json"
+   },
+   "paired_unmatched_s2": {
+    "k": 22,
+    "n": 100,
+    "failed_stage": {
+     "grasp": 20,
+     "success": 22,
+     "approach": 33,
+     "lift": 14,
+     "transport": 5,
+     "place": 6
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b5",
+    "path": "research/tracks/armdiag/d136/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b5_s2/generated_paired_unmatched_b5.summary.json"
+   },
+   "refit_s2": {
+    "k": 1,
+    "n": 100,
+    "rate": 0.01,
+    "wilson95": [
+     0.0017673865655472645,
+     0.0544875247609346
+    ],
+    "failed_stage": {
+     "approach": 91,
+     "lift": 7,
+     "success": 1,
+     "transport": 1
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:system0_refit:b5",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-system0_refit_b5_s2/generated_system0_refit_b5.summary.json"
+   },
+   "flow_sft_s2": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:flow_sft:b5",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-flow_sft_b5_s2/generated_flow_sft_b5.summary.json"
+   },
+   "bc_sft_s2": {
+    "k": 37,
+    "n": 100,
+    "rate": 0.37,
+    "wilson95": [
+     0.28182212569509163,
+     0.46779652424866885
+    ],
+    "failed_stage": {
+     "approach": 14,
+     "success": 37,
+     "transport": 8,
+     "grasp": 21,
+     "place": 1,
+     "lift": 19
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:bc_sft:b5",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-xarm7_pg2/target_eval-bc_sft_b5_s1702/learned_bc_sft_b5.summary.json"
+   }
+  },
+  "semfix/xarm7_pg2/b20": {
+   "joint_adapt_s1": {
+    "k": 62,
+    "n": 100,
+    "failed_stage": {
+     "success": 62,
+     "place": 1,
+     "lift": 20,
+     "transport": 3,
+     "approach": 11,
+     "grasp": 3
+    },
+    "kind": "adapted:joint_adapt:b20",
+    "path": "research/tracks/armdiag/d136/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b20_s1/generated_joint_adapt_b20.summary.json"
+   },
+   "paired_unmatched_s1": {
+    "k": 59,
+    "n": 100,
+    "failed_stage": {
+     "success": 59,
+     "place": 8,
+     "lift": 23,
+     "approach": 3,
+     "transport": 2,
+     "grasp": 5
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b20",
+    "path": "research/tracks/armdiag/d136/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b20_s1/generated_paired_unmatched_b20.summary.json"
+   },
+   "refit_s1": {
+    "k": 5,
+    "n": 100,
+    "rate": 0.05,
+    "wilson95": [
+     0.02154336145631356,
+     0.11175196527208817
+    ],
+    "failed_stage": {
+     "approach": 80,
+     "place": 1,
+     "success": 5,
+     "lift": 12,
+     "transport": 2
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:system0_refit:b20",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-system0_refit_b20_s1/generated_system0_refit_b20.summary.json"
+   },
+   "flow_sft_s1": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:flow_sft:b20",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-flow_sft_b20_s1/generated_flow_sft_b20.summary.json"
+   },
+   "bc_sft_s1": {
+    "k": 65,
+    "n": 100,
+    "rate": 0.65,
+    "wilson95": [
+     0.5525426042919797,
+     0.7363589534652197
+    ],
+    "failed_stage": {
+     "lift": 18,
+     "success": 65,
+     "grasp": 9,
+     "approach": 4,
+     "transport": 3,
+     "place": 1
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:bc_sft:b20",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-xarm7_pg2/target_eval-bc_sft_b20_s1701/learned_bc_sft_b20.summary.json"
+   },
+   "joint_adapt_s2": {
+    "k": 30,
+    "n": 100,
+    "failed_stage": {
+     "approach": 46,
+     "grasp": 17,
+     "success": 30,
+     "transport": 2,
+     "lift": 4,
+     "place": 1
+    },
+    "kind": "adapted:joint_adapt:b20",
+    "path": "research/tracks/armdiag/d136/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b20_s2/generated_joint_adapt_b20.summary.json"
+   },
+   "paired_unmatched_s2": {
+    "k": 40,
+    "n": 100,
+    "failed_stage": {
+     "grasp": 18,
+     "lift": 20,
+     "success": 40,
+     "approach": 17,
+     "transport": 5
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b20",
+    "path": "research/tracks/armdiag/d136/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b20_s2/generated_paired_unmatched_b20.summary.json"
+   },
+   "refit_s2": {
+    "k": 9,
+    "n": 100,
+    "rate": 0.09,
+    "wilson95": [
+     0.04807199516388488,
+     0.16226374696643667
+    ],
+    "failed_stage": {
+     "approach": 81,
+     "lift": 10,
+     "success": 9
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:system0_refit:b20",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-system0_refit_b20_s2/generated_system0_refit_b20.summary.json"
+   },
+   "flow_sft_s2": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:flow_sft:b20",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-flow_sft_b20_s2/generated_flow_sft_b20.summary.json"
+   },
+   "bc_sft_s2": {
+    "k": 47,
+    "n": 100,
+    "rate": 0.47,
+    "wilson95": [
+     0.3751065198210374,
+     0.5671131686275227
+    ],
+    "failed_stage": {
+     "success": 47,
+     "lift": 38,
+     "approach": 14,
+     "place": 1
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:bc_sft:b20",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-xarm7_pg2/target_eval-bc_sft_b20_s1702/learned_bc_sft_b20.summary.json"
+   }
+  },
+  "semfix/xarm7_pg2/b100": {
+   "joint_adapt_s1": {
+    "k": 61,
+    "n": 100,
+    "failed_stage": {
+     "success": 61,
+     "lift": 25,
+     "approach": 10,
+     "place": 2,
+     "grasp": 2
+    },
+    "kind": "adapted:joint_adapt:b100",
+    "path": "research/tracks/armdiag/d136/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b100_s1/generated_joint_adapt_b100.summary.json"
+   },
+   "paired_unmatched_s1": {
+    "k": 74,
+    "n": 100,
+    "failed_stage": {
+     "success": 74,
+     "lift": 17,
+     "approach": 6,
+     "place": 1,
+     "grasp": 2
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b100",
+    "path": "research/tracks/armdiag/d136/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b100_s1/generated_paired_unmatched_b100.summary.json"
+   },
+   "refit_s1": {
+    "k": 3,
+    "n": 100,
+    "rate": 0.03,
+    "wilson95": [
+     0.010254338223414816,
+     0.08452078080402699
+    ],
+    "failed_stage": {
+     "approach": 69,
+     "lift": 22,
+     "place": 3,
+     "grasp": 1,
+     "success": 3,
+     "transport": 2
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:system0_refit:b100",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-system0_refit_b100_s1/generated_system0_refit_b100.summary.json"
+   },
+   "flow_sft_s1": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:flow_sft:b100",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-flow_sft_b100_s1/generated_flow_sft_b100.summary.json"
+   },
+   "bc_sft_s1": {
+    "k": 65,
+    "n": 100,
+    "rate": 0.65,
+    "wilson95": [
+     0.5525426042919797,
+     0.7363589534652197
+    ],
+    "failed_stage": {
+     "success": 65,
+     "lift": 15,
+     "approach": 18,
+     "grasp": 2
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:bc_sft:b100",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-xarm7_pg2/target_eval-bc_sft_b100_s1701/learned_bc_sft_b100.summary.json"
+   },
+   "joint_adapt_s2": {
+    "k": 40,
+    "n": 100,
+    "failed_stage": {
+     "success": 40,
+     "approach": 19,
+     "grasp": 15,
+     "lift": 17,
+     "transport": 1,
+     "place": 8
+    },
+    "kind": "adapted:joint_adapt:b100",
+    "path": "research/tracks/armdiag/d136/armja136-semfix-xarm7_pg2/target_eval-joint_adapt_b100_s2/generated_joint_adapt_b100.summary.json"
+   },
+   "paired_unmatched_s2": {
+    "k": 63,
+    "n": 100,
+    "failed_stage": {
+     "grasp": 12,
+     "lift": 18,
+     "place": 1,
+     "success": 63,
+     "approach": 3,
+     "transport": 3
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b100",
+    "path": "research/tracks/armdiag/d136/armja136-semfix-xarm7_pg2/target_eval-paired_unmatched_b100_s2/generated_paired_unmatched_b100.summary.json"
+   },
+   "refit_s2": {
+    "k": 7,
+    "n": 100,
+    "rate": 0.07,
+    "wilson95": [
+     0.034318824364064096,
+     0.13749671006529757
+    ],
+    "failed_stage": {
+     "approach": 77,
+     "lift": 16,
+     "success": 7
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:system0_refit:b100",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-system0_refit_b100_s2/generated_system0_refit_b100.summary.json"
+   },
+   "flow_sft_s2": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:flow_sft:b100",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_pg2/target_eval-flow_sft_b100_s2/generated_flow_sft_b100.summary.json"
+   },
+   "bc_sft_s2": {
+    "k": 75,
+    "n": 100,
+    "rate": 0.75,
+    "wilson95": [
+     0.6569535362992417,
+     0.8245490599627573
+    ],
+    "failed_stage": {
+     "success": 75,
+     "grasp": 8,
+     "lift": 12,
+     "transport": 2,
+     "place": 2,
+     "approach": 1
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:bc_sft:b100",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-xarm7_pg2/target_eval-bc_sft_b100_s1702/learned_bc_sft_b100.summary.json"
+   }
+  },
+  "semfix/xarm7_tf3/b5": {
+   "joint_adapt_s1": {
+    "k": 23,
+    "n": 100,
+    "failed_stage": {
+     "transport": 29,
+     "success": 23,
+     "approach": 34,
+     "place": 7,
+     "lift": 5,
+     "grasp": 2
+    },
+    "kind": "adapted:joint_adapt:b5",
+    "path": "research/tracks/armdiag/d136/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b5_s1/generated_joint_adapt_b5.summary.json"
+   },
+   "paired_unmatched_s1": {
+    "k": 21,
+    "n": 100,
+    "failed_stage": {
+     "transport": 32,
+     "lift": 6,
+     "approach": 31,
+     "success": 21,
+     "place": 10
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b5",
+    "path": "research/tracks/armdiag/d136/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b5_s1/generated_paired_unmatched_b5.summary.json"
+   },
+   "refit_s1": {
+    "k": 2,
+    "n": 100,
+    "rate": 0.02,
+    "wilson95": [
+     0.005501852234968185,
+     0.07001316294199365
+    ],
+    "failed_stage": {
+     "success": 2,
+     "approach": 73,
+     "lift": 3,
+     "transport": 17,
+     "place": 5
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:system0_refit:b5",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-system0_refit_b5_s1/generated_system0_refit_b5.summary.json"
+   },
+   "flow_sft_s1": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:flow_sft:b5",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-flow_sft_b5_s1/generated_flow_sft_b5.summary.json"
+   },
+   "bc_sft_s1": {
+    "k": 57,
+    "n": 100,
+    "rate": 0.57,
+    "wilson95": [
+     0.4721521169586435,
+     0.6626686099947162
+    ],
+    "failed_stage": {
+     "approach": 9,
+     "success": 57,
+     "place": 1,
+     "transport": 27,
+     "lift": 5,
+     "grasp": 1
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:bc_sft:b5",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-xarm7_tf3/target_eval-bc_sft_b5_s1701/learned_bc_sft_b5.summary.json"
+   },
+   "joint_adapt_s2": {
+    "k": 52,
+    "n": 100,
+    "failed_stage": {
+     "approach": 21,
+     "success": 52,
+     "transport": 14,
+     "place": 7,
+     "lift": 2,
+     "grasp": 4
+    },
+    "kind": "adapted:joint_adapt:b5",
+    "path": "research/tracks/armdiag/d136/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b5_s2/generated_joint_adapt_b5.summary.json"
+   },
+   "paired_unmatched_s2": {
+    "k": 43,
+    "n": 100,
+    "failed_stage": {
+     "approach": 19,
+     "success": 43,
+     "transport": 24,
+     "lift": 5,
+     "place": 7,
+     "grasp": 2
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b5",
+    "path": "research/tracks/armdiag/d136/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b5_s2/generated_paired_unmatched_b5.summary.json"
+   },
+   "refit_s2": {
+    "k": 28,
+    "n": 100,
+    "rate": 0.28,
+    "wilson95": [
+     0.2013955916759837,
+     0.37488212361345724
+    ],
+    "failed_stage": {
+     "approach": 50,
+     "success": 28,
+     "transport": 12,
+     "place": 7,
+     "lift": 3
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:system0_refit:b5",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-system0_refit_b5_s2/generated_system0_refit_b5.summary.json"
+   },
+   "flow_sft_s2": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:flow_sft:b5",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-flow_sft_b5_s2/generated_flow_sft_b5.summary.json"
+   },
+   "bc_sft_s2": {
+    "k": 86,
+    "n": 100,
+    "rate": 0.86,
+    "wilson95": [
+     0.7786263961619276,
+     0.914737342455351
+    ],
+    "failed_stage": {
+     "success": 86,
+     "transport": 10,
+     "approach": 2,
+     "lift": 1,
+     "grasp": 1
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:bc_sft:b5",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-xarm7_tf3/target_eval-bc_sft_b5_s1702/learned_bc_sft_b5.summary.json"
+   }
+  },
+  "semfix/xarm7_tf3/b20": {
+   "joint_adapt_s1": {
+    "k": 67,
+    "n": 100,
+    "failed_stage": {
+     "success": 67,
+     "transport": 10,
+     "lift": 3,
+     "place": 5,
+     "approach": 10,
+     "grasp": 5
+    },
+    "kind": "adapted:joint_adapt:b20",
+    "path": "research/tracks/armdiag/d136/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b20_s1/generated_joint_adapt_b20.summary.json"
+   },
+   "paired_unmatched_s1": {
+    "k": 73,
+    "n": 100,
+    "failed_stage": {
+     "success": 73,
+     "transport": 10,
+     "lift": 4,
+     "place": 4,
+     "approach": 4,
+     "grasp": 5
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b20",
+    "path": "research/tracks/armdiag/d136/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b20_s1/generated_paired_unmatched_b20.summary.json"
+   },
+   "refit_s1": {
+    "k": 5,
+    "n": 100,
+    "rate": 0.05,
+    "wilson95": [
+     0.02154336145631356,
+     0.11175196527208817
+    ],
+    "failed_stage": {
+     "approach": 88,
+     "transport": 4,
+     "success": 5,
+     "place": 2,
+     "lift": 1
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:system0_refit:b20",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-system0_refit_b20_s1/generated_system0_refit_b20.summary.json"
+   },
+   "flow_sft_s1": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:flow_sft:b20",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-flow_sft_b20_s1/generated_flow_sft_b20.summary.json"
+   },
+   "bc_sft_s1": {
+    "k": 95,
+    "n": 100,
+    "rate": 0.95,
+    "wilson95": [
+     0.8882480347279118,
+     0.9784566385436864
+    ],
+    "failed_stage": {
+     "success": 95,
+     "transport": 3,
+     "approach": 2
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:bc_sft:b20",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-xarm7_tf3/target_eval-bc_sft_b20_s1701/learned_bc_sft_b20.summary.json"
+   },
+   "joint_adapt_s2": {
+    "k": 60,
+    "n": 100,
+    "failed_stage": {
+     "transport": 15,
+     "success": 60,
+     "approach": 14,
+     "lift": 4,
+     "grasp": 5,
+     "place": 2
+    },
+    "kind": "adapted:joint_adapt:b20",
+    "path": "research/tracks/armdiag/d136/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b20_s2/generated_joint_adapt_b20.summary.json"
+   },
+   "paired_unmatched_s2": {
+    "k": 74,
+    "n": 100,
+    "failed_stage": {
+     "success": 74,
+     "lift": 7,
+     "approach": 10,
+     "grasp": 4,
+     "place": 3,
+     "transport": 2
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b20",
+    "path": "research/tracks/armdiag/d136/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b20_s2/generated_paired_unmatched_b20.summary.json"
+   },
+   "refit_s2": {
+    "k": 33,
+    "n": 100,
+    "rate": 0.33,
+    "wilson95": [
+     0.24562983793895452,
+     0.4269483966028862
+    ],
+    "failed_stage": {
+     "approach": 61,
+     "success": 33,
+     "lift": 5,
+     "transport": 1
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:system0_refit:b20",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-system0_refit_b20_s2/generated_system0_refit_b20.summary.json"
+   },
+   "flow_sft_s2": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:flow_sft:b20",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-flow_sft_b20_s2/generated_flow_sft_b20.summary.json"
+   },
+   "bc_sft_s2": {
+    "k": 97,
+    "n": 100,
+    "rate": 0.97,
+    "wilson95": [
+     0.915479219195973,
+     0.9897456617765851
+    ],
+    "failed_stage": {
+     "success": 97,
+     "transport": 1,
+     "grasp": 2
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:bc_sft:b20",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-xarm7_tf3/target_eval-bc_sft_b20_s1702/learned_bc_sft_b20.summary.json"
+   }
+  },
+  "semfix/xarm7_tf3/b100": {
+   "joint_adapt_s1": {
+    "k": 88,
+    "n": 100,
+    "failed_stage": {
+     "success": 88,
+     "place": 3,
+     "transport": 4,
+     "approach": 3,
+     "grasp": 2
+    },
+    "kind": "adapted:joint_adapt:b100",
+    "path": "research/tracks/armdiag/d136/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b100_s1/generated_joint_adapt_b100.summary.json"
+   },
+   "paired_unmatched_s1": {
+    "k": 89,
+    "n": 100,
+    "failed_stage": {
+     "success": 89,
+     "transport": 5,
+     "lift": 3,
+     "approach": 1,
+     "grasp": 2
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b100",
+    "path": "research/tracks/armdiag/d136/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b100_s1/generated_paired_unmatched_b100.summary.json"
+   },
+   "refit_s1": {
+    "k": 5,
+    "n": 100,
+    "rate": 0.05,
+    "wilson95": [
+     0.02154336145631356,
+     0.11175196527208817
+    ],
+    "failed_stage": {
+     "approach": 87,
+     "success": 5,
+     "place": 4,
+     "lift": 2,
+     "transport": 2
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:system0_refit:b100",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-system0_refit_b100_s1/generated_system0_refit_b100.summary.json"
+   },
+   "flow_sft_s1": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:flow_sft:b100",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-flow_sft_b100_s1/generated_flow_sft_b100.summary.json"
+   },
+   "bc_sft_s1": {
+    "k": 91,
+    "n": 100,
+    "rate": 0.91,
+    "wilson95": [
+     0.8377362530335634,
+     0.9519280048361151
+    ],
+    "failed_stage": {
+     "approach": 7,
+     "success": 91,
+     "lift": 2
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:bc_sft:b100",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-xarm7_tf3/target_eval-bc_sft_b100_s1701/learned_bc_sft_b100.summary.json"
+   },
+   "joint_adapt_s2": {
+    "k": 85,
+    "n": 100,
+    "failed_stage": {
+     "success": 85,
+     "approach": 5,
+     "place": 3,
+     "grasp": 6,
+     "lift": 1
+    },
+    "kind": "adapted:joint_adapt:b100",
+    "path": "research/tracks/armdiag/d136/armja136-semfix-xarm7_tf3/target_eval-joint_adapt_b100_s2/generated_joint_adapt_b100.summary.json"
+   },
+   "paired_unmatched_s2": {
+    "k": 78,
+    "n": 100,
+    "failed_stage": {
+     "transport": 6,
+     "success": 78,
+     "approach": 5,
+     "grasp": 3,
+     "place": 6,
+     "lift": 2
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b100",
+    "path": "research/tracks/armdiag/d136/armja136-semfix-xarm7_tf3/target_eval-paired_unmatched_b100_s2/generated_paired_unmatched_b100.summary.json"
+   },
+   "refit_s2": {
+    "k": 31,
+    "n": 100,
+    "rate": 0.31,
+    "wilson95": [
+     0.22779563206132378,
+     0.40626239477955695
+    ],
+    "failed_stage": {
+     "approach": 65,
+     "success": 31,
+     "transport": 2,
+     "place": 1,
+     "lift": 1
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:system0_refit:b100",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-system0_refit_b100_s2/generated_system0_refit_b100.summary.json"
+   },
+   "flow_sft_s2": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:flow_sft:b100",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-semfix-xarm7_tf3/target_eval-flow_sft_b100_s2/generated_flow_sft_b100.summary.json"
+   },
+   "bc_sft_s2": {
+    "k": 95,
+    "n": 100,
+    "rate": 0.95,
+    "wilson95": [
+     0.8882480347279118,
+     0.9784566385436864
+    ],
+    "failed_stage": {
+     "success": 95,
+     "approach": 2,
+     "transport": 1,
+     "lift": 2
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:bc_sft:b100",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-xarm7_tf3/target_eval-bc_sft_b100_s1702/learned_bc_sft_b100.summary.json"
+   }
+  },
+  "nosem/xarm7_pg2/b5": {
+   "joint_adapt_s1": {
+    "k": 6,
+    "n": 100,
+    "failed_stage": {
+     "lift": 19,
+     "approach": 51,
+     "transport": 16,
+     "grasp": 7,
+     "success": 6,
+     "place": 1
+    },
+    "kind": "adapted:joint_adapt:b5",
+    "path": "research/tracks/armdiag/d136/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b5_s1/generated_joint_adapt_b5.summary.json"
+   },
+   "paired_unmatched_s1": {
+    "k": 4,
+    "n": 100,
+    "failed_stage": {
+     "approach": 59,
+     "grasp": 6,
+     "success": 4,
+     "lift": 14,
+     "transport": 13,
+     "place": 4
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b5",
+    "path": "research/tracks/armdiag/d136/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b5_s1/generated_paired_unmatched_b5.summary.json"
+   },
+   "refit_s1": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 99,
+     "place": 1
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:system0_refit:b5",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-system0_refit_b5_s1/generated_system0_refit_b5.summary.json"
+   },
+   "flow_sft_s1": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:flow_sft:b5",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-flow_sft_b5_s1/generated_flow_sft_b5.summary.json"
+   },
+   "bc_sft_s1": {
+    "k": 32,
+    "n": 100,
+    "rate": 0.32,
+    "wilson95": [
+     0.2366901081545688,
+     0.4166280225367919
+    ],
+    "failed_stage": {
+     "approach": 12,
+     "success": 32,
+     "transport": 22,
+     "grasp": 24,
+     "lift": 10
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:bc_sft:b5",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-xarm7_pg2/target_eval-bc_sft_b5_s1701/learned_bc_sft_b5.summary.json"
+   },
+   "joint_adapt_s2": {
+    "k": 3,
+    "n": 100,
+    "failed_stage": {
+     "approach": 70,
+     "transport": 7,
+     "grasp": 13,
+     "lift": 7,
+     "success": 3
+    },
+    "kind": "adapted:joint_adapt:b5",
+    "path": "research/tracks/armdiag/d136/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b5_s2/generated_joint_adapt_b5.summary.json"
+   },
+   "paired_unmatched_s2": {
+    "k": 8,
+    "n": 100,
+    "failed_stage": {
+     "grasp": 6,
+     "success": 8,
+     "approach": 50,
+     "lift": 17,
+     "transport": 19
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b5",
+    "path": "research/tracks/armdiag/d136/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b5_s2/generated_paired_unmatched_b5.summary.json"
+   },
+   "refit_s2": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 97,
+     "lift": 3
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:system0_refit:b5",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-system0_refit_b5_s2/generated_system0_refit_b5.summary.json"
+   },
+   "flow_sft_s2": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:flow_sft:b5",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-flow_sft_b5_s2/generated_flow_sft_b5.summary.json"
+   },
+   "bc_sft_s2": {
+    "k": 37,
+    "n": 100,
+    "rate": 0.37,
+    "wilson95": [
+     0.28182212569509163,
+     0.46779652424866885
+    ],
+    "failed_stage": {
+     "approach": 14,
+     "success": 37,
+     "transport": 8,
+     "grasp": 21,
+     "place": 1,
+     "lift": 19
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:bc_sft:b5",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-xarm7_pg2/target_eval-bc_sft_b5_s1702/learned_bc_sft_b5.summary.json"
+   }
+  },
+  "nosem/xarm7_pg2/b20": {
+   "joint_adapt_s1": {
+    "k": 26,
+    "n": 100,
+    "failed_stage": {
+     "lift": 35,
+     "success": 26,
+     "transport": 10,
+     "approach": 10,
+     "grasp": 15,
+     "place": 4
+    },
+    "kind": "adapted:joint_adapt:b20",
+    "path": "research/tracks/armdiag/d136/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b20_s1/generated_joint_adapt_b20.summary.json"
+   },
+   "paired_unmatched_s1": {
+    "k": 31,
+    "n": 100,
+    "failed_stage": {
+     "success": 31,
+     "approach": 34,
+     "lift": 21,
+     "place": 3,
+     "transport": 10,
+     "grasp": 1
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b20",
+    "path": "research/tracks/armdiag/d136/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b20_s1/generated_paired_unmatched_b20.summary.json"
+   },
+   "refit_s1": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:system0_refit:b20",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-system0_refit_b20_s1/generated_system0_refit_b20.summary.json"
+   },
+   "flow_sft_s1": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:flow_sft:b20",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-flow_sft_b20_s1/generated_flow_sft_b20.summary.json"
+   },
+   "bc_sft_s1": {
+    "k": 65,
+    "n": 100,
+    "rate": 0.65,
+    "wilson95": [
+     0.5525426042919797,
+     0.7363589534652197
+    ],
+    "failed_stage": {
+     "lift": 18,
+     "success": 65,
+     "grasp": 9,
+     "approach": 4,
+     "transport": 3,
+     "place": 1
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:bc_sft:b20",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-xarm7_pg2/target_eval-bc_sft_b20_s1701/learned_bc_sft_b20.summary.json"
+   },
+   "joint_adapt_s2": {
+    "k": 6,
+    "n": 100,
+    "failed_stage": {
+     "approach": 71,
+     "grasp": 19,
+     "success": 6,
+     "transport": 2,
+     "lift": 2
+    },
+    "kind": "adapted:joint_adapt:b20",
+    "path": "research/tracks/armdiag/d136/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b20_s2/generated_joint_adapt_b20.summary.json"
+   },
+   "paired_unmatched_s2": {
+    "k": 22,
+    "n": 100,
+    "failed_stage": {
+     "approach": 61,
+     "lift": 7,
+     "success": 22,
+     "grasp": 6,
+     "transport": 4
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b20",
+    "path": "research/tracks/armdiag/d136/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b20_s2/generated_paired_unmatched_b20.summary.json"
+   },
+   "refit_s2": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:system0_refit:b20",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-system0_refit_b20_s2/generated_system0_refit_b20.summary.json"
+   },
+   "flow_sft_s2": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:flow_sft:b20",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-flow_sft_b20_s2/generated_flow_sft_b20.summary.json"
+   },
+   "bc_sft_s2": {
+    "k": 47,
+    "n": 100,
+    "rate": 0.47,
+    "wilson95": [
+     0.3751065198210374,
+     0.5671131686275227
+    ],
+    "failed_stage": {
+     "success": 47,
+     "lift": 38,
+     "approach": 14,
+     "place": 1
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:bc_sft:b20",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-xarm7_pg2/target_eval-bc_sft_b20_s1702/learned_bc_sft_b20.summary.json"
+   }
+  },
+  "nosem/xarm7_pg2/b100": {
+   "joint_adapt_s1": {
+    "k": 7,
+    "n": 100,
+    "failed_stage": {
+     "approach": 74,
+     "transport": 5,
+     "lift": 6,
+     "grasp": 7,
+     "place": 1,
+     "success": 7
+    },
+    "kind": "adapted:joint_adapt:b100",
+    "path": "research/tracks/armdiag/d136/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b100_s1/generated_joint_adapt_b100.summary.json"
+   },
+   "paired_unmatched_s1": {
+    "k": 44,
+    "n": 100,
+    "failed_stage": {
+     "success": 44,
+     "lift": 28,
+     "approach": 15,
+     "grasp": 2,
+     "transport": 9,
+     "place": 2
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b100",
+    "path": "research/tracks/armdiag/d136/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b100_s1/generated_paired_unmatched_b100.summary.json"
+   },
+   "refit_s1": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:system0_refit:b100",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-system0_refit_b100_s1/generated_system0_refit_b100.summary.json"
+   },
+   "flow_sft_s1": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:flow_sft:b100",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-flow_sft_b100_s1/generated_flow_sft_b100.summary.json"
+   },
+   "bc_sft_s1": {
+    "k": 65,
+    "n": 100,
+    "rate": 0.65,
+    "wilson95": [
+     0.5525426042919797,
+     0.7363589534652197
+    ],
+    "failed_stage": {
+     "success": 65,
+     "lift": 15,
+     "approach": 18,
+     "grasp": 2
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:bc_sft:b100",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-xarm7_pg2/target_eval-bc_sft_b100_s1701/learned_bc_sft_b100.summary.json"
+   },
+   "joint_adapt_s2": {
+    "k": 1,
+    "n": 100,
+    "failed_stage": {
+     "approach": 95,
+     "transport": 1,
+     "grasp": 2,
+     "lift": 1,
+     "success": 1
+    },
+    "kind": "adapted:joint_adapt:b100",
+    "path": "research/tracks/armdiag/d136/armja136-nosem-xarm7_pg2/target_eval-joint_adapt_b100_s2/generated_joint_adapt_b100.summary.json"
+   },
+   "paired_unmatched_s2": {
+    "k": 24,
+    "n": 100,
+    "failed_stage": {
+     "grasp": 20,
+     "success": 24,
+     "transport": 7,
+     "approach": 38,
+     "lift": 11
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b100",
+    "path": "research/tracks/armdiag/d136/armja136-nosem-xarm7_pg2/target_eval-paired_unmatched_b100_s2/generated_paired_unmatched_b100.summary.json"
+   },
+   "refit_s2": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:system0_refit:b100",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-system0_refit_b100_s2/generated_system0_refit_b100.summary.json"
+   },
+   "flow_sft_s2": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:flow_sft:b100",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_pg2/target_eval-flow_sft_b100_s2/generated_flow_sft_b100.summary.json"
+   },
+   "bc_sft_s2": {
+    "k": 75,
+    "n": 100,
+    "rate": 0.75,
+    "wilson95": [
+     0.6569535362992417,
+     0.8245490599627573
+    ],
+    "failed_stage": {
+     "success": 75,
+     "grasp": 8,
+     "lift": 12,
+     "transport": 2,
+     "place": 2,
+     "approach": 1
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:bc_sft:b100",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-xarm7_pg2/target_eval-bc_sft_b100_s1702/learned_bc_sft_b100.summary.json"
+   }
+  },
+  "nosem/xarm7_tf3/b5": {
+   "joint_adapt_s1": {
+    "k": 11,
+    "n": 100,
+    "failed_stage": {
+     "transport": 29,
+     "lift": 8,
+     "approach": 40,
+     "success": 11,
+     "grasp": 5,
+     "place": 7
+    },
+    "kind": "adapted:joint_adapt:b5",
+    "path": "research/tracks/armdiag/d136/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b5_s1/generated_joint_adapt_b5.summary.json"
+   },
+   "paired_unmatched_s1": {
+    "k": 8,
+    "n": 100,
+    "failed_stage": {
+     "lift": 8,
+     "approach": 49,
+     "transport": 29,
+     "success": 8,
+     "place": 6
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b5",
+    "path": "research/tracks/armdiag/d136/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b5_s1/generated_paired_unmatched_b5.summary.json"
+   },
+   "refit_s1": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:system0_refit:b5",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-system0_refit_b5_s1/generated_system0_refit_b5.summary.json"
+   },
+   "flow_sft_s1": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:flow_sft:b5",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-flow_sft_b5_s1/generated_flow_sft_b5.summary.json"
+   },
+   "bc_sft_s1": {
+    "k": 57,
+    "n": 100,
+    "rate": 0.57,
+    "wilson95": [
+     0.4721521169586435,
+     0.6626686099947162
+    ],
+    "failed_stage": {
+     "approach": 9,
+     "success": 57,
+     "place": 1,
+     "transport": 27,
+     "lift": 5,
+     "grasp": 1
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:bc_sft:b5",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-xarm7_tf3/target_eval-bc_sft_b5_s1701/learned_bc_sft_b5.summary.json"
+   },
+   "joint_adapt_s2": {
+    "k": 16,
+    "n": 100,
+    "failed_stage": {
+     "transport": 22,
+     "success": 16,
+     "lift": 6,
+     "place": 27,
+     "approach": 26,
+     "grasp": 3
+    },
+    "kind": "adapted:joint_adapt:b5",
+    "path": "research/tracks/armdiag/d136/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b5_s2/generated_joint_adapt_b5.summary.json"
+   },
+   "paired_unmatched_s2": {
+    "k": 15,
+    "n": 100,
+    "failed_stage": {
+     "approach": 48,
+     "grasp": 8,
+     "success": 15,
+     "transport": 12,
+     "lift": 11,
+     "place": 6
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b5",
+    "path": "research/tracks/armdiag/d136/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b5_s2/generated_paired_unmatched_b5.summary.json"
+   },
+   "refit_s2": {
+    "k": 1,
+    "n": 100,
+    "rate": 0.01,
+    "wilson95": [
+     0.0017673865655472645,
+     0.0544875247609346
+    ],
+    "failed_stage": {
+     "approach": 96,
+     "success": 1,
+     "lift": 3
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:system0_refit:b5",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-system0_refit_b5_s2/generated_system0_refit_b5.summary.json"
+   },
+   "flow_sft_s2": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:flow_sft:b5",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-flow_sft_b5_s2/generated_flow_sft_b5.summary.json"
+   },
+   "bc_sft_s2": {
+    "k": 86,
+    "n": 100,
+    "rate": 0.86,
+    "wilson95": [
+     0.7786263961619276,
+     0.914737342455351
+    ],
+    "failed_stage": {
+     "success": 86,
+     "transport": 10,
+     "approach": 2,
+     "lift": 1,
+     "grasp": 1
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:bc_sft:b5",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-xarm7_tf3/target_eval-bc_sft_b5_s1702/learned_bc_sft_b5.summary.json"
+   }
+  },
+  "nosem/xarm7_tf3/b20": {
+   "joint_adapt_s1": {
+    "k": 29,
+    "n": 100,
+    "failed_stage": {
+     "transport": 11,
+     "success": 29,
+     "place": 47,
+     "grasp": 1,
+     "approach": 5,
+     "lift": 7
+    },
+    "kind": "adapted:joint_adapt:b20",
+    "path": "research/tracks/armdiag/d136/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b20_s1/generated_joint_adapt_b20.summary.json"
+   },
+   "paired_unmatched_s1": {
+    "k": 37,
+    "n": 100,
+    "failed_stage": {
+     "success": 37,
+     "transport": 22,
+     "place": 24,
+     "lift": 12,
+     "approach": 5
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b20",
+    "path": "research/tracks/armdiag/d136/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b20_s1/generated_paired_unmatched_b20.summary.json"
+   },
+   "refit_s1": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 99,
+     "transport": 1
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:system0_refit:b20",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-system0_refit_b20_s1/generated_system0_refit_b20.summary.json"
+   },
+   "flow_sft_s1": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:flow_sft:b20",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-flow_sft_b20_s1/generated_flow_sft_b20.summary.json"
+   },
+   "bc_sft_s1": {
+    "k": 95,
+    "n": 100,
+    "rate": 0.95,
+    "wilson95": [
+     0.8882480347279118,
+     0.9784566385436864
+    ],
+    "failed_stage": {
+     "success": 95,
+     "transport": 3,
+     "approach": 2
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:bc_sft:b20",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-xarm7_tf3/target_eval-bc_sft_b20_s1701/learned_bc_sft_b20.summary.json"
+   },
+   "joint_adapt_s2": {
+    "k": 3,
+    "n": 100,
+    "failed_stage": {
+     "lift": 3,
+     "approach": 73,
+     "success": 3,
+     "place": 17,
+     "transport": 4
+    },
+    "kind": "adapted:joint_adapt:b20",
+    "path": "research/tracks/armdiag/d136/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b20_s2/generated_joint_adapt_b20.summary.json"
+   },
+   "paired_unmatched_s2": {
+    "k": 30,
+    "n": 100,
+    "failed_stage": {
+     "transport": 12,
+     "success": 30,
+     "place": 28,
+     "approach": 14,
+     "grasp": 4,
+     "lift": 12
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b20",
+    "path": "research/tracks/armdiag/d136/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b20_s2/generated_paired_unmatched_b20.summary.json"
+   },
+   "refit_s2": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 94,
+     "lift": 6
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:system0_refit:b20",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-system0_refit_b20_s2/generated_system0_refit_b20.summary.json"
+   },
+   "flow_sft_s2": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:flow_sft:b20",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-flow_sft_b20_s2/generated_flow_sft_b20.summary.json"
+   },
+   "bc_sft_s2": {
+    "k": 97,
+    "n": 100,
+    "rate": 0.97,
+    "wilson95": [
+     0.915479219195973,
+     0.9897456617765851
+    ],
+    "failed_stage": {
+     "success": 97,
+     "transport": 1,
+     "grasp": 2
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:bc_sft:b20",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-xarm7_tf3/target_eval-bc_sft_b20_s1702/learned_bc_sft_b20.summary.json"
+   }
+  },
+  "nosem/xarm7_tf3/b100": {
+   "joint_adapt_s1": {
+    "k": 14,
+    "n": 100,
+    "failed_stage": {
+     "transport": 4,
+     "lift": 28,
+     "success": 14,
+     "place": 35,
+     "approach": 19
+    },
+    "kind": "adapted:joint_adapt:b100",
+    "path": "research/tracks/armdiag/d136/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b100_s1/generated_joint_adapt_b100.summary.json"
+   },
+   "paired_unmatched_s1": {
+    "k": 22,
+    "n": 100,
+    "failed_stage": {
+     "lift": 14,
+     "place": 47,
+     "success": 22,
+     "transport": 10,
+     "approach": 7
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b100",
+    "path": "research/tracks/armdiag/d136/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b100_s1/generated_paired_unmatched_b100.summary.json"
+   },
+   "refit_s1": {
+    "k": 1,
+    "n": 100,
+    "rate": 0.01,
+    "wilson95": [
+     0.0017673865655472645,
+     0.0544875247609346
+    ],
+    "failed_stage": {
+     "approach": 92,
+     "lift": 1,
+     "grasp": 4,
+     "transport": 1,
+     "success": 1,
+     "place": 1
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:system0_refit:b100",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-system0_refit_b100_s1/generated_system0_refit_b100.summary.json"
+   },
+   "flow_sft_s1": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:flow_sft:b100",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-flow_sft_b100_s1/generated_flow_sft_b100.summary.json"
+   },
+   "bc_sft_s1": {
+    "k": 91,
+    "n": 100,
+    "rate": 0.91,
+    "wilson95": [
+     0.8377362530335634,
+     0.9519280048361151
+    ],
+    "failed_stage": {
+     "approach": 7,
+     "success": 91,
+     "lift": 2
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:bc_sft:b100",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-bc1701-xarm7_tf3/target_eval-bc_sft_b100_s1701/learned_bc_sft_b100.summary.json"
+   },
+   "joint_adapt_s2": {
+    "k": 29,
+    "n": 100,
+    "failed_stage": {
+     "success": 29,
+     "approach": 19,
+     "lift": 8,
+     "place": 35,
+     "transport": 9
+    },
+    "kind": "adapted:joint_adapt:b100",
+    "path": "research/tracks/armdiag/d136/armja136-nosem-xarm7_tf3/target_eval-joint_adapt_b100_s2/generated_joint_adapt_b100.summary.json"
+   },
+   "paired_unmatched_s2": {
+    "k": 30,
+    "n": 100,
+    "failed_stage": {
+     "success": 30,
+     "lift": 3,
+     "place": 51,
+     "transport": 10,
+     "approach": 4,
+     "grasp": 2
+    },
+    "kind": "adapted:paired_flow_sft+refit_unmatched:b100",
+    "path": "research/tracks/armdiag/d136/armja136-nosem-xarm7_tf3/target_eval-paired_unmatched_b100_s2/generated_paired_unmatched_b100.summary.json"
+   },
+   "refit_s2": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 99,
+     "lift": 1
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:system0_refit:b100",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-system0_refit_b100_s2/generated_system0_refit_b100.summary.json"
+   },
+   "flow_sft_s2": {
+    "k": 0,
+    "n": 100,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.03699480747600191
+    ],
+    "failed_stage": {
+     "approach": 100
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:flow_sft:b100",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-nosem-xarm7_tf3/target_eval-flow_sft_b100_s2/generated_flow_sft_b100.summary.json"
+   },
+   "bc_sft_s2": {
+    "k": 95,
+    "n": 100,
+    "rate": 0.95,
+    "wilson95": [
+     0.8882480347279118,
+     0.9784566385436864
+    ],
+    "failed_stage": {
+     "success": 95,
+     "approach": 2,
+     "transport": 1,
+     "lift": 2
+    },
+    "seeds": {
+     "start": 2000000,
+     "requested": 100,
+     "feasible": 100,
+     "infeasible": 0
+    },
+    "sealed_run": true,
+    "kind": "adapted:bc_sft:b100",
+    "path": "artifacts/runs/armtgt_pull/armtgt6-bc1702-xarm7_tf3/target_eval-bc_sft_b100_s1702/learned_bc_sft_b100.summary.json"
+   }
+  }
+ }
+}

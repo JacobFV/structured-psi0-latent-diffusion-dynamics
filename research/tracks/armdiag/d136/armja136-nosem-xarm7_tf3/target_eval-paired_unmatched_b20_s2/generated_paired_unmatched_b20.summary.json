@@ -1,0 +1,68 @@
+{
+ "n": 100,
+ "success": 30,
+ "rate": 0.3,
+ "wilson95": [
+  0.21894753866228117,
+  0.39585038432811953
+ ],
+ "failed_stage": {
+  "transport": 12,
+  "success": 30,
+  "place": 28,
+  "approach": 14,
+  "grasp": 4,
+  "lift": 12
+ },
+ "track_q_rad": 0.011885600695480511,
+ "track_tcp_m": 0.015191560864186231,
+ "lab_err_arm": 0.27170593984167657,
+ "lab_err_grip": 1.0772307241234345,
+ "min_tcp_cube_m": 0.023126816101194783,
+ "cmd_step_rad": 0.047140113436593835,
+ "version": "target_eval_v1",
+ "route": "generated",
+ "robot": "xarm7_tf3",
+ "kind": "adapted:paired_flow_sft+refit_unmatched:b20",
+ "scene_kind": "target",
+ "smoke": false,
+ "sealed_run": true,
+ "controller_source": "learned:artifacts/runs/armtgt/armtgt6-nosem-xarm7_tf3/target_adapt-flow_sft_b20_s2/policy.pt",
+ "protocol": {
+  "id": "latent_slice1",
+  "status": "SEALED_BEFORE_RESULTS",
+  "path": "configs/eval/latent_slice1.json",
+  "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+ },
+ "seeds": {
+  "start": 2000000,
+  "requested": 100,
+  "feasible": 100,
+  "infeasible": 0
+ },
+ "replan": 8,
+ "nfe": 8,
+ "max_steps": 300,
+ "prev_action": "zero",
+ "chunk_vel_step_max_mean": 1.774538868665695,
+ "chunk_vel_step_flag_frac": 0.54,
+ "checkpoints": {
+  "representation": {
+   "path": "artifacts/runs/armtgt/armtgt6-nosem-xarm7_tf3/target_adapt-system0_refit_b20_s2/representation.pt",
+   "sha256": "21f40616368c36af1ea1b022b4333bac7708a9f376e24a41ed0d1fb7f2231e25",
+   "latent_space_version": "ls-ab98f11fb448-wa2760a384227",
+   "realizer_compat_version": "rz-ls-ab98f11fb448-wa2760a384227-r4706c96be55e-none-v1"
+  },
+  "realizer_override": {
+   "flow_rcv": "rz-ls-ab98f11fb448-wa2760a384227-rb23feb22faa1-none-v1",
+   "used_rcv": "rz-ls-ab98f11fb448-wa2760a384227-r4706c96be55e-none-v1"
+  },
+  "flow": {
+   "path": "artifacts/runs/armtgt/armtgt6-nosem-xarm7_tf3/target_adapt-flow_sft_b20_s2/policy.pt",
+   "sha256": "d6c0595a9d2d0976edcfdad7b2dec2804e2c983761cf52727bcb56341a59622a",
+   "nfe": 8,
+   "sampler": "euler-ode",
+   "noise_scale": 1.0
+  }
+ }
+}

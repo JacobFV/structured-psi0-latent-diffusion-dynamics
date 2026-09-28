@@ -1,0 +1,67 @@
+{
+ "n": 100,
+ "success": 3,
+ "rate": 0.03,
+ "wilson95": [
+  0.010254338223414816,
+  0.08452078080402699
+ ],
+ "failed_stage": {
+  "lift": 3,
+  "approach": 73,
+  "success": 3,
+  "place": 17,
+  "transport": 4
+ },
+ "track_q_rad": 0.010081214009943025,
+ "track_tcp_m": 0.014753358038173505,
+ "lab_err_arm": 0.3192628171988429,
+ "lab_err_grip": 0.9304912685363511,
+ "min_tcp_cube_m": 0.04777345496888152,
+ "cmd_step_rad": 0.038638084490672714,
+ "version": "target_eval_v1",
+ "route": "generated",
+ "robot": "xarm7_tf3",
+ "kind": "adapted:joint_adapt:b20",
+ "scene_kind": "target",
+ "smoke": false,
+ "sealed_run": true,
+ "controller_source": "learned:artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b20_s2/policy.pt",
+ "protocol": {
+  "id": "latent_slice1",
+  "status": "SEALED_BEFORE_RESULTS",
+  "path": "configs/eval/latent_slice1.json",
+  "sha256": "323d3d937660751ad38380ab7ffad54f32f1ce238023315962dbfc3f524ebd38"
+ },
+ "seeds": {
+  "start": 2000000,
+  "requested": 100,
+  "feasible": 100,
+  "infeasible": 0
+ },
+ "replan": 8,
+ "nfe": 8,
+ "max_steps": 300,
+ "prev_action": "zero",
+ "chunk_vel_step_max_mean": 1.6449870988726616,
+ "chunk_vel_step_flag_frac": 0.43,
+ "checkpoints": {
+  "representation": {
+   "path": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b20_s2/representation.pt",
+   "sha256": "516dec15e938007d00a053f15730f58c46341f39fe2b46a30afeac9fef152789",
+   "latent_space_version": "ls-ab98f11fb448-wa2760a384227",
+   "realizer_compat_version": "rz-ls-ab98f11fb448-wa2760a384227-rc7d38f62594e-none-v1"
+  },
+  "realizer_override": {
+   "flow_rcv": "rz-ls-ab98f11fb448-wa2760a384227-rb23feb22faa1-none-v1",
+   "used_rcv": "rz-ls-ab98f11fb448-wa2760a384227-rc7d38f62594e-none-v1"
+  },
+  "flow": {
+   "path": "artifacts/runs/armdiag/armja136-nosem-xarm7_tf3/target_adapt-joint_adapt_b20_s2/policy.pt",
+   "sha256": "6d8df3ff49e1c7be8ce758e0eeea9760848b4911671cc3a41153dc01509196c0",
+   "nfe": 8,
+   "sampler": "euler-ode",
+   "noise_scale": 1.0
+  }
+ }
+}
