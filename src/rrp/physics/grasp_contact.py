@@ -46,12 +46,19 @@ GRASP_MODELS = {
                         solimp=[0.99, 0.999, 0.0005, 0.5, 2.0], margin=0.0, gap=0.0),
                grip_force=dict(parallel_N=40.0, three_finger_Nm=2.2)),
 }
+# grasp_v2.1 (D-118): grasp_v2 + the same stiff contact (solref/solimp, margin/gap 0) on EVERY other robot geom that can
+# touch a task object (palm, wrist, links). Diagnosis: in v5dart DART episodes the object penetration came from the PALM
+# (default soft contact, solref 0.02) pressed onto the cube during the noisy descent (up to 68 mm), not from the pads.
+# Pads keep their friction priority; other robot geoms keep their own friction/condim/priority.
+GRASP_MODELS["v2.1"] = dict(GRASP_MODELS["v2"], version="grasp_v2.1",
+                            robot=dict(solref=[0.004, 1.0], solimp=[0.99, 0.999, 0.0005, 0.5, 2.0], margin=0.0, gap=0.0))
+ROBOT_BODY_RE = re.compile(r"^r\d+_")
 
 
 def resolve(v: str | None = None) -> str:
     """'v1' | 'v2' (accepts 'grasp_v1'/'grasp_v2'); None -> $RRP_GRASP_CONTACT or 'v1'."""
     c = v if v is not None else os.environ.get(ENV, "v1")
-    c = str(c).lower().replace("grasp_", "")
+    c = str(c).lower().replace("grasp_", "").replace("v2_1", "v2.1")
     if c not in GRASP_MODELS:
         raise ValueError(f"unknown grasp contact model {v!r}; known: {sorted(GRASP_MODELS)}")
     return c
@@ -77,7 +84,7 @@ def apply(spec: mujoco.MjSpec, version: str | None = None) -> dict:
         return dict(version="grasp_v1", changed=0)
     cm = GRASP_MODELS[c]
     free = _free_bodies(spec)
-    n_pad = n_obj = n_act = 0
+    n_pad = n_obj = n_act = n_rob = 0
     for g in spec.geoms:
         name = g.name or ""
         body = g.parent.name if g.parent is not None else ""
@@ -87,10 +94,15 @@ def apply(spec: mujoco.MjSpec, version: str | None = None) -> dict:
         elif body in free:
             p = cm["obj"]
             n_obj += 1
+        elif "robot" in cm and ROBOT_BODY_RE.match(body or "") and (g.contype or g.conaffinity):
+            p = cm["robot"]
+            n_rob += 1
         else:
             continue
-        g.friction = list(p["friction"])
-        g.condim = p["condim"]
+        if "friction" in p:
+            g.friction = list(p["friction"])
+        if "condim" in p:
+            g.condim = p["condim"]
         g.solref = list(p["solref"])
         g.solimp = list(p["solimp"])
         g.margin = p["margin"]
@@ -110,7 +122,7 @@ def apply(spec: mujoco.MjSpec, version: str | None = None) -> dict:
         n_act += 1
     if not any((t.name or "") == TEXT for t in spec.texts):
         spec.add_text(name=TEXT, data=cm["version"])
-    return dict(version=cm["version"], pads=n_pad, objects=n_obj, grip_actuators=n_act)
+    return dict(version=cm["version"], pads=n_pad, objects=n_obj, robot_geoms=n_rob, grip_actuators=n_act)
 
 
 def model_grasp_version(model: mujoco.MjModel) -> str | None:

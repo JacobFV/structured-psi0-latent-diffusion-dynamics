@@ -35,7 +35,7 @@ def build(version: str, kind: str, half: float = 0.022, fscale: float = 1.0, yaw
     L = 0.055
     tcp_off = 0.04 + L * (0.75 if kind == "pg2" else 0.85)
     fr = car.add_frame(pos=[0, 0, half + 0.004 + tcp_off], quat=[0, 1, 0, 0])
-    s.attach(gs, prefix="g_", frame=fr)
+    s.attach(gs, prefix="r0_", frame=fr)
     s.add_actuator(name="lift_act", target="lift", trntype=mujoco.mjtTrn.mjTRN_JOINT,
                    gaintype=mujoco.mjtGain.mjGAIN_FIXED, gainprm=[20000] + [0] * 9,
                    biastype=mujoco.mjtBias.mjBIAS_AFFINE, biasprm=[0, -20000, -400] + [0] * 7)
@@ -55,10 +55,10 @@ def run(version="v2", kind="pg2", fscale=1.0, t_close=0.8, verbose=False, yaw=0.
     d = mujoco.MjData(m)
     mujoco.mj_forward(m, d)
     dt = m.opt.timestep
-    grip = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_ACTUATOR, "g_act_grip")
+    grip = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_ACTUATOR, "r0_act_grip")
     lift = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_ACTUATOR, "lift_act")
     cube = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, "cube")
-    palm = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, "g_palm")
+    palm = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, "r0_palm")
     cg = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_GEOM, "cube_geom")
     pads = [g for g in range(m.ngeom) if GC.PAD_RE.search(m.geom(g).name or "")]
     closed = m.actuator_ctrlrange[grip][0] if kind == "pg2" else m.actuator_ctrlrange[grip][1]
@@ -144,3 +144,39 @@ if __name__ == "__main__":
     k = sys.argv[2] if len(sys.argv) > 2 else "pg2"
     fs = float(sys.argv[3]) if len(sys.argv) > 3 else 1.0
     print(json.dumps(run(v, k, fs)))
+
+
+def palm_press(version="v2.1", kind="tf3", depth=0.04, T=0.6):
+    """D-118: the carriage drives the (open) gripper DOWN onto the cube top, `depth` below first palm contact, like a
+    noisy descent; returns the max palm/robot<->cube and cube<->table penetration (the lift actuator is stiff: 20 kN/m)."""
+    m, info = build(version, kind)
+    d = mujoco.MjData(m)
+    mujoco.mj_forward(m, d)
+    dt = m.opt.timestep
+    lift = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_ACTUATOR, "lift_act")
+    grip = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_ACTUATOR, "r0_act_grip")
+    cg = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_GEOM, "cube_geom")
+    table = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_GEOM, "table")
+    rob = {b for b in range(m.nbody) if (m.body(b).name or "").startswith("r0_")}
+    d.ctrl[grip] = m.actuator_ctrlrange[grip][1] if kind == "pg2" else -0.1
+    # the tcp starts at the grasp height; the palm is ~(finger reach) above the cube top: lower until well past contact
+    L = 0.055 * (0.75 if kind == "pg2" else 0.85)
+    target = -(L - 0.004 + depth)
+    pr = pt = 0.0
+    for _ in range(int(0.4 / dt)):          # open the fingers first (the module starts closed, overlapping the cube)
+        mujoco.mj_step(m, d)
+    for k in range(int((T + 0.5) / dt)):
+        u = min(1.0, k * dt / T)
+        d.ctrl[lift] = target * (10 * u ** 3 - 15 * u ** 4 + 6 * u ** 5)
+        mujoco.mj_step(m, d)
+        for i in range(d.ncon):
+            c = d.contact[i]
+            gs = (c.geom1, c.geom2)
+            if cg in gs:
+                other = gs[1] if gs[0] == cg else gs[0]
+                if m.geom_bodyid[other] in rob:
+                    pr = max(pr, -float(c.dist))
+                elif other == table:
+                    pt = max(pt, -float(c.dist))
+    return dict(version=info["version"], gripper=kind, press_depth_m=depth, robot_cube_pen_mm=round(1000 * pr, 2),
+                cube_table_pen_mm=round(1000 * pt, 2), robot_geoms_stiffened=info.get("robot_geoms", 0))

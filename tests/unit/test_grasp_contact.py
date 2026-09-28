@@ -19,7 +19,7 @@ def test_versioning_and_provenance():
     assert physics_provenance(m2).to_dict()["grasp_contact_version"] == "grasp_v2"
     pad = next(g for g in range(m2.ngeom) if GC.PAD_RE.search(m2.geom(g).name))
     assert m2.geom_priority[pad] == 1 and 0.8 <= m2.geom_friction[pad][0] <= 1.2 and m2.geom_condim[pad] >= 4
-    grip = mujoco.mj_name2id(m2, mujoco.mjtObj.mjOBJ_ACTUATOR, "g_act_grip")
+    grip = mujoco.mj_name2id(m2, mujoco.mjtObj.mjOBJ_ACTUATOR, "r0_act_grip")
     assert abs(m2.actuator_forcerange[grip][1] - 2.2) < 1e-9          # ~40 N at the 55 mm fingertip
     with pytest.raises(ValueError):
         GC.resolve("v3")
