@@ -26,7 +26,13 @@ META_KEYS = ("family", "task", "body", "route", "source_label", "ckpt_sha", "var
 PHYSICS_KEYS = ("contact_version", "grasp_contact_version", "actuator_limits_version", "actuator_mode")
 # per-frame signals (length n_frames); probe.* likewise; task_events is a sparse event list
 FRAME_SIGNALS = ("joint_target", "joint_pos", "contacts", "packet_pca", "phase", "edit_active", "forward_progress",
-                 "object_pose", "penetration_mm", "slip")
+                 "object_pose", "penetration_mm", "slip",
+                 # v1.2 (rich run signals; all optional, omitted where the quantity does not exist)
+                 "joint_vel", "actuator_force", "contact_force", "contact_pos", "power_w", "energy_j", "cot",
+                 "base_vel", "object_vel", "packet_norm", "edit_dz_norm", "gripper_aperture", "grasp_state",
+                 "hand_contact", "grip_drift")
+NESTED_SIGNALS = ("probe", "probe_truth")          # {key: per-frame list}
+SPARSE_SIGNALS = ("task_events", "packet_events")  # [{t, ...}]
 
 # mjtGeom enum -> contract name (hfield becomes a mesh; sdf/flex are not exported)
 _MJ_GEOM = {0: "plane", 1: "hfield", 2: "sphere", 3: "capsule", 4: "ellipsoid", 5: "cylinder", 6: "box", 7: "mesh"}
@@ -175,6 +181,8 @@ class FrameCollector:
         self.t, self.pos, self.quat = [], [], []
         self.signals: dict[str, list] = {}
         self.probe: dict[str, list] = {}
+        self.probe_truth: dict[str, list] = {}
+        self.sparse: dict[str, list] = {}
         self.task_events: list[dict] = []
         self.annotations: list[dict] = []
         self._tick = 0
@@ -194,12 +202,13 @@ class FrameCollector:
         self.pos.append(r4(data.xpos[self.bids]))
         self.quat.append(r4(data.xquat[self.bids]))
         for k, v in signals.items():
-            if k == "probe":
+            if k in ("probe", "probe_truth"):
+                dst = self.probe if k == "probe" else self.probe_truth
                 for pk, pv in (v or {}).items():
-                    self.probe.setdefault(pk, [None] * n).append(_clean(pv))
+                    dst.setdefault(pk, [None] * n).append(_clean(pv))
             else:
                 self.signals.setdefault(k, [None] * n).append(_clean(v))
-        for d in (self.signals, self.probe):
+        for d in (self.signals, self.probe, self.probe_truth):
             for v in d.values():
                 if len(v) < n + 1:
                     v.append(None)
@@ -211,6 +220,10 @@ class FrameCollector:
                 self.task_events.append(dict(t=round(float(t), 4), event=e, status=str(st)))
                 self._last_status[e] = st
 
+    def add_sparse(self, name: str, t: float, **fields):
+        """A sparse event (e.g. a new packet) at time t; `name` must be in SPARSE_SIGNALS."""
+        self.sparse.setdefault(name, []).append(dict(t=round(float(t), 4), **{k: _clean(v) for k, v in fields.items()}))
+
     def annotate(self, t: float, text: str):
         self.annotations.append(dict(t=round(float(t), 4), text=text))
 
@@ -221,9 +234,13 @@ class FrameCollector:
             if len(v) != n or all(x is None for x in v):
                 continue                          # missing signals are omitted, never faked
             sig[k] = v
-        probe = {k: v for k, v in self.probe.items() if len(v) == n and not all(x is None for x in v)}
-        if probe:
-            sig["probe"] = probe
+        for name, src in (("probe", self.probe), ("probe_truth", self.probe_truth)):
+            keep = {k: v for k, v in src.items() if len(v) == n and not all(x is None for x in v)}
+            if keep:
+                sig[name] = keep
+        for name, lst in self.sparse.items():
+            if lst:
+                sig[name] = lst
         if self.task_events:
             sig["task_events"] = self.task_events
         return dict(fps=round(self.fps, 4), n_frames=n, bodies=self.bodies,
@@ -320,11 +337,13 @@ def validate_replay(doc: dict) -> None:
     for k, v in s.items():
         if k in FRAME_SIGNALS:
             need(len(v) == n, f"signals.{k} length {len(v)} != n_frames {n}")
-        elif k == "probe":
+        elif k in NESTED_SIGNALS:
             for pk, pv in v.items():
-                need(len(pv) == n, f"signals.probe.{pk} length != n_frames")
+                need(len(pv) == n, f"signals.{k}.{pk} length != n_frames")
         elif k == "task_events":
             need(all({"t", "event", "status"} <= set(e) for e in v), "task_events entries need t, event, status")
+        elif k in SPARSE_SIGNALS:
+            need(all("t" in e for e in v), f"{k} entries need t")
         else:
             raise ReplaySchemaError(f"unknown signal {k}")
     if "packet_pca" in s:

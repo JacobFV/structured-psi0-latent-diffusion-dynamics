@@ -226,6 +226,110 @@ def _qadr_joint_names(m, qadr) -> list:
     return [by.get(int(a)) for a in qadr]
 
 
+# ------------------------------------------------------------------ rich signals (v1.2): pure reads of mjData
+def _subtrees(m, roots) -> list[set]:
+    """Body id sets: each root with all its descendants."""
+    par = [int(x) for x in m.body_parentid]
+    out = []
+    for r in roots:
+        g = set()
+        for b in range(m.nbody):
+            p = b
+            while True:
+                if p == r:
+                    g.add(b)
+                    break
+                if p == 0:
+                    break
+                p = par[p]
+        out.append(g)
+    return out
+
+
+def _contact_groups(m, d, groups, *, other=None, exclude=None):
+    """Per body group: [normal N, tangential N] summed over contacts between a group body and a body in `other`
+    (or any body not in `exclude`), and the normal-force-weighted contact point (None without contact)."""
+    import mujoco
+    n = len(groups)
+    fn, ft, pw = np.zeros(n), np.zeros(n), np.zeros((n, 3))
+    owner = {}
+    for k, g in enumerate(groups):
+        for b in g:
+            owner.setdefault(b, k)
+    f6 = np.zeros(6)
+    for i in range(d.ncon):
+        c = d.contact[i]
+        b1, b2 = int(m.geom_bodyid[c.geom1]), int(m.geom_bodyid[c.geom2])
+        for a, o in ((b1, b2), (b2, b1)):
+            k = owner.get(a)
+            if k is None or (other is not None and o not in other) or (exclude is not None and o in exclude):
+                continue
+            mujoco.mj_contactForce(m, d, i, f6)
+            nn = abs(float(f6[0]))
+            fn[k] += nn
+            ft[k] += math.hypot(f6[1], f6[2])
+            pw[k] += nn * np.asarray(c.pos)
+            break
+    return ([[fn[k], ft[k]] for k in range(n)],
+            [(pw[k] / fn[k]) if fn[k] > 1e-9 else None for k in range(n)])
+
+
+def _body_vel(m, d, b) -> np.ndarray:
+    """[vx, vy, vz, wx, wy, wz] of body b's frame origin, world orientation."""
+    import mujoco
+    v = np.zeros(6)
+    mujoco.mj_objectVelocity(m, d, mujoco.mjtObj.mjOBJ_BODY, int(b), v, 0)
+    return np.concatenate([v[3:], v[:3]])
+
+
+def _power(d, act_ids) -> float:
+    """Mechanical power (W) = sum |actuator force x actuator velocity| over the given actuators."""
+    a = np.asarray(act_ids, int)
+    return float(np.sum(np.abs(d.actuator_force[a] * d.actuator_velocity[a]))) if len(a) else 0.0
+
+
+class _Energy:
+    """Integrates |mechanical power|; cost of transport = energy / (m g horizontal path)."""
+
+    def __init__(self, act_ids, mass=None, base_qadr=None):
+        self.act, self.mass, self.qa = np.asarray(act_ids, int), mass, base_qadr
+        self.reset()
+
+    def reset(self):
+        self.e, self.path, self.p_last, self.last_p = 0.0, 0.0, None, 0.0
+
+    def step(self, d, dt):
+        self.last_p = _power(d, self.act)
+        self.e += self.last_p * dt
+
+    def move(self, d):
+        if self.qa is None:
+            return
+        p = d.qpos[self.qa:self.qa + 2].copy()
+        if self.p_last is not None:
+            self.path += float(np.linalg.norm(p - self.p_last))
+        self.p_last = p
+
+    def cot(self):
+        if self.mass is None or self.path < 0.2:
+            return None
+        return self.e / (self.mass * 9.81 * self.path)
+
+
+def _packet_summary(z, head: int = 8):
+    """z [knots, assemblies, dz] -> (per knot x assembly L2 norm, the first `head` dims of each)."""
+    z = np.asarray(z, np.float32)
+    if z.ndim != 3:
+        z = z.reshape(z.shape[0], -1, z.shape[-1])
+    return np.linalg.norm(z, axis=-1), z[..., :head]
+
+
+def _robot_act_ids(r) -> np.ndarray:
+    c = r.controller
+    return np.concatenate([np.atleast_1d(np.asarray(c.act_ids[g], int)) for g in c.groups if g in c.act_ids]) \
+        if c.act_ids else np.zeros(0, int)
+
+
 # ------------------------------------------------------------------ packet PCA bases (per bundle)
 def pca_basis(spec: dict | None, cache: dict) -> dict | None:
     if not spec:
@@ -291,6 +395,13 @@ class _ArmSignals:
         self.tcp = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_SITE, grip.frame.site) if grip else -1
         self.cube_slot = next((i for i, o in enumerate(s.detectables) if o.sim_body == "cube"), 0)
         self.prev_rel, self._pcache = None, {}
+        self.act_ids = _robot_act_ids(self.r)
+        tb = [b for b in (mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, n) if n else -1
+                          for n in _sensor_bodies(m, self.r.touch))]
+        self.finger_groups = _subtrees(m, [b for b in tb if b >= 0]) if tb and all(b >= 0 for b in tb) else []
+        self.energy = _Energy(self.act_ids)
+        self.slot_bodies = [mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, o.sim_body) for o in s.detectables]
+        self.last_pk, self.cf_dz = None, None
 
     def meta(self) -> dict:
         m, r = self.s.model, self.r
@@ -307,7 +418,7 @@ class _ArmSignals:
         tg = c.target or {}
         return np.concatenate([np.atleast_1d(np.asarray(tg[g], float)) for g in c.groups if g in tg]) if tg else None
 
-    def frame(self, packet=None, basis=None, phase=None, dt=0.05, edit_active=None) -> dict:
+    def frame(self, packet=None, basis=None, phase=None, dt=0.05, edit_active=None, col=None) -> dict:
         s, d, m = self.s, self.s.data, self.s.model
         pose = np.concatenate([d.xpos[self.cube], d.xquat[self.cube]])
         rel = None
@@ -329,13 +440,47 @@ class _ArmSignals:
             out["phase"] = str(phase)
         if edit_active is not None:
             out["edit_active"] = bool(edit_active)
+        # v1.2 rich signals
+        self.energy.step(d, dt)                       # sampled at recorded frames (control-tick resolution)
+        out.update(joint_vel=d.qvel[self.r.dadr].copy(), actuator_force=d.actuator_force[self.act_ids].copy(),
+                   object_vel=_body_vel(m, d, self.cube), power_w=self.energy.last_p, energy_j=self.energy.e)
+        if self.finger_groups:
+            f, pos = _contact_groups(m, d, self.finger_groups, exclude=self.robot_bodies)
+            out.update(contact_force=f, contact_pos=pos)
+        w = s._grip_width(self.r)
+        if w is not None:
+            out["gripper_aperture"] = float(w)
+        held_by = s.truth().held_by                   # privileged (display only)
+        held = {b for v in held_by.values() for b in v}
+        touch_cube = self._touching(self.cube)
+        out["grasp_state"] = "held" if "cube" in held else ("contact" if touch_cube else "free")
         if packet is not None:
             z = np.asarray(packet.z, np.float32)
             if basis is not None and z.size == basis["dim"]:
                 out["packet_pca"] = RP.project_pca(basis, z)
+            nrm, headv = _packet_summary(z)
+            out["packet_norm"] = nrm
+            if edit_active is not None:
+                out["edit_dz_norm"] = self.cf_dz if edit_active else None
+            if col is not None and packet is not self.last_pk:
+                col.add_sparse("packet_events", d.time, z_norm=nrm, z_head=headv, source=getattr(packet, "source", None),
+                               edit_dz_norm=self.cf_dz if edit_active else None)
+            self.last_pk = packet
             if self.P is not None:
                 out["probe"] = self.probe(packet, z)
+                names = [m.body(b).name if b >= 0 else None for b in self.slot_bodies]
+                out["probe_truth"] = dict(held_by=[n in held for n in names],
+                                          contact=[self._touching(b) if b >= 0 else False for b in self.slot_bodies])
         return out
+
+    def _touching(self, body) -> bool:
+        d, m = self.s.data, self.s.model
+        for i in range(d.ncon):
+            c = d.contact[i]
+            b1, b2 = int(m.geom_bodyid[c.geom1]), int(m.geom_bodyid[c.geom2])
+            if (b1 == body and b2 in self.robot_bodies) or (b2 == body and b1 in self.robot_bodies):
+                return True
+        return False
 
     def probe(self, packet, z):
         key = id(packet)
@@ -408,7 +553,7 @@ def run_ladder(e: dict, out: Path, pcache: dict) -> list[dict]:
                 col = ep.ensure(s.model)
                 if col.due():
                     pk = tap.get(id(getattr(s, "_rrp_featurizer", None))) if P is not None or basis is not None else None
-                    col.frame(s.data, **sig.frame(packet=pk, basis=basis, phase=phase, dt=s.dt * col.stride))
+                    col.frame(s.data, **sig.frame(packet=pk, basis=basis, phase=phase, dt=s.dt * col.stride, col=col))
                     col.events(s.data.time, _statuses(s.runtime))
                 col.tick()
             with torch.no_grad():
@@ -445,7 +590,19 @@ ARM_NOTES = dict(
     phase="shadow scripted-teacher FSM phase at the real state (privileged diagnostic label; never controls)",
     packet_pca="the packet system 0 currently executes, projected on the bundle PCA basis (meta.packet_pca_basis)",
     probe="bundle packet probe on that packet: held_by/contact = sigmoid per detector slot, subtask = argmax operator, "
-          "goal = goal-effect head xy for the cube slot (decimetre units as trained)")
+          "goal = goal-effect head xy for the cube slot (decimetre units as trained)",
+    probe_truth="PRIVILEGED, DISPLAY ONLY: per detector slot, held_by = the object is held (>= 2 hand bodies touching), "
+                "contact = any robot body touches it (aligned with probe held_by / contact)",
+    joint_vel="arm+gripper joint velocities", actuator_force="actuator forces of the controller groups (arm, gripper)",
+    contact_force="per finger (touch-sensor body subtree, meta.contact_bodies) [normal, tangential] N against non-robot "
+                  "bodies (privileged)", contact_pos="per finger force-weighted contact point (world m; privileged)",
+    object_vel="cube [vx, vy, vz, wx, wy, wz] world (privileged)",
+    power_w="sum |actuator force x actuator velocity| sampled at recorded frames (W)",
+    energy_j="frame-sampled integral of power_w (J; control-tick resolution, an approximation)",
+    gripper_aperture="public gripper width sensor (m), where the gripper has one",
+    grasp_state="PRIVILEGED: held (held truth) / contact (robot touches the cube) / free",
+    packet_norm="L2 norm of the executed packet per knot x assembly",
+    edit_dz_norm="|edited packet - unedited packet| with the same noise key at the same state (edit replays)")
 
 
 def _ckpt_shas(ids: dict) -> dict:
@@ -484,7 +641,8 @@ def run_arm_teacher(e: dict, out: Path, pcache: dict) -> list[dict]:
             if st["armed"] and st["depth"] == 0:
                 col = st["ep"].ensure(self.model)
                 if col.due():
-                    col.frame(self.data, **st["sig"].frame(phase=getattr(st["teacher"], "phase", None), dt=self.dt * col.stride))
+                    col.frame(self.data, **st["sig"].frame(phase=getattr(st["teacher"], "phase", None), dt=self.dt * col.stride,
+                                                           col=col))
                     col.events(self.data.time, _statuses(self.runtime))
                 col.tick()
             return r
@@ -531,6 +689,18 @@ def run_arm_edit(e: dict, out: Path, pcache: dict) -> list[dict]:
     ids = dict(flow=dict(path=a["flow"], sha256=_sha(a["flow"])), representation=dict(path=str(rep), sha256=_sha(rep)),
                probe=dict(path=probe, sha256=_sha(probe) if probe else None))
     results = []
+    cf: dict = {}
+    o_packet = se.GeneratedSource.packet
+
+    def packet(self, s, cond, teacher, goal_off, key=None):
+        """The edited packet as the harness computes it, plus (for display) the UNEDITED packet with the same noise
+        key at the same state: orig() snapshots, edits the context, samples with noise_keys=[key] and restores."""
+        p = o_packet(self, s, cond, teacher, goal_off, key)
+        cf["dz"] = None
+        if cond not in ("control", "control_replay") and key is not None:
+            p0 = o_packet(self, s, "control", None, goal_off, key)
+            cf["dz"] = float(np.linalg.norm(np.asarray(p.z) - np.asarray(p0.z)))
+        return p
     for sd in e["seeds"]:
         sd = int(sd)
         for cond in e.get("conditions", ["control"]):
@@ -543,11 +713,12 @@ def run_arm_edit(e: dict, out: Path, pcache: dict) -> list[dict]:
                 col = ep[0].ensure(s.model)
                 if col.due():
                     pk = tap.get(id(src.featurizer(s)))
+                    ep[1].cf_dz = cf.get("dz")
                     col.frame(s.data, **ep[1].frame(packet=pk, basis=basis, dt=s.dt * col.stride,
-                                                   edit_active=cond not in ("control",)))
+                                                   edit_active=cond not in ("control",), col=col))
                     col.events(s.data.time, _statuses(s.runtime))
                 col.tick()
-            with _patched(*patch[:2], patch[2]), torch.no_grad():
+            with _patched(*patch[:2], patch[2]), _patched(se.GeneratedSource, "packet", packet), torch.no_grad():
                 row = se.run_condition(src, R, P, robot, a["robot"], sd, cond, max_steps=int(a.get("max_steps", 400)),
                                        dev=dev, scene=a.get("scene", "pick_place"), on_step=on_step)
             if row.get("skipped"):
@@ -564,7 +735,8 @@ def run_arm_edit(e: dict, out: Path, pcache: dict) -> list[dict]:
                         "placed at the shifted goal; control: placed in the zone)", privileged_success=row["privileged_success"],
                         edit_row={k: row.get(k) for k in ("first_contact", "approached_first", "lifted", "placed_in_zone",
                                                           "placed_at_shifted_goal", "goal_offset", "patient_color", "rebind_color")},
-                        checkpoints=ids, signal_notes=dict(ARM_NOTES, edit_active="the edited task context is in force (from t=0)"))
+                        checkpoints=ids, signal_notes=dict(ARM_NOTES, edit_active="the edited task context is in force (from t=0)"),
+                        edit_onset_t=0.0 if cond != "control" else None)
             if basis is not None:
                 meta["packet_pca_basis"] = basis
             results.append(_finish(e2, sd, meta, ep[0], out))
@@ -578,6 +750,12 @@ class _LeggedSignals:
         self.t_edit, self.edit = t_edit, edit
         self.p0, self.yaw0 = None, None
         self._fg = set(g for g in (b.floor, getattr(b, "floor2", -1)) if g is not None and g >= 0)
+        m = b.model
+        self.floor_bodies = {int(m.geom_bodyid[g]) for g in self._fg}
+        self.feet = _subtrees(m, [int(x) for x in b.foot_bids])
+        self.energy = _Energy(b.pol_act, mass=float(m.body_subtreemass[b.root_bid]), base_qadr=b.qa)
+        self.packets: list = []            # (t, edit, z [K,M,dz] after any edit, |edited - unedited| or None)
+        self._n_pk = 0
 
     def meta(self) -> dict:
         b, m = self.b, self.b.model
@@ -591,7 +769,7 @@ class _LeggedSignals:
         self.p0 = d.qpos[b.qa:b.qa + 2].copy()
         self.yaw0 = yaw_of(d.qpos[b.qa + 3:b.qa + 7])
 
-    def frame(self, d) -> dict:
+    def frame(self, d, col=None) -> dict:
         b, m = self.b, self.b.model
         if self.p0 is None:
             self.start(d)
@@ -600,7 +778,12 @@ class _LeggedSignals:
         fwd = math.cos(self.yaw0) * dp[0] + math.sin(self.yaw0) * dp[1]
         out = dict(joint_target=d.ctrl[b.pol_act].copy(), joint_pos=d.qpos[b.pol_qadr].copy(), contacts=[bool(x) for x in fc],
                    slip=slip, penetration_mm=_penetration_mm(m, d, self._fg), forward_progress=fwd)
+        f, pos = _contact_groups(m, d, self.feet, other=self.floor_bodies)
+        out.update(joint_vel=d.qvel[b.pol_dadr].copy(), actuator_force=d.actuator_force[b.pol_act].copy(),
+                   contact_force=f, contact_pos=pos, base_vel=_body_vel(m, d, b.root_bid),
+                   power_w=_power(d, b.pol_act), energy_j=self.energy.e, cot=self.energy.cot())
         s = self.s
+        ev = None
         if s is not None:
             from rrp.features.legged import EVENTS, active_event
             ev = active_event(s.runtime)
@@ -615,11 +798,31 @@ class _LeggedSignals:
             out["probe"] = dict(contact=[bool(x) for x in (pr["contact"][0] if pr.get("contact") else [])],
                                 halt=bool(pr.get("subtask") == EVENTS.index("halt")), goal=pr.get("goal"),
                                 subtask=pr.get("subtask"), fall=pr.get("fall"))
-            zr = getattr(ctl, "record_z", None)
-            if zr and self.basis is not None:
-                z = zr[-1][2]
-                if z.size == self.basis["dim"]:
-                    out["packet_pca"] = RP.project_pca(self.basis, z)
+            if ev is not None:                      # privileged truth for the same readouts (display only)
+                from rrp.envs.legged_core import yaw_of
+                wps = s.scenario.meta.get("waypoints") or {}
+                q = d.qpos
+                x, y, yaw = q[b.qa], q[b.qa + 1], yaw_of(q[b.qa + 3:b.qa + 7])
+                goal = None
+                if ev < 2 and wps:
+                    wx, wy = wps["a" if ev == 0 else "b"][:2]
+                    c_, s_ = math.cos(yaw), math.sin(yaw)
+                    goal = [(c_ * (wx - x) + s_ * (wy - y)) / 2.0, (-s_ * (wx - x) + c_ * (wy - y)) / 2.0]
+                out["probe_truth"] = dict(contact=[bool(x_) for x_ in fc], halt=bool(ev == EVENTS.index("halt")),
+                                          goal=goal, subtask=int(min(ev, 3)))
+        if self.packets:
+            t_, ed, z, dz = self.packets[-1]
+            if self.basis is not None and z.size == self.basis["dim"]:
+                out["packet_pca"] = RP.project_pca(self.basis, z)
+            nrm, headv = _packet_summary(z)
+            out["packet_norm"] = nrm
+            if self.edit and self.edit != "none":
+                out["edit_dz_norm"] = dz
+            if col is not None:
+                for t_, ed, z, dz in self.packets[self._n_pk:]:
+                    nrm, headv = _packet_summary(z)
+                    col.add_sparse("packet_events", t_, z_norm=nrm, z_head=headv, edit=ed, edit_dz_norm=dz)
+                self._n_pk = len(self.packets)
         return out
 
 
@@ -631,6 +834,18 @@ LEGGED_NOTES = dict(
     forward_progress="base displacement along the heading at the start of the episode (m; privileged)",
     phase="active task event (public runtime)", edit_active="the task-context / packet edit is in force (t >= t_edit)",
     packet_pca="the latest packet (after any edit) on the bundle PCA basis",
+    joint_vel="policy-joint velocities (rad/s)", actuator_force="policy actuator forces/torques (N m)",
+    contact_force="per foot [normal, tangential] contact force with the floor (N; privileged)",
+    contact_pos="per foot normal-force-weighted floor contact point (world m; null in swing; privileged)",
+    base_vel="root body [vx, vy, vz, wx, wy, wz] (world frame; privileged)",
+    power_w="sum |actuator force x actuator velocity| at the frame (W)",
+    energy_j="integral of that power over every physics substep since the episode reset (J)",
+    cot="cost of transport energy / (m g horizontal path), null until 0.2 m travelled",
+    packet_norm="L2 norm of the latest packet per knot x assembly (heatmap)",
+    edit_dz_norm="|edited packet - unedited packet| with the SAME flow noise at the same state (context edits; "
+                 "for z edits the controller's own dz_norm); null before the edit",
+    probe_truth="PRIVILEGED, DISPLAY ONLY: true foot contact (feet in assembly order), true halt (active event is halt), "
+                "true body-frame goal to the active waypoint (/2 m as the probe), true subtask index",
     probe="the controller's own probe readout of that packet: contact per assembly at knot 0, halt = subtask==halt, "
           "goal (body frame, /2 m units as trained), subtask index, fall probability")
 
@@ -659,10 +874,40 @@ def _run_legged(e: dict, out: Path, pcache: dict, robust: bool) -> list[dict]:
     for sd in e["seeds"]:
         sd = int(sd)
         ctl = _legged_ctl(a, sd)
-        if ctl is not None and hasattr(ctl, "record_z") and basis is not None:
-            ctl.record_z = []                            # generate() only appends (t, edit, z) here
         st = dict(ep=None, sig=None)
         o_init, o_tick, o_reset = MQ.LeggedMotionRecorder.__init__, MQ.LeggedMotionRecorder.on_tick, MQ.LeggedMotionRecorder.on_reset
+        o_sub = MQ.LeggedMotionRecorder.on_substep
+        from rrp.evaluation.legged_latent_eval import LatentLeggedController as LLC
+        o_gen = LLC.generate
+        CTX = ("mirror_goal", "halt", "mirror_active", "mirror_inactive")
+
+        def generate(self, ad, now):
+            """The harness's generate(); for context edits also the UNEDITED packet with a copy of the generator
+            state taken before the call (same noise), for |edited - unedited| (display only; the harness's own
+            generator is untouched)."""
+            edit = self.edit if now >= self.t_edit else "none"
+            need = (edit in CTX and self.F is not None and self.bc is None and getattr(self, "oracle", None) is None)
+            if need:
+                gs = self.gen.get_state()
+                b0 = ad.dyn_batch()
+            p = o_gen(self, ad, now)
+            dz = None
+            if need:
+                g2 = torch.Generator(device=self.dev)
+                g2.set_state(gs)
+                b0["ctx"] = self._ctx(ad)
+                z0 = self.F.sample(b0, nfe=self.nfe, generator=g2)[0, :, :self.morph.M].cpu().numpy()
+                dz = float(np.linalg.norm(np.asarray(p.z) - z0))
+            elif edit != "none" and self.packets:
+                dz = self.packets[-1].get("dz_norm")
+            if st["sig"] is not None:
+                st["sig"].packets.append((float(now), edit, np.asarray(p.z, np.float32), dz))
+            return p
+
+        def on_substep(self, d, dt):
+            o_sub(self, d, dt)
+            if self.on and st["sig"] is not None:
+                st["sig"].energy.step(d, dt)
 
         def init(self, session, *aa, **kk):
             o_init(self, session, *aa, **kk)
@@ -676,14 +921,16 @@ def _run_legged(e: dict, out: Path, pcache: dict, robust: bool) -> list[dict]:
             if done and st["ep"] is not None:
                 st["ep"].reset_frames()
                 st["sig"].p0 = None
+                st["sig"].energy.reset()
 
         def on_tick(self, d):
             o_tick(self, d)
             if not self.on or st["ep"] is None:
                 return
             col = st["ep"].ensure(self.s.model)
+            st["sig"].energy.move(d)
             if col.due():
-                col.frame(d, **st["sig"].frame(d))
+                col.frame(d, **st["sig"].frame(d, col=col))
                 col.events(d.time, _statuses(self.s.runtime))
             col.tick()
         kw = dict(max_s=float(a.get("max_s", 60.0)))
@@ -692,7 +939,8 @@ def _run_legged(e: dict, out: Path, pcache: dict, robust: bool) -> list[dict]:
             cond = _cond_by_key("legged", e["body"], a["condition_key"])
             kw["perturb"] = cond["pert"]
         with _patched(MQ.LeggedMotionRecorder, "__init__", init), _patched(MQ.LeggedMotionRecorder, "on_tick", on_tick), \
-                _patched(MQ.LeggedMotionRecorder, "on_reset", on_reset), torch.no_grad():
+                _patched(MQ.LeggedMotionRecorder, "on_reset", on_reset), _patched(MQ.LeggedMotionRecorder, "on_substep", on_substep), \
+                _patched(LLC, "generate", generate), torch.no_grad():
             row, _frames = run_episode(ctl, e["body"], sd, **kw)
         match = dict(e.get("recorded", {}).get("match_row") or {})
         rec = find_recorded(e.get("recorded"), sd, match)
@@ -713,6 +961,9 @@ def _run_legged(e: dict, out: Path, pcache: dict, robust: bool) -> list[dict]:
                     tracker=row.get("tracker"), tracker_sha256=row.get("tracker_sha256"), sim_time=row.get("sim_time"),
                     fell=row.get("fell"), row_source=row.get("source"), signal_notes=LEGGED_NOTES,
                     waypoints=row.get("waypoints"))
+        if a.get("edit", "none") != "none":
+            first = next((t_ for t_, ed, _z, _dz in st["sig"].packets if ed != "none"), None)
+            meta.update(edit_onset_t=float(a.get("t_edit", 1.0)), edit_first_packet_t=first)
         if robust:
             meta["perturbation"] = row.get("perturbation")
         if basis is not None:
@@ -772,11 +1023,13 @@ def run_tracker_val(e: dict, out: Path, pcache: dict) -> list[dict]:
 
         def on_step(m, d):
             cnt["n"] += 1
+            sig.energy.step(d, float(m.opt.timestep))
             if cnt["n"] % sub:
                 return
+            sig.energy.move(d)
             col = ep.ensure(m)
             if col.due():
-                col.frame(d, **sig.frame(d))
+                col.frame(d, **sig.frame(d, col=col))
             col.tick()
         with _patched(TV, "mujoco", _Proxy(mujoco, on_step)):
             res = TV.run_episode(model, b, tracker, sc, sd, act=None)
@@ -803,6 +1056,7 @@ def _r3(x):
 
 # ------------------------------------------------------------------ DUAL teacher (rrp.evaluation.dual_teacher_quality)
 def run_dual_teacher(e: dict, out: Path, pcache: dict) -> list[dict]:
+    import mujoco
     import rrp.data.dual_quality as DQ
     from rrp.evaluation.dual_teacher_quality import run_audit_episode
     a = e["args"]
@@ -820,7 +1074,16 @@ def run_dual_teacher(e: dict, out: Path, pcache: dict) -> list[dict]:
             m = session.model
             st["ep"].extra = dict(contact_bodies=[b for rr in session.robots for b in _sensor_bodies(m, rr.touch)],
                                   joint_names=[n for rr in session.robots for n in _qadr_joint_names(m, rr.qadr)],
-                                  object_body=m.body(st["objs"][0]).name if st["objs"] else None)
+                                  object_body=m.body(st["objs"][0]).name if st["objs"] else None,
+                                  hands=list(session.handles))
+            st["acts"] = np.concatenate([_robot_act_ids(rr) for rr in session.robots])
+            st["energy"] = _Energy(st["acts"])
+            groups = []
+            for rr in session.robots:
+                tb = [mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, n) if n else -1 for n in _sensor_bodies(m, rr.touch)]
+                groups += _subtrees(m, [x for x in tb if x >= 0])
+            st["groups"] = groups
+            st["grip0"] = {}
 
         def after(self, *aa, **kk):
             r = o_after(self, *aa, **kk)
@@ -837,10 +1100,37 @@ def run_dual_teacher(e: dict, out: Path, pcache: dict) -> list[dict]:
                 ob = st["objs"]
                 pose = np.concatenate([np.concatenate([d.xpos[b], d.xquat[b]]) for b in ob]) if ob else None
                 t = self.teacher
+                st["energy"].step(d, s.dt * col.stride)
+                rich = dict(joint_vel=np.concatenate([d.qvel[rr.dadr] for rr in s.robots]),
+                            actuator_force=d.actuator_force[st["acts"]].copy(),
+                            power_w=st["energy"].last_p, energy_j=st["energy"].e,
+                            object_vel=_body_vel(m, d, ob[0]) if ob else None)
+                if st["groups"]:
+                    rich["contact_force"], rich["contact_pos"] = _contact_groups(m, d, st["groups"], exclude=st["rb"])
+                held_by = s.truth().held_by
+                hc, drift = [], []
+                for ent, h in s.handles.items():
+                    tvh = list(s._touch_values(s.robots[h.robot]))
+                    hc.append(bool(len(tvh) and max(tvh) >= 0.2))
+                    objs = held_by.get(ent) or []
+                    if not objs:
+                        st["grip0"].pop(ent, None)
+                        drift.append(None)
+                        continue
+                    bid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, objs[0])
+                    tcp, R = s.tcp_pose(ent)
+                    pr = R.T @ (d.xpos[bid] - tcp)
+                    Rr = R.T @ d.xmat[bid].reshape(3, 3)
+                    if ent not in st["grip0"] or st["grip0"][ent][0] != bid:
+                        st["grip0"][ent] = (bid, pr.copy(), Rr.copy())
+                    _, p0_, R0_ = st["grip0"][ent]
+                    ang = math.degrees(math.acos(max(-1.0, min(1.0, (np.trace(R0_.T @ Rr) - 1) / 2))))
+                    drift.append([float(np.linalg.norm(pr - p0_)) * 1000.0, ang])
+                rich.update(hand_contact=hc, grip_drift=drift)
                 col.frame(d, joint_target=tg, joint_pos=jp, contacts=tv, object_pose=pose,
                           penetration_mm=_penetration_mm(m, d, {g for g in range(m.ngeom) if m.geom_bodyid[g] in set(ob)},
                                                          st["rb"]),
-                          phase=getattr(t, "phase_label", None) if t is not None else None)
+                          phase=getattr(t, "phase_label", None) if t is not None else None, **rich)
                 col.events(d.time, _statuses(s.runtime))
             col.tick()
             return r
@@ -862,6 +1152,16 @@ def run_dual_teacher(e: dict, out: Path, pcache: dict) -> list[dict]:
                     signal_notes=dict(joint_target="both robots' controller targets (all groups, robot order)",
                                       joint_pos="both robots' joint positions", contacts="finger touch sensors >= 0.2, robot order",
                                       object_pose="task objects (meta.objects), xyz + quat wxyz each (privileged)",
+                                      joint_vel="both robots' joint velocities", actuator_force="both robots' actuator forces",
+                                      contact_force="per finger (touch-sensor body subtree, meta.contact_bodies) [normal, "
+                                                    "tangential] N against non-robot bodies (privileged)",
+                                      contact_pos="per finger force-weighted contact point (world m; privileged)",
+                                      power_w="sum |actuator force x velocity| sampled at control ticks (W)",
+                                      energy_j="tick-sampled integral of power_w (J)",
+                                      object_vel="first task object [v, w] world (privileged)",
+                                      hand_contact="per hand (meta.hands): any touch sensor >= 0.2 (public)",
+                                      grip_drift="per hand: held object's [position mm, rotation deg] drift in the TCP frame "
+                                                 "since the grip formed (privileged held truth); null when not holding",
                                       penetration_mm="max object-robot penetration (privileged)",
                                       phase="scripted teacher phase label L:<left>|R:<right>"))
         results.append(_finish(e, sd, meta, st["ep"], out))
@@ -883,12 +1183,15 @@ def run_grasp_rig(e: dict, out: Path, pcache: dict) -> list[dict]:
             cg = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_GEOM, "cube_geom")
             pads = [g for g in range(m.ngeom) if GR.GC.PAD_RE.search(m.geom(g).name or "")]
             jn = [j for j in range(m.njnt) if m.jnt_type[j] in (2, 3)]
-            st["sig"] = dict(cube=cube, palm=palm, cg=cg, pads=pads, qadr=[int(m.jnt_qposadr[j]) for j in jn], rel0=None)
+            st["sig"] = dict(cube=cube, palm=palm, cg=cg, pads=pads, qadr=[int(m.jnt_qposadr[j]) for j in jn], rel0=None,
+                             dadr=[int(m.jnt_dofadr[j]) for j in jn], energy=_Energy(np.arange(m.nu)),
+                             groups=[{int(m.geom_bodyid[p])} for p in pads])
             st["ep"].extra = dict(contact_bodies=[m.body(int(m.geom_bodyid[p])).name for p in pads], object_body="cube",
                                   base_body="carriage", joint_names=[m.joint(j).name for j in jn],
                                   joint_target_names=[m.actuator(i).name for i in range(m.nu)])
         col = st["ep"].ensure(m)
         g = st["sig"]
+        g["energy"].step(d, float(m.opt.timestep))
         if col.due():
             rel = d.xpos[g["cube"]] - d.xpos[g["palm"]]
             if g["rel0"] is None:
@@ -903,7 +1206,10 @@ def run_grasp_rig(e: dict, out: Path, pcache: dict) -> list[dict]:
             col.frame(d, joint_target=d.ctrl.copy(), joint_pos=d.qpos[g["qadr"]], contacts=[p in touch for p in g["pads"]],
                       object_pose=np.concatenate([d.xpos[g["cube"]], d.xquat[g["cube"]]]),
                       penetration_mm=_penetration_mm(m, d, {g["cg"]}, {int(m.geom_bodyid[p]) for p in g["pads"]}),
-                      slip=float(np.linalg.norm(rel - g["rel0"])) * 1000.0, phase=ph)
+                      slip=float(np.linalg.norm(rel - g["rel0"])) * 1000.0, phase=ph,
+                      joint_vel=d.qvel[g["dadr"]], actuator_force=d.actuator_force.copy(), object_vel=_body_vel(m, d, g["cube"]),
+                      power_w=g["energy"].last_p, energy_j=g["energy"].e,
+                      **dict(zip(("contact_force", "contact_pos"), _contact_groups(m, d, g["groups"], other={g["cube"]}))))
             mass = round(float(m.body_mass[g["cube"]]), 4)
             if mass != st["mass"]:
                 col.annotate(t, f"cube mass {mass:.3f} kg")
@@ -922,7 +1228,10 @@ def run_grasp_rig(e: dict, out: Path, pcache: dict) -> list[dict]:
         joint_target="rig actuator controls (lift, grip)", joint_pos="rig joints (lift slide, finger joints)",
         contacts="pad geoms touching the cube (rig pad order)", object_pose="cube xyz + quat wxyz",
         penetration_mm="max pad-cube penetration", slip="cube displacement relative to the palm since the first frame (mm)",
-        phase="rig schedule: settle 0.2 s, close 0.8 s, lift 0.5 s, hold 0.5 s, then mass ramp x1.08 / 0.25 s to slip"))
+        phase="rig schedule: settle 0.2 s, close 0.8 s, lift 0.5 s, hold 0.5 s, then mass ramp x1.08 / 0.25 s to slip",
+        joint_vel="rig joint velocities", actuator_force="rig actuator forces (lift, grip)",
+        contact_force="per pad [normal, tangential] force on the cube (N)", contact_pos="per pad force-weighted contact point",
+        object_vel="cube [v, w] world", power_w="sum |actuator force x velocity| (W)", energy_j="integral over every step (J)"))
     return [_finish(e, sd, meta, st["ep"], out)]
 
 
