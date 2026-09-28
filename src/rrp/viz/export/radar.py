@@ -10,6 +10,7 @@ Stdlib only; reads a few JSON files (host-light).
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import re
@@ -82,6 +83,20 @@ def resolve_value(sel: dict, docs: dict) -> dict:
     """One series value on one axis: {value, spread?, evidence…} or {missing: reason}."""
     if "missing" in sel:
         return {"missing": sel["missing"]}
+    if "file" in sel:  # a committed evidence file read directly (repo-relative; docs["_repo"] is the checkout)
+        repo = docs.get("_repo")
+        path = (Path(repo) / sel["file"]) if repo else None
+        if not path or not path.is_file():
+            return {"missing": f"{sel['file']} not found"}
+        raw = path.read_bytes()
+        obj = json.loads(raw)
+        v = _get(obj, sel["value"])
+        if not isinstance(v, (int, float)):
+            return {"missing": "value not recorded in the evidence file"}
+        out = {"value": float(v), "evidence": [sel["file"]], "sha1": [hashlib.sha1(raw).hexdigest()[:12]], "n_rows": 1, "decisions": []}
+        if sel.get("n"):
+            out["n_samples"] = _get(obj, sel["n"])
+        return out
     doc = docs.get(sel["doc"])
     if not isinstance(doc, dict):
         return {"missing": f"document {sel['doc']} not exported"}
@@ -140,7 +155,7 @@ def resolve_value(sel: dict, docs: dict) -> dict:
 
 
 def _norm(x, floor, ref, direction):
-    if x is None or ref is None or ref == floor:
+    if x is None or ref is None or floor is None or ref == floor:
         return None
     return (x - floor) / (ref - floor) if direction == "max" else (floor - x) / (floor - ref)
 
@@ -151,13 +166,20 @@ def build_radar_from(config: dict, docs: dict) -> dict:
     axes_out = []
     for ax in config["axes"]:
         vals = {sid: resolve_value(ax["series"].get(sid, {"missing": "not declared for this axis"}), docs) for sid in series_ids}
-        floor = float(ax["floor"]["value"])
         ref_decl = ax["reference"]
         if "series" in ref_decl:
             ref = vals.get(ref_decl["series"], {}).get("value")
             ref_meaning = f"{ref_decl['series']} on this axis"
         else:
             ref, ref_meaning = float(ref_decl["value"]), ref_decl.get("meaning", "declared constant")
+        fdecl = ax["floor"]
+        if "reference_multiple" in fdecl:
+            if ref is None:
+                floor = None
+            else:
+                floor = float(fdecl["reference_multiple"]) * ref
+        else:
+            floor = float(fdecl["value"])
         for sid, v in vals.items():
             if "value" not in v:
                 continue
@@ -173,7 +195,8 @@ def build_radar_from(config: dict, docs: dict) -> dict:
                 v["spread"]["r"] = [round(x, 4) for x in ra]
                 v["spread"]["drawn"] = [round(min(hi, max(lo, x)), 4) for x in ra]
             v["value"] = round(v["value"], 4)
-        axes_out.append({k: ax[k] for k in ("id", "label", "metric", "direction", "protocol", "decision", "floor")} |
+        axes_out.append({k: ax[k] for k in ("id", "label", "metric", "direction", "protocol", "decision")} |
+                        {"floor": fdecl | {"value": None if floor is None else round(floor, 4)}} |
                         {"reference": ref_decl | {"resolved_value": ref, "meaning": ref_meaning}, "series": vals})
     return {"normalization": config["normalization"], "series": config["series"], "axes": axes_out,
             "n_axes": len(axes_out), "n_values": sum(1 for a in axes_out for v in a["series"].values() if "drawn" in v)}
@@ -186,6 +209,7 @@ def build_radar(cfg: Config) -> dict:
         return envelope("radar", cfg, [], config="viz/radar_axes.json", axes=[], series=[], n_axes=0, n_values=0,
                         missing=[f"{cfg_path} missing or not {SCHEMA_IN}"])
     docs = {name: read_json(cfg.out / f"{name}.json") for name in ("results", "edits", "robustness")}
+    docs["_repo"] = str(cfg.repo)
     body = build_radar_from(config, docs)
     sources = [str(cfg_path)] + sorted({f for a in body["axes"] for v in a["series"].values() for f in v.get("evidence", [])})
     return envelope("radar", cfg, sources, config="viz/radar_axes.json", **body)

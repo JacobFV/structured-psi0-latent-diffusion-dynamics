@@ -29,9 +29,13 @@
   {
    "id": "frozen_sem",
    "label": "latent · frozen sem"
+  },
+  {
+   "id": "latent_jointfix",
+   "label": "latent · ladder_flow_jointfix (the lineage D-058 timed)"
   }
  ],
- "selector_help": "doc: results|edits|robustness; list: rows (default)|reports|levels; where: field -> regex (seed '^$' = pooled row); key_path: list of regexes matched element-wise; agg: sum_kn (Σk/Σn; group = key_path index for the spread) | effect (row effect with its ci; negate flips sign) | path (value/ci/k/n paths into the row).",
+ "selector_help": "doc: results|edits|robustness; list: rows (default)|reports|levels; where: field -> regex (seed '^$' = pooled row); key_path: list of regexes matched element-wise; agg: sum_kn (Σk/Σn; group = key_path index for the spread) | effect (row effect with its ci; negate flips sign) | path (value/ci/k/n paths into the row). file: a committed JSON file read directly (value/n paths). floor.reference_multiple: floor = that multiple of the resolved reference.",
  "axes": [
   {
    "id": "arm_gv2_panda_pg2",
@@ -1345,6 +1349,61 @@
     },
     "teacher": {
      "missing": "no scripted teacher for zero-shot transfer"
+    }
+   }
+  },
+  {
+   "id": "latency_p95",
+   "label": "p95 control latency",
+   "metric": "observation → first command p95 (ms), 100 interleaved pairs at NFE 8",
+   "direction": "min",
+   "protocol": "host GPU, quiet, paired interleaved (lead_latency_final/flowjf20k_vs_direct18k.json); compute latency, physics paused",
+   "decision": "D-058",
+   "floor": {
+    "reference_multiple": 1.25,
+    "meaning": "the 1.25× p95 overhead limit relative to BC direct"
+   },
+   "reference": {
+    "series": "bc"
+   },
+   "series": {
+    "bc": {
+     "file": "artifacts/runs/lead_latency_final/flowjf20k_vs_direct18k.json",
+     "value": [
+      "paired_interleaved_nfe8",
+      "direct_obs_to_chunk",
+      "p95"
+     ],
+     "n": [
+      "paired_interleaved_nfe8",
+      "direct_obs_to_chunk",
+      "n"
+     ]
+    },
+    "latent_jointfix": {
+     "file": "artifacts/runs/lead_latency_final/flowjf20k_vs_direct18k.json",
+     "value": [
+      "paired_interleaved_nfe8",
+      "latent_obs_to_first_command",
+      "p95"
+     ],
+     "n": [
+      "paired_interleaved_nfe8",
+      "latent_obs_to_first_command",
+      "n"
+     ]
+    },
+    "semfix": {
+     "missing": "latency not measured for this lineage"
+    },
+    "nosem": {
+     "missing": "latency not measured for this lineage"
+    },
+    "frozen_sem": {
+     "missing": "latency not measured for this lineage"
+    },
+    "teacher": {
+     "missing": "scripted teacher is not a learned controller"
     }
    }
   }

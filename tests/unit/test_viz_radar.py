@@ -46,3 +46,15 @@ def test_normalization_gaps_and_min_direction():
     assert h["series"]["semfix"]["spread"]["x"] == [0.2, 0.4]
     assert s["series"]["bc"]["r"] == 1.0 and abs(s["series"]["semfix"]["r"] - 4 / 3) < 1e-3       # lower is better
     assert out["n_values"] == 5
+
+
+def test_file_selector_and_reference_multiple_floor(tmp_path):
+    import json as _j
+    (tmp_path / "lat.json").write_text(_j.dumps({"a": {"p95": 28.7}, "b": {"p95": 28.3}}))
+    config = {"normalization": {"clamp": [0, 1.5]}, "series": [{"id": "bc"}, {"id": "lat"}],
+              "axes": [{"id": "l", "label": "l", "metric": "ms", "direction": "min", "protocol": "p", "decision": "D-058",
+                        "floor": {"reference_multiple": 1.25}, "reference": {"series": "bc"},
+                        "series": {"bc": {"file": "lat.json", "value": ["b", "p95"]}, "lat": {"file": "lat.json", "value": ["a", "p95"]}}}]}
+    ax = build_radar_from(config, {"_repo": str(tmp_path)})["axes"][0]
+    assert abs(ax["floor"]["value"] - 35.375) < 1e-6 and ax["series"]["bc"]["r"] == 1.0
+    assert abs(ax["series"]["lat"]["r"] - (35.375 - 28.7) / (35.375 - 28.3)) < 1e-3
