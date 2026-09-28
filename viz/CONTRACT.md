@@ -21,7 +21,7 @@ read-only local data API with a short cache, and a static snapshot fallback that
 ## layout
 - `viz/room/`: frontend (Vite + React + TypeScript + three.js + recharts + tailwind). `npm run dev` serves on 127.0.0.1:3013
   with the Vite API plugin; `npm run build` produces a static build; `npm run snapshot` exports `viz/data` for offline use.
-- `src/rrp/viz/export.py`: `python -m rrp.viz.export [--live] --out viz/data`. Builds the JSON documents below from the repo,
+- `src/rrp/viz/export/` (a package: check `src/rrp/viz/export/__init__.py`, not `export.py`): `python -m rrp.viz.export [--live] --out viz/data [--only <name>]`. Builds the JSON documents below from the repo,
   the local artifact copies and (with --live) small ssh reads of the peer broker, watchdog and ledgers.
 - `src/rrp/viz/record.py`: PEER-ONLY replay recorder: `python -m rrp.viz.record --spec <yaml> --out <dir>`. Writes replay
   files (below) for chosen episodes (task × body × route × seed × condition).
@@ -59,7 +59,8 @@ its run directory), `decisions`, `decision_match` (the token that matched), `tra
 ## plugin interface (exporter ↔ Vite plugin)
 - `viz/data/<name>.json` for every name above, `viz/data/training/<id>.json`, and `viz/data/_manifest.json`
   (`documents.<name>: {generated_at, bytes, rows, seconds, error}`, `last_run.timings`). Runs are serialized by a flock on
-  `viz/data/_cache/lock`; per-source caches live in `viz/data/_cache/`.
+  `viz/data/_cache/lock`; per-source caches live in `viz/data/_cache/`. One filesystem walk is reused for 10 s, so per-document
+  calls in a row are cheap (~0.1–0.5 s each warm); a full export takes ~1.5–3 s warm, ~9 s cold.
 - The plugin shells out with cwd = repo root, `PYTHONPATH=src`, `OMP_NUM_THREADS=1`, `.venv/bin/python`, a 20 s timeout and a
   15 s cache (live: 10 s), like IBM-2's progress plugin:
   `python -m rrp.viz.api get <name> [--live] [--max-age S]` prints the absolute path of the fresh document (it re-exports only that
