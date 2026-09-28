@@ -151,7 +151,7 @@ def joint_adapt(flow_ckpt: Path, rep_path: Path, packed_dir: Path, budget: int, 
     save_checkpoint(out_dir / "policy.pt", model=flow, optimizer=None, step=total,
                     versions=dict(st["versions"], adapted=True), config=cfgj,
                     extra=dict(result=dict(st["extra"]["result"], joint_adapt=res)))
-    from rrp.control.latent_realizer import bundle_versions
+    from rrp.controllers.latent_realizer import bundle_versions
     rres = dict(rep_res, joint_adapt={k: v for k, v in res.items() if k != "log"},
                 realizer_compat_version=bundle_versions(lcfg.version(), E.state_dict(), R.state_dict())[1])
     save_checkpoint(out_dir / "representation.pt", model=_bundle(E, R, P), optimizer=None, step=total,
