@@ -126,6 +126,25 @@ No episode could not be reproduced.
   host crash (state.json last event 1790579657; no host watchdog process is running), so no host lease can be admitted.
   The 48 MB rsync was run directly with nice/ionice and a 20 MB/s limit (host disk 576 GB free); flagged for the lead.
 
+### v1.2 run-history signals (D-133 follow-up, 2026-09-28)
+Lead request: richer run visualizations. `rrp.viz.record` now also logs, where the quantity exists (omitted otherwise, null
+in undefined frames; names/shapes/units/privilege in viz/CONTRACT.md "Run-history signals (v1.2, IMPLEMENTED)" and in each
+replay's `meta.signal_notes`): joint_vel; joint_torque (actuator forces, `meta.joint_torque_names`); contact_force (normal),
+contact_force_tangential, contact_pos per foot/finger/pad; probe_truth aligned with probe (legged contact/halt/goal/subtask,
+arm held_by/contact per slot; privileged display only); packet_z (first 8 dims per knot x assembly, `meta.packet_shape`),
+packet_norm (full-dz norm) and sparse packet_events; power, energy per frame interval (+ meta.energy_total_j), legged cot;
+base_vel/base_ang_vel (legged), object_vel/object_ang_vel; edit_dz_norm (|edited - unedited| with the same noise: legged
+via a copy of the generator state before generate(), arm via the same noise key with the control context) plus
+meta.edit_onset_t / edit_first_packet_t; arm gripper_aperture and grasp_state; dual hand_contact and grip_drift.
+Names follow the frontend's v1.2 proposal (joint_torque, packet_z + packet_shape, energy per interval).
+The extra unedited-packet samples use their own generator / noise key and the snapshot-restoring harness path, so control
+is unchanged: re-record of all 160 episodes (2 leases x 2 CPU, 5G declared, peak 3.5 GB, 0 memory.high events, nice 19):
+90/90 entries ok, 160/160 outcomes reproduced, 414/414 compared row fields identical. 54.0 MB total (arm 21.2, legged
+29.4, dual 3.4; largest 1.05 MB), host copy refreshed (`~/work/rrp-data/viz/replays/`, index.json regenerated).
+Gaps: 4 t1 nosem edit replays have no edit_dz_norm (the robot falls at 1.4–1.5 s, before t_edit 2 s); arm/dual energy is
+sampled at control ticks (legged, tracker and rig integrate every substep); arm has no base velocity (fixed base).
+Previous (v1.1) replays kept on the peer as `artifacts/runs/roomrec_replays_v1/`.
+
 ### resume
 Re-record anything: `--skip-done` skips entries logged ok in `<out>/record_log.jsonl`; `--index-only` rewrites
 `index.json`. New episodes: edit `scripts/viz_record_specs.py`, regenerate the specs, push, run with `--only <ids>`.
