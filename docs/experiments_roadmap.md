@@ -13,8 +13,8 @@ Code: ✅ exists · 🔧 implementing (D-126) · ❌ not a code problem / needs 
 | # | question | depends on | cost | experiment | code |
 |---|---|---|---|---|---|
 | 1 | Do the arm semantic results (D-095) survive grasp_v2? Re-eval of existing routes | – | ~free | done → D-127 (yes; semfix 311/480 vs nosem 40/480; frozen sem s1 collapses) | ✅ |
-| 2 | Is v6dart data good enough: v6 BC expert ≥ v2 expert (D-121 condition)? | – | ~3 h | running | ✅ |
-| 3 | Do semfix vs nosem arm results hold on realistic physics + teacher v2 + v6dart? | 2 | 24–30 h | queued | ✅ |
+| 2 | Is v6dart data good enough: v6 BC expert ≥ v2 expert (D-121 condition)? | – | ~3 h | done → D-121 addendum (yes: 58/60 panda, 60/60 parm6 under grasp_v2.1) | ✅ |
+| 3 | Do semfix vs nosem arm results hold on realistic physics + teacher v2 + v6dart? | 2 | 24–30 h | running (launched 2026-09-28) | ✅ |
 | 4 | Can upstream recipe choices (Stage A β, BC-DAgger schedule, refit lengths) rescue nosem? (D-099 fairness) | 3 | ~1 day | planned | ✅ overlays (dags/overlays/arm_recipe) |
 | 5 | Does small-amplitude descent-phase DART restore near-grasp recovery without penetration? (D-121 fallback) | 2 | ~0.5 day | conditional | ✅ `dart_descent_sigma` |
 | 6 | Can GRPO (success reward, anchor/forgetting evals) lift the latent route past the scripted ceiling vs BC at equal budget? | 3 | 6–10 h | planned | ✅ grpo stage + anchors (dags/templates/arm_grpo.yaml) |
