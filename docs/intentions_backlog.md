@@ -69,7 +69,7 @@ Two things to know first:
 |---|---|---|---|---|---|
 | `scripts/ladder.py` main moved into `rrp.evaluation` | W5; pipeline.md step 3 | **done 2026-09-28 (D-126 ade3628: `evaluation/ladder_cli.py`, script = wrapper, parity test)** — was missing | the 149-line `main()` is still called as a subprocess by `pipelines/arm.py` | S–M | in-process arm stages |
 | Legged summary/effects scripts moved into the library | pipeline.md step 3 | **done 2026-09-28 (D-126 ade3628: `evaluation/legged_summaries.py`, scripts = wrappers, parity test)** — was missing | `pipelines/legged.py:347` runs `scripts/legged_ladder_summary.py` | S | — |
-| Dual pipeline stages | W5; `pipelines/dual.py` TODO | missing (skeleton) | only `train_rep` and `train_flow`. Pack logic is still in `cli/dual_latent.cmd_pack`; there is no dual DAgger | M (L with DAgger) | dual models; "one pipeline" |
+| Dual pipeline stages | W5; `pipelines/dual.py` TODO | **done 2026-09-28 (D-126 #33, W12)** except dual DAgger (refuses: no dual label source) — was: missing (skeleton) | only `train_rep` and `train_flow`. Pack logic is still in `cli/dual_latent.cmd_pack`; there is no dual DAgger | M (L with DAgger) | dual models; "one pipeline" |
 | Chain-script retirement | W5 gate; audit phase 4 | missing | 13 `*_chain.sh` remain; there are 107 `.sh` scripts in total (89 at audit time) | S–M | phase 5 |
 | `rrp run-dag` host↔peer artifact transfer | pipeline.md step 4 | missing | `orchestration/dag.py:266-270` places jobs but has no transfer between nodes. Moot while D-115 keeps heavy work on the peer | M | mixed-node DAGs |
 | Robot thermal and duty-cycle limits | §4.11 | missing | the only "thermal" hits are the host watchdog | M | — |

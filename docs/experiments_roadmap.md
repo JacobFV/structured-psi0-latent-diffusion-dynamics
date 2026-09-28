@@ -41,11 +41,11 @@ Code: ✅ exists · 🔧 implementing (D-126) · ❌ not a code problem / needs 
 ## D. Feature-centric coordination (W12)
 | # | question | depends on | cost | experiment | code |
 |---|---|---|---|---|---|
-| 18 | Grasp fix for pegs/bars and dual teacher v3 (smooth, contact-confirmed, limit-aware, phase-gated DART), then data | – | 1–2 days | queued (W7 grasp part) | 🔧 |
+| 18 | Grasp fix for pegs/bars and dual teacher v3 (smooth, contact-confirmed, limit-aware, phase-gated DART), then data | – | 1–2 days | queued (W7 grasp part) | ✅ teacher v3 `teachers/dual_smooth.py` (default off: `teacher_version: v3`, ablations `teacher_options`), phase-gated DART `noise_phase_gate`, quality record `record_quality`, gate `gates.check_dual_dataset`; peer smoke: support_insert v3 5/5 vs v2 1/5 (research/tracks/w12.md §10). Grasp model: W7 |
 | 19 | H1 go/no-go: base-frame vs anchor-relative supervision vs anchor-input system 0 (seed 0) | 18, 3 | 9–24 GPU-h | planned | ✅ |
 | 20 | Full W12 matrix (+event-aligned knots, anchor-input control, 3 seeds) with anchor-shift and contact-sequence edits | 19 | 2–6 days | planned | ✅ |
 | 21 | Legged stance drift with the new contact metrics on existing W8 checkpoints | – | ~0.5 day | planned | ✅ |
-| 22 | Coordination tasks: pivot against a surface, carry a tray level, legged foothold stepping | – | design + data | open | 🔧 task defs + scenes (legged foothold ✅ `envs/legged_scenes.py`, `tasks/foothold_steps.json`; see research/tracks/d126_legged.md) |
+| 22 | Coordination tasks: pivot against a surface, carry a tray level, legged foothold stepping | – | design + data | open | arm tasks ✅ stubs: `tasks/pivot_against_surface.json`, `tasks/carry_tray_level.json`, scenes `envs/dual_scenarios.build_pivot/build_carry_tray`, labelled unvalidated teacher stubs `teachers/dual_coord.py` (W12); legged foothold ✅ `envs/legged_scenes.py`, `tasks/foothold_steps.json`; see research/tracks/d126_legged.md) |
 
 ## E. Ψ₀ line (psi1z, W10)
 | # | question | depends on | cost | experiment | code |
@@ -71,7 +71,7 @@ default off; defaults golden-identical to pre-D-126 rows.
 ## G. New task families
 | # | question | depends on | cost | experiment | code |
 |---|---|---|---|---|---|
-| 33 | First dual-arm learned models (M=2 "across bodies") | 18 | 2–3 days | planned | 🔧 dual pipeline stages |
+| 33 | First dual-arm learned models (M=2 "across bodies") | 18 | 2–3 days | planned | ✅ stages collect/pack/train_rep/probes/train_flow/flow_ft/refit/eval_r2/heldout/edits (`pipelines/dual.py`), DAG `dags/templates/dual_lineage.yaml` (zero_prev_action true); dual DAgger ❌ (no dual label source) |
 | 34 | Loco-manipulation (walk to a table, then pick) | 13 | 3+ days | open | ✅ task + scene (spot_arm) + STUB teacher; needs a spot tracker |
 | 35 | Richer arm objects (sizes, masses, friction, shapes) | – | 1–2 days + data | planned | ✅ `object_spec` / `object_variation` |
 
