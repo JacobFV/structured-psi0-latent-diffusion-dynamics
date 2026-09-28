@@ -963,7 +963,7 @@ def _run_legged(e: dict, out: Path, pcache: dict, robust: bool) -> list[dict]:
                     waypoints=row.get("waypoints"))
         if a.get("edit", "none") != "none":
             first = next((t_ for t_, ed, _z, _dz in st["sig"].packets if ed != "none"), None)
-            meta.update(edit_onset_t=float(a.get("t_edit", 1.0)), edit_first_packet_t=first)
+            meta.update(edit_onset_t=float(a.get("t_edit", 1.0)), edit_first_packet_t=None if first is None else round(first, 4))
         if robust:
             meta["perturbation"] = row.get("perturbation")
         if basis is not None:
