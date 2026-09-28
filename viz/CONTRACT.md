@@ -65,7 +65,8 @@ its run directory), `decisions`, `decision_match` (the token that matched), `tra
   `python -m rrp.viz.api get <name> [--live] [--max-age S]` prints the absolute path of the fresh document (it re-exports only that
   document when older than S); then the plugin reads that file. `/api/live` uses `get live --live` (one bounded ssh read of the
   peer, ≤ 5 s; `stale` when the last good read is older than 60 s).
-- `python -m rrp.viz.api doc <path>` prints `{schema: rrp-viz/doc/v1, path, markdown, mtime}` (exit 2 if not allowlisted);
+- `python -m rrp.viz.api doc <path>` prints `{schema: rrp-viz/doc/v1, path, markdown, mtime}` (exit 2 if not allowlisted; optional,
+  the plugin may serve `/api/doc` itself with the same allowlist, v1.1);
   `api replay <id>`, `api media <name>`, `api training <id>` print an absolute file path (exit 2 if unknown). `api routes` prints the table.
 - `python -m rrp.viz.export --sync-psi1z` rsyncs small psi1z summary files from the peer into `~/work/rrp-data/viz/psi1z/` (≤ 50 MB);
   it is never part of a periodic refresh.
