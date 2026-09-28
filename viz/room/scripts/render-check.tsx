@@ -27,7 +27,7 @@ const VIEWS: [string, () => Promise<{ default: ComponentType }>, string[]][] = [
   ['training', () => import('../src/views/TrainingView'), ['training', 'training?data=1', 'live']],
   ['overview-docs', () => import('../src/views/OverviewView'), ['knowledge', 'knowledge?tab=crosswalk', 'knowledge?tab=roadmap&q=%2313', 'knowledge?tab=backlog', 'knowledge?tab=strategy', 'knowledge?tab=status', 'knowledge?tab=docs', 'knowledge?tab=decisions&d=D-100']],
 ];
-const DOCS = ['overview', 'live', 'dags', 'results', 'edits', 'training', 'robustness', 'physics', 'psi0', 'knowledge', 'replays', 'videos'];
+const DOCS = ['radar', 'overview', 'live', 'dags', 'results', 'edits', 'training', 'robustness', 'physics', 'psi0', 'knowledge', 'replays', 'videos'];
 
 function load(dir: string) {
   const out: Record<string, unknown> = {};
@@ -130,14 +130,14 @@ async function main() {
   }
   console.log(`${cssBad.length ? 'FAIL' : 'ok  '} css type scale: ${cssBad.length ? cssBad.join(' | ') : 'all font sizes ≤ 12 px except .big/.headline'}`);
   if (cssBad.length) failures++;
-  // Board budget at 1440×900: every tile's chart must fit its tile (no vertical overflow).
+  // Board budget at 1440×900: every panel's content must fit its fixed cell (no vertical overflow)
   const bm = await import('../src/views/Board');
   for (const [label, docs] of sets.slice(0, 2)) {
-    const needs = bm.tileNeeds(docs as Record<string, never>);
-    for (const [tile, need] of Object.entries(needs)) {
-      const total = bm.TILE_CHROME + need;
-      const fits = total <= bm.TILE_H;
-      console.log(`${fits ? 'ok  ' : 'FAIL'} budget  ${label.padEnd(7)} board tile ${tile.padEnd(11)} needs ${total}px of ${bm.TILE_H}px (2 rows in ${bm.VIEWPORT_H}px)`);
+    const needs = bm.panelNeeds(docs as Record<string, never>);
+    for (const [panel, { need, cells }] of Object.entries(needs)) {
+      const avail = cells * bm.CELL_H - bm.HEAD_H;
+      const fits = need <= avail;
+      console.log(`${fits ? 'ok  ' : 'FAIL'} budget  ${label.padEnd(7)} board ${panel.padEnd(11)} needs ${need}px of ${avail}px (${cells} cell${cells > 1 ? 's' : ''}; ${bm.KPI_H}px KPI strip; ${bm.VIEWPORT_H}px screen)`);
       if (!fits) failures++;
     }
   }

@@ -1,264 +1,367 @@
 /**
- * Board (v3, one screen): four tiles (claim, competence, open, live), each one chart and one big number with its CI.
- * Explanations live in hover titles and the evidence links. Layout has a pixel budget (TILE_H at 1440×900) that the render
- * check asserts, so the board never scrolls at that size. Every figure comes from an exporter document.
+ * Board v5 (after IBM-2's overview dashboard): one dense screen at 1440×900. The compact declared radar in the centre,
+ * a KPI strip on top, and small visual panels around it; one-line labels, evidence on hover, every panel drills to its
+ * view. Layout has a pixel budget (asserted by the render check): each panel's content must fit its fixed cell.
  */
-import type { ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ModeBadge, Spark } from '../components/board';
-import { useDoc, type DocResult, type Envelope } from '../lib/api';
-import { arr, fmtNum, isObj, newcombe, num, rows, str, timeOf, wilson, type Row } from '../lib/format';
+import { seqColor, seqInk } from '../components/charts';
+import RadarChart, { type RadarDoc } from '../components/RadarChart';
+import { fetchTrainingSeries, useDoc, type DocResult, type Envelope } from '../lib/api';
+import { arr, fmtNum, isObj, newcombe, num, rows, str, wilson, type Row } from '../lib/format';
 import { href } from '../lib/url';
 
-/* ---------- layout budget (px) */
+/* ---------- layout budget (px) at 1440×900 */
 export const VIEWPORT_H = 900;
 export const TICKER_H = 20;
 export const PAD = 8;
-export const TILE_H = Math.floor((VIEWPORT_H - TICKER_H - 2 * PAD) / 2); // two rows of tiles
-export const TILE_CHROME = 22 /* header */ + 40 /* big number */ + 16 /* ci line */ + 14 /* evidence link */ + 12 /* padding */;
-const ROW = 17, AXIS = 14;
+export const KPI_H = 50;
+export const ROWS = 3;
+export const CELL_H = Math.floor((VIEWPORT_H - TICKER_H - 2 * PAD - KPI_H) / ROWS); // 271
+export const HEAD_H = 18;
+const LINE = 13;
 
 const ok = (r: DocResult<Envelope>) => (r.status === 'ok' ? r.data : null);
-const pct = (v: number) => `${Math.round(v * 100)}%`;
+const GB = 1024 ** 3;
+const pct = (v: number) => `${Math.round(v * 100)}`;
 
-/* ---------- data selection (shared by the tiles and the budget check) */
+/* ---------- data helpers (shared with the budget check) */
 function lineages(res: Envelope | null) {
   const by = new Map<string, { k: number; n: number }>();
   if (res) for (const r of rows(res.rows)) {
-    const kp = arr(r.key_path);
+    const kp = arr(r.key_path).map(str);
     if (str(r.metric) !== 'grasp_v2' || kp.length !== 3 || !str(r.source_file).endsWith('compare_gc2_final.json')) continue;
-    const x = by.get(str(kp[0])) || { k: 0, n: 0 };
+    const x = by.get(kp[0]) || { k: 0, n: 0 };
     x.k += num(r.k) || 0; x.n += num(r.n) || 0;
-    by.set(str(kp[0]), x);
+    by.set(kp[0], x);
   }
   const sum = (re: RegExp) => [...by.entries()].filter(([l]) => re.test(l)).reduce((a, [, v]) => ({ k: a.k + v.k, n: a.n + v.n }), { k: 0, n: 0 });
-  return { semfix: sum(/^semfix/i), nosem: sum(/^nosem/i), bc: sum(/^BC/i), frozen: sum(/^frozen/i) };
+  return { semfix: sum(/^semfix/i), nosem: sum(/^nosem/i) };
 }
-function haltRows(ed: Envelope | null) {
+function haltDiffs(ed: Envelope | null) {
   if (!ed) return [];
   const rs = rows(ed.rows);
-  return ['anymal_c', 'go2'].flatMap((body) => {
-    const diff = rs.find((r) => str(r.body) === body && /summary_contact_v2/.test(str(r.source_file)) && /pooled_diff/.test(str(r.metric)));
-    return diff ? [{ body, diff }] : [];
+  return ['anymal_c', 'go2'].flatMap((b) => {
+    const d = rs.find((r) => str(r.body) === b && /summary_contact_v2/.test(str(r.source_file)) && /pooled_diff/.test(str(r.metric)));
+    return d ? [{ body: b, v: num(d.effect)!, lo: num(arr(d.ci)[0])!, hi: num(arr(d.ci)[1])!, row: d }] : [];
   });
 }
-function competence(rb: Envelope | null) {
-  const reps = rb ? rows(rb.reports).filter((r) => /^(teacher|bc|semfix|nosem|frozen_sem)$/.test(str(r.route))) : [];
-  const robots = [...new Set(reps.map((r) => str(r.robot)))];
-  const routes = ['teacher', 'bc', 'semfix', 'frozen_sem', 'nosem'].filter((x) => reps.some((r) => str(r.route) === x));
-  return { reps, robots, routes };
+function leggedCells(res: Envelope | null) {
+  const m = new Map<string, { k: number; n: number }>();
+  const bodies: string[] = [];
+  if (res) for (const r of rows(res.rows)) {
+    if (!/summary_contact_v2\.json$/.test(str(r.source_file))) continue;
+    const kp = arr(r.key_path).map(str);
+    const col = kp[1] === 'r2_final' ? kp[2] : kp[1] === 'references' ? kp[2] : null;
+    if (!col || kp.length !== 3 || !num(r.n)) continue;
+    if (!bodies.includes(kp[0])) bodies.push(kp[0]);
+    const x = m.get(`${kp[0]}|${col}`) || { k: 0, n: 0 };
+    x.k += num(r.k) || 0; x.n += num(r.n) || 0;
+    m.set(`${kp[0]}|${col}`, x);
+  }
+  return { m, bodies };
 }
-function roadmap(kn: Envelope | null) {
-  return kn ? rows(kn.roadmap) : [];
+function armCells(res: Envelope | null) {
+  const m = new Map<string, { k: number; n: number }>();
+  const bodies: string[] = [];
+  if (res) for (const r of rows(res.rows)) {
+    const kp = arr(r.key_path).map(str);
+    if (kp.length !== 3 || !str(r.source_file).endsWith('compare_gc2_final.json') || kp[2] !== 'grasp_v2') continue;
+    const col = /^semfix/.test(kp[0]) ? 'semfix' : /^nosem/.test(kp[0]) ? 'nosem' : /^frozen/.test(kp[0]) ? 'frozen' : /^BC/.test(kp[0]) ? 'bc' : null;
+    if (!col) continue;
+    if (!bodies.includes(kp[1])) bodies.push(kp[1]);
+    const x = m.get(`${kp[1]}|${col}`) || { k: 0, n: 0 };
+    x.k += num(r.k) || 0; x.n += num(r.n) || 0;
+    m.set(`${kp[1]}|${col}`, x);
+  }
+  return { m, bodies };
 }
-function activeDags(g: Envelope | null) {
-  return g ? rows(g.dags).filter((d) => d.complete === false) : [];
-}
-/** Pixel height each tile's chart needs; the render check asserts TILE_CHROME + need ≤ TILE_H. */
-export function tileNeeds(docs: Record<string, Envelope | null>) {
-  const h = haltRows(docs.edits ?? null).length;
-  const c = competence(docs.robustness ?? null);
-  const road = roadmap(docs.knowledge ?? null);
-  const dags = activeDags(docs.dags ?? null).slice(0, 5);
+const activeDags = (g: Envelope | null) => (g ? rows(g.dags).filter((d) => d.complete === false) : []);
+const recentRuns = (t: Envelope | null) => (t ? rows(t.runs).map((x) => ({ x, t: num(isObj(x.last) ? x.last.t : null) })).filter((y) => y.t !== null && y.t > 1.5e9).sort((a, b) => b.t! - a.t!).slice(0, 8).map((y) => y.x) : []);
+
+/** Content height each panel needs (px); the render check asserts HEAD_H + need ≤ CELL_H (radar: ≤ 2 cells). */
+export function panelNeeds(docs: Record<string, Envelope | null>) {
+  const lc = leggedCells(docs.results ?? null), ac = armCells(docs.results ?? null);
+  const reps = docs.robustness ? rows(docs.robustness.reports) : [];
   return {
-    claim: (2 + h) * ROW + 2 * AXIS + 8,
-    competence: c.routes.length * ROW + AXIS + 16,
-    open: Math.ceil(Math.max(1, road.length) / 18) * 14 + 3 * 16 + 8,
-    live: Math.min(5, dags.length) * 16 + 34 + 16,
+    radar: { need: Math.min(2 * CELL_H - HEAD_H - 30, 520) + 20, cells: 2 },
+    claim: { need: (haltDiffs(docs.edits ?? null).length + 2) * 15 + 2 * 12 + 10, cells: 1 },
+    success: { need: (lc.bodies.length + ac.bodies.length + 2) * 17 + 8, cells: 1 },
+    robustness: { need: (reps.length + 1) * LINE + 6, cells: 1 },
+    psi0: { need: (docs.psi0 ? rows(docs.psi0.runs).filter((r) => num(r.n) && (str(r.run).startsWith('step2') || !r.interim)).length : 0) * LINE + 4, cells: 1 },
+    leases: { need: (docs.live ? rows(docs.live.leases).length : 0) * LINE + 4, cells: 1 },
+    dags: { need: Math.min(10, activeDags(docs.dags ?? null).length + 4) * LINE + 4, cells: 1 },
+    training: { need: recentRuns(docs.training ?? null).length * LINE + LINE + 4, cells: 1 },
+    decisions: { need: Math.min(15, docs.overview ? rows(docs.overview.latest_decisions).length : 0) * LINE + 4, cells: 1 },
   };
 }
 
-/* ---------- tile */
-function Tile({ title, result, big, ci, link, linkText, tone, tip, children }: {
-  title: string; result: DocResult<Envelope>; big: ReactNode; ci?: ReactNode; link: string; linkText: string; tone?: 'good' | 'bad'; tip?: string; children: ReactNode;
-}) {
+function P({ title, link, result, meta, children, cls = '' }: { title: string; link: string; result?: DocResult<Envelope>; meta?: ReactNode; children: ReactNode; cls?: string }) {
   return (
-    <section className={`btile ${tone || ''}`} title={tip}>
-      <header><span>{title}</span><ModeBadge result={result} /></header>
-      <a className="big" href={link}>{big}</a>
-      <div className="ci">{ci}</div>
-      <div className="chart">{children}</div>
-      <a className="ev" href={link}>{linkText} ›</a>
+    <section className={`bp ${cls}`}>
+      <header><a href={link}>{title}</a>{meta !== undefined && <span className="meta">{meta}</span>}{result && <ModeBadge result={result} />}</header>
+      <div className="bb">{children}</div>
     </section>
   );
 }
 
-/** Dot + whisker rows on one axis. */
-function Dots({ items, lo, hi, fmt, zero }: { items: { label: string; v: number; lo: number; hi: number; tone: string; tip: string; link?: string }[]; lo: number; hi: number; fmt: (v: number) => string; zero?: boolean }) {
-  const W = 420, left = 104, right = 50, H = items.length * ROW + AXIS;
-  const x = (v: number) => left + ((v - lo) / (hi - lo || 1)) * (W - left - right);
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="xMinYMin meet" role="img" aria-label={items.map((i) => `${i.label} ${fmt(i.v)}`).join('; ')}>
-      {zero && lo < 0 && hi > 0 && <line x1={x(0)} x2={x(0)} y1={0} y2={H - AXIS + 2} stroke="var(--ink-2)" strokeDasharray="2 2" />}
-      <text x={left} y={H - 2} fontSize={10} fill="var(--muted)">{fmt(lo)}</text>
-      <text x={W - right} y={H - 2} fontSize={10} fill="var(--muted)" textAnchor="end">{fmt(hi)}</text>
-      {items.map((it, i) => {
-        const y = i * ROW + 9;
-        const g = (
-          <g key={it.label}>
-            <title>{it.tip}</title>
-            <text x={left - 6} y={y + 4} fontSize={11} fill="var(--ink-2)" textAnchor="end">{it.label}</text>
-            <line x1={x(it.lo)} x2={x(it.hi)} y1={y} y2={y} stroke={it.tone} strokeWidth={2.5} strokeLinecap="round" opacity={0.5} />
-            <circle cx={x(it.v)} cy={y} r={4.5} fill={it.tone} />
-            <text x={W - right + 6} y={y + 4} fontSize={11} fill="var(--ink)" fontFamily="var(--mono)">{fmt(it.v)}</text>
-          </g>
-        );
-        return it.link ? <a key={it.label} href={it.link}>{g}</a> : g;
-      })}
-    </svg>
-  );
-}
-
 export default function Board() {
-  const edits = useDoc<Envelope>('edits');
-  const results = useDoc<Envelope>('results');
-  const robust = useDoc<Envelope>('robustness');
-  const knowledge = useDoc<Envelope>('knowledge');
-  const psi0 = useDoc<Envelope>('psi0');
-  const live = useDoc<Envelope>('live', 10_000);
-  const dags = useDoc<Envelope>('dags', 30_000);
+  const d = {
+    radar: useDoc<Envelope>('radar'), edits: useDoc<Envelope>('edits'), results: useDoc<Envelope>('results'), robustness: useDoc<Envelope>('robustness'),
+    psi0: useDoc<Envelope>('psi0'), live: useDoc<Envelope>('live', 10_000), dags: useDoc<Envelope>('dags', 30_000), training: useDoc<Envelope>('training'),
+    overview: useDoc<Envelope>('overview'), knowledge: useDoc<Envelope>('knowledge'),
+  };
   return (
-    <div className="board1" style={{ ['--tile-h' as string]: `${TILE_H}px` }}>
-      <ClaimTile edits={edits.result} results={results.result} />
-      <CompetenceTile robust={robust.result} results={results.result} />
-      <OpenTile knowledge={knowledge.result} psi0={psi0.result} />
-      <LiveTile live={live.result} dags={dags.result} />
+    <div className="board5" style={{ ['--cell-h' as string]: `${CELL_H}px`, ['--kpi-h' as string]: `${KPI_H}px` }}>
+      <Kpis d={d} />
+      <div className="b5grid">
+        <RadarPanel r={d.radar.result} />
+        <ClaimPanel ed={d.edits.result} res={d.results.result} />
+        <SuccessPanel res={d.results.result} />
+        <RobustPanel r={d.robustness.result} />
+        <Psi0Panel r={d.psi0.result} />
+        <LeasePanel r={d.live.result} />
+        <DagPanel r={d.dags.result} />
+        <TrainPanel r={d.training.result} />
+        <DecisionPanel r={d.overview.result} />
+      </div>
     </div>
   );
 }
 
-/* ---------- 1 · claim */
-function ClaimTile({ edits, results }: { edits: DocResult<Envelope>; results: DocResult<Envelope> }) {
-  const L = lineages(ok(results));
-  const halt = haltRows(ok(edits));
-  const { semfix: s, nosem: n } = L;
-  if (!s.n && !halt.length) return null;
-  const d = s.n && n.n ? s.k / s.n - n.k / n.n : null;
-  const [dlo, dhi] = s.n && n.n ? newcombe(n.k, n.n, s.k, s.n) : [null, null];
-  const armLink = href('results', { q: 'compare_gc2_final', metric: 'grasp_v2' });
-  const arm = [['semfix', s, 'var(--up)'], ['nosem', n, 'var(--muted)']] as const;
-  const hs = halt.map((h) => ({ body: h.body, v: num(h.diff.effect)!, lo: num(arr(h.diff.ci)[0])!, hi: num(arr(h.diff.ci)[1])!, dec: str(h.diff.decision) }));
+/* ---------- KPI strip */
+function Kpi({ k, v, s, spark, tone, link, tip }: { k: string; v: ReactNode; s?: ReactNode; spark?: (number | null)[]; tone?: string; link: string; tip?: string }) {
   return (
-    <Tile title="Semantic packet → causal task control" result={s.n ? results : edits} link={armLink} linkText="evidence: grasp_v2 rows, halt contrasts"
-      big={d !== null ? <>+{Math.round(d * 100)} pts</> : `${fmtNum(hs[0]?.v)} m`}
-      ci={d !== null ? <>arm semfix {s.k}/{s.n} vs nosem {n.k}/{n.n} · 95% CI [{Math.round(dlo! * 100)}, {Math.round(dhi! * 100)}]</> : null}
-      tone="good"
-      tip="Arm: deployable pick-and-place success under grasp_v2, pooled over bodies and 2 seeds (compare_gc2_final.json; D-121/D-127; Newcombe CI). Legged: recorded pooled contrast of forward travel after a halt context edit, semantic − nosem, under contact v2 (summary_contact_v2.json; D-124).">
-      {s.n > 0 && <Dots fmt={pct} lo={0} hi={1} items={arm.map(([label, x, tone]) => { const [lo, hi] = wilson(x.k, x.n); return { label: `arm ${label}`, v: x.k / x.n, lo, hi, tone, tip: `${x.k}/${x.n} grasp_v2 successes`, link: armLink }; })} />}
-      {hs.length > 0 && <Dots zero fmt={(v) => `${v.toFixed(2)} m`} lo={Math.min(-0.8, ...hs.map((h) => h.lo))} hi={0.2}
-        items={hs.map((h) => ({ label: `halt Δ ${h.body}`, v: h.v, lo: h.lo, hi: h.hi, tone: 'var(--up)', tip: `${h.body}: semantic − nosem forward travel after halt, ${h.v} m [${h.lo}, ${h.hi}] (${h.dec})`, link: href('edits', { body: h.body, edit: 'halt' }) }))} />}
-    </Tile>
+    <a className={`k5 ${tone || ''}`} href={link} title={tip}>
+      <span>{k}</span><b>{v}</b>
+      {spark && spark.filter((x) => x !== null).length > 1 ? <Spark values={spark} width={84} height={12} /> : <small>{s}</small>}
+    </a>
   );
 }
-
-/* ---------- 2 · competence vs baselines */
-function CompetenceTile({ robust, results }: { robust: DocResult<Envelope>; results: DocResult<Envelope> }) {
-  const c = competence(ok(robust));
-  const L = lineages(ok(results));
-  if (!c.robots.length) return null;
-  const tone = (r: string) => (r === 'teacher' ? 'var(--warning)' : r === 'bc' ? 'var(--ink-2)' : r === 'nosem' ? 'var(--muted)' : 'var(--up)');
-  const W = 420, left = 76, colW = (W - left) / c.robots.length, H = c.routes.length * ROW + AXIS;
-  const lat = L.semfix, bc = L.bc;
-  return (
-    <Tile title="Competence vs baselines" result={robust} link={href('robustness')} linkText="evidence: nominal episodes of the robustness sweep"
-      big={lat.n && bc.n ? <>{pct(lat.k / lat.n)} <span className="vs">vs BC {pct(bc.k / bc.n)}</span></> : '—'}
-      ci={lat.n && bc.n ? <>arm grasp_v2 latent (semfix) {lat.k}/{lat.n} vs BC direct {bc.k}/{bc.n}</> : null}
-      tip="Big number: arm grasp_v2 success, latent route (semfix, 2 seeds) vs plain BC (1 seed), compare_gc2_final.json. Chart: nominal success per robot and route, same 20 seeds per route (D-108/D-114); the scripted teacher is privileged, an upper reference.">
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="xMinYMin meet" role="img" aria-label="nominal success per robot and route">
-        {c.robots.map((rb, j) => <text key={rb} x={left + j * colW + colW / 2} y={H - 2} fontSize={10.5} textAnchor="middle" fill="var(--muted)">{rb}</text>)}
-        {c.routes.map((rt, i) => {
-          const y = i * ROW + 9;
-          return (
-            <g key={rt}>
-              <text x={left - 6} y={y + 4} fontSize={11} textAnchor="end" fill="var(--ink-2)">{rt}</text>
-              {c.robots.map((rb, j) => {
-                const r = c.reps.find((x) => str(x.robot) === rb && str(x.route) === rt);
-                const nm = r && isObj(r.nominal) ? r.nominal : null;
-                if (!nm) return null;
-                const k = num(nm.k) || 0, n = num(nm.n) || 0;
-                const [lo, hi] = Array.isArray(nm.ci) ? [num(nm.ci[0])!, num(nm.ci[1])!] : wilson(k, n);
-                const x = (v: number) => left + j * colW + 6 + v * (colW - 12);
-                return (
-                  <a key={rb} href={href('robustness', { robot: rb })}>
-                    <title>{`${rb} ${rt}: ${k}/${n} nominal [${pct(lo)}, ${pct(hi)}] (${str(r!.decision)})`}</title>
-                    <line x1={left + j * colW + 6} x2={left + (j + 1) * colW - 6} y1={y} y2={y} stroke="var(--grid)" />
-                    <line x1={x(lo)} x2={x(hi)} y1={y} y2={y} stroke={tone(rt)} strokeWidth={2.5} opacity={0.5} />
-                    <circle cx={x(n ? k / n : 0)} cy={y} r={4.5} fill={tone(rt)} />
-                  </a>
-                );
-              })}
-            </g>
-          );
-        })}
-      </svg>
-    </Tile>
-  );
-}
-
-/* ---------- 3 · open or blocked */
-function OpenTile({ knowledge, psi0 }: { knowledge: DocResult<Envelope>; psi0: DocResult<Envelope> }) {
-  const road = roadmap(ok(knowledge));
-  if (!road.length) return null;
-  const st = (r: Row) => str(r.status).toLowerCase();
-  const col = (s: string) => (/done|complete/.test(s) ? 'var(--good)' : /run/.test(s) ? 'var(--accent)' : /block/.test(s) ? 'var(--critical)' : /open|conditional|queued/.test(s) ? 'var(--warning)' : 'var(--axis)');
-  const notDone = road.filter((r) => !/done|complete/.test(st(r)));
-  const find = (re: RegExp) => road.find((r) => re.test(str(r.question)));
-  const s2 = ok(psi0) ? rows(ok(psi0)!.runs).find((r) => str(r.run) === 'step2_tabletop_structured') : undefined;
-  const keys: { label: string; r?: Row; tip: string; link: string; s: string }[] = [
-    { label: 'humanoid trackers pass gates?', r: find(/humanoid/i), tip: '', link: '', s: '' },
-    { label: 'held-out bodies tested?', r: find(/sealed target bodies|held-out/i), tip: '', link: '', s: '' },
-  ].filter((k) => k.r).map((k) => ({ ...k, s: str(k.r!.status), tip: str(k.r!.question), link: href('knowledge', { tab: 'roadmap', q: `#${str(k.r!.n)}` }) }));
-  if (s2) keys.push({ label: `Ψ₀ structured ${str(s2.k)}/${str(s2.n)}`, tip: str(s2.interim_reason) || 'Ψ₀ step 2, our structure', link: href('psi0'), s: s2.interim ? 'interim' : 'recorded' });
-  const per = 18;
-  return (
-    <Tile title="Open or blocked" result={knowledge} link={href('knowledge', { tab: 'roadmap' })} linkText="roadmap"
-      big={<>{notDone.length}<span className="vs"> of {road.length} open</span></>}
-      ci={<>{road.filter((r) => /run/.test(st(r))).length} running · {road.filter((r) => /block/.test(st(r))).length} blocked · {road.filter((r) => /done/.test(st(r))).length} done</>}
-      tip="Roadmap items from docs/experiments_roadmap.md, one square each, coloured by recorded status; hover a square for the question.">
-      <svg viewBox={`0 0 420 ${Math.ceil(road.length / per) * 14}`} width="100%" height={Math.ceil(road.length / per) * 14} preserveAspectRatio="xMinYMin meet" role="img" aria-label="roadmap status">
-        {road.map((r, i) => (
-          <a key={i} href={href('knowledge', { tab: 'roadmap', q: `#${str(r.n)}` })}>
-            <rect x={(i % per) * 23} y={Math.floor(i / per) * 14} width={21} height={12} fill={col(st(r))}><title>{`#${str(r.n)} ${str(r.status)}: ${str(r.question)}`}</title></rect>
-          </a>
-        ))}
-      </svg>
-      <div className="keys">
-        {keys.map((k) => <a key={k.label} href={k.link} title={k.tip}><i style={{ background: col(k.s.toLowerCase()) }} />{k.label} <b>{k.s}</b></a>)}
-      </div>
-    </Tile>
-  );
-}
-
-/* ---------- 4 · live */
-function LiveTile({ live, dags }: { live: DocResult<Envelope>; dags: DocResult<Envelope> }) {
-  const l = ok(live), g = ok(dags);
-  if (!l && !g) return null;
-  const node = l && isObj(l.node) ? l.node : null;
+function Kpis({ d }: { d: Record<string, { result: DocResult<Envelope> }> }) {
+  const l = ok(d.live.result), node = l && isObj(l.node) ? l.node : null;
+  const wd = l ? rows(l.watchdog) : [];
   const adm = node && isObj(node.admission) ? node.admission : null;
-  const act = activeDags(g).slice(0, 5);
-  const mem = l ? rows(l.watchdog).map((s) => { const v = num(s.memory_available); return v === null ? null : v / 1024 ** 3; }) : [];
+  const L = lineages(ok(d.results.result));
+  const halts = haltDiffs(ok(d.edits.result));
+  const s2 = ok(d.psi0.result) ? rows(ok(d.psi0.result)!.runs).filter((r) => str(r.run).startsWith('step2')) : [];
+  const road = ok(d.knowledge.result) ? rows(ok(d.knowledge.result)!.roadmap) : [];
+  const st = (r: Row) => str(r.status).toLowerCase();
+  const col = (s: string) => (/done/.test(s) ? 'var(--good)' : /run/.test(s) ? 'var(--accent)' : /block/.test(s) ? 'var(--critical)' : /open|conditional|queued/.test(s) ? 'var(--warning)' : 'var(--axis)');
+  const gpu = node ? num(arr(node.gpu).map((g) => (isObj(g) ? g.util_pct : null))[0]) : null;
+  const mem = node ? num(node.memory_available) : null;
   return (
-    <Tile title="Running now" result={live} link={href('live')} linkText="ops"
-      big={<>{l ? rows(l.leases).length : '—'}<span className="vs"> jobs</span></>}
-      ci={<>{adm ? (adm.stopped ? 'admission STOPPED' : 'peer admitting') : ''}{l?.peer_read_at ? ` · read ${new Date(timeOf(l.peer_read_at) || 0).toTimeString().slice(0, 5)}` : ''}</>}
-      tone={adm?.stopped ? 'bad' : undefined}
-      tip="Active run DAGs (done / total nodes; ETA only where a track note states one) and peer memory available over the watchdog window.">
-      <div className="dagbars">
-        {act.map((d) => {
-          const c = isObj(d.counts) ? d.counts : {};
-          const total = Object.values(c).reduce<number>((a, v) => a + (num(v) || 0), 0) || 1;
-          const done = num(c.completed) || 0, run = num(c.running) || 0, fail = num(c.failed) || 0;
-          const eta = arr(d.eta_statements).map((e) => str(isObj(e) ? e.text ?? e.eta : e)).join('; ');
+    <div className="k5strip">
+      <Kpi k="GPU · temp" v={gpu !== null ? `${gpu}% · ${fmtNum(node?.gpu_temp_c)}°` : '—'} spark={wd.map((s) => num(s.gpu_temp_c))} link={href('training')} tip="peer GPU utilisation and temperature (spark: watchdog GPU temp)" />
+      <Kpi k="mem avail" v={mem !== null ? `${(mem / GB).toFixed(0)}G` : '—'} spark={wd.map((s) => { const v = num(s.memory_available); return v === null ? null : v / GB; })} link={href('training')} />
+      <Kpi k="PSI full" v={fmtNum(wd.length ? num(wd[wd.length - 1].psi_full_avg10) : null)} spark={wd.map((s) => num(s.psi_full_avg10))} link={href('training')} />
+      <Kpi k="jobs · admission" v={`${l ? rows(l.leases).length : '—'} · ${adm ? (adm.stopped ? 'STOP' : 'open') : '—'}`} tone={adm?.stopped ? 'bad' : ''} s={l ? `${fmtNum(l.n_leases_total)} leases total` : ''} link={href('training')} />
+      <Kpi k="arm gv2 sf | ns" v={L.semfix.n ? `${pct(L.semfix.k / L.semfix.n)}|${pct(L.nosem.k / L.nosem.n)}%` : '—'} tone="good" s={`${L.semfix.k}/${L.semfix.n} vs ${L.nosem.k}/${L.nosem.n}`} link={href('results')} tip="compare_gc2_final.json, grasp_v2, D-127" />
+      {halts.map((h) => <Kpi key={h.body} k={`halt Δ ${h.body}`} v={`${h.v.toFixed(2)}m`} s={`[${h.lo.toFixed(2)}, ${h.hi.toFixed(2)}]`} link={href('edits', { body: h.body })} tip={`semantic − nosem forward travel after a halt edit, contact v2 (${str(h.row.decision)}, ${str(h.row.source_file)})`} />)}
+      <Kpi k="Ψ₀ step 2" v={s2.map((r) => `${str(r.k)}/${str(r.n)}`).join(' · ') || '—'} s={s2.map((r) => str(r.run).replace(/^step2_\w+?_/, '')).join(' · ')} link={href('psi0')} tip="released · direct · structured (structured is interim)" />
+      <a className="k5" href={href('knowledge', { tab: 'roadmap' })} title="roadmap items by status (hover a square)">
+        <span>open · {road.filter((r) => !/done/.test(st(r))).length}/{road.length}</span>
+        <span style={{ display: 'flex', flexWrap: 'wrap', gap: 1, width: 120 }}>{road.map((r, i) => <i key={i} title={`#${str(r.n)} ${str(r.status)}: ${str(r.question)}`} style={{ width: 7, height: 7, background: col(st(r)) }} />)}</span>
+      </a>
+    </div>
+  );
+}
+
+/* ---------- panels */
+function RadarPanel({ r }: { r: DocResult<Envelope> }) {
+  const d = ok(r) as (RadarDoc & Envelope) | null;
+  return (
+    <P title="Routes · declared radar" link={href('radar')} result={r} cls="span2 row2" meta={d ? `${d.axes?.length ?? 0} axes · 1 = reference` : ''}>
+      {d && d.axes?.length ? <RadarChart radar={d} size={Math.min(2 * CELL_H - HEAD_H - 30, 520)} compact /> : <p className="board-note">no radar axes</p>}
+    </P>
+  );
+}
+function ClaimPanel({ ed, res }: { ed: DocResult<Envelope>; res: DocResult<Envelope> }) {
+  const halts = haltDiffs(ok(ed));
+  const L = lineages(ok(res));
+  const W = 290;
+  const legged = halts.length ? (
+    <Mini items={halts.map((h) => ({ label: `halt Δ ${h.body}`, v: h.v, lo: h.lo, hi: h.hi, tip: `${h.v} m [${h.lo}, ${h.hi}] · ${str(h.row.decision)} ${str(h.row.source_file)}` }))} lo={-0.8} hi={0.2} fmt={(v) => v.toFixed(2)} W={W} unit="m" />
+  ) : null;
+  let arm: ReactNode = null;
+  if (L.semfix.n && L.nosem.n) {
+    const dv = L.semfix.k / L.semfix.n - L.nosem.k / L.nosem.n;
+    const [lo, hi] = newcombe(L.nosem.k, L.nosem.n, L.semfix.k, L.semfix.n);
+    arm = <Mini items={[{ label: 'arm sf − ns', v: dv * 100, lo: lo * 100, hi: hi * 100, tip: `${L.semfix.k}/${L.semfix.n} − ${L.nosem.k}/${L.nosem.n}, Newcombe CI · D-127` }]} lo={-10} hi={70} fmt={(v) => `+${v.toFixed(0)}`} W={W} unit="pts" />;
+  }
+  return <P title="Claim · causal control" link={href('edits')} result={ed}>{legged}{arm}</P>;
+}
+function Mini({ items, lo, hi, fmt, W, unit }: { items: { label: string; v: number; lo: number; hi: number; tip: string }[]; lo: number; hi: number; fmt: (v: number) => string; W: number; unit: string }) {
+  const left = 78, right = 40, H = items.length * 15 + 12;
+  const x = (v: number) => left + ((Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo)) * (W - left - right);
+  return (
+    <svg width={W} height={H} role="img" aria-label={items.map((i) => `${i.label} ${fmt(i.v)}`).join('; ')}>
+      <line x1={x(0)} x2={x(0)} y1={0} y2={H - 11} stroke="var(--ink-2)" strokeDasharray="2 2" />
+      <text x={left} y={H - 1} fill="var(--muted)">{fmt(lo)}</text>
+      <text x={W - right} y={H - 1} fill="var(--muted)" textAnchor="end">{fmt(hi)} {unit}</text>
+      {items.map((it, i) => (
+        <g key={it.label}>
+          <title>{it.tip}</title>
+          <text x={left - 4} y={i * 15 + 10} textAnchor="end" fill="var(--ink-2)">{it.label}</text>
+          <line x1={x(it.lo)} x2={x(it.hi)} y1={i * 15 + 7} y2={i * 15 + 7} stroke="var(--up)" strokeWidth={2.5} opacity={0.5} />
+          <circle cx={x(it.v)} cy={i * 15 + 7} r={3.5} fill="var(--up)" />
+          <text x={W - right + 4} y={i * 15 + 10} fill="var(--ink)" fontFamily="var(--mono)">{fmt(it.v)}</text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+function SuccessPanel({ res }: { res: DocResult<Envelope> }) {
+  const lc = leggedCells(ok(res)), ac = armCells(ok(res));
+  const cell = (x: { k: number; n: number } | undefined, tip: string) => {
+    if (!x || !x.n) return <i className="c e" />;
+    const p = x.k / x.n;
+    const [lo, hi] = wilson(x.k, x.n);
+    return <i className="c" style={{ background: seqColor(p), color: seqInk(p) }} title={`${tip}: ${x.k}/${x.n} [${pct(lo)}, ${pct(hi)}]`}>{pct(p)}</i>;
+  };
+  const block = (title: string, bodies: string[], cols: string[], m: Map<string, { k: number; n: number }>, src: string) => bodies.length ? (
+    <div className="mh" style={{ gridTemplateColumns: `72px repeat(${cols.length}, 1fr)` }}>
+      <span className="h">{title}</span>{cols.map((c) => <span key={c} className="h">{c}</span>)}
+      {bodies.map((b) => <FragRow key={b} cells={[<span key="l" className="r">{b.replace(/_(pg2|tf3)$/, '')}</span>, ...cols.map((c) => <span key={c}>{cell(m.get(`${b}|${c}`), `${b} ${c} · ${src}`)}</span>)]} />)}
+    </div>
+  ) : null;
+  return (
+    <P title="Success · curated" link={href('results')} result={res}>
+      {block('legged cv2', lc.bodies, ['semfix', 'nosem', 'bc', 'teacher'], lc.m, 'summary_contact_v2 D-124')}
+      {block('arm gv2', ac.bodies, ['semfix', 'nosem', 'frozen', 'bc'], ac.m, 'compare_gc2_final D-127')}
+    </P>
+  );
+}
+function FragRow({ cells }: { cells: ReactNode[] }) { return <>{cells}</>; }
+function RobustPanel({ r }: { r: DocResult<Envelope> }) {
+  const d = ok(r);
+  const reps = d ? rows(d.reports) : [];
+  const factors = [...new Set(reps.flatMap((x) => (isObj(x.break_points) ? Object.keys(x.break_points) : [])))].slice(0, 9);
+  return (
+    <P title="Robustness · break-points" link={href('robustness')} result={r}>
+      <div className="strip5" style={{ gridTemplateColumns: `92px 30px repeat(${factors.length}, 1fr)` }}>
+        <span className="h">robot·route</span><span className="h">nom</span>{factors.map((f) => <span key={f} className="h" title={f}>{f.slice(0, 5)}</span>)}
+        {reps.map((x, i) => {
+          const nom = isObj(x.nominal) ? x.nominal : {};
+          const bps = isObj(x.break_points) ? x.break_points : {};
           return (
-            <a key={str(d.dag)} href={href('live', { ws: str(d.track) })} title={`${str(d.dag)}: ${Object.entries(c).map(([k, v]) => `${k} ${v}`).join(', ')}${eta ? ` · ETA ${eta}` : ' · no ETA recorded'}`}>
-              <span>{str(d.dag)}</span>
-              <span className="bar"><i style={{ width: `${(done / total) * 100}%`, background: 'var(--good)' }} /><i style={{ width: `${(run / total) * 100}%`, background: 'var(--accent)' }} /><i style={{ width: `${(fail / total) * 100}%`, background: 'var(--critical)' }} /></span>
-              <b>{done}/{total}{eta ? ` · ${eta}` : ''}</b>
-            </a>
+            <FragRow key={i} cells={[
+              <span key="n" className="r" title={str(x.source_file)}>{str(x.robot).replace(/_(pg2|tf3)$/, '').slice(0, 7)}·{str(x.route)}</span>,
+              <span key="nm" className="mono" style={{ background: seqColor(num(nom.rate) || 0), color: seqInk(num(nom.rate) || 0) }}>{pct(num(nom.rate) || 0)}</span>,
+              ...factors.map((f) => {
+                const b = isObj(bps[f]) ? bps[f] : null;
+                const lo = b ? num(b.low) : null, hi = b ? num(b.high) : null;
+                const has = lo !== null || hi !== null;
+                return <span key={f} className="mono" title={b ? `${f}: ${has ? `breaks ${lo !== null ? `≤${lo}` : ''} ${hi !== null ? `≥${hi}` : ''}` : 'no break in range'} (${str(x.decision)})` : `${f}: not swept`} style={{ background: has ? 'color-mix(in srgb, var(--critical) 30%, var(--surface))' : b ? 'var(--surface-2)' : 'transparent' }}>{has ? '×' : b ? '·' : ''}</span>;
+              }),
+            ]} />
           );
         })}
-        {!act.length && <span className="muted">no active DAG</span>}
       </div>
-      <div className="memline" title="peer memory available (GB), last watchdog samples"><span>mem avail</span><Spark values={mem} width={220} height={18} /><b>{fmtNum(mem[mem.length - 1])} GB</b></div>
-    </Tile>
+    </P>
+  );
+}
+function Psi0Panel({ r }: { r: DocResult<Envelope> }) {
+  const d = ok(r);
+  const runs = d ? rows(d.runs).filter((x) => num(x.n) && (str(x.run).startsWith('step2') || !x.interim)) : [];
+  runs.sort((a, b) => Number(str(b.run).startsWith('step2')) - Number(str(a.run).startsWith('step2')));
+  return (
+    <P title="Ψ₀ · step 2 and reproduction" link={href('psi0')} result={r}>
+      {runs.map((x) => {
+        const k = num(x.k)!, n = num(x.n)!;
+        const [lo, hi] = Array.isArray(x.ci) ? [num(x.ci[0])!, num(x.ci[1])!] : wilson(k, n);
+        return (
+          <div key={str(x.run)} className="barrow" title={`${str(x.task)} · ${k}/${n} [${pct(lo)}, ${pct(hi)}]${x.interim ? ` · interim: ${str(x.interim_reason)}` : ''}`}>
+            <span>{str(x.run).replace(/^psi0rel_/, 'rel ').replace(/^step2_tabletop_/, 's2 ')}</span>
+            <span className="bar"><i style={{ width: `${(k / n) * 100}%`, background: x.interim ? 'var(--axis)' : 'var(--s1)' }} /><s style={{ left: `${lo * 100}%`, width: `${(hi - lo) * 100}%` }} /></span>
+            <b>{k}/{n}</b>
+          </div>
+        );
+      })}
+    </P>
+  );
+}
+function LeasePanel({ r }: { r: DocResult<Envelope> }) {
+  const l = ok(r);
+  const ls = l ? rows(l.leases) : [];
+  return (
+    <P title="Leases · memory" link={href('training')} result={r} meta={`${ls.length}`}>
+      {ls.map((x) => {
+        const dec = isObj(x.declared) ? x.declared : {}, m = isObj(x.measured) ? x.measured : {};
+        const dm = num(dec.memory_bytes) || 1, c = num(m.memory_current) || 0, pk = num(m.memory_peak), hi = num(m.memory_high), thr = num(m.memory_high_events) || 0;
+        const f = (v: number) => `${Math.min(100, (v / dm) * 100)}%`;
+        return (
+          <div key={str(x.id)} className="barrow" title={`${str(x.label)} · ${str(x.workstream)} ${str(x.dag_node)} · ${(c / GB).toFixed(1)}/${(dm / GB).toFixed(0)} GB · peak ${fmtNum(pk !== null ? pk / GB : null)} GB · memory.high events ${thr}`}>
+            <span>{str(x.label)}</span>
+            <span className="bar"><i style={{ width: f(c), background: thr ? 'var(--critical)' : 'var(--accent)' }} />{hi !== null && <u style={{ left: f(hi) }} />}{pk !== null && <em style={{ left: f(pk) }} />}</span>
+            <b>{(c / GB).toFixed(1)}/{(dm / GB).toFixed(0)}G</b>
+          </div>
+        );
+      })}
+    </P>
+  );
+}
+function DagPanel({ r }: { r: DocResult<Envelope> }) {
+  const g = ok(r);
+  const all = g ? rows(g.dags) : [];
+  const shown = [...activeDags(g), ...all.filter((d) => d.complete === true)].slice(0, 10);
+  return (
+    <P title="Run DAGs" link={href('training')} result={r} meta={`${activeDags(g).length} active`}>
+      {shown.map((d) => {
+        const c = isObj(d.counts) ? d.counts : {};
+        const total = Object.values(c).reduce<number>((a, v) => a + (num(v) || 0), 0) || 1;
+        const eta = arr(d.eta_statements).map((e) => str(isObj(e) ? e.text ?? e.eta : e)).join('; ');
+        return (
+          <div key={`${str(d.dag)}${str(d.location)}`} className="barrow" title={`${str(d.track)} · ${Object.entries(c).map(([k, v]) => `${k} ${v}`).join(', ')}${eta ? ` · ETA ${eta}` : ' · no ETA recorded'}`}>
+            <span>{str(d.dag)}</span>
+            <span className="bar">{['completed', 'running', 'failed'].map((k) => <i key={k} style={{ position: 'relative', display: 'inline-block', width: `${((num(c[k]) || 0) / total) * 100}%`, background: k === 'completed' ? 'var(--good)' : k === 'running' ? 'var(--accent)' : 'var(--critical)' }} />)}</span>
+            <b>{fmtNum(c.completed ?? 0)}/{total}{eta ? ` ${eta}` : ''}</b>
+          </div>
+        );
+      })}
+    </P>
+  );
+}
+function TrainPanel({ r }: { r: DocResult<Envelope> }) {
+  const t = ok(r);
+  const runs = useMemo(() => recentRuns(t), [t]);
+  const [series, setSeries] = useState<Record<string, Row>>({});
+  useEffect(() => {
+    let live = true;
+    for (const x of runs) {
+      if (Array.isArray(x.step)) { setSeries((s) => ({ ...s, [str(x.id)]: x })); continue; }
+      fetchTrainingSeries(str(x.id)).then((res) => { if (live && res.status === 'ok') setSeries((s) => ({ ...s, [str(x.id)]: res.data as Row })); });
+    }
+    return () => { live = false; };
+  }, [runs]);
+  return (
+    <P title="Training · latest runs" link={href('training')} result={r}>
+      <div className="barrow h"><span>run</span><span>loss</span><b>grad</b></div>
+      {runs.map((x) => {
+        const s = series[str(x.id)];
+        const losses = s && isObj(s.losses) ? s.losses : {};
+        const lk = ['loss', 'flow', 'total', 'q_loss'].find((k) => Array.isArray(losses[k])) || Object.keys(losses)[0];
+        return (
+          <a key={str(x.id)} className="barrow" href={href('training', { runs: str(x.id) })} title={`${str(x.run)} · ${str(x.kind)} · last ${new Date((num(isObj(x.last) ? x.last.t : null) || 0) * 1000).toISOString().slice(5, 16)}`}>
+            <span>{str(x.run).replace(/^artifacts\/runs\//, '')}</span>
+            <span>{lk ? <Spark values={arr(losses[lk]).map(num)} width={90} height={11} /> : null}</span>
+            <b>{s && Array.isArray(s.grad_norm) ? <Spark values={arr(s.grad_norm).map(num)} width={44} height={11} color="var(--s2)" /> : '—'}</b>
+          </a>
+        );
+      })}
+    </P>
+  );
+}
+function DecisionPanel({ r }: { r: DocResult<Envelope> }) {
+  const o = ok(r);
+  const ds = o ? rows(o.latest_decisions) : [];
+  return (
+    <P title="Latest decisions" link={href('knowledge')} result={r}>
+      {ds.slice(0, 15).map((x) => (
+        <a key={str(x.id)} className="barrow dline" href={href('knowledge', { tab: 'decisions', d: str(x.id) })} title={str(x.title)}>
+          <span className="mono">{str(x.id)}</span><span>{str(x.title)}</span>
+        </a>
+      ))}
+    </P>
   );
 }

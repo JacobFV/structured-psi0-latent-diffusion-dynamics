@@ -391,3 +391,47 @@ video.media { width: 100%; background: #000; max-height: 420px; }
 .fd-arrow path { fill: var(--ink-2); }
 @keyframes fdflow { to { stroke-dashoffset: -14; } }
 @media (prefers-reduced-motion: reduce) { .fd-arrow line.flowing { animation: none; } }
+/* board v5: dense one-screen grid */
+.board5 { display: grid; gap: 0; font-size: var(--fs-10); }
+.k5strip { display: flex; height: var(--kpi-h); border-left: var(--seam); border-top: var(--seam); overflow: hidden; }
+.k5 { flex: 1 1 0; min-width: 0; display: grid; align-content: start; gap: 0; padding: 3px 6px; border-right: var(--seam); border-bottom: var(--seam); background: var(--surface); color: var(--ink); text-decoration: none; overflow: hidden; }
+.k5:hover { background: var(--surface-2); text-decoration: none; }
+.k5 span { font: var(--fs-10) var(--mono); color: var(--muted); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.k5 b { font: 600 var(--fs-12) var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.k5 small { font: var(--fs-10) var(--mono); color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.k5.good b { color: var(--good); } .k5.bad b { color: var(--critical); }
+.b5grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: var(--cell-h); border-left: var(--seam); }
+.bp { display: flex; flex-direction: column; min-width: 0; overflow: hidden; border-right: var(--seam); border-bottom: var(--seam); background: var(--surface); }
+.bp.span2 { grid-column: span 2; } .bp.row2 { grid-row: span 2; }
+.bp > header { flex: 0 0 18px; display: flex; align-items: center; gap: 6px; padding: 0 6px; background: var(--surface-2); border-bottom: var(--seam); font: 600 var(--fs-10) var(--mono); text-transform: uppercase; letter-spacing: 0.04em; }
+.bp > header a { color: var(--ink); }
+.bp > header .meta { margin-left: auto; font-weight: 400; text-transform: none; color: var(--muted); }
+.bp > header .mbadge { margin-left: auto; }
+.bp > header .meta + .mbadge { margin-left: 4px; }
+.bp .bb { flex: 1; min-height: 0; overflow: hidden; padding: 3px 6px; display: grid; align-content: start; gap: 2px; }
+.bp.row2 .bb { place-items: start center; }
+.barrow { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) auto; gap: 6px; align-items: center; height: 13px; font-size: var(--fs-10); color: var(--ink); text-decoration: none; }
+.barrow.h { color: var(--muted); font-family: var(--mono); text-transform: uppercase; }
+.barrow > span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.barrow b { font: 400 var(--fs-10) var(--mono); white-space: nowrap; }
+.barrow .bar { position: relative; height: 7px; background: var(--surface-3); display: flex; }
+.barrow .bar i { display: block; height: 100%; }
+.barrow .bar s { position: absolute; top: 3px; height: 1px; background: var(--ink); }
+.barrow .bar u { position: absolute; top: -2px; bottom: -2px; width: 1.5px; background: var(--serious); text-decoration: none; }
+.barrow .bar em { position: absolute; top: -2px; bottom: -2px; width: 1.5px; background: var(--ink); }
+.barrow.dline { grid-template-columns: 44px minmax(0, 1fr); }
+.barrow.dline > span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+a.barrow:hover { background: var(--surface-2); text-decoration: none; }
+.mh { display: grid; gap: 1px; font: var(--fs-10) var(--mono); margin-bottom: 4px; }
+.mh .h { color: var(--muted); text-align: center; white-space: nowrap; overflow: hidden; }
+.mh .h:first-child { text-align: left; color: var(--ink-2); }
+.mh .r { color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mh .c { display: block; height: 15px; line-height: 15px; text-align: center; font-style: normal; }
+.mh .c.e { background: repeating-linear-gradient(135deg, var(--surface-2) 0 2px, transparent 2px 4px); }
+.strip5 { display: grid; gap: 1px; font: var(--fs-10) var(--mono); }
+.strip5 > span { height: 12px; line-height: 12px; text-align: center; white-space: nowrap; overflow: hidden; }
+.strip5 .h { color: var(--muted); }
+.strip5 .r { text-align: left; color: var(--ink-2); text-overflow: ellipsis; }
+.radar.compact figcaption { gap: 6px; }
+@media (max-width: 1100px) { .b5grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(var(--cell-h), auto); } }
+@media (max-height: 760px) { .b5grid { grid-auto-rows: minmax(240px, auto); } }

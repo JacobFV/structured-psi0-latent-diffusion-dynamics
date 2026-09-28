@@ -1,0 +1,1352 @@
+{
+ "schema": "rrp-viz/radar-axes/v1",
+ "purpose": "Declared, evidence-backed multi-axis comparison of the routes (after IBM-2's configs/workbench/radar_axes.json). Values are read at export from the exporter's own normalized documents (results, edits, robustness); nothing is typed in here except floors and declared reference constants.",
+ "normalization": {
+  "kind": "floor_to_reference",
+  "clamp": [
+   0,
+   1.5
+  ],
+  "rule": "r = (x - floor) / (reference - floor) for higher-is-better and (floor - x) / (floor - reference) for lower-is-better; reference = the declared reference series' value on that axis, or a declared constant; r = 0 at the floor, 1 at the reference; clamped to [0, 1.5] for drawing (unclamped r kept). Missing inputs stay missing (gaps)."
+ },
+ "series": [
+  {
+   "id": "teacher",
+   "label": "scripted teacher (privileged)"
+  },
+  {
+   "id": "bc",
+   "label": "BC (direct action)"
+  },
+  {
+   "id": "semfix",
+   "label": "latent · semantic (semfix)"
+  },
+  {
+   "id": "nosem",
+   "label": "latent · no semantics (nosem)"
+  },
+  {
+   "id": "frozen_sem",
+   "label": "latent · frozen sem"
+  }
+ ],
+ "selector_help": "doc: results|edits|robustness; list: rows (default)|reports|levels; where: field -> regex (seed '^$' = pooled row); key_path: list of regexes matched element-wise; agg: sum_kn (Σk/Σn; group = key_path index for the spread) | effect (row effect with its ci; negate flips sign) | path (value/ci/k/n paths into the row).",
+ "axes": [
+  {
+   "id": "arm_gv2_panda_pg2",
+   "label": "arm gv2 panda",
+   "metric": "deployable success rate",
+   "direction": "max",
+   "protocol": "pick_place on panda_pg2, grasp_v2 physics, 90 episodes per lineage seed (armexpert_gc2eval/compare_gc2_final.json)",
+   "decision": "D-127",
+   "floor": {
+    "value": 0.0,
+    "meaning": "no success"
+   },
+   "reference": {
+    "series": "bc"
+   },
+   "series": {
+    "semfix": {
+     "doc": "results",
+     "where": {
+      "source_file": "compare_gc2_final.json$",
+      "metric": "^grasp_v2$"
+     },
+     "key_path": [
+      "^semfix, seed",
+      "^panda_pg2$",
+      "^grasp_v2$"
+     ],
+     "agg": "sum_kn",
+     "group": 0
+    },
+    "nosem": {
+     "doc": "results",
+     "where": {
+      "source_file": "compare_gc2_final.json$",
+      "metric": "^grasp_v2$"
+     },
+     "key_path": [
+      "^nosem, seed",
+      "^panda_pg2$",
+      "^grasp_v2$"
+     ],
+     "agg": "sum_kn",
+     "group": 0
+    },
+    "frozen_sem": {
+     "doc": "results",
+     "where": {
+      "source_file": "compare_gc2_final.json$",
+      "metric": "^grasp_v2$"
+     },
+     "key_path": [
+      "^frozen sem, seed",
+      "^panda_pg2$",
+      "^grasp_v2$"
+     ],
+     "agg": "sum_kn",
+     "group": 0
+    },
+    "bc": {
+     "doc": "results",
+     "where": {
+      "source_file": "compare_gc2_final.json$",
+      "metric": "^grasp_v2$"
+     },
+     "key_path": [
+      "^BC direct1701",
+      "^panda_pg2$",
+      "^grasp_v2$"
+     ],
+     "agg": "sum_kn",
+     "group": 0
+    },
+    "teacher": {
+     "missing": "teacher not evaluated in this comparison"
+    }
+   }
+  },
+  {
+   "id": "arm_gv2_parm6_tf3",
+   "label": "arm gv2 parm6",
+   "metric": "deployable success rate",
+   "direction": "max",
+   "protocol": "pick_place on parm6_tf3, grasp_v2 physics, 90 episodes per lineage seed (armexpert_gc2eval/compare_gc2_final.json)",
+   "decision": "D-127",
+   "floor": {
+    "value": 0.0,
+    "meaning": "no success"
+   },
+   "reference": {
+    "series": "bc"
+   },
+   "series": {
+    "semfix": {
+     "doc": "results",
+     "where": {
+      "source_file": "compare_gc2_final.json$",
+      "metric": "^grasp_v2$"
+     },
+     "key_path": [
+      "^semfix, seed",
+      "^parm6_tf3$",
+      "^grasp_v2$"
+     ],
+     "agg": "sum_kn",
+     "group": 0
+    },
+    "nosem": {
+     "doc": "results",
+     "where": {
+      "source_file": "compare_gc2_final.json$",
+      "metric": "^grasp_v2$"
+     },
+     "key_path": [
+      "^nosem, seed",
+      "^parm6_tf3$",
+      "^grasp_v2$"
+     ],
+     "agg": "sum_kn",
+     "group": 0
+    },
+    "frozen_sem": {
+     "doc": "results",
+     "where": {
+      "source_file": "compare_gc2_final.json$",
+      "metric": "^grasp_v2$"
+     },
+     "key_path": [
+      "^frozen sem, seed",
+      "^parm6_tf3$",
+      "^grasp_v2$"
+     ],
+     "agg": "sum_kn",
+     "group": 0
+    },
+    "bc": {
+     "doc": "results",
+     "where": {
+      "source_file": "compare_gc2_final.json$",
+      "metric": "^grasp_v2$"
+     },
+     "key_path": [
+      "^BC direct1701",
+      "^parm6_tf3$",
+      "^grasp_v2$"
+     ],
+     "agg": "sum_kn",
+     "group": 0
+    },
+    "teacher": {
+     "missing": "teacher not evaluated in this comparison"
+    }
+   }
+  },
+  {
+   "id": "arm_gv2_parm5s_tf3",
+   "label": "arm gv2 parm5s",
+   "metric": "deployable success rate",
+   "direction": "max",
+   "protocol": "pick_place on parm5s_tf3, grasp_v2 physics, 90 episodes per lineage seed (armexpert_gc2eval/compare_gc2_final.json) · procedural body",
+   "decision": "D-127",
+   "floor": {
+    "value": 0.0,
+    "meaning": "no success"
+   },
+   "reference": {
+    "series": "bc"
+   },
+   "series": {
+    "semfix": {
+     "doc": "results",
+     "where": {
+      "source_file": "compare_gc2_final.json$",
+      "metric": "^grasp_v2$"
+     },
+     "key_path": [
+      "^semfix, seed",
+      "^parm5s_tf3$",
+      "^grasp_v2$"
+     ],
+     "agg": "sum_kn",
+     "group": 0
+    },
+    "nosem": {
+     "doc": "results",
+     "where": {
+      "source_file": "compare_gc2_final.json$",
+      "metric": "^grasp_v2$"
+     },
+     "key_path": [
+      "^nosem, seed",
+      "^parm5s_tf3$",
+      "^grasp_v2$"
+     ],
+     "agg": "sum_kn",
+     "group": 0
+    },
+    "frozen_sem": {
+     "doc": "results",
+     "where": {
+      "source_file": "compare_gc2_final.json$",
+      "metric": "^grasp_v2$"
+     },
+     "key_path": [
+      "^frozen sem, seed",
+      "^parm5s_tf3$",
+      "^grasp_v2$"
+     ],
+     "agg": "sum_kn",
+     "group": 0
+    },
+    "bc": {
+     "doc": "results",
+     "where": {
+      "source_file": "compare_gc2_final.json$",
+      "metric": "^grasp_v2$"
+     },
+     "key_path": [
+      "^BC direct1701",
+      "^parm5s_tf3$",
+      "^grasp_v2$"
+     ],
+     "agg": "sum_kn",
+     "group": 0
+    },
+    "teacher": {
+     "missing": "teacher not evaluated in this comparison"
+    }
+   }
+  },
+  {
+   "id": "arm_gv2_parm5l_pg2",
+   "label": "arm gv2 parm5l",
+   "metric": "deployable success rate",
+   "direction": "max",
+   "protocol": "pick_place on parm5l_pg2, grasp_v2 physics, 90 episodes per lineage seed (armexpert_gc2eval/compare_gc2_final.json) · procedural body",
+   "decision": "D-127",
+   "floor": {
+    "value": 0.0,
+    "meaning": "no success"
+   },
+   "reference": {
+    "series": "bc"
+   },
+   "series": {
+    "semfix": {
+     "doc": "results",
+     "where": {
+      "source_file": "compare_gc2_final.json$",
+      "metric": "^grasp_v2$"
+     },
+     "key_path": [
+      "^semfix, seed",
+      "^parm5l_pg2$",
+      "^grasp_v2$"
+     ],
+     "agg": "sum_kn",
+     "group": 0
+    },
+    "nosem": {
+     "doc": "results",
+     "where": {
+      "source_file": "compare_gc2_final.json$",
+      "metric": "^grasp_v2$"
+     },
+     "key_path": [
+      "^nosem, seed",
+      "^parm5l_pg2$",
+      "^grasp_v2$"
+     ],
+     "agg": "sum_kn",
+     "group": 0
+    },
+    "frozen_sem": {
+     "doc": "results",
+     "where": {
+      "source_file": "compare_gc2_final.json$",
+      "metric": "^grasp_v2$"
+     },
+     "key_path": [
+      "^frozen sem, seed",
+      "^parm5l_pg2$",
+      "^grasp_v2$"
+     ],
+     "agg": "sum_kn",
+     "group": 0
+    },
+    "bc": {
+     "doc": "results",
+     "where": {
+      "source_file": "compare_gc2_final.json$",
+      "metric": "^grasp_v2$"
+     },
+     "key_path": [
+      "^BC direct1701",
+      "^parm5l_pg2$",
+      "^grasp_v2$"
+     ],
+     "agg": "sum_kn",
+     "group": 0
+    },
+    "teacher": {
+     "missing": "teacher not evaluated in this comparison"
+    }
+   }
+  },
+  {
+   "id": "legged_cv2_anymal_c",
+   "label": "legged success anymal_c",
+   "metric": "success rate (R2 final, 3 seeds × 30)",
+   "direction": "max",
+   "protocol": "waypoint task on anymal_c, contact v2 (legged8 summary_contact_v2.json)",
+   "decision": "D-124",
+   "floor": {
+    "value": 0.0,
+    "meaning": "no success"
+   },
+   "reference": {
+    "series": "teacher"
+   },
+   "series": {
+    "semfix": {
+     "doc": "results",
+     "where": {
+      "source_file": "summary_contact_v2.json$"
+     },
+     "key_path": [
+      "^anymal_c$",
+      "^r2_final$",
+      "^semfix$"
+     ],
+     "agg": "sum_kn"
+    },
+    "nosem": {
+     "doc": "results",
+     "where": {
+      "source_file": "summary_contact_v2.json$"
+     },
+     "key_path": [
+      "^anymal_c$",
+      "^r2_final$",
+      "^nosem$"
+     ],
+     "agg": "sum_kn"
+    },
+    "bc": {
+     "doc": "results",
+     "where": {
+      "source_file": "summary_contact_v2.json$"
+     },
+     "key_path": [
+      "^anymal_c$",
+      "^references$",
+      "^bc$"
+     ],
+     "agg": "sum_kn"
+    },
+    "teacher": {
+     "doc": "results",
+     "where": {
+      "source_file": "summary_contact_v2.json$"
+     },
+     "key_path": [
+      "^anymal_c$",
+      "^references$",
+      "^teacher$"
+     ],
+     "agg": "sum_kn"
+    },
+    "frozen_sem": {
+     "missing": "no frozen-sem legged lineage"
+    }
+   }
+  },
+  {
+   "id": "legged_cv2_go2",
+   "label": "legged success go2",
+   "metric": "success rate (R2 final, 3 seeds × 30)",
+   "direction": "max",
+   "protocol": "waypoint task on go2, contact v2 (legged8 summary_contact_v2.json)",
+   "decision": "D-124",
+   "floor": {
+    "value": 0.0,
+    "meaning": "no success"
+   },
+   "reference": {
+    "series": "teacher"
+   },
+   "series": {
+    "semfix": {
+     "doc": "results",
+     "where": {
+      "source_file": "summary_contact_v2.json$"
+     },
+     "key_path": [
+      "^go2$",
+      "^r2_final$",
+      "^semfix$"
+     ],
+     "agg": "sum_kn"
+    },
+    "nosem": {
+     "doc": "results",
+     "where": {
+      "source_file": "summary_contact_v2.json$"
+     },
+     "key_path": [
+      "^go2$",
+      "^r2_final$",
+      "^nosem$"
+     ],
+     "agg": "sum_kn"
+    },
+    "bc": {
+     "doc": "results",
+     "where": {
+      "source_file": "summary_contact_v2.json$"
+     },
+     "key_path": [
+      "^go2$",
+      "^references$",
+      "^bc$"
+     ],
+     "agg": "sum_kn"
+    },
+    "teacher": {
+     "doc": "results",
+     "where": {
+      "source_file": "summary_contact_v2.json$"
+     },
+     "key_path": [
+      "^go2$",
+      "^references$",
+      "^teacher$"
+     ],
+     "agg": "sum_kn"
+    },
+    "frozen_sem": {
+     "missing": "no frozen-sem legged lineage"
+    }
+   }
+  },
+  {
+   "id": "ctx_halt_anymal_c",
+   "label": "halt control anymal_c",
+   "metric": "−Δforward after a halt edit (m)",
+   "direction": "max",
+   "protocol": "anymal_c context edit ctx_halt, paired edited − unedited episodes, pooled over 3 training seeds (legged8_compare_anymal_c.json)",
+   "decision": "D-124",
+   "floor": {
+    "value": 0.0,
+    "meaning": "no effect"
+   },
+   "reference": {
+    "value": 0.25,
+    "meaning": "declared display reference 0.25 m"
+   },
+   "series": {
+    "semfix": {
+     "doc": "edits",
+     "where": {
+      "source_file": "research/tracks/legged8/legged8_compare_anymal_c.json$",
+      "edit": "^ctx_halt$",
+      "variant": "^semfix$",
+      "seed": "^$"
+     },
+     "agg": "effect",
+     "negate": true
+    },
+    "nosem": {
+     "doc": "edits",
+     "where": {
+      "source_file": "research/tracks/legged8/legged8_compare_anymal_c.json$",
+      "edit": "^ctx_halt$",
+      "variant": "^nosem$",
+      "seed": "^$"
+     },
+     "agg": "effect",
+     "negate": true
+    },
+    "bc": {
+     "missing": "BC has no packet or context channel to edit this way"
+    },
+    "teacher": {
+     "missing": "scripted teacher is not edited"
+    },
+    "frozen_sem": {
+     "missing": "no frozen-sem legged lineage"
+    }
+   }
+  },
+  {
+   "id": "ctx_halt_go2",
+   "label": "halt control go2",
+   "metric": "−Δforward after a halt edit (m)",
+   "direction": "max",
+   "protocol": "go2 context edit ctx_halt, paired edited − unedited episodes, pooled over 3 training seeds (legged8_compare_go2.json)",
+   "decision": "D-124",
+   "floor": {
+    "value": 0.0,
+    "meaning": "no effect"
+   },
+   "reference": {
+    "value": 0.25,
+    "meaning": "declared display reference 0.25 m"
+   },
+   "series": {
+    "semfix": {
+     "doc": "edits",
+     "where": {
+      "source_file": "research/tracks/legged8/legged8_compare_go2.json$",
+      "edit": "^ctx_halt$",
+      "variant": "^semfix$",
+      "seed": "^$"
+     },
+     "agg": "effect",
+     "negate": true
+    },
+    "nosem": {
+     "doc": "edits",
+     "where": {
+      "source_file": "research/tracks/legged8/legged8_compare_go2.json$",
+      "edit": "^ctx_halt$",
+      "variant": "^nosem$",
+      "seed": "^$"
+     },
+     "agg": "effect",
+     "negate": true
+    },
+    "bc": {
+     "missing": "BC has no packet or context channel to edit this way"
+    },
+    "teacher": {
+     "missing": "scripted teacher is not edited"
+    },
+    "frozen_sem": {
+     "missing": "no frozen-sem legged lineage"
+    }
+   }
+  },
+  {
+   "id": "ctx_active_minus_inactive_anymal_c",
+   "label": "goal steering anymal_c",
+   "metric": "toward mirrored goal, active − inactive (m)",
+   "direction": "max",
+   "protocol": "anymal_c context edit ctx_active_minus_inactive, paired edited − unedited episodes, pooled over 3 training seeds (legged8_compare_anymal_c.json)",
+   "decision": "D-105",
+   "floor": {
+    "value": 0.0,
+    "meaning": "no effect"
+   },
+   "reference": {
+    "value": 0.25,
+    "meaning": "declared display reference 0.25 m"
+   },
+   "series": {
+    "semfix": {
+     "doc": "edits",
+     "where": {
+      "source_file": "research/tracks/legged8/legged8_compare_anymal_c.json$",
+      "edit": "^ctx_active_minus_inactive$",
+      "variant": "^semfix$",
+      "seed": "^$"
+     },
+     "agg": "effect",
+     "negate": false
+    },
+    "nosem": {
+     "doc": "edits",
+     "where": {
+      "source_file": "research/tracks/legged8/legged8_compare_anymal_c.json$",
+      "edit": "^ctx_active_minus_inactive$",
+      "variant": "^nosem$",
+      "seed": "^$"
+     },
+     "agg": "effect",
+     "negate": false
+    },
+    "bc": {
+     "missing": "BC has no packet or context channel to edit this way"
+    },
+    "teacher": {
+     "missing": "scripted teacher is not edited"
+    },
+    "frozen_sem": {
+     "missing": "no frozen-sem legged lineage"
+    }
+   }
+  },
+  {
+   "id": "ctx_active_minus_inactive_go2",
+   "label": "goal steering go2",
+   "metric": "toward mirrored goal, active − inactive (m)",
+   "direction": "max",
+   "protocol": "go2 context edit ctx_active_minus_inactive, paired edited − unedited episodes, pooled over 3 training seeds (legged8_compare_go2.json)",
+   "decision": "D-113",
+   "floor": {
+    "value": 0.0,
+    "meaning": "no effect"
+   },
+   "reference": {
+    "value": 0.25,
+    "meaning": "declared display reference 0.25 m"
+   },
+   "series": {
+    "semfix": {
+     "doc": "edits",
+     "where": {
+      "source_file": "research/tracks/legged8/legged8_compare_go2.json$",
+      "edit": "^ctx_active_minus_inactive$",
+      "variant": "^semfix$",
+      "seed": "^$"
+     },
+     "agg": "effect",
+     "negate": false
+    },
+    "nosem": {
+     "doc": "edits",
+     "where": {
+      "source_file": "research/tracks/legged8/legged8_compare_go2.json$",
+      "edit": "^ctx_active_minus_inactive$",
+      "variant": "^nosem$",
+      "seed": "^$"
+     },
+     "agg": "effect",
+     "negate": false
+    },
+    "bc": {
+     "missing": "BC has no packet or context channel to edit this way"
+    },
+    "teacher": {
+     "missing": "scripted teacher is not edited"
+    },
+    "frozen_sem": {
+     "missing": "no frozen-sem legged lineage"
+    }
+   }
+  },
+  {
+   "id": "arm_rebind_first_contact_new",
+   "label": "arm rebind following",
+   "metric": "rebind_first_contact_new rate",
+   "direction": "max",
+   "protocol": "parm6, seed-2 lineages, 82 edited episodes each (ladder/armnosem/seed2/compare_three_way_seed2.json)",
+   "decision": "D-095",
+   "floor": {
+    "value": 0.0,
+    "meaning": "never follows"
+   },
+   "reference": {
+    "value": 1.0,
+    "meaning": "every edited episode follows"
+   },
+   "series": {
+    "semfix": {
+     "doc": "results",
+     "where": {
+      "source_file": "compare_three_way_seed2.json$",
+      "metric": "^rebind_first_contact_new$",
+      "variant": "^semfix$"
+     },
+     "key_path": [
+      "^edits_parm6$",
+      "^semfix$",
+      "^key$",
+      "^rebind_first_contact_new$"
+     ],
+     "agg": "sum_kn"
+    },
+    "nosem": {
+     "doc": "results",
+     "where": {
+      "source_file": "compare_three_way_seed2.json$",
+      "metric": "^rebind_first_contact_new$",
+      "variant": "^nosem$"
+     },
+     "key_path": [
+      "^edits_parm6$",
+      "^nosem$",
+      "^key$",
+      "^rebind_first_contact_new$"
+     ],
+     "agg": "sum_kn"
+    },
+    "frozen_sem": {
+     "doc": "results",
+     "where": {
+      "source_file": "compare_three_way_seed2.json$",
+      "metric": "^rebind_first_contact_new$",
+      "variant": "^sem$"
+     },
+     "key_path": [
+      "^edits_parm6$",
+      "^sem$",
+      "^key$",
+      "^rebind_first_contact_new$"
+     ],
+     "agg": "sum_kn"
+    },
+    "bc": {
+     "missing": "not in this comparison"
+    },
+    "teacher": {
+     "missing": "not in this comparison"
+    }
+   }
+  },
+  {
+   "id": "arm_goal_cube_at_new_goal",
+   "label": "arm goal edit",
+   "metric": "goal_cube_at_new_goal rate",
+   "direction": "max",
+   "protocol": "parm6, seed-2 lineages, 82 edited episodes each (ladder/armnosem/seed2/compare_three_way_seed2.json)",
+   "decision": "D-095",
+   "floor": {
+    "value": 0.0,
+    "meaning": "never follows"
+   },
+   "reference": {
+    "value": 1.0,
+    "meaning": "every edited episode follows"
+   },
+   "series": {
+    "semfix": {
+     "doc": "results",
+     "where": {
+      "source_file": "compare_three_way_seed2.json$",
+      "metric": "^goal_cube_at_new_goal$",
+      "variant": "^semfix$"
+     },
+     "key_path": [
+      "^edits_parm6$",
+      "^semfix$",
+      "^key$",
+      "^goal_cube_at_new_goal$"
+     ],
+     "agg": "sum_kn"
+    },
+    "nosem": {
+     "doc": "results",
+     "where": {
+      "source_file": "compare_three_way_seed2.json$",
+      "metric": "^goal_cube_at_new_goal$",
+      "variant": "^nosem$"
+     },
+     "key_path": [
+      "^edits_parm6$",
+      "^nosem$",
+      "^key$",
+      "^goal_cube_at_new_goal$"
+     ],
+     "agg": "sum_kn"
+    },
+    "frozen_sem": {
+     "doc": "results",
+     "where": {
+      "source_file": "compare_three_way_seed2.json$",
+      "metric": "^goal_cube_at_new_goal$",
+      "variant": "^sem$"
+     },
+     "key_path": [
+      "^edits_parm6$",
+      "^sem$",
+      "^key$",
+      "^goal_cube_at_new_goal$"
+     ],
+     "agg": "sum_kn"
+    },
+    "bc": {
+     "missing": "not in this comparison"
+    },
+    "teacher": {
+     "missing": "not in this comparison"
+    }
+   }
+  },
+  {
+   "id": "robust_arm_panda",
+   "label": "robust arm panda",
+   "metric": "pooled perturbed success",
+   "direction": "max",
+   "protocol": "panda_pg2 robustness sweep, same 20 seeds per route",
+   "decision": "D-114",
+   "floor": {
+    "value": 0.0,
+    "meaning": "no success"
+   },
+   "reference": {
+    "series": "teacher"
+   },
+   "series": {
+    "teacher": {
+     "doc": "robustness",
+     "list": "reports",
+     "where": {
+      "robot": "^panda_pg2$",
+      "route": "^teacher$"
+     },
+     "agg": "path",
+     "value": [
+      "pooled_perturbed",
+      "rate"
+     ],
+     "ci": [
+      "pooled_perturbed",
+      "wilson95"
+     ],
+     "k": [
+      "pooled_perturbed",
+      "success"
+     ],
+     "n": [
+      "pooled_perturbed",
+      "n"
+     ]
+    },
+    "bc": {
+     "doc": "robustness",
+     "list": "reports",
+     "where": {
+      "robot": "^panda_pg2$",
+      "route": "^bc$"
+     },
+     "agg": "path",
+     "value": [
+      "pooled_perturbed",
+      "rate"
+     ],
+     "ci": [
+      "pooled_perturbed",
+      "wilson95"
+     ],
+     "k": [
+      "pooled_perturbed",
+      "success"
+     ],
+     "n": [
+      "pooled_perturbed",
+      "n"
+     ]
+    },
+    "semfix": {
+     "doc": "robustness",
+     "list": "reports",
+     "where": {
+      "robot": "^panda_pg2$",
+      "route": "^semfix$"
+     },
+     "agg": "path",
+     "value": [
+      "pooled_perturbed",
+      "rate"
+     ],
+     "ci": [
+      "pooled_perturbed",
+      "wilson95"
+     ],
+     "k": [
+      "pooled_perturbed",
+      "success"
+     ],
+     "n": [
+      "pooled_perturbed",
+      "n"
+     ]
+    },
+    "nosem": {
+     "doc": "robustness",
+     "list": "reports",
+     "where": {
+      "robot": "^panda_pg2$",
+      "route": "^nosem$"
+     },
+     "agg": "path",
+     "value": [
+      "pooled_perturbed",
+      "rate"
+     ],
+     "ci": [
+      "pooled_perturbed",
+      "wilson95"
+     ],
+     "k": [
+      "pooled_perturbed",
+      "success"
+     ],
+     "n": [
+      "pooled_perturbed",
+      "n"
+     ]
+    },
+    "frozen_sem": {
+     "doc": "robustness",
+     "list": "reports",
+     "where": {
+      "robot": "^panda_pg2$",
+      "route": "^frozen_sem$"
+     },
+     "agg": "path",
+     "value": [
+      "pooled_perturbed",
+      "rate"
+     ],
+     "ci": [
+      "pooled_perturbed",
+      "wilson95"
+     ],
+     "k": [
+      "pooled_perturbed",
+      "success"
+     ],
+     "n": [
+      "pooled_perturbed",
+      "n"
+     ]
+    }
+   }
+  },
+  {
+   "id": "robust_legged_anymal_c",
+   "label": "robust legged anymal_c",
+   "metric": "pooled perturbed success",
+   "direction": "max",
+   "protocol": "anymal_c robustness sweep, same 20 seeds per route",
+   "decision": "D-108",
+   "floor": {
+    "value": 0.0,
+    "meaning": "no success"
+   },
+   "reference": {
+    "series": "teacher"
+   },
+   "series": {
+    "teacher": {
+     "doc": "robustness",
+     "list": "reports",
+     "where": {
+      "robot": "^anymal_c$",
+      "route": "^teacher$"
+     },
+     "agg": "path",
+     "value": [
+      "pooled_perturbed",
+      "rate"
+     ],
+     "ci": [
+      "pooled_perturbed",
+      "wilson95"
+     ],
+     "k": [
+      "pooled_perturbed",
+      "success"
+     ],
+     "n": [
+      "pooled_perturbed",
+      "n"
+     ]
+    },
+    "bc": {
+     "doc": "robustness",
+     "list": "reports",
+     "where": {
+      "robot": "^anymal_c$",
+      "route": "^bc$"
+     },
+     "agg": "path",
+     "value": [
+      "pooled_perturbed",
+      "rate"
+     ],
+     "ci": [
+      "pooled_perturbed",
+      "wilson95"
+     ],
+     "k": [
+      "pooled_perturbed",
+      "success"
+     ],
+     "n": [
+      "pooled_perturbed",
+      "n"
+     ]
+    },
+    "semfix": {
+     "doc": "robustness",
+     "list": "reports",
+     "where": {
+      "robot": "^anymal_c$",
+      "route": "^semfix$"
+     },
+     "agg": "path",
+     "value": [
+      "pooled_perturbed",
+      "rate"
+     ],
+     "ci": [
+      "pooled_perturbed",
+      "wilson95"
+     ],
+     "k": [
+      "pooled_perturbed",
+      "success"
+     ],
+     "n": [
+      "pooled_perturbed",
+      "n"
+     ]
+    },
+    "nosem": {
+     "doc": "robustness",
+     "list": "reports",
+     "where": {
+      "robot": "^anymal_c$",
+      "route": "^nosem$"
+     },
+     "agg": "path",
+     "value": [
+      "pooled_perturbed",
+      "rate"
+     ],
+     "ci": [
+      "pooled_perturbed",
+      "wilson95"
+     ],
+     "k": [
+      "pooled_perturbed",
+      "success"
+     ],
+     "n": [
+      "pooled_perturbed",
+      "n"
+     ]
+    },
+    "frozen_sem": {
+     "doc": "robustness",
+     "list": "reports",
+     "where": {
+      "robot": "^anymal_c$",
+      "route": "^frozen_sem$"
+     },
+     "agg": "path",
+     "value": [
+      "pooled_perturbed",
+      "rate"
+     ],
+     "ci": [
+      "pooled_perturbed",
+      "wilson95"
+     ],
+     "k": [
+      "pooled_perturbed",
+      "success"
+     ],
+     "n": [
+      "pooled_perturbed",
+      "n"
+     ]
+    }
+   }
+  },
+  {
+   "id": "all_moderate_anymal_c",
+   "label": "all_moderate anymal_c",
+   "metric": "success with all moderate perturbations at once",
+   "direction": "max",
+   "protocol": "anymal_c robustness sweep, same 20 seeds per route",
+   "decision": "D-112",
+   "floor": {
+    "value": 0.0,
+    "meaning": "no success"
+   },
+   "reference": {
+    "series": "teacher"
+   },
+   "series": {
+    "teacher": {
+     "doc": "robustness",
+     "list": "levels",
+     "where": {
+      "robot": "^anymal_c$",
+      "route": "^teacher$",
+      "factor": "^all_moderate$"
+     },
+     "agg": "path",
+     "value": [
+      "rate"
+     ],
+     "ci": [
+      "ci"
+     ],
+     "k": [
+      "k"
+     ],
+     "n": [
+      "n"
+     ]
+    },
+    "bc": {
+     "doc": "robustness",
+     "list": "levels",
+     "where": {
+      "robot": "^anymal_c$",
+      "route": "^bc$",
+      "factor": "^all_moderate$"
+     },
+     "agg": "path",
+     "value": [
+      "rate"
+     ],
+     "ci": [
+      "ci"
+     ],
+     "k": [
+      "k"
+     ],
+     "n": [
+      "n"
+     ]
+    },
+    "semfix": {
+     "doc": "robustness",
+     "list": "levels",
+     "where": {
+      "robot": "^anymal_c$",
+      "route": "^semfix$",
+      "factor": "^all_moderate$"
+     },
+     "agg": "path",
+     "value": [
+      "rate"
+     ],
+     "ci": [
+      "ci"
+     ],
+     "k": [
+      "k"
+     ],
+     "n": [
+      "n"
+     ]
+    },
+    "nosem": {
+     "doc": "robustness",
+     "list": "levels",
+     "where": {
+      "robot": "^anymal_c$",
+      "route": "^nosem$",
+      "factor": "^all_moderate$"
+     },
+     "agg": "path",
+     "value": [
+      "rate"
+     ],
+     "ci": [
+      "ci"
+     ],
+     "k": [
+      "k"
+     ],
+     "n": [
+      "n"
+     ]
+    },
+    "frozen_sem": {
+     "doc": "robustness",
+     "list": "levels",
+     "where": {
+      "robot": "^anymal_c$",
+      "route": "^frozen_sem$",
+      "factor": "^all_moderate$"
+     },
+     "agg": "path",
+     "value": [
+      "rate"
+     ],
+     "ci": [
+      "ci"
+     ],
+     "k": [
+      "k"
+     ],
+     "n": [
+      "n"
+     ]
+    }
+   }
+  },
+  {
+   "id": "smoothness_arm_panda",
+   "label": "smoothness arm panda",
+   "metric": "max joint-velocity step at chunk boundaries (rad/s)",
+   "direction": "min",
+   "protocol": "panda_pg2 robustness sweep, same 20 seeds per route",
+   "decision": "D-114",
+   "floor": {
+    "value": 6.0,
+    "meaning": "declared display floor 6 rad/s (about twice the worst observed)"
+   },
+   "reference": {
+    "series": "bc"
+   },
+   "series": {
+    "teacher": {
+     "doc": "robustness",
+     "list": "reports",
+     "where": {
+      "robot": "^panda_pg2$",
+      "route": "^teacher$"
+     },
+     "agg": "path",
+     "value": [
+      "nominal",
+      "motion",
+      "chunk_vel_step_max"
+     ]
+    },
+    "bc": {
+     "doc": "robustness",
+     "list": "reports",
+     "where": {
+      "robot": "^panda_pg2$",
+      "route": "^bc$"
+     },
+     "agg": "path",
+     "value": [
+      "nominal",
+      "motion",
+      "chunk_vel_step_max"
+     ]
+    },
+    "semfix": {
+     "doc": "robustness",
+     "list": "reports",
+     "where": {
+      "robot": "^panda_pg2$",
+      "route": "^semfix$"
+     },
+     "agg": "path",
+     "value": [
+      "nominal",
+      "motion",
+      "chunk_vel_step_max"
+     ]
+    },
+    "nosem": {
+     "doc": "robustness",
+     "list": "reports",
+     "where": {
+      "robot": "^panda_pg2$",
+      "route": "^nosem$"
+     },
+     "agg": "path",
+     "value": [
+      "nominal",
+      "motion",
+      "chunk_vel_step_max"
+     ]
+    },
+    "frozen_sem": {
+     "doc": "robustness",
+     "list": "reports",
+     "where": {
+      "robot": "^panda_pg2$",
+      "route": "^frozen_sem$"
+     },
+     "agg": "path",
+     "value": [
+      "nominal",
+      "motion",
+      "chunk_vel_step_max"
+     ]
+    }
+   }
+  },
+  {
+   "id": "heldout_xarm7_pg2",
+   "label": "held-out xarm7 zero-shot",
+   "metric": "success rate, budget 0",
+   "direction": "max",
+   "protocol": "sealed target body xarm7_pg2, no adaptation, 100 episodes (latent_slice1_b1fix/aggregate.json)",
+   "decision": "D-064",
+   "floor": {
+    "value": 0.0,
+    "meaning": "no success"
+   },
+   "reference": {
+    "value": 0.9875,
+    "meaning": "the same BC policy on its source body (79/80)"
+   },
+   "series": {
+    "bc": {
+     "doc": "results",
+     "where": {
+      "source_file": "latent_slice1_b1fix/aggregate.json$"
+     },
+     "key_path": [
+      "^table$",
+      "^1$",
+      "^per_seed$",
+      "^1701$"
+     ],
+     "agg": "sum_kn"
+    },
+    "semfix": {
+     "missing": "latent route not run on sealed targets yet (roadmap #9)"
+    },
+    "nosem": {
+     "missing": "latent route not run on sealed targets yet (roadmap #9)"
+    },
+    "frozen_sem": {
+     "missing": "not run"
+    },
+    "teacher": {
+     "missing": "no scripted teacher for zero-shot transfer"
+    }
+   }
+  }
+ ]
+}

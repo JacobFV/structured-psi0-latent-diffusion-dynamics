@@ -16,7 +16,7 @@ from pathlib import Path
 from .common import Config, FileCache, envelope, read_json, write_json
 
 DOCS = ("overview", "live", "dags", "results", "edits", "training", "robustness", "physics", "psi0", "knowledge",
-        "replays", "videos")
+        "replays", "videos", "radar")
 _SCAN_DOCS = {"results", "edits", "training", "robustness", "physics"}
 
 
@@ -179,6 +179,11 @@ def _run(cfg: Config, only: list[str] | None = None, sync_psi1z: bool = False) -
         d = timed("replays", lambda: media.build_replays(cfg))
         if d:
             emit("replays", d)
+    if "radar" in want:  # after results/edits/robustness: it reads their exported files
+        from . import radar
+        d = timed("radar", lambda: radar.build_radar(cfg))
+        if d:
+            emit("radar", d)
     manifest.update(schema="rrp-viz/manifest/v1", documents=docs_m, last_run={
         "only": sorted(want) if only else None, "live": cfg.live, "seconds": round(time.time() - t_all, 3),
         "timings": {k: round(v, 3) for k, v in timings.items()}, "finished_at": time.time()})
