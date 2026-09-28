@@ -45,7 +45,7 @@ for pass in $(seq 1 $PASSES); do
     mkdir -p $O/$r
     if [ $PLACE = peer ]; then
       ( for _try in $(seq 1 90); do     # wait (<= 90 min) for peer admission (memory-capped broker, D-106)
-          scripts/peer_run.sh --cpu 2 --mem 1500M --label axgc2e_${GC}_${tag:0:20}_${r}_$s --max-seconds 7200 -- \
+          scripts/peer_run.sh --cpu 2 --mem 2G --label axgc2e_${GC}_${tag:0:20}_${r}_$s --max-seconds 7200 -- \
             env CUDA_VISIBLE_DEVICES= OMP_NUM_THREADS=2 RRP_GRASP_CONTACT=$GC PY "${A[@]}" > $O/$r/${tag}_s$s.log 2>&1
           grep -q "AdmissionStopped\|CapacityError" $O/$r/${tag}_s$s.log || break
           sleep 60
