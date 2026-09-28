@@ -49,3 +49,5 @@ Current reading: semantic supervision of the packet is essential for the arm lat
 - t1 humanoid (D-092): the context halt holds pooled (fixed sem −0.25 m [−0.31, −0.19] vs nosem −0.08 [−0.16, 0.00], 3 seeds) but not seed-by-seed; probe-direction z edits often make t1 fall.
 
 **Update D-124 (contact v2, final W8):** context-halt semantic effect, pooled semfix − nosem: anymal_c −0.40 m [−0.50, −0.30], go2 −0.66 m [−0.72, −0.59]. Every seed ordered on both bodies (p = 0.05 each); irrelevant control ≤ 0.02 m; success equal (teacher/BC 30/30). t1 with sourced torque limits is untestable: learned controllers fall (BC 0/30), so the humanoid claim is open.
+
+**Update D-134 (arm v6: realistic grasp v2.1, teacher v2, v6 expert):** semfix 425/480 vs nosem 314/480 (+0.23 [0.18, 0.28], all 8 cells). The earlier "nosem collapses" (D-089/D-095) and "only sem carries binding" do not replicate: nosem is competent on v6, and binding redirection is seed-dependent for both variants. Semantic supervision gives a consistent arm competence gain on credible physics, plus goal steering where competence differs.

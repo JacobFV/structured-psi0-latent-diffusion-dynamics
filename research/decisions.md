@@ -836,3 +836,20 @@ Owner: "public listeners are actually not against project rules". AGENTS.md, REA
 - Frontend redesigned on owner feedback into a dense trader-terminal board after IBM-2's workbench (main bbca444): live ticker, KPI strip, 1px-seam panel grid, inline bars/sparklines, heatmap wall with deltas, mini forest plot, break-point strip, keyboard views 1–0. Served at http://127.0.0.1:3013/ (RRP_ROOM_HOST=0.0.0.0 for the network, D-132).
 - Exporter fix: the grasp_v2 re-evaluation (D-127) and W8 t1 (D-124) are final, not interim (68c02e2).
 - Host watchdog: a transient unit that did not survive the 00:34 reboot, so host admission had been stuck since. Restarted with `RRP_NODE=host rrp ops start-watchdog`; admission is open. AGENTS.md: after any host reboot, restart it.
+
+## D-134 2026-09-28 ARM v6 (teacher v2 + grasp_v2.1 + v6 BC expert): both variants become competent; semfix still leads (+0.23), but the v1 "nosem is broken" and "only sem carries binding" findings do not survive
+arm lineage agent (research/tracks/ladder.md "ARM V6 LINEAGES RESULT", main 977f6dd; lead checked research/tracks/ladder/armv6/compare_v6.json). semfix and nosem × 2 seeds; 100/100 nodes rc 0; the D-095 recipe on v6dart with the v6 BC labeller (final checkpoint), grasp_v2.1 on every simulated node.
+- R2 successes (4 bodies, 240 per lineage): semfix s1 218, s2 207; nosem s1 148, s2 166. Pooled: semfix 425/480 (0.89), nosem 314/480 (0.65). Compare the v1 checkpoints under grasp_v2 (D-127): semfix 311, nosem 40.
+- semfix − nosem pooled +0.23 [0.18, 0.28]; semfix wins all 8 body × seed cells. The gap is largest on the three-finger bodies (parm6 89+89 vs 43+57 of 90; parm5s 29+29 vs 13+25 of 30). nosem failures include up to 17/90 approach failures; semfix almost none.
+- Goal edits (cube at new goal): semfix parm6 154/164, panda 69/96; nosem 71/164, 41/96; controls ≤ 1. They track competence: where nosem is competent (parm6 s2), goal control is similar.
+- Binding (rebind, first approach on the new cube): seed-dependent for BOTH. semfix s1 47/82 parm6, 25/48 panda, but s2 3/82, 0/48; nosem s1/s2 31 and 29/82, 39 and 15/48. Pooled parm6 50 vs 60/164; panda 25 vs 54/96. The v1 "only the semantic packet carries the binding" (D-089/D-095) is NOT replicated on v6.
+Reading:
+- The dramatic v1 nosem collapse was mostly a property of the v1 data/expert/grasp-physics setting, not of removing semantic supervision.
+- On credible physics and a clean expert, semantic supervision still gives a consistent competence gain on the arm (+23 points, all cells) and stronger goal steering where competence differs.
+- Binding control is not a reliable semantic effect on the arm at 2 seeds.
+- For reference, the v6 BC expert scores 58/60 panda, 60/60 parm6 on the dev/fresh sets (D-121 addendum); latent semfix is below BC on panda (135/180).
+Caveats: 2 seeds per variant; the edit suite uses an early route checkpoint (competence-confounded); v6 vs v1 mixes data, expert and a small physics change (v2 → v2.1).
+Next (lead):
+(1) Like-for-like: re-evaluate the v1 checkpoints under grasp_v2.1 (cheap).
+(2) The latent route is now competent (0.89), so the core cross-body claim can be tested: sealed target bodies (#9) with fair BC baselines (#10), templates from D-128.
+(3) A 3rd training seed for the binding question.
