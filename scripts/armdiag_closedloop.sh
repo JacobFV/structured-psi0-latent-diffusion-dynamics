@@ -25,6 +25,7 @@ for r in ${ROUTES:?}; do
     teacher) args=(--route teacher);;
     orc_*) args=(--route oracle --rep "$(rep ${r#orc_})" --no-compare);;
     gen_*) f=${r#gen_}; f=${f%%_*}; rr=${r##*_}; args=(--route generated --flow "$(flow $f)" --rep "$(rep $rr)");;
+    ja_*) d=${JA_DIR:-artifacts/runs/armdiag/stepA/$V-s$S-$TGT}/${r#ja_}; args=(--route generated --flow $d/policy.pt --rep $d/representation.pt);;
     bc_zs) args=(--route learned --policy artifacts/runs/armexpert_bcv6/baseline_direct_action/seed$BCS/source/policy.pt --policy-label bcv6_direct${BCS}_final);;
     bc_sft*) args=(--route learned --policy $TB/target_adapt-bc_sft_b${r#bc_sft}_s$BCS/policy.pt --policy-label bcv6_${BCS}_sft_b${r#bc_sft});;
     *) echo "unknown route $r"; exit 2;;
