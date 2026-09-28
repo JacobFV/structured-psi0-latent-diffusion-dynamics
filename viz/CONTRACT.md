@@ -98,18 +98,33 @@ Frontend additions (v1.1, proposed by the frontend agent; all optional, the thea
 - `meta.packet_pca: {fit_on, explained_variance: [3]}`: provenance of the PCA basis.
 - `/api/meta`: plugin status `{exporter_available, exporter, root, replays_dir, video_dir, cache_s}`; the UI uses it to decide
   between live data and clearly-labelled FIXTURES (fixtures are only used while the exporter module does not exist).
-Run-history signals (v1.2, proposed by the frontend for the run-history panels; all optional, per frame unless noted,
-omitted when not recorded; privileged ones listed in `meta.signal_notes` as privileged):
-- `joint_vel: [[rad/s or m/s per joint_names]]`: joint velocities (phase portraits).
-- `joint_torque: [[N·m per actuated joint]]`, with `meta.joint_torque_names`: actuator torque/force applied.
-- `contact_force: [[N per contact_bodies]]`: normal contact force for each contact body (gait/contact diagram, force traces).
-- `probe_truth: {contact: [[..]], halt: [..], goal: [[x,y]], held_by: [[..]], subtask: [..], fall: [..]}`: the privileged
-  ground truth for the same keys as `probe` in the same units (calibration panels). Display only; never an observation.
-- `packet_z: [[float]]`: the full packet executed, downsampled, flattened in the order given by
-  `meta.packet_shape: [knots, assemblies, dims]` (packet heatmap, norm, change rate).
-- `energy: [J per frame interval]` (or `power: [W]`) and optional `cot: [..]`: mechanical energy/cost of transport per step.
-- `base_vel: [[vx,vy,vz]]`, `object_vel: [[vx,vy,vz]]`: world-frame linear velocities.
-- `meta.waypoints: [[x,y]...]`, `meta.t_edit`, `meta.goal: [x,y]`: already recorded for legged; used by the top-down map.
+Run-history signals (v1.2, IMPLEMENTED by `rrp.viz.record` for the frontend's run-history panels). All optional, per frame
+(same length as `frames.t`) unless noted; omitted when the quantity does not exist for that harness, `null` in frames where it
+is undefined (e.g. before the first packet, a foot in swing). Units and privilege are stated per signal in
+`meta.signal_notes`; PRIVILEGED signals are display-only (never an observation of any controller).
+- `joint_vel: [[..]]` columns `meta.joint_names` (rad/s or m/s).
+- `joint_torque: [[..]]` columns `meta.joint_torque_names` (actuator names): actuator force/torque applied (N·m or N).
+- `contact_force: [[N per meta.contact_bodies]]` normal force; `contact_force_tangential: [[N ..]]`;
+  `contact_pos: [[[x,y,z] | null per contact body]]` normal-force-weighted contact point, world. Legged: feet vs floor;
+  arm/dual: finger (touch-sensor body subtree) vs non-robot bodies; rig: pads vs cube. PRIVILEGED.
+- `probe_truth: {…}` the ground truth for the same keys/units as `probe` in the same frame. Legged: `contact` (feet, assembly
+  order; the probe has one extra body assembly), `halt`, `goal` (body frame, /2 m), `subtask`. Arm: `held_by`, `contact`
+  per detector slot. PRIVILEGED, display only.
+- `packet_z: [[float]]` the executed packet downsampled to the first 8 latent dims per knot × assembly, flattened in
+  `meta.packet_shape: [knots, assemblies, 8]` order; `packet_norm: [[[..]]]` full-dz L2 norm per knot × assembly;
+  sparse `packet_events: [{t, z_norm, edit?, edit_dz_norm?, source?}]` one per new packet.
+- `power: [W]` Σ|actuator force × actuator velocity|; `energy: [J per frame interval]` (legged/tracker/rig integrated over
+  every physics substep; arm/dual sampled at control ticks, stated in the notes); `meta.energy_total_j`;
+  `cot: [..]` legged only, energy / (m g horizontal path), null until 0.2 m.
+- `base_vel: [[vx,vy,vz]]`, `base_ang_vel: [[wx,wy,wz]]` (legged root), `object_vel`, `object_ang_vel` (cube / first task
+  object), world frame. PRIVILEGED.
+- Edits: `edit_dz_norm: [..]` |edited − unedited packet| computed with the SAME flow noise at the same state (legged context
+  edits: a copy of the generator state; arm edits: the same noise key); null before the edit. `meta.edit_onset_t`
+  (legged: t_edit; arm edit replays: 0.0) and `meta.edit_first_packet_t` (legged: first edited packet).
+- Arm: `gripper_aperture: [m]` (public width sensor, where one exists); `grasp_state: ["free"|"contact"|"held"]` PRIVILEGED.
+- Dual: `hand_contact: [[bool per meta.hands]]` (public touch ≥ 0.2); `grip_drift: [[[pos_mm, rot_deg] | null per hand]]`
+  held object's pose drift in the TCP frame since the grip formed (PRIVILEGED held truth).
+- `meta.waypoints`, `meta.t_edit` are recorded for legged (top-down map).
 - `/api/doc?path=` is served by the plugin directly from the allowlist (no exporter call). The packet PCA basis is fitted per bundle on training packets and stored in `meta`.
 
 ## views (frontend)

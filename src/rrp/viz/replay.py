@@ -28,9 +28,9 @@ PHYSICS_KEYS = ("contact_version", "grasp_contact_version", "actuator_limits_ver
 FRAME_SIGNALS = ("joint_target", "joint_pos", "contacts", "packet_pca", "phase", "edit_active", "forward_progress",
                  "object_pose", "penetration_mm", "slip",
                  # v1.2 (rich run signals; all optional, omitted where the quantity does not exist)
-                 "joint_vel", "actuator_force", "contact_force", "contact_pos", "power_w", "energy_j", "cot",
-                 "base_vel", "object_vel", "packet_norm", "edit_dz_norm", "gripper_aperture", "grasp_state",
-                 "hand_contact", "grip_drift")
+                 "joint_vel", "joint_torque", "contact_force", "contact_force_tangential", "contact_pos", "power",
+                 "energy", "cot", "base_vel", "base_ang_vel", "object_vel", "object_ang_vel", "packet_z", "packet_norm",
+                 "edit_dz_norm", "gripper_aperture", "grasp_state", "hand_contact", "grip_drift")
 NESTED_SIGNALS = ("probe", "probe_truth")          # {key: per-frame list}
 SPARSE_SIGNALS = ("task_events", "packet_events")  # [{t, ...}]
 

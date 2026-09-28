@@ -411,7 +411,8 @@ class _ArmSignals:
         base = next((n for l in r.spec.links for n in ((r.prefix or "") + l.name, l.name)
                      if n in {m.body(b).name for b in self.robot_bodies}), None)
         return dict(contact_bodies=_sensor_bodies(m, r.touch), joint_names=_qadr_joint_names(m, r.qadr),
-                    joint_target_names=tnames, object_body="cube", base_body=base)
+                    joint_target_names=tnames, object_body="cube", base_body=base,
+                    joint_torque_names=[m.actuator(int(i)).name for i in self.act_ids])
 
     def joint_target(self):
         c = self.r.controller
@@ -460,10 +461,11 @@ class _ArmSignals:
                 out["packet_pca"] = RP.project_pca(basis, z)
             nrm, headv = _packet_summary(z)
             out["packet_norm"] = nrm
+            out["packet_z"] = headv.reshape(-1)
             if edit_active is not None:
                 out["edit_dz_norm"] = self.cf_dz if edit_active else None
             if col is not None and packet is not self.last_pk:
-                col.add_sparse("packet_events", d.time, z_norm=nrm, z_head=headv, source=getattr(packet, "source", None),
+                col.add_sparse("packet_events", d.time, z_norm=nrm, source=getattr(packet, "source", None),
                                edit_dz_norm=self.cf_dz if edit_active else None)
             self.last_pk = packet
             if self.P is not None:
@@ -761,7 +763,8 @@ class _LeggedSignals:
         b, m = self.b, self.b.model
         names = [m.joint(int(j)).name for j in m.actuator_trnid[b.pol_act, 0]]
         return dict(contact_bodies=[m.body(int(x)).name for x in b.foot_bids], base_body=m.body(int(b.root_bid)).name,
-                    joint_names=names, joint_target_names=names)
+                    joint_names=names, joint_target_names=names,
+                    joint_torque_names=[m.actuator(int(i)).name for i in b.pol_act])
 
     def start(self, d):
         from rrp.envs.legged_core import yaw_of
@@ -816,12 +819,13 @@ class _LeggedSignals:
                 out["packet_pca"] = RP.project_pca(self.basis, z)
             nrm, headv = _packet_summary(z)
             out["packet_norm"] = nrm
+            out["packet_z"] = headv.reshape(-1)
             if self.edit and self.edit != "none":
                 out["edit_dz_norm"] = dz
             if col is not None:
                 for t_, ed, z, dz in self.packets[self._n_pk:]:
                     nrm, headv = _packet_summary(z)
-                    col.add_sparse("packet_events", t_, z_norm=nrm, z_head=headv, edit=ed, edit_dz_norm=dz)
+                    col.add_sparse("packet_events", t_, z_norm=nrm, edit=ed, edit_dz_norm=dz)
                 self._n_pk = len(self.packets)
         return out
 
@@ -1077,6 +1081,7 @@ def run_dual_teacher(e: dict, out: Path, pcache: dict) -> list[dict]:
                                   object_body=m.body(st["objs"][0]).name if st["objs"] else None,
                                   hands=list(session.handles))
             st["acts"] = np.concatenate([_robot_act_ids(rr) for rr in session.robots])
+            st["ep"].extra["joint_torque_names"] = [m.actuator(int(i)).name for i in st["acts"]]
             st["energy"] = _Energy(st["acts"])
             groups = []
             for rr in session.robots:
@@ -1188,7 +1193,8 @@ def run_grasp_rig(e: dict, out: Path, pcache: dict) -> list[dict]:
                              groups=[{int(m.geom_bodyid[p])} for p in pads])
             st["ep"].extra = dict(contact_bodies=[m.body(int(m.geom_bodyid[p])).name for p in pads], object_body="cube",
                                   base_body="carriage", joint_names=[m.joint(j).name for j in jn],
-                                  joint_target_names=[m.actuator(i).name for i in range(m.nu)])
+                                  joint_target_names=[m.actuator(i).name for i in range(m.nu)],
+                                  joint_torque_names=[m.actuator(i).name for i in range(m.nu)])
         col = st["ep"].ensure(m)
         g = st["sig"]
         g["energy"].step(d, float(m.opt.timestep))
@@ -1267,8 +1273,61 @@ def _meta(e: dict, seed: int, model, *, success, failure_stage, ckpt_sha, record
     return m
 
 
+RENAMES_V12 = {"actuator_force": "joint_torque", "power_w": "power"}
+
+
+def _align_v12(col, meta: dict):
+    """Contract v1.2 names/shapes (frontend proposal): joint_torque, contact_force = normal only (+ _tangential),
+    power [W] + energy [J per frame interval] (+ meta.energy_total_j), linear base/object velocity (+ angular)."""
+    sg = col.signals
+    for a, b in RENAMES_V12.items():
+        if a in sg:
+            sg[b] = sg.pop(a)
+    if "contact_force" in sg:
+        cf = sg.pop("contact_force")
+        sg["contact_force"] = [None if f is None else [x[0] for x in f] for f in cf]
+        sg["contact_force_tangential"] = [None if f is None else [x[1] for x in f] for f in cf]
+    if "energy_j" in sg:
+        cum = sg.pop("energy_j")
+        prev, per = 0.0, []
+        for v in cum:
+            per.append(None if v is None else round(v - prev, 4))
+            prev = v if v is not None else prev
+        sg["energy"] = per
+        meta["energy_total_j"] = next((v for v in reversed(cum) if v is not None), None)
+    for k in ("base_vel", "object_vel"):
+        if k in sg:
+            v6 = sg.pop(k)
+            sg[k] = [None if v is None else v[:3] for v in v6]
+            sg[k.replace("_vel", "_ang_vel")] = [None if v is None else v[3:] for v in v6]
+    notes = meta.get("signal_notes")
+    if isinstance(notes, dict):
+        notes = dict(notes)
+        for a, b in RENAMES_V12.items():
+            if a in notes:
+                notes[b] = notes.pop(a)
+        if "energy_j" in notes:
+            notes["energy"] = notes.pop("energy_j").replace("since the episode reset", "") + \
+                " -> reported per frame interval (J); meta.energy_total_j = the episode total"
+        if "contact_force" in notes:
+            notes["contact_force_tangential"] = "tangential part of the same contacts (N)"
+        for k in ("base_vel", "object_vel"):
+            if k in notes:
+                notes[k.replace("_vel", "_ang_vel")] = "angular part (rad/s, world)"
+        notes["packet_z"] = ("the executed packet downsampled to the first 8 latent dims per knot x assembly, flattened in "
+                             "meta.packet_shape order")
+        meta["signal_notes"] = notes
+    if "packet_z" in sg:
+        zs = next((z for z in sg["packet_z"] if z is not None), None)
+        pn = next((z for z in sg.get("packet_norm", []) if z is not None), None)
+        if zs is not None and pn is not None:
+            meta["packet_shape"] = [len(pn), len(pn[0]), len(zs) // (len(pn) * len(pn[0]))]
+            meta["packet_z_downsample"] = "first 8 of dz latent dims per knot x assembly (packet_norm has the full-dz norm)"
+
+
 def _finish(e: dict, seed: int, meta: dict, ep: Episode, out: Path) -> dict:
     rid = f"{e['id']}-s{seed}"
+    _align_v12(ep.col, meta)
     for k, v in (ep.extra or {}).items():
         if v is not None and k not in meta:
             meta[k] = v

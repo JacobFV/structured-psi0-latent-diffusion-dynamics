@@ -142,7 +142,8 @@ def test_recorded_arm_episode_actions_match_unrecorded(tmp_path):
     assert doc["n_frames"] == 6 and doc["meta"]["success"] == rows0[0]["privileged_success"]
     assert doc["meta"]["physics"]["grasp_contact_version"] == "grasp_v1"
     assert {"joint_target", "joint_pos", "object_pose", "phase"} <= set(doc["signals"])
-    assert {"joint_vel", "actuator_force", "power_w", "energy_j", "object_vel", "grasp_state"} <= set(doc["signals"])  # v1.2
+    assert {"joint_vel", "joint_torque", "power", "energy", "object_vel", "object_ang_vel", "grasp_state"} <= set(doc["signals"])  # v1.2
+    assert len(doc["meta"]["joint_torque_names"]) == len(doc["signals"]["joint_torque"][0])
     assert all(len(f) == len(doc["meta"]["contact_bodies"]) for f in doc["signals"].get("contact_force", []))
     m = doc["meta"]                                                  # contract v1.1 column names / bodies
     assert len(m["joint_names"]) == len(doc["signals"]["joint_pos"][0])
