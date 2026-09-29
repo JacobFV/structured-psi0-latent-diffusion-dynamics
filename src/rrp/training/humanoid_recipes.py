@@ -59,7 +59,8 @@ def _shared(**kw) -> dict:
              _why="D-138 P1c; per-body trackers do not transfer by construction",
              _gate="per pool body: the same C-MuJoCo tracker gate as the per-body trackers; sealed bodies evaluated once",
              nworld=0, iters=3000, horizon=24, hidden="512,512,256", init_std=0.6, lr=1e-3, max_lr=3e-3, seed=1,
-             reward_set=_TURN + _CLOCK, cmd_mix="teacher", turn_frac=0.35, slow_frac=0.2, minibatches=8, **_GATE)
+             reward_set=_TURN + _CLOCK + ",yaw_progress_cap=1.0,yaw_overshoot=-2.0,stand_vel=-3.0", cmd_mix="teacher",
+             turn_frac=0.35, slow_frac=0.2, minibatches=8, **_GATE)
     d.update(kw)
     return d
 
