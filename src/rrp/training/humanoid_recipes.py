@@ -109,4 +109,7 @@ def _ft(body: str, init: str, **kw) -> dict:
 
 
 HUMANOID_RECIPES["h1_clock_gpu_r2"] = _ft("h1", "artifacts/runs/humanoid_p1b_h1_r1/actor_iter649.pt")
+# r2 (above) FAILED at iter 282 (window fall 0.95, track err 1.86): trainer bug, the warm-start normaliser was replaced by
+# the first batch (count 1e-4); fixed (count 1e6). r2b = same with the fix and alpha fixed at 0.5 (less abrupt).
+HUMANOID_RECIPES["h1_clock_gpu_r2b"] = _ft("h1", "artifacts/runs/humanoid_p1b_h1_r1/actor_iter649.pt", alpha_schedule="fixed:0.5")
 HUMANOID_RECIPES["t1_clock_gpu_r2"] = _ft("t1", "artifacts/runs/humanoid_p1b_t1_r1/actor.pt")
