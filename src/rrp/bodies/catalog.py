@@ -65,6 +65,9 @@ def workbench_robots() -> dict:
         robots.update(registered_variants())
     except ImportError:
         pass
+    from rrp.bodies.armdiv import armdiv_robots          # D-137: additive keys (pa2s*, gen3_*, ...)
+    for k, f in armdiv_robots().items():
+        robots.setdefault(k, f)
     _load_robot_plugins()
     clash = sorted(set(_EXTERNAL_ROBOTS) & set(robots))
     if clash:

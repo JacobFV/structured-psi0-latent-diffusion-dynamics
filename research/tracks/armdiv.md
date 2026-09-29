@@ -22,7 +22,7 @@ H2 (secondary, ablation): informative kinematic static features (flag `kinfeat`)
 Both can fail; a null or negative result will be recorded as failed_hypothesis, not re-tuned on sealed scenes.
 
 ## Design
-### 1. Expanded training pool `armdiv_pool_v1` (all training keys fixed in `configs/bodies/armdiv_pool_v1.json` before data)
+### 1. Expanded training pool `armdiv_pool_v1` (all training keys fixed in `research/splits/armdiv_pool_v1.json` before data)
 - Keep the 13 v6 source keys unchanged (same keys, same seeds).
 - Procedural generator v2 (`rrp.bodies.generators_v2`, lineage `procedural_arm_family/v2`, `synthetic: true`), a pure
   function of (generator seed, params):
