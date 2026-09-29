@@ -84,6 +84,14 @@ default off; defaults golden-identical to pre-D-126 rows.
 | 39 | Does the semantic packet help new-humanoid transfer (sealed S1–S5) vs nosem and BC at matched data/updates (zero-shot, refit, joint adaptation, BC SFT)? | 38 | 3–4 days | planned (P3) | 🔧 |
 | 40 | Held-out task compositions (steps+carry, gap+cart) zero-shot | 38 | in P3 | planned | 🔧 |
 
+## I. ComputerWorld pointer (track pointer, D-142; research/tracks/cworld.md "pointer policy", split research/splits/cworld_pointer_v1.json)
+| # | question | depends on | cost | experiment | code |
+|---|---|---|---|---|---|
+| 41 | Can an engineered (scripted) pointer system 0 realize packets well enough to solve all four cw/* tasks from teacher-oracle packets? | – | ~free | done → D-142 (400/400, teacher-identical step counts) | ✅ `policies/pointer.py` |
+| 42 | Does a learned pointer latent route (system i flow → learned system 0) solve the cw/* tasks on sealed seeds, vs pointer BC with the same inputs and demos, and vs a learned system i driving the engineered system 0? | 41 | ~4 GPU-h | running (D-142 pre-registration before sealed evals) | ✅ `rrp train pointer` |
+| 43 | Does semantic packet supervision (semfix) make the UI probes (target widget, pointer-relative target, button/key phase) decodable and causally usable (probe-guided retargeting) vs nosem? | 42 | ~1 GPU-h | running | ✅ `rrp train pointer probe/edit` |
+| 44 | Held-out variants (unseen calc pairs, words, names): does typing copy characters from the instruction? | 42 | in 42 | sealed | ✅ |
+
 ## ordering once current runs finish (lead)
 1–3 (running/queued) → 9–10 (core claim) → 23 (queued) → 13 (unblocks humanoid) → 18–19 (W12 go/no-go). The rest fits
 around peer capacity, which is about one major experiment per 1–2 days on the single peer GPU.

@@ -377,6 +377,24 @@ def _nets():
             x = x + self.a(h, kv=kv if self.cross else None, key_mask=key_mask)
             return x + self.m(self.n2(x))
 
+    class LabelBag(nn.Module):
+        """Widget label -> one vector: mean of char and (char, position) embeddings (embedding_bag: the [B, NW, LC, D]
+        tensor is never materialized)."""
+
+        def __init__(self, D):
+            super().__init__()
+            self.c = nn.Embedding(N_SYM, D, padding_idx=0)
+            self.cp = nn.Embedding(N_SYM * LC + 1, D, padding_idx=0)
+            self.register_buffer("pos", torch.arange(LC))
+
+        def forward(self, ch):
+            B, W, L = ch.shape
+            c = ch.reshape(B * W, L)
+            cp = torch.where(c > 0, c * LC + self.pos + 1, torch.zeros_like(c))
+            e = F.embedding_bag(c, self.c.weight, mode="mean", padding_idx=0) + \
+                F.embedding_bag(cp, self.cp.weight, mode="mean", padding_idx=0)
+            return e.reshape(B, W, -1)
+
     class UICtx(nn.Module):
         """Public context tokens: NW widget tokens (label chars + role + bound entity + geometry, pointer-relative
         centre), LI instruction characters, NH own-event tokens and one proprio token; `layers` self-attention blocks."""
@@ -384,7 +402,8 @@ def _nets():
         def __init__(self, D=128, heads=4, layers=3):
             super().__init__()
             self.sym = nn.Embedding(N_SYM, D)
-            self.cpos = nn.Embedding(max(LC, LI), D)
+            self.cpos = nn.Embedding(LI, D)
+            self.bag = LabelBag(D)
             self.role, self.bound = nn.Embedding(N_ROLE, D), nn.Embedding(N_BOUND, D)
             self.lab, self.wf = MLP(D, D), MLP(WF + 2, D)
             self.hk, self.hf = nn.Embedding(4, D), MLP(5, D)
@@ -394,10 +413,7 @@ def _nets():
             self.D = D
 
         def label_tokens(self, b):
-            c = b["wch"]
-            e = self.sym(c) + self.cpos.weight[:LC]
-            m = (c > 0).float()[..., None]
-            return self.lab((e * m).sum(2) / m.sum(2).clamp(min=1))
+            return self.lab(self.bag(b["wch"]))
 
         def forward(self, b):
             B = b["ptr"].shape[0]
@@ -492,7 +508,7 @@ def _nets():
             self.metadata_only = metadata_only
             self.z = MLP(dz, D)
             self.kq = nn.Parameter(torch.randn(len(KNOT_TIMES), D) * 0.02)
-            self.sym, self.cpos = nn.Embedding(N_SYM, D), nn.Embedding(LC, D)
+            self.bag = LabelBag(D)
             self.wf, self.role = MLP(WF + 2, D), nn.Embedding(N_ROLE, D)
             self.q = MLP(D, D)
             self.rel, self.phase = MLP(D, 4), MLP(D, len(PHASES))
@@ -502,10 +518,7 @@ def _nets():
             h = self.kq[None].expand(B, -1, -1)
             if not self.metadata_only:
                 h = h + self.z(z[:, :, 0])
-            c = b["wch"]
-            m = (c > 0).float()[..., None]
-            lab = ((self.sym(c) + self.cpos.weight) * m).sum(2) / m.sum(2).clamp(min=1)
-            w = lab + self.role(b["wrole"]) + self.wf(torch.cat([b["wf"], b["wf"][..., :2] - b["ptr"][:, None]], -1))
+            w = self.bag(b["wch"]) + self.role(b["wrole"]) + self.wf(torch.cat([b["wf"], b["wf"][..., :2] - b["ptr"][:, None]], -1))
             s = torch.einsum("bkd,bnd->bkn", self.q(h), w) / w.shape[-1] ** 0.5
             s = s.masked_fill(~b["wmask"][:, None], -1e4)
             return dict(slot=s, rel=self.rel(h), phase=self.phase(h))

@@ -9,6 +9,7 @@ research/tracks/cworld.md "pointer policy"). `rrp train pointer <cmd> ...`:
     bc       BC baseline with the same public inputs and demos
     probe    post-hoc packet probes (and the metadata-only control) on frozen packets: UI probes for semfix vs nosem
     edit     causal packet edits: probe-guided retargeting of a received packet, realized by system 0 in closed loop
+    video    labelled demo video of episodes of any pointer policy (peer: rendering)
 
 Sources: demos are `scripted_teacher` (privileged labels: teacher target widget, destination, phase); every trained
 model reads only rrp.policies.pointer.public_features. Weights and datasets stay in the peer store (never committed).
@@ -97,7 +98,8 @@ def phase_of(groups: dict, prev_btn: bool, prev_xy) -> int:
 
 def collect_episode(task: str, seed: int, *, dart_px: float, rng: random.Random, max_ticks: int = 400) -> dict | None:
     """One scripted-teacher episode. Labels are the teacher's clean commands; executed pointer commands get
-    N(0, dart_px) noise on move ticks (DART; the teacher's goto corrects from wherever the pointer is)."""
+    N(0, dart_px) noise on intermediate move ticks (DART; the teacher's goto corrects from wherever the pointer is; the
+    arriving tick is never perturbed, else the goto would never terminate)."""
     from rrp.core.action import NativeCommand
     from rrp.envs.base import make_env
     from rrp.policies.pointer import EventHistory, public_features, screen_half
@@ -120,7 +122,8 @@ def collect_episode(task: str, seed: int, *, dart_px: float, rng: random.Random,
         q = obs.measured_node_state.qpos[:2]
         ph = phase_of(g, hist.button, q)
         ex = {k: list(v) for k, v in g.items()}
-        if dart_px > 0 and ph == 1:
+        if dart_px > 0 and ph == 1 and tt.target_px is not None and \
+                env.frame.m_to_px(*g["pointer"]) != tuple(tt.target_px):     # intermediate move ticks only
             ex["pointer"] = [g["pointer"][0] + rng.gauss(0, dart_px) * env.frame.m_per_px,
                              g["pointer"][1] + rng.gauss(0, dart_px) * env.frame.m_per_px]
         wkey = (f["wch"].tobytes(), f["wf"].tobytes(), f["wmask"].tobytes(), f["wbound"].tobytes())
@@ -258,8 +261,15 @@ class Demos:
                       tick=T((np.arange(N) - d["ep_start"][d["ep"]]).astype(np.float32)), chunk=T(idx.astype(np.int64)))
         self.N, self.device = N, device
         self.train_idx = T(np.nonzero(~self.val_mask)[0].astype(np.int64))
-        self.val_idx = T(np.nonzero(self.val_mask)[0].astype(np.int64))
+        tick_task = self.ep_task[d["ep"]][~self.val_mask]
+        cnt = np.bincount(tick_task, minlength=len(TASKS)).astype(np.float64)
+        self.train_w = T((1.0 / cnt[tick_task]).astype(np.float32))       # every task equally likely per sample
+        self.val_idx = T(rng.permutation(np.nonzero(self.val_mask)[0]).astype(np.int64))   # every task in any prefix
         self.half = None
+
+    def sample(self, n: int):
+        """Task-balanced training sample indices."""
+        return self.train_idx[torch.multinomial(self.train_w, n, replacement=True)]
 
     def batch(self, ix):
         """-> (public batch b, demo chunk a, probe labels lab) for sample indices ix (a 1-D long tensor)."""
@@ -290,8 +300,8 @@ class Demos:
 def probe_loss(out, lab, lv_min: float):
     """Probe objectives on the packet: target slot CE, relative target Gaussian NLL (log-variance bounded below by
     lv_min), phase CE; ignored where the label is missing (-1 / not ok)."""
-    import torch
     import torch.nn.functional as F
+    out = {k: v.float() for k, v in out.items()}
     B, K, Nw = out["slot"].shape
     sl = lab["slot"].reshape(-1)
     L_slot = F.cross_entropy(out["slot"].reshape(-1, Nw), sl.clamp(min=0), reduction="none")
@@ -324,6 +334,7 @@ def probe_metrics(out, lab) -> dict:
 def action_loss(xy_pred_steps, bl, kl, a):
     """Tick losses in pointer-step units (smooth L1), button BCE, key CE; masked by a['valid']."""
     import torch.nn.functional as F
+    xy_pred_steps, bl, kl = xy_pred_steps.float(), bl.float(), kl.float()
     v = a["valid"].float()
     n = v.sum().clamp(min=1)
     Lxy = (F.smooth_l1_loss(xy_pred_steps, a["dxy_target"], beta=0.05, reduction="none").sum(-1) * v).sum() / n
@@ -378,6 +389,11 @@ def _setup(a):
     return dev, data
 
 
+def _amp(dev):
+    """bf16 autocast on CUDA (losses are computed in fp32)."""
+    return torch.autocast("cuda", dtype=torch.bfloat16, enabled=str(dev).startswith("cuda"))
+
+
 def _sched(opt, step, total, lr, warm=500):
     f = min(1.0, (step + 1) / warm) * 0.5 * (1 + math.cos(math.pi * min(1.0, step / total)))
     for g in opt.param_groups:
@@ -430,16 +446,19 @@ def cmd_rep(a):
     t0 = time.time()
     for step in range(a.steps):
         _sched(opt, step, a.steps, a.lr)
-        ix = data.train_idx[torch.randint(len(data.train_idx), (a.batch,), device=dev)]
+        ix = data.sample(a.batch)
         b, ch, lab = data.batch(ix)
         ch = _chunk_targets(ch, data.half)
-        mu, lv, z, dxy, bl, kl = _rep_forward(E, R, b, ch, dev)
+        with _amp(dev):
+            mu, lv, z, dxy, bl, kl = _rep_forward(E, R, b, ch, dev)
+            po = P(z, b) if w_sem > 0 else None
+        mu, lv = mu.float(), lv.float()
         Lxy, Lb, Lk = action_loss(dxy, bl, kl, ch)
         kl_div = 0.5 * (mu ** 2 + lv.exp() - 1 - lv).mean()
         loss = a.w_xy * Lxy + Lb + Lk + a.beta * kl_div
-        logs = dict(xy=float(Lxy), btn=float(Lb), key=float(Lk), kl=float(kl_div))
+        logs = dict(xy=float(Lxy.detach()), btn=float(Lb.detach()), key=float(Lk.detach()), kl=float(kl_div.detach()))
         if w_sem > 0:
-            pl, pl_logs = probe_loss(P(z, b), lab, a.lv_min)
+            pl, pl_logs = probe_loss(po, lab, a.lv_min)
             loss = loss + w_sem * pl
             logs.update({f"p_{k}": v for k, v in pl_logs.items()})
         opt.zero_grad(set_to_none=True)
@@ -535,9 +554,10 @@ def cmd_flow(a):
     log, t0 = [], time.time()
     for step in range(a.steps):
         _sched(opt, step, a.steps, a.lr)
-        ix = data.train_idx[torch.randint(len(data.train_idx), (a.batch,), device=dev)]
+        ix = data.sample(a.batch)
         b, _, lab = data.batch(ix)
-        loss, logs = S.loss(b, Z[ix], probe_fn=(lambda zc: probe_loss(P(zc, b), lab, rb["config"]["lv_min"]))
+        with _amp(dev):
+            loss, logs = S.loss(b, Z[ix], probe_fn=(lambda zc: probe_loss(P(zc, b), lab, rb["config"]["lv_min"]))
                             if P is not None else None, w_sem=w_sem)
         opt.zero_grad(set_to_none=True)
         loss.backward()
@@ -589,11 +609,12 @@ def cmd_bc(a):
     log, t0 = [], time.time()
     for step in range(a.steps):
         _sched(opt, step, a.steps, a.lr)
-        ix = data.train_idx[torch.randint(len(data.train_idx), (a.batch,), device=dev)]
+        ix = data.sample(a.batch)
         b, ch, _ = data.batch(ix)
-        xy, bl, kl = BC(b)
+        with _amp(dev):
+            xy, bl, kl = BC(b)
         ch["dxy_target"] = ch["xy"] * data.half / STEP_M            # absolute position, in pointer-step units
-        Lxy, Lb, Lk = action_loss(xy * data.half / STEP_M, bl, kl, ch)
+        Lxy, Lb, Lk = action_loss(xy.float() * data.half / STEP_M, bl, kl, ch)
         loss = a.w_xy * Lxy + Lb + Lk
         opt.zero_grad(set_to_none=True)
         loss.backward()
@@ -610,7 +631,7 @@ def cmd_bc(a):
                     ch["dxy_target"] = ch["xy"] * data.half / STEP_M
                     _agg(acc, action_metrics(xy * data.half / STEP_M, bl, kl, ch))
             BC.train()
-            log.append(dict(step=step, wall=round(time.time() - t0, 1), xy=float(Lxy), btn=float(Lb), key=float(Lk),
+            log.append(dict(step=step, wall=round(time.time() - t0, 1), xy=float(Lxy.detach()), btn=float(Lb.detach()), key=float(Lk.detach()),
                             **{f"val_{k}": v for k, v in _fin(acc).items()}))
             print(json.dumps(log[-1]), flush=True)
     cfg = dict(variant="bc", arch=arch, steps=a.steps, batch=a.batch, lr=a.lr, seed=a.seed, data=sorted(a.data),
@@ -642,9 +663,11 @@ def cmd_probe(a):
         opt = torch.optim.AdamW(P.parameters(), lr=a.lr, weight_decay=1e-4)
         for step in range(a.steps):
             _sched(opt, step, a.steps, a.lr)
-            ix = data.train_idx[torch.randint(len(data.train_idx), (a.batch,), device=dev)]
+            ix = data.sample(a.batch)
             b, _, lab = data.batch(ix)
-            loss, _ = probe_loss(P(Z[ix], b), lab, -8.0)
+            with _amp(dev):
+                po = P(Z[ix], b)
+            loss, _ = probe_loss(po, lab, -8.0)
             opt.zero_grad(set_to_none=True)
             loss.backward()
             opt.step()
@@ -686,7 +709,7 @@ def cmd_edit(a):
     opt = torch.optim.AdamW(P.parameters(), lr=1e-3, weight_decay=1e-4)
     for step in range(a.probe_steps):
         _sched(opt, step, a.probe_steps, 1e-3)
-        ix = data.train_idx[torch.randint(len(data.train_idx), (512,), device=dev)]
+        ix = data.sample(512)
         b, _, lab = data.batch(ix)
         loss, _ = probe_loss(P(Z[ix], b), lab, -8.0)
         opt.zero_grad(set_to_none=True)
@@ -764,6 +787,61 @@ def cmd_edit(a):
     print(json.dumps(summ))
 
 
+# ------------------------------------------------------------------------------------------------ video
+class FrameHook:
+    """Rollout hook: the ComputerWorld screen (env.render, the privileged renderer; frames are for humans only) at reset
+    and after every tick, downscaled, with a caption bar naming the controller source."""
+
+    def __init__(self, caption: str, scale: float = 0.5):
+        self.caption, self.scale, self.frames = caption, scale, {}
+
+    def _grab(self, i, env, note=""):
+        from PIL import Image, ImageDraw
+        im = Image.fromarray(env.render()[..., :3])
+        im = im.resize((int(im.width * self.scale), int(im.height * self.scale)))
+        bar = Image.new("RGB", (im.width, 44), (20, 20, 20))
+        d = ImageDraw.Draw(bar)
+        d.text((6, 4), self.caption, fill=(255, 255, 255))
+        d.text((6, 24), f"{env.task_name} seed {env.seed}  t={env.time:.1f}s  {note}", fill=(255, 220, 120))
+        out = Image.new("RGB", (im.width, im.height + 44))
+        out.paste(bar, (0, 0))
+        out.paste(im, (0, 44))
+        self.frames.setdefault(i, []).append(np.asarray(out))
+
+    def on_reset(self, i, env, obs):
+        self._grab(i, env)
+
+    def on_step(self, i, env, act, step):
+        self._grab(i, env)
+
+    def on_end(self, i, env, ep):
+        tag = ep.outcome + (f" ({ep.failure_reason})" if ep.failure_reason else "")
+        self._grab(i, env, tag.upper())
+        self.frames[i] += [self.frames[i][-1]] * 10         # hold the final frame 1 s
+        return {}
+
+
+def cmd_video(a):
+    """Render labelled episodes of one policy (JSON spec as for rrp eval) into one mp4 (peer only: rendering)."""
+    import imageio
+    from rrp.harness.eval.evaluate import evaluate
+    from rrp.policies.base import make_policy
+    name, _, kw = a.policy.partition("=")
+    pol = make_policy(name, **(json.loads(kw) if kw else {}))
+    frames, rows = [], []
+    for task, seed in (x.split("@") for x in a.episodes):
+        h = FrameHook(f"{pol.info.source.upper()}  {pol.info.name}  {pol.info.variant or ''}  {a.caption}")
+        ep = evaluate(pol, "computerworld", task, "cw_pointer", [int(seed)], batch=1, hooks=[h])[0]
+        frames += h.frames[0]
+        rows.append(dict(task=task, seed=int(seed), outcome=ep.outcome, failure_reason=ep.failure_reason,
+                         steps=ep.steps))
+    Path(a.out).parent.mkdir(parents=True, exist_ok=True)
+    imageio.mimsave(a.out, frames, fps=10, quality=6)
+    Path(a.out).with_suffix(".json").write_text(json.dumps(dict(policy=a.policy, source=pol.info.source,
+                                                                episodes=rows), indent=1))
+    print(json.dumps(rows))
+
+
 # ------------------------------------------------------------------------------------------------ CLI
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="rrp train pointer", description=__doc__.split("\n\n")[0])
@@ -802,7 +880,7 @@ def main(argv=None):
     p.add_argument("--dz", type=int, default=16)
     p.add_argument("--w-sem", type=float, default=1.0)
     p.add_argument("--lv-min", type=float, default=-4.0, help="semfix: bounded probe NLL (as the arm's semfix)")
-    p.add_argument("--beta", type=float, default=1e-3)
+    p.add_argument("--beta", type=float, default=3e-3)
     p.add_argument("--w-xy", type=float, default=5.0)
     p.set_defaults(fn=cmd_rep)
     p = sub.add_parser("flow")
@@ -830,5 +908,11 @@ def main(argv=None):
     p.add_argument("--edit-lr", type=float, default=0.05)
     p.add_argument("--anchor", type=float, default=0.1)
     p.set_defaults(fn=cmd_edit)
+    p = sub.add_parser("video")
+    p.add_argument("--policy", required=True, help="NAME or NAME=JSON kwargs (as rrp eval)")
+    p.add_argument("--episodes", nargs="+", required=True, help="task@seed ...")
+    p.add_argument("--caption", default="")
+    p.add_argument("--out", required=True)
+    p.set_defaults(fn=cmd_video)
     a = ap.parse_args(argv)
     return a.fn(a)

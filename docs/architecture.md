@@ -191,6 +191,7 @@ Mapping of today's code onto the interface (S4; the nets and featurizers do not 
 | `teacher:<task>` | `policies.teachers.*` `act()` (reads session internals) | `policies.teachers.TeacherPolicy` (`make_policy("teacher:<task>")`), `requires.privileged`, source `scripted_teacher` — S4 done, parity golden (arm, dual) |
 | `oracle` | `OraclePacketPolicy`, `OracleSource`, `OracleShadow` (three copies in harness.eval) | `policies.oracle` (ShadowTeacher, BCLookahead, OraclePacketPolicy, one encoder `encode_demos` also used by the semantic-edit OracleSource); `make_oracle` = LatentStackPolicy(oracle packets, frozen system 0), privileged, source `oracle`; legged: `policies.legged.OracleShadow` (`LeggedLatentPolicy(oracle=True)`) — S4 done |
 | `psi0_direct`, `psi0_structured` | psi1z `serve_psi0` / `serve_ours` + `system_i` / `structured` | `policies.psi0` (Ψ₀ agent; registered names already declared) |
+| `pointer_oracle`, `pointer_latent`, `pointer_bc` | – (new, track pointer) | `policies.pointer`: ComputerWorld `cw_pointer` system 0s (SCRIPTED engineered `cw_pointer_eng.v1`; learned realizer), teacher-oracle / learned system i packets through `LatentStackPolicy(make_s0=...)`, pointer BC; trainers `rrp train pointer` |
 
 ## 4. `Task` (rrp.tasks.spec) — implemented in S3
 
