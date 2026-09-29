@@ -14,7 +14,7 @@ from rrp.contracts.action import NativeCommand
 
 
 class StepsHeadingTeacher:
-    source = "scripted_command"
+    source = "scripted_teacher"          # the scripted command layer (contract literal)
     privileged = True
 
     def __init__(self, session):
@@ -36,7 +36,7 @@ class StepsHeadingTeacher:
 
     def act(self) -> NativeCommand:
         return NativeCommand(controller_version=self.s.controller_version(), groups={"base_velocity": self.command_values().tolist()},
-                             source="scripted_command")
+                             source="scripted_teacher")
 
 
 def attach_steps_scan(tracker, session):

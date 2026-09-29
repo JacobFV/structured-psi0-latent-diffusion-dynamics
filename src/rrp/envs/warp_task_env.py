@@ -14,7 +14,7 @@ import math
 import numpy as np
 import torch
 
-from rrp.envs.humanoid_scenes import STEPS_N, STEPS_PLATFORM, STEPS_TREAD, STEPS_X0, task_model
+from rrp.envs.humanoid_scenes import BURY, STEPS_N, STEPS_PLATFORM, STEPS_TREAD, STEPS_X0, task_model
 from rrp.envs.warp_tracker_env import WarpTrackerEnv
 
 SCAN_X = np.linspace(-0.3, 1.2, 11)
@@ -38,8 +38,10 @@ def task_adapted_model(key: str, task: str, params=None):
 class WarpStepsEnv(WarpTrackerEnv):
     def __init__(self, body, nworld: int, seed: int = 1, level: float = 0.0, **kw):
         kw.setdefault("cmd_mix", "default")
-        super().__init__(body, nworld, seed, model_fn=lambda k: task_adapted_model(k, "h_steps"),
-                         extra_batch=("geom_pos", "geom_size", "geom_aabb", "geom_rbound"), **kw)
+        # steps = fixed-size boxes on mocap bodies, moved per world (runtime geom size changes broke mujoco_warp contacts:
+        # a flush h=0 staircase tipped h1 r6 over at x ~ 1 m in 100% of episodes, while the same model compiled at h=0 did not)
+        super().__init__(body, nworld, seed, model_fn=lambda k: task_adapted_model(k, "h_steps", {"h_frac": 0.0, "mocap_h_max": H_MAX}),
+                         **kw)
         import mujoco
         m = self.m
         names = [n for n in self.meta["scene"]["ground"]]
@@ -48,9 +50,9 @@ class WarpStepsEnv(WarpTrackerEnv):
         self.level = float(level)
         self.h = torch.zeros(self.N, device=self.dev)
         self.x_end = torch.zeros(self.N, device=self.dev)
-        wp = self.wp
-        self.g_pos, self.g_size = wp.to_torch(self.mw.geom_pos), wp.to_torch(self.mw.geom_size)
-        self.g_aabb, self.g_rb = wp.to_torch(self.mw.geom_aabb), wp.to_torch(self.mw.geom_rbound)
+        self.mocap_pos = self.wp.to_torch(self.dw.mocap_pos)            # (N, nmocap, 3)
+        self.step_mocap = [int(m.body_mocapid[m.geom_bodyid[g]]) for g in self.step_gids]
+        self.box_hz = float(0.5 * (BURY + (STEPS_N + 1) * H_MAX))        # x L
         sx, sy = np.meshgrid(SCAN_X, SCAN_Y, indexing="ij")
         self.scan_xy = torch.as_tensor(np.stack([sx.ravel(), sy.ravel()], -1), device=self.dev, dtype=torch.float32)
         self.prev_x = torch.zeros(self.N, device=self.dev)
@@ -66,16 +68,14 @@ class WarpStepsEnv(WarpTrackerEnv):
         return self.level
 
     def _layout(self, mask):
-        """Resample step heights for masked worlds and write the batched geoms."""
-        if not hasattr(self, "g_pos"):
+        """Resample step heights for masked worlds and move the mocap step boxes (tops at the new heights)."""
+        if not hasattr(self, "mocap_pos"):
             return
         n, L = self.N, self.L
         hf = self._u(n) * self.level * H_MAX
         self.h = torch.where(mask, hf * L, self.h)
         h, t = self.h, STEPS_TREAD * L
-        hw = self.g_size[:, self.step_gids[0], 1].clone()
         x = STEPS_X0 * L
-        k = 0
         rows = []
         for i in range(STEPS_N):
             rows.append((x + (i + 0.5) * t, 0.5 * t, (i + 1) * h))
@@ -86,17 +86,9 @@ class WarpStepsEnv(WarpTrackerEnv):
             rows.append((x3 + (i + 0.5) * t, 0.5 * t, (STEPS_N - i) * h))
         self.x_end = torch.where(mask, x3 + STEPS_N * t, self.x_end)
         M = mask[:, None]
-        for gid, (cx, hx, top) in zip(self.step_gids, rows):
-            hz = (0.5 * top).clamp_min(1e-4)
-            pos = torch.stack([cx, torch.zeros_like(cx), hz], -1)
-            size = torch.stack([hx, hw, hz], -1)
-            self.g_pos[:, gid] = torch.where(M, pos, self.g_pos[:, gid])
-            self.g_size[:, gid] = torch.where(M, size, self.g_size[:, gid])
-            shp = self.g_aabb[:, gid].shape
-            new = torch.cat([torch.zeros(n, 3, device=self.dev), size], -1).reshape(shp)
-            Mx = mask.view(-1, *([1] * (len(shp) - 1)))
-            self.g_aabb[:, gid] = torch.where(Mx, new, self.g_aabb[:, gid])
-            self.g_rb[:, gid] = torch.where(mask, size.norm(dim=-1), self.g_rb[:, gid])
+        for mid, (cx, hx, top) in zip(self.step_mocap, rows):
+            pos = torch.stack([cx, torch.zeros_like(cx), top - self.box_hz * L], -1)
+            self.mocap_pos[:, mid] = torch.where(M, pos, self.mocap_pos[:, mid])
         self._rows = rows
 
     def height_at(self, xw):
@@ -108,7 +100,7 @@ class WarpStepsEnv(WarpTrackerEnv):
 
     def _reset(self, mask):
         super()._reset(mask)
-        if hasattr(self, "g_pos"):
+        if hasattr(self, "mocap_pos"):
             self._layout(mask)
             yaw = self._u(self.N, lo=-0.3, hi=0.3)
             q = self.qpos
@@ -134,7 +126,7 @@ class WarpStepsEnv(WarpTrackerEnv):
         self.cmd_timer = torch.full_like(self.cmd_timer, 1e6)
 
     def extra_obs(self):
-        if not hasattr(self, "g_pos"):
+        if not hasattr(self, "mocap_pos"):
             return torch.zeros(self.N, SCAN_X.size * SCAN_Y.size + 1, device=self.dev)
         yaw = self._yaw()
         c, s_ = torch.cos(yaw), torch.sin(yaw)

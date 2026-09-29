@@ -17,11 +17,12 @@ import mujoco
 import numpy as np
 
 G = mujoco.mjtGeom
-SCENE_VERSION = "humanoid_scenes_v1"
+SCENE_VERSION = "humanoid_scenes_v2"      # v2: step boxes buried below the floor (v1 thin boxes tripped the robot)
 STEPS_N = 3
 STEPS_TREAD = 0.6            # x L
 STEPS_X0 = 1.2               # x L, first riser
 STEPS_PLATFORM = 1.2         # x L
+BURY = 0.5                   # x L, step boxes extend this far below the floor
 
 
 def steps_layout(L: float, h: float, n: int = STEPS_N):
@@ -51,8 +52,24 @@ def add_steps(spec: mujoco.MjSpec, L: float, h: float, floor_kw: dict, n: int = 
     names = []
     lay, _ = steps_layout(L, h, n)
     for name, cx, hx, top in lay:
-        spec.worldbody.add_geom(name=name, type=G.mjGEOM_BOX, pos=[cx, 0, 0.5 * top], size=[hx, 0.5 * width * L, 0.5 * top],
+        # boxes extend BURY x L below the floor, so a zero-height step is flush with the floor (no 0.2 mm edge to trip on)
+        spec.worldbody.add_geom(name=name, type=G.mjGEOM_BOX, pos=[cx, 0, 0.5 * (top - BURY * L)],
+                                size=[hx, 0.5 * width * L, 0.5 * (top + BURY * L)],
                                 rgba=[0.55, 0.5, 0.45, 1], **floor_kw)
+        names.append(name)
+    return names
+
+
+def add_steps_mocap(spec: mujoco.MjSpec, L: float, h_max_frac: float, floor_kw: dict, n: int = STEPS_N, width: float = 3.0) -> list:
+    """GPU variant: each step is a FIXED-size box on its own mocap body (per-world heights move the mocap bodies; mujoco_warp
+    mis-simulates boxes whose size changes after compilation). Box half-height covers the buried part and the tallest top."""
+    names = []
+    lay, _ = steps_layout(L, h_max_frac * L, n)
+    hz = 0.5 * (BURY + (n + 1) * h_max_frac) * L
+    for name, cx, hx, top in lay:
+        b = spec.worldbody.add_body(name=f"{name}_body", pos=[cx, 0, top - hz], mocap=True)
+        b.add_geom(name=name, type=G.mjGEOM_BOX, pos=[0, 0, 0], size=[hx, 0.5 * width * L, hz], rgba=[0.55, 0.5, 0.45, 1],
+                   **floor_kw)
         names.append(name)
     return names
 
@@ -71,7 +88,10 @@ def task_model(body: str, task: str, params: dict | None = None, contact: str = 
     if task == "h_steps":
         h = float(params.get("h_frac", 0.15)) * L
         params.setdefault("h_frac", 0.15)
-        ground = add_steps(scene, L, h, floor_kw)
+        if params.get("mocap_h_max") is not None:
+            ground = add_steps_mocap(scene, L, float(params["mocap_h_max"]), floor_kw)
+        else:
+            ground = add_steps(scene, L, h, floor_kw)
         params["x_end"] = steps_layout(L, h)[1]
     else:
         raise KeyError(f"unknown humanoid task scene {task!r}")

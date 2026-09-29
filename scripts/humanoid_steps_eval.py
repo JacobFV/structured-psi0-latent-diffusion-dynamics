@@ -19,7 +19,8 @@ rows = []
 for seed in range(s0, s0 + n):
     sc = build_h_steps(body, seed, h_frac=hf)
     s = LeggedSession(sc, tracker_kind="learned", seed=seed)
-    attach_steps_scan(s.tracker, s)
+    if int(s.tracker.meta.get("extra_obs_dim") or 0):         # plain trackers (no scan input) run blind
+        attach_steps_scan(s.tracker, s)
     s.reset(seed)
     te = StepsHeadingTeacher(s)
     t0, status = time.time(), "timeout"
