@@ -4,10 +4,12 @@
 #   e.g. scripts/peer_run.sh --gpu --gpu-mem 12G --cpu 4 --mem 24G --label X --max-seconds 7200 -- PY -m rrp.cli ...
 # A bare argument "PY" is replaced by the peer venv python. Relative paths resolve inside the peer code dir, whose
 # artifacts/ and .cache/ are symlinks to the shared store. Add --detach to return immediately.
+# RRP_PEER_PYTHONPATH (peer paths, ':'-separated) is appended to PYTHONPATH, e.g. the ComputerWorld wheel dir
+# /home/brandonin/work/ext/cw-site (research/tracks/cworld.md).
 set -euo pipefail
 PEER=${ROBOT_PEER:-gb10-direct}
 P=${RRP_PEER_ROOT:-/dev/shm/rrp-brandonin}
 R=${RRP_PEER_REPO:-$P/repo}
 args=()
 for x in "$@"; do [ "$x" = PY ] && args+=("$P/venv/bin/python") || args+=("$x"); done
-ssh "$PEER" "cd $R && export PATH=$P/bin:\$PATH PYTHONPATH=src RRP_NODE=peer RRP_REPO=$R RRP_OPS_ROOT=$P/repo MUJOCO_GL=egl && python3 -m rrp.cli ops run $(printf '%q ' "${args[@]}")"
+ssh "$PEER" "cd $R && export PATH=$P/bin:\$PATH PYTHONPATH=src${RRP_PEER_PYTHONPATH:+:$RRP_PEER_PYTHONPATH} RRP_NODE=peer RRP_REPO=$R RRP_OPS_ROOT=$P/repo MUJOCO_GL=egl && python3 -m rrp.cli ops run $(printf '%q ' "${args[@]}")"

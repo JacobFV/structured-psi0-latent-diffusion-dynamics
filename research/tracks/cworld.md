@@ -83,6 +83,31 @@ every task with the reasons above. Speed: `scene()` ~1 ms, `step` ~0.7 ms, snaps
 
 ## open items
 - `rrp matrix` row for computerworld (S5, same track): the arm/legged declines are already asserted in
-  tests/unit/test_computerworld.py; the accepted pointer BC needs a BC trained on teacher data (future work).
+  tests/unit/test_computerworld.py; the accepted pointer policies are the track `pointer` below.
 - Demo video on the peer (D-115: no rendering on the host): one teacher success and one failure per task.
 - cw/* tasks have no task graph yet (the env judges success); `task_graph` capability is not declared.
+
+## pointer policy (track `pointer`, branch track/pointer; owner request 2026-09-29 "engineer or train a pointer policy with/as a system 0")
+Code: `src/rrp/policies/pointer.py`, `tests/unit/test_pointer.py`. Peer: code dir `/dev/shm/rrp-brandonin/wt/pointer`,
+CW wheel extracted to `/home/brandonin/work/ext/cw-site` on the peer (the peer venv has no pip: `python -m zipfile -e
+<wheel> ~/work/ext/cw-site`, same sha256 as above); `RRP_PEER_PYTHONPATH=/home/brandonin/work/ext/cw-site
+scripts/peer_run.sh ...` appends it to the job's PYTHONPATH.
+
+### step 1: engineered system 0 + teacher oracle packets (verified 2026-09-29)
+- Packet contract for the pointer: M = 1 assembly (`tool`), the latent contract's knots (0.1, 0.3, 0.5, 0.7) s,
+  validity 0.8 s. At 10 Hz knot k covers the ticks ending in (t_{k-1}, t_k]: 1 tick for k = 0, 2 (early, late) after,
+  so one packet spans 7 ticks.
+- Engineered encoding `cw_pointer_eng.v1`, z[4, 1, 14]: per knot two tick slots `[x, y, depth, button, key, wheel,
+  flag]` (target pointer xy in m; stack depth of the widget under the target; button ±1; (key index + 1)/|vocab|, 0 =
+  none; wheel notches; 1 = planned). `EngineeredSystem0` (label `scripted:cw_pointer_eng.v1`; NOT learned) moves toward
+  the slot target from the measured pointer by ≤ 60 px/tick (the teachers' speed), sets the button, emits key/wheel;
+  unplanned slot / expired / no packet = hold.
+- `TeacherOracleSource` (ORACLE, privileged): runs `teacher:cw/*` on a shadow twin env ahead of the real episode and
+  encodes its next 7 commands; counts shadow/real state-hash divergences. `make_pointer_oracle` = registry
+  `pointer_oracle` (source `oracle`) = `LatentStackPolicy(oracle source, make_s0=EngineeredSystem0)`, replan 4 ticks.
+  `LatentStackPolicy` gained `make_s0` / `requires` and an env clock (`env.time`, graph version 0 off MuJoCo).
+- Result (`rrp eval`, peer, seeds 0–99 per task, `artifacts/runs/pointer_s1/`): oracle packets -> engineered system 0
+  100/100 on each of cw/calc_sum, cw/open_type, cw/drag_window, cw/fill_form, with exactly the teacher's control-step
+  totals (2860, 1729, 766, 3508), i.e. the packet round trip is lossless; teacher 100/100 each on the same seeds.
+  Command:
+  `scripts/peer_run.sh --cpu 2 --mem 4G --label pointer_s1_eval -- PY -m rrp.cli eval --policy pointer_oracle --env computerworld --task cw/<t> --body cw_pointer --seeds 0:100 --out artifacts/runs/pointer_s1/oracle_eng_<t>.jsonl`

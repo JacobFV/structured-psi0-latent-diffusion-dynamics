@@ -153,16 +153,20 @@ class LatentStackPolicy:
     one; the packet (after the optional `packet_hook(i, packet) -> packet` intervention) is offered to that episode's
     system 0 (a rejected packet is counted by system 0 and the declared fallback holds); then every episode's system 0
     realizes its held packet from fresh local state (Act.command, None = hold). The same schedule as
-    harness.eval.latent_eval.evaluate_latent / dual_latent_eval.evaluate_dual_latent."""
+    harness.eval.latent_eval.evaluate_latent / dual_latent_eval.evaluate_dual_latent.
+
+    Other bodies (e.g. the ComputerWorld pointer, rrp.policies.pointer) pass `make_s0(env) -> system 0` and their
+    `requires`; the env clock is `env.data.time` / `env.runtime.graph_version` (MuJoCo) or `env.time` / 0."""
 
     def __init__(self, system_i: LatentPolicy, realizer, *, replan_ticks: int = 8, device: str = "cpu",
                  name: str = "latent", version: str | None = None, variant: str | None = None, source: str = "learned",
-                 bodies=None, tasks=None, privileged: bool = False):
+                 bodies=None, tasks=None, privileged: bool = False, make_s0=None, requires=None):
         from rrp.policies.base import PolicyInfo, Requirements
         self.sys_i, self.realizer, self.replan, self.device = system_i, realizer, int(replan_ticks), device
         self.dual = isinstance(system_i, DualLatentPolicy)
+        self.make_s0 = make_s0
         self.packet_hook = None
-        self.info = PolicyInfo(name, source, version or f"{system_i.lsv}|{system_i.rcv}", Requirements(
+        self.info = PolicyInfo(name, source, version or f"{system_i.lsv}|{system_i.rcv}", requires or Requirements(
             frozenset({"joint_position", "gripper"}), observations=frozenset({"proprio", "object_descriptors", "task_graph"}),
             body_families=frozenset({"arm", "dual_arm"}), bodies=frozenset(bodies) if bodies else None,
             tasks=frozenset(tasks) if tasks else None, privileged=privileged), variant)
@@ -171,7 +175,10 @@ class LatentStackPolicy:
         from rrp.policies.system0 import DualLatentSystem0, LatentSystem0
         cls = DualLatentSystem0 if self.dual else LatentSystem0
         self.envs = list(envs)
-        self.s0 = [cls(self.realizer, self.sys_i.featurizer(e), latent_space_version=self.sys_i.lsv,
+        if hasattr(self.sys_i, "reset"):
+            self.sys_i.reset(self.envs)
+        self.s0 = [self.make_s0(e) if self.make_s0 else
+                   cls(self.realizer, self.sys_i.featurizer(e), latent_space_version=self.sys_i.lsv,
                        realizer_compat_version=self.sys_i.rcv, device=self.device) for e in self.envs]
         self.t = [0] * len(self.envs)
 
@@ -186,17 +193,25 @@ class LatentStackPolicy:
                 if self.packet_hook is not None:
                     p = self.packet_hook(i, p)
                 emitted[i] = p
-                e = self.envs[i]
                 try:
-                    self.s0[i].receive(p, now=float(e.data.time), graph_version=e.runtime.graph_version)
+                    self.s0[i].receive(p, **env_clock(self.envs[i]))
                 except (ControllerRejection, StaleActionError):
                     pass
         out = {}
         for i in idx:
             e = self.envs[i]
-            out[i] = Act(self.s0[i].tick(e, e.controller_version()), packet=emitted.get(i))
+            cv = e.controller_version() if hasattr(e, "controller_version") else None
+            out[i] = Act(self.s0[i].tick(e, cv), packet=emitted.get(i))
             self.t[i] += 1
         return out
+
+
+def env_clock(e) -> dict:
+    """receive() kwargs: MuJoCo sessions carry data.time and a task-graph runtime; other envs (ComputerWorld) have
+    `time` and no graph (version 0)."""
+    if hasattr(e, "data"):
+        return dict(now=float(e.data.time), graph_version=e.runtime.graph_version)
+    return dict(now=float(e.time), graph_version=0)
 
 
 def make_latent(*, flow: str, representation: str | None = None, device: str = "cpu", replan_ticks: int = 8,

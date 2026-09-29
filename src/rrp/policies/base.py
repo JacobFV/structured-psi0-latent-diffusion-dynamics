@@ -116,6 +116,7 @@ POLICIES: dict[str, str] = {
     "psi0_structured": "rrp.policies.psi0:make_structured",
     "psi0_replay": "rrp.policies.psi0:make_replay",
     "oracle": "rrp.policies.oracle:make_oracle",                # privileged diagnostic, source oracle
+    "pointer_oracle": "rrp.policies.pointer:make_pointer_oracle",  # ComputerWorld: teacher packets -> scripted system 0
 }
 
 
