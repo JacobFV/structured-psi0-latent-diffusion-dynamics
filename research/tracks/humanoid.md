@@ -273,3 +273,6 @@ Long runs use `/dev/shm/rrp-brandonin/wt/humanoid` (never re-synced while they r
 - **g1 v4ft** (target_margin 0.03 + land_vel): no-fall 1.0 on validation trials, fwd 0.96, turn 0.86, slip 0.016, CoT 0.51,
   peak force 2.12 BW (pass); FAILS joint margin 0.018 (PD overshoot past the 3% target band); waypoint 15/20 with 5 falls
   (v4: 17/20, 3 falls). -> g1 v4ft2 (target_margin 0.05) = last g1 attempt.
+- **t1 v2ft3** (+ per-tick force cap): **waypoint 20/20, 0 falls**; no-fall 1.0 everywhere, fwd 1.08, turn 0.95, slip 0.054,
+  CoT 0.53, **peak force 2.72 BW (passes)**; D-112 fails only joint margin 0.0094 (regressed from 0.022). -> t1 v2ft4
+  (+ target_margin 0.05), recorded stop-rule deviation (sample budget ~3.3e8 of 6e8).

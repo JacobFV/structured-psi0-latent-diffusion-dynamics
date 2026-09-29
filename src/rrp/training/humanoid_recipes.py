@@ -219,3 +219,12 @@ HUMANOID_RECIPES["g1_clock_gpu_v4ft2"] = _ft("g1", "artifacts/runs/humanoid_p1b_
                                              teacher_stop=0.3, clock_gate=True, target_margin=0.05, land_vel=-2.0, iters=400,
                                              reward_set=_R5.replace("impact=-2.0", "impact=-4.0").replace("limit_margin=-4.0",
                                                                                                           "limit_margin=-8.0"))
+
+# t1 v2ft3 (+ force cap 2.5 BW): waypoint 20/20, 0 falls; no-fall 1.0, fwd 1.08, turn 0.95, slip 0.054, CoT 0.53, peak force
+# 2.72 BW (PASS now); joint margin 0.0094 (fail; regressed from 0.022). t1 v2ft4 = + target_margin 0.05 (as g1 v4ft2),
+# 400 iters; within the t1 sample budget (~3.3e8 of 6e8), attempt count deviation recorded.
+HUMANOID_RECIPES["t1_clock_gpu_v2ft4"] = _ft("t1", "artifacts/runs/humanoid_p1b_t1_v2ft3/actor_v2ft3final.pt", alpha_schedule="fixed:0.5",
+                                             teacher_stop=0.3, clock_gate=True, target_margin=0.05, land_vel=-2.0, force_cap=-2.0,
+                                             force_cap_bw=2.5, iters=400,
+                                             reward_set=_R5.replace("impact=-2.0", "impact=-4.0").replace("limit_margin=-4.0",
+                                                                                                          "limit_margin=-8.0"))
