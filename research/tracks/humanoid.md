@@ -216,3 +216,11 @@ Long runs use `/dev/shm/rrp-brandonin/wt/humanoid` (never re-synced while they r
   `2026-09-29_contact_h1_{forward,turn}_*-vs-h1-gpu-r3_ok_ok.mp4` (both panels show r3: no installed h1 contact_v2 actor on the
   peer, labelled by the version string), t1 r1 failure clip `2026-09-29_contact_t1_forward_forward_installed-vs-t1-gpu-r1_ok_fell.mp4`.
   -> h1 r4 (running): ~25% zero commands, stand_contact 2, stand_still -1, impact -0.5.
+- h1 r4 (r3 + standing terms + impact -0.5, 25% zero commands) in C MuJoCo: no-fall 1.0, fwd 1.06, turn 1.06, slip 0.005,
+  robust ok; FAILS peak force 4.08 BW and joint margin -0.005; arc yaw ~0 (0.004 vs 0.24) and it still steps in place under a
+  zero command (stand trial duty 0.5 at 1.25 Hz), so halts fail (waypoint 0/20, 0 falls). Reward weights alone did not stop
+  clock-driven stepping. -> structural fix **clock gate** (`--clock-gate`, actor meta `clock_gate`): the gait-clock inputs
+  are zeroed while the command is ~0, identically in the GPU env, `LeggedBinding.public_obs`, morph_v1 and LearnedTracker
+  (parity 1.8e-7 incl. gated worlds). h1 r5 = r3 + clock gate + arc turn progress (yaw_lin_all <= 0.5 rad/s) + impact -2 +
+  joint-limit hinge -4: running. g1 v3 stopped at iter 55 to give h1 r5 the slot; g1/op3/apollo/adam_lite/t1 get clock-gated
+  v4 recipes.

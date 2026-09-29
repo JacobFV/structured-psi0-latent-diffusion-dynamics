@@ -168,3 +168,5 @@ _R5 = (_TURN + _CLOCK.replace("limit_margin=-1.0", "limit_margin=-4.0") + _FIX +
        + ",yaw_lin_all=1,yaw_lin_all_max=0.5")
 HUMANOID_RECIPES["h1_clock_gpu_r5"] = _ft("h1", "artifacts/runs/humanoid_p1b_h1_r3/actor_r3final.pt", alpha_schedule="fixed:0.5",
                                           teacher_stop=0.3, clock_gate=True, reward_set=_R5)
+for _b in ("g1", "op3", "apollo", "adam_lite", "t1"):
+    HUMANOID_RECIPES[f"{_b}_clock_gpu_v4"] = _clock(_b, teacher_stop=0.3, clock_gate=True, reward_set=_R5)
