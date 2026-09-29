@@ -124,3 +124,14 @@ def test_h_steps_scenario_and_scan():
     scan = steps_scan_np(root, L, h)
     assert scan.shape == (34,) and abs(scan[-1] - 0.2) < 1e-6
     assert scan[0] == 0.0 and np.isclose(scan[3 * 10], 2 * h / L)                # behind: flat; 1.2 L ahead: on step 2
+
+
+@pytest.mark.menagerie
+def test_h_gap_scenario_and_obs():
+    import numpy as np
+    from rrp.envs.humanoid_scenes import GAP_X, build_h_gap, gap_obs_np
+    sc = build_h_gap("h1", 5, level=1.0)
+    mt = sc.meta
+    assert 1.2 <= mt["gap_ratio"] <= 1.6 and abs(mt["y_c"]) <= 0.6 * mt["L"] and abs(mt["psi_f"]) <= np.pi / 2
+    o = gap_obs_np(np.array([0, 0, mt["L"], 1, 0, 0, 0]), mt, 0.0)
+    assert o.shape == (8,) and np.isclose(o[0], GAP_X) and np.isclose(o[1] * mt["L"], mt["y_c"])

@@ -198,3 +198,57 @@ def add_gap_walls(spec: mujoco.MjSpec, L: float, floor_kw: dict, width: float, y
                                     rgba=[0.6, 0.35, 0.3, 1], **floor_kw)
         names.append(nm)
     return names
+
+
+def build_h_gap(robot, seed: int, level: float = 1.0, contact: str | None = "v2"):
+    """C-MuJoCo scenario for h_gap_sidestep (same parameter law as WarpGapEnv at `level`, drawn from the seed). Scenario meta
+    carries the task map (wall x, gap centre and width, final heading) and the walls' geom names (privileged failure check)."""
+    from rrp.bodies.compiler import compile_robot_spec
+    from rrp.bodies.legged import legged_body, legged_world, standalone_model
+    from rrp.envs.legged import WAYPOINT_COLORS, _waypoint, tracker_contract
+    from rrp.envs.legged_core import LeggedBinding
+    from rrp.envs.scenario import MountedRobot, ObjectDecl, Scenario, load_task
+    from rrp.physics.contact import apply_world, version_str
+    body_key = robot if isinstance(robot, str) else robot.meta["name"]
+    if isinstance(robot, str):
+        robot = legged_body(robot)
+    meta = copy.deepcopy(robot.meta)
+    L = float(meta["legged"]["nominal_height"])
+    m0, _, meta0 = standalone_model(robot, contact=contact)
+    bw = body_width(m0, LeggedBinding(m0, meta0))
+    rng = np.random.default_rng([seed, 4343])
+    f = 1.6 - level * rng.uniform() * 0.4
+    y_c = rng.uniform(-0.6, 0.6) * level * L
+    psi_f = rng.uniform(-math.pi / 2, math.pi / 2) * level
+    scene = legged_world(f"h_gap_{seed}", meta.get("source_options"), contact=contact)
+    floor_kw = apply_world(mujoco.MjSpec(), contact, meta.get("source_options"))
+    walls = add_gap_walls(scene, L, floor_kw, f * bw, y_c)
+    goal = [GAP_X * L + 0.5 * L, y_c]
+    scene.worldbody.add_camera(name="overhead", pos=[GAP_X * L, 0, 12.0], xyaxes=[1, 0, 0, 0, 1, 0], fovy=100)
+    _waypoint(scene, "goal", goal, WAYPOINT_COLORS["cyan"])
+    meta["contact_model"] = version_str(contact)
+    meta["scene"] = dict(task="h_gap_sidestep", version=SCENE_VERSION, params=dict(width=f * bw, y_c=y_c, psi_f=psi_f), ground=[],
+                         walls=walls, L=L)
+    site = scene.worldbody.add_site(name="mount0", pos=[0, 0, 0])
+    scene.attach(robot.spec.copy(), prefix="r0_", site=site)
+    scene.memory = 8 * 2 ** 20
+    model = scene.compile()
+    rs = compile_robot_spec(model, meta, prefix="r0_", name=body_key)
+    rs = rs.model_copy(update=dict(controller_contracts=rs.controller_contracts + [tracker_contract(meta, rs)])).with_hash()
+    mr = MountedRobot("r0_", meta, rs, [0.0, 0.0, 0.0], 0.0, {"body": "body"})
+    objects = [ObjectDecl("goal", "marker just beyond the gap", "feature", radius=0.12, task_entity="goal")]
+    return Scenario("h_gap_sidestep", load_task("h_gap_sidestep"), scene, model, [mr], objects, seed,
+                    meta=dict(body_key=body_key, contact_model=meta["contact_model"], L=L, level=level, gap_width=f * bw,
+                              gap_ratio=f, body_width=bw, y_c=y_c, psi_f=psi_f, wall_x=GAP_X * L, walls=walls))
+
+
+def gap_obs_np(qpos_root: np.ndarray, sc_meta: dict, phase2: float) -> np.ndarray:
+    """numpy twin of WarpGapEnv.extra_obs (PRIVILEGED expert input)."""
+    x, y = qpos_root[0], qpos_root[1]
+    w, qx, qy, qz = qpos_root[3:7]
+    yaw = math.atan2(2 * (w * qz + qx * qy), 1 - 2 * (qy * qy + qz * qz))
+    L = sc_meta["L"]
+    dx, dy = sc_meta["wall_x"] - x, sc_meta["y_c"] - y
+    c, s_ = math.cos(yaw), math.sin(yaw)
+    return np.array([(c * dx + s_ * dy) / L, (-s_ * dx + c * dy) / L, sc_meta["gap_width"] / L, sc_meta["body_width"] / L,
+                     math.sin(sc_meta["psi_f"] - yaw), math.cos(sc_meta["psi_f"] - yaw), phase2, dx / L], np.float32)
