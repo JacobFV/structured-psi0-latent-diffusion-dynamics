@@ -158,6 +158,12 @@ Sequential steps, one GPU lease at a time: pack wait -> BC smoke (30 updates) ->
 labeller = v6 BC, SMOKE only) -> BC 1701 (`dags/armdiv_bc_v7div.yaml`) -> lineage semfix s1 -> the other 3 lineages
 (`dags/arm_lineage_v7div.yaml`) -> BC 1702 -> kinfeat BC 1701 -> kinfeat lineages. Resume = rerun the script.
 DAgger rounds use 5 episodes per body (65 bodies = 325 per round; v6 312), so per-round volume matches v6.
+- Pack done (lease 1790666539_455dec, rc 0, peak 22.9 G of 36 G): 1,914,009 rows, 65 bodies, 21 GB on peer disk.
+- BC smoke (`dags/armdiv_bc_v7div_smoke.yaml`, 30 updates, 2-episode evals): 4/4 nodes rc 0.
+- Lineage smoke (`dags/arm_lineage_v7div_smoke.yaml`, SMOKE only): first attempt failed at Fft/refits with 20 steps
+  (OneCycleLR zero-length phase: a smoke-size artifact); with >= 100 steps all 22 nodes rc 0 (00:40-01:01). Smoke peaks:
+  Stage A 1.7 G, DAgger collection (4 bodies) 3.3 G, flow ft 2.1 G.
+- 01:01: BC 1701 full training started (lease 1790668907_4b07e2), then the chain continues with the lineages.
 
 ## Log
 - 2026-09-28: plan written (D-137).
