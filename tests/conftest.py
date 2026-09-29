@@ -4,6 +4,7 @@ Markers (registered in pyproject.toml):
 - ``menagerie``: needs the MuJoCo Menagerie assets under ``.cache/assets/mujoco_menagerie``
   (fetch with ``scripts/fetch_menagerie.sh``; the main checkout symlinks them).
 - ``packed_data``: needs the packed training data ``artifacts/packed/latent_pp_v3dart_s1_H16`` (not in git).
+- ``computerworld``: needs the optional extra ``computerworld==0.2.0`` (research/tracks/cworld.md has install steps).
 """
 
 
@@ -33,6 +34,12 @@ _REQUIREMENTS = {
 
 
 def pytest_collection_modifyitems(config, items):
+    import importlib.util
+    if importlib.util.find_spec("computerworld") is None:
+        skip = pytest.mark.skip(reason="optional extra `computerworld` not installed")
+        for item in items:
+            if "computerworld" in item.keywords:
+                item.add_marker(skip)
     for marker, (path, reason) in _REQUIREMENTS.items():
         if path.exists():
             continue

@@ -338,12 +338,15 @@ stage's commit message and section 10 record.
 - [ ] `rrp/tasks/spec.py` (tasks sit below envs; judges are duck-typed on the env): `simple/<Task>` TaskSpecs (TabletopGraspMP, BendPickMP, HandoverTeleop, ...), judge = SIMPLE success.
 - [ ] fold P-xxx decisions into `research/decisions.md` keeping their P-numbers; archive psi1z read-only with a pointer here.
 
-ComputerWorld:
-- [ ] optional extra `computerworld` in pyproject (wheel built from github.com/JacobFV/computerworld; local clone at ~/Documents/computerworld).
-- [ ] `rrp/envs/computerworld.py` with `make_env(*, task, body, seed, **kw)` (the registry already points at it): `ComputerWorldEnv(Env)` exactly as section 5; unit tests of the px ↔ metre mapping, depth modes, null slots, button edges.
-- [ ] `rrp/bodies`: `cw_pointer` RobotSpec.
-- [ ] `rrp/tasks/spec.py`: a few `cw/*` tasks with a task graph (open app, click labelled widget, type into field) and a scripted teacher in `rrp/policies/teachers` (source `scripted_teacher`, privileged scene access).
-- [ ] demonstrate negotiation: `rrp matrix` shows arm/legged policies declined with reasons and a pointer BC trained on teacher data accepted.
+ComputerWorld (track cworld, research/tracks/cworld.md):
+- [x] optional extra `computerworld = ["computerworld==0.2.0"]` (PyPI abi3 wheel incl. aarch64; no Rust build).
+- [x] `rrp/envs/computerworld.py` (`ComputerWorldEnv`, `make_env`), `tests/unit/test_computerworld.py` (mapping, depth
+  modes, occlusion, null slots, button edges, negotiation; rollout/judge/determinism tests marked `computerworld`).
+- [x] `rrp/bodies/fixtures.cw_pointer_spec` (family `pointer`).
+- [x] `cw/calc_sum`, `cw/open_type`, `cw/drag_window`, `cw/fill_form` in `rrp/tasks/spec.py` (judges env-side: outcome +
+  failure reason; no task graph yet) and `rrp/policies/teachers/computerworld.py` (`teacher:cw/*`, `scripted_teacher`,
+  privileged).
+- [ ] `rrp matrix` (S5) listing arm/legged policies declined with reasons; a pointer BC trained on teacher data accepted.
 
 ## 10. moved paths
 

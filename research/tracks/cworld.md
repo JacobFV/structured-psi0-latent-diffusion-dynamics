@@ -1,8 +1,9 @@
 # track cworld: ComputerWorld as an rrp environment (D-140)
 
-Owner decision D-140; design `docs/architecture.md` section 5. Status: **prototype verified (pre-S3)**. It lives in
-`proto/cworld/` until S3 lands. After that it moves into `rrp.envs.computerworld`, `rrp.tasks` (cw/*),
-`rrp.policies.teachers` and `rrp.bodies`, and `proto/` is deleted.
+Owner decision D-140; design `docs/architecture.md` section 5. Status: **verified, merged after S3**. Code:
+`src/rrp/envs/computerworld.py` (env, mapping, cw/* setups + judges), `src/rrp/bodies/fixtures.py:cw_pointer_spec`,
+`src/rrp/tasks/spec.py` (cw/* TaskSpecs), `src/rrp/policies/teachers/computerworld.py` (teacher:cw/*),
+`tests/unit/test_computerworld.py`. The pre-S3 prototype (proto/cworld, commit c305296) is deleted.
 
 ## install (exact; no Rust build needed)
 PyPI publishes an aarch64 abi3 wheel for 0.2.0, so no Rust build is needed on either machine.
@@ -23,14 +24,12 @@ one-machine world inline, so it does not use them.
 
 ## run the tests
 ```sh
-cd ~/work/rrp-wt/cworld
-PYTHONPATH=$PWD/src:$PWD:$PWD/proto/cworld:$HOME/work/ext/cw-site CUDA_VISIBLE_DEVICES= \
-  ~/work/relational-robot-policy/.venv/bin/python -m pytest -q proto/cworld/test_cworld.py -p no:cacheprovider   # 20 passed
+cd <worktree>; PYTHONPATH=$PWD/src:$PWD:$HOME/work/ext/cw-site ~/work/relational-robot-policy/.venv/bin/python -m pytest -q tests/unit/test_computerworld.py
 ```
-Without the wheel, the 7 pure tests still run: mapping, transform, depth modes, occlusion, null slots, button edges and
-body. The other 13 skip.
+Tests marked `computerworld` (rollout of every teacher, idle timeouts, failure reasons, determinism, truth/observation
+split) skip when the wheel is absent; mapping, depth, occlusion, slots, button edges, body and negotiation always run.
 
-## what is there (`proto/cworld/cworld.py`, one file)
+## what is there
 - `ScreenFrame`: at 1 mm/px, (u, v) maps to ((u-W/2)s, (H/2-v)s) with z toward the viewer. Default viewport 960x640,
   the CW console default. `depth="stack"` (default) sets z = dense rank of the scene's z-layers × dz (2 mm), and
   `depth="constant"` sets z = 0.
@@ -82,15 +81,8 @@ after the feasibility fix, 16/20 before it (the 4 failures were targets behind t
 every task with the reasons above. Speed: `scene()` ~1 ms, `step` ~0.7 ms, snapshot+restore ~0.01 ms, a 640x480 frame
 ~85 ms.
 
-## after S3 (resume steps)
-1. `git fetch origin && git rebase origin/main`. Then:
-   - Move the env into `src/rrp/envs/computerworld.py` (drop the stand-in types; import them from `rrp.envs.base`).
-   - Move the tasks into the `rrp.tasks` registry, the teacher into `rrp.policies.teachers.computerworld`
-     (a `Policy` with `requires.privileged`) and `cw_pointer` into `rrp.bodies`.
-   - Move the tests into `tests/unit/test_computerworld.py`.
-2. Use the real `ObjectDescriptor.attributes`, `ImageObs` `rgba8`, `Observation.instruction` and RobotSpec family
-   `pointer`, and remove the `model_fields` fallbacks.
-3. Add the `computerworld==0.2.0` extra to pyproject.
-4. `rrp matrix`: show arm/legged policies declined with reasons and a pointer policy accepted. Run the unit suite and
-   check its exit code. Merge.
-5. Demo video (peer, not host: D-115): one teacher success and one failure per task, labelled scripted_teacher.
+## open items
+- `rrp matrix` row for computerworld (S5, same track): the arm/legged declines are already asserted in
+  tests/unit/test_computerworld.py; the accepted pointer BC needs a BC trained on teacher data (future work).
+- Demo video on the peer (D-115: no rendering on the host): one teacher success and one failure per task.
+- cw/* tasks have no task graph yet (the env judges success); `task_graph` capability is not declared.

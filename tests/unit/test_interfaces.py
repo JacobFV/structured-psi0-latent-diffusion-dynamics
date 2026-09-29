@@ -62,9 +62,10 @@ def test_negotiation_declines_with_reasons():
 
 
 def test_declared_but_missing_envs_fail_clearly():
-    for env_id in ("simple", "computerworld"):
-        with pytest.raises(NotImplementedError, match="architecture.md"):
-            make_env(env_id, task="x", body="y")
+    with pytest.raises(NotImplementedError, match="architecture.md"):
+        make_env("simple", task="x", body="y")
+    with pytest.raises(KeyError, match="cw_pointer"):          # implemented: a wrong body fails before the wheel loads
+        make_env("computerworld", task="x", body="y")
     with pytest.raises(KeyError):
         make_env("nope", task="x", body="y")
 

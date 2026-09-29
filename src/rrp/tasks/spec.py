@@ -94,3 +94,8 @@ register_task(TaskSpec("h_gap", {"mujoco/legged": {}, "warp/legged": {}}, 30.0, 
                        teacher="teacher:h_gap"))
 register_task(TaskSpec("locomotion", {"warp/legged": {}}, 20.0, lambda env, t, T: Judgement(t >= T, "timeout" if t >= T else None),
                        note="tracker training task: command following, reward-driven (capability reward)"))
+# ComputerWorld (architecture.md section 5): setups, instructions and judges are env-side (rrp.envs.computerworld reads
+# CW scenes); no task graph yet, the env judges success. Budgets at 10 Hz.
+for _name, _budget in [("cw/calc_sum", 15.0), ("cw/open_type", 12.0), ("cw/drag_window", 8.0), ("cw/fill_form", 20.0)]:
+    register_task(TaskSpec(_name, {"computerworld": {}}, _budget, lambda env, t, T: env.cw_judge(t, T),
+                           teacher=f"teacher:{_name}"))

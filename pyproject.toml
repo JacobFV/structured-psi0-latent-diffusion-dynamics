@@ -16,6 +16,7 @@ service = ["fastapi>=0.110", "uvicorn>=0.29", "websockets>=12", "httpx>=0.27"]
 viz = ["pillow>=10", "imageio>=2.31", "imageio-ffmpeg>=0.4", "matplotlib>=3.8"]
 vlm = ["transformers>=4.45", "huggingface_hub>=0.25"]
 dev = ["pytest>=8", "pytest-timeout>=2.3", "jsonschema>=4.22"]
+computerworld = ["computerworld==0.2.0"]   # ComputerWorld env (rrp.envs.computerworld); not in `all`
 all = ["rrp[sim,ml,service,viz,dev]"]
 
 [project.scripts]
@@ -46,4 +47,5 @@ markers = [
   "cgroup: exercises real user cgroup enforcement with bounded fixtures",
   "menagerie: needs the MuJoCo Menagerie assets in .cache/assets (skipped when absent; see tests/conftest.py)",
   "packed_data: needs artifacts/packed/latent_pp_v3dart_s1_H16 (skipped when absent)",
+  "computerworld: needs the optional extra computerworld==0.2.0 (skipped when absent)",
 ]
