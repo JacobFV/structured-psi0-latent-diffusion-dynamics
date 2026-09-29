@@ -29,12 +29,12 @@ def _clock(body: str, **kw) -> dict:
 
 HUMANOID_RECIPES: dict[str, dict] = {
     "t1_clock_gpu": _clock("t1"),
-    "g1_clock_gpu": _clock("g1", reward_set=_TURN + _CLOCK + ",yaw_progress_cap=1.0,yaw_overshoot=-1.0"),
+    "g1_clock_gpu": _clock("g1", reward_set=_TURN + _CLOCK + ",yaw_progress_cap=1.0,yaw_overshoot=-2.0,stand_vel=-3.0"),
     "h1_clock_gpu": _clock("h1"),
     # r1 (t1/h1, 2026-09-29 00:00) over-rotated in pure turns (window turn ratio 1.5-2.1): later recipes add the g1 fix
-    "op3_clock_gpu": _clock("op3", reward_set=_TURN + _CLOCK + ",yaw_progress_cap=1.0,yaw_overshoot=-1.0"),
-    "apollo_clock_gpu": _clock("apollo", reward_set=_TURN + _CLOCK + ",yaw_progress_cap=1.0,yaw_overshoot=-1.0"),
-    "adam_lite_clock_gpu": _clock("adam_lite", reward_set=_TURN + _CLOCK + ",yaw_progress_cap=1.0,yaw_overshoot=-1.0"),
+    "op3_clock_gpu": _clock("op3", reward_set=_TURN + _CLOCK + ",yaw_progress_cap=1.0,yaw_overshoot=-2.0,stand_vel=-3.0"),
+    "apollo_clock_gpu": _clock("apollo", reward_set=_TURN + _CLOCK + ",yaw_progress_cap=1.0,yaw_overshoot=-2.0,stand_vel=-3.0"),
+    "adam_lite_clock_gpu": _clock("adam_lite", reward_set=_TURN + _CLOCK + ",yaw_progress_cap=1.0,yaw_overshoot=-2.0,stand_vel=-3.0"),
 }
 HUMANOID_RECIPES["shared_morph_v1"] = None      # built lazily (phum topology selection runs the generator)
 
