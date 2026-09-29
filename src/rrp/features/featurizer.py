@@ -141,10 +141,6 @@ class PolicyInput:
     meta: dict = field(default_factory=dict)
 
 
-# On-disk format (W4): dataset episode pickles (*.public.pkl.gz, ladder *.genctx.pkl) store this class as
-# `rrp.data.features.PolicyInput`. Keep pickling under that path (the old module path is a permanent alias of this
-# module, see rrp/data/features.py) so data written by this code stays readable by older checkouts.
-PolicyInput.__module__ = "rrp.data.features"
 
 
 class Featurizer:

@@ -308,5 +308,22 @@ def write_episode(rec: EpisodeRecord, out_dir: Path) -> dict:
     return dict(rec.public["meta"], files=hashes)
 
 
+# On-disk data written before the D-140 refactor pickled classes under their old module paths. This remap applies
+# to reading existing files only (it is not a code alias); extend it when a pickled class moves.
+LEGACY_PICKLE_MODULES = {"rrp.data.features": "rrp.features.featurizer"}
+
+
+class _Unpickler(pickle.Unpickler):
+    def find_class(self, module, name):
+        return super().find_class(LEGACY_PICKLE_MODULES.get(module, module), name)
+
+
+def load_pickle(fh_or_bytes) -> object:
+    """pickle.load with LEGACY_PICKLE_MODULES applied (every dataset/DAgger pickle read goes through here)."""
+    import io
+    fh = io.BytesIO(fh_or_bytes) if isinstance(fh_or_bytes, (bytes, bytearray)) else fh_or_bytes
+    return _Unpickler(fh).load()
+
+
 def read_episode(path: Path) -> dict:
-    return pickle.loads(gzip.decompress(Path(path).read_bytes()))
+    return load_pickle(gzip.decompress(Path(path).read_bytes()))

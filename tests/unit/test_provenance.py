@@ -174,22 +174,23 @@ def test_zero_prev_action_explicit(capsys):
     assert training_flags({"latent": {"probe_lv_min": -3}})["zero_prev_action"] is None
 
 
-def test_migration_insert_and_repo_configs_explicit():
-    sys.path.insert(0, str(ROOT / "scripts"))
-    import migrate_zero_prev_action as mig
-    for txt in ('{"a": 1}', '{\n "a": [1, 2]\n}', '  {"name": "x",\n "b": {"c": 1}}'):
-        assert json.loads(mig.insert_key(txt)) == dict(json.loads(txt), zero_prev_action=False)
-    missing = []
-    for p in sorted((ROOT / "configs").rglob("*.json")):
-        rel = p.relative_to(ROOT).as_posix()
-        cfg = json.loads(p.read_text())
-        if mig.in_scope(rel, cfg) and "zero_prev_action" not in cfg and not rel.startswith(mig.PROTECTED):
-            missing.append(rel)
-    assert missing == [], missing
-
-
 def test_legacy_provenance_unknown_source_is_marked():
     p = legacy_provenance("encoded teacher targets for x")
     assert p.legacy and p.source == "unknown" and "unparsed legacy source" in p.notes
     with pytest.raises(ValueError):
         source_label("unknown")
+
+
+def test_peer_sync_revision_record():
+    """scripts/peer_sync.sh push writes this JSON as .rrp_revision on the peer (read by W3 code_provenance)."""
+    import json
+    import subprocess
+    import shutil
+    if not shutil.which("git") or not (Path(__file__).resolve().parents[2] / ".git").exists():
+        pytest.skip("not a git checkout")
+    r = subprocess.run(["bash", str(Path(__file__).resolve().parents[2] / "scripts" / "peer_sync.sh"), "revision"], capture_output=True, text=True,
+                       timeout=60)
+    assert r.returncode == 0, r.stderr
+    d = json.loads(r.stdout)
+    head = subprocess.run(["git", "-C", str(Path(__file__).resolve().parents[2]), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    assert d["git_sha"] == head and isinstance(d["dirty"], bool)

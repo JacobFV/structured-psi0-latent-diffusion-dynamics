@@ -34,21 +34,21 @@ def caption(frame, lines):
 
 def run(a):
     import torch
-    from rrp.control.dual_validate import make_session
-    from rrp.control.dual_teachers import TEACHERS
+    from rrp.teachers.dual_validate import make_session
+    from rrp.teachers.dual import TEACHERS
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     pol = R = P = None
     if a.source == "learned_latent":
         from rrp.evaluation.dual_latent_eval import DualLatentPolicy, DualLatentSystem0, probe_readout
-        from rrp.learning.checkpoint import load_checkpoint
-        from rrp.learning.latent_train import load_representation
+        from rrp.models.checkpoint import load_checkpoint
+        from rrp.training.latent_train import load_representation
         if dev == "cuda":
-            from rrp.ops.gpu import apply_cap
+            from rrp.contracts.workload import apply_cap
             apply_cap()
         pol = DualLatentPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=8)
         _, _, R, P, _ = load_representation(Path(load_checkpoint(a.checkpoint)["config"]["representation"]), dev)
         if a.probe:
-            from rrp.model.latent_probes import PacketProbe
+            from rrp.models.latent_probes import PacketProbe
             st = torch.load(a.probe, map_location=dev, weights_only=False)
             P = PacketProbe(**st["cfg"]).to(dev).eval()
             P.load_state_dict(st["state"])

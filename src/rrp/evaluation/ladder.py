@@ -422,7 +422,7 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
         # bookkeeping) are not part of the snapshot, so they would be corrupted by the look-ahead
         raise ValueError("step-level perturbations need a route without look-ahead rollouts (compare_oracle=False)")
     S, s0, meters, shadows, meta, mrecs, perts = [], [], [], [], [], [], []
-    from rrp.evaluation.contact_metrics import contact_metrics_enabled
+    from rrp.data.contact_metrics import contact_metrics_enabled
     cfrecs = [] if contact_metrics_enabled() else None     # W12 held-object drift keys (RRP_CONTACT_METRICS=1)
     for sd in cfg.seeds:
         s = Session(BUILDERS[cfg.task](robot, sd, n_distractors=sd % 3), seed=sd)
@@ -624,7 +624,7 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
             checkpoints=ids, motion=mrecs[k].summary()))
         stamp_source_label(out[-1], *route_source(cfg)[1:], enabled=cfg.source_labels)
         if cfrecs is not None:
-            from rrp.evaluation.contact_metrics import arm_contact_motion
+            from rrp.data.contact_metrics import arm_contact_motion
             out[-1]["motion"].update(arm_contact_motion(cfrecs[k].recording()))
         if cfg.perturb is not None:
             rec_, st_ = perts[k]

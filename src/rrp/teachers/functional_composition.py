@@ -10,7 +10,7 @@ Conditions per seed (same scene, same seed):
                  rejected with a provenance reason instead of using "the latest frame"
 Measured: commanded align/insert TCP goals, receipt provenance used by the teacher, runtime
 statuses/rejection reasons, public vs privileged success.
-Usage: python -m rrp.control.functional_composition --pair parm5_pg2__parm5_pg2 --seeds 0:10 --out ...
+Usage: python -m rrp.teachers.functional_composition --pair parm5_pg2__parm5_pg2 --seeds 0:10 --out ...
 """
 from __future__ import annotations
 

@@ -476,7 +476,7 @@ def resolve_zero_prev_action(cfg: dict, *, where: str, new_run: bool) -> bool:
         raise MissingFlagError(f"{where}: config has no explicit 'zero_prev_action' (bug B-1). Set it to true "
                                "(deployment-consistent) or false (legacy, contaminated) explicitly.")
     msg = (f"LEGACY {where}: 'zero_prev_action' missing -> assuming False (B-1 contaminated input). "
-           "Run scripts/migrate_zero_prev_action.py or set it explicitly.")
+           "Set it explicitly in the config.")
     warnings.warn(msg, stacklevel=2)
     print(f"[provenance] WARNING {msg}", file=sys.stderr, flush=True)
     return False

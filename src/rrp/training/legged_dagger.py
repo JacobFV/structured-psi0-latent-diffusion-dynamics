@@ -9,9 +9,9 @@ gate     offline, on recorded states: system-0 error vs hold-still with the orac
          <pred - hold, label - hold> / |label - hold|^2.
 refit    fine-tune system 0 (E and P frozen: same latent space) on original data + DAgger buffers, with qd dropout.
 
-usage: python -m rrp.learning.legged_dagger collect --route oracle_bc --rep R.pt --bc BC.pt --body go2 --seeds 20000-20019 --out DIR
-       python -m rrp.learning.legged_dagger gate --buf DIR --rep R.pt [--realizer RZ.pt] [--flow F.pt] --out G.json
-       python -m rrp.learning.legged_dagger refit --config C.json --out DIR
+usage: python -m rrp.training.legged_dagger collect --route oracle_bc --rep R.pt --bc BC.pt --body go2 --seeds 20000-20019 --out DIR
+       python -m rrp.training.legged_dagger gate --buf DIR --rep R.pt [--realizer RZ.pt] [--flow F.pt] --out G.json
+       python -m rrp.training.legged_dagger refit --config C.json --out DIR
 """
 from __future__ import annotations
 

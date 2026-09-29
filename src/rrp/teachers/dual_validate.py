@@ -4,7 +4,7 @@ Pair keys: "<left_robot>__<right_robot>" (two separately mounted catalogue robot
 dual-arm body key such as "aloha". Records every episode (success, failure, infeasible) with
 its failure reason, public-vs-privileged agreement and, for support_insert, true insertion
 geometry. Usage:
-  python -m rrp.control.dual_validate --task support_insert --pairs parm5_pg2__parm5_pg2 \
+  python -m rrp.teachers.dual_validate --task support_insert --pairs parm5_pg2__parm5_pg2 \
       --seeds 0:30 --workers 4 --out artifacts/assets/dual_teacher_validation/support_insert.jsonl
 """
 from __future__ import annotations

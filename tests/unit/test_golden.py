@@ -225,3 +225,37 @@ def test_learned_tracker_saved_actor_options(golden, tmp_path, case):
     tr = LearnedTracker(p, b, body)
     golden(f"tracker.{case}.version", tr.version)
     golden(f"tracker.{case}.actions", _h(np.stack(_tracker_actions(tr, env, extra)), decimals=6))
+
+
+def _old_ladder_wilson(k, n, z=1.96):
+    import math
+    if n == 0:
+        return (0.0, 1.0)
+    p = k / n
+    d = 1 + z * z / n
+    c = (p + z * z / (2 * n)) / d
+    w = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
+    return (max(0.0, c - w), min(1.0, c + w))
+
+
+def test_ladder_wilson_is_bitwise_unchanged():
+    from rrp.evaluation.ladder import wilson
+    for n in range(0, 61):
+        for k in range(0, n + 1):
+            assert wilson(k, n) == _old_ladder_wilson(k, n)
+            assert wilson(k, n, 1.959964) == _old_ladder_wilson(k, n, 1.959964)
+    assert type(wilson(3, 10)) is tuple
+
+
+def test_legacy_pickle_paths_load(tmp_path):
+    """Dataset pickles written before D-140 name `rrp.data.features.PolicyInput`; read_episode remaps them."""
+    import gzip
+    import pickle
+    from rrp.data.collect import read_episode
+    from rrp.features.featurizer import PolicyInput
+    pi = PolicyInput({}, {}, np.zeros((1, 2)), np.zeros(1), np.zeros((0, 5)), np.zeros((0, 4)), {}, np.zeros(1))
+    b = pickle.dumps(dict(x=pi), protocol=0).replace(PolicyInput.__module__.encode(), b"rrp.data.features")
+    assert b"rrp.data.features" in b
+    p = tmp_path / "e.public.pkl.gz"
+    p.write_bytes(gzip.compress(b))
+    assert isinstance(read_episode(p)["x"], PolicyInput)

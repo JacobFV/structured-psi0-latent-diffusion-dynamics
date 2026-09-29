@@ -521,7 +521,7 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
     if perturb is not None:
         b_ = s.binding
         pert_rec = apply_model(s.model, perturb, robot_bodies=b_.robot_bodies, com_body=b_.root_bid, act_ids=b_.pol_act)
-    from rrp.evaluation.contact_metrics import contact_metrics_enabled
+    from rrp.data.contact_metrics import contact_metrics_enabled
     cfm = contact_metrics_enabled()             # W12 stance-drift keys (RRP_CONTACT_METRICS=1; off = rows unchanged)
     mrec = LeggedMotionRecorder(s, record_stance=cfm)
     pst = install_legged(s, perturb if perturb is not None else _NOMINAL, seed, on_substep=mrec.on_substep,
@@ -603,7 +603,7 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
         row.update(_deploy_row(dep, deploy, ctl, ad))
     row["motion"] = mrec.summary()
     if cfm:
-        from rrp.evaluation.contact_metrics import legged_contact_motion
+        from rrp.data.contact_metrics import legged_contact_motion
         row["motion"].update(legged_contact_motion(mrec.stance_trace()))
     if perturb is not None:
         row["perturbation"] = dict(perturb.to_dict(), applied=pert_rec, terrain=sc.meta.get("terrain"),

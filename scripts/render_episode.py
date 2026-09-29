@@ -25,29 +25,29 @@ from rrp.evaluation.captions import caption  # noqa: E402,F401  (moved to the li
 
 
 def run(args):
-    from rrp.morphology.catalog import workbench_robots
-    from rrp.sim.scenario import BUILDERS
-    from rrp.sim.native import Session
-    from rrp.control.teachers import PickPlaceTeacher
+    from rrp.bodies.catalog import workbench_robots
+    from rrp.envs.scenario import BUILDERS
+    from rrp.envs.native import Session
+    from rrp.teachers.arm import PickPlaceTeacher
     robot = workbench_robots()[args.robot]()
     pol = None
     if args.source == "learned":
         import torch
-        from rrp.policy.runner import LearnedPolicy
+        from rrp.controllers.policy_runner import LearnedPolicy
         dev = "cuda" if torch.cuda.is_available() else "cpu"
         if dev == "cuda":
-            from rrp.ops.gpu import apply_cap
+            from rrp.contracts.workload import apply_cap
             apply_cap()
         pol = LearnedPolicy.from_checkpoint(args.checkpoint, device=dev, execute_prefix=args.prefix)
     elif args.source == "learned_latent":             # corrected path: system i packet -> system 0 every tick
         import torch
-        from rrp.policy.latent_runner import LatentPolicy
-        from rrp.learning.checkpoint import load_checkpoint
-        from rrp.learning.latent_train import load_representation
-        from rrp.control.latent_realizer import LatentSystem0
+        from rrp.controllers.latent_runner import LatentPolicy
+        from rrp.models.checkpoint import load_checkpoint
+        from rrp.training.latent_train import load_representation
+        from rrp.controllers.latent_realizer import LatentSystem0
         dev = "cuda" if torch.cuda.is_available() else "cpu"
         if dev == "cuda":
-            from rrp.ops.gpu import apply_cap
+            from rrp.contracts.workload import apply_cap
             apply_cap()
         pol = LatentPolicy.from_checkpoint(args.checkpoint, device=dev, nfe=8)
         _, _, realizer, _, _ = load_representation(Path(load_checkpoint(args.checkpoint)["config"]["representation"]), dev)

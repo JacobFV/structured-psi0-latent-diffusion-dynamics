@@ -51,10 +51,10 @@ def main():
         sys.exit("target bodies are not allowed in the ladder")
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     if dev == "cuda":
-        from rrp.ops.gpu import apply_cap
+        from rrp.contracts.workload import apply_cap
         apply_cap()
     from rrp.evaluation.ladder import LadderConfig, load_models, run_ladder, summarize, OraclePacketPolicy, install_prev_action
-    from rrp.learning.latent_grpo import feasible_seeds
+    from rrp.training.latent_grpo import feasible_seeds
     seeds = feasible_seeds(a.robot, a.seed_start, a.n)
     cfg = LadderConfig(route=a.route, robot=a.robot, seeds=seeds, representation=a.rep, flow=a.flow, policy=a.policy, policy_label=a.policy_label, oracle_expert=a.oracle_expert, noise_scale=a.noise_scale,
                        replan_ticks=a.replan, max_steps=a.max_steps, nfe=a.nfe, compare_oracle=not a.no_compare,

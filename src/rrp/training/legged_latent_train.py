@@ -9,7 +9,7 @@ Stage B:  LeggedFlow generates z from PUBLIC context only toward the frozen E me
 Episodes are split per body into train / held-out (every 20th episode held out); all evaluations here use the
 held-out episodes (same bodies, same teacher distribution, unseen seeds).
 
-usage: python -m rrp.learning.legged_latent_train {rep,flow,probe} --config C.json --out DIR
+usage: python -m rrp.training.legged_latent_train {rep,flow,probe} --config C.json --out DIR
 """
 from __future__ import annotations
 

@@ -314,9 +314,9 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
     # generator DAgger (ladder sprint): (public context at learner-visited states, z* = E(stateless expert chunk))
     gd_items = []
     for gp in cfg_json.get("gen_dagger") or []:
-        import pickle
+        from rrp.data.collect import load_pickle
         with open(gp, "rb") as fh:
-            gd_items += pickle.load(fh)["items"]
+            gd_items += load_pickle(fh)["items"]
     Bg = int(round(B * cfg_json.get("gen_dagger_frac", 0.5))) if gd_items else 0
     grng = random.Random(seed + 23)
     Bp = B - Bg
@@ -671,7 +671,7 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
                             config=cfg_json, extra=dict(sched=sched.state_dict(), rng_py=rng.getstate()))
     name = cfg_json.get("name", out_dir.name)
     res = dict(rep_res, steps_refit=step, wall_s=time.time() - t0, interrupted=sig.requested,
-               realizer_compat_version=__import__("rrp.control.latent_realizer", fromlist=["x"]).bundle_versions(
+               realizer_compat_version=__import__("rrp.controllers.latent_realizer", fromlist=["x"]).bundle_versions(
                    lcfg.version(), E.state_dict(), R.state_dict())[1], refit_name=name,
                refit_of=str(rep_path), zero_prev_action=cfg_json.get("zero_prev_action", False),
                **({"target_adaptation": budget_rec} if budget_rec else {}),

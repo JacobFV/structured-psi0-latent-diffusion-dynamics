@@ -12,7 +12,7 @@ import torch
 from rrp.data.contact_segments import (PHASE_ID, ContactRecording, SegmentParams, anchor_relative_targets,
                                        debounced_intervals, event_aligned_knot_times, event_ticks, segment,
                                        uniform_knot_times)
-from rrp.evaluation.contact_metrics import (TASK_CONTACT_SPECS, arm_contact_motion, contact_sequence,
+from rrp.data.contact_metrics import (TASK_CONTACT_SPECS, arm_contact_motion, contact_sequence,
                                             dual_contact_motion, receipt_latency, relative_drift, settle_latency,
                                             stance_drift, swap_hands)
 from rrp.features.anchor_frame import (ANCHOR_BLOCK, ANCHOR_INPUT_DIM, anchor_inputs, axis_angle, frame_from_normal,

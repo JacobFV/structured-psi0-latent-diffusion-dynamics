@@ -118,17 +118,6 @@ def test_vlm_adapter_with_injected_model_and_ground_eval():
     assert d["summary"]["per_family"]["color"]["acc_test"] == 0.5
 
 
-def test_research_path_reexports_library_objects():
-    import warnings
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", DeprecationWarning)
-        from rrp.research import system2 as r
-    from rrp.models import system2_vlm
-    assert r.make_instruction is s2.make_instruction and r.scenario_with_truth is s2.scenario_with_truth
-    assert r.System2 is system2_vlm.System2 and r.COLORS == ("orange", "cyan")
-    assert r.make_instruction(3, "color", {"a": (1, 0), "b": (2, 0)}) == s2.make_instruction(3, "color", {})
-
-
 @pytest.mark.menagerie                  # builds go2 (Menagerie assets; skipped in a fresh clone)
 def test_episode_wiring_binds_public_graph_and_privileged_truth():
     pytest.importorskip("mujoco")

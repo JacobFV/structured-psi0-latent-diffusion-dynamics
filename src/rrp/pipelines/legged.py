@@ -3,8 +3,8 @@
 | stage | existing code |
 |---|---|
 | collect | `python -m rrp.data.legged_latent_collect --body B --seeds S --out D` per shard (options shard_size, workers) |
-| train_bc | rrp.training.legged_bc.train (`python -m rrp.learning.legged_bc train`; BC POSITIVE CONTROL, source bc) |
-| train_rep | rrp.training.legged_latent_train.train_rep (`python -m rrp.learning.legged_latent_train rep`) |
+| train_bc | rrp.training.legged_bc.train (`python -m rrp.training.legged_bc train`; BC POSITIVE CONTROL, source bc) |
+| train_rep | rrp.training.legged_latent_train.train_rep (`python -m rrp.training.legged_latent_train rep`) |
 | probes | rrp.training.legged_latent_train.fit_probe (post-hoc probe for nosem; `... probe`) |
 | train_flow, flow_ft | rrp.training.legged_latent_train.train_flow (`... flow`) |
 | dagger_collect | `python -m rrp.training.legged_dagger collect` |
