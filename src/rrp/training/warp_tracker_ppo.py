@@ -75,6 +75,7 @@ def build_args(argv=None):
     ap.add_argument("--reward-set", default="")
     ap.add_argument("--cmd-mix", default="default")
     ap.add_argument("--turn-frac", type=float, default=0.25)
+    ap.add_argument("--teacher-stop", type=float, default=0.10, help="zero-command share inside the teacher command mix")
     ap.add_argument("--slow-frac", type=float, default=0.0)
     ap.add_argument("--alpha-schedule", default="gated")
     ap.add_argument("--alpha-warmup", type=int, default=300)
@@ -113,7 +114,8 @@ def main(argv=None):
     out.mkdir(parents=True, exist_ok=True)
     dev = torch.device("cuda")
     ekw = dict(reward_overrides=_kv(args.reward_set), episode_s=args.episode_s, push=not args.no_push, cmd_mix=args.cmd_mix,
-               turn_frac=args.turn_frac, slow_frac=args.slow_frac, nconmax=args.nconmax, njmax=args.njmax)
+               turn_frac=args.turn_frac, slow_frac=args.slow_frac, nconmax=args.nconmax, njmax=args.njmax,
+               teacher_stop=args.teacher_stop)
     groups = None
     env_cls = None
     if args.task == "steps":
