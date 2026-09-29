@@ -209,7 +209,7 @@ def _arm_row(e: dict) -> dict:
                 noise=float(pick(e.get("exec_noise"), 0.0) or 0.0))
 
 
-PROCEDURAL_ARM_PREFIXES = ("parm",)
+PROCEDURAL_ARM_PREFIXES = ("parm", "pa2s")     # pa2s = procedural_arm_family/v2 (D-137): generated joint ranges, like parm*
 
 
 def _procedural(body) -> bool:

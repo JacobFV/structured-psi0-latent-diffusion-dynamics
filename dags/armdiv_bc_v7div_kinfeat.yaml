@@ -1,0 +1,15 @@
+# armdiv G2 ablation (D-137 H2): the v7div BC expert with `kinfeat` features ($RRP_KINFEAT=v1 on every node), seed 1701
+# only: the DAgger labeller of the kinfeat lineages and the kinfeat BC baseline.
+#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiv rrp run-dag dags/armdiv_bc_v7div_kinfeat.yaml --max-parallel-gpu 1
+extends: armdiv_bc_v7div.yaml
+name: armdiv_bc_v7div_kinfeat
+lineage: 'bcv7divkf-{seed}'
+label_prefix: 'adk{seed}'
+matrix:
+  seed: [1701]
+vars:
+  bc_label: 'bcv7divkf_direct{seed}'
+base:
+  options: {kinfeat: v1}
+nodes:
+  ref_v6bc_newarms: null

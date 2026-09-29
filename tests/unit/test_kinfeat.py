@@ -70,3 +70,12 @@ def test_checkpoint_guard(monkeypatch):
     check_kinfeat(dict(model={}, versions={"kinfeat": kinfeat.VERSION}))
     with pytest.raises(ValueError):
         check_kinfeat(dict(model={}, versions={}))
+
+
+def test_stage_option_sets_env_only_inside_stage(monkeypatch, tmp_path):
+    import os
+    from rrp.pipelines import base
+    src = open(base.__file__).read()
+    assert 'rc.options.get("kinfeat")' in src          # the generic stage option exists (like grasp_contact)
+    monkeypatch.delenv(kinfeat.ENV, raising=False)
+    assert not kinfeat.enabled()

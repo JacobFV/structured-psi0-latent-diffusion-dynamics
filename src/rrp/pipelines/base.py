@@ -194,11 +194,24 @@ class Pipeline:
             if gc_old is not None and resolve(gc_old) != resolve(gc):
                 raise StageError(f"options.grasp_contact {gc!r} contradicts $RRP_GRASP_CONTACT={gc_old!r}")
             os.environ["RRP_GRASP_CONTACT"] = resolve(gc)   # in-process code and every subprocess (ctx.env) see it
+        kf = rc.options.get("kinfeat")                  # D-137 ablation: $RRP_KINFEAT for the whole stage (opt-in)
+        kf_old = os.environ.get("RRP_KINFEAT")
+        if kf is not None:
+            if kf != "v1":
+                raise StageError(f"options.kinfeat {kf!r}: only v1")
+            if kf_old not in (None, "", kf):
+                raise StageError(f"options.kinfeat {kf!r} contradicts $RRP_KINFEAT={kf_old!r}")
+            os.environ["RRP_KINFEAT"] = kf
         os.chdir(root)                                   # existing code resolves artifacts/... relative to the repo
         try:
             res = spec.fn(ctx) or {}
         finally:
             os.chdir(cwd)
+            if kf is not None:
+                if kf_old is None:
+                    os.environ.pop("RRP_KINFEAT", None)
+                else:
+                    os.environ["RRP_KINFEAT"] = kf_old
             if gc is not None:
                 if gc_old is None:
                     os.environ.pop("RRP_GRASP_CONTACT", None)

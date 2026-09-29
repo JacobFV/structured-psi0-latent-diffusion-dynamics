@@ -93,3 +93,9 @@ def test_armdiv_sealed_guard():
     with pytest.raises(SystemExit, match="target bodies"):
         main(["--route", "learned", "--robot", "gen3_pg2", "--n", "1", "--seed-start", "3000000", "--tag", "x",
               "--out", "/tmp/never", "--policy", "none.pt"])
+
+
+def test_gate_treats_v2_procedural_arms_like_parm():
+    from rrp.evaluation.gates import _procedural
+    assert _procedural("pa2s3_tf3") and _procedural("parm6_pg2")
+    assert not _procedural("ur10e_pg2") and not _procedural("gen3_pg2")
