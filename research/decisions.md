@@ -986,3 +986,6 @@ Decisions (lead):
     the fact). From now on deviations are recorded BEFORE running.
 (4) Next: finish the h_steps curriculum (expert 20/20 at 0.10 L, blind tracker 20/20 falls; stops before stairs >= 0.15 L),
     launch the shared morph_v2 tracker after t1, then P2 complex tasks; <= 2 GPU leases; watch the thermal admission stop.
+D-139 addendum (2026-09-29): t1 v2ft4 (5% target band + force cap) in C MuJoCo: waypoint 20/20, 0 falls; no-fall 1.0, fwd 0.87,
+turn 0.92, slip 0.096, CoT 0.71, force 2.35 BW; D-112 fails only joint margin 0.016. Pre-stated rule: v2ft3 and v2ft4 both pass
+5/6 criteria; tie -> larger margin -> **t1 = v2ft4** (label "t1 gpu v2ft4: D-112 fails joint margin 0.016").

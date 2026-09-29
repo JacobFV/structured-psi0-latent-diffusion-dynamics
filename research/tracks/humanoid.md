@@ -283,3 +283,8 @@ Long runs use `/dev/shm/rrp-brandonin/wt/humanoid` (never re-synced while they r
   the PD servo overshoots the (clipped) target at stance impact. Target clipping alone cannot bound it.
 - Status asked of the lead (2026-09-29): a D-113-style labelled exception for the margin/force criteria, or more iterations
   (knee-specific band / stance knee-flex term). t1 v2ft4 (5% band + force cap) is the last per-body attempt.
+- **t1 v2ft4**: waypoint 20/20, 0 falls, fwd 0.87, turn 0.92, slip 0.096, CoT 0.71, force 2.35 BW; fails only margin 0.016.
+  Selected by the D-139 pre-stated rule (tie on criteria, larger margin). Pool trackers for P1c-P3 (D-139 labels):
+  **h1 r6** (force 3.74 BW, margin -0.001; flagged), **t1 v2ft4** (margin 0.016), **g1 v4** (margin 0.012; waypoint 17/20).
+- Shared morph_v2 (6 menagerie x 1024 + 2 phum topologies x 32 bodies x 2048 worlds; clock gate, target band, force cap):
+  launched 2026-09-29 (lease 1790702624_8e8209).
