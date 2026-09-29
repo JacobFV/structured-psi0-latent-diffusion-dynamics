@@ -395,3 +395,62 @@ def test_oracle_encoder_is_the_former_inline_encoder():
     both = encode_demos(E, items, H, "cpu")[0]
     assert np.array_equal(one, ref)
     assert np.allclose(both[0], ref, atol=1e-5) and both[1].shape == ref.shape
+
+
+def _tiny_latent(dual=False):
+    import torch
+    from rrp.policies.latent import DualLatentPolicy, LatentPolicy
+    from rrp.policies.nets.latent_probes import PacketProbe
+    from rrp.policies.system0 import LatentRealizer
+    cls = DualLatentPolicy if dual else LatentPolicy
+    si = cls(_flow(), knot_times=(0.1, 0.3, 0.5, 0.7), latent_space_version="ls-g", realizer_compat_version="rz-g",
+             device="cpu", nfe=4, seed=3)
+    torch.manual_seed(1)
+    R = LatentRealizer(8, width=32, layers=1)
+    torch.manual_seed(4)
+    return si, R, PacketProbe(8, 4, width=32, heads=2).eval()
+
+
+def _probe_key(d):
+    return sorted((q, round(float(x), 5), int(n)) for q, (x, n) in d.items())
+
+
+def test_arm_latent_eval_loop_episodes(golden):
+    """Recorded from harness.eval.latent_eval.evaluate_latent before S5b deleted it (tiny flow + realizer + probe, seeds
+    3 and infeasible 50, 10 ticks = 2 packets); the port (LatentStackPolicy + latent_hooks) must reproduce outcomes,
+    packet/system-0 counts, probe sums, events, sim time and object displacement."""
+    from rrp.harness.hooks import latent_hooks
+    from rrp.harness.hooks import arm_scene
+    from rrp.harness.rollout import evaluate
+    from rrp.policies.latent import LatentStackPolicy
+    si, R, P = _tiny_latent()
+    pol = LatentStackPolicy(si, R)
+    eps = evaluate(pol, "mujoco/arm", "pick_place", "parm5_pg2", [3, 50], scene=arm_scene, max_steps=10, batch=2,
+                   hooks=latent_hooks(pol, P))
+    rows = [np.asarray([_ep_key(e.seed, e.outcome, e.success_privileged, e.success_public, e.steps, e.metrics["packets"],
+                                e.metrics["packet_rejections"], e.metrics["fallback_holds"], e.metrics["sim_time"],
+                                e.metrics["events"], False).tolist(),
+                        e.metrics["system0_ticks"], _probe_key(e.metrics["probe_counts"]),
+                        sorted((b, round(d, 6)) for b, d in e.metrics["final_disp_m"].items()),
+                        e.metrics["moved"]], dtype=object) for e in eps]
+    golden("loop.arm.latent", _h(*rows))
+
+
+def test_dual_latent_eval_loop_episodes(golden):
+    """Recorded from harness.eval.dual_latent_eval.evaluate_dual_latent before S5b deleted it (tiny dual stack, seeds 3
+    and infeasible 2, 10 ticks, with and without the swap_slots edit); the port (LatentStackPolicy + dual_latent_hooks)
+    must reproduce outcomes after settling, counts, per-slot and slot-swapped probe sums, events and sim time."""
+    from rrp.harness.hooks import dual_latent_hooks
+    from rrp.harness.rollout import evaluate
+    from rrp.policies.latent import LatentStackPolicy
+    for edit in (None, "swap_slots"):
+        si, R, P = _tiny_latent(dual=True)
+        pol = LatentStackPolicy(si, R)
+        eps = evaluate(pol, "mujoco/dual", "support_insert", "parm5l_pg2__parm6_pg2", [3, 2], max_steps=10, batch=2,
+                       hooks=dual_latent_hooks(pol, "support_insert", P, packet_edit=edit))
+        rows = [np.asarray([_ep_key(e.seed, e.outcome, e.success_privileged, e.success_public, e.steps,
+                                    e.metrics["packets"], e.metrics["packet_rejections"], e.metrics["fallback_holds"],
+                                    e.metrics["sim_time"], e.metrics["events"], False).tolist(),
+                            e.metrics["system0_ticks"], _probe_key(e.metrics.get("probe_counts", {})),
+                            _probe_key(e.metrics.get("probe_counts_slotswap", {}))], dtype=object) for e in eps]
+        golden(f"loop.dual.latent.{edit}", _h(*rows))

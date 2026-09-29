@@ -19,7 +19,10 @@ def run_latent_cell(protocol: dict, method: str, seed: int, *, base_flow_config:
     from rrp.harness.train.latent_train import train_latent_flow, sft_latent_flow
     from rrp.policies.bundles import load_representation
     from rrp.policies.latent import LatentPolicy
-    from rrp.harness.eval.latent_eval import evaluate_latent
+    from rrp.harness.hooks import latent_hooks
+    from rrp.harness.hooks import arm_scene
+    from rrp.harness.rollout import evaluate
+    from rrp.policies.latent import LatentStackPolicy
     from rrp.harness.eval.statistics import wilson
     reg = ExperimentRegistry("research/registry.jsonl")
     cell = root / method / f"seed{seed}"
@@ -49,13 +52,16 @@ def run_latent_cell(protocol: dict, method: str, seed: int, *, base_flow_config:
         pol = LatentPolicy.from_checkpoint(ck, device=dev, nfe=ev["nfe"], seed=seed)
         s = {}
         for r in robots:
-            res = evaluate_latent(pol, R, P, r, list(range(ev["seed_start"], ev["seed_start"] + n)), method=method,
-                                  replan_ticks=ev["replan_ticks"], max_steps=ev["max_steps"], batch=25, out_path=out,
-                                  device=dev)
+            stack = LatentStackPolicy(pol, R, replan_ticks=ev["replan_ticks"], device=dev, name=method,
+                                      version=f"learned:{ck}")
+            res = evaluate(stack, "mujoco/arm", "pick_place", r, list(range(ev["seed_start"], ev["seed_start"] + n)),
+                           scene=arm_scene, max_steps=ev["max_steps"], batch=25, out=out,
+                           hooks=latent_hooks(stack, P, device=dev), row_extra=dict(method=method, checkpoint=str(ck)))
             att = [x for x in res if x.outcome != "infeasible"]
-            k = sum(x.privileged_success for x in att)
+            k = sum(bool(x.success_privileged) for x in att)
             s[r] = dict(attempted=len(att), successes=k, wilson95=wilson(k, len(att)),
-                        system_i_calls=sum(x.system_i_calls for x in att), system0_ticks=sum(x.system0_ticks for x in att))
+                        system_i_calls=sum(x.metrics["packets"] for x in att),
+                        system0_ticks=sum(x.metrics["system0_ticks"] for x in att))
         sm.write_text(json.dumps(s, indent=1))
         return s
 

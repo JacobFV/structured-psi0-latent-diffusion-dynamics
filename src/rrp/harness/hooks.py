@@ -2,7 +2,8 @@
 
 Feasibility (pre-episode teacher layout filter -> outcome "infeasible"), session records (sim time, task-event statuses),
 post-success settling (dual arm) and object displacement. Probe readouts live next to their label functions
-(harness.eval.latent_eval.PacketProbeHook, harness.eval.dual_latent_eval.DualPacketProbeHook).
+(harness.eval.latent_eval.PacketProbeHook, harness.eval.dual_latent_eval.DualPacketProbeHook); the per-family
+compositions (arm_hooks, dual_hooks, latent_hooks, dual_latent_hooks) are here.
 """
 from __future__ import annotations
 
@@ -96,4 +97,21 @@ def arm_hooks(check_feasible: bool = True) -> list:
 
 
 def dual_hooks(task: str) -> list:
-    return [Feasibility(dual_feasible(task)), SessionRecord(), Settle(5)]
+    return [Feasibility(dual_feasible(task)), Settle(5), SessionRecord()]      # record after settling (as before)
+
+
+def latent_hooks(policy, probe=None, *, device="cpu", paired: bool = False) -> list:
+    """The former evaluate_latent's conventions: arm feasibility, session record, system 0 counters, displacement of
+    every object, packet probes (when a probe is given), paired-scene identity."""
+    from rrp.harness.eval.latent_eval import PacketProbeHook, PairedMeta, System0Stats
+    return (arm_hooks() + [System0Stats(policy), Displacement()] + ([PacketProbeHook(probe, device)] if probe else [])
+            + ([PairedMeta()] if paired else []))
+
+
+def dual_latent_hooks(policy, task: str, probe=None, *, device="cpu", packet_edit: str | None = None) -> list:
+    """The former evaluate_dual_latent's conventions: dual teacher feasibility, settle 5 ticks then judge privileged
+    success, session record, system 0 counters, per-slot packet probes; packet_edit installs policy.packet_hook."""
+    from rrp.harness.eval.dual_latent_eval import PACKET_EDITS, DualPacketProbeHook
+    from rrp.harness.eval.latent_eval import System0Stats
+    policy.packet_hook = PACKET_EDITS[packet_edit] if packet_edit else None
+    return dual_hooks(task) + [System0Stats(policy)] + ([DualPacketProbeHook(probe, device)] if probe else [])

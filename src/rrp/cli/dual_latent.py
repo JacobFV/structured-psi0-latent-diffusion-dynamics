@@ -14,8 +14,10 @@ def cmd_pack(a):
 
 def cmd_eval(a):
     import torch
-    from rrp.harness.eval.dual_latent_eval import evaluate_dual_latent
-    from rrp.policies.latent import DualLatentPolicy
+    from rrp.harness.hooks import dual_latent_hooks
+    from rrp.harness.eval.latent_eval import probe_rates
+    from rrp.harness.rollout import evaluate
+    from rrp.policies.latent import DualLatentPolicy, LatentStackPolicy
     from rrp.harness.eval.statistics import wilson
     from rrp.policies.nets.checkpoint import load_checkpoint
     from rrp.policies.bundles import load_representation
@@ -33,31 +35,30 @@ def cmd_eval(a):
         P.load_state_dict(st["state"])
     summ = {}
     for pair in a.pairs.split(","):
-        res = evaluate_dual_latent(pol, R, P, a.task, pair, list(range(a.seed_start, a.seed_start + a.episodes)),
-                                   method=a.method, batch=a.batch, out_path=Path(a.out), device=dev,
-                                   replan_ticks=a.replan, max_steps=a.max_steps, packet_edit=a.packet_edit)
-        att = [r for r in res if r.outcome != "infeasible"]
-        k = sum(r.privileged_success for r in att)
-        def agg(key):
-            tot = {}
-            for r in att:
-                for q, (x, n) in getattr(r, key).items():
-                    s_, n_ = tot.get(q, (0, 0))
-                    tot[q] = (s_ + x, n_ + n)
-            return {q: (x / n if n else None) for q, (x, n) in tot.items()}
+        stack = LatentStackPolicy(pol, R, replan_ticks=a.replan, device=dev, name=a.method,
+                                  version=f"learned:{a.checkpoint}")
+        label = f"learned:{pol.name}" + (f"+edit:{a.packet_edit}" if a.packet_edit else "")
+        res = evaluate(stack, "mujoco/dual", a.task, pair, list(range(a.seed_start, a.seed_start + a.episodes)),
+                       batch=a.batch, max_steps=a.max_steps, out=Path(a.out),
+                       hooks=dual_latent_hooks(stack, a.task, P, device=dev, packet_edit=a.packet_edit),
+                       row_extra=dict(method=a.method, checkpoint=a.checkpoint, pair=pair, packet_edit=a.packet_edit,
+                                      controller_source=label))
+        att = [e for e in res if e.outcome != "infeasible"]
+        k = sum(bool(e.success_privileged) for e in att)
         ev_done = {}
-        for r in att:
-            for e, st_ in r.events.items():
-                ev_done.setdefault(e, {}).setdefault(st_, 0)
-                ev_done[e][st_] += 1
-        summ[pair] = dict(task=a.task, source=f"learned:{a.checkpoint}", packet_edit=a.packet_edit, attempted=len(att), successes=k,
-                          public_successes=sum(r.public_success for r in att), wilson95=wilson(k, len(att)),
-                          outcomes={o: sum(r.outcome == o for r in res) for o in {r.outcome for r in res}},
-                          event_final_status=ev_done, system_i_calls=sum(r.system_i_calls for r in att),
-                          system0_ticks=sum(r.system0_ticks for r in att),
-                          packet_rejections=sum(r.packet_rejections for r in att),
-                          free_sample_packet_probes=agg("probe_counts"),
-                          free_sample_packet_probes_slotswap=agg("probe_counts_slotswap"),
+        for e in att:
+            for ev, st_ in e.metrics["events"].items():
+                ev_done.setdefault(ev, {}).setdefault(st_, 0)
+                ev_done[ev][st_] += 1
+        summ[pair] = dict(task=a.task, source=f"learned:{a.checkpoint}", packet_edit=a.packet_edit, attempted=len(att),
+                          successes=k, public_successes=sum(bool(e.success_public) for e in att),
+                          wilson95=wilson(k, len(att)),
+                          outcomes={o: sum(e.outcome == o for e in res) for o in {e.outcome for e in res}},
+                          event_final_status=ev_done, system_i_calls=sum(e.metrics["packets"] for e in att),
+                          system0_ticks=sum(e.metrics["system0_ticks"] for e in att),
+                          packet_rejections=sum(e.metrics["packet_rejections"] for e in att),
+                          free_sample_packet_probes=probe_rates(att),
+                          free_sample_packet_probes_slotswap=probe_rates(att, "probe_counts_slotswap"),
                           probe=a.probe or "representation (jointly trained)")
         print(pair, json.dumps({kk: summ[pair][kk] for kk in ("attempted", "successes", "outcomes")}), flush=True)
     Path(a.out).with_suffix(".summary.json").write_text(json.dumps(summ, indent=1))

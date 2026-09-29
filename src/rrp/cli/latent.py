@@ -55,24 +55,38 @@ def _load(a):
     return pol, R, P, dev
 
 
+def _latent_eval(pol, R, P, dev, a, robot, seeds, *, make=None, paired=False):
+    """rollout of system i + system 0 (LatentStackPolicy) with the latent eval hooks; rows appended to a.out."""
+    from rrp.harness.hooks import latent_hooks
+    from rrp.harness.hooks import arm_scene
+    from rrp.harness.rollout import evaluate, rollout
+    from rrp.policies.latent import LatentStackPolicy
+    from rrp.tasks.spec import get_task
+    stack = LatentStackPolicy(pol, R, replan_ticks=a.replan, device=dev, name=a.method)
+    hooks = latent_hooks(stack, P, device=dev, paired=paired)
+    extra = dict(method=a.method, checkpoint=a.checkpoint)
+    if make is None:
+        return evaluate(stack, "mujoco/arm", "pick_place", robot, seeds, scene=arm_scene, batch=a.batch, max_steps=300,
+                        hooks=hooks, out=Path(a.out), row_extra=extra)
+    eps = rollout(make, stack, get_task("pick_place"), seeds, batch=a.batch, max_steps=300, hooks=hooks)
+    Path(a.out).parent.mkdir(parents=True, exist_ok=True)
+    with open(a.out, "a") as fh:
+        for e in eps:
+            fh.write(json.dumps({**e.row(), **extra}, default=str) + "\n")
+    return eps
+
+
 def cmd_eval(a):
-    from rrp.harness.eval.latent_eval import evaluate_latent
-    from rrp.harness.eval.statistics import wilson
+    from rrp.harness.eval.latent_eval import probe_rates
+    from rrp.harness.rollout import summarize
     pol, R, P, dev = _load(a)
     summ = {}
     for robot in a.robots.split(","):
-        res = evaluate_latent(pol, R, P, robot, list(range(a.seed_start, a.seed_start + a.episodes)), method=a.method,
-                              batch=a.batch, out_path=Path(a.out), device=dev, replan_ticks=a.replan)
-        att = [r for r in res if r.outcome != "infeasible"]
-        k = sum(r.privileged_success for r in att)
-        probes = {}
-        for r in att:
-            for q, (x, n) in r.probe_counts.items():
-                s_, n_ = probes.get(q, (0, 0)); probes[q] = (s_ + x, n_ + n)
-        summ[robot] = dict(attempted=len(att), successes=k, wilson95=wilson(k, len(att)),
-                           outcomes={o: sum(r.outcome == o for r in res) for o in {r.outcome for r in res}},
-                           system_i_calls=sum(r.system_i_calls for r in att), system0_ticks=sum(r.system0_ticks for r in att),
-                           free_sample_packet_probes={q: (x / n if n else None) for q, (x, n) in probes.items()})
+        res = _latent_eval(pol, R, P, dev, a, robot, list(range(a.seed_start, a.seed_start + a.episodes)))
+        att = [e for e in res if e.outcome != "infeasible"]
+        summ[robot] = dict(summarize(res), system_i_calls=sum(e.metrics["packets"] for e in att),
+                           system0_ticks=sum(e.metrics["system0_ticks"] for e in att),
+                           free_sample_packet_probes=probe_rates(att))
         print(robot, json.dumps(summ[robot]), flush=True)
     Path(a.out).with_suffix(".summary.json").write_text(json.dumps(summ, indent=1))
 
@@ -80,36 +94,31 @@ def cmd_eval(a):
 def cmd_eval_binding(a):
     """Closed-loop binding test on paired scenes: identical initial scene, each cube assigned as patient in turn.
     Reports success, wrong-object manipulation and whether behavior follows the assignment across a pair."""
-    from rrp.harness.eval.latent_eval import evaluate_latent, paired_keys, paired_scene_fn
+    from rrp.harness.eval.latent_eval import paired_env, paired_keys
     from rrp.harness.eval.statistics import wilson
     pol, R, P, dev = _load(a)
     summ = {}
     for robot in a.robots.split(","):
-        keys = paired_keys(a.seed_start, a.scenes)
-        res = []
-        for i in range(0, len(keys), a.batch):          # scene_fn per key (builders differ per key)
-            grp = keys[i:i + a.batch]
-            fns = {k: paired_scene_fn(k) for k in grp}
-            res += evaluate_latent(pol, R, P, robot, grp, method=a.method, batch=len(grp), out_path=Path(a.out),
-                                   device=dev, replan_ticks=a.replan, scene_fn=lambda rb, k: fns[k](rb, k))
-        att = [r for r in res if r.outcome != "infeasible"]
-        ok = [r for r in att if r.privileged_success]
-        assigned = [r for r in att if "cube" in r.extra["moved"]]
-        wrong = [r for r in att if any(b != "cube" for b in r.extra["moved"])]
+        res = _latent_eval(pol, R, P, dev, a, robot, paired_keys(a.seed_start, a.scenes), make=paired_env(robot),
+                           paired=True)
+        att = [e for e in res if e.outcome != "infeasible"]
+        ok = [e for e in att if e.success_privileged]
+        assigned = [e for e in att if "cube" in e.metrics["moved"]]
+        wrong = [e for e in att if any(b != "cube" for b in e.metrics["moved"])]
         scenes = {}
-        for r in att:
-            scenes.setdefault(r.extra["scene_seed"], []).append(r)
-        full = [v for v in scenes.values() if len(v) == 2 + v[0].extra["scene_seed"] % 2]
+        for e in att:
+            scenes.setdefault(e.metrics["scene_seed"], []).append(e)
+        full = [v for v in scenes.values() if len(v) == 2 + v[0].metrics["scene_seed"] % 2]
         k = len(ok)
         summ[robot] = dict(attempted=len(att), successes=k, wilson95=wilson(k, len(att)),
                            moved_assigned_object=len(assigned) / max(len(att), 1),
                            moved_wrong_object=len(wrong) / max(len(att), 1),
                            scenes_complete=len(full),
-                           scenes_all_assignments_succeed=sum(all(r.privileged_success for r in v) for v in full),
-                           scenes_all_follow_assignment=sum(all("cube" in r.extra["moved"] and
-                                                                not any(b != "cube" for b in r.extra["moved"])
-                                                                for r in v) for v in full),
-                           outcomes={o: sum(r.outcome == o for r in res) for o in {r.outcome for r in res}})
+                           scenes_all_assignments_succeed=sum(all(e.success_privileged for e in v) for v in full),
+                           scenes_all_follow_assignment=sum(all("cube" in e.metrics["moved"] and
+                                                                not any(b != "cube" for b in e.metrics["moved"])
+                                                                for e in v) for v in full),
+                           outcomes={o: sum(e.outcome == o for e in res) for o in {e.outcome for e in res}})
         print(robot, json.dumps(summ[robot]), flush=True)
     Path(a.out).with_suffix(".summary.json").write_text(json.dumps(summ, indent=1))
 
