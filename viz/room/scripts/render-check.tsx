@@ -99,6 +99,10 @@ async function main() {
           // type scale (IBM-2 10/11/12): no inline font size above 12 px; no SVG that can scale its text up
           const big = [...html.matchAll(/font-size(?:="|:\s*)([\d.]+)(?:px)?/g)].map((m) => Number(m[1])).filter((v) => v > 12);
           const scaled = [...html.matchAll(/<svg[^>]*viewBox[^>]*>/g)].filter((m) => !/\sheight="\d/.test(m[0]));
+          // every matrix/heatmap/radar/strip/forest must carry a caption before its pane ends
+          const figs = [...html.matchAll(/class="(hm|mh|strip5|radar[^"]*|plot)"/g)];
+          const uncapped = figs.filter((m) => { const rest = html.slice(m.index!); const end = rest.search(/<\/section>/); return !(end < 0 ? rest : rest.slice(0, end)).includes('fig-cap'); });
+          if (uncapped.length) { failures++; console.log(`FAIL caption ${label} ${name} ${q}: ${uncapped.length} figure(s) without a caption (${[...new Set(uncapped.map((m) => m[1]))].join(', ')})`); }
           if (big.length || scaled.length) { failures++; console.log(`FAIL type ${label} ${name} ${q}: font sizes ${big.join(',')} · scalable svgs ${scaled.length}`); }
           const flags = [/No data/.test(html) ? 'NO-DATA' : '', /Could not load/.test(html) ? 'ERROR-STATE' : '',
             /\bNaN\b/.test(text) ? `NaN×${(text.match(/\bNaN\b/g) || []).length}` : '', /\bundefined\b/.test(text) ? `undefined×${(text.match(/\bundefined\b/g) || []).length}` : '',

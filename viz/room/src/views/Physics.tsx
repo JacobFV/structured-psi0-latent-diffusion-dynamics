@@ -152,6 +152,7 @@ function PhysicsVisual({ gates, trackers }: { gates: Row[]; trackers: Row[] }) {
             </div>
           ))}
         </div>
+        <p className="fig-cap">rows: gate report (square: verdict) · small squares: each criterion, green pass / red fail / grey labelled (hover: value and threshold)</p>
       </section>
       <section className="ev-panel">
         <header>Trackers · contact slip ratio<span className="meta">dot = one tracker version · green = contact gate pass</span></header>
@@ -171,6 +172,7 @@ function PhysicsVisual({ gates, trackers }: { gates: Row[]; trackers: Row[] }) {
           <text x={88} y={bodies.length * 17 + 12} fontSize={10} fill="var(--muted)">0</text>
           <text x={410} y={bodies.length * 17 + 12} fontSize={10} fill="var(--muted)" textAnchor="end">{fmtNum(smax)}</text>
         </svg>
+        <p className="fig-cap">rows: legged body · x: contact-gate slip ratio (lower = less foot slip) · dot: one tracker version, green = contact gate passed, red = failed</p>
       </section>
     </div>
   );

@@ -4,7 +4,7 @@
  * view. Layout has a pixel budget (asserted by the render check): each panel's content must fit its fixed cell.
  */
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ModeBadge, Spark } from '../components/board';
+import { Cap, ModeBadge, Spark } from '../components/board';
 import { seqColor, seqInk } from '../components/charts';
 import RadarChart, { type RadarDoc } from '../components/RadarChart';
 import { fetchTrainingSeries, useDoc, type DocResult, type Envelope } from '../lib/api';
@@ -19,6 +19,7 @@ export const KPI_H = 50;
 export const ROWS = 3;
 export const CELL_H = Math.floor((VIEWPORT_H - TICKER_H - 2 * PAD - KPI_H) / ROWS); // 271
 export const HEAD_H = 18;
+export const CAP_H = 40; // up to three 10 px caption lines under each figure (narrow cells wrap)
 const LINE = 13;
 
 const ok = (r: DocResult<Envelope>) => (r.status === 'ok' ? r.data : null);
@@ -121,14 +122,14 @@ export function panelNeeds(docs: Record<string, Envelope | null>) {
   const lc = leggedCells(docs.results ?? null), ac = armCells(docs.results ?? null), a6 = v6(docs.results ?? null);
   const reps = docs.robustness ? rows(docs.robustness.reports) : [];
   return {
-    radar: { need: Math.min(2 * CELL_H - HEAD_H - 30, 520) + 20, cells: 2 },
-    claim: { need: (haltDiffs(docs.edits ?? null).length + 3) * 15 + 2 * 12 + 10, cells: 1 },  // legged rows + 3 arm rows
-    success: { need: (lc.bodies.length + Math.max(ac.bodies.length, a6.bodies.length) + 2) * 17 + 8, cells: 1 },
-    robustness: { need: (reps.length + 1) * LINE + 6, cells: 1 },
-    psi0: { need: (docs.psi0 ? rows(docs.psi0.runs).filter((r) => num(r.n) && (str(r.run).startsWith('step2') || !r.interim)).length : 0) * LINE + 4, cells: 1 },
-    leases: { need: (docs.live ? rows(docs.live.leases).length : 0) * LINE + 4, cells: 1 },
-    dags: { need: Math.min(10, activeDags(docs.dags ?? null).length + 4) * LINE + 4, cells: 1 },
-    training: { need: recentRuns(docs.training ?? null).length * LINE + LINE + 4, cells: 1 },
+    radar: { need: Math.min(2 * CELL_H - HEAD_H - 30 - CAP_H, 520) + 20 + CAP_H, cells: 2 },
+    claim: { need: CAP_H + (haltDiffs(docs.edits ?? null).length + 3) * 15 + 2 * 12 + 10, cells: 1 },  // legged rows + 3 arm rows
+    success: { need: CAP_H + (lc.bodies.length + Math.max(ac.bodies.length, a6.bodies.length) + 2) * 17 + 8, cells: 1 },
+    robustness: { need: CAP_H + (reps.length + 1) * LINE + 6, cells: 1 },
+    psi0: { need: CAP_H + (docs.psi0 ? rows(docs.psi0.runs).filter((r) => num(r.n) && (str(r.run).startsWith('step2') || !r.interim)).length : 0) * LINE + 4, cells: 1 },
+    leases: { need: CAP_H + (docs.live ? rows(docs.live.leases).length : 0) * LINE + 4, cells: 1 },
+    dags: { need: CAP_H + Math.min(10, activeDags(docs.dags ?? null).length + 4) * LINE + 4, cells: 1 },
+    training: { need: CAP_H + recentRuns(docs.training ?? null).length * LINE + LINE + 4, cells: 1 },
     decisions: { need: Math.min(15, docs.overview ? rows(docs.overview.latest_decisions).length : 0) * LINE + 4, cells: 1 },
   };
 }
@@ -210,7 +211,7 @@ function RadarPanel({ r }: { r: DocResult<Envelope> }) {
   const d = ok(r) as (RadarDoc & Envelope) | null;
   return (
     <P title="Routes · declared radar" link={href('radar')} result={r} cls="span2 row2" meta={d ? `${d.axes?.length ?? 0} axes · 1 = reference` : ''}>
-      {d && d.axes?.length ? <RadarChart radar={d} size={Math.min(2 * CELL_H - HEAD_H - 30, 520)} compact /> : <p className="board-note">no radar axes</p>}
+      {d && d.axes?.length ? <><RadarChart radar={d} size={Math.min(2 * CELL_H - HEAD_H - 30 - CAP_H, 520)} compact /><Cap>spokes: {d.axes.length} declared axes (arm/legged success, edit control, robustness, smoothness, latency, transfer) · radius: 0 = axis floor, ring 1 = reference route (BC or teacher, per axis) · lines: routes; gaps = no evidence; whiskers = seed range or 95% CI</Cap></> : <p className="board-note">no radar axes</p>}
     </P>
   );
 }
@@ -235,7 +236,7 @@ function ClaimPanel({ ed, res }: { ed: DocResult<Envelope>; res: DocResult<Envel
   rowOf('new arm: latent − BC', T.joint, T.bcSft, 'sealed xarm7_pg2+tf3 · semfix joint adaptation (added after D-135) vs BC SFT, update-matched · worse in 12/12 cells · D-136');
   rowOf('new gripper zs: latent − BC', T.gripLatent, T.gripBc, 'panda_tf3 zero-shot · semfix v6 vs BC · targets_v6.json · D-135');
   if (armItems.length) arm = <Mini items={armItems} lo={-40} hi={60} fmt={(v) => `${v > 0 ? '+' : ''}${v.toFixed(0)}`} W={W} unit="pts" />;
-  return <P title="Claims" link={href('results')} result={ed} meta={T.joint.n ? 'new-arm transfer: NOT supported' : undefined}>{legged}{arm}</P>;
+  return <P title="Claims" link={href('results')} result={ed} meta={T.joint.n ? 'new-arm transfer: NOT supported' : undefined}>{legged}{arm}<Cap>top: legged forward travel after a halt edit, semantic − nosem (m, contact v2) · bottom: success difference in points (arm v6 in-distribution; new arm and new gripper vs BC) · dot = estimate, bar = 95% CI, red = CI below 0</Cap></P>;
 }
 function Mini({ items, lo, hi, fmt, W, unit }: { items: { label: string; v: number; lo: number; hi: number; tip: string; bad?: boolean }[]; lo: number; hi: number; fmt: (v: number) => string; W: number; unit: string }) {
   const left = 118, right = 36, H = items.length * 15 + 12;
@@ -278,6 +279,7 @@ function SuccessPanel({ res }: { res: DocResult<Envelope> }) {
       {a6.bodies.length
         ? block('arm v6 | v1', a6.bodies, ['semfix', 'nosem', 'semfix v1', 'nosem v1', 'bc v1'], a6.cells, 'v6: compare_v6 D-134 (grasp_v2.1) · v1: compare_gc2_final D-127 (grasp_v2)')
         : block('arm gv2', ac.bodies, ['semfix', 'nosem', 'frozen', 'bc'], ac.m, 'compare_gc2_final D-127')}
+      <Cap>rows: body · cols: route (legged: contact v2, R2 final) / lineage (arm: v6 grasp_v2.1, then v1 grasp_v2) · cell: success % of pooled episodes (hover k/n) · colour: success rate</Cap>
     </P>
   );
 }
@@ -307,6 +309,7 @@ function RobustPanel({ r }: { r: DocResult<Envelope> }) {
           );
         })}
       </div>
+      <Cap>rows: robot · route · nom: unperturbed success % (colour) · cols: perturbation factor · × = success breaks within the swept range, · = no break, blank = not swept</Cap>
     </P>
   );
 }
@@ -327,6 +330,7 @@ function Psi0Panel({ r }: { r: DocResult<Envelope> }) {
           </div>
         );
       })}
+      <Cap>rows: Ψ₀ run (s2 = step 2, rel = released checkpoint) · bar: success rate, line = 95% CI · k/n episodes; grey = interim</Cap>
     </P>
   );
 }
@@ -347,6 +351,7 @@ function LeasePanel({ r }: { r: DocResult<Envelope> }) {
           </div>
         );
       })}
+      <Cap>rows: active lease · bar: current memory / declared memory · black tick: peak · orange tick: memory.high throttle line · red fill: throttled</Cap>
     </P>
   );
 }
@@ -368,6 +373,7 @@ function DagPanel({ r }: { r: DocResult<Envelope> }) {
           </div>
         );
       })}
+      <Cap>rows: run DAG (active first) · bar: share of nodes completed (green), running (blue), failed (red) · done/total nodes · ETA only where a track note states one</Cap>
     </P>
   );
 }
@@ -398,6 +404,7 @@ function TrainPanel({ r }: { r: DocResult<Envelope> }) {
           </a>
         );
       })}
+      <Cap>rows: 8 most recently logged training runs · loss: main logged loss over steps · grad: gradient norm over steps (each line scaled to its own range)</Cap>
     </P>
   );
 }

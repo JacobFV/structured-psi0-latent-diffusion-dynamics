@@ -108,6 +108,7 @@ function RobustBody({ d }: { d: Envelope }) {
                   series={rts.map((rt) => ({ key: rt, label: rt, color: seriesColor(rt, allRoutes), band: metric === 'rate' ? [`${rt}__lo`, `${rt}__hi`] as [string, string] : undefined, dots: true }))}
                   refs={numeric ? bps : []}
                 />
+                <p className="fig-cap">x: {f} level · y: {metric === 'rate' ? 'success rate over 20 seeds (band: 95% CI)' : metric} · lines: routes on {robot} · dashed verticals: recorded break-points (low / high)</p>
                 <p className="small muted" style={{ margin: '4px 0 0' }}>
                   Break-points: {bps.length ? bps.map((b) => `${b.label} @ ${fmtNum(b.x)}`).join(' · ') : 'none recorded within the swept range'}
                 </p>
@@ -127,7 +128,7 @@ function RobustBody({ d }: { d: Envelope }) {
         })} />
       </Card>}
       <Card title="Route comparisons" hint="difference in level-mean success (A − B), recorded CI and p">
-        <Forest xLabel="Δ level-mean success (A − B)" rows={comps.filter((c) => !robot || str(c.robot) === robot).map((c, i): ForestRow => {
+        <Forest caption="rows: route A vs route B on one robot · x: difference in success averaged over all perturbation levels (A − B) · dot: estimate, bar: recorded 95% CI · right: estimate [CI] · p" xLabel="Δ level-mean success (A − B)" rows={comps.filter((c) => !robot || str(c.robot) === robot).map((c, i): ForestRow => {
           const [lo, hi] = ciPair(c, 'diff_level_mean_ci');
           return { key: `c${i}`, label: `${str(c.a)} vs ${str(c.b)} · ${str(c.robot)}`, effect: num(c.diff_level_mean), lo, hi, p: num(c.p_level_mean), n: num(c.n_seeds),
             tone: 'var(--s1)', note: `drop Δ ${fmtNum(c.diff_drop)} (p ${fmtNum(c.p_drop)}) · ${str(c.metric)} · ${str(c.decision)}` };
@@ -164,7 +165,7 @@ function VariantDiffs({ vd }: { vd: Row[] }) {
   return (
     <>
       {v0decisions(vd)}
-      {out.length ? <Forest rows={out} xLabel="Δ level-mean success (A − B)" /> : null}
+      {out.length ? <Forest caption="rows: variant A − variant B per robot, metric and training seed · x: difference in level-mean success (A − B) · dot: estimate, bar: recorded 95% CI · right: estimate [CI] · p" rows={out} xLabel="Δ level-mean success (A − B)" /> : null}
       {useShowData() && <DataTable rows={table} tall />}
     </>
   );

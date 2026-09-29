@@ -123,7 +123,7 @@ export function DivLegend() {
 export type ForestRow = { key: string; label: ReactNode; group?: string; effect: number | null; lo: number | null; hi: number | null; control?: boolean; p?: number | null; n?: number | null; tone?: string; note?: string };
 
 /** Forest plot: effect ± 95% CI per row, zero line, controls drawn hollow and grey. */
-export function Forest({ rows, xLabel = 'effect', width = 640 }: { rows: ForestRow[]; xLabel?: string; width?: number }) {
+export function Forest({ rows, xLabel = 'effect', width = 640, caption }: { rows: ForestRow[]; xLabel?: string; width?: number; caption?: string }) {
   const [tip, setTip] = useState<{ x: number; y: number; r: ForestRow } | null>(null);
   const vals = rows.flatMap((r) => [r.lo, r.hi, r.effect]).filter((v): v is number => v !== null && Number.isFinite(v));
   let lo = Math.min(0, ...vals), hi = Math.max(0, ...vals);
@@ -165,6 +165,7 @@ export function Forest({ rows, xLabel = 'effect', width = 640 }: { rows: ForestR
           );
         })}
       </svg>
+      <p className="fig-cap">{caption ?? `rows: edit (or control) × seed · x: ${xLabel} · dot: effect (edited − unedited, paired), bar: 95% CI · filled circle = edit, hollow square = control · right: effect [CI] · permutation p where recorded`}</p>
       {tip && (
         <div className="tip" style={{ left: tip.x + 12, top: tip.y + 12 }}>
           <div><b>{tip.r.key}</b>{tip.r.control ? ' · control' : ''}</div>

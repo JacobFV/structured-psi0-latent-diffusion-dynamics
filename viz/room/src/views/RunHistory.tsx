@@ -33,14 +33,36 @@ function WhenVisible({ children, minHeight = 120 }: { children: ReactNode; minHe
   }, [shown]);
   return <div ref={ref} style={shown ? undefined : { minHeight }}>{shown ? children : <p className="lazy">loads when visible</p>}</div>;
 }
-function Pane({ title, meta, children, lazy = true, minHeight }: { title: string; meta?: ReactNode; children: ReactNode; lazy?: boolean; minHeight?: number }) {
+function Pane({ title, meta, children, lazy = true, minHeight, cap }: { title: string; meta?: ReactNode; children: ReactNode; lazy?: boolean; minHeight?: number; cap?: string }) {
   return (
     <section className="rh-pane">
       <header>{title}{meta !== undefined && <span className="meta">{meta}</span>}</header>
-      <div className="pb">{lazy ? <WhenVisible minHeight={minHeight}>{children}</WhenVisible> : children}</div>
+      <div className="pb">{lazy ? <WhenVisible minHeight={minHeight}>{children}</WhenVisible> : children}{cap && <p className="fig-cap">{cap}</p>}</div>
     </section>
   );
 }
+const CAPS: Record<string, string> = {
+  stage: '3D replay of recorded body poses and geometry · orange dots: contacts · green line: object path, violet: base path (bright = last 1.5 s)',
+  flow: 'boxes: pipeline stages at the time cursor · mini plots: task-event status, packet norm per knot × assembly (or PCA), target − position per actuator, top-down path · orange: where an edit enters',
+  morph: 'side view (x horizontal, z vertical, m) of recorded body positions at the cursor · orange node: contact body in contact · limb shade: Σ|torque| of its actuators · limbs grouped from body names (inferred)',
+  pstruct: 'rows: packet knots · cols: assemblies · cell colour: ‖z‖ of that knot × assembly at the cursor · right: probe-head readouts of the same packet',
+  map: 'top-down world frame (x →, y ↑, m) · lines: base and object paths · ◇ waypoints · ○ edit onset · ✕ fell · dots: current positions (A solid, B dashed)',
+  phase: 'x: time (s) · lanes: recorded controller phase per replay, coloured by phase',
+  events: 'x: time (s) · rows: task events · colour: recorded status over time (green success, blue active, grey pending, red failed)',
+  gait: 'x: time (s) · rows: contact bodies (feet or fingers) · bars: in contact (shade: normal force where recorded) · %: duty factor = share of frames in contact',
+  progress: 'x: time (s) · y: forward progress along the start heading (m) and object height (m) · A solid, B dashed',
+  edit: 'text: edit and onset · traces: |edited − unedited packet| and, in compare mode, B − A differences on the shared clock',
+  jheat: 'rows: joints (or actuators) · x: time · colour: value scaled per joint (position/target: light → dark = low → high; error/velocity: blue + / red −)',
+  pp: 'x: joint position · y: joint velocity (recorded, or finite difference where not recorded) · dot: current frame',
+  force: 'x: time (s) · y: contact force (N), slip, penetration (mm), torque (N·m) as recorded · one line per contact body/joint',
+  vel: 'x: time (s) · y: world-frame linear (m/s) and angular (rad/s) velocity components',
+  grasp: 'x: time (s) · lanes/lines: grasp state, gripper aperture (m), hand contact, grip drift (mm)',
+  energy: 'x: time (s) · y: energy per frame interval (J), power (W), cost of transport',
+  packet: 'PCA path of the executed packet (orange = edit active) · change rate of the packet in PCA space · heatmaps: |z| per recorded packet dimension over time (ticks: new packets)',
+  probe: 'x: time (s) · rows/lines: probe readouts of the packet; with truth: probe (solid) vs privileged truth (dashed) and a calibration strip (observed frequency per predicted-probability decile)',
+  video: 'recorded video matched to this run (label from artifacts/video/INDEX.md)',
+  evidence: 'the original eval row, the reproduction check (recorded vs re-run) and the replay metadata',
+};
 
 const ENVS: [string, string][] = [['arm', 'arm (pick and place)'], ['legged', 'legged (waypoints, edits)'], ['dual', 'dual arm'], ['physics', 'physics (tracker, grasp rig)']];
 function envOf(e: Row) {
@@ -294,36 +316,36 @@ function panes(sides: Side[], p: { sides: Side[]; t: number; duration: number; o
   const out: ReactNode[] = [];
   const stageH = sides.length > 1 ? 380 : 480;
   out.push(
-    <Pane key="stage" title="3D replay" meta={`${A.geoms.length} geoms · ${A.bodies.length} bodies · drag to orbit`} lazy={false}>
+    <Pane key="stage" cap={CAPS.stage} title="3D replay" meta={`${A.geoms.length} geoms · ${A.bodies.length} bodies · drag to orbit`} lazy={false}>
       <div className="rh-pair">
         {sides.map((s) => <div key={s.tag} className="stage" style={{ height: stageH }}><Stage replay={s.replay} clock={clock} options={opts} height={stageH} />{sides.length > 1 && <div className="hud"><span className="badge" style={{ color: s.color, borderColor: s.color }}>{s.tag}</span></div>}</div>)}
       </div>
     </Pane>,
   );
   out.push(...sides.filter((s) => hasPipeline(s.replay)).map((s) => (
-    <Pane key={`flow-${s.tag}`} title={`Pipeline${sides.length > 1 ? ` · ${s.tag}` : ''}`} meta="task context → system i → packet → system 0 → targets → tracker → robot, at the cursor" lazy={false}>
+    <Pane key={`flow-${s.tag}`} cap={CAPS.flow} title={`Pipeline${sides.length > 1 ? ` · ${s.tag}` : ''}`} meta="task context → system i → packet → system 0 → targets → tracker → robot, at the cursor" lazy={false}>
       <PipelineFlow r={s.replay} times={s.times} t={p.t} />
     </Pane>
   )));
-  if (hasMorphology(A)) out.push(<Pane key="morph" title="Morphology" meta="recorded body positions, contacts, torque"><Morphology r={A} times={sides[0].times} t={p.t} /></Pane>);
-  if (hasPacketStructure(A)) out.push(<Pane key="pstruct" title="Packet structure" meta="knots × assemblies with probe heads"><PacketStructure r={A} times={sides[0].times} t={p.t} /></Pane>);
-  if (sides.some((s) => hasMap(s.replay))) out.push(<Pane key="map" title="Top-down trajectory" meta="base and object paths, waypoints, edit onset, fall"><TopDownMap {...p} /></Pane>);
-  if (any((r) => r.signals.phase)) out.push(<Pane key="phase" title="Phase" meta={str((A.meta.signal_notes as Record<string, string> | undefined)?.phase)}><PhaseLanes {...p} /></Pane>);
-  if (any((r) => r.signals.task_events)) out.push(<Pane key="events" title="Task events" meta="status of each task event over time"><EventGantt {...p} /></Pane>);
-  if (any((r) => r.signals.contacts)) out.push(<Pane key="gait" title={A.meta.family === 'legged' ? 'Gait diagram' : 'Contact diagram'} meta={str((A.meta.signal_notes as Record<string, string> | undefined)?.contacts)}><GaitDiagram {...p} /></Pane>);
+  if (hasMorphology(A)) out.push(<Pane key="morph" cap={CAPS.morph} title="Morphology" meta="recorded body positions, contacts, torque"><Morphology r={A} times={sides[0].times} t={p.t} /></Pane>);
+  if (hasPacketStructure(A)) out.push(<Pane key="pstruct" cap={CAPS.pstruct} title="Packet structure" meta="knots × assemblies with probe heads"><PacketStructure r={A} times={sides[0].times} t={p.t} /></Pane>);
+  if (sides.some((s) => hasMap(s.replay))) out.push(<Pane key="map" cap={CAPS.map} title="Top-down trajectory" meta="base and object paths, waypoints, edit onset, fall"><TopDownMap {...p} /></Pane>);
+  if (any((r) => r.signals.phase)) out.push(<Pane key="phase" cap={CAPS.phase} title="Phase" meta={str((A.meta.signal_notes as Record<string, string> | undefined)?.phase)}><PhaseLanes {...p} /></Pane>);
+  if (any((r) => r.signals.task_events)) out.push(<Pane key="events" cap={CAPS.events} title="Task events" meta="status of each task event over time"><EventGantt {...p} /></Pane>);
+  if (any((r) => r.signals.contacts)) out.push(<Pane key="gait" cap={CAPS.gait} title={A.meta.family === 'legged' ? 'Gait diagram' : 'Contact diagram'} meta={str((A.meta.signal_notes as Record<string, string> | undefined)?.contacts)}><GaitDiagram {...p} /></Pane>);
   if (any((r) => r.signals.forward_progress) || any((r) => r.signals.object_pose)) out.push(
-    <Pane key="progress" title="Progress" meta="forward progress · object height">
+    <Pane key="progress" cap={CAPS.progress} title="Progress" meta="forward progress · object height">
       {any((r) => r.signals.forward_progress) && <ScalarTrack title="Forward progress" unit="m" noteKey="forward_progress" get={(r) => r.signals.forward_progress as Val[] | undefined} {...p} />}
       {any((r) => r.signals.object_pose) && <ScalarTrack title="Object height (z)" unit="m" noteKey="object_pose" get={(r) => r.signals.object_pose?.map((v) => (v && v.length >= 3 ? v[2] : null))} {...p} />}
     </Pane>,
   );
-  if (sides.some((s) => hasEdit(s.replay)) || sides.length > 1) out.push(<Pane key="edit" title={sides.length > 1 ? 'Edit and difference (B − A)' : 'Edit'} meta="edit onset, recorded eval row, difference traces"><EditPanel {...p} /></Pane>);
+  if (sides.some((s) => hasEdit(s.replay)) || sides.length > 1) out.push(<Pane key="edit" cap={CAPS.edit} title={sides.length > 1 ? 'Edit and difference (B − A)' : 'Edit'} meta="edit onset, recorded eval row, difference traces"><EditPanel {...p} /></Pane>);
   if (any((r) => r.signals.joint_pos) || any((r) => r.signals.joint_target)) {
-    out.push(<Pane key="jheat" title="Joint heatmap" meta="joints × time"><JointHeatmap {...p} /></Pane>);
-    out.push(<Pane key="phaseportrait" title="Phase portrait" meta="position vs velocity for one joint"><PhasePortrait {...p} /></Pane>);
+    out.push(<Pane key="jheat" cap={CAPS.jheat} title="Joint heatmap" meta="joints × time"><JointHeatmap {...p} /></Pane>);
+    out.push(<Pane key="phaseportrait" cap={CAPS.pp} title="Phase portrait" meta="position vs velocity for one joint"><PhasePortrait {...p} /></Pane>);
   }
   if (any((r) => r.signals.slip) || any((r) => r.signals.penetration_mm) || any((r) => r.signals.contact_force) || any((r) => r.signals.joint_torque)) out.push(
-    <Pane key="force" title="Forces, slip, penetration" meta="privileged diagnostics (display only)">
+    <Pane key="force" cap={CAPS.force} title="Forces, slip, penetration" meta="privileged diagnostics (display only)">
       {any((r) => r.signals.contact_force) && <ScalarTrack title="Contact normal force" unit="N" noteKey="contact_force" names={(r) => r.meta.contact_bodies} get={(r) => r.signals.contact_force as Val[] | undefined} {...p} />}
       {any((r) => r.signals.contact_force_tangential) && <ScalarTrack title="Contact tangential force" unit="N" noteKey="contact_force_tangential" names={(r) => r.meta.contact_bodies} get={(r) => r.signals.contact_force_tangential as Val[] | undefined} {...p} />}
       {any((r) => r.signals.slip) && <ScalarTrack title="Slip" noteKey="slip" names={(r) => r.meta.contact_bodies} get={(r) => r.signals.slip as Val[] | undefined} {...p} />}
@@ -332,14 +354,14 @@ function panes(sides: Side[], p: { sides: Side[]; t: number; duration: number; o
     </Pane>,
   );
   if (any((r) => r.signals.base_vel) || any((r) => r.signals.object_vel) || any((r) => r.signals.base_ang_vel)) out.push(
-    <Pane key="vel" title="Velocities" meta="world frame · privileged">
+    <Pane key="vel" cap={CAPS.vel} title="Velocities" meta="world frame · privileged">
       {any((r) => r.signals.base_vel) && <ScalarTrack title="Base velocity" unit="m/s" noteKey="base_vel" names={() => ['vx', 'vy', 'vz']} get={(r) => r.signals.base_vel as Val[] | undefined} {...p} />}
       {any((r) => r.signals.base_ang_vel) && <ScalarTrack title="Base angular velocity" unit="rad/s" noteKey="base_ang_vel" names={() => ['wx', 'wy', 'wz']} get={(r) => r.signals.base_ang_vel as Val[] | undefined} {...p} />}
       {any((r) => r.signals.object_vel) && <ScalarTrack title="Object velocity" unit="m/s" noteKey="object_vel" names={() => ['vx', 'vy', 'vz']} get={(r) => r.signals.object_vel as Val[] | undefined} {...p} />}
     </Pane>,
   );
   if (any((r) => r.signals.gripper_aperture) || any((r) => r.signals.grasp_state) || any((r) => r.signals.grip_drift) || any((r) => r.signals.hand_contact)) out.push(
-    <Pane key="grasp" title="Grasp" meta="aperture, grasp state, hand contact, grip drift">
+    <Pane key="grasp" cap={CAPS.grasp} title="Grasp" meta="aperture, grasp state, hand contact, grip drift">
       {any((r) => r.signals.grasp_state) && <CategoryTrack title="Grasp state (privileged)" noteKey="grasp_state" get={(r) => r.signals.grasp_state as unknown[] | undefined} {...p} />}
       {any((r) => r.signals.gripper_aperture) && <ScalarTrack title="Gripper aperture" unit="m" noteKey="gripper_aperture" get={(r) => r.signals.gripper_aperture as Val[] | undefined} {...p} />}
       {any((r) => r.signals.hand_contact) && <RasterTrack title="Hand contact (public touch)" noteKey="hand_contact" names={(r) => r.meta.hands as string[] | undefined} get={(r) => r.signals.hand_contact as unknown[] | undefined} {...p} />}
@@ -348,7 +370,7 @@ function panes(sides: Side[], p: { sides: Side[]; t: number; duration: number; o
     </Pane>,
   );
   if (any((r) => r.signals.energy) || any((r) => r.signals.power) || any((r) => r.signals.cot)) out.push(
-    <Pane key="energy" title="Energy and cost of transport" meta={A.meta.energy_total_j != null ? `total ${fmtNum(A.meta.energy_total_j)} J (recorded)` : 'per step, as recorded'}>
+    <Pane key="energy" cap={CAPS.energy} title="Energy and cost of transport" meta={A.meta.energy_total_j != null ? `total ${fmtNum(A.meta.energy_total_j)} J (recorded)` : 'per step, as recorded'}>
       {any((r) => r.signals.energy) && <ScalarTrack title="Energy per step" unit="J" noteKey="energy" get={(r) => r.signals.energy as Val[] | undefined} {...p} />}
       {any((r) => r.signals.power) && <ScalarTrack title="Power" unit="W" noteKey="power" get={(r) => r.signals.power as Val[] | undefined} {...p} />}
       {any((r) => r.signals.cot) && <ScalarTrack title="Cost of transport" noteKey="cot" get={(r) => r.signals.cot as Val[] | undefined} {...p} />}
@@ -361,7 +383,7 @@ function panes(sides: Side[], p: { sides: Side[]; t: number; duration: number; o
     const series = (same ? withP : withP.slice(0, 1)).map((s) => ({ label: s.tag, color: s.color, pts: s.replay.signals.packet_pca!, times: s.times, edit: s.replay.signals.edit_active }));
     const fitOn = str((A.meta.packet_pca as Record<string, unknown> | undefined)?.fit_on);
     out.push(
-      <Pane key="packet" title="Packet" meta={fitOn || 'packet executed by system 0'}>
+      <Pane key="packet" cap={CAPS.packet} title="Packet" meta={fitOn || 'packet executed by system 0'}>
         {series.length > 0 && <PcaPlot series={series} clock={clock} height={260} />}
         {series.length > 0 && <div className="legend small">{series.map((s) => <span key={s.label}><i className="sw" style={{ background: s.color }} />{s.label} PCA path</span>)}<span><i className="sw" style={{ background: 'var(--s2)' }} />edit-active frames</span>{!same && <span>bases differ: only A drawn</span>}</div>}
         {withP.length > 0 && <ScalarTrack title="Packet change rate ‖Δ PCA‖/Δt (3 of D dims; computed here)" get={(r) => pcaSpeed(r, relTimes(r))} {...p} />}
@@ -371,13 +393,13 @@ function panes(sides: Side[], p: { sides: Side[]; t: number; duration: number; o
     );
   }
   if (any((r) => r.signals.probe)) out.push(
-    <Pane key="probe" title="Probe readouts" meta={hasProbeTruth(A) ? 'predicted vs privileged truth' : 'diagnostics; truth not recorded in this replay'}>
+    <Pane key="probe" cap={CAPS.probe} title="Probe readouts" meta={hasProbeTruth(A) ? 'predicted vs privileged truth' : 'diagnostics; truth not recorded in this replay'}>
       {hasProbeTruth(A) ? <ProbeTruth {...p} /> : <ProbeTracks {...p} />}
     </Pane>,
   );
   const vids = videoCandidates(entry, videos);
-  if (vids.length) out.push(<Pane key="video" title="Video" meta={vids[0].exact ? 'linked by the recorder' : 'matched by file name: check the label'}><VideoPanel vids={vids} /></Pane>);
-  out.push(<Pane key="evidence" title="Evidence" meta="the original eval row, the reproduction check and provenance" lazy={false}><Evidence sides={sides} /></Pane>);
+  if (vids.length) out.push(<Pane key="video" cap={CAPS.video} title="Video" meta={vids[0].exact ? 'linked by the recorder' : 'matched by file name: check the label'}><VideoPanel vids={vids} /></Pane>);
+  out.push(<Pane key="evidence" cap={CAPS.evidence} title="Evidence" meta="the original eval row, the reproduction check and provenance" lazy={false}><Evidence sides={sides} /></Pane>);
   return out;
 }
 

@@ -125,6 +125,7 @@ function StatusGrid({ rs }: { rs: Row[] }) {
         {rs.map((r, i) => <a key={i} href={href('knowledge', { tab: 'roadmap', q: `#${str(r.n)}` })} title={`${r.n ? `#${str(r.n)} ` : ''}${str(pick(r, 'status', 'state'))}: ${str(pick(r, 'question', 'item', 'title'))}`} style={{ width: 18, height: 12, background: col(st(r)) }} />)}
       </div>
       <div className="legend">{statuses.map((s) => <span key={s}><i className="sw" style={{ background: col(s) }} />{s} {rs.filter((r) => st(r) === s).length}</span>)}</div>
+      <p className="fig-cap">one square per item in document order · colour: recorded status · hover: number, status and question</p>
     </div>
   );
 }

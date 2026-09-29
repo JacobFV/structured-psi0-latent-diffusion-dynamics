@@ -125,6 +125,7 @@ function Psi0Bars({ runs }: { runs: Row[] }) {
           );
         })}
       </div>
+      <p className="fig-cap">rows: Ψ₀ run (rel = released checkpoint reproduction, s2 = step 2) · bar: success rate, line: 95% CI · k/n episodes · ◐ interim (hover: reason)</p>
     </section>
   );
 }

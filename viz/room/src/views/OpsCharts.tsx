@@ -37,6 +37,7 @@ export default function OpsCharts() {
             <Lines title={<b>project CPU cores</b>} data={data} xKey="t" xFormat={clock} height={110} syncId="ops" series={[{ key: 'cores', label: 'cores', color: 'var(--s1)' }]} />
           </div>
         ) : <p className="side-note">no watchdog samples</p>}
+        <p className="fig-cap">x: time of the peer watchdog samples (last 200) · y: GPU and CPU temperature (°C), memory available and project memory (GB), full memory pressure-stall (avg10 %), project CPU cores</p>
       </section>
       <section className="ev-panel">
         <header>Leases · memory<ModeBadge result={live.result} /><span className="meta">bar = current / declared · tick = peak · orange = memory.high</span></header>
@@ -61,6 +62,7 @@ export default function OpsCharts() {
           })}
           {!leases.length && <p className="side-note">no active leases</p>}
         </div>
+        <p className="fig-cap">rows: active lease · bar: current memory / declared memory · black tick: peak · orange tick: memory.high throttle line · red: throttled · right: current / declared GB</p>
       </section>
       <section className="ev-panel">
         <header>Run DAGs<ModeBadge result={dags.result} /><span className="meta">done · running · failed · planned; ETA only where recorded</span></header>
@@ -78,6 +80,7 @@ export default function OpsCharts() {
             );
           })}
         </div>
+        <p className="fig-cap">rows: run DAG (active first) · bar: share of nodes completed (green), running (blue), failed (red) · done/total nodes · ETA only where a track note states one</p>
       </section>
       <section className="ev-panel">
         <header>Broker events<ModeBadge result={live.result} /><span className="meta">{events.length} recent · hover a mark</span></header>
@@ -94,6 +97,7 @@ export default function OpsCharts() {
             ))}
           </svg>
         ) : <p className="side-note">no broker events</p>}
+        <p className="fig-cap">x: time · rows: lease acquired (green), released/expired (grey), admission stop / revoke / throttle / kill (red) · one mark per broker event</p>
       </section>
     </div>
   );

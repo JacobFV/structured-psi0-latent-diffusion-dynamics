@@ -3,7 +3,7 @@
  * delta small multiple. Curated = the decision-referenced comparison files named on each panel. Raw rows (every result
  * found) only behind the sidebar "show data" toggle.
  */
-import { ModeBadge } from '../components/board';
+import { Cap, ModeBadge } from '../components/board';
 import { Heat, type KN } from '../components/matrix';
 import { useDoc, type Envelope } from '../lib/api';
 import { arr, num, rows, str, type Row } from '../lib/format';
@@ -149,6 +149,7 @@ function Go2Contact({ res, eds, result }: { res: Row[]; eds: Row[]; result: Para
           );
         })}
       </svg>
+      <Cap>rows: go2 variant × training seed (pooled = recorded pooled row) · x: forward travel after a halt context edit, edited − unedited (m; more negative = stops more) · ○ contact v1 (D-090) → ● contact v2 (D-113)</Cap>
       <div className="legend small"><span>○ contact v1 → ● contact v2</span>
         {['semantic', 'nosem'].map((v) => { const a = succ.get(`${v}|v1`), b = succ.get(`${v}|v2`); return a && b ? <span key={v} title="R2 (r2_final) success pooled over 3 seeds">{v} R2 success {a.k}/{a.n} → {b.k}/{b.n}</span> : null; })}
       </div>
@@ -199,7 +200,8 @@ function TransferPanel({ rs, result }: { rs: Row[]; result: Parameters<typeof Mo
           <div className="legend">{curves.map(([n, c]) => <span key={n}><i className="sw" style={{ background: c }} />{n}</span>)}</div>
         </div>
       </div>
-      <p className="side-note" style={{ padding: 0 }}>cells: successes of 200 (2 seeds × 100 sealed scenes; colour = rate). † joint adaptation was added after D-135 (D-136) and evaluated on the same sealed scenes; every cell is one sealed run per seed; — = not run.</p>
+      <Cap>heatmap — rows: sealed target body · cols: method (latent zero-shot, flow SFT, refit, joint†, BC zero-shot, BC SFT) at budget b demos · cell: successes / 200 sealed scenes (2 seeds × 100) · colour: success rate · hatched: not run. curves — x: adaptation demos (5, 20, 100; log scale) · y: success rate on the 200 sealed scenes · lines: BC SFT, joint†, refit.</Cap>
+      <p className="side-note" style={{ padding: 0 }}>† joint adaptation was added after D-135 (D-136) and evaluated on the same sealed scenes; every cell is one sealed run per seed; — = not run.</p>
     </section>
   );
 }
@@ -216,24 +218,28 @@ export default function EvidenceMatrix() {
         <section className="ev-panel">
           <header>Legged · contact v2 · success<ModeBadge result={result} /><span className="meta" title="R2 = deployable route, r2_final checkpoints, 3 seeds × 30 episodes; bc and teacher 30 episodes; D-124">summary_contact_v2 · D-124</span></header>
           <Heat rows={leg.bodies} cols={leg.cols} cell={(r, c) => leg.m.get(`${r}|${c}`) ?? null} />
+          <Cap>rows: legged body · cols: route (semfix/nosem = latent R2 final checkpoints, 3 seeds × 30 episodes; bc, teacher = 30 episodes) · cell: success % (hover k/n) · colour: success rate · whisker: Wilson 95% CI</Cap>
         </section>
       )}
       {a6.bodies.length > 0 && (
         <section className="ev-panel">
           <header>Arm v6 · grasp_v2.1 · success<ModeBadge result={result} /><span className="meta" title="teacher v2 + grasp_v2.1 + v6 BC expert; semfix 425/480 vs nosem 314/480 pooled; 2 seeds per variant; D-134">compare_v6 · D-134 · current</span></header>
           <Heat rows={a6.bodies} cols={a6.lines} colLabel={(c) => c.replace('_s', ' s')} cell={(r, c) => a6.m.get(`${r}|${c}`) ?? null} />
+          <Cap>rows: arm body · cols: latent lineage × training seed (v6: teacher v2, grasp_v2.1, v6 BC expert) · cell: success % of 90 (panda, parm6) or 30 (parm5s, parm5l) episodes · colour: success rate · whisker: Wilson 95% CI</Cap>
         </section>
       )}
       {arm.bodies.length > 0 && (
         <section className="ev-panel">
           <header>Arm v1 · grasp_v2 · success<ModeBadge result={result} /><span className="meta" title="deployable success per body and lineage, 2 training seeds, 90 episodes per cell; D-127">compare_gc2_final · D-127</span></header>
           <Heat rows={arm.bodies} cols={arm.lines} colLabel={shortLine} cell={(r, c) => arm.v2.get(`${r}|${c}`) ?? null} />
+          <Cap>rows: arm body · cols: v1 lineage × seed (and the direct BC baseline) under grasp_v2 · cell: success % of 90 (panda, parm6) or 30 episodes · colour: success rate · whisker: Wilson 95% CI</Cap>
         </section>
       )}
       {arm.bodies.length > 0 && (
         <section className="ev-panel">
           <header>Arm v1 · grasp v1 → v2 · Δ success<ModeBadge result={result} /><span className="meta" title="v2 − v1 on the same body, lineage and episodes; ˙ = CI includes 0">realistic grasp physics</span></header>
           <Heat rows={arm.bodies} cols={arm.lines} colLabel={shortLine} cell={(r, c) => arm.v2.get(`${r}|${c}`) ?? null} base={(r, c) => arm.v1.get(`${r}|${c}`) ?? null} />
+          <Cap>rows: arm body · cols: v1 lineage × seed · cell: success change in points from grasp_v1 to grasp_v2 physics on the same episodes (▲ up, ▼ down; ˙ = 95% CI includes 0) · colour: blue up / red down</Cap>
         </section>
       )}
       <TransferPanel rs={rs} result={result} />

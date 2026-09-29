@@ -111,3 +111,8 @@ export function Warn({ text }: { text: unknown }) {
   const s = str(text);
   return s ? <span className="warn-glyph" title={s} aria-label={`caveat: ${s}`}>⚠</span> : null;
 }
+
+/** Figure caption (owner: every figure says what its axes/rows/columns/colour encode and the unit/denominator). */
+export function Cap({ children }: { children: ReactNode }) {
+  return <p className="fig-cap">{children}</p>;
+}

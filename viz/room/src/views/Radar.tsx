@@ -1,5 +1,5 @@
 /** Evaluations → Route radar: the full declared radar (viz/radar_axes.json → /api/radar) and its evidence table. */
-import { ModeBadge } from '../components/board';
+import { Cap, ModeBadge } from '../components/board';
 import RadarChart, { SERIES_COLOR, type RadarDoc } from '../components/RadarChart';
 import { Gate } from '../components/ui';
 import { useDoc, type Envelope } from '../lib/api';
@@ -17,6 +17,7 @@ export default function Radar() {
             <section className="ev-panel">
               <header>Route radar<ModeBadge result={result} /><span className="meta" title={radar.normalization.rule}>{radar.axes.length} declared axes · 0 = floor · 1 = reference</span></header>
               <RadarChart radar={radar} size={520} />
+              <Cap>spokes: declared axes from viz/radar_axes.json (metric, direction, protocol and decision on hover) · radius r: 0 = the axis floor, ring 1 = the reference route's value (BC or teacher, or a declared constant), clamped to 1.5 · lines: routes; a missing value is a gap (no point, no edge) · whiskers: seed range or 95% CI</Cap>
             </section>
             <section className="ev-panel">
               <header>Evidence<span className="meta">value · r (normalized) · spread · source; empty = gap</span></header>
@@ -46,6 +47,7 @@ export default function Radar() {
                   </tbody>
                 </table>
               </div>
+              <Cap>rows: radar axes · cols: routes · cell: raw value (k/n where counted) and r (normalized) · — = gap (hover: reason) · last column: evidence files</Cap>
             </section>
           </div>
         );

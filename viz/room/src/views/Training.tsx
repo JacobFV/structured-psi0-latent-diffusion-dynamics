@@ -160,6 +160,7 @@ function GradHealth({ rs }: { rs: Row[] }) {
           );
         })}
       </div>
+      <p className="fig-cap">one mini chart per run · bars: median gradient norm in each training third (scaled to the largest across runs) · dots: mean update (clip) scale in that third, 0–1</p>
       {show && runs.map((r) => <DataTable key={r.name} rows={[{ run: r.name, median_grad_norm: r.v.median_grad_norm, mean_update_scale: r.v.mean_update_scale, n_logged: r.v.n_logged, last_step: r.v.last_step }]} />)}
     </section>
   );
@@ -232,11 +233,13 @@ function RunCharts({ runs, log }: { runs: Run[]; log: boolean }) {
             ))}
           </div>
         ) : <p className="muted small">No loss series recorded for the selected run(s).</p>}
+        <p className="fig-cap">one chart per logged series · x: training step · y: the logged value as recorded (log scale when chosen and all values are positive) · colour: run · violet dashed verticals: DAgger rounds / gate events</p>
       </Card>
       <Card title="Gradient health" hint="grad norm (clip-active steps shaded, clip_scale < 1) and clip scale on its own axis — never a dual axis">
         <div className="grid g2">
           {keys.includes('grad_norm') ? <Lines title={<b>grad norm</b>} right={shades.length ? <span className="small muted">{shades.length} clip-active interval(s) shaded{multi ? ' (first run)' : ''}</span> : undefined}
             data={merged} xKey="step" series={series('grad_norm')} logY={log} height={200} syncId="train" shades={shades} xLabel="step" /> : <p className="muted small">grad_norm not recorded.</p>}
+          <p className="fig-cap" style={{ gridColumn: '1 / -1', order: 9 }}>x: training step · left: gradient norm (orange bands: steps where clip scale &lt; 1) · right: clip scale (1 = no clipping) · colour: run</p>
           {keys.includes('clip_scale') ? <Lines title={<b>clip scale</b>} data={merged} xKey="step" series={series('clip_scale')} height={200} syncId="train" yDomain={[0, 'auto']} refs={[{ y: 1, label: 'no clip' }]} xLabel="step" /> : <p className="muted small">clip_scale not recorded.</p>}
         </div>
       </Card>
