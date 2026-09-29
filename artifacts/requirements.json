@@ -115,12 +115,12 @@
    "status": "implementing",
    "evidence_paths": [
     "research/decisions.md",
-    "docs/related_repos.md"
+    "research/tracks/psi0.md"
    ],
    "test_command": null,
    "artifact_paths": [],
    "source_revision": "origin/main 2026-09-27 (records refresh, D-123 item 10: from research/decisions.md D-095..D-123 and track notes; a documentation audit, not a re-run)",
-   "limitations": "W10 (psi1z): upstream Psi0 stack reproduces on Isaac 5.1/aarch64 (path-traced) for 3/6 released checkpoints (D-120); step 2 (Psi0 direct vs Psi0 + our structure, matched) running on TabletopGraspMP, no result yet; walking-heavy teleop tasks excluded by the reproduction gate. VLM system II (Qwen3-VL) still smoke-test only",
+   "limitations": "W10 (psi1z): upstream Psi0 stack reproduces on Isaac 5.1/aarch64 (path-traced) for 3/6 released checkpoints (D-120); step 2 on TabletopGraspMP L0: released 20/20, Psi0 direct 19/20, Psi0 + structure 0/20 (D-141, structured route likely has an integration bug, under diagnosis); walking-heavy teleop tasks excluded by the reproduction gate. VLM system II (Qwen3-VL) still smoke-test only",
    "decisions": [
     "D-040",
     "D-098",

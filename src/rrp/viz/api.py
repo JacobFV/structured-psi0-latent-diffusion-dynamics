@@ -47,15 +47,9 @@ def ensure(cfg: Config, name: str, max_age_s: float | None = None) -> Path:
 
 
 def doc_allowed(rel: str, cfg: Config) -> Path | None:
-    """Allowlisted markdown: docs/**, research/**, STATUS.md, README.md, AGENTS.md; psi1z README/notes/decisions."""
+    """Allowlisted markdown: docs/**, research/**, STATUS.md, README.md, AGENTS.md."""
     if not rel or rel.startswith("/") or "\\" in rel or ".." in Path(rel).parts or not rel.endswith(".md"):
         return None
-    if rel.startswith("psi1z/"):
-        sub = rel[len("psi1z/"):]
-        if sub not in ("README.md", "research/notes.md", "research/decisions.md") or not cfg.psi1z:
-            return None
-        p = (cfg.psi1z / sub).resolve()
-        return p if p.is_file() else None
     if not (rel in ("STATUS.md", "README.md", "AGENTS.md") or rel.startswith(("docs/", "research/"))):
         return None
     p = (cfg.repo / rel).resolve()

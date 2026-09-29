@@ -36,8 +36,8 @@ def psi_home() -> Path:
 
 
 def released_run(task: str) -> Path:
-    from rrp.envs.simple import TASKS
-    return psi_home() / "cache/checkpoints/psi0/simple-checkpoints" / TASKS[task.split("/", 1)[-1]][0]
+    from rrp.tasks.spec import SIMPLE_TASKS
+    return psi_home() / "cache/checkpoints/psi0/simple-checkpoints" / SIMPLE_TASKS[task.split("/", 1)[-1]][0]
 
 
 def base_vlm() -> Path:
@@ -223,9 +223,9 @@ def _channel(obs, name):
 
 class Psi0Policy:
     """`psi0_direct` / `psi0_structured` / `psi0_replay` (see module docstring). One instance serves `len(seeds)`
-    parallel envs sequentially (one model; the RTC state is per env)."""
+    parallel envs sequentially (one model; the RTC state is per episode). Nothing heavy happens before `reset`."""
 
-    def __init__(self, kind: str, *, task: str, weights: str = "released", stage_a: str | None = None,
+    def __init__(self, kind: str, *, task: str = "simple/G1WholebodyTabletopGraspMP-v0", weights: str = "released", stage_a: str | None = None,
                  vlm: str | None = None, rtc: bool | None = None, seed: int = 0, nfe: int = 10,
                  entity_override: str | None = None, data_root: str | None = None, device: str = "cuda:0"):
         if kind not in ("psi0_direct", "psi0_structured", "psi0_replay"):
@@ -235,31 +235,33 @@ class Psi0Policy:
         run = released_run(self.task)
         if kind == "psi0_replay":
             self.data_root = Path(data_root or psi_home() / "data/simple") / self.task
+            self.ours, self.rtc = None, False
             source, version = f"replay:{self.task}", "recorded"
         elif kind == "psi0_direct" and weights == "released":
             self.ours, self.rtc = None, True if rtc is None else rtc
             source, version = f"learned:psi0-released/{run.name}/ckpt_40000", f"{run.name}/ckpt_40000"
         else:
-            if kind == "psi0_structured" and not stage_a:
+            if kind == "psi0_structured" and weights and not stage_a:
                 raise ValueError("psi0_structured needs stage_a=<stage_a.pt> (with z_stats.pt next to it)")
             self.ours = dict(arm="direct" if kind == "psi0_direct" else "structured", ckpt=weights, stage_a=stage_a,
                              vlm=vlm or str(base_vlm()))
             self.rtc = False if rtc is None else rtc     # our arms were trained without RTC
-            source, version = f"learned:{weights}", _digest_file(weights)
+            source, version = f"learned:{weights or '<weights>'}", "unhashed"   # sha256 of the weights at reset
         self.run, self.entity_override = run, entity_override
         self.info = _policy_info(kind, source, version, self.task)
         self._server = None
 
     # ------------------------------------------------------------------ Policy
     def reset(self, spec, task, seeds, *, envs=None):
+        import dataclasses
+        if self.ours is not None and not self.ours["ckpt"]:
+            raise ValueError(f"{self.kind} needs weights=<final.pt>")
+        if self.info.version == "unhashed":
+            self.info = dataclasses.replace(self.info, version=_digest_file(self.ours["ckpt"]))
         self._reset_flags = [True] * len(seeds)
         self.seeds = list(seeds)
         if self.kind == "psi0_replay":
-            import pandas as pd
-            self._rows, self._ptr = [], [0] * len(seeds)
-            for e in self.seeds:
-                df = pd.read_parquet(self.data_root / f"data/chunk-{e // 1000:03d}/episode_{e:06d}.parquet")
-                self._rows.append(np.stack(df["action"].to_numpy()).astype(np.float32))
+            self._rows, self._ptr = [self.recorded_rows(e) for e in self.seeds], [0] * len(seeds)
             return
         if self._server is None:
             self._server = build_server(self.run, ours=self.ours, rtc=self.rtc, device=self.device, seed=self.seed)
@@ -267,17 +269,23 @@ class Psi0Policy:
                 self._server.model.entity_override = self.entity_override
         self._prev = [None] * len(seeds)
 
+    def recorded_rows(self, episode: int) -> np.ndarray:
+        """[T, 36] recorded Ψ₀ command rows of a training episode (LeRobot parquet)."""
+        import pandas as pd
+        df = pd.read_parquet(self.data_root / f"data/chunk-{episode // 1000:03d}/episode_{episode:06d}.parquet")
+        return np.stack(df["action"].to_numpy()).astype(np.float32)
+
     def act(self, obs):
         from rrp.policies.base import Act
-        acts = []
-        for i, o in enumerate(obs):
+        acts = {}
+        for i, o in obs.items():
             if _channel(o, "chunk_request")[0] < 0.5:
-                acts.append(Act(command=None))
+                acts[i] = Act(command=None)
                 continue
             if self.kind == "psi0_replay":
                 p = self._ptr[i]; rows = self._rows[i][p:p + TA]; self._ptr[i] = p + TA
-                acts.append(Act(command=None, info=dict(end_of_recording=True)) if len(rows) == 0 else
-                            Act(command=None, chunk=_chunk(rows, o, self.info)))
+                acts[i] = (Act(command=None, info=dict(end_of_recording=True)) if len(rows) == 0 else
+                           Act(command=None, chunk=_chunk(rows, o, self.info)))
                 continue
             srv = self._server
             srv.previous_action = self._prev[i]                     # RTC state per env
@@ -289,8 +297,24 @@ class Psi0Policy:
             info = {}
             if self.kind == "psi0_structured":
                 info["packet_z"] = srv.model.last_z.float().cpu().numpy()[0]
-            acts.append(Act(command=None, chunk=_chunk(chunk, o, self.info), info=info))
+            acts[i] = Act(command=None, chunk=_chunk(chunk, o, self.info), info=info)
         return acts
+
+
+def make_direct(**kw) -> Psi0Policy:
+    """Registry factory: `make_policy("psi0_direct", task=..., weights="released" | <final.pt>)`."""
+    return Psi0Policy("psi0_direct", **kw)
+
+
+def make_structured(**kw) -> Psi0Policy:
+    """Registry factory: `make_policy("psi0_structured", task=..., weights=<final.pt>, stage_a=<stage_a.pt>)`."""
+    kw.setdefault("weights", None)
+    return Psi0Policy("psi0_structured", **kw)
+
+
+def make_replay(**kw) -> Psi0Policy:
+    """Recorded training rows (labels / fidelity; env split="train"). Not a learned policy."""
+    return Psi0Policy("psi0_replay", **kw)
 
 
 def _chunk(rows, obs, info):

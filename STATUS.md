@@ -1,7 +1,7 @@
 # project status — structured-psi0-latent-diffusion-dynamics (formerly relational robot policy)
 Open questions / planned experiments: docs/experiments_roadmap.md (D-126). Stated-but-unimplemented code: docs/intentions_backlog.md (D-123).
 
-Related repository: Ψ₀ line in [psi1z](https://github.com/JacobFV/psi1z); map and decision crosswalk in docs/related_repos.md.
+Ψ₀ line (W10): in this repo since D-140 (`rrp.policies.psi0`, `rrp.envs.simple`); notes research/tracks/psi0.md, P-decisions = appendix P of research/decisions.md.
 
 Updated: 2026-09-27 21:30 PDT (records agent, D-123 item 10). Overall: **in_progress** (not complete). Plan: `docs/strategy.md` (D-094).
 Evidence: `research/reports/evidence_matrix.md`. Decisions: `research/decisions.md` (D-001..D-123). Open intentions: `docs/intentions_backlog.md` (D-123).
@@ -23,7 +23,7 @@ This table mirrors the status column of `docs/strategy.md`.
 | W7 | arm expert (teacher v2, grasp v2/v2.1), then GRPO with anchor evals | running | teacher v2 (D-097), v2 BC (D-102), grasp v2 (D-110), grasp v2.1 + DART diagnosis (D-118), v6dart accepted conditional on the v6 BC expert (D-121); v6 BC 1701 training; grasp_v2 re-eval of old routes running (interim); GRPO not started | research/tracks/armexpert.md |
 | W8 | legged regeneration on contact v2 | running | anymal_c done (D-105; robustness D-112); go2 done (D-113); t1 on sourced-limit w8d under the D-113 gate exception: 39/43 nodes, learned routes mostly fall (interim) | research/tracks/legged8.md |
 | W9 | held-out target bodies; loco-manipulation | planned | not started; top backlog item (D-123 #1) | docs/intentions_backlog.md |
-| W10 | Ψ₀ / SIMPLE benchmark (in psi1z) | running | step 0 (D-104, D-109); step 1: 3/6 released checkpoints reproduce (D-120); step 2 on TabletopGraspMP (released 20/20; direct arm trained; evals wait behind W7, D-121) | psi1z research/notes.md |
+| W10 | Ψ₀ / SIMPLE benchmark (migrated into rrp, D-140) | paused (D-140) | step 1: 3/6 released checkpoints reproduce (D-120); step 2 TabletopGraspMP L0: released 20/20, Ψ₀ direct 19/20, Ψ₀ + structure 0/20 (D-141: structured route likely has an integration bug; diagnosis next) | research/tracks/psi0.md |
 | W11 | rrp as an installable core for psi1z | verified | 2026-09-26, main b7dc677 (rrp.core API 1.0, py3.11 + 3.12); psi1z pin bumped to 68a6657 (P-020) | research/tracks/core.md |
 | W12 | feature-centric coordination (anchor-relative packets, contact-event knots) | implementing | phase A (design + code, no heavy compute); compute after the arm v6 lineages (D-122) | docs/strategy.md W12 |
 | W13 | HUMANOID program (owner top priority) | planned | P0 plan + sealed humanoid split committed (D-138); P1a GPU-sim bake-off and P1b per-body trackers next | research/tracks/humanoid.md |
@@ -56,7 +56,7 @@ Earlier evidence (D-044..D-094) is summarised in the history section below and i
   0.7, push 1.0 m/s, terrain 8 cm) (D-108, D-112). Arm robustness under grasp_v1 was not meaningful (interpenetration, D-108).
 - **Gates (W6).** Tracker, dataset (legged and arm) and policy gates are enforced in code (D-112, D-114). anymal_c and go2 trackers and
   datasets pass; t1 w8d fails CoT/joint margin; g1_src is a real stomper (4.09 BW); arm joint margin report-only on procedural bodies.
-- **Ψ₀ reproduction (W10, psi1z).** The released checkpoints reproduce on our Isaac-5.1/aarch64/path-traced stack for 3 of 6 tasks
+- **Ψ₀ reproduction (W10).** The released checkpoints reproduce on our Isaac-5.1/aarch64/path-traced stack for 3 of 6 tasks
   (TabletopGraspMP 10/10, BendPickMP 10/10, HandoverTeleop 7/10); XMovePick / XMoveBendPick / LocomotionPickBetweenTables do not, consistent
   with a render gap on locomotion cues (D-120). Released TabletopGraspMP 20/20 in step 2 (D-120 addendum). Source: third-party released
   checkpoint (upstream Ψ₀), not our model.
@@ -75,7 +75,7 @@ Never sync into a peer dir with running jobs; never stop another agent's lease.
 | W7 v6 BC expert, seed 1701 (then 1702) | arm agent; `../armexpert_bcv6_launch.sh` (peer, GRASP v2.1) | running since ~20:50 | research/tracks/armexpert.md "v6dart"; condition of D-121 (must match the v2 BC expert) |
 | W7 grasp_v2 re-evaluation of the old arm routes | arm agent; `scripts/armexpert_gc2_reeval.sh` (peer CPU), pass 2 (21 jobs) from 21:07 | running (35/56 cells in D-121) | research/tracks/armexpert.md "D-110 regeneration … re-evaluation" |
 | W7 arm lineage set on v6dart (semfix/nosem × 2 seeds) | arm agent | planned: after the v6 BC passes its condition | D-110 (3), D-121; the v4dart set (`arm_lineage_v2`, 4/100 nodes) is stopped for good (D-110) |
-| W10 step 2 (TabletopGraspMP direct vs structured) | psi0 agent (psi1z) | running / waiting for peer (yields to W7, D-121) | psi1z research/notes.md; step-2 budget ≤ 40 GPU-h (≈2.8 used) |
+| W10 step 2 (TabletopGraspMP direct vs structured) | psi0mig agent | evals done (D-141); structured 0/20 under offline diagnosis | research/tracks/psi0.md |
 | W12 phase A | w12 agent | implementing (host-light) | D-122; phases B–D after the arm v6 lineages |
 | records (this refresh) | records agent | completed on merge | docs/intentions_backlog.md "Repo structure / docs" |
 

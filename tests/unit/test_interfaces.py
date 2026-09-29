@@ -62,7 +62,7 @@ def test_negotiation_declines_with_reasons():
 
 
 def test_declared_but_missing_envs_fail_clearly():
-    with pytest.raises(NotImplementedError, match="architecture.md"):
+    with pytest.raises(ValueError, match="g1_simple"):         # implemented: a wrong body fails before Isaac starts
         make_env("simple", task="x", body="y")
     with pytest.raises(KeyError, match="cw_pointer"):          # implemented: a wrong body fails before the wheel loads
         make_env("computerworld", task="x", body="y")

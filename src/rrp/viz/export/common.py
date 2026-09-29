@@ -27,7 +27,6 @@ class Config:
     wt_root: Path | None = HOME / "work/rrp-wt"  # agent worktrees (local copies of artifacts/runs)
     main_checkout: Path | None = HOME / "work/relational-robot-policy"
     rrp_data: Path | None = HOME / "work/rrp-data"
-    psi1z: Path | None = HOME / "work/psi1z"
     peer: str = "gb10-direct"
     peer_root: str = "/dev/shm/rrp-brandonin"
     live: bool = False
@@ -43,7 +42,6 @@ class Config:
                    wt_root=opt("RRP_VIZ_WT_ROOT", HOME / "work/rrp-wt"),
                    main_checkout=opt("RRP_VIZ_MAIN", HOME / "work/relational-robot-policy"),
                    rrp_data=opt("RRP_VIZ_DATA", HOME / "work/rrp-data"),
-                   psi1z=opt("RRP_VIZ_PSI1Z", HOME / "work/psi1z"),
                    peer=e.get("ROBOT_PEER", "gb10-direct"),
                    peer_root=e.get("RRP_PEER_ROOT", "/dev/shm/rrp-brandonin"))
 
@@ -123,7 +121,8 @@ def p_refs(text: str) -> list[str]:
 
 
 def parse_entries(text: str, source_file: str, prefix: str = "D") -> list[dict]:
-    """Parse '## D-NNN YYYY-MM-DD title' entries (rrp) or '## P-NNN …' (psi1z). Body = markdown up to the next '## '."""
+    """Parse '## D-NNN YYYY-MM-DD title' entries or '## P-NNN …' (the folded psi1z log, appendix P of
+    research/decisions.md). Body = markdown up to the next '## ' or '# ' heading."""
     out, cur, start = [], None, 0
     lines = text.splitlines()
 
@@ -143,7 +142,7 @@ def parse_entries(text: str, source_file: str, prefix: str = "D") -> list[dict]:
             out.append(cur)
 
     for i, ln in enumerate(lines):
-        if ln.startswith("## "):
+        if ln.startswith(("## ", "# ")):
             close(i)
             cur = None
             m = ENTRY_HEAD.match(ln)

@@ -56,9 +56,9 @@ repo; weights, datasets, venvs and runs stay under `~/work/ext`. psi1z never nee
 | `serve_psi0.py`, `serve_ours.py` | `rrp/policies/psi0/__init__.py` (`psi0_direct`, `psi0_structured`, `psi0_replay`) | in-process: the upstream `Server` object supplies image transforms, state/action normalization and RTC; our heads replace `Psi0Model.from_pretrained` exactly as `serve_ours` did; no HTTP server, no port |
 | `structured.py`, `system_i.py` | `rrp/policies/psi0/nets.py` | E / R (system 0) / P, StageA, DirectHead, StructuredHead, ContextTokens; byte-identical math (golden test) |
 | `serve_ours --edit probe:*/random:*` | harness packet hook (`psi0_probe_edit`) | `--edit entity:<name>` = policy option `entity_override` (input channel, not a packet edit) |
-| `features.py`, `data.py`, `compat_psi.py` | `rrp/harness/data/psi0.py` | frozen-VLM feature cache, memmap, `CachedDataset`, replay labels, lerobot PyAV patch |
-| `train.py`, `fit_probes.py`, `openloop_cached.py` | `rrp/harness/train/psi0.py` | `stageA`, `direct`, `structured`, `probes`, `heldout` |
-| `replay_labels.py` | policy `psi0_replay` (recorded rows, source `replay:<task>`) on `simple` (`split="train"`, `render=False`, `sim_mode="mujoco"`) + `LabelRecorder` hook in `rrp/harness/data/psi0.py` | one contact/palm logger (the worker's truth) instead of two; the P-005 diagnostic options (`--vx-override`, `--step-delay`, `--save-frames`) are dropped |
+| `features.py`, `data.py`, `compat_psi.py` | `rrp/policies/psi0/data.py` | frozen-VLM feature cache, memmap, `CachedDataset`, replay labels, lerobot PyAV patch |
+| `train.py`, `fit_probes.py`, `openloop_cached.py` | `rrp/policies/psi0/train.py` | `python -m rrp.policies.psi0.train --arm stageA|direct|structured`, `… probes`, `… heldout` (`rrp train` wiring after S5; harness/cli were off-limits during S4/S5) |
+| `replay_labels.py` | policy `psi0_replay` (recorded rows, source `replay:<task>`) on `simple` (`split="train"`, `render=False`, `sim_mode="mujoco"`) + `LabelRecorder` hook in `rrp/policies/psi0/data.py` (a Hook; imports nothing from harness) | one contact/palm logger (the worker's truth) instead of two; the P-005 diagnostic options (`--vx-override`, `--step-delay`, `--save-frames`) are dropped |
 | `prov.py` | deleted | `rrp.core.provenance` and `rrp.harness.eval.statistics` directly; upstream revisions in `SimpleEnv.spec.provenance` |
 | `openloop.py` | deleted | port of the upstream notebook for the released model (done, notes below); `load_launch_config` moves to `policies/psi0` |
 | `render_calib.py`, `render_sensitivity.py`, `isaac_smoke.py`, `debug_isaac_env.py`, `diag/{cl_audit,factor_test,render_walk,rtc_openloop,vx_oracle}.py` | deleted | finished diagnostics of P-002/P-005/P-007/P-009/P-012; `git show 6f5e2b3:src/psi1z/<name>` in psi1z |
@@ -78,14 +78,14 @@ Recorded numbers in this file and the P-appendix come from the psi1z code path (
 one process). The rrp path uses the same upstream agent, transforms and weights but is verified by unit/golden tests and
 a vibe-check only (D-140: no reproduction runs).
 
-## prep status (2026-09-29, before S3)
-Drafted on `track/psi0mig` as NEW files only (no existing `src/rrp` file touched): `bodies/g1_simple.py`,
-`policies/psi0/{__init__,nets}.py`, `envs/simple/{__init__,compat,worker}.py`, `harness/data/psi0.py`,
-`harness/train/psi0.py`, `scripts/psi0_ext.sh`, extra `psi0` in pyproject, `tests/unit/test_psi0.py` (nets byte-identical
-to psi1z; worker plumbing with a test double). After S3: adapt to the real `Env`/`Policy`/`TaskSpec`/`Act`, register
-`psi0_direct`/`psi0_structured`/`psi0_replay` and `simple` + `simple/<Task>`, wire `rrp train psi0`, point the viz
-exporter at the P-appendix + this note, delete docs/related_repos.md (glossary → architecture.md), README/STATUS/
-AGENTS/strategy pointers, D-entry for the step-2 result (labelled: structured route likely has an integration bug).
+## migration status (2026-09-29)
+Merged on main after S3 (see git log "psi0mig"). Registered: env `simple` (`rrp.envs.simple:make_env`), policies
+`psi0_direct` / `psi0_structured` (+ `make_replay`, not in the registry table), tasks `simple/<Task>` (6). Verified by unit
+tests only (D-140): nets byte-identical to psi1z (goldens), worker RPC and upstream-agent queue semantics against a test
+double, a full `harness.rollout` of `psi0_replay` x `simple` (fake worker) x `simple/<Task>` with the `LabelRecorder` hook,
+negotiation both ways. Not yet run against real Isaac/SIMPLE or real checkpoints from the rrp path.
+Open: `rrp train psi0` / `rrp matrix` CLI wiring (after S5), `psi0_replay` in the POLICIES table (policies/base.py, S4
+owner), structured-arm diagnosis (D-141), psi1z archival (owner approval).
 
 ## resume
 - Checkpoints, features, labels (peer and host): `~/work/ext/runs/psi1z/{train,features,replay_labels}/`; closed-loop

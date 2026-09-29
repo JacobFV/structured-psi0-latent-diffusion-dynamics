@@ -21,7 +21,7 @@ HFM=https://huggingface.co/USC-PSI-Lab/psi-model/resolve/main
 HFD=https://huggingface.co/datasets/USC-PSI-Lab/psi-data/resolve/main
 LEROBOT="lerobot @ git+https://github.com/songlin/lerobot.git@09929d8057b044b53aecaf5c6d7eb71f99e8beb9"
 get() { mkdir -p "$(dirname "$2")"; curl -sSL --retry 5 -C - -o "$2" "$1"; }
-run_of() { PYTHONPATH=$REPO/src python3 -c "from rrp.envs.simple import TASKS; print(TASKS['$1'][0])"; }
+run_of() { PYTHONPATH=$REPO/src python3 -c "from rrp.tasks.spec import SIMPLE_TASKS; print(SIMPLE_TASKS['$1'][0])"; }
 
 cmd=${1:?usage: psi0_ext.sh clone|simple-env|cyclonedds|psi-env|fetch-base|fetch-ckpt|fetch-data ...}; shift
 case $cmd in

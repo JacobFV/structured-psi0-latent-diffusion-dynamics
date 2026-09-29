@@ -164,11 +164,11 @@ tests/         unit/, integration/, browser/, gpu/
 - why → [`research/decisions.md`](research/decisions.md); names → [`research/naming.md`](research/naming.md)
 - agent rules → [`AGENTS.md`](AGENTS.md)
 
-## related repository: psi1z (Ψ₀ + structured packets)
-The Ψ₀ / SIMPLE benchmark (workstream W10) lives in [JacobFV/psi1z](https://github.com/JacobFV/psi1z) (not public; local `~/work/psi1z`). It installs this repo
-as a library (`rrp.core`, pinned by git sha) and never copies its code; shared pieces change here first. Full map, dependency rules
-and the decision crosswalk (rrp D-xxx ↔ psi1z P-xxx): [docs/related_repos.md](docs/related_repos.md). Current W10 status: D-120 in
-[research/decisions.md](research/decisions.md) and psi1z's [research/notes.md](https://github.com/JacobFV/psi1z/blob/main/research/notes.md).
+## the Ψ₀ line (W10)
+Ψ₀ direct and Ψ₀ + structure on Ψ₀'s SIMPLE benchmark are policies (`rrp.policies.psi0`) on the `simple` env
+(`rrp.envs.simple`, Isaac Sim 5.1 in its own venv: `scripts/psi0_ext.sh`, extra `rrp[psi0]`). The separate psi1z repo is
+retired (D-140); its decisions are appendix P of [research/decisions.md](research/decisions.md), its notes and results
+[research/tracks/psi0.md](research/tracks/psi0.md).
 Open questions and planned experiments (what is still uncertain but in scope): [docs/experiments_roadmap.md](docs/experiments_roadmap.md).
 
 ## checkpoints and rollouts

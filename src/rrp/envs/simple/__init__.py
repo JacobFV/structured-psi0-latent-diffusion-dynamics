@@ -30,14 +30,6 @@ import numpy as np
 
 from rrp.envs.simple.worker import LEVELS  # stdlib/numpy only
 
-TASKS = {   # SIMPLE benchmark task -> (released checkpoint run, published L0|L1|L2 successes of 10, step-1 status; P-010)
-    "G1WholebodyTabletopGraspMP-v0": ("g1wholebodytabletopgrasp-v0.simple.flow1000.cosine.lr1.0e-04.b128.gpus8.2603181503", (10, 10, 8), "reproduced 10/10"),
-    "G1WholebodyBendPickMP-v0": ("g1wholebodybendpick-v0.simple.flow1000.cosine.lr1.0e-04.b256.gpus8.2603151312", (10, 10, 10), "reproduced 10/10"),
-    "G1WholebodyHandoverTeleop-v0": ("g1wholebodyhandover-v0.simple.flow1000.cosine.lr1.0e-04.b64.gpus4.2604071507", (7, 7, 10), "reproduced 7/10"),
-    "G1WholebodyXMovePickTeleop-v0": ("g1wholebodyxmovepick-v0.simple.flow1000.cosine.lr1.0e-04.b128.gpus8.2604022205", (10, 10, 6), "not reproduced 0/10 (P-012)"),
-    "G1WholebodyLocomotionPickBetweenTablesTeleop-v0": ("g1wholebodylocomotionpickbetweentablesteleop-v0.simple.flow1000.cosine.lr1.0e-04.b64.gpus4.2604081126", (7, 5, 6), "not reproduced 0/5 (P-015)"),
-    "G1WholebodyXMoveBendPickTeleop-v0": ("g1wholebodyxmovebendpickteleop-v0.simple.flow1000.cosine.lr1.0e-04.b112.gpus7.2604100422", (10, 9, 9), "not reproduced 3/6 (P-016)"),
-}
 CONTROL_HZ = 50.0
 EXEC_HORIZON = 24          # rows the upstream server returns per query (and the agent executes)
 
@@ -76,13 +68,13 @@ class SimpleEnv:
         self._conn = self._accept(start_timeout)
         self.info = self._call("init", task=task, level=level, sim_mode=sim_mode, render=render, instruction=instruction)
         self.joint_names = list(self.info["joint_names"])
-        self._pending = None
+        self._pending, self.last_rejected = None, None
         self._obs = None
         self.spec = self._make_spec(task)
 
     # ------------------------------------------------------------------ Env
     def reset(self, seed: int | None = None):
-        self._pending = None
+        self._pending, self.last_rejected = None, None
         self._obs = self._call("reset", episode=int(seed or 0), split=self.split)
         return self.observe()
 
@@ -90,15 +82,22 @@ class SimpleEnv:
         return _observation(self._obs, self.spec, self.joint_names)
 
     def step(self, command=None):
+        """command None: execute the next queued row. A NativeCommand with group `psi0` is a one-row chunk (it is
+        queued at the agent's next query, like any submitted chunk). A step whose agent needs rows and has none is
+        rejected ("chunk_required"), never silently held."""
         from rrp.envs.base import StepResult
         if command is not None:
             rows = np.asarray(command.groups["psi0"], np.float32).reshape(1, -1)
             self._pending = rows if self._pending is None else np.concatenate([self._pending, rows])
+        executed = self._pending
         try:
             self._obs = self._call("step", rows=self._take_pending())
+            self.last_rejected = None
         except ChunkRequired:
-            return StepResult(observation=self.observe(), time=self._obs["time"], rejected="chunk_required")
-        return StepResult(observation=self.observe(), time=self._obs["time"])
+            self.last_rejected = "chunk_required"
+        return StepResult(observation=self.observe(), qpos=np.asarray(self._obs["joint_qpos"]), time=float(self._obs["time"]),
+                          rejected=self.last_rejected, source="simple_agent",
+                          command=None if executed is None else {"psi0_chunk": executed.tolist()})
 
     def submit_chunk(self, chunk, robot: int = 0, execute_prefix: int | None = None):
         """ActionChunk with group `psi0` [H, 36] (denormalized Ψ₀ units); the first `execute_prefix` rows (default
@@ -165,8 +164,8 @@ class SimpleEnv:
                        bodies=[BodyInfo(robot=0, family="humanoid", key="g1_simple", robot_spec_hash=G.spec_hash())],
                        control_hz=CONTROL_HZ,
                        action_spaces=[ActionSpace(group="psi0", kind="psi0", width=G.ACTION_DIM, rate_hz=CONTROL_HZ,
-                                                  units="rad|m|m/s|flag")],
-                       capabilities=frozenset({"privileged_truth", "render", "chunk_executor", "images", "language", "proprio"}),
+                                                  units="rad|m|m/s|flag (rrp.bodies.g1_simple layout)")],
+                       capabilities=["privileged_truth", "render", "chunk_executor", "images", "language", "proprio"],
                        frame={"units": "m", "up": "+z"},
                        provenance=dict(level=self.info["level"], sim_mode=self.info["sim_mode"], render=self.info["render"],
                                        agent=self.info["agent"], upstream=self.info["upstream"], uid_fixes=self.info["uid_fixes"]))
@@ -174,6 +173,20 @@ class SimpleEnv:
 
 class ChunkRequired(Exception):
     pass
+
+
+def make_env(*, task: str, body: str | list[str] = "g1_simple", seed: int = 0, **kw) -> SimpleEnv:
+    """Registry factory (`make_env("simple", task="simple/<Task>", body="g1_simple", seed=<eval config>)`), reset to
+    `seed`. kw: level, sim_mode, render, instruction, split, log."""
+    if body not in ("g1_simple", ["g1_simple"]):
+        raise ValueError(f"simple has one body, g1_simple; got {body!r}")
+    name = task.split("/", 1)[1] if task.startswith("simple/") else task
+    from rrp.tasks.spec import SIMPLE_TASKS
+    if name not in SIMPLE_TASKS:
+        raise KeyError(f"unknown SIMPLE task {task!r}; known: {sorted(SIMPLE_TASKS)}")
+    env = SimpleEnv(name, **kw)
+    env.reset(seed)
+    return env
 
 
 def _observation(o: dict, spec, joint_names):

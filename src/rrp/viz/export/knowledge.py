@@ -8,7 +8,7 @@ from pathlib import Path
 from .common import (Config, bodies_in, bullets, d_refs, envelope, parse_entries, parse_sections, parse_tables)
 
 DOC_FILES = ("research/decisions.md", "research/reports/evidence_matrix.md", "docs/strategy.md",
-             "docs/experiments_roadmap.md", "docs/intentions_backlog.md", "STATUS.md", "docs/related_repos.md")
+             "docs/experiments_roadmap.md", "docs/intentions_backlog.md", "STATUS.md", "research/tracks/psi0.md")
 _TOKEN = re.compile(r"[A-Za-z0-9_.\-=+/]+")
 _STOP = {"artifacts", "runs", "research", "tracks", "eval", "train", "diag", "val", "summary", "json", "jsonl", "md",
          "policy", "final", "compare", "results", "logs", "data", "none", "shard", "shard0", "part0", "seed", "docs",
@@ -201,12 +201,6 @@ def docs_list(cfg: Config) -> list[dict]:
         p = cfg.repo / name
         if p.exists():
             out.append({"path": name, "title": name, "bytes": p.stat().st_size, "mtime": p.stat().st_mtime})
-    if cfg.psi1z:
-        for name in ("README.md", "research/notes.md", "research/decisions.md"):
-            p = cfg.psi1z / name
-            if p.exists():
-                out.append({"path": f"psi1z/{name}", "title": f"psi1z {name}", "bytes": p.stat().st_size,
-                            "mtime": p.stat().st_mtime})
     return out
 
 

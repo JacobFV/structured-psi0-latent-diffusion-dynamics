@@ -254,3 +254,142 @@ def test_worker_rpc_roundtrip_and_explicit_errors():
 def test_levels_validated():
     with pytest.raises(ValueError, match="level"):
         W.Worker("G1WholebodyTabletopGraspMP-v0", level=3)
+
+
+# ------------------------------------------------------------------ SimpleEnv x psi0_replay x simple/<Task> through harness.rollout
+_FAKE_WORKER = r'''
+import sys, numpy as np
+from multiprocessing.connection import Client
+import os
+from rrp.envs.simple import worker as W
+
+class Fake:
+    """Upstream-agent queue semantics without a simulator: 60-step stand warm-up on MP tasks, one row per step,
+    asks for rows when the queue is empty, TimeLimit at 100 steps, success when >= 40 recorded rows ran."""
+    def __init__(self, task, level=0, **kw):
+        if level not in W.LEVELS:
+            raise ValueError("level")
+        self.task, self.mp = task, task.endswith("MP-v0")
+    def init_info(self):
+        return dict(task=self.task, level=0, sim_mode="fake", mp=self.mp, max_steps=100, agent="Fake",
+                    joint_names=[f"j{i}" for i in range(43)], render="none", uid_fixes=[], compat_log=[], upstream={})
+    def reset(self, episode, split="eval"):
+        self.q, self.n, self.ran, self.warm, self.done = [], 0, 0, (60 if self.mp else 0), False
+        return self._pack()
+    def _need(self):
+        return not self.q and self.warm == 0
+    def _pack(self):
+        return dict(joint_qpos=np.zeros(43, np.float32), image=np.zeros((4, 6, 3), np.uint8), instruction="pick up the box",
+                    psi0_state=np.zeros(32, np.float32), chunk_request=self._need(), step=self.n, time=self.n * 0.02,
+                    done=self.done, stabilize_steps=0)
+    def step(self, rows=None):
+        if rows is not None:
+            assert self._need(), "rows submitted while the queue is not empty"
+            self.q = list(rows)
+        if self.warm:
+            self.warm -= 1
+        elif not self.q:
+            raise W.NeedChunk()
+        else:
+            self.q.pop(0); self.ran += 1
+        self.n += 1
+        self.done = self.n >= 100
+        return self._pack()
+    def truth(self):
+        return dict(source="privileged:sim", success=self.ran >= 40, terminated=False, truncated=self.done,
+                    palm={"left": np.zeros(3), "right": np.ones(3)}, pelvis=np.zeros(7), objects={"target": np.zeros(7)},
+                    contact={"left:target": False, "right:target": self.ran > 10},
+                    contact_point={"left": np.full(3, np.nan), "right": np.ones(3)}, reward=float(self.ran) / 100)
+    def render(self):
+        return np.zeros((4, 6, 3), np.uint8)
+    def close(self):
+        pass
+
+host, port = sys.argv[sys.argv.index("--address") + 1].rsplit(":", 1)
+W.serve(Client((host, int(port)), authkey=bytes.fromhex(os.environ["RRP_SIMPLE_AUTHKEY"])), Fake)
+'''
+
+
+def _fake_env(tmp_path, task, seed, **kw):
+    import sys
+    from rrp.envs.simple import SimpleEnv
+    script = tmp_path / "fake_worker.py"
+    script.write_text(_FAKE_WORKER)
+    env = SimpleEnv(task, worker_cmd=[sys.executable, str(script)], start_timeout=60, **kw)
+    env.reset(seed)
+    return env
+
+
+@pytest.mark.parametrize("task,n_rows,outcome", [("G1WholebodyTabletopGraspMP-v0", 60, "success"),
+                                                  ("G1WholebodyHandoverTeleop-v0", 30, "rejected")])
+def test_replay_rollout_through_simple_env(tmp_path, task, n_rows, outcome):
+    from rrp.harness.rollout import rollout
+    from rrp.policies.base import negotiate
+    from rrp.policies.psi0 import make_replay
+    from rrp.policies.psi0.data import LabelRecorder
+    from rrp.tasks.spec import get_task
+    if N is None:
+        pytest.skip("policies.psi0.data needs torch")
+    pol = make_replay(task=f"simple/{task}")
+    pol.recorded_rows = lambda e: np.full((n_rows, 36), e, np.float32)
+    t = get_task(f"simple/{task}")
+    rec = LabelRecorder(tmp_path / "labels", mp=task.endswith("MP-v0"))
+    eps = rollout(lambda sd: _fake_env(tmp_path, task, sd), pol, t, [0, 1], batch=2, hooks=[rec])
+    assert [e.outcome for e in eps] == [outcome, outcome] and all(e.env_id == "simple" and e.body == "g1_simple" for e in eps)
+    assert eps[0].source == f"replay:{task}" and eps[0].success_public is None
+    if outcome == "rejected":            # 30 recorded rows, then no rows: explicit rejection, never a silent hold
+        assert eps[0].failure_reason == "chunk_required" and eps[0].steps == 31
+    else:                                # MP: 60 stand steps + 40 rows until the fake TimeLimit
+        assert eps[0].steps == 100 and eps[0].success_privileged
+    lab = np.load(tmp_path / "labels" / "episode_000001.npz")
+    assert lab["contact__right"].shape[0] == eps[1].steps - (60 if task.endswith("MP-v0") else 0)
+    env = _fake_env(tmp_path, task, 0)
+    try:
+        sp = env.spec
+        assert sp.action_kinds() == {"psi0"} and sp.bodies[0].robot_spec_hash == G.spec_hash()
+        assert negotiate(pol.info, sp, t).ok
+        other = get_task("simple/G1WholebodyBendPickMP-v0")
+        from rrp.policies.psi0 import make_direct
+        assert any("not in" in r for r in negotiate(make_direct(task=f"simple/{task}").info, sp, other).reasons)
+    finally:
+        env.close()
+
+
+def test_simple_tasks_registered_and_arm_policies_declined():
+    from rrp.envs.base import ActionSpace, BodyInfo, EnvSpec
+    from rrp.policies.base import POLICIES, PolicyInfo, Requirements, negotiate
+    from rrp.policies.psi0 import make_direct, make_structured
+    from rrp.tasks.spec import SIMPLE_TASKS, TASKS
+    assert {f"simple/{k}" for k in SIMPLE_TASKS} <= set(TASKS) and len(SIMPLE_TASKS) == 6
+    assert POLICIES["psi0_direct"] == "rrp.policies.psi0:make_direct" and POLICIES["psi0_structured"] == "rrp.policies.psi0:make_structured"
+    d, s = make_direct(), make_structured()           # construction is cheap: no weights touched before reset
+    assert d.info.source.startswith("learned:psi0-released/") and d.info.variant == "released" and s.info.version == "unhashed"
+    simple = EnvSpec(env_id="simple", backend="isaac_simple", task="simple/G1WholebodyTabletopGraspMP-v0", control_hz=50.0,
+                     bodies=[BodyInfo(robot=0, family="humanoid", key="g1_simple", robot_spec_hash=G.spec_hash())],
+                     action_spaces=[ActionSpace(group="psi0", kind="psi0", width=36, rate_hz=50.0)],
+                     capabilities=["privileged_truth", "render", "chunk_executor", "images", "language", "proprio"])
+    assert negotiate(d.info, simple, TASKS["simple/G1WholebodyTabletopGraspMP-v0"]).ok
+    latent = PolicyInfo("latent", "learned", "v", Requirements(frozenset({"joint_position", "gripper"}),
+                                                              body_families=frozenset({"arm"})))
+    assert any("needs gripper, joint_position; env offers psi0" in r for r in negotiate(latent, simple).reasons)
+    arm = EnvSpec(env_id="mujoco/arm", backend="mujoco", task="pick_place", control_hz=20.0,
+                  bodies=[BodyInfo(robot=0, family="arm", key="panda", robot_spec_hash="h")],
+                  action_spaces=[ActionSpace(group="arm", kind="joint_position", width=7, rate_hz=20.0)],
+                  capabilities=["proprio", "chunk_executor"])
+    r = negotiate(d.info, arm, TASKS["pick_place"]).reasons
+    assert any("needs psi0" in x for x in r) and any("g1_simple" in x for x in r)
+
+
+def test_viz_psi0_reads_the_folded_p_log(tmp_path):
+    from rrp.viz.export.common import Config
+    from rrp.viz.export.psi0 import build_psi0
+    repo = tmp_path / "repo"
+    (repo / "research/tracks").mkdir(parents=True)
+    (repo / "research/decisions.md").write_text(
+        "# decision log\n\n## D-140 2026-09-29 one repo\nbody\n\n# Appendix P: psi1z decisions\nintro\n\n"
+        "## P-012 2026-09-27 XMovePick not reproduced (rrp D-120)\nbody P\n")
+    (repo / "research/tracks/psi0.md").write_text("# track psi0\n| a | b |\n|---|---|\n| 1 | 2 |\n")
+    d = build_psi0(Config(repo=repo, out=tmp_path / "out", wt_root=None, main_checkout=None, rrp_data=None), [])
+    d = d.get("data", d)
+    assert [p["id"] for p in d["p_decisions"]] == ["P-012"] and d["crosswalk"][0]["rrp"] == ["D-120"]
+    assert d["notes_markdown"].startswith("# track psi0") and d["notes_tables"]

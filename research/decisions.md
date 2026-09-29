@@ -1005,6 +1005,23 @@ Owner decision (2026-09-29):
 - Experiments are wound down during the refactor (W13 humanoid, arm diversity, W10); resume steps are in their track notes. New directions are expected afterwards.
 - Rules added to AGENTS.md: no self-reproduction (trust recorded results unless there is concrete suspicion; only small vibe-checks), and aggressive refactoring without file sprawl or compat shims.
 
+## D-141 2026-09-29 W10 step 2 (TabletopGraspMP L0) result recorded; Ψ₀ + structure 0/20 is treated as a probable integration bug, not a verdict on structure (lead)
+The step-2 closed-loop evals finished on the peer on 2026-09-28 but were never written up in psi1z (P-018/P-019 describe the
+design and declarations). Recorded from the raw outputs, no rerun (research/tracks/psi0.md, "state at the D-140 wind-down"):
+10 eval configs x 2 repeats, L0, pt4_iso55, same seeds for every arm.
+- released Ψ₀ ckpt_40000 (upstream weights, RTC as released; third-party, not our model): 20/20, Wilson [0.84, 1.00].
+- Ψ₀ direct (our matched fine-tune, no RTC): 19/20, [0.76, 0.99]. Released vs direct: McNemar p = 1.0.
+- Ψ₀ + structure (stage A v2e + structured head, no RTC): 0/20, [0.00, 0.16]; every episode times out; max task reward
+  0.26–0.44; hands do touch the target. Direct − structured +0.95, Newcombe [0.70, 0.99], McNemar exact p = 3.8e-6.
+Reading (lead): the structured route most likely has an integration bug: it fails every episode while the same trunk,
+data and budget fine-tune to 19/20 in the direct arm. This is NOT evidence against the structure hypothesis (D-098) and
+must not be cited as such. D-140's no-reproduction rule does not block debugging here (concrete suspicion). Next, offline
+first: packet → action mapping, action normalization/units, chunk timing vs Ψ₀'s 30-step chunk, hand/assembly order,
+open-loop replay of demonstrated actions through the stage-A encoder/realizer and through the structured head's sampling;
+then at most a tiny peer vibe-check. P-018 packet edits stay on hold until the structured arm works.
+Also recorded: probes on E(demonstrated chunk) beat the metadata-only control on hand distance (1.2 vs 2.5 cm), contact
+(78.0 vs 65.5%) and target position (2.0 vs 2.5 cm), not on active hand (67.4 vs 73.1%).
+
 # Appendix P: psi1z decisions P-001..P-023 (folded 2026-09-29, D-140)
 
 The Ψ₀ line lived in the separate repo psi1z (github.com/JacobFV/psi1z, archived; last commit 6f5e2b3) from D-100 until

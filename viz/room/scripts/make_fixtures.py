@@ -145,7 +145,7 @@ dump("physics", env("physics",
 dump("psi0", env("psi0",
     runs=[dict(run="fixture_run", task="FIXTURE task", level=None, k=3, n=10, rate=0.3, ci=list(wilson(3, 10)), interim=True, interim_reason="FIXTURE")],
     p_decisions=[dict(id="P-001", date="2026-09-20", title="FIXTURE P-decision", body="FIXTURE body linking D-000.", refs_d=["D-000"])],
-    crosswalk=[dict(rrp=["D-000"], psi1z=["P-001"], topic="FIXTURE: informs", source_file="docs/related_repos.md", line=1)],
+    crosswalk=[dict(rrp=["D-000"], psi1z=["P-001"], topic="FIXTURE: informs", source_file="research/decisions.md", line=1)],
     p_to_d_table=[], rrp_w10_decisions=[], notes_tables=[], notes_markdown="FIXTURE notes", readme_markdown="FIXTURE readme", missing=[]))
 dump("knowledge", env("knowledge",
     decisions=[dict(id=f"D-{i:03d}", date=f"2026-09-{20 + i % 8:02d}", title=f"FIXTURE decision {i}", refs_p=[], workstreams=[], paths=[],

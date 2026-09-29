@@ -18,7 +18,7 @@ Each layer imports only layers above it in this list (checked by `tests/unit/tes
 | 1 | `rrp.bodies` | procedural + imported bodies (arms, grippers, aloha, legged, humanoids, G1 hands), catalog/registry, compiler to MuJoCo, IK, surgery/variants, **physics versions** (contact, grasp contact, actuator; was `physics/`) | mujoco |
 | 2 | `rrp.tasks` | task graph compiler/runtime/receipts/interventions (numpy/pydantic), task JSON specs, the `TaskSpec` registry (which envs a task exists in, success/termination, scripted teacher key, gates) | – |
 | 3 | `rrp.envs` | `Env` protocol, `EnvSpec`, capabilities, `make_env` registry; `mujoco/` (Session, LeggedSession, DualSession, scenes, sensors, state estimation, perturbations, embedded legged trackers, snapshots), `warp/` (batched GPU legged envs), `simple/` (optional extra), `computerworld/` (optional extra) | mujoco, mujoco_warp, torch (trackers) |
-| 4 | `rrp.policies` | `Policy` protocol, `PolicyInfo`, `Requirements`, `negotiate`, registry; `features/` (featurizers: the ONLY definition of what a policy may see), `nets/` (shared torch modules: attention, flow, codec, backbone, probes, checkpoint), `bc.py`, `latent/` (system i planners + system 0 realizers for arm, dual, legged), `trackers.py`, `teachers/` (scripted / privileged, labelled), `oracle.py`, `psi0/` (to be filled by the Ψ₀ migration) | torch |
+| 4 | `rrp.policies` | `Policy` protocol, `PolicyInfo`, `Requirements`, `negotiate`, registry; `features/` (featurizers: the ONLY definition of what a policy may see), `nets/` (shared torch modules: attention, flow, codec, backbone, probes, checkpoint), `bc.py`, `latent/` (system i planners + system 0 realizers for arm, dual, legged), `trackers.py`, `teachers/` (scripted / privileged, labelled), `oracle.py`, `psi0/` (Ψ₀ direct / Ψ₀ + structure / demo replay, their nets, feature cache and training) | torch |
 | 5 | `rrp.harness` | `rollout` (the one episode loop), `evaluate`/`matrix`, hooks (packet edits, perturbations, recorders), statistics, gates, audits; `data/` (collect, pack, manifests), `train/` (rep, flow, bc, refit, dagger, sft, grpo, ppo), pipelines + run-dag | – |
 | 6 | `rrp.viz` | record/replay, the room exporter (`python -m rrp.viz.export`, file scans only), the workbench service `viz.workbench` (was `service/`) | fastapi (extra) |
 | 7 | `rrp.cli` | the `rrp` command (`python -m rrp.cli ...`; kept at the top so every documented invocation stays valid) | – |
@@ -324,19 +324,19 @@ realizer output; dual multi-featurizer; packet serialization) and must stay byte
 | S3 | `envs.base` (Env, EnvSpec, capabilities, registry) implemented by the MuJoCo sessions and the Warp env; `policies.base` (Policy, Requirements, negotiate, registry); `tasks` registry; SIMPLE/ComputerWorld declared in the registries → **Ψ₀ and ComputerWorld agents can start here** | 3 h | done (this commit) |
 | S4 | policy adapters (bc, latent arm/dual, legged latent/bc on the `legs` space, teachers, one oracle, trackers); delete duplicate envs | 4 h | refactor lead (touches `policies/**`, `envs/**`) |
 | S5 | port the eval loops onto `harness.rollout` (S3) + hooks, arm/dual first, legged last; delete the duplicates; legged judge; `rrp eval` / `rrp matrix`; golden traces of tiny episodes (a few ticks, procedural bodies) | 5 h | parallel agent (touches `harness/**`, `cli/**`; not `policies/**`) |
-| S6 | scripts/dags/configs pruning, CLI consolidation, README/STATUS/related_repos, viz exporter check | 2 h | – |
+| S6 | scripts/dags/configs pruning, CLI consolidation, README/STATUS, viz exporter check | 2 h | – |
 
 Running work is paused (D-140); unmerged track branches rebase onto the new paths using the move table that each
 stage's commit message and section 10 record.
 
 ## 9. hand-off for the Ψ₀ and ComputerWorld agents (S3 is on main: start here)
 
-Ψ₀ migration (psi1z → rrp):
-- [ ] `rrp/bodies`: G1 + Dex3 36-d command morphology from `psi1z/body_g1.py` as a `RobotSpec` + the static tables (`node_static`, `relation_matrix`, `asm_static`); key `g1_simple`.
-- [ ] `rrp/envs/simple.py` with `make_env(*, task, body, seed, **kw)` (the registry already points at it): `SimpleEnv(Env)`: runs SIMPLE (Isaac Sim 5.1, its own venv) behind a local RPC boundary (127.0.0.1); `psi1z.simple_compat` import hooks move with it; `reset(seed)` = eval episode config (task, DR level, index) + WBC stabilization; action space `psi0` width 36 at 50 Hz (the decoupled WBC stays inside the env); observation = head RGB image, 43-d `joint_qpos` as `measured_node_state`, `instruction`; privileged truth = palm/object poses and contacts (labels only); success from SIMPLE's `_success`.
-- [ ] `rrp/policies/psi0/` exposing `make_direct(**kw)` / `make_structured(**kw)` (registered names `psi0_direct`, `psi0_structured`): `psi0_direct` (upstream Ψ₀ action head over the 30×36 chunk) and `psi0_structured` (packet z[5, 6, 64] + realizer), both `Policy`s emitting `Act.chunk`/`Act.packet`; features cache, `train.py` → `rrp train` stages; checkpoints stay outside git.
-- [ ] `rrp/tasks/spec.py` (tasks sit below envs; judges are duck-typed on the env): `simple/<Task>` TaskSpecs (TabletopGraspMP, BendPickMP, HandoverTeleop, ...), judge = SIMPLE success.
-- [ ] fold P-xxx decisions into `research/decisions.md` keeping their P-numbers; archive psi1z read-only with a pointer here.
+Ψ₀ migration (psi1z → rrp; done, map in research/tracks/psi0.md):
+- [x] `rrp/bodies/g1_simple.py`: the G1 + Dex3 36-d command morphology tables and `spec_hash()` (the G1 is simulated inside SIMPLE, so there is no compiled `RobotSpec`); key `g1_simple`.
+- [x] `rrp/envs/simple/` (`make_env`): `SimpleEnv` drives a SIMPLE worker process (its own venv, Isaac Sim 5.1) over 127.0.0.1; the worker runs the unmodified upstream agent with an injected chunk client; `compat.py` holds the import hooks; action space `psi0` [36] at 50 Hz with capability `chunk_executor`; `chunk_request` / `psi0_state` channels; truth = palms, pelvis, objects, contacts (labels/judging only).
+- [x] `rrp/policies/psi0/` (`make_direct`, `make_structured`, `make_replay`): policies over the upstream `Server` object (transforms, normalization, RTC); `nets.py`, `data.py` (feature cache, dataset, `LabelRecorder` hook), `train.py` (`python -m rrp.policies.psi0.train`; `rrp train` wiring with S5).
+- [x] `rrp/tasks/spec.py`: `simple/<Task>` for the six benchmark tasks (`SIMPLE_TASKS`: released run, published rates, step-1 status), judge = SIMPLE `_success` via `env.truth()`.
+- [x] P-001..P-023 folded as appendix P of `research/decisions.md`; notes in `research/tracks/psi0.md`; `docs/related_repos.md` deleted (glossary: section 11). psi1z archived read-only after owner approval.
 
 ComputerWorld (track cworld, research/tracks/cworld.md):
 - [x] optional extra `computerworld = ["computerworld==0.2.0"]` (PyPI abi3 wheel incl. aarch64; no Rust build).
@@ -415,3 +415,19 @@ Other deleted scripts: `git show a951398^:scripts/<name>`.
 Legacy on-disk data: dataset/DAgger pickles written before D-140 reference `rrp.data.features.PolicyInput`;
 `rrp.harness.data.collect.load_pickle` (used by `read_episode` and the generator-DAgger loader) remaps it. Checkpoints
 store state dicts and plain containers (no rrp classes), so they load unchanged.
+
+## 11. glossary (names that are easy to confuse; was docs/related_repos.md)
+
+| name | what it is | what it is NOT |
+|---|---|---|
+| **rrp** | this repository and its Python package (`import rrp`) | – |
+| **structured-psi0-latent-diffusion-dynamics** | the GitHub name of this repo (renamed 2026-09-25, D-030) | not the Ψ₀ upstream |
+| **relational-robot-policy** | the local folder name of this repo (`~/work/relational-robot-policy`) | not a different repo |
+| **Ψ₀ / psi0** | the UPSTREAM humanoid VLA + SIMPLE benchmark (physical-superintelligence-lab/Psi0, arXiv 2603.12263), used unmodified from `~/work/ext` | not our code; never edited (compat is import-time hooks in `rrp.envs.simple.compat`) |
+| **psi1z** | the former separate repo of the Ψ₀ line (D-100 .. D-140), github.com/JacobFV/psi1z, archived; its code is `rrp.policies.psi0` / `rrp.envs.simple` now | not a fork of Ψ₀ |
+| **system i / system 0** | OUR architecture: system i generates the latent packet z; system 0 (realizer) turns z into native commands | "system 0" has nothing to do with Ψ₀ (psi-zero) |
+| **packet / z** | the structured latent z[knots × assemblies × 64] passed from system i to system 0 | not Ψ₀'s action tokens |
+| **SIMPLE** | Ψ₀'s humanoid benchmark (MuJoCo physics + Isaac Sim rendering), env `simple` | not our MuJoCo scenes |
+| **D-xxx / P-xxx** | decisions in `research/decisions.md`; P-xxx = the folded psi1z log (appendix P, closed) | – |
+| `~/work/ext/runs/psi1z/` | historical directory name of Ψ₀ checkpoints, features and eval outputs (kept; paths in records point there) | not a code location |
+

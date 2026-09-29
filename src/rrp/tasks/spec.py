@@ -99,3 +99,36 @@ register_task(TaskSpec("locomotion", {"warp/legged": {}}, 20.0, lambda env, t, T
 for _name, _budget in [("cw/calc_sum", 15.0), ("cw/open_type", 12.0), ("cw/drag_window", 8.0), ("cw/fill_form", 20.0)]:
     register_task(TaskSpec(_name, {"computerworld": {}}, _budget, lambda env, t, T: env.cw_judge(t, T),
                            teacher=f"teacher:{_name}"))
+
+
+# ------------------------------------------------------------------ Ψ₀ SIMPLE benchmark (W10, D-140; research/tracks/psi0.md)
+# task -> released SIMPLE-finetuned Ψ₀ run (HF USC-PSI-Lab/psi-model), published successes of 10 at DR level 0|1|2, and
+# the step-1 reproduction status on our Isaac 5.1 / aarch64 / path-traced stack (P-010, P-012, P-015, P-016).
+SIMPLE_TASKS: dict[str, tuple[str, tuple[int, int, int], str]] = {
+    "G1WholebodyTabletopGraspMP-v0": ("g1wholebodytabletopgrasp-v0.simple.flow1000.cosine.lr1.0e-04.b128.gpus8.2603181503", (10, 10, 8), "reproduced 10/10"),
+    "G1WholebodyBendPickMP-v0": ("g1wholebodybendpick-v0.simple.flow1000.cosine.lr1.0e-04.b256.gpus8.2603151312", (10, 10, 10), "reproduced 10/10"),
+    "G1WholebodyHandoverTeleop-v0": ("g1wholebodyhandover-v0.simple.flow1000.cosine.lr1.0e-04.b64.gpus4.2604071507", (7, 7, 10), "reproduced 7/10"),
+    "G1WholebodyXMovePickTeleop-v0": ("g1wholebodyxmovepick-v0.simple.flow1000.cosine.lr1.0e-04.b128.gpus8.2604022205", (10, 10, 6), "not reproduced 0/10 (P-012)"),
+    "G1WholebodyLocomotionPickBetweenTablesTeleop-v0": ("g1wholebodylocomotionpickbetweentablesteleop-v0.simple.flow1000.cosine.lr1.0e-04.b64.gpus4.2604081126", (7, 5, 6), "not reproduced 0/5 (P-015)"),
+    "G1WholebodyXMoveBendPickTeleop-v0": ("g1wholebodyxmovebendpickteleop-v0.simple.flow1000.cosine.lr1.0e-04.b112.gpus7.2604100422", (10, 9, 9), "not reproduced 3/6 (P-016)"),
+}
+
+
+def simple_judge(env, t: float, max_seconds: float) -> Judgement:
+    """SIMPLE ends its own episodes (TimeLimit over the task's max_episode_steps, stabilization included, as upstream);
+    success is SIMPLE's `_success` (simulator truth: success_privileged; SIMPLE has no public success estimator). A
+    step that needed a chunk and got none (e.g. a replay that ran out of recorded rows) ends the episode as rejected."""
+    if getattr(env, "last_rejected", None):
+        tr = env.truth()
+        return Judgement(True, "rejected", env.last_rejected, None, bool(tr["success"]))
+    tr = env.truth()
+    if tr["terminated"] or tr["truncated"] or t >= max_seconds:
+        ok = bool(tr["success"])
+        return Judgement(True, "success" if ok else "timeout", None if ok else "timeout", None, ok)
+    return Judgement(False)
+
+
+for _task, (_run, _pub, _status) in SIMPLE_TASKS.items():
+    register_task(TaskSpec(f"simple/{_task}", {"simple": {}}, 20.0, simple_judge,
+                           gates=dict(published_success_of_10=_pub, released_run=_run, step1=_status),
+                           note="judge reads env.truth(); episode budget = SIMPLE's own TimeLimit (<= 16 s at 50 Hz)"))

@@ -1,5 +1,6 @@
-"""/api/psi0: the Ψ₀ line (psi1z): P-decisions, the D ↔ P crosswalk, notes tables, and the small result files copied
-from the peer into ~/work/rrp-data/viz/psi1z (rsync of summary files only, `--sync-psi1z`)."""
+"""/api/psi0: the Ψ₀ line (W10): the P-decisions (appendix P of research/decisions.md, folded from psi1z by D-140), the
+D ↔ P links from their headings, the track note research/tracks/psi0.md, and the small result files copied from the
+peer's ~/work/ext/runs/psi1z/cl (historical dir name) into ~/work/rrp-data/viz/psi1z (summary files only, `--sync-psi1z`)."""
 from __future__ import annotations
 
 import json
@@ -7,7 +8,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from .common import Config, d_refs, envelope, p_refs, parse_entries, parse_tables, wilson
+from .common import Config, envelope, parse_entries, parse_tables, wilson
 
 SYNC_INCLUDE = ("episodes.jsonl", "eval_stats*", "summary.json", "result.json")
 SYNC_LIMIT_BYTES = 50 * 1024 * 1024
@@ -111,42 +112,23 @@ def run_rows(cfg: Config) -> list[dict]:
 
 
 def build_psi0(cfg: Config, rrp_decisions: list[dict]) -> dict:
-    srcs = []
-    pz = cfg.psi1z
-    pdec, notes_tables, readme, notes_md, pcross = [], [], None, None, []
-    if pz and pz.is_dir():
-        t = _read(pz / "research/decisions.md")
-        if t:
-            pdec = parse_entries(t, "psi1z/research/decisions.md", "P")
-            for e in pdec:
-                e["refs_d"] = d_refs(e["title"] + " " + e["body"])
-            for tab in parse_tables(t, "psi1z/research/decisions.md")[:1]:
-                pcross.append(tab)
-            srcs.append(pz / "research/decisions.md")
-        notes_md = _read(pz / "research/notes.md")
-        if notes_md:
-            notes_tables = parse_tables(notes_md, "psi1z/research/notes.md")
-            srcs.append(pz / "research/notes.md")
-        readme = _read(pz / "README.md")
-        if readme:
-            srcs.append(pz / "README.md")
-    crosswalk = []
-    rr = _read(cfg.repo / "docs/related_repos.md") or ""
-    for tab in parse_tables(rr, "docs/related_repos.md"):
-        if [h.lower() for h in tab["header"]][:2] == ["rrp", "psi1z"]:
-            for r in tab["rows"]:
-                crosswalk.append({"rrp": d_refs(r[0]) or [r[0]], "psi1z": p_refs(r[1]) or [r[1]],
-                                  "topic": r[2] if len(r) > 2 else None, "source_file": "docs/related_repos.md",
-                                  "line": tab["line"]})
+    dec = cfg.repo / "research/decisions.md"
+    pdec = parse_entries(_read(dec) or "", "research/decisions.md", "P")
+    crosswalk = [{"rrp": e["refs_d"], "psi1z": [e["id"]], "topic": e["title"], "source_file": e["source_file"],
+                  "line": e["line"]} for e in pdec if e["refs_d"]]
+    note = cfg.repo / "research/tracks/psi0.md"
+    notes_md = _read(note)
+    notes_tables = parse_tables(notes_md, "research/tracks/psi0.md") if notes_md else []
+    srcs = [dec] + ([note] if notes_md else [])
     w10 = [{"id": d["id"], "date": d["date"], "title": d["title"], "refs_p": d["refs_p"], "source_file": d["source_file"],
             "line": d["line"]} for d in rrp_decisions
            if d["refs_p"] or "W10" in d["workstreams"] or "Ψ₀" in d["title"] or "psi" in d["title"].lower()]
     runs = run_rows(cfg)
-    return envelope("psi0", cfg, [str(s) for s in srcs] + ["docs/related_repos.md"] +
+    return envelope("psi0", cfg, [str(s) for s in srcs] +
                     ([str(local_dir(cfg))] if runs else []),
                     notes=["Released-checkpoint runs are upstream Ψ₀ (third-party), not our model (D-120).",
                            "Result files are local copies of small peer files (rsync of summary.json / result.json / "
                            "episodes.jsonl / eval_stats only); count_from says which file gave k/n."],
-                    p_decisions=pdec, crosswalk=crosswalk, p_to_d_table=pcross, rrp_w10_decisions=w10,
-                    notes_tables=notes_tables, notes_markdown=notes_md, readme_markdown=readme, runs=runs,
+                    p_decisions=pdec, crosswalk=crosswalk, p_to_d_table=[], rrp_w10_decisions=w10,
+                    notes_tables=notes_tables, notes_markdown=notes_md, readme_markdown=None, runs=runs,
                     n_runs=len(runs), missing=[] if runs else ["no local psi1z result copies (run --sync-psi1z)"])

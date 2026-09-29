@@ -68,8 +68,6 @@ def _fixture(root: Path) -> Config:
     (repo / "docs/strategy.md").write_text("# strategy\n## 2. Workstreams\n| id | workstream | owner | depends on | "
                                            "status |\n|---|---|---|---|---|\n| W1 | Physics | contact agent | — | "
                                            "running (D-105) |\n### W1 Physics realism (running)\nbody\n")
-    (repo / "docs/related_repos.md").write_text("# related\n## decision crosswalk\n| rrp | psi1z | topic |\n|---|---|---|\n"
-                                                "| D-105 | P-006 | admission |\n")
     (repo / "research/reports/evidence_matrix.md").write_text("# evidence\n")
     (repo / "research/tracks/legged8.md").write_text("# legged8\nDAG legged_v2_go2 ETA 2026-09-28 06:00 (stated).\n")
     # results
@@ -119,7 +117,7 @@ def _fixture(root: Path) -> Config:
         {"id": "r1", "family": "legged", "file": "legged/r1.json.gz", "n_frames": 3, "fps": 30}]}))
     (data / "viz/replays/legged").mkdir()
     (data / "viz/replays/legged/r1.json.gz").write_bytes(b"x")
-    return Config(repo=repo, out=root / "out", wt_root=None, main_checkout=None, rrp_data=data, psi1z=None,
+    return Config(repo=repo, out=root / "out", wt_root=None, main_checkout=None, rrp_data=data,
                   peer="nonexistent-peer-for-tests")
 
 
