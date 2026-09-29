@@ -115,3 +115,13 @@ HUMANOID_RECIPES["h1_clock_gpu_r2"] = _ft("h1", "artifacts/runs/humanoid_p1b_h1_
 # the first batch (count 1e-4); fixed (count 1e6). r2b = same with the fix and alpha fixed at 0.5 (less abrupt).
 HUMANOID_RECIPES["h1_clock_gpu_r2b"] = _ft("h1", "artifacts/runs/humanoid_p1b_h1_r1/actor_iter649.pt", alpha_schedule="fixed:0.5")
 HUMANOID_RECIPES["t1_clock_gpu_r2"] = _ft("t1", "artifacts/runs/humanoid_p1b_t1_r1/actor.pt")
+
+# r3 (2026-09-29): h1 r2b in C MuJoCo (full self-collision): turn fixed (1.10) but push no-fall 0.5, waypoint 15/20 fell, joint
+# margin -0.02, peak force 3.75 BW -- trained with no_self_collision (legs pass through each other). r3 = r2b + the new default
+# GPU adaptation leg_cross_collision (code default since this commit) + joint-limit hinge x2.
+HUMANOID_RECIPES["h1_clock_gpu_r3"] = _ft("h1", "artifacts/runs/humanoid_p1b_h1_r1/actor_iter649.pt", alpha_schedule="fixed:0.5",
+                                          reward_set=_TURN + _CLOCK.replace("limit_margin=-1.0", "limit_margin=-2.0")
+                                          + ",yaw_progress_cap=1.0,yaw_overshoot=-2.0,stand_vel=-3.0")
+HUMANOID_RECIPES["t1_clock_gpu_r2"] = _ft("t1", "artifacts/runs/humanoid_p1b_t1_r1/actor.pt", alpha_schedule="fixed:0.5",
+                                          reward_set=_TURN + _CLOCK.replace("limit_margin=-1.0", "limit_margin=-2.0")
+                                          + ",yaw_progress_cap=1.0,yaw_overshoot=-2.0,stand_vel=-3.0")
