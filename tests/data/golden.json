@@ -1,0 +1,17 @@
+{
+ "arm.featurizer.reset": "14163e9f0d23d7e1bbeca80a",
+ "arm.featurizer.t25": "c043cebb4d9a9ff445658324",
+ "arm.obs.reset": "dcbdd8c3e6319af8ab9e9fac",
+ "arm.teacher.commands": "d2245fb0f6db1783e0f12046",
+ "arm.teacher.qpos": "e1ae45ed22f933fc95449521",
+ "arm.truth.t25": "c4b10e04cb5c10a1347565b7",
+ "bc.chunk": "1c9a452ecb75f0635e56db2c",
+ "dual.featurizer.reset": "4b0e52424da1dea2ec970c57",
+ "dual.teacher.commands": "984b042d69f734b31322f517",
+ "dual.teacher.qpos": "5c1850f66edc106c000ccdda",
+ "latent.packet.meta": "e5bd646e43534972cc601b15",
+ "latent.packet.z": "747b7ba8d657b2dbc87e3c27",
+ "latent.system0.commands": "7438c3d1465f2617a2f2e861",
+ "latent.system0.qpos": "40a2ffdbd385b6cf0166ff91",
+ "packet.bytes": "a02d88f66fe5c46a852294ff"
+}
