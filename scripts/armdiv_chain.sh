@@ -3,6 +3,7 @@
 # SEQUENTIAL and each uses --max-parallel-gpu 1. Every step checks its exit code; a failed step stops the chain
 # (bounded; no automatic retries beyond node `retries`). Resume: rerun this script (completed nodes are skipped by the
 # ledgers; a completed step's run-dag returns immediately).
+#   (smoke nodes use >= 100 steps: OneCycleLR divides by zero on ~20)
 #   systemd-run --user --unit rrp-armdiv-chain --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiv \
 #     --working-directory=$HOME/work/rrp-wt/armdiv bash scripts/armdiv_chain.sh
 set -uo pipefail
@@ -20,7 +21,7 @@ for s in $STEPS; do
       ssh gb10-direct "test -s $P/repo/artifacts/packed/latent_pp_v7div_s1_H16/meta.json" || { log "pack not done"; exit 1; }
       log "pack done: $(ssh gb10-direct "du -sh $P/repo/artifacts/packed/latent_pp_v7div_s1_H16 | cut -f1")" ;;
     bcsmoke)  dag dags/armdiv_bc_v7div_smoke.yaml || exit 1 ;;
-    lsmoke)   dag dags/arm_lineage_v7div_smoke.yaml --max-parallel 3 || exit 1 ;;
+    lsmoke)   dag dags/arm_lineage_v7div_smoke.yaml --max-parallel 3 --retry-failed || exit 1 ;;
     bc1701)   dag dags/armdiv_bc_v7div.yaml --point seed=1701 --max-parallel 3 || exit 1 ;;
     lin_sf1)  dag dags/arm_lineage_v7div.yaml --point variant=semfix,seed=1 --max-parallel 3 || exit 1 ;;
     lin_rest) dag dags/arm_lineage_v7div.yaml --max-parallel 3 || exit 1 ;;

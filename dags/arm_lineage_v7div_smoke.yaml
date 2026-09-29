@@ -20,15 +20,15 @@ lists:
 nodes:
   stageA: {config: {params: {steps: 30}}}
   F0: {config: {params: {steps: 30, snapshot_every: 10}}}
-  Fft: {config: {params: {steps: 20, snapshot_every: 10}}}
-  rzbcdag1: {config: {params: {steps: 20}}}
-  rzbcdag1long: {config: {params: {steps: 20}}}
-  rzbcdag2: {config: {params: {steps: 20}}}
-  rzgendag1: {config: {params: {steps: 20}}}
-  rzgendag2: {config: {params: {steps: 20}}}
-  rzgendag3: {config: {params: {steps: 20}}}
-  Fgdag1: {config: {params: {steps: 20, snapshot_every: 10}}}
-  Fgdag2h: {config: {params: {steps: 20, snapshot_every: 10}}}
+  Fft: {config: {params: {steps: 100, snapshot_every: 50}}}
+  rzbcdag1: {config: {params: {steps: 100}}}
+  rzbcdag1long: {config: {params: {steps: 100}}}
+  rzbcdag2: {config: {params: {steps: 100}}}
+  rzgendag1: {config: {params: {steps: 100}}}
+  rzgendag2: {config: {params: {steps: 100}}}
+  rzgendag3: {config: {params: {steps: 100}}}
+  Fgdag1: {config: {params: {steps: 100, snapshot_every: 50}}}
+  Fgdag2h: {config: {params: {steps: 100, snapshot_every: 50}}}
   bc1: {config: {options: {episodes: 1}}}
   bc2: {config: {options: {episodes: 1}}}
   bc3: {config: {options: {episodes: 1}}}
