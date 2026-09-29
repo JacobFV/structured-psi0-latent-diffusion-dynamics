@@ -8,14 +8,14 @@
 #   bc_label  its label; grasp_contact: the data's grasp contact version (v6dart: v2.1)
 # The SET_IN_CHILD_DAG placeholders make every node fail at its missing inputs before any compute.
 # Design:
-# - grpo (per variant x seed): rrp.training.latent_grpo on system i only (system 0 = rep_ref, frozen; the deployed pair),
+# - grpo (per variant x seed): rrp.harness.train.latent_grpo on system i only (system 0 = rep_ref, frozen; the deployed pair),
 #   reward = privileged sim success (training signal only), KL 0.05 to the pre-GRPO flow, budget = {budget} new control
 #   transitions, eval every 2 iterations (~13k transitions) on 64 held-out dev seeds of the GRPO body, a policy_it<N>.pt at each eval.
 #   Anchors: the pre-GRPO checkpoint and each GRPO checkpoint are evaluated with the lineage's R2 harness on the ORIGINAL
 #   training bodies $anchor_bodies (30 feasible dev seeds each); regression = pooled drop > 0.10 or any body > 0.20;
 #   action stop keeps the last non-regressed weights as policy.pt (anchor_report.json).
 # - grpo_bc (global): the same GRPO objective, groups, SDE sampler, KL, reward, seeds, anchors and budget on the
-#   direct-action BC expert (rrp.training.adapt method grpo; budget counter new_transitions; checkpoints and anchor
+#   direct-action BC expert (rrp.harness.train.adapt method grpo; budget counter new_transitions; checkpoints and anchor
 #   checks at budget/4, budget/2, budget) = the fair baseline.
 # - final evaluations: the finalevals sets of the lineage (panda_pg2 / parm6_tf3, 3 x 30 dev seeds) plus the held-out
 #   source bodies, for GRPO latent and GRPO BC, on the same harness (ladder routes generated / learned).

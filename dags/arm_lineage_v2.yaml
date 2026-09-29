@@ -28,7 +28,7 @@ defaults:
 nodes:
   # Resources (lead 08:05): declare measured peak memory + 20% so the broker admits correctly. Peaks = cgroup
   # memory.peak of the lease slice (page cache included), sampled by scripts/armv2_mem_sampler.sh into
-  # artifacts/runs/armv2/_dags/arm_lineage_v2/memory_peaks.json and, from the next code push, logged by rrp.orchestration.child.
+  # artifacts/runs/armv2/_dags/arm_lineage_v2/memory_peaks.json and, from the next code push, logged by rrp.ops.child.
   # cpu 2 for GPU-training nodes (lead 08:55: flows and Stage A measured ~1.0 core; threads only feed data prep).
   # gpu_mem = measured process GPU memory (nvidia-smi) + margin. max_seconds = the broker's 6 h cap on GPU nodes (06:05:
   # under contention Stage A ran at 1.28 s/step and was stopped at 4 h). None of this enters the node config hashes.

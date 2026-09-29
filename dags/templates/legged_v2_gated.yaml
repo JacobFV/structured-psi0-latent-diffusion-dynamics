@@ -5,7 +5,7 @@
 # (the installed contact_v2 tracker's full sha256) and vars.sigmas (the body's DART sigmas). The placeholder sha256 below
 # makes the first node (`validate`) refuse at once, before any compute.
 # Protocol, recipe, seeds and suites = dags/legged_v2_go2.yaml (D-090 protocol, W8 D-105 / D-113), with GATES ENFORCED (D-112, D-114):
-# - `validate` (global, first): stage validate_tracker = rrp.evaluation.tracker_validation protocol v2 + the W6 robustness trial on
+# - `validate` (global, first): stage validate_tracker = rrp.harness.eval.tracker_validation protocol v2 + the W6 robustness trial on
 #   the installed tracker, after checking its sha256 against the declaration. A tracker-gate FAIL fails the node (exit 86, no
 #   retries) and blocks everything downstream. Resources: 1 CPU, 4G (1.35 x the measured 2.63 GB peak of the 6-tracker
 #   backfill, host lease 1790542233_95f525; D-117).

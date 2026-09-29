@@ -1,4 +1,4 @@
-# D-126 (NOT RUN; ready to launch when the lead schedules it): tracker recipe t1_turn_latency_ft (rrp.training.tracker_recipes; rationale,
+# D-126 (NOT RUN; ready to launch when the lead schedules it): tracker recipe t1_turn_latency_ft (rrp.harness.train.tracker_recipes; rationale,
 # cost and gate in the recipe's _what/_why/_cost fields). Launch: rrp run-dag dags/d126_tracker_t1_turn_latency_ft.yaml (peer; D-115).
 # Resources are ESTIMATES (workers + 1 CPU; ~0.35 GB per worker + 2 GB): measure a 20-iteration smoke first and redeclare >= 1.35 x peak (D-117).
 extends: templates/tracker_recipe_gated.yaml

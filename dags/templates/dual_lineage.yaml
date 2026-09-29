@@ -1,9 +1,9 @@
 # TEMPLATE for the FIRST dual-arm learned models (D-126 #33; W12 phase B/C, research/tracks/w12.md §8). Not run by
 # anyone yet: a child DAG `dags/dual_<name>.yaml` does `extends: templates/dual_lineage.yaml` and sets name / labels.
 # Recipe = the arm semfix/nosem recipe (bounded NLL -4 for semfix), zero_prev_action TRUE (B-1 fix; the v1 dual configs in
-# configs/latent/*dualarm*_v1.json predate it and are not used). Data = dual teacher v3 (rrp.teachers.dual_smooth), grasp
+# configs/latent/*dualarm*_v1.json predate it and are not used). Data = dual teacher v3 (rrp.policies.teachers.dual_smooth), grasp
 # contact v2.1, W12 contact labels, phase-gated DART, dual dataset gate ENFORCED (check_dual_dataset; needs record_quality).
-# WAIT for W7's pad-cylinder / gripper-force fix (rrp.physics.grasp_contact) before running collect: under grasp_v2.1
+# WAIT for W7's pad-cylinder / gripper-force fix (rrp.bodies.grasp_contact) before running collect: under grasp_v2.1
 # the peg slips (W12 audit, 6/24 support_insert successes with teacher v2).
 # Dual DAgger does not exist yet (pipelines/dual.py: dagger_collect refuses), so the lineage is Stage A -> flow -> evals.
 #   rrp run-dag dags/dual_<name>.yaml --dry-run

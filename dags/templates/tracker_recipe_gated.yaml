@@ -1,4 +1,4 @@
-# TEMPLATE (D-126 #13/#14/#15; NOT RUN): train a NEW tracker from a named recipe (rrp.training.tracker_recipes), then validate it
+# TEMPLATE (D-126 #13/#14/#15; NOT RUN): train a NEW tracker from a named recipe (rrp.harness.train.tracker_recipes), then validate it
 # through the D-112 tracker gate. Nothing is installed: installing a tracker stays a lead decision (contact.md install rule).
 # A child DAG does `extends: templates/tracker_recipe_gated.yaml` and sets name, lineage, label_prefix, vars.recipe, vars.body
 # and the train node's resources (MEASURE a 20-iteration smoke of the recipe first and declare >= 1.35 x its peak RSS, D-117).
