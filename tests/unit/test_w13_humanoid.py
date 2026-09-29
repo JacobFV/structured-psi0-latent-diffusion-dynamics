@@ -74,3 +74,26 @@ def test_new_adapters_build_with_pitch_mapping():
         assert [acts[i] for i in b.pitch_idx()[0]] == left
         assert meta["limits_source"] == "menagerie_author" and meta["gain_rule"]
         assert 0.8 < b.nominal_height() < 1.2
+
+
+def test_phum_sampling_deterministic_and_sealed_region_excluded_from_training():
+    from rrp.bodies.humanoid_gen import in_sealed_region, sample_params, sealed_region_seeds, SEALED_SEED_MIN
+    assert sample_params(17) == sample_params(17)
+    assert not any(in_sealed_region(sample_params(s)) for s in range(3000))
+    ss = sealed_region_seeds(2)
+    assert all(s >= SEALED_SEED_MIN and in_sealed_region(sample_params(s)) for s in ss)
+
+
+def test_phum_body_builds_with_legged_contract():
+    from rrp.bodies.legged import legged_body, standalone_model
+    from rrp.envs.legged_core import LeggedBinding
+    for seed in (0, 1, 4):
+        m, _, meta = standalone_model(legged_body(f"phum_{seed}"), contact="v2")
+        b = LeggedBinding(m, meta)
+        assert b.nf == 2 and b.n == 2 * (meta["params"]["leg_dof"])
+        assert meta["synthetic"] and not meta["sealed"] and meta["limits_source"] == "procedural_scaling"
+        acts = meta["legged"]["policy_actuators"]
+        assert [acts[i] for i in b.pitch_idx()[0]] == ["left_hip_pitch", "left_knee", "left_ankle_pitch"]
+        assert 0.3 < b.nominal_height() / meta["params"]["height"] < 0.7
+    _, _, meta = standalone_model(legged_body("phum_9000029"), contact="v2")
+    assert meta["sealed"]

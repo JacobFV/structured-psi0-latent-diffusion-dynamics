@@ -493,6 +493,9 @@ def menagerie_legged(key: str, limits: str | None = None) -> Module:
 
 
 def legged_body(key: str, limits: str | None = None) -> Module:
+    if key.startswith("phum_"):          # W13 procedural humanoid family (rrp.bodies.humanoid_gen), key phum_<seed>
+        from rrp.bodies.humanoid_gen import phum_body
+        return phum_body(int(key.split("_", 1)[1]))
     if key in PROCEDURAL:
         m = PROCEDURAL[key]()
         m.meta["actuator_limits"] = "procedural_params"     # no manufacturer source; limits are the generator's parameters
