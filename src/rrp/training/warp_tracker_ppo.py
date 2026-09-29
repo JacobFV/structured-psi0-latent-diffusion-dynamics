@@ -93,6 +93,7 @@ def build_args(argv=None):
     ap.add_argument("--njmax", type=int, default=320)
     ap.add_argument("--task", default=None, help="None (tracker) | steps (h_steps privileged expert, rrp.envs.warp_task_env)")
     ap.add_argument("--level-every", type=int, default=25, help="task curriculum window (iterations)")
+    ap.add_argument("--level0", type=float, default=0.0, help="initial task curriculum level (e.g. resuming a pre-level-save run)")
     ap.add_argument("--init-shared", default=None, help="warm start the actor from an exported morph_v1 actor.pt (extra inputs zero-init)")
     ap.add_argument("--groups", default=None, help="morph_v1 shared tracker: JSON list of [[body keys], nworld] (or a recipe key)")
     a0, _ = ap.parse_known_args(argv)
@@ -135,7 +136,9 @@ def main(argv=None):
     else:
         env = (env_cls or WarpTrackerEnv)(args.body, args.nworld, seed=args.seed, **ekw)
     task_envs = [e for e in getattr(env, "envs", [env]) if hasattr(e, "set_level")]
-    level = 0.0
+    level = float(args.level0)
+    for e in task_envs:
+        e.set_level(level)
     N, H = env.N, args.horizon
     hidden = tuple(int(h) for h in args.hidden.split(","))
     ac = ActorCritic(env.obs_dim, env.priv_dim, env.nA, hidden=hidden, init_std=args.init_std).to(dev)
@@ -172,6 +175,10 @@ def main(argv=None):
         g = st.get("gate") or {}
         gate.alpha, gate.history = g.get("alpha", gate.alpha), g.get("history", [])
         weights = env.set_alpha(gate.alpha)
+        if st.get("level") and task_envs:                 # task curriculum level (saved since 2026-09-29)
+            level = float(st["level"])
+            for e in task_envs:
+                e.set_level(level)
         print(f"resumed from iter {it0}", flush=True)
     meta = dict(body=args.body or "shared", obs_dim=env.obs_dim, priv_dim=env.priv_dim, act_dim=env.nA, control_dt=env.dt, hidden=list(hidden),
                 kind=env.b.kind, algo="ppo_asymmetric_actor_critic",
@@ -315,7 +322,7 @@ def main(argv=None):
         if it % 10 == 0 or gate_rec:
             print(json.dumps({k: v for k, v in rec.items() if k != "weights"}), flush=True)
         if (it + 1) % args.ckpt_every == 0 or it == args.iters - 1:
-            st = dict(model=ac.state_dict(), opt=opt.state_dict(), iter=it, lr=lr, gate=gate.state())
+            st = dict(model=ac.state_dict(), opt=opt.state_dict(), iter=it, lr=lr, gate=gate.state(), level=level)
             torch.save(st, str(ck) + ".tmp")
             os.replace(str(ck) + ".tmp", ck)
             export_actor(ac, dict(meta, alpha=gate.alpha, reward_weights=weights, gate_history=gate.history[-50:]),
