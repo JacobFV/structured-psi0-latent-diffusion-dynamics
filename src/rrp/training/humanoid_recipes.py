@@ -154,8 +154,10 @@ HUMANOID_RECIPES["h1_steps_gpu_v1"] = _steps("h1", init_shared="artifacts/runs/h
 
 
 def _shared_v2():
+    # all P1b lessons: leg_cross_collision (code default), clock gate, target margin, landing-velocity penalty, R5 reward set
     return _shared(groups=[[[b], 1024] for b in SHARED_POOL_V1] + phum_groups(2, 32, 2048), minibatches=16, teacher_stop=0.3,
-                   reward_set=_TURN + _CLOCK.replace("limit_margin=-1.0", "limit_margin=-2.0") + _FIX + _STAND)
+                   clock_gate=True, target_margin=0.03, land_vel=-2.0,
+                   reward_set=_R5.replace("impact=-2.0", "impact=-4.0").replace("limit_margin=-4.0", "limit_margin=-8.0"))
 
 
 HUMANOID_RECIPES["shared_morph_v2"] = None      # lazy: phum selection runs the generator
