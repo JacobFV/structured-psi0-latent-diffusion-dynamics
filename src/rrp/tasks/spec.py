@@ -58,6 +58,35 @@ def graph_judge(*, dropped_below_m: float | None = None, dropped_body: str = "cu
     return judge
 
 
+def legged_judge() -> Judge:
+    """mujoco/legged episodes (the former harness.eval.legged_latent_eval.run_episode rules). Episodes end only on the
+    env's 10 Hz boundary ticks (`env.boundary`; with the 50 Hz `legs` control most steps are not boundaries): a fall
+    (outcome "fell"), the public task graph completing (success iff privileged success), or the budget (success if the
+    privileged evaluator already holds, else "timeout" with the waypoint stage: drift_a = waypoint a never reached,
+    drift_b = a reached but not b, halt = b reached, halt not completed)."""
+
+    def judge(env, t: float, max_seconds: float) -> Judgement:
+        if not getattr(env, "boundary", True):
+            return Judgement(False)
+        pub = bool(env.runtime.succeeded())
+        if env.fell:
+            return Judgement(True, "fell", "fell", pub, False)
+        if not pub and t < max_seconds:
+            return Judgement(False)
+        priv = bool(env.privileged_success())
+        if priv:
+            return Judgement(True, "success", None, pub, True)
+        if pub:
+            return Judgement(True, "failure", "privileged_failure", True, False)
+        ev = {e: v.status for e, v in env.runtime.instances.items()}
+        done = lambda e: ev.get(e) in ("succeeded", "completed")
+        reason = ("timeout" if "walk_to_a" not in ev else "drift_a" if not done("walk_to_a") else
+                  "drift_b" if not done("walk_to_b") else "halt")
+        return Judgement(True, "timeout", reason, False, False)
+
+    return judge
+
+
 TASKS: dict[str, TaskSpec] = {}
 
 
@@ -82,15 +111,15 @@ for _name, _graph in [("support_insert", "support_and_insert"), ("handover", "ha
                       ("assign_right", "pick_place"), ("pivot_against_surface", "pivot_against_surface"),
                       ("carry_tray_level", "carry_tray_level")]:
     register_task(TaskSpec(_name, {"mujoco/dual": {}}, 40.0, graph_judge(), graph=_graph, teacher=f"teacher:{_name}"))
-register_task(TaskSpec("waypoint_contact", {"mujoco/legged": {}}, 60.0, graph_judge(), graph="waypoint_contact",
+register_task(TaskSpec("waypoint_contact", {"mujoco/legged": {}}, 60.0, legged_judge(), graph="waypoint_contact",
                        teacher="teacher:waypoint_contact",
-                       note="legged fall/drift/halt outcomes: ported from harness.eval.legged_latent_eval.run_episode in S5"))
-register_task(TaskSpec("loco_pick", {"mujoco/legged": {}}, 60.0, graph_judge(), graph="loco_pick",
+                       note="legged_judge: fall / drift_a / drift_b / halt (the former run_episode rules)"))
+register_task(TaskSpec("loco_pick", {"mujoco/legged": {}}, 60.0, legged_judge(), graph="loco_pick",
                        note="teacher is a stub (policies.teachers.legged_loco); no working demonstrator"))
-register_task(TaskSpec("foothold_steps", {"mujoco/legged": {}}, 60.0, graph_judge(), graph="foothold_steps"))
-register_task(TaskSpec("h_steps", {"mujoco/legged": {}, "warp/legged": {}}, 40.0, graph_judge(), graph="h_steps",
+register_task(TaskSpec("foothold_steps", {"mujoco/legged": {}}, 60.0, legged_judge(), graph="foothold_steps"))
+register_task(TaskSpec("h_steps", {"mujoco/legged": {}, "warp/legged": {}}, 40.0, legged_judge(), graph="h_steps",
                        teacher="teacher:h_steps"))
-register_task(TaskSpec("h_gap", {"mujoco/legged": {}, "warp/legged": {}}, 30.0, graph_judge(), graph="h_gap_sidestep",
+register_task(TaskSpec("h_gap", {"mujoco/legged": {}, "warp/legged": {}}, 30.0, legged_judge(), graph="h_gap_sidestep",
                        teacher="teacher:h_gap"))
 register_task(TaskSpec("locomotion", {"warp/legged": {}}, 20.0, lambda env, t, T: Judgement(t >= T, "timeout" if t >= T else None),
                        note="tracker training task: command following, reward-driven (capability reward)"))

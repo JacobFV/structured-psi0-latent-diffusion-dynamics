@@ -14,9 +14,12 @@ from rrp.policies.legged import LatentLeggedController
 
 from ._legged_tiny import row_digest, tiny_bundle
 
-# goldens computed with the pre-D-126 code (origin/main 733b02a) by the same calls
+# goldens computed with the pre-D-126 code (origin/main 733b02a) by the same calls. GOLDEN_LATENT re-recorded in D-140
+# S5e (run_episode on the `legs` space): the policy's trace / adapter stats / failure-stage path now start after the
+# 0.3 s reset settle (stats.fallback -15 ticks, trace -3 samples) and `tracker` names the legs contract; packets,
+# final pose, motion, events and outcomes are unchanged (old vs new rows compared field by field, research/decisions.md)
 GOLDEN_TEACHER = "7f250b18c57b2afdb1d3dbbf5c0177db896251ef4bc7362cc12a3ba8744e741f"
-GOLDEN_LATENT = "3fdfe8beb4030db563e6fb5a0ea04bcfc11d6bdb104aa0a5821803e0902553a5"
+GOLDEN_LATENT = "a3f4d30125a445ce61c9f0b9e60b86753430fabd0ccf27fd18cadce2f64faed6"
 
 
 @pytest.fixture(scope="module")
@@ -171,23 +174,22 @@ def _legs_rollout(policy, seed, max_s):
                    max_seconds=max_s)
 
 
-def test_legs_space_policy_matches_tracker_slot_route(bundle):
-    """D-140 S4: the latent policy on the `legs` action space (rollout) reproduces the former tracker-slot route
-    (run_episode): same packets (probe readouts, norms, poses) and the same per-tick trace after the reset settle."""
+def test_run_episode_is_the_legs_rollout(bundle):
+    """run_episode (policy routes) = the latent policy on the `legs` space through harness.rollout: same per-tick
+    trace, packets, adapter stats and final pose (the former tracker-slot route: D-140 S4 parity, S5e comparison)."""
     from rrp.policies.legged import LeggedLatentPolicy
     old_ctl = _ctl(bundle)
     row, _ = run_episode(old_ctl, "hexapod6", 3, max_s=1.5)
     pol = LeggedLatentPolicy(_ctl(bundle))
     ep = _legs_rollout(pol, 3, 1.5 - 0.3 - 1e-9)[0]          # run_episode's max_s is absolute sim time (0.3 s settle)
-    settle = pol.env.settle_ticks
-    assert ep.steps == len(old_ctl.trace) - settle and ep.source == "learned"
-    assert pol.ctl.trace == old_ctl.trace[settle:]
+    assert ep.steps == len(old_ctl.trace) and ep.source == "learned" and row["n_steps"] * 5 == ep.steps
+    assert pol.ctl.trace == old_ctl.trace
     assert pol.ctl.packets == row["packets"] and len(row["packets"]) > 0
-    assert pol.ad.stats["ticks"] == row["stats"]["ticks"] and pol.ad.stats["packets"] == row["stats"]["packets"]
+    assert pol.ad.stats == row["stats"]
     assert pol.env.base_pose_truth().tolist() == row["final_pose"]
 
 
-def test_legs_space_bc_matches_tracker_slot_route(bundle, tmp_path):
+def test_run_episode_bc_is_the_legs_rollout(bundle, tmp_path):
     from rrp.policies.legged import BCController, LeggedBCPolicy
     from rrp.policies.nets.legged_bc import build
     torch.manual_seed(0)
@@ -198,4 +200,4 @@ def test_legs_space_bc_matches_tracker_slot_route(bundle, tmp_path):
     row, _ = run_episode(old, "hexapod6", 3, max_s=1.5)
     pol = LeggedBCPolicy(BCController(p, torch.device("cpu"), nfe=2, seed=3))
     _legs_rollout(pol, 3, 1.5 - 0.3 - 1e-9)
-    assert pol.ctl.trace == old.trace[pol.env.settle_ticks:] and pol.env.base_pose_truth().tolist() == row["final_pose"]
+    assert pol.ctl.trace == old.trace and pol.env.base_pose_truth().tolist() == row["final_pose"]

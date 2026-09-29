@@ -109,6 +109,14 @@ class SafeTracker:
     def __getattr__(self, k):                      # version, sha256, stats, log, ... of the inner controller
         return getattr(self.inner, k)
 
+    @property
+    def pending(self):                             # `legs` control: the commanded targets live in the inner slot
+        return self.inner.pending
+
+    @pending.setter
+    def pending(self, v):
+        self.inner.pending = v
+
     def reset(self, *a, **k):
         self.layer.reset()
         return self.inner.reset(*a, **k)

@@ -20,11 +20,13 @@ import numpy as np
 
 # ------------------------------------------------------------------ ladder summary
 def wilson(k, n, z=1.96):
-    """Wilson 95% interval rounded to 3 decimals (the ladder-summary format; see rrp.evaluation.statistics.wilson)."""
+    """Ladder-summary format of rrp.harness.eval.statistics.wilson: z=1.96, rounded to 3 decimals, (0, 0) for n == 0.
+    (The former local copy returned -0.0 as the lower bound at k == 0; the shared formula clamps it to 0.0.)"""
+    from rrp.harness.eval.statistics import wilson as _w
     if n == 0:
         return (0.0, 0.0)
-    p = k / n; d = 1 + z * z / n; c = (p + z * z / (2 * n)) / d; h = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
-    return (round(c - h, 3), round(c + h, 3))
+    lo, hi = _w(k, n, z)
+    return (round(lo, 3), round(hi, 3))
 
 
 def ladder_summary(f: str, rows: list[dict]) -> dict:

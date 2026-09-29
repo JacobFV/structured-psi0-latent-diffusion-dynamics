@@ -171,3 +171,24 @@ def test_rrp_eval_cli(tmp_path):
                                                                       (50, "infeasible", "scripted_teacher")]
     summ = json.loads(out.with_suffix(".summary.json").read_text())
     assert summ["attempted"] == 1 and summ["infeasible"] == 1
+
+
+def test_legged_judge_rules():
+    from types import SimpleNamespace as NS
+    from rrp.tasks.spec import legged_judge
+    j = legged_judge()
+
+    def env(boundary=True, fell=False, pub=False, priv=False, ev=None):
+        rt = NS(succeeded=lambda: pub, instances={k: NS(status=v) for k, v in (ev or {}).items()})
+        return NS(boundary=boundary, fell=fell, runtime=rt, privileged_success=lambda: priv)
+    assert not j(env(boundary=False, fell=True), 99.0, 60.0).done          # only on 10 Hz boundary ticks
+    assert (j(env(fell=True), 1.0, 60.0).outcome, j(env(fell=True), 1.0, 60.0).failure_reason) == ("fell", "fell")
+    assert j(env(pub=True, priv=True), 1.0, 60.0).outcome == "success"
+    assert j(env(pub=True), 1.0, 60.0).failure_reason == "privileged_failure"
+    assert not j(env(), 1.0, 60.0).done
+    walk = lambda a, b: {"walk_to_a": a, "walk_to_b": b, "halt": "pending"}
+    for ev, why in ((walk("active", "pending"), "drift_a"), (walk("succeeded", "active"), "drift_b"),
+                    (walk("succeeded", "succeeded"), "halt"), (None, "timeout")):
+        r = j(env(ev=ev), 60.0, 60.0)
+        assert (r.outcome, r.failure_reason) == ("timeout", why)
+    assert j(env(priv=True), 60.0, 60.0).outcome == "success"               # privileged success at the budget

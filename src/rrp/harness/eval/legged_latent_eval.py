@@ -30,10 +30,9 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from rrp.core.action import NativeCommand
-from rrp.policies.features.legged import LeggedMorph, KNOT_TIMES
+from rrp.policies.features.legged import KNOT_TIMES
 from rrp.policies.bundles import _dev
-from rrp.policies.legged import BCAdapter, BCController, LatentLeggedController, OracleShadow, System0Adapter
+from rrp.policies.legged import BCController, LatentLeggedController, System0Adapter
 from rrp.envs.mujoco.legged import LeggedSession, build_waypoint_contact
 from rrp.bodies.contact import model_contact_version
 from rrp.core.runs import parse_seed_spec
@@ -70,57 +69,128 @@ def _limits(model):
     return model_actuator_limits(model)
 
 
+class _LeggedEpisode:
+    """Hooks of one legged episode: deploy options that need the policy's per-episode adapter (packet OOD monitor,
+    safety link, latency timers), and on every 10 Hz boundary tick the long-run recorder, video frames, the boundary
+    count (row n_steps) and the scripted teacher's own stop."""
+
+    def __init__(self, policy, ctl, deploy, dep, rend=None, cam=None, frame_every=2):
+        self.policy, self.ctl, self.deploy, self.dep = policy, ctl, deploy, dep
+        self.rend, self.cam, self.frame_every = rend, cam, frame_every
+        self.frames, self.n = [], 0
+
+    def on_reset(self, i, env, obs):
+        dep, deploy, ad = self.dep, self.deploy, getattr(self.policy, "ad", None)
+        if dep is None or ad is None:
+            return None
+        if deploy.packet_ood != "off" and isinstance(ad, System0Adapter):
+            from rrp.policies.packet_ood import PacketOODModel, PacketOODMonitor
+            model = PacketOODModel.load(Path(deploy.ood_model), expect_lsv=self.ctl.lsv)
+            if model.n_assemblies is not None and model.feature == "packet" and model.n_assemblies != ad.m.M:
+                raise ValueError(f"OOD model for {model.n_assemblies} assemblies, body has {ad.m.M}")
+            dep["ood"] = ad.ood = PacketOODMonitor(model, deploy.packet_ood, deploy.ood_fallback)
+            ad.fallback_mode = deploy.ood_fallback
+        if dep["safety"] is not None:
+            ad.safety = dep["safety"]
+        if deploy.measure_latency:
+            from rrp.harness.eval.deploy_eval import instrument_latency
+            dep["timers"] = instrument_latency(self.ctl, ad)
+        return None
+
+    def on_step(self, i, env, act, step):
+        from rrp.tasks.spec import Judgement
+        if not env.boundary:
+            return None
+        self.n += 1
+        if self.dep is not None and self.dep["rec"] is not None:
+            self.dep["rec"].on_step()
+        if self.rend is not None and self.n % self.frame_every == 0:
+            self.rend.update_scene(env.data, camera=self.cam)
+            st = " ".join(f"{e}:{v.status}" for e, v in env.runtime.instances.items())
+            self.frames.append((self.rend.render().copy(), f"t={env.data.time:.1f}s {st}"))
+        teachers = getattr(self.policy, "teachers", None)
+        long_mode = self.deploy is not None and self.deploy.eval_mode == "long"
+        if teachers and teachers[0].done and not long_mode:
+            return Judgement(True, "timeout", "teacher_done")
+        return None
+
+
+def _episode_task(max_s: float, long_mode: bool):
+    """waypoint_contact with the run_episode budget: `max_s` is ABSOLUTE sim time (incl. the 0.3 s reset settle);
+    long mode never stops at task completion (only at a fall or the budget)."""
+    import dataclasses
+    from rrp.tasks.spec import Judgement, get_task
+    task = get_task("waypoint_contact")
+    base = task.judge
+
+    def judge(env, t, T):
+        if long_mode:
+            if not env.boundary:
+                return Judgement(False)
+            if env.fell:
+                return Judgement(True, "fell", "fell", bool(env.runtime.succeeded()), False)
+            if float(env.data.time) < max_s:
+                return Judgement(False)
+        return base(env, float(env.data.time), max_s)
+    return dataclasses.replace(task, judge=judge, max_seconds=max_s)
+
+
 def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=None, arc_only=False, frame_every=2,
                 cam_scale=1.0, size=(368, 480), perturb=None, deploy=None):
-    """perturb: rrp.envs.perturb.PhysicsPerturbation (W6 robustness sweeps; None = nominal, unchanged behaviour).
-    Every row carries `motion` (rrp.evaluation.motion_quality, read-only recording) and, if perturbed, `perturbation`.
-    deploy: rrp.evaluation.deploy_eval.DeployOptions (D-126: estimator, packet OOD, safety, long runs, latency;
-    None or the default instance = unchanged behaviour and rows)."""
+    """One waypoint_contact episode through harness.rollout. ctl None: the scripted teacher (privileged WaypointTeacher,
+    base_velocity control through the body tracker); a LatentLeggedController / BCController: the policy on the `legs`
+    action space (rrp.policies.legged; 50 Hz joint targets, 10 Hz sensing/runtime/fall schedule unchanged).
+    perturb: rrp.envs.mujoco.perturb.PhysicsPerturbation (W6 robustness sweeps; None = nominal). Every row carries
+    `motion` (read-only recording) and, if perturbed, `perturbation`. deploy: rrp.harness.eval.deploy_eval.DeployOptions
+    (D-126: estimator, packet OOD, safety, long runs, latency; None or the default instance = no options).
+    Rows keep the former fields; since S5 the policy routes' per-tick `trace`, adapter `stats` and the failure-stage
+    path start after the 0.3 s reset settle (research/decisions.md, D-140 S5e)."""
+    from rrp.envs.mujoco.motion_quality import LeggedMotionRecorder
+    from rrp.envs.mujoco.perturb import apply_model, install_legged
+    from rrp.harness.data.contact_metrics import contact_metrics_enabled
+    from rrp.harness.rollout import rollout
     if deploy is not None and deploy.is_default():
         deploy = None
-    if deploy is not None and deploy.eval_mode == "long":
+    long_mode = deploy is not None and deploy.eval_mode == "long"
+    if long_mode:
         max_s = deploy.long_s
-    from rrp.envs.mujoco.perturb import apply_model, install_legged
-    from rrp.envs.mujoco.motion_quality import LeggedMotionRecorder
+    if ctl is None:
+        from rrp.policies.teachers import TeacherPolicy
+        policy = TeacherPolicy("waypoint_contact", options=dict(arc_only=arc_only))
+    elif isinstance(ctl, BCController):
+        from rrp.policies.legged import LeggedBCPolicy
+        policy = LeggedBCPolicy(ctl)
+    else:
+        from rrp.policies.legged import LeggedLatentPolicy
+        policy = LeggedLatentPolicy(ctl, oracle=oracle)
     if scenario is not None:
         sc = scenario
     elif perturb is not None and perturb.terrain_amp_m > 0:
         sc = build_waypoint_contact(body, seed, terrain=perturb.terrain(seed))
     else:
         sc = build_waypoint_contact(body, seed)
-    s = LeggedSession(sc, tracker_kind=default_tracker_kind(body), seed=seed,
-                      **({} if deploy is None else dict(base_state_source=deploy.base_state_source)))
-    trk_sha = getattr(s.tracker, "sha256", None)   # the body tracker (drives the teacher route; label source for ours)
-    pert_rec = None
-    if perturb is not None:
-        b_ = s.binding
-        pert_rec = apply_model(s.model, perturb, robot_bodies=b_.robot_bodies, com_body=b_.root_bid, act_ids=b_.pol_act)
-    from rrp.harness.data.contact_metrics import contact_metrics_enabled
     cfm = contact_metrics_enabled()             # W12 stance-drift keys (RRP_CONTACT_METRICS=1; off = rows unchanged)
-    mrec = LeggedMotionRecorder(s, record_stance=cfm)
-    pst = install_legged(s, perturb if perturb is not None else _NOMINAL, seed, on_substep=mrec.on_substep,
-                         on_tick=mrec.on_tick, on_reset=mrec.on_reset)
-    morph = LeggedMorph(s.model, s.binding, sc.robots[0].robot_spec.spec_hash)
-    is_bc = isinstance(ctl, BCController)
-    ad = (BCAdapter if is_bc else System0Adapter)(ctl, s, morph) if ctl is not None else None
-    teacher = None
-    if ctl is not None:
-        ctl.bind(s, morph)
-        if not is_bc:
-            ctl.oracle = OracleShadow(ctl, s, s.tracker) if oracle else None
-        s.tracker = ad
-    dep = _deploy_setup(s, ctl, ad, deploy) if deploy is not None else None
-    s.reset()
-    if dep is not None and deploy.measure_latency and ad is not None:
-        from rrp.harness.eval.deploy_eval import instrument_latency
-        dep["timers"] = instrument_latency(ctl, s.tracker)
-    if ctl is None:
-        from rrp.policies.teachers.legged import WaypointTeacher
-        teacher = WaypointTeacher(s, arc_only=arc_only)
-    else:
-        ad.armed = True
-    frames = []
-    rend = None
+    made = {}
+
+    def make(sd):
+        s = LeggedSession(sc, tracker_kind=default_tracker_kind(body), seed=seed,
+                          control="base_velocity" if ctl is None else "legs",
+                          **({} if deploy is None else dict(base_state_source=deploy.base_state_source)))
+        pert_rec = None
+        if perturb is not None:
+            b_ = s.binding
+            pert_rec = apply_model(s.model, perturb, robot_bodies=b_.robot_bodies, com_body=b_.root_bid,
+                                   act_ids=b_.pol_act)
+        mrec = LeggedMotionRecorder(s, record_stance=cfm)
+        pst = install_legged(s, perturb if perturb is not None else _NOMINAL, seed, on_substep=mrec.on_substep,
+                             on_tick=mrec.on_tick, on_reset=mrec.on_reset)
+        dep = _deploy_setup(s, ctl, deploy) if deploy is not None else None
+        s.reset()
+        made.update(s=s, mrec=mrec, pst=pst, pert_rec=pert_rec, dep=dep)
+        return s
+
+    s = make(seed)
+    rend = cam = None
     if video is not None:
         import mujoco
         rend = mujoco.Renderer(s.model, *size)
@@ -128,23 +198,14 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
         cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING
         cam.trackbodyid = s.binding.root_bid
         cam.distance, cam.elevation, cam.azimuth = cam_scale * 3.0 * max(0.5, s.binding.nominal_height() / 0.35) ** 0.5, -25, 135
-    zero = NativeCommand(controller_version=s.controller_version(), groups={"base_velocity": [0.0, 0.0, 0.0]},
-                         source="learned")
+    dep = made["dep"]
+    hook = _LeggedEpisode(policy, ctl, deploy, dep, rend, cam, frame_every)
     t0 = time.time()
-    steps = 0
-    while s.data.time < max_s:
-        cmd = teacher.act() if teacher else zero
-        s.step(cmd)
-        steps += 1
-        if dep is not None and dep["rec"] is not None:
-            dep["rec"].on_step()
-        if rend is not None and steps % frame_every == 0:
-            rend.update_scene(s.data, camera=cam)
-            st = " ".join(f"{e}:{v.status}" for e, v in s.runtime.instances.items())
-            frames.append((rend.render().copy(), f"t={s.data.time:.1f}s {st}"))
-        if s.fell or ((s.runtime.succeeded() or (teacher is not None and teacher.done))
-                      and not (dep is not None and deploy.eval_mode == "long")):
-            break
+    ep, = rollout(lambda sd: s, policy, _episode_task(max_s, long_mode), [seed], batch=1, max_seconds=math.inf,
+                  hooks=[hook])
+    if ep.outcome == "crash":
+        raise RuntimeError(f"legged episode crashed ({ep.failure_reason}): {ep.metrics.get('note', '')}")
+    ad = getattr(policy, "ad", None)
     ok = bool(s.privileged_success() and not s.fell)
     src = ("scripted_teacher" + (":arc_only" if arc_only else "")) if ctl is None else (
         f"privileged_oracle_packet:{ctl.lsv}" if oracle else (
@@ -155,10 +216,10 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
                public_success=bool(s.runtime.succeeded()), sim_time=float(s.data.time), wall_s=time.time() - t0,
                events={e: v.status for e, v in s.runtime.instances.items()},
                final_pose=s.base_pose_truth().tolist(), waypoints=sc.meta["waypoints"],
-               tracker=getattr(s, "tracker_version_str", None), n_steps=steps,
+               tracker=getattr(s, "tracker_version_str", None), n_steps=hook.n,
                contact_version=model_contact_version(s.model) or sc.meta.get("contact_model"),
-               tracker_sha256=trk_sha, actuator_limits=_limits(s.model))
-    from rrp.core.provenance import Source, parse_legacy_source, stamp_source_label
+               tracker_sha256=getattr(s.body_tracker, "sha256", None), actuator_limits=_limits(s.model))
+    from rrp.core.provenance import parse_legacy_source, stamp_source_label
     lab = parse_legacy_source(src)                  # sl-1 canonical label: a no-op unless RRP_SOURCE_LABELS=canonical
     stamp_source_label(row, lab.kind, f"privileged_packet:{ctl.lsv}" if src.startswith("privileged_oracle_packet")
                        else lab.detail)
@@ -175,34 +236,27 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
         row["actuator_mode"] = ar
     if dep is not None:
         row.update(_deploy_row(dep, deploy, ctl, ad))
+    mrec, pst = made["mrec"], made["pst"]
     row["motion"] = mrec.summary()
     if cfm:
         from rrp.harness.data.contact_metrics import legged_contact_motion
         row["motion"].update(legged_contact_motion(mrec.stance_trace()))
     if perturb is not None:
-        row["perturbation"] = dict(perturb.to_dict(), applied=pert_rec, terrain=sc.meta.get("terrain"),
+        row["perturbation"] = dict(perturb.to_dict(), applied=made["pert_rec"], terrain=sc.meta.get("terrain"),
                                    actuator=(pst["actuator"].params if pst["actuator"] is not None else None),
                                    push=(pst["push"].record() if pst["push"] is not None else None))
-    return row, frames
+    return row, hook.frames
 
 
-def _deploy_setup(s, ctl, ad, deploy) -> dict:
-    """D-126: attach the non-default deployment options to a built session (before reset)."""
+def _deploy_setup(s, ctl, deploy) -> dict:
+    """D-126: attach the non-default deployment options to a built session (before reset). The options that need the
+    policy's per-episode adapter (packet OOD, the safety link, latency) are attached by _LeggedEpisode.on_reset."""
     from rrp.harness.eval.deploy_eval import LongRunRecorder, SafeTracker, make_safety
     dep = dict(ood=None, safety=None, rec=None, timers=None)
-    if deploy.packet_ood != "off" and isinstance(ad, System0Adapter):
-        from rrp.policies.packet_ood import PacketOODModel, PacketOODMonitor
-        model = PacketOODModel.load(Path(deploy.ood_model), expect_lsv=ctl.lsv)
-        if model.n_assemblies is not None and model.feature == "packet" and model.n_assemblies != ad.m.M:
-            raise ValueError(f"OOD model for {model.n_assemblies} assemblies, body has {ad.m.M}")
-        dep["ood"] = ad.ood = PacketOODMonitor(model, deploy.packet_ood, deploy.ood_fallback)
-        ad.fallback_mode = deploy.ood_fallback
     layer = make_safety(s, deploy)
     if layer is not None:
         dep["safety"] = layer
         s.tracker = SafeTracker(s.tracker, s, layer)
-        if ad is not None:
-            ad.safety = layer
     if deploy.eval_mode == "long" or deploy.base_state_source == "estimator":
         dep["rec"] = LongRunRecorder(s, deploy.window_s)
     if deploy.record_packets and ctl is not None and hasattr(ctl, "record_z"):
