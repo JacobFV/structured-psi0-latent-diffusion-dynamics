@@ -141,3 +141,11 @@ _STAND = ",stand_contact=2.0,stand_still=-1.0,impact=-0.5"
 HUMANOID_RECIPES["h1_clock_gpu_r4"] = _ft("h1", "artifacts/runs/humanoid_p1b_h1_r3/actor_r3final.pt", alpha_schedule="fixed:0.5",
                                           teacher_stop=0.3,
                                           reward_set=_TURN + _CLOCK.replace("limit_margin=-1.0", "limit_margin=-2.0") + _FIX + _STAND)
+
+# v3 from-scratch recipes for the remaining pool bodies (all lessons: leg_cross_collision default, yaw fixes, standing, impact)
+for _b in ("g1", "op3", "apollo", "adam_lite"):
+    HUMANOID_RECIPES[f"{_b}_clock_gpu_v3"] = _clock(_b, teacher_stop=0.3, reward_set=_TURN + _CLOCK.replace("limit_margin=-1.0",
+                                                                                                       "limit_margin=-2.0") + _FIX + _STAND)
+HUMANOID_RECIPES["h1_steps_gpu_v1"] = _steps("h1", init_shared="artifacts/runs/humanoid_p1b_h1_r4/actor.pt", init_std=0.3, iters=1500,
+                                             reward_set=_TURN + _CLOCK.replace("limit_margin=-1.0", "limit_margin=-2.0") + _FIX,
+                                             alpha_schedule="fixed:0.5")
