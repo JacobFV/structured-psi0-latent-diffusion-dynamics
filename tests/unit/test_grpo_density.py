@@ -3,10 +3,10 @@ import math
 import pytest
 import torch
 
-from rrp.training.flow_sde import (SDEConfig, SDEPath, diffusion_schedule, gaussian_transition_log_prob,
+from rrp.harness.train.flow_sde import (SDEConfig, SDEPath, diffusion_schedule, gaussian_transition_log_prob,
                                    path_log_prob, sample_sde, transition_mean)
-from rrp.training.grpo import GRPOConfig, GRPOLearner, group_advantages
-from rrp.training.synthetic import TinyVel
+from rrp.harness.train.grpo import GRPOConfig, GRPOLearner, group_advantages
+from rrp.harness.train.synthetic import TinyVel
 
 
 def test_gaussian_log_density_is_not_flow_mse():

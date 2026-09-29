@@ -5,10 +5,10 @@ import numpy as np
 
 import torch
 
-from rrp.training.flow_sde import SDEConfig, path_log_prob, gaussian_path_kl
-from rrp.training.latent_grpo import LatentSDEPolicy, latent_collate
-from rrp.models.flow import FlowPolicy, PolicyConfig
-from rrp.envs.fixtures import make_pick_place_session
+from rrp.harness.train.flow_sde import SDEConfig, path_log_prob, gaussian_path_kl
+from rrp.harness.train.latent_grpo import LatentSDEPolicy, latent_collate
+from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
+from rrp.envs.mujoco.fixtures import make_pick_place_session
 
 DZ, K = 8, 4
 
@@ -86,8 +86,8 @@ def test_latent_path_likelihood_ratio_padding_and_kl():
 
 def test_batched_system0_matches_per_session_tick():
     import copy
-    from rrp.controllers.latent_realizer import LatentRealizer, LatentSystem0
-    from rrp.training.latent_grpo import batched_ticks
+    from rrp.policies.system0 import LatentRealizer, LatentSystem0
+    from rrp.harness.train.latent_grpo import batched_ticks
     torch.manual_seed(1)
     m = _policy()
     R = LatentRealizer(DZ, width=32, heads=2, layers=1)

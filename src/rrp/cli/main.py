@@ -21,8 +21,8 @@ def _parse_bytes(s: str) -> int:
 
 # ---------------------------------------------------------------- ops
 def cmd_ops_init(a):
-    from rrp.orchestration.runtime import measure_and_budget, config_path, repo_root
-    from rrp.orchestration.cgroup import SystemdUserBackend
+    from rrp.ops.runtime import measure_and_budget, config_path, repo_root
+    from rrp.ops.cgroup import SystemdUserBackend
     role = a.role
     m = measure_and_budget(role, repo_root(), window_s=a.window)
     b = m["budget"]
@@ -50,8 +50,8 @@ def cmd_ops_init(a):
 
 
 def cmd_ops_watchdog(a):
-    from rrp.orchestration.runtime import make_broker, load_config, repo_root, node_role
-    from rrp.orchestration.watchdog import WatchdogConfig, run_loop
+    from rrp.ops.runtime import make_broker, load_config, repo_root, node_role
+    from rrp.ops.watchdog import WatchdogConfig, run_loop
     role = node_role()
     cfg = load_config()[role]
     br, be = make_broker(require_watchdog=False)
@@ -78,7 +78,7 @@ def cmd_ops_watchdog(a):
 def cmd_ops_start_watchdog(a):
     """Start the watchdog as an owned user service inside rrp.slice (small, 0.1 CPU)."""
     import subprocess
-    from rrp.orchestration.runtime import repo_root, node_role
+    from rrp.ops.runtime import repo_root, node_role
     unit = f"rrp-watchdog-{node_role()}.service"
     r = subprocess.run(["systemctl", "--user", "is-active", unit], capture_output=True, text=True)
     if r.stdout.strip() == "active":
@@ -96,11 +96,11 @@ def cmd_ops_start_watchdog(a):
 
 
 def cmd_ops_run(a):
-    from rrp.orchestration.runtime import run_leased
+    from rrp.ops.runtime import run_leased
     cmd = a.cmd[1:] if a.cmd and a.cmd[0] == "--" else a.cmd
     if not cmd:
         raise SystemExit("no command")
-    from rrp.orchestration.runtime import mem_declaration_warning
+    from rrp.ops.runtime import mem_declaration_warning
     w = mem_declaration_warning(a.label, _parse_bytes(a.mem))
     if w:
         print(f"[rrp ops run] WARNING {w}", file=sys.stderr, flush=True)
@@ -115,9 +115,9 @@ def cmd_ops_run(a):
 
 
 def cmd_ops_status(a):
-    from rrp.orchestration.runtime import make_broker, node_role
-    from rrp.orchestration.cgroup import SystemdUserBackend
-    from rrp.orchestration import telemetry
+    from rrp.ops.runtime import make_broker, node_role
+    from rrp.ops.cgroup import SystemdUserBackend
+    from rrp.ops import telemetry
     br, be = make_broker(require_watchdog=False)
     t = br.totals()
     leases = {k: v for k, v in br.leases().items() if v["state"] in ("active", "revoke_requested")}
@@ -132,15 +132,15 @@ def cmd_ops_status(a):
 
 
 def cmd_ops_shrink(a):
-    from rrp.orchestration.runtime import make_broker
+    from rrp.ops.runtime import make_broker
     br, _ = make_broker(require_watchdog=False)
     print(json.dumps(br.shrink(a.lease, memory_bytes=_parse_bytes(a.mem) if a.mem else None,
                                gpu_memory_bytes=_parse_bytes(a.gpu_mem) if a.gpu_mem else None, cpu_cores=a.cpu)))
 
 
 def cmd_ops_stop(a):
-    from rrp.orchestration.runtime import stop_owned
-    from rrp.orchestration.cgroup import SystemdUserBackend, job_unit
+    from rrp.ops.runtime import stop_owned
+    from rrp.ops.cgroup import SystemdUserBackend, job_unit
     if not a.owned_only:
         raise SystemExit("refusing: pass --owned-only (this tool never stops unrelated processes)")
     if a.lease:
@@ -156,7 +156,7 @@ def cmd_ops_stop(a):
 
 
 def cmd_ops_discover(a):
-    from rrp.orchestration.discovery import discover
+    from rrp.ops.discovery import discover
     res = discover(a.peer)
     txt = json.dumps(res, indent=1)
     if a.write:
@@ -166,8 +166,8 @@ def cmd_ops_discover(a):
 
 
 def cmd_doctor(a):
-    from rrp.orchestration.runtime import measure_and_budget, repo_root
-    from rrp.orchestration import telemetry
+    from rrp.ops.runtime import measure_and_budget, repo_root
+    from rrp.ops import telemetry
     import platform
     m = measure_and_budget(a.role, repo_root(), window_s=a.window)
     m["platform"] = platform.platform()

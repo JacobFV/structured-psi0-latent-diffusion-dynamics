@@ -8,10 +8,10 @@ import copy
 
 import numpy as np
 
-from rrp.teachers.dual import SupportInsertTeacher
+from rrp.policies.teachers.dual import SupportInsertTeacher
 from rrp.bodies.variants import registered_variants
-from rrp.envs.dual import DualSession
-from rrp.envs.dual_scenarios import build_support_insert
+from rrp.envs.mujoco.dual import DualSession
+from rrp.envs.mujoco.dual_scenarios import build_support_insert
 
 
 def _session():

@@ -333,7 +333,7 @@ def _foot_site(spec: mujoco.MjSpec, model: mujoco.MjModel, data: mujoco.MjData, 
 def menagerie_legged(key: str, limits: str | None = None) -> Module:
     """limits: actuator torque-limit version ('sourced_v1' default | 'legacy_gains_v0'); None -> $RRP_ACTUATOR_LIMITS or default.
     sourced_v1 replaces the gains-table effort of every joint listed in rrp.physics.actuator.SOURCED by the manufacturer value."""
-    from rrp.physics.actuator import resolve_limits, sourced_effort
+    from rrp.bodies.actuator import resolve_limits, sourced_effort
     limits = resolve_limits(limits)
     info = LEGGED_ASSETS[key]
     path = MENAGERIE / info["dir"] / info["file"]
@@ -538,7 +538,7 @@ def legged_world(name: str, source_options: dict | None = None, *, size: float =
     `terrain` (W6; default None = flat plane, unchanged): {"amp_m": A, "seed": S[, "half_m", "cell_m", "bump_sigma_m"]}
     replaces the plane by a heightfield of small bumps (`bump_heights`, 0..A m) named "floor" (so foot-contact and
     fall logic keep working) over +-half_m, with a plane `floor_outer` beyond it. amp_m <= 0 -> the flat plane."""
-    from rrp.physics.contact import apply_world
+    from rrp.bodies.contact import apply_world
     s = _base_spec(name)
     floor_kw = apply_world(s, contact, source_options)
     s.visual.global_.offwidth = 640
@@ -568,7 +568,7 @@ def standalone_model(module: Module, prefix: str = "r0_", contact: str | None = 
     """Robot on a floor (no task objects): used by trainers and validation. meta['contact_model'] records
     the contact version the model was built with (compatibility/provenance). terrain (D-126 #15, default None = flat,
     unchanged): the legged_world heightfield flag, recorded as meta['terrain']."""
-    from rrp.physics.contact import version_str
+    from rrp.bodies.contact import version_str
     meta = copy.deepcopy(module.meta)
     scene = legged_world(f"{meta['name']}_world", meta.get("source_options"), contact=contact, terrain=terrain)
     meta["contact_model"] = version_str(contact)

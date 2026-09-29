@@ -3,7 +3,7 @@ budgets / adapt seeds between the latent route and the BC baseline."""
 import json
 from pathlib import Path
 
-from rrp.orchestration.dag import load_dag, plan_dag
+from rrp.harness.dag import load_dag, plan_dag
 
 ROOT = Path(__file__).resolve().parents[2]
 PROTO = json.loads((ROOT / "configs/eval/latent_slice1.json").read_text())

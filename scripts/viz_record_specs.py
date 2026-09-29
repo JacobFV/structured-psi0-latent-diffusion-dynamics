@@ -258,7 +258,7 @@ def dual_entries():
 def main():
     d = ROOT / "viz" / "specs"
     d.mkdir(parents=True, exist_ok=True)
-    from rrp.orchestration.yamlmini import load   # noqa: E402 (PYTHONPATH=src)
+    from rrp.harness.yamlmini import load   # noqa: E402 (PYTHONPATH=src)
     for name, fn, hdr in (("arm", arm_entries, "arm: R2 / BC / teacher v2 under grasp_v1 and grasp_v2, semantic edits"),
                           ("legged", legged_entries, "legged W8 contact_v2: context edits, teacher/BC refs, robustness"),
                           ("physics", physics_entries, "tracker validation v1 vs v2 contact, grasp rig v1 vs v2"),

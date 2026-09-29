@@ -1,4 +1,4 @@
-// Response/message shapes returned by src/rrp/service/{app,sessions,probes}.py.
+// Response/message shapes returned by src/rrp/viz/workbench/{app,sessions,probes}.py.
 // These are plain dict views on the backend (not pydantic models), so they are mirrored by hand;
 // request shapes are generated into ./types.ts by scripts/export_ui_types.py.
 import type { MessageKind } from "./types";

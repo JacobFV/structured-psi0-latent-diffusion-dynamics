@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 def cmd_rep(a):
-    from rrp.training.latent_train import train_representation
+    from rrp.harness.train.latent_train import train_representation
     cfg = json.loads(open(a.config).read())
     d = Path(cfg["out_dir"]); d.mkdir(parents=True, exist_ok=True)
     (d / "config.json").write_text(json.dumps(cfg, indent=1))
@@ -33,7 +33,7 @@ def register(sub):
 
 
 def cmd_flow(a):
-    from rrp.training.latent_train import train_latent_flow
+    from rrp.harness.train.latent_train import train_latent_flow
     cfg = json.loads(open(a.config).read())
     d = Path(cfg["out_dir"]); d.mkdir(parents=True, exist_ok=True)
     (d / "config.json").write_text(json.dumps(cfg, indent=1))
@@ -42,22 +42,22 @@ def cmd_flow(a):
 
 def _load(a):
     import torch
-    from rrp.controllers.latent_runner import LatentPolicy
-    from rrp.controllers.bundles import load_representation
+    from rrp.policies.latent import LatentPolicy
+    from rrp.policies.bundles import load_representation
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     if dev == "cuda":
-        from rrp.contracts.workload import apply_cap
+        from rrp.ops.workload import apply_cap
         apply_cap()
     pol = LatentPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=a.nfe)
-    from rrp.models.checkpoint import load_checkpoint
+    from rrp.policies.nets.checkpoint import load_checkpoint
     rep = load_checkpoint(a.checkpoint, map_location="cpu")["config"]["representation"]
     lcfg, E, R, P, _ = load_representation(Path(rep), dev)
     return pol, R, P, dev
 
 
 def cmd_eval(a):
-    from rrp.evaluation.latent_eval import evaluate_latent
-    from rrp.evaluation.statistics import wilson
+    from rrp.harness.eval.latent_eval import evaluate_latent
+    from rrp.harness.eval.statistics import wilson
     pol, R, P, dev = _load(a)
     summ = {}
     for robot in a.robots.split(","):
@@ -80,8 +80,8 @@ def cmd_eval(a):
 def cmd_eval_binding(a):
     """Closed-loop binding test on paired scenes: identical initial scene, each cube assigned as patient in turn.
     Reports success, wrong-object manipulation and whether behavior follows the assignment across a pair."""
-    from rrp.evaluation.latent_eval import evaluate_latent, paired_keys, paired_scene_fn
-    from rrp.evaluation.statistics import wilson
+    from rrp.harness.eval.latent_eval import evaluate_latent, paired_keys, paired_scene_fn
+    from rrp.harness.eval.statistics import wilson
     pol, R, P, dev = _load(a)
     summ = {}
     for robot in a.robots.split(","):
@@ -115,7 +115,7 @@ def cmd_eval_binding(a):
 
 
 def cmd_disturb(a):
-    from rrp.evaluation.latent_eval import disturbance_test
+    from rrp.harness.eval.latent_eval import disturbance_test
     pol, R, P, dev = _load(a)
     rows = disturbance_test(pol, R, a.robots.split(",")[0], list(range(a.seed_start, a.seed_start + a.episodes)), device=dev)
     Path(a.out).write_text("\n".join(json.dumps(r) for r in rows))
@@ -156,7 +156,7 @@ def register_more(p):
 
 
 def cmd_fit_probes(a):
-    from rrp.training.latent_train import fit_probes_on_frozen
+    from rrp.harness.train.latent_train import fit_probes_on_frozen
     res = fit_probes_on_frozen(Path(a.representation), Path(a.packed_dir), Path(a.out), steps=a.steps,
                                metadata_only=a.metadata_only, binding_cf=a.binding_cf)
     print(json.dumps(res, indent=1))
@@ -176,9 +176,9 @@ def register_probe_cmd(p):
 
 def cmd_cell(a):
     import torch
-    from rrp.training.latent_campaign import run_latent_cell
+    from rrp.harness.train.latent_campaign import run_latent_cell
     if torch.cuda.is_available():
-        from rrp.contracts.workload import apply_cap
+        from rrp.ops.workload import apply_cap
         apply_cap()
     proto = json.loads(open(a.protocol).read())
     print(json.dumps(run_latent_cell(proto, a.method, a.seed, base_flow_config=a.base_flow_config,
@@ -196,7 +196,7 @@ def register_cell(p):
 
 
 def cmd_latency(a):
-    from rrp.evaluation.latency import latent_latency_suite
+    from rrp.harness.eval.latency import latent_latency_suite
     print(json.dumps(latent_latency_suite(a.checkpoint, Path(a.out), direct_ckpt=a.direct, direct_config=a.direct_config, reps=a.reps,
                                           **({"representation": a.representation} if a.representation else {})), indent=1))
 
@@ -214,12 +214,12 @@ def register_latency(p):
 
 def cmd_counterfactuals(a):
     import torch
-    from rrp.evaluation.latent_counterfactuals import counterexample, counterexample_v1, embodiment_swap
-    from rrp.controllers.bundles import load_representation
+    from rrp.harness.eval.latent_counterfactuals import counterexample, counterexample_v1, embodiment_swap
+    from rrp.policies.bundles import load_representation
     dev = "cuda" if a.gpu and torch.cuda.is_available() else "cpu"
     _, E, _, P, res = load_representation(Path(a.representation), dev)
     if a.probe:                                   # measurement probe fitted post hoc on frozen z (fair across variants)
-        from rrp.models.latent_probes import PacketProbe
+        from rrp.policies.nets.latent_probes import PacketProbe
         st = torch.load(a.probe, map_location=dev, weights_only=False)
         P = PacketProbe(**st["cfg"]).to(dev).eval()
         P.load_state_dict(st["state"])
@@ -252,9 +252,9 @@ def register_counterfactuals(p):
 
 
 def cmd_grpo(a):
-    from rrp.training.flow_sde import SDEConfig
-    from rrp.training.grpo import GRPOConfig
-    from rrp.training.latent_grpo import LatentGRPORunConfig, RewardConfig, train_latent_grpo
+    from rrp.harness.train.flow_sde import SDEConfig
+    from rrp.harness.train.grpo import GRPOConfig
+    from rrp.harness.train.latent_grpo import LatentGRPORunConfig, RewardConfig, train_latent_grpo
     g = GRPOConfig(group_size=a.group_size, lr=a.lr, epochs=a.epochs, minibatch=a.minibatch, kl_coef=a.kl_coef,
                    clip=a.clip, trainable=a.trainable,
                    sde=SDEConfig(nfe=a.nfe, noise_level=a.noise_level, first_step="clamp", last_step=a.last_step))
@@ -307,13 +307,13 @@ TARGET_BODIES = ("xarm7_pg2", "xarm7_tf3", "panda_tf3")      # D-025: never used
 
 def _causal_common(a, window_conds, episode_conds):
     import torch
-    from rrp.evaluation import latent_causal as lc
+    from rrp.harness.eval import latent_causal as lc
     robots = a.robots.split(",")
     from rrp.bodies.armdiv import is_armdiv_sealed
     if a.seed_start < 3_000_000 or any(r in TARGET_BODIES or is_armdiv_sealed(r) for r in robots):
         raise SystemExit("dev rule (D-025): source/dev bodies and dev seeds >= 3,000,000 only")
     pol, R, P, dev = _load(a)
-    from rrp.models.checkpoint import load_checkpoint
+    from rrp.policies.nets.checkpoint import load_checkpoint
     rep = Path(load_checkpoint(a.checkpoint, map_location="cpu")["config"]["representation"])
     probe = a.probe or (str(rep.parent / "probe_posthoc.pt") if (rep.parent / "probe_posthoc.pt").exists() else None)
     P = lc.load_probe(probe, P, dev)
@@ -349,7 +349,7 @@ def _causal_common(a, window_conds, episode_conds):
 
 
 def cmd_causal(a):
-    from rrp.evaluation import latent_causal as lc
+    from rrp.harness.eval import latent_causal as lc
     _causal_common(a, lc.WINDOW_CONDS, lc.EPISODE_CONDS)
 
 
@@ -387,16 +387,16 @@ def register_causal(p):
 # ------------------------------------------------------------------ semantic interventions (correction item 4)
 def cmd_semantic(a):
     import torch
-    from rrp.evaluation import latent_semantic_edits as se
-    from rrp.evaluation import latent_causal as lc
-    from rrp.controllers.bundles import load_representation
+    from rrp.harness.eval import latent_semantic_edits as se
+    from rrp.harness.eval import latent_causal as lc
+    from rrp.policies.bundles import load_representation
     robots = a.robots.split(",")
     from rrp.bodies.armdiv import is_armdiv_sealed
     if a.seed_start < 3_000_000 or any(r in TARGET_BODIES or is_armdiv_sealed(r) for r in robots):
         raise SystemExit("dev rule (D-025): source/dev bodies and dev seeds >= 3,000,000 only")
     dev = "cuda" if a.gpu and torch.cuda.is_available() else "cpu"
     if dev == "cuda":
-        from rrp.contracts.workload import apply_cap
+        from rrp.ops.workload import apply_cap
         apply_cap()
     if a.route == "teacher":
         rep = Path(a.representation)
@@ -407,7 +407,7 @@ def cmd_semantic(a):
         rep = Path(a.representation)
         lcfg, E, R, P, res = load_representation(rep, dev)
         if a.oracle_expert == "bc":
-            from rrp.controllers.policy_runner import LearnedPolicy
+            from rrp.policies.bc import LearnedPolicy
             src = se.OracleSource(E, lcfg, res, rep, dev, expert="bc",
                                   bc=LearnedPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=a.nfe, execute_prefix=8))
             label = (f"ORACLE DIAGNOSTIC target_encoder_oracle:E({rep}) + STATELESS BC expert demo "
@@ -416,8 +416,8 @@ def cmd_semantic(a):
             src = se.OracleSource(E, lcfg, res, rep, dev)
             label = f"ORACLE DIAGNOSTIC target_encoder_oracle:E({rep}) + scripted_teacher demo"
     elif a.route == "bc":
-        from rrp.controllers.policy_runner import LearnedPolicy
-        from rrp.evaluation.ladder import sha256_file
+        from rrp.policies.bc import LearnedPolicy
+        from rrp.harness.eval.ladder import sha256_file
         rep = Path(a.representation) if a.representation else None
         R = P = None
         if rep:
@@ -427,8 +427,8 @@ def cmd_semantic(a):
         label = (f"learned:{a.checkpoint} (direct-action BC reference controller, NOT the latent path; "
                  f"sha256 {sha256_file(a.checkpoint)[:16]})")
     else:
-        from rrp.models.checkpoint import load_checkpoint
-        from rrp.controllers.latent_runner import LatentPolicy
+        from rrp.policies.nets.checkpoint import load_checkpoint
+        from rrp.policies.latent import LatentPolicy
         rep = Path(a.representation or load_checkpoint(a.checkpoint, map_location="cpu")["config"]["representation"])
         _, _, R, P, res = load_representation(rep, dev)
         pol = LatentPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=a.nfe)
@@ -469,15 +469,15 @@ def cmd_semantic(a):
 
 def cmd_arm(a):
     import torch
-    from rrp.evaluation import latent_semantic_edits as se
-    from rrp.evaluation import latent_causal as lc
-    from rrp.controllers.bundles import load_representation
+    from rrp.harness.eval import latent_semantic_edits as se
+    from rrp.harness.eval import latent_causal as lc
+    from rrp.policies.bundles import load_representation
     if a.seed_start < 3_000_000:
         raise SystemExit("dev rule (D-025): dev seeds >= 3,000,000 only")
     dev = "cuda" if a.gpu and torch.cuda.is_available() else "cpu"
     if a.route == "generated":
-        from rrp.models.checkpoint import load_checkpoint
-        from rrp.evaluation.dual_latent_eval import DualLatentPolicy
+        from rrp.policies.nets.checkpoint import load_checkpoint
+        from rrp.harness.eval.dual_latent_eval import DualLatentPolicy
         rep = Path(load_checkpoint(a.checkpoint, map_location="cpu")["config"]["representation"])
         _, _, R, P, _ = load_representation(rep, dev)
         src = se.GeneratedSource(DualLatentPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=a.nfe))

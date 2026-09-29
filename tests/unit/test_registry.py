@@ -1,5 +1,5 @@
 import pytest
-from rrp.evaluation.registry import ExperimentRegistry
+from rrp.harness.eval.registry import ExperimentRegistry
 
 
 def test_sealed_protocol_cannot_be_mutated(tmp_path):

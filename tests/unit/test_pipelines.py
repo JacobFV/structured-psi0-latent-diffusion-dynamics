@@ -8,9 +8,9 @@ from pathlib import Path
 
 import pytest
 
-from rrp.contracts.runconfig import RunConfig, RunIndex
-from rrp.pipelines import MANIFEST, Pipeline, StageError
-from rrp.pipelines import base as pbase
+from rrp.core.runconfig import RunConfig, RunIndex
+from rrp.harness.pipelines import MANIFEST, Pipeline, StageError
+from rrp.harness.pipelines import base as pbase
 
 FLAGS_ARM = dict(zero_prev_action=True, realizer_anchor=True, realizer_drop_qd=True, probe_lv_min=None, qd_dropout=None,
                  contact_version="contact_v1")
@@ -46,7 +46,7 @@ def test_stage_registry():
 
 
 def test_arm_refit_calls_refit_realizer(tmp_path, monkeypatch):
-    import rrp.training.latent_train as lt
+    import rrp.harness.train.latent_train as lt
     seen = {}
 
     def fake(cfg, out):
@@ -110,7 +110,7 @@ def test_arm_heldout_refuses_training_bodies(tmp_path):
 
 
 def test_legged_train_rep_calls_trainer_and_checks_contact(tmp_path, monkeypatch):
-    import rrp.training.legged_latent_train as llt
+    import rrp.harness.train.legged_latent_train as llt
     seen = {}
 
     def fake(cfg, out):
@@ -129,8 +129,8 @@ def test_legged_train_rep_calls_trainer_and_checks_contact(tmp_path, monkeypatch
     assert seen["cfg"]["latent"] == {"semantic_weight": 1.0, "probe_lv_min": -4.0, "qd_dropout": 0.5}
     assert seen["cfg"]["data"] == "artifacts/datasets/legged_x"
     # a dataset recorded with another contact version is refused
-    from rrp.data.manifest import write_manifest
-    from rrp.contracts.provenance import make_provenance, PhysicsProvenance
+    from rrp.harness.data.manifest import write_manifest
+    from rrp.core.provenance import make_provenance, PhysicsProvenance
     phys = PhysicsProvenance(mujoco_version="3", timestep=0.002, integrator="euler", cone="elliptic", impratio=100.0,
                              solver="newton", iterations=100, ls_iterations=50, noslip_iterations=0,
                              contact_version="contact_v2")
@@ -141,8 +141,8 @@ def test_legged_train_rep_calls_trainer_and_checks_contact(tmp_path, monkeypatch
 
 
 def test_legged_contact_v2_refuses_unversioned_data_and_mismatched_rows(tmp_path):
-    from rrp.pipelines.legged import check_contact_version, check_rows_contact
-    from rrp.pipelines.base import StageContext
+    from rrp.harness.pipelines.legged import check_contact_version, check_rows_contact
+    from rrp.harness.pipelines.base import StageContext
     rc = RunConfig.model_validate(dict(
         schema_version="runconfig-1", family="legged", stage="eval_r2", variant="semfix", seed=1, lineage="l",
         track="t", inputs={"flow": "runs/x:policy.pt"},
@@ -163,13 +163,13 @@ def test_legged_contact_v2_refuses_unversioned_data_and_mismatched_rows(tmp_path
         check_rows_contact(ctx, [dict(ok, contact_version="contact_v1")], "w")
     with pytest.raises(StageError, match="trained on contact_v1"):
         check_rows_contact(ctx, [dict(ok, checkpoint_provenance={"flow": {"physics": {"contact_version": "contact_v1"}}})], "w")
-    assert __import__("rrp.pipelines.legged", fromlist=["physics_env"]).physics_env(ctx)["RRP_CONTACT_MODEL"] == "contact_v2"
+    assert __import__("rrp.harness.pipelines.legged", fromlist=["physics_env"]).physics_env(ctx)["RRP_CONTACT_MODEL"] == "contact_v2"
 
 
 def test_legged_eval_refuses_checkpoint_trained_on_other_contact(tmp_path):
     import torch
-    from rrp.pipelines.legged import check_checkpoints_contact
-    from rrp.pipelines.base import StageContext
+    from rrp.harness.pipelines.legged import check_checkpoints_contact
+    from rrp.harness.pipelines.base import StageContext
     d = tmp_path / "artifacts/runs/x"
     d.mkdir(parents=True)
     torch.save({"_provenance": {"physics": {"contact_version": "contact_v2"}}, "cfg": {}}, d / "rep2.pt")
@@ -191,7 +191,7 @@ def test_legged_eval_refuses_checkpoint_trained_on_other_contact(tmp_path):
 
 
 def test_legged_dataset_gate_d112():
-    from rrp.pipelines.legged import dataset_gate
+    from rrp.harness.pipelines.legged import dataset_gate
     ep = lambda sr, sig=0.1, st="success": dict(sigma=sig, status=st, motion=dict(slip_ratio=sr))
     g = dataset_gate([ep(0.05)] * 95 + [ep(0.3)] * 5)
     assert g["slip_ok"] and g["passed"] and g["slip_lt_0p15_frac"] == 0.95

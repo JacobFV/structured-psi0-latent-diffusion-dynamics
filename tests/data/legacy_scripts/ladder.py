@@ -51,10 +51,10 @@ def main():
         sys.exit("target bodies are not allowed in the ladder")
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     if dev == "cuda":
-        from rrp.contracts.workload import apply_cap
+        from rrp.ops.workload import apply_cap
         apply_cap()
-    from rrp.evaluation.ladder import LadderConfig, load_models, run_ladder, summarize, OraclePacketPolicy, install_prev_action
-    from rrp.training.latent_grpo import feasible_seeds
+    from rrp.harness.eval.ladder import LadderConfig, load_models, run_ladder, summarize, OraclePacketPolicy, install_prev_action
+    from rrp.harness.train.latent_grpo import feasible_seeds
     seeds = feasible_seeds(a.robot, a.seed_start, a.n)
     cfg = LadderConfig(route=a.route, robot=a.robot, seeds=seeds, representation=a.rep, flow=a.flow, policy=a.policy, policy_label=a.policy_label, oracle_expert=a.oracle_expert, noise_scale=a.noise_scale,
                        replan_ticks=a.replan, max_steps=a.max_steps, nfe=a.nfe, compare_oracle=not a.no_compare,
@@ -69,7 +69,7 @@ def main():
         render(a, cfg, models, ids)
         return
     if a.disturbance:
-        from rrp.evaluation.latent_eval import disturbance_test
+        from rrp.harness.eval.latent_eval import disturbance_test
         pol = models["flow"] if a.route == "generated" else OraclePacketPolicy(models["E"], models["lcfg"], models["res"], dev, reanchor=a.reanchor)
         rows = []
         for ji in (1, 3):
@@ -95,7 +95,7 @@ def main():
         rows += run_ladder(cfg, p, models, ids, collect=collect)
         print(f"{len(rows)}/{len(seeds)} success={sum(r['privileged_success'] for r in rows)}", flush=True)
     if collect is not None:
-        from rrp.evaluation.ladder import save_dagger
+        from rrp.harness.eval.ladder import save_dagger
         save_dagger(collect, Path(a.collect_dagger), dict(robot=a.robot, seeds=seeds, route=a.route, rep=a.rep,
                                                            reanchor=a.reanchor, prev_action=a.prev_action, oracle_expert=a.oracle_expert, policy_label=a.policy_label, ids=ids))
     summ = dict(summarize(rows), route=a.route, robot=a.robot, seeds=[seeds[0], seeds[-1], len(seeds)],
@@ -110,7 +110,7 @@ def render(a, cfg, models, ids):
     os.environ.setdefault("MUJOCO_GL", "egl")
     import imageio
     import mujoco
-    from rrp.evaluation.ladder import run_ladder
+    from rrp.harness.eval.ladder import run_ladder
     sys.path.insert(0, str(Path(__file__).parent))
     from render_episode import caption
     label = dict(teacher="R0 SCRIPTED TEACHER (privileged)",

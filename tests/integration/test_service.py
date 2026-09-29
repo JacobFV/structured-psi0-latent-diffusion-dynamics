@@ -1,7 +1,7 @@
 import json
 import pytest
 from fastapi.testclient import TestClient
-from rrp.service.app import create_test_app
+from rrp.viz.workbench.app import create_test_app
 
 H = {"x-rrp-token": "test-token"}
 
@@ -115,7 +115,7 @@ def test_websocket_requires_token_and_rehydrates():
 
 
 def test_ui_protocol_exposes_state_and_intervention_receipts():
-    from rrp.service.schemas import public_message_kinds
+    from rrp.viz.workbench.schemas import public_message_kinds
     kinds = set(public_message_kinds())
     assert {"session_snapshot", "graph_committed", "command_rejected",
             "probe_result", "resource_update"} <= kinds

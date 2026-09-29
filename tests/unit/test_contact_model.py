@@ -6,7 +6,7 @@ import mujoco
 import numpy as np
 import pytest
 
-from rrp.physics.contact import CONTACT_MODELS, ContactRandomizer, resolve
+from rrp.bodies.contact import CONTACT_MODELS, ContactRandomizer, resolve
 from rrp.bodies.legged import legged_world
 
 
@@ -73,7 +73,7 @@ def test_v1_unchanged_and_resolve():
     m2 = legged_world("w", None, contact="v2").compile()
     assert m2.opt.cone == mujoco.mjtCone.mjCONE_ELLIPTIC and m2.opt.impratio == CONTACT_MODELS["v2"]["impratio"]
     assert m2.opt.timestep <= 0.002
-    from rrp.physics.contact import model_contact_version
+    from rrp.bodies.contact import model_contact_version
     assert model_contact_version(m) == "contact_v1" and model_contact_version(m2) == "contact_v2"
 
 

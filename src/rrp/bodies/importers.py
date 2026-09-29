@@ -15,7 +15,7 @@ import numpy as np
 
 from rrp.bodies.generators import Module
 
-from rrp.contracts.paths import rrp_home  # noqa: E402
+from rrp.core.paths import rrp_home  # noqa: E402
 
 REPO = rrp_home()                  # checkout (unchanged); $RRP_HOME / cwd for an installed rrp
 MENAGERIE = REPO / ".cache" / "assets" / "mujoco_menagerie"

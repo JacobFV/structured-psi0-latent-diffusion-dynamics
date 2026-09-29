@@ -17,9 +17,9 @@ def _fakes():
 
 
 def test_make_packet_equals_arm_packet_on_strided_z():
-    from rrp.evaluation.ladder import make_packet
-    from rrp.evaluation.latent_semantic_edits import build_packet
-    from rrp.evaluation.packets import arm_packet
+    from rrp.harness.eval.ladder import make_packet
+    from rrp.harness.eval.latent_semantic_edits import build_packet
+    from rrp.harness.eval.packets import arm_packet
     f, s, o = _fakes()
     big = np.arange(4 * 2 * 16, dtype=np.float64).reshape(4, 2, 16) / 7.0
     z = big[:, :1, ::2]                                    # non-contiguous view
@@ -38,7 +38,7 @@ def test_make_packet_equals_arm_packet_on_strided_z():
 
 def test_select_device(monkeypatch):
     import torch
-    import rrp.contracts.workload as w
+    import rrp.ops.workload as w
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
 
     def boom():

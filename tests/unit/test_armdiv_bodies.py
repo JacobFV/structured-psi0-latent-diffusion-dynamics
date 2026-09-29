@@ -89,13 +89,13 @@ def test_armdiv_sealed_guard():
         assert not is_armdiv_sealed(k)
     pool = json.load(open("research/splits/armdiv_pool_v1.json"))
     assert not any(is_armdiv_sealed(k) for k in pool["train_robots"])
-    from rrp.evaluation.ladder_cli import main
+    from rrp.harness.eval.ladder_cli import main
     with pytest.raises(SystemExit, match="target bodies"):
         main(["--route", "learned", "--robot", "gen3_pg2", "--n", "1", "--seed-start", "3000000", "--tag", "x",
               "--out", "/tmp/never", "--policy", "none.pt"])
 
 
 def test_gate_treats_v2_procedural_arms_like_parm():
-    from rrp.evaluation.gates import _procedural
+    from rrp.harness.eval.gates import _procedural
     assert _procedural("pa2s3_tf3") and _procedural("parm6_pg2")
     assert not _procedural("ur10e_pg2") and not _procedural("gen3_pg2")

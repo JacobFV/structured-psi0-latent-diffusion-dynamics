@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 def cmd_pack(a):
-    from rrp.data.dual_latent import pack_dual
+    from rrp.harness.data.dual_latent import pack_dual
     cfg = json.loads(open(a.config).read())
     meta = pack_dual(cfg, keep_parts=a.keep_parts, log=lambda m: print(m, flush=True))
     print(json.dumps({k: meta[k] for k in ("n", "robots", "robot_ids")}))
@@ -14,19 +14,19 @@ def cmd_pack(a):
 
 def cmd_eval(a):
     import torch
-    from rrp.evaluation.dual_latent_eval import DualLatentPolicy, evaluate_dual_latent
-    from rrp.evaluation.statistics import wilson
-    from rrp.models.checkpoint import load_checkpoint
-    from rrp.controllers.bundles import load_representation
+    from rrp.harness.eval.dual_latent_eval import DualLatentPolicy, evaluate_dual_latent
+    from rrp.harness.eval.statistics import wilson
+    from rrp.policies.nets.checkpoint import load_checkpoint
+    from rrp.policies.bundles import load_representation
     dev = "cuda" if torch.cuda.is_available() and not a.cpu else "cpu"
     if dev == "cuda":
-        from rrp.contracts.workload import apply_cap
+        from rrp.ops.workload import apply_cap
         apply_cap()
     pol = DualLatentPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=a.nfe)
     rep = load_checkpoint(a.checkpoint, map_location="cpu")["config"]["representation"]
     _, _, R, P, _ = load_representation(Path(rep), dev)
     if a.probe:                          # post-hoc measurement probe (identical procedure for sem / nosem)
-        from rrp.models.latent_probes import PacketProbe
+        from rrp.policies.nets.latent_probes import PacketProbe
         st = torch.load(a.probe, map_location=dev, weights_only=False)
         P = PacketProbe(**st["cfg"]).to(dev).eval()
         P.load_state_dict(st["state"])
@@ -63,7 +63,7 @@ def cmd_eval(a):
 
 
 def cmd_teacher_ref(a):
-    from rrp.evaluation.dual_latent_eval import teacher_reference
+    from rrp.harness.eval.dual_latent_eval import teacher_reference
     rows = []
     for pair in a.pairs.split(","):
         rows += teacher_reference(a.task, pair, list(range(a.seed_start, a.seed_start + a.episodes)), a.max_steps)
@@ -75,7 +75,7 @@ def cmd_teacher_ref(a):
 
 
 def cmd_pair_index(a):
-    from rrp.data.dual_pairs import build_pair_index
+    from rrp.harness.data.dual_pairs import build_pair_index
     idx = build_pair_index(Path(a.dataset), Path(a.packed) if a.packed else None, check_scene=not a.no_scene_check)
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     Path(a.out).write_text(json.dumps(idx, indent=1))

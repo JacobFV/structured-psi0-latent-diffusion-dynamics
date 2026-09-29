@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-from rrp.evaluation.gates import check_arm_dataset, check_dataset, check_legged_dataset, check_tracker, policy_flags
+from rrp.harness.eval.gates import check_arm_dataset, check_dataset, check_legged_dataset, check_tracker, policy_flags
 
 
 def _val(**kw):
@@ -121,7 +121,7 @@ def test_policy_flags_are_reported_only():
 
 def test_pipeline_apply_gate_writes_report_and_raises(tmp_path):
     from types import SimpleNamespace
-    from rrp.pipelines.base import GateFailed, apply_gate
+    from rrp.harness.pipelines.base import GateFailed, apply_gate
     bad = check_legged_dataset(_leg(10, 0.5))
     ctx = SimpleNamespace(out=tmp_path, opts={}, log=lambda m: None)
     with pytest.raises(GateFailed, match="slip_ok_fraction"):

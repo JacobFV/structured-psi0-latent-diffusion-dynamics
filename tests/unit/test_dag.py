@@ -7,9 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from rrp.contracts.runconfig import RunIndex
-from rrp.orchestration.dag import DagError, Executor, Ledger, load_dag, plan_dag
-from rrp.orchestration.yamlmini import YamlError, loads
+from rrp.core.runconfig import RunIndex
+from rrp.harness.dag import DagError, Executor, Ledger, load_dag, plan_dag
+from rrp.harness.yamlmini import YamlError, loads
 
 ROOT = Path(__file__).resolve().parents[2]
 LEGACY = {  # (variant, seed) -> (config dir, lineage code, Stage-A dir, Stage-A config)
@@ -126,7 +126,7 @@ class FakeRunner:
         self.launched, self.jobs, self.n = [], {}, 0
 
     def launch(self, node):
-        from rrp.orchestration.dag import AdmissionRefused
+        from rrp.harness.dag import AdmissionRefused
         if self.refuse:
             self.refuse -= 1
             raise AdmissionRefused("aggregate limit")
@@ -292,7 +292,7 @@ def test_legged_dag_reproduces_legacy_configs():
 
 
 def test_ops_runner_poll_reads_rc_file(tmp_path):
-    from rrp.orchestration.dag import OpsRunner
+    from rrp.harness.dag import OpsRunner
     log = tmp_path / "1_x.log"
     (tmp_path / "1_x.rc").write_text("0")                       # the child writes the rc without a newline
     r = OpsRunner(tmp_path)
@@ -413,7 +413,7 @@ def test_point_filter_keeps_global_nodes():
 
 
 def test_shared_budget_counts_other_ledgers(tmp_path):
-    from rrp.orchestration.dag import _gib
+    from rrp.harness.dag import _gib
     assert _gib("24G") == 24 and _gib("512M") == 0.5
     other = tmp_path / "_dags" / "other" / "ledger.json"
     other.parent.mkdir(parents=True)

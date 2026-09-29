@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 
-from rrp.evaluation import system2 as s2
+from rrp.harness.eval import system2 as s2
 
 
 def _ctx():
@@ -29,7 +29,7 @@ def test_apply_target_math_on_known_vectors():
 
 def test_apply_target_matches_legged_eval_edits(monkeypatch):
     torch = pytest.importorskip("torch")
-    lle = pytest.importorskip("rrp.evaluation.legged_latent_eval")
+    lle = pytest.importorskip("rrp.harness.eval.legged_latent_eval")
     monkeypatch.setattr(lle, "public_context", lambda s, osc: _ctx())
 
     class _Ad:

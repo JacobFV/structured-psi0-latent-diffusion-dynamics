@@ -119,7 +119,7 @@ def test_legged_summaries_match_legacy_scripts(tmp_path, tool, args):
 
 def test_legged_summaries_library_calls_are_repeatable(tmp_path):
     """Unlike the scripts' module-level default rng, each library call starts its own rng(0) stream."""
-    from rrp.evaluation.legged_summaries import edit_effects, wilson
+    from rrp.harness.eval.legged_summaries import edit_effects, wilson
     d = _suite(tmp_path / "s")
     assert edit_effects(d) == edit_effects(d)
     lo, hi = wilson(3, 10)

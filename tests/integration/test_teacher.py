@@ -1,6 +1,6 @@
 import pytest
-from rrp.teachers.arm import run_fixture_pick_place, PickPlaceTeacher, run_teacher_episode
-from rrp.envs.fixtures import make_pick_place_session
+from rrp.policies.teachers.arm import run_fixture_pick_place, PickPlaceTeacher, run_teacher_episode
+from rrp.envs.mujoco.fixtures import make_pick_place_session
 
 
 def test_real_teacher_trace_has_actions_and_success_evidence():

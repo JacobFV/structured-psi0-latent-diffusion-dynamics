@@ -6,8 +6,8 @@ import mujoco
 import pytest
 
 from rrp.bodies.legged import legged_body, standalone_model
-from rrp.contracts.provenance import physics_provenance
-from rrp.physics.actuator import SOURCED
+from rrp.core.provenance import physics_provenance
+from rrp.bodies.actuator import SOURCED
 
 pytestmark = pytest.mark.menagerie      # every test builds Menagerie legged bodies
 

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from rrp.orchestration.dag import load_dag, plan_dag
+from rrp.harness.dag import load_dag, plan_dag
 
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = ROOT / "dags/templates/legged_v2_gated.yaml"
@@ -48,9 +48,9 @@ def test_child_dag_matches_go2_recipe_and_declares_one_tracker(tmp_path):
 
 
 def test_validate_tracker_checks_declared_sha_before_running(tmp_path):
-    from rrp.contracts.runconfig import RunConfig, RunIndex
-    from rrp.pipelines.base import StageContext, StageError
-    from rrp.pipelines.legged import check_tracker_sha
+    from rrp.core.runconfig import RunConfig, RunIndex
+    from rrp.harness.pipelines.base import StageContext, StageError
+    from rrp.harness.pipelines.legged import check_tracker_sha
     actor = tmp_path / "actor.pt"
     actor.write_bytes(b"tracker weights")
     good = hashlib.sha256(b"tracker weights").hexdigest()

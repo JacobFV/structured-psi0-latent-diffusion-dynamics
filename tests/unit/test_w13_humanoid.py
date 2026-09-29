@@ -26,8 +26,8 @@ def test_sealed_bodies_disjoint_from_training():
 
 
 def test_recipes_train_only_pool_bodies_and_valid_reward_keys():
-    from rrp.envs.legged_core import RewardCfg
-    from rrp.training.humanoid_recipes import HUMANOID_RECIPES, recipe_record
+    from rrp.envs.mujoco.legged_core import RewardCfg
+    from rrp.harness.train.humanoid_recipes import HUMANOID_RECIPES, recipe_record
     pool = set(SPLIT["source_train_bodies"])
     for name, rec in HUMANOID_RECIPES.items():
         opts, record = recipe_record(name)
@@ -40,7 +40,7 @@ def test_recipes_train_only_pool_bodies_and_valid_reward_keys():
 
 
 def test_morph_slot_rules():
-    from rrp.envs.morph_obs import slot_of
+    from rrp.envs.mujoco.morph_obs import slot_of
     assert slot_of("Left_Hip_Pitch") == ("left", "hip_pitch")
     assert slot_of("r_ank_roll_act") == ("right", "ankle_roll")
     assert slot_of("l_hip_ie") == ("left", "hip_yaw") and slot_of("r_ankle_pd") == ("right", "ankle_pitch")
@@ -66,7 +66,7 @@ def test_auto_gain_rule():
 
 
 def test_gpu_modules_import_without_warp():
-    import rrp.envs.warp_legged as wl
+    import rrp.envs.warp.warp_legged as wl
     try:
         import mujoco_warp  # noqa: F401
     except ImportError:
@@ -77,7 +77,7 @@ def test_gpu_modules_import_without_warp():
 @pytest.mark.menagerie
 def test_new_adapters_build_with_pitch_mapping():
     from rrp.bodies.legged import legged_body, standalone_model
-    from rrp.envs.legged_core import LeggedBinding
+    from rrp.envs.mujoco.legged_core import LeggedBinding
     for key, left in (("apollo", ["l_hip_fe", "l_knee_fe", "l_ankle_pd"]),
                       ("adam_lite", ["hipPitch_Left", "kneePitch_Left", "anklePitch_Left"])):
         m, _, meta = standalone_model(legged_body(key), contact="v2")
@@ -99,7 +99,7 @@ def test_phum_sampling_deterministic_and_sealed_region_excluded_from_training():
 
 def test_phum_body_builds_with_legged_contract():
     from rrp.bodies.legged import legged_body, standalone_model
-    from rrp.envs.legged_core import LeggedBinding
+    from rrp.envs.mujoco.legged_core import LeggedBinding
     for seed in (0, 1, 4):
         m, _, meta = standalone_model(legged_body(f"phum_{seed}"), contact="v2")
         b = LeggedBinding(m, meta)
@@ -115,7 +115,7 @@ def test_phum_body_builds_with_legged_contract():
 @pytest.mark.menagerie
 def test_h_steps_scenario_and_scan():
     import numpy as np
-    from rrp.envs.humanoid_scenes import build_h_steps, steps_height_at, steps_scan_np, steps_layout
+    from rrp.envs.mujoco.humanoid_scenes import build_h_steps, steps_height_at, steps_scan_np, steps_layout
     sc = build_h_steps("t1", 3, h_frac=0.2)
     L, h = sc.meta["L"], sc.meta["staircase"]["h"]
     assert abs(h - 0.2 * L) < 1e-9 and sc.meta["x_end"] == steps_layout(L, h)[1]
@@ -129,7 +129,7 @@ def test_h_steps_scenario_and_scan():
 @pytest.mark.menagerie
 def test_h_gap_scenario_and_obs():
     import numpy as np
-    from rrp.envs.humanoid_scenes import GAP_X, build_h_gap, gap_obs_np
+    from rrp.envs.mujoco.humanoid_scenes import GAP_X, build_h_gap, gap_obs_np
     sc = build_h_gap("h1", 5, level=1.0)
     mt = sc.meta
     assert 1.2 <= mt["gap_ratio"] <= 1.6 and abs(mt["y_c"]) <= 0.6 * mt["L"] and abs(mt["psi_f"]) <= np.pi / 2

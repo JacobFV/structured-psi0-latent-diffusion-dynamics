@@ -1,4 +1,4 @@
-from rrp.evaluation.statistics import success_counts, summarize_attempts, wilson
+from rrp.harness.eval.statistics import success_counts, summarize_attempts, wilson
 
 
 def test_analysis_recomputes_counts_from_episode_rows():

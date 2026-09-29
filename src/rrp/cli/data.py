@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 def cmd_data_generate(a):
-    from rrp.data.generate import generate
+    from rrp.harness.data.generate import generate
     cfg = json.loads(open(a.config).read())
     if a.workers:
         cfg["workers"] = a.workers
@@ -14,7 +14,7 @@ def cmd_data_generate(a):
 
 
 def cmd_data_pack(a):
-    from rrp.data.packed import pack_dataset
+    from rrp.harness.data.packed import pack_dataset
     cfg = json.loads(open(a.config).read())
     meta = pack_dataset(Path(cfg["dataset"]), Path(a.out), set(cfg["train_robots"]), cfg["horizon"],
                         stride=cfg.get("stride", 1), include_dart_failures=cfg.get("include_dart_failures", False),

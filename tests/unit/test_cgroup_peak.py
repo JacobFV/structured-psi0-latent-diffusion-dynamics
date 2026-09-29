@@ -1,5 +1,5 @@
 """read_cgroup reports the cgroup v2 memory high-water mark (used to declare realistic lease memory)."""
-from rrp.orchestration.telemetry import read_cgroup
+from rrp.ops.telemetry import read_cgroup
 
 
 def test_memory_peak_read(tmp_path):

@@ -9,7 +9,7 @@ from __future__ import annotations
 import mujoco
 import numpy as np
 
-from rrp.contracts.robot import (RobotSpec, LinkSpec, JointSpec, ActuatorSpec, SensorSpec, AssemblySpec,
+from rrp.core.robot import (RobotSpec, LinkSpec, JointSpec, ActuatorSpec, SensorSpec, AssemblySpec,
                                  FrameDef, AttachmentPort, ControllerContract, CommandGroup, TypedEdge)
 
 JT = {int(mujoco.mjtJoint.mjJNT_HINGE): "hinge", int(mujoco.mjtJoint.mjJNT_SLIDE): "slide",

@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 from functools import lru_cache, partial
 
-from rrp.contracts.paths import rrp_home
+from rrp.core.paths import rrp_home
 
 CANDIDATES = "research/splits/armdiv_candidates_v1.json"
 

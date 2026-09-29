@@ -13,13 +13,13 @@ def _run_dir(cfg, name):
 
 
 def cmd_train_codec(a):
-    from rrp.training.behavior import train_codec
+    from rrp.harness.train.behavior import train_codec
     cfg = json.loads(open(a.config).read())
     print(json.dumps(train_codec(cfg, _run_dir(cfg, cfg["name"])), indent=1, default=str))
 
 
 def cmd_train_policy(a):
-    from rrp.training.behavior import train_policy
+    from rrp.harness.train.behavior import train_policy
     cfg = json.loads(open(a.config).read())
     if a.seed is not None:
         cfg["seed"] = a.seed
@@ -29,11 +29,11 @@ def cmd_train_policy(a):
 
 def cmd_evaluate(a):
     import torch
-    from rrp.controllers.policy_runner import LearnedPolicy
-    from rrp.evaluation.runner import evaluate, summarize
+    from rrp.policies.bc import LearnedPolicy
+    from rrp.harness.eval.runner import evaluate, summarize
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     if dev == "cuda":
-        from rrp.contracts.workload import apply_cap
+        from rrp.ops.workload import apply_cap
         apply_cap()
     pol = LearnedPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=a.nfe, execute_prefix=a.prefix)
     seeds = list(range(a.seed_start, a.seed_start + a.episodes))
@@ -72,19 +72,19 @@ def register(sub):
 
 
 def cmd_campaign_cell(a):
-    from rrp.training.campaign import run_cell
+    from rrp.harness.train.campaign import run_cell
     protocol = json.loads(open(a.protocol).read())
     if torch_cuda():
-        from rrp.contracts.workload import apply_cap
+        from rrp.ops.workload import apply_cap
         apply_cap()
     print(json.dumps(run_cell(protocol, a.method, a.seed), indent=1))
 
 
 def cmd_baseline_cell(a):
-    from rrp.training.baseline_campaign import run_baseline_cell
+    from rrp.harness.train.baseline_campaign import run_baseline_cell
     protocol = json.loads(open(a.protocol).read())
     if torch_cuda():
-        from rrp.contracts.workload import apply_cap
+        from rrp.ops.workload import apply_cap
         apply_cap()
     for t in a.target.split(","):
         for bud in ([int(x) for x in str(a.budget).split(",")]):
@@ -96,7 +96,7 @@ def cmd_baseline_cell(a):
 
 
 def cmd_latency(a):
-    from rrp.evaluation.latency import run_latency_suite
+    from rrp.harness.eval.latency import run_latency_suite
     cks = dict(kv.split("=", 1) for kv in a.models)
     run_latency_suite(cks, Path(a.out))
 
@@ -134,7 +134,7 @@ def register_campaign(sub):
 
 
 def cmd_analyze(a):
-    from rrp.evaluation.analysis import analyze
+    from rrp.harness.eval.analysis import analyze
     protocol = json.loads(open(a.protocol).read())
     res = analyze(Path(a.root), Path("research/reports"), Path("artifacts/figures"), protocol["targets"],
                   protocol["budgets"])

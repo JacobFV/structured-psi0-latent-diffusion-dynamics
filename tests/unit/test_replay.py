@@ -3,8 +3,8 @@ import math
 import pytest
 import torch
 
-from rrp.training.replay_buffer import ReplayBuffer, ReplayRecord
-from rrp.models.critics import squashed_log_prob, td_target, min_of_random_pair
+from rrp.harness.train.replay_buffer import ReplayBuffer, ReplayRecord
+from rrp.policies.nets.critics import squashed_log_prob, td_target, min_of_random_pair
 
 
 def test_incompatible_controller_replay_is_rejected():

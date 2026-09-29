@@ -1,7 +1,7 @@
 import importlib.util
 from pathlib import Path
 
-from rrp.service.schemas import public_message_kinds
+from rrp.viz.workbench.schemas import public_message_kinds
 
 REPO = Path(__file__).resolve().parents[2]
 

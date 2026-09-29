@@ -1,4 +1,4 @@
-from rrp.evaluation.adaptation import nested_budget_indices, first_sustained_crossing
+from rrp.harness.eval.adaptation import nested_budget_indices, first_sustained_crossing
 
 
 def test_adaptation_budgets_are_nested():

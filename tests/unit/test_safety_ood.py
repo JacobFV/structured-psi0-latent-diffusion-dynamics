@@ -2,8 +2,8 @@
 import numpy as np
 import pytest
 
-from rrp.controllers.packet_ood import GaussianSubspaceModel, PacketOODModel, PacketOODMonitor
-from rrp.controllers.safety import SafetyConfig, SafetyLayer, SafetyLimits
+from rrp.policies.packet_ood import GaussianSubspaceModel, PacketOODModel, PacketOODMonitor
+from rrp.policies.safety import SafetyConfig, SafetyLayer, SafetyLimits
 
 
 # ------------------------------------------------------------------ OOD
@@ -134,8 +134,8 @@ def test_safe_stop_ramps_to_hold_and_fall_hook():
 
 def test_legged_limits_sourced_for_go2_else_estimate():
     from rrp.bodies.legged import hexapod, standalone_model
-    from rrp.controllers.safety import legged_limits
-    from rrp.envs.legged_core import LeggedBinding
+    from rrp.policies.safety import legged_limits
+    from rrp.envs.mujoco.legged_core import LeggedBinding
     model, _, meta = standalone_model(hexapod())
     L = legged_limits(LeggedBinding(model, meta), "hexapod6")
     assert L.source == "model+vmax_estimate" and (L.lo < L.hi).all() and (L.effort > 0).all()

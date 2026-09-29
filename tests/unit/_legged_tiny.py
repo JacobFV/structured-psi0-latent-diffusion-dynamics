@@ -10,8 +10,8 @@ DZ, W = 8, 32
 
 
 def tiny_bundle(tmp: Path, seed: int = 0):
-    from rrp.models.legged_latent import LeggedEncoder, LeggedFlow, LeggedProbe, LeggedRealizer
-    from rrp.features.legged import H
+    from rrp.policies.nets.legged_latent import LeggedEncoder, LeggedFlow, LeggedProbe, LeggedRealizer
+    from rrp.policies.features.legged import H
     torch.manual_seed(seed)
     E, R, P = LeggedEncoder(dz=DZ, D=W, H=H), LeggedRealizer(dz=DZ, D=W), LeggedProbe(dz=DZ)
     F = LeggedFlow(dz=DZ, D=W, layers=1)

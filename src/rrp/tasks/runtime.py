@@ -12,9 +12,9 @@ import time
 from dataclasses import dataclass, field, asdict
 from typing import Callable, Protocol
 
-from rrp.contracts.errors import ProvenanceError, VersionConflict
-from rrp.contracts.observation import PolicyObservation, RuntimeEventView, ReceiptView, TaskInput
-from rrp.contracts.task import Condition, EntityBinding, OutputBinding, TaskDefinition
+from rrp.core.errors import ProvenanceError, VersionConflict
+from rrp.core.observation import PolicyObservation, RuntimeEventView, ReceiptView, TaskInput
+from rrp.core.task import Condition, EntityBinding, OutputBinding, TaskDefinition
 from .compiler import CompiledTask, compile_task
 from .interventions import GraphStore, EditReceipt
 from .receipts import Receipt, ReceiptStore

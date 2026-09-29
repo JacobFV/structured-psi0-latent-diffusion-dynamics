@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from rrp.contracts.runconfig import (NON_RUN_CONFIGS, RunConfig, RunConfigError, RunIndex, expand_matrix,
+from rrp.core.runconfig import (NON_RUN_CONFIGS, RunConfig, RunConfigError, RunIndex, expand_matrix,
                                      iter_legacy_configs, load_legacy, overlay, render)
 
 ROOT = Path(__file__).resolve().parents[2]

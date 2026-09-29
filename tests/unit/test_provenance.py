@@ -12,7 +12,7 @@ import mujoco
 import pytest
 import torch
 
-from rrp.contracts.provenance import (FEATURIZER_VERSION, MissingFlagError, Provenance, Source, legacy_provenance,
+from rrp.core.provenance import (FEATURIZER_VERSION, MissingFlagError, Provenance, Source, legacy_provenance,
                                       make_provenance, parse_source, physics_provenance, read_provenance,
                                       resolve_zero_prev_action, source_label, training_flags, weights_digest)
 
@@ -53,8 +53,8 @@ def test_provenance_json_roundtrip_and_legacy():
 
 
 def test_source_mapping_covers_legacy_strings():
-    from rrp.contracts.action import Source as ActionSource
-    from rrp.contracts.latent_action import LatentActionChunk
+    from rrp.core.action import Source as ActionSource
+    from rrp.core.latent_action import LatentActionChunk
     for s in typing.get_args(ActionSource):
         parse_source(s)
     for s in typing.get_args(LatentActionChunk.model_fields["source"].annotation):
@@ -78,13 +78,13 @@ def test_source_mapping_covers_legacy_strings():
 
 
 def test_featurizer_constant_is_single():
-    from rrp.data.collect import FEATURIZER_VERSION as A
-    from rrp.training.behavior import FEAT_VERSION as B
+    from rrp.harness.data.collect import FEATURIZER_VERSION as A
+    from rrp.harness.train.behavior import FEAT_VERSION as B
     assert A is FEATURIZER_VERSION and B is FEATURIZER_VERSION
 
 
 def test_weights_digest_matches_arm_bundle_algorithm():
-    from rrp.controllers.latent_realizer import weights_digest as wd_old_name
+    from rrp.policies.system0 import weights_digest as wd_old_name
     sd = torch.nn.Linear(4, 3).state_dict()
     h = hashlib.sha256()                                  # the D-038 algorithm, verbatim
     for k in sorted(sd):
@@ -95,7 +95,7 @@ def test_weights_digest_matches_arm_bundle_algorithm():
 
 
 def test_manifest_writer_and_legacy_readers(tmp_path):
-    from rrp.data.manifest import read_manifest, write_manifest, dataset_provenance
+    from rrp.harness.data.manifest import read_manifest, write_manifest, dataset_provenance
     phys = physics_provenance(mujoco.MjModel.from_xml_string(XML)).to_dict()
     eps = [dict(episode_id="a", status="success", physics=phys), dict(episode_id="b", status="failure", physics=phys)]
     prov = dataset_provenance(eps, source="scripted_teacher", featurizer_version=FEATURIZER_VERSION)
@@ -120,8 +120,8 @@ def test_manifest_writer_and_legacy_readers(tmp_path):
 
 
 def test_legged_checkpoints_fingerprinted_and_legacy(tmp_path):
-    from rrp.training.legged_latent_train import _save, checkpoint_provenance
-    from rrp.evaluation.legged_latent_eval import legged_bundle_versions
+    from rrp.harness.train.legged_latent_train import _save, checkpoint_provenance
+    from rrp.harness.eval.legged_latent_eval import legged_bundle_versions
     E, R = torch.nn.Linear(3, 2), torch.nn.Linear(2, 2)
     cfg = dict(name="t", latent=dict(dz=2, width=4, probe_lv_min=-4.0, semantic_weight=1.0))
     _save(tmp_path / "representation.pt", E=E.state_dict(), R=R.state_dict(), cfg=cfg,
@@ -150,7 +150,7 @@ def test_legged_checkpoints_fingerprinted_and_legacy(tmp_path):
 
 
 def test_save_checkpoint_provenance(tmp_path):
-    from rrp.models.checkpoint import save_checkpoint, load_checkpoint, checkpoint_provenance
+    from rrp.policies.nets.checkpoint import save_checkpoint, load_checkpoint, checkpoint_provenance
     m = torch.nn.Linear(2, 2)
     save_checkpoint(tmp_path / "p.pt", model=m, step=1, versions=dict(featurizer=FEATURIZER_VERSION),
                     config=dict(zero_prev_action=True, realizer_drop_qd=False))

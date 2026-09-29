@@ -25,7 +25,7 @@ import imageio  # noqa: E402
 import numpy as np  # noqa: E402
 from PIL import Image, ImageDraw  # noqa: E402
 
-from rrp.evaluation.legged_latent_eval import run_episode, _seeds  # noqa: E402
+from rrp.harness.eval.legged_latent_eval import run_episode, _seeds  # noqa: E402
 
 BAR = (0, 0, 0)
 

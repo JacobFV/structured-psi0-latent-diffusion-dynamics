@@ -20,7 +20,7 @@ def _cfg(a, method):
 
 def cmd_adapt(a):
     if a.method == "synthetic":
-        from rrp.training.synthetic import run_synthetic
+        from rrp.harness.train.synthetic import run_synthetic
         cfg = json.loads(open(a.config).read()) if a.config else {}
         res = run_synthetic(**cfg.get("synthetic", {}))
         if a.out_dir:
@@ -28,7 +28,7 @@ def cmd_adapt(a):
             (Path(a.out_dir) / "result.json").write_text(json.dumps(res, indent=1))
         print(json.dumps(res, indent=1))
         return
-    from rrp.training.adapt import run
+    from rrp.harness.train.adapt import run
     if a.method == "chain":        # sequential runs in ONE lease (method taken from each config)
         for path in a.configs.split(","):
             cfg = json.loads(open(path).read())

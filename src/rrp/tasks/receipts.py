@@ -9,7 +9,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field, asdict
 
-from rrp.contracts.errors import ProvenanceError
+from rrp.core.errors import ProvenanceError
 
 
 @dataclass

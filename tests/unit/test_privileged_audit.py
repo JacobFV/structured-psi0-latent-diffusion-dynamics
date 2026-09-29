@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import torch
 
-from rrp.evaluation import privileged_audit as pa
+from rrp.harness.eval import privileged_audit as pa
 
 from ._legged_tiny import tiny_bundle
 
@@ -15,7 +15,7 @@ def test_static_check_clean_with_declared_exceptions():
     res = pa.static_check()
     assert res["violations"] == [], res["violations"]
     fns = {d["function"] for d in res["declared"]}
-    assert "rrp.envs.legged:LeggedSession._sense" in fns          # the truth+noise localization is reported
+    assert "rrp.envs.mujoco.legged:LeggedSession._sense" in fns          # the truth+noise localization is reported
 
 
 def test_static_check_catches_a_leak():
@@ -38,8 +38,8 @@ def test_static_check_catches_a_leak():
 
 def test_public_observation_schema_has_no_privileged_fields():
     from pydantic import create_model
-    from rrp.contracts.channels import schema_privileged_fields
-    from rrp.contracts.observation import PolicyObservation
+    from rrp.core.channels import schema_privileged_fields
+    from rrp.core.observation import PolicyObservation
     assert schema_privileged_fields(PolicyObservation) == []
     Leaky = create_model("Leaky", __base__=PolicyObservation, object_poses=(dict, {}))
     assert schema_privileged_fields(Leaky) == ["$.object_poses"]
@@ -89,7 +89,7 @@ def test_summary_flags():
 def test_tiny_runtime_audit(tmp_path):
     torch.set_num_threads(1)
     rep, flow = tiny_bundle(tmp_path / "b")
-    from rrp.evaluation.legged_latent_eval import LatentLeggedController
+    from rrp.harness.eval.legged_latent_eval import LatentLeggedController
     make = lambda sd: LatentLeggedController(flow, torch.device("cpu"), nfe=2, seed=sd)
     s = pa.run_audit(make, ["hexapod6"], [3, 4], tmp_path / "audit", groups=["local.q"],
                      ablations=["shuffle"], max_s=0.5)

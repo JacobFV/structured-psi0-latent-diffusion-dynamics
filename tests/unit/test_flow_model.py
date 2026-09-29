@@ -3,10 +3,10 @@ import numpy as np
 import pytest
 import torch
 
-from rrp.envs.fixtures import make_pick_place_session
-from rrp.data.collect import featurizer_for
-from rrp.models.batch import collate_inputs
-from rrp.models.flow import FlowPolicy, PolicyConfig
+from rrp.envs.mujoco.fixtures import make_pick_place_session
+from rrp.harness.data.collect import featurizer_for
+from rrp.policies.nets.batch import collate_inputs
+from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
 
 torch.manual_seed(0)
 
@@ -134,7 +134,7 @@ def test_padding_nodes_do_not_change_valid_outputs(inputs):
 
 
 def test_aux_readout_gradients_reach_action_expert_blocks(inputs):
-    from rrp.data.chunks import Sample, collate_samples
+    from rrp.harness.data.chunks import Sample, collate_samples
     m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=3, horizon=4, aux=True))
     S = inputs[0].tokens["scene"].shape[0]
     N = inputs[0].act_node_feats.shape[0]

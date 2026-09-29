@@ -1,6 +1,6 @@
 # naming map: historical lineage codes → variant × seed × stage
 
-Target scheme (docs/repo_structure_audit.md, W4/W5): `variant ∈ {sem, nosem, semfix}` × `seed s{n}` × `stage ∈ {rep, flow,
+Target scheme (docs/architecture.md, W4/W5): `variant ∈ {sem, nosem, semfix}` × `seed s{n}` × `stage ∈ {rep, flow,
 flowft, gdagN, rz, dagN-{bc|gen}}`, per body family. Existing paths are NOT renamed (running jobs and chain markers depend on
 them); this table is the decoder. Verified against config contents on 2026-09-26 (W2); "uncertain" marks inferences.
 

@@ -5,7 +5,7 @@ from pathlib import Path
 
 # this checkout's library first (the pre-move script needed no PYTHONPATH and ran its own code)
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from rrp.evaluation.legged_summaries import mirror_effect_main  # noqa: E402
+from rrp.harness.eval.legged_summaries import mirror_effect_main  # noqa: E402
 
 if __name__ == "__main__":
     mirror_effect_main(sys.argv[1:])

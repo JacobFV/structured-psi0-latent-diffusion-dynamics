@@ -2,14 +2,14 @@
 import numpy as np
 import pytest
 
-from rrp.features import kinfeat
+from rrp.policies.features import kinfeat
 
 
 def _feat(robot_key, yaw=0.0):
     from rrp.bodies.catalog import workbench_robots
-    from rrp.envs.native import Session
-    from rrp.envs.scenario import build_pick_place
-    from rrp.features.featurizer import featurizer_for
+    from rrp.envs.mujoco.session import Session
+    from rrp.envs.mujoco.scenario import build_pick_place
+    from rrp.policies.features.featurizer import featurizer_for
     s = Session(build_pick_place(workbench_robots()[robot_key](), 5, base=((0.0, 0.0, 0.0), yaw)), seed=5)
     f = featurizer_for(s)
     return f, f(s.observe())
@@ -61,7 +61,7 @@ def test_apply_rows_is_idempotent(monkeypatch):
 
 
 def test_checkpoint_guard(monkeypatch):
-    from rrp.models.checkpoint import check_kinfeat
+    from rrp.policies.nets.checkpoint import check_kinfeat
     monkeypatch.delenv(kinfeat.ENV, raising=False)
     check_kinfeat(dict(model={}, versions={}))
     with pytest.raises(ValueError):
@@ -74,7 +74,7 @@ def test_checkpoint_guard(monkeypatch):
 
 def test_stage_option_sets_env_only_inside_stage(monkeypatch, tmp_path):
     import os
-    from rrp.pipelines import base
+    from rrp.harness.pipelines import base
     src = open(base.__file__).read()
     assert 'rc.options.get("kinfeat")' in src          # the generic stage option exists (like grasp_contact)
     monkeypatch.delenv(kinfeat.ENV, raising=False)

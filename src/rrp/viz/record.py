@@ -116,9 +116,9 @@ def _get(r, dotted):
 
 
 def physics_meta(model, *, family: str) -> dict:
-    from rrp.physics.contact import model_contact_version
-    from rrp.physics.grasp_contact import model_grasp_version
-    from rrp.physics.actuator import model_actuator_limits, resolve_mode
+    from rrp.bodies.contact import model_contact_version
+    from rrp.bodies.grasp_contact import model_grasp_version
+    from rrp.bodies.actuator import model_actuator_limits, resolve_mode
     arm = family in ("arm", "dual", "grasp_rig")
     return dict(contact_version=None if arm else (model_contact_version(model) or "contact_v1"),
                 grasp_contact_version=(model_grasp_version(model) or "grasp_v1") if arm else None,
@@ -356,8 +356,8 @@ def pca_basis(spec: dict | None, cache: dict) -> dict | None:
                                  note="mu of the system-0 refit DAgger buffers (packets system 0 was trained on)"))
     elif kind == "legged_rep":                          # E(public ctx, demonstrated targets) on the training data
         import torch
-        from rrp.controllers.bundles import load_rep
-        from rrp.training.legged_latent_train import LeggedData
+        from rrp.policies.bundles import load_rep
+        from rrp.harness.train.legged_latent_train import LeggedData
         rcfg, E, _R, _P, _res = load_rep(Path(spec["rep"]), torch.device("cpu"))
         data = LeggedData(Path(rcfg["data"]), [spec["body"]], torch.device("cpu"))
         M = int(spec.get("M") or data.S["asm_mask"][0].sum())            # the body's packet assemblies
@@ -503,7 +503,7 @@ class _ArmSignals:
 
 def _install_packet_tap():
     """Remember the last packet each LatentSystem0 received (keyed by its featurizer object; read-only)."""
-    from rrp.controllers.latent_realizer import LatentSystem0
+    from rrp.policies.system0 import LatentSystem0
     tap: dict = {}
     orig = LatentSystem0.receive
 
@@ -518,8 +518,8 @@ def run_ladder(e: dict, out: Path, pcache: dict) -> list[dict]:
     """Arm R2 / BC / teacher-route episodes, re-run exactly as rrp.evaluation.ladder_cli does: the full feasible seed
     list, batches of `batch` in order (the flow/BC noise generator is shared across batches), CPU."""
     import torch
-    from rrp.evaluation.ladder import LadderConfig, load_models, run_ladder as _run
-    from rrp.evaluation.robustness import feasible_arm_seeds
+    from rrp.harness.eval.ladder import LadderConfig, load_models, run_ladder as _run
+    from rrp.harness.eval.robustness import feasible_arm_seeds
     a = e["args"]
     seeds_all = feasible_arm_seeds(a["robot"], int(a["seed_start"]), int(a.get("n", 30)))
     want = [int(x) for x in e["seeds"]]
@@ -617,9 +617,9 @@ def _ckpt_shas(ids: dict) -> dict:
 
 # ------------------------------------------------------------------ ARM: scripted teacher v2 (rrp.evaluation.teacher_quality)
 def run_arm_teacher(e: dict, out: Path, pcache: dict) -> list[dict]:
-    from rrp.envs import native
-    from rrp.evaluation.teacher_quality import run_quality_episode
-    import rrp.teachers.arm_smooth as AS
+    from rrp.envs.mujoco import session as native
+    from rrp.harness.eval.teacher_quality import run_quality_episode
+    import rrp.policies.teachers.arm_smooth as AS
     a = e["args"]
     results = []
     for sd in e["seeds"]:
@@ -666,11 +666,11 @@ def run_arm_teacher(e: dict, out: Path, pcache: dict) -> list[dict]:
 def run_arm_edit(e: dict, out: Path, pcache: dict) -> list[dict]:
     import torch
     from rrp.bodies.catalog import workbench_robots
-    from rrp.controllers.bundles import load_representation
-    from rrp.controllers.latent_runner import LatentPolicy
-    from rrp.evaluation import latent_causal as lc
-    from rrp.evaluation import latent_semantic_edits as se
-    from rrp.models.checkpoint import load_checkpoint
+    from rrp.policies.bundles import load_representation
+    from rrp.policies.latent import LatentPolicy
+    from rrp.harness.eval import latent_causal as lc
+    from rrp.harness.eval import latent_semantic_edits as se
+    from rrp.policies.nets.checkpoint import load_checkpoint
     a = e["args"]
     dev = "cpu"
     if a.get("route", "generated") != "generated":
@@ -767,7 +767,7 @@ class _LeggedSignals:
                     joint_torque_names=[m.actuator(int(i)).name for i in b.pol_act])
 
     def start(self, d):
-        from rrp.envs.legged_core import yaw_of
+        from rrp.envs.mujoco.legged_core import yaw_of
         b = self.b
         self.p0 = d.qpos[b.qa:b.qa + 2].copy()
         self.yaw0 = yaw_of(d.qpos[b.qa + 3:b.qa + 7])
@@ -788,7 +788,7 @@ class _LeggedSignals:
         s = self.s
         ev = None
         if s is not None:
-            from rrp.features.legged import EVENTS, active_event
+            from rrp.policies.features.legged import EVENTS, active_event
             ev = active_event(s.runtime)
             out["phase"] = EVENTS[ev] if ev < len(EVENTS) else "done"
             if self.edit and self.edit != "none" and self.t_edit is not None:
@@ -797,12 +797,12 @@ class _LeggedSignals:
         if ctl is not None and getattr(ctl, "packets", None):
             pk = ctl.packets[-1]
             pr = pk["probe"]
-            from rrp.features.legged import EVENTS
+            from rrp.policies.features.legged import EVENTS
             out["probe"] = dict(contact=[bool(x) for x in (pr["contact"][0] if pr.get("contact") else [])],
                                 halt=bool(pr.get("subtask") == EVENTS.index("halt")), goal=pr.get("goal"),
                                 subtask=pr.get("subtask"), fall=pr.get("fall"))
             if ev is not None:                      # privileged truth for the same readouts (display only)
-                from rrp.envs.legged_core import yaw_of
+                from rrp.envs.mujoco.legged_core import yaw_of
                 wps = s.scenario.meta.get("waypoints") or {}
                 q = d.qpos
                 x, y, yaw = q[b.qa], q[b.qa + 1], yaw_of(q[b.qa + 3:b.qa + 7])
@@ -856,7 +856,7 @@ LEGGED_NOTES = dict(
 
 def _legged_ctl(a: dict, seed: int):
     import torch
-    from rrp.evaluation.legged_latent_eval import BCController, LatentLeggedController
+    from rrp.harness.eval.legged_latent_eval import BCController, LatentLeggedController
     dev = torch.device("cpu")
     if a.get("bc"):
         return BCController(Path(a["bc"]), dev, nfe=int(a.get("nfe", 8)), replan=int(a.get("replan", 5)), seed=seed)
@@ -869,8 +869,8 @@ def _legged_ctl(a: dict, seed: int):
 
 def _run_legged(e: dict, out: Path, pcache: dict, robust: bool) -> list[dict]:
     import torch
-    import rrp.envs.motion_quality as MQ
-    from rrp.evaluation.legged_latent_eval import run_episode
+    import rrp.envs.mujoco.motion_quality as MQ
+    from rrp.harness.eval.legged_latent_eval import run_episode
     a = e["args"]
     torch.set_num_threads(int(e.get("threads", 1 if robust else 2)))
     basis = pca_basis(e.get("pca"), pcache)
@@ -881,7 +881,7 @@ def _run_legged(e: dict, out: Path, pcache: dict, robust: bool) -> list[dict]:
         st = dict(ep=None, sig=None)
         o_init, o_tick, o_reset = MQ.LeggedMotionRecorder.__init__, MQ.LeggedMotionRecorder.on_tick, MQ.LeggedMotionRecorder.on_reset
         o_sub = MQ.LeggedMotionRecorder.on_substep
-        from rrp.evaluation.legged_latent_eval import LatentLeggedController as LLC
+        from rrp.harness.eval.legged_latent_eval import LatentLeggedController as LLC
         o_gen = LLC.generate
         CTX = ("mirror_goal", "halt", "mirror_active", "mirror_inactive")
 
@@ -939,7 +939,7 @@ def _run_legged(e: dict, out: Path, pcache: dict, robust: bool) -> list[dict]:
             col.tick()
         kw = dict(max_s=float(a.get("max_s", 60.0)))
         if robust:
-            from rrp.evaluation.robustness import _cond_by_key
+            from rrp.harness.eval.robustness import _cond_by_key
             cond = _cond_by_key("legged", e["body"], a["condition_key"])
             kw["perturb"] = cond["pert"]
         with _patched(MQ.LeggedMotionRecorder, "__init__", init), _patched(MQ.LeggedMotionRecorder, "on_tick", on_tick), \
@@ -981,7 +981,7 @@ def _run_legged(e: dict, out: Path, pcache: dict, robust: bool) -> list[dict]:
 
 
 def TRACKER_HZ():
-    from rrp.envs.legged import TRACKER_HZ as T
+    from rrp.envs.mujoco.legged import TRACKER_HZ as T
     return T
 
 
@@ -999,10 +999,10 @@ def run_legged_robust(e, out, pcache):
 
 # ------------------------------------------------------------------ tracker validation (own mj_step loop)
 def run_tracker_val(e: dict, out: Path, pcache: dict) -> list[dict]:
-    import rrp.evaluation.tracker_validation as TV
+    import rrp.harness.eval.tracker_validation as TV
     from rrp.bodies.legged import legged_body, standalone_model
-    from rrp.envs.legged_core import LeggedBinding
-    from rrp.envs.legged_tracker import LearnedTracker, CPGTracker, tracker_path
+    from rrp.envs.mujoco.legged_core import LeggedBinding
+    from rrp.envs.mujoco.legged_tracker import LearnedTracker, CPGTracker, tracker_path
     import mujoco
     a = e["args"]
     body = e["body"]
@@ -1061,8 +1061,8 @@ def _r3(x):
 # ------------------------------------------------------------------ DUAL teacher (rrp.evaluation.dual_teacher_quality)
 def run_dual_teacher(e: dict, out: Path, pcache: dict) -> list[dict]:
     import mujoco
-    import rrp.data.dual_quality as DQ
-    from rrp.evaluation.dual_teacher_quality import run_audit_episode
+    import rrp.harness.data.dual_quality as DQ
+    from rrp.harness.eval.dual_teacher_quality import run_audit_episode
     a = e["args"]
     results = []
     for sd in e["seeds"]:
@@ -1176,7 +1176,7 @@ def run_dual_teacher(e: dict, out: Path, pcache: dict) -> list[dict]:
 # ------------------------------------------------------------------ GRASP RIG (rrp.evaluation.grasp_rig, own mj_step loop)
 def run_grasp_rig(e: dict, out: Path, pcache: dict) -> list[dict]:
     import mujoco
-    import rrp.evaluation.grasp_rig as GR
+    import rrp.harness.eval.grasp_rig as GR
     a = e["args"]
     st = dict(ep=None, sig=None, n=0, mass=None)
 
@@ -1351,7 +1351,7 @@ REQUIRED = ("id", "harness", "family", "source_label", "decision_refs", "seeds")
 # ------------------------------------------------------------------ spec + CLI
 def load_spec(path) -> list[dict]:
     """One spec file, or several comma-separated (entries concatenated; ids must stay unique)."""
-    from rrp.orchestration.yamlmini import load
+    from rrp.harness.yamlmini import load
     out = []
     for one in str(path).split(","):
         out += _load_one(load(Path(one).read_text()))

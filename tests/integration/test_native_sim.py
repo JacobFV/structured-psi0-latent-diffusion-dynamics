@@ -1,12 +1,12 @@
 import numpy as np
 import pytest
 
-from rrp.envs.fixtures import make_arm_session, make_pick_place_session
-from rrp.physics.snapshot import Snapshot, SnapshotError
-from rrp.contracts.action import NativeCommand, ActionChunk, GroupCommand
-from rrp.contracts.errors import ControllerRejection, StaleActionError
-from rrp.contracts.channels import serialize_public
-from rrp.teachers.arm import PickPlaceTeacher
+from rrp.envs.mujoco.fixtures import make_arm_session, make_pick_place_session
+from rrp.envs.mujoco.snapshot import Snapshot, SnapshotError
+from rrp.core.action import NativeCommand, ActionChunk, GroupCommand
+from rrp.core.errors import ControllerRejection, StaleActionError
+from rrp.core.channels import serialize_public
+from rrp.policies.teachers.arm import PickPlaceTeacher
 
 
 def test_physics_steps_and_full_restore():

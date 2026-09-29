@@ -1,7 +1,7 @@
 import copy
 import pytest
 from rrp.tasks.interventions import GraphStore, EditRejected
-from rrp.contracts.errors import VersionConflict
+from rrp.core.errors import VersionConflict
 from tests.support import supplied_task_payload
 
 

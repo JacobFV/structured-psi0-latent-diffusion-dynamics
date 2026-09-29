@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 # ----------------------------------------------------------------------------------------------- teacher v3
 def test_minjerk_superposition_is_c2_and_reaches_goals():
-    from rrp.teachers.dual_smooth import SmoothArmMover, minjerk
+    from rrp.policies.teachers.dual_smooth import SmoothArmMover, minjerk
     m = object.__new__(SmoothArmMover)
     m.base, m.t = np.zeros(3), 0.0
     m.subs = [(0.0, 1.0, np.array([0.1, 0.0, 0.0])), (0.6, 0.8, np.array([0.0, 0.05, 0.0]))]   # blended corner
@@ -32,7 +32,7 @@ def test_minjerk_superposition_is_c2_and_reaches_goals():
 
 
 def test_v3_options_dart_gate_and_factory():
-    from rrp.teachers.dual_smooth import DART_PHASES, V3Options, dart_phase_allowed
+    from rrp.policies.teachers.dual_smooth import DART_PHASES, V3Options, dart_phase_allowed
     assert V3Options.from_dict({"minjerk": False}).minjerk is False and V3Options().confirm_grasp
     with pytest.raises(ValueError):
         V3Options.from_dict({"nonsense": True})
@@ -45,11 +45,11 @@ def test_v3_options_dart_gate_and_factory():
 
 
 def test_make_dual_teacher_default_is_v2():
-    from rrp.teachers.dual import HandoverTeacher, SupportInsertTeacher
-    from rrp.teachers.dual_coord import CarryTrayTeacherStub, PivotTeacherStub
-    from rrp.teachers.dual_smooth import (DEFAULT_DUAL_TEACHER, HandoverTeacherV3, SupportInsertTeacherV3,
+    from rrp.policies.teachers.dual import HandoverTeacher, SupportInsertTeacher
+    from rrp.policies.teachers.dual_coord import CarryTrayTeacherStub, PivotTeacherStub
+    from rrp.policies.teachers.dual_smooth import (DEFAULT_DUAL_TEACHER, HandoverTeacherV3, SupportInsertTeacherV3,
                                           make_dual_teacher)
-    from rrp.teachers.dual_validate import make_session
+    from rrp.policies.teachers.dual_validate import make_session
     assert DEFAULT_DUAL_TEACHER == "v2"
     s = make_session("support_insert", "parm5_pg2__parm5_pg2", 0)
     t = make_dual_teacher("support_insert", s)
@@ -74,7 +74,7 @@ def test_make_dual_teacher_default_is_v2():
 
 # ----------------------------------------------------------------------------------------------- collection defaults
 def test_collect_jobs_and_episode_keys_unchanged_by_default():
-    from rrp.data.collect_dual import EXTRA_KEYS, build_jobs, collect_dual_episode
+    from rrp.harness.data.collect_dual import EXTRA_KEYS, build_jobs, collect_dual_episode
     cfg = dict(out_dir="x", task="handover", items=[dict(pair="a__b", split="s", seed_start=3, episodes=2)],
                noise_levels=[0.0, 0.04], noise_burst=[25, 5], max_steps=800, stop_after_success=10)
     jobs, ex = build_jobs(cfg)
@@ -85,14 +85,14 @@ def test_collect_jobs_and_episode_keys_unchanged_by_default():
     jobs3, ex3 = build_jobs(dict(cfg, teacher_version="v3", noise_phase_gate=True))
     assert ex3 == {"teacher_version": "v3", "noise_phase_gate": True} and jobs3[0][9] == ex3
     assert set(EXTRA_KEYS) >= {"contact_labels", "teacher_version", "record_quality", "noise_phase_gate"}
-    from rrp.teachers.dual import TEACHERS
-    from rrp.teachers.dual_validate import make_session
+    from rrp.policies.teachers.dual import TEACHERS
+    from rrp.policies.teachers.dual_validate import make_session
     s = make_session("handover", "parm5_pg2__parm5_pg2", 0)
     rec = collect_dual_episode(s, TEACHERS["handover"](s), max_steps=3, episode_id="e")
     new_keys = {"motion", "teacher_version", "teacher_options", "teacher_limits", "dart_variant"}
     assert not new_keys & set(rec.public["meta"]) and "contact_frames" not in rec.private
     s = make_session("handover", "parm5_pg2__parm5_pg2", 0)
-    from rrp.teachers.dual_smooth import make_dual_teacher
+    from rrp.policies.teachers.dual_smooth import make_dual_teacher
     rec = collect_dual_episode(s, make_dual_teacher("handover", s, "v3"), max_steps=3, episode_id="e",
                                record_quality=True, noise_phase_gate=True, exec_noise=0.04)
     m = rec.public["meta"]
@@ -112,7 +112,7 @@ def _row(status="success", step=0.3, margin=0.1, jerk=10.0, pen=0.001, slip=0.00
 
 
 def test_dual_dataset_gate():
-    from rrp.evaluation.gates import check_dataset, check_dual_dataset
+    from rrp.harness.eval.gates import check_dataset, check_dual_dataset
     ok = check_dual_dataset([_row() for _ in range(20)])
     assert ok["verdict"] == "pass", ok["failed"]
     assert check_dataset(None, [_row() for _ in range(20)])["gate"] == "dual_dataset"
@@ -132,17 +132,17 @@ def test_dual_dataset_gate():
 
 
 def test_arm_gate_family_detection_unchanged():
-    from rrp.evaluation.gates import _family
+    from rrp.harness.eval.gates import _family
     assert _family([dict(robot_key="panda_pg2", control_dt=0.05)]) == "arm"
     assert _family([dict(motion=dict(family="dual"))]) == "dual"
 
 
 # ----------------------------------------------------------------------------------------------- pipeline + DAG
 def test_dual_pipeline_guards_and_template():
-    from rrp.contracts.runconfig import RunConfig
-    from rrp.orchestration.dag import load_dag, plan_dag
-    from rrp.pipelines.base import Pipeline, StageContext, StageError
-    from rrp.pipelines import dual
+    from rrp.core.runconfig import RunConfig
+    from rrp.harness.dag import load_dag, plan_dag
+    from rrp.harness.pipelines.base import Pipeline, StageContext, StageError
+    from rrp.harness.pipelines import dual
     p = Pipeline("dual")
     with pytest.raises(StageError, match="label source"):
         p.spec("dagger_collect").fn(None)
@@ -169,8 +169,8 @@ def test_dual_pipeline_guards_and_template():
 
 # ----------------------------------------------------------------------------------------------- coordination tasks
 def test_coordination_tasks_compile_and_estimators():
-    from rrp.contracts.task import TaskDefinition
-    from rrp.envs.dual import pivot_angle_from_height
+    from rrp.core.task import TaskDefinition
+    from rrp.envs.mujoco.dual import pivot_angle_from_height
     from rrp.tasks.compiler import compile_task
     for name, edges in (("pivot_against_surface", {("brace", "pivot", "maintained_during"),
                                                    ("contact", "pivot", "maintained_during")}),
@@ -181,7 +181,7 @@ def test_coordination_tasks_compile_and_estimators():
     for th in (0.0, 0.4, 1.0, 1.2):
         z = L * math.sin(th) + h * math.cos(th)
         assert pivot_angle_from_height(z, L, h) == pytest.approx(th, abs=1e-9)
-    from rrp.teachers.dual_validate import make_session
+    from rrp.policies.teachers.dual_validate import make_session
     s = make_session("carry_tray_level", "parm5_pg2__parm5_pg2", 1)
     assert s.truth_predicate("level_error_rad", ["tray"]) == pytest.approx(0.0, abs=1e-6)
     assert s.estimate("level_error_rad", ["tray"])[0] == 0.0                     # not carried by two hands

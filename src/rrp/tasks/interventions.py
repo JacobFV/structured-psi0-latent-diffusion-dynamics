@@ -12,9 +12,9 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-from rrp.contracts.base import content_hash
-from rrp.contracts.errors import ContractError, VersionConflict, RRPError
-from rrp.contracts.task import TaskDefinition
+from rrp.core.base import content_hash
+from rrp.core.errors import ContractError, VersionConflict, RRPError
+from rrp.core.task import TaskDefinition
 from .compiler import compile_task, CompiledTask
 
 

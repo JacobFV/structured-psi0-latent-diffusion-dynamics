@@ -9,11 +9,11 @@ import torch
 
 transformers = pytest.importorskip("transformers")
 
-from rrp.data.collect import featurizer_for  # noqa: E402
-from rrp.models.batch import collate_inputs  # noqa: E402
-from rrp.models.flow import FlowPolicy, PolicyConfig  # noqa: E402
-from rrp.models.qa import ObjectQA, DECODER, policy_hidden  # noqa: E402
-from rrp.envs.fixtures import make_pick_place_session  # noqa: E402
+from rrp.harness.data.collect import featurizer_for  # noqa: E402
+from rrp.policies.nets.batch import collate_inputs  # noqa: E402
+from rrp.policies.nets.flow import FlowPolicy, PolicyConfig  # noqa: E402
+from rrp.policies.nets.qa import ObjectQA, DECODER, policy_hidden  # noqa: E402
+from rrp.envs.mujoco.fixtures import make_pick_place_session  # noqa: E402
 
 
 @pytest.fixture(scope="module")

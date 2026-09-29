@@ -120,8 +120,8 @@ def test_recorded_arm_episode_actions_match_unrecorded(tmp_path):
     """Recording must not change behaviour: the ladder's executed commands and outcome are identical with and
     without the recorder attached (smallest procedural arm, teacher route, 6 control ticks)."""
     pytest.importorskip("mujoco")
-    from rrp.evaluation.ladder import LadderConfig, run_ladder
-    from rrp.evaluation.robustness import feasible_arm_seeds
+    from rrp.harness.eval.ladder import LadderConfig, run_ladder
+    from rrp.harness.eval.robustness import feasible_arm_seeds
     from rrp.viz import record as R
     seeds = feasible_arm_seeds("parm5_pg2", 3_000_000, 1)
     base_log: dict = {}
@@ -153,7 +153,7 @@ def test_recorded_arm_episode_actions_match_unrecorded(tmp_path):
 
 @pytest.mark.skipif(os.environ.get("RRP_NODE") != "peer", reason="legged episode: peer only (D-127 host = unit suite)")
 def test_recorded_legged_episode_matches_unrecorded(tmp_path):
-    from rrp.evaluation.legged_latent_eval import run_episode
+    from rrp.harness.eval.legged_latent_eval import run_episode
     from rrp.viz import record as R
     row0, _ = run_episode(None, "hexapod6", 10000, 0.6)
     e = dict(id="unit-legged", harness="legged", family="legged", task="waypoint", body="hexapod6", route="teacher",

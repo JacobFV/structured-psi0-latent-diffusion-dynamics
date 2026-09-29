@@ -2,7 +2,7 @@
 import numpy as np
 import torch
 
-from rrp.training.legged_latent_train import restore_rng, rng_state
+from rrp.harness.train.legged_latent_train import restore_rng, rng_state
 
 
 def test_legged_rng_roundtrip_continues_sequence():

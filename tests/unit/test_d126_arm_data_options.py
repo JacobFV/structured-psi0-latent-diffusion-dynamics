@@ -41,9 +41,9 @@ def test_limit_aware_ik_keeps_margin_without_losing_reach():
 
 
 def test_teacher_v2lim_is_a_version_bump():
-    from rrp.contracts.provenance import parse_source
-    from rrp.envs.fixtures import make_pick_place_session
-    from rrp.teachers.arm_smooth import make_arm_teacher, teacher_source, TEACHER_VERSIONS
+    from rrp.core.provenance import parse_source
+    from rrp.envs.mujoco.fixtures import make_pick_place_session
+    from rrp.policies.teachers.arm_smooth import make_arm_teacher, teacher_source, TEACHER_VERSIONS
     assert TEACHER_VERSIONS["v2"] == "pick_place_v2_minjerk"
     assert parse_source(teacher_source("v2lim"), strict=True).detail == "pick_place_v2_minjerk_lim"
     s = make_pick_place_session(seed=3)
@@ -56,7 +56,7 @@ def test_teacher_v2lim_is_a_version_bump():
 
 
 def test_generate_options_default_off_and_checked():
-    from rrp.data.generate import _extra_options
+    from rrp.harness.data.generate import _extra_options
     assert _extra_options({"items": [], "dart_safety": "phase", "teacher_version": "v2"}) is None
     with pytest.raises(ValueError):
         _extra_options({"dart_descent_sigma": 0.02, "dart_safety": "proximity"})
@@ -67,8 +67,8 @@ def test_generate_options_default_off_and_checked():
 
 
 def test_descent_dart_guarded_and_recorded():
-    from rrp.data.collect import collect_teacher_episode
-    from rrp.envs.fixtures import make_pick_place_session
+    from rrp.harness.data.collect import collect_teacher_episode
+    from rrp.envs.mujoco.fixtures import make_pick_place_session
     rec = collect_teacher_episode(make_pick_place_session(seed=2), max_steps=160, exec_noise=0.08, noise_seed=2,
                                   teacher_version="v2", dart_safety="phase", dart_descent_sigma=0.02)
     d = rec.public["meta"]["dart"]
@@ -91,8 +91,8 @@ def _arrays(m):
 
 
 def test_object_spec_default_identical_and_variants(monkeypatch):
-    from rrp.envs.fixtures import fixture_robot
-    from rrp.envs.scenario import build_pick_place, sample_object_spec, OBJECT_VARIATION_ENV
+    from rrp.envs.mujoco.fixtures import fixture_robot
+    from rrp.envs.mujoco.scenario import build_pick_place, sample_object_spec, OBJECT_VARIATION_ENV
     monkeypatch.delenv(OBJECT_VARIATION_ENV, raising=False)
     r = fixture_robot()
     a = build_pick_place(r, 11, n_distractors=2)

@@ -8,7 +8,7 @@ HANDOFF = Path(__file__).resolve().parents[1] / "docs" / "handoff"
 
 
 def fake_enforcement_backend():
-    from rrp.orchestration.cgroup import FakeEnforcementBackend
+    from rrp.ops.cgroup import FakeEnforcementBackend
     return FakeEnforcementBackend()
 
 
@@ -20,7 +20,7 @@ def supplied_task_payload() -> dict:
 def make_observation(estimates=(), t=0.0, oid="obs"):
     """Public observation carrying declared-estimator predicate estimates only."""
     import numpy as np
-    from rrp.contracts.observation import PolicyObservation, NodeState, PredicateEstimate
+    from rrp.core.observation import PolicyObservation, NodeState, PredicateEstimate
     ns = NodeState(joint_addresses=["r/0"], qpos=np.zeros(1), qvel=np.zeros(1), qpos_mask=np.ones(1, bool),
                    timestamp=t)
     pes = [PredicateEstimate(predicate=p, args=list(a), value=v, known=k, confidence=1.0 if k else 0.0,

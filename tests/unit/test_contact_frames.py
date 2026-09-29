@@ -9,13 +9,13 @@ import numpy as np
 import pytest
 import torch
 
-from rrp.data.contact_segments import (PHASE_ID, ContactRecording, SegmentParams, anchor_relative_targets,
+from rrp.harness.data.contact_segments import (PHASE_ID, ContactRecording, SegmentParams, anchor_relative_targets,
                                        debounced_intervals, event_aligned_knot_times, event_ticks, segment,
                                        uniform_knot_times)
-from rrp.data.contact_metrics import (TASK_CONTACT_SPECS, arm_contact_motion, contact_sequence,
+from rrp.harness.data.contact_metrics import (TASK_CONTACT_SPECS, arm_contact_motion, contact_sequence,
                                             dual_contact_motion, receipt_latency, relative_drift, settle_latency,
                                             stance_drift, swap_hands)
-from rrp.features.anchor_frame import (ANCHOR_BLOCK, ANCHOR_INPUT_DIM, anchor_inputs, axis_angle, frame_from_normal,
+from rrp.policies.features.anchor_frame import (ANCHOR_BLOCK, ANCHOR_INPUT_DIM, anchor_inputs, axis_angle, frame_from_normal,
                                        geodesic_angle, pose_vec, relative_pose, rot6d, rot6d_to_mat, rotz, yaw_about)
 
 DOWN = np.diag([1.0, -1.0, -1.0])          # tool z pointing down (rotation about x by pi)
@@ -181,12 +181,12 @@ def _probe_batch(B=3, K=4, M=2, C=4):
     rec = _two_arm_recording()
     seg = segment(rec)
     tgs = [anchor_relative_targets(rec, seg, t0=20, knot_ticks=[25 + i, 30, 35, 40]) for i in range(B)]
-    from rrp.models.anchor_probes import batch_targets
+    from rrp.policies.nets.anchor_probes import batch_targets
     return batch_targets(tgs, np.ones((B, M), bool), n_pairs=C)
 
 
 def test_anchor_probe_bounded_nll_and_grad_norms():
-    from rrp.models.anchor_probes import (AnchorProbe, anchor_probe_loss, anchor_probe_metrics,
+    from rrp.policies.nets.anchor_probes import (AnchorProbe, anchor_probe_loss, anchor_probe_metrics,
                                           bounded_gaussian_nll, nll_lower_bound, per_loss_grad_norms)
     torch.manual_seed(0)
     lab = _probe_batch()
@@ -213,9 +213,9 @@ def test_anchor_probe_bounded_nll_and_grad_norms():
 
 # ----------------------------------------------------------------------------------------------- system 0 variant
 def test_anchor_realizer_zero_init_equals_base():
-    from rrp.controllers.anchor_realizer import AnchorLatentRealizer
-    from rrp.controllers.latent_realizer import LatentRealizer
-    from rrp.models.batch import NODE_DIM
+    from rrp.policies.system0_anchor import AnchorLatentRealizer
+    from rrp.policies.system0 import LatentRealizer
+    from rrp.policies.nets.batch import NODE_DIM
     torch.manual_seed(1)
     base = LatentRealizer(dz=8, width=32, layers=2).eval()
     var = AnchorLatentRealizer.from_base(base).eval()
@@ -319,9 +319,9 @@ def test_stance_drift():
 
 # ----------------------------------------------------------------------------------------------- edit specs
 def test_contact_edit_specs_and_anchor_shift_edit():
-    from rrp.evaluation.edit_harness import (EDIT_KINDS, anchor_shift_target, contact_edit_conditions,
+    from rrp.harness.eval.edit_harness import (EDIT_KINDS, anchor_shift_target, contact_edit_conditions,
                                              paired_effect, probe_guided_edit, projected_shift, shift_receipt_value)
-    from rrp.models.anchor_probes import AnchorProbe
+    from rrp.policies.nets.anchor_probes import AnchorProbe
     cs = contact_edit_conditions((0.03, 0, 0))
     names = [c.name for c in cs]
     assert len(set(names)) == len(names) and all(c.kind in EDIT_KINDS and c.prediction for c in cs)

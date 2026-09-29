@@ -13,18 +13,19 @@ Each layer imports only layers above it in this list (checked by `tests/unit/tes
 
 | layer | package | contents | heavy deps |
 |---|---|---|---|
-| 0 | `rrp.core` | contracts: arrays/Strict base, `Observation` (= `PolicyObservation`), `PrivilegedTruth`, `NativeCommand`, `ActionChunk`, `LatentActionChunk` (packet z[K,M,D] + assembly handles/mask + entity registry), `System0Base`, errors, `RobotSpec` (morphology graph), `TaskDefinition`, provenance + `Source` labels, `RunConfig`, paths, run/workload helpers, public/privileged channels, Ψ action contracts | numpy, pydantic |
-| 0 | `rrp.ops` | broker, leases, cgroups, watchdog, jobs, telemetry, discovery (was `orchestration`) | – |
+| 0 | `rrp.core` | contracts (was `contracts/`): arrays/Strict base, `Observation` (= `PolicyObservation`), `PrivilegedTruth`, `NativeCommand`, `ActionChunk`, `LatentActionChunk` (packet z[K,M,D] + assembly handles/mask + entity registry), `System0Base`, errors, `RobotSpec` (morphology graph), `TaskDefinition`, provenance + `Source` labels, `RunConfig`, paths, run/workload helpers, public/privileged channels, Ψ action contracts | numpy, pydantic |
+| 0 | `rrp.ops` | broker, leases, cgroups, watchdog, jobs, telemetry, discovery, workload (GPU cap) (was `orchestration`) | – |
 | 1 | `rrp.bodies` | procedural + imported bodies (arms, grippers, aloha, legged, humanoids, G1 hands), catalog/registry, compiler to MuJoCo, IK, surgery/variants, **physics versions** (contact, grasp contact, actuator; was `physics/`) | mujoco |
 | 2 | `rrp.tasks` | task graph compiler/runtime/receipts/interventions (numpy/pydantic), task JSON specs, the `TaskSpec` registry (which envs a task exists in, success/termination, scripted teacher key, gates) | – |
 | 3 | `rrp.envs` | `Env` protocol, `EnvSpec`, capabilities, `make_env` registry; `mujoco/` (Session, LeggedSession, DualSession, scenes, sensors, state estimation, perturbations, embedded legged trackers, snapshots), `warp/` (batched GPU legged envs), `simple/` (optional extra), `computerworld/` (optional extra) | mujoco, mujoco_warp, torch (trackers) |
 | 4 | `rrp.policies` | `Policy` protocol, `PolicyInfo`, `Requirements`, `negotiate`, registry; `features/` (featurizers: the ONLY definition of what a policy may see), `nets/` (shared torch modules: attention, flow, codec, backbone, probes, checkpoint), `bc.py`, `latent/` (system i planners + system 0 realizers for arm, dual, legged), `trackers.py`, `teachers/` (scripted / privileged, labelled), `oracle.py`, `psi0/` (to be filled by the Ψ₀ migration) | torch |
-| 5 | `rrp.harness` | `rollout` (the one episode loop), `evaluate`/`matrix`, hooks (packet edits, perturbations, recorders), statistics, gates, audits; `data/` (collect, pack, manifests), `train/` (rep, flow, bc, refit, dagger, sft, grpo, ppo), pipelines + run-dag, the `rrp` CLI | – |
-| 6 | `rrp.viz` | record/replay, the room exporter (`python -m rrp.viz.export`, file scans only), the workbench service (was `service/`) | fastapi (extra) |
+| 5 | `rrp.harness` | `rollout` (the one episode loop), `evaluate`/`matrix`, hooks (packet edits, perturbations, recorders), statistics, gates, audits; `data/` (collect, pack, manifests), `train/` (rep, flow, bc, refit, dagger, sft, grpo, ppo), pipelines + run-dag | – |
+| 6 | `rrp.viz` | record/replay, the room exporter (`python -m rrp.viz.export`, file scans only), the workbench service `viz.workbench` (was `service/`) | fastapi (extra) |
+| 7 | `rrp.cli` | the `rrp` command (`python -m rrp.cli ...`; kept at the top so every documented invocation stays valid) | – |
 
 Rules:
 - No compatibility shims or deprecated aliases. A moved name is imported from its new path everywhere in the same
-  commit. The only legacy mapping kept is data-level: `rrp.harness.data.load_pickle` remaps old module paths inside
+  commit. The only legacy mapping kept is data-level: `rrp.harness.data.collect.load_pickle` remaps old module paths inside
   already-written dataset pickles (e.g. `rrp.data.features.PolicyInput`), because those files are on disk and are not code.
 - One module per concept; a new file needs a reason that an existing module cannot absorb it.
 - Optional backends are optional extras: `rrp.envs.simple` and `rrp.envs.computerworld` import their third-party
@@ -335,4 +336,68 @@ ComputerWorld:
 
 ## 10. moved paths
 
-Filled in by S1/S2 (old module → new module), so track branches and notes can be ported.
+S1 (a951398) deleted the W4 shim packages; their real targets are the "old" column below (e.g. `rrp.learning.latent_train`
+was a shim of `rrp.training.latent_train`, now `rrp.harness.train.latent_train`; `rrp.sim.native` → `rrp.envs.native` →
+`rrp.envs.mujoco.session`; `rrp.control.legged_tracker` → `rrp.envs.legged_tracker` → `rrp.envs.mujoco.legged_tracker`;
+`rrp.morphology.*` → `rrp.bodies.*`; `rrp.ops.*` → `rrp.orchestration.*` → `rrp.ops.*`). `rrp.core` (the W11 re-export
+module) is gone: import each name from its module. S2 moved packages as follows (a package row covers every module in it
+unless a more specific row exists); module names inside packages are unchanged.
+
+| old | new |
+|---|---|
+| `rrp.contracts` | `rrp.core` |
+| `rrp.contracts.workload` | `rrp.ops.workload` |
+| `rrp.controllers` | `rrp.policies` |
+| `rrp.controllers.anchor_realizer` | `rrp.policies.system0_anchor` |
+| `rrp.controllers.latent_realizer` | `rrp.policies.system0` |
+| `rrp.controllers.latent_runner` | `rrp.policies.latent` |
+| `rrp.controllers.policy_runner` | `rrp.policies.bc` |
+| `rrp.data` | `rrp.harness.data` |
+| `rrp.envs.dual` | `rrp.envs.mujoco.dual` |
+| `rrp.envs.dual_scenarios` | `rrp.envs.mujoco.dual_scenarios` |
+| `rrp.envs.fixtures` | `rrp.envs.mujoco.fixtures` |
+| `rrp.envs.humanoid_scenes` | `rrp.envs.mujoco.humanoid_scenes` |
+| `rrp.envs.joint_targets` | `rrp.envs.mujoco.joint_targets` |
+| `rrp.envs.legged` | `rrp.envs.mujoco.legged` |
+| `rrp.envs.legged_core` | `rrp.envs.mujoco.legged_core` |
+| `rrp.envs.legged_scenes` | `rrp.envs.mujoco.legged_scenes` |
+| `rrp.envs.legged_tracker` | `rrp.envs.mujoco.legged_tracker` |
+| `rrp.envs.legged_vec` | `rrp.envs.mujoco.legged_vec` |
+| `rrp.envs.mjx_legged` | `rrp.envs.warp.mjx_legged` |
+| `rrp.envs.morph_obs` | `rrp.envs.mujoco.morph_obs` |
+| `rrp.envs.motion_quality` | `rrp.envs.mujoco.motion_quality` |
+| `rrp.envs.native` | `rrp.envs.mujoco.session` |
+| `rrp.envs.perturb` | `rrp.envs.mujoco.perturb` |
+| `rrp.envs.scenario` | `rrp.envs.mujoco.scenario` |
+| `rrp.envs.sensors` | `rrp.envs.mujoco.sensors` |
+| `rrp.envs.state_estimator` | `rrp.envs.mujoco.state_estimator` |
+| `rrp.envs.tracker_nets` | `rrp.envs.mujoco.tracker_nets` |
+| `rrp.envs.warp_legged` | `rrp.envs.warp.warp_legged` |
+| `rrp.envs.warp_task_env` | `rrp.envs.warp.task_env` |
+| `rrp.envs.warp_tracker_env` | `rrp.envs.warp.tracker_env` |
+| `rrp.evaluation` | `rrp.harness.eval` |
+| `rrp.features` | `rrp.policies.features` |
+| `rrp.models` | `rrp.policies.nets` |
+| `rrp.orchestration` | `rrp.ops` |
+| `rrp.orchestration.dag` | `rrp.harness.dag` |
+| `rrp.orchestration.yamlmini` | `rrp.harness.yamlmini` |
+| `rrp.physics` | `rrp.bodies` |
+| `rrp.physics.snapshot` | `rrp.envs.mujoco.snapshot` |
+| `rrp.pipelines` | `rrp.harness.pipelines` |
+| `rrp.service` | `rrp.viz.workbench` |
+| `rrp.teachers` | `rrp.policies.teachers` |
+| `rrp.training` | `rrp.harness.train` |
+
+`python -m` entry points follow the table (e.g. `python -m rrp.training.warp_tracker_ppo` → `python -m
+rrp.harness.train.warp_tracker_ppo`, `python -m rrp.pipelines` → `python -m rrp.harness.pipelines`); `python -m rrp.cli`
+(and the `rrp` console script) is unchanged. Pipeline families, stage names (`collect`, `pack`, `train_rep`, `train_flow`,
+`dagger`, `refit`, `eval_r1`, `eval_r2`, `heldout`, `edits`, ...), DAG files, configs and `artifacts/runs/<track>/...`
+output paths are unchanged, so armdiv's resume (`dags/arm_lineage_v7div*.yaml`, `dags/armdiv_bc_v7div*.yaml`, ledgers
+under `artifacts/runs/armdiv/_dags/`) and W13's resume work as written after `scripts/peer_sync.sh push`; their
+scripts (`armdiv_chain.sh`, `armdiv_pack.sh`, `humanoid_{steps_eval,steps_eval_grid,gap_smoke,gap_eval,tracker_gate,tracker_finalize}`,
+`contact_waypoint_eval.py`, `render_contact_compare.py`) were kept for that and are rewritten to the new module paths.
+Other deleted scripts: `git show a951398^:scripts/<name>`.
+
+Legacy on-disk data: dataset/DAgger pickles written before D-140 reference `rrp.data.features.PolicyInput`;
+`rrp.harness.data.collect.load_pickle` (used by `read_episode` and the generator-DAgger loader) remaps it. Checkpoints
+store state dicts and plain containers (no rrp classes), so they load unchanged.

@@ -7,9 +7,9 @@ import mujoco
 import numpy as np
 import pytest
 
-from rrp.envs.motion_quality import (chunk_boundary_steps, cost_of_transport, finite_diff, jerk_stats,
+from rrp.envs.mujoco.motion_quality import (chunk_boundary_steps, cost_of_transport, finite_diff, jerk_stats,
                                            joint_limit_margin, slip_ratio)
-from rrp.envs.perturb import CtrlDelay, PhysicsPerturbation, PushHook, apply_model
+from rrp.envs.mujoco.perturb import CtrlDelay, PhysicsPerturbation, PushHook, apply_model
 
 
 def test_jerk_of_cubic_is_exact():

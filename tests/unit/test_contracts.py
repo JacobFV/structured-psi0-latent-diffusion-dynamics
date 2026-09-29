@@ -3,12 +3,12 @@ import numpy as np
 import pytest
 from pydantic import ValidationError
 
-from rrp.contracts.refs import EntityRef
-from rrp.contracts.task import TaskDefinition
-from rrp.contracts.observation import PolicyObservation, PrivilegedTruth, NodeState
-from rrp.contracts.action import ActionChunk, GroupCommand
-from rrp.contracts.channels import serialize_public, deserialize_observation, PrivateBus
-from rrp.contracts.errors import PrivilegedLeakError
+from rrp.core.refs import EntityRef
+from rrp.core.task import TaskDefinition
+from rrp.core.observation import PolicyObservation, PrivilegedTruth, NodeState
+from rrp.core.action import ActionChunk, GroupCommand
+from rrp.core.channels import serialize_public, deserialize_observation, PrivateBus
+from rrp.core.errors import PrivilegedLeakError
 from tests.support import supplied_task_payload
 
 

@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 from types import SimpleNamespace
 
-from rrp.orchestration import telemetry
-from rrp.orchestration.watchdog import WatchdogState, lease_high_fields, throttle_warnings
+from rrp.ops import telemetry
+from rrp.ops.watchdog import WatchdogState, lease_high_fields, throttle_warnings
 
 EV = "low 0\nhigh {h}\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n"
 
@@ -49,7 +49,7 @@ def test_sample_deltas_and_warnings(tmp_path):
 
 
 def test_exit_record_carries_high_events(tmp_path, monkeypatch, capsys):
-    import rrp.orchestration.child as child
+    import rrp.ops.child as child
     lease_dir = tmp_path / "rrp-lease-L1.slice"
     lease_dir.mkdir()
     (lease_dir / "memory.events").write_text(EV.format(h=42))
@@ -76,7 +76,7 @@ def test_exit_record_carries_high_events(tmp_path, monkeypatch, capsys):
 
 
 def test_ops_run_declaration_warning(tmp_path):
-    from rrp.orchestration.runtime import mem_declaration_warning
+    from rrp.ops.runtime import mem_declaration_warning
     led = tmp_path / "ledger.jsonl"
     G = 2 ** 30
     led.write_text("\n".join(json.dumps(r) for r in [dict(label="w7_pack", memory_peak_bytes=8 * G),

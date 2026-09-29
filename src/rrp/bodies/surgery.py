@@ -13,7 +13,7 @@ from dataclasses import dataclass
 import mujoco
 import numpy as np
 
-from rrp.contracts.robot import RobotSpec, LinkSpec
+from rrp.core.robot import RobotSpec, LinkSpec
 from rrp.bodies.compiler import compile_robot_spec
 from rrp.bodies.generators import Module
 

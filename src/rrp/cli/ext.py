@@ -7,7 +7,7 @@ import sys
 
 
 def cmd_workbench(a):
-    from rrp.service.app import serve
+    from rrp.viz.workbench.app import serve
     serve(host=a.host, port=a.port)
 
 

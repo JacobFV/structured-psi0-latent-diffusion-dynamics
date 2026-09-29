@@ -3,7 +3,7 @@ import random
 
 import torch
 
-from rrp.training.latent_train import _restore_rng, _rng_state
+from rrp.harness.train.latent_train import _restore_rng, _rng_state
 
 
 def test_rng_roundtrip_continues_sequence():

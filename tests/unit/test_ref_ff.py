@@ -6,7 +6,7 @@ import pytest
 import numpy as np
 
 from rrp.bodies.legged import legged_body, standalone_model
-from rrp.envs.legged_core import LeggedBinding
+from rrp.envs.mujoco.legged_core import LeggedBinding
 
 
 @pytest.mark.menagerie                      # builds the t1 Menagerie body
@@ -26,6 +26,6 @@ def test_ref_offset_shape_and_phase():
 def test_tracker_matches_env_phase():
     """LearnedTracker computes the offset with the phase BEFORE advancing, as LeggedEnv.step does."""
     import inspect
-    from rrp.envs import legged_tracker
+    from rrp.envs.mujoco import legged_tracker
     src = inspect.getsource(legged_tracker.LearnedTracker.act)
     assert src.index("ref_offset(self.phase") < src.index("self.phase = (self.phase")

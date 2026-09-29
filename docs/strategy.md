@@ -1,6 +1,6 @@
 # strategy (adopted 2026-09-26, D-094)
 
-Inputs: `docs/robot_training_considerations.md` (problem checklist, D-093), `docs/repo_structure_audit.md` (structure audit),
+Inputs: `docs/robot_training_considerations.md` (problem checklist, D-093), `docs/architecture.md` (structure audit),
 `research/reports/evidence_matrix.md` (current evidence). This file says what we do, in what order, who owns it, and how each step
 is judged done. Update the status column when a gate passes, citing the decision or track note.
 

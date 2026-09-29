@@ -3,16 +3,16 @@ hit exactly that column on node rows (a silent mismatch here invalidates every c
 import numpy as np
 import pytest
 
-from rrp.data.packed import PREV_ACTION_COL
+from rrp.harness.data.packed import PREV_ACTION_COL
 
 pytestmark = pytest.mark.menagerie      # panda_pg2 is a Menagerie body
 
 
 def test_prev_action_col_matches_featurizer_layout():
     from rrp.bodies.catalog import workbench_robots
-    from rrp.envs.scenario import BUILDERS
-    from rrp.envs.native import Session
-    from rrp.data.collect import featurizer_for
+    from rrp.envs.mujoco.scenario import BUILDERS
+    from rrp.envs.mujoco.session import Session
+    from rrp.harness.data.collect import featurizer_for
     s = Session(BUILDERS["pick_place"](workbench_robots()["panda_pg2"](), 3_000_000, n_distractors=0), seed=3_000_000)
     f = featurizer_for(s)
     assert f.static_dim + 2 == PREV_ACTION_COL
@@ -23,11 +23,11 @@ def test_prev_action_col_matches_featurizer_layout():
 
 def test_load_time_zeroing_hits_prev_action_col_not_col2():
     """D-045: the D-021 load-time fix must zero PREV_ACTION_COL on node rows (it used to zero static column 2)."""
-    from rrp.data.chunks import zero_prev_action_input
+    from rrp.harness.data.chunks import zero_prev_action_input
     from rrp.bodies.catalog import workbench_robots
-    from rrp.envs.scenario import BUILDERS
-    from rrp.envs.native import Session
-    from rrp.data.collect import featurizer_for
+    from rrp.envs.mujoco.scenario import BUILDERS
+    from rrp.envs.mujoco.session import Session
+    from rrp.harness.data.collect import featurizer_for
     s = Session(BUILDERS["pick_place"](workbench_robots()["panda_pg2"](), 3_000_000, n_distractors=0), seed=3_000_000)
     pi = featurizer_for(s)(s.observe())
     n = pi.act_node_feats.shape[0]

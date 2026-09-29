@@ -10,8 +10,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from rrp.contracts.errors import ContractError
-from rrp.contracts.task import TaskDefinition, EventDef, OutputBinding, EntityBinding
+from rrp.core.errors import ContractError
+from rrp.core.task import TaskDefinition, EventDef, OutputBinding, EntityBinding
 
 ACTOR_TYPES = {"manipulator", "sensor", "body"}
 ROLE_ENTITY_TYPES = {

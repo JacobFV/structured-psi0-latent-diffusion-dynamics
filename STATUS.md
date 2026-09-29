@@ -140,7 +140,7 @@ Workstream owners, gates and sequencing live in `docs/strategy.md`; this table m
 | W1 | physics realism: contact v2, staged reward schedule, slip gate; then actuators/latency | running | research/tracks/contact.md (t1, h1 trackers on the host) |
 | W2 | repo hygiene (phase 0) | completed | research/tracks/hygiene.md |
 | W3 | provenance and contracts (phase 1) | implementing | docs/strategy.md §W3 |
-| W4 | package restructure with shims | planned (after W2, W3) | docs/repo_structure_audit.md |
+| W4 | package restructure with shims | planned (after W2, W3) | docs/architecture.md |
 | W5 | unified pipeline + DAG orchestration | planned (after W4, R0) | |
 | W6 | robustness sweeps + motion-quality gates | planned (after W1 trackers) | |
 | W7 | arm expert smoothing, then GRPO with anchor evals | planned (after R0) | |

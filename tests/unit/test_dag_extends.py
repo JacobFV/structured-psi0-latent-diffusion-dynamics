@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from rrp.orchestration.dag import DagError, load_dag, plan_dag
+from rrp.harness.dag import DagError, load_dag, plan_dag
 
 ROOT = Path(__file__).resolve().parents[2]
 

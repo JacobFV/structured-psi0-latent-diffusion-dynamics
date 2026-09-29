@@ -5,9 +5,9 @@ import pytest
 
 mujoco = pytest.importorskip("mujoco")
 
-from rrp.contracts.provenance import physics_provenance
-from rrp.evaluation.grasp_rig import build, run
-from rrp.physics import grasp_contact as GC
+from rrp.core.provenance import physics_provenance
+from rrp.harness.eval.grasp_rig import build, run
+from rrp.bodies import grasp_contact as GC
 
 
 def test_versioning_and_provenance():

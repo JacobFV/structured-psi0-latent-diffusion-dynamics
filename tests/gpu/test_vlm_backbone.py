@@ -12,9 +12,9 @@ os.environ.setdefault("MUJOCO_GL", "egl")
 
 
 def test_real_images_through_adapter_and_resampler():
-    from rrp.contracts.workload import apply_cap
-    from rrp.models.backbone import BackboneSpec, VLMBackbone, Resampler, Renderer, task_text
-    from rrp.envs.fixtures import make_pick_place_session
+    from rrp.ops.workload import apply_cap
+    from rrp.policies.nets.backbone import BackboneSpec, VLMBackbone, Resampler, Renderer, task_text
+    from rrp.envs.mujoco.fixtures import make_pick_place_session
     apply_cap()
     vlm = VLMBackbone(BackboneSpec(), device="cuda")
     prov = vlm.provenance()

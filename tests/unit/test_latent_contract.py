@@ -3,8 +3,8 @@ import numpy as np
 import pytest
 from pydantic import ValidationError
 
-from rrp.contracts.latent_action import LatentActionChunk, AssemblyHandle, EntityHandle, check_packet
-from rrp.contracts.errors import ControllerRejection, StaleActionError
+from rrp.core.latent_action import LatentActionChunk, AssemblyHandle, EntityHandle, check_packet
+from rrp.core.errors import ControllerRejection, StaleActionError
 
 H = "asm:0123456789abcdef:r0/0"
 
@@ -76,7 +76,7 @@ def test_bundle_fingerprint_rejects_same_config_retrained_bundle():
     IDs, and system 0 rejects packets stamped for the old bundle even if the caller passes the old IDs."""
     import types
     import torch
-    from rrp.controllers.latent_realizer import LatentRealizer, LatentSystem0, bundle_versions
+    from rrp.policies.system0 import LatentRealizer, LatentSystem0, bundle_versions
     torch.manual_seed(0)
     E_old, E_new = torch.nn.Linear(4, 4).state_dict(), torch.nn.Linear(4, 4).state_dict()
     R = LatentRealizer(8, layers=1)

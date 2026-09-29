@@ -3,7 +3,7 @@ import pytest
 
 from rrp.tasks.compiler import compile_task
 from rrp.tasks.runtime import TaskRuntime
-from rrp.contracts.errors import ContractError
+from rrp.core.errors import ContractError
 from tests.support import supplied_task_payload, observation_with_no_grasp, make_observation
 
 

@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def _stream(body, contact, ov=None, actuator="v1", steps=40, **kw):
     from rrp.bodies.legged import legged_body
-    from rrp.envs.legged_core import LeggedEnv
+    from rrp.envs.mujoco.legged_core import LeggedEnv
     env = LeggedEnv(lambda: legged_body(body), 2, 5, contact=contact, reward_overrides=ov, actuator=actuator, **kw)
     rng = np.random.default_rng(0)
     R, O = [], []
@@ -57,7 +57,7 @@ def test_default_tracker_env_is_byte_identical_menagerie():
 
 
 def test_reward_defaults_record_nothing_new():
-    from rrp.envs.legged_core import D126_DEFAULTS, RewardCfg
+    from rrp.envs.mujoco.legged_core import D126_DEFAULTS, RewardCfg
     for kind in ("humanoid", "quadruped", "hexapod"):
         for v in ("gait_v1", "gait_v2"):
             c = RewardCfg.for_kind(kind, v)
@@ -70,7 +70,7 @@ def test_reward_defaults_record_nothing_new():
 
 
 def test_limit_margin_aggregation():
-    from rrp.envs.legged_core import limit_margin_penalty
+    from rrp.envs.mujoco.legged_core import limit_margin_penalty
     lo, hi = np.zeros(4), np.ones(4)
     q = np.array([0.5, 0.5, 0.5, 0.0])          # one joint AT its limit: per-joint penalty 1
     assert limit_margin_penalty(q, lo, hi) == pytest.approx(0.25)
@@ -83,7 +83,7 @@ def test_limit_margin_aggregation():
 
 
 def test_clock_lift_targets_follow_the_contact_phase_convention():
-    from rrp.envs.legged_core import clock_lift_targets
+    from rrp.envs.mujoco.legged_core import clock_lift_targets
     l, r = clock_lift_targets(0.25, 0.08)        # right swings in (0, 0.5)
     assert l == 0 and r == pytest.approx(0.08)
     l, r = clock_lift_targets(0.75, 0.08, frac=0.5)
@@ -95,7 +95,7 @@ def test_yaw_progress_cap_is_wired():
     """With the cap at -0.5 the turn_lin term is the constant -0.5 x turn_lin on every turning command (yaw_lin_all)."""
     base = {"turn_lin": 1.0, "yaw_lin_all": 1.0}
     from rrp.bodies.legged import legged_body
-    from rrp.envs.legged_core import LeggedEnv
+    from rrp.envs.mujoco.legged_core import LeggedEnv
     envs = [LeggedEnv(lambda: legged_body("pquad4"), 2, 3, contact="v1", reward_overrides=ov, push=False)
             for ov in ({"yaw_progress_cap": -0.5, "turn_lin": 1.0, "yaw_lin_all": 1.0}, {"turn_lin": 0.0})]
     rng = np.random.default_rng(1)
@@ -110,7 +110,7 @@ def test_yaw_progress_cap_is_wired():
 
 
 def test_terrain_curriculum_gate():
-    from rrp.training.reward_schedule import TerrainCurriculum
+    from rrp.harness.train.reward_schedule import TerrainCurriculum
     t = TerrainCurriculum(amp_max=0.1, warmup=10, after_alpha=0.5)
     assert t.update(5, dict(fall_rate=0.0, track_rel_err=0.1), alpha=1.0) == "skip"
     assert t.update(20, dict(fall_rate=0.0, track_rel_err=0.1), alpha=0.2) == "hold"        # alpha gate not reached
@@ -122,7 +122,7 @@ def test_terrain_curriculum_gate():
 
 def test_terrain_env_rescales_the_heightfield_at_run_time():
     from rrp.bodies.legged import legged_body
-    from rrp.envs.legged_core import LeggedEnv
+    from rrp.envs.mujoco.legged_core import LeggedEnv
     env = LeggedEnv(lambda: legged_body("pquad4"), 2, 3, contact="v2", push=False,
                     terrain=dict(amp_max=0.08, seed=4, frac=0.5, half_m=4.0))
     assert env.meta["terrain"]["version"] == "bumps_v1" and env.b.floor2 >= 0
@@ -137,7 +137,7 @@ def test_terrain_env_rescales_the_heightfield_at_run_time():
 
 def test_ref_gait_clock_is_biped_only():
     from rrp.bodies.legged import legged_body
-    from rrp.envs.legged_core import LeggedEnv
+    from rrp.envs.mujoco.legged_core import LeggedEnv
     with pytest.raises(ValueError, match="bipeds"):
         LeggedEnv(lambda: legged_body("pquad4"), 1, 0, contact="v2", reward_overrides={"ref_gait": "clock", "ref_lift": 1.0})
 
@@ -150,7 +150,7 @@ def test_ref_gait_clock_steps_on_a_biped():
 
 
 def test_actuator_mode_resolution_and_speed_sources(monkeypatch):
-    from rrp.physics import actuator as A
+    from rrp.bodies import actuator as A
     monkeypatch.delenv("RRP_ACTUATOR_MODE", raising=False)
     assert A.resolve_mode() == "ideal" == A.ACTUATOR_MODE_DEFAULT and A.legacy_mode_name(None) == "v1"
     assert A.resolve_mode("v1") == "ideal" and A.legacy_mode_name("v2") == "v2"
@@ -168,8 +168,8 @@ def test_actuator_mode_resolution_and_speed_sources(monkeypatch):
 
 def test_legged_session_actuator_mode(monkeypatch):
     monkeypatch.delenv("RRP_ACTUATOR_MODE", raising=False)
-    from rrp.contracts.action import NativeCommand
-    from rrp.envs.legged import LeggedSession, build_waypoint_contact
+    from rrp.core.action import NativeCommand
+    from rrp.envs.mujoco.legged import LeggedSession, build_waypoint_contact
     ideal = LeggedSession(build_waypoint_contact("pquad4", 3), tracker_kind="cpg", seed=3)
     assert ideal.actuator_model is None and ideal.actuator_record() is None
     s = LeggedSession(build_waypoint_contact("pquad4", 3), tracker_kind="cpg", seed=3, actuator_mode="v1lat",
@@ -194,8 +194,8 @@ def test_legged_session_actuator_mode(monkeypatch):
 
 
 def _ctx(tmp_path, stage="eval_r2", **opts):
-    from rrp.contracts.runconfig import RunConfig, RunIndex
-    from rrp.pipelines.base import StageContext
+    from rrp.core.runconfig import RunConfig, RunIndex
+    from rrp.harness.pipelines.base import StageContext
     rc = RunConfig.model_validate(dict(
         schema_version="runconfig-1", family="legged", stage=stage, variant="semfix", seed=0, lineage="l", track="t",
         flags=dict(zero_prev_action=None, realizer_anchor=None, realizer_drop_qd=None, probe_lv_min=None, qd_dropout=None,
@@ -205,8 +205,8 @@ def _ctx(tmp_path, stage="eval_r2", **opts):
 
 def test_pipeline_threads_the_declared_actuator_mode(tmp_path, monkeypatch):
     monkeypatch.delenv("RRP_ACTUATOR_MODE", raising=False)
-    from rrp.pipelines.base import StageError
-    from rrp.pipelines.legged import check_rows_contact, physics_env
+    from rrp.harness.pipelines.base import StageError
+    from rrp.harness.pipelines.legged import check_rows_contact, physics_env
     e0 = physics_env(_ctx(tmp_path))
     assert "RRP_ACTUATOR_MODE" not in e0 and e0["RRP_CONTACT_MODEL"] == "contact_v2"
     c = _ctx(tmp_path, actuator_mode="v1lat", actuator_latency_ms=15)
@@ -220,8 +220,8 @@ def test_pipeline_threads_the_declared_actuator_mode(tmp_path, monkeypatch):
 
 
 def test_tracker_recipes_parse_and_pin_their_initial_actors():
-    from rrp.training import tracker_training as T
-    from rrp.training.tracker_recipes import TRACKER_RECIPES
+    from rrp.harness.train import tracker_training as T
+    from rrp.harness.train.tracker_recipes import TRACKER_RECIPES
     seen = {}
     T_train = T.train
     try:
@@ -249,8 +249,8 @@ def test_tracker_recipes_parse_and_pin_their_initial_actors():
 
 
 def test_tracker_recipe_dags_plan():
-    from rrp.orchestration.dag import load_dag, plan_dag
-    from rrp.training.tracker_recipes import TRACKER_RECIPES
+    from rrp.harness.dag import load_dag, plan_dag
+    from rrp.harness.train.tracker_recipes import TRACKER_RECIPES
     for f in sorted((ROOT / "dags").glob("d126_tracker_*.yaml")):
         p = plan_dag(load_dag(f), source="t")
         tr = p.nodes["train"]
@@ -261,7 +261,7 @@ def test_tracker_recipe_dags_plan():
 
 
 def test_heldout_template_keeps_the_heldout_body_out_of_training():
-    from rrp.orchestration.dag import load_dag, plan_dag
+    from rrp.harness.dag import load_dag, plan_dag
     p = plan_dag(load_dag(ROOT / "dags/templates/legged_v2_heldout.yaml"), source="t")
     nodes = p.nodes
     h = "anymal_c"

@@ -134,7 +134,7 @@ configs/       data / latent / ladder / legged / eval configs
 scripts/       chain drivers, peer transport (peer_run/sync/bootstrap), renderers, demo builder
 research/      decisions.md (append-only), naming.md, tracks/, reports/ (evidence_matrix.md), registry.jsonl
 artifacts/     small raw results (JSON/JSONL), receipts, labelled videos
-docs/          strategy.md, robot_training_considerations.md, repo_structure_audit.md, demo/, handoff/
+docs/          strategy.md, robot_training_considerations.md, architecture.md, demo/, handoff/
 tests/         unit/, integration/, browser/, gpu/
 ```
 

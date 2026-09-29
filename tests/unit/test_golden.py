@@ -62,13 +62,13 @@ def _check(ref, k, v):
 
 
 def _arm_session(seed=3):
-    from rrp.envs.fixtures import make_pick_place_session
+    from rrp.envs.mujoco.fixtures import make_pick_place_session
     return make_pick_place_session(seed=seed)
 
 
 def test_arm_featurizer_teacher_physics(golden):
-    from rrp.features.featurizer import featurizer_for
-    from rrp.teachers.arm_smooth import make_arm_teacher
+    from rrp.policies.features.featurizer import featurizer_for
+    from rrp.policies.teachers.arm_smooth import make_arm_teacher
     s = _arm_session()
     obs = s.observe()
     f = featurizer_for(s)
@@ -90,7 +90,7 @@ def test_arm_featurizer_teacher_physics(golden):
 
 def _flow(seed=0, dz=8, K=4):
     import torch
-    from rrp.models.flow import FlowPolicy, PolicyConfig
+    from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
     torch.manual_seed(seed)
     m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=1, horizon=K, latent_dim=dz, aux=False))
     with torch.no_grad():
@@ -101,9 +101,9 @@ def _flow(seed=0, dz=8, K=4):
 
 def test_arm_latent_system_i_and_system0(golden):
     import torch
-    from rrp.controllers.latent_runner import LatentPolicy
-    from rrp.controllers.latent_realizer import LatentRealizer, LatentSystem0
-    from rrp.features.featurizer import featurizer_for
+    from rrp.policies.latent import LatentPolicy
+    from rrp.policies.system0 import LatentRealizer, LatentSystem0
+    from rrp.policies.features.featurizer import featurizer_for
     s = _arm_session()
     pol = LatentPolicy(_flow(), knot_times=(0.1, 0.3, 0.5, 0.7), latent_space_version="ls-g", realizer_compat_version="rz-g",
                        device="cpu", nfe=4, seed=3)
@@ -126,8 +126,8 @@ def test_arm_latent_system_i_and_system0(golden):
 
 def test_arm_bc_chunk(golden):
     import torch
-    from rrp.controllers.policy_runner import LearnedPolicy
-    from rrp.models.flow import FlowPolicy, PolicyConfig
+    from rrp.policies.bc import LearnedPolicy
+    from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
     s = _arm_session()
     torch.manual_seed(2)
     m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=1, horizon=8, latent_dim=1, aux=False))
@@ -140,10 +140,10 @@ def test_arm_bc_chunk(golden):
 
 def test_dual_featurizer_and_teacher(golden):
     from rrp.bodies.catalog import workbench_robots
-    from rrp.envs.dual import DualSession
-    from rrp.envs.dual_scenarios import build_support_insert
-    from rrp.features.multi import MultiFeaturizer
-    from rrp.teachers.dual import TEACHERS
+    from rrp.envs.mujoco.dual import DualSession
+    from rrp.envs.mujoco.dual_scenarios import build_support_insert
+    from rrp.policies.features.multi import MultiFeaturizer
+    from rrp.policies.teachers.dual import TEACHERS
     W = workbench_robots()
     s = DualSession(build_support_insert([W["parm5l_pg2"](), W["parm6_pg2"]()], 3), seed=3)
     f = MultiFeaturizer(s.model, s.scenario.robots)
@@ -160,7 +160,7 @@ def test_dual_featurizer_and_teacher(golden):
 
 
 def test_packet_wire_format(golden):
-    from rrp.contracts.latent_action import LatentActionChunk
+    from rrp.core.latent_action import LatentActionChunk
     p = LatentActionChunk(latent_space_version="ls", realizer_compat_version="rz",
                           z=np.arange(2 * 3 * 4, dtype=np.float32).reshape(2, 3, 4) / 7, knot_times=[0.1, 0.3],
                           assemblies=[dict(handle=f"asm:{'0' * 16}:r/{i}", robot_index=0) for i in range(3)],
@@ -172,7 +172,7 @@ def test_packet_wire_format(golden):
 
 def _saved_actor(tmp, name, obs_dim, act_dim, meta, seed):
     import torch
-    from rrp.envs.tracker_nets import mlp
+    from rrp.envs.mujoco.tracker_nets import mlp
     torch.manual_seed(seed)
     net = mlp(obs_dim, (16, 8), act_dim)
     with torch.no_grad():
@@ -205,14 +205,14 @@ def test_learned_tracker_saved_actor_options(golden, tmp_path, case):
     """W13 deployment options carried in saved actor files (clock_gate, target_margin, ref_ff, extra_obs_dim,
     obs_format morph_v1) must keep producing the same actions (lead note, D-140 S4)."""
     from rrp.bodies.legged import legged_body
-    from rrp.envs.legged_core import LeggedEnv
-    from rrp.envs.legged_tracker import LearnedTracker
+    from rrp.envs.mujoco.legged_core import LeggedEnv
+    from rrp.envs.mujoco.legged_tracker import LearnedTracker
     body = "phum_3"                     # biped: ref_ff and clock_gate apply
     env = LeggedEnv(lambda: legged_body(body), 1, 5)
     b = env.b
     extra = 5 if case == "extra_obs" else 0
     if case == "morph_v1":
-        from rrp.envs.morph_obs import NS, OBS_DIM
+        from rrp.envs.mujoco.morph_obs import NS, OBS_DIM
         meta = dict(obs_format="morph_v1", train_bodies=["phum_1"], clock_gate=True, target_margin=0.03, body="shared")
         p = _saved_actor(tmp_path, case, OBS_DIM, NS, meta, 4)
     else:
@@ -239,7 +239,7 @@ def _old_ladder_wilson(k, n, z=1.96):
 
 
 def test_ladder_wilson_is_bitwise_unchanged():
-    from rrp.evaluation.ladder import wilson
+    from rrp.harness.eval.ladder import wilson
     for n in range(0, 61):
         for k in range(0, n + 1):
             assert wilson(k, n) == _old_ladder_wilson(k, n)
@@ -251,8 +251,8 @@ def test_legacy_pickle_paths_load(tmp_path):
     """Dataset pickles written before D-140 name `rrp.data.features.PolicyInput`; read_episode remaps them."""
     import gzip
     import pickle
-    from rrp.data.collect import read_episode
-    from rrp.features.featurizer import PolicyInput
+    from rrp.harness.data.collect import read_episode
+    from rrp.policies.features.featurizer import PolicyInput
     pi = PolicyInput({}, {}, np.zeros((1, 2)), np.zeros(1), np.zeros((0, 5)), np.zeros((0, 4)), {}, np.zeros(1))
     b = pickle.dumps(dict(x=pi), protocol=0).replace(PolicyInput.__module__.encode(), b"rrp.data.features")
     assert b"rrp.data.features" in b

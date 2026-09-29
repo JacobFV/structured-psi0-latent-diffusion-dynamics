@@ -1,5 +1,5 @@
-from rrp.orchestration.watchdog import evaluate, WatchdogConfig, WatchdogState, run_loop
-from rrp.orchestration.broker import ResourceBroker, ResourceRequest
+from rrp.ops.watchdog import evaluate, WatchdogConfig, WatchdogState, run_loop
+from rrp.ops.broker import ResourceBroker, ResourceRequest
 from tests.support import fake_enforcement_backend
 
 G = 1024 ** 3
@@ -155,7 +155,7 @@ def _cg(anon=None, shmem=None, kernel=None, file=0, current=None):
 
 
 def test_project_memory_counts_nonreclaimable_only():
-    from rrp.orchestration.watchdog import project_memory_fields
+    from rrp.ops.watchdog import project_memory_fields
     # 32 G anon + 23 G RAM store (shmem) + 0.5 G kernel; 11 G reclaimable cache; memory.current 66.5 G
     f = project_memory_fields(_cg(anon=32 * G, shmem=23 * G, kernel=G // 2, file=34 * G, current=66 * G + G // 2), None)
     assert f["project_memory"] == 55 * G + G // 2 and f["project_memory_source"].startswith("memory.stat")
@@ -163,7 +163,7 @@ def test_project_memory_counts_nonreclaimable_only():
 
 
 def test_project_memory_fallback_and_gpu():
-    from rrp.orchestration.watchdog import project_memory_fields
+    from rrp.ops.watchdog import project_memory_fields
     f = project_memory_fields(_cg(current=40 * G), None)                          # memory.stat unreadable
     assert f["project_memory"] == 40 * G and "fallback" in f["project_memory_source"]
     f = project_memory_fields(_cg(anon=10 * G, shmem=2 * G, kernel=0, current=20 * G), 5 * G)   # + CUDA/unified GPU bytes
@@ -174,7 +174,7 @@ def test_project_memory_fallback_and_gpu():
 
 
 def test_kernel_key_fallback_and_parser():
-    from rrp.orchestration.telemetry import nonreclaimable_bytes, parse_memory_stat
+    from rrp.ops.telemetry import nonreclaimable_bytes, parse_memory_stat
     s = parse_memory_stat("anon 100\nfile 50\nshmem 20\nslab 5\nkernel_stack 1\npagetables 2\nbogus x\n")
     assert s["anon"] == 100 and "bogus" not in s
     assert nonreclaimable_bytes(s) == 100 + 20 + 5 + 1 + 2                       # no `kernel` key (older kernels)
@@ -185,7 +185,7 @@ def test_kernel_key_fallback_and_parser():
 def test_d116_case_with_memory_stat_project_is_ok():
     """D-116 with the new project measure: a 23 G RAM store and 11 G of cache inside rrp.slice, MemAvailable 31.6 G, PSI 0 ->
     ok (no stop_admission, no shed) under the deployed peer config; cache no longer inflates the limit."""
-    from rrp.orchestration.watchdog import project_memory_fields
+    from rrp.ops.watchdog import project_memory_fields
     peer = cfg(memory_reserve_bytes=6 * G, disk_reserve_bytes=10 * G, startup_memory_bytes=108 * G, startup_cpu_cores=19.97,
                disk_path="/", fraction=1.0, psi_full_avg10_shed=101.0, subtract_shmem=False)
     pm = project_memory_fields(_cg(anon=32 * G, shmem=23 * G, kernel=G // 2, file=34 * G, current=66 * G + G // 2), None)

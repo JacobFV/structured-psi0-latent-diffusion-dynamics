@@ -5,8 +5,8 @@ import mujoco
 import numpy as np
 
 from rrp.bodies.legged import legged_body, standalone_model
-from rrp.envs.legged_core import LeggedBinding
-from rrp.physics.actuator import KNEE, ActuatorModel
+from rrp.envs.mujoco.legged_core import LeggedBinding
+from rrp.bodies.actuator import KNEE, ActuatorModel
 
 
 def _setup(lat_ms):

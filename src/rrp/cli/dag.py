@@ -7,8 +7,8 @@ from pathlib import Path
 
 
 def cmd_run_dag(a):
-    from rrp.contracts.provenance import repo_root
-    from rrp.orchestration.dag import (DagError, Executor, Ledger, OpsRunner, default_ledger_path, format_plan,
+    from rrp.core.provenance import repo_root
+    from rrp.harness.dag import (DagError, Executor, Ledger, OpsRunner, default_ledger_path, format_plan,
                                        load_dag, plan_dag)
     root = Path(a.root).resolve() if a.root else repo_root()
     plan = plan_dag(load_dag(a.dag), source=str(a.dag))
@@ -22,7 +22,7 @@ def cmd_run_dag(a):
              if plan.nodes[d].placement != n.placement]
     if a.show_config:
         n = plan.nodes[a.show_config]
-        from rrp.contracts.runconfig import RunIndex
+        from rrp.core.runconfig import RunIndex
         print(json.dumps(dict(runconfig=n.rc.model_dump(mode="json"),
                               native=n.rc.to_native(RunIndex.load(root=root))), indent=1))
         return 0

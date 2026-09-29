@@ -3,8 +3,8 @@
 Checked over the AST of every module, including function-level (lazy) imports:
 1. every module belongs to a layer package;
 2. no import goes to a higher layer (ALLOWED lists the justified exceptions);
-3. the package graph is acyclic;
-4. nothing imports rrp.viz (top layer);
+3. the sub-package graph is acyclic;
+4. nothing but the CLI imports rrp.viz;
 5. no shim/alias modules (D-140: moved names are imported from their new path everywhere).
 """
 from __future__ import annotations
@@ -15,15 +15,12 @@ from pathlib import Path
 SRC = Path(__file__).resolve().parents[2] / "src"
 
 LAYER = {
-    "contracts": 0, "physics": 1, "bodies": 2, "tasks": 3, "envs": 4, "features": 5,
-    "teachers": 6, "models": 6, "controllers": 6.5, "data": 7, "evaluation": 8, "training": 8.5, "pipelines": 9,
-    "orchestration": 10, "cli": 10, "service": 10, "core": 10,
-    "viz": 12,
+    "core": 0, "ops": 0.5, "bodies": 1, "tasks": 2, "envs": 3, "policies": 4, "harness": 5, "viz": 6, "cli": 7,
 }
 
 # Permanent, justified exceptions (importer, imported) -> reason.
 ALLOWED: dict[tuple[str, str], str] = {
-    ("rrp.evaluation.latency", "rrp.orchestration.runtime"):
+    ("rrp.harness.eval.latency", "rrp.ops.runtime"):
         "records the broker's active leases next to a latency measurement (lazy, guarded; external-load annotation)",
 }
 
@@ -80,6 +77,14 @@ def _package(mod: str) -> str | None:
     return parts[1] if len(parts) >= 2 and parts[1] in LAYER else None
 
 
+def _node(mod: str) -> str:
+    """Cycle-check node: a sub-package (e.g. rrp.policies.nets) as a whole, or a flat module of a layer package."""
+    parts = mod.split(".")
+    if len(parts) >= 3 and MODS.get(".".join(parts[:3]), (None, False))[1]:
+        return ".".join(parts[:3])
+    return ".".join(parts[:2])
+
+
 def _edges():
     return [(n, m, ln) for n in MODS if n != "rrp" for m, ln in _imports(n) if m != "rrp"]
 
@@ -101,11 +106,12 @@ def test_import_layering():
 
 
 def test_package_graph_is_acyclic():
+    """Over sub-packages (rrp.policies.nets, rrp.harness.eval, rrp.envs.mujoco ...) and flat layer modules."""
     g: dict[str, set[str]] = {}
     for a, b, _ in _edges():
-        pa, pb = _package(a), _package(b)
-        if pa and pb and pa != pb and (a, b) not in ALLOWED:
-            g.setdefault(pa, set()).add(pb)
+        na, nb = _node(a), _node(b)
+        if na != nb and (a, b) not in ALLOWED:
+            g.setdefault(na, set()).add(nb)
     seen, stack, cycles = set(), [], []
 
     def visit(v):
@@ -126,7 +132,8 @@ def test_package_graph_is_acyclic():
 
 
 def test_nothing_imports_viz():
-    bad = [f"{a}:{ln}" for a, b, ln in _edges() if b.startswith("rrp.viz") and not a.startswith("rrp.viz")]
+    bad = [f"{a}:{ln}" for a, b, ln in _edges()
+           if b.startswith("rrp.viz") and not a.startswith(("rrp.viz", "rrp.cli"))]
     assert not bad, bad
 
 

@@ -8,8 +8,8 @@ import numpy as np
 import pytest
 import torch
 
-from rrp.evaluation.deploy_eval import DeployOptions
-from rrp.evaluation.legged_latent_eval import LatentLeggedController, run_episode
+from rrp.harness.eval.deploy_eval import DeployOptions
+from rrp.harness.eval.legged_latent_eval import LatentLeggedController, run_episode
 
 from ._legged_tiny import row_digest, tiny_bundle
 
@@ -49,7 +49,7 @@ def test_options_validate():
 
 def test_monitor_modes_do_not_change_behaviour(bundle, tmp_path):
     """safety=monitor and packet_ood=monitor observe only: same trajectory as the default run."""
-    from rrp.controllers.packet_ood import PacketOODModel
+    from rrp.policies.packet_ood import PacketOODModel
     base, _ = run_episode(_ctl(bundle), "hexapod6", 3, max_s=1.5)
     rng = np.random.default_rng(0)
     ctl = _ctl(bundle)
@@ -66,7 +66,7 @@ def test_monitor_modes_do_not_change_behaviour(bundle, tmp_path):
 
 
 def test_ood_enforce_rejects_and_falls_back(bundle, tmp_path):
-    from rrp.controllers.packet_ood import PacketOODModel
+    from rrp.policies.packet_ood import PacketOODModel
     ctl = _ctl(bundle)
     z = np.random.default_rng(0).normal(0, 1e-3, (60, 4, 7, 8))   # tiny-variance "training" packets: all real ones are OOD
     PacketOODModel.fit(z[:40], z[40:], latent_space_version=ctl.lsv, r=8).save(tmp_path / "ood")
@@ -81,7 +81,7 @@ def test_ood_enforce_rejects_and_falls_back(bundle, tmp_path):
 
 
 def test_ood_model_refuses_other_bundle(bundle, tmp_path):
-    from rrp.controllers.packet_ood import PacketOODModel
+    from rrp.policies.packet_ood import PacketOODModel
     z = np.random.default_rng(0).normal(0, 1, (30, 4, 7, 8))
     PacketOODModel.fit(z[:20], z[20:], latent_space_version="legged-ls-other-w000000000000", r=4).save(tmp_path / "o")
     with pytest.raises(ValueError, match="fitted for latent space"):
@@ -108,7 +108,7 @@ def test_long_mode_estimator_and_safety_enforce_teacher():
 
 
 def test_record_packets_cli(bundle, tmp_path):
-    from rrp.evaluation.legged_latent_eval import main
+    from rrp.harness.eval.legged_latent_eval import main
     out = tmp_path / "rows.jsonl"
     main(["--flow", str(bundle[1]), "--bodies", "hexapod6", "--seeds", "3-3", "--nfe", "2", "--max-s", "0.9",
           "--out", str(out), "--record-packets", str(tmp_path / "pk")])
@@ -120,7 +120,7 @@ def test_record_packets_cli(bundle, tmp_path):
 
 def test_ood_fit_packets_and_score_cli(tmp_path):
     """#29 experiment tool on synthetic packet files in the --record-packets format (no simulation, D-127)."""
-    from rrp.training.packet_ood_fit import auroc, main as ood_main
+    from rrp.harness.train.packet_ood_fit import auroc, main as ood_main
     rng = np.random.default_rng(0)
     pk = tmp_path / "pk"
     pk.mkdir()
@@ -145,7 +145,7 @@ def test_ood_fit_packets_and_score_cli(tmp_path):
 
 
 def test_system2_flag_wires_harness(bundle, tmp_path):
-    from rrp.evaluation.legged_latent_eval import main
+    from rrp.harness.eval.legged_latent_eval import main
     out = tmp_path / "rows.jsonl"
     main(["--flow", str(bundle[1]), "--bodies", "hexapod6", "--seeds", "3-3", "--nfe", "2", "--max-s", "0.5",
           "--out", str(out), "--system2", "oracle"])

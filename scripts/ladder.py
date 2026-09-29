@@ -5,7 +5,7 @@ prints and outputs). Examples:
   ladder.py --route generated --robot panda_pg2 --n 30 --flow artifacts/runs/flow_latent_sem_v2/policy.pt --out ...
   ladder.py --disturbance --route oracle ...   (fixed-packet joint disturbance via latent_eval.disturbance_test)
 Writes <out>/<route>[_tag].jsonl (one row per episode) and <out>/<route>[_tag].summary.json."""
-from rrp.evaluation.ladder_cli import main
+from rrp.harness.eval.ladder_cli import main
 
 if __name__ == "__main__":
     main()

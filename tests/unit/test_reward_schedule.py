@@ -1,8 +1,8 @@
 """gait_v2 reward schedule: priors decay to a floor, natural terms ramp, permanent terms fixed; gated alpha."""
 import pytest
 
-from rrp.envs.legged_core import MIN_STOP_SHARE, NATURAL_TERMS, PERMANENT_STANDING_TERMS, PRIOR_TERMS, RewardCfg
-from rrp.training.reward_schedule import AlphaGate, window_metrics
+from rrp.envs.mujoco.legged_core import MIN_STOP_SHARE, NATURAL_TERMS, PERMANENT_STANDING_TERMS, PRIOR_TERMS, RewardCfg
+from rrp.harness.train.reward_schedule import AlphaGate, window_metrics
 
 
 @pytest.mark.parametrize("kind", ["humanoid", "quadruped"])
@@ -50,7 +50,7 @@ def test_stop_share_in_every_sampler():
     import warnings
     import numpy as np
     from rrp.bodies.legged import legged_body
-    from rrp.envs.legged_core import LeggedEnv
+    from rrp.envs.mujoco.legged_core import LeggedEnv
     warnings.filterwarnings("ignore")
     for body in ("t1", "go2"):
         env = LeggedEnv(lambda: legged_body(body), 1, 0, contact="v2")
@@ -66,7 +66,7 @@ def test_stop_share_in_every_sampler():
 def test_limit_margin_penalty_is_permanent_and_hinged():
     """W6/D-112: joint-limit-margin hinge; 0 inside the 2% band, 1 at the limit, 4 at 2% past it; never decays."""
     import numpy as np
-    from rrp.envs.legged_core import RewardCfg, limit_margin_penalty
+    from rrp.envs.mujoco.legged_core import RewardCfg, limit_margin_penalty
     lo, hi = np.array([-1.0, 0.0, 0.0]), np.array([1.0, 1.0, 0.0])        # third joint unlimited: ignored
     assert limit_margin_penalty([0.0, 0.5, 9.0], lo, hi) == 0.0
     assert limit_margin_penalty([1.0, 0.5, 0.0], lo, hi) == pytest.approx(0.5)            # (1 + 0) / 2

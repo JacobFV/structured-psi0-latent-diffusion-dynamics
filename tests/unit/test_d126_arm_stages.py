@@ -7,9 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from rrp.contracts.runconfig import RunConfig, RunIndex
-from rrp.pipelines import Pipeline, StageError
-from rrp.pipelines import base as pbase
+from rrp.core.runconfig import RunConfig, RunIndex
+from rrp.harness.pipelines import Pipeline, StageError
+from rrp.harness.pipelines import base as pbase
 
 EVAL_FLAGS = dict(zero_prev_action=True, realizer_anchor=None, realizer_drop_qd=None, probe_lv_min=None,
                   qd_dropout=None, contact_version="contact_v1")
@@ -39,7 +39,7 @@ def _proto(root: Path):
 
 # ---------------------------------------------------------------------------------------------- anchor rule
 def test_anchor_verdict_rule():
-    from rrp.training.grpo_anchor import AnchorConfig, anchor_verdict
+    from rrp.harness.train.grpo_anchor import AnchorConfig, anchor_verdict
     cfg = AnchorConfig(robots=["panda_pg2", "parm6_tf3"], max_drop=0.10, max_drop_robot=0.20)
     ref = {"panda_pg2": {"success": 20, "n": 30}, "parm6_tf3": {"success": 25, "n": 30}}
     same = anchor_verdict(ref, ref, cfg)
@@ -62,7 +62,7 @@ def test_anchor_verdict_rule():
 
 def test_anchor_tracker_stop_keeps_last_good_weights(tmp_path):
     torch = pytest.importorskip("torch")
-    from rrp.training.grpo_anchor import AnchorConfig, AnchorTracker
+    from rrp.harness.train.grpo_anchor import AnchorConfig, AnchorTracker
     m = torch.nn.Linear(2, 1)
     seq = iter([{"panda_pg2": {"success": 20, "n": 30}}, {"panda_pg2": {"success": 21, "n": 30}},
                 {"panda_pg2": {"success": 5, "n": 30}}])
@@ -82,7 +82,7 @@ def test_anchor_tracker_stop_keeps_last_good_weights(tmp_path):
 
 # ---------------------------------------------------------------------------------------------- stages
 def test_grpo_stage_latent_wiring(tmp_path, monkeypatch):
-    import rrp.training.latent_grpo as lg
+    import rrp.harness.train.latent_grpo as lg
     seen = {}
 
     def fake(cfg):
@@ -109,7 +109,7 @@ def test_grpo_stage_latent_wiring(tmp_path, monkeypatch):
 
 
 def test_grpo_stage_bc_wiring(tmp_path, monkeypatch):
-    import rrp.training.adapt as ad
+    import rrp.harness.train.adapt as ad
     seen = {}
 
     def fake(cfg):
@@ -148,7 +148,7 @@ def test_target_eval_stage_argv_and_sealed_flag(tmp_path, monkeypatch):
              options=dict(robot="xarm7_pg2", sealed_run=True, chunk_blend="crossfade"))
     body = Pipeline("arm").run(rc, root=tmp_path, index=RunIndex())
     a = calls[-1]
-    assert a[:2] == ["-m", "rrp.evaluation.target_eval"] and "--sealed-run" in a and "--flow" in a
+    assert a[:2] == ["-m", "rrp.harness.eval.target_eval"] and "--sealed-run" in a and "--flow" in a
     assert a[a.index("--chunk-blend") + 1] == "crossfade" and a[a.index("--prev-action") + 1] == "zero"
     assert body["metrics"]["protocol"]["id"] == "latent_slice1"
     rc2 = _rc("target_eval", inputs={"bc_policy": "runs/bc:policy.pt"},
@@ -158,7 +158,7 @@ def test_target_eval_stage_argv_and_sealed_flag(tmp_path, monkeypatch):
 
 
 def test_target_eval_scene_rules():
-    from rrp.evaluation.target_eval import load_protocol, plan_scenes
+    from rrp.harness.eval.target_eval import load_protocol, plan_scenes
     proto, _ = load_protocol(ROOT / "configs/eval/latent_slice1.json")
     assert plan_scenes(proto, "xarm7_tf3", sealed_run=True, smoke=False) == dict(kind="target", seed_start=2000000,
                                                                                 episodes=100)
@@ -174,8 +174,8 @@ def test_target_eval_scene_rules():
 
 def test_target_adapt_stage_protocol_budgets(tmp_path, monkeypatch):
     _proto(tmp_path)
-    import rrp.training.latent_train as lt
-    import rrp.training.sft as sft
+    import rrp.harness.train.latent_train as lt
+    import rrp.harness.train.sft as sft
     seen = {}
 
     def fake_flow(ck, pack, budget, *, seed, out_dir, steps, lr):
@@ -237,7 +237,7 @@ def test_arm_eval_r2_route_learned_and_blend_args(tmp_path, monkeypatch):
 def test_default_off_configs_unchanged():
     """Adding the D-126 stages/options changes no existing planned node: the committed arm DAGs plan with the same
     config hashes (the flag spec of every pre-existing (family, stage) is unchanged)."""
-    from rrp.contracts.runconfig import FLAG_SPEC
+    from rrp.core.runconfig import FLAG_SPEC
     assert FLAG_SPEC[("dual", "grpo")] == {"contact_version": "@meta"}
     assert FLAG_SPEC[("arm", "eval_r2")] == {"zero_prev_action": "@cli", "contact_version": "@meta"}
     assert FLAG_SPEC[("dual", "train_bc")] == {"contact_version": "@meta"}
@@ -268,6 +268,6 @@ def test_grasp_contact_option_sets_env_for_the_stage(tmp_path, monkeypatch):
 
 def test_latent_grpo_d126_fields_default_off():
     from dataclasses import asdict
-    from rrp.training.latent_grpo import D126_FIELDS, LatentGRPORunConfig
+    from rrp.harness.train.latent_grpo import D126_FIELDS, LatentGRPORunConfig
     d = asdict(LatentGRPORunConfig(checkpoint="c", robot="r", out_dir="o"))
     assert all(d[k] in (None, False) for k in D126_FIELDS)     # dropped from config.json: historical runs unchanged

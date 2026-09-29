@@ -8,9 +8,9 @@ import typing
 import numpy as np
 import pytest
 
-from rrp.contracts.action import ActionChunk, GroupCommand, LEGACY_SOURCES, NativeCommand
-from rrp.contracts.latent_action import AssemblyHandle, LatentActionChunk
-from rrp.contracts.provenance import (SOURCE_LABEL_VERSION, SOURCE_LABELS_ENV, Source, SourceLabel,
+from rrp.core.action import ActionChunk, GroupCommand, LEGACY_SOURCES, NativeCommand
+from rrp.core.latent_action import AssemblyHandle, LatentActionChunk
+from rrp.core.provenance import (SOURCE_LABEL_VERSION, SOURCE_LABELS_ENV, Source, SourceLabel,
                                       canonical_source_labels, parse_legacy_source, row_source, stamp_source_label)
 
 CANONICAL = [s.value for s in Source if s is not Source.UNKNOWN]
@@ -54,7 +54,7 @@ def test_stamp_on_adds_only_two_keys_and_is_strict():
 
 
 def _teacher_ladder_row(**kw) -> dict:
-    from rrp.evaluation.ladder import LadderConfig, run_ladder
+    from rrp.harness.eval.ladder import LadderConfig, run_ladder
     cfg = LadderConfig(route="teacher", robot="parm5_pg2", seeds=[0], max_steps=4, compare_oracle=False, **kw)
     r = run_ladder(cfg, None, dict(E=None, R=None, P=None, lcfg=None, res=None, flow=None, learned=None), {})[0]
     r.pop("wall_s")
@@ -76,7 +76,7 @@ def test_ladder_row_switch_off_matches_pre_change_and_on_adds_label(monkeypatch)
 
 
 def test_route_source_legacy_strings_unchanged():
-    from rrp.evaluation.ladder import LadderConfig, route_source
+    from rrp.harness.eval.ladder import LadderConfig, route_source
     c = lambda route, **kw: LadderConfig(route=route, robot="r", seeds=[0], **kw)
     assert route_source(c("teacher"))[0] == "scripted_teacher(privileged)"
     assert route_source(c("generated", flow="f.pt")) == ("learned(system-i flow)", "learned", "f.pt")
@@ -119,7 +119,7 @@ def test_row_source_prefers_canonical_and_handles_bad():
 
 
 def test_pipeline_source_counts_both_formats(tmp_path):
-    from rrp.pipelines.arm import _source_counts
+    from rrp.harness.pipelines.arm import _source_counts
     p = tmp_path / "rows.jsonl"
     rows = [dict(source="learned(system-i flow)"), dict(source="target_encoder_oracle(ORACLE DIAGNOSTIC: x)"),
             dict(source="learned(system-i flow)", source_label="learned:f.pt", source_label_version="sl-1"),

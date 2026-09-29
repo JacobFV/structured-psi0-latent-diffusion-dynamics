@@ -33,7 +33,7 @@ The Ψ₀ line lives in a second repository:
 ## dependency direction (never the reverse)
 psi1z → rrp. psi1z installs rrp as a library, pinned by git sha in
 [psi1z/pyproject.toml](https://github.com/JacobFV/psi1z/blob/main/pyproject.toml) and uses only the stable API in
-[docs/core_api.md](core_api.md) (`rrp.core`, version 1.0). It registers its `g1_simple` family through the extension hook
+[docs/architecture.md](architecture.md) (`rrp.core`, version 1.0). It registers its `g1_simple` family through the extension hook
 (`register_family` / the `rrp.families` entry point) without editing rrp. rrp never imports psi1z.
 Shared pieces (packet contract, system 0 base, probes and bounded NLL, statistics, packet-edit harness, provenance, RunConfig /
 Pipeline / run-dag, broker client) are changed **here** and then psi1z bumps its pin. psi1z never copies rrp code.
@@ -46,7 +46,7 @@ in [AGENTS.md](../AGENTS.md) (D-106 peer admission, D-115 host = no heavy comput
 | overall plan and workstream status | [docs/strategy.md](strategy.md) (W10 row) | [README.md](https://github.com/JacobFV/psi1z/blob/main/README.md) |
 | current evidence | [research/reports/evidence_matrix.md](../research/reports/evidence_matrix.md) | step tables in [research/notes.md](https://github.com/JacobFV/psi1z/blob/main/research/notes.md) |
 | training/physics problem checklist | [docs/robot_training_considerations.md](robot_training_considerations.md) | inherits it |
-| repo structure / API | [docs/repo_structure_audit.md](repo_structure_audit.md), [docs/core_api.md](core_api.md) | `src/psi1z/` |
+| repo structure / API | [docs/architecture.md](architecture.md), [docs/architecture.md](architecture.md) | `src/psi1z/` |
 | operating rules | [AGENTS.md](../AGENTS.md) | README "rules" (points here) |
 
 ## decision crosswalk (rrp D-xxx ↔ psi1z P-xxx)

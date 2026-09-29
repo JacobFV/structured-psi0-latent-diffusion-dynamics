@@ -1,5 +1,5 @@
 import pytest
-from rrp.evaluation.release import validate_release
+from rrp.harness.eval.release import validate_release
 
 
 def test_missing_evidence_cannot_be_called_complete():

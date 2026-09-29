@@ -4,7 +4,7 @@ import json
 import re
 from pathlib import Path
 
-from rrp.orchestration.dag import load_dag, plan_dag
+from rrp.harness.dag import load_dag, plan_dag
 
 ROOT = Path(__file__).resolve().parents[2]
 TRAINING = {"train_rep", "train_flow", "flow_ft", "refit"}     # read packs only; simulate nothing

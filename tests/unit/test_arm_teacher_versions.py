@@ -2,8 +2,8 @@
 import numpy as np
 import pytest
 
-from rrp.contracts.provenance import Source, parse_source
-from rrp.teachers.arm_smooth import (DEFAULT_ARM_TEACHER, MJ_APEAK, MJ_VPEAK, minjerk, minjerk_duration,
+from rrp.core.provenance import Source, parse_source
+from rrp.policies.teachers.arm_smooth import (DEFAULT_ARM_TEACHER, MJ_APEAK, MJ_VPEAK, minjerk, minjerk_duration,
                                      teacher_source)
 
 
@@ -34,7 +34,7 @@ def test_teacher_labels():
 
 def test_v2_episode_smoke():
     pytest.importorskip("mujoco")
-    from rrp.evaluation.teacher_quality import run_quality_episode
+    from rrp.harness.eval.teacher_quality import run_quality_episode
     row = run_quality_episode("parm5_pg2", 1, "v2")
     assert row["source"] == "scripted_teacher:pick_place_v2_minjerk"
     assert row["feasible"] and row["success"], row.get("failure_stage")

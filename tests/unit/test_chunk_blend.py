@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from rrp.controllers.chunk_blend import (BlendConfig, PacketBlender, blend_bc_chunk, crossfade_weight,
+from rrp.policies.chunk_blend import (BlendConfig, PacketBlender, blend_bc_chunk, crossfade_weight,
                                          ensemble_weights)
 
 
@@ -66,10 +66,10 @@ def test_packet_blender():
 def test_system0_blend_single_matches_batched_and_default_is_unchanged():
     torch = pytest.importorskip("torch")
     pytest.importorskip("mujoco")
-    from rrp.controllers.latent_realizer import LatentRealizer, LatentSystem0, batched_ticks
-    from rrp.envs.fixtures import make_pick_place_session
+    from rrp.policies.system0 import LatentRealizer, LatentSystem0, batched_ticks
+    from rrp.envs.mujoco.fixtures import make_pick_place_session
     from tests.unit.test_latent_grpo import DZ, _actor, _policy
-    from rrp.training.flow_sde import SDEConfig
+    from rrp.harness.train.flow_sde import SDEConfig
     torch.manual_seed(1)
     m = _policy()
     R = LatentRealizer(DZ, width=32, heads=2, layers=1)

@@ -3,9 +3,9 @@ counts matched to BC SFT (SFT_STEPS), the pre-registered variant (split, gen_fra
 import json
 from pathlib import Path
 
-from rrp.orchestration.dag import load_dag, plan_dag
-from rrp.pipelines.arm import SFT_STEPS
-from rrp.training.joint_adapt import split_steps
+from rrp.harness.dag import load_dag, plan_dag
+from rrp.harness.pipelines.arm import SFT_STEPS
+from rrp.harness.train.joint_adapt import split_steps
 
 ROOT = Path(__file__).resolve().parents[2]
 PROTO = json.loads((ROOT / "configs/eval/latent_slice1.json").read_text())

@@ -33,7 +33,7 @@ packages = ["src/rrp"]
 "tasks" = "rrp/_data/tasks"
 
 [tool.hatch.build.targets.sdist]
-include = ["src/rrp", "tasks", "pyproject.toml", "README.md", "docs/core_api.md"]
+include = ["src/rrp", "tasks", "pyproject.toml", "README.md", "docs/architecture.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

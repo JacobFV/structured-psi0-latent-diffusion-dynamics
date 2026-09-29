@@ -7,7 +7,7 @@ import mujoco
 import numpy as np
 import pytest
 
-from rrp.envs.state_estimator import (BaseStateEstimator, EstimatorConfig, LegKinematics, leg_odometry,
+from rrp.envs.mujoco.state_estimator import (BaseStateEstimator, EstimatorConfig, LegKinematics, leg_odometry,
                                       quat_to_rot)
 
 G = 9.81
@@ -95,7 +95,7 @@ def test_state_roundtrip():
 # ------------------------------------------------------------------ real-body kinematics (procedural hexapod)
 def _hexapod():
     from rrp.bodies.legged import hexapod, standalone_model
-    from rrp.envs.legged_core import LeggedBinding
+    from rrp.envs.mujoco.legged_core import LeggedBinding
     model, _, meta = standalone_model(hexapod())
     b = LeggedBinding(model, meta)
     jq = np.array(b.pol_qadr)
@@ -149,8 +149,8 @@ def test_leg_odometry_on_real_kinematics_known_base_velocity():
 
 # ------------------------------------------------------------------ session option
 def _session_traj(source, steps=12):
-    from rrp.contracts.action import NativeCommand
-    from rrp.envs.legged import LeggedSession, build_waypoint_contact
+    from rrp.core.action import NativeCommand
+    from rrp.envs.mujoco.legged import LeggedSession, build_waypoint_contact
     sc = build_waypoint_contact("hexapod6", 3)
     kw = {} if source is None else dict(base_state_source=source)
     s = LeggedSession(sc, tracker_kind="cpg", seed=3, **kw)
@@ -185,7 +185,7 @@ def test_session_default_is_truth_noise_and_estimator_changes_sensing_only():
 
 
 def test_session_rejects_unknown_source():
-    from rrp.envs.legged import LeggedSession, build_waypoint_contact
+    from rrp.envs.mujoco.legged import LeggedSession, build_waypoint_contact
     with pytest.raises(ValueError):
         LeggedSession(build_waypoint_contact("hexapod6", 3), tracker_kind="cpg", seed=3, base_state_source="truth")
 
@@ -195,8 +195,8 @@ GOLDEN_DEFAULT_HEXAPOD6_S3 = "b209b12be5536a17b12c8863a835933d900c8d3ae419dafea1
 
 
 def test_default_session_byte_identical_to_pre_d126():
-    from rrp.contracts.action import NativeCommand
-    from rrp.envs.legged import LeggedSession, build_waypoint_contact
+    from rrp.core.action import NativeCommand
+    from rrp.envs.mujoco.legged import LeggedSession, build_waypoint_contact
     s = LeggedSession(build_waypoint_contact("hexapod6", 3), tracker_kind="cpg", seed=3)
     s.reset()
     h = hashlib.sha256()

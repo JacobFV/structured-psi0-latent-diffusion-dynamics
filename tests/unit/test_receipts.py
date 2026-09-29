@@ -1,6 +1,6 @@
 import pytest
 from rrp.tasks.receipts import ReceiptStore, Receipt
-from rrp.contracts.errors import ProvenanceError
+from rrp.core.errors import ProvenanceError
 
 
 def test_same_type_foreign_frame_is_not_accepted():

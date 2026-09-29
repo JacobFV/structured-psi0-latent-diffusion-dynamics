@@ -1,5 +1,5 @@
 import numpy as np
-from rrp.evaluation.identifiability import distinguishability
+from rrp.harness.eval.identifiability import distinguishability
 
 
 def test_identical_inputs_are_reported_before_training():
