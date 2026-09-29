@@ -119,6 +119,7 @@ def rollout(make_env: Callable[[int], object], policy: Policy, task: TaskSpec, s
                             env.submit_chunk(a.chunk, execute_prefix=a.info.get("execute_prefix"))
                         except (StaleActionError, ControllerRejection):
                             st["chunk_rej"] += 1
+                            a.info["chunk_rejected"] = True          # hooks see which submissions were refused
                     step = env.step(a.command)
                 except FloatingPointError as ex:
                     st.update(judgement=Judgement(True, "crash", "physics_divergence"), note=str(ex)[:300])

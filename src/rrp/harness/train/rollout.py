@@ -4,8 +4,8 @@
   the FROZEN codec (or identity for direct normalized actions), and build versioned ActionChunks.
 * SDEPolicy: stochastic flow-SDE sampler that records, per chunk, the full latent path, old log-prob,
   time grid, variance schedule, valid mask, behavior version and observation provenance.
-* drive(): lock-step batched episode loop (same termination rules as rrp.evaluation.runner.evaluate)
-  that can start from restored snapshots and pause at a registered public event boundary.
+* drive(): episodes on harness.rollout (same termination rules as the arm eval) that can start from restored
+  snapshots and pause at a registered public event boundary.
 
 Rewards are computed from the PRIVILEGED simulator success evaluator (allowed as a training reward in
 simulation only; labelled `privileged_sim_success`). Policies never see it.
@@ -19,7 +19,6 @@ import numpy as np
 import torch
 
 from rrp.core.action import ActionChunk, GroupCommand
-from rrp.core.errors import StaleActionError
 from rrp.policies.features.featurizer import featurizer_for
 from rrp.policies.nets.batch import collate_inputs
 from rrp.harness.train.flow_sde import SDEConfig, sample_sde
@@ -164,54 +163,90 @@ def cube_fell(s) -> bool:
         return False
 
 
-def drive(policy, states: list[EpisodeState], *, stop_fn=None, on_step=None) -> list[EpisodeState]:
-    """Advance all states in lock step until done/paused. `stop_fn(state)` (checked after each step)
-    pauses a state at a boundary; the executor queue is dropped so the next chunk is fresh."""
-    while True:
-        active = [st for st in states if not (st.done or st.paused)]
-        if not active:
-            return states
-        need = [st for st in active if not st.session.executor.queue]
+class _DrivePolicy:
+    """Policy (rrp.policies.base) over a chunk actor (PolicyAdapter / SDEPolicy): a new chunk for every episode whose
+    executor queue is empty (Act.chunk, executed `execute_prefix` rows), the actor's per-chunk record attached."""
+
+    def __init__(self, policy, states):
+        from rrp.policies.base import PolicyInfo, Requirements
+        self.policy, self.states = policy, states
+        self.info = PolicyInfo("drive", "learned", str(getattr(policy, "version", "")),
+                               Requirements(frozenset({"joint_position", "gripper"}), observations=frozenset()))
+
+    def reset(self, spec, task, seeds, *, envs=None):
+        pass
+
+    def act(self, obs):
+        from rrp.policies.base import Act
+        out = {i: Act(None) for i in obs}
+        need = [i for i in sorted(obs) if not self.states[i].session.executor.queue]
         if need:
-            try:
-                chunks = policy.chunks([st.session for st in need])
-            except Exception as e:  # noqa: BLE001 - recorded, never hidden
-                for st in need:
-                    st.done, st.outcome, st.note = True, "crash", repr(e)[:200]
-                continue
-            recs = getattr(policy, "last_records", [None] * len(need))
-            for st, ch, rec in zip(need, chunks, recs):
-                st.calls += 1
-                try:
-                    st.session.submit_chunk(ch, execute_prefix=policy.execute_prefix)
-                    if rec is not None:
-                        rec = dict(rec, step=st.steps, executed_rows=len(st.session.executor.queue))
-                        st.chunks.append(rec)
-                except StaleActionError:
-                    st.rejections += 1
-        for st in active:
-            if st.done:
-                continue
-            s = st.session
-            try:
-                r = s.step(None)
-            except FloatingPointError as e:
-                st.done, st.outcome, st.note = True, "crash", str(e)
-                continue
-            st.steps += 1
-            if r.rejected:
-                st.cmd_rejections += 1
-            if on_step is not None:
-                on_step(st, r)
-            if cube_fell(s):
-                st.done, st.outcome, st.fell = True, "failure", True
-            elif s.runtime.succeeded():
-                st.done = True
-            elif st.steps >= st.max_steps:
-                st.done, st.outcome = True, "timeout"
-            elif stop_fn is not None and stop_fn(st):
-                st.paused = True
-                s.executor.invalidate("branch_point", float(s.data.time))
+            chunks = self.policy.chunks([self.states[i].session for i in need])
+            recs = getattr(self.policy, "last_records", [None] * len(need))
+            for i, ch, rec in zip(need, chunks, recs):
+                self.states[i].calls += 1
+                out[i] = Act(None, chunk=ch, info=dict(execute_prefix=self.policy.execute_prefix, record=rec))
+        return out
+
+
+class _DriveHook:
+    """on_step: per-state bookkeeping of drive(): chunk records (accepted submissions), step and rejection counts, the
+    caller's on_step observer, the state's own step allowance ("timeout") and the pause boundary (stop_fn)."""
+
+    def __init__(self, states, stop_fn, on_step):
+        self.states, self.stop_fn, self.observer = states, stop_fn, on_step
+
+    def on_step(self, i, env, act, r):
+        from rrp.tasks.spec import Judgement
+        st = self.states[i]
+        if act.chunk is not None and not act.info.get("chunk_rejected"):
+            rec = act.info.get("record")
+            if rec is not None:
+                st.chunks.append(dict(rec, step=st.steps, executed_rows=act.chunk.horizon))
+        elif act.chunk is not None:
+            st.rejections += 1
+        st.steps += 1
+        if r.rejected:
+            st.cmd_rejections += 1
+        if self.observer is not None:
+            self.observer(st, r)
+        s = st.session
+        if cube_fell(s) or s.runtime.succeeded():
+            return None                                  # the task judge ends it
+        if st.steps >= st.max_steps:
+            return Judgement(True, "timeout", "timeout")
+        if self.stop_fn is not None and self.stop_fn(st):
+            s.executor.invalidate("branch_point", float(s.data.time))
+            return Judgement(True, "timeout", "paused")
+        return None
+
+
+def drive(policy, states: list[EpisodeState], *, stop_fn=None, on_step=None) -> list[EpisodeState]:
+    """Advance all active states through harness.rollout until done/paused. `stop_fn(state)` (checked after each
+    step) pauses a state at a boundary; the executor queue is dropped so the next chunk is fresh. Termination: the
+    object dropped (failure), the public task graph completed (done; finalize() judges privileged success), the
+    state's step allowance, or the pause. A crash of the actor ends the running episodes as "crash"."""
+    import math
+    from rrp.harness.rollout import rollout
+    from rrp.tasks.spec import get_task
+    active = [st for st in states if not (st.done or st.paused)]
+    if not active:
+        return states
+    eps = rollout(lambda i: active[i].session, _DrivePolicy(policy, active), get_task("pick_place"),
+                  list(range(len(active))), batch=len(active), max_seconds=math.inf,
+                  hooks=[_DriveHook(active, stop_fn, on_step)])
+    for st, ep in zip(active, eps):
+        if ep.failure_reason == "paused":
+            st.paused = True
+        elif ep.outcome == "crash":
+            st.done, st.outcome, st.note = True, "crash", ep.metrics.get("note", "")
+        elif ep.failure_reason == "dropped_off_table":
+            st.done, st.outcome, st.fell = True, "failure", True
+        elif ep.failure_reason == "timeout" and not st.session.runtime.succeeded():
+            st.done, st.outcome = True, "timeout"
+        else:
+            st.done = True
+    return states
 
 
 def finalize(st: EpisodeState) -> dict:

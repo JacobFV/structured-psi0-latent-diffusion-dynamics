@@ -150,10 +150,62 @@ def _tcp_cube_d(s) -> float:
     return float(np.linalg.norm(_tcp(s) - s.data.xpos[s.model.body("cube").id]))
 
 
+class _GRPOActor:
+    """Policy (rrp.policies.base) of run_episodes: system i every `replan` ticks (or when system 0 holds no packet),
+    ONE batched system-0 forward for all running episodes (policies.system0.batched_ticks); the actor's records of
+    ACCEPTED packets are kept per episode (rejected packets never influenced control)."""
+
+    def __init__(self, policy, S, s0, meta, replan, record):
+        from rrp.policies.base import PolicyInfo, Requirements
+        self.policy, self.S, self.s0, self.meta, self.replan, self.record, self.t = policy, S, s0, meta, replan, record, 0
+        self.info = PolicyInfo("latent_grpo", "learned", f"{policy.lsv}|{policy.rcv}",
+                               Requirements(frozenset({"joint_position", "gripper"}), observations=frozenset()))
+
+    def reset(self, spec, task, seeds, *, envs=None):
+        pass
+
+    def act(self, obs):
+        from rrp.policies.base import Act
+        act, step = sorted(obs), self.t
+        self.t += 1
+        S, s0, meta = self.S, self.s0, self.meta
+        need = [k for k in act if step % self.replan == 0 or s0[k].packet is None]
+        emitted = {}
+        if need:
+            pk = self.policy.packets([S[k] for k in need])
+            recs = getattr(self.policy, "last_records", None) if self.record else None
+            for j, (k, p) in enumerate(zip(need, pk)):
+                meta[k]["calls"] += 1
+                emitted[k] = p
+                try:
+                    s0[k].receive(p, now=float(S[k].data.time), graph_version=S[k].runtime.graph_version)
+                    if recs:
+                        meta[k]["recs"].append(recs[j])
+                except (ControllerRejection, StaleActionError):
+                    pass
+        cmds = batched_ticks([s0[k] for k in act], [S[k] for k in act])
+        return {k: Act(c, packet=emitted.get(k)) for k, c in zip(act, cmds)}
+
+
+class _GRPOEpisode:
+    """Hook: episodes whose teacher prefix already terminated do not run; min TCP-cube distance after every tick."""
+
+    def __init__(self, meta):
+        self.meta = meta
+
+    def on_reset(self, i, env, obs):
+        from rrp.tasks.spec import Judgement
+        return Judgement(True, "failure", "teacher_prefix_terminal") if self.meta[i]["done"] else None
+
+    def on_step(self, i, env, act, step):
+        self.meta[i]["min_reach"] = min(self.meta[i]["min_reach"], _tcp_cube_d(env))
+
+
 def run_episodes(policy, realizer, robot_key: str, seeds: list[int], *, replan_ticks=8, max_steps=300,
                  task="pick_place", device="cpu", reward: RewardConfig | None = None, record=True,
                  prefix_steps: int = 0) -> list[dict]:
-    """Lock-step closed loop (same rules as evaluate_latent): system i every `replan_ticks`, system 0 every tick.
+    """Closed loop on harness.rollout (same rules as the arm latent eval): system i every `replan_ticks`, system 0 every
+    tick (one batched forward).
     `seeds` may repeat (a GRPO group = the same seed G times). Returns one dict per episode incl. packet records
     of ACCEPTED packets (rejected packets never influenced control and are excluded from training).
     prefix_steps > 0: CURRICULUM — the SCRIPTED TEACHER (privileged planner, source=scripted_teacher) controls the
@@ -197,33 +249,17 @@ def run_episodes(policy, realizer, robot_key: str, seeds: list[int], *, replan_t
                     break
     for k, s in enumerate(S):
         meta[k]["min_reach"] = meta[k]["reach0"] = _tcp_cube_d(s)
-    for step in range(max_steps - prefix_steps):
-        act = [k for k, m in enumerate(meta) if not m["done"]]
-        if not act:
-            break
-        need = [k for k in act if step % replan_ticks == 0 or s0[k].packet is None]
-        if need:
-            pk = policy.packets([S[k] for k in need])
-            recs = getattr(policy, "last_records", None) if record else None
-            for j, (k, p) in enumerate(zip(need, pk)):
-                meta[k]["calls"] += 1
-                try:
-                    s0[k].receive(p, now=float(S[k].data.time), graph_version=S[k].runtime.graph_version)
-                    if recs:
-                        meta[k]["recs"].append(recs[j])
-                except (ControllerRejection, StaleActionError):
-                    pass
-        cmds = batched_ticks([s0[k] for k in act], [S[k] for k in act])
-        for k, cmd in zip(act, cmds):
-            s = S[k]
-            s.step(cmd)
-            meta[k]["steps"] += 1
-            if True:
-                meta[k]["min_reach"] = min(meta[k]["min_reach"], _tcp_cube_d(s))
-            if s.data.xpos[s.model.body("cube").id][2] < -0.05:
-                meta[k].update(done=True, outcome="failure")
-            elif s.runtime.succeeded():
-                meta[k]["done"] = True
+    from rrp.harness.rollout import rollout
+    from rrp.tasks.spec import get_task
+    actor = _GRPOActor(policy, S, s0, meta, replan_ticks, record)
+    eps = rollout(lambda k: S[k], actor, get_task(task), list(range(len(S))), batch=len(S), max_seconds=math.inf,
+                  max_steps=max_steps - prefix_steps, hooks=[_GRPOEpisode(meta)])
+    for k, ep in enumerate(eps):
+        meta[k]["steps"] = ep.steps
+        if meta[k]["outcome"] is None and ep.failure_reason == "dropped_off_table":
+            meta[k]["outcome"] = "failure"
+        elif meta[k]["outcome"] is None and ep.outcome == "crash":
+            meta[k].update(outcome="crash", note=ep.metrics.get("note", ""))
     out = []
     for k, s in enumerate(S):
         m = meta[k]

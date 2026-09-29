@@ -512,3 +512,57 @@ def test_arm_assignment_edit_loop_rows(golden):
         for cond in se.ARM_CONDITIONS:
             rows.append(_row_h(se.run_arm_condition(src, R, P, "parm5l_pg2__parm6_pg2", 3, cond, max_steps=9)))
     golden("loop.semantic_edits.dual", _h(np.asarray(rows, dtype=object)))
+
+
+def test_grpo_episode_loop_rows(golden):
+    """harness.train.latent_grpo.run_episodes rows (a repeated GRPO group seed, a teacher-prefix curriculum with a
+    shared prefix, rewards with every shaping term) must stay byte-identical through the port onto harness.rollout."""
+    from rrp.harness.train.latent_grpo import RewardConfig, run_episodes
+    rw = RewardConfig(shaping_events=0.2, shaping_dist=0.3, shaping_reach=0.1)
+    rows = []
+    for prefix in (0, 4):
+        si, R, _ = _tiny_latent()
+        inner, n = si.packets, [0]
+
+        def packets(sessions, _inner=inner, _n=n):          # deterministic stand-in for the SDE actor's records
+            out = _inner(sessions)
+            si.last_records = [dict(call=_n[0], j=j) for j in range(len(sessions))]
+            _n[0] += 1
+            return out
+        si.packets = packets
+        rows += [_row_h(r) for r in run_episodes(si, R, "parm5_pg2", [3, 3, 4], max_steps=10, prefix_steps=prefix,
+                                                 reward=rw)]
+    golden("loop.grpo.episodes", _h(np.asarray(rows, dtype=object)))
+
+
+def test_train_drive_loop(golden):
+    """harness.train.rollout.drive (GRPO/EXPO/adapt episode driver): lock-step SDE-actor chunks, a pause at a
+    boundary and a resumed second call, per-state step allowances, chunk records, on_step observers, finalize."""
+    import torch
+    from rrp.bodies.catalog import workbench_robots
+    from rrp.envs.mujoco.scenario import BUILDERS
+    from rrp.envs.mujoco.session import Session
+    from rrp.harness.train.flow_sde import SDEConfig
+    from rrp.harness.train.rollout import EpisodeState, SDEPolicy, drive, finalize
+    from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
+    torch.manual_seed(0)
+    m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=1, horizon=16))
+    torch.nn.init.normal_(m.out.weight, std=0.05)
+    pol = SDEPolicy(m, None, "cpu", SDEConfig(nfe=4), execute_prefix=4, version="t@0", seed=0)
+    robot = workbench_robots()["parm5_pg2"]()
+    sts = [EpisodeState(Session(BUILDERS["pick_place"](robot, sd, n_distractors=1), seed=sd), sd, n)
+           for sd, n in ((3, 10), (4, 12), (5, 7))]
+    trace = []
+    drive(pol, sts, stop_fn=lambda st: st.seed == 4 and st.steps == 5,
+          on_step=lambda st, r: trace.append((st.seed, st.steps, r.qpos.round(6).tolist())))
+    assert sts[1].paused
+    sts[1].paused = False
+    drive(pol, sts, on_step=lambda st, r: trace.append((st.seed, st.steps, r.qpos.round(6).tolist())))
+    # observation ids are "o<seed>_<step>_<n>" with n a process-global serial (differs with test order and with the
+    # number of observe() calls, e.g. rollout's initial observation); the golden keeps the meaningful prefix
+    oid = lambda o: o.rsplit("_", 1)[0]
+    rows = [_row_h(dict(steps=st.steps, done=st.done, paused=st.paused, outcome=st.outcome, fell=st.fell,
+                        calls=st.calls, rej=st.rejections, cmd_rej=st.cmd_rejections,
+                        chunks=[(c["step"], c["executed_rows"], oid(c["observation_id"]), c["sim_time"])
+                                for c in st.chunks], fin=finalize(st))) for st in sts]
+    golden("loop.train.drive", _h(np.asarray(rows + [_row_h(trace)], dtype=object)))
