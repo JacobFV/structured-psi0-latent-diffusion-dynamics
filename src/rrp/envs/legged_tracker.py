@@ -94,7 +94,7 @@ class LearnedTracker:
         self.last_slot = a
         self.last_a = self.morph.from_slots(a)
         self.phase = (self.phase + self.dt / self.b.period) % 1.0
-        return self.b.targets(self.last_a)
+        return self.b.targets(self.last_a, target_margin=float(self.meta.get("target_margin") or 0.0))
 
     def act(self, data, cmd) -> np.ndarray:
         if self.morph is not None:
@@ -110,7 +110,7 @@ class LearnedTracker:
         amp = float(self.meta.get("ref_ff") or 0.0)
         ref = self.b.ref_offset(self.phase, cmd, amp, self.meta.get("ref_ff_vmax")) if amp else None
         self.phase = (self.phase + self.dt / self.b.period) % 1.0
-        return self.b.targets(a, ref)
+        return self.b.targets(a, ref, target_margin=float(self.meta.get("target_margin") or 0.0))
 
     @property
     def morph_pm(self):

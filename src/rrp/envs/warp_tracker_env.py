@@ -73,7 +73,8 @@ class WarpTrackerEnv:
     def __init__(self, body, nworld: int, seed: int = 1, *, reward_overrides: dict | None = None, episode_s: float = 20.0,
                  push: bool = True, obs_noise: float = 1.0, cmd_mix: str = "default", teacher_stop: float = MIN_STOP_SHARE,
                  turn_frac: float = 0.25, slow_frac: float = 0.0, randomize: bool = True, nconmax: int = 48,
-                 njmax: int = 320, model_fn=None, extra_batch=(), clock_gate: bool = False):
+                 njmax: int = 320, model_fn=None, extra_batch=(), clock_gate: bool = False, target_margin: float = 0.0,
+                 land_vel: float = 0.0):
         wp, mjw = _wp()
         self.wp, self.mjw = wp, mjw
         self.dev = torch.device("cuda")
@@ -100,6 +101,9 @@ class WarpTrackerEnv:
         # W13 clock gate (actor meta `clock_gate`): the gait-clock inputs are zeroed while the command is ~0 (a public
         # function of the command), so "stand" is an explicit mode instead of stepping on the clock (h1 r3/r4 stepped in place)
         self.clock_gate = bool(clock_gate)
+        # W13 target_margin (actor meta): joint targets clipped to [lo + m span, hi - m span], deployed identically by
+        # LeggedBinding.targets; land_vel: training-only penalty x sum over touchdown feet of the foot's downward speed^2
+        self.target_margin, self.land_vel = float(target_margin), float(land_vel)
         self.push, self.obs_noise, self.randomize = push, obs_noise, randomize
         self.dt = 0.02
         self.substeps = max(1, int(round(self.dt / m.opt.timestep)))
@@ -401,7 +405,11 @@ class WarpTrackerEnv:
     def step(self, actions: torch.Tensor):
         cfg, N = self.cfg, self.N
         a = actions.clamp(-5, 5)
-        new_t = torch.clamp(self.q0 + self.scale * a, self.lo, self.hi)
+        if self.target_margin:
+            sp_ = self.hi - self.lo
+            new_t = torch.clamp(self.q0 + self.scale * a, self.lo + self.target_margin * sp_, self.hi - self.target_margin * sp_)
+        else:
+            new_t = torch.clamp(self.q0 + self.scale * a, self.lo, self.hi)
         old_full = self.ctrl.clone()
         if self.held_act is not None:
             old_full[:, self.held_act] = self.q0_held
@@ -468,6 +476,14 @@ class WarpTrackerEnv:
                 r += cfg.clearance * (clr_n * swing).sum(-1) * mf
             else:
                 r += cfg.clearance * torch.where(swing.any(-1), (clr_n * swing).sum(-1) / swing.sum(-1).clamp_min(1), 0) * mf
+        if self.land_vel:
+            fb = self.foot_bids
+            cvf = self.cvel[:, fb]                                                   # (N, nf, 6) ang, lin at subtree com
+            com = self.subtree_com[:, self.body_root[fb]]
+            vz = (cvf[..., 3:6] + torch.cross(cvf[..., 0:3], self.xpos[:, fb] - com, dim=-1))[..., 2]
+            self._vz_prev = getattr(self, "_vz_prev", torch.zeros_like(vz))
+            r += self.land_vel * ((self._vz_prev.clamp_max(0) ** 2) * first).sum(-1)
+            self._vz_prev = vz
         if cfg.clearance_floor:
             self.apex = torch.where(fc, self.apex, torch.maximum(self.apex, clr))
             fl = cfg.floor_frac * self.swing_h[:, None]

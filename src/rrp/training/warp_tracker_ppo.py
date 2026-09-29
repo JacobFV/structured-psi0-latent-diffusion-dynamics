@@ -76,6 +76,8 @@ def build_args(argv=None):
     ap.add_argument("--cmd-mix", default="default")
     ap.add_argument("--turn-frac", type=float, default=0.25)
     ap.add_argument("--clock-gate", action="store_true", help="zero the gait-clock inputs under a ~0 command (actor meta clock_gate)")
+    ap.add_argument("--target-margin", type=float, default=0.0, help="clip joint targets to the range minus this fraction (meta)")
+    ap.add_argument("--land-vel", type=float, default=0.0, help="touchdown downward foot speed^2 penalty weight (training only)")
     ap.add_argument("--teacher-stop", type=float, default=0.10, help="zero-command share inside the teacher command mix")
     ap.add_argument("--slow-frac", type=float, default=0.0)
     ap.add_argument("--alpha-schedule", default="gated")
@@ -116,7 +118,8 @@ def main(argv=None):
     dev = torch.device("cuda")
     ekw = dict(reward_overrides=_kv(args.reward_set), episode_s=args.episode_s, push=not args.no_push, cmd_mix=args.cmd_mix,
                turn_frac=args.turn_frac, slow_frac=args.slow_frac, nconmax=args.nconmax, njmax=args.njmax,
-               teacher_stop=args.teacher_stop, clock_gate=args.clock_gate)
+               teacher_stop=args.teacher_stop, clock_gate=args.clock_gate, target_margin=args.target_margin,
+               land_vel=args.land_vel)
     groups = None
     env_cls = None
     if args.task == "steps":
@@ -182,7 +185,7 @@ def main(argv=None):
                 sim_engine=f"mujoco_warp {getattr(mujoco_warp, '__version__', '3.14.0')}", sim_adaptations=env.adaptations,
                 env_differences="per-world randomisation resampled at reset; see rrp.envs.warp_tracker_env docstring",
                 reward_options=env.cfg0.options(), recipe=args.recipe_record, task=args.task,
-                clock_gate=bool(args.clock_gate),
+                clock_gate=bool(args.clock_gate), target_margin=float(args.target_margin), land_vel=float(args.land_vel),
                 extra_obs_dim=int(getattr(env, "extra_dim", env.obs_dim - env.b.obs_dim)),
                 extra_obs=("privileged height scan 11x3 + h_frac (expert only)" if args.task == "steps" else None),
                 gpu=torch.cuda.get_device_name(0))

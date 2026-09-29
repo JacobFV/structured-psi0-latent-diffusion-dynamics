@@ -237,3 +237,9 @@ Long runs use `/dev/shm/rrp-brandonin/wt/humanoid` (never re-synced while they r
 - Pattern across h1 and t1: every GPU tracker now passes no-fall / tracking / slip / CoT / in-range robustness in C MuJoCo, and
   the two remaining D-112 failures are peak foot force (3.3-4.1 BW vs 3.0) and the worst-tick joint margin (0.002-0.018 vs
   0.02). g1 v4 (from scratch, clock gate) is still learning to stand (iter 344).
+- **h1 r6 = final h1 tracker (stop rule reached)**, C MuJoCo, full self-collision: **waypoint 20/20 success, 0 falls**;
+  no-fall 1.0 on all trials incl. push and all in-range robustness conditions; fwd 1.11, turn 0.82, slip 0.012, CoT 0.71.
+  Lab gate PASS. D-112 FAIL on peak foot force 3.74 BW (limit 3.0) and joint margin -0.0014 (limit 0.02) -- label every use
+  "h1 gpu r6: D-112 fails peak force 3.74 BW, joint margin -0.001". Heavier impact/limit weights (r5 -> r6) did not reduce
+  either, so the next attempts (t1, g1) add two structural mechanisms: `target_margin` (joint targets clipped 3% inside the
+  range, applied identically in deployment) and `land_vel` (training-only touchdown foot-speed penalty).

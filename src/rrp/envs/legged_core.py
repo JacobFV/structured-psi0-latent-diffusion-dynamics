@@ -161,10 +161,14 @@ class LeggedBinding:
         return np.concatenate([gyro * 0.25, g, np.asarray(cmd) * CMD_SCALE, d.qpos[self.pol_qadr] - self.q0,
                                d.qvel[self.pol_dadr] * 0.05, last_action, clock_features(phase, cmd, clock_gate)]).astype(np.float32)
 
-    def targets(self, action, ref=None) -> np.ndarray:
+    def targets(self, action, ref=None, target_margin: float = 0.0) -> np.ndarray:
+        """target_margin (W13, actor meta): clip targets to [lo + m span, hi - m span] (0 = the servo range, unchanged)."""
         q = self.q0 + self.action_scale * np.asarray(action)
         if ref is not None:
             q = q + ref
+        if target_margin:
+            span = self.hi - self.lo
+            return np.clip(q, self.lo + target_margin * span, self.hi - target_margin * span)
         return np.clip(q, self.lo, self.hi)
 
     def pitch_idx(self):

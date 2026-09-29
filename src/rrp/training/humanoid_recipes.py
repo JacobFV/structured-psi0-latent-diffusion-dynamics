@@ -186,3 +186,15 @@ HUMANOID_RECIPES["t1_clock_gpu_v2ft"] = _ft("t1", "artifacts/runs/humanoid_p1b_t
                                             teacher_stop=0.3, clock_gate=True,
                                             reward_set=_R5.replace("impact=-2.0", "impact=-4.0").replace("limit_margin=-4.0",
                                                                                                           "limit_margin=-8.0"))
+
+# h1 r6 (final h1 attempt) in C MuJoCo: WAYPOINT 20/20 (0 falls), no-fall 1.0 everywhere, fwd 1.11, turn 0.82, slip 0.012,
+# CoT 0.71; D-112 still FAILS on peak force 3.74 BW and joint margin -0.0014: heavier impact / limit-hinge weights did not bite.
+# Structural fixes for the next attempts: target_margin 0.03 (targets clipped inside the range, deployed identically) and a
+# touchdown-velocity penalty (land_vel). t1 v2ft2 = t1 v2ft + both.
+def _ft2(body, init, **kw):
+    return _ft(body, init, alpha_schedule="fixed:0.5", teacher_stop=0.3, clock_gate=True, target_margin=0.03, land_vel=-2.0,
+               reward_set=_R5.replace("impact=-2.0", "impact=-4.0").replace("limit_margin=-4.0", "limit_margin=-8.0"), **kw)
+
+
+HUMANOID_RECIPES["t1_clock_gpu_v2ft2"] = _ft2("t1", "artifacts/runs/humanoid_p1b_t1_v2ft/actor_v2ftfinal.pt")
+HUMANOID_RECIPES["g1_clock_gpu_v4ft"] = _ft2("g1", "artifacts/runs/humanoid_p1b_g1_v4/actor_v4final.pt")
