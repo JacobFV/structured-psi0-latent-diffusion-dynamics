@@ -288,3 +288,6 @@ Long runs use `/dev/shm/rrp-brandonin/wt/humanoid` (never re-synced while they r
   **h1 r6** (force 3.74 BW, margin -0.001; flagged), **t1 v2ft4** (margin 0.016), **g1 v4** (margin 0.012; waypoint 17/20).
 - Shared morph_v2 (6 menagerie x 1024 + 2 phum topologies x 32 bodies x 2048 worlds; clock gate, target band, force cap):
   launched 2026-09-29 (lease 1790702624_8e8209).
+- h1 steps v2 resumed to 4000 iters stayed at level 0.4 (window success 0.38-0.50): the 20 s episode is too short for the
+  staircase course (x_end + 0.3 L ~ 6.5 m at 0.48 m/s = 13.5 s on flat ground; slower on steps), so timeouts count as failures
+  and the 0.7 level-up threshold is never reached. Next segment: 30 s episodes, level-up 0.6 (recorded before running).

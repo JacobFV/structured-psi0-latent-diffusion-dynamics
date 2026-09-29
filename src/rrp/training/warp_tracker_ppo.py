@@ -93,6 +93,8 @@ def build_args(argv=None):
     ap.add_argument("--njmax", type=int, default=320)
     ap.add_argument("--task", default=None, help="None (tracker) | steps (h_steps privileged expert, rrp.envs.warp_task_env)")
     ap.add_argument("--level-every", type=int, default=25, help="task curriculum window (iterations)")
+    ap.add_argument("--level-up", type=float, default=0.7, help="window success rate to raise the task level")
+    ap.add_argument("--level-down", type=float, default=0.3)
     ap.add_argument("--level0", type=float, default=0.0, help="initial task curriculum level (e.g. resuming a pre-level-save run)")
     ap.add_argument("--init-shared", default=None, help="warm start the actor from an exported morph_v1 actor.pt (extra inputs zero-init)")
     ap.add_argument("--groups", default=None, help="morph_v1 shared tracker: JSON list of [[body keys], nworld] (or a recipe key)")
@@ -292,9 +294,9 @@ def main(argv=None):
             ws, task_win = task_win, []
             ne = sum(r["episodes"] for r in ws)
             sr = sum(r.get("successes", 0) for r in ws) / ne if ne else 0.0
-            if sr > 0.7:
+            if sr > args.level_up:
                 level = min(1.0, level + 0.1)
-            elif sr < 0.3 and level > 0:
+            elif sr < args.level_down and level > 0:
                 level = max(0.0, level - 0.1)
             for e in task_envs:
                 e.set_level(level)
