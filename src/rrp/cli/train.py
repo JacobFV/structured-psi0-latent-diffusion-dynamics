@@ -30,8 +30,8 @@ def cmd_train_policy(a):
 def cmd_evaluate(a):
     import torch
     from rrp.policies.bc import BCPolicy, LearnedPolicy
-    from rrp.harness.hooks import arm_hooks, arm_scene
-    from rrp.harness.rollout import evaluate, summarize
+    from rrp.harness.eval.hooks import arm_hooks, arm_scene
+    from rrp.harness.eval.evaluate import evaluate, summarize
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     if dev == "cuda":
         from rrp.ops.workload import apply_cap

@@ -393,6 +393,100 @@ def paired_edit_keys(seed_start, n_scenes):
     return [10 * sd + (sd % (2 + sd % 2)) for sd in range(seed_start, seed_start + n_scenes)]
 
 
+class EditRoute:
+    """Policy (rrp.policies.base) for one (packet source, edit condition) episode of run_condition /
+    run_arm_condition, driven by harness.rollout. Routes: teacher (the expert's native commands), bc (context-edited
+    direct-action chunks), and packet routes (oracle / generated): every `replan` ticks (or when system 0 holds no
+    packet) a packet is generated for the edited context (orthogonal_matched: control packet + a probe-orthogonal
+    direction of the matched norm; swap_slots: control packet with its slots exchanged) and handed to system 0, which
+    realizes it every tick. Shadow teachers follow the real state once per executed tick (commands discarded)."""
+
+    def __init__(self, src, cond, *, s0, P, seed, replan, teachers, goal_off, match, n_ent, dual=False):
+        from rrp.policies.base import PolicyInfo, Requirements
+        self.src, self.cond, self.s0, self.P, self.seed, self.replan = src, cond, s0, P, seed, replan
+        self.teachers, self.goal_off, self.match, self.n_ent, self.dual = teachers, goal_off, match, n_ent, dual
+        self.calls, self.edit_log, self.zlog, self.t = 0, [], [], 0
+        source = {"teacher": "scripted_teacher", "oracle": "oracle", "bc": "bc"}.get(src.label, "learned")
+        self.info = PolicyInfo(f"edit:{src.label}:{cond}", source, str(getattr(src, "name", src.label)),
+                               Requirements(frozenset({"joint_position", "gripper"}), observations=frozenset()))
+
+    def reset(self, spec, task, seeds, *, envs=None):
+        self.s = envs[0]
+
+    def act(self, obs):
+        step, self.t = self.t, self.t + 1
+        return {i: self._act(step) for i in obs}
+
+    def _key(self, cond):
+        k = _key(self.seed, self.calls) + (500 if cond == "control_replay" else 0)
+        self.calls += 1
+        return k
+
+    def _act(self, step):
+        from rrp.policies.base import Act
+        s, src, cond = self.s, self.src, self.cond
+        if src.label == "teacher":
+            return Act(self.teachers[cond].act())
+        if src.label == "bc":
+            if step % self.replan == 0 or not s.executor.queue:
+                key = self._key(cond)
+                ch = src.chunk(s, "control" if cond == "control_replay" else cond, self.goal_off, key)
+                return Act(None, chunk=ch, info=dict(execute_prefix=self.replan))
+            return Act(None)
+        if step > 0:                                    # shadow experts follow the REAL state of the last tick
+            for t in self.teachers.values():
+                t.act()
+        p = None
+        if step % self.replan == 0 or self.s0.packet is None:
+            key = self._key(cond)
+            T = self.teachers
+            if cond in ("orthogonal_matched", "swap_slots"):
+                pc = src.packet(s, "control", T.get("control"), self.goal_off, key)
+                if cond == "swap_slots":
+                    p = deliver(pc, s, np.ascontiguousarray(pc.z[:, ::-1]), "swap_slots")
+                else:
+                    pg = src.packet(s, self.match, T.get(self.match), self.goal_off, key)
+                    nrm = float(np.linalg.norm(pg.z - pc.z))
+                    r, inf = (probe_orthogonal_dual if self.dual else probe_orthogonal)(self.P, pc.z, self.n_ent(), key,
+                                                                                         nrm)
+                    p = deliver(pc, s, pc.z + r, "orthogonal_matched")
+                    self.edit_log.append(dict(norm=nrm, rel_norm=nrm / float(np.linalg.norm(pc.z)), **inf))
+            else:
+                c = "control" if cond == "control_replay" else cond
+                p = src.packet(s, c, T.get(c), self.goal_off, key)
+            if len(self.zlog) < 4:
+                self.zlog.append(float(np.linalg.norm(p.z)))
+            _recv(self.s0, p, s)
+        cmd = self.s0.tick(s) if self.dual else self.s0.tick(s, s.controller_version())
+        return Act(cmd, packet=p)
+
+
+class _Measure:
+    """on_step: the caller's per-tick measurement; ends a teacher-reference episode when its teacher is done."""
+
+    def __init__(self, measure, route):
+        self.measure, self.route, self.k = measure, route, 0
+
+    def on_step(self, i, env, act, step):
+        from rrp.tasks.spec import Judgement
+        self.measure(self.k)
+        self.k += 1
+        r = self.route
+        if r.src.label == "teacher" and r.teachers[r.cond].done:
+            return Judgement(True, "success" if env.runtime.succeeded() else "failure", "teacher_done")
+        return None
+
+
+def _run_route(s, route, task: str, measure, max_steps: int):
+    """One episode on the prepared session `s` through harness.rollout (task judge: success / object dropped)."""
+    import math
+    from rrp.harness.rollout import rollout
+    from rrp.tasks.spec import get_task
+    ep, = rollout(lambda sd: s, route, get_task(task), [0], batch=1, max_seconds=math.inf, max_steps=max_steps,
+                  hooks=[_Measure(measure, route)])
+    return ep
+
+
 def run_condition(src, R, P, robot, robot_key, seed, cond, *, max_steps=300, replan=8, dev="cpu", g=0.12,
                   scene="pick_place", on_step=None):
     """on_step(session, step): optional observer after every executed tick (video rendering); never alters control."""
@@ -416,6 +510,8 @@ def run_condition(src, R, P, robot, robot_key, seed, cond, *, max_steps=300, rep
             if not t.feasibility()["feasible"]:
                 return dict(base, skipped=f"infeasible_{c}")
             teachers[c] = t
+    if src.label == "teacher" and cond == "orthogonal_matched":
+        return dict(base, skipped="n/a_for_teacher")
     f = src.featurizer(s)
     s0 = None if src.label == "bc" else LatentSystem0(R, f, latent_space_version=src.lsv,
                                                       realizer_compat_version=src.rcv, device=dev)
@@ -425,8 +521,7 @@ def run_condition(src, R, P, robot, robot_key, seed, cond, *, max_steps=300, rep
     objs = {s.model.body(b).id: b for b in lift}
     rb = robot_body_ids(s)
     fcon = {b: None for b in lift}
-    tcp_tr, info, calls = [_tcp(s)], [], 0
-    zlog = []
+    tcp_tr = [_tcp(s)]
 
     def measure(step):
         if on_step is not None:
@@ -438,51 +533,10 @@ def run_condition(src, R, P, robot, robot_key, seed, cond, *, max_steps=300, rep
                 fcon[b] = step
         tcp_tr.append(_tcp(s))
 
-    for step in range(max_steps):
-        if src.label == "teacher":                      # reference rung: the expert's native commands, no packet
-            if cond == "orthogonal_matched":
-                return dict(base, skipped="n/a_for_teacher")
-            s.step(teachers[cond].act())
-            measure(step)
-            if teachers[cond].done:
-                break
-            continue
-        if src.label == "bc":                           # context-conditioned direct-action reference controller
-            if step % replan == 0 or not s.executor.queue:
-                key = _key(seed, calls) + (500 if cond == "control_replay" else 0)
-                calls += 1
-                ch = src.chunk(s, "control" if cond == "control_replay" else cond, goal_off, key)
-                try:
-                    s.submit_chunk(ch, execute_prefix=replan)
-                except Exception as e:                  # noqa: BLE001 - recorded
-                    info.append(dict(chunk_rejected=repr(e)[:200]))
-            s.step(None)
-            measure(step)
-            if s.runtime.succeeded() or _body_pos(s, "cube")[2] < -0.05:
-                break
-            continue
-        if step % replan == 0 or s0.packet is None:
-            key = _key(seed, calls) + (500 if cond == "control_replay" else 0)
-            calls += 1
-            if cond == "orthogonal_matched":
-                pc = src.packet(s, "control", teachers.get("control"), goal_off, key)
-                pg = src.packet(s, match, teachers.get(match), goal_off, key)
-                nrm = float(np.linalg.norm(pg.z - pc.z))
-                r, inf = probe_orthogonal(P, pc.z, len(s.detectables), key, nrm)
-                p = deliver(pc, s, pc.z + r, "orthogonal_matched")
-                info.append(dict(norm=nrm, rel_norm=nrm / float(np.linalg.norm(pc.z)), **inf))
-            else:
-                p = src.packet(s, "control" if cond == "control_replay" else cond,
-                               teachers.get("control" if cond == "control_replay" else cond), goal_off, key)
-            if len(zlog) < 4:
-                zlog.append(float(np.linalg.norm(p.z)))
-            _recv(s0, p, s)
-        s.step(s0.tick(s, s.controller_version()))
-        for t in teachers.values():                     # shadow experts follow the REAL state (commands discarded)
-            t.act()
-        measure(step)
-        if s.runtime.succeeded() or _body_pos(s, "cube")[2] < -0.05:
-            break
+    route = EditRoute(src, cond, s0=s0, P=P, seed=seed, replan=replan, teachers=teachers, goal_off=goal_off,
+                      match=match, n_ent=lambda: len(s.detectables))
+    ep = _run_route(s, route, "pick_place", measure, max_steps)
+    step, calls, info, zlog = ep.steps - 1, route.calls, route.edit_log, route.zlog
     held = {b: any(b in v for v in s.truth().held_by.values()) for b in lift}
     fin = {b: _body_pos(s, b) for b in lift}
     xy = lambda a, b: float(np.linalg.norm((a - b)[:2]))
@@ -728,33 +782,9 @@ def run_arm_condition(src, R, P, pair, seed, cond, *, max_steps=400, replan=8, d
             rb_arm[b] = e
     tr = {e: [s.data.site_xpos[i].copy()] for e, i in sites.items()}
     fcon = {e: None for e in sites}
-    lift, info, calls, zlog = 0.0, [], 0, []
-    for step in range(max_steps):
-        if src.label == "teacher":
-            s.step(teachers[cond].act())
-        else:
-            if step % replan == 0 or s0.packet is None:
-                key = _key(seed, calls) + (500 if cond == "control_replay" else 0)
-                calls += 1
-                if cond in ("orthogonal_matched", "swap_slots"):
-                    pc = src.packet(s, "control", teachers.get("control"), None, key)
-                    if cond == "swap_slots":
-                        p = deliver(pc, s, np.ascontiguousarray(pc.z[:, ::-1]), "swap_slots")
-                    else:
-                        pg = src.packet(s, "swap_arm", teachers.get("swap_arm"), None, key)
-                        nrm = float(np.linalg.norm(pg.z - pc.z))
-                        r, inf = probe_orthogonal_dual(P, pc.z, len(s.detectables), key, nrm)
-                        p = deliver(pc, s, pc.z + r, "orthogonal_matched")
-                        info.append(dict(norm=nrm, rel_norm=nrm / float(np.linalg.norm(pc.z)), **inf))
-                else:
-                    c = "control" if cond == "control_replay" else cond
-                    p = src.packet(s, c, teachers.get(c), None, key)
-                if len(zlog) < 4:
-                    zlog.append(float(np.linalg.norm(p.z)))
-                _recv(s0, p, s)
-            s.step(s0.tick(s))
-            for t in teachers.values():
-                t.act()
+    lift = [0.0]
+
+    def measure(step):
         if on_step is not None:
             on_step(s, step)
         for e, i in sites.items():
@@ -765,11 +795,12 @@ def run_arm_condition(src, R, P, pair, seed, cond, *, max_steps=400, replan=8, d
             for x, y in ((b1, b2), (b2, b1)):
                 if x == bar and y in rb_arm and fcon[rb_arm[y]] is None:
                     fcon[rb_arm[y]] = step
-        lift = max(lift, float(s.data.xpos[bar][2] - bar0[2]))
-        if s.runtime.succeeded():
-            break
-        if src.label == "teacher" and teachers[cond].done:
-            break
+        lift[0] = max(lift[0], float(s.data.xpos[bar][2] - bar0[2]))
+
+    route = EditRoute(src, cond, s0=s0, P=P, seed=seed, replan=replan, teachers=teachers, goal_off=None,
+                      match="swap_arm", n_ent=lambda: len(s.detectables), dual=True)
+    ep = _run_route(s, route, f"assign_{arm}", measure, max_steps)
+    step, calls, info, zlog, lift = ep.steps - 1, route.calls, route.edit_log, route.zlog, lift[0]
     T = {e: np.array(v) for e, v in tr.items()}
     path = {e: float(np.linalg.norm(np.diff(v, axis=0), axis=1).sum()) for e, v in T.items()}
     disp = {e: float(np.linalg.norm(v - v[0], axis=1).max()) for e, v in T.items()}

@@ -135,8 +135,9 @@ def test_warp_env_adapter_with_fake_engine():
 
 
 def test_rollout_on_reset_infeasible_and_max_steps():
-    from rrp.harness.hooks import Feasibility, SessionRecord
-    from rrp.harness.rollout import rollout, summarize
+    from rrp.harness.eval.hooks import Feasibility, SessionRecord
+    from rrp.harness.eval.evaluate import summarize
+    from rrp.harness.rollout import rollout
     feas = Feasibility(lambda env: env.seed != 4)
     eps = rollout(lambda sd: make_env("mujoco/arm", task="pick_place", body="parm5_pg2", seed=sd), _Hold(),
                   get_task("pick_place"), [3, 4], batch=2, max_steps=3, hooks=[feas, SessionRecord()])
@@ -147,7 +148,7 @@ def test_rollout_on_reset_infeasible_and_max_steps():
 
 
 def test_matrix_reports_every_cell(tmp_path):
-    from rrp.harness.rollout import matrix
+    from rrp.harness.eval.evaluate import matrix
     rows = matrix(["teacher:pick_place", "teacher:waypoint_contact", "nope"], [("mujoco/arm", "parm5_pg2")],
                   ["pick_place", "waypoint_contact"], out=tmp_path / "m.jsonl")
     cell = {(r["policy"], r["task"]): r for r in rows}

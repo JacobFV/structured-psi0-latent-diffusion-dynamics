@@ -353,8 +353,8 @@ def _ep_key(seed, outcome, priv, pub, steps, calls, chunk_rej, cmd_rej, sim_time
 def test_arm_eval_loop_episodes(golden):
     """Recorded from harness.eval.runner.evaluate before S5 deleted it; the rollout port (BCPolicy + arm hooks) must
     reproduce outcomes (timeout x2, infeasible seed 50), chunk counts, rejections, events and sim time."""
-    from rrp.harness.hooks import arm_hooks
-    from rrp.harness.rollout import evaluate
+    from rrp.harness.eval.hooks import arm_hooks
+    from rrp.harness.eval.evaluate import evaluate
     from rrp.policies.bc import BCPolicy
     eps = evaluate(BCPolicy(_tiny_bc()), "mujoco/arm", "pick_place", "parm5_pg2", [3, 4, 50],
                    scene=lambda sd: {"n_distractors": sd % 3}, max_steps=6, batch=3, hooks=arm_hooks())
@@ -419,9 +419,9 @@ def test_arm_latent_eval_loop_episodes(golden):
     """Recorded from harness.eval.latent_eval.evaluate_latent before S5b deleted it (tiny flow + realizer + probe, seeds
     3 and infeasible 50, 10 ticks = 2 packets); the port (LatentStackPolicy + latent_hooks) must reproduce outcomes,
     packet/system-0 counts, probe sums, events, sim time and object displacement."""
-    from rrp.harness.hooks import latent_hooks
-    from rrp.harness.hooks import arm_scene
-    from rrp.harness.rollout import evaluate
+    from rrp.harness.eval.hooks import latent_hooks
+    from rrp.harness.eval.hooks import arm_scene
+    from rrp.harness.eval.evaluate import evaluate
     from rrp.policies.latent import LatentStackPolicy
     si, R, P = _tiny_latent()
     pol = LatentStackPolicy(si, R)
@@ -440,8 +440,8 @@ def test_dual_latent_eval_loop_episodes(golden):
     """Recorded from harness.eval.dual_latent_eval.evaluate_dual_latent before S5b deleted it (tiny dual stack, seeds 3
     and infeasible 2, 10 ticks, with and without the swap_slots edit); the port (LatentStackPolicy + dual_latent_hooks)
     must reproduce outcomes after settling, counts, per-slot and slot-swapped probe sums, events and sim time."""
-    from rrp.harness.hooks import dual_latent_hooks
-    from rrp.harness.rollout import evaluate
+    from rrp.harness.eval.hooks import dual_latent_hooks
+    from rrp.harness.eval.evaluate import evaluate
     from rrp.policies.latent import LatentStackPolicy
     for edit in (None, "swap_slots"):
         si, R, P = _tiny_latent(dual=True)
@@ -454,3 +454,61 @@ def test_dual_latent_eval_loop_episodes(golden):
                             e.metrics["system0_ticks"], _probe_key(e.metrics.get("probe_counts", {})),
                             _probe_key(e.metrics.get("probe_counts_slotswap", {}))], dtype=object) for e in eps]
         golden(f"loop.dual.latent.{edit}", _h(*rows))
+
+
+def _row_h(row) -> str:
+    """Digest of a result row dict (floats rounded to 5 decimals; key order irrelevant)."""
+    import json as _j
+
+    def rnd(x):
+        if isinstance(x, dict):
+            return {str(k): rnd(v) for k, v in x.items()}
+        if isinstance(x, (list, tuple)):
+            return [rnd(v) for v in x]
+        if isinstance(x, (float, np.floating)):
+            return round(float(x), 5)
+        if isinstance(x, np.generic):
+            return x.item()
+        return x
+    return hashlib.sha256(_j.dumps(rnd(row), sort_keys=True).encode()).hexdigest()[:24]
+
+
+def _edit_sources(dual=False):
+    import torch
+    from rrp.harness.eval import latent_semantic_edits as se
+    from rrp.policies.nets.semantic_latent import LatentConfig, TargetEncoder
+    si, R, P = _tiny_latent(dual=dual)
+    torch.manual_seed(4)
+    lcfg = LatentConfig(width=32, heads=2, ctx_layers=1, enc_layers=1, dz=8, horizon=6)
+    E = TargetEncoder(lcfg).eval()
+    res = dict(latent_space_version="ls-g", realizer_compat_version="rz-g")
+    srcs = dict(generated=se.GeneratedSource(si), teacher=se.TeacherSource(),
+                oracle=se.OracleSource(E, lcfg, res, "tiny", "cpu"))
+    if not dual:
+        srcs["bc"] = se.BCSource(_tiny_bc(), "bc:tiny")
+    return srcs, R, P
+
+
+def test_semantic_edit_loop_rows(golden):
+    """harness.eval.latent_semantic_edits.run_condition rows (every route x edit condition, seed 3, 9 ticks = 2 packets) must stay
+    byte-identical through the S5 port onto harness.rollout."""
+    from rrp.bodies.catalog import workbench_robots
+    from rrp.harness.eval import latent_semantic_edits as se
+    srcs, R, P = _edit_sources()
+    robot = workbench_robots()["parm5_pg2"]()
+    rows = []
+    for name, src in srcs.items():
+        for cond in se.PAIRED_CONDITIONS:
+            rows.append(_row_h(se.run_condition(src, R, P, robot, "parm5_pg2", 3, cond, max_steps=9)))
+    golden("loop.semantic_edits.arm", _h(np.asarray(rows, dtype=object)))
+
+
+def test_arm_assignment_edit_loop_rows(golden):
+    """run_arm_condition rows (dual assignment edits: every route x ARM_CONDITIONS, seed 3, 9 ticks), byte-identical."""
+    from rrp.harness.eval import latent_semantic_edits as se
+    srcs, R, P = _edit_sources(dual=True)
+    rows = []
+    for name, src in srcs.items():
+        for cond in se.ARM_CONDITIONS:
+            rows.append(_row_h(se.run_arm_condition(src, R, P, "parm5l_pg2__parm6_pg2", 3, cond, max_steps=9)))
+    golden("loop.semantic_edits.dual", _h(np.asarray(rows, dtype=object)))

@@ -74,8 +74,8 @@ class SeedStream:
 
 
 def _evaluate(policy, cfg, out_dir: Path, tag: str, ckpt: str):
-    from rrp.harness.hooks import arm_hooks, arm_scene
-    from rrp.harness.rollout import evaluate, summarize
+    from rrp.harness.eval.hooks import arm_hooks, arm_scene
+    from rrp.harness.eval.evaluate import evaluate, summarize
     from rrp.policies.bc import BCPolicy
     seeds = list(range(cfg["eval_seed_start"], cfg["eval_seed_start"] + cfg["eval_episodes"]))
     t0 = time.time()

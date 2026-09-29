@@ -250,8 +250,8 @@ def make_eval_policy(ckpt: Path, device, nfe=8, execute_prefix=8, image_mode="re
 def evaluate_main(a):
     import os
     os.environ.setdefault("MUJOCO_GL", "egl")
-    from rrp.harness.hooks import arm_hooks, arm_scene
-    from rrp.harness.rollout import evaluate, summarize
+    from rrp.harness.eval.hooks import arm_hooks, arm_scene
+    from rrp.harness.eval.evaluate import evaluate, summarize
     from rrp.policies.bc import BCPolicy
     from rrp.ops.workload import apply_cap
     from rrp.policies.nets.backbone import BackboneSpec, VLMBackbone, PSI0, FALLBACK

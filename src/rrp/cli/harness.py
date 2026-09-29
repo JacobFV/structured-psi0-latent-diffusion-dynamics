@@ -28,7 +28,7 @@ def _body(s: str):
 
 def default_hooks(env_id: str, task: str) -> list:
     """The per-family conventions of the former eval loops: arm feasibility + session record; dual adds settling."""
-    from rrp.harness import hooks as H
+    from rrp.harness.eval import hooks as H
     if env_id == "mujoco/arm" and task == "pick_place":
         return H.arm_hooks()
     if env_id == "mujoco/dual":
@@ -39,13 +39,13 @@ def default_hooks(env_id: str, task: str) -> list:
 
 
 def cmd_eval(a):
-    from rrp.harness.rollout import evaluate, summarize
+    from rrp.harness.eval.evaluate import evaluate, summarize
     from rrp.policies.base import make_policy
     p = _policy_arg(a.policy)
     pol = make_policy(p[0], **p[1]) if isinstance(p, tuple) else make_policy(p)
     scene = json.loads(a.scene) if a.scene else None
     if a.env == "mujoco/arm" and a.task == "pick_place" and scene is None:
-        from rrp.harness.hooks import arm_scene
+        from rrp.harness.eval.hooks import arm_scene
         scene = arm_scene
     eps = evaluate(pol, a.env, a.task, _body(a.body), _seeds(a.seeds), scene=scene, batch=a.batch,
                    max_seconds=a.max_seconds, max_steps=a.max_steps,
@@ -68,7 +68,7 @@ def format_matrix(rows: list[dict]) -> str:
 
 
 def cmd_matrix(a):
-    from rrp.harness.rollout import matrix
+    from rrp.harness.eval.evaluate import matrix
     envs = []
     for e in a.env:
         env_id, _, body = e.partition("=")

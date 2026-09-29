@@ -57,9 +57,10 @@ def _load(a):
 
 def _latent_eval(pol, R, P, dev, a, robot, seeds, *, make=None, paired=False):
     """rollout of system i + system 0 (LatentStackPolicy) with the latent eval hooks; rows appended to a.out."""
-    from rrp.harness.hooks import latent_hooks
-    from rrp.harness.hooks import arm_scene
-    from rrp.harness.rollout import evaluate, rollout
+    from rrp.harness.eval.hooks import latent_hooks
+    from rrp.harness.eval.hooks import arm_scene
+    from rrp.harness.eval.evaluate import evaluate
+    from rrp.harness.rollout import rollout
     from rrp.policies.latent import LatentStackPolicy
     from rrp.tasks.spec import get_task
     stack = LatentStackPolicy(pol, R, replan_ticks=a.replan, device=dev, name=a.method)
@@ -78,7 +79,7 @@ def _latent_eval(pol, R, P, dev, a, robot, seeds, *, make=None, paired=False):
 
 def cmd_eval(a):
     from rrp.harness.eval.latent_eval import probe_rates
-    from rrp.harness.rollout import summarize
+    from rrp.harness.eval.evaluate import summarize
     pol, R, P, dev = _load(a)
     summ = {}
     for robot in a.robots.split(","):
