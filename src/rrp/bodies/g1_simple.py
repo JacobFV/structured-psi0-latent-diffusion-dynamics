@@ -159,3 +159,14 @@ def asm_static() -> np.ndarray:
 
 def assembly_dims() -> dict[str, np.ndarray]:
     return {n: np.nonzero(DIM_ASM == i)[0] for i, n in enumerate(ASSEMBLIES)}
+
+
+def spec_hash() -> str:
+    """Stable identity of this command-space morphology (dims, joints, assemblies, relations); the G1 itself is simulated
+    inside SIMPLE, not compiled by rrp, so there is no full `RobotSpec` for it."""
+    import hashlib
+    h = hashlib.sha256()
+    for a in (node_static(), relation_matrix(), asm_static(), DIM_PARENT, SIMPLE_QPOS_INDEX):
+        h.update(np.ascontiguousarray(a).tobytes())
+    h.update("|".join(f"{n}:{j}" for n, j in zip(DIM_NAMES, JOINT_NAMES)).encode())
+    return "g1_simple:" + h.hexdigest()[:16]

@@ -58,14 +58,14 @@ repo; weights, datasets, venvs and runs stay under `~/work/ext`. psi1z never nee
 | `serve_ours --edit probe:*/random:*` | harness packet hook (`psi0_probe_edit`) | `--edit entity:<name>` = policy option `entity_override` (input channel, not a packet edit) |
 | `features.py`, `data.py`, `compat_psi.py` | `rrp/harness/data/psi0.py` | frozen-VLM feature cache, memmap, `CachedDataset`, replay labels, lerobot PyAV patch |
 | `train.py`, `fit_probes.py`, `openloop_cached.py` | `rrp/harness/train/psi0.py` | `stageA`, `direct`, `structured`, `probes`, `heldout` |
-| `replay_labels.py` | policy `psi0_replay` (recorded demo rows, source `teacher:demo`) on `simple` (MuJoCo-only mode) + label recorder hook | replaces the duplicate contact code of eval_loop/replay_labels |
+| `replay_labels.py` | policy `psi0_replay` (recorded rows, source `replay:<task>`) on `simple` (`split="train"`, `render=False`, `sim_mode="mujoco"`) + `LabelRecorder` hook in `rrp/harness/data/psi0.py` | one contact/palm logger (the worker's truth) instead of two; the P-005 diagnostic options (`--vx-override`, `--step-delay`, `--save-frames`) are dropped |
 | `prov.py` | deleted | `rrp.core.provenance` and `rrp.harness.eval.statistics` directly; upstream revisions in `SimpleEnv.spec.provenance` |
 | `openloop.py` | deleted | port of the upstream notebook for the released model (done, notes below); `load_launch_config` moves to `policies/psi0` |
 | `render_calib.py`, `render_sensitivity.py`, `isaac_smoke.py`, `debug_isaac_env.py`, `diag/{cl_audit,factor_test,render_walk,rtc_openloop,vx_oracle}.py` | deleted | finished diagnostics of P-002/P-005/P-007/P-009/P-012; `git show 6f5e2b3:src/psi1z/<name>` in psi1z |
 | `tests/test_core_invariants.py`, `tests/test_roadmap_24_26.py` | `tests/unit/test_psi0.py` | + golden digests of the nets; skips cleanly without torch |
 | `scripts/install_{simple_env,simple_deps,psi_env}.sh`, `upgrade_torch_psi.sh`, `build_cyclonedds.sh`, `download_*.sh`, `psienv.sh` | `scripts/psi0_ext.sh` | one script: `simple-env`, `psi-env`, `cyclonedds`, `fetch-base`, `fetch-ckpt RUN…`, `fetch-data TASK…` |
 | other scripts (`peer_queue`, `queue_host`, `stageA_v2*`, `step2_*`, `cl_parallel`, `*_retry`, `resume_after_lease`, `sync_to_peer`, `server_loadtest`, `prepush_check`, `factor_tests`, `features_task`, `rrp_ops`) | deleted | finished queues/one-offs; commands for reruns are `rrp train psi0 …` / `rrp eval …` |
-| SIMPLE tasks | `rrp/tasks`: `simple/<Task>` TaskSpecs (6 tasks) | judge = SIMPLE `_success`; gates carry the published rates and the step-1 status |
+| SIMPLE tasks | `rrp/tasks`: `simple/<Task>` TaskSpecs (6 tasks) | judge = SIMPLE `_success` from `env.truth()` (success_privileged; there is no public success estimator); the task table (released run, published L0/L1/L2, step-1 status) moves from `envs/simple.TASKS` into the task registry at S3 (tasks sit below envs) |
 | viz exporter `rrp/viz/export/psi0.py` | reads the P-appendix and this file | no psi1z checkout or crosswalk table any more |
 | pyproject | extra `rrp[psi0]` | psi-side Python deps; Isaac Sim + SIMPLE stay in their own venv (`scripts/psi0_ext.sh simple-env`), which imports only `rrp.envs.simple.{compat,worker}` |
 
@@ -77,6 +77,15 @@ Runtime layout: the harness and the Ψ₀ policies run in the psi venv (`~/work/
 Recorded numbers in this file and the P-appendix come from the psi1z code path (upstream HTTP server + SIMPLE agent in
 one process). The rrp path uses the same upstream agent, transforms and weights but is verified by unit/golden tests and
 a vibe-check only (D-140: no reproduction runs).
+
+## prep status (2026-09-29, before S3)
+Drafted on `track/psi0mig` as NEW files only (no existing `src/rrp` file touched): `bodies/g1_simple.py`,
+`policies/psi0/{__init__,nets}.py`, `envs/simple/{__init__,compat,worker}.py`, `harness/data/psi0.py`,
+`harness/train/psi0.py`, `scripts/psi0_ext.sh`, extra `psi0` in pyproject, `tests/unit/test_psi0.py` (nets byte-identical
+to psi1z; worker plumbing with a test double). After S3: adapt to the real `Env`/`Policy`/`TaskSpec`/`Act`, register
+`psi0_direct`/`psi0_structured`/`psi0_replay` and `simple` + `simple/<Task>`, wire `rrp train psi0`, point the viz
+exporter at the P-appendix + this note, delete docs/related_repos.md (glossary → architecture.md), README/STATUS/
+AGENTS/strategy pointers, D-entry for the step-2 result (labelled: structured route likely has an integration bug).
 
 ## resume
 - Checkpoints, features, labels (peer and host): `~/work/ext/runs/psi1z/{train,features,replay_labels}/`; closed-loop
@@ -303,7 +312,16 @@ Owner: psi0 agent. Repo `~/work/psi1z` (LOCAL ONLY, main). Third-party code, wei
 - step 2: XMovePick direct/stage A/structured trained; Handover stage A/structured trained, direct running; no
   closed-loop evaluation of our arms yet (peer GPU lease limit 1, occupied by the gate-0 diagnostics).
 
-### resume
+### prep status (2026-09-29, before S3)
+Drafted on `track/psi0mig` as NEW files only (no existing `src/rrp` file touched): `bodies/g1_simple.py`,
+`policies/psi0/{__init__,nets}.py`, `envs/simple/{__init__,compat,worker}.py`, `harness/data/psi0.py`,
+`harness/train/psi0.py`, `scripts/psi0_ext.sh`, extra `psi0` in pyproject, `tests/unit/test_psi0.py` (nets byte-identical
+to psi1z; worker plumbing with a test double). After S3: adapt to the real `Env`/`Policy`/`TaskSpec`/`Act`, register
+`psi0_direct`/`psi0_structured`/`psi0_replay` and `simple` + `simple/<Task>`, wire `rrp train psi0`, point the viz
+exporter at the P-appendix + this note, delete docs/related_repos.md (glossary → architecture.md), README/STATUS/
+AGENTS/strategy pointers, D-entry for the step-2 result (labelled: structured route likely has an integration bug).
+
+## resume
 1. Host queue: `~/work/ext/runs/psi1z/queue_host.log` (direct handover, then probe fits). Rerun
    `scripts/queue_host.sh` (idempotent: skips finished outputs; training resumes from last.pt).
 2. Peer eval: lease 1790515469_2faf45 (`cl/psi0rel_xmovepick_L0_torsofb`). Resumable: rerun the same

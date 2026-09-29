@@ -17,6 +17,9 @@ viz = ["pillow>=10", "imageio>=2.31", "imageio-ffmpeg>=0.4", "matplotlib>=3.8"]
 vlm = ["transformers>=4.45", "huggingface_hub>=0.25"]
 dev = ["pytest>=8", "pytest-timeout>=2.3", "jsonschema>=4.22"]
 computerworld = ["computerworld==0.2.0"]   # ComputerWorld env (rrp.envs.computerworld); not in `all`
+# Ψ₀ policies + training (psi venv, Python 3.11; SIMPLE/Isaac Sim 5.1 live in their own venv): scripts/psi0_ext.sh
+psi0 = ["torch>=2.5", "torchvision", "transformers==4.57.1", "qwen-vl-utils==0.0.14", "safetensors", "sentencepiece",
+        "pandas", "pillow", "huggingface_hub"]
 all = ["rrp[sim,ml,service,viz,dev]"]
 
 [project.scripts]
