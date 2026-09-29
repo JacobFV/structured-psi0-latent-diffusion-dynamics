@@ -233,10 +233,17 @@ class PackedChunkDataset:
             raise ValueError("zero_prev_action must be explicit (True/False), got None")
         self.zero_prev_action = bool(zero_prev_action)      # B-1 load-time flag (see meta['prev_action'] and PREV_ACTION_COL)
         self.rows = None
+        from rrp.features import kinfeat
+        self.kinfeat = kinfeat.enabled()            # D-137 ablation: load-time base-frame axis columns (idempotent)
+        self.id_to_key = {int(v): k for k, v in self.meta.get("robot_ids", {}).items()}
         if stride > 1:
             if self.meta["stride"] != 1:
                 raise ValueError("row subsampling needs a stride-1 pack")
             self.rows = np.nonzero(np.asarray(self.arr["t"]) % stride == 0)[0]
+
+    def kinfeat_nodes(self, nodes, robot_id, n_nodes):
+        from rrp.features import kinfeat
+        return kinfeat.apply_rows(np.array(nodes, copy=True), np.asarray(robot_id), self.id_to_key, np.asarray(n_nodes))
 
     def __len__(self):
         return self.meta["n"] if self.rows is None else len(self.rows)
@@ -269,6 +276,9 @@ class PackedChunkDataset:
             A["tok_morph"] = A["tok_morph"].copy()
             nrow = np.arange(A["tok_morph"].shape[1])[None, :] < A["n_nodes"][:, None]
             A["tok_morph"][..., PREV_ACTION_COL] *= ~nrow
+        if self.kinfeat:
+            A["node"] = self.kinfeat_nodes(A["node"], A["robot_id"], A["n_nodes"])
+            A["tok_morph"] = self.kinfeat_nodes(A["tok_morph"], A["robot_id"], A["n_nodes"])
         toks = {b: torch.from_numpy(A[f"tok_{b}"][:, :Tn[b]].astype(np.float32)) for b in BANKS}
         masks = {b: torch.from_numpy(np.arange(Tn[b])[None, :] < A[f"len_{b}"][:, None]) for b in BANKS}
         kinds = {b: torch.from_numpy(A[f"kind_{b}"][:, :Tn[b]].astype(np.int64)) for b in BANKS}

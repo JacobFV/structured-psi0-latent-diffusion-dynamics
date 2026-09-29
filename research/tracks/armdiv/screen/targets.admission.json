@@ -1,0 +1,247 @@
+{
+ "set": "targets",
+ "seeds": "1000000-1000019",
+ "rule": {
+  "feasible_rate_min": 0.75,
+  "success_given_feasible_min": 0.9
+ },
+ "teacher": "scripted_teacher v2 (privileged)",
+ "grasp_contact": "v2.1",
+ "n_keys": 30,
+ "n_built": 22,
+ "n_admitted": 12,
+ "keys": {
+  "gen3_pg2": {
+   "episodes": 20,
+   "feasible": 20,
+   "success": 20,
+   "feasible_rate": 1.0,
+   "success_rate": 1.0,
+   "admitted": true
+  },
+  "gen3_tf3": {
+   "episodes": 20,
+   "feasible": 20,
+   "success": 20,
+   "feasible_rate": 1.0,
+   "success_rate": 1.0,
+   "admitted": true
+  },
+  "iiwa14_pg2": {
+   "episodes": 20,
+   "feasible": 7,
+   "success": 7,
+   "feasible_rate": 0.35,
+   "success_rate": 1.0,
+   "admitted": false
+  },
+  "iiwa14_tf3": {
+   "episodes": 20,
+   "feasible": 7,
+   "success": 7,
+   "feasible_rate": 0.35,
+   "success_rate": 1.0,
+   "admitted": false
+  },
+  "rizon4_pg2": {
+   "episodes": 20,
+   "feasible": 20,
+   "success": 20,
+   "feasible_rate": 1.0,
+   "success_rate": 1.0,
+   "admitted": true
+  },
+  "rizon4_tf3": {
+   "episodes": 20,
+   "feasible": 20,
+   "success": 20,
+   "feasible_rate": 1.0,
+   "success_rate": 1.0,
+   "admitted": true
+  },
+  "pa2s900001_pg2": {
+   "episodes": 20,
+   "feasible": 0,
+   "success": 0,
+   "feasible_rate": 0.0,
+   "success_rate": 0.0,
+   "admitted": false
+  },
+  "pa2s900001_tf3": {
+   "episodes": 20,
+   "feasible": 0,
+   "success": 0,
+   "feasible_rate": 0.0,
+   "success_rate": 0.0,
+   "admitted": false
+  },
+  "pa2s900002_pg2": {
+   "episodes": 20,
+   "feasible": 16,
+   "success": 16,
+   "feasible_rate": 0.8,
+   "success_rate": 1.0,
+   "admitted": true
+  },
+  "pa2s900002_tf3": {
+   "episodes": 20,
+   "feasible": 16,
+   "success": 16,
+   "feasible_rate": 0.8,
+   "success_rate": 1.0,
+   "admitted": true
+  },
+  "pa2s900003_pg2": {
+   "episodes": 20,
+   "feasible": 20,
+   "success": 20,
+   "feasible_rate": 1.0,
+   "success_rate": 1.0,
+   "admitted": true
+  },
+  "pa2s900003_tf3": {
+   "episodes": 20,
+   "feasible": 20,
+   "success": 20,
+   "feasible_rate": 1.0,
+   "success_rate": 1.0,
+   "admitted": true
+  },
+  "pa2s900004_pg2": {
+   "episodes": 20,
+   "feasible": 20,
+   "success": 12,
+   "feasible_rate": 1.0,
+   "success_rate": 0.6,
+   "admitted": false
+  },
+  "pa2s900004_tf3": {
+   "episodes": 20,
+   "feasible": 20,
+   "success": 13,
+   "feasible_rate": 1.0,
+   "success_rate": 0.65,
+   "admitted": false
+  },
+  "pa2s900005_pg2": {
+   "episodes": 20,
+   "feasible": 20,
+   "success": 20,
+   "feasible_rate": 1.0,
+   "success_rate": 1.0,
+   "admitted": true
+  },
+  "pa2s900005_tf3": {
+   "episodes": 20,
+   "feasible": 20,
+   "success": 20,
+   "feasible_rate": 1.0,
+   "success_rate": 1.0,
+   "admitted": true
+  },
+  "pa2s900007_pg2": {
+   "episodes": 20,
+   "feasible": 8,
+   "success": 8,
+   "feasible_rate": 0.4,
+   "success_rate": 1.0,
+   "admitted": false
+  },
+  "pa2s900007_tf3": {
+   "episodes": 20,
+   "feasible": 8,
+   "success": 8,
+   "feasible_rate": 0.4,
+   "success_rate": 1.0,
+   "admitted": false
+  },
+  "pa2s900009_pg2": {
+   "episodes": 20,
+   "feasible": 13,
+   "success": 13,
+   "feasible_rate": 0.65,
+   "success_rate": 1.0,
+   "admitted": false
+  },
+  "pa2s900009_tf3": {
+   "episodes": 20,
+   "feasible": 12,
+   "success": 12,
+   "feasible_rate": 0.6,
+   "success_rate": 1.0,
+   "admitted": false
+  },
+  "pa2s900011_pg2": {
+   "episodes": 20,
+   "feasible": 20,
+   "success": 20,
+   "feasible_rate": 1.0,
+   "success_rate": 1.0,
+   "admitted": true
+  },
+  "pa2s900011_tf3": {
+   "episodes": 20,
+   "feasible": 20,
+   "success": 20,
+   "feasible_rate": 1.0,
+   "success_rate": 1.0,
+   "admitted": true
+  },
+  "pa2s900000_pg2": {
+   "episodes": 0,
+   "feasible": 0,
+   "success": 0,
+   "admitted": false,
+   "build_failed": "ArmGenerationError: pa2s900000: no tool-down home within tolerance"
+  },
+  "pa2s900000_tf3": {
+   "episodes": 0,
+   "feasible": 0,
+   "success": 0,
+   "admitted": false,
+   "build_failed": "ArmGenerationError: pa2s900000: no tool-down home within tolerance"
+  },
+  "pa2s900006_pg2": {
+   "episodes": 0,
+   "feasible": 0,
+   "success": 0,
+   "admitted": false,
+   "build_failed": "ArmGenerationError: pa2s900006: no tool-down home within tolerance"
+  },
+  "pa2s900006_tf3": {
+   "episodes": 0,
+   "feasible": 0,
+   "success": 0,
+   "admitted": false,
+   "build_failed": "ArmGenerationError: pa2s900006: no tool-down home within tolerance"
+  },
+  "pa2s900008_pg2": {
+   "episodes": 0,
+   "feasible": 0,
+   "success": 0,
+   "admitted": false,
+   "build_failed": "AttachmentError: no valid standoff; attempts: [{'standoff': 0.0, 'reason': \"physics validation failed: ['initial_penetration:0.0592']\"}, {'standoff': 0.015, 'reason': \"physics validation failed: ['initial_penetration:"
+  },
+  "pa2s900008_tf3": {
+   "episodes": 0,
+   "feasible": 0,
+   "success": 0,
+   "admitted": false,
+   "build_failed": "AttachmentError: no valid standoff; attempts: [{'standoff': 0.0, 'reason': \"physics validation failed: ['initial_penetration:0.0592']\"}, {'standoff': 0.015, 'reason': \"physics validation failed: ['initial_penetration:"
+  },
+  "pa2s900010_pg2": {
+   "episodes": 0,
+   "feasible": 0,
+   "success": 0,
+   "admitted": false,
+   "build_failed": "ArmGenerationError: pa2s900010: no tool-down home within tolerance"
+  },
+  "pa2s900010_tf3": {
+   "episodes": 0,
+   "feasible": 0,
+   "success": 0,
+   "admitted": false,
+   "build_failed": "ArmGenerationError: pa2s900010: no tool-down home within tolerance"
+  }
+ }
+}

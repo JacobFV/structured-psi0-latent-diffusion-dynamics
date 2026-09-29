@@ -1,0 +1,130 @@
+{
+ "split_id": "armdiv_v1",
+ "decision": "D-137",
+ "frozen_utc": "2026-09-29",
+ "task": "pick_place",
+ "basis": "teacher admission only on TARGET-DEMO seeds 1000000-1000019 (research/tracks/armdiv/screen/targets.admission.json); pre-declared selection rules of D-137; no sealed scene touched; no policy run on any target",
+ "source_train_robots": [
+  "parm5_pg2",
+  "parm5_tf3",
+  "parm5s_pg2",
+  "parm5l_tf3",
+  "parm6_pg2",
+  "parm6_tf3",
+  "parm7_pg2",
+  "parm7_tf3",
+  "panda_pg2",
+  "ur5e_pg2",
+  "ur5e_tf3",
+  "sawyer_pg2",
+  "sawyer_tf3",
+  "pa2s0_pg2",
+  "pa2s0_tf3",
+  "pa2s3_pg2",
+  "pa2s3_tf3",
+  "pa2s4_pg2",
+  "pa2s4_tf3",
+  "pa2s9_pg2",
+  "pa2s9_tf3",
+  "pa2s15_pg2",
+  "pa2s15_tf3",
+  "pa2s17_pg2",
+  "pa2s17_tf3",
+  "pa2s20_pg2",
+  "pa2s20_tf3",
+  "pa2s21_pg2",
+  "pa2s21_tf3",
+  "pa2s23_pg2",
+  "pa2s23_tf3",
+  "pa2s28_pg2",
+  "pa2s28_tf3",
+  "pa2s29_pg2",
+  "pa2s29_tf3",
+  "pa2s35_pg2",
+  "pa2s35_tf3",
+  "pa2s36_pg2",
+  "pa2s36_tf3",
+  "pa2s37_pg2",
+  "pa2s37_tf3",
+  "pa2s39_pg2",
+  "pa2s39_tf3",
+  "pa2s41_pg2",
+  "pa2s41_tf3",
+  "pa2s42_pg2",
+  "pa2s42_tf3",
+  "pa2s43_pg2",
+  "pa2s43_tf3",
+  "pa2s44_pg2",
+  "pa2s44_tf3",
+  "pa2s45_pg2",
+  "pa2s45_tf3",
+  "pa2s48_pg2",
+  "pa2s48_tf3",
+  "pa2s52_pg2",
+  "pa2s52_tf3",
+  "pa2s55_pg2",
+  "pa2s55_tf3",
+  "pa2s56_pg2",
+  "pa2s56_tf3",
+  "ur10e_pg2",
+  "ur10e_tf3",
+  "vx300s_pg2",
+  "vx300s_tf3"
+ ],
+ "targets": {
+  "primary_new_family": {
+   "robots": [
+    "gen3_pg2",
+    "rizon4_tf3"
+   ],
+   "rule": "first two admitted of the fallback order kinova_gen3, kuka_iiwa_14, flexiv_rizon4 (iiwa14 feasible 7/20 -> not admitted; rizon4 takes iiwa14's tf3 slot)",
+   "families": [
+    "menagerie/kinova",
+    "menagerie/flexiv"
+   ]
+  },
+  "secondary_procedural_new_arm": {
+   "robots": [
+    "pa2s900002_pg2",
+    "pa2s900003_tf3"
+   ],
+   "rule": "first two admitted sealed generator seeds (900000+) in order; first gets pg2, second tf3"
+  },
+  "tertiary_reused": {
+   "robots": [
+    "xarm7_pg2",
+    "xarm7_tf3"
+   ],
+   "label": "REUSED xarm7 test (sealed scenes already looked at in D-135 and D-136)"
+  }
+ },
+ "excluded_from_training": [
+  "gen3_*",
+  "rizon4_*",
+  "iiwa14_*",
+  "xarm7_*",
+  "lite6_*",
+  "fr3_*",
+  "panda_tf3",
+  "pa2s9*"
+ ],
+ "seed_ranges": {
+  "source_train_demos": [
+   0,
+   100000
+  ],
+  "target_adaptation_demos": [
+   1000000,
+   1100000
+  ],
+  "evaluation_scenes": [
+   2000000,
+   2100000
+  ],
+  "development_eval_scenes": [
+   3000000,
+   3100000
+  ]
+ },
+ "lineage_rule": "no target family (kinova, flexiv, ufactory) and no sealed generator seed may appear in source training"
+}

@@ -218,6 +218,12 @@ class Featurizer:
             asm_idx.append(self.asm_ids.index(asm) if asm in self.asm_ids else -1)
         self.node_static = np.stack(feats).astype(np.float32)
         self.node_joint_names = jnames
+        from rrp.features import kinfeat
+        self.kinfeat = kinfeat.enabled()
+        if self.kinfeat:         # D-137 ablation: base-frame joint axes at the home pose (static chain geometry)
+            arm = next((g for g in contract.command_groups if g.semantic != "gripper"), None)
+            arm_joints = [jaddr[amap[a].joint].name for a in arm.actuators] if arm else []
+            self.node_static[:, 2:5] = kinfeat.home_axes(m, jnames, self.meta, arm_joints, self.base_yaw)
         self.node_asm = np.array(asm_idx)
         self.qadr = np.array([m.jnt_qposadr[mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_JOINT, n)] for n in jnames])
         self.dadr = np.array([m.jnt_dofadr[mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_JOINT, n)] for n in jnames])
@@ -285,6 +291,8 @@ class Featurizer:
             jid = self.jids[i]
             anchor = self._to_base(d.xanchor[jid])
             axis = d.xaxis[jid].astype(np.float32)
+            if self.kinfeat:     # D-137 ablation: world axis rotated into the base frame like anchor/jp/jr
+                axis = (Rb @ axis).astype(np.float32)
             # previous-action input disabled (D-021): its train (teacher 1-step) vs test (own chunk,
             # 8-step delta) semantics differ and it invites copycat behaviour
             pa = 0.0

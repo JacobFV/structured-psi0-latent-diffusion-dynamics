@@ -1,5 +1,5 @@
 # armdiv: training-arm diversity for new-arm transfer (D-137)
-State: **planned** (2026-09-28). Owner decision after D-135/D-136: "yes, add more training-arm diversity".
+State: **implementing** (G0 done 2026-09-29; G1 next). Owner decision after D-135/D-136: "yes, add more training-arm diversity".
 Branch `track/armdiv`, worktree `~/work/rrp-wt/armdiv`, peer code dir `/dev/shm/rrp-brandonin/wt/armdiv` (never the
 shared repo). At most ONE concurrent peer GPU lease (humanoids have priority); CPU leases for simulation are separate
 and declared at >= 1.35 x measured peak. No host compute beyond unit tests, tiny smokes and orchestration.
@@ -116,5 +116,24 @@ Cheapest early signal: G2 BC in-distribution + the first semfix lineage at ~15-2
 - Mount yaw stays 0 (not tested for yaw); the kinfeat flag fixes the feature inconsistency but no yawed mount is trained.
 - 2 seeds per cell as in D-135/D-136.
 
+## G0 (verified 2026-09-29; unit suite 593 passed)
+- `rrp.bodies.generators_v2` (arm_gen_v2.0), `rrp.bodies.armdiv` (additive keys `pa2s<seed>_<g>`, `<gen3|iiwa14|rizon4|
+  ur10e|vx300s|wx250s|piper|arxl5|yam>_<g>` from `research/splits/armdiv_candidates_v1.json`), menagerie adapters in
+  `rrp.bodies.importers.ARMS_V2` (strip the asset gripper, auto flange site, continuous hinges get ±2π), `kinfeat`
+  (`rrp.features.kinfeat`; featurizer, PackedChunkDataset/LatentData load-time, checkpoint guard).
+- Tests: tests/unit/test_armdiv_bodies.py, tests/unit/test_kinfeat.py; legacy spec hashes unchanged.
+
+## Screens (teacher only; peer leases 1790665037_40b935 train, _32ce76 targets; rc 0)
+`PY scripts/armdiv_screen.py --set train|targets --out-dir artifacts/runs/armdiv/screen/<set> --workers 6`
+(RRP_GRASP_CONTACT=v2.1; cpu 6; peaks 10.0 G (throttled at 0.8 x 12 G) and 3.1 G). Copies:
+`research/tracks/armdiv/screen/{train,targets}.admission.json`.
+- train: 106/142 keys build (home-IK or attachment failures recorded), 56 admitted: 25 procedural seeds x 2 grippers,
+  rizon4, ur10e, vx300s x 2. wx250s 2-3/20 feasible, piper/arxl5/yam 0/20.
+- targets: gen3 20/20, rizon4 20/20, iiwa14 7/20 (not admitted); sealed procedural seeds admitted 900002 (16/20 feasible),
+  900003, 900005, 900011.
+- Frozen: pool `research/splits/armdiv_pool_v1.json` (65 keys), targets `research/splits/armdiv_v1.json`:
+  primary gen3_pg2, rizon4_tf3; secondary pa2s900002_pg2, pa2s900003_tf3; tertiary REUSED xarm7_pg2/tf3.
+
 ## Log
-- 2026-09-28: plan written (D-137). Next: G0.
+- 2026-09-28: plan written (D-137).
+- 2026-09-29: G0 code + screens; pool and targets frozen (D-137 addendum). Next: G1 collect/pack.

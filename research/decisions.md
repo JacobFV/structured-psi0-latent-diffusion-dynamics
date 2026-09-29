@@ -918,6 +918,26 @@ Owner decision after D-135/D-136 ("yes, add more training-arm diversity"). Plan:
   after a pre-registration commit.
 - Resources: ≤ 1 concurrent peer GPU lease (humanoids first), own peer code dir. Estimate ~45-60 h wall-clock.
 
+### D-137 addendum 2026-09-29: G0 code landed; admission screens; training pool and NEW sealed targets frozen (before any training)
+armdiv agent (research/tracks/armdiv.md "G0", "Screens"). Teacher-only screens on the peer (scripted teacher v2,
+grasp_v2.1): training candidates on source seeds 0-19, target candidates on target-demo seeds 1,000,000-1,000,019.
+- Procedural v2: 25 of 64 candidate seeds admitted (both grippers); the first 24 in order enter the pool. Menagerie
+  admitted: ur10e, vx300s, rizon4 (all 2x); not admitted: wx250s 2-3/20 feasible, piper/arx_l5/yam 0/20 (tool-down hover
+  heights unreachable). Pool `research/splits/armdiv_pool_v1.json`: 13 v6 keys + 48 procedural + ur10e/vx300s x 2 = 65 keys.
+- Targets `research/splits/armdiv_v1.json` by the pre-declared rules: primary gen3_pg2, rizon4_tf3 (iiwa14 feasible 7/20
+  -> not admitted; rizon4 is the declared fallback and is therefore excluded from training); secondary pa2s900002_pg2,
+  pa2s900003_tf3; tertiary xarm7_pg2/tf3 labelled REUSED. No sealed scene touched.
+- Menagerie fetch logged (lead OK): 9 more directories added to the pinned sparse checkout (SHA c96a32d unchanged) on
+  the host cache and the peer shared cache (`git sparse-checkout add`, additive). Continuous hinges of the new arms get
+  declared ranges ±2π (the IK clips to ranges; unlimited joints compiled to (0, 0)).
+- `kinfeat` flag ($RRP_KINFEAT=v1): base-frame joint axes at home in the static columns (runtime featurizer and
+  load-time for packed rows, idempotent, so one pack serves both arms of the ablation) + world-axis column in the
+  base frame; recorded as checkpoint version `kinfeat`, mismatches refused at load. The parent-offset vector of the plan
+  is NOT included (it would change the feature width).
+- New keys get 80 clean + 80 DART episodes (not 150 + 150) to keep the pack ≤ 25 GB (lead); v6 items unchanged.
+- Resource note: the training screen peaked at 10.0 GB against 12 GB declared and was throttled at memory.high (rc 0,
+  slower only); later CPU leases of this size declare ≥ 14 GB.
+
 ## D-138 2026-09-28 owner: humanoids become the top priority (W13); humanoid body pool, staged complex tasks and SEALED humanoid targets declared before any training
 Owner: "focus more on humanoids. we need to test lots of humanoid transfer" and "the humanoid tasks need to be more complex".
 Plan: research/tracks/humanoid.md; sealed split research/splits/humanoid_v1.json (committed before any W13 training).
