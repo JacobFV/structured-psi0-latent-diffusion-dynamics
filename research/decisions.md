@@ -900,3 +900,20 @@ Reading: joint adaptation makes the latent route adapt to the new arm (beats ref
 595 vs 842, gap −0.07 to −0.34; nosem −0.30 to −0.80). semfix >> nosem (595 vs 151). Claim #9 on a new arm therefore
 stays NOT supported (latent never beats BC), but D-135's "latent does not adapt" is superseded: it adapts when both
 modules are adapted, more slowly than BC. D-135 cells unchanged.
+
+## D-137 2026-09-28 owner: add training-arm diversity (armdiv track); new sealed arm targets declared before training
+Owner decision after D-135/D-136 ("yes, add more training-arm diversity"). Plan: research/tracks/armdiv.md.
+- Pool `armdiv_pool_v1` = the 13 v6 source keys + ~24 procedural arms from a new generator v2 (DoF 5-8, varied joint
+  axes incl. twisted links, link lengths/offsets, wrist classes, pedestal heights; lineage procedural_arm_family/v2) +
+  admissible additional menagerie arms (ur10e, rizon4, vx300s, wx250s, piper, arx_l5, yam), each × pg2/tf3, admitted by
+  a teacher-only screen. ufactory, franka near-duplicates and every target combination stay out of training.
+- NEW sealed targets (committed in research/splits/armdiv_v1.json before any training): primary kinova_gen3_pg2,
+  kuka_iiwa14_tf3 (fallback rizon4), secondary two procedural arms from sealed generator seeds; xarm7_pg2/tf3 kept only
+  as a clearly labelled REUSED tertiary test (looked at in D-135 and D-136).
+- Ablatable flag `kinfeat` (default off = legacy features): base-frame static joint axes and parent offsets at home,
+  and the world-axis column rotated into the base frame (the D-136 diagnosis).
+- Recipe: v6 (teacher v2, grasp_v2.1, phase DART, v6 BC recipe, arm_lineage_v6) on the expanded pool: BC 1701/1702,
+  latent semfix/nosem × 2 seeds, semfix-kinfeat × 2 seeds + BC kinfeat. The existing v6 lineages/BC are the no-diversity
+  comparison on the new targets. Sealed methods as D-135/D-136 (zero-shot, joint_adapt update-matched, BC SFT), run once
+  after a pre-registration commit.
+- Resources: ≤ 1 concurrent peer GPU lease (humanoids first), own peer code dir. Estimate ~45-60 h wall-clock.
