@@ -151,6 +151,7 @@ def main(argv=None):
         n0 = ist["obs_mean"].shape[0]
         ac.obs_norm.mean[:n0].copy_(ist["obs_mean"])
         ac.obs_norm.var[:n0].copy_(ist["obs_var"])
+        ac.obs_norm.count.fill_(1e6)          # keep the warm-start normaliser nearly frozen at first (as tracker_training)
         with torch.no_grad():
             ac.log_std.fill_(math.log(args.init_std))
     it0, lr = 0, args.lr
