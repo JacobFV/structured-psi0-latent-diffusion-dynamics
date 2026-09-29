@@ -87,6 +87,34 @@ negotiation both ways. Not yet run against real Isaac/SIMPLE or real checkpoints
 Open: `psi0_replay` in the POLICIES table (policies/base.py, S4
 owner), structured-arm diagnosis (D-141), psi1z archival (owner approval).
 
+## D-141 offline diagnosis of the structured arm's 0/20 (2026-09-29; no closed-loop runs)
+Raw: `artifacts/runs/psi0mig_diag/*.json` (the exact scripts are stored next to them as provenance). All on recorded data or
+cached held-out features (TabletopGraspMP val episodes 10, 16, 26, 36, 90, 91, 93, 94; 252 frames); peer leases, ≤ 7.6 GB.
+1. Recorded closed-loop queries (step2_tabletop_*/ep*_r0.npz): the first query has IDENTICAL inputs across arms (same scene,
+   60 stand steps). There the structured arm commands waist pitch ≈ 0.09–0.12 rad in all 10 configs (direct ≈ 0.015; demo
+   mean −0.001, p95 0.018) and keeps ≈ 0.09 for the whole episode; right shoulder pitch overshoots (−1.07 vs direct −0.72);
+   no right-hand contact.
+2. Offline, the structured route is ACCURATE: held-out chunk L1 (rows 0–23, rad) arm 0.0028 / hand 0.0042 with system-i
+   generated z, vs oracle R(E(a)) 0.0025 / 0.0035 and direct 0.043 / 0.045 (fp32 = bf16). But the generated z is unrelated
+   to its target (normalized MSE 1.04 per assembly, chance level).
+3. System 0 barely reads the packet: R with z = dataset mean, a random z, or another frame's E(a) loses only ~10% (arm
+   0.0158 vs 0.0144 normalized); another frame's STATE destroys it (0.43). R is 3.4x better than a ridge state→chunk
+   baseline: it is a proprioception-only policy (packet bypass; the P-020 locality test did not measure this).
+4. The state it relies on is out of distribution in closed loop: in all 12,226 training frames the last-commanded torso
+   state is constant (pitch −0.15 rad, roll/yaw 0, height 0.75), so the normalizer maps torso pitch to −1 always; the
+   upstream MP agent starts from [0, 0, 0, 0.75] and feeds back its own commands, which normalize to +1 (clipped).
+5. Confirmation: on the logged first-query states, R's waist-pitch command is 0.091 with that one dim at its closed-loop
+   value and −0.001 at the training value; the logged structured policy commanded 0.095. The direct arm (same state)
+   commanded 0.005: the Ψ₀ transformer tolerates the dim, the structured system 0 does not.
+Conclusion: an integration/design bug, not evidence about structure: (a) system 0 takes its plan from state instead of the
+packet, and (b) the closed-loop torso-command state is a value never seen in training (same class as P-005's XMovePick
+torso-state finding). Proposed (not run; needs a lead decision):
+- vibe-check without retraining (2–3 episodes, peer): feed every state dim that is CONSTANT in the training data at its
+  training value (a rule that uses training statistics only, applied to both arms), structured arm on TabletopGraspMP.
+- real fix (retraining, budgeted): mask training-constant state dims in DimEncoder/Realizer and force packet use in
+  stage A (state noise/dropout for R, or restrict R's state to its own assembly's proprio), then check with the item-3
+  test (R(z_mean) must be clearly worse than R(E(a))) before any closed loop.
+
 ## resume
 - Checkpoints, features, labels (peer and host): `~/work/ext/runs/psi1z/{train,features,replay_labels}/`; closed-loop
   outputs `~/work/ext/runs/psi1z/cl/`. Released checkpoints and data: `~/work/ext/psi_home` (`scripts/psi0_ext.sh fetch-*`).

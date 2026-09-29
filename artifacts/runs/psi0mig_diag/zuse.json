@@ -1,0 +1,40 @@
+{
+ "note": "L1 in NORMALIZED action units, rows 0..23, held-out TabletopGraspMP frames",
+ "R(E(a))": {
+  "hand": 0.0119,
+  "arm": 0.0144,
+  "waist": 0.038
+ },
+ "R(z_mean)": {
+  "hand": 0.0153,
+  "arm": 0.0158,
+  "waist": 0.0468
+ },
+ "R(E(a) of another frame)": {
+  "hand": 0.0168,
+  "arm": 0.0162,
+  "waist": 0.0509
+ },
+ "R(N(0,1) z)": {
+  "hand": 0.0155,
+  "arm": 0.0158,
+  "waist": 0.0477
+ },
+ "R(E(a)), state of another frame": {
+  "hand": 0.5581,
+  "arm": 0.4262,
+  "waist": 0.3355
+ },
+ "hold state (repeat state0 rows)": {
+  "hand": 0.1732,
+  "arm": 0.0926,
+  "waist": 0.6105
+ },
+ "ridge(state0) -> chunk": {
+  "hand": 0.0708,
+  "arm": 0.054,
+  "waist": 0.1543
+ },
+ "n_val_frames": 252,
+ "n_train_frames": 1440
+}

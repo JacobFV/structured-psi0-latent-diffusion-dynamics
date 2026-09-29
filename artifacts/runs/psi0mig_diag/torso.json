@@ -1,0 +1,17 @@
+{
+ "structured": {
+  "waist_pitch_cl": 0.0914,
+  "waist_pitch_trainconst": -0.001,
+  "r_shoulder_pitch_end_cl": -0.1826,
+  "r_shoulder_pitch_end_trainconst": -0.197,
+  "logged_policy_waist_pitch": 0.0951
+ },
+ "direct": {
+  "waist_pitch_cl": 0.0914,
+  "waist_pitch_trainconst": -0.001,
+  "r_shoulder_pitch_end_cl": -0.1826,
+  "r_shoulder_pitch_end_trainconst": -0.197,
+  "logged_policy_waist_pitch": 0.0046
+ },
+ "_provenance": "stdout of peer lease psi0mig_diag_torso, diag_psi0_torso.py (R applied to each arm's logged first-query states; the first states are identical across arms, so only logged_policy_* differs)"
+}

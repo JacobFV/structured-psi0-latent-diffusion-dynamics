@@ -1022,6 +1022,11 @@ open-loop replay of demonstrated actions through the stage-A encoder/realizer an
 then at most a tiny peer vibe-check. P-018 packet edits stay on hold until the structured arm works.
 Also recorded: probes on E(demonstrated chunk) beat the metadata-only control on hand distance (1.2 vs 2.5 cm), contact
 (78.0 vs 65.5%) and target position (2.0 vs 2.5 cm), not on active hand (67.4 vs 73.1%).
+- Addendum (offline diagnosis, research/tracks/psi0.md; artifacts/runs/psi0mig_diag): confirmed as an integration/design
+  bug. System 0 barely reads the packet (R(dataset-mean z) within ~10% of R(E(a)); generated z at chance vs its target)
+  and acts as a state-only policy; the closed-loop last-commanded torso-pitch state (+1 normalized) never occurs in
+  training (constant −0.15 rad -> −1), and flipping that one dim moves system 0's waist-pitch command 0.091 -> −0.001,
+  matching the logged 0.095. Fix options in the track note; nothing retrained or rerun.
 
 # Appendix P: psi1z decisions P-001..P-023 (folded 2026-09-29, D-140)
 
