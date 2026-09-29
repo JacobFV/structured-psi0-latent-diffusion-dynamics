@@ -31,7 +31,7 @@ from rrp.core.refs import EntityRef
 from rrp.envs.base import ActionSpace, BodyInfo, CapabilityError, EnvSpec, StepResult
 from rrp.tasks.spec import Judgement
 
-ADAPTER_VERSION = "cw_env.v1"
+ADAPTER_VERSION = "cw_env.v2"          # v2 (D-142): 24 words / 24 names for cw/open_type, cw/fill_form
 CONTROLLER_VERSION = "cw_pointer.v1"
 CW_VERSION = "0.2.0"          # pinned wheel; snapshots and pixels are only valid within one engine version
 MACHINE, ACTOR = "pc", "ada"
@@ -311,7 +311,9 @@ def _calc_judge(env, t, budget):
     return _running(t, budget, "no_result")
 
 
-WORDS = ["hello", "robot", "pointer", "world", "relational"]
+WORDS = ["hello", "robot", "pointer", "world", "relational", "window", "button", "cursor", "screen", "planet", "garden",
+         "silver", "rocket", "puzzle", "marble", "violet", "harbor", "lantern", "meadow", "copper", "falcon", "summit",
+         "canvas", "orbit"]         # 24 (was 5 before D-142): typing must copy characters from the instruction
 
 
 def _type_setup(env, rng):
@@ -356,7 +358,8 @@ def _drag_judge(env, t, budget, tol=6):
     return _running(t, budget, "off_target")
 
 
-NAMES = ["Ada", "Grace", "Alan", "Edsger", "Barbara"]
+NAMES = ["Ada", "Grace", "Alan", "Edsger", "Barbara", "Donald", "Frances", "John", "Margaret", "Linus", "Radia", "Ken",
+         "Dennis", "Hedy", "Claude", "Katherine", "Tim", "Sophie", "Niklaus", "Anita", "Guido", "Ivan", "Shafi", "Leslie"]
 
 
 def _form_setup(env, rng):

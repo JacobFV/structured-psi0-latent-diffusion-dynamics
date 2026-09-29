@@ -117,6 +117,8 @@ POLICIES: dict[str, str] = {
     "psi0_replay": "rrp.policies.psi0:make_replay",
     "oracle": "rrp.policies.oracle:make_oracle",                # privileged diagnostic, source oracle
     "pointer_oracle": "rrp.policies.pointer:make_pointer_oracle",  # ComputerWorld: teacher packets -> scripted system 0
+    "pointer_latent": "rrp.policies.pointer:make_pointer_latent",  # learned system i -> learned (or scripted eng) system 0
+    "pointer_bc": "rrp.policies.pointer:make_pointer_bc",
 }
 
 

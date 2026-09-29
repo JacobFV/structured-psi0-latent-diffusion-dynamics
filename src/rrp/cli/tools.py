@@ -24,6 +24,8 @@ TOOLS: dict[tuple[str, str], tuple[str, str]] = {
     ("train", "joint-adapt"): ("rrp.harness.train.joint_adapt:main", "joint system-i / system-0 adaptation (arm)"),
     ("train", "packet-ood"): ("rrp.harness.train.packet_ood_fit:main", "fit the packet OOD detector"),
     ("train", "vlm"): ("rrp.harness.train.vlm_train:main", "VLM policy training / evaluation"),
+    ("train", "pointer"): ("rrp.harness.train.pointer:main",
+                           "ComputerWorld pointer {split,collect,rep,flow,bc,probe,edit} (research/tracks/cworld.md)"),
     ("train", "synthetic"): ("rrp.harness.train.synthetic:main", "synthetic flow-SDE GRPO sanity check (not robot)"),
     # evaluation suites, audits and validators
     ("suite", "ladder"): ("rrp.harness.eval.ladder_cli:main", "arm closed-loop ladder (R0 teacher / R1 oracle / R2 generated)"),

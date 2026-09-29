@@ -37,3 +37,16 @@ def test_oracle_packets_drive_every_task(task):
     assert [e.outcome for e in eps] == ["success"] * 3
     assert all(e.metrics["packets"] > 0 and e.metrics["command_rejections"] == 0 for e in eps)
     assert all(s.stats.rejected == 0 for s in pol.s0)
+
+
+def test_split_declares_disjoint_seeds_and_heldout_variants():
+    import json
+    from rrp.harness.train.pointer import SPLIT_PATH, TASKS, heldout_goal
+    s = json.load(open(SPLIT_PATH))
+    lo, hi = s["seed_ranges"]["train"]
+    for t in TASKS:
+        ev = [x for k in ("dev", "sealed_id", "sealed_heldout") for x in s["seeds"][t].get(k, [])]
+        assert ev and not any(lo <= x < hi for x in ev) and len(ev) == len(set(ev))
+    assert heldout_goal("cw/open_type", {"text": "falcon"}, s) and not heldout_goal("cw/open_type", {"text": "robot"}, s)
+    assert heldout_goal("cw/calc_sum", {"a": 3, "b": 3}, s) and not heldout_goal("cw/calc_sum", {"a": 3, "b": 4}, s)
+    assert heldout_goal("cw/fill_form", {"name": "Hedy"}, s)

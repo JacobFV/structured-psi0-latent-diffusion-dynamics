@@ -202,6 +202,8 @@ class LatentStackPolicy:
             e = self.envs[i]
             cv = e.controller_version() if hasattr(e, "controller_version") else None
             out[i] = Act(self.s0[i].tick(e, cv), packet=emitted.get(i))
+            if hasattr(self.sys_i, "executed"):          # efference copy for system i (rrp.policies.pointer)
+                self.sys_i.executed(e, out[i].command)
             self.t[i] += 1
         return out
 
