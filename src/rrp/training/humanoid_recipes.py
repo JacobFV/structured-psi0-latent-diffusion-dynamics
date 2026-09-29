@@ -198,3 +198,8 @@ def _ft2(body, init, **kw):
 
 HUMANOID_RECIPES["t1_clock_gpu_v2ft2"] = _ft2("t1", "artifacts/runs/humanoid_p1b_t1_v2ft/actor_v2ftfinal.pt")
 HUMANOID_RECIPES["g1_clock_gpu_v4ft"] = _ft2("g1", "artifacts/runs/humanoid_p1b_g1_v4/actor_v4final.pt")
+
+HUMANOID_RECIPES["h1_steps_gpu_v2"] = _steps("h1", init_shared="artifacts/runs/humanoid_p1b_h1_r6/actor_r6final.pt", init_std=0.3,
+                                             iters=1500, clock_gate=True, alpha_schedule="fixed:0.5",
+                                             reward_set=_R5.replace("impact=-2.0", "impact=-4.0").replace("limit_margin=-4.0",
+                                                                                                          "limit_margin=-8.0"))
