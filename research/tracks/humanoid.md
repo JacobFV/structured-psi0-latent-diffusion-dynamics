@@ -185,3 +185,16 @@ adaptation `no_self_collision` (robot collides with ground only), identical on b
 
 ## Peer code dirs
 Long runs use `/dev/shm/rrp-brandonin/wt/humanoid` (never re-synced while they run); checks/dev use `.../wt/humanoid_dev`.
+
+## P1b log (per-body GPU trackers; C-MuJoCo gate numbers only count)
+- 00:20 all peer leases shed by the watchdog (`disk_below_reserve`: /dev/shm 10 GB free, other tracks' run dirs); lead archived
+  ~15 GB; t1/h1 r1 resumed from their iter-349/649 checkpoints (exact resume of weights/optimizer; env RNG restarts).
+- h1 r1 INTERIM (actor at ~iter 450, `humanoid_p1b_h1_r1/gate_interim`, C MuJoCo, full self-collision, 10 seeds): no-fall 1.0,
+  forward 0.89, slip 0.05, CoT 0.47, joint margin 0.068, robust-in-range ok; FAILS peak foot force 3.43 BW (> 3.0) and the
+  pure turn runs at 2.1x the command (turn_lin rewarded over-rotation; the sharp yaw kernel gave ~0); stand drifts -0.06 m/s,
+  so the waypoint teacher's halts never complete (waypoint 0/20, 0 falls, all timeouts). -> r2 fixes: yaw cap 1.0 + overshoot
+  penalty, stand_vel -3, natural terms (impact/power) on.
+- h1 r1 stopped at iter 690 (bounded decision: fine-tune rather than finish the flawed objective).
+- h1 r2 FAILED (iter 282: window fall 0.95, tracking error 1.86): trainer bug, the warm-start observation normaliser was
+  overwritten by the first batch (count 1e-4). Fixed (count 1e6, as tracker_training). r2b = fixed + alpha 0.5: running.
+- t1 r1 (running, iter ~600): window fall 4%, tracking error 0.53, turn ratio 1.8 (same over-rotation), slip 0.21.
