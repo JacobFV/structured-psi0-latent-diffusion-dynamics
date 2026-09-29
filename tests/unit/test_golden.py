@@ -168,3 +168,60 @@ def test_packet_wire_format(golden):
                           observation_id="o", graph_version=1, runtime_version=2, robot_spec_hash="h",
                           generated_at=1.0, valid_from=1.0, valid_until=1.8, source="learned", policy_version="v")
     golden("packet.bytes", hashlib.sha256(p.to_bytes()).hexdigest()[:24])
+
+
+def _saved_actor(tmp, name, obs_dim, act_dim, meta, seed):
+    import torch
+    from rrp.envs.tracker_nets import mlp
+    torch.manual_seed(seed)
+    net = mlp(obs_dim, (16, 8), act_dim)
+    with torch.no_grad():
+        net[-1].weight.mul_(30.0)          # saturating actions: exercises target_margin clipping
+    g = torch.Generator().manual_seed(seed)
+    st = dict(actor=net.state_dict(), obs_mean=torch.randn(obs_dim, generator=g) * 0.1,
+              obs_var=torch.rand(obs_dim, generator=g) + 0.5,
+              meta=dict(dict(obs_dim=obs_dim, act_dim=act_dim, hidden=[16, 8], control_dt=0.02, iter=7), **meta))
+    p = Path(tmp) / f"{name}.pt"
+    torch.save(st, str(p))
+    return p
+
+
+def _tracker_actions(tracker, env, extra=None, steps=12):
+    import mujoco
+    b, d = env.b, env.data[0]
+    if extra:
+        tracker.extra_fn = lambda data: np.linspace(-1, 1, extra).astype(np.float32) * float(data.time + 1)
+    out = []
+    for k in range(steps):
+        a = tracker.act(d, np.array([0.3, 0.0, 0.1]) * (k % 3 != 0))   # zero command every 3rd tick: clock_gate
+        out.append(a)
+        d.ctrl[:] = 0
+        mujoco.mj_step(b.model, d)
+    return out
+
+
+@pytest.mark.parametrize("case", ["plain", "options", "extra_obs", "morph_v1"])
+def test_learned_tracker_saved_actor_options(golden, tmp_path, case):
+    """W13 deployment options carried in saved actor files (clock_gate, target_margin, ref_ff, extra_obs_dim,
+    obs_format morph_v1) must keep producing the same actions (lead note, D-140 S4)."""
+    from rrp.bodies.legged import legged_body
+    from rrp.envs.legged_core import LeggedEnv
+    from rrp.envs.legged_tracker import LearnedTracker
+    body = "phum_3"                     # biped: ref_ff and clock_gate apply
+    env = LeggedEnv(lambda: legged_body(body), 1, 5)
+    b = env.b
+    extra = 5 if case == "extra_obs" else 0
+    if case == "morph_v1":
+        from rrp.envs.morph_obs import NS, OBS_DIM
+        meta = dict(obs_format="morph_v1", train_bodies=["phum_1"], clock_gate=True, target_margin=0.03, body="shared")
+        p = _saved_actor(tmp_path, case, OBS_DIM, NS, meta, 4)
+    else:
+        meta = dict(body=body)
+        if case == "options":
+            meta.update(clock_gate=True, target_margin=0.05, ref_ff=0.2, ref_ff_vmax=0.5)
+        if extra:
+            meta.update(extra_obs_dim=extra, clock_gate=True)
+        p = _saved_actor(tmp_path, case, b.obs_dim + extra, b.n, meta, 3)
+    tr = LearnedTracker(p, b, body)
+    golden(f"tracker.{case}.version", tr.version)
+    golden(f"tracker.{case}.actions", _h(np.stack(_tracker_actions(tr, env, extra)), decimals=6))
