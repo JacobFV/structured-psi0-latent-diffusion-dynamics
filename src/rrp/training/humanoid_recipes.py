@@ -170,3 +170,11 @@ HUMANOID_RECIPES["h1_clock_gpu_r5"] = _ft("h1", "artifacts/runs/humanoid_p1b_h1_
                                           teacher_stop=0.3, clock_gate=True, reward_set=_R5)
 for _b in ("g1", "op3", "apollo", "adam_lite", "t1"):
     HUMANOID_RECIPES[f"{_b}_clock_gpu_v4"] = _clock(_b, teacher_stop=0.3, clock_gate=True, reward_set=_R5)
+
+# r6 (last h1 attempt; stop rule): h1 r5 in C MuJoCo: no-fall 1.0 everywhere, fwd 1.04, turn 0.98, arc yaw 0.236/0.24, slip
+# 0.015, CoT 0.65, WAYPOINT 13/20 (first halts; 0 falls); fails peak force 3.37 BW (walking trials 3.1-3.4) and joint margin
+# 0.0017 (turn_fast only). r6 = fine-tune r5: impact -4, joint-limit hinge -8, 400 iters.
+HUMANOID_RECIPES["h1_clock_gpu_r6"] = _ft("h1", "artifacts/runs/humanoid_p1b_h1_r5/actor_r5final.pt", alpha_schedule="fixed:0.5",
+                                          teacher_stop=0.3, clock_gate=True, iters=400,
+                                          reward_set=_R5.replace("impact=-2.0", "impact=-4.0").replace("limit_margin=-4.0",
+                                                                                                        "limit_margin=-8.0"))

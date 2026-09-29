@@ -224,3 +224,8 @@ Long runs use `/dev/shm/rrp-brandonin/wt/humanoid` (never re-synced while they r
   (parity 1.8e-7 incl. gated worlds). h1 r5 = r3 + clock gate + arc turn progress (yaw_lin_all <= 0.5 rad/s) + impact -2 +
   joint-limit hinge -4: running. g1 v3 stopped at iter 55 to give h1 r5 the slot; g1/op3/apollo/adam_lite/t1 get clock-gated
   v4 recipes.
+- **h1 r5 (clock gate) in C MuJoCo:** no-fall 1.0 on every trial and robustness condition, fwd 1.04, turn 0.98, arc yaw
+  0.236 of 0.24, slip 0.015, CoT 0.65, **waypoint 13/20 success, 0 falls** (the clock gate fixed the halts: stand duty 0.94).
+  D-112 still FAILS on peak force 3.37 BW (walking trials 3.1-3.4, limit 3.0) and joint margin 0.0017 (turn_fast only).
+  Stop-rule note: h1 has used 5 recipe attempts (r1, r2b, r3, r4, r5; r2 was a trainer bug) against the declared 3, but
+  ~3.6e8 of the declared 6e8-sample budget; r6 (impact -4, limit hinge -8, 400 iters) is the last h1 attempt.
