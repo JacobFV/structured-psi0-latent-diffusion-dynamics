@@ -85,6 +85,7 @@ def build_args(argv=None):
     ap.add_argument("--no-push", action="store_true")
     ap.add_argument("--nconmax", type=int, default=48)
     ap.add_argument("--njmax", type=int, default=320)
+    ap.add_argument("--groups", default=None, help="morph_v1 shared tracker: JSON list of [[body keys], nworld] (or a recipe key)")
     a0, _ = ap.parse_known_args(argv)
     if a0.recipe:
         from rrp.training.humanoid_recipes import recipe_record
@@ -95,22 +96,27 @@ def build_args(argv=None):
     else:
         args = ap.parse_args(argv)
         args.recipe_record = None
-    if not args.body or not args.out:
-        raise SystemExit("--body and --out are required (here or in --recipe)")
+    if (not args.body and not args.groups) or not args.out:
+        raise SystemExit("--body (or --groups) and --out are required (here or in --recipe)")
     return args
 
 
 def main(argv=None):
     args = build_args(argv)
-    from rrp.envs.warp_tracker_env import ENV_VERSION, WarpTrackerEnv, window_metrics
+    from rrp.envs.warp_tracker_env import ENV_VERSION, MorphMultiEnv, WarpTrackerEnv, window_metrics
     import mujoco_warp
     torch.manual_seed(args.seed)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     dev = torch.device("cuda")
-    env = WarpTrackerEnv(args.body, args.nworld, seed=args.seed, reward_overrides=_kv(args.reward_set), episode_s=args.episode_s,
-                         push=not args.no_push, cmd_mix=args.cmd_mix, turn_frac=args.turn_frac, slow_frac=args.slow_frac,
-                         nconmax=args.nconmax, njmax=args.njmax)
+    ekw = dict(reward_overrides=_kv(args.reward_set), episode_s=args.episode_s, push=not args.no_push, cmd_mix=args.cmd_mix,
+               turn_frac=args.turn_frac, slow_frac=args.slow_frac, nconmax=args.nconmax, njmax=args.njmax)
+    groups = None
+    if args.groups:
+        groups = json.loads(args.groups) if isinstance(args.groups, str) else args.groups
+        env = MorphMultiEnv(groups, seed=args.seed, **ekw)
+    else:
+        env = WarpTrackerEnv(args.body, args.nworld, seed=args.seed, **ekw)
     N, H = env.N, args.horizon
     hidden = tuple(int(h) for h in args.hidden.split(","))
     ac = ActorCritic(env.obs_dim, env.priv_dim, env.nA, hidden=hidden, init_std=args.init_std).to(dev)
@@ -132,7 +138,7 @@ def main(argv=None):
         gate.alpha, gate.history = g.get("alpha", gate.alpha), g.get("history", [])
         weights = env.set_alpha(gate.alpha)
         print(f"resumed from iter {it0}", flush=True)
-    meta = dict(body=args.body, obs_dim=env.obs_dim, priv_dim=env.priv_dim, act_dim=env.nA, control_dt=env.dt, hidden=list(hidden),
+    meta = dict(body=args.body or "shared", obs_dim=env.obs_dim, priv_dim=env.priv_dim, act_dim=env.nA, control_dt=env.dt, hidden=list(hidden),
                 kind=env.b.kind, algo="ppo_asymmetric_actor_critic",
                 actor_inputs="public: imu gyro, imu gravity, command, joint pos/vel, last action, gait clock",
                 critic_inputs="public + privileged: base lin vel, height, foot contacts, friction, push flag + reward-schedule alpha",
@@ -145,6 +151,10 @@ def main(argv=None):
                 env_differences="per-world randomisation resampled at reset; see rrp.envs.warp_tracker_env docstring",
                 reward_options=env.cfg0.options(), recipe=args.recipe_record,
                 gpu=torch.cuda.get_device_name(0))
+    if groups is not None:
+        from rrp.envs.morph_obs import OBS_FORMAT
+        meta.update(obs_format=OBS_FORMAT, groups=groups, train_bodies=sorted({k for ks, _ in groups for k in ([ks] if isinstance(ks, str) else ks)}),
+                    shared=True, source_label="learned_tracker:shared_morph_v1 (trained with privileged critic)")
     (out / "meta.json").write_text(json.dumps(meta, indent=1, default=str))
     log_path = out / "train_log.jsonl"
     obs = env.observe()
@@ -235,6 +245,8 @@ def main(argv=None):
                    fall_rate=rec_env["falls"] / eps if eps else None, std=float(ac.log_std.exp().mean()), lr=lr, kl=kl_mean,
                    value_loss=float(vl.detach()), rollout_s=t_roll, iter_s=time.time() - t0, samples=int((it + 1) * H * N),
                    wall_s=time.time() - t_start, alpha=gate.alpha)
+        if rec_env.get("per_group"):
+            rec["per_group"] = rec_env["per_group"]
         if gate_rec:
             rec["gate"] = gate_rec
             rec["weights"] = weights

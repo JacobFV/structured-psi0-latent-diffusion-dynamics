@@ -30,11 +30,24 @@ def test_recipes_train_only_pool_bodies_and_valid_reward_keys():
     from rrp.training.humanoid_recipes import HUMANOID_RECIPES, recipe_record
     pool = set(SPLIT["source_train_bodies"])
     for name, rec in HUMANOID_RECIPES.items():
-        assert rec["body"] in pool, name
         opts, record = recipe_record(name)
+        bodies = [opts["body"]] if opts.get("body") else [k for ks, _ in opts["groups"] for k in ks]
+        for b in bodies:
+            assert b in pool or (b.startswith("phum_") and int(b[5:]) < 1_000_000), (name, b)
         assert len(record["sha256"]) == 64
         for kv in opts["reward_set"].split(","):
             assert hasattr(RewardCfg(), kv.split("=")[0]), (name, kv)
+
+
+def test_morph_slot_rules():
+    from rrp.envs.morph_obs import slot_of
+    assert slot_of("Left_Hip_Pitch") == ("left", "hip_pitch")
+    assert slot_of("r_ank_roll_act") == ("right", "ankle_roll")
+    assert slot_of("l_hip_ie") == ("left", "hip_yaw") and slot_of("r_ankle_pd") == ("right", "ankle_pitch")
+    assert slot_of("hipPitch_Right") == ("right", "hip_pitch") and slot_of("left_ankle") == ("left", "ankle_pitch")
+    assert slot_of("leg_right_4_joint_position") == ("right", "knee")
+    assert slot_of("LR_FAA") == ("right", "ankle_roll") and slot_of("LL_HR") == ("left", "hip_yaw")
+    assert slot_of("waist_yaw") is None
 
 
 def test_sealed_adapter_flagged():

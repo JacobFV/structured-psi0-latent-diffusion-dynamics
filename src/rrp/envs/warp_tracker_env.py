@@ -544,3 +544,110 @@ def window_metrics(recs: list) -> dict:
         out.update(track_rel_err=gm["track_err"] / max(gm["cmd"], 1e-9), slip_ratio=gm["slip"] / max(gm["speed"], 1e-9),
                    cot=gm["power"] / max(gm["cot_den"], 1e-9))
     return out
+
+
+class MorphMultiEnv:
+    """Several WarpTrackerEnv groups (a body, or K same-topology variants) behind one morphology-conditioned interface
+    (rrp.envs.morph_obs, obs format morph_v1, 14 canonical slot actions). Duck-types WarpTrackerEnv for the PPO trainer."""
+
+    def __init__(self, groups: list, seed: int = 1, obs_noise: float = 1.0, **env_kw):
+        from rrp.envs.morph_obs import CTX_DIM, DYN_DIM, NS, OBS_DIM, MorphSpec
+        self.envs, self.specs, self.slices, self.names = [], [], [], []
+        self.obs_noise = obs_noise
+        n0 = 0
+        for gi, (keys, nw) in enumerate(groups):
+            keys = [keys] if isinstance(keys, str) else list(keys)
+            e = WarpTrackerEnv(keys, int(nw), seed=seed + 101 * gi, obs_noise=0.0, **env_kw)
+            specs = []
+            for k in keys:
+                m, meta, b, _ = build_model(k, "v2", ADAPT)
+                specs.append(MorphSpec(m, b, meta))
+            s0 = specs[0]
+            for sp in specs[1:]:
+                if not (np.array_equal(sp.idx, s0.idx) and np.array_equal(sp.sign, s0.sign)):
+                    raise ValueError(f"group {keys[0]}: variants disagree on slot mapping / signs")
+            dev = e.dev
+            vid = np.arange(e.N) % e.K
+            g = dict(idx=torch.as_tensor(s0.idx[s0.present], device=dev), slots=torch.as_tensor(np.nonzero(s0.present)[0], device=dev),
+                     sign=torch.as_tensor(s0.sign[s0.present], device=dev, dtype=torch.float32),
+                     ctx=torch.as_tensor(np.stack([sp.ctx for sp in specs])[vid], device=dev),
+                     last=torch.zeros(e.N, NS, device=dev))
+            self.envs.append(e)
+            self.specs.append(g)
+            self.slices.append(slice(n0, n0 + e.N))
+            self.names.append(keys[0] if len(keys) == 1 else f"{keys[0]}+{len(keys) - 1}")
+            n0 += e.N
+        self.N, self.nA, self.nf = n0, NS, 2
+        self.obs_dim, self.dyn_dim, self.ctx_dim = OBS_DIM, DYN_DIM, CTX_DIM
+        self.priv_dim = self.envs[0].priv_dim
+        self.dev = self.envs[0].dev
+        self.gen = torch.Generator(device=self.dev).manual_seed(int(seed) + 7)
+        self.b = self.envs[0].b
+        self.meta = self.envs[0].meta
+        self.adaptations = self.envs[0].adaptations
+        self.cfg0 = self.envs[0].cfg0
+        self.dt = self.envs[0].dt
+        self._priv = [e.privileged(torch.zeros(e.N, e.nf, dtype=torch.bool, device=self.dev)) for e in self.envs]
+
+    def set_alpha(self, a: float):
+        w = None
+        for e in self.envs:
+            w = e.set_alpha(a)
+        self.alpha = a
+        return w
+
+    def _slot(self, g, x):
+        out = torch.zeros(x.shape[0], self.nA, device=self.dev)
+        out[:, g["slots"]] = g["sign"] * x[:, g["idx"]]
+        return out
+
+    def _group_obs(self, e, g):
+        from rrp.envs.morph_obs import NS
+        gyro = e.qvel[:, e.da + 3:e.da + 6] * 0.25
+        grav = e._gravity_body()
+        cmd = e.cmd * torch.as_tensor(CMD_SCALE, device=self.dev, dtype=torch.float32)
+        q = self._slot(g, e.qpos[:, e.pol_qadr] - e.q0)
+        qd = self._slot(g, e.qvel[:, e.pol_dadr] * 0.05)
+        if self.obs_noise:
+            pm = torch.zeros(NS, device=self.dev)
+            pm[g["slots"]] = 1.0
+            nz = lambda shape, s: torch.randn(shape, generator=self.gen, device=self.dev) * s * self.obs_noise
+            gyro = gyro + nz(gyro.shape, 0.05)
+            grav = grav + nz(grav.shape, 0.03)
+            q = q + nz(q.shape, 0.01) * pm
+            qd = qd + nz(qd.shape, 0.05) * pm
+        clock = torch.stack([torch.sin(2 * math.pi * e.phase), torch.cos(2 * math.pi * e.phase)], -1)
+        return torch.cat([gyro, grav, cmd, q, qd, g["last"], clock, g["ctx"]], -1)
+
+    def observe(self):
+        return torch.cat([self._group_obs(e, g) for e, g in zip(self.envs, self.specs)], 0)
+
+    def privileged(self, fc=None):
+        return torch.cat(self._priv, 0)
+
+    @torch.no_grad()
+    def step(self, actions: torch.Tensor):
+        R, D, T = [], [], []
+        for i, (e, g, sl) in enumerate(zip(self.envs, self.specs, self.slices)):
+            a_slot = actions[sl].clamp(-5, 5)
+            a = torch.zeros(e.N, e.nA, device=self.dev)
+            a[:, g["idx"]] = g["sign"] * a_slot[:, g["slots"]]
+            _, priv, r, d, tmo = e.step(a)
+            pm = torch.zeros(self.nA, device=self.dev)
+            pm[g["slots"]] = 1.0
+            g["last"] = torch.where(d[:, None], torch.zeros_like(a_slot), a_slot * pm)
+            self._priv[i] = priv
+            R.append(r)
+            D.append(d)
+            T.append(tmo)
+        return self.observe(), torch.cat(self._priv, 0), torch.cat(R), torch.cat(D), torch.cat(T)
+
+    def pop_stats(self) -> dict:
+        recs = [e.pop_stats() for e in self.envs]
+        out = dict(episodes=sum(r["episodes"] for r in recs), ret_sum=sum(r["ret_sum"] for r in recs),
+                   len_sum=sum(r["len_sum"] for r in recs), falls=sum(r["falls"] for r in recs),
+                   gm={k: sum(r["gm"][k] for r in recs) for k in recs[0]["gm"]},
+                   per_group={n: dict(episodes=r["episodes"], falls=r["falls"],
+                                      track_rel_err=(r["gm"]["track_err"] / r["gm"]["cmd"]) if r["gm"]["cmd"] else None)
+                              for n, r in zip(self.names, recs)})
+        return out

@@ -32,9 +32,16 @@ class LearnedTracker:
         from rrp.envs.tracker_nets import mlp
         st = torch.load(str(path), map_location="cpu", weights_only=False)
         meta = st["meta"]
-        if meta["body"] != body_key:
+        self.morph = None
+        if meta.get("obs_format") == "morph_v1":        # W13 shared morphology-conditioned tracker (rrp.envs.morph_obs)
+            from rrp.envs.morph_obs import OBS_DIM, NS, MorphSpec
+            if meta["obs_dim"] != OBS_DIM or meta["act_dim"] != NS:
+                raise TrackerMismatch("morph_v1 tracker dims do not match rrp.envs.morph_obs")
+            self.morph = MorphSpec(binding.model, binding, binding.meta)
+            self.transfer = body_key not in (meta.get("train_bodies") or [])   # evaluated on a body it never trained on
+        elif meta["body"] != body_key:
             raise TrackerMismatch(f"tracker trained for {meta['body']}, not {body_key}")
-        if meta["act_dim"] != binding.n or meta["obs_dim"] != binding.obs_dim:
+        elif meta["act_dim"] != binding.n or meta["obs_dim"] != binding.obs_dim:
             raise TrackerMismatch("tracker dims do not match body binding")
         self.meta = meta
         self.net = mlp(meta["obs_dim"], tuple(meta["hidden"]), meta["act_dim"])
@@ -52,11 +59,14 @@ class LearnedTracker:
         scene_limits = binding.meta.get("actuator_limits")
         import os
         self.limits_override = bool(os.environ.get("RRP_ALLOW_LIMITS_MISMATCH"))   # EVALUATION ONLY (transfer checks); recorded
-        if body_key in LIMITS_CHANGED and scene_limits and scene_limits != self.actuator_limits and not self.limits_override:
+        if self.morph is None and body_key in LIMITS_CHANGED and scene_limits and scene_limits != self.actuator_limits \
+                and not self.limits_override:
             raise TrackerMismatch(f"{body_key} tracker trained with actuator limits {self.actuator_limits}, scene uses "
                                   f"{scene_limits} (set RRP_ACTUATOR_LIMITS={self.actuator_limits} to run it)")
         cv = "" if self.contact_model == "contact_v1" else f":{self.contact_model}"
         self.version = f"learned_tracker:{body_key}:iter{meta.get('iter')}{cv}"
+        if self.morph is not None:
+            self.version = f"learned_tracker:shared_morph_v1{':transfer' if self.transfer else ''}:{body_key}:iter{meta.get('iter')}{cv}"
         import hashlib                                  # W8: exact actor identity (two v2 actors can share an iter)
         self.path = str(path)
         self.sha256 = hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -66,8 +76,24 @@ class LearnedTracker:
     def reset(self, phase: float = 0.0):
         self.last_a = np.zeros(self.b.n)
         self.phase = phase
+        if getattr(self, "morph", None) is not None:
+            from rrp.envs.morph_obs import NS
+            self.last_slot = np.zeros(NS)
+
+    def _act_morph(self, data, cmd) -> np.ndarray:
+        o = self.morph.obs(self.b, data, cmd, self.last_slot, self.phase)
+        x = np.clip((o - self.mean) / self.std, -5, 5).astype(np.float32)
+        with self.torch.no_grad():
+            a = self.net(self.torch.from_numpy(x)[None])[0].numpy().astype(np.float64)
+        a = np.clip(a, -5, 5) * self.morph_pm
+        self.last_slot = a
+        self.last_a = self.morph.from_slots(a)
+        self.phase = (self.phase + self.dt / self.b.period) % 1.0
+        return self.b.targets(self.last_a)
 
     def act(self, data, cmd) -> np.ndarray:
+        if self.morph is not None:
+            return self._act_morph(data, cmd)
         o = self.b.public_obs(data, cmd, self.last_a, self.phase)
         x = np.clip((o - self.mean) / self.std, -5, 5).astype(np.float32)
         with self.torch.no_grad():
@@ -79,12 +105,20 @@ class LearnedTracker:
         self.phase = (self.phase + self.dt / self.b.period) % 1.0
         return self.b.targets(a, ref)
 
+    @property
+    def morph_pm(self):
+        return self.morph.present.astype(np.float64)
+
     def state(self):
+        if self.morph is not None:
+            return dict(last_a=self.last_a.tolist(), last_slot=self.last_slot.tolist(), phase=self.phase)
         return dict(last_a=self.last_a.tolist(), phase=self.phase)
 
     def load(self, st):
         self.last_a = np.array(st["last_a"])
         self.phase = st["phase"]
+        if "last_slot" in st:
+            self.last_slot = np.array(st["last_slot"])
 
 
 class CPGTracker:
