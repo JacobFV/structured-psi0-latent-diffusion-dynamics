@@ -68,6 +68,8 @@ def _shared(**kw) -> dict:
 def recipe_record(name_or_path: str) -> tuple[dict, dict]:
     if name_or_path in HUMANOID_RECIPES:
         rec = HUMANOID_RECIPES[name_or_path]
+        if rec is None and name_or_path == "shared_morph_v2":
+            rec = _shared_v2()
         if rec is None and name_or_path == "shared_morph_v1":
             # profiling (2026-09-29): per-group overhead ~28 ms/tick regardless of worlds, physics unsaturated at 512 worlds ->
             # fewer, larger groups: 6 menagerie x 1024 + 2 phum topologies x 32 bodies x 2048 worlds
@@ -149,3 +151,11 @@ for _b in ("g1", "op3", "apollo", "adam_lite"):
 HUMANOID_RECIPES["h1_steps_gpu_v1"] = _steps("h1", init_shared="artifacts/runs/humanoid_p1b_h1_r4/actor.pt", init_std=0.3, iters=1500,
                                              reward_set=_TURN + _CLOCK.replace("limit_margin=-1.0", "limit_margin=-2.0") + _FIX,
                                              alpha_schedule="fixed:0.5")
+
+
+def _shared_v2():
+    return _shared(groups=[[[b], 1024] for b in SHARED_POOL_V1] + phum_groups(2, 32, 2048), minibatches=16, teacher_stop=0.3,
+                   reward_set=_TURN + _CLOCK.replace("limit_margin=-1.0", "limit_margin=-2.0") + _FIX + _STAND)
+
+
+HUMANOID_RECIPES["shared_morph_v2"] = None      # lazy: phum selection runs the generator
