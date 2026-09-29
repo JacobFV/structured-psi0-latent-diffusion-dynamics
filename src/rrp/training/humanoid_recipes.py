@@ -107,5 +107,5 @@ def _ft(body: str, init: str, **kw) -> dict:
     return d
 
 
-HUMANOID_RECIPES["h1_clock_gpu_r2"] = _ft("h1", "artifacts/runs/humanoid_p1b_h1_r1/actor.pt")
+HUMANOID_RECIPES["h1_clock_gpu_r2"] = _ft("h1", "artifacts/runs/humanoid_p1b_h1_r1/actor_iter649.pt")
 HUMANOID_RECIPES["t1_clock_gpu_r2"] = _ft("t1", "artifacts/runs/humanoid_p1b_t1_r1/actor.pt")
