@@ -10,7 +10,7 @@ friction scale sampled per worker). Policy inference + PPO updates in the parent
 default; `--device cuda` requires a GPU lease and calls rrp.ops.gpu.apply_cap()).
 Checkpoints every `--ckpt-every` iterations (resumable with --resume).
 
-usage: python -m rrp.harness.train.tracker_training --body go2 --iters 1500 --workers 11 --envs 64 --out runs/trackers/go2
+usage: python -m rrp.cli train tracker-cpu --body go2 --iters 1500 --workers 11 --envs 64 --out runs/trackers/go2
 """
 from __future__ import annotations
 
@@ -448,7 +448,3 @@ def parse_args(ap, argv=None):
         if a.ref_ff_vmax is None:
             a.ref_ff_vmax = 1e3                       # every speed
     return a
-
-
-if __name__ == "__main__":
-    main()

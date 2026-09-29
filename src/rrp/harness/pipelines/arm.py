@@ -7,19 +7,18 @@
 | train_rep | rrp.training.latent_train.train_representation (`rrp latent train-representation`) |
 | probes | rrp.training.latent_train.fit_probes_on_frozen (`rrp latent fit-probes`) |
 | train_flow, flow_ft | rrp.training.latent_train.train_latent_flow (`rrp latent train-flow`) |
-| refit | rrp.training.latent_train.refit_realizer (scripts/ladder_refit.py) |
-| dagger_collect | scripts/ladder.py --collect-dagger (scripts/ladder_dagger_collect.sh, EXPERT=bc [FLOW=] [GENCTX=]) |
-| eval_r1 | scripts/ladder.py --route oracle --oracle-expert bc (scripts/ladder_eval_orcbc.sh; ORACLE DIAGNOSTIC) |
-| eval_r2, heldout | scripts/ladder.py --route generated (chain r2eval) |
+| refit | rrp.training.latent_train.refit_realizer  |
+| dagger_collect | `rrp suite ladder --collect-dagger` (EXPERT=bc [FLOW=] [GENCTX=]) |
+| eval_r1 | `rrp suite ladder --route oracle --oracle-expert bc` (ORACLE DIAGNOSTIC) |
+| eval_r2, heldout | `rrp suite ladder --route generated` |
 | edits | `rrp latent semantic-edits --route generated` (chain semedit) |
 | grpo (D-126 #6) | rrp.training.latent_grpo.train_latent_grpo (latent) / rrp.training.adapt.run method grpo (BC), + anchors |
-| target_eval (D-126 #9/#10) | python -m rrp.harness.eval.target_eval (sealed protocol scenes; ladder routes generated / learned) |
+| target_eval (D-126 #9/#10) | python -m rrp.cli suite target (sealed protocol scenes; ladder routes generated / learned) |
 | target_adapt (D-126 #9/#10) | sft_latent_flow (flow_sft) / refit_realizer + episode_budget (system0_refit) / sft_packed (bc_sft) |
 | train_bc (D-126 #10) | rrp.training.behavior.train_policy with baseline_campaign.source_config (direct-action BC source) |
 
-scripts/ladder.py keeps its logic in the script's main(), so the evaluation stages run it as a subprocess with the
-same arguments (byte-identical behaviour; moving that main into rrp.evaluation is a follow-up). Outputs go to the
-stage's own out dir, never to the shared artifacts/runs/ladder_v1/.
+The evaluation stages run the ladder (rrp.harness.eval.ladder_cli) as a subprocess `rrp suite ladder ...`. Outputs go to
+the stage's own out dir, never to the shared artifacts/runs/ladder_v1/.
 """
 from __future__ import annotations
 
@@ -30,10 +29,10 @@ from pathlib import Path
 
 from rrp.harness.pipelines.base import apply_gate, StageContext, StageError, register
 
-LADDER = "scripts/ladder.py"
+LADDER = ["-m", "rrp.cli", "suite", "ladder"]
 TRAIN_BODIES = ("panda_pg2", "parm5_pg2", "parm5_tf3", "parm5l_tf3", "parm5s_pg2", "parm6_pg2", "parm6_tf3",
                 "parm7_pg2", "parm7_tf3", "sawyer_pg2", "sawyer_tf3", "ur5e_pg2", "ur5e_tf3")
-TARGET_BODIES = ("xarm7_pg2", "xarm7_tf3", "panda_tf3")      # never in the ladder (scripts/ladder.py refuses them)
+TARGET_BODIES = ("xarm7_pg2", "xarm7_tf3", "panda_tf3")      # never in the ladder (the ladder refuses them)
 DEFAULT_BC = ("artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt", "direct1701_u12000")
 SEMEDIT_CONDITIONS = "control,goal_shift,rebind_desc,irrelevant_distractor,orthogonal_matched,control_replay"
 
@@ -142,7 +141,7 @@ def flow_ft(ctx: StageContext) -> dict:
 
 @register("arm", "refit", source="learned")
 def refit(ctx: StageContext) -> dict:
-    """System-0 refit on the frozen encoder from DAgger buffers (scripts/ladder_refit.py)."""
+    """System-0 refit on the frozen encoder from DAgger buffers ."""
     from rrp.harness.train.latent_train import refit_realizer
     cfg = ctx.native
     res = refit_realizer(cfg, Path(cfg["out_dir"]))
@@ -197,7 +196,7 @@ def dagger_collect(ctx: StageContext) -> dict:
         if buf.exists() and (not genctx or Path(str(buf) + ".genctx.pkl").exists()):
             continue                                                      # as the script: existing buffers are kept
         route = ["--route", "generated", "--flow", flow] if flow else ["--route", "oracle"]
-        argv = [LADDER, *route, "--oracle-expert", "bc", "--policy", bc, "--policy-label", bcl,
+        argv = [*LADDER, *route, "--oracle-expert", "bc", "--policy", bc, "--policy-label", bcl,
                 "--prev-action", _prev_action(ctx), "--robot", r, "--n", str(n), "--seed-start", str(seed),
                 "--rep", rep, "--out", ctx.rc.out, "--tag", r]
         argv += [] if flow else ["--no-compare"]
@@ -247,7 +246,7 @@ def _ladder_eval(ctx: StageContext, route: str, robots: list[str], seed_starts: 
         for r in robots:
             tag = tag_fn(s)
             out = _rel(ctx, r)
-            argv = [LADDER, "--route", route, *extra, "--prev-action", _prev_action(ctx), "--robot", r, "--n", str(n),
+            argv = [*LADDER, "--route", route, *extra, "--prev-action", _prev_action(ctx), "--robot", r, "--n", str(n),
                     "--seed-start", str(s), "--tag", tag, "--out", out]
             jobs.append((argv, _threads_env(ctx, o.get("threads")), ctx.out / f"{r}_{tag}.log"))
             results.append((r, s, Path(out) / f"{route}_{tag}.summary.json", Path(out) / f"{route}_{tag}.jsonl"))
@@ -424,7 +423,7 @@ def grpo(ctx: StageContext) -> dict:
 
 @register("arm", "target_eval", source="learned")
 def target_eval(ctx: StageContext) -> dict:
-    """D-126 #9/#10: sealed-protocol evaluation (python -m rrp.harness.eval.target_eval) of the latent route (route
+    """D-126 #9/#10: sealed-protocol evaluation (python -m rrp.cli suite target) of the latent route (route
     generated: inputs flow + representation) or direct-action BC (route learned: inputs bc_policy) on options.robot.
     Target bodies need options.sealed_run: true; options.smoke: true runs a <= 3-episode plumbing check on a NON-target
     options.robot with dev seeds (labelled smoke)."""
@@ -433,7 +432,7 @@ def target_eval(ctx: StageContext) -> dict:
     robot, route = o["robot"], o.get("route", "generated")
     kind = o.get("kind", "zero_shot")
     tag = o.get("tag", kind.replace(":", "_"))
-    argv = ["-m", "rrp.harness.eval.target_eval", "--protocol", o.get("protocol", PROTOCOL), "--robot", robot,
+    argv = ["-m", "rrp.cli", "suite", "target", "--protocol", o.get("protocol", PROTOCOL), "--robot", robot,
             "--route", route, "--prev-action", _prev_action(ctx), "--kind", kind, "--tag", tag, "--out", ctx.rc.out]
     if route == "generated":
         argv += ["--flow", ctx.inp("flow"), "--rep", ctx.inp("representation")]

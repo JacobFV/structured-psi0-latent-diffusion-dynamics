@@ -78,18 +78,19 @@ and task-context edit suites.
 
 | goal | command |
 |---|---|
-| evaluate any policy × env × task | `rrp eval …` (JSONL rows + Wilson summary through `harness.rollout`) |
+| evaluate any policy × env × task | `rrp eval --policy NAME[=JSON] --env ENV --task TASK --body BODY --seeds a:b --out F` (`harness.eval.evaluate` over `harness.rollout`, family hooks from `harness.eval.hooks`; JSONL rows + Wilson summary) |
 | compatibility matrix (n/a with reasons) | `rrp matrix …` |
-| a whole lineage (collect → pack → Stage A → flow → DAgger / refit → eval → edits) | `rrp run-dag dags/<lineage>.yaml` (resumable JSON ledger; stage list: `python -m rrp.harness.pipelines stages`) |
+| a whole lineage (collect → pack → Stage A → flow → DAgger / refit → eval → edits) | `rrp run-dag dags/<lineage>.yaml` (resumable JSON ledger; stage list: `rrp stage list`) |
 | generate / pack arm data | `rrp data generate --config configs/data/…`; `rrp data pack --config … --out artifacts/packed/<name>` |
 | arm Stage A / flow / probes | `rrp latent train-representation --config …`; `rrp latent train-flow --config …`; `rrp latent fit-probes …` |
-| arm ladder evaluation (R0/R1/R2) | `python scripts/ladder.py --route {teacher,oracle,generated} --robot panda_pg2 --n 30 --out …` |
+| arm ladder evaluation (R0/R1/R2) | `rrp suite ladder --route {teacher,oracle,generated} --robot panda_pg2 --n 30 --out …` |
 | arm task-context edits | `rrp latent semantic-edits --route {teacher,oracle,generated,bc} …` |
-| legged trackers (GPU PPO) | `python -m rrp.harness.train.warp_tracker_ppo --recipe <recipe> --out …` |
+| evaluation suites / audits | `rrp suite {ladder,legged,robustness,target,tracker-validation,privileged-audit,…} …` |
+| legged trackers (GPU PPO) | `rrp train tracker-warp --recipe <recipe> --out …` |
 | Ψ₀ fine-tunes | `rrp train psi0 …` (SIMPLE eval needs the Isaac venv: `scripts/psi0_ext.sh`) |
 | labelled video | `scripts/render_episode.py`, `scripts/render_legged_episode.py`, `scripts/render_dual_episode.py` |
 | demo page | `scripts/demo/refresh.sh` (builds `docs/demo/` from raw results) |
-| visualization room | `cd viz/room && npm run snapshot` (exporter `python -m rrp.viz.export`) |
+| visualization room | `cd viz/room && npm run snapshot` (exporter `rrp viz export`) |
 | workbench UI (loopback) | `rrp workbench --port 8765` |
 
 ## quickstart
@@ -127,9 +128,10 @@ src/rrp/          layers import only downward (tests/unit/test_layering.py)
   policies/       base.py (Policy, negotiate, make_policy); features/ (featurizers: the only definition of what a
                   policy may see); nets/; bc, latent, system0, legged, oracle, packets; teachers/ (scripted_teacher);
                   psi0/
-  harness/        rollout.py (the one episode loop + hooks), eval/, train/, data/, pipelines/, dag.py (run-dag)
+  harness/        rollout.py (the one episode loop), eval/ (evaluate.py: evaluate / matrix; hooks.py; suites), train/,
+                  data/, pipelines/, dag.py (run-dag)
   viz/            room exporter, recorder/replay, workbench service
-  cli/            the `rrp` command
+  cli/            the `rrp` command (tools.py: `rrp <group> <tool>` for data / train / suite / stage / viz tools)
 ui/               React + TypeScript workbench
 viz/room/         visualization room (exporter output in viz/data)
 configs/, dags/   run configs and lineage DAGs (provenance of every run)

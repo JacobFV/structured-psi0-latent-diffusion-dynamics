@@ -119,7 +119,7 @@ def run_leased(argv: list[str], *, cpu: float, memory_bytes: int, label: str, gp
         env.update(SOFTWARE_RENDER_ENV)
     else:
         env["RRP_GPU_MEMORY_BYTES"] = str(int(gpu_memory_bytes))
-    child = [sys.executable, "-m", "rrp.ops.child", "--lease", lease.lease_id, "--log", str(log),
+    child = [sys.executable, "-m", "rrp.cli", "ops", "child", "--lease", lease.lease_id, "--log", str(log),
              "--max-seconds", str(max_seconds), "--", *argv]
     env["PYTHONPATH"] = str(repo_root() / "src") + (":" + os.environ["PYTHONPATH"] if os.environ.get("PYTHONPATH") else "")
     unit = be.start_job(lease.lease_id, child, cwd=str(cwd or repo_root()), env=env,

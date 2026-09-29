@@ -10,7 +10,7 @@ DART: with per-episode sigma, EXECUTED targets = expert target + N(0, sigma * ac
 system 0 sees off-nominal states with corrective labels. The teacher's speed/turn gains are randomized per episode
 (declared diversity; still the scripted teacher).
 
-usage: python -m rrp.harness.data.legged_latent_collect --body go2 --seeds 0-399 --out artifacts/datasets/legged_latent_v1
+usage: python -m rrp.cli data legged-latent-collect --body go2 --seeds 0-399 --out artifacts/datasets/legged_latent_v1
 """
 from __future__ import annotations
 
@@ -180,7 +180,3 @@ def main(argv=None):
                    filename=f"{shard}.manifest.json")
     n_ok = sum(m["status"] == "success" for m in metas)
     print(json.dumps(dict(body=a.body, shard=shard, n=len(metas), success=n_ok, ticks=int(len(cat["a"])))))
-
-
-if __name__ == "__main__":
-    main()

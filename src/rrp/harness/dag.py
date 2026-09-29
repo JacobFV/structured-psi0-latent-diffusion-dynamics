@@ -21,7 +21,7 @@ way, so axis-dependent flags belong in the point nodes' own config). Point nodes
 positive control, the teacher reference) that must not be duplicated per matrix point.
 
 Execution: every node is ONE leased job through the existing broker: `rrp ops run --detach` on the host or
-scripts/peer_run.sh --detach on the peer (RRP_PEER_REPO), running `python -m rrp.harness.pipelines run --config-b64 ...`.
+scripts/peer_run.sh --detach on the peer (RRP_PEER_REPO), running `python -m rrp.cli stage run --config-b64 ...`.
 A node is completed iff its job exit code is 0 AND <out>/pipeline_manifest.json carries the node's config_hash.
 Retries are bounded (node `retries`, default 0 as D-061); broker refusals for capacity are waited for (bounded by
 admission_timeout_s) and are not attempts. State lives in ONE JSON ledger per DAG (atomic writes, lock file); a rerun
@@ -429,7 +429,7 @@ class OpsRunner:
 
     def command(self, node: PlannedNode, python: str) -> list[str]:
         b64 = base64.b64encode(json.dumps(node.rc.model_dump(mode="json")).encode()).decode()
-        return [python, "-m", "rrp.harness.pipelines", "run", "--config-b64", b64]
+        return [python, "-m", "rrp.cli", "stage", "run", "--config-b64", b64]
 
     def launch_argv(self, node: PlannedNode) -> tuple[list[str], dict]:
         ops = ["--label", node.label, *node.resources.ops_args(), "--detach", "--"]

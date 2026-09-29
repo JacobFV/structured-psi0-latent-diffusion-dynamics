@@ -55,7 +55,3 @@ def main(argv=None):
     except Exception as e:  # noqa: BLE001
         print(f"[rrp.child] release failed: {e}", flush=True)
     return 0 if res.returncode == 0 else 1
-
-
-if __name__ == "__main__":
-    sys.exit(main())

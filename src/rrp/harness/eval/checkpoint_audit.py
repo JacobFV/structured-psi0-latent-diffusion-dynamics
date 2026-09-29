@@ -13,7 +13,7 @@ Training-resume states, trackers and probes are loaded with torch.load only (no 
 Relative paths inside checkpoints (e.g. a flow's `representation`) resolve against the checkout that holds the file
 (the directory above its `artifacts/`).
 
-    python -m rrp.harness.eval.checkpoint_audit [--per-kind N] [--out report.json] ROOT [ROOT ...]
+    python -m rrp.cli suite checkpoint-audit [--per-kind N] [--out report.json] ROOT [ROOT ...]
 """
 from __future__ import annotations
 
@@ -164,6 +164,7 @@ def audit(roots, per_kind: int | None = None) -> dict:
 
 
 def main(argv=None):
+    os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")         # audit on CPU (host)
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("roots", nargs="+")
     ap.add_argument("--per-kind", type=int, default=None, help="load at most N checkpoints of each kind")
@@ -179,8 +180,3 @@ def main(argv=None):
         if "error" in r:
             print("ERROR", r["path"], r["error"], file=sys.stderr)
     return 1 if rep["n_errors"] else 0
-
-
-if __name__ == "__main__":
-    os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
-    sys.exit(main())

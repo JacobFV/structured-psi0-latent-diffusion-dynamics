@@ -324,7 +324,7 @@ def evaluate_main(a):
     print(json.dumps(summary, default=str)[:3000])
 
 
-def main():
+def main(argv=None):
     import argparse
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -341,7 +341,7 @@ def main():
     e.add_argument("--batch", type=int, default=16)
     e.add_argument("--image-modes", default="real,shuffled,blank")
     e.add_argument("--out", required=True)
-    a = ap.parse_args()
+    a = ap.parse_args(argv)
     if a.cmd == "train":
         cfg = json.loads(Path(a.config).read_text())
         d = Path(cfg["out_dir"])
@@ -350,7 +350,3 @@ def main():
         train(cfg, d)
     else:
         evaluate_main(a)
-
-
-if __name__ == "__main__":
-    main()

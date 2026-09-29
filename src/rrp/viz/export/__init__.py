@@ -1,4 +1,4 @@
-"""Room data exporter (viz/CONTRACT.md, D-131): `python -m rrp.viz.export [--live] --out viz/data [--only name]`.
+"""Room data exporter (viz/CONTRACT.md, D-131): `python -m rrp.cli viz export [--live] --out viz/data [--only name]`.
 
 Writes one JSON document per API path (overview, live, dags, results, edits, training, robustness, physics, psi0,
 knowledge, replays, videos) plus training/<id>.json series and _manifest.json (timings, sizes, row counts, errors).
@@ -192,7 +192,7 @@ def _run(cfg: Config, only: list[str] | None = None, sync_psi1z: bool = False) -
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(prog="python -m rrp.viz.export", description=__doc__.split("\n\n")[0])
+    ap = argparse.ArgumentParser(prog="rrp viz export", description=__doc__.split("\n\n")[0])
     ap.add_argument("--out", default="viz/data", help="output directory (gitignored)")
     ap.add_argument("--repo", default=".", help="repository checkout to read (default: cwd)")
     ap.add_argument("--live", action="store_true", help="read the peer (one bounded ssh call); otherwise never touch it")

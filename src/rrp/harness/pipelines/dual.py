@@ -2,7 +2,7 @@
 
 | stage | code |
 |---|---|
-| collect | rrp.data.collect_dual (`python -m rrp.harness.data.collect_dual --config`), then the dual dataset gate |
+| collect | rrp.data.collect_dual (`python -m rrp.cli data collect-dual --config`), then the dual dataset gate |
 |         | (rrp.evaluation.gates.check_dual_dataset; needs `record_quality: true` in the data config, else "incomplete") |
 | pack | rrp.data.dual_latent.pack_dual (= `rrp latent pack-dual`) |
 | train_rep | rrp.training.latent_train.train_representation on the multi-assembly pack (arm stage) |
@@ -44,7 +44,7 @@ def collect(ctx: StageContext) -> dict:
     cfg = ctx.native
     p = ctx.out / "data_config.json"
     p.write_text(json.dumps(cfg, indent=1))
-    argv = ["-m", "rrp.harness.data.collect_dual", "--config", str(p)]
+    argv = ["-m", "rrp.cli", "data", "collect-dual", "--config", str(p)]
     if ctx.opts.get("workers"):
         argv += ["--workers", str(ctx.opts["workers"])]
     ctx.run(argv)                     # grasp contact version: the generic stage option `grasp_contact` (pipelines.base)

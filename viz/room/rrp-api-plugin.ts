@@ -1,7 +1,7 @@
 /**
  * Read-only local data API for the rrp visualization room (viz/CONTRACT.md).
  *
- * - `/api/<doc>` runs the exporter (`python -m rrp.viz.export --only <doc> [--live] --out viz/data`) at most every
+ * - `/api/<doc>` runs the exporter (`python -m rrp.cli viz export --only <doc> [--live] --out viz/data`) at most every
  *   15 s (live docs: 10 s), one export at a time, niced, and serves `viz/data/<doc>.json`.
  *   If an export fails but an older file exists, that file is served with `X-RRP-Export-Error` and its mtime, so the
  *   UI can say it is stale. Nothing is invented: a missing document is a 503 naming the path that was expected.
@@ -73,7 +73,7 @@ function serial<T>(job: () => Promise<T>): Promise<T> {
 
 function helper(p: Paths, args: string[], timeout = EXPORT_TIMEOUT_MS): Promise<string> {
   return new Promise((ok, fail) => {
-    execFile('nice', ['-n', '10', p.python, '-m', 'rrp.viz.api', ...args], {
+    execFile('nice', ['-n', '10', p.python, '-m', 'rrp.cli', 'viz', 'api', ...args], {
       cwd: p.root,
       timeout,
       maxBuffer: 1 << 20,
@@ -85,7 +85,7 @@ function helper(p: Paths, args: string[], timeout = EXPORT_TIMEOUT_MS): Promise<
   });
 }
 
-/** `python -m rrp.viz.api get <doc> [--live] --max-age S` re-exports only when older than S and prints the file path. */
+/** `python -m rrp.cli viz api get <doc> [--live] --max-age S` re-exports only when older than S and prints the file path. */
 async function runExport(p: Paths, doc: string): Promise<void> {
   const live = LIVE_DOCS.has(doc);
   const args = ['get', doc, '--max-age', String((live ? LIVE_TTL_MS : TTL_MS) / 1000)];

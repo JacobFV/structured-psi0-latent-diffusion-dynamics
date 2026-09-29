@@ -1,6 +1,6 @@
 """PEER-ONLY replay recorder for the live visualization room (viz/CONTRACT.md "replay file", D-131).
 
-    python -m rrp.viz.record --spec viz/specs/<name>.yaml --out <dir> [--only ID[,ID]] [--shard i/n] [--list]
+    python -m rrp.cli viz record --spec viz/specs/<name>.yaml --out <dir> [--only ID[,ID]] [--shard i/n] [--list]
 
 Each spec entry re-runs chosen episodes through EXACTLY the harness that produced a recorded result (same module
 functions, seeds, batching, checkpoints, physics env vars, thread counts, CPU device), and records them by OBSERVING
@@ -1440,14 +1440,10 @@ def main(argv=None):
         env = dict(os.environ)
         env.update(CUDA_VISIBLE_DEVICES="", OMP_NUM_THREADS=str(e.get("threads", 2)), MKL_NUM_THREADS=str(e.get("threads", 2)))
         env.update({k: str(v) for k, v in (e.get("env") or {}).items()})       # the entry's recorded env wins
-        cmd = [sys.executable, "-m", "rrp.viz.record", "--spec", a.spec, "--out", a.out, "--only", e["id"], "--inproc"]
+        cmd = [sys.executable, "-m", "rrp.cli", "viz", "record", "--spec", a.spec, "--out", a.out, "--only", e["id"], "--inproc"]
         t0 = time.time()
         r = subprocess.run(cmd, env=env)
         print(f"[record] {e['id']} rc={r.returncode} {time.time() - t0:.0f}s", flush=True)
         rc = rc or r.returncode
     RP.write_index(out, _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"), _git_sha())
     return rc
-
-
-if __name__ == "__main__":
-    sys.exit(main())

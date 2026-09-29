@@ -8,7 +8,7 @@
     "build": "tsc -p tsconfig.json --noEmit && vite build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "preview": "vite preview",
-    "snapshot": "cd ../.. && PYTHONPATH=src nice -n 10 .venv/bin/python -m rrp.viz.export --out viz/data"
+    "snapshot": "cd ../.. && PYTHONPATH=src nice -n 10 .venv/bin/python -m rrp.cli viz export --out viz/data"
   },
   "dependencies": {
     "react": "19.3.0",

@@ -1,4 +1,4 @@
-"""D-126 move parity: scripts/ladder.py -> rrp.evaluation.ladder_cli and the legged summary scripts ->
+"""D-126 move parity: scripts/ladder.py -> `rrp suite ladder` (rrp.harness.eval.ladder_cli) and the legged summary scripts ->
 rrp.evaluation.legged_summaries. The pre-move scripts are frozen verbatim (git 733b02a) under tests/data/legacy_scripts;
 old and new run as subprocesses on the same inputs and must produce identical stdout and output files.
 Only exception: the ladder rows' `wall_s` (per-episode wall-clock time) is dropped before comparing the .jsonl rows."""
@@ -19,10 +19,12 @@ LEGACY = REPO / "tests" / "data" / "legacy_scripts"
 TIMING_FIELDS = ("wall_s",)
 
 
-def _run(script: Path, args: list[str], cwd: Path) -> subprocess.CompletedProcess:
+def _run(script, args: list[str], cwd: Path) -> subprocess.CompletedProcess:
+    """script: a legacy script Path, or the `rrp` subcommand (list) that replaced it (D-140 S6b)."""
     env = dict(os.environ, PYTHONPATH=str(REPO / "src"), CUDA_VISIBLE_DEVICES="", OMP_NUM_THREADS="1",
                PYTHONWARNINGS="ignore::DeprecationWarning")
-    return subprocess.run([sys.executable, str(script), *args], cwd=cwd, env=env, capture_output=True, text=True, timeout=120)
+    head = ["-m", "rrp.cli", *script] if isinstance(script, list) else [str(script)]
+    return subprocess.run([sys.executable, *head, *args], cwd=cwd, env=env, capture_output=True, text=True, timeout=120)
 
 
 def _files(d: Path) -> dict[str, bytes]:
@@ -35,7 +37,7 @@ LADDER_ARGS = ["--route", "teacher", "--robot", "panda_pg2", "--n", "1", "--max-
 
 def _ladder_pair(tmp_path, extra):
     res = {}
-    for tag, script in (("old", LEGACY / "ladder.py"), ("new", REPO / "scripts" / "ladder.py")):
+    for tag, script in (("old", LEGACY / "ladder.py"), ("new", ["suite", "ladder"])):
         out = tmp_path / tag
         r = _run(script, [*LADDER_ARGS, *extra, "--out", str(out)], REPO)
         assert r.returncode == 0, r.stderr[-2000:]
@@ -69,8 +71,16 @@ def test_ladder_cli_parser_and_guards_match_legacy(tmp_path):
     for args in (["--help"], ["--route", "teacher", "--robot", "xarm7_pg2", "--out", str(tmp_path / "x")],
                  ["--route", "teacher", "--robot", "panda_pg2", "--seed-start", "5", "--out", str(tmp_path / "x")],
                  ["--route", "bogus"]):
-        ro, rn = _run(LEGACY / "ladder.py", args, REPO), _run(REPO / "scripts" / "ladder.py", args, REPO)
-        assert (ro.returncode, ro.stdout, ro.stderr) == (rn.returncode, rn.stdout, rn.stderr), args
+        ro, rn = _run(LEGACY / "ladder.py", args, REPO), _run(["suite", "ladder"], args, REPO)
+        if args in (["--help"], ["--route", "bogus"]):   # the program name changed (ladder.py -> rrp suite ladder): same options and help
+            import re
+            opts = lambda t: sorted(set(re.findall(r"--[a-z][a-z0-9-]*", t)))
+            assert rn.returncode == ro.returncode and opts(rn.stdout + rn.stderr) == opts(ro.stdout + ro.stderr)
+            assert "rrp suite ladder" in rn.stdout + rn.stderr and ro.stderr.splitlines()[-1:] == [
+                ln.replace("rrp suite ladder", "ladder.py") for ln in rn.stderr.splitlines()[-1:]]
+            continue
+        norm = lambda t: t.replace("rrp suite ladder", "ladder.py")
+        assert (ro.returncode, ro.stdout, ro.stderr) == (rn.returncode, norm(rn.stdout), norm(rn.stderr)), args
 
 
 # ------------------------------------------------------------------ legged summaries (synthetic rows)
@@ -99,14 +109,15 @@ def _suite(d: Path, edits=("none", "halt", "mirror_goal")):
     return d
 
 
-@pytest.mark.parametrize("tool,args", [
-    ("legged_ladder_summary", lambda d: [str(d / "none.jsonl"), str(d / "halt.jsonl"), str(d / "x.summary.json")]),
-    ("legged_edit_effects", lambda d: [str(d)]),
-    ("legged_mirror_effect", lambda d: [str(d), "mirror_goal", "halt"]),
+@pytest.mark.parametrize("tool,cmd,args", [
+    ("legged_ladder_summary", "legged-summary",
+     lambda d: [str(d / "none.jsonl"), str(d / "halt.jsonl"), str(d / "x.summary.json")]),
+    ("legged_edit_effects", "legged-edit-effects", lambda d: [str(d)]),
+    ("legged_mirror_effect", "legged-mirror-effect", lambda d: [str(d), "mirror_goal", "halt"]),
 ])
-def test_legged_summaries_match_legacy_scripts(tmp_path, tool, args):
+def test_legged_summaries_match_legacy_scripts(tmp_path, tool, cmd, args):
     outs = {}
-    for tag, script in (("old", LEGACY / f"{tool}.py"), ("new", REPO / "scripts" / f"{tool}.py")):
+    for tag, script in (("old", LEGACY / f"{tool}.py"), ("new", ["suite", cmd])):
         d = _suite(tmp_path / tag / "suite")
         r = _run(script, args(d), tmp_path / tag)
         assert r.returncode == 0, r.stderr[-2000:]

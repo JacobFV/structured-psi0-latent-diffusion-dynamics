@@ -90,7 +90,7 @@ def test_arm_eval_r2_runs_ladder_with_deployment_input(tmp_path, monkeypatch):
              options={"tag": "final", "robots": ["panda_pg2"], "seed_starts": [3000000, 3000100]})
     _touch(tmp_path, "artifacts/runs/f/policy.pt", "artifacts/runs/r/representation.pt")
     body = Pipeline("arm").run(rc, root=tmp_path, index=RunIndex())
-    assert len(calls) == 2 and calls[0][0] == "scripts/ladder.py"
+    assert len(calls) == 2 and calls[0][:4] == ["-m", "rrp.cli", "suite", "ladder"]
     assert calls[0][calls[0].index("--prev-action") + 1] == "zero" and "--flow" in calls[0]
     assert calls[1][calls[1].index("--tag") + 1] == "zero_final_s3000100"
     assert body["metrics"]["_total"] == {"success": 42, "n": 60}

@@ -182,7 +182,3 @@ def main(argv=None):
                       steps=a.steps, mode=a.mode, gen_frac=a.gen_frac)
     print(json.dumps({k: v for k, v in res.items() if k != "log"}, default=str))
     print("last_log", res["log"][-1] if res["log"] else None)
-
-
-if __name__ == "__main__":
-    main()

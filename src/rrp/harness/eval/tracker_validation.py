@@ -23,7 +23,7 @@ Contact/gait metrics (protocol v2, 2026-09-26, contact track; measured the same 
 contact gate: the gate above AND forward slip_ratio < 0.15 AND every foot steps in the forward trial
 (0.3 <= duty <= 0.9) AND mean forward swing apex >= 0.3 * the body's swing_height target.
 
-usage: python -m rrp.harness.eval.tracker_validation --body go2 --kind learned [--actor path] --seeds 5
+usage: python -m rrp.cli suite tracker-validation --body go2 --kind learned [--actor path] --seeds 5
 """
 from __future__ import annotations
 
@@ -345,7 +345,3 @@ def main(argv=None):
         write_report(r["w6_gate"], Path(a.gate_dir))
     if a.gate_exit and r["w6_gate"]["verdict"] == "fail":
         sys.exit(GATE_EXIT)
-
-
-if __name__ == "__main__":
-    main()

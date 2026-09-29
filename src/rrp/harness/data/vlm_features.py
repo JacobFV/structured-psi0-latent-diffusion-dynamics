@@ -208,13 +208,9 @@ class FeatureStore:
         return self.tokens[idx]
 
 
-def main():
+def main(argv=None):
     import argparse
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", required=True)
-    a = ap.parse_args()
+    a = ap.parse_args(argv)
     build_cache(json.loads(Path(a.config).read_text()))
-
-
-if __name__ == "__main__":
-    main()

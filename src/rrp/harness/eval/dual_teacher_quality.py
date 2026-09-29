@@ -13,7 +13,7 @@ supporting hand, support-anchor slip, contact-sequence order error vs the task s
 Optional DART (burst noise on executed arm commands, as rrp.data.collect_dual) to audit noisy-episode penetration.
 
 CLI (peer CPU, under a lease):
-  python -m rrp.harness.eval.dual_teacher_quality --task support_insert --pairs A__B,C__D --seeds 0:8 \
+  python -m rrp.cli suite dual-teacher-quality --task support_insert --pairs A__B,C__D --seeds 0:8 \
       [--noise 0.04 --burst 20,4] --out artifacts/runs/w12_dualaudit/support_insert.jsonl --workers 2
 """
 from __future__ import annotations
@@ -212,7 +212,3 @@ def main(argv=None):
     summ = summarize(rows)
     out.with_suffix(".summary.json").write_text(json.dumps(summ, indent=1, sort_keys=True))
     print(json.dumps(summ, indent=1, sort_keys=True))
-
-
-if __name__ == "__main__":
-    main()

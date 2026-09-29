@@ -1,9 +1,9 @@
-"""CLI of the closed-loop failure-localization ladder (rrp.evaluation.ladder), moved from scripts/ladder.py (D-126;
-that script is now a thin wrapper with the same CLI, prints and outputs). Examples:
-  ladder.py --route teacher   --robot panda_pg2 --n 30 --out artifacts/runs/ladder_v1/panda_pg2
-  ladder.py --route oracle    --robot panda_pg2 --n 30 --rep artifacts/runs/latent_sem_v1/representation.pt --out ...
-  ladder.py --route generated --robot panda_pg2 --n 30 --flow artifacts/runs/flow_latent_sem_v2/policy.pt --out ...
-  ladder.py --disturbance --route oracle ...   (fixed-packet joint disturbance via latent_eval.disturbance_test)
+"""`rrp suite ladder`: CLI of the closed-loop failure-localization ladder (rrp.harness.eval.ladder; formerly
+scripts/ladder.py, same CLI, prints and outputs). Examples:
+  rrp suite ladder --route teacher   --robot panda_pg2 --n 30 --out artifacts/runs/ladder_v1/panda_pg2
+  rrp suite ladder --route oracle    --robot panda_pg2 --n 30 --rep artifacts/runs/latent_sem_v1/representation.pt --out ...
+  rrp suite ladder --route generated --robot panda_pg2 --n 30 --flow artifacts/runs/flow_latent_sem_v2/policy.pt --out ...
+  rrp suite ladder --disturbance --route oracle ...   (fixed-packet joint disturbance via latent_eval.disturbance_test)
 Writes <out>/<route>[_tag].jsonl (one row per episode) and <out>/<route>[_tag].summary.json.
 
 Seeds come from rrp.evaluation.robustness.feasible_arm_seeds, the same definition as

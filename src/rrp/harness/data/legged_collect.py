@@ -8,7 +8,7 @@ estimates, public task view; action = base_velocity [vx, vy, wz] sent to the bod
 Private per-step record: true base pose/velocity, true foot contacts, truth predicates,
 event completion truth, teacher phase.
 
-usage: python -m rrp.harness.data.legged_collect --body hexapod6 --seeds 0-19 --out data/legged/waypoint_contact
+usage: python -m rrp.cli data legged-collect --body hexapod6 --seeds 0-19 --out data/legged/waypoint_contact
 """
 from __future__ import annotations
 
@@ -143,7 +143,3 @@ def main(argv=None):
                                        + (" arc_only variant" if a.arc_only else ""),
                                        seeds=a.seeds, episodes=rows), indent=1))
     print(json.dumps({k: v for k, v in summ.items() if k != "episodes"}))
-
-
-if __name__ == "__main__":
-    main()

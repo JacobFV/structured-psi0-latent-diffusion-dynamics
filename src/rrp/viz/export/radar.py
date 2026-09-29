@@ -21,14 +21,9 @@ from .common import Config, envelope, read_json
 SCHEMA_IN = "rrp-viz/radar-axes/v1"
 
 
-def _wilson(k: float, n: float, z: float = 1.959964):
-    if n <= 0:
-        return None
-    p = k / n
-    d = 1 + z * z / n
-    c = (p + z * z / (2 * n)) / d
-    h = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
-    return [max(0.0, c - h), min(1.0, c + h)]
+def _wilson(k: float, n: float):
+    from rrp.harness.eval.statistics import wilson
+    return list(wilson(k, n)) if n > 0 else None
 
 
 def _get(row, path):

@@ -14,7 +14,7 @@ The system-0 adapter replaces the body tracker inside LeggedSession (the native 
 held upper-body actuators remain servoed to the default pose. Truth (base pose, contacts) is logged per tick
 for evaluation only.
 
-usage: python -m rrp.harness.eval.legged_latent_eval --flow artifacts/runs/X/policy.pt --bodies go2 --seeds 10000-10019
+usage: python -m rrp.cli suite legged --flow artifacts/runs/X/policy.pt --bodies go2 --seeds 10000-10019
        --out artifacts/runs/X/eval_dev.jsonl [--edit mirror_goal --t-edit 1.0] [--video-dir artifacts/video --video-n 2]
 """
 from __future__ import annotations
@@ -450,7 +450,3 @@ def main(argv=None):
     out.with_suffix(".summary.json").write_text(json.dumps(dict(source=rows[0]["source"], edit=a.edit, per_body=summ),
                                                            indent=1))
     print(json.dumps(summ, indent=1))
-
-
-if __name__ == "__main__":
-    main()

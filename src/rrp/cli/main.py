@@ -237,13 +237,17 @@ def build_parser() -> argparse.ArgumentParser:
 
     # The command modules are stdlib-only at import time (heavy imports live inside the command functions), so the
     # full tree registers on the bootstrap python too. No ImportError is swallowed (W4): a broken import fails loudly.
-    from rrp.cli import adapt, dag, data, ext, harness, latent, train
-    for mod in (ext, data, train, harness, latent, adapt, dag):    # registration order = subcommand order in --help
+    from rrp.cli import adapt, dag, data, ext, harness, latent, tools, train
+    for mod in (ext, data, train, harness, latent, adapt, dag, tools):    # registration order = subcommand order in --help
         mod.register(sub)
     return p
 
 
 def main(argv=None):
+    from rrp.cli import tools
+    handled, code = tools.dispatch(list(sys.argv[1:] if argv is None else argv))
+    if handled:
+        return code
     p = build_parser()
     a, extra = p.parse_known_args(argv)
     if extra:
@@ -251,7 +255,3 @@ def main(argv=None):
             p.error(f"unrecognized arguments: {' '.join(extra)}")
         a.args = list(a.args) + extra
     return a.fn(a)
-
-
-if __name__ == "__main__":
-    sys.exit(main())

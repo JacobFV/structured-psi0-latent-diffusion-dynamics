@@ -26,8 +26,8 @@ Source labels (on every target and row; unmistakable):
 Public vs privileged: only OracleSystem2 receives `privileged_truth`; the harness passes it to no other system
 (`System2.needs_truth`). The VLM sees the instruction text and the declared public camera image only.
 
-usage: python -m rrp.harness.eval.system2 ground --system vlm:<local_dir> --out artifacts/runs/X [--small]
-       python -m rrp.harness.eval.system2 closed_loop --flow F/policy.pt --systems oracle,default,vlm:<dir> --out artifacts/runs/X
+usage: python -m rrp.cli suite system2 ground --system vlm:<local_dir> --out artifacts/runs/X [--small]
+       python -m rrp.cli suite system2 closed_loop --flow F/policy.pt --systems oracle,default,vlm:<dir> --out artifacts/runs/X
 """
 from __future__ import annotations
 
@@ -576,7 +576,3 @@ def main(argv=None):
         systems = {s: make_system2(s) for s in a.systems.split(",") if make_system2(s) is not None}
         res = closed_loop_eval(Path(a.flow), systems, out, _range(a.seeds), body=a.body, family=a.family)
         print(json.dumps(res["summary"], indent=1))
-
-
-if __name__ == "__main__":
-    main()

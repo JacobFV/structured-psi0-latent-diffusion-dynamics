@@ -1,14 +1,14 @@
 """Helper for the room's Vite API plugin (viz/CONTRACT.md "plugin interface"). Read-only; stdlib only.
 
 The plugin shells out (cwd = repo root, PYTHONPATH=src, like IBM-2's progress plugin) and caches the result:
-  python -m rrp.viz.api get <name> [--max-age 15] [--live]   -> prints the absolute path of viz/data/<name>.json after
+  python -m rrp.cli viz api get <name> [--max-age 15] [--live]   -> prints the absolute path of viz/data/<name>.json after
                                                                 re-exporting it if older than --max-age seconds
-  python -m rrp.viz.api doc <path>                            -> prints {"path", "markdown", "mtime"} for an allowlisted
+  python -m rrp.cli viz api doc <path>                            -> prints {"path", "markdown", "mtime"} for an allowlisted
                                                                 markdown document (exit 2 if not allowed / missing)
-  python -m rrp.viz.api replay <id>                           -> prints the absolute path of a replay file (exit 2)
-  python -m rrp.viz.api media <name>                          -> prints the absolute path of a video (exit 2)
-  python -m rrp.viz.api training <id>                         -> prints the absolute path of one training series
-  python -m rrp.viz.api routes                                -> prints the route table as JSON
+  python -m rrp.cli viz api replay <id>                           -> prints the absolute path of a replay file (exit 2)
+  python -m rrp.cli viz api media <name>                          -> prints the absolute path of a video (exit 2)
+  python -m rrp.cli viz api training <id>                         -> prints the absolute path of one training series
+  python -m rrp.cli viz api routes                                -> prints the route table as JSON
 """
 from __future__ import annotations
 
@@ -102,7 +102,7 @@ def training_file(cfg: Config, rid: str) -> Path | None:
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(prog="python -m rrp.viz.api", description="room API helper (read-only)")
+    ap = argparse.ArgumentParser(prog="rrp viz api", description="room API helper (read-only)")
     ap.add_argument("--repo", default=".")
     ap.add_argument("--out", default=None)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -134,7 +134,3 @@ def main(argv=None) -> int:
         return 2
     print(p)
     return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

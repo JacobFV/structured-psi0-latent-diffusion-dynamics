@@ -1,8 +1,8 @@
 """Legged ladder / edit summaries, moved from scripts (D-126). The scripts are thin wrappers with the same CLI, stdout
 and output files:
-  scripts/legged_ladder_summary.py ROWS.jsonl ...   -> ladder_summary_main: <rows>.summary.json per file
-  scripts/legged_edit_effects.py DIR                 -> edit_effects_main: DIR/effects.json
-  scripts/legged_mirror_effect.py DIR EDIT ...       -> mirror_effect_main: DIR/mirror_effects.json
+  rrp suite legged-summary ROWS.jsonl ...        -> ladder_summary_main: <rows>.summary.json per file
+  rrp suite legged-edit-effects DIR             -> edit_effects_main: DIR/effects.json
+  rrp suite legged-mirror-effect DIR EDIT ...   -> mirror_effect_main: DIR/mirror_effects.json
 (scripts/legged8_summary.py stays a script: it is the one-off W8 report with a hard-coded headline and protocol text.)
 
 Bootstrap CIs use one np.random.default_rng(0) stream per main() call, consumed in the scripts' call order; this

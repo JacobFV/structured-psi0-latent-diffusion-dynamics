@@ -1,4 +1,4 @@
-"""Grasp contact rig (python -m rrp.harness.eval.grasp_rig v2 pg2 [friction_scale]) (W7, D-108): the real gripper modules (pg2 / tf3) on a vertical carriage, a cube between the fingers.
+"""Grasp contact rig (python -m rrp.cli suite grasp-rig v2 pg2 [friction_scale]) (W7, D-108): the real gripper modules (pg2 / tf3) on a vertical carriage, a cube between the fingers.
 1. close (full command -> the actuator's force limit, the worst case a policy can command), 2. lift 10 cm with a
 min-jerk profile (peak acc ~2.3 m/s^2), 3. hold, then ramp the cube mass x1.08 every 0.25 s until it slips (>5 mm
 relative to the palm). Reports penetration (max -dist pad<->cube) during the held lift, pad normal forces, and the slip
@@ -139,10 +139,12 @@ def run(version="v2", kind="pg2", fscale=1.0, t_close=0.8, verbose=False, yaw=0.
     return out
 
 
-if __name__ == "__main__":
-    v = sys.argv[1] if len(sys.argv) > 1 else "v2"
-    k = sys.argv[2] if len(sys.argv) > 2 else "pg2"
-    fs = float(sys.argv[3]) if len(sys.argv) > 3 else 1.0
+def main(argv=None):
+    """rrp suite grasp-rig [VERSION [GRIPPER [FRICTION_SCALE]]] -> one JSON line."""
+    argv = list(sys.argv[1:] if argv is None else argv)
+    v = argv[0] if len(argv) > 0 else "v2"
+    k = argv[1] if len(argv) > 1 else "pg2"
+    fs = float(argv[2]) if len(argv) > 2 else 1.0
     print(json.dumps(run(v, k, fs)))
 
 

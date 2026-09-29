@@ -290,14 +290,12 @@ def source_label(raw) -> str | None:
     return s
 
 
-def wilson(k: int, n: int, z: float = 1.959963984540054) -> list[float] | None:
+def wilson(k: int, n: int) -> list[float] | None:
+    """Wilson 95% interval (rrp.harness.eval.statistics.wilson) as the room's rounded [lo, hi]; None for n = 0."""
+    from rrp.harness.eval.statistics import wilson as _wilson
     if not n:
         return None
-    p = k / n
-    d = 1 + z * z / n
-    c = (p + z * z / (2 * n)) / d
-    h = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
-    return [round(max(0.0, c - h), 4), round(min(1.0, c + h), 4)]
+    return [round(x, 4) for x in _wilson(k, n)]
 
 
 def rnd(x, nd=4):

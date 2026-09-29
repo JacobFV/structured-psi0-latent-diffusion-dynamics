@@ -1,6 +1,6 @@
 """Sealed-protocol evaluation on the target / held-out source bodies with the ladder's deployable routes (D-126 #9, #10).
 
-`python -m rrp.harness.eval.target_eval --protocol configs/eval/latent_slice1.json --robot xarm7_pg2 --route generated
+`python -m rrp.cli suite target --protocol configs/eval/latent_slice1.json --robot xarm7_pg2 --route generated
      --flow F --rep R --sealed-run --out DIR --tag T`
 
 The same machinery as the lineage R2 evaluations (rrp.evaluation.ladder.run_ladder: route `generated` = system-i flow
@@ -137,7 +137,3 @@ def main(argv=None):
         summ["label"] = "SMOKE (plumbing check on a non-target body; not a result)"
     (out / f"{name}.summary.json").write_text(json.dumps(summ, indent=1, default=str))
     print(json.dumps({k: v for k, v in summ.items() if k != "checkpoints"}, default=str))
-
-
-if __name__ == "__main__":
-    main()

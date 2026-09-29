@@ -9,9 +9,9 @@
                predicting falls and for separating edited from unedited episodes.
 
 usage:
-  python -m rrp.harness.train.packet_ood_fit fit-rep --rep R/representation.pt --body t1 --out R/packet_ood_t1 [--n-fit 4000]
-  python -m rrp.harness.train.packet_ood_fit fit-packets --packets DIR --body t1 --out R/packet_ood_t1_gen
-  python -m rrp.harness.train.packet_ood_fit score --model R/packet_ood_t1 --packets DIR --out scores.json
+  python -m rrp.cli train packet-ood fit-rep --rep R/representation.pt --body t1 --out R/packet_ood_t1 [--n-fit 4000]
+  python -m rrp.cli train packet-ood fit-packets --packets DIR --body t1 --out R/packet_ood_t1_gen
+  python -m rrp.cli train packet-ood score --model R/packet_ood_t1 --packets DIR --out scores.json
 """
 from __future__ import annotations
 
@@ -159,7 +159,3 @@ def main(argv=None):
     c.add_argument("--out", required=True)
     a = ap.parse_args(argv)
     dict(**{"fit-rep": cmd_fit_rep, "fit-packets": cmd_fit_packets, "score": cmd_score})[a.cmd](a)
-
-
-if __name__ == "__main__":
-    main()

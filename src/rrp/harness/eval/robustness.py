@@ -24,10 +24,10 @@ motion-quality medians, paired changes vs nominal (lost / gained seeds), and the
 from nominal on each side, whose success rate is more than 20 points below nominal.
 
 usage:
-  python -m rrp.harness.eval.robustness run --family legged --robots anymal_c --seeds 10000-10019 \\
+  python -m rrp.cli suite robustness run --family legged --robots anymal_c --seeds 10000-10019 \\
       --route semfix=flow:artifacts/.../policy.pt --route teacher=teacher --out artifacts/runs/robust/legged [--factors a,b]
       [--shard i/n] [--workers k]
-  python -m rrp.harness.eval.robustness report --out artifacts/runs/robust/legged
+  python -m rrp.cli suite robustness report --out artifacts/runs/robust/legged
 """
 from __future__ import annotations
 
@@ -825,7 +825,3 @@ def main(argv=None):
     w.add_argument("--out", required=True, help="output path stem (.json/.md)")
     a = ap.parse_args(argv)
     {"run": cmd_run, "report": cmd_report, "video": cmd_video, "variant": cmd_variant}[a.cmd](a)
-
-
-if __name__ == "__main__":
-    main()

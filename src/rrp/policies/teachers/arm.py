@@ -234,3 +234,15 @@ def run_fixture_pick_place(seed: int = 0, max_control_steps: int = 600, gripper:
     from rrp.envs.mujoco.fixtures import make_pick_place_session
     s = make_pick_place_session(seed=seed, gripper=gripper, n_distractors=n_distractors)
     return run_teacher_episode(s, PickPlaceTeacher(s), max_control_steps)
+
+
+class ShiftedGoalTeacher(PickPlaceTeacher):
+    """Scripted teacher whose requested placement is the zone displaced by `zone_offset` (privileged demo; the goal-shift edit reference of the semantic-edit suite)."""
+
+    def __init__(self, session, zone_offset, **kw):
+        self.zone_offset = np.asarray(zone_offset, float)
+        super().__init__(session, **kw)
+
+    def _body(self, name):
+        p, q = super()._body(name)
+        return (p + self.zone_offset if name == self.zone else p), q

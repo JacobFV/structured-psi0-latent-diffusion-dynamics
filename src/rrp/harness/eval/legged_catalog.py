@@ -149,7 +149,7 @@ def body_entry(key: str) -> dict:
     return e
 
 
-def main():
+def main(argv=None):
     rows = [body_entry(k) for k in ALL_LEGGED]
     ladder = ["source_verified", "imported", "physics_validated", "controller_validated", "teacher_validated"]
     for r in rows:
@@ -174,7 +174,3 @@ def main():
     for r in rows:
         print(f"{r['id']:14s} {r['kind']:10s} {r['status']:22s} " + " ".join(
             f"{s}={'Y' if r['stages'].get(s, {}).get('ok') else 'n'}" for s in ladder))
-
-
-if __name__ == "__main__":
-    main()

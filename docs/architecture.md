@@ -19,8 +19,8 @@ Each layer imports only layers above it in this list (checked by `tests/unit/tes
 | 2 | `rrp.tasks` | task graph compiler/runtime/receipts/interventions (numpy/pydantic), task JSON specs, the `TaskSpec` registry (which envs a task exists in, success/termination, scripted teacher key, gates) | – |
 | 3 | `rrp.envs` | `Env` protocol, `EnvSpec`, capabilities, `make_env` registry; `mujoco/` (Session, LeggedSession, DualSession, scenes, sensors, state estimation, perturbations, embedded legged trackers, snapshots), `warp/` (batched GPU legged envs), `simple/` (optional extra), `computerworld/` (optional extra) | mujoco, mujoco_warp, torch (trackers) |
 | 4 | `rrp.policies` | `Policy` protocol, `PolicyInfo`, `Requirements`, `negotiate`, registry; `features/` (featurizers: the ONLY definition of what a policy may see), `nets/` (shared torch modules: attention, flow, codec, backbone, probes, checkpoint), `bc.py`, `latent/` (system i planners + system 0 realizers for arm, dual, legged), `trackers.py`, `teachers/` (scripted / privileged, labelled), `oracle.py`, `psi0/` (Ψ₀ direct / Ψ₀ + structure / demo replay, their nets, feature cache and training) | torch |
-| 5 | `rrp.harness` | `rollout` (the one episode loop), `evaluate`/`matrix`, hooks (packet edits, perturbations, recorders), statistics, gates, audits; `data/` (collect, pack, manifests), `train/` (rep, flow, bc, refit, dagger, sft, grpo, ppo), pipelines + run-dag | – |
-| 6 | `rrp.viz` | record/replay, the room exporter (`python -m rrp.viz.export`, file scans only), the workbench service `viz.workbench` (was `service/`) | fastapi (extra) |
+| 5 | `rrp.harness` | `rollout` (the one episode loop), `eval.evaluate` (`evaluate` / `matrix`), `eval.hooks` (feasibility, settle, recorders, packet edits, perturbations), statistics, gates, audits; `data/` (collect, pack, manifests), `train/` (rep, flow, bc, refit, dagger, sft, grpo, ppo), pipelines + run-dag | – |
+| 6 | `rrp.viz` | record/replay, the room exporter (`python -m rrp.cli viz export`, file scans only), the workbench service `viz.workbench` (was `service/`) | fastapi (extra) |
 | 7 | `rrp.cli` | the `rrp` command (`python -m rrp.cli ...`; kept at the top so every documented invocation stays valid) | – |
 
 Rules:
@@ -296,9 +296,54 @@ contact metrics, deploy OOD/safety/latency, probe readouts, packet edits (`swap_
 context transforms), noise keys for paired edits. Training (`harness.train`) keeps the existing dataset trainers;
 DAgger, GRPO and adaptation call `rollout`.
 
-CLI (`rrp`): `ops …` (unchanged), `data {collect,pack}`, `train {rep,flow,bc,refit,probes,sft,grpo,ppo}`,
-`eval`, `matrix`, `edits`, `run-dag`, `workbench`, `task validate`, `assets validate`. Per-module `python -m` entry points are
-removed except `rrp.viz.export` and `rrp.viz.record` (room exporter/recorder).
+CLI (`rrp` = `python -m rrp.cli`, S6b): `eval` / `matrix` (harness.eval.evaluate over harness.rollout, default hooks
+from harness.eval.hooks), `run-dag`, `ops …`, `data …`, `train …`, `latent …`, `adapt`, `campaign …`, `latency`,
+`analyze`, `workbench`, `task validate`, `assets validate`, and the tool commands of `rrp.cli.tools`. No library module
+is a program any more (a test enforces it; the only `__main__` modules left are `rrp.cli` and the SIMPLE worker /
+compat layer, which run inside the Isaac Sim venv as subprocess targets of `rrp.envs.simple`). A tool keeps its own
+argument parser; `rrp <group> <tool> ARGS` passes ARGS through unchanged:
+
+| command | function (formerly `python -m <module>`) |
+|---|---|
+| `rrp data collect-dual` | `rrp.harness.data.collect_dual:main` |
+| `rrp data legged-collect` | `rrp.harness.data.legged_collect:main` |
+| `rrp data legged-latent-collect` | `rrp.harness.data.legged_latent_collect:main` |
+| `rrp data vlm-features` | `rrp.harness.data.vlm_features:main` |
+| `rrp train legged-latent` | `rrp.harness.train.legged_latent_train:main` |
+| `rrp train legged-bc` | `rrp.harness.train.legged_bc:main` |
+| `rrp train legged-dagger` | `rrp.harness.train.legged_dagger:main` |
+| `rrp train tracker-cpu` | `rrp.harness.train.tracker_training:main` |
+| `rrp train tracker-warp` | `rrp.harness.train.warp_tracker_ppo:main` |
+| `rrp train joint-adapt` | `rrp.harness.train.joint_adapt:main` |
+| `rrp train packet-ood` | `rrp.harness.train.packet_ood_fit:main` |
+| `rrp train vlm` | `rrp.harness.train.vlm_train:main` |
+| `rrp train synthetic` | `rrp.harness.train.synthetic:main` |
+| `rrp suite ladder` | `rrp.harness.eval.ladder_cli:main` |
+| `rrp suite legged` | `rrp.harness.eval.legged_latent_eval:main` |
+| `rrp suite legged-summary` | `rrp.harness.eval.legged_summaries:ladder_summary_main` |
+| `rrp suite legged-edit-effects` | `rrp.harness.eval.legged_summaries:edit_effects_main` |
+| `rrp suite legged-mirror-effect` | `rrp.harness.eval.legged_summaries:mirror_effect_main` |
+| `rrp suite robustness` | `rrp.harness.eval.robustness:main` |
+| `rrp suite target` | `rrp.harness.eval.target_eval:main` |
+| `rrp suite system2` | `rrp.harness.eval.system2:main` |
+| `rrp suite teacher-quality` | `rrp.harness.eval.teacher_quality:main` |
+| `rrp suite dual-teacher-quality` | `rrp.harness.eval.dual_teacher_quality:main` |
+| `rrp suite dual-validate` | `rrp.policies.teachers.dual_validate:main` |
+| `rrp suite composition` | `rrp.policies.teachers.functional_composition:main` |
+| `rrp suite tracker-validation` | `rrp.harness.eval.tracker_validation:main` |
+| `rrp suite privileged-audit` | `rrp.harness.eval.privileged_audit:main` |
+| `rrp suite checkpoint-audit` | `rrp.harness.eval.checkpoint_audit:main` |
+| `rrp suite legged-catalog` | `rrp.harness.eval.legged_catalog:main` |
+| `rrp suite grasp-rig` | `rrp.harness.eval.grasp_rig:main` |
+| `rrp stage run` | `rrp.harness.pipelines.base:stage_main` |
+| `rrp stage list` | `rrp.harness.pipelines.base:stage_main` |
+| `rrp viz export` | `rrp.viz.export:main` |
+| `rrp viz api` | `rrp.viz.api:main` |
+| `rrp viz record` | `rrp.viz.record:main` |
+| `rrp ops child` | `rrp.ops.child:main` |
+
+The BC `rrp evaluate` is `rrp eval --policy 'bc={"checkpoint": ..., "nfe": 8, "execute_prefix": 8}' --env mujoco/arm
+--task pick_place --body <robot> --seeds <a:b> --out ...` (one body per call).
 
 ## 7. delete list (status)
 
@@ -330,7 +375,7 @@ realizer output; dual multi-featurizer; packet serialization) and must stay byte
 | S3 | `envs.base` (Env, EnvSpec, capabilities, registry) implemented by the MuJoCo sessions and the Warp env; `policies.base` (Policy, Requirements, negotiate, registry); `tasks` registry; SIMPLE/ComputerWorld declared in the registries → **Ψ₀ and ComputerWorld agents can start here** | 3 h | done (this commit) |
 | S4 | policy adapters (bc, latent arm/dual, legged latent/bc on the `legs` space, teachers, one oracle); `legs` control mode; prototypes deleted | 4 h | done (S4a 4c4d2bb, S4b this commit) |
 | S5 | port the eval loops onto `harness.rollout` (S3) + hooks, arm/dual first, legged last; delete the duplicates; legged judge; `rrp eval` / `rrp matrix`; golden traces of tiny episodes (a few ticks, procedural bodies) | 5 h | done (S5a d623980, S5b aae0cf1, S5c 4fed1f6, S5d 10f3ff2, S5e: this commit) |
-| S6 | scripts/dags/configs pruning, docs (backlog folded into the roadmap), README, STATUS, strategy (S6a done); CLI consolidation of the remaining `python -m` modules and script wrappers after S5 (S6b) | 2 h | S6a done; S6b waits for S5 |
+| S6 | scripts/dags/configs pruning, docs (backlog folded into the roadmap), README, STATUS, strategy (S6a); every `python -m <module>` entry point and script wrapper folded into `rrp` tool commands, legacy `rrp evaluate` folded into `rrp eval`, edit-suite teacher wrappers into policies.teachers, room Wilson copies onto harness statistics (S6b) | 2 h | done |
 
 Running work is paused (D-140); unmerged track branches rebase onto the new paths using the move table that each
 stage's commit message and section 10 record.
@@ -409,9 +454,10 @@ unless a more specific row exists); module names inside packages are unchanged.
 | `rrp.teachers` | `rrp.policies.teachers` |
 | `rrp.training` | `rrp.harness.train` |
 
-`python -m` entry points follow the table (e.g. `python -m rrp.training.warp_tracker_ppo` → `python -m
-rrp.harness.train.warp_tracker_ppo`, `python -m rrp.pipelines` → `python -m rrp.harness.pipelines`); `python -m rrp.cli`
-(and the `rrp` console script) is unchanged. Pipeline families, stage names (`collect`, `pack`, `train_rep`, `train_flow`,
+`python -m <module>` entry points became `rrp <group> <tool>` commands in S6b (table in section 6; e.g. `python -m
+rrp.training.warp_tracker_ppo` → `rrp train tracker-warp`, `python -m rrp.evaluation.legged_latent_eval` → `rrp suite
+legged`, `scripts/ladder.py` → `rrp suite ladder`, `python -m rrp.pipelines run|stages` → `rrp stage run|list`,
+`python -m rrp.viz.export` → `rrp viz export`); `python -m rrp.cli` (and the `rrp` console script) is unchanged. Pipeline families, stage names (`collect`, `pack`, `train_rep`, `train_flow`,
 `dagger`, `refit`, `eval_r1`, `eval_r2`, `heldout`, `edits`, ...), DAG files, configs and `artifacts/runs/<track>/...`
 output paths are unchanged, so armdiv's resume (`dags/arm_lineage_v7div*.yaml`, `dags/armdiv_bc_v7div*.yaml`, ledgers
 under `artifacts/runs/armdiv/_dags/`) and W13's resume work as written after `scripts/peer_sync.sh push`; their

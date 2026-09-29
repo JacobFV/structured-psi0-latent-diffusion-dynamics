@@ -719,3 +719,40 @@ def run_dual_teacher_episode(session, teacher, max_control_steps: int = 1200, ch
         res.failure_reason = f"ended_in_phase:{teacher.phase_label}"
     res.wall_s = time.time() - t0
     return res
+
+
+def teacher_state(t):
+    """Deep copy of a dual teacher's FSM state (its arm movers included)."""
+    import copy
+    st = {k: copy.deepcopy(v) for k, v in vars(t).items() if k not in ("s", "arms")}
+    st["_arms"] = {e: a.state() for e, a in t.arms.items()}
+    return st
+
+
+def teacher_load(t, st):
+    import copy
+    for k, v in st.items():
+        if k != "_arms":
+            setattr(t, k, copy.deepcopy(v))
+    for e, a in t.arms.items():
+        a.load(st["_arms"][e])
+
+
+class StatefulDualTeacher:
+    """Wrapper giving a dual teacher the state()/load() interface (snapshot look-ahead: oracle packets, edit suites)."""
+
+    def __init__(self, t):
+        self.t = t
+
+    def act(self):
+        return self.t.act()
+
+    def state(self):
+        return teacher_state(self.t)
+
+    def load(self, st):
+        teacher_load(self.t, st)
+
+    @property
+    def done(self):
+        return getattr(self.t, "done", False)

@@ -17,7 +17,7 @@ Metrics (per episode; control rate 1/dt, finite differences):
   frame while held during lift/transport/lower (m, max deviation from its value at the first held lift tick).
 - IK: max IK position residual per phase; ticks with residual > 1 cm.
 
-CLI: python -m rrp.harness.eval.teacher_quality --bodies panda_pg2,... --seeds 0-49 --versions v1,v2 --out X.jsonl
+CLI: python -m rrp.cli suite teacher-quality --bodies panda_pg2,... --seeds 0-49 --versions v1,v2 --out X.jsonl
 """
 from __future__ import annotations
 
@@ -560,7 +560,3 @@ def summarize_policy(rows):
                 e[k] = dict(median=float(np.median(vals)), p90=float(np.percentile(vals, 90)), max=float(vals.max()))
         out[f"{rb}|{src}"] = e
     return out
-
-
-if __name__ == "__main__":
-    main()

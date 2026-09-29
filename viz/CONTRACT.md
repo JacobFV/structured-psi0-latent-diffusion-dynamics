@@ -21,9 +21,9 @@ read-only local data API with a short cache, and a static snapshot fallback that
 ## layout
 - `viz/room/`: frontend (Vite + React + TypeScript + three.js + recharts + tailwind). `npm run dev` serves on 127.0.0.1:3013
   with the Vite API plugin; `npm run build` produces a static build; `npm run snapshot` exports `viz/data` for offline use.
-- `src/rrp/viz/export/` (a package: check `src/rrp/viz/export/__init__.py`, not `export.py`): `python -m rrp.viz.export [--live] --out viz/data [--only <name>]`. Builds the JSON documents below from the repo,
+- `src/rrp/viz/export/` (a package: check `src/rrp/viz/export/__init__.py`, not `export.py`): `python -m rrp.cli viz export [--live] --out viz/data [--only <name>]`. Builds the JSON documents below from the repo,
   the local artifact copies and (with --live) small ssh reads of the peer broker, watchdog and ledgers.
-- `src/rrp/viz/record.py`: PEER-ONLY replay recorder: `python -m rrp.viz.record --spec <yaml> --out <dir>`. Writes replay
+- `src/rrp/viz/record.py`: PEER-ONLY replay recorder: `python -m rrp.cli viz record --spec <yaml> --out <dir>`. Writes replay
   files (below) for chosen episodes (task × body × route × seed × condition).
 - `~/work/rrp-data/viz/replays/`: replay files pulled from the peer (rsync), served by the API.
 
@@ -64,13 +64,13 @@ its run directory), `decisions`, `decision_match` (the token that matched), `tra
   calls in a row are cheap (~0.1–0.5 s each warm); a full export takes ~1.5–3 s warm, ~9 s cold.
 - The plugin shells out with cwd = repo root, `PYTHONPATH=src`, `OMP_NUM_THREADS=1`, `.venv/bin/python`, a 20 s timeout and a
   15 s cache (live: 10 s), like IBM-2's progress plugin:
-  `python -m rrp.viz.api get <name> [--live] [--max-age S]` prints the absolute path of the fresh document (it re-exports only that
+  `python -m rrp.cli viz api get <name> [--live] [--max-age S]` prints the absolute path of the fresh document (it re-exports only that
   document when older than S); then the plugin reads that file. `/api/live` uses `get live --live` (one bounded ssh read of the
   peer, ≤ 5 s; `stale` when the last good read is older than 60 s).
-- `python -m rrp.viz.api doc <path>` prints `{schema: rrp-viz/doc/v1, path, markdown, mtime}` (exit 2 if not allowlisted; optional,
+- `python -m rrp.cli viz api doc <path>` prints `{schema: rrp-viz/doc/v1, path, markdown, mtime}` (exit 2 if not allowlisted; optional,
   the plugin may serve `/api/doc` itself with the same allowlist, v1.1);
   `api replay <id>`, `api media <name>`, `api training <id>` print an absolute file path (exit 2 if unknown). `api routes` prints the table.
-- `python -m rrp.viz.export --sync-psi1z` rsyncs small psi1z summary files from the peer into `~/work/rrp-data/viz/psi1z/` (≤ 50 MB);
+- `python -m rrp.cli viz export --sync-psi1z` rsyncs small psi1z summary files from the peer into `~/work/rrp-data/viz/psi1z/` (≤ 50 MB);
   it is never part of a periodic refresh.
 
 ## replay file (`rrp-viz/replay/v1`, JSON; gzip allowed)

@@ -25,10 +25,10 @@ Probes/ablations are diagnostics: a group that changes behaviour when ablated is
 is decided by its declared provenance, not by the audit.
 
 usage:
-  python -m rrp.harness.eval.privileged_audit run --flow F/policy.pt --bodies go2 --seeds 10000-10009 --out DIR
+  python -m rrp.cli suite privileged-audit run --flow F/policy.pt --bodies go2 --seeds 10000-10009 --out DIR
       [--groups ctx.speed,local.qd] [--ablations zero,shuffle,noise] [--expect-irrelevant ctx.osc] [--max-s 30]
       [--base-state-source estimator]
-  python -m rrp.harness.eval.privileged_audit static
+  python -m rrp.cli suite privileged-audit static
 """
 from __future__ import annotations
 
@@ -403,7 +403,3 @@ def main(argv=None):
                      expect_irrelevant=[x for x in a.expect_irrelevant.split(",") if x],
                      deploy=None if dep.is_default() else dep)
     print(json.dumps(dict(flags=summ["flags"]), indent=1))
-
-
-if __name__ == "__main__":
-    main()

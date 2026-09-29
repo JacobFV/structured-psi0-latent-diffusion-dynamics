@@ -3,7 +3,7 @@
 Loads a representative set (2 of each kind) of the `*.pt` files under the roots in RRP_CHECKPOINT_ROOTS
 (os.pathsep-separated; default: this checkout's artifacts/) through the real loaders and W3's checkpoint_provenance
 (rrp.evaluation.checkpoint_audit). Skipped when no checkpoint is present (fresh checkout: weights are not in git).
-Full audit: `python -m rrp.harness.eval.checkpoint_audit ROOT ...`.
+Full audit: `python -m rrp.cli suite checkpoint-audit ROOT ...`.
 """
 from __future__ import annotations
 

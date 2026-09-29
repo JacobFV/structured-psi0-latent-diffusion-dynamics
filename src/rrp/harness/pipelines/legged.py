@@ -2,15 +2,15 @@
 
 | stage | existing code |
 |---|---|
-| collect | `python -m rrp.harness.data.legged_latent_collect --body B --seeds S --out D` per shard (options shard_size, workers) |
-| train_bc | rrp.training.legged_bc.train (`python -m rrp.harness.train.legged_bc train`; BC POSITIVE CONTROL, source bc) |
-| train_rep | rrp.training.legged_latent_train.train_rep (`python -m rrp.harness.train.legged_latent_train rep`) |
+| collect | `python -m rrp.cli data legged-latent-collect --body B --seeds S --out D` per shard (options shard_size, workers) |
+| train_bc | rrp.training.legged_bc.train (`python -m rrp.cli train legged-bc train`; BC POSITIVE CONTROL, source bc) |
+| train_rep | rrp.training.legged_latent_train.train_rep (`python -m rrp.cli train legged-latent rep`) |
 | probes | rrp.training.legged_latent_train.fit_probe (post-hoc probe for nosem; `... probe`) |
 | train_flow, flow_ft | rrp.training.legged_latent_train.train_flow (`... flow`) |
-| dagger_collect | `python -m rrp.harness.train.legged_dagger collect` |
+| dagger_collect | `python -m rrp.cli train legged-dagger collect` |
 | refit | rrp.training.legged_dagger.refit (`... refit --config`) |
-| eval_r1, eval_r2, heldout | `python -m rrp.harness.eval.legged_latent_eval` over seed chunks + scripts/legged_ladder_summary.py (scripts/legged_ladder.sh) |
-| edits | legged_latent_eval --edit per edit + scripts/legged_edit_effects.py (scripts/legged_edit_suite.sh) |
+| eval_r1, eval_r2, heldout | `python -m rrp.cli suite legged` over seed chunks + `rrp suite legged-summary` |
+| edits | `rrp suite legged --edit` per edit + `rrp suite legged-edit-effects` |
 
 Legged system 0 has no previous-action input (zero_prev_action does not apply). A legged dataset whose manifest
 records a contact version different from flags.contact_version is refused (no silent mixing of physics versions);
@@ -26,7 +26,7 @@ from pathlib import Path
 
 from rrp.harness.pipelines.base import apply_gate, StageContext, StageError, register
 
-EVAL = "rrp.harness.eval.legged_latent_eval"
+EVAL = ["-m", "rrp.cli", "suite", "legged"]
 
 
 def _json_safe(x):
@@ -165,7 +165,7 @@ def collect(ctx: StageContext) -> dict:
     jobs = []
     for s in range(a, b + 1, size):
         e = min(s + size - 1, b)
-        argv = ["-m", "rrp.harness.data.legged_latent_collect", "--body", body, "--seeds", f"{s}-{e}", "--out", out, *extra]
+        argv = ["-m", "rrp.cli", "data", "legged-latent-collect", "--body", body, "--seeds", f"{s}-{e}", "--out", out, *extra]
         jobs.append((argv, physics_env(ctx, OMP_NUM_THREADS=1, CUDA_VISIBLE_DEVICES=""),
                      ctx.root / out / body / f"log_s{s}.txt"))
     ctx.run_parallel(jobs, int(o.get("workers", 1)))
@@ -256,7 +256,7 @@ def validate_tracker(ctx: StageContext) -> dict:
     body = o["body"]
     check_tracker_sha(ctx)
     out = ctx.out / "validation.json"
-    argv = ["-m", "rrp.harness.eval.tracker_validation", "--body", body, "--kind", o.get("kind", "learned"),
+    argv = ["-m", "rrp.cli", "suite", "tracker-validation", "--body", body, "--kind", o.get("kind", "learned"),
             "--seeds", str(o.get("seeds", 5)), "--contact", str(ctx.rc.flags.contact_version).replace("contact_", ""),
             "--out", str(out), "--gate-dir", str(ctx.out)]
     if o.get("actor"):
@@ -286,7 +286,7 @@ def train_tracker(ctx: StageContext) -> dict:
     resume (default true: a retried lease continues from checkpoint.pt), actuator_mode (D-126 #14; wins over the recipe).
     Output: actor.pt in the run dir (a NEW tracker; nothing is installed). The contact model is flags.contact_version."""
     o = ctx.opts
-    argv = ["-m", "rrp.harness.train.tracker_training", "--out", ctx.rc.out,
+    argv = ["-m", "rrp.cli", "train", "tracker-cpu", "--out", ctx.rc.out,
             "--contact", str(ctx.rc.flags.contact_version).replace("contact_", "")]
     if o.get("body"):
         argv += ["--body", str(o["body"])]
@@ -375,7 +375,7 @@ def flow_ft(ctx: StageContext) -> dict:
 def dagger_collect(ctx: StageContext) -> dict:
     """Legged DAgger buffer: rollouts (route bc | oracle_bc | generated), labels = stateless BC expert."""
     o = ctx.opts
-    argv = ["-m", "rrp.harness.train.legged_dagger", "collect", "--route", o.get("route", "oracle_bc"), "--body", o["body"],
+    argv = ["-m", "rrp.cli", "train", "legged-dagger", "collect", "--route", o.get("route", "oracle_bc"), "--body", o["body"],
             "--seeds", o["seeds"], "--out", ctx.rc.out, "--bc", ctx.inp("bc")]
     for k in ("rep", "flow", "realizer"):
         v = ctx.inp(k, required=False)
@@ -432,7 +432,7 @@ def _ladder(ctx: StageContext, default_route: str) -> dict:
         e = min(s + n - 1, b)
         part = out / f"{route}_{tag}.part{s}.jsonl"
         parts.append(part)
-        argv = ["-m", EVAL, *_route_args(ctx, route), "--bodies", body, "--seeds", f"{s}-{e}", "--out", str(part)]
+        argv = [*EVAL, *_route_args(ctx, route), "--bodies", body, "--seeds", f"{s}-{e}", "--out", str(part)]
         jobs.append((argv, physics_env(ctx, OMP_NUM_THREADS=1, CUDA_VISIBLE_DEVICES=""), ctx.out / f"{route}_{tag}.part{s}.log"))
     ctx.run_parallel(jobs, par)
     rows = out / f"{route}_{tag}.jsonl"
@@ -443,7 +443,7 @@ def _ladder(ctx: StageContext, default_route: str) -> dict:
     cv = check_rows_contact(ctx, rl, str(rows))
     cv["tracker_sha256"] = sorted({str(r.get("tracker_sha256")) for r in rl})
     cv["trackers"] = sorted({str(r.get("tracker")) for r in rl})
-    ctx.run(["scripts/legged_ladder_summary.py", str(rows)])
+    ctx.run(["-m", "rrp.cli", "suite", "legged-summary", str(rows)])
     summ = json.loads(rows.with_suffix(".summary.json").read_text())
     summ.update(cv, checkpoint_contact=ck)
     if summ["n"] != b - a + 1:
@@ -489,15 +489,15 @@ def edits(ctx: StageContext) -> dict:
     for ed in eds:
         f = out / f"{ed.replace(':', '_')}.jsonl"
         f.unlink(missing_ok=True)
-        argv = ["-m", EVAL, *_route_args(ctx, route), "--bodies", body, "--seeds", o.get("seeds", "10000-10019"),
+        argv = [*EVAL, *_route_args(ctx, route), "--bodies", body, "--seeds", o.get("seeds", "10000-10019"),
                 "--edit", ed, "--t-edit", str(o.get("t_edit", 2.0)), "--max-s", str(o.get("max_s", 5.0)), "--out", str(f)]
         jobs.append((argv, physics_env(ctx, OMP_NUM_THREADS=1, CUDA_VISIBLE_DEVICES=""), out / f"{ed.replace(':', '_')}.log"))
     ctx.run_parallel(jobs, int(o.get("workers", 1)))
     for ed in eds:
         f = out / f"{ed.replace(':', '_')}.jsonl"
         check_rows_contact(ctx, [json.loads(x) for x in f.read_text().splitlines() if x.strip()], str(f))
-    ctx.run(["scripts/legged_edit_effects.py", str(out)])
+    ctx.run(["-m", "rrp.cli", "suite", "legged-edit-effects", str(out)])
     if o.get("mirror_effect"):         # scripts/legged_fixrep_eval.sh: paired effect toward the mirrored goal side
-        ctx.run(["scripts/legged_mirror_effect.py", str(out), *o["mirror_effect"]])
+        ctx.run(["-m", "rrp.cli", "suite", "legged-mirror-effect", str(out), *o["mirror_effect"]])
     return dict(outputs={"suite": str(Path(ctx.rc.out) / out.name)}, metrics=dict(edits=eds, contact_version=ctx.rc.flags.contact_version, checkpoint_contact=ck),
                 source_detail=ctx.inp("flow", required=False) or "")

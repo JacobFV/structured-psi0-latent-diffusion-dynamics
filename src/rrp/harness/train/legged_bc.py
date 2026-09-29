@@ -10,7 +10,7 @@ oracle packet E(BC chunk) and the DAgger labels.
 Checkpoints: `bc_last.pt` (exact resume: model, optimizer, scheduler, step, rng) every `ckpt_every` steps, plus
 `snap_s<step>.pt` model-only snapshots at `snap_every`; `policy.pt` at the end.
 
-usage: python -m rrp.harness.train.legged_bc train --config C.json --out DIR
+usage: python -m rrp.cli train legged-bc train --config C.json --out DIR
 """
 from __future__ import annotations
 
@@ -119,7 +119,3 @@ def main(argv=None):
     if a.steps:
         cfg["steps"] = a.steps
     print(json.dumps(train(cfg, Path(a.out)), indent=1)[:3000])
-
-
-if __name__ == "__main__":
-    main()

@@ -14,7 +14,7 @@ One repo, one Env / Policy / Task interface each, one rollout harness: [docs/arc
   registries + rollout, S4 policy adapters (bc, latent arm/dual, legged latent/bc on the `legs` space, teachers, one
   oracle module); Ψ₀ line migrated (envs.simple, policies.psi0; psi1z archived); S5a arm eval loop on the rollout +
   `rrp eval` / `rrp matrix`.
-- In progress: S5 (remaining eval loops, legged judge), ComputerWorld env, S6 (CLI `python -m` cleanup after S5, docs).
+- Done since: S5 (all eval loops on the rollout, legged judge), S6b (every `python -m <module>` entry point is an `rrp <group> <tool>` command; table in architecture.md section 6). In progress: ComputerWorld env.
 - Verification is golden/unit only (no reruns, D-140). Resume steps of paused tracks (W13 humanoid, armdiv, W10) are in
   their track notes; old module paths map to new ones via architecture.md section 10.
 

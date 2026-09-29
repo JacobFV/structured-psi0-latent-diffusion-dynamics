@@ -148,7 +148,7 @@ def test_target_eval_stage_argv_and_sealed_flag(tmp_path, monkeypatch):
              options=dict(robot="xarm7_pg2", sealed_run=True, chunk_blend="crossfade"))
     body = Pipeline("arm").run(rc, root=tmp_path, index=RunIndex())
     a = calls[-1]
-    assert a[:2] == ["-m", "rrp.harness.eval.target_eval"] and "--sealed-run" in a and "--flow" in a
+    assert a[:4] == ["-m", "rrp.cli", "suite", "target"] and "--sealed-run" in a and "--flow" in a
     assert a[a.index("--chunk-blend") + 1] == "crossfade" and a[a.index("--prev-action") + 1] == "zero"
     assert body["metrics"]["protocol"]["id"] == "latent_slice1"
     rc2 = _rc("target_eval", inputs={"bc_policy": "runs/bc:policy.pt"},

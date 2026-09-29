@@ -1,7 +1,7 @@
 """Pipeline(family): a registry of stages, each a function RunConfig -> outputs + a manifest with Provenance (W5).
 
-Stage functions CALL the existing training/evaluation code (in-process library functions, or the existing script /
-module entry points as subprocesses where the logic lives in a script's main, e.g. scripts/ladder.py). They never
+Stage functions CALL the existing training/evaluation code (in-process library functions, or `rrp <group> <tool>`
+subprocesses, e.g. `rrp suite ladder`). They never
 reimplement numerics. `Pipeline(family).run(rc)`:
 1. checks family/stage and that every input path exists;
 2. calls the stage with a StageContext (native config, resolved inputs, out dir, subprocess helpers);
@@ -269,3 +269,36 @@ def _safe_native(ctx: StageContext):
 def read_stage_manifest(out_dir: Path) -> dict | None:
     p = Path(out_dir) / MANIFEST
     return json.loads(p.read_text()) if p.exists() else None
+
+
+def stage_main(argv=None) -> int:
+    """`rrp stage run (--config FILE | --config-b64 B64) [--root R] [--no-check-inputs]` | `rrp stage list`."""
+    import argparse
+    import base64
+    import json
+    ap = argparse.ArgumentParser(prog="rrp stage")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    r = sub.add_parser("run", help="run one stage of a RunConfig and write its manifest")
+    g = r.add_mutually_exclusive_group(required=True)
+    g.add_argument("--config")
+    g.add_argument("--config-b64")
+    r.add_argument("--root", default=".")
+    r.add_argument("--no-check-inputs", action="store_true")
+    sub.add_parser("list", help="list the registered stages per family")
+    a = ap.parse_args(argv)
+    if a.cmd == "list":
+        from rrp.core.runconfig import families, load_family_plugins
+        load_family_plugins()
+        for fam in ("arm", "legged", "dual") + families()[3:]:
+            print(fam, " ".join(Pipeline(fam).stages()))
+        return 0
+    from rrp.core.runconfig import RunConfig
+    d = json.loads(base64.b64decode(a.config_b64)) if a.config_b64 else json.loads(Path(a.config).read_text())
+    rc = RunConfig.model_validate(d)
+    try:
+        body = Pipeline(rc.family).run(rc, root=Path(a.root), check_inputs=not a.no_check_inputs)
+    except GateFailed as e:
+        print(f"[pipeline] {e}", flush=True)
+        return GATE_EXIT
+    print(json.dumps(dict(run_id=body["run_id"], config_hash=body["config_hash"], metrics=body["metrics"]), default=str)[:4000])
+    return 0

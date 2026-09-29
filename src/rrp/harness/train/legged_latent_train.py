@@ -9,7 +9,7 @@ Stage B:  LeggedFlow generates z from PUBLIC context only toward the frozen E me
 Episodes are split per body into train / held-out (every 20th episode held out); all evaluations here use the
 held-out episodes (same bodies, same teacher distribution, unseen seeds).
 
-usage: python -m rrp.harness.train.legged_latent_train {rep,flow,probe} --config C.json --out DIR
+usage: python -m rrp.cli train legged-latent {rep,flow,probe} --config C.json --out DIR
 """
 from __future__ import annotations
 
@@ -460,7 +460,3 @@ def main(argv=None):
     fn = dict(rep=train_rep, flow=train_flow, probe=fit_probe)[a.stage]
     res = fn(cfg, Path(a.out))
     print(json.dumps(res, indent=1, default=str)[:4000])
-
-
-if __name__ == "__main__":
-    main()

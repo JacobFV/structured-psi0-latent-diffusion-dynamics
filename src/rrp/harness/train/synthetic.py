@@ -81,5 +81,5 @@ def run_synthetic(iters=60, G=16, contexts=8, lr=3e-3, clip=0.2, epochs=2, seed=
                 sde=sde.__dict__, reward="sparse |a-1.5o|<0.35", label="synthetic (not robot)")
 
 
-if __name__ == "__main__":
+def main(argv=None):
     print(json.dumps(run_synthetic(), indent=1))

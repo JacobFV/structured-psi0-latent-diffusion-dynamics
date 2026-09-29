@@ -9,7 +9,7 @@ body=$1; actor=$2; out=$3
 PY=${PY:-/dev/shm/rrp-brandonin/venv/bin/python}
 mkdir -p "$out/gate"
 export PYTHONPATH=src RRP_CONTACT_MODEL=v2
-$PY -m rrp.harness.eval.tracker_validation --body "$body" --kind learned --actor "$actor" --seeds 10 --contact v2 --robust \
+$PY -m rrp.cli suite tracker-validation --body "$body" --kind learned --actor "$actor" --seeds 10 --contact v2 --robust \
     --gate-dir "$out/gate" --out "$out/val.json" > "$out/val.log" 2>&1; echo "validation rc=$?"
 $PY scripts/contact_waypoint_eval.py "$body" "$actor" 10000 20 "$out/waypoint.json" > "$out/waypoint.log" 2>&1; echo "waypoint rc=$?"
 $PY - "$out" <<'PYEOF'

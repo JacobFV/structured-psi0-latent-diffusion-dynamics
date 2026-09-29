@@ -42,24 +42,13 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from rrp.policies.teachers.arm import PickPlaceTeacher
+from rrp.policies.teachers.arm import PickPlaceTeacher, ShiftedGoalTeacher
+from rrp.policies.teachers.dual import StatefulDualTeacher
 from rrp.harness.eval.latent_causal import _body_pos, _key, _recv, _slot, _tcp, deliver
 
 CONDITIONS = ("control", "rebind_obj", "goal_shift", "irrelevant_distractor", "orthogonal_matched")
 PAIRED_CONDITIONS = CONDITIONS + ("control_replay",)
 ZONE_R = 0.05
-
-
-class ShiftedGoalTeacher(PickPlaceTeacher):
-    """Scripted teacher whose requested placement is the zone displaced by `zone_offset` (privileged demo)."""
-
-    def __init__(self, session, zone_offset, **kw):
-        self.zone_offset = np.asarray(zone_offset, float)
-        super().__init__(session, **kw)
-
-    def _body(self, name):
-        p, q = super()._body(name)
-        return (p + self.zone_offset if name == self.zone else p), q
 
 
 # ------------------------------------------------------------------ belief-level context edits (public observation)
@@ -697,42 +686,6 @@ ARM_CONDITIONS = ("control", "swap_arm", "swap_slots", "orthogonal_matched", "co
   control_replay      CONTROL (generated route only): unedited, different flow noise."""
 
 
-def teacher_state(t):
-    import copy
-    st = {k: copy.deepcopy(v) for k, v in vars(t).items() if k not in ("s", "arms")}
-    st["_arms"] = {e: a.state() for e, a in t.arms.items()}
-    return st
-
-
-def teacher_load(t, st):
-    import copy
-    for k, v in st.items():
-        if k != "_arms":
-            setattr(t, k, copy.deepcopy(v))
-    for e, a in t.arms.items():
-        a.load(st["_arms"][e])
-
-
-class _DualTeacher:
-    """Wrapper giving dual teachers the state()/load() interface used by OracleSource."""
-
-    def __init__(self, t):
-        self.t = t
-
-    def act(self):
-        return self.t.act()
-
-    def state(self):
-        return teacher_state(self.t)
-
-    def load(self, st):
-        teacher_load(self.t, st)
-
-    @property
-    def done(self):
-        return getattr(self.t, "done", False)
-
-
 def _dual_teacher(s, arm):
     """AssignedPickPlaceTeacher for actor `arm`, constructed inside that task context (then restored)."""
     from rrp.policies.teachers.dual import AssignedPickPlaceTeacher
@@ -743,7 +696,7 @@ def _dual_teacher(s, arm):
         t = AssignedPickPlaceTeacher(s)
     finally:
         s.restore(sn)
-    return _DualTeacher(t)
+    return StatefulDualTeacher(t)
 
 
 def _dual_system0(R, f, lsv, rcv, dev):

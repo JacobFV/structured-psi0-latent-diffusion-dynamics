@@ -1,4 +1,4 @@
-"""train / evaluate CLI."""
+"""train / campaign / latency / analyze CLI (the BC `rrp evaluate` is `rrp eval --policy bc=...`, D-140 S6b)."""
 from __future__ import annotations
 
 import json
@@ -27,27 +27,6 @@ def cmd_train_policy(a):
     print(json.dumps(train_policy(cfg, _run_dir(cfg, cfg["name"])), indent=1, default=str))
 
 
-def cmd_evaluate(a):
-    import torch
-    from rrp.policies.bc import BCPolicy, LearnedPolicy
-    from rrp.harness.eval.hooks import arm_hooks, arm_scene
-    from rrp.harness.eval.evaluate import evaluate, summarize
-    dev = "cuda" if torch.cuda.is_available() else "cpu"
-    if dev == "cuda":
-        from rrp.ops.workload import apply_cap
-        apply_cap()
-    pol = LearnedPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=a.nfe, execute_prefix=a.prefix)
-    seeds = list(range(a.seed_start, a.seed_start + a.episodes))
-    out = {}
-    for robot in a.robots.split(","):
-        res = evaluate(BCPolicy(pol, name=a.method, version=f"learned:{a.checkpoint}"), "mujoco/arm", "pick_place",
-                       robot, seeds, scene=arm_scene, hooks=arm_hooks(), max_steps=a.max_steps, batch=a.batch,
-                       out=Path(a.out), row_extra=dict(method=a.method, checkpoint=a.checkpoint))
-        out[robot] = summarize(res)
-        print(robot, json.dumps(out[robot]), flush=True)
-    Path(a.out).with_suffix(".summary.json").write_text(json.dumps(out, indent=1))
-
-
 def cmd_train_psi0(a):
     """Ψ₀ matched fine-tuning and its offline evaluations: rrp.policies.psi0.train (its own argument parser;
     `rrp train psi0 --arm direct ...`, `rrp train psi0 probes ...`, `rrp train psi0 heldout ...`)."""
@@ -69,18 +48,6 @@ def register(sub):
     p.add_argument("--config", required=True)
     p.add_argument("--seed", type=int)
     p.set_defaults(fn=cmd_train_policy)
-    e = sub.add_parser("evaluate", help="closed-loop evaluation")
-    e.add_argument("--checkpoint", required=True)
-    e.add_argument("--robots", required=True)
-    e.add_argument("--episodes", type=int, default=20)
-    e.add_argument("--seed-start", type=int, default=3000000)
-    e.add_argument("--method", default="policy")
-    e.add_argument("--max-steps", type=int, default=300)
-    e.add_argument("--nfe", type=int, default=8)
-    e.add_argument("--prefix", type=int, default=8)
-    e.add_argument("--batch", type=int, default=16)
-    e.add_argument("--out", required=True)
-    e.set_defaults(fn=cmd_evaluate)
     register_campaign(sub)
     register_analyze(sub)
 

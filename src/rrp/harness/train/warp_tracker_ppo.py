@@ -7,7 +7,7 @@ with full self-collision by rrp.evaluation.tracker_validation (the gate is never
 Source label of the exported actor: `learned_tracker` (trained with a privileged critic; deployed without it).
 
 usage (peer, GPU lease):
-    PYTHONPATH=src:$HOME/work/ext/pylibs/mjwarp python -m rrp.harness.train.warp_tracker_ppo --body t1 --out artifacts/runs/X \
+    PYTHONPATH=src:$HOME/work/ext/pylibs/mjwarp python -m rrp.cli train tracker-warp --body t1 --out artifacts/runs/X \
         [--recipe <name|json>] [--nworld 4096] [--iters 1500] [--resume]
 """
 from __future__ import annotations
@@ -334,7 +334,3 @@ def main(argv=None):
             export_actor(ac, dict(meta, alpha=gate.alpha, reward_weights=weights, gate_history=gate.history[-50:]),
                          out / "actor.pt", it)
     print("done", flush=True)
-
-
-if __name__ == "__main__":
-    main()
