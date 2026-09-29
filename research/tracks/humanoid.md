@@ -198,3 +198,12 @@ Long runs use `/dev/shm/rrp-brandonin/wt/humanoid` (never re-synced while they r
 - h1 r2 FAILED (iter 282: window fall 0.95, tracking error 1.86): trainer bug, the warm-start observation normaliser was
   overwritten by the first batch (count 1e-4). Fixed (count 1e6, as tracker_training). r2b = fixed + alpha 0.5: running.
 - t1 r1 (running, iter ~600): window fall 4%, tracking error 0.53, turn ratio 1.8 (same over-rotation), slip 0.21.
+- **Sim-to-sim finding (the main P1b lesson so far):** policies trained with `no_self_collision` use leg poses where the legs
+  pass through each other. In C MuJoCo with full self-collision: h1 r2b push no-fall 0.5 and waypoint 15/20 fell; t1 r1
+  (iter 1049) forward no-fall 0.2, forward ratio 0.0, peak force 5.6 BW, waypoint 20/20 fell. With left-right leg contacts
+  enabled on the GPU, the t1 r1 actor falls within ~1 s in every episode. New declared adaptation `leg_cross_collision`
+  (left-leg vs right-leg contacts on, other self-contacts off; same GPU cost under contention: t1 13.7k vs 13.0k ticks/s)
+  is now the GPU training default. t1 r1/r2 are void; t1 v2 restarts from scratch; h1 r3 fine-tunes r1 iter 649 under it.
+- Shared tracker v1 (no_self_collision) was paused at iter ~10 after profiling: 10 groups x 512 worlds ran at 6.6k samples/s
+  (per-group Python/torch overhead ~25 ms/tick dominates at 512 worlds). The recipe now uses 8 larger groups; relaunch after the
+  per-body trackers, under leg_cross_collision.
