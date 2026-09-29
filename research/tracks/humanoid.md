@@ -262,3 +262,9 @@ Long runs use `/dev/shm/rrp-brandonin/wt/humanoid` (never re-synced while they r
 - **t1 v2ft2** (+ target_margin 0.03, land_vel -2): waypoint 19/20, 0 falls; no-fall 1.0 everywhere, fwd 1.09, turn 1.18,
   slip 0.073, CoT 0.59, **joint margin 0.022 (passes now)**; D-112 fails ONLY peak force 3.63 BW. Recorded deviation from the
   3-attempt stop rule (t1 is at ~2.7e8 of 6e8 samples): one more attempt, v2ft3 = + per-tick force cap (2.5 BW, -2).
+- **h1 steps expert v2** (1500 iters, curriculum reached level 0.4 = step heights up to 0.12 L; training success ~0.45-0.50
+  per window) in C MuJoCo, full self-collision, 20 seeds per height (`artifacts/runs/humanoid_p2_h1_steps_v2/c_grid/`):
+  expert (privileged_teacher:rl_expert + scripted heading command) h = 0.10 L: **20/20 success, 0 falls**; h = 0.15-0.30 L:
+  0/20, all timeouts, it stops before the first riser (inputs outside its curriculum range; it never falls). Blind h1 r6
+  tracker (no scan): 0/20, **20/20 falls** at 0.10 L and 0.15 L. P2 gate for h_steps (expert >= 0.9 over 0.10-0.30 L) not met
+  yet -> resume the curriculum (checkpoints now store the level; resume with --level0 0.4).
