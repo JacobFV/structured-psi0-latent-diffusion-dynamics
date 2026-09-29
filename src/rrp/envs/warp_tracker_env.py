@@ -383,14 +383,19 @@ class WarpTrackerEnv:
         cfg, N = self.cfg, self.N
         a = actions.clamp(-5, 5)
         new_t = torch.clamp(self.q0 + self.scale * a, self.lo, self.hi)
-        old_t = self.ctrl[:, self.pol_act].clone()
+        old_full = self.ctrl.clone()
+        if self.held_act is not None:
+            old_full[:, self.held_act] = self.q0_held
+        new_full = old_full.clone()
+        new_full[:, self.pol_act] = new_t
         pw = torch.zeros(N, device=self.dev)
         dadr = self.pol_dadr
+        maxlat = 4                                      # latency draws are 0-4 substeps: afterwards every world has new targets
         for kk in range(self.substeps):
-            sel = (self.lat <= kk)[:, None]
-            self.ctrl[:, self.pol_act] = torch.where(sel, new_t, old_t)
-            if self.held_act is not None:
-                self.ctrl[:, self.held_act] = self.q0_held
+            if kk == 0:
+                self.ctrl.copy_(torch.where((self.lat <= 0)[:, None], new_full, old_full))
+            elif kk <= maxlat:
+                self.ctrl.copy_(torch.where((self.lat <= kk)[:, None], new_full, old_full))
             self.wp.capture_launch(self.graph, stream=self.stream)
             pw += (self.act_force[:, self.pol_act] * self.qvel[:, dadr]).abs().sum(-1)
         pw /= self.substeps

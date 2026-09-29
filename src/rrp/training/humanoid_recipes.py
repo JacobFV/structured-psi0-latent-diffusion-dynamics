@@ -69,7 +69,9 @@ def recipe_record(name_or_path: str) -> tuple[dict, dict]:
     if name_or_path in HUMANOID_RECIPES:
         rec = HUMANOID_RECIPES[name_or_path]
         if rec is None and name_or_path == "shared_morph_v1":
-            rec = _shared(groups=[[[b], 512] for b in SHARED_POOL_V1] + phum_groups())
+            # profiling (2026-09-29): per-group overhead ~28 ms/tick regardless of worlds, physics unsaturated at 512 worlds ->
+            # fewer, larger groups: 6 menagerie x 1024 + 2 phum topologies x 32 bodies x 2048 worlds
+            rec = _shared(groups=[[[b], 1024] for b in SHARED_POOL_V1] + phum_groups(2, 32, 2048), minibatches=16)
         raw = json.dumps(rec, sort_keys=True).encode()
         where = dict(name=name_or_path, module="rrp.training.humanoid_recipes")
     else:
