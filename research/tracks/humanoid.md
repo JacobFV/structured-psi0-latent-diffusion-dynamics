@@ -243,3 +243,15 @@ Long runs use `/dev/shm/rrp-brandonin/wt/humanoid` (never re-synced while they r
   "h1 gpu r6: D-112 fails peak force 3.74 BW, joint margin -0.001". Heavier impact/limit weights (r5 -> r6) did not reduce
   either, so the next attempts (t1, g1) add two structural mechanisms: `target_margin` (joint targets clipped 3% inside the
   range, applied identically in deployment) and `land_vel` (training-only touchdown foot-speed penalty).
+- **t1 v2ft** (t1 v2 + clock gate, impact -4, limit hinge -8) in C MuJoCo: **waypoint 19/20, 0 falls**; no-fall 1.0 everywhere,
+  fwd 1.11, turn 1.05, slip 0.072, CoT 0.54; D-112 FAIL on peak force 3.28 BW and joint margin 0.016. Next: t1 v2ft2 with
+  target_margin 0.03 + land_vel.
+
+## P2 log
+- `h_steps` GPU expert env bug found and fixed: changing box geom sizes at run time (per-world step heights via batched
+  geom_size/pos/aabb/rbound) breaks mujoco_warp contacts -- with a flush h = 0 staircase, h1 r6 (which walks indefinitely on the
+  flat GPU env and crosses the same h = 0 staircase in C MuJoCo, 2/3 success + 1 lateral miss) tipped over at x ~ 1 m in 100% of
+  episodes; the same model compiled at h = 0 did not (`scripts/humanoid_steps_diag.py`). Steps are now fixed-size boxes on mocap
+  bodies moved per world (level 0: no falls in 500 ticks). The first h1 steps run (v2, geom-resizing) was void and stopped.
+- h1 steps expert v2 (warm start h1 r6, privileged 11x3 height scan + h_frac, scripted heading command, step-height
+  curriculum 0-0.30 L): running.
