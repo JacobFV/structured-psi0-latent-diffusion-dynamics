@@ -347,6 +347,8 @@ def test_replay_rollout_through_simple_env(tmp_path, task, n_rows, outcome):
     try:
         sp = env.spec
         assert sp.action_kinds() == {"psi0"} and sp.bodies[0].robot_spec_hash == G.spec_hash()
+        from rrp.envs.simple import env_spec
+        assert env_spec(task=sp.task).model_dump(exclude={"provenance"}) == sp.model_dump(exclude={"provenance"})
         assert negotiate(pol.info, sp, t).ok
         other = get_task("simple/G1WholebodyBendPickMP-v0")
         from rrp.policies.psi0 import make_direct
@@ -364,10 +366,11 @@ def test_simple_tasks_registered_and_arm_policies_declined():
     assert POLICIES["psi0_direct"] == "rrp.policies.psi0:make_direct" and POLICIES["psi0_structured"] == "rrp.policies.psi0:make_structured"
     d, s = make_direct(), make_structured()           # construction is cheap: no weights touched before reset
     assert d.info.source.startswith("learned:psi0-released/") and d.info.variant == "released" and s.info.version == "unhashed"
-    simple = EnvSpec(env_id="simple", backend="isaac_simple", task="simple/G1WholebodyTabletopGraspMP-v0", control_hz=50.0,
-                     bodies=[BodyInfo(robot=0, family="humanoid", key="g1_simple", robot_spec_hash=G.spec_hash())],
-                     action_spaces=[ActionSpace(group="psi0", kind="psi0", width=36, rate_hz=50.0)],
-                     capabilities=["privileged_truth", "render", "chunk_executor", "images", "language", "proprio"])
+    from rrp.envs.simple import env_spec
+    simple = env_spec(task="simple/G1WholebodyTabletopGraspMP-v0")         # static: no worker, no Isaac
+    assert simple.env_id == "simple" and simple.action_kinds() == {"psi0"} and simple.bodies[0].key == "g1_simple"
+    with pytest.raises(ValueError):
+        env_spec(task="simple/G1WholebodyTabletopGraspMP-v0", body="panda")
     assert negotiate(d.info, simple, TASKS["simple/G1WholebodyTabletopGraspMP-v0"]).ok
     latent = PolicyInfo("latent", "learned", "v", Requirements(frozenset({"joint_position", "gripper"}),
                                                               body_families=frozenset({"arm"})))

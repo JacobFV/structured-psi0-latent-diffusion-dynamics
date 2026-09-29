@@ -158,21 +158,29 @@ class SimpleEnv:
         raise RuntimeError(f"SIMPLE worker {method} failed: {r[1]}\n{r[2]}")
 
     def _make_spec(self, task):
-        from rrp.bodies import g1_simple as G
-        from rrp.envs.base import ActionSpace, BodyInfo, EnvSpec
-        return EnvSpec(env_id="simple", backend="isaac_simple", task=f"simple/{task}",
-                       bodies=[BodyInfo(robot=0, family="humanoid", key="g1_simple", robot_spec_hash=G.spec_hash())],
-                       control_hz=CONTROL_HZ,
-                       action_spaces=[ActionSpace(group="psi0", kind="psi0", width=G.ACTION_DIM, rate_hz=CONTROL_HZ,
-                                                  units="rad|m|m/s|flag (rrp.bodies.g1_simple layout)")],
-                       capabilities=["privileged_truth", "render", "chunk_executor", "images", "language", "proprio"],
-                       frame={"units": "m", "up": "+z"},
-                       provenance=dict(level=self.info["level"], sim_mode=self.info["sim_mode"], render=self.info["render"],
-                                       agent=self.info["agent"], upstream=self.info["upstream"], uid_fixes=self.info["uid_fixes"]))
-
+        return env_spec(task=task, provenance=dict(level=self.info["level"], sim_mode=self.info["sim_mode"],
+                                                   render=self.info["render"], agent=self.info["agent"],
+                                                   upstream=self.info["upstream"], uid_fixes=self.info["uid_fixes"]))
 
 class ChunkRequired(Exception):
     pass
+
+
+def env_spec(*, task: str, body: str | list[str] = "g1_simple", provenance: dict | None = None):
+    """The static EnvSpec of `simple` (no worker, no Isaac): what `rrp matrix` negotiates against. A running
+    SimpleEnv's spec is the same plus the worker's provenance (level, render profile, agent, upstream revisions)."""
+    from rrp.bodies import g1_simple as G
+    from rrp.envs.base import ActionSpace, BodyInfo, EnvSpec
+    if body not in ("g1_simple", ["g1_simple"]):
+        raise ValueError(f"simple has one body, g1_simple; got {body!r}")
+    name = task.split("/", 1)[1] if task.startswith("simple/") else task
+    return EnvSpec(env_id="simple", backend="isaac_simple", task=f"simple/{name}",
+                   bodies=[BodyInfo(robot=0, family="humanoid", key="g1_simple", robot_spec_hash=G.spec_hash())],
+                   control_hz=CONTROL_HZ,
+                   action_spaces=[ActionSpace(group="psi0", kind="psi0", width=G.ACTION_DIM, rate_hz=CONTROL_HZ,
+                                              units="rad|m|m/s|flag (rrp.bodies.g1_simple layout)")],
+                   capabilities=["privileged_truth", "render", "chunk_executor", "images", "language", "proprio"],
+                   frame={"units": "m", "up": "+z"}, provenance=provenance or {})
 
 
 def make_env(*, task: str, body: str | list[str] = "g1_simple", seed: int = 0, **kw) -> SimpleEnv:

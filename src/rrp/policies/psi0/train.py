@@ -1,12 +1,12 @@
 """Ψ₀ matched fine-tuning and its offline evaluations (W10; psi1z `train` + `fit_probes` + `openloop_cached`, D-140).
 
-    python -m rrp.policies.psi0.train --arm stageA ...       packet E/R/P (structured arm only; no VLM)
-    python -m rrp.policies.psi0.train --arm direct ...       "Ψ₀ direct"
-    python -m rrp.policies.psi0.train --arm structured ...   "Ψ₀ + structure": same transformer init, optimizer, schedule,
-                                                             batch, steps as direct; flow over z + bounded semantic loss
-                                                             through the frozen probe; actions from the frozen system 0
-    python -m rrp.policies.psi0.train probes ...             fresh probe + metadata-only control on frozen z (diagnostics)
-    python -m rrp.policies.psi0.train heldout ...            held-out open-loop L1 per action group
+    rrp train psi0 --arm stageA ...       packet E/R/P (structured arm only; no VLM)
+    rrp train psi0 --arm direct ...       "Ψ₀ direct"
+    rrp train psi0 --arm structured ...   "Ψ₀ + structure": same transformer init, optimizer, schedule, batch, steps
+                                          as direct; flow over z + bounded semantic loss through the frozen probe;
+                                          actions from the frozen system 0
+    rrp train psi0 probes ...             fresh probe + metadata-only control on frozen z (diagnostics)
+    rrp train psi0 heldout ...            held-out open-loop L1 per action group
 
 Fairness: identical cached trunk features, data, held-out episodes, batch, steps, optimizer and schedule for direct vs
 structured; stage A compute is reported separately. Monitoring: per-loss gradient norms on the shared transformer
@@ -73,7 +73,7 @@ def load_model_cfg(run_dir):
 
 
 def train(argv=None):
-    ap = argparse.ArgumentParser(prog="python -m rrp.policies.psi0.train")
+    ap = argparse.ArgumentParser(prog="rrp train psi0")
     ap.add_argument("--arm", choices=["stageA", "direct", "structured"], required=True)
     ap.add_argument("--feat-dir", required=True)
     ap.add_argument("--labels-dir", default=None)
@@ -227,7 +227,7 @@ def zs_of(A, b, head=None, nfe=10):
 
 
 def fit_probes(argv=None):
-    ap = argparse.ArgumentParser(prog="python -m rrp.policies.psi0.train probes")
+    ap = argparse.ArgumentParser(prog="rrp train psi0 probes")
     ap.add_argument("--feat-dir", required=True)
     ap.add_argument("--labels-dir", required=True)
     ap.add_argument("--stage-a", required=True)
@@ -282,7 +282,7 @@ def fit_probes(argv=None):
 def heldout(argv=None):
     """Held-out open-loop L1 per action group on cached features: released Ψ₀ header, direct, structured, and the
     DIAGNOSTIC oracle route R(E(demonstrated chunk)) (uses the target actions; never a deployable number)."""
-    ap = argparse.ArgumentParser(prog="python -m rrp.policies.psi0.train heldout")
+    ap = argparse.ArgumentParser(prog="rrp train psi0 heldout")
     ap.add_argument("--feat-dir", required=True)
     ap.add_argument("--run-dir", required=True)
     ap.add_argument("--direct", default=None)
@@ -352,7 +352,3 @@ def main(argv=None):
     if argv and argv[0] in ("probes", "heldout"):
         return (fit_probes if argv[0] == "probes" else heldout)(argv[1:])
     return train(argv)
-
-
-if __name__ == "__main__":
-    main()

@@ -57,7 +57,7 @@ repo; weights, datasets, venvs and runs stay under `~/work/ext`. psi1z never nee
 | `structured.py`, `system_i.py` | `rrp/policies/psi0/nets.py` | E / R (system 0) / P, StageA, DirectHead, StructuredHead, ContextTokens; byte-identical math (golden test) |
 | `serve_ours --edit probe:*/random:*` | harness packet hook (`psi0_probe_edit`) | `--edit entity:<name>` = policy option `entity_override` (input channel, not a packet edit) |
 | `features.py`, `data.py`, `compat_psi.py` | `rrp/policies/psi0/data.py` | frozen-VLM feature cache, memmap, `CachedDataset`, replay labels, lerobot PyAV patch |
-| `train.py`, `fit_probes.py`, `openloop_cached.py` | `rrp/policies/psi0/train.py` | `python -m rrp.policies.psi0.train --arm stageA|direct|structured`, `… probes`, `… heldout` (`rrp train` wiring after S5; harness/cli were off-limits during S4/S5) |
+| `train.py`, `fit_probes.py`, `openloop_cached.py` | `rrp/policies/psi0/train.py` | `rrp train psi0 --arm stageA|direct|structured`, `… probes`, `… heldout` |
 | `replay_labels.py` | policy `psi0_replay` (recorded rows, source `replay:<task>`) on `simple` (`split="train"`, `render=False`, `sim_mode="mujoco"`) + `LabelRecorder` hook in `rrp/policies/psi0/data.py` (a Hook; imports nothing from harness) | one contact/palm logger (the worker's truth) instead of two; the P-005 diagnostic options (`--vx-override`, `--step-delay`, `--save-frames`) are dropped |
 | `prov.py` | deleted | `rrp.core.provenance` and `rrp.harness.eval.statistics` directly; upstream revisions in `SimpleEnv.spec.provenance` |
 | `openloop.py` | deleted | port of the upstream notebook for the released model (done, notes below); `load_launch_config` moves to `policies/psi0` |
@@ -84,7 +84,7 @@ Merged on main after S3 (see git log "psi0mig"). Registered: env `simple` (`rrp.
 tests only (D-140): nets byte-identical to psi1z (goldens), worker RPC and upstream-agent queue semantics against a test
 double, a full `harness.rollout` of `psi0_replay` x `simple` (fake worker) x `simple/<Task>` with the `LabelRecorder` hook,
 negotiation both ways. Not yet run against real Isaac/SIMPLE or real checkpoints from the rrp path.
-Open: `rrp train psi0` / `rrp matrix` CLI wiring (after S5), `psi0_replay` in the POLICIES table (policies/base.py, S4
+Open: `psi0_replay` in the POLICIES table (policies/base.py, S4
 owner), structured-arm diagnosis (D-141), psi1z archival (owner approval).
 
 ## resume

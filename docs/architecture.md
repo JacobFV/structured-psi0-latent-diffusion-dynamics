@@ -341,7 +341,7 @@ stage's commit message and section 10 record.
 Ψ₀ migration (psi1z → rrp; done, map in research/tracks/psi0.md):
 - [x] `rrp/bodies/g1_simple.py`: the G1 + Dex3 36-d command morphology tables and `spec_hash()` (the G1 is simulated inside SIMPLE, so there is no compiled `RobotSpec`); key `g1_simple`.
 - [x] `rrp/envs/simple/` (`make_env`): `SimpleEnv` drives a SIMPLE worker process (its own venv, Isaac Sim 5.1) over 127.0.0.1; the worker runs the unmodified upstream agent with an injected chunk client; `compat.py` holds the import hooks; action space `psi0` [36] at 50 Hz with capability `chunk_executor`; `chunk_request` / `psi0_state` channels; truth = palms, pelvis, objects, contacts (labels/judging only).
-- [x] `rrp/policies/psi0/` (`make_direct`, `make_structured`, `make_replay`): policies over the upstream `Server` object (transforms, normalization, RTC); `nets.py`, `data.py` (feature cache, dataset, `LabelRecorder` hook), `train.py` (`python -m rrp.policies.psi0.train`; `rrp train` wiring with S5).
+- [x] `rrp/policies/psi0/` (`make_direct`, `make_structured`, `make_replay`): policies over the upstream `Server` object (transforms, normalization, RTC); `nets.py`, `data.py` (feature cache, dataset, `LabelRecorder` hook), `train.py` (`rrp train psi0 ...`).
 - [x] `rrp/tasks/spec.py`: `simple/<Task>` for the six benchmark tasks (`SIMPLE_TASKS`: released run, published rates, step-1 status), judge = SIMPLE `_success` via `env.truth()`.
 - [x] P-001..P-023 folded as appendix P of `research/decisions.md`; notes in `research/tracks/psi0.md`; `docs/related_repos.md` deleted (glossary: section 11). psi1z archived read-only after owner approval.
 
