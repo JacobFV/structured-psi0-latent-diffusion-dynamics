@@ -207,3 +207,12 @@ Long runs use `/dev/shm/rrp-brandonin/wt/humanoid` (never re-synced while they r
 - Shared tracker v1 (no_self_collision) was paused at iter ~10 after profiling: 10 groups x 512 worlds ran at 6.6k samples/s
   (per-group Python/torch overhead ~25 ms/tick dominates at 512 worlds). The recipe now uses 8 larger groups; relaunch after the
   per-body trackers, under leg_cross_collision.
+- **h1 r3 (fine-tune of r1 iter 649 under leg_cross_collision, 600 iters) in C MuJoCo, full self-collision, 10 seeds**
+  (`artifacts/runs/humanoid_p1b_h1_r3/gate/{val.json,gate/gate_report.json,lab_gate.json}`): no-fall 1.0 on every trial incl.
+  the 0.15 m/s push and all in-range robustness conditions; forward 1.08, turn 0.96, slip 0.018, CoT 0.51, joint margin 0.032.
+  Lab gate PASS. D-112 gate FAIL on one criterion: peak foot force 3.72 BW (limit 3.0). Waypoint (scripted_teacher) 0/20
+  success, 0 falls: walk_to_a and walk_to_b succeed, the final `halt` fails because under a zero command h1 keeps stepping and
+  drifts ~0.06 m/s with yaw (`scripts/humanoid_waypoint_diag.py`). Videos (peer store, `artifacts/video/INDEX.md`):
+  `2026-09-29_contact_h1_{forward,turn}_*-vs-h1-gpu-r3_ok_ok.mp4` (both panels show r3: no installed h1 contact_v2 actor on the
+  peer, labelled by the version string), t1 r1 failure clip `2026-09-29_contact_t1_forward_forward_installed-vs-t1-gpu-r1_ok_fell.mp4`.
+  -> h1 r4 (running): ~25% zero commands, stand_contact 2, stand_still -1, impact -0.5.
