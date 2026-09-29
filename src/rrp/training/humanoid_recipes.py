@@ -211,3 +211,11 @@ HUMANOID_RECIPES["h1_steps_gpu_v2"] = _steps("h1", init_shared="artifacts/runs/h
 # (recorded): one more t1 attempt within the sample budget, v2ft3 = v2ft2 + per-tick force cap (2.5 BW, weight -2).
 HUMANOID_RECIPES["t1_clock_gpu_v2ft3"] = _ft2("t1", "artifacts/runs/humanoid_p1b_t1_v2ft2/actor_v2ft2final.pt", force_cap=-2.0,
                                               force_cap_bw=2.5)
+
+# g1 v4ft (target_margin 0.03 + land_vel) in C MuJoCo: no-fall 1.0 on trials, fwd 0.96, turn 0.86, slip 0.016, CoT 0.51, force
+# 2.12 BW (pass); joint margin 0.018 (fail: the PD overshoots the 3% target band by ~1% of the range); waypoint 15/20, 5 falls.
+# g1 v4ft2 = last g1 attempt: target_margin 0.05, 400 iters.
+HUMANOID_RECIPES["g1_clock_gpu_v4ft2"] = _ft("g1", "artifacts/runs/humanoid_p1b_g1_v4ft/actor_v4ftfinal.pt", alpha_schedule="fixed:0.5",
+                                             teacher_stop=0.3, clock_gate=True, target_margin=0.05, land_vel=-2.0, iters=400,
+                                             reward_set=_R5.replace("impact=-2.0", "impact=-4.0").replace("limit_margin=-4.0",
+                                                                                                          "limit_margin=-8.0"))

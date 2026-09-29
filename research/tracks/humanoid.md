@@ -270,3 +270,6 @@ Long runs use `/dev/shm/rrp-brandonin/wt/humanoid` (never re-synced while they r
   yet -> resume the curriculum (checkpoints now store the level; resume with --level0 0.4).
   Videos (peer `artifacts/video`, INDEX.md): `2026-09-29_humanoid_steps_h1_h0.10_s7300_expert-v2_success.mp4`,
   `..._h0.20_s7301_expert-v2_timeout.mp4` (stops before the stairs), `..._h0.10_s7300_blind-r6_fell.mp4` (blind tracker trips).
+- **g1 v4ft** (target_margin 0.03 + land_vel): no-fall 1.0 on validation trials, fwd 0.96, turn 0.86, slip 0.016, CoT 0.51,
+  peak force 2.12 BW (pass); FAILS joint margin 0.018 (PD overshoot past the 3% target band); waypoint 15/20 with 5 falls
+  (v4: 17/20, 3 falls). -> g1 v4ft2 (target_margin 0.05) = last g1 attempt.
