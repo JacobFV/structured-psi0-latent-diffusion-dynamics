@@ -96,9 +96,10 @@ class WarpStepsEnv(WarpTrackerEnv):
             size = torch.stack([hx, hw, hz], -1)
             self.g_pos[:, gid] = torch.where(M, pos, self.g_pos[:, gid])
             self.g_size[:, gid] = torch.where(M, size, self.g_size[:, gid])
-            aabb = self.g_aabb[:, gid].reshape(n, -1)
-            new = torch.cat([torch.zeros(n, 3, device=self.dev), size], -1)
-            self.g_aabb[:, gid] = torch.where(M, new.reshape(self.g_aabb[:, gid].shape), aabb.reshape(self.g_aabb[:, gid].shape))
+            shp = self.g_aabb[:, gid].shape
+            new = torch.cat([torch.zeros(n, 3, device=self.dev), size], -1).reshape(shp)
+            Mx = mask.view(-1, *([1] * (len(shp) - 1)))
+            self.g_aabb[:, gid] = torch.where(Mx, new, self.g_aabb[:, gid])
             self.g_rb[:, gid] = torch.where(mask, size.norm(dim=-1), self.g_rb[:, gid])
         self._rows = rows
 
