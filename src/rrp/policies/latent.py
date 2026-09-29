@@ -8,7 +8,7 @@ import numpy as np
 import torch
 
 from rrp.core.latent_action import LatentActionChunk, AssemblyHandle, EntityHandle
-from rrp.policies.features.featurizer import cached_featurizer, featurizer_for  # noqa: F401
+from rrp.policies.features.featurizer import cached_featurizer
 from rrp.policies.nets.checkpoint import load_checkpoint
 from rrp.policies.nets.batch import collate_inputs
 from rrp.policies.nets.flow import FlowPolicy, PolicyConfig

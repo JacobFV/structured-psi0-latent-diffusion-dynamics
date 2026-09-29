@@ -320,7 +320,7 @@ def _eval(model, base, realizer, cfg: LatentGRPORunConfig, seeds, device, tag, o
 
 def train_latent_grpo(cfg: LatentGRPORunConfig) -> dict:
     from rrp.policies.nets.checkpoint import load_checkpoint, save_checkpoint
-    from rrp.harness.train.latent_train import load_representation
+    from rrp.policies.bundles import load_representation
     from rrp.bodies.armdiv import is_armdiv_sealed
     if (cfg.robot in TARGET_BODIES or is_armdiv_sealed(cfg.robot)) and not cfg.allow_target:
         raise ValueError(f"{cfg.robot} is a sealed target body (D-025); pass allow_target for the campaign stage only")

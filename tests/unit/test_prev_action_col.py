@@ -12,7 +12,7 @@ def test_prev_action_col_matches_featurizer_layout():
     from rrp.bodies.catalog import workbench_robots
     from rrp.envs.mujoco.scenario import BUILDERS
     from rrp.envs.mujoco.session import Session
-    from rrp.harness.data.collect import featurizer_for
+    from rrp.policies.features.featurizer import featurizer_for
     s = Session(BUILDERS["pick_place"](workbench_robots()["panda_pg2"](), 3_000_000, n_distractors=0), seed=3_000_000)
     f = featurizer_for(s)
     assert f.static_dim + 2 == PREV_ACTION_COL
@@ -27,7 +27,7 @@ def test_load_time_zeroing_hits_prev_action_col_not_col2():
     from rrp.bodies.catalog import workbench_robots
     from rrp.envs.mujoco.scenario import BUILDERS
     from rrp.envs.mujoco.session import Session
-    from rrp.harness.data.collect import featurizer_for
+    from rrp.policies.features.featurizer import featurizer_for
     s = Session(BUILDERS["pick_place"](workbench_robots()["panda_pg2"](), 3_000_000, n_distractors=0), seed=3_000_000)
     pi = featurizer_for(s)(s.observe())
     n = pi.act_node_feats.shape[0]

@@ -24,7 +24,9 @@ import numpy as np
 import torch
 
 from rrp.policies.features.legged import public_context, active_event, MAX_N
-from rrp.harness.train.legged_latent_train import LeggedData, load_rep, rep_step, _dev, _save, MAX_J, H
+from rrp.harness.train.legged_latent_train import LeggedData, rep_step, _save
+from rrp.policies.bundles import load_rep, _dev
+from rrp.policies.features.legged import MAX_J, H
 
 
 class Recorder:
@@ -72,14 +74,15 @@ class Recorder:
 
 
 def collect(a):
-    from rrp.harness.eval.legged_latent_eval import (BCController, LatentLeggedController, run_episode, _seeds)
-    from rrp.harness.train.legged_bc import load_bc
+    from rrp.core.runs import parse_seed_spec
+    from rrp.harness.eval.legged_latent_eval import BCController, LatentLeggedController, run_episode
+    from rrp.policies.nets.legged_bc import load_bc
     dev = torch.device("cpu")
     torch.set_num_threads(1)
     bc, _ = load_bc(a.bc, dev)
     out = Path(a.out) / a.body
     out.mkdir(parents=True, exist_ok=True)
-    seeds = _seeds(a.seeds)
+    seeds = parse_seed_spec(a.seeds)
     f = out / f"s{seeds[0]}-{seeds[-1]}.npz"
     eps, metas, morph = [], [], None
     for sd in seeds:

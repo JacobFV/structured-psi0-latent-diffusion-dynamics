@@ -17,7 +17,8 @@ from rrp.core.errors import ControllerRejection, StaleActionError
 from rrp.policies.system0 import LatentSystem0
 from rrp.harness.data.collect import privileged_labels
 from rrp.policies.features.featurizer import featurizer_for
-from rrp.harness.data.packed import active_operator, _focus
+from rrp.harness.data.packed import _focus
+from rrp.policies.features.derived import active_operator
 from rrp.policies.nets.latent_probes import probe_metrics
 
 

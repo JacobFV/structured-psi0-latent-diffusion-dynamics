@@ -78,13 +78,13 @@ def test_source_mapping_covers_legacy_strings():
 
 
 def test_featurizer_constant_is_single():
-    from rrp.harness.data.collect import FEATURIZER_VERSION as A
-    from rrp.harness.train.behavior import FEAT_VERSION as B
-    assert A is FEATURIZER_VERSION and B is FEATURIZER_VERSION
+    from rrp.core.provenance import FEATURIZER_VERSION as A
+    import rrp.harness.train.behavior as B
+    assert A is FEATURIZER_VERSION and B.FEATURIZER_VERSION is FEATURIZER_VERSION
 
 
 def test_weights_digest_matches_arm_bundle_algorithm():
-    from rrp.policies.system0 import weights_digest as wd_old_name
+    from rrp.core.provenance import weights_digest as wd_old_name
     sd = torch.nn.Linear(4, 3).state_dict()
     h = hashlib.sha256()                                  # the D-038 algorithm, verbatim
     for k in sorted(sd):
@@ -120,7 +120,8 @@ def test_manifest_writer_and_legacy_readers(tmp_path):
 
 
 def test_legged_checkpoints_fingerprinted_and_legacy(tmp_path):
-    from rrp.harness.train.legged_latent_train import _save, checkpoint_provenance
+    from rrp.harness.train.legged_latent_train import _save
+    from rrp.policies.bundles import checkpoint_provenance
     from rrp.harness.eval.legged_latent_eval import legged_bundle_versions
     E, R = torch.nn.Linear(3, 2), torch.nn.Linear(2, 2)
     cfg = dict(name="t", latent=dict(dz=2, width=4, probe_lv_min=-4.0, semantic_weight=1.0))

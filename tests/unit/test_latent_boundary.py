@@ -46,7 +46,7 @@ import json, torch
 from rrp.core.latent_action import LatentActionChunk
 from rrp.policies.system0 import LatentRealizer, LatentSystem0
 from rrp.envs.mujoco.fixtures import make_pick_place_session
-from rrp.harness.data.collect import featurizer_for
+from rrp.policies.features.featurizer import featurizer_for
 p = LatentActionChunk.from_bytes(open(r'{tmp_path}/packet.json','rb').read())
 R = LatentRealizer({DZ}, width=32, heads=2, layers=1); R.load_state_dict(torch.load(r'{tmp_path}/r.pt'))
 s = make_pick_place_session(seed=3)          # fresh instance: no upstream model, cache or hidden state

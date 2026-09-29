@@ -87,7 +87,7 @@ class PrevActionFeaturizer:
 def install_prev_action(s, mode: str):
     """Install PrevActionFeaturizer on a session and make it follow every executed command and snapshot/restore
     (for code paths that step the session themselves, e.g. latent_eval.disturbance_test)."""
-    f = s._rrp_featurizer = PrevActionFeaturizer(_featurizer(s), mode)
+    f = s._rrp_featurizer = PrevActionFeaturizer(cached_featurizer(s), mode)
     step, snap, restore = s.step, s.snapshot, s.restore
     saved = {}
 
@@ -108,7 +108,6 @@ def install_prev_action(s, mode: str):
     return f
 
 
-_featurizer = cached_featurizer      # W4 dedup (rrp.features.featurizer)
 
 
 class ShadowTeacher:
@@ -185,7 +184,7 @@ class OraclePacketPolicy:
         self.calls = 0
 
     def featurizer(self, s):
-        return _featurizer(s)
+        return cached_featurizer(s)
 
     def shadow(self, s) -> ShadowTeacher:
         k = id(s)
@@ -437,7 +436,7 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
         if cfrecs is not None:
             from rrp.harness.data.contact_labels import ContactFrameRecorder
             cfrecs.append(ContactFrameRecorder(s))
-        f = s._rrp_featurizer = PrevActionFeaturizer(_featurizer(s), cfg.prev_action)
+        f = s._rrp_featurizer = PrevActionFeaturizer(cached_featurizer(s), cfg.prev_action)
         S.append(s)
         meters.append(Meter(s))
         if cfg.oracle_expert == "bc":
@@ -467,7 +466,7 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
         if need:
             zo = oracle.encode([S[k] for k in need]) if (cfg.route != "generated" or (cfg.compare_oracle and oracle)) else None
             if cfg.route != "generated":
-                pk = [make_packet(S[k], _featurizer(S[k]), z, models["lcfg"].knot_times, oracle.lsv, oracle.rcv,
+                pk = [make_packet(S[k], cached_featurizer(S[k]), z, models["lcfg"].knot_times, oracle.lsv, oracle.rcv,
                                   oracle.validity, source="target_encoder_oracle", policy_version="oracle_diagnostic")
                       for k, z in zip(need, zo)]
             else:
@@ -484,7 +483,7 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
                     zg = np.asarray(pk[j].z, np.float32)
                     collect["mu"].append(zg.astype(np.float16)); collect["lv"].append(np.full_like(zg, -8.0).astype(np.float16))
                     if collect.get("gen_ctx") is not None:   # generator DAgger: (public context at the learner state, z*)
-                        collect["gen_ctx"].append((_featurizer(S[k])(S[k].observe()), np.asarray(zo[j], np.float32)))
+                        collect["gen_ctx"].append((cached_featurizer(S[k])(S[k].observe()), np.asarray(zo[j], np.float32)))
             for j, (k, p) in enumerate(zip(need, pk)):
                 meta[k]["calls"] += 1
                 rec = dict(t=step)
@@ -522,7 +521,7 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
             if cmd_log is not None:
                 cmd_log.setdefault(k, []).append(None if cmd is None else {g: np.array(v, copy=True) if not np.isscalar(v)
                                                                            else v for g, v in cmd.groups.items()})
-            f = _featurizer(s)
+            f = cached_featurizer(s)
             q_meas = s.data.qpos[mt.qadr].copy()
             lab = labels[k]
             row = dict(t=step, phase=shadows[k].t.phase)
@@ -656,7 +655,7 @@ def _compare(models, s, zg, zo, device) -> dict:
     from rrp.policies.features.derived import local_sensors
     from rrp.harness.eval.latent_eval import packet_labels
     from rrp.policies.nets.latent_probes import probe_metrics
-    f = _featurizer(s)
+    f = cached_featurizer(s)
     pi = f(s.observe())
     kt = torch.tensor(models["lcfg"].knot_times, dtype=torch.float32, device=device)
     nf_ = pi.act_node_feats.astype(np.float32).copy()
@@ -755,7 +754,7 @@ def _gripper_mask(robot_key: str, N: int) -> np.ndarray:
     from rrp.envs.mujoco.session import Session
     s = Session(BUILDERS["pick_place"](workbench_robots()[robot_key](), 3_000_000, n_distractors=0), seed=3_000_000)
     g = np.zeros(N, bool)
-    isg = np.asarray(_featurizer(s).aspace.is_gripper, bool)
+    isg = np.asarray(cached_featurizer(s).aspace.is_gripper, bool)
     g[:len(isg)] = isg
     return g
 

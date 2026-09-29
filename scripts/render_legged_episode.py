@@ -25,7 +25,8 @@ import imageio  # noqa: E402
 import numpy as np  # noqa: E402
 from PIL import Image, ImageDraw  # noqa: E402
 
-from rrp.harness.eval.legged_latent_eval import run_episode, _seeds  # noqa: E402
+from rrp.core.runs import parse_seed_spec  # noqa: E402
+from rrp.harness.eval.legged_latent_eval import run_episode  # noqa: E402
 
 BAR = (0, 0, 0)
 
@@ -73,7 +74,7 @@ def main(argv=None):
     out.mkdir(parents=True, exist_ok=True)
     for body in a.bodies.split(","):
         arc = a.arc_only == "all" or body in a.arc_only.split(",")
-        for sd in _seeds(a.seeds):
+        for sd in parse_seed_spec(a.seeds):
             row, frames = run_episode(None, body, sd, a.max_s, video=True, arc_only=arc, frame_every=a.frame_every,
                                      cam_scale=a.cam_scale.get(body, a.cam_scale.get('*', 1.0)), size=(a.height, a.width))
             # frames are recorded every frame_every native steps; subsample so the clip fits max_clip_s at fps

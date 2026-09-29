@@ -74,7 +74,7 @@ class LatentRealizer(nn.Module):
         return self.out(x).squeeze(-1) * node_mask
 
 
-from rrp.core.system0 import System0Base, System0Stats  # noqa: E402,F401  (W11: shared acceptance protocol)
+from rrp.core.system0 import System0Base
 
 
 Q_COL, QD_COL, ANCHOR_COL = 26, 27, 28     # node-feature layout: normalized joint position; (formerly prev-action, bug B-1) column

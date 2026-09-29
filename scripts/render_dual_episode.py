@@ -41,7 +41,7 @@ def run(a):
     if a.source == "learned_latent":
         from rrp.harness.eval.dual_latent_eval import DualLatentPolicy, DualLatentSystem0, probe_readout
         from rrp.policies.nets.checkpoint import load_checkpoint
-        from rrp.harness.train.latent_train import load_representation
+        from rrp.policies.bundles import load_representation
         if dev == "cuda":
             from rrp.ops.workload import apply_cap
             apply_cap()

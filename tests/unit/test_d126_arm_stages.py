@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from rrp.core.runconfig import RunConfig, RunIndex
-from rrp.harness.pipelines import Pipeline, StageError
+from rrp.harness.pipelines.base import Pipeline, StageError
 from rrp.harness.pipelines import base as pbase
 
 EVAL_FLAGS = dict(zero_prev_action=True, realizer_anchor=None, realizer_drop_qd=None, probe_lv_min=None,

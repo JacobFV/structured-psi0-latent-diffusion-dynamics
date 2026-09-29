@@ -24,8 +24,7 @@ import numpy as np
 import torch
 
 from rrp.policies.features.legged import MAX_N, MAX_M, KNOT_TIMES, TICK_DT, H, MAX_J, KNOT_TICKS
-from rrp.policies.bundles import (_dev, LEGGED_FLAG_KEYS, legged_flags, checkpoint_provenance,  # noqa: F401
-                                  load_rep)  # moved to controllers (W4); re-exported
+from rrp.policies.bundles import _dev, legged_flags, load_rep
 from rrp.policies.nets.legged_latent import (LeggedEncoder, LeggedRealizer, LeggedProbe, LeggedFlow, probe_loss,
                                      probe_metrics)
 

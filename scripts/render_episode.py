@@ -43,7 +43,7 @@ def run(args):
         import torch
         from rrp.policies.latent import LatentPolicy
         from rrp.policies.nets.checkpoint import load_checkpoint
-        from rrp.harness.train.latent_train import load_representation
+        from rrp.policies.bundles import load_representation
         from rrp.policies.system0 import LatentSystem0
         dev = "cuda" if torch.cuda.is_available() else "cpu"
         if dev == "cuda":

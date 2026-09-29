@@ -129,7 +129,6 @@ def collect_episode(body: str, seed: int, sigma: float, tracker_kind="auto", max
     return arr, meta, morph
 
 
-_seeds = parse_seed_spec          # W4 dedup: one implementation in rrp.contracts.runs
 
 
 def main(argv=None):
@@ -145,7 +144,7 @@ def main(argv=None):
     sig = [float(x) for x in a.sigmas.split(",")]
     out = Path(a.out) / a.body
     out.mkdir(parents=True, exist_ok=True)
-    seeds = _seeds(a.seeds)
+    seeds = parse_seed_spec(a.seeds)
     shard = a.shard or f"s{seeds[0]}-{seeds[-1]}"
     f = out / f"{shard}.npz"
     if f.exists():

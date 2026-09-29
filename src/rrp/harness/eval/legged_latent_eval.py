@@ -724,7 +724,6 @@ def _save_packets(zs, out_dir: Path, row):
     row["packets_file"] = str(out_dir / name)
 
 
-_seeds = parse_seed_spec          # W4 dedup: one implementation in rrp.contracts.runs
 
 
 def main(argv=None):
@@ -767,7 +766,7 @@ def main(argv=None):
     with open(out, "a") as f:
         for body in a.bodies.split(","):
             nv = 0
-            for sd in _seeds(a.seeds):
+            for sd in parse_seed_spec(a.seeds):
                 if a.bc and not a.oracle_bc:
                     ctl = BCController(Path(a.bc), dev, nfe=a.nfe, replan=a.replan, seed=sd)
                 elif a.flow or a.rep:

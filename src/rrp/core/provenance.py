@@ -6,7 +6,7 @@ training flags and controller source produced a dataset, checkpoint or evaluatio
   `contact_version` is where the contact track's versioned contact models plug in (rrp.morphology.contact
   `version_str`, recorded as scenario meta["contact_model"]); code that predates them is "contact_v1".
 - `FEATURIZER_VERSION` is the single featurizer constant (aliased by rrp.data.collect.FEATURIZER_VERSION and
-  rrp.learning.behavior.FEAT_VERSION).
+  the training modules).
 - `Source` / `SourceLabel` are the controller-source vocabulary. `parse_source` maps every legacy free string
   (contracts.action.Source values, "oracle", "target_encoder_oracle", tracker_source values, eval row strings)
   onto it; old files are never rewritten.

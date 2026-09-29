@@ -4,7 +4,7 @@ import pytest
 import torch
 
 from rrp.envs.mujoco.fixtures import make_pick_place_session
-from rrp.harness.data.collect import featurizer_for
+from rrp.policies.features.featurizer import featurizer_for
 from rrp.policies.nets.batch import collate_inputs
 from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
 

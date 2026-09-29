@@ -20,7 +20,7 @@ from rrp.policies.nets.codec import ActionCodec, CodecConfig
 from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
 from rrp.ops.workload import CheckpointSignal
 
-from rrp.core.provenance import FEATURIZER_VERSION as FEAT_VERSION  # noqa: E402  (alias of the single constant)
+from rrp.core.provenance import FEATURIZER_VERSION  # noqa: E402
 
 
 def device_setup():
@@ -101,7 +101,7 @@ def train_codec(cfg: dict, out_dir: Path) -> dict:
         res["heldout_recon"] = evaluate_codec(model, dsh, dev)
     res["train_recon"] = evaluate_codec(model, ds, dev, max_batches=20)
     meta = save_checkpoint(out_dir / "codec.pt", model=model, optimizer=opt, step=step,
-                           versions=dict(codec=ccfg.version, featurizer=FEAT_VERSION), config=cfg,
+                           versions=dict(codec=ccfg.version, featurizer=FEATURIZER_VERSION), config=cfg,
                            extra=dict(result=res, interrupted=sig.requested))
     res["checkpoint"] = meta
     (out_dir / ("result.json" if not sig.requested else "interrupted.json")).write_text(json.dumps(res, indent=1, default=str))
@@ -150,7 +150,7 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
         ds = ChunkDataset(eps, cfg["horizon"], stride=cfg.get("stride", 1))
     codec = None
     if cfg.get("codec_checkpoint"):
-        st = load_checkpoint(Path(cfg["codec_checkpoint"]), requested_versions=dict(featurizer=FEAT_VERSION))
+        st = load_checkpoint(Path(cfg["codec_checkpoint"]), requested_versions=dict(featurizer=FEATURIZER_VERSION))
         codec = ActionCodec(CodecConfig(**st["config"]["codec"])).to(dev)
         codec.load_state_dict(st["model"])
         codec.eval()
@@ -193,7 +193,7 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
 
     def save_last(next_epoch, nskip):
         save_checkpoint(last, model=model, optimizer=opt, step=step,
-                        versions=dict(policy=pcfg.name, featurizer=FEAT_VERSION,
+                        versions=dict(policy=pcfg.name, featurizer=FEATURIZER_VERSION,
                                       codec=(codec.cfg.version if codec else None)),
                         config=cfg, data_cursor=dict(epoch=next_epoch - 1, next_epoch=next_epoch, skip=nskip),
                         extra=dict(sched=sched.state_dict(), gen=gen.get_state()))
@@ -233,7 +233,7 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
                     save_last(epoch, bi)       # exact cursor: weights after `bi` batches of `epoch`
             if step in snap_steps:             # named snapshots (e.g. the u12000 DAgger expert); same file as policy_last
                 save_checkpoint(out_dir / f"policy_u{step}.pt", model=model, optimizer=opt, step=step,
-                                versions=dict(policy=pcfg.name, featurizer=FEAT_VERSION,
+                                versions=dict(policy=pcfg.name, featurizer=FEATURIZER_VERSION,
                                               codec=(codec.cfg.version if codec else None)), config=cfg)
             if sig.requested or step >= cfg.get("smoke_max_steps", 1 << 62):
                 break
@@ -242,7 +242,7 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
         if sig.requested:
             # checkpoint-before-termination: resumable state (the interrupted epoch is repeated)
             save_checkpoint(last, model=model, optimizer=opt, step=step,
-                            versions=dict(policy=pcfg.name, featurizer=FEAT_VERSION,
+                            versions=dict(policy=pcfg.name, featurizer=FEATURIZER_VERSION,
                                           codec=(codec.cfg.version if codec else None)),
                             config=cfg, data_cursor=dict(epoch=epoch - 1), extra=dict(sched=sched.state_dict()))
             break
@@ -250,7 +250,7 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
             save_last(epoch + 1, 0)
         elif (epoch + 1) % every == 0 and epoch + 1 < cfg["epochs"]:
             save_checkpoint(last, model=model, optimizer=opt, step=step,
-                            versions=dict(policy=pcfg.name, featurizer=FEAT_VERSION,
+                            versions=dict(policy=pcfg.name, featurizer=FEATURIZER_VERSION,
                                           codec=(codec.cfg.version if codec else None)),
                             config=cfg, data_cursor=dict(epoch=epoch), extra=dict(sched=sched.state_dict()))
     res = dict(steps=step, wall_s=time.time() - t0, train_chunks=len(ds), swap_pairs=len(pairs),
@@ -258,7 +258,7 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
                gpu=ginfo, interrupted=sig.requested)
     meta = save_checkpoint(out_dir / ("policy.pt" if not sig.requested else "policy_interrupted.pt"),
                            model=model, optimizer=opt, step=step,
-                           versions=dict(policy=pcfg.name, featurizer=FEAT_VERSION,
+                           versions=dict(policy=pcfg.name, featurizer=FEATURIZER_VERSION,
                                          codec=(codec.cfg.version if codec else None)),
                            config=cfg, extra=dict(result=res))
     res["checkpoint"] = meta

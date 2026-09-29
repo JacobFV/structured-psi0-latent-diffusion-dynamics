@@ -4,5 +4,4 @@
 standard library at module level (the `ops` commands must run on a bootstrap python without the project venv); every
 heavy dependency is imported inside a command function. Import errors are never swallowed.
 """
-from rrp.cli.main import *  # noqa: F401,F403
-from rrp.cli.main import _parse_bytes, build_parser, main  # noqa: F401
+from rrp.cli.main import main  # noqa: F401  (console-script entry point `rrp.cli:main`)

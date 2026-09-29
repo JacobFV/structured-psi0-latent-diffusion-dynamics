@@ -43,7 +43,7 @@ from typing import Any, Callable, Protocol, runtime_checkable
 
 import numpy as np
 
-from rrp.policies.nets.system2_vlm import COLORS, QUESTION  # noqa: F401  (QUESTION re-exported for callers)
+from rrp.policies.nets.system2_vlm import COLORS
 
 SYSTEM2_HARNESS_VERSION = "s2h-1"
 

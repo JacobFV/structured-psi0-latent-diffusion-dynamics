@@ -9,7 +9,7 @@ import torch
 
 transformers = pytest.importorskip("transformers")
 
-from rrp.harness.data.collect import featurizer_for  # noqa: E402
+from rrp.policies.features.featurizer import featurizer_for  # noqa: E402
 from rrp.policies.nets.batch import collate_inputs  # noqa: E402
 from rrp.policies.nets.flow import FlowPolicy, PolicyConfig  # noqa: E402
 from rrp.policies.nets.qa import ObjectQA, DECODER, policy_hidden  # noqa: E402

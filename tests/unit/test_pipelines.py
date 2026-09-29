@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from rrp.core.runconfig import RunConfig, RunIndex
-from rrp.harness.pipelines import MANIFEST, Pipeline, StageError
+from rrp.harness.pipelines.base import MANIFEST, Pipeline, StageError
 from rrp.harness.pipelines import base as pbase
 
 FLAGS_ARM = dict(zero_prev_action=True, realizer_anchor=True, realizer_drop_qd=True, probe_lv_min=None, qd_dropout=None,

@@ -142,7 +142,7 @@ def make_teacher(cond, s, goal_off):
 
 
 # ------------------------------------------------------------------ packet sources
-from rrp.harness.eval.packets import arm_packet as build_packet  # noqa: E402  (W5: one builder; old name kept)
+from rrp.harness.eval.packets import arm_packet  # noqa: E402
 
 
 class OracleSource:
@@ -216,7 +216,7 @@ class OracleSource:
         if getattr(s, "_sem_dual", False):
             return dual_packet(f, s, o, z, lsv=self.lsv, rcv=self.rcv, knot_times=self.lcfg.knot_times,
                                source="target_encoder_oracle", name=self.name, sampling=samp)
-        return build_packet(f, s, o, z, lsv=self.lsv, rcv=self.rcv, knot_times=self.lcfg.knot_times,
+        return arm_packet(f, s, o, z, lsv=self.lsv, rcv=self.rcv, knot_times=self.lcfg.knot_times,
                             source="target_encoder_oracle", name=self.name, sampling=samp)
 
 

@@ -93,7 +93,6 @@ def collect_episode(body: str, seed: int, tracker_kind: str = "auto", max_steps:
     return EpisodeRecord(public, private)
 
 
-_seeds = parse_seed_spec          # W4 dedup: one implementation in rrp.contracts.runs
 
 
 def main(argv=None):
@@ -109,7 +108,7 @@ def main(argv=None):
     out = Path(a.out) / a.body
     rows = []
     from rrp.harness.data.collect import read_episode
-    for sd in _seeds(a.seeds):
+    for sd in parse_seed_spec(a.seeds):
         pub = out / f"{a.body}_wpc_s{sd}.public.pkl.gz"
         if pub.exists() and (out / f"{a.body}_wpc_s{sd}.private.pkl.gz").exists() and \
                 read_episode(pub)["meta"]["tracker_source"] == ("scripted_controller" if a.tracker == "cpg" else "learned_tracker"):

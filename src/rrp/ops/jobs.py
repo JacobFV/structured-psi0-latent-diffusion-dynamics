@@ -18,7 +18,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from rrp.ops.broker import ResourceBroker, LeaseError
-from rrp.ops.workload import CheckpointSignal  # noqa: F401  (moved to the workload contract, W4)
 
 
 def pid_start_ticks(pid: int) -> int | None:

@@ -25,7 +25,7 @@ from rrp.policies.nets.backbone import Resampler
 from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
 from rrp.ops.workload import CheckpointSignal
 
-from rrp.harness.train.behavior import FEAT_VERSION  # noqa: E402  (feat-v2)
+from rrp.core.provenance import FEATURIZER_VERSION  # noqa: E402
 
 
 class VLMFlowPolicy(nn.Module):
@@ -184,7 +184,7 @@ def train(cfg: dict, out_dir: Path) -> dict:
                                for m in (["real", "shuffled", "blank"] if model.resampler else ["real"])}
     cfg_saved = dict(cfg, policy=pcfg, resampler_cfg=rcfg)
     meta = save_checkpoint(out_dir / "policy.pt", model=model, optimizer=None, step=step,
-                           versions=dict(policy=pcfg.get("name"), featurizer=FEAT_VERSION,
+                           versions=dict(policy=pcfg.get("name"), featurizer=FEATURIZER_VERSION,
                                          backbone=store.index["spec_key"] if rcfg else None),
                            config=cfg_saved, extra=dict(result=res))
     res["checkpoint"] = meta

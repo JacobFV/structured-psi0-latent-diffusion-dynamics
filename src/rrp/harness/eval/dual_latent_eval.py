@@ -29,7 +29,8 @@ from rrp.core.provenance import stamp_source_label
 from rrp.policies.system0 import LatentSystem0
 from rrp.policies.features.multi import MultiFeaturizer
 from rrp.harness.data import dual_latent as DL
-from rrp.harness.data.packed import OPERATORS, _focus
+from rrp.harness.data.packed import _focus
+from rrp.policies.features.derived import OPERATORS
 from rrp.policies.nets.batch import collate_inputs
 from rrp.policies.nets.latent_batch import assembly_batch
 from rrp.policies.latent import LatentPolicy

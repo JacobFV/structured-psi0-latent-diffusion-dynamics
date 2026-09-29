@@ -87,7 +87,7 @@ def test_latent_path_likelihood_ratio_padding_and_kl():
 def test_batched_system0_matches_per_session_tick():
     import copy
     from rrp.policies.system0 import LatentRealizer, LatentSystem0
-    from rrp.harness.train.latent_grpo import batched_ticks
+    from rrp.policies.system0 import batched_ticks
     torch.manual_seed(1)
     m = _policy()
     R = LatentRealizer(DZ, width=32, heads=2, layers=1)

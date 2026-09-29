@@ -53,7 +53,7 @@ def test_cli_registers_everything_without_heavy_deps(argv):
 
 
 def test_used_commands_parse():
-    from rrp.cli import build_parser
+    from rrp.cli.main import build_parser
     for cmd in USED:
         with pytest.raises(SystemExit) as e:
             build_parser().parse_args(cmd.split() + ["--help"])

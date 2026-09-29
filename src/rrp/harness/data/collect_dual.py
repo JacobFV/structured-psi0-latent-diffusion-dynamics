@@ -21,7 +21,7 @@ from pathlib import Path
 import numpy as np
 
 from rrp.harness.data.collect import EpisodeRecord, privileged_labels, write_episode, read_episode
-from rrp.harness.data.collect import FEATURIZER_VERSION as BASE_FEATURIZER_VERSION
+from rrp.core.provenance import FEATURIZER_VERSION as BASE_FEATURIZER_VERSION
 from rrp.policies.features.multi import MultiFeaturizer
 from rrp.harness.data.manifest import write_manifest, dataset_provenance
 from rrp.core.provenance import physics_provenance

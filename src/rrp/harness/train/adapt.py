@@ -25,7 +25,7 @@ def _device():
 def load_policy(path, device):
     from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
     from rrp.policies.nets.codec import ActionCodec, CodecConfig
-    from rrp.harness.data.collect import FEATURIZER_VERSION
+    from rrp.core.provenance import FEATURIZER_VERSION
     # never adapt a checkpoint trained on a different public featurizer (silent input mismatch)
     st = load_checkpoint(path, map_location=device, requested_versions=dict(featurizer=FEATURIZER_VERSION))
     if st["versions"].get("featurizer") != FEATURIZER_VERSION:

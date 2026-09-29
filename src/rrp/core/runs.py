@@ -44,7 +44,7 @@ class RunManifest(Strict):
 
 def parse_seed_spec(spec: str) -> list[int]:
     """"a-b" (inclusive range) or "a,b,c" -> seed list. W4: the one copy of the three identical legged `_seeds` helpers
-    (rrp.data.legged_collect, rrp.data.legged_latent_collect, rrp.evaluation.legged_latent_eval keep `_seeds` aliases)."""
+    (used by the legged collectors and evaluations)."""
     if "-" in spec:
         a, b = spec.split("-")
         return list(range(int(a), int(b) + 1))
