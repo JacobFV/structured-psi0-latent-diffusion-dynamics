@@ -253,6 +253,30 @@ LEGGED_ASSETS = {
                   license="Apache-2.0", key="walk_pose", feet=["leg_left_6_link", "leg_right_6_link"],
                   gains=None, legs=r"leg_", action_scale=0.2, gait_period=0.9,
                   command_ranges=dict(vx=[-0.2, 0.5], vy=[-0.1, 0.1], wz=[-0.4, 0.4])),
+    # ---- W13 (D-138) humanoid pool additions. gains "auto" = the declared rule for bodies without author PD gains:
+    # kp = clip(effort x 1.0 N m/rad, 10, 300), kd = 0.025 kp (AUTO_GAIN_RULE); effort = the asset's own torque limit
+    # (limits_source "menagerie_author": motor ctrlrange or position forcerange, not manufacturer-audited)
+    "apollo": dict(dir="apptronik_apollo", file="apptronik_apollo.xml", kind="humanoid", family="apptronik_apollo",
+                   license="Apache-2.0", key="stand", feet=["l_foot_link", "r_foot_link"], gains="auto",
+                   collision_group=3, legs=r"hip|knee|ankle", action_scale=0.25, gait_period=0.8,
+                   limits_source="menagerie_author",
+                   pitch_actuators=dict(left=["l_hip_fe", "l_knee_fe", "l_ankle_pd"], right=["r_hip_fe", "r_knee_fe", "r_ankle_pd"]),
+                   command_ranges=dict(vx=[-0.3, 0.8], vy=[-0.2, 0.2], wz=[-0.6, 0.6])),
+    "adam_lite": dict(dir="pndbotics_adam_lite", file="adam_lite.xml", kind="humanoid", family="pndbotics_adam",
+                      license="MIT", key=None, feet=["toeLeft", "toeRight"], gains="auto",
+                      default={"hipPitch_Left": -0.25, "kneePitch_Left": 0.5, "anklePitch_Left": -0.25,
+                               "hipPitch_Right": -0.25, "kneePitch_Right": 0.5, "anklePitch_Right": -0.25},
+                      legs=r"hip|knee|ankle", action_scale=0.25, gait_period=0.8, limits_source="menagerie_author",
+                      pitch_actuators=dict(left=["hipPitch_Left", "kneePitch_Left", "anklePitch_Left"],
+                                           right=["hipPitch_Right", "kneePitch_Right", "anklePitch_Right"]),
+                      command_ranges=dict(vx=[-0.3, 0.8], vy=[-0.2, 0.2], wz=[-0.6, 0.6])),
+    # SEALED target (D-138 S2): adapter is code only; never trained on, gains from the declared rule, not tuned
+    "n1": dict(dir="fourier_n1", file="n1.xml", kind="humanoid", family="fourier_n1", license="Apache-2.0", key=None,
+               feet=["left_foot_pitch_link", "right_foot_pitch_link"], gains="auto",
+               default={"left_hip_pitch_joint": -0.25, "left_knee_pitch_joint": 0.5, "left_ankle_pitch_joint": -0.25,
+                        "right_hip_pitch_joint": -0.25, "right_knee_pitch_joint": 0.5, "right_ankle_pitch_joint": -0.25},
+               legs=r"hip|knee|ankle", action_scale=0.25, gait_period=0.8, limits_source="menagerie_author", sealed=True,
+               command_ranges=dict(vx=[-0.3, 0.8], vy=[-0.2, 0.2], wz=[-0.6, 0.6])),
     "cassie": dict(dir="agility_cassie", file="cassie.xml", kind="biped", family="agility_cassie", license="MIT",
                    key="home", feet=["left-foot", "right-foot"],
                    gains=[("hip-roll|hip-yaw", 100.0, 3.0, None), ("hip-pitch|knee", 200.0, 5.0, None),
@@ -260,6 +284,14 @@ LEGGED_ASSETS = {
                    legs=r".*", action_scale=0.25, gait_period=0.8,
                    command_ranges=dict(vx=[-0.3, 1.0], vy=[-0.2, 0.2], wz=[-0.6, 0.6])),
 }
+
+
+AUTO_GAIN_RULE = "kp = clip(effort x 1.0, 10, 300) N m/rad, kd = 0.025 kp (W13, D-138)"
+
+
+def _auto_gains(eff: float) -> tuple[float, float]:
+    kp = float(min(300.0, max(10.0, eff)))
+    return kp, 0.025 * kp
 
 
 def _rule(name: str, rules):
@@ -338,7 +370,12 @@ def menagerie_legged(key: str, limits: str | None = None) -> Module:
         else:
             eff0 = float(max(abs(m0.actuator_ctrlrange[u, 0]), abs(m0.actuator_ctrlrange[u, 1])) * gear)
             kp0, kd0 = None, None
-        r = _rule(a.name, info["gains"]) if info["gains"] else None
+        if info["gains"] == "auto":
+            if eff0 is None:
+                raise ValueError(f"{key}: gains 'auto' needs an asset torque limit for {a.name}")
+            r = (*_auto_gains(eff0), eff0)
+        else:
+            r = _rule(a.name, info["gains"]) if info["gains"] else None
         if r is None and not is_pos:
             raise ValueError(f"{key}: no PD gain rule for motor actuator {a.name}")
         kp, kd, eff = r if r else (kp0, kd0, eff0)
@@ -373,6 +410,10 @@ def menagerie_legged(key: str, limits: str | None = None) -> Module:
                 inverted.append([eq.name2, eq.name1])
             else:
                 raise ValueError(f"{key}: nonlinear equality drives actuated joint {eq.name1}")
+    if info.get("collision_group") is not None:     # W13: assets whose collision geoms rely on scene contact pairs
+        for g in spec.geoms:
+            if g.group == info["collision_group"]:
+                g.contype, g.conaffinity = 1, 1
     imu = add_imu(spec, root_body)
     spec.add_text(name="actuator_limits", data=limits)       # queryable from any compiled model containing this body
     model = spec.copy().compile()
@@ -429,6 +470,9 @@ def menagerie_legged(key: str, limits: str | None = None) -> Module:
                                 dict(name="upper", actuators=held, semantic="joint_position", units="rad"))
                     if g["actuators"]]),
                 actuator_limits=limits,
+                **({"limits_source": info["limits_source"], "gain_rule": AUTO_GAIN_RULE if info["gains"] == "auto" else None,
+                    "collision_group_enabled": info.get("collision_group"), "sealed": bool(info.get("sealed"))}
+                   if info.get("limits_source") else {}),
                 actuator_adapter=dict(kind="joint_pd_position_servo", note="motor actuators converted to PD servos; torque "
                                       f"limits = {limits} (see rrp.physics.actuator.SOURCED); position actuators re-gained per table",
                                       actuators=adapter, inverted_joint_equalities=inverted),
@@ -440,7 +484,8 @@ def menagerie_legged(key: str, limits: str | None = None) -> Module:
                             gait_period=info["gait_period"], min_height_frac=0.55 if info["kind"] != "quadruped" else 0.4,
                             tilt_limit=0.7 if info["kind"] != "quadruped" else 0.9, kind=info["kind"],
                             nominal_height=nominal, gait="biped" if info["kind"] != "quadruped" else "trot",
-                            source_timestep=float(src_model.opt.timestep)),
+                            source_timestep=float(src_model.opt.timestep),
+                            **({"pitch_actuators": info["pitch_actuators"]} if info.get("pitch_actuators") else {})),
                 source_options=dict(timestep=float(src_model.opt.timestep), integrator=int(src_model.opt.integrator),
                                     cone=int(src_model.opt.cone), impratio=float(src_model.opt.impratio),
                                     iterations=int(src_model.opt.iterations)))

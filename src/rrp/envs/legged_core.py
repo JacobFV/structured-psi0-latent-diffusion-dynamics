@@ -161,6 +161,10 @@ class LeggedBinding:
         if not hasattr(self, "_pitch_idx"):
             import re
             acts = self.L["policy_actuators"]
+            if self.L.get("pitch_actuators") and self.biped:     # W13: explicit mapping for bodies whose names do not match
+                pa = self.L["pitch_actuators"]
+                self._pitch_idx = tuple(np.array([acts.index(a) for a in pa[sd]]) for sd in ("left", "right"))
+                return self._pitch_idx
             f = lambda side, pat: [k for k, a in enumerate(acts) if re.search(side, a, re.I) and re.search(pat, a, re.I)]
             try:
                 self._pitch_idx = tuple(np.array([f(sd, "hip_pitch")[0], f(sd, "knee")[0], f(sd, "ankle_pitch|ankle$")[0]])
@@ -503,7 +507,9 @@ class LeggedEnv:
         def _idx(side, pat):
             return [k for k, a in enumerate(acts) if _re.search(side, a, _re.I) and _re.search(pat, a, _re.I)]
         self.ref_idx = None
-        if self.b.biped:
+        if self.b.biped and self.meta["legged"].get("pitch_actuators"):      # W13 explicit mapping (absent: unchanged)
+            self.ref_idx = self.b.pitch_idx()
+        elif self.b.biped:
             try:
                 L = [_idx("left", "hip_pitch")[0], _idx("left", "knee")[0], _idx("left", "ankle_pitch|ankle$")[0]]
                 Rr = [_idx("right", "hip_pitch")[0], _idx("right", "knee")[0], _idx("right", "ankle_pitch|ankle$")[0]]

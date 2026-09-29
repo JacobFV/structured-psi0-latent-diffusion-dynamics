@@ -70,11 +70,17 @@ def _newton_small(m):
     m.opt.ls_iterations = min(int(m.opt.ls_iterations), 8)
 
 
+def _solver10(m):
+    m.opt.iterations = min(int(m.opt.iterations), 10)
+    m.opt.ls_iterations = min(int(m.opt.ls_iterations), 20)
+
+
 ADAPTATIONS = {
     "pyramidal_cone": ("contact_v2 elliptic cone -> pyramidal", _pyramidal),
     "no_self_collision": ("robot geoms collide with the floor only (no robot-robot contacts)", _no_robot_self_collision),
     "condim3": ("condim 6 (torsional + rolling friction) -> 3", _condim3),
     "few_solver_iters": ("solver iterations <= 4, line-search <= 8 (MJX-typical)", _newton_small),
+    "solver_iters_10": ("solver iterations <= 10, line-search <= 20 (W13 P1a)", _solver10),
 }
 
 
