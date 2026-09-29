@@ -150,6 +150,6 @@
  ],
  "episodes": {
   "v6_keys": "300 clean + 300 DART (unchanged v6 items, seed_start 0)",
-  "new_keys": "80 clean + 80 DART (seed_start 0); pack <= 25 GB (lead)"
+  "new_keys": "64 clean + 64 DART (seed_start 0); pack <= 25 GB (lead): smoke 160 rows/episode x 11.2 KB/row"
  }
 }

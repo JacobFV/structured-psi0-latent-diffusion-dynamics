@@ -934,7 +934,7 @@ grasp_v2.1): training candidates on source seeds 0-19, target candidates on targ
   load-time for packed rows, idempotent, so one pack serves both arms of the ablation) + world-axis column in the
   base frame; recorded as checkpoint version `kinfeat`, mismatches refused at load. The parent-offset vector of the plan
   is NOT included (it would change the feature width).
-- New keys get 80 clean + 80 DART episodes (not 150 + 150) to keep the pack ≤ 25 GB (lead); v6 items unchanged.
+- New keys get 64 clean + 64 DART episodes (not 150 + 150) to keep the pack ≤ 25 GB (lead; smoke pack: 160 rows per new-arm episode, 11.2 KB per row -> ~2.1 M rows, ~23 GB); v6 items unchanged.
 - Resource note: the training screen peaked at 10.0 GB against 12 GB declared and was throttled at memory.high (rc 0,
   slower only); later CPU leases of this size declare ≥ 14 GB.
 
