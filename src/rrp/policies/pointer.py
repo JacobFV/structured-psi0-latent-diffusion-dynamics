@@ -167,29 +167,38 @@ def target_depth(env, x: float, y: float) -> float:
 
 class TeacherOracleSource:
     """ORACLE DIAGNOSTIC packet source (privileged): the scripted teacher's next ticks, run on a shadow twin env, encoded
-    with the engineered encoding. Metric: shadow/real divergences (state hash at the packet tick)."""
+    with the engineered encoding, or (`encoder` = a frozen PointerEncoder with its versions) as z = E(public features
+    at t, teacher chunk) for the LEARNED system 0 (the arm's target-encoder oracle). Metric: shadow/real divergences
+    (state hash at the packet tick)."""
     name = "cw_teacher_oracle"
-    lsv = rcv = ENG_VERSION
 
-    def __init__(self, validity: float = VALIDITY_S):
-        self.validity = validity
+    def __init__(self, validity: float = VALIDITY_S, encoder=None, versions: dict | None = None, device="cpu"):
+        self.validity, self.E, self.device = validity, encoder, device
+        self.lsv = versions["latent_space_version"] if versions else ENG_VERSION
+        self.rcv = versions["realizer_compat_version"] if versions else ENG_VERSION
         self.calls = 0
 
     def reset(self, envs):
         from rrp.policies.teachers.computerworld import CWTeacher
-        self.st = {}
+        self.st, self.hist = {}, {}
         for e in envs:
             sh = _twin(e)
-            self.st[id(e)] = dict(shadow=sh, teacher=CWTeacher(sh, e.task_name), cmds=[], depths=[],
-                                  hashes=[sh.state_hash()], done=False, divergences=0)
+            self.st[id(e)] = dict(shadow=sh, teacher=CWTeacher(sh, e.task_name), cmds=[], depths=[], ptrs=[],
+                                  btns=[], hashes=[sh.state_hash()], done=False, divergences=0)
+            self.hist[id(e)] = EventHistory()
 
     def featurizer(self, env):
         return None
+
+    def executed(self, env, command) -> None:
+        self.hist[id(env)].push(env.steps, None if command is None else command.groups, screen_half(env.spec))
 
     def _advance(self, st, upto: int):
         sh = st["shadow"]
         while len(st["cmds"]) < upto:
             c = None if st["done"] else st["teacher"].act()
+            st["ptrs"].append(sh._qpos()[:2].copy())
+            st["btns"].append(float(sh.pointer.button))
             if c is None:
                 st["done"] = True
                 st["cmds"].append(None)
@@ -201,6 +210,27 @@ class TeacherOracleSource:
             st["cmds"].append(g)
             st["hashes"].append(sh.state_hash())
 
+    def _encode(self, e, obs, st, n, H):
+        import torch
+        half = screen_half(e.spec)
+        f = public_features(obs, half, self.hist[id(e)], n)
+        cmds, ptrs, btns = st["cmds"][n:n + H], st["ptrs"][n:n + H], st["btns"][n:n + H]
+        a = dict(dxy=np.zeros((H, 2), np.float32), xy=np.zeros((H, 2), np.float32), btn=np.zeros(H, np.float32),
+                 key=np.zeros(H, np.int64), valid=np.zeros(H, bool))
+        for j, g in enumerate(cmds):
+            if g is None:
+                continue
+            xy = np.asarray(g["pointer"], np.float32)
+            a["dxy"][j] = (xy - ptrs[j]) / STEP_M
+            a["xy"][j] = xy / half
+            a["btn"][j] = float(g["button"][0] >= 0.5)
+            a["key"][j] = int(round(g.get("key", [-1])[0])) + 1
+            a["valid"][j] = True
+        b = collate_public([f], self.device)
+        at = {k: torch.from_numpy(v)[None].to(self.device) for k, v in a.items()}
+        with torch.no_grad():
+            return self.E(b, at)[0][0].float().cpu().numpy()
+
     def packets(self, envs) -> list[LatentActionChunk]:
         out = []
         for e in envs:
@@ -210,8 +240,13 @@ class TeacherOracleSource:
             self._advance(st, n + H)
             if n < len(st["hashes"]) and st["hashes"][n] != e.state_hash():
                 st["divergences"] += 1
-            z = encode_commands(st["cmds"][n:n + H], dt, len(e.spec.space("key").vocab), st["depths"][n:n + H])
-            out.append(pointer_packet(e, e.observe(), z, lsv=self.lsv, rcv=self.rcv, source="oracle", name=self.name,
+            obs = e.observe()
+            if self.E is None:
+                z = encode_commands(st["cmds"][n:n + H], dt, len(e.spec.space("key").vocab), st["depths"][n:n + H])
+            else:
+                z = self._encode(e, obs, st, n, H)
+            out.append(pointer_packet(e, obs, z, lsv=self.lsv, rcv=self.rcv,
+                                      source="oracle" if self.E is None else "target_encoder_oracle", name=self.name,
                                       validity=self.validity))
         self.calls += len(envs)
         return out
@@ -225,12 +260,25 @@ def pointer_requirements(*, privileged: bool = False, tasks=None):
                         privileged=privileged)
 
 
-def make_pointer_oracle(*, replan_ticks: int = 4, name: str = "pointer_oracle"):
-    """ORACLE DIAGNOSTIC: scripted-teacher look-ahead -> engineered packet -> SCRIPTED engineered system 0."""
+def make_pointer_oracle(*, replan_ticks: int = 4, name: str = "pointer_oracle", representation: str | None = None,
+                        device: str = "cpu"):
+    """ORACLE DIAGNOSTIC: scripted-teacher look-ahead -> engineered packet -> SCRIPTED engineered system 0; with
+    `representation` (a pointer rep checkpoint): -> z = E(public features, teacher chunk) -> its LEARNED system 0."""
     from rrp.policies.latent import LatentStackPolicy
-    return LatentStackPolicy(TeacherOracleSource(), None, replan_ticks=replan_ticks, name=name, source="oracle",
-                             version=f"oracle:teacher->{ENG_VERSION}|system0={EngineeredSystem0.label}",
-                             make_s0=EngineeredSystem0, requires=pointer_requirements(privileged=True))
+    if representation is None:
+        return LatentStackPolicy(TeacherOracleSource(), None, replan_ticks=replan_ticks, name=name, source="oracle",
+                                 version=f"oracle:teacher->{ENG_VERSION}|system0={EngineeredSystem0.label}",
+                                 make_s0=EngineeredSystem0, requires=pointer_requirements(privileged=True))
+    rb = load_pointer_bundle(representation, device)
+    v = rb["versions"]
+    R = rb["modules"]["R"]
+    return LatentStackPolicy(TeacherOracleSource(encoder=rb["modules"]["E"], versions=v, device=device), R,
+                             replan_ticks=replan_ticks, name=name, source="oracle", variant=rb["config"]["variant"],
+                             version=f"oracle:E({representation})|system0=learned:{v['realizer_compat_version']}",
+                             make_s0=lambda e: LearnedSystem0(R, e, latent_space_version=v["latent_space_version"],
+                                                              realizer_compat_version=v["realizer_compat_version"],
+                                                              device=device),
+                             requires=pointer_requirements(privileged=True))
 
 
 # =============================================================================================== learned route (step 2)
