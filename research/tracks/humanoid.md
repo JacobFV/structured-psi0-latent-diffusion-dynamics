@@ -291,3 +291,24 @@ Long runs use `/dev/shm/rrp-brandonin/wt/humanoid` (never re-synced while they r
 - h1 steps v2 resumed to 4000 iters stayed at level 0.4 (window success 0.38-0.50): the 20 s episode is too short for the
   staircase course (x_end + 0.3 L ~ 6.5 m at 0.48 m/s = 13.5 s on flat ground; slower on steps), so timeouts count as failures
   and the 0.7 level-up threshold is never reached. Next segment: 30 s episodes, level-up 0.6 (recorded before running).
+
+## RESUME (checkpoint 2026-09-29, humanoid agent)
+Running peer leases (W13, <= 2 GPU):
+- `1790702624_8e8209` hum_p1c_shared_v2: `python -m rrp.training.warp_tracker_ppo --recipe shared_morph_v2 --out
+  artifacts/runs/humanoid_p1c_shared_v2` from `wt/humanoid_run24` (6 h cap; ~14 s/iter shared; 3000 iters -> resume segments
+  with `--resume` from a fresh peer code dir).
+- `1790703036_10ad63` hum_p2_h1_steps_v2: resume segment `--recipe h1_steps_gpu_v2 --resume --iters 6000 --level0 0.4
+  --episode-s 30 --level-up 0.6` from `wt/humanoid_run25`.
+Next, in order (<= 2 GPU leases; never sync a code dir with running jobs; one fresh `wt/humanoid_runN` per launch):
+1. When steps finishes: C grid `scripts/humanoid_steps_eval_grid.sh h1 <actor> artifacts/runs/humanoid_p1b_h1_r6/actor_r6final.pt
+   <out>` (CPU lease, via run_retry pattern); P2 gate = expert >= 0.9 at 0.10-0.30 L.
+2. Gap expert: smoke `scripts/humanoid_gap_smoke.py h1 artifacts/runs/humanoid_p1b_h1_r6/actor_r6final.pt`, then
+   `--recipe h1_gap_gpu_v1` (then t1_gap_gpu_v1); C eval `scripts/humanoid_gap_eval.py`.
+3. D-139 side attempt (<= 1 recipe, pre-declared): g1 knee-specific target band + stance knee-flex term.
+4. Shared morph_v2: C gate per pool body (LearnedTracker deploys morph_v1 automatically; `scripts/humanoid_tracker_finalize.sh
+   <body> <shared actor> ...`), then SEALED zero-shot once on n1 / berkeley (adapter still to write) / toddlerbot (adapter to
+   write) / phum sealed seeds `sealed_region_seeds(20)` -- Level-1 existing-controller transfer.
+5. P3 design: generalise `rrp.features.legged.public_context` (EVENTS / GLOBAL_DIM are waypoint-specific) and
+   `rrp.data.legged_latent_collect` to task scenarios + expert trackers (extra_fn) before any latent/BC training.
+Pool trackers (D-139 labels): h1 r6 (`artifacts/runs/humanoid_p1b_h1_r6/actor_r6final.pt`), t1 v2ft4
+(`artifacts/runs/humanoid_p1b_t1_v2ft4/actor.pt`), g1 v4 (`artifacts/runs/humanoid_p1b_g1_v4/actor_v4final.pt`).
