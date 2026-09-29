@@ -962,3 +962,27 @@ transfer evidence exists.
   and sealed evals. Estimate ≈ 9–13 days with a GPU sim, ≈ 3 weeks (3 tasks) CPU-only.
 - Resources: humanoid track holds ≤ 2 GPU leases with priority over armdiv (1). Peer disk ~84 GB free: small packs, archive
   finished artifacts off the peer. Stop rules: ≤ 3 recipe attempts per tracker body, ≤ 2 reward designs per task expert.
+
+## D-139 2026-09-29 W13 P1b: labelled D-112 exception for the GPU humanoid trackers (lead, 2026-09-29; same shape as D-113)
+humanoid agent (research/tracks/humanoid.md "P1b log"). GPU PPO on MuJoCo Warp (D-138 P1a), validated in C MuJoCo with full
+self-collision, contact_v2, sourced limits, 10 seeds per trial. Lessons that made the trackers usable: (1) `no_self_collision`
+training let the legs pass through each other (t1 r1 fell in 80% of forward trials) -> declared adaptation `leg_cross_collision`;
+(2) clock-driven stepping at zero command made every waypoint halt fail -> `clock_gate` (clock inputs zeroed at zero command,
+identical in training and deployment); (3) joint targets clipped inside the range (`target_margin`) and a per-tick foot-force cap.
+Best trackers (no falls on any validation trial or in-range robustness condition; lab gate passes on all three):
+- h1 r6: waypoint 20/20; fwd 1.11, slip 0.012, CoT 0.71; D-112 FAILS peak force 3.74 BW and joint margin -0.001.
+- t1 v2ft3: waypoint 20/20; fwd 1.08, turn 0.95, slip 0.054, CoT 0.53 (installed CPU-trained w8d: 2.13); force 2.72 BW;
+  D-112 FAILS joint margin 0.009 (right hip yaw).
+- g1 v4: waypoint 17/20 (3 falls); fwd 0.90, slip 0.016, CoT 0.47, force 2.13 BW; D-112 FAILS joint margin 0.012 (knees).
+Decisions (lead):
+(1) EXCEPTION: P1c/P2/P3 proceed on h1 r6, g1 v4 and t1 (v2ft3, or v2ft4 by this PRE-STATED rule written before its gate
+    result: take the version that passes more D-112 criteria; on a tie, the larger joint margin; transfer results never
+    enter the choice). Every downstream result carries the tracker label with its failing criteria and values. h1's force
+    failure is the more serious realism issue: h1 stays in the pool but is flagged, and h1-driven results are reported
+    separately as well as pooled.
+(2) The margin criterion does not block. One bounded side attempt only (<= 1 recipe, pre-declared: g1 knee-specific target band
+    0.08 on the knee lower limit + stance knee-flex hinge; runs only in a free GPU slot); swap in only if it passes more criteria.
+(3) Stop rules: every per-body tracker exceeded the declared 3 recipe attempts (all within the 6e8-sample budget; logged after
+    the fact). From now on deviations are recorded BEFORE running.
+(4) Next: finish the h_steps curriculum (expert 20/20 at 0.10 L, blind tracker 20/20 falls; stops before stairs >= 0.15 L),
+    launch the shared morph_v2 tracker after t1, then P2 complex tasks; <= 2 GPU leases; watch the thermal admission stop.
