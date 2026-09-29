@@ -938,6 +938,14 @@ grasp_v2.1): training candidates on source seeds 0-19, target candidates on targ
 - Resource note: the training screen peaked at 10.0 GB against 12 GB declared and was throttled at memory.high (rc 0,
   slower only); later CPU leases of this size declare ≥ 14 GB.
 
+### D-137 addendum 2026-09-29 12:05: G1/G2 done; paused for the repo refactor (owner wind-down)
+armdiv agent (research/tracks/armdiv.md "G2 result", "RESUME"). v7div data: 15,356 teacher episodes, W6 gate PASS after
+classifying the v2 procedural arms like parm* (joint margin reported, not gated); pack 1.91 M rows / 21 GB on peer disk.
+BC expert bcv7div 1701 (learned BC, dev seeds): 60/60 v6 bodies, 60/60 held-out source bodies, 120/120 on 4 new training
+arms; the v6 BC expert scores 21/120 on those arms. Latent lineage semfix s1: Stage A done, F0 stopped at 3,893/20,000
+steps (checkpoint kept). No sealed evaluation of any armdiv target has run; G3 (lineages) and G4 (pre-registration +
+sealed run) remain. Wall-clock observed: BC ~7 h per seed, Stage A 2.6 h on the 65-body pack.
+
 ## D-138 2026-09-28 owner: humanoids become the top priority (W13); humanoid body pool, staged complex tasks and SEALED humanoid targets declared before any training
 Owner: "focus more on humanoids. we need to test lots of humanoid transfer" and "the humanoid tasks need to be more complex".
 Plan: research/tracks/humanoid.md; sealed split research/splits/humanoid_v1.json (committed before any W13 training).

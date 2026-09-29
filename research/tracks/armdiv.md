@@ -1,5 +1,5 @@
 # armdiv: training-arm diversity for new-arm transfer (D-137)
-State: **running** (G0 verified; G1 collect done + gate PASS, pack running; G2/G3 queued in the chain; 2026-09-29). Owner decision after D-135/D-136: "yes, add more training-arm diversity".
+State: **paused for the repo refactor** (2026-09-29 12:05; owner wind-down). G0, G1 and G2 (BC 1701) done; G3 started (semfix s1 Stage A + bc1 done, F0 stopped at step 3,893 with a checkpoint); G4 not started (no sealed run).
 Branch `track/armdiv`, worktree `~/work/rrp-wt/armdiv`, peer code dir `/dev/shm/rrp-brandonin/wt/armdiv` (never the
 shared repo). At most ONE concurrent peer GPU lease (humanoids have priority); CPU leases for simulation are separate
 and declared at >= 1.35 x measured peak. No host compute beyond unit tests, tiny smokes and orchestration.
@@ -165,7 +165,52 @@ DAgger rounds use 5 episodes per body (65 bodies = 325 per round; v6 312), so pe
   Stage A 1.7 G, DAgger collection (4 bodies) 3.3 G, flow ft 2.1 G.
 - 01:01: BC 1701 full training started (lease 1790668907_4b07e2), then the chain continues with the lineages.
 
+## G2 result: BC expert bcv7div 1701 (learned BC; in-distribution DEV seeds 3,000,000+, 30 feasible scenes per body)
+Training: 6 epochs, ~24.6k updates; the first lease hit the broker's 6 h cap (exit 1, 07:02), the retry resumed exactly and
+finished at 08:05 (lease 1790690541_d94da3, peak 2.09 G RSS).
+| route (grasp_v2.1) | v6 bodies parm6_tf3 + panda_pg2 | held-out source parm5s_tf3 + parm5l_pg2 | 4 new training arms (pa2s0_pg2, pa2s3_tf3, ur10e_pg2, vx300s_tf3) |
+|---|---|---|---|
+| bcv7div 1701 (learned BC) | 60/60 | 60/60 | 120/120 |
+| v6 BC 1701 (learned BC, reference; not trained on these arms) | (D-134: 58/60 panda, 60/60 parm6) | - | 21/120 (pa2s0 0, pa2s3 0, ur10e 16, vx300s 5) |
+Reading: the expanded-pool BC expert is competent on every body checked (it becomes the lineages' DAgger labeller); the
+v6 expert does not handle the new arms, so the new arms are genuinely new kinematics for the v6 models. Not a transfer
+result: all bodies here are training bodies (or v6's held-out source bodies); no target was touched.
+
+## RESUME (paused 2026-09-29 12:05 for the repo refactor; owner decision relayed by the lead)
+Nothing of mine runs: coordinator `rrp-armdiv-chain2` stopped; my F0 lease 1790703796_35e3f6 stopped with
+`rrp ops stop --owned-only --lease` (checkpoint written). No sealed scene of any armdiv target was ever evaluated.
+Paths (peer store = /dev/shm/rrp-brandonin/repo/artifacts = RAM; host copy of runs/armdiv, byte-verified with
+`rsync -rcn`, at `~/work/rrp-data/peer-archive/runs/armdiv/`, collect episodes excluded):
+- Code: main (track/armdiv); peer code dir /dev/shm/rrp-brandonin/wt/armdiv (re-push after the refactor:
+  `RRP_PEER_REPO=... scripts/peer_sync.sh push`). Menagerie: 9 extra dirs in the pinned sparse checkout (host + peer).
+- Frozen splits: research/splits/armdiv_pool_v1.json (65 keys), research/splits/armdiv_v1.json (targets),
+  research/splits/armdiv_candidates_v1.json; screens research/tracks/armdiv/screen/.
+- Data: collection runs/armdiv/v7div/collect-v7div_s1 (peer /dev/shm, 2.0 GB, gate PASS; episodes NOT on the host copy);
+  pack **peer disk ~/rrp-peer-data/packed/latent_pp_v7div_s1_H16** (= artifacts/packed/..., 21 GB, 1,914,009 rows).
+- BC expert 1701: runs/armdiv/bcv7div-1701/train_bc-bc1701_s1701/policy.pt (final; also policy_last.pt); its dev evals
+  in runs/armdiv/bcv7div-1701/{eval_r2-*,heldout-*}. Ledger: artifacts/runs/armdiv/_dags/armdiv_bc_v7div/ledger.json (host).
+- Lineage semfix s1 (dags/arm_lineage_v7div.yaml): stageA done (runs/armdiv/arm7div-semfix/train_rep_s1/
+  representation.pt, 2 h 34 min, peak 1.86 G); bc1 done (dagger_collect-bc1_s1, peak 5.66 G); F0 INTERRUPTED at step
+  3,893/20,000 (train_flow_s1/policy_last.pt; the node is `failed` in the ledger
+  artifacts/runs/armdiv/_dags/arm_lineage_v7div/ledger.json; `--retry-failed` resumes from policy_last.pt).
+- Smokes (SMOKE, not results): runs/armdiv/{bcv7div-smoke-1701, arm7div-smoke-semfix, smoke}; deletable.
+Remaining:
+- G2: BC 1702 (`dags/armdiv_bc_v7div.yaml --point seed=1702`, ~7 h GPU incl. one 6 h-cap resume), kinfeat BC 1701
+  (`dags/armdiv_bc_v7div_kinfeat.yaml`).
+- G3: finish semfix s1 (F0 resume, then Fft ... Fgdag2h, evals), then semfix s2, nosem s1/s2 (~5-7 GPU-h each;
+  Stage A alone took 2.6 h here), then kinfeat semfix s1/s2 (`dags/arm_lineage_v7div_kinfeat.yaml`).
+- G4: write the pre-registration (protocol config listing the armdiv targets, methods zero-shot / joint_adapt split
+  gen_frac 0.5 / BC SFT at budgets 5/20/100, reading rules) and commit it BEFORE any sealed run; target demo packs from
+  the v7div collection (target_demos split); the v6 lineages/BC evaluated on the same new targets as the no-diversity
+  comparison. Not started.
+- Resume command (after re-pushing code and checking the refactor kept these stage names/paths):
+  `systemd-run --user --unit rrp-armdiv-chain3 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiv
+  --setenv="STEPS=lin_sf1 lin_rest bc1702 bckf lin_kf" --working-directory=$HOME/work/rrp-wt/armdiv bash scripts/armdiv_chain.sh`
+  (add `--retry-failed` to the lin_sf1 run-dag call once, for the interrupted F0).
+
 ## Log
 - 2026-09-28: plan written (D-137).
 - 2026-09-29: G0 code + screens; pool and targets frozen (D-137 addendum).
 - 2026-09-29 00:30: G1 collect + gate PASS (after the pa2s gate fix); pack running; chain started.
+- 2026-09-29 08:09: G2 BC 1701 done (120/120 new arms; v6 BC 21/120). 10:43 semfix s1 Stage A done.
+- 2026-09-29 12:05: paused for the repo refactor (RESUME above).
