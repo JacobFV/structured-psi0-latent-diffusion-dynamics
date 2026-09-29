@@ -300,21 +300,20 @@ CLI (`rrp`): `ops …` (unchanged), `data {collect,pack}`, `train {rep,flow,bc,r
 `eval`, `matrix`, `edits`, `run-dag`, `workbench`, `task validate`, `assets validate`. Per-module `python -m` entry points are
 removed except `rrp.viz.export` and `rrp.viz.record` (room exporter/recorder).
 
-## 7. delete list
+## 7. delete list (status)
 
-| what | why |
+| what | status |
 |---|---|
-| shim packages `control/`, `learning/`, `model/`, `morphology/`, `ops/` (old alias of orchestration), `policy/`, `sim/`, top-level `cli_*.py`, `data/features*.py`, evaluation re-export shims (`campaign`, `latent_campaign`, `baseline_campaign`, `system2_eval`, `bc_semantic_edits`, `latent_slice1_report`, `contact_metrics`, `motion_quality`), `research/system2.py` | W4 aliases; owner rule: no shims |
-| `src/rrp/research/` (bc_semantic_edits, latent_slice1_report, legged_t1_diag, qa_train, system2_eval) | finished one-offs; nothing live imports them; git keeps them |
-| `MjxLegged`, `WarpLegged` bake-off prototypes (helpers kept as `envs.warp.model`) | done in S4 |
-| duplicate eval loops: `evaluation/runner.evaluate`, `latent_eval.evaluate_latent`, `dual_latent_eval.evaluate_dual_latent`, `training/rollout.drive`, `latent_grpo.run_episodes`, `latent_semantic_edits.run_condition`/`run_arm_condition` bodies, `legged_latent_eval.run_episode` special cases | replaced by `harness.rollout` + hooks |
-| duplicate oracles (`ladder.OraclePacketPolicy`, `latent_semantic_edits.OracleSource` encoding, `legged_latent_eval.OracleShadow`) | S4: one module `policies.oracle`, one encoder; the remaining duplicate eval loops, `wilson` in ladder and the evaluation-side teacher wrappers go in S5 |
-| `tests/unit/test_restructure_compat.py` (shim tests), the `SHIMS`/`PLANNED` tables of `test_layering.py`, `tests/data/legacy_scripts/` once the parity tests compare against goldens | shims gone |
-| `scripts/`: 107 experiment chain drivers (`*_chain.sh`, `arm*_`, `legged_*.sh`, `t1_diag_*`, `binding_chain_v*`, `w12/*.sh`, …), 69 analysis one-offs (`diag_*`, `*_compare.py`, `*_parity.py`, `humanoid_*.py`, `dev/`, `analysis/`, …) | finished experiments; git history keeps them; resume steps in track notes cite commits |
-| `scripts/` kept: `peer_sync.sh`, `peer_run.sh`, `peer_bootstrap.sh`, `peer_gpu_retry.sh`, `fetch_menagerie.sh`, `export_ui_types.py`; `ladder.py` and `legged_{ladder_summary,edit_effects,mirror_effect}.py` fold into `rrp eval`/`rrp edits`; `demo/` + `render_*.py` fold into `rrp.viz.record` specs (kept until the fold lands) | infrastructure |
-| `dags/`: keep templates, overlays and the DAGs tests use (`arm_lineage*`, `legged_v2_go2`, `legged_fixrep`, `armexpert_v6dart`, `arm_targets_*`); delete the unreferenced ones | provenance of completed lineages stays in git |
-| `configs/`: delete directories nothing references (`vlm/`, `adapt/`, `t1_diag/`, `legged_latent/` script-only); keep what dags/pipelines/tests read | – |
-| docs: `docs/core_api.md`, `docs/repo_structure_audit.md` (this page), README module paths | superseded |
+| W4 shim packages (`control/`, `learning/`, `model/`, `morphology/`, `ops/` alias, `policy/`, `sim/`, top-level `cli_*.py`, `data/features*.py`, evaluation re-export shims), `rrp/core.py` re-export module, every "moved; re-exported" alias | done (S1, S2, S2b); a test forbids shim modules |
+| `src/rrp/research/` one-offs | done (S1) |
+| `MjxLegged`, `WarpLegged` bake-off prototypes | done (S4; helpers kept as `envs.warp.model`) |
+| duplicate oracles | done (S4: `policies.oracle`, one encoder; legged `policies.legged.OracleShadow`) |
+| duplicate eval loops (`runner.evaluate`, `latent_eval.evaluate_latent`, `dual_latent_eval.evaluate_dual_latent`, `train.rollout.drive`, `latent_grpo.run_episodes`, semantic-edit episode loops, `legged_latent_eval.run_episode` special cases), `wilson` copy in the ladder, evaluation-side teacher wrappers | S5 (arm `runner.evaluate` done in S5a) |
+| `tests/unit/test_restructure_compat.py`, shim tables of `test_layering.py` | done (S1) |
+| 175 finished-experiment scripts (chain drivers, analysis one-offs) | done (S1; `git show a951398^:scripts/<name>`). Kept: peer transport, asset fetch, UI type export, viz record specs, the ladder / legged-summary wrappers the pipelines call, renderers, demo builder, the paused W13 / armdiv drivers their RESUME steps name, `psi0_ext.sh`. The wrappers and renderers fold into the CLI after S5 |
+| `dags/` | kept: every DAG is cited by a test, a track note's resume steps or the naming map (they are the lineage provenance run by `rrp run-dag`); comments name the new module paths (S6) |
+| `configs/` | kept: every directory is cited by the naming map, a report or a DAG and is validated by test_runconfig; no config names a deleted module |
+| docs: `core_api.md`, `repo_structure_audit.md`, `related_repos.md` (glossary now section 11), `intentions_backlog.md` (appendix of `experiments_roadmap.md`) | done (S2, psi0mig, S6) |
 
 ## 8. staged migration (each stage: `pytest tests/unit` green with exit code checked, then merged to main)
 
@@ -331,7 +330,7 @@ realizer output; dual multi-featurizer; packet serialization) and must stay byte
 | S3 | `envs.base` (Env, EnvSpec, capabilities, registry) implemented by the MuJoCo sessions and the Warp env; `policies.base` (Policy, Requirements, negotiate, registry); `tasks` registry; SIMPLE/ComputerWorld declared in the registries → **Ψ₀ and ComputerWorld agents can start here** | 3 h | done (this commit) |
 | S4 | policy adapters (bc, latent arm/dual, legged latent/bc on the `legs` space, teachers, one oracle); `legs` control mode; prototypes deleted | 4 h | done (S4a 4c4d2bb, S4b this commit) |
 | S5 | port the eval loops onto `harness.rollout` (S3) + hooks, arm/dual first, legged last; delete the duplicates; legged judge; `rrp eval` / `rrp matrix`; golden traces of tiny episodes (a few ticks, procedural bodies) | 5 h | parallel agent (touches `harness/**`, `cli/**`; not `policies/**`) |
-| S6 | scripts/dags/configs pruning, CLI consolidation, README/STATUS, viz exporter check | 2 h | – |
+| S6 | scripts/dags/configs pruning, docs (backlog folded into the roadmap), README, STATUS, strategy (S6a done); CLI consolidation of the remaining `python -m` modules and script wrappers after S5 (S6b) | 2 h | S6a done; S6b waits for S5 |
 
 Running work is paused (D-140); unmerged track branches rebase onto the new paths using the move table that each
 stage's commit message and section 10 record.

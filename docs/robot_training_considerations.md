@@ -4,8 +4,8 @@ Living checklist. Status: ✅ handled · ◐ partial · ❌ missing. Every item 
 Update the status line when something changes and cite the decision (D-xxx) or track note that verifies it.
 
 **Revision 2026-09-27 21:30 (records agent, D-123 item 10):** every §4 status re-checked against the code on origin/main
-(68a6657) and the "Checked and implemented" list in `docs/intentions_backlog.md`. Items that are implemented but opt-in or
-eval-only are ◐, with the reason. Open items are tracked with evidence and size in `docs/intentions_backlog.md`.
+(68a6657) and the "Checked and implemented" list in `docs/experiments_roadmap.md (backlog appendix)`. Items that are implemented but opt-in or
+eval-only are ◐, with the reason. Open items are tracked with evidence and size in `docs/experiments_roadmap.md (backlog appendix)`.
 
 ## 0. Why this document exists
 The user observed that the legged robots and humanoids "jitter across the floor rather than walk" and that the scripted
@@ -73,42 +73,42 @@ Test: compare α = 0 against the final α for slip ratio, tracking, falls, duty 
   speed ≤ 0.1 m/s. With `stand_contact` at its 10% prior floor (α = 1) and few stop commands, the sourced-limit t1 swayed at the halt (3/15
   waypoint failures). A strong speed penalty alone (−4) made it step in place instead (9/20 failures).
 - *Scope:* new trainings only. Installed trackers need no retraining unless they fail the halt check.
-- Code: `rrp.envs.legged_core` (`PRIOR_TERMS`, `PERMANENT_STANDING_TERMS`, `MIN_STOP_SHARE`); test `tests/unit/test_reward_schedule.py`.
+- Code: `rrp.envs.mujoco.legged_core` (`PRIOR_TERMS`, `PERMANENT_STANDING_TERMS`, `MIN_STOP_SHARE`); test `tests/unit/test_reward_schedule.py`.
 
 ## 4. Checklist
 
 ### 4.1 Physics fidelity
 - ✅ Foot–floor contact v2: elliptic cone, impratio 10, floor priority, compliant sole (solref 8 ms), slope stick/slide test
-  (`src/rrp/physics/contact.py`, `tests/unit/test_contact_model.py`; D-101). Installed trackers: anymal_c, go2, t1 w8d.
+  (`src/rrp/bodies/contact.py`, `tests/unit/test_contact_model.py`; D-101). Installed trackers: anymal_c, go2, t1 w8d.
 - ◐ Static vs kinetic friction: MuJoCo has one Coulomb coefficient; stiction approximated by the elliptic cone and high impratio (slope creep
-  0.1 mm/s at 0.9 μ); `noslip_iterations` measured but left at 0; documented in `physics/contact.py` (D-101). No kinetic-friction proxy, by choice.
+  0.1 mm/s at 0.9 μ); `noslip_iterations` measured but left at 0; documented in `bodies/contact.py` (D-101). No kinetic-friction proxy, by choice.
 - ✅ Contact compliance of soles and fingertips: sole solref/solimp tuned and penetration measured (0–2 mm, D-101); finger/object contact
   grasp_v2 (penetration 0.03 mm on the rig) and grasp_v2.1 (stiff contact on all robot geoms that can touch the cube) (D-110, D-118).
-- ◐ Actuator model: `src/rrp/physics/actuator.py` (armature, damping, friction, torque–speed, 0–30 ms latency) exists but is OPT-IN (D-103);
+- ◐ Actuator model: `src/rrp/bodies/actuator.py` (armature, damping, friction, torque–speed, 0–30 ms latency) exists but is OPT-IN (D-103);
   sourced torque limits are the default (`sourced_v1`, D-107). Max joint speeds are still estimates; trackers do not hold their gaits
   under it (h1 no-fall 0.72). No backlash.
 - ◐ Integrator and timestep: dt min(source, 0.002), 10 substeps per 50 Hz tick (contact v2); no dt 0.001 convergence or solver-iteration check.
 - ◐ Collision geometry and self-collision: taken from menagerie, not audited per body.
 - ✅ Grasp physics: grasp_v2 removes interpenetration holding (held penetration tf3 3.3 → 0.09 mm; episodes > 3 mm 2407 → 0); slip under load
   matches the friction prediction (1.06×); sourced grip forces (D-110). grasp_v2.1 + phase-gated DART for v6dart (D-118, D-121).
-  `src/rrp/physics/grasp_contact.py`, `tests/unit/test_grasp_contact.py`. Object friction/mass still fixed in training (see 4.2).
+  `src/rrp/bodies/grasp_contact.py`, `tests/unit/test_grasp_contact.py`. Object friction/mass still fixed in training (see 4.2).
 
 ### 4.2 Domain randomization and robustness
 - ✅ Friction (tracker training, contact v2): floor μ ~ U(0.4, 1.25) with torsional/rolling scaled, plus solref time constant / damping
   randomization (D-101). Arm: friction is an eval perturbation only.
 - ◐ Mass, CoM, inertia: root mass ×U(0.9, 1.1) and CoM ±2 cm in tracker training (contact v2); whole-body mass/CoM as eval perturbations
-  (`src/rrp/envs/perturb.py`, D-108). ❌ Link-length randomization.
+  (`src/rrp/envs/mujoco/perturb.py`, D-108). ❌ Link-length randomization.
 - ◐ Motor strength, PD gains: PD-gain scaling as an eval perturbation only (`perturb.py`); ❌ in training; ❌ joint offsets (encoder calibration).
 - ✅ Pushes: tracker training; legged, arm and latent-route evals through the robustness harness (`push_impulse_Ns`, D-108).
 - ◐ Terrain: heightfield bumps as an eval perturbation (`terrain_amp_m`, break-point 8 cm on anymal_c, D-112). ❌ Slopes, steps, soft
   ground and a terrain curriculum in training.
-- ◐ Object variety (arm): distractors exist (`envs/scenario.py`); cube size fixed at the default; object mass/friction are eval perturbations
+- ◐ Object variety (arm): distractors exist (`envs/mujoco/scenario.py`); cube size fixed at the default; object mass/friction are eval perturbations
   only; no shape variety.
-- ✅ Robustness sweeps: `rrp.evaluation.robustness` (one factor at a time + all_moderate, paired seeds, Wilson CIs, break-points) (D-108);
+- ✅ Robustness sweeps: `rrp.harness.eval.robustness` (one factor at a time + all_moderate, paired seeds, Wilson CIs, break-points) (D-108);
   variant-level anymal_c over 3 training seeds (D-112). Arm sweep under grasp_v1 was not meaningful (D-108) and has not been repeated under grasp_v2.
 
 ### 4.3 Sensing and state
-- ◐ Privileged-information audit of deployable observations: `contracts/channels.py` rejects privileged keys on transport; no automated
+- ◐ Privileged-information audit of deployable observations: `core/channels.py` rejects privileged keys on transport; no automated
   per-group causal/ablation audit (D-123).
 - ◐ Sensor noise: observation noise in tracker training only. ❌ IMU bias or drift, encoder quantization, dropout.
 - ◐ State estimation: tracker actors use IMU + encoders only (true base velocity goes to the critic); system i's speed comes from a declared
@@ -120,7 +120,7 @@ Test: compare α = 0 against the final α for slip ratio, tracking, falls, duty 
 ### 4.4 Timing
 - ◐ Actuation latency: 0–8 ms per-episode latency in contact-v2 tracker training (D-101); 0–30 ms in the opt-in actuator model and as an
   eval perturbation (no break-point on anymal_c, D-112). Not the default for W8 (D-103, D-107).
-- ◐ Control-tick jitter and missed ticks not injected (a deadline-miss counter exists in `evaluation/latency.py`).
+- ◐ Control-tick jitter and missed ticks not injected (a deadline-miss counter exists in `harness/eval/latency.py`).
 - ✅ Inference latency measured (p95 overhead 1.014×, D-058); not re-measured on current routes, not on edge hardware.
 
 ### 4.5 Expert and data quality
@@ -134,21 +134,21 @@ Test: compare α = 0 against the final α for slip ratio, tracking, falls, duty 
 - ◐ Cross-body semantic label consistency is assumed, not verified.
 - ✅ Provenance and licences; third-party assets excluded from the public repo.
 - ✅ Physics version in dataset and model metadata: `contact_version`, `actuator_limits`, `grasp_contact_version` and the DART mode in
-  provenance (`src/rrp/contracts/provenance.py`, W3; D-107, D-110, D-121); the legged pipeline refuses mixed contact versions.
+  provenance (`src/rrp/core/provenance.py`, W3; D-107, D-110, D-121); the legged pipeline refuses mixed contact versions.
 
 ### 4.6 Learning pathologies
 - ✅ Covariate shift: DAgger (BC expert, generated-packet states).
 - ✅ Shortcuts found: B-1 previous action (D-044/045), velocity copy. Keep causal input audits routine.
 - ◐ Loss balancing: D-085 unbounded NLL starved the sem system 0; trainers log grad norms (`clip_grad_norm_`), but per-loss gradient-norm
   monitoring is not standard, and one logger was silently broken (psi1z, D-109).
-- ❌ Catastrophic forgetting during fine-tuning or RL: anchor evaluations needed before GRPO (no anchor eval in `training/latent_grpo.py`, D-123).
+- ❌ Catastrophic forgetting during fine-tuning or RL: anchor evaluations needed before GRPO (no anchor eval in `harness/train/latent_grpo.py`, D-123).
 - ◐ Seed variance: 3 training seeds legged (D-105, D-112, D-113), 2 arm (D-095). Per-seed results and exact permutation tests reported.
 - ◐ Simulator exploitation: skating fixed (D-101) and interpenetration holding fixed (D-110); DART noise crushing the cube found and
   gated (D-118). Keep watching contact vibration.
 
 ### 4.7 RL
 - ◐ Reward hacking: gate on video review and gait statistics (tracker gate in code, D-114), not the reward curve.
-- ✅ Reward schedule (§3): permanent / shaping-prior / natural-objective groups with a gated α (`envs/legged_core.py`,
+- ✅ Reward schedule (§3): permanent / shaping-prior / natural-objective groups with a gated α (`envs/mujoco/legged_core.py`,
   `tests/unit/test_reward_schedule.py`; D-101); permanent clearance floor (D-103), permanent standing and `MIN_STOP_SHARE` (§3 revision),
   permanent joint-limit-margin term (D-114; weight untuned, no tracker trained with it yet).
 - ◐ Sparse-reward exploration (arm GRPO): start from a competent policy; group size and prefix branching as in Z-1. Not started.
@@ -170,21 +170,21 @@ Test: compare α = 0 against the final α for slip ratio, tracking, falls, duty 
 ### 4.10 Evaluation
 - ✅ Paired seeds, CIs, fresh seed sets, irrelevant-edit controls.
 - ✅ Motion-quality metrics (slip ratio, CoT, jerk, contact forces, joint-limit margin, chunk-boundary steps) in every legged and arm eval
-  row (`rrp.evaluation.motion_quality`, D-108); tracker foot force is the 20 ms-filtered peak (D-114).
-- ✅ Robustness sweeps (see 4.2). ✅ Gates in code for trackers, datasets and policy flags (`rrp.evaluation.gates`, D-112, D-114); the
+  row (`rrp.envs.mujoco.motion_quality`, D-108); tracker foot force is the 20 ms-filtered peak (D-114).
+- ✅ Robustness sweeps (see 4.2). ✅ Gates in code for trackers, datasets and policy flags (`rrp.harness.eval.gates`, D-112, D-114); the
   `validate_tracker` stage is wired into the legged DAG template for future runs (`dags/templates/legged_v2_gated.yaml`).
   ❌ Long-duration runs (minutes) for drift.
 
 ### 4.11 Safety and hardware
 - ◐ Joint and torque limits: sourced torque limits (D-107) and a permanent joint-limit-margin reward (D-114); no deployment safety layer
-  (clamp, rate limit) beyond `np.clip(±6)` in `controllers/policy_runner.py`.
+  (clamp, rate limit) beyond `np.clip(±6)` in `policies/bc.py`.
 - ❌ Fall and impact handling, safe stop, fall recovery (t1 packet edits cause falls, D-092; learned t1 routes fall, W8 interim).
 - ◐ Packet admission (version and staleness, `hold_measured` fallback) exists; ❌ OOD packet detection with a fallback controller.
 - ❌ Thermal and duty-cycle limits.
 
 ### 4.12 Infrastructure
-- ✅ Reproducibility: fingerprinted bundles (legged weight fingerprints, `controllers/bundles.py`), recorded commands, raw artifacts,
-  one manifest writer with physics versions (W3), `Source` enum (`contracts/provenance.py`).
+- ✅ Reproducibility: fingerprinted bundles (legged weight fingerprints, `policies/bundles.py`), recorded commands, raw artifacts,
+  one manifest writer with physics versions (W3), `Source` enum (`core/provenance.py`).
 - ✅ Orchestration: `rrp run-dag` with leases, bounded retries, gate-aware failure and a JSON ledger (W5, D-096, D-114); chain scripts
   not yet retired.
 - ◐ Compute contention: no heavy compute on the host (D-115); peer admission capped with declarations ≥ 1.35 × peak (D-106, D-117); watchdog

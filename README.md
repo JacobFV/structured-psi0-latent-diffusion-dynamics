@@ -53,20 +53,24 @@ joint-target tracking in MuJoCo
 - Design contract: [`research/corrections/controller-facing-semantic-latent.md`](research/corrections/controller-facing-semantic-latent.md).
   Original assignment (historical): [`docs/handoff/`](docs/handoff/).
 
-## pipelines
+## one repo, three interfaces (D-140)
 
-Three pipelines currently exist side by side (unifying them is W4/W5 in `docs/strategy.md`). Lineage codes in config and
-run names (`sfjf`, `nsjf2`, `fixsem`, `gendag3_noqd`, …) are decoded in [`research/naming.md`](research/naming.md).
+Every approach is a **policy** and every simulator an **environment** behind one interface each; a **task** says which
+environments it exists in and how an episode is judged; one **harness** (`rrp.harness.rollout`) runs any
+policy × env × task that `negotiate()` accepts and records declined pairs with their reasons. Design, interfaces and the
+moved-path table: [`docs/architecture.md`](docs/architecture.md).
 
-- **Arm ladder** (pick_place, 13 source bodies). Scripted teacher data → pack → Stage A representation (encoder E,
-  system 0 R, probes P) → system-i flow → system-0 refits with DAgger labelled by a stateless learned BC expert,
-  including states visited with generated packets (`rz_*`) → generator DAgger for the flow (`gdag*`). Evaluation
-  routes on matched seeds: R0 teacher, R1 oracle packet E(expert chunk) (DIAGNOSTIC), R2 generated packet (deployable),
-  plus a BC positive control and task-context edit suites. Driver: `scripts/arm_lineage_chain.sh`.
-- **Legged** (go2, hexapod6, t1; others blocked at the positive control). PPO body trackers → tick-level teacher data →
-  Stage A → flow → stateless-BC-expert DAgger and system-0 refit → R1/R2 ladder → context and z edit suites.
-- **Dual arm** (support_insert, handover; M=2 assemblies): scripted teachers, paired arm-assignment data, pack and
-  training smoke only; learned dual-arm control is not shown (D-043).
+| kind | registered names |
+|---|---|
+| environments (`rrp.envs.base.make_env`) | `mujoco/arm`, `mujoco/dual`, `mujoco/legged` (`control="base_velocity"` through the embedded tracker, or `"legs"` joint targets), `warp/legged` (batched GPU), `simple` (Ψ₀ SIMPLE, Isaac Sim), `computerworld` (UI world as 3D, in progress) |
+| policies (`rrp.policies.base.make_policy`) | `bc`, `latent` (system i + system 0; sem / nosem / semfix variants), `legged_latent`, `legged_bc`, `oracle` (privileged diagnostic), `teacher:<task>` (scripted_teacher), `psi0_direct`, `psi0_structured`, `psi0_replay` |
+| tasks (`rrp.tasks.spec.TASKS`) | pick_place, reach_pose, support_insert, handover, assign_left/right, pivot_against_surface, carry_tray_level, waypoint_contact, loco_pick, foothold_steps, h_steps, h_gap, locomotion, `simple/<Task>` |
+
+Lineage codes in config and run names (`sfjf`, `nsjf2`, `fixsem`, `gendag3_noqd`, …) are decoded in
+[`research/naming.md`](research/naming.md). The training lineages (arm ladder, legged, dual arm) run as pipeline stages
+(`rrp.harness.pipelines`, families arm / dual / legged) from DAG files in `dags/`; evaluation routes on matched seeds are
+R0 teacher, R1 oracle packet E(expert chunk) (DIAGNOSTIC), R2 generated packet (deployable), plus a BC positive control
+and task-context edit suites.
 
 ## entry points
 
@@ -74,24 +78,19 @@ run names (`sfjf`, `nsjf2`, `fixsem`, `gendag3_noqd`, …) are decoded in [`rese
 
 | goal | command |
 |---|---|
+| evaluate any policy × env × task | `rrp eval …` (JSONL rows + Wilson summary through `harness.rollout`) |
+| compatibility matrix (n/a with reasons) | `rrp matrix …` |
+| a whole lineage (collect → pack → Stage A → flow → DAgger / refit → eval → edits) | `rrp run-dag dags/<lineage>.yaml` (resumable JSON ledger; stage list: `python -m rrp.harness.pipelines stages`) |
 | generate / pack arm data | `rrp data generate --config configs/data/…`; `rrp data pack --config … --out artifacts/packed/<name>` |
 | arm Stage A / flow / probes | `rrp latent train-representation --config …`; `rrp latent train-flow --config …`; `rrp latent fit-probes …` |
-| arm system-0 refit | `python scripts/ladder_refit.py configs/ladder/<…>/rz_<…>.json` |
 | arm ladder evaluation (R0/R1/R2) | `python scripts/ladder.py --route {teacher,oracle,generated} --robot panda_pg2 --n 30 --out …` |
 | arm task-context edits | `rrp latent semantic-edits --route {teacher,oracle,generated,bc} …` |
-| arm lineage end to end | `LIN=<lineage> bash scripts/arm_lineage_chain.sh` (peer) |
-| legged trackers (PPO) | `python -m rrp.control.tracker_training …` |
-| legged data / Stage A / flow | `python -m rrp.data.legged_latent_collect …`; `python -m rrp.learning.legged_latent_train …` |
-| legged BC control / DAgger | `python -m rrp.learning.legged_bc …`; `python -m rrp.learning.legged_dagger {collect,gate,refit} …` |
-| legged ladder / edits | `bash scripts/legged_ladder.sh BODY TAG PAR ROUTES …`; `python -m rrp.evaluation.legged_latent_eval …` |
-| dual arm | `rrp latent {pair-index-dual,pack-dual,evaluate-dual,teacher-ref-dual} …` |
-| packet-policy GRPO | `rrp latent grpo …` (latent path; on hold until a competent base, D-042) |
-| latency | `rrp latent latency --checkpoint … --out …` |
+| legged trackers (GPU PPO) | `python -m rrp.harness.train.warp_tracker_ppo --recipe <recipe> --out …` |
+| Ψ₀ fine-tunes | `rrp train psi0 …` (SIMPLE eval needs the Isaac venv: `scripts/psi0_ext.sh`) |
 | labelled video | `scripts/render_episode.py`, `scripts/render_legged_episode.py`, `scripts/render_dual_episode.py` |
 | demo page | `scripts/demo/refresh.sh` (builds `docs/demo/` from raw results) |
+| visualization room | `cd viz/room && npm run snapshot` (exporter `python -m rrp.viz.export`) |
 | workbench UI (loopback) | `rrp workbench --port 8765` |
-
-The old direct-action path (`rrp train policy`, `rrp train codec`, `rrp adapt grpo|expo`) is kept for baselines only.
 
 ## quickstart
 
@@ -102,7 +101,7 @@ Requirements: Linux aarch64 or x86_64, Python 3.12, [`uv`](https://github.com/as
 git clone https://github.com/JacobFV/structured-psi0-latent-diffusion-dynamics.git && cd structured-psi0-latent-diffusion-dynamics
 uv venv --python 3.12 .venv
 uv pip install --python .venv/bin/python -e '.[sim,service,ml,dev]'   # CPU torch is fine for tests
-.venv/bin/python -m pytest tests/unit -q                               # ~10 s; Menagerie/data tests skip if absent
+PYTHONPATH=src:. .venv/bin/python -m pytest tests/unit -q              # ~2 min; Menagerie/data tests skip if absent
 scripts/fetch_menagerie.sh                                             # pinned third-party robot assets (~1.7 GB)
 
 # one-time: measure free capacity and create the enforced project slice + watchdog
@@ -117,25 +116,28 @@ Datasets, packed data and checkpoints are not in git; they live on the peer stor
 ## repository map
 
 ```text
-src/rrp/
-  contracts/   typed schemas: RobotSpec, PolicyObservation vs PrivilegedTruth, TaskDefinition, LatentActionChunk
-  ops/         resource broker, cgroup enforcement, watchdog, peer discovery
-  morphology/  procedural arms/grippers/legged bodies, Menagerie importers, module surgery, contact model versions
-  sim/         MuJoCo sessions (arm, dual, legged), sensors, privileged truth, snapshots
-  tasks/       event-hypergraph compiler, runtime guards, receipts
-  control/     IK, joint-target control, scripted teachers, legged trackers (PPO), latent_realizer (arm system 0)
-  data/        featurizer (the only definition of what a policy may see), collection, packing (arm, dual, legged)
-  model/       context banks + flow, semantic_latent (encoder), latent_probes, legged_latent, codec (baseline)
-  learning/    latent_train (arm Stage A/flow/refit), legged_* (legged training, BC, DAgger), GRPO/EXPO
-  evaluation/  ladder, closed-loop evals, semantic edits, latency, statistics, campaigns
-  policy/, service/   system-i runner, workbench backend
-ui/            React + TypeScript workbench
-configs/       data / latent / ladder / legged / eval configs
-scripts/       chain drivers, peer transport (peer_run/sync/bootstrap), renderers, demo builder
-research/      decisions.md (append-only), naming.md, tracks/, reports/ (evidence_matrix.md), registry.jsonl
-artifacts/     small raw results (JSON/JSONL), receipts, labelled videos
-docs/          strategy.md, robot_training_considerations.md, architecture.md, demo/, handoff/
-tests/         unit/, integration/, browser/, gpu/
+src/rrp/          layers import only downward (tests/unit/test_layering.py)
+  core/           contracts: observation vs privileged truth, NativeCommand / ActionChunk, latent packet + system-0
+                  protocol, RobotSpec (morphology graph), TaskDefinition, provenance + source labels, RunConfig, paths
+  ops/            resource broker, leases, cgroup enforcement, watchdog, telemetry, peer discovery
+  bodies/         procedural + Menagerie arms, grippers, aloha, legged, humanoids, G1 (g1_simple), IK, physics versions
+  tasks/          task-graph compiler/runtime/receipts, TaskSpec registry (spec.py)
+  envs/           base.py (Env, EnvSpec, capabilities, make_env); mujoco/ (sessions, scenes, sensors, trackers);
+                  warp/ (batched GPU legged envs); simple/ (Ψ₀ SIMPLE)
+  policies/       base.py (Policy, negotiate, make_policy); features/ (featurizers: the only definition of what a
+                  policy may see); nets/; bc, latent, system0, legged, oracle, packets; teachers/ (scripted_teacher);
+                  psi0/
+  harness/        rollout.py (the one episode loop + hooks), eval/, train/, data/, pipelines/, dag.py (run-dag)
+  viz/            room exporter, recorder/replay, workbench service
+  cli/            the `rrp` command
+ui/               React + TypeScript workbench
+viz/room/         visualization room (exporter output in viz/data)
+configs/, dags/   run configs and lineage DAGs (provenance of every run)
+scripts/          peer transport (peer_run/sync/bootstrap), asset fetch, renderers, demo builder, paused-track drivers
+research/         decisions.md (append-only; appendix P = former psi1z), naming.md, tracks/, reports/, splits/, registry.jsonl
+artifacts/        small raw results (JSON/JSONL), receipts, labelled videos
+docs/             architecture.md, strategy.md, experiments_roadmap.md, robot_training_considerations.md, demo/, handoff/
+tests/            unit/ (incl. test_golden.py: byte-identity of featurizers, teachers, physics, policies), integration/, browser/, gpu/
 ```
 
 ## rules that shape the results

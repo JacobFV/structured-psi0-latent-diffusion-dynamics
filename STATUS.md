@@ -1,10 +1,22 @@
 # project status — structured-psi0-latent-diffusion-dynamics (formerly relational robot policy)
-Open questions / planned experiments: docs/experiments_roadmap.md (D-126). Stated-but-unimplemented code: docs/intentions_backlog.md (D-123).
+Open questions / planned experiments: docs/experiments_roadmap.md (D-126). Stated-but-unimplemented code: docs/experiments_roadmap.md (backlog appendix) (D-123).
 
 Ψ₀ line (W10): in this repo since D-140 (`rrp.policies.psi0`, `rrp.envs.simple`); notes research/tracks/psi0.md, P-decisions = appendix P of research/decisions.md.
 
 Updated: 2026-09-27 21:30 PDT (records agent, D-123 item 10). Overall: **in_progress** (not complete). Plan: `docs/strategy.md` (D-094).
-Evidence: `research/reports/evidence_matrix.md`. Decisions: `research/decisions.md` (D-001..D-123). Open intentions: `docs/intentions_backlog.md` (D-123).
+Evidence: `research/reports/evidence_matrix.md`. Decisions: `research/decisions.md` (D-001..D-123). Open intentions: `docs/experiments_roadmap.md (backlog appendix)` (D-123).
+
+## refactor D-140 (2026-09-29; experiments paused)
+One repo, one Env / Policy / Task interface each, one rollout harness: [docs/architecture.md](docs/architecture.md)
+(interfaces, delete list, stage table, moved-path table for porting track branches and notes).
+- Done on main: S0 goldens (tests/unit/test_golden.py), S1 shims + 175 finished-experiment scripts deleted, S2 layout
+  core / ops / bodies / tasks / envs / policies / harness / viz / cli, S2b no re-export aliases, S3 interfaces +
+  registries + rollout, S4 policy adapters (bc, latent arm/dual, legged latent/bc on the `legs` space, teachers, one
+  oracle module); Ψ₀ line migrated (envs.simple, policies.psi0; psi1z archived); S5a arm eval loop on the rollout +
+  `rrp eval` / `rrp matrix`.
+- In progress: S5 (remaining eval loops, legged judge), ComputerWorld env, S6 (CLI `python -m` cleanup after S5, docs).
+- Verification is golden/unit only (no reruns, D-140). Resume steps of paused tracks (W13 humanoid, armdiv, W10) are in
+  their track notes; old module paths map to new ones via architecture.md section 10.
 
 ## current state (2026-09-27 21:30)
 Strategy (D-094): physics credibility first, one pipeline for all bodies, additive-then-subtractive restructure. Since D-115 the
@@ -17,14 +29,14 @@ This table mirrors the status column of `docs/strategy.md`.
 | W1 | physics realism: contact v2, reward schedule, slip gate; actuators/latency | running | round complete: contact v2 installed for anymal_c, go2 (clearance floor), t1 w8d (sourced limits); sourced torque limits are the default (`sourced_v1`); permanent standing; h1/g1 parked; actuator dynamics and latency opt-in (D-101, D-103, D-107, D-114) | research/tracks/contact.md |
 | W2 | repo hygiene (phase 0) | verified | 2026-09-26, main 3c796fd | research/tracks/hygiene.md |
 | W3 | provenance and contracts (phase 1) | verified | 2026-09-26, main 510f052 | research/tracks/provenance.md |
-| W4 | package restructure with shims (phase 2) | completed | 2026-09-27, P6 f1db76d; legacy packages are shims only | research/tracks/restructure.md |
+| W4 | package restructure with shims (phase 2) | superseded | 2026-09-27, P6 f1db76d; shims deleted and layout replaced by D-140 | docs/architecture.md |
 | W5 | unified pipeline + run-dag (phases 3–4) | verified (arm) | arm parity row-identical (D-096); legged used in production by W8; dual skeleton only; `ladder.py` main → library pending | research/tracks/pipeline.md |
 | W6 | robustness sweeps + motion-quality gates | verified | harness + metrics (D-108); variant-level anymal_c sweep (D-112); gates in code, `validate_tracker` stage (D-114); watchdog accounting fixes (D-116, D-117) | research/tracks/robust.md |
 | W7 | arm expert (teacher v2, grasp v2/v2.1), then GRPO with anchor evals | running | teacher v2 (D-097), v2 BC (D-102), grasp v2 (D-110), grasp v2.1 + DART diagnosis (D-118), v6dart accepted conditional on the v6 BC expert (D-121); v6 BC 1701 training; grasp_v2 re-eval of old routes running (interim); GRPO not started | research/tracks/armexpert.md |
 | W8 | legged regeneration on contact v2 | running | anymal_c done (D-105; robustness D-112); go2 done (D-113); t1 on sourced-limit w8d under the D-113 gate exception: 39/43 nodes, learned routes mostly fall (interim) | research/tracks/legged8.md |
-| W9 | held-out target bodies; loco-manipulation | planned | not started; top backlog item (D-123 #1) | docs/intentions_backlog.md |
+| W9 | held-out target bodies; loco-manipulation | planned | not started; top backlog item (D-123 #1) | docs/experiments_roadmap.md (backlog appendix) |
 | W10 | Ψ₀ / SIMPLE benchmark (migrated into rrp, D-140) | paused (D-140) | step 1: 3/6 released checkpoints reproduce (D-120); step 2 TabletopGraspMP L0: released 20/20, Ψ₀ direct 19/20, Ψ₀ + structure 0/20 (D-141: structured route likely has an integration bug; diagnosis next) | research/tracks/psi0.md |
-| W11 | rrp as an installable core for psi1z | verified | 2026-09-26, main b7dc677 (rrp.core API 1.0, py3.11 + 3.12); psi1z pin bumped to 68a6657 (P-020) | research/tracks/core.md |
+| W11 | rrp as an installable core for psi1z | superseded (D-140) | psi1z retired; rrp.core is now the contracts layer | docs/architecture.md |
 | W12 | feature-centric coordination (anchor-relative packets, contact-event knots) | implementing | phase A (design + code, no heavy compute); compute after the arm v6 lineages (D-122) | docs/strategy.md W12 |
 | W13 | HUMANOID program (owner top priority) | planned | P0 plan + sealed humanoid split committed (D-138); P1a GPU-sim bake-off and P1b per-body trackers next | research/tracks/humanoid.md |
 | R0 | arm seed-2 replication | completed | D-095 | research/tracks/ladder.md |
@@ -77,7 +89,7 @@ Never sync into a peer dir with running jobs; never stop another agent's lease.
 | W7 arm lineage set on v6dart (semfix/nosem × 2 seeds) | arm agent | planned: after the v6 BC passes its condition | D-110 (3), D-121; the v4dart set (`arm_lineage_v2`, 4/100 nodes) is stopped for good (D-110) |
 | W10 step 2 (TabletopGraspMP direct vs structured) | psi0mig agent | evals done (D-141); structured 0/20 under offline diagnosis | research/tracks/psi0.md |
 | W12 phase A | w12 agent | implementing (host-light) | D-122; phases B–D after the arm v6 lineages |
-| records (this refresh) | records agent | completed on merge | docs/intentions_backlog.md "Repo structure / docs" |
+| records (this refresh) | records agent | completed on merge | docs/experiments_roadmap.md (backlog appendix) "Repo structure / docs" |
 
 ## resolved environment
 - repo: `~/work/relational-robot-policy` (GitHub: JacobFV/structured-psi0-latent-diffusion-dynamics, renamed 2026-09-25) (host `Dell-gb10-1`, aarch64 GB10). Handoff in `docs/handoff/`.
@@ -122,7 +134,7 @@ Host data mirror: ~/work/rrp-data/datasets only (packed removed, D-034: host dis
 - Arm: every arm result before D-110 used grasp_v1 (grasps held by interpenetration, D-108); grasp_v2 re-evaluation is interim (D-121). Procedural arms touch joint limits (joint margin report-only; limit-aware IK not implemented, D-114).
 - Dual arm: panda+tf3 insertion-arm target teacher-weak (3/30, 8/30, D-019); sawyer support / sawyer->panda_tf3 handover pairs fail; the public insertion-depth estimator can false-positive on jams (D-018).
 - Host: no heavy compute at all (D-115). Peer: disk ~97% used (check before large downloads); memory pressure sheds leases (declare ≥ 1.35 × peak, D-117).
-- Open intentions (44 items, top 10 ranked): `docs/intentions_backlog.md` (D-123).
+- Open intentions (44 items, top 10 ranked): `docs/experiments_roadmap.md (backlog appendix)` (D-123).
 
 ## resume
 Read this file, `docs/strategy.md`, `research/decisions.md` (latest entries) and the relevant `research/tracks/<track>.md`.

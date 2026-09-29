@@ -61,10 +61,9 @@ def _fixture(root: Path) -> Config:
     (repo / "research/reports").mkdir(parents=True)
     (repo / "research/decisions.md").write_text(DECISIONS)
     (repo / "STATUS.md").write_text(STATUS)
-    (repo / "docs/experiments_roadmap.md").write_text(ROADMAP)
-    (repo / "docs/intentions_backlog.md").write_text("# backlog\n## Physics\n| item | source | status | evidence | size | "
-                                                     "blocks |\n|---|---|---|---|---|---|\n| MJX | D-105 | prototype | x "
-                                                     "| L | – |\n")
+    (repo / "docs/experiments_roadmap.md").write_text(ROADMAP + "\n## backlog: Physics\n| item | source | status | evidence "
+                                                      "| size | blocks |\n|---|---|---|---|---|---|\n| MJX | D-105 | "
+                                                      "prototype | x | L | – |\n")
     (repo / "docs/strategy.md").write_text("# strategy\n## 2. Workstreams\n| id | workstream | owner | depends on | "
                                            "status |\n|---|---|---|---|---|\n| W1 | Physics | contact agent | — | "
                                            "running (D-105) |\n### W1 Physics realism (running)\nbody\n")

@@ -8,7 +8,7 @@ from pathlib import Path
 from .common import (Config, bodies_in, bullets, d_refs, envelope, parse_entries, parse_sections, parse_tables)
 
 DOC_FILES = ("research/decisions.md", "research/reports/evidence_matrix.md", "docs/strategy.md",
-             "docs/experiments_roadmap.md", "docs/intentions_backlog.md", "STATUS.md", "research/tracks/psi0.md")
+             "docs/experiments_roadmap.md", "STATUS.md", "research/tracks/psi0.md")
 _TOKEN = re.compile(r"[A-Za-z0-9_.\-=+/]+")
 _STOP = {"artifacts", "runs", "research", "tracks", "eval", "train", "diag", "val", "summary", "json", "jsonl", "md",
          "policy", "final", "compare", "results", "logs", "data", "none", "shard", "shard0", "part0", "seed", "docs",
@@ -140,9 +140,10 @@ def _roadmap(cfg: Config) -> list[dict]:
 
 
 def _backlog(cfg: Config) -> list[dict]:
-    t = _read(cfg.repo / "docs/intentions_backlog.md") or ""
+    """The stated-but-unimplemented tables (header `item`), an appendix of docs/experiments_roadmap.md since D-140."""
+    t = _read(cfg.repo / "docs/experiments_roadmap.md") or ""
     rows = []
-    for tab in parse_tables(t, "docs/intentions_backlog.md"):
+    for tab in parse_tables(t, "docs/experiments_roadmap.md"):
         h = [c.lower() for c in tab["header"]]
         if "item" not in h:
             continue
