@@ -13,7 +13,31 @@ from rrp.envs.legged_tracker import LearnedTracker
 from rrp.teachers.humanoid import StepsHeadingTeacher
 
 body, actor, s0, n, out = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), sys.argv[5]
-hf = float(sys.argv[6]) if len(sys.argv) > 6 else None
+hf = float(sys.argv[6]) if len(sys.argv) > 6 and sys.argv[6] != "none" else None
+RENDER = int(sys.argv[7]) if len(sys.argv) > 7 else 0          # render the first N episodes (MUJOCO_GL=egl)
+LABEL = sys.argv[8] if len(sys.argv) > 8 else ""
+
+
+def _render_setup(s):
+    import mujoco
+    s.model.vis.global_.offwidth, s.model.vis.global_.offheight = 560, 420
+    ren = mujoco.Renderer(s.model, 420, 560)
+    cam = mujoco.MjvCamera()
+    cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING
+    cam.trackbodyid = s.binding.root_bid
+    cam.distance = max(1.5, 3.5 * float(s.scenario.meta["L"]))
+    cam.azimuth, cam.elevation = 90.0, -10.0
+    return ren, cam
+
+
+def _caption(frame, lines):
+    from PIL import Image, ImageDraw
+    im = Image.fromarray(frame)
+    d = ImageDraw.Draw(im)
+    d.rectangle([0, 0, im.width, 14 * len(lines) + 6], fill=(0, 0, 0))
+    for i, t in enumerate(lines):
+        d.text((6, 3 + 14 * i), t, fill=(255, 255, 255))
+    return np.asarray(im)
 CUR = {}
 
 
@@ -36,8 +60,17 @@ for seed in range(s0, s0 + n):
     s.reset(seed)
     te = StepsHeadingTeacher(s)
     t0, status = time.time(), "timeout"
+    frames = []
+    rend = _render_setup(s) if len(rows) < RENDER else None
+    src = s.tracker.version + (" +privileged scan" if s.tracker.extra_fn else " (blind)")
     for k in range(400):                            # 10 Hz commands, 40 s
         s.step(te.act())
+        if rend is not None:
+            rend[0].update_scene(s.data, camera=rend[1])
+            frames.append(_caption(rend[0].render().copy(), [
+                f"PRIVILEGED TEACHER (rl_expert) + scripted heading command | {LABEL}" if s.tracker.extra_fn else
+                f"learned tracker (blind) + scripted heading command | {LABEL}",
+                f"{src}", f"h1 h_steps  step h={sc.meta['h_frac']:.2f} L  seed {seed}  t={s.data.time:4.1f}s  {'FELL' if s.fell else ''}"]))
         if s.fell:
             status = "fell"
             break
@@ -45,6 +78,18 @@ for seed in range(s0, s0 + n):
             status = "success"
             break
     x = float(s.data.qpos[s.binding.qa])
+    if frames:
+        import datetime as _dt
+        import imageio
+        from pathlib import Path
+        vd = Path("artifacts/video")
+        name = f"{_dt.date.today()}_humanoid_steps_{body}_h{sc.meta['h_frac']:.2f}_s{seed}_{LABEL or 'eval'}_{status}.mp4"
+        frames += [frames[-1]] * 10
+        imageio.mimsave(str(vd / name), frames, fps=10, quality=5)
+        with open(vd / "INDEX.md", "a") as f:
+            f.write(f"- `{name}` — W13 h_steps: {src}; body {body}, step height {sc.meta['h_frac']:.2f} L, seed {seed}, outcome "
+                    f"{status} (privileged evaluator), 1x speed. source label: "
+                    f"{'privileged_teacher:rl_expert (height scan) + scripted_teacher heading command' if s.tracker.extra_fn else 'learned_tracker (blind) + scripted_teacher heading command'}.\n")
     rows.append(dict(seed=seed, status=status, h_frac=sc.meta["h_frac"], x=x, x_end=sc.meta["x_end"], sim_s=float(s.data.time),
                      wall_s=time.time() - t0))
     print(rows[-1], flush=True)
