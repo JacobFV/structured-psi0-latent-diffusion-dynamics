@@ -1,0 +1,13 @@
+# armdiv G2 SMOKE (plumbing only; NOT a result): train_bc on the v7div pack for 30 updates, 2-episode evaluations.
+extends: armdiv_bc_v7div.yaml
+name: armdiv_bc_v7div_smoke
+lineage: 'bcv7div-smoke-{seed}'
+label_prefix: 'ads{seed}'
+matrix:
+  seed: [1701]
+nodes:
+  train: {config: {params: {epochs: 1, smoke_max_steps: 30}}}
+  ev_v6bodies: {config: {options: {episodes: 2}}}
+  ev_newarms: {config: {options: {episodes: 2}}}
+  ev_heldout: {config: {options: {episodes: 2}}}
+  ref_v6bc_newarms: null
