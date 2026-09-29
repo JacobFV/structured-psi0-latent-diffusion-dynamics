@@ -178,3 +178,11 @@ HUMANOID_RECIPES["h1_clock_gpu_r6"] = _ft("h1", "artifacts/runs/humanoid_p1b_h1_
                                           teacher_stop=0.3, clock_gate=True, iters=400,
                                           reward_set=_R5.replace("impact=-2.0", "impact=-4.0").replace("limit_margin=-4.0",
                                                                                                         "limit_margin=-8.0"))
+
+# t1 v2 (from scratch, leg_cross_collision, no clock gate) in C MuJoCo: no-fall 1.0 everywhere, fwd 0.93, turn 1.01, slip 0.071,
+# CoT 0.45 (installed w8d: 2.13), joint margin 0.0175, peak force 3.80 BW, waypoint 0/20 (same halt defect as h1 r3/r4).
+# t1 v2ft = the h1 r5->r6 fixes applied to t1 v2 (clock gate, impact -4, limit hinge -8), 600 iters.
+HUMANOID_RECIPES["t1_clock_gpu_v2ft"] = _ft("t1", "artifacts/runs/humanoid_p1b_t1_v2/actor_v2final.pt", alpha_schedule="fixed:0.5",
+                                            teacher_stop=0.3, clock_gate=True,
+                                            reward_set=_R5.replace("impact=-2.0", "impact=-4.0").replace("limit_margin=-4.0",
+                                                                                                          "limit_margin=-8.0"))
