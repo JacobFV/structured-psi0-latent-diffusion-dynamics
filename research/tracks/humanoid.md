@@ -255,3 +255,7 @@ Long runs use `/dev/shm/rrp-brandonin/wt/humanoid` (never re-synced while they r
   bodies moved per world (level 0: no falls in 500 ticks). The first h1 steps run (v2, geom-resizing) was void and stopped.
 - h1 steps expert v2 (warm start h1 r6, privileged 11x3 height scan + h_frac, scripted heading command, step-height
   curriculum 0-0.30 L): running.
+- **g1 v4** (from scratch, leg_cross_collision + clock gate, 1500 iters) in C MuJoCo (left video panel: CPU-trained g1_src
+  evaluated with RRP_ALLOW_LIMITS_MISMATCH, labelled): no-fall 1.0 on every trial and robustness condition, fwd 0.90, turn 0.98,
+  slip 0.016, CoT 0.47, **peak force 2.13 BW (passes)**; D-112 fails ONLY joint margin 0.012 (limit 0.02). Waypoint 17/20,
+  3 falls. -> g1 v4ft (target_margin + land_vel) queued.
