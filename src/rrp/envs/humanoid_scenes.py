@@ -2,7 +2,7 @@
 world (contact_v2 floor) and scaled by the body's leg length L (= nominal root height), so one task definition spans
 toddler-size and adult humanoids. Every scene geom counts as GROUND for foot-contact / fall logic ("ground" list).
 
-Implemented so far:
+Implemented so far (h_gap_sidestep below):
   h_steps  (L2): up N steps, a platform, down N steps, along +x; step height h (fraction of L, per episode), tread 0.6 L.
            Success: base past the far end (x > x_end) without falling; failure reasons: fell, trip (a non-sole geom of a
            foot touches a riser > 0.3 s), timeout. Per-world step heights are batchable (geom_pos / geom_size / aabb / rbound).
@@ -93,10 +93,15 @@ def task_model(body: str, task: str, params: dict | None = None, contact: str = 
         else:
             ground = add_steps(scene, L, h, floor_kw)
         params["x_end"] = steps_layout(L, h)[1]
+    elif task == "h_gap_sidestep":
+        walls = add_gap_walls(scene, L, floor_kw, float(params.get("width", 2.0 * L)), float(params.get("y_c", 0.0)),
+                              mocap=bool(params.get("mocap")))
+        ground = []
+        params["walls"] = walls
     else:
         raise KeyError(f"unknown humanoid task scene {task!r}")
     meta["contact_model"] = version_str(contact)
-    meta["scene"] = dict(task=task, version=SCENE_VERSION, params=params, ground=ground, L=L)
+    meta["scene"] = dict(task=task, version=SCENE_VERSION, params=params, ground=ground, L=L, walls=params.get("walls", []))
     site = scene.worldbody.add_site(name="mount0", pos=[0, 0, 0])
     scene.attach(module.spec.copy(), prefix=prefix, site=site)
     scene.memory = 3 * 2 ** 20
@@ -158,3 +163,38 @@ def steps_scan_np(qpos_root: np.ndarray, L: float, h: float) -> np.ndarray:
     px = x + L * (math.cos(yaw) * sx.ravel() - math.sin(yaw) * sy.ravel())
     hz = steps_height_at(px, L, h)
     return np.concatenate([(hz - (z - L)) / L, [h / L]]).astype(np.float32)
+
+
+# ------------------------------------------------------------------ L1 h_gap_sidestep
+GAP_X = 2.0            # x L, wall plane
+WALL_T = 0.1           # x L, wall half-thickness (x)
+WALL_HALF_Y = 2.0      # x L, each wall's half-length along y
+WALL_HALF_Z = 0.75     # x L
+
+
+def body_width(model: mujoco.MjModel, b) -> float:
+    """Shoulder/hip width at the default pose: 2 x max over robot collision geoms of |y| + bounding radius (m)."""
+    d = mujoco.MjData(model)
+    b.set_default(d)
+    mujoco.mj_kinematics(model, d)
+    ys = [abs(d.geom_xpos[g][1]) + model.geom_rbound[g] for g in range(model.ngeom)
+          if b.is_robot_body[model.geom_bodyid[g]] and (model.geom_contype[g] or model.geom_conaffinity[g])]
+    return 2.0 * float(max(ys))
+
+
+def add_gap_walls(spec: mujoco.MjSpec, L: float, floor_kw: dict, width: float, y_c: float, mocap: bool = False) -> list:
+    """Two wall boxes at x = GAP_X L leaving a gap of `width` centred at y_c. mocap=True puts each wall on its own mocap body
+    (the GPU env moves them per world; geometry fixed)."""
+    names = []
+    for side, sg in (("left", 1), ("right", -1)):
+        yc = y_c + sg * (0.5 * width + WALL_HALF_Y * L)
+        size = [WALL_T * L, WALL_HALF_Y * L, WALL_HALF_Z * L]
+        nm = f"wall_{side}"
+        if mocap:
+            body = spec.worldbody.add_body(name=f"{nm}_body", pos=[GAP_X * L, yc, WALL_HALF_Z * L], mocap=True)
+            body.add_geom(name=nm, type=G.mjGEOM_BOX, size=size, rgba=[0.6, 0.35, 0.3, 1], **floor_kw)
+        else:
+            spec.worldbody.add_geom(name=nm, type=G.mjGEOM_BOX, pos=[GAP_X * L, yc, WALL_HALF_Z * L], size=size,
+                                    rgba=[0.6, 0.35, 0.3, 1], **floor_kw)
+        names.append(nm)
+    return names

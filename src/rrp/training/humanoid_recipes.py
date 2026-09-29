@@ -228,3 +228,12 @@ HUMANOID_RECIPES["t1_clock_gpu_v2ft4"] = _ft("t1", "artifacts/runs/humanoid_p1b_
                                              force_cap_bw=2.5, iters=400,
                                              reward_set=_R5.replace("impact=-2.0", "impact=-4.0").replace("limit_margin=-4.0",
                                                                                                           "limit_margin=-8.0"))
+
+# P2 L1 h_gap_sidestep expert (pre-declared stop rule: <= 2 reward designs, <= 3e8 samples per body)
+HUMANOID_RECIPES["h1_gap_gpu_v1"] = _steps("h1", task="gap", init_shared="artifacts/runs/humanoid_p1b_h1_r6/actor_r6final.pt",
+                                           init_std=0.3, iters=2000, clock_gate=True, alpha_schedule="fixed:0.5", episode_s=20.0,
+                                           level_up=0.6, reward_set=_R5.replace("impact=-2.0", "impact=-4.0")
+                                           .replace("limit_margin=-4.0", "limit_margin=-8.0"))
+HUMANOID_RECIPES["t1_gap_gpu_v1"] = dict(HUMANOID_RECIPES["h1_gap_gpu_v1"], body="t1",
+                                         init_shared="artifacts/runs/humanoid_p1b_t1_v2ft4/actor.pt", target_margin=0.05,
+                                         force_cap=-2.0, force_cap_bw=2.5, land_vel=-2.0)
