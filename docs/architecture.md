@@ -154,8 +154,10 @@ class Act:
 
 class Policy(Protocol):
     info: PolicyInfo
-    def reset(self, spec: EnvSpec, task: TaskSpec, seeds: Sequence[int], *, envs: Sequence[Env] | None = None) -> None
-    #   envs is passed ONLY when info.requires.privileged (teachers, oracles); learned policies never see an env
+    def reset(self, spec: EnvSpec, task: TaskSpec, seeds: Sequence[int], *, envs: Sequence[Env]) -> None
+    #   one env per seed. A policy without requires.privileged reads only the public surface: observe() through its
+    #   featurizer (rrp.policies.features: the ONLY definition of what a policy may see), the body model for public FK,
+    #   controller / task-graph versions and the clock; privileged ones (teachers, oracles) may read truth
     def act(self, obs: Mapping[int, Observation]) -> dict[int, Act]
     #   RUNNING episodes only, keyed by episode index (position in reset's seeds): per-episode state and random
     #   streams never depend on which other episodes are still running
@@ -182,11 +184,11 @@ Mapping of today's code onto the interface (S4; the nets and featurizers do not 
 
 | policy | today | after |
 |---|---|---|
-| `bc` | `policies.bc.LearnedPolicy` (+ SDEPolicy/Expo/VLM variants in harness.train) | adapter in `policies.bc` (chunk policy; `Act.chunk`) |
-| `latent` (arm, dual) | `policies.latent.LatentPolicy` + `policies.system0.LatentSystem0` / `batched_ticks`; `DualLatentPolicy` + `DualLatentSystem0` in harness.eval | adapter in `policies.latent` (system i every `replan` ticks, system 0 every tick); dual = same class with the multi featurizer |
+| `bc` | `policies.bc.LearnedPolicy` (+ SDEPolicy/Expo/VLM variants in harness.train) | `policies.bc.BCPolicy` / `make_bc` (chunk policy; `Act.chunk`) — S4 done, parity golden |
+| `latent` (arm, dual) | `policies.latent.LatentPolicy` + `policies.system0.LatentSystem0` / `batched_ticks`; `DualLatentPolicy` + `DualLatentSystem0` (moved from harness.eval into policies.latent / policies.system0) | `policies.latent.LatentStackPolicy` / `make_latent` (system i every `replan_ticks`, system 0 every tick, `packet_hook` for edits); dual via `DualLatentPolicy` — S4 done, parity golden |
 | `legged_latent`, `legged_bc` | `LatentLeggedController` / `BCController` in the tracker slot via `System0Adapter`/`BCAdapter` (harness.eval.legged_latent_eval) | `policies.latent` / `policies.bc` on the `legs` space |
 | `tracker` | `envs.mujoco.legged_tracker.LearnedTracker` / `CPGTracker` | stays embedded in `mujoco/legged`'s `base_velocity` space; a Policy wrapper for `warp/legged` and validation; saved-actor options (clock_gate, target_margin, ref_ff, extra_obs_dim, morph_v1) pinned by test_golden |
-| `teacher:<task>` | `policies.teachers.*` `act()` (reads session internals) | adapter, `requires.privileged`, source `scripted_teacher` |
+| `teacher:<task>` | `policies.teachers.*` `act()` (reads session internals) | `policies.teachers.TeacherPolicy` (`make_policy("teacher:<task>")`), `requires.privileged`, source `scripted_teacher` — S4 done, parity golden (arm, dual) |
 | `oracle` | `OraclePacketPolicy`, `OracleSource`, `OracleShadow` (three copies in harness.eval) | one `policies.oracle`, source `oracle` |
 | `psi0_direct`, `psi0_structured` | psi1z `serve_psi0` / `serve_ours` + `system_i` / `structured` | `policies.psi0` (Ψ₀ agent; registered names already declared) |
 

@@ -477,7 +477,7 @@ def cmd_arm(a):
     dev = "cuda" if a.gpu and torch.cuda.is_available() else "cpu"
     if a.route == "generated":
         from rrp.policies.nets.checkpoint import load_checkpoint
-        from rrp.harness.eval.dual_latent_eval import DualLatentPolicy
+        from rrp.policies.latent import DualLatentPolicy
         rep = Path(load_checkpoint(a.checkpoint, map_location="cpu")["config"]["representation"])
         _, _, R, P, _ = load_representation(rep, dev)
         src = se.GeneratedSource(DualLatentPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=a.nfe))

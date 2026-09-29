@@ -259,3 +259,75 @@ def test_legacy_pickle_paths_load(tmp_path):
     p = tmp_path / "e.public.pkl.gz"
     p.write_bytes(gzip.compress(b))
     assert isinstance(read_episode(p)["x"], PolicyInput)
+
+
+# ------------------------------------------------------------------ D-140 S4: Policy adapters reproduce the old paths
+class _Rec:
+    def __init__(self):
+        self.cmds, self.qpos, self.packets, self.chunks = [], [], [], []
+
+    def on_step(self, i, env, act, step):
+        c = act.command
+        if isinstance(c, dict):
+            self.cmds.append({f"{r}:{k}": np.asarray(v) for r, nc in sorted(c.items()) for k, v in nc.groups.items()})
+        elif c is not None:
+            self.cmds.append({k: np.asarray(v) for k, v in c.groups.items()})
+        self.qpos.append(step.qpos)
+        if act.packet is not None:
+            self.packets.append(act.packet)
+        if act.chunk is not None:
+            self.chunks.append(act.chunk)
+
+
+def _run(make, policy, task, ticks, dt=0.05):
+    from rrp.harness.rollout import rollout
+    from rrp.tasks.spec import get_task
+    rec = _Rec()
+    rollout(make, policy, get_task(task), [3], batch=1, max_seconds=ticks * dt - 1e-9, hooks=[rec])
+    return rec
+
+
+def test_teacher_adapter_matches_old_path(golden):
+    from rrp.policies.base import make_policy
+    rec = _run(lambda sd: _arm_session(sd), make_policy("teacher:pick_place"), "pick_place", 25)
+    assert len(rec.cmds) == 25
+    golden("arm.teacher.commands", _h(*rec.cmds))
+    golden("arm.teacher.qpos", _h(np.stack(rec.qpos)))
+
+
+def test_dual_teacher_adapter_matches_old_path(golden):
+    from rrp.envs.base import make_env
+    from rrp.policies.base import make_policy
+    rec = _run(lambda sd: make_env("mujoco/dual", task="support_insert", body=["parm5l_pg2", "parm6_pg2"], seed=sd),
+               make_policy("teacher:support_insert"), "support_insert", 15)
+    golden("dual.teacher.commands", _h(*rec.cmds))
+    golden("dual.teacher.qpos", _h(np.stack(rec.qpos)))
+
+
+def test_latent_adapter_matches_old_path(golden):
+    import torch
+    from rrp.policies.latent import LatentPolicy, LatentStackPolicy
+    from rrp.policies.system0 import LatentRealizer
+    si = LatentPolicy(_flow(), knot_times=(0.1, 0.3, 0.5, 0.7), latent_space_version="ls-g", realizer_compat_version="rz-g",
+                      device="cpu", nfe=4, seed=3)
+    torch.manual_seed(1)
+    pol = LatentStackPolicy(si, LatentRealizer(8, width=32, layers=1))
+    rec = _run(lambda sd: _arm_session(sd), pol, "pick_place", 6)
+    assert len(rec.packets) == 1 and pol.s0[0].stats.ticks == 6
+    golden("latent.packet.z", _h(rec.packets[0].z, decimals=5))
+    golden("latent.system0.commands", _h(*rec.cmds, decimals=5))
+    golden("latent.system0.qpos", _h(np.stack(rec.qpos), decimals=6))
+
+
+def test_bc_adapter_matches_old_path(golden):
+    import torch
+    from rrp.policies.bc import BCPolicy, LearnedPolicy
+    from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
+    torch.manual_seed(2)
+    m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=1, horizon=8, latent_dim=1, aux=False))
+    with torch.no_grad():
+        m.out.weight.normal_(0, 0.2)
+    rec = _run(lambda sd: _arm_session(sd), BCPolicy(LearnedPolicy(m, None, "cpu", nfe=4, execute_prefix=4, seed=5)),
+               "pick_place", 6)
+    assert len(rec.chunks) == 2                       # prefix 4: a new chunk at ticks 0 and 4
+    golden("bc.chunk", _h({g.group: g.values for g in rec.chunks[0].command_groups}, decimals=5))

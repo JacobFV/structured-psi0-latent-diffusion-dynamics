@@ -22,8 +22,10 @@ from __future__ import annotations
 import numpy as np
 
 from rrp.core.observation import PolicyObservation
+from rrp.core.latent_action import AssemblyHandle
 from rrp.core.robot import combined_hash  # noqa: F401  (moved to contracts; envs use it)
-from rrp.policies.features.featurizer import (Featurizer, ActionSpace, PolicyInput, BANKS, HASH_DIM, REL, one_hot)
+from rrp.policies.features.featurizer import (Featurizer, ActionSpace, PolicyInput, BANKS, HASH_DIM, REL, one_hot,
+                                             text_hash)
 
 WORKSPACE_FRAME = dict(origin=(0.0, 0.0, 0.0), yaw=0.0, name="table_world")
 ROLE_KIND_OFF = 2 * HASH_DIM + 10 + 10       # role-token bound-kind one-hot offset in the task bank
@@ -213,3 +215,150 @@ class MultiFeaturizer:
 
 def multi_featurizer_for(session) -> MultiFeaturizer:
     return MultiFeaturizer(session.model, session.scenario.robots)
+
+
+# ------------------------------------------------------------------ multi-assembly packet layout (public; moved from
+# harness.data.dual_latent in D-140 S4: system 0 and system i need it at deployment). The packet axis M lists the
+# controllable grasping assemblies in the declared order of the gripper/hand tokens in the morph bank; a missing
+# assembly is an explicit null slot.
+REL_NODE_IN_ASM, REL_NODE_ACTOR_OF, REL_KIN_PARENT = 1, 13, 16
+BANK_MORPH, BANK_TASK, BANK_INTERACT = 0, 2, 3
+ASM_GRIPPER_ONEHOT = (1, 2)
+
+
+def gripper_token_positions(pi, max_m: int = 2) -> list[int]:
+    """Morph-bank positions of grasping-assembly tokens, in packet order (same rule as assembly_tokens)."""
+    tok, kind = pi.tokens["morph"], pi.token_kind["morph"]
+    pos = [j for j in range(len(kind)) if kind[j] == 2 and tok[j, list(ASM_GRIPPER_ONEHOT)].sum() > 0.5]
+    return pos[:max_m]
+
+
+def node_assembly_index(pi, max_m: int = 2) -> np.ndarray:
+    """Packet slot owning each action node. A node in a grasping assembly -> that slot; otherwise the slot of the
+    first grasping-assembly node among its kinematic descendants (an arm drives its own gripper); fallback: robot
+    segment (meta nodes_per_robot), else 0."""
+    N = pi.act_node_feats.shape[0]
+    gpos = gripper_token_positions(pi, max_m)
+    slot_of_tok = {p: m for m, p in enumerate(gpos)}
+    R = np.asarray(pi.relations).reshape(-1, 5)
+    own = np.full(N, -1)
+    parent = np.full(N, -1)
+    for qb, qi, kb, ki, r in R.tolist():
+        if qb == -1 and kb == BANK_MORPH and qi < N:
+            if r == REL_NODE_IN_ASM and ki in slot_of_tok:
+                own[qi] = slot_of_tok[ki]
+            elif r == REL_KIN_PARENT and ki < N:
+                parent[qi] = ki
+    out = own.copy()
+    for i in range(N):
+        if out[i] >= 0:
+            continue
+        # descendants of i that are in a grasping assembly
+        for j in range(N):
+            if own[j] < 0:
+                continue
+            k, hops = j, 0
+            while k >= 0 and hops <= N:
+                if k == i:
+                    out[i] = own[j]
+                    break
+                k, hops = parent[k], hops + 1
+            if out[i] >= 0:
+                break
+    if (out < 0).any():
+        npr = pi.meta.get("nodes_per_robot")
+        if npr and len(npr) == len(gpos):
+            seg = np.repeat(np.arange(len(npr)), npr)[:N]
+            out = np.where(out < 0, seg, out)
+    return np.where(out < 0, 0, out).astype(np.int64)
+
+
+def local_sensors_multi(pi, max_m: int = 2) -> np.ndarray:
+    """Declared local sensors per packet slot [M,4]: touch summary (log max, count>0.2N, log mean) + grip width
+    of the assembly each sensor token is linked to (node_in_assembly relation interact -> morph)."""
+    gpos = gripper_token_positions(pi, max_m)
+    slot_of_tok = {p: m for m, p in enumerate(gpos)}
+    out = np.zeros((max_m, 4), np.float32)
+    th = text_hash("touch")
+    it, ik = pi.tokens["interact"], pi.token_kind["interact"]
+    link = {}
+    for qb, qi, kb, ki, r in np.asarray(pi.relations).reshape(-1, 5).tolist():
+        if qb == BANK_INTERACT and kb == BANK_MORPH and r == REL_NODE_IN_ASM and ki in slot_of_tok:
+            link[qi] = slot_of_tok[ki]
+    for j in range(len(ik)):
+        if ik[j] != 1 or j not in link:
+            continue
+        m = link[j]
+        if np.allclose(it[j, 16:], th):
+            out[m, :3] = it[j, 13:16]
+        else:
+            out[m, 3] = it[j, 13]
+    return out
+
+
+def assembly_operators(pi, operators: list[str], max_m: int = 2) -> np.ndarray:
+    """Public per-slot subtask label: operator of the first ACTIVE event whose actor nodes belong to that slot
+    (node_actor_of relations + runtime status one-hot in the task bank). 0 ('none') if no active event."""
+    node_slot = node_assembly_index(pi, max_m)
+    tt, tk = pi.tokens["task"], pi.token_kind["task"]
+    active = {j for j in range(len(tk)) if tk[j] == 0 and tt[j, HASH_DIM + 2] > 0.5}
+    hashes = [text_hash(op) for op in operators]
+    ev_slots: dict[int, set] = {}
+    for qb, qi, kb, ki, r in np.asarray(pi.relations).reshape(-1, 5).tolist():
+        if qb == -1 and kb == BANK_TASK and r == REL_NODE_ACTOR_OF and ki in active and qi < len(node_slot):
+            ev_slots.setdefault(ki, set()).add(int(node_slot[qi]))
+    out = np.zeros(max_m, np.int64)
+    for m in range(max_m):
+        for ev in sorted(ev_slots):
+            if m in ev_slots[ev]:
+                for k, h in enumerate(hashes):
+                    if np.allclose(tt[ev, :HASH_DIM], h, atol=1e-5):
+                        out[m] = k
+                        break
+                break
+    return out
+
+
+# ------------------------------------------------------------------ packet slot addressing (moved from harness.eval.dual_latent_eval, D-140 S4)
+NULL_HASH = "0" * 16
+
+
+def multi_featurizer(s) -> MultiFeaturizer:
+    f = getattr(s, "_rrp_featurizer", None)
+    if f is None:
+        f = s._rrp_featurizer = MultiFeaturizer(s.model, s.scenario.robots)
+    return f
+
+
+def slot_assemblies(f: MultiFeaturizer, max_m: int = 2) -> list:
+    """[(robot_index, sub_featurizer, assembly spec)] in packet slot order (= morph gripper-token order)."""
+    out = [(i, sub, a) for i, sub in enumerate(f.subs) for a in sub.spec.assemblies if a.kind in ("gripper", "hand")]
+    return out[:max_m]
+
+
+def assembly_handles(f: MultiFeaturizer, max_m: int = 2):
+    sl = slot_assemblies(f, max_m)
+    hs = [AssemblyHandle(handle=f"asm:{sub.spec.spec_hash}:{a.frame.link}", robot_index=i) for i, sub, a in sl]
+    mask = [True] * len(hs)
+    for m in range(len(hs), max_m):                       # explicit null identity for an absent assembly
+        hs.append(AssemblyHandle(handle=f"asm:{NULL_HASH}:null/{m}", robot_index=0))
+        mask.append(False)
+    return hs, mask
+
+
+def node_slots(f: MultiFeaturizer, pi, max_m: int = 2) -> np.ndarray:
+    """Packet slot of each action node. Bodies with several grippers use the declared per-node gripper map
+    (MultiFeaturizer._node_grippers, public spec); otherwise the relation-derived rule used at packing."""
+    if not any(len([a for a in s.spec.assemblies if a.kind in ("gripper", "hand")]) > 1 for s in f.subs):
+        return node_assembly_index(pi, max_m)
+    sl = slot_assemblies(f, max_m)
+    site_slot = {(i, a.frame.site): m for m, (i, sub, a) in enumerate(sl)}
+    out = []
+    for i, sub in enumerate(f.subs):
+        sites = f._node_grippers(sub)
+        if sites is None:
+            m = next((m for m, (ri, _, _) in enumerate(sl) if ri == i), 0)
+            out += [m] * f.n_nodes[i]
+        else:
+            out += [site_slot.get((i, st), 0) for st in sites]
+    return np.array(out, np.int64)

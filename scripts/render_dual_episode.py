@@ -39,7 +39,9 @@ def run(a):
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     pol = R = P = None
     if a.source == "learned_latent":
-        from rrp.harness.eval.dual_latent_eval import DualLatentPolicy, DualLatentSystem0, probe_readout
+        from rrp.harness.eval.dual_latent_eval import probe_readout
+        from rrp.policies.latent import DualLatentPolicy
+        from rrp.policies.system0 import DualLatentSystem0
         from rrp.policies.nets.checkpoint import load_checkpoint
         from rrp.policies.bundles import load_representation
         if dev == "cuda":

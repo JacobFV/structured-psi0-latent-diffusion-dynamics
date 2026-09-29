@@ -79,7 +79,7 @@ class _Hold:
 
     def reset(self, spec, task, seeds, *, envs=None):
         self.n = len(seeds)
-        assert envs is None
+        assert len(envs) == len(seeds)
 
     def act(self, obs):
         return {i: Act(None) for i in obs}

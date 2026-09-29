@@ -32,7 +32,7 @@ def arm_packet(f, s, o, z, *, lsv, rcv, knot_times, source, name, sampling=None,
 
 def dual_packet(f, s, o, z, *, lsv, rcv, knot_times, source, name, sampling, validity=0.8):
     from rrp.core.latent_action import EntityHandle, LatentActionChunk
-    from rrp.harness.eval.dual_latent_eval import assembly_handles
+    from rrp.policies.features.multi import assembly_handles
     hs, mask = assembly_handles(f, z.shape[1])
     z = np.ascontiguousarray(z, np.float32)
     z[:, ~np.array(mask)] = 0.0

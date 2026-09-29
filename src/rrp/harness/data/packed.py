@@ -113,6 +113,7 @@ def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, s
             rid = robot_ids.setdefault(rk, len(robot_ids))
             if multi_m:
                 from rrp.harness.data import dual_latent as DL
+                from rrp.policies.features import multi as MF
                 cols = DL.label_columns_for_slots(pub["meta"], list(prv["manipulators"]), multi_m)
             for smp in episode_samples(pub, prv, H, stride):
                 pi = smp.pi
@@ -172,10 +173,10 @@ def pack_dataset(ds_dir: Path, out_dir: Path, robots: set[str] | None, H: int, s
                 row["robot_id"] = np.int16(rid)
                 if multi_m:
                     row.update(DL.multi_labels(prv["labels"][smp.meta["t"]], cols, S, MAX_S, multi_m))
-                    row["subtask_m"] = DL.assembly_operators(pi, OPERATORS, multi_m).astype(np.int8)
-                    row["local_m"] = DL.local_sensors_multi(pi, multi_m).astype(np.float16)
+                    row["subtask_m"] = MF.assembly_operators(pi, OPERATORS, multi_m).astype(np.int8)
+                    row["local_m"] = MF.local_sensors_multi(pi, multi_m).astype(np.float16)
                     na = np.zeros(MAX_N_, np.int8)
-                    na[:N] = DL.node_assembly_index(pi, multi_m)[:N]
+                    na[:N] = MF.node_assembly_index(pi, multi_m)[:N]
                     row["node_asm"] = na
                     row["slot_col"] = np.array(cols, np.int8)
                 for k2 in specs:

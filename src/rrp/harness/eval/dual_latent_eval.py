@@ -22,151 +22,15 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from rrp.core.action import NativeCommand
 from rrp.core.errors import ControllerRejection, StaleActionError
-from rrp.core.latent_action import LatentActionChunk, AssemblyHandle, EntityHandle, check_packet
 from rrp.core.provenance import stamp_source_label
-from rrp.policies.system0 import LatentSystem0
-from rrp.policies.features.multi import MultiFeaturizer
 from rrp.harness.data import dual_latent as DL
 from rrp.harness.data.packed import _focus
 from rrp.policies.features.derived import OPERATORS
-from rrp.policies.nets.batch import collate_inputs
-from rrp.policies.nets.latent_batch import assembly_batch
-from rrp.policies.latent import LatentPolicy
-
-NULL_HASH = "0" * 16
-
-
-def multi_featurizer(s) -> MultiFeaturizer:
-    f = getattr(s, "_rrp_featurizer", None)
-    if f is None:
-        f = s._rrp_featurizer = MultiFeaturizer(s.model, s.scenario.robots)
-    return f
-
-
-def slot_assemblies(f: MultiFeaturizer, max_m: int = 2) -> list:
-    """[(robot_index, sub_featurizer, assembly spec)] in packet slot order (= morph gripper-token order)."""
-    out = [(i, sub, a) for i, sub in enumerate(f.subs) for a in sub.spec.assemblies if a.kind in ("gripper", "hand")]
-    return out[:max_m]
-
-
-def assembly_handles(f: MultiFeaturizer, max_m: int = 2):
-    sl = slot_assemblies(f, max_m)
-    hs = [AssemblyHandle(handle=f"asm:{sub.spec.spec_hash}:{a.frame.link}", robot_index=i) for i, sub, a in sl]
-    mask = [True] * len(hs)
-    for m in range(len(hs), max_m):                       # explicit null identity for an absent assembly
-        hs.append(AssemblyHandle(handle=f"asm:{NULL_HASH}:null/{m}", robot_index=0))
-        mask.append(False)
-    return hs, mask
-
-
-def node_slots(f: MultiFeaturizer, pi, max_m: int = 2) -> np.ndarray:
-    """Packet slot of each action node. Bodies with several grippers use the declared per-node gripper map
-    (MultiFeaturizer._node_grippers, public spec); otherwise the relation-derived rule used at packing."""
-    if not any(len([a for a in s.spec.assemblies if a.kind in ("gripper", "hand")]) > 1 for s in f.subs):
-        return DL.node_assembly_index(pi, max_m)
-    sl = slot_assemblies(f, max_m)
-    site_slot = {(i, a.frame.site): m for m, (i, sub, a) in enumerate(sl)}
-    out = []
-    for i, sub in enumerate(f.subs):
-        sites = f._node_grippers(sub)
-        if sites is None:
-            m = next((m for m, (ri, _, _) in enumerate(sl) if ri == i), 0)
-            out += [m] * f.n_nodes[i]
-        else:
-            out += [site_slot.get((i, st), 0) for st in sites]
-    return np.array(out, np.int64)
-
-
-class DualLatentPolicy(LatentPolicy):
-    """System i for multi-robot scenes: one packet over all controllable grasping assemblies."""
-
-    def featurizer(self, s):
-        return multi_featurizer(s)
-
-    @torch.no_grad()
-    def packets(self, sessions, noise_keys=None) -> list[LatentActionChunk]:
-        t0 = time.perf_counter()
-        feats, obs = [], []
-        for s in sessions:
-            o = s.observe()
-            obs.append(o)
-            feats.append(self.featurizer(s)(o))
-        b = assembly_batch(collate_inputs(feats).to(self.device))
-        cache = self.model.prepare(b)
-        noise = None
-        if noise_keys is not None:          # paired interventions: same key -> same initial flow noise
-            K, N, D = len(self.knot_times), b.node_mask.shape[1], self.model.cfg.latent_dim
-            noise = torch.stack([torch.randn((K, N, D), generator=torch.Generator().manual_seed(int(k) % (2 ** 63)))
-                                 for k in noise_keys]).to(self.device, cache.ctx.dtype)
-        z = self.model.sample(cache, len(self.knot_times), nfe=self.nfe, generator=self.gen, noise=noise)
-        if self.device != "cpu" and torch.cuda.is_available():
-            torch.cuda.synchronize()
-        z = z.float().cpu().numpy()
-        out = []
-        for i, (s, o) in enumerate(zip(sessions, obs)):
-            f = self.featurizer(s)
-            hs, mask = assembly_handles(f, z.shape[2])
-            zi = z[i].astype(np.float32)
-            zi[:, ~np.array(mask)] = 0.0
-            now = float(s.data.time)
-            out.append(LatentActionChunk(
-                latent_space_version=self.lsv, realizer_compat_version=self.rcv, z=zi, knot_times=self.knot_times,
-                assemblies=hs, assembly_mask=mask,
-                entity_registry=[EntityHandle(handle=f"ent:{d.slot}") for d in o.object_descriptors],
-                observation_id=o.observation_id, graph_version=s.runtime.graph_version,
-                runtime_version=s.runtime.runtime_version, robot_spec_hash=f.spec_hash,
-                generated_at=time.time(), valid_from=now, valid_until=now + self.validity, source="learned",
-                policy_version=self.name, sampling=dict(nfe=self.nfe, sampler="euler")))
-        self.calls += len(sessions)
-        self.latencies.append(time.perf_counter() - t0)
-        return out
-
-
-class DualLatentSystem0(LatentSystem0):
-    """System 0 for a multi-robot scene: per-node slot routing + per-assembly local sensors."""
-
-    def receive(self, packet, *, now, graph_version=None):
-        try:
-            check_packet(packet, latent_space_version=self.lsv, realizer_compat_version=self.rcv,
-                         robot_spec_hash=self.f.spec_hash, now=now, graph_version=graph_version,
-                         owned_assemblies={h.handle for h in assembly_handles(self.f, len(packet.assemblies))[0]})
-        except (ControllerRejection, StaleActionError) as e:
-            self.stats.rejected += 1
-            self.log.append(dict(t=now, event="packet_rejected", code=getattr(e, "code", "stale")))
-            raise
-        self.packet = packet
-        self.stats.packets += 1
-        self.log.append(dict(t=now, event="packet_accepted", obs=packet.observation_id))
-
-    @torch.no_grad()
-    def tick(self, session, controller_version=None):
-        now = float(session.data.time)
-        if self.packet is not None and session.runtime.graph_version != self.packet.graph_version:
-            self.invalidate("graph_edit", now)
-        if self.packet is None or now > self.packet.valid_until:
-            if self.packet is not None:
-                self.invalidate("expired", now)
-            self.stats.fallback_holds += 1
-            return None
-        pi = self.f(session.observe())
-        M = len(self.packet.assemblies)
-        na = node_slots(self.f, pi, M)
-        loc = DL.local_sensors_multi(pi, M)[na]                               # [N,4] own assembly's sensors
-        dev = self.device
-        z = torch.from_numpy(np.asarray(self.packet.z, np.float32))[None].to(dev)
-        zm = torch.tensor([self.packet.assembly_mask], device=dev)
-        kt = torch.tensor(self.packet.knot_times, dtype=torch.float32, device=dev)
-        ph = torch.tensor([now - self.packet.valid_from], dtype=torch.float32, device=dev)
-        from rrp.policies.system0 import realizer_node_feats
-        nf = torch.from_numpy(realizer_node_feats(self, pi))[None].to(dev)    # anchored realizers: col 28 (ladder)
-        nm = torch.ones(1, nf.shape[1], dtype=torch.bool, device=dev)
-        a = self.net(z, zm, kt, ph, nf, nm, torch.from_numpy(loc)[None].to(dev),
-                     node_asm=torch.from_numpy(na)[None].to(dev))[0].cpu().numpy()
-        flat = self.f.aspace.denormalize(np.clip(a, -6, 6)[None], pi.q0)[0]
-        self.stats.ticks += 1
-        return session.command_from_flat(flat, "learned")
+from rrp.policies.features.multi import (MultiFeaturizer, assembly_operators, multi_featurizer,  # noqa: F401
+                                         slot_assemblies)
+from rrp.policies.latent import DualLatentPolicy
+from rrp.policies.system0 import DualLatentSystem0
 
 
 def slot_label_columns(session, f: MultiFeaturizer, M: int) -> list[int]:
@@ -187,7 +51,7 @@ def dual_packet_labels(session, pi, M: int = 2) -> dict:
     return dict(visible=t(lab["slot_visible"][:S]), focus=t(_focus(pi, S)), gaze=t(lab["slot_gaze_angle"][:S]).float(),
                 future_disp=torch.zeros(1, S, 3), held_m=t(ml["held_m"]), contact_m=t(ml["contact_m"]),
                 rel_tcp_m=t(ml["rel_tcp_m"].astype(np.float32)),
-                subtask_m=t(DL.assembly_operators(pi, OPERATORS, M)))
+                subtask_m=t(assembly_operators(pi, OPERATORS, M)))
 
 
 def probe_readout(out: dict, S: int, slot_names=("L", "R"), ent_names=None) -> list[str]:

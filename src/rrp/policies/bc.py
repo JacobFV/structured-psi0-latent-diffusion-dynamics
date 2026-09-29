@@ -122,3 +122,39 @@ class LearnedPolicy:
         """Workbench hook: submit one chunk for a single session."""
         ch = self.chunks([session])[0]
         session.submit_chunk(ch, execute_prefix=self.execute_prefix)
+
+
+ARM_OBS = frozenset({"proprio", "object_descriptors", "task_graph"})
+
+
+class BCPolicy:
+    """Policy adapter (rrp.policies.base) over LearnedPolicy: when an episode's chunk queue is empty, a new chunk is
+    planned and submitted (Act.chunk, executed `execute_prefix` rows by the env's chunk executor); the env pops one
+    row per tick (command None). The same schedule as harness.eval.runner.evaluate."""
+
+    def __init__(self, inner: LearnedPolicy, *, name: str = "bc", version: str | None = None, source: str = "bc",
+                 bodies=None, tasks=None, dual: bool = False):
+        from rrp.policies.base import PolicyInfo, Requirements
+        self.inner = inner
+        self.info = PolicyInfo(name, source, version or inner.name, Requirements(
+            frozenset({"joint_position", "gripper"}), observations=ARM_OBS, body_families=frozenset({"arm"}),
+            bodies=frozenset(bodies) if bodies else None, tasks=frozenset(tasks) if tasks else None,
+            env_capabilities=frozenset({"chunk_executor"})))
+        self.envs = []
+
+    def reset(self, spec, task, seeds, *, envs=None):
+        self.envs = list(envs)
+
+    def act(self, obs):
+        from rrp.policies.base import Act
+        need = [i for i in sorted(obs) if not self.envs[i].executor.queue]
+        out = {i: Act(None) for i in obs}
+        if need:
+            for i, ch in zip(need, self.inner.chunks([self.envs[i] for i in need])):
+                out[i] = Act(None, chunk=ch, info=dict(execute_prefix=self.inner.execute_prefix))
+        return out
+
+
+def make_bc(*, checkpoint: str, device: str = "cpu", name: str = "bc", **kw) -> BCPolicy:
+    return BCPolicy(LearnedPolicy.from_checkpoint(checkpoint, device=device, **kw), name=name,
+                    version=f"learned:{checkpoint}")

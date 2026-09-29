@@ -56,7 +56,9 @@ class Policy(Protocol):
     info: PolicyInfo
 
     def reset(self, spec: EnvSpec, task, seeds: Sequence[int], *, envs: Sequence | None = None) -> None:
-        """Start len(seeds) parallel episodes. `envs` is passed ONLY when info.requires.privileged."""
+        """Start len(seeds) parallel episodes on `envs` (one per seed). A policy without requires.privileged reads only
+        the env's public surface: observe() through its featurizer (the ONLY definition of what a policy may see,
+        rrp.policies.features), the body model for public FK, controller/task-graph versions and the clock."""
 
     def act(self, obs: Mapping[int, object]) -> dict[int, Act]:
         """One control tick for the RUNNING episodes only: obs maps episode index (position in reset's seeds) to its
@@ -105,6 +107,9 @@ def negotiate(info: PolicyInfo, spec: EnvSpec, task=None) -> Compat:
 
 # ------------------------------------------------------------------ registry (lazy: "module:factory")
 POLICIES: dict[str, str] = {
+    "teacher:*": "rrp.policies.teachers:make_teacher",          # scripted_teacher, privileged; arg = task
+    "bc": "rrp.policies.bc:make_bc",
+    "latent": "rrp.policies.latent:make_latent",
     "psi0_direct": "rrp.policies.psi0:make_direct",          # Ψ₀ migration (architecture.md section 9)
     "psi0_structured": "rrp.policies.psi0:make_structured",
 }

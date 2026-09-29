@@ -239,7 +239,7 @@ def _featurizer(s):
     f = getattr(s, "_rrp_featurizer", None)
     if f is None:
         if getattr(s, "_sem_dual", False):
-            from rrp.harness.eval.dual_latent_eval import multi_featurizer
+            from rrp.policies.features.multi import multi_featurizer
             f = multi_featurizer(s)
         else:
             from rrp.policies.features.featurizer import cached_featurizer
@@ -705,7 +705,7 @@ def _dual_teacher(s, arm):
 
 
 def _dual_system0(R, f, lsv, rcv, dev):
-    from rrp.harness.eval.dual_latent_eval import DualLatentSystem0
+    from rrp.policies.system0 import DualLatentSystem0
     return DualLatentSystem0(R, f, latent_space_version=lsv, realizer_compat_version=rcv, device=dev)
 
 

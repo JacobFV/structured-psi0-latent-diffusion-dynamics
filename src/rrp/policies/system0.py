@@ -16,6 +16,9 @@ import torch
 import torch.nn as nn
 
 from rrp.core.action import NativeCommand
+from rrp.core.errors import ControllerRejection, StaleActionError
+from rrp.core.latent_action import check_packet
+from rrp.policies.features.multi import assembly_handles, local_sensors_multi, node_slots
 from rrp.policies.nets.attention import MHA
 from rrp.policies.nets.batch import NODE_DIM
 from rrp.policies.nets.flow import MLP, sinusoidal
@@ -248,3 +251,47 @@ def batched_ticks(s0s, sessions) -> list:
         s0s[i].stats.ticks += 1
         cmds[i] = NativeCommand(controller_version=sessions[i].controller_version(), groups=groups, source="learned")
     return cmds
+
+
+class DualLatentSystem0(LatentSystem0):
+    """System 0 for a multi-robot scene: per-node slot routing + per-assembly local sensors."""
+
+    def receive(self, packet, *, now, graph_version=None):
+        try:
+            check_packet(packet, latent_space_version=self.lsv, realizer_compat_version=self.rcv,
+                         robot_spec_hash=self.f.spec_hash, now=now, graph_version=graph_version,
+                         owned_assemblies={h.handle for h in assembly_handles(self.f, len(packet.assemblies))[0]})
+        except (ControllerRejection, StaleActionError) as e:
+            self.stats.rejected += 1
+            self.log.append(dict(t=now, event="packet_rejected", code=getattr(e, "code", "stale")))
+            raise
+        self.packet = packet
+        self.stats.packets += 1
+        self.log.append(dict(t=now, event="packet_accepted", obs=packet.observation_id))
+
+    @torch.no_grad()
+    def tick(self, session, controller_version=None):
+        now = float(session.data.time)
+        if self.packet is not None and session.runtime.graph_version != self.packet.graph_version:
+            self.invalidate("graph_edit", now)
+        if self.packet is None or now > self.packet.valid_until:
+            if self.packet is not None:
+                self.invalidate("expired", now)
+            self.stats.fallback_holds += 1
+            return None
+        pi = self.f(session.observe())
+        M = len(self.packet.assemblies)
+        na = node_slots(self.f, pi, M)
+        loc = local_sensors_multi(pi, M)[na]                               # [N,4] own assembly's sensors
+        dev = self.device
+        z = torch.from_numpy(np.asarray(self.packet.z, np.float32))[None].to(dev)
+        zm = torch.tensor([self.packet.assembly_mask], device=dev)
+        kt = torch.tensor(self.packet.knot_times, dtype=torch.float32, device=dev)
+        ph = torch.tensor([now - self.packet.valid_from], dtype=torch.float32, device=dev)
+        nf = torch.from_numpy(realizer_node_feats(self, pi))[None].to(dev)    # anchored realizers: col 28 (ladder)
+        nm = torch.ones(1, nf.shape[1], dtype=torch.bool, device=dev)
+        a = self.net(z, zm, kt, ph, nf, nm, torch.from_numpy(loc)[None].to(dev),
+                     node_asm=torch.from_numpy(na)[None].to(dev))[0].cpu().numpy()
+        flat = self.f.aspace.denormalize(np.clip(a, -6, 6)[None], pi.q0)[0]
+        self.stats.ticks += 1
+        return session.command_from_flat(flat, "learned")

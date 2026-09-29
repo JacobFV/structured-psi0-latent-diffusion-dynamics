@@ -82,7 +82,7 @@ def rollout(make_env: Callable[[int], object], policy: Policy, task: TaskSpec, s
         c = negotiate(info, spec, task)
         if not c.ok:
             raise Incompatible(c.reasons)
-        policy.reset(spec, task, group, envs=envs if info.requires.privileged else None)
+        policy.reset(spec, task, group, envs=envs)
         obs = {i: e.observe() for i, e in enumerate(envs)}
         t0 = {i: float(getattr(o, "sensor_time", getattr(o, "time", 0.0))) for i, o in obs.items()}
         for i, e in enumerate(envs):
