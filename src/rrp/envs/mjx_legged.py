@@ -61,6 +61,41 @@ def _no_robot_self_collision(m):
     m.geom_contype[floor], m.geom_conaffinity[floor] = 1, 2
 
 
+def _leg_cross_collision(m, ground=None):
+    """W13: robot collides with the ground AND left-leg geoms collide with right-leg geoms (legs cannot pass through each
+    other, the failure mode of `no_self_collision` policies under pushes); every other robot-robot pair is off.
+    Bits: ground c=1 a=14; other robot c=2 a=1; left leg c=4 a=9; right leg c=8 a=5. Leg sides come from the leg actuators'
+    joint bodies (rrp.envs.morph_obs.slot_of) and all their descendant bodies."""
+    from rrp.envs.morph_obs import slot_of
+    ground = set(ground if ground is not None else [mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_GEOM, "floor")]) - {-1}
+    side_root = {}
+    for a in range(m.nu):
+        nm = mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_ACTUATOR, a) or ""
+        so = slot_of(nm.split("_", 1)[1] if nm.startswith("r0_") else nm)
+        if so is None or m.actuator_trntype[a] != mujoco.mjtTrn.mjTRN_JOINT:
+            continue
+        b = int(m.jnt_bodyid[m.actuator_trnid[a, 0]])
+        depth = lambda x: 0 if x == 0 else 1 + depth(int(m.body_parentid[x]))
+        if so[0] not in side_root or depth(b) < depth(side_root[so[0]]):
+            side_root[so[0]] = b
+    side_of = {}
+    for b in range(m.nbody):
+        p = b
+        while p > 0:
+            for sd, r in side_root.items():
+                if p == r:
+                    side_of[b] = sd
+            if b in side_of:
+                break
+            p = int(m.body_parentid[p])
+    for g in range(m.ngeom):
+        if g in ground:
+            m.geom_contype[g], m.geom_conaffinity[g] = 1, 14
+        elif m.geom_contype[g] or m.geom_conaffinity[g]:
+            sd = side_of.get(int(m.geom_bodyid[g]))
+            m.geom_contype[g], m.geom_conaffinity[g] = {"left": (4, 9), "right": (8, 5)}.get(sd, (2, 1))
+
+
 def _condim3(m):
     m.geom_condim[m.geom_condim > 3] = 3
 
@@ -78,6 +113,8 @@ def _solver10(m):
 ADAPTATIONS = {
     "pyramidal_cone": ("contact_v2 elliptic cone -> pyramidal", _pyramidal),
     "no_self_collision": ("robot geoms collide with the floor only (no robot-robot contacts)", _no_robot_self_collision),
+    "leg_cross_collision": ("robot collides with the ground, and left-leg geoms with right-leg geoms; other self-contacts off",
+                            _leg_cross_collision),
     "condim3": ("condim 6 (torsional + rolling friction) -> 3", _condim3),
     "few_solver_iters": ("solver iterations <= 4, line-search <= 8 (MJX-typical)", _newton_small),
     "solver_iters_10": ("solver iterations <= 10, line-search <= 20 (W13 P1a)", _solver10),

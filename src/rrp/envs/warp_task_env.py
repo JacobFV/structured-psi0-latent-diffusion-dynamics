@@ -29,14 +29,10 @@ def task_adapted_model(key: str, task: str, params=None):
     from rrp.envs.legged_core import LeggedBinding
     m, _, meta = task_model(key, task, params)
     b = LeggedBinding(m, meta)
-    ground = b.ground
-    for g in range(m.ngeom):
-        if g in ground:
-            m.geom_contype[g], m.geom_conaffinity[g] = 1, 2
-        elif m.geom_contype[g] or m.geom_conaffinity[g]:
-            m.geom_contype[g], m.geom_conaffinity[g] = 2, 1
-    return m, meta, LeggedBinding(m, meta), [dict(name="no_self_collision",
-                                                  description="robot geoms collide with ground (floor + scene) only")]
+    from rrp.envs.mjx_legged import ADAPTATIONS, _leg_cross_collision
+    _leg_cross_collision(m, ground=b.ground)
+    return m, meta, LeggedBinding(m, meta), [dict(name="leg_cross_collision", description=ADAPTATIONS["leg_cross_collision"][0]
+                                                  + " (ground = floor + scene geoms)")]
 
 
 class WarpStepsEnv(WarpTrackerEnv):

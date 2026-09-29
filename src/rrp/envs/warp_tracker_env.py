@@ -28,7 +28,10 @@ from rrp.envs.legged_core import CMD_SCALE, MIN_STOP_SHARE, RewardCfg
 from rrp.envs.mjx_legged import build_model, default_data
 
 ENV_VERSION = "warp_tracker_env_v1"
-ADAPT = ("no_self_collision",)
+# declared physics adaptation for GPU training (C-MuJoCo validation always uses the full model). no_self_collision (r1 runs)
+# let legs pass through each other: h1 r2b fell under lateral pushes in C MuJoCo (push no-fall 0.5). leg_cross_collision keeps
+# left-vs-right leg contacts at the same GPU cost (t1 contended bench 13.7k vs 13.0k ticks/s at 1,024 worlds).
+ADAPT = ("leg_cross_collision",)
 
 
 def _wp():
