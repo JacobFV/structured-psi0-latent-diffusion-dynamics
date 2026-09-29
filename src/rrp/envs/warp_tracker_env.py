@@ -61,6 +61,7 @@ def _shared_stream(wp):
         _STREAM["t"] = torch.cuda.Stream()
         torch.cuda.set_stream(_STREAM["t"])
         _STREAM["w"] = wp.stream_from_torch(_STREAM["t"])
+        wp.set_stream(_STREAM["w"])          # warp's current stream IS the shared stream (no stream switch inside captures)
     return _STREAM["w"]
 
 
@@ -221,9 +222,13 @@ class WarpTrackerEnv:
     GM_KEYS = ("steps", "track_err", "cmd", "slip", "speed", "power", "cot_den", "turn_steps", "turn_cmd", "turn_w")
 
     def _gm_reset(self):
-        # gate accumulators as device tensors (no host sync inside step)
-        self.gm = {k: torch.zeros((), device=self.dev) for k in self.GM_KEYS}
-        self.ep_acc = {k: torch.zeros((), device=self.dev) for k in ("ret", "len", "n", "falls")}
+        # gate accumulators as device tensors (no host sync inside step); zeroed IN PLACE so a CUDA-graphed step keeps them
+        if getattr(self, "gm", None) is None:
+            self.gm = {k: torch.zeros((), device=self.dev) for k in self.GM_KEYS}
+            self.ep_acc = {k: torch.zeros((), device=self.dev) for k in ("ret", "len", "n", "falls", "success")}
+        else:
+            for v in list(self.gm.values()) + list(self.ep_acc.values()):
+                v.zero_()
 
     def set_alpha(self, a: float):
         self.alpha = float(min(1.0, max(0.0, a)))
@@ -321,14 +326,16 @@ class WarpTrackerEnv:
 
     def observe(self):
         gyro = self.qvel[:, self.da + 3:self.da + 6]
-        o = torch.cat([gyro * 0.25, self._gravity_body(), self.cmd * torch.as_tensor(CMD_SCALE, device=self.dev, dtype=torch.float32),
+        if not hasattr(self, "_cs"):
+            self._cs = torch.as_tensor(CMD_SCALE, device=self.dev, dtype=torch.float32)
+            nA = self.nA
+            self._nz = torch.cat([torch.full((3,), 0.05), torch.full((3,), 0.03), torch.zeros(3), torch.full((nA,), 0.01),
+                                  torch.full((nA,), 0.05), torch.zeros(nA), torch.zeros(2)]).to(self.dev)
+        o = torch.cat([gyro * 0.25, self._gravity_body(), self.cmd * self._cs,
                        self.qpos[:, self.pol_qadr] - self.q0, self.qvel[:, self.pol_dadr] * 0.05, self.last_a,
                        torch.sin(2 * math.pi * self.phase)[:, None], torch.cos(2 * math.pi * self.phase)[:, None]], -1)
         if self.obs_noise:
-            nA = self.nA
-            nz = torch.cat([torch.full((3,), 0.05), torch.full((3,), 0.03), torch.zeros(3), torch.full((nA,), 0.01),
-                            torch.full((nA,), 0.05), torch.zeros(nA), torch.zeros(2)]).to(self.dev) * self.obs_noise
-            o = o + torch.randn(o.shape, generator=self.gen, device=self.dev) * nz
+            o = o + torch.randn(o.shape, generator=self.gen, device=self.dev) * self._nz * self.obs_noise
         return o
 
     def extra_obs(self):
@@ -353,8 +360,7 @@ class WarpTrackerEnv:
     def _stance(self):
         """(fc, fn, slip, bad) per world, as LeggedBinding.stance; over all contact slots with a validity mask (no host sync)."""
         N, nf = self.N, self.nf
-        with self.wp.ScopedStream(self.stream):
-            self.mjw.contact_force(self.mw, self.dw, self.cids_wp, False, self.cforce_wp)
+        self.mjw.contact_force(self.mw, self.dw, self.cids_wp, False, self.cforce_wp)   # warp's stream is the shared stream
         K = self.c_geom.shape[0]
         live = torch.arange(K, device=self.dev) < self.nacon[0]
         g = self.c_geom.long().clamp(0, self.m.ngeom - 1)
@@ -399,7 +405,10 @@ class WarpTrackerEnv:
                 self.ctrl.copy_(torch.where((self.lat <= 0)[:, None], new_full, old_full))
             elif kk <= maxlat:
                 self.ctrl.copy_(torch.where((self.lat <= kk)[:, None], new_full, old_full))
-            self.wp.capture_launch(self.graph, stream=self.stream)
+            if getattr(self, "_raw_step", False):     # inside a torch CUDA-graph capture: launch the kernels themselves
+                self.mjw.step(self.mw, self.dw)
+            else:
+                self.wp.capture_launch(self.graph, stream=self.stream)
             pw += (self.act_force[:, self.pol_act] * self.qvel[:, dadr]).abs().sum(-1)
         pw /= self.substeps
         tau2 = ((self.act_force[:, self.pol_act] / self.effort) ** 2).sum(-1)
@@ -531,7 +540,7 @@ class WarpTrackerEnv:
         r += cfg.termination * fell.float()
         r_task, tdone, succ = self.task_step(fell)
         r = r + r_task
-        self.ep_acc["success"] = self.ep_acc.get("success", torch.zeros((), device=self.dev)) + succ.float().sum()
+        self.ep_acc["success"] += succ.float().sum()
         self.last_a2 = self.last_a
         self.last_a = a
         self.ep_ret += r
@@ -569,6 +578,44 @@ def window_metrics(recs: list) -> dict:
     return out
 
 
+class GraphedStep:
+    """Captures env.step(actions) (warp physics graphs + all torch reward/reset ops, sync-free) into ONE torch CUDA graph.
+    Use: gs = GraphedStep(env); obs, priv, r, d, t = gs(actions). Outputs are graph-owned buffers (clone to keep).
+    Randomness comes from the env's torch generator, registered with the graph."""
+
+    def __init__(self, env, warmup: int = 3):
+        self.env = env
+        n_act = env.nA
+        self.a = torch.zeros(env.N, n_act, device=env.dev)
+        for _ in range(warmup):
+            env.step(self.a)
+        torch.cuda.synchronize()
+        self.g = torch.cuda.CUDAGraph()
+        gens = [e.gen for e in getattr(env, "envs", [env])] + ([env.gen] if hasattr(env, "envs") else [])
+        for gn in gens:
+            self.g.register_generator_state(gn)
+        subs = getattr(env, "envs", [env])
+        for e in subs:
+            e._raw_step = True
+        try:
+            wp = subs[0].wp
+            with torch.cuda.graph(self.g, stream=torch.cuda.current_stream()):
+                wp.capture_begin(stream=subs[0].stream, external=True)     # tell warp the capture is torch's
+                try:
+                    self.out = env.step(self.a)
+                finally:
+                    wp.capture_end(stream=subs[0].stream)
+        finally:
+            for e in subs:
+                e._raw_step = False
+        torch.cuda.synchronize()
+
+    def __call__(self, actions):
+        self.a.copy_(actions)
+        self.g.replay()
+        return self.out
+
+
 class MorphMultiEnv:
     """Several WarpTrackerEnv groups (a body, or K same-topology variants) behind one morphology-conditioned interface
     (rrp.envs.morph_obs, obs format morph_v1, 14 canonical slot actions). Duck-types WarpTrackerEnv for the PPO trainer."""
@@ -594,7 +641,9 @@ class MorphMultiEnv:
             g = dict(idx=torch.as_tensor(s0.idx[s0.present], device=dev), slots=torch.as_tensor(np.nonzero(s0.present)[0], device=dev),
                      sign=torch.as_tensor(s0.sign[s0.present], device=dev, dtype=torch.float32),
                      ctx=torch.as_tensor(np.stack([sp.ctx for sp in specs])[vid], device=dev),
-                     last=torch.zeros(e.N, NS, device=dev))
+                     last=torch.zeros(e.N, NS, device=dev), cs=torch.as_tensor(CMD_SCALE, device=dev, dtype=torch.float32))
+            g["pm"] = torch.zeros(NS, device=dev)
+            g["pm"][g["slots"]] = 1.0
             self.envs.append(e)
             self.specs.append(g)
             self.slices.append(slice(n0, n0 + e.N))
@@ -629,12 +678,11 @@ class MorphMultiEnv:
         from rrp.envs.morph_obs import NS
         gyro = e.qvel[:, e.da + 3:e.da + 6] * 0.25
         grav = e._gravity_body()
-        cmd = e.cmd * torch.as_tensor(CMD_SCALE, device=self.dev, dtype=torch.float32)
+        cmd = e.cmd * g["cs"]
         q = self._slot(g, e.qpos[:, e.pol_qadr] - e.q0)
         qd = self._slot(g, e.qvel[:, e.pol_dadr] * 0.05)
         if self.obs_noise:
-            pm = torch.zeros(NS, device=self.dev)
-            pm[g["slots"]] = 1.0
+            pm = g["pm"]
             nz = lambda shape, s: torch.randn(shape, generator=self.gen, device=self.dev) * s * self.obs_noise
             gyro = gyro + nz(gyro.shape, 0.05)
             grav = grav + nz(grav.shape, 0.03)
@@ -657,8 +705,7 @@ class MorphMultiEnv:
             a = torch.zeros(e.N, e.nA, device=self.dev)
             a[:, g["idx"]] = g["sign"] * a_slot[:, g["slots"]]
             _, priv, r, d, tmo = e.step(a)
-            pm = torch.zeros(self.nA, device=self.dev)
-            pm[g["slots"]] = 1.0
+            pm = g["pm"]
             g["last"] = torch.where(d[:, None], torch.zeros_like(a_slot), a_slot * pm)
             self._priv[i] = priv
             R.append(r)

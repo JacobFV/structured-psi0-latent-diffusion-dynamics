@@ -94,6 +94,8 @@ def _leg_cross_collision(m, ground=None):
         elif m.geom_contype[g] or m.geom_conaffinity[g]:
             sd = side_of.get(int(m.geom_bodyid[g]))
             m.geom_contype[g], m.geom_conaffinity[g] = {"left": (4, 9), "right": (8, 5)}.get(sd, (2, 1))
+            if sd is not None:
+                m.geom_margin[g] = 0.0      # mujoco_warp: no margin on MULTICCD pairs (apollo soles had 0.5 mm)
 
 
 def _condim3(m):
