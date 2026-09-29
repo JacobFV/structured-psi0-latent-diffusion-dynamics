@@ -1,5 +1,5 @@
 # armdiv: training-arm diversity for new-arm transfer (D-137)
-State: **implementing** (G0 done 2026-09-29; G1 next). Owner decision after D-135/D-136: "yes, add more training-arm diversity".
+State: **running** (G0 verified; G1 collect done + gate PASS, pack running; G2/G3 queued in the chain; 2026-09-29). Owner decision after D-135/D-136: "yes, add more training-arm diversity".
 Branch `track/armdiv`, worktree `~/work/rrp-wt/armdiv`, peer code dir `/dev/shm/rrp-brandonin/wt/armdiv` (never the
 shared repo). At most ONE concurrent peer GPU lease (humanoids have priority); CPU leases for simulation are separate
 and declared at >= 1.35 x measured peak. No host compute beyond unit tests, tiny smokes and orchestration.
@@ -134,6 +134,32 @@ Cheapest early signal: G2 BC in-distribution + the first semfix lineage at ~15-2
 - Frozen: pool `research/splits/armdiv_pool_v1.json` (65 keys), targets `research/splits/armdiv_v1.json`:
   primary gen3_pg2, rizon4_tf3; secondary pa2s900002_pg2, pa2s900003_tf3; tertiary REUSED xarm7_pg2/tf3.
 
+## G1 data (2026-09-29)
+- Collect (run-dag `dags/armdiv_data_v7div.yaml`, peer lease 1790665718_c503c1, 6 workers, ~10 min, peak 20.0 G of 29 G):
+  15,356 episodes: 14,068 success, 7 failure, 1,281 infeasible (the teacher's analytic feasibility check; parm5l/6/7 as
+  in v6, some pa2s arms 20-30% infeasible). Target demos: gen3_pg2 150/150, rizon4_tf3 150/150, pa2s900002_pg2 133
+  (+17 infeasible), pa2s900003_tf3 150, xarm7_pg2 149 (+1 failure), xarm7_tf3 150.
+- W6 dataset gate first FAILED on joint_limit_margin (0.903 < 0.95) because the gate's procedural-arm rule knew only
+  `parm*`: the v2 procedural arms were gated like menagerie arms. Fixed (`gates.PROCEDURAL_ARM_PREFIXES` + `pa2s`; their
+  joint ranges are generated, like parm*); the node was re-run once with `--retry-failed` (episodes reused, lease
+  1790666387_f3e71c): **gate PASS** (phase switch 0.998; menagerie clean margin 0.978; penetration <= 3 mm 0.996;
+  reported: DART margin 0.990, procedural margin 0.790). Jerk-vs-teacher has no reference for the new bodies (reported).
+- Pack: NOT a run-dag node (a run-dag pack writes under artifacts/runs = peer /dev/shm); leased
+  `scripts/armdiv_pack.sh` -> `artifacts/packed/latent_pp_v7div_s1_H16` = peer disk ~/rrp-peer-data/packed (lease
+  1790666539_455dec). Smoke pack: 160 rows per new-arm episode, 11.2 KB/row -> expected ~2.1 M rows, ~23 GB.
+- Peer /dev/shm incident 00:20: admission stopped on disk_below_reserve (10.0 GB free vs 10.7 GB). My collect added
+  2 GB. I archived cold, finished run dirs to the host (`~/work/rrp-data/peer-archive/runs/`, rsync, then checksum
+  `rsync -rcn` with no differences and equal file counts, then removed on the peer; `ARCHIVE_LOG.txt` there):
+  armdiag (503 files), ladder_smoke (193), armv2 (56), armexpert_bcv5 (8). armexpert_bcv2 and armexpert/v4dart, v5dart
+  were NOT removed (their symlinks made the checksum check differ); the lead is archiving those.
+
+## G2/G3 chain (host unit `rrp-armdiv-chain`, `scripts/armdiv_chain.sh`)
+Sequential steps, one GPU lease at a time: pack wait -> BC smoke (30 updates) -> lineage smoke (tiny steps, 4 bodies,
+labeller = v6 BC, SMOKE only) -> BC 1701 (`dags/armdiv_bc_v7div.yaml`) -> lineage semfix s1 -> the other 3 lineages
+(`dags/arm_lineage_v7div.yaml`) -> BC 1702 -> kinfeat BC 1701 -> kinfeat lineages. Resume = rerun the script.
+DAgger rounds use 5 episodes per body (65 bodies = 325 per round; v6 312), so per-round volume matches v6.
+
 ## Log
 - 2026-09-28: plan written (D-137).
-- 2026-09-29: G0 code + screens; pool and targets frozen (D-137 addendum). Next: G1 collect/pack.
+- 2026-09-29: G0 code + screens; pool and targets frozen (D-137 addendum).
+- 2026-09-29 00:30: G1 collect + gate PASS (after the pa2s gate fix); pack running; chain started.
