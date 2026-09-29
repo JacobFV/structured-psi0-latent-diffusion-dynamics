@@ -989,3 +989,10 @@ Decisions (lead):
 D-139 addendum (2026-09-29): t1 v2ft4 (5% target band + force cap) in C MuJoCo: waypoint 20/20, 0 falls; no-fall 1.0, fwd 0.87,
 turn 0.92, slip 0.096, CoT 0.71, force 2.35 BW; D-112 fails only joint margin 0.016. Pre-stated rule: v2ft3 and v2ft4 both pass
 5/6 criteria; tie -> larger margin -> **t1 = v2ft4** (label "t1 gpu v2ft4: D-112 fails joint margin 0.016").
+
+## D-140 2026-09-29 ONE REPO: rrp absorbs the Ψ₀ line; common env/policy/harness abstractions; experiments paused for the refactor (owner)
+Owner decision (2026-09-29):
+- psi1z is retired: its Ψ₀ adapters (Ψ₀ direct, Ψ₀ + structure) move into rrp as policies; psi1z is archived read-only with a pointer here. P-xxx decisions are folded into this log keeping their P-numbers. Licence is not a blocker ("everything public is fine").
+- rrp is refactored so every approach (BC, latent semfix/nosem, Ψ₀ direct, Ψ₀ + structure, trackers) is a policy behind one interface, and every environment (our MuJoCo scenes incl. MuJoCo Warp, SIMPLE, and ComputerWorld github.com/JacobFV/computerworld as a new environment: UI treated as a 3D space at constant depth, or depth from its accessibility/scene tree) is an environment behind one interface. Policies must be tested on many environments; two simulators was a sign this never happened.
+- Experiments are wound down during the refactor (W13 humanoid, arm diversity, W10); resume steps are in their track notes. New directions are expected afterwards.
+- Rules added to AGENTS.md: no self-reproduction (trust recorded results unless there is concrete suspicion; only small vibe-checks), and aggressive refactoring without file sprawl or compat shims.
