@@ -229,3 +229,11 @@ Long runs use `/dev/shm/rrp-brandonin/wt/humanoid` (never re-synced while they r
   D-112 still FAILS on peak force 3.37 BW (walking trials 3.1-3.4, limit 3.0) and joint margin 0.0017 (turn_fast only).
   Stop-rule note: h1 has used 5 recipe attempts (r1, r2b, r3, r4, r5; r2 was a trainer bug) against the declared 3, but
   ~3.6e8 of the declared 6e8-sample budget; r6 (impact -4, limit hinge -8, 400 iters) is the last h1 attempt.
+- **t1 v2** (from scratch under leg_cross_collision, 1500 iters, no clock gate) in C MuJoCo: no-fall 1.0 on every trial and
+  robustness condition, fwd 0.93, turn 1.01, slip 0.071, **CoT 0.45** (installed CPU-trained t1 w8d: 2.13), joint margin 0.0175
+  (limit 0.02), peak force 3.80 BW, waypoint 0/20 with 0 falls (halt defect). Lab gate PASS; D-112 FAIL (force, margin).
+  Video: `2026-09-29_contact_t1_{forward,turn}_*-vs-t1-gpu-v2_*.mp4` (left: installed w8d). -> t1 v2ft (clock gate, impact -4,
+  limit hinge -8) queued.
+- Pattern across h1 and t1: every GPU tracker now passes no-fall / tracking / slip / CoT / in-range robustness in C MuJoCo, and
+  the two remaining D-112 failures are peak foot force (3.3-4.1 BW vs 3.0) and the worst-tick joint margin (0.002-0.018 vs
+  0.02). g1 v4 (from scratch, clock gate) is still learning to stand (iter 344).
