@@ -109,8 +109,9 @@ def _source_accounting(cell: Path) -> dict:
 
 def evaluate_checkpoint(ck: Path, robots: list[str], out: Path, *, protocol: dict, method: str, seed: int, n: int,
                         device: str, batch: int = 25) -> dict:
-    from rrp.policies.bc import LearnedPolicy
-    from rrp.harness.eval.runner import evaluate, summarize
+    from rrp.policies.bc import BCPolicy, LearnedPolicy
+    from rrp.harness.hooks import arm_hooks, arm_scene
+    from rrp.harness.rollout import evaluate, summarize
     sm = out.with_suffix(".summary.json")
     if _done(sm):
         return json.loads(sm.read_text())
@@ -121,11 +122,10 @@ def evaluate_checkpoint(ck: Path, robots: list[str], out: Path, *, protocol: dic
     s = {}
     t0 = time.time()
     for r in robots:
-        res = evaluate(pol, r, list(range(ev["seed_start"], ev["seed_start"] + n)), method=method,
-                       checkpoint=str(ck), max_steps=ev["max_steps"], batch=batch, out_path=out)
-        s[r] = summarize(res)
-        att = [x for x in res if x.outcome != "infeasible"]
-        s[r].update(policy_calls=sum(x.policy_calls for x in att), control_steps=sum(x.steps for x in att))
+        res = evaluate(BCPolicy(pol, name=method, version=f"learned:{ck}"), "mujoco/arm", "pick_place", r,
+                       list(range(ev["seed_start"], ev["seed_start"] + n)), scene=arm_scene, hooks=arm_hooks(),
+                       max_steps=ev["max_steps"], batch=batch, out=out, row_extra=dict(method=method, checkpoint=str(ck)))
+        s[r] = summarize(res)                     # includes policy_calls and control_steps over attempted episodes
     s["_meta"] = dict(controller_source=f"learned:{ck}", device=device, wall_s=time.time() - t0,
                       seed_start=ev["seed_start"], episodes=n, nfe=ev["nfe"], execute_prefix=ev["replan_ticks"],
                       max_steps=ev["max_steps"])

@@ -250,7 +250,9 @@ def make_eval_policy(ckpt: Path, device, nfe=8, execute_prefix=8, image_mode="re
 def evaluate_main(a):
     import os
     os.environ.setdefault("MUJOCO_GL", "egl")
-    from rrp.harness.eval.runner import evaluate, summarize
+    from rrp.harness.hooks import arm_hooks, arm_scene
+    from rrp.harness.rollout import evaluate, summarize
+    from rrp.policies.bc import BCPolicy
     from rrp.ops.workload import apply_cap
     from rrp.policies.nets.backbone import BackboneSpec, VLMBackbone, PSI0, FALLBACK
     ginfo = apply_cap()
@@ -275,8 +277,10 @@ def evaluate_main(a):
         seeds = list(range(a.seed_start, a.seed_start + a.episodes))
         per = {}
         for robot in a.robots.split(","):
-            res = evaluate(pol, robot, seeds, method=f"{pol.name}", checkpoint=a.checkpoint, max_steps=a.max_steps,
-                           batch=a.batch, out_path=out.with_name(out.stem + f".{mode}.jsonl"))
+            res = evaluate(BCPolicy(pol, name=pol.name, version=f"learned:{a.checkpoint}"), "mujoco/arm", "pick_place",
+                           robot, seeds, scene=arm_scene, hooks=arm_hooks(), max_steps=a.max_steps, batch=a.batch,
+                           out=out.with_name(out.stem + f".{mode}.jsonl"),
+                           row_extra=dict(method=pol.name, checkpoint=a.checkpoint, image_mode=mode))
             per[robot] = summarize(res)
             print(mode, robot, json.dumps(per[robot]), flush=True)
         lat = {}

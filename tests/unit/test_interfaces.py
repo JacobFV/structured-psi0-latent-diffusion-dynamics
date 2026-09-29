@@ -132,3 +132,41 @@ def test_warp_env_adapter_with_fake_engine():
     assert env.reset().vec.shape == (4, 5)
     st = env.step(BatchCommand(groups={"legs": np.zeros((4, 3))}, source="learned"))
     assert st.observation.layout == [("tracker_obs", 5)] and abs(st.time - 0.02) < 1e-12 and env.truth()[0, 0] == 7.0
+
+
+def test_rollout_on_reset_infeasible_and_max_steps():
+    from rrp.harness.hooks import Feasibility, SessionRecord
+    from rrp.harness.rollout import rollout, summarize
+    feas = Feasibility(lambda env: env.seed != 4)
+    eps = rollout(lambda sd: make_env("mujoco/arm", task="pick_place", body="parm5_pg2", seed=sd), _Hold(),
+                  get_task("pick_place"), [3, 4], batch=2, max_steps=3, hooks=[feas, SessionRecord()])
+    assert [(e.outcome, e.steps) for e in eps] == [("timeout", 3), ("infeasible", 0)]
+    assert eps[1].failure_reason == "teacher_infeasible" and "events" in eps[1].metrics
+    s = summarize(eps)
+    assert s["attempted"] == 1 and s["infeasible"] == 1 and s["control_steps"] == 3 and s["successes"] == 0
+
+
+def test_matrix_reports_every_cell(tmp_path):
+    from rrp.harness.rollout import matrix
+    rows = matrix(["teacher:pick_place", "teacher:waypoint_contact", "nope"], [("mujoco/arm", "parm5_pg2")],
+                  ["pick_place", "waypoint_contact"], out=tmp_path / "m.jsonl")
+    cell = {(r["policy"], r["task"]): r for r in rows}
+    assert len(rows) == 6 and len((tmp_path / "m.jsonl").read_text().splitlines()) == 6
+    assert cell[("teacher:pick_place", "pick_place")]["status"] == "accepted"
+    assert cell[("teacher:waypoint_contact", "pick_place")]["reasons"][0].startswith("needs base_velocity")
+    assert cell[("teacher:pick_place", "waypoint_contact")]["reasons"] == \
+        ["task 'waypoint_contact' does not exist in mujoco/arm"]
+    assert cell[("nope", "pick_place")]["reasons"][0].startswith("policy unavailable: KeyError")
+
+
+def test_rrp_eval_cli(tmp_path):
+    import json
+    from rrp.cli.main import main
+    out = tmp_path / "ev.jsonl"
+    main(["eval", "--policy", "teacher:pick_place", "--env", "mujoco/arm", "--task", "pick_place", "--body",
+          "parm5_pg2", "--seeds", "3,50", "--max-steps", "4", "--out", str(out)])
+    rows = [json.loads(x) for x in out.read_text().splitlines()]
+    assert [(r["seed"], r["outcome"], r["source"]) for r in rows] == [(3, "timeout", "scripted_teacher"),
+                                                                      (50, "infeasible", "scripted_teacher")]
+    summ = json.loads(out.with_suffix(".summary.json").read_text())
+    assert summ["attempted"] == 1 and summ["infeasible"] == 1

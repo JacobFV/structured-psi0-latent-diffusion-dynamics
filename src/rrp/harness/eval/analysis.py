@@ -16,6 +16,15 @@ from .statistics import wilson
 from .adaptation import first_sustained_crossing
 
 
+def _legacy_keys(r: dict) -> dict:
+    """Rows written by harness.rollout.evaluate (Episode.row, S5) under the key names of the former runner rows."""
+    if "success_privileged" in r:
+        r.setdefault("privileged_success", bool(r["success_privileged"]))
+        r.setdefault("public_success", bool(r["success_public"]))
+        r.setdefault("robot", r["body"])
+    return r
+
+
 def load_rows(root: Path) -> list[dict]:
     rows = []
     for f in root.glob("*/seed*/eval/*.jsonl"):
@@ -23,7 +32,7 @@ def load_rows(root: Path) -> list[dict]:
         tag = f.stem
         for line in f.read_text().splitlines():
             if line.strip():
-                r = json.loads(line)
+                r = _legacy_keys(json.loads(line))
                 r.update(_method=method, _seed=seed, _tag=tag)
                 rows.append(r)
     return rows

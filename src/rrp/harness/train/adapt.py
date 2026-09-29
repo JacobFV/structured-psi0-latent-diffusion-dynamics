@@ -74,12 +74,16 @@ class SeedStream:
 
 
 def _evaluate(policy, cfg, out_dir: Path, tag: str, ckpt: str):
-    from rrp.harness.eval.runner import evaluate, summarize
+    from rrp.harness.hooks import arm_hooks, arm_scene
+    from rrp.harness.rollout import evaluate, summarize
+    from rrp.policies.bc import BCPolicy
     seeds = list(range(cfg["eval_seed_start"], cfg["eval_seed_start"] + cfg["eval_episodes"]))
     t0 = time.time()
-    res = evaluate(policy, cfg["robot"], seeds, method=f"{cfg['method']}:{tag}", checkpoint=ckpt,
-                   max_steps=cfg["max_steps"], batch=cfg.get("eval_batch", 32),
-                   out_path=out_dir / "eval_episodes.jsonl")
+    method = f"{cfg['method']}:{tag}"
+    res = evaluate(BCPolicy(policy, name=method, version=f"learned:{ckpt}"), "mujoco/arm", "pick_place", cfg["robot"],
+                   seeds, scene=arm_scene, hooks=arm_hooks(), max_steps=cfg["max_steps"],
+                   batch=cfg.get("eval_batch", 32), out=out_dir / "eval_episodes.jsonl",
+                   row_extra=dict(method=method, checkpoint=ckpt))
     s = summarize(res)
     s["eval_wall_s"] = time.time() - t0
     return s

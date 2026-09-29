@@ -29,8 +29,9 @@ def cmd_train_policy(a):
 
 def cmd_evaluate(a):
     import torch
-    from rrp.policies.bc import LearnedPolicy
-    from rrp.harness.eval.runner import evaluate, summarize
+    from rrp.policies.bc import BCPolicy, LearnedPolicy
+    from rrp.harness.hooks import arm_hooks, arm_scene
+    from rrp.harness.rollout import evaluate, summarize
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     if dev == "cuda":
         from rrp.ops.workload import apply_cap
@@ -39,15 +40,28 @@ def cmd_evaluate(a):
     seeds = list(range(a.seed_start, a.seed_start + a.episodes))
     out = {}
     for robot in a.robots.split(","):
-        res = evaluate(pol, robot, seeds, method=a.method, checkpoint=a.checkpoint, max_steps=a.max_steps,
-                       batch=a.batch, out_path=Path(a.out))
+        res = evaluate(BCPolicy(pol, name=a.method, version=f"learned:{a.checkpoint}"), "mujoco/arm", "pick_place",
+                       robot, seeds, scene=arm_scene, hooks=arm_hooks(), max_steps=a.max_steps, batch=a.batch,
+                       out=Path(a.out), row_extra=dict(method=a.method, checkpoint=a.checkpoint))
         out[robot] = summarize(res)
         print(robot, json.dumps(out[robot]), flush=True)
     Path(a.out).with_suffix(".summary.json").write_text(json.dumps(out, indent=1))
 
 
+def cmd_train_psi0(a):
+    """Ψ₀ matched fine-tuning and its offline evaluations: rrp.policies.psi0.train (its own argument parser;
+    `rrp train psi0 --arm direct ...`, `rrp train psi0 probes ...`, `rrp train psi0 heldout ...`)."""
+    from rrp.policies.psi0.train import main
+    return main(a.args[1:] if a.args[:1] == ["--"] else a.args)
+
+
 def register(sub):
+    import argparse
     t = sub.add_parser("train", help="training").add_subparsers(dest="train_cmd", required=True)
+    q = t.add_parser("psi0", help="Ψ₀ direct / structured fine-tuning, probes, held-out eval (args passed through)",
+                     add_help=False)
+    q.add_argument("args", nargs=argparse.REMAINDER)
+    q.set_defaults(fn=cmd_train_psi0, passthrough=True)
     c = t.add_parser("codec")
     c.add_argument("--config", required=True)
     c.set_defaults(fn=cmd_train_codec)

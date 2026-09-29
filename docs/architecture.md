@@ -278,9 +278,16 @@ class Episode:
     steps; time; wall_s; metrics: dict (command_rejections, chunk_rejections, hook metrics); provenance: dict
     def row(self) -> dict
 
-# S5
-def evaluate(policy_spec, env_id, task, bodies, seeds, *, out: Path, hooks=()) -> dict   # JSONL rows + Wilson summary
-def matrix(policies, envs, tasks, bodies, seeds, *, out) -> dict                         # negotiate() every cell; n/a with reasons
+# S5 (harness.rollout; hooks in harness.hooks; CLI `rrp eval`, `rrp matrix`)
+def evaluate(policy, env_id, task, body, seeds, *, scene=None, batch=8, max_seconds=None, max_steps=None,
+             hooks=(), out=None, row_extra=None) -> list[Episode]          # JSONL rows (Episode.row() + row_extra)
+def summarize(episodes) -> dict       # attempted/successes/Wilson95/infeasible/outcomes/agreement/policy_calls/control_steps
+def matrix(policies, envs: [(env_id, body)], tasks, *, seeds=(), out=None, build_heavy=False) -> list[dict]
+#   every cell: accepted | n/a with reasons (task not in env, env/policy unavailable, negotiate); accepted cells roll out
+#   on `seeds`. Env specs come from the env module's static `env_spec(task=, body=)` when present; HEAVY_ENVS
+#   (simple: starts Isaac Sim) are never built implicitly.
+# rollout(): max_steps (exact tick budget: the judge is asked with the budget spent); a hook's on_reset may return a
+#   done Judgement (harness.hooks.Feasibility -> "infeasible", 0 steps); Episode.metrics counts chunks and packets.
 ```
 
 Hooks replace the special cases of the current loops: `Meter`/stage reached, label error vs shadow teacher, oracle
@@ -346,7 +353,8 @@ ComputerWorld (track cworld, research/tracks/cworld.md):
 - [x] `cw/calc_sum`, `cw/open_type`, `cw/drag_window`, `cw/fill_form` in `rrp/tasks/spec.py` (judges env-side: outcome +
   failure reason; no task graph yet) and `rrp/policies/teachers/computerworld.py` (`teacher:cw/*`, `scripted_teacher`,
   privileged).
-- [ ] `rrp matrix` (S5) listing arm/legged policies declined with reasons; a pointer BC trained on teacher data accepted.
+- [x] `rrp matrix` (S5a) lists arm/legged/Ψ₀ policies declined on computerworld with reasons
+  (artifacts/runs/s5_matrix/matrix.jsonl); [ ] a pointer BC trained on teacher data (accepted) is future work.
 
 ## 10. moved paths
 

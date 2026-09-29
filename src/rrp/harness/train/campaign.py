@@ -19,8 +19,9 @@ def _done(p: Path) -> bool:
 def run_cell(protocol: dict, method: str, seed: int, *, root: Path = Path("artifacts/runs/primary")) -> dict:
     from rrp.harness.train.behavior import train_policy
     from rrp.harness.train.sft import sft
-    from rrp.policies.bc import LearnedPolicy
-    from rrp.harness.eval.runner import evaluate, summarize
+    from rrp.policies.bc import BCPolicy, LearnedPolicy
+    from rrp.harness.hooks import arm_hooks, arm_scene
+    from rrp.harness.rollout import evaluate, summarize
     reg = ExperimentRegistry("research/registry.jsonl")
     mcfg = json.loads(Path(protocol["methods"][method]).read_text())
     cell = root / method / f"seed{seed}"
@@ -48,8 +49,9 @@ def run_cell(protocol: dict, method: str, seed: int, *, root: Path = Path("artif
         pol = LearnedPolicy.from_checkpoint(ck, device=dev, nfe=ev["nfe"], execute_prefix=ev["prefix"], seed=seed)
         s = {}
         for r in robots:
-            res = evaluate(pol, r, list(range(seed0, seed0 + n)), method=method, checkpoint=str(ck),
-                           max_steps=ev["max_steps"], batch=ev["batch"], out_path=out)
+            res = evaluate(BCPolicy(pol, name=method, version=f"learned:{ck}"), "mujoco/arm", "pick_place", r,
+                           list(range(seed0, seed0 + n)), scene=arm_scene, hooks=arm_hooks(), max_steps=ev["max_steps"],
+                           batch=ev["batch"], out=out, row_extra=dict(method=method, checkpoint=str(ck)))
             s[r] = summarize(res)
         sm.write_text(json.dumps(s, indent=1))
         return s

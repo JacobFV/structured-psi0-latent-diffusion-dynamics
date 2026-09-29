@@ -331,3 +331,34 @@ def test_bc_adapter_matches_old_path(golden):
                "pick_place", 6)
     assert len(rec.chunks) == 2                       # prefix 4: a new chunk at ticks 0 and 4
     golden("bc.chunk", _h({g.group: g.values for g in rec.chunks[0].command_groups}, decimals=5))
+
+
+# ---------------------------------------------------------------- S5: episode-level goldens of the ported eval loops
+def _tiny_bc():
+    import torch
+    from rrp.policies.bc import LearnedPolicy
+    from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
+    torch.manual_seed(2)
+    m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=1, horizon=8, latent_dim=1, aux=False))
+    with torch.no_grad():
+        m.out.weight.normal_(0, 0.2)
+    return LearnedPolicy(m, None, "cpu", nfe=4, execute_prefix=4, seed=5)
+
+
+def _ep_key(seed, outcome, priv, pub, steps, calls, chunk_rej, cmd_rej, sim_time, events, fell):
+    return np.asarray([seed, outcome, bool(priv), bool(pub), steps, calls, chunk_rej, cmd_rej, round(sim_time, 6),
+                       sorted(events.items()), bool(fell)], dtype=object)
+
+
+def test_arm_eval_loop_episodes(golden):
+    """Recorded from harness.eval.runner.evaluate before S5 deleted it; the rollout port (BCPolicy + arm hooks) must
+    reproduce outcomes (timeout x2, infeasible seed 50), chunk counts, rejections, events and sim time."""
+    from rrp.harness.hooks import arm_hooks
+    from rrp.harness.rollout import evaluate
+    from rrp.policies.bc import BCPolicy
+    eps = evaluate(BCPolicy(_tiny_bc()), "mujoco/arm", "pick_place", "parm5_pg2", [3, 4, 50],
+                   scene=lambda sd: {"n_distractors": sd % 3}, max_steps=6, batch=3, hooks=arm_hooks())
+    rows = [_ep_key(e.seed, e.outcome, e.success_privileged, e.success_public, e.steps, e.metrics["chunks"],
+                    e.metrics["chunk_rejections"], e.metrics["command_rejections"], e.metrics["sim_time"],
+                    e.metrics["events"], e.failure_reason == "dropped_off_table") for e in eps]
+    golden("loop.arm.bc", _h(*rows))
