@@ -88,7 +88,7 @@ def episode(body, actor, phys, cmd, T, seed, label_extra="", actuator="v1", late
     sub = max(1, int(round(0.02 / model.opt.timestep)))
     mass = float(model.body_subtreemass[b.root_bid])
     frames, slips, speeds, fell = [], [], [], False
-    src = f"learned_tracker:{body}:iter{tr.meta.get('iter')}"
+    src = tr.version + (" (GPU-trained)" if tr.meta.get("sim_engine") else "")     # W13: shared/transfer trackers name themselves
     for k in range(int(T / 0.02)):
         tgt = tr.act(d, cmd)
         if act is not None:
