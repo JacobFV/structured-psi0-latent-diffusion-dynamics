@@ -10,17 +10,29 @@ import rrp.envs.legged as _L
 from rrp.envs.humanoid_scenes import build_h_steps
 from rrp.envs.legged import LeggedSession
 from rrp.envs.legged_tracker import LearnedTracker
-from rrp.teachers.humanoid import StepsHeadingTeacher, attach_steps_scan
+from rrp.teachers.humanoid import StepsHeadingTeacher
 
 body, actor, s0, n, out = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), sys.argv[5]
 hf = float(sys.argv[6]) if len(sys.argv) > 6 else None
-_L.load_tracker = lambda key, binding, meta, kind="auto": LearnedTracker(actor, binding, key)
+CUR = {}
+
+
+def _load(key, binding, meta, kind="auto"):
+    """The expert with its PRIVILEGED scan attached before the session's first (settling) tick."""
+    from rrp.envs.humanoid_scenes import steps_scan_np
+    tr = LearnedTracker(actor, binding, key)
+    if int(tr.meta.get("extra_obs_dim") or 0):
+        L, h = CUR["L"], CUR["h"]
+        tr.extra_fn = lambda d: steps_scan_np(d.qpos[binding.qa:binding.qa + 7], L, h)
+    return tr
+
+
+_L.load_tracker = _load
 rows = []
 for seed in range(s0, s0 + n):
     sc = build_h_steps(body, seed, h_frac=hf)
-    s = LeggedSession(sc, tracker_kind="learned", seed=seed)
-    if int(s.tracker.meta.get("extra_obs_dim") or 0):         # plain trackers (no scan input) run blind
-        attach_steps_scan(s.tracker, s)
+    CUR.update(L=float(sc.meta["L"]), h=float(sc.meta["staircase"]["h"]))
+    s = LeggedSession(sc, tracker_kind="learned", seed=seed)   # plain trackers (no scan input) run blind
     s.reset(seed)
     te = StepsHeadingTeacher(s)
     t0, status = time.time(), "timeout"
