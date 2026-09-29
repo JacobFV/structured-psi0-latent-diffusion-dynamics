@@ -175,7 +175,7 @@ def build(p: PhumParams, name: str | None = None) -> Module:
                    mass=M * mfrac["thigh"], rgba=[0.6, 0.6, 0.65, 1])
         kn = b.add_body(name=f"{side}_shin", pos=[0, 0, -thigh])
         joint(kn, f"{side}_knee", [0, 1, 0], [-0.05, 2.4], p.f_knee * MgL, kb)
-        kn.add_geom(name=f"{side}_shin_geom", type=G.mjGEOM_CAPSULE, fromto=[0, 0, 0, 0, 0, -shin], size=[0.85 * r_limb, 0, 0],
+        kn.add_geom(name=f"{side}_shin_geom", type=G.mjGEOM_CAPSULE, fromto=[0, 0, 0, 0, 0, -(shin - 1.2 * r_limb)], size=[0.85 * r_limb, 0, 0],
                     mass=M * mfrac["shin"], rgba=[0.55, 0.55, 0.6, 1])
         an = kn.add_body(name=f"{side}_ankle", pos=[0, 0, -shin])
         an.add_geom(name=f"{side}_ankle_geom", type=G.mjGEOM_SPHERE, size=[0.6 * r_limb, 0, 0], mass=0.005 * M,

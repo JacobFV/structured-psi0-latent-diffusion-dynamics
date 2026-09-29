@@ -44,17 +44,44 @@ def quat_rot_inv(q: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
     return v + w[:, None] * t + torch.cross(qv, t, dim=-1)
 
 
+MORPH_FIELDS = ("body_pos", "body_quat", "body_ipos", "body_iquat", "body_mass", "body_inertia", "body_subtreemass",
+                "body_invweight0", "dof_invweight0", "geom_size", "geom_pos", "geom_quat", "geom_rbound", "geom_aabb", "geom_margin",
+                "site_pos", "site_quat", "jnt_range", "qpos0", "actuator_gainprm", "actuator_biasprm", "actuator_forcerange",
+                "actuator_ctrlrange", "dof_armature", "dof_damping")
+_STREAM = {}
+
+
+def _shared_stream(wp):
+    """One torch stream shared by every env of the process (graph capture needs a non-default stream)."""
+    if "t" not in _STREAM:
+        wp.synchronize()
+        _STREAM["t"] = torch.cuda.Stream()
+        torch.cuda.set_stream(_STREAM["t"])
+        _STREAM["w"] = wp.stream_from_torch(_STREAM["t"])
+    return _STREAM["w"]
+
+
 class WarpTrackerEnv:
-    def __init__(self, body: str, nworld: int, seed: int = 1, *, reward_overrides: dict | None = None, episode_s: float = 20.0,
+    """`body`: one body key, or a list of keys with IDENTICAL topology (e.g. phum bodies of one topology): world w simulates
+    variant w % K; per-variant model fields (MORPH_FIELDS, copied from each variant's own compiled model) and per-world
+    morphology constants (nominal height, mass, torque limits, gait period, swing height, command ranges) are batched."""
+
+    def __init__(self, body, nworld: int, seed: int = 1, *, reward_overrides: dict | None = None, episode_s: float = 20.0,
                  push: bool = True, obs_noise: float = 1.0, cmd_mix: str = "default", teacher_stop: float = MIN_STOP_SHARE,
                  turn_frac: float = 0.25, slow_frac: float = 0.0, randomize: bool = True, nconmax: int = 48,
                  njmax: int = 320):
         wp, mjw = _wp()
         self.wp, self.mjw = wp, mjw
         self.dev = torch.device("cuda")
-        self.m, self.meta, self.b, self.adaptations = build_model(body, "v2", ADAPT)
+        keys = [body] if isinstance(body, str) else list(body)
+        built = [build_model(k, "v2", ADAPT) for k in keys]
+        self.m, self.meta, self.b, self.adaptations = built[0]
         m, b = self.m, self.b
-        self.body, self.N = body, int(nworld)
+        self.body, self.variant_keys, self.N, self.K = keys[0], keys, int(nworld), len(keys)
+        for k, (mk, _, bk, _) in zip(keys, built):
+            same = (mk.nq, mk.nv, mk.nu, mk.nbody, mk.ngeom, mk.nsite, mk.njnt) == (m.nq, m.nv, m.nu, m.nbody, m.ngeom, m.nsite, m.njnt)
+            if not same or list(bk.pol_act) != list(b.pol_act) or list(bk.held_act) != list(b.held_act):
+                raise ValueError(f"variant {k} does not share the topology of {keys[0]}")
         self.gen = torch.Generator(device=self.dev).manual_seed(int(seed))
         self.cfg0 = RewardCfg.for_kind(b.kind, "gait_v2")
         if reward_overrides:
@@ -70,13 +97,21 @@ class WarpTrackerEnv:
         self.dt = 0.02
         self.substeps = max(1, int(round(self.dt / m.opt.timestep)))
         self.max_steps = int(episode_s / self.dt)
-        self.mass = float(m.body_subtreemass[b.root_bid])
-        self.nominal_h = b.nominal_height()
         d0 = default_data(m, b)
         self.d0 = d0
-        # batched model fields for per-world randomisation
-        bs = {k: self.N for k in ("geom_friction", "geom_solref", "body_mass", "body_inertia", "body_ipos")} if randomize else {}
-        self.mw = mjw.put_model(m, batch_sizes=bs)
+        # batched model fields: per-world randomisation and/or per-variant morphology
+        bset = set(("geom_friction", "geom_solref", "body_mass", "body_inertia", "body_ipos") if randomize else ())
+        if self.K > 1:
+            bset |= set(MORPH_FIELDS)
+        self.mw = mjw.put_model(m, batch_sizes={k: self.N for k in sorted(bset)})
+        vid_np = np.arange(self.N) % self.K
+        if self.K > 1:
+            for f in MORPH_FIELDS:
+                arr = np.stack([getattr(mk, f) for mk, _, _, _ in built])[vid_np]
+                dst = wp.to_torch(getattr(self.mw, f))
+                if dst.numel() != arr.size:
+                    raise ValueError(f"MORPH field {f}: warp shape {tuple(dst.shape)} vs {arr.shape}")
+                dst.copy_(torch.as_tensor(arr, dtype=dst.dtype).reshape(dst.shape))
         self.dw = mjw.put_data(m, d0, nworld=self.N, nconmax=nconmax, njmax=njmax)
         T = lambda a: wp.to_torch(a)
         dw = self.dw
@@ -89,27 +124,39 @@ class WarpTrackerEnv:
         self.cforce_wp = wp.zeros(dw.naconmax, dtype=wp.spatial_vectorf)
         self.cforce = T(self.cforce_wp)
         self.cids_wp = wp.array(np.arange(dw.naconmax, dtype=np.int32))
+        f32 = lambda x: torch.as_tensor(np.asarray(x), device=self.dev, dtype=torch.float32)
+        i64 = lambda x: torch.as_tensor(np.asarray(x), device=self.dev, dtype=torch.long)
+        vw = lambda xs: f32(np.stack([np.asarray(x, dtype=np.float64) for x in xs])[vid_np])     # per-variant -> per-world
+        ms, bs_ = [x[0] for x in built], [x[2] for x in built]
+        d0s = [default_data(mk, bk) for mk, bk in zip(ms, bs_)]
+        for bk, dk in zip(bs_, d0s):
+            bk.foot_clearance(dk)                  # computes bk._foot_z0 (standing foot-site heights)
+        rb = b.root_bid
+        self.mass = vw([mk.body_subtreemass[rb] for mk in ms])
+        self.nominal_h = vw([bk.nominal_height() for bk in bs_])
+        self.mass0 = vw([mk.body_mass[rb] for mk in ms])
+        self.inertia0 = vw([mk.body_inertia[rb] for mk in ms])
+        self.ipos0 = vw([mk.body_ipos[rb] for mk in ms])
+        self.qpos0 = vw([dk.qpos for dk in d0s])
+        self.ctrl0 = vw([dk.ctrl for dk in d0s])
+        self.period = vw([bk.period for bk in bs_])
+        self.swing_h = vw([bk.swing_height for bk in bs_])
+        self.min_h = vw([bk.min_h for bk in bs_])
+        self.foot_z0 = vw([bk._foot_z0 for bk in bs_])
+        self.q0, self.lo, self.hi = vw([bk.q0 for bk in bs_]), vw([bk.lo for bk in bs_]), vw([bk.hi for bk in bs_])
+        self.jlo, self.jhi, self.effort = vw([bk.jlo for bk in bs_]), vw([bk.jhi for bk in bs_]), vw([bk.effort for bk in bs_])
+        self.q0_held = vw([bk.q0_held for bk in bs_]) if len(b.held_act) else None
+        cr = [bk.cmd_ranges for bk in bs_]
+        self.rng_cmd = vw([[c["vx"], c["vy"], c["wz"]] for c in cr])          # (N, 3, 2)
         if randomize:
             self.m_fric, self.m_solref = T(self.mw.geom_friction), T(self.mw.geom_solref)
             self.m_mass, self.m_inertia, self.m_ipos = T(self.mw.body_mass), T(self.mw.body_inertia), T(self.mw.body_ipos)
-            self.mass0 = float(m.body_mass[b.root_bid])
-            self.inertia0 = torch.tensor(m.body_inertia[b.root_bid], device=self.dev, dtype=torch.float32)
-            self.ipos0 = torch.tensor(m.body_ipos[b.root_bid], device=self.dev, dtype=torch.float32)
-        f32 = lambda x: torch.as_tensor(np.asarray(x), device=self.dev, dtype=torch.float32)
-        i64 = lambda x: torch.as_tensor(np.asarray(x), device=self.dev, dtype=torch.long)
         self.pol_act, self.pol_qadr, self.pol_dadr = i64(b.pol_act), i64(b.pol_qadr), i64(b.pol_dadr)
         self.held_act = i64(b.held_act) if len(b.held_act) else None
-        self.q0, self.lo, self.hi = f32(b.q0), f32(b.lo), f32(b.hi)
-        self.q0_held = f32(b.q0_held) if len(b.held_act) else None
-        self.jlo, self.jhi, self.effort = f32(b.jlo), f32(b.jhi), f32(b.effort)
         self.qa, self.da, self.nA, self.nf = b.qa, b.da, b.n, b.nf
         self.scale = float(b.action_scale)
-        self.period = float(b.period)
         self.foot_sids = i64(b.foot_sids)
         self.foot_bids = i64(b.foot_bids)
-        b.foot_clearance(d0)                      # computes b._foot_z0 (standing foot-site heights)
-        self.foot_z0 = f32(b._foot_z0)
-        self.swing_h = float(b.swing_height)
         # contact geometry tables
         floor_g = [g for g in (b.floor, b.floor2) if g >= 0]
         self.is_floor = torch.zeros(m.ngeom, dtype=torch.bool, device=self.dev)
@@ -126,7 +173,7 @@ class WarpTrackerEnv:
         self.robot_body = torch.as_tensor(b.is_robot_body, device=self.dev)
         self.body_root = i64(m.body_rootid)
         self.floor_gid = floor_g[0]
-        self.min_h, self.tilt_limit = float(b.min_h), float(b.tilt_limit)
+        self.tilt_limit = float(b.tilt_limit)
         # reference-gait indices (bipeds)
         self.ref_idx = None
         if b.biped and self.meta["legged"].get("pitch_actuators"):
@@ -152,17 +199,12 @@ class WarpTrackerEnv:
         self._gm_reset()
         # one mjw.step captured as a CUDA graph. Graph capture needs a non-default stream: the process's torch stream is set
         # to a dedicated stream that warp shares, so torch writes (ctrl, resets) and warp steps are ordered without host syncs
-        wp.synchronize()
-        self.tstream = torch.cuda.Stream()
-        torch.cuda.set_stream(self.tstream)
-        self.stream = wp.stream_from_torch(self.tstream)
+        self.stream = _shared_stream(wp)
         with wp.ScopedStream(self.stream):
             mjw.step(self.mw, self.dw)
             with wp.ScopedCapture() as cap:
                 mjw.step(self.mw, self.dw)
         self.graph = cap.graph
-        self.qpos0 = torch.as_tensor(d0.qpos, device=self.dev, dtype=torch.float32)
-        self.ctrl0 = torch.as_tensor(d0.ctrl, device=self.dev, dtype=torch.float32)[None]
         self.obs_dim = b.obs_dim
         self.priv_dim = b.priv_dim + 1
         self.reset_all()
@@ -186,20 +228,19 @@ class WarpTrackerEnv:
     def _sample_cmd(self, mask: torch.Tensor):
         """Resample commands where `mask` (bool, N) is set; computed for every world and blended (no host sync)."""
         n = self.N
-        r = self.b.cmd_ranges
-        c = torch.stack([self._u(n, lo=r["vx"][0], hi=r["vx"][1]), self._u(n, lo=r["vy"][0], hi=r["vy"][1]),
-                         self._u(n, lo=r["wz"][0], hi=r["wz"][1])], -1)
+        R = self.rng_cmd
+        c = torch.stack([self._u(n, lo=R[:, i, 0], hi=R[:, i, 1]) for i in range(3)], -1)
         u = self._u(n)
         c = torch.where((u < 0.15)[:, None], torch.zeros_like(c), c)
         fwd = (u >= 0.15) & (u < 0.45)
         c[:, 1] = torch.where(fwd, torch.zeros_like(c[:, 1]), c[:, 1])
         turn = (u >= 0.45) & (u < 0.45 + self.turn_frac) & self.b.biped
         sgn = torch.where(self._u(n) < 0.5, -1.0, 1.0)
-        tz = sgn * self._u(n, lo=0.3, hi=1.0) * self.turn_scale * r["wz"][1]
+        tz = sgn * self._u(n, lo=0.3, hi=1.0) * self.turn_scale * R[:, 2, 1]
         c = torch.where(turn[:, None], torch.stack([torch.zeros_like(tz), torch.zeros_like(tz), tz], -1), c)
         if self.cmd_mix.startswith("teacher"):      # W8 waypoint-teacher mix for 70% of commands (LeggedEnv._sample_teacher_mix)
             tm = self._u(n) < 0.7
-            vm, wm = 0.6 * r["vx"][1], 0.8 * r["wz"][1]
+            vm, wm = 0.6 * R[:, 0, 1], 0.8 * R[:, 2, 1]
             ut = self._u(n)
             zero = torch.zeros(n, device=self.dev)
             st = (ut >= self.teacher_stop) & (ut < 0.5)
@@ -228,7 +269,7 @@ class WarpTrackerEnv:
         """Reset the worlds where `mask` (bool, N) is set (default pose, random yaw, joint noise, new randomisation)."""
         n = self.N
         M = mask[:, None]
-        q = self.qpos0.repeat(n, 1)
+        q = self.qpos0.clone()
         yaw = self._u(n, lo=-math.pi, hi=math.pi)
         q[:, self.qa + 2] = self.nominal_h + 0.005
         q[:, self.qa + 3] = torch.cos(yaw / 2)
@@ -238,7 +279,7 @@ class WarpTrackerEnv:
         self.qpos.copy_(torch.where(M, q, self.qpos))
         self.qvel.copy_(torch.where(M, torch.zeros_like(self.qvel), self.qvel))
         self.qacc_ws.copy_(torch.where(M, torch.zeros_like(self.qacc_ws), self.qacc_ws))
-        self.ctrl.copy_(torch.where(M, self.ctrl0.expand(n, -1), self.ctrl))
+        self.ctrl.copy_(torch.where(M, self.ctrl0, self.ctrl))
         for name in ("last_a", "last_a2", "apex", "stance_t", "air"):
             setattr(self, name, torch.where(M, torch.zeros_like(getattr(self, name)), getattr(self, name)))
         zero = torch.zeros_like(self.t)
@@ -368,27 +409,29 @@ class WarpTrackerEnv:
         span = self.jhi - self.jlo
         r += cfg.limits * ((self.jlo + 0.05 * span - q).clamp_min(0) + (q - self.jhi + 0.05 * span).clamp_min(0)).sum(-1)
         if cfg.limit_margin:
-            keep = span > 0
-            mg = torch.minimum(q - self.jlo, self.jhi - q)[:, keep] / span[keep]
-            pen = ((cfg.limit_margin_m0 - mg).clamp_min(0) / cfg.limit_margin_m0) ** 2
-            agg = {"mean": pen.mean(-1), "max": pen.max(-1).values, "sum": pen.sum(-1)}[cfg.limit_margin_agg]
+            keep = (span > 0).float()
+            mg = torch.minimum(q - self.jlo, self.jhi - q) / span.clamp_min(1e-9)
+            pen = ((cfg.limit_margin_m0 - mg).clamp_min(0) / cfg.limit_margin_m0) ** 2 * keep
+            agg = {"mean": pen.sum(-1) / keep.sum(-1).clamp_min(1), "max": pen.max(-1).values,
+                   "sum": pen.sum(-1)}[cfg.limit_margin_agg]
             r += cfg.limit_margin * agg
         cspd = c[:, :2].norm(dim=-1)
         moving = (cspd > 0.05) | (c[:, 2].abs() > 0.05)
         mf = moving.float()
         first = fc & (self.air > 0)
-        r += cfg.air_time * ((self.air - 0.5 * self.period) * first).sum(-1) * mf
+        per = self.period[:, None]
+        r += cfg.air_time * ((self.air - 0.5 * per) * first).sum(-1) * mf
         clr = self.site_xpos[:, self.foot_sids, 2] - self.foot_z0
         if cfg.clearance:
-            swing = (~fc) & (self.air < 0.6 * self.period)
-            clr_n = (clr / self.swing_h).clamp(0, 1)
+            swing = (~fc) & (self.air < 0.6 * per)
+            clr_n = (clr / self.swing_h[:, None]).clamp(0, 1)
             if self.b.biped:
                 r += cfg.clearance * (clr_n * swing).sum(-1) * mf
             else:
                 r += cfg.clearance * torch.where(swing.any(-1), (clr_n * swing).sum(-1) / swing.sum(-1).clamp_min(1), 0) * mf
         if cfg.clearance_floor:
             self.apex = torch.where(fc, self.apex, torch.maximum(self.apex, clr))
-            fl = cfg.floor_frac * self.swing_h
+            fl = cfg.floor_frac * self.swing_h[:, None]
             short = ((fl - self.apex) / fl).clamp(0, 1) ** 2
             r += cfg.clearance_floor * (short * first).sum(-1) * mf
             self.apex = torch.where(fc, torch.zeros_like(self.apex), self.apex)
@@ -399,7 +442,7 @@ class WarpTrackerEnv:
                 r += cfg.slip * torch.where(fc.any(-1), (slip_v * fc).sum(-1) / fc.sum(-1).clamp_min(1) * 2.0, 0)
         r += cfg.power * pw / (self.mass * 9.81 * cspd.clamp_min(0.25))
         if cfg.impact:
-            r += cfg.impact * ((fn / (self.mass * 9.81) - 1.0).clamp(0, 3) * first).sum(-1)
+            r += cfg.impact * ((fn / (self.mass[:, None] * 9.81) - 1.0).clamp(0, 3) * first).sum(-1)
         mv = (cspd > 0.05).float()
         gm = self.gm
         spd = v[:, :2].norm(dim=-1)
@@ -423,15 +466,15 @@ class WarpTrackerEnv:
         sp = torch.sin(2 * math.pi * self.phase)
         if cfg.ref_step and self.ref_idx is not None:
             aL, aR = cfg.ref_amp * (-sp).clamp_min(0), cfg.ref_amp * sp.clamp_min(0)
-            qr = self.q0.repeat(N, 1)
+            qr = self.q0.clone()
             for idx, a_ in ((self.ref_idx[0], aL), (self.ref_idx[1], aR)):
                 qr[:, idx] += torch.stack([-a_, 2 * a_, -a_], -1)
             sel = torch.cat(self.ref_idx)
             dn = (q[:, sel] - qr[:, sel]).norm(dim=-1)
             r += cfg.ref_step * (torch.exp(-2 * dn) - 0.2 * dn.clamp_max(0.5)) * mf
         if cfg.stance_cap:
-            cap = cfg.stance_cap_frac * self.period
-            r += cfg.stance_cap * ((self.stance_t - cap) / self.period).clamp(0, 1).sum(-1) * mf
+            cap = cfg.stance_cap_frac * per
+            r += cfg.stance_cap * ((self.stance_t - cap) / per).clamp(0, 1).sum(-1) * mf
         wr = w[:, 2] * torch.sign(c[:, 2]) / c[:, 2].abs().clamp_min(1e-6)
         if cfg.turn_lin:
             app = pure_turn
@@ -444,7 +487,7 @@ class WarpTrackerEnv:
         if cfg.yaw_overshoot:
             r += cfg.yaw_overshoot * (wr - 1.0).clamp_min(0) * (c[:, 2].abs() > 0.05).float()
         if cfg.ref_gait == "clock" and self.nf == 2:
-            h_ref = cfg.ref_lift_frac * self.swing_h * torch.stack([(-sp).clamp_min(0), sp.clamp_min(0)], -1) * mf[:, None]
+            h_ref = cfg.ref_lift_frac * self.swing_h[:, None] * torch.stack([(-sp).clamp_min(0), sp.clamp_min(0)], -1) * mf[:, None]
             if cfg.ref_lift:
                 r += cfg.ref_lift * torch.exp(-((clr - h_ref) / cfg.ref_lift_sigma) ** 2).mean(-1)
             if cfg.ref_contact:
