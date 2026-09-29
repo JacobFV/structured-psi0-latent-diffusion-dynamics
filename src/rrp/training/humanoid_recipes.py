@@ -205,3 +205,9 @@ HUMANOID_RECIPES["h1_steps_gpu_v2"] = _steps("h1", init_shared="artifacts/runs/h
                                              iters=1500, clock_gate=True, alpha_schedule="fixed:0.5",
                                              reward_set=_R5.replace("impact=-2.0", "impact=-4.0").replace("limit_margin=-4.0",
                                                                                                           "limit_margin=-8.0"))
+
+# t1 v2ft2 in C MuJoCo: waypoint 19/20 (0 falls), no-fall 1.0, fwd 1.09, turn 1.18, slip 0.073, CoT 0.59, joint margin 0.022
+# (target_margin fixed it); D-112 fails ONLY peak force 3.63 BW (land_vel did not bound it). Deviation from the stop rule
+# (recorded): one more t1 attempt within the sample budget, v2ft3 = v2ft2 + per-tick force cap (2.5 BW, weight -2).
+HUMANOID_RECIPES["t1_clock_gpu_v2ft3"] = _ft2("t1", "artifacts/runs/humanoid_p1b_t1_v2ft2/actor_v2ft2final.pt", force_cap=-2.0,
+                                              force_cap_bw=2.5)

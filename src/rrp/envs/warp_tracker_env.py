@@ -74,7 +74,7 @@ class WarpTrackerEnv:
                  push: bool = True, obs_noise: float = 1.0, cmd_mix: str = "default", teacher_stop: float = MIN_STOP_SHARE,
                  turn_frac: float = 0.25, slow_frac: float = 0.0, randomize: bool = True, nconmax: int = 48,
                  njmax: int = 320, model_fn=None, extra_batch=(), clock_gate: bool = False, target_margin: float = 0.0,
-                 land_vel: float = 0.0):
+                 land_vel: float = 0.0, force_cap: float = 0.0, force_cap_bw: float = 2.5):
         wp, mjw = _wp()
         self.wp, self.mjw = wp, mjw
         self.dev = torch.device("cuda")
@@ -104,6 +104,9 @@ class WarpTrackerEnv:
         # W13 target_margin (actor meta): joint targets clipped to [lo + m span, hi - m span], deployed identically by
         # LeggedBinding.targets; land_vel: training-only penalty x sum over touchdown feet of the foot's downward speed^2
         self.target_margin, self.land_vel = float(target_margin), float(land_vel)
+        # force_cap (training only): x sum over feet of max(0, normal force / (m g) - force_cap_bw) EVERY tick (the D-112 gate
+        # checks the 20 ms-filtered per-foot peak <= 3.0 BW; touchdown-only impact terms did not bound it)
+        self.force_cap, self.force_cap_bw = float(force_cap), float(force_cap_bw)
         self.push, self.obs_noise, self.randomize = push, obs_noise, randomize
         self.dt = 0.02
         self.substeps = max(1, int(round(self.dt / m.opt.timestep)))
@@ -476,6 +479,8 @@ class WarpTrackerEnv:
                 r += cfg.clearance * (clr_n * swing).sum(-1) * mf
             else:
                 r += cfg.clearance * torch.where(swing.any(-1), (clr_n * swing).sum(-1) / swing.sum(-1).clamp_min(1), 0) * mf
+        if self.force_cap:
+            r += self.force_cap * (fn / (self.mass[:, None] * 9.81) - self.force_cap_bw).clamp_min(0).sum(-1)
         if self.land_vel:
             fb = self.foot_bids
             cvf = self.cvel[:, fb]                                                   # (N, nf, 6) ang, lin at subtree com
