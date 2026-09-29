@@ -362,3 +362,36 @@ def test_arm_eval_loop_episodes(golden):
                     e.metrics["chunk_rejections"], e.metrics["command_rejections"], e.metrics["sim_time"],
                     e.metrics["events"], e.failure_reason == "dropped_off_table") for e in eps]
     golden("loop.arm.bc", _h(*rows))
+
+
+def test_oracle_encoder_is_the_former_inline_encoder():
+    """D-140 S4: the one oracle encoder (policies.oracle.encode_demos) equals the former single-item inline code of
+    latent_semantic_edits.OracleSource, and batching does not change an item's z (the ladder oracle batches)."""
+    import torch
+    from rrp.policies.features.featurizer import featurizer_for
+    from rrp.policies.nets.batch import collate_inputs
+    from rrp.policies.nets.semantic_latent import LatentConfig, TargetEncoder, assembly_tokens
+    from rrp.policies.oracle import ShadowTeacher, encode_demos
+    torch.manual_seed(4)
+    cfg = LatentConfig(width=32, heads=2, ctx_layers=1, enc_layers=1, dz=8, horizon=6)
+    E = TargetEncoder(cfg).eval()
+    items = []
+    for sd in (3, 4):
+        s = _arm_session(sd)
+        f = featurizer_for(s)
+        items.append((f, f(s.observe()), ShadowTeacher(s).lookahead(s, 6)[:4 + sd - 3]))   # 4 and 5 demo rows (padded)
+    f, pi, cmds = items[0]
+    H, n = 6, len(cmds)
+    with torch.no_grad():                                  # verbatim copy of the pre-S4 OracleSource.packet encoding
+        a = f.aspace.normalize(cmds + [cmds[-1]] * (H - n), pi.q0).astype(np.float16).astype(np.float32)
+        b = collate_inputs([pi])
+        af, am, ai = assembly_tokens(b)
+        N = b.node_feats.shape[1]
+        at = np.zeros((1, H, N), np.float32); vt = np.zeros((1, H, N), bool)
+        at[0, :, :a.shape[1]] = a; vt[0, :n, :a.shape[1]] = True
+        mu, _ = E(b, torch.from_numpy(at), torch.from_numpy(vt), af, am, ai)
+        ref = mu[0, :, :int(am[0].sum())].float().numpy()
+    one = encode_demos(E, items[:1], H, "cpu")[0][0]
+    both = encode_demos(E, items, H, "cpu")[0]
+    assert np.array_equal(one, ref)
+    assert np.allclose(both[0], ref, atol=1e-5) and both[1].shape == ref.shape

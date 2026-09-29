@@ -28,7 +28,7 @@ def task_adapted_model(key: str, task: str, params=None):
     from rrp.envs.mujoco.legged_core import LeggedBinding
     m, _, meta = task_model(key, task, params)
     b = LeggedBinding(m, meta)
-    from rrp.envs.warp.mjx_legged import ADAPTATIONS, _leg_cross_collision
+    from rrp.envs.warp.model import ADAPTATIONS, _leg_cross_collision
     walls = {mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_GEOM, n) for n in (meta.get("scene") or {}).get("walls", [])}
     _leg_cross_collision(m, ground=b.ground | walls)     # walls collide with the robot like the ground, not with the floor
     return m, meta, LeggedBinding(m, meta), [dict(name="leg_cross_collision", description=ADAPTATIONS["leg_cross_collision"][0]

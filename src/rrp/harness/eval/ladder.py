@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -34,6 +33,7 @@ from rrp.core.provenance import stamp_source_label
 from rrp.core.errors import ControllerRejection, StaleActionError
 from rrp.harness.eval.statistics import wilson as _stats_wilson
 from rrp.policies.features.featurizer import cached_featurizer
+from rrp.policies.oracle import BCLookahead, OraclePacketPolicy, ShadowTeacher, make_packet
 
 STAGES = ["approach", "grasp", "lift", "transport", "place"]
 
@@ -108,135 +108,6 @@ def install_prev_action(s, mode: str):
     return f
 
 
-
-
-class ShadowTeacher:
-    """Per-session scripted teacher (PRIVILEGED). label(s) advances it once at the current state; lookahead(s, H)
-    returns the teacher's next H commands executed from the current state, then restores session + teacher."""
-
-    def __init__(self, s, reanchor: bool = False):
-        from rrp.policies.teachers.arm import PickPlaceTeacher
-        self.t = PickPlaceTeacher(s)
-        self.synced = s.step_count
-        self.reanchor = reanchor
-
-    def reanchor_now(self, s):
-        """Re-anchor the expert's internal TCP reference (and IK seed) to the MEASURED arm, keeping its phase: the
-        expert then demonstrates a smooth continuation from where the arm actually is (as in clean demonstrations)
-        instead of a jump back to its own run-away reference."""
-        t = self.t
-        t.tcp_cmd = s._fk_site(t.r, t.tcp_site)[0].copy()
-        t.q_arm = s.data.qpos[t.r.qadr[:len(t.q_arm)]].copy()
-
-    def catch_up(self, s):
-        while self.synced < s.step_count:       # missed ticks (e.g. disturbance_test warmup): advance at current state
-            self.t.act()
-            self.synced += 1
-
-    def label(self, s):
-        self.catch_up(s)
-        c = self.t.act()
-        self.synced = s.step_count + 1
-        return c
-
-    def lookahead(self, s, H: int):
-        self.catch_up(s)
-        if self.reanchor:
-            self.reanchor_now(s)
-        snap, st = s.snapshot(), self.t.state()
-        cmds = []
-        for _ in range(H):
-            c = self.t.act()
-            cmds.append(c.groups)
-            s.step(c)
-            if self.t.done:
-                break
-        s.restore(snap)
-        self.t.load(st)
-        return cmds
-
-
-class BCLookahead:
-    """Stateless expert for the oracle route: the H-step chunk a learned BC policy emits at the CURRENT state (no
-    stepping, no FSM). Valid off the teacher trajectory, unlike the shadow teacher (see sprint_bc / D-050)."""
-
-    def __init__(self, lp):
-        self.lp = lp
-
-    def lookahead(self, s, H: int):
-        return self.lookahead_batch([s], H)[0]
-
-    def lookahead_batch(self, sessions, H: int):
-        return [[{g.group: np.asarray(g.values[t]).tolist() for g in ch.command_groups} for t in range(min(H, ch.horizon))]
-                for ch in self.lp.chunks(sessions)]
-
-
-class OraclePacketPolicy:
-    """ORACLE DIAGNOSTIC: z = E(public context at t, teacher chunk a[t:t+H]) (posterior mean). Same interface as
-    LatentPolicy (packets/featurizer/lsv/rcv/calls) so evaluate/disturbance code can drive it."""
-    name = "target_encoder_oracle"
-
-    def __init__(self, E, cfg, res, device, validity_s: float = 0.8, reanchor: bool = False):
-        self.reanchor = reanchor
-        self.E, self.cfg, self.device, self.validity = E, cfg, device, validity_s
-        self.lsv, self.rcv = res["latent_space_version"], res["realizer_compat_version"]
-        self.shadows: dict[int, ShadowTeacher] = {}
-        self.calls = 0
-
-    def featurizer(self, s):
-        return cached_featurizer(s)
-
-    def shadow(self, s) -> ShadowTeacher:
-        k = id(s)
-        if k not in self.shadows:
-            self.shadows[k] = ShadowTeacher(s, reanchor=self.reanchor)
-        return self.shadows[k]
-
-    @torch.no_grad()
-    def encode(self, sessions) -> list[np.ndarray]:
-        from rrp.policies.nets.batch import collate_inputs
-        from rrp.policies.nets.semantic_latent import assembly_tokens
-        H = self.cfg.horizon
-        feats, A, V = [], [], []
-        pre = {}
-        bcs = [s for s in sessions if isinstance(self.shadow(s), BCLookahead)]
-        if bcs:                                           # one batched BC call for all stateless-expert sessions
-            for s, rows in zip(bcs, self.shadow(bcs[0]).lookahead_batch(bcs, H)):
-                pre[id(s)] = rows
-        self.last_cmds = getattr(self, "last_cmds", {})
-        for s in sessions:
-            pi = self.featurizer(s)(s.observe())
-            cmds = pre[id(s)] if id(s) in pre else self.shadow(s).lookahead(s, H)
-            self.last_cmds[id(s)] = cmds
-            n = len(cmds)
-            seq = cmds + [cmds[-1]] * (H - n)
-            a = self.featurizer(s).aspace.normalize(seq, pi.q0).astype(np.float16).astype(np.float32)  # packed fp16
-            v = np.zeros_like(a, bool)
-            v[:n] = True
-            feats.append(pi); A.append(a); V.append(v)
-        b = collate_inputs(feats).to(self.device)
-        N = b.node_feats.shape[1]
-        a = np.zeros((len(A), H, N), np.float32); v = np.zeros((len(A), H, N), bool)
-        for i in range(len(A)):
-            a[i, :, :A[i].shape[1]] = A[i]; v[i, :, :V[i].shape[1]] = V[i]
-        af, am, ai = assembly_tokens(b)
-        mu, lv = self.E(b, torch.from_numpy(a).to(self.device), torch.from_numpy(v).to(self.device), af, am, ai)
-        mu, lv = mu.float().cpu().numpy(), lv.float().cpu().numpy()
-        self.last_logvar = [lv[i][:, :int(am[i].sum())] for i in range(len(sessions))]
-        return [mu[i][:, :int(am[i].sum())] for i in range(len(sessions))]
-
-    def packets(self, sessions):
-        zs = self.encode(sessions)
-        self.calls += len(sessions)
-        return [make_packet(s, self.featurizer(s), z, self.cfg.knot_times, self.lsv, self.rcv, self.validity,
-                            source="target_encoder_oracle", policy_version=self.name) for s, z in zip(sessions, zs)]
-
-
-def make_packet(s, f, z, knot_times, lsv, rcv, validity, *, source, policy_version):
-    """Single-robot packet at the session's current observation (W5: delegates to evaluation.packets.arm_packet)."""
-    from rrp.harness.eval.packets import arm_packet
-    return arm_packet(f, s, s.observe(), z, lsv=lsv, rcv=rcv, knot_times=knot_times, source=source,
-                      name=policy_version, validity=validity)
 
 
 # ------------------------------------------------------------------ privileged measurement helpers

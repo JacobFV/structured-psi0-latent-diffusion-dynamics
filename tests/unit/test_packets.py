@@ -18,7 +18,7 @@ def _fakes():
 
 def test_make_packet_equals_arm_packet_on_strided_z():
     from rrp.harness.eval.ladder import make_packet
-    from rrp.harness.eval.packets import arm_packet
+    from rrp.policies.packets import arm_packet
     f, s, o = _fakes()
     big = np.arange(4 * 2 * 16, dtype=np.float64).reshape(4, 2, 16) / 7.0
     z = big[:, :1, ::2]                                    # non-contiguous view

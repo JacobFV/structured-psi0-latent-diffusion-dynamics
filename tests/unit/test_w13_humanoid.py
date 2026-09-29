@@ -66,7 +66,7 @@ def test_auto_gain_rule():
 
 
 def test_gpu_modules_import_without_warp():
-    import rrp.envs.warp.warp_legged as wl
+    import rrp.envs.warp.model as wl
     try:
         import mujoco_warp  # noqa: F401
     except ImportError:
@@ -135,3 +135,13 @@ def test_h_gap_scenario_and_obs():
     assert 1.2 <= mt["gap_ratio"] <= 1.6 and abs(mt["y_c"]) <= 0.6 * mt["L"] and abs(mt["psi_f"]) <= np.pi / 2
     o = gap_obs_np(np.array([0, 0, mt["L"], 1, 0, 0, 0]), mt, 0.0)
     assert o.shape == (8,) and np.isclose(o[0], GAP_X) and np.isclose(o[1] * mt["L"], mt["y_c"])
+
+
+def test_model_adaptations_are_explicit():
+    """rrp.envs.warp.model applies only the named adaptations and records them (moved from the D-126 #15 prototype test)."""
+    from rrp.envs.warp import model as mod
+    with pytest.raises(KeyError, match="unknown model adaptation"):
+        mod.build_model("pquad4", "v2", adapt=["not_an_adaptation"])
+    m, _, b, done = mod.build_model("pquad4", "v2", adapt=["pyramidal_cone"])
+    assert done[0]["name"] == "pyramidal_cone" and int(m.opt.cone) == 0
+    assert mod.default_data(m, b).qpos.shape == (m.nq,) and mod.substeps_of(m) >= 1

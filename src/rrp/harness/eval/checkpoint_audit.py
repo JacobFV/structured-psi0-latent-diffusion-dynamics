@@ -7,7 +7,7 @@ loader that builds the models and loads the weights strictly:
   arm latent flow         -> rrp.controllers.latent_runner.LatentPolicy.from_checkpoint
   arm direct/codec policy -> rrp.controllers.policy_runner.LearnedPolicy.from_checkpoint
   legged representation   -> rrp.controllers.bundles.load_rep
-  legged flow / refit R   -> rrp.evaluation.legged_latent_eval.LatentLeggedController
+  legged flow / refit R   -> rrp.policies.legged.LatentLeggedController
   legged BC               -> rrp.models.legged_bc.load_bc
 Training-resume states, trackers and probes are loaded with torch.load only (no rrp classes are pickled in any of them).
 Relative paths inside checkpoints (e.g. a flow's `representation`) resolve against the checkout that holds the file
@@ -112,11 +112,11 @@ def load_one(path: Path) -> dict:
                 load_rep(path, "cpu")
                 row["loaded"] = "load_rep"
             elif kind == "legged_flow":
-                from rrp.harness.eval.legged_latent_eval import LatentLeggedController
+                from rrp.policies.legged import LatentLeggedController
                 c = LatentLeggedController(path, "cpu")
                 row["loaded"] = dict(flow=c.F is not None)
             elif kind == "legged_refit_realizer":
-                from rrp.harness.eval.legged_latent_eval import LatentLeggedController
+                from rrp.policies.legged import LatentLeggedController
                 LatentLeggedController(None, "cpu", rep=st["representation"], realizer=path)
                 row["loaded"] = "refit realizer"
             elif kind == "legged_bc":

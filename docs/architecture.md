@@ -109,14 +109,14 @@ Implementations:
 |---|---|---|---|---|
 | `mujoco/arm` | `envs.mujoco.session.Session` (`make_arm_env`: `BUILDERS[task]`, workbench robot key) | arm catalog | `arm` joint_position, `gripper` (20 Hz) | S3 |
 | `mujoco/dual` | `envs.mujoco.dual.DualSession` (`make_dual_env`: pair key or list of keys) | 2 arms / aloha | per robot: `arm`, `gripper` | S3 |
-| `mujoco/legged` | `envs.mujoco.legged.LeggedSession`, `LocoPickSession`, `FootholdSession` (`make_legged_env`: waypoint_contact, loco_pick, foothold_steps, h_steps, h_gap) | legged + humanoids | `base_velocity` (10 Hz, embedded tracker); `legs` joint_position (50 Hz, no tracker) | base_velocity S3; `legs` S4 |
+| `mujoco/legged` | `envs.mujoco.legged.LeggedSession`, `LocoPickSession`, `FootholdSession` (`make_legged_env`: waypoint_contact, loco_pick, foothold_steps, h_steps, h_gap) | legged + humanoids | `base_velocity` (10 Hz, embedded tracker); `legs` joint_position (50 Hz, no tracker) | base_velocity S3; `legs` S4 (`make_env(..., control="legs")`: one step per 50 Hz tracker tick, 10 Hz observation / runtime / fall schedule unchanged, `boundary` flag, default-stance fallback) |
 | `warp/legged` | `envs.warp.tracker_env.WarpEnv` over WarpTrackerEnv / WarpStepsEnv / WarpGapEnv (`make_warp_env`) | legged + humanoids | `legs` normalized residual joint_position, batched | S3 (adapter; PPO keeps the engine API) |
 | `simple` | `envs.simple` package (Ψ₀ agent: `envs/simple/{__init__,compat,worker}.py`, `bodies/g1_simple.py`, `policies/psi0/`) | `g1_simple` | `psi0` kind (36-d Ψ₀ command, 50 Hz; decoupled WBC inside) | declared |
 | `computerworld` | `envs.computerworld` (CW agent) | `cw_pointer` | `pointer` cartesian_position, `button`, `wheel`, `key` discrete | declared |
 
-S4 deletes the bake-off prototypes (`envs.warp.mjx_legged.MjxLegged`, `envs.warp.warp_legged.WarpLegged`; their
-model-building helpers stay) and turns `tracker_validation` into a hook-based evaluation on `mujoco/legged`. The CPU
-`LeggedEnv` stays for now: the D-126 physics goldens pin its reward/observation streams.
+S4 deleted the bake-off prototypes (`MjxLegged`, `WarpLegged`); their model-building helpers are `envs.warp.model`.
+`tracker_validation` becomes a hook-based evaluation in S5. The CPU `LeggedEnv` stays: the D-126 physics goldens pin its
+reward/observation streams and CPU PPO still uses it.
 
 ## 3. `Policy` (rrp.policies.base) — implemented in S3
 
@@ -186,10 +186,10 @@ Mapping of today's code onto the interface (S4; the nets and featurizers do not 
 |---|---|---|
 | `bc` | `policies.bc.LearnedPolicy` (+ SDEPolicy/Expo/VLM variants in harness.train) | `policies.bc.BCPolicy` / `make_bc` (chunk policy; `Act.chunk`) — S4 done, parity golden |
 | `latent` (arm, dual) | `policies.latent.LatentPolicy` + `policies.system0.LatentSystem0` / `batched_ticks`; `DualLatentPolicy` + `DualLatentSystem0` (moved from harness.eval into policies.latent / policies.system0) | `policies.latent.LatentStackPolicy` / `make_latent` (system i every `replan_ticks`, system 0 every tick, `packet_hook` for edits); dual via `DualLatentPolicy` — S4 done, parity golden |
-| `legged_latent`, `legged_bc` | `LatentLeggedController` / `BCController` in the tracker slot via `System0Adapter`/`BCAdapter` (harness.eval.legged_latent_eval) | `policies.latent` / `policies.bc` on the `legs` space |
-| `tracker` | `envs.mujoco.legged_tracker.LearnedTracker` / `CPGTracker` | stays embedded in `mujoco/legged`'s `base_velocity` space; a Policy wrapper for `warp/legged` and validation; saved-actor options (clock_gate, target_margin, ref_ff, extra_obs_dim, morph_v1) pinned by test_golden |
+| `legged_latent`, `legged_bc` | `LatentLeggedController` / `BCController` in the tracker slot via `System0Adapter`/`BCAdapter` (harness.eval.legged_latent_eval) | `policies.legged.LeggedLatentPolicy` / `LeggedBCPolicy` (`make_legged_latent`, `make_legged_bc`) on the `legs` space; controllers and adapters moved to `policies.legged`; one episode at a time — S4 done, parity with the tracker-slot route (trace, packets, final pose) in test_deploy_eval |
+| `tracker` | `envs.mujoco.legged_tracker.LearnedTracker` / `CPGTracker` | stays the embedded controller of `mujoco/legged`'s `base_velocity` space (and `body_tracker` in legs mode); trained on the Warp engine by PPO directly; saved-actor options (clock_gate, target_margin, ref_ff, extra_obs_dim, morph_v1) pinned by test_golden. No separate Policy wrapper (nothing needs one yet) |
 | `teacher:<task>` | `policies.teachers.*` `act()` (reads session internals) | `policies.teachers.TeacherPolicy` (`make_policy("teacher:<task>")`), `requires.privileged`, source `scripted_teacher` — S4 done, parity golden (arm, dual) |
-| `oracle` | `OraclePacketPolicy`, `OracleSource`, `OracleShadow` (three copies in harness.eval) | one `policies.oracle`, source `oracle` |
+| `oracle` | `OraclePacketPolicy`, `OracleSource`, `OracleShadow` (three copies in harness.eval) | `policies.oracle` (ShadowTeacher, BCLookahead, OraclePacketPolicy, one encoder `encode_demos` also used by the semantic-edit OracleSource); `make_oracle` = LatentStackPolicy(oracle packets, frozen system 0), privileged, source `oracle`; legged: `policies.legged.OracleShadow` (`LeggedLatentPolicy(oracle=True)`) — S4 done |
 | `psi0_direct`, `psi0_structured` | psi1z `serve_psi0` / `serve_ours` + `system_i` / `structured` | `policies.psi0` (Ψ₀ agent; registered names already declared) |
 
 ## 4. `Task` (rrp.tasks.spec) — implemented in S3
@@ -306,9 +306,9 @@ removed except `rrp.viz.export` and `rrp.viz.record` (room exporter/recorder).
 |---|---|
 | shim packages `control/`, `learning/`, `model/`, `morphology/`, `ops/` (old alias of orchestration), `policy/`, `sim/`, top-level `cli_*.py`, `data/features*.py`, evaluation re-export shims (`campaign`, `latent_campaign`, `baseline_campaign`, `system2_eval`, `bc_semantic_edits`, `latent_slice1_report`, `contact_metrics`, `motion_quality`), `research/system2.py` | W4 aliases; owner rule: no shims |
 | `src/rrp/research/` (bc_semantic_edits, latent_slice1_report, legged_t1_diag, qa_train, system2_eval) | finished one-offs; nothing live imports them; git keeps them |
-| `envs/mjx_legged.py` `MjxLegged`, `envs/warp_legged.py` (bake-off prototypes; `build_model`/`default_data` helpers move into `envs.warp`), `envs/legged_core.LeggedEnv` + `legged_vec.VecPool` + `training/tracker_training.py` CPU PPO (superseded by Warp PPO; keep `LeggedBinding` obs/reward math which the Warp env and trackers share) | duplicate env implementations |
+| `MjxLegged`, `WarpLegged` bake-off prototypes (helpers kept as `envs.warp.model`) | done in S4 |
 | duplicate eval loops: `evaluation/runner.evaluate`, `latent_eval.evaluate_latent`, `dual_latent_eval.evaluate_dual_latent`, `training/rollout.drive`, `latent_grpo.run_episodes`, `latent_semantic_edits.run_condition`/`run_arm_condition` bodies, `legged_latent_eval.run_episode` special cases | replaced by `harness.rollout` + hooks |
-| duplicate oracles (`ladder.OraclePacketPolicy`, `latent_semantic_edits.OracleSource`, `legged_latent_eval.OracleShadow`), duplicate `wilson` in ladder, duplicate teacher wrappers in evaluation (`ShadowTeacher`, `ShiftedGoalTeacher`, `TeacherSource`, `_DualTeacher`) | one implementation each |
+| duplicate oracles (`ladder.OraclePacketPolicy`, `latent_semantic_edits.OracleSource` encoding, `legged_latent_eval.OracleShadow`) | S4: one module `policies.oracle`, one encoder; the remaining duplicate eval loops, `wilson` in ladder and the evaluation-side teacher wrappers go in S5 |
 | `tests/unit/test_restructure_compat.py` (shim tests), the `SHIMS`/`PLANNED` tables of `test_layering.py`, `tests/data/legacy_scripts/` once the parity tests compare against goldens | shims gone |
 | `scripts/`: 107 experiment chain drivers (`*_chain.sh`, `arm*_`, `legged_*.sh`, `t1_diag_*`, `binding_chain_v*`, `w12/*.sh`, …), 69 analysis one-offs (`diag_*`, `*_compare.py`, `*_parity.py`, `humanoid_*.py`, `dev/`, `analysis/`, …) | finished experiments; git history keeps them; resume steps in track notes cite commits |
 | `scripts/` kept: `peer_sync.sh`, `peer_run.sh`, `peer_bootstrap.sh`, `peer_gpu_retry.sh`, `fetch_menagerie.sh`, `export_ui_types.py`; `ladder.py` and `legged_{ladder_summary,edit_effects,mirror_effect}.py` fold into `rrp eval`/`rrp edits`; `demo/` + `render_*.py` fold into `rrp.viz.record` specs (kept until the fold lands) | infrastructure |
@@ -329,7 +329,7 @@ realizer output; dual multi-featurizer; packet serialization) and must stay byte
 | S1 | delete shim packages and `research/`; rewrite importers in src/tests/scripts; layering test without shim tables; pickle remap in the data loader | 1.5 h | done (a951398) |
 | S2 | re-layer into `core / ops / bodies / tasks / envs / policies / harness / viz` (codemod on module paths, new layering table); S2b: no re-export aliases | 3 h | done (cb0ea23, ba2ce79) |
 | S3 | `envs.base` (Env, EnvSpec, capabilities, registry) implemented by the MuJoCo sessions and the Warp env; `policies.base` (Policy, Requirements, negotiate, registry); `tasks` registry; SIMPLE/ComputerWorld declared in the registries → **Ψ₀ and ComputerWorld agents can start here** | 3 h | done (this commit) |
-| S4 | policy adapters (bc, latent arm/dual, legged latent/bc on the `legs` space, teachers, one oracle, trackers); delete duplicate envs | 4 h | refactor lead (touches `policies/**`, `envs/**`) |
+| S4 | policy adapters (bc, latent arm/dual, legged latent/bc on the `legs` space, teachers, one oracle); `legs` control mode; prototypes deleted | 4 h | done (S4a 4c4d2bb, S4b this commit) |
 | S5 | port the eval loops onto `harness.rollout` (S3) + hooks, arm/dual first, legged last; delete the duplicates; legged judge; `rrp eval` / `rrp matrix`; golden traces of tiny episodes (a few ticks, procedural bodies) | 5 h | parallel agent (touches `harness/**`, `cli/**`; not `policies/**`) |
 | S6 | scripts/dags/configs pruning, CLI consolidation, README/STATUS, viz exporter check | 2 h | – |
 

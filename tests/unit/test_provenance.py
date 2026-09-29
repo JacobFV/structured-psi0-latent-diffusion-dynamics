@@ -122,7 +122,7 @@ def test_manifest_writer_and_legacy_readers(tmp_path):
 def test_legged_checkpoints_fingerprinted_and_legacy(tmp_path):
     from rrp.harness.train.legged_latent_train import _save
     from rrp.policies.bundles import checkpoint_provenance
-    from rrp.harness.eval.legged_latent_eval import legged_bundle_versions
+    from rrp.policies.legged import legged_bundle_versions
     E, R = torch.nn.Linear(3, 2), torch.nn.Linear(2, 2)
     cfg = dict(name="t", latent=dict(dz=2, width=4, probe_lv_min=-4.0, semantic_weight=1.0))
     _save(tmp_path / "representation.pt", E=E.state_dict(), R=R.state_dict(), cfg=cfg,

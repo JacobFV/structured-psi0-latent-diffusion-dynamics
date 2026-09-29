@@ -67,7 +67,7 @@ class Recorder:
                     zz = np.asarray(ad.packet.z, np.float32)
                     z[:, :zz.shape[1], :zz.shape[2]] = zz
                 if self.shadow is None:
-                    from rrp.harness.eval.legged_latent_eval import OracleShadow
+                    from rrp.policies.legged import OracleShadow
                     self.shadow = OracleShadow(ad.c, ad.s, None)
                 t[:] = self.shadow.demo(ad)[0].cpu().numpy()
             self.rows["zpk"].append(z); self.rows["tch"].append(t)
@@ -75,7 +75,8 @@ class Recorder:
 
 def collect(a):
     from rrp.core.runs import parse_seed_spec
-    from rrp.harness.eval.legged_latent_eval import BCController, LatentLeggedController, run_episode
+    from rrp.harness.eval.legged_latent_eval import run_episode
+    from rrp.policies.legged import BCController, LatentLeggedController
     from rrp.policies.nets.legged_bc import load_bc
     dev = torch.device("cpu")
     torch.set_num_threads(1)

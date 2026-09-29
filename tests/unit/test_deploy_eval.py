@@ -9,7 +9,8 @@ import pytest
 import torch
 
 from rrp.harness.eval.deploy_eval import DeployOptions
-from rrp.harness.eval.legged_latent_eval import LatentLeggedController, run_episode
+from rrp.harness.eval.legged_latent_eval import run_episode
+from rrp.policies.legged import LatentLeggedController
 
 from ._legged_tiny import row_digest, tiny_bundle
 
@@ -159,3 +160,42 @@ def test_legged_rows_canonical_source_label_when_switched_on(bundle, monkeypatch
     row, _ = run_episode(_ctl(bundle), "hexapod6", 3, max_s=0.3)
     assert row["source_label"].startswith("learned:flow/policy.pt") and row["source_label_version"] == "sl-1"
     assert row["source"] == _ctl(bundle).policy_version                      # legacy key unchanged
+
+
+def _legs_rollout(policy, seed, max_s):
+    from rrp.envs.base import make_env
+    from rrp.harness.rollout import rollout
+    from rrp.tasks.spec import get_task
+    return rollout(lambda sd: make_env("mujoco/legged", task="waypoint_contact", body="hexapod6", seed=sd, control="legs",
+                                       tracker_kind="cpg"), policy, get_task("waypoint_contact"), [seed], batch=1,
+                   max_seconds=max_s)
+
+
+def test_legs_space_policy_matches_tracker_slot_route(bundle):
+    """D-140 S4: the latent policy on the `legs` action space (rollout) reproduces the former tracker-slot route
+    (run_episode): same packets (probe readouts, norms, poses) and the same per-tick trace after the reset settle."""
+    from rrp.policies.legged import LeggedLatentPolicy
+    old_ctl = _ctl(bundle)
+    row, _ = run_episode(old_ctl, "hexapod6", 3, max_s=1.5)
+    pol = LeggedLatentPolicy(_ctl(bundle))
+    ep = _legs_rollout(pol, 3, 1.5 - 0.3 - 1e-9)[0]          # run_episode's max_s is absolute sim time (0.3 s settle)
+    settle = pol.env.settle_ticks
+    assert ep.steps == len(old_ctl.trace) - settle and ep.source == "learned"
+    assert pol.ctl.trace == old_ctl.trace[settle:]
+    assert pol.ctl.packets == row["packets"] and len(row["packets"]) > 0
+    assert pol.ad.stats["ticks"] == row["stats"]["ticks"] and pol.ad.stats["packets"] == row["stats"]["packets"]
+    assert pol.env.base_pose_truth().tolist() == row["final_pose"]
+
+
+def test_legs_space_bc_matches_tracker_slot_route(bundle, tmp_path):
+    from rrp.policies.legged import BCController, LeggedBCPolicy
+    from rrp.policies.nets.legged_bc import build
+    torch.manual_seed(0)
+    p = tmp_path / "bc.pt"
+    cfg = dict(model=dict(width=32, enc_layers=1, dec_layers=1))
+    torch.save(dict(model=build(cfg).state_dict(), cfg=cfg), str(p))
+    old = BCController(p, torch.device("cpu"), nfe=2, seed=3)
+    row, _ = run_episode(old, "hexapod6", 3, max_s=1.5)
+    pol = LeggedBCPolicy(BCController(p, torch.device("cpu"), nfe=2, seed=3))
+    _legs_rollout(pol, 3, 1.5 - 0.3 - 1e-9)
+    assert pol.ctl.trace == old.trace[pol.env.settle_ticks:] and pol.env.base_pose_truth().tolist() == row["final_pose"]

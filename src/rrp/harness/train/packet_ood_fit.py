@@ -36,7 +36,7 @@ def encoder_packets(rep: Path, body: str, n_fit: int, n_cal: int, seed: int = 0,
                     device: str = "cpu"):
     import torch
     from rrp.policies.bundles import load_rep
-    from rrp.harness.eval.legged_latent_eval import legged_bundle_versions
+    from rrp.policies.legged import legged_bundle_versions
     from rrp.harness.train.legged_latent_train import LeggedData
     dev = torch.device(device)
     rcfg, E, R, P, rres = load_rep(rep, dev)

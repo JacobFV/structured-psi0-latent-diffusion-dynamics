@@ -29,7 +29,7 @@ def test_apply_target_math_on_known_vectors():
 
 def test_apply_target_matches_legged_eval_edits(monkeypatch):
     torch = pytest.importorskip("torch")
-    lle = pytest.importorskip("rrp.harness.eval.legged_latent_eval")
+    lle = pytest.importorskip("rrp.policies.legged")
     monkeypatch.setattr(lle, "public_context", lambda s, osc: _ctx())
 
     class _Ad:

@@ -279,8 +279,8 @@ DEPLOYABLE_FUNCTIONS = {
     "rrp.envs.mujoco.state_estimator:BaseStateEstimator.update": {},
     "rrp.envs.mujoco.state_estimator:LegKinematics.feet": {
         "qa": "writes the PRIVATE kinematics copy's free joint to the identity pose (never reads the sim state)"},
-    "rrp.harness.eval.legged_latent_eval:System0Adapter.dyn_batch": {},
-    "rrp.harness.eval.legged_latent_eval:LatentLeggedController._ctx": {},
+    "rrp.policies.legged:System0Adapter.dyn_batch": {},
+    "rrp.policies.legged:LatentLeggedController._ctx": {},
 }
 
 
@@ -388,7 +388,7 @@ def main(argv=None):
     import torch
     from rrp.core.runs import parse_seed_spec
     from rrp.harness.eval.deploy_eval import DeployOptions
-    from rrp.harness.eval.legged_latent_eval import BCController, LatentLeggedController
+    from rrp.policies.legged import BCController, LatentLeggedController
     torch.set_num_threads(2)
     dev = torch.device("cpu")
     if a.bc:

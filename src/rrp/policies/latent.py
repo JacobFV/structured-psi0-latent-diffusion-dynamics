@@ -157,7 +157,7 @@ class LatentStackPolicy:
 
     def __init__(self, system_i: LatentPolicy, realizer, *, replan_ticks: int = 8, device: str = "cpu",
                  name: str = "latent", version: str | None = None, variant: str | None = None, source: str = "learned",
-                 bodies=None, tasks=None):
+                 bodies=None, tasks=None, privileged: bool = False):
         from rrp.policies.base import PolicyInfo, Requirements
         self.sys_i, self.realizer, self.replan, self.device = system_i, realizer, int(replan_ticks), device
         self.dual = isinstance(system_i, DualLatentPolicy)
@@ -165,7 +165,7 @@ class LatentStackPolicy:
         self.info = PolicyInfo(name, source, version or f"{system_i.lsv}|{system_i.rcv}", Requirements(
             frozenset({"joint_position", "gripper"}), observations=frozenset({"proprio", "object_descriptors", "task_graph"}),
             body_families=frozenset({"arm", "dual_arm"}), bodies=frozenset(bodies) if bodies else None,
-            tasks=frozenset(tasks) if tasks else None), variant)
+            tasks=frozenset(tasks) if tasks else None, privileged=privileged), variant)
 
     def reset(self, spec, task, seeds, *, envs=None):
         from rrp.policies.system0 import DualLatentSystem0, LatentSystem0

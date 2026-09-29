@@ -856,7 +856,7 @@ LEGGED_NOTES = dict(
 
 def _legged_ctl(a: dict, seed: int):
     import torch
-    from rrp.harness.eval.legged_latent_eval import BCController, LatentLeggedController
+    from rrp.policies.legged import BCController, LatentLeggedController
     dev = torch.device("cpu")
     if a.get("bc"):
         return BCController(Path(a["bc"]), dev, nfe=int(a.get("nfe", 8)), replan=int(a.get("replan", 5)), seed=seed)
@@ -881,7 +881,7 @@ def _run_legged(e: dict, out: Path, pcache: dict, robust: bool) -> list[dict]:
         st = dict(ep=None, sig=None)
         o_init, o_tick, o_reset = MQ.LeggedMotionRecorder.__init__, MQ.LeggedMotionRecorder.on_tick, MQ.LeggedMotionRecorder.on_reset
         o_sub = MQ.LeggedMotionRecorder.on_substep
-        from rrp.harness.eval.legged_latent_eval import LatentLeggedController as LLC
+        from rrp.policies.legged import LatentLeggedController as LLC
         o_gen = LLC.generate
         CTX = ("mirror_goal", "halt", "mirror_active", "mirror_inactive")
 

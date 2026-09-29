@@ -142,7 +142,7 @@ def make_teacher(cond, s, goal_off):
 
 
 # ------------------------------------------------------------------ packet sources
-from rrp.harness.eval.packets import arm_packet  # noqa: E402
+from rrp.policies.packets import arm_packet  # noqa: E402
 
 
 class OracleSource:
@@ -162,8 +162,7 @@ class OracleSource:
 
     @torch.no_grad()
     def packet(self, s, cond, teacher, goal_off, key=None):
-        from rrp.policies.nets.batch import collate_inputs
-        from rrp.policies.nets.semantic_latent import assembly_tokens
+        from rrp.policies.oracle import encode_demos
         f = self.featurizer(s)
         H = self.lcfg.horizon
         if self.expert == "bc":
@@ -200,18 +199,7 @@ class OracleSource:
             if teacher is not None:
                 s.restore(snap)
                 teacher.load(tst)
-        n = len(cmds)
-        a = f.aspace.normalize(cmds + [cmds[-1]] * (H - n), pi.q0).astype(np.float16).astype(np.float32)
-        b = collate_inputs([pi]).to(self.dev)
-        af, am, ai = assembly_tokens(b)
-        N = b.node_feats.shape[1]
-        at = np.zeros((1, H, N), np.float32)
-        vt = np.zeros((1, H, N), bool)
-        at[0, :, :a.shape[1]] = a
-        vt[0, :n, :a.shape[1]] = True
-        mu, _ = self.E(b, torch.from_numpy(at).to(self.dev), torch.from_numpy(vt).to(self.dev), af, am, ai)
-        M = int(am[0].sum())
-        z = mu[0, :, :M].float().cpu().numpy()
+        z = encode_demos(self.E, [(f, pi, cmds)], H, self.dev)[0][0]
         samp = dict(route="oracle_diagnostic", condition=cond, demo="scripted_teacher")
         if getattr(s, "_sem_dual", False):
             return dual_packet(f, s, o, z, lsv=self.lsv, rcv=self.rcv, knot_times=self.lcfg.knot_times,
@@ -232,7 +220,7 @@ def _flat(c):
     return c.groups
 
 
-from rrp.harness.eval.packets import dual_packet  # noqa: E402,F811  (moved unchanged, W5)
+from rrp.policies.packets import dual_packet  # noqa: E402,F811  (moved unchanged, W5)
 
 
 def _featurizer(s):

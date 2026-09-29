@@ -89,7 +89,7 @@ def test_summary_flags():
 def test_tiny_runtime_audit(tmp_path):
     torch.set_num_threads(1)
     rep, flow = tiny_bundle(tmp_path / "b")
-    from rrp.harness.eval.legged_latent_eval import LatentLeggedController
+    from rrp.policies.legged import LatentLeggedController
     make = lambda sd: LatentLeggedController(flow, torch.device("cpu"), nfe=2, seed=sd)
     s = pa.run_audit(make, ["hexapod6"], [3, 4], tmp_path / "audit", groups=["local.q"],
                      ablations=["shuffle"], max_s=0.5)

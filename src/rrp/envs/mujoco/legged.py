@@ -116,13 +116,21 @@ class LeggedSession(Session):
 
     def __init__(self, scenario: Scenario, *, tracker_kind: str = "auto", seed: int = 0, actuator_mode: str | None = None,
                  actuator_latency_ms: float | None = None, base_state_source: str = "truth_noise", estimator_cfg=None,
-                 **kw):
+                 control: str = "base_velocity", **kw):
         """actuator_mode (D-126 #14): None -> $RRP_ACTUATOR_MODE, else rrp.physics.actuator.ACTUATOR_MODE_DEFAULT ("ideal": the
         bounded PD servo, byte-identical to before). "v1lat" / "v2" route every tracker tick through ActuatorModel (nominal
         parameters, a fixed per-episode latency: actuator_latency_ms, else $RRP_ACTUATOR_LATENCY_MS, else drawn from the seed).
         base_state_source (D-126 #27): "truth_noise" (default, unchanged) = speed from the declared noisy
         localization sensor; "estimator" = speed from rrp.envs.state_estimator (IMU + leg kinematics + contact),
-        and NodeState.base_vel_estimate is filled. Localization still provides x, y, yaw for waypoint geometry."""
+        and NodeState.base_vel_estimate is filled. Localization still provides x, y, yaw for waypoint geometry.
+        control (D-140): "base_velocity" (default, unchanged) = 10 Hz body-velocity commands through the embedded tracker;
+        "legs" = one step() per 50 Hz tracker tick carrying absolute joint targets for the policy joints (group "legs"),
+        no tracker (the body tracker stays loaded as `body_tracker`). Observations, sensing, the task runtime and the
+        fall check keep their 10 Hz schedule (`boundary` is True on the ticks where they ran); with no command the
+        declared fallback holds the default stance (also during the reset settle)."""
+        if control not in ("base_velocity", "legs"):
+            raise ValueError(f"control {control!r} not in ('base_velocity', 'legs')")
+        self.control = control
         from rrp.bodies.actuator import resolve_mode
         from rrp.envs.mujoco.state_estimator import BASE_STATE_SOURCES
         if base_state_source not in BASE_STATE_SOURCES:
@@ -152,6 +160,10 @@ class LeggedSession(Session):
         tc = next(c for c in mr.robot_spec.controller_contracts if c.kind == "legged_tracker")
         self.tracker_contract = tc
         self.tracker_version_str = f"{tc.id}:{tc.version}:{self.tracker.version}:{mr.robot_spec.spec_hash}"
+        self.body_tracker = self.tracker
+        if self.control == "legs":
+            self.tracker = DirectTargets(self.binding)
+            self.tracker_version_str = f"{jt.id}:{jt.version}:legs_direct:{mr.robot_spec.spec_hash}"
         if self.actuator_mode != "ideal":
             from rrp.bodies.actuator import ActuatorModel
             self.actuator_model = ActuatorModel(m, self.binding, 1, None, name=mr.meta["name"], randomize=False,
@@ -164,7 +176,16 @@ class LeggedSession(Session):
         return self.tracker_version_str
 
     def _action_spaces(self) -> list[ActionSpace]:
+        if self.control == "legs":
+            b = self.binding
+            return [ActionSpace(group="legs", kind="joint_position", width=int(b.n), robot=0, rate_hz=TRACKER_HZ,
+                                low=np.asarray(b.lo, float).tolist(), high=np.asarray(b.hi, float).tolist(), units="rad")]
         return [ActionSpace.from_group(g, robot=0, rate_hz=self.control_hz) for g in self.tracker_contract.command_groups]
+
+    @property
+    def settle_ticks(self) -> int:
+        """Tracker ticks run by reset() before the episode starts (0.3 s under the zero command / default-stance hold)."""
+        return int(0.3 * TRACKER_HZ)
 
     # ------------------------------------------------------------------ lifecycle
     def reset(self, seed: int | None = None) -> PolicyObservation:
@@ -208,6 +229,8 @@ class LeggedSession(Session):
         obs = self.observe()
         self.runtime.tick(obs)
         self._last_obs = self.observe()
+        self._legs_ticks = 0
+        self.boundary = True
         return self._last_obs
 
     # the base class names its object tracker `self.tracker`; here `self.tracker` is the locomotion
@@ -412,10 +435,65 @@ class LeggedSession(Session):
         from rrp.bodies.actuator import mode_record
         return mode_record(self.actuator_mode, self.model, self.binding, self.robots[0].meta["name"], self.actuator_latency_ms)
 
+    def validate_legs(self, cmd: NativeCommand) -> np.ndarray:
+        if cmd.controller_version != self.tracker_version_str:
+            raise StaleActionError(f"controller version {cmd.controller_version} != {self.tracker_version_str}")
+        if set(cmd.groups) != {"legs"}:
+            raise ControllerRejection(f"legs control accepts only the legs group, got {sorted(cmd.groups)}",
+                                      code="unknown_group")
+        v = np.asarray(cmd.groups["legs"], float)
+        b = self.binding
+        if v.shape != (b.n,):
+            raise ControllerRejection(f"legs width {v.shape} != {b.n}", code="wrong_width")
+        if not np.isfinite(v).all():
+            raise ControllerRejection("non-finite command", code="nonfinite")
+        return np.clip(v, b.lo, b.hi)
+
+    def _step_legs(self, command) -> StepResult:
+        rejected, source, executed = None, None, None
+        if command is not None:
+            try:
+                self.tracker.pending = self.validate_legs(command)
+                source = command.source
+                executed = {"legs": self.tracker.pending.tolist()}
+            except ControllerRejection as e:
+                rejected = e.code
+        self._tracker_tick(self.cmd)
+        self._legs_ticks += 1
+        if self._legs_ticks % max(1, int(round(self.dt * TRACKER_HZ))) == 0:
+            obs = self._control_boundary()
+        else:
+            if not np.isfinite(self.data.qpos).all():
+                raise FloatingPointError("simulation diverged (non-finite state)")
+            self.boundary = False
+            obs = self._last_obs
+        return StepResult(obs, self.data.qpos.copy(), float(self.data.time), rejected, source, executed)
+
+    def _control_boundary(self):
+        """The 10 Hz part of a control step: divergence and fall checks, sensing, observation, task runtime."""
+        if not np.isfinite(self.data.qpos).all():
+            raise FloatingPointError("simulation diverged (non-finite state)")
+        b = self.binding
+        _, bad = b.contacts(self.data)
+        if bad or self.data.qpos[b.qa + 2] < b.min_h or b.tilt(self.data) > b.tilt_limit:
+            self.fell = True
+        self.step_count += 1
+        self._sense()
+        obs = self.observe()
+        v0 = self.runtime.runtime_version
+        self.runtime.tick(obs)
+        if self.runtime.runtime_version != v0:
+            obs = self.observe()
+        self._last_obs = obs
+        self.boundary = True
+        return obs
+
     def step(self, command: NativeCommand | dict | None = None, robot: int = 0) -> StepResult:
         rejected, source, executed = None, None, None
         if isinstance(command, dict):
             command = command.get(0)
+        if self.control == "legs":
+            return self._step_legs(command)
         if command is None:
             row = self.executor.pop()
             if row is not None:
@@ -431,20 +509,7 @@ class LeggedSession(Session):
         n = max(1, int(round(self.dt * TRACKER_HZ)))
         for _ in range(n):
             self._tracker_tick(self.cmd)
-        if not np.isfinite(self.data.qpos).all():
-            raise FloatingPointError("simulation diverged (non-finite state)")
-        b = self.binding
-        _, bad = b.contacts(self.data)
-        if bad or self.data.qpos[b.qa + 2] < b.min_h or b.tilt(self.data) > b.tilt_limit:
-            self.fell = True
-        self.step_count += 1
-        self._sense()
-        obs = self.observe()
-        v0 = self.runtime.runtime_version
-        self.runtime.tick(obs)
-        if self.runtime.runtime_version != v0:
-            obs = self.observe()
-        self._last_obs = obs
+        obs = self._control_boundary()
         return StepResult(obs, self.data.qpos.copy(), float(self.data.time), rejected, source, executed)
 
     def base_pose_truth(self) -> np.ndarray:
@@ -506,6 +571,32 @@ class LeggedSession(Session):
             self.est_hist = [np.array(h) for h in be.get("hist", [])]
         self._last_obs = self.observe()
         return self._last_obs
+
+
+class DirectTargets:
+    """Tracker slot of the "legs" control mode: applies the commanded joint targets for one tracker tick; without a
+    command the declared fallback holds the default stance (the behaviour of the former tracker-slot policy adapters
+    before they were armed, so the reset settle is unchanged)."""
+    source = "direct"
+    version = "legs_direct"
+
+    def __init__(self, binding):
+        self.b = binding
+        self.pending = None
+
+    def reset(self, phase: float = 0.0):
+        self.pending = None
+
+    def act(self, data, cmd):
+        t = self.pending if self.pending is not None else np.clip(self.b.q0, self.b.lo, self.b.hi)
+        self.pending = None
+        return t
+
+    def state(self):
+        return {}
+
+    def load(self, st):
+        pass
 
 
 def make_legged_env(*, task: str, body: str, seed: int = 0, scene: dict | None = None, **kw) -> "LeggedSession":

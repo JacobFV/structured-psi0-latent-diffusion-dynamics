@@ -78,10 +78,13 @@ def _package(mod: str) -> str | None:
 
 
 def _node(mod: str) -> str:
-    """Cycle-check node: a sub-package (e.g. rrp.policies.nets) as a whole, or a flat module of a layer package."""
+    """Cycle-check node: a sub-package (e.g. rrp.policies.nets) as a whole; the interface module `<layer>.base` on its
+    own (it sits below everything in its layer); every other flat module of a layer package grouped with its layer."""
     parts = mod.split(".")
     if len(parts) >= 3 and MODS.get(".".join(parts[:3]), (None, False))[1]:
         return ".".join(parts[:3])
+    if len(parts) == 3 and parts[2] == "base":
+        return mod
     return ".".join(parts[:2])
 
 

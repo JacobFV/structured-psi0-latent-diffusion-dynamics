@@ -499,7 +499,8 @@ def closed_loop_eval(flow: Path, systems: dict, out: Path, seeds=range(10000, 10
     against the instruction truth. `systems`: condition name -> System2 (e.g. oracle / default / system2_zero_shot).
     Same semantics as `rrp.research.system2_eval.closed_loop` with {oracle, default, system2_*} conditions."""
     import torch
-    from rrp.harness.eval.legged_latent_eval import LatentLeggedController, run_episode
+    from rrp.harness.eval.legged_latent_eval import run_episode
+    from rrp.policies.legged import LatentLeggedController
     from rrp.envs.mujoco.legged import build_waypoint_contact
     dev = dev or torch.device("cpu")
     out = Path(out); out.mkdir(parents=True, exist_ok=True)

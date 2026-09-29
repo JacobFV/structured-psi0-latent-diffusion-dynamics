@@ -162,7 +162,8 @@ def _sha(p) -> str:
 def run_legged_shard(route: dict, body: str, cond: dict, seeds: list[int], out: Path, max_s: float = 60.0,
                      video_dir: Path | None = None, video_seeds=()) -> list[dict]:
     import torch
-    from rrp.harness.eval.legged_latent_eval import BCController, LatentLeggedController, run_episode, save_video
+    from rrp.harness.eval.legged_latent_eval import run_episode, save_video
+    from rrp.policies.legged import BCController, LatentLeggedController
     dev = torch.device("cpu")
     done = {json.loads(l)["seed"] for l in out.read_text().splitlines()} if out.exists() else set()
     rows = [json.loads(l) for l in out.read_text().splitlines()] if out.exists() else []
@@ -729,7 +730,8 @@ def render_video(family: str, route: dict, robot: str, key: str, seed: int, out_
                          and not (k.startswith("push_") and k != "push_impulse_Ns" and not pd["push_impulse_Ns"])})
     if family == "legged":
         import torch
-        from rrp.harness.eval.legged_latent_eval import BCController, LatentLeggedController, run_episode, _caption
+        from rrp.harness.eval.legged_latent_eval import run_episode, _caption
+        from rrp.policies.legged import BCController, LatentLeggedController
         dev = torch.device("cpu")
         ctl = (BCController(Path(route["ckpt"]), dev, nfe=8, replan=5, seed=seed) if route["kind"] == "bc" else
                LatentLeggedController(Path(route["ckpt"]), dev, nfe=8, edit="none", t_edit=1.0, seed=seed)

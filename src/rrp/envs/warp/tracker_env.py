@@ -25,7 +25,7 @@ import numpy as np
 import torch
 
 from rrp.envs.mujoco.legged_core import CMD_SCALE, MIN_STOP_SHARE, RewardCfg
-from rrp.envs.warp.mjx_legged import build_model, default_data
+from rrp.envs.warp.model import build_model, default_data
 
 ENV_VERSION = "warp_tracker_env_v1"
 # declared physics adaptation for GPU training (C-MuJoCo validation always uses the full model). no_self_collision (r1 runs)
@@ -35,7 +35,7 @@ ADAPT = ("leg_cross_collision",)
 
 
 def _wp():
-    from rrp.envs.warp.warp_legged import _wp as f
+    from rrp.envs.warp.model import _wp as f
     return f()
 
 
