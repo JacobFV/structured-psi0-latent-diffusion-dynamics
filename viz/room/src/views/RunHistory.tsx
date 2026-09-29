@@ -12,7 +12,7 @@ import Stage, { PcaPlot, type StageOptions } from '../components/Stage';
 import { CategoryTrack, ProbeTracks, RasterTrack, ScalarTrack, type Side, type Val } from '../components/Timelines';
 import { Caveat, Did, ErrorState, Loading, NoData, SourceBadge } from '../components/ui';
 import { useDoc, useReplay, type DocResult, type Envelope } from '../lib/api';
-import { arr, fmtNum, isObj, pick, rows, shortSha, sortNatural, str, uniq, type Row } from '../lib/format';
+import { arr, fmtNum, isObj, pick, rows, shortSha, sortNatural, str, type Row } from '../lib/format';
 import { Clock, relTimes, useClock, type Replay } from '../lib/replay';
 import { readParam, useUrlState, writeParams } from '../lib/url';
 import { useFixtureIndex, VideoLibrary, VideoPanel, videoCandidates } from './Theatre';
@@ -46,9 +46,24 @@ const ENVS: [string, string][] = [['arm', 'arm (pick and place)'], ['legged', 'l
 function envOf(e: Row) {
   return /^(grasp_rig|tracker_validation)$/.test(str(e.task)) ? 'physics' : str(e.family);
 }
-function taskOf(e: Row) {
-  return `${str(e.task)} · ${str(e.route) || '—'}`;
+/** Outcome of an episode from its recorded fields: success; fell; timeout (legged episode ended before reaching the next
+ * waypoint: failure stage drift_*); fail (any other recorded failure stage); no outcome (no success defined, e.g. 5 s
+ * context-edit windows). */
+function outcomeOf(e: Row): 'success' | 'fell' | 'timeout' | 'fail' | 'no outcome' {
+  if (e.success === true) return 'success';
+  const st = str(e.failure_stage);
+  if (st === 'fell') return 'fell';
+  if (/^drift/.test(st)) return 'timeout';
+  if (st) return 'fail';
+  return 'no outcome';
 }
+function groups(xs: Row[], by: string, val: (e: Row, f: string) => string): [string | null, Row[]][] {
+  if (!by) return [[null, xs]];
+  const m = new Map<string, Row[]>();
+  xs.forEach((e) => { const k = val(e, by); m.set(k, [...(m.get(k) || []), e]); });
+  return [...m.entries()].sort((a, b) => sortNatural(a[0], b[0]));
+}
+function FragList({ children }: { children: ReactNode }) { return <>{children}</>; }
 /** Search tokens: key:value on body/route/variant/condition/seed/grasp/contact/id, anything else as free text. */
 function matches(e: Row, q: string) {
   const ph = isObj(e.physics) ? e.physics : {};
@@ -112,13 +127,22 @@ function Runs({ entries, videos, fixture, indexResult, onVideos }: { entries: Ro
   const [speed, setSpeed] = useUrlState('speed', '1');
   const [loop, setLoop] = useUrlState('loop', '1');
   const [follow, setFollow] = useUrlState('follow', '0');
-  const envs = ENVS.filter(([v]) => entries.some((e) => envOf(e) === v));
-  const [env, setEnv] = useUrlState('env', envs[0]?.[0] ?? 'arm');
+  // facets: robot × env × task × outcome (+ search tokens); list grouped by any facet
+  const [robot, setRobot] = useUrlState('robot', '');
+  const [env, setEnv] = useUrlState('env', '');
   const [task, setTask] = useUrlState('task', '');
-  const [res, setRes] = useUrlState('res', '');
-  const inEnv = entries.filter((e) => envOf(e) === env);
-  const tasks = uniq(inEnv.map(taskOf)).sort(sortNatural);
-  const shown = inEnv.filter((e) => (!task || taskOf(e) === task) && (!res || (res === 'success' ? e.success === true : e.success !== true)) && (!q || matches(e, q)));
+  const [oc, setOc] = useUrlState('oc', '');
+  const [groupBy, setGroupBy] = useUrlState('gb', 'env');
+  const facetVal = (e: Row, f: string) => (f === 'robot' ? str(e.body) : f === 'env' ? envOf(e) : f === 'task' ? str(e.task) : f === 'outcome' ? outcomeOf(e) : '');
+  const sel: Record<string, string> = { robot, env, task, outcome: oc };
+  const passes = (e: Row, skip?: string) => Object.entries(sel).every(([f, v]) => f === skip || !v || facetVal(e, f) === v) && (!q || matches(e, q));
+  const shown = entries.filter((e) => passes(e));
+  const facetOpts = (f: string) => {
+    const pool = entries.filter((e) => passes(e, f));
+    const c = new Map<string, number>();
+    pool.forEach((e) => c.set(facetVal(e, f), (c.get(facetVal(e, f)) || 0) + 1));
+    return [...c.entries()].sort((x, y) => sortNatural(x[0], y[0]));
+  };
   const idA = a || str(shown[0]?.id ?? entries[0]?.id);
   const ra = useReplay<Replay>(idA || undefined);
   const rb = useReplay<Replay>(b || undefined);
@@ -165,44 +189,44 @@ function Runs({ entries, videos, fixture, indexResult, onVideos }: { entries: Ro
   return (
     <>
       <SidebarControls>
-        <SideGroup title="Environment" right={<ModeBadge result={indexResult} />}>
-          <select value={env} onChange={(e) => { if (e.target.value === 'videos') { onVideos(); return; } setEnv(e.target.value); setTask(''); }} aria-label="environment">
-            {envs.map(([v, l]) => <option key={v} value={v}>{l} ({entries.filter((e) => envOf(e) === v).length})</option>)}
-            <option value="videos">video library</option>
-          </select>
-        </SideGroup>
-        <SideGroup title="Task" right={<span title="bar = share of runs that succeeded (green) or failed (red)"><i className="sw" style={{ background: 'var(--good)' }} />✓ <i className="sw" style={{ background: 'var(--critical)' }} />✗</span>}>
-          <div className="side-list" role="listbox" aria-label="task">
-            <button aria-pressed={!task} onClick={() => setTask('')}><span className="row1"><b>all tasks</b><small style={{ marginLeft: 'auto' }}>{inEnv.length}</small></span></button>
-            {tasks.map((t) => {
-              const xs = inEnv.filter((e) => taskOf(e) === t);
-              const ok = xs.filter((e) => e.success === true).length;
-              return (
-                <button key={t} aria-pressed={task === t} onClick={() => setTask(t)} title={`${ok} of ${xs.length} succeeded`}>
-                  <span className="row1"><b>{t.split(' · ')[1]}</b><small style={{ marginLeft: 'auto' }}>{xs.length}</small></span>
-                  <span style={{ display: 'flex', height: 3 }}><i style={{ flex: ok, background: 'var(--good)' }} /><i style={{ flex: xs.length - ok, background: 'var(--critical)' }} /></span>
-                </button>
-              );
-            })}
+        <SideGroup title={`Runs · ${shown.length} of ${entries.length}`} right={<ModeBadge result={indexResult} />}>
+          <div className="facets">
+            {([['robot', robot, setRobot], ['env', env, setEnv], ['task', task, setTask], ['outcome', oc, setOc]] as [string, string, (v: string) => void][]).map(([f, v, set]) => (
+              <label key={f}>{f}
+                <select value={v} onChange={(e) => set(e.target.value)} aria-label={f}>
+                  <option value="">all</option>
+                  {facetOpts(f).map(([o, n]) => <option key={o} value={o}>{o || '—'} ({n})</option>)}
+                </select>
+              </label>
+            ))}
+            <label>group by
+              <select value={groupBy} onChange={(e) => setGroupBy(e.target.value)} aria-label="group by">
+                {['env', 'robot', 'task', 'outcome', 'none'].map((g) => <option key={g} value={g}>{g}</option>)}
+              </select>
+            </label>
+            <label>more
+              <select value="" onChange={(e) => { if (e.target.value === 'videos') onVideos(); }} aria-label="other lists"><option value="">recorded runs</option><option value="videos">video library</option></select>
+            </label>
           </div>
-        </SideGroup>
-        <SideGroup title="Result">
-          <select value={res} onChange={(e) => setRes(e.target.value)} aria-label="result"><option value="">all</option><option value="success">success</option><option value="failure">failure</option></select>
-          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search runs… (body:go2 variant:semfix)" aria-label="search runs" />
-        </SideGroup>
-        <SideGroup title={`Runs · ${shown.length}`} right={<span>[ ] step</span>}>
-          <div className="side-list">
-            {shown.slice(0, 400).map((e) => {
-              const id = str(e.id);
-              return (
-                <button key={id} aria-pressed={id === idA} onClick={() => { setA(id); clock.set(0); }} title={`${id}${e.reproduced === false ? ' · NOT reproduced' : ''}`}>
-                  <span className="row1">
-                    <b>{[e.body, e.variant || e.route, e.condition].map(str).filter(Boolean).join(' · ')}</b>
-                    <span style={{ marginLeft: 'auto', color: e.success === true ? 'var(--good)' : e.success === false ? 'var(--critical)' : 'var(--muted)' }}>{e.success === true ? '✓' : e.success === false ? '✗' : '–'}</span>
-                  </span>
-                </button>
-              );
-            })}
+          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search runs… (route:bc variant:semfix seed:3000000)" aria-label="search runs" />
+          <div className="runtable" role="listbox" aria-label="runs">
+            <div className="hdr"><span>robot</span><span>env</span><span>task</span><span>outcome</span><span>route · cond</span></div>
+            {groups(shown, groupBy === 'none' ? '' : groupBy, facetVal).map(([g, xs]) => (
+              <FragList key={g || 'all'}>
+                {g !== null && <div className="rt-g">{g || '—'} · {xs.length} · {xs.filter((e) => e.success === true).length} ✓</div>}
+                {xs.slice(0, 400).map((e) => {
+                  const id = str(e.id), o = outcomeOf(e);
+                  return (
+                    <button key={id} aria-pressed={id === idA} onClick={() => { setA(id); clock.set(0); }}
+                      title={`${id}\n${[e.body, envOf(e), e.task, e.route, e.variant, e.condition, `seed ${str(e.seed)}`].map(str).filter(Boolean).join(' · ')}\noutcome: ${o}${e.failure_stage ? ` (stage ${str(e.failure_stage)})` : ''}${e.reproduced === false ? ' · NOT reproduced' : ''}\n${str(e.source_label)}`}>
+                      <span>{str(e.body).replace(/^r\d_/, '')}</span><span>{envOf(e)}</span><span>{str(e.task).replace(/_/g, ' ')}</span>
+                      <span className={`oc-${o === 'no outcome' ? 'na' : o}`}>{o === 'success' ? '✓ ok' : o === 'fail' ? '✗ fail' : o === 'fell' ? '↓ fell' : o === 'timeout' ? '◷ time' : '– n/a'}</span>
+                      <span className="muted">{[e.variant || e.route, e.condition].map(str).filter(Boolean).join(' · ')}</span>
+                    </button>
+                  );
+                })}
+              </FragList>
+            ))}
           </div>
         </SideGroup>
         <SideGroup title="Compare with…">

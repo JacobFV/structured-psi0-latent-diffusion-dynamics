@@ -102,14 +102,13 @@ function TrainingBody({ index }: { index: Row[] }) {
             <label>search<input type="search" value={q} onChange={(e) => setQ(e.target.value)} /></label>
             <label className="small" style={{ display: 'flex', gap: 4, alignItems: 'center' }}><input type="checkbox" checked={gn === '1'} onChange={(e) => setGn(e.target.checked ? '1' : '0')} /> has grad norm</label>
           </div>
-          <div className="picker" style={{ maxHeight: 640 }}>
+          <div className="side-list" style={{ maxHeight: 640, overflow: 'auto' }}>
             {list.slice().sort((a, b) => sortNatural(str(a.run), str(b.run))).map((r) => (
-              <button key={idOf(r)} aria-pressed={selected.includes(idOf(r))} onClick={(e) => toggle(idOf(r), e.shiftKey || e.metaKey || e.ctrlKey)}>
-                <span className="small" style={{ wordBreak: 'break-all', fontWeight: 600 }}>{str(r.run || r.id).replace(/^artifacts\/runs\//, '')}</span>
-                <span className="small muted">
-                  {str(r.kind) || 'kind ?'} · {fmtNum(pick(r, 'n_points'))} pts{r.stride && r.stride !== 1 ? ` (stride ${str(r.stride)})` : ''}
-                  {r.grad_norm_key ? ' · grad' : ''}{r.clip_scale_key ? ' · clip' : ''}{r.has_alpha ? ' · α' : ''}{r.location && r.location !== 'repo' ? ` · ${str(r.location)}` : ''}
-                </span>
+              <button key={idOf(r)} className="side-line" aria-pressed={selected.includes(idOf(r))} onClick={(e) => toggle(idOf(r), e.shiftKey || e.metaKey || e.ctrlKey)}
+                title={`${str(r.run || r.id)}\n${str(r.kind) || 'kind ?'} · ${fmtNum(pick(r, 'n_points'))} points${r.stride && r.stride !== 1 ? ` (stride ${str(r.stride)})` : ''} · last step ${fmtNum(typeof r.last_step === 'number' ? r.last_step : pick(r.last, 'step', 'update'))}${r.grad_norm_key ? ' · grad norm' : ''}${r.clip_scale_key ? ' · clip scale' : ''}${r.has_alpha ? ' · α' : ''}${r.location && r.location !== 'repo' ? ` · ${str(r.location)}` : ''}\n● logged in the last 24 h · ○ older · – no wall-clock time recorded`}>
+                <span className="nm">{str(r.run || r.id).replace(/^artifacts\/runs\//, '')}</span>
+                <span className="mt">{str(r.body) || str(r.kind) || '?'}</span>
+                <span className="gl">{(() => { const t = num(pick(r.last, 't')); return t === null || t < 1.5e9 ? '–' : Date.now() / 1000 - t < 86400 ? '●' : '○'; })()}</span>
               </button>
             ))}
           </div>
