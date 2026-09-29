@@ -312,3 +312,26 @@ Next, in order (<= 2 GPU leases; never sync a code dir with running jobs; one fr
    `rrp.data.legged_latent_collect` to task scenarios + expert trackers (extra_fn) before any latent/BC training.
 Pool trackers (D-139 labels): h1 r6 (`artifacts/runs/humanoid_p1b_h1_r6/actor_r6final.pt`), t1 v2ft4
 (`artifacts/runs/humanoid_p1b_t1_v2ft4/actor.pt`), g1 v4 (`artifacts/runs/humanoid_p1b_g1_v4/actor_v4final.pt`).
+
+## RESUME — WIND-DOWN for the repo refactor (owner decision via lead, 2026-09-29 ~12:00). SUPERSEDES the checkpoint above.
+State: **no W13 lease running, no host loop running, nothing queued.** Do not re-run anything to reproduce results.
+Done (all numbers in this file / D-138 / D-139):
+- P0 plan + sealed split (D-138); P1a Warp adopted; P1b pool trackers under the D-139 exception: h1 r6, t1 v2ft4, g1 v4.
+- P2 h_steps expert (h1) and h_gap_sidestep code (GPU env, C scenario, teacher, eval; never trained).
+Stopped / final state of the last two runs:
+- shared morph_v2 tracker: STOPPED by me at iter 415 of 3000 (lease 1790702624_8e8209). Last checkpoint = iter 399
+  (`artifacts/runs/humanoid_p1c_shared_v2/checkpoint.pt` + `actor.pt`); still learning to stand (window fall 0.94); no gate,
+  no sealed evaluation. Resume: `--recipe shared_morph_v2 --out artifacts/runs/humanoid_p1c_shared_v2 --resume`.
+- h1 steps expert v2: FINISHED its segment (iter 6000, 30 s episodes). Curriculum level 0.6 (step heights up to 0.18 L),
+  last window success 0.33; NOT evaluated in C MuJoCo after the resume (last C grid = the iter-1500 actor: 20/20 at 0.10 L,
+  0/20 at >= 0.15 L). Checkpoint `artifacts/runs/humanoid_p2_h1_steps_v2/checkpoint.pt` (stores level 0.6).
+Not started: D-139 g1 knee side attempt, gap experts, sealed transfer (no berkeley/toddlerbot adapters yet), P3.
+Artifacts: all `artifacts/runs/humanoid_*` (93 MB incl. every tracker actor/checkpoint/gate JSON) and the 31 W13 videos
+(`artifacts/video/2026-09-29_{contact_h1,contact_t1,contact_g1,humanoid}_*`) are copied, sha256-verified, to
+`~/work/rrp-data/peer-archive/{runs,video}` (ARCHIVE_LOG.txt); peer copies kept (small). Weights are never committed.
+Peer code dirs `/dev/shm/rrp-brandonin/wt/humanoid*` (~45 MB each) can be deleted after the refactor. The isolated Warp
+install `~/work/ext/pylibs/mjwarp` (468 MB, peer disk) is needed to resume GPU training.
+Refactor notes: the GPU stack is `rrp.envs.{warp_legged,warp_tracker_env,warp_task_env,morph_obs,humanoid_scenes}`,
+`rrp.training.{warp_tracker_ppo,humanoid_recipes}`, `rrp.bodies.humanoid_gen`, `rrp.teachers.humanoid`; deployment-side
+options live in actor meta (clock_gate, target_margin, obs_format morph_v1, extra_obs_dim) and are honoured by
+`rrp.envs.legged_tracker.LearnedTracker` — keep them when moving to the common env/policy abstractions.
