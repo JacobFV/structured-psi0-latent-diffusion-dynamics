@@ -170,3 +170,6 @@ as a library (`rrp.core`, pinned by git sha) and never copies its code; shared p
 and the decision crosswalk (rrp D-xxx ↔ psi1z P-xxx): [docs/related_repos.md](docs/related_repos.md). Current W10 status: D-120 in
 [research/decisions.md](research/decisions.md) and psi1z's [research/notes.md](https://github.com/JacobFV/psi1z/blob/main/research/notes.md).
 Open questions and planned experiments (what is still uncertain but in scope): [docs/experiments_roadmap.md](docs/experiments_roadmap.md).
+
+## checkpoints and rollouts
+Public (unlicensed; all rights reserved) on Hugging Face: [jacob-valdez/rrp-checkpoints](https://huggingface.co/jacob-valdez/rrp-checkpoints) — arm v1 routes, v2/v6 BC experts, legged8 routes, gait trackers, and 160 recorded evaluation rollouts (`rollouts/viz_replays`). `MANIFEST.tsv` there lists sha256 per file. Weights are never committed to this repo.
