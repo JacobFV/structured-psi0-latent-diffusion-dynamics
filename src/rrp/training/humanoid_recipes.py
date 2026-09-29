@@ -125,3 +125,10 @@ HUMANOID_RECIPES["h1_clock_gpu_r3"] = _ft("h1", "artifacts/runs/humanoid_p1b_h1_
 HUMANOID_RECIPES["t1_clock_gpu_r2"] = _ft("t1", "artifacts/runs/humanoid_p1b_t1_r1/actor_r1final.pt", alpha_schedule="fixed:0.5",
                                           reward_set=_TURN + _CLOCK.replace("limit_margin=-1.0", "limit_margin=-2.0")
                                           + ",yaw_progress_cap=1.0,yaw_overshoot=-2.0,stand_vel=-3.0")
+
+# t1 r1 in C MuJoCo (full self-collision): forward trial no-fall 0.2, fwd 0.0, peak force 5.6 BW -- the r1 gait needs legs to
+# pass through each other; with leg_cross_collision the r1 actor falls at ~1 s (t1 r2 fine-tune: every episode, ep_len 57).
+# r1/r2 are void; t1 v2 = the r1 clock recipe from scratch under leg_cross_collision + the yaw/standing/limit fixes.
+_FIX = ",yaw_progress_cap=1.0,yaw_overshoot=-2.0,stand_vel=-3.0"
+HUMANOID_RECIPES["t1_clock_gpu_v2"] = _clock("t1", reward_set=_TURN + _CLOCK.replace("limit_margin=-1.0", "limit_margin=-2.0") + _FIX)
+HUMANOID_RECIPES["g1_clock_gpu_v2"] = _clock("g1", reward_set=_TURN + _CLOCK.replace("limit_margin=-1.0", "limit_margin=-2.0") + _FIX)
