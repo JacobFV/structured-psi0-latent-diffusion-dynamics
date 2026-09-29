@@ -276,3 +276,10 @@ Long runs use `/dev/shm/rrp-brandonin/wt/humanoid` (never re-synced while they r
 - **t1 v2ft3** (+ per-tick force cap): **waypoint 20/20, 0 falls**; no-fall 1.0 everywhere, fwd 1.08, turn 0.95, slip 0.054,
   CoT 0.53, **peak force 2.72 BW (passes)**; D-112 fails only joint margin 0.0094 (regressed from 0.022). -> t1 v2ft4
   (+ target_margin 0.05), recorded stop-rule deviation (sample budget ~3.3e8 of 6e8).
+- **g1 v4ft2** (target_margin 0.05): WORSE: waypoint 0/20 with 20 falls, force 3.04 BW, margin 0.016, turn 0.69. g1 stops
+  here (stop rule); best g1 = **v4** (only joint margin 0.012 fails; waypoint 17/20, 3 falls).
+- Per-joint margin diagnosis (`scripts/humanoid_margin_diag.py`, C MuJoCo, validation command set): the worst joints are the
+  KNEES at the straight-leg limit for g1 (0.018 with a 5% target band) and right HIP YAW for t1 v2ft3 (0.0085 with a 3% band):
+  the PD servo overshoots the (clipped) target at stance impact. Target clipping alone cannot bound it.
+- Status asked of the lead (2026-09-29): a D-113-style labelled exception for the margin/force criteria, or more iterations
+  (knee-specific band / stance knee-flex term). t1 v2ft4 (5% band + force cap) is the last per-body attempt.
