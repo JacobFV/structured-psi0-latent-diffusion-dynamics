@@ -45,7 +45,8 @@ def _load(key, binding, meta, kind="auto"):
     """The expert with its PRIVILEGED scan attached before the session's first (settling) tick."""
     from rrp.envs.humanoid_scenes import steps_scan_np
     tr = LearnedTracker(actor, binding, key)
-    if int(tr.meta.get("extra_obs_dim") or 0):
+    CUR["expert"] = bool(int(tr.meta.get("extra_obs_dim") or 0))
+    if CUR["expert"]:
         L, h = CUR["L"], CUR["h"]
         tr.extra_fn = lambda d: steps_scan_np(d.qpos[binding.qa:binding.qa + 7], L, h)
     return tr
@@ -93,7 +94,8 @@ for seed in range(s0, s0 + n):
     rows.append(dict(seed=seed, status=status, h_frac=sc.meta["h_frac"], x=x, x_end=sc.meta["x_end"], sim_s=float(s.data.time),
                      wall_s=time.time() - t0))
     print(rows[-1], flush=True)
-summ = dict(body=body, actor=actor, n=n, source="privileged_teacher:rl_expert + scripted_command",
+summ = dict(body=body, actor=actor, n=n, source=("privileged_teacher:rl_expert + scripted_teacher command" if CUR.get("expert")
+                                                  else "learned_tracker (blind) + scripted_teacher command"),
             success=sum(r["status"] == "success" for r in rows), fell=sum(r["status"] == "fell" for r in rows), rows=rows)
 json.dump(summ, open(out, "w"), indent=1)
 print({k: v for k, v in summ.items() if k != "rows"})

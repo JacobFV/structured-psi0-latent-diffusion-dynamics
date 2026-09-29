@@ -268,3 +268,5 @@ Long runs use `/dev/shm/rrp-brandonin/wt/humanoid` (never re-synced while they r
   0/20, all timeouts, it stops before the first riser (inputs outside its curriculum range; it never falls). Blind h1 r6
   tracker (no scan): 0/20, **20/20 falls** at 0.10 L and 0.15 L. P2 gate for h_steps (expert >= 0.9 over 0.10-0.30 L) not met
   yet -> resume the curriculum (checkpoints now store the level; resume with --level0 0.4).
+  Videos (peer `artifacts/video`, INDEX.md): `2026-09-29_humanoid_steps_h1_h0.10_s7300_expert-v2_success.mp4`,
+  `..._h0.20_s7301_expert-v2_timeout.mp4` (stops before the stairs), `..._h0.10_s7300_blind-r6_fell.mp4` (blind tracker trips).
