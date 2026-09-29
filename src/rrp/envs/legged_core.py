@@ -73,6 +73,10 @@ class LeggedBinding:
         self.floor = mujoco.mj_name2id(model, O.mjOBJ_GEOM, "floor")
         # D-126 #15: terrain worlds add a plane `floor_outer` beyond the heightfield; it counts as floor. Flat worlds: -1 (never matches)
         self.floor2 = mujoco.mj_name2id(model, O.mjOBJ_GEOM, "floor_outer")
+        # W13 task scenes: extra static geoms that count as ground (stairs, stones); none -> {floor, floor_outer} as before
+        self.ground = {g for g in (self.floor, self.floor2) if g >= 0}
+        for gname in (meta.get("scene") or {}).get("ground", []):
+            self.ground.add(mujoco.mj_name2id(model, O.mjOBJ_GEOM, gname))
         self.body_is_foot = np.full(model.nbody, -1)
         for i, b in enumerate(self.foot_bids):
             self.body_is_foot[b] = i
@@ -201,9 +205,9 @@ class LeggedBinding:
         m = self.model
         for i in range(d.ncon):
             c = d.contact[i]
-            if c.geom1 == self.floor or c.geom1 == self.floor2:
+            if c.geom1 in self.ground:
                 b = m.geom_bodyid[c.geom2]
-            elif c.geom2 == self.floor or c.geom2 == self.floor2:
+            elif c.geom2 in self.ground:
                 b = m.geom_bodyid[c.geom1]
             else:
                 continue
@@ -234,9 +238,9 @@ class LeggedBinding:
         vel = {}
         for i in range(d.ncon):
             c = d.contact[i]
-            if c.geom1 == self.floor or c.geom1 == self.floor2:
+            if c.geom1 in self.ground:
                 b = m.geom_bodyid[c.geom2]
-            elif c.geom2 == self.floor or c.geom2 == self.floor2:
+            elif c.geom2 in self.ground:
                 b = m.geom_bodyid[c.geom1]
             else:
                 continue

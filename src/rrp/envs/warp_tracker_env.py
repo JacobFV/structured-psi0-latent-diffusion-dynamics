@@ -69,12 +69,12 @@ class WarpTrackerEnv:
     def __init__(self, body, nworld: int, seed: int = 1, *, reward_overrides: dict | None = None, episode_s: float = 20.0,
                  push: bool = True, obs_noise: float = 1.0, cmd_mix: str = "default", teacher_stop: float = MIN_STOP_SHARE,
                  turn_frac: float = 0.25, slow_frac: float = 0.0, randomize: bool = True, nconmax: int = 48,
-                 njmax: int = 320):
+                 njmax: int = 320, model_fn=None, extra_batch=()):
         wp, mjw = _wp()
         self.wp, self.mjw = wp, mjw
         self.dev = torch.device("cuda")
         keys = [body] if isinstance(body, str) else list(body)
-        built = [build_model(k, "v2", ADAPT) for k in keys]
+        built = [(model_fn or (lambda k: build_model(k, "v2", ADAPT)))(k) for k in keys]
         self.m, self.meta, self.b, self.adaptations = built[0]
         m, b = self.m, self.b
         self.body, self.variant_keys, self.N, self.K = keys[0], keys, int(nworld), len(keys)
@@ -103,6 +103,7 @@ class WarpTrackerEnv:
         bset = set(("geom_friction", "geom_solref", "body_mass", "body_inertia", "body_ipos") if randomize else ())
         if self.K > 1:
             bset |= set(MORPH_FIELDS)
+        bset |= set(extra_batch)
         self.mw = mjw.put_model(m, batch_sizes={k: self.N for k in sorted(bset)})
         vid_np = np.arange(self.N) % self.K
         if self.K > 1:
@@ -158,7 +159,7 @@ class WarpTrackerEnv:
         self.foot_sids = i64(b.foot_sids)
         self.foot_bids = i64(b.foot_bids)
         # contact geometry tables
-        floor_g = [g for g in (b.floor, b.floor2) if g >= 0]
+        floor_g = sorted(b.ground)
         self.is_floor = torch.zeros(m.ngeom, dtype=torch.bool, device=self.dev)
         self.is_floor[floor_g] = True
         foot_of_body = np.full(m.nbody, -1)
@@ -173,6 +174,7 @@ class WarpTrackerEnv:
         self.robot_body = torch.as_tensor(b.is_robot_body, device=self.dev)
         self.body_root = i64(m.body_rootid)
         self.floor_gid = floor_g[0]
+        self.ground_gids = floor_g
         self.tilt_limit = float(b.tilt_limit)
         # reference-gait indices (bipeds)
         self.ref_idx = None
@@ -288,12 +290,13 @@ class WarpTrackerEnv:
         self.ep_ret = torch.where(mask, zero, self.ep_ret)
         self.phase = torch.where(mask, self._u(n), self.phase)
         if self.randomize:
-            g, rb = self.floor_gid, self.b.root_bid
+            rb = self.b.root_bid
             mu = self._u(n, lo=0.4, hi=1.25)
             fr = torch.stack([mu, 0.02 * mu, 0.001 * mu], -1)
-            self.m_fric[:, g] = torch.where(M, fr, self.m_fric[:, g])
             sr = torch.stack([self._u(n, lo=0.006, hi=0.012), self._u(n, lo=0.8, hi=1.2)], -1)
-            self.m_solref[:, g] = torch.where(M, sr, self.m_solref[:, g])
+            for g in self.ground_gids:                   # floor + task-scene ground share one draw per episode
+                self.m_fric[:, g] = torch.where(M, fr, self.m_fric[:, g])
+                self.m_solref[:, g] = torch.where(M, sr, self.m_solref[:, g])
             sc = self._u(n, lo=0.9, hi=1.1)
             self.m_mass[:, rb] = torch.where(mask, self.mass0 * sc, self.m_mass[:, rb])
             self.m_inertia[:, rb] = torch.where(M, self.inertia0 * sc[:, None], self.m_inertia[:, rb])
@@ -324,6 +327,15 @@ class WarpTrackerEnv:
                             torch.full((nA,), 0.05), torch.zeros(nA), torch.zeros(2)]).to(self.dev) * self.obs_noise
             o = o + torch.randn(o.shape, generator=self.gen, device=self.dev) * nz
         return o
+
+    def extra_obs(self):
+        """Task-specific PRIVILEGED expert inputs (height scan, targets); none for the plain tracker."""
+        return torch.zeros(self.N, 0, device=self.dev)
+
+    def task_step(self, fell):
+        """Task hook after physics: (extra reward (N), task done (N, bool), success (N, bool)). Plain tracker: nothing."""
+        z = torch.zeros(self.N, device=self.dev)
+        return z, torch.zeros_like(fell), torch.zeros_like(fell)
 
     def _base_vel_body(self):
         quat = self.qpos[:, self.qa + 3:self.qa + 7]
@@ -509,11 +521,14 @@ class WarpTrackerEnv:
         tilt = torch.acos((-g[:, 2]).clamp(-1, 1))
         fell = bad | (h < self.min_h) | (tilt > self.tilt_limit) | ~torch.isfinite(self.qpos).all(-1)
         r += cfg.termination * fell.float()
+        r_task, tdone, succ = self.task_step(fell)
+        r = r + r_task
+        self.ep_acc["success"] = self.ep_acc.get("success", torch.zeros((), device=self.dev)) + succ.float().sum()
         self.last_a2 = self.last_a
         self.last_a = a
         self.ep_ret += r
-        timeout = self.t >= self.max_steps
-        done = fell | timeout
+        timeout = (self.t >= self.max_steps) & ~tdone
+        done = fell | timeout | tdone
         df = done.float()
         self.ep_acc["ret"] += (self.ep_ret * df).sum()
         self.ep_acc["len"] += (self.t * df).sum()
@@ -522,13 +537,13 @@ class WarpTrackerEnv:
         priv_fc = fc & ~done[:, None]
         self._reset(done)
         self._sample_cmd((self.cmd_timer <= 0) & ~done)
-        return self.observe(), self.privileged(priv_fc), r, done, timeout & ~fell
+        return self.observe(), self.privileged(priv_fc), r, done, timeout & ~fell & ~tdone
 
     def pop_stats(self) -> dict:
         """Episode stats since the last call plus the raw gate accumulators (summed by the trainer over a window)."""
         e = {k: float(v) for k, v in self.ep_acc.items()}
         out = dict(episodes=int(e["n"]), ret_sum=e["ret"], len_sum=e["len"], falls=int(e["falls"]),
-                   gm={k: float(v) for k, v in self.gm.items()})
+                   successes=int(e.get("success", 0)), gm={k: float(v) for k, v in self.gm.items()})
         self._gm_reset()
         return out
 
@@ -550,14 +565,14 @@ class MorphMultiEnv:
     """Several WarpTrackerEnv groups (a body, or K same-topology variants) behind one morphology-conditioned interface
     (rrp.envs.morph_obs, obs format morph_v1, 14 canonical slot actions). Duck-types WarpTrackerEnv for the PPO trainer."""
 
-    def __init__(self, groups: list, seed: int = 1, obs_noise: float = 1.0, **env_kw):
+    def __init__(self, groups: list, seed: int = 1, obs_noise: float = 1.0, env_cls=None, **env_kw):
         from rrp.envs.morph_obs import CTX_DIM, DYN_DIM, NS, OBS_DIM, MorphSpec
         self.envs, self.specs, self.slices, self.names = [], [], [], []
         self.obs_noise = obs_noise
         n0 = 0
         for gi, (keys, nw) in enumerate(groups):
             keys = [keys] if isinstance(keys, str) else list(keys)
-            e = WarpTrackerEnv(keys, int(nw), seed=seed + 101 * gi, obs_noise=0.0, **env_kw)
+            e = (env_cls or WarpTrackerEnv)(keys, int(nw), seed=seed + 101 * gi, obs_noise=0.0, **env_kw)
             specs = []
             for k in keys:
                 m, meta, b, _ = build_model(k, "v2", ADAPT)
@@ -578,7 +593,8 @@ class MorphMultiEnv:
             self.names.append(keys[0] if len(keys) == 1 else f"{keys[0]}+{len(keys) - 1}")
             n0 += e.N
         self.N, self.nA, self.nf = n0, NS, 2
-        self.obs_dim, self.dyn_dim, self.ctx_dim = OBS_DIM, DYN_DIM, CTX_DIM
+        self.extra_dim = int(self.envs[0].extra_obs().shape[1])
+        self.obs_dim, self.dyn_dim, self.ctx_dim = OBS_DIM + self.extra_dim, DYN_DIM, CTX_DIM
         self.priv_dim = self.envs[0].priv_dim
         self.dev = self.envs[0].dev
         self.gen = torch.Generator(device=self.dev).manual_seed(int(seed) + 7)
@@ -617,7 +633,7 @@ class MorphMultiEnv:
             q = q + nz(q.shape, 0.01) * pm
             qd = qd + nz(qd.shape, 0.05) * pm
         clock = torch.stack([torch.sin(2 * math.pi * e.phase), torch.cos(2 * math.pi * e.phase)], -1)
-        return torch.cat([gyro, grav, cmd, q, qd, g["last"], clock, g["ctx"]], -1)
+        return torch.cat([gyro, grav, cmd, q, qd, g["last"], clock, g["ctx"], e.extra_obs()], -1)
 
     def observe(self):
         return torch.cat([self._group_obs(e, g) for e, g in zip(self.envs, self.specs)], 0)
@@ -646,8 +662,9 @@ class MorphMultiEnv:
         recs = [e.pop_stats() for e in self.envs]
         out = dict(episodes=sum(r["episodes"] for r in recs), ret_sum=sum(r["ret_sum"] for r in recs),
                    len_sum=sum(r["len_sum"] for r in recs), falls=sum(r["falls"] for r in recs),
+                   successes=sum(r.get("successes", 0) for r in recs),
                    gm={k: sum(r["gm"][k] for r in recs) for k in recs[0]["gm"]},
-                   per_group={n: dict(episodes=r["episodes"], falls=r["falls"],
+                   per_group={n: dict(episodes=r["episodes"], falls=r["falls"], successes=r.get("successes", 0),
                                       track_rel_err=(r["gm"]["track_err"] / r["gm"]["cmd"]) if r["gm"]["cmd"] else None)
                               for n, r in zip(self.names, recs)})
         return out

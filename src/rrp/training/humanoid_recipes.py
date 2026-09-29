@@ -78,3 +78,16 @@ def recipe_record(name_or_path: str) -> tuple[dict, dict]:
     opts = {k: v for k, v in rec.items() if not k.startswith("_")}
     return opts, dict(where, sha256=hashlib.sha256(raw).hexdigest(), options=opts,
                       notes={k: v for k, v in rec.items() if k.startswith("_")})
+
+
+def _steps(body: str, **kw) -> dict:
+    d = dict(_what=f"{body} h_steps privileged expert (height scan) from scratch; scripted heading command; step-height curriculum",
+             _gate="P2: expert success >= 0.9 at h_frac 0.10-0.30 per body in C MuJoCo, dataset gates",
+             body=body, task="steps", nworld=4096, iters=2000, horizon=24, hidden="512,256,128", init_std=0.6, lr=1e-3,
+             max_lr=3e-3, seed=1, reward_set=_TURN + _CLOCK, cmd_mix="default", turn_frac=0.0, slow_frac=0.0, **_GATE)
+    d.update(kw)
+    return d
+
+
+HUMANOID_RECIPES["t1_steps_gpu"] = _steps("t1")
+HUMANOID_RECIPES["h1_steps_gpu"] = _steps("h1")

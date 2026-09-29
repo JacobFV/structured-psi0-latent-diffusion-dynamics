@@ -85,6 +85,9 @@ def build_args(argv=None):
     ap.add_argument("--no-push", action="store_true")
     ap.add_argument("--nconmax", type=int, default=48)
     ap.add_argument("--njmax", type=int, default=320)
+    ap.add_argument("--task", default=None, help="None (tracker) | steps (h_steps privileged expert, rrp.envs.warp_task_env)")
+    ap.add_argument("--level-every", type=int, default=25, help="task curriculum window (iterations)")
+    ap.add_argument("--init-shared", default=None, help="warm start the actor from an exported morph_v1 actor.pt (extra inputs zero-init)")
     ap.add_argument("--groups", default=None, help="morph_v1 shared tracker: JSON list of [[body keys], nworld] (or a recipe key)")
     a0, _ = ap.parse_known_args(argv)
     if a0.recipe:
@@ -112,11 +115,19 @@ def main(argv=None):
     ekw = dict(reward_overrides=_kv(args.reward_set), episode_s=args.episode_s, push=not args.no_push, cmd_mix=args.cmd_mix,
                turn_frac=args.turn_frac, slow_frac=args.slow_frac, nconmax=args.nconmax, njmax=args.njmax)
     groups = None
+    env_cls = None
+    if args.task == "steps":
+        from rrp.envs.warp_task_env import WarpStepsEnv
+        env_cls = WarpStepsEnv
+    elif args.task:
+        raise SystemExit(f"unknown --task {args.task}")
     if args.groups:
         groups = json.loads(args.groups) if isinstance(args.groups, str) else args.groups
-        env = MorphMultiEnv(groups, seed=args.seed, **ekw)
+        env = MorphMultiEnv(groups, seed=args.seed, env_cls=env_cls, **ekw)
     else:
-        env = WarpTrackerEnv(args.body, args.nworld, seed=args.seed, **ekw)
+        env = (env_cls or WarpTrackerEnv)(args.body, args.nworld, seed=args.seed, **ekw)
+    task_envs = [e for e in getattr(env, "envs", [env]) if hasattr(e, "set_level")]
+    level = 0.0
     N, H = env.N, args.horizon
     hidden = tuple(int(h) for h in args.hidden.split(","))
     ac = ActorCritic(env.obs_dim, env.priv_dim, env.nA, hidden=hidden, init_std=args.init_std).to(dev)
@@ -127,6 +138,21 @@ def main(argv=None):
     if args.alpha_schedule.startswith("fixed:"):
         gate.alpha = float(args.alpha_schedule.split(":")[1])
     weights = env.set_alpha(gate.alpha)
+    if args.init_shared:
+        ist = torch.load(args.init_shared, map_location=dev, weights_only=False)
+        sd = ist["actor"]
+        w0 = sd["0.weight"]
+        if w0.shape[1] > env.obs_dim:
+            raise SystemExit("--init-shared actor has more inputs than this env")
+        pad = env.obs_dim - w0.shape[1]
+        sd = dict(sd)
+        sd["0.weight"] = torch.cat([w0, torch.zeros(w0.shape[0], pad, device=w0.device)], 1)
+        ac.actor.load_state_dict(sd)
+        n0 = ist["obs_mean"].shape[0]
+        ac.obs_norm.mean[:n0].copy_(ist["obs_mean"])
+        ac.obs_norm.var[:n0].copy_(ist["obs_var"])
+        with torch.no_grad():
+            ac.log_std.fill_(math.log(args.init_std))
     it0, lr = 0, args.lr
     ck = out / "checkpoint.pt"
     if args.resume and ck.exists():
@@ -149,7 +175,8 @@ def main(argv=None):
                 alpha_schedule=args.alpha_schedule, trainer=TRAINER_VERSION, env_version=ENV_VERSION,
                 sim_engine=f"mujoco_warp {getattr(mujoco_warp, '__version__', '3.14.0')}", sim_adaptations=env.adaptations,
                 env_differences="per-world randomisation resampled at reset; see rrp.envs.warp_tracker_env docstring",
-                reward_options=env.cfg0.options(), recipe=args.recipe_record,
+                reward_options=env.cfg0.options(), recipe=args.recipe_record, task=args.task,
+                extra_obs=("privileged height scan 11x3 + h_frac (expert only)" if args.task == "steps" else None),
                 gpu=torch.cuda.get_device_name(0))
     if groups is not None:
         from rrp.envs.morph_obs import OBS_FORMAT
@@ -159,7 +186,7 @@ def main(argv=None):
     log_path = out / "train_log.jsonl"
     obs = env.observe()
     _, priv = obs, env.privileged(torch.zeros(N, env.nf, dtype=torch.bool, device=dev))
-    win, t_start = [], time.time()
+    win, task_win, t_start = [], [], time.time()
     D = env.obs_dim
     for it in range(it0, args.iters):
         t0 = time.time()
@@ -183,6 +210,7 @@ def main(argv=None):
         t_roll = time.time() - t0
         rec_env = env.pop_stats()
         win.append(rec_env)
+        task_win.append(rec_env)
         adv = torch.zeros(H, N, device=dev)
         gae = torch.zeros(N, device=dev)
         for h in reversed(range(H)):
@@ -239,12 +267,30 @@ def main(argv=None):
             if act in ("advance", "backoff"):
                 weights = env.set_alpha(gate.alpha)
             gate_rec = dict(action=act, **wm)
+        if task_envs and (it + 1) % args.level_every == 0:
+            ws, task_win = task_win, []
+            ne = sum(r["episodes"] for r in ws)
+            sr = sum(r.get("successes", 0) for r in ws) / ne if ne else 0.0
+            if sr > 0.7:
+                level = min(1.0, level + 0.1)
+            elif sr < 0.3 and level > 0:
+                level = max(0.0, level - 0.1)
+            for e in task_envs:
+                e.set_level(level)
+            rec_level = dict(level=level, success_rate=sr)
+        else:
+            rec_level = None
         eps = rec_env["episodes"]
         rec = dict(iter=it, reward_per_step=float(br.mean()), episodes=eps,
                    ep_ret=rec_env["ret_sum"] / eps if eps else None, ep_len=rec_env["len_sum"] / eps if eps else None,
                    fall_rate=rec_env["falls"] / eps if eps else None, std=float(ac.log_std.exp().mean()), lr=lr, kl=kl_mean,
                    value_loss=float(vl.detach()), rollout_s=t_roll, iter_s=time.time() - t0, samples=int((it + 1) * H * N),
                    wall_s=time.time() - t_start, alpha=gate.alpha)
+        if task_envs:
+            rec["successes"] = rec_env.get("successes", 0)
+            rec["level"] = level
+            if rec_level:
+                rec["level_update"] = rec_level
         if rec_env.get("per_group"):
             rec["per_group"] = rec_env["per_group"]
         if gate_rec:
