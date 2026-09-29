@@ -170,7 +170,9 @@ def main(argv=None):
                 critic_inputs="public + privileged: base lin vel, height, foot contacts, friction, push flag + reward-schedule alpha",
                 source_label="learned_tracker (trained with privileged critic)", args={k: v for k, v in vars(args).items()
                                                                                        if k != "recipe_record"},
-                contact_model=env.meta.get("contact_model"), reward_version="gait_v2", init_from=None, ref_ff=0.0,
+                contact_model=env.meta.get("contact_model"), reward_version="gait_v2", init_from=args.init_shared,
+                init_sha256=(__import__("hashlib").sha256(Path(args.init_shared).read_bytes()).hexdigest() if args.init_shared else None),
+                ref_ff=0.0,
                 actuator_limits=env.meta.get("actuator_limits"), actuator=None,
                 alpha_schedule=args.alpha_schedule, trainer=TRAINER_VERSION, env_version=ENV_VERSION,
                 sim_engine=f"mujoco_warp {getattr(mujoco_warp, '__version__', '3.14.0')}", sim_adaptations=env.adaptations,

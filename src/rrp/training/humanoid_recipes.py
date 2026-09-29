@@ -92,3 +92,20 @@ def _steps(body: str, **kw) -> dict:
 
 HUMANOID_RECIPES["t1_steps_gpu"] = _steps("t1")
 HUMANOID_RECIPES["h1_steps_gpu"] = _steps("h1")
+
+
+# ---- r2 fine-tunes (2026-09-29): r1 h1 interim (C MuJoCo) no-fall 1.0, fwd 0.89, slip 0.05, but pure-turn ratio 2.1 (turn_lin
+# rewarded over-rotation while the sharp yaw kernel gave ~0), stand drift -0.06 m/s (waypoint halts 0/20) and peak foot force
+# 3.43 BW (> 3.0). Fix: yaw cap 1.0 + overshoot penalty, stronger standing velocity term, alpha fixed at 1 (natural terms
+# incl. impact at full weight), warm start from the r1 actor (--init-shared path, same dims).
+def _ft(body: str, init: str, **kw) -> dict:
+    d = dict(_what=f"{body} r2 fine-tune of r1: yaw overshoot fix, standing drift, alpha 1 (impact/power/smooth at max)",
+             body=body, nworld=4096, iters=600, horizon=24, hidden="512,256,128", init_std=0.25, lr=5e-4, max_lr=1e-3, seed=2,
+             init_shared=init, reward_set=_TURN + _CLOCK + ",yaw_progress_cap=1.0,yaw_overshoot=-2.0,stand_vel=-3.0",
+             cmd_mix="teacher", turn_frac=0.35, slow_frac=0.2, alpha_schedule="fixed:1.0")
+    d.update(kw)
+    return d
+
+
+HUMANOID_RECIPES["h1_clock_gpu_r2"] = _ft("h1", "artifacts/runs/humanoid_p1b_h1_r1/actor.pt")
+HUMANOID_RECIPES["t1_clock_gpu_r2"] = _ft("t1", "artifacts/runs/humanoid_p1b_t1_r1/actor.pt")
