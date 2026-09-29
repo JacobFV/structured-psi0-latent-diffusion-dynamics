@@ -55,3 +55,21 @@ def armdiv_robots() -> dict:
             for k in c.get("menagerie_v2", []):
                 out[f"{k}_{g}"] = partial(build_menagerie_v2, k, g)
     return out
+
+
+# D-137 sealed targets (research/splits/armdiv_v1.json). Whole target FAMILIES are protected: every key of the kinova /
+# flexiv / kuka arms and every sealed-range procedural seed (>= 900000) is refused wherever the D-025 target guard applies
+# (ladder dev evaluations, DAgger collections, causal-edit and GRPO development), like xarm7_* / panda_tf3.
+ARMDIV_TARGETS = ("gen3_pg2", "rizon4_tf3", "pa2s900002_pg2", "pa2s900003_tf3")
+_TARGET_FAMILY_PREFIXES = ("gen3_", "rizon4_", "iiwa14_")
+
+
+def is_armdiv_sealed(key: str) -> bool:
+    if key in ARMDIV_TARGETS or key.startswith(_TARGET_FAMILY_PREFIXES):
+        return True
+    if key.startswith("pa2s"):
+        try:
+            return int(key[4:].split("_")[0]) >= 900000
+        except ValueError:
+            return False
+    return False

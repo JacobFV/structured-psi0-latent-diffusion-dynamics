@@ -38,7 +38,8 @@ def plan_scenes(protocol: dict, robot: str, *, sealed_run: bool, smoke: bool, sm
     """Which scenes may be evaluated (raises on a protocol violation)."""
     ev = protocol["eval"]
     if smoke:
-        if robot in SEALED_TARGETS or robot in protocol.get("targets", []):
+        from rrp.bodies.armdiv import is_armdiv_sealed
+        if robot in SEALED_TARGETS or robot in protocol.get("targets", []) or is_armdiv_sealed(robot):
             raise ValueError("smoke evaluations never touch a target body (protocol dev_rule)")
         if not 1 <= smoke_episodes <= 3:
             raise ValueError("smoke: 1-3 episodes")

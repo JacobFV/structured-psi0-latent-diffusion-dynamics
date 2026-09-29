@@ -75,3 +75,21 @@ def test_menagerie_v2_adapters_build_and_legacy_hash():
         for j in r.robot_spec.joints:
             if j.type == "hinge":
                 assert j.range is not None and j.range[1] > j.range[0]
+
+
+def test_armdiv_sealed_guard():
+    import json
+    from rrp.bodies.armdiv import is_armdiv_sealed, ARMDIV_TARGETS
+    split = json.load(open("research/splits/armdiv_v1.json"))
+    declared = split["targets"]["primary_new_family"]["robots"] + split["targets"]["secondary_procedural_new_arm"]["robots"]
+    assert set(declared) == set(ARMDIV_TARGETS)
+    for k in ("gen3_pg2", "gen3_tf3", "rizon4_pg2", "iiwa14_tf3", "pa2s900002_pg2", "pa2s900011_tf3"):
+        assert is_armdiv_sealed(k)
+    for k in ("pa2s0_pg2", "ur10e_tf3", "vx300s_pg2", "parm6_tf3", "xarm7_pg2"):
+        assert not is_armdiv_sealed(k)
+    pool = json.load(open("research/splits/armdiv_pool_v1.json"))
+    assert not any(is_armdiv_sealed(k) for k in pool["train_robots"])
+    from rrp.evaluation.ladder_cli import main
+    with pytest.raises(SystemExit, match="target bodies"):
+        main(["--route", "learned", "--robot", "gen3_pg2", "--n", "1", "--seed-start", "3000000", "--tag", "x",
+              "--out", "/tmp/never", "--policy", "none.pt"])

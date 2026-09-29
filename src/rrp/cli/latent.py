@@ -309,7 +309,8 @@ def _causal_common(a, window_conds, episode_conds):
     import torch
     from rrp.evaluation import latent_causal as lc
     robots = a.robots.split(",")
-    if a.seed_start < 3_000_000 or any(r in TARGET_BODIES for r in robots):
+    from rrp.bodies.armdiv import is_armdiv_sealed
+    if a.seed_start < 3_000_000 or any(r in TARGET_BODIES or is_armdiv_sealed(r) for r in robots):
         raise SystemExit("dev rule (D-025): source/dev bodies and dev seeds >= 3,000,000 only")
     pol, R, P, dev = _load(a)
     from rrp.models.checkpoint import load_checkpoint
@@ -390,7 +391,8 @@ def cmd_semantic(a):
     from rrp.evaluation import latent_causal as lc
     from rrp.controllers.bundles import load_representation
     robots = a.robots.split(",")
-    if a.seed_start < 3_000_000 or any(r in TARGET_BODIES for r in robots):
+    from rrp.bodies.armdiv import is_armdiv_sealed
+    if a.seed_start < 3_000_000 or any(r in TARGET_BODIES or is_armdiv_sealed(r) for r in robots):
         raise SystemExit("dev rule (D-025): source/dev bodies and dev seeds >= 3,000,000 only")
     dev = "cuda" if a.gpu and torch.cuda.is_available() else "cpu"
     if dev == "cuda":

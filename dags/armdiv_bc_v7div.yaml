@@ -1,0 +1,67 @@
+# armdiv G2 (D-137): the v6 BC expert recipe (train_bc = baseline_campaign.source_config: policy-small-structured,
+# 6 epochs over stride-2 rows, batch 256, zero_prev_action) on the v7div pack (65 training keys). bcv7div 1701 is the
+# DAgger labeller / stateless-R1 expert of the v7div latent lineages AND a BC baseline; 1702 is the second BC seed
+# (G4). In-distribution dev evaluations (ladder route learned, 30 feasible scenes from 3,000,000; grasp_v2.1): v6's R2
+# bodies parm6_tf3 + panda_pg2, 4 new training arms, v6's held-out source bodies parm5s_tf3 + parm5l_pg2 (still held out).
+# Reference cells: the v6 BC expert 1701 on the same new training arms (no retraining).
+# Resources: v6 BC training measured 2.03 GB RSS (lease 1790567433) + ~4.5 GB CUDA -> 8G / 8G; ladder evals 6G.
+# One peer GPU lease at a time (lead).
+#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiv rrp run-dag dags/armdiv_bc_v7div.yaml --max-parallel-gpu 1
+name: armdiv_bc_v7div
+schema: dag-1
+family: arm
+track: armdiv
+lineage: 'bcv7div-{seed}'
+label_prefix: 'adb{seed}'
+matrix:
+  seed: [1701, 1702]
+vars:
+  source_pack: packed/latent_pp_v7div_s1_H16
+  grasp_contact: v2.1
+  bc_ref: '@train:policy.pt'
+  bc_label: 'bcv7div_direct{seed}'
+  v6bc: 'runs/armexpert_bcv6/baseline_direct_action/seed1701/source:policy.pt'
+defaults:
+  placement: peer
+  retries: 0
+  max_parallel: 3
+  max_parallel_gpu: 1
+  admission_timeout_s: 10800
+  resources: {cpu: 3, mem: 6G, gpu: false, max_seconds: 14400}
+base:
+  flags: {zero_prev_action: true, contact_version: contact_v1}
+  options: {grasp_contact: '{grasp_contact}'}
+nodes:
+  train:
+    stage: train_bc
+    tag: 'bc{seed}'
+    retries: 2          # 6 epochs of the 2.1M-row pack ~24.6k updates may exceed the broker 6 h cap; a rerun resumes exactly
+    resources: {gpu: true, gpu_mem: 8G, cpu: 4, mem: 8G, max_seconds: 21600}
+    config:
+      seed: '{seed}'
+      inputs: {packed_dir: '{source_pack}'}
+  ev_v6bodies:
+    stage: eval_r2
+    tag: v6bodies
+    config:
+      inputs: {bc_policy: '{bc_ref}'}
+      options: {route: learned, bc_label: '{bc_label}', tag: v6bodies, robots: [parm6_tf3, panda_pg2], seed_starts: [3000000], episodes: 30, workers: 2}
+  ev_newarms:
+    stage: eval_r2
+    tag: newarms
+    config:
+      inputs: {bc_policy: '{bc_ref}'}
+      options: {route: learned, bc_label: '{bc_label}', tag: newarms, robots: [pa2s0_pg2, pa2s3_tf3, ur10e_pg2, vx300s_tf3], seed_starts: [3000000], episodes: 30, workers: 2}
+  ev_heldout:
+    stage: heldout
+    tag: heldout
+    config:
+      inputs: {bc_policy: '{bc_ref}'}
+      options: {route: learned, bc_label: '{bc_label}', tag: heldout, robots: [parm5s_tf3, parm5l_pg2], seed_starts: [3000000], episodes: 30, workers: 2}
+  ref_v6bc_newarms:
+    stage: eval_r2
+    tag: v6bc_newarms
+    only: {seed: [1701]}
+    config:
+      inputs: {bc_policy: '{v6bc}'}
+      options: {route: learned, bc_label: bcv6_direct1701_final, tag: v6bc_newarms, robots: [pa2s0_pg2, pa2s3_tf3, ur10e_pg2, vx300s_tf3], seed_starts: [3000000], episodes: 30, workers: 2}

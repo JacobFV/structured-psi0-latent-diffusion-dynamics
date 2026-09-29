@@ -160,7 +160,8 @@ def _bc(ctx: StageContext) -> tuple[str, str]:
 
 def _robots(ctx: StageContext, default=TRAIN_BODIES) -> list[str]:
     rs = list(ctx.opts.get("robots") or default)
-    bad = [r for r in rs if r in TARGET_BODIES]
+    from rrp.bodies.armdiv import is_armdiv_sealed
+    bad = [r for r in rs if r in TARGET_BODIES or is_armdiv_sealed(r)]
     if bad:
         raise StageError(f"target bodies are not allowed in the ladder: {bad}")
     return rs

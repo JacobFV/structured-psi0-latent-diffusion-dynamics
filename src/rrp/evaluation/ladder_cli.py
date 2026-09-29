@@ -63,7 +63,8 @@ def main(argv=None):
     a = build_parser().parse_args(argv)
     if a.seed_start < 3_000_000:
         sys.exit("dev seeds must be >= 3,000,000")
-    if a.robot in ("xarm7_pg2", "xarm7_tf3", "panda_tf3") and not a.target_dev_diagnostic:
+    from rrp.bodies.armdiv import is_armdiv_sealed
+    if (a.robot in ("xarm7_pg2", "xarm7_tf3", "panda_tf3") or is_armdiv_sealed(a.robot)) and not a.target_dev_diagnostic:
         sys.exit("target bodies are not allowed in the ladder")
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     if dev == "cuda":

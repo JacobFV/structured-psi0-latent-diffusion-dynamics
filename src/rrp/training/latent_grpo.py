@@ -321,7 +321,8 @@ def _eval(model, base, realizer, cfg: LatentGRPORunConfig, seeds, device, tag, o
 def train_latent_grpo(cfg: LatentGRPORunConfig) -> dict:
     from rrp.models.checkpoint import load_checkpoint, save_checkpoint
     from rrp.training.latent_train import load_representation
-    if cfg.robot in TARGET_BODIES and not cfg.allow_target:
+    from rrp.bodies.armdiv import is_armdiv_sealed
+    if (cfg.robot in TARGET_BODIES or is_armdiv_sealed(cfg.robot)) and not cfg.allow_target:
         raise ValueError(f"{cfg.robot} is a sealed target body (D-025); pass allow_target for the campaign stage only")
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     if dev == "cuda":
