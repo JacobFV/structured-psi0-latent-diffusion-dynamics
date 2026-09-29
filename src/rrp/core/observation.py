@@ -32,7 +32,7 @@ class ImageObs(Strict):
     camera: str
     height: int
     width: int
-    encoding: Literal["rgb8", "depth_m"]
+    encoding: Literal["rgb8", "rgba8", "depth_m"]
     pixels: NDArray | None = None       # None when streamed by reference
     ref: str | None = None
     timestamp: float
@@ -86,6 +86,7 @@ class ObjectDescriptor(Strict):
     position_cov_diag: list[float] | None = None
     visible: bool
     bound_entity: EntityRef | None = None             # task binding supplied by the user/plan
+    attributes: dict[str, str] = Field(default_factory=dict)   # visible attributes (e.g. UI widget role/label/value/state)
     timestamp: float
 
 
@@ -112,6 +113,7 @@ class PolicyObservation(Strict):
     object_descriptors: list[ObjectDescriptor] = Field(default_factory=list)
     predicate_estimates: list[PredicateEstimate] = Field(default_factory=list)
     task_input: TaskInput | None = None
+    instruction: str | None = None                    # language instruction when the task supplies one (SIMPLE, UI tasks)
     belief_history: list[dict] = Field(default_factory=list)
 
 

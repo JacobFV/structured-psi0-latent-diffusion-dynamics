@@ -32,7 +32,8 @@ from rrp.bodies.compiler import compile_robot_spec
 from rrp.bodies.generators import Module
 from rrp.bodies.legged import legged_body, legged_world
 from rrp.tasks.runtime import TaskRuntime
-from rrp.envs.mujoco.session import RobotRuntime, Session, StepResult, _obs_counter
+from rrp.envs.base import ActionSpace, StepResult
+from rrp.envs.mujoco.session import RobotRuntime, Session, _obs_counter
 from rrp.envs.mujoco.scenario import MountedRobot, ObjectDecl, Scenario, load_task
 from rrp.envs.mujoco.sensors import DetectorConfig, ObjectTracker
 
@@ -107,6 +108,9 @@ def build_waypoint_contact(robot, seed: int, task: dict | None = None, body_key:
 
 
 class LeggedSession(Session):
+    """env_id "mujoco/legged": the `base_velocity` space drives the embedded tracker (learned or CPG, recorded in
+    spec.provenance["controllers"])."""
+    ENV_ID = "mujoco/legged"
     LOC_SIGMA = 0.02
     YAW_SIGMA = 0.02
 
@@ -158,6 +162,9 @@ class LeggedSession(Session):
 
     def controller_version(self, robot: int = 0) -> str:
         return self.tracker_version_str
+
+    def _action_spaces(self) -> list[ActionSpace]:
+        return [ActionSpace.from_group(g, robot=0, rate_hz=self.control_hz) for g in self.tracker_contract.command_groups]
 
     # ------------------------------------------------------------------ lifecycle
     def reset(self, seed: int | None = None) -> PolicyObservation:
@@ -499,6 +506,25 @@ class LeggedSession(Session):
             self.est_hist = [np.array(h) for h in be.get("hist", [])]
         self._last_obs = self.observe()
         return self._last_obs
+
+
+def make_legged_env(*, task: str, body: str, seed: int = 0, scene: dict | None = None, **kw) -> "LeggedSession":
+    """env_id "mujoco/legged": waypoint_contact, loco_pick, foothold_steps (legged scenes) and h_steps, h_gap (humanoid
+    scenes) on any legged/humanoid body key (rrp.bodies.legged.legged_body)."""
+    from rrp.bodies.legged import legged_body
+    scene = dict(scene or {})
+    if task in ("h_steps", "h_gap"):
+        from rrp.envs.mujoco import humanoid_scenes as hs
+        sc = (hs.build_h_steps if task == "h_steps" else hs.build_h_gap)(body, seed, **scene)
+        return LeggedSession(sc, seed=seed, **kw)
+    if task in ("loco_pick", "foothold_steps"):
+        from rrp.envs.mujoco import legged_scenes as ls
+        if task == "loco_pick":
+            return ls.LocoPickSession(ls.build_loco_pick(body, seed, **scene), seed=seed, **kw)
+        return ls.FootholdSession(ls.build_foothold_steps(legged_body(body), seed, body_key=body, **scene), seed=seed, **kw)
+    if task != "waypoint_contact":
+        raise KeyError(f"mujoco/legged has no task {task!r}")
+    return LeggedSession(build_waypoint_contact(body, seed, **scene), seed=seed, **kw)
 
 
 def register():

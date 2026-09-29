@@ -204,6 +204,8 @@ def test_default_session_byte_identical_to_pre_d126():
         r = s.step(NativeCommand(controller_version=s.controller_version(), groups={"base_velocity": [0.3, 0.0, 0.2]},
                                  source="scripted_teacher"))
         h.update(np.asarray(s.data.qpos).tobytes())
-        h.update(r.observation.model_dump_json(exclude={"observation_id"}).encode())
+        # D-140 S3 added optional fields (instruction, descriptor attributes); excluded so the pre-D-126 golden still pins the rest
+        h.update(r.observation.model_dump_json(exclude={"observation_id": True, "instruction": True,
+                                                        "object_descriptors": {"__all__": {"attributes"}}}).encode())
         h.update(repr(s.speed_est).encode())
     assert h.hexdigest() == GOLDEN_DEFAULT_HEXAPOD6_S3

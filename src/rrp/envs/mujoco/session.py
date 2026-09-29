@@ -24,6 +24,7 @@ from rrp.tasks.runtime import TaskRuntime
 from rrp.envs.mujoco.scenario import Scenario
 from rrp.envs.mujoco.sensors import DetectorConfig, ObjectTracker, camera_visibility, read_sensor
 from rrp.envs.mujoco.snapshot import Snapshot
+from rrp.envs.base import ActionSpace, BodyInfo, EnvSpec, StepResult
 
 _obs_counter = itertools.count()
 
@@ -45,18 +46,9 @@ class RobotRuntime:
     arm_joints: list
 
 
-@dataclass
-class StepResult:
-    observation: PolicyObservation
-    qpos: np.ndarray
-    time: float
-    rejected: str | None = None
-    source: str | None = None
-    command: dict | None = None      # groups actually executed for robot 0 (for exact replay)
-    commands: dict | None = None     # robot index -> groups executed (all robots; multi-robot replay)
-
-
 class Session:
+    """`rrp.envs.base.Env` for single-world MuJoCo scenes (env_id "mujoco/arm"; subclasses: dual, legged)."""
+    ENV_ID = "mujoco/arm"
     def __init__(self, scenario: Scenario, *, control_hz: float = 20.0, seed: int = 0,
                  detector: DetectorConfig | None = None, render: dict | None = None, auto_advance: bool = True):
         self.scenario = scenario
@@ -102,6 +94,35 @@ class Session:
         ik = IKSolver(m, grip_asm.frame.site, arm_joints) if (grip_asm and arm_joints) else None
         return RobotRuntime(i, mr.prefix, mr.robot_spec, mr.meta, ctrl, jn, np.array([m.jnt_qposadr[j] for j in jids]),
                             np.array([m.jnt_dofadr[j] for j in jids]), tcp, touch, ws, ik, arm_joints)
+
+    # ------------------------------------------------------------------ Env interface (rrp.envs.base)
+    @property
+    def spec(self) -> EnvSpec:
+        if getattr(self, "_spec", None) is None:
+            self._spec = EnvSpec(
+                env_id=self.ENV_ID, backend="mujoco", task=self.scenario.name,
+                bodies=[BodyInfo.from_spec(i, r.spec, self._body_key(i)) for i, r in enumerate(self.robots)],
+                control_hz=self.control_hz, action_spaces=self._action_spaces(), capabilities=self._capabilities(),
+                provenance=dict(physics=dict(mujoco_timestep=float(self.model.opt.timestep), substeps=self.substeps),
+                                controllers=[self.controller_version(i) for i in range(len(self.robots))]))
+        return self._spec
+
+    def _body_key(self, i: int) -> str:
+        m = self.scenario.meta
+        keys = m.get("body_keys") or ([m["body_key"]] if m.get("body_key") else [])
+        return keys[i] if i < len(keys) else self.robots[i].spec.name
+
+    def _action_spaces(self) -> list[ActionSpace]:
+        return [ActionSpace.from_group(g, robot=i, rate_hz=self.control_hz)
+                for i, r in enumerate(self.robots) for g in r.controller.contract.command_groups]
+
+    def _capabilities(self) -> list[str]:
+        caps = ["privileged_truth", "snapshot", "chunk_executor", "task_graph", "deterministic", "proprio",
+                "object_descriptors", "predicates"]
+        return caps + (["render", "images"] if self.render_cfg else [])
+
+    def close(self) -> None:
+        self._renderer = None
 
     # ------------------------------------------------------------------ lifecycle
     def reset(self, seed: int | None = None) -> PolicyObservation:
@@ -556,3 +577,12 @@ class Session:
         self.intervention_log = copy.deepcopy(c.get("interventions", []))
         self._last_obs = self.observe()
         return self._last_obs
+
+
+def make_arm_env(*, task: str, body: str, seed: int = 0, scene: dict | None = None, **kw) -> Session:
+    """env_id "mujoco/arm": BUILDERS[task](workbench robot `body`, seed, **scene)."""
+    from rrp.bodies.catalog import workbench_robots
+    from rrp.envs.mujoco.scenario import BUILDERS
+    sc = BUILDERS[task](workbench_robots()[body](), seed, **(scene or {}))
+    sc.meta.setdefault("body_key", body)            # catalog key for EnvSpec.bodies (not read by the session)
+    return Session(sc, seed=seed, **kw)

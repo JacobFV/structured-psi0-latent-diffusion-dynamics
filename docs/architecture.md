@@ -33,192 +33,193 @@ Rules:
 - `rrp.core` is the only thing an external package may treat as stable. psi1z is retired (D-140), so there is no
   pinned consumer any more and no `CORE_API_VERSION` ceremony; `research/decisions.md` still records on-disk format changes.
 
-## 2. `Env` (rrp.envs.base)
+## 2. `Env` (rrp.envs.base) — implemented in S3
 
-One interface for every simulator. An environment is a world with one or more bodies that accepts native commands at a
-declared rate and produces public observations; privileged truth is a separate, capability-gated method.
+One interface for every simulator. An environment is a world with one or more bodies that accepts native commands at
+declared rates and produces public observations; privileged truth is a separate, capability-gated method.
+`rrp/envs/base.py` is the authoritative code; this is its shape:
 
 ```python
-ActionKind = Literal["joint_position", "joint_velocity", "joint_torque", "base_velocity",
-                     "cartesian_position", "gripper", "button", "discrete"]
-Capability = Literal["privileged_truth", "snapshot", "render", "task_graph", "chunk_executor",
-                     "reward", "deterministic", "batched", "images", "language", "object_descriptors",
-                     "proprio", "vector_obs"]
+ActionKind = Literal["joint_position", "joint_velocity", "joint_torque", "gripper", "base_velocity", "wholebody_command",
+                     "ee_pose", "cartesian_position", "button", "discrete", "psi0"]  # == rrp.core.robot.CommandGroup.semantic
+Capability = Literal["privileged_truth", "snapshot", "render", "task_graph", "chunk_executor", "reward", "deterministic",
+                     "batched", "images", "language", "object_descriptors", "predicates", "proprio", "vector_obs"]
 
-class ActionSpace(Strict):
-    group: str                      # command group name, e.g. "arm", "gripper", "legs", "base_velocity", "pointer", "key"
-    kind: ActionKind
-    width: int
-    robot: int = 0                  # body index in multi-body envs (dual arm: 0, 1)
-    rate_hz: float                  # the rate at which step() consumes this group
-    low: list[float] | None = None
-    high: list[float] | None = None
-    units: str = ""                 # "rad", "m", "m/s", "px", "index"
-    vocab: list[str] | None = None  # discrete spaces only: value i means vocab[i]; -1 = no event
+class ActionSpace(Strict):            # ActionSpace.from_group(CommandGroup, robot=, rate_hz=)
+    group: str; kind: ActionKind; width: int; robot: int = 0; rate_hz: float
+    low: list[float] | None = None; high: list[float] | None = None; units: str = ""
+    vocab: list[str] | None = None    # discrete spaces: value i means vocab[i]; -1 = no event
 
-class BodyInfo(Strict):
-    robot: int
-    family: str                     # "arm", "legged", "humanoid", "g1_hands", "pointer"
-    key: str                        # catalog key ("panda", "go2", "phum_3", "g1_simple", "cw_pointer")
-    robot_spec_hash: str            # RobotSpec content hash (morphology graph; stable identity)
+class BodyInfo(Strict):               # BodyInfo.from_spec(robot, RobotSpec, key)
+    robot: int; family: str; key: str; robot_spec_hash: str     # family = RobotSpec.family ("arm", "quadruped", "humanoid", ...)
 
 class EnvSpec(Strict):
-    env_id: str                     # registry key: "mujoco/arm", "mujoco/dual", "mujoco/legged", "warp/legged", "simple", "computerworld"
-    backend: Literal["mujoco", "mujoco_warp", "mjx", "isaac_simple", "computerworld"]
-    task: str                       # TaskSpec name the env was built for
-    bodies: list[BodyInfo]
-    batch: int = 1                  # >1 only for batched (vectorized) envs
-    control_hz: float
-    action_spaces: list[ActionSpace]
-    capabilities: frozenset[Capability]
-    frame: dict                     # {"units": "m", "up": "+z", ...}; ComputerWorld adds its screen mapping (section 5)
-    provenance: dict                # physics/contact/actuator versions, tracker source, asset digests
+    env_id: str; backend: Literal["mujoco", "mujoco_warp", "mjx", "isaac_simple", "computerworld"]; task: str
+    bodies: list[BodyInfo]; batch: int = 1; control_hz: float
+    action_spaces: list[ActionSpace]; capabilities: list[Capability]
+    frame: dict = {"units": "m", "up": "+z"}   # ComputerWorld adds its screen mapping (section 5)
+    provenance: dict = {}                       # physics settings, controller/tracker versions, asset digests
+    def has(cap) -> bool; def action_kinds() -> set[str]; def space(group, robot=0) -> ActionSpace
 
-class StepResult(Strict):
-    observation: Observation
-    time: float
-    rejected: str | None = None      # controller rejection code (stale chunk, bad group, ...), never silent
-    executed: dict[int, dict[str, list[float]]] = {}   # robot -> groups actually executed (exact replay)
-    reward: float | None = None      # only with capability "reward" (training envs); privileged
+@dataclass
+class StepResult:                     # (moved here from the MuJoCo session; same fields)
+    observation: Observation; qpos: np.ndarray | None; time: float
+    rejected: str | None = None       # controller rejection code, never silent
+    source: str | None = None; command: dict | None = None; commands: dict | None = None   # executed groups (replay)
+    reward: Any = None                # capability "reward" only; privileged, never a policy input
+
+@dataclass
+class VectorObservation:              # batched envs: vec [N, D] (numpy or torch), named layout
+    vec: Any; layout: list[tuple[str, int]]; time: float; robot_spec_hashes: list[str]
+
+@dataclass
+class BatchCommand:                   # batched envs: group -> [N, width] array/tensor
+    groups: dict[str, Any]; source: str
+
+Observation = PolicyObservation | VectorObservation
 
 class Env(Protocol):
-    spec: EnvSpec
-    def reset(self, seed: int | None = None) -> Observation: ...
-    def observe(self) -> Observation: ...
-    def step(self, command: NativeCommand | Mapping[int, NativeCommand] | None) -> StepResult: ...
+    spec: EnvSpec                                                      # property
+    def reset(self, seed: int | None = None) -> Observation
+    def observe(self) -> Observation
+    def step(self, command: NativeCommand | Mapping[int, NativeCommand] | BatchCommand | None) -> StepResult
     #   None = the env's declared hold/fallback (or the next queued chunk row with "chunk_executor")
-    def close(self) -> None: ...
-    # capability-gated (raise CapabilityError when absent):
-    def truth(self) -> PrivilegedTruth: ...                       # "privileged_truth"
-    def snapshot(self) -> Snapshot: ...; def restore(self, s) -> Observation: ...   # "snapshot"
-    def submit_chunk(self, chunk: ActionChunk, robot=0, execute_prefix=None): ...   # "chunk_executor"
-    def render(self, camera: str | None = None, *, width=320, height=240) -> np.ndarray: ...  # "render"
+    def close(self) -> None
+    # capability-gated (CapabilityError when absent): truth() ["privileged_truth"]; snapshot()/restore(s) ["snapshot"];
+    # submit_chunk(chunk, robot=0, execute_prefix=None) ["chunk_executor"]; render(camera=None, width=, height=) ["render"]
 
-def make_env(env_id: str, *, task: str, body: str | list[str], seed: int = 0, **kw) -> Env   # registry, lazy imports
+ENVS: dict[str, str]                  # env_id -> "module:factory" (lazy); register_env(env_id, target)
+def make_env(env_id, *, task: str, body: str | list[str], seed: int = 0, **kw) -> Env
+#   factories return an env already reset to `seed`; kw: scene={...} builder kwargs + env constructor kwargs;
+#   a declared env whose module does not exist yet raises NotImplementedError naming this document
 ```
 
-Observation (`rrp.core.Observation`, today `PolicyObservation`) stays the single public observation type for
-single-world envs. It gains three optional fields so every env fits: `instruction: str | None` (language; SIMPLE,
-ComputerWorld tasks), `ImageObs.encoding` adds `"rgba8"`, and `ObjectDescriptor.attributes: dict[str, str]` (e.g.
-widget role/label/value/state). `measured_node_state` stays required: every body has a joint space, including the
-ComputerWorld pointer (section 5). Batched envs (`capability "batched"`) return `VectorObservation(vec[N, D], layout:
-list[(name, width)], time, robot_spec_hashes)` from `observe()` and take `NativeCommand` groups whose values are `[N, width]`;
-their privileged state is `truth()` (never concatenated into `vec`: the current WarpSteps/Gap height-scan
-concatenation becomes an explicitly privileged `layout` block that only policies with `requires.privileged` may consume).
+Observation (`rrp.core.observation.PolicyObservation`) stays the single public observation type for single-world envs.
+S3 added three optional fields so every env fits: `instruction: str | None` (language; SIMPLE, ComputerWorld tasks),
+`ImageObs.encoding` `"rgba8"`, and `ObjectDescriptor.attributes: dict[str, str]` (e.g. widget role/label/value/state).
+`measured_node_state` stays required: every body has a joint space, including the ComputerWorld pointer (section 5).
+`CommandGroup.semantic` gained `cartesian_position`, `button`, `discrete` (units `index`) and `psi0` so a UI body declares its
+command groups in its RobotSpec like any robot. Batched envs return `VectorObservation` and take `BatchCommand`; their
+privileged state is `truth()`, never concatenated into `vec` (the WarpSteps/Gap height-scan concatenation becomes an
+explicitly privileged layout block in S4).
 
-Implementations after the refactor:
+Implementations:
 
-| env_id | class | bodies | action spaces | notes |
+| env_id | class (factory) | bodies | action spaces | status |
 |---|---|---|---|---|
-| `mujoco/arm` | `envs.mujoco.Session` | arm catalog (panda, ur, procedural ...) | `arm` joint_position, `gripper` | 20 Hz, task graph, chunk executor, snapshot |
-| `mujoco/dual` | `envs.mujoco.DualSession` | 2 arms / aloha | `r0:arm`, `r0:gripper`, `r1:...` | multi-robot command dict |
-| `mujoco/legged` | `envs.mujoco.LeggedSession` (+ LocoPick, Foothold scenes) | legged + humanoids | `base_velocity` (10 Hz, embedded tracker), `legs` joint_position (50 Hz, no tracker) | the latent/BC legged policies use `legs` directly instead of replacing the tracker slot |
-| `warp/legged` | `envs.warp.TrackerEnv` (+ steps/gap task variants, morph-multi) | legged + humanoids | `legs` residual joint_position, batched | tracker PPO; `reward` capability |
-| `simple` | `envs.simple.SimpleEnv` (Ψ₀ agent) | `g1_simple` | `psi0` (36-d Ψ₀ command, 50 Hz; decoupled WBC inside) | Isaac Sim in its own venv behind an RPC boundary |
-| `computerworld` | `envs.computerworld.ComputerWorldEnv` (CW agent) | `cw_pointer` | `pointer` cartesian_position, `button`, `wheel`, `key` discrete | section 5 |
+| `mujoco/arm` | `envs.mujoco.session.Session` (`make_arm_env`: `BUILDERS[task]`, workbench robot key) | arm catalog | `arm` joint_position, `gripper` (20 Hz) | S3 |
+| `mujoco/dual` | `envs.mujoco.dual.DualSession` (`make_dual_env`: pair key or list of keys) | 2 arms / aloha | per robot: `arm`, `gripper` | S3 |
+| `mujoco/legged` | `envs.mujoco.legged.LeggedSession`, `LocoPickSession`, `FootholdSession` (`make_legged_env`: waypoint_contact, loco_pick, foothold_steps, h_steps, h_gap) | legged + humanoids | `base_velocity` (10 Hz, embedded tracker); `legs` joint_position (50 Hz, no tracker) | base_velocity S3; `legs` S4 |
+| `warp/legged` | `envs.warp.tracker_env.WarpEnv` over WarpTrackerEnv / WarpStepsEnv / WarpGapEnv (`make_warp_env`) | legged + humanoids | `legs` normalized residual joint_position, batched | S3 (adapter; PPO keeps the engine API) |
+| `simple` | `envs.simple` package (Ψ₀ agent: `envs/simple/{__init__,compat,worker}.py`, `bodies/g1_simple.py`, `policies/psi0/`) | `g1_simple` | `psi0` kind (36-d Ψ₀ command, 50 Hz; decoupled WBC inside) | declared |
+| `computerworld` | `envs.computerworld` (CW agent) | `cw_pointer` | `pointer` cartesian_position, `button`, `wheel`, `key` discrete | declared |
 
-The prototypes `mjx_legged.MjxLegged` and `warp_legged.WarpLegged` (bake-off only) and the CPU `LeggedEnv`/`VecPool`
-duplicate of the Warp tracker env are deleted; `tracker_validation` becomes a hook-based evaluation on `mujoco/legged`
-with the `legs` space driven by the tracker policy.
+S4 deletes the bake-off prototypes (`envs.warp.mjx_legged.MjxLegged`, `envs.warp.warp_legged.WarpLegged`; their
+model-building helpers stay) and turns `tracker_validation` into a hook-based evaluation on `mujoco/legged`. The CPU
+`LeggedEnv` stays for now: the D-126 physics goldens pin its reward/observation streams.
 
-## 3. `Policy` (rrp.policies.base)
+## 3. `Policy` (rrp.policies.base) — implemented in S3
 
 A policy maps observations to native commands for one control tick, batched over parallel episodes. What happens
 inside (plan a chunk every k ticks, generate a packet and realize it every tick, run a teacher) is the policy's business;
-what it emits is logged through `Act`.
+what it emitted is reported through `Act`.
 
 ```python
-ObsField = Literal["proprio", "images", "object_descriptors", "predicates", "task_graph", "language", "vector"]
-
 @dataclass(frozen=True)
 class Requirements:
-    action_kinds: frozenset[ActionKind]           # every kind the policy emits must be offered by the env
-    groups: frozenset[str] = frozenset()          # required group names ("arm", "gripper"); empty = any group of those kinds
-    observations: frozenset[ObsField] = frozenset({"proprio"})
+    action_kinds: frozenset[str]                  # every kind the policy emits must be offered by the env
+    groups: frozenset[str] = frozenset()          # required group names; empty = any group of those kinds
+    observations: frozenset[str] = {"proprio"}    # proprio | images | object_descriptors | predicates | task_graph | language | vector
     body_families: frozenset[str] | None = None   # None = any family whose action spaces match
-    bodies: frozenset[str] | None = None          # checkpoint trained on specific morphologies (robot keys), else None
-    tasks: frozenset[str] | None = None           # trained for specific tasks, else None
-    privileged: bool = False                      # teachers/oracles: needs env.truth()/snapshot; result is labelled
-    env_capabilities: frozenset[Capability] = frozenset()
+    bodies: frozenset[str] | None = None          # checkpoint trained on specific body keys
+    tasks: frozenset[str] | None = None           # trained for / scripted for specific tasks
+    privileged: bool = False                      # teachers / oracles: env.truth() and internals; result labelled
+    env_capabilities: frozenset[str] = frozenset()
+    batched_env: bool = False                     # consumes VectorObservation batches
 
 @dataclass(frozen=True)
 class PolicyInfo:
-    name: str                  # registry key: "bc", "latent", "legged_latent", "legged_bc", "tracker", "teacher:<task>", "oracle", "psi0_direct", "psi0_structured"
-    source: Source             # rrp.core.provenance: scripted_teacher | privileged | oracle | learned:<ckpt> | bc | random | mock
-    version: str               # weights digest / bundle versions (compatibility IDs)
+    name: str        # "bc", "latent", "legged_latent", "legged_bc", "tracker", "teacher:<task>", "oracle", "psi0_direct", "psi0_structured"
+    source: str      # rrp.core.provenance Source kind: scripted_teacher | privileged | oracle | learned | bc | random | mock ...
+    version: str     # weights digest / bundle compatibility IDs / teacher version
     requires: Requirements
-    variant: str | None = None # "semfix", "nosem", "sem" for the latent family
+    variant: str | None = None   # "semfix" | "nosem" | "sem"
 
 @dataclass
 class Act:
-    command: NativeCommand | dict[int, NativeCommand] | None   # applied this tick (None = env hold / queued chunk)
-    packet: LatentActionChunk | None = None    # emitted this tick (system i), after any hook edit
-    chunk: ActionChunk | None = None           # submitted this tick (chunk policies)
-    info: dict = field(default_factory=dict)   # latencies, rejections, probe outputs, SDE records ...
+    command: NativeCommand | dict[int, NativeCommand] | BatchCommand | None   # applied this tick
+    packet: LatentActionChunk | None = None     # emitted this tick by system i (after any hook edit)
+    chunk: ActionChunk | None = None            # submitted this tick (env capability "chunk_executor")
+    info: dict = {}                             # e.g. {"execute_prefix": 8}, latencies, probe readouts, SDE records
 
 class Policy(Protocol):
     info: PolicyInfo
-    def reset(self, spec: EnvSpec, task: TaskSpec, seeds: Sequence[int], *,
-              envs: Sequence[Env] | None = None) -> None: ...
-    #   envs is passed ONLY when info.requires.privileged (teachers, oracles); learned policies never see it.
-    def act(self, obs: Sequence[Observation]) -> list[Act]: ...
-    #   hooks (packet edits, noise keys) are attributes set by the harness: policy.packet_hook(i, packet) -> packet
+    def reset(self, spec: EnvSpec, task: TaskSpec, seeds: Sequence[int], *, envs: Sequence[Env] | None = None) -> None
+    #   envs is passed ONLY when info.requires.privileged (teachers, oracles); learned policies never see an env
+    def act(self, obs: Mapping[int, Observation]) -> dict[int, Act]
+    #   RUNNING episodes only, keyed by episode index (position in reset's seeds): per-episode state and random
+    #   streams never depend on which other episodes are still running
 
-def negotiate(info: PolicyInfo, spec: EnvSpec, task: TaskSpec) -> Compat      # Compat(ok, reasons: list[str])
-def make_policy(name: str, **kw) -> Policy                                   # registry, lazy imports
+def negotiate(info: PolicyInfo, spec: EnvSpec, task: TaskSpec | str | None = None) -> Compat   # Compat(ok, reasons)
+POLICIES: dict[str, str]              # name -> "module:factory"; a family "teacher:*" receives arg="<task>"
+def make_policy(name: str, **kw) -> Policy; def register_policy(name, target)
 ```
 
-`negotiate` is the capability check the harness runs before any episode; a declined pair is recorded as
-`n/a` with its reasons, never silently skipped. Examples:
-- `latent` (arm system i + `LatentSystem0`) requires `joint_position` + `gripper`, body family `arm`, `object_descriptors`
-  and `task_graph`: accepted by `mujoco/arm` on any arm; declined by `computerworld` ("needs joint_position; env
-  offers cartesian_position, button, discrete"), by `mujoco/legged` ("body family legged"), by `simple` ("needs
-  joint_position; env offers psi0").
-- `legged_latent` requires `legs` joint_position at 50 Hz, family legged/humanoid: accepted by `mujoco/legged`.
+`negotiate` is the capability check the harness runs before any episode (`rollout` raises `Incompatible(reasons)`;
+`matrix` records `n/a` with the reasons). Reasons use the env's own vocabulary, e.g. for the arm latent policy on
+ComputerWorld: "needs gripper, joint_position; env offers button, cartesian_position, discrete", "needs observation
+'task_graph'", "body family pointer not in ['arm']" (tests/unit/test_interfaces.py). Examples:
+- `latent` (arm system i + `LatentSystem0`) requires `joint_position` + `gripper`, family `arm`, `object_descriptors`
+  and `task_graph`: accepted by `mujoco/arm`; declined by `computerworld`, `mujoco/legged` ("body family quadruped"),
+  `simple` ("needs gripper, joint_position; env offers psi0").
+- `legged_latent` requires `legs` joint_position, families legged/humanoid: accepted by `mujoco/legged` (after S4).
 - `teacher:pick_place` requires `privileged` and task `pick_place`: declined by any env without `privileged_truth`.
-- `psi0_direct` requires the `psi0` space, `images` + `language`, body `g1_simple`: SIMPLE only.
-- A pointer-space policy (e.g. BC on ComputerWorld) requires `cartesian_position` + `button`: accepted by
-  `computerworld`; also by `mujoco/arm` once that env exposes its IK `tcp` cartesian space (planned, not in this refactor).
+- `tracker` requires a batched env for PPO (`warp/legged`); its deployment is the embedded `base_velocity` layer.
+- `psi0_direct` requires the `psi0` action kind, `images` + `language`, body `g1_simple`: SIMPLE only.
+- A pointer-space policy requires `cartesian_position` + `button`: accepted by `computerworld`.
 
-Mapping of today's code onto the interface (the adapters are thin; the nets and featurizers do not change):
+Mapping of today's code onto the interface (S4; the nets and featurizers do not change):
 
 | policy | today | after |
 |---|---|---|
-| `bc` | `controllers.policy_runner.LearnedPolicy` (+ SDEPolicy/Expo/VLM variants in training) | `policies.bc.BCPolicy` (chunk policy; `Act.chunk`) |
-| `latent` (arm, dual) | `controllers.latent_runner.LatentPolicy` + `LatentSystem0` / `batched_ticks`; `DualLatentPolicy` + `DualLatentSystem0` in evaluation | `policies.latent.LatentPolicy(planner, system0)`; dual is the same class with the multi featurizer |
-| `legged_latent`, `legged_bc` | `LatentLeggedController` / `BCController` hidden in the tracker slot via `System0Adapter`/`BCAdapter` | `policies.latent.LeggedLatentPolicy`, `policies.bc.LeggedBCPolicy` on the `legs` space |
-| `tracker` | `envs.legged_tracker.LearnedTracker` / `CPGTracker` | stays embedded in `mujoco/legged`'s `base_velocity` space; `policies.trackers.TrackerPolicy` wraps the same object for `warp/legged` and validation |
-| `teacher:<task>` | `teachers/*` `act()` (reads session internals) | `policies.teachers`, `requires.privileged`, source `scripted_teacher` |
-| `oracle` | `OraclePacketPolicy`, `OracleSource`, `OracleShadow` (three copies) | `policies.oracle.OraclePolicy` (teacher look-ahead → encoder → packet → system 0), source `oracle` |
-| `psi0_direct`, `psi0_structured` | psi1z `serve_psi0`/`serve_ours` + `system_i`/`structured` | `policies.psi0` (Ψ₀ agent) |
+| `bc` | `policies.bc.LearnedPolicy` (+ SDEPolicy/Expo/VLM variants in harness.train) | adapter in `policies.bc` (chunk policy; `Act.chunk`) |
+| `latent` (arm, dual) | `policies.latent.LatentPolicy` + `policies.system0.LatentSystem0` / `batched_ticks`; `DualLatentPolicy` + `DualLatentSystem0` in harness.eval | adapter in `policies.latent` (system i every `replan` ticks, system 0 every tick); dual = same class with the multi featurizer |
+| `legged_latent`, `legged_bc` | `LatentLeggedController` / `BCController` in the tracker slot via `System0Adapter`/`BCAdapter` (harness.eval.legged_latent_eval) | `policies.latent` / `policies.bc` on the `legs` space |
+| `tracker` | `envs.mujoco.legged_tracker.LearnedTracker` / `CPGTracker` | stays embedded in `mujoco/legged`'s `base_velocity` space; a Policy wrapper for `warp/legged` and validation; saved-actor options (clock_gate, target_margin, ref_ff, extra_obs_dim, morph_v1) pinned by test_golden |
+| `teacher:<task>` | `policies.teachers.*` `act()` (reads session internals) | adapter, `requires.privileged`, source `scripted_teacher` |
+| `oracle` | `OraclePacketPolicy`, `OracleSource`, `OracleShadow` (three copies in harness.eval) | one `policies.oracle`, source `oracle` |
+| `psi0_direct`, `psi0_structured` | psi1z `serve_psi0` / `serve_ours` + `system_i` / `structured` | `policies.psi0` (Ψ₀ agent; registered names already declared) |
 
-## 4. `Task` (rrp.tasks)
+## 4. `Task` (rrp.tasks.spec) — implemented in S3
 
 ```python
 @dataclass(frozen=True)
 class Judgement:
     done: bool
-    outcome: Literal["success", "failure", "timeout", "fell", "infeasible", "rejected", "crash"] | None
-    failure_reason: str | None      # family-specific code: "dropped_off_table", "drift_a", "halt", "stall", ...
-    success_public: bool | None     # from public estimators
-    success_privileged: bool | None # from env.truth(); reported, never fed back to the policy
+    outcome: Literal["success", "failure", "timeout", "fell", "infeasible", "rejected", "crash"] | None = None
+    failure_reason: str | None = None       # family-specific code: "dropped_off_table", "timeout", "fell", ...
+    success_public: bool | None = None      # observation-backed task graph / public estimators
+    success_privileged: bool | None = None  # privileged truth; reported, never fed back to the policy
 
 @dataclass(frozen=True)
 class TaskSpec:
-    name: str                               # "pick_place", "waypoint_contact", "h_gap_sidestep", "simple/TabletopGraspMP", "cw/<task>"
-    definition: TaskDefinition | None       # task graph (tasks/*.json); None for tasks without a graph (SIMPLE success flag)
-    envs: Mapping[str, dict]                # env_id -> scene/builder kwargs; the task exists only in these envs
-    teacher: str | None                     # policy registry key of its scripted teacher
-    max_seconds: float
-    judge: Callable[[Env, Observation, StepResult | None, float], Judgement]
-    gates: Mapping[str, Any] = {}           # task-specific acceptance thresholds (harness.gates reads them)
+    name: str                          # "pick_place", "support_insert", "waypoint_contact", "h_steps", "simple/<Task>", "cw/<task>"
+    envs: Mapping[str, dict]           # env_id -> scene kwargs; the task exists only in these envs
+    max_seconds: float                 # the budget the existing evaluations use (arm 15 s, dual 40 s, legged 60 s, h_steps 40 s, h_gap 30 s)
+    judge: Callable[[Env, float, float], Judgement]   # (env, elapsed s, budget s); duck-typed, may read privileged state
+    graph: str | None = None           # tasks/<graph>.json
+    teacher: str | None = None         # policy registry key of the scripted teacher
+    gates: Mapping[str, Any] = {}
+    note: str = ""
 
-TASKS: dict[str, TaskSpec]; def get_task(name) -> TaskSpec
+TASKS: dict[str, TaskSpec]; def get_task(name) -> TaskSpec; def register_task(TaskSpec)
+def graph_judge(*, dropped_below_m=None, dropped_body="cube") -> Judge   # the arm runner's rule, generalized
 ```
 
-Scene builders (MuJoCo scenario builders) stay in the env implementation that owns them (`envs.mujoco.scenes`);
-`TaskSpec.envs` refers to them by key. Teachers are policies (section 3), referenced by key, so `rrp.tasks` stays
-below `rrp.envs`.
+Scene builders stay in the env implementation that owns them (`envs.mujoco.scenario.BUILDERS`, `dual_scenarios`,
+`legged_scenes`, `humanoid_scenes`); the env factories select them by task name. Teachers are policies (section 3),
+referenced by key, so `rrp.tasks` stays below `rrp.envs`. The legged fall/drift/halt outcomes of
+`harness.eval.legged_latent_eval.run_episode` become the legged judge in S5 (until then legged tasks use `graph_judge`).
 
 ## 5. ComputerWorld as a 3D environment
 
@@ -228,23 +229,26 @@ ComputerWorld (github.com/JacobFV/computerworld, MIT; Rust engine, PyO3 wheel `c
 
 - **Frame.** Screen of W × H px. World frame: x right, y up, z toward the viewer, origin at the screen centre, metric
   scale `s = spec.frame["m_per_px"]` (default 0.001: 1 px = 1 mm). Pixel (u, v) ↦ (x, y) = ((u − W/2)·s, (H/2 − v)·s).
-- **Depth.** `spec.frame["depth"] = "constant"` puts every widget on the plane z = 0. `"stack"` sets z from the scene
-  order: z = rank(node.z, window stacking, node order) · `dz` (default 0.002 m), so occluding widgets are above occluded
-  ones; a node fully covered by a higher one is reported `visible=False` (it stays in the list: null identities and
-  occlusion are part of the representation).
-- **Widgets → ObjectDescriptor.** slot = stable index from the node id (ids are stable across revisions; new ids are
-  appended, removed ids leave a null slot), `descriptor = role`, `attributes = {label, value, state, disabled, window,
-  interaction}`, `bbox_xyxy` in px, `position_estimate = [x, y, z]` of the bounds centre, `visible`. Widgets are the
-  entities the task graph binds (e.g. "click the Save button" binds entity `button:Save`).
-- **Body `cw_pointer`** (RobotSpec, family `pointer`): one base link at the screen origin, slide joints `x`, `y`
+- **Depth.** `spec.frame["depth"] = "constant"` puts every widget on the plane z = 0. `"stack"` sets z per z-LAYER:
+  z = rank of the node's `z` value among the scene's distinct layers · `dz` (default 0.002 m); within a layer, draw order
+  decides occlusion. A node fully covered by a later-drawn / higher node is reported `visible=False` (it stays in the
+  list: null identities and occlusion are part of the representation).
+- **Widgets → ObjectDescriptor.** ComputerWorld 0.2.0 node ids are NOT stable across layout changes, so slot identity
+  is keyed by (interaction string, role, label): a key seen before keeps its slot, a new key is appended, a vanished key
+  leaves a null slot. `descriptor = role`; `attributes = {role, label, value, disabled, focusable, focused, window,
+  interaction}` (widgets expose role/label/value/disabled/focusable only; `focused` comes from the scene's focus record;
+  there is no widget `state`); `bbox_xyxy` in px; `position_estimate = [x, y, z]` of the bounds centre; `visible`.
+  Widgets are the entities the task graph binds (e.g. "click the Save button" binds entity `button:Save`).
+- **Body `cw_pointer`** (RobotSpec, family `pointer`, added to `RobotSpec.family` in S3): one base link at the screen origin, slide joints `x`, `y`
   (range = viewport) and a slide `z` fixed at the hover height; one assembly (`tool`). `measured_node_state.qpos` =
   pointer (x, y, z). Buttons are a `gripper`-like binary group.
 - **Action spaces.** `pointer` cartesian_position width 2 (absolute x, y in m; the env converts to px and emits
   `pointer.v1 move`); `button` width 1 (≥ 0.5 = down; edges emit `down`/`up`; click = down then up on consecutive ticks);
   `wheel` width 1 (notches); `key` discrete width 1 with `vocab` = the key names plus printable characters (text is typed
   one symbol per tick; -1 = none). Application launch/focus are task setup, not policy actions.
-- **Observation.** `sensor_images=[ImageObs(camera="screen", encoding="rgba8", ...)]` when `pixels.v1` is granted;
-  `object_descriptors` from `semantic.v1`; `instruction` from the task; `task_input` if the task has a graph.
+- **Observation.** The optional RGBA frame is `sensor_images=[ImageObs(camera="screen", encoding="rgba8", ...)]`
+  (when `pixels.v1` is granted); `object_descriptors` from `semantic.v1`; the goal text in `instruction`; `task_input`
+  if the task has a graph.
 - **Privileged truth / reset.** `truth()` returns the full scene (including occluded nodes' semantics) and task
   predicates; reset = `world.restore(initial_snapshot)` (deterministic), `snapshot()` = `world.snapshot()`.
 - Capabilities: `privileged_truth`, `snapshot`, `render`, `images`, `language`, `object_descriptors`, `proprio`,
@@ -253,21 +257,26 @@ ComputerWorld (github.com/JacobFV/computerworld, MIT; Rust engine, PyO3 wheel `c
 ## 6. harness
 
 ```python
+# rrp.harness.rollout (S3)
 def rollout(make_env: Callable[[int], Env], policy: Policy, task: TaskSpec, seeds: Sequence[int], *,
             batch: int = 8, max_seconds: float | None = None, hooks: Sequence[Hook] = ()) -> list[Episode]
+#   lock-step batches; negotiate() first (Incompatible(reasons)); make_env(seed) returns a reset env; the policy sees
+#   only running episodes; Act.chunk -> env.submit_chunk (stale/rejected chunks counted); Act.command -> env.step;
+#   task.judge(env, t, budget) ends an episode; env/policy exceptions end episodes as outcome "crash" with a note
 
-class Hook(Protocol):                         # every current special case of the eval loops is a hook
-    def on_reset(self, i: int, env: Env, obs: Observation) -> None: ...
-    def on_act(self, i: int, obs: Observation, act: Act) -> Act: ...       # packet/chunk edits, perturbation of commands
-    def on_step(self, i: int, env: Env, act: Act, step: StepResult) -> None: ...  # recorders, perturbations, DAgger collection
-    def on_end(self, i: int, env: Env, ep: Episode) -> dict: ...           # metrics merged into Episode.metrics
+class Hook(Protocol):                         # every special case of the old loops is a hook; all methods optional
+    def on_reset(self, i, env, obs) -> None
+    def on_act(self, i, obs, act: Act) -> Act            # packet / chunk / command edits (chained in hook order)
+    def on_step(self, i, env, act: Act, step: StepResult) -> None   # recorders, perturbations, DAgger collection
+    def on_end(self, i, env, ep: Episode) -> dict        # merged into Episode.metrics
 
 @dataclass
 class Episode:
-    seed: int; task: str; env_id: str; body: str; policy: str; source: str
-    outcome: str; failure_reason: str | None; success_public: bool | None; success_privileged: bool | None
-    steps: int; time: float; metrics: dict; provenance: dict
+    seed; task; env_id; body; policy; source; outcome; failure_reason; success_public; success_privileged
+    steps; time; wall_s; metrics: dict (command_rejections, chunk_rejections, hook metrics); provenance: dict
+    def row(self) -> dict
 
+# S5
 def evaluate(policy_spec, env_id, task, bodies, seeds, *, out: Path, hooks=()) -> dict   # JSONL rows + Wilson summary
 def matrix(policies, envs, tasks, bodies, seeds, *, out) -> dict                         # negotiate() every cell; n/a with reasons
 ```
@@ -307,31 +316,31 @@ realizer output; dual multi-featurizer; packet serialization) and must stay byte
 
 | stage | content | est. | status |
 |---|---|---|---|
-| S0 | this document; golden digests on the pre-refactor code | 2 h | – |
-| S1 | delete shim packages and `research/`; rewrite importers in src/tests/scripts; layering test without shim tables; pickle remap in the data loader | 1.5 h | – |
-| S2 | re-layer into `core / ops / bodies / tasks / envs / policies / harness / viz` (codemod on module paths, merge tiny modules, new layering table) | 3 h | – |
-| S3 | `envs.base` (Env, EnvSpec, capabilities, registry) implemented by the MuJoCo sessions and the Warp env; `policies.base` (Policy, Requirements, negotiate, registry); `tasks` registry; SIMPLE/ComputerWorld stubs → **Ψ₀ and ComputerWorld agents can start here** | 3 h | – |
-| S4 | policy adapters (bc, latent arm/dual, legged latent/bc on the `legs` space, teachers, one oracle, trackers); delete duplicate envs | 4 h | – |
-| S5 | `harness.rollout` + hooks; port the eval loops, delete the duplicates; `rrp eval` / `rrp matrix`; golden traces of tiny episodes (a few ticks, procedural bodies) | 5 h | – |
+| S0 | this document; golden digests on the pre-refactor code | 2 h | done (c14ca55, 44e1f3d, 58d65c5) |
+| S1 | delete shim packages and `research/`; rewrite importers in src/tests/scripts; layering test without shim tables; pickle remap in the data loader | 1.5 h | done (a951398) |
+| S2 | re-layer into `core / ops / bodies / tasks / envs / policies / harness / viz` (codemod on module paths, new layering table); S2b: no re-export aliases | 3 h | done (cb0ea23, ba2ce79) |
+| S3 | `envs.base` (Env, EnvSpec, capabilities, registry) implemented by the MuJoCo sessions and the Warp env; `policies.base` (Policy, Requirements, negotiate, registry); `tasks` registry; SIMPLE/ComputerWorld declared in the registries → **Ψ₀ and ComputerWorld agents can start here** | 3 h | done (this commit) |
+| S4 | policy adapters (bc, latent arm/dual, legged latent/bc on the `legs` space, teachers, one oracle, trackers); delete duplicate envs | 4 h | refactor lead (touches `policies/**`, `envs/**`) |
+| S5 | port the eval loops onto `harness.rollout` (S3) + hooks, arm/dual first, legged last; delete the duplicates; legged judge; `rrp eval` / `rrp matrix`; golden traces of tiny episodes (a few ticks, procedural bodies) | 5 h | parallel agent (touches `harness/**`, `cli/**`; not `policies/**`) |
 | S6 | scripts/dags/configs pruning, CLI consolidation, README/STATUS/related_repos, viz exporter check | 2 h | – |
 
 Running work is paused (D-140); unmerged track branches rebase onto the new paths using the move table that each
 stage's commit message and section 10 record.
 
-## 9. hand-off for the Ψ₀ and ComputerWorld agents (after S3 is on main)
+## 9. hand-off for the Ψ₀ and ComputerWorld agents (S3 is on main: start here)
 
 Ψ₀ migration (psi1z → rrp):
 - [ ] `rrp/bodies`: G1 + Dex3 36-d command morphology from `psi1z/body_g1.py` as a `RobotSpec` + the static tables (`node_static`, `relation_matrix`, `asm_static`); key `g1_simple`.
-- [ ] `rrp/envs/simple.py`: `SimpleEnv(Env)`: runs SIMPLE (Isaac Sim 5.1, its own venv) behind a local RPC boundary (127.0.0.1); `psi1z.simple_compat` import hooks move with it; `reset(seed)` = eval episode config (task, DR level, index) + WBC stabilization; action space `psi0` width 36 at 50 Hz (the decoupled WBC stays inside the env); observation = head RGB image, 43-d `joint_qpos` as `measured_node_state`, `instruction`; privileged truth = palm/object poses and contacts (labels only); success from SIMPLE's `_success`.
-- [ ] `rrp/policies/psi0/`: `psi0_direct` (upstream Ψ₀ action head over the 30×36 chunk) and `psi0_structured` (packet z[5, 6, 64] + realizer), both `Policy`s emitting `Act.chunk`/`Act.packet`; features cache, `train.py` → `rrp train` stages; checkpoints stay outside git.
-- [ ] `rrp/tasks`: `simple/<Task>` TaskSpecs (TabletopGraspMP, BendPickMP, HandoverTeleop, ...), judge = SIMPLE success.
+- [ ] `rrp/envs/simple.py` with `make_env(*, task, body, seed, **kw)` (the registry already points at it): `SimpleEnv(Env)`: runs SIMPLE (Isaac Sim 5.1, its own venv) behind a local RPC boundary (127.0.0.1); `psi1z.simple_compat` import hooks move with it; `reset(seed)` = eval episode config (task, DR level, index) + WBC stabilization; action space `psi0` width 36 at 50 Hz (the decoupled WBC stays inside the env); observation = head RGB image, 43-d `joint_qpos` as `measured_node_state`, `instruction`; privileged truth = palm/object poses and contacts (labels only); success from SIMPLE's `_success`.
+- [ ] `rrp/policies/psi0/` exposing `make_direct(**kw)` / `make_structured(**kw)` (registered names `psi0_direct`, `psi0_structured`): `psi0_direct` (upstream Ψ₀ action head over the 30×36 chunk) and `psi0_structured` (packet z[5, 6, 64] + realizer), both `Policy`s emitting `Act.chunk`/`Act.packet`; features cache, `train.py` → `rrp train` stages; checkpoints stay outside git.
+- [ ] `rrp/tasks/spec.py` (tasks sit below envs; judges are duck-typed on the env): `simple/<Task>` TaskSpecs (TabletopGraspMP, BendPickMP, HandoverTeleop, ...), judge = SIMPLE success.
 - [ ] fold P-xxx decisions into `research/decisions.md` keeping their P-numbers; archive psi1z read-only with a pointer here.
 
 ComputerWorld:
 - [ ] optional extra `computerworld` in pyproject (wheel built from github.com/JacobFV/computerworld; local clone at ~/Documents/computerworld).
-- [ ] `rrp/envs/computerworld.py`: `ComputerWorldEnv(Env)` exactly as section 5; unit tests of the px ↔ metre mapping, depth modes, null slots, button edges.
+- [ ] `rrp/envs/computerworld.py` with `make_env(*, task, body, seed, **kw)` (the registry already points at it): `ComputerWorldEnv(Env)` exactly as section 5; unit tests of the px ↔ metre mapping, depth modes, null slots, button edges.
 - [ ] `rrp/bodies`: `cw_pointer` RobotSpec.
-- [ ] `rrp/tasks`: a few `cw/*` tasks with a task graph (open app, click labelled widget, type into field) and a scripted teacher in `rrp/policies/teachers` (source `scripted_teacher`, privileged scene access).
+- [ ] `rrp/tasks/spec.py`: a few `cw/*` tasks with a task graph (open app, click labelled widget, type into field) and a scripted teacher in `rrp/policies/teachers` (source `scripted_teacher`, privileged scene access).
 - [ ] demonstrate negotiation: `rrp matrix` shows arm/legged policies declined with reasons and a pointer BC trained on teacher data accepted.
 
 ## 10. moved paths

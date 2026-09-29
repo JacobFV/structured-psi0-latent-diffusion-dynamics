@@ -105,9 +105,10 @@ class AttachmentPort(Strict):
 class CommandGroup(Strict):
     name: str
     width: int = Field(ge=1)
-    units: Literal["rad", "m", "rad/s", "m/s", "N", "Nm", "normalized", "mixed"]
+    units: Literal["rad", "m", "rad/s", "m/s", "N", "Nm", "normalized", "mixed", "index"]
     semantic: Literal["joint_position", "joint_velocity", "joint_torque", "gripper", "base_velocity",
-                      "wholebody_command", "ee_pose"]
+                      "wholebody_command", "ee_pose", "cartesian_position", "button", "discrete",
+                      "psi0"]   # = rrp.envs.base.ActionKind; psi0 = the 36-d Ψ₀ G1 command (SIMPLE)
     actuators: list[str]                   # addresses owned by this group (exclusive)
     lower: list[float]
     upper: list[float]
@@ -157,7 +158,7 @@ class RobotSpec(Strict):
     spec_hash: str = ""
     name: str
     family: Literal["humanoid", "quadruped", "biped", "hexapod", "multipod", "arm", "dual_arm", "mobile_manipulator",
-                    "end_effector", "fixture"]
+                    "end_effector", "fixture", "pointer"]          # pointer: UI bodies (ComputerWorld cw_pointer)
     asset_source: dict
     lineage: list[str]                      # body/module lineage ids for split control
     geometry_hashes: list[str] = Field(default_factory=list)

@@ -16,41 +16,9 @@ import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
-_CACHE: dict = {}
-
-
-def dual_bodies() -> dict:
-    out = {}
-    try:
-        from rrp.bodies.aloha import aloha_body, ALOHA_DIR
-        if ALOHA_DIR.exists():
-            out["aloha"] = aloha_body
-    except ImportError:
-        pass
-    return out
-
-
-def make_pair(key: str) -> list:
-    """Robots for a pair key (cached per worker; bounded to one pair)."""
-    if key in _CACHE:
-        return _CACHE[key]
-    _CACHE.clear()
-    bodies = dual_bodies()
-    if key in bodies:
-        robots = [bodies[key]()]
-    else:
-        from rrp.bodies.catalog import workbench_robots
-        W = workbench_robots()
-        lk, rk = key.split("__")
-        robots = [W[lk](), W[rk]()]
-    _CACHE[key] = robots
-    return robots
-
-
 def make_session(task: str, pair: str, seed: int):
-    from rrp.envs.mujoco.dual import DualSession
-    from rrp.envs.mujoco.dual_scenarios import DUAL_BUILDERS
-    return DualSession(DUAL_BUILDERS[task](make_pair(pair), seed), seed=seed)
+    from rrp.envs.mujoco.dual import make_dual_env
+    return make_dual_env(task=task, body=pair, seed=seed)
 
 
 def run_one(task: str, pair: str, seed: int, max_steps: int = 1200) -> dict:

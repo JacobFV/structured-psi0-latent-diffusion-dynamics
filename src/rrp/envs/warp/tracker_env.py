@@ -754,3 +754,65 @@ class MorphMultiEnv:
                                       track_rel_err=(r["gm"]["track_err"] / r["gm"]["cmd"]) if r["gm"]["cmd"] else None)
                               for n, r in zip(self.names, recs)})
         return out
+
+
+class WarpEnv:
+    """`rrp.envs.base.Env` (env_id "warp/legged", capability "batched") over a WarpTrackerEnv-like engine (WarpTrackerEnv,
+    WarpStepsEnv, WarpGapEnv, MorphMultiEnv). Commands: BatchCommand(groups={"legs": [N, nA] tensor}) of normalized
+    residual joint targets; StepResult.reward = (r, done, timeout) tensors; truth() = the privileged critic block of the
+    last step (never part of the actor observation). Commands are rrp.envs.base.BatchCommand. The engine keeps its own
+    API for the PPO loop."""
+
+    def __init__(self, engine, task: str = "locomotion"):
+        self.engine, self.task = engine, task
+        self._priv = None
+        self._t = 0.0
+
+    @property
+    def spec(self):
+        from rrp.envs.base import ActionSpace, BodyInfo, EnvSpec
+        e = self.engine
+        keys = list(getattr(e, "variant_keys", None) or getattr(e, "names", None) or [getattr(e, "body", "?")])
+        dt = float(getattr(e, "dt", 0.02))
+        return EnvSpec(env_id="warp/legged", backend="mujoco_warp", task=self.task,
+                       bodies=[BodyInfo(robot=0, family=getattr(getattr(e, "b", None), "kind", "legged"), key=k,
+                                        robot_spec_hash=f"warp:{k}") for k in keys],
+                       batch=int(e.N), control_hz=1.0 / dt,
+                       action_spaces=[ActionSpace(group="legs", kind="joint_position", width=int(e.nA), rate_hz=1.0 / dt,
+                                                  low=[-5.0] * int(e.nA), high=[5.0] * int(e.nA), units="normalized")],
+                       capabilities=["batched", "vector_obs", "reward", "privileged_truth", "proprio"],
+                       provenance=dict(engine=type(e).__name__, obs_dim=int(e.obs_dim)))
+
+    def _vobs(self, o):
+        from rrp.envs.base import VectorObservation
+        return VectorObservation(vec=o, layout=[("tracker_obs", int(o.shape[-1]))], time=self._t,
+                                 robot_spec_hashes=[b.robot_spec_hash for b in self.spec.bodies])
+
+    def reset(self, seed=None):
+        self._t = 0.0
+        return self._vobs(self.engine.reset_all())
+
+    def observe(self):
+        return self._vobs(self.engine.observe())
+
+    def step(self, command):
+        from rrp.envs.base import StepResult
+        o, priv, r, done, timeout = self.engine.step(command.groups["legs"])
+        self._priv = priv
+        self._t += float(getattr(self.engine, "dt", 0.02))
+        return StepResult(self._vobs(o), None, self._t, source=command.source, reward=(r, done, timeout))
+
+    def truth(self):
+        return self._priv
+
+    def close(self):
+        pass
+
+
+def make_warp_env(*, task: str = "locomotion", body, seed: int = 1, nworld: int = 1024, **kw) -> WarpEnv:
+    """env_id "warp/legged": task "locomotion" (WarpTrackerEnv), "h_steps" (WarpStepsEnv), "h_gap" (WarpGapEnv)."""
+    if task == "locomotion":
+        return WarpEnv(WarpTrackerEnv(body, nworld, seed, **kw), task)
+    from rrp.envs.warp.task_env import WarpGapEnv, WarpStepsEnv
+    cls = {"h_steps": WarpStepsEnv, "h_gap": WarpGapEnv}[task]
+    return WarpEnv(cls(body, nworld, seed, **kw), task)

@@ -146,7 +146,8 @@ def _quat_to_mat(q):
 
 
 class DualSession(Session):
-    """Session over several manipulators; single-robot behaviour of the base class is untouched."""
+    """Session over several manipulators; single-robot behaviour of the base class is untouched. env_id "mujoco/dual"."""
+    ENV_ID = "mujoco/dual"
 
     def __init__(self, scenario: Scenario, **kw):
         self.handles = build_handles(scenario)
@@ -572,3 +573,50 @@ class DualSession(Session):
             per.setdefault(int(ri[1:]), {})[g] = list(v)
         return {i: NativeCommand(controller_version=self.robots[i].controller.version, groups=g, source=source)
                 for i, g in per.items()}
+
+
+_CACHE: dict = {}
+
+
+def dual_bodies() -> dict:
+    out = {}
+    try:
+        from rrp.bodies.aloha import aloha_body, ALOHA_DIR
+        if ALOHA_DIR.exists():
+            out["aloha"] = aloha_body
+    except ImportError:
+        pass
+    return out
+
+
+def make_pair(key: str) -> list:
+    """Robots for a pair key (cached per worker; bounded to one pair)."""
+    if key in _CACHE:
+        return _CACHE[key]
+    _CACHE.clear()
+    bodies = dual_bodies()
+    if key in bodies:
+        robots = [bodies[key]()]
+    else:
+        from rrp.bodies.catalog import workbench_robots
+        W = workbench_robots()
+        lk, rk = key.split("__")
+        robots = [W[lk](), W[rk]()]
+    _CACHE[key] = robots
+    return robots
+
+
+def make_dual_env(*, task: str, body: str | list[str], seed: int = 0, scene: dict | None = None, **kw) -> DualSession:
+    """env_id "mujoco/dual": DUAL_BUILDERS[task](robots, seed). body: a pair key ("parm5l_pg2__parm6_pg2", or a dual body
+    such as aloha) or a list of workbench robot keys."""
+    from rrp.envs.mujoco.dual_scenarios import DUAL_BUILDERS
+    if isinstance(body, str):
+        robots = make_pair(body)
+    else:
+        from rrp.bodies.catalog import workbench_robots
+        W = workbench_robots()
+        robots = [W[k]() for k in body]
+    sc = DUAL_BUILDERS[task](robots, seed, **(scene or {}))
+    sc.meta.setdefault("body_keys", body.split("__") if isinstance(body, str) and len(robots) == 2 else
+                       ([body] if isinstance(body, str) else list(body)))
+    return DualSession(sc, seed=seed, **kw)
