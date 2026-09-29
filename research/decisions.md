@@ -1004,6 +1004,7 @@ Owner decision (2026-09-29):
 - rrp is refactored so every approach (BC, latent semfix/nosem, Ψ₀ direct, Ψ₀ + structure, trackers) is a policy behind one interface, and every environment (our MuJoCo scenes incl. MuJoCo Warp, SIMPLE, and ComputerWorld github.com/JacobFV/computerworld as a new environment: UI treated as a 3D space at constant depth, or depth from its accessibility/scene tree) is an environment behind one interface. Policies must be tested on many environments; two simulators was a sign this never happened.
 - Experiments are wound down during the refactor (W13 humanoid, arm diversity, W10); resume steps are in their track notes. New directions are expected afterwards.
 - Rules added to AGENTS.md: no self-reproduction (trust recorded results unless there is concrete suspicion; only small vibe-checks), and aggressive refactoring without file sprawl or compat shims.
+- Addendum 2026-09-29 (psi0mig, lead approval): the Ψ₀ line is merged into rrp at 7c9fc7b (map: research/tracks/psi0.md). github.com/JacobFV/psi1z is ARCHIVED (read-only, not deleted or renamed); its README (psi1z 036237f) points to rrp 7c9fc7b; last pre-retirement commit 6f5e2b3.
 
 ## D-141 2026-09-29 W10 step 2 (TabletopGraspMP L0) result recorded; Ψ₀ + structure 0/20 is treated as a probable integration bug, not a verdict on structure (lead)
 The step-2 closed-loop evals finished on the peer on 2026-09-28 but were never written up in psi1z (P-018/P-019 describe the
