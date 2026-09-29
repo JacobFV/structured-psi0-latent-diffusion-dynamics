@@ -84,7 +84,7 @@ class LearnedTracker:
             self.last_slot = np.zeros(NS)
 
     def _act_morph(self, data, cmd) -> np.ndarray:
-        o = self.morph.obs(self.b, data, cmd, self.last_slot, self.phase)
+        o = self.morph.obs(self.b, data, cmd, self.last_slot, self.phase, bool(self.meta.get("clock_gate")))
         if self.extra_fn is not None:
             o = np.concatenate([o, self.extra_fn(data)]).astype(np.float32)
         x = np.clip((o - self.mean) / self.std, -5, 5).astype(np.float32)
@@ -99,7 +99,7 @@ class LearnedTracker:
     def act(self, data, cmd) -> np.ndarray:
         if self.morph is not None:
             return self._act_morph(data, cmd)
-        o = self.b.public_obs(data, cmd, self.last_a, self.phase)
+        o = self.b.public_obs(data, cmd, self.last_a, self.phase, bool(self.meta.get("clock_gate")))
         if self.extra_fn is not None:
             o = np.concatenate([o, self.extra_fn(data)]).astype(np.float32)
         x = np.clip((o - self.mean) / self.std, -5, 5).astype(np.float32)

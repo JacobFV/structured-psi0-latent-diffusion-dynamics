@@ -106,11 +106,11 @@ class MorphSpec:
         a[self.idx[self.present]] = self.sign[self.present] * a_slot[self.present]
         return a
 
-    def obs(self, b, d: mujoco.MjData, cmd, last_slot_action, phase) -> np.ndarray:
+    def obs(self, b, d: mujoco.MjData, cmd, last_slot_action, phase, clock_gate: bool = False) -> np.ndarray:
         """numpy deployment observation (morph_v1) from a C-MuJoCo MjData."""
-        from rrp.envs.legged_core import CMD_SCALE, quat_rotate_inv
+        from rrp.envs.legged_core import CMD_SCALE, clock_features, quat_rotate_inv
         quat, gyro = b.imu(d)
         g = quat_rotate_inv(quat, np.array([0, 0, -1.0]))
         return np.concatenate([gyro * 0.25, g, np.asarray(cmd) * CMD_SCALE, self.to_slots(d.qpos[b.pol_qadr] - self.q0),
                                self.to_slots(d.qvel[b.pol_dadr] * 0.05), last_slot_action,
-                               [math.sin(2 * math.pi * phase), math.cos(2 * math.pi * phase)], self.ctx]).astype(np.float32)
+                               clock_features(phase, cmd, clock_gate), self.ctx]).astype(np.float32)

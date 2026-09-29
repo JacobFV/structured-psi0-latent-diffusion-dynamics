@@ -159,3 +159,12 @@ def _shared_v2():
 
 
 HUMANOID_RECIPES["shared_morph_v2"] = None      # lazy: phum selection runs the generator
+
+# r5 (2026-09-29): h1 r4 in C MuJoCo: no-fall 1.0, fwd 1.06, turn 1.06, slip 0.005, but peak force 4.08 BW, joint margin -0.005,
+# arc yaw ~0 (0.004 vs 0.24 commanded) and under a zero command it still steps (duty 0.5, 1.25 Hz) -> halts fail (0/20).
+# r5 = fine-tune of r3 with the CLOCK GATE (clock inputs zeroed at zero command: an explicit stand mode), turn progress
+# on arcs up to 0.5 rad/s (yaw_lin_all), impact -2, joint-limit hinge -4.
+_R5 = (_TURN + _CLOCK.replace("limit_margin=-1.0", "limit_margin=-4.0") + _FIX + _STAND.replace("impact=-0.5", "impact=-2.0")
+       + ",yaw_lin_all=1,yaw_lin_all_max=0.5")
+HUMANOID_RECIPES["h1_clock_gpu_r5"] = _ft("h1", "artifacts/runs/humanoid_p1b_h1_r3/actor_r3final.pt", alpha_schedule="fixed:0.5",
+                                          teacher_stop=0.3, clock_gate=True, reward_set=_R5)

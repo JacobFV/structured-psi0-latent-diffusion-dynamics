@@ -73,7 +73,7 @@ class WarpTrackerEnv:
     def __init__(self, body, nworld: int, seed: int = 1, *, reward_overrides: dict | None = None, episode_s: float = 20.0,
                  push: bool = True, obs_noise: float = 1.0, cmd_mix: str = "default", teacher_stop: float = MIN_STOP_SHARE,
                  turn_frac: float = 0.25, slow_frac: float = 0.0, randomize: bool = True, nconmax: int = 48,
-                 njmax: int = 320, model_fn=None, extra_batch=()):
+                 njmax: int = 320, model_fn=None, extra_batch=(), clock_gate: bool = False):
         wp, mjw = _wp()
         self.wp, self.mjw = wp, mjw
         self.dev = torch.device("cuda")
@@ -97,6 +97,9 @@ class WarpTrackerEnv:
         self.alpha = 0.0
         self.cmd_mix, self.teacher_stop, self.turn_frac, self.slow_frac = cmd_mix, max(teacher_stop, MIN_STOP_SHARE), turn_frac, slow_frac
         self.turn_scale = 1.0
+        # W13 clock gate (actor meta `clock_gate`): the gait-clock inputs are zeroed while the command is ~0 (a public
+        # function of the command), so "stand" is an explicit mode instead of stepping on the clock (h1 r3/r4 stepped in place)
+        self.clock_gate = bool(clock_gate)
         self.push, self.obs_noise, self.randomize = push, obs_noise, randomize
         self.dt = 0.02
         self.substeps = max(1, int(round(self.dt / m.opt.timestep)))
@@ -333,10 +336,17 @@ class WarpTrackerEnv:
                                   torch.full((nA,), 0.05), torch.zeros(nA), torch.zeros(2)]).to(self.dev)
         o = torch.cat([gyro * 0.25, self._gravity_body(), self.cmd * self._cs,
                        self.qpos[:, self.pol_qadr] - self.q0, self.qvel[:, self.pol_dadr] * 0.05, self.last_a,
-                       torch.sin(2 * math.pi * self.phase)[:, None], torch.cos(2 * math.pi * self.phase)[:, None]], -1)
+                       self.clock_obs()], -1)
         if self.obs_noise:
             o = o + torch.randn(o.shape, generator=self.gen, device=self.dev) * self._nz * self.obs_noise
         return o
+
+    def clock_obs(self):
+        c = torch.stack([torch.sin(2 * math.pi * self.phase), torch.cos(2 * math.pi * self.phase)], -1)
+        if self.clock_gate:
+            mv = ((self.cmd[:, :2].norm(dim=-1) > 0.05) | (self.cmd[:, 2].abs() > 0.05)).float()
+            c = c * mv[:, None]
+        return c
 
     def extra_obs(self):
         """Task-specific PRIVILEGED expert inputs (height scan, targets); none for the plain tracker."""
@@ -688,7 +698,7 @@ class MorphMultiEnv:
             grav = grav + nz(grav.shape, 0.03)
             q = q + nz(q.shape, 0.01) * pm
             qd = qd + nz(qd.shape, 0.05) * pm
-        clock = torch.stack([torch.sin(2 * math.pi * e.phase), torch.cos(2 * math.pi * e.phase)], -1)
+        clock = e.clock_obs()
         return torch.cat([gyro, grav, cmd, q, qd, g["last"], clock, g["ctx"], e.extra_obs()], -1)
 
     def observe(self):

@@ -37,6 +37,14 @@ def yaw_of(q) -> float:
     return math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z))
 
 
+def clock_features(phase: float, cmd, gate: bool = False) -> list:
+    """Gait-clock inputs [sin, cos] of 2 pi phase; W13 `clock_gate`: zero while the command is ~0 (|v_xy| <= 0.05, |w_z| <= 0.05)."""
+    c = np.asarray(cmd, float)
+    if gate and not (np.linalg.norm(c[:2]) > 0.05 or abs(c[2]) > 0.05):
+        return [0.0, 0.0]
+    return [math.sin(2 * math.pi * phase), math.cos(2 * math.pi * phase)]
+
+
 class LeggedBinding:
     """Resolves a legged body's indices inside a compiled model (robot namespaced by prefix)."""
 
@@ -147,12 +155,11 @@ class LeggedBinding:
         equal the free-joint quaternion and local angular velocity (asserted in tests)."""
         return d.qpos[self.qa + 3:self.qa + 7], d.qvel[self.da + 3:self.da + 6]
 
-    def public_obs(self, d: mujoco.MjData, cmd, last_action, phase) -> np.ndarray:
+    def public_obs(self, d: mujoco.MjData, cmd, last_action, phase, clock_gate: bool = False) -> np.ndarray:
         quat, gyro = self.imu(d)
         g = quat_rotate_inv(quat, np.array([0, 0, -1.0]))
         return np.concatenate([gyro * 0.25, g, np.asarray(cmd) * CMD_SCALE, d.qpos[self.pol_qadr] - self.q0,
-                               d.qvel[self.pol_dadr] * 0.05, last_action,
-                               [math.sin(2 * math.pi * phase), math.cos(2 * math.pi * phase)]]).astype(np.float32)
+                               d.qvel[self.pol_dadr] * 0.05, last_action, clock_features(phase, cmd, clock_gate)]).astype(np.float32)
 
     def targets(self, action, ref=None) -> np.ndarray:
         q = self.q0 + self.action_scale * np.asarray(action)
