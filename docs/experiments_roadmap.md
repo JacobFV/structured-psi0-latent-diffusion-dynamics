@@ -32,7 +32,7 @@ Code: ✅ exists · 🔧 implementing (D-126) · ❌ not a code problem / needs 
 ## C. Legged and humanoid
 | # | question | depends on | cost | experiment | code |
 |---|---|---|---|---|---|
-| 13 | Can we train humanoid trackers under sourced limits that pass the gates (t1 lab gate, h1 clock-driven gait, g1 without stomp/overspin), and does the halt effect hold on t1 then? | – | 2–4 days | planned | ✅ code: `--ref-gait clock`, `--yaw-progress-cap`, `--yaw-overshoot`, `--limit-margin[-agg]`; recipes `rrp.training.tracker_recipes` + `dags/d126_tracker_*.yaml` (not run) |
+| 13 | (W13, D-138: P1b) Can we train humanoid trackers under sourced limits that pass the gates (t1 lab gate, h1 clock-driven gait, g1 without stomp/overspin), and does the halt effect hold on t1 then? | – | 2–4 days | planned | ✅ code: `--ref-gait clock`, `--yaw-progress-cap`, `--yaw-overshoot`, `--limit-margin[-agg]`; recipes `rrp.training.tracker_recipes` + `dags/d126_tracker_*.yaml` (not run) |
 | 14 | Do trackers and latent routes survive actuator dynamics + latency as default (sourced speeds)? | 13 | 1–2 days | planned | ✅ code: `actuator_mode` ideal/v1lat/v2 (default ideal) through training, validation, pipeline (`options.actuator_mode`), eval; estimated speeds flagged |
 | 15 | Does a terrain curriculum (and MJX for throughput) move the 8 cm terrain break-point? | – | 2–4 days | planned | ✅ code: `--terrain-curriculum gated`; MJX prototype `envs/mjx_legged.py` (peer smoke: parity ok, no throughput win yet) |
 | 16 | Is the semantic robustness cost (D-112: −4.6 points) general beyond anymal_c (go2, later t1)? | – | ~1 day/body | planned | ✅ |
@@ -72,8 +72,17 @@ default off; defaults golden-identical to pre-D-126 rows.
 | # | question | depends on | cost | experiment | code |
 |---|---|---|---|---|---|
 | 33 | First dual-arm learned models (M=2 "across bodies") | 18 | 2–3 days | planned | ✅ stages collect/pack/train_rep/probes/train_flow/flow_ft/refit/eval_r2/heldout/edits (`pipelines/dual.py`), DAG `dags/templates/dual_lineage.yaml` (zero_prev_action true); dual DAgger ❌ (no dual label source) |
-| 34 | Loco-manipulation (walk to a table, then pick) | 13 | 3+ days | open | ✅ task + scene (spot_arm) + STUB teacher; needs a spot tracker |
+| 34 | Loco-manipulation (walk to a table, then pick); humanoid versions M1–M3 in W13 (D-138) | 13 | 3+ days | open | ✅ task + scene (spot_arm) + STUB teacher; needs a spot tracker |
 | 35 | Richer arm objects (sizes, masses, friction, shapes) | – | 1–2 days + data | planned | ✅ `object_spec` / `object_variation` |
+
+## H. Humanoid transfer (W13, D-138; plan research/tracks/humanoid.md, sealed split research/splits/humanoid_v1.json)
+| # | question | depends on | cost | experiment | code |
+|---|---|---|---|---|---|
+| 36 | Does a GPU simulator (MuJoCo Warp / MJX) reproduce contact_v2 humanoid rollouts and give ≥ 5× CPU PPO throughput? | – | 3–4 h | planned (P1a) | 🔧 |
+| 37 | Does a morphology-conditioned shared tracker trained on the pool + `phum` walk sealed humanoids zero-shot, and how fast does it adapt vs per-body PPO? (existing-controller transfer) | 13, 36 | 1–2 days | planned (P1c) | 🔧 |
+| 38 | Can privileged RL experts solve the staged tasks (L1–L3, M1–M3, C1–C2) on ≥ 4 pool humanoids and yield gate-passing datasets? | 13 | 3–4 days | planned (P2) | 🔧 |
+| 39 | Does the semantic packet help new-humanoid transfer (sealed S1–S5) vs nosem and BC at matched data/updates (zero-shot, refit, joint adaptation, BC SFT)? | 38 | 3–4 days | planned (P3) | 🔧 |
+| 40 | Held-out task compositions (steps+carry, gap+cart) zero-shot | 38 | in P3 | planned | 🔧 |
 
 ## ordering once current runs finish (lead)
 1–3 (running/queued) → 9–10 (core claim) → 23 (queued) → 13 (unblocks humanoid) → 18–19 (W12 go/no-go). The rest fits

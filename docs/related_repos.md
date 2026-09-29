@@ -67,5 +67,6 @@ in [AGENTS.md](../AGENTS.md) (D-106 peer admission, D-115 host = no heavy comput
 | D-123 | P-020 | psi1z pin bumped to rrp 68a6657; rrp statistics (wilson/newcombe/mcnemar/permutation) + provenance in psi1z; README affordance claim narrowed to binding (grasp-region head planned for the next step-2 task); first psi1z unit tests |
 | D-126 | P-022, P-023 | grasp-region affordance head (per-hand object-frame contact point + face, `--w-grasp`, default off); DR level 1–2 eval support with provenance |
 | W11 (strategy) | pin in pyproject | rrp.core 1.0, Python 3.11 support, extension hooks |
+| D-138 | – | W13 humanoid program: SIMPLE's G1 tasks (BendPickMP, XMovePick) are the Isaac/teleop analogs of W13's M2 squat-pick and M1 carry; sealed S1 `g1_hands` is the rrp body nearest psi1z's `g1_simple`. No SIMPLE/Ψ₀ assets or code are used in W13; results are not cross-counted as evidence |
 Keep this table current: every psi1z P-entry that reflects a lead decision cites its rrp D-number, and every rrp D-entry about W10
 cites the P-numbers.

@@ -26,6 +26,7 @@ This table mirrors the status column of `docs/strategy.md`.
 | W10 | Ψ₀ / SIMPLE benchmark (in psi1z) | running | step 0 (D-104, D-109); step 1: 3/6 released checkpoints reproduce (D-120); step 2 on TabletopGraspMP (released 20/20; direct arm trained; evals wait behind W7, D-121) | psi1z research/notes.md |
 | W11 | rrp as an installable core for psi1z | verified | 2026-09-26, main b7dc677 (rrp.core API 1.0, py3.11 + 3.12); psi1z pin bumped to 68a6657 (P-020) | research/tracks/core.md |
 | W12 | feature-centric coordination (anchor-relative packets, contact-event knots) | implementing | phase A (design + code, no heavy compute); compute after the arm v6 lineages (D-122) | docs/strategy.md W12 |
+| W13 | HUMANOID program (owner top priority) | planned | P0 plan + sealed humanoid split committed (D-138); P1a GPU-sim bake-off and P1b per-body trackers next | research/tracks/humanoid.md |
 | R0 | arm seed-2 replication | completed | D-095 | research/tracks/ladder.md |
 | R1 | arm nosem recipe ablation | completed | D-099 | research/tracks/ladder.md |
 

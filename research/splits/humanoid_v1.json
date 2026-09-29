@@ -1,0 +1,38 @@
+{
+ "split_id": "humanoid_v1",
+ "frozen_utc": "2026-09-28",
+ "decision": "D-138",
+ "basis": "declared before any humanoid tracker, expert or policy was trained for this program; chosen by family/scale/limb coverage only (research/tracks/humanoid.md section 1)",
+ "menagerie_sha": "c96a32d28fb5da84da38c1da4d749e7a13212855",
+ "source_train_bodies": {
+  "t1": {"file": "booster_t1/t1.xml", "sha256_16": "78af3f7910e44138", "license": "Apache-2.0"},
+  "g1": {"file": "unitree_g1/g1.xml", "sha256_16": "3c2616550a31f33e", "license": "BSD-3-Clause"},
+  "h1": {"file": "unitree_h1/h1.xml", "sha256_16": "4d15bc381ee81137", "license": "BSD-3-Clause"},
+  "op3": {"file": "robotis_op3/op3.xml", "sha256_16": "02e07fe80bb0352a", "license": "Apache-2.0"},
+  "apollo": {"file": "apptronik_apollo/apptronik_apollo.xml", "sha256_16": "28513f17a37f1cfa", "license": "Apache-2.0"},
+  "adam_lite": {"file": "pndbotics_adam_lite/adam_lite.xml", "sha256_16": "a8725b28db6a1c74", "license": "MIT"},
+  "talos": {"file": "pal_talos/talos_position.xml", "sha256_16": "ce2d3af3f1c80e98", "license": "Apache-2.0"}
+ },
+ "procedural_family": {
+  "id": "phum", "generator": "rrp.bodies.humanoid_gen (to be written in P1c)",
+  "train_seed_range": [0, 1000000],
+  "sealed_seed_range": [9000000, 9100000],
+  "sealed_region": "thigh_shin_ratio > 1.15 AND leg_dof == 7 AND height_m > 1.5 (training samples inside it are rejected)"
+ },
+ "targets": {
+  "S1_near_new_end_effectors": {"bodies": ["g1_hands"], "file": "unitree_g1/g1_with_hands.xml", "sha256_16": "2d41a3c6783fbf9e",
+                                 "tasks": "manipulation (M1-M3, C2) only; legs identical to g1 (analog of D-135 panda_tf3)"},
+  "S2_new_family_adult": {"bodies": ["n1"], "file": "fourier_n1/n1.xml", "sha256_16": "50a15602f6dfb4db", "license": "Apache-2.0"},
+  "S3_new_family_legs_only": {"bodies": ["berkeley"], "file": "berkeley_humanoid/berkeley_humanoid.xml", "sha256_16": "e5b9396bf23dea75", "license": "BSD-3-Clause",
+                              "tasks": "L0-L3, C1; arm roles bound to null (absent_limb)"},
+  "S4_new_family_tiny": {"bodies": ["toddlerbot_2xc", "toddlerbot_2xm"], "files": ["toddlerbot_2xc/toddlerbot_2xc.xml", "toddlerbot_2xm/toddlerbot_2xm.xml"],
+                         "sha256_16": ["2c89e8fc7161f432", "0599ae55c3562408"], "license": "MIT"},
+  "S5_procedural_extrapolation": {"bodies": "phum sealed seeds, 20 bodies sampled in the sealed region"}
+ },
+ "excluded_from_training": ["g1_hands", "n1", "berkeley", "toddlerbot_*", "phum sealed region/seeds"],
+ "excluded_other": {"cassie": "biped without torso/arms; optional extra training body, never a target"},
+ "held_out_tasks": ["h_steps_carry", "h_gap_cart", "h_steps with step height 0.30-0.40 x leg length"],
+ "seed_ranges": {"source_train_demos": [0, 100000], "target_adaptation_demos": [1000000, 1100000],
+                 "evaluation_scenes": [2000000, 2100000], "development": [3000000, 3100000]},
+ "rules": "sealed cells run once (2 training seeds x 100 scenes); dev seeds only on non-sealed bodies; methods pre-registered in D-138"
+}

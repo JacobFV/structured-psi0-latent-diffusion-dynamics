@@ -917,3 +917,28 @@ Owner decision after D-135/D-136 ("yes, add more training-arm diversity"). Plan:
   comparison on the new targets. Sealed methods as D-135/D-136 (zero-shot, joint_adapt update-matched, BC SFT), run once
   after a pre-registration commit.
 - Resources: ≤ 1 concurrent peer GPU lease (humanoids first), own peer code dir. Estimate ~45-60 h wall-clock.
+
+## D-138 2026-09-28 owner: humanoids become the top priority (W13); humanoid body pool, staged complex tasks and SEALED humanoid targets declared before any training
+Owner: "focus more on humanoids. we need to test lots of humanoid transfer" and "the humanoid tasks need to be more complex".
+Plan: research/tracks/humanoid.md; sealed split research/splits/humanoid_v1.json (committed before any W13 training).
+Starting point: no humanoid tracker passes the D-112 gate under sourced limits + contact_v2 (t1 w8d CoT/joint margin, g1
+pre-D-107 limits, h1 parked); learned humanoid routes fall (D-124); the only humanoid task is waypoint_contact; no humanoid
+transfer evidence exists.
+- Pool: t1, g1, h1, op3, apollo, adam_lite, talos (menagerie c96a32d2) + a procedural humanoid family `phum` (height
+  0.35-1.8 m, limb ratios, leg DoF 5/6/7, arms none/3/4/7, foot shapes) with a sealed extrapolation region.
+- SEALED targets: S1 g1_hands (new end-effectors on a known body; manipulation only), S2 fourier n1 (new adult family),
+  S3 berkeley_humanoid (legs only), S4 toddlerbot 2xc/2xm (tiny), S5 phum sealed region. Held-out tasks: h_steps_carry,
+  h_gap_cart, step-height extrapolation.
+- Tasks (staged): L1 gap sidestep, L2 steps + rough ground, L3 stepping stones, M1 carry box, M2 squat pick, M3 push
+  cart/door, C1 sit-to-stand, C2 hand-on-wall contact sequence; success metrics and failure reasons in the plan.
+- Teachers: morphology-conditioned privileged PPO experts (label privileged_teacher:rl_expert), also the DAgger labeller;
+  no hand-scripted whole-body trajectories; scripted command layer only for L0/L1.
+- Pre-registered sealed methods (matched data and updates, D-136 budgets 5/20/100 demos, 150/300/600 updates): latent
+  semfix / nosem zero-shot, system-0 refit, joint flow + system-0 (split, gen_frac 0.5); whole-policy BC zero-shot and BC SFT.
+  Existing-controller transfer (shared tracker / experts zero-shot and PPO fine-tune) reported separately. Each sealed cell
+  run once, 2 seeds × 100 scenes, Wilson / Newcombe.
+- Phases: P1a GPU-sim bake-off (MuJoCo Warp / MJX vs CPU; parity + ≥ 5× gate), P1b per-body trackers passing the gates on
+  ≥ 4 humanoids, P1c phum + morphology-conditioned shared tracker, P2 scenes + experts + gated datasets, P3 latent/BC training
+  and sealed evals. Estimate ≈ 9–13 days with a GPU sim, ≈ 3 weeks (3 tasks) CPU-only.
+- Resources: humanoid track holds ≤ 2 GPU leases with priority over armdiv (1). Peer disk ~84 GB free: small packs, archive
+  finished artifacts off the peer. Stop rules: ≤ 3 recipe attempts per tracker body, ≤ 2 reward designs per task expert.
