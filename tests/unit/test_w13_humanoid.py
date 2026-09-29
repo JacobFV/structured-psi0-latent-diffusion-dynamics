@@ -110,3 +110,17 @@ def test_phum_body_builds_with_legged_contract():
         assert 0.3 < b.nominal_height() / meta["params"]["height"] < 0.7
     _, _, meta = standalone_model(legged_body("phum_9000029"), contact="v2")
     assert meta["sealed"]
+
+
+@pytest.mark.menagerie
+def test_h_steps_scenario_and_scan():
+    import numpy as np
+    from rrp.envs.humanoid_scenes import build_h_steps, steps_height_at, steps_scan_np, steps_layout
+    sc = build_h_steps("t1", 3, h_frac=0.2)
+    L, h = sc.meta["L"], sc.meta["staircase"]["h"]
+    assert abs(h - 0.2 * L) < 1e-9 and sc.meta["x_end"] == steps_layout(L, h)[1]
+    assert steps_height_at(np.array([sc.meta["staircase"]["x0"] + 1e-3]), L, h)[0] == h
+    root = np.array([sc.meta["staircase"]["x0"] - 0.1 * L, 0, L, 1, 0, 0, 0])   # standing, facing +x, just before step 1
+    scan = steps_scan_np(root, L, h)
+    assert scan.shape == (34,) and abs(scan[-1] - 0.2) < 1e-6
+    assert scan[0] == 0.0 and np.isclose(scan[3 * 10], 2 * h / L)                # behind: flat; 1.2 L ahead: on step 2

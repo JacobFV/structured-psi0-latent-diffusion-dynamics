@@ -11,6 +11,7 @@ Task knowledge a student may receive (never outcomes): the staircase geometry (x
 from __future__ import annotations
 
 import copy
+import math
 
 import mujoco
 import numpy as np
@@ -80,3 +81,60 @@ def task_model(body: str, task: str, params: dict | None = None, contact: str = 
     scene.attach(module.spec.copy(), prefix=prefix, site=site)
     scene.memory = 3 * 2 ** 20
     return scene.compile(), scene, meta
+
+
+# ------------------------------------------------------------------ C-MuJoCo scenario (LeggedSession) for collection / evaluation
+def build_h_steps(robot, seed: int, h_frac: float | None = None, contact: str | None = "v2"):
+    """Scenario for LeggedSession: body at the origin facing +x, staircase ahead, goal marker at x_end + 0.3 L.
+    h_frac (x L) defaults to U(0.10, 0.30) from the seed. Scenario meta carries the staircase (task map) and L."""
+    import math as _m
+    from rrp.bodies.compiler import compile_robot_spec
+    from rrp.bodies.generators import Module
+    from rrp.bodies.legged import legged_body
+    from rrp.envs.legged import WAYPOINT_COLORS, _waypoint, tracker_contract
+    from rrp.envs.scenario import MountedRobot, ObjectDecl, Scenario, load_task
+    from rrp.physics.contact import apply_world, version_str
+    from rrp.bodies.legged import legged_world
+    body_key = robot if isinstance(robot, str) else robot.meta["name"]
+    if isinstance(robot, str):
+        robot = legged_body(robot)
+    assert isinstance(robot, Module)
+    rng = np.random.default_rng([seed, 4242])
+    meta = copy.deepcopy(robot.meta)
+    L = float(meta["legged"]["nominal_height"])
+    hf = float(rng.uniform(0.10, 0.30)) if h_frac is None else float(h_frac)
+    scene = legged_world(f"h_steps_{seed}", meta.get("source_options"), contact=contact)
+    floor_kw = apply_world(mujoco.MjSpec(), contact, meta.get("source_options"))
+    ground = add_steps(scene, L, hf * L, floor_kw)
+    x_end = steps_layout(L, hf * L)[1]
+    goal = [x_end + 0.3 * L, 0.0]
+    scene.worldbody.add_camera(name="overhead", pos=[0.5 * x_end, 0, 12.0], xyaxes=[1, 0, 0, 0, 1, 0], fovy=100)
+    scene.worldbody.add_camera(name="side", pos=[0.5 * x_end, -3.5 * max(L, 0.5), 1.2 * max(L, 0.5)],
+                               xyaxes=[1, 0, 0, 0, 0.3, 0.95], fovy=60)
+    _waypoint(scene, "goal", goal, WAYPOINT_COLORS["cyan"])
+    meta["contact_model"] = version_str(contact)
+    meta["scene"] = dict(task="h_steps", version=SCENE_VERSION, params=dict(h_frac=hf, x_end=x_end), ground=ground, L=L)
+    site = scene.worldbody.add_site(name="mount0", pos=[0, 0, 0])
+    scene.attach(robot.spec.copy(), prefix="r0_", site=site)
+    scene.memory = 8 * 2 ** 20
+    model = scene.compile()
+    rs = compile_robot_spec(model, meta, prefix="r0_", name=body_key)
+    rs = rs.model_copy(update=dict(controller_contracts=rs.controller_contracts + [tracker_contract(meta, rs)])).with_hash()
+    mr = MountedRobot("r0_", meta, rs, [0.0, 0.0, 0.0], 0.0, {"body": "body"})
+    objects = [ObjectDecl("goal", "goal marker beyond the staircase", "feature", radius=0.12, task_entity="goal")]
+    return Scenario("h_steps", load_task("h_steps"), scene, model, [mr], objects, seed,
+                    meta=dict(body_key=body_key, contact_model=meta["contact_model"], L=L, h_frac=hf, x_end=x_end, goal=goal,
+                              staircase=dict(x0=STEPS_X0 * L, tread=STEPS_TREAD * L, n=STEPS_N, h=hf * L,
+                                             platform=STEPS_PLATFORM * L)))
+
+
+def steps_scan_np(qpos_root: np.ndarray, L: float, h: float) -> np.ndarray:
+    """numpy twin of WarpStepsEnv.extra_obs (PRIVILEGED expert input): 11 x 3 yaw-frame ground heights - (base z - L), / L; + h/L."""
+    from rrp.envs.warp_task_env import SCAN_X, SCAN_Y
+    x, y, z = qpos_root[:3]
+    w, qx, qy, qz = qpos_root[3:7]
+    yaw = math.atan2(2 * (w * qz + qx * qy), 1 - 2 * (qy * qy + qz * qz))
+    sx, sy = np.meshgrid(SCAN_X, SCAN_Y, indexing="ij")
+    px = x + L * (math.cos(yaw) * sx.ravel() - math.sin(yaw) * sy.ravel())
+    hz = steps_height_at(px, L, h)
+    return np.concatenate([(hz - (z - L)) / L, [h / L]]).astype(np.float32)

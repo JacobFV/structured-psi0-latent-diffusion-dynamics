@@ -176,6 +176,7 @@ def main(argv=None):
                 sim_engine=f"mujoco_warp {getattr(mujoco_warp, '__version__', '3.14.0')}", sim_adaptations=env.adaptations,
                 env_differences="per-world randomisation resampled at reset; see rrp.envs.warp_tracker_env docstring",
                 reward_options=env.cfg0.options(), recipe=args.recipe_record, task=args.task,
+                extra_obs_dim=int(getattr(env, "extra_dim", env.obs_dim - env.b.obs_dim)),
                 extra_obs=("privileged height scan 11x3 + h_frac (expert only)" if args.task == "steps" else None),
                 gpu=torch.cuda.get_device_name(0))
     if groups is not None:

@@ -35,15 +35,18 @@ class LearnedTracker:
         self.morph = None
         if meta.get("obs_format") == "morph_v1":        # W13 shared morphology-conditioned tracker (rrp.envs.morph_obs)
             from rrp.envs.morph_obs import OBS_DIM, NS, MorphSpec
-            if meta["obs_dim"] != OBS_DIM or meta["act_dim"] != NS:
+            if meta["obs_dim"] != OBS_DIM + int(meta.get("extra_obs_dim") or 0) or meta["act_dim"] != NS:
                 raise TrackerMismatch("morph_v1 tracker dims do not match rrp.envs.morph_obs")
             self.morph = MorphSpec(binding.model, binding, binding.meta)
             self.transfer = body_key not in (meta.get("train_bodies") or [])   # evaluated on a body it never trained on
         elif meta["body"] != body_key:
             raise TrackerMismatch(f"tracker trained for {meta['body']}, not {body_key}")
-        elif meta["act_dim"] != binding.n or meta["obs_dim"] != binding.obs_dim:
+        elif meta["act_dim"] != binding.n or meta["obs_dim"] != binding.obs_dim + int(meta.get("extra_obs_dim") or 0):
             raise TrackerMismatch("tracker dims do not match body binding")
         self.meta = meta
+        # W13 task experts: PRIVILEGED extra inputs (e.g. a height scan) appended to the observation; the caller sets
+        # extra_fn(data) -> np.ndarray (meta extra_obs_dim). None for every plain tracker.
+        self.extra_fn = None
         self.net = mlp(meta["obs_dim"], tuple(meta["hidden"]), meta["act_dim"])
         self.net.load_state_dict(st["actor"])
         self.net.eval()
@@ -82,6 +85,8 @@ class LearnedTracker:
 
     def _act_morph(self, data, cmd) -> np.ndarray:
         o = self.morph.obs(self.b, data, cmd, self.last_slot, self.phase)
+        if self.extra_fn is not None:
+            o = np.concatenate([o, self.extra_fn(data)]).astype(np.float32)
         x = np.clip((o - self.mean) / self.std, -5, 5).astype(np.float32)
         with self.torch.no_grad():
             a = self.net(self.torch.from_numpy(x)[None])[0].numpy().astype(np.float64)
@@ -95,6 +100,8 @@ class LearnedTracker:
         if self.morph is not None:
             return self._act_morph(data, cmd)
         o = self.b.public_obs(data, cmd, self.last_a, self.phase)
+        if self.extra_fn is not None:
+            o = np.concatenate([o, self.extra_fn(data)]).astype(np.float32)
         x = np.clip((o - self.mean) / self.std, -5, 5).astype(np.float32)
         with self.torch.no_grad():
             a = self.net(self.torch.from_numpy(x)[None])[0].numpy().astype(np.float64)
