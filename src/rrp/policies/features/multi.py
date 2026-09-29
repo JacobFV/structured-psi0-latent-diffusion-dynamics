@@ -24,7 +24,7 @@ import numpy as np
 from rrp.core.observation import PolicyObservation
 from rrp.core.latent_action import AssemblyHandle
 from rrp.core.robot import combined_hash  # noqa: F401  (moved to contracts; envs use it)
-from rrp.policies.features.featurizer import (Featurizer, ActionSpace, PolicyInput, BANKS, HASH_DIM, REL, one_hot,
+from rrp.policies.features.featurizer import (Featurizer, ActionSpace, PolicyInput, BANKS, HASH_DIM, one_hot,
                                              text_hash)
 
 WORKSPACE_FRAME = dict(origin=(0.0, 0.0, 0.0), yaw=0.0, name="table_world")
@@ -211,10 +211,6 @@ class MultiFeaturizer:
             q0=np.concatenate([p.q0 for p in parts]),
             meta=dict(parts[0].meta, spec_hash=self.spec_hash, n_robots=len(parts), nodes_per_robot=self.n_nodes,
                       frame=self.frame["name"]))
-
-
-def multi_featurizer_for(session) -> MultiFeaturizer:
-    return MultiFeaturizer(session.model, session.scenario.robots)
 
 
 # ------------------------------------------------------------------ multi-assembly packet layout (public; moved from

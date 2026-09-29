@@ -146,39 +146,3 @@ def main(argv=None):
     k = argv[1] if len(argv) > 1 else "pg2"
     fs = float(argv[2]) if len(argv) > 2 else 1.0
     print(json.dumps(run(v, k, fs)))
-
-
-def palm_press(version="v2.1", kind="tf3", depth=0.04, T=0.6):
-    """D-118: the carriage drives the (open) gripper DOWN onto the cube top, `depth` below first palm contact, like a
-    noisy descent; returns the max palm/robot<->cube and cube<->table penetration (the lift actuator is stiff: 20 kN/m)."""
-    m, info = build(version, kind)
-    d = mujoco.MjData(m)
-    mujoco.mj_forward(m, d)
-    dt = m.opt.timestep
-    lift = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_ACTUATOR, "lift_act")
-    grip = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_ACTUATOR, "r0_act_grip")
-    cg = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_GEOM, "cube_geom")
-    table = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_GEOM, "table")
-    rob = {b for b in range(m.nbody) if (m.body(b).name or "").startswith("r0_")}
-    d.ctrl[grip] = m.actuator_ctrlrange[grip][1] if kind == "pg2" else -0.1
-    # the tcp starts at the grasp height; the palm is ~(finger reach) above the cube top: lower until well past contact
-    L = 0.055 * (0.75 if kind == "pg2" else 0.85)
-    target = -(L - 0.004 + depth)
-    pr = pt = 0.0
-    for _ in range(int(0.4 / dt)):          # open the fingers first (the module starts closed, overlapping the cube)
-        mujoco.mj_step(m, d)
-    for k in range(int((T + 0.5) / dt)):
-        u = min(1.0, k * dt / T)
-        d.ctrl[lift] = target * (10 * u ** 3 - 15 * u ** 4 + 6 * u ** 5)
-        mujoco.mj_step(m, d)
-        for i in range(d.ncon):
-            c = d.contact[i]
-            gs = (c.geom1, c.geom2)
-            if cg in gs:
-                other = gs[1] if gs[0] == cg else gs[0]
-                if m.geom_bodyid[other] in rob:
-                    pr = max(pr, -float(c.dist))
-                elif other == table:
-                    pt = max(pt, -float(c.dist))
-    return dict(version=info["version"], gripper=kind, press_depth_m=depth, robot_cube_pen_mm=round(1000 * pr, 2),
-                cube_table_pen_mm=round(1000 * pt, 2), robot_geoms_stiffened=info.get("robot_geoms", 0))

@@ -549,10 +549,6 @@ BANK_DIMS = {"morph": None, "scene": 3 + 3 + 2 + HASH_DIM + 3,
              "interact": 4 + 3 + 3 + 3 + 3 + HASH_DIM}
 
 
-def morph_dim(static_dim: int) -> int:
-    return static_dim + 18
-
-
 if TYPE_CHECKING:
     from rrp.envs.mujoco.session import Session
 

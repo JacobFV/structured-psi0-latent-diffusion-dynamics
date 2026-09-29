@@ -4,7 +4,7 @@ from __future__ import annotations
 from rrp.bodies.fixtures import arm_with_port, gripper_module, three_finger_module
 from rrp.bodies.surgery import attach
 from rrp.envs.mujoco.session import Session
-from rrp.envs.mujoco.scenario import build_pick_place, build_reach
+from rrp.envs.mujoco.scenario import build_pick_place
 
 
 def fixture_robot(gripper: str = "parallel", **arm_kw):
@@ -19,7 +19,3 @@ def make_pick_place_session(seed: int = 0, gripper: str = "parallel", n_distract
 
 def make_arm_session(seed: int = 7, **kw) -> Session:
     return make_pick_place_session(seed=seed, **kw)
-
-
-def make_reach_session(seed: int = 0, gripper: str = "parallel", **kw) -> Session:
-    return Session(build_reach(fixture_robot(gripper), seed), seed=seed, **kw)

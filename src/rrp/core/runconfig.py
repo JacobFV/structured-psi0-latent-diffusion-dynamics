@@ -347,13 +347,6 @@ def _has_path(d: dict, path: str) -> bool:
     return True
 
 
-def _get_path(d: dict, path: str):
-    cur = d
-    for part in path.split("."):
-        cur = cur[part]
-    return cur
-
-
 def _set_path(d: dict, path: str, value) -> None:
     parts = path.split(".")
     cur = d

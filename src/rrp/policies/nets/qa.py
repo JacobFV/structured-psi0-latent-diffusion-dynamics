@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import random
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -43,43 +42,6 @@ def slot_color(sim_body: str, cube_color: str = "red") -> str:
     if sim_body.startswith("distractor"):
         return DISTRACTOR_COLORS[int(sim_body[len("distractor"):]) % len(DISTRACTOR_COLORS)]
     raise KeyError(sim_body)
-
-
-def make_questions(labels: dict, slots: list[str], rng: random.Random, per_sample: int = 4) -> list[dict]:
-    """labels: privileged per-step sample labels (rrp.learning.data.episode_samples): held [S] (first
-    manipulator), visible [S], rel_tcp [S,3] (object minus TCP, world frame)."""
-    S = len(slots)
-    out = []
-    for _ in range(per_sample):
-        qt = rng.choice(list(QTYPES))
-        a = rng.randrange(S)
-        if qt == "color":
-            out.append(dict(qtype=qt, a=a, b=-1, q=QTYPES[qt][0], ans=slot_color(slots[a])))
-        elif qt == "is_color":
-            true_c = slot_color(slots[a])
-            c = true_c if rng.random() < 0.5 else rng.choice([x for x in COLORS if x != true_c])
-            out.append(dict(qtype=qt, a=a, b=-1, q=QTYPES[qt][0].format(c=c), ans="yes" if c == true_c else "no"))
-        elif qt == "held":
-            out.append(dict(qtype=qt, a=a, b=-1, q=QTYPES[qt][0], ans="yes" if bool(labels["held"][a]) else "no"))
-        elif qt == "visible":
-            out.append(dict(qtype=qt, a=a, b=-1, q=QTYPES[qt][0], ans="yes" if bool(labels["visible"][a]) else "no"))
-        else:
-            if S < 2:
-                continue
-            b = rng.choice([j for j in range(S) if j != a])
-            da = float(np.linalg.norm(labels["rel_tcp"][a]))
-            db = float(np.linalg.norm(labels["rel_tcp"][b]))
-            out.append(dict(qtype=qt, a=a, b=b, q=QTYPES[qt][0], ans="first" if da < db else "second"))
-    return out
-
-
-def load_decoder(device, dtype=torch.bfloat16, local_dir=None):
-    from transformers import AutoModelForCausalLM, AutoTokenizer
-    src = local_dir or DECODER["repo_id"]
-    kw = {} if local_dir else dict(revision=DECODER["revision"])
-    tok = AutoTokenizer.from_pretrained(src, **kw)
-    lm = AutoModelForCausalLM.from_pretrained(src, dtype=dtype, attn_implementation="sdpa", **kw).to(device)
-    return lm, tok
 
 
 class SlotReadout(nn.Module):

@@ -230,7 +230,3 @@ def procedural_arm_v2(p: ArmParamsV2) -> Module:
                 home_tcp_azimuth=float(math.atan2(READY_FLANGE_POS[1], READY_FLANGE_POS[0])),
                 reach_m=float(sum(p.lengths[1:]) + 0.1))
     return Module(s, meta)
-
-
-def arm_v2_from_seed(seed: int) -> Module:
-    return procedural_arm_v2(sample_arm_v2(seed))

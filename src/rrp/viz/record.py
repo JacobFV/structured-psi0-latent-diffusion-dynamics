@@ -125,10 +125,6 @@ def physics_meta(model, *, family: str) -> dict:
                 actuator_limits_version=model_actuator_limits(model), actuator_mode=resolve_mode())
 
 
-def _stride_for(control_hz: float) -> int:
-    return max(1, math.ceil(control_hz / RP.MAX_FPS - 1e-9))
-
-
 class _Proxy:
     """Stands in for the `mujoco` module inside ONE harness module: forwards everything, wraps mj_step to call the
     original and then the (read-only) observer."""

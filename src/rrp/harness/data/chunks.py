@@ -116,11 +116,6 @@ def episode_samples(pub: dict, prv: dict, H: int, stride: int = 1) -> list[Sampl
     return out
 
 
-def focus_from_inputs(pi, S):
-    """Focus = slots pointed to by patient/destination role tokens of ACTIVE events (public)."""
-    return np.zeros(S, bool)
-
-
 class ChunkDataset:
     def __init__(self, episodes: list[tuple[dict, dict]], H: int, stride: int = 1):
         self.samples: list[Sample] = []

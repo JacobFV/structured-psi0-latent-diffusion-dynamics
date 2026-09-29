@@ -24,8 +24,8 @@ import mujoco
 import numpy as np
 
 from rrp.core.action import NativeCommand
-from rrp.core.observation import SensorChannel, PredicateEstimate
-from rrp.core.task import EntityBinding, OutputBinding
+from rrp.core.observation import SensorChannel
+from rrp.core.task import EntityBinding
 from rrp.bodies.ik import IKSolver
 from rrp.envs.mujoco.session import Session
 from rrp.envs.mujoco.scenario import Scenario
@@ -132,11 +132,6 @@ def _home_azimuths(model: mujoco.MjModel, handles: dict[str, ManipHandle]):
         sid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, h.tcp_site)
         p = d.site_xpos[sid] - h.base_pos
         h.home_azimuth = float(math.atan2(p[1], p[0]))
-
-
-def _unit(v):
-    n = np.linalg.norm(v)
-    return v / n if n > 1e-12 else v
 
 
 def _quat_to_mat(q):

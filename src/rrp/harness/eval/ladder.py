@@ -570,55 +570,6 @@ def summarize(rows: list[dict]) -> dict:
                 lab_err_grip=g("lab_err_grip"), min_tcp_cube_m=g("min_tcp_cube_m"), cmd_step_rad=g("cmd_step_rad"))
 
 
-@torch.no_grad()
-def packed_realization_check(rep_path: str, packed_dir: str, robot_key: str | None, device, n_batches: int = 20,
-                             seed: int = 3, max_j: int = 7, zero_prev_action: bool = False) -> dict:
-    """Stage-A realization error on the TRAINING pack split into arm / gripper nodes and by phase j
-    (encoded-target oracle, the same quantity the ladder measures online as lab_err_*)."""
-    import random
-    from rrp.policies.bundles import load_representation
-    from rrp.harness.data.latent import LatentData
-    from rrp.policies.nets.semantic_latent import assembly_tokens
-    lcfg, E, R, P, res = load_representation(Path(rep_path), device)
-    data = LatentData(Path(packed_dir), zero_prev_action=zero_prev_action, anchor=getattr(R, "anchor", False),
-                      drop_qd=getattr(R, "drop_qd", False))
-    rid = data.ds.meta["robot_ids"].get(robot_key) if robot_key else None
-    pool = None
-    if rid is not None:
-        pool = [int(i) for i in np.nonzero(np.asarray(data.ds.arr["robot_id"]) == rid)[0]]
-    rng = random.Random(seed)
-    acc = {}
-    for _ in range(n_batches):
-        if pool is not None:
-            sel = np.array(sorted(rng.sample(pool, 128)))
-            j = np.array([rng.randint(0, max_j) for _ in range(128)])
-            tgt = np.minimum(sel + j, data.n - 1)
-            same = data.ep[tgt] == data.ep[sel]
-            tgt = np.where(same, tgt, sel); j = np.where(same, j, 0)
-        else:
-            sel, tgt, j = data.sample(128, rng, max_j)
-        batch, a, v, lab, r = data.fetch(sel, tgt, device)
-        af, am, ai = assembly_tokens(batch)
-        mu, _ = E(batch, a, v, af, am, ai)
-        kt = torch.tensor(lcfg.knot_times, device=device)
-        pred = R(mu, am, kt, torch.as_tensor(j * lcfg.control_dt, dtype=mu.dtype, device=device), r["node"],
-                 r["node_mask"], r["local"])
-        # gripper nodes: action-node feature flags differ; use the target distribution: |a| saturates at 1 for grippers
-        m = (r["v1"] & r["node_mask"]).cpu().numpy()
-        err = ((pred - r["a1"]) ** 2).cpu().numpy()
-        zero = (r["a1"] ** 2).cpu().numpy()
-        isg = np.broadcast_to(_gripper_mask(robot_key, m.shape[1]), m.shape) if robot_key else np.zeros_like(m)
-        for b in range(len(sel)):
-            for key, msk in (("arm", m[b] & ~isg[b]), ("grip", m[b] & isg[b])):
-                if msk.any():
-                    d = acc.setdefault((key, int(j[b])), [[], []])
-                    d[0].append(err[b][msk].mean()); d[1].append(zero[b][msk].mean())
-    out = {}
-    for (key, jj), (e, z) in sorted(acc.items()):
-        out.setdefault(key, {})[jj] = dict(n=len(e), err=float(np.mean(e)), zero_action=float(np.mean(z)))
-    return dict(robot=robot_key, rep=rep_path, by_node_and_j=out)
-
-
 def _gripper_mask(robot_key: str, N: int) -> np.ndarray:
     from rrp.bodies.catalog import workbench_robots
     from rrp.envs.mujoco.scenario import BUILDERS

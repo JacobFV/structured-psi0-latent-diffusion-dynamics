@@ -15,12 +15,6 @@ import mujoco
 import numpy as np
 
 
-def quat_to_mat(q):
-    m = np.zeros(9)
-    mujoco.mju_quat2Mat(m, np.asarray(q, float))
-    return m.reshape(3, 3)
-
-
 def rot_error(R_cur: np.ndarray, R_des: np.ndarray) -> np.ndarray:
     """Axis-angle vector rotating current to desired (world frame)."""
     Re = R_des @ R_cur.T

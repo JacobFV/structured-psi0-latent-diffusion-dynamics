@@ -78,17 +78,6 @@ def disk_usage(path: str | Path) -> dict:
     return {"path": str(path), "total_bytes": u.total, "free_bytes": u.free, "used_bytes": u.used}
 
 
-def dir_size_bytes(path: Path) -> int:
-    total = 0
-    for root, _dirs, files in os.walk(path):
-        for f in files:
-            try:
-                total += os.lstat(os.path.join(root, f)).st_size
-            except OSError:
-                pass
-    return total
-
-
 def user_service_cgroup() -> Path:
     uid = os.getuid()
     return CGROUP_ROOT / f"user.slice/user-{uid}.slice/user@{uid}.service"

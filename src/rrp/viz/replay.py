@@ -89,13 +89,6 @@ def decimate(vertices: np.ndarray, faces: np.ndarray, max_faces: int = MAX_MESH_
 
 
 # ------------------------------------------------------------------ static geometry
-def _quat_mul(a, b):
-    w1, x1, y1, z1 = a
-    w2, x2, y2, z2 = b
-    return np.array([w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2, w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,
-                     w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2, w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2])
-
-
 def export_geoms(model, *, groups=(0, 1, 2), max_faces: int = MAX_MESH_FACES) -> tuple[list[dict], list[str]]:
     """Visible geoms of a compiled MjModel -> (contract geoms, body names that carry them, in id order).
     Each geom: {name, body, type, size, rgba, pos, quat (wxyz, relative to its body), mesh?}. Meshes are decimated
