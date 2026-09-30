@@ -12,6 +12,8 @@ Label families live in relgen/{geometry,contact,support,task,body,ui}.py (one mo
 """
 from __future__ import annotations
 
+import itertools
+import json
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -100,10 +102,125 @@ def label_runs_in(label: str, caps) -> bool:
     return LABELS[label].needs <= frozenset(caps)
 
 
+class ComposeError(ValueError):
+    """`compose()` could not realize the requested active set: an unsatisfiable `requires`, no registered part
+    activates something the set needs, or two chosen parts conflict."""
+
+
+_MAX_EXACT_COVER = 12   # PARTS below this size: exact minimal cover; at/above it: deterministic greedy cover
+
+
+def _min_cover(target: frozenset, universe: dict[str, "ScenePart"]) -> tuple[str, ...] | None:
+    """Smallest-cardinality subset of `universe` (name -> ScenePart) whose union of `.activates` covers `target`;
+    None if no subset covers it. Deterministic tie-break: lexicographic on sorted part names, smallest size first.
+    Exact (exhaustive) search below `_MAX_EXACT_COVER` candidates; a size-ranked greedy cover above it (still
+    deterministic, not guaranteed minimal at that scale -- the registry stays small in practice, docs/relations.md 5.2)."""
+    if not target:
+        return ()
+    names = sorted(universe)
+    if len(names) <= _MAX_EXACT_COVER:
+        for r in range(1, len(names) + 1):
+            for combo in itertools.combinations(names, r):
+                covered = frozenset().union(*(universe[n].activates for n in combo))
+                if target <= covered:
+                    return combo
+        return None
+    remaining, chosen, pool = set(target), [], set(names)
+    while remaining:
+        gains = {n: len(universe[n].activates & remaining) for n in pool}
+        best = max(pool, key=lambda n: (gains[n], n), default=None)
+        if best is None or gains[best] == 0:
+            return None
+        chosen.append(best)
+        remaining -= universe[best].activates
+        pool.discard(best)
+    return tuple(sorted(chosen))
+
+
+def _resolve_layout(entities: list, min_gap: float = 0.15) -> None:
+    """Generic, factor-agnostic non-overlapping placement pass (docs/relations.md 5.2): entities a part added with
+    an explicit `pos` (x, y, z) and a `radius` / scalar-or-first-axis `extent` are nudged apart along x, in
+    increasing-x order, until pairwise clearance >= `min_gap`; entities without geometry (a part that places itself,
+    e.g. relative to another entity) are left untouched. Mutates `entities` in place."""
+    def _r(e: dict) -> float:
+        if "radius" in e:
+            return float(e["radius"])
+        ext = e.get("extent")
+        if isinstance(ext, (list, tuple, np.ndarray)) and len(ext):
+            return float(ext[0])
+        if isinstance(ext, (int, float)):
+            return float(ext)
+        return 0.1
+    placed = sorted((e for e in entities if isinstance(e, dict) and "pos" in e), key=lambda e: e["pos"][0])
+    for i in range(1, len(placed)):
+        a, b = placed[i - 1], placed[i]
+        need = _r(a) + _r(b) + min_gap
+        gap = b["pos"][0] - a["pos"][0]
+        if gap < need:
+            b["pos"] = (a["pos"][0] + need,) + tuple(b["pos"][1:])
+
+
+def _merge_events(events: list) -> list:
+    """Union-merge task events from every composed part, order-preserving, dropping exact duplicates (a shared
+    prerequisite two parts both declare, e.g.)."""
+    out, seen = [], set()
+    for e in events:
+        key = json.dumps(e, sort_keys=True, default=str)
+        if key not in seen:
+            seen.add(key)
+            out.append(e)
+    return out
+
+
 def compose(parts, env: str, rng) -> SceneDraft:
-    """The one composition operator (unit R11): union of `activates`, `requires` closed over PARTS, `conflicts`
-    rejected, env compatibility checked, layout resolved, task events merged."""
-    raise NotImplementedError("relgen.compose is implemented by fanout unit R11 (docs/relations.md section 10)")
+    """The one composition operator (unit R11, docs/relations.md 5.2 + 5.5): `parts` is the desired ACTIVE SET (an
+    iterable of dynamics / factor names, e.g. one of `Scheduler.sample`'s active-set entries) -- not a hand-picked
+    list of `ScenePart`s. `compose` finds the smallest cover of registered `PARTS` (restricted to this `env`) whose
+    `.activates` realize the target, closes their `.requires` transitively by covering whatever is still missing
+    (never silently dropping a requirement), rejects any part whose `.conflicts` collides with the final active set,
+    builds each chosen part in deterministic (sorted-name) order, resolves a simple non-overlapping layout of the
+    entities they added and merges their task events. No hand-written per-combination code: a newly registered part
+    or factor is covered automatically the next time its name appears in a target set.
+
+    Raises `ComposeError` if no registered part (for this env) can supply something the target or its closure needs,
+    or if the chosen parts conflict. An empty target composes an empty (no-op) `SceneDraft`."""
+    target = frozenset(parts)
+    universe = {n: p for n, p in PARTS.items() if not p.envs or env in p.envs}
+    if not target:
+        return SceneDraft(env=env, active=frozenset())
+
+    def _active(names) -> frozenset:
+        return frozenset().union(*(universe[n].activates for n in names)) if names else frozenset()
+
+    chosen = list(_min_cover(target, universe) or ())
+    if not chosen:
+        raise ComposeError(f"no registered part for env {env!r} activates {sorted(target)}")
+    active = _active(chosen)
+    seen = set(chosen)
+    while True:
+        needed = frozenset().union(*(universe[n].requires for n in chosen))
+        missing = needed - active
+        if not missing:
+            break
+        more = _min_cover(missing, {n: p for n, p in universe.items() if n not in seen})
+        if not more:
+            raise ComposeError(f"cannot satisfy requires {sorted(missing)} for env {env!r} "
+                               f"(active set {sorted(target)}, chosen parts {sorted(chosen)})")
+        chosen += list(more)
+        seen |= set(more)
+        active = _active(chosen)
+    for n in chosen:
+        p = universe[n]
+        bad = p.conflicts & (active - p.activates)
+        if bad:
+            raise ComposeError(f"part {n!r} conflicts with active {sorted(bad)} (active set {sorted(target)})")
+    chosen = sorted(chosen)
+    draft = SceneDraft(env=env, active=active, parts=tuple(chosen))
+    for n in chosen:
+        universe[n].build(draft, rng)
+    _resolve_layout(draft.entities)
+    draft.events = _merge_events(draft.events)
+    return draft
 
 
 def label_record(label: Label, name: str) -> dict:

@@ -1,13 +1,36 @@
-"""The one relgen scheduler (D-144, docs/relations.md 5.5): progressive composition (1 -> 2 -> k -> full world),
-responsive shares, concise steering, exact replay.
+"""The one relgen scheduler (D-144, docs/relations.md 5.5; fanout unit R11): progressive composition
+(1 -> 2 -> k -> full world), responsive shares, concise steering, exact replay.
 
-Foundation skeleton (F4): the state / config / steer grammar / replay contract are final; the decision policy here is
-a placeholder (uniform shares over non-dropped factors at level 1, full-world floor, boosts, pins, freezes, drops),
-which fanout unit R11 replaces with the competence-driven policy (signals, hysteresis, promotion, drop-back,
-interference) without changing these interfaces.
+Foundation skeleton (F4) contract, kept unchanged by this unit: the `SchedulerConfig` / `ScheduleState` / `SteerOp`
+dataclass shapes, the steer grammar (`parse_steer`, `STEER_OPS`), `Scheduler.steer` / `.validate` / `._apply_steers`
+and the replay contract (decisions depend only on `(SchedulerConfig, seed, steer log, metrics log)`;
+`Scheduler.replay` reproduces the exact sampling sequence).
 
-Replay contract: decisions depend only on (SchedulerConfig, seed, steer log, metrics log); `Scheduler.replay`
-reproduces the exact sampling sequence.
+R11 fills in the decision policy that was a uniform-share placeholder:
+- **signals** (`Scheduler._level_and_reasons`): per factor, EMA-smoothed (`cfg.ema`) competence / plateau /
+  interference / attributed-failure rates, recomputed fresh from `self.metrics_log` at every `decide()` call (never
+  cached on `self`) so the policy stays a pure function of its inputs, per the replay contract above. A factor with
+  no observations yet reports unseen and falls back to the F4 placeholder's neutral baseline.
+- **struggle score** `s_f = (1 - c_f) + 0.5*p_f + i_f + e_f` (docs/relations.md 5.5) drives both the promotion /
+  demotion / drop-back walk and the responsive share weight `share_min + s_f`.
+- **promotion**: level k -> k+1 after 2 consecutive intervals with competence >= its threshold (`cfg.promote`,
+  default `_DEFAULT_PROMOTE_THRESHOLD`); **demotion**: k -> k-1 the first interval competence drops below
+  threshold - hysteresis; **drop-back**: `_DROPBACK_INTERVALS` consecutive intervals of high struggle + positive
+  interference drop the level by one and CAP it there -- promotion is skipped entirely, not just delayed -- until
+  BOTH `_DROPBACK_COOLDOWN_INTERVALS` have elapsed AND the struggle score has actually recovered under threshold.
+  A bare timer was tried first and produces genuine oscillation when interference stays high while competence stays
+  high too (see `research/tracks/rel-r11.md`); recovery-gating is what makes "hysteresis prevents oscillation"
+  (5.5) literally true.
+- **responsive mixing**: shares proportional to `share_min + s_f` (unseen factors default to `s_f = 1.0`, the old
+  placeholder's flat weight, so a scheduler with no `observe()` calls behaves exactly as F4's tests expect), clipped
+  to `[share_min, share_max]`, renormalized to the non-full-world budget, then rate-limited to at most
+  `cfg.max_step_change` absolute change from the previous decision's share.
+- **interference** (`interference`, `max_interference`, `interfering_pairs`, module-level, not on `Scheduler`):
+  `interference(f, g) = metric_f(sets with f, without g) - metric_f(sets with f and g)` over caller-supplied eval
+  records at matched composition depth; a caller feeds `max_interference(...)` per factor into `observe()`'s
+  `"interference"` key so it participates in the struggle score above.
+- **`compose`** (in `rrp.harness.data.relgen.__init__`, not this module) is the sibling half of this unit: minimal
+  part cover of a desired active set, transitive requires-closure, conflict rejection.
 """
 from __future__ import annotations
 
@@ -17,6 +40,11 @@ import time
 from dataclasses import asdict, dataclass, field, fields, replace
 
 import numpy as np
+
+_DEFAULT_PROMOTE_THRESHOLD = 0.8      # docs/relations.md 5.5 example: "competence 0.61 < 0.8"
+_DROPBACK_STRUGGLE = 1.2              # struggle score above which a factor is considered to be struggling
+_DROPBACK_INTERVALS = 3               # consecutive struggling intervals with rising interference before drop-back
+_DROPBACK_COOLDOWN_INTERVALS = 3      # minimum hold after a drop-back; it also requires struggle to have recovered
 
 
 @dataclass(frozen=True)
@@ -147,7 +175,80 @@ class Scheduler:
         self.steer_log.append(op)
         return op
 
-    # -- decisions (placeholder policy; R11)
+    # -- decisions (competence-driven policy; R11)
+    def _raw_signal(self, factor: str, key: str, lo: int, hi: int) -> float | None:
+        """Mean of `metrics[factor][key]` over `self.metrics_log` entries with `lo <= step < hi`, or None if the
+        factor was not observed for `key` in that decision window."""
+        vals = [m[factor][key] for s, m in self.metrics_log
+                if lo <= s < hi and isinstance(m, dict) and factor in m and key in m[factor]]
+        return float(np.mean(vals)) if vals else None
+
+    def _level_and_reasons(self, factor: str, step: int) -> tuple[int, dict, list[str], bool]:
+        """Walk every decision interval boundary up to `step`, EMA-smoothing this factor's signals and applying
+        promotion / demotion / drop-back as it goes (pure function of `self.metrics_log` + `self.cfg`, so replay
+        reproduces it exactly). Only the LAST processed window's reasons are returned -- earlier windows' reasons
+        were already returned by the `decide()` calls that walked up to them, so replaying the whole trajectory on
+        every call (needed for purity: nothing is cached on `self`) must not re-announce old history every time.
+        Returns (level, smoothed signals, this window's reasons, ever observed).
+
+        Drop-back (`docs/relations.md` 5.5) caps the level -- promotion is skipped, not just delayed -- until BOTH
+        `_DROPBACK_COOLDOWN_INTERVALS` have elapsed AND the struggle score has actually fallen back to/under
+        `_DROPBACK_STRUGGLE`; a fixed timer alone would let a still-genuinely-interfering factor promote right back
+        up and immediately drop again, oscillating forever. Recovery-gating instead of a bare timer is what makes
+        "hysteresis prevents oscillation" (5.5) literally true rather than just slower."""
+        cfg = self.cfg
+        thr = dict(cfg.promote).get(factor, _DEFAULT_PROMOTE_THRESHOLD)
+        max_level = max(1, len(cfg.factors))
+        level, consec_hi, consec_struggle = 1, 0, 0
+        capped, cap_release_step = False, -1
+        ema_c = ema_p = ema_i = ema_e = 0.0
+        reasons: list[str] = []
+        any_obs = False
+        for b in range(0, int(step) + 1, max(1, cfg.interval)):
+            lo, hi = b, b + cfg.interval
+            c, p, ifr, e = (self._raw_signal(factor, k, lo, hi) for k in ("competence", "plateau", "interference", "failures"))
+            if not any(v is not None for v in (c, p, ifr, e)):
+                continue          # a gap window with no observations holds the EMA (never decays toward 0)
+            reasons = []           # only the LAST observed window's reasons survive to the return
+            c, p, ifr, e = (v if v is not None else 0.0 for v in (c, p, ifr, e))
+            if not any_obs:
+                ema_c, ema_p, ema_i, ema_e = c, p, ifr, e     # first observation initializes the EMA directly
+            else:
+                ema_c = cfg.ema * ema_c + (1 - cfg.ema) * c
+                ema_p = cfg.ema * ema_p + (1 - cfg.ema) * p
+                ema_i = cfg.ema * ema_i + (1 - cfg.ema) * ifr
+                ema_e = cfg.ema * ema_e + (1 - cfg.ema) * e
+            any_obs = True
+            struggle = (1 - ema_c) + 0.5 * ema_p + ema_i + ema_e
+            if capped and b >= cap_release_step and struggle <= _DROPBACK_STRUGGLE:
+                capped = False                    # released: cooldown elapsed AND it actually recovered
+            if not capped:
+                if ema_c >= thr:
+                    consec_hi += 1
+                    if consec_hi >= 2 and level < max_level:
+                        level += 1
+                        consec_hi = 0
+                        reasons.append(f"promote {factor}: competence {ema_c:.3f} >= {thr} for 2 intervals -> k={level} (step {b})")
+                else:
+                    consec_hi = 0
+                    if ema_c < thr - cfg.hysteresis and level > 1:
+                        level -= 1
+                        reasons.append(f"demote {factor}: competence {ema_c:.3f} < {thr - cfg.hysteresis:.3f} -> k={level} (step {b})")
+            if not capped and struggle > _DROPBACK_STRUGGLE and ema_i > 0:
+                consec_struggle += 1
+                if consec_struggle >= _DROPBACK_INTERVALS and level > 1:
+                    level -= 1
+                    capped, cap_release_step = True, b + _DROPBACK_COOLDOWN_INTERVALS * cfg.interval
+                    consec_struggle = 0
+                    reasons.append(f"drop-back {factor}: struggle {struggle:.3f}, interference {ema_i:.3f} for "
+                                   f"{_DROPBACK_INTERVALS} intervals -> k={level}, held until step {cap_release_step} "
+                                   f"or recovery (step {b})")
+            else:
+                consec_struggle = 0
+        struggle = (1 - ema_c) + 0.5 * ema_p + ema_i + ema_e
+        signals = {"competence": ema_c, "plateau": ema_p, "interference": ema_i, "failures": ema_e, "struggle": struggle}
+        return level, signals, reasons, any_obs
+
     def _apply_steers(self, st: ScheduleState, cfg: SchedulerConfig, step: int) -> SchedulerConfig:
         for op in self.steer_log:
             if op.at is None or op.at > step or op.reason.startswith("REJECTED"):
@@ -176,6 +277,18 @@ class Scheduler:
         st = ScheduleState(step=int(step), level=dict(prev.level if prev else {f: 1 for f in self.cfg.factors}),
                            parts=list(self.cfg.parts))
         cfg = self._apply_steers(st, self.cfg, step)
+        signals: dict[str, dict] = {}
+        reasons: list[str] = []
+        for f in cfg.factors:
+            if f in st.dropped:
+                continue
+            level, sig, why, seen = self._level_and_reasons(f, step)
+            if seen:
+                st.level[f] = level
+                signals[f] = sig
+                reasons.extend(why)
+        st.signals = signals
+        st.reasons.extend(reasons)
         for f, k in st.pins.items():
             st.level[f] = k
         fw = cfg.full_world_floor(step)
@@ -187,7 +300,9 @@ class Scheduler:
                 fw = max(fw, op.value) if op.cmp == ">=" else (min(fw, op.value) if op.cmp == "<=" else op.value)
         st.full_world = float(min(1.0, fw))
         live = [f for f in self.cfg.factors if f not in st.dropped]
-        w = {f: 1.0 for f in live}
+        # responsive mixing (docs/relations.md 5.5): weight proportional to share_min + struggle score; a factor with
+        # no observations yet uses the F4 placeholder's flat weight (1.0) so an un-observed scheduler is unchanged.
+        w = {f: cfg.share_min + signals.get(f, {}).get("struggle", 1.0) for f in live}
         for f, g, until in st.boosts:
             if f in w and step < until:
                 w[f] *= g
@@ -202,6 +317,17 @@ class Scheduler:
         s = sum(st.share.values())
         if s > budget and s > 0:
             st.share = {f: v * budget / s for f, v in st.share.items()}
+        if prev is not None:
+            # rate limit: at most cfg.max_step_change absolute change per decision interval from the previous share
+            # (frozen factors already carried their previous share forward above and are left alone here).
+            limited = {}
+            for f, v in st.share.items():
+                if f in st.frozen:
+                    limited[f] = v
+                    continue
+                p0 = prev.share.get(f, v)
+                limited[f] = max(p0 - cfg.max_step_change, min(p0 + cfg.max_step_change, v))
+            st.share = limited
         if reverts:
             last = reverts[-1]
             target = last.steps if last.steps is not None else None
@@ -245,3 +371,42 @@ class Scheduler:
                 s.decide(t)
             seq.append(s.sample(t, n))
         return s, seq
+
+
+# ------------------------------------------------------------------ interference (docs/relations.md 5.5)
+def interference(records: list[dict], f: str, g: str, metric: str = "competence") -> float | None:
+    """`interference(f, g) = metric_f(sets with f, without g) - metric_f(sets with f and g)` (docs/relations.md 5.5),
+    over caller-supplied eval `records` at matched composition depth / step window. Each record is
+    `{"active": <iterable of factor names in that batch's composed active set>, "metric": {factor: value, ...}}`.
+    A positive value means g hurts f's metric when co-active; None means one side has no matching records (not
+    enough evidence either way). This is a plain function, not a `Scheduler` method: a caller (the eval loop) feeds
+    its result into `Scheduler.observe(step, {f: {"interference": ...}})`, which is what feeds `i_f` above."""
+    with_g = [r["metric"][f] for r in records if f in r["active"] and g in r["active"] and f in r.get("metric", {})]
+    without_g = [r["metric"][f] for r in records if f in r["active"] and g not in r["active"] and f in r.get("metric", {})]
+    if not with_g or not without_g:
+        return None
+    return float(np.mean(without_g) - np.mean(with_g))
+
+
+def max_interference(records: list[dict], factors, metric: str = "competence") -> dict[str, float]:
+    """`i_f = max_g interference(f, g)` per factor (0.0 for a factor with no comparable pairs), ready to feed
+    `Scheduler.observe`."""
+    out = {}
+    for f in factors:
+        vals = [v for g in factors if g != f for v in [interference(records, f, g, metric)] if v is not None]
+        out[f] = max(vals) if vals else 0.0
+    return out
+
+
+def interfering_pairs(records: list[dict], factors, metric: str = "competence", threshold: float = 0.1) -> list[tuple[str, str, float]]:
+    """Every `(f, g, interference(f, g))` above `threshold`, most-interfering first (`rrp suite
+    relations-curriculum`'s "interfering pairs" report)."""
+    out = []
+    for f in factors:
+        for g in factors:
+            if f == g:
+                continue
+            v = interference(records, f, g, metric)
+            if v is not None and v > threshold:
+                out.append((f, g, v))
+    return sorted(out, key=lambda t: -t[2])
