@@ -41,7 +41,8 @@ def test_recipe_tree_is_present():
 
 @pytest.mark.parametrize("path", RECIPES, ids=lambda p: str(p.relative_to(ROOT)))
 def test_every_recipe_plans(path):
-    assert _plan(path).order
+    spec = load_dag(path)
+    assert _plan(path).order or not spec["nodes"]       # an overlay fragment (D-126: `extends: [base, fragment]`, `nodes: {}`) plans as an empty DAG
 
 
 @pytest.mark.parametrize("path", [p for p in RECIPES if p.parent.name == "armdiv"], ids=lambda p: p.stem)
