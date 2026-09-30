@@ -273,18 +273,52 @@ def _tcp(s):
     return s.data.site_xpos[mujoco.mj_name2id(s.model, mujoco.mjtObj.mjOBJ_SITE, site)].copy()
 
 
+class _CmdPolicy:
+    """Policy whose tick-h command is `fn(h)` (Act.command; None = hold): a closed-loop system 0 with a HELD packet, or a
+    replay of recorded commands."""
+
+    def __init__(self, info, fn):
+        self.info, self.fn, self.h = info, fn, 0
+
+    def reset(self, spec, task, seeds, *, envs=None):
+        self.h = 0
+
+    def act(self, obs):
+        from rrp.policies.base import Act
+        c = self.fn(self.h)
+        self.h += 1
+        return {i: Act(c) for i in obs}
+
+
+def _roll_ticks(s, info, fn, ticks, hooks=()):
+    """`ticks` control ticks of `s` through harness.rollout under the command policy `fn` (budget-only task); a crashed
+    tick raises."""
+    from rrp.harness import rollout as R
+    from rrp.harness.eval import hooks as H
+    if ticks <= 0:
+        return
+    ep = R.rollout(lambda sd: s, _CmdPolicy(info, fn), H.budget_task("pick_place", s.spec.env_id), [0], batch=1,
+                   max_steps=ticks, hooks=list(hooks))[0]
+    if ep.outcome == "crash":
+        raise RuntimeError(ep.metrics.get("note") or ep.failure_reason)
+
+
 def disturbance_test(policy, realizer, robot_key: str, seeds: list[int], *, warmup_ticks=30, hold_ticks=8,
                      joint_offset=0.12, joint_index=1, device="cpu", session_hook=None) -> list[dict]:
     """Packet held FIXED (no system-i call). Compare TCP deviation from the undisturbed rollout for:
     A) system 0 closed loop (state-dependent realization), B) open-loop replay of the nominal commands expressed as
     deltas from the current state (no feedback), C) replay of the nominal ABSOLUTE targets (native servo
-    stabilization only).
+    stabilization only). Every stretch of ticks is a `harness.rollout` (warm-up: the latent stack's schedule; the
+    held-packet stretches: a command policy + Recorder hooks).
     session_hook(s): optional, called on each new session before anything else (e.g. the ladder installs its
     input featurizer there)."""
     from rrp.bodies.catalog import workbench_robots
     from rrp.envs.mujoco.scenario import BUILDERS
     from rrp.envs.mujoco.session import Session
     from rrp.core.action import NativeCommand
+    from rrp.harness import rollout as R
+    from rrp.harness.eval import hooks as H
+    from rrp.policies.latent import LatentStackPolicy
     robot = workbench_robots()[robot_key]()
     rows = []
     for sd in seeds:
@@ -293,23 +327,31 @@ def disturbance_test(policy, realizer, robot_key: str, seeds: list[int], *, warm
             session_hook(s)
         f = policy.featurizer(s)
         s0 = LatentSystem0(realizer, f, latent_space_version=policy.lsv, realizer_compat_version=policy.rcv, device=device)
-        for k in range(warmup_ticks):             # normal operation to mid-approach
-            if k % 8 == 0:
-                s0.receive(policy.packets([s])[0], now=float(s.data.time), graph_version=s.runtime.graph_version)
-            s.step(s0.tick(s, s.controller_version()))
+        stack = LatentStackPolicy(policy, realizer, replan_ticks=8, device=device, name="latent_disturbance",
+                                  make_s0=lambda e: s0)
+        if warmup_ticks > 0:                      # normal operation to mid-approach
+            ep = R.rollout(lambda sd_: s, stack, H.budget_task("pick_place", s.spec.env_id), [sd], batch=1,
+                           max_steps=warmup_ticks)[0]
+            if ep.outcome == "crash":
+                raise RuntimeError(ep.metrics.get("note") or ep.failure_reason)
+        info = stack.info
         calls_before = policy.calls
         p = policy.packets([s])[0]
         s0.receive(p, now=float(s.data.time), graph_version=s.runtime.graph_version)
         snap = s.snapshot()
         arm_q = lambda: s.data.qpos[s.robots[0].qadr[:len(s.robots[0].arm_joints)]].copy()
+        held = lambda h: s0.tick(s, s.controller_version())
         # nominal
         nominal_cmds, tcp_nom, q_nom = [], [], []
-        for _ in range(hold_ticks):
-            c = s0.tick(s, s.controller_version())
-            nominal_cmds.append(c)
-            q_nom.append(arm_q())
-            s.step(c)
-            tcp_nom.append(_tcp(s))
+
+        def rec(tcp, cmds=None, qs=None):
+            def on_act(i, e, a):
+                if cmds is not None:
+                    cmds.append(a.command)
+                if qs is not None:
+                    qs.append(arm_q())
+            return H.Recorder(on_act=on_act, on_step=lambda i, e, a, st: tcp.append(_tcp(e)))
+        _roll_ticks(s, info, held, hold_ticks, [rec(tcp_nom, nominal_cmds, q_nom)])
 
         def perturb():
             s.restore(snap)
@@ -321,24 +363,22 @@ def disturbance_test(policy, realizer, robot_key: str, seeds: list[int], *, warm
         # A: closed-loop system 0
         perturb()
         tcp_a = []
-        for _ in range(hold_ticks):
-            s.step(s0.tick(s, s.controller_version()))
-            tcp_a.append(_tcp(s))
+        _roll_ticks(s, info, held, hold_ticks, [rec(tcp_a)])
         # B: open-loop deltas (predetermined trajectory relative to state at disturbance)
         perturb()
         tcp_b = []
         q_start = arm_q()
-        for h, c in enumerate(nominal_cmds):
+
+        def delta_cmd(h):
+            c = nominal_cmds[h]
             g = dict(c.groups)
             g["arm"] = (np.array(c.groups["arm"]) - q_nom[0] + q_start).tolist()
-            s.step(NativeCommand(controller_version=c.controller_version, groups=g, source="debug"))
-            tcp_b.append(_tcp(s))
+            return NativeCommand(controller_version=c.controller_version, groups=g, source="debug")
+        _roll_ticks(s, info, delta_cmd, len(nominal_cmds), [rec(tcp_b)])
         # C: absolute nominal targets (servo stabilization)
         perturb()
         tcp_c = []
-        for c in nominal_cmds:
-            s.step(c)
-            tcp_c.append(_tcp(s))
+        _roll_ticks(s, info, lambda h: nominal_cmds[h], len(nominal_cmds), [rec(tcp_c)])
         dev_ = lambda tr: float(np.linalg.norm(tr[-1] - tcp_nom[-1]))
         rows.append(dict(robot=robot_key, seed=sd, system_i_calls_during_hold=policy.calls - calls_before - 1,
                          final_dev_closed_loop_m=dev_(tcp_a), final_dev_open_loop_delta_m=dev_(tcp_b),
