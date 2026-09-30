@@ -1,6 +1,6 @@
 {
  "schema": "run-index-1",
- "note": "Canonical run ids (family/variant/seed/stage[-tag], as the pipeline names them) of runs made BEFORE the pipeline existed (research/naming.md). The pipeline's own runs need no entry: their id is their path under artifacts/. Paths are in the peer store (and on the host where pulled).",
+ "note": "Canonical run ids (family/variant/seed/stage[-tag], as the pipeline names them) of runs made BEFORE the pipeline existed (naming map: research/naming.md, archived by D-145 P5). The pipeline's own runs need no entry: their id is their path under artifacts/. Paths are in the peer store (and on the host where pulled).",
  "aliases": {
   "arm/bc/direct1701_u12000": "artifacts/runs/baselines_bc_ckpts",
   "arm/nosem/s1/dagger_collect-bc1": "artifacts/runs/ladder_dagger_nsjf_bc1",

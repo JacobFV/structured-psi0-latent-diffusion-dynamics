@@ -102,4 +102,6 @@ groups_need_readme = true        # every .old/<group>/ has a README.md: what it 
 # string literals in live trees that point at removed top-level areas or at .old
 live_trees = ["src", "tests", "recipes", "ops/bin"]
 patterns = ["\\.old/", "[\"'](configs|dags|scripts|tasks|ui)/"]
-exempt = ["tests/unit/test_layout.py"]
+# eval-latent_slice1.json is byte-frozen (its sha256 is recorded in sealed eval results); its free-text `baselines` notes
+# still name the archived configs.
+exempt = ["tests/unit/test_layout.py", "recipes/presets/eval-latent_slice1.json"]

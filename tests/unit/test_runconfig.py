@@ -1,47 +1,12 @@
-"""RunConfig (W5): every legacy config round-trips unchanged; flags are required; derived out; overlays and matrices."""
+"""RunConfig (W5): flags are required; derived out; serialised round trip; overlays and matrices. (D-145 P2 retired the
+legacy-config round trip with `load_legacy` and the `configs/` tree.)"""
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pytest
 
-from rrp.core.runconfig import (NON_RUN_CONFIGS, RunConfig, RunConfigError, RunIndex, expand_matrix,
-                                     iter_legacy_configs, load_legacy, overlay, render)
-
-ROOT = Path(__file__).resolve().parents[2]
-
-
-def test_every_legacy_config_round_trips():
-    paths = iter_legacy_configs(ROOT)
-    assert len(paths) >= 250
-    for p in paths:
-        orig = json.loads(p.read_text())
-        rc = load_legacy(p, ROOT)
-        native = rc.to_native(RunIndex())
-        assert native == orig and list(native) == list(orig), p
-        again = RunConfig.model_validate_json(rc.to_json())      # serialised RunConfig keeps the meaning too
-        assert again.to_native(RunIndex()) == orig, p
-    others = sorted(str(p.relative_to(ROOT)) for p in (ROOT / "configs").rglob("*.json") if p not in paths)
-    assert set(others) <= set(NON_RUN_CONFIGS)
-
-
-def test_legacy_classification_and_flags():
-    rc = load_legacy(ROOT / "configs/ladder/armseed2/sfjf2/rz_sfjf2_gendag1_noqd.json", ROOT)
-    assert (rc.family, rc.stage, rc.variant, rc.seed) == ("arm", "refit", "semfix", 2761)
-    assert rc.flags.realizer_drop_qd is True and rc.flags.zero_prev_action is True
-    assert len(rc.inputs["dagger"]) == 51          # gendag1 omits gen1/ur5e_tf3: a plain ordered list, not a product
-    rc2 = load_legacy(ROOT / "configs/ladder/armseed2/sfjf2/rz_sfjf2_gendag3_noqd.json", ROOT)
-    assert rc2.inputs["dagger"].runs[0] == "runs/ladder_dagger_sfjf2_bc1" and len(rc2.inputs["dagger"].files) == 13
-    assert rc.out == "artifacts/runs/ladder_rz_sfjf2_gendag1_noqd"
-    rep = load_legacy(ROOT / "configs/ladder/armseed2/nsjf2/rep-ladder_latent_nosem_b1fix_anchor_s2.json", ROOT)
-    assert (rep.stage, rep.variant) == ("train_rep", "nosem")
-    # D-144 sweep-flags: `probe_lv_min` no longer applies to arm `train_rep` (retired from FLAG_SPEC; `latent.factors`
-    # instead, codemodded onto this exact file -- see nets/semantic_latent.py / tests/unit/test_relations_r2_latent.py).
-    assert rep.flags.probe_lv_min is None and "probe_lv_min" not in rep.legacy.absent_flags
-    lg = load_legacy(ROOT / "configs/legged_fixsem/rep_fixsem_go2_s1.json", ROOT)
-    assert (lg.family, lg.stage, lg.variant) == ("legged", "train_rep", "semfix")
-    assert lg.flags.qd_dropout == 0.5 and lg.flags.zero_prev_action is None and lg.flags.contact_version == "contact_v1"
+from rrp.core.runconfig import RunConfig, RunConfigError, RunIndex, expand_matrix, overlay, render
 
 
 def _new(**kw):
@@ -52,6 +17,15 @@ def _new(**kw):
              params={"steps": 10})
     d.update(kw)
     return RunConfig.model_validate(d)
+
+
+def test_serialised_round_trip_keeps_the_frozen_legacy_key():
+    """`legacy` is always null but stays in the serialised form: it is part of every existing run's config_hash."""
+    rc = _new()
+    d = json.loads(rc.to_json())
+    assert d["legacy"] is None and RunConfig.model_validate_json(rc.to_json()).config_hash() == rc.config_hash()
+    with pytest.raises(Exception):
+        _new(legacy={"path": "x"})
 
 
 def test_flags_required_and_applicability():

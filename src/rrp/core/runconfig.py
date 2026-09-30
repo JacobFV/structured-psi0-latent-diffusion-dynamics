@@ -9,14 +9,13 @@ stage's native hyperparameters (`params`, passed through unchanged to the existi
 - Flags: which flags apply depends on (family, stage) (FLAG_SPEC). An applicable flag must be stated (not None); a
   non-applicable one must be None. `to_native()` writes each flag at the key the existing code reads.
 - Overlays (`overlay`, deep merge) and matrix expansion (`expand_matrix`, e.g. variant x seed) build configs from a base.
-- Legacy: `load_legacy(path)` reads every JSON config under configs/ into a RunConfig WITHOUT changing its meaning:
-  `to_native()` returns exactly the original dict (tests/unit/test_runconfig.py round-trips all of configs/). A flag the
-  legacy file omits gets the value the code has always defaulted to (LEGACY_FLAG_DEFAULTS) and is listed in
-  `legacy.absent_flags`, so it is not written back (the old code keeps applying the same default).
-
 Run ids: "<store>/<name>" with store in {runs, packed, datasets, ...} (a path under artifacts/), optionally followed by
 ":<file>". Ids resolve to artifacts/<id> unless the RunIndex maps them (aliases such as "arm/semfix/s2/rep" for legacy
-runs; configs/run_index.json). Stdlib + pydantic only (contracts layer).
+runs; artifacts/run_index.json). Stdlib + pydantic only (contracts layer).
+
+D-145 P2: the hand-written per-run JSON configs (`configs/`, now archived) and their reader (`load_legacy` and friends)
+are gone; a RunConfig is rendered from a recipe (`recipes/`, harness/dag.py). The `legacy` key stays in the serialised
+form (always null) because it is part of every existing run's `config_hash` / `config.json`.
 """
 from __future__ import annotations
 
@@ -37,44 +36,14 @@ Variant = Literal["sem", "nosem", "semfix", "na"]
 PIPELINE_STAGES = ("collect", "pack", "train_rep", "probes", "train_flow", "flow_ft", "dagger_collect", "refit",
                    "eval_r1", "eval_r2", "heldout", "edits", "train_bc", "validate_tracker", "train_tracker",
                    "grpo", "target_eval", "target_adapt")   # D-126 (arm): GRPO + anchors; sealed target-body eval / adaptation
-# kinds of legacy configs that are not pipeline stages (read for provenance; the pipeline does not run them).
-# train_bc moved to PIPELINE_STAGES (W8: legged BC positive control through run-dag); arm/dual do not implement it.
-LEGACY_ONLY_STAGES = ("train_policy", "adapt", "vlm", "protocol")
-Stage = Literal[PIPELINE_STAGES + LEGACY_ONLY_STAGES]  # type: ignore[valid-type]
-# NOTE (D-144 addendum, decision (b); unit R2c raised this, unit sweep-flags closed it once R4 merged): arm/dual
-# `train_rep` no longer maps `probe_lv_min` in FLAG_SPEC below. R2c left it in place because retiring it needed three
-# things it did not own together: (1) legged's identical `Flags` schema (fanout unit R4, merged since -- but see
-# below, legged's OWN dags still use it, a separate reason it survives in FLAG_NAMES); (2)
-# `test_runconfig.py::test_variant_must_match_recipe` (now updated to the `factors:`-style RunConfig, the only shape
-# arm/dual `train_rep` still accepts for a NEW, non-legacy config -- see `_check_variant`); (3) `recipes/templates/arm_lineage.yaml`
-# / `recipes/templates/dual_lineage.yaml`, now emitting `latent: {factors: [...]}` (a `probe.arm.*` FactorSpec per
-# query, `docs/relations.md` 10's `_probe_factors` shape) instead of a flag-driven flat `latent.semantic_weight`, and
-# `configs/ladder/**.json` (6 rep files) codemodded to match -- `tests/unit/test_relations_r2_latent.py`'s frozen
-# `LatentConfig.version()` table proves the hashes unchanged, `tests/unit/test_dag.py::
-# test_arm_dag_reproduces_legacy_configs` proves the dag's rendered native config still equals the (now-factors-
-# shaped) on-disk files.
-# `probe_lv_min` retired (sweep-flags follow-up, 2026-09-30) from `FLAG_SPEC[("legged", "train_rep")]` too, closing
-# the note above's own open item: every retired legged_v2_* instance DAG / `recipes/templates/legged_*.yaml` /
-# `legged_fixrep.yaml` / `smoke_legged.yaml` (9 files) and every `configs/{legged_latent,legged_fixsem,t1_diag}/
-# rep_*.json` file now renders `params.latent.factors` (a `probe.legged.*` FactorSpec per query, the SAME shape
-# arm/dual use, `nets/semantic_latent.py::legacy_latent_factors`) instead of a flag-driven flat
-# `latent.semantic_weight` + `flags.probe_lv_min` pair -- exactly the arm/dual closure above, now also for legged.
-# The two exceptions deliberately left flat (`configs/legged_latent/rep_{nosem,sem}_v1.json`: their "latent" block
-# has no legged-only key, so it happens to also be valid `LatentConfig(**...)` kwargs and is pinned by
-# `tests/unit/test_relations_r2_latent.py`'s OWN frozen-hash table under arm's `probe.arm.*` reading -- adding
-# `factors:` there would silently feed that unrelated test a `probe.legged.*` list it reads as an empty `probe.arm.*`
-# set, i.e. wrong-but-plausible weight/lv_min = defaults) still load correctly at RUNTIME regardless (`harness/
-# train/legged_latent_train.py::_legged_probe_factors`'s legacy-key fallback, unaffected by this FLAG_SPEC change --
-# it reads the flat `"latent"` dict keys directly, never the `flags:` mechanism). `probe_lv_min` STAYS in
-# FLAG_NAMES / `Flags` (never mapped by ANY family's FLAG_SPEC any more) only because existing tests construct
-# `Flags(probe_lv_min=None, ...)` explicitly (`Strict`/`extra="forbid"` would reject removing the field outright);
-# `LEGACY_FLAG_DEFAULTS[("legged", "probe_lv_min")]` is removed below (dead: `load_legacy` never looks it up once
-# FLAG_SPEC drops the key, same reasoning as the arm/dual retirement above).
+Stage = Literal[PIPELINE_STAGES]  # type: ignore[valid-type]
+# NOTE (D-144 sweep-flags, D-145 P2): no family's `train_rep` maps `probe_lv_min` any more: the probe weights / lv floor
+# are a factor set (`params.latent.factors`, a `probe.arm.*` / `probe.legged.*` FactorSpec per query;
+# `nets/semantic_latent.py::legacy_latent_factors`), and `_check_variant` reads them there. `probe_lv_min` stays in
+# FLAG_NAMES / `Flags` (closed schema, part of every serialised config and config_hash) though no FLAG_SPEC uses it.
 FLAG_NAMES = ("zero_prev_action", "realizer_anchor", "realizer_drop_qd", "probe_lv_min", "qd_dropout", "contact_version")
 META = "@meta"          # flag recorded in the RunConfig/provenance only (no native key; e.g. contact_version)
 CLI = "@cli"            # flag the stage turns into a command-line argument (e.g. ladder --prev-action zero|own)
-NON_RUN_CONFIGS = ("configs/resources.local.json", "configs/run_index.json")
-DEFAULT_CONTACT_VERSION = "contact_v1"   # every config in configs/ predates contact v2 (W1)
 
 
 def _flag_spec() -> dict[tuple[str, str], dict[str, str]]:
@@ -100,7 +69,7 @@ def _flag_spec() -> dict[tuple[str, str], dict[str, str]]:
     legged["refit"] = {"qd_dropout": "qd_dropout", "contact_version": META}
     spec = {}
     for fam, table in (("arm", arm), ("legged", legged), ("dual", dual)):
-        for st in PIPELINE_STAGES + LEGACY_ONLY_STAGES:
+        for st in PIPELINE_STAGES:
             spec[(fam, st)] = dict(table.get(st, {"contact_version": META}))
     return spec
 
@@ -118,7 +87,7 @@ _PLUGINS_LOADED = False
 
 def register_family(name: str, *, flag_spec: dict[str, dict[str, str]] | None = None,
                     default_stage_flags: dict[str, str] | None = None,
-                    legacy_flag_defaults: dict[str, Any] | None = None, doc: str = "") -> None:
+                    doc: str = "") -> None:
     """Register an extension body family.
 
     flag_spec: {stage: {flag: where}} for the stages where meaning-changing flags apply (`where` is the native config
@@ -132,22 +101,19 @@ def register_family(name: str, *, flag_spec: dict[str, dict[str, str]] | None = 
     flag_spec = {k: dict(v) for k, v in (flag_spec or {}).items()}
     default_stage_flags = dict(default_stage_flags or {})
     for st, table in list(flag_spec.items()) + [("*", default_stage_flags)]:
-        if st != "*" and st not in PIPELINE_STAGES + LEGACY_ONLY_STAGES:
+        if st != "*" and st not in PIPELINE_STAGES:
             raise RunConfigError(f"{name}: unknown stage {st!r}")
         bad = [f for f in table if f not in FLAG_NAMES]
         if bad:
             raise RunConfigError(f"{name}/{st}: unknown flags {bad} (known: {FLAG_NAMES})")
-    info = dict(flag_spec=flag_spec, default_stage_flags=default_stage_flags,
-                legacy_flag_defaults=dict(legacy_flag_defaults or {}), doc=doc)
+    info = dict(flag_spec=flag_spec, default_stage_flags=default_stage_flags, doc=doc)
     if name in _EXTERNAL_FAMILIES:
         if _EXTERNAL_FAMILIES[name] != info:
             raise RunConfigError(f"family {name!r} is already registered with a different spec")
         return
     _EXTERNAL_FAMILIES[name] = info
-    for st in PIPELINE_STAGES + LEGACY_ONLY_STAGES:
+    for st in PIPELINE_STAGES:
         FLAG_SPEC[(name, st)] = dict(flag_spec.get(st, default_stage_flags))
-    for k, v in info["legacy_flag_defaults"].items():
-        LEGACY_FLAG_DEFAULTS[(name, k)] = v
 
 
 def unregister_family(name: str) -> None:
@@ -156,8 +122,6 @@ def unregister_family(name: str) -> None:
         return
     for k in [k for k in FLAG_SPEC if k[0] == name]:
         del FLAG_SPEC[k]
-    for k in [k for k in LEGACY_FLAG_DEFAULTS if k[0] == name]:
-        del LEGACY_FLAG_DEFAULTS[k]
 
 
 def load_family_plugins(force: bool = False) -> list[str]:
@@ -197,25 +161,6 @@ def ensure_family(name: str) -> str:
 
 
 Family = Annotated[str, AfterValidator(ensure_family)]
-# the value the existing code uses when a legacy config omits the key (where it is read: see the comments)
-LEGACY_FLAG_DEFAULTS = {
-    ("arm", "realizer_anchor"): False,        # training/latent_train.py cfg_json.get("realizer_anchor", False)
-    ("arm", "realizer_drop_qd"): False,       # training/latent_train.py, controllers/bundles.py .get(..., False)
-    # ("arm"|"dual", "probe_lv_min") retired (D-144 sweep-flags): no longer in FLAG_SPEC[("arm"|"dual", "train_rep")],
-    # so `load_legacy` never looks this default up for those two families any more; `LatentConfig`'s own default
-    # (`nets/semantic_latent.py::LATENT_LEGACY_KEYS` / `_probe_factors`) is unaffected (a different table).
-    # ("legged", "probe_lv_min") retired too (sweep-flags follow-up, 2026-09-30): no longer in
-    # FLAG_SPEC[("legged", "train_rep")] either, so `load_legacy` never looks this default up for legged now; the
-    # SAME `LATENT_LEGACY_KEYS`-derived default (-8.0) lives on in `nets/semantic_latent.py::legacy_latent_factors`,
-    # the one shared table `_legged_probe_factors` now calls into.
-    ("dual", "realizer_anchor"): False, ("dual", "realizer_drop_qd"): False,
-    ("legged", "qd_dropout@train_rep"): 0.0,  # training/legged_latent_train.py lc.get("qd_dropout", 0.0)
-    ("legged", "qd_dropout@refit"): 0.5,      # training/legged_dagger.py cfg.get("qd_dropout", 0.5)
-}
-# zero_prev_action is NOT defaulted here: a legacy config without it keeps it absent, and the W3 reader
-# (contracts.provenance.resolve_zero_prev_action) warns and applies the legacy False, exactly as before.
-INPUT_KEYS = ("representation", "packed_dir", "dataset", "init_from", "dagger", "gen_dagger", "gen_flow", "data",
-              "init_realizer", "checkpoint", "policy_checkpoint", "feature_cache")
 
 
 class RunConfigError(ValueError):
@@ -249,13 +194,6 @@ class ProductRef(Strict):
 InputValue = Union[str, list[str], ProductRef]
 
 
-class LegacyInfo(Strict):
-    path: str
-    sha256: str
-    absent_flags: list[str] = Field(default_factory=list)
-    key_order: list[str] = Field(default_factory=list)
-
-
 class RunConfig(Strict):
     schema_version: Literal["runconfig-1"]
     family: Family
@@ -270,7 +208,7 @@ class RunConfig(Strict):
     params: dict[str, Any] = Field(default_factory=dict)     # native config, passed through to the existing code
     options: dict[str, Any] = Field(default_factory=dict)    # pipeline-wrapper arguments (robots, seed sets, workers)
     note: str = ""
-    legacy: LegacyInfo | None = None
+    legacy: None = None      # frozen key: always null; kept so config_hash / config.json of every existing run stay valid
 
     @model_validator(mode="after")
     def _check(self):
@@ -288,27 +226,22 @@ class RunConfig(Strict):
         for name, where in spec.items():
             if where not in (META, CLI) and _has_path(self.params, where):
                 raise RunConfigError(f"flag {name!r} must be set in flags, not in params[{where!r}]")
-        if self.legacy is None:
-            if "out_dir" in self.params:
-                raise RunConfigError("out_dir is derived for new runs (only legacy configs keep a literal out_dir)")
-            if not re.fullmatch(r"[A-Za-z0-9_.\-]+(/[A-Za-z0-9_.\-]+)*", self.lineage) or not re.fullmatch(r"[A-Za-z0-9_.\-]+", self.track):
-                raise RunConfigError(f"bad lineage/track {self.lineage!r}/{self.track!r}")
-            _check_variant(self)
+        if "out_dir" in self.params:
+            raise RunConfigError("out_dir is derived (artifacts/runs/<track>/<lineage>/<stage>[-tag]_s<seed>)")
+        if not re.fullmatch(r"[A-Za-z0-9_.\-]+(/[A-Za-z0-9_.\-]+)*", self.lineage) or not re.fullmatch(r"[A-Za-z0-9_.\-]+", self.track):
+            raise RunConfigError(f"bad lineage/track {self.lineage!r}/{self.track!r}")
+        _check_variant(self)
         return self
 
     # --------------------------------------------------------------------------------------------- derived
     @property
     def run_id(self) -> str:
-        if self.legacy is not None and isinstance(self.params.get("out_dir"), str):
-            return _id_of(self.params["out_dir"])[0]
         tag = f"-{self.tag}" if self.tag else ""
         return f"runs/{self.track}/{self.lineage}/{self.stage}{tag}_s{self.seed}"
 
     @property
     def out(self) -> str:
         """Output directory (relative to the repo root)."""
-        if self.legacy is not None and isinstance(self.params.get("out_dir"), str):
-            return self.params["out_dir"]
         return "artifacts/" + self.run_id
 
     def config_hash(self) -> str:
@@ -317,22 +250,17 @@ class RunConfig(Strict):
         return hashlib.sha256(json.dumps(d, sort_keys=True).encode()).hexdigest()[:16]
 
     def to_native(self, index: "RunIndex | None" = None) -> dict:
-        """The dict the existing stage function reads (legacy: exactly the original file)."""
+        """The dict the stage function reads: params + resolved inputs + flags at their native keys + derived out_dir/name."""
         index = index or RunIndex()
         native = copy.deepcopy(self.params)
         for k, v in self.inputs.items():
             native[k] = index.resolve_value(v)
-        absent = set(self.legacy.absent_flags) if self.legacy else set()
         for name, where in FLAG_SPEC[(self.family, self.stage)].items():
-            if where in (META, CLI) or name in absent:
+            if where in (META, CLI):
                 continue
             _set_path(native, where, getattr(self.flags, name))
-        if self.legacy is None:
-            native.setdefault("out_dir", self.out)
-            native.setdefault("name", self.run_id.replace("runs/", "", 1).replace("/", "_"))
-        if self.legacy is not None and self.legacy.key_order:
-            order = {k: i for i, k in enumerate(self.legacy.key_order)}
-            native = dict(sorted(native.items(), key=lambda kv: order.get(kv[0], len(order))))
+        native.setdefault("out_dir", self.out)
+        native.setdefault("name", self.run_id.replace("runs/", "", 1).replace("/", "_"))
         return native
 
     def input_paths(self, index: "RunIndex | None" = None) -> dict[str, str | list[str]]:
@@ -376,17 +304,10 @@ def _factors_probe_weight_lv(factors) -> tuple[float | None, float | None]:
 
 
 def _check_variant(rc: RunConfig) -> None:
-    """New configs: the variant label must match the recipe it names (catches mislabelled lineages).
+    """The variant label must match the recipe it names (catches mislabelled lineages).
 
-    D-144 sweep-flags (+ 2026-09-30 follow-up): `train_rep` configs are always `factors:`-shaped now for EVERY
-    family (`recipes/templates/arm_lineage.yaml` / `recipes/templates/dual_lineage.yaml` / the retired legged_v2_* DAGs +
-    `legged_fixrep.yaml` + `smoke_legged.yaml` + the two `recipes/templates/legged_*.yaml` emit `latent.factors`;
-    `FLAG_SPEC[(fam, "train_rep")]` no longer maps `probe_lv_min` for any of the three families, so `rc.flags.
-    probe_lv_min` is always None here) -- the old flat `lat.get("semantic_weight")` / `rc.flags.probe_lv_min`
-    fallback this function used to carry for legged-only configs is gone; only `_legacy_variant` (`load_legacy`'s
-    OWN, separate classifier, below) still reads on-disk configs whose `"latent"` block stayed flat (`rc.legacy is
-    not None` there, so this function -- `_check_variant`, called only when `rc.legacy is None` -- never runs on
-    them anyway)."""
+    `train_rep` configs are `factors:`-shaped for every family (`params.latent.factors`: a `probe.arm.*` /
+    `probe.legged.*` FactorSpec per query; D-144 sweep-flags); the variant is read off their (weight, lv_min)."""
     if rc.variant == "na" or rc.stage not in ("train_rep", "train_flow", "flow_ft"):
         return
     p = rc.params
@@ -432,32 +353,9 @@ def _set_path(d: dict, path: str, value) -> None:
     cur[parts[-1]] = value
 
 
-def _pop_path(d: dict, path: str):
-    parts = path.split(".")
-    cur = d
-    for part in parts[:-1]:
-        cur = cur[part]
-    return cur.pop(parts[-1])
-
-
 # ---------------------------------------------------------------------------------------------------- run index
-def _id_of(path: str) -> tuple[str, str | None]:
-    """artifacts/<store>/<name>[/<rest>] -> ("<store>/<name>", "<rest>" | None)."""
-    rel = path[len("artifacts/"):]
-    parts = rel.split("/")
-    if len(parts) < 2 or not parts[0] or not parts[1]:
-        raise RunConfigError(f"not a run path: {path!r}")
-    rest = "/".join(parts[2:])
-    return f"{parts[0]}/{parts[1]}", (rest or None)
-
-
-def path_to_ref(path: str) -> str:
-    rid, rest = _id_of(path)
-    return rid if rest is None else f"{rid}:{rest}"
-
-
 class RunIndex:
-    """Run id -> path. Default: artifacts/<id>. `aliases` (configs/run_index.json) name existing runs canonically,
+    """Run id -> path. Default: artifacts/<id>. `aliases` (artifacts/run_index.json) name existing runs canonically,
     e.g. "arm/semfix/s2/rep" -> "artifacts/runs/ladder_latent_semfix_b1fix_anchor_s2"."""
 
     def __init__(self, aliases: dict[str, str] | None = None, root: Path | None = None):
@@ -465,7 +363,7 @@ class RunIndex:
         self.root = root
 
     @classmethod
-    def load(cls, path: Path | str = "configs/run_index.json", root: Path | None = None) -> "RunIndex":
+    def load(cls, path: Path | str = "artifacts/run_index.json", root: Path | None = None) -> "RunIndex":
         p = Path(path)
         if not p.is_absolute():            # relative to root, else to the rrp checkout / $RRP_HOME (not the cwd)
             from rrp.core.paths import rrp_home
@@ -573,139 +471,3 @@ def expand_matrix(base: dict, matrix: dict[str, list], per_value: dict[str, dict
                 d = overlay(d, ov)
         out.append(render(d, {**(env or {}), **p}))
     return out
-
-
-# ---------------------------------------------------------------------------------------------------- legacy load
-_SEMFIX = re.compile(r"(semfix|fixsem|sfjf|lv4)")
-_NOSEM = re.compile(r"(nosem|nsjf)")
-_SEM = re.compile(r"(sem|jointfix|sejf)")
-_LINEAGE = re.compile(r"(sfjf2|nsjf2|sejf2|sfjf|nsjf|jointfix|bindv4\w*?(?=_|$)|b1fix)")
-DUAL_DATA_TASKS = ("handover", "support_insert", "assign")
-
-
-def classify_legacy(rel: str, cfg: dict) -> tuple[str, str]:
-    """(family, stage) of a legacy config from its directory and file name."""
-    parts = rel.split("/")
-    d, stem = parts[1], Path(rel).stem
-    text = f"{stem} {cfg.get('name', '')}"
-    if d in ("legged_latent", "legged_fixsem", "t1_diag", "legged_dagger", "legged_bc"):
-        fam = "legged"
-        if d == "legged_bc":
-            return fam, "train_bc"
-        if d == "legged_dagger" or stem.startswith("rz"):
-            return fam, "refit"
-        return fam, ("train_rep" if stem.startswith("rep") else "train_flow")
-    fam = "dual" if ("dualarm" in text or "multi_m" in cfg) else "arm"
-    if d == "data":
-        return ("dual" if cfg.get("task") in DUAL_DATA_TASKS else "arm"), "collect"
-    if d == "adapt":
-        return "arm", "adapt"
-    if d == "vlm":
-        return "arm", "vlm"
-    if d == "eval":
-        return "arm", "protocol"
-    if d == "model":
-        return "arm", "train_policy"
-    if d in ("latent", "ladder"):
-        if stem.startswith("pack"):
-            return fam, "pack"
-        if stem.startswith("rep"):
-            return fam, "train_rep"
-        if stem.startswith("rz"):
-            return fam, "refit"
-        if stem.startswith("flow"):
-            return fam, ("flow_ft" if "init_from" in cfg else "train_flow")
-    raise RunConfigError(f"cannot classify legacy config {rel}")
-
-
-def _legacy_variant(stage: str, rel: str, cfg: dict) -> str:
-    if stage in ("collect", "pack", "adapt", "vlm", "protocol", "train_policy", "train_bc"):
-        return "na"
-    rep = cfg.get("representation") if isinstance(cfg.get("representation"), str) else ""
-    text = f"{Path(rel).stem} {cfg.get('name', '')} {rep}".lower()
-    # D-144 sweep-flags: dropped the `lat.get("probe_lv_min"...) / lat.get("semantic_weight"...)` flat-key fallback
-    # that used to supplement the filename/name regex below -- confirmed empirically (a repo-wide scan over every
-    # configs/**/*.json with a "latent" block) that no file's classification actually depended on it; the filename
-    # regexes alone already agree with it everywhere. Text-only classification now, for every config under configs/,
-    # factors:-shaped or still-flat alike (this function only reads `rel`/`cfg.get("name")`/`representation` now).
-    if _SEMFIX.search(text):
-        return "semfix"
-    if _NOSEM.search(text):
-        return "nosem"
-    if _SEM.search(text):
-        return "sem"
-    return "na"
-
-
-def _compress(refs: list[str]) -> InputValue:
-    runs, files = [], []
-    for r in refs:
-        rid, _, f = r.partition(":")
-        if rid not in runs:
-            runs.append(rid)
-    first = runs[0] if runs else None
-    files = [r.partition(":")[2] for r in refs if r.partition(":")[0] == first]
-    if len(runs) > 1 and all(files) and ProductRef(runs=runs, files=files).refs() == refs:
-        return ProductRef(runs=runs, files=files)
-    return refs
-
-
-def load_legacy(path: Path | str, root: Path | None = None) -> RunConfig:
-    """Read a legacy JSON config (configs/**) into a RunConfig; `to_native()` returns the original dict."""
-    p = Path(path)
-    full = p if p.is_absolute() or root is None else root / p
-    raw = full.read_bytes()
-    cfg = json.loads(raw)
-    rel = str(p) if not p.is_absolute() else str(p.relative_to(root)) if root else str(p)
-    rel = rel[rel.index("configs/"):] if "configs/" in rel else rel
-    family, stage = classify_legacy(rel, cfg)
-    params = copy.deepcopy(cfg)
-    inputs: dict[str, InputValue] = {}
-    for k in INPUT_KEYS:
-        v = params.get(k)
-        if isinstance(v, str) and v.startswith("artifacts/") and _is_run_path(v):
-            inputs[k] = path_to_ref(params.pop(k))
-        elif isinstance(v, list) and v and all(isinstance(x, str) and x.startswith("artifacts/") and _is_run_path(x) for x in v):
-            inputs[k] = _compress([path_to_ref(x) for x in params.pop(k)])
-    flags: dict[str, Any] = {n: None for n in FLAG_NAMES}
-    absent: list[str] = []
-    for name, where in FLAG_SPEC[(family, stage)].items():
-        if where == META:
-            flags[name] = DEFAULT_CONTACT_VERSION if name == "contact_version" else None
-            continue
-        if where == CLI:
-            continue
-        if _has_path(params, where):
-            flags[name] = _pop_path(params, where)
-        else:
-            key = (family, f"{name}@{stage}") if (family, f"{name}@{stage}") in LEGACY_FLAG_DEFAULTS else (family, name)
-            if name == "zero_prev_action":
-                # no default: keep absent. RunConfig needs a value, so record the legacy reader's value (False,
-                # with the W3 warning at train/eval time); absent_flags keeps it out of the native dict.
-                flags[name] = False
-            elif key in LEGACY_FLAG_DEFAULTS:
-                flags[name] = LEGACY_FLAG_DEFAULTS[key]
-            else:
-                raise RunConfigError(f"{rel}: no legacy default known for flag {name!r} ({family}/{stage})")
-            absent.append(name)
-    variant = _legacy_variant(stage, rel, cfg)
-    m = _LINEAGE.search(f"{Path(rel).stem} {cfg.get('name', '')}")
-    lineage = m.group(1) if m else Path(rel).stem
-    seed = cfg.get("seed") if isinstance(cfg.get("seed"), int) else 0
-    return RunConfig(schema_version=SCHEMA_VERSION, family=family, stage=stage, variant=variant, seed=seed,
-                     lineage=lineage, track="legacy", tag=Path(rel).stem, inputs=inputs, flags=Flags(**flags),
-                     params=params, legacy=LegacyInfo(path=rel, sha256=hashlib.sha256(raw).hexdigest(),
-                                                      absent_flags=absent, key_order=list(cfg.keys())))
-
-
-_RUN_PATH = re.compile(r"artifacts/[A-Za-z0-9_.\-]+/[A-Za-z0-9_.\-]+(/[A-Za-z0-9_.\-/]*)?")
-
-
-def _is_run_path(v: str) -> bool:
-    return bool(_RUN_PATH.fullmatch(v)) and not v.endswith("/")
-
-
-def iter_legacy_configs(root: Path) -> list[Path]:
-    """Every run config under configs/ (NON_RUN_CONFIGS excluded)."""
-    return sorted(p for p in (root / "configs").rglob("*.json")
-                  if str(p.relative_to(root)) not in NON_RUN_CONFIGS)

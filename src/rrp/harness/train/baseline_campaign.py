@@ -44,7 +44,7 @@ def _lock(path: Path):
 
 def source_config(method: str, seed: int, cell: Path, smoke: bool = False, source_pack: str = SOURCE_PACK,
                   snapshot_steps: list | None = None) -> dict:
-    base = json.loads(Path("configs/model/policy-small-structured.json").read_text())
+    base = json.loads(Path("recipes/presets/policy-small-structured.json").read_text())
     cfg = dict(base, seed=seed, out_dir=str(cell / "source"), name=f"{method}_seed{seed}",
                packed_dir=source_pack, packed_stride=base.get("stride", 2), prefetch=True, exact_resume=True,
                checkpoint_every_steps=1000, zero_prev_action=True)   # D-045: deployment-consistent input (B-1)
@@ -55,7 +55,7 @@ def source_config(method: str, seed: int, cell: Path, smoke: bool = False, sourc
     if mp.exists():                   # W7/D-110: the grasp physics the demonstrations were collected under
         cfg["grasp_contact_version"] = json.loads(mp.read_text()).get("grasp_contact_version") or "grasp_v1"
     if method == "baseline_action_only_codec":
-        ccfg = json.loads(Path("configs/model/codec-small.json").read_text())
+        ccfg = json.loads(Path("recipes/presets/codec-small.json").read_text())
         cfg["codec_checkpoint"] = str(cell / "codec" / "codec.pt")
         cfg["policy"]["latent_dim"] = ccfg["codec"]["latent_dim"]
     if smoke:
@@ -65,7 +65,7 @@ def source_config(method: str, seed: int, cell: Path, smoke: bool = False, sourc
 
 
 def codec_config(seed: int, cell: Path, smoke: bool = False) -> dict:
-    ccfg = json.loads(Path("configs/model/codec-small.json").read_text())
+    ccfg = json.loads(Path("recipes/presets/codec-small.json").read_text())
     cfg = dict(ccfg, seed=seed, out_dir=str(cell / "codec"), name=f"codec_seed{seed}")
     if smoke:
         cfg["episodes_per_robot"] = 3

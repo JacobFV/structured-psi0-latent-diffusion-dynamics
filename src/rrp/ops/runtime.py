@@ -18,7 +18,7 @@ from rrp.ops import telemetry
 from rrp.core.paths import rrp_home
 
 REPO = rrp_home()          # the rrp checkout (unchanged there); $RRP_HOME or the cwd for an installed rrp
-CONFIG = REPO / "configs" / "resources.local.json"
+CONFIG = REPO / "ops" / "resources.local.json"
 
 
 def repo_root() -> Path:
@@ -32,13 +32,13 @@ def ops_root() -> Path:
     if env:
         return Path(env)
     main = Path.home() / "work" / "relational-robot-policy"
-    if node_role() == "host" and (main / "configs" / "resources.local.json").exists():
+    if node_role() == "host" and (main / "ops" / "resources.local.json").exists():
         return main
     return repo_root()
 
 
 def config_path() -> Path:
-    return ops_root() / "configs" / "resources.local.json"
+    return ops_root() / "ops" / "resources.local.json"
 
 
 def load_config() -> dict:

@@ -1,6 +1,6 @@
 """Sealed-protocol evaluation on the target / held-out source bodies with the ladder's deployable routes (D-126 #9, #10).
 
-`python -m rrp.cli suite target --protocol configs/eval/latent_slice1.json --robot xarm7_pg2 --route generated
+`python -m rrp.cli suite target --protocol recipes/presets/eval-latent_slice1.json --robot xarm7_pg2 --route generated
      --flow F --rep R --sealed-run --out DIR --tag T`
 
 The same machinery as the lineage R2 evaluations (rrp.evaluation.ladder.run_ladder: route `generated` = system-i flow
@@ -70,7 +70,7 @@ def _feasible(robot_key: str, seeds) -> tuple[list[int], list[int]]:
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("--protocol", default="configs/eval/latent_slice1.json")
+    ap.add_argument("--protocol", default="recipes/presets/eval-latent_slice1.json")
     ap.add_argument("--robot", required=True)
     ap.add_argument("--route", choices=["generated", "learned"], required=True)
     ap.add_argument("--flow")

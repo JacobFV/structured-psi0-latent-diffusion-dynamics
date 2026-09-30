@@ -39,14 +39,16 @@ case "${1:-push}" in
     rsync -a --bwlimit=100000 --delete \
       --exclude .venv --exclude /.cache --exclude .git --exclude node_modules \
       --exclude 'ops/broker/' --exclude 'ops/logs/' --exclude 'ops/watchdog/' --exclude 'ops/resource-ledger*.jsonl' \
-      --exclude 'configs/resources.local.json' --exclude '/artifacts' --exclude 'research/registry.jsonl' \
-      --exclude 'ui/node_modules/' --exclude 'ui/dist/' --exclude '__pycache__/' --exclude '/.rrp_revision' \
+      --exclude 'ops/resources.local.json' --exclude '/artifacts' --exclude 'research/registry.jsonl' \
+      --exclude '__pycache__/' --exclude '/.rrp_revision' \
       "$ROOT/" "$PEER:$R/"
     revision_json | ssh "$PEER" "cat > $R/.rrp_revision"
     if [ "$R" != "$P/repo" ]; then
       ssh "$PEER" "cd $R && for d in artifacts .cache; do [ -e \$d ] || ln -s $P/repo/\$d \$d; done
-                   mkdir -p ops configs && cp -n $P/repo/configs/resources.local.json configs/ 2>/dev/null; true"
-    fi ;;
+                   mkdir -p ops && cp -n $P/repo/ops/resources.local.json ops/ 2>/dev/null; true"
+    fi
+    # artifacts/ itself is never synced (peer store), but the run-id alias index is code-like and small
+    if [ -f "$ROOT/artifacts/run_index.json" ]; then rsync -a "$ROOT/artifacts/run_index.json" "$PEER:$R/artifacts/" 2>/dev/null || true; fi ;;
   pull)
     # pull owned peer artifacts into artifacts/peer/<subdir>; never delete newer local files
     src=${2:?remote subdir under repo}; dst=${3:-$2}

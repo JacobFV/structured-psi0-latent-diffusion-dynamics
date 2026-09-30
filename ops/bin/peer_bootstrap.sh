@@ -10,7 +10,7 @@ export PATH=$P/bin:$PATH PYTHONPATH=src RRP_NODE=peer RRP_REPO=$P/repo UV_CACHE_
 python3 -m rrp.cli ops init --role peer --window 3 >/dev/null
 python3 - <<PY
 import json
-p="configs/resources.local.json"; c=json.load(open(p)); c["peer"]["unrestricted"]=True; c["peer"]["lease_expiry_s"]=120
+p="ops/resources.local.json"; c=json.load(open(p)); c["peer"]["unrestricted"]=True; c["peer"]["lease_expiry_s"]=120
 json.dump(c,open(p,"w"),indent=1)
 PY
 # whole-project safety ceiling (protects OS/sshd; not a per-job limit): MemoryMax 100G, no swap for the project

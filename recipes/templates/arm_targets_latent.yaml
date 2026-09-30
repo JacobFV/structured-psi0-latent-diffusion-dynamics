@@ -1,6 +1,6 @@
 # TEMPLATE (D-126 #9, roadmap #9 "the untested core claim"): the arm latent route on the SEALED target bodies
 # xarm7_pg2 / xarm7_tf3 / panda_tf3, zero-shot and with small adaptation budgets, under the sealed protocol
-# configs/eval/latent_slice1.json (eval scenes: 100 seeds from 2,000,000, infeasible excluded and counted; max_steps,
+# recipes/presets/eval-latent_slice1.json (eval scenes: 100 seeds from 2,000,000, infeasible excluded and counted; max_steps,
 # replan, NFE from the protocol; budgets {5, 20, 100} demo episodes, nested episode choice, updates {150, 300, 600},
 # lr 1e-4; adaptation seeds 1701/1702 = 1700 + lineage seed, both in the protocol's seed list).
 # A child DAG does `extends: templates/arm_targets_latent.yaml` and sets name / lineage / label prefixes and:

@@ -3,7 +3,7 @@ landed: `LatentConfig` had no `factors` field, `nets.binding_aug` existed and `n
 `core.runconfig._check_variant` did not understand `params.latent.factors`.
 
 Acceptance (the table row):
-  1. `LatentConfig.version()` identical for every config under configs/ that constructs one.
+  1. `LatentConfig.version()` identical for every (legacy) config that constructs one (tests/data/latent_versions.json).
   2. `_check_variant` equivalent (old-style AND new `factors:`-style configs validate the same recipes).
   3. `cf_swap("binding")` batches equal `binding_aug` batches on a fixture.
   4. no `semantic_weight` / `probe_lv_min` / `binding_cf` as LatentConfig's primary (dataclass-field / RunConfig-flag)
@@ -15,8 +15,8 @@ Acceptance (the table row):
 """
 from __future__ import annotations
 
-import glob
 import json
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -57,56 +57,20 @@ def _rebind_via_cf_swap(batch: Batch, b: int, src: int, dst: int):
     return out["inputs"]["edges"]["ctx_rel"]["data"], out["inputs"]["edges"]["act_rel"]["data"]
 
 # ------------------------------------------------------------------ 1. version() identity
-# Frozen with the PRE-R2 code (git show origin/main:.../semantic_latent.py) over every configs/**/*.json whose
-# "latent" block is valid LatentConfig kwargs (computed once, before this unit's changes; see research/tracks/
-# rel-r2.md for how). Every one of these files round-trips through `RunConfig.load_legacy` (test_runconfig.py), so
-# this also proves the R2 codemod of configs/latent/*.json (semantic_weight/binding_cf/slot_handles -> factors/
-# cf_mix) changed nothing a consumer can observe.
-_FROZEN_VERSIONS = {
-    "configs/latent/rep-binding_latent_nosem_v2.json": "ls-b77960b3f5f3",
-    "configs/latent/rep-binding_latent_sem_v2.json": "ls-0a308bea97e5",
-    "configs/latent/rep-binding_paired_nosem_v3.json": "ls-554a8c9ad891",
-    "configs/latent/rep-binding_paired_nosem_v4.json": "ls-af96778ac916",
-    "configs/latent/rep-binding_paired_sem_v3.json": "ls-1e56aefa44d1",
-    "configs/latent/rep-binding_paired_sem_v4.json": "ls-6d2448d800d3",
-    "configs/latent/rep-dualarm_latent_nosem_v1.json": "ls-3e761d4ece22",
-    "configs/latent/rep-dualarm_latent_sem_v1.json": "ls-8665417ce5bb",
-    "configs/latent/rep-latent_nosem_v1.json": "ls-dc6ca4a55d80",
-    "configs/latent/rep-latent_sem_v1.json": "ls-8db814f941f5",
-    "configs/ladder/rep-latent_sem_b1fix_anchor.json": "ls-80e5f25be2f0",
-    "configs/ladder/armsemfix/rep-latent_semfix_b1fix_anchor.json": "ls-b3975ca84351",
-    "configs/ladder/armnosem/rep-latent_nosem_b1fix_anchor.json": "ls-041f79337259",
-    "configs/ladder/armseed2/sfjf2/rep-ladder_latent_semfix_b1fix_anchor_s2.json": "ls-6f6f9b3eb46b",
-    "configs/ladder/armseed2/sejf2/rep-ladder_latent_sem_b1fix_anchor_s2.json": "ls-e01d65a468e9",
-    "configs/ladder/armseed2/nsjf2/rep-ladder_latent_nosem_b1fix_anchor_s2.json": "ls-22623fe2b543",
-    # legged configs whose "latent" block happens to use only LatentConfig-legacy-compatible keys (no legged-only
-    # key like qd_dropout): not really this unit's family, but since `LatentConfig(**lat)` DOES construct from them,
-    # they are in scope for "identical for every config under configs/" too.
-    "configs/legged_latent/rep_nosem_v1.json": "ls-f78e3bffac2c",
-    "configs/legged_latent/rep_sem_v1.json": "ls-a59976298c69",
-}
+# D-145 P2: `tests/data/latent_versions.json` holds the `latent` block of every legacy config that constructs a
+# LatentConfig (arm / dual / the two flat legged ones) with `LatentConfig.version()` frozen with the PRE-R2 code
+# (D-144 R2), generated once from the retired config files. It pins the bundle compatibility ids of existing
+# checkpoints: a code change that moves any of these hashes would orphan trained bundles.
+_FROZEN = json.loads((Path(__file__).resolve().parents[1] / "data" / "latent_versions.json").read_text())["configs"]
 
 
-@pytest.mark.parametrize("path", sorted(_FROZEN_VERSIONS))
-def test_version_identical_to_pre_r2(path):
-    d = json.load(open(path))
-    assert LatentConfig(**d["latent"]).version() == _FROZEN_VERSIONS[path]
+@pytest.mark.parametrize("key", sorted(_FROZEN))
+def test_version_identical_to_pre_r2(key):
+    assert LatentConfig(**_FROZEN[key]["latent"]).version() == _FROZEN[key]["version"]
 
 
-def test_frozen_set_covers_every_latent_config():
-    """No configs/**/*.json with a LatentConfig-shaped "latent" block was missed (added after the freeze, say)."""
-    seen = set()
-    for p in sorted(glob.glob("configs/**/*.json", recursive=True)):
-        d = json.load(open(p))
-        lat = d.get("latent")
-        if not isinstance(lat, dict):
-            continue
-        try:
-            LatentConfig(**lat)
-        except TypeError:
-            continue     # not arm/dual (e.g. legged's `qd_dropout`): a different, unrelated "latent" block
-        seen.add(p)
-    assert seen == set(_FROZEN_VERSIONS)
+def test_frozen_table_is_not_empty():
+    assert len(_FROZEN) == 18
 
 
 def test_new_and_legacy_construction_agree():

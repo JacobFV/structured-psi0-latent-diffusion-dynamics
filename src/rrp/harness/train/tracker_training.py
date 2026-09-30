@@ -348,7 +348,7 @@ def export_actor(ac, meta: dict, path: Path, it: int):
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--recipe", default=None, help="D-126: JSON file of argument defaults (keys = option dests, e.g. "
-                    "configs/tracker/h1_clock_scratch.json); explicit command-line options override it; recorded in meta")
+                    "a JSON file such as the h1_clock_scratch recipe); explicit command-line options override it; recorded in meta")
     ap.add_argument("--body", default=None, help="(required, here or in --recipe)")
     ap.add_argument("--out", default=None, help="(required, here or in --recipe)")
     ap.add_argument("--iters", type=int, default=1000)

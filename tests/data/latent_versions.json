@@ -1,0 +1,722 @@
+{
+ "schema": "latent-versions-1",
+ "note": "D-145 P2: the `latent` block of every legacy config that constructs a LatentConfig, with LatentConfig.version() frozen with the PRE-R2 code (D-144 R2). Pins bundle compatibility ids of existing checkpoints; keys are the former config paths without the configs/ prefix and .json suffix (the files are archived with the legacy config tree).",
+ "configs": {
+  "ladder/armnosem/rep-latent_nosem_b1fix_anchor": {
+   "version": "ls-041f79337259",
+   "latent": {
+    "name": "ladder_latent_nosem_b1fix_anchor",
+    "factors": [
+     {
+      "name": "probe.arm.visible",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.looking_at",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.focused_on",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.held_by",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.acting_on",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.rel_pos",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.observed_effect",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.subtask",
+      "weight": 0.0
+     }
+    ]
+   }
+  },
+  "ladder/armseed2/nsjf2/rep-ladder_latent_nosem_b1fix_anchor_s2": {
+   "version": "ls-22623fe2b543",
+   "latent": {
+    "name": "ladder_latent_nosem_b1fix_anchor_s2",
+    "factors": [
+     {
+      "name": "probe.arm.visible",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.looking_at",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.focused_on",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.held_by",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.acting_on",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.rel_pos",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.observed_effect",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.subtask",
+      "weight": 0.0
+     }
+    ]
+   }
+  },
+  "ladder/armseed2/sejf2/rep-ladder_latent_sem_b1fix_anchor_s2": {
+   "version": "ls-e01d65a468e9",
+   "latent": {
+    "name": "ladder_latent_sem_b1fix_anchor_s2",
+    "factors": [
+     {
+      "name": "probe.arm.visible",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.looking_at",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.focused_on",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.held_by",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.acting_on",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.rel_pos",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.observed_effect",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.subtask",
+      "weight": 1.0
+     }
+    ]
+   }
+  },
+  "ladder/armseed2/sfjf2/rep-ladder_latent_semfix_b1fix_anchor_s2": {
+   "version": "ls-6f6f9b3eb46b",
+   "latent": {
+    "name": "ladder_latent_semfix_b1fix_anchor_s2",
+    "factors": [
+     {
+      "name": "probe.arm.visible",
+      "weight": 1.0,
+      "params": {
+       "lv_min": -4.0
+      }
+     },
+     {
+      "name": "probe.arm.looking_at",
+      "weight": 1.0,
+      "params": {
+       "lv_min": -4.0
+      }
+     },
+     {
+      "name": "probe.arm.focused_on",
+      "weight": 1.0,
+      "params": {
+       "lv_min": -4.0
+      }
+     },
+     {
+      "name": "probe.arm.held_by",
+      "weight": 1.0,
+      "params": {
+       "lv_min": -4.0
+      }
+     },
+     {
+      "name": "probe.arm.acting_on",
+      "weight": 1.0,
+      "params": {
+       "lv_min": -4.0
+      }
+     },
+     {
+      "name": "probe.arm.rel_pos",
+      "weight": 1.0,
+      "params": {
+       "lv_min": -4.0
+      }
+     },
+     {
+      "name": "probe.arm.observed_effect",
+      "weight": 1.0,
+      "params": {
+       "lv_min": -4.0
+      }
+     },
+     {
+      "name": "probe.arm.subtask",
+      "weight": 1.0,
+      "params": {
+       "lv_min": -4.0
+      }
+     }
+    ]
+   }
+  },
+  "ladder/armsemfix/rep-latent_semfix_b1fix_anchor": {
+   "version": "ls-b3975ca84351",
+   "latent": {
+    "name": "ladder_latent_semfix_b1fix_anchor",
+    "factors": [
+     {
+      "name": "probe.arm.visible",
+      "weight": 1.0,
+      "params": {
+       "lv_min": -4.0
+      }
+     },
+     {
+      "name": "probe.arm.looking_at",
+      "weight": 1.0,
+      "params": {
+       "lv_min": -4.0
+      }
+     },
+     {
+      "name": "probe.arm.focused_on",
+      "weight": 1.0,
+      "params": {
+       "lv_min": -4.0
+      }
+     },
+     {
+      "name": "probe.arm.held_by",
+      "weight": 1.0,
+      "params": {
+       "lv_min": -4.0
+      }
+     },
+     {
+      "name": "probe.arm.acting_on",
+      "weight": 1.0,
+      "params": {
+       "lv_min": -4.0
+      }
+     },
+     {
+      "name": "probe.arm.rel_pos",
+      "weight": 1.0,
+      "params": {
+       "lv_min": -4.0
+      }
+     },
+     {
+      "name": "probe.arm.observed_effect",
+      "weight": 1.0,
+      "params": {
+       "lv_min": -4.0
+      }
+     },
+     {
+      "name": "probe.arm.subtask",
+      "weight": 1.0,
+      "params": {
+       "lv_min": -4.0
+      }
+     }
+    ]
+   }
+  },
+  "ladder/rep-latent_sem_b1fix_anchor": {
+   "version": "ls-80e5f25be2f0",
+   "latent": {
+    "name": "ladder_latent_sem_b1fix_anchor",
+    "factors": [
+     {
+      "name": "probe.arm.visible",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.looking_at",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.focused_on",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.held_by",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.acting_on",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.rel_pos",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.observed_effect",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.subtask",
+      "weight": 1.0
+     }
+    ]
+   }
+  },
+  "latent/rep-binding_latent_nosem_v2": {
+   "version": "ls-b77960b3f5f3",
+   "latent": {
+    "name": "binding_latent_nosem_v2",
+    "factors": [
+     {
+      "name": "probe.arm.visible",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.looking_at",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.focused_on",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.held_by",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.acting_on",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.rel_pos",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.observed_effect",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.subtask",
+      "weight": 0.0
+     }
+    ],
+    "cf_mix": 0.5
+   }
+  },
+  "latent/rep-binding_latent_sem_v2": {
+   "version": "ls-0a308bea97e5",
+   "latent": {
+    "name": "binding_latent_sem_v2",
+    "factors": [
+     {
+      "name": "probe.arm.visible",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.looking_at",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.focused_on",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.held_by",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.acting_on",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.rel_pos",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.observed_effect",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.subtask",
+      "weight": 1.0
+     }
+    ],
+    "cf_mix": 0.5
+   }
+  },
+  "latent/rep-binding_paired_nosem_v3": {
+   "version": "ls-554a8c9ad891",
+   "latent": {
+    "name": "binding_paired_nosem_v3",
+    "factors": [
+     {
+      "name": "probe.arm.visible",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.looking_at",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.focused_on",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.held_by",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.acting_on",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.rel_pos",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.observed_effect",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.subtask",
+      "weight": 0.0
+     },
+     "id.slot_handle"
+    ],
+    "cf_mix": 0.5
+   }
+  },
+  "latent/rep-binding_paired_nosem_v4": {
+   "version": "ls-af96778ac916",
+   "latent": {
+    "name": "binding_paired_nosem_v4",
+    "factors": [
+     {
+      "name": "probe.arm.visible",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.looking_at",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.focused_on",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.held_by",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.acting_on",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.rel_pos",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.observed_effect",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.subtask",
+      "weight": 0.0
+     },
+     "id.slot_handle"
+    ],
+    "cf_mix": 0.5
+   }
+  },
+  "latent/rep-binding_paired_sem_v3": {
+   "version": "ls-1e56aefa44d1",
+   "latent": {
+    "name": "binding_paired_sem_v3",
+    "factors": [
+     {
+      "name": "probe.arm.visible",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.looking_at",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.focused_on",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.held_by",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.acting_on",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.rel_pos",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.observed_effect",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.subtask",
+      "weight": 1.0
+     },
+     "id.slot_handle"
+    ],
+    "cf_mix": 0.5
+   }
+  },
+  "latent/rep-binding_paired_sem_v4": {
+   "version": "ls-6d2448d800d3",
+   "latent": {
+    "name": "binding_paired_sem_v4",
+    "factors": [
+     {
+      "name": "probe.arm.visible",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.looking_at",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.focused_on",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.held_by",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.acting_on",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.rel_pos",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.observed_effect",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.subtask",
+      "weight": 1.0
+     },
+     "id.slot_handle"
+    ],
+    "cf_mix": 0.5
+   }
+  },
+  "latent/rep-dualarm_latent_nosem_v1": {
+   "version": "ls-3e761d4ece22",
+   "latent": {
+    "name": "dualarm_latent_nosem_v1",
+    "factors": [
+     {
+      "name": "probe.arm.visible",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.looking_at",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.focused_on",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.held_by",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.acting_on",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.rel_pos",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.observed_effect",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.subtask",
+      "weight": 0.0
+     }
+    ]
+   }
+  },
+  "latent/rep-dualarm_latent_sem_v1": {
+   "version": "ls-8665417ce5bb",
+   "latent": {
+    "name": "dualarm_latent_sem_v1",
+    "factors": [
+     {
+      "name": "probe.arm.visible",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.looking_at",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.focused_on",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.held_by",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.acting_on",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.rel_pos",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.observed_effect",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.subtask",
+      "weight": 1.0
+     }
+    ]
+   }
+  },
+  "latent/rep-latent_nosem_v1": {
+   "version": "ls-dc6ca4a55d80",
+   "latent": {
+    "name": "latent_nosem_v1",
+    "factors": [
+     {
+      "name": "probe.arm.visible",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.looking_at",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.focused_on",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.held_by",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.acting_on",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.rel_pos",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.observed_effect",
+      "weight": 0.0
+     },
+     {
+      "name": "probe.arm.subtask",
+      "weight": 0.0
+     }
+    ]
+   }
+  },
+  "latent/rep-latent_sem_v1": {
+   "version": "ls-8db814f941f5",
+   "latent": {
+    "name": "latent_sem_v1",
+    "factors": [
+     {
+      "name": "probe.arm.visible",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.looking_at",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.focused_on",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.held_by",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.acting_on",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.rel_pos",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.observed_effect",
+      "weight": 1.0
+     },
+     {
+      "name": "probe.arm.subtask",
+      "weight": 1.0
+     }
+    ]
+   }
+  },
+  "legged_latent/rep_nosem_v1": {
+   "version": "ls-f78e3bffac2c",
+   "latent": {
+    "dz": 32,
+    "width": 192,
+    "semantic_weight": 0.0,
+    "beta_kl": 0.001
+   }
+  },
+  "legged_latent/rep_sem_v1": {
+   "version": "ls-a59976298c69",
+   "latent": {
+    "dz": 32,
+    "width": 192,
+    "semantic_weight": 1.0,
+    "beta_kl": 0.001
+   }
+  }
+ }
+}

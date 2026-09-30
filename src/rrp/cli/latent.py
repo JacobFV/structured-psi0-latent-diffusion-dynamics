@@ -201,7 +201,7 @@ def cmd_cell(a):
 
 def register_cell(p):
     c = p.add_parser("cell", help="resumable latent_slice1 campaign cell")
-    c.add_argument("--protocol", default="configs/eval/latent_slice1.json")
+    c.add_argument("--protocol", default="recipes/presets/eval-latent_slice1.json")
     c.add_argument("--method", required=True)
     c.add_argument("--seed", type=int, required=True)
     c.add_argument("--base-flow-config", required=True)

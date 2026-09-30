@@ -455,8 +455,7 @@ TRAINING_FLAG_KEYS = ("zero_prev_action", "realizer_drop_qd", "realizer_anchor",
 # (not just by inspection) that even the last arm-only
 # occurrences cannot be retired in isolation: `recipes/templates/arm_lineage.yaml` / `recipes/templates/dual_lineage.yaml` still
 # render a flat `latent.semantic_weight` block coupled to the `Flags.probe_lv_min` mechanism (`core/runconfig.py`'s
-# `FLAG_NAMES` note), proven byte-identical to on-disk `configs/ladder/**` files by `test_dag.py::
-# test_arm_dag_reproduces_legacy_configs` (general infra, not owned by this row). Only `binding_cf_weight` (renamed
+# `FLAG_NAMES` note; the legacy on-disk configs it was proven against were retired in D-145 P2). Only `binding_cf_weight` (renamed
 # `cf_mix`) is retired outright: dead here otherwise (grep confirms no config ever set it), so nothing depends on
 # the old name.
 # Sweep-flags follow-up (2026-09-30), answering decision (b)'s "may keep old names only if they describe recorded

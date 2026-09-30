@@ -4,8 +4,8 @@
  "status": "DRAFT_NOT_SEALED",
  "question": "Does explicit relational/event/role structure (typed banks, incidence pointers, structural bias, system-i semantic readouts) reduce new-body demonstration experience to sustained 80% pick_place success versus a matched shared morphology-conditioned policy with the same public inputs, at <=25% p95 latency overhead?",
  "methods": {
-  "relational_structured": "configs/model/primary-structured.json",
-  "matched_shared_unstructured": "configs/model/primary-unstructured.json"
+  "relational_structured": "policy-small-structured (recipes/presets; the primary-* policy files were never written)",
+  "matched_shared_unstructured": "policy-small-unstructured (archived; the primary-* policy files were never written)"
  },
  "seeds": [
   1701,
@@ -48,6 +48,6 @@
  },
  "split": "research/splits/primary_v1.json",
  "threshold": 0.8,
- "analysis": "rrp analyze --protocol configs/eval/primary.json",
+ "analysis": "rrp analyze --protocol recipes/presets/eval-primary.json",
  "notes": "SFT step counts fixed a priori per budget (not tuned on the evaluation scenes). Evaluation scenes 2,000,000+ never used for development."
 }

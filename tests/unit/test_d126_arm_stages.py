@@ -32,9 +32,9 @@ def _touch(root: Path, *rels):
 
 
 def _proto(root: Path):
-    p = root / "configs/eval/latent_slice1.json"
+    p = root / "recipes/presets/eval-latent_slice1.json"
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text((ROOT / "configs/eval/latent_slice1.json").read_text())
+    p.write_text((ROOT / "recipes/presets/eval-latent_slice1.json").read_text())
 
 
 # ---------------------------------------------------------------------------------------------- anchor rule
@@ -159,7 +159,7 @@ def test_target_eval_stage_argv_and_sealed_flag(tmp_path, monkeypatch):
 
 def test_target_eval_scene_rules():
     from rrp.harness.eval.target_eval import load_protocol, plan_scenes
-    proto, _ = load_protocol(ROOT / "configs/eval/latent_slice1.json")
+    proto, _ = load_protocol(ROOT / "recipes/presets/eval-latent_slice1.json")
     assert plan_scenes(proto, "xarm7_tf3", sealed_run=True, smoke=False) == dict(kind="target", seed_start=2000000,
                                                                                 episodes=100)
     assert plan_scenes(proto, "parm5s_tf3", sealed_run=True, smoke=False)["kind"] == "source_heldout"

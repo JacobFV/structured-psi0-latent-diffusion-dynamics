@@ -3,11 +3,11 @@
 #   stageA -> F0 -> Fft ; bc1 -> rzbcdag1/rzbcdag1long -> bc2/bc3/gen1 -> rzbcdag2 -> rzgendag1 -> gen2 -> rzgendag2
 #   -> gen3/gdag1 -> rzgendag3/Fgdag1 -> gdag2 -> Fgdag2h -> final evals (R2 dev seeds, held-out bodies), progression
 #   evals (R2 of F0 and Fgdag1, R1 stateless-BC oracle), task-context semantic edits.
-# Recipes are the committed configs (configs/ladder/armsemfix, armnosem, armseed2/*): seed s = seed-1 recipe + 1000*(s-1)
+# Recipes are the former committed ladder configs (archived: armsemfix, armnosem, armseed2/*): seed s = seed-1 recipe + 1000*(s-1)
 # on every training seed and + 1,100,000*(s-1) on every DAgger collection seed (naming.md). Variants: sem = semantic
 # NLL with the unbounded log-variance floor (-8, the frozen jointfix/sejf2 recipe), semfix = bounded NLL (-4), nosem =
 # no semantic objective (capacity matched). The rendered digest is pinned by `recipe.arm_lineage` in tests/data/golden.json
-# (tests/unit/test_recipes.py); the legacy per-run configs it was checked against are retired (legacy area, see the .old index at the repo root).
+# (tests/unit/test_recipes.py); the legacy per-run configs it was checked against are archived (see the .old index at the repo root).
 # Outputs: artifacts/runs/pipeline/arm-<variant>/<stage>[-<tag>]_s<seed>. Usage:
 #   rrp run-dag templates/arm_lineage.yaml --dry-run --point variant=semfix,seed=2
 #   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/pipeline rrp run-dag templates/arm_lineage.yaml --point variant=semfix,seed=3
@@ -54,8 +54,8 @@ nodes:
   # flat `latent.semantic_weight` + `flags.probe_lv_min` pair (docs/relations.md 10, R2's `_probe_factors` shape).
   # `{sw}` (0.0 nosem / 1.0 sem+semfix) sets every `probe.arm.*` weight uniformly; the `per: variant: semfix` override
   # below is the only place `lv_min` differs (-4.0 vs the LatentConfig default -8.0, omitted like R2's own codemod of
-  # configs/latent/**.json). `core/runconfig.py`'s `FLAG_SPEC[("arm"|"dual", "train_rep")]` no longer maps
-  # `probe_lv_min` (see its own comment); `configs/ladder/**.json` (6 rep files) codemodded to match, byte-identical
+  # the legacy latent configs). `core/runconfig.py`'s `FLAG_SPEC[("arm"|"dual", "train_rep")]` no longer maps
+  # `probe_lv_min` (see its own comment); the 6 legacy ladder rep configs were codemodded to match, byte-identical
   # `LatentConfig.version()` hashes proven by tests/unit/test_relations_r2_latent.py's frozen table.
   stageA:
     stage: train_rep

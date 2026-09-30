@@ -18,8 +18,8 @@ Physics: set the generic stage option `grasp_contact` (rrp.pipelines.base; e.g. 
 stages do not choose a grasp contact version themselves.
 
 Every dual training config must set zero_prev_action: true (B-1 fix, D-045). The v1 dual configs
-(configs/latent/rep-dualarm_latent_*_v1.json) predate it and are NOT used by recipes/templates/dual_lineage.yaml;
-`train_rep`/`train_flow`/`refit` refuse zero_prev_action false for new (non-legacy) dual configs.
+(archived configs `rep-dualarm_latent_*_v1`) predate it and are NOT used by recipes/templates/dual_lineage.yaml;
+`train_rep`/`train_flow`/`refit` refuse zero_prev_action false.
 """
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ DUAL_TASKS = ("support_insert", "handover")
 
 
 def _b1(ctx: StageContext):
-    if ctx.rc.legacy is None and not ctx.rc.flags.zero_prev_action:
+    if not ctx.rc.flags.zero_prev_action:
         raise StageError("dual training needs flags.zero_prev_action: true (B-1 fix; the v1 dual configs predate it)")
 
 

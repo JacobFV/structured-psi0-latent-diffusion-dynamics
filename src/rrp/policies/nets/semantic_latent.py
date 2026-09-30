@@ -48,7 +48,7 @@ def _factors_for(weight: float, lv_min: float, slot_handles: bool, prefix: str, 
     """The shared (weight, lv_min, slot_handles) -> `factors:` reduction behind `_probe_factors` (arm) and
     `legacy_latent_factors` (legged, sweep-flags follow-up, 2026-09-30): one `<prefix>.<query>` readout weight/
     lv_min override per query, plus `id.slot_handle` when `slot_handles` is set. `omit_default_lv_min` (legged
-    only, matches its pre-existing behaviour and the on-disk-codemod convention of R2c's own `configs/ladder/**`
+    only, matches its pre-existing behaviour and the on-disk-codemod convention of R2c's own ladder-config
     rewrite) skips writing `params.lv_min` when it is the -8.0 default instead of always writing it (arm keeps
     always-writing, unchanged, for `LatentConfig.version()` hash back-compat -- see its own comment)."""
     items = []
@@ -193,7 +193,7 @@ class LatentConfig:
         d = {f.name: getattr(self, f.name) for f in fields(self) if f.name != "factors"}
         # --- back-compat only: reproduces the pre-R2 hash shape bit-for-bit so existing checkpoints / lineage
         # `latent_space_version` strings stay valid (the acceptance criterion "LatentConfig.version() identical for
-        # every config under configs/"). This is the one place in this unit's owned files where the retired flat key
+        # every legacy config", tests/data/latent_versions.json). This is the one place in this unit's owned files where the retired flat key
         # NAMES ("semantic_weight", "probe_lv_min", "binding_cf") must still appear: they are literally the JSON
         # object keys the ALREADY-COMPUTED, already-shipped hashes were taken over, and a SHA-256 preimage cannot be
         # reproduced under different key names. See research/tracks/rel-r2.md ("open question for the lead").

@@ -31,14 +31,14 @@ from rrp.policies.nets.semantic_latent import legacy_latent_factors, packet_sema
 from rrp.policies.relations.base import resolve
 
 # D-144 sweep-flags (docs/relations.md 10, closing rel-r2c's open question 1 for legged now that R4 has merged) and
-# its 2026-09-30 follow-up (retiring the retired legged_v2_* DAGs + `configs/{legged_latent,legged_fixsem,t1_diag}/**`'s
+# its 2026-09-30 follow-up (retiring the retired legged_v2_* DAGs + the legacy legged / t1_diag rep configs'
 # OWN flat `semantic_weight` / `probe_lv_min`, not just this file's internal reads): every legged dag and rep
 # config under those paths now renders `params.latent.factors` directly (a `probe.legged.*` FactorSpec per query,
 # the same shape `nets/semantic_latent.py`'s `LATENT_LEGACY_KEYS`-driven table uses for arm's `LatentConfig`) --
 # `core/runconfig.py`'s `FLAG_SPEC[("legged", "train_rep")]` no longer maps `probe_lv_min` either. `_legged_probe_
 # factors` below therefore no longer reads the flat keys itself; the ONE remaining legacy-key fallback (for
 # not-yet-migrated on-disk configs / already-trained checkpoints whose saved `latent` blob predates this change,
-# e.g. `configs/legged_latent/rep_{sem,nosem}_v1.json`, deliberately left flat -- see that codemod's own note) is
+# e.g. the archived `legged_latent/rep_{sem,nosem}_v1` configs, deliberately left flat -- see that codemod's own note) is
 # `nets/semantic_latent.py::legacy_latent_factors`, the SAME `LATENT_LEGACY_KEYS` table arm's `LatentConfig.__init__`
 # reads, parameterized here by legged's own prefix/query set.
 _LEGGED_PROBE_QUERIES = ("contact", "goal", "disp", "subtask", "fall")

@@ -6,6 +6,9 @@ resolved under `recipes/` (`rrp run-dag armdiv/arm_lineage_v7div --dry-run`).
 
 - `templates/` — generic, per-family recipes (`arm_lineage`, `arm_collect`, `arm_bc`, `arm_grpo`, `arm_targets_*`,
   `dual_lineage`, `legged_lineage`, `legged_heldout`, `tracker_gated`, `relations_factor`). Never run bare; an instance extends one.
+- `presets/` — shared parameter fragments read by code, not by a DAG: `policy-small-structured.json`, `codec-small.json`
+  (the baseline campaign's model sizes), `eval-latent_slice1.json` (the sealed target-eval protocol; byte-frozen, its
+  sha256 is recorded in eval results), `eval-primary.json` (draft protocol, unsealed).
 - `<track>/` — thin instances: a header (`name schema track policy env task bodies factors`), `extends: ../templates/...`
   and only the overrides. `extends` may name a sibling instance (`*_kinfeat`, `*_smoke`) or a list, folded left:
   dicts merge, lists and scalars replace, `null` deletes.

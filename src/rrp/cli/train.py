@@ -95,7 +95,7 @@ def register_campaign(sub):
     r.add_argument("--seed", type=int, required=True)
     r.set_defaults(fn=cmd_campaign_cell)
     b = c.add_parser("baseline-cell", help="latent_slice1 baseline cell (method, seed, target, budget); resumable")
-    b.add_argument("--protocol", default="configs/eval/latent_slice1.json")
+    b.add_argument("--protocol", default="recipes/presets/eval-latent_slice1.json")
     b.add_argument("--method", required=True)
     b.add_argument("--seed", type=int, required=True)
     b.add_argument("--target", required=True, help="a protocol target, or 'source' (source competence)")

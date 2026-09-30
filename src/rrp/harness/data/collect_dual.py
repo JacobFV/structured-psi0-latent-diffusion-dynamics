@@ -6,7 +6,7 @@ phases, true insertion geometry. Failed and infeasible attempts are recorded as 
 The episodes load with rrp.learning.data.load_episodes/ChunkDataset unchanged.
 
 Usage (peer, under a broker lease):
-  python -m rrp.cli data collect-dual --config configs/data/support_insert_primary_v1.json
+  python -m rrp.cli data collect-dual --config <collect config>.json
 """
 from __future__ import annotations
 

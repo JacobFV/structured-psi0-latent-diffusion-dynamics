@@ -4,7 +4,7 @@ A recipe is a dict of rrp.training.tracker_training option defaults (keys = argp
     python -m rrp.cli train tracker-cpu --recipe <name> [--out ...] [explicit overrides]
 (`--recipe` also takes a JSON file path). The resolved recipe (name, sha256 of its canonical JSON, options) is stored in the
 actor meta. Keys starting with "_" are documentation (cost, rationale, the decision/track reference) and are not options.
-They live here, not under configs/ (every configs/**/*.json must be a RunConfig; tests/unit/test_runconfig.py).
+They live here as python dicts, not as JSON files.
 
 Every recipe keeps sourced torque limits (the body-model default, D-107), contact_v2 physics and gait_v2 rewards. Initial actors
 are pinned by sha256 (`init_actor_sha256`; the trainer refuses a different file). Peer paths are relative to the peer code dir,

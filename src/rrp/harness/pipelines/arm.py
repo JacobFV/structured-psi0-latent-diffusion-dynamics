@@ -347,7 +347,7 @@ def edits(ctx: StageContext) -> dict:
 
 
 # ------------------------------------------------------------------------------------------------ D-126 stages
-PROTOCOL = "configs/eval/latent_slice1.json"
+PROTOCOL = "recipes/presets/eval-latent_slice1.json"
 
 
 def _protocol(ctx: StageContext) -> tuple[dict, str]:
