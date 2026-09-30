@@ -62,10 +62,7 @@ def _tracker_bodies(o: dict) -> list[str]:
     """Bodies a train_tracker node trains on: options body / args.body, and the recipe's body / groups."""
     out = [str(x) for x in (o.get("body"), (o.get("args") or {}).get("body")) if x]
     if o.get("recipe"):
-        if o.get("engine", "cpu") == "warp":
-            from rrp.harness.train.humanoid_recipes import recipe_record
-        else:
-            from rrp.harness.train.tracker_recipes import recipe_record
+        from rrp.harness.train.tracker_recipes import recipe_record
         r, _ = recipe_record(str(o["recipe"]))
         out += ([str(r["body"])] if r.get("body") else []) + [b for g in r.get("groups") or [] for b in g[0]]
     return sorted(set(out))
