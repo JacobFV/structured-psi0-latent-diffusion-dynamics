@@ -49,7 +49,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--video-out", default="artifacts/video")
     ap.add_argument("--out", required=True)
     # D-126 #7 overlapping-chunk blending (BC chunks / system-0 packets; rrp.controllers.chunk_blend): none = unchanged.
-    # Hidden from --help so the CLI's usage text stays identical to the frozen legacy script (tests/unit/test_ladder_cli_parity.py).
+    # Hidden from --help so the CLI usage text stays as it was.
     ap.add_argument("--chunk-blend", choices=["none", "crossfade", "ensemble"], default="none", help=argparse.SUPPRESS)
     ap.add_argument("--blend-ticks", type=int, default=4, help=argparse.SUPPRESS)
     ap.add_argument("--blend-decay", type=float, default=0.0, help=argparse.SUPPRESS)
