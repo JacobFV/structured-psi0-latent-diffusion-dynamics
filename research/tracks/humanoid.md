@@ -472,3 +472,23 @@ DAG humanoid_tracker_gate_pool: 6 nodes (source recipes/humanoid/tracker_gate_po
 - Open (not HX-owned): the trainer (`legged_latent_train.py`, `amask` = policy joints only) and shards (`a` holds policy rows only) do not yet
   supervise the upper rows; until collect (U2 teacher upper targets) and the trainer add them, `upper=True` is only valid for a realizer trained that way.
   Nothing stamps "upper trained" in a checkpoint yet.
+
+## U2 (D-146, 2026-09-30): scripted upper-body teacher and tasks L0 h_walk, L3 h_turn, M1 h_reach, M2 h_squat_pick, M3 h_place
+- Tasks (`tasks/humanoid.py`, graphs `tasks/graphs/h_*.json`, scenes `envs/mujoco/humanoid_scenes.py:build_h_manip` + `HumanoidSession`): mujoco/legged only
+  (Warp has no upper-body scenes), `control="wholebody"` by default, 50 Hz `max_steps = 50 x seconds`. Judge vocabulary = `HUMANOID_REASONS + MANIP_REASONS`
+  (`drift` ends at once; `no_grasp`, `not_upright`, `place_miss` are read at the end). Public predicates come from forward kinematics of the public body model
+  (`hand_distance_m`, `height_above_m`, `bearing_error_rad`, `drift_m`, `stand_frac`); `truth_predicate` twins read the simulator; `failure_reason()` is privileged.
+  The truth `base_speed` twin uses the estimator's 1 s baseline (the instantaneous velocity spiked to 0.16 m/s at 10 Hz ticks while the public estimate passed:
+  the judge then raised on a public success the truth denied).
+- Teachers (`policies/teachers/humanoid.py`, `MANIP_TEACHERS`, POLICIES keys `teacher:h_*`, source `scripted_teacher`, PRIVILEGED: true base pose, joint state, scene map):
+  `legs` = the registered rl_expert tracker (`t1:contact_v2`) on a base velocity command for h_walk / h_turn; `upper` = damped-least-squares IK on the public body
+  model (`UpperIK`). h_reach / h_squat_pick / h_place plant the feet: the tracker sags 0.83 of the stand height and fights a squat, so their legs are a static pose
+  (`SquatPlanner`, CoM over the soles) plus an ankle-pitch PID on the CoM x error (the ankle servos are weak: kp 50, 20 Nm). The row label says `planned_com` for
+  those and the tracker version + sha for the others. No `*_ub` wholebody tracker exists yet, so nothing here is a learned whole-body result.
+- h_turn: the tracker's turning steps walk the base 0.17 m per rad, so the teacher adds a body-frame velocity command (P on the true position, 0.15 m/s cap,
+  off once aligned so the base comes to rest); `drift_max` is 0.5 m (0.33 m failed 5 of 20 seeds unassisted, a stronger hold stalls the turn).
+- Acceptance (host, real t1 actor, `evaluate("teacher:<task>", "mujoco/legged", ...)`, batch 1, seeds 0-19): 20/20 public AND privileged success for each of the five tasks
+  (sim 2-15 s each, about 5x real time on the host CPU). `tests/unit/test_humanoid_manip.py`: registration / vocabulary / POLICIES, judge reasons, stub-actor wiring
+  per task, reach-arm side edit, one real-actor episode per task (skips without the tracker or the Menagerie assets). No peer smoke was run.
+- Not owned but touched: `policies/base.py` (five POLICIES keys).
+- Open: the collect path that records the teacher's `upper` targets into shards (HX note above); a `*_ub` tracker so h_walk / h_turn legs and the squat share one learned controller.

@@ -1,0 +1,128 @@
+{
+ "schema_version": "1.0",
+ "task_id": "h_walk",
+ "graph_version": 1,
+ "entity_declarations": [
+  {
+   "id": "body",
+   "type": "body",
+   "descriptor": "humanoid body that walks to the marker and halts"
+  },
+  {
+   "id": "goal",
+   "type": "feature",
+   "descriptor": "cyan goal marker"
+  }
+ ],
+ "events": [
+  {
+   "id": "walk_to",
+   "operator": "walk_to",
+   "roles": [
+    {
+     "role": "actor",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "body",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "target",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "goal",
+       "version": 0
+      }
+     }
+    }
+   ],
+   "requires_completed": [],
+   "requires_active": [],
+   "preconditions": [],
+   "invariants": [
+    {
+     "predicate": "upright",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "body",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.0
+    }
+   ],
+   "desired_effects": [],
+   "completion": [
+    {
+     "predicate": "distance_m",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "body",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "goal",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "le",
+     "value": 0.25,
+     "source": "observation_estimate",
+     "persistence_seconds": 1.0
+    },
+    {
+     "predicate": "base_speed",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "body",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "le",
+     "value": 0.15,
+     "source": "observation_estimate",
+     "persistence_seconds": 1.0
+    }
+   ],
+   "resources": [
+    {
+     "entity": {
+      "id": "body",
+      "version": 0
+     },
+     "mode": "exclusive_control"
+    }
+   ],
+   "produces": [],
+   "timeout_seconds": 30,
+   "recovery": {
+    "max_attempts": 2,
+    "on_failure": "reobserve_then_retry"
+   }
+  }
+ ],
+ "success_events": [
+  "walk_to"
+ ]
+}

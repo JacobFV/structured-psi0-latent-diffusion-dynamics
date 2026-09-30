@@ -1,0 +1,112 @@
+{
+ "schema_version": "1.0",
+ "task_id": "h_reach",
+ "graph_version": 1,
+ "entity_declarations": [
+  {
+   "id": "body",
+   "type": "body",
+   "descriptor": "humanoid body that reaches a palm to the target"
+  },
+  {
+   "id": "target",
+   "type": "feature",
+   "descriptor": "orange target ball"
+  }
+ ],
+ "events": [
+  {
+   "id": "reach",
+   "operator": "reach",
+   "roles": [
+    {
+     "role": "actor",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "body",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "target",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "target",
+       "version": 0
+      }
+     }
+    }
+   ],
+   "requires_completed": [],
+   "requires_active": [],
+   "preconditions": [],
+   "invariants": [
+    {
+     "predicate": "upright",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "body",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.0
+    }
+   ],
+   "desired_effects": [],
+   "completion": [
+    {
+     "predicate": "hand_distance_m",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "body",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "target",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "le",
+     "value": 0.05,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.5
+    }
+   ],
+   "resources": [
+    {
+     "entity": {
+      "id": "body",
+      "version": 0
+     },
+     "mode": "exclusive_control"
+    }
+   ],
+   "produces": [],
+   "timeout_seconds": 15,
+   "recovery": {
+    "max_attempts": 2,
+    "on_failure": "reobserve_then_retry"
+   }
+  }
+ ],
+ "success_events": [
+  "reach"
+ ]
+}

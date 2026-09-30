@@ -1,0 +1,293 @@
+{
+ "schema_version": "1.0",
+ "task_id": "h_place",
+ "graph_version": 1,
+ "entity_declarations": [
+  {
+   "id": "body",
+   "type": "body",
+   "descriptor": "humanoid body that lifts the box and puts it down on the mark"
+  },
+  {
+   "id": "box",
+   "type": "object",
+   "descriptor": "red box"
+  },
+  {
+   "id": "crate",
+   "type": "feature",
+   "descriptor": "wooden crate"
+  },
+  {
+   "id": "place_mark",
+   "type": "feature",
+   "descriptor": "cyan placement mark"
+  }
+ ],
+ "events": [
+  {
+   "id": "pick",
+   "operator": "pick",
+   "roles": [
+    {
+     "role": "actor",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "body",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "patient",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "box",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "support",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "crate",
+       "version": 0
+      }
+     }
+    }
+   ],
+   "requires_completed": [],
+   "requires_active": [],
+   "preconditions": [],
+   "invariants": [
+    {
+     "predicate": "upright",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "body",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.0
+    }
+   ],
+   "desired_effects": [],
+   "completion": [
+    {
+     "predicate": "height_above_m",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "box",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "crate",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "ge",
+     "value": 0.05,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.5
+    }
+   ],
+   "resources": [
+    {
+     "entity": {
+      "id": "body",
+      "version": 0
+     },
+     "mode": "exclusive_control"
+    }
+   ],
+   "produces": [],
+   "timeout_seconds": 25,
+   "recovery": {
+    "max_attempts": 2,
+    "on_failure": "reobserve_then_retry"
+   }
+  },
+  {
+   "id": "place",
+   "operator": "place",
+   "roles": [
+    {
+     "role": "actor",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "body",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "patient",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "box",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "support",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "crate",
+       "version": 0
+      }
+     }
+    },
+    {
+     "role": "target",
+     "ordinal": 0,
+     "binding": {
+      "kind": "entity",
+      "entity": {
+       "id": "place_mark",
+       "version": 0
+      }
+     }
+    }
+   ],
+   "requires_completed": [
+    "pick"
+   ],
+   "requires_active": [],
+   "preconditions": [],
+   "invariants": [
+    {
+     "predicate": "upright",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "body",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "eq",
+     "value": true,
+     "source": "observation_estimate",
+     "persistence_seconds": 0.0
+    }
+   ],
+   "desired_effects": [],
+   "completion": [
+    {
+     "predicate": "distance_m",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "box",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "place_mark",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "le",
+     "value": 0.04,
+     "source": "observation_estimate",
+     "persistence_seconds": 1.0
+    },
+    {
+     "predicate": "height_above_m",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "box",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "crate",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "le",
+     "value": 0.02,
+     "source": "observation_estimate",
+     "persistence_seconds": 1.0
+    },
+    {
+     "predicate": "hand_distance_m",
+     "arguments": [
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "body",
+        "version": 0
+       }
+      },
+      {
+       "kind": "entity",
+       "entity": {
+        "id": "box",
+        "version": 0
+       }
+      }
+     ],
+     "comparison": "ge",
+     "value": 0.15,
+     "source": "observation_estimate",
+     "persistence_seconds": 1.0
+    }
+   ],
+   "resources": [
+    {
+     "entity": {
+      "id": "body",
+      "version": 0
+     },
+     "mode": "exclusive_control"
+    }
+   ],
+   "produces": [],
+   "timeout_seconds": 25,
+   "recovery": {
+    "max_attempts": 2,
+    "on_failure": "reobserve_then_retry"
+   }
+  }
+ ],
+ "success_events": [
+  "place"
+ ]
+}

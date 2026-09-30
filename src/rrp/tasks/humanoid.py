@@ -1,10 +1,11 @@
 """Humanoid tasks (docs/architecture.md sections 14.1 and 14.4, unit HJ): the judge and the registration of `h_steps`
-and `h_gap`. Later units add their tasks here (U2: L0, L3, M1-M3, C1, C2).
+and `h_gap`; U2 adds L0 `h_walk`, L3 `h_turn`, M1 `h_reach`, M2 `h_squat_pick`, M3 `h_place` (whole-body control: the
+`legs` group from a tracker actor plus the `upper` group from the scripted upper-body teacher). U3 adds C1, C2.
 
 The judge maps what the env says (`env.failure_reason()` in its own vocabulary, `env.fell`) and what privileged truth
 says (`env.privileged_success()`, the public task graph) to the humanoid failure vocabulary `HUMANOID_REASONS`; what
-it returns is reported, never fed back to a policy. Reasons that end an episode at once (`TERMINAL`: the body is down,
-in the wall, or has lost / dropped the payload) are read every boundary tick; the others are reported when the
+it returns is reported, never fed back to a policy. Reasons that end an episode at once (`ENDS_AT_ONCE`: the body is down,
+in the wall, has lost / dropped the payload, or (h_turn) has drifted off its spot) are read every boundary tick; the others are reported when the
 episode ends for another reason (budget, or the public graph completing while privileged truth denies it).
 """
 from __future__ import annotations
@@ -14,17 +15,19 @@ import math
 from rrp.tasks.spec import Judge, Judgement, TaskSpec, register_task
 
 HUMANOID_REASONS = ("fell", "wall_collision", "wrong_heading", "trip", "missed_step", "hold_lost", "dropped", "timeout")
+MANIP_REASONS = ("drift", "no_grasp", "not_upright", "place_miss")       # U2: what the manipulation tasks add to the vocabulary
 TERMINAL = ("fell", "wall_collision", "hold_lost", "dropped")
+ENDS_AT_ONCE = TERMINAL + ("drift",)                                       # read every boundary tick (drift: h_turn left its spot)
 HEADING_TOL = 0.3          # rad; the final-heading tolerance of the h_gap privileged evaluator (humanoid_eval)
 # env-side codes in another vocabulary -> the humanoid one (identity for the codes already in it)
-ENV_CODES = {**{r: r for r in HUMANOID_REASONS}, "missed_foothold": "missed_step", "wrong_foot": "missed_step",
+ENV_CODES = {**{r: r for r in HUMANOID_REASONS + MANIP_REASONS}, "missed_foothold": "missed_step", "wrong_foot": "missed_step",
              "dropped_off_table": "dropped"}
 
 
 def canonical(code: str) -> str:
     """An env failure code in the humanoid vocabulary; an unmapped code is an error (the vocabulary stays closed)."""
     if code not in ENV_CODES:
-        raise ValueError(f"env failure code {code!r} is not in the humanoid vocabulary {HUMANOID_REASONS} "
+        raise ValueError(f"env failure code {code!r} is not in the humanoid vocabulary {HUMANOID_REASONS + MANIP_REASONS} "
                          f"(aliases {sorted(set(ENV_CODES) - set(HUMANOID_REASONS))})")
     return ENV_CODES[code]
 
@@ -52,7 +55,7 @@ def humanoid_judge() -> Judge:
         reason = canonical(code) if code else None
         if reason is None and getattr(env, "fell", False):
             reason = "fell"
-        if reason in TERMINAL:
+        if reason in ENDS_AT_ONCE:
             return Judgement(True, "fell" if reason == "fell" else "failure", reason, pub, False)
         if not pub and t < max_seconds:
             return Judgement(False)
@@ -75,8 +78,24 @@ _BUILD = {"mujoco/legged": "rrp.envs.mujoco.humanoid_scenes:make_humanoid_sessio
 _ENVS = {"mujoco/legged": {}, "warp/legged": {}}       # warp/legged: the env's own factory (task dispatch in make_warp_env)
 
 register_task(TaskSpec("h_steps", _ENVS, 40.0, humanoid_judge(), graph="h_steps", teacher="teacher:h_steps",
-                       hooks=("session",), build=_BUILD, failure_reasons=HUMANOID_REASONS,
+                       hooks=("session",), build=_BUILD, failure_reasons=HUMANOID_REASONS, max_steps=400,
                        note="humanoid_judge: fell / trip / missed_step / wrong_heading / timeout"))
 register_task(TaskSpec("h_gap", _ENVS, 30.0, humanoid_judge(), graph="h_gap_sidestep", teacher="teacher:h_gap",
-                       hooks=("session",), build=_BUILD, failure_reasons=HUMANOID_REASONS,
+                       hooks=("session",), build=_BUILD, failure_reasons=HUMANOID_REASONS, max_steps=300,
                        note="humanoid_judge: fell / wall_collision / wrong_heading / timeout"))
+
+# U2 (whole-body control, 50 Hz steps: max_steps = 50 x seconds). mujoco/legged only: the Warp env has no upper body scenes yet.
+_MANIP_ENVS = {"mujoco/legged": {}}
+_MANIP = (
+    ("h_walk", 30.0, "h_walk", ("fell", "timeout"), "L0: walk to the marker and halt (within 0.25 m, base speed < 0.15 m/s for 1 s)"),
+    ("h_turn", 20.0, "h_turn", ("fell", "drift", "wrong_heading", "timeout"),
+     "L3: turn in place to face the marker (bearing error < 0.25 rad for 1 s, base within 0.5 m of the start)"),
+    ("h_reach", 15.0, "h_reach", ("fell", "timeout"), "M1: a palm within 5 cm of a point in the air for 0.5 s (arm IK)"),
+    ("h_squat_pick", 40.0, "h_squat_pick", ("fell", "no_grasp", "dropped", "not_upright", "timeout"),
+     "M2: squat, bimanual palm-squeeze pick of a box from a low crate, stand (pelvis >= 0.9 of default) with the box 5 cm above the crate for 2 s"),
+    ("h_place", 50.0, "h_place", ("fell", "no_grasp", "dropped", "place_miss", "timeout"),
+     "M3: lift the box, twist the trunk about the waist and put it down on the crate mark (within 4 cm, hands 15 cm clear for 1 s)"),
+)
+for _name, _sec, _graph, _why, _note in _MANIP:
+    register_task(TaskSpec(_name, _MANIP_ENVS, _sec, humanoid_judge(), graph=_graph, teacher=f"teacher:{_name}", hooks=("session",),
+                           build=_BUILD, failure_reasons=_why, max_steps=int(50 * _sec), note=f"humanoid_judge; {_note}"))
