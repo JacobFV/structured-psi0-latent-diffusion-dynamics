@@ -27,6 +27,11 @@ def test_stages_build_valid_commands(path, tmp_path, monkeypatch):
     plan = plan_dag(load_dag(path), source="t")
     (tmp_path / "research/splits").mkdir(parents=True)
     shutil.copy(ROOT / "research/splits/cworld_pointer_v1.json", tmp_path / "research/splits/cworld_pointer_v1.json")
+    for n in plan.nodes.values():                # a recipe's declared split that is not in the repo yet (C2's v2): a v1-shaped stand-in
+        want = n.rc.options.get("split")
+        if want and not (ROOT / want).exists():
+            v1 = json.loads((ROOT / "research/splits/cworld_pointer_v1.json").read_text())
+            (tmp_path / want).write_text(json.dumps(dict(v1, split_id=Path(want).stem)))
     calls: list[list[str]] = []
 
     def fake_run(self, argv, **kw):

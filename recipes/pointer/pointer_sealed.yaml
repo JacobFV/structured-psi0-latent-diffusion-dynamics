@@ -1,0 +1,57 @@
+# Run-once sealed evaluation of the pointer_seeds checkpoints on the v2 split's sealed_id and sealed_heldout (D-146 C3). Each
+# (split, seed set, task, frozen checkpoints) cell runs ONCE: `pipelines/pointer.py` logs it in
+# artifacts/runs/pointer/sealed_log.jsonl and refuses a second attempt (a recorded infrastructure failure re-opens it). Run
+# this only after the dev results are read and the decision rule of the pre-registration row is written down; it evaluates the
+# frozen checkpoints of the `src` lineage and trains nothing. `src` = the lineage prefix of the checkpoints (pointer_ui_sealed
+# points it at the UI arm). Needs research/splits/cworld_pointer_v2.json (C2).
+extends: pointer_seeds.yaml
+name: pointer_sealed
+schema: dag-1
+track: pointer
+lineage: 'pointer-sealed-{variant}'
+global_lineage: 'pointer-sealed'
+label_prefix: 'ptrsl_{variant}{seed}'
+global_label_prefix: 'ptrsl'
+vars:
+  src: pointer-s3
+nodes:
+  collect: null
+  bc: null
+  eval_bc: null
+  flow_eng: null
+  eval_eng: null
+  rep: null
+  flow: null
+  eval_dev: null
+  eval_r1: null
+  probes: null
+  edits: null
+  eval_oracle:
+    scope: global
+    config: {options: {seed_sets: [sealed_id, sealed_heldout], seed_set: null}}
+  sealed_latent:
+    stage: eval_r2
+    tag: sealed
+    config:
+      inputs: {flow: 'runs/pointer/{src}-{variant}/train_flow_s{seed}:flow.pt', representation: 'runs/pointer/{src}-{variant}/train_rep_s{seed}:rep.pt'}
+      options: {policy: pointer_latent, seed_sets: [sealed_id, sealed_heldout], tasks: '$tasks', batch: 16}
+  sealed_learned_s0:
+    stage: eval_r1
+    tag: sealed_learned_s0
+    config:
+      inputs: {representation: 'runs/pointer/{src}-{variant}/train_rep_s{seed}:rep.pt'}
+      options: {seed_sets: [sealed_id, sealed_heldout], tasks: '$tasks', batch: 16}
+  sealed_bc:
+    stage: eval_r2
+    only: {variant: [nosem]}
+    tag: sealed_bc
+    config:
+      inputs: {checkpoint: 'runs/pointer/{src}-{variant}/train_bc_s{seed}:bc.pt'}
+      options: {policy: pointer_bc, seed_sets: [sealed_id, sealed_heldout], tasks: '$tasks', batch: 16}
+  sealed_eng:
+    stage: eval_r2
+    only: {variant: [nosem]}
+    tag: sealed_eng
+    config:
+      inputs: {flow: 'runs/pointer/{src}-{variant}/train_flow-eng_s{seed}:flow.pt'}
+      options: {policy: pointer_latent, seed_sets: [sealed_id, sealed_heldout], tasks: '$tasks', batch: 16}

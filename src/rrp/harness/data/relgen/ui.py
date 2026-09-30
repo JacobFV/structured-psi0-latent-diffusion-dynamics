@@ -17,12 +17,14 @@ Never imports `rrp.policies.relations` (labels stay on the privileged side of th
 `policies/` never imports `relgen`)."""
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Sequence
 
 import numpy as np
 
 from rrp.envs.base import StateView
-from rrp.harness.data.relgen import Label, LabelDef, Sample, TokenIndex, register_label
+from rrp.harness.data.relgen import (Label, LabelDef, Sample, SceneDraft, ScenePart, TokenIndex, register_label,
+                                     register_part)
 
 UI_LABELS_VERSION = "1"
 
@@ -197,3 +199,67 @@ def label_for_sample(control_id: str, candidates: Sequence[str], view: StateView
     return {"inputs": {"candidates": list(candidates), "prior": prior, "evidence": list(evidence)},
             "labels": {}, "provenance": {"label": "label_for", "prov": "gt", "version": UI_LABELS_VERSION,
                                          "control": control_id}}
+
+
+# ------------------------------------------------------------------------------------------------ ComputerWorld scene parts
+# The scene-level knobs `envs.computerworld.make_env(scene=...)` takes (`width`, `height`, `m_per_px`, `depth`, `dz`): the
+# `compose` side of the ui family (D-146 C3, docs/relations.md 5.2). A CW scene is authored by the task (its widgets and
+# windows), so these parts add no entities: they set the SCENE kwargs a draft hands to `make_env`, and their `vary` gives
+# the decoupling pairs (same task and widgets, only the varied factor differs). `activates` names the dynamics a target
+# active set asks `compose` for (`viewport`, `zstack`); the catalog's `ui.*` `gen` lists the PART names.
+CW_ENV = "computerworld"
+CW_VIEWPORTS = ((960, 640, 0.001), (1280, 800, 0.00075), (800, 600, 0.0012))   # (width px, height px, m per px)
+CW_DEPTHS = ("stack", "constant")
+
+
+def _stamp(draft: SceneDraft, part: ScenePart) -> None:
+    """Record the part on the draft once (`compose` has already listed the chosen parts; a direct `.build` has not)."""
+    draft.active = draft.active | part.activates
+    if part.name not in draft.parts:
+        draft.parts = draft.parts + (part.name,)
+    if not any(p["part"] == part.name for p in draft.provenance.setdefault("parts", [])):
+        draft.provenance["parts"].append({"part": part.name, "version": part.version})
+
+
+def _viewport_build(draft: SceneDraft, rng: np.random.Generator) -> None:
+    if "width" not in draft.kwargs:
+        w, h, m = CW_VIEWPORTS[int(rng.integers(len(CW_VIEWPORTS)))]
+        draft.kwargs.update(width=w, height=h, m_per_px=m)
+    _stamp(draft, CW_VIEWPORT)
+
+
+def _viewport_vary(draft: SceneDraft, rng: np.random.Generator, factor: str) -> list[SceneDraft]:
+    """One draft per OTHER viewport: the same widgets rendered into a different pixel frame (the relations are
+    invariant, the pixel geometry is not)."""
+    if factor not in ("viewport", "ui.viewport"):
+        raise ValueError(f"cw_viewport.vary: unsupported factor {factor!r} (expected 'viewport')")
+    cur = (draft.kwargs.get("width"), draft.kwargs.get("height"), draft.kwargs.get("m_per_px"))
+    return [replace(draft, kwargs={**draft.kwargs, "width": w, "height": h, "m_per_px": m},
+                    provenance={**draft.provenance, "vary": {"part": "cw_viewport", "factor": factor}})
+            for w, h, m in CW_VIEWPORTS if (w, h, m) != cur]
+
+
+def _depth_build(draft: SceneDraft, rng: np.random.Generator) -> None:
+    if "depth" not in draft.kwargs:
+        draft.kwargs["depth"] = CW_DEPTHS[int(rng.integers(len(CW_DEPTHS)))]
+    draft.kwargs.setdefault("dz", 0.002)
+    _stamp(draft, CW_DEPTH)
+
+
+def _depth_vary(draft: SceneDraft, rng: np.random.Generator, factor: str) -> list[SceneDraft]:
+    """The same scene with the other z-encoding: "stack" ranks the z-layers (`ui.above` is readable off the pose z),
+    "constant" flattens them (only the public `zlayer` field carries the order)."""
+    if factor not in ("zstack", "ui.above"):
+        raise ValueError(f"cw_depth.vary: unsupported factor {factor!r} (expected 'zstack')")
+    cur = draft.kwargs.get("depth")
+    return [replace(draft, kwargs={**draft.kwargs, "depth": d},
+                    provenance={**draft.provenance, "vary": {"part": "cw_depth", "factor": factor}})
+            for d in CW_DEPTHS if d != cur]
+
+
+CW_VIEWPORT = ScenePart(name="cw_viewport", version=UI_LABELS_VERSION, activates=frozenset({"viewport"}),
+                        build=_viewport_build, vary=_viewport_vary, envs=(CW_ENV,))
+CW_DEPTH = ScenePart(name="cw_depth", version=UI_LABELS_VERSION, activates=frozenset({"zstack"}),
+                     build=_depth_build, vary=_depth_vary, envs=(CW_ENV,))
+register_part(CW_VIEWPORT)
+register_part(CW_DEPTH)

@@ -6,8 +6,11 @@
 # Per variant (semfix | nosem = the factor set: probe loss on z + packet semantic loss, or both weights 0) and seed:
 # rep (E + R + P) -> flow (system i on the frozen representation) -> eval_dev (DEPLOYABLE route on the dev seeds) ->
 # eval_r1 (ORACLE rung: teacher chunk -> frozen E -> LEARNED system 0), probes (post-hoc packet probes), edits (causal).
-# The sealed splits (sealed_id, sealed_heldout) were run ONCE (D-142) and are not part of a recipe; `options.seed_set`
-# selects dev. Resources: peer GPU (bf16), one lease at a time. Public inputs only: rrp.policies.pointer.public_features.
+# The v1 sealed sets (sealed_id, sealed_heldout) were run ONCE (D-142): this template evaluates dev (`options.seed_set`). An
+# instance may name another split (`base: {options: {split: ...}}`, passed to every stage as --split), add seeds, make the
+# baselines per-seed point nodes (recipes/pointer/pointer_seeds.yaml), pass `params.factors` (pointer_ui.yaml) or evaluate the
+# sealed sets of a new split once (pointer_sealed.yaml; the stage refuses a second attempt, pipelines/pointer.py).
+# Resources: peer GPU (bf16), one lease at a time. Public inputs only: rrp.policies.pointer.public_features.
 # An instance sets name, track, header keys and may override vars / params.
 name: pointer_lineage_template
 schema: dag-1

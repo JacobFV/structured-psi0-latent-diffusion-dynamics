@@ -1,0 +1,32 @@
+# Pointer lineage, 3 training seeds per arm, on the v2 split (D-146 C3; pre-registration: research/tracks/pointer.md, row P-SEEDS).
+# Why a new lineage and not pointer_v1: the v1 sealed sets were consumed once (D-142), and the packs of pointer_v1 predate the
+# D-144 geometry and C1 UI fields; new claims need a new declared split and a re-collect with the current featurizer.
+# Same graph as pointer_v1 with two differences: (1) three seeds (1, 2, 3; each seed = model init and batch order; the demos, the
+# train / validation split (--split-seed 0) and the eval seeds are shared, so seeds differ only in training); (2) the BC and the
+# engineered-encoding flow are trained per seed too (point nodes, variant nosem: they have no probe head), so every arm gets the
+# same number of seeds and the same public inputs and demos. `eval_oracle` (teacher packets -> scripted system 0) stays global.
+# `research/splits/cworld_pointer_v2.json` (C2) must exist before `collect` runs: the stages refuse a missing split.
+# Dev seeds only here; the run-once sealed evaluation is recipes/pointer/pointer_sealed.yaml.
+extends: ../templates/pointer_lineage.yaml
+name: pointer_seeds
+schema: dag-1
+track: pointer
+policy: pointer_latent
+env: computerworld
+task: 'cw/*'
+bodies: cw_pointer
+factors: [semfix, nosem]
+lineage: 'pointer-s3-{variant}'
+global_lineage: 'pointer-v2-data'
+label_prefix: 'ptr3_{variant}{seed}'
+global_label_prefix: 'ptr3'
+matrix:
+  variant: [semfix, nosem]
+  seed: [1, 2, 3]
+base:
+  options: {split: research/splits/cworld_pointer_v2.json}
+nodes:
+  bc: {scope: point, only: {variant: [nosem]}}
+  eval_bc: {scope: point, only: {variant: [nosem]}}
+  flow_eng: {scope: point, only: {variant: [nosem]}, tag: eng, config: {params: {w_sem: 0}}}   # w_sem is unused by target eng (no probe head)
+  eval_eng: {scope: point, only: {variant: [nosem]}}

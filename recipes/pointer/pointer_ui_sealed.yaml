@@ -1,0 +1,15 @@
+# Run-once sealed evaluation of the pointer_ui checkpoints (the `preset:ui` arm), same rules as pointer_sealed.yaml.
+extends: pointer_sealed.yaml
+name: pointer_ui_sealed
+schema: dag-1
+track: pointer
+lineage: 'pointer-ui-sealed-{variant}'
+global_lineage: 'pointer-ui-sealed'
+label_prefix: 'ptruisl_{variant}{seed}'
+global_label_prefix: 'ptruisl'
+vars:
+  src: pointer-ui
+nodes:
+  eval_oracle: null
+  sealed_bc: null
+  sealed_eng: null

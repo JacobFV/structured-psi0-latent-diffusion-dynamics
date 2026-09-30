@@ -11,22 +11,39 @@
 | eval_r1 | `rrp eval --policy pointer_oracle={representation}`: teacher packets -> frozen E -> LEARNED system 0 (ORACLE, diagnostic) |
 | eval_r2 | `rrp eval --policy pointer_latent|pointer_bc|pointer_oracle` on the split's seeds (`options.seed_set`, default dev) |
 
-Options: `tasks` (default all four cw/* tasks), `seed_set` (dev | sealed_id | sealed_heldout of the split file; sealed sets are
-evaluated ONCE, D-142), `workers`. Params of the training stages are passed through as `--<name>` flags (steps, batch, lr, dz,
-w_sem, lv_min, ...); `variant` is the factor set (semfix | nosem; `params.w_sem` must agree, see runconfig._check_variant).
+Options: `tasks` (default all four cw/* tasks), `split` (the split file, default `cworld_pointer_v1`; every stage of one lineage
+passes it to the trainers as `--split`, so the no-leak guard and the eval seeds come from the same file), `seed_sets` (a list of
+dev | sealed_id | sealed_heldout of the split; `seed_set` = one), `workers`. Params of the training stages are passed through as
+`--<name>` flags (steps, batch, lr, dz, w_sem, lv_min, factors, ...; a list becomes repeated values); `params.factors` is the
+relation-factor list of the net (`rrp.policies.relations.resolve` items, e.g. `["preset:ui"]`; absent = the empty preset);
+`variant` is the semantic factor set (semfix | nosem; `params.w_sem` must agree, see runconfig._check_variant).
+
+Sealed guard (D-142, D-146 C3). A sealed seed set is evaluated at most ONCE per (split, seed set, task, method), where a method
+is the policy kind plus its frozen inputs (flow / representation / checkpoint paths): the attempt is logged in
+`artifacts/runs/pointer/sealed_log.jsonl` (start before the eval jobs, done after a clean exit; an exception leaves the attempt
+open on purpose, `release_sealed_cell` records an infrastructure failure with a reason and frees it), and a split whose sealed
+seeds are already consumed (`CONSUMED`) refuses outright: a new question needs a new split (C2 declares `cworld_pointer_v2`
+before any demo).
 Inputs: `data` (a collect run), `representation` (`@rep:rep.pt`), `flow` (`@flow:flow.pt`), `checkpoint` (`@bc:bc.pt`).
 Every trained model reads only `rrp.policies.pointer.public_features`; weights and datasets stay in the peer store.
 """
 from __future__ import annotations
 
+import fcntl
+import hashlib
 import json
+import time
 from pathlib import Path
 
+from rrp.core.sealed import SealedSplit, SealedSplitError
 from rrp.harness.pipelines.base import StageContext, StageError, register
 
 TRAIN = ["-m", "rrp.cli", "train", "pointer"]
 SPLIT_PATH = "research/splits/cworld_pointer_v1.json"   # = rrp.harness.train.pointer.SPLIT_PATH (that module needs torch)
 TASKS = ("cw/calc_sum", "cw/open_type", "cw/drag_window", "cw/fill_form")
+SEAL_SETS = ("sealed_id", "sealed_heldout")
+SEALED_LOG = "artifacts/runs/pointer/sealed_log.jsonl"
+CONSUMED = {"cworld_pointer_v1": "D-142 (sealed_id and sealed_heldout were evaluated once with the frozen checkpoints)"}
 
 
 def _tasks(ctx: StageContext) -> list[str]:
@@ -37,8 +54,22 @@ def _tasks(ctx: StageContext) -> list[str]:
     return ts
 
 
+def _split_path(ctx: StageContext) -> str:
+    return str(ctx.opts.get("split") or SPLIT_PATH)
+
+
 def _split(ctx: StageContext) -> dict:
-    return json.loads((ctx.root / SPLIT_PATH).read_text())
+    p = ctx.root / _split_path(ctx)
+    if not p.exists():
+        raise StageError(f"pointer split {_split_path(ctx)} does not exist: declare the split (seed ranges, held-out variants, "
+                         "seed lists) before any demo is collected")
+    return json.loads(p.read_text())
+
+
+def _seed_sets(ctx: StageContext) -> list[str]:
+    o = ctx.opts
+    sets = o.get("seed_sets") or [o.get("seed_set", "dev")]
+    return [sets] if isinstance(sets, str) else list(sets)
 
 
 def _slug(task: str) -> str:
@@ -51,7 +82,10 @@ def _flags(params: dict, skip=()) -> list[str]:
     for k, v in params.items():
         if k in skip or v is None:
             continue
-        argv += [f"--{k.replace('_', '-')}", str(v)]
+        vals = list(v) if isinstance(v, (list, tuple)) else [v]                 # nargs="*" options (--factors)
+        if not vals:
+            continue                                                             # an empty list is the option's absent default
+        argv += [f"--{k.replace('_', '-')}", *[json.dumps(x) if isinstance(x, dict) else str(x) for x in vals]]
     return argv
 
 
@@ -65,7 +99,8 @@ def _data(ctx: StageContext) -> list[str]:
 
 def _train(ctx: StageContext, cmd: str, out_name: str, extra: list[str], *, use_variant: bool = False) -> Path:
     out = ctx.out / out_name
-    argv = [*TRAIN, cmd, "--data", *_data(ctx), "--out", str(out), "--seed", str(ctx.rc.seed), *extra]
+    argv = [*TRAIN, cmd, "--data", *_data(ctx), "--out", str(out), "--seed", str(ctx.rc.seed), "--split", _split_path(ctx),
+            *extra]
     if use_variant:
         argv += ["--variant", ctx.rc.variant]
     ctx.run(argv, log_to=ctx.out / f"{cmd}.log")
@@ -91,8 +126,8 @@ def collect(ctx: StageContext) -> dict:
         outs[_slug(t)] = str(out.relative_to(ctx.root))
         if out.exists() and ctx.opts.get("resume", True):
             continue
-        argv = [*TRAIN, "collect", "--task", t, "--episodes", str(n), "--seed", str(ctx.rc.seed), *_flags(p, skip=("seed",)),
-                "--out", str(out)]
+        argv = [*TRAIN, "collect", "--task", t, "--episodes", str(n), "--seed", str(ctx.rc.seed), "--split", _split_path(ctx),
+                *_flags(p, skip=("seed",)), "--out", str(out)]
         jobs.append((argv, None, ctx.out / f"collect_{_slug(t)}.log"))
     ctx.run_parallel(jobs, int(ctx.opts.get("workers", 2)))
     return dict(outputs=outs, metrics=dict(tasks=len(outs), episodes_per_task=n))
@@ -130,7 +165,7 @@ def train_bc(ctx: StageContext) -> dict:
 @register("pointer", "probes", source="learned")
 def probes(ctx: StageContext) -> dict:
     """Post-hoc packet probes + the metadata-only control (diagnostic); `inputs.flow` probes generated packets."""
-    extra = _flags(ctx.rc.params) + ["--representation", ctx.inp("representation")]
+    extra = _flags(ctx.rc.params, skip=("factors",)) + ["--representation", ctx.inp("representation")]
     if ctx.inp("flow", required=False):
         extra += ["--flow", ctx.inp("flow")]
     out = _train(ctx, "probe", "probe.json", extra)
@@ -140,7 +175,7 @@ def probes(ctx: StageContext) -> dict:
 @register("pointer", "edits", source="learned")
 def edits(ctx: StageContext) -> dict:
     """Causal packet edits: probe-guided retargeting of a received packet, realised by system 0 in closed loop."""
-    extra = _flags(ctx.rc.params) + ["--representation", ctx.inp("representation"), "--flow", ctx.inp("flow")]
+    extra = _flags(ctx.rc.params, skip=("factors",)) + ["--representation", ctx.inp("representation"), "--flow", ctx.inp("flow")]
     out = _train(ctx, "edit", "edit.json", extra)
     return dict(outputs=_outputs(out, ctx, meta=False))
 
@@ -149,8 +184,59 @@ def edits(ctx: StageContext) -> dict:
 def _seeds(ctx: StageContext, seed_set: str, task: str) -> str:
     s = _split(ctx)["seeds"][task].get(seed_set)
     if not s:
-        raise StageError(f"{task}: split {SPLIT_PATH} has no seed set {seed_set!r}")
+        raise StageError(f"{task}: split {_split_path(ctx)} has no seed set {seed_set!r}")
     return ",".join(str(x) for x in s)
+
+
+# ------------------------------------------------------------------------------------------------ sealed guard
+def _append(log: Path, cid: str, event: str, allowed: tuple[str, ...], **extra) -> None:
+    """One event of the run-once log (the `core.sealed` format), appended under an exclusive lock only when the cell's
+    last recorded state is one of `allowed`."""
+    log.parent.mkdir(parents=True, exist_ok=True)
+    with open(log, "a+") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        state = SealedSplit.cell_state(cid, log)
+        if state not in allowed:
+            raise SealedSplitError(f"sealed cell {cid} is '{state}' in {log}: " + (
+                "it already ran (a rerun needs a recorded infrastructure failure)" if state in ("done", "started")
+                else "no open attempt to close"), code="sealed_cell_rerun")
+        f.write(json.dumps(dict(cell=cid, event=event, utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), **extra),
+                           sort_keys=True) + "\n")
+
+
+def sealed_cell_id(split_id: str, seed_set: str, task: str, method: str) -> str:
+    return f"{split_id}|{seed_set}|{task}|{method}"
+
+
+def release_sealed_cell(root: str | Path, cell: str, reason: str) -> None:
+    """Free an open sealed cell after an INFRASTRUCTURE failure (node lost, OOM kill, broken mount), never after a bad
+    result. The reason is required and stored."""
+    if not str(reason).strip():
+        raise SealedSplitError("an infrastructure failure needs a recorded reason", code="sealed_cell_reason")
+    _append(Path(root) / SEALED_LOG, cell, "infrastructure_failure", ("started",), reason=str(reason))
+
+
+def _method_id(ctx: StageContext, kind: str) -> str:
+    """The frozen method under test: the policy kind and the digest of its input checkpoints (a second lineage that
+    evaluates the same checkpoints is the same method)."""
+    paths = {k: v for k, v in sorted(ctx.rc.input_paths(ctx.index).items()) if k in ("flow", "representation", "checkpoint")}
+    return f"{kind}:{hashlib.sha256(json.dumps(paths, sort_keys=True).encode()).hexdigest()[:16]}"
+
+
+def _sealed_refuse_consumed(split: dict, seed_set: str) -> None:
+    sid = split["split_id"]
+    if sid in CONSUMED:
+        raise SealedSplitError(f"{sid}: {seed_set} is sealed and consumed by {CONSUMED[sid]}; a new comparison needs a new split "
+                               "declared before any demo", code="sealed_split_consumed")
+
+
+def _sealed_start(ctx: StageContext, split: dict, seed_set: str, tasks: list[str], kind: str) -> list[str]:
+    """Log the start of every (task, method) cell about to run (refused unless it never ran or failed by infrastructure);
+    returns the cell ids."""
+    cells = [sealed_cell_id(split["split_id"], seed_set, t, _method_id(ctx, kind)) for t in tasks]
+    for cid in cells:
+        _append(ctx.root / SEALED_LOG, cid, "start", ("none", "infrastructure_failure"), seed_set=seed_set)
+    return cells
 
 
 def _policy(ctx: StageContext, kind: str) -> str:
@@ -171,21 +257,31 @@ def _policy(ctx: StageContext, kind: str) -> str:
 
 def _evaluate(ctx: StageContext, kind: str) -> dict:
     o = ctx.opts
-    seed_set = o.get("seed_set", "dev")
     pol = _policy(ctx, kind)
-    jobs, outs = [], {}
-    for t in _tasks(ctx):
-        if seed_set not in _split(ctx)["seeds"][t]:
-            continue                       # e.g. no held-out variants for cw/drag_window
-        out = ctx.out / f"{_slug(t)}_{seed_set}.jsonl"
-        outs[f"{_slug(t)}_{seed_set}"] = str(out.relative_to(ctx.root))
-        if out.exists() and o.get("resume", True):
-            continue
-        argv = ["-m", "rrp.cli", "eval", "--policy", pol, "--env", "computerworld", "--task", t, "--body", "cw_pointer",
-                "--seeds", _seeds(ctx, seed_set, t), "--batch", str(o.get("batch", 16)), "--out", str(out)]
-        jobs.append((argv, None, ctx.out / f"eval_{_slug(t)}.log"))
-    ctx.run_parallel(jobs, int(o.get("workers", 1)))
-    metrics = {}
+    split = _split(ctx)
+    outs, metrics = {}, {}
+    for seed_set in _seed_sets(ctx):
+        sealed = seed_set in SEAL_SETS
+        if not sealed and seed_set != "dev":
+            raise StageError(f"seed set {seed_set!r}: dev | {' | '.join(SEAL_SETS)}")
+        if sealed:
+            _sealed_refuse_consumed(split, seed_set)
+        jobs, todo = [], []
+        for t in _tasks(ctx):
+            if seed_set not in split["seeds"][t]:
+                continue                       # e.g. no held-out variants for cw/drag_window
+            out = ctx.out / f"{_slug(t)}_{seed_set}.jsonl"
+            outs[f"{_slug(t)}_{seed_set}"] = str(out.relative_to(ctx.root))
+            if out.exists() and o.get("resume", True):
+                continue
+            argv = ["-m", "rrp.cli", "eval", "--policy", pol, "--env", "computerworld", "--task", t, "--body", "cw_pointer",
+                    "--seeds", _seeds(ctx, seed_set, t), "--batch", str(o.get("batch", 16)), "--out", str(out)]
+            jobs.append((argv, None, ctx.out / f"eval_{_slug(t)}_{seed_set}.log"))
+            todo.append(t)
+        cells = _sealed_start(ctx, split, seed_set, todo, kind) if sealed else []
+        ctx.run_parallel(jobs, int(o.get("workers", 1)))
+        for cid in cells:                      # a raised exception above leaves the attempts open on purpose
+            _append(ctx.root / SEALED_LOG, cid, "done", ("started",))
     for name, rel in outs.items():
         summ = ctx.root / Path(rel).with_suffix(".summary.json")
         if summ.exists():

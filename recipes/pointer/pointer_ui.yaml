@@ -1,0 +1,19 @@
+# UI relation factors vs none, 3 seeds (D-146 C3; research/tracks/pointer.md, row P-UI). The `none` arm is pointer_seeds' rep / flow
+# (empty factor list); this instance trains the same graph with `preset:ui` (ui.label_for, same_window, focus_next, above,
+# drag_to) on the rep and flow nets and nothing else changed: same collect run (shared global lineage `pointer-v2-data`, so
+# the demos are the very same run), same split, seeds, steps and evaluation. The eval stages read the factors stamped in the
+# checkpoints. mix stays 0 (the trainers refuse scene mix: the relgen curriculum row is separate).
+extends: pointer_seeds.yaml
+name: pointer_ui
+schema: dag-1
+track: pointer
+lineage: 'pointer-ui-{variant}'
+label_prefix: 'ptrui_{variant}{seed}'
+nodes:
+  bc: null
+  eval_bc: null
+  flow_eng: null
+  eval_eng: null
+  eval_oracle: null
+  rep: {config: {params: {factors: ['preset:ui']}}}
+  flow: {config: {params: {factors: ['preset:ui']}}}

@@ -215,3 +215,37 @@ ops/bin/peer_run.sh ...` appends it to the job's PYTHONPATH.
     drag_to term in all three trainers, collect == live featurizer, batch-1 == batch-N, noise triple) and
     `tests/unit/test_pointer.py` (`ui.same_window` / `ui.label_for` each change attention, `drag_to_label`). The frozen-nets
     golden is unchanged (the sample call moved to `noise=`, same numbers).
+- Readiness C3 (audit D7 / D1: pointer recipes and ComputerWorld scene parts). Re-checked on origin/main b98e1150 first: the
+  pointer stages and `pointer_v1` existed, but the lineage had one training seed, no way to name the split (the stages always used
+  `cworld_pointer_v1`), no factor list passed through (`--factors` never reached the trainers), no sealed evaluation at all
+  (`options.seed_set` took `sealed_*` and simply ran it, again), and `relgen` had no ComputerWorld part for `compose`.
+  - Stages (`pipelines/pointer.py`): `options.split` names the split file and every stage passes it to the trainers as
+    `--split` (the no-leak guard and the eval seeds come from one file; a missing file is refused before any job: declare the
+    split first); list params are repeated values (`params.factors: [preset:ui]` -> `--factors preset:ui`; empty = absent);
+    `options.seed_sets` evaluates several sets in one node. Sealed guard: `sealed_id` / `sealed_heldout` run at most once per
+    (split, seed set, task, method = policy kind + digest of the frozen checkpoint paths), logged as start / done in
+    `artifacts/runs/pointer/sealed_log.jsonl` (the `core.sealed` event format, flocked). A crash leaves the attempt open;
+    `release_sealed_cell(root, cell, reason)` records an infrastructure failure and re-opens it; a bad result never does. The
+    consumed `cworld_pointer_v1` (D-142) refuses its sealed sets outright. Dev is unguarded. `PIPELINE_VERSION` is unchanged
+    (F3 owns `base.py`); `pointer_v1` / `pointer_smoke` keep their config hashes (the template did not change).
+  - Recipes (all on `research/splits/cworld_pointer_v2.json`, which C2 must land before `collect`; dry-run plans need nothing):
+    `pointer_seeds` (variant semfix|nosem x seeds 1,2,3; BC and the engineered flow per seed at variant nosem, shared demos in
+    lineage `pointer-v2-data`; `eval_oracle` global), `pointer_ui` (same graph, rep and flow with `preset:ui`, no baselines; same
+    collect run), `pointer_sealed` / `pointer_ui_sealed` (frozen checkpoints of those lineages on both sealed sets, nothing
+    trained). Dry-run node counts: pointer_seeds 50, pointer_ui 37. `rrp run-dag recipes/pointer/<name>.yaml --dry-run`; peer
+    only, as pointer_v1. Resume: nodes are adopted by config hash; a sealed node that crashed needs `release_sealed_cell` first.
+  - Scene parts (`relgen/ui.py`): `cw_viewport` (activates `viewport`; width, height, m_per_px of `make_env(scene=...)`) and
+    `cw_depth` (activates `zstack`; `depth` stack|constant, `dz`), env `computerworld`, no entities; each has a `vary` that
+    changes only its own scene keys (decoupling pairs). `compose({"viewport","zstack"}, "computerworld", rng)` returns the kwargs.
+    Nothing calls them in training yet.
+  - Roadmap and pre-registration (written before any of these runs; dev = the v2 dev seeds, 50 per task, per-task success out of 50,
+    three training seeds per arm, reported as mean and per-seed values; a difference counts only when it has the same sign in at
+    least 2 of 3 paired seeds and exceeds the larger within-arm seed range; otherwise the result is "no measurable difference").
+    Sealed sets are evaluated once per arm and seed after the dev table is written down, for every arm, whatever dev says.
+    | row | question | arms | metric and rule | status |
+    |---|---|---|---|---|
+    | P-SEEDS | Is D-142's semfix vs nosem vs eng ordering stable over training seeds? | pointer_seeds: semfix, nosem, eng, BC | dev and sealed_id success per task; rule above; no claim about semfix on a single seed | planned (needs v2 split) |
+    | P-UI | Do the ui.* relation factors help vs none? | pointer_ui vs pointer_seeds (same variant, same demos) | dev per-task success (expected: drag_window, fill_form, open_type); UI wins if mean gain >= 4 points on >= 2 tasks and no task loses more than the seed range | planned (needs v2 split) |
+    | P-COPY | Does a copy mechanism fix unseen-word typing (0/50 heldout words and names, D-142)? | flow / BC with a copy head over the goal-language tokens vs without | sealed_heldout open_type and fill_form success; copy wins if >= 10/50 on both with the same dev success elsewhere | blocked: needs a net and trainer change in `harness/train/pointer/**` and `nets/pointer` (not C3 files) |
+    | P-KEY | Does a discrete key code let a learned system i type? | key field as a categorical code (CE over KEY_VOCAB) vs the engineered continuous field | dev open_type / fill_form success and packet key probe accuracy; wins if the dev gain exceeds the seed range | blocked: same trainer / net files |
+    | P-CURR | Does relgen scene variation (viewport, z-stack) make the pointer robust to frame changes? | mix of `cw_viewport` / `cw_depth` scenes at 0, 0.25 vs none | success on a viewport not seen in training and on constant-depth scenes; wins if the shifted-frame success gap to in-frame closes by half | blocked: the trainers do not call `relation_batches`, the `ui.*` catalog entries name no scene part in `gen` (so `mix > 0` is refused), and the data path has to render scenes with the composed kwargs |
