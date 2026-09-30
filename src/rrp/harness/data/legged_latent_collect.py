@@ -2,13 +2,20 @@
 frozen body tracker; the tracker is the native-level expert whose joint targets system 0 learns to realize).
 `--task` (default waypoint_contact) is any registered mujoco/legged task with a scripted teacher; its env, teacher,
 event slots and target entities come from the task registry (`legged_collect.open_episode`, features.legged.TaskView).
-One output directory holds one task; the manifest records task, teacher and tracker sha; the sealed-split guard runs
-before collection.
+One output directory (`--out`) holds one task (bodies are subdirectories); the manifest records task, teacher and tracker
+sha; the sealed-split guard runs before collection. The episode runs on `harness.rollout` (`legged_collect.run_teacher_episode`)
+with recorder hooks; the session's control regime is the task's: "base_velocity" (10 Hz steps, 5 tracker ticks each) or
+"wholebody" (50 Hz steps, the teacher's `legs` targets through the direct slot, its `upper` targets recorded per tick).
 
 Per tick we store PUBLIC inputs (joint encoders, IMU, touch, system-i global context from localization/detector/
 task view at the last 10 Hz observation, osc-v1 phase), the expert NATIVE label (clean tracker joint target in
 action units (target - q0) / action_scale), and PRIVILEGED truth used only as probe labels / evaluation truth
-(true base pose, true foot contacts, fall, true waypoint positions).
+(true base pose, true foot contacts, fall, true waypoint positions). Also per tick: the teacher's `upper` targets (held
+joints, action units (target - q0) / action_scale, `upper_valid` only under wholebody control), the public terrain scan
+(`terrain` [T,77] elevation + `terrain_valid`: the session's own scan when a scan-input tracker makes it, else the collector's
+`TerrainScan` on the same geometry, meta `terrain_source`), and the training-only relation labels `com_support` (+ `_valid`;
+legged_collect.com_support) and `foothold_cell` [T,M] (hindsight: -2 absent / no touchdown in the episode / outside the scan,
+-1 planted, >= 0 the scan cell, in the yaw frame of that tick, where the foot next touches down).
 
 DART: with per-episode sigma, EXECUTED targets = expert target + N(0, sigma * action_scale) (clean label kept), so
 system 0 sees off-nominal states with corrective labels. The teacher's speed/turn gains are randomized per episode
@@ -26,30 +33,75 @@ from pathlib import Path
 
 import numpy as np
 
+from rrp.envs.mujoco.legged import DIRECT_CONTROLS
+from rrp.envs.mujoco.legged_core import SCAN_DIM, SCAN_DX, SCAN_NX, SCAN_NY, SCAN_X0, SCAN_Y0, TerrainScan
 from rrp.policies.features.legged import LeggedMorph, public_context, local_state, active_event, task_view_of, TICK_DT
-from rrp.harness.data.legged_collect import (DEFAULT_MAX_STEPS, assert_one_task, guard_sealed, make_teacher, open_episode,
-                                             outcome, teacher_done)
+from rrp.harness.data.legged_collect import (DEFAULT_MAX_STEPS, assert_one_task, com_support, guard_sealed, make_teacher,
+                                             open_episode, outcome, run_teacher_episode, tracker_of)
 from rrp.core.provenance import CONTACT_VERSION_DEFAULT, parse_source, physics_provenance
 from rrp.harness.data.manifest import dataset_provenance, write_manifest
 from rrp.core.runs import parse_seed_spec
 
 
+POST_SECONDS = 1.0          # post-halt standing after the teacher's end (the halt / stand regime), in seconds
+
+PER_TICK = ("q", "qd", "imu", "touch", "osc", "a", "ctx", "ev", "pose", "contact", "bad", "height", "cmd",
+            "upper", "upper_valid", "terrain", "terrain_valid", "com_support", "com_support_valid")
+
+
+def foothold_cells(contact: np.ndarray, foot_xy: np.ndarray, pose: np.ndarray, M: int) -> np.ndarray:
+    """Hindsight `foothold_cell` [T, M] (assembly order, the feet first, M = LeggedMorph.M): for a foot planted at tick t -1;
+    for a foot in swing the terrain-scan cell (index ix * SCAN_NY + iy of the 11 x 7 grid in the base yaw frame at tick t)
+    containing the foot's planar position at its next touchdown (the first later tick with the foot down); -2 where there is
+    none (no later touchdown in the episode, the landing outside the scan) and on every non-foot assembly.
+    contact [T, nf] bool, foot_xy [T, nf, 2] world, pose [T, >=3] (x, y, yaw)."""
+    T, nf = contact.shape
+    out = np.full((T, M), -2, np.int64)
+    for f in range(nf):
+        nxt = None
+        for t in range(T - 1, -1, -1):
+            if contact[t, f]:
+                out[t, f], nxt = -1, t
+            elif nxt is not None:
+                x, y, yaw = (float(v) for v in pose[t, :3])
+                dx, dy = foot_xy[nxt, f, 0] - x, foot_xy[nxt, f, 1] - y
+                c, s = np.cos(yaw), np.sin(yaw)
+                ix = int(round((c * dx + s * dy - SCAN_X0) / SCAN_DX))
+                iy = int(round((-s * dx + c * dy - SCAN_Y0) / SCAN_DX))
+                if 0 <= ix < SCAN_NX and 0 <= iy < SCAN_NY:
+                    out[t, f] = ix * SCAN_NY + iy
+    return out
+
+
 class RecordingTracker:
-    """Wraps the frozen body tracker: records (public local state, clean expert target) every native tick and
-    executes the target with optional DART noise."""
+    """Wraps the session's tracker slot: records (public local state, clean expert target, terrain scan, labels) every native
+    tick and executes the target with optional DART noise. base_velocity control: the slot is the frozen body tracker (the
+    clean target is its output). "wholebody": the slot is `DirectTargets`; the clean target is the teacher's `legs` group and
+    the teacher's `upper` group is read from `session.upper_target` (what the session applies this tick)."""
 
     def __init__(self, session, morph, sigma: float, rng):
         self.s, self.inner, self.m = session, session.tracker, morph
         self.sigma, self.rng = sigma, rng
         self.rec = None
         self.ticks = 0
-        self.ctx = None
+        self.ctx = self.ev = self.cmd_truth = None
+        self.direct = session.control in DIRECT_CONTROLS
+        self.scan_own = TerrainScan(session.binding) if session.terrain is None else None
+        self.scan = self.scan_own or session.terrain
+        bt = tracker_of(session)
         for k in ("source", "version"):
-            setattr(self, k, getattr(self.inner, k))
+            setattr(self, k, getattr(bt, k))
+        self.body = bt
+
+    @property
+    def terrain_source(self) -> str:
+        return "collector_scan" if self.scan_own is not None else "session_scan"
 
     def reset(self, phase=0.0):
         self.ticks = 0
         self.inner.reset(phase)
+        if self.scan_own is not None:
+            self.scan_own.reset(self.s.data, self.s.seed)
 
     def state(self):
         return self.inner.state()
@@ -58,26 +110,60 @@ class RecordingTracker:
         self.inner.load(st)
 
     def act(self, data, cmd):
+        if self.scan_own is not None:
+            self.scan_own.tick(data)
         tgt = self.inner.act(data, cmd)
-        b = self.s.binding
+        s, b = self.s, self.s.binding
         osc = (self.ticks * TICK_DT / self.m.gait_period) % 1.0
         if self.rec is not None:
-            q, qd, imu, touch = local_state(self.s, self.m)
+            q, qd, imu, touch = local_state(s, self.m)
             fc, bad = b.contacts(data)
-            self.rec["q"].append(q); self.rec["qd"].append(qd); self.rec["imu"].append(imu)
-            self.rec["touch"].append(touch); self.rec["osc"].append(osc)
-            self.rec["a"].append(((tgt - b.q0) / b.action_scale).astype(np.float32))
-            self.rec["ctx"].append(self.ctx)
-            self.rec["ev"].append(self.ev)
-            self.rec["pose"].append(self.s.base_pose_truth().astype(np.float32))
-            self.rec["contact"].append(fc.copy())
-            self.rec["bad"].append(bool(bad))
-            self.rec["height"].append(float(data.qpos[b.qa + 2]))
-            self.rec["cmd"].append(np.asarray(cmd, np.float32))
+            r = self.rec
+            r["q"].append(q); r["qd"].append(qd); r["imu"].append(imu)
+            r["touch"].append(touch); r["osc"].append(osc)
+            r["a"].append(((tgt - b.q0) / b.action_scale).astype(np.float32))
+            r["ctx"].append(self.ctx)
+            r["ev"].append(self.ev)
+            r["pose"].append(s.base_pose_truth().astype(np.float32))
+            r["contact"].append(fc.copy())
+            r["bad"].append(bool(bad))
+            r["height"].append(float(data.qpos[b.qa + 2]))
+            r["cmd"].append(np.asarray(cmd if self.cmd_truth is None else self.cmd_truth, np.float32))
+            whole = s.control == "wholebody"
+            r["upper"].append(((np.asarray(s.upper_target, float) - b.q0_held) / b.action_scale).astype(np.float32)
+                              if whole else np.zeros(len(b.held_act), np.float32))
+            r["upper_valid"].append(whole)
+            r["terrain"].append(np.asarray(self.scan.values, np.float32).copy())
+            r["terrain_valid"].append(np.asarray(self.scan.valid, bool).copy())
+            cs = com_support(s)
+            r["com_support"].append(cs)
+            r["com_support_valid"].append(True)
+            self.foot_xy.append(np.asarray([data.xpos[f][:2] for f in b.foot_bids], np.float64))
         self.ticks += 1
         if self.sigma > 0:
             tgt = np.clip(tgt + self.rng.normal(0, self.sigma * b.action_scale, len(tgt)), b.lo, b.hi)
         return tgt
+
+    def start(self):
+        self.rec = {k: [] for k in PER_TICK}
+        self.foot_xy = []
+
+
+class TickContext:
+    """Rollout hook: the public system-i context (`public_context`, `active_event`) handed to every tick of a control step,
+    taken at the last 10 Hz observation (base_velocity: every step; direct controls: steps after a boundary), and, for direct
+    controls, the teacher's base-velocity command (`command_values`, the tracker input the `legs` targets realise)."""
+
+    def __init__(self, s, morph, rt, te):
+        self.s, self.m, self.rt, self.te = s, morph, rt, te
+
+    def on_act(self, i, obs, act):
+        s, rt = self.s, self.rt
+        if not rt.direct or rt.ctx is None or s.boundary:
+            rt.ctx = public_context(s, (rt.ticks * TICK_DT / self.m.gait_period) % 1.0)
+            rt.ev = active_event(s.runtime)
+        if rt.direct and hasattr(self.te, "command_values"):
+            rt.cmd_truth = np.asarray(self.te.command_values(), np.float32)
 
 
 def collect_episode(body: str, seed: int, sigma: float, tracker_kind="auto", max_steps=None, arc_only=False,
@@ -86,13 +172,17 @@ def collect_episode(body: str, seed: int, sigma: float, tracker_kind="auto", max
     spec, s = open_episode(task, body, seed, tracker_kind=tracker_kind, tracker_id=tracker_id)
     sc = s.scenario
     max_steps = max_steps or spec.max_steps or DEFAULT_MAX_STEPS
-    # W8/D-112: the W6 motion-quality recorder (read-only; install_legged with the nominal perturbation performs the
-    # original tick operations in the same order), so every episode meta carries slip_ratio/cot/... for the dataset gate
-    from rrp.envs.mujoco.perturb import PhysicsPerturbation, install_legged
-    from rrp.envs.mujoco.motion_quality import LeggedMotionRecorder
-    mrec = LeggedMotionRecorder(s)
-    install_legged(s, PhysicsPerturbation(), seed, on_substep=mrec.on_substep, on_tick=mrec.on_tick,
-                   on_reset=mrec.on_reset)
+    direct = s.control in DIRECT_CONTROLS
+    mrec = None
+    if s.control != "wholebody":
+        # W8/D-112: the W6 motion-quality recorder (read-only; install_legged with the nominal perturbation performs the
+        # original tick operations in the same order), so every episode meta carries slip_ratio/cot/... for the dataset gate.
+        # Not available under wholebody control (install_legged holds the upper joints at the default pose): motion is None.
+        from rrp.envs.mujoco.perturb import PhysicsPerturbation, install_legged
+        from rrp.envs.mujoco.motion_quality import LeggedMotionRecorder
+        mrec = LeggedMotionRecorder(s)
+        install_legged(s, PhysicsPerturbation(), seed, on_substep=mrec.on_substep, on_tick=mrec.on_tick,
+                       on_reset=mrec.on_reset)
     morph = LeggedMorph(s.model, s.binding, sc.robots[0].robot_spec.spec_hash)
     rt = RecordingTracker(s, morph, sigma, rng)
     s.tracker = rt
@@ -100,33 +190,24 @@ def collect_episode(body: str, seed: int, sigma: float, tracker_kind="auto", max
     # declared teacher diversity (drawn after the reset, as always; a teacher without these options ignores them)
     pol, te = make_teacher(spec, s, dict(speed_frac=float(rng.uniform(0.4, 0.9)), turn_gain=float(rng.uniform(1.0, 2.2))),
                            arc_only=arc_only)
-    keys = ("q", "qd", "imu", "touch", "osc", "a", "ctx", "ev", "pose", "contact", "bad", "height", "cmd")
-    rt.rec = {k: [] for k in keys}
+    if direct:
+        rt.ticks = 0                # the teacher's body tracker starts its phase at 0 here (after the reset settle)
+    rt.start()
     t0 = time.time()
-    steps = 0
-    for _ in range(max_steps):
-        cmd = te.act()
-        rt.ctx = public_context(s, (rt.ticks * TICK_DT / morph.gait_period) % 1.0)
-        rt.ev = active_event(s.runtime)
-        s.step(cmd)
-        steps += 1
-        if teacher_done(te, s) or s.fell:
-            break
-    # 1 s of post-halt standing (teacher keeps zero command) so the halt/stand regime is represented
-    if not s.fell:
-        for _ in range(10):
-            rt.ctx = public_context(s, (rt.ticks * TICK_DT / morph.gait_period) % 1.0)
-            rt.ev = active_event(s.runtime)
-            s.step(te.act())
-            if s.fell:
-                break
+    step_s = TICK_DT if direct else s.dt                   # seconds per rollout step (wholebody: one tracker tick)
+    ticks_per_step = int(round(step_s / TICK_DT))
+    post = int(round(POST_SECONDS / step_s))
+    steps = run_teacher_episode(spec, s, pol, te, [TickContext(s, morph, rt, te)], max_steps=max_steps, post_steps=post)
     status, reason = outcome(spec, s)
     arr = {k: np.asarray(v) for k, v in rt.rec.items()}
+    arr["foothold_cell"] = foothold_cells(arr["contact"], np.asarray(rt.foot_xy), arr["pose"], morph.M)
     meta = dict(body=body, seed=seed, sigma=sigma, task=task, status=status, failure_reason=reason, steps=steps,
-                max_steps=max_steps, ticks=len(arr["a"]),
+                max_steps=max_steps, ticks=len(arr["a"]), control=s.control, step_ticks=ticks_per_step,
+                terrain_source=rt.terrain_source,
+                **({"legs_source": getattr(te, "legs", None)} if direct else {}),
                 tracker_source=rt.source, tracker_version=rt.version, source=pol.info.source,
                 teacher=pol.info.name, teacher_version=pol.info.version,
-                tracker_sha256=getattr(rt.inner, "sha256", None), tracker_run=getattr(rt.inner, "run", None),
+                tracker_sha256=getattr(rt.body, "sha256", None), tracker_run=getattr(rt.body, "run", None),
                 actuator=("ideal_pd_servo (legacy; the realistic actuator model is not applied)" if s.actuator_model is None
                           else f"{s.actuator_mode} (rrp.bodies.actuator, nominal params, latency {s.actuator_latency_ms:.1f} ms)"),
                 **({"actuator_mode": s.actuator_record()} if s.actuator_model is not None else {}),
@@ -135,10 +216,8 @@ def collect_episode(body: str, seed: int, sigma: float, tracker_kind="auto", max
                 waypoints=sc.meta.get("waypoints"),
                 spec_hash=morph.spec_hash, wall_s=time.time() - t0, tracker_source_label=str(parse_source(rt.source)),
                 physics=physics_provenance(s.model, sc.meta.get("contact_model", CONTACT_VERSION_DEFAULT)).to_dict(),
-                motion=mrec.summary())
+                motion=mrec.summary() if mrec is not None else None)
     return arr, meta, morph
-
-
 
 
 def main(argv=None):
@@ -159,7 +238,7 @@ def main(argv=None):
     seeds = parse_seed_spec(a.seeds)
     guard_sealed(a.body, seeds)
     out.mkdir(parents=True, exist_ok=True)
-    assert_one_task(out, a.task)
+    assert_one_task(Path(a.out), a.task)
     shard = a.shard or f"s{seeds[0]}-{seeds[-1]}"
     f = out / f"{shard}.npz"
     if f.exists():
@@ -178,7 +257,8 @@ def main(argv=None):
     cat["ep"] = np.concatenate([np.full(len(e["a"]), i) for i, e in enumerate(eps)])
     cat["t"] = np.concatenate([np.arange(len(e["a"])) for e in eps])
     np.savez_compressed(f, **cat, node_static=morph.node_static, node_asm=morph.node_asm,
-                        asm_static=morph.asm_static, q0_all=morph.q0_all, n_policy=morph.n_policy, nf=morph.nf)
+                        asm_static=morph.asm_static, q0_all=morph.q0_all, n_policy=morph.n_policy, nf=morph.nf,
+                        node_parent=morph.node_parent, asm_trunk=morph.asm_trunk)
     prov = dataset_provenance(metas, source="scripted_teacher",
                               flags=dict(privileged_teacher=True, arc_only=a.arc_only, tracker=a.tracker, task=a.task,
                                          dart_sigmas=sig, prev_action_input=False),

@@ -32,12 +32,15 @@ TICKS_PER_PACKET = 20                    # 0.4 s replan
 KNOT_TIMES = (0.1, 0.3, 0.5, 0.7)
 NODE_STATIC_DIM = 21
 ASM_DIM = 10
-GLOBAL_DIM = 22
 ASM_KINDS = ("leg", "body", "arm")
 BODY_KINDS = ("quadruped", "hexapod", "humanoid", "other")
 EVENTS = ("walk_to_a", "walk_to_b", "halt")       # the waypoint_contact event names (slot meaning of that task; see TaskView)
 EVENT_SLOTS = 3           # the context holds one-hot over EVENT_SLOTS events + "done" (index EVENT_SLOTS) for ANY task graph
-TARGET_SLOTS = 2          # ... and TARGET_SLOTS target-entity estimates (4 numbers each)
+TARGET_SLOTS = 3          # ... and TARGET_SLOTS task-entity estimates (4 numbers each): the widest registered graph (h_carry,
+#                           h_place, h_gap_cart: object, support / cart, goal) names three. THE one constant to widen.
+LEAD_TARGET_SLOTS = 2     # slots 0 .. 1 sit inside the original 22-wide layout (cols 8:16); slots 2 .. TARGET_SLOTS-1 are appended
+#                           after the speed estimate, so every index of the original layout (ctx[8:16], ctx[16:20], ctx[20:22]) holds
+GLOBAL_DIM = 22 + 4 * (TARGET_SLOTS - LEAD_TARGET_SLOTS)
 MAX_N = 32                              # padded actuated joints (policy + held; g1 has 29)
 MAX_M = 11                              # padded assemblies (8 legs + body + 2 arms)
 H = 40                    # demonstrated ticks seen by E (0.8 s)
@@ -54,6 +57,46 @@ def _body_kind(L, nf):
     if nf == 4:
         return "quadruped"
     return "other"
+
+
+def _kinematic_structure(model, jids, node_asm, M: int, nf: int, root_bid: int):
+    """(node_parent [N], asm_trunk [M]) of the real kinematic tree (HD1): `node_parent[k]` = index (among the actuated joints)
+    of the nearest actuated joint above joint k (the previous actuated joint on the same body, else the last one on the
+    nearest ancestor body that has one), -1 when nothing actuated lies between it and the world; `asm_trunk[m]` = MuJoCo body
+    id of the trunk link assembly m hangs from: the parent body of the topmost body of its joints (legs of a biped: the
+    pelvis, arms of a humanoid: the torso link, all legs of a quadruped / hexapod: the trunk); the body assembly (waist,
+    head, index nf) is the root body and an empty assembly is -1. Two limbs share a trunk link iff their `asm_trunk` are equal."""
+    jbody = [int(model.jnt_bodyid[j]) for j in jids]
+    on_body: dict[int, list[int]] = {}
+    for k in sorted(range(len(jids)), key=lambda k: (jbody[k], jids[k])):
+        on_body.setdefault(jbody[k], []).append(k)
+    parent = np.full(len(jids), -1, np.int64)
+    for k in range(len(jids)):
+        peers = on_body[jbody[k]]
+        i = peers.index(k)
+        if i > 0:
+            parent[k] = peers[i - 1]
+            continue
+        bid = int(model.body_parentid[jbody[k]])
+        while bid > 0 and bid not in on_body:
+            bid = int(model.body_parentid[bid])
+        if bid > 0:
+            parent[k] = on_body[bid][-1]
+
+    def depth(bid):
+        n = 0
+        while bid > 0:
+            bid, n = int(model.body_parentid[bid]), n + 1
+        return n
+
+    trunk = np.full(M, -1, np.int64)
+    for m in range(M):
+        mem = [k for k in range(len(jids)) if node_asm[k] == m]
+        if mem:
+            top = min((jbody[k] for k in mem), key=depth)
+            trunk[m] = int(model.body_parentid[top])
+    trunk[nf] = root_bid
+    return parent, trunk
 
 
 class LeggedMorph:
@@ -111,6 +154,7 @@ class LeggedMorph:
                 asm_index.append(nf + 1 + sides.index(x[1]))
         self.node_asm = np.array(asm_index, np.int64)
         self.N = len(acts)
+        self.node_parent, self.asm_trunk = _kinematic_structure(model, jids, self.node_asm, self.M, nf, b.root_bid)
         bk = _body_kind(L, nf)
         self.body_kind = bk
         nomh = b.nominal_height()
@@ -160,10 +204,15 @@ def wrap(a):
     return (a + math.pi) % (2 * math.pi) - math.pi
 
 
+ENTITY_ROLES = ("target", "reference", "patient", "support")      # the roles whose entity the context locates (not the actor)
+
+
 class TaskView:
-    """What a task graph declares to the context (D-146 H4): its event ids in graph order (slot k = event k; `done` is
-    always slot EVENT_SLOTS) and the entities its events walk to / refer to (first TARGET_SLOTS distinct ones, in event
-    order; a missing slot is zeros with valid flag 0). Read from the graph the task registry names (`TaskSpec.graph`)."""
+    """What a task graph declares to the context (D-146 H4, HD1): its event ids in graph order (slot k = event k; `done` is
+    always slot EVENT_SLOTS) and the entities its events walk to / act on (first TARGET_SLOTS distinct ones, in event
+    order and, within an event, role order in the graph: target, reference, patient and support roles; the actor is the
+    body itself); a missing slot is zeros with valid flag 0. Read from the graph the task registry names
+    (`TaskSpec.graph`). waypoint_contact has only target / reference roles: its (waypoint_a, waypoint_b) are unchanged."""
 
     def __init__(self, graph: dict):
         self.task_id = graph["task_id"]
@@ -171,13 +220,13 @@ class TaskView:
         seen: list[str] = []
         for e in graph["events"]:
             for r in e["roles"]:
-                ent = r["binding"].get("entity", {}).get("id") if r["role"] in ("target", "reference") else None
+                ent = r["binding"].get("entity", {}).get("id") if r["role"] in ENTITY_ROLES else None
                 if ent and ent not in seen:
                     seen.append(ent)
         self.targets = tuple(seen)
         if len(self.events) > EVENT_SLOTS or len(self.targets) > TARGET_SLOTS:
-            raise ValueError(f"task graph {self.task_id!r} has {len(self.events)} events / {len(self.targets)} target "
-                             f"entities; the legged context holds {EVENT_SLOTS} / {TARGET_SLOTS} (GLOBAL_DIM = {GLOBAL_DIM})")
+            raise ValueError(f"task graph {self.task_id!r} has {len(self.events)} events / {len(self.targets)} entities; "
+                             f"the legged context holds {EVENT_SLOTS} / {TARGET_SLOTS} (GLOBAL_DIM = {GLOBAL_DIM})")
 
     def as_dict(self) -> dict:
         return dict(task_id=self.task_id, events=list(self.events), targets=list(self.targets),
@@ -212,11 +261,19 @@ def active_event(runtime) -> int:
     return EVENT_SLOTS
 
 
+def target_slot_cols(k: int) -> slice:
+    """Columns of `public_context` holding entity slot k (bx/2, by/2, dist/2, valid): slots 0..LEAD_TARGET_SLOTS-1 sit at 8:16
+    (the pre-widening layout), the rest follow the legacy 22 columns."""
+    a = 8 + 4 * k if k < LEAD_TARGET_SLOTS else 22 + 4 * (k - LEAD_TARGET_SLOTS)
+    return slice(a, a + 4)
+
+
 def public_context(session, osc: float) -> np.ndarray:
     """PUBLIC system-i global features: IMU gyro/gravity, osc, task view (active event), target-entity estimates in the
     body frame from the declared localization sensor + detector tracks, public speed estimate. The event and target
     slots come from the session's task graph (`TaskView`); for waypoint_contact they are (walk_to_a, walk_to_b, halt)
-    and (waypoint_a, waypoint_b), exactly as before."""
+    and (waypoint_a, waypoint_b), exactly as before. Layout: [gyro 3, gravity 3, osc 2, entity slots 0..1 (4 each), event
+    one-hot (EVENT_SLOTS + 1), speed est 2, entity slots 2.. (4 each)] = GLOBAL_DIM."""
     view = task_view(session.scenario.task)
     imu = session._imu()
     g = quat_rotate_inv(imu["quat"], np.array([0, 0, -1.0]))
@@ -234,8 +291,9 @@ def public_context(session, osc: float) -> np.ndarray:
         wps += [bx / 2.0, by / 2.0, min(dist, 5.0) / 2.0, 1.0]
     evo = np.eye(EVENT_SLOTS + 1)[active_event(session.runtime)]
     spd = session.speed_est if np.isfinite(session.speed_est) else 0.0
-    return np.concatenate([imu["gyro"] * 0.25, g, [math.sin(2 * math.pi * osc), math.cos(2 * math.pi * osc)], wps,
-                           evo, [spd, float(np.isfinite(session.speed_est))]]).astype(np.float32)
+    lead = 4 * LEAD_TARGET_SLOTS
+    return np.concatenate([imu["gyro"] * 0.25, g, [math.sin(2 * math.pi * osc), math.cos(2 * math.pi * osc)], wps[:lead],
+                           evo, [spd, float(np.isfinite(session.speed_est))], wps[lead:]]).astype(np.float32)
 
 
 def local_state(session, morph: LeggedMorph, touch_thresh: float = 1.0):

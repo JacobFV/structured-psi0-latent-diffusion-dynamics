@@ -27,7 +27,9 @@ from ._legged_tiny import row_digest, tiny_bundle
 # checkpoint-load equivalence + unchanged tests/data/golden.json (both hold), not fresh-init closed-loop bit-parity
 # (D-144 addendum (a)). GOLDEN_TEACHER (teacher/oracle path, untouched by R4) is unaffected and still matches.
 GOLDEN_TEACHER = "7f250b18c57b2afdb1d3dbbf5c0177db896251ef4bc7362cc12a3ba8744e741f"
-GOLDEN_LATENT = "298ca112b751ca602e32b41f801b9150861ffbf93da11575e52ee1c83fd31e11"
+# GOLDEN_LATENT re-recorded again in HD1 (readiness round 2): the legged context widened 22 -> 26 columns (one more entity slot,
+# features/legged.TARGET_SLOTS), so the fresh-init (random-weight) input layers have another shape; teacher path untouched.
+GOLDEN_LATENT = "494a730a106f2364b5cb1e61b9fb7d3ba189555b813fd93c9cf6a3d64987aa69"
 
 
 @pytest.fixture(scope="module")

@@ -26,15 +26,18 @@ def _graph(n_events: int, n_targets: int) -> dict:
     ents = [f"e{i}" for i in range(n_targets)]
     evs = [dict(id=f"ev{k}", roles=[dict(role="target", binding=dict(entity=dict(id=ents[k % n_targets])))])
            for k in range(n_events)]
+    for r, e in zip(F.ENTITY_ROLES[1:], ents[n_events:]):         # entities no event's target role reaches ride in other roles
+        evs[0]["roles"].append(dict(role=r, binding=dict(entity=dict(id=e))))
     return dict(task_id="synthetic", graph_version="v0", events=evs)
 
 
 def test_task_view_waypoint_contact_is_the_old_layout():
     v = F.task_view_of("waypoint_contact")
-    assert v.events == F.EVENTS and len(v.targets) == 2 and F.EVENT_SLOTS == len(F.EVENTS) and F.GLOBAL_DIM == 22
+    assert v.events == F.EVENTS and len(v.targets) == 2 and F.EVENT_SLOTS == len(F.EVENTS)
+    assert F.GLOBAL_DIM == 22 + 4 * (F.TARGET_SLOTS - F.LEAD_TARGET_SLOTS)      # the 22 legacy columns come first
 
 
-@pytest.mark.parametrize("ne,nt", [(4, 1), (3, 3)])
+@pytest.mark.parametrize("ne,nt", [(F.EVENT_SLOTS + 1, 1), (3, F.TARGET_SLOTS + 1)])
 def test_task_view_refuses_a_graph_the_context_cannot_hold(ne, nt):
     with pytest.raises(ValueError, match="legged context holds"):
         F.TaskView(_graph(ne, nt))
@@ -115,9 +118,10 @@ def test_public_context_slots_follow_the_task(task, stub_tracker):
     ev = ctx[16:16 + F.EVENT_SLOTS + 1]
     assert ev.sum() == 1.0 and ev.argmax() == 0                   # first event of that task's graph is active
     for k in range(F.TARGET_SLOTS):                                # valid flag: 1 for a slot the task fills, else 0
-        assert ctx[8 + 4 * k + 3] in (0.0, 1.0)
+        col = ctx[F.target_slot_cols(k)]
+        assert col[3] in (0.0, 1.0)
         if k >= len(view.targets):
-            assert ctx[8 + 4 * k:8 + 4 * k + 4].tolist() == [0, 0, 0, 0]
+            assert col.tolist() == [0, 0, 0, 0]
 
 
 @pytest.mark.menagerie

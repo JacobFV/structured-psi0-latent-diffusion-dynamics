@@ -48,11 +48,13 @@ def test_public_observation_schema_has_no_privileged_fields():
 @pytest.mark.parametrize("bss", ["truth_noise", "estimator"])
 def test_dynamic_tripwire(bss):
     r = pa.dynamic_tripwire("hexapod6", 0, bss)
-    assert r["ctx_dim"] == 22 and r["observation_public"]
+    from rrp.policies.features.legged import GLOBAL_DIM
+    assert r["ctx_dim"] == GLOBAL_DIM and r["observation_public"]
 
 
 def test_ctx_groups_cover_public_context_exactly():
     idx = sorted(i for g in pa.LEGGED_GROUPS if g.where == "ctx" for i in range(*g.index))
+    # the audit's groups name the 22 legacy columns; HD1's appended entity slot 2 (cols 22:26) has no group yet (report to the lead)
     assert idx == list(range(22))
 
 
