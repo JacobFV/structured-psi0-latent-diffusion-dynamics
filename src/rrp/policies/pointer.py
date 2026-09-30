@@ -53,7 +53,7 @@ POINTER_FACTORS_PRESET = "none"
 # and the screen-geometry fields `geo.*` (R13) reads, so `factors=["preset:ui"]` and/or `geo.pos3d` / `geo.depth3d`
 # resolve here. Naming a field only ADDS what a factor is allowed to read at this site (`ops._applies`); it is a
 # no-op for every config that does not ask for it, same as rel-geo's own `CTX_CARRIES` extension for the arm.
-UI_CARRIES = ("edges:ui-rel-v1", "hidden", "pos3d", "cam_uvd", "zlayer")
+UI_CARRIES = ("edges:ui-rel-v1", "hidden", "pos3d", "cam_uvd", "zlayer", "parent_id")
 
 
 @dataclass
@@ -549,16 +549,21 @@ def _nets():
         def _relctx(self, b, T):
             """Widget-token `TokenSet`/`RelCtx` at the `ctx>ctx` self-attention site: R20's `ui-rel-v1` edges
             (`b["wuiedges"]`, all-zero -- a no-op -- when the batch has none, e.g. no `table` was passed to
-            `widget_features`) and the screen-geometry fields `pos3d` / `cam_uvd` / `zlayer` (`b["wpos3d"]` etc.),
-            zero-padded past the NW widget slots to the full `[instr, hist, prop]` token count `T` this site's
-            self-attention actually spans (those tokens carry no widget geometry / UI-graph membership)."""
+            `widget_features`) and the screen-geometry fields `pos3d` / `cam_uvd` / `zlayer` / `parent_id`
+            (`b["wpos3d"]` etc., `ui.same_window` / `ui.above`'s own `same` / `order` ops over the LAST two), padded
+            past the NW widget slots to the full `[instr, hist, prop]` token count `T` this site's self-attention
+            actually spans (those tokens carry no widget geometry / UI-graph membership; `parent_id` pads with -1,
+            `same_window`'s own "never matches" sentinel, matching `ui_public_fields`' null-slot convention)."""
             wmask = b["wmask"]
             B, device, pad = wmask.shape[0], wmask.device, T - NW
             pos3d = F.pad(b["wpos3d"], (0, 0, 0, pad))
             camuvd = F.pad(b["wcamuvd"], (0, 0, 0, pad))
             zlayer = F.pad(b.get("wzlayer", torch.zeros(B, NW, device=device)), (0, pad))[..., None]
+            parent = F.pad(b.get("wparent", torch.full((B, NW), -1, dtype=torch.long, device=device)),
+                           (0, pad), value=-1)[..., None]
             mask = torch.cat([wmask, torch.ones(B, pad, dtype=torch.bool, device=device)], 1)
-            ts = TokenSet("ctx", mask, fields={"pos3d": pos3d, "cam_uvd": camuvd, "zlayer": zlayer})
+            ts = TokenSet("ctx", mask, fields={"pos3d": pos3d, "cam_uvd": camuvd, "zlayer": zlayer,
+                                               "parent_id": parent})
             wuiedges = b.get("wuiedges")
             edges = (torch.zeros(B, NW, NW, len(UI_REL_VOCAB), device=device) if wuiedges is None
                      else wuiedges.to(pos3d.dtype))

@@ -374,7 +374,7 @@ def test_preset_ui_changes_widget_self_attention_logits_on_the_cw_fixture_scene(
         torch.nn.init.normal_(p, std=0.2)                                     # factors a real, non-trivial effect
 
     assert {s.name for s in on.rel[0].specs} == \
-        {"ui.label_for", "ui.contains", "ui.focus_next", "ui.above", "ui.drag_to"}
+        {"ui.label_for", "ui.same_window", "ui.focus_next", "ui.above", "ui.drag_to"}
 
     bias_off = off.rel[0].bias(off._relctx(b, T))
     bias_on = on.rel[0].bias(on._relctx(b, T))
