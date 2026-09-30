@@ -25,6 +25,7 @@ system 0 behind the Policy interface (rrp.policies.latent.LatentStackPolicy).
 from __future__ import annotations
 
 import time
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -40,11 +41,33 @@ SLOT_W = len(SLOT_FIELDS)
 ENG_DIM = 2 * SLOT_W
 MAX_STEP_PX = 60                           # = rrp.policies.teachers.computerworld.MAX_STEP_PX
 POINTER_KINDS = frozenset({"cartesian_position", "button", "discrete"})
-# D-144 R6: the pointer body's `RelBlock`s carry no relation factors (single "tool" assembly, no cross-assembly
-# routing to restrict; UI factors are unit R20's, gated on this track merging first). `_save` (harness/train/pointer)
-# records its `compat_hash` into every checkpoint's `versions["factors"]` for provenance / future compatibility
-# checks, same as every other family's factor hash.
+# D-144 R6: the pointer body's `RelBlock`s carry no relation factors by DEFAULT (single "tool" assembly, no
+# cross-assembly routing to restrict). `_save` (harness/train/pointer) records its `compat_hash` into every
+# checkpoint's `versions["factors"]` for provenance / future compatibility checks, same as every other family's
+# factor hash. `PolicyConfig.factors=None` resolves to this empty preset, so every existing checkpoint's `UICtx`
+# stays byte-identical (docs/relations.md 3.2 zero-bias equivalence: an empty-spec `FactorSite` adds no parameters
+# and `.bias()` / `.augment()` return `None` / `(None, None)`).
 POINTER_FACTORS_PRESET = "none"
+# D-144 R20 follow-up (research/tracks/rel-r20.md "lead_questions"): what `UICtx`'s widget self-attention (`ctx>ctx`
+# site) offers factors -- R20's own `ui-rel-v1` edge vocab, token hiddens (for `ui.drag_to`'s bilinear pair probe)
+# and the screen-geometry fields `geo.*` (R13) reads, so `factors=["preset:ui"]` and/or `geo.pos3d` / `geo.depth3d`
+# resolve here. Naming a field only ADDS what a factor is allowed to read at this site (`ops._applies`); it is a
+# no-op for every config that does not ask for it, same as rel-geo's own `CTX_CARRIES` extension for the arm.
+UI_CARRIES = ("edges:ui-rel-v1", "hidden", "pos3d", "cam_uvd", "zlayer")
+
+
+@dataclass
+class PolicyConfig:
+    """Pointer-net relation factors (docs/relations.md; D-144 R20 follow-up). `factors=None` (the default) resolves
+    to `POINTER_FACTORS_PRESET` ("none"): unchanged nets, byte-identical checkpoints. `factors=["preset:ui"]` turns
+    on `ui.label_for` / `ui.contains` / `ui.focus_next` / `ui.above` / `ui.drag_to` (`catalog.py` §ui) at `UICtx`'s
+    widget self-attention; add `geo.*` names (or `"geo.*"` itself) to also enable the PaPE / bilinear geometry
+    factors over the same tokens' `pos3d` / `cam_uvd` fields."""
+    factors: list | None = None
+
+    def specs(self):
+        from rrp.policies.relations.base import resolve
+        return resolve(self.factors, default=POINTER_FACTORS_PRESET)
 
 
 def tick_slot(phase: float, dt: float, knot_times=KNOT_TIMES) -> tuple[int, int] | None:
@@ -337,13 +360,40 @@ def screen_half(spec) -> np.ndarray:
     return np.array([w, h], np.float32) * spec.frame["m_per_px"] / 2
 
 
-def widget_features(obs, half) -> dict:
-    """Descriptor slots -> fixed arrays (slot index = row; slots >= NW are dropped)."""
+def ui_widget_fields(table) -> dict:
+    """R20's PUBLIC `ui_public_fields` / `ui_edges` (`rrp.envs.computerworld`, vocab `ui-rel-v1`), sliced/padded to
+    NW slots -- `table` is the env's slot-indexed `scene_widgets` record list (`SlotRegistry.assign`, the exact same
+    table `ComputerWorldEnv.observe()` passes to `descriptors()`), so slot `s` here is slot `s` of
+    `obs.object_descriptors` / `widget_features` 1:1. `wzlayer` / `wparent` / `wfocusrank` and the `[NW, NW, 4]`
+    `wuiedges` graph are what `UICtx`'s `preset:ui` factors read at the widget self-attention (`_relctx`)."""
+    from rrp.envs.computerworld import UI_REL_VOCAB, ui_edges, ui_public_fields
+    n = min(len(table), NW)
+    t = list(table[:n])
+    f, e = ui_public_fields(t), ui_edges(t)
+    zlayer, parent, focusr = np.zeros(NW, np.float32), np.full(NW, -1, np.int64), np.full(NW, -1, np.int64)
+    zlayer[:n], parent[:n], focusr[:n] = f["zlayer"], f["parent_id"], f["focus_rank"]
+    edges = np.zeros((NW, NW, len(UI_REL_VOCAB)), bool)
+    edges[:n, :n] = e
+    return dict(wzlayer=zlayer, wparent=parent, wfocusrank=focusr, wuiedges=edges)
+
+
+def widget_features(obs, half, table=None) -> dict:
+    """Descriptor slots -> fixed arrays (slot index = row; slots >= NW are dropped). `wpos3d` / `wcamuvd` (D-144
+    R20 follow-up): the same screen-geometry `widget_position` already puts in `d.position_estimate` (the 1 mm/px
+    `ScreenFrame` mapping, `+` z-layer depth when `depth="stack"`) -- `pos3d` world-frame metres, `cam_uvd` the
+    already-computed normalized screen (u, v) `+` the same depth, matching `geo.*`'s field kinds (`catalog.py`).
+    `table` (optional; the env's raw `scene_widgets` slot table, `None` at every call site that does not have it
+    yet): when given, also adds R20's public UI fields / `ui-rel-v1` edges (`ui_widget_fields`) that `preset:ui`
+    factors read; omitted, `UICtx` runs those factors as a harmless no-op (zero edges) -- never a silent fabrication,
+    since `factors` must be explicitly turned on for them to be read at all (`PolicyConfig`, `POINTER_FACTORS_PRESET`
+    stays the default)."""
     ch = np.zeros((NW, LC), np.int16)
     role = np.zeros(NW, np.int8)
     bound = np.zeros(NW, np.int8)
     wf = np.zeros((NW, WF), np.float32)
     m = np.zeros(NW, bool)
+    pos3d = np.zeros((NW, 3), np.float32)
+    camuvd = np.zeros((NW, 3), np.float32)
     for d in obs.object_descriptors[:NW]:
         if d.descriptor == "null" or d.bbox_xyxy is None:
             continue
@@ -358,7 +408,12 @@ def widget_features(obs, half) -> dict:
                  float(d.visible), a.get("focused") == "true", a.get("disabled") == "true", a.get("focusable") == "true",
                  float(d.bound_entity is not None), 0.0]
         m[s] = True
-    return dict(wch=ch, wrole=role, wbound=bound, wf=wf, wmask=m)
+        pos3d[s] = [x, y, z]
+        camuvd[s] = [x / half[0], y / half[1], z]
+    out = dict(wch=ch, wrole=role, wbound=bound, wf=wf, wmask=m, wpos3d=pos3d, wcamuvd=camuvd)
+    if table is not None:
+        out.update(ui_widget_fields(table))
+    return out
 
 
 class EventHistory:
@@ -390,9 +445,9 @@ class EventHistory:
         return out
 
 
-def public_features(obs, half, hist: EventHistory, tick: int) -> dict:
-    """One tick of public input (numpy, unbatched)."""
-    f = widget_features(obs, half)
+def public_features(obs, half, hist: EventHistory, tick: int, table=None) -> dict:
+    """One tick of public input (numpy, unbatched). `table`: see `widget_features`."""
+    f = widget_features(obs, half, table)
     q = obs.measured_node_state.qpos
     btn = float(obs.declared_sensor_channels[0].values[0]) if obs.declared_sensor_channels else 0.0
     f.update(instr=codes(obs.instruction or "", LI), ptr=np.array([q[0] / half[0], q[1] / half[1]], np.float32),
@@ -416,8 +471,11 @@ def _nets():
     import torch
     import torch.nn as nn
     import torch.nn.functional as F
+    from rrp.envs.computerworld import UI_REL_VOCAB
     from rrp.policies.nets.attention import MHA, RelBlock
     from rrp.policies.nets.flow import MLP, sinusoidal
+    from rrp.policies.relations.base import EdgeSet, RelCtx, TokenSet
+    from rrp.policies.relations.ops import FactorSite
 
     def _zero_mha_out(m: MHA) -> MHA:
         """Zero-init an MHA's output projection so it contributes exactly 0 to a residual sum: the same
@@ -463,9 +521,15 @@ def _nets():
 
     class UICtx(nn.Module):
         """Public context tokens: NW widget tokens (label chars + role + bound entity + geometry, pointer-relative
-        centre), LI instruction characters, NH own-event tokens and one proprio token; `layers` self-attention blocks."""
+        centre), LI instruction characters, NH own-event tokens and one proprio token; `layers` self-attention
+        blocks. `specs` (D-144 R20 follow-up, docs/relations.md 10 row R6's own lead_question): resolved
+        `FactorSpec`s (`PolicyConfig(factors=...).specs()`) applied at the widget self-attention (`ctx>ctx`) via a
+        `TokenSet`/`RelCtx` built from R20's public UI fields/edges + the screen-geometry fields (`_relctx`); the
+        default `()` (== `resolve(None, default=POINTER_FACTORS_PRESET)`, the empty preset) makes every per-layer
+        `FactorSite` parameter-free, so `.bias()` / `.augment()` return `None` / `(None, None)` and an existing
+        checkpoint loads and runs byte-identically."""
 
-        def __init__(self, D=128, heads=4, layers=3):
+        def __init__(self, D=128, heads=4, layers=3, specs=()):
             super().__init__()
             self.sym = nn.Embedding(N_SYM, D)
             self.cpos = nn.Embedding(LI, D)
@@ -476,10 +540,30 @@ def _nets():
             self.prop = MLP(4, D)
             self.typ = nn.Embedding(4, D)
             self.blocks = nn.ModuleList([self_relblock(D, heads) for _ in range(layers)])
+            self.rel = nn.ModuleList([FactorSite(heads, D, "ctx>ctx", specs, UI_CARRIES) for _ in range(layers)])
             self.D = D
 
         def label_tokens(self, b):
             return self.lab(self.bag(b["wch"]))
+
+        def _relctx(self, b, T):
+            """Widget-token `TokenSet`/`RelCtx` at the `ctx>ctx` self-attention site: R20's `ui-rel-v1` edges
+            (`b["wuiedges"]`, all-zero -- a no-op -- when the batch has none, e.g. no `table` was passed to
+            `widget_features`) and the screen-geometry fields `pos3d` / `cam_uvd` / `zlayer` (`b["wpos3d"]` etc.),
+            zero-padded past the NW widget slots to the full `[instr, hist, prop]` token count `T` this site's
+            self-attention actually spans (those tokens carry no widget geometry / UI-graph membership)."""
+            wmask = b["wmask"]
+            B, device, pad = wmask.shape[0], wmask.device, T - NW
+            pos3d = F.pad(b["wpos3d"], (0, 0, 0, pad))
+            camuvd = F.pad(b["wcamuvd"], (0, 0, 0, pad))
+            zlayer = F.pad(b.get("wzlayer", torch.zeros(B, NW, device=device)), (0, pad))[..., None]
+            mask = torch.cat([wmask, torch.ones(B, pad, dtype=torch.bool, device=device)], 1)
+            ts = TokenSet("ctx", mask, fields={"pos3d": pos3d, "cam_uvd": camuvd, "zlayer": zlayer})
+            wuiedges = b.get("wuiedges")
+            edges = (torch.zeros(B, NW, NW, len(UI_REL_VOCAB), device=device) if wuiedges is None
+                     else wuiedges.to(pos3d.dtype))
+            edges = F.pad(edges, (0, 0, 0, pad, 0, pad))
+            return RelCtx(sets={"ctx": ts}, edges={"ctx>ctx": EdgeSet(UI_REL_VOCAB, edges)})
 
         def forward(self, b):
             B = b["ptr"].shape[0]
@@ -497,8 +581,13 @@ def _nets():
             x = torch.cat([w, ins, ht, p], 1)
             m = torch.cat([b["wmask"], b["instr"] > 0, h[..., 0] > 0, torch.ones(B, 1, dtype=torch.bool,
                                                                                 device=x.device)], 1)
-            for L in self.blocks:
-                x = L(x, kv=x, q_mask=m)
+            rc = self._relctx(b, x.shape[1])
+            for L, site in zip(self.blocks, self.rel):
+                xn = L.n2(x)                                  # the exact pre-self-attention hidden (`.x` is a
+                                                                # zero-init no-op, docs 3.2, so this equals n2 of L's
+                                                                # own input): kernel-compatible q/k augmentation
+                bias_s, aug_s = site.bias(rc), site.augment(rc, xn, xn)
+                x = L(x, kv=x, q_mask=m, bias_s=bias_s, aug_s=aug_s)
             return x, m
 
     class Knots(nn.Module):
@@ -525,9 +614,10 @@ def _nets():
     class PointerEncoder(nn.Module):
         """E (training only): public context at t + demonstrated tick commands a[t : t+7] -> z [B, K, 1, dz]."""
 
-        def __init__(self, dz=16, D=128, heads=4, layers=2):
+        def __init__(self, dz=16, D=128, heads=4, layers=2, factors=None):
             super().__init__()
-            self.ctx, self.knots, self.ticks = UICtx(D, heads, 2), Knots(D), tick_tokens(D)
+            self.ctx = UICtx(D, heads, 2, specs=PolicyConfig(factors).specs())
+            self.knots, self.ticks = Knots(D), tick_tokens(D)
             self.blocks = nn.ModuleList([cross_relblock(D, heads) for _ in range(layers)])
             self.out = nn.Linear(D, 2 * dz)
             self.dz = dz
@@ -567,9 +657,10 @@ def _nets():
     class PointerFlow(nn.Module):
         """System i: rectified flow over the standardized packet, conditioned on the public context only."""
 
-        def __init__(self, dz=16, D=128, heads=4, layers=3):
+        def __init__(self, dz=16, D=128, heads=4, layers=3, factors=None):
             super().__init__()
-            self.ctx, self.knots = UICtx(D, heads, 3), Knots(D)
+            self.ctx = UICtx(D, heads, 3, specs=PolicyConfig(factors).specs())
+            self.knots = Knots(D)
             self.z_in, self.t_in = nn.Linear(dz, D), MLP(D, D)
             self.blocks = nn.ModuleList([cross_relblock(D, heads) for _ in range(layers)])
             self.self_blocks = nn.ModuleList([self_relblock(D, heads) for _ in range(layers)])
@@ -618,9 +709,9 @@ def _nets():
     class PointerBC(nn.Module):
         """BC baseline (same public inputs): 7 tick queries -> absolute pointer xy (normalized), button, key logits."""
 
-        def __init__(self, D=128, heads=4, layers=3, H=7):
+        def __init__(self, D=128, heads=4, layers=3, H=7, factors=None):
             super().__init__()
-            self.ctx = UICtx(D, heads, 3)
+            self.ctx = UICtx(D, heads, 3, specs=PolicyConfig(factors).specs())
             self.q = nn.Parameter(torch.randn(H, D) * 0.02)
             self.blocks = nn.ModuleList([cross_relblock(D, heads) for _ in range(layers)])
             self.self_blocks = nn.ModuleList([self_relblock(D, heads) for _ in range(layers)])

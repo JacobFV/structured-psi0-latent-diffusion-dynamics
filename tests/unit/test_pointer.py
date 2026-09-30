@@ -248,3 +248,143 @@ def test_pointer_probe_loss_masks_missing_labels():
     loss, logs = probe_loss(out, lab, P.specs)
     assert torch.isfinite(loss) and loss.item() == pytest.approx(0.0, abs=1e-6)
     assert set(logs) == {"slot", "rel", "phase"}
+
+
+# ================================================================== D-144 R20 follow-up: `preset:ui` at UICtx's widget self-attention (research/tracks/rel-r20.md "lead_questions")
+# The exact fixture `test_relations_r20.py` uses (no `computerworld` wheel needed: `scene_widgets` / `SlotRegistry` /
+# `descriptors` are pure): window 0 an enabled "Name" label + focused textbox (z-layer 0); window 1 a Email label +
+# a DISABLED textbox (z-layer 1, renders above window 0) -- `ui_edges` is non-empty on it (`label_for`, `focus_next`,
+# `above`; `contains` within each window), so `UICtx`'s `preset:ui` factors have real graph structure to read.
+_I = {"a": 1024, "b": 0, "c": 0, "d": 1024, "tx": 0, "ty": 0}
+
+
+def _ui_node(i, x, y, w, h, z, sem=None, inter=None, tx=0, ty=0):
+    return {"id": i, "bounds": {"x": x, "y": y, "width": w, "height": h}, "primitive": {"kind": "box"},
+            "semantic": sem, "interaction": inter, "transform": dict(_I, tx=tx, ty=ty), "z": z, "opacity": 255,
+            "clip": None}
+
+
+def _ui_lbl(text):
+    return {"role": "label", "label": text, "value": None, "disabled": False, "focusable": False}
+
+
+def _ui_tb(text, disabled=False):
+    return {"role": "textbox", "label": text, "value": "", "disabled": disabled, "focusable": True}
+
+
+_UI_SCENE = {"focus": {"interaction": "window:0:content:name"}, "nodes": [
+    _ui_node(1, 20, 30, 40, 20, 100, sem=_ui_lbl("Name"), inter="window:0:content:name_label", tx=100, ty=100),
+    _ui_node(2, 20, 60, 40, 20, 100, sem=_ui_tb("Name"), inter="window:0:content:name", tx=100, ty=100),
+    _ui_node(3, 20, 90, 40, 20, 200, sem=_ui_lbl("Email"), inter="window:1:content:email_label", tx=200, ty=200),
+    _ui_node(4, 20, 120, 40, 20, 200, sem=_ui_tb("Email", disabled=True), inter="window:1:content:email", tx=200,
+             ty=200),
+]}
+
+
+def _ui_batch(table_):
+    """One unbatched `public_features`-shaped sample -> a size-1 `collate_public` batch, `table` included (so
+    `wuiedges` / `wzlayer` / `wparent` / `wfocusrank` are real, not the zero-edge no-op fallback)."""
+    import numpy as np
+    from rrp.envs.computerworld import ScreenFrame, descriptors
+    from rrp.policies.pointer import LI, NH, collate_public, widget_features
+    frame = ScreenFrame(640, 480)
+    half = np.array([frame.width, frame.height], np.float32) * frame.m_per_px / 2
+
+    class _Obs:
+        object_descriptors = descriptors(table_, frame, 0.0, {})
+
+    f = dict(widget_features(_Obs(), half, table_), instr=np.zeros(LI, np.int16), ptr=np.zeros(2, np.float32),
+             btn=np.float32(0.0), tick=np.float32(0.0), hist=np.zeros((NH, 5), np.float32))
+    return collate_public([f], "cpu")
+
+
+def test_widget_features_with_table_carries_r20s_ui_fields_and_a_nonempty_edge_graph():
+    """`ui_widget_fields` (wired through `widget_features`'s new `table` argument) reproduces R20's own
+    `ui_public_fields` / `ui_edges` on this scene (`test_relations_r20.py::test_ui_public_fields_on_the_fixture_scene`
+    /`test_ui_edges_*`'s values), padded from 4 to NW slots."""
+    from rrp.envs.computerworld import SlotRegistry, scene_widgets
+    from rrp.policies.pointer import NW
+    table = SlotRegistry().assign(scene_widgets(_UI_SCENE))
+    b = _ui_batch(table)
+    np.testing.assert_array_equal(b["wzlayer"][0, :4].numpy(), [0.0, 0.0, 1.0, 1.0])
+    np.testing.assert_array_equal(b["wfocusrank"][0, :4].numpy(), [-1, 0, -1, -1])
+    assert b["wuiedges"].shape == (1, NW, NW, 4)
+    assert b["wuiedges"][0, :4, :4].sum() > 0
+    assert b["wuiedges"][0, 4:].sum() == 0 and b["wuiedges"][0, :, 4:].sum() == 0   # padding stays all-False
+
+
+def test_widget_features_without_table_leaves_the_ui_keys_out():
+    """The default call shape (every existing caller: no `table`) adds `wpos3d` / `wcamuvd` (free from the existing
+    descriptor geometry) but leaves the table-derived UI keys out entirely -- `UICtx._relctx` then falls back to an
+    all-zero `ui-rel-v1` graph (a documented no-op, not a silent fabrication)."""
+    from rrp.envs.computerworld import ScreenFrame, SlotRegistry, descriptors, scene_widgets
+    from rrp.policies.pointer import widget_features
+    table = SlotRegistry().assign(scene_widgets(_UI_SCENE))
+    frame = ScreenFrame(640, 480)
+    half = np.array([frame.width, frame.height], np.float32) * frame.m_per_px / 2
+
+    class _Obs:
+        object_descriptors = descriptors(table, frame, 0.0, {})
+
+    f = widget_features(_Obs(), half)
+    assert "wpos3d" in f and "wcamuvd" in f
+    assert not ({"wuiedges", "wzlayer", "wparent", "wfocusrank"} & set(f))
+
+
+def test_default_uictx_factors_are_a_zero_bias_no_op():
+    """`PolicyConfig(factors=None)` (== every existing checkpoint's construction, `PointerFlow()` / `PointerBC()` /
+    `PointerEncoder()` unchanged) resolves to the empty preset: `UICtx.rel[i]` gets no parameters and its
+    `.bias()` / `.augment()` are exactly `None` / `(None, None)` -- the same zero-bias equivalence R6 already
+    established for the (still unused-by-default) `RelBlock` stages themselves."""
+    import torch
+    from rrp.envs.computerworld import SlotRegistry, scene_widgets
+    from rrp.policies.pointer import LI, NH, NW, UI_CARRIES, nets
+    UICtx = nets()["UICtx"]
+    ctx = UICtx(D=16, heads=2, layers=2)
+    assert all(sum(p.numel() for p in site.parameters()) == 0 for site in ctx.rel)
+    tbl = SlotRegistry().assign(scene_widgets(_UI_SCENE))
+    b = _ui_batch(tbl)
+    rc = ctx._relctx(b, NW + LI + NH + 1)
+    assert ctx.rel[0].bias(rc) is None
+    qa, ka = ctx.rel[0].augment(rc, torch.randn(1, 5, 16), torch.randn(1, 5, 16))
+    assert qa is None and ka is None
+    assert "edges:ui-rel-v1" in UI_CARRIES and "pos3d" in UI_CARRIES and "cam_uvd" in UI_CARRIES
+
+
+def test_preset_ui_changes_widget_self_attention_logits_on_the_cw_fixture_scene():
+    """The R20 lead_question, closed: enabling `factors=["preset:ui"]` (`PolicyConfig` -> `resolve` -> `UICtx`'s
+    per-layer `FactorSite`, built on a real `TokenSet`/`RelCtx` from `widget_features`' `table`-derived `ui-rel-v1`
+    edges) changes the widget self-attention bias from the default preset's exact `None` to a real, finite,
+    non-zero logit term -- and changes `UICtx`'s own forward output on the identical batch."""
+    import torch
+    from rrp.envs.computerworld import SlotRegistry, scene_widgets
+    from rrp.policies.pointer import LI, NH, NW, PolicyConfig, nets
+
+    table = SlotRegistry().assign(scene_widgets(_UI_SCENE))
+    b = _ui_batch(table)
+    T = NW + LI + NH + 1
+
+    torch.manual_seed(0)
+    UICtx = nets()["UICtx"]
+    off = UICtx(D=16, heads=2, layers=1)                                       # factors=None (default preset)
+    on = UICtx(D=16, heads=2, layers=1, specs=PolicyConfig(["preset:ui"]).specs())
+    on.load_state_dict(off.state_dict(), strict=False)                        # identical base weights
+    torch.manual_seed(1)
+    for p in on.rel.parameters():                                             # off zero-init (docs 3.2): give the
+        torch.nn.init.normal_(p, std=0.2)                                     # factors a real, non-trivial effect
+
+    assert {s.name for s in on.rel[0].specs} == \
+        {"ui.label_for", "ui.contains", "ui.focus_next", "ui.above", "ui.drag_to"}
+
+    bias_off = off.rel[0].bias(off._relctx(b, T))
+    bias_on = on.rel[0].bias(on._relctx(b, T))
+    assert bias_off is None
+    assert bias_on is not None and bias_on.shape == (1, 2, T, T)
+    assert torch.isfinite(bias_on).all()
+    assert bias_on.abs().sum() > 0                                            # a genuine, non-zero logit change
+
+    with torch.no_grad():
+        x_off, m_off = off(b)
+        x_on, m_on = on(b)
+    assert torch.equal(m_off, m_on)                                           # the key mask itself is unaffected
+    assert not torch.allclose(x_off, x_on)                                    # but the self-attended hiddens differ

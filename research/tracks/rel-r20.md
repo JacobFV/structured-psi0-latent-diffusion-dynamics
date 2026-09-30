@@ -114,3 +114,17 @@ matching the exact command AGENTS.md's merge lock step runs). Separately re-ran
   explicit "drag in progress" flag in the scene). A future unit with access to task/teacher internals (e.g. the
   `cw/drag_window` judge's own goal state) could sharpen this to a genuine "mid-drag" predicate; flagged, not
   blocking (same status as R17's own "for the lead" notes before rel-geo).
+
+**Closed (worktree `sweep-pointer`, `track/sweep-pointer`, D-144 addendum, 2026-09-29):** `policies/pointer.py`'s
+`UICtx` now builds a `TokenSet`/`RelCtx` at its widget self-attention (`ctx>ctx`) from this row's own
+`ui_public_fields` / `ui_edges` (via a new `widget_features(obs, half, table=None)` argument -- `table` optional so
+every existing call site is untouched) plus screen-geometry fields `pos3d` / `cam_uvd` (the same 1 mm/px
+`ScreenFrame` mapping `widget_position` already used, always populated, no `table` needed) and `zlayer`; a new
+`UI_CARRIES` tuple and per-layer `FactorSite` (mirroring rel-geo's `CTX_CARRIES`) let `PolicyConfig(factors=
+["preset:ui"])` (new dataclass) and `geo.pos3d` / `geo.depth3d` resolve there. Default `factors=None` keeps every
+`FactorSite` parameter-free (`.bias()` / `.augment()` exactly `None` / `(None, None)`) -- byte-identical checkpoints,
+verified by `test_default_uictx_factors_are_a_zero_bias_no_op`. `test_preset_ui_changes_widget_self_attention_logits_
+on_the_cw_fixture_scene` (`tests/unit/test_pointer.py`, this row's own CW fixture scene, no wheel needed) enables
+`preset:ui`, perturbs the (off zero-init) `FactorSite` weights and shows the self-attention bias goes from `None` to
+a real finite non-zero `[B,H,T,T]` term and the forward output changes. Full suite: 888 passed, 41 skipped, exit 0.
+`relations/base.py` / `relations/ops.py` untouched; `tests/data/golden.json` untouched.
