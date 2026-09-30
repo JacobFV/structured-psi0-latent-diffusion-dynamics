@@ -229,10 +229,12 @@ def cmd_counterfactuals(a):
     dev = "cuda" if a.gpu and torch.cuda.is_available() else "cpu"
     _, E, _, P, res = load_representation(Path(a.representation), dev)
     if a.probe:                                   # measurement probe fitted post hoc on frozen z (fair across variants)
-        from rrp.policies.nets.latent_probes import PacketProbe
+        from rrp.policies.nets.probes import ReadoutProbe
+        from rrp.policies.bundles import _readout_probe_specs, _remap_probe_state_dict
         st = torch.load(a.probe, map_location=dev, weights_only=False)
-        P = PacketProbe(**st["cfg"]).to(dev).eval()
-        P.load_state_dict(st["state"])
+        specs, probe_kw = _readout_probe_specs(st["cfg"])
+        P = ReadoutProbe(specs=specs, **probe_kw).to(dev).eval()
+        P.load_state_dict(_remap_probe_state_dict(st["state"]))
     ds = Path(a.dataset)
     out = dict(representation=a.representation, probe=a.probe or "representation (jointly trained)",
                latent_space_version=res["latent_space_version"],

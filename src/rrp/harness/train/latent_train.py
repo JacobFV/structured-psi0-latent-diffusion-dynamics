@@ -30,12 +30,22 @@ from rrp.policies.nets.checkpoint import save_checkpoint, load_checkpoint
 from rrp.harness.data.packed import PackedChunkDataset
 from rrp.policies.nets.batch import Batch
 from rrp.policies.nets.flow import FlowPolicy, PolicyConfig, interpolate_target, masked_mse
-from rrp.policies.nets.latent_probes import PacketProbe, probe_loss, probe_metrics
+from rrp.policies.nets.latent_probes import probe_loss, probe_metrics
+from rrp.policies.nets.probes import ReadoutProbe
 from rrp.policies.nets.semantic_latent import LatentConfig, TargetEncoder, assembly_tokens
 from rrp.policies.system0 import LatentRealizer, REALIZER_RECURRENT_STATE
-from rrp.policies.bundles import load_representation  # noqa: F401  (moved to controllers, W4)
+from rrp.policies.bundles import (load_representation,  # noqa: F401  (moved to controllers, W4)
+                                  _readout_probe_specs, _remap_probe_state_dict)
 from rrp.harness.data.latent import LatentData  # noqa: F401  (moved to data, W4)
 from rrp.ops.workload import CheckpointSignal
+
+# `probe_loss` / `probe_metrics` (rrp.policies.nets.latent_probes) stay imported above: they are generic dict-in/
+# dict-out math over a probe's output keys (unchanged by which network produced them; D-144 R1 only swaps PacketProbe
+# for `nets.probes.ReadoutProbe`, preset `probes:arm-packet-v1`) and are still depended on, unmodified, by code
+# outside this unit's scope (harness.eval.latent_eval.PacketProbeHook, harness.train.joint_adapt,
+# tests/unit/test_relgen.py's PacketProbe<->ReadoutProbe equivalence golden, tests/unit/test_latent_boundary.py) —
+# see research/tracks/rel-r1.md. `_readout_probe_specs` / `_remap_probe_state_dict` (rrp.policies.bundles) translate
+# the legacy `probe` config dict / pre-rename state dicts the same way for every arm probe construction site.
 
 
 def _dev():
@@ -159,7 +169,8 @@ def train_representation(cfg_json: dict, out_dir: Path) -> dict:
                       anchor=cfg_json.get("realizer_anchor", False))
     E, R = TargetEncoder(cfg).to(dev), LatentRealizer(cfg.dz, layers=cfg.realizer_layers).to(dev)
     R.anchor = cfg_json.get("realizer_anchor", False)
-    P = PacketProbe(cfg.dz, cfg.knots, **cfg_json.get("probe", {})).to(dev)
+    specs, probe_kw = _readout_probe_specs(cfg_json.get("probe", {}))
+    P = ReadoutProbe(cfg.dz, cfg.knots, specs=specs, **probe_kw).to(dev)
     params = list(E.parameters()) + list(R.parameters()) + list(P.parameters())
     opt = torch.optim.AdamW(params, lr=cfg_json.get("lr", 3e-4), weight_decay=1e-4)
     steps = cfg_json["steps"]
@@ -171,7 +182,8 @@ def train_representation(cfg_json: dict, out_dir: Path) -> dict:
     last = out_dir / "rep_last.pt"
     if last.exists():
         st = load_checkpoint(last, map_location=dev)
-        E.load_state_dict(st["model"]["E"]); R.load_state_dict(st["model"]["R"]); P.load_state_dict(st["model"]["P"])
+        E.load_state_dict(st["model"]["E"]); R.load_state_dict(st["model"]["R"])
+        P.load_state_dict(_remap_probe_state_dict(st["model"]["P"]))
         opt.load_state_dict(st["optimizer"]); sched.load_state_dict(st["extra"]["sched"]); step = st["step"]
         exact = _restore_rng(st["extra"], rng)      # checkpoints written before 2026-09-27 carry no RNG state
         print(f"resumed {last} at step {step} ({'exact: RNG restored' if exact else 'INEXACT: no RNG state in checkpoint'})",
@@ -425,15 +437,17 @@ def evaluate_generated(model, E, R, P, data, lcfg, dev, n_batches=20, seed=7, nf
 
 def fit_probes_on_frozen(rep_path: Path, packed_dir: Path, out_path: Path, steps: int = 6000, seed: int = 5,
                          metadata_only: bool = False, binding_cf: float = 0.0) -> dict:
-    """MEASUREMENT probe: a fresh PacketProbe trained on DETACHED z from the frozen encoder (identical procedure
-    for latent_sem and latent_nosem). metadata_only=True trains the no-latent control probe."""
+    """MEASUREMENT probe: a fresh ReadoutProbe (preset `probes:arm-packet-v1`) trained on DETACHED z from the frozen
+    encoder (identical procedure for latent_sem and latent_nosem). metadata_only=True trains the no-latent control
+    probe."""
     dev = _dev()
     lcfg, E, R, _, rep_res = load_representation(rep_path, dev)
     rep_cfg = load_checkpoint(rep_path, map_location="cpu")["config"]
     data = LatentData(packed_dir, zero_prev_action=resolve_zero_prev_action(      # same inputs as E saw (B-1)
         rep_cfg, where=f"fit_probes_on_frozen: representation {rep_path}", new_run=False))
     pk = rep_cfg.get("probe", {})
-    P = PacketProbe(lcfg.dz, lcfg.knots, metadata_only=metadata_only, seed=seed, **pk).to(dev)
+    specs, probe_kw = _readout_probe_specs(pk)
+    P = ReadoutProbe(lcfg.dz, lcfg.knots, specs=specs, metadata_only=metadata_only, seed=seed, **probe_kw).to(dev)
     opt = torch.optim.AdamW(P.parameters(), lr=3e-4, weight_decay=1e-4)
     rng = random.Random(seed)
     t0 = time.time()

@@ -14,18 +14,42 @@ import torch
 
 from rrp.policies.features.legged import H
 from rrp.policies.nets.checkpoint import load_checkpoint
-from rrp.policies.nets.latent_probes import PacketProbe
+from rrp.policies.nets.probes import ReadoutProbe
 from rrp.policies.nets.legged_latent import LeggedEncoder, LeggedRealizer, LeggedProbe
 from rrp.policies.nets.semantic_latent import LatentConfig, TargetEncoder
+
+# ------------------------------------------------------------------ arm/dual packet probe (D-144 R1: PacketProbe ->
+# ReadoutProbe, preset `probes:arm-packet-v1`; docs/relations.md 10). A saved `probe` config dict is still the legacy
+# PacketProbe kwargs (dz/knots passed separately; optional `goal_effect`; `n_operators` no longer needed, the
+# registered ReadoutDef fixes the subtask head width): translated here into ReadoutProbe specs, not into a new format,
+# so old and new checkpoints load through the same path.
+_DESIRED_DELTA_PREFIX = "heads.desired_delta."
+
+
+def _readout_probe_specs(probe_cfg: dict) -> tuple[list, dict]:
+    kw = dict(probe_cfg)
+    goal_effect = kw.pop("goal_effect", False)
+    kw.pop("n_operators", None)
+    specs = ["preset:probes:arm-packet-v1"] + (["probe.arm.goal_effect"] if goal_effect else [])
+    return specs, kw
+
+
+def _remap_probe_state_dict(sd: dict) -> dict:
+    """Checkpoints from before the desired_delta -> observed_effect rename: ReadoutProbe (unlike PacketProbe) keeps
+    no `desired_delta` alias head, so the state-dict key is remapped in the load path instead (R1 brief)."""
+    return {(k.replace(_DESIRED_DELTA_PREFIX, "heads.observed_effect.", 1)
+             if k.startswith(_DESIRED_DELTA_PREFIX) else k): v for k, v in sd.items()}
 
 
 def load_representation(path: Path, dev):
     st = load_checkpoint(path, map_location=dev)
     cfg = LatentConfig(**st["config"]["latent"])
     from rrp.policies.system0 import make_realizer
+    specs, probe_kw = _readout_probe_specs(st["config"].get("probe", {}))
     E, R, P = TargetEncoder(cfg).to(dev), make_realizer(cfg.dz, cfg.realizer_layers, st["config"].get("realizer_arch")).to(dev), \
-        PacketProbe(cfg.dz, cfg.knots, **st["config"].get("probe", {})).to(dev)
-    E.load_state_dict(st["model"]["E"]); R.load_state_dict(st["model"]["R"]); P.load_state_dict(st["model"]["P"])
+        ReadoutProbe(cfg.dz, cfg.knots, specs=specs, **probe_kw).to(dev)
+    E.load_state_dict(st["model"]["E"]); R.load_state_dict(st["model"]["R"])
+    P.load_state_dict(_remap_probe_state_dict(st["model"]["P"]))
     R.anchor = bool(st["config"].get("realizer_anchor", False))    # ladder: anchored realizer input (col 28)
     R.drop_qd = bool(st["config"].get("realizer_drop_qd", False))  # ladder: realizer input without joint velocity (col 27)
     for m in (E, R, P):

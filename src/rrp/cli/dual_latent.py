@@ -29,10 +29,12 @@ def cmd_eval(a):
     rep = load_checkpoint(a.checkpoint, map_location="cpu")["config"]["representation"]
     _, _, R, P, _ = load_representation(Path(rep), dev)
     if a.probe:                          # post-hoc measurement probe (identical procedure for sem / nosem)
-        from rrp.policies.nets.latent_probes import PacketProbe
+        from rrp.policies.nets.probes import ReadoutProbe
+        from rrp.policies.bundles import _readout_probe_specs, _remap_probe_state_dict
         st = torch.load(a.probe, map_location=dev, weights_only=False)
-        P = PacketProbe(**st["cfg"]).to(dev).eval()
-        P.load_state_dict(st["state"])
+        specs, probe_kw = _readout_probe_specs(st["cfg"])
+        P = ReadoutProbe(specs=specs, **probe_kw).to(dev).eval()
+        P.load_state_dict(_remap_probe_state_dict(st["state"]))
     summ = {}
     for pair in a.pairs.split(","):
         stack = LatentStackPolicy(pol, R, replan_ticks=a.replan, device=dev, name=a.method,

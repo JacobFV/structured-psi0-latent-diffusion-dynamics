@@ -55,13 +55,16 @@ CF_DIRS = {"cf+x": (1.0, 0.0, 0.0), "cf-x": (-1.0, 0.0, 0.0)}
 
 # ------------------------------------------------------------------ helpers
 def load_probe(probe_path, rep_P, dev):
-    """Measurement probe used to define edit directions (post-hoc probe = same procedure for sem and nosem)."""
+    """Measurement probe used to define edit directions (post-hoc probe = same procedure for sem and nosem).
+    D-144 R1: PacketProbe -> nets.probes.ReadoutProbe, preset `probes:arm-packet-v1`."""
     if not probe_path:
         return rep_P
-    from rrp.policies.nets.latent_probes import PacketProbe
+    from rrp.policies.nets.probes import ReadoutProbe
+    from rrp.policies.bundles import _readout_probe_specs, _remap_probe_state_dict
     st = torch.load(probe_path, map_location=dev, weights_only=False)
-    P = PacketProbe(**st["cfg"]).to(dev).eval()
-    P.load_state_dict(st["state"])
+    specs, probe_kw = _readout_probe_specs(st["cfg"])
+    P = ReadoutProbe(specs=specs, **probe_kw).to(dev).eval()
+    P.load_state_dict(_remap_probe_state_dict(st["state"]))
     for p in P.parameters():
         p.requires_grad_(False)
     return P
@@ -102,7 +105,7 @@ def _anchor(o, o0, emask, tmask):
     em, tm = emask.float(), tmask.float()
     den = em.sum(-1).clamp(min=1)
     L = 0
-    for q in ("visible", "focused_on", "looking_at", "desired_delta"):
+    for q in ("visible", "focused_on", "looking_at", "observed_effect"):  # D-144 R1: desired_delta output alias dropped
         L = L + (((o[q] - o0[q]) ** 2).sum(-1) * em).sum(-1) / den
     for q in ("held_by", "acting_on"):
         L = L + (((o[q][:, :, 0, 0] - o0[q][:, :, 0, 0]) ** 2) * em).sum(-1) / den
