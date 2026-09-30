@@ -111,3 +111,27 @@ scripts/peer_run.sh ...` appends it to the job's PYTHONPATH.
   totals (2860, 1729, 766, 3508), i.e. the packet round trip is lossless; teacher 100/100 each on the same seeds.
   Command:
   `scripts/peer_run.sh --cpu 2 --mem 4G --label pointer_s1_eval -- PY -m rrp.cli eval --policy pointer_oracle --env computerworld --task cw/<t> --body cw_pointer --seeds 0:100 --out artifacts/runs/pointer_s1/oracle_eng_<t>.jsonl`
+
+### step 2: learned route (in progress; D-142)
+- Split `research/splits/cworld_pointer_v1.json` (commit 34fbc94, before any demo): held-out calc pairs (9), words (4),
+  names (4); dev 50 seeds/task (in-distribution), sealed_id 100/task, sealed_heldout 50/task (calc, type, form).
+  Adapter `cw_env.v2` widens the word/name pools to 24 each so typing must copy characters from the instruction.
+- Public inputs of every learned pointer policy (`rrp.policies.pointer.public_features`): descriptor slots (label chars,
+  role, bound task entity, box, depth, visible/focused/disabled/focusable), instruction characters, pointer x/y + button,
+  tick, and an efference copy of the policy's own executed events (button edges with position, typed keys) — CW does not
+  expose typed text in the scene, so typing progress is otherwise unobservable. The same for system i and BC.
+- Demos (`rrp train pointer collect`, peer, `artifacts/datasets/pointer_v1/`, not committed): 6000 teacher episodes per
+  task (545k ticks; calc 176,821, type 103,973, drag 47,542, form 216,391), 0 teacher failures, held-out variants and
+  eval seeds skipped (split guard `check_no_leak` at load). DART: N(0, 25 px) on intermediate move ticks of 50% of
+  episodes (never on the arriving tick: the teacher's goto would not terminate).
+- Models (`artifacts/runs/pointer_v1/`): E (encoder: context + 7-tick demo chunk → z[4, 1, 16]), R (learned system 0:
+  z + phase + measured pointer/button → pointer step, button, key), P (packet probe: target widget slot over the
+  descriptors, target position relative to the pointer, tick phase idle/move/press/release/drag/type), flow system i
+  (context → z), BC (context → 7-tick chunk). semfix = probe loss on z during E/R/P training (Gaussian NLL log-variance
+  ≥ −4) + packet semantic loss through the frozen P in the flow (w 0.5, τ ≥ 0.6); nosem = both weights 0. `eng` = flow
+  trained on the engineered encoding, realized by the SCRIPTED engineered system 0. Capacity: flow 2.1 M, BC 2.0 M,
+  E + R 1.7 M parameters. rep 20k / flow 30k / BC 50k steps, batch 512, task-balanced sampling, bf16 on the peer GPU.
+- Representation (val episodes of the training seeds, 20k steps): reconstruction 0.15 px (semfix) / 0.16 px (nosem),
+  button and key 100%; semfix's joint probe on E means: slot 100%, phase 100%, relative target 1.5 px.
+- R1 rung (ORACLE: teacher chunk → frozen E → LEARNED system 0; `pointer_oracle={"representation": ...}`), dev seeds:
+  semfix 200/200, nosem 200/200 (50 per task). The learned system 0 realizes encoded packets without loss.
