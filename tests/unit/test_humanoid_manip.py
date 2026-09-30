@@ -122,8 +122,8 @@ def test_reach_edit_moves_the_arm_on_the_target_side(tmp_path, registry):
 # ---------------------------------------------------------------- one scripted-teacher episode per task (real t1:contact_v2)
 def _real_tracker():
     pytest.importorskip("torch")
-    if REAL not in LT.TRACKERS:
-        pytest.skip("t1:contact_v2 tracker not in artifacts/trackers")
+    if REAL not in LT.TRACKERS or not LT.TRACKERS[REAL].actor.exists():    # meta.json is tracked, actor.pt is not
+        pytest.skip("needs untracked weights artifacts/trackers/t1/contact_v2/actor.pt (peer store)")
 
 
 @pytest.mark.menagerie
