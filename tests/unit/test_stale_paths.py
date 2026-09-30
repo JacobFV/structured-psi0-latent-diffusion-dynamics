@@ -1,7 +1,7 @@
-"""No live file names a module path that D-140 / S2 moved (docs/architecture.md section 10 table; D-146 F0).
+"""No live file names a module path that D-140 / S2 moved (D-146 F0).
 
 The removed top-level packages are `rrp.{contracts,controllers,data,evaluation,features,models,orchestration,physics,
-pipelines,teachers,training}`; their new homes are listed in `.old/docs/architecture_s7-10.md` section 10. Recorded
+pipelines,teachers,training}`; their new homes are listed in the archived `architecture_s7-10.md` section 10 (the old-to-new path table). Recorded
 version-string constants (`rrp.evaluation.gates/v1`, ...) keep their names on purpose (D-146 item 7) and the pickle
 remap of pre-D-140 datasets names `rrp.data.features` on purpose; both are allowed. Files owned by another wave-0
 readiness unit are listed in EXEMPT until that unit and X1 have merged (X1 deletes the list)."""
@@ -68,4 +68,4 @@ def test_no_removed_module_paths_in_live_trees():
         except UnicodeDecodeError:
             continue
         bad += [f"{rel}:{n}: {s}" for n, s in stale_lines(text)]
-    assert not bad, "removed module paths (see docs section 10 table):\n" + "\n".join(bad[:40])
+    assert not bad, "removed module paths (new homes: archived architecture section 10):\n" + "\n".join(bad[:40])
