@@ -65,6 +65,7 @@ TOOLS: dict[tuple[str, str], tuple[str, str]] = {
     ("factors", "list"): ("rrp.policies.relations.base:cli", "relation-factor registry: list [GLOB]"),
     ("factors", "show"): ("rrp.policies.relations.base:cli", "relation-factor registry: show NAME"),
     ("factors", "presets"): ("rrp.policies.relations.base:cli", "relation-factor presets"),
+    ("factors", "coverage"): ("rrp.harness.data.relgen:coverage_main", "factor x family x env coverage JSON (labels, parts, resolves)"),
     ("ops", "child"): ("rrp.ops.child:main", "internal: the leased workload runner inside rrp-job-<lease>.service"),
 }
 GROUP_HELP = {"factors": "relation-factor registry (docs/relations.md)", "suite": "evaluation suites, audits and validators", "stage": "pipeline stages (run-dag jobs)",

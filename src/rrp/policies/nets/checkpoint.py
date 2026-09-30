@@ -22,18 +22,11 @@ def save_checkpoint(path: Path, *, model, optimizer=None, step: int, versions: d
     """`provenance` (W3) is added to the state and the sidecar: weights fingerprint of the model state_dict,
     git sha, versions and the meaning-changing training flags (zero_prev_action, realizer_drop_qd, ...)."""
     from rrp.core.provenance import make_provenance, training_flags
+    from rrp.policies.relations.base import provenance as factor_provenance, stamp_versions
+    specs = model.factor_specs() if callable(getattr(model, "factor_specs", None)) else None
+    factors = factor_provenance(specs) if specs is not None else None   # relation factors (D-144): hash + provenance
     from rrp.policies.features import kinfeat
-    factors = None
-    factor_bits = []
-    if callable(getattr(model, "factor_specs", None)):   # relation factors (D-144): structure hash + full provenance
-        from rrp.policies.relations.base import compat_hash, provenance as factor_provenance
-        specs = model.factor_specs()
-        factor_bits.append(compat_hash(specs))
-        factors = factor_provenance(specs)
-    if kinfeat.resolved():           # feat.base_axes (was D-137 ablation, own `versions["kinfeat"]` key): folded
-        factor_bits.append(kinfeat.VERSION)      # into the SAME combined version string, not a separate key
-    if factor_bits:
-        versions = {**(versions or {}), "factors": "+".join(factor_bits)}
+    versions = stamp_versions(versions, specs, [kinfeat.VERSION] if kinfeat.resolved() else [])  # versions["factors"]
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     sd = model.state_dict()
@@ -54,11 +47,17 @@ def save_checkpoint(path: Path, *, model, optimizer=None, step: int, versions: d
     return meta
 
 
-def load_checkpoint(path: Path, *, requested_versions: dict | None = None, map_location="cpu") -> dict:
+def load_checkpoint(path: Path, *, requested_versions: dict | None = None, map_location="cpu", specs=None,
+                    allow_factor_mismatch: bool = False) -> dict:
+    """`specs` (the resolved factor list the caller is about to build) must match the saved structure hash
+    (`relations.base.require_factors`); `allow_factor_mismatch` is for a deliberate cross-structure load."""
     state = torch.load(path, map_location=map_location, weights_only=False)
     check_kinfeat(state, path)
     if requested_versions:
         require_compatible_versions(state["versions"], requested_versions)
+    if specs is not None:
+        from rrp.policies.relations.base import require_factors
+        require_factors(state.get("versions"), specs, allow_factor_mismatch)
     return state
 
 

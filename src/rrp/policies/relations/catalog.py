@@ -4,7 +4,8 @@ Candidate relations not yet implemented: research/relations_catalog.md (declare 
 from __future__ import annotations
 
 from rrp.bodies import g1_simple as _G
-from rrp.policies.relations.base import (Algebra, FactorDef, FieldDef, ReadoutDef, register_factor, register_field,
+from rrp.policies.relations.base import (Algebra, FactorDef, FamilyTokens, FieldDef, ReadoutDef, register_factor,
+                                         register_family, register_field,
                                          register_preset)
 
 # ------------------------------------------------------------------ edge vocabularies (on-disk channel orders)
@@ -401,3 +402,25 @@ register_factor(FactorDef(
         "target of an in-progress drag (relgen.ui.drag_to_fn)"))
 
 register_preset("ui", ["ui.label_for", "ui.same_window", "ui.focus_next", "ui.above", "ui.drag_to"])
+
+# ------------------------------------------------------------------ net families (docs/relations.md section 11)
+# What each net family's collate path fills (`sets`), its attention sites offer factors (`sites`: edge vocab, fields,
+# "hidden"), the training collate's labels (`labels`, relgen LABELS names) and the message / embed / readout factors
+# its net implements (`inert`). `resolve(family=...)` refuses a factor list the family cannot run; the nets derive their
+# `FactorSite` carries from here. Legged / humanoid families are declared by their own unit.
+_ARM_LABELS = ("pos3d", "orient", "contact_normal", "cam_uvd", "contact_pairs", "held_pairs", "support_pairs",
+               "support_closure", "next_contact")
+_ARM_SITES = {"ctx>ctx": ("edges:arm-rel-v1", "hidden", "cam_uvd", "pos3d", "orient", "normal"),
+              "act>ctx": ("edges:arm-rel-v1",), "act>act": ("edges:arm-rel-v1",), "node>knot": ("assembly_id",)}
+_ARM_SETS = {"ctx": ("pos3d", "orient", "cam_uvd", "entity_id", "assembly_id"), "act": ("assembly_id",),
+             "node": ("assembly_id",), "knot": ("assembly_id",)}
+_ARM_INERT = ("probe.arm.*", "msg.incidence", "id.slot_handle")
+register_family("arm", FamilyTokens(_ARM_SETS, _ARM_SITES, {"ctx": _ARM_LABELS}, _ARM_INERT))
+register_family("dual", FamilyTokens(_ARM_SETS, _ARM_SITES, {"ctx": _ARM_LABELS + ("handover_pairs",)}, _ARM_INERT))
+register_family("psi0", FamilyTokens(
+    {"dims": ("assembly_id",), "knots": ("assembly_id",)},
+    {"dims>dims": ("edges:g1-dim-rel-v1",), "dims>knots": ("assembly_id",)}, {}, ("probe.psi0.*",)))
+register_family("pointer", FamilyTokens(
+    {"ctx": ("pos3d", "cam_uvd", "zlayer", "parent_id")},
+    {"ctx>ctx": ("edges:ui-rel-v1", "hidden", "pos3d", "cam_uvd", "zlayer", "parent_id")},
+    {"ctx": ("drag_to",)}, ("probe.pointer.*",)))

@@ -18,7 +18,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from rrp.policies.relations.base import (EdgeSet, FactorError, FactorSpec, PrivilegedInput, RelCtx,
+from rrp.policies.relations.base import (EdgeSet, FactorError, FactorSpec, FamilyTokens, PrivilegedInput, RelCtx,
                                          effective_source, get_factor)
 
 GRAPH_CONTROLS = ("on", "off", "zero", "rewired", "shuffled", "reversed", "gt", "estimated")
@@ -88,7 +88,7 @@ def site_field(rc: RelCtx, set_name: str, name: str, s: FactorSpec):
     if src == "gt":
         if rc.deploy or ts.deploy:
             raise PrivilegedInput(f"factor {s.name}: ground-truth field {name!r} in deploy mode")
-        return ts.label(name), None
+        return ts.label(get_factor(s.name).label or name), None
     if src == "probe":
         if (set_name, name) not in rc.estimates:
             raise FactorError(f"factor {s.name}: no readout estimate of {set_name}.{name} (readout_layer not reached?)")
@@ -146,6 +146,7 @@ def _closure(A: torch.Tensor) -> torch.Tensor:
 class ClosureOp(EdgeOp):
     """ancestor / flow: closure of a directed edge channel. params.rel: closure | inverse | sibling."""
     forms = ("bias",)
+    self_site_only = True            # a closure is over one token set: never built at a q != k site (act>ctx)
 
     def value(self, d, s, mod, rc, site):
         A = _adjacency(super().value(d, s, mod, rc, site), d, s)
@@ -164,6 +165,7 @@ class ClosureOp(EdgeOp):
 class HopOp(EdgeOp):
     """1[graph distance(i, j) == hops] over an edge channel (symmetrized when params.symmetric)."""
     forms = ("bias",)
+    self_site_only = True
 
     def value(self, d, s, mod, rc, site):
         p = {**d.p, **s.p}
@@ -450,6 +452,9 @@ def _applies(d, s: FactorSpec, site: str, carries: tuple) -> bool:
         return False
     if d.form in ("message", "embed", "readout"):
         return False
+    q, k = site.split(">")
+    if getattr(OPS[d.op], "self_site_only", False) and q != k:
+        return False
     if d.field.startswith("edges:"):
         edge = {**d.p, **s.p}.get("edge")
         for c in carries:
@@ -457,6 +462,40 @@ def _applies(d, s: FactorSpec, site: str, carries: tuple) -> bool:
                 return True
         return False
     return d.field in carries or (d.op == "bilinear" and "hidden" in carries)
+
+
+def _pair_specs(specs, site: str, carries: tuple) -> tuple:
+    """Active bilinear factors that apply at this site: each writes its pair estimate (logits) during the forward."""
+    return tuple(s for s in specs if s.control != "off" and get_factor(s.name).op == "bilinear"
+                 and _applies(get_factor(s.name), s, site, carries))
+
+
+def _emitting(pairs) -> tuple:
+    return tuple(s for s in pairs if "emits" in {**get_factor(s.name).p, **s.p})
+
+
+def applicable_sites(d, s: FactorSpec, specs, ft: FamilyTokens) -> tuple:
+    """The sites of a net family at which `FactorSite` would build spec `s` (with the graphs the list's own
+    bilinear emitters produce there): what `resolve(family=...)` checks."""
+    out = []
+    for site, carries in ft.sites.items():
+        carries = tuple(carries)
+        carries += tuple("edges:" + {**get_factor(e.name).p, **e.p}["emits"][0]
+                         for e in _emitting(_pair_specs(specs, site, carries)))
+        if _applies(d, s, site, carries):
+            out.append(site)
+    return tuple(out)
+
+
+def needs_token_fields(specs) -> bool:
+    """Does any active factor read a token-set field (so the collate path must fill them)?"""
+    for s in specs:
+        if s.control == "off":
+            continue
+        d = get_factor(s.name)
+        if s.confidence or (d.form in ("bias", "aug", "mask") and not d.field.startswith("edges:") and d.field != "hidden"):
+            return True
+    return False
 
 
 class FactorSite(nn.Module):
@@ -468,10 +507,11 @@ class FactorSite(nn.Module):
         super().__init__()
         self.heads, self.site = heads, site
         carries = tuple(carries)
-        # bilinear factors with params.emits = (vocab, edge) publish their pair estimate as an estimated EdgeSet at
-        # this site, so graph factors over that vocabulary apply here too (e.g. ix.support -> ix.force_flow)
-        self.emitters = tuple(s for s in specs if s.control != "off" and get_factor(s.name).op == "bilinear"
-                              and "emits" in {**get_factor(s.name).p, **s.p} and _applies(get_factor(s.name), s, site, carries))
+        # every bilinear factor writes its pair estimate (the aug IS the pair probe: `estimates_loss` supervises it);
+        # those with params.emits = (vocab, edge) also publish it as an estimated EdgeSet at this site, so graph
+        # factors over that vocabulary apply here too (e.g. ix.support -> ix.force_flow)
+        self.pairs = _pair_specs(specs, site, carries)
+        self.emitters = _emitting(self.pairs)
         carries = carries + tuple("edges:" + {**get_factor(s.name).p, **s.p}["emits"][0] for s in self.emitters)
         self.specs = tuple(s for s in specs if _applies(get_factor(s.name), s, site, carries))
         self.edge_specs = tuple(s for s in self.specs if get_factor(s.name).op == "edge" and get_factor(s.name).form == "bias")
@@ -623,23 +663,27 @@ class FactorSite(nn.Module):
 
     def emit(self, rc: RelCtx, xq: torch.Tensor, xk: torch.Tensor | None) -> None:
         """Pair-estimate hook (docs/relations.md 3.2 `bilinear`): at its `params.readout_layer` (the n-th call of this
-        site in the forward, default 0) a bilinear factor with `params.emits = (vocab, edge)` writes
-        p_ij = sigmoid(pair logit) as `rc.edges[f"{site}#{vocab}"]` (prov "estimated": deployable), and the logits as
-        `rc.estimates[("pair", factor)]` (its readout loss). Graph factors over that vocabulary with source "probe" read
-        it; source "gt" reads `...@gt` and stays refused in deploy mode."""
-        if not self.emitters:
+        site in the forward, default 0) a bilinear factor writes its pair logits [B,Q,K] as `rc.estimates[("pair",
+        factor)]` (`base.estimates_loss` supervises them; `rc.memo[("pair_site", factor)]` names the site). With
+        `params.emits = (vocab, edge)` it also publishes p_ij = sigmoid(logit) as `rc.edges[f"{site}#{vocab}"]` (prov
+        "estimated": deployable). Graph factors over that vocabulary with source "probe" read it; source "gt" reads
+        `...@gt` and stays refused in deploy mode."""
+        if not self.pairs:
             return
         n = rc.memo.get(("layer", self.site), 0)
         rc.memo[("layer", self.site)] = n + 1
-        for s in self.emitters:
+        for s in self.pairs:
             d = get_factor(s.name)
             p = {**d.p, **s.p}
             if int(p.get("readout_layer", 0)) != n:
                 continue
-            vocab, edge = p["emits"]
-            from rrp.policies.relations.catalog import VOCABS
             logit = OPS["bilinear"].pair_logits(self.f[_key(s.name)], xq, xq if xk is None else xk)
             rc.estimates[("pair", s.name)] = logit
+            rc.memo[("pair_site", s.name)] = self.site
+            if "emits" not in p:
+                continue
+            vocab, edge = p["emits"]
+            from rrp.policies.relations.catalog import VOCABS
             prob = control_graph(torch.sigmoid(logit), "on" if s.control not in ("zero", "rewired") else s.control,
                                  rc, self.site)
             key = f"{self.site}#{vocab}"
@@ -659,7 +703,7 @@ class FactorSite(nn.Module):
             sub = FactorSite.__new__(FactorSite)
             nn.Module.__init__(sub)
             sub.heads, sub.site, sub.specs = self.heads, self.site, (s,)
-            sub.emitters = ()
+            sub.pairs, sub.emitters = (), ()
             sub.edge_specs = (s,) if s in self.edge_specs else ()
             sub.w = self.w[[self.edge_specs.index(s)]] if s in self.edge_specs else None
             sub.f = self.f
@@ -700,3 +744,4 @@ class FieldReadouts(nn.Module):
                 mu, lv = self.heads[_key(name)](h)[:, 0].chunk(2, -1)
                 rc.estimates[(set_name, fld)] = (mu, lv.clamp(-8, 6).exp())
                 rc.estimates[(set_name, fld, "logvar")] = lv
+                rc.memo[("est_by", set_name, fld)] = name       # which factor's head (`base.estimates_loss`)
