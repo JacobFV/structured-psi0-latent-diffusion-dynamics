@@ -122,10 +122,11 @@ direct 19/20, structured 0/20) and `psi0_bendpick_step2.yaml` (not started); fam
 `src/rrp/harness/pipelines/psi0.py` (each wraps `rrp data psi0-features`, `rrp train psi0 [probes|heldout]`, `rrp eval
 --env simple`). Peer, GPU lease limit 1, psi venv as peer python (`ops/bin/psi0_ext.sh psi-env`):
 `RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/psi0 rrp run-dag recipes/psi0/psi0_tabletop_step2.yaml --dry-run`, then the same
-without `--dry-run`; `--point seed=0`. Dry-run nodes: global `feat`; at s0 `stage_a`, `direct`, `structured`, `heldout`,
-`probes`, `eval_released`, `eval_direct`, `eval_structured`. The recipe reads the recorded packet labels from
-`vars.labels_dir` (`~/work/ext/runs/psi1z/replay_labels/tabletop`; recording = `psi0_replay` + `LabelRecorder`, no CLI) and the
-released run + data from `~/work/ext/psi_home` (`ops/bin/psi0_ext.sh fetch-ckpt|fetch-data`). Old checkpoints, features
+without `--dry-run`; `--point seed=0`. Dry-run nodes (P2 order): global `feat`, global `labels` (`collect` with
+`options.data: labels` = `rrp data psi0-labels`); at s0 `stage_a`, `probes`, `gate` (`heldout` on stage A only), `direct`,
+`structured` (input `gate`), `heldout`, `probes_gen`, `eval_released`, `eval_direct`, `eval_structured`. Labels are recorded
+by the `labels` node (`psi0_replay` x `simple` through `harness.rollout` + `LabelRecorder`); `vars.labels_dir` is gone. The
+recipe reads the released run + data from `~/work/ext/psi_home` (`ops/bin/psi0_ext.sh fetch-ckpt|fetch-data`). Old checkpoints, features
 and closed-loop outputs stay in `~/work/ext/runs/psi1z/{train,features,replay_labels,cl}/` and are still usable as
 inputs (`@`-refs accept any `artifacts/<store>/<name>` path; copy or link them there).
 Before the structured arm's closed loop is rerun the D-141 code fix is required (a code change, not a recipe): mask the
@@ -402,3 +403,23 @@ peer GPU-h (lease-log estimate).
   ISO 55: 20/20, Wilson [0.84, 1.00], median episode 106 s (`cl/step2_tabletop_released/summary.json`).
 - direct / structured arms: training on the peer (direct done at 8000 steps; structured next in the same lease);
   their 20-episode evals start after W7's priority job is admitted (P-019).
+
+### 2026-09-30 readiness P2 (audit D20): data driver and SIMPLE plumbing
+- `CachedDataset`: the realization tick j is drawn from `default_rng([seed, episode, frame, visit])`, `visit` = fetches of
+  that item so far (a shared-memory counter: every DataLoader worker bumps the same one, persistent workers included). One
+  epoch is identical for `num_workers` 0 / 2 / 3 (test), later epochs draw fresh ticks, `reset_epochs()` replays from 0. The old
+  shared `rng` gave each worker a copy and made the tick depend on the worker count.
+- One ext-dir resolver: `rrp.envs.simple.compat.ext_dir()` (`RRP_PSI0_EXT`, default `~/work/ext`, read at call time; stdlib only
+  so the SIMPLE-venv hook can use it), with `psi_home()` and `simple_root()` derived from it. `SimpleEnv`, the worker and
+  `policies/psi0/data.py` use it; no import-time `EXT` / `SIMPLE_ROOT` constants remain.
+- Render profile is an env kwarg: `make_env("simple", ..., render_profile=)` / `--env-kw render_profile=pt4_iso65`, validated
+  before any process starts, carried to the worker as `RRP_SIMPLE_RENDER` (still validated there).
+- `rrp data psi0-labels --task T --out D --episodes A:B` = `psi0_replay` (recorded rows) on `simple` (`split=train`,
+  `render=False`, `sim_mode=mujoco`) through `evaluate()` with the `LabelRecorder` hook; rows carry
+  `label_source=privileged:sim_replay` (labels only). The stage is `collect` with `options.data: labels`, source
+  `privileged_teacher:sim_replay`.
+- Gate (architecture 14.5): `heldout` without a `structured` input is the pre-head gate and needs `heldout.json["gate"] =
+  {gap, margin}`; gap < margin (or no gate block) fails the node, and `train_flow` re-reads the same file from its `gate` input
+  before it starts (GateFailed, `gate_report.json`). The trainer-side writer of the block belongs to P1 (`train.heldout`).
+- Tests: `tests/unit/test_psi0_data.py`; `test_pointer_psi0_stages.py` follows the new recipe shape. Peer smoke not run (no
+  training or simulation on the host; the label driver is covered against the fake-worker double).

@@ -24,7 +24,8 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from rrp.policies.psi0 import find_subseq, load_launch_config, object_name, psi_home, psi_runtime
+from rrp.envs.simple.compat import psi_home
+from rrp.policies.psi0 import find_subseq, load_launch_config, object_name, psi_runtime
 from rrp.policies.psi0.nets import KNOT_STEPS, TP
 
 LABEL_SOURCE = "privileged:sim_replay"
@@ -276,7 +277,11 @@ def build_memmap(feat_dir):
 
 
 class CachedDataset(torch.utils.data.Dataset):
-    """Cached frozen-VLM features (memmapped bf16) + actions/states + replay labels."""
+    """Cached frozen-VLM features (memmapped bf16) + actions/states + replay labels.
+
+    The realization tick j of a frame is drawn from a generator seeded per (seed, episode, frame, visit): one pass over
+    the data (a DataLoader epoch fetches every item once) is identical for any `num_workers` and any shuffle-independent
+    batching, and successive epochs draw fresh, reproducible ticks (`reset_epochs` restarts the count)."""
 
     def __init__(self, feat_dir, label_dir=None, episodes=None, max_j=8, seed=0, load_hidden=True):
         feat_dir = Path(feat_dir)
@@ -295,15 +300,29 @@ class CachedDataset(torch.utils.data.Dataset):
                 p = Path(label_dir) / f"episode_{e:06d}.npz"
                 if p.exists():
                     self.labels[e] = EpisodeLabels(p)
-        self.max_j = max_j
-        self.rng = np.random.default_rng(seed)
+        self.max_j, self.seed = max_j, seed
+        # visits[n] = how many times item n has been fetched (shared memory: every DataLoader worker sees and bumps the
+        # same counter, so it also survives persistent workers that never re-import the dataset)
+        self.visits = torch.zeros(len(self.items), dtype=torch.int64).share_memory_()
 
     def __len__(self):
         return len(self.items)
 
+    def realization_tick(self, n: int, visit: int) -> int:
+        """The realization tick j of item n on its `visit`-th fetch: a function of (seed, episode, frame, visit) only,
+        so it does not depend on which worker fetches it, how many workers there are, or the order of the batches."""
+        it = self.items[n]
+        return int(np.random.default_rng([self.seed, int(it["ep"]), int(it["fr"]), int(visit)]).integers(0, self.max_j))
+
+    def reset_epochs(self):
+        """Replay from epoch 0: the next fetch of every item is its first."""
+        self.visits.zero_()
+
     def __getitem__(self, n):
         it = self.items[n]
-        j = int(self.rng.integers(0, self.max_j))
+        visit = int(self.visits[n])
+        self.visits[n] = visit + 1
+        j = self.realization_tick(n, visit)
         m = self.index.get((it["ep"], it["fr"] + j))
         if m is None:
             j, m = 0, n

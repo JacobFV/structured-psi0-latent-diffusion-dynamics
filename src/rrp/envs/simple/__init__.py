@@ -28,21 +28,23 @@ from pathlib import Path
 
 import numpy as np
 
+from rrp.envs.simple.compat import DEFAULT_RENDER_PROFILE, RENDER_PROFILES, ext_dir, psi_home  # noqa: F401  (stdlib only)
 from rrp.envs.simple.worker import LEVELS  # stdlib/numpy only
 
 CONTROL_HZ = 50.0
 EXEC_HORIZON = 24          # rows the upstream server returns per query (and the agent executes)
 
 
-def ext_dir() -> Path:
-    return Path(os.environ.get("RRP_PSI0_EXT", Path.home() / "work/ext"))
-
-
-def worker_env(authkey: bytes) -> dict:
+def worker_env(authkey: bytes, render_profile: str = DEFAULT_RENDER_PROFILE) -> dict:
+    """Environment of the worker process. `render_profile` (a key of `RENDER_PROFILES`) is set here, overriding any
+    RRP_SIMPLE_RENDER of the calling shell: the profile of a run is the kwarg, never an ambient variable."""
+    if render_profile not in RENDER_PROFILES:
+        raise ValueError(f"unknown render_profile {render_profile!r}; known: {sorted(RENDER_PROFILES)}")
     ext = ext_dir()
     carb = ext / "venvs/simple/lib/python3.11/site-packages/isaacsim/kit/libcarb.so"
     src = str(Path(__file__).resolve().parents[3])
-    return dict(os.environ, RRP_SIMPLE_COMPAT="1", OMNI_KIT_ACCEPT_EULA="YES", PYTHONUNBUFFERED="1", MUJOCO_GL="egl",
+    return dict(os.environ, RRP_SIMPLE_COMPAT="1", RRP_PSI0_EXT=str(ext), RRP_SIMPLE_RENDER=render_profile,
+                OMNI_KIT_ACCEPT_EULA="YES", PYTHONUNBUFFERED="1", MUJOCO_GL="egl",
                 # aarch64: libcarb needs static TLS at process start (after torch it fails); libgomp: Isaac 5.1 startup check
                 LD_PRELOAD=f"/lib/aarch64-linux-gnu/libgomp.so.1:{carb}",
                 PYTHONPATH=os.pathsep.join([src] + [p for p in os.environ.get("PYTHONPATH", "").split(os.pathsep) if p]),
@@ -52,17 +54,21 @@ def worker_env(authkey: bytes) -> dict:
 class SimpleEnv:
     def __init__(self, task: str, *, level: int = 0, sim_mode: str = "mujoco_isaac", render: bool = True,
                  instruction: str | None = None, split: str = "eval", log: str | Path | None = None,
-                 worker_cmd: list[str] | None = None, start_timeout: float = 1800.0):
+                 worker_cmd: list[str] | None = None, start_timeout: float = 1800.0,
+                 render_profile: str = DEFAULT_RENDER_PROFILE):
         if level not in LEVELS:
             raise ValueError(f"level must be one of {LEVELS}, got {level}")
+        if split not in ("eval", "train"):
+            raise ValueError(f"split must be 'eval' or 'train', got {split!r}")
+        key = secrets.token_bytes(32)
+        env = worker_env(key, render_profile)          # validates render_profile before anything is started
         from multiprocessing.connection import Listener
         self.split = split
-        key = secrets.token_bytes(32)
         self._listener = Listener(("127.0.0.1", 0), authkey=key)
         addr = "%s:%d" % self._listener.address
         cmd = worker_cmd or [str(ext_dir() / "venvs/simple/bin/python"), "-m", "rrp.envs.simple.worker"]
         self._log = open(log, "a") if log else subprocess.DEVNULL
-        self._proc = subprocess.Popen(cmd + ["--address", addr], env=worker_env(key), start_new_session=True,
+        self._proc = subprocess.Popen(cmd + ["--address", addr], env=env, start_new_session=True,
                                       cwd=str(ext_dir() / "psi0/third_party/SIMPLE") if worker_cmd is None else None,
                                       stdout=self._log, stderr=subprocess.STDOUT)
         self._conn = self._accept(start_timeout)
@@ -190,7 +196,8 @@ def env_spec(*, task: str, body: str | list[str] = "g1_simple", provenance: dict
 
 def make_env(*, task: str, body: str | list[str] = "g1_simple", seed: int = 0, **kw) -> SimpleEnv:
     """Registry factory (`make_env("simple", task="simple/<Task>", body="g1_simple", seed=<eval config>)`), reset to
-    `seed`. kw: level, sim_mode, render, instruction, split, log."""
+    `seed`. kw: level, sim_mode, render, instruction, split, log, render_profile (a key of `RENDER_PROFILES`; default
+    `DEFAULT_RENDER_PROFILE`; `--env-kw render_profile=pt4_iso65`)."""
     if body not in ("g1_simple", ["g1_simple"]):
         raise ValueError(f"simple has one body, g1_simple; got {body!r}")
     name = task.split("/", 1)[1] if task.startswith("simple/") else task

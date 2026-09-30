@@ -2,14 +2,17 @@
 # pretrained humanoid VLA? Matched arms on ONE SIMPLE task: the released Psi0 checkpoint (UPSTREAM weights, not trained by us),
 # our matched fine-tune of the action head ("direct"), and Psi0 + structure ("structured": system i samples z, the frozen
 # Stage A realises it). Same cached features, same split (split_episodes seed 1234), same steps and batch for direct and structured.
-# feat (global): frozen-VLM feature cache. stage_a -> structured needs stage_a.pt + z_stats.pt. Offline diagnostics on the training
-# run's val episodes: heldout (open-loop L1 per action group; its R(E(chunk)) route is an ORACLE), probes (packet probes + the
-# metadata-only control). Closed loop (eval_*): Isaac Sim through `rrp eval --env simple`, seeds 0:10 x repeats via `batch`.
-# Prerequisites (host/peer, once): ops/bin/psi0_ext.sh fetch-base / fetch-ckpt / fetch-data <TASK>, recorded packet labels
-# (`psi0_replay` + `LabelRecorder`, options.labels_dir). Run with the psi venv as the peer python (research/tracks/psi0.md).
+# Order: feat (frozen-VLM feature cache) -> labels (probe labels: `psi0_replay` x `simple`, MuJoCo only, through
+# harness.rollout + LabelRecorder; source privileged:sim_replay, labels only) -> stage_a -> probes (packet probes + the
+# metadata-only control on E means) -> gate (heldout on stage_a only: heldout.json["gate"] gap >= margin, else the node
+# fails and `structured` never starts) -> direct / structured -> heldout (all arms; its R(E(chunk)) route is an ORACLE)
+# -> probes_gen (probes on the generated packets) -> closed loop (eval_*): Isaac Sim through `rrp eval --env simple`,
+# seeds 0:10 x repeats via `batch`.
+# Prerequisites (host/peer, once): ops/bin/psi0_ext.sh fetch-base / fetch-ckpt / fetch-data <TASK>. Run with the psi venv as
+# the peer python (research/tracks/psi0.md); RRP_PSI0_EXT locates the third-party stack.
 # D-141: the structured arm needs the training-constant-state-dims mask + forced packet use in Stage A before its closed
 # loop means anything (the first step-2 structured arm failed 0/20 for that integration bug). An instance sets name, header
-# keys, vars.task / vars.labels_dir.
+# keys, vars.task / vars.task_key.
 name: psi0_step2_template
 schema: dag-1
 family: psi0
@@ -21,7 +24,6 @@ matrix:
 vars:
   task: SET_IN_INSTANCE
   task_key: SET_IN_INSTANCE
-  labels_dir: SET_IN_INSTANCE
   steps: 8000
 defaults:
   placement: peer
@@ -35,35 +37,55 @@ nodes:
     stage: collect
     scope: global
     config:
-      options: {task: '{task}'}
+      options: {task: '{task}', data: features}
+  labels:
+    stage: collect
+    tag: labels
+    scope: global
+    resources: {cpu: 2, mem: 8G, gpu: false, max_seconds: 21600}
+    config:
+      inputs: {features: '@feat:feat'}
+      options: {task: '{task}', data: labels}
   stage_a:
     stage: train_rep
     config:
       params: {batch: 32}
-      inputs: {features: '@feat:feat'}
-      options: {task: '{task}', labels_dir: '{labels_dir}'}
+      inputs: {features: '@feat:feat', labels: '@labels:labels'}
+      options: {task: '{task}'}
+  probes:
+    stage: probes
+    config:
+      inputs: {features: '@feat:feat', labels: '@labels:labels', summary: '@stage_a:summary.json', stage_a: '@stage_a:stage_a.pt'}
+      options: {task: '{task}'}
+  gate:
+    stage: heldout
+    tag: gate
+    config:
+      inputs: {features: '@feat:feat', summary: '@stage_a:summary.json', stage_a: '@stage_a:stage_a.pt'}
+      options: {task: '{task}'}
   direct:
     stage: train_bc
     config:
       params: {steps: '{steps}', batch: 32}
-      inputs: {features: '@feat:feat'}
-      options: {task: '{task}', labels_dir: '{labels_dir}'}
+      inputs: {features: '@feat:feat', labels: '@labels:labels'}
+      options: {task: '{task}'}
   structured:
     stage: train_flow
     config:
       params: {steps: '{steps}', batch: 32, w_sem: 0.1}
-      inputs: {features: '@feat:feat', stage_a: '@stage_a:stage_a.pt'}
-      options: {task: '{task}', labels_dir: '{labels_dir}'}
+      inputs: {features: '@feat:feat', labels: '@labels:labels', stage_a: '@stage_a:stage_a.pt', gate: '@gate:heldout.json'}
+      options: {task: '{task}'}
   heldout:
     stage: heldout
     config:
       inputs: {features: '@feat:feat', summary: '@stage_a:summary.json', stage_a: '@stage_a:stage_a.pt', direct: '@direct:final.pt', structured: '@structured:final.pt'}
       options: {task: '{task}'}
-  probes:
+  probes_gen:
     stage: probes
+    tag: generated
     config:
-      inputs: {features: '@feat:feat', summary: '@stage_a:summary.json', stage_a: '@stage_a:stage_a.pt', structured: '@structured:final.pt'}
-      options: {task: '{task}', labels_dir: '{labels_dir}'}
+      inputs: {features: '@feat:feat', labels: '@labels:labels', summary: '@stage_a:summary.json', stage_a: '@stage_a:stage_a.pt', structured: '@structured:final.pt'}
+      options: {task: '{task}'}
   eval_released:
     stage: eval_r2
     tag: released

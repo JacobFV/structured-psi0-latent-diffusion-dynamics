@@ -91,11 +91,11 @@ class Worker:
         import gymnasium as gym
         import simple.envs  # noqa: F401
         from gymnasium.wrappers import TimeLimit
-        from rrp.envs.simple.compat import EXT, fix_task_uid
+        from rrp.envs.simple.compat import fix_task_uid, psi_home
         fix_task_uid(gym.spec(f"simple/{task}").kwargs["task"])
         self.task_name, self.level, self.sim_mode, self.instruction_override = task, level, sim_mode, instruction
         self.mp = task.endswith("MP-v0")
-        self.data_root = Path(data_root or EXT / "psi_home/data")
+        self.data_root = Path(data_root or psi_home() / "data")
         sc = success_criteria if success_criteria is not None else (0.9 if self.mp else 0.7)
         if self.mp:
             self.sonic, self.control_dt = None, 0.0
@@ -126,11 +126,11 @@ class Worker:
 
     # ------------------------------------------------------------------ requests
     def init_info(self) -> dict:
-        from rrp.envs.simple.compat import EXT, UID_FIXES, _PATCH_LOG
+        from rrp.envs.simple.compat import UID_FIXES, _PATCH_LOG, ext_dir, render_profile
         return dict(task=self.task_name, level=self.level, sim_mode=self.sim_mode, mp=self.mp, max_steps=self.max_steps,
                     agent=type(self.agent).__name__, joint_names=list(self.task.robot.joint_names),
-                    render=os.environ.get("RRP_SIMPLE_RENDER", "pt4_iso55"), uid_fixes=list(UID_FIXES),
-                    compat_log=list(_PATCH_LOG), upstream=dict(psi0=_git(EXT / "psi0"), simple=_git(EXT / "psi0/third_party/SIMPLE")))
+                    render=render_profile(), uid_fixes=list(UID_FIXES),
+                    compat_log=list(_PATCH_LOG), upstream=dict(psi0=_git(ext_dir() / "psi0"), simple=_git(ext_dir() / "psi0/third_party/SIMPLE")))
 
     def reset(self, episode: int, split: str = "eval") -> dict:
         """split eval: SIMPLE eval config `episode` of simple-eval/<task>/dr-level-<L> (10 per level);

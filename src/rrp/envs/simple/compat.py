@@ -10,7 +10,7 @@ Isaac Sim 4.5 has no aarch64 wheel; 5.1 is the first. 5.1 still ships the deprec
 alias hook below is opt-in (`RRP_SIMPLE_ISAAC_ALIASES=1`, for builds without the shims). cuRobo (motion planning / IK
 only) and envlogger (recording only) are stubbed when absent: any use raises, so a silent wrong result is impossible.
 Also: AMO weights path + TorchScript GPU fusers off, Isaac 5.1 add_reference fallback, render profiles
-(`RRP_SIMPLE_RENDER`, default pt4_iso55, P-007), one render per control step (`RRP_SIMPLE_RENDER_EVERY`), task-uid fix.
+(`render_profile=` kwarg of SimpleEnv, default pt4_iso55, P-007), one render per control step (`RRP_SIMPLE_RENDER_EVERY`), task-uid fix.
 
 Run a SIMPLE entry point under the layer:  python -m rrp.envs.simple.compat <module> <args...>
 """
@@ -25,8 +25,22 @@ import sys
 import types
 from pathlib import Path
 
-EXT = Path(os.environ.get("RRP_PSI0_EXT", Path.home() / "work/ext"))
-SIMPLE_ROOT = EXT / "psi0/third_party/SIMPLE"
+
+
+def ext_dir() -> Path:
+    """The third-party stack root (upstream clones, venvs, PSI_HOME, runs): $RRP_PSI0_EXT, else ~/work/ext. THE one
+    resolver (architecture 14; stdlib-only so the SIMPLE-venv compat layer can use it); every other module calls it."""
+    return Path(os.environ.get("RRP_PSI0_EXT", Path.home() / "work/ext")).expanduser()
+
+
+def psi_home() -> Path:
+    """PSI_HOME (checkpoints, datasets, HF cache): $PSI_HOME, else <ext_dir>/psi_home."""
+    return Path(os.environ.get("PSI_HOME", ext_dir() / "psi_home")).expanduser()
+
+
+def simple_root() -> Path:
+    return ext_dir() / "psi0/third_party/SIMPLE"
+
 
 # old module -> (new module, {old attr: new attr})
 ALIASES: dict[str, tuple[str, dict[str, str]]] = {
@@ -143,9 +157,9 @@ def _stub_optional(names=("envlogger",)):
 
 
 def simple_sys_paths() -> list[str]:
-    return [str(SIMPLE_ROOT / "src"), str(SIMPLE_ROOT / "third_party"),
-            str(SIMPLE_ROOT / "third_party/openpi-client/src"),
-            str(SIMPLE_ROOT / "third_party/unitree_sdk2_python")]
+    return [str(simple_root() / "src"), str(simple_root() / "third_party"),
+            str(simple_root() / "third_party/openpi-client/src"),
+            str(simple_root() / "third_party/unitree_sdk2_python")]
 
 
 def _patch_add_reference(mod):
@@ -173,6 +187,7 @@ _PATCH_LOG: list = []
 # Rendering profiles (research/tracks/psi0.md, P-002/P-007): the RTX real-time path on Isaac 5.1/aarch64 renders the
 # SIMPLE HSSD scenes ~8x darker than the released data (NRD denoiser shaders fail to compile); path tracing with the
 # OptiX denoiser and film ISO 65 matches the released eval frames (MSE 100-200 vs 4100 on two XMovePick L0 frames).
+DEFAULT_RENDER_PROFILE = "pt4_iso55"        # P-007 (was pt4_iso65, calibrated on eval frames)
 RENDER_PROFILES = {
     "rt_default": {},
     "pt4_iso55": {"/rtx/rendermode": "PathTracing", "/rtx/pathtracing/spp": 4, "/rtx/pathtracing/totalSpp": 4,
@@ -182,8 +197,18 @@ RENDER_PROFILES = {
 }
 
 
+def render_profile() -> str:
+    """The profile this process renders with. The user-facing knob is the `render_profile` kwarg of `SimpleEnv` /
+    `make_env` (`--env-kw render_profile=pt4_iso65`), which `worker_env` hands to the worker as RRP_SIMPLE_RENDER (the
+    compat hooks are installed before the worker's init request arrives, so the profile travels in the environment)."""
+    name = os.environ.get("RRP_SIMPLE_RENDER", DEFAULT_RENDER_PROFILE)
+    if name not in RENDER_PROFILES:
+        raise ValueError(f"unknown render profile {name!r}; known: {sorted(RENDER_PROFILES)}")
+    return name
+
+
 def _apply_render_profile():
-    name = os.environ.get("RRP_SIMPLE_RENDER", "pt4_iso55")      # P-007 (was pt4_iso65, calibrated on eval frames)
+    name = render_profile()
     import carb
     st = carb.settings.get_settings()
     for k, v in RENDER_PROFILES[name].items():
@@ -249,7 +274,7 @@ class _AmoPath(importlib.abc.MetaPathFinder):
 
                 def exec_module(module, _orig=orig_exec):
                     _orig(module)
-                    module.BASE_DIR = str(SIMPLE_ROOT / "data/robots/g1")
+                    module.BASE_DIR = str(simple_root() / "data/robots/g1")
                     # torch 2.7+cu128 cannot runtime-compile (nvrtc) for sm_121; AMO's TorchScript trace has CUDA
                     # baked in, so keep it on the GPU but disable the TorchScript GPU fusers (no nvrtc codegen)
                     import torch
