@@ -484,9 +484,10 @@ class StructuredHead(nn.Module):
             zc = self._unflat(x - sigma[:, None, None] * v)                                # clean estimate
             keep = (sigma <= self.sigma_max_sem).float()
             if keep.sum() > 0:
-                out = self.A.P(zc)
+                out = run_probe(self.A.P, zc)                      # all-true assembly mask; the fixed G1 assemblies
                 sl, slog = probe_loss({k: o[keep.bool()] for k, o in out.items()},
-                                        {k: l[keep.bool()] for k, l in b["labels"].items()}, w_grasp=self.w_grasp)
+                                        {k: l[keep.bool()] for k, l in b["labels"].items()}, self.A.P.specs,
+                                        w_grasp=self.w_grasp)
                 loss = loss + self.w_sem * sl
                 parts["sem"] = sl
                 logs.update({f"zhat_{k}": x_ for k, x_ in slog.items()})
