@@ -59,13 +59,18 @@ class LearnedTracker:
         self.morph = None
         # U1: the actor also reads the upper-body joint state (binding.upper_obs), appended after the extra block
         self.upper_obs = bool(meta.get("upper_obs"))
-        if meta.get("obs_format") == "morph_v1":
-            if self.upper_obs:
-                raise TrackerMismatch("morph_v1 trackers have no upper-body block (upper_obs)")        # W13 shared morphology-conditioned tracker (rrp.envs.morph_obs)
-            from rrp.envs.mujoco.morph_obs import OBS_DIM, NS, MorphSpec
-            if meta["obs_dim"] != OBS_DIM + int(meta.get("extra_obs_dim") or 0) or meta["act_dim"] != NS:
-                raise TrackerMismatch("morph_v1 tracker dims do not match rrp.envs.morph_obs")
+        fmt = meta.get("obs_format")
+        if fmt in ("morph_v1", "morph_v2"):            # W13 shared morphology-conditioned tracker (rrp.envs.mujoco.morph_obs)
+            from rrp.envs.mujoco.morph_obs import NS, OBS_DIM, OBS_DIM_V2, MorphSpec, obs_format
+            if obs_format(self.upper_obs) != fmt:         # morph_v2 = morph_v1 + the upper block: upper_obs is part of the format
+                raise TrackerMismatch(f"{fmt} trackers {'have' if fmt == 'morph_v2' else 'have no'} upper-body block (upper_obs), "
+                                      f"but the meta says upper_obs={self.upper_obs}")
+            base = OBS_DIM_V2 if self.upper_obs else OBS_DIM
+            if meta["obs_dim"] != base + int(meta.get("extra_obs_dim") or 0) or meta["act_dim"] != NS:
+                raise TrackerMismatch(f"{fmt} tracker dims do not match rrp.envs.mujoco.morph_obs")
             self.morph = MorphSpec(binding.model, binding, binding.meta)
+            if self.upper_obs and not len(binding.held_act):
+                raise TrackerMismatch(f"morph_v2 tracker needs an upper group; body {body_key!r} has no held actuators")
             self.transfer = body_key not in (meta.get("train_bodies") or [])   # evaluated on a body it never trained on
         elif meta["body"] != body_key:
             raise TrackerMismatch(f"tracker trained for {meta['body']}, not {body_key}")
@@ -108,7 +113,7 @@ class LearnedTracker:
         cv = "" if self.contact_model == "contact_v1" else f":{self.contact_model}"
         self.version = f"learned_tracker:{body_key}:iter{meta.get('iter')}{cv}"
         if self.morph is not None:
-            self.version = f"learned_tracker:shared_morph_v1{':transfer' if self.transfer else ''}:{body_key}:iter{meta.get('iter')}{cv}"
+            self.version = f"learned_tracker:shared_{fmt}{':transfer' if self.transfer else ''}:{body_key}:iter{meta.get('iter')}{cv}"
         # W8: exact actor identity (two v2 actors can share an iter)
         self.path = str(path)
         self.sha256 = file_digest(Path(path), length=None)
@@ -126,6 +131,8 @@ class LearnedTracker:
         o = self.morph.obs(self.b, data, cmd, self.last_slot, self.phase, bool(self.meta.get("clock_gate")))
         if self.extra_fn is not None:
             o = np.concatenate([o, self.extra_fn(data)]).astype(np.float32)
+        if self.upper_obs:                                # morph_v2: [morph_v1 | extra | upper block], the trainer's order
+            o = np.concatenate([o, self.morph.upper_obs(data)]).astype(np.float32)
         x = np.clip((o - self.mean) / self.std, -5, 5).astype(np.float32)
         with self.torch.no_grad():
             a = self.net(self.torch.from_numpy(x)[None])[0].numpy().astype(np.float64)

@@ -97,13 +97,15 @@ def test_no_recipe_or_config_names_a_held_out_task():
 @pytest.mark.menagerie
 @pytest.mark.parametrize("task", TRAINED + HELD_OUT)
 def test_legs_only_body_is_na_in_the_matrix_not_an_exception(task):
-    """TK: no `AbsentLimb` at build. A legs-only body (berkeley) is an n/a matrix cell with the env's reason; the arm tasks declare
-    `needs={"arm_roles": ...}` so a body with an upper group but no hands is n/a through `negotiate` (tests/unit/test_task_teacher_closure.py)."""
+    """TK: no `AbsentLimb` at build. A legs-only body (berkeley) is an n/a matrix cell answered by `negotiate` from mujoco/legged's static
+    `env_spec` (no session is built, none raises): the arm tasks declare `needs={"arm_roles": ...}`, which the body lacks
+    (tests/unit/test_task_teacher_closure.py, tests/unit/test_tracker_inputs.py)."""
     pytest.importorskip("mujoco")
     from rrp.harness.eval.evaluate import matrix
     assert not hasattr(HS, "AbsentLimb") and get_task(task).needs == {"arm_roles": "body has no arm roles"}
     (row,) = matrix([f"teacher:{task}"], [("mujoco/legged", "berkeley")], [task])
-    assert row["status"] == "n/a" and "berkeley" in row["reasons"][0] and "upper group" in row["reasons"][0], row
+    assert row["status"] == "n/a" and any("body has no arm roles" in r for r in row["reasons"]), row
+    assert not any("env unavailable" in r for r in row["reasons"]), row
 
 
 @pytest.mark.menagerie

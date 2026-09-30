@@ -789,13 +789,34 @@ def _wrap(a: float, absolute: bool = False) -> float:
     return abs(a) if absolute else a
 
 
+ALL_TASKS = ("h_steps", "h_gap") + MANIP_TASKS + CARRY_TASKS + HELD_OUT_TASKS
+
+
+def default_control(task: str) -> str:
+    """The control mode `make_humanoid_session` gives `task`: the whole-body tasks run "wholebody" (50 Hz joint targets, legs + upper),
+    the terrain tasks h_steps / h_gap "base_velocity" (10 Hz commands through the body tracker)."""
+    return "wholebody" if task in MANIP_TASKS + CARRY_TASKS + HELD_OUT_TASKS else "base_velocity"
+
+
+def static_env_spec(task: str, body: str):
+    """The EnvSpec `make_humanoid_session(task=, body=)` would report, without building a session or loading an actor (see
+    `legged.static_env_spec`): arm tasks on a body with no hand links lack `arm_roles`, so `negotiate` records them as n/a with
+    the task's reason; a body with no upper group offers the legs group only. The scenario name is the task's graph (h_gap: h_gap_sidestep)."""
+    from rrp.envs.mujoco.legged import build_waypoint_contact, static_env_spec as _static
+    from rrp.tasks.spec import get_task
+    if task not in ALL_TASKS:
+        raise KeyError(f"unknown humanoid task {task!r}; has {ALL_TASKS}")
+    cls = HumanoidSession if task in MANIP_TASKS + CARRY_TASKS + HELD_OUT_TASKS else LeggedSession
+    return _static(build_waypoint_contact(body, 0, contact="v2"), task=get_task(task).graph, control=default_control(task), session_cls=cls)
+
+
 def make_humanoid_session(*, task: str, body: str, seed: int = 0, scene: dict | None = None, **kw):
     """env_id "mujoco/legged" for the humanoid tasks (the `build` entry of rrp.tasks.humanoid): the task's scene on `body`
     (`scene` = builder kwargs: h_frac | level | the U2 task parameters, contact) driven by a LeggedSession (h_steps, h_gap) or a
     HumanoidSession (h_walk, h_turn, h_reach, h_squat_pick, h_place, U3: h_carry, h_loco_pick, h_steps_carry, h_gap_cart; control defaults
     to "wholebody"); `kw` go to the session."""
     if task in MANIP_TASKS + CARRY_TASKS + HELD_OUT_TASKS:
-        kw.setdefault("control", "wholebody")
+        kw.setdefault("control", default_control(task))
         return HumanoidSession(build_h_manip(body, seed, task, **(scene or {})), seed=seed, **kw)
     builder = {"h_steps": build_h_steps, "h_gap": build_h_gap}[task]
     return LeggedSession(builder(body, seed, **(scene or {})), seed=seed, **kw)

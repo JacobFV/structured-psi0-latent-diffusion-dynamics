@@ -109,6 +109,57 @@ def build_waypoint_contact(robot, seed: int, task: dict | None = None, body_key:
                               **({"terrain": dict(terrain)} if terrain and float(terrain.get("amp_m", 0)) > 0 else {})))
 
 
+def action_spaces_for(b: LeggedBinding, control: str, tc: ControllerContract, control_hz: float) -> list[ActionSpace]:
+    """The session's action spaces: "legs" (and "wholebody": + "upper", the held joints) = absolute joint-position targets at the 50 Hz
+    tracker tick; "base_velocity" = the tracker contract's command groups at `control_hz`. A body with no held joints has no `upper`
+    space (a wholebody session refuses to build on it; the static `env_spec` reports it so `negotiate` can say why)."""
+    if control in DIRECT_CONTROLS:
+        sp = [ActionSpace(group="legs", kind="joint_position", width=int(b.n), robot=0, rate_hz=TRACKER_HZ,
+                          low=np.asarray(b.lo, float).tolist(), high=np.asarray(b.hi, float).tolist(), units="rad")]
+        if control == "wholebody" and len(b.held_act):
+            sp.append(ActionSpace(group="upper", kind="joint_position", width=len(b.held_act), robot=0, rate_hz=TRACKER_HZ,
+                                  low=np.asarray(b.held_lo, float).tolist(), high=np.asarray(b.held_hi, float).tolist(), units="rad"))
+        return sp
+    return [ActionSpace.from_group(g, robot=0, rate_hz=control_hz) for g in tc.command_groups]
+
+
+def static_env_spec(scenario: Scenario, *, task: str, control: str = "base_velocity", session_cls=None, control_hz: float = 10.0):
+    """The EnvSpec a `session_cls` (default LeggedSession) on `scenario` would report, from the compiled scene alone: no session, no
+    tracker actor, no simulation (what `rrp matrix` negotiates against, so a body the task cannot run on is an n/a cell and not an
+    exception at build). Bodies, action spaces, capabilities and physics provenance equal the built session's for the default actor
+    (which takes no public sensor); `task` is the scenario name; `provenance["static"]` marks it and the tracker identity is left to the build."""
+    from rrp.envs.base import BodyInfo, EnvSpec
+    cls = session_cls or LeggedSession
+    mr = scenario.robots[0]
+    b = LeggedBinding(scenario.model, mr.meta, mr.prefix)
+    tc = next(c for c in mr.robot_spec.controller_contracts if c.kind == "legged_tracker")
+    jt = next(c for c in mr.robot_spec.controller_contracts if c.kind == "joint_targets")
+    probe = cls.__new__(cls)                          # the class's own `_capabilities`, read off a bare instance (no __init__, no simulator)
+    probe.binding, probe.terrain, probe.ring, probe.render_cfg = b, None, None, None
+    substeps = max(1, int(round(1.0 / (control_hz * scenario.model.opt.timestep))))
+    prov = dict(static=True, physics=dict(mujoco_timestep=float(scenario.model.opt.timestep), substeps=substeps))
+    if control in DIRECT_CONTROLS:
+        prov["controllers"] = [f"{jt.id}:{jt.version}:{control}_direct:{mr.robot_spec.spec_hash}"]
+    return EnvSpec(env_id=cls.ENV_ID, backend="mujoco", task=task,
+                   bodies=[BodyInfo.from_spec(0, mr.robot_spec, scenario.meta["body_key"])], control_hz=control_hz,
+                   action_spaces=action_spaces_for(b, control, tc, control_hz), capabilities=probe._capabilities(), provenance=prov)
+
+
+def env_spec(*, task: str, body: str):
+    """Static EnvSpec of env_id "mujoco/legged" for (task, body) (rrp.harness.eval.evaluate.env_spec prefers it to building a session)."""
+    from rrp.envs.mujoco import humanoid_scenes as HS
+    if task in HS.ALL_TASKS:
+        return HS.static_env_spec(task, body)
+    if task == "waypoint_contact":
+        return static_env_spec(build_waypoint_contact(body, 0), task=task)
+    from rrp.envs.base import make_env                # foothold_steps: a session subclass with its own scene; built, then closed
+    env = make_env("mujoco/legged", task=task, body=body, seed=0)
+    try:
+        return env.spec
+    finally:
+        env.close()
+
+
 class LeggedSession(Session):
     """env_id "mujoco/legged": the `base_velocity` space drives the embedded tracker (learned or CPG, recorded in
     spec.provenance["controllers"])."""
@@ -140,7 +191,9 @@ class LeggedSession(Session):
         scan as input (meta extra_obs_dim 77 + terrain_scan layout), True on any other tracker only publishes the channel;
         a scan-input actor with terrain_scan=False raises TrackerMismatch. range_ring (HS1): the PUBLIC horizontal range sensor (16
         rays at the base origin, declared channel `0:range_ring`, capability `range_ring`); None = on exactly when the actor takes it
-        (extra_obs_dim 93 = scan + ring), same rules as terrain_scan. Both only with control="base_velocity".
+        (extra_obs_dim 93 = scan + ring), same rules as terrain_scan. What the actor declares decides, in every control mode (under "legs" /
+        "wholebody" the sensors tick with the body tracker's acts, i.e. while a teacher or rl_expert drives `body_tracker`); an explicit
+        True is refused there.
         Every StepResult carries `energy_j`: the mechanical energy (sum |actuator force x velocity| of the policy actuators, integrated
         over every physics substep) of that step; None where the tick is replaced (rrp.envs.mujoco.perturb.install_legged, which owns
         the substeps; its on_substep hook is the place to integrate there)."""
@@ -150,7 +203,8 @@ class LeggedSession(Session):
         self.tracker_spec = tracker
         self._terrain_req, self._ring_req = terrain_scan, range_ring
         if (terrain_scan or range_ring) and control != "base_velocity":
-            raise ValueError('terrain_scan / range_ring need control="base_velocity" (they are sampled by the body tracker)')
+            raise ValueError('terrain_scan=True / range_ring=True are refused under control="legs" / "wholebody": there the public sensors '
+                             'exist exactly when the body tracker\'s actor declares them as inputs (None), in every control mode')
         self._step_energy = 0.0
         from rrp.bodies.actuator import resolve_mode
         from rrp.envs.mujoco.state_estimator import BASE_STATE_SOURCES
@@ -201,7 +255,8 @@ class LeggedSession(Session):
     def _attach_sensors(self):
         """D-146 / HS1: build the public terrain and range-ring sensors and wire them to the body tracker. Both are sampled once per
         tracker tick, just before the tracker acts (any `_tracker_tick`, including perturb.install_legged's, goes through
-        tracker.act); an actor that takes them gets their values as its extra block, scan first."""
+        tracker.act; under "legs" / "wholebody" the body tracker acts when a teacher drives it); an actor that takes them gets their
+        values as its extra block, scan first. The actor's declared inputs decide, whatever the control mode."""
         from rrp.envs.mujoco.legged_tracker import PUBLIC_EXTRA
         kind = getattr(self.tracker, "extra_kind", "none")
         needs = PUBLIC_EXTRA.get(kind, ())
@@ -209,8 +264,8 @@ class LeggedSession(Session):
         for name, req, cls in (("terrain_scan", self._terrain_req, TerrainScan), ("range_ring", self._ring_req, RangeRing)):
             on = req
             if on is None:
-                on = name in needs and self.control == "base_velocity"
-            if name in needs and not on and self.control == "base_velocity":
+                on = name in needs
+            if name in needs and not on:
                 raise TrackerMismatch(f"this tracker takes the {name} as input; {name}=False disables the sensor")
             sensors[name] = cls(self.binding) if on else None
         self.terrain, self.ring = sensors["terrain_scan"], sensors["range_ring"]
@@ -236,16 +291,7 @@ class LeggedSession(Session):
         return self.tracker_version_str
 
     def _action_spaces(self) -> list[ActionSpace]:
-        if self.control in DIRECT_CONTROLS:
-            b = self.binding
-            sp = [ActionSpace(group="legs", kind="joint_position", width=int(b.n), robot=0, rate_hz=TRACKER_HZ,
-                              low=np.asarray(b.lo, float).tolist(), high=np.asarray(b.hi, float).tolist(), units="rad")]
-            if self.control == "wholebody":
-                sp.append(ActionSpace(group="upper", kind="joint_position", width=len(b.held_act), robot=0, rate_hz=TRACKER_HZ,
-                                      low=np.asarray(b.held_lo, float).tolist(), high=np.asarray(b.held_hi, float).tolist(),
-                                      units="rad"))
-            return sp
-        return [ActionSpace.from_group(g, robot=0, rate_hz=self.control_hz) for g in self.tracker_contract.command_groups]
+        return action_spaces_for(self.binding, self.control, self.tracker_contract, self.control_hz)
 
     @property
     def settle_ticks(self) -> int:
