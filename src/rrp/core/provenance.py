@@ -5,7 +5,7 @@ training flags and controller source produced a dataset, checkpoint or evaluatio
   (version, timestep, integrator, cone, impratio, noslip/solver iterations) plus the contact model version string.
   `contact_version` is where the contact track's versioned contact models plug in (rrp.morphology.contact
   `version_str`, recorded as scenario meta["contact_model"]); code that predates them is "contact_v1".
-- `FEATURIZER_VERSION` is the single featurizer constant (aliased by rrp.data.collect.FEATURIZER_VERSION and
+- `FEATURIZER_VERSION` is the single featurizer constant (aliased by rrp.harness.data.collect.FEATURIZER_VERSION and
   the training modules).
 - `Source` / `SourceLabel` are the controller-source vocabulary. `parse_source` maps every legacy free string
   (contracts.action.Source values, "oracle", "target_encoder_oracle", tracker_source values, eval row strings)
@@ -271,7 +271,7 @@ def stamp_source_label(row: dict, kind: Source | str, detail: str | None = None,
 
 # ------------------------------------------------------------------------------------------------ code / weights
 def repo_root() -> Path:
-    """The rrp source checkout (or $RRP_HOME; the cwd when rrp is an installed package): rrp.contracts.paths."""
+    """The rrp source checkout (or $RRP_HOME; the cwd when rrp is an installed package): rrp.core.paths."""
     from .paths import rrp_home
     return rrp_home()
 
@@ -369,12 +369,15 @@ def is_state_dict(v) -> bool:
     return isinstance(v, dict) and len(v) > 0 and all(isinstance(x, torch.Tensor) for x in v.values())
 
 
-def file_digest(path: Path) -> str:
+def file_digest(path: Path | str, length: int | None = 16) -> str:
+    """THE file digest: sha256 over the file's bytes (streamed), as the first `length` hex chars (16: checkpoint and
+    run-file identity) or the full 64 (`length=None`: pins such as tracker actors). Every code path that identifies a
+    file by content goes through here."""
     h = hashlib.sha256()
     with open(path, "rb") as f:
         for b in iter(lambda: f.read(1 << 20), b""):
             h.update(b)
-    return h.hexdigest()[:16]
+    return h.hexdigest()[:length]
 
 
 # ------------------------------------------------------------------------------------------------ the record

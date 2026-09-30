@@ -69,7 +69,7 @@ def test_adaptation_teacher_prefix(golden):
     from rrp.bodies.catalog import workbench_robots
     from rrp.envs.mujoco.scenario import BUILDERS
     from rrp.envs.mujoco.session import Session
-    from rrp.harness.train.rollout import EpisodeState, PolicyAdapter, event_boundary, teacher_prefix
+    from rrp.harness.train.online_episodes import EpisodeState, PolicyAdapter, event_boundary, teacher_prefix
     robot = workbench_robots()[ROBOT]()
     rows = []
     for seed, n, boundary in ((3, 12, lambda st: st.steps >= 6),            # boundary fires
@@ -91,7 +91,7 @@ def teacher_run(session, max_steps=600):
     ends the episode; one hold tick, then the privileged verdict. Returns a namespace of the trace and the verdicts."""
     from types import SimpleNamespace as NS
     from rrp.harness import rollout as R
-    from rrp.harness.eval import hooks as H
+    from rrp.harness import hooks as H
     from rrp.policies.teachers import TeacherPolicy
     from rrp.policies.teachers.arm import PickPlaceTeacher
     teacher = PickPlaceTeacher(session)

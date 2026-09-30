@@ -7,6 +7,7 @@ import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
+from rrp.core.provenance import file_digest
 from rrp.harness.data.collect import collect_teacher_episode, write_episode
 from rrp.harness.data.manifest import write_manifest, dataset_provenance
 from rrp.core.provenance import FEATURIZER_VERSION
@@ -35,10 +36,9 @@ def _job(args):
     done = Path(out_dir) / "episodes" / f"{eid}.public.pkl.gz"
     if done.exists() and (Path(out_dir) / "episodes" / f"{eid}.private.pkl.gz").exists():
         from rrp.harness.data.collect import read_episode
-        import hashlib
         try:   # resume: reuse the completed episode (verified readable)
             meta = read_episode(done)["meta"]
-            meta = dict(meta, files={p.name: hashlib.sha256(p.read_bytes()).hexdigest()[:16]
+            meta = dict(meta, files={p.name: file_digest(p)
                                      for p in (done, done.with_name(f"{eid}.private.pkl.gz"))}, resumed=True)
             return meta
         except Exception:  # noqa: BLE001 - corrupt partial file: regenerate

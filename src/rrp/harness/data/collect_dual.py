@@ -1,4 +1,4 @@
-"""Dual-arm teacher data collection + generation (same on-disk format as rrp.data.collect).
+"""Dual-arm teacher data collection + generation (same on-disk format as rrp.harness.data.collect).
 
 Public file: MultiFeaturizer inputs, flat namespaced actions (`r<i>:<group>`), q0, public
 runtime statuses, flat action space. Private file: privileged labels (per manipulator), teacher
@@ -20,6 +20,7 @@ from pathlib import Path
 
 import numpy as np
 
+from rrp.core.provenance import file_digest
 from rrp.harness.data.collect import EpisodeRecord, privileged_labels, write_episode, read_episode
 from rrp.core.provenance import FEATURIZER_VERSION as BASE_FEATURIZER_VERSION
 from rrp.policies.features.multi import MultiFeaturizer
@@ -42,11 +43,11 @@ def collect_dual_episode(session, teacher, max_steps: int = 1200, episode_id: st
     stop_after_success: end the episode this many control steps after the PUBLIC runtime reports success (the
     handover teacher otherwise idles until max_steps).
     contact_labels (W12, default off = byte-identical files): also record the privileged per-tick contact frames
-    (rrp.data.contact_labels) into the PRIVATE file under `contact_frames` (labels only).
+    (rrp.harness.data.contact_labels) into the PRIVATE file under `contact_frames` (labels only).
     noise_phase_gate (D-126 #18, default off): DART noise is applied to an arm only while its teacher phase is a
-    free-space phase (rrp.teachers.dual_smooth.dart_phase_allowed); the noise stream is drawn identically either way.
-    record_quality (default off): the episode meta gains `motion` (rrp.data.dual_quality.DualQualityRecorder: per-arm
-    jerk / phase-switch steps / joint margin, penetration, W12 contact metrics) for rrp.evaluation.gates.check_dual_dataset.
+    free-space phase (rrp.policies.teachers.dual_smooth.dart_phase_allowed); the noise stream is drawn identically either way.
+    record_quality (default off): the episode meta gains `motion` (rrp.harness.data.dual_quality.DualQualityRecorder: per-arm
+    jerk / phase-switch steps / joint margin, penetration, W12 contact metrics) for rrp.harness.eval.gates.check_dual_dataset.
     The teacher version is recorded in the meta only when it is not v2 (`teacher_version`, `teacher_options`,
     `teacher_limits`)."""
     feat = MultiFeaturizer(session.model, session.scenario.robots)
@@ -179,7 +180,7 @@ def _job(args):
     if done.exists() and (ep_dir / f"{eid}.private.pkl.gz").exists():
         try:   # resume: reuse a completed, readable episode
             meta = read_episode(done)["meta"]
-            return dict(meta, files={p.name: hashlib.sha256(p.read_bytes()).hexdigest()[:16]
+            return dict(meta, files={p.name: file_digest(p)
                                      for p in (done, ep_dir / f"{eid}.private.pkl.gz")}, resumed=True)
         except Exception:  # noqa: BLE001 - corrupt partial file: regenerate
             pass
@@ -233,7 +234,7 @@ def generate(config: dict) -> dict:
         if pub.exists() and prv.exists():
             try:
                 meta = read_episode(pub)["meta"]
-                metas.append(dict(meta, files={p.name: hashlib.sha256(p.read_bytes()).hexdigest()[:16]
+                metas.append(dict(meta, files={p.name: file_digest(p)
                                               for p in (pub, prv)}, resumed=True))
                 continue
             except Exception:  # noqa: BLE001 - corrupt partial file: regenerate

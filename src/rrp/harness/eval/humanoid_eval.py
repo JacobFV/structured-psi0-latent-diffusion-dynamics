@@ -19,7 +19,6 @@ docs/architecture.md sections 6 and 14.4). Two parts:
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import math
 import tempfile
@@ -27,6 +26,7 @@ from collections import Counter
 from pathlib import Path
 
 import numpy as np
+from rrp.core.provenance import file_digest
 
 SRC_EXPERT = "privileged_teacher:rl_expert + scripted_teacher command"
 SRC_LEARNED = "learned:rl_expert + scripted_teacher command"
@@ -49,7 +49,7 @@ def resolve_actor(body: str, actor: str) -> str:
     meta = torch.load(str(p), map_location="cpu", weights_only=False)["meta"]
     if LT.extra_kind(meta) == "privileged":
         raise SystemExit(_privileged_msg(str(p)))
-    sha = hashlib.sha256(p.read_bytes()).hexdigest()
+    sha = file_digest(p, length=None)
     version = f"file_{sha[:12]}"
     store = Path(tempfile.mkdtemp(prefix="rrp_actor_")) / body / version
     store.mkdir(parents=True)

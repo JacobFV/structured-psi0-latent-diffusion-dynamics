@@ -504,7 +504,7 @@ class OpsRunner:
         return self._read_json(node, "pipeline_manifest.json")
 
     def gate_report(self, node: PlannedNode) -> dict | None:
-        """<out>/gate_report.json written by a gated stage (rrp.evaluation.gates, W6), or None."""
+        """<out>/gate_report.json written by a gated stage (rrp.harness.eval.gates, W6), or None."""
         return self._read_json(node, "gate_report.json")
 
     def _read_json(self, node: PlannedNode, name: str) -> dict | None:

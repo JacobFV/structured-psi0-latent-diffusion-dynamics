@@ -129,8 +129,8 @@ def test_run_ladder_is_a_rollout(monkeypatch):
 
 
 def test_hooks_registry_names_every_ladder_hook():
-    from rrp.harness.eval import hooks as H
-    assert {"feasibility", "session_record", "settle", "displacement", "object_shift", "motion", "command_log",
+    from rrp.harness import hooks as H
+    assert {"feasibility", "session_record", "settle", "displacement", "object_shift", "command_log",
             "prev_action", "frame"} <= set(H.HOOKS)
     assert isinstance(H.HOOKS["object_shift"](2, 0.1, 0.0), H.ObjectShift)
     assert isinstance(H.HOOKS["settle"](), H.Settle) and isinstance(H.HOOKS["prev_action"](), H.PrevAction)
@@ -139,7 +139,7 @@ def test_hooks_registry_names_every_ladder_hook():
 
 def test_object_shift_moves_the_cube_at_the_start_of_its_tick_and_not_after_the_episode_ended():
     from types import SimpleNamespace as NS
-    from rrp.harness.eval.hooks import ObjectShift
+    from rrp.harness.hooks import ObjectShift
 
     class Env:
         def __init__(self):

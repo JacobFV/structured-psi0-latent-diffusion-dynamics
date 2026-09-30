@@ -5,6 +5,11 @@ import math
 
 
 def wilson(k: int, n: int, z: float = 1.959964) -> tuple[float | None, float | None]:
+    """The one Wilson score interval (default z = 1.959964, a 95% interval) for k successes in n trials.
+
+    n == 0 convention: there is no interval, (None, None), never (0, 1) or (0, 0). Callers keep None in their
+    summaries (`rate` is None at n == 0 too) and render it as missing; rounding is presentation and stays with the caller.
+    """
     if n == 0:
         return None, None
     p = k / n

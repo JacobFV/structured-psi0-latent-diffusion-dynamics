@@ -14,7 +14,7 @@ def cmd_pack(a):
 
 def cmd_eval(a):
     import torch
-    from rrp.harness.eval.hooks import dual_latent_hooks
+    from rrp.harness.eval.dual_latent_eval import dual_latent_hooks
     from rrp.harness.eval.latent_eval import probe_rates
     from rrp.harness.eval.evaluate import evaluate
     from rrp.policies.latent import DualLatentPolicy, LatentStackPolicy

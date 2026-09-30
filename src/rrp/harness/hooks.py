@@ -1,11 +1,14 @@
-"""Rollout hooks for the special cases of the former per-family eval loops (docs/architecture.md section 6).
+"""The one hooks module, beside `rollout` (docs/architecture.md sections 6 and 14.1): every rollout hook of the former
+per-family eval loops, the bench-task / hold-policy helpers and the two name tables.
 
 Feasibility (pre-episode teacher layout filter -> outcome "infeasible"), session records (sim time, task-event statuses),
-post-success settling (dual arm), object displacement, and the ladder's per-tick machinery (object shift, motion
-recorders, executed-command log, previous-command feature, frame callback). `HOOKS` names the constructors
-(docs/architecture.md section 14.1: TaskSpec.hooks refers to these names). Probe readouts live next to their label functions
-(harness.eval.latent_eval.PacketProbeHook, harness.eval.dual_latent_eval.DualPacketProbeHook); the per-family
-compositions (arm_hooks, dual_hooks, latent_hooks, dual_latent_hooks) are here.
+post-success settling (dual arm), object displacement, and the ladder's per-tick machinery (object shift,
+executed-command log, previous-command feature, frame callback). `HOOKS` names the hook constructors;
+`TASK_HOOKS` names the default compositions a `TaskSpec.hooks` entry refers to (the env-id prefix each applies to and a
+factory of the task). Probe readouts and the compositions that use them live next to their label functions
+(harness.eval.latent_eval: PacketProbeHook, latent_hooks; harness.eval.dual_latent_eval: DualPacketProbeHook,
+dual_latent_hooks; harness.data.contact_metrics: MotionRecord). This module imports nothing from harness.eval or
+harness.data: both import it (test_layering: the package graph is acyclic).
 
 RP2 additions (the eval loops that stepped sessions themselves): `budget_task` (a task whose judge only spends the tick
 budget, the end rules being hooks), `EndWhen` (a predicate ends the episode after a tick, e.g. a teacher reference
@@ -28,6 +31,10 @@ class Feasibility:
 
     def __init__(self, check: Callable[[object], bool], reason: str = "teacher_infeasible"):
         self.check, self.reason = check, reason
+
+    @property
+    def failure_reasons(self) -> tuple[str, ...]:          # declared to rollout's vocabulary check
+        return (self.reason,)
 
     def on_reset(self, i, env, obs):
         if not self.check(env):
@@ -123,36 +130,6 @@ class ObjectShift:
             self._shift(env)
 
 
-class MotionRecord:
-    """Per-tick arm motion-quality recorder (envs.mujoco.motion_quality); on_end: metrics["motion"], plus the held-object
-    drift keys when contact metrics are on (RRP_CONTACT_METRICS=1, or `contact=True`). A tick counts as a chunk / packet
-    boundary when the policy's Act.info says `boundary`."""
-
-    def __init__(self, contact: bool | None = None):
-        from rrp.harness.data.contact_metrics import contact_metrics_enabled
-        self.contact = contact_metrics_enabled(contact)
-        self.rec, self.cf = {}, {}
-
-    def on_reset(self, i, env, obs):
-        from rrp.envs.mujoco.motion_quality import ArmMotionRecorder
-        self.rec[i] = ArmMotionRecorder(env)
-        if self.contact:
-            from rrp.harness.data.contact_labels import ContactFrameRecorder
-            self.cf[i] = ContactFrameRecorder(env)
-
-    def on_step(self, i, env, act, step):
-        self.rec[i].tick(None if act.command is None else act.command.groups, bool(act.info.get("boundary")))
-        if self.contact:
-            self.cf[i].tick()
-
-    def on_end(self, i, env, ep):
-        motion = self.rec.pop(i).summary()
-        if self.contact:
-            from rrp.harness.data.contact_metrics import arm_contact_motion
-            motion.update(arm_contact_motion(self.cf.pop(i).recording()))
-        return dict(motion=motion)
-
-
 class CommandLog:
     """on_act: log[i] = the EXACT executed command groups per tick (None = hold), for replay."""
 
@@ -201,6 +178,10 @@ class EndWhen:
 
     def __init__(self, pred: Callable[[int, object], bool], outcome: str = "failure", reason: str = "hook_end"):
         self.pred, self.outcome, self.reason = pred, outcome, reason
+
+    @property
+    def failure_reasons(self) -> tuple[str, ...]:          # declared to rollout's vocabulary check
+        return (self.reason,)
 
     def on_step(self, i, env, act, step):
         if self.pred(i, env):
@@ -277,22 +258,11 @@ def dual_hooks(task: str) -> list:
     return [Feasibility(dual_feasible(task)), Settle(5), SessionRecord()]      # record after settling (as before)
 
 
-def latent_hooks(policy, probe=None, *, device="cpu", paired: bool = False) -> list:
-    """The former evaluate_latent's conventions: arm feasibility, session record, system 0 counters, displacement of
-    every object, packet probes (when a probe is given), paired-scene identity."""
-    from rrp.harness.eval.latent_eval import PacketProbeHook, PairedMeta, System0Stats
-    return (arm_hooks() + [System0Stats(policy), Displacement()] + ([PacketProbeHook(probe, device)] if probe else [])
-            + ([PairedMeta()] if paired else []))
-
-
-def dual_latent_hooks(policy, task: str, probe=None, *, device="cpu", packet_edit: str | None = None) -> list:
-    """The former evaluate_dual_latent's conventions: dual teacher feasibility, settle 5 ticks then judge privileged
-    success, session record, system 0 counters, per-slot packet probes; packet_edit installs policy.packet_hook."""
-    from rrp.harness.eval.dual_latent_eval import PACKET_EDITS, DualPacketProbeHook
-    from rrp.harness.eval.latent_eval import System0Stats
-    policy.packet_hook = PACKET_EDITS[packet_edit] if packet_edit else None
-    return dual_hooks(task) + [System0Stats(policy)] + ([DualPacketProbeHook(probe, device)] if probe else [])
-
+# TaskSpec.hooks name -> (env_id prefix the hook applies to, factory(task) -> [hook]): the per-family conventions of the
+# former eval loops (arm feasibility + session record; dual adds settling; MuJoCo session facts for legged).
+TASK_HOOKS: dict[str, tuple[str, Callable]] = {"session": ("mujoco/", lambda task: [SessionRecord()]),
+                                               "arm": ("mujoco/arm", lambda task: arm_hooks()),
+                                               "dual": ("mujoco/dual", lambda task: dual_hooks(task.name))}
 
 HOOKS: dict[str, Callable] = {
     "feasibility": lambda check=arm_feasible, reason="teacher_infeasible": Feasibility(check, reason),
@@ -300,7 +270,6 @@ HOOKS: dict[str, Callable] = {
     "settle": Settle,
     "displacement": Displacement,
     "object_shift": ObjectShift,
-    "motion": MotionRecord,
     "command_log": CommandLog,
     "prev_action": PrevAction,
     "frame": FrameCallback,

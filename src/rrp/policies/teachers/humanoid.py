@@ -16,6 +16,7 @@ import math
 import mujoco
 import numpy as np
 
+from rrp.core.provenance import file_digest
 from rrp.core.action import NativeCommand
 from rrp.core.provenance import source_label
 from rrp.envs.mujoco.humanoid_scenes import waist_joint
@@ -851,13 +852,12 @@ class RLExpertPolicy:
 
 def make_rl_expert(*, arg: str | None = None, tracker: str | None = None) -> RLExpertPolicy:
     """arg / tracker: "<body>:<version>" of a registry actor (make_policy("rl_expert:<body>:<version>"))."""
-    import hashlib
     from rrp.envs.mujoco.legged_tracker import get_entry
     spec = tracker or arg
     if not spec:
         raise ValueError("rl_expert needs a tracker spec '<body>:<version>'")
     e = get_entry(spec)
-    sha = hashlib.sha256(e.actor.read_bytes()).hexdigest()
+    sha = file_digest(e.actor, length=None)
     if e.sha256 is not None and e.sha256 != sha:
         from rrp.envs.mujoco.legged_tracker import TrackerMismatch
         raise TrackerMismatch(f"tracker {spec} sha256 {sha[:12]} does not match its registry pin {e.sha256[:12]}")

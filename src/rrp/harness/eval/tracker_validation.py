@@ -28,7 +28,6 @@ usage: python -m rrp.cli suite tracker-validation --body go2 --kind learned [--a
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import math
 import sys
@@ -39,6 +38,7 @@ from pathlib import Path
 import mujoco
 import numpy as np
 
+from rrp.core.provenance import file_digest
 from rrp.envs.mujoco.legged_core import LeggedBinding, quat_rotate_inv, yaw_of
 from rrp.envs.mujoco.legged_tracker import CPGTracker, LearnedTracker, TRACKER_DIR
 from rrp.bodies.legged import legged_body, standalone_model
@@ -292,7 +292,7 @@ def validate(body: str, kind: str, actor: str | None, seeds: int, contact: str |
     if kind == "learned":
         path = Path(actor) if actor else tracker_path(body, contact)
         tracker = LearnedTracker(path, b, body)
-        tsha = hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+        tsha = file_digest(path)
     else:
         tracker = CPGTracker(b, meta)
         tsha = "scripted"

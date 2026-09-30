@@ -15,7 +15,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 
-from rrp.harness.train.rollout import EpisodeState, drive, finalize, event_boundary, teacher_prefix
+from rrp.harness.train.online_episodes import EpisodeState, drive, finalize, event_boundary, teacher_prefix
 
 
 @dataclass

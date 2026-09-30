@@ -211,7 +211,7 @@ def ensure_family(name: str) -> str:
     load_family_plugins()
     if name not in _EXTERNAL_FAMILIES:
         raise ValueError(f"unknown family {name!r} (known: {families()}; extensions register via "
-                         f"rrp.contracts.runconfig.register_family or the {FAMILY_ENTRY_POINT_GROUP!r} entry points)")
+                         f"rrp.core.runconfig.register_family or the {FAMILY_ENTRY_POINT_GROUP!r} entry points)")
     return name
 
 

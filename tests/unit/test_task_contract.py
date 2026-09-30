@@ -11,7 +11,8 @@ import pytest
 
 from rrp.envs.base import (ENVS, ActionSpace, BodyInfo, EnvSpec, SceneUnsupported, env_failure_reason, make_env,
                            scene_reasons)
-from rrp.harness.eval.evaluate import HOOKS, evaluate, matrix, task_hooks
+from rrp.harness.eval.evaluate import evaluate, matrix, task_hooks
+from rrp.harness.hooks import TASK_HOOKS
 from rrp.harness.rollout import Incompatible, rollout
 from rrp.policies.base import POLICIES, Act, PolicyInfo, Requirements, make_policy
 from rrp.tasks.spec import TASKS, Judgement, TaskSpec, get_task, tasks_in
@@ -186,7 +187,7 @@ def test_task_max_steps_and_hooks_are_task_data(monkeypatch):
 
 def test_every_task_declares_a_resolvable_teacher_or_none():
     for t in TASKS.values():
-        assert set(t.hooks) <= set(HOOKS), t.name
+        assert set(t.hooks) <= set(TASK_HOOKS), t.name
         assert t.failure_reasons or t.name.startswith("stub"), t.name
         if t.teacher is None:
             continue

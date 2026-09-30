@@ -188,6 +188,7 @@ class _GRPOActor:
 
 class _GRPOEpisode:
     """Hook: episodes whose teacher prefix already terminated do not run; min TCP-cube distance after every tick."""
+    failure_reasons = ("teacher_prefix_terminal",)
 
     def __init__(self, meta):
         self.meta = meta
@@ -228,8 +229,8 @@ def run_episodes(policy, realizer, robot_key: str, seeds: list[int], *, replan_t
         # teacher prefix runs ONCE per distinct seed; group members get a snapshot restore (physics, controller,
         # task runtime, tracker, RNG) so the shared prefix is identical and counted once in accounting.
         from rrp.harness import rollout as R
-        from rrp.harness.eval import hooks as H
-        from rrp.harness.train.rollout import cube_fell
+        from rrp.harness import hooks as H
+        from rrp.harness.train.online_episodes import cube_fell
         from rrp.policies.teachers import TeacherPolicy
         from rrp.policies.teachers.arm import PickPlaceTeacher
         leader: dict = {}

@@ -23,6 +23,7 @@ import time
 import mujoco
 import numpy as np
 
+from rrp.core.provenance import file_digest
 from rrp.bodies.importers import MENAGERIE, MENAGERIE_SHA
 from rrp.bodies.legged import ALL_LEGGED, LEGGED_ASSETS, PROCEDURAL, legged_body, standalone_model
 
@@ -80,7 +81,7 @@ def body_entry(key: str) -> dict:
         e.update(source="menagerie", kind=info["kind"], family=info["family"], dir=info["dir"], file=info["file"],
                  license=info["license"], commit=MENAGERIE_SHA, synthetic=False)
         e["stages"]["source_verified"] = _stage(ok, None if ok else "missing asset/LICENSE",
-                                                mjcf_sha256=hashlib.sha256(f.read_bytes()).hexdigest() if f.exists() else None,
+                                                mjcf_sha256=file_digest(f, length=None) if f.exists() else None,
                                                 license_file=lic.exists())
     else:
         mod = PROCEDURAL[key]()

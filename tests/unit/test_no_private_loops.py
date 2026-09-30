@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 SRC = Path(__file__).resolve().parents[2] / "src" / "rrp" / "harness"
-OWNED = ["data/collect.py", "eval/ladder.py", "eval/ladder_cli.py", "eval/latent_eval.py", "eval/hooks.py",
+OWNED = ["data/collect.py", "eval/ladder.py", "eval/ladder_cli.py", "eval/latent_eval.py", "hooks.py",
          "eval/grasp_rig.py"]
 # The one tick an Env owns: `_RigEnv.step` (the bare-model bench env is the Env, so `rollout` drives it).
 ALLOWED = {("eval/grasp_rig.py", "mj_step", "_RigEnv.step")}

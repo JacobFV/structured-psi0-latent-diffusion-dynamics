@@ -1,7 +1,6 @@
 """Atomic checkpoints with version provenance; incompatible versions are never silently loaded."""
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import random
@@ -9,6 +8,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from rrp.core.provenance import file_digest
 
 
 def require_compatible_versions(saved: dict, requested: dict):
@@ -40,7 +40,7 @@ def save_checkpoint(path: Path, *, model, optimizer=None, step: int, versions: d
                  extra=extra or {}, provenance=prov.to_dict(), factors=factors)
     tmp = path.with_suffix(".tmp")
     torch.save(state, tmp)
-    digest = hashlib.sha256(tmp.read_bytes()).hexdigest()[:16]
+    digest = file_digest(tmp)
     os.replace(tmp, path)            # previous known-good file replaced only after full write
     meta = dict(path=str(path), sha256_16=digest, step=step, versions=versions, provenance=prov.to_dict())
     path.with_suffix(".json").write_text(json.dumps(meta, indent=1, default=str))

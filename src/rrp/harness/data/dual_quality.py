@@ -5,8 +5,8 @@
   after_step()             -- records measured arm joints, robot<->object penetration, arm<->arm contact, contact frames
   summary(task)            -- dict(family="dual", per_arm {jerk, phase-switch velocity step, joint margin, ...},
                               penetration_max_m, penetration_ticks_over_3mm, arm_arm_contact_ticks, contact {cf_* keys})
-Used by rrp.evaluation.dual_teacher_quality (audit) and by rrp.data.collect_dual (`record_quality: true`, stored as the
-episode meta's `motion`, which rrp.evaluation.gates.check_dual_dataset gates).
+Used by rrp.harness.eval.dual_teacher_quality (audit) and by rrp.harness.data.collect_dual (`record_quality: true`, stored as the
+episode meta's `motion`, which rrp.harness.eval.gates.check_dual_dataset gates).
 """
 from __future__ import annotations
 

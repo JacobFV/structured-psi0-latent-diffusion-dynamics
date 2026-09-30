@@ -18,7 +18,7 @@ meta.reproduced; a mismatch is reported, never hidden. Each entry runs in its ow
 (e.g. RRP_GRASP_CONTACT, RRP_CONTACT_MODEL) and CUDA hidden. D-115/D-127: never run this on the host; the CLI refuses
 unless RRP_NODE=peer (tests call the library functions on tiny cases only).
 
-Spec (YAML subset, rrp.orchestration.yamlmini):
+Spec (YAML subset, rrp.harness.yamlmini):
   entries:
     - id: arm-r2-semfix_s1-parm6_tf3-gv2        # replay id = <id>-s<seed>
       harness: ladder | arm_teacher | arm_edit | legged | legged_robust | tracker_val | dual_teacher | grasp_rig
@@ -36,7 +36,6 @@ import argparse
 import contextlib
 import datetime as _dt
 import gzip
-import hashlib
 import json
 import math
 import os
@@ -47,6 +46,7 @@ from pathlib import Path
 
 import numpy as np
 
+from rrp.core.provenance import file_digest
 from rrp.viz import replay as RP
 
 REPO = Path.cwd()
@@ -54,14 +54,7 @@ REPO = Path.cwd()
 
 # ------------------------------------------------------------------ small helpers
 def _sha(p) -> str | None:
-    p = Path(p)
-    if not p.exists():
-        return None
-    h = hashlib.sha256()
-    with open(p, "rb") as f:
-        for b in iter(lambda: f.read(1 << 20), b""):
-            h.update(b)
-    return h.hexdigest()
+    return file_digest(p, length=None) if Path(p).exists() else None
 
 
 def _git_sha() -> str | None:
@@ -573,7 +566,7 @@ def _install_packet_tap():
 
 
 def run_ladder(e: dict, out: Path, pcache: dict) -> list[dict]:
-    """Arm R2 / BC / teacher-route episodes, re-run exactly as rrp.evaluation.ladder_cli does: the full feasible seed
+    """Arm R2 / BC / teacher-route episodes, re-run exactly as rrp.harness.eval.ladder_cli does: the full feasible seed
     list, batches of `batch` in order (the flow/BC noise generator is shared across batches), CPU."""
     import torch
     from rrp.harness.eval.ladder import LadderConfig, load_models, run_ladder as _run
@@ -673,7 +666,7 @@ def _ckpt_shas(ids: dict) -> dict:
     return out
 
 
-# ------------------------------------------------------------------ ARM: scripted teacher v2 (rrp.evaluation.teacher_quality)
+# ------------------------------------------------------------------ ARM: scripted teacher v2 (rrp.harness.eval.teacher_quality)
 def run_arm_teacher(e: dict, out: Path, pcache: dict) -> list[dict]:
     from rrp.harness.eval.teacher_quality import run_quality_episode
     a = e["args"]
@@ -786,7 +779,7 @@ def run_arm_edit(e: dict, out: Path, pcache: dict) -> list[dict]:
     return results
 
 
-# ------------------------------------------------------------------ LEGGED (rrp.evaluation.legged_latent_eval / robustness)
+# ------------------------------------------------------------------ LEGGED (rrp.harness.eval.legged_latent_eval / robustness)
 class _LeggedSignals:
     def __init__(self, s, b, *, ctl=None, basis=None, t_edit=None, edit="none", packets=None):
         self.s, self.b, self.ctl, self.basis = s, b, ctl, basis
@@ -1075,7 +1068,7 @@ def _r3(x):
     return None if x is None else round(float(x), 3)
 
 
-# ------------------------------------------------------------------ DUAL teacher (rrp.evaluation.dual_teacher_quality)
+# ------------------------------------------------------------------ DUAL teacher (rrp.harness.eval.dual_teacher_quality)
 def run_dual_teacher(e: dict, out: Path, pcache: dict) -> list[dict]:
     import mujoco
     from rrp.harness.eval.dual_teacher_quality import run_audit_episode

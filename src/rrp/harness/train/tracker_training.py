@@ -27,6 +27,7 @@ for _k in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
 import numpy as np  # noqa: E402
 
 
+from rrp.core.provenance import file_digest
 from rrp.envs.mujoco.legged_vec import VecPool  # noqa: E402  (torch-free worker processes)
 
 
@@ -100,8 +101,7 @@ def train(args):
         # warm start: actor + observation normaliser from an exported actor (e.g. the contact_v1 tracker); the
         # critic starts fresh (its privileged inputs differ). Recorded as meta["init_from"].
         if getattr(args, "init_actor_sha256", None):
-            import hashlib
-            got = hashlib.sha256(Path(args.init_actor).read_bytes()).hexdigest()
+            got = file_digest(Path(args.init_actor), length=None)
             if got != args.init_actor_sha256:
                 raise SystemExit(f"--init-actor {args.init_actor} sha256 {got} != declared {args.init_actor_sha256}")
         ist = torch.load(args.init_actor, map_location=dev, weights_only=False)
@@ -463,7 +463,6 @@ def install(run: str | Path, validations: list, body: str, version: str, *, labe
     the target version does not exist (installs are never overwritten: new version name). Writes actor.pt, meta.json (the actor's
     own meta + sha256 pin, install_label, installed, validation summary, decision), train_log_every10.jsonl (when the run has a
     train_log.jsonl) and the validation files. Returns the store directory."""
-    import hashlib
     import shutil
     import torch
     run = Path(run)
@@ -472,7 +471,7 @@ def install(run: str | Path, validations: list, body: str, version: str, *, labe
         raise ValueError(f"install: {actor} not found")
     if not validations:
         raise ValueError("install: at least one --validation (tracker_validation output with the D-112 gate) is required")
-    sha = hashlib.sha256(actor.read_bytes()).hexdigest()
+    sha = file_digest(actor, length=None)
     vals = []
     for v in validations:
         vp = Path(v)

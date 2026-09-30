@@ -17,25 +17,17 @@ from pathlib import Path
 
 import numpy as np
 
+from rrp.harness.eval.statistics import wilson
+
 
 # ------------------------------------------------------------------ ladder summary
-def wilson(k, n, z=1.96):
-    """Ladder-summary format of rrp.harness.eval.statistics.wilson: z=1.96, rounded to 3 decimals, (0, 0) for n == 0.
-    (The former local copy returned -0.0 as the lower bound at k == 0; the shared formula clamps it to 0.0.)"""
-    from rrp.harness.eval.statistics import wilson as _w
-    if n == 0:
-        return (0.0, 0.0)
-    lo, hi = _w(k, n, z)
-    return (round(lo, 3), round(hi, 3))
-
-
 def ladder_summary(f: str, rows: list[dict]) -> dict:
     """Success / failure stages / Wilson 95% of one legged ladder rows file."""
     st = {}
     for r in rows:
         st[r["failure_stage"]] = st.get(r["failure_stage"], 0) + 1
     k = sum(r["success"] for r in rows)
-    return dict(file=f, source=rows[0]["source"], edit=rows[0]["edit"], n=len(rows), success=k, wilson95=wilson(k, len(rows)),
+    return dict(file=f, source=rows[0]["source"], edit=rows[0]["edit"], n=len(rows), success=k, wilson95=[None if x is None else round(x, 3) for x in wilson(k, len(rows))],
                 stages=st, seeds=sorted(r["seed"] for r in rows)[:1] + sorted(r["seed"] for r in rows)[-1:],
                 events_a=sum(r["events"].get("walk_to_a") == "succeeded" for r in rows),
                 events_b=sum(r["events"].get("walk_to_b") == "succeeded" for r in rows))

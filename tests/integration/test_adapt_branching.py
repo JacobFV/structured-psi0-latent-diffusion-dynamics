@@ -6,7 +6,7 @@ import torch
 from rrp.policies.teachers.arm import PickPlaceTeacher
 from rrp.harness.train.flow_sde import SDEConfig
 from rrp.harness.train.grpo import GRPOConfig, GRPOLearner
-from rrp.harness.train.rollout import SDEPolicy, EpisodeState, drive
+from rrp.harness.train.online_episodes import SDEPolicy, EpisodeState, drive
 from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
 from rrp.bodies.catalog import workbench_robots
 from rrp.envs.mujoco.session import Session

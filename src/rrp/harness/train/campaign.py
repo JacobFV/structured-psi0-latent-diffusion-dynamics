@@ -20,7 +20,7 @@ def run_cell(protocol: dict, method: str, seed: int, *, root: Path = Path("artif
     from rrp.harness.train.behavior import train_policy
     from rrp.harness.train.sft import sft
     from rrp.policies.bc import BCPolicy, LearnedPolicy
-    from rrp.harness.eval.hooks import arm_hooks, arm_scene
+    from rrp.harness.hooks import arm_hooks, arm_scene
     from rrp.harness.eval.evaluate import evaluate, summarize
     reg = ExperimentRegistry("research/registry.jsonl")
     mcfg = json.loads(Path(protocol["methods"][method]).read_text())

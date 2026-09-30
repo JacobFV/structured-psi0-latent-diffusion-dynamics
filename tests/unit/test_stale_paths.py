@@ -3,8 +3,7 @@
 The removed top-level packages are `rrp.{contracts,controllers,data,evaluation,features,models,orchestration,physics,
 pipelines,teachers,training}`; their new homes are listed in the archived `architecture_s7-10.md` section 10 (the old-to-new path table). Recorded
 version-string constants (`rrp.evaluation.gates/v1`, ...) keep their names on purpose (D-146 item 7) and the pickle
-remap of pre-D-140 datasets names `rrp.data.features` on purpose; both are allowed. Files owned by another wave-0
-readiness unit are listed in EXEMPT until that unit and X1 have merged (X1 deletes the list)."""
+remap of pre-D-140 datasets names `rrp.data.features` on purpose; both are allowed.."""
 import re
 from pathlib import Path
 
@@ -16,18 +15,6 @@ RECORDED_VERSION = re.compile(r"\brrp\.[\w.]+/v\d")            # e.g. "rrp.evalu
 LEGACY_PICKLE = ("rrp.data.features",)                          # harness/data/collect.py LEGACY_PICKLE_MODULES, test_golden
 SKIP_PARTS = {"__pycache__"}
 GOLDENS = "tests/data/"                                         # recorded goldens keep their strings
-EXEMPT = {                                                      # owned by another wave-0 unit (readiness.md); X1 removes
-    "src/rrp/" + p for p in """
-    policies/relations/base.py policies/relations/ops.py policies/relations/catalog.py policies/nets/batch.py
-    policies/nets/probes.py policies/nets/checkpoint.py policies/nets/flow.py harness/data/relgen/__init__.py cli/tools.py
-    tasks/spec.py harness/eval/evaluate.py harness/rollout.py cli/harness.py policies/teachers/__init__.py envs/base.py
-    core/runconfig.py core/provenance.py harness/dag.py harness/pipelines/base.py cli/dag.py policies/features/kinfeat.py
-    viz/export/relations.py policies/psi0/nets.py policies/pointer.py harness/train/pointer.py
-    bodies/legged.py bodies/humanoid_gen.py bodies/importers.py harness/pipelines/legged.py harness/train/legged_bc.py
-    harness/train/legged_dagger.py harness/pipelines/dual.py policies/teachers/dual_coord.py policies/teachers/dual_smooth.py
-    harness/data/collect_dual.py harness/data/dual_pairs.py harness/data/dual_quality.py harness/eval/ladder.py
-    harness/eval/ladder_cli.py harness/eval/hooks.py viz/record.py""".split()
-}
 
 
 def stale_lines(text: str) -> list[tuple[int, str]]:
@@ -61,7 +48,7 @@ def test_no_removed_module_paths_in_live_trees():
     bad = []
     for p in live_files():
         rel = p.relative_to(ROOT).as_posix()
-        if rel in EXEMPT or rel == "tests/unit/test_stale_paths.py" or p.suffix in (".pyc", ".pt", ".npz", ".png"):
+        if rel == "tests/unit/test_stale_paths.py" or p.suffix in (".pyc", ".pt", ".npz", ".png"):
             continue
         try:
             text = p.read_text()

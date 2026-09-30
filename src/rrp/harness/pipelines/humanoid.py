@@ -17,11 +17,11 @@ differs from its policy's own is an error. Demo budgets count teacher ticks, not
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 from pathlib import Path
 
+from rrp.core.provenance import file_digest
 from rrp.core.runconfig import META, register_family
 from rrp.core.sealed import SealedSplit
 from rrp.harness.pipelines.base import StageContext, StageError, register_stage
@@ -191,7 +191,7 @@ def _guard(ctx: StageContext, data, bodies, steps) -> None:
     if a:
         pk = json.loads((ctx.root / ctx.inp("pack")).read_text())
         acq = acquisition_record(pk, a["task"], a["body"], int(a["budget"]), int(steps))
-        _write_acquisition(ctx, acq, pack_sha256=hashlib.sha256((ctx.root / ctx.inp("pack")).read_bytes()).hexdigest())
+        _write_acquisition(ctx, acq, pack_sha256=file_digest(ctx.root / ctx.inp("pack"), length=None))
 
 
 @register_stage(FAMILY, "train_rep", source="learned")
@@ -249,7 +249,7 @@ def _adapt_data(ctx: StageContext) -> dict:
     sealed_data_guard(cfg["data"], cfg["bodies"])
     check_contact_version(ctx, str(rel))
     acq = acquisition_record(pk, a["task"], a["body"], int(a["budget"]), steps)
-    _write_acquisition(ctx, acq, pack_sha256=hashlib.sha256(pack_path.read_bytes()).hexdigest(), cell=cid)
+    _write_acquisition(ctx, acq, pack_sha256=file_digest(pack_path, length=None), cell=cid)
     cfg.pop("pack", None)
     for k in ("init", "representation"):
         if k in cfg:
@@ -319,7 +319,7 @@ def adapt_ppo(ctx: StageContext) -> dict:
     meta = json.loads((ctx.out / "meta.json").read_text())
     return dict(outputs={"actor": str(Path(ctx.rc.out) / "actor.pt")},
                 metrics=dict(body=meta["body"], mode=a["mode"], env_samples=got, iters=plan["iters"],
-                             actor_sha256=hashlib.sha256(actor.read_bytes()).hexdigest(), init_from=meta.get("init_from")),
+                             actor_sha256=file_digest(actor, length=None), init_from=meta.get("init_from")),
                 source_detail=meta.get("source_label"))
 
 

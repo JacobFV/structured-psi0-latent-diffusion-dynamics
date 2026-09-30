@@ -193,6 +193,8 @@ class _DriveHook:
     """on_step: per-state bookkeeping of drive(): chunk records (accepted submissions), step and rejection counts, the
     caller's on_step observer, the state's own step allowance ("timeout") and the pause boundary (stop_fn)."""
 
+    failure_reasons = ("paused",)
+
     def __init__(self, states, stop_fn, on_step):
         self.states, self.stop_fn, self.observer = states, stop_fn, on_step
 
@@ -288,7 +290,7 @@ def teacher_prefix(policy, st: EpisodeState, boundary, max_steps: int) -> bool:
     boundary fires. Used only for labelled "suffix adaptation from teacher prefix" experiments; the
     learned policy's previous-action feature is set exactly as in teacher data collection."""
     from rrp.harness import rollout as R
-    from rrp.harness.eval import hooks as H
+    from rrp.harness import hooks as H
     from rrp.policies.teachers import TeacherPolicy
     from rrp.policies.teachers.arm import PickPlaceTeacher
     from rrp.tasks.spec import Judgement
@@ -297,6 +299,8 @@ def teacher_prefix(policy, st: EpisodeState, boundary, max_steps: int) -> bool:
     end = []
 
     class Prefix:
+        failure_reasons = ("teacher_prefix_terminal", "boundary")
+
         def on_act(self, i, obs, act):                   # the previous-command feature of the next teacher tick
             pi_q0 = f(obs, policy.prev.get(id(s))).q0
             policy.prev[id(s)] = f.aspace.normalize([act.command.groups], pi_q0)[0]

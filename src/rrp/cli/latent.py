@@ -57,8 +57,8 @@ def _load(a):
 
 def _latent_eval(pol, R, P, dev, a, robot, seeds, *, make=None, paired=False):
     """rollout of system i + system 0 (LatentStackPolicy) with the latent eval hooks; rows appended to a.out."""
-    from rrp.harness.eval.hooks import latent_hooks
-    from rrp.harness.eval.hooks import arm_scene
+    from rrp.harness.eval.latent_eval import latent_hooks
+    from rrp.harness.hooks import arm_scene
     from rrp.harness.eval.evaluate import evaluate
     from rrp.harness.rollout import rollout
     from rrp.policies.latent import LatentStackPolicy
@@ -431,8 +431,8 @@ def cmd_semantic(a):
             src = se.OracleSource(E, lcfg, res, rep, dev)
             label = f"ORACLE DIAGNOSTIC target_encoder_oracle:E({rep}) + scripted_teacher demo"
     elif a.route == "bc":
+        from rrp.core.provenance import file_digest
         from rrp.policies.bc import LearnedPolicy
-        from rrp.harness.eval.ladder import sha256_file
         rep = Path(a.representation) if a.representation else None
         R = P = None
         if rep:
@@ -440,7 +440,7 @@ def cmd_semantic(a):
         src = se.BCSource(LearnedPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=a.nfe, execute_prefix=8),
                           a.checkpoint)
         label = (f"learned:{a.checkpoint} (direct-action BC reference controller, NOT the latent path; "
-                 f"sha256 {sha256_file(a.checkpoint)[:16]})")
+                 f"sha256 {file_digest(a.checkpoint)})")
     else:
         from rrp.policies.nets.checkpoint import load_checkpoint
         from rrp.policies.latent import LatentPolicy

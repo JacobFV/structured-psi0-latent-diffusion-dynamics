@@ -227,24 +227,18 @@ def test_learned_tracker_saved_actor_options(golden, tmp_path, case):
     golden(f"tracker.{case}.actions", _h(np.stack(_tracker_actions(tr, env, extra)), decimals=6))
 
 
-def _old_ladder_wilson(k, n, z=1.96):
-    import math
-    if n == 0:
-        return (0.0, 1.0)
-    p = k / n
-    d = 1 + z * z / n
-    c = (p + z * z / (2 * n)) / d
-    w = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
-    return (max(0.0, c - w), min(1.0, c + w))
-
-
-def test_ladder_wilson_is_bitwise_unchanged():
-    from rrp.harness.eval.ladder import wilson
-    for n in range(0, 61):
-        for k in range(0, n + 1):
-            assert wilson(k, n) == _old_ladder_wilson(k, n)
-            assert wilson(k, n, 1.959964) == _old_ladder_wilson(k, n, 1.959964)
-    assert type(wilson(3, 10)) is tuple
+def test_one_wilson_with_a_none_interval_at_n_zero():
+    """One Wilson in the tree (statistics.wilson, z = 1.959964); n == 0 has no interval, (None, None), everywhere."""
+    import inspect
+    from rrp.harness.eval import ladder, legged_summaries, statistics
+    assert ladder.wilson is statistics.wilson and legged_summaries.wilson is statistics.wilson
+    assert statistics.wilson(0, 0) == (None, None)
+    assert ladder.summarize([])["wilson95"] == (None, None)
+    assert "n == 0" in inspect.getdoc(statistics.wilson)
+    lo, hi = statistics.wilson(0, 10)
+    assert lo == 0.0 and abs(hi - 0.27753) < 1e-4
+    lo, hi = statistics.wilson(10, 10)
+    assert abs(hi - 1.0) < 1e-12 and abs(lo - 0.72246) < 1e-4
 
 
 def test_legacy_pickle_paths_load(tmp_path):
@@ -353,7 +347,7 @@ def _ep_key(seed, outcome, priv, pub, steps, calls, chunk_rej, cmd_rej, sim_time
 def test_arm_eval_loop_episodes(golden):
     """Recorded from harness.eval.runner.evaluate before S5 deleted it; the rollout port (BCPolicy + arm hooks) must
     reproduce outcomes (timeout x2, infeasible seed 50), chunk counts, rejections, events and sim time."""
-    from rrp.harness.eval.hooks import arm_hooks
+    from rrp.harness.hooks import arm_hooks
     from rrp.harness.eval.evaluate import evaluate
     from rrp.policies.bc import BCPolicy
     eps = evaluate(BCPolicy(_tiny_bc()), "mujoco/arm", "pick_place", "parm5_pg2", [3, 4, 50],
@@ -422,8 +416,8 @@ def test_arm_latent_eval_loop_episodes(golden):
     """Recorded from harness.eval.latent_eval.evaluate_latent before S5b deleted it (tiny flow + realizer + probe, seeds
     3 and infeasible 50, 10 ticks = 2 packets); the port (LatentStackPolicy + latent_hooks) must reproduce outcomes,
     packet/system-0 counts, probe sums, events, sim time and object displacement."""
-    from rrp.harness.eval.hooks import latent_hooks
-    from rrp.harness.eval.hooks import arm_scene
+    from rrp.harness.eval.latent_eval import latent_hooks
+    from rrp.harness.hooks import arm_scene
     from rrp.harness.eval.evaluate import evaluate
     from rrp.policies.latent import LatentStackPolicy
     si, R, P = _tiny_latent()
@@ -443,7 +437,7 @@ def test_dual_latent_eval_loop_episodes(golden):
     """Recorded from harness.eval.dual_latent_eval.evaluate_dual_latent before S5b deleted it (tiny dual stack, seeds 3
     and infeasible 2, 10 ticks, with and without the swap_slots edit); the port (LatentStackPolicy + dual_latent_hooks)
     must reproduce outcomes after settling, counts, per-slot and slot-swapped probe sums, events and sim time."""
-    from rrp.harness.eval.hooks import dual_latent_hooks
+    from rrp.harness.eval.dual_latent_eval import dual_latent_hooks
     from rrp.harness.eval.evaluate import evaluate
     from rrp.policies.latent import LatentStackPolicy
     for edit in (None, "swap_slots"):
@@ -539,14 +533,14 @@ def test_grpo_episode_loop_rows(golden):
 
 
 def test_train_drive_loop(golden):
-    """harness.train.rollout.drive (GRPO/EXPO/adapt episode driver): lock-step SDE-actor chunks, a pause at a
+    """harness.train.online_episodes.drive (GRPO/EXPO/adapt episode driver): lock-step SDE-actor chunks, a pause at a
     boundary and a resumed second call, per-state step allowances, chunk records, on_step observers, finalize."""
     import torch
     from rrp.bodies.catalog import workbench_robots
     from rrp.envs.mujoco.scenario import BUILDERS
     from rrp.envs.mujoco.session import Session
     from rrp.harness.train.flow_sde import SDEConfig
-    from rrp.harness.train.rollout import EpisodeState, SDEPolicy, drive, finalize
+    from rrp.harness.train.online_episodes import EpisodeState, SDEPolicy, drive, finalize
     from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
     torch.manual_seed(0)
     m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=1, horizon=16))

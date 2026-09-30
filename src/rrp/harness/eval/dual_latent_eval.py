@@ -18,11 +18,13 @@ from __future__ import annotations
 import numpy as np
 import torch
 
+from rrp.harness import hooks as H
 from rrp.harness.data import dual_latent as DL
 from rrp.harness.data.packed import _focus
 from rrp.policies.features.derived import OPERATORS
 from rrp.policies.features.multi import (MultiFeaturizer, assembly_operators, multi_featurizer,  # noqa: F401
                                          slot_assemblies)
+from rrp.harness.eval.latent_eval import System0Stats
 from rrp.policies.packets import chunk_hook
 
 
@@ -95,6 +97,13 @@ class DualPacketProbeHook:
 
     def on_end(self, i, env, ep):
         return dict(probe_counts=self.counts.pop(i), probe_counts_slotswap=self.swap.pop(i))
+
+
+def dual_latent_hooks(policy, task: str, probe=None, *, device="cpu", packet_edit: str | None = None) -> list:
+    """The former evaluate_dual_latent's conventions: dual teacher feasibility, settle 5 ticks then judge privileged
+    success, session record, system 0 counters, per-slot packet probes; packet_edit installs policy.packet_hook."""
+    policy.packet_hook = PACKET_EDITS[packet_edit] if packet_edit else None
+    return H.dual_hooks(task) + [System0Stats(policy)] + ([DualPacketProbeHook(probe, device)] if probe else [])
 
 
 def teacher_reference(task: str, pair: str, seeds: list[int], max_steps: int = 800) -> list[dict]:

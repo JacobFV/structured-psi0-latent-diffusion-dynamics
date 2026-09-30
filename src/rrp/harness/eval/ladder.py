@@ -19,7 +19,6 @@ Failure stages from privileged geometry (evaluation only): approach -> grasp -> 
 """
 from __future__ import annotations
 
-import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -29,10 +28,11 @@ import numpy as np
 import torch
 
 from rrp.core.action import NativeCommand
-from rrp.core.provenance import stamp_source_label
+from rrp.core.provenance import file_digest, stamp_source_label
 from rrp.core.errors import ControllerRejection, StaleActionError
-from rrp.harness.eval import hooks as H
-from rrp.harness.eval.statistics import wilson as _stats_wilson
+from rrp.harness import hooks as H
+from rrp.harness.data.contact_metrics import MotionRecord
+from rrp.harness.eval.statistics import wilson
 from rrp.policies.base import Act, PolicyInfo, Requirements
 from rrp.policies.features.featurizer import cached_featurizer
 from rrp.policies.oracle import BCLookahead, OraclePacketPolicy, ShadowTeacher, make_packet
@@ -40,21 +40,6 @@ from rrp.policies.system0 import LatentSystem0, batched_ticks
 from rrp.tasks.spec import Judgement, TaskSpec
 
 STAGES = ["approach", "grasp", "lift", "transport", "place"]
-
-
-def sha256_file(p) -> str:
-    h = hashlib.sha256()
-    with open(p, "rb") as f:
-        for b in iter(lambda: f.read(1 << 22), b""):
-            h.update(b)
-    return h.hexdigest()
-
-
-def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
-    """Ladder convention of rrp.evaluation.statistics.wilson (same formula): z=1.96 and (0, 1) for n == 0 (W4 dedup)."""
-    if n == 0:
-        return (0.0, 1.0)
-    return _stats_wilson(k, n, z)
 
 
 class PrevActionFeaturizer:
@@ -175,7 +160,7 @@ class LadderConfig:
     policy: str | None = None        # route learned: LearnedPolicy checkpoint (baseline FlowPolicy)
     policy_label: str | None = None  # label for the source string (default: checkpoint path)
     perturb: object = None           # W6: rrp.envs.perturb.PhysicsPerturbation (None = nominal physics, unchanged)
-    chunk_blend: str = "none"        # D-126 #7: none | crossfade | ensemble (rrp.controllers.chunk_blend; none = unchanged)
+    chunk_blend: str = "none"        # D-126 #7: none | crossfade | ensemble (rrp.policies.chunk_blend; none = unchanged)
     blend_ticks: int = 4
     blend_decay: float = 0.0
     oracle_expert: str = "teacher"   # R1 packet source: teacher (shadow FSM look-ahead) | bc (stateless: E(chunk the
@@ -212,7 +197,7 @@ def load_models(cfg: LadderConfig):
             if cfg.chunk_blend != "none" else {}
         out["learned"] = LearnedPolicy.from_checkpoint(cfg.policy, device=cfg.device, nfe=cfg.nfe,
                                                        execute_prefix=cfg.replan_ticks, seed=cfg.flow_seed, **bkw)
-        ids["policy"] = dict(path=str(cfg.policy), sha256=sha256_file(cfg.policy), nfe=cfg.nfe,
+        ids["policy"] = dict(path=str(cfg.policy), sha256=file_digest(cfg.policy, length=None), nfe=cfg.nfe,
                              execute_prefix=cfg.replan_ticks, label=cfg.policy_label)
     if cfg.chunk_blend != "none":
         from rrp.policies.chunk_blend import BlendConfig
@@ -220,7 +205,7 @@ def load_models(cfg: LadderConfig):
     if rep:
         lcfg, E, R, P, res = load_representation(Path(rep), cfg.device)
         out.update(E=E, R=R, P=P, lcfg=lcfg, res=res)
-        ids["representation"] = dict(path=str(rep), sha256=sha256_file(rep), latent_space_version=res["latent_space_version"],
+        ids["representation"] = dict(path=str(rep), sha256=file_digest(rep, length=None), latent_space_version=res["latent_space_version"],
                                      realizer_compat_version=res["realizer_compat_version"])
     if cfg.flow:
         from rrp.policies.latent import LatentPolicy
@@ -233,7 +218,7 @@ def load_models(cfg: LadderConfig):
             ids["realizer_override"] = dict(flow_rcv=pol.rcv, used_rcv=out["res"]["realizer_compat_version"])
             pol.rcv = out["res"]["realizer_compat_version"]
         out["flow"] = pol
-        ids["flow"] = dict(path=str(cfg.flow), sha256=sha256_file(cfg.flow), nfe=cfg.nfe, sampler="euler-ode",
+        ids["flow"] = dict(path=str(cfg.flow), sha256=file_digest(cfg.flow, length=None), nfe=cfg.nfe, sampler="euler-ode",
                            noise_scale=cfg.noise_scale)
     return out, ids
 
@@ -540,7 +525,7 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
     pol = LadderPolicy(cfg, models, collect)
     envs = LadderEnvs(cfg)
     trace = LadderTrace(cfg, pol, ids)
-    motion = H.MotionRecord()
+    motion = MotionRecord()
     hooks = [trace, motion, H.PrevAction()]
     if collect is not None:
         hooks.append(DaggerRows(cfg, pol, collect))

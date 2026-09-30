@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from rrp.harness.eval.hooks import warm_up
+from rrp.harness.hooks import warm_up
 from rrp.policies.nets.batch import collate_inputs
 from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
 

@@ -43,7 +43,7 @@ class TaskSpec:
     note: str = ""
     build: Mapping[str, str] = field(default_factory=dict)   # env_id -> "module:builder" (replaces the env factory's task if/elif)
     scene: Callable[[int], dict] | None = None               # seed -> scene kwargs; None = the env takes no scene
-    hooks: tuple[str, ...] = ()              # default eval hooks by name (rrp.harness.eval.evaluate.HOOKS)
+    hooks: tuple[str, ...] = ()              # default eval hooks by name (rrp.harness.hooks.TASK_HOOKS)
     max_steps: int | None = None             # explicit control-tick budget (rollout's `max_steps` default)
     failure_reasons: tuple[str, ...] = ()    # the vocabulary the judge may emit (Judgement.failure_reason)
     needs: Mapping[str, str] = field(default_factory=dict)   # env capability the body must offer -> the negotiate reason when it does not

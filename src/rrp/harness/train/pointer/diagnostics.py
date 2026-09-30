@@ -57,14 +57,14 @@ def cmd_edit(a):
                 z = z0.clone()
                 if mode != "none":
                     zv = z0.clone().requires_grad_(True)
-                    o2 = torch.optim.Adam([zv], lr=a.edit_lr)
+                    opt_edit = torch.optim.Adam([zv], lr=a.edit_lr)
                     for _ in range(a.edit_steps):
                         s_ = run_pointer_probe(P, zv)["slot"][0]                       # [K, NW]
                         L = torch.nn.functional.cross_entropy(s_, torch.full((s_.shape[0],), new, device=dev)) \
                             + a.anchor * ((zv - z0) ** 2).mean()
-                        o2.zero_grad()
+                        opt_edit.zero_grad()
                         L.backward()
-                        o2.step()
+                        opt_edit.step()
                     delta = (zv.detach() - z0)
                     if mode == "random":
                         r = torch.randn_like(delta)

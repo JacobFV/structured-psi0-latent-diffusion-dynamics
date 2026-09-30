@@ -52,6 +52,29 @@ class Episode:
         return asdict(self)
 
 
+ROLLOUT_REASONS = ("timeout", "policy_exception", "physics_divergence", "env_exception")   # rollout itself: budget spent, crash
+
+
+class UndeclaredFailureReason(AssertionError):
+    """An episode ended with a failure reason outside the vocabulary the task (or an episode-ending hook) declares."""
+
+
+def declared_reasons(task: TaskSpec, hooks: Sequence = ()) -> frozenset[str]:
+    """Every failure reason an episode of `task` may carry: `TaskSpec.failure_reasons`, rollout's own reasons (budget spent, crash) and the
+    `failure_reasons` tuple of each hook that can end an episode. A reason `code:detail` is declared by its `code`."""
+    out = set(task.failure_reasons) | set(ROLLOUT_REASONS)
+    for h in hooks:
+        out.update(getattr(h, "failure_reasons", ()))
+    return frozenset(out)
+
+
+def check_failure_reason(reason: str | None, task: TaskSpec, hooks: Sequence = ()) -> None:
+    if reason is not None and reason.split(":", 1)[0] not in declared_reasons(task, hooks):
+        raise UndeclaredFailureReason(
+            f"task {task.name!r}: failure reason {reason!r} is not in its declared vocabulary "
+            f"{sorted(declared_reasons(task, hooks))} (TaskSpec.failure_reasons)")
+
+
 class Incompatible(RuntimeError):
     def __init__(self, reasons):
         super().__init__("; ".join(reasons))
@@ -151,6 +174,12 @@ def rollout(make_env: Callable[[int], object], policy: Policy, task: TaskSpec, s
                     running.discard(i)
         for i, env in enumerate(envs):
             st, j = state[i], state[i]["judgement"]
+            try:
+                check_failure_reason(j.failure_reason, task, hooks)
+            except UndeclaredFailureReason:
+                for e in envs:
+                    e.close()
+                raise
             ep = Episode(seed=group[i], task=task.name, env_id=spec.env_id, body="+".join(b.key for b in spec.bodies),
                          policy=info.name, source=info.source, outcome=j.outcome, failure_reason=j.failure_reason,
                          success_public=j.success_public, success_privileged=j.success_privileged, steps=st["steps"],

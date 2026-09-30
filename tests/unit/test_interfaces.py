@@ -135,7 +135,7 @@ def test_warp_env_adapter_with_fake_engine():
 
 
 def test_rollout_on_reset_infeasible_and_max_steps():
-    from rrp.harness.eval.hooks import Feasibility, SessionRecord
+    from rrp.harness.hooks import Feasibility, SessionRecord
     from rrp.harness.eval.evaluate import summarize
     from rrp.harness.rollout import rollout
     feas = Feasibility(lambda env: env.seed != 4)

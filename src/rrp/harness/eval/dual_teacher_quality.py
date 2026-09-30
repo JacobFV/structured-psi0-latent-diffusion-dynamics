@@ -48,6 +48,8 @@ class _AuditHook:
     DualQualityRecorder (before/after each env tick) and the stop rules (teacher done / `stop_after_success` ticks after
     the public runtime first succeeded) as an on_step verdict."""
 
+    failure_reasons = ("teacher_done", "stop_after_success")
+
     def __init__(self, s, teacher, task, *, noise, burst, phase_gate, stop_after_success, seed):
         from rrp.harness.data.dual_quality import DualQualityRecorder
         self.s, self.teacher, self.task = s, teacher, task
@@ -126,7 +128,7 @@ def run_audit_episode(task: str, pair: str, seed: int, *, max_steps: int = 1200,
         row.update(status="infeasible", unreachable=f["unreachable"], wall_s=time.time() - t0)
         return row
     from rrp.harness import rollout as R
-    from rrp.harness.eval import hooks as H
+    from rrp.harness import hooks as H
     from rrp.policies.teachers import TeacherPolicy
     audit = _AuditHook(s, teacher, task, noise=noise, burst=burst, phase_gate=phase_gate,
                        stop_after_success=stop_after_success, seed=seed)
@@ -256,6 +258,8 @@ class _TeacherEpisode:
     ends the episode when the teacher is done; on_end (after Settle) records the runtime instance statuses, the
     transitions, the teacher's phase log and, for support_insert, the true insertion geometry."""
 
+    failure_reasons = ("infeasible", "teacher_done")
+
     def __init__(self, teacher, callback=None, check_feasibility=True):
         self.teacher, self.callback, self.check = teacher, callback, check_feasibility
         self.feasibility, self.k = None, 0
@@ -294,7 +298,7 @@ def run_teacher_episode(task: str, session, teacher, version: str, seed: int, *,
     policies.teachers.dual.run_dual_teacher_episode): teacher.act() every control tick, `max_steps` ticks at most, then 5
     settle ticks and the privileged verdict (hooks.Settle). Returns the rollout Episode; a crash raises."""
     from rrp.harness import rollout as R
-    from rrp.harness.eval import hooks as H
+    from rrp.harness import hooks as H
     from rrp.policies.teachers import TeacherPolicy
     pol = TeacherPolicy(task, lambda e: teacher, f"dual:{version}", ("joint_position", "gripper"))
     ep = R.rollout(lambda sd: session, pol, H.budget_task(task, session.spec.env_id), [seed], batch=1,

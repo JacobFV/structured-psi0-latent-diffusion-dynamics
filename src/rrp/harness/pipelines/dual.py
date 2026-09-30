@@ -2,12 +2,12 @@
 
 | stage | code |
 |---|---|
-| collect | rrp.data.collect_dual (`python -m rrp.cli data collect-dual --config`), then the dual dataset gate |
-|         | (rrp.evaluation.gates.check_dual_dataset; needs `record_quality: true` in the data config, else "incomplete") |
-| pack | rrp.data.dual_latent.pack_dual (= `rrp latent pack-dual`) |
-| train_rep | rrp.training.latent_train.train_representation on the multi-assembly pack (arm stage) |
-| probes | rrp.training.latent_train.fit_probes_on_frozen (arm stage; per-slot probes on a multi pack) |
-| train_flow / flow_ft | rrp.training.latent_train.train_latent_flow (arm stages) |
+| collect | rrp.harness.data.collect_dual (`python -m rrp.cli data collect-dual --config`), then the dual dataset gate |
+|         | (rrp.harness.eval.gates.check_dual_dataset; needs `record_quality: true` in the data config, else "incomplete") |
+| pack | rrp.harness.data.dual_latent.pack_dual (= `rrp latent pack-dual`) |
+| train_rep | rrp.harness.train.latent_train.train_representation on the multi-assembly pack (arm stage) |
+| probes | rrp.harness.train.latent_train.fit_probes_on_frozen (arm stage; per-slot probes on a multi pack) |
+| train_flow / flow_ft | rrp.harness.train.latent_train.train_latent_flow (arm stages) |
 | eval_r2 / heldout | `rrp latent evaluate-dual` per (task, pair) shard, dev pairs / held-out pairs, of the EXTERNAL checkpoint `inputs.checkpoint` (a run id) |
 | edits | `rrp latent evaluate-dual --packet-edit <edit>` per edit x shard (control = no edit, same seeds) |
 
@@ -17,7 +17,7 @@ label source: the v2/v3 scripted teachers are stateful FSMs that cannot label of
 evaluation stages stay (the evaluations take an external checkpoint by run id) so the dual teacher data and evaluation
 routes remain reproducible. Reopening needs a new track entry.
 
-Physics: set the generic stage option `grasp_contact` (rrp.pipelines.base; e.g. v2.1) on collect/eval stages; the dual
+Physics: set the generic stage option `grasp_contact` (rrp.harness.pipelines.base; e.g. v2.1) on collect/eval stages; the dual
 stages do not choose a grasp contact version themselves.
 
 Every dual training config must set zero_prev_action: true (B-1 fix, D-045). The v1 dual configs
@@ -61,7 +61,7 @@ def collect(ctx: StageContext) -> dict:
 
 @register_stage("dual", "pack", source="scripted_teacher")
 def pack(ctx: StageContext) -> dict:
-    """Multi-assembly pack of one or more dual datasets (rrp.data.dual_latent.pack_dual)."""
+    """Multi-assembly pack of one or more dual datasets (rrp.harness.data.dual_latent.pack_dual)."""
     from rrp.harness.data.dual_latent import pack_dual
     cfg = ctx.native
     ds = cfg.pop("datasets", None)             # inputs.datasets (DAG refs to collect nodes) fill sources[k].dataset

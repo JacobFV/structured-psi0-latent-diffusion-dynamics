@@ -61,7 +61,7 @@ class SeedStream:
 
     def take(self, k: int) -> list[int]:
         from rrp.envs.mujoco.session import Session
-        from rrp.harness.train.rollout import feasible
+        from rrp.harness.train.online_episodes import feasible
         out = []
         while len(out) < k:
             sd = self.next
@@ -74,7 +74,7 @@ class SeedStream:
 
 
 def _evaluate(policy, cfg, out_dir: Path, tag: str, ckpt: str):
-    from rrp.harness.eval.hooks import arm_hooks, arm_scene
+    from rrp.harness.hooks import arm_hooks, arm_scene
     from rrp.harness.eval.evaluate import evaluate, summarize
     from rrp.policies.bc import BCPolicy
     seeds = list(range(cfg["eval_seed_start"], cfg["eval_seed_start"] + cfg["eval_episodes"]))
@@ -105,7 +105,7 @@ def _evaluate_suffix(policy, cfg, out_dir: Path, tag: str, ckpt: str):
     policy runs to termination (same rules/max_steps as evaluate()). Held-out eval seeds; raw rows appended
     to eval_suffix_episodes.jsonl. Denominator = feasible episodes whose teacher prefix reached the boundary."""
     from rrp.harness.eval.statistics import wilson
-    from rrp.harness.train.rollout import EpisodeState, drive, finalize, event_boundary, teacher_prefix, feasible
+    from rrp.harness.train.online_episodes import EpisodeState, drive, finalize, event_boundary, teacher_prefix, feasible
     from rrp.harness.train.branching import reward_of
     from rrp.envs.mujoco.session import Session
     make = scenario_factory(cfg["robot"])
@@ -189,7 +189,7 @@ def run(cfg: dict) -> dict:
     if method in ("grpo", "grpo_shared_prefix"):
         from rrp.harness.train.grpo import GRPOConfig, GRPOLearner, build_samples
         from rrp.harness.train.branching import collect_plain, collect_shared_prefix
-        from rrp.harness.train.rollout import SDEPolicy
+        from rrp.harness.train.online_episodes import SDEPolicy
         from rrp.policies.bc import LearnedPolicy
         gc = dict(cfg.get("grpo", {}))
         sde = SDEConfig(**gc.pop("sde", {"nfe": nfe}))

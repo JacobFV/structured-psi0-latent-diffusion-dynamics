@@ -23,13 +23,13 @@ the stage's own out dir, never to the shared artifacts/runs/ladder_v1/.
 from __future__ import annotations
 
 import functools
-import hashlib
 import json
 import re
 import shutil
 from collections import Counter
 from pathlib import Path
 
+from rrp.core.provenance import file_digest
 from rrp.harness.pipelines.base import apply_gate, StageContext, StageError, register_stage
 from rrp.harness.train.baseline_campaign import SFT_LR, SFT_STEPS   # the one copy (BC SFT budget -> updates, lr)
 
@@ -43,12 +43,7 @@ SEMEDIT_CONDITIONS = "control,goal_shift,rebind_desc,irrelevant_distractor,ortho
 # ------------------------------------------------------------------------------------------------ frozen-input pins
 def _sha256_of(path: Path) -> str:
     """sha256 of a file; of a pack directory, its `meta.json` (the recorded pack identity, the pack is not re-hashed)."""
-    p = path / "meta.json" if path.is_dir() else path
-    h = hashlib.sha256()
-    with open(p, "rb") as f:
-        for chunk in iter(lambda: f.read(1 << 20), b""):
-            h.update(chunk)
-    return h.hexdigest()
+    return file_digest(path / "meta.json" if path.is_dir() else path, length=None)
 
 
 def _verify_pins(ctx: StageContext) -> None:

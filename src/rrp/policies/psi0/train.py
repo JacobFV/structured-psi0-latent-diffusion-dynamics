@@ -31,6 +31,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from rrp.core.provenance import file_digest
 from rrp.policies.psi0.data import CachedDataset, collate
 from rrp.policies.psi0 import load_launch_config, psi_home
 from rrp.policies.psi0 import nets as N
@@ -98,11 +99,6 @@ def state_std(ds, batch=1024):
         n += x.shape[0]; s1 += x.sum(0); s2 += (x ** 2).sum(0)
     mean = s1 / max(n, 1)
     return ((s2 / max(n, 1) - mean ** 2).clamp(min=0)).sqrt().float()
-
-
-def file_digest(path):
-    import hashlib
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()[:16]
 
 
 @torch.no_grad()

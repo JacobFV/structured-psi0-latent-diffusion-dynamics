@@ -18,6 +18,7 @@ from pathlib import Path
 
 import numpy as np
 
+from rrp.core.provenance import file_digest
 from rrp.core.paths import rrp_home
 from rrp.envs.mujoco.legged_core import (EXTRA_DIM_RING, RANGE_RING_VERSION, SCAN_DIM, TERRAIN_SCAN_VERSION, LeggedBinding,
                                           range_ring_spec, terrain_scan_spec)
@@ -108,9 +109,9 @@ class LearnedTracker:
         self.version = f"learned_tracker:{body_key}:iter{meta.get('iter')}{cv}"
         if self.morph is not None:
             self.version = f"learned_tracker:shared_morph_v1{':transfer' if self.transfer else ''}:{body_key}:iter{meta.get('iter')}{cv}"
-        import hashlib                                  # W8: exact actor identity (two v2 actors can share an iter)
+        # W8: exact actor identity (two v2 actors can share an iter)
         self.path = str(path)
-        self.sha256 = hashlib.sha256(Path(path).read_bytes()).hexdigest()
+        self.sha256 = file_digest(Path(path), length=None)
         self.run = (meta.get("args") or {}).get("out")
         self.reset()
 
@@ -305,8 +306,7 @@ def load_tracker(body_key: str, binding: LeggedBinding, meta: dict, kind: str = 
         if not e.actor.exists():
             raise FileNotFoundError(e.actor)
         if e.sha256 is not None:
-            import hashlib
-            got = hashlib.sha256(e.actor.read_bytes()).hexdigest()
+            got = file_digest(e.actor, length=None)
             if got != e.sha256:
                 raise TrackerMismatch(f"tracker {tracker} sha256 {got[:12]} does not match its registry pin {e.sha256[:12]}")
         t = LearnedTracker(e.actor, binding, body_key)

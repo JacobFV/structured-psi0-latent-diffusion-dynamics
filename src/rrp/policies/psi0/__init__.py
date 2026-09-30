@@ -26,6 +26,7 @@ from pathlib import Path
 
 import numpy as np
 
+from rrp.core.provenance import file_digest
 from rrp.envs.simple.compat import psi_home      # THE one ext-dir / PSI_HOME resolver (stdlib-only)
 
 TP, DA, TA = 30, 36, 24
@@ -95,7 +96,7 @@ def structured_provenance(state: dict, stage_a: str) -> dict:
     stage-A file the policy loads: the packet-use gate it was trained under must have passed for THIS stage A
     (architecture 14.5 c), else the policy refuses (D-141: a head over an R that ignores the packet is not the arm)."""
     gate = (state.get("config") or {}).get("packet_gate")
-    sha = _digest_file(stage_a)
+    sha = file_digest(stage_a)
     if not gate or not gate.get("passed") or gate.get("stage_a_sha256_16") != sha:
         raise ValueError(f"psi0_structured: head was not trained under a passed packet-use gate for stage A {stage_a} "
                          f"(gate={gate}, stage-A sha256_16={sha}); retrain through `rrp train psi0 gate`")
@@ -115,7 +116,7 @@ class OursModel:
         self.vlm_processor = AutoProcessor.from_pretrained(vlm)
         self.vlm = Qwen3VLForConditionalGeneration.from_pretrained(vlm, dtype=torch.bfloat16, attn_implementation="sdpa").to(device).eval()
         mcfg = load_launch_config(Path(run_dir)).model
-        self.provenance = dict(arm=arm, head=_digest_file(ckpt), inputs=INPUT_SPEC)
+        self.provenance = dict(arm=arm, head=file_digest(ckpt), inputs=INPUT_SPEC)
         if arm == "direct":
             self.head = N.DirectHead(mcfg)
             self.head.load_state_dict(torch.load(ckpt, weights_only=False)["model"], strict=True)
@@ -300,7 +301,7 @@ class Psi0Policy:
         if self.ours is not None and not self.ours["ckpt"]:
             raise ValueError(f"{self.kind} needs weights=<final.pt>")
         if self.info.version == "unhashed":
-            self.info = dataclasses.replace(self.info, version=_digest_file(self.ours["ckpt"]))
+            self.info = dataclasses.replace(self.info, version=file_digest(self.ours["ckpt"]))
         self._reset_flags = [True] * len(seeds)
         self.seeds = list(seeds)
         if self.kind == "psi0_replay":
@@ -377,15 +378,6 @@ def _chunk(rows, obs, info):
                        codec_version=None, start_time=obs.sensor_time, dt=0.02, horizon=len(rows),
                        command_groups=[GroupCommand(group="psi0", values=rows, mask=np.ones(rows.shape, bool))],
                        sampling_seed=None, source="replay" if info.source.startswith("replay") else "learned")
-
-
-def _digest_file(path: str) -> str:
-    import hashlib
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        for b in iter(lambda: f.read(1 << 20), b""):
-            h.update(b)
-    return h.hexdigest()[:16]
 
 
 def _policy_info(kind, source, version, task):

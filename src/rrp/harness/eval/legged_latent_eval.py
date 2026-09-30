@@ -74,6 +74,8 @@ class _LeggedEpisode:
     safety link, latency timers), and on every 10 Hz boundary tick the long-run recorder, video frames, the boundary
     count (row n_steps) and the scripted teacher's own stop."""
 
+    failure_reasons = ("teacher_done",)
+
     def __init__(self, policy, ctl, deploy, dep, rend=None, cam=None, frame_every=2):
         self.policy, self.ctl, self.deploy, self.dep = policy, ctl, deploy, dep
         self.rend, self.cam, self.frame_every = rend, cam, frame_every

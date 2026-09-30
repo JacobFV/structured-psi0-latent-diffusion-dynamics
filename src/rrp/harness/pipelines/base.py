@@ -5,7 +5,7 @@ subprocesses, e.g. `rrp suite ladder`). They never
 reimplement numerics. `Pipeline(family).run(rc)`:
 1. checks family/stage and that every input path exists;
 2. calls the stage with a StageContext (native config, resolved inputs, out dir, subprocess helpers);
-3. writes <out>/pipeline_manifest.json through the single manifest writer (rrp.data.manifest.write_manifest) with a
+3. writes <out>/pipeline_manifest.json through the single manifest writer (rrp.harness.data.manifest.write_manifest) with a
    Provenance (source label, flags, code revision) plus the RunConfig, its hash, the native config, input and output
    digests and the stage metrics. The DAG runner treats "rc 0 AND manifest with the same config_hash" as done.
 
@@ -47,7 +47,7 @@ class StageError(RuntimeError):
 
 
 class GateFailed(StageError):
-    """The stage's output failed its W6 gate (rrp.evaluation.gates); <out>/gate_report.json holds the report. The job
+    """The stage's output failed its W6 gate (rrp.harness.eval.gates); <out>/gate_report.json holds the report. The job
     exits GATE_EXIT and run-dag marks the node failed with the gate's reason, without retries (D-112)."""
 
     def __init__(self, report: dict):

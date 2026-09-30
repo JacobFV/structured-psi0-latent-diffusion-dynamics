@@ -20,7 +20,7 @@ import torch
 from rrp.policies.nets.critics import QEnsemble, EditPolicy, make_target, min_of_random_pair, soft_update, td_target
 from rrp.harness.train.grpo import set_trainable
 from rrp.harness.train.replay_buffer import ReplayBuffer, ReplayRecord
-from rrp.harness.train.rollout import PolicyAdapter, EpisodeState, drive, finalize
+from rrp.harness.train.online_episodes import PolicyAdapter, EpisodeState, drive, finalize
 from rrp.harness.train.branching import reward_of
 from rrp.policies.nets.batch import collate_inputs
 
@@ -255,7 +255,7 @@ def collect_expo_episodes(agent: ExpoAgent, make_scenario, seeds: list[int], max
         s = Session(make_scenario(sd), seed=sd)
         states.append(EpisodeState(s, sd, max_steps, tag=dict(seed=sd, rows={})))
     if prefix_source == "teacher":          # labelled scripted-teacher prefix up to the public boundary
-        from rrp.harness.train.rollout import teacher_prefix, event_boundary
+        from rrp.harness.train.online_episodes import teacher_prefix, event_boundary
         for st in states:
             teacher_prefix(agent, st, event_boundary(event), max_steps)
 

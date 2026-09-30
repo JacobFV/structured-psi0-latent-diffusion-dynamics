@@ -6,8 +6,8 @@ scripts/ladder.py, same CLI, prints and outputs). Examples:
   rrp suite ladder --disturbance --route oracle ...   (fixed-packet joint disturbance via latent_eval.disturbance_test)
 Writes <out>/<route>[_tag].jsonl (one row per episode) and <out>/<route>[_tag].summary.json.
 
-Seeds come from rrp.evaluation.robustness.feasible_arm_seeds, the same definition as
-rrp.training.latent_grpo.feasible_seeds (which now delegates to it): evaluation may not import training."""
+Seeds come from rrp.harness.eval.robustness.feasible_arm_seeds, the same definition as
+rrp.harness.train.latent_grpo.feasible_seeds (which now delegates to it): evaluation may not import training."""
 from __future__ import annotations
 
 import argparse
@@ -48,7 +48,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--render-seeds", help="comma list: render these seeds (one episode each) instead of evaluating")
     ap.add_argument("--video-out", default="artifacts/video")
     ap.add_argument("--out", required=True)
-    # D-126 #7 overlapping-chunk blending (BC chunks / system-0 packets; rrp.controllers.chunk_blend): none = unchanged.
+    # D-126 #7 overlapping-chunk blending (BC chunks / system-0 packets; rrp.policies.chunk_blend): none = unchanged.
     # Hidden from --help so the CLI usage text stays as it was.
     ap.add_argument("--chunk-blend", choices=["none", "crossfade", "ensemble"], default="none", help=argparse.SUPPRESS)
     ap.add_argument("--blend-ticks", type=int, default=4, help=argparse.SUPPRESS)

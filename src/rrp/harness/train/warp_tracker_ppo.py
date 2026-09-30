@@ -23,6 +23,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from rrp.core.provenance import file_digest
 from rrp.envs.mujoco.tracker_nets import ActorCritic
 from rrp.harness.train.reward_schedule import AlphaGate
 
@@ -236,7 +237,7 @@ def train(args, env, *, groups=None, dev, engine: str):
                 source_label="learned_tracker (trained with privileged critic)", args={k: v for k, v in vars(args).items()
                                                                                        if k != "recipe_record"},
                 contact_model=env.meta.get("contact_model"), reward_version="gait_v2", init_from=args.init_shared,
-                init_sha256=(__import__("hashlib").sha256(Path(args.init_shared).read_bytes()).hexdigest() if args.init_shared else None),
+                init_sha256=(file_digest(Path(args.init_shared), length=None) if args.init_shared else None),
                 ref_ff=0.0,
                 actuator_limits=env.meta.get("actuator_limits"), actuator=None,
                 alpha_schedule=args.alpha_schedule, trainer=TRAINER_VERSION, env_version=ENV_VERSION,

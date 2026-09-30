@@ -120,7 +120,7 @@ def _source_accounting(cell: Path) -> dict:
 def evaluate_checkpoint(ck: Path, robots: list[str], out: Path, *, protocol: dict, method: str, seed: int, n: int,
                         device: str, batch: int = 25) -> dict:
     from rrp.policies.bc import BCPolicy, LearnedPolicy
-    from rrp.harness.eval.hooks import arm_hooks, arm_scene
+    from rrp.harness.hooks import arm_hooks, arm_scene
     from rrp.harness.eval.evaluate import evaluate, summarize
     sm = out.with_suffix(".summary.json")
     if _done(sm):

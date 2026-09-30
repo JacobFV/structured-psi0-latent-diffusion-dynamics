@@ -230,7 +230,7 @@ def _roll(make_env, pol, seeds, max_steps, hooks):
     """One `harness.rollout` of `pol` on already-built sessions (budget-only task: the end rules are the hooks').
     A crashed episode raises (the protocols never hide one)."""
     from rrp.harness import rollout as R
-    from rrp.harness.eval import hooks as H
+    from rrp.harness import hooks as H
     eps = R.rollout(make_env, pol, H.budget_task("pick_place", make_env(seeds[0]).spec.env_id), list(seeds), batch=len(seeds),
                     max_steps=max_steps, hooks=hooks)
     for e in eps:
@@ -281,7 +281,7 @@ class _WindowPolicy:
 def window_protocol(policy, R, P, robot_key, seeds, *, decision_ticks=(8, 32, 56, 80, 104, 128), window=8,
                     replan=8, delta_m=0.05, conditions=WINDOW_CONDS, edit_steps=80, dev="cpu", log=print):
     from rrp.bodies.catalog import workbench_robots
-    from rrp.harness.eval import hooks as H
+    from rrp.harness import hooks as H
     robot = workbench_robots()[robot_key]()
     rows = []
     last_ctrl = {}                     # decision tick -> control packet of the most recent OTHER seed (shuffle)
@@ -318,7 +318,7 @@ class _PacketWindow:
 
 
 def _run_window(policy, R, s, snap, packet, window, dev):
-    from rrp.harness.eval import hooks as H
+    from rrp.harness import hooks as H
     s.restore(snap)
     tcp, cube, dis = [], [], []
     has_d = any(o.sim_body == "distractor0" for o in s.detectables)
@@ -511,7 +511,7 @@ def _episodes(policy, R, P, robot, robot_key, seeds, cond, replan, max_steps, de
               ctrl_packets):
     from rrp.envs.mujoco.scenario import BUILDERS
     from rrp.envs.mujoco.session import Session
-    from rrp.harness.eval import hooks as H
+    from rrp.harness import hooks as H
     S = [Session(BUILDERS["pick_place"](robot, sd, n_distractors=sd % 3), seed=sd) for sd in seeds]
     by_seed = dict(zip(seeds, S))
     pol = _EpisodePolicy(policy, R, P, cond, seeds, replan, delta_m, chain_t1, edit_steps, dev, ctrl_packets)

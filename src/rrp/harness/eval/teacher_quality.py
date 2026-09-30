@@ -186,7 +186,7 @@ def _quality_rollout(env, policy, seed, max_steps, trace, done, hooks=()):
     """One episode of `env` under `policy` (rollout, batch 1): ticks until max_steps or done(env); then one hold tick
     and the privileged verdict (Settle) - the episode row is built from the trace by the caller."""
     from rrp.harness import rollout as R
-    from rrp.harness.eval import hooks as H
+    from rrp.harness import hooks as H
     return R.rollout(lambda sd: env, policy, H.budget_task("pick_place", env.spec.env_id), [seed], batch=1,
                      max_steps=max_steps, hooks=[H.EndWhen(lambda i, e: done(i, e)), H.Settle(1), trace, *hooks])[0]
 

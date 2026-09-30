@@ -21,6 +21,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+from rrp.harness import hooks as H
 from rrp.policies.system0 import LatentSystem0
 from rrp.harness.data.collect import privileged_labels
 from rrp.harness.data.packed import _focus
@@ -260,6 +261,13 @@ class PacketProbeHook:
         return dict(probe_counts=self.counts.pop(i))
 
 
+def latent_hooks(policy, probe=None, *, device="cpu", paired: bool = False) -> list:
+    """The former evaluate_latent's conventions: arm feasibility, session record, system 0 counters, displacement of
+    every object, packet probes (when a probe is given), paired-scene identity."""
+    return (H.arm_hooks() + [System0Stats(policy), H.Displacement()] + ([PacketProbeHook(probe, device)] if probe else [])
+            + ([PairedMeta()] if paired else []))
+
+
 def probe_rates(episodes, key: str = "probe_counts") -> dict:
     tot: dict = {}
     for e in episodes:
@@ -294,7 +302,6 @@ def _roll_ticks(s, info, fn, ticks, hooks=()):
     """`ticks` control ticks of `s` through harness.rollout under the command policy `fn` (budget-only task); a crashed
     tick raises."""
     from rrp.harness import rollout as R
-    from rrp.harness.eval import hooks as H
     if ticks <= 0:
         return
     ep = R.rollout(lambda sd: s, _CmdPolicy(info, fn), H.budget_task("pick_place", s.spec.env_id), [0], batch=1,
@@ -317,7 +324,6 @@ def disturbance_test(policy, realizer, robot_key: str, seeds: list[int], *, warm
     from rrp.envs.mujoco.session import Session
     from rrp.core.action import NativeCommand
     from rrp.harness import rollout as R
-    from rrp.harness.eval import hooks as H
     from rrp.policies.latent import LatentStackPolicy
     robot = workbench_robots()[robot_key]()
     rows = []

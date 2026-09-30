@@ -3,7 +3,7 @@ body, JSONL rows), `summarize` (Wilson), `matrix` (every policy x env x task cel
 `env_spec` (static specs; simulators such as SIMPLE/Isaac are never started implicitly). CLI: `rrp eval`, `rrp matrix`.
 
 Nothing here compares env ids or task names: the scene an env gets is the task's (`TaskSpec.scene`, or the caller's), the
-default hooks are the task's by name (`TaskSpec.hooks` -> HOOKS). A scene for an env whose factory takes none is a
+default hooks are the task's by name (`TaskSpec.hooks` -> `harness.hooks.TASK_HOOKS`). A scene for an env whose factory takes none is a
 negotiation failure (`Incompatible` with the reason text, an "n/a" cell in `matrix`), never a TypeError."""
 from __future__ import annotations
 
@@ -11,28 +11,8 @@ import json
 from pathlib import Path
 from typing import Callable, Sequence
 
+from rrp.harness.hooks import TASK_HOOKS
 from rrp.harness.rollout import Episode, Incompatible, rollout
-
-
-def _session(task):
-    from rrp.harness.eval import hooks as H
-    return [H.SessionRecord()]
-
-
-def _arm(task):
-    from rrp.harness.eval import hooks as H
-    return H.arm_hooks()
-
-
-def _dual(task):
-    from rrp.harness.eval import hooks as H
-    return H.dual_hooks(task.name)
-
-
-# TaskSpec.hooks name -> (env_id prefix the hook applies to, factory(task) -> [hook]): the per-family conventions of the
-# former eval loops (arm feasibility + session record; dual adds settling; MuJoCo session facts for legged).
-HOOKS: dict[str, tuple[str, Callable]] = {"session": ("mujoco/", _session), "arm": ("mujoco/arm", _arm),
-                                          "dual": ("mujoco/dual", _dual)}
 
 
 def task_hooks(task: str, env_id: str) -> list:
@@ -41,7 +21,7 @@ def task_hooks(task: str, env_id: str) -> list:
     t = get_task(task)
     out: list = []
     for name in t.hooks:
-        prefix, make = HOOKS[name]
+        prefix, make = TASK_HOOKS[name]
         if env_id.startswith(prefix):
             out += make(t)
     return out

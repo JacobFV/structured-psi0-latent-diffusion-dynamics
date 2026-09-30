@@ -42,6 +42,7 @@ from pathlib import Path
 
 import numpy as np
 
+from rrp.core.provenance import file_digest
 from rrp.envs.mujoco.perturb import PhysicsPerturbation
 from rrp.harness.eval.statistics import wilson
 
@@ -147,15 +148,6 @@ def parse_route(spec: str, family: str) -> dict:
     elif kind != "teacher":
         r["ckpt"] = arg
     return r
-
-
-def _sha(p) -> str:
-    import hashlib
-    h = hashlib.sha256()
-    with open(p, "rb") as f:
-        for b in iter(lambda: f.read(1 << 20), b""):
-            h.update(b)
-    return h.hexdigest()
 
 
 # ------------------------------------------------------------------ one shard = route x robot x condition
@@ -318,7 +310,7 @@ def cmd_run(a):
     for r in routes:
         for k in ("ckpt", "flow", "rep"):
             if r.get(k):
-                manifest["checkpoints"][r[k]] = _sha(r[k])
+                manifest["checkpoints"][r[k]] = file_digest(r[k], length=None)
     for robot in robots:
         if family == "legged":
             from rrp.core.runs import parse_seed_spec

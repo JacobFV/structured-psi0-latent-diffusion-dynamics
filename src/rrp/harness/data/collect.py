@@ -15,12 +15,12 @@ from pathlib import Path
 import mujoco
 import numpy as np
 
-from rrp.policies.base import Act, PolicyInfo, Requirements
+from rrp.harness import hooks as H
+from rrp.policies.base import Act
 from rrp.policies.teachers.arm import PickPlaceTeacher
 from rrp.policies.features.featurizer import Featurizer, featurizer_for  # noqa: F401  (featurizer_for moved to rrp.policies.features)
 from rrp.envs.mujoco.session import Session
 from rrp.envs.mujoco.sensors import camera_visibility
-from rrp.tasks.spec import Judgement, TaskSpec
 
 from rrp.core.provenance import FEATURIZER_VERSION, physics_provenance  # noqa: E402,F401  (single constant; alias kept)
 
@@ -251,59 +251,6 @@ class _TeacherTrace:
         self.k += 1
 
 
-def _budget_task(session) -> TaskSpec:
-    """A task whose judge only spends the tick budget (rollout's `max_steps`); the end rules live in hooks."""
-    name = session.scenario.name
-    return TaskSpec(name, {session.spec.env_id: {}}, float("inf"),
-                    lambda env, t, max_s: Judgement(t >= max_s, "timeout", "timeout" if t >= max_s else None),
-                    note="budget only: end rules live in hooks")
-
-
-class _Hold:
-    """Policy that holds (Act(None): the env keeps its last targets / executes its queued chunk row). The same policy as
-    harness.eval.hooks.HoldPolicy (harness.data cannot import harness.eval: eval imports data)."""
-
-    def __init__(self):
-        self.info = PolicyInfo("hold", "mock", "hold", Requirements(frozenset(), observations=frozenset()))
-
-    def reset(self, spec, task, seeds, *, envs=None):
-        pass
-
-    def act(self, obs):
-        return {i: Act(None) for i in obs}
-
-
-def hold_ticks(session, ticks: int) -> None:
-    """`ticks` hold ticks of `session` through harness.rollout (the state equals calling session.step(None) `ticks`
-    times; rollout only closes the env, which a session survives). A crashed tick raises."""
-    from rrp.harness import rollout as R
-    if ticks <= 0:
-        return
-    ep = R.rollout(lambda sd: session, _Hold(), _budget_task(session), [session.seed], batch=1, max_steps=ticks)[0]
-    if ep.outcome == "crash":
-        raise RuntimeError(ep.metrics.get("note") or ep.failure_reason)
-
-
-class _TeacherEnd:
-    """Rollout hook: the episode ends when the scripted teacher's FSM is done (its own end rule); `settle` hold ticks
-    (a nested rollout) then re-read the privileged verdict. (harness.data cannot import harness.eval.hooks: eval imports
-    data; the generic EndWhen / Settle / budget_task there are the same hooks.)"""
-
-    def __init__(self, teacher, settle: int = 0):
-        self.teacher, self.settle = teacher, settle
-
-    def on_step(self, i, env, act, step):
-        return Judgement(True, "failure", "teacher_done") if self.teacher.done else None
-
-    def on_end(self, i, env, ep):
-        if ep.outcome == "crash":
-            return {}
-        hold_ticks(env, self.settle)
-        if self.settle:
-            ep.success_privileged, ep.success_public = bool(env.privileged_success()), bool(env.runtime.succeeded())
-        return {}
-
-
 def run_teacher_rollout(session, teacher, *, version: str, hooks, max_steps: int, settle: int = 0):
     """One scripted-teacher episode as a `harness.rollout` (docs/architecture.md 14.1): the teacher acts as a privileged
     policy, `hooks` record / perturb, the episode ends with the teacher's FSM (or `max_steps`), then `settle` hold
@@ -311,8 +258,9 @@ def run_teacher_rollout(session, teacher, *, version: str, hooks, max_steps: int
     from rrp.harness import rollout as R
     from rrp.policies.teachers import TeacherPolicy
     pol = TeacherPolicy(session.scenario.name, lambda e: teacher, version, ("joint_position", "gripper"))
-    ep = R.rollout(lambda sd: session, pol, _budget_task(session), [session.seed], batch=1, max_steps=max_steps,
-                   hooks=[*hooks, _TeacherEnd(teacher, settle)])[0]
+    end = [H.EndWhen(lambda i, env: teacher.done, reason="teacher_done")] + ([H.Settle(settle)] if settle else [])
+    ep = R.rollout(lambda sd: session, pol, H.budget_task(session.scenario.name, session.spec.env_id), [session.seed],
+                   batch=1, max_steps=max_steps, hooks=[*hooks, *end])[0]
     if ep.outcome == "crash":
         raise RuntimeError(ep.metrics.get("note") or ep.failure_reason)
     return ep

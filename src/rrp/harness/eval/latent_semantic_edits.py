@@ -196,7 +196,7 @@ def _teacher_demo(s, teacher, H):
     policy (recorder on the executed commands; ends early when the teacher is done). The caller restores the session
     and the teacher afterwards (a discarded look-ahead, not an evaluation episode)."""
     from rrp.harness import rollout as R
-    from rrp.harness.eval import hooks as HK
+    from rrp.harness import hooks as HK
     from rrp.policies.teachers import TeacherPolicy
     cmds = []
     name = s.scenario.name

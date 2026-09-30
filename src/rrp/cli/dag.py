@@ -1,4 +1,4 @@
-"""`rrp run-dag <recipe.yaml>`: plan / run / resume a pipeline DAG through the broker (rrp.orchestration.dag)."""
+"""`rrp run-dag <recipe.yaml>`: plan / run / resume a pipeline DAG through the broker (rrp.harness.dag)."""
 from __future__ import annotations
 
 import json

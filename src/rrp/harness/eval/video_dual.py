@@ -20,7 +20,7 @@ os.environ.setdefault("MUJOCO_GL", "egl")
 import imageio
 import mujoco
 
-from rrp.harness.eval import hooks as H
+from rrp.harness import hooks as H
 from rrp.harness.eval.captions import caption
 from rrp.harness.rollout import rollout
 

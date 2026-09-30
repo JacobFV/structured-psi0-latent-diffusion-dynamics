@@ -382,7 +382,7 @@ def _foot_site(spec: mujoco.MjSpec, model: mujoco.MjModel, data: mujoco.MjData, 
 
 def menagerie_legged(key: str, limits: str | None = None) -> Module:
     """limits: actuator torque-limit version ('sourced_v1' default | 'legacy_gains_v0'); None -> $RRP_ACTUATOR_LIMITS or default.
-    sourced_v1 replaces the gains-table effort of every joint listed in rrp.physics.actuator.SOURCED by the manufacturer value."""
+    sourced_v1 replaces the gains-table effort of every joint listed in rrp.bodies.actuator.SOURCED by the manufacturer value."""
     from rrp.bodies.actuator import resolve_limits, sourced_effort
     limits = resolve_limits(limits)
     info = LEGGED_ASSETS[key]
@@ -540,7 +540,7 @@ def menagerie_legged(key: str, limits: str | None = None) -> Module:
                     "dropped_contact_pairs": dropped_pairs, "gain_scale": info.get("gain_scale", 1.0), "sealed": bool(info.get("sealed"))}
                    if info.get("limits_source") else {}),
                 actuator_adapter=dict(kind="joint_pd_position_servo", note="motor actuators converted to PD servos; torque "
-                                      f"limits = {limits} (see rrp.physics.actuator.SOURCED); position actuators re-gained per table",
+                                      f"limits = {limits} (see rrp.bodies.actuator.SOURCED); position actuators re-gained per table",
                                       actuators=adapter, inverted_joint_equalities=inverted),
                 params=dict(lengths=[nominal]),
                 legged=dict(root_body=root_body, imu=imu, foot_bodies=list(info["feet"]), foot_sites=foot_sites,

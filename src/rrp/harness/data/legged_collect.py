@@ -108,6 +108,8 @@ class EpisodeEnd:
     or `max_steps` steps; unless the body fell, `post_steps` more steps follow (the teacher keeps acting: the halt / stand
     regime), a fall ending them. `main` = the main-phase step count."""
 
+    failure_reasons = ("collector_end",)
+
     def __init__(self, te, max_steps: int, post_steps: int = 0):
         self.te, self.max_steps, self.post = te, max_steps, post_steps
         self.main, self.n_post, self.phase = 0, 0, "main"

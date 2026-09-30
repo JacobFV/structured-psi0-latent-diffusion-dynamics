@@ -292,3 +292,31 @@ def legged_contact_motion(trace: dict) -> dict:
     return dict(cf_version=CF_VERSION, cf_stance_pos_drift_max_m=d["pos_max"], cf_stance_pos_drift_mean_m=d["pos_mean"],
                 cf_stance_yaw_drift_max_rad=d["yaw_max"], cf_stance_yaw_drift_mean_rad=d["yaw_mean"],
                 cf_n_stances=d["n_stances"])
+
+
+class MotionRecord:
+    """Rollout hook: per-tick arm motion-quality recorder (envs.mujoco.motion_quality); on_end: metrics["motion"], plus
+    the held-object drift keys when contact metrics are on (RRP_CONTACT_METRICS=1, or `contact=True`). A tick counts as a
+    chunk / packet boundary when the policy's Act.info says `boundary`."""
+
+    def __init__(self, contact: bool | None = None):
+        self.contact = contact_metrics_enabled(contact)
+        self.rec, self.cf = {}, {}
+
+    def on_reset(self, i, env, obs):
+        from rrp.envs.mujoco.motion_quality import ArmMotionRecorder
+        self.rec[i] = ArmMotionRecorder(env)
+        if self.contact:
+            from rrp.harness.data.contact_labels import ContactFrameRecorder
+            self.cf[i] = ContactFrameRecorder(env)
+
+    def on_step(self, i, env, act, step):
+        self.rec[i].tick(None if act.command is None else act.command.groups, bool(act.info.get("boundary")))
+        if self.contact:
+            self.cf[i].tick()
+
+    def on_end(self, i, env, ep):
+        motion = self.rec.pop(i).summary()
+        if self.contact:
+            motion.update(arm_contact_motion(self.cf.pop(i).recording()))
+        return dict(motion=motion)

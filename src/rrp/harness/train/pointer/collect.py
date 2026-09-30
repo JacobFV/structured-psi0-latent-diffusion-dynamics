@@ -100,6 +100,8 @@ class DemoRecorder:
     """Rollout hook: the rows and widget tables a `DemoTeacher` reports, per episode; `on_end` keeps the goal and the
     instruction (read from the env after the last tick, as the old collector did)."""
 
+    failure_reasons = ("teacher_plan_ended",)       # declared to rollout's vocabulary check
+
     def __init__(self):
         self.rows: dict[int, list] = {}
         self.tabs: dict[int, list] = {}

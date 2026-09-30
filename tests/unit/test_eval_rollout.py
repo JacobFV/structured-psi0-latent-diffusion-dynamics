@@ -121,7 +121,7 @@ def test_disturbance_test(golden):
 def test_latency_warmup_state(golden):
     """The latency suites time on a fixture stepped 10 hold ticks first; that state is unchanged by the port."""
     from rrp.envs.mujoco.fixtures import make_pick_place_session
-    from rrp.harness.eval.hooks import warm_up
+    from rrp.harness.hooks import warm_up
     s = warm_up(make_pick_place_session(seed=5, n_distractors=2), 10)
     golden("loop.eval.latency_warmup", _digest([float(s.data.time), s.data.qpos.tolist(), s.data.qvel.tolist()]))
 
@@ -280,7 +280,7 @@ def rollout_guard(monkeypatch):
 
 def test_loops_step_only_inside_rollout(rollout_guard, monkeypatch, tmp_path):
     from rrp.harness.eval.dual_teacher_quality import run_audit_episode
-    from rrp.harness.eval.hooks import warm_up
+    from rrp.harness.hooks import warm_up
     from rrp.harness.eval.latent_causal import episode_protocol, window_protocol
     from rrp.harness.eval.latent_eval import disturbance_test
     from rrp.harness.eval.teacher_quality import run_policy_quality_episode, run_quality_episode
@@ -322,7 +322,7 @@ def test_semantic_oracle_lookahead_is_a_rollout(rollout_guard):
 
 
 def test_end_when_and_recorder_hooks_are_registered():
-    from rrp.harness.eval import hooks as H
+    from rrp.harness import hooks as H
     from rrp.envs.mujoco.fixtures import make_pick_place_session
     from rrp.harness.rollout import rollout
     seen = []

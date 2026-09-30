@@ -3,12 +3,12 @@
 | stage | existing code |
 |---|---|
 | collect | `python -m rrp.cli data legged-latent-collect --body B --seeds S --out D` per shard (options shard_size, workers) |
-| train_bc | rrp.training.legged_bc.train (`python -m rrp.cli train legged-bc train`; BC POSITIVE CONTROL, source bc) |
-| train_rep | rrp.training.legged_latent_train.train_rep (`python -m rrp.cli train legged-latent rep`) |
-| probes | rrp.training.legged_latent_train.fit_probe (post-hoc probe for nosem; `... probe`) |
-| train_flow, flow_ft | rrp.training.legged_latent_train.train_flow (`... flow`) |
+| train_bc | rrp.harness.train.legged_bc.train (`python -m rrp.cli train legged-bc train`; BC POSITIVE CONTROL, source bc) |
+| train_rep | rrp.harness.train.legged_latent_train.train_rep (`python -m rrp.cli train legged-latent rep`) |
+| probes | rrp.harness.train.legged_latent_train.fit_probe (post-hoc probe for nosem; `... probe`) |
+| train_flow, flow_ft | rrp.harness.train.legged_latent_train.train_flow (`... flow`) |
 | dagger_collect | `python -m rrp.cli train legged-dagger collect` |
-| refit | rrp.training.legged_dagger.refit (`... refit --config`) |
+| refit | rrp.harness.train.legged_dagger.refit (`... refit --config`) |
 | eval_r1, eval_r2, heldout | `python -m rrp.cli suite legged` over seed chunks + `rrp suite legged-summary` |
 | edits | `rrp suite legged --edit` per edit + `rrp suite legged-edit-effects` |
 
@@ -29,6 +29,7 @@ import functools
 import json
 from pathlib import Path
 
+from rrp.core.provenance import file_digest
 from rrp.core.sealed import SealedSplit
 from rrp.harness.pipelines.base import apply_gate, StageContext, StageError, register_stage
 
@@ -293,7 +294,6 @@ def check_tracker_sha(ctx: StageContext) -> str | None:
     want = ctx.opts.get("tracker_sha256")
     if not want:
         return None
-    import hashlib
     from rrp.envs.mujoco.legged_tracker import tracker_path
     path = Path(ctx.opts["actor"]) if ctx.opts.get("actor") else tracker_path(
         ctx.opts["body"], str(ctx.rc.flags.contact_version).replace("contact_", ""))
@@ -301,7 +301,7 @@ def check_tracker_sha(ctx: StageContext) -> str | None:
         path = ctx.root / path
     if not path.exists():
         raise StageError(f"tracker {path} not found (declared sha256 {want})")
-    got = hashlib.sha256(path.read_bytes()).hexdigest()
+    got = file_digest(path, length=None)
     if got != str(want):
         raise StageError(f"tracker sha {got} != declared {want} ({path})")
     return got
@@ -309,7 +309,7 @@ def check_tracker_sha(ctx: StageContext) -> str | None:
 
 @register_stage("legged", "validate_tracker", source="learned_tracker")
 def validate_tracker(ctx: StageContext) -> dict:
-    """Tracker validation (rrp.evaluation.tracker_validation protocol v2 + the W6 robustness check) and the D-112 tracker
+    """Tracker validation (rrp.harness.eval.tracker_validation protocol v2 + the W6 robustness check) and the D-112 tracker
     gate. options: body, actor (default: the installed tracker for the contact version), kind (learned|cpg), seeds (5),
     robust (true), tracker_sha256 (optional: the actor file must have this sha256, checked BEFORE validating, so a DAG
     validates exactly the tracker its `collect` node declares). A gate verdict 'fail' fails the node (exit GATE_EXIT,
@@ -389,13 +389,12 @@ def train_tracker(ctx: StageContext) -> dict:
     if o.get("pythonpath"):
         env["PYTHONPATH"] = ":".join([str(Path(p).expanduser()) for p in o["pythonpath"]] + [env["PYTHONPATH"]])
     ctx.run(argv, env=env)
-    import hashlib
     actor = ctx.out / "actor.pt"
     if not actor.exists():
         raise StageError(f"{actor} missing after training")
     meta = json.loads((ctx.out / "meta.json").read_text())
     rel = str(Path(ctx.rc.out) / "actor.pt")
-    return dict(outputs={"actor": rel}, metrics=dict(body=meta["body"], actor_sha256=hashlib.sha256(actor.read_bytes()).hexdigest(),
+    return dict(outputs={"actor": rel}, metrics=dict(body=meta["body"], actor_sha256=file_digest(actor, length=None),
                                                      recipe=(meta.get("recipe") or {}).get("name") or (meta.get("recipe") or {}).get("path"),
                                                      reward_options=meta.get("reward_options"),
                                                      terrain_curriculum=bool(meta.get("terrain_curriculum")),

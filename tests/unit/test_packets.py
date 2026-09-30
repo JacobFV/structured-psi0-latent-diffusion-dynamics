@@ -145,10 +145,11 @@ def test_structured_packet_edit_reaches_system_0_and_generated_z_is_kept():
 
 
 def test_structured_policy_refuses_a_head_without_a_passed_gate_for_this_stage_a(tmp_path):
-    from rrp.policies.psi0 import _digest_file, structured_provenance
+    from rrp.core.provenance import file_digest
+    from rrp.policies.psi0 import structured_provenance
     sa = tmp_path / "stage_a.pt"
     sa.write_bytes(b"stage a")
-    sha = _digest_file(sa)
+    sha = file_digest(sa)
     ok = dict(config=dict(packet_gate=dict(passed=True, gap=0.2, margin=0.05, stage_a_sha256_16=sha)),
               versions=dict(factors="abc"))
     assert structured_provenance(ok, str(sa)) == dict(stage_a=sha, packet_gate=dict(gap=0.2, margin=0.05), factors="abc")

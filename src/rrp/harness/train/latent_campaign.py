@@ -20,8 +20,8 @@ def run_latent_cell(protocol: dict, method: str, seed: int, *, base_flow_config:
     from rrp.harness.train.baseline_campaign import SFT_STEPS
     from rrp.policies.bundles import load_representation
     from rrp.policies.latent import LatentPolicy
-    from rrp.harness.eval.hooks import latent_hooks
-    from rrp.harness.eval.hooks import arm_scene
+    from rrp.harness.eval.latent_eval import latent_hooks
+    from rrp.harness.hooks import arm_scene
     from rrp.harness.eval.evaluate import evaluate
     from rrp.policies.latent import LatentStackPolicy
     from rrp.harness.eval.statistics import wilson

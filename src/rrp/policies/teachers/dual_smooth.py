@@ -1,4 +1,4 @@
-"""Dual-arm scripted teacher v3 (W12 / D-126 #18): NEW version, default OFF (v2 = rrp.teachers.dual stays the default).
+"""Dual-arm scripted teacher v3 (W12 / D-126 #18): NEW version, default OFF (v2 = rrp.policies.teachers.dual stays the default).
 Label: scripted_teacher (PRIVILEGED: object poses and in-hand offsets, as v2). Diagnosis: the archived W12 audit (D-126).
 
 Changes vs v2, each ablatable through `V3Options` (all True = full v3; all False = v2's task logic on the v3 mover):
@@ -14,7 +14,7 @@ Changes vs v2, each ablatable through `V3Options` (all True = full v3; all False
 Phase-gated DART (D-121): `dart_phase_allowed(task, arm_phase)` = the free-space phases in which collect_dual may perturb
 an arm (`noise_phase_gate: true`); never during descend/close/lift, the support press, align/insert, offer/receive/release.
 
-W7 owns the grasp contact model (rrp.physics.grasp_contact): the pad-cylinder friction-cone saturation and the pg2
+W7 owns the grasp contact model (rrp.bodies.grasp_contact): the pad-cylinder friction-cone saturation and the pg2
 gripper force shortfall (~16-20 N of 40 N) found by scripts/w12/grip_diag.py are NOT fixed here. `GRIP_CLOSE_OVERRIDE`
 is the hook: a per-gripper-kind closed command (None = the body's declared closed value) to use once W7 decides how
 the pg2 servo should reach its design force.
