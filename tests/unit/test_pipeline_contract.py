@@ -441,5 +441,5 @@ def test_run_dag_cli_has_adopt_stale():
 
 def test_recipe_goldens_are_untouched_by_the_contract():
     from rrp.harness.dag import load_dag, plan_dag
-    p = plan_dag(load_dag(ROOT / "recipes/armdiv/arm_lineage_v7div_kinfeat.yaml"))
+    p = plan_dag(load_dag(ROOT / "recipes/armdiv/arm_lineage_v8div_kinfeat.yaml"))
     assert all(n.rc.options.get("kinfeat") == "v1" for n in p.nodes.values())       # still a plain option in the hash

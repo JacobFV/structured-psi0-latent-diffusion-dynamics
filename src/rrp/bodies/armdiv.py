@@ -73,3 +73,12 @@ def is_armdiv_sealed(key: str) -> bool:
         except ValueError:
             return False
     return False
+
+
+# The D-025 / D-126 sealed targets of the pre-armdiv protocol (xarm7 + panda_tf3): the ONE constant every guard reads
+# (`is_sealed_target`), together with the armdiv families above.
+LEGACY_TARGETS = ("xarm7_pg2", "xarm7_tf3", "panda_tf3")
+
+
+def is_sealed_target(key: str) -> bool:
+    return key in LEGACY_TARGETS or is_armdiv_sealed(key)

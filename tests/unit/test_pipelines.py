@@ -126,7 +126,12 @@ def test_arm_eval_r2_runs_ladder_with_deployment_input(tmp_path, monkeypatch):
                             index=RunIndex())
 
 
-def test_arm_heldout_refuses_training_bodies(tmp_path):
+def test_arm_heldout_refuses_training_bodies(tmp_path, monkeypatch):
+    import rrp.policies.nets.checkpoint as ck
+    pk = tmp_path / "artifacts/packed/p"
+    pk.mkdir(parents=True)
+    (pk / "meta.json").write_text(json.dumps({"robots": ["panda_pg2", "parm6_tf3"]}))
+    monkeypatch.setattr(ck, "load_checkpoint", lambda p, map_location=None: {"config": {"packed_dir": str(pk)}})
     rc = _rc(stage="heldout", tag="h", inputs={"flow": "runs/f:policy.pt", "representation": "runs/r:representation.pt"},
              flags=dict(FLAGS_ARM, realizer_anchor=None, realizer_drop_qd=None), params={},
              options={"tag": "h", "robots": ["panda_pg2"]})

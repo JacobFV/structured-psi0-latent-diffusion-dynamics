@@ -1,0 +1,54 @@
+# armdiv G4 (PRE-REGISTERED in research/tracks/armdiv.md): the direct-action BC baselines on the six sealed armdiv targets, same data,
+# protocol (recipes/presets/eval-armdiv_v1.json), harness, budgets and acquisition as arm_targets_v8div_latent. The experts are the
+# v7div BC checkpoints by run id (recipes/armdiv/armdiv_bc_v7div.yaml; NOT retrained here): seed 1701 pinned by sha256 (also the
+# lineages' DAgger labeller), seed 1702 PENDING (its BC run is a separate step; the placeholder refuses the nodes until the lead
+# records the checkpoint's sha256). adapt_seed = the BC seed (protocol seeds). Only the nodes that load the expert are pinned (`bc_pin` per seed); adapted-checkpoint evals are not.
+#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiv rrp run-dag recipes/armdiv/arm_targets_v8div_bc.yaml --dry-run
+extends: ../templates/arm_targets_bc.yaml
+name: arm_targets_v8div_bc
+schema: dag-1
+track: armdiv
+policy: bc
+env: mujoco/arm
+task: pick_place
+bodies: armdiv_v1
+factors: []
+lineage: 'armtgt8-bc{seed}-{target}'
+global_lineage: 'armtgt8-bcsrc'
+label_prefix: 'at8b{seed}{tk}'
+global_label_prefix: 'at8bs'
+matrix:
+  seed: [1701, 1702]
+  target: [gen3_pg2, rizon4_tf3, pa2s900002_pg2, pa2s900003_tf3, xarm7_pg2, xarm7_tf3]
+axis_vars:
+  seed:
+    1701: {bc_pin: 831470cbc314236f6b51a4f14533e118ae9b4ddf44217d70dc18c57e7d94d8cd}
+    1702: {bc_pin: PENDING_bcv7div_1702_not_trained_yet}
+  target:
+    gen3_pg2: {tk: g3p}
+    rizon4_tf3: {tk: r4t}
+    pa2s900002_pg2: {tk: p2p}
+    pa2s900003_tf3: {tk: p3t}
+vars:
+  dataset: runs/armdiv/v7div/collect-v7div_s1
+  source_pack: packed/latent_pp_v7div_s1_H16
+  bc_ref: 'runs/armdiv/bcv7div-{seed}/train_bc-bc{seed}_s{seed}:policy.pt'
+  bc_label: 'bcv7div_direct{seed}_final'
+base:
+  options: {protocol: recipes/presets/eval-armdiv_v1.json}
+nodes:
+  pack_panda_tf3: null
+  train_bc1702: null
+  train_bc1703: null
+  src_parm5s_tf3: {config: {options: {pin_sha256: {bc_policy: '{bc_pin}'}}}}
+  src_parm5l_pg2: {config: {options: {pin_sha256: {bc_policy: '{bc_pin}'}}}}
+  zs: {config: {options: {pin_sha256: {bc_policy: '{bc_pin}'}}}}
+  sft5: {config: {options: {pin_sha256: {bc_policy: '{bc_pin}'}}}}
+  sft20: {config: {options: {pin_sha256: {bc_policy: '{bc_pin}'}}}}
+  sft100: {config: {options: {pin_sha256: {bc_policy: '{bc_pin}'}}}}
+  pack_gen3_pg2: {stage: pack, tag: gen3_pg2, scope: global, resources: {cpu: 2, mem: 8G, max_seconds: 3600}, config: {inputs: {dataset: '{dataset}'}, params: {name: tgtbc8_gen3_pg2_H16, train_robots: [gen3_pg2], horizon: 16, stride: 1, include_dart_failures: false}}}
+  pack_rizon4_tf3: {stage: pack, tag: rizon4_tf3, scope: global, resources: {cpu: 2, mem: 8G, max_seconds: 3600}, config: {inputs: {dataset: '{dataset}'}, params: {name: tgtbc8_rizon4_tf3_H16, train_robots: [rizon4_tf3], horizon: 16, stride: 1, include_dart_failures: false}}}
+  pack_pa2s900002_pg2: {stage: pack, tag: pa2s900002_pg2, scope: global, resources: {cpu: 2, mem: 8G, max_seconds: 3600}, config: {inputs: {dataset: '{dataset}'}, params: {name: tgtbc8_pa2s900002_pg2_H16, train_robots: [pa2s900002_pg2], horizon: 16, stride: 1, include_dart_failures: false}}}
+  pack_pa2s900003_tf3: {stage: pack, tag: pa2s900003_tf3, scope: global, resources: {cpu: 2, mem: 8G, max_seconds: 3600}, config: {inputs: {dataset: '{dataset}'}, params: {name: tgtbc8_pa2s900003_tf3_H16, train_robots: [pa2s900003_tf3], horizon: 16, stride: 1, include_dart_failures: false}}}
+  pack_xarm7_pg2: {stage: pack, tag: xarm7_pg2, scope: global, resources: {cpu: 2, mem: 8G, max_seconds: 3600}, config: {inputs: {dataset: '{dataset}'}, params: {name: tgtbc8_xarm7_pg2_H16, train_robots: [xarm7_pg2], horizon: 16, stride: 1, include_dart_failures: false}}}
+  pack_xarm7_tf3: {stage: pack, tag: xarm7_tf3, scope: global, resources: {cpu: 2, mem: 8G, max_seconds: 3600}, config: {inputs: {dataset: '{dataset}'}, params: {name: tgtbc8_xarm7_tf3_H16, train_robots: [xarm7_tf3], horizon: 16, stride: 1, include_dart_failures: false}}}

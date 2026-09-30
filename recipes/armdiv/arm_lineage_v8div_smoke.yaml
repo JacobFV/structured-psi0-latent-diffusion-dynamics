@@ -1,0 +1,51 @@
+# armdiv G3 SMOKE (plumbing only; NOT a result): the v8div lineage DAG end to end with tiny step counts, 1 DAgger
+# episode per body on 4 bodies (2 v6 + 2 new), 2-episode evaluations; labeller = the v6 BC expert (plumbing only).
+#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiv rrp run-dag recipes/armdiv/arm_lineage_v8div_smoke.yaml --max-parallel-gpu 1
+extends: arm_lineage_v8div.yaml         # (sibling instance)
+name: arm_lineage_v8div_smoke
+schema: dag-1
+track: armdiv
+policy: latent
+env: mujoco/arm
+task: pick_place
+bodies: armdiv_pool_v1
+factors: [semfix]
+lineage: 'arm8div-smoke-{variant}'
+label_prefix: 'a8s{tg}{seed}'
+matrix:
+  variant: [semfix]
+  seed: [1]
+vars:
+  pfx: 'arm8divsmoke_{variant}_s{seed}'
+  bc_policy: 'runs/armexpert_bcv6/baseline_direct_action/seed1701/source:policy.pt'
+  bc_label: bcv6_direct1701_final_SMOKE
+lists:
+  bodies: [panda_pg2, parm6_tf3, pa2s3_tf3, ur10e_pg2]
+  npz: [panda_pg2.npz, parm6_tf3.npz, pa2s3_tf3.npz, ur10e_pg2.npz]
+  npz_gen1: [panda_pg2.npz, parm6_tf3.npz, pa2s3_tf3.npz, ur10e_pg2.npz]
+  genctx: [panda_pg2.npz.genctx.pkl, parm6_tf3.npz.genctx.pkl, pa2s3_tf3.npz.genctx.pkl, ur10e_pg2.npz.genctx.pkl]
+nodes:
+  stageA: {config: {params: {steps: 30}}}
+  F0: {config: {params: {steps: 30, snapshot_every: 10}}}
+  Fft: {config: {params: {steps: 100, snapshot_every: 50}}}
+  rzbcdag1: {config: {params: {steps: 100}}}
+  rzbcdag1long: {config: {params: {steps: 100}}}
+  rzbcdag2: {config: {params: {steps: 100}}}
+  rzgendag1: {config: {params: {steps: 100}}}
+  rzgendag2: {config: {params: {steps: 100}}}
+  rzgendag3: {config: {params: {steps: 100}}}
+  Fgdag1: {config: {params: {steps: 100, snapshot_every: 50}}}
+  Fgdag2h: {config: {params: {steps: 100, snapshot_every: 50}}}
+  bc1: {config: {options: {episodes: 1}}}
+  bc2: {config: {options: {episodes: 1}}}
+  bc3: {config: {options: {episodes: 1}}}
+  gen1: {config: {options: {episodes: 1}}}
+  gen2: {config: {options: {episodes: 1}}}
+  gen3: {config: {options: {episodes: 1}}}
+  gdag1: {config: {options: {episodes: 1}}}
+  gdag2: {config: {options: {episodes: 1}}}
+  finalevals: {config: {options: {episodes: 2, seed_starts: [3000000]}}}
+  heldout: {config: {options: {episodes: 2}}}
+  newarms: {config: {options: {episodes: 2}}}
+base:
+  options: {pin_sha256: {bc_policy: null}}      # the smoke labeller is the v6 expert (plumbing only): no pin

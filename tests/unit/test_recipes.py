@@ -70,8 +70,8 @@ def test_legged_lineage_go2_child_matches_golden(tmp_path):
     assert digest(_plan(child)) == GOLDEN["recipe.legged_lineage.go2"]
 
 
-@pytest.mark.parametrize("name", ["arm_lineage_v7div", "arm_lineage_v7div_smoke"])
-def test_v7div_grasp_contact_v21_in_every_simulated_stage(name):
+@pytest.mark.parametrize("name", ["arm_lineage_v8div", "arm_lineage_v8div_smoke"])
+def test_v8div_grasp_contact_v21_in_every_simulated_stage(name):
     plan = _plan(ROOT / "recipes/armdiv" / f"{name}.yaml")
     sim = [n for n in plan.nodes.values() if n.rc.stage in ("dagger_collect", "eval_r2", "heldout")]
     assert sim
@@ -79,7 +79,7 @@ def test_v7div_grasp_contact_v21_in_every_simulated_stage(name):
 
 
 def test_resolve_recipe_by_name_and_path():
-    assert resolve_recipe("armdiv/arm_lineage_v7div", ROOT) == ROOT / "recipes/armdiv/arm_lineage_v7div.yaml"
+    assert resolve_recipe("armdiv/arm_lineage_v8div", ROOT) == ROOT / "recipes/armdiv/arm_lineage_v8div.yaml"
     assert resolve_recipe("templates/arm_lineage.yaml", ROOT).is_file()
     assert resolve_recipe(str(ROOT / "recipes/templates/arm_grpo.yaml")).is_file()
     with pytest.raises(Exception, match="recipe not found"):

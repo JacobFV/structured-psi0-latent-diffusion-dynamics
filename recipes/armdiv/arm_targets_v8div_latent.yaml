@@ -1,0 +1,48 @@
+# armdiv G4 (D-137 / D-146 item 4; PRE-REGISTERED in research/tracks/armdiv.md, signed by the lead BEFORE any v8div training):
+# the v8div latent lineages (arm_lineage_v8div: semfix / nosem x seeds 1, 2) on the SIX sealed armdiv targets under
+# recipes/presets/eval-armdiv_v1.json (primary gen3_pg2 + rizon4_tf3, secondary pa2s900002_pg2 + pa2s900003_tf3, tertiary REUSED
+# xarm7_pg2 / xarm7_tf3): zero-shot, flow_sft / system0_refit / joint_adapt (gen_frac 0.5) at budgets 5 / 20 / 100, plus the source
+# competence cells. Target demos = the v7div collection's target_demos split (seeds 1,000,000+). panda_tf3 is not an armdiv target.
+# Resources are the template's PROVISIONAL declarations: measure the first node of each stage type (>= 1.35 x peak) before the full run.
+#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiv rrp run-dag recipes/armdiv/arm_targets_v8div_latent.yaml --dry-run
+extends: ../templates/arm_targets_latent.yaml
+name: arm_targets_v8div_latent
+schema: dag-1
+track: armdiv
+policy: latent
+env: mujoco/arm
+task: pick_place
+bodies: armdiv_v1
+factors: [semfix, nosem]
+lineage: 'armtgt8-{variant}-{target}'
+global_lineage: 'armtgt8-data'
+label_prefix: 'at8{tg}{seed}{tk}'
+global_label_prefix: 'at8d'
+matrix:
+  target: [gen3_pg2, rizon4_tf3, pa2s900002_pg2, pa2s900003_tf3, xarm7_pg2, xarm7_tf3]
+axis_vars:
+  target:
+    gen3_pg2: {tk: g3p}
+    rizon4_tf3: {tk: r4t}
+    pa2s900002_pg2: {tk: p2p}
+    pa2s900003_tf3: {tk: p3t}
+vars:
+  flow_ref: 'runs/armdiv/arm8div-{variant}/flow_ft-gdag2h_s{seed}:policy.pt'
+  rep_ref: 'runs/armdiv/arm8div-{variant}/refit-gendag3_noqd_s{seed}:representation.pt'
+  dataset: runs/armdiv/v7div/collect-v7div_s1
+base:
+  options: {protocol: recipes/presets/eval-armdiv_v1.json}
+nodes:
+  pack_panda_tf3: null
+  pack_gen3_pg2: {stage: pack, tag: gen3_pg2, scope: global, resources: {cpu: 2, mem: 8G, max_seconds: 3600}, config: {inputs: {dataset: '{dataset}'}, params: {name: tgt8_gen3_pg2_H16, train_robots: [gen3_pg2], horizon: 16, stride: 1, include_dart_failures: false}}}
+  pack_rizon4_tf3: {stage: pack, tag: rizon4_tf3, scope: global, resources: {cpu: 2, mem: 8G, max_seconds: 3600}, config: {inputs: {dataset: '{dataset}'}, params: {name: tgt8_rizon4_tf3_H16, train_robots: [rizon4_tf3], horizon: 16, stride: 1, include_dart_failures: false}}}
+  pack_pa2s900002_pg2: {stage: pack, tag: pa2s900002_pg2, scope: global, resources: {cpu: 2, mem: 8G, max_seconds: 3600}, config: {inputs: {dataset: '{dataset}'}, params: {name: tgt8_pa2s900002_pg2_H16, train_robots: [pa2s900002_pg2], horizon: 16, stride: 1, include_dart_failures: false}}}
+  pack_pa2s900003_tf3: {stage: pack, tag: pa2s900003_tf3, scope: global, resources: {cpu: 2, mem: 8G, max_seconds: 3600}, config: {inputs: {dataset: '{dataset}'}, params: {name: tgt8_pa2s900003_tf3_H16, train_robots: [pa2s900003_tf3], horizon: 16, stride: 1, include_dart_failures: false}}}
+  pack_xarm7_pg2: {stage: pack, tag: xarm7_pg2, scope: global, resources: {cpu: 2, mem: 8G, max_seconds: 3600}, config: {inputs: {dataset: '{dataset}'}, params: {name: tgt8_xarm7_pg2_H16, train_robots: [xarm7_pg2], horizon: 16, stride: 1, include_dart_failures: false}}}
+  pack_xarm7_tf3: {stage: pack, tag: xarm7_tf3, scope: global, resources: {cpu: 2, mem: 8G, max_seconds: 3600}, config: {inputs: {dataset: '{dataset}'}, params: {name: tgt8_xarm7_tf3_H16, train_robots: [xarm7_tf3], horizon: 16, stride: 1, include_dart_failures: false}}}
+  jad5: {stage: target_adapt, tag: joint_adapt_b5, resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 12G, max_seconds: 7200}, config: {inputs: {flow: '{flow_ref}', representation: '{rep_ref}', packed_dir: '@pack_{target}'}, options: {method: joint_adapt, target: '{target}', budget: 5, adapt_seed: '{adapt_seed}', gen_frac: 0.5}}}
+  jev5: {stage: target_eval, tag: joint_adapt_b5, config: {inputs: {flow: '@jad5:policy.pt', representation: '@jad5:representation.pt'}, options: {robot: '{target}', sealed_run: true, kind: 'adapted:joint_adapt:b5', tag: joint_adapt_b5}}}
+  jad20: {stage: target_adapt, tag: joint_adapt_b20, resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 12G, max_seconds: 7200}, config: {inputs: {flow: '{flow_ref}', representation: '{rep_ref}', packed_dir: '@pack_{target}'}, options: {method: joint_adapt, target: '{target}', budget: 20, adapt_seed: '{adapt_seed}', gen_frac: 0.5}}}
+  jev20: {stage: target_eval, tag: joint_adapt_b20, config: {inputs: {flow: '@jad20:policy.pt', representation: '@jad20:representation.pt'}, options: {robot: '{target}', sealed_run: true, kind: 'adapted:joint_adapt:b20', tag: joint_adapt_b20}}}
+  jad100: {stage: target_adapt, tag: joint_adapt_b100, resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 12G, max_seconds: 7200}, config: {inputs: {flow: '{flow_ref}', representation: '{rep_ref}', packed_dir: '@pack_{target}'}, options: {method: joint_adapt, target: '{target}', budget: 100, adapt_seed: '{adapt_seed}', gen_frac: 0.5}}}
+  jev100: {stage: target_eval, tag: joint_adapt_b100, config: {inputs: {flow: '@jad100:policy.pt', representation: '@jad100:representation.pt'}, options: {robot: '{target}', sealed_run: true, kind: 'adapted:joint_adapt:b100', tag: joint_adapt_b100}}}

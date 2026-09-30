@@ -1,5 +1,5 @@
 # armdiv: training-arm diversity for new-arm transfer (D-137)
-State: **paused for the repo refactor** (2026-09-29 12:05; owner wind-down). G0, G1 and G2 (BC 1701) done; G3 started (semfix s1 Stage A + bc1 done, F0 stopped at step 3,893 with a checkpoint); G4 not started (no sealed run).
+State: **paused for the repo refactor** (2026-09-29 12:05; owner wind-down). G0, G1 and G2 (BC 1701) done; the v7div latent lineage is DISCARDED (D-146 item 4: restart as lineage v8div on current code, readiness A2); G4 protocol pre-registered below, AWAITING the lead's signature; no training started, no sealed run.
 Branch `track/armdiv`, worktree `~/work/rrp-wt/armdiv`, peer code dir `/dev/shm/rrp-brandonin/wt/armdiv` (never the
 shared repo). At most ONE concurrent peer GPU lease (humanoids have priority); CPU leases for simulation are separate
 and declared at >= 1.35 x measured peak. No host compute beyond unit tests, tiny smokes and orchestration.
@@ -70,7 +70,7 @@ Both can fail; a null or negative result will be recorded as failed_hypothesis, 
 - BC experts `bcv7div` 1701/1702 on the v7div pack (the v6 BC recipe): both the DAgger labeller / stateless-R1 expert of
   the latent lineages AND the BC baseline (same inputs, same data).
 - Latent lineages `arm7div-{semfix,nosem}` x seeds 1, 2: the full `arm_lineage_v6` recipe (Stage A, F0, Fft, bc/gen
-  DAgger rounds, refits, Fgdag1/2h), recipe `recipes/armdiv/arm_lineage_v7div.yaml` (the v6 chain flattened into the instance, new body lists).
+  DAgger rounds, refits, Fgdag1/2h), recipe `recipes/armdiv/arm_lineage_v8div.yaml (restarted lineage `arm8div-*`, D-146)` (the v6 chain flattened into the instance, new body lists).
 - Ablation `arm7div-semfix-kinfeat` x seeds 1, 2 plus BC `bcv7div_kinfeat` 1701 (same input information for both).
 - Comparison baseline for H1 (no new training): the existing v6 lineages and v6 BC experts evaluated on the new
   targets with the same protocol.
@@ -176,6 +176,29 @@ Reading: the expanded-pool BC expert is competent on every body checked (it beco
 v6 expert does not handle the new arms, so the new arms are genuinely new kinematics for the v6 models. Not a transfer
 result: all bodies here are training bodies (or v6's held-out source bodies); no target was touched.
 
+## G4 pre-registration (readiness A2, 2026-09-30) -- DRAFT, NOT SIGNED: the lead signs before any v8div training
+Frozen before any result. Protocol `recipes/presets/eval-armdiv_v1.json` (sha256 aad7c9fe59469d47a4e0307f6632f5095c82fe6cefb1a36d731b2e45e7fe6ad1; byte-frozen from the
+signature on), split `research/splits/armdiv_v1.json` (sha256 26448f52...ef414), pool `research/splits/armdiv_pool_v1.json` (sha256 688e7d8c...323b5).
+- **Question / hypotheses.** H1 (primary): a latent route trained on the 65-key pool transfers better to NEW arms than the v6 13-body lineages,
+  zero-shot and at small adaptation budgets, and closes the gap to BC SFT on the same data. H2 (ablation): `kinfeat` features help further.
+- **Targets and tiers (never pooled).** Primary: gen3_pg2, rizon4_tf3. Secondary (procedural, sealed seeds >= 900000): pa2s900002_pg2, pa2s900003_tf3.
+  Tertiary REUSED (their sealed scenes were seen in D-135/D-136): xarm7_pg2, xarm7_tf3. Sealed scenes: 100 seeds from 2,000,000, infeasible excluded and counted;
+  max_steps 300, replan 8 ticks, NFE 8. Target demos: the v7div collection's target_demos split (seeds 1,000,000+), nested episode choice by adapt_seed.
+- **Systems.** Latent lineages `arm8div-{semfix,nosem}` seeds 1, 2 (`arm_lineage_v8div.yaml`; frozen inputs pinned: pack `meta.json` sha256
+  abb149a8...3b6d, BC labeller/expert bcv7div 1701 policy.pt sha256 831470cb...d8cd); BC `bcv7div` 1701 (pinned), 1702 (to be trained; its sha256 recorded before the target run).
+  Source of every cell is labelled in the results (learned latent / learned BC).
+- **Cells.** Per (system, seed, target): zero-shot (budget 0); flow_sft, system0_refit, joint_adapt (gen_frac 0.5) at budgets 5 / 20 / 100 with 150 / 300 / 600 updates, lr 1e-4;
+  BC zero-shot and BC SFT at the same budgets / updates / episodes. adapt_seed = 1700 + lineage seed (latent), the BC seed (BC). Same input information and acquisition for all methods.
+  Recipes: `arm_targets_v8div_latent.yaml` (470 nodes), `arm_targets_v8div_bc.yaml` (94 nodes). Source-competence cells on parm5s_tf3 / parm5l_pg2.
+- **Gates before the sealed run.** G3 in-distribution check (dev seeds 3,000,000+): v8div semfix >= v6 semfix - 0.05 on the original source bodies; BC expert >= 0.85 on new training arms.
+- **Reading rules.** Metric k/100 per cell, pooled over seeds, Wilson 95%; primary contrasts with Newcombe 95%: (a) v8div - v6 latent per primary-tier target (H1), (b) v8div latent (each of the three adaptation
+  methods reported) - v8div BC SFT at equal budget, (c) kinfeat - no-kinfeat (H2, only if its BC expert was trained with the same inputs). A contrast counts when its 95% interval excludes 0; tiers not pooled;
+  existing-controller transfer (zero-shot) reported separately from new-controller training (adaptation). Each sealed cell runs once; a failed or infeasible cell is reported as such and not re-run with other settings.
+  A null or negative H1 is a reportable result (failed_hypothesis), not a reason to change targets or budgets.
+- **OPEN before signature.** (1) The v6 reference cells (contrast (a)) need the v6 checkpoints' run ids and sha256 (peer `runs/armv6/*`, `runs/armexpert_bcv6/*`; not in the host archive): they are evaluated by the same target recipes with
+  `flow_ref` / `rep_ref` / `bc_ref` overrides, added as a registered addendum with recorded hashes BEFORE the sealed run. (2) kinfeat: its BC expert (`armdiv_bc_v7div_kinfeat`) is untrained; its pin is a placeholder that refuses the nodes.
+Signed: ____________ (lead)  date: __________
+
 ## RESUME (paused 2026-09-29 12:05 for the repo refactor; owner decision relayed by the lead)
 Nothing of mine runs: coordinator `rrp-armdiv-chain2` stopped; my F0 lease 1790703796_35e3f6 stopped with
 `rrp ops stop --owned-only --lease` (checkpoint written). No sealed scene of any armdiv target was ever evaluated.
@@ -189,7 +212,7 @@ Paths (peer store = /dev/shm/rrp-brandonin/repo/artifacts = RAM; host copy of ru
   pack **peer disk ~/rrp-peer-data/packed/latent_pp_v7div_s1_H16** (= artifacts/packed/..., 21 GB, 1,914,009 rows).
 - BC expert 1701: runs/armdiv/bcv7div-1701/train_bc-bc1701_s1701/policy.pt (final; also policy_last.pt); its dev evals
   in runs/armdiv/bcv7div-1701/{eval_r2-*,heldout-*}. Ledger: artifacts/runs/armdiv/_dags/armdiv_bc_v7div/ledger.json (host).
-- Lineage semfix s1 (`recipes/armdiv/arm_lineage_v7div.yaml`): stageA done (runs/armdiv/arm7div-semfix/train_rep_s1/
+- DISCARDED v7div lineage semfix s1 (recipe now `.old/dags/arm_lineage_v7div.yaml`; ledger stays frozen): stageA done (runs/armdiv/arm7div-semfix/train_rep_s1/
   representation.pt, 2 h 34 min, peak 1.86 G); bc1 done (dagger_collect-bc1_s1, peak 5.66 G); F0 INTERRUPTED at step
   3,893/20,000 (train_flow_s1/policy_last.pt; the node is `failed` in the ledger
   artifacts/runs/armdiv/_dags/arm_lineage_v7div/ledger.json; `--retry-failed` resumes from policy_last.pt).
@@ -198,26 +221,21 @@ Remaining (each line is a step; run in this order; every command needs `RRP_PEER
 `PYTHONPATH=src`, prefix `rrp` = `.venv/bin/python -m rrp.cli`; ONE peer GPU lease at a time, hence `--max-parallel-gpu 1`;
 each step is idempotent: completed nodes are skipped by the ledger). The former coordinator `.old/scripts/armdiv_chain.sh` ran exactly these:
 1. Re-push code: `RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiv ops/bin/peer_sync.sh push`.
-2. G3 semfix s1 (F0 resumes from `train_flow_s1/policy_last.pt`; `--retry-failed` once, for the interrupted node):
-   `rrp run-dag recipes/armdiv/arm_lineage_v7div.yaml --point variant=semfix,seed=1 --max-parallel 3 --max-parallel-gpu 1 --retry-failed`
-3. G3 the other three lineages (semfix s2, nosem s1, nosem s2; semfix s1 is skipped as complete):
-   `rrp run-dag recipes/armdiv/arm_lineage_v7div.yaml --max-parallel 3 --max-parallel-gpu 1`
-4. G2 BC seed 1702 (~7 h GPU incl. one 6 h-cap resume): `rrp run-dag recipes/armdiv/armdiv_bc_v7div.yaml --point seed=1702 --max-parallel 3 --max-parallel-gpu 1`
-5. G2 kinfeat BC 1701: `rrp run-dag recipes/armdiv/armdiv_bc_v7div_kinfeat.yaml --max-parallel 3 --max-parallel-gpu 1`
-6. G3 kinfeat lineages (semfix s1/s2): `rrp run-dag recipes/armdiv/arm_lineage_v7div_kinfeat.yaml --max-parallel 3 --max-parallel-gpu 1`
-   (needs step 5's `bcv7divkf-1701` policy as labeller).
-7. G4 (not started, no recipe yet): write the pre-registration (protocol config listing the armdiv targets, methods zero-shot /
-   joint_adapt split gen_frac 0.5 / BC SFT at budgets 5/20/100, reading rules) and commit it BEFORE any sealed run; target demo
-   packs from the v7div collection (target_demos split); the v6 lineages/BC evaluated on the same new targets as the
-   no-diversity comparison. Then add its recipe instance under `recipes/armdiv/` (template `arm_targets_*`).
+2. G3 v8div lineages (NEW lineage from `train_rep` on current code; start only after A1 merged and the G4 pre-registration is signed; the pins verify the pack and the BC labeller before any compute):
+   `rrp run-dag recipes/armdiv/arm_lineage_v8div.yaml --point variant=semfix,seed=1 --max-parallel 3 --max-parallel-gpu 1`, then without `--point` for the other three.
+3. G2 BC seed 1702 (~7 h GPU incl. one 6 h-cap resume): `rrp run-dag recipes/armdiv/armdiv_bc_v7div.yaml --point seed=1702 --max-parallel 3 --max-parallel-gpu 1`; record its policy.pt sha256 in `arm_targets_v8div_bc.yaml` (`bc_pin`).
+4. G2 kinfeat BC 1701: `rrp run-dag recipes/armdiv/armdiv_bc_v7div_kinfeat.yaml --max-parallel 3 --max-parallel-gpu 1`; record its sha256 in `arm_lineage_v8div_kinfeat.yaml` (placeholder pin), then
+   `rrp run-dag recipes/armdiv/arm_lineage_v8div_kinfeat.yaml --max-parallel 3 --max-parallel-gpu 1`.
+5. G4 (after signature, the open items above closed, and G3 in-distribution gate passed): `rrp run-dag recipes/armdiv/arm_targets_v8div_latent.yaml` and `.../arm_targets_v8div_bc.yaml` (sealed, once).
 Not needed again (done): collection (`recipes/armdiv/armdiv_data_v7div.yaml`, gate PASS), pack (`.old/scripts/armdiv_pack.sh`), BC 1701
-(`rrp run-dag recipes/armdiv/armdiv_bc_v7div.yaml --point seed=1701 ...`). Smokes: `recipes/armdiv/{armdiv_bc_v7div_smoke,arm_lineage_v7div_smoke}.yaml`.
+(`rrp run-dag recipes/armdiv/armdiv_bc_v7div.yaml --point seed=1701 ...`). Smokes: `recipes/armdiv/{armdiv_bc_v7div_smoke,arm_lineage_v8div_smoke}.yaml`.
 
 Dry-run node lists (`rrp run-dag <recipe> --dry-run`, D-145 P4b; digests pinned as `recipe.*` in `tests/data/golden.json`):
 - `armdiv_bc_v7div` (4 nodes per seed) and `armdiv_bc_v7div_kinfeat`: train, ev_v6bodies, ev_newarms, ev_heldout (the v6-BC reference cell
   `ref_v6bc_newarms` exists for seed 1701 only).
-- `arm_lineage_v7div` (22 nodes per variant x seed; 88 in all, 44 for `..._kinfeat`): stageA, F0, Fft, bc1, rzbcdag1, rzbcdag1long, bc2, bc3,
+- `arm_lineage_v8div` (22 nodes per variant x seed; 88 in all, 44 for `..._kinfeat`, 22 for `..._smoke`): stageA, F0, Fft, bc1, rzbcdag1, rzbcdag1long, bc2, bc3,
   gen1, rzbcdag2, rzgendag1, gen2, rzgendag2, gen3, gdag1, rzgendag3, Fgdag1, gdag2, Fgdag2h, finalevals, heldout, newarms.
+- `arm_targets_v8div_latent` (470 nodes: 6 packs, 4 x 6 x (zs + 18 adapt/eval nodes) + 8 source cells) and `arm_targets_v8div_bc` (94 nodes), protocol `eval-armdiv_v1.json`.
 
 ## Log
 - 2026-09-28: plan written (D-137).
@@ -226,3 +244,4 @@ Dry-run node lists (`rrp run-dag <recipe> --dry-run`, D-145 P4b; digests pinned 
 - 2026-09-29 08:09: G2 BC 1701 done (120/120 new arms; v6 BC 21/120). 10:43 semfix s1 Stage A done.
 - 2026-09-29 12:05: paused for the repo refactor (RESUME above).
 - 2026-09-30: D-145 P4b: RESUME rewritten as `rrp run-dag recipes/armdiv/...` lines; `armdiv_{chain,pack}` scripts and the pack config to `.old/scripts/`; screen admissions to `artifacts/runs/armdiv/screen/`.
+- 2026-09-30: readiness A2 (D-146 item 4): v7div lineage discarded, `arm_lineage_v8div{,_kinfeat,_smoke}` (pack + BC pinned by sha256), G4 protocol `eval-armdiv_v1.json` + `arm_targets_v8div_{latent,bc}`; held-out guard now reads the checkpoints' real training bodies; sealed constants from `rrp.bodies.armdiv`. Pre-registration drafted, awaiting the lead. No training started.

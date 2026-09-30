@@ -14,6 +14,7 @@ Path mapping (this dir keeps the old path, so a decision citing `dags/x.yaml` re
 | `dags/templates/tracker_recipe_gated.yaml` | `recipes/templates/tracker_gated.yaml` |
 | `dags/arm_lineage_v7div{,_kinfeat,_smoke}.yaml`, `dags/armdiv_{data,bc}_v7div*.yaml` | `recipes/armdiv/` (chain `v7div -> v6 -> v2 -> arm_lineage` flattened into the instance; data/bc got `templates/arm_collect.yaml` / `arm_bc.yaml`) |
 | `dags/d126_tracker_*.yaml` | `recipes/humanoid/` |
+| `dags/arm_lineage_v7div{,_kinfeat,_smoke}.yaml` (copies of the recipes as of readiness A2) | replaced by `recipes/armdiv/arm_lineage_v8div{,_kinfeat,_smoke}.yaml` (D-146 item 4; the v7div latent lineage was discarded, its ledger `artifacts/runs/armdiv/_dags/arm_lineage_v7div/` stays frozen; the `extends:` paths inside are not repaired) |
 
 Retired here (closed tracks, provenance only), all in this directory: `arm_lineage_v2`, `arm_lineage_v6` (armexpert /
 arm v2, v6 lineages), `armexpert_v{4,5,6}dart`, `arm_targets_{d136_joint,v6_bc,v6_latent}` (armdiag / d126 arm

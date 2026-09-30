@@ -22,7 +22,10 @@ the stage's own out dir, never to the shared artifacts/runs/ladder_v1/.
 """
 from __future__ import annotations
 
+import functools
+import hashlib
 import json
+import re
 import shutil
 from collections import Counter
 from pathlib import Path
@@ -32,9 +35,68 @@ from rrp.harness.pipelines.base import apply_gate, StageContext, StageError, reg
 LADDER = ["-m", "rrp.cli", "suite", "ladder"]
 TRAIN_BODIES = ("panda_pg2", "parm5_pg2", "parm5_tf3", "parm5l_tf3", "parm5s_pg2", "parm6_pg2", "parm6_tf3",
                 "parm7_pg2", "parm7_tf3", "sawyer_pg2", "sawyer_tf3", "ur5e_pg2", "ur5e_tf3")
-TARGET_BODIES = ("xarm7_pg2", "xarm7_tf3", "panda_tf3")      # never in the ladder (the ladder refuses them)
 DEFAULT_BC = ("artifacts/runs/baselines_bc_ckpts/direct1701_u12000.pt", "direct1701_u12000")
 SEMEDIT_CONDITIONS = "control,goal_shift,rebind_desc,irrelevant_distractor,orthogonal_matched,control_replay"
+
+
+# ------------------------------------------------------------------------------------------------ frozen-input pins
+def _sha256_of(path: Path) -> str:
+    """sha256 of a file; of a pack directory, its `meta.json` (the recorded pack identity, the pack is not re-hashed)."""
+    p = path / "meta.json" if path.is_dir() else path
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _verify_pins(ctx: StageContext) -> None:
+    """`options.pin_sha256: {input_key: sha256}`: inputs kept by run id plus a recorded hash (D-146 item 4). A pin whose
+    input this stage does not take is skipped (one options block serves the whole DAG); a placeholder (not 64 hex, e.g. an
+    untrained expert) or a mismatch refuses the stage before any compute."""
+    pins = ctx.opts.get("pin_sha256") or {}
+    for key, want in pins.items():
+        got_in = ctx.inp(key, required=False)
+        if got_in is None:
+            continue
+        if not isinstance(want, str) or not re.fullmatch(r"[0-9a-f]{64}", want):
+            raise StageError(f"pin_sha256[{key}] is a placeholder ({want!r}): the input is not frozen yet")
+        p = Path(got_in)
+        p = p if p.is_absolute() else ctx.root / p
+        if not p.exists():
+            raise StageError(f"pinned input {key} missing: {p}")
+        got = _sha256_of(p)
+        if got != want:
+            raise StageError(f"pinned input {key} sha256 mismatch: {got} != {want} ({p})")
+
+
+def _pinned(fn):
+    @functools.wraps(fn)
+    def run(ctx: StageContext) -> dict:
+        _verify_pins(ctx)
+        return fn(ctx)
+    return run
+
+
+def _trained_bodies(ctx: StageContext) -> set[str]:
+    """The bodies the checkpoints of this stage were really trained on: `robots` of the `meta.json` of each checkpoint
+    config's `packed_dir` (representation, BC policy, flow), plus `options.train_robots`. Unresolvable -> StageError."""
+    from rrp.policies.nets.checkpoint import load_checkpoint
+    keys = [k for k in ("representation", "flow", "bc_policy") if ctx.inp(k, required=False)]
+    bodies = set(ctx.opts.get("train_robots") or ())
+    resolved = False
+    for k in keys:
+        try:
+            cfg = load_checkpoint(ctx.root / ctx.inp(k), map_location="cpu")["config"]
+            meta = json.loads((ctx.root / cfg["packed_dir"] / "meta.json").read_text())
+            bodies |= set(meta["robots"]) | set(cfg.get("train_robots") or ())
+            resolved = True
+        except (OSError, KeyError, ValueError, TypeError, RuntimeError, EOFError) as e:
+            ctx.log(f"training bodies of {k} unresolvable: {type(e).__name__}: {e}")
+    if not resolved:
+        raise StageError("cannot resolve the training bodies of the checkpoints (config.packed_dir/meta.json); "
+                         "a held-out evaluation needs them")
+    return bodies
 
 
 def _prev_action(ctx: StageContext) -> str:
@@ -84,6 +146,7 @@ def pack(ctx: StageContext) -> dict:
 
 # ------------------------------------------------------------------------------------------------ training
 @register("arm", "train_rep", source="learned")
+@_pinned
 def train_rep(ctx: StageContext) -> dict:
     """Stage A: encoder E + system 0 R + probes P."""
     from rrp.harness.train.latent_train import train_representation
@@ -128,12 +191,14 @@ def _flow(ctx: StageContext) -> dict:
 
 
 @register("arm", "train_flow", source="learned")
+@_pinned
 def train_flow(ctx: StageContext) -> dict:
     """System i: conditional flow over the packet (from scratch)."""
     return _flow(ctx)
 
 
 @register("arm", "flow_ft", source="learned")
+@_pinned
 def flow_ft(ctx: StageContext) -> dict:
     """System i fine-tune (init_from; optional generator-DAgger contexts gen_dagger)."""
     if "init_from" not in ctx.rc.inputs:
@@ -142,6 +207,7 @@ def flow_ft(ctx: StageContext) -> dict:
 
 
 @register("arm", "refit", source="learned")
+@_pinned
 def refit(ctx: StageContext) -> dict:
     """System-0 refit on the frozen encoder from DAgger buffers ."""
     from rrp.harness.train.latent_train import refit_realizer
@@ -161,8 +227,8 @@ def _bc(ctx: StageContext) -> tuple[str, str]:
 
 def _robots(ctx: StageContext, default=TRAIN_BODIES) -> list[str]:
     rs = list(ctx.opts.get("robots") or default)
-    from rrp.bodies.armdiv import is_armdiv_sealed
-    bad = [r for r in rs if r in TARGET_BODIES or is_armdiv_sealed(r)]
+    from rrp.bodies.armdiv import is_sealed_target
+    bad = [r for r in rs if is_sealed_target(r)]
     if bad:
         raise StageError(f"target bodies are not allowed in the ladder: {bad}")
     return rs
@@ -173,6 +239,7 @@ def _threads_env(ctx: StageContext, threads: int | None):
 
 
 @register("arm", "dagger_collect", source="bc")
+@_pinned
 def dagger_collect(ctx: StageContext) -> dict:
     """System-0 DAgger buffers: rollouts of the CURRENT system 0 (mode bc: R1 packets E(BC chunk); mode gen: system i's
     own packets drive the rollout), labels = the stateless BC expert's plan rows (ladder_dagger_collect.sh EXPERT=bc)."""
@@ -274,8 +341,10 @@ def _r2(ctx: StageContext, heldout: bool) -> dict:
     robots = _robots(ctx, default=())
     if not robots:
         raise StageError("options.robots is required for evaluations")
-    if heldout and set(robots) & set(o.get("train_robots", TRAIN_BODIES)):
-        raise StageError(f"heldout robots overlap the training bodies: {sorted(set(robots) & set(TRAIN_BODIES))}")
+    if heldout:
+        trained = _trained_bodies(ctx)
+        if set(robots) & trained:
+            raise StageError(f"heldout robots overlap the training bodies: {sorted(set(robots) & trained)}")
     tag = o["tag"]
     tag_fn = lambda s: f"zero_{tag}_s{s}" if _prev_action(ctx) == "zero" else f"{tag}_s{s}"
     nfe = ["--nfe", str(o["nfe"])] if "nfe" in o else []
@@ -292,12 +361,14 @@ def _r2(ctx: StageContext, heldout: bool) -> dict:
 
 
 @register("arm", "eval_r2", source="learned")
+@_pinned
 def eval_r2(ctx: StageContext) -> dict:
     """R2 (deployable): generated packet from system i -> system 0, on training bodies / dev seeds."""
     return _r2(ctx, heldout=False)
 
 
 @register("arm", "heldout", source="learned")
+@_pinned
 def heldout(ctx: StageContext) -> dict:
     """R2 on held-out bodies (not in the training set)."""
     return _r2(ctx, heldout=True)
@@ -424,6 +495,7 @@ def grpo(ctx: StageContext) -> dict:
 
 
 @register("arm", "target_eval", source="learned")
+@_pinned
 def target_eval(ctx: StageContext) -> dict:
     """D-126 #9/#10: sealed-protocol evaluation (python -m rrp.cli suite target) of the latent route (route
     generated: inputs flow + representation) or direct-action BC (route learned: inputs bc_policy) on options.robot.
@@ -465,6 +537,7 @@ SFT_LR = 1e-4
 
 
 @register("arm", "target_adapt", source="learned")
+@_pinned
 def target_adapt(ctx: StageContext) -> dict:
     """D-126 #9/#10: few-shot adaptation on target demos with the sealed protocol's budgets and acquisition (nested
     episode choice by adapt_seed, update counts SFT_STEPS[budget], lr 1e-4): options.method flow_sft (system i only;
@@ -532,6 +605,7 @@ def target_adapt(ctx: StageContext) -> dict:
 
 
 @register("arm", "train_bc", source="bc")
+@_pinned
 def train_bc(ctx: StageContext) -> dict:
     """D-126 #10: direct-action BC source training (the stateless BC expert recipe: baseline_campaign.source_config =
     policy-small-structured, stride-2 rows of the stride-1 pack, zero_prev_action) on inputs.packed_dir, seed = rc.seed;

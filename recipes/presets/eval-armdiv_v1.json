@@ -1,0 +1,185 @@
+{
+ "id": "armdiv_v1",
+ "stage": "armdiv_confirmation",
+ "status": "SEALED_BEFORE_RESULTS",
+ "question": "Does training the latent route (system i -> packet -> system 0) on 65 arm keys (about 33 distinct kinematics: v6's 13 plus 52 procedural / menagerie arms) improve zero-shot and small-budget transfer to NEW arms (kinova gen3, flexiv rizon4, two sealed procedural arms; xarm7 REUSED) relative to the v6 13-body lineages and to direct-action BC on the same data (H1, D-137)?",
+ "task": "pick_place",
+ "split": "research/splits/armdiv_v1.json",
+ "source_train_robots": [
+  "parm5_pg2",
+  "parm5_tf3",
+  "parm5s_pg2",
+  "parm5l_tf3",
+  "parm6_pg2",
+  "parm6_tf3",
+  "parm7_pg2",
+  "parm7_tf3",
+  "panda_pg2",
+  "ur5e_pg2",
+  "ur5e_tf3",
+  "sawyer_pg2",
+  "sawyer_tf3",
+  "pa2s0_pg2",
+  "pa2s0_tf3",
+  "pa2s3_pg2",
+  "pa2s3_tf3",
+  "pa2s4_pg2",
+  "pa2s4_tf3",
+  "pa2s9_pg2",
+  "pa2s9_tf3",
+  "pa2s15_pg2",
+  "pa2s15_tf3",
+  "pa2s17_pg2",
+  "pa2s17_tf3",
+  "pa2s20_pg2",
+  "pa2s20_tf3",
+  "pa2s21_pg2",
+  "pa2s21_tf3",
+  "pa2s23_pg2",
+  "pa2s23_tf3",
+  "pa2s28_pg2",
+  "pa2s28_tf3",
+  "pa2s29_pg2",
+  "pa2s29_tf3",
+  "pa2s35_pg2",
+  "pa2s35_tf3",
+  "pa2s36_pg2",
+  "pa2s36_tf3",
+  "pa2s37_pg2",
+  "pa2s37_tf3",
+  "pa2s39_pg2",
+  "pa2s39_tf3",
+  "pa2s41_pg2",
+  "pa2s41_tf3",
+  "pa2s42_pg2",
+  "pa2s42_tf3",
+  "pa2s43_pg2",
+  "pa2s43_tf3",
+  "pa2s44_pg2",
+  "pa2s44_tf3",
+  "pa2s45_pg2",
+  "pa2s45_tf3",
+  "pa2s48_pg2",
+  "pa2s48_tf3",
+  "pa2s52_pg2",
+  "pa2s52_tf3",
+  "pa2s55_pg2",
+  "pa2s55_tf3",
+  "pa2s56_pg2",
+  "pa2s56_tf3",
+  "ur10e_pg2",
+  "ur10e_tf3",
+  "vx300s_pg2",
+  "vx300s_tf3"
+ ],
+ "source_heldout_eval_robots": [
+  "parm5s_tf3",
+  "parm5l_pg2"
+ ],
+ "targets": [
+  "gen3_pg2",
+  "rizon4_tf3",
+  "pa2s900002_pg2",
+  "pa2s900003_tf3",
+  "xarm7_pg2",
+  "xarm7_tf3"
+ ],
+ "target_tiers": {
+  "primary": [
+   "gen3_pg2",
+   "rizon4_tf3"
+  ],
+  "secondary": [
+   "pa2s900002_pg2",
+   "pa2s900003_tf3"
+  ],
+  "tertiary_reused": [
+   "xarm7_pg2",
+   "xarm7_tf3"
+  ]
+ },
+ "tier_notes": {
+  "tertiary_reused": "xarm7 sealed scenes were already looked at in D-135 / D-136: reported separately, never pooled into the primary claim"
+ },
+ "methods": {
+  "zero_shot": "deployed latent route, no target data (budget 0)",
+  "flow_sft": "system-i flow SFT on b target demos (system 0 frozen); updates {5:150,20:300,100:600}, lr 1e-4",
+  "system0_refit": "system-0 realizer refit on b target demos (flow frozen), same updates / lr",
+  "joint_adapt": "flow + system 0 at the SAME total update count, gen_frac 0.5 (D-136)",
+  "bc_sft": "direct-action BC (bcv7div expert family, same pack, same input information) SFT on the same b demos, same updates / lr / episode choice",
+  "v6_reference": "the v6 13-body lineages and the v6 BC expert evaluated on the same targets with the same protocol (no new training; reported as existing-controller transfer)"
+ },
+ "lineages": {
+  "latent_sem": "arm8div-semfix seeds 1, 2 (recipes/armdiv/arm_lineage_v8div.yaml)",
+  "latent_nosem": "arm8div-nosem seeds 1, 2",
+  "bc": "bcv7div_direct 1701 (pinned expert), 1702, 1703"
+ },
+ "threshold": 0.8,
+ "sustained_requires_next_checkpoint": true,
+ "sft_budgets": [
+  0,
+  5,
+  20,
+  100
+ ],
+ "seeds": [
+  1701,
+  1702,
+  1703
+ ],
+ "eval": {
+  "episodes": 100,
+  "seed_start": 2000000,
+  "dev_seed_start": 3000000,
+  "max_steps": 300,
+  "replan_ticks": 8,
+  "nfe": 8
+ },
+ "clocks": {
+  "system_i_replan_s": 0.4,
+  "knot_spacing_s": 0.2,
+  "knots": 4,
+  "system0_hz": 20,
+  "physics_hz": 500
+ },
+ "reading_rules": {
+  "unit": "success rate over the 100 sealed scenes per (target, method, budget, seed); infeasible scenes excluded and counted; Wilson 95% intervals",
+  "primary_contrast": "latent_sem (v8div) minus v6 latent_sem, zero-shot and adapted, per PRIMARY-tier target; a difference counts only when the 95% intervals of both cells are disjoint or the paired-seed difference has the same sign in every lineage seed",
+  "vs_bc": "latent (best of flow_sft / system0_refit / joint_adapt, chosen on nothing but the protocol: all three are reported) vs bc_sft at equal budget and equal update count",
+  "no_pooling": "tiers are never pooled; tertiary (xarm7) is reported as REUSED",
+  "sealed_once": "each sealed cell runs once; a failed cell is reported as failed, not re-run with changed settings",
+  "kinfeat": "the kinfeat ablation is reported only if its BC expert was trained with the same inputs"
+ },
+ "semantic_reporting": [
+  "oracle_target",
+  "one_step_clean(tau=0.5)",
+  "free_sampled",
+  "free_shuffled_control",
+  "metadata_only_probe"
+ ],
+ "latency": {
+  "metrics": [
+   "p50",
+   "p95",
+   "p99"
+  ],
+  "paths": [
+   "context+sampling",
+   "system0 tick",
+   "end-to-end obs->command"
+  ],
+  "nfe": [
+   1,
+   2,
+   4,
+   8
+  ],
+  "condition": "no other GPU lease active on the peer"
+ },
+ "targets_aspirational": {
+  "interaction_reduction": 2.0,
+  "p95_latency_overhead_max": 1.25
+ },
+ "dev_rule": "development iteration only on source bodies and dev scenes (>=3,000,000); targets / eval scenes untouched until the sealed runs; target demos come from seeds 1,000,000+",
+ "notes": "Sealed guards read rrp.bodies.armdiv (is_sealed_target); the armdiv targets and the family prefixes gen3_ / rizon4_ / iiwa14_ / pa2s>=900000 never enter training or dev evaluation. Pre-registered in research/tracks/armdiv.md (G4 entry) before any v8div training."
+}

@@ -16,10 +16,10 @@ def test_extends_cycle_refused(tmp_path):
 
 
 def test_instance_is_the_template_plus_its_deltas():
-    """The armdiv v7div instance (a flattened v2/v6/v7div chain) keeps the template's recipe: the same nodes except the
+    """The armdiv v8div instance (a flattened v2/v6/v7div chain) keeps the template's recipe: the same nodes except the
     four dropped diagnostics and the added new-arm eval, and the same flags and seeds per node."""
     tpl = plan_dag(load_dag(ROOT / "recipes/templates/arm_lineage.yaml"), source="t")
-    inst = plan_dag(load_dag(ROOT / "recipes/armdiv/arm_lineage_v7div.yaml"), source="t")
+    inst = plan_dag(load_dag(ROOT / "recipes/armdiv/arm_lineage_v8div.yaml"), source="t")
     names = lambda p: {n.name for n in p.nodes.values()}
     assert names(inst) == names(tpl) - {"semedits", "prog20k", "proggdag1", "orcbc"} | {"newarms"}
     for nid, n in inst.nodes.items():
