@@ -143,7 +143,15 @@ a name collides with something real. Re-ran the full suite clean (below) before 
 of thing "rerun the unit suite if the rebase brought new commits" is for.
 
 ## merge
-Command sequence (executed after the unit suite above passed): `pytest tests/unit -q` (full suite, exit 0) ->
-`git add -A && git commit` -> `git fetch origin && git rebase origin/main` -> re-run the unit suite if the rebase
-brought new commits -> `git push origin HEAD:main`. Exact commands, exit codes and the final commit sha are recorded
-by the lead / harness that ran this track (this file is written before the merge step, as instructed).
+Merged to `origin/main` at commit `74a65503b80ec3b63e4eaa31e4b5375344be83e2` ("R11 fixup: isolate compose tests from
+the real PARTS registry"), on top of `e8ac803b` (the R11 feature commit itself). The push raced 4 times against
+other fanout units merging concurrently (R16/R17, R14/R18, R13, R2 each landed mid-merge); each race was handled by
+the documented loop -- `git fetch origin && git rebase origin/main`, a full `pytest tests/unit -q` re-run (every
+rebase brought at least one new commit), then `git push origin HEAD:main` again -- succeeding on the 5th push
+attempt. Every rebase was a clean fast-forward-of-base rebase (no conflicts) and none of the newly-landed commits
+touched this unit's owned files (`curriculum.py`, `relgen/__init__.py`, `cli/main.py`, `cli/tools.py`); the one
+real interaction with sibling units was functional, not textual -- R16/R17's newly-registered real `PARTS` entries
+exposed the `compose` test-isolation gap fixed in the "merge fixup" section above, caught by actually re-running
+the full suite (not just this unit's own tests) after each rebase, exactly as the merge protocol requires.
+
+Final full-suite result before the successful push: `782 passed, 39 skipped, 0 failed` (exit code 0).
