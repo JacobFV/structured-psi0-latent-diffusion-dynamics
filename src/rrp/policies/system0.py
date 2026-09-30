@@ -19,9 +19,11 @@ from rrp.core.action import NativeCommand
 from rrp.core.errors import ControllerRejection, StaleActionError
 from rrp.core.latent_action import check_packet
 from rrp.policies.features.multi import assembly_handles, local_sensors_multi, node_slots
-from rrp.policies.nets.attention import MHA
+from rrp.policies.nets.attention import MHA, RelBlock
 from rrp.policies.nets.batch import NODE_DIM
 from rrp.policies.nets.flow import MLP, sinusoidal
+from rrp.policies.relations.base import RelCtx, TokenSet, resolve
+from rrp.policies.relations.ops import FactorSite
 import hashlib
 
 REALIZER_RECURRENT_STATE = "none-v1"
@@ -35,7 +37,12 @@ def make_realizer(dz: int, default_layers: int, arch: dict | None = None) -> "La
 
 
 class LatentRealizer(nn.Module):
-    def __init__(self, dz: int, width: int = 192, heads: int = 4, layers: int = 2, z_norm: bool = False):
+    def __init__(self, dz: int, width: int = 192, heads: int = 4, layers: int = 2, z_norm: bool = False,
+                 factors=None):
+        """factors: run config `factors:` entries for the node>knot routing site (default preset `s0-arm` =
+        `route.own_assembly`, D-144 R3). Parameter paths / init order are unchanged from the pre-R3 net: `route`
+        (the routing `FactorSite`) owns no parameters and draws nothing from the RNG (mask-form `same`), so its
+        placement here does not shift any Linear/LayerNorm init draw."""
         super().__init__()
         D = width
         self.z_norm = z_norm
@@ -46,11 +53,23 @@ class LatentRealizer(nn.Module):
         self.local = nn.Linear(4, D)
         self.z_in = nn.Linear(dz, D)
         self.dt_in = MLP(D, D)
-        self.blocks = nn.ModuleList([nn.ModuleDict(dict(n1=nn.LayerNorm(D), x=MHA(D, heads), n2=nn.LayerNorm(D),
-                                                        s=MHA(D, heads), n3=nn.LayerNorm(D), m=MLP(D, D, 4 * D)))
-                                     for _ in range(layers)])
+        self.route = FactorSite(heads, D, "node>knot", resolve(factors, default="s0-arm"), ("assembly_id",))
+        self.blocks = nn.ModuleList([RelBlock(D, heads) for _ in range(layers)])
         self.out = nn.Linear(D, 1)
         self.D = D
+
+    def route_bias(self, zmask, node_mask, K, node_asm=None):
+        """`route.own_assembly` (preset `s0-arm`, D-144 R3): [B,1,N,K*M] -inf off a node's own packet assembly.
+        Shared with `AnchorLatentRealizer` (system0_anchor.py), which has the same node>knot routing."""
+        B, M = zmask.shape
+        N = node_mask.shape[1]
+        if node_asm is None:
+            node_asm = torch.zeros(B, N, dtype=torch.long, device=zmask.device)
+        knot_asm = torch.arange(M, device=zmask.device).repeat(K)                      # [K*M]
+        knot_ids = knot_asm[None, :].expand(B, -1).masked_fill(~zmask.repeat(1, K), -1)  # invalid knots: id -1
+        rc = RelCtx(sets={"node": TokenSet("node", node_mask, fields={"assembly_id": node_asm[..., None]}),
+                          "knot": TokenSet("knot", zmask.repeat(1, K), fields={"assembly_id": knot_ids[..., None]})})
+        return self.route.bias(rc)                                          # route.own_assembly: -inf off own assembly
 
     def forward(self, z, zmask, knot_times, phase, node_feats, node_mask, local, node_asm=None):
         """z [B,K,M,dz]; knot_times [K] (s); phase [B] (s since valid_from); node_feats [B,N,F]; local [B,4] or,
@@ -63,17 +82,11 @@ class LatentRealizer(nn.Module):
             z = (z - self.z_mean) / self.z_std
         kt = self.z_in(z) + self.dt_in(sinusoidal(rel_t, self.D))[:, :, None]         # [B,K,M,D]
         kt = kt.reshape(B, K * M, -1)
-        if node_asm is None:
-            node_asm = torch.zeros(B, N, dtype=torch.long, device=z.device)
-        knot_asm = torch.arange(M, device=z.device).repeat(K)                          # [K*M]
-        own = (node_asm[:, :, None] == knot_asm[None, None, :]) & zmask[:, None, :].repeat(1, 1, K)  # [B,N,K*M]
-        bias = torch.zeros(B, 1, N, K * M, device=z.device, dtype=kt.dtype).masked_fill(~own[:, None], float("-inf"))
+        bias = self.route_bias(zmask, node_mask, K, node_asm)
         loc = self.local(local)
         x = self.node(node_feats) + (loc if local.dim() == 3 else loc[:, None])     # local [B,4] or per node [B,N,4]
         for L in self.blocks:
-            x = x + L["x"](L["n1"](x), kv=kt, bias=bias)
-            x = x + L["s"](L["n2"](x), key_mask=node_mask)
-            x = x + L["m"](L["n3"](x))
+            x = L(x, kt, bias_x=bias, q_mask=node_mask)
         return self.out(x).squeeze(-1) * node_mask
 
 

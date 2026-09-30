@@ -39,7 +39,7 @@ class AnchorLatentRealizer(LatentRealizer):
     def from_base(cls, base: LatentRealizer, anchor_dim: int = ANCHOR_INPUT_DIM) -> "AnchorLatentRealizer":
         """Variant initialized from a trained base realizer (warm start for the phase-C system-0 refit)."""
         dz = base.z_in.in_features
-        net = cls(dz, width=base.D, heads=base.blocks[0]["x"].h,
+        net = cls(dz, width=base.D, heads=base.blocks[0].x.h,
                   layers=len(base.blocks), z_norm=base.z_norm, anchor_dim=anchor_dim)
         missing, unexpected = net.load_state_dict(base.state_dict(), strict=False)
         assert not unexpected and all(k.startswith("anchor_in.") for k in missing), (missing, unexpected)
@@ -58,9 +58,7 @@ class AnchorLatentRealizer(LatentRealizer):
         tok = tok.reshape(B, K * M, -1)
         if node_asm is None:
             node_asm = torch.zeros(B, N, dtype=torch.long, device=z.device)
-        knot_asm = torch.arange(M, device=z.device).repeat(K)
-        own = (node_asm[:, :, None] == knot_asm[None, None, :]) & zmask[:, None, :].repeat(1, 1, K)
-        bias = torch.zeros(B, 1, N, K * M, device=z.device, dtype=tok.dtype).masked_fill(~own[:, None], float("-inf"))
+        bias = self.route_bias(zmask, node_mask, K, node_asm)             # route.own_assembly (D-144 R3)
         loc = self.local(local)
         x = self.node(node_feats) + (loc if local.dim() == 3 else loc[:, None])
         if anchor is not None:
@@ -68,9 +66,7 @@ class AnchorLatentRealizer(LatentRealizer):
                                     .expand(-1, -1, anchor.shape[-1]))                     # [B,N,F]
             x = x + self.anchor_in(per_node)
         for L in self.blocks:
-            x = x + L["x"](L["n1"](x), kv=tok, bias=bias)
-            x = x + L["s"](L["n2"](x), key_mask=node_mask)
-            x = x + L["m"](L["n3"](x))
+            x = L(x, tok, bias_x=bias, q_mask=node_mask)
         return self.out(x).squeeze(-1) * node_mask
 
 

@@ -59,6 +59,8 @@ register_factor(FactorDef("route.assembly_reads", "1", field="assembly_id", op="
 register_preset("arm", [f"edge.{n}" for n in ARM_REL_VOCAB] + ["msg.incidence"])
 register_preset("psi0-dims", [f"edge.{n}" for n in _G.RELATIONS])
 register_preset("none", [])
+# ------------------------------------------------------------------ R3: arm system 0 routing (node>knot)
+register_preset("s0-arm", ["route.own_assembly"])
 
 # ------------------------------------------------------------------ R1 / R4 / R5 / R6: probe readouts (probes:<family>)
 # arm / dual packet probe (former nets.latent_probes.PacketProbe; query order = its ALL_QUERIES order). Labels are
