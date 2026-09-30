@@ -101,8 +101,10 @@ class StageContext:
         RunConfig that every descendant applies. Run semantics travel in the RunConfig."""
         e = dict(os.environ)
         e[CONTEXT_ENV] = str(self.context_file())
-        src = str(self.root / "src")
-        e["PYTHONPATH"] = src + (":" + e["PYTHONPATH"] if e.get("PYTHONPATH") and src not in e["PYTHONPATH"] else "")
+        # An inherited relative entry names another directory once the child changes cwd (`Pipeline.run` chdirs to the
+        # root): absolutize against the launching cwd, drop empty entries, keep the checkout's src first.
+        entries = [str(self.root / "src")] + [str(Path(q).resolve()) for q in e.get("PYTHONPATH", "").split(os.pathsep) if q]
+        e["PYTHONPATH"] = os.pathsep.join(dict.fromkeys(entries))
         e.update({k: str(v) for k, v in extra.items()})
         return e
 
@@ -175,13 +177,18 @@ def register_stage(family: str, stage: str, fn: Callable[[StageContext], dict] |
 
 
 def _load_families():
-    """Import every pipeline module (registration side effects): a new family adds one module, nothing else."""
+    """THE family/stage loading point: import every pipeline module (registration side effects) and the `rrp.families`
+    entry points. Idempotent and cheap after the first call. Whatever parses or validates a RunConfig (the family and
+    stage are checked against this registry) calls it first: `plan_dag`, `inherited_run_config` (every child and
+    grandchild), `child_main`, `stage_main`, `Pipeline`, `rrp run-dag`. A new family adds one module, nothing else."""
     import importlib
     import pkgutil
     import rrp.harness.pipelines as pkg
+    from rrp.core.runconfig import load_family_plugins
     for m in pkgutil.iter_modules(pkg.__path__):
         if m.name != "base":
             importlib.import_module(f"{pkg.__name__}.{m.name}")
+    load_family_plugins()
 
 
 def unregister_stage(family: str, stage: str) -> None:
@@ -280,7 +287,10 @@ class RunContext:
 def inherited_run_config() -> RunConfig | None:
     """The stage RunConfig a parent rendered for this process ($RRP_RUN_CONTEXT is only its path), or None."""
     path = os.environ.get(CONTEXT_ENV)
-    return RunConfig.model_validate_json(Path(path).read_text()) if path else None
+    if not path:
+        return None
+    _load_families()
+    return RunConfig.model_validate_json(Path(path).read_text())
 
 
 def apply_run_context(rc: RunConfig | None = None) -> RunContext:
@@ -314,8 +324,6 @@ def child_main(argv: list[str]) -> int:
     if not target:
         raise SystemExit("child_main: no target")
     _load_families()                       # the config names a family: its module (or plugin) must be registered first
-    from rrp.core.runconfig import load_family_plugins
-    load_family_plugins()
     os.environ[CONTEXT_ENV] = str(Path(a.context).resolve())      # this child's own children apply the same context
     apply_run_context()
     if target[0] == "-m":
@@ -474,16 +482,22 @@ def stage_main(argv=None) -> int:
     r.add_argument("--root", default=".")
     r.add_argument("--no-check-inputs", action="store_true")
     sub.add_parser("list", help="list the registered stages per family")
+    r.add_argument("--dry-run", action="store_true",
+                   help="validate the config and resolve its stage function, then stop (nothing is written or run)")
     a = ap.parse_args(argv)
     if a.cmd == "list":
-        from rrp.core.runconfig import families, load_family_plugins
-        load_family_plugins()
+        from rrp.core.runconfig import families
+        _load_families()
         for fam in families():
             print(fam, " ".join(Pipeline(fam).stages()))
         return 0
-    from rrp.core.runconfig import RunConfig
+    _load_families()                       # before the RunConfig is validated: family and stage are checked against it
     d = json.loads(base64.b64decode(a.config_b64)) if a.config_b64 else json.loads(Path(a.config).read_text())
     rc = RunConfig.model_validate(d)
+    if a.dry_run:
+        Pipeline(rc.family).spec(rc.stage)
+        print(json.dumps(dict(dry_run=True, family=rc.family, stage=rc.stage, run_id=rc.run_id, config_hash=rc.config_hash())))
+        return 0
     try:
         body = Pipeline(rc.family).run(rc, root=Path(a.root), check_inputs=not a.no_check_inputs)
     except GateFailed as e:

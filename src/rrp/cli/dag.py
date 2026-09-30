@@ -10,8 +10,7 @@ def cmd_run_dag(a):
     from rrp.core.provenance import repo_root
     from rrp.harness.dag import (DagError, Executor, Ledger, OpsRunner, default_ledger_path, format_plan,
                                        load_dag, plan_dag, resolve_recipe)
-    from rrp.harness.pipelines.base import _load_families, stage_versions
-    _load_families()                       # stages a recipe names (relations_data, extension stages) register on import
+    from rrp.harness.pipelines.base import stage_versions
     root = Path(a.root).resolve() if a.root else repo_root()
     try:
         recipe = resolve_recipe(a.dag, root)

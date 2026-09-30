@@ -219,6 +219,8 @@ def _is_global(n: dict) -> bool:
 
 
 def plan_dag(spec: dict, *, source: str = "") -> Plan:
+    from rrp.harness.pipelines.base import _load_families      # lazy: the RunConfigs built below name registered families/stages
+    _load_families()
     name = spec["name"]
     family = spec["family"]
     track = spec.get("track", "pipeline")
@@ -532,7 +534,7 @@ class Executor:
     adopt_stale: bool = False               # accept completed nodes whose outputs came from other code (recorded, reported)
     code_now: callable | None = None        # () -> CodeProvenance of the checkout (default: re-read git each call)
     pins: callable = field(kw_only=True)    # (RunConfig) -> the versions a stage manifest pins (`pipelines.base.stage_versions`;
-    #                                         injected by the CLI: the flat harness layer must not import its pipelines)
+    #                                         injected by the CLI; `plan_dag` only loads the registry so that family/stage names validate)
     log: callable = field(default=lambda m: print(f"{time.strftime('%F %T')} [run-dag] {m}", flush=True))
     sleep: callable = time.sleep
 

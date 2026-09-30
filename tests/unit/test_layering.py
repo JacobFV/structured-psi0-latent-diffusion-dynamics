@@ -25,6 +25,9 @@ ALLOWED: dict[tuple[str, str], str] = {
     ("rrp.policies.teachers.functional_composition", "rrp.harness.eval.dual_teacher_quality"):
         "a suite experiment script (`rrp suite composition`, registered by path in cli/tools.py) whose teacher-intervention "
         "episodes run on harness.rollout through dual_teacher_quality.run_teacher_episode (lazy, inside run())",
+    ("rrp.harness.dag", "rrp.harness.pipelines.base"):
+        "plan_dag loads the family/stage registry (`_load_families`, lazy, inside plan_dag) because the RunConfigs it builds "
+        "validate family and stage names against it; the library entry must not depend on what the caller imported",
 }
 
 
