@@ -767,20 +767,29 @@ def cmd_edit(a):
                                     name=f"edit:{mode}")
                 s0 = LearnedSystem0(R, env, latent_space_version=lsv, realizer_compat_version=rcv, device=dev)
                 s0.receive(pk, now=float(env.time), graph_version=0)
+                ctr = lambda w: np.array([(w["box"][0] + w["box"][2]) / 2, (w["box"][1] + w["box"][3]) / 2])
+                p0 = np.array([env.pointer.u, env.pointer.v], float)
                 for _ in range(7):
                     c = s0.tick(env)
                     env.step(c)
                 u, v = env.pointer.u, env.pointer.v
+                p1 = np.array([u, v], float)
                 inside = lambda w: w["box"][0] <= u < w["box"][2] and w["box"][1] <= v < w["box"][3]
                 rows.append(dict(task=task, seed=seed, mode=mode, orig_slot=orig, new_slot=new, probe_after=pr,
                                  ptr_px=[u, v], at_new=inside(slots[new]), at_orig=inside(slots[orig]),
+                                 d_new=[float(np.linalg.norm(p0 - ctr(slots[new]))), float(np.linalg.norm(p1 - ctr(slots[new])))],
+                                 d_orig=[float(np.linalg.norm(p0 - ctr(slots[orig]))),
+                                         float(np.linalg.norm(p1 - ctr(slots[orig])))],
                                  z_delta=float((z - z0).norm())))
                 env.close()
     summ = {}
     for mode in ("probe", "random", "none"):
         r = [x for x in rows if x["mode"] == mode]
         summ[mode] = dict(n=len(r), at_new=sum(x["at_new"] for x in r), at_orig=sum(x["at_orig"] for x in r),
-                          probe_reads_new=sum(x["probe_after"] == x["new_slot"] for x in r))
+                          probe_reads_new=sum(x["probe_after"] == x["new_slot"] for x in r),
+                          closer_to_new_than_orig=sum(x["d_new"][1] < x["d_orig"][1] for x in r),
+                          mean_px_toward_new=float(np.mean([x["d_new"][0] - x["d_new"][1] for x in r])) if r else None,
+                          mean_px_toward_orig=float(np.mean([x["d_orig"][0] - x["d_orig"][1] for x in r])) if r else None)
     out = dict(representation=a.representation, flow=a.flow, variant=rb["config"]["variant"], summary=summ, rows=rows)
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     Path(a.out).write_text(json.dumps(out, indent=1))
