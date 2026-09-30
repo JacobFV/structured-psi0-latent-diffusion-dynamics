@@ -35,7 +35,9 @@ ASM_DIM = 10
 GLOBAL_DIM = 22
 ASM_KINDS = ("leg", "body", "arm")
 BODY_KINDS = ("quadruped", "hexapod", "humanoid", "other")
-EVENTS = ("walk_to_a", "walk_to_b", "halt")
+EVENTS = ("walk_to_a", "walk_to_b", "halt")       # the waypoint_contact event names (slot meaning of that task; see TaskView)
+EVENT_SLOTS = 3           # the context holds one-hot over EVENT_SLOTS events + "done" (index EVENT_SLOTS) for ANY task graph
+TARGET_SLOTS = 2          # ... and TARGET_SLOTS target-entity estimates (4 numbers each)
 MAX_N = 32                              # padded actuated joints (policy + held; g1 has 29)
 MAX_M = 11                              # padded assemblies (8 legs + body + 2 arms)
 H = 40                    # demonstrated ticks seen by E (0.8 s)
@@ -158,25 +160,70 @@ def wrap(a):
     return (a + math.pi) % (2 * math.pi) - math.pi
 
 
+class TaskView:
+    """What a task graph declares to the context (D-146 H4): its event ids in graph order (slot k = event k; `done` is
+    always slot EVENT_SLOTS) and the entities its events walk to / refer to (first TARGET_SLOTS distinct ones, in event
+    order; a missing slot is zeros with valid flag 0). Read from the graph the task registry names (`TaskSpec.graph`)."""
+
+    def __init__(self, graph: dict):
+        self.task_id = graph["task_id"]
+        self.events = tuple(e["id"] for e in graph["events"])
+        seen: list[str] = []
+        for e in graph["events"]:
+            for r in e["roles"]:
+                ent = r["binding"].get("entity", {}).get("id") if r["role"] in ("target", "reference") else None
+                if ent and ent not in seen:
+                    seen.append(ent)
+        self.targets = tuple(seen)
+        if len(self.events) > EVENT_SLOTS or len(self.targets) > TARGET_SLOTS:
+            raise ValueError(f"task graph {self.task_id!r} has {len(self.events)} events / {len(self.targets)} target "
+                             f"entities; the legged context holds {EVENT_SLOTS} / {TARGET_SLOTS} (GLOBAL_DIM = {GLOBAL_DIM})")
+
+    def as_dict(self) -> dict:
+        return dict(task_id=self.task_id, events=list(self.events), targets=list(self.targets),
+                    event_slots=EVENT_SLOTS, target_slots=TARGET_SLOTS)
+
+
+_VIEWS: dict[str, TaskView] = {}
+
+
+def task_view(graph: dict) -> TaskView:
+    key = f"{graph['task_id']}@{graph['graph_version']}"
+    if key not in _VIEWS:
+        _VIEWS[key] = TaskView(graph)
+    return _VIEWS[key]
+
+
+def task_view_of(task: str) -> TaskView:
+    """The view of a registered task: the graph `TaskSpec.graph` names."""
+    from rrp.envs.mujoco.scenario import load_task
+    from rrp.tasks.spec import get_task
+    g = get_task(task).graph
+    if g is None:
+        raise ValueError(f"task {task!r} declares no graph; the legged context needs one")
+    return task_view(load_task(g))
+
+
 def active_event(runtime) -> int:
-    """Public runtime: index into EVENTS of the first not-yet-completed event; len(EVENTS) when done/failed."""
-    st = {e: i.status for e, i in runtime.instances.items()}
-    for k, e in enumerate(EVENTS):
-        if st.get(e) not in ("completed", "succeeded", "failed", "cancelled", "skipped"):
+    """Public runtime: index (graph order) of the first not-yet-completed event; EVENT_SLOTS when done/failed."""
+    for k, (e, i) in enumerate(runtime.instances.items()):
+        if i.status not in ("completed", "succeeded", "failed", "cancelled", "skipped"):
             return k
-    return len(EVENTS)
+    return EVENT_SLOTS
 
 
 def public_context(session, osc: float) -> np.ndarray:
-    """PUBLIC system-i global features: IMU gyro/gravity, osc, task view (active event), waypoint estimates in the
-    body frame from the declared localization sensor + detector tracks, public speed estimate."""
-    b = session.binding
+    """PUBLIC system-i global features: IMU gyro/gravity, osc, task view (active event), target-entity estimates in the
+    body frame from the declared localization sensor + detector tracks, public speed estimate. The event and target
+    slots come from the session's task graph (`TaskView`); for waypoint_contact they are (walk_to_a, walk_to_b, halt)
+    and (waypoint_a, waypoint_b), exactly as before."""
+    view = task_view(session.scenario.task)
     imu = session._imu()
     g = quat_rotate_inv(imu["quat"], np.array([0, 0, -1.0]))
     loc = session.loc
     wps = []
-    for ent in ("waypoint_a", "waypoint_b"):
-        m, _ = session._track(ent)
+    for k in range(TARGET_SLOTS):
+        m, _ = session._track(view.targets[k]) if k < len(view.targets) else (None, None)
         if m is None or loc is None:
             wps += [0.0, 0.0, 0.0, 0.0]
             continue
@@ -185,8 +232,7 @@ def public_context(session, osc: float) -> np.ndarray:
         bx, by = c * dx + s * dy, -s * dx + c * dy
         dist = math.hypot(dx, dy)
         wps += [bx / 2.0, by / 2.0, min(dist, 5.0) / 2.0, 1.0]
-    ev = active_event(session.runtime)
-    evo = np.eye(len(EVENTS) + 1)[ev]
+    evo = np.eye(EVENT_SLOTS + 1)[active_event(session.runtime)]
     spd = session.speed_est if np.isfinite(session.speed_est) else 0.0
     return np.concatenate([imu["gyro"] * 0.25, g, [math.sin(2 * math.pi * osc), math.cos(2 * math.pi * osc)], wps,
                            evo, [spd, float(np.isfinite(session.speed_est))]]).astype(np.float32)

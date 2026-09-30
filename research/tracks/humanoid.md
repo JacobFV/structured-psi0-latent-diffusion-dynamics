@@ -410,3 +410,14 @@ DAG humanoid_tracker_gate_pool: 6 nodes (source recipes/humanoid/tracker_gate_po
 - `rl_expert:<body>:<version>` (POLICIES): registered actor under the task's scripted command layer; label `learned:rl_expert:<sha12>`
   (or `privileged_teacher:...`); `requires.privileged` because the command layer reads the base pose truth.
 - One recipe registry: `tracker_recipes.{CPU_RECIPES, WARP_RECIPES, RECIPES, recipe_record}` (`humanoid_recipes.py` is gone; recorded recipe shas unchanged).
+
+## H4 (D-146, 2026-09-30): legged collectors take `--task`
+- `legged-collect` and `legged-latent-collect` take `--task` (default `waypoint_contact`), `--tracker-id <body>:<version>` and `--max-steps`
+  (default `TaskSpec.max_steps`, else 1300). Env = `make_env("mujoco/legged", task=...)` (the task's `build`), teacher = policy registry key
+  `TaskSpec.teacher`, status/failure vocabulary from the task judge; a task without a teacher or without `mujoco/legged` is refused.
+- Events and target slots of `public_context` come from the task graph (`policies.features.legged.TaskView`, `EVENT_SLOTS=3`, `TARGET_SLOTS=2`,
+  unused slots zero with flag 0; `done` is slot 3). waypoint_contact keeps the 22-dim layout bit for bit. A graph with more slots raises.
+- Episode/shard meta and the manifest record task, teacher (name, version, source, privileged), tracker source/sha256; `guard_sealed` runs before
+  anything is written. One output directory holds one task (`assert_one_task`). Test: `tests/unit/test_legged_collect_tasks.py`.
+- Open: h_steps / h_gap have `TaskSpec.max_steps=None` (set in `tasks/humanoid.py`, U2); M2/M3/C1 graphs with >3 events or >2 targets need a
+  wider `EVENT_SLOTS`/`GLOBAL_DIM` (touches HL/HX nets).
