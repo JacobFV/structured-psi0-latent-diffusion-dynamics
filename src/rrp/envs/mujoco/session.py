@@ -24,9 +24,17 @@ from rrp.tasks.runtime import TaskRuntime
 from rrp.envs.mujoco.scenario import Scenario
 from rrp.envs.mujoco.sensors import DetectorConfig, ObjectTracker, camera_visibility, read_sensor
 from rrp.envs.mujoco.snapshot import Snapshot
-from rrp.envs.base import ActionSpace, BodyInfo, EnvSpec, StepResult
+from rrp.envs.base import (ActionSpace, BodyInfo, Camera, CapabilityError, ContactState, EntityState, EnvSpec,
+                            JointState, StepResult)
 
 _obs_counter = itertools.count()
+
+
+def _object_entity_id(o) -> str:
+    """Privileged entity id for a scenario object/feature (`rrp.envs.mujoco.scenario.ObjectDecl`): the task
+    entity id when the object is bound to one, else a stable id derived from the sim body name. Used only by
+    `MujocoStateView` (docs/relations.md 5.1); never a policy input."""
+    return o.task_entity or f"obj:{o.sim_body}"
 
 
 @dataclass
@@ -577,6 +585,172 @@ class Session:
         self.intervention_log = copy.deepcopy(c.get("interventions", []))
         self._last_obs = self.observe()
         return self._last_obs
+
+    # ------------------------------------------------------------------ privileged StateView (D-144 R7, docs/relations.md 5.1)
+    def state_view(self, *, depth_width: int = 64, depth_height: int = 64) -> "MujocoStateView":
+        """`rrp.envs.base.StateView`, gated by the already-declared "privileged_truth" capability. LABELS ONLY
+        (`rrp.harness.data.relgen`); never imported by `rrp.policies/` (docs/relations.md 5.1)."""
+        return MujocoStateView(self, depth_wh=(depth_width, depth_height))
+
+    def _manip_entities(self) -> list[EntityState]:
+        """Assembly entities keyed by the scenario's public manipulator entity ids (the task-level "gripper" /
+        "left" / "right" / "body" names bound in `Scenario.robots[i].manipulator_bindings`). `DualSession`
+        overrides this with its richer per-handle metadata (`ManipHandle`)."""
+        out = []
+        for ent, (ri, asm_id) in self.manip_map.items():
+            r = self.robots[ri]
+            site = r.tcp_sites.get(asm_id)
+            if site is None:
+                continue
+            sid = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SITE, site)
+            if sid < 0:
+                continue
+            q = np.zeros(4)
+            mujoco.mju_mat2Quat(q, self.data.site_xmat[sid])
+            out.append(EntityState(id=ent, kind="assembly", name=asm_id, pos=self.data.site_xpos[sid].copy(),
+                                   quat=q, vel=None, extent=None, mass=None, friction=None, material=None,
+                                   parent=None, assembly=asm_id, body=ri, visible=None, attrs={"site": site}))
+        return out
+
+    def _extra_state_entities(self) -> list[EntityState]:
+        """Hook for entities beyond scene objects/features and manipulator assemblies (`LeggedSession` adds its
+        foot links); empty for the base arm session."""
+        return []
+
+    def _body_entity_map(self) -> dict[str, str]:
+        """mj body name -> privileged entity id, for resolving contact geom pairs (`MujocoStateView.contacts`).
+        Covers scene objects/features and every body belonging to a bound manipulator assembly."""
+        out = {}
+        for o in self.scenario.objects:
+            out[o.sim_body] = _object_entity_id(o)
+        for ent, (ri, asm_id) in self.manip_map.items():
+            r = self.robots[ri]
+            asm = next((a for a in r.spec.assemblies if a.id == asm_id), None)
+            if asm is None:
+                continue
+            for l in r.spec.links:
+                if l.address in asm.members:
+                    out[l.name] = ent
+        out.update(self._extra_body_entity_map())
+        return out
+
+    def _extra_body_entity_map(self) -> dict[str, str]:
+        """Hook: `LeggedSession` maps foot bodies onto their `leg:<body>` entity ids."""
+        return {}
+
+
+class MujocoStateView:
+    """`rrp.envs.base.StateView` over a native MuJoCo `Session` (docs/relations.md 5.1). Privileged: for
+    `rrp.harness.data.relgen` label functions only, never imported by `rrp.policies/`. `caps` gates every method;
+    `render_depth` is an extra capability-gated method beyond the `StateView` protocol (`camera()` always works,
+    the pixel render only with "depth_render")."""
+
+    CAPS = frozenset({"poses", "velocities", "contacts", "forces", "joints", "camera", "depth_render"})
+
+    def __init__(self, session: Session, *, depth_wh: tuple[int, int] = (64, 64)):
+        self._s = session
+        self._depth_wh = depth_wh
+        self._renderer = None
+
+    @property
+    def caps(self) -> frozenset:
+        return self.CAPS
+
+    @property
+    def time(self) -> float:
+        return float(self._s.data.time)
+
+    @property
+    def gravity(self) -> np.ndarray:
+        return np.array(self._s.model.opt.gravity, dtype=float)
+
+    def entities(self) -> list[EntityState]:
+        s, m, d = self._s, self._s.model, self._s.data
+        out = []
+        for o in s.scenario.objects:
+            bid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, o.sim_body)
+            if bid < 0:
+                continue
+            gids = np.where(m.geom_bodyid == bid)[0]
+            friction = float(m.geom_friction[gids[0], 0]) if len(gids) else None
+            lin, ang = d.cvel[bid, 3:6].copy(), d.cvel[bid, 0:3].copy()
+            extent = np.asarray(o.size, float) if o.kind == "object" else np.array([o.radius, o.radius, 0.0])
+            out.append(EntityState(id=_object_entity_id(o), kind=o.kind, name=o.descriptor, pos=d.xpos[bid].copy(),
+                                   quat=d.xquat[bid].copy(), vel=np.concatenate([lin, ang]), extent=extent,
+                                   mass=float(m.body_mass[bid]), friction=friction, material=None, parent=None,
+                                   assembly=None, body=None, visible=None,
+                                   attrs={"sim_body": o.sim_body, "task_entity": o.task_entity}))
+        out.extend(s._manip_entities())
+        out.extend(s._extra_state_entities())
+        return out
+
+    def contacts(self) -> list[ContactState]:
+        s, m, d = self._s, self._s.model, self._s.data
+        body_ent = s._body_entity_map()
+        out = []
+        for c in range(d.ncon):
+            con = d.contact[c]
+            b1 = m.body(m.geom_bodyid[con.geom1]).name
+            b2 = m.body(m.geom_bodyid[con.geom2]).name
+            f6 = np.zeros(6)
+            mujoco.mj_contactForce(m, d, c, f6)
+            frame = con.frame.reshape(3, 3)
+            world_force = frame.T @ f6[:3]
+            out.append(ContactState(a=body_ent.get(b1, b1), b=body_ent.get(b2, b2), pos=con.pos.copy(),
+                                    normal=con.frame[:3].copy(), force=world_force, time=float(d.time)))
+        return out
+
+    def joints(self) -> list[JointState]:
+        s, d = self._s, self._s.data
+        out = []
+        for r in s.robots:
+            specs = {j.name: j for j in r.spec.joints}
+            for name, qa, da in zip(r.joint_names, r.qadr, r.dadr):
+                js = specs.get(name)
+                if js is None:
+                    continue
+                limits = tuple(js.range) if js.range else None
+                out.append(JointState(name=name, parent=js.parent_link, child=js.child_link, kind=js.type,
+                                      axis=np.asarray(js.axis, float), q=float(d.qpos[qa]), qd=float(d.qvel[da]),
+                                      limits=limits))
+        return out
+
+    def camera(self, name: str) -> Camera:
+        s, m, d = self._s, self._s.model, self._s.data
+        cid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_CAMERA, name)
+        if cid < 0:
+            raise KeyError(f"{s.spec.env_id}: no camera {name!r}")
+        w, h = self._depth_wh
+        fovy = math.radians(float(m.cam_fovy[cid]))
+        fy = (h / 2.0) / math.tan(fovy / 2.0)
+        K = np.array([[fy, 0.0, w / 2.0], [0.0, fy, h / 2.0], [0.0, 0.0, 1.0]])
+        T = np.eye(4)
+        T[:3, :3] = d.cam_xmat[cid].reshape(3, 3).copy()
+        T[:3, 3] = d.cam_xpos[cid].copy()
+        return Camera(name=name, K=K, T_world_cam=T, width=w, height=h)
+
+    def render_depth(self, name: str) -> np.ndarray:
+        """Extra method (beyond the `StateView` protocol): a depth image via `mujoco.Renderer`. Capability
+        "depth_render"; EGL contexts for the production relgen pipeline run on the peer, this call is host-cheap
+        (unit-test fixture scale) and used at that scale only."""
+        if "depth_render" not in self.caps:
+            raise CapabilityError(f"{self._s.spec.env_id}: state_view has no 'depth_render' capability")
+        s, m, d = self._s, self._s.model, self._s.data
+        w, h = self._depth_wh
+        if self._renderer is None:
+            self._renderer = mujoco.Renderer(m, h, w)
+            self._renderer.enable_depth_rendering()
+        self._renderer.update_scene(d, camera=name)
+        return self._renderer.render().copy()
+
+    def ui_tree(self) -> list[dict]:
+        raise CapabilityError(f"{self._s.spec.env_id}: state_view has no 'ui_tree' capability")
+
+    def token_entity(self, token_set: str, slot) -> str | None:
+        s = self._s
+        if isinstance(slot, int) and 0 <= slot < len(s.detectables):
+            return _object_entity_id(s.detectables[slot])
+        return None
 
 
 def make_arm_env(*, task: str, body: str, seed: int = 0, scene: dict | None = None, **kw) -> Session:

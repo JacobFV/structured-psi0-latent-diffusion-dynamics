@@ -194,6 +194,24 @@ class DualSession(Session):
         bid = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, name)
         return self.data.xpos[bid].copy(), self.data.xmat[bid].reshape(3, 3).copy()
 
+    # ------------------------------------------------------------------ privileged StateView (D-144 R7)
+    def _manip_entities(self):
+        """`Session._manip_entities` override: one assembly entity per `ManipHandle` (true simulator TCP pose,
+        never the public `_fk_site` estimate), enriched with gripper kind / reach beyond the base session."""
+        from rrp.envs.base import EntityState
+        out = []
+        for ent, h in self.handles.items():
+            sid = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SITE, h.tcp_site)
+            if sid < 0:
+                continue
+            q = np.zeros(4)
+            mujoco.mju_mat2Quat(q, self.data.site_xmat[sid])
+            out.append(EntityState(id=ent, kind="assembly", name=h.assembly, pos=self.data.site_xpos[sid].copy(),
+                                   quat=q, vel=None, extent=None, mass=None, friction=None, material=None,
+                                   parent=None, assembly=h.assembly, body=h.robot, visible=None,
+                                   attrs={"site": h.tcp_site, "gripper_kind": h.gripper_kind, "reach_m": h.reach_m}))
+        return out
+
     # ------------------------------------------------------------------ public sensing
     def _sense(self):
         meas = {}

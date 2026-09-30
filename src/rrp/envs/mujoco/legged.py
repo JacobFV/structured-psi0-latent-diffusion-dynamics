@@ -358,6 +358,25 @@ class LeggedSession(Session):
     def _held_truth(self, contacts):
         return {"body": []}
 
+    # ------------------------------------------------------------------ privileged StateView (D-144 R7)
+    def _extra_state_entities(self):
+        """`Session._extra_state_entities` override: one entity per foot link (`leg:<body>`), true pose."""
+        from rrp.envs.base import EntityState
+        b, m, d = self.binding, self.model, self.data
+        out = []
+        for bid in b.foot_bids:
+            name = m.body(bid).name
+            out.append(EntityState(id=f"leg:{name}", kind="link", name=name, pos=d.xpos[bid].copy(),
+                                   quat=d.xquat[bid].copy(), vel=None, extent=None, mass=None, friction=None,
+                                   material=None, parent="body", assembly="body", body=0, visible=None, attrs={}))
+        return out
+
+    def _extra_body_entity_map(self):
+        """`Session._extra_body_entity_map` override: foot bodies resolve contacts to their `leg:<body>` id
+        instead of the raw mj body name fallback."""
+        m = self.model
+        return {m.body(bid).name: f"leg:{m.body(bid).name}" for bid in self.binding.foot_bids}
+
     def observe(self) -> PolicyObservation:
         t = float(self.data.time)
         r = self.robots[0]
