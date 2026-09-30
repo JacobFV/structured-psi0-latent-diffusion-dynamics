@@ -259,32 +259,41 @@ def test_ctx_fields_on_dual_featurizer():
     assert ids["assembly_id.valid"][0].any()
 
 
-# ------------------------------------------------------------------ feat.base_axes (replaces $RRP_KINFEAT at the
-# featurizer level; research/tracks/rel-r12.md documents what is still owned by other units)
-def test_base_axes_true_matches_legacy_kinfeat_env(monkeypatch):
-    monkeypatch.delenv("RRP_KINFEAT", raising=False)
+# ------------------------------------------------------------------ feat.base_axes ($RRP_KINFEAT is gone from
+# src/ entirely as of R12c/D-144 addendum: no live code reads os.environ for this any more; the ambient value a
+# pipeline stage set via kinfeat.set_base_axes replaces it, and an explicit kwarg always wins over the ambient one)
+@pytest.fixture(autouse=True)
+def _reset_kinfeat_ambient():
+    from rrp.policies.features import kinfeat
+    prev = kinfeat.set_base_axes(None)
+    yield
+    kinfeat.set_base_axes(prev)
+
+
+def test_base_axes_true_matches_ambient_default_on(monkeypatch):
+    from rrp.policies.features import kinfeat
     s = _arm()
-    monkeypatch.setenv("RRP_KINFEAT", "v1")
-    legacy = featurizer_for(s)
-    monkeypatch.delenv("RRP_KINFEAT", raising=False)
+    kinfeat.set_base_axes(True)
+    ambient = featurizer_for(s)
+    kinfeat.set_base_axes(None)
     explicit = featurizer_for(s, base_axes=True)
-    np.testing.assert_array_equal(legacy.node_static, explicit.node_static)
+    np.testing.assert_array_equal(ambient.node_static, explicit.node_static)
     assert explicit.kinfeat is True
 
 
-def test_base_axes_false_ignores_env(monkeypatch):
-    monkeypatch.setenv("RRP_KINFEAT", "v1")
+def test_base_axes_false_ignores_ambient(monkeypatch):
+    from rrp.policies.features import kinfeat
+    kinfeat.set_base_axes(True)
     s = _arm()
     off = featurizer_for(s, base_axes=False)
     assert off.kinfeat is False
-    monkeypatch.delenv("RRP_KINFEAT", raising=False)
+    kinfeat.set_base_axes(None)
     default = featurizer_for(s)
     np.testing.assert_array_equal(off.node_static, default.node_static)
 
 
 def test_base_axes_none_is_byte_identical_to_pre_r12(monkeypatch):
-    """Explicit control absent (None) must reproduce exactly today's env-driven default: goldens stay unchanged."""
-    monkeypatch.delenv("RRP_KINFEAT", raising=False)
+    """Explicit control absent (None) must reproduce exactly today's default (no ambient set): goldens unchanged."""
     s = _arm()
     a = featurizer_for(s)
     b = featurizer_for(s, base_axes=None)

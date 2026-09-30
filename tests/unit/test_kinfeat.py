@@ -1,39 +1,53 @@
-"""D-137 `kinfeat` ablation flag: default off = legacy features; on = base-frame joint axes at home."""
+"""`feat.base_axes` (was the D-137 `kinfeat` ablation flag): default off = legacy features; on = base-frame joint
+axes at home. R12c (D-144 addendum): `$RRP_KINFEAT` is gone from `src/` -- resolution is via an explicit kwarg or
+the process-ambient value a pipeline stage sets with `kinfeat.set_base_axes` (never `os.environ`)."""
 import numpy as np
 import pytest
 
 from rrp.policies.features import kinfeat
 
 
-def _feat(robot_key, yaw=0.0):
+@pytest.fixture(autouse=True)
+def _reset_ambient():
+    prev = kinfeat.set_base_axes(None)
+    yield
+    kinfeat.set_base_axes(prev)
+
+
+def _feat(robot_key, yaw=0.0, base_axes=None):
     from rrp.bodies.catalog import workbench_robots
     from rrp.envs.mujoco.session import Session
     from rrp.envs.mujoco.scenario import build_pick_place
     from rrp.policies.features.featurizer import featurizer_for
     s = Session(build_pick_place(workbench_robots()[robot_key](), 5, base=((0.0, 0.0, 0.0), yaw)), seed=5)
-    f = featurizer_for(s)
+    f = featurizer_for(s, base_axes=base_axes)
     return f, f(s.observe())
 
 
-def test_off_by_default_keeps_local_axes(monkeypatch):
-    monkeypatch.delenv(kinfeat.ENV, raising=False)
+def test_off_by_default_keeps_local_axes():
     f, pi = _feat("parm6_pg2")
     local = np.array([j.axis for j in f.spec.joints if j.name in f.node_joint_names], np.float32)
     by_name = {j.name: j.axis for j in f.spec.joints}
     np.testing.assert_array_equal(f.node_static[:, 2:5], np.array([by_name[n] for n in f.node_joint_names], np.float32))
     assert local.shape[0] == len(f.node_joint_names)
+    assert f.kinfeat is False
 
 
-def test_bad_value_rejected(monkeypatch):
-    monkeypatch.setenv(kinfeat.ENV, "v9")
+def test_legacy_bool_rejects_unknown_value():
     with pytest.raises(ValueError):
-        kinfeat.enabled()
+        kinfeat.legacy_bool("v9")
+    assert kinfeat.legacy_bool(None) is False
+    assert kinfeat.legacy_bool("") is False
+    assert kinfeat.legacy_bool("0") is False
+    assert kinfeat.legacy_bool("off") is False
+    assert kinfeat.legacy_bool("v1") is True
+    assert kinfeat.legacy_bool("1") is True
+    assert kinfeat.legacy_bool(kinfeat.VERSION) is True
 
 
-def test_on_gives_base_frame_axes_invariant_to_mount_yaw(monkeypatch):
-    monkeypatch.setenv(kinfeat.ENV, "v1")
-    f0, p0 = _feat("parm6_pg2", 0.0)
-    f1, p1 = _feat("parm6_pg2", 0.7)
+def test_on_gives_base_frame_axes_invariant_to_mount_yaw():
+    f0, p0 = _feat("parm6_pg2", 0.0, base_axes=True)
+    f1, p1 = _feat("parm6_pg2", 0.7, base_axes=True)
     np.testing.assert_allclose(f0.node_static, f1.node_static, atol=1e-5)
     ax0 = f0.node_static[:, 2:5]
     assert np.allclose(np.linalg.norm(ax0, axis=1), 1, atol=1e-5)
@@ -47,7 +61,7 @@ def test_on_gives_base_frame_axes_invariant_to_mount_yaw(monkeypatch):
     np.testing.assert_allclose(kinfeat.table_for_robot("parm6_pg2"), ax0, atol=1e-6)
 
 
-def test_apply_rows_is_idempotent(monkeypatch):
+def test_apply_rows_is_idempotent():
     tab = kinfeat.table_for_robot("parm5_pg2")
     n = tab.shape[0]
     nodes = np.random.default_rng(0).normal(size=(3, n + 2, 40)).astype(np.float32)
@@ -60,22 +74,36 @@ def test_apply_rows_is_idempotent(monkeypatch):
         kinfeat.apply_rows(nodes.copy(), np.array([4]), {4: "parm5_pg2"}, np.array([n + 1]))
 
 
-def test_checkpoint_guard(monkeypatch):
+def test_ambient_set_base_axes_scopes_like_the_old_env_var():
+    assert kinfeat.resolved() is False
+    prev = kinfeat.set_base_axes(True)
+    assert prev is None
+    assert kinfeat.resolved() is True
+    assert kinfeat.resolved(explicit=False) is False        # explicit always wins over ambient
+    kinfeat.set_base_axes(prev)
+    assert kinfeat.resolved() is False
+
+
+def test_checkpoint_guard():
     from rrp.policies.nets.checkpoint import check_kinfeat
-    monkeypatch.delenv(kinfeat.ENV, raising=False)
     check_kinfeat(dict(model={}, versions={}))
     with pytest.raises(ValueError):
         check_kinfeat(dict(model={}, versions={"kinfeat": kinfeat.VERSION}))
-    monkeypatch.setenv(kinfeat.ENV, "v1")
-    check_kinfeat(dict(model={}, versions={"kinfeat": kinfeat.VERSION}))
+    with pytest.raises(ValueError):
+        check_kinfeat(dict(model={}, versions={"factors": kinfeat.VERSION}))
+    with pytest.raises(ValueError):
+        check_kinfeat(dict(model={}, versions={"factors": "fx-abc123+" + kinfeat.VERSION}))
+    kinfeat.set_base_axes(True)
+    check_kinfeat(dict(model={}, versions={"kinfeat": kinfeat.VERSION}))          # legacy key still recognized
+    check_kinfeat(dict(model={}, versions={"factors": kinfeat.VERSION}))          # folded, no other factors
+    check_kinfeat(dict(model={}, versions={"factors": "fx-abc123+" + kinfeat.VERSION}))  # folded with factors
     with pytest.raises(ValueError):
         check_kinfeat(dict(model={}, versions={}))
 
 
-def test_stage_option_sets_env_only_inside_stage(monkeypatch, tmp_path):
-    import os
+def test_stage_option_sets_ambient_only_inside_stage(monkeypatch, tmp_path):
     from rrp.harness.pipelines import base
     src = open(base.__file__).read()
     assert 'rc.options.get("kinfeat")' in src          # the generic stage option exists (like grasp_contact)
-    monkeypatch.delenv(kinfeat.ENV, raising=False)
-    assert not kinfeat.enabled()
+    assert "os.environ" not in src.split("kf = rc.options")[1].split("os.chdir(root)")[0]
+    assert kinfeat.resolved() is False

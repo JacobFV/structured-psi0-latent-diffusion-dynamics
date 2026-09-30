@@ -161,14 +161,11 @@ class Featurizer:
 
     def __init__(self, model: mujoco.MjModel, spec: RobotSpec, prefix: str, meta: dict, base_pos, base_yaw: float,
                  manipulator_bindings: dict, robot_index: int = 0, base_axes: bool | None = None):
-        """`base_axes` (R12, D-144: `feat.base_axes` replaces the ablation flag `$RRP_KINFEAT` -- the featurizer
-        reads a RESOLVED value instead of the environment): None (default) keeps today's behaviour exactly
-        (`kinfeat.enabled()`, i.e. `$RRP_KINFEAT`, unchanged -- goldens stay byte-identical); True / False pins it
-        explicitly regardless of the environment, for callers that resolve `feat.base_axes` from a run config's
-        `factors:` list themselves. The `$RRP_KINFEAT` env var and `rrp.policies.features.kinfeat.enabled()` stay
-        the ONLY thing `harness/data/packed.py`, `harness/pipelines/base.py` and `policies/nets/checkpoint.py`
-        read (they are outside this unit's owned files, docs/relations.md section 10); deleting the env var there
-        is tracked separately (research/tracks/rel-r12.md)."""
+        """`base_axes` (R12/R12c, D-144: `feat.base_axes` replaces the ablation flag `$RRP_KINFEAT`, deleted from
+        `src/` entirely): None (default) keeps today's behaviour exactly (`kinfeat.resolved()` -- the process-
+        ambient value a pipeline stage set via `kinfeat.set_base_axes`, or False when none did -- goldens stay
+        byte-identical outside a stage); True / False pins it explicitly regardless of the ambient value, for
+        callers that resolve `feat.base_axes` from a run config's `factors:` list themselves."""
         self.model = model
         self.spec = spec
         self.prefix = prefix
@@ -239,8 +236,8 @@ class Featurizer:
             f"node_static width {self.node_static.shape[1]} != STATIC_DIM {STATIC_DIM} (R12 layout constants stale)"
         self.node_joint_names = jnames
         from rrp.policies.features import kinfeat
-        self.kinfeat = kinfeat.enabled() if self.base_axes is None else bool(self.base_axes)
-        if self.kinfeat:         # R12 `feat.base_axes` (was D-137 ablation `$RRP_KINFEAT`): base-frame joint axes
+        self.kinfeat = kinfeat.resolved(self.base_axes)
+        if self.kinfeat:         # `feat.base_axes` (was D-137 ablation `$RRP_KINFEAT`): base-frame joint axes
                                  # at the home pose (static chain geometry)
             arm = next((g for g in contract.command_groups if g.semantic != "gripper"), None)
             arm_joints = [jaddr[amap[a].joint].name for a in arm.actuators] if arm else []
@@ -312,7 +309,7 @@ class Featurizer:
             jid = self.jids[i]
             anchor = self._to_base(d.xanchor[jid])
             axis = d.xaxis[jid].astype(np.float32)
-            if self.kinfeat:     # D-137 ablation: world axis rotated into the base frame like anchor/jp/jr
+            if self.kinfeat:     # feat.base_axes: world axis rotated into the base frame like anchor/jp/jr
                 axis = (Rb @ axis).astype(np.float32)
             # previous-action input disabled (D-021): its train (teacher 1-step) vs test (own chunk,
             # 8-step delta) semantics differ and it invites copycat behaviour

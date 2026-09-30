@@ -235,7 +235,7 @@ class PackedChunkDataset:
         self.zero_prev_action = bool(zero_prev_action)      # B-1 load-time flag (see meta['prev_action'] and PREV_ACTION_COL)
         self.rows = None
         from rrp.policies.features import kinfeat
-        self.kinfeat = kinfeat.enabled()            # D-137 ablation: load-time base-frame axis columns (idempotent)
+        self.kinfeat = kinfeat.resolved()            # feat.base_axes: load-time base-frame axis columns (idempotent)
         self.id_to_key = {int(v): k for k, v in self.meta.get("robot_ids", {}).items()}
         if stride > 1:
             if self.meta["stride"] != 1:

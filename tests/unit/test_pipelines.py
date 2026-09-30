@@ -68,6 +68,32 @@ def test_arm_refit_calls_refit_realizer(tmp_path, monkeypatch):
     assert m["inputs"]["dagger"][0]["digest"] and m["outputs"]["representation"]["digest"]
 
 
+def test_kinfeat_option_sets_ambient_base_axes_for_the_stage_only(tmp_path, monkeypatch):
+    """feat.base_axes (D-144 addendum, R12c): options.kinfeat resolves to the process-ambient value the stage
+    function sees, never $RRP_KINFEAT (gone from src/ entirely) -- and it is restored after the stage returns."""
+    import os
+    import rrp.harness.train.latent_train as lt
+    from rrp.policies.features import kinfeat
+    seen = {}
+
+    def fake(cfg, out):
+        seen["resolved_during_stage"] = kinfeat.resolved()
+        seen["env_touched"] = "RRP_KINFEAT" in os.environ
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "representation.pt").write_bytes(b"w")
+        return {"steps": 3, "latent_space_version": "ls-x", "realizer_compat_version": "rz-y", "interrupted": False}
+    monkeypatch.setattr(lt, "refit_realizer", fake)
+    rc = _rc(options={"kinfeat": "v1"})
+    _touch(tmp_path, "artifacts/runs/rep/representation.pt", "artifacts/runs/bc1/a.npz", "artifacts/runs/bc1/b.npz")
+    assert kinfeat.resolved() is False
+    Pipeline("arm").run(rc, root=tmp_path, index=RunIndex())
+    assert seen["resolved_during_stage"] is True
+    assert seen["env_touched"] is False
+    assert kinfeat.resolved() is False           # restored after the stage
+    with pytest.raises(StageError, match="only v1"):
+        Pipeline("arm").run(_rc(options={"kinfeat": "bogus"}), root=tmp_path, index=RunIndex())
+
+
 def test_missing_input_refused(tmp_path):
     with pytest.raises(StageError, match="missing inputs"):
         Pipeline("arm").run(_rc(), root=tmp_path, index=RunIndex())

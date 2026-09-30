@@ -93,6 +93,57 @@ isn't an attention factor), or (b) explicit sign-off that R12 stops at the featu
 the env var deletion is out of scope for this unit. Not blocking: R12's other four acceptance bullets are fully
 met and merged independently of this one.
 
+## R12c (worktree `~/work/rrp-wt/rel-r12c`, branch `track/rel-r12c` from `origin/main`): `$RRP_KINFEAT` deleted
+
+Resolves the "lead question" above under D-144 addendum decision (b) (research/decisions.md): the env var deletion
+is IN scope, done now, across every file that read it (not just the featurizer). No `factors: [feat.base_axes]`
+run-config wiring was added (still out of scope per (b) -- `feat.base_axes` is a featurizer option, not an
+attention `FactorDef`; that stays a `core/runconfig.py` question for whoever needs it next).
+
+- **`policies/features/kinfeat.py`**: `ENV` / `enabled()` deleted. Replaced by `resolved(explicit: bool | None =
+  None) -> bool` (explicit wins; else the process-ambient value set by `set_base_axes`; else `False`) and
+  `set_base_axes(value) -> prev` (plain module global, set/restored like the old env var but never touching
+  `os.environ`). `legacy_bool(v)` is the ONE remaining string-vocabulary mapping table (`"v1"/"1"` -> True,
+  `""/"0"/"off"/"none"` -> False), read only by loaders (decision b) -- never called to decide live behaviour.
+  `table_for_robot` no longer does the env-var toggle/restore dance; it calls `featurizer_for(s, base_axes=True)`
+  directly (the explicit kwarg already existed from R12's first pass).
+- **`policies/features/featurizer.py` / `multi.py`**: `self.kinfeat = kinfeat.enabled() if base_axes is None else
+  bool(base_axes)` -> `self.kinfeat = kinfeat.resolved(self.base_axes)`. Same net behaviour (an explicit kwarg
+  still pins it; `None` still means "ambient default"), just no more env read. Docstrings updated; no functional
+  change to any call site that already passed an explicit `base_axes`.
+- **`harness/pipelines/base.py`**: the `options.kinfeat` stage-option block no longer sets/restores
+  `os.environ["RRP_KINFEAT"]`; it calls `kinfeat.set_base_axes(kinfeat.legacy_bool(kf) if kf is not None else
+  None)` before `spec.fn(ctx)` and restores the previous ambient value in the `finally`. The "contradicts
+  $RRP_KINFEAT env" check is gone (nothing to contradict any more -- there is no external env var). Cross-process
+  propagation was never actually needed here: every DAG node (`harness/dag.py Runner.command`) already serializes
+  its OWN full `RunConfig` (`--config-b64`) into a fresh `rrp.cli stage run` subprocess, which re-enters
+  `Pipeline.run()` and re-resolves `rc.options.get("kinfeat")` independently -- the old env var was redundant for
+  subprocess nodes and only mattered for code running IN-PROCESS during that same stage call (data
+  collection/training code in the same Python process), which the ambient module global covers identically.
+- **`harness/data/packed.py`**: `self.kinfeat = kinfeat.enabled()` -> `kinfeat.resolved()`. `harness/data/latent.py`
+  only reads `self.ds.kinfeat` (comment updated, no functional change).
+- **`policies/nets/checkpoint.py`**: `save_checkpoint` no longer writes a standalone `versions["kinfeat"]` key;
+  `kinfeat.resolved()` (when True) appends `kinfeat.VERSION` into the SAME combined `versions["factors"]` string
+  used for attention-factor `compat_hash` (`"+".join([...])`; either component may be absent). `check_kinfeat`
+  (still called unconditionally from `load_checkpoint`, preserving "never silently mixed") reads BOTH the legacy
+  standalone `versions["kinfeat"]` key (old checkpoints, decision-b remap) and the new folded
+  `versions["factors"]` string (`kinfeat.VERSION in factors.split("+")`), compared against `kinfeat.resolved()`
+  (ambient default at load time, same role the env var played before).
+- **`dags/arm_lineage_v7div_kinfeat.yaml`, `dags/armdiv_bc_v7div_kinfeat.yaml`**: `options: {kinfeat: v1}` (the
+  RunConfig-level surface) is UNCHANGED -- only its internal implementation changed. Comments that mentioned
+  `$RRP_KINFEAT=v1` reworded to `options.kinfeat=v1`; no functional YAML change. `research/tracks/armdiv.md`'s
+  RESUME section and `scripts/armdiv_chain.sh` call these DAGs unmodified and need no changes: `armdiv_chain.sh`
+  only invokes `rrp.cli run-dag <file>.yaml`, which builds each node's `RunConfig` from the YAML `options:` block
+  the same way as before -- verified by `tests/unit/test_pipelines.py::
+  test_kinfeat_option_sets_ambient_base_axes_for_the_stage_only` (options.kinfeat=v1 resolves to
+  `kinfeat.resolved() is True` inside the stage function, restores to `False` after, never touches `os.environ`).
+- **Tests**: `tests/unit/test_kinfeat.py` rewritten around the new API (ambient set/resolve, `legacy_bool`,
+  `check_kinfeat` reading both the legacy and folded checkpoint version shapes); `tests/unit/test_relations_r12.py`'s
+  three `base_axes` tests swapped `monkeypatch.setenv/delenv("RRP_KINFEAT", ...)` for `kinfeat.set_base_axes`;
+  `tests/unit/test_pipelines.py` gained the stage-option integration test above. `grep -rn "RRP_KINFEAT\|kinfeat\.enabled"
+  src/` returns only historical comments (no live reads). `pytest tests/unit -q` (see merge log for the exit code
+  recorded at merge time); `tests/data/golden.json` untouched.
+
 ## resume steps (if interrupted before merge)
 
 1. `cd ~/work/rrp-wt/rel-r12 && export PYTHONPATH=$PWD/src:$PWD`

@@ -1,6 +1,6 @@
-"""`kinfeat` (armdiv D-137 ablation flag; default OFF = legacy features, byte-identical).
+"""`kinfeat` / `feat.base_axes` (D-137 ablation, migrated to a run-scoped resolved value by D-144/R12+):
 
-With $RRP_KINFEAT=v1:
+With base_axes resolved True:
   (a) the static joint-axis columns of every action node (node feature cols 2:5, the joint's LOCAL axis in the legacy
       features) become the joint axis in the robot BASE frame at the robot's declared home pose, so the static
       morphology describes the kinematic chain (D-136 diagnosis: the local axis is z for every menagerie hinge);
@@ -9,38 +9,63 @@ With $RRP_KINFEAT=v1:
 The same replacement is applied at load time to packed rows (by robot key; idempotent), so one pack serves both the
 flagged and unflagged lineages. Passive (mimic) joint tokens keep their local axes.
 
-R12 (D-144, docs/relations.md section 10): the end state renames this flag `feat.base_axes` and reads it from a
-resolved factor spec instead of `$RRP_KINFEAT`. Done so far, inside this unit's owned files: `Featurizer` /
-`MultiFeaturizer` no longer decide the flag by reading the environment themselves -- they take an explicit
-`base_axes: bool | None` (`None` = today's `enabled()` / `$RRP_KINFEAT`, unchanged; `True` / `False` pins it).
-NOT done (crosses into files this unit does not own -- `harness/pipelines/base.py`, `harness/data/packed.py`,
-`harness/data/latent.py`, `policies/nets/checkpoint.py`, and wherever `factors:` gets resolved into a `feat.*`
-option, since this is a featurizer option rather than an attention `FactorDef`): those still read `ENV` /
-`enabled()` / `VERSION` directly and are UNCHANGED on purpose, so this module's public names below stay exactly
-as they were. `research/tracks/rel-r12.md` has the full account; `FACTOR_NAME` is reserved for whichever unit
-finishes wiring `factors: [feat.base_axes]` end to end.
+R12/R12c (D-144, docs/relations.md sections 8, 10): `$RRP_KINFEAT` is GONE from `src/` -- no live code path reads
+`os.environ` for this flag any more. `Featurizer` / `MultiFeaturizer` take an explicit `base_axes: bool | None`
+kwarg (`None` = ambient default via `resolved()`, `True` / `False` pins it regardless of the ambient value).
+`harness/pipelines/base.py` resolves `options.kinfeat` once per stage and calls `set_base_axes(...)` instead of
+setting an environment variable (in-process only: dag nodes are already separate subprocesses, each re-reading its
+own `RunConfig.options`, so no cross-process propagation is needed -- see `research/tracks/rel-r12.md`).
+`harness/data/packed.py` / `harness/data/latent.py` and `policies/nets/checkpoint.py` read `resolved()` the same
+way `enabled()` used to be read. `versions["kinfeat"]` as a standalone checkpoint key is gone too: `resolved()`
+folds into `policies/nets/checkpoint.save_checkpoint`'s combined `versions["factors"]` hash instead of its own key.
+
+The only remnant of the old `$RRP_KINFEAT=v1/0/off/...` string vocabulary is `legacy_bool` below, a pure mapping
+table used ONLY when reading an old on-disk config/checkpoint value (never `os.environ`) -- e.g. a DAG YAML's
+`options: {kinfeat: v1}` stage option, or an old checkpoint's `versions["kinfeat"]` entry.
 """
 from __future__ import annotations
 
-import os
 from functools import lru_cache
 
 import mujoco
 import numpy as np
 
-ENV = "RRP_KINFEAT"
 VERSION = "kinfeat_v1"
-FACTOR_NAME = "feat.base_axes"        # R12: the run-config-facing name this flag is migrating to (see module doc)
+FACTOR_NAME = "feat.base_axes"        # the run-config-facing name of this featurizer option
 AXIS_COLS = slice(2, 5)
 
+_current: bool | None = None          # process-ambient resolved value, set only by harness.pipelines.base for a
+                                       # stage's duration; None = "unset" (resolved() then defaults to False)
 
-def enabled() -> bool:
-    v = os.environ.get(ENV, "").strip().lower()
-    if v in ("", "0", "off", "none"):
+
+def legacy_bool(v) -> bool:
+    """Pure mapping of the old `$RRP_KINFEAT` / `options.kinfeat` string vocabulary to a bool. Used only by loaders
+    (on-disk configs / checkpoints), never by live code deciding its OWN behaviour."""
+    s = ("" if v is None else str(v)).strip().lower()
+    if s in ("", "0", "off", "none"):
         return False
-    if v in ("1", "v1", VERSION):
+    if s in ("1", "v1", VERSION):
         return True
-    raise ValueError(f"${ENV}={v!r}: expected v1 or unset")
+    raise ValueError(f"kinfeat value {v!r}: expected v1 or unset")
+
+
+def set_base_axes(value: bool | None) -> bool | None:
+    """Set the process-ambient resolved value for the duration of a stage; returns the previous value so the
+    caller can restore it (matches the old `RRP_KINFEAT` set/restore dance, without `os.environ`)."""
+    global _current
+    prev = _current
+    _current = value
+    return prev
+
+
+def resolved(explicit: bool | None = None) -> bool:
+    """The effective base_axes value: `explicit` wins when given; otherwise the ambient value set by
+    `set_base_axes` (a stage's `options.kinfeat`); otherwise False (today's default, byte-identical goldens)."""
+    if explicit is not None:
+        return bool(explicit)
+    if _current is not None:
+        return bool(_current)
+    return False
 
 
 def home_axes(model: mujoco.MjModel, node_joint_names: list[str], meta: dict, arm_joint_names: list[str],
@@ -64,16 +89,8 @@ def table_for_robot(robot_key: str) -> np.ndarray:
     from rrp.envs.mujoco.scenario import BUILDERS
     from rrp.policies.features.featurizer import featurizer_for
     from rrp.envs.mujoco.session import Session
-    prev = os.environ.get(ENV)
-    os.environ[ENV] = "v1"
-    try:
-        s = Session(BUILDERS["pick_place"](workbench_robots()[robot_key](), 0, n_distractors=0), seed=0)
-        return featurizer_for(s).node_static[:, AXIS_COLS].copy()
-    finally:
-        if prev is None:
-            os.environ.pop(ENV, None)
-        else:
-            os.environ[ENV] = prev
+    s = Session(BUILDERS["pick_place"](workbench_robots()[robot_key](), 0, n_distractors=0), seed=0)
+    return featurizer_for(s, base_axes=True).node_static[:, AXIS_COLS].copy()
 
 
 def apply_rows(nodes: np.ndarray, robot_id: np.ndarray, id_to_key: dict[int, str], n_nodes: np.ndarray) -> np.ndarray:

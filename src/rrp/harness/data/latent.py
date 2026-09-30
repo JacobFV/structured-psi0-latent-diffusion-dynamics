@@ -48,7 +48,7 @@ class LatentData:
             from rrp.harness.data.packed import PREV_ACTION_COL
             nodes[..., PREV_ACTION_COL] = 0
         nn_ = np.asarray(A["n_nodes"][ts])[inv]
-        if self.ds.kinfeat:                             # D-137 ablation (rrp.features.kinfeat)
+        if self.ds.kinfeat:                             # feat.base_axes (rrp.policies.features.kinfeat)
             nodes = self.ds.kinfeat_nodes(nodes, np.asarray(A["robot_id"][ts])[inv], nn_)
         a1 = np.asarray(A["a"][ts][:, 0]).astype(np.float32)[inv]           # 1-step teacher command at t+j
         v1 = np.asarray(A["valid"][ts][:, 0])[inv]

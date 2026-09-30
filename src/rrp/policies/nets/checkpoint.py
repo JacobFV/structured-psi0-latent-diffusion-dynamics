@@ -23,14 +23,17 @@ def save_checkpoint(path: Path, *, model, optimizer=None, step: int, versions: d
     git sha, versions and the meaning-changing training flags (zero_prev_action, realizer_drop_qd, ...)."""
     from rrp.core.provenance import make_provenance, training_flags
     from rrp.policies.features import kinfeat
-    if kinfeat.enabled():            # D-137 ablation flag: features differ -> recorded as a version, checked at load
-        versions = {**(versions or {}), "kinfeat": kinfeat.VERSION}
     factors = None
+    factor_bits = []
     if callable(getattr(model, "factor_specs", None)):   # relation factors (D-144): structure hash + full provenance
         from rrp.policies.relations.base import compat_hash, provenance as factor_provenance
         specs = model.factor_specs()
-        versions = {**(versions or {}), "factors": compat_hash(specs)}
+        factor_bits.append(compat_hash(specs))
         factors = factor_provenance(specs)
+    if kinfeat.resolved():           # feat.base_axes (was D-137 ablation, own `versions["kinfeat"]` key): folded
+        factor_bits.append(kinfeat.VERSION)      # into the SAME combined version string, not a separate key
+    if factor_bits:
+        versions = {**(versions or {}), "factors": "+".join(factor_bits)}
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     sd = model.state_dict()
@@ -60,14 +63,20 @@ def load_checkpoint(path: Path, *, requested_versions: dict | None = None, map_l
 
 
 def check_kinfeat(state: dict, path=None) -> None:
-    """A model trained with $RRP_KINFEAT features must run with them, and vice versa (never silently mixed)."""
+    """A model trained with `feat.base_axes` features must run with them, and vice versa (never silently mixed).
+    Current checkpoints fold this into the combined `versions["factors"]` string (see `save_checkpoint`); old
+    checkpoints (pre-R12c) stored a standalone `versions["kinfeat"]` key -- read here too, an on-disk legacy remap
+    only (D-144 addendum decision b), never a live env-var read."""
     from rrp.policies.features import kinfeat
     if not isinstance(state, dict) or "model" not in state:
         return
-    saved = (state.get("versions") or {}).get("kinfeat")
-    now = kinfeat.VERSION if kinfeat.enabled() else None
+    v = state.get("versions") or {}
+    saved = v.get("kinfeat")                      # legacy standalone key
+    if saved is None and isinstance(v.get("factors"), str):
+        saved = kinfeat.VERSION if kinfeat.VERSION in v["factors"].split("+") else None
+    now = kinfeat.VERSION if kinfeat.resolved() else None
     if saved != now:
-        raise ValueError(f"checkpoint {path}: kinfeat {saved!r} != current ${kinfeat.ENV} -> {now!r}")
+        raise ValueError(f"checkpoint {path}: kinfeat {saved!r} != current (ambient feat.base_axes) -> {now!r}")
 
 
 def checkpoint_provenance(state: dict, path=None):
