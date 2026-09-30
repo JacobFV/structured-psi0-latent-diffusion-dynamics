@@ -209,6 +209,9 @@ PROCEDURAL = {
 
 # ------------------------------------------------------------------ menagerie legged importers
 # gains: list of (regex over actuator/joint name, kp, kd, effort Nm). None effort -> keep asset torque limit.
+# declared torque scaling law (fractions of M g L_leg, the humanoid_gen law) for assets that publish no torque limit
+SCALING_RULE = [("hip_pitch", 0.35), ("hip_(roll|yaw)", 0.25), ("knee", 0.5), ("ankle", 0.16), (".*", 0.1)]
+
 LEGGED_ASSETS = {
     "go2": dict(dir="unitree_go2", file="go2.xml", kind="quadruped", family="unitree_quadruped",
                 license="BSD-3-Clause", key="home", feet=["FL_calf", "FR_calf", "RL_calf", "RR_calf"],
@@ -276,7 +279,33 @@ LEGGED_ASSETS = {
                default={"left_hip_pitch_joint": -0.25, "left_knee_pitch_joint": 0.5, "left_ankle_pitch_joint": -0.25,
                         "right_hip_pitch_joint": -0.25, "right_knee_pitch_joint": 0.5, "right_ankle_pitch_joint": -0.25},
                legs=r"hip|knee|ankle", action_scale=0.25, gait_period=0.8, limits_source="menagerie_author", sealed=True,
+               pitch_actuators=dict(left=["left_hip_pitch_link", "left_knee_pitch_link", "left_ankle_pitch_link"],
+                                    right=["right_hip_pitch", "right_knee_pitch", "right_ankle_pitch"]),
                command_ranges=dict(vx=[-0.3, 0.8], vy=[-0.2, 0.2], wz=[-0.6, 0.6])),
+    "berkeley": dict(dir="berkeley_humanoid", file="berkeley_humanoid.xml", kind="humanoid", family="berkeley_humanoid",
+                     license="BSD-3-Clause", key="home", feet=["ll_faa", "lr_faa"], gains="auto", gain_scale=4.0,
+                     legs=r".*", action_scale=0.25, gait_period=0.7, limits_source="menagerie_author", sealed=True,
+                     pitch_actuators=dict(left=["LL_HFE", "LL_KFE", "LL_FFE"], right=["LR_HFE", "LR_KFE", "LR_FFE"]),
+                     command_ranges=dict(vx=[-0.3, 0.8], vy=[-0.2, 0.2], wz=[-0.6, 0.6])),
+    # SEALED S4 tiny family: the asset carries NO torque limit (motors ctrlrange +-10 is a unit placeholder), so the effort is the
+    # declared mass x leg-length scaling law of rrp.bodies.humanoid_gen (limits_source "declared_scaling", not a manufacturer value)
+    **{f"toddlerbot_{v}": dict(dir=f"toddlerbot_{v}", file=f"toddlerbot_{v}.xml", kind="humanoid", family="toddlerbot",
+                               license="MIT", key="home", feet=["left_ankle_roll_link", "right_ankle_roll_link"],
+                               gains="scaling", scaling=SCALING_RULE, leg_span=("left_hip_pitch", "left_ankle_pitch"),
+                               collision_group=3, collision_bodies=r"^(torso|pelvis_link|.*(hip|knee|ankle).*)$", drop_contact_pairs=True,
+                               legs=r"hip|knee|ankle", action_scale=0.25, gait_period=0.5,
+                               limits_source="declared_scaling", sealed=True,
+                               command_ranges=dict(vx=[-0.1, 0.25], vy=[-0.05, 0.05], wz=[-0.5, 0.5]))
+       for v in ("2xc", "2xm")},
+    # SEALED S1 near-new end effectors (manipulation tasks): legs identical to g1 (g1 sourced_v1 leg limits), hands declared
+    "g1_hands": dict(dir="unitree_g1", file="g1_with_hands.xml", kind="humanoid", family="unitree_humanoid_g1",
+                     license="BSD-3-Clause", key="stand", feet=["left_ankle_roll_link", "right_ankle_roll_link"],
+                     gains=[("hip_(pitch|yaw)", 100.0, 2.0, 88.0), ("hip_roll", 100.0, 2.0, 139.0),
+                            ("knee", 150.0, 4.0, 139.0), ("ankle", 40.0, 2.0, 50.0), ("waist", 200.0, 5.0, 88.0),
+                            ("shoulder|elbow|wrist", 40.0, 1.0, 25.0), ("hand", 8.0, 0.2, 5.0)],
+                     sourced_as="g1", legs=r"hip|knee|ankle", action_scale=0.25, gait_period=0.8,
+                     limits_source="g1_sourced_v1_legs_declared_hands", sealed=True,
+                     command_ranges=dict(vx=[-0.3, 0.8], vy=[-0.2, 0.2], wz=[-0.6, 0.6])),
     "cassie": dict(dir="agility_cassie", file="cassie.xml", kind="biped", family="agility_cassie", license="MIT",
                    key="home", feet=["left-foot", "right-foot"],
                    gains=[("hip-roll|hip-yaw", 100.0, 3.0, None), ("hip-pitch|knee", 200.0, 5.0, None),
@@ -289,9 +318,30 @@ LEGGED_ASSETS = {
 AUTO_GAIN_RULE = "kp = clip(effort x 1.0, 10, 300) N m/rad, kd = 0.025 kp (W13, D-138)"
 
 
-def _auto_gains(eff: float) -> tuple[float, float]:
-    kp = float(min(300.0, max(10.0, eff)))
+def _auto_gains(eff: float, scale: float = 1.0) -> tuple[float, float]:
+    """scale (default 1 = the declared rule): per-body multiplier recorded as meta gain_scale, for a body whose home pose the
+    rule cannot hold statically (D-146 H5 addendum)."""
+    kp = float(min(300.0, max(10.0, scale * eff)))
     return kp, 0.025 * kp
+
+
+SCALING_GAIN_RULE = ("effort = f x M g L_leg (f per joint class, humanoid_gen law; M = asset mass, L_leg = hip-to-ankle span "
+                     "in the default pose), then the auto rule for kp/kd (D-146 H5); declared, not a manufacturer value")
+
+
+def _scaled_effort_fn(m0: mujoco.MjModel, info: dict, root_bid: int):
+    """name -> effort N m for assets with no published torque limit: f(name) x M g L_leg (declared scaling law)."""
+    d = mujoco.MjData(m0)
+    k = next(i for i in range(m0.nkey) if m0.key(i).name == info["key"])
+    mujoco.mj_resetDataKeyframe(m0, d, k)
+    mujoco.mj_kinematics(m0, d)
+    a, b = (mujoco.mj_name2id(m0, mujoco.mjtObj.mjOBJ_JOINT, n) for n in info["leg_span"])
+    span = float(np.linalg.norm(d.xanchor[a] - d.xanchor[b]))
+    mgl = float(m0.body_subtreemass[root_bid]) * 9.81 * span
+
+    def eff(name: str) -> float:
+        return next(f for pat, f in info["scaling"] if re.search(pat, name)) * mgl
+    return eff
 
 
 def _rule(name: str, rules):
@@ -357,6 +407,9 @@ def menagerie_legged(key: str, limits: str | None = None) -> Module:
     # ---- actuator adapter: every actuator -> bounded joint PD servo (original torque limits kept)
     adapter = []
     m0 = src_model
+    scaled_eff = None
+    if info["gains"] == "scaling":
+        scaled_eff = _scaled_effort_fn(m0, info, root_bid)
     for u, a in enumerate(list(spec.actuators)):
         jname = a.target
         jid = mujoco.mj_name2id(m0, mujoco.mjtObj.mjOBJ_JOINT, jname)
@@ -371,9 +424,13 @@ def menagerie_legged(key: str, limits: str | None = None) -> Module:
             eff0 = float(max(abs(m0.actuator_ctrlrange[u, 0]), abs(m0.actuator_ctrlrange[u, 1])) * gear)
             kp0, kd0 = None, None
         if info["gains"] == "auto":
+            if eff0 is None and m0.jnt_actfrclimited[jid]:        # torque limit declared on the joint (berkeley)
+                eff0 = float(max(abs(m0.jnt_actfrcrange[jid, 0]), abs(m0.jnt_actfrcrange[jid, 1])))
             if eff0 is None:
                 raise ValueError(f"{key}: gains 'auto' needs an asset torque limit for {a.name}")
-            r = (*_auto_gains(eff0), eff0)
+            r = (*_auto_gains(eff0, info.get("gain_scale", 1.0)), eff0)
+        elif info["gains"] == "scaling":
+            r = (*_auto_gains(scaled_eff(a.name), info.get("gain_scale", 1.0)), scaled_eff(a.name))
         else:
             r = _rule(a.name, info["gains"]) if info["gains"] else None
         if r is None and not is_pos:
@@ -382,7 +439,7 @@ def menagerie_legged(key: str, limits: str | None = None) -> Module:
         eff = eff if eff is not None else (eff0 if eff0 is not None else 1e3)
         eff_legacy = eff
         if limits == "sourced_v1":
-            se = sourced_effort(key, jname)
+            se = sourced_effort(info.get("sourced_as", key), jname)
             eff = se if se is not None else eff
         jr = m0.jnt_range[jid] if m0.jnt_limited[jid] else [-math.pi, math.pi]
         a.gear = [1, 0, 0, 0, 0, 0]
@@ -411,9 +468,16 @@ def menagerie_legged(key: str, limits: str | None = None) -> Module:
             else:
                 raise ValueError(f"{key}: nonlinear equality drives actuated joint {eq.name1}")
     if info.get("collision_group") is not None:     # W13: assets whose collision geoms rely on scene contact pairs
-        for g in spec.geoms:
-            if g.group == info["collision_group"]:
-                g.contype, g.conaffinity = 1, 1
+        for b in spec.bodies:
+            if re.search(info.get("collision_bodies", ""), b.name):      # default "" = every body
+                for g in b.geoms:
+                    if g.group == info["collision_group"]:
+                        g.contype, g.conaffinity = 1, 1
+    dropped_pairs = 0
+    if info.get("drop_contact_pairs"):      # asset's explicit self-collision pairs interpenetrate in its own home pose (toddlerbot)
+        for pr in list(spec.pairs):
+            spec.delete(pr)
+            dropped_pairs += 1
     imu = add_imu(spec, root_body)
     spec.add_text(name="actuator_limits", data=limits)       # queryable from any compiled model containing this body
     model = spec.copy().compile()
@@ -470,8 +534,10 @@ def menagerie_legged(key: str, limits: str | None = None) -> Module:
                                 dict(name="upper", actuators=held, semantic="joint_position", units="rad"))
                     if g["actuators"]]),
                 actuator_limits=limits,
-                **({"limits_source": info["limits_source"], "gain_rule": AUTO_GAIN_RULE if info["gains"] == "auto" else None,
-                    "collision_group_enabled": info.get("collision_group"), "sealed": bool(info.get("sealed"))}
+                **({"limits_source": info["limits_source"], "gain_rule": {"auto": AUTO_GAIN_RULE, "scaling": SCALING_GAIN_RULE}.get(info["gains"]
+                                                                                 if isinstance(info["gains"], str) else None),
+                    "collision_group_enabled": info.get("collision_group"),
+                    "dropped_contact_pairs": dropped_pairs, "gain_scale": info.get("gain_scale", 1.0), "sealed": bool(info.get("sealed"))}
                    if info.get("limits_source") else {}),
                 actuator_adapter=dict(kind="joint_pd_position_servo", note="motor actuators converted to PD servos; torque "
                                       f"limits = {limits} (see rrp.physics.actuator.SOURCED); position actuators re-gained per table",

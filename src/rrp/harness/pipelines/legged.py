@@ -18,12 +18,18 @@ data without a recorded version counts as contact_v1 (legacy), so it is refused 
 Physics selection (W8): every simulating subprocess (collect, DAgger, evaluations, edits) runs with
 RRP_CONTACT_MODEL = flags.contact_version, collected shards must record that version, and evaluation rows must
 report a scene built with it and checkpoints whose training data (when recorded) used it.
+Sealed split (D-138, D-146 H5): every data / training stage calls the `rrp.core.sealed.SealedSplit` guard (sealed bodies only on
+target-adaptation seeds, evaluation / development seeds never in training); a sealed body is evaluated only by eval_tracker /
+eval_r1 / eval_r2 / heldout under options `sealed_cell: {method, train_seed}` (100 evaluation-range scenes, run once, logged in
+artifacts/runs/humanoid/sealed_log.jsonl); validate_tracker and edits refuse it.
 """
 from __future__ import annotations
 
+import functools
 import json
 from pathlib import Path
 
+from rrp.core.sealed import SealedSplit
 from rrp.harness.pipelines.base import apply_gate, StageContext, StageError, register
 
 EVAL = ["-m", "rrp.cli", "suite", "legged"]
@@ -33,9 +39,67 @@ def _json_safe(x):
     return json.loads(json.dumps(x, default=str))
 
 
+def _seed_list(spec: str) -> list[int]:
+    from rrp.core.runs import parse_seed_spec
+    return parse_seed_spec(str(spec))
+
+
 def _seed_range(spec: str) -> tuple[int, int]:
     a, _, b = str(spec).partition("-")
     return int(a), int(b or a)
+
+
+def sealed_train_guard(bodies, seeds=(), what: str = "training") -> None:
+    SealedSplit.load().assert_train_allowed(bodies, seeds, what=what)
+
+
+def sealed_data_guard(root, bodies) -> None:
+    """Refuse a trainer whose dataset shards (root/<body>/s*.json) hold seeds it may not read for these bodies."""
+    SealedSplit.load().assert_dataset_allowed(root, bodies)
+
+
+def _tracker_bodies(o: dict) -> list[str]:
+    """Bodies a train_tracker node trains on: options body / args.body, and the recipe's body / groups."""
+    out = [str(x) for x in (o.get("body"), (o.get("args") or {}).get("body")) if x]
+    if o.get("recipe"):
+        if o.get("engine", "cpu") == "warp":
+            from rrp.harness.train.humanoid_recipes import recipe_record
+        else:
+            from rrp.harness.train.tracker_recipes import recipe_record
+        r, _ = recipe_record(str(o["recipe"]))
+        out += ([str(r["body"])] if r.get("body") else []) + [b for g in r.get("groups") or [] for b in g[0]]
+    return sorted(set(out))
+
+
+def sealed_evaluation(scope):
+    """Stage decorator: a stage that evaluates `scope(ctx) -> (body, scene_seeds)`. Non-sealed bodies run as before; a sealed
+    body needs options `sealed_cell: {method, train_seed}` and runs inside SealedSplit.sealed_eval (once, logged)."""
+    def deco(fn):
+        @functools.wraps(fn)
+        def wrapped(ctx: StageContext):
+            body, scenes = scope(ctx)
+            split = SealedSplit.load()
+            if not split.is_sealed_body(body):
+                return fn(ctx)
+            sc = ctx.opts.get("sealed_cell")
+            if not sc or "method" not in sc or "train_seed" not in sc:
+                raise StageError(f"{body} is sealed: options.sealed_cell = {{method, train_seed}} is required (run once)")
+            with split.sealed_eval(dict(body=body, method=sc["method"], train_seed=sc["train_seed"], scenes=list(scenes))):
+                return fn(ctx)
+        return wrapped
+    return deco
+
+
+def _range_scope(ctx: StageContext):
+    o = ctx.opts
+    a, b = _seed_range(o.get("seeds", "10000-10029"))
+    return o["body"], range(a, b + 1)
+
+
+def _tracker_scope(ctx: StageContext):
+    o = ctx.opts
+    s0 = int(o.get("seed0", 7200))
+    return o["body"], range(s0, s0 + int(o.get("n", 20)))
 
 
 def check_contact_version(ctx: StageContext, data_dir: str | None) -> None:
@@ -154,6 +218,7 @@ def collect(ctx: StageContext) -> dict:
     body = o["body"]
     out = o.get("out_dir", ctx.rc.out)
     a, b = _seed_range(o["seeds"])
+    sealed_train_guard([body], range(a, b + 1), "collect")
     size = int(o.get("shard_size", b - a + 1))
     extra = []
     for k in ("tracker", "sigmas"):
@@ -254,6 +319,7 @@ def validate_tracker(ctx: StageContext) -> dict:
     reason in gate_report.json)."""
     o = ctx.opts
     body = o["body"]
+    SealedSplit.load().assert_eval_allowed(body)
     check_tracker_sha(ctx)
     out = ctx.out / "validation.json"
     argv = ["-m", "rrp.cli", "suite", "tracker-validation", "--body", body, "--kind", o.get("kind", "learned"),
@@ -290,6 +356,7 @@ def train_tracker(ctx: StageContext) -> dict:
     under a new run id). Output: actor.pt in the run dir (a NEW tracker; nothing is installed). The contact model is
     flags.contact_version."""
     o = ctx.opts
+    sealed_train_guard(_tracker_bodies(o), (), "tracker training")
     warp = o.get("engine", "cpu") == "warp"
     if o.get("resume_from") and not (ctx.out / "checkpoint.pt").exists():
         import shutil
@@ -340,6 +407,7 @@ def train_tracker(ctx: StageContext) -> dict:
 
 
 @register("legged", "eval_tracker", source="learned_tracker")
+@sealed_evaluation(_tracker_scope)
 def eval_tracker(ctx: StageContext) -> dict:
     """W13: C-MuJoCo evaluation of a tracker / task expert (full self-collision; never the training simulator). options: task
     (waypoint | steps | gap | gap_smoke), body, actor (else input `actor`), seed0, n, pythonpath (as train_tracker), plus per task: steps `h_fracs` (list; one
@@ -402,6 +470,7 @@ def train_rep(ctx: StageContext) -> dict:
     """Legged Stage A (E, R, P)."""
     from rrp.harness.train.legged_latent_train import train_rep as fn
     cfg = ctx.native
+    sealed_data_guard(cfg["data"], cfg["bodies"])
     check_contact_version(ctx, cfg.get("data"))
     res = fn(cfg, ctx.out)
     rep = str(Path(ctx.rc.out) / "representation.pt")
@@ -442,6 +511,7 @@ def flow_ft(ctx: StageContext) -> dict:
 def dagger_collect(ctx: StageContext) -> dict:
     """Legged DAgger buffer: rollouts (route bc | oracle_bc | generated), labels = stateless BC expert."""
     o = ctx.opts
+    sealed_train_guard([o["body"]], _seed_list(o["seeds"]), "dagger collect")
     argv = ["-m", "rrp.cli", "train", "legged-dagger", "collect", "--route", o.get("route", "oracle_bc"), "--body", o["body"],
             "--seeds", o["seeds"], "--out", ctx.rc.out, "--bc", ctx.inp("bc")]
     for k in ("rep", "flow", "realizer"):
@@ -523,18 +593,21 @@ def _ladder(ctx: StageContext, default_route: str) -> dict:
 
 
 @register("legged", "eval_r1", source="oracle")
+@sealed_evaluation(_range_scope)
 def eval_r1(ctx: StageContext) -> dict:
     """R1 ORACLE DIAGNOSTIC (stateless BC chunk encoded -> system 0)."""
     return _ladder(ctx, "r1")
 
 
 @register("legged", "eval_r2", source="learned")
+@sealed_evaluation(_range_scope)
 def eval_r2(ctx: StageContext) -> dict:
     """R2 deployable route (flow -> system 0)."""
     return _ladder(ctx, "r2")
 
 
 @register("legged", "heldout", source="learned")
+@sealed_evaluation(_range_scope)
 def heldout(ctx: StageContext) -> dict:
     """R2 on a held-out body (the body must not be in the training bodies given in options.train_bodies)."""
     if ctx.opts["body"] in ctx.opts.get("train_bodies", []):
@@ -547,6 +620,7 @@ def edits(ctx: StageContext) -> dict:
     """Causal packet edits with irrelevant-edit controls (scripts/legged_edit_suite.sh) + paired effects."""
     o = ctx.opts
     body, route = o["body"], o.get("route", "r2")
+    SealedSplit.load().assert_eval_allowed(body)
     ck = check_checkpoints_contact(ctx)
     eds = o.get("edits") or ["none", "probe_yaw:0.6", "probe_yaw:-0.6", "probe_goal_mirror", "probe_halt", "contact:0:1",
                              "contact:0:0", "rand_norm:1", "rand_norm:2", "rand_norm:4", "rand_norm:8", "rand_norm:12", "zero"]

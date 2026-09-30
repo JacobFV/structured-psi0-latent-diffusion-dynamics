@@ -23,6 +23,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from rrp.core.sealed import SealedSplit
 from rrp.harness.train.legged_latent_train import LeggedData, _save, rng_state, restore_rng, cuda_peak_mb
 from rrp.policies.bundles import _dev
 from rrp.policies.features.legged import H
@@ -59,6 +60,7 @@ def eval_bc(model, data, n_batches=20, seed=11, nfe=8):
 
 
 def train(cfg, out: Path):
+    SealedSplit.load().assert_dataset_allowed(cfg["data"], cfg["bodies"])
     dev = _dev()
     out.mkdir(parents=True, exist_ok=True)
     data = LeggedData(Path(cfg["data"]), cfg["bodies"], dev)

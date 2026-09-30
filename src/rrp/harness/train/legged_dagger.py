@@ -23,6 +23,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from rrp.core.sealed import SealedSplit
 from rrp.policies.features.legged import public_context, active_event, MAX_N
 from rrp.harness.train.legged_latent_train import LeggedData, rep_step, _save
 from rrp.policies.bundles import load_rep, _dev
@@ -78,12 +79,13 @@ def collect(a):
     from rrp.harness.eval.legged_latent_eval import run_episode
     from rrp.policies.legged import BCController, LatentLeggedController
     from rrp.policies.nets.legged_bc import load_bc
+    seeds = parse_seed_spec(a.seeds)
+    SealedSplit.load().assert_train_allowed([a.body], seeds, what="dagger collect")
     dev = torch.device("cpu")
     torch.set_num_threads(1)
     bc, _ = load_bc(a.bc, dev)
     out = Path(a.out) / a.body
     out.mkdir(parents=True, exist_ok=True)
-    seeds = parse_seed_spec(a.seeds)
     f = out / f"s{seeds[0]}-{seeds[-1]}.npz"
     eps, metas, morph = [], [], None
     for sd in seeds:
@@ -228,8 +230,11 @@ def refit(cfg, out: Path):
     R.train()
     for p in R.parameters():
         p.requires_grad_(True)
-    base = LeggedData(Path(rcfg["data"]), cfg.get("bodies", rcfg["bodies"]), dev)
     bodies = cfg.get("bodies", rcfg["bodies"])
+    split = SealedSplit.load()
+    for root in [rcfg["data"], *cfg.get("dagger", [])]:
+        split.assert_dataset_allowed(root, [b for b in bodies if (Path(root) / b).is_dir()])
+    base = LeggedData(Path(rcfg["data"]), bodies, dev)
     if cfg.get("dagger_present_bodies"):
         # D-126 #11 (opt-in; default off = unchanged): per-body DAgger buffers (one body each) mixed with a refit over more bodies
         # (e.g. the held-out adaptation refit): each buffer loads only the listed bodies it actually contains.

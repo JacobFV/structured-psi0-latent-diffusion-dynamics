@@ -49,7 +49,7 @@ def test_train_tracker_warp_seeds_the_run_dir_from_resume_from(tmp_path):
     for f in ("checkpoint.pt", "actor.pt"):
         (src / f).write_bytes(b"x")
     (src / "meta.json").write_text(json.dumps(dict(body="shared")))
-    ctx, calls = _ctx(tmp_path, "train_tracker", dict(engine="warp", recipe="r", resume_from="artifacts/runs/old", pythonpath=["/w"]))
+    ctx, calls = _ctx(tmp_path, "train_tracker", dict(engine="warp", recipe="shared_morph_v1", resume_from="artifacts/runs/old", pythonpath=["/w"]))
     res = legged.train_tracker(ctx)
     argv, env = calls[0]
     assert argv[:5] == ["-m", "rrp.cli", "train", "tracker-warp", "--out"] and "--resume" in argv and "--contact" not in argv

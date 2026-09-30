@@ -383,3 +383,16 @@ DAG humanoid_tracker_gate_pool: 6 nodes (source recipes/humanoid/tracker_gate_po
 - validate@g1_v4 [planned ] validate_tracker @peer cpu=1 mem=4G retries=0
 - waypoint@g1_v4 [planned ] eval_tracker @peer cpu=1 mem=4G retries=0
 ```
+
+## Sealed split guard and sealed-body adapters (H5, audit D12, D-146 item 2)
+
+- `rrp.core.sealed.SealedSplit` (hash-pinned to `research/splits/humanoid_v1.json`) refuses: any training / data collection on a
+  sealed body except on target-adaptation seeds; evaluation / development seeds in any training; a dataset whose shard manifests
+  hold such seeds; a second run of a sealed cell (body x method x training seed, 100 evaluation scenes) unless the log
+  `artifacts/runs/humanoid/sealed_log.jsonl` holds a recorded infrastructure failure with a reason. Wired into the legged
+  pipeline stages and trainers; validate_tracker / edits refuse sealed bodies. The direct `rrp train tracker-*` CLI is not guarded yet.
+- Adapters (`rrp.bodies.legged`): berkeley, toddlerbot_2xc / 2xm, g1_hands added; n1 pitch actuators declared. All five sealed target
+  groups build and stand 1 s under PD on CPU MuJoCo (`tests/unit/test_sealed.py`, load-and-stand only; no policy, no sealed
+  evaluation was run). No body is cut. Declared, not manufacturer, values: toddlerbot torque limits (mass x leg-length scaling law,
+  `limits_source: declared_scaling`), berkeley gain_scale 4.0 (kp = 4 x effort; found in the stand test), g1_hands hand gains,
+  toddlerbot_2xc dropped self-collision pairs (asset pairs interpenetrate at home).
