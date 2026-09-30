@@ -35,6 +35,8 @@ def train(args):
     import torch
     import torch.nn as nn
     from rrp.envs.mujoco.tracker_nets import ActorCritic
+    from rrp.harness.train.tracker_recipes import assert_trainable
+    assert_trainable(args)                      # sealed split: before anything is created
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     dev = torch.device(args.device)
@@ -448,3 +450,77 @@ def parse_args(ap, argv=None):
         if a.ref_ff_vmax is None:
             a.ref_ff_vmax = 1e3                       # every speed
     return a
+
+
+# ------------------------------------------------------------------ install (HS2, D-146 R2)
+def install(run: str | Path, validations: list, body: str, version: str, *, label: str, root: str | Path | None = None,
+            decision: str = "accepted") -> Path:
+    """Register a trained actor in the tracker store `<root>/<body>/<version>/` (root default artifacts/trackers).
+
+    Refuses (raises ValueError, nothing written) unless: `<run>/actor.pt` and `<run>/meta.json`-equivalent actor meta exist; every
+    validation JSON (rrp.harness.eval.tracker_validation output) carries tracker_sha == the sha256 of this actor AND
+    w6_gate.verdict == "pass" (the D-112 gate; fail / incomplete are never installed, a rejected actor is kept in its run dir);
+    the target version does not exist (installs are never overwritten: new version name). Writes actor.pt, meta.json (the actor's
+    own meta + sha256 pin, install_label, installed, validation summary, decision), train_log_every10.jsonl (when the run has a
+    train_log.jsonl) and the validation files. Returns the store directory."""
+    import hashlib
+    import shutil
+    import torch
+    run = Path(run)
+    actor = run / "actor.pt"
+    if not actor.exists():
+        raise ValueError(f"install: {actor} not found")
+    if not validations:
+        raise ValueError("install: at least one --validation (tracker_validation output with the D-112 gate) is required")
+    sha = hashlib.sha256(actor.read_bytes()).hexdigest()
+    vals = []
+    for v in validations:
+        vp = Path(v)
+        if not vp.exists():
+            raise ValueError(f"install: validation {vp} not found")
+        rec = json.loads(vp.read_text())
+        if rec.get("tracker_sha") != sha:
+            raise ValueError(f"install: {vp} validates sha {str(rec.get('tracker_sha'))[:12]}, not this actor {sha[:12]}")
+        verdict = (rec.get("w6_gate") or {}).get("verdict")
+        if verdict != "pass":
+            raise ValueError(f"install: {vp} D-112 gate verdict is {verdict!r}, not 'pass' (failed: "
+                             f"{(rec.get('w6_gate') or {}).get('failed')})")
+        vals.append((vp, rec))
+    from rrp.envs.mujoco.legged_tracker import TRACKER_DIR
+    store = Path(TRACKER_DIR if root is None else root) / body / version
+    if store.exists():
+        raise ValueError(f"install: {store} already exists (installs are never overwritten; pick a new version)")
+    st = torch.load(str(actor), map_location="cpu", weights_only=False)
+    from rrp.envs.mujoco.legged_tracker import extra_kind
+    meta = dict(st["meta"], sha256=sha, install_label=label, decision=decision, extra_obs=extra_kind(st["meta"]),
+                installed=time.strftime("%Y-%m-%d"), installed_from=str(run),
+                validations=[dict(file=vp.name, body=r.get("body"), verdict=r["w6_gate"]["verdict"]) for vp, r in vals])
+    store.mkdir(parents=True)
+    shutil.copy2(actor, store / "actor.pt")
+    (store / "meta.json").write_text(json.dumps(meta, indent=1, default=str))
+    if (run / "train_log.jsonl").exists():
+        lines = (run / "train_log.jsonl").read_text().splitlines()
+        (store / "train_log_every10.jsonl").write_text("\n".join(lines[::10]) + "\n")
+    for vp, r in vals:
+        name = f"validation_{r.get('body') or vp.stem}.json" if len(vals) > 1 else "validation_learned.json"
+        shutil.copy2(vp, store / name)
+    return store
+
+
+def install_main(argv=None):
+    ap = argparse.ArgumentParser(description="register a trained tracker (actor.pt from a run dir) in artifacts/trackers/<body>/<version>/ "
+                                 "after its D-112 gate passed")
+    ap.add_argument("run", help="training run directory holding actor.pt")
+    ap.add_argument("--validation", action="append", required=True,
+                    help="tracker_validation output JSON (w6_gate.verdict must be pass, tracker_sha must match); repeat per body")
+    ap.add_argument("--body", required=True, help="store body key (per-body trackers: the body; shared trackers: e.g. shared)")
+    ap.add_argument("--version", required=True)
+    ap.add_argument("--label", required=True, help="one-line install label: what it is and what its gate showed")
+    ap.add_argument("--decision", default="accepted")
+    ap.add_argument("--root", default=None, help="tracker store root (default artifacts/trackers)")
+    a = ap.parse_args(argv)
+    try:
+        store = install(a.run, a.validation, a.body, a.version, label=a.label, root=a.root, decision=a.decision)
+    except ValueError as e:
+        raise SystemExit(str(e))
+    print(json.dumps(dict(installed=str(store), spec=f"{a.body}:{a.version}")))

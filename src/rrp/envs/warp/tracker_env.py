@@ -84,7 +84,8 @@ class WarpTrackerEnv:
                  turn_frac: float = 0.25, slow_frac: float = 0.0, randomize: bool = True, nconmax: int = 48,
                  njmax: int = 320, model_fn=None, extra_batch=(), clock_gate: bool = False, target_margin: float = 0.0,
                  land_vel: float = 0.0, force_cap: float = 0.0, force_cap_bw: float = 2.5, terrain_scan: bool = False,
-                 upper_body: bool = False, upper_amp: float = 0.4, upper_speed: float = 1.5, payload_frac: float = 0.08):
+                 upper_body: bool = False, upper_amp: float = 0.4, upper_speed: float = 1.5, payload_frac: float = 0.08,
+                 require_payload: bool = True):
         wp, mjw = _wp()
         self.wp, self.mjw = wp, mjw
         self.dev = torch.device("cuda")
@@ -126,7 +127,9 @@ class WarpTrackerEnv:
         self.upper_amp, self.upper_speed, self.payload_frac = float(upper_amp), float(upper_speed), float(payload_frac)
         if self.upper_body and not len(b.held_act):
             raise ValueError(f"upper_body needs an upper group; body {keys[0]!r} has no held actuators")
-        if self.upper_body and not len(b.payload_bodies()):
+        # require_payload=False (shared morphology tracker groups): a body with an upper group but no lateral hand links trains
+        # with its upper targets and NO payload (recorded: upper_meta payload_bodies = [])
+        if self.upper_body and require_payload and not len(b.payload_bodies()):
             raise ValueError(f"upper_body needs payload bodies (lateral hand links); body {keys[0]!r} has none")
         self.dt = 0.02
         self.substeps = max(1, int(round(self.dt / m.opt.timestep)))
@@ -196,6 +199,7 @@ class WarpTrackerEnv:
             self.pl_bodies = i64(b.payload_bodies())
             self.pl_mass0 = vw([mk.body_mass[b.payload_bodies()] for mk in ms])                # (N, npb)
             self.pl_inertia0 = vw([mk.body_inertia[b.payload_bodies()] for mk in ms])          # (N, npb, 3)
+            self.has_payload = bool(len(self.pl_bodies))
         self.pol_act, self.pol_qadr, self.pol_dadr = i64(b.pol_act), i64(b.pol_qadr), i64(b.pol_dadr)
         self.held_act = i64(b.held_act) if len(b.held_act) else None
         self.held_qadr, self.held_dadr = i64(b.held_qadr), i64(b.held_dadr)
@@ -367,16 +371,22 @@ class WarpTrackerEnv:
         """Episode start of the masked worlds: the upper joints hold the default pose, a payload in [0, payload_frac x mass] is
         split over the hand-side bodies (added as a point mass PAYLOAD_ARM from the link centre: mass and inertia)."""
         n, M = self.N, mask[:, None]
-        pl = self._u(n) * self.payload_frac * self.mass
-        self.payload = torch.where(mask, pl, self.payload)
-        npb = self.pl_mass0.shape[1]
-        add = self.payload[:, None] / npb
-        self.m_mass[:, self.pl_bodies] = torch.where(M, self.pl_mass0 + add, self.m_mass[:, self.pl_bodies])
-        inertia = self.pl_inertia0 + (add * PAYLOAD_ARM ** 2)[:, :, None]         # a point load PAYLOAD_ARM from the link centre (com unchanged)
-        self.m_inertia[:, self.pl_bodies] = torch.where(M[:, :, None], inertia, self.m_inertia[:, self.pl_bodies])
+        if self.has_payload:
+            pl = self._u(n) * self.payload_frac * self.mass
+            self.payload = torch.where(mask, pl, self.payload)
+            npb = self.pl_mass0.shape[1]
+            add = self.payload[:, None] / npb
+            self.m_mass[:, self.pl_bodies] = torch.where(M, self.pl_mass0 + add, self.m_mass[:, self.pl_bodies])
+            inertia = self.pl_inertia0 + (add * PAYLOAD_ARM ** 2)[:, :, None]     # a point load PAYLOAD_ARM from the link centre (com unchanged)
+            self.m_inertia[:, self.pl_bodies] = torch.where(M[:, :, None], inertia, self.m_inertia[:, self.pl_bodies])
         self.up_tgt = torch.where(M, self.q0_held, self.up_tgt)
         self.up_goal = torch.where(M, self.q0_held, self.up_goal)
         self.up_timer = torch.where(mask, torch.zeros_like(self.up_timer), self.up_timer)
+
+    def set_upper_ramp(self, amp: float, payload_frac: float) -> None:
+        """Curriculum hook (HS2): the upper-body goal amplitude (fraction of each joint's half range) applies from the next
+        target draw, the payload cap from the next episode reset (a running episode keeps its payload)."""
+        self.upper_amp, self.payload_frac = float(amp), float(payload_frac)
 
     def _upper_targets(self):
         """One 50 Hz tick of the random upper-body target trajectory: every 1-3 s a new goal (20% rest at the default pose, else
@@ -399,7 +409,7 @@ class WarpTrackerEnv:
         """Recorded in the actor meta: how the upper-body targets and the payload were generated (a random training source)."""
         return dict(source="random", targets="goal every 1-3 s (20% rest), slew-limited, clipped to the actuator range",
                     amp=self.upper_amp, speed=self.upper_speed, payload_frac=self.payload_frac,
-                    payload_bodies=[int(i) for i in self.b.payload_bodies()], obs="q - q0, qdot * 0.05 (noise 0.01 / 0.05)")
+                    payload_bodies=[int(i) for i in (self.b.payload_bodies() if self.has_payload else [])], obs="q - q0, qdot * 0.05 (noise 0.01 / 0.05)")
 
     def reset_all(self):
         self._reset(torch.ones(self.N, dtype=torch.bool, device=self.dev))
@@ -866,18 +876,22 @@ class GraphedStep:
 
 class MorphMultiEnv:
     """Several WarpTrackerEnv groups (a body, or K same-topology variants) behind one morphology-conditioned interface
-    (rrp.envs.morph_obs, obs format morph_v1, 14 canonical slot actions). Duck-types WarpTrackerEnv for the PPO trainer."""
+    (rrp.envs.morph_obs, obs format morph_v1, 14 canonical slot actions). Duck-types WarpTrackerEnv for the PPO trainer.
+
+    `upper_body=True` (HS2, obs format morph_v2 = morph_v1 + a canonical upper block of UP_MAX padded slots, see morph_obs):
+    every group whose body has an upper group trains with the random upper-body targets and payload; a group without one
+    (e.g. a legs-only phum topology) contributes an all-zero upper block. The per-group dims are checked: all variants of a
+    group share the upper joint count, and every group yields the same obs / critic width."""
 
     def __init__(self, groups: list, seed: int = 1, obs_noise: float = 1.0, env_cls=None, **env_kw):
-        from rrp.envs.mujoco.morph_obs import CTX_DIM, DYN_DIM, NS, OBS_DIM, MorphSpec
-        if env_kw.get("upper_body"):
-            raise ValueError("morph_v1 (shared tracker) has no upper-body block: upper_body needs a per-body tracker")
+        from rrp.envs.mujoco.morph_obs import CTX_DIM, DYN_DIM, NS, OBS_DIM, UP_MAX, UP_PRIV_DIM, UPPER_DIM, MorphSpec
+        self.upper = bool(env_kw.get("upper_body"))
         self.envs, self.specs, self.slices, self.names = [], [], [], []
         self.obs_noise = obs_noise
         n0 = 0
+        priv_dims = set()
         for gi, (keys, nw) in enumerate(groups):
             keys = [keys] if isinstance(keys, str) else list(keys)
-            e = (env_cls or WarpTrackerEnv)(keys, int(nw), seed=seed + 101 * gi, obs_noise=0.0, **env_kw)
             specs = []
             for k in keys:
                 m, meta, b, _ = build_model(k, "v2", ADAPT)
@@ -886,12 +900,25 @@ class MorphMultiEnv:
             for sp in specs[1:]:
                 if not (np.array_equal(sp.idx, s0.idx) and np.array_equal(sp.sign, s0.sign)):
                     raise ValueError(f"group {keys[0]}: variants disagree on slot mapping / signs")
+                if sp.n_up != s0.n_up:
+                    raise ValueError(f"group {keys[0]}: variants disagree on the upper joint count ({sp.n_up} vs {s0.n_up})")
+            gkw = dict(env_kw, upper_body=self.upper and s0.n_up > 0, require_payload=False) if self.upper else env_kw
+            e = (env_cls or WarpTrackerEnv)(keys, int(nw), seed=seed + 101 * gi, obs_noise=0.0, **gkw)
             dev = e.dev
+            has_up = bool(gkw["upper_body"]) if self.upper else False
+            if has_up and int(e.upper_dim) != 2 * s0.n_up:
+                raise ValueError(f"group {keys[0]}: env upper block {e.upper_dim} != 2 x {s0.n_up} upper joints")
+            # critic width: the env's [base | payload fraction | n_up offsets] is padded to [base | payload | UP_MAX offsets];
+            # a group without an upper group gets payload 0 + zero offsets, so every group has the same width
+            priv_dims.add(int(e.priv_dim) + ((UP_MAX - s0.n_up if has_up else UP_PRIV_DIM) if self.upper else 0))
             vid = np.arange(e.N) % e.K
             g = dict(idx=torch.as_tensor(s0.idx[s0.present], device=dev), slots=torch.as_tensor(np.nonzero(s0.present)[0], device=dev),
                      sign=torch.as_tensor(s0.sign[s0.present], device=dev, dtype=torch.float32),
                      ctx=torch.as_tensor(np.stack([sp.ctx for sp in specs])[vid], device=dev),
                      last=torch.zeros(e.N, NS, device=dev), cs=torch.as_tensor(CMD_SCALE, device=dev, dtype=torch.float32))
+            g["has_up"], g["n_up"] = has_up, (s0.n_up if has_up else 0)
+            if has_up:
+                g["up_ctx"] = torch.as_tensor(np.stack([sp.up_ctx.ravel() for sp in specs])[vid], device=dev)
             g["pm"] = torch.zeros(NS, device=dev)
             g["pm"][g["slots"]] = 1.0
             self.envs.append(e)
@@ -901,9 +928,11 @@ class MorphMultiEnv:
             n0 += e.N
         self.N, self.nA, self.nf = n0, NS, 2
         self.extra_dim = int(self.envs[0].extra_dim)
-        self.upper_dim = 0                                  # (upper_body is refused above)
-        self.obs_dim, self.dyn_dim, self.ctx_dim = OBS_DIM + self.extra_dim, DYN_DIM, CTX_DIM
-        self.priv_dim = self.envs[0].priv_dim
+        self.upper_dim = UPPER_DIM if self.upper else 0     # morph_v2: padded upper joint state + static slot descriptors
+        self.obs_dim, self.dyn_dim, self.ctx_dim = OBS_DIM + self.extra_dim + self.upper_dim, DYN_DIM, CTX_DIM
+        if len(priv_dims) != 1:
+            raise ValueError(f"groups disagree on the critic width {sorted(priv_dims)} (the shared critic needs one)")
+        self.priv_dim = priv_dims.pop()
         self.dev = self.envs[0].dev
         self.gen = torch.Generator(device=self.dev).manual_seed(int(seed) + 7)
         self.b = self.envs[0].b
@@ -911,7 +940,47 @@ class MorphMultiEnv:
         self.adaptations = self.envs[0].adaptations
         self.cfg0 = self.envs[0].cfg0
         self.dt = self.envs[0].dt
-        self._priv = [e.privileged(torch.zeros(e.N, e.nf, dtype=torch.bool, device=self.dev)) for e in self.envs]
+        self._priv = [self._canon_priv(e, g, e.privileged(torch.zeros(e.N, e.nf, dtype=torch.bool, device=self.dev)))
+                      for e, g in zip(self.envs, self.specs)]
+        for p in self._priv:
+            assert p.shape[-1] == self.priv_dim, (p.shape, self.priv_dim)
+
+    def _canon_priv(self, e, g, p):
+        """Critic block at the canonical width (see __init__): pad the upper target offsets to UP_MAX, or zeros for a group
+        with no upper body (payload fraction 0, offsets 0)."""
+        if not self.upper:
+            return p
+        from rrp.envs.mujoco.morph_obs import UP_MAX, UP_PRIV_DIM
+        if g["has_up"]:
+            return torch.cat([p, torch.zeros(p.shape[0], UP_MAX - g["n_up"], device=p.device)], -1)
+        return torch.cat([p, torch.zeros(p.shape[0], UP_PRIV_DIM, device=p.device)], -1)
+
+    def set_upper_ramp(self, amp: float, payload_frac: float) -> None:
+        for e in self.envs:
+            if getattr(e, "upper_body", False):
+                e.set_upper_ramp(amp, payload_frac)
+        self.upper_amp, self.payload_frac = float(amp), float(payload_frac)
+
+    def upper_meta(self) -> dict:
+        rec = dict(groups={n: (e.upper_meta() if getattr(e, "upper_body", False) else None) for n, e in zip(self.names, self.envs)})
+        ref = next((e for e in self.envs if getattr(e, "upper_body", False)), None)
+        if ref is not None:
+            rec.update(amp=ref.upper_amp, speed=ref.upper_speed, payload_frac=ref.payload_frac)
+        return rec
+
+    def _upper_block(self, e, g):
+        """morph_v2 upper block of one group: padded q - q0 and qdot x 0.05 (encoder noise as the legs), then the static descriptors."""
+        from rrp.envs.mujoco.morph_obs import UP_CTX_DIM, UP_MAX
+        if not g["has_up"]:
+            return torch.zeros(e.N, 2 * UP_MAX + UP_CTX_DIM, device=self.dev)
+        q = e.qpos[:, e.held_qadr] - e.q0_held
+        qd = e.qvel[:, e.held_dadr] * 0.05
+        if self.obs_noise:
+            q = q + torch.randn(q.shape, generator=self.gen, device=self.dev) * 0.01 * self.obs_noise
+            qd = qd + torch.randn(qd.shape, generator=self.gen, device=self.dev) * 0.05 * self.obs_noise
+        pad = UP_MAX - g["n_up"]
+        z = torch.zeros(e.N, pad, device=self.dev)
+        return torch.cat([q, z, qd, z, g["up_ctx"]], -1)
 
     def set_alpha(self, a: float):
         w = None
@@ -940,7 +1009,8 @@ class MorphMultiEnv:
             q = q + nz(q.shape, 0.01) * pm
             qd = qd + nz(qd.shape, 0.05) * pm
         clock = e.clock_obs()
-        return torch.cat([gyro, grav, cmd, q, qd, g["last"], clock, g["ctx"], e.extra_obs()], -1)
+        o = torch.cat([gyro, grav, cmd, q, qd, g["last"], clock, g["ctx"], e.extra_obs()], -1)
+        return torch.cat([o, self._upper_block(e, g)], -1) if self.upper else o
 
     def observe(self):
         return torch.cat([self._group_obs(e, g) for e, g in zip(self.envs, self.specs)], 0)
@@ -958,6 +1028,7 @@ class MorphMultiEnv:
             _, priv, r, d, tmo = e.step(a)
             pm = g["pm"]
             g["last"] = torch.where(d[:, None], torch.zeros_like(a_slot), a_slot * pm)
+            priv = self._canon_priv(e, g, priv)
             self._priv[i] = priv
             R.append(r)
             D.append(d)

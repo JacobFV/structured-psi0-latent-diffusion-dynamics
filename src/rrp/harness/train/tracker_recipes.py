@@ -117,13 +117,18 @@ WARP_RECIPES: dict[str, dict] = {
 WARP_RECIPES["shared_morph_v1"] = None      # built lazily (phum topology selection runs the generator)
 
 
-def phum_groups(n_topologies: int = 4, per_topology: int = 16, nworld: int = 512, seed_range=(0, 20000)) -> list:
-    """The n most frequent phum topologies among training seeds, each with its first `per_topology` seeds (deterministic)."""
+def phum_groups(n_topologies: int = 4, per_topology: int = 16, nworld: int = 512, seed_range=(0, 20000), min_arm_dof: int = 0) -> list:
+    """The n most frequent phum topologies among training seeds, each with its first `per_topology` seeds (deterministic).
+    `min_arm_dof` > 0 keeps only topologies whose arms have at least that many joints (the wholebody recipe: every group then has
+    an upper body to randomise)."""
     from collections import defaultdict
     from rrp.bodies.humanoid_gen import sample_params
     by = defaultdict(list)
     for s in range(*seed_range):
-        by[sample_params(s).topology].append(s)
+        p = sample_params(s)
+        if p.arm_dof < min_arm_dof:
+            continue
+        by[p.topology].append(s)
     tops = sorted(by, key=lambda t: (-len(by[t]), t))[:n_topologies]
     return [[[f"phum_{s}" for s in by[t][:per_topology]], nworld] for t in tops]
 
@@ -308,7 +313,10 @@ WARP_RECIPES["t1_gap_gpu_v1"] = dict(WARP_RECIPES["h1_gap_gpu_v1"], body="t1",
 # the new input columns with zeros (init_shared), so a legs-only gait is the exact starting policy. Where no accepted gait exists
 # (op3, apollo, adam_lite) the v4 clock recipe runs from scratch. NOT run: training is paused; the gate is the D-112 tracker gate
 # measured with the upper body held AND moving, in C MuJoCo (LeggedSession control="wholebody" reads the same obs block).
-_UB = dict(upper_body=True, upper_amp=0.4, upper_speed=1.5, payload_frac=0.08)
+# HS2 (D-146 R2): the upper-body amplitude and the payload RAMP from a small start (upper_amp0, payload 0) to the full values over the
+# first `upper_ramp` share of the iterations (`upper_ramp_value`), so the legs learn the gait before the full disturbance
+# (the flat full-amplitude start is what the first wholebody attempts lacked).
+_UB = dict(upper_body=True, upper_amp=0.4, upper_speed=1.5, payload_frac=0.08, upper_amp0=0.1, upper_ramp=0.3)
 _R6 = _R5.replace("impact=-2.0", "impact=-4.0").replace("limit_margin=-4.0", "limit_margin=-8.0")
 
 
@@ -327,9 +335,47 @@ for _b in ("op3", "apollo", "adam_lite"):
     WARP_RECIPES[f"{_b}_clock_gpu_ub"] = _clock(_b, teacher_stop=0.3, clock_gate=True, reward_set=_R5, **_UB)
 
 
-_LAZY = dict(shared_morph_v1=_shared_v1, shared_morph_v2=_shared_v2)
+# HS2 steps + upper body: the h_steps expert (public terrain scan in the actor) trained with random upper-body targets + payload on
+# the same ramp, from scratch (no `*_steps_gpu` actor has the upper input block). Smoke target of HS2; the real runs are HR's.
+for _b in ("t1", "g1", "h1"):
+    WARP_RECIPES[f"{_b}_steps_ub"] = _steps(_b, iters=2000, clock_gate=True, alpha_schedule="fixed:0.5", reward_set=_R6, **_UB)
+
+
+def _shared_ub():
+    # HS2: ONE morphology-conditioned wholebody tracker (obs morph_v2 = morph_v1 + the canonical upper block). Same gait recipe as
+    # shared_morph_v2 (P1b lessons) with random upper-body targets + payload on every group that has an upper body. The groups are
+    # the menagerie pool (six humanoids; arms/waist/head) and the two most frequent phum topologies that HAVE arms; 1024 / 2048
+    # worlds as shared_morph_v2. The amplitude / payload ramp is the `_UB` one.
+    d = _shared_v2()
+    d.update(groups=[[[b], 1024] for b in SHARED_POOL_V1] + phum_groups(2, 32, 2048, min_arm_dof=1), **_UB)
+    d["_what"] = ("ONE morphology-conditioned wholebody tracker (obs morph_v2: legs + padded upper joint state + static slot "
+                  "descriptors) over the menagerie pool and 2 phum topologies with arms; random upper-body targets + payload on "
+                  "a ramp")
+    d["_why"] = "D-146 R2 HS2: the shared tracker had no upper-body block, so wholebody (`*_ub`) existed per body only"
+    d["_gate"] = "per pool body: the D-112 tracker gate with the upper body held AND moving, in C MuJoCo; sealed bodies once"
+    return d
+
+
+WARP_RECIPES["shared_morph_ub"] = None      # lazy: phum selection runs the generator
+_LAZY = dict(shared_morph_v1=_shared_v1, shared_morph_v2=_shared_v2, shared_morph_ub=_shared_ub)
 assert not set(CPU_RECIPES) & set(WARP_RECIPES)
 RECIPES: dict[str, dict | None] = {**CPU_RECIPES, **WARP_RECIPES}
+
+
+def training_bodies(args) -> list[str]:
+    """Every body a tracker-training run trains on: --body, or all keys of --groups (JSON string or parsed list)."""
+    groups = getattr(args, "groups", None)
+    if groups:
+        groups = json.loads(groups) if isinstance(groups, str) else groups
+        return sorted({k for ks, _ in groups for k in ([ks] if isinstance(ks, str) else ks)})
+    return [args.body]
+
+
+def assert_trainable(args, what: str = "tracker training") -> None:
+    """Sealed-split guard (core.sealed): a tracker trains on no sealed body and no phum seed outside the declared training range.
+    Raises SealedSplitError BEFORE any simulation is built."""
+    from rrp.core.sealed import SealedSplit
+    SealedSplit.load().assert_train_allowed(training_bodies(args), what=what)
 
 
 def recipe_record(name_or_path: str) -> tuple[dict, dict]:

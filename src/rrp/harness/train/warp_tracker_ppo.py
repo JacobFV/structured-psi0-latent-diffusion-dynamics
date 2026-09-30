@@ -36,6 +36,16 @@ def export_actor(ac, meta: dict, path: Path, it: int):
     os.replace(str(path) + ".tmp", path)
 
 
+def upper_ramp_value(it: int, iters: int, *, amp0: float, amp: float, payload_frac: float, ramp: float) -> tuple[float, float]:
+    """(upper-body amplitude, payload fraction) at iteration `it`: linear from (amp0, 0) to (amp, payload_frac) over the first
+    `ramp` share of `iters`, then constant; ramp 0 = no ramp (the full values from the start). The same function is used live and
+    on --resume (it depends on `it` only)."""
+    if ramp <= 0:
+        return float(amp), float(payload_frac)
+    f = min(1.0, max(0.0, it / max(1.0, ramp * iters)))
+    return float(amp0 + (amp - amp0) * f), float(payload_frac * f)
+
+
 def _kv(spec: str) -> dict:
     out = {}
     for kv in filter(None, (spec or "").split(",")):
@@ -100,6 +110,9 @@ def build_args(argv=None):
     ap.add_argument("--upper-amp", type=float, default=0.4, help="upper-body goal offset, fraction of each joint's half range")
     ap.add_argument("--upper-speed", type=float, default=1.5, help="upper-body target slew limit, rad/s")
     ap.add_argument("--payload-frac", type=float, default=0.08, help="max payload as a fraction of the robot mass")
+    ap.add_argument("--upper-amp0", type=float, default=0.1, help="upper-body amplitude at iteration 0 when --upper-ramp > 0")
+    ap.add_argument("--upper-ramp", type=float, default=0.0, help="share of --iters over which the upper-body amplitude rises from "
+                    "--upper-amp0 to --upper-amp and the payload from 0 to --payload-frac (0 = no ramp)")
     ap.add_argument("--level-every", type=int, default=25, help="task curriculum window (iterations)")
     ap.add_argument("--level-up", type=float, default=0.7, help="window success rate to raise the task level")
     ap.add_argument("--level-down", type=float, default=0.3)
@@ -162,6 +175,8 @@ def train(args, env, *, groups=None, dev, engine: str):
     checkpoint.pt / actor.pt under args.out."""
     from rrp.envs.warp.tracker_env import ENV_VERSION, window_metrics
     from rrp.envs.mujoco.legged_core import terrain_scan_spec
+    from rrp.harness.train.tracker_recipes import assert_trainable
+    assert_trainable(args)                       # sealed split: before anything is written
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     task_envs = [e for e in getattr(env, "envs", [env]) if hasattr(e, "set_level")]
@@ -213,7 +228,8 @@ def train(args, env, *, groups=None, dev, engine: str):
                 kind=env.b.kind, algo="ppo_asymmetric_actor_critic",
                 actor_inputs="public: imu gyro, imu gravity, command, joint pos/vel, last action, gait clock"
                              + (", terrain_scan_v1 (sensor model: noise, dropout, 1-tick latency)" if env.extra_dim else "")
-                             + (", upper-body joint state (q - q0, qdot)" if env.upper_dim else ""),
+                             + ((", upper-body joint state (morph_v2: padded q - q0, qdot + static slot descriptors)" if groups is not None
+                    else ", upper-body joint state (q - q0, qdot)") if env.upper_dim else ""),
                 critic_inputs="public + privileged: base lin vel, height, foot contacts, friction, push flag + reward-schedule alpha"
                               + (", exact noise-free terrain scan" if env.extra_dim else "") + (", task terms" if args.task else "")
                               + (", payload fraction, upper-body target offset" if env.upper_dim else ""),
@@ -234,11 +250,14 @@ def train(args, env, *, groups=None, dev, engine: str):
     if env.extra_dim:
         meta["terrain_scan"] = terrain_scan_spec()
     if env.upper_dim:
-        meta.update(upper_obs=True, upper_body=env.upper_meta())
+        meta.update(upper_obs=True, upper_body=env.upper_meta(),
+                    upper_ramp=dict(amp0=args.upper_amp0, amp=args.upper_amp, payload_frac=args.payload_frac, ramp=args.upper_ramp,
+                                    iters=args.iters))
     if groups is not None:
-        from rrp.envs.mujoco.morph_obs import OBS_FORMAT
-        meta.update(obs_format=OBS_FORMAT, groups=groups, train_bodies=sorted({k for ks, _ in groups for k in ([ks] if isinstance(ks, str) else ks)}),
-                    shared=True, source_label="learned_tracker:shared_morph_v1 (trained with privileged critic)")
+        from rrp.envs.mujoco.morph_obs import obs_format
+        fmt = obs_format(bool(env.upper_dim))
+        meta.update(obs_format=fmt, groups=groups, train_bodies=sorted({k for ks, _ in groups for k in ([ks] if isinstance(ks, str) else ks)}),
+                    shared=True, source_label=f"learned_tracker:shared_{fmt} (trained with privileged critic)")
     (out / "meta.json").write_text(json.dumps(meta, indent=1, default=str))
     log_path = out / "train_log.jsonl"
     obs = env.observe()
@@ -247,6 +266,10 @@ def train(args, env, *, groups=None, dev, engine: str):
     D = env.obs_dim
     for it in range(it0, args.iters):
         t0 = time.time()
+        if env.upper_dim:
+            up_amp, up_pl = upper_ramp_value(it, args.iters, amp0=args.upper_amp0, amp=args.upper_amp,
+                                             payload_frac=args.payload_frac, ramp=args.upper_ramp)
+            env.set_upper_ramp(up_amp, up_pl)
         bo = torch.zeros(H, N, D, device=dev)
         bp = torch.zeros(H, N, env.priv_dim, device=dev)
         ba = torch.zeros(H, N, env.nA, device=dev)
@@ -343,6 +366,8 @@ def train(args, env, *, groups=None, dev, engine: str):
                    fall_rate=rec_env["falls"] / eps if eps else None, std=float(ac.log_std.exp().mean()), lr=lr, kl=kl_mean,
                    value_loss=float(vl.detach()), rollout_s=t_roll, iter_s=time.time() - t0, samples=int((it + 1) * H * N),
                    wall_s=time.time() - t_start, alpha=gate.alpha)
+        if env.upper_dim:
+            rec["upper_amp"], rec["payload_frac"] = up_amp, up_pl
         if task_envs:
             rec["successes"] = rec_env.get("successes", 0)
             rec["level"] = level

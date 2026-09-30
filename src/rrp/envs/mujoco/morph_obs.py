@@ -11,6 +11,15 @@ Deployable observation (all public: IMU, encoders, command, clock; morphology is
     static context: per slot [present, s(lo - q0), s(hi - q0), effort / (M g L_leg), joint position in the pelvis frame
     / L_leg (3)] (14 x 7 = 98) + body [L_leg, log M, gait period, action_scale, vx_max] (5) -> CTX_DIM = 103
 Action: 14 slot actions a; joint target = clip(q0 + action_scale * s * a, lo, hi) for present slots.
+
+`morph_v2` (HS2, D-146 round 2) = `morph_v1` + the UPPER-BODY block, for a shared tracker that also balances under arm / waist /
+head motion. Layout: [morph_v1 block (OBS_DIM) | public extra block (terrain scan ...) | upper block (UPPER_DIM)]. The upper block
+has UP_MAX = 32 joint slots (covers every declared body: g1_hands has 31) filled in the body's own `held_actuators` order (arms,
+waist, head; there is no name rule, so unseen bodies work), padded with zeros and `present = 0`:
+    q - q0 (32), qdot * 0.05 (32), then per slot [present, lo - q0, hi - q0, effort / (M g L_leg), joint position in the pelvis
+    frame / L_leg (3), joint axis in the pelvis frame (3)] (32 x 10 = 320)                        -> UPPER_DIM = 384
+The upper joints are not actions (a scripted / random / teacher source drives them); a body without an upper group has an all-zero
+block. The critic's upper block is [payload fraction, target offset (32 slots)].
 """
 from __future__ import annotations
 
@@ -21,11 +30,25 @@ import mujoco
 import numpy as np
 
 OBS_FORMAT = "morph_v1"
+OBS_FORMAT_V2 = "morph_v2"
 SLOTS = ("hip_yaw", "hip_roll", "hip_pitch", "knee", "ankle_pitch", "ankle_roll", "toe")
 NS = 2 * len(SLOTS)
 DYN_DIM = 3 + 3 + 3 + 3 * NS + 2
 CTX_DIM = NS * 7 + 5
 OBS_DIM = DYN_DIM + CTX_DIM
+UP_MAX = 32
+UP_CTX_W = 10
+UP_DYN_DIM = 2 * UP_MAX
+UP_CTX_DIM = UP_MAX * UP_CTX_W
+UPPER_DIM = UP_DYN_DIM + UP_CTX_DIM
+OBS_DIM_V2 = OBS_DIM + UPPER_DIM
+UP_PRIV_DIM = 1 + UP_MAX                          # critic: payload fraction + canonical target-offset slots
+
+
+def obs_format(upper: bool) -> str:
+    return OBS_FORMAT_V2 if upper else OBS_FORMAT
+
+
 _AXIS = dict(hip_yaw=(0, 0, 1), hip_roll=(1, 0, 0), hip_pitch=(0, 1, 0), knee=(0, 1, 0), ankle_pitch=(0, 1, 0),
              ankle_roll=(1, 0, 0), toe=(0, 1, 0))
 _TALOS = {1: "hip_yaw", 2: "hip_roll", 3: "hip_pitch", 4: "knee", 5: "ankle_pitch", 6: "ankle_roll"}
@@ -95,6 +118,19 @@ class MorphSpec:
         self.ctx = np.concatenate([ctx.ravel(), [leg_len, math.log(M), float(b.period), float(b.action_scale), vx]]).astype(np.float32)
         self.q0 = b.q0
         self.n = b.n
+        # morph_v2 upper block: static descriptor of every upper joint in held_actuators order (zero-padded to UP_MAX)
+        self.n_up = len(b.held_act)
+        if self.n_up > UP_MAX:
+            raise ValueError(f"{meta['name']}: {self.n_up} upper joints exceed the morph_v2 block (UP_MAX = {UP_MAX})")
+        uctx = np.zeros((UP_MAX, UP_CTX_W))
+        for i, a in enumerate(b.held_act):
+            jid = model.actuator_trnid[a, 0]
+            ax = Rp.T @ (d.xmat[model.jnt_bodyid[jid]].reshape(3, 3) @ model.jnt_axis[jid])
+            uctx[i] = [1.0, b.held_lo[i] - b.q0_held[i], b.held_hi[i] - b.q0_held[i],
+                       float(model.actuator_forcerange[a, 1]) / (M * 9.81 * leg_len),
+                       *(Rp.T @ (d.xanchor[jid] - pp) / leg_len), *ax]
+        self.up_ctx = uctx.astype(np.float32)
+        self.held = (b.held_qadr, b.held_dadr, b.q0_held)
 
     def to_slots(self, x_native: np.ndarray) -> np.ndarray:
         out = np.zeros(NS)
@@ -105,6 +141,14 @@ class MorphSpec:
         a = np.zeros(self.n)
         a[self.idx[self.present]] = self.sign[self.present] * a_slot[self.present]
         return a
+
+    def upper_obs(self, d: mujoco.MjData) -> np.ndarray:
+        """numpy twin of the morph_v2 upper block (UPPER_DIM): padded q - q0, qdot * 0.05, then the static slot descriptors."""
+        qa, da, q0 = self.held
+        q, qd = np.zeros(UP_MAX), np.zeros(UP_MAX)
+        q[:self.n_up] = d.qpos[qa] - q0
+        qd[:self.n_up] = d.qvel[da] * 0.05
+        return np.concatenate([q, qd, self.up_ctx.ravel()]).astype(np.float32)
 
     def obs(self, b, d: mujoco.MjData, cmd, last_slot_action, phase, clock_gate: bool = False) -> np.ndarray:
         """numpy deployment observation (morph_v1) from a C-MuJoCo MjData."""

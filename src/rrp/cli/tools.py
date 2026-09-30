@@ -21,6 +21,8 @@ TOOLS: dict[tuple[str, str], tuple[str, str]] = {
     ("train", "legged-bc"): ("rrp.harness.train.legged_bc:main", "legged BC positive control"),
     ("train", "legged-dagger"): ("rrp.harness.train.legged_dagger:main", "legged DAgger {collect,gate,refit}"),
     ("train", "tracker-cpu"): ("rrp.harness.train.tracker_training:main", "legged tracker PPO on CPU MuJoCo"),
+    ("train", "tracker-install"): ("rrp.harness.train.tracker_training:install_main",
+                                   "register a trained tracker in artifacts/trackers after its D-112 gate passed"),
     ("train", "tracker-warp"): ("rrp.harness.train.warp_tracker_ppo:main", "legged / humanoid tracker PPO on MuJoCo Warp (GPU)"),
     ("train", "joint-adapt"): ("rrp.harness.train.joint_adapt:main", "joint system-i / system-0 adaptation (arm)"),
     ("train", "packet-ood"): ("rrp.harness.train.packet_ood_fit:main", "fit the packet OOD detector"),

@@ -5,13 +5,16 @@ whatever engine `env_cls` returns, so a torch-CPU fake engine exercises the prod
 The engines are h1 (10 leg actuators) and t1 (12, different slot map): every group must agree on `obs_dim`, `priv_dim`,
 the 14 canonical slot actions and the morph_v1 layout, whatever its own actuator count.
 """
+import types
+
 import numpy as np
 import pytest
 import torch
 
 pytestmark = pytest.mark.menagerie
 
-from rrp.envs.mujoco.morph_obs import CTX_DIM, DYN_DIM, NS, OBS_DIM  # noqa: E402
+from rrp.envs.mujoco.morph_obs import (CTX_DIM, DYN_DIM, NS, OBS_DIM, UP_MAX, UP_PRIV_DIM, UPPER_DIM,  # noqa: E402
+                                       MorphSpec, obs_format)
 from rrp.envs.warp.tracker_env import ADAPT, MorphMultiEnv  # noqa: E402
 from rrp.envs.warp.model import build_model  # noqa: E402
 
@@ -156,6 +159,182 @@ def test_a_group_with_another_critic_width_cannot_be_concatenated():
     class Wide(FakeEngine):
         def __init__(self, keys, nworld, **kw):
             super().__init__(keys, nworld, priv_pad=1 if keys[0] == "t1" else 0, **kw)
-    env = MorphMultiEnv([("h1", 2), ("t1", 2)], seed=3, obs_noise=0.0, env_cls=Wide)
-    with pytest.raises(RuntimeError):
-        env.privileged()
+    with pytest.raises(ValueError, match="critic width"):
+        MorphMultiEnv([("h1", 2), ("t1", 2)], seed=3, obs_noise=0.0, env_cls=Wide)
+
+
+# ---------------------------------------------------------------------------------------------------------------- morph_v2 (HS2)
+class FakeUpper(FakeEngine):
+    """FakeEngine + the wholebody surface of WarpTrackerEnv (upper_body, held joints, payload / offset critic tail)."""
+
+    def __init__(self, keys, nworld, upper_body=False, require_payload=True, **kw):
+        super().__init__(keys, nworld, **kw)
+        b = self.b
+        self.upper_body, self.require_payload = bool(upper_body), require_payload
+        self.upper_amp, self.upper_speed, self.payload_frac = 0.4, 1.5, 0.08
+        self.ramps = []
+        self.cfg0 = types.SimpleNamespace(options=lambda: {})
+        if self.upper_body:
+            assert len(b.held_act)
+            self.held_qadr = torch.as_tensor(np.asarray(b.held_qadr), dtype=torch.long)
+            self.held_dadr = torch.as_tensor(np.asarray(b.held_dadr), dtype=torch.long)
+            self.q0_held = torch.as_tensor(np.asarray(b.q0_held), dtype=torch.float32).expand(self.N, -1).clone()
+            self.upper_dim = 2 * len(b.held_act)
+            self.priv_dim += 1 + len(b.held_act)
+        else:
+            self.upper_dim = 0
+
+    def set_upper_ramp(self, amp, payload_frac):
+        self.upper_amp, self.payload_frac = amp, payload_frac
+        self.ramps.append((amp, payload_frac))
+
+    def upper_meta(self):
+        return dict(amp=self.upper_amp, payload_frac=self.payload_frac)
+
+
+
+def _env2(groups, **kw):
+    return MorphMultiEnv(groups, seed=3, obs_noise=0.0, env_cls=FakeUpper, upper_body=True, **kw)
+
+
+def test_morph_v2_dims_padding_and_the_numpy_twin():
+    env = _env2([("h1", 3), ("t1", 4)])
+    assert env.upper_dim == UPPER_DIM and env.obs_dim == OBS_DIM + EXTRA + UPPER_DIM
+    assert obs_format(True) == "morph_v2" and obs_format(False) == "morph_v1"
+    e_h, e_t = env.envs
+    assert (e_h.upper_dim, e_t.upper_dim) == (18, 22)              # 9 and 11 upper joints: different per body ...
+    obs, priv = env.observe(), env.privileged()
+    assert obs.shape == (7, env.obs_dim) and priv.shape == (7, env.priv_dim)     # ... one actor / critic width
+    base = e_h.priv_dim - (1 + 9)
+    assert env.priv_dim == base + UP_PRIV_DIM == e_t.priv_dim - (1 + 11) + UP_PRIV_DIM
+    for e, g, sl in zip(env.envs, env.specs, env.slices):
+        blk = obs[sl, -UPPER_DIM:]
+        n = g["n_up"]
+        assert n in (9, 11)
+        q, qd = blk[:, :UP_MAX], blk[:, UP_MAX:2 * UP_MAX]
+        assert torch.allclose(q[:, :n], e.qpos[:, e.held_qadr] - e.q0_held) and torch.all(q[:, n:] == 0)
+        assert torch.allclose(qd[:, :n], e.qvel[:, e.held_dadr] * 0.05) and torch.all(qd[:, n:] == 0)
+        # the numpy deployment twin (MorphSpec.upper_obs) produces the same row from the same state
+        import mujoco
+        d = mujoco.MjData(e.m)
+        d.qpos[:] = e.qpos[0].numpy()
+        d.qvel[:] = e.qvel[0].numpy()
+        sp = MorphSpec(e.m, e.b, e.meta)
+        assert np.allclose(sp.upper_obs(d), blk[0].numpy(), atol=1e-6)
+        pr = priv[sl]                                               # critic tail: payload fraction (faked) + offsets, padded
+        assert pr.shape[1] == env.priv_dim and torch.all(pr[:, -(UP_MAX - n):] == 0)
+    assert not torch.equal(obs[0, -UPPER_DIM + 2 * UP_MAX:], obs[3, -UPPER_DIM + 2 * UP_MAX:])   # static descriptors differ by body
+    assert torch.all(obs[:, -UPPER_DIM + 2 * UP_MAX:][:, 0:10][:1, 0] == 1.0)                        # slot 0 present
+
+
+def test_a_group_without_an_upper_body_contributes_a_zero_block_and_a_zero_critic_tail():
+    env = _env2([("h1", 3), ("phum_1", 2)])
+    e_h, e_p = env.envs
+    assert e_h.upper_body and not e_p.upper_body and not e_p.require_payload
+    obs, priv = env.observe(), env.privileged()
+    assert obs.shape == (5, env.obs_dim) and priv.shape == (5, env.priv_dim)
+    assert torch.all(obs[3:, -UPPER_DIM:] == 0) and torch.all(priv[3:, -UP_PRIV_DIM:] == 0)
+    assert torch.any(obs[:3, -UPPER_DIM:] != 0)
+    obs2, priv2, *_ = env.step(torch.zeros(5, NS))                   # the step path pads the same way
+    assert priv2.shape == (5, env.priv_dim) and obs2.shape == obs.shape
+
+
+def test_upper_ramp_reaches_only_the_groups_with_an_upper_body():
+    env = _env2([("h1", 3), ("phum_1", 2)])
+    env.set_upper_ramp(0.2, 0.04)
+    assert env.envs[0].ramps == [(0.2, 0.04)] and env.envs[1].ramps == []
+    assert env.upper_meta()["amp"] == 0.2 and env.upper_meta()["groups"]["phum_1"] is None
+
+
+def test_without_upper_body_the_layout_is_morph_v1_unchanged():
+    env = _env()
+    assert env.upper_dim == 0 and env.obs_dim == OBS_DIM + EXTRA
+
+
+# ------------------------------------------------------------------------------------ PPO on the wholebody env (2 fake updates)
+class StubUpperEnv:
+    """The WarpTrackerEnv surface `warp_tracker_ppo.train` reads, on CPU (a `*_ub` per-body run): random observations, a reward
+    that depends on the action, and a recorded set_upper_ramp call per iteration."""
+
+    def __init__(self, N=8, upper=True):
+        g = torch.Generator().manual_seed(0)
+        self.dev, self.N, self.nf, self.nA, self.dt = torch.device("cpu"), N, 2, 5, 0.02
+        self.extra_dim, self.upper_dim = 0, 6 if upper else 0
+        self.obs_dim, self.priv_dim = 11 + self.upper_dim, 4
+        self.b = types.SimpleNamespace(kind="humanoid")
+        self.meta, self.adaptations, self.cfg0 = {}, [], types.SimpleNamespace(options=lambda: {})
+        self.g, self.ramps, self.upper_body = g, [], upper
+
+    def set_alpha(self, a):
+        return {}
+
+    def set_upper_ramp(self, amp, pl):
+        self.ramps.append((amp, pl))
+
+    def upper_meta(self):
+        return dict(amp=self.ramps[-1][0] if self.ramps else None)
+
+    def observe(self):
+        return torch.randn(self.N, self.obs_dim, generator=self.g)
+
+    def privileged(self, fc=None):
+        return torch.randn(self.N, self.priv_dim, generator=self.g)
+
+    def step(self, a):
+        d = torch.zeros(self.N, dtype=torch.bool)
+        return self.observe(), self.privileged(), -a.pow(2).sum(-1), d, d.clone()
+
+    def pop_stats(self):
+        return dict(episodes=0, ret_sum=0.0, len_sum=0.0, falls=0, successes=0, gm=dict(track_err=0.0, cmd=0.0, steps=0.0))
+
+
+def _ppo_args(tmp_path, *extra):
+    from rrp.harness.train.warp_tracker_ppo import build_args
+    return build_args(["--out", str(tmp_path), "--iters", "2", "--horizon", "4", "--epochs", "1", "--minibatches", "2",
+                       "--hidden", "16,16", "--ckpt-every", "1", "--alpha-schedule", "fixed:1.0", *extra])
+
+
+def _logs(path):
+    import json
+    return [json.loads(x) for x in (path / "train_log.jsonl").read_text().splitlines()]
+
+
+def test_ub_recipe_two_ppo_updates_ramp_and_meta(tmp_path):
+    from rrp.harness.train.warp_tracker_ppo import train
+    args = _ppo_args(tmp_path, "--body", "t1", "--upper-body", "--upper-amp", "0.4", "--upper-amp0", "0.1", "--upper-ramp", "1.0")
+    env = StubUpperEnv()
+    train(args, env, dev=torch.device("cpu"), engine="fake")
+    assert env.ramps == [(0.1, 0.0), (pytest.approx(0.25), pytest.approx(0.04))]           # linear over the 2 iterations
+    log = _logs(tmp_path)
+    assert [r["upper_amp"] for r in log] == [pytest.approx(0.1), pytest.approx(0.25)] and log[1]["payload_frac"] == pytest.approx(0.04)
+    import json
+    meta = json.loads((tmp_path / "meta.json").read_text())
+    assert meta["upper_obs"] is True and meta["upper_ramp"]["ramp"] == 1.0 and meta["obs_dim"] == env.obs_dim
+    st = torch.load(tmp_path / "actor.pt", weights_only=False)
+    assert st["meta"]["upper_ramp"]["amp0"] == 0.1 and st["actor"]["0.weight"].shape[1] == env.obs_dim
+
+
+def test_no_upper_body_means_no_ramp_and_no_upper_meta(tmp_path):
+    from rrp.harness.train.warp_tracker_ppo import train
+    env = StubUpperEnv(upper=False)
+    train(_ppo_args(tmp_path, "--body", "t1"), env, dev=torch.device("cpu"), engine="fake")
+    assert env.ramps == [] and "upper_amp" not in _logs(tmp_path)[0]
+
+
+@pytest.mark.menagerie
+def test_morph_v2_recipe_two_ppo_updates_on_the_shared_env(tmp_path):
+    """The shared wholebody tracker: MorphMultiEnv groups (h1, t1 with upper bodies + a legs-only phum) through the real trainer."""
+    import json
+    from rrp.harness.train.warp_tracker_ppo import train
+    groups = [[["h1"], 3], [["t1"], 3], [["phum_1"], 2]]
+    args = _ppo_args(tmp_path, "--groups", json.dumps(groups), "--upper-body", "--upper-ramp", "0.5")
+    env = MorphMultiEnv(groups, seed=3, obs_noise=0.0, env_cls=FakeUpper, upper_body=True)
+    train(args, env, groups=groups, dev=torch.device("cpu"), engine="fake")
+    meta = json.loads((tmp_path / "meta.json").read_text())
+    assert meta["obs_format"] == "morph_v2" and meta["obs_dim"] == OBS_DIM + EXTRA + UPPER_DIM and meta["shared"]
+    assert meta["train_bodies"] == ["h1", "phum_1", "t1"] and meta["upper_obs"] is True
+    assert [r["upper_amp"] for r in _logs(tmp_path)] == [pytest.approx(0.1), pytest.approx(0.4)]
+    assert [e.ramps for e in env.envs][2] == []                                               # the legs-only group is never ramped
+    assert env.envs[0].ramps[0] == (pytest.approx(0.1), 0.0)
+    st = torch.load(tmp_path / "actor.pt", weights_only=False)
+    assert st["actor"]["0.weight"].shape[1] == OBS_DIM + EXTRA + UPPER_DIM
