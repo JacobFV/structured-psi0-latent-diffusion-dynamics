@@ -11,11 +11,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from rrp.envs.computerworld import UI_REL_VOCAB
+from rrp.envs.computerworld import PRINTABLE, UI_REL_VOCAB
 from rrp.policies.nets.attention import MHA, RelBlock
 from rrp.policies.nets.flow import MLP, sinusoidal
-from rrp.policies.nets.pointer_vocab import (KNOT_TIMES, LC, LI, N_BOUND, N_KEYCLS, N_ROLE, N_SYM, NW, POINTER_FACTORS_PRESET,
-                                           UI_CARRIES, WF)
+from rrp.policies.nets.pointer_vocab import (ENG_V2_KEY0, ENG_V2_SLOT_W, KEY_BITS, KNOT_TIMES, LC, LI, N_BOUND, N_KEYCLS,
+                                           N_REL, N_ROLE, N_SYM, NW, POINTER_FACTORS_PRESET, REL_HI, REL_LO, UI_CARRIES,
+                                           WF)
 from rrp.policies.relations.base import EdgeSet, RelCtx, TokenSet, get_factor, resolve
 from rrp.policies.relations.ops import FactorSite
 
@@ -84,6 +85,67 @@ def drag_to_label(b):
     return y, ok[:, :, None] & ok[:, None, :]
 
 
+QUOTE_SYM = PRINTABLE.index("'") + 1                   # the symbol code (`features.sym_of_char`) of the quote char
+
+
+def instr_rel_bucket(instr, ntyped):
+    """[B, LI] bucket of every instruction character's offset r = (rank inside the quoted spans) - (typed count), from
+    PUBLIC inputs only (the instruction codes, the efference-copy `ntyped`): a task's typed text is its quoted spans in
+    order, so r == 0 is the character to type next. 0 = typed long ago, 1 .. 10 = r in [REL_LO, REL_HI], 11 = far
+    ahead, 12 = outside every quoted span (padding included)."""
+    q = instr == QUOTE_SYM
+    inside = (torch.cumsum(q.long(), 1) % 2 == 1) & ~q
+    r = torch.cumsum(inside.long(), 1) - 1 - ntyped.long()[:, None]
+    bucket = (r.clamp(REL_LO - 1, REL_HI + 1) - REL_LO + 1)
+    return torch.where(inside, bucket, torch.full_like(bucket, N_REL - 1))
+
+
+class CopyKeyHead(nn.Module):
+    """Mixture key head (architecture 14.6): p(key) = (1 - g) softmax(free) + g sum_pos alpha_pos onehot(char_at(pos)).
+    `alpha` is the attention of each query (a knot / tick slot hidden) over the INSTRUCTION-character context tokens,
+    `g` a sigmoid gate; only printable characters can be copied, and a query with none gets g = 0. A character never
+    seen in training is copied exactly as a seen one: the class scatter uses the instruction's own codes, and the
+    attention keys are the context tokens (which carry the typed-progress bucket, `instr_rel_bucket`), not a fixed
+    class table. `forward` returns the NORMALISED LOG-probabilities over the N_KEYCLS classes: `F.cross_entropy` /
+    argmax on them is the NLL / the decision of the mixture, so every consumer of a key-logit head runs unchanged."""
+
+    def __init__(self, D):
+        super().__init__()
+        self.q, self.k = nn.Linear(D, D), nn.Linear(D, D)
+        self.free, self.gate = nn.Linear(D, N_KEYCLS), nn.Linear(D, 1)
+        cls = torch.zeros(N_SYM, dtype=torch.long)
+        cls[1:96] = torch.arange(1, 96) + (N_KEYCLS - 1 - 95)            # symbol s (1..95) -> class 1 + 14 + (s - 1)
+        self.register_buffer("cls_of_sym", cls)
+        self.register_buffer("copyable", (torch.arange(N_SYM) >= 1) & (torch.arange(N_SYM) <= 95))
+        self.D = D
+
+    def terms(self, h, t, instr):
+        """h [B, Q, D] query hiddens, t [B, T, D] context tokens (widgets first), instr [B, LI] codes ->
+        (log p [B, Q, N_KEYCLS], alpha [B, Q, LI], g [B, Q])."""
+        ins = t[:, NW:NW + LI].float()
+        ok = self.copyable[instr]                                               # [B, LI]
+        s = torch.einsum("bqd,bld->bql", self.q(h.float()), self.k(ins)) / self.D ** 0.5
+        alpha = torch.softmax(s.masked_fill(~ok[:, None], -1e9), -1) * ok.any(-1)[:, None, None]
+        g = torch.sigmoid(self.gate(h.float())[..., 0]) * ok.any(-1)[:, None]
+        idx = self.cls_of_sym[instr][:, None].expand(-1, h.shape[1], -1)
+        copy = torch.zeros(*h.shape[:2], N_KEYCLS, device=h.device).scatter_add(2, idx, alpha)
+        p = (1 - g)[..., None] * torch.softmax(self.free(h.float()), -1) + g[..., None] * copy
+        return torch.log(p.clamp_min(1e-9)), alpha, g
+
+    def forward(self, h, t, instr):
+        return self.terms(h, t, instr)[0]
+
+
+def key_bits_of_class(cls):
+    """[...] long key classes -> [..., KEY_BITS] +-1 code, least significant bit first (`policies.pointer.packet.key_bits`)."""
+    return ((cls[..., None] >> torch.arange(KEY_BITS, device=cls.device)) & 1).float() * 2 - 1
+
+
+def key_class_of_bits(bits):
+    """[..., KEY_BITS] (a bit is set when > 0) -> [...] long key classes."""
+    return ((bits > 0).long() << torch.arange(KEY_BITS, device=bits.device)).sum(-1)
+
+
 class UICtx(nn.Module):
     """Public context tokens: NW widget tokens (label chars + role + bound entity + geometry, pointer-relative
     centre), LI instruction characters, NH own-event tokens and one proprio token; `layers` self-attention
@@ -92,11 +154,14 @@ class UICtx(nn.Module):
     `TokenSet`/`RelCtx` built from R20's public UI fields/edges + the screen-geometry fields (`_relctx`); the
     default `()` (== `resolve(None, default=POINTER_FACTORS_PRESET)`, the empty preset) makes every per-layer
     `FactorSite` parameter-free, so `.bias()` / `.augment()` return `None` / `(None, None)` and an existing
-    checkpoint loads and runs byte-identically."""
+    checkpoint loads and runs byte-identically. `copy` (D-146 C2, default off = byte-identical): instruction tokens
+    also embed `instr_rel_bucket(instr, ntyped)` -- how far each character is from the next one to type -- so a copy
+    head (`CopyKeyHead`) can attend to it; needs the public `ntyped` batch field."""
 
-    def __init__(self, D=128, heads=4, layers=3, specs=()):
+    def __init__(self, D=128, heads=4, layers=3, specs=(), copy=False):
         super().__init__()
         self.specs = tuple(specs)
+        self.copy = bool(copy)
         # C1: `ui.drag_to` (probe source) is supervised by `drag_to_label(b)`, attached to the `ctx` token set only when
         # a spec asks for that label; `record_rc` keeps the last forward's `RelCtx` (`last_rc`) so the trainer can run
         # `relations.estimates_loss` on the estimates the forward wrote (the head is never silently left untrained)
@@ -110,6 +175,8 @@ class UICtx(nn.Module):
         self.hk, self.hf = nn.Embedding(4, D), MLP(5, D)
         self.prop = MLP(4, D)
         self.typ = nn.Embedding(4, D)
+        if self.copy:
+            self.relpos = nn.Embedding(N_REL, D)
         self.blocks = nn.ModuleList([self_relblock(D, heads) for _ in range(layers)])
         self.rel = nn.ModuleList([FactorSite(heads, D, "ctx>ctx", specs, UI_CARRIES) for _ in range(layers)])
         self.D = D
@@ -154,6 +221,8 @@ class UICtx(nn.Module):
         w = (self.label_tokens(b) + self.role(b["wrole"]) + self.bound(b["wbound"])
              + self.wf(torch.cat([b["wf"], rel], -1)) + self.typ.weight[0])
         ins = self.sym(b["instr"]) + self.cpos.weight[:LI] + self.typ.weight[1]
+        if self.copy:
+            ins = ins + self.relpos(instr_rel_bucket(b["instr"], b["ntyped"]))
         h = b["hist"]
         hr = h[..., 2:4] - b["ptr"][:, None]
         ht = (self.hk(h[..., 0].long()) + self.sym(h[..., 1].long())
@@ -245,11 +314,16 @@ class PointerRealizer(nn.Module):
 
 
 class PointerFlow(nn.Module):
-    """System i: rectified flow over the standardized packet, conditioned on the public context only."""
+    """System i: rectified flow over the standardized packet, conditioned on the public context only.
+    `copy_key` (D-146 C2; default off = byte-identical; needs the `cw_pointer_eng.v2` packet, dz = 26): the key-code
+    fields are NOT flowed. A `CopyKeyHead` over per-slot queries (knot queries cross-attending the context, split into
+    the knot's early / late tick slot) gives every slot's key-class mixture; its NLL against the class decoded from
+    the target's bits is the key loss (`loss`), and `sample` writes the argmax class's bits into the packet."""
 
-    def __init__(self, dz=16, D=128, heads=4, layers=3, factors=None):
+    def __init__(self, dz=16, D=128, heads=4, layers=3, factors=None, copy_key=False):
         super().__init__()
-        self.ctx = UICtx(D, heads, 3, specs=resolve(factors, default=POINTER_FACTORS_PRESET))
+        self.copy_key = bool(copy_key)
+        self.ctx = UICtx(D, heads, 3, specs=resolve(factors, default=POINTER_FACTORS_PRESET), copy=self.copy_key)
         self.knots = Knots(D)
         self.z_in, self.t_in = nn.Linear(dz, D), MLP(D, D)
         self.blocks = nn.ModuleList([cross_relblock(D, heads) for _ in range(layers)])
@@ -258,6 +332,28 @@ class PointerFlow(nn.Module):
         self.register_buffer("z_mean", torch.zeros(dz))
         self.register_buffer("z_std", torch.ones(dz))
         self.dz = dz
+        if self.copy_key:
+            if dz != 2 * ENG_V2_SLOT_W:
+                raise ValueError(f"copy_key needs the cw_pointer_eng.v2 packet (dz {2 * ENG_V2_SLOT_W}), got dz {dz}")
+            self.kblocks = nn.ModuleList([cross_relblock(D, heads)])
+            self.slotq, self.copy = nn.Linear(D, 2 * D), CopyKeyHead(D)
+            w = torch.ones(dz)
+            for sl in range(2):
+                w[sl * ENG_V2_SLOT_W + ENG_V2_KEY0:sl * ENG_V2_SLOT_W + ENG_V2_KEY0 + KEY_BITS] = 0.0
+            self.register_buffer("flow_w", w)             # the key-code fields carry no flow loss (the head owns them)
+
+    def key_logp(self, b, cache):
+        """[B, K, 2, N_KEYCLS] log-probabilities of the key class of every (knot, early / late tick) slot."""
+        t, m = cache
+        h = self.knots(t.shape[0])
+        for L in self.kblocks:
+            h = L(h, kv=t, kv_mask=m)
+        hs = self.slotq(h).reshape(h.shape[0], -1, 2, h.shape[-1]).flatten(1, 2)          # [B, 2K, D], slot-major
+        return self.copy(hs, t, b["instr"]).reshape(h.shape[0], -1, 2, N_KEYCLS)
+
+    def _key_dims(self, sl):
+        o = sl * ENG_V2_SLOT_W + ENG_V2_KEY0
+        return slice(o, o + KEY_BITS)
 
     def velocity(self, zt, tau, cache):
         t, m = cache
@@ -275,9 +371,20 @@ class PointerFlow(nn.Module):
         t_ = tau[:, None, None, None]
         zt = (1 - t_) * eps + t_ * x1
         v = self.velocity(zt, tau, cache)
-        fl = ((v - (x1 - eps)) ** 2).mean()
+        if self.copy_key:
+            se = (v - (x1 - eps)) ** 2 * self.flow_w
+            fl = se.sum() / (self.flow_w.sum() * se.shape[0] * se.shape[1])
+        else:
+            fl = ((v - (x1 - eps)) ** 2).mean()
         logs = dict(flow=float(fl.detach()))
         loss = fl
+        if self.copy_key:
+            lp = self.key_logp(b, cache).float()
+            tgt = torch.stack([key_class_of_bits(z_target[:, :, 0, self._key_dims(sl)]) for sl in range(2)], -1)
+            lk = F.nll_loss(lp[:, 1:].reshape(-1, N_KEYCLS), tgt[:, 1:].reshape(-1))         # knot 0 has one (late) slot
+            lk = lk + F.nll_loss(lp[:, :1, 1].reshape(-1, N_KEYCLS), tgt[:, :1, 1].reshape(-1))
+            loss = loss + lk
+            logs["key"] = float(lk.detach())
         if probe_fn is not None and w_sem > 0:
             zc = (zt + (1 - t_) * v) * self.z_std + self.z_mean
             keep = (tau >= tau_min)[:, None, None, None]
@@ -303,19 +410,31 @@ class PointerFlow(nn.Module):
         for k in range(nfe):
             tau = torch.full((B,), k / nfe, device=z.device)
             z = z + self.velocity(z, tau, cache) / nfe
-        return z * self.z_std + self.z_mean
+        z = z * self.z_std + self.z_mean
+        if self.copy_key:
+            cls = self.key_logp(b, cache).argmax(-1)                                   # [B, K, 2]
+            for sl in range(2):
+                z[:, :, 0, self._key_dims(sl)] = key_bits_of_class(cls[..., sl])
+        return z
 
 
 class PointerBC(nn.Module):
-    """BC baseline (same public inputs): 7 tick queries -> absolute pointer xy (normalized), button, key logits."""
+    """BC baseline (same public inputs): 7 tick queries -> absolute pointer xy (normalized), button, key logits.
+    `copy_key` (D-146 C2, default off = byte-identical): the key head is a `CopyKeyHead` (returns the mixture's
+    normalised log-probabilities in place of the logits, so the CE / argmax consumers are unchanged)."""
 
-    def __init__(self, D=128, heads=4, layers=3, H=7, factors=None):
+    def __init__(self, D=128, heads=4, layers=3, H=7, factors=None, copy_key=False):
         super().__init__()
-        self.ctx = UICtx(D, heads, 3, specs=resolve(factors, default=POINTER_FACTORS_PRESET))
+        self.copy_key = bool(copy_key)
+        self.ctx = UICtx(D, heads, 3, specs=resolve(factors, default=POINTER_FACTORS_PRESET), copy=self.copy_key)
         self.q = nn.Parameter(torch.randn(H, D) * 0.02)
         self.blocks = nn.ModuleList([cross_relblock(D, heads) for _ in range(layers)])
         self.self_blocks = nn.ModuleList([self_relblock(D, heads) for _ in range(layers)])
-        self.xy, self.btn, self.key = nn.Linear(D, 2), nn.Linear(D, 1), nn.Linear(D, N_KEYCLS)
+        self.xy, self.btn = nn.Linear(D, 2), nn.Linear(D, 1)
+        if self.copy_key:
+            self.copy = CopyKeyHead(D)
+        else:
+            self.key = nn.Linear(D, N_KEYCLS)
 
     def forward(self, b):
         t, m = self.ctx(b)
@@ -323,4 +442,4 @@ class PointerBC(nn.Module):
         for X, S in zip(self.blocks, self.self_blocks):
             h = X(h, kv=t, kv_mask=m)
             h = S(h, kv=h)
-        return self.xy(h), self.btn(h)[..., 0], self.key(h)
+        return self.xy(h), self.btn(h)[..., 0], (self.copy(h, t, b["instr"]) if self.copy_key else self.key(h))

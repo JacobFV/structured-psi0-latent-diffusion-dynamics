@@ -10,7 +10,7 @@ import numpy as np
 import torch
 
 from rrp.harness.train.pointer.data import Demos
-from rrp.harness.train.pointer.split import load_split
+from rrp.harness.train.pointer.split import load_split, make_split_env
 from rrp.harness.train.pointer.train import fit_probe, frozen_mu, setup
 from rrp.policies.pointer import NW
 
@@ -21,7 +21,6 @@ def cmd_edit(a):
     another visible widget, with an L2 anchor to the original z. System 0 then realizes ONLY the edited packet (no
     replanning) for 7 ticks; we measure whether the pointer ends inside the new target's box vs the original's. The
     control applies a random edit of the same norm. The probe is trained on frozen E means (cmd_probe recipe)."""
-    from rrp.envs.base import make_env
     from rrp.envs.computerworld import scene_widgets
     from rrp.policies.pointer import (LearnedSystem0, PointerSystemI, load_pointer_bundle, pointer_packet,
                                       run_pointer_probe)
@@ -40,7 +39,7 @@ def cmd_edit(a):
     for task in ("cw/calc_sum", "cw/fill_form"):
         for seed in split["seeds"][task]["dev"][:a.episodes]:
             for mode in ("probe", "random", "none"):
-                env = make_env("computerworld", task=task, body="cw_pointer", seed=seed)
+                env = make_split_env(split, task, seed)
                 si.reset([env])
                 obs = env.observe()
                 p0 = si.packets([env])[0]

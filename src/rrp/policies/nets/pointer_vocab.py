@@ -25,3 +25,12 @@ NW, LC, LI, NH, WF = 80, 20, 112, 24, 11
 N_ROLE, N_BOUND = 10, 16
 N_SYM = 97 + 14                # symbol codes: 0 pad, 1..95 printable, 96 other, 97.. named keys (`sym_of_key`)
 N_KEYCLS = 110                 # 0 = no key, 1 + KEY_VOCAB index (tests/unit/test_pointer.py checks it against the env)
+
+# D-146 C2 (architecture 14.6): the pointer copy head. A key class (0 = none, else 1 + KEY_VOCAB index; N_KEYCLS values)
+# is a `KEY_BITS`-bit +-1 code in the engineered packet `cw_pointer_eng.v2`; the instruction tokens carry the
+# `N_REL` buckets of (rank inside the quoted span - typed count) that let the copy attention find "the next char".
+KEY_BITS = 7
+assert N_KEYCLS <= 2 ** KEY_BITS
+REL_LO, REL_HI = -1, 8                          # exact buckets for r = irank - ntyped in [REL_LO, REL_HI]
+N_REL = (REL_HI - REL_LO + 1) + 3               # + typed-long-ago, far-future, not-in-a-quoted-span
+ENG_V2_SLOT_W, ENG_V2_KEY0 = 13, 6              # `cw_pointer_eng.v2`: slot width, first key-code field (spec.ENG_LAYOUTS)

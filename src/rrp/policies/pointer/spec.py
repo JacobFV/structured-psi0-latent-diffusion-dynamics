@@ -9,15 +9,50 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from rrp.policies.nets.pointer_vocab import (KNOT_TIMES, LC, LI, N_BOUND, N_KEYCLS, N_ROLE, N_SYM, NH, NW,  # noqa: F401
-                                             POINTER_FACTORS_PRESET, UI_CARRIES, WF)
+from rrp.policies.nets.pointer_vocab import (ENG_V2_KEY0, ENG_V2_SLOT_W, KEY_BITS, KNOT_TIMES, LC, LI, N_BOUND, N_KEYCLS, N_REL, N_ROLE,  # noqa: F401
+                                             N_SYM, NH, NW, POINTER_FACTORS_PRESET, REL_HI, REL_LO, UI_CARRIES, WF)
 from rrp.policies.teachers.computerworld import MAX_STEP_PX      # the scripted teachers' speed (px per tick)
 
 VALIDITY_S = 0.8
-ENG_VERSION = "cw_pointer_eng.v1"
+ENG_VERSION = "cw_pointer_eng.v1"          # the default: scalar key; every existing checkpoint / packet is v1
+ENG_VERSION_V2 = "cw_pointer_eng.v2"       # D-146 C2: the key is a KEY_BITS-bit +-1 code (architecture 14.6)
 SLOT_FIELDS = ("x", "y", "depth", "button", "key", "wheel", "flag")
 SLOT_W = len(SLOT_FIELDS)
 ENG_DIM = 2 * SLOT_W
+
+
+@dataclass(frozen=True)
+class EngLayout:
+    """Slot layout of one engineered-packet version (the version tag on the packet picks it): a packet is two slots of
+    `slot_w` fields; `key` is the field index of the scalar key (v1) or the first of the `key_bits` code fields (v2)."""
+    version: str
+    fields: tuple
+    key: int
+    key_bits: int          # 0 = scalar (v1)
+
+    @property
+    def slot_w(self) -> int:
+        return len(self.fields)
+
+    @property
+    def dim(self) -> int:
+        return 2 * self.slot_w
+
+    def idx(self, name: str) -> int:
+        return self.fields.index(name)
+
+
+ENG_LAYOUTS = {
+    ENG_VERSION: EngLayout(ENG_VERSION, SLOT_FIELDS, 4, 0),
+    ENG_VERSION_V2: EngLayout(ENG_VERSION_V2, ("x", "y", "depth", "button", "wheel", "flag")
+                              + tuple(f"key{i}" for i in range(KEY_BITS)), ENG_V2_KEY0, KEY_BITS)}
+assert ENG_LAYOUTS[ENG_VERSION_V2].slot_w == ENG_V2_SLOT_W
+
+
+def eng_layout(version: str) -> EngLayout:
+    if version not in ENG_LAYOUTS:
+        raise ValueError(f"engineered packet version {version!r}: one of {sorted(ENG_LAYOUTS)}")
+    return ENG_LAYOUTS[version]
 POINTER_KINDS = frozenset({"cartesian_position", "button", "discrete"})
 PHASES = ("idle", "move", "press", "release", "drag", "type")
 ROLE_IDS = {"null": 0, "button": 1, "textbox": 2, "label": 3, "form": 4, "heading": 5, "text": 6, "link": 7,

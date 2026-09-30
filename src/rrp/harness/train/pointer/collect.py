@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 
 from rrp.harness.train.pointer.data import TABLE_KEYS, stack_tables
-from rrp.harness.train.pointer.split import excluded_seeds, heldout_goal, load_split
+from rrp.harness.train.pointer.split import excluded_seeds, heldout_goal, load_split, make_split_env
 from rrp.policies.pointer import LI, NW, PointerGeometry, codes
 
 
@@ -28,7 +28,8 @@ def phase_of(groups: dict, prev_btn: bool, prev_xy) -> int:
     return 1 if moved else 0
 
 
-def collect_episode(task: str, seed: int, *, dart_px: float, rng: random.Random, max_ticks: int = 400) -> dict | None:
+def collect_episode(task: str, seed: int, *, dart_px: float, rng: random.Random, max_ticks: int = 400,
+                    env_kw: dict | None = None) -> dict | None:
     """One scripted-teacher episode. Labels are the teacher's clean commands; executed pointer commands get
     N(0, dart_px) noise on intermediate move ticks (DART; the teacher's goto corrects from wherever the pointer is; the
     arriving tick is never perturbed, else the goto would never terminate)."""
@@ -37,7 +38,7 @@ def collect_episode(task: str, seed: int, *, dart_px: float, rng: random.Random,
     from rrp.policies.pointer import EventHistory, env_widget_table, public_features, screen_half
     from rrp.policies.teachers.computerworld import CWTeacher
     from rrp.tasks.spec import get_task
-    env = make_env("computerworld", task=task, body="cw_pointer", seed=seed)
+    env = make_env("computerworld", task=task, body="cw_pointer", seed=seed, **(env_kw or {}))
     T = get_task(task)
     half = screen_half(env.spec)
     tt = CWTeacher(env, task)
@@ -120,8 +121,7 @@ def cmd_collect(a):
     rng = random.Random(a.seed)
     eps, s, skipped, failed = [], a.start, 0, 0
     t0 = time.time()
-    from rrp.envs.base import make_env
-    probe = make_env("computerworld", task=a.task, body="cw_pointer", seed=0)
+    probe = make_split_env(split, a.task)
     while len(eps) < a.episodes:
         assert lo <= s < hi, "ran out of training seeds"
         probe.reset(s)
@@ -130,7 +130,8 @@ def cmd_collect(a):
             skipped += 1
             s += 1
             continue
-        ep = collect_episode(a.task, s, dart_px=a.dart_px if rng.random() < a.dart_frac else 0.0, rng=rng)
+        ep = collect_episode(a.task, s, dart_px=a.dart_px if rng.random() < a.dart_frac else 0.0, rng=rng,
+                             env_kw=split.get("env_kw"))
         if ep is None:
             failed += 1
         else:

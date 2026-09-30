@@ -32,6 +32,7 @@ from rrp.envs.base import ActionSpace, BodyInfo, CapabilityError, EntityState, E
 from rrp.tasks.spec import Judgement
 
 ADAPTER_VERSION = "cw_env.v2"          # v2 (D-142): 24 words / 24 names for cw/open_type, cw/fill_form
+ADAPTER_VERSION_PROC = "cw_env.v3"     # v3 (D-146 C2): `strings="procedural"` -- words / names from `proc_string`
 CONTROLLER_VERSION = "cw_pointer.v1"
 CW_VERSION = "0.2.0"          # pinned wheel; snapshots and pixels are only valid within one engine version
 MACHINE, ACTOR = "pc", "ada"
@@ -434,9 +435,13 @@ def _running(t: float, budget: float, reason: str) -> Judgement:
     return Judgement(True, "timeout", reason, False, False) if t >= budget else Judgement(False)
 
 
+def _calc_goal(rng, strings):
+    return {"a": rng.randint(1, 9), "b": rng.randint(1, 9)}
+
+
 def _calc_setup(env, rng):
     env.owner_act("application.v1", "launch", {"kind": "calculator"})
-    return {"a": rng.randint(1, 9), "b": rng.randint(1, 9)}
+    return _calc_goal(rng, env.strings)
 
 
 def _calc_judge(env, t, budget):
@@ -455,8 +460,35 @@ WORDS = ["hello", "robot", "pointer", "world", "relational", "window", "button",
          "canvas", "orbit"]         # 24 (was 5 before D-142): typing must copy characters from the instruction
 
 
+# D-146 C2 (architecture 14.6): `strings="procedural"` draws words / names from a seeded generator instead of the pools.
+# A string is 2-4 fixed-width consonant-vowel syllables, so (length, syllable digits) <-> string is a bijection: two
+# distinct draws are two distinct strings, and a split rule on the STRING (research/splits/cworld_pointer_v2.json)
+# cannot be dodged by a re-encoding. `strings` is an env kwarg (`rrp eval --env-kw`); the default keeps the pools.
+STRING_SOURCES = ("pool", "procedural")
+CONSONANTS, VOWELS = "bdfgklmnprstvz", "aeiou"
+SYLLABLES = tuple(c + v for c in CONSONANTS for v in VOWELS)          # 70
+PROC_SYLLABLES = (2, 3, 4)
+
+
+def proc_string(rng: random.Random) -> str:
+    """One procedural lowercase string (4 / 6 / 8 characters; ~24M distinct)."""
+    return "".join(rng.choice(SYLLABLES) for _ in range(rng.choice(PROC_SYLLABLES)))
+
+
+def _pick_word(rng, strings):
+    return rng.choice(WORDS) if strings == "pool" else proc_string(rng)
+
+
+def _pick_name(rng, strings):
+    return rng.choice(NAMES) if strings == "pool" else proc_string(rng).capitalize()
+
+
+def _type_goal(rng, strings):
+    return {"text": _pick_word(rng, strings)}
+
+
 def _type_setup(env, rng):
-    return {"text": rng.choice(WORDS)}
+    return _type_goal(rng, env.strings)
 
 
 def _type_judge(env, t, budget):
@@ -501,10 +533,14 @@ NAMES = ["Ada", "Grace", "Alan", "Edsger", "Barbara", "Donald", "Frances", "John
          "Dennis", "Hedy", "Claude", "Katherine", "Tim", "Sophie", "Niklaus", "Anita", "Guido", "Ivan", "Shafi", "Leslie"]
 
 
+def _form_goal(rng, strings):
+    name = _pick_name(rng, strings)
+    return {"name": name, "email": f"{name.lower()}@example.org"}
+
+
 def _form_setup(env, rng):
     env.owner_act("application.v1", "launch", {"kind": "browser", "argument": "http://form.internal/"})
-    name = rng.choice(NAMES)
-    return {"name": name, "email": f"{name.lower()}@example.org"}
+    return _form_goal(rng, env.strings)
 
 
 def _form_judge(env, t, budget):
@@ -535,6 +571,18 @@ CW_TASKS: dict[str, CWTaskDef] = {
 }
 
 
+# The goal of a seed for the tasks whose goal is a pure function of the seed (every task but cw/drag_window, whose
+# goal depends on the window geometry): the split tools list seeds by goal without building a world.
+SEED_GOALS = {"cw/calc_sum": _calc_goal, "cw/open_type": _type_goal, "cw/fill_form": _form_goal}
+
+
+def goal_for(task: str, seed: int, strings: str = "pool") -> dict:
+    """`ComputerWorldEnv(task, strings=strings).reset(seed)`'s goal, without the env (`SEED_GOALS` tasks only)."""
+    if strings not in STRING_SOURCES:
+        raise ValueError(f"strings {strings!r}: one of {STRING_SOURCES}")
+    return SEED_GOALS[task](random.Random(seed), strings)
+
+
 # ------------------------------------------------------------------------------------------------ env
 @dataclass
 class Snapshot:
@@ -551,8 +599,11 @@ class ComputerWorldEnv:
 
     def __init__(self, task: str, *, seed: int = 0, width: int = 960, height: int = 640, m_per_px: float = 0.001,
                  depth: Literal["constant", "stack"] = "stack", dz: float = 0.002, images: bool = False,
-                 control_hz: float = 10.0, theme: str = "virtual-ubuntu-24"):
+                 control_hz: float = 10.0, theme: str = "virtual-ubuntu-24", strings: str = "pool"):
         import computerworld as cw                                  # optional extra, lazy
+        if strings not in STRING_SOURCES:
+            raise ValueError(f"strings {strings!r}: one of {STRING_SOURCES}")
+        self.strings = strings
         if task not in CW_TASKS:
             raise KeyError(f"computerworld has no task {task!r}; known: {sorted(CW_TASKS)}")
         if cw.engine_version != CW_VERSION:
@@ -580,7 +631,8 @@ class ComputerWorldEnv:
                                        vocab=list(KEY_VOCAB))],
             capabilities=caps + (["images"] if images else []), frame=self.frame.as_dict(),
             provenance={"engine": f"computerworld/{cw.engine_version}", "package": cw.__version__,
-                        "adapter": ADAPTER_VERSION, "world_digest": content_hash(self.definition), "theme": theme,
+                        "adapter": ADAPTER_VERSION if strings == "pool" else ADAPTER_VERSION_PROC,
+                        "strings": strings, "world_digest": content_hash(self.definition), "theme": theme,
                         "viewport": [width, height]})
         self._initial: dict[int, Snapshot] = {}
         self.seed = seed

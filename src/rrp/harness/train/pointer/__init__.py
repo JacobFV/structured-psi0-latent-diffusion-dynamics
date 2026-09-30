@@ -1,7 +1,8 @@
 """ComputerWorld pointer policies: split, teacher-demo collection, training and packet diagnostics (track pointer;
 research/tracks/pointer.md "pointer policy"). `rrp train pointer <cmd> ...`:
 
-    split    write the seed lists of research/splits/cworld_pointer_v1.json (held-out variants are declared there)
+    split    write the seed lists of a split file (--split; held-out variants are declared there: v1 lists them, v2
+             (research/splits/cworld_pointer_v2.json, procedural strings) holds out a string hash bucket)
     collect  scripted-teacher demos (DART pointer noise on move ticks for a fraction of episodes) -> .npz (peer store);
              widget tables come from the live featurizer (`public_features` + `env_widget_table`), incl. z-layer, parent,
              focus rank and the ui-rel-v1 edges
@@ -84,6 +85,10 @@ def main(argv=None):
     common(p, steps=30000)
     p.add_argument("--target", choices=("latent", "eng"), default="latent")
     p.add_argument("--representation", help="rep checkpoint (target latent)")
+    p.add_argument("--eng-version", default="cw_pointer_eng.v1", choices=("cw_pointer_eng.v1", "cw_pointer_eng.v2"),
+                   help="engineered packet encoding of --target eng (v2: 7-bit key code)")
+    p.add_argument("--key-head", choices=("free", "copy"), default="free",
+                   help="copy: instruction-copy mixture key head (architecture 14.6; needs --eng-version v2)")
     p.add_argument("--w-sem", type=float, default=0.5)
     p.add_argument("--factors", nargs="*", default=None, metavar="SPEC",
                    help="relation factors of the net's public context (relations.resolve items: names, globs, "
@@ -92,6 +97,8 @@ def main(argv=None):
     p = sub.add_parser("bc")
     common(p, steps=50000)
     p.add_argument("--w-xy", type=float, default=5.0)
+    p.add_argument("--key-head", choices=("free", "copy"), default="free",
+                   help="copy: instruction-copy mixture key head (architecture 14.6)")
     p.add_argument("--factors", nargs="*", default=None, metavar="SPEC",
                    help="relation factors of the net's public context (relations.resolve items: names, globs, "
                         "preset:ui, or JSON specs); default preset:none")

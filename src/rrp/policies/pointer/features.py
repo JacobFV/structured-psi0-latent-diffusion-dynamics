@@ -124,11 +124,14 @@ def widget_features(obs, half, table=None) -> dict:
 
 
 class EventHistory:
-    """Efference copy of the policy's own executed events: (kind 1 down / 2 up / 3 key, symbol, x, y, tick)."""
+    """Efference copy of the policy's own executed events: (kind 1 down / 2 up / 3 key, symbol, x, y, tick).
+    `n_typed` (D-146 C2) counts the PRINTABLE keys it has executed since reset (the last NH events are all `array`
+    keeps): with the instruction it says which character is next (`ntyped` in `public_features`)."""
 
     def __init__(self):
         self.ev: list[tuple[int, int, float, float, int]] = []
         self.button = False
+        self.n_typed = 0
 
     def push(self, tick: int, groups: dict | None, half) -> None:
         if not groups:
@@ -142,6 +145,7 @@ class EventHistory:
         k = int(round(groups.get("key", [-1])[0]))
         if k >= 0:
             self.ev.append((3, sym_of_key(k), x / half[0], y / half[1], tick))
+            self.n_typed += k >= len(_vocab()[0])
 
     def array(self, tick: int) -> np.ndarray:
         """[NH, 5] (kind, symbol, x, y, age in ticks) of the last NH events, oldest first; kind 0 = padding."""
@@ -159,7 +163,7 @@ def public_features(obs, half, hist: EventHistory, tick: int, *, table) -> dict:
     q = obs.measured_node_state.qpos
     btn = float(obs.declared_sensor_channels[0].values[0]) if obs.declared_sensor_channels else 0.0
     f.update(instr=codes(obs.instruction or "", LI), ptr=np.array([q[0] / half[0], q[1] / half[1]], np.float32),
-             btn=np.float32(btn), tick=np.float32(tick), hist=hist.array(tick))
+             btn=np.float32(btn), tick=np.float32(tick), hist=hist.array(tick), ntyped=np.float32(hist.n_typed))
     return f
 
 

@@ -97,6 +97,11 @@ class Demos:
         self.goals = list(d.pop("ep_goal"))
         self.ep_seed, self.ep_task = d["ep_seed"], d["ep_task"]
         N = len(d["tab"])
+        # `ntyped` (D-146 C2): printable keys the policy had executed before tick t of its episode (`EventHistory.n_typed`)
+        from rrp.envs.computerworld import KEY_NAMES
+        pr = (d["cmd_key"].astype(np.int64) > len(KEY_NAMES)).astype(np.int64)      # class 1 + idx; idx >= names
+        before = np.cumsum(pr) - pr
+        ntyped = (before - before[d["ep_start"][d["ep"]]]).astype(np.float32)
         # chunk indices (t + j within the episode, else -1)
         ep_end = d["ep_end"][d["ep"]]
         j = np.arange(self.H)[None]
@@ -118,7 +123,7 @@ class Demos:
                       cmd_key=T(d["cmd_key"].astype(np.int64)), slot=T(d["slot"].astype(np.int64)),
                       txy=T(np.nan_to_num(d["txy"], nan=0.0)), txy_ok=T(~np.isnan(d["txy"][:, 0])),
                       phase=T(d["phase"].astype(np.int64)), instr=T(d["ep_instr"].astype(np.int64)),
-                      tick=T((np.arange(N) - d["ep_start"][d["ep"]]).astype(np.float32)), chunk=T(idx.astype(np.int64)))
+                      tick=T((np.arange(N) - d["ep_start"][d["ep"]]).astype(np.float32)), ntyped=T(ntyped), chunk=T(idx.astype(np.int64)))
         self.N, self.device = N, device
         self.has_ui = bool(self.t["wui"].all())      # every pack carries the public UI fields (`preset:ui` needs them)
         self.train_idx = T(np.nonzero(~self.val_mask)[0].astype(np.int64))
@@ -140,7 +145,7 @@ class Demos:
                  wzlayer=t["wzlayer"][tab], wparent=t["wparent"][tab], wfocusrank=t["wfocusrank"][tab],
                  wuiedges=unpack_edges(t["wuiedges"][tab]),
                  instr=t["instr"][t["ep"][ix]], ptr=t["ptr"][ix], btn=t["btn"][ix], tick=t["tick"][ix],
-                 hist=t["hist"][ix])
+                 hist=t["hist"][ix], ntyped=t["ntyped"][ix])
         ci = t["chunk"][ix]                                        # [B,H]
         valid = ci >= 0
         cc = ci.clamp(min=0)

@@ -18,14 +18,15 @@ from rrp.policies.pointer.features import EventHistory, collate_public, public_f
 from rrp.policies.pointer.packet import (EngineeredSystem0, cmd_source, encode_commands, packet_ticks, pointer_packet,
                                          tick_slot)
 from rrp.policies.relations.base import assert_deployable
-from rrp.policies.pointer.spec import ENG_VERSION, KNOT_TIMES, POINTER_KINDS, PointerGeometry, VALIDITY_S
+from rrp.policies.pointer.spec import ENG_VERSION, KNOT_TIMES, POINTER_KINDS, PointerGeometry, VALIDITY_S, eng_layout
 
 
 def _twin(env):
     from rrp.envs.computerworld import ComputerWorldEnv
     f = env.frame
     return ComputerWorldEnv(env.task_name, seed=env.seed, width=f.width, height=f.height, m_per_px=f.m_per_px,
-                            depth=f.depth, dz=f.dz, control_hz=env.control_hz, theme=env.spec.provenance["theme"])
+                            depth=f.depth, dz=f.dz, control_hz=env.control_hz, theme=env.spec.provenance["theme"],
+                            strings=env.strings)
 
 
 def target_depth(env, x: float, y: float) -> float:
@@ -57,10 +58,12 @@ class TeacherOracleSource:
     (state hash at the packet tick)."""
     name = "cw_teacher_oracle"
 
-    def __init__(self, validity: float = VALIDITY_S, encoder=None, versions: dict | None = None, device="cpu"):
+    def __init__(self, validity: float = VALIDITY_S, encoder=None, versions: dict | None = None, device="cpu",
+                 eng_version: str = ENG_VERSION):
         self.validity, self.E, self.device = validity, encoder, device
-        self.lsv = versions["latent_space_version"] if versions else ENG_VERSION
-        self.rcv = versions["realizer_compat_version"] if versions else ENG_VERSION
+        self.eng_version = eng_layout(eng_version).version
+        self.lsv = versions["latent_space_version"] if versions else self.eng_version
+        self.rcv = versions["realizer_compat_version"] if versions else self.eng_version
         self.calls = 0
 
     def reset(self, envs):
@@ -128,7 +131,8 @@ class TeacherOracleSource:
                 st["divergences"] += 1
             obs = e.observe()
             if self.E is None:
-                z = encode_commands(st["cmds"][n:n + H], dt, len(e.spec.space("key").vocab), st["depths"][n:n + H])
+                z = encode_commands(st["cmds"][n:n + H], dt, len(e.spec.space("key").vocab), st["depths"][n:n + H],
+                                    version=self.eng_version)
             else:
                 z = self._encode(e, obs, st, n, H)
             out.append(pointer_packet(e, obs, z, lsv=self.lsv, rcv=self.rcv,
@@ -147,14 +151,16 @@ def pointer_requirements(*, privileged: bool = False, tasks=None):
 
 
 def make_pointer_oracle(*, replan_ticks: int = 4, name: str = "pointer_oracle", representation: str | None = None,
-                        device: str = "cpu"):
+                        device: str = "cpu", eng_version: str = ENG_VERSION):
     """ORACLE DIAGNOSTIC: scripted-teacher look-ahead -> engineered packet -> SCRIPTED engineered system 0; with
     `representation` (a pointer rep checkpoint): -> z = E(public features, teacher chunk) -> its LEARNED system 0."""
     from rrp.policies.latent import LatentStackPolicy
     if representation is None:
-        return LatentStackPolicy(TeacherOracleSource(), None, replan_ticks=replan_ticks, name=name, source="oracle",
-                                 version=f"oracle:teacher->{ENG_VERSION}|system0={EngineeredSystem0.label}",
-                                 make_s0=EngineeredSystem0, requires=pointer_requirements(privileged=True))
+        return LatentStackPolicy(TeacherOracleSource(eng_version=eng_version), None, replan_ticks=replan_ticks, name=name,
+                                 source="oracle",
+                                 version=f"oracle:teacher->{eng_version}|system0={EngineeredSystem0.label_for(eng_version)}",
+                                 make_s0=lambda e: EngineeredSystem0(e, version=eng_version),
+                                 requires=pointer_requirements(privileged=True))
     rb = load_pointer_bundle(representation, device)
     v = rb["versions"]
     R = rb["modules"]["R"]
@@ -277,10 +283,12 @@ def make_pointer_latent(*, flow: str, representation: str | None = None, device:
     variant, target = fb["config"]["variant"], fb["config"]["target"]
     tasks = fb["config"].get("tasks")
     if target == "eng":
-        si = PointerSystemI(fb["modules"]["S"], lsv=ENG_VERSION, rcv=ENG_VERSION, device=device, nfe=nfe, seed=seed,
+        ev = fb["versions"]["latent_space_version"]          # the checkpoint's packet version tag (v1 / v2)
+        si = PointerSystemI(fb["modules"]["S"], lsv=ev, rcv=ev, device=device, nfe=nfe, seed=seed,
                             name=f"{name}:{flow}")
         return LatentStackPolicy(si, None, replan_ticks=replan_ticks, name=name, source="learned", variant=variant,
-                                 version=f"learned:{flow}|system0={EngineeredSystem0.label}", make_s0=EngineeredSystem0,
+                                 version=f"learned:{flow}|system0={EngineeredSystem0.label_for(ev)}",
+                                 make_s0=lambda e: EngineeredSystem0(e, version=ev),
                                  requires=pointer_requirements(tasks=tasks))
     rb = load_pointer_bundle(representation or fb["config"]["representation"], device)
     lsv, rcv = rb["versions"]["latent_space_version"], rb["versions"]["realizer_compat_version"]

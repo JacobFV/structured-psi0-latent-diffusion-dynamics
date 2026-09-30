@@ -232,33 +232,47 @@ def frozen_mu(E, data, dev, bs=2048):
     return torch.cat(out)
 
 
-def eng_targets(data, dev, bs=4096):
-    """Engineered packets (rrp.policies.pointer encoding) of every sample's demo chunk: [N, K, 1, 14]."""
-    from rrp.policies.pointer import ENG_DIM, N_KEYCLS, SLOT_W, packet_ticks
+def eng_targets(data, dev, bs=4096, version=None):
+    """Engineered packets (rrp.policies.pointer encoding `version`, default v1) of every sample's demo chunk:
+    [N, K, 1, layout.dim]. v2 (D-146 C2): the key field is the KEY_BITS-bit +-1 code of the key class."""
+    from rrp.policies.pointer import ENG_VERSION, N_KEYCLS, eng_layout, packet_ticks
+    from rrp.policies.nets.pointer_vocab import KEY_BITS
+    lay = eng_layout(version or ENG_VERSION)
     ticks = packet_ticks(data.geom.dt)
-    out = torch.zeros(data.N, 4, 1, ENG_DIM, device=dev)
+    out = torch.zeros(data.N, 4, 1, lay.dim, device=dev)
     for s in range(0, data.N, bs):
         ix = torch.arange(s, min(s + bs, data.N), device=dev)
         _, ch, _ = data.batch(ix)
         for j, (k, sl) in enumerate(ticks):
-            o = sl * SLOT_W
+            o = sl * lay.slot_w
             v = ch["valid"][:, j].float()
             xy = ch["xy"][:, j] * data.half
-            out[ix, k, 0, o:o + SLOT_W] = torch.stack([xy[:, 0], xy[:, 1], torch.zeros_like(v),
-                                                       ch["btn"][:, j] * 2 - 1, ch["key"][:, j].float() / (N_KEYCLS - 1),
-                                                       torch.zeros_like(v), torch.ones_like(v)], -1) * v[:, None]
+            z, one = torch.zeros_like(v), torch.ones_like(v)
+            btn = ch["btn"][:, j] * 2 - 1
+            if lay.key_bits:
+                bits = ((ch["key"][:, j][:, None] >> torch.arange(KEY_BITS, device=dev)) & 1).float() * 2 - 1
+                row = torch.cat([torch.stack([xy[:, 0], xy[:, 1], z, btn, z, one], -1), bits], -1)
+            else:
+                row = torch.stack([xy[:, 0], xy[:, 1], z, btn, ch["key"][:, j].float() / (N_KEYCLS - 1), z, one], -1)
+            out[ix, k, 0, o:o + lay.slot_w] = row * v[:, None]
     return out
 
 
 # ------------------------------------------------------------------------------------------------ flow
 def cmd_flow(a):
-    from rrp.policies.pointer import ENG_DIM, ENG_VERSION, load_pointer_bundle, nets, run_pointer_probe
+    from rrp.policies.pointer import eng_layout, load_pointer_bundle, nets, run_pointer_probe
     dev, data = setup(a)
     N = nets()
+    copy_key = getattr(a, "key_head", "free") == "copy"
+    ev = eng_layout(getattr(a, "eng_version", None) or "cw_pointer_eng.v1").version
+    if a.target != "eng" and (copy_key or ev != "cw_pointer_eng.v1"):
+        raise ValueError("--key-head copy / --eng-version v2 are for --target eng (a latent target has no key field)")
+    if copy_key and ev != "cw_pointer_eng.v2":
+        raise ValueError("--key-head copy needs --eng-version cw_pointer_eng.v2 (the key is a bit code there)")
     if a.target == "eng":
-        Z = eng_targets(data, dev)
-        dz, versions, P, variant, R = ENG_DIM, dict(latent_space_version=ENG_VERSION,
-                                                   realizer_compat_version=ENG_VERSION), None, "eng", None
+        Z = eng_targets(data, dev, version=ev)
+        dz, versions, P, variant, R = eng_layout(ev).dim, dict(latent_space_version=ev, realizer_compat_version=ev), \
+            None, "eng", None
     else:
         rb = load_pointer_bundle(a.representation, dev)
         Z = frozen_mu(rb["modules"]["E"], data, dev)
@@ -269,7 +283,7 @@ def cmd_flow(a):
             for p in P.parameters():
                 p.requires_grad_(False)
     specs = factor_specs(a, data)
-    arch = dict(S=dict(dz=dz, **factor_arch(specs)))
+    arch = dict(S=dict(dz=dz, **factor_arch(specs), **(dict(copy_key=True) if copy_key else {})))
     S = N["PointerFlow"](**arch["S"]).to(dev)
     record_estimates(S.ctx, specs)
     tr = Z[data.train_idx]
@@ -321,7 +335,8 @@ def cmd_bc(a):
     dev, data = setup(a)
     N = nets()
     specs = factor_specs(a, data)
-    arch = dict(BC=factor_arch(specs))
+    arch = dict(BC=dict(**factor_arch(specs), **(dict(copy_key=True) if getattr(a, "key_head", "free") == "copy"
+                                                 else {})))
     BC = N["PointerBC"](**arch["BC"]).to(dev)
     record_estimates(BC.ctx, specs)
 
