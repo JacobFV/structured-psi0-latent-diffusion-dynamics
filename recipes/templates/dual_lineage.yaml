@@ -1,4 +1,4 @@
-# TEMPLATE for the FIRST dual-arm learned models (D-126 #33; W12 phase B/C, research/tracks/w12.md §8). Not run by
+# TEMPLATE for the FIRST dual-arm learned models (D-126 #33; W12 phase B/C, archived note, D-126). Not run by
 # anyone yet: a child instance `recipes/<track>/dual_<name>.yaml` does `extends: ../templates/dual_lineage.yaml` and sets name / labels.
 # Recipe = the arm semfix/nosem recipe (bounded NLL -4 for semfix), zero_prev_action TRUE (B-1 fix; the v1 dual configs in
 # configs/latent/*dualarm*_v1.json predate it and are not used). Data = dual teacher v3 (rrp.policies.teachers.dual_smooth), grasp

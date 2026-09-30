@@ -1,0 +1,90 @@
+# TEMPLATE (D-144 / D-145 P4d): the relation-factor experiment on the arm flow. ONE shared representation (system 0 / packet
+# semantics, stageA) so every factor set sees the SAME input information; per factor set (matrix axis `fset`) x seed one
+# flow F0 trained with `params.policy.factors` = preset:arm (+ the set), then the deployable route evaluated on the R2 dev
+# seeds and the shared packet probes read once. Compare each set with `base` (preset:arm only) at equal steps / seeds.
+#   base   preset:arm (the 17 typed edges + incidence messages), the control
+#   geo    + preset:geo   (geo.pos3d geo.depth3d geo.orient geo.normal_align geo.above)
+#   ix     + preset:ix    (ix.contact/support/held_by/handover bilinear pair factors, ix.force_flow over the support graph)
+#   task   + preset:task  (task.next_contact time.same_track)
+# The `ui` preset (ui.* on the ComputerWorld widget tree) is a pointer-track factor set: it is a `factors:` var of the
+# pointer recipes (recipes/pointer, P4c), not an arm instance.
+# Instances extend this file and only choose the matrix (recipes/relations/relations_<set>.yaml).
+# CAVEAT (recorded in the ledger and every manifest): structural side only. `harness/pipelines/relations.py::relations_data`
+# (labelled shards + mix, docs/relations.md 5.3) is a library function, not a DAG stage, so the probe-sourced factors
+# (geo.depth3d, ix.*, task.next_contact) train without their label shards here: their estimate heads start at zero and an
+# `aug` factor is a no-op until a stage feeds the labels. State: planned (renders and plans dry; no run recorded).
+# The interference report (a set vs base, per body, paired seeds) is `rrp suite` / room material over the `dev` results.
+#   rrp run-dag recipes/relations/relations_geo.yaml --dry-run --point fset=geo,seed=1
+#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/relations rrp run-dag recipes/relations/relations_geo.yaml --max-parallel-gpu 1
+name: relations_factor
+schema: dag-1
+family: arm
+track: relations
+caveat: 'D-145 relations recipe: structural factors only, relations_data shards are not a DAG stage (planned, never run)'
+lineage: 'relations-{fset}'
+label_prefix: 'rf{fset}{seed}'
+global_lineage: 'relations-shared'
+global_label_prefix: 'rfg'
+matrix:
+  fset: [base]
+  seed: [1]
+vars:
+  so: '{1000 * (seed - 1)}'
+  pfx: 'rel_{fset}_s{seed}'
+  pack: packed/latent_pp_v3dart_s1_H16
+  dataset: datasets/pick_place_primary_v3dart
+lists:
+  rep_bodies: [parm5_pg2, parm5_tf3, parm5s_pg2, parm5l_tf3, parm6_pg2, parm6_tf3, parm7_pg2, parm7_tf3, panda_pg2, ur5e_pg2, ur5e_tf3, sawyer_pg2, sawyer_tf3]
+  probe_factors: [{name: probe.arm.visible, weight: 1.0}, {name: probe.arm.looking_at, weight: 1.0}, {name: probe.arm.focused_on, weight: 1.0}, {name: probe.arm.held_by, weight: 1.0}, {name: probe.arm.acting_on, weight: 1.0}, {name: probe.arm.rel_pos, weight: 1.0}, {name: probe.arm.observed_effect, weight: 1.0}, {name: probe.arm.subtask, weight: 1.0}]
+defaults:
+  placement: peer
+  retries: 0                 # D-061
+  max_parallel: 4
+  max_parallel_gpu: 1
+  admission_timeout_s: 10800
+  resources: {cpu: 3, mem: 8G, gpu: false, max_seconds: 10800}
+base:
+  flags: {zero_prev_action: true, realizer_anchor: true, realizer_drop_qd: false, contact_version: contact_v1}
+nodes:
+  # the shared representation (semantic probes, bounded floor as the semfix lineage), trained once for every factor set
+  stageA:
+    stage: train_rep
+    scope: global
+    resources: {gpu: true, gpu_mem: 16G, cpu: 4, mem: 24G, max_seconds: 14400}
+    config:
+      inputs: {dataset: '{dataset}', packed_dir: '{pack}'}
+      params: {train_robots: $rep_bodies, horizon: 16, stride: 1, include_dart_failures: true, seed: 1706, steps: 15000, batch_size: 128, lr: 0.0003, name: rel_stageA, latent: {name: rel_stageA, factors: $probe_factors}}
+  probes_rep:
+    stage: probes
+    scope: global
+    resources: {gpu: true, gpu_mem: 8G, cpu: 3, mem: 16G, max_seconds: 7200}
+    config:
+      inputs: {representation: '@stageA:representation.pt', packed_dir: '{pack}'}
+      options: {steps: 6000, out_name: probes_rep.json}
+  F0:
+    stage: train_flow
+    resources: {gpu: true, gpu_mem: 16G, cpu: 4, mem: 24G, max_seconds: 14400}
+    per:
+      fset:
+        geo: {params: {policy: {factors: ['preset:arm', 'preset:geo']}}}
+        ix: {params: {policy: {factors: ['preset:arm', 'preset:ix']}}}
+        task: {params: {policy: {factors: ['preset:arm', 'preset:task']}}}
+    config:
+      inputs: {representation: '@stageA:representation.pt', packed_dir: '{pack}'}
+      options: {final_snapshot_alias: snap_final_s20000.pt}
+      params: {name: '{pfx}_F0', seed: '{1701 + so}', steps: 20000, batch_size: 128, lr: 0.0003, packet_semantic_weight: 1.0, normalize_target: true, snapshot_every: 1000, packet_tau_min: 0.6, policy: {width: 256, heads: 4, ctx_layers: 3, blocks: 6, attention: factorized, name: '{pfx}_F0'}}
+  # the deployable route (frozen flow + shared system 0) on the R2 dev bodies / seeds, and on the two held-out bodies
+  dev:
+    stage: eval_r2
+    tag: dev
+    resources: {cpu: 3, mem: 8G, max_seconds: 10800}
+    config:
+      inputs: {flow: '@F0:snap_final_s20000.pt', representation: '@stageA:representation.pt'}
+      options: {tag: dev, robots: [parm6_tf3, panda_pg2], seed_starts: [3000000, 3000100], episodes: 30, workers: 1}
+  heldout:
+    stage: heldout
+    tag: dev
+    resources: {cpu: 3, mem: 8G, max_seconds: 10800}
+    config:
+      inputs: {flow: '@F0:snap_final_s20000.pt', representation: '@stageA:representation.pt'}
+      options: {tag: dev, robots: [parm5s_tf3, parm5l_pg2], seed_starts: [3000000], episodes: 30, workers: 1}

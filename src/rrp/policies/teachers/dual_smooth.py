@@ -1,5 +1,5 @@
 """Dual-arm scripted teacher v3 (W12 / D-126 #18): NEW version, default OFF (v2 = rrp.teachers.dual stays the default).
-Label: scripted_teacher (PRIVILEGED: object poses and in-hand offsets, as v2). Diagnosis: research/tracks/w12.md §7.
+Label: scripted_teacher (PRIVILEGED: object poses and in-hand offsets, as v2). Diagnosis: the archived W12 audit (D-126).
 
 Changes vs v2, each ablatable through `V3Options` (all True = full v3; all False = v2's task logic on the v3 mover):
   minjerk        TCP motion = superposition of minimum-jerk Cartesian submovements (C2 blended corners, as arm_smooth v2);

@@ -7,7 +7,7 @@ Versions are selected by name (`make_arm_teacher(session, "v2")`) and recorded i
 
 Both versions read PRIVILEGED simulator state (object poses) and are labelled scripted_teacher.
 
-v2 design (diagnosis in research/tracks/armexpert.md):
+v2 design (diagnosis in the archived armexpert note, D-126):
 - Motion = superposition of minimum-jerk (quintic, zero boundary velocity/acceleration) Cartesian submovements; the
   next submovement starts before the previous one ends (blended corners, C2 path). Plans: approach (hover over the
   cube -> vertical descent along the tool axis), carry (vertical lift -> transport -> lower), retreat (vertical).

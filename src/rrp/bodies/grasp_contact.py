@@ -19,7 +19,7 @@
       critically damped) and solimp [0.99, 0.999, 0.0005, 0.5, 2] (full impedance after 0.5 mm). The soft-constraint
       stiffness grows ~ 1/timeconst^2 and ~ d/(1-d), so penetration under the same squeeze drops by orders of
       magnitude; measured by the rig (rrp.evaluation.grasp_rig) and tests/unit/test_grasp_contact.py.
-    * Realistic grip force (sourced, see research/tracks/armexpert.md "grasp contact v2"): pg2 stays at 40 N per
+    * Realistic grip force (sourced, see the archived armexpert note, "grasp contact v2" (D-126)): pg2 stays at 40 N per
       finger; tf3 hinge torque 2.2 N m = 40 N at the 55 mm fingertip (was 145 N).
     * margin/gap 0 (no action at a distance).
 The world options (elliptic cone, impratio 10, dt 2 ms, implicitfast) are already set by every arm module and are not

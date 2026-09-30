@@ -1,0 +1,15 @@
+# relation-factor experiment, set `geo` vs the `base` control (recipes/templates/relations_factor.yaml has the design and the
+# CAVEAT: structural side only). Seeds 1, 2 paired across the two sets; the representation is shared.
+#   rrp run-dag recipes/relations/relations_geo.yaml --dry-run
+extends: ../templates/relations_factor.yaml
+name: relations_geo
+schema: dag-1
+track: relations
+policy: latent
+env: mujoco/arm
+task: pick_place
+bodies: primary_v1
+factors: [preset:arm, preset:geo]
+matrix:
+  fset: [base, geo]
+  seed: [1, 2]

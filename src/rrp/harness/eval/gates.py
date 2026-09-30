@@ -33,7 +33,7 @@ GATES = dict(
                      ok_frac_min=0.95, penetration_max_m=0.003, penetration_ok_frac_min=0.99,
                      penetration_gated_grasp=("grasp_v2", "grasp_v2.1")),
     policy=dict(chunk_vel_step_flag=1.5),
-    # D-126 #18 (W12 audit, research/tracks/w12.md §7): dual-arm teacher data. Arm criteria per arm as arm_dataset;
+    # D-126 #18 (W12 audit, archived; D-126): dual-arm teacher data. Arm criteria per arm as arm_dataset;
     # maintained-contact criteria from the W12 contact metrics (rrp.data.contact_metrics).
     dual_dataset=dict(phase_switch_vel_step_max=0.5, cmd_jerk_rms_ratio_max=2.0, joint_limit_margin_min=0.02,
                       ok_frac_min=0.95, penetration_max_m=0.003, penetration_ok_frac_min=0.99,
