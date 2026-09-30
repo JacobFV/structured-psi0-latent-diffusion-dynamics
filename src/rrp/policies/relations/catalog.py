@@ -137,6 +137,25 @@ for _n, _lab, _doc in _IX_BILINEAR:
                               params=(("rank", 8),), doc=_doc))
 register_preset("ix", [f"ix.{n}" for n, _, _ in _IX_BILINEAR])
 # ------------------------------------------------------------------ R17: support / force flow (ix.support, ix.force_flow)
+# labels + part `stack`: rrp.harness.data.relgen.support (research/relations_catalog.md D "support / stacking",
+# "force transfer"). `ix.support` is the pairwise bilinear (learned kernel on token hiddens, address "pair", bce
+# against the `support_pairs` label); `ix.force_flow` is the `flow` closure (transitive, directed) of the estimated
+# / given support graph, bias form, supervised by `support_closure` (the same label module's transitive closure of
+# `support_pairs`). Both decouple through the `stack` scene part (`gen`).
+register_factor(FactorDef("ix.support", "1", field="hidden", op="bilinear", form="aug",
+                          algebra=Algebra(direction="directed", value="prob", dynamic=True),
+                          sources=("probe", "gt"), label="support_pairs", gen=("stack",),
+                          readout=ReadoutDef("support", "pair", 1, "bce", label="support_pairs", reads="tokens"),
+                          params=(("rank", 8),),
+                          doc="a supports b: contact + contact normal within 30 deg of gravity-up at a's top "
+                              "(relgen.support.support_matrix)"))
+register_factor(FactorDef("ix.force_flow", "1", field="edges:support-v1", op="flow", form="bias",
+                          algebra=Algebra(direction="directed", transitive=True, value="bool", dynamic=True),
+                          sources=("probe", "gt"), label="support_closure", gen=("stack",),
+                          params=(("edge", "support"),),
+                          doc="upstream / downstream closure of the support graph (relgen.support.support_closure); "
+                              "the estimated `edges:support-v1` graph is produced from `ix.support`'s pair estimate "
+                              "by net-side wiring outside this entry's scope"))
 # ------------------------------------------------------------------ R18: task / temporal / epistemic (task.*, time.*)
 # ------------------------------------------------------------------ R19: legged (leg.*)
 # ------------------------------------------------------------------ R20: UI (ui.*)
