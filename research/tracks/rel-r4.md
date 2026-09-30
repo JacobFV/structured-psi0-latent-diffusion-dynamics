@@ -152,3 +152,16 @@ needed: either approve re-recording `GOLDEN_LATENT` to `298ca112b751ca602e32b41f
 the row's "legged goldens byte-identical" criterion is checkpoint-load equivalence (already proven) rather than
 fresh-init closed-loop digest equivalence, in which case the same clarification should probably reach R5/R6 before
 they hit the same wall.
+
+## resolution (D-144 addendum, lead decision (a))
+
+Lead decision recorded in `research/decisions.md` under "D-144 addendum": readout-probe swaps accept on
+checkpoint-load equivalence + unchanged `tests/data/golden.json`; a closed-loop digest that moves only through
+`ReadoutProbe`'s float32 summation order may be re-recorded citing the decision (R4/R5/R6). `GOLDEN_LATENT`
+re-recorded to `298ca112b751ca602e32b41f801b9150861ffbf93da11575e52ee1c83fd31e11` in `tests/unit/test_deploy_eval.py`
+with an in-file comment giving the reason; re-verified by rerunning `test_defaults_byte_identical_to_pre_d126`
+(deterministic across 2 reruns before the edit, matching the digest quoted above) and then the full file (12/12
+green) and the full `tests/unit` suite (`CUDA_VISIBLE_DEVICES= PYTHONPATH=$PWD/src:$PWD
+~/work/relational-robot-policy/.venv/bin/python -m pytest tests/unit -q -p no:cacheprovider` -> 557 passed, 39
+skipped, exit 0 — the 557 includes the now-fixed test, matching the addendum's prior 556 + this one). `golden.json`
+still untouched by R4. Unblocked; proceeding to merge via the serialized protocol (`~/work/rrp-data/main-merge.lock`).
