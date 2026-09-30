@@ -100,7 +100,7 @@ register_preset("s0-psi0", [{"name": "route.assembly_reads", "params": {"reads":
 # per-knot-only queries (`lift`, `target_pos`, `base_cmd`) use `knot×pair` too and read only pair slot 0
 # (`policies.psi0.nets.run_probe`); `active_hand` / `base_disp` are per-packet (`body`). `base_cmd`'s legacy
 # base-assembly-only key mask (`READS["base"]`) is not reproduced by the generic probe (ReadoutProbe has one key mask
-# per forward, not per query); tracked in research/tracks/rel-r5.md.
+# per forward, not per query); tracked in archived research/tracks/rel-r5.md.
 _PSI0_PROBE = (
     ("hand_dist", "knot×pair", 2, "gauss", "hand_dist", 1.0),
     ("contact", "knot×pair", 1, "bce", "contact", 1.0),

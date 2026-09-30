@@ -19,7 +19,7 @@ R11 fills in the decision policy that was a uniform-share placeholder:
   interference drop the level by one and CAP it there -- promotion is skipped entirely, not just delayed -- until
   BOTH `_DROPBACK_COOLDOWN_INTERVALS` have elapsed AND the struggle score has actually recovered under threshold.
   A bare timer was tried first and produces genuine oscillation when interference stays high while competence stays
-  high too (see `research/tracks/rel-r11.md`); recovery-gating is what makes "hysteresis prevents oscillation"
+  high too (see `archived research/tracks/rel-r11.md`); recovery-gating is what makes "hysteresis prevents oscillation"
   (5.5) literally true.
 - **responsive mixing**: shares proportional to `share_min + s_f` (unseen factors default to `s_f = 1.0`, the old
   placeholder's flat weight, so a scheduler with no `observe()` calls behaves exactly as F4's tests expect), clipped

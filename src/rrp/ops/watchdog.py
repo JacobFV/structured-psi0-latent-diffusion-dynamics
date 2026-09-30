@@ -44,7 +44,7 @@ class WatchdogConfig:
     culprit_grace_s: float = 30.0
     # OPT-IN, default off (D-117 lesson: live cgroup changes of a running lease are not allowed without the lead): before
     # shedding a culprit, raise its lease slice memory.high to its memory.max (never touches memory.max) and wait
-    # culprit_grace_s; see research/tracks/robust.md "D-127 addendum" for the safety analysis.
+    # culprit_grace_s; see archived research/tracks/robust.md "D-127 addendum" for the safety analysis.
     raise_high_first: bool = False
     thermal_shed_c: float = 100.0          # hard ceiling (no firmware trip points exposed on GB10)
     thermal_stop_admission_c: float = 97.0

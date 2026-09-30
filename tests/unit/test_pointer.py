@@ -250,7 +250,7 @@ def test_pointer_probe_loss_masks_missing_labels():
     assert set(logs) == {"slot", "rel", "phase"}
 
 
-# ================================================================== D-144 R20 follow-up: `preset:ui` at UICtx's widget self-attention (research/tracks/rel-r20.md "lead_questions")
+# ================================================================== D-144 R20 follow-up: `preset:ui` at UICtx's widget self-attention (archived research/tracks/rel-r20.md "lead_questions")
 # The exact fixture `test_relations_r20.py` uses (no `computerworld` wheel needed: `scene_widgets` / `SlotRegistry` /
 # `descriptors` are pure): window 0 an enabled "Name" label + focused textbox (z-layer 0); window 1 a Email label +
 # a DISABLED textbox (z-layer 1, renders above window 0) -- `ui_edges` is non-empty on it (`label_for`, `focus_next`)

@@ -408,7 +408,7 @@ def _tiny_latent(dual=False):
     torch.manual_seed(1)
     R = LatentRealizer(8, width=32, layers=1)
     torch.manual_seed(4)
-    # D-144 R1 follow-up (research/tracks/rel-r1c.md): PacketProbe -> ReadoutProbe(probes:arm-packet-v1). Same seed,
+    # D-144 R1 follow-up (archived research/tracks/rel-r1c.md): PacketProbe -> ReadoutProbe(probes:arm-packet-v1). Same seed,
     # same module names/parameter creation order (docs/relations.md 4, nets/probes.py docstring) -> byte-identical
     # state dict / outputs to the retired PacketProbe, so this golden's recorded hashes are unaffected (verified).
     return si, R, ReadoutProbe(8, 4, specs=["preset:probes:arm-packet-v1"], width=32, heads=2).eval()

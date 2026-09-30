@@ -56,7 +56,7 @@ def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
 class PrevActionFeaturizer:
     """Deployment-side reproduction of the TRAINING input: the packed datasets carry the previous 1-step command
     (normalized with the q0 of its own tick) in node-feature column static_dim+2 (and the same morph-bank rows),
-    because the D-021 load-time zeroing hit column 2 instead (see research/tracks/ladder.md, bug B-1). The current
+    because the D-021 load-time zeroing hit column 2 instead (see archived research/tracks/ladder.md, bug B-1). The current
     featurizer always writes 0 there. mode 'own': inject the previously EXECUTED command (public: the controller's own
     last command); 'zero': current deployment behaviour."""
 

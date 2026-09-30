@@ -1,5 +1,5 @@
 """Causal edits and composition of the RECEIVED latent packet (R38 tests 8-9; acceptance list in
-research/reports/latent_slice1_progress.md "Pending").
+archived research/reports/latent_slice1_progress.md "Pending").
 
 System i and system 0 are frozen. The only thing changed is the packet that system 0 receives. Probes are used for
 one purpose: to DEFINE an edit direction in z (a delta that moves the probe's readout by a declared amount while

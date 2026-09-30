@@ -78,7 +78,7 @@ frozen_runs = [
   "legged_rep_sem_go2_v2", "legged_rep_sem_hexapod6_v2", "legged_rep_sem_t1_v2", "legged_rep_sem_t1_v2s1", "legged_rep_sem_t1_v2s2", "legged_rep_sem_t1_v2s3",
   "legged_rz_nosem_t1_dag1", "legged_rz_nosem_t1_dag2", "legged_rz_nosem_t1s1_dag1", "legged_rz_sem_t1_dag1", "legged_rz_sem_t1_dag2", "legged_rz_sem_t1s1_dag1",
   "legged_vlm_dataset_summary.json", "legged_vlm_rep_nosem_v1", "legged_vlm_rep_sem_v1", "legged_vlm_system2_smoke", "legged_vlm_teacher_ref", "pipeline",
-  "pointer_s1", "pointer_v1", "provenance_smoke", "psi0mig_diag", "restructure_ckpt_audit", "restructure_parity",
+  "pointer_s1", "pointer_v1", "provenance_smoke", "psi0mig_diag", "research_tables", "restructure_ckpt_audit", "restructure_parity",
   "robust", "s5_matrix", "sprint_bodies_teacher_ref", "support_insert_smoke", "t1_diag", "t1_edits_compare_policy.json",
   "t1_edits_compare_policy.md", "t1_edits_compare_snap_s4000.json", "t1_edits_compare_snap_s4000.md", "t1_edits_video", "t1diag_flow_sem_lv4", "t1diag_flow_sem_lv4_s1",
   "t1diag_flow_sem_lv4_s3", "t1diag_flow_sem_w0", "t1diag_rep_sem_lv4", "t1diag_rep_sem_lv4_s1", "t1diag_rep_sem_lv4_s3", "t1diag_rz_nosem_ctl",

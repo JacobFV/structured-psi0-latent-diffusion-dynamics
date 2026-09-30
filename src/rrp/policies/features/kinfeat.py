@@ -14,7 +14,7 @@ R12/R12c (D-144, docs/relations.md sections 8, 10): `$RRP_KINFEAT` is GONE from 
 kwarg (`None` = ambient default via `resolved()`, `True` / `False` pins it regardless of the ambient value).
 `harness/pipelines/base.py` resolves `options.kinfeat` once per stage and calls `set_base_axes(...)` instead of
 setting an environment variable (in-process only: dag nodes are already separate subprocesses, each re-reading its
-own `RunConfig.options`, so no cross-process propagation is needed -- see `research/tracks/rel-r12.md`).
+own `RunConfig.options`, so no cross-process propagation is needed -- see `archived research/tracks/rel-r12.md`).
 `harness/data/packed.py` / `harness/data/latent.py` and `policies/nets/checkpoint.py` read `resolved()` the same
 way `enabled()` used to be read. `versions["kinfeat"]` as a standalone checkpoint key is gone too: `resolved()`
 folds into `policies/nets/checkpoint.save_checkpoint`'s combined `versions["factors"]` hash instead of its own key.

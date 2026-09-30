@@ -1,5 +1,5 @@
 """Write the replay-recorder specs viz/specs/*.yaml (rrp.viz.record, D-131). Episode choices come from the recorded
-eval rows (research/tracks/room.md "replays"): per cell one success and one failure where the recorded rows have them,
+eval rows (archived research/tracks/room.md "replays"): per cell one success and one failure where the recorded rows have them,
 chosen inside the FIRST batch of 16 of their seed set (the ladder's flow/BC noise generator is shared across batches,
 so a later seed needs every earlier batch re-run). Paths are relative to the peer code dir (artifacts -> shared store)
 except the host-only recorded rows, copied to $VIZ_REC (/dev/shm/rrp-brandonin/viz_recorded).
@@ -49,7 +49,7 @@ LINS = {  # variant -> (lineage code, file tag, dagger dir prefix)
     "frozen_sem_s1": ("jointfix", "", ""), "semfix_s1": ("sfjf", "sf", "sfjf_"), "nosem_s1": ("nsjf", "ns", "nsjf_"),
     "frozen_sem_s2": ("sejf2", "se2", "sejf2_"), "semfix_s2": ("sfjf2", "sf2", "sfjf2_"), "nosem_s2": ("nsjf2", "ns2", "nsjf2_")}
 # (variant, body) -> {seed_start: [seeds]}: one success + one failure per grasp version where the batch has them
-# (from the recorded v1/v2 outcomes of the first batch; see the table in research/tracks/room.md)
+# (from the recorded v1/v2 outcomes of the first batch; see the table in archived research/tracks/room.md)
 ARM_SEEDS = {
     ("frozen_sem_s1", "panda_pg2"): {3000000: [3000002, 3000000]},
     ("frozen_sem_s1", "parm6_tf3"): {3000000: [3000019, 3000005, 3000003]},

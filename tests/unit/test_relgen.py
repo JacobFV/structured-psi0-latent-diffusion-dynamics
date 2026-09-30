@@ -1,6 +1,6 @@
 """relgen foundation skeletons (D-144 F4): exact batch allocation, steer grammar + validation + logging, scheduler
 replay contract, full-world floor monotonicity. The former `ReadoutProbe == PacketProbe under the arm preset`
-equivalence test lived here; PacketProbe is now deleted for real (D-144 R1 follow-up, research/tracks/rel-r1c.md)
+equivalence test lived here; PacketProbe is now deleted for real (D-144 R1 follow-up, archived research/tracks/rel-r1c.md)
 so the comparison can no longer be run -- the invariant it proved is now load-bearing on the golden hashes in
 tests/unit/test_golden.py and the key-set checks in tests/unit/test_relations_r1_probes.py instead."""
 import pytest

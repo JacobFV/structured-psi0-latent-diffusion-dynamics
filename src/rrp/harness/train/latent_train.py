@@ -43,7 +43,7 @@ from rrp.policies.bundles import (load_representation,  # noqa: F401  (moved to 
 from rrp.harness.data.latent import LatentData  # noqa: F401  (moved to data, W4)
 from rrp.ops.workload import CheckpointSignal
 
-# `readout_loss` / `readout_metrics` (rrp.harness.eval.latent_eval; D-144 R1 follow-up, research/tracks/rel-r1c.md)
+# `readout_loss` / `readout_metrics` (rrp.harness.eval.latent_eval; D-144 R1 follow-up, archived research/tracks/rel-r1c.md)
 # stay imported above: they are the arm/dual probe math ported unchanged from the deleted
 # `nets.latent_probes.probe_loss` / `probe_metrics` (dict-in/dict-out over a probe's output keys, unchanged by
 # which network produced them -- D-144 R1 swaps PacketProbe for `nets.probes.ReadoutProbe`, preset

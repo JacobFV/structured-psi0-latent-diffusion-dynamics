@@ -335,7 +335,7 @@ def candidate_interaction_edges(inputs: list, batch: "Batch") -> EdgeSet:
 
 
 # ---------------------------------------------------------------------------------------------------------------
-# rel-geo (D-144 addendum, item 2; R17 follow-up, research/tracks/rel-r17.md "for the lead"): `ix.force_flow`'s
+# rel-geo (D-144 addendum, item 2; R17 follow-up, archived research/tracks/rel-r17.md "for the lead"): `ix.force_flow`'s
 # "edges:support-v1" EdgeSet (`SUPPORT_REL_VOCAB = ("support",)`, `catalog.py`) -- the DIRECT support graph
 # (id-keyed, the shape `harness.data.relgen.support.support_matrix` returns), over the SAME `ctx` SCENE-bank token
 # positions `relation_token_sets` above serves. This module (`policies.nets`, architecture.md layer 4) never

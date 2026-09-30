@@ -196,7 +196,7 @@ class LatentConfig:
         # every legacy config", tests/data/latent_versions.json). This is the one place in this unit's owned files where the retired flat key
         # NAMES ("semantic_weight", "probe_lv_min", "binding_cf") must still appear: they are literally the JSON
         # object keys the ALREADY-COMPUTED, already-shipped hashes were taken over, and a SHA-256 preimage cannot be
-        # reproduced under different key names. See research/tracks/rel-r2.md ("open question for the lead").
+        # reproduced under different key names. See archived research/tracks/rel-r2.md ("open question for the lead").
         d.pop("cf_mix", None); d.pop("cf_contrast", None)
         d["semantic_weight"], d["probe_lv_min"] = self.weight, self.lv_min
         d["binding_cf"], d["binding_contrast"], d["slot_handles"] = self.cf_mix, self.cf_contrast, self.slot_handles

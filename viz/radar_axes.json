@@ -82,7 +82,7 @@
     "semfix_v6": {
      "doc": "results",
      "where": {
-      "source_file": "research/tracks/ladder/armv6/compare_v6.json$"
+      "source_file": "artifacts/runs/research_tables/ladder/armv6/compare_v6.json$"
      },
      "key_path": [
       "^v6$",
@@ -95,7 +95,7 @@
     "nosem_v6": {
      "doc": "results",
      "where": {
-      "source_file": "research/tracks/ladder/armv6/compare_v6.json$"
+      "source_file": "artifacts/runs/research_tables/ladder/armv6/compare_v6.json$"
      },
      "key_path": [
       "^v6$",
@@ -151,7 +151,7 @@
     "semfix_v6": {
      "doc": "results",
      "where": {
-      "source_file": "research/tracks/ladder/armv6/compare_v6.json$"
+      "source_file": "artifacts/runs/research_tables/ladder/armv6/compare_v6.json$"
      },
      "key_path": [
       "^v6$",
@@ -164,7 +164,7 @@
     "nosem_v6": {
      "doc": "results",
      "where": {
-      "source_file": "research/tracks/ladder/armv6/compare_v6.json$"
+      "source_file": "artifacts/runs/research_tables/ladder/armv6/compare_v6.json$"
      },
      "key_path": [
       "^v6$",
@@ -220,7 +220,7 @@
     "semfix_v6": {
      "doc": "results",
      "where": {
-      "source_file": "research/tracks/ladder/armv6/compare_v6.json$"
+      "source_file": "artifacts/runs/research_tables/ladder/armv6/compare_v6.json$"
      },
      "key_path": [
       "^v6$",
@@ -233,7 +233,7 @@
     "nosem_v6": {
      "doc": "results",
      "where": {
-      "source_file": "research/tracks/ladder/armv6/compare_v6.json$"
+      "source_file": "artifacts/runs/research_tables/ladder/armv6/compare_v6.json$"
      },
      "key_path": [
       "^v6$",
@@ -289,7 +289,7 @@
     "semfix_v6": {
      "doc": "results",
      "where": {
-      "source_file": "research/tracks/ladder/armv6/compare_v6.json$"
+      "source_file": "artifacts/runs/research_tables/ladder/armv6/compare_v6.json$"
      },
      "key_path": [
       "^v6$",
@@ -302,7 +302,7 @@
     "nosem_v6": {
      "doc": "results",
      "where": {
-      "source_file": "research/tracks/ladder/armv6/compare_v6.json$"
+      "source_file": "artifacts/runs/research_tables/ladder/armv6/compare_v6.json$"
      },
      "key_path": [
       "^v6$",
@@ -484,7 +484,7 @@
     "semfix": {
      "doc": "edits",
      "where": {
-      "source_file": "research/tracks/legged8/legged8_compare_anymal_c.json$",
+      "source_file": "artifacts/runs/research_tables/legged8/legged8_compare_anymal_c.json$",
       "edit": "^ctx_halt$",
       "variant": "^semfix$",
       "seed": "^$"
@@ -495,7 +495,7 @@
     "nosem": {
      "doc": "edits",
      "where": {
-      "source_file": "research/tracks/legged8/legged8_compare_anymal_c.json$",
+      "source_file": "artifacts/runs/research_tables/legged8/legged8_compare_anymal_c.json$",
       "edit": "^ctx_halt$",
       "variant": "^nosem$",
       "seed": "^$"
@@ -539,7 +539,7 @@
     "semfix": {
      "doc": "edits",
      "where": {
-      "source_file": "research/tracks/legged8/legged8_compare_go2.json$",
+      "source_file": "artifacts/runs/research_tables/legged8/legged8_compare_go2.json$",
       "edit": "^ctx_halt$",
       "variant": "^semfix$",
       "seed": "^$"
@@ -550,7 +550,7 @@
     "nosem": {
      "doc": "edits",
      "where": {
-      "source_file": "research/tracks/legged8/legged8_compare_go2.json$",
+      "source_file": "artifacts/runs/research_tables/legged8/legged8_compare_go2.json$",
       "edit": "^ctx_halt$",
       "variant": "^nosem$",
       "seed": "^$"
@@ -594,7 +594,7 @@
     "semfix": {
      "doc": "edits",
      "where": {
-      "source_file": "research/tracks/legged8/legged8_compare_anymal_c.json$",
+      "source_file": "artifacts/runs/research_tables/legged8/legged8_compare_anymal_c.json$",
       "edit": "^ctx_active_minus_inactive$",
       "variant": "^semfix$",
       "seed": "^$"
@@ -605,7 +605,7 @@
     "nosem": {
      "doc": "edits",
      "where": {
-      "source_file": "research/tracks/legged8/legged8_compare_anymal_c.json$",
+      "source_file": "artifacts/runs/research_tables/legged8/legged8_compare_anymal_c.json$",
       "edit": "^ctx_active_minus_inactive$",
       "variant": "^nosem$",
       "seed": "^$"
@@ -649,7 +649,7 @@
     "semfix": {
      "doc": "edits",
      "where": {
-      "source_file": "research/tracks/legged8/legged8_compare_go2.json$",
+      "source_file": "artifacts/runs/research_tables/legged8/legged8_compare_go2.json$",
       "edit": "^ctx_active_minus_inactive$",
       "variant": "^semfix$",
       "seed": "^$"
@@ -660,7 +660,7 @@
     "nosem": {
      "doc": "edits",
      "where": {
-      "source_file": "research/tracks/legged8/legged8_compare_go2.json$",
+      "source_file": "artifacts/runs/research_tables/legged8/legged8_compare_go2.json$",
       "edit": "^ctx_active_minus_inactive$",
       "variant": "^nosem$",
       "seed": "^$"
@@ -716,7 +716,7 @@
     "semfix_v6": {
      "doc": "results",
      "where": {
-      "source_file": "research/tracks/ladder/armv6/compare_v6.json$",
+      "source_file": "artifacts/runs/research_tables/ladder/armv6/compare_v6.json$",
       "metric": "^rebind_first_approach_new$"
      },
      "key_path": [
@@ -733,7 +733,7 @@
     "nosem_v6": {
      "doc": "results",
      "where": {
-      "source_file": "research/tracks/ladder/armv6/compare_v6.json$",
+      "source_file": "artifacts/runs/research_tables/ladder/armv6/compare_v6.json$",
       "metric": "^rebind_first_approach_new$"
      },
      "key_path": [
@@ -783,7 +783,7 @@
     "semfix_v6": {
      "doc": "results",
      "where": {
-      "source_file": "research/tracks/ladder/armv6/compare_v6.json$",
+      "source_file": "artifacts/runs/research_tables/ladder/armv6/compare_v6.json$",
       "metric": "^goal_cube_at_new_goal$"
      },
      "key_path": [
@@ -800,7 +800,7 @@
     "nosem_v6": {
      "doc": "results",
      "where": {
-      "source_file": "research/tracks/ladder/armv6/compare_v6.json$",
+      "source_file": "artifacts/runs/research_tables/ladder/armv6/compare_v6.json$",
       "metric": "^goal_cube_at_new_goal$"
      },
      "key_path": [
@@ -1226,7 +1226,7 @@
     "semfix_v6": {
      "doc": "results",
      "where": {
-      "source_file": "research/tracks/ladder/armv6/targets_v6.json$"
+      "source_file": "artifacts/runs/research_tables/ladder/armv6/targets_v6.json$"
      },
      "key_path": [
       "^latent$",
@@ -1240,7 +1240,7 @@
     "nosem_v6": {
      "doc": "results",
      "where": {
-      "source_file": "research/tracks/ladder/armv6/targets_v6.json$"
+      "source_file": "artifacts/runs/research_tables/ladder/armv6/targets_v6.json$"
      },
      "key_path": [
       "^latent$",
@@ -1274,7 +1274,7 @@
     "bc": {
      "doc": "results",
      "where": {
-      "source_file": "research/tracks/armdiag/d136_compare.json$"
+      "source_file": "artifacts/runs/research_tables/armdiag/d136_compare.json$"
      },
      "key_path": [
       "^pooled$",
@@ -1287,7 +1287,7 @@
     "semfix_v6": {
      "doc": "results",
      "where": {
-      "source_file": "research/tracks/armdiag/d136_compare.json$"
+      "source_file": "artifacts/runs/research_tables/armdiag/d136_compare.json$"
      },
      "key_path": [
       "^pooled$",
@@ -1300,7 +1300,7 @@
     "nosem_v6": {
      "doc": "results",
      "where": {
-      "source_file": "research/tracks/armdiag/d136_compare.json$"
+      "source_file": "artifacts/runs/research_tables/armdiag/d136_compare.json$"
      },
      "key_path": [
       "^pooled$",

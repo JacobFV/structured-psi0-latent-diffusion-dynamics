@@ -1,5 +1,5 @@
 """D-144 R1 acceptance (docs/relations.md section 10; brief in section 10 "briefs") + its deferred-scope follow-up
-(research/tracks/rel-r1c.md): arm/dual probes migrate from `nets.latent_probes.PacketProbe` to
+(archived research/tracks/rel-r1c.md): arm/dual probes migrate from `nets.latent_probes.PacketProbe` to
 `nets.probes.ReadoutProbe` configured by the registry preset `probes:arm-packet-v1` (+ `probe.arm.goal_effect` when
 the legacy config had `goal_effect=True`), at every R1-owned construction site (`policies.bundles.load_representation`,
 `harness.train.latent_train`, `harness.eval.latent_causal`, `cli.latent`, `cli.dual_latent`); `nets/latent_probes.py`

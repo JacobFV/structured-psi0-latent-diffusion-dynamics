@@ -6,7 +6,7 @@ two gripper assemblies are bound to the task roles `left` / `right`. Task-role b
 public (the user states which assembly plays which role); the entity -> sim-body map stays
 privileged (ObjectDecl.task_entity).
 
-support_insert geometry (declared, public task geometry; see research/reports/dual_arm_tasks.md):
+support_insert geometry (declared, public task geometry; see archived research/reports/dual_arm_tasks.md):
   peg      cylinder radius 12 mm (diameter 24 mm), length 90 mm, standing upright
   hole     square 28 x 28 mm, depth 39 mm, in a 220 x 220 x 45 mm fixture block
   clearance hole width - peg diameter = 4 mm (2 mm radial along the hole axes; more on diagonals)

@@ -3,7 +3,7 @@ packet-only probes scored on the ACTUAL noise-started packets against privileged
 semantics, test 5), system 0 counters, paired binding scenes; plus the disturbance test with the packet held fixed
 (test 7).
 
-`readout_loss` / `readout_metrics` (below): D-144 R1 follow-up (research/tracks/rel-r1c.md) ported here, unchanged,
+`readout_loss` / `readout_metrics` (below): D-144 R1 follow-up (archived research/tracks/rel-r1c.md) ported here, unchanged,
 from the deleted `nets.latent_probes.probe_loss` / `probe_metrics` -- the arm/dual `nets.probes.ReadoutProbe` output
 dict has the identical shape/keys `PacketProbe` had (foundation equivalence, docs/relations.md 10 R1), so this math
 still applies verbatim. NOT the same function as the generic `nets.probes.readout_loss` / `readout_metrics`

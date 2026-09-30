@@ -6,7 +6,7 @@ deploy guard, room panels. What is missing is the EXPERIMENT: no factor set has 
 control. That is this track. State: **planned** (recipes render and plan dry; nothing has run).
 
 Per-unit history of the build (R1-R21, rel-geo, sweep-flags, closures) is in `research/decisions.md` D-144 and its
-addenda; the unit notes `research/tracks/rel-*.md` and `sweep-flags.md` are closed-track material (moved to `.old/` by P5).
+addenda; the unit notes `research/tracks/rel-*.md` and `sweep-flags.md` are closed-track material (moved to `.old/research/tracks/` by P5).
 Their open items are collected below, so nothing needs the old notes.
 
 ## recipes

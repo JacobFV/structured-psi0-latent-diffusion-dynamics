@@ -421,7 +421,7 @@ class RewardCfg:
             # PERMANENT linear contact-point speed penalty (x20-40 stronger at 0.3 m/s than v1's -0.05 v^2);
             # swing-apex clearance, air time, contact phase and stand_contact are decaying priors; torque,
             # action rate, jerk, power (CoT) and impact are natural objectives that ramp with alpha.
-            # Reference values: research/tracks/contact.md (legged_gym, humanoid-gym, unitree_rl_gym).
+            # Reference values: archived research/tracks/contact.md (legged_gym, humanoid-gym, unitree_rl_gym).
             nat = dict(torque=-0.1, action_rate=-0.08, smooth=-0.04, power=-0.3, impact=-0.2)
             if kind in ("humanoid", "biped"):
                 return RewardCfg(orient=-5.0, alive=0.3, contact_phase=1.0, height=-20.0, air_time=1.0,

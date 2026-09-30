@@ -23,7 +23,7 @@ bridges ONE example of a `Batch` into the generic `Sample` shape and back throug
 transform and asserts it agrees with `rebind` on `ctx_rel` / `act_rel`. That bridge lives in the test, not here:
 `policies` is a lower architecture layer than `harness` (docs/architecture.md section 1, enforced by
 tests/unit/test_layering.py), so this module -- production code on the training hot path -- may not import
-`harness.data.relgen`. Known gap (recorded in research/tracks/rel-r2.md): `Batch.pointers` is an index-pair list
+`harness.data.relgen`. Known gap (recorded in archived research/tracks/rel-r2.md): `Batch.pointers` is an index-pair list
 (message-passing incidence), not a field or a dense edge grid, so it is outside cf_swap's `{tokens, edges, labels}`
 contract; `rebind` keeps remapping it directly (the same permutation cf_swap would compute for the token axis),
 which is why the equivalence fixture uses a batch with no pointer rows."""

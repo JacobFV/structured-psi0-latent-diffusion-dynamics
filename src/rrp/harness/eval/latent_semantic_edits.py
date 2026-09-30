@@ -674,7 +674,7 @@ def summarize_semantic(rows):
 
 # ================================================================== manipulator assignment (dual-arm assign scenes)
 ARM_CONDITIONS = ("control", "swap_arm", "swap_slots", "orthogonal_matched", "control_replay")
-"""Arm edits on the paired manipulator-assignment scenes (research/pairs/assign_pick_place_v1.json, dev split):
+"""Arm edits on the paired manipulator-assignment scenes (research/splits/assign_pick_place_v1.json, dev split):
   control             task as given: actor of take/place = the assigned arm A.
   swap_arm            VALID context edit: the actor of take/place is rebound to the other arm B (the task graph of
                       the pair's other variant; physics unchanged). The oracle's teacher demonstrates B.

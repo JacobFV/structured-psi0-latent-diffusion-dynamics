@@ -1,6 +1,6 @@
 """Pipeline stage wiring (W5): each family's stages call the existing entry points with the RunConfig's native config /
 arguments and write a manifest with provenance. The heavy functions are replaced by fakes here; real runs are the
-parity and smoke runs recorded in research/tracks/pipeline.md."""
+parity and smoke runs recorded in archived research/tracks/pipeline.md."""
 from __future__ import annotations
 
 import json

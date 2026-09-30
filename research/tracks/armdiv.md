@@ -4,7 +4,7 @@ Branch `track/armdiv`, worktree `~/work/rrp-wt/armdiv`, peer code dir `/dev/shm/
 shared repo). At most ONE concurrent peer GPU lease (humanoids have priority); CPU leases for simulation are separate
 and declared at >= 1.35 x measured peak. No host compute beyond unit tests, tiny smokes and orchestration.
 
-## Motivation (from research/tracks/armdiag.md)
+## Motivation (from .old/research/tracks/armdiag.md)
 - On the sealed new arm xarm7 the latent route (flow system i -> packet -> system 0 realizer) adapts only with joint
   flow + system-0 adaptation, and stays below BC SFT at equal data/updates (semfix 595 vs 842 of 1,200; nosem 151).
 - The source realizer drives xarm7 poorly even from ideal packets (1-step TCP cosine 0.59 vs 0.96 on source). With 13

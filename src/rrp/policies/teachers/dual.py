@@ -5,7 +5,7 @@ Public inputs deliberately consumed: task-runtime statuses and RECEIPTS. In part
 support_insert teacher places the peg using the `locate#k.hole_frame` receipt bound to the
 align/insert events, not the true hole pose -- so changing the locate output changes the
 downstream align/insert commands (data-dependent functional composition; see
-research/reports/functional_composition.md). Demonstrations only, never model results.
+archived research/reports/functional_composition.md). Demonstrations only, never model results.
 """
 from __future__ import annotations
 

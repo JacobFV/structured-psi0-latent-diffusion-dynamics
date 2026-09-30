@@ -3,7 +3,7 @@ scene parts (`table_objects`, `camera_depth`) written once against `rrp.envs.bas
 `rrp.harness.data.relgen`.
 
 Red/green: every test here failed with `ModuleNotFoundError: rrp.harness.data.relgen.geometry` before this unit's
-module existed (confirmed by moving the module aside and rerunning, see `research/tracks/rel-r14.md`); the value
+module existed (confirmed by moving the module aside and rerunning, see `archived research/tracks/rel-r14.md`); the value
 tests pin labels against hand-computed / independently-derived expectations on real arm/dual MuJoCo fixtures and on
 a minimal fake `StateView` (for cases -- multi-contact averaging, occlusion, out-of-frame -- a real scene cannot
 control precisely).

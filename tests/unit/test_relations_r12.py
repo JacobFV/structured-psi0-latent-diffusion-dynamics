@@ -1,7 +1,7 @@
 """R12 (D-144, docs/relations.md section 10): arm/dual token-set fields produced in the collate path from EXISTING
 token columns (no dataset rewrite) -- `pos3d` (+`.var`), `cam_uvd`, `orient`, `entity_id`, `assembly_id` -- and the
 MuJoCo camera projection helper they use. `feat.base_axes` replaces the `$RRP_KINFEAT` ablation flag at the
-featurizer level (see `research/tracks/rel-r12.md` for what stays outside this unit's owned files).
+featurizer level (see `archived research/tracks/rel-r12.md` for what stays outside this unit's owned files).
 
 Red/green: every `test_*_missing_*` / `test_*_without_*` below fails on the pre-R12 code (no such field / helper
 existed) and passes after; the rest pin the VALUES against hand-computed / independently-derived expectations.

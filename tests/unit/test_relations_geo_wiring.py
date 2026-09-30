@@ -1,4 +1,4 @@
-"""rel-geo (D-144 addendum; follow-up to R13/R17/R18's own "for the lead" notes -- research/tracks/rel-r13.md,
+"""rel-geo (D-144 addendum; follow-up to R13/R17/R18's own "for the lead" notes -- archived research/tracks/rel-r13.md,
 rel-r17.md, rel-r18.md; see research/decisions.md D-144 addendum): wire the geometry/interaction factors so they
 actually reach attention.
 
@@ -76,7 +76,7 @@ def test_default_arm_preset_factor_site_unchanged_by_the_wider_carries_tuple():
 
 def test_geo_depth3d_reaches_the_real_flowpolicy_ctx_ctx_site_without_any_runtime_patch():
     """R13's own peer smoke had to patch `flow_mod.CTX_CARRIES` in-process because "cam_uvd" was not yet in the
-    tuple (research/tracks/rel-r13.md "peer smoke"). With this unit's change, a real `FlowPolicy` built with
+    tuple (archived research/tracks/rel-r13.md "peer smoke"). With this unit's change, a real `FlowPolicy` built with
     `factors=["preset:arm", "geo.depth3d"]` picks it up out of the box -- no patch, no `FactorSite` built by hand."""
     cfg = PolicyConfig(width=16, heads=2, ctx_layers=1, blocks=1, horizon=2, aux=False,
                        factors=["preset:arm", "geo.depth3d"])
@@ -140,7 +140,7 @@ def test_golden_suite_is_byte_identical_after_the_ctx_carries_change():
     on pre-refactor code, `tests/unit/test_golden.py`) against this checkout WITHOUT `RRP_GOLDEN_RECORD` -- any
     drift fails loudly inside that module's own `_check`. This just confirms the mechanism this test file's other
     assertions already established structurally (default-preset FactorSite output is untouched) also holds for the
-    real recorded digests; the full command + count are in this unit's track note (research/tracks/rel-geo.md /
+    real recorded digests; the full command + count are in this unit's track note (archived research/tracks/rel-geo.md /
     this run's transcript), not duplicated as a second golden mechanism here."""
     import subprocess
     import sys

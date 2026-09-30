@@ -48,7 +48,7 @@ POINTER_KINDS = frozenset({"cartesian_position", "button", "discrete"})
 # stays byte-identical (docs/relations.md 3.2 zero-bias equivalence: an empty-spec `FactorSite` adds no parameters
 # and `.bias()` / `.augment()` return `None` / `(None, None)`).
 POINTER_FACTORS_PRESET = "none"
-# D-144 R20 follow-up (research/tracks/rel-r20.md "lead_questions"): what `UICtx`'s widget self-attention (`ctx>ctx`
+# D-144 R20 follow-up (archived research/tracks/rel-r20.md "lead_questions"): what `UICtx`'s widget self-attention (`ctx>ctx`
 # site) offers factors -- R20's own `ui-rel-v1` edge vocab, token hiddens (for `ui.drag_to`'s bilinear pair probe)
 # and the screen-geometry fields `geo.*` (R13) reads, so `factors=["preset:ui"]` and/or `geo.pos3d` / `geo.depth3d`
 # resolve here. Naming a field only ADDS what a factor is allowed to read at this site (`ops._applies`); it is a

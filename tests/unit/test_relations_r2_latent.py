@@ -8,8 +8,8 @@ Acceptance (the table row):
   3. `cf_swap("binding")` batches equal `binding_aug` batches on a fixture.
   4. no `semantic_weight` / `probe_lv_min` / `binding_cf` as LatentConfig's primary (dataclass-field / RunConfig-flag)
      surface -- see the documented exception in nets/semantic_latent.py (`LatentConfig.version()`'s hash back-compat,
-     the one on-disk legacy-key mapping table, `LATENT_LEGACY_KEYS`) and research/tracks/rel-r2.md /
-     research/tracks/rel-r2c.md. `fit_probes_on_frozen`'s parameter was `binding_cf` in R2 (out-of-scope call sites
+     the one on-disk legacy-key mapping table, `LATENT_LEGACY_KEYS`) and archived research/tracks/rel-r2.md /
+     archived research/tracks/rel-r2c.md. `fit_probes_on_frozen`'s parameter was `binding_cf` in R2 (out-of-scope call sites
      at the time); the R2c addendum (D-144, decision (b)) renamed it and both call sites to `cf_mix` (R2c owns
      cli/latent.py and harness/pipelines/arm.py too) -- see test_no_binding_cf_as_live_parameter_name below.
 """
