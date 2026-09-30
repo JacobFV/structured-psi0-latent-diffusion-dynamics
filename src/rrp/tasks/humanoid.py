@@ -43,12 +43,20 @@ def _heading_error(env) -> float | None:
     return abs(math.atan2(math.sin(psi - yaw), math.cos(psi - yaw)))
 
 
-def humanoid_judge() -> Judge:
-    """Done on a fall or another terminal env failure, the public task graph completing, or the budget. Only the env's
+def humanoid_judge(declared: tuple[str, ...]) -> Judge:
+    """`declared` is the task's `failure_reasons`: the judge never emits a reason outside it (an env code the task does not declare is
+    an error naming both, not a silently widened vocabulary; X1 makes `harness.rollout` assert the same on every episode).
+    Done on a fall or another terminal env failure, the public task graph completing, or the budget. Only the env's
     10 Hz boundary ticks end an episode (as `legged_judge`). Outcome: success iff privileged success; "fell" for a
     fall; "timeout" for an unfinished graph at the budget; otherwise "failure" with the mapped reason."""
 
     def judge(env, t: float, max_seconds: float) -> Judgement:
+        j = _judge(env, t, max_seconds)
+        if j.failure_reason is not None and j.failure_reason not in declared:
+            raise RuntimeError(f"humanoid judge: failure reason {j.failure_reason!r} is not in the task's declared vocabulary {declared}")
+        return j
+
+    def _judge(env, t: float, max_seconds: float) -> Judgement:
         if not getattr(env, "boundary", True):
             return Judgement(False)
         pub = bool(env.runtime.succeeded())
@@ -79,12 +87,17 @@ def humanoid_judge() -> Judge:
 _BUILD = {"mujoco/legged": "rrp.envs.mujoco.humanoid_scenes:make_humanoid_session"}
 _ENVS = {"mujoco/legged": {}, "warp/legged": {}}       # warp/legged: the env's own factory (task dispatch in make_warp_env)
 
-register_task(TaskSpec("h_steps", _ENVS, 40.0, humanoid_judge(), graph="h_steps", teacher="teacher:h_steps",
+register_task(TaskSpec("h_steps", _ENVS, 40.0, humanoid_judge(HUMANOID_REASONS), graph="h_steps", teacher="teacher:h_steps",
                        hooks=("session",), build=_BUILD, failure_reasons=HUMANOID_REASONS, max_steps=400,
                        note="humanoid_judge: fell / trip / missed_step / wrong_heading / timeout"))
-register_task(TaskSpec("h_gap", _ENVS, 30.0, humanoid_judge(), graph="h_gap_sidestep", teacher="teacher:h_gap",
+register_task(TaskSpec("h_gap", _ENVS, 30.0, humanoid_judge(HUMANOID_REASONS), graph="h_gap_sidestep", teacher="teacher:h_gap",
                        hooks=("session",), build=_BUILD, failure_reasons=HUMANOID_REASONS, max_steps=300,
                        note="humanoid_judge: fell / wall_collision / wrong_heading / timeout"))
+
+# the tasks whose teacher squeezes / pushes with the palms need the two hand roles: `negotiate` reports a legs-only body (S3 berkeley) as
+# n/a with this reason (the session declares `arm_roles`; the relational packet binds the hand roles to null, reason `absent_limb`)
+ARMS = {"arm_roles": "body has no arm roles"}
+ARM_TASKS = ("h_reach", "h_squat_pick", "h_place")           # the U2 tasks that need the hands (h_walk / h_turn are legs-only)
 
 # U2 (whole-body control, 50 Hz steps: max_steps = 50 x seconds). mujoco/legged only: the Warp env has no upper body scenes yet.
 _MANIP_ENVS = {"mujoco/legged": {}}
@@ -93,27 +106,28 @@ _MANIP = (
     ("h_turn", 20.0, "h_turn", ("fell", "drift", "wrong_heading", "timeout"),
      "L3: turn in place to face the marker (bearing error < 0.25 rad for 1 s, base within 0.5 m of the start)"),
     ("h_reach", 15.0, "h_reach", ("fell", "timeout"), "M1: a palm within 5 cm of a point in the air for 0.5 s (arm IK)"),
-    ("h_squat_pick", 40.0, "h_squat_pick", ("fell", "no_grasp", "dropped", "not_upright", "timeout"),
+    ("h_squat_pick", 40.0, "h_squat_pick", ("fell", "no_grasp", "dropped", "hold_lost", "not_upright", "timeout"),
      "M2: squat, bimanual palm-squeeze pick of a box from a low crate, stand (pelvis >= 0.9 of default) with the box 5 cm above the crate for 2 s"),
-    ("h_place", 50.0, "h_place", ("fell", "no_grasp", "dropped", "place_miss", "timeout"),
+    ("h_place", 50.0, "h_place", ("fell", "no_grasp", "dropped", "hold_lost", "place_miss", "timeout"),
      "M3: lift the box, twist the trunk about the waist and put it down on the crate mark (within 4 cm, hands 15 cm clear for 1 s)"),
 )
 for _name, _sec, _graph, _why, _note in _MANIP:
-    register_task(TaskSpec(_name, _MANIP_ENVS, _sec, humanoid_judge(), graph=_graph, teacher=f"teacher:{_name}", hooks=("session",),
-                           build=_BUILD, failure_reasons=_why, max_steps=int(50 * _sec), note=f"humanoid_judge; {_note}"))
+    register_task(TaskSpec(_name, _MANIP_ENVS, _sec, humanoid_judge(_why), graph=_graph, teacher=f"teacher:{_name}", hooks=("session",),
+                           build=_BUILD, failure_reasons=_why, max_steps=int(50 * _sec), note=f"humanoid_judge; {_note}",
+                           needs=ARMS if _name in ARM_TASKS else {}))
 
 # U3: carry / loco-pick (train) and the held-out compositions. Same 50 Hz whole-body env as U2. `dropped`: the payload left the crate /
 # hands for the floor; `hold_lost`: it was lifted (or the cart pushed) and the palms have since left it; the cart adds `wall_collision`.
 _CARRY = (
     ("h_carry", 45.0, "h_carry", ("fell", "no_grasp", "dropped", "hold_lost", "timeout"),
      "C1: squat pick, stand, carry the box to a goal 1-1.6 leg lengths away behind the start and halt there (box within 0.3 m for 1 s, still held)"),
-    ("h_loco_pick", 50.0, "h_loco_pick", ("fell", "no_grasp", "dropped", "not_upright", "timeout"),
+    ("h_loco_pick", 50.0, "h_loco_pick", ("fell", "no_grasp", "dropped", "hold_lost", "not_upright", "timeout"),
      "C2: walk to a crate 0.8-1.4 m ahead, halt at the stance, squat pick and stand (M2 success condition after a walk)"),
     ("h_steps_carry", 70.0, "h_steps_carry", ("fell", "no_grasp", "dropped", "hold_lost", "timeout"),
-     "HELD OUT: C1 with a staircase between the start and the goal (h_steps composed with a carry); needs the arm roles (S3 berkeley: absent_limb)"),
+     "HELD OUT: C1 with a staircase between the start and the goal (h_steps composed with a carry); needs the arm roles (n/a on a body without them, e.g. S3 berkeley)"),
     ("h_gap_cart", 50.0, "h_gap_cart", ("fell", "wall_collision", "no_grasp", "dropped", "hold_lost", "timeout"),
      "HELD OUT: push a cart by its handle through the h_gap opening to a goal beyond the wall (h_gap composed with a manipulation)"),
 )
 for _name, _sec, _graph, _why, _note in _CARRY:
-    register_task(TaskSpec(_name, _MANIP_ENVS, _sec, humanoid_judge(), graph=_graph, teacher=f"teacher:{_name}", hooks=("session",),
-                           build=_BUILD, failure_reasons=_why, max_steps=int(50 * _sec), note=f"humanoid_judge; {_note}"))
+    register_task(TaskSpec(_name, _MANIP_ENVS, _sec, humanoid_judge(_why), graph=_graph, teacher=f"teacher:{_name}", hooks=("session",),
+                           build=_BUILD, failure_reasons=_why, max_steps=int(50 * _sec), note=f"humanoid_judge; {_note}", needs=ARMS))

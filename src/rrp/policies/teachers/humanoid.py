@@ -806,13 +806,10 @@ class CartTeacher(CarryTeacher):
         return np.asarray(self.sc["goal"], float)
 
 
-CARRY_TEACHERS = {"h_carry": CarryTeacher, "h_loco_pick": LocoPickTeacher, "h_steps_carry": StepsCarryTeacher, "h_gap_cart": CartTeacher}
-
-
-MANIP_TEACHERS = {"h_walk": WalkTeacher, "h_turn": TurnTeacher, "h_reach": ReachTeacher, "h_squat_pick": SquatPickTeacher,
-                  "h_place": PlaceTeacher}
 MANIP_TEACHER_VERSION = "upper_ik_v1"
-ALL_MANIP_TEACHERS = {**MANIP_TEACHERS, **CARRY_TEACHERS}      # the U2 set and the U3 set (POLICIES teacher:<task>)
+ALL_MANIP_TEACHERS = {"h_walk": WalkTeacher, "h_turn": TurnTeacher, "h_reach": ReachTeacher, "h_squat_pick": SquatPickTeacher,
+                      "h_place": PlaceTeacher, "h_carry": CarryTeacher, "h_loco_pick": LocoPickTeacher,
+                      "h_steps_carry": StepsCarryTeacher, "h_gap_cart": CartTeacher}      # one registry: POLICIES teacher:<task>
 
 
 COMMAND_LAYERS = {"h_steps": StepsHeadingTeacher, "h_gap": GapTeacher}

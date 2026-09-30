@@ -26,7 +26,7 @@ class Fake:
         return self._code
 
 
-JUDGE = humanoid_judge()
+JUDGE = humanoid_judge(HUMANOID_REASONS)
 T, BUDGET = 40.0, 40.0
 
 

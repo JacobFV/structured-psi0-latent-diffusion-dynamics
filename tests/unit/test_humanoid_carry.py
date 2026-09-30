@@ -2,7 +2,7 @@
 and `h_gap_cart` (push a cart through the gap) on the Menagerie humanoid t1 (`control="wholebody"`).
 
 Registration, graphs, the judge reasons `dropped` / `hold_lost` / `wall_collision`, the held-out guard (the held-out names are in no
-training list, recipe or trained-task registry), the arm-role null binding (`absent_limb`) and the teacher wiring run with a stub actor
+training list, recipe or trained-task registry), the arm-role negotiate reason and the teacher wiring run with a stub actor
 (no result). The scripted-teacher episodes use the registered `t1:contact_v2` tracker (`artifacts/trackers/`, not in git) and skip
 without it. What they show is a MEASURED success of a privileged scripted teacher on a flat-floor tracker that was trained without a
 payload or arm motion: see research/tracks/humanoid.md (U3) for the rates over seeds; the tests assert only the cases that were measured
@@ -47,7 +47,7 @@ def test_task_registered_with_graph_teacher_and_vocabulary(name):
     assert g["task_id"] == name and g["success_events"]
     assert POLICIES[f"teacher:{name}"] == "rrp.policies.teachers.humanoid:make_manip_teacher_policy"
     assert type(make_policy(f"teacher:{name}")).__name__ == "ManipTeacherPolicy"
-    assert name in TH.CARRY_TEACHERS and name not in TH.MANIP_TEACHERS and name in TH.ALL_MANIP_TEACHERS
+    assert name in TH.ALL_MANIP_TEACHERS
 
 
 def test_carry_reasons_are_in_the_judged_vocabulary():
@@ -62,7 +62,7 @@ def test_carry_reasons_are_in_the_judged_vocabulary():
     ("wall_collision", 3.0, ("failure", "wall_collision")),
 ])
 def test_judge_ends_the_carry_failures_at_once(code, t, expect):
-    j = humanoid_judge()(Fake(pub=False, code=code), t, 45.0)
+    j = humanoid_judge(HUMANOID_REASONS + MANIP_REASONS)(Fake(pub=False, code=code), t, 45.0)
     assert j.done and (j.outcome, j.failure_reason) == expect and j.success_privileged is False
 
 
@@ -89,11 +89,21 @@ def test_no_recipe_or_config_names_a_held_out_task():
 # ---------------------------------------------------------------- the arm roles are null on a legs-only body
 @pytest.mark.menagerie
 @pytest.mark.parametrize("task", TRAINED + HELD_OUT)
-def test_legs_only_body_binds_the_arm_roles_to_null(task):
+def test_legs_only_body_is_na_in_the_matrix_not_an_exception(task):
+    """TK: no `AbsentLimb` at build. A legs-only body (berkeley) is an n/a matrix cell with the env's reason; the arm tasks declare
+    `needs={"arm_roles": ...}` so a body with an upper group but no hands is n/a through `negotiate` (tests/unit/test_task_teacher_closure.py)."""
     pytest.importorskip("mujoco")
-    with pytest.raises(HS.AbsentLimb, match="absent_limb") as e:
-        HS.make_humanoid_session(task=task, body="berkeley", seed=0, tracker="t1:contact_v2", tracker_kind="learned")
-    assert e.value.reason == "absent_limb" and isinstance(e.value, ValueError)
+    from rrp.harness.eval.evaluate import matrix
+    assert not hasattr(HS, "AbsentLimb") and get_task(task).needs == {"arm_roles": "body has no arm roles"}
+    (row,) = matrix([f"teacher:{task}"], [("mujoco/legged", "berkeley")], [task])
+    assert row["status"] == "n/a" and "berkeley" in row["reasons"][0] and "upper group" in row["reasons"][0], row
+
+
+@pytest.mark.menagerie
+@pytest.mark.parametrize("task", TRAINED + HELD_OUT)
+def test_arm_body_session_offers_arm_roles(tmp_path, registry, task):
+    s = _stub_session(tmp_path, registry, task)
+    assert s.spec.has("arm_roles")
 
 
 # ---------------------------------------------------------------- scenes and teacher wiring with a stub actor

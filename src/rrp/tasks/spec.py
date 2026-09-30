@@ -46,6 +46,7 @@ class TaskSpec:
     hooks: tuple[str, ...] = ()              # default eval hooks by name (rrp.harness.eval.evaluate.HOOKS)
     max_steps: int | None = None             # explicit control-tick budget (rollout's `max_steps` default)
     failure_reasons: tuple[str, ...] = ()    # the vocabulary the judge may emit (Judgement.failure_reason)
+    needs: Mapping[str, str] = field(default_factory=dict)   # env capability the body must offer -> the negotiate reason when it does not
 
 
 def arm_scene(seed: int) -> dict:
@@ -127,17 +128,15 @@ register_task(TaskSpec("pick_place", {"mujoco/arm": {}}, 15.0, graph_judge(dropp
                        failure_reasons=("dropped_off_table",) + GRAPH_REASONS))
 register_task(TaskSpec("reach_pose", {"mujoco/arm": {}}, 15.0, graph_judge(), graph="reach_pose", hooks=("session",),
                        failure_reasons=GRAPH_REASONS))
-for _name, _graph in [("support_insert", "support_and_insert"), ("handover", "handover"), ("assign_left", "pick_place"),
-                      ("assign_right", "pick_place"), ("pivot_against_surface", "pivot_against_surface"),
-                      ("carry_tray_level", "carry_tray_level")]:
-    register_task(TaskSpec(_name, {"mujoco/dual": {}}, 40.0, graph_judge(), graph=_graph, teacher=f"teacher:{_name}",
+# dual tasks: (name, graph, teacher). pivot_against_surface is PARKED (D-146 item 5): scene and graph stay, no demonstrator (explicit None)
+for _name, _graph, _teacher in [("support_insert", "support_and_insert", "teacher:support_insert"), ("handover", "handover", "teacher:handover"),
+                                ("assign_left", "pick_place", "teacher:assign_left"), ("assign_right", "pick_place", "teacher:assign_right"),
+                                ("pivot_against_surface", "pivot_against_surface", None)]:
+    register_task(TaskSpec(_name, {"mujoco/dual": {}}, 40.0, graph_judge(), graph=_graph, teacher=_teacher,
                            hooks=("dual",), failure_reasons=GRAPH_REASONS))
 register_task(TaskSpec("waypoint_contact", {"mujoco/legged": {}}, 60.0, legged_judge(), graph="waypoint_contact",
                        teacher="teacher:waypoint_contact", hooks=("session",), failure_reasons=LEGGED_REASONS,
                        note="legged_judge: fall / drift_a / drift_b / halt (the former run_episode rules)"))
-register_task(TaskSpec("loco_pick", {"mujoco/legged": {}}, 60.0, legged_judge(), graph="loco_pick",
-                       hooks=("session",), failure_reasons=LEGGED_REASONS,
-                       note="teacher is a stub (policies.teachers.legged_loco); no working demonstrator"))
 register_task(TaskSpec("foothold_steps", {"mujoco/legged": {}}, 60.0, legged_judge(), graph="foothold_steps",
                        hooks=("session",), failure_reasons=LEGGED_REASONS))
 register_task(TaskSpec("locomotion", {"warp/legged": {}}, 20.0, lambda env, t, T: Judgement(t >= T, "timeout" if t >= T else None),

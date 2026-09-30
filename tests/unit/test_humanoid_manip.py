@@ -41,7 +41,7 @@ def test_tasks_registered_with_graph_teacher_and_vocabulary():
         assert POLICIES[f"teacher:{name}"] == "rrp.policies.teachers.humanoid:make_manip_teacher_policy"
         assert type(make_policy(f"teacher:{name}")).__name__ == "ManipTeacherPolicy"
     assert set(MANIP_REASONS) == {"drift", "no_grasp", "not_upright", "place_miss"} and "drift" in ENDS_AT_ONCE
-    assert set(TH.MANIP_TEACHERS) == set(TASKS)
+    assert set(TASKS) <= set(TH.ALL_MANIP_TEACHERS)
     with pytest.raises(KeyError, match="no U2/U3 teacher"):
         TH.ManipTeacherPolicy("h_steps")
 
@@ -69,7 +69,7 @@ class Fake:
     ("place_miss", 40.0, ("failure", "place_miss")),
 ])
 def test_judge_reads_the_manip_reasons(code, t, expect):
-    j = humanoid_judge()(Fake(pub=code != "drift" and t >= 40.0, code=code), t, 40.0)
+    j = humanoid_judge(HUMANOID_REASONS + MANIP_REASONS)(Fake(pub=code != "drift" and t >= 40.0, code=code), t, 40.0)
     assert j.done and (j.outcome, j.failure_reason) == expect and j.success_privileged is False
 
 
@@ -86,7 +86,7 @@ def _stub_session(tmp_path, registry, task, seed=0):
 def test_teacher_command_carries_both_groups_and_labels_its_legs(tmp_path, registry, task):
     s = _stub_session(tmp_path, registry, task)
     assert s.control == "wholebody" and s.scenario.name == task
-    tch = TH.MANIP_TEACHERS[task](s)
+    tch = TH.ALL_MANIP_TEACHERS[task](s)
     assert tch.source == "scripted_teacher" and tch.privileged
     up0 = np.asarray(s.data.qpos[s.binding.held_qadr]).copy()
     for _ in range(100):                                                    # 2 s
@@ -96,8 +96,8 @@ def test_teacher_command_carries_both_groups_and_labels_its_legs(tmp_path, regis
         s.step(cmd)
     pol = TH.ManipTeacherPolicy(task)
     pol.reset(None, task, [0], envs=[s])
-    assert ("planned_com" in pol.labels[0]) == (TH.MANIP_TEACHERS[task].legs == "planned_com")
-    assert TH.MANIP_TEACHERS[task].legs == ("rl_expert" if task in ("h_walk", "h_turn") else "planned_com")
+    assert ("planned_com" in pol.labels[0]) == (TH.ALL_MANIP_TEACHERS[task].legs == "planned_com")
+    assert TH.ALL_MANIP_TEACHERS[task].legs == ("rl_expert" if task in ("h_walk", "h_turn") else "planned_com")
 
 
 @pytest.mark.menagerie
@@ -106,7 +106,7 @@ def test_reach_edit_moves_the_arm_on_the_target_side(tmp_path, registry):
     moved = {}
     for seed in range(6):
         s = _stub_session(tmp_path, registry, "h_reach", seed)
-        tch = TH.MANIP_TEACHERS["h_reach"](s)
+        tch = TH.ALL_MANIP_TEACHERS["h_reach"](s)
         for _ in range(60):
             s.step(tch.act())
         cmd = tch.act().groups["upper"]

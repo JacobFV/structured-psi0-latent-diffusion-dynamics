@@ -95,6 +95,9 @@ def negotiate(info: PolicyInfo, spec: EnvSpec, task=None) -> Compat:
         why.append(f"task {tname!r} not in {sorted(r.tasks)}")
     if task is not None and hasattr(task, "envs") and spec.env_id not in task.envs:
         why.append(f"task {tname!r} does not exist in {spec.env_id}")
+    for cap, reason in sorted(getattr(task, "needs", {}).items()):           # what the task needs of the body (TaskSpec.needs)
+        if not spec.has(cap):
+            why.append(f"task {tname!r} needs {cap}: {reason}")
     if r.privileged and not spec.has("privileged_truth"):
         why.append("privileged policy; env has no privileged_truth")
     for c in sorted(r.env_capabilities):
@@ -113,10 +116,7 @@ POLICIES: dict[str, str] = {
     "teacher:handover": "rrp.policies.teachers:make_dual_teacher_policy",
     "teacher:assign_left": "rrp.policies.teachers:make_dual_teacher_policy",
     "teacher:assign_right": "rrp.policies.teachers:make_dual_teacher_policy",
-    "teacher:pivot_against_surface": "rrp.policies.teachers:make_dual_teacher_policy",
-    "teacher:carry_tray_level": "rrp.policies.teachers:make_dual_teacher_policy",
     "teacher:waypoint_contact": "rrp.policies.teachers:make_waypoint_teacher_policy",
-    "teacher:loco_pick": "rrp.policies.teachers:make_loco_pick_teacher_policy",
     "teacher:h_steps": "rrp.policies.teachers:make_steps_teacher_policy",
     "teacher:h_gap": "rrp.policies.teachers:make_gap_teacher_policy",
     "teacher:h_walk": "rrp.policies.teachers.humanoid:make_manip_teacher_policy",

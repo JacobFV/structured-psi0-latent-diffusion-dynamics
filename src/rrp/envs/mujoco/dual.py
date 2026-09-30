@@ -387,13 +387,6 @@ class DualSession(Session):
             if p is None or not g:
                 return None, False, 0.0
             return pivot_angle_from_height(float(p[2]), g["half_extents"][0], g["half_extents"][2]), True, 0.7
-        if predicate == "level_error_rad" and len(args) == 1:          # D-126 #22 (carry_tray_level)
-            holders = [e for e in self.handles if self.held_estimate(args[0], e)]
-            if len(holders) < 2:
-                return 0.0, True, 0.3                                   # not carried: no two-hand level estimate
-            (p1, _), (p2, _) = self.tcp_pose(holders[0]), self.tcp_pose(holders[1])
-            d = p2 - p1
-            return float(abs(math.atan2(d[2], max(float(np.linalg.norm(d[:2])), 1e-6)))), True, 0.8
         if predicate == "supported" and len(args) == 1:
             p, _ = self._track(args[0])
             if p is None:
@@ -512,9 +505,6 @@ class DualSession(Session):
         if pred == "pivot_angle_rad" and len(args) == 1:
             _, R = self._body_pose(args[0])
             return float(math.asin(np.clip(abs(R[2, 0]), 0.0, 1.0)))     # long (local x) axis above horizontal
-        if pred == "level_error_rad" and len(args) == 1:
-            _, R = self._body_pose(args[0])
-            return float(math.acos(np.clip(R[2, 2], -1.0, 1.0)))
         if pred == "held_by" and len(args) == 2 and args[1] in self.handles:
             held = held if held is not None else self._held_truth(self.truth().contacts)
             o = next((x for x in self.scenario.objects if x.task_entity == args[0]), None)
@@ -535,14 +525,6 @@ class DualSession(Session):
                     fixture_shift=float(np.linalg.norm(fp[:2] - f0[:2])), fixture_tilt=float(math.acos(np.clip(fR[2, 2], -1, 1))))
 
     def privileged_success(self) -> bool:
-        if self.scenario.name == "carry_tray_level":                   # D-126 #22: runtime success AND the cup stayed on
-            tp, tR = self._body_pose("tray")
-            cp, _ = self._body_pose("cup")
-            local = tR.T @ (cp - tp)
-            g = self.scenario.meta["declared_geometry"]["tray"]["half_extents"]
-            on = bool(abs(local[0]) < g[0] and abs(local[1]) < g[1] and local[2] > 0)
-            # release's completion (both hands off) is also true BEFORE the carry: require the carry's completion truth
-            return bool(on and self.success_truth_for("carry") and super().privileged_success())
         if self.scenario.name == "support_insert":
             t = self.insertion_truth()
             hw = self.scenario.meta["declared_geometry"]["hole"]["half_width"]

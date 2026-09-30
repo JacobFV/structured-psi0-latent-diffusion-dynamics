@@ -1,23 +1,16 @@
-"""Additional legged scenes (D-126 roadmap #34 loco-manipulation, #22 legged foothold stepping). DEFAULT OFF.
+"""Additional legged scenes (D-126 roadmap #22 legged foothold stepping; the #34 `loco_pick` scene, its `spot_arm` body and session
+were retired by D-146 unit TK). DEFAULT OFF.
 
 Nothing here is imported by an existing module and nothing is registered into `rrp.envs.scenario.BUILDERS` unless
 `register()` is called explicitly; the existing builders (waypoint_contact, pick_place, ...) are untouched.
 
-* `loco_pick` (LOCO_PICK_VERSION): walk to a table, then pick a cube from it with an arm-bearing legged body.
-  Body choice (D-126): `spot_arm` = MuJoCo Menagerie boston_dynamics_spot/spot_arm.xml, the only quadruped-with-arm
-  model available. It is imported through the standard legged importer (`rrp.bodies.legged.menagerie_legged`) after
-  `ensure_spot_arm_asset()` adds a LEGGED_ASSETS entry at runtime (legs = the 12 policy actuators; the 7 arm/gripper
-  actuators are HELD by the locomotion tracker and are for the manipulation layer). NO spot tracker exists: a
-  LeggedSession on spot_arm needs a tracker to be trained first (or tracker_kind="cpg" if a CPG is added).
-  Torque limits: the menagerie model has joint actuatorfrcrange +-1000 N m and no manufacturer source is recorded here,
-  so meta["actuator_limits_note"] labels them "unsourced (menagerie)".
 * `foothold_steps` (FOOTHOLD_VERSION): a sequence of marked footholds; target k is stored RELATIVE TO FOOTHOLD k-1
   (dx, dy in the frame of foothold k-1, dyaw), foothold 0 relative to the robot's start frame. meta has both the world
   poses and the relative sequence (`foothold_world_from_relative` reconstructs one from the other), plus the foot
   assignment (role order: which foot per foothold; None = any foot, a null identity).
 
-Sessions (`LocoPickSession`, `FootholdSession`) add public estimators (detector/encoder based) and privileged truth
-versions of the new predicates (`height_above_m`, `foot_distance_m`), plus recorded failure reasons.
+The session (`FootholdSession`) adds public estimators (detector/encoder based) and a privileged truth version of the new
+predicate (`foot_distance_m`), plus recorded failure reasons.
 """
 from __future__ import annotations
 
@@ -31,52 +24,10 @@ from rrp.bodies.compiler import compile_robot_spec
 from rrp.bodies.generators import Module
 from rrp.bodies.legged import legged_body, legged_world
 from rrp.envs.mujoco.legged import LeggedSession, tracker_contract
-from rrp.envs.mujoco.legged_core import quat_rotate_inv, yaw_of
+from rrp.envs.mujoco.legged_core import quat_rotate_inv
 from rrp.envs.mujoco.scenario import MountedRobot, ObjectDecl, Scenario, load_task
 
-LOCO_PICK_VERSION = "loco_pick_v0"
 FOOTHOLD_VERSION = "foothold_steps_v0"
-SPOT_ARM_KEY = "spot_arm"
-
-# LEGGED_ASSETS entry for the menagerie Spot with arm (added at runtime by ensure_spot_arm_asset; default off).
-SPOT_ARM_ASSET = dict(dir="boston_dynamics_spot", file="spot_arm.xml", kind="quadruped", family="boston_dynamics_spot",
-                      license="BSD-3-Clause", key="home", feet=["fl_lleg", "fr_lleg", "hl_lleg", "hr_lleg"],
-                      gains=None,                   # keep the menagerie position servos (kp 500, kv 40)
-                      legs=r"^(fl|fr|hl|hr)_", action_scale=0.25, gait_period=0.6,
-                      command_ranges=dict(vx=[-0.5, 1.0], vy=[-0.3, 0.3], wz=[-0.8, 0.8]))
-SPOT_ARM_GRASP_BODY = "arm_link_wr1"          # jaw body; the grasp frame site is added here
-SPOT_ARM_ROOT = "arm_link_sh0"
-
-
-def ensure_spot_arm_asset() -> None:
-    """Add the spot_arm LEGGED_ASSETS entry (idempotent, explicit opt-in; ALL_LEGGED is unchanged)."""
-    from rrp.bodies import legged as bl
-    bl.LEGGED_ASSETS.setdefault(SPOT_ARM_KEY, dict(SPOT_ARM_ASSET))
-
-
-def spot_arm_body() -> Module:
-    """Spot + arm as a legged Module with an extra `arm` assembly (kind gripper, capability grasp) whose frame is a
-    site on the jaw body. The locomotion meta (policy/held actuators, feet, IMU) is the standard importer's."""
-    ensure_spot_arm_asset()
-    m = legged_body(SPOT_ARM_KEY)
-    m.spec.body(SPOT_ARM_GRASP_BODY).add_site(name="arm_grasp_site", pos=[0.16, 0, 0])
-    meta = m.meta
-    meta["assemblies"] = list(meta["assemblies"]) + [dict(id="arm", kind="gripper", root_body=SPOT_ARM_ROOT,
-                                                          frame=dict(site="arm_grasp_site"),
-                                                          capabilities=["grasp", "carry"])]
-    meta["actuator_limits_note"] = ("unsourced (menagerie spot_arm.xml actuatorfrcrange +-1000 N m; no manufacturer "
-                                    "limits recorded; not in rrp.bodies.actuator.SOURCED)")
-    meta["arm"] = dict(actuators=list(meta["legged"]["held_actuators"]), grasp_site="arm_grasp_site",
-                       gripper_actuator="arm_f1x")
-    return m
-
-
-def resolve_arm_body(robot) -> tuple[Module, str]:
-    if isinstance(robot, Module):
-        return robot, robot.meta["name"]
-    if robot == SPOT_ARM_KEY:
-        return spot_arm_body(), SPOT_ARM_KEY
-    raise ValueError(f"loco_pick needs an arm-bearing legged body ({SPOT_ARM_KEY!r} or a Module); got {robot!r}")
 
 
 def _mount(scene, module: Module):
@@ -88,55 +39,6 @@ def _cameras(scene):
     scene.worldbody.add_camera(name="overhead", pos=[0, 0, 12.0], xyaxes=[1, 0, 0, 0, 1, 0], fovy=100)
     scene.worldbody.add_camera(name="front", pos=[-3.0, -3.0, 2.5], xyaxes=[0.707, -0.707, 0, 0.35, 0.35, 0.87],
                                fovy=60)
-
-
-# ------------------------------------------------------------------ #34 loco-manipulation: walk to a table, then pick
-def build_loco_pick(robot=SPOT_ARM_KEY, seed: int = 0, task: dict | None = None, contact: str | None = None, *,
-                    dist_range=(1.5, 3.0), heading_range=(-math.pi / 3, math.pi / 3), table_height: float = 0.45,
-                    table_half=(0.30, 0.45), cube_size: float = 0.025) -> Scenario:
-    """Table (static box) at a seeded distance/heading from the start, facing the robot; a cube on the table top
-    near the robot-facing edge. The standoff (where walk_to_table completes) is stored in meta."""
-    from rrp.bodies.contact import version_str
-    module, body_key = resolve_arm_body(robot)
-    rng = np.random.default_rng(seed)
-    meta = copy.deepcopy(module.meta)
-    scene = legged_world(f"loco_pick_{seed}", meta.get("source_options"), contact=contact)
-    meta["contact_model"] = version_str(contact)
-    _cameras(scene)
-    _mount(scene, module)
-    d = float(rng.uniform(*dist_range))
-    h = float(rng.uniform(*heading_range))
-    table_xy = np.array([d * math.cos(h), d * math.sin(h)])
-    table_yaw = h                      # table's local -x face points back at the start
-    tb = scene.worldbody.add_body(name="table", pos=[*table_xy, table_height / 2])
-    tb.quat = [math.cos(table_yaw / 2), 0, 0, math.sin(table_yaw / 2)]
-    tb.add_geom(name="table_top", type=mujoco.mjtGeom.mjGEOM_BOX, size=[table_half[0], table_half[1], table_height / 2],
-                rgba=[0.55, 0.4, 0.25, 1])
-    tb.add_site(name="table_site", pos=[0, 0, table_height / 2])
-    # cube near the robot-facing edge, lateral offset seeded
-    local = np.array([-table_half[0] + 0.12, rng.uniform(-0.6, 0.6) * table_half[1]])
-    c, s = math.cos(table_yaw), math.sin(table_yaw)
-    cube_xy = table_xy + np.array([c * local[0] - s * local[1], s * local[0] + c * local[1]])
-    cb = scene.worldbody.add_body(name="cube", pos=[*cube_xy, table_height + cube_size + 0.001])
-    cb.add_freejoint(name="cube_free")
-    cb.add_geom(name="cube_geom", type=mujoco.mjtGeom.mjGEOM_BOX, size=[cube_size] * 3, rgba=[0.85, 0.1, 0.1, 1],
-                mass=0.05)
-    standoff = table_xy - 0.75 * np.array([c, s])          # base target in front of the table edge
-    scene.memory = 16 * 2 ** 20
-    model = scene.compile()
-    rs = compile_robot_spec(model, meta, prefix="r0_", name=body_key)
-    rs = rs.model_copy(update=dict(controller_contracts=rs.controller_contracts + [tracker_contract(meta, rs)])).with_hash()
-    mr = MountedRobot("r0_", meta, rs, [0.0, 0.0, 0.0], 0.0, {"body": "body", "gripper": "arm"})
-    objects = [ObjectDecl("table", "brown table", "feature", size=(table_half[0], table_half[1], table_height / 2),
-                          radius=float(max(table_half)), task_entity="table"),
-               ObjectDecl("cube", "red cube", "object", (cube_size,) * 3, task_entity="cube")]
-    return Scenario("loco_pick", task or load_task("loco_pick"), scene, model, [mr], objects, seed,
-                    meta=dict(scene_version=LOCO_PICK_VERSION, body_key=body_key, contact_model=meta["contact_model"],
-                              table=dict(xy=table_xy.tolist(), yaw=table_yaw, height=table_height,
-                                         half=list(table_half)),
-                              cube=dict(xy=cube_xy.tolist(), z=table_height + cube_size, size=cube_size),
-                              standoff=dict(xy=standoff.tolist(), yaw=table_yaw),
-                              actuator_limits_note=meta.get("actuator_limits_note")))
 
 
 # ------------------------------------------------------------------ #22 legged foothold stepping
@@ -299,28 +201,6 @@ def foothold_task(n_steps: int, order: list, radius: float, meta: dict) -> dict:
 
 
 # ------------------------------------------------------------------ sessions (public estimators + truth)
-class LocoPickSession(LeggedSession):
-    """loco_pick session: adds `height_above_m(object, table)` (public: tracked object z - tracked table top z;
-    truth: body positions).
-    Needs a spot_arm locomotion tracker (none exists yet)."""
-
-    def estimate(self, predicate, args):
-        if predicate == "height_above_m" and len(args) == 2:
-            p, _ = self._track(args[0])
-            q, _ = self._track(args[1])
-            if p is None or q is None:
-                return None, False, 0.0
-            top = q[2] + self.scenario.meta["table"]["height"] / 2        # table body origin at mid-height
-            return float(p[2] - self.scenario.object("cube").size[2] - top), True, 0.8
-        return super().estimate(predicate, args)
-
-    def truth_predicate(self, pred, args, held=None):
-        if pred == "height_above_m":
-            cz = self.data.xpos[mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "cube")][2]
-            return float(cz - self.scenario.meta["cube"]["size"] - self.scenario.meta["table"]["height"])
-        return super().truth_predicate(pred, args, held)
-
-
 class FootholdSession(LeggedSession):
     """foothold_steps session. Public `foot_distance_m(foot|body, foothold)`: horizontal distance from the foot's
     touch-site position, computed by forward kinematics of the MEASURED joint encoders on the declared noisy
@@ -418,6 +298,5 @@ class FootholdSession(LeggedSession):
 def register():
     """Register the builders without editing existing entries (idempotent). NOT called by any existing module."""
     from rrp.envs.mujoco import scenario as sc
-    sc.BUILDERS.setdefault("loco_pick", build_loco_pick)
     sc.BUILDERS.setdefault("foothold_steps", build_foothold_steps)
     return sc.BUILDERS

@@ -47,7 +47,7 @@ def test_task_view_pads_short_graphs():
 
 def test_no_teacher_task_is_refused():
     with pytest.raises(ValueError, match="no scripted teacher"):
-        LCOL.open_episode("loco_pick", BODY, 0)
+        LCOL.open_episode("foothold_steps", BODY, 0)
 
 
 def test_unknown_task_is_refused():

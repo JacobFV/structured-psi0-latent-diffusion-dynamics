@@ -61,9 +61,8 @@ def test_make_dual_teacher_default_is_v2():
     h = make_session("handover", "parm5_pg2__parm5_pg2", 0)
     assert type(make_dual_teacher("handover", h)) is HandoverTeacher
     assert isinstance(make_dual_teacher("handover", h, "v3"), HandoverTeacherV3)
-    for parked in ("pivot_against_surface", "carry_tray_level"):        # D-146 item 5: the W12 coordination stubs are parked
-        with pytest.raises(ValueError, match="parked"):
-            make_dual_teacher(parked, make_session(parked, "parm5_pg2__parm5_pg2", 0))
+    with pytest.raises(ValueError, match="parked"):                     # D-146 item 5: the W12 coordination stub is parked
+        make_dual_teacher("pivot_against_surface", make_session("pivot_against_surface", "parm5_pg2__parm5_pg2", 0))
     for _ in range(5):                                         # tiny: the v3 teacher acts without errors
         s.step(t3.act())
 
@@ -183,8 +182,7 @@ def test_coordination_tasks_compile_and_estimators():
     from rrp.envs.mujoco.dual import pivot_angle_from_height
     from rrp.tasks.compiler import compile_task
     for name, edges in (("pivot_against_surface", {("brace", "pivot", "maintained_during"),
-                                                   ("contact", "pivot", "maintained_during")}),
-                        ("carry_tray_level", {("carry", "release", "enables")})):
+                                                   ("contact", "pivot", "maintained_during")}),):
         c = compile_task(TaskDefinition.model_validate(json.loads((ROOT / "src" / "rrp" / "tasks" / "graphs" / f"{name}.json").read_text())))
         assert edges <= {(e.src, e.dst, e.type) for e in c.edges}
     L, h = 0.05, 0.015
@@ -192,9 +190,6 @@ def test_coordination_tasks_compile_and_estimators():
         z = L * math.sin(th) + h * math.cos(th)
         assert pivot_angle_from_height(z, L, h) == pytest.approx(th, abs=1e-9)
     from rrp.policies.teachers.dual_validate import make_session
-    s = make_session("carry_tray_level", "parm5_pg2__parm5_pg2", 1)
-    assert s.truth_predicate("level_error_rad", ["tray"]) == pytest.approx(0.0, abs=1e-6)
-    assert s.estimate("level_error_rad", ["tray"])[0] == 0.0                     # not carried by two hands
     p = make_session("pivot_against_surface", "parm5_pg2__parm5_pg2", 1)
     assert p.truth_predicate("pivot_angle_rad", ["box"]) == pytest.approx(0.0, abs=1e-6)
-    assert not p.privileged_success() and not s.privileged_success()
+    assert not p.privileged_success()

@@ -698,7 +698,7 @@ class DirectTargets:
 
 
 def make_legged_env(*, task: str, body: str, seed: int = 0, scene: dict | None = None, **kw) -> "LeggedSession":
-    """env_id "mujoco/legged": waypoint_contact, loco_pick, foothold_steps (legged scenes) and h_steps, h_gap (humanoid
+    """env_id "mujoco/legged": waypoint_contact, foothold_steps (legged scenes) and h_steps, h_gap (humanoid
     scenes) on any legged/humanoid body key (rrp.bodies.legged.legged_body)."""
     from rrp.bodies.legged import legged_body
     scene = dict(scene or {})
@@ -706,10 +706,8 @@ def make_legged_env(*, task: str, body: str, seed: int = 0, scene: dict | None =
         from rrp.envs.mujoco import humanoid_scenes as hs
         sc = (hs.build_h_steps if task == "h_steps" else hs.build_h_gap)(body, seed, **scene)
         return LeggedSession(sc, seed=seed, **kw)
-    if task in ("loco_pick", "foothold_steps"):
+    if task == "foothold_steps":
         from rrp.envs.mujoco import legged_scenes as ls
-        if task == "loco_pick":
-            return ls.LocoPickSession(ls.build_loco_pick(body, seed, **scene), seed=seed, **kw)
         return ls.FootholdSession(ls.build_foothold_steps(legged_body(body), seed, body_key=body, **scene), seed=seed, **kw)
     if task != "waypoint_contact":
         raise KeyError(f"mujoco/legged has no task {task!r}")

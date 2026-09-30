@@ -64,7 +64,7 @@ moved-path table: [`docs/architecture.md`](docs/architecture.md).
 |---|---|
 | environments (`rrp.envs.base.make_env`) | `mujoco/arm`, `mujoco/dual`, `mujoco/legged` (`control="base_velocity"` through the embedded tracker, or `"legs"` joint targets), `warp/legged` (batched GPU), `simple` (Ψ₀ SIMPLE, Isaac Sim), `computerworld` (UI world as 3D, in progress) |
 | policies (`rrp.policies.base.make_policy`) | `bc`, `latent` (system i + system 0; sem / nosem / semfix variants), `legged_latent`, `legged_bc`, `oracle` (privileged diagnostic), `teacher:<task>` (scripted_teacher), `psi0_direct`, `psi0_structured`, `psi0_replay` |
-| tasks (`rrp.tasks.spec.TASKS`) | pick_place, reach_pose, support_insert, handover, assign_left/right, pivot_against_surface, carry_tray_level, waypoint_contact, loco_pick, foothold_steps, h_steps, h_gap, locomotion, `simple/<Task>` |
+| tasks (`rrp.tasks.spec.TASKS`) | pick_place, reach_pose, support_insert, handover, assign_left/right, pivot_against_surface, waypoint_contact, foothold_steps, h_steps, h_gap, h_reach, h_carry (and the other h_* humanoid tasks), locomotion, `simple/<Task>` |
 
 Lineage codes in config and run names (`sfjf`, `nsjf2`, `fixsem`, `gendag3_noqd`, …) are decoded in
 [`.old/research/naming.md`](.old/research/naming.md). The training lineages (arm ladder, legged, dual arm) run as pipeline stages

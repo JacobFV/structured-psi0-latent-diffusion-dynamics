@@ -200,7 +200,7 @@ def test_every_task_declares_a_resolvable_teacher_or_none():
 
 def test_dual_tasks_have_one_definition():
     assert tasks_in("mujoco/dual") == ("support_insert", "handover", "assign_left", "assign_right",
-                                       "pivot_against_surface", "carry_tray_level")
+                                       "pivot_against_surface")
     src = importlib.import_module("rrp.policies.teachers")
     assert not hasattr(src, "DUAL_TASKS") and not hasattr(src, "ARM_TASKS") and not hasattr(src, "LEGGED_TASKS")
 

@@ -326,21 +326,6 @@ def _add_ball(scene, name: str, xyz, radius: float, rgba):
     return b
 
 
-class AbsentLimb(ValueError):
-    """The body has no arms (no palm links): the carry tasks bind their hand roles to null with reason `absent_limb` (docs/architecture.md
-    14.4; research/splits/humanoid_v1.json S3). Raised by the scene builder, so a runner records the null binding instead of a failed grasp."""
-    reason = "absent_limb"
-
-
-def require_arms(robot, task: str):
-    """Raise `AbsentLimb` unless `robot` (a LeggedBody) has two palm links (`LeggedBinding.payload_bodies`, the hand-held-load bodies)."""
-    from rrp.envs.mujoco.legged_core import LeggedBinding
-    m = robot.spec.copy().compile()
-    if len(LeggedBinding(m, robot.meta, "").payload_bodies()) < 2:
-        raise AbsentLimb(f"absent_limb: {task} needs two arms; body {robot.meta['name']!r} has {len(LeggedBinding(m, robot.meta, '').payload_bodies())} "
-                         "palm links (its hand roles are null)")
-
-
 def _add_gap_cart(scene, robot, rng, contact, floor_kw, L: float, p: dict):
     """h_gap_cart (HELD OUT): the h_gap wall with a floating cart (planar x / y / yaw joints, viscous damping, no floor contact) whose
     rear handle block (BOX_HALF-sized, the palms squeeze it like the M2 box) stands in front of the robot; the cart must go
@@ -398,8 +383,6 @@ def build_h_manip(robot, seed: int, task: str, contact: str | None = "v2", **p):
     body_key = robot if isinstance(robot, str) else robot.meta["name"]
     if isinstance(robot, str):
         robot = legged_body(robot)
-    if task in CARRY_TASKS + HELD_OUT_TASKS:
-        require_arms(robot, task)
     meta = copy.deepcopy(robot.meta)
     L = float(meta["legged"]["nominal_height"])
     rng = np.random.default_rng([seed, 4545])
@@ -590,6 +573,12 @@ class HumanoidSession(LeggedSession):
         self._geo = dict(palm_gid=palms, site_z=z_site, stand_h0=float(d.qpos[b.qa + 2]) - z_site)
         self._fk = mujoco.MjData(m)
         return self._geo
+
+    def _capabilities(self) -> list[str]:
+        """`arm_roles`: two hand links (`LeggedBinding.payload_bodies`). Tasks that need arms declare it in `TaskSpec.needs`, so `negotiate`
+        (hence `rrp matrix`) records a body with an upper group but no hands as n/a with "body has no arm roles" instead of failing at the
+        scene build; the relational packet binds its hand roles to null with reason `absent_limb` (docs/architecture.md 14.4)."""
+        return super()._capabilities() + (["arm_roles"] if len(self.binding.payload_bodies()) >= 2 else [])
 
     def palm_ids(self) -> dict:
         """{"right": geom id, "left": geom id} of the palm bars (the contact geoms of the two hand links)."""

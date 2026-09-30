@@ -50,13 +50,6 @@ def make_waypoint_teacher_policy(*, arg: str, version: str | None = None, option
     return TeacherPolicy(arg, lambda s: WaypointTeacher(s, **(options or {})), "waypoint", ("base_velocity",))
 
 
-def make_loco_pick_teacher_policy(*, arg: str, version: str | None = None, options: dict | None = None
-                                  ) -> TeacherPolicy:
-    from rrp.policies.teachers.legged_loco import LOCO_PICK_TEACHER_VERSION, LocoPickTeacherStub
-    return TeacherPolicy(arg, lambda s: LocoPickTeacherStub(s, **(options or {})), LOCO_PICK_TEACHER_VERSION,
-                         ("base_velocity",))
-
-
 def make_steps_teacher_policy(*, arg: str, version: str | None = None, options: dict | None = None) -> TeacherPolicy:
     from rrp.policies.teachers.humanoid import StepsHeadingTeacher
     return TeacherPolicy(arg, lambda s: StepsHeadingTeacher(s), StepsHeadingTeacher.__name__, ("base_velocity",))

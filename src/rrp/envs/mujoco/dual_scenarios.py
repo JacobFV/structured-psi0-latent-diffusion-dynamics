@@ -218,14 +218,11 @@ DUAL_BUILDERS = {"support_insert": build_support_insert, "handover": build_hando
                  "assign_right": lambda robots, seed, **kw: build_assign(robots, seed, arm="right", **kw)}
 
 
-# ------------------------------------------------------------------------------ D-126 #22 coordination tasks (new)
-# Both are NEW scenarios (added keys in DUAL_BUILDERS; existing scenes unchanged). Teachers: rrp.policies.teachers.dual_coord
-# (labelled scripted_teacher STUBS, not validated). Geometry below is declared (public) task geometry.
+# ------------------------------------------------------------------------------ D-126 #22 coordination task (parked, D-146)
+# `pivot_against_surface` is a NEW scenario (an added key in DUAL_BUILDERS; existing scenes unchanged) with no teacher (TaskSpec.teacher
+# None); its sibling `carry_tray_level` was retired by D-146 unit TK. Geometry below is declared (public) task geometry.
 STOP_HALF = (0.03, 0.09, 0.035)        # heavy stop block: the pivot surface
 BOX_HALF = (0.05, 0.035, 0.015)        # flat box, long axis local x, lying with one short end against the stop
-TRAY_HALF = (0.07, 0.10, 0.006)        # tray plate, long axis along world y (between the two hands)
-HANDLE_HALF = (0.012, 0.012, 0.03)     # vertical posts at both ends of the tray (grasped from above)
-CUP_R, CUP_HALF_H = 0.022, 0.035
 
 
 def build_pivot(robots: list, seed: int, *, task: dict | None = None) -> Scenario:
@@ -255,42 +252,4 @@ def build_pivot(robots: list, seed: int, *, task: dict | None = None) -> Scenari
                                     privileged_layout=dict(stop_xy=[sx, sy], box_x=bx)))
 
 
-def build_carry_tray(robots: list, seed: int, *, task: dict | None = None) -> Scenario:
-    """carry_tray_level: both hands grasp the tray's handles, carry it level (a public level-error invariant) with a
-    free cup on it to the target zone, and release together."""
-    rng = np.random.default_rng([seed, 37])
-    scene = workspace_spec(f"carry_tray_{seed}")
-    mounted = _mount(scene, robots)
-    tx, ty = float(rng.uniform(0.38, 0.42)), float(rng.uniform(-0.02, 0.02))
-    tray = scene.worldbody.add_body(name="tray", pos=[tx, ty, TRAY_HALF[2] + 0.0005])
-    tray.add_freejoint(name="tray_free")
-    kw = dict(type=mujoco.mjtGeom.mjGEOM_BOX, rgba=list(COLORS["cyan"]), density=500.0, friction=[1.0, 0.02, 0.002],
-              condim=4)
-    tray.add_geom(name="tray_plate", size=list(TRAY_HALF), **kw)
-    for side, sgn in (("l", 1.0), ("r", -1.0)):
-        tray.add_geom(name=f"tray_handle_{side}", size=list(HANDLE_HALF),
-                      pos=[0.0, sgn * (TRAY_HALF[1] + 0.03), TRAY_HALF[2] + HANDLE_HALF[2]], **kw)
-        tray.add_geom(name=f"tray_arm_{side}", size=[0.012, 0.015, TRAY_HALF[2]],
-                      pos=[0.0, sgn * (TRAY_HALF[1] + 0.015), 0.0], **kw)
-    cup = scene.worldbody.add_body(name="cup", pos=[tx, ty, 2 * TRAY_HALF[2] + CUP_HALF_H + 0.001])
-    cup.add_freejoint(name="cup_free")
-    cup.add_geom(name="cup_geom", type=mujoco.mjtGeom.mjGEOM_CYLINDER, size=[CUP_R, CUP_HALF_H, 0],
-                 rgba=list(COLORS["orange"]), density=300.0, friction=[0.8, 0.02, 0.002], condim=4)
-    tgt = np.array([float(rng.uniform(0.28, 0.32)), float(rng.uniform(-0.03, 0.03))])
-    add_target_zone(scene, "target_zone", [*tgt, 0.0005], radius=0.06)
-    objects = [ObjectDecl("tray", "cyan tray", "object", TRAY_HALF, task_entity="tray"),
-               ObjectDecl("cup", "orange cup", "object", (CUP_R, CUP_R, CUP_HALF_H), task_entity="cup"),
-               ObjectDecl("target_zone", "green target zone", "feature", radius=0.06, task_entity="target")]
-    model = compile_scene(scene)
-    rob = _mounted(model, mounted)
-    handle_off = TRAY_HALF[1] + 0.03
-    return Scenario("carry_tray_level", task or load_task("carry_tray_level"), scene, model, rob, objects, seed,
-                    meta=dict(declared_geometry=dict(tray=dict(half_extents=list(TRAY_HALF), handle_offset_y=handle_off,
-                                                               handle_half=list(HANDLE_HALF)),
-                                                     cup=dict(radius=CUP_R, half_height=CUP_HALF_H),
-                                                     level_limit_rad=0.087),
-                              privileged_layout=dict(tray_xy=[tx, ty], target_xy=tgt.tolist())))
-
-
 DUAL_BUILDERS["pivot_against_surface"] = build_pivot
-DUAL_BUILDERS["carry_tray_level"] = build_carry_tray

@@ -24,7 +24,7 @@ from rrp.core.robot import CommandGroup, RobotSpec
 ActionKind = Literal["joint_position", "joint_velocity", "joint_torque", "gripper", "base_velocity", "wholebody_command",
                      "ee_pose", "cartesian_position", "button", "discrete", "psi0"]
 Capability = Literal["privileged_truth", "snapshot", "render", "task_graph", "chunk_executor", "reward", "deterministic",
-                     "batched", "images", "language", "object_descriptors", "predicates", "proprio", "vector_obs", "terrain_scan"]
+                     "batched", "images", "language", "object_descriptors", "predicates", "proprio", "vector_obs", "terrain_scan", "arm_roles"]
 LEGGED_FAMILIES = frozenset({"quadruped", "biped", "humanoid", "hexapod", "multipod"})
 
 
