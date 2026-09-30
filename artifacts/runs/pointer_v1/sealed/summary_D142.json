@@ -1,0 +1,118 @@
+{
+ "sealed_id/teacher": {
+  "successes": 400,
+  "attempted": 400,
+  "wilson95": [
+   0.9904873594003194,
+   1.0
+  ]
+ },
+ "sealed_id/oracle_eng": {
+  "successes": 400,
+  "attempted": 400,
+  "wilson95": [
+   0.9904873594003194,
+   1.0
+  ]
+ },
+ "sealed_id/latent_semfix": {
+  "successes": 372,
+  "attempted": 400,
+  "wilson95": [
+   0.9006904336040152,
+   0.9511286954802595
+  ]
+ },
+ "sealed_id/latent_nosem": {
+  "successes": 368,
+  "attempted": 400,
+  "wilson95": [
+   0.8892447798392307,
+   0.9427646020570377
+  ]
+ },
+ "sealed_id/latent_eng": {
+  "successes": 185,
+  "attempted": 400,
+  "wilson95": [
+   0.4142263811170027,
+   0.5114870669279733
+  ]
+ },
+ "sealed_id/bc": {
+  "successes": 398,
+  "attempted": 400,
+  "wilson95": [
+   0.9819547100278873,
+   0.9986277757784288
+  ]
+ },
+ "sealed_heldout/teacher": {
+  "successes": 150,
+  "attempted": 150,
+  "wilson95": [
+   0.9750288608542813,
+   1.0
+  ]
+ },
+ "sealed_heldout/oracle_eng": {
+  "successes": 150,
+  "attempted": 150,
+  "wilson95": [
+   0.9750288608542813,
+   1.0
+  ]
+ },
+ "sealed_heldout/latent_semfix": {
+  "successes": 47,
+  "attempted": 150,
+  "wilson95": [
+   0.2445479868464793,
+   0.39144123843458906
+  ]
+ },
+ "sealed_heldout/latent_nosem": {
+  "successes": 45,
+  "attempted": 150,
+  "wilson95": [
+   0.23240716608801576,
+   0.3775812895702717
+  ]
+ },
+ "sealed_heldout/latent_eng": {
+  "successes": 50,
+  "attempted": 150,
+  "wilson95": [
+   0.2628864565745068,
+   0.4121039231407327
+  ]
+ },
+ "sealed_heldout/bc": {
+  "successes": 50,
+  "attempted": 150,
+  "wilson95": [
+   0.2628864565745068,
+   0.4121039231407327
+  ]
+ },
+ "mcnemar_sealed_id/bc_vs_latent_semfix": {
+  "only_a": 27,
+  "only_b": 1,
+  "p_exact": 2.1606683731079102e-07
+ },
+ "mcnemar_sealed_id/bc_vs_latent_nosem": {
+  "only_a": 32,
+  "only_b": 2,
+  "p_exact": 6.938353180885315e-08
+ },
+ "mcnemar_sealed_id/latent_semfix_vs_latent_nosem": {
+  "only_a": 29,
+  "only_b": 25,
+  "p_exact": 0.6834892282353375
+ },
+ "mcnemar_sealed_id/latent_semfix_vs_latent_eng": {
+  "only_a": 198,
+  "only_b": 11,
+  "p_exact": 1.6387699150304842e-45
+ }
+}

@@ -1,0 +1,66 @@
+{
+ "kind": "pointer_rep",
+ "config": {
+  "variant": "semfix",
+  "arch": {
+   "E": {
+    "dz": 16
+   },
+   "R": {
+    "dz": 16
+   },
+   "P": {
+    "dz": 16
+   }
+  },
+  "w_sem": 1.0,
+  "lv_min": -4.0,
+  "beta": 0.003,
+  "w_xy": 5.0,
+  "steps": 20000,
+  "batch": 512,
+  "lr": 0.0003,
+  "seed": 0,
+  "data": [
+   "artifacts/datasets/pointer_v1/calc_sum.npz",
+   "artifacts/datasets/pointer_v1/drag_window.npz",
+   "artifacts/datasets/pointer_v1/fill_form.npz",
+   "artifacts/datasets/pointer_v1/open_type.npz"
+  ],
+  "tasks": [
+   "cw/calc_sum",
+   "cw/open_type",
+   "cw/drag_window",
+   "cw/fill_form"
+  ],
+  "target": "latent"
+ },
+ "versions": {
+  "latent_space_version": "cw_pointer_latent.v1-semfix-dz16-wc56ed9c31444",
+  "realizer_compat_version": "rz-cw_pointer_latent.v1-semfix-dz16-wc56ed9c31444-r57d6db77a8c3-none-v1"
+ },
+ "digests": {
+  "E": "c56ed9c31444",
+  "R": "57d6db77a8c3",
+  "P": "326415d1bf17"
+ },
+ "metrics": {
+  "step": 19999,
+  "wall": 5029.8,
+  "xy": 0.00029957035440020263,
+  "btn": 4.045302830490982e-06,
+  "key": 6.111215043347329e-05,
+  "kl": 2.9898228645324707,
+  "p_slot": 9.60832585406024e-06,
+  "p_rel": -2.1575822830200195,
+  "p_phase": 7.598678621434374e-06,
+  "val_xy_px": 0.14868108100869543,
+  "val_btn_acc": 1.0,
+  "val_key_acc": 1.0,
+  "val_keypress_acc": 1.0,
+  "val_slot_acc": 1.0,
+  "val_phase_acc": 1.0,
+  "val_rel_err": 1.5384774668523788
+ },
+ "saved_at": "2026-09-29T23:46:06Z"
+}

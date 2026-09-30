@@ -1,0 +1,14 @@
+latent_eng_sealed_id cw/calc_sum 98 / 100 {'success': 98, 'timeout': 2}
+latent_eng_sealed_id cw/open_type 12 / 100 {'failure': 88, 'success': 12}
+latent_eng_sealed_id cw/drag_window 75 / 100 {'success': 75, 'timeout': 25}
+latent_eng_sealed_id cw/fill_form 0 / 100 {'failure': 98, 'timeout': 2}
+bc_sealed_id cw/calc_sum 100 / 100 {'success': 100}
+bc_sealed_id cw/open_type 100 / 100 {'success': 100}
+bc_sealed_id cw/drag_window 98 / 100 {'success': 98, 'timeout': 2}
+bc_sealed_id cw/fill_form 100 / 100 {'success': 100}
+latent_eng_sealed_heldout cw/calc_sum 50 / 50 {'success': 50}
+latent_eng_sealed_heldout cw/open_type 0 / 50 {'failure': 50}
+latent_eng_sealed_heldout cw/fill_form 0 / 50 {'failure': 49, 'timeout': 1}
+bc_sealed_heldout cw/calc_sum 50 / 50 {'success': 50}
+bc_sealed_heldout cw/open_type 0 / 50 {'failure': 50}
+bc_sealed_heldout cw/fill_form 0 / 50 {'failure': 50}

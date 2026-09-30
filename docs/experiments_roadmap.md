@@ -88,9 +88,9 @@ default off; defaults golden-identical to pre-D-126 rows.
 | # | question | depends on | cost | experiment | code |
 |---|---|---|---|---|---|
 | 41 | Can an engineered (scripted) pointer system 0 realize packets well enough to solve all four cw/* tasks from teacher-oracle packets? | – | ~free | done → D-142 (400/400, teacher-identical step counts) | ✅ `policies/pointer.py` |
-| 42 | Does a learned pointer latent route (system i flow → learned system 0) solve the cw/* tasks on sealed seeds, vs pointer BC with the same inputs and demos, and vs a learned system i driving the engineered system 0? | 41 | ~4 GPU-h | running (D-142 pre-registration before sealed evals) | ✅ `rrp train pointer` |
-| 43 | Does semantic packet supervision (semfix) make the UI probes (target widget, pointer-relative target, button/key phase) decodable and causally usable (probe-guided retargeting) vs nosem? | 42 | ~1 GPU-h | running | ✅ `rrp train pointer probe/edit` |
-| 44 | Held-out variants (unseen calc pairs, words, names): does typing copy characters from the instruction? | 42 | in 42 | sealed | ✅ |
+| 42 | Does a learned pointer latent route (system i flow → learned system 0) solve the cw/* tasks on sealed seeds, vs pointer BC with the same inputs and demos, and vs a learned system i driving the engineered system 0? | 41 | ~4 GPU-h | done → D-142 (sealed_id: BC 0.995, latent semfix 0.930, nosem 0.920, eng 0.463) | ✅ `rrp train pointer` |
+| 43 | Does semantic packet supervision (semfix) make the UI probes (target widget, pointer-relative target, button/key phase) decodable and causally usable (probe-guided retargeting) vs nosem? | 42 | ~1 GPU-h | done → D-142 (probes sharper with semfix; semfix edits steer system 0, nosem ≈ random; no success difference) | ✅ `rrp train pointer probe/edit` |
+| 44 | Held-out variants (unseen calc pairs, words, names): does typing copy characters from the instruction? | 42 | in 42 | done → D-142 (no: 0/100 unseen words/names for every learned method; unseen calc pairs 45–50/50) | ✅ |
 
 ## ordering once current runs finish (lead)
 1–3 (running/queued) → 9–10 (core claim) → 23 (queued) → 13 (unblocks humanoid) → 18–19 (W12 go/no-go). The rest fits

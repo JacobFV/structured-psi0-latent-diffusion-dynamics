@@ -1,0 +1,21 @@
+{
+ "policy": "pointer_oracle",
+ "source": "oracle",
+ "env": "computerworld",
+ "task": "cw/fill_form",
+ "body": "cw_pointer",
+ "attempted": 50,
+ "successes": 50,
+ "success_rate": 1.0,
+ "wilson95": [
+  0.9286523998213857,
+  0.9999999999999999
+ ],
+ "infeasible": 0,
+ "outcomes": {
+  "success": 50
+ },
+ "public_private_agreement": 1.0,
+ "policy_calls": 469,
+ "control_steps": 1770
+}

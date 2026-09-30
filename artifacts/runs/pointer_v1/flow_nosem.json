@@ -1,0 +1,48 @@
+{
+ "kind": "pointer_flow",
+ "config": {
+  "variant": "nosem",
+  "target": "latent",
+  "representation": "artifacts/runs/pointer_v1/rep_nosem.pt",
+  "arch": {
+   "S": {
+    "dz": 16
+   }
+  },
+  "w_sem": 0.0,
+  "steps": 30000,
+  "batch": 512,
+  "lr": 0.0003,
+  "seed": 0,
+  "data": [
+   "artifacts/datasets/pointer_v1/calc_sum.npz",
+   "artifacts/datasets/pointer_v1/drag_window.npz",
+   "artifacts/datasets/pointer_v1/fill_form.npz",
+   "artifacts/datasets/pointer_v1/open_type.npz"
+  ],
+  "tasks": [
+   "cw/calc_sum",
+   "cw/open_type",
+   "cw/drag_window",
+   "cw/fill_form"
+  ]
+ },
+ "versions": {
+  "latent_space_version": "cw_pointer_latent.v1-nosem-dz16-wf42f6d7d7f44",
+  "realizer_compat_version": "rz-cw_pointer_latent.v1-nosem-dz16-wf42f6d7d7f44-r672ec27b6ed7-none-v1"
+ },
+ "digests": {
+  "S": "182ae9144439"
+ },
+ "metrics": {
+  "step": 29999,
+  "wall": 8265.1,
+  "flow": 0.11892008781433105,
+  "val_z_mse_std": 0.17845238000154495,
+  "val_gen_xy_px": 3.9522791187449555,
+  "val_gen_btn_acc": 0.9656174334140436,
+  "val_gen_key_acc": 0.9944309927360775,
+  "val_gen_keypress_acc": 0.9886211512717537
+ },
+ "saved_at": "2026-09-30T01:54:25Z"
+}

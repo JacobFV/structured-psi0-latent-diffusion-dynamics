@@ -1,0 +1,51 @@
+{
+ "kind": "pointer_flow",
+ "config": {
+  "variant": "semfix",
+  "target": "latent",
+  "representation": "artifacts/runs/pointer_v1/rep_semfix.pt",
+  "arch": {
+   "S": {
+    "dz": 16
+   }
+  },
+  "w_sem": 0.5,
+  "steps": 30000,
+  "batch": 512,
+  "lr": 0.0003,
+  "seed": 0,
+  "data": [
+   "artifacts/datasets/pointer_v1/calc_sum.npz",
+   "artifacts/datasets/pointer_v1/drag_window.npz",
+   "artifacts/datasets/pointer_v1/fill_form.npz",
+   "artifacts/datasets/pointer_v1/open_type.npz"
+  ],
+  "tasks": [
+   "cw/calc_sum",
+   "cw/open_type",
+   "cw/drag_window",
+   "cw/fill_form"
+  ]
+ },
+ "versions": {
+  "latent_space_version": "cw_pointer_latent.v1-semfix-dz16-wc56ed9c31444",
+  "realizer_compat_version": "rz-cw_pointer_latent.v1-semfix-dz16-wc56ed9c31444-r57d6db77a8c3-none-v1"
+ },
+ "digests": {
+  "S": "ac59f6ad8ea9"
+ },
+ "metrics": {
+  "step": 29999,
+  "wall": 8752.3,
+  "flow": 0.08553920686244965,
+  "zhat_slot": 0.09436199814081192,
+  "zhat_rel": -2.1271181106567383,
+  "zhat_phase": 0.15639623999595642,
+  "val_z_mse_std": 0.08949730545282364,
+  "val_gen_xy_px": 3.605914232748184,
+  "val_gen_btn_acc": 0.9640032284100081,
+  "val_gen_key_acc": 0.9933817594834544,
+  "val_gen_keypress_acc": 0.9854975457385096
+ },
+ "saved_at": "2026-09-30T02:13:38Z"
+}

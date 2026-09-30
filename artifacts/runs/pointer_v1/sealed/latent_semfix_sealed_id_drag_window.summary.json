@@ -1,0 +1,22 @@
+{
+ "policy": "pointer_latent",
+ "source": "learned",
+ "env": "computerworld",
+ "task": "cw/drag_window",
+ "body": "cw_pointer",
+ "attempted": 100,
+ "successes": 93,
+ "success_rate": 0.93,
+ "wilson95": [
+  0.8625048519384759,
+  0.9656807391201874
+ ],
+ "infeasible": 0,
+ "outcomes": {
+  "success": 93,
+  "timeout": 7
+ },
+ "public_private_agreement": 1.0,
+ "policy_calls": 371,
+ "control_steps": 1343
+}

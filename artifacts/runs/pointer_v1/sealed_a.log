@@ -1,0 +1,28 @@
+teacher_sealed_id cw/calc_sum 100 / 100 {'success': 100}
+teacher_sealed_id cw/open_type 100 / 100 {'success': 100}
+teacher_sealed_id cw/drag_window 100 / 100 {'success': 100}
+teacher_sealed_id cw/fill_form 100 / 100 {'success': 100}
+oracle_eng_sealed_id cw/calc_sum 100 / 100 {'success': 100}
+oracle_eng_sealed_id cw/open_type 100 / 100 {'success': 100}
+oracle_eng_sealed_id cw/drag_window 100 / 100 {'success': 100}
+oracle_eng_sealed_id cw/fill_form 100 / 100 {'success': 100}
+latent_semfix_sealed_id cw/calc_sum 94 / 100 {'failure': 6, 'success': 94}
+latent_semfix_sealed_id cw/open_type 100 / 100 {'success': 100}
+latent_semfix_sealed_id cw/drag_window 93 / 100 {'success': 93, 'timeout': 7}
+latent_semfix_sealed_id cw/fill_form 85 / 100 {'failure': 14, 'success': 85, 'timeout': 1}
+latent_nosem_sealed_id cw/calc_sum 89 / 100 {'failure': 9, 'success': 89, 'timeout': 2}
+latent_nosem_sealed_id cw/open_type 98 / 100 {'success': 98, 'timeout': 2}
+latent_nosem_sealed_id cw/drag_window 97 / 100 {'success': 97, 'timeout': 3}
+latent_nosem_sealed_id cw/fill_form 84 / 100 {'failure': 12, 'success': 84, 'timeout': 4}
+teacher_sealed_heldout cw/calc_sum 50 / 50 {'success': 50}
+teacher_sealed_heldout cw/open_type 50 / 50 {'success': 50}
+teacher_sealed_heldout cw/fill_form 50 / 50 {'success': 50}
+oracle_eng_sealed_heldout cw/calc_sum 50 / 50 {'success': 50}
+oracle_eng_sealed_heldout cw/open_type 50 / 50 {'success': 50}
+oracle_eng_sealed_heldout cw/fill_form 50 / 50 {'success': 50}
+latent_semfix_sealed_heldout cw/calc_sum 47 / 50 {'failure': 2, 'success': 47, 'timeout': 1}
+latent_semfix_sealed_heldout cw/open_type 0 / 50 {'failure': 49, 'timeout': 1}
+latent_semfix_sealed_heldout cw/fill_form 0 / 50 {'failure': 48, 'timeout': 2}
+latent_nosem_sealed_heldout cw/calc_sum 45 / 50 {'failure': 2, 'success': 45, 'timeout': 3}
+latent_nosem_sealed_heldout cw/open_type 0 / 50 {'failure': 48, 'timeout': 2}
+latent_nosem_sealed_heldout cw/fill_form 0 / 50 {'failure': 47, 'timeout': 3}

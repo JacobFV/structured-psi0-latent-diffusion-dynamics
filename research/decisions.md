@@ -1259,6 +1259,28 @@ routes on sealed_id; (P2) semfix and nosem within 0.05 of each other pooled on s
 (unseen words / names require copying characters from the instruction). No checkpoint, recipe or code change after
 seeing sealed numbers; any later fix is a new lineage evaluated on new seeds.
 
+- RESULT (sealed, evaluated once after the pre-registration commit 7d4b34ad / main 9da21653; rows
+  `artifacts/runs/pointer_v1/sealed/`, pooled stats `summary_D142.json`; batch 16, the dev settings):
+  sealed_id (400 = 100 per task): teacher 400, oracle→engineered system 0 400, BC 398 (0.995 [0.982, 0.999]; drag 98),
+  latent semfix 372 (0.930 [0.901, 0.951]; calc 94, type 100, drag 93, form 85), latent nosem 368 (0.920
+  [0.889, 0.943]; 89, 98, 97, 84), eng 185 (0.463; 98, 12, 75, 0).
+  sealed_heldout (150 = 50 calc / type / form): teacher 150, oracle 150; semfix 47 (calc 47, type 0, form 0), nosem 45
+  (45, 0, 0), eng 50 (50, 0, 0), BC 50 (50, 0, 0).
+  Paired (McNemar exact, sealed_id): BC vs semfix 27 vs 1 discordant, p = 2.2e-7; BC vs nosem 32 vs 2, p = 6.9e-8;
+  semfix vs nosem 29 vs 25, p = 0.68.
+  Pre-stated expectations: P1 (BC ≥ latent) held; P2 (semfix, nosem within 0.05) held; P3 (eng < 0.6) held; P4 held and
+  starkly: every learned method types 0/100 unseen words / names (the first unseen character is already wrong) while
+  unseen calculator pairs are solved (45–50/50): none of the learned policies copies characters from the instruction;
+  they recall the 20 training words / names.
+  Reading: a pointer system 0 was built both ways. The ENGINEERED (scripted) system 0 is lossless (oracle 100%) and a
+  learned system i can drive it only where its scalar key code need not be precise (calc, drag). The LEARNED latent route
+  (learned system i → learned system 0) is competent (0.92–0.93) but below equal-data BC (0.995); semantic packet
+  supervision makes the UI probes sharper (generated-packet target position 6 vs 38 px) and makes probe-guided packet
+  edits steer system 0 (nosem edits ≈ random) without changing task success. One training seed per model. Videos:
+  artifacts/video/2026-09-30_*pointer*.
+Next (not pre-registered): a copy mechanism (pointer attention from key outputs to instruction characters) for typing
+generalization; a vector-quantized or one-hot key field for the engineered encoding; a second training seed.
+
 ## D-143 2026-09-30 Agent concurrency uncapped; fan-out work on Sonnet (owner)
 Owner: "no 3-agent-limit. we can go as much as needed/useful … once things are fanning out into an otherwise regular codebase, workflows with claude-sonnet are the way since sonnet is faster/cheaper". Replaces the D-127 cap of 3 concurrent agents. Host rules otherwise unchanged (no training/sim/heavy python on the host). Design/architecture stays with the lead model; parallel implementation units run as Sonnet agents or workflows. (D-142 is reserved by the pointer track.)
 

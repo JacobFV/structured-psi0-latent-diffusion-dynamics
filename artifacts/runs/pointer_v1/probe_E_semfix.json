@@ -1,0 +1,17 @@
+{
+ "representation": "artifacts/runs/pointer_v1/rep_semfix.pt",
+ "flow": null,
+ "variant": "semfix",
+ "steps": 6000,
+ "val_samples": 27610,
+ "probe": {
+  "slot_acc": 0.9999886000911993,
+  "phase_acc": 1.0,
+  "rel_err_px": 1.7955631178252551
+ },
+ "metadata_only": {
+  "slot_acc": 0.670109439124487,
+  "phase_acc": 0.41449396084964596,
+  "rel_err_px": 137.06206138067472
+ }
+}

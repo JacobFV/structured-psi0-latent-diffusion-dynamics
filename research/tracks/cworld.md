@@ -112,7 +112,7 @@ scripts/peer_run.sh ...` appends it to the job's PYTHONPATH.
   Command:
   `scripts/peer_run.sh --cpu 2 --mem 4G --label pointer_s1_eval -- PY -m rrp.cli eval --policy pointer_oracle --env computerworld --task cw/<t> --body cw_pointer --seeds 0:100 --out artifacts/runs/pointer_s1/oracle_eng_<t>.jsonl`
 
-### step 2: learned route (in progress; D-142)
+### step 2: learned route (completed; D-142)
 - Split `research/splits/cworld_pointer_v1.json` (commit 34fbc94, before any demo): held-out calc pairs (9), words (4),
   names (4); dev 50 seeds/task (in-distribution), sealed_id 100/task, sealed_heldout 50/task (calc, type, form).
   Adapter `cw_env.v2` widens the word/name pools to 24 each so typing must copy characters from the instruction.
@@ -135,3 +135,18 @@ scripts/peer_run.sh ...` appends it to the job's PYTHONPATH.
   button and key 100%; semfix's joint probe on E means: slot 100%, phase 100%, relative target 1.5 px.
 - R1 rung (ORACLE: teacher chunk → frozen E → LEARNED system 0; `pointer_oracle={"representation": ...}`), dev seeds:
   semfix 200/200, nosem 200/200 (50 per task). The learned system 0 realizes encoded packets without loss.
+- Dev (50 seeds/task): latent semfix 179/200, nosem 184/200, eng 95/200, BC 200/200. Probes and probe-guided edits:
+  D-142. Pre-registration 7d4b34ad (pushed to origin/track/pointer before any sealed run).
+- SEALED (once; D-142): sealed_id teacher 400/400, oracle→engineered 400, BC 398, semfix 372, nosem 368, eng 185;
+  sealed_heldout: every learned method 0/50 on unseen words and 0/50 on unseen names, 45–50/50 on unseen calc pairs.
+- Rebase onto the D-144 relation-factor main: frozen checkpoints give identical per-seed outcomes and step counts on the
+  old and new code (fill_form dev seeds 500000–5, semfix), so the merged code reproduces the evaluated policies.
+  Outcomes depend on batch composition (one flow-noise generator per policy): sealed/dev rows used batch 16.
+- Resume / reuse: checkpoints and data in the peer store `artifacts/runs/pointer_v1/`, `artifacts/datasets/pointer_v1/`.
+  `rrp eval --policy 'pointer_latent={"flow": "artifacts/runs/pointer_v1/flow_semfix.pt"}' --env computerworld --task
+  cw/<t> --body cw_pointer --seeds ...`; `pointer_bc={"checkpoint": ".../bc.pt"}`; `pointer_oracle` (optionally
+  `{"representation": ".../rep_semfix.pt"}` for the learned system 0). Probes/edits: `rrp train pointer probe|edit`.
+- `rrp matrix` (artifacts/runs/pointer_v1/matrix.jsonl): pointer_latent (semfix, nosem), pointer_bc, pointer_oracle accepted
+  on computerworld × all four cw/* tasks; teacher:pick_place declined (needs gripper, joint_position).
+- Open: typing generalization needs a copy mechanism; the engineered key field needs a discrete code for a learned
+  system i; one training seed per model.

@@ -1,0 +1,44 @@
+{
+ "kind": "pointer_bc",
+ "config": {
+  "variant": "bc",
+  "arch": {
+   "BC": {}
+  },
+  "steps": 50000,
+  "batch": 512,
+  "lr": 0.0003,
+  "seed": 0,
+  "data": [
+   "artifacts/datasets/pointer_v1/calc_sum.npz",
+   "artifacts/datasets/pointer_v1/drag_window.npz",
+   "artifacts/datasets/pointer_v1/fill_form.npz",
+   "artifacts/datasets/pointer_v1/open_type.npz"
+  ],
+  "tasks": [
+   "cw/calc_sum",
+   "cw/open_type",
+   "cw/drag_window",
+   "cw/fill_form"
+  ],
+  "w_xy": 5.0
+ },
+ "versions": {
+  "bc": "cw_pointer_bc.v1"
+ },
+ "digests": {
+  "BC": "6ba39000776e"
+ },
+ "metrics": {
+  "step": 49999,
+  "wall": 11375.0,
+  "xy": 0.07349874824285507,
+  "btn": 0.05065206065773964,
+  "key": 0.01256889384239912,
+  "val_xy_px": 4.265106149401204,
+  "val_btn_acc": 0.9739882058324582,
+  "val_key_acc": 0.9952338638015995,
+  "val_keypress_acc": 0.9918389553862894
+ },
+ "saved_at": "2026-09-30T05:24:27Z"
+}

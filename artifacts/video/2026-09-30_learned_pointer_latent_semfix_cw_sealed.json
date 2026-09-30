@@ -1,0 +1,41 @@
+{
+ "policy": "pointer_latent={\"flow\": \"artifacts/runs/pointer_v1/flow_semfix.pt\"}",
+ "source": "learned",
+ "episodes": [
+  {
+   "task": "cw/calc_sum",
+   "seed": 1000000,
+   "outcome": "failure",
+   "failure_reason": "wrong_result",
+   "steps": 21
+  },
+  {
+   "task": "cw/fill_form",
+   "seed": 1000001,
+   "outcome": "success",
+   "failure_reason": null,
+   "steps": 39
+  },
+  {
+   "task": "cw/drag_window",
+   "seed": 1000000,
+   "outcome": "success",
+   "failure_reason": null,
+   "steps": 9
+  },
+  {
+   "task": "cw/drag_window",
+   "seed": 1000005,
+   "outcome": "success",
+   "failure_reason": null,
+   "steps": 7
+  },
+  {
+   "task": "cw/open_type",
+   "seed": 1100004,
+   "outcome": "failure",
+   "failure_reason": "wrong_text",
+   "steps": 12
+  }
+ ]
+}

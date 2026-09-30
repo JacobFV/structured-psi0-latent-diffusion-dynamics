@@ -1,0 +1,20 @@
+{
+ "policy": "pointer_oracle",
+ "source": "oracle",
+ "episodes": [
+  {
+   "task": "cw/fill_form",
+   "seed": 1000001,
+   "outcome": "success",
+   "failure_reason": null,
+   "steps": 37
+  },
+  {
+   "task": "cw/drag_window",
+   "seed": 1000005,
+   "outcome": "success",
+   "failure_reason": null,
+   "steps": 7
+  }
+ ]
+}

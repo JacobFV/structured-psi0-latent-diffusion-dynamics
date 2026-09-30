@@ -1,0 +1,21 @@
+{
+ "policy": "pointer_bc",
+ "source": "bc",
+ "env": "computerworld",
+ "task": "cw/calc_sum",
+ "body": "cw_pointer",
+ "attempted": 100,
+ "successes": 100,
+ "success_rate": 1.0,
+ "wilson95": [
+  0.9630065012310038,
+  1.0
+ ],
+ "infeasible": 0,
+ "outcomes": {
+  "success": 100
+ },
+ "public_private_agreement": 1.0,
+ "policy_calls": 0,
+ "control_steps": 2898
+}

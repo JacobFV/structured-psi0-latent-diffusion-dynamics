@@ -1,0 +1,20 @@
+{
+ "policy": "pointer_bc={\"checkpoint\": \"artifacts/runs/pointer_v1/bc.pt\"}",
+ "source": "bc",
+ "episodes": [
+  {
+   "task": "cw/fill_form",
+   "seed": 1000001,
+   "outcome": "success",
+   "failure_reason": null,
+   "steps": 37
+  },
+  {
+   "task": "cw/fill_form",
+   "seed": 1100004,
+   "outcome": "failure",
+   "failure_reason": "wrong_value:name",
+   "steps": 35
+  }
+ ]
+}

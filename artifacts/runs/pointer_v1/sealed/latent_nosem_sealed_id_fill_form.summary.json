@@ -1,0 +1,23 @@
+{
+ "policy": "pointer_latent",
+ "source": "learned",
+ "env": "computerworld",
+ "task": "cw/fill_form",
+ "body": "cw_pointer",
+ "attempted": 100,
+ "successes": 84,
+ "success_rate": 0.84,
+ "wilson95": [
+  0.7557973053553682,
+  0.8990471154817143
+ ],
+ "infeasible": 0,
+ "outcomes": {
+  "failure": 12,
+  "success": 84,
+  "timeout": 4
+ },
+ "public_private_agreement": 1.0,
+ "policy_calls": 1143,
+ "control_steps": 4435
+}

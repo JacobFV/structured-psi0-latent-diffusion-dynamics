@@ -1,0 +1,60 @@
+{
+ "kind": "pointer_rep",
+ "config": {
+  "variant": "nosem",
+  "arch": {
+   "E": {
+    "dz": 16
+   },
+   "R": {
+    "dz": 16
+   },
+   "P": {
+    "dz": 16
+   }
+  },
+  "w_sem": 0.0,
+  "lv_min": -4.0,
+  "beta": 0.003,
+  "w_xy": 5.0,
+  "steps": 20000,
+  "batch": 512,
+  "lr": 0.0003,
+  "seed": 0,
+  "data": [
+   "artifacts/datasets/pointer_v1/calc_sum.npz",
+   "artifacts/datasets/pointer_v1/drag_window.npz",
+   "artifacts/datasets/pointer_v1/fill_form.npz",
+   "artifacts/datasets/pointer_v1/open_type.npz"
+  ],
+  "tasks": [
+   "cw/calc_sum",
+   "cw/open_type",
+   "cw/drag_window",
+   "cw/fill_form"
+  ],
+  "target": "latent"
+ },
+ "versions": {
+  "latent_space_version": "cw_pointer_latent.v1-nosem-dz16-wf42f6d7d7f44",
+  "realizer_compat_version": "rz-cw_pointer_latent.v1-nosem-dz16-wf42f6d7d7f44-r672ec27b6ed7-none-v1"
+ },
+ "digests": {
+  "E": "f42f6d7d7f44",
+  "R": "672ec27b6ed7",
+  "P": "7dc7f230eba7"
+ },
+ "metrics": {
+  "step": 19999,
+  "wall": 4368.2,
+  "xy": 0.0003344295546412468,
+  "btn": 3.954689873353345e-06,
+  "key": 0.00020190540817566216,
+  "kl": 1.951692819595337,
+  "val_xy_px": 0.1575841671797058,
+  "val_btn_acc": 1.0,
+  "val_key_acc": 1.0,
+  "val_keypress_acc": 1.0
+ },
+ "saved_at": "2026-09-29T23:35:05Z"
+}

@@ -1,0 +1,44 @@
+{
+ "kind": "pointer_flow",
+ "config": {
+  "variant": "eng",
+  "target": "eng",
+  "representation": null,
+  "arch": {
+   "S": {
+    "dz": 14
+   }
+  },
+  "w_sem": 0.0,
+  "steps": 30000,
+  "batch": 512,
+  "lr": 0.0003,
+  "seed": 0,
+  "data": [
+   "artifacts/datasets/pointer_v1/calc_sum.npz",
+   "artifacts/datasets/pointer_v1/drag_window.npz",
+   "artifacts/datasets/pointer_v1/fill_form.npz",
+   "artifacts/datasets/pointer_v1/open_type.npz"
+  ],
+  "tasks": [
+   "cw/calc_sum",
+   "cw/open_type",
+   "cw/drag_window",
+   "cw/fill_form"
+  ]
+ },
+ "versions": {
+  "latent_space_version": "cw_pointer_eng.v1",
+  "realizer_compat_version": "cw_pointer_eng.v1"
+ },
+ "digests": {
+  "S": "63662dd2f5cd"
+ },
+ "metrics": {
+  "step": 29999,
+  "wall": 8220.4,
+  "flow": 0.03335583209991455,
+  "val_z_mse_std": 0.056656792759895325
+ },
+ "saved_at": "2026-09-30T04:12:22Z"
+}

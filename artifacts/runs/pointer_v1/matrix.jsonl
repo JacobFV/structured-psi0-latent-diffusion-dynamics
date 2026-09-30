@@ -1,0 +1,24 @@
+{"policy": "pointer_latent", "env_id": "computerworld", "body": "cw_pointer", "task": "cw/calc_sum", "status": "accepted", "reasons": [], "source": "learned"}
+{"policy": "pointer_latent", "env_id": "computerworld", "body": "cw_pointer", "task": "cw/calc_sum", "status": "accepted", "reasons": [], "source": "learned"}
+{"policy": "pointer_bc", "env_id": "computerworld", "body": "cw_pointer", "task": "cw/calc_sum", "status": "accepted", "reasons": [], "source": "bc"}
+{"policy": "pointer_oracle", "env_id": "computerworld", "body": "cw_pointer", "task": "cw/calc_sum", "status": "accepted", "reasons": [], "source": "oracle"}
+{"policy": "teacher:cw/calc_sum", "env_id": "computerworld", "body": "cw_pointer", "task": "cw/calc_sum", "status": "accepted", "reasons": [], "source": "scripted_teacher"}
+{"policy": "teacher:pick_place", "env_id": "computerworld", "body": "cw_pointer", "task": "cw/calc_sum", "status": "n/a", "reasons": ["needs gripper, joint_position; env offers button, cartesian_position, discrete", "task 'cw/calc_sum' not in ['pick_place']"], "source": "scripted_teacher"}
+{"policy": "pointer_latent", "env_id": "computerworld", "body": "cw_pointer", "task": "cw/open_type", "status": "accepted", "reasons": [], "source": "learned"}
+{"policy": "pointer_latent", "env_id": "computerworld", "body": "cw_pointer", "task": "cw/open_type", "status": "accepted", "reasons": [], "source": "learned"}
+{"policy": "pointer_bc", "env_id": "computerworld", "body": "cw_pointer", "task": "cw/open_type", "status": "accepted", "reasons": [], "source": "bc"}
+{"policy": "pointer_oracle", "env_id": "computerworld", "body": "cw_pointer", "task": "cw/open_type", "status": "accepted", "reasons": [], "source": "oracle"}
+{"policy": "teacher:cw/calc_sum", "env_id": "computerworld", "body": "cw_pointer", "task": "cw/open_type", "status": "n/a", "reasons": ["task 'cw/open_type' not in ['cw/calc_sum']"], "source": "scripted_teacher"}
+{"policy": "teacher:pick_place", "env_id": "computerworld", "body": "cw_pointer", "task": "cw/open_type", "status": "n/a", "reasons": ["needs gripper, joint_position; env offers button, cartesian_position, discrete", "task 'cw/open_type' not in ['pick_place']"], "source": "scripted_teacher"}
+{"policy": "pointer_latent", "env_id": "computerworld", "body": "cw_pointer", "task": "cw/drag_window", "status": "accepted", "reasons": [], "source": "learned"}
+{"policy": "pointer_latent", "env_id": "computerworld", "body": "cw_pointer", "task": "cw/drag_window", "status": "accepted", "reasons": [], "source": "learned"}
+{"policy": "pointer_bc", "env_id": "computerworld", "body": "cw_pointer", "task": "cw/drag_window", "status": "accepted", "reasons": [], "source": "bc"}
+{"policy": "pointer_oracle", "env_id": "computerworld", "body": "cw_pointer", "task": "cw/drag_window", "status": "accepted", "reasons": [], "source": "oracle"}
+{"policy": "teacher:cw/calc_sum", "env_id": "computerworld", "body": "cw_pointer", "task": "cw/drag_window", "status": "n/a", "reasons": ["task 'cw/drag_window' not in ['cw/calc_sum']"], "source": "scripted_teacher"}
+{"policy": "teacher:pick_place", "env_id": "computerworld", "body": "cw_pointer", "task": "cw/drag_window", "status": "n/a", "reasons": ["needs gripper, joint_position; env offers button, cartesian_position, discrete", "task 'cw/drag_window' not in ['pick_place']"], "source": "scripted_teacher"}
+{"policy": "pointer_latent", "env_id": "computerworld", "body": "cw_pointer", "task": "cw/fill_form", "status": "accepted", "reasons": [], "source": "learned"}
+{"policy": "pointer_latent", "env_id": "computerworld", "body": "cw_pointer", "task": "cw/fill_form", "status": "accepted", "reasons": [], "source": "learned"}
+{"policy": "pointer_bc", "env_id": "computerworld", "body": "cw_pointer", "task": "cw/fill_form", "status": "accepted", "reasons": [], "source": "bc"}
+{"policy": "pointer_oracle", "env_id": "computerworld", "body": "cw_pointer", "task": "cw/fill_form", "status": "accepted", "reasons": [], "source": "oracle"}
+{"policy": "teacher:cw/calc_sum", "env_id": "computerworld", "body": "cw_pointer", "task": "cw/fill_form", "status": "n/a", "reasons": ["task 'cw/fill_form' not in ['cw/calc_sum']"], "source": "scripted_teacher"}
+{"policy": "teacher:pick_place", "env_id": "computerworld", "body": "cw_pointer", "task": "cw/fill_form", "status": "n/a", "reasons": ["needs gripper, joint_position; env offers button, cartesian_position, discrete", "task 'cw/fill_form' not in ['pick_place']"], "source": "scripted_teacher"}

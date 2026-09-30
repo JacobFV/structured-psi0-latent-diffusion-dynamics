@@ -1,0 +1,23 @@
+{
+ "policy": "pointer_latent",
+ "source": "learned",
+ "env": "computerworld",
+ "task": "cw/calc_sum",
+ "body": "cw_pointer",
+ "attempted": 50,
+ "successes": 45,
+ "success_rate": 0.9,
+ "wilson95": [
+  0.7863976845138676,
+  0.956524235343241
+ ],
+ "infeasible": 0,
+ "outcomes": {
+  "failure": 2,
+  "success": 45,
+  "timeout": 3
+ },
+ "public_private_agreement": 1.0,
+ "policy_calls": 496,
+ "control_steps": 1910
+}
