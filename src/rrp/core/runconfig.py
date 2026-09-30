@@ -72,7 +72,7 @@ def _flag_spec() -> dict[tuple[str, str], dict[str, str]]:
         for st in PIPELINE_STAGES:
             spec[(fam, st)] = dict(table.get(st, {"contact_version": META}))
     for fam in ("pointer", "psi0"):   # UI pointer / Psi0 humanoid VLA: no arm-physics flags apply to any stage
-        for st in PIPELINE_STAGES + LEGACY_ONLY_STAGES:
+        for st in PIPELINE_STAGES:
             spec[(fam, st)] = {}
     return spec
 
