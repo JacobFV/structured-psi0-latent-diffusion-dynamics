@@ -111,6 +111,11 @@ class SimpleEnv:
     def truth(self) -> dict:
         return self._call("truth")
 
+    def state_view(self):
+        """`rrp.envs.base.StateView` (capability "privileged_truth"; D-144 R8), built from `truth()`. Labels only,
+        never a policy input."""
+        return simple_state_view(self.truth())
+
     def render(self, camera: str | None = None, *, width: int = 320, height: int = 240) -> np.ndarray:
         return self._call("render")
 
@@ -215,3 +220,94 @@ def _observation(o: dict, spec, joint_names):
             SensorChannel(name="chunk_request", kind="flag", values=np.asarray([float(o["chunk_request"])]),
                           mask=ones(1), timestamp=t)],
         instruction=o["instruction"])
+
+
+# ------------------------------------------------------------------ StateView (D-144 R8): a pure function of the
+# worker's truth() dict (rrp.envs.simple.worker._sim_truth), so it is testable on a recorded dict with no Isaac / SIMPLE
+# venv. SIMPLE reports no contact normal (only the boolean per hand x object pair and a mean contact point), so
+# ContactState.normal is zeros (unknown) rather than fabricated; gravity is standard (SIMPLE does not report it).
+SIMPLE_GRAVITY = np.array([0.0, 0.0, -9.81])
+
+
+def _simple_entities(truth: dict) -> list:
+    from rrp.envs.base import EntityState
+    out = []
+    pelvis = truth.get("pelvis")
+    if pelvis is not None:
+        p = np.asarray(pelvis, np.float64)
+        out.append(EntityState(id="pelvis", kind="body", name="pelvis", pos=p[:3],
+                               quat=p[3:7] if p.shape[0] >= 7 else None, vel=None, extent=None, mass=None,
+                               friction=None, material=None, parent=None, assembly="g1_simple", body=0, visible=True,
+                               attrs=None))
+    for side, pos in (truth.get("palm") or {}).items():
+        p = np.asarray(pos, np.float64)
+        out.append(EntityState(id=f"palm:{side}", kind="body", name=f"{side}_palm", pos=p[:3], quat=None, vel=None,
+                               extent=None, mass=None, friction=None, material=None, parent="pelvis",
+                               assembly="g1_simple", body=0, visible=True, attrs={"side": side}))
+    target = truth.get("target_name")
+    for name, pose in (truth.get("objects") or {}).items():
+        p = np.asarray(pose, np.float64)
+        out.append(EntityState(id=f"object:{name}", kind="object", name=name, pos=p[:3],
+                               quat=p[3:7] if p.shape[0] >= 7 else None, vel=None, extent=None, mass=None,
+                               friction=None, material=None, parent=None, assembly=None, body=None, visible=True,
+                               attrs={"is_target": name == target}))
+    return out
+
+
+def _simple_contacts(truth: dict, t: float) -> list:
+    from rrp.envs.base import ContactState
+    cpt = truth.get("contact_point") or {}
+    out = []
+    for key, on in (truth.get("contact") or {}).items():
+        if not on:
+            continue
+        side, obj = key.split(":", 1)
+        raw = cpt.get(side)
+        pos = np.asarray(raw, np.float64) if raw is not None else np.full(3, np.nan)
+        out.append(ContactState(a=f"palm:{side}", b=f"object:{obj}", pos=pos, normal=np.zeros(3), force=None, time=t))
+    return out
+
+
+class SimpleStateView:
+    """`rrp.envs.base.StateView` over one SIMPLE `truth()` dict. Labels only, never a policy input."""
+
+    def __init__(self, truth: dict):
+        self._truth = truth
+        self.caps = frozenset({"poses", "contacts"})
+        self.time = float(truth.get("step", 0)) / CONTROL_HZ
+        self.gravity = SIMPLE_GRAVITY
+        self._entities = _simple_entities(truth)
+        self._contacts = _simple_contacts(truth, self.time)
+
+    def entities(self) -> list:
+        return list(self._entities)
+
+    def contacts(self) -> list:
+        return list(self._contacts)
+
+    def joints(self):
+        from rrp.envs.base import CapabilityError
+        raise CapabilityError("simple StateView has no joints (SIMPLE exposes no joint velocities / axes)")
+
+    def camera(self, name: str):
+        from rrp.envs.base import CapabilityError
+        raise CapabilityError("simple StateView has no camera (intrinsics/extrinsics not in truth())")
+
+    def ui_tree(self):
+        from rrp.envs.base import CapabilityError
+        raise CapabilityError("simple StateView has no ui_tree")
+
+    def token_entity(self, token_set: str, slot) -> str | None:
+        if token_set == "pelvis":
+            return "pelvis" if self._truth.get("pelvis") is not None else None
+        if token_set == "palm" and slot in (self._truth.get("palm") or {}):
+            return f"palm:{slot}"
+        if token_set == "objects" and slot in (self._truth.get("objects") or {}):
+            return f"object:{slot}"
+        return None
+
+
+def simple_state_view(truth: dict) -> SimpleStateView:
+    """Pure builder: `truth` is exactly what `rrp.envs.simple.worker.Worker.truth()` (`_sim_truth()`) returns (or a
+    recorded / fixture copy of it), so this is unit-testable with no Isaac / SIMPLE venv."""
+    return SimpleStateView(truth)

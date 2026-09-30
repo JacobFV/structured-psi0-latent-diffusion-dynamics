@@ -595,6 +595,90 @@ class WarpTrackerEnv:
         self._gm_reset()
         return out
 
+    # ------------------------------------------------------------------ StateView (D-144 R8)
+    def state_view(self, index: int):
+        """`rrp.envs.base.StateView` for world `index` (capability "privileged_truth"; labels only, never a policy
+        input): a host numpy snapshot of `self.m` (already CPU-side; built by `build_model`) and this step's body
+        positions / contacts for that one world, via `warp_state_view_from_arrays` (the pure, CPU-testable part)."""
+        xpos = self.xpos[index].detach().cpu().numpy()
+        c_geom = self.c_geom.detach().cpu().numpy()
+        c_pos = self.c_pos.detach().cpu().numpy()
+        c_world = self.c_world.detach().cpu().numpy()
+        t = float(self.t[index].detach().cpu())
+        return warp_state_view_from_arrays(self.m, xpos, c_geom, c_pos, c_world, index, t)
+
+
+def _warp_entities(m, xpos) -> list:
+    """`m`: mujoco.MjModel (host, CUDA not needed); `xpos`: [nbody, 3] world body positions of ONE world."""
+    from rrp.envs.base import EntityState
+    out = []
+    for b in range(m.nbody):
+        name = mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_BODY, b) or f"body{b}"
+        pid = int(m.body_parentid[b])
+        parent = None if pid == b else (mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_BODY, pid) or f"body{pid}")
+        out.append(EntityState(id=name, kind="body", name=name, pos=np.asarray(xpos[b], np.float64), quat=None,
+                               vel=None, extent=None, mass=float(m.body_mass[b]), friction=None, material=None,
+                               parent=parent, assembly=None, body=0, visible=True, attrs=None))
+    return out
+
+
+def _warp_contacts(m, c_geom, c_pos, c_world, index: int, t: float) -> list:
+    """Contact slots of ONE world (`c_world[i] == index`; a warp `-1` geom id marks an unused slot). No contact normal
+    / force is read by `WarpTrackerEnv` today (only `.geom`, `.pos`, `.worldid`; `_stance` computes force separately
+    with `contact_force`), so `ContactState.normal` is zeros (unknown), not fabricated."""
+    from rrp.envs.base import ContactState
+    out = []
+    for i in range(c_world.shape[0]):
+        if int(c_world[i]) != index:
+            continue
+        g1, g2 = int(c_geom[i, 0]), int(c_geom[i, 1])
+        if g1 < 0 or g2 < 0:
+            continue
+        b1, b2 = int(m.geom_bodyid[g1]), int(m.geom_bodyid[g2])
+        name = lambda b: mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_BODY, b) or f"body{b}"  # noqa: E731
+        out.append(ContactState(a=name(b1), b=name(b2), pos=np.asarray(c_pos[i], np.float64), normal=np.zeros(3),
+                                force=None, time=t))
+    return out
+
+
+class WarpStateView:
+    """`rrp.envs.base.StateView` over one WarpTrackerEnv world, built from host numpy arrays (D-144 R8)."""
+
+    def __init__(self, m, xpos, c_geom, c_pos, c_world, index: int, t: float):
+        self.caps = frozenset({"poses", "contacts"})
+        self.time = t
+        self.gravity = np.asarray(m.opt.gravity, np.float64)
+        self._entities = _warp_entities(m, xpos)
+        self._contacts = _warp_contacts(m, c_geom, c_pos, c_world, index, t)
+
+    def entities(self) -> list:
+        return list(self._entities)
+
+    def contacts(self) -> list:
+        return list(self._contacts)
+
+    def joints(self):
+        from rrp.envs.base import CapabilityError
+        raise CapabilityError("warp tracker StateView has no joints yet (D-144 R8 exposes bodies / contacts only)")
+
+    def camera(self, name: str):
+        from rrp.envs.base import CapabilityError
+        raise CapabilityError("warp tracker StateView has no camera")
+
+    def ui_tree(self):
+        from rrp.envs.base import CapabilityError
+        raise CapabilityError("warp tracker StateView has no ui_tree")
+
+    def token_entity(self, token_set: str, slot) -> str | None:
+        return None
+
+
+def warp_state_view_from_arrays(m, xpos, c_geom, c_pos, c_world, index: int, t: float = 0.0) -> WarpStateView:
+    """Pure builder (the CPU-testable part of `WarpTrackerEnv.state_view`): `m` a host `mujoco.MjModel`
+    (`rrp.envs.warp.model.build_model`; no CUDA / mujoco_warp needed to build it), `xpos` [nbody, 3] for world
+    `index`, `c_geom`/`c_pos`/`c_world` the flat per-slot contact pool of a batch (any number of worlds >= 1)."""
+    return WarpStateView(m, xpos, c_geom, c_pos, c_world, index, t)
+
 
 def window_metrics(recs: list) -> dict:
     """AlphaGate metrics from pop_stats records (same definitions as rrp.training.reward_schedule.window_metrics)."""

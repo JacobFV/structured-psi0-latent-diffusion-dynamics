@@ -28,7 +28,7 @@ from rrp.core.base import content_hash
 from rrp.core.observation import (ImageObs, NodeState, ObjectDescriptor, PolicyObservation, PrivilegedTruth,
                                   SensorChannel)
 from rrp.core.refs import EntityRef
-from rrp.envs.base import ActionSpace, BodyInfo, CapabilityError, EnvSpec, StepResult
+from rrp.envs.base import ActionSpace, BodyInfo, CapabilityError, EntityState, EnvSpec, StepResult
 from rrp.tasks.spec import Judgement
 
 ADAPTER_VERSION = "cw_env.v2"          # v2 (D-142): 24 words / 24 names for cw/open_type, cw/fill_form
@@ -170,6 +170,68 @@ def descriptors(table: Sequence[dict | None], frame: ScreenFrame, t: float,
             bound_entity=EntityRef(id=bindings[w["entity"]], version=0) if w["entity"] in bindings else None,
             attributes=widget_attributes(w)))
     return out
+
+
+# ------------------------------------------------------------------------------------------------ StateView (D-144 R8)
+def _widget_id(slot: int, w: dict) -> str:
+    return f"slot{slot}:{w['key']}"
+
+
+@dataclass(frozen=True)
+class CWStateView:
+    """Privileged StateView over a ComputerWorld scene (docs/relations.md 5.1, rrp.envs.base.StateView). Labels only;
+    never imported by policies/. Built once per `state_view()` call from the same `scene_widgets` table `observe()`
+    uses, so a slot's entity id matches its `descriptors()` slot exactly (`slot{slot}:{widget-key}`)."""
+    caps: frozenset
+    time: float
+    gravity: "np.ndarray"
+    _entities: tuple
+    _ui_tree: tuple
+    _token_map: Mapping[tuple, str]
+
+    def entities(self) -> list[EntityState]:
+        return list(self._entities)
+
+    def contacts(self):
+        raise CapabilityError("computerworld StateView has no contacts (a 2D UI world)")
+
+    def joints(self):
+        raise CapabilityError("computerworld StateView has no joints (a 2D UI world)")
+
+    def camera(self, name: str):
+        raise CapabilityError("computerworld StateView has no camera")
+
+    def ui_tree(self) -> list[dict]:
+        return [dict(n) for n in self._ui_tree]
+
+    def token_entity(self, token_set: str, slot) -> str | None:
+        return self._token_map.get((token_set, slot))
+
+
+def cw_state_view(scene: dict, frame: ScreenFrame, slots: SlotRegistry, t: float) -> CWStateView:
+    """Pure builder (testable on an inline scene, no `computerworld` wheel needed): `scene_widgets(scene)` assigned
+    into `slots`' stable slot table -> one EntityState + one ui_tree node per occupied slot."""
+    table = slots.assign(scene_widgets(scene))
+    entities, ui_tree, token_map = [], [], {}
+    for slot, w in enumerate(table):
+        if w is None:
+            continue
+        wid = _widget_id(slot, w)
+        parent = f"window:{w['window']}" if w["window"] is not None else None
+        pos = widget_position(w, frame) or [0.0, 0.0, 0.0]
+        extent = None
+        if w["box"]:
+            x0, y0, x1, y1 = w["box"]
+            extent = np.array([(x1 - x0) * frame.m_per_px, (y1 - y0) * frame.m_per_px, 0.0])
+        entities.append(EntityState(id=wid, kind="widget", name=w["label"] or w["role"], pos=np.array(pos, np.float64),
+                                    quat=None, vel=None, extent=extent, mass=None, friction=None, material=None,
+                                    parent=parent, assembly=None, body=None, visible=w["visible"],
+                                    attrs=widget_attributes(w)))
+        ui_tree.append(dict(id=wid, parent=parent, z=w["layer"], focus_rank=0 if w["focused"] else None,
+                            role=w["role"], label=w["label"], bounds=w["box"]))
+        token_map[("widgets", slot)] = wid
+    return CWStateView(caps=frozenset({"poses", "ui_tree"}), time=t, gravity=np.zeros(3), _entities=tuple(entities),
+                       _ui_tree=tuple(ui_tree), _token_map=token_map)
 
 
 # ------------------------------------------------------------------------------------------------ actions
@@ -541,6 +603,10 @@ class ComputerWorldEnv:
         return PrivilegedTruth(observation_id=f"cw:{self.seed}:{self.steps}", sim_time=self.time, object_poses=poses,
                                object_entity_map={}, contacts=[], held_by={}, predicates={}, event_completion_truth={},
                                labels={"state_hash": self.world.state_hash(), "goal": self.goal, "widgets": ws})
+
+    def state_view(self) -> CWStateView:
+        """`rrp.envs.base.StateView` (capability "privileged_truth"; D-144 R8). Labels only, never a policy input."""
+        return cw_state_view(self.scene(), self.frame, self.slots, self.time)
 
     def render(self, camera: str | None = None, *, width: int | None = None, height: int | None = None) -> np.ndarray:
         fr = self.cw_env.render(width or self.frame.width, height or self.frame.height)
