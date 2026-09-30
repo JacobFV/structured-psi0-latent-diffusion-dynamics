@@ -6,6 +6,7 @@
 #   psi0_ext.sh clone                  Ψ₀ @ 4f3720d with SIMPLE @ 803db7e (https submodules, Git LFS skipped)
 #   psi0_ext.sh simple-env             venvs/simple: py3.11, torch 2.7 cu128, isaacsim 5.1.0 (first aarch64 wheel), SIMPLE
 #                                      deps, rrp (no deps) + pydantic, and the .pth line that installs rrp.envs.simple.compat
+#   psi0_ext.sh compat-pth [simple|psi]  (re)write venvs/<name>/.../rrp_simple_compat.pth (both by default); idempotent
 #   psi0_ext.sh cyclonedds             cyclonedds 0.10.5 from source (no aarch64 wheel; unitree_sdk2py needs it)
 #   psi0_ext.sh psi-env                venvs/psi: py3.11, Ψ₀ deps, torch 2.14 cu130 (sm_121 JIT), rrp[psi0] editable
 #   psi0_ext.sh fetch-base             public base VLM (ego200k.he30k) + post-trained action header
@@ -21,9 +22,19 @@ HFM=https://huggingface.co/USC-PSI-Lab/psi-model/resolve/main
 HFD=https://huggingface.co/datasets/USC-PSI-Lab/psi-data/resolve/main
 LEROBOT="lerobot @ git+https://github.com/songlin/lerobot.git@09929d8057b044b53aecaf5c6d7eb71f99e8beb9"
 get() { mkdir -p "$(dirname "$2")"; curl -sSL --retry 5 -C - -o "$2" "$1"; }
+# The .pth line that loads rrp.envs.simple.compat (opt-in via RRP_SIMPLE_COMPAT=1) in every interpreter of a venv. Both
+# env installers call this, so a venv rebuilt by either gets it; rewritten only when the content differs.
+COMPAT_LINE='import os; os.environ.get("RRP_SIMPLE_COMPAT") == "1" and __import__("rrp.envs.simple.compat", fromlist=["x"]).install()'
+compat_pth() {
+  local P=$EXT/venvs/$1/bin/python SP F
+  [ -x "$P" ] || { echo "psi0_ext.sh: no venv $EXT/venvs/$1" >&2; return 1; }
+  SP=$("$P" -c "import site;print(site.getsitepackages()[0])"); F=$SP/rrp_simple_compat.pth
+  if [ "$(cat "$F" 2>/dev/null)" = "$COMPAT_LINE" ]; then echo "compat .pth up to date: $F"
+  else printf '%s\n' "$COMPAT_LINE" > "$F"; echo "compat .pth written: $F"; fi
+}
 run_of() { PYTHONPATH=$REPO/src python3 -c "from rrp.tasks.spec import SIMPLE_TASKS; print(SIMPLE_TASKS['$1'][0])"; }
 
-cmd=${1:?usage: psi0_ext.sh clone|simple-env|cyclonedds|psi-env|fetch-base|fetch-ckpt|fetch-data ...}; shift
+cmd=${1:?usage: psi0_ext.sh clone|simple-env|compat-pth|cyclonedds|psi-env|fetch-base|fetch-ckpt|fetch-data ...}; shift
 case $cmd in
 clone)
   [ -d $EXT/psi0 ] || git clone -q https://github.com/physical-superintelligence-lab/Psi0 $EXT/psi0
@@ -43,10 +54,11 @@ simple-env)
     "pydantic>=2.7" "$LEROBOT"
   uv pip install --python $P "cyclonedds==0.10.2" || echo "WARN cyclonedds wheel missing: run 'psi0_ext.sh cyclonedds'"
   uv pip install --python $P -e "$REPO" --no-deps
-  SP=$($P -c "import site;print(site.getsitepackages()[0])")
-  echo 'import os; os.environ.get("RRP_SIMPLE_COMPAT") == "1" and __import__("rrp.envs.simple.compat", fromlist=["x"]).install()' > $SP/rrp_simple_compat.pth
+  compat_pth simple
   RRP_SIMPLE_COMPAT=1 $P -c "import simple, mujoco; print('simple', simple.__version__, 'mujoco', mujoco.__version__)"
   echo SIMPLE_ENV_OK ;;
+compat-pth)
+  for n in ${@:-simple psi}; do compat_pth $n; done ;;
 cyclonedds)
   S=$EXT/src/cyclonedds; P=$EXT/cyclonedds
   [ -d $S ] || git clone -q --depth 1 --branch 0.10.5 https://github.com/eclipse-cyclonedds/cyclonedds $S
@@ -68,6 +80,7 @@ psi-env)
   uv pip install --python $P -e "$REPO[psi0]"
   SP=$($P -c "import site;print(site.getsitepackages()[0])")
   echo "$EXT/psi0/src" > $SP/psi0_upstream_src.pth
+  compat_pth psi
   $P -c "import psi, torch, rrp.policies.psi0.nets; print('psi', psi.__version__, 'torch', torch.__version__)"
   echo PSI_ENV_OK ;;
 fetch-base)

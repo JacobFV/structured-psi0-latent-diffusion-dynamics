@@ -156,6 +156,9 @@ and writes `{"gate": {gap, margin, passed, stage_a_sha256_16, ...}}` into ITS OW
 and the oracle route). The recipe's `gate` node therefore runs BEFORE `structured`; a failed gate is recorded as `failed_hypothesis`
 (T7, research/readiness.md section B) and nothing trains after it.
 Only then `eval_structured`.
+The psi venv also carries `rrp_simple_compat.pth` (opt-in via `RRP_SIMPLE_COMPAT=1`, same line as the SIMPLE venv): both env
+installers call one idempotent `compat_pth`, and an existing venv gets it with `ops/bin/psi0_ext.sh compat-pth [simple|psi]`
+(written on the peer 2026-09-30; `import rrp.envs.simple.compat` from the psi venv verified, `tests/unit/test_psi0_ext.py`).
 Stale psi1z watcher loops on the peer (bash `until ... sleep` loops, pids 2873754, 3156994, 3389109 on 2026-09-29) hold no
 lease and can be killed.
 
@@ -175,7 +178,7 @@ Owner: psi0 agent. Repo `~/work/psi1z` (LOCAL ONLY, main). Third-party code, wei
 |---|---|
 | `~/work/ext/psi0` | upstream Ψ₀ clone @ 4f3720d (Apache-2.0), submodule `third_party/SIMPLE` @ 803db7e (MIT) with nested submodules gear_sonic, decoupled_wbc, openpi-client, AMO, unitree_sdk2_python (https, LFS skipped) |
 | `~/work/ext/venvs/simple` | py3.11 env: torch 2.7.0+cu128 (aarch64), isaacsim 5.1.0 (`ops/bin/psi0_ext.sh simple-env`) |
-| `~/work/ext/venvs/psi` | py3.11 env: Ψ₀ deps; upstream `src/` on sys.path via `.pth` (`ops/bin/psi0_ext.sh psi-env`) |
+| `~/work/ext/venvs/psi` | py3.11 env: Ψ₀ deps; upstream `src/` and the opt-in compat hook on sys.path via `.pth` (`ops/bin/psi0_ext.sh psi-env`, `compat-pth`) |
 | `~/work/ext/psi_home` | PSI_HOME: `cache/checkpoints/psi0/...`, `data/simple/<task>`, `data/simple-eval/<task>/dr-level-{0,1,2}` |
 
 ### step 0 findings (feasibility)
