@@ -24,22 +24,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from rrp.policies.features.legged import NODE_STATIC_DIM, ASM_DIM, GLOBAL_DIM, KNOT_TIMES
-from rrp.policies.nets.attention import MHA
+from rrp.policies.features.legged import NODE_STATIC_DIM, ASM_DIM, GLOBAL_DIM, KNOT_TIMES, MAX_M
+from rrp.policies.nets.attention import MHA, RelBlock
 from rrp.policies.nets.flow import MLP, sinusoidal
+from rrp.policies.nets.probes import ReadoutProbe
+from rrp.policies.relations.base import RelCtx, TokenSet, resolve
+from rrp.policies.relations.ops import FactorSite
 
 N_SUBTASK = 4
-
-
-def block(D, heads):
-    return nn.ModuleDict(dict(n1=nn.LayerNorm(D), x=MHA(D, heads), n2=nn.LayerNorm(D), s=MHA(D, heads),
-                              n3=nn.LayerNorm(D), m=MLP(D, D, 4 * D)))
-
-
-def run_block(L, q, kv, kv_mask, q_mask, bias=None):
-    q = q + L["x"](L["n1"](q), kv=kv, key_mask=kv_mask, bias=bias)
-    q = q + L["s"](L["n2"](q), key_mask=q_mask)
-    return q + L["m"](L["n3"](q))
 
 
 class Context(nn.Module):
@@ -83,7 +75,7 @@ class LeggedEncoder(nn.Module):
         super().__init__()
         self.ctx = Context(D, heads, 2, beh_h=H)
         self.q = AsmQueries(D, K)
-        self.blocks = nn.ModuleList([block(D, heads) for _ in range(layers)])
+        self.blocks = nn.ModuleList([RelBlock(D, heads) for _ in range(layers)])
         self.out = nn.Linear(D, 2 * dz)
         self.dz = dz
 
@@ -94,7 +86,7 @@ class LeggedEncoder(nn.Module):
         q = q.reshape(B, K * M, D)
         qm = b["asm_mask"][:, None].expand(B, K, M).reshape(B, K * M)
         for L in self.blocks:
-            q = run_block(L, q, t, tm, qm)
+            q = L(q, t, kv_mask=tm, q_mask=qm)
         mu, lv = self.out(q).reshape(B, K, M, 2, self.dz).unbind(3)
         am = b["asm_mask"][:, None, :, None].to(mu.dtype)
         return mu * am, lv.clamp(-8, 4)
@@ -102,17 +94,36 @@ class LeggedEncoder(nn.Module):
 
 class LeggedRealizer(nn.Module):
     """System 0. Inputs are ONLY: z, knot times, elapsed phase, morphology tokens, current encoders/IMU/touch,
-    osc-v1. No task, goal, waypoint, localization or system-i state."""
+    osc-v1. No task, goal, waypoint, localization or system-i state.
 
-    def __init__(self, dz=32, D=192, heads=4, layers=2):
+    The own/body-assembly routing (a node reads only its own assembly's knots, plus the body assembly's knots,
+    which every node may always read) is the factor `route.own_assembly` (preset `legged-s0`, `docs/relations.md`
+    section 10 R4): `SameOp` mask on field `assembly_id` between the `act` (node) and `knots` sites, with
+    `params.also_key_field = "body"` for the body-assembly override. Knot validity (padded / absent assemblies)
+    is the cross-attention `kv_mask`, not part of the factor value, so the combined -inf pattern is identical to
+    the former inline `own & asm_mask`."""
+
+    def __init__(self, dz=32, D=192, heads=4, layers=2, factors=None):
         super().__init__()
         self.node = MLP(NODE_STATIC_DIM + 2 + 6 + 1 + 2, D)
         self.z_in = nn.Linear(dz, D)
         self.asm = MLP(ASM_DIM, D)
         self.dt_in = MLP(D, D)
-        self.blocks = nn.ModuleList([block(D, heads) for _ in range(layers)])
+        specs = resolve(factors, default="legged-s0")
+        self.route = FactorSite(heads, D, "act>knots", specs, ("assembly_id",))
+        self.blocks = nn.ModuleList([RelBlock(D, heads) for _ in range(layers)])
         self.out = nn.Linear(D, 1)
         self.D = D
+
+    def _route_bias(self, b, K, M, knot_valid, device):
+        knot_asm = torch.arange(M, device=device).repeat(K)                                  # [K*M], k-major
+        knot_asm_b = knot_asm[None, :].expand(b["node_asm"].shape[0], -1)
+        body_field = knot_asm_b == b["body_asm"][:, None]
+        rc = RelCtx(sets={
+            "act": TokenSet("act", b["node_mask"], fields={"assembly_id": b["node_asm"]}),
+            "knots": TokenSet("knots", knot_valid, fields={"assembly_id": knot_asm_b, "body": body_field}),
+        })
+        return self.route.bias(rc)
 
     def forward(self, z, b, phase, knot_times=None):
         B, K, M, _ = z.shape
@@ -121,57 +132,67 @@ class LeggedRealizer(nn.Module):
         rel = kt[None] - phase[:, None]
         tok = self.z_in(z) + self.dt_in(sinusoidal(rel, self.D))[:, :, None] + self.asm(b["asm_static"])[:, None]
         tok = tok.reshape(B, K * M, -1)
-        knot_asm = torch.arange(M, device=z.device).repeat(K)
-        body = b["body_asm"][:, None, None]                                                  # [B,1,1]
-        own = (b["node_asm"][:, :, None] == knot_asm[None, None]) | (knot_asm[None, None] == body)
-        own = own & b["asm_mask"][:, None, :].repeat(1, 1, K)
-        bias = torch.zeros(B, 1, N, K * M, device=z.device, dtype=tok.dtype).masked_fill(~own[:, None], float("-inf"))
+        knot_valid = b["asm_mask"][:, None].expand(B, K, M).reshape(B, K * M)
+        bias = self._route_bias(b, K, M, knot_valid, z.device)
         nt = torch.gather(b["asm_touch"], 1, b["node_asm"])                                  # own foot touch
         osc = torch.stack([torch.sin(2 * math.pi * b["osc"]), torch.cos(2 * math.pi * b["osc"])], -1)
         x = self.node(torch.cat([b["node_static"], b["q"][..., None], b["qd"][..., None],
                                  b["imu"][:, None].expand(-1, N, -1), nt[..., None], osc[:, None].expand(-1, N, -1)], -1))
         for L in self.blocks:
-            x = run_block(L, x, tok, None, b["node_mask"], bias=bias)
+            x = L(x, tok, kv_mask=knot_valid, q_mask=b["node_mask"], bias_x=bias)
         return self.out(x).squeeze(-1) * b["node_mask"]
 
 
-class LeggedProbe(nn.Module):
-    def __init__(self, dz=32, K=4, D=128, heads=4, max_m=11, metadata_only=False, seed=1234):
-        super().__init__()
-        g = torch.Generator().manual_seed(seed)
-        self.register_buffer("asm_code", F.normalize(torch.randn(max_m, 16, generator=g), dim=-1))
-        self.register_buffer("knot_code", F.normalize(torch.randn(K, 16, generator=g), dim=-1))
-        self.metadata_only = metadata_only
-        self.z_in = nn.Linear(dz, D)
-        self.code = nn.Linear(16, D)
-        self.kcode = nn.Linear(16, D)
-        self.qtype = nn.Embedding(5, D)
-        self.const = nn.Parameter(torch.zeros(1, 1, D))
-        self.a1, self.a2 = MHA(D, heads), MHA(D, heads)
-        self.n1, self.n2 = nn.LayerNorm(D), nn.LayerNorm(D)
-        self.mlp = MLP(D, D, 2 * D)
-        self.heads = nn.ModuleDict(dict(contact=nn.Linear(D, 1), goal=nn.Linear(D, 4), disp=nn.Linear(D, 6),
-                                        subtask=nn.Linear(D, N_SUBTASK), fall=nn.Linear(D, 1)))
+def legged_probe(dz=32, K=4, D=128, heads=4, max_m=MAX_M, metadata_only=False, seed=1234, factors=None) -> ReadoutProbe:
+    """The packet probe (former `LeggedProbe`): a `ReadoutProbe` on preset `probes:legged-v1` (docs/relations.md
+    section 10 R4). `goal` / `disp` / `subtask` / `fall` read every assembly (address "asm"); `legged_probe_read`
+    below gathers the sample's body-assembly row, which is exactly the former per-sample query
+    `code(asm_code[body_asm])`, since "asm" applies the same `asm_in` map to every assembly and cross-attention
+    queries are independent of each other. Old `LeggedProbe` checkpoints load through `remap_legged_probe_state`
+    (a data-level key map, docs/relations.md section 4)."""
+    return ReadoutProbe(dz, K, specs=factors, width=D, heads=heads, max_assemblies=max_m,
+                        metadata_only=metadata_only, seed=seed, preset="probes:legged-v1")
 
-    def forward(self, z, asm_mask, body_asm):
-        B, K, M, _ = z.shape
-        tpos = self.kcode(self.knot_code)[None, :, None] + self.code(self.asm_code[:M])[None, None]
-        t = (self.const.expand(B, K * M, -1) + tpos.reshape(1, K * M, -1)) if self.metadata_only else \
-            (self.z_in(z) + tpos).reshape(B, K * M, -1)
-        km = asm_mask[:, None].expand(B, K, M).reshape(B, K * M)
 
-        def read(q):
-            r = q + self.a1(self.n1(q), kv=t, key_mask=km)
-            r = r + self.a2(self.n2(r), kv=t, key_mask=km)
-            return r + self.mlp(r)
-        # contact(m, k): queries over all (k, m)
-        qc = (self.qtype.weight[0] + tpos).reshape(1, K * M, -1).expand(B, -1, -1)
-        contact = self.heads["contact"](read(qc)).reshape(B, K, M)
-        bc = self.code(self.asm_code[body_asm])                                             # [B,D] body handle
-        out = dict(contact=contact)
-        for i, k in enumerate(("goal", "disp", "subtask", "fall"), start=1):
-            out[k] = self.heads[k](read((self.qtype.weight[i] + bc)[:, None]))[:, 0]
-        return out
+def legged_probe_read(P: ReadoutProbe, z, asm_mask, body_asm) -> dict:
+    """P(z, asm_mask) narrowed to the former LeggedProbe output: contact [B,K,M], goal [B,4], disp [B,6],
+    subtask [B,N_SUBTASK], fall [B,1] (gathered at each sample's body-assembly index)."""
+    out = P(z, asm_mask)
+    idx1 = body_asm.view(-1, 1, 1)
+    return dict(contact=out["contact"].squeeze(-1),
+               **{k: out[k].gather(1, idx1.expand(-1, -1, out[k].shape[-1])).squeeze(1)
+                  for k in ("goal", "disp", "subtask", "fall")})
+
+
+def remap_legged_probe_state(state: dict) -> dict:
+    """Data-level key map (docs/relations.md section 4, unit R4): a former `LeggedProbe` state dict onto
+    `ReadoutProbe`'s layout. `code` / `kcode` (Linear maps of the fixed `asm_code` / `knot_code` buffers, reused for
+    both the packet content tokens and the query positions) become `asm_in` / `kq_in` (the same op on the same
+    buffer); the packet content's knot term `kcode(knot_code)` is baked once into `ReadoutProbe.knot.weight` (a
+    plain per-knot embedding there rather than a linear map of the frozen code), so both probes compute the
+    identical packet content and query features from the same weights. `z_in` / `qtype` / `const` / `asm_code` /
+    `knot_code` / the two attention layers (`a1`, `a2` -> `att`, `att2`) / `n1` / `n2` / `mlp` / `heads.*` carry over
+    unchanged (`probes:legged-v1`'s query order, contact/goal/disp/subtask/fall, matches the old `qtype` index and
+    `heads` names). A no-op on a state dict already in the `ReadoutProbe` layout."""
+    if "asm_in.weight" in state:
+        return dict(state)
+    s = dict(state)
+    knot_code = s.pop("knot_code")
+    kcode_w, kcode_b = s.pop("kcode.weight"), s.pop("kcode.bias")
+    out = {"z_in.weight": s.pop("z_in.weight"), "z_in.bias": s.pop("z_in.bias"),
+           "knot.weight": knot_code @ kcode_w.T + kcode_b,
+           "asm_in.weight": s.pop("code.weight"), "asm_in.bias": s.pop("code.bias"),
+           "kq_in.weight": kcode_w, "kq_in.bias": kcode_b,
+           "qtype.weight": s.pop("qtype.weight"), "const": s.pop("const"),
+           "asm_code": s.pop("asm_code"), "knot_code": knot_code}
+    for old, new in (("a1", "att"), ("a2", "att2"), ("n1", "n1"), ("n2", "n2"), ("mlp", "mlp")):
+        for k in [k for k in s if k.startswith(old + ".")]:
+            out[new + k[len(old):]] = s.pop(k)
+    for k in [k for k in s if k.startswith("heads.")]:
+        out[k] = s.pop(k)
+    if s:
+        raise ValueError(f"remap_legged_probe_state: unmapped legacy keys {sorted(s)}")
+    return out
 
 
 def gnll(pred, target, mask=None, lv_min=-8.0):
@@ -224,7 +245,7 @@ class LeggedFlow(nn.Module):
         self.q = AsmQueries(D, K)
         self.z_in = nn.Linear(dz, D)
         self.t_in = MLP(D, D)
-        self.blocks = nn.ModuleList([block(D, heads) for _ in range(layers)])
+        self.blocks = nn.ModuleList([RelBlock(D, heads) for _ in range(layers)])
         self.out = nn.Linear(D, dz)
         self.register_buffer("z_mean", torch.zeros(dz))
         self.register_buffer("z_std", torch.ones(dz))
@@ -241,7 +262,7 @@ class LeggedFlow(nn.Module):
         h = h.reshape(B, K * M, -1)
         qm = b["asm_mask"][:, None].expand(B, K, M).reshape(B, K * M)
         for L in self.blocks:
-            h = run_block(L, h, t, tm, qm)
+            h = L(h, t, kv_mask=tm, q_mask=qm)
         return self.out(h).reshape(B, K, M, -1)
 
     def normalize(self, z):

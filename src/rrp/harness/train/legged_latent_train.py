@@ -25,8 +25,8 @@ import torch
 
 from rrp.policies.features.legged import MAX_N, MAX_M, KNOT_TIMES, TICK_DT, H, MAX_J, KNOT_TICKS
 from rrp.policies.bundles import _dev, legged_flags, load_rep
-from rrp.policies.nets.legged_latent import (LeggedEncoder, LeggedRealizer, LeggedProbe, LeggedFlow, probe_loss,
-                                     probe_metrics)
+from rrp.policies.nets.legged_latent import (LeggedEncoder, LeggedRealizer, LeggedFlow, legged_probe,
+                                     legged_probe_read, remap_legged_probe_state, probe_loss, probe_metrics)
 
 
 class LeggedData:
@@ -165,7 +165,7 @@ def rep_step(E, R, P, data, i, j, w_sem, beta, train=True, qd_drop=0.0, lv_min=-
     mm = b["asm_mask"][:, None, :, None].float().expand_as(mu)
     kl = (0.5 * (mu ** 2 + lv.exp() - 1 - lv) * mm).sum() / mm.sum()
     lab = data.labels(i)
-    out = P(z, b["asm_mask"], b["body_asm"])
+    out = legged_probe_read(P, z, b["asm_mask"], b["body_asm"])
     l_sem, logs = probe_loss(out, lab, b, lv_min=lv_min)
     loss = l_real + w_sem * l_sem + beta * kl
     logs.update(real=float(l_real.detach()), kl=float(kl.detach()), sem=float(l_sem.detach()))
@@ -195,7 +195,7 @@ def eval_rep(E, R, P, data, n_batches=40, seed=99):
         zero.append(float(((a1 ** 2) * m).sum() / m.sum()))
         _agg(agg, probe_metrics(out, lab, b))
         perm = torch.randperm(len(i), device=data.dev)
-        _agg(sh, probe_metrics(P(z[perm], b["asm_mask"], b["body_asm"]), lab, b))
+        _agg(sh, probe_metrics(legged_probe_read(P, z[perm], b["asm_mask"], b["body_asm"]), lab, b))
     for m in (E, R, P):
         m.train()
     return dict(split="held_out_episodes", realize_mse=float(np.mean(real)), zero_action_mse=float(np.mean(zero)),
@@ -276,7 +276,7 @@ def train_rep(cfg, out: Path):
     lc = cfg["latent"]
     E = LeggedEncoder(dz=lc["dz"], D=lc["width"], H=H).to(dev)
     R = LeggedRealizer(dz=lc["dz"], D=lc["width"]).to(dev)
-    P = LeggedProbe(dz=lc["dz"]).to(dev)
+    P = legged_probe(dz=lc["dz"]).to(dev)
     params = [p for m in (E, R, P) for p in m.parameters()]
     steps, lr = cfg["steps"], cfg.get("lr", 3e-4)
     opt = torch.optim.AdamW(params, lr=lr, weight_decay=1e-4)
@@ -286,7 +286,7 @@ def train_rep(cfg, out: Path):
     step0, last = 0, out / "rep_last.pt"
     if last.exists():                            # exact resume (D-040: the first run lost 9k steps)
         st = torch.load(str(last), map_location=dev, weights_only=False)
-        E.load_state_dict(st["E"]); R.load_state_dict(st["R"]); P.load_state_dict(st["P"])
+        E.load_state_dict(st["E"]); R.load_state_dict(st["R"]); P.load_state_dict(remap_legged_probe_state(st["P"]))
         opt.load_state_dict(st["opt"]); sch.load_state_dict(st["sch"])
         step0 = st["step"]; exact = restore_rng(st, rng)
         print(f"resumed at step {step0} ({'exact: RNG restored' if exact else 'INEXACT: no CUDA RNG state in checkpoint'})", flush=True)
@@ -327,7 +327,7 @@ def fit_probe(cfg, out: Path):
     data = LeggedData(Path(rcfg["data"]), rcfg["bodies"], dev)
     res = {}
     for mode in ("z", "metadata_only"):
-        P = LeggedProbe(dz=rcfg["latent"]["dz"], metadata_only=(mode == "metadata_only"), seed=5).to(dev)
+        P = legged_probe(dz=rcfg["latent"]["dz"], metadata_only=(mode == "metadata_only"), seed=5).to(dev)
         opt = torch.optim.AdamW(P.parameters(), lr=3e-4, weight_decay=1e-4)
         rng = np.random.default_rng(5)
         for step in range(cfg.get("steps", 6000)):
@@ -335,7 +335,7 @@ def fit_probe(cfg, out: Path):
             with torch.no_grad():
                 b = data.ctx_batch(i)
                 mu, _ = E(b, data.beh(i))
-            loss, _ = probe_loss(P(mu, b["asm_mask"], b["body_asm"]), data.labels(i), b)
+            loss, _ = probe_loss(legged_probe_read(P, mu, b["asm_mask"], b["body_asm"]), data.labels(i), b)
             opt.zero_grad(); loss.backward(); opt.step()
         P.eval()
         agg, sh = {}, {}
@@ -346,8 +346,8 @@ def fit_probe(cfg, out: Path):
                 b = data.ctx_batch(i)
                 mu, _ = E(b, data.beh(i))
                 lab = data.labels(i)
-                _agg(agg, probe_metrics(P(mu, b["asm_mask"], b["body_asm"]), lab, b))
-                _agg(sh, probe_metrics(P(mu[torch.randperm(len(i), device=dev)], b["asm_mask"], b["body_asm"]), lab, b))
+                _agg(agg, probe_metrics(legged_probe_read(P, mu, b["asm_mask"], b["body_asm"]), lab, b))
+                _agg(sh, probe_metrics(legged_probe_read(P, mu[torch.randperm(len(i), device=dev)], b["asm_mask"], b["body_asm"]), lab, b))
         res[mode] = dict(heldout=_fin(agg), heldout_shuffled_z=_fin(sh))
         if mode == "z":
             out.mkdir(parents=True, exist_ok=True)
@@ -404,7 +404,7 @@ def train_flow(cfg, out: Path):
             zt, _ = E(b, data.beh(i))
         lab = data.labels(i)
         lvm = rcfg["latent"].get("probe_lv_min", -8.0)
-        fn = (lambda zc: probe_loss(P(zc, b["asm_mask"], b["body_asm"]), lab, b, lv_min=lvm)) if w > 0 else None
+        fn = (lambda zc: probe_loss(legged_probe_read(P, zc, b["asm_mask"], b["body_asm"]), lab, b, lv_min=lvm)) if w > 0 else None
         loss, logs = F_.loss(b, zt, fn, w, cfg.get("packet_tau_min", 0.6))
         opt.zero_grad(); loss.backward()
         gn = torch.nn.utils.clip_grad_norm_(F_.parameters(), 1.0)
@@ -435,7 +435,7 @@ def eval_flow(F_, E, R, P, data, n_batches=30, seed=7, nfe=8):
         zf = F_.sample(b, nfe=nfe, generator=g)
         lab = data.labels(i)
         for name, z in (("oracle", zt), ("free", zf), ("free_shuffled", zf[torch.randperm(len(i), device=data.dev)])):
-            _agg(aggs[name], probe_metrics(P(z, b["asm_mask"], b["body_asm"]), lab, b))
+            _agg(aggs[name], probe_metrics(legged_probe_read(P, z, b["asm_mask"], b["body_asm"]), lab, b))
         j = torch.from_numpy(rng.integers(0, MAX_J + 1, len(i))).to(data.dev)
         br, ph, a1, am = data.realizer_batch(i, j)
         m = am.float()

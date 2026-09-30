@@ -113,6 +113,23 @@ register_factor(FactorDef("probe.psi0.grasp_pt", "1", field="packet", op="inert"
                           readout=ReadoutDef("grasp_pt", "knot×pair", 6, "gauss", label="grasp_pt")))
 register_factor(FactorDef("probe.psi0.grasp_face", "1", field="packet", op="inert", form="readout", label="grasp_face",
                           readout=ReadoutDef("grasp_face", "knot×pair", 6, "ce", label="grasp_face")))
+
+# unit R4: legged system 0 routing (own assembly + always-readable body assembly) and packet probe (former
+# nets.legged_latent.LeggedProbe; query order = its heads dict order). goal/disp/subtask/fall read every assembly
+# (address "asm"); the caller gathers the row at the sample's body assembly index (was `code(asm_code[body_asm])`,
+# now exactly `asm_in(asm_code[body_asm])` since "asm" queries every assembly with the same asm_in map).
+register_preset("legged-s0", [{"name": "route.own_assembly", "params": {"also_key_field": "body"}}])
+_LEGGED_PROBE = (
+    ("contact", "knot×asm", 1, "bce", "contact_k", 1.0),
+    ("goal", "asm", 4, "gauss", "goal", 1.0),
+    ("disp", "asm", 6, "gauss", "disp", 1.0),
+    ("subtask", "asm", 4, "ce", "subtask", 1.0),
+    ("fall", "asm", 1, "bce", "fall", 1.0),
+)
+for _q, _addr, _out, _loss, _lab, _sc in _LEGGED_PROBE:
+    register_factor(FactorDef(f"probe.legged.{_q}", "1", field="packet", op="inert", form="readout", label=_lab,
+                              readout=ReadoutDef(_q, _addr, _out, _loss, label=_lab, scale=_sc)))
+register_preset("probes:legged-v1", [f"probe.legged.{q[0]}" for q in _LEGGED_PROBE])
 # ------------------------------------------------------------------ R13: geometry (geo.*)
 # PaPE (sqdiff+diff), rel_rot, align and order over the R12 fields (`pos3d`, `cam_uvd`, `orient`, `normal`). Every
 # entry offers `probe` as a source: a `FieldReadouts` head (the foundation hook, `rrp.policies.relations.ops`) reads

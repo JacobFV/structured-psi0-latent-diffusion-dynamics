@@ -17,7 +17,7 @@ from rrp.core.latent_action import AssemblyHandle, LatentActionChunk, check_pack
 from rrp.policies.bundles import load_rep
 from rrp.policies.features.legged import (EVENTS, KNOT_TIMES, MAX_M, MAX_N, TICK_DT, TICKS_PER_PACKET, LeggedMorph,
                                           active_event, local_state, public_context)
-from rrp.policies.nets.legged_latent import LeggedFlow, LeggedProbe
+from rrp.policies.nets.legged_latent import LeggedFlow, legged_probe, legged_probe_read, remap_legged_probe_state
 
 REALIZER_COMPAT = "legged-rz-osc-v1"     # base of the system-0 compatibility ID (osc-v1 phase input)
 
@@ -233,8 +233,8 @@ class LatentLeggedController:
         self.zero_qd = zero_qd
         if posthoc_probe:                              # measurement probe for latent_nosem (frozen, detached z)
             pp = torch.load(posthoc_probe, map_location=dev, weights_only=False)
-            self.P = LeggedProbe(dz=rcfg["latent"]["dz"]).to(dev)
-            self.P.load_state_dict(pp["state"]); self.P.eval()
+            self.P = legged_probe(dz=rcfg["latent"]["dz"]).to(dev)
+            self.P.load_state_dict(remap_legged_probe_state(pp["state"])); self.P.eval()
         self.F = None
         if st:
             self.F = LeggedFlow(dz=rcfg["latent"]["dz"], D=self.cfg.get("width", 256), layers=self.cfg.get("layers", 4)).to(dev)
@@ -308,7 +308,7 @@ class LatentLeggedController:
             z = torch.zeros_like(z)
         with torch.no_grad():
             b0 = dict(b); b0["ctx"] = self._ctx(ad)
-            pout = self.P(z, b["asm_mask"], b["body_asm"])
+            pout = legged_probe_read(self.P, z, b["asm_mask"], b["body_asm"])
         M = self.morph.M
         zz = z[0, :, :M].cpu().numpy().astype(np.float32)
         if getattr(self, "record_z", None) is not None:
@@ -338,13 +338,13 @@ class LatentLeggedController:
         probe_halt: z moved so the probe reads subtask=halt and zero base displacement."""
         z0 = z.detach()
         with torch.no_grad():
-            o0 = self.P(z0, b["asm_mask"], b["body_asm"])
+            o0 = legged_probe_read(self.P, z0, b["asm_mask"], b["body_asm"])
             g0, d0 = o0["goal"][:, :2].clone(), o0["disp"][:, :3].clone()
         zz = z0.clone().requires_grad_(True)
         opt = torch.optim.Adam([zz], lr=lr)
         am = b["asm_mask"][:, None, :, None].float()
         for _ in range(steps):
-            o = self.P(zz * am, b["asm_mask"], b["body_asm"])
+            o = legged_probe_read(self.P, zz * am, b["asm_mask"], b["body_asm"])
             if kind == "probe_goal_mirror":
                 loss = ((o["goal"][:, :2] - g0 * torch.tensor([1.0, -1.0], device=z.device)) ** 2).sum() * 4
             else:
@@ -358,13 +358,13 @@ class LatentLeggedController:
         """Move z so the frozen probe reads leg `leg` in contact state v at every knot (other entries anchored)."""
         z0 = z.detach()
         with torch.no_grad():
-            c0 = self.P(z0, b["asm_mask"], b["body_asm"])["contact"].clone()
+            c0 = legged_probe_read(self.P, z0, b["asm_mask"], b["body_asm"])["contact"].clone()
         zz = z0.clone().requires_grad_(True)
         opt = torch.optim.Adam([zz], lr=lr)
         am = b["asm_mask"][:, None, :, None].float()
         tgt = torch.full_like(c0[:, :, leg], v)
         for _ in range(steps):
-            c = self.P(zz * am, b["asm_mask"], b["body_asm"])["contact"]
+            c = legged_probe_read(self.P, zz * am, b["asm_mask"], b["body_asm"])["contact"]
             other = torch.ones_like(c); other[:, :, leg] = 0
             loss = torch.nn.functional.binary_cross_entropy_with_logits(c[:, :, leg], tgt, reduction="sum") + \
                 ((c - c0) ** 2 * other).sum() * 0.1 + 0.01 * ((zz - z0) ** 2 * am).sum() / am.sum()
@@ -376,13 +376,13 @@ class LatentLeggedController:
         current value); small L2 anchor to the sampled packet."""
         z0 = z.detach()
         with torch.no_grad():
-            d0 = self.P(z0, b["asm_mask"], b["body_asm"])["disp"][:, :3].clone()
+            d0 = legged_probe_read(self.P, z0, b["asm_mask"], b["body_asm"])["disp"][:, :3].clone()
         tgt = d0.clone(); tgt[:, 2] = yaw
         zz = z0.clone().requires_grad_(True)
         opt = torch.optim.Adam([zz], lr=lr)
         am = b["asm_mask"][:, None, :, None].float()
         for _ in range(steps):
-            out = self.P(zz * am, b["asm_mask"], b["body_asm"])
+            out = legged_probe_read(self.P, zz * am, b["asm_mask"], b["body_asm"])
             loss = ((out["disp"][:, :3] - tgt) ** 2).sum() + 0.01 * ((zz - z0) ** 2 * am).sum() / am.sum()
             opt.zero_grad(); loss.backward(); opt.step()
         return (zz * am).detach()

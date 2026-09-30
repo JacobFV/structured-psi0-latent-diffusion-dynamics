@@ -15,7 +15,7 @@ import torch
 from rrp.policies.features.legged import H
 from rrp.policies.nets.checkpoint import load_checkpoint
 from rrp.policies.nets.probes import ReadoutProbe
-from rrp.policies.nets.legged_latent import LeggedEncoder, LeggedRealizer, LeggedProbe
+from rrp.policies.nets.legged_latent import LeggedEncoder, LeggedRealizer, legged_probe, remap_legged_probe_state
 from rrp.policies.nets.semantic_latent import LatentConfig, TargetEncoder
 
 # ------------------------------------------------------------------ arm/dual packet probe (D-144 R1: PacketProbe ->
@@ -110,8 +110,8 @@ def load_rep(path, dev):
     lc = st["cfg"]["latent"]
     E = LeggedEncoder(dz=lc["dz"], D=lc["width"], H=H).to(dev)
     R = LeggedRealizer(dz=lc["dz"], D=lc["width"]).to(dev)
-    P = LeggedProbe(dz=lc["dz"]).to(dev)
-    E.load_state_dict(st["E"]); R.load_state_dict(st["R"]); P.load_state_dict(st["P"])
+    P = legged_probe(dz=lc["dz"]).to(dev)
+    E.load_state_dict(st["E"]); R.load_state_dict(st["R"]); P.load_state_dict(remap_legged_probe_state(st["P"]))
     for m in (E, R, P):
         m.eval()
         for p in m.parameters():

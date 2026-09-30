@@ -6,8 +6,8 @@ import torch
 import torch.nn as nn
 
 from rrp.policies.features.legged import NODE_STATIC_DIM, ASM_DIM, GLOBAL_DIM, H
+from rrp.policies.nets.attention import RelBlock
 from rrp.policies.nets.flow import MLP, sinusoidal
-from rrp.policies.nets.legged_latent import block, run_block
 
 
 class LeggedBC(nn.Module):
@@ -21,7 +21,7 @@ class LeggedBC(nn.Module):
                                                      m=MLP(D, D, 4 * D))) for _ in range(enc_layers)])
         self.x_in = nn.Linear(H, D)
         self.t_in = MLP(D, D)
-        self.blocks = nn.ModuleList([block(D, heads) for _ in range(dec_layers)])
+        self.blocks = nn.ModuleList([RelBlock(D, heads) for _ in range(dec_layers)])
         self.out = nn.Linear(D, H)
 
     def prepare(self, b):
@@ -42,7 +42,7 @@ class LeggedBC(nn.Module):
         t, m, nodes = cache
         h = nodes + self.x_in(xt) + self.t_in(sinusoidal(tau, self.D))[:, None]
         for L in self.blocks:
-            h = run_block(L, h, t, m, b["node_mask"])
+            h = L(h, t, kv_mask=m, q_mask=b["node_mask"])
         return self.out(h)
 
     def loss(self, b, a, amask):

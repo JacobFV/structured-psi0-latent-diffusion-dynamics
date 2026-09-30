@@ -23,9 +23,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from rrp.policies.features.legged import NODE_STATIC_DIM, ASM_DIM, GLOBAL_DIM
-from rrp.policies.nets.flow import MLP, sinusoidal
-from rrp.policies.nets.legged_latent import block, run_block
 from rrp.harness.train.legged_latent_train import LeggedData, _save, rng_state, restore_rng, cuda_peak_mb
 from rrp.policies.bundles import _dev
 from rrp.policies.features.legged import H
