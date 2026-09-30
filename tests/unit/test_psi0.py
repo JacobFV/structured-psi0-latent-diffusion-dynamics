@@ -2,7 +2,15 @@
 
 The golden digests below were recorded by running the ORIGINAL psi1z code (6f5e2b3, on rrp 68a6657, its pin) through
 `_goldens()`; the migrated `rrp.policies.psi0.nets` must reproduce them byte for byte. Random-weight nets: plumbing only,
-no number here is a result. Net tests skip without torch; the SIMPLE worker plumbing needs neither torch nor Isaac."""
+no number here is a result. Net tests skip without torch; the SIMPLE worker plumbing needs neither torch nor Isaac.
+
+D-144 R5 (Ψ₀ on the relation-factor foundation) moved the Realizer's READS mask to the `route.assembly_reads` factor
+and replaced `PacketProbe` with `ReadoutProbe` (`probes:psi0-v1`): `GOLDEN` below keeps exactly the psi1z-original
+entries that this migration does not touch (`tables`, `read_mask`, `context_tokens` — the morphology tables, the
+legacy mask helper's own output, and `ContextTokens`, none of which changed); the probe-dependent entries
+(`stageA_*`, `probe_*`) are superseded by `GOLDEN_R5`, a fresh regression baseline recorded on this migrated code
+(not psi1z), and the Realizer's numerical equivalence is checked directly (`test_route_assembly_reads_matches_read_mask`,
+`test_realizer_output_matches_pre_r5_formula`) rather than folded into a combined probe+realizer digest."""
 import hashlib
 import inspect
 import json
@@ -17,27 +25,25 @@ from rrp.envs.simple import worker as W
 try:
     import torch
     from rrp.policies.psi0 import nets as N
+    from rrp.policies.relations.base import RelCtx, TokenSet
 except ImportError:          # the unit suite must pass without the ml extra
     torch = N = None
 torch_only = pytest.mark.skipif(torch is None, reason="needs torch")
 
-GOLDEN = {'context_tokens': '94f6347ff56ce972:93d4a1923daa17ff',
- 'probe_meta_only': 'c00936f5b8223d4f:13fcd9a0e80173b6',
- 'probe_metrics_grasp0': '{"active_hand_acc": [1.0, 3], "base_cmd_vx_mae_norm": [22.50524, 20], "base_disp_xy_err": '
-                         '[9.25428, 4], "contact_acc": [23.0, 40], "contact_pos_recall": [23.0, 23], '
-                         '"hand_dist_mae": [15.51641, 40], "lift_acc": [10.0, 20], "target_pos_err": [41.11239, 20]}',
- 'probe_metrics_grasp1': '{"active_hand_acc": [1.0, 3], "base_cmd_vx_mae_norm": [22.50524, 20], "base_disp_xy_err": '
-                         '[9.25428, 4], "contact_acc": [23.0, 40], "contact_pos_recall": [23.0, 23], '
-                         '"grasp_face_acc": [3.0, 4], "grasp_pt_err": [4.9498, 4], "hand_dist_mae": [15.51641, 40], '
-                         '"lift_acc": [10.0, 20], "target_pos_err": [41.11239, 20]}',
- 'read_mask': 'ea5d4d70a39de316',
- 'stageA_fwd_grasp0': '844ac41c0bc775c2',
- 'stageA_fwd_grasp1': 'b2922bec6758aef3',
- 'stageA_init_grasp0': 'aec3c13e3f2fcc5c',
- 'stageA_init_grasp1': 'f7496f7a6c754491',
- 'stageA_loss_grasp0': '22431ef1b26a021a',
- 'stageA_loss_grasp1': 'a4ec096fba9995c7',
- 'tables': 'c77392ff60a56f90'}
+GOLDEN = {'context_tokens': '94f6347ff56ce972:93d4a1923daa17ff', 'read_mask': 'ea5d4d70a39de316',
+         'tables': 'c77392ff60a56f90'}
+
+# Recorded once on this migration (D-144 R5); a change here must be explained by an intentional probe/StageA change,
+# not by an accidental one (rebuild via `python -c "from tests.unit.test_psi0 import _goldens_r5; print(_goldens_r5())"`).
+GOLDEN_R5 = {'probe_metrics_grasp0': '{"active_hand_acc": [1.0, 3], "base_cmd_mae": [49.12035, 40], '
+                                     '"base_disp_mae": [13.06765, 12], "contact_acc": [17.0, 40], '
+                                     '"hand_dist_mae": [45.98371, 40], "lift_acc": [10.0, 20], '
+                                     '"target_pos_mae": [62.74125, 60]}',
+            'probe_metrics_grasp1': '{"active_hand_acc": [1.0, 3], "base_cmd_mae": [30.73586, 40], '
+                                    '"base_disp_mae": [11.98346, 12], "contact_acc": [17.0, 40], '
+                                    '"grasp_face_acc": [3.0, 4], "grasp_pt_err": [4.10538, 4], '
+                                    '"hand_dist_mae": [11.72864, 40], "lift_acc": [10.0, 20], '
+                                    '"target_pos_mae": [57.10979, 60]}'}
 
 
 def _dg(*arrs):
@@ -65,21 +71,6 @@ def _batch(B=4, g=0):
 def _goldens() -> dict:
     out = {"tables": _dg(G.node_static(), G.relation_matrix(), G.asm_static(), G.SIMPLE_QPOS_INDEX, G.DIM_MIRROR, G.DIM_DEPTH),
            "read_mask": _dg(N.read_mask())}
-    for grasp in (False, True):
-        torch.manual_seed(0); A = N.StageA(grasp=grasp)
-        out[f"stageA_init_grasp{int(grasp)}"] = _sd(A)
-        b = _batch(); torch.manual_seed(1)
-        loss, _, _ = A.loss(b, w_kl=1e-4, w_sem=0.1, z_noise=0.0, w_grasp=float(grasp))
-        out[f"stageA_loss_grasp{int(grasp)}"] = _dg(loss)
-        with torch.no_grad():
-            mu, lv = A.E(A.morph, b["state0"], b["actions"])
-            r = A.R(A.morph, mu, b["state_j"], b["j"].float() / N.TP)
-            p = A.P(mu)
-        out[f"stageA_fwd_grasp{int(grasp)}"] = _dg(mu, lv, r, *[p[k] for k in sorted(p)])
-        out[f"probe_metrics_grasp{int(grasp)}"] = json.dumps(
-            {k: [round(float(s), 5), n] for k, (s, n) in sorted(N.probe_metrics(p, b["labels"]).items())})
-    torch.manual_seed(0); P = N.PacketProbe(metadata_only=True)
-    out["probe_meta_only"] = _sd(P) + ":" + _dg(*[v for _, v in sorted(P(torch.randn(2, N.K, N.M, N.DZ)).items())])
     torch.manual_seed(0); C = N.ContextTokens()
     torch.manual_seed(5)
     hid = torch.randn(2, 7, 2048).to(torch.bfloat16); ent = torch.zeros(2, 7, dtype=torch.bool); ent[0, 3:5] = True
@@ -89,10 +80,109 @@ def _goldens() -> dict:
     return out
 
 
+def _goldens_r5() -> dict:
+    """probe metrics of the migrated (ReadoutProbe-based) StageA on the same fixture; not psi1z-comparable (the
+    probe architecture changed, D-144 R5) but a regression baseline for this migration going forward."""
+    out = {}
+    for grasp in (False, True):
+        torch.manual_seed(0); A = N.StageA(grasp=grasp)
+        b = N.add_cmd_labels(_batch())
+        with torch.no_grad():
+            mu, _ = A.E(A.morph, b["state0"], b["actions"])
+            p = N.run_probe(A.P, mu)
+        out[f"probe_metrics_grasp{int(grasp)}"] = json.dumps(
+            {k: [round(float(s), 5), n] for k, (s, n) in sorted(N.probe_metrics(p, b["labels"], A.P.specs).items())})
+    return out
+
+
 @torch_only
 def test_nets_match_psi1z_goldens():
+    """The subset of `_goldens()` the R5 migration does not touch (morphology tables, the legacy `read_mask()`
+    helper, `ContextTokens`) still matches the original psi1z digests byte for byte."""
     got = _goldens()
     assert {k: got[k] for k in GOLDEN} == GOLDEN
+
+
+@torch_only
+def test_probe_metrics_match_r5_baseline():
+    assert _goldens_r5() == GOLDEN_R5
+
+
+@torch_only
+def test_route_assembly_reads_matches_read_mask():
+    """The `route.assembly_reads` FactorSite bias the Realizer now uses reproduces the exact -inf pattern of the
+    legacy `read_mask()` fill it replaced (D-144 R5): same routing, same numbers, different mechanism."""
+    m = N.Morph(); B = 3
+    R = N.Realizer(D=16, heads=2, layers=1)
+    rc = RelCtx(sets={
+        "dims": TokenSet("dims", torch.ones(B, N.DA, dtype=torch.bool), fields={"assembly_id": m.dim_asm[None, :, None].expand(B, -1, -1)}),
+        "knots": TokenSet("knots", torch.ones(B, N.K * N.M, dtype=torch.bool), fields={"assembly_id": R.knot_asm[None, :, None].expand(B, -1, -1)})})
+    got = R.route.bias(rc)
+    want = torch.zeros(B, 1, N.DA, N.K * N.M).masked_fill(~m.read_mask[None, None], float("-inf"))
+    assert torch.equal(got, want)
+
+
+@torch_only
+def test_realizer_output_matches_pre_r5_formula():
+    """The Realizer's forward output is byte-identical to the pre-R5 formula (an inline masked_fill of the same
+    read_mask, run through the same RelBlock math) given the same weights and inputs — the factor-routed mask is a
+    mechanism change, not a numerical one (R5 acceptance: "Realizer output byte-identical on a seeded fixture")."""
+    torch.manual_seed(3)
+    R = N.Realizer(D=32, heads=4, layers=2)
+    m = N.Morph()
+    B = 4
+    z = torch.randn(B, N.K, N.M, N.DZ)
+    state = torch.randn(B, 36)
+    phase = torch.rand(B)
+    got = R(m, z, state, phase)
+
+    # the pre-R5 formula, reimplemented inline against the SAME modules (dims, z_in, asm, kt, out) and blocks
+    ph = torch.stack([torch.sin(math.pi * phase), torch.cos(math.pi * phase)], -1)
+    x = R.dims(m, state, extra=ph[:, None].expand(-1, N.DA, -1))
+    kt = torch.as_tensor(N.KNOT_STEPS, dtype=z.dtype) / N.TP
+    rel = kt[None] - phase[:, None]
+    tok = R.z_in(z) + R.kt(N.sinusoidal(rel, R.D))[:, :, None] + R.asm(m.asm_static)[None, None]
+    tok = tok.reshape(B, N.K * N.M, -1)
+    bias = torch.zeros(1, 1, N.DA, N.K * N.M, dtype=tok.dtype).masked_fill(~m.read_mask[None, None], float("-inf"))
+    for L in R.blocks:
+        x = x + L.x(L.n1(x), kv=tok, bias=bias)
+        x = x + L.s(L.n2(x))
+        x = x + L.m(L.n3(x))
+    want = R.out(x).transpose(1, 2)
+    assert torch.equal(got, want)
+
+
+@torch_only
+def test_probes_psi0_v1_preset_and_grasp_optional():
+    from rrp.policies.relations.base import resolve
+    core = resolve(None, default="probes:psi0-v1")
+    assert [s.name for s in core] == [f"probe.psi0.{q}" for q in
+                                      ("hand_dist", "contact", "lift", "target_pos", "active_hand", "base_disp", "base_cmd")]
+    assert not N.probe_has_grasp(N.new_probe())
+    assert N.probe_has_grasp(N.new_probe(grasp=True))
+
+
+@torch_only
+def test_load_tolerant_drops_pre_r5_packet_probe_keeps_rest():
+    """An old (pre-D-144) stage-A checkpoint's `P.*` (PacketProbe: `a1`/`a2`/`kcode`/`code` submodules, a different
+    architecture than `ReadoutProbe`) does not load; `R` / `E` / `morph` still load strictly."""
+    torch.manual_seed(11); A = N.StageA()
+    old = {k: v for k, v in A.state_dict().items() if not k.startswith("P.")}
+    old.update({"P.asm_code": torch.randn(N.M, 16), "P.code.weight": torch.randn(192, 16),
+               "P.kcode.weight": torch.randn(192, 16), "P.a1.q.weight": torch.randn(192, 192)})
+    torch.manual_seed(22)
+    B = N.load_tolerant(N.StageA(), dict(old))
+    sb = B.state_dict()
+    assert all(torch.equal(sb[k], old[k]) for k in old if not k.startswith("P."))
+    assert not torch.equal(sb["P.asm_code"], old["P.asm_code"])       # P kept its own fresh init
+
+
+@torch_only
+def test_load_tolerant_loads_post_r5_checkpoint_strictly():
+    torch.manual_seed(4); A = N.StageA(D=32, probe_D=32)
+    B = N.load_tolerant(N.StageA(D=32, probe_D=32), dict(A.state_dict()))
+    sa, sb = A.state_dict(), B.state_dict()
+    assert sa.keys() == sb.keys() and all(torch.equal(sa[k], sb[k]) for k in sa)
 
 
 def test_action_layout_matches_upstream_agent():
@@ -123,7 +213,7 @@ def test_realizer_single_block_without_dim_mixing_is_local():
     torch.manual_seed(0)
     m = N.Morph(); R = N.Realizer(D=64, layers=1)
     for L in R.blocks:
-        L["s"].forward = lambda x, **k: torch.zeros_like(x)
+        L.s.forward = lambda x, **k: torch.zeros_like(x)
     R.dims.layers = torch.nn.ModuleList()
     z = torch.randn(1, N.K, N.M, N.DZ, requires_grad=True)
     R(m, z, torch.randn(1, 36), torch.zeros(1))[0, :, 0].sum().backward()
@@ -143,13 +233,14 @@ def test_realizer_inputs_exclude_task_and_actions():
 def test_probe_nll_bounded_below():
     """Bounded probe NLL (D-085): log-variance floored at -4, so the loss cannot run to -inf on a perfect mean."""
     B = 4
-    out = N.PacketProbe(D=32)(torch.randn(B, N.K, N.M, N.DZ))
+    P = N.new_probe(D=32)
+    out = N.run_probe(P, torch.randn(B, N.K, N.M, N.DZ))
     lab = dict(hand_dist=out["hand_dist"][..., 0].detach(), contact=torch.zeros(B, N.K, 2), lift=torch.zeros(B, N.K),
                target_pos=out["target_pos"][..., :3].detach(), active_hand=torch.zeros(B, dtype=torch.long),
                base_disp=out["base_disp"][:, :3].detach(), base_cmd=out["base_cmd"][..., :2].detach())
     for k in ("hand_dist", "target_pos", "base_disp", "base_cmd"):
         out[k] = out[k].detach().clone(); d = out[k].shape[-1] // 2; out[k][..., d:] = -100.0
-    total, logs = N.probe_loss(out, lab, lv_min=-4.0)
+    total, logs = N.probe_loss(out, lab, P.specs, lv_min=-4.0)
     assert np.isfinite(float(total)) and logs["probe_target_pos"] >= 3 * 0.5 * (-4.0 + np.log(2 * np.pi)) - 1e-4
 
 
@@ -167,13 +258,13 @@ def test_grasp_head_off_by_default_and_loss_only_when_weighted():
     torch.manual_seed(0); b = N.StageA(D=32, probe_D=32, grasp=False)
     sa, sb = a.state_dict(), b.state_dict()
     assert sa.keys() == sb.keys() and all(torch.equal(sa[k], sb[k]) for k in sa) and not any("grasp" in k for k in sa)
-    torch.manual_seed(0); P = N.PacketProbe(D=32, grasp=True)
-    out = P(torch.randn(3, N.K, N.M, N.DZ))
-    assert out["grasp"].shape == (3, 2, 6 + N.N_FACES)
+    torch.manual_seed(0); P = N.new_probe(D=32, grasp=True)
+    out = N.run_probe(P, torch.randn(3, N.K, N.M, N.DZ))
+    assert out["grasp_pt"].shape == (3, 2, 6) and out["grasp_face"].shape == (3, 2, N.N_FACES)
     lab = {k: v[:3] for k, v in _batch()["labels"].items()}
-    assert "probe_grasp_pt" not in N.probe_loss(out, lab, w_grasp=0.0)[1]
-    assert {"probe_grasp_pt", "probe_grasp_face"} <= set(N.probe_loss(out, lab, w_grasp=1.0)[1])
-    assert N.probe_metrics(out, lab)["grasp_face_acc"][1] == 2          # only the valid (sample, hand) pairs are scored
+    assert "probe_grasp_pt" not in N.probe_loss(out, lab, P.specs, w_grasp=0.0)[1]
+    assert {"probe_grasp_pt", "probe_grasp_face"} <= set(N.probe_loss(out, lab, P.specs, w_grasp=1.0)[1])
+    assert N.probe_metrics(out, lab, P.specs)["grasp_face_acc"][1] == 2  # only the valid (sample, hand) pairs are scored
 
 
 @torch_only
@@ -183,7 +274,7 @@ def test_load_stage_a_infers_grasp_head(tmp_path):
         torch.save(dict(model=A.state_dict()), tmp_path / "a.pt")
         B = N.load_stage_a(tmp_path / "a.pt")
         sa, sb = A.state_dict(), B.state_dict()
-        assert B.P.grasp == g and sa.keys() == sb.keys() and all(torch.equal(sa[k], sb[k]) for k in sa)
+        assert N.probe_has_grasp(B.P) == g and sa.keys() == sb.keys() and all(torch.equal(sa[k], sb[k]) for k in sa)
 
 
 def test_worker_state32_matches_body_layout():

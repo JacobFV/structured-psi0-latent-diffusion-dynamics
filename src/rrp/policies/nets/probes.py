@@ -160,3 +160,35 @@ def readout_loss(out: dict, labels: dict, specs, masks: dict | None = None) -> t
         L[r.query] = v
         total = total + (1.0 if s.weight is None else s.weight) * v
     return total, {f"probe_{k}": float(v.detach()) for k, v in L.items()}
+
+
+@torch.no_grad()
+def readout_metrics(out: dict, labels: dict, specs, masks: dict | None = None) -> dict[str, tuple[float, int]]:
+    """One generic (sum, count) pair per query, aggregable across batches by summing both sides then dividing
+    (`s / n`): accuracy for `bce` / `ce` / `soft_ce`, mean absolute (per-scalar) error for `gauss` / `mse`, mean
+    cosine error for `cos`. `masks[query]` (bool, default all) restricts which leading-dim entries count."""
+    out_m: dict[str, tuple[float, int]] = {}
+    for s, r in readout_defs(specs):
+        if r.query not in out or r.label not in labels:
+            continue
+        p, y = out[r.query], labels[r.label]
+        m = (masks or {}).get(r.query)
+        if m is None:
+            m = torch.ones(p.shape[:-1], dtype=torch.bool, device=p.device)
+        if r.loss == "bce":
+            ok = (p.squeeze(-1) > 0) == y.bool()
+            out_m[f"{r.query}_acc"] = (float(ok[m].float().sum()), int(m.sum()))
+        elif r.loss in ("ce", "soft_ce"):
+            ref = y.argmax(-1) if r.loss == "soft_ce" else y.long()
+            ok = p.argmax(-1) == ref
+            out_m[f"{r.query}_acc"] = (float(ok[m].float().sum()), int(m.sum()))
+        elif r.loss in ("gauss", "mse"):
+            d = y.shape[-1] if r.loss == "gauss" else (p.shape[-1] if y.dim() == p.dim() else 1)
+            mu = p[..., :d] if r.loss == "gauss" else (p if y.dim() == p.dim() else p.squeeze(-1))
+            e = (mu - y * r.scale).abs()
+            mm = m[..., None].expand_as(e) if e.dim() > m.dim() else m
+            out_m[f"{r.query}_mae"] = (float(e[mm].sum()), int(mm.sum()))
+        elif r.loss == "cos":
+            e = 1 - (F.normalize(p, dim=-1) * y).sum(-1)
+            out_m[f"{r.query}_cos_err"] = (float(e[m].sum()), int(m.sum()))
+    return out_m

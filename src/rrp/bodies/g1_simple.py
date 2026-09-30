@@ -161,6 +161,30 @@ def assembly_dims() -> dict[str, np.ndarray]:
     return {n: np.nonzero(DIM_ASM == i)[0] for i, n in enumerate(ASSEMBLIES)}
 
 
+# system-0 routing (D-144 R5): which assemblies' knots each assembly's command dims may read directly in the
+# structured Ψ₀ Realizer (own assembly + kinematic neighbours). Canonical source for the `route.assembly_reads`
+# factor's `params.reads` (`rrp.policies.relations.catalog`) and for `psi0.nets.read_mask` (legacy-shape helper,
+# kept for its golden digest); declared once here so neither module duplicates the mapping.
+READS: dict[str, tuple[str, ...]] = {
+    "left_hand": ("left_hand", "left_arm"),
+    "right_hand": ("right_hand", "right_arm"),
+    "left_arm": ("left_arm", "left_hand", "torso"),
+    "right_arm": ("right_arm", "right_hand", "torso"),
+    "torso": ("torso", "base", "left_arm", "right_arm"),
+    "base": ("base", "torso"),
+}
+
+
+def reads_table() -> np.ndarray:
+    """[M, M] bool: reads_table[a, b] = dims of assembly `a` may cross-attend directly to knots of assembly `b`."""
+    M = len(ASSEMBLIES)
+    t = np.zeros((M, M), dtype=bool)
+    for a, allowed in READS.items():
+        for b in allowed:
+            t[ASM_INDEX[a], ASM_INDEX[b]] = True
+    return t
+
+
 def spec_hash() -> str:
     """Stable identity of this command-space morphology (dims, joints, assemblies, relations); the G1 itself is simulated
     inside SIMPLE, not compiled by rrp, so there is no full `RobotSpec` for it."""

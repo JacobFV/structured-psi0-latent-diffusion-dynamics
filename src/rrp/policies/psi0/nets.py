@@ -35,11 +35,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from rrp.bodies import g1_simple as G
-from rrp.policies.nets.attention import MHA
-from rrp.policies.relations.base import EdgeSet, RelCtx, TokenSet, resolve
+from rrp.policies.nets.attention import MHA, RelBlock
+from rrp.policies.relations.base import EdgeSet, RelCtx, TokenSet, get_factor, resolve
 from rrp.policies.relations.ops import FactorSite
 from rrp.policies.nets.flow import MLP, sinusoidal
-from rrp.policies.nets.legged_latent import gnll
+from rrp.policies.nets.probes import ReadoutProbe, gaussian_nll, readout_defs, readout_loss, readout_metrics
 
 K = 5
 KNOT_STEPS = (5, 11, 17, 23, 29)
@@ -48,25 +48,17 @@ DZ = 64
 TP = 30                     # Psi0 chunk length
 DA = G.ACTION_DIM           # 36
 
-# which assemblies' knots each assembly's command dims may read in system 0 (own + kinematic neighbours)
+# which assemblies' knots each assembly's command dims may read in system 0 (own + kinematic neighbours); canonical
+# table: bodies.g1_simple.READS / reads_table() (also the `route.assembly_reads` factor's params.reads, D-144 R5).
 _A = G.ASM_INDEX
-READS = {
-    "left_hand": ("left_hand", "left_arm"),
-    "right_hand": ("right_hand", "right_arm"),
-    "left_arm": ("left_arm", "left_hand", "torso"),
-    "right_arm": ("right_arm", "right_hand", "torso"),
-    "torso": ("torso", "base", "left_arm", "right_arm"),
-    "base": ("base", "torso"),
-}
+READS = G.READS
 
 
 def read_mask() -> torch.Tensor:
-    """[DA, K*M] bool: command dim i may attend to knot token (k, m)."""
-    allow = np.zeros((DA, M), dtype=bool)
-    for i in range(DA):
-        own = G.ASSEMBLIES[G.DIM_ASM[i]]
-        for a in READS[own]:
-            allow[i, _A[a]] = True
+    """[DA, K*M] bool: command dim i may attend to knot token (k, m). Legacy shape, kept for its golden digest and
+    `test_realizer_direct_reads_follow_reads_table`; the Realizer itself now gets this exact pattern from the
+    `route.assembly_reads` FactorSite (test_route_assembly_reads_matches_read_mask)."""
+    allow = G.reads_table()[G.DIM_ASM]                        # [DA, M]
     return torch.from_numpy(np.tile(allow, (1, K)))          # token order k-major: (k0,m0..m5),(k1,...)
 
 
@@ -159,18 +151,22 @@ class PacketEncoder(nn.Module):
 class Realizer(nn.Module):
     """R (system 0): z + morphology + CURRENT state at tick j (+ phase j) -> 30-tick command rows for the packet.
     Cross-attention: each command dim reads packet knots DIRECTLY only from its own assembly and its kinematic neighbours
-    (READS). Self-attention between command dims then mixes information across assemblies, so the locality is a routing
-    prior, not an information barrier (tests/unit/test_psi0.py measures both)."""
+    (READS), applied as the `route.assembly_reads` factor (D-144 R5; params.reads = bodies.g1_simple.reads_table())
+    through the shared `RelBlock` / `FactorSite` (mask form: same -inf pattern as the legacy `read_mask()` fill,
+    tests/unit/test_psi0.py). Self-attention between command dims then mixes information across assemblies, so the
+    locality is a routing prior, not an information barrier (tests/unit/test_psi0.py measures both)."""
 
-    def __init__(self, D=256, heads=4, layers=3):
+    def __init__(self, D=256, heads=4, layers=3, factors=None):
         super().__init__()
-        self.dims = DimEncoder(D, heads, 2, extra=2)
+        self.dims = DimEncoder(D, heads, 2, extra=2, factors=factors)
         self.z_in = nn.Linear(DZ, D)
         self.asm = MLP(M + 3, D)
         self.kt = MLP(D, D)
-        self.blocks = nn.ModuleList([block(D, heads) for _ in range(layers)])
+        self.blocks = nn.ModuleList([RelBlock(D, heads) for _ in range(layers)])
         self.out = nn.Linear(D, TP)
         self.D = D
+        self.route = FactorSite(heads, D, "dims>knots", resolve(factors, default="s0-psi0"), ("assembly_id",))
+        self.register_buffer("knot_asm", torch.from_numpy(np.tile(np.arange(M, dtype=np.int64), K)))  # k-major, D-144 R5
 
     def forward(self, morph, z, state, phase):
         """z [B,K,M,DZ]; state [B,>=32] normalized CURRENT state; phase [B] = tick index j / TP."""
@@ -181,17 +177,19 @@ class Realizer(nn.Module):
         rel = kt[None] - phase[:, None]                                                            # [B, K]
         tok = self.z_in(z) + self.kt(sinusoidal(rel, self.D))[:, :, None] + self.asm(morph.asm_static)[None, None]
         tok = tok.reshape(B, K * M, -1)
-        bias = torch.zeros(1, 1, DA, K * M, device=z.device, dtype=tok.dtype).masked_fill(~morph.read_mask[None, None],
-                                                                                           float("-inf"))
+        rc = RelCtx(sets={
+            "dims": TokenSet("dims", torch.ones(B, DA, dtype=torch.bool, device=z.device),
+                             fields={"assembly_id": morph.dim_asm[None, :, None].expand(B, -1, -1)}),
+            "knots": TokenSet("knots", torch.ones(B, K * M, dtype=torch.bool, device=z.device),
+                              fields={"assembly_id": self.knot_asm[None, :, None].expand(B, -1, -1)})})
+        bias = self.route.bias(rc)
         for L in self.blocks:
-            x = run_block(L, x, tok, bias=bias)
+            x = L(x, tok, bias_x=bias)
         return self.out(x).transpose(1, 2)                                                         # [B, TP, DA]
 
 
 # ---------------------------------------------------------------- probe
-HANDS = ("left_hand", "right_hand")
-PROBE_QUERIES = ("hand_dist", "contact", "lift", "target_pos", "active_hand", "base_disp", "base_cmd")
-N_FACES = 6
+N_FACES = 6          # grasp contact-face class count (+-x, +-y, +-z); catalog.py's probe.psi0.grasp_face duplicates it
 CMD_DIMS = (32, 34)          # vx, yaw-rate command (normalized action units) — packet LABELS, never inputs
 
 
@@ -202,131 +200,96 @@ def add_cmd_labels(b):
     return b
 
 
-class PacketProbe(nn.Module):
-    """P: reads z with opaque random assembly/knot codes only (no scene features, no labels).
-
-    Outputs per knot k: hand_dist[k, h] (Gaussian, m, hand-to-target distance), contact[k, h] (logit),
-    lift[k] (logit, target above its initial height by >= 3 cm), target_pos[k] (Gaussian, 3, target in the
-    robot base frame); per packet: active_hand (2-way logits: which hand grasps; binding), base_disp (Gaussian, 3:
-    dx, dy, dyaw over the packet in the start base frame)."""
-
-    def __init__(self, D=192, heads=4, metadata_only=False, seed=1234, grasp=False):
-        super().__init__()
-        g = torch.Generator().manual_seed(seed)
-        self.register_buffer("asm_code", F.normalize(torch.randn(M, 16, generator=g), dim=-1))
-        self.register_buffer("knot_code", F.normalize(torch.randn(K, 16, generator=g), dim=-1))
-        self.metadata_only = metadata_only
-        self.z_in = nn.Linear(DZ, D)
-        self.code = nn.Linear(16, D)
-        self.kcode = nn.Linear(16, D)
-        self.qtype = nn.Embedding(len(PROBE_QUERIES), D)
-        self.const = nn.Parameter(torch.zeros(1, 1, D))
-        self.a1, self.a2 = MHA(D, heads), MHA(D, heads)
-        self.n1, self.n2 = nn.LayerNorm(D), nn.LayerNorm(D)
-        self.mlp = MLP(D, D, 2 * D)
-        self.heads = nn.ModuleDict(dict(hand_dist=nn.Linear(D, 2), contact=nn.Linear(D, 1), lift=nn.Linear(D, 1),
-                                        target_pos=nn.Linear(D, 6), active_hand=nn.Linear(D, 2),
-                                        base_disp=nn.Linear(D, 6), base_cmd=nn.Linear(D, 4)))
-        # grasp-region affordance (roadmap #24, rrp D-126; default OFF): per hand, the first-contact point on the target
-        # in the target's object frame (Gaussian, 3-d) + contact-face class (6: +-x, +-y, +-z). Built last and only when
-        # enabled, so default-off models keep exactly the same parameters and initialisation.
-        self.grasp = grasp
-        if grasp:
-            self.grasp_q = nn.Embedding(1, D)
-            self.grasp_head = nn.Linear(D, 6 + N_FACES)
-
-    def forward(self, z):
-        B = z.shape[0]
-        tpos = self.kcode(self.knot_code)[:, None] + self.code(self.asm_code)[None]               # [K, M, D]
-        t = (self.const.expand(B, K * M, -1) + tpos.reshape(1, K * M, -1)) if self.metadata_only else \
-            (self.z_in(z) + tpos[None]).reshape(B, K * M, -1)
-
-        def read(q, key_mask=None):
-            r = q + self.a1(self.n1(q), kv=t, key_mask=key_mask)
-            r = r + self.a2(self.n2(r), kv=t, key_mask=key_mask)
-            return r + self.mlp(r)
-        hi = torch.tensor([G.ASM_INDEX[h] for h in HANDS], device=z.device)
-        qh = tpos[:, hi]                                                                           # [K, 2, D]
-        qd = read((self.qtype.weight[0] + qh).reshape(1, K * 2, -1).expand(B, -1, -1))
-        qc = read((self.qtype.weight[1] + qh).reshape(1, K * 2, -1).expand(B, -1, -1))
-        kk = self.kcode(self.knot_code)                                                            # [K, D]
-        ql = read((self.qtype.weight[2] + kk)[None].expand(B, -1, -1))
-        qt = read((self.qtype.weight[3] + kk)[None].expand(B, -1, -1))
-        qa = read(self.qtype.weight[4][None, None].expand(B, 1, -1))
-        qb = read(self.qtype.weight[5][None, None].expand(B, 1, -1))
-        # base command is read ONLY from the tokens that system 0's base dims read (READS["base"]): the packet must
-        # carry locomotion intent where the realizer can use it
-        bm = torch.zeros(K, M, dtype=torch.bool, device=z.device)
-        for an in READS["base"]:
-            bm[:, G.ASM_INDEX[an]] = True
-        qm = read((self.qtype.weight[6] + kk + self.code(self.asm_code[G.ASM_INDEX["base"]]))[None].expand(B, -1, -1),
-                  key_mask=bm.reshape(1, K * M).expand(B, -1))
-        return dict(hand_dist=self.heads["hand_dist"](qd).reshape(B, K, 2, 2),
-                    contact=self.heads["contact"](qc).reshape(B, K, 2),
-                    lift=self.heads["lift"](ql)[..., 0],
-                    target_pos=self.heads["target_pos"](qt),
-                    active_hand=self.heads["active_hand"](qa)[:, 0],
-                    base_disp=self.heads["base_disp"](qb)[:, 0],
-                    base_cmd=self.heads["base_cmd"](qm),
-                    **({"grasp": self._grasp(read, qh, B)} if self.grasp else {}))
-
-    def _grasp(self, read, qh, B):
-        q = read((self.grasp_q.weight[0] + qh[-1]).reshape(1, 2, -1).expand(B, -1, -1))     # last knot, per hand
-        return self.grasp_head(q)                                                            # [B, 2, 6 + N_FACES]
+def _with_lv_min(specs, lv_min):
+    """specs with each gauss-readout FactorSpec's `params.lv_min` set to `lv_min` (readout_loss reads it from
+    `FactorSpec.params`, not a call-time argument; psi0's CLI configures it per training run, D-085)."""
+    from dataclasses import replace as _replace
+    out = []
+    for s in specs:
+        if get_factor(s.name).readout.loss == "gauss":
+            p = dict(s.params); p["lv_min"] = lv_min
+            s = _replace(s, params=tuple(sorted(p.items())))
+        out.append(s)
+    return tuple(out)
 
 
+def probe_specs(grasp: bool = False):
+    """`probes:psi0-v1` (+ the optional grasp-region factors); D-144 R5, replaces the former bespoke `PacketProbe`."""
+    return ["preset:probes:psi0-v1"] + (["probe.psi0.grasp_pt", "probe.psi0.grasp_face"] if grasp else [])
 
-def probe_loss(out, lab, lv_min=-4.0, w_grasp=0.0):
+
+def new_probe(D=192, heads=4, metadata_only=False, seed=1234, grasp=False) -> ReadoutProbe:
+    """The psi0 packet probe: a `ReadoutProbe` (docs/relations.md 4) configured by `probes:psi0-v1`. `max_pairs=2`
+    addresses the two hands (`hand_dist`, `contact`, and the optional grasp queries read both; `lift` / `target_pos`
+    / `base_cmd` are per-knot only and read pair slot 0 — see `run_probe`)."""
+    return ReadoutProbe(DZ, K, specs=probe_specs(grasp), width=D, heads=heads, max_assemblies=M, max_pairs=2,
+                        metadata_only=metadata_only, seed=seed)
+
+
+def probe_has_grasp(P: ReadoutProbe) -> bool:
+    return any(r.query == "grasp_pt" for _, r in readout_defs(P.specs))
+
+
+def run_probe(P: ReadoutProbe, z: torch.Tensor) -> dict:
+    """P(z) + the per-query slicing `ReadoutProbe`'s generic `knot×pair` addressing needs for psi0's per-knot-only
+    queries (pair slot 0) and the grasp queries (last knot only, both hands)."""
+    B = z.shape[0]
+    zmask = torch.ones(B, M, dtype=torch.bool, device=z.device)
+    out = dict(P(z, zmask, n_pairs=2))
+    for q in ("lift", "target_pos", "base_cmd"):
+        if q in out:
+            out[q] = out[q][:, :, 0]
+    for q in ("grasp_pt", "grasp_face"):
+        if q in out:
+            out[q] = out[q][:, -1]
+    return out
+
+
+def probe_loss(out, lab, specs, lv_min=-4.0, w_grasp=0.0):
     """lab: hand_dist [B,K,2], contact [B,K,2] {0,1}, lift [B,K], target_pos [B,K,3], active_hand [B] (long, -1 = none),
-    base_disp [B,3]; *_valid masks optional. lv_min=-4 is the bounded-NLL setting (rrp D-085)."""
-    L = {}
-    L["hand_dist"] = gnll(out["hand_dist"], lab["hand_dist"][..., None], lv_min=lv_min)
-    L["contact"] = F.binary_cross_entropy_with_logits(out["contact"], lab["contact"].float())
-    L["lift"] = F.binary_cross_entropy_with_logits(out["lift"], lab["lift"].float())
-    L["target_pos"] = gnll(out["target_pos"], lab["target_pos"], lv_min=lv_min)
-    ah = lab["active_hand"]
-    L["active_hand"] = F.cross_entropy(out["active_hand"], ah.clamp(min=0), reduction="none")[ah >= 0].mean() \
-        if (ah >= 0).any() else out["active_hand"].sum() * 0
-    L["base_disp"] = gnll(out["base_disp"], lab["base_disp"], lv_min=lv_min)
-    if "base_cmd" in lab:
-        L["base_cmd"] = gnll(out["base_cmd"], lab["base_cmd"], lv_min=lv_min)
-    if w_grasp > 0 and "grasp" in out and "grasp_pt" in lab:
+    base_disp [B,3]; *_valid masks optional. lv_min=-4 is the bounded-NLL setting (rrp D-085). `specs`: `P.specs`
+    (`ReadoutProbe.specs`, resolved `probes:psi0-v1` (+ grasp)); the shared `readout_loss` (nets.probes) carries every
+    query except grasp, which needs a runtime weight (`w_grasp`, not a spec-time one) and a validity mask."""
+    lab2 = dict(lab)
+    masks = {}
+    if "hand_dist" in out:
+        lab2["hand_dist"] = lab["hand_dist"][..., None]
+    if "active_hand" in out:
+        ah = lab["active_hand"]
+        lab2["active_hand"], masks["active_hand"] = ah.clamp(min=0), ah >= 0
+    core = _with_lv_min(tuple(s for s in specs if get_factor(s.name).readout.query not in ("grasp_pt", "grasp_face")),
+                        lv_min)
+    total, logs = readout_loss(out, lab2, core, masks)
+    if w_grasp > 0 and "grasp_pt" in out and "grasp_valid" in lab:
         m = lab["grasp_valid"].bool()                                                    # [B, 2]
         if m.any():
-            g = out["grasp"][m]
-            L["grasp_pt"] = w_grasp * gnll(g[:, :6], lab["grasp_pt"][m], lv_min=lv_min)
-            L["grasp_face"] = w_grasp * F.cross_entropy(g[:, 6:], lab["grasp_face"][m])
-    return sum(L.values()), {f"probe_{k}": float(v.detach()) for k, v in L.items()}
+            gp = gaussian_nll(out["grasp_pt"][m], lab["grasp_pt"][m],
+                              torch.ones(int(m.sum()), dtype=torch.bool, device=m.device), lv_min)
+            gf = F.cross_entropy(out["grasp_face"][m], lab["grasp_face"][m])
+            total = total + w_grasp * gp + w_grasp * gf
+            logs["probe_grasp_pt"], logs["probe_grasp_face"] = float(gp.detach()), float(gf.detach())
+    return total, logs
 
 
 @torch.no_grad()
-def probe_metrics(out, lab):
-    """(sum, count) pairs."""
-    res = {}
-    d = (out["hand_dist"][..., 0] - lab["hand_dist"]).abs()
-    res["hand_dist_mae"] = (float(d.sum()), d.numel())
-    c = (out["contact"] > 0) == lab["contact"].bool()
-    res["contact_acc"] = (int(c.sum()), c.numel())
-    pos = lab["contact"].bool()
-    res["contact_pos_recall"] = (int((c & pos).sum()), int(pos.sum()))
-    li = (out["lift"] > 0) == lab["lift"].bool()
-    res["lift_acc"] = (int(li.sum()), li.numel())
-    te = (out["target_pos"][..., :3] - lab["target_pos"]).norm(dim=-1)
-    res["target_pos_err"] = (float(te.sum()), te.numel())
-    ah = lab["active_hand"]
-    ok = (out["active_hand"].argmax(-1) == ah) & (ah >= 0)
-    res["active_hand_acc"] = (int(ok.sum()), int((ah >= 0).sum()))
-    if "base_cmd" in lab:
-        ce = (out["base_cmd"][..., :2] - lab["base_cmd"]).abs()
-        res["base_cmd_vx_mae_norm"] = (float(ce[..., 0].sum()), ce[..., 0].numel())
-    if "grasp" in out and "grasp_pt" in lab and lab["grasp_valid"].any():
+def probe_metrics(out, lab, specs):
+    """(sum, count) pairs; see `probe_loss` for the grasp / active_hand handling `readout_metrics` cannot infer
+    generically."""
+    lab2 = dict(lab)
+    masks = {}
+    if "hand_dist" in out:
+        lab2["hand_dist"] = lab["hand_dist"][..., None]
+    if "active_hand" in out:
+        ah = lab["active_hand"]
+        lab2["active_hand"], masks["active_hand"] = ah.clamp(min=0), ah >= 0
+    core = tuple(s for s in specs if get_factor(s.name).readout.query not in ("grasp_pt", "grasp_face"))
+    res = readout_metrics(out, lab2, core, masks)
+    if "grasp_pt" in out and "grasp_valid" in lab and lab["grasp_valid"].any():
         m = lab["grasp_valid"].bool()
-        e = (out["grasp"][m][:, :3] - lab["grasp_pt"][m]).norm(dim=-1)
-        res["grasp_pt_err"] = (float(e.sum()), e.numel())
-        f = out["grasp"][m][:, 6:].argmax(-1) == lab["grasp_face"][m]
-        res["grasp_face_acc"] = (int(f.sum()), f.numel())
-    be = (out["base_disp"][:, :2] - lab["base_disp"][:, :2]).norm(dim=-1)
-    res["base_disp_xy_err"] = (float(be.sum()), be.numel())
+        e = (out["grasp_pt"][m][:, :3] - lab["grasp_pt"][m]).norm(dim=-1)
+        res["grasp_pt_err"] = (float(e.sum()), int(e.numel()))
+        f = out["grasp_face"][m].argmax(-1) == lab["grasp_face"][m]
+        res["grasp_face_acc"] = (float(f.float().sum()), int(f.numel()))
     return res
 
 
@@ -342,7 +305,7 @@ class StageA(nn.Module):
         self.morph = Morph()
         self.E = PacketEncoder(D)
         self.R = Realizer(D)
-        self.P = PacketProbe(probe_D, metadata_only=metadata_only_probe, grasp=grasp)
+        self.P = new_probe(probe_D, metadata_only=metadata_only_probe, grasp=grasp)
 
     rec_dim_w = None      # optional [DA] reconstruction weights (set by the trainer)
 
@@ -360,32 +323,38 @@ class StageA(nn.Module):
             m = m * self.rec_dim_w.to(m.device)
         rec = (((pred - b["actions"]) ** 2) * m).sum() / m.sum().clamp(min=1)
         kl = kl_std_normal(mu, lv)
-        pl, plog = probe_loss(self.P(z), b["labels"], lv_min=lv_min, w_grasp=w_grasp) if w_sem > 0 else (z.sum() * 0, {})
+        pl, plog = probe_loss(run_probe(self.P, z), b["labels"], self.P.specs, lv_min=lv_min, w_grasp=w_grasp) \
+            if w_sem > 0 else (z.sum() * 0, {})
         loss = rec + w_kl * kl + w_sem * pl
         return loss, dict(rec=float(rec.detach()), kl=float(kl.detach()), **plog), dict(rec=rec, kl=kl, sem=pl)
 
 
 def load_stage_a(path, map_location="cpu"):
-    """Load a stage-A checkpoint, tolerating v1 checkpoints (6 probe queries, no base_cmd head): the extra query row
-    and head keep their fresh init (only used when base_cmd labels are present)."""
+    """Load a stage-A checkpoint through `load_tolerant` (pre-D-144 `PacketProbe` checkpoints: `P.*` is redesigned as
+    `ReadoutProbe`, D-144 R5, so it keeps its fresh init and is fit again; `R` / `E` / `morph` load strictly)."""
     sd = torch.load(path, weights_only=False, map_location=map_location)["model"]
-    A = StageA(grasp=any(k.startswith("P.grasp_") for k in sd))
-    own = A.state_dict()
-    for k, v in list(sd.items()):
-        if k in own and own[k].shape != v.shape and k.endswith("qtype.weight"):
-            w = own[k].clone(); w[: v.shape[0]] = v; sd[k] = w
-    A.load_state_dict(sd, strict=False)
-    return A
+    grasp = any(k.startswith("P.grasp_") or "grasp_pt" in k or "grasp_face" in k for k in sd)  # old or new key names
+    return load_tolerant(StageA(grasp=grasp), sd)
 
 
 def load_tolerant(module, sd):
-    """load_state_dict for modules containing a v1 stage A (pads probe qtype, ignores the missing base_cmd head)."""
+    """load_state_dict for modules containing an older stage A / structured-head checkpoint: pads the v1 probe's
+    `qtype` row (pre-base_cmd), and, for a PRE-D-144 checkpoint (probe module keys `P.a1.` / `P.a2.` / `P.kcode.` /
+    `P.code.`: the old `PacketProbe`), drops every `P.*` key so the probe keeps its fresh init — the pre-D-144
+    `PacketProbe` and the current `ReadoutProbe` (`probes:psi0-v1`, R5) are different architectures (retrained /
+    refit, not loaded); `R` / `E` / `morph` are unaffected and always load strictly. A post-D-144 checkpoint's `P.*`
+    loads and is checked strictly like everything else."""
     own = module.state_dict()
     for k, v in list(sd.items()):
         if k in own and own[k].shape != v.shape and k.endswith("qtype.weight"):
             w = own[k].clone(); w[: v.shape[0]] = v; sd[k] = w
+    old_probe = any(k.startswith(("P.a1.", "P.a2.", "P.kcode.", "P.code.")) for k in sd)
+    if old_probe:
+        for k in [k for k in sd if k.startswith("P.")]:
+            del sd[k]
     missing, unexpected = module.load_state_dict(sd, strict=False)
-    bad = [m for m in missing if "base_cmd" not in m] + list(unexpected)
+    bad = [m for m in missing if "base_cmd" not in m and not (old_probe and m.startswith("P."))] + \
+        [u for u in unexpected if not (old_probe and u.startswith("P."))]
     if bad:
         raise RuntimeError(f"unexpected key mismatch: {bad[:5]}")
     return module

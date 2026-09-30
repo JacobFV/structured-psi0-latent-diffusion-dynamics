@@ -193,7 +193,7 @@ def train(argv=None):
             if a.arm == "stageA" and "labels" in b:
                 N.add_cmd_labels(b)
                 mu, _ = model.E(model.morph, b["state0"], b["actions"])
-                for k, (s_, n_) in N.probe_metrics(model.P(mu), b["labels"]).items():
+                for k, (s_, n_) in N.probe_metrics(N.run_probe(model.P, mu), b["labels"], model.P.specs).items():
                     ps, pn = pm.get(k, (0.0, 0)); pm[k] = (ps + s_, pn + n_)
     summ = dict(arm=a.arm, steps=step, batch=a.batch, lr=lr, trainable_params=n_train, gpu_seconds=t_gpu,
                 train_eps=tr_eps, val_eps=va_eps, feat_meta=meta,
@@ -251,7 +251,7 @@ def fit_probes(argv=None):
     res = {}
     for name, meta_only in (("probe_on_z", False), ("metadata_only_control", True)):
         torch.manual_seed(0)
-        P = N.PacketProbe(metadata_only=meta_only).to(dev)
+        P = N.new_probe(metadata_only=meta_only).to(dev)
         opt = torch.optim.AdamW(P.parameters(), lr=3e-4)
         dl = torch.utils.data.DataLoader(ds, batch_size=128, shuffle=True, drop_last=True, collate_fn=collate)
         it, step = iter(dl), 0
@@ -263,7 +263,7 @@ def fit_probes(argv=None):
             b = to_dev(b, dev)
             with torch.no_grad(), torch.autocast("cuda", dtype=torch.bfloat16):
                 z = zs_of(A, b, head).float()
-            l, _ = N.probe_loss(P(z), b["labels"], lv_min=-4.0)
+            l, _ = N.probe_loss(N.run_probe(P, z), b["labels"], P.specs, lv_min=-4.0)
             opt.zero_grad(); l.backward(); opt.step(); step += 1
         pm = {}
         with torch.no_grad():
@@ -271,7 +271,7 @@ def fit_probes(argv=None):
                 b = to_dev(b, dev)
                 with torch.autocast("cuda", dtype=torch.bfloat16):
                     z = zs_of(A, b, head).float()
-                for k, (s_, n_) in N.probe_metrics(P(z), b["labels"]).items():
+                for k, (s_, n_) in N.probe_metrics(N.run_probe(P, z), b["labels"], P.specs).items():
                     ps, pn = pm.get(k, (0.0, 0)); pm[k] = (ps + s_, pn + n_)
         res[name] = {k: (s_ / n_ if n_ else None) for k, (s_, n_) in pm.items()}
         print(name, json.dumps(res[name]), flush=True)

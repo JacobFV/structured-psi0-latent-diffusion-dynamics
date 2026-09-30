@@ -81,6 +81,38 @@ for _q, _addr, _out, _loss, _lab, _sc in _ARM_PROBE:
     register_factor(FactorDef(f"probe.arm.{_q}", "1", field="packet", op="inert", form="readout", label=_lab,
                               readout=ReadoutDef(_q, _addr, _out, _loss, label=_lab, scale=_sc)))
 register_preset("probes:arm-packet-v1", [f"probe.arm.{q[0]}" for q in _ARM_PROBE[:-1]])
+# ------------------------------------------------------------------ R5: Ψ₀ system 0 routing + probe (probes:psi0-v1)
+# `route.assembly_reads` (foundation) with the G1's fixed READS table (bodies.g1_simple.reads_table; the Realizer's
+# dims>knots mask, replacing the former inline `read_mask()` fill).
+register_preset("s0-psi0", [{"name": "route.assembly_reads", "params": {"reads": _G.reads_table().tolist()}}])
+
+# psi0 packet probe (former `policies.psi0.nets.PacketProbe`; query order = its old PROBE_QUERIES order). All labels
+# privileged (`sim_replay`, unit R5 brief). Addressing on the generic `ReadoutProbe` (docs/relations.md 4): psi0 has
+# no `entity` token set, so per-hand queries use `knot×pair` with the 2 pair slots standing for (left, right) hand and
+# per-knot-only queries (`lift`, `target_pos`, `base_cmd`) use `knot×pair` too and read only pair slot 0
+# (`policies.psi0.nets.run_probe`); `active_hand` / `base_disp` are per-packet (`body`). `base_cmd`'s legacy
+# base-assembly-only key mask (`READS["base"]`) is not reproduced by the generic probe (ReadoutProbe has one key mask
+# per forward, not per query); tracked in research/tracks/rel-r5.md.
+_PSI0_PROBE = (
+    ("hand_dist", "knot×pair", 2, "gauss", "hand_dist", 1.0),
+    ("contact", "knot×pair", 1, "bce", "contact", 1.0),
+    ("lift", "knot×pair", 1, "bce", "lift", 1.0),
+    ("target_pos", "knot×pair", 6, "gauss", "target_pos", 1.0),
+    ("active_hand", "body", 2, "ce", "active_hand", 1.0),
+    ("base_disp", "body", 6, "gauss", "base_disp", 1.0),
+    ("base_cmd", "knot×pair", 4, "gauss", "base_cmd", 1.0),
+)
+for _q, _addr, _out, _loss, _lab, _sc in _PSI0_PROBE:
+    register_factor(FactorDef(f"probe.psi0.{_q}", "1", field="packet", op="inert", form="readout", label=_lab,
+                              readout=ReadoutDef(_q, _addr, _out, _loss, label=_lab, scale=_sc)))
+register_preset("probes:psi0-v1", [f"probe.psi0.{q[0]}" for q in _PSI0_PROBE])
+# grasp-region affordance (roadmap #24, D-126; default OFF, unit R5): first-contact point on the target in the
+# target's object frame (knot×pair, last knot only, run_probe) + 6-way contact-face class; N_FACES = 6
+# (policies.psi0.nets.N_FACES) is a plain literal here (catalog.py stays torch-free; nets.py imports torch).
+register_factor(FactorDef("probe.psi0.grasp_pt", "1", field="packet", op="inert", form="readout", label="grasp_pt",
+                          readout=ReadoutDef("grasp_pt", "knot×pair", 6, "gauss", label="grasp_pt")))
+register_factor(FactorDef("probe.psi0.grasp_face", "1", field="packet", op="inert", form="readout", label="grasp_face",
+                          readout=ReadoutDef("grasp_face", "knot×pair", 6, "ce", label="grasp_face")))
 # ------------------------------------------------------------------ R13: geometry (geo.*)
 # PaPE (sqdiff+diff), rel_rot, align and order over the R12 fields (`pos3d`, `cam_uvd`, `orient`, `normal`). Every
 # entry offers `probe` as a source: a `FieldReadouts` head (the foundation hook, `rrp.policies.relations.ops`) reads
