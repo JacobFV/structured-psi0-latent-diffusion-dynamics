@@ -33,11 +33,13 @@ BANK_ID = {b: k for k, b in enumerate(BANKS)}
 
 
 class MultiFeaturizer:
-    def __init__(self, model, mounted_robots: list, frame: dict | None = None):
+    def __init__(self, model, mounted_robots: list, frame: dict | None = None, base_axes: bool | None = None):
+        # base_axes: R12 `feat.base_axes` (see Featurizer.__init__); None keeps today's $RRP_KINFEAT behaviour.
         fr = frame or WORKSPACE_FRAME
         self.frame = fr
         self.subs = [Featurizer(model, mr.robot_spec, mr.prefix, mr.meta, fr["origin"], fr["yaw"],
-                                mr.manipulator_bindings, robot_index=i) for i, mr in enumerate(mounted_robots)]
+                                mr.manipulator_bindings, robot_index=i, base_axes=base_axes)
+                    for i, mr in enumerate(mounted_robots)]
         self.n_nodes = [len(f.node_joint_names) for f in self.subs]
         self.node_off = np.cumsum([0] + self.n_nodes[:-1]).tolist()
         self.N = int(sum(self.n_nodes))

@@ -38,6 +38,22 @@ N_REL = len(REL)
 HASH_DIM = 16
 BANKS = ["morph", "scene", "task", "interact"]
 
+# ---- fixed column layout (R12, D-144): named slices of the token vectors above, so the collate path
+# (nets.batch) can derive TokenSet fields (pos3d, cam_uvd, orient, entity_id, assembly_id) from EXISTING
+# token columns instead of a dataset rewrite. Purely additive / documentation; no feature values change.
+# Checked against the actual layout by `_build_static`'s assertion and by tests/unit/test_relations_fields.py.
+STATIC_DIM = 2 + 3 + 3 + 7 + len(ASM_KINDS) + 1                # node_static width (one-hot + axis + range + ... )
+NODE_ANCHOR_SLICE = slice(STATIC_DIM + 3, STATIC_DIM + 6)      # morph action/passive node: base-frame joint anchor
+NODE_AXIS_SLICE = slice(STATIC_DIM + 6, STATIC_DIM + 9)        # morph action/passive node: joint axis direction
+ASM_KIND_DIM = len(ASM_KINDS)
+ASM_POS_SLICE = slice(ASM_KIND_DIM, ASM_KIND_DIM + 3)          # morph assembly token: frame position (base frame)
+ASM_ZCOL_SLICE = slice(ASM_KIND_DIM + 3, ASM_KIND_DIM + 6)     # morph assembly token: frame R[:, 2] (base frame)
+ASM_XCOL_SLICE = slice(ASM_KIND_DIM + 6, ASM_KIND_DIM + 9)     # morph assembly token: frame R[:, 0] (base frame)
+SCENE_POS_SLICE = slice(0, 3)                                  # scene token: tracked position (base frame)
+SCENE_STD_SLICE = slice(3, 6)                                  # scene token: log(std([xyz]) + 1e-4) / 5
+SCENE_VISIBLE_COL = 6
+SCENE_KNOWN_COL = 7
+
 
 def text_hash(s: str, dim: int = HASH_DIM) -> np.ndarray:
     """Deterministic bag-of-words hashing embedding (fixed, not learned, not a name table)."""
@@ -144,7 +160,15 @@ class Featurizer:
     """Stateless given (spec, meta); uses a private MjData for public FK."""
 
     def __init__(self, model: mujoco.MjModel, spec: RobotSpec, prefix: str, meta: dict, base_pos, base_yaw: float,
-                 manipulator_bindings: dict, robot_index: int = 0):
+                 manipulator_bindings: dict, robot_index: int = 0, base_axes: bool | None = None):
+        """`base_axes` (R12, D-144: `feat.base_axes` replaces the ablation flag `$RRP_KINFEAT` -- the featurizer
+        reads a RESOLVED value instead of the environment): None (default) keeps today's behaviour exactly
+        (`kinfeat.enabled()`, i.e. `$RRP_KINFEAT`, unchanged -- goldens stay byte-identical); True / False pins it
+        explicitly regardless of the environment, for callers that resolve `feat.base_axes` from a run config's
+        `factors:` list themselves. The `$RRP_KINFEAT` env var and `rrp.policies.features.kinfeat.enabled()` stay
+        the ONLY thing `harness/data/packed.py`, `harness/pipelines/base.py` and `policies/nets/checkpoint.py`
+        read (they are outside this unit's owned files, docs/relations.md section 10); deleting the env var there
+        is tracked separately (research/tracks/rel-r12.md)."""
         self.model = model
         self.spec = spec
         self.prefix = prefix
@@ -154,6 +178,7 @@ class Featurizer:
         self.base_yaw = float(base_yaw)
         self.bindings = manipulator_bindings        # task manipulator entity -> assembly id
         self.robot_index = robot_index
+        self.base_axes = base_axes
         self.aspace = action_space(spec, meta.get("gripper_params"))
         self._build_static()
 
@@ -210,10 +235,13 @@ class Featurizer:
             jnames.append(j.name)
             asm_idx.append(self.asm_ids.index(asm) if asm in self.asm_ids else -1)
         self.node_static = np.stack(feats).astype(np.float32)
+        assert self.node_static.shape[1] == STATIC_DIM, \
+            f"node_static width {self.node_static.shape[1]} != STATIC_DIM {STATIC_DIM} (R12 layout constants stale)"
         self.node_joint_names = jnames
         from rrp.policies.features import kinfeat
-        self.kinfeat = kinfeat.enabled()
-        if self.kinfeat:         # D-137 ablation: base-frame joint axes at the home pose (static chain geometry)
+        self.kinfeat = kinfeat.enabled() if self.base_axes is None else bool(self.base_axes)
+        if self.kinfeat:         # R12 `feat.base_axes` (was D-137 ablation `$RRP_KINFEAT`): base-frame joint axes
+                                 # at the home pose (static chain geometry)
             arm = next((g for g in contract.command_groups if g.semantic != "gripper"), None)
             arm_joints = [jaddr[amap[a].joint].name for a in arm.actuators] if arm else []
             self.node_static[:, 2:5] = kinfeat.home_axes(m, jnames, self.meta, arm_joints, self.base_yaw)
@@ -550,10 +578,10 @@ if TYPE_CHECKING:
     from rrp.envs.mujoco.session import Session
 
 
-def featurizer_for(session: "Session", robot: int = 0) -> Featurizer:
+def featurizer_for(session: "Session", robot: int = 0, base_axes: bool | None = None) -> Featurizer:
     mr = session.scenario.robots[robot]
     return Featurizer(session.model, mr.robot_spec, mr.prefix, mr.meta, mr.base_pos, mr.base_yaw,
-                      mr.manipulator_bindings, robot_index=robot)
+                      mr.manipulator_bindings, robot_index=robot, base_axes=base_axes)
 
 
 def cached_featurizer(s):

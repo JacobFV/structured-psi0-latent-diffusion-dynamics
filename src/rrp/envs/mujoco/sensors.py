@@ -105,6 +105,34 @@ def camera_visibility(model: mujoco.MjModel, data: mujoco.MjData, cam: str, body
     return frac >= dist - 0.03
 
 
+def camera_frame(model: mujoco.MjModel, data: mujoco.MjData, cam: str) -> tuple[np.ndarray, np.ndarray, float]:
+    """(cam_pos [3], cam_mat [3,3] world<-camera axes as columns, fovy radians) of a named camera. The camera
+    looks along its frame's -Z (MuJoCo convention; matches `camera_visibility`'s `cam_dir = -cmat[:, 2]`)."""
+    cid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, cam)
+    if cid < 0:
+        raise ValueError(f"no camera named {cam!r}")
+    return data.cam_xpos[cid].copy(), data.cam_xmat[cid].reshape(3, 3).copy(), math.radians(model.cam_fovy[cid])
+
+
+def project_points(model: mujoco.MjModel, data: mujoco.MjData, cam: str, points_world: np.ndarray) -> np.ndarray:
+    """R12 (D-144, `geo.depth3d` / `cam_uvd`): project world-frame points through a declared MuJoCo camera into
+    `cam_uvd` (docs/relations.md 2, `FieldDef("cam_uvd", 3, ..., units="uv[-1,1], m")`): normalized image-plane
+    (u, v) in [-1, 1] at the vertical field of view (u, v = 0 on the principal ray) plus metric depth along the
+    camera's forward (-Z) axis. Pure function of MuJoCo's own camera math (`cam_xpos` / `cam_xmat` / `cam_fovy`),
+    reused by the featurizer collate path (no separate renderer / dataset rewrite). Points behind the camera
+    (depth <= 0) get `u = v = 0` and their true (non-positive) depth, so callers gate on depth > 0, matching how
+    the tracker's `.valid` / `known` flags already gate `pos3d`."""
+    cpos, cmat, fovy = camera_frame(model, data, cam)
+    pts = np.atleast_2d(np.asarray(points_world, np.float64))
+    local = (pts - cpos) @ cmat                     # world -> camera-local: cmat's columns are the camera axes
+    depth = -local[:, 2]                             # camera looks along -Z; forward distance
+    f = 1.0 / math.tan(fovy / 2.0)                   # normalized focal length: edge-of-frame ray -> v = +-1
+    safe = np.where(depth > 1e-9, depth, 1.0)
+    u = np.where(depth > 1e-9, f * local[:, 0] / safe, 0.0)
+    v = np.where(depth > 1e-9, f * local[:, 1] / safe, 0.0)
+    return np.stack([u, v, depth], axis=-1).astype(np.float32)
+
+
 def read_sensor(model, data, name: str) -> np.ndarray | None:
     sid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SENSOR, name)
     if sid < 0:

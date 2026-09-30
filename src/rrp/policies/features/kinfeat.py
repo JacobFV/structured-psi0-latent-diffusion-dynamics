@@ -8,6 +8,17 @@ With $RRP_KINFEAT=v1:
       every scene so far).
 The same replacement is applied at load time to packed rows (by robot key; idempotent), so one pack serves both the
 flagged and unflagged lineages. Passive (mimic) joint tokens keep their local axes.
+
+R12 (D-144, docs/relations.md section 10): the end state renames this flag `feat.base_axes` and reads it from a
+resolved factor spec instead of `$RRP_KINFEAT`. Done so far, inside this unit's owned files: `Featurizer` /
+`MultiFeaturizer` no longer decide the flag by reading the environment themselves -- they take an explicit
+`base_axes: bool | None` (`None` = today's `enabled()` / `$RRP_KINFEAT`, unchanged; `True` / `False` pins it).
+NOT done (crosses into files this unit does not own -- `harness/pipelines/base.py`, `harness/data/packed.py`,
+`harness/data/latent.py`, `policies/nets/checkpoint.py`, and wherever `factors:` gets resolved into a `feat.*`
+option, since this is a featurizer option rather than an attention `FactorDef`): those still read `ENV` /
+`enabled()` / `VERSION` directly and are UNCHANGED on purpose, so this module's public names below stay exactly
+as they were. `research/tracks/rel-r12.md` has the full account; `FACTOR_NAME` is reserved for whichever unit
+finishes wiring `factors: [feat.base_axes]` end to end.
 """
 from __future__ import annotations
 
@@ -19,6 +30,7 @@ import numpy as np
 
 ENV = "RRP_KINFEAT"
 VERSION = "kinfeat_v1"
+FACTOR_NAME = "feat.base_axes"        # R12: the run-config-facing name this flag is migrating to (see module doc)
 AXIS_COLS = slice(2, 5)
 
 
