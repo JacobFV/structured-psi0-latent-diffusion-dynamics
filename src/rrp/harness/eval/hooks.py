@@ -6,6 +6,12 @@ recorders, executed-command log, previous-command feature, frame callback). `HOO
 (docs/architecture.md section 14.1: TaskSpec.hooks refers to these names). Probe readouts live next to their label functions
 (harness.eval.latent_eval.PacketProbeHook, harness.eval.dual_latent_eval.DualPacketProbeHook); the per-family
 compositions (arm_hooks, dual_hooks, latent_hooks, dual_latent_hooks) are here.
+
+RP2 additions (the eval loops that stepped sessions themselves): `budget_task` (a task whose judge only spends the tick
+budget, the end rules being hooks), `EndWhen` (a predicate ends the episode after a tick, e.g. a teacher reference
+finished), `HoldPolicy` / `warm_up` (hold ticks through rollout) and `Recorder` (per-tick probe callback with an
+on_end result). Family-specific recorders live next to their metric functions (teacher_quality, dual_teacher_quality,
+latent_causal, latent_eval).
 """
 from __future__ import annotations
 
@@ -13,7 +19,8 @@ from typing import Callable
 
 import numpy as np
 
-from rrp.tasks.spec import Judgement
+from rrp.policies.base import Act, PolicyInfo, Requirements
+from rrp.tasks.spec import Judgement, TaskSpec
 
 
 class Feasibility:
@@ -188,6 +195,71 @@ class FrameCallback:
         self.cb(i, env, k, act.info.get("phase"))
 
 
+class EndWhen:
+    """on_step: end the episode after the tick on which pred(i, env) holds (the task judge has not ended it). `outcome`
+    is only a placeholder for loops that re-judge in on_end (Settle); default a failure with reason `reason`."""
+
+    def __init__(self, pred: Callable[[int, object], bool], outcome: str = "failure", reason: str = "hook_end"):
+        self.pred, self.outcome, self.reason = pred, outcome, reason
+
+    def on_step(self, i, env, act, step):
+        if self.pred(i, env):
+            return Judgement(True, self.outcome, self.reason)
+        return None
+
+
+class Recorder:
+    """Per-tick recorder: on_reset(i, env) / on_act(i, env, act) (before the tick executes) / on_step(i, env, act, step)
+    (after it) callbacks of a loop that only measures. Any callback may be None; nothing is returned to the rollout."""
+
+    def __init__(self, on_reset=None, on_act=None, on_step=None):
+        self._reset, self._act, self._step = on_reset, on_act, on_step
+        self.env: dict = {}
+
+    def on_reset(self, i, env, obs):
+        self.env[i] = env
+        if self._reset is not None:
+            self._reset(i, env)
+
+    def on_act(self, i, obs, act):
+        if self._act is not None:
+            self._act(i, self.env[i], act)
+
+    def on_step(self, i, env, act, step):
+        if self._step is not None:
+            self._step(i, env, act, step)
+
+
+def budget_task(name: str, env_id: str, note: str = "") -> TaskSpec:
+    """A task whose judge only spends the tick budget: rollout(max_steps=n) ends an episode after exactly n ticks (the
+    judge is then asked with the budget spent, "timeout"). The loop's own end rules live in hooks (EndWhen, a policy
+    reading its teacher, ...); the loops it serves report privileged outcomes themselves (Settle)."""
+    def judge(env, t, max_seconds):
+        return Judgement(t >= max_seconds, "timeout", "timeout" if t >= max_seconds else None)
+    return TaskSpec(name, {env_id: {}}, float("inf"), judge, note=note or "budget only: end rules live in hooks")
+
+
+class HoldPolicy:
+    """Policy that holds (Act(None): the env keeps its last targets / executes its queued chunk row)."""
+
+    def __init__(self):
+        self.info = PolicyInfo("hold", "mock", "hold", Requirements(frozenset(), observations=frozenset()))
+
+    def reset(self, spec, task, seeds, *, envs=None):
+        pass
+
+    def act(self, obs):
+        return {i: Act(None) for i in obs}
+
+
+def warm_up(env, ticks: int = 10):
+    """Step `env` `ticks` hold ticks (through rollout: same state as calling env.step(None) `ticks` times) and return
+    it. rollout only closes the env, which a session survives."""
+    from rrp.harness.rollout import rollout
+    rollout(lambda seed: env, HoldPolicy(), budget_task("warm_up", env.spec.env_id), [0], batch=1, max_steps=ticks)
+    return env
+
+
 def arm_scene(seed: int) -> dict:
     """The arm runner's scene rule: pick_place with seed % 3 distractors."""
     return {"n_distractors": seed % 3}
@@ -228,4 +300,6 @@ HOOKS: dict[str, Callable] = {
     "command_log": CommandLog,
     "prev_action": PrevAction,
     "frame": FrameCallback,
+    "end_when": EndWhen,
+    "recorder": Recorder,
 }

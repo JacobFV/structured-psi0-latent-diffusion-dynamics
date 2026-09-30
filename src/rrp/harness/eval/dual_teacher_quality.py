@@ -36,6 +36,62 @@ PHASE_STEP_GATE = 0.5
 MARGIN_GATE = 0.02
 
 
+class _AuditHook:
+    """Rollout hook of the audit: DART burst noise on the executed arm commands (`on_act`), the per-tick read-only
+    DualQualityRecorder (before/after each env tick) and the stop rules (teacher done / `stop_after_success` ticks after
+    the public runtime first succeeded) as an on_step verdict."""
+
+    def __init__(self, s, teacher, task, *, noise, burst, phase_gate, stop_after_success, seed):
+        from rrp.harness.data.dual_quality import DualQualityRecorder
+        self.s, self.teacher, self.task = s, teacher, task
+        self.noise, self.burst, self.phase_gate, self.stop = noise, burst, phase_gate, stop_after_success
+        m = s.model
+        self.lo, self.hi = {}, {}
+        for e, h in s.handles.items():
+            jid = [mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_JOINT, j) for j in h.arm_joints]
+            self.lo[e], self.hi[e] = m.jnt_range[jid, 0].copy(), m.jnt_range[jid, 1].copy()
+        self.qrec = DualQualityRecorder(s, teacher)
+        self.rng = np.random.default_rng([seed, 7])
+        self.nz: dict = {}
+        self.k, self.succ_at = 0, None
+
+    def on_act(self, i, obs, act):
+        from rrp.policies.base import Act
+        from rrp.policies.teachers.dual_smooth import dart_phase_allowed
+        s, k, clean = self.s, self.k, act.command
+        cmds = clean
+        if self.noise > 0 and k % self.burst[0] < self.burst[1]:
+            noisy = {}
+            for ri, c in clean.items():
+                g2 = dict(c.groups)
+                for e, h in s.handles.items():
+                    if h.robot != ri or h.arm_group not in g2:
+                        continue
+                    if k % 5 == 0 or e not in self.nz:
+                        self.nz[e] = self.rng.normal(0, self.noise, len(g2[h.arm_group]))
+                    if self.phase_gate and not dart_phase_allowed(self.task, self.teacher.phase.get(e, "")):
+                        continue
+                    g2[h.arm_group] = np.clip(np.asarray(g2[h.arm_group], float) + self.nz[e], self.lo[e],
+                                              self.hi[e]).tolist()
+                noisy[ri] = c.model_copy(update={"groups": g2})
+            cmds = noisy
+        self.qrec.before_step(clean)
+        return Act(cmds) if cmds is not clean else None
+
+    def on_step(self, i, env, act, step):
+        from rrp.tasks.spec import Judgement
+        self.qrec.after_step()
+        self.k += 1
+        if self.teacher.done:
+            return Judgement(True, "success", "teacher_done")
+        if self.stop is not None:
+            if self.succ_at is None and env.runtime.succeeded():
+                self.succ_at = self.k
+            if self.succ_at is not None and self.k - self.succ_at >= self.stop:
+                return Judgement(True, "success", "stop_after_success")
+        return None
+
+
 def run_audit_episode(task: str, pair: str, seed: int, *, max_steps: int = 1200, noise: float = 0.0,
                       burst: tuple = (1, 1), stop_after_success: int | None = 10, teacher_version: str | None = None,
                       teacher_options: dict | None = None, phase_gate: bool = False,
@@ -62,52 +118,25 @@ def run_audit_episode(task: str, pair: str, seed: int, *, max_steps: int = 1200,
     if not f["feasible"]:
         row.update(status="infeasible", unreachable=f["unreachable"], wall_s=time.time() - t0)
         return row
-    lo, hi = {}, {}
-    for e, h in s.handles.items():
-        jid = [mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_JOINT, j) for j in h.arm_joints]
-        lo[e], hi[e] = m.jnt_range[jid, 0].copy(), m.jnt_range[jid, 1].copy()
-    qrec = DualQualityRecorder(s, teacher)
-    rng = np.random.default_rng([seed, 7])
-    nz: dict = {}
-    succ_at, steps = None, 0
-    for k in range(max_steps):
-        cmds = teacher.act()
-        clean = cmds
-        if noise > 0 and k % burst[0] < burst[1]:
-            noisy = {}
-            for i, c in cmds.items():
-                g2 = dict(c.groups)
-                for e, h in s.handles.items():
-                    if h.robot != i or h.arm_group not in g2:
-                        continue
-                    if k % 5 == 0 or e not in nz:
-                        nz[e] = rng.normal(0, noise, len(g2[h.arm_group]))
-                    if phase_gate and not dart_phase_allowed(task, teacher.phase.get(e, "")):
-                        continue
-                    g2[h.arm_group] = np.clip(np.asarray(g2[h.arm_group], float) + nz[e], lo[e], hi[e]).tolist()
-                noisy[i] = c.model_copy(update={"groups": g2})
-            cmds = noisy
-        qrec.before_step(clean)
-        s.step(cmds)
-        qrec.after_step()
-        steps += 1
-        if teacher.done:
-            break
-        if stop_after_success is not None:
-            if succ_at is None and s.runtime.succeeded():
-                succ_at = steps
-            if succ_at is not None and steps - succ_at >= stop_after_success:
-                break
-    for _ in range(5):
-        s.step(None)
-    ok = bool(s.privileged_success())
+    from rrp.harness import rollout as R
+    from rrp.harness.eval import hooks as H
+    from rrp.policies.teachers import TeacherPolicy
+    audit = _AuditHook(s, teacher, task, noise=noise, burst=burst, phase_gate=phase_gate,
+                       stop_after_success=stop_after_success, seed=seed)
+    pol = TeacherPolicy(task, lambda e: teacher, f"dual:{teacher_version or 'default'}", ("joint_position", "gripper"))
+    ep = R.rollout(lambda sd: s, pol, H.budget_task(task, s.spec.env_id), [seed], batch=1, max_steps=max_steps,
+                   hooks=[audit, H.Settle(5)])[0]
+    if ep.outcome == "crash":                      # a crashed episode is an error row of the caller (_job), never hidden
+        raise RuntimeError(ep.metrics.get("note") or ep.failure_reason)
+    qrec, steps = audit.qrec, ep.steps
+    ok = bool(ep.success_privileged)
     q = qrec.summary(task)
     per, pen = q["per_arm"], q["penetration_max_m"]
     gate = dict(penetration=pen <= PEN_GATE_M,
                 phase_switch=all((p["phase_switch_vel_step_max"] or 0) <= PHASE_STEP_GATE for p in per.values()),
                 joint_margin=all((p["joint_limit_margin_min"] is not None and p["joint_limit_margin_min"] >= MARGIN_GATE)
                                  for p in per.values()))
-    row.update(status="success" if ok else "failure", public_runtime_success=bool(s.runtime.succeeded()),
+    row.update(status="success" if ok else "failure", public_runtime_success=bool(ep.success_public),
                failure_phase=None if ok else teacher.phase_label, steps=steps, dt=q["dt"], per_arm=per,
                penetration_max_m=pen, penetration_ticks_over_3mm=q["penetration_ticks_over_3mm"],
                arm_arm_contact_ticks=q["arm_arm_contact_ticks"], gate=gate, contact=q["contact"],

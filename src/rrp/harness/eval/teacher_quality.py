@@ -89,20 +89,123 @@ def _scale_object(s, obj_friction: float, obj_mass: float) -> dict:
     return dict(obj_friction_scale=obj_friction, obj_mass_scale=obj_mass, cube_mass_kg=float(m.body_mass[cube]))
 
 
+def _touching(m, d, body_name, obj, robot_bodies, hand_bodies):
+    """(max robot<->object penetration, max hand<->object penetration, hand bodies touching the object) this tick."""
+    pen = pen_h = 0.0
+    touching = set()
+    for c in range(d.ncon):
+        con = d.contact[c]
+        b1, b2 = body_name[m.geom_bodyid[con.geom1]], body_name[m.geom_bodyid[con.geom2]]
+        if obj not in (b1, b2):
+            continue
+        other = b2 if b1 == obj else b1
+        if other in robot_bodies:
+            pen = max(pen, -float(con.dist))
+            if other in hand_bodies:
+                pen_h = max(pen_h, -float(con.dist))
+                touching.add(other)
+    return pen, pen_h, len(touching)
+
+
+class QualityTrace:
+    """Rollout hook: the per-tick PRIVILEGED diagnostics of a quality episode (commanded / measured arm joints, TCP, object,
+    contacts, IK residual), read-only. `policy` is a TeacherPolicy (the tick's command is the teacher's, the phase its
+    FSM phase, IK residuals from a wrapped `robot.ik.solve`); None = a chunk policy (the command is the executed row of
+    the env's chunk executor, the phase is the chunk index). `frames` (teacher mode) = dict(renderer, camera, every, out,
+    caption). After the episode `result[i]` holds the trace `T` and what `_metrics` needs."""
+
+    def __init__(self, policy=None, *, frames: dict | None = None):
+        self.policy, self.frames = policy, frames
+        self.st: dict = {}
+        self.result: dict = {}
+
+    def on_reset(self, i, env, obs):
+        m = env.model
+        if self.policy is not None:
+            teacher = self.policy.teachers[i]
+            r, obj, site = teacher.r, teacher.obj, teacher.tcp_site
+            rec = _IKRecorder(r.ik)
+            rec.install()
+        else:
+            teacher, rec, obj = None, None, "cube"
+            r = env.robots[0]
+            site = r.tcp_sites[next(a.id for a in r.spec.assemblies if a.kind in ("gripper", "hand"))]
+        self.st[i] = dict(
+            teacher=teacher, rec=rec, r=r, obj=obj, sid=mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_SITE, site),
+            cube=mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, obj), robot_bodies=_robot_bodies(env, r),
+            hand_bodies=_hand_bodies(env, r), body_name=[m.body(b).name for b in range(m.nbody)], k=0, nchunk=0,
+            q_last=None if self.policy is not None else r.controller.current_targets(env.data)["arm"].copy(),
+            T=dict(phase=[], q_cmd=[], grip=[], q=[], tcp=[], tcp_R=[], obj=[], held=[], pen=[], pen_hand=[], ik=[],
+                   tcp_cmd_fk=[], n_hand_contacts=[]))
+
+    def on_step(self, i, env, act, step):
+        st = self.st[i]
+        d, T, r, teacher = env.data, st["T"], st["r"], st["teacher"]
+        if teacher is not None:
+            q_cmd = np.asarray(act.command.groups["arm"], float)
+            grip = float(act.command.groups["gripper"][0])
+            T["phase"].append(teacher.phase)
+            T["ik"].append(st["rec"].last if st["rec"].last is not None else np.nan)
+            st["rec"].last = None
+        else:
+            st["nchunk"] += act.chunk is not None
+            cmd = step.command or {}
+            q_cmd = np.asarray(cmd.get("arm", st["q_last"]), float)
+            st["q_last"] = q_cmd
+            grip = float(cmd["gripper"][0]) if "gripper" in cmd else np.nan
+            T["phase"].append(f"chunk{st['nchunk']}")
+            T["ik"].append(np.nan)
+        T["q_cmd"].append(q_cmd)
+        T["grip"].append(grip)
+        T["q"].append(d.qpos[r.ik.qadr].copy())
+        T["tcp"].append(d.site_xpos[st["sid"]].copy())
+        T["tcp_R"].append(d.site_xmat[st["sid"]].reshape(3, 3).copy())
+        T["obj"].append(d.xpos[st["cube"]].copy())
+        pen, pen_h, n = _touching(env.model, d, st["body_name"], st["obj"], st["robot_bodies"], st["hand_bodies"])
+        T["pen"].append(pen)
+        T["pen_hand"].append(pen_h)
+        T["n_hand_contacts"].append(n)
+        T["held"].append(n >= 2)
+        T["tcp_cmd_fk"].append(r.ik.fk(d.qpos.copy(), q_cmd)[0])
+        fr = self.frames
+        if fr is not None and teacher is not None and st["k"] % fr.get("every", 1) == 0:
+            cam = fr.get("camera", "front")
+            fr["renderer"].update_scene(d, camera=cam(env.model, d) if callable(cam) else cam)
+            fr["out"].append(fr["caption"](fr["renderer"].render().copy(), env, teacher, st["k"]))
+        st["k"] += 1
+
+    def on_end(self, i, env, ep):
+        st = self.st.pop(i)
+        if st["rec"] is not None:
+            st["rec"].remove()
+        self.result[i] = dict(T=st["T"], teacher=st["teacher"], lo=st["r"].ik.lo, hi=st["r"].ik.hi, nchunk=st["nchunk"])
+        return {}
+
+
+def _quality_rollout(env, policy, seed, max_steps, trace, done):
+    """One episode of `env` under `policy` (rollout, batch 1): ticks until max_steps or done(env); then one hold tick
+    and the privileged verdict (Settle) - the episode row is built from the trace by the caller."""
+    from rrp.harness import rollout as R
+    from rrp.harness.eval import hooks as H
+    return R.rollout(lambda sd: env, policy, H.budget_task("pick_place", env.spec.env_id), [seed], batch=1,
+                     max_steps=max_steps, hooks=[H.EndWhen(lambda i, e: done(i, e)), H.Settle(1), trace])[0]
+
+
 def run_quality_episode(robot_key: str, seed: int, version: str = "v1", *, max_steps: int = 600,
                         robot=None, frames: dict | None = None, keep_trace: bool = False,
                         obj_friction: float = 1.0, obj_mass: float = 1.0) -> dict:
     """One teacher episode with full diagnostics. `frames` = dict(renderer=..., camera=..., every=..., out=[...],
-    caption=callable) to also collect rendered frames."""
+    caption=callable) to also collect rendered frames. The episode is a `harness.rollout` (scripted teacher policy,
+    QualityTrace hook); a crash is a recorded failure (`error` = the rollout's crash note), never hidden."""
     from rrp.bodies.catalog import workbench_robots
     from rrp.envs.mujoco.session import Session
     from rrp.envs.mujoco.scenario import BUILDERS
+    from rrp.policies.teachers import make_arm_teacher_policy
     from rrp.policies.teachers.arm import PickPlaceTeacher
-    from rrp.policies.teachers.arm_smooth import make_arm_teacher, teacher_source
+    from rrp.policies.teachers.arm_smooth import teacher_source
 
     robot = robot or workbench_robots()[robot_key]()
     s = Session(BUILDERS["pick_place"](robot, seed, n_distractors=seed % 3), seed=seed)
-    m, d = s.model, s.data
     from rrp.bodies.grasp_contact import model_grasp_version
     row = dict(robot=robot_key, seed=seed, version=version, source=teacher_source(version), privileged=True,
                n_distractors=seed % 3, grasp_contact=model_grasp_version(s.model) or "grasp_v1")
@@ -114,71 +217,18 @@ def run_quality_episode(robot_key: str, seed: int, version: str = "v1", *, max_s
         row.update(outcome="infeasible", success=False)
         return row
     row["perturbation"] = _scale_object(s, obj_friction, obj_mass)
-    teacher = make_arm_teacher(s, version)
-    r = teacher.r
-    rec = _IKRecorder(r.ik)
-    rec.install()
-    cube_bid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, teacher.obj)
-    robot_bodies, hand_bodies = _robot_bodies(s, r), _hand_bodies(s, r)
-    body_name = [m.body(i).name for i in range(m.nbody)]
-    sid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_SITE, teacher.tcp_site)
-    arm_q = r.ik.qadr
-    lo, hi = r.ik.lo, r.ik.hi
-    T = dict(phase=[], q_cmd=[], grip=[], q=[], tcp=[], tcp_R=[], obj=[], held=[], pen=[], pen_hand=[], ik=[],
-             tcp_cmd_fk=[], n_hand_contacts=[])
+    pol = make_arm_teacher_policy(arg="pick_place", version=version)
+    trace = QualityTrace(pol, frames=frames)
     t0 = time.time()
-    steps = 0
-    error = None
-    try:
-        for k in range(max_steps):
-            rec.last = None
-            cmd = teacher.act()
-            s.step(cmd)
-            steps = k + 1
-            q_cmd = np.asarray(cmd.groups["arm"], float)
-            T["phase"].append(teacher.phase)
-            T["q_cmd"].append(q_cmd)
-            T["grip"].append(float(cmd.groups["gripper"][0]))
-            T["q"].append(d.qpos[arm_q].copy())
-            T["tcp"].append(d.site_xpos[sid].copy())
-            T["tcp_R"].append(d.site_xmat[sid].reshape(3, 3).copy())
-            T["obj"].append(d.xpos[cube_bid].copy())
-            T["ik"].append(rec.last if rec.last is not None else np.nan)
-            pen = pen_h = 0.0
-            touching = set()
-            for c in range(d.ncon):
-                con = d.contact[c]
-                b1, b2 = body_name[m.geom_bodyid[con.geom1]], body_name[m.geom_bodyid[con.geom2]]
-                if teacher.obj not in (b1, b2):
-                    continue
-                other = b2 if b1 == teacher.obj else b1
-                if other in robot_bodies:
-                    pen = max(pen, -float(con.dist))
-                    if other in hand_bodies:
-                        pen_h = max(pen_h, -float(con.dist))
-                        touching.add(other)
-            T["pen"].append(pen)
-            T["pen_hand"].append(pen_h)
-            T["n_hand_contacts"].append(len(touching))
-            T["held"].append(len(touching) >= 2)
-            p_fk, _ = r.ik.fk(d.qpos.copy(), q_cmd)
-            T["tcp_cmd_fk"].append(p_fk)
-            if frames is not None and k % frames.get("every", 1) == 0:
-                cam = frames.get("camera", "front")
-                frames["renderer"].update_scene(d, camera=cam(m, d) if callable(cam) else cam)
-                frames["out"].append(frames["caption"](frames["renderer"].render().copy(), s, teacher, k))
-            if teacher.done:
-                break
-        s.step(None)
-    except Exception as e:  # noqa: BLE001 - a crash is a recorded failure, never hidden
-        error = repr(e)[:300]
-    finally:
-        rec.remove()
-    ok = bool(s.privileged_success()) if error is None else False
-    row.update(success=ok, outcome="success" if ok else "failure", steps=steps, time_s=round(steps * s.dt, 3),
+    ep = _quality_rollout(s, pol, seed, max_steps, trace, lambda i, e: pol.teachers[i].done)
+    res = trace.result[0]
+    T, teacher = res["T"], res["teacher"]
+    error = ep.metrics.get("note", "crash") if ep.outcome == "crash" else None
+    ok = bool(ep.success_privileged) if error is None else False
+    row.update(success=ok, outcome="success" if ok else "failure", steps=ep.steps, time_s=round(ep.steps * s.dt, 3),
                end_phase=teacher.phase, error=error, wall_s=round(time.time() - t0, 2), dt=s.dt,
                teacher_state=getattr(teacher, "diag", None))
-    row.update(_metrics(T, s.dt, lo, hi, teacher))
+    row.update(_metrics(T, s.dt, res["lo"], res["hi"], teacher))
     row["failure_stage"] = None if ok else _failure_stage(row, T)
     if keep_trace:
         row["_trace"] = T
@@ -201,16 +251,16 @@ def _rms(x):
 
 def run_policy_quality_episode(policy, robot_key: str, seed: int, *, label: str, max_steps: int = 300, robot=None,
                                ckpt: str | None = None, source_labels: bool | None = None) -> dict:
-    """The same motion metrics for a LEARNED chunk policy (rrp.policies.bc.LearnedPolicy), rolled out
-    like the ladder `learned` route (execute_prefix rows per chunk, public observations only). Phases are the chunk
-    index, so `vel_jump_switch_max` = the largest joint-velocity step at chunk boundaries."""
+    """The same motion metrics for a LEARNED chunk policy (rrp.policies.bc.LearnedPolicy), rolled out like the ladder
+    `learned` route (execute_prefix rows per chunk, public observations only; BCPolicy on harness.rollout). Phases are
+    the chunk index, so `vel_jump_switch_max` = the largest joint-velocity step at chunk boundaries."""
     from rrp.bodies.catalog import workbench_robots
     from rrp.envs.mujoco.session import Session
     from rrp.envs.mujoco.scenario import BUILDERS
+    from rrp.policies.bc import BCPolicy
     from rrp.policies.teachers.arm import PickPlaceTeacher
     robot = robot or workbench_robots()[robot_key]()
     s = Session(BUILDERS["pick_place"](robot, seed, n_distractors=seed % 3), seed=seed)
-    m, d = s.model, s.data
     row = dict(robot=robot_key, seed=seed, version="policy", source=label, privileged=False, n_distractors=seed % 3)
     if ckpt is not None:        # D-126 sl-1 (default off): the free `label` stays; the canonical label names the checkpoint
         from rrp.core.provenance import Source, parse_legacy_source, stamp_source_label
@@ -224,60 +274,16 @@ def run_policy_quality_episode(policy, robot_key: str, seed: int, *, label: str,
     if not feas["feasible"]:
         row.update(outcome="infeasible", success=False)
         return row
-    r = s.robots[0]
-    tcp_site = r.tcp_sites[next(a.id for a in r.spec.assemblies if a.kind in ("gripper", "hand"))]
-    sid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_SITE, tcp_site)
-    cube_bid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, "cube")
-    robot_bodies, hand_bodies = _robot_bodies(s, r), _hand_bodies(s, r)
-    body_name = [m.body(i).name for i in range(m.nbody)]
-    T = dict(phase=[], q_cmd=[], grip=[], q=[], tcp=[], tcp_R=[], obj=[], held=[], pen=[], pen_hand=[], ik=[],
-             tcp_cmd_fk=[], n_hand_contacts=[])
-    nchunk, steps, error, t0 = 0, 0, None, time.time()
-    q_last = r.controller.current_targets(d)["arm"].copy()
-    try:
-        for k in range(max_steps):
-            if not s.executor.queue:
-                s.submit_chunk(policy.chunks([s])[0], execute_prefix=policy.execute_prefix)
-                nchunk += 1
-            out = s.step(None)
-            steps = k + 1
-            cmd = out.command or {}
-            q_cmd = np.asarray(cmd.get("arm", q_last), float)
-            q_last = q_cmd
-            T["phase"].append(f"chunk{nchunk}")
-            T["q_cmd"].append(q_cmd)
-            T["grip"].append(float(cmd["gripper"][0]) if "gripper" in cmd else np.nan)
-            T["q"].append(d.qpos[r.ik.qadr].copy())
-            T["tcp"].append(d.site_xpos[sid].copy())
-            T["tcp_R"].append(d.site_xmat[sid].reshape(3, 3).copy())
-            T["obj"].append(d.xpos[cube_bid].copy())
-            T["ik"].append(np.nan)
-            pen = pen_h = 0.0
-            touching = set()
-            for c in range(d.ncon):
-                con = d.contact[c]
-                b1, b2 = body_name[m.geom_bodyid[con.geom1]], body_name[m.geom_bodyid[con.geom2]]
-                if "cube" not in (b1, b2):
-                    continue
-                other = b2 if b1 == "cube" else b1
-                if other in robot_bodies:
-                    pen = max(pen, -float(con.dist))
-                    if other in hand_bodies:
-                        pen_h = max(pen_h, -float(con.dist))
-                        touching.add(other)
-            T["pen"].append(pen)
-            T["pen_hand"].append(pen_h)
-            T["n_hand_contacts"].append(len(touching))
-            T["held"].append(len(touching) >= 2)
-            T["tcp_cmd_fk"].append(r.ik.fk(d.qpos.copy(), q_cmd)[0])
-            if s.runtime.succeeded():
-                break
-        s.step(None)
-    except Exception as e:  # noqa: BLE001 - recorded failure
-        error = repr(e)[:300]
-    ok = bool(s.privileged_success()) if error is None else False
-    row.update(success=ok, outcome="success" if ok else "failure", steps=steps, time_s=round(steps * s.dt, 3),
-               error=error, wall_s=round(time.time() - t0, 2), dt=s.dt, n_chunks=nchunk)
+    trace = QualityTrace(None)
+    t0 = time.time()
+    ep = _quality_rollout(s, BCPolicy(policy, name=label), seed, max_steps, trace,
+                          lambda i, e: bool(e.runtime.succeeded()))
+    res = trace.result[0]
+    T, r = res["T"], s.robots[0]
+    error = ep.metrics.get("note", "crash") if ep.outcome == "crash" else None
+    ok = bool(ep.success_privileged) if error is None else False
+    row.update(success=ok, outcome="success" if ok else "failure", steps=ep.steps, time_s=round(ep.steps * s.dt, 3),
+               error=error, wall_s=round(time.time() - t0, 2), dt=s.dt, n_chunks=res["nchunk"])
     met = _metrics(T, s.dt, r.ik.lo, r.ik.hi, None)
     met["chunk_vel_jump_max"] = met.pop("vel_jump_switch_max", None)
     met["chunk_tcp_vel_jump_max"] = met.pop("tcp_vel_jump_switch_max", None)
