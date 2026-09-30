@@ -1,0 +1,25 @@
+# W13 P2 L1 (never trained): t1 h_gap_sidestep expert (recipe t1_gap_gpu_v1, warm start actor.pt; stop rule: <= 2 reward
+# designs, <= 3e8 samples per body). smoke (peer GPU, one minute): WarpGapEnv at levels 0 and 1 with the warm-start tracker; then
+# train, then eval in C MuJoCo (success = 0.5 L past the wall, heading error < 0.3 rad held 0.5 s; failures fell | wall_collision |
+# timeout). Expert label privileged_teacher:rl_expert + scripted GapTeacher command.
+extends: ../templates/humanoid_task.yaml
+name: humanoid_t1_gap_v1
+schema: dag-1
+track: humanoid
+policy: tracker
+env: warp/legged
+task: h_gap_sidestep
+bodies: t1
+factors: []
+lineage: 't1-gap_v1'
+vars: {recipe: t1_gap_gpu_v1, body: t1, task: gap}
+nodes:
+  smoke:
+    stage: eval_tracker
+    tag: smoke
+    resources: {cpu: 2, mem: 8G, gpu: true, gpu_mem: 4G, max_seconds: 1800}
+    retries: 0
+    config:
+      options: {task: gap_smoke, body: t1, actor: artifacts/runs/humanoid_p1b_t1_v2ft4/actor.pt, pythonpath: ['{warp_path}']}
+  train:
+    deps: [smoke]

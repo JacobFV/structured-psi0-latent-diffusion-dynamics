@@ -1,0 +1,36 @@
+# W13 P1 tracker gate for the three pool trackers (D-139 labels): C-MuJoCo validation (10 seeds, robust, contact_v2, sourced limits;
+# the D-112 gate lands in gate_report.json) + WaypointTeacher on waypoint_contact (20 dev seeds) + lab_gate.json (no-fall 1.0,
+# forward >= 0.8, turn >= 0.5, slip < 0.15). Verdicts are data (gate: report). Nothing is installed (contact.md install rule).
+extends: ../templates/tracker_gated.yaml
+name: humanoid_tracker_gate_pool
+schema: dag-1
+track: humanoid
+policy: tracker
+env: mujoco/legged
+task: locomotion
+bodies: pool_trackers
+factors: []
+lineage: 'gate-{pool}'
+label_prefix: 'hum_gate_{pool}'
+matrix:
+  pool: [h1_r6, t1_v2ft4, g1_v4]
+axis_vars:
+  pool:
+    h1_r6: {body: h1, actor: artifacts/runs/humanoid_p1b_h1_r6/actor_r6final.pt}
+    t1_v2ft4: {body: t1, actor: artifacts/runs/humanoid_p1b_t1_v2ft4/actor.pt}
+    g1_v4: {body: g1, actor: artifacts/runs/humanoid_p1b_g1_v4/actor_v4final.pt}
+vars: {recipe: pool, body: '{body}'}
+nodes:
+  train: null
+  validate:
+    resources: {cpu: 1, mem: 4G, max_seconds: 7200}
+    config:
+      inputs: null
+      options: {body: '{body}', actor: '{actor}', kind: learned, seeds: 10, robust: true, gate: report}
+  waypoint:
+    stage: eval_tracker
+    resources: {cpu: 1, mem: 4G, max_seconds: 7200}
+    retries: 0
+    config:
+      inputs: {validation: '@validate:validation.json'}
+      options: {task: waypoint, body: '{body}', actor: '{actor}', seed0: 10000, n: 20}

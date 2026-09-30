@@ -1,0 +1,40 @@
+# TEMPLATE (W13, D-138): a humanoid tracker / task expert trained on the GPU (MuJoCo Warp) under a named recipe
+# (rrp.harness.train.humanoid_recipes), then judged in C MuJoCo with full self-collision, contact_v2 (never in the training
+# simulator). An instance sets name, lineage, vars.recipe / body / task and either keeps `train` (continue or start a run;
+# options.resume_from seeds the run directory from an earlier run's checkpoint) or nulls `train` and names options.actor.
+# Source labels: the trained actor is learned_tracker (privileged critic); an expert (extra_obs_dim > 0) is privileged_teacher:rl_expert;
+# the heading / gap command is scripted_teacher. Resources are ESTIMATES of the W13 leases: redeclare >= 1.35 x measured peak (D-117).
+name: humanoid_task_template
+schema: dag-1
+family: legged
+track: humanoid
+lineage: 'humanoid-{recipe}'
+label_prefix: 'hum'
+vars:
+  recipe: SET_IN_CHILD_DAG
+  body: SET_IN_CHILD_DAG
+  task: steps               # eval_tracker task: steps | gap | waypoint
+  seed0: 7200
+  n: 20
+  warp_path: '~/work/ext/pylibs/mjwarp'     # the isolated Warp install (peer disk)
+defaults:
+  placement: peer
+  retries: 2                # a watchdog shed resumes from checkpoint.pt
+  max_parallel: 1
+  resources: {cpu: 4, mem: 24G, gpu: true, gpu_mem: 12G, max_seconds: 86400}
+base:
+  variant: na
+  seed: 1
+  flags: {contact_version: contact_v2}
+nodes:
+  train:
+    stage: train_tracker
+    config:
+      options: {engine: warp, gpu: true, body: '{body}', recipe: '{recipe}', pythonpath: ['{warp_path}'], resume: true}
+  eval:
+    stage: eval_tracker
+    resources: {cpu: 2, mem: 6G, gpu: false, max_seconds: 14400}
+    retries: 0
+    config:
+      inputs: {actor: '@train:actor.pt'}
+      options: {task: '{task}', body: '{body}', seed0: '{seed0}', n: '{n}'}

@@ -1,0 +1,31 @@
+# W13 P2 (paused): the h1 h_steps expert v2 in C MuJoCo. Its GPU segment finished (iter 6000, curriculum level 0.6, 30 s episodes);
+# the checkpoint was never evaluated in C. P2 gate: expert success >= 0.9 at h_frac 0.10-0.30 (source: privileged_teacher:rl_expert
+# + scripted_teacher heading command); eval_blind = the blind r6 tracker (learned_tracker) at 0.10 / 0.15 for reference.
+# To train another segment instead, delete `train: null` and set options.resume_from: artifacts/runs/humanoid_p2_h1_steps_v2
+# with args {iters: 9000, level0: 0.6, episode_s: 30, level_up: 0.6}.
+extends: ../templates/humanoid_task.yaml
+name: humanoid_h1_steps_v2_eval
+schema: dag-1
+track: humanoid
+policy: tracker
+env: mujoco/legged
+task: h_steps
+bodies: h1
+factors: []
+lineage: 'h1-steps_v2'
+vars: {recipe: h1_steps_gpu_v2, body: h1, task: steps}
+nodes:
+  train: null
+  eval:
+    tag: expert
+    resources: {cpu: 4, mem: 8G, gpu: false, max_seconds: 28800}
+    config:
+      inputs: null
+      options: {actor: artifacts/runs/humanoid_p2_h1_steps_v2/actor.pt, h_fracs: [0.10, 0.15, 0.20, 0.25, 0.30]}
+  eval_blind:
+    stage: eval_tracker
+    tag: blind
+    resources: {cpu: 4, mem: 8G, gpu: false, max_seconds: 14400}
+    retries: 0
+    config:
+      options: {task: steps, body: h1, seed0: 7200, n: 20, actor: artifacts/runs/humanoid_p1b_h1_r6/actor_r6final.pt, h_fracs: [0.10, 0.15]}

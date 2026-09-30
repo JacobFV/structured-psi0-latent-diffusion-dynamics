@@ -281,13 +281,29 @@ def validate_tracker(ctx: StageContext) -> dict:
 
 @register("legged", "train_tracker", source="learned_tracker")
 def train_tracker(ctx: StageContext) -> dict:
-    """D-126 #13: tracker training (rrp.training.tracker_training) through run-dag. options: body, recipe (a name in
-    rrp.training.tracker_recipes or a JSON path; optional), args ({option dest: value}, explicit overrides; True = bare flag),
-    resume (default true: a retried lease continues from checkpoint.pt), actuator_mode (D-126 #14; wins over the recipe).
-    Output: actor.pt in the run dir (a NEW tracker; nothing is installed). The contact model is flags.contact_version."""
+    """D-126 #13: tracker training through run-dag. options: body, recipe (a name in rrp.harness.train.tracker_recipes /
+    humanoid_recipes or a JSON path; optional), args ({option dest: value}, explicit overrides; True = bare flag),
+    resume (default true: a retried lease continues from checkpoint.pt), actuator_mode (D-126 #14; wins over the recipe),
+    engine (cpu = `rrp train tracker-cpu`, default; warp = `rrp train tracker-warp`, GPU MuJoCo Warp, W13; declare
+    resources.gpu), pythonpath (extra PYTHONPATH entries, e.g. the isolated Warp install), resume_from (a run directory
+    whose checkpoint.pt / actor.pt / meta.json seed this run's directory once, so a resume segment continues an earlier run
+    under a new run id). Output: actor.pt in the run dir (a NEW tracker; nothing is installed). The contact model is
+    flags.contact_version."""
     o = ctx.opts
-    argv = ["-m", "rrp.cli", "train", "tracker-cpu", "--out", ctx.rc.out,
-            "--contact", str(ctx.rc.flags.contact_version).replace("contact_", "")]
+    warp = o.get("engine", "cpu") == "warp"
+    if o.get("resume_from") and not (ctx.out / "checkpoint.pt").exists():
+        import shutil
+        src = Path(o["resume_from"]).expanduser()
+        src = src if src.is_absolute() else ctx.root / src
+        if not (src / "checkpoint.pt").exists():
+            raise StageError(f"resume_from {src}: no checkpoint.pt (restore the run directory first)")
+        ctx.out.mkdir(parents=True, exist_ok=True)
+        for f in ("checkpoint.pt", "actor.pt", "meta.json"):
+            if (src / f).exists():
+                shutil.copy2(src / f, ctx.out / f)
+    argv = ["-m", "rrp.cli", "train", "tracker-warp" if warp else "tracker-cpu", "--out", ctx.rc.out]
+    if not warp:
+        argv += ["--contact", str(ctx.rc.flags.contact_version).replace("contact_", "")]
     if o.get("body"):
         argv += ["--body", str(o["body"])]
     if o.get("recipe"):
@@ -304,7 +320,11 @@ def train_tracker(ctx: StageContext) -> dict:
         argv += ["--actuator", legacy_mode_name(am)]
     if o.get("resume", True):
         argv.append("--resume")
-    ctx.run(argv, env=physics_env(ctx, OMP_NUM_THREADS=1, **({} if o.get("gpu") else {"CUDA_VISIBLE_DEVICES": ""})))
+    extra = {} if (o.get("gpu") or warp) else {"CUDA_VISIBLE_DEVICES": ""}
+    env = physics_env(ctx, OMP_NUM_THREADS=1, **extra)
+    if o.get("pythonpath"):
+        env["PYTHONPATH"] = ":".join([str(Path(p).expanduser()) for p in o["pythonpath"]] + [env["PYTHONPATH"]])
+    ctx.run(argv, env=env)
     import hashlib
     actor = ctx.out / "actor.pt"
     if not actor.exists():
@@ -317,6 +337,53 @@ def train_tracker(ctx: StageContext) -> dict:
                                                      terrain_curriculum=bool(meta.get("terrain_curriculum")),
                                                      actuator=meta.get("actuator"), contact_model=meta.get("contact_model")),
                 source_detail=f"learned_tracker:{meta['body']}:{rel}")
+
+
+@register("legged", "eval_tracker", source="learned_tracker")
+def eval_tracker(ctx: StageContext) -> dict:
+    """W13: C-MuJoCo evaluation of a tracker / task expert (full self-collision; never the training simulator). options: task
+    (waypoint | steps | gap | gap_smoke), body, actor (else input `actor`), seed0, n, pythonpath (as train_tracker), plus per task: steps `h_fracs` (list; one
+    result file per step height), gap `level`. task waypoint with input `validation` (a validate_tracker output) also writes
+    lab_gate.json (rrp.harness.eval.humanoid_eval.lab_gate: no-fall 1.0, forward >= 0.8, turn >= 0.5, slip < 0.15, D-112 verdict,
+    waypoint success). Verdicts are data (exit 0); the source label of every result is in its JSON."""
+    o = ctx.opts
+    task, body = o["task"], o["body"]
+    actor = str(o["actor"]) if o.get("actor") else ctx.inp("actor")
+    seed0, n = int(o.get("seed0", 7200)), int(o.get("n", 20))
+    env = physics_env(ctx, OMP_NUM_THREADS=1, **({} if task == "gap_smoke" else {"CUDA_VISIBLE_DEVICES": ""}))
+    if o.get("pythonpath"):
+        env["PYTHONPATH"] = ":".join([str(Path(p).expanduser()) for p in o["pythonpath"]] + [env["PYTHONPATH"]])
+    tool = {"waypoint": "contact-waypoint", "steps": "humanoid-steps", "gap": "humanoid-gap", "gap_smoke": "humanoid-gap-smoke"}[task]
+    base = ["-m", "rrp.cli", "suite", tool, body, actor]
+    results = {}
+    if task == "gap_smoke":
+        res = ctx.out / "gap_smoke.json"
+        ctx.run(base + ["--out", str(res)], env=env)
+        results["gap_smoke"] = res
+    elif task == "steps":
+        for hf in o.get("h_fracs", [None]):
+            res = ctx.out / (f"steps_h{hf:.2f}.json" if hf is not None else "steps.json")
+            ctx.run(base + ["--seed0", str(seed0), "--n", str(n), "--out", str(res)] + (["--h-frac", str(hf)] if hf is not None else []), env=env)
+            results[res.stem] = res
+    else:
+        res = ctx.out / f"{task}.json"
+        ctx.run(base + ["--seed0", str(seed0), "--n", str(n), "--out", str(res)] + (["--level", str(o["level"])] if task == "gap" and "level" in o else []), env=env)
+        results[task] = res
+    metrics = {}
+    for k, r in results.items():
+        d = json.loads(r.read_text())
+        metrics[k] = {x: d[x] for x in ("n", "success", "fell", "status", "source") if x in d} or d
+    outs = {k: str(Path(ctx.rc.out) / r.name) for k, r in results.items()}
+    if task == "waypoint" and ctx.inp("validation", required=False):
+        from rrp.harness.eval.humanoid_eval import lab_gate
+        vpath = ctx.root / ctx.inp("validation")
+        rep = vpath.parent / "gate_report.json"
+        lab = lab_gate(json.loads(vpath.read_text()), json.loads(rep.read_text()) if rep.exists() else None,
+                       json.loads(results["waypoint"].read_text()))
+        (ctx.out / "lab_gate.json").write_text(json.dumps(lab, indent=1, default=str))
+        outs["lab_gate"] = str(Path(ctx.rc.out) / "lab_gate.json")
+        metrics["lab_gate"] = lab
+    return dict(outputs=outs, metrics=metrics, source_detail=f"{task}:{body}:{actor}")
 
 
 @register("legged", "train_bc", source="bc")

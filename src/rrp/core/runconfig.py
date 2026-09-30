@@ -34,7 +34,7 @@ SCHEMA_VERSION = "runconfig-1"
 BUILTIN_FAMILIES = ("arm", "dual", "legged")
 Variant = Literal["sem", "nosem", "semfix", "na"]
 PIPELINE_STAGES = ("collect", "pack", "train_rep", "probes", "train_flow", "flow_ft", "dagger_collect", "refit",
-                   "eval_r1", "eval_r2", "heldout", "edits", "train_bc", "validate_tracker", "train_tracker",
+                   "eval_r1", "eval_r2", "heldout", "edits", "train_bc", "validate_tracker", "train_tracker", "eval_tracker",
                    "grpo", "target_eval", "target_adapt")   # D-126 (arm): GRPO + anchors; sealed target-body eval / adaptation
 Stage = Literal[PIPELINE_STAGES]  # type: ignore[valid-type]
 # NOTE (D-144 sweep-flags, D-145 P2): no family's `train_rep` maps `probe_lv_min` any more: the probe weights / lv floor

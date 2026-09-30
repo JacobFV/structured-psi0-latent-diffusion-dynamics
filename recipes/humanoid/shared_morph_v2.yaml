@@ -1,0 +1,34 @@
+# W13 P1c (paused): the ONE morphology-conditioned tracker (obs morph_v1) over the 6 pool bodies + 2 phum topologies x 32 bodies.
+# `train` resumes the run STOPPED at iter 415 of 3000 (checkpoint iter 399; still learning to stand, window fall 0.94): restore
+# artifacts/runs/humanoid_p1c_shared_v2 from ~/work/rrp-data/peer-archive/runs first (resume_from copies checkpoint.pt / actor.pt /
+# meta.json into this run's directory). Then the C gate on each pool body (LearnedTracker deploys morph_v1 automatically). The SEALED
+# zero-shot on n1 / berkeley / toddlerbot / phum_sealed is Level-1 existing-controller transfer and stays outside this recipe until the
+# berkeley / toddlerbot adapters exist (research/tracks/humanoid.md).
+extends: ../templates/humanoid_task.yaml
+name: humanoid_shared_morph_v2
+schema: dag-1
+track: humanoid
+policy: tracker
+env: warp/legged
+task: locomotion
+bodies: shared_morph_pool_v1
+factors: []
+lineage: 'shared_morph_v2-{gate_body}'
+global_lineage: 'shared_morph_v2'
+label_prefix: 'hum_p1c_{gate_body}'
+global_label_prefix: 'hum_p1c'
+matrix:
+  gate_body: [t1, g1, h1, op3, apollo, adam_lite]
+defaults:
+  resources: {cpu: 6, mem: 40G, gpu: true, gpu_mem: 24G, max_seconds: 21600}
+vars: {recipe: shared_morph_v2, body: shared}
+nodes:
+  train:
+    scope: global
+    config:
+      options: {body: null, resume_from: artifacts/runs/humanoid_p1c_shared_v2}
+  eval:
+    stage: validate_tracker
+    resources: {cpu: 1, mem: 4G, gpu: false, max_seconds: 7200}
+    config:
+      options: {task: null, seed0: null, n: null, body: '{gate_body}', kind: learned, seeds: 10, robust: true, gate: report}
