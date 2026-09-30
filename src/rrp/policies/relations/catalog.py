@@ -82,6 +82,44 @@ for _q, _addr, _out, _loss, _lab, _sc in _ARM_PROBE:
                               readout=ReadoutDef(_q, _addr, _out, _loss, label=_lab, scale=_sc)))
 register_preset("probes:arm-packet-v1", [f"probe.arm.{q[0]}" for q in _ARM_PROBE[:-1]])
 # ------------------------------------------------------------------ R13: geometry (geo.*)
+# PaPE (sqdiff+diff), rel_rot, align and order over the R12 fields (`pos3d`, `cam_uvd`, `orient`, `normal`). Every
+# entry offers `probe` as a source: a `FieldReadouts` head (the foundation hook, `rrp.policies.relations.ops`) reads
+# token hiddens at `params.readout_layer` and its (mean, logvar) estimate of the field replaces the field for later
+# layers (docs/relations.md section 4). `given` (R12's collate-path values) stays the default everywhere the field is
+# already public/estimated on disk; `gt` is the privileged label (deploy guard: unit R7/R14 supplies `StateView` /
+# the label, PrivilegedInput blocks it outside training). Labels / scene-part generators (`pos3d`, `cam_uvd`,
+# `orient`, `contact_normal`, `table_objects`, `camera_depth`) are unit R14's; `gen` / `label` here just name them.
+register_factor(FactorDef(
+    "geo.pos3d", "1", field="pos3d", op="sqdiff+diff", form="aug", sources=("given", "probe", "gt"), label="pos3d",
+    gen=("table_objects",), readout=ReadoutDef(query="pos3d", address="token", out=6, loss="gauss", label="pos3d",
+                                               reads="tokens"),
+    params=(("p", 3), ("frame", "world"), ("readout_layer", 0)),
+    doc="PaPE (arXiv 2602.01418, Eq. 9) distance/direction bias over `pos3d`, world frame"))
+register_factor(FactorDef(
+    "geo.depth3d", "1", field="cam_uvd", op="sqdiff+diff", form="aug", sources=("probe", "given", "gt"),
+    label="cam_uvd", gen=("camera_depth",),
+    readout=ReadoutDef(query="cam_uvd", address="token", out=6, loss="gauss", label="cam_uvd", reads="tokens"),
+    params=(("p", 3), ("frame", "world"), ("readout_layer", 0)),
+    doc="PaPE over the projected camera-frame `cam_uvd` (uv[-1,1], depth m); default source `probe` -- the "
+        "un-tracked (occluded / never-observed) case this factor exists for"))
+register_factor(FactorDef(
+    "geo.orient", "1", field="orient", op="rel_rot", form="aug", sources=("given", "probe", "gt"), label="orient",
+    gen=("table_objects",), readout=ReadoutDef(query="orient", address="token", out=18, loss="gauss", label="orient",
+                                               reads="tokens"),
+    params=(("readout_layer", 0),),
+    doc="relative rotation <R_i B_i, R_j> bias/aug between assembly frames (`orient`, row-major 3x3)"))
+register_factor(FactorDef(
+    "geo.normal_align", "1", field="normal", op="align", form="aug", sources=("given", "probe", "gt"),
+    label="contact_normal",
+    readout=ReadoutDef(query="normal", address="token", out=6, loss="gauss", label="contact_normal", reads="tokens"),
+    params=(("frame", "world"), ("readout_layer", 0)),
+    doc="normal / axis alignment <b_i, n_j> (parallel / perpendicular via b); key-side `normal` field"))
+register_factor(FactorDef(
+    "geo.above", "1", field="pos3d", op="order", form="bias", sources=("given", "gt"),
+    params=(("axis", (0.0, 0.0, 1.0)), ("margin", 0.01)),
+    doc="sign((r_j - r_i) . +z) with a dead zone: above / below along the world-up (gravity) axis"))
+register_preset("geo", ["geo.pos3d", "geo.depth3d", "geo.orient", "geo.normal_align", "geo.above"])
+# ------------------------------------------------------------------ R15: membership / graph (id.*, kin.*)
 # ------------------------------------------------------------------ R15: membership / graph (id.*, kin.*)
 # entity_id / assembly_id are registered above (foundation); mirror_id is new: a public per-token left/right
 # mirror-pair id (mirror_id_i == mirror_id_j <-> i, j are morphological mirror partners; -1 = unpaired), generalizing
