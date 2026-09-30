@@ -159,6 +159,14 @@ Only then `eval_structured`.
 The psi venv also carries `rrp_simple_compat.pth` (opt-in via `RRP_SIMPLE_COMPAT=1`, same line as the SIMPLE venv): both env
 installers call one idempotent `compat_pth`, and an existing venv gets it with `ops/bin/psi0_ext.sh compat-pth [simple|psi]`
 (written on the peer 2026-09-30; `import rrp.envs.simple.compat` from the psi venv verified, `tests/unit/test_psi0_ext.py`).
+Smoke 2026-09-30 (labels node, 1 episode, `features` pointed at the old psi1z tabletop cache `~/work/ext/runs/psi1z/features/`
+through a symlink `artifacts/runs/psi0/r3_psi_venv_smoke/feat`, because running `feat` first is a full VLM pass): `rrp stage run`
+of the recipe's `labels` RunConfig through `ops/bin/peer_run.sh --gpu --gpu-mem 4G --cpu 2 --mem 8G --max-seconds 600`
+succeeded (lease rc=0, peak 2.11 GiB; `labels_s0/labels/episode_000000.npz` + `labels.jsonl`, source `privileged_teacher:sim_replay`).
+OPEN: `peer_run.sh` expands the bare word `PY` to the generic peer venv (`/dev/shm/rrp-brandonin/venv`, no pandas), and `rrp run-dag`
+always passes `PY`, so a dispatched psi0 node fails with `No module named 'pandas'` (first smoke attempt). The smoke passed
+the psi venv python explicitly (`-- /home/brandonin/work/ext/venvs/psi/bin/python -m rrp.cli stage run --config-b64 ...`). Until
+`peer_run.sh` / `run-dag` take the peer python from the environment, psi0 nodes must be run that way (not owned by this unit).
 Stale psi1z watcher loops on the peer (bash `until ... sleep` loops, pids 2873754, 3156994, 3389109 on 2026-09-29) hold no
 lease and can be killed.
 
