@@ -1,24 +1,24 @@
-# M2 squat and pick. (D-146 R2 HR; template recipes/templates/humanoid_transfer.yaml; nodes listed in research/tracks/humanoid.md section 4.)
+# C1 lift the box, walk it to a goal 1.0-1.6 leg lengths away, stop, box within 0.3 m of the goal. (D-146 R2 HR; template recipes/templates/humanoid_transfer.yaml; nodes listed in research/tracks/humanoid.md section 4.)
 # Dev bodies [t1, g1, h1], sealed [g1_hands, n1]. Tracker of every collect and of the teacher reference: the installed `ub_v1` of the body (recipes/humanoid/trackers_wholebody_ub.yaml; install with `rrp train tracker-install`).
 # Wholebody task: the latent policy realizes the `upper` group (latent_kw.upper).
 # SOURCES are labelled per method in the config: teacher = scripted_teacher, latent = learned, bc = bc, PPO = learned; a teacher reference is never a learned result.
 extends: ../templates/humanoid_transfer.yaml
-name: humanoid_transfer_h_squat_pick
+name: humanoid_transfer_h_carry
 schema: dag-1
 track: humanoid
 policy: latent
 env: mujoco/legged
-task: h_squat_pick
+task: h_carry
 bodies: humanoid_pool_v1
 factors: []
-vars: {task: h_squat_pick, upper: true, seal0: g1_hands, seal1: n1}
+vars: {task: h_carry, upper: true, seal0: g1_hands, seal1: n1}
 lists:
   dev_bodies: [t1, g1, h1]
   sealed_bodies: [g1_hands, n1]
   trackers: {t1: 't1:ub_v1', g1: 'g1:ub_v1', h1: 'h1:ub_v1'}
   transfer:
-    name: humanoid_transfer_h_squat_pick
-    task: h_squat_pick
+    name: humanoid_transfer_h_carry
+    task: h_carry
     latent_kw: {upper: true}
     bodies: {dev: [t1, g1, h1], sealed: [g1_hands, n1]}
     methods:
@@ -29,7 +29,33 @@ lists:
           source: scripted_teacher
           policy: 'teacher:<task>'
           env_kw: {tracker: '<body>:ub_v1'}
+  teacher_check:
+    name: humanoid_transfer_h_carry_teacher_check
+    task: h_carry
+    env: mujoco/legged
+    train_seeds: [0]
+    scenes: 12
+    bodies: [t1, g1, h1]
+    pack: []
+    results_glob: []
+    latent_kw: {upper: true}
+    levels: {}
+    methods:
+      reference:
+        - name: teacher
+          level: 0
+          kind: teacher
+          source: scripted_teacher
+          policy: 'teacher:h_carry'
+          env_kw: {tracker: '<body>:ub_v1'}
 nodes:
+  teacher_check:
+    stage: eval_transfer
+    tag: teacher-check
+    scope: global
+    resources: {cpu: 4, mem: 8G, max_seconds: 14400}
+    config:
+      options: {transfer: $teacher_check, variant: '-'}
   adapt_refit_s2_n5: null
   adapt_refit_s2_n20: null
   adapt_refit_s2_n100: null

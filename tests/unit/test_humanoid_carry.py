@@ -78,13 +78,18 @@ def test_held_out_tasks_are_in_no_training_list():
 
 
 def test_no_recipe_or_config_names_a_held_out_task():
-    """No training recipe / config / preset lists a held-out task (an evaluation-only task: the split is frozen, D-138)."""
+    """No training recipe / config / preset lists a held-out task (an evaluation-only task: the split is frozen, D-138). The only recipe
+    that may name one is its own evaluation-only `recipes/humanoid/transfer_<task>.yaml` (HR, D-146 round 2; that it has no collect / pack /
+    train / adapt node is asserted in tests/unit/test_humanoid_recipes.py); a YAML comment may mention one."""
     hits = []
     for root in ("recipes", "configs"):
         for p in (REPO / root).rglob("*") if (REPO / root).is_dir() else []:
             if p.is_file() and p.suffix in (".yaml", ".yml", ".json", ".toml", ".py"):
+                rel = p.relative_to(REPO).as_posix()
                 txt = p.read_text(errors="ignore")
-                hits += [f"{p.relative_to(REPO)}:{n}" for n in HELD_OUT if n in txt]
+                if p.suffix in (".yaml", ".yml"):
+                    txt = "\n".join(ln for ln in txt.splitlines() if not ln.lstrip().startswith("#"))
+                hits += [f"{rel}:{n}" for n in HELD_OUT if n in txt and rel != f"recipes/humanoid/transfer_{n}.yaml"]
     assert not hits, hits
 
 

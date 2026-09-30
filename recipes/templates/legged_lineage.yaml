@@ -12,6 +12,7 @@
 # - `collect` depends on `validate` and runs the D-112 legged dataset gate in ENFORCE mode (no `gate: report`), with the declared
 #   tracker sha256 and sourced actuator limits checked in every shard and teacher row.
 # A body that needs a recorded exception (as t1, D-113) sets `gate: report` in its own DAG, with a `caveat:` and a decision reference.
+# D-146 R2 HR: `latent.factors` of `rep` and `model.factors` of `bc` list `preset:{rel_preset}` (default `legged`; `legged-none` is the control arm).
 # The DAGs that running coordinators execute (the retired legged_v2_t1sl DAG) and the completed W8 DAGs are NOT changed by this template.
 name: legged_v2_gated_template
 schema: dag-1
@@ -30,6 +31,7 @@ axis_vars:
     nosem: {sw: 0.0, lv: -8.0, psw: 0.0, tg: ns}
 vars:
   body: anymal_c
+  rel_preset: legged           # relational factors of rep and BC (D-146 R2 HR; docs/relations.md 11): legged = nine legged-rel-v1 edges + leg.foothold + leg.com_support; legged-none = the control arm (T5: >= 2 seeds each)
   tracker_sha256: SET_IN_CHILD_DAG
   actuator_limits: sourced_v1
   sigmas: '0,0.1,0.2,0.3'
@@ -80,7 +82,7 @@ nodes:
     resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
     config:
       inputs: {data: '@collect'}
-      params: {name: 'legged8_bc_{body}', bodies: ['{body}'], model: {width: 192, enc_layers: 2, dec_layers: 3}, steps: '{bc_steps}', batch_size: 256, lr: 0.0003, seed: 0, ckpt_every: 500, snap_every: '{bc_snap}'}
+      params: {name: 'legged8_bc_{body}', bodies: ['{body}'], model: {width: 192, enc_layers: 2, dec_layers: 3, factors: ['preset:{rel_preset}']}, steps: '{bc_steps}', batch_size: 256, lr: 0.0003, seed: 0, ckpt_every: 500, snap_every: '{bc_snap}'}
   teacher:
     stage: eval_r2
     scope: global
@@ -105,11 +107,11 @@ nodes:
         semfix:
           params:
             latent:
-              factors: [{name: probe.legged.contact, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.goal, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.disp, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.subtask, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.fall, weight: 1.0, params: {lv_min: -4.0}}]
+              factors: [{name: probe.legged.contact, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.goal, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.disp, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.subtask, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.fall, weight: 1.0, params: {lv_min: -4.0}}, 'preset:{rel_preset}']
     config:
       flags: {qd_dropout: 0.5}
       inputs: {data: '@collect'}
-      params: {name: '{pfx}_rep', bodies: ['{body}'], latent: {dz: 32, width: 192, factors: [{name: probe.legged.contact, weight: '{sw}'}, {name: probe.legged.goal, weight: '{sw}'}, {name: probe.legged.disp, weight: '{sw}'}, {name: probe.legged.subtask, weight: '{sw}'}, {name: probe.legged.fall, weight: '{sw}'}], beta_kl: 0.001}, steps: '{rep_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: '{snap_every}'}
+      params: {name: '{pfx}_rep', bodies: ['{body}'], latent: {dz: 32, width: 192, factors: [{name: probe.legged.contact, weight: '{sw}'}, {name: probe.legged.goal, weight: '{sw}'}, {name: probe.legged.disp, weight: '{sw}'}, {name: probe.legged.subtask, weight: '{sw}'}, {name: probe.legged.fall, weight: '{sw}'}, 'preset:{rel_preset}'], beta_kl: 0.001}, steps: '{rep_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: '{snap_every}'}
   probe:
     stage: probes
     only: {variant: [nosem]}

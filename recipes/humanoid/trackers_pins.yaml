@@ -1,0 +1,25 @@
+# T0 (research/readiness.md section B; D-146 R2 HR): the pinned tracker of the humanoid track is present with its recorded sha256. `validate_tracker`
+# refuses BEFORE validating when the declared `tracker_sha256` is not the actor file's (check_tracker_sha), so this node is the pin check; the
+# validation it then runs is the D-112 gate as a report (`gate: report`: the verdict is data). Run it on the peer, where the store holds the actor.
+# Only t1:contact_v2 has a recorded sha256 (w8d install, D-101/D-103/D-107; tests/unit/test_trackers.py pins it too); g1 and h1 `contact_v2` have
+# none recorded, so they are not pinned here. A mismatch is fixed by `rrp train tracker-install` of the right actor under a NEW version, never by
+# editing the pin. (The armdiv pins of T0, the v7div pack and BC 1701, are AR's.)
+extends: ../templates/tracker_gated.yaml
+name: humanoid_trackers_pins
+schema: dag-1
+track: humanoid
+policy: tracker
+env: mujoco/legged
+task: locomotion
+bodies: t1
+factors: []
+lineage: 'trk-pin-{body}'
+label_prefix: 'hpin'
+vars: {recipe: null, body: t1}
+nodes:
+  train: null
+  validate:
+    resources: {cpu: 1, mem: 4G, max_seconds: 7200}
+    config:
+      inputs: null
+      options: {body: '{body}', kind: learned, seeds: 5, robust: true, gate: report, tracker_sha256: 36e9146792743115878c34e0bbf7cc46ccb5419417921358da3658c8377fc591}

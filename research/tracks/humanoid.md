@@ -329,15 +329,15 @@ Resources in the recipes are ESTIMATES: measure and redeclare >= 1.35 x peak (D-
    designs, <= 3e8 samples per body) -> `eval` (C, `--level 1.0`).
 3. **Shared morph_v2** -- `shared_morph_v2.yaml`: `train` resumes the run stopped at iter 415/3000 (`resume_from`), then the C gate
    (`eval@<body>`, tracker gate) on each of the 6 pool bodies. The SEALED zero-shot (n1 / berkeley / toddlerbot / phum sealed seeds
-   `sealed_region_seeds(20)`, once) is Level-1 existing-controller transfer; it is not a recipe yet because the berkeley and
-   toddlerbot adapters still have to be written.
+   `sealed_region_seeds(20)`, once) is Level-1 existing-controller transfer; the morph_v2 tracker itself is now `trackers_shared_morph_ub.yaml` (R2 HR); the sealed
+   zero-shot cells are the `shared_morph_zeroshot` method of the h_steps / h_gap transfer recipes (still blocked, see section HR).
 4. **Pool tracker gate** -- `tracker_gate_pool.yaml` (h1 r6, t1 v2ft4, g1 v4): validation + D-112 gate + waypoint +
    `lab_gate.json` (replaces `humanoid_tracker_gate.sh`). The comparison videos of `humanoid_tracker_finalize.sh` are `rrp video legged`
    now; the side-by-side installed-vs-new renderer went to `.old/scripts/render_contact_compare.py`.
 5. **Not a recipe (needs code first):** the D-139 side attempt (g1 knee-specific target band + stance knee-flex term; add a
    `g1_*` entry to `rrp.harness.train.tracker_recipes` (`WARP_RECIPES`), then an instance of `humanoid_task.yaml`).
 6. **Transfer matrix (P3; H6)** -- one recipe per humanoid task, `recipes/humanoid/transfer_<task>.yaml` for h_steps, h_gap, h_walk, h_turn,
-   h_reach, h_squat_pick, h_place (template `recipes/templates/humanoid_transfer.yaml`, family `humanoid`,
+   h_reach, h_squat_pick, h_place, h_carry, h_loco_pick (template `recipes/templates/humanoid_transfer.yaml`, family `humanoid`,
    `rrp.harness.pipelines.humanoid`: collect -> pack -> train_rep -> train_flow / train_bc -> eval_transfer -> sealed_eval).
    The driver is `rrp eval humanoid-transfer` (bodies x methods x demo budgets 5 / 20 / 100 x 2 training seeds; Level 1 apart from Level 2;
    one acquisition record per (level, task, body, budget): demos, teacher TICKS, env samples, updates 150 / 300 / 600; tables through
@@ -352,12 +352,14 @@ Resources in the recipes are ESTIMATES: measure and redeclare >= 1.35 x peak (D-
    fine-tune or scratch through the HS2 trainer `rrp train tracker-warp`; iterations = budget / (nworld * horizon), a budget that is not a whole
    number of iterations is refused and the trainer's own log must end at exactly the budget). Each takes `options.adapt = {task, body, budget[, mode]}`,
    checks the matched update count (150 / 300 / 600), guards the sealed split with its native cell id (`body|stage|task|n<budget>|stage|s<seed>|evaluation`)
-   and writes `acquisition.json` next to its output: the record the transfer driver compares. The DAG templates (HR) do not declare them yet. A method
+   and writes `acquisition.json` next to its output: the record the transfer driver compares. The DAG templates declare them since R2 HR. A method
    may declare `producer` (the stage that creates its run); its absent runs are then `pending` (planned), not `missing_run` (a run nothing plans).
-   The humanoid task shards carry no `waypoints`; the trainers are task-agnostic since HD2. h_steps / h_gap name `SET_WHEN_REGISTERED` trackers (no
-   contact_v2 tracker of those tasks is registered), so their collect nodes fail at once. Only t1, g1, h1 have registered trackers: source and dev pool = those three; sealed
-   bodies n1 / berkeley / toddlerbot_2xc (legs tasks), g1_hands / n1 (manipulation tasks); phum sealed is not planned.
-   Not planned: the carry / loco-pick tasks (U3 not merged). Training is paused: nothing here has been run.
+   The humanoid task shards carry no `waypoints`; the trainers are task-agnostic since HD2.
+   R2 HR: the DAG templates declare the adapting trainers, every Level-2 method has a `producer`, and no `SET_WHEN_REGISTERED` is left: the collect nodes
+   take `options.trackers` = `<body>:<version>` of the tracker recipes below (`ub_v1` for the wholebody tasks, `steps_scan_v1` / `gap_ring_v1` for the
+   scan tasks). Source and dev pool = t1, g1, h1 (h_gap: t1, h1); sealed = n1 / berkeley / toddlerbot_2xc (legs tasks), g1_hands / n1 (manipulation);
+   phum sealed is not planned. h_carry and h_loco_pick have recipes (U3 is merged); the held-out h_steps_carry and h_gap_cart have EVAL-ONLY recipes.
+   Training is paused: nothing here has been run.
 Also here: the four never-run D-126 CPU tracker recipes `recipes/humanoid/d126_tracker_*.yaml` (superseded in practice by the GPU
 recipes of `tracker_recipes.py`).
 
@@ -487,7 +489,7 @@ DAG humanoid_transfer_h_walk: 29 nodes
   batch, encoder and BC; legged-none identity; estimates loss; deploy refusal; three trainer runs). No training or simulation was run.
 - Open (not HL-owned): shards need `terrain`, `foothold_cell`, `com_support(_valid)` from collect (H4), else those labels are masked;
   `bundles.load_rep`, `policies/legged.py` and `legged_dagger.py` build nets without factors (use `load_legged_rep` / `build_legged_rep`, feed the
-  terrain keys at deploy); `legged_bc.bc_batch` should use `data.train_batch` for the foothold label; the lineage recipe adds `preset:legged`.
+  terrain keys at deploy); `legged_bc.bc_batch` should use `data.train_batch` for the foothold label; `recipes/templates/legged_lineage.yaml` lists `preset:legged` since R2 HR (golden moved, D-146).
 
 ## HX (D-146, 2026-09-30): humanoid system 0 realizes the `upper` group
 - The packet already carried the arm / body assemblies (`LeggedMorph`: nf legs + body + one assembly per arm side, held joints as nodes) and the
@@ -515,7 +517,7 @@ DAG humanoid_transfer_h_walk: 29 nodes
   `legs` = the registered rl_expert tracker (`t1:contact_v2`) on a base velocity command for h_walk / h_turn; `upper` = damped-least-squares IK on the public body
   model (`UpperIK`). h_reach / h_squat_pick / h_place plant the feet: the tracker sags 0.83 of the stand height and fights a squat, so their legs are a static pose
   (`SquatPlanner`, CoM over the soles) plus an ankle-pitch PID on the CoM x error (the ankle servos are weak: kp 50, 20 Nm). The row label says `planned_com` for
-  those and the tracker version + sha for the others. No `*_ub` wholebody tracker exists yet, so nothing here is a learned whole-body result.
+  those and the tracker version + sha for the others. No `*_ub` wholebody tracker exists yet (recipe: `recipes/humanoid/trackers_wholebody_ub.yaml`, R2 HR; not run), so nothing here is a learned whole-body result.
 - h_turn: the tracker's turning steps walk the base 0.17 m per rad, so the teacher adds a body-frame velocity command (P on the true position, 0.15 m/s cap,
   off once aligned so the base comes to rest); `drift_max` is 0.5 m (0.33 m failed 5 of 20 seeds unassisted, a stronger hold stalls the turn).
 - Acceptance (host, real t1 actor, `evaluate("teacher:<task>", "mujoco/legged", ...)`, batch 1, seeds 0-19): 20/20 public AND privileged success for each of the five tasks
@@ -572,3 +574,80 @@ DAG humanoid_transfer_h_walk: 29 nodes
 - Relation shards: `params.curriculum` / `inputs.relgen` are REFUSED by all three trainers (`refuse_relgen`, `RelgenError`), not ignored. RG's shard rows hold the arm family's `PolicyInput` token banks and `collate_rows` collates them; the legged nets take the morphology / joint-state / ctx / terrain batch, so a shard row cannot be forwarded and there is no legged featurizer / collate in relgen. The hook (`relation_batches(family="legged")`, main rows = `counts["main"]`, `observe_estimates`) is a follow-up once relgen can featurize and collate a legged snapshot (owner: RG / relations; `mix.py`, `pipelines/relations.py`, not HD2 files). Until then the legged relation factors are trained through the pack's own labels (terrain / foothold / com), which works.
 - Tests (`tests/unit/test_legged_train_upper.py`, 3 CPU steps on random tiny packs, plumbing only): `h_reach` wholebody pack (upper loss > 0 in `rep_step` and in the held-out per-group eval, flags in the rep / flow / BC results; slow), `h_steps` pack (base velocity: upper untrained, the foothold estimate is a supervised term of `estimates_loss`), a pre-HD1 waypoint pack, `event_goal_slots` for four graphs, and the relgen refusal per trainer. Nothing was trained beyond those steps, no peer run (HD2 owns no recipe).
 - `check_waypoint_free` (guarded the old `waypoints` read) was deleted by R2 HA. `harness/eval/privileged_audit.LEGGED_GROUPS` names only ctx cols 0:22 (slot 2 at 22:26 unlisted).
+
+## HR (R2, 2026-09-30): humanoid recipes for every task and every tracker run (D-146 addendum)
+Gap re-checked on origin/main bd8adc37 (no tracker recipes, no h_carry / h_loco_pick / held-out transfer recipes, `SET_WHEN_REGISTERED` in the templates).
+Everything below is a DRY-RUN recipe: nothing was trained, no peer smoke was run (no peer lease taken; the `adapt_ppo` iteration arithmetic and the
+driver cell states are covered by `tests/unit/test_humanoid_recipes.py`). Sources: the collect teachers are `scripted_teacher` (labelled `teacher:h_*`),
+the methods are `learned:latent_semfix`, `learned:latent_nosem`, `bc:direct`, `ppo_finetune` / `ppo_scratch` (learned, Level 1) and the registered
+trackers (existing controllers, Level 1); the `eval_ref` / `sealed_ref` cells are the scripted-teacher reference (privileged).
+- Tracker recipes (section B): `trackers_pins.yaml` (T0, pin check of `t1:contact_v2` sha256 36e9146792743115878c34e0bbf7cc46ccb5419417921358da3658c8377fc591),
+  `trackers_steps_scan.yaml` (T1, t1 / g1 / h1, installs `steps_scan_v1`), `trackers_gap_ring.yaml` (T1, t1 / h1 scan + range-ring, installs `gap_ring_v1`),
+  `trackers_wholebody_ub.yaml` (T2, `ub_v1` gait and `steps_ub_v1`; teacher check h_carry >= 10/12 both sides and h_steps_carry >= 8/10, else
+  `blocked_external`: nodes `teacher_check` in `transfer_h_carry.yaml` / `transfer_h_steps_carry.yaml`), `trackers_shared_morph_ub.yaml` (T3, one global train
+  plus a gate on every source body, installs `shared: morph_v2_ub`).
+  `rrp train tracker-install RUN --validation V --body B --version X --label L` is not a DAG stage: each recipe records it as the `tracker-install` command
+  in `lists.installs` (the driver's producer name). The install needs a passed gate first.
+- Transfer recipes (`recipes/templates/humanoid_transfer.yaml`): one per registered humanoid task: h_walk, h_turn, h_reach, h_squat_pick, h_place, h_carry,
+  h_loco_pick, h_steps, h_gap, plus the EVAL-ONLY held-out h_steps_carry and h_gap_cart (zero-shot cells on the h_carry checkpoints, no collect / pack / train /
+  adapt nodes; their Level-2 cells report `missing_run` until the h_carry runs exist). Adapting nodes: `adapt_{refit,flow,bc}_<slot>_n{5,20,100}` (steps
+  150 / 300 / 600), sealed slots on `pack_sealed`; `adapt_ppo` (h_steps / h_gap, Level 1): `ppo_{ft|scratch}_<body>_n{1000000|10000000}`, nworld 1000 x horizon 25
+  (40 / 400 iterations), one seed, sealed bodies on adaptation seeds (seed 1000000). Finetune inits from the shared morph tracker, scratch has no init.
+  `rel_preset: legged` adds `preset:legged` to the rep and BC factor lists; the control arm is an instance with `vars.rel_preset: legged-none` (the registered
+  no-factor preset; none is committed).
+- `legged_lineage` adds `preset:legged` (golden digests `recipe.legged_lineage` / `.go2` moved, recorded in D-146).
+- Blocked or unverified (do not read a plan as a result): `LearnedTracker` cannot load morph_v2, so the T3 gate and `shared_morph_zeroshot` cannot run; the gap
+  trainer never writes the `range_ring` actor meta (`warp_tracker_ppo.py` ~l.248); `g1_steps_gpu` does not exist (g1 uses `t1_steps_gpu`); sealed bodies have no
+  registered tracker, so `collect_sealed` and the sealed teacher reference cannot run; sealed-body warp PPO is unverified; the driver has no per-method body
+  applicability, so sealed `task_expert_zeroshot` / `shared_morph_zeroshot` cells stay `pending`; the teachers' use of the `*_ub` trackers through `env_kw.tracker` is
+  unverified; `adapt_ppo` needs the mjwarp PYTHONPATH (`RRP_PEER_PYTHONPATH` in `ops/bin/peer_run.sh`).
+
+Node lists (generated from `rrp run-dag <recipe> --dry-run`; `<slot>` = d0..d2 dev bodies, s0..s2 sealed bodies; `<system>` = semfix / nosem / bc; `<seed>` = 0 / 1):
+
+`recipes/humanoid/trackers_gap_ring.yaml` -- 8 nodes
+  `smoke@t1` (eval_tracker-smoke), `train@t1` (train_tracker), `validate@t1` (validate_tracker), `eval@t1` (eval_tracker), `smoke@h1` (eval_tracker-smoke), `train@h1` (train_tracker), `validate@h1` (validate_tracker), `eval@h1` (eval_tracker)
+
+`recipes/humanoid/trackers_pins.yaml` -- 1 nodes
+  `validate` (validate_tracker)
+
+`recipes/humanoid/trackers_shared_morph_ub.yaml` -- 7 nodes
+  `train` (train_tracker), `validate@t1` (validate_tracker), `validate@g1` (validate_tracker), `validate@h1` (validate_tracker), `validate@op3` (validate_tracker), `validate@apollo` (validate_tracker), `validate@adam_lite` (validate_tracker)
+
+`recipes/humanoid/trackers_steps_scan.yaml` -- 9 nodes
+  `train@t1` (train_tracker), `validate@t1` (validate_tracker), `eval@t1` (eval_tracker), `train@g1` (train_tracker), `validate@g1` (validate_tracker), `eval@g1` (eval_tracker), `train@h1` (train_tracker), `validate@h1` (validate_tracker), `eval@h1` (eval_tracker)
+
+`recipes/humanoid/trackers_wholebody_ub.yaml` -- 12 nodes
+  `train@t1.gait` (train_tracker), `validate@t1.gait` (validate_tracker), `train@t1.steps` (train_tracker), `validate@t1.steps` (validate_tracker), `train@g1.gait` (train_tracker), `validate@g1.gait` (validate_tracker), `train@g1.steps` (train_tracker), `validate@g1.steps` (validate_tracker), `train@h1.gait` (train_tracker), `validate@h1.gait` (validate_tracker), `train@h1.steps` (train_tracker), `validate@h1.steps` (validate_tracker)
+
+`recipes/humanoid/transfer_h_carry.yaml` -- 180 nodes
+  `collect_src` (collect); `collect_tgt` (collect); `collect_sealed` (collect); `pack` (pack); `pack_sealed` (pack); `eval_ref` (eval_transfer); `sealed_ref` (sealed_eval); `teacher_check` (eval_transfer); `rep@<system>.s<seed>` (train_rep) x4; `flow@<system>.s<seed>` (train_flow) x4; `adapt_refit_<slot>_n<N>@<system>.s<seed>` (adapt_refit) x60; `adapt_flow_<slot>_n<N>@<system>.s<seed>` (adapt_flow) x60; `eval@<system>.s<seed>` (eval_transfer) x6; `sealed@<system>.s<seed>` (sealed_eval) x6; `bc@<system>.s<seed>` (train_bc) x2; `adapt_bc_<slot>_n<N>@<system>.s<seed>` (adapt_bc) x30
+
+`recipes/humanoid/transfer_h_gap.yaml` -- 199 nodes
+  `collect_src` (collect); `collect_tgt` (collect); `collect_sealed` (collect); `pack` (pack); `pack_sealed` (pack); `ppo_ft_h1_n1000000` (adapt_ppo); `ppo_ft_h1_n10000000` (adapt_ppo); `ppo_ft_t1_n1000000` (adapt_ppo); `ppo_ft_t1_n10000000` (adapt_ppo); `ppo_scratch_h1_n1000000` (adapt_ppo); `ppo_scratch_h1_n10000000` (adapt_ppo); `ppo_scratch_t1_n1000000` (adapt_ppo); `ppo_scratch_t1_n10000000` (adapt_ppo); `eval_ref` (eval_transfer); `ppo_ft_berkeley_n1000000` (adapt_ppo); `ppo_ft_berkeley_n10000000` (adapt_ppo); `ppo_ft_n1_n1000000` (adapt_ppo); `ppo_ft_n1_n10000000` (adapt_ppo); `ppo_ft_toddlerbot_2xc_n1000000` (adapt_ppo); `ppo_ft_toddlerbot_2xc_n10000000` (adapt_ppo); `ppo_scratch_berkeley_n1000000` (adapt_ppo); `ppo_scratch_berkeley_n10000000` (adapt_ppo); `ppo_scratch_n1_n1000000` (adapt_ppo); `ppo_scratch_n1_n10000000` (adapt_ppo); `ppo_scratch_toddlerbot_2xc_n1000000` (adapt_ppo); `ppo_scratch_toddlerbot_2xc_n10000000` (adapt_ppo); `sealed_ref` (sealed_eval); `rep@<system>.s<seed>` (train_rep) x4; `flow@<system>.s<seed>` (train_flow) x4; `adapt_refit_<slot>_n<N>@<system>.s<seed>` (adapt_refit) x60; `adapt_flow_<slot>_n<N>@<system>.s<seed>` (adapt_flow) x60; `eval@<system>.s<seed>` (eval_transfer) x6; `sealed@<system>.s<seed>` (sealed_eval) x6; `bc@<system>.s<seed>` (train_bc) x2; `adapt_bc_<slot>_n<N>@<system>.s<seed>` (adapt_bc) x30
+
+`recipes/humanoid/transfer_h_gap_cart.yaml` -- 14 nodes
+  `eval_ref` (eval_transfer); `sealed_ref` (sealed_eval); `eval@<system>.s<seed>` (eval_transfer) x6; `sealed@<system>.s<seed>` (sealed_eval) x6
+
+`recipes/humanoid/transfer_h_loco_pick.yaml` -- 179 nodes
+  `collect_src` (collect); `collect_tgt` (collect); `collect_sealed` (collect); `pack` (pack); `pack_sealed` (pack); `eval_ref` (eval_transfer); `sealed_ref` (sealed_eval); `rep@<system>.s<seed>` (train_rep) x4; `flow@<system>.s<seed>` (train_flow) x4; `adapt_refit_<slot>_n<N>@<system>.s<seed>` (adapt_refit) x60; `adapt_flow_<slot>_n<N>@<system>.s<seed>` (adapt_flow) x60; `eval@<system>.s<seed>` (eval_transfer) x6; `sealed@<system>.s<seed>` (sealed_eval) x6; `bc@<system>.s<seed>` (train_bc) x2; `adapt_bc_<slot>_n<N>@<system>.s<seed>` (adapt_bc) x30
+
+`recipes/humanoid/transfer_h_place.yaml` -- 179 nodes
+  `collect_src` (collect); `collect_tgt` (collect); `collect_sealed` (collect); `pack` (pack); `pack_sealed` (pack); `eval_ref` (eval_transfer); `sealed_ref` (sealed_eval); `rep@<system>.s<seed>` (train_rep) x4; `flow@<system>.s<seed>` (train_flow) x4; `adapt_refit_<slot>_n<N>@<system>.s<seed>` (adapt_refit) x60; `adapt_flow_<slot>_n<N>@<system>.s<seed>` (adapt_flow) x60; `eval@<system>.s<seed>` (eval_transfer) x6; `sealed@<system>.s<seed>` (sealed_eval) x6; `bc@<system>.s<seed>` (train_bc) x2; `adapt_bc_<slot>_n<N>@<system>.s<seed>` (adapt_bc) x30
+
+`recipes/humanoid/transfer_h_reach.yaml` -- 179 nodes
+  `collect_src` (collect); `collect_tgt` (collect); `collect_sealed` (collect); `pack` (pack); `pack_sealed` (pack); `eval_ref` (eval_transfer); `sealed_ref` (sealed_eval); `rep@<system>.s<seed>` (train_rep) x4; `flow@<system>.s<seed>` (train_flow) x4; `adapt_refit_<slot>_n<N>@<system>.s<seed>` (adapt_refit) x60; `adapt_flow_<slot>_n<N>@<system>.s<seed>` (adapt_flow) x60; `eval@<system>.s<seed>` (eval_transfer) x6; `sealed@<system>.s<seed>` (sealed_eval) x6; `bc@<system>.s<seed>` (train_bc) x2; `adapt_bc_<slot>_n<N>@<system>.s<seed>` (adapt_bc) x30
+
+`recipes/humanoid/transfer_h_squat_pick.yaml` -- 179 nodes
+  `collect_src` (collect); `collect_tgt` (collect); `collect_sealed` (collect); `pack` (pack); `pack_sealed` (pack); `eval_ref` (eval_transfer); `sealed_ref` (sealed_eval); `rep@<system>.s<seed>` (train_rep) x4; `flow@<system>.s<seed>` (train_flow) x4; `adapt_refit_<slot>_n<N>@<system>.s<seed>` (adapt_refit) x60; `adapt_flow_<slot>_n<N>@<system>.s<seed>` (adapt_flow) x60; `eval@<system>.s<seed>` (eval_transfer) x6; `sealed@<system>.s<seed>` (sealed_eval) x6; `bc@<system>.s<seed>` (train_bc) x2; `adapt_bc_<slot>_n<N>@<system>.s<seed>` (adapt_bc) x30
+
+`recipes/humanoid/transfer_h_steps.yaml` -- 233 nodes
+  `collect_src` (collect); `collect_tgt` (collect); `collect_sealed` (collect); `pack` (pack); `pack_sealed` (pack); `ppo_ft_g1_n1000000` (adapt_ppo); `ppo_ft_g1_n10000000` (adapt_ppo); `ppo_ft_h1_n1000000` (adapt_ppo); `ppo_ft_h1_n10000000` (adapt_ppo); `ppo_ft_t1_n1000000` (adapt_ppo); `ppo_ft_t1_n10000000` (adapt_ppo); `ppo_scratch_g1_n1000000` (adapt_ppo); `ppo_scratch_g1_n10000000` (adapt_ppo); `ppo_scratch_h1_n1000000` (adapt_ppo); `ppo_scratch_h1_n10000000` (adapt_ppo); `ppo_scratch_t1_n1000000` (adapt_ppo); `ppo_scratch_t1_n10000000` (adapt_ppo); `eval_ref` (eval_transfer); `ppo_ft_berkeley_n1000000` (adapt_ppo); `ppo_ft_berkeley_n10000000` (adapt_ppo); `ppo_ft_n1_n1000000` (adapt_ppo); `ppo_ft_n1_n10000000` (adapt_ppo); `ppo_ft_toddlerbot_2xc_n1000000` (adapt_ppo); `ppo_ft_toddlerbot_2xc_n10000000` (adapt_ppo); `ppo_scratch_berkeley_n1000000` (adapt_ppo); `ppo_scratch_berkeley_n10000000` (adapt_ppo); `ppo_scratch_n1_n1000000` (adapt_ppo); `ppo_scratch_n1_n10000000` (adapt_ppo); `ppo_scratch_toddlerbot_2xc_n1000000` (adapt_ppo); `ppo_scratch_toddlerbot_2xc_n10000000` (adapt_ppo); `sealed_ref` (sealed_eval); `rep@<system>.s<seed>` (train_rep) x4; `flow@<system>.s<seed>` (train_flow) x4; `adapt_refit_<slot>_n<N>@<system>.s<seed>` (adapt_refit) x72; `adapt_flow_<slot>_n<N>@<system>.s<seed>` (adapt_flow) x72; `eval@<system>.s<seed>` (eval_transfer) x6; `sealed@<system>.s<seed>` (sealed_eval) x6; `bc@<system>.s<seed>` (train_bc) x2; `adapt_bc_<slot>_n<N>@<system>.s<seed>` (adapt_bc) x36
+
+`recipes/humanoid/transfer_h_steps_carry.yaml` -- 15 nodes
+  `eval_ref` (eval_transfer); `sealed_ref` (sealed_eval); `teacher_check` (eval_transfer); `eval@<system>.s<seed>` (eval_transfer) x6; `sealed@<system>.s<seed>` (sealed_eval) x6
+
+`recipes/humanoid/transfer_h_turn.yaml` -- 209 nodes
+  `collect_src` (collect); `collect_tgt` (collect); `collect_sealed` (collect); `pack` (pack); `pack_sealed` (pack); `eval_ref` (eval_transfer); `sealed_ref` (sealed_eval); `rep@<system>.s<seed>` (train_rep) x4; `flow@<system>.s<seed>` (train_flow) x4; `adapt_refit_<slot>_n<N>@<system>.s<seed>` (adapt_refit) x72; `adapt_flow_<slot>_n<N>@<system>.s<seed>` (adapt_flow) x72; `eval@<system>.s<seed>` (eval_transfer) x6; `sealed@<system>.s<seed>` (sealed_eval) x6; `bc@<system>.s<seed>` (train_bc) x2; `adapt_bc_<slot>_n<N>@<system>.s<seed>` (adapt_bc) x36
+
+`recipes/humanoid/transfer_h_walk.yaml` -- 209 nodes
+  `collect_src` (collect); `collect_tgt` (collect); `collect_sealed` (collect); `pack` (pack); `pack_sealed` (pack); `eval_ref` (eval_transfer); `sealed_ref` (sealed_eval); `rep@<system>.s<seed>` (train_rep) x4; `flow@<system>.s<seed>` (train_flow) x4; `adapt_refit_<slot>_n<N>@<system>.s<seed>` (adapt_refit) x72; `adapt_flow_<slot>_n<N>@<system>.s<seed>` (adapt_flow) x72; `eval@<system>.s<seed>` (eval_transfer) x6; `sealed@<system>.s<seed>` (sealed_eval) x6; `bc@<system>.s<seed>` (train_bc) x2; `adapt_bc_<slot>_n<N>@<system>.s<seed>` (adapt_bc) x36

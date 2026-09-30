@@ -1,0 +1,57 @@
+# T1 (research/readiness.md section B; D-146 R2 HR): the h_gap terrain-scan + range-ring trackers of t1 and h1 (public `terrain_scan` AND the 16-ray
+# `range_ring`: extra_obs `terrain_scan+range_ring`). One point per body, warm start from the body's installed gait actor as in the recipes
+# `{t1,h1}_gap_gpu_v1` (stop rule: <= 2 reward designs, <= 3e8 samples per body):
+#   smoke     WarpGapEnv at levels 0 and 1 with the warm-start tracker (peer GPU, minutes) before the long run
+#   train     `rrp train tracker-warp --recipe {body}_gap_gpu_v1`
+#   validate  the D-112 tracker gate on the trained actor; fails the node on `fail`
+#   eval      C-MuJoCo h_gap_sidestep (success = 0.5 L past the wall, heading error < 0.3 rad held 0.5 s; failures fell | wall_collision | timeout)
+# INSTALL (not a stage; the lead runs it after the gate passed; refuses unless tracker_sha matches and the verdict is pass):
+#   rrp train tracker-install <run of train> --validation <run of validate>/validation.json --body <body> --version gap_ring_v1 --label "<gate>"
+# `lists.installs` records the version; the transfer recipe names `<body>:<version>` and a test checks the two agree.
+# BLOCKED ON CODE (reported to the lead, not HR's file): the `--task gap` trainer widens the actor input by the range ring but records only
+# `meta.terrain_scan` (`warp_tracker_ppo.py` line ~248), never `meta.range_ring`, so `extra_kind` does not see the ring and the actor cannot be
+# loaded as a public tracker. The install of these two actors waits for that fix.
+extends: ../templates/humanoid_task.yaml
+name: humanoid_trackers_gap_ring
+schema: dag-1
+track: humanoid
+policy: tracker
+env: warp/legged
+task: h_gap_sidestep
+bodies: humanoid_pool_v1
+factors: []
+lineage: 'trk-gap_ring-{body}'
+global_lineage: 'trk-gap_ring'
+label_prefix: 'hgr_{body}'
+global_label_prefix: 'hgr'
+matrix:
+  body: [t1, h1]
+axis_vars:
+  body:
+    t1: {recipe: t1_gap_gpu_v1, warm: artifacts/runs/humanoid_p1b_t1_v2ft4/actor.pt}
+    h1: {recipe: h1_gap_gpu_v1, warm: artifacts/runs/humanoid_p1b_h1_r6/actor_r6final.pt}
+vars: {task: gap, body: null, recipe: null}     # body, recipe and the warm-start actor come from the matrix point
+lists:
+  installs: {t1: gap_ring_v1, h1: gap_ring_v1}
+nodes:
+  smoke:
+    stage: eval_tracker
+    tag: smoke
+    resources: {cpu: 2, mem: 8G, gpu: true, gpu_mem: 4G, max_seconds: 1800}
+    retries: 0
+    config:
+      inputs: null
+      options: {task: gap_smoke, body: '{body}', actor: '{warm}', pythonpath: ['{warp_path}']}
+  train:
+    deps: [smoke]
+  validate:
+    stage: validate_tracker
+    resources: {cpu: 1, mem: 4G, gpu: false, max_seconds: 7200}
+    retries: 0
+    config:
+      inputs: {actor: '@train:actor.pt'}
+      options: {body: '{body}', kind: learned, seeds: 10, robust: true}
+  eval:
+    deps: [validate]
+    config:
+      options: {task: gap, body: '{body}', seed0: 7200, n: 20}

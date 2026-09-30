@@ -1,3 +1,7 @@
+# L0 turn in place to a heading. (D-146 R2 HR; template recipes/templates/humanoid_transfer.yaml; nodes listed in research/tracks/humanoid.md section 4.)
+# Dev bodies [t1, g1, h1], sealed [n1, berkeley, toddlerbot_2xc]. Tracker of every collect and of the teacher reference: the installed `ub_v1` of the body (recipes/humanoid/trackers_wholebody_ub.yaml; install with `rrp train tracker-install`).
+# Wholebody task: the latent policy realizes the `upper` group (latent_kw.upper).
+# SOURCES are labelled per method in the config: teacher = scripted_teacher, latent = learned, bc = bc, PPO = learned; a teacher reference is never a learned result.
 extends: ../templates/humanoid_transfer.yaml
 name: humanoid_transfer_h_turn
 schema: dag-1
@@ -7,13 +11,21 @@ env: mujoco/legged
 task: h_turn
 bodies: humanoid_pool_v1
 factors: []
-# L0 turn in place to a heading. Wholebody task: the latent policy realizes the `upper` group (latent_kw.upper). Sealed bodies: [n1, berkeley, toddlerbot_2xc].
 vars: {task: h_turn, upper: true}
 lists:
+  dev_bodies: [t1, g1, h1]
   sealed_bodies: [n1, berkeley, toddlerbot_2xc]
+  trackers: {t1: 't1:ub_v1', g1: 'g1:ub_v1', h1: 'h1:ub_v1'}
   transfer:
     name: humanoid_transfer_h_turn
     task: h_turn
     latent_kw: {upper: true}
-    bodies:
-      sealed: [n1, berkeley, toddlerbot_2xc]
+    bodies: {dev: [t1, g1, h1], sealed: [n1, berkeley, toddlerbot_2xc]}
+    methods:
+      reference:
+        - name: teacher
+          level: 0
+          kind: teacher
+          source: scripted_teacher
+          policy: 'teacher:<task>'
+          env_kw: {tracker: '<body>:ub_v1'}

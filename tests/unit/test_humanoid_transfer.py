@@ -13,7 +13,8 @@ from rrp.harness.pipelines import humanoid as HP
 from rrp.harness.pipelines.base import _REGISTRY, StageError, _load_families
 
 ROOT = Path(__file__).resolve().parents[2]
-RECIPES = sorted((ROOT / "recipes/humanoid").glob("transfer_h_*.yaml"))
+HELD_OUT = ("h_steps_carry", "h_gap_cart")                   # evaluation-only recipes (tests/unit/test_humanoid_recipes.py)
+RECIPES = sorted(p for p in (ROOT / "recipes/humanoid").glob("transfer_h_*.yaml") if p.stem.removeprefix("transfer_") not in HELD_OUT)
 UPDATES = {5: 150, 20: 300, 100: 600}
 
 
@@ -117,7 +118,8 @@ def test_every_humanoid_recipe_plans_and_its_config_paths_match_the_planned_outs
     cells = HE.expand_cells(cfg)
     states = {HE.cell_key(c): HE.cell_state(cfg, c, tmp_path, pack)["status"] for c in cells}
     assert {k for k, v in states.items() if v == "ready"} == {k for k in states if "|teacher|" in k}   # only the scripted teacher needs no run
-    assert "missing_run" in states.values() and "unaccounted" in states.values()
+    # a method whose run a stage of the recipe produces is pending (zero-shot) or unaccounted (no pack yet), never a silent miss: no missing_run
+    assert "pending" in states.values() and "missing_run" not in states.values()
 
 
 def test_level1_only_where_existing_controllers_exist():

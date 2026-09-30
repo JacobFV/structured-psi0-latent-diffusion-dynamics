@@ -1,0 +1,43 @@
+# T3 (research/readiness.md section B; D-146 R2 HR): the ONE shared morphology tracker with the upper block (obs morph_v2 = morph_v1 + the canonical upper
+# joint block; recipe `shared_morph_ub`: the six menagerie pool bodies x 1024 worlds + the 2 most frequent phum topologies with arms x 2048 worlds;
+# random upper-body targets and payload on the ramp), trained on the SOURCE pool only, then the D-112 gate on EVERY pool body (one validate node per
+# gate_body, `gate: report`: the verdict is data; install needs a pass on each body). It is the input of Level-1 adaptation (`shared_morph_zeroshot`,
+# `ppo_finetune` from it).
+#   train     `rrp train tracker-warp --recipe shared_morph_ub` (global; peer GPU)
+#   validate  per pool body
+# INSTALL (not a stage; one --validation per pool body; the store key for a shared tracker is `shared`):
+#   rrp train tracker-install <run of train> --validation <validate run>/validation.json [x6] --body shared --version morph_v2_ub --label "<gate>"
+# BLOCKED ON CODE (reported to the lead): `LearnedTracker` cannot load a morph_v2 actor yet (HS1 file), so the validate nodes fail at load until it can.
+extends: ../templates/humanoid_task.yaml
+name: humanoid_trackers_shared_morph_ub
+schema: dag-1
+track: humanoid
+policy: tracker
+env: warp/legged
+task: locomotion
+bodies: shared_morph_pool_v1
+factors: []
+lineage: 'trk-shared_morph_ub-{gate_body}'
+global_lineage: 'trk-shared_morph_ub'
+label_prefix: 'hsm_{gate_body}'
+global_label_prefix: 'hsm'
+matrix:
+  gate_body: [t1, g1, h1, op3, apollo, adam_lite]
+defaults:
+  resources: {cpu: 6, mem: 40G, gpu: true, gpu_mem: 24G, max_seconds: 86400}
+vars: {recipe: shared_morph_ub, body: shared}
+lists:
+  installs: {shared: morph_v2_ub}
+nodes:
+  train:
+    scope: global
+    config:
+      options: {body: null}
+  eval: null
+  validate:
+    stage: validate_tracker
+    resources: {cpu: 1, mem: 4G, gpu: false, max_seconds: 7200}
+    retries: 0
+    config:
+      inputs: {actor: '@train:actor.pt'}
+      options: {task: null, body: '{gate_body}', kind: learned, seeds: 10, robust: true, gate: report}

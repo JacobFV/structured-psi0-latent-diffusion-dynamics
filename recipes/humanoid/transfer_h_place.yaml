@@ -1,3 +1,7 @@
+# M3 pick and place on a surface. (D-146 R2 HR; template recipes/templates/humanoid_transfer.yaml; nodes listed in research/tracks/humanoid.md section 4.)
+# Dev bodies [t1, g1, h1], sealed [g1_hands, n1]. Tracker of every collect and of the teacher reference: the installed `ub_v1` of the body (recipes/humanoid/trackers_wholebody_ub.yaml; install with `rrp train tracker-install`).
+# Wholebody task: the latent policy realizes the `upper` group (latent_kw.upper).
+# SOURCES are labelled per method in the config: teacher = scripted_teacher, latent = learned, bc = bc, PPO = learned; a teacher reference is never a learned result.
 extends: ../templates/humanoid_transfer.yaml
 name: humanoid_transfer_h_place
 schema: dag-1
@@ -7,13 +11,40 @@ env: mujoco/legged
 task: h_place
 bodies: humanoid_pool_v1
 factors: []
-# M3 pick and place on a surface. Wholebody task: the latent policy realizes the `upper` group (latent_kw.upper). Sealed bodies: [g1_hands, n1].
-vars: {task: h_place, upper: true}
+vars: {task: h_place, upper: true, seal0: g1_hands, seal1: n1}
 lists:
+  dev_bodies: [t1, g1, h1]
   sealed_bodies: [g1_hands, n1]
+  trackers: {t1: 't1:ub_v1', g1: 'g1:ub_v1', h1: 'h1:ub_v1'}
   transfer:
     name: humanoid_transfer_h_place
     task: h_place
     latent_kw: {upper: true}
-    bodies:
-      sealed: [g1_hands, n1]
+    bodies: {dev: [t1, g1, h1], sealed: [g1_hands, n1]}
+    methods:
+      reference:
+        - name: teacher
+          level: 0
+          kind: teacher
+          source: scripted_teacher
+          policy: 'teacher:<task>'
+          env_kw: {tracker: '<body>:ub_v1'}
+nodes:
+  adapt_refit_s2_n5: null
+  adapt_refit_s2_n20: null
+  adapt_refit_s2_n100: null
+  adapt_flow_s2_n5: null
+  adapt_flow_s2_n20: null
+  adapt_flow_s2_n100: null
+  adapt_bc_s2_n5: null
+  adapt_bc_s2_n20: null
+  adapt_bc_s2_n100: null
+  sealed:
+    per:
+      system:
+        semfix:
+          inputs: {ar_s2_n5: null, af_s2_n5: null, ar_s2_n20: null, af_s2_n20: null, ar_s2_n100: null, af_s2_n100: null}
+        nosem:
+          inputs: {ar_s2_n5: null, af_s2_n5: null, ar_s2_n20: null, af_s2_n20: null, ar_s2_n100: null, af_s2_n100: null}
+        bc:
+          inputs: {ab_s2_n5: null, ab_s2_n20: null, ab_s2_n100: null}

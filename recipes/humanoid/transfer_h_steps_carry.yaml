@@ -1,0 +1,165 @@
+# M1 carry over a 2-step staircase (held out, evaluation only). (D-146 R2 HR; template recipes/templates/humanoid_transfer.yaml; nodes listed in research/tracks/humanoid.md section 4.)
+# EVAL ONLY (the split is frozen, D-138): no collect, pack, train or adapt node. The Level-2 methods are the zero-shot `h_carry` checkpoints (latent semfix / nosem, BC; `upper: true`)
+# evaluated on this task; the reference is the scripted teacher over the installed `steps_ub_v1` tracker. Dev bodies [t1, g1, h1], sealed [g1_hands, n1]. `sealed: true` is flipped only by the lead.
+# The h_carry checkpoints must exist (`humanoid_transfer_h_carry` run); a missing one is reported `missing_run`, never skipped.
+# SOURCES are labelled per method in the config: teacher = scripted_teacher, latent = learned, bc = bc, PPO = learned; a teacher reference is never a learned result.
+extends: ../templates/humanoid_transfer.yaml
+name: humanoid_transfer_h_steps_carry
+schema: dag-1
+track: humanoid
+policy: latent
+env: mujoco/legged
+task: h_steps_carry
+bodies: humanoid_pool_v1
+factors: []
+vars: {task: h_steps_carry, upper: true, seal0: g1_hands, seal1: n1}
+lists:
+  dev_bodies: [t1, g1, h1]
+  sealed_bodies: [g1_hands, n1]
+  trackers: {}
+  budgets: []
+  updates: {}
+  transfer:
+    name: humanoid_transfer_h_steps_carry
+    task: h_steps_carry
+    latent_kw: {upper: true}
+    bodies: {dev: [t1, g1, h1], sealed: [g1_hands, n1]}
+    pack: []
+    levels:
+      '2': {unit: demos, budgets: [], updates: null, reference: bc_zeroshot}
+    methods:
+      level2:
+        - name: semfix_zeroshot
+          level: 2
+          variant: semfix
+          kind: latent
+          source: learned
+          trained: true
+          policy: legged_latent
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-h_carry-semfix/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-h_carry-semfix/train_rep_s<seed>/representation.pt'}
+        - name: nosem_zeroshot
+          level: 2
+          variant: nosem
+          kind: latent
+          source: learned
+          trained: true
+          policy: legged_latent
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-h_carry-nosem/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-h_carry-nosem/train_rep_s<seed>/representation.pt'}
+        - name: bc_zeroshot
+          level: 2
+          variant: bc
+          kind: bc
+          source: bc
+          trained: true
+          policy: legged_bc
+          kw: {checkpoint: 'artifacts/runs/humanoid/humanoid-transfer-h_carry-bc/train_bc_s<seed>/policy.pt'}
+      reference:
+        - name: teacher
+          level: 0
+          kind: teacher
+          source: scripted_teacher
+          policy: 'teacher:<task>'
+          env_kw: {tracker: '<body>:steps_ub_v1'}
+  teacher_check:
+    name: humanoid_transfer_h_steps_carry_teacher_check
+    task: h_steps_carry
+    env: mujoco/legged
+    train_seeds: [0]
+    scenes: 10
+    bodies: [t1, g1, h1]
+    pack: []
+    results_glob: []
+    latent_kw: {upper: true}
+    levels: {}
+    methods:
+      reference:
+        - name: teacher
+          level: 0
+          kind: teacher
+          source: scripted_teacher
+          policy: 'teacher:h_steps_carry'
+          env_kw: {tracker: '<body>:steps_ub_v1'}
+nodes:
+  teacher_check:
+    stage: eval_transfer
+    tag: teacher-check
+    scope: global
+    resources: {cpu: 4, mem: 8G, max_seconds: 14400}
+    config:
+      options: {transfer: $teacher_check, variant: '-'}
+  collect_src: null
+  collect_tgt: null
+  collect_sealed: null
+  pack: null
+  pack_sealed: null
+  rep: null
+  flow: null
+  bc: null
+  adapt_refit_d0_n5: null
+  adapt_refit_d0_n20: null
+  adapt_refit_d0_n100: null
+  adapt_refit_d1_n5: null
+  adapt_refit_d1_n20: null
+  adapt_refit_d1_n100: null
+  adapt_refit_d2_n5: null
+  adapt_refit_d2_n20: null
+  adapt_refit_d2_n100: null
+  adapt_refit_s0_n5: null
+  adapt_refit_s0_n20: null
+  adapt_refit_s0_n100: null
+  adapt_refit_s1_n5: null
+  adapt_refit_s1_n20: null
+  adapt_refit_s1_n100: null
+  adapt_refit_s2_n5: null
+  adapt_refit_s2_n20: null
+  adapt_refit_s2_n100: null
+  adapt_flow_d0_n5: null
+  adapt_flow_d0_n20: null
+  adapt_flow_d0_n100: null
+  adapt_flow_d1_n5: null
+  adapt_flow_d1_n20: null
+  adapt_flow_d1_n100: null
+  adapt_flow_d2_n5: null
+  adapt_flow_d2_n20: null
+  adapt_flow_d2_n100: null
+  adapt_flow_s0_n5: null
+  adapt_flow_s0_n20: null
+  adapt_flow_s0_n100: null
+  adapt_flow_s1_n5: null
+  adapt_flow_s1_n20: null
+  adapt_flow_s1_n100: null
+  adapt_flow_s2_n5: null
+  adapt_flow_s2_n20: null
+  adapt_flow_s2_n100: null
+  adapt_bc_d0_n5: null
+  adapt_bc_d0_n20: null
+  adapt_bc_d0_n100: null
+  adapt_bc_d1_n5: null
+  adapt_bc_d1_n20: null
+  adapt_bc_d1_n100: null
+  adapt_bc_d2_n5: null
+  adapt_bc_d2_n20: null
+  adapt_bc_d2_n100: null
+  adapt_bc_s0_n5: null
+  adapt_bc_s0_n20: null
+  adapt_bc_s0_n100: null
+  adapt_bc_s1_n5: null
+  adapt_bc_s1_n20: null
+  adapt_bc_s1_n100: null
+  adapt_bc_s2_n5: null
+  adapt_bc_s2_n20: null
+  adapt_bc_s2_n100: null
+  eval:
+    per: null
+    config:
+      inputs: null
+  sealed:
+    per: null
+    config:
+      inputs: null
+  eval_ref:
+    config:
+      inputs: null
+  sealed_ref:
+    config:
+      inputs: null

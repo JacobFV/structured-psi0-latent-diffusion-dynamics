@@ -1,20 +1,28 @@
 # TEMPLATE (H6, D-146; docs/architecture.md 14.4; research/tracks/humanoid.md section 4): the humanoid transfer pipeline of ONE task.
-# An instance `recipes/humanoid/transfer_<task>.yaml` extends this and sets vars.task / vars.upper, lists.src_bodies / dev_bodies /
-# sealed_bodies / trackers and lists.transfer (task, bodies, methods that differ). Stages of family `humanoid`
-# (rrp.harness.pipelines.humanoid):
+# An instance `recipes/humanoid/transfer_<task>.yaml` extends this and sets vars.task / vars.upper, lists.dev_bodies / sealed_bodies / trackers
+# and lists.transfer (task, bodies, methods that differ). Stages of family `humanoid` (rrp.harness.pipelines.humanoid):
 #   collect_src   teacher demos of the SOURCE bodies (seeds 0-99)                                  scripted teacher -> labelled scripted_teacher
 #   collect_tgt   target-adaptation demos of the non-sealed dev bodies (seeds 1000000-1000099)
 #   collect_sealed  the same for the SEALED bodies (adaptation seeds only; SealedSplit refuses any other seed)
 #   pack / pack_sealed  nested first-N packs (N = 5 / 20 / 100) + pack.json: the acquisition record (demos, teacher ticks, matched updates 150 / 300 / 600)
 #   rep, flow     latent semfix / nosem on the source demos (zero-shot systems), one node per (variant, training seed)
 #   bc            whole-policy BC on the source demos (zero-shot BC), variant bc
+#   adapt_refit_<slot>_n<N>   system-0 refit of `rep` on the body's pack n<N> (semfix, nosem)        -> method <system>_refit
+#   adapt_flow_<slot>_n<N>    flow warm start of `flow` on the refit representation (semfix, nosem)   -> method <system>_joint
+#   adapt_bc_<slot>_n<N>      BC SFT warm start of `bc` on the pack (bc)                              -> method bc_sft
+#                 <slot> = d0..d2 (dev bodies vars.dev0..2, pack `pack`) and s0..s2 (sealed bodies vars.seal0..2, pack `pack_sealed`); an instance with
+#                 fewer bodies nulls the unused slots (nodes AND their refs in eval / sealed). Each node's steps are the pack's matched update count.
 #   eval          `rrp eval humanoid-transfer --scope dev`: this point's cells (system x training seed) on development scenes
 #   sealed        the same on the sealed bodies and evaluation scenes; every cell runs once (needs vars.sealed: true)
 #   eval_ref, sealed_ref  (global) the cells without a variant: existing-controller transfer (Level 1) and the scripted-teacher reference
 # Level 1 (existing-controller transfer) and Level 2 (new controller training) are separate sections of every table and never pooled. All
-# methods of a (level, body, budget) group carry ONE acquisition record; a method whose run does not exist is reported `missing_run`.
-# NOT in this DAG (no trainer exists yet; the driver reports their cells as missing_run): system-0 refit and joint flow + system-0 from a
-# demo pack (needs a warm-start `init` in train_flow and DAgger buffers), BC SFT (warm start in legged_bc), PPO fine-tune / scratch.
+# methods of a (level, body, budget) group carry ONE acquisition record; a method whose run does not exist is `pending` when it declares the
+# stage that produces it (`producer`) and `missing_run` otherwise. Level-1 PPO (`adapt_ppo`, h_steps / h_gap only) is declared by the instance.
+# Relational factors (D-144 / D-146): `vars.rel_preset` (default `legged` = the nine legged-rel-v1 edges + leg.foothold + leg.com_support) is listed in
+# the `latent.factors` of rep and in the BC `model.factors`; `legged-none` (registered preset, no relational factor, the pre-relations nets) is the control arm:
+# an instance that sets `vars.rel_preset: legged-none` (and its own out tag) is the control; none is committed.
+# NOT in this DAG: system-0 refit and joint flow + system-0 from a demo pack WITH DAgger buffers (the adapt nodes train on the nested first-N
+# pack only; DAgger rounds need the warm-start trainers to read rollout buffers).
 # The pooled results: `rrp eval humanoid-transfer --config <transfer_config.json> --tables-only` (merges every point's results_glob).
 # Resources are ESTIMATES (D-117): redeclare >= 1.35 x the measured peak before a real launch. Training is paused (2026-09-30).
 name: humanoid_transfer_template
@@ -35,8 +43,15 @@ axis_vars:
     bc: {sw: 0.0, psw: 0.0, tg: bc}
 vars:
   task: SET_IN_CHILD_DAG
-  upper: false                 # true for the wholebody tasks (h_walk .. h_place): the latent policy realizes the `upper` group
+  upper: false                 # true for the wholebody tasks (h_walk .. h_place, h_carry, h_loco_pick): the latent policy realizes the `upper` group
   sealed: false                # the sealed node refuses until this is true (sealed cells run once)
+  rel_preset: legged           # relational factors of rep and BC: legged | legged-none (docs/relations.md 11)
+  dev0: t1                     # the body of each adapt slot (lists.dev_bodies / sealed_bodies in the same order)
+  dev1: g1
+  dev2: h1
+  seal0: n1
+  seal1: berkeley
+  seal2: toddlerbot_2xc
   src_seeds: 0-99
   tgt_seeds: 1000000-1000099
   rep_steps: 12000
@@ -69,24 +84,9 @@ lists:
           kind: latent
           source: learned
           trained: true
+          producer: train_flow
           policy: legged_latent
           kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/train_rep_s<seed>/representation.pt'}
-        - name: nosem_zeroshot
-          level: 2
-          variant: nosem
-          kind: latent
-          source: learned
-          trained: true
-          policy: legged_latent
-          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/train_rep_s<seed>/representation.pt'}
-        - name: bc_zeroshot
-          level: 2
-          variant: bc
-          kind: bc
-          source: bc
-          trained: true
-          policy: legged_bc
-          kw: {checkpoint: 'artifacts/runs/humanoid/humanoid-transfer-<task>-bc/train_bc_s<seed>/policy.pt'}
         - name: semfix_refit
           level: 2
           variant: semfix
@@ -94,9 +94,10 @@ lists:
           source: learned
           trained: true
           budgeted: true
+          producer: adapt_refit
           policy: legged_latent
-          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/refit-n<budget>_s<seed>/representation.pt'}
-          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/refit-n<budget>_s<seed>/acquisition.json'
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/adapt_refit-<body>-n<budget>_s<seed>/representation.pt'}
+          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/adapt_refit-<body>-n<budget>_s<seed>/acquisition.json'
         - name: semfix_joint
           level: 2
           variant: semfix
@@ -104,9 +105,19 @@ lists:
           source: learned
           trained: true
           budgeted: true
+          producer: adapt_flow
           policy: legged_latent
-          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/flow-n<budget>_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/refit-n<budget>_s<seed>/representation.pt'}
-          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/flow-n<budget>_s<seed>/acquisition.json'
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/adapt_flow-<body>-n<budget>_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/adapt_refit-<body>-n<budget>_s<seed>/representation.pt'}
+          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/adapt_flow-<body>-n<budget>_s<seed>/acquisition.json'
+        - name: nosem_zeroshot
+          level: 2
+          variant: nosem
+          kind: latent
+          source: learned
+          trained: true
+          producer: train_flow
+          policy: legged_latent
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/train_rep_s<seed>/representation.pt'}
         - name: nosem_refit
           level: 2
           variant: nosem
@@ -114,9 +125,10 @@ lists:
           source: learned
           trained: true
           budgeted: true
+          producer: adapt_refit
           policy: legged_latent
-          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/refit-n<budget>_s<seed>/representation.pt'}
-          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/refit-n<budget>_s<seed>/acquisition.json'
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/adapt_refit-<body>-n<budget>_s<seed>/representation.pt'}
+          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/adapt_refit-<body>-n<budget>_s<seed>/acquisition.json'
         - name: nosem_joint
           level: 2
           variant: nosem
@@ -124,9 +136,19 @@ lists:
           source: learned
           trained: true
           budgeted: true
+          producer: adapt_flow
           policy: legged_latent
-          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/flow-n<budget>_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/refit-n<budget>_s<seed>/representation.pt'}
-          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/flow-n<budget>_s<seed>/acquisition.json'
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/adapt_flow-<body>-n<budget>_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/adapt_refit-<body>-n<budget>_s<seed>/representation.pt'}
+          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/adapt_flow-<body>-n<budget>_s<seed>/acquisition.json'
+        - name: bc_zeroshot
+          level: 2
+          variant: bc
+          kind: bc
+          source: bc
+          trained: true
+          producer: train_bc
+          policy: legged_bc
+          kw: {checkpoint: 'artifacts/runs/humanoid/humanoid-transfer-<task>-bc/train_bc_s<seed>/policy.pt'}
         - name: bc_sft
           level: 2
           variant: bc
@@ -134,9 +156,10 @@ lists:
           source: bc
           trained: true
           budgeted: true
+          producer: adapt_bc
           policy: legged_bc
-          kw: {checkpoint: 'artifacts/runs/humanoid/humanoid-transfer-<task>-bc/train_bc-sft-n<budget>_s<seed>/policy.pt'}
-          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-bc/train_bc-sft-n<budget>_s<seed>/acquisition.json'
+          kw: {checkpoint: 'artifacts/runs/humanoid/humanoid-transfer-<task>-bc/adapt_bc-<body>-n<budget>_s<seed>/policy.pt'}
+          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-bc/adapt_bc-<body>-n<budget>_s<seed>/acquisition.json'
       reference:
         - name: teacher
           level: 0
@@ -201,11 +224,11 @@ nodes:
           variant: semfix
           params:
             latent:
-              factors: [{name: probe.legged.contact, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.goal, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.disp, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.subtask, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.fall, weight: 1.0, params: {lv_min: -4.0}}]
+              factors: [{name: probe.legged.contact, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.goal, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.disp, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.subtask, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.fall, weight: 1.0, params: {lv_min: -4.0}}, 'preset:{rel_preset}']
     config:
       flags: {qd_dropout: 0.5}
       inputs: {data: '@collect_src'}
-      params: {name: 'htr_{system}_{task}_s{seed}_rep', bodies: $src_bodies, latent: {dz: 32, width: 192, factors: [{name: probe.legged.contact, weight: '{sw}'}, {name: probe.legged.goal, weight: '{sw}'}, {name: probe.legged.disp, weight: '{sw}'}, {name: probe.legged.subtask, weight: '{sw}'}, {name: probe.legged.fall, weight: '{sw}'}], beta_kl: 0.001}, steps: '{rep_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 4000}
+      params: {name: 'htr_{system}_{task}_s{seed}_rep', bodies: $src_bodies, latent: {dz: 32, width: 192, factors: [{name: probe.legged.contact, weight: '{sw}'}, {name: probe.legged.goal, weight: '{sw}'}, {name: probe.legged.disp, weight: '{sw}'}, {name: probe.legged.subtask, weight: '{sw}'}, {name: probe.legged.fall, weight: '{sw}'}, 'preset:{rel_preset}'], beta_kl: 0.001}, steps: '{rep_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 4000}
   flow:
     stage: train_flow
     only: {system: [semfix, nosem]}
@@ -219,15 +242,606 @@ nodes:
     resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
     config:
       inputs: {data: '@collect_src'}
-      params: {name: 'htr_bc_{task}_s{seed}', bodies: $src_bodies, model: {width: 192, enc_layers: 2, dec_layers: 3}, steps: '{bc_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 5000}
+      params: {name: 'htr_bc_{task}_s{seed}', bodies: $src_bodies, model: {width: 192, enc_layers: 2, dec_layers: 3, factors: ['preset:{rel_preset}']}, steps: '{bc_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 5000}
+  adapt_refit_d0_n5:
+    stage: adapt_refit
+    tag: '{dev0}-n5'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', representation: '@rep:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{dev0}', budget: 5}}
+      params: {name: 'htr_{system}_{task}_{dev0}_n5_s{seed}_refit', steps: 150, seed: '{seed}'}
+  adapt_refit_d0_n20:
+    stage: adapt_refit
+    tag: '{dev0}-n20'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', representation: '@rep:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{dev0}', budget: 20}}
+      params: {name: 'htr_{system}_{task}_{dev0}_n20_s{seed}_refit', steps: 300, seed: '{seed}'}
+  adapt_refit_d0_n100:
+    stage: adapt_refit
+    tag: '{dev0}-n100'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', representation: '@rep:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{dev0}', budget: 100}}
+      params: {name: 'htr_{system}_{task}_{dev0}_n100_s{seed}_refit', steps: 600, seed: '{seed}'}
+  adapt_refit_d1_n5:
+    stage: adapt_refit
+    tag: '{dev1}-n5'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', representation: '@rep:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{dev1}', budget: 5}}
+      params: {name: 'htr_{system}_{task}_{dev1}_n5_s{seed}_refit', steps: 150, seed: '{seed}'}
+  adapt_refit_d1_n20:
+    stage: adapt_refit
+    tag: '{dev1}-n20'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', representation: '@rep:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{dev1}', budget: 20}}
+      params: {name: 'htr_{system}_{task}_{dev1}_n20_s{seed}_refit', steps: 300, seed: '{seed}'}
+  adapt_refit_d1_n100:
+    stage: adapt_refit
+    tag: '{dev1}-n100'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', representation: '@rep:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{dev1}', budget: 100}}
+      params: {name: 'htr_{system}_{task}_{dev1}_n100_s{seed}_refit', steps: 600, seed: '{seed}'}
+  adapt_refit_d2_n5:
+    stage: adapt_refit
+    tag: '{dev2}-n5'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', representation: '@rep:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{dev2}', budget: 5}}
+      params: {name: 'htr_{system}_{task}_{dev2}_n5_s{seed}_refit', steps: 150, seed: '{seed}'}
+  adapt_refit_d2_n20:
+    stage: adapt_refit
+    tag: '{dev2}-n20'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', representation: '@rep:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{dev2}', budget: 20}}
+      params: {name: 'htr_{system}_{task}_{dev2}_n20_s{seed}_refit', steps: 300, seed: '{seed}'}
+  adapt_refit_d2_n100:
+    stage: adapt_refit
+    tag: '{dev2}-n100'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', representation: '@rep:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{dev2}', budget: 100}}
+      params: {name: 'htr_{system}_{task}_{dev2}_n100_s{seed}_refit', steps: 600, seed: '{seed}'}
+  adapt_refit_s0_n5:
+    stage: adapt_refit
+    tag: '{seal0}-n5'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', representation: '@rep:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{seal0}', budget: 5}}
+      params: {name: 'htr_{system}_{task}_{seal0}_n5_s{seed}_refit', steps: 150, seed: '{seed}'}
+  adapt_refit_s0_n20:
+    stage: adapt_refit
+    tag: '{seal0}-n20'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', representation: '@rep:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{seal0}', budget: 20}}
+      params: {name: 'htr_{system}_{task}_{seal0}_n20_s{seed}_refit', steps: 300, seed: '{seed}'}
+  adapt_refit_s0_n100:
+    stage: adapt_refit
+    tag: '{seal0}-n100'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', representation: '@rep:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{seal0}', budget: 100}}
+      params: {name: 'htr_{system}_{task}_{seal0}_n100_s{seed}_refit', steps: 600, seed: '{seed}'}
+  adapt_refit_s1_n5:
+    stage: adapt_refit
+    tag: '{seal1}-n5'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', representation: '@rep:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{seal1}', budget: 5}}
+      params: {name: 'htr_{system}_{task}_{seal1}_n5_s{seed}_refit', steps: 150, seed: '{seed}'}
+  adapt_refit_s1_n20:
+    stage: adapt_refit
+    tag: '{seal1}-n20'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', representation: '@rep:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{seal1}', budget: 20}}
+      params: {name: 'htr_{system}_{task}_{seal1}_n20_s{seed}_refit', steps: 300, seed: '{seed}'}
+  adapt_refit_s1_n100:
+    stage: adapt_refit
+    tag: '{seal1}-n100'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', representation: '@rep:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{seal1}', budget: 100}}
+      params: {name: 'htr_{system}_{task}_{seal1}_n100_s{seed}_refit', steps: 600, seed: '{seed}'}
+  adapt_refit_s2_n5:
+    stage: adapt_refit
+    tag: '{seal2}-n5'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', representation: '@rep:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{seal2}', budget: 5}}
+      params: {name: 'htr_{system}_{task}_{seal2}_n5_s{seed}_refit', steps: 150, seed: '{seed}'}
+  adapt_refit_s2_n20:
+    stage: adapt_refit
+    tag: '{seal2}-n20'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', representation: '@rep:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{seal2}', budget: 20}}
+      params: {name: 'htr_{system}_{task}_{seal2}_n20_s{seed}_refit', steps: 300, seed: '{seed}'}
+  adapt_refit_s2_n100:
+    stage: adapt_refit
+    tag: '{seal2}-n100'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', representation: '@rep:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{seal2}', budget: 100}}
+      params: {name: 'htr_{system}_{task}_{seal2}_n100_s{seed}_refit', steps: 600, seed: '{seed}'}
+  adapt_flow_d0_n5:
+    stage: adapt_flow
+    tag: '{dev0}-n5'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d0_n5:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{dev0}', budget: 5}}
+      params: {name: 'htr_{system}_{task}_{dev0}_n5_s{seed}_flow', steps: 150, seed: '{seed}'}
+  adapt_flow_d0_n20:
+    stage: adapt_flow
+    tag: '{dev0}-n20'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d0_n20:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{dev0}', budget: 20}}
+      params: {name: 'htr_{system}_{task}_{dev0}_n20_s{seed}_flow', steps: 300, seed: '{seed}'}
+  adapt_flow_d0_n100:
+    stage: adapt_flow
+    tag: '{dev0}-n100'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d0_n100:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{dev0}', budget: 100}}
+      params: {name: 'htr_{system}_{task}_{dev0}_n100_s{seed}_flow', steps: 600, seed: '{seed}'}
+  adapt_flow_d1_n5:
+    stage: adapt_flow
+    tag: '{dev1}-n5'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d1_n5:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{dev1}', budget: 5}}
+      params: {name: 'htr_{system}_{task}_{dev1}_n5_s{seed}_flow', steps: 150, seed: '{seed}'}
+  adapt_flow_d1_n20:
+    stage: adapt_flow
+    tag: '{dev1}-n20'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d1_n20:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{dev1}', budget: 20}}
+      params: {name: 'htr_{system}_{task}_{dev1}_n20_s{seed}_flow', steps: 300, seed: '{seed}'}
+  adapt_flow_d1_n100:
+    stage: adapt_flow
+    tag: '{dev1}-n100'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d1_n100:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{dev1}', budget: 100}}
+      params: {name: 'htr_{system}_{task}_{dev1}_n100_s{seed}_flow', steps: 600, seed: '{seed}'}
+  adapt_flow_d2_n5:
+    stage: adapt_flow
+    tag: '{dev2}-n5'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d2_n5:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{dev2}', budget: 5}}
+      params: {name: 'htr_{system}_{task}_{dev2}_n5_s{seed}_flow', steps: 150, seed: '{seed}'}
+  adapt_flow_d2_n20:
+    stage: adapt_flow
+    tag: '{dev2}-n20'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d2_n20:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{dev2}', budget: 20}}
+      params: {name: 'htr_{system}_{task}_{dev2}_n20_s{seed}_flow', steps: 300, seed: '{seed}'}
+  adapt_flow_d2_n100:
+    stage: adapt_flow
+    tag: '{dev2}-n100'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d2_n100:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{dev2}', budget: 100}}
+      params: {name: 'htr_{system}_{task}_{dev2}_n100_s{seed}_flow', steps: 600, seed: '{seed}'}
+  adapt_flow_s0_n5:
+    stage: adapt_flow
+    tag: '{seal0}-n5'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s0_n5:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{seal0}', budget: 5}}
+      params: {name: 'htr_{system}_{task}_{seal0}_n5_s{seed}_flow', steps: 150, seed: '{seed}'}
+  adapt_flow_s0_n20:
+    stage: adapt_flow
+    tag: '{seal0}-n20'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s0_n20:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{seal0}', budget: 20}}
+      params: {name: 'htr_{system}_{task}_{seal0}_n20_s{seed}_flow', steps: 300, seed: '{seed}'}
+  adapt_flow_s0_n100:
+    stage: adapt_flow
+    tag: '{seal0}-n100'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s0_n100:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{seal0}', budget: 100}}
+      params: {name: 'htr_{system}_{task}_{seal0}_n100_s{seed}_flow', steps: 600, seed: '{seed}'}
+  adapt_flow_s1_n5:
+    stage: adapt_flow
+    tag: '{seal1}-n5'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s1_n5:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{seal1}', budget: 5}}
+      params: {name: 'htr_{system}_{task}_{seal1}_n5_s{seed}_flow', steps: 150, seed: '{seed}'}
+  adapt_flow_s1_n20:
+    stage: adapt_flow
+    tag: '{seal1}-n20'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s1_n20:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{seal1}', budget: 20}}
+      params: {name: 'htr_{system}_{task}_{seal1}_n20_s{seed}_flow', steps: 300, seed: '{seed}'}
+  adapt_flow_s1_n100:
+    stage: adapt_flow
+    tag: '{seal1}-n100'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s1_n100:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{seal1}', budget: 100}}
+      params: {name: 'htr_{system}_{task}_{seal1}_n100_s{seed}_flow', steps: 600, seed: '{seed}'}
+  adapt_flow_s2_n5:
+    stage: adapt_flow
+    tag: '{seal2}-n5'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s2_n5:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{seal2}', budget: 5}}
+      params: {name: 'htr_{system}_{task}_{seal2}_n5_s{seed}_flow', steps: 150, seed: '{seed}'}
+  adapt_flow_s2_n20:
+    stage: adapt_flow
+    tag: '{seal2}-n20'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s2_n20:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{seal2}', budget: 20}}
+      params: {name: 'htr_{system}_{task}_{seal2}_n20_s{seed}_flow', steps: 300, seed: '{seed}'}
+  adapt_flow_s2_n100:
+    stage: adapt_flow
+    tag: '{seal2}-n100'
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s2_n100:representation.pt'}
+      options: {adapt: {task: '{task}', body: '{seal2}', budget: 100}}
+      params: {name: 'htr_{system}_{task}_{seal2}_n100_s{seed}_flow', steps: 600, seed: '{seed}'}
+  adapt_bc_d0_n5:
+    stage: adapt_bc
+    tag: '{dev0}-n5'
+    only: {system: [bc]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', init: '@bc:policy.pt'}
+      options: {adapt: {task: '{task}', body: '{dev0}', budget: 5}}
+      params: {name: 'htr_bc_{task}_{dev0}_n5_s{seed}_sft', steps: 150, seed: '{seed}'}
+  adapt_bc_d0_n20:
+    stage: adapt_bc
+    tag: '{dev0}-n20'
+    only: {system: [bc]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', init: '@bc:policy.pt'}
+      options: {adapt: {task: '{task}', body: '{dev0}', budget: 20}}
+      params: {name: 'htr_bc_{task}_{dev0}_n20_s{seed}_sft', steps: 300, seed: '{seed}'}
+  adapt_bc_d0_n100:
+    stage: adapt_bc
+    tag: '{dev0}-n100'
+    only: {system: [bc]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', init: '@bc:policy.pt'}
+      options: {adapt: {task: '{task}', body: '{dev0}', budget: 100}}
+      params: {name: 'htr_bc_{task}_{dev0}_n100_s{seed}_sft', steps: 600, seed: '{seed}'}
+  adapt_bc_d1_n5:
+    stage: adapt_bc
+    tag: '{dev1}-n5'
+    only: {system: [bc]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', init: '@bc:policy.pt'}
+      options: {adapt: {task: '{task}', body: '{dev1}', budget: 5}}
+      params: {name: 'htr_bc_{task}_{dev1}_n5_s{seed}_sft', steps: 150, seed: '{seed}'}
+  adapt_bc_d1_n20:
+    stage: adapt_bc
+    tag: '{dev1}-n20'
+    only: {system: [bc]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', init: '@bc:policy.pt'}
+      options: {adapt: {task: '{task}', body: '{dev1}', budget: 20}}
+      params: {name: 'htr_bc_{task}_{dev1}_n20_s{seed}_sft', steps: 300, seed: '{seed}'}
+  adapt_bc_d1_n100:
+    stage: adapt_bc
+    tag: '{dev1}-n100'
+    only: {system: [bc]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', init: '@bc:policy.pt'}
+      options: {adapt: {task: '{task}', body: '{dev1}', budget: 100}}
+      params: {name: 'htr_bc_{task}_{dev1}_n100_s{seed}_sft', steps: 600, seed: '{seed}'}
+  adapt_bc_d2_n5:
+    stage: adapt_bc
+    tag: '{dev2}-n5'
+    only: {system: [bc]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', init: '@bc:policy.pt'}
+      options: {adapt: {task: '{task}', body: '{dev2}', budget: 5}}
+      params: {name: 'htr_bc_{task}_{dev2}_n5_s{seed}_sft', steps: 150, seed: '{seed}'}
+  adapt_bc_d2_n20:
+    stage: adapt_bc
+    tag: '{dev2}-n20'
+    only: {system: [bc]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', init: '@bc:policy.pt'}
+      options: {adapt: {task: '{task}', body: '{dev2}', budget: 20}}
+      params: {name: 'htr_bc_{task}_{dev2}_n20_s{seed}_sft', steps: 300, seed: '{seed}'}
+  adapt_bc_d2_n100:
+    stage: adapt_bc
+    tag: '{dev2}-n100'
+    only: {system: [bc]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack:pack.json', init: '@bc:policy.pt'}
+      options: {adapt: {task: '{task}', body: '{dev2}', budget: 100}}
+      params: {name: 'htr_bc_{task}_{dev2}_n100_s{seed}_sft', steps: 600, seed: '{seed}'}
+  adapt_bc_s0_n5:
+    stage: adapt_bc
+    tag: '{seal0}-n5'
+    only: {system: [bc]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', init: '@bc:policy.pt'}
+      options: {adapt: {task: '{task}', body: '{seal0}', budget: 5}}
+      params: {name: 'htr_bc_{task}_{seal0}_n5_s{seed}_sft', steps: 150, seed: '{seed}'}
+  adapt_bc_s0_n20:
+    stage: adapt_bc
+    tag: '{seal0}-n20'
+    only: {system: [bc]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', init: '@bc:policy.pt'}
+      options: {adapt: {task: '{task}', body: '{seal0}', budget: 20}}
+      params: {name: 'htr_bc_{task}_{seal0}_n20_s{seed}_sft', steps: 300, seed: '{seed}'}
+  adapt_bc_s0_n100:
+    stage: adapt_bc
+    tag: '{seal0}-n100'
+    only: {system: [bc]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', init: '@bc:policy.pt'}
+      options: {adapt: {task: '{task}', body: '{seal0}', budget: 100}}
+      params: {name: 'htr_bc_{task}_{seal0}_n100_s{seed}_sft', steps: 600, seed: '{seed}'}
+  adapt_bc_s1_n5:
+    stage: adapt_bc
+    tag: '{seal1}-n5'
+    only: {system: [bc]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', init: '@bc:policy.pt'}
+      options: {adapt: {task: '{task}', body: '{seal1}', budget: 5}}
+      params: {name: 'htr_bc_{task}_{seal1}_n5_s{seed}_sft', steps: 150, seed: '{seed}'}
+  adapt_bc_s1_n20:
+    stage: adapt_bc
+    tag: '{seal1}-n20'
+    only: {system: [bc]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', init: '@bc:policy.pt'}
+      options: {adapt: {task: '{task}', body: '{seal1}', budget: 20}}
+      params: {name: 'htr_bc_{task}_{seal1}_n20_s{seed}_sft', steps: 300, seed: '{seed}'}
+  adapt_bc_s1_n100:
+    stage: adapt_bc
+    tag: '{seal1}-n100'
+    only: {system: [bc]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', init: '@bc:policy.pt'}
+      options: {adapt: {task: '{task}', body: '{seal1}', budget: 100}}
+      params: {name: 'htr_bc_{task}_{seal1}_n100_s{seed}_sft', steps: 600, seed: '{seed}'}
+  adapt_bc_s2_n5:
+    stage: adapt_bc
+    tag: '{seal2}-n5'
+    only: {system: [bc]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', init: '@bc:policy.pt'}
+      options: {adapt: {task: '{task}', body: '{seal2}', budget: 5}}
+      params: {name: 'htr_bc_{task}_{seal2}_n5_s{seed}_sft', steps: 150, seed: '{seed}'}
+  adapt_bc_s2_n20:
+    stage: adapt_bc
+    tag: '{seal2}-n20'
+    only: {system: [bc]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', init: '@bc:policy.pt'}
+      options: {adapt: {task: '{task}', body: '{seal2}', budget: 20}}
+      params: {name: 'htr_bc_{task}_{seal2}_n20_s{seed}_sft', steps: 300, seed: '{seed}'}
+  adapt_bc_s2_n100:
+    stage: adapt_bc
+    tag: '{seal2}-n100'
+    only: {system: [bc]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {pack: '@pack_sealed:pack.json', init: '@bc:policy.pt'}
+      options: {adapt: {task: '{task}', body: '{seal2}', budget: 100}}
+      params: {name: 'htr_bc_{task}_{seal2}_n100_s{seed}_sft', steps: 600, seed: '{seed}'}
   eval:
     stage: eval_transfer
     resources: {cpu: 4, mem: 8G, max_seconds: 43200}
     per:
       system:
-        semfix: {inputs: {flow: '@flow:policy.pt'}}
-        nosem: {inputs: {flow: '@flow:policy.pt'}}
-        bc: {inputs: {bc: '@bc:policy.pt'}}
+        semfix:
+          inputs:
+            flow: '@flow:policy.pt'
+            ar_d0_n5: '@adapt_refit_d0_n5:representation.pt'
+            af_d0_n5: '@adapt_flow_d0_n5:policy.pt'
+            ar_d0_n20: '@adapt_refit_d0_n20:representation.pt'
+            af_d0_n20: '@adapt_flow_d0_n20:policy.pt'
+            ar_d0_n100: '@adapt_refit_d0_n100:representation.pt'
+            af_d0_n100: '@adapt_flow_d0_n100:policy.pt'
+            ar_d1_n5: '@adapt_refit_d1_n5:representation.pt'
+            af_d1_n5: '@adapt_flow_d1_n5:policy.pt'
+            ar_d1_n20: '@adapt_refit_d1_n20:representation.pt'
+            af_d1_n20: '@adapt_flow_d1_n20:policy.pt'
+            ar_d1_n100: '@adapt_refit_d1_n100:representation.pt'
+            af_d1_n100: '@adapt_flow_d1_n100:policy.pt'
+            ar_d2_n5: '@adapt_refit_d2_n5:representation.pt'
+            af_d2_n5: '@adapt_flow_d2_n5:policy.pt'
+            ar_d2_n20: '@adapt_refit_d2_n20:representation.pt'
+            af_d2_n20: '@adapt_flow_d2_n20:policy.pt'
+            ar_d2_n100: '@adapt_refit_d2_n100:representation.pt'
+            af_d2_n100: '@adapt_flow_d2_n100:policy.pt'
+        nosem:
+          inputs:
+            flow: '@flow:policy.pt'
+            ar_d0_n5: '@adapt_refit_d0_n5:representation.pt'
+            af_d0_n5: '@adapt_flow_d0_n5:policy.pt'
+            ar_d0_n20: '@adapt_refit_d0_n20:representation.pt'
+            af_d0_n20: '@adapt_flow_d0_n20:policy.pt'
+            ar_d0_n100: '@adapt_refit_d0_n100:representation.pt'
+            af_d0_n100: '@adapt_flow_d0_n100:policy.pt'
+            ar_d1_n5: '@adapt_refit_d1_n5:representation.pt'
+            af_d1_n5: '@adapt_flow_d1_n5:policy.pt'
+            ar_d1_n20: '@adapt_refit_d1_n20:representation.pt'
+            af_d1_n20: '@adapt_flow_d1_n20:policy.pt'
+            ar_d1_n100: '@adapt_refit_d1_n100:representation.pt'
+            af_d1_n100: '@adapt_flow_d1_n100:policy.pt'
+            ar_d2_n5: '@adapt_refit_d2_n5:representation.pt'
+            af_d2_n5: '@adapt_flow_d2_n5:policy.pt'
+            ar_d2_n20: '@adapt_refit_d2_n20:representation.pt'
+            af_d2_n20: '@adapt_flow_d2_n20:policy.pt'
+            ar_d2_n100: '@adapt_refit_d2_n100:representation.pt'
+            af_d2_n100: '@adapt_flow_d2_n100:policy.pt'
+        bc:
+          inputs:
+            bc: '@bc:policy.pt'
+            ab_d0_n5: '@adapt_bc_d0_n5:policy.pt'
+            ab_d0_n20: '@adapt_bc_d0_n20:policy.pt'
+            ab_d0_n100: '@adapt_bc_d0_n100:policy.pt'
+            ab_d1_n5: '@adapt_bc_d1_n5:policy.pt'
+            ab_d1_n20: '@adapt_bc_d1_n20:policy.pt'
+            ab_d1_n100: '@adapt_bc_d1_n100:policy.pt'
+            ab_d2_n5: '@adapt_bc_d2_n5:policy.pt'
+            ab_d2_n20: '@adapt_bc_d2_n20:policy.pt'
+            ab_d2_n100: '@adapt_bc_d2_n100:policy.pt'
     config:
       inputs: {pack: '@pack:pack.json'}
       options: {transfer: $transfer, variant: '{system}', train_seed: '{seed}'}
@@ -237,9 +851,60 @@ nodes:
     resources: {cpu: 4, mem: 8G, max_seconds: 43200}
     per:
       system:
-        semfix: {inputs: {flow: '@flow:policy.pt'}}
-        nosem: {inputs: {flow: '@flow:policy.pt'}}
-        bc: {inputs: {bc: '@bc:policy.pt'}}
+        semfix:
+          inputs:
+            flow: '@flow:policy.pt'
+            ar_s0_n5: '@adapt_refit_s0_n5:representation.pt'
+            af_s0_n5: '@adapt_flow_s0_n5:policy.pt'
+            ar_s0_n20: '@adapt_refit_s0_n20:representation.pt'
+            af_s0_n20: '@adapt_flow_s0_n20:policy.pt'
+            ar_s0_n100: '@adapt_refit_s0_n100:representation.pt'
+            af_s0_n100: '@adapt_flow_s0_n100:policy.pt'
+            ar_s1_n5: '@adapt_refit_s1_n5:representation.pt'
+            af_s1_n5: '@adapt_flow_s1_n5:policy.pt'
+            ar_s1_n20: '@adapt_refit_s1_n20:representation.pt'
+            af_s1_n20: '@adapt_flow_s1_n20:policy.pt'
+            ar_s1_n100: '@adapt_refit_s1_n100:representation.pt'
+            af_s1_n100: '@adapt_flow_s1_n100:policy.pt'
+            ar_s2_n5: '@adapt_refit_s2_n5:representation.pt'
+            af_s2_n5: '@adapt_flow_s2_n5:policy.pt'
+            ar_s2_n20: '@adapt_refit_s2_n20:representation.pt'
+            af_s2_n20: '@adapt_flow_s2_n20:policy.pt'
+            ar_s2_n100: '@adapt_refit_s2_n100:representation.pt'
+            af_s2_n100: '@adapt_flow_s2_n100:policy.pt'
+        nosem:
+          inputs:
+            flow: '@flow:policy.pt'
+            ar_s0_n5: '@adapt_refit_s0_n5:representation.pt'
+            af_s0_n5: '@adapt_flow_s0_n5:policy.pt'
+            ar_s0_n20: '@adapt_refit_s0_n20:representation.pt'
+            af_s0_n20: '@adapt_flow_s0_n20:policy.pt'
+            ar_s0_n100: '@adapt_refit_s0_n100:representation.pt'
+            af_s0_n100: '@adapt_flow_s0_n100:policy.pt'
+            ar_s1_n5: '@adapt_refit_s1_n5:representation.pt'
+            af_s1_n5: '@adapt_flow_s1_n5:policy.pt'
+            ar_s1_n20: '@adapt_refit_s1_n20:representation.pt'
+            af_s1_n20: '@adapt_flow_s1_n20:policy.pt'
+            ar_s1_n100: '@adapt_refit_s1_n100:representation.pt'
+            af_s1_n100: '@adapt_flow_s1_n100:policy.pt'
+            ar_s2_n5: '@adapt_refit_s2_n5:representation.pt'
+            af_s2_n5: '@adapt_flow_s2_n5:policy.pt'
+            ar_s2_n20: '@adapt_refit_s2_n20:representation.pt'
+            af_s2_n20: '@adapt_flow_s2_n20:policy.pt'
+            ar_s2_n100: '@adapt_refit_s2_n100:representation.pt'
+            af_s2_n100: '@adapt_flow_s2_n100:policy.pt'
+        bc:
+          inputs:
+            bc: '@bc:policy.pt'
+            ab_s0_n5: '@adapt_bc_s0_n5:policy.pt'
+            ab_s0_n20: '@adapt_bc_s0_n20:policy.pt'
+            ab_s0_n100: '@adapt_bc_s0_n100:policy.pt'
+            ab_s1_n5: '@adapt_bc_s1_n5:policy.pt'
+            ab_s1_n20: '@adapt_bc_s1_n20:policy.pt'
+            ab_s1_n100: '@adapt_bc_s1_n100:policy.pt'
+            ab_s2_n5: '@adapt_bc_s2_n5:policy.pt'
+            ab_s2_n20: '@adapt_bc_s2_n20:policy.pt'
+            ab_s2_n100: '@adapt_bc_s2_n100:policy.pt'
     config:
       inputs: {pack: '@pack_sealed:pack.json'}
       options: {transfer: $transfer, variant: '{system}', train_seed: '{seed}', sealed: '{sealed}'}

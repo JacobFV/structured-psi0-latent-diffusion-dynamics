@@ -1,0 +1,44 @@
+# T2 (research/readiness.md section B; D-146 R2 HR): the wholebody trackers `*_ub` of t1, g1 and h1 (random slew-limited upper-body targets and a
+# random hand payload <= 8 % of the robot mass; amplitude 0.1 -> 0.4 and payload 0 -> 8 % over the first 30 % of the iterations; the actor also takes
+# the upper joint state). Two trackers per body, each trained, gated and installed on its own:
+#   gait   `{body}_clock_gpu_ub` (warm start: the latest gait actor, legs-only start padded with zeros)  -> install version `ub_v1`
+#   steps  `{body}_steps_ub`     (h_steps expert with the public terrain scan + upper body, scratch)     -> install version `steps_ub_v1`
+# Nodes per point (body x kind): train, validate (D-112 gate with the upper body held AND moving, C MuJoCo; fails the node on `fail`). No eval node:
+# the C-MuJoCo tools `suite humanoid-steps` / `contact-waypoint` run a base-velocity session that does not feed the upper joint block.
+# INSTALL (not a stage; the lead runs it after the gate passed):
+#   rrp train tracker-install <run of train> --validation <run of validate>/validation.json --body <body> --version <ub_v1|steps_ub_v1> --label "<gate>"
+# TEACHER CHECK (after the install, before any collection): `humanoid_transfer_h_carry` node `teacher_check` (h_carry >= 10/12, both goal sides) and
+# `humanoid_transfer_h_steps_carry` node `teacher_check` (h_steps_carry >= 8/10) over the installed `ub_v1` / `steps_ub_v1`; a miss makes C1 and the
+# held-out carry task `blocked_external` and they are excluded before collection (research/readiness.md T2).
+extends: ../templates/humanoid_task.yaml
+name: humanoid_trackers_wholebody_ub
+schema: dag-1
+track: humanoid
+policy: tracker
+env: warp/legged
+task: locomotion
+bodies: humanoid_pool_v1
+factors: []
+lineage: 'trk-ub-{kind}-{body}'
+global_lineage: 'trk-ub'
+label_prefix: 'hub_{kind}_{body}'
+global_label_prefix: 'hub'
+matrix:
+  body: [t1, g1, h1]
+  kind: [gait, steps]
+axis_vars:
+  kind:
+    gait: {recipe_suffix: clock_gpu_ub}
+    steps: {recipe_suffix: steps_ub}
+vars: {task: steps, body: null, recipe: '{body}_{recipe_suffix}', recipe_suffix: null}
+lists:
+  installs: {gait: ub_v1, steps: steps_ub_v1}
+nodes:
+  validate:
+    stage: validate_tracker
+    resources: {cpu: 1, mem: 4G, gpu: false, max_seconds: 7200}
+    retries: 0
+    config:
+      inputs: {actor: '@train:actor.pt'}
+      options: {body: '{body}', kind: learned, seeds: 10, robust: true}
+  eval: null                # the accept evidence of a wholebody tracker is the gate (upper body held AND moving) and the teacher check below
