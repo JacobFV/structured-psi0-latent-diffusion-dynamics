@@ -19,21 +19,31 @@ from pathlib import Path
 import numpy as np
 
 from rrp.core.paths import rrp_home
-from rrp.envs.mujoco.legged_core import SCAN_DIM, TERRAIN_SCAN_VERSION, LeggedBinding
+from rrp.envs.mujoco.legged_core import (EXTRA_DIM_RING, RANGE_RING_VERSION, SCAN_DIM, TERRAIN_SCAN_VERSION, LeggedBinding,
+                                          range_ring_spec, terrain_scan_spec)
 
 
 class TrackerMismatch(ValueError):
     code = "tracker_body_mismatch"
 
 
+# public extra-input kinds (`extra_kind`) -> the public sensors, in input order, that fill the actor's extra block
+PUBLIC_EXTRA = {"none": (), "terrain_scan": ("terrain_scan",), "terrain_scan+range_ring": ("terrain_scan", "range_ring")}
+
+
 def extra_kind(meta: dict) -> str:
-    """What the actor's extra input block is: none | terrain_scan (the PUBLIC D-146 scan, layout-versioned) | privileged
-    (any other extra_obs_dim: a task-specific privileged block the caller must supply through `extra_fn`)."""
+    """What the actor's extra input block is: none | terrain_scan (the PUBLIC D-146 scan, layout-versioned) | terrain_scan+range_ring
+    (the scan, then the PUBLIC HS1 range ring: the gap actors) | privileged (any other extra_obs_dim: a task-specific privileged
+    block the caller must supply through `extra_fn`). Keys of `PUBLIC_EXTRA` are the public kinds."""
     n = int(meta.get("extra_obs_dim") or 0)
     if n == 0:
         return "none"
-    if n == SCAN_DIM and (meta.get("terrain_scan") or {}).get("version") == TERRAIN_SCAN_VERSION:
+    scan = (meta.get("terrain_scan") or {}).get("version") == TERRAIN_SCAN_VERSION
+    ring = (meta.get("range_ring") or {}).get("version") == RANGE_RING_VERSION
+    if n == SCAN_DIM and scan and not ring:
         return "terrain_scan"
+    if n == EXTRA_DIM_RING and scan and ring:
+        return "terrain_scan+range_ring"
     return "privileged"
 
 
@@ -67,12 +77,14 @@ class LearnedTracker:
         self.extra_fn = None
         self.extra_kind = extra_kind(meta)
         self.spec = None                                 # '<body>:<version>' when loaded from the registry
-        if self.extra_kind == "terrain_scan":
-            from rrp.envs.mujoco.legged_core import terrain_scan_spec
-            want = terrain_scan_spec()
-            got = meta["terrain_scan"]
+        if "terrain_scan" in PUBLIC_EXTRA.get(self.extra_kind, ()):
+            want, got = terrain_scan_spec(), meta["terrain_scan"]
             if any(got.get(k) != want[k] for k in ("shape", "cell_m", "x0_m", "y0_m", "frame", "range_m")):
                 raise TrackerMismatch("tracker was trained with a different terrain-scan layout")
+        if self.extra_kind == "terrain_scan+range_ring":
+            want, got = range_ring_spec(), meta["range_ring"]
+            if any(got.get(k) != want[k] for k in ("n", "frame", "angle0", "range_m", "height")):
+                raise TrackerMismatch("tracker was trained with a different range-ring layout")
         self.net = mlp(meta["obs_dim"], tuple(meta["hidden"]), meta["act_dim"])
         self.net.load_state_dict(st["actor"])
         self.net.eval()
@@ -231,7 +243,7 @@ class TrackerEntry:
     version: str
     sha256: str | None          # meta pin of the actor file (None = unpinned); checked against actor.pt on load
     obs_format: str | None      # meta obs_format (None = per-body; morph_v1 = shared morphology-conditioned)
-    extra_obs: str              # none | terrain_scan | privileged   (see extra_kind)
+    extra_obs: str              # none | terrain_scan | terrain_scan+range_ring | privileged   (see extra_kind)
     gate: bool                  # actor was trained with the gait-clock gate
     decision: str               # meta decision, else "rejected" when the version name says so, else "accepted"
     store: Path                 # directory holding actor.pt / meta.json

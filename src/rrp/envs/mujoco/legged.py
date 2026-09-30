@@ -26,7 +26,7 @@ from rrp.core.errors import ControllerRejection, StaleActionError
 from rrp.core.observation import NodeState, PolicyObservation, SensorChannel, PredicateEstimate
 from rrp.core.robot import CommandGroup, ControllerContract
 from rrp.envs.mujoco.joint_targets import ChunkExecutor, JointTargetController
-from rrp.envs.mujoco.legged_core import LeggedBinding, TerrainScan, quat_rotate_inv, yaw_of
+from rrp.envs.mujoco.legged_core import LeggedBinding, RangeRing, TerrainScan, quat_rotate_inv, yaw_of
 from rrp.envs.mujoco.legged_tracker import TrackerMismatch, load_tracker
 from rrp.bodies.compiler import compile_robot_spec
 from rrp.bodies.generators import Module
@@ -118,7 +118,8 @@ class LeggedSession(Session):
 
     def __init__(self, scenario: Scenario, *, tracker_kind: str = "auto", seed: int = 0, actuator_mode: str | None = None,
                  actuator_latency_ms: float | None = None, base_state_source: str = "truth_noise", estimator_cfg=None,
-                 control: str = "base_velocity", tracker: str | None = None, terrain_scan: bool | None = None, **kw):
+                 control: str = "base_velocity", tracker: str | None = None, terrain_scan: bool | None = None,
+                 range_ring: bool | None = None, **kw):
         """actuator_mode (D-126 #14): None -> $RRP_ACTUATOR_MODE, else rrp.bodies.actuator.ACTUATOR_MODE_DEFAULT ("ideal": the
         bounded PD servo, byte-identical to before). "v1lat" / "v2" route every tracker tick through ActuatorModel (nominal
         parameters, a fixed per-episode latency: actuator_latency_ms, else $RRP_ACTUATOR_LATENCY_MS, else drawn from the seed).
@@ -137,14 +138,20 @@ class LeggedSession(Session):
         default actor for the scene's contact model. terrain_scan (D-146): the PUBLIC terrain sensor (11 x 7 elevation grid,
         declared channel `0:terrain_scan`, capability `terrain_scan`); None = on exactly when the tracker's actor takes the
         scan as input (meta extra_obs_dim 77 + terrain_scan layout), True on any other tracker only publishes the channel;
-        a scan-input actor with terrain_scan=False raises TrackerMismatch. Only with control="base_velocity"."""
+        a scan-input actor with terrain_scan=False raises TrackerMismatch. range_ring (HS1): the PUBLIC horizontal range sensor (16
+        rays at the base origin, declared channel `0:range_ring`, capability `range_ring`); None = on exactly when the actor takes it
+        (extra_obs_dim 93 = scan + ring), same rules as terrain_scan. Both only with control="base_velocity".
+        Every StepResult carries `energy_j`: the mechanical energy (sum |actuator force x velocity| of the policy actuators, integrated
+        over every physics substep) of that step; None where the tick is replaced (rrp.envs.mujoco.perturb.install_legged, which owns
+        the substeps; its on_substep hook is the place to integrate there)."""
         if control not in CONTROLS:
             raise ValueError(f"control {control!r} not in {CONTROLS}")
         self.control = control
         self.tracker_spec = tracker
-        self._terrain_req = terrain_scan
-        if terrain_scan and control != "base_velocity":
-            raise ValueError('terrain_scan needs control="base_velocity" (the scan is sampled by the body tracker)')
+        self._terrain_req, self._ring_req = terrain_scan, range_ring
+        if (terrain_scan or range_ring) and control != "base_velocity":
+            raise ValueError('terrain_scan / range_ring need control="base_velocity" (they are sampled by the body tracker)')
+        self._step_energy = 0.0
         from rrp.bodies.actuator import resolve_mode
         from rrp.envs.mujoco.state_estimator import BASE_STATE_SOURCES
         if base_state_source not in BASE_STATE_SOURCES:
@@ -174,7 +181,7 @@ class LeggedSession(Session):
             raise ValueError(f"control='wholebody' needs an upper group; body {self.body_key!r} has no held actuators")
         self.tracker = load_tracker(self.body_key, self.binding, mr.meta, self.tracker_kind,
                                     **({"tracker": self.tracker_spec} if self.tracker_spec else {}))
-        self._attach_terrain()
+        self._attach_sensors()
         tc = next(c for c in mr.robot_spec.controller_contracts if c.kind == "legged_tracker")
         self.tracker_contract = tc
         self.tracker_version_str = f"{tc.id}:{tc.version}:{self.tracker.version}:{mr.robot_spec.spec_hash}"
@@ -191,29 +198,39 @@ class LeggedSession(Session):
                             np.array([m.jnt_dofadr[j] for j in jids]), {"body": mr.prefix + mr.meta["legged"]["imu"]["site"]},
                             touch, None, None, [])
 
-    def _attach_terrain(self):
-        """D-146: build the terrain sensor and wire it to the body tracker. The scan is sampled once per tracker tick, just
-        before the tracker acts (any `_tracker_tick`, including perturb.install_legged's, goes through tracker.act)."""
+    def _attach_sensors(self):
+        """D-146 / HS1: build the public terrain and range-ring sensors and wire them to the body tracker. Both are sampled once per
+        tracker tick, just before the tracker acts (any `_tracker_tick`, including perturb.install_legged's, goes through
+        tracker.act); an actor that takes them gets their values as its extra block, scan first."""
+        from rrp.envs.mujoco.legged_tracker import PUBLIC_EXTRA
         kind = getattr(self.tracker, "extra_kind", "none")
-        on = self._terrain_req
-        if on is None:
-            on = kind == "terrain_scan" and self.control == "base_velocity"
-        if kind == "terrain_scan" and not on and self.control == "base_velocity":
-            raise TrackerMismatch("this tracker takes the terrain scan as input; terrain_scan=False disables the sensor")
-        self.terrain = TerrainScan(self.binding) if on else None
-        if self.terrain is None:
+        needs = PUBLIC_EXTRA.get(kind, ())
+        sensors = {}
+        for name, req, cls in (("terrain_scan", self._terrain_req, TerrainScan), ("range_ring", self._ring_req, RangeRing)):
+            on = req
+            if on is None:
+                on = name in needs and self.control == "base_velocity"
+            if name in needs and not on and self.control == "base_velocity":
+                raise TrackerMismatch(f"this tracker takes the {name} as input; {name}=False disables the sensor")
+            sensors[name] = cls(self.binding) if on else None
+        self.terrain, self.ring = sensors["terrain_scan"], sensors["range_ring"]
+        live = [x for x in (self.terrain, self.ring) if x is not None]
+        if not live:
             return
-        tr, terrain, act = self.tracker, self.terrain, self.tracker.act
+        tr, act = self.tracker, self.tracker.act
 
-        def act_with_scan(data, cmd):
-            terrain.tick(data)
+        def act_with_sensors(data, cmd):
+            for x in live:
+                x.tick(data)
             return act(data, cmd)
-        tr.act = act_with_scan
-        if kind == "terrain_scan":
-            tr.extra_fn = lambda data: terrain.values
+        tr.act = act_with_sensors
+        feed = [sensors[n] for n in needs]
+        if feed:
+            tr.extra_fn = lambda data: np.concatenate([x.values for x in feed]).astype(np.float32)
 
     def _capabilities(self) -> list[str]:
-        return super()._capabilities() + (["terrain_scan"] if self.terrain is not None else [])
+        return super()._capabilities() + (["terrain_scan"] if self.terrain is not None else []) \
+            + (["range_ring"] if self.ring is not None else [])
 
     def controller_version(self, robot: int = 0) -> str:
         return self.tracker_version_str
@@ -252,8 +269,10 @@ class LeggedSession(Session):
         r.controller.target = dict(r.controller.prev)
         self.tracker.reset(0.0)
         self.upper_target = b.q0_held.copy()
-        if self.terrain is not None:
-            self.terrain.reset(self.data, seed)
+        self._step_energy = 0.0
+        for x in (self.terrain, self.ring):
+            if x is not None:
+                x.reset(self.data, seed)
         self.cmd = np.zeros(3)
         self.env_rng = np.random.default_rng([seed, 1])
         self.sampler_rng = np.random.default_rng([seed, 2])
@@ -450,6 +469,9 @@ class LeggedSession(Session):
         if self.terrain is not None and self.terrain.values is not None:
             chans.append(SensorChannel(name="0:terrain_scan", kind="terrain_elevation_grid", values=self.terrain.values.copy(),
                                        mask=self.terrain.valid.copy(), timestamp=t))
+        if self.ring is not None and self.ring.values is not None:
+            chans.append(SensorChannel(name="0:range_ring", kind="range_ring_m", values=self.ring.values.copy(),
+                                       mask=self.ring.valid.copy(), timestamp=t))
         chans.append(SensorChannel(name="0:base_velocity_command", kind="command_echo", values=self.cmd.copy(),
                                    mask=np.ones(3, bool), timestamp=t))
         pes = []
@@ -483,6 +505,11 @@ class LeggedSession(Session):
             raise ControllerRejection("command outside bounds", code="out_of_bounds")
         return np.clip(v, lo, hi)
 
+    def _take_energy(self) -> float | None:
+        """The mechanical energy (J) integrated since the last StepResult; None when `_tracker_tick` is replaced on the instance."""
+        e, self._step_energy = self._step_energy, 0.0
+        return None if "_tracker_tick" in self.__dict__ else e
+
     def _tracker_tick(self, cmd):
         b = self.binding
         tgt = self.tracker.act(self.data, cmd)
@@ -494,10 +521,12 @@ class LeggedSession(Session):
         if len(b.held_act):
             self.data.ctrl[b.held_act] = self.upper_target
         n = max(1, int(round(1.0 / (TRACKER_HZ * self.model.opt.timestep))))
+        dt, d, pa = float(self.model.opt.timestep), self.data, b.pol_act
         for _ in range(n):
             if act is not None:
-                self.data.ctrl[b.pol_act] = act.substep_ctrl(0, self.data)
-            mujoco.mj_step(self.model, self.data)
+                d.ctrl[pa] = act.substep_ctrl(0, d)
+            mujoco.mj_step(self.model, d)
+            self._step_energy += float(np.sum(np.abs(d.actuator_force[pa] * d.actuator_velocity[pa]))) * dt
         if self.base_estimator is not None:
             self._estimator_tick(n * self.model.opt.timestep)
 
@@ -558,7 +587,7 @@ class LeggedSession(Session):
                 raise FloatingPointError("simulation diverged (non-finite state)")
             self.boundary = False
             obs = self._last_obs
-        return StepResult(obs, self.data.qpos.copy(), float(self.data.time), rejected, source, executed)
+        return StepResult(obs, self.data.qpos.copy(), float(self.data.time), rejected, source, executed, energy_j=self._take_energy())
 
     def _control_boundary(self):
         """The 10 Hz part of a control step: divergence and fall checks, sensing, observation, task runtime."""
@@ -601,7 +630,7 @@ class LeggedSession(Session):
         for _ in range(n):
             self._tracker_tick(self.cmd)
         obs = self._control_boundary()
-        return StepResult(obs, self.data.qpos.copy(), float(self.data.time), rejected, source, executed)
+        return StepResult(obs, self.data.qpos.copy(), float(self.data.time), rejected, source, executed, energy_j=self._take_energy())
 
     def base_pose_truth(self) -> np.ndarray:
         """PRIVILEGED: true base (x, y, yaw) - teachers/labels only."""
@@ -628,6 +657,8 @@ class LeggedSession(Session):
         c["entity_tracker"] = self.tracker_obj.state()
         if self.terrain is not None:
             c["sensor_filters"]["terrain_scan"] = self.terrain.state()
+        if self.ring is not None:
+            c["sensor_filters"]["range_ring"] = self.ring.state()
         if self.base_estimator is not None:
             c["sensor_filters"]["base_estimator"] = dict(self.base_estimator.state(),
                                                          hist=[h.tolist() for h in self.est_hist])
@@ -663,6 +694,8 @@ class LeggedSession(Session):
         self.loc_hist = [np.array(h) for h in loc.get("hist", [])]
         if self.terrain is not None and "terrain_scan" in c["sensor_filters"]:
             self.terrain.load(c["sensor_filters"]["terrain_scan"])
+        if self.ring is not None and "range_ring" in c["sensor_filters"]:
+            self.ring.load(c["sensor_filters"]["range_ring"])
         if self.base_estimator is not None and "base_estimator" in c["sensor_filters"]:
             be = c["sensor_filters"]["base_estimator"]
             self.base_estimator.load(be)
@@ -698,14 +731,11 @@ class DirectTargets:
 
 
 def make_legged_env(*, task: str, body: str, seed: int = 0, scene: dict | None = None, **kw) -> "LeggedSession":
-    """env_id "mujoco/legged": waypoint_contact, foothold_steps (legged scenes) and h_steps, h_gap (humanoid
-    scenes) on any legged/humanoid body key (rrp.bodies.legged.legged_body)."""
+    """env_id "mujoco/legged": waypoint_contact and foothold_steps (legged scenes) on any legged/humanoid body key
+    (rrp.bodies.legged.legged_body). The humanoid tasks (h_steps, h_gap, ...) are built by their own `build` entry,
+    rrp.envs.mujoco.humanoid_scenes:make_humanoid_session (rrp.tasks.humanoid)."""
     from rrp.bodies.legged import legged_body
     scene = dict(scene or {})
-    if task in ("h_steps", "h_gap"):
-        from rrp.envs.mujoco import humanoid_scenes as hs
-        sc = (hs.build_h_steps if task == "h_steps" else hs.build_h_gap)(body, seed, **scene)
-        return LeggedSession(sc, seed=seed, **kw)
     if task == "foothold_steps":
         from rrp.envs.mujoco import legged_scenes as ls
         return ls.FootholdSession(ls.build_foothold_steps(legged_body(body), seed, body_key=body, **scene), seed=seed, **kw)

@@ -358,20 +358,57 @@ def scan_sensor_model(exact: np.ndarray, rng: np.random.Generator) -> tuple[np.n
     return np.where(valid, v, SCAN_DROPOUT_VALUE).astype(np.float32), valid
 
 
-class TerrainScan:
-    """MuJoCo terrain sensor of one LeggedSession: exact scan by mj_ray, then the declared sensor model with one tick of latency.
-    `tick(data)` runs once per tracker tick BEFORE the tracker acts; `values` / `valid` are what the actor and the declared
-    channel see (the scan of the previous tick's pose)."""
+class _TickSensor:
+    """A public sensor of one LeggedSession with one tracker tick of latency: `exact(data)` of the pose entering the tick, then the
+    declared sensor model. `tick(data)` runs once per tracker tick BEFORE the tracker acts; `values` / `valid` are what the actor
+    and the declared channel see (the reading of the previous tick's pose). Subclasses give `STREAM` (the seed stream, so two
+    sensors never share noise), `exact` and `model`."""
+    STREAM = 0
 
     def __init__(self, binding: "LeggedBinding"):
         self.b = binding
+        self.prev = self.values = self.valid = None
+        self.rng = np.random.default_rng(0)
+
+    def exact(self, data) -> np.ndarray:
+        raise NotImplementedError
+
+    def model(self, exact: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray]:
+        raise NotImplementedError
+
+    def reset(self, data, seed: int) -> None:
+        self.rng = np.random.default_rng([int(seed), self.STREAM])
+        self.prev = self.exact(data)
+        self.values, self.valid = self.model(self.prev, self.rng)
+
+    def tick(self, data) -> None:
+        self.values, self.valid = self.model(self.prev, self.rng)
+        self.prev = self.exact(data)
+
+    def state(self) -> dict:
+        return dict(prev=self.prev.tolist(), values=self.values.tolist(), valid=self.valid.tolist(),
+                    rng=self.rng.bit_generator.state)
+
+    def load(self, st: dict) -> None:
+        self.prev = np.array(st["prev"], np.float32)
+        self.values = np.array(st["values"], np.float32)
+        self.valid = np.array(st["valid"], bool)
+        self.rng.bit_generator.state = st["rng"]
+
+
+class TerrainScan(_TickSensor):
+    """MuJoCo terrain sensor: exact scan by mj_ray, then the declared sensor model with one tick of latency."""
+    STREAM = 5
+
+    def __init__(self, binding: "LeggedBinding"):
+        super().__init__(binding)
         self.h0 = binding.nominal_height()
         gg = np.zeros(mujoco.mjNGROUP, np.uint8)         # rays see only the geom groups that hold ground (the robot's own
         gg[[int(binding.model.geom_group[g]) for g in binding.ground]] = 1   # geoms are usually in other groups)
         self.geomgroup = gg
-        self.prev = self.values = None
-        self.valid = None
-        self.rng = np.random.default_rng(0)
+
+    def model(self, exact, rng):
+        return scan_sensor_model(exact, rng)
 
     def exact(self, data) -> np.ndarray:
         b, m = self.b, self.b.model
@@ -397,24 +434,72 @@ class TerrainScan:
             out[i] = self.h0 - rng_
         return out
 
-    def reset(self, data, seed: int) -> None:
-        self.rng = np.random.default_rng([int(seed), 5])
-        self.prev = self.exact(data)
-        self.values, self.valid = scan_sensor_model(self.prev, self.rng)
 
-    def tick(self, data) -> None:
-        self.values, self.valid = scan_sensor_model(self.prev, self.rng)
-        self.prev = self.exact(data)
+# ---------------------------------------------------------------------------------------------------- public range ring
+# HS1 (D-146 round 2, architecture 14.3): the terrain scan reads the ground, not walls. The second public sensor of the gap expert is
+# a horizontal range ring: RING_N rays in the body yaw frame (ray k at angle 2 pi k / RING_N from +x, counter-clockwise), cast from the
+# base origin (torso height) through everything except the robot itself; the reading of a ray is its hit distance in metres, at most
+# RING_RANGE (no return = RING_RANGE). Sensor model: additive N(0, RING_SIGMA) noise (clipped to [0, RING_RANGE]), RING_DROPOUT of the
+# rays return RING_DROPOUT_VALUE (= no return; masked in the declared channel), one tracker tick of latency. Warp (analytic boxes)
+# and MuJoCo (mj_ray) share every constant below; the actor input is proprio + terrain scan + this ring (scan first).
+RANGE_RING_VERSION = "range_ring_v1"
+RING_N, RING_RANGE, RING_SIGMA, RING_DROPOUT, RING_LATENCY_TICKS = 16, 3.0, 0.02, 0.02, 1
+RING_DROPOUT_VALUE = RING_RANGE
+RING_ANGLES = 2.0 * math.pi * np.arange(RING_N) / RING_N     # rad, body yaw frame
+EXTRA_DIM_RING = SCAN_DIM + RING_N                           # the actor's extra block when it takes scan + ring
 
-    def state(self) -> dict:
-        return dict(prev=self.prev.tolist(), values=self.values.tolist(), valid=self.valid.tolist(),
-                    rng=self.rng.bit_generator.state)
 
-    def load(self, st: dict) -> None:
-        self.prev = np.array(st["prev"], np.float32)
-        self.values = np.array(st["values"], np.float32)
-        self.valid = np.array(st["valid"], bool)
-        self.rng.bit_generator.state = st["rng"]
+def range_ring_spec() -> dict:
+    """The layout / sensor model as data (actor meta `range_ring`, the declared channel's description)."""
+    return dict(version=RANGE_RING_VERSION, n=RING_N, frame="yaw", angle0="+x, counter-clockwise", range_m=RING_RANGE,
+                sigma_m=RING_SIGMA, dropout=RING_DROPOUT, dropout_value=RING_DROPOUT_VALUE, latency_ticks=RING_LATENCY_TICKS,
+                height="base origin (torso)", sees="every colliding geom except the robot's own",
+                value="hit distance, clipped to range_m (no return = range_m)")
+
+
+def ring_sensor_model(exact: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray]:
+    """(values, valid): noise + dropout applied to an exact ring (numpy twin of WarpGapEnv._scan_model's ring half)."""
+    v = np.clip(exact + rng.normal(0.0, RING_SIGMA, exact.shape), 0.0, RING_RANGE)
+    valid = rng.random(exact.shape) >= RING_DROPOUT
+    return np.where(valid, v, RING_DROPOUT_VALUE).astype(np.float32), valid
+
+
+class RangeRing(_TickSensor):
+    """MuJoCo range ring of one LeggedSession (mj_ray from the base origin; the robot's own and the non-colliding geoms are stepped through)."""
+    STREAM = 6
+
+    def __init__(self, binding: "LeggedBinding"):
+        super().__init__(binding)
+        m = binding.model
+        own = m.body_rootid[m.geom_bodyid] == m.body_rootid[binding.root_bid]           # per geom: part of the robot
+        self.skip = own | ((m.geom_contype == 0) & (m.geom_conaffinity == 0))           # ... or a non-colliding marker / visual
+
+    def model(self, exact, rng):
+        return ring_sensor_model(exact, rng)
+
+    def exact(self, data) -> np.ndarray:
+        b, m = self.b, self.b.model
+        q = data.qpos[b.qa:b.qa + 7]
+        yaw = yaw_of(q[3:7])
+        out = np.empty(RING_N, np.float32)
+        gid = np.zeros(1, np.int32)
+        for k in range(RING_N):
+            a = yaw + RING_ANGLES[k]
+            vec = np.array([math.cos(a), math.sin(a), 0.0])
+            pnt = np.array([float(q[0]), float(q[1]), float(q[2])])
+            tot = 0.0
+            for _ in range(32):                          # step through the robot's own / non-colliding geoms
+                d = mujoco.mj_ray(m, data, pnt, vec, None, 1, -1, gid)
+                if d < 0 or tot + d >= RING_RANGE:
+                    tot = RING_RANGE
+                    break
+                tot += d
+                if not self.skip[int(gid[0])]:
+                    break
+                pnt = pnt + vec * (d + 1e-4)
+                tot += 1e-4
+            out[k] = min(tot, RING_RANGE)
+        return out
 
 
 PRIOR_TERMS = ("air_time", "clearance", "contact_phase")                        # gait-shaping priors: decay

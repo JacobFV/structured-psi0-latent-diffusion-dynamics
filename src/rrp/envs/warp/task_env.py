@@ -7,8 +7,9 @@ observation (tracker proprio + the terrain scan, D-146: `terrain_scan=True` alwa
 targets; the critic additionally gets the exact scan (WarpTrackerEnv.privileged) and h_frac. Because the actor input is public
 the expert's label is `learned:rl_expert:<sha>` (rrp.policies.teachers.humanoid.make_rl_expert). Success: base x > x_end + 0.3 L
 without a fall.
-WarpGapEnv (task h_gap): the gap layout is critic-only (`task_priv`, D-144 R19); the actor is proprio only (the terrain scan
-covers the ground, not walls).
+WarpGapEnv (task h_gap): the gap layout is critic-only (`task_priv`, D-144 R19). The actor sees the gap through the PUBLIC
+sensors (D-146 / HS1): the terrain scan (ground only) plus the 16-ray range ring (range_ring_v1, rrp.envs.mujoco.legged_core),
+which is what sees the walls; actor extra block = [scan 77 | ring 16] = 93, the critic keeps the exact scan and ring.
 """
 from __future__ import annotations
 
@@ -17,6 +18,8 @@ import math
 import numpy as np
 import torch
 
+from rrp.envs.mujoco.legged_core import (RING_ANGLES, RING_DROPOUT, RING_DROPOUT_VALUE, RING_N, RING_RANGE, RING_SIGMA,
+                                          SCAN_DIM)
 from rrp.envs.mujoco.humanoid_scenes import (BURY, STEPS_N, STEPS_PLATFORM, STEPS_TREAD, STEPS_X0,
                                               task_model)
 from rrp.envs.warp.tracker_env import WarpTrackerEnv
@@ -165,6 +168,8 @@ class WarpGapEnv(WarpTrackerEnv):
 
     def __init__(self, body, nworld: int, seed: int = 1, level: float = 0.0, **kw):
         kw.setdefault("cmd_mix", "default")
+        kw["terrain_scan"] = True                  # the scan half of the public extra block (the ring is appended below)
+        self._ring_on = False                      # the ring half is live once the wall layout exists (see __init__ below)
         super().__init__(body, nworld, seed, model_fn=lambda k: task_adapted_model(k, "h_gap_sidestep", {"mocap": True}), **kw)
         import mujoco
         from rrp.envs.mujoco.humanoid_scenes import body_width
@@ -186,12 +191,60 @@ class WarpGapEnv(WarpTrackerEnv):
         z = torch.zeros(self.N, device=self.dev)
         self.gap_w, self.gap_y, self.psi_f, self.phase2, self.wall_t, self.hold_t = z.clone(), z.clone(), z.clone(), z.clone(), z.clone(), z.clone()
         self._layout(torch.ones(self.N, dtype=torch.bool, device=self.dev))
+        self._ring_ang = torch.as_tensor(RING_ANGLES, device=self.dev, dtype=torch.float32)
+        self.extra_dim += RING_N                                   # [scan | ring]: the actor and critic blocks both widen
+        self.obs_dim += RING_N
+        self.priv_dim += RING_N
+        self._scan_pub = torch.zeros(self.N, self.extra_dim, device=self.dev)
+        self._ring_on = True
         self.reset_all()
         self.obs_dim, self.priv_dim = _layout_dims(self.obs_dim, self.priv_dim, 8)
         # `observe()` not overridden (D-144 R19): see WarpStepsEnv above -- same fix, same reason.
 
     def privileged(self, fc):
         return torch.cat([super().privileged(fc), self.task_priv()], -1)
+
+    def ring_exact(self):
+        """(N, RING_N) exact range ring: horizontal rays from the base origin in the yaw frame against the two wall boxes
+        (slab test; the floor is never hit by a horizontal ray, the robot's own geoms are skipped), RING_RANGE = no return.
+        The MuJoCo twin is legged_core.RangeRing.exact (mj_ray)."""
+        from rrp.envs.mujoco.humanoid_scenes import GAP_X, WALL_HALF_Y, WALL_HALF_Z, WALL_T
+        x, y, z = (self.qpos[:, self.qa + i:self.qa + i + 1] for i in range(3))
+        a = self._yaw()[:, None] + self._ring_ang[None]
+        dx, dy = torch.cos(a), torch.sin(a)
+        L = self.L[:, None]
+        big = torch.full_like(dx, 1e9)
+        inv = lambda d: torch.where(d.abs() < 1e-9, big, 1.0 / torch.where(d.abs() < 1e-9, torch.ones_like(d), d))
+        ix, iy = inv(dx), inv(dy)
+        best = torch.full_like(dx, RING_RANGE)
+        for sg in (1.0, -1.0):
+            cx = GAP_X * L
+            cy = self.gap_y[:, None] + sg * (0.5 * self.gap_w[:, None] + WALL_HALF_Y * L)
+            hx, hy = WALL_T * L, WALL_HALF_Y * L
+            tx1, tx2 = (cx - hx - x) * ix, (cx + hx - x) * ix
+            ty1, ty2 = (cy - hy - y) * iy, (cy + hy - y) * iy
+            tmin = torch.maximum(torch.minimum(tx1, tx2), torch.minimum(ty1, ty2))
+            tmax = torch.minimum(torch.maximum(tx1, tx2), torch.maximum(ty1, ty2))
+            in_z = (z >= 0.0) & (z <= 2 * WALL_HALF_Z * L)
+            hit = in_z & (tmax >= tmin) & (tmax >= 0.0)
+            best = torch.where(hit, torch.minimum(best, tmin.clamp(min=0.0)), best)
+        return best.clamp(0.0, RING_RANGE)
+
+    def terrain_exact(self):
+        """The exact extra block: the terrain scan, plus the range ring once the walls exist."""
+        scan = super().terrain_exact()
+        return torch.cat([scan, self.ring_exact()], -1) if self._ring_on else scan
+
+    def _scan_model(self, exact):
+        """Sensor models of the two halves: the scan's (base class) and the ring's (N(0, RING_SIGMA), clip to the range,
+        RING_DROPOUT of the rays read RING_DROPOUT_VALUE; numpy twin legged_core.ring_sensor_model)."""
+        scan = super()._scan_model(exact[:, :SCAN_DIM])
+        if exact.shape[1] == SCAN_DIM:
+            return scan
+        r = exact[:, SCAN_DIM:]
+        v = (r + torch.randn(r.shape, generator=self.gen, device=self.dev) * RING_SIGMA).clamp(0.0, RING_RANGE)
+        keep = torch.rand(r.shape, generator=self.gen, device=self.dev) >= RING_DROPOUT
+        return torch.cat([scan, torch.where(keep, v, torch.full_like(v, RING_DROPOUT_VALUE))], -1)
 
     def set_level(self, level: float) -> float:
         self.level = float(min(1.0, max(0.0, level)))

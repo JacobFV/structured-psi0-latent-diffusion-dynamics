@@ -228,7 +228,7 @@ def build(p: PhumParams, name: str | None = None) -> Module:
     sealed = p.seed >= SEALED_SEED_MIN or in_sealed_region(p)
     meta = dict(name=name, family="humanoid", synthetic=True, lineage=[LINEAGE, f"{LINEAGE}/{p.topology}", f"{LINEAGE}/{name}"],
                 assemblies=[dict(id="body", kind="body", root_body="pelvis", frame=dict(site=imu["site"]),
-                                 capabilities=["locomote"] + (["manipulate"] if p.arm_dof else []))],
+                                 capabilities=["locomote"])],
                 ports=[],
                 controller=dict(kind="joint_targets", groups=[g_ for g_ in (
                     dict(name="legs", actuators=acts, semantic="joint_position", units="rad"),

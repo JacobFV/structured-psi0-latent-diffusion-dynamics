@@ -29,16 +29,19 @@ def _binding(sc):
 
 
 def _put(root: Path, body: str, version: str, b, *, scan: bool, seed: int, extra: dict | None = None, v1: bool = False,
-         contact: str = "contact_v2") -> Path:
+         contact: str = "contact_v2", ring: bool = False) -> Path:
     """A registry entry: actor.pt + meta.json under root/<body>[/<version>]."""
     d = root / body if v1 else root / body / version
     d.mkdir(parents=True, exist_ok=True)
     meta = dict(body=body, actuator_limits=b.meta.get("actuator_limits"), contact_model=contact)
     if scan:
         meta.update(extra_obs_dim=LC.SCAN_DIM, terrain_scan=LC.terrain_scan_spec())
+    if ring:
+        meta.update(extra_obs_dim=LC.EXTRA_DIM_RING, terrain_scan=LC.terrain_scan_spec(), range_ring=LC.range_ring_spec())
     meta.update(extra or {})
-    _saved_actor(d, "actor", b.obs_dim + (LC.SCAN_DIM if scan else 0), b.n, meta, seed)
-    (d / "meta.json").write_text(json.dumps(dict(meta, obs_dim=b.obs_dim + (LC.SCAN_DIM if scan else 0))))
+    n_extra = LC.EXTRA_DIM_RING if ring else (LC.SCAN_DIM if scan else 0)
+    _saved_actor(d, "actor", b.obs_dim + n_extra, b.n, meta, seed)
+    (d / "meta.json").write_text(json.dumps(dict(meta, obs_dim=b.obs_dim + n_extra)))
     return d
 
 
@@ -173,12 +176,12 @@ def test_warp_and_mujoco_actor_dims_and_layout_agree_without_cuda():
 
 
 # ---------------------------------------------------------------- MuJoCo session with the scan; rl_expert
-def _session(tmp_path, registry, *, scan: bool, **kw):
-    from rrp.envs.mujoco.humanoid_scenes import build_h_steps
+def _session(tmp_path, registry, *, scan: bool, ring: bool = False, gap: bool = False, **kw):
+    from rrp.envs.mujoco.humanoid_scenes import build_h_gap, build_h_steps
     from rrp.envs.mujoco.legged import LeggedSession
-    sc = build_h_steps(BODY, 0, h_frac=0.2)
+    sc = build_h_gap(BODY, 0, level=1.0) if gap else build_h_steps(BODY, 0, h_frac=0.2)
     b = _binding(sc)
-    _put(tmp_path, BODY, "stub", b, scan=scan, seed=5, extra=dict(clock_gate=True))
+    _put(tmp_path, BODY, "stub", b, scan=scan, ring=ring, seed=5, extra=dict(clock_gate=True))
     registry()
     return LeggedSession(sc, tracker_kind="learned", seed=0, tracker=f"{BODY}:stub", **kw), b
 
@@ -248,6 +251,187 @@ def test_rl_expert_labels_and_sha_check(tmp_path, registry):
     registry()
     assert LT.get_entry(f"{BODY}:priv").extra_obs == "privileged"
     assert make_rl_expert(arg=f"{BODY}:priv").label.startswith("privileged_teacher:rl_expert:")
+
+
+# ---------------------------------------------------------------- HS1: the public range ring, tracker kinds, energy, capabilities
+def test_range_ring_layout_and_sensor_model_math():
+    assert (LC.RING_N, LC.RING_RANGE, LC.RING_SIGMA, LC.RING_DROPOUT, LC.RING_LATENCY_TICKS) == (16, 3.0, 0.02, 0.02, 1)
+    assert LC.EXTRA_DIM_RING == LC.SCAN_DIM + 16 == 93 and LC.RANGE_RING_VERSION == "range_ring_v1"
+    assert np.allclose(LC.RING_ANGLES, np.arange(16) * math.pi / 8) and LC.RING_DROPOUT_VALUE == LC.RING_RANGE
+    spec = LC.range_ring_spec()
+    assert spec["version"] == "range_ring_v1" and spec["n"] == 16 and spec["frame"] == "yaw" and spec["latency_ticks"] == 1
+    # noise N(0, 2 cm), clip to [0, range], 2 % dropout reading the range (= no return)
+    v, ok = LC.ring_sensor_model(np.full((20000, 16), 1.5), np.random.default_rng(0))
+    assert (~ok).mean() == pytest.approx(0.02, abs=0.002) and np.all(v[~ok] == LC.RING_RANGE)
+    assert v[ok].mean() == pytest.approx(1.5, abs=1e-3) and v[ok].std() == pytest.approx(0.02, rel=0.02)
+    v, ok = LC.ring_sensor_model(np.array([[0.0, LC.RING_RANGE] * 8]), np.random.default_rng(1))
+    assert v.min() >= 0.0 and v.max() <= LC.RING_RANGE                      # clipped on both sides
+
+
+def test_extra_kind_names_the_public_layouts_and_everything_else_privileged(tmp_path):
+    scan, ring = LC.terrain_scan_spec(), LC.range_ring_spec()
+    assert LT.extra_kind({}) == "none" and LT.extra_kind({"extra_obs_dim": 0}) == "none"
+    assert LT.extra_kind(dict(extra_obs_dim=77, terrain_scan=scan)) == "terrain_scan"
+    assert LT.extra_kind(dict(extra_obs_dim=93, terrain_scan=scan, range_ring=ring)) == "terrain_scan+range_ring"
+    assert LT.PUBLIC_EXTRA["terrain_scan+range_ring"] == ("terrain_scan", "range_ring")      # scan first
+    # a width without the matching sensor versions, or a stale version, is never public
+    assert LT.extra_kind(dict(extra_obs_dim=93, terrain_scan=scan)) == "privileged"
+    assert LT.extra_kind(dict(extra_obs_dim=93, range_ring=ring)) == "privileged"
+    assert LT.extra_kind(dict(extra_obs_dim=93, terrain_scan=scan, range_ring=dict(ring, version="range_ring_v0"))) == "privileged"
+    assert LT.extra_kind(dict(extra_obs_dim=77, terrain_scan=scan, range_ring=ring)) == "privileged"
+    assert LT.extra_kind(dict(extra_obs_dim=8)) == "privileged"
+    d = tmp_path / "anymal" / "gap_v1"
+    d.mkdir(parents=True)
+    (d / "meta.json").write_text(json.dumps(dict(extra_obs_dim=93, terrain_scan=scan, range_ring=ring)))
+    assert LT.scan_trackers(tmp_path)[("anymal", "gap_v1")].extra_obs == "terrain_scan+range_ring"
+
+
+def test_humanoid_generator_bodies_declare_only_declarable_capabilities():
+    """Red before HS1: a phum body with arms declared capability 'manipulate', which the Capability vocabulary rejects."""
+    from rrp.bodies.humanoid_gen import sample_params
+    from rrp.envs.mujoco.legged import build_waypoint_contact
+    seed = next(i for i in range(200) if sample_params(i).arm_dof > 0)
+    sc = build_waypoint_contact(f"phum_{seed}", 0)
+    assert sc.robots[0].meta["assemblies"][0]["capabilities"] == ["locomote"]
+
+
+def test_legged_env_factory_has_no_humanoid_branch():
+    from rrp.envs.mujoco.legged import make_legged_env
+    for task in ("h_steps", "h_gap"):
+        with pytest.raises(KeyError, match="no task"):
+            make_legged_env(task=task, body=BODY)
+    from rrp.envs.base import _factory
+    assert _factory("mujoco/legged", "h_gap").__name__ == "make_humanoid_session"
+
+
+@pytest.mark.menagerie
+def test_warp_gap_ring_matches_mujoco_rays_without_cuda():
+    """Analytic wall boxes (WarpGapEnv.ring_exact, stub env on CPU torch) == mj_ray (RangeRing.exact) on the h_gap scene at
+    several poses; the Warp sensor model reproduces the numpy one; the critic/actor block widths are scan + ring."""
+    import mujoco
+    import torch
+    import rrp.envs.warp.task_env as TK
+    from rrp.envs.mujoco.humanoid_scenes import build_h_gap
+    assert (TK.RING_N, TK.RING_RANGE, TK.RING_SIGMA, TK.RING_DROPOUT, TK.RING_DROPOUT_VALUE) == (
+        LC.RING_N, LC.RING_RANGE, LC.RING_SIGMA, LC.RING_DROPOUT, LC.RING_DROPOUT_VALUE)
+    sc = build_h_gap(BODY, 0, level=1.0)
+    b = _binding(sc)
+    L, gw, yc = float(sc.meta["L"]), float(sc.meta["gap_width"]), float(sc.meta["y_c"])
+    data = mujoco.MjData(sc.model)
+    ring = LC.RangeRing(b)
+    poses = [(0.5 * L, yc, 0.0), (1.2 * L, yc + 0.3 * L, 0.4), (1.5 * L, yc - 0.6 * L, -0.7), (0.8 * L, yc + 2.5 * L, 2.0),
+             (1.8 * L, yc, 0.0), (0.2 * L, yc - 0.1, math.pi)]
+    env = object.__new__(TK.WarpGapEnv)
+    env.dev, env.qa = torch.device("cpu"), b.qa
+    env.L = torch.full((len(poses),), L)
+    env.gap_y, env.gap_w = torch.full((len(poses),), yc), torch.full((len(poses),), gw)
+    env._ring_ang = torch.as_tensor(LC.RING_ANGLES, dtype=torch.float32)
+    qp = []
+    for (x, y, yaw) in poses:
+        mujoco.mj_resetData(sc.model, data)
+        data.qpos[b.qa:b.qa + 7] = [x, y, b.nominal_height(), math.cos(yaw / 2), 0, 0, math.sin(yaw / 2)]
+        mujoco.mj_forward(sc.model, data)
+        qp.append(data.qpos.copy())
+    env.qpos = torch.tensor(np.array(qp), dtype=torch.float32)
+    got = env.ring_exact().numpy()
+    hits = 0
+    for i, q in enumerate(qp):
+        data.qpos[:] = q
+        mujoco.mj_forward(sc.model, data)
+        want = ring.exact(data)
+        assert np.abs(got[i] - want).max() < 2e-3, (i, poses[i], got[i], want)
+        hits += int((want < LC.RING_RANGE).sum())
+    assert hits >= 8 and (got == LC.RING_RANGE).any()            # the walls are seen, and open directions read the range
+    env.gen = torch.Generator().manual_seed(0)
+    env._scan_off = torch.as_tensor(LC.SCAN_OFFSETS, dtype=torch.float32)
+    pub = env._scan_model(torch.cat([torch.full((4000, 77), 0.4), torch.full((4000, 16), 1.5)], -1))
+    sc_, rg = pub[:, :77], pub[:, 77:]
+    assert pub.shape == (4000, LC.EXTRA_DIM_RING) and (sc_ == LC.SCAN_DROPOUT_VALUE).float().mean().item() == pytest.approx(0.02, abs=0.004)
+    drop = rg == LC.RING_DROPOUT_VALUE
+    assert drop.float().mean().item() == pytest.approx(0.02, abs=0.004) and rg[~drop].std().item() == pytest.approx(0.02, rel=0.05)
+
+
+@pytest.mark.menagerie
+def test_session_range_ring_channel_capability_actor_input_and_refusals(tmp_path, registry):
+    s, b = _session(tmp_path, registry, scan=False, ring=True, gap=True)
+    assert {"terrain_scan", "range_ring"} <= set(s.spec.capabilities)
+    o = s.reset(0)
+    ch = next(c for c in o.declared_sensor_channels if c.name == "0:range_ring")
+    assert ch.kind == "range_ring_m" and ch.values.shape == (LC.RING_N,) and ch.mask.shape == (LC.RING_N,)
+    assert any(c.name == "0:terrain_scan" for c in o.declared_sensor_channels)
+    tr = s.tracker
+    assert tr.extra_kind == "terrain_scan+range_ring"
+    x = tr.extra_fn(s.data)
+    assert x.shape == (LC.EXTRA_DIM_RING,)
+    assert np.array_equal(x[:LC.SCAN_DIM], s.terrain.values) and np.array_equal(x[LC.SCAN_DIM:], s.ring.values)   # scan first
+    # one tick of latency, exactly: a tick publishes the sensor model of what the previous tick measured, then measures the pose
+    # entering this tick
+    import copy
+    s.step(None)
+    for _ in range(3):
+        before_prev, rng, entering = s.ring.prev.copy(), copy.deepcopy(s.ring.rng), s.ring.exact(s.data)
+        s._tracker_tick(s.cmd)
+        want, ok = LC.ring_sensor_model(before_prev, rng)
+        assert np.array_equal(s.ring.values, want) and np.array_equal(s.ring.valid, ok)
+        assert np.array_equal(s.ring.prev, entering)
+    # deterministic given the seed; snapshot/restore replays the ring stream exactly
+    s2, _ = _session(tmp_path, registry, scan=False, ring=True, gap=True)
+    ch2 = next(c for c in s2.reset(0).declared_sensor_channels if c.name == "0:range_ring")
+    assert np.array_equal(ch.values, ch2.values) and np.array_equal(ch.mask, ch2.mask)
+    snap = s.snapshot()
+    s.step(None)
+    a = s.ring.values.copy()
+    s.restore(snap)
+    s.step(None)
+    assert np.array_equal(a, s.ring.values)
+    with pytest.raises(LT.TrackerMismatch, match="range_ring"):
+        _session(tmp_path, registry, scan=False, ring=True, gap=True, range_ring=False)
+    # a wrong ring layout in the meta is refused at load
+    _put(tmp_path, BODY, "badring", b, scan=False, ring=True, seed=7, extra=dict(range_ring=dict(LC.range_ring_spec(), n=8)))
+    registry()
+    with pytest.raises(LT.TrackerMismatch, match="range-ring layout"):
+        LT.load_tracker(BODY, b, dict(s.robots[0].meta, contact_model="contact_v2"), tracker=f"{BODY}:badring")
+
+
+@pytest.mark.menagerie
+def test_session_ring_is_optional_public_channel_on_other_actors_and_absent_by_default(tmp_path, registry):
+    s, _ = _session(tmp_path, registry, scan=True, gap=True)
+    o = s.reset(0)
+    assert "range_ring" not in s.spec.capabilities and all(c.name != "0:range_ring" for c in o.declared_sensor_channels)
+    assert s.tracker.extra_fn(s.data).shape == (LC.SCAN_DIM,)
+    s3, _ = _session(tmp_path, registry, scan=True, gap=True, range_ring=True)       # channel only; the actor input is unchanged
+    o3 = s3.reset(0)
+    assert "range_ring" in s3.spec.capabilities and any(c.name == "0:range_ring" for c in o3.declared_sensor_channels)
+    assert s3.tracker.extra_fn(s3.data).shape == (LC.SCAN_DIM,)
+
+
+@pytest.mark.menagerie
+def test_step_result_reports_mechanical_energy_and_none_when_the_tick_is_replaced(tmp_path, registry, monkeypatch):
+    import mujoco
+    import rrp.envs.mujoco.legged as LG
+    from rrp.envs.base import StepResult
+    assert StepResult(None, None, 0.0).energy_j is None                 # not measured unless the env reports it
+    s, b = _session(tmp_path, registry, scan=True)
+    s.reset(0)
+    spent = []
+    real = mujoco.mj_step
+
+    def spy(m, d, *a, **k):
+        real(m, d, *a, **k)
+        spent.append(float(np.sum(np.abs(d.actuator_force[b.pol_act] * d.actuator_velocity[b.pol_act]))) * float(m.opt.timestep))
+    monkeypatch.setattr(LG.mujoco, "mj_step", spy)
+    r1 = s.step(None)
+    assert r1.energy_j is not None and r1.energy_j > 0.0
+    n = len(spent)
+    r2 = s.step(None)
+    assert r2.energy_j == pytest.approx(sum(spent[n:]), rel=1e-9) and len(spent) - n == int(round(s.dt * LG.TRACKER_HZ)) * int(
+        round(1.0 / (LG.TRACKER_HZ * s.model.opt.timestep)))
+    assert r2.energy_j != r1.energy_j                                    # per step, not cumulative
+    # perturb.install_legged replaces the tick and owns the substeps: energy is not measured there
+    from rrp.envs.mujoco import perturb
+    s.reset(0)
+    perturb.install_legged(s, perturb.PhysicsPerturbation(), 0)
+    assert s.step(None).energy_j is None
 
 
 # ---------------------------------------------------------------- recipes: one registry, shas preserved
