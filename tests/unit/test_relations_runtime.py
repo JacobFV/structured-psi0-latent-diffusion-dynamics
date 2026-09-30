@@ -14,8 +14,10 @@ from rrp.policies.nets.batch import attach_cam_uvd, collate_inputs, ctx_geometry
 from rrp.policies.nets.checkpoint import load_checkpoint, save_checkpoint
 from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
 from rrp.policies.relations import catalog
-from rrp.policies.relations.base import (FACTORS, FAMILIES, FactorError, PrivilegedInput, RelCtx, TokenSet,
-                                         estimates_loss, require_factors, resolve, stamp_versions)
+from rrp.policies.relations.base import (FACTORS, FAMILIES, EdgeSet, FactorDef, FactorError, PrivilegedInput, RelCtx,
+                                         TokenSet, estimates_loss, register_factor, require_factors, resolve,
+                                         stamp_versions)
+from rrp.policies.relations.ops import FactorSite
 
 torch.manual_seed(0)
 relgen.load_families()
@@ -241,3 +243,151 @@ def test_coverage_env_caps_match_the_envs():
                                                           else ("poses", "ui_tree"))) + "})"
         assert lit in (root / rel).read_text(), (env, lit)
         assert caps[env] == frozenset(eval(lit))
+
+
+# ------------------------------------------------------------------ RC (round 2, D-146): registry closure
+# 1. field operators honour `<field>.valid`: an invalid token contributes zero on both sides (only on the side that
+#    reads a field: a unary / world-frame align query reads none), whatever garbage its field holds.
+register_factor(FactorDef("test.rc_pape", "1", field="pos3d", op="sqdiff+diff", form="aug", params=(("p", 3),)))
+register_factor(FactorDef("test.rc_pape_q", "1", field="pos3d", op="sqdiff+diff", form="aug",
+                          params=(("p", 3), ("frame", "query"), ("orient", "orient"))))
+register_factor(FactorDef("test.rc_diff", "1", field="pos3d", op="diff", form="aug", params=(("p", 3),)))
+register_factor(FactorDef("test.rc_rot", "1", field="orient", op="rel_rot", form="aug"))
+register_factor(FactorDef("test.rc_align", "1", field="normal", op="align", form="aug", params=(("frame", "world"),)))
+register_factor(FactorDef("test.rc_align_q", "1", field="normal", op="align", form="aug",
+                          params=(("frame", "query"), ("orient", "orient"))))
+register_factor(FactorDef("test.rc_sim", "1", field="pos3d", op="sim", form="aug"))
+register_factor(FactorDef("test.rc_unary", "1", field="pos3d", op="unary", form="aug", params=(("p", 3),)))
+register_factor(FactorDef("test.rc_same", "1", field="entity_id", op="same", form="aug", params=(("n_ids", 8),)))
+register_factor(FactorDef("test.rc_same_b", "1", field="entity_id", op="same", form="bias"))
+register_factor(FactorDef("test.rc_order", "1", field="pos3d", op="order", form="bias"))
+
+_FIELDS = ("pos3d", "orient", "normal", "entity_id")
+
+
+def _half_invalid_sets(B=2, T=6, garbage=False):
+    g = torch.Generator().manual_seed(0)
+    sets = {}
+    for n, off in (("q", 0), ("k", 1)):
+        valid = (torch.arange(T) % 2 == off)[None].expand(B, T).clone()             # half of the tokens are invalid
+        rot = torch.linalg.qr(torch.randn(B, T, 3, 3, generator=g))[0].flatten(-2)
+        f = {"pos3d": torch.randn(B, T, 3, generator=g), "orient": rot,
+             "normal": torch.nn.functional.normalize(torch.randn(B, T, 3, generator=g), dim=-1),
+             "entity_id": torch.randint(0, 8, (B, T, 1), generator=g)}
+        if garbage:                                                                 # invalid tokens hold other values
+            gg = torch.Generator().manual_seed(9)
+            f = {k: torch.where(valid.reshape(B, T, *[1] * (v.dim() - 2)), v,
+                                (torch.randn(v.shape, generator=gg) * 50).to(v.dtype).abs() + 1 if v.is_floating_point()
+                                else (v + 3) % 8) for k, v in f.items()}
+        f.update({k + ".valid": valid for k in _FIELDS})
+        sets[n] = TokenSet(n, torch.ones(B, T, dtype=torch.bool), fields=f)
+    return RelCtx(sets=sets), sets["q"].fields["pos3d.valid"], sets["k"].fields["pos3d.valid"]
+
+
+def _pair_score(name, garbage):
+    rc, vq, vk = _half_invalid_sets(garbage=garbage)
+    site = FactorSite(2, 16, "q>k", resolve([name]), _FIELDS)
+    g = torch.Generator().manual_seed(3)
+    with torch.no_grad():
+        for p in site.parameters():
+            p.copy_(torch.randn(p.shape, generator=g))
+    x = torch.randn(2, 6, 16, generator=torch.Generator().manual_seed(5))
+    if FACTORS[name].form == "bias":
+        return site.bias(rc), vq, vk
+    qa, ka = site.augment(rc, x, x)
+    return qa @ ka.transpose(-1, -2), vq, vk
+
+
+# (factor, does an invalid QUERY token contribute zero, does an invalid KEY token)
+_VALID_CASES = [("test.rc_pape", True, True), ("test.rc_pape_q", True, True), ("test.rc_diff", True, True),
+                ("test.rc_rot", True, True), ("test.rc_align", False, True), ("test.rc_align_q", True, True),
+                ("test.rc_sim", True, True), ("test.rc_unary", False, True), ("test.rc_same", True, True),
+                ("test.rc_same_b", True, True), ("test.rc_order", True, True)]
+
+
+@pytest.mark.parametrize("name,q_zero,k_zero", _VALID_CASES)
+def test_field_operators_honour_the_valid_mask(name, q_zero, k_zero):
+    s, vq, vk = _pair_score(name, garbage=False)
+    assert s.abs().sum() > 0                                                       # the half-valid set is not all zero
+    if q_zero:
+        assert s.masked_select(~vq[:, None, :, None].expand_as(s)).abs().max() == 0
+    if k_zero:
+        assert s.masked_select(~vk[:, None, None, :].expand_as(s)).abs().max() == 0
+    # an invalid token's field value never reaches the output: scrambling it changes nothing
+    s2, _, _ = _pair_score(name, garbage=True)
+    assert torch.allclose(s, s2, atol=1e-5)
+
+
+def test_valid_mask_is_a_noop_when_every_token_is_valid():
+    rc, vq, vk = _half_invalid_sets()
+    for ts in rc.sets.values():
+        ts.fields["pos3d.valid"] = torch.ones_like(ts.fields["pos3d.valid"])
+    site = FactorSite(2, 16, "q>k", resolve(["test.rc_order"]), _FIELDS)
+    site.f["test__rc_order"].w.data.fill_(1.0)
+    full = site.bias(rc)
+    for ts in rc.sets.values():
+        del ts.fields["pos3d.valid"]                                               # no mask declared: all valid
+    assert torch.equal(full, site.bias(rc))
+
+
+# 2. catalog truth
+def test_catalog_truth_round_two():
+    assert "kin.mirror" not in FACTORS
+    assert FACTORS["time.same_track"].status == "planned"
+    with pytest.raises(FactorError):
+        resolve(["time.same_track"])                                              # planned factors do not resolve
+    for fam in ("arm", "dual"):
+        assert [s.name for s in resolve(["id.same_body"], family=fam)] == ["id.same_body"]
+    assert "entity_id" in FAMILIES["arm"].sites["ctx>ctx"] and "entity_id" in FAMILIES["dual"].sites["ctx>ctx"]
+
+
+def test_ui_factors_name_the_computerworld_scene_parts(coverage):
+    for n in ("ui.label_for", "ui.focus_next", "ui.same_window", "ui.above", "ui.drag_to"):
+        assert {"cw_viewport", "cw_depth"} <= set(FACTORS[n].gen), n
+        assert coverage["factors"][n]["envs"]["computerworld"]["parts"].get("cw_viewport") is True, n
+        assert coverage["factors"][n]["envs"]["computerworld"]["parts"].get("cw_depth") is True, n
+    assert FACTORS["ui.label_for"].gen[:2] == ("reveal", "surprise")
+
+
+def test_every_implemented_factor_is_covered_in_some_family(coverage):
+    uncovered = [n for n, r in coverage["factors"].items() if not n.startswith("test.") and not any(v is True for v in r["families"].values())]
+    assert uncovered == []
+
+
+# 3. the `@gt` EdgeSet `ix.force_flow` reads
+def test_support_pairs_label_attaches_the_privileged_edgeset(fixture):
+    b = _batch(fixture)
+    g = ctx_geometry_fields(b)
+    y, ok = _support_label(b)
+    lab = {"ctx": {"support_pairs": y[..., None], "support_pairs.valid": ok}}
+    edges = {}
+    relation_token_sets("arm", b, lab, edges=edges, pad_ctx=2)
+    es = edges["ctx>ctx#support-v1@gt"]
+    C = b.ctx_mask.shape[1]
+    assert es.prov == "privileged" and es.vocab == ("support",) and es.data.shape == (2, C + 2, C + 2, 1)
+    assert torch.equal(es.data[:, :C, :C, 0], y * ok) and es.data[:, C:].abs().sum() == 0
+    none = {}
+    relation_token_sets("arm", b, None, edges=none)
+    relation_token_sets("arm", b, {"ctx": {"pos3d": g["pos3d"], "pos3d.valid": g["pos3d.valid"]}}, edges=none)
+    assert none == {}                                                              # no support label, no edge
+    with pytest.raises(PrivilegedInput):
+        relation_token_sets("arm", b, lab, deploy=True, edges={})
+
+
+def test_force_flow_reads_the_gt_edges_a_net_builds(fixture):
+    b = _batch(fixture)
+    y, ok = _support_label(b)
+    b.extra["relation_labels"] = {"ctx": {"support_pairs": y[..., None], "support_pairs.valid": ok}}
+    net = _policy(["ix.support", {"name": "ix.force_flow", "source": "gt"}])
+    cache = net.prepare(b)
+    es = cache.rc.edges["ctx>ctx#support-v1@gt"]
+    assert es.prov == "privileged" and es.data.sum() > 0
+    with pytest.raises(PrivilegedInput):                                           # a gt source is never deployable
+        net.set_deploy(True)
+
+
+# 4. the dual family
+def test_policy_config_family_round_trips_for_dual():
+    cfg = PolicyConfig.from_dict({"width": 16, "heads": 2, "family": "dual", "factors": ["id.same_body"]})
+    assert cfg.family == "dual" and [s.name for s in cfg.specs()] == ["id.same_body"]
+    assert _policy(["id.same_body"], family="dual").cfg.family == "dual"

@@ -266,10 +266,11 @@ def test_ix_preset_includes_support_and_force_flow():
     assert {s.name for s in specs} == set(PRESETS["ix"])
 
 
-def test_task_preset_is_next_contact_and_same_track():
-    assert PRESETS["task"] == ("task.next_contact", "time.same_track")
+def test_task_preset_is_next_contact_only():
+    """`time.same_track` is planned (round 2: no family carries a `track_id` field), so the preset omits it."""
+    assert PRESETS["task"] == ("task.next_contact",)
     specs = resolve(["preset:task"])
-    assert [s.name for s in specs] == ["task.next_contact", "time.same_track"]
+    assert [s.name for s in specs] == ["task.next_contact"]
 
 
 def test_route_assembly_reads_preset_already_resolved_by_r5():

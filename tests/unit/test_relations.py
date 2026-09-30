@@ -236,20 +236,20 @@ def _ancestor_closure(parent: dict, n: int) -> "torch.Tensor":
 
 def test_graph_factors_registered_and_resolve_on_arm_psi0_legged():
     from rrp.policies.relations.base import get_factor
-    for name in ("id.same_body", "id.same_assembly", "kin.ancestor", "kin.sibling", "kin.mirror"):
+    for name in ("id.same_body", "id.same_assembly", "kin.ancestor", "kin.sibling"):
         d = get_factor(name)
         assert d.status == "implemented"
     # arm: the arm preset's edges (kin_parent lives in arm-rel-v1) plus every graph factor.
     arm = resolve(["preset:arm", "preset:graph"])
-    assert {"id.same_body", "id.same_assembly", "kin.ancestor", "kin.sibling", "kin.mirror"} <= {s.name for s in arm}
+    assert {"id.same_body", "id.same_assembly", "kin.ancestor", "kin.sibling"} <= {s.name for s in arm}
     # Ψ₀: the psi0-dims preset's edges (g1-dim-rel-v1 also carries kin_parent) plus every graph factor.
     psi0 = resolve(["preset:psi0-dims", "preset:graph"])
-    assert {"id.same_body", "id.same_assembly", "kin.ancestor", "kin.sibling", "kin.mirror"} <= {s.name for s in psi0}
+    assert {"id.same_body", "id.same_assembly", "kin.ancestor", "kin.sibling"} <= {s.name for s in psi0}
     # legged: no edge vocabulary at all (docs/relations.md §2), only per-token assembly_id / entity_id fields.
     legged = resolve(["preset:graph"])
-    assert {s.name for s in legged} == {"id.same_body", "id.same_assembly", "kin.ancestor", "kin.sibling", "kin.mirror"}
+    assert {s.name for s in legged} == {"id.same_body", "id.same_assembly", "kin.ancestor", "kin.sibling"}
     site = FactorSite(1, 8, "n>n", legged, ("assembly_id", "entity_id"))
-    assert {s.name for s in site.specs} == {"id.same_body", "id.same_assembly"}   # edge / mirror_id factors inert here
+    assert {s.name for s in site.specs} == {"id.same_body", "id.same_assembly"}   # edge factors inert here
 
 
 def test_kin_ancestor_and_sibling_on_arm_morphology_fixture():
@@ -280,10 +280,11 @@ def test_kin_ancestor_and_sibling_on_arm_morphology_fixture():
                          (0, 3), (3, 0), (0, 4), (4, 0), (0, 5), (5, 0), (0, 6), (6, 0)}
 
 
-def test_kin_ancestor_sibling_mirror_and_same_assembly_on_g1_morphology_fixture():
+def test_kin_ancestor_sibling_and_same_assembly_on_g1_morphology_fixture():
     """The real G1 morphology (`rrp.bodies.g1_simple`, D-098): 36 command-dim tokens, real kinematic parent chain and
-    mirror pairing. `kin.ancestor` / `kin.sibling` are checked against independent BFS references; `id.same_assembly`
-    against the body module's own `same_assembly` edge channel; `kin.mirror` against `DIM_MIRROR`."""
+    tree. `kin.ancestor` / `kin.sibling` are checked against independent BFS references; `id.same_assembly`
+    against the body module's own `same_assembly` edge channel. (`kin.mirror` was deleted in round 2: the mirror
+    pairing is the `mirror` edge channel of g1-dim-rel-v1, with no field factor over it.)"""
     from rrp.bodies import g1_simple as G
     from rrp.policies.relations.base import get_factor, spec
     from rrp.policies.relations.ops import OPS
@@ -291,9 +292,8 @@ def test_kin_ancestor_sibling_mirror_and_same_assembly_on_g1_morphology_fixture(
     parent = {i: int(G.DIM_PARENT[i]) for i in range(n)}
     rel = torch.from_numpy(G.relation_matrix()).permute(1, 2, 0).unsqueeze(0)         # [1, T, T, R]
     asm = torch.from_numpy(G.DIM_ASM).view(1, n, 1)
-    mirror_id = torch.tensor([min(i, int(G.DIM_MIRROR[i])) if G.DIM_MIRROR[i] >= 0 else -1 for i in range(n)])
     ts = TokenSet("dims", torch.ones(1, n, dtype=torch.bool),
-                 fields={"assembly_id": asm, "mirror_id": mirror_id.view(1, n, 1)})
+                 fields={"assembly_id": asm})
     rc = RelCtx(sets={"dims": ts}, edges={"dims>dims": EdgeSet(G.RELATIONS, rel)})
 
     anc = OPS["ancestor"].value(get_factor("kin.ancestor"), spec("kin.ancestor"), None, rc, "dims>dims")[0]
@@ -308,14 +308,6 @@ def test_kin_ancestor_sibling_mirror_and_same_assembly_on_g1_morphology_fixture(
 
     same_asm = OPS["same"].value(get_factor("id.same_assembly"), spec("id.same_assembly"), None, rc, "dims>dims")[0]
     assert torch.equal(same_asm, torch.from_numpy(G.relation_matrix()[G.RELATIONS.index("same_assembly")]))
-
-    mirror = OPS["same"].value(get_factor("kin.mirror"), spec("kin.mirror"), None, rc, "dims>dims")[0]
-    expect_mirror = torch.from_numpy(G.relation_matrix()[G.RELATIONS.index("mirror")]).clone()
-    paired = mirror_id >= 0
-    expect_mirror[paired, paired] = True    # kin.mirror's `same` trivially matches a paired token to itself too;
-                                            # unpaired dims (mirror_id = -1) stay False on the diagonal, like the rest
-    assert torch.equal(mirror, expect_mirror)
-    assert bool(mirror[0, int(G.DIM_MIRROR[0])]) and not bool(mirror[0, 1])   # l_thumb0 <-> r_thumb0, not l_thumb1
 
 
 def test_bilinear_pair_estimate_feeds_graph_factor():
