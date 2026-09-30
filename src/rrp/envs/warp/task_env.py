@@ -4,8 +4,11 @@ WarpStepsEnv (task h_steps, rrp.envs.humanoid_scenes): the staircase is part of 
 h = h_frac x L with h_frac ~ U(0, level x 0.30) (curriculum level, set_level). The command layer is SCRIPTED (heading
 controller toward +x at 0.6 vx_max: label scripted_command); the learned expert maps (tracker observation + PRIVILEGED height
 scan) -> joint targets (label privileged_teacher:rl_expert). Success: base x > x_end + 0.3 L without a fall.
-Privileged extra observation (expert only, never a student input): ground height minus (base z - L) at an 11 x 3 grid in
-the yaw frame (x -0.3 L .. 1.2 L, y -0.25 L .. 0.25 L), divided by L; plus h_frac.
+Privileged extra observation (expert / critic only, never the deployable vec -- D-144 R19, docs/relations.md 5.1 and
+section 10 row R19: this used to be concatenated onto `observe()`'s public output; `extra_obs()` now feeds only
+`privileged()`, matching `rrp.envs.base.VectorObservation`'s own contract, "privileged state is truth()", and the
+module docstring below it, "the actor is then... deployed without it"): ground height minus (base z - L) at an
+11 x 3 grid in the yaw frame (x -0.3 L .. 1.2 L, y -0.25 L .. 0.25 L), divided by L; plus h_frac.
 """
 from __future__ import annotations
 
@@ -19,6 +22,15 @@ from rrp.envs.mujoco.humanoid_scenes import (BURY, SCAN_X, SCAN_Y, STEPS_N, STEP
 from rrp.envs.warp.tracker_env import WarpTrackerEnv
 
 H_MAX = 0.30
+
+
+def _layout_dims(base_obs_dim: int, base_priv_dim: int, extra_dim: int) -> tuple[int, int]:
+    """Deployable / privileged observation-width split for a Warp task env's extra (privileged) block (D-144 R19,
+    docs/relations.md section 10 row R19's "privileged layout test"): the base tracker's public width is the
+    actor's `obs_dim`, UNCHANGED by `extra_dim` (the height-scan-style block, `extra_obs()`); `extra_dim` widens
+    `priv_dim` (the critic-only channel, `WarpTrackerEnv.privileged`) instead of the deployable vec. Pure arithmetic,
+    no CUDA / mujoco_warp needed to test it -- the actual width numbers a live env would compute."""
+    return base_obs_dim, base_priv_dim + extra_dim
 
 
 def task_adapted_model(key: str, task: str, params=None):
@@ -58,10 +70,12 @@ class WarpStepsEnv(WarpTrackerEnv):
         self.prev_x = torch.zeros(self.N, device=self.dev)
         self._layout(torch.ones(self.N, dtype=torch.bool, device=self.dev))
         self.reset_all()
-        self.obs_dim = self.b.obs_dim + int(self.extra_obs().shape[1])
+        self.obs_dim, self.priv_dim = _layout_dims(self.b.obs_dim, self.priv_dim, int(self.extra_obs().shape[1]))
+        # `observe()` is deliberately NOT overridden here any more (D-144 R19): the base `WarpTrackerEnv.observe`
+        # is already the full deployable vec; the height scan reaches only `privileged()` below.
 
-    def observe(self):
-        return torch.cat([super().observe(), self.extra_obs()], -1)
+    def privileged(self, fc):
+        return torch.cat([super().privileged(fc), self.extra_obs()], -1)
 
     def set_level(self, level: float) -> float:
         self.level = float(min(1.0, max(0.0, level)))
@@ -182,10 +196,11 @@ class WarpGapEnv(WarpTrackerEnv):
         self.gap_w, self.gap_y, self.psi_f, self.phase2, self.wall_t, self.hold_t = z.clone(), z.clone(), z.clone(), z.clone(), z.clone(), z.clone()
         self._layout(torch.ones(self.N, dtype=torch.bool, device=self.dev))
         self.reset_all()
-        self.obs_dim = self.b.obs_dim + int(self.extra_obs().shape[1])
+        self.obs_dim, self.priv_dim = _layout_dims(self.b.obs_dim, self.priv_dim, int(self.extra_obs().shape[1]))
+        # `observe()` not overridden (D-144 R19): see WarpStepsEnv above -- same fix, same reason.
 
-    def observe(self):
-        return torch.cat([super().observe(), self.extra_obs()], -1)
+    def privileged(self, fc):
+        return torch.cat([super().privileged(fc), self.extra_obs()], -1)
 
     def set_level(self, level: float) -> float:
         self.level = float(min(1.0, max(0.0, level)))

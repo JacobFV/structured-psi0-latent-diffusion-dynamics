@@ -293,4 +293,28 @@ register_factor(FactorDef(
     doc="1[track_i == track_j] over multi-step history tokens (system-0 knots, packet-history state); public."))
 register_preset("task", ["task.next_contact", "time.same_track"])   # rel-geo (D-144 addendum, item 3)
 # ------------------------------------------------------------------ R19: legged (leg.*)
+# Labels from `rrp.harness.data.relgen.body` against `StateView.entities()` / `.contacts()` (docs/relations.md 5.1,
+# 10 row R19; research/relations_catalog.md B "locomotion": "footholds, COM <-> support polygon, stability margin").
+# `leg.foothold` mirrors R16/R17's bilinear pair pattern exactly (the bias IS the pair probe: no public/estimated
+# "given" source for which terrain cell a swinging foot will land on next, so `probe` is the only deployable source
+# and `gt` is training/diagnostics only, deploy guard section 7); `gen=("terrain_steps",)`, the scene part that
+# supplies the candidate `foothold_cell` entities. `leg.com_support` is a scalar per-sample readout (stability
+# margin: signed distance of the COM projection to the support-polygon boundary), matching `probes:legged-v1`'s
+# `address="asm"` convention (one value read at the body-assembly row) rather than a pairwise bias -- there is no
+# second token for "the robot's own stability" to attend over.
+register_factor(FactorDef(
+    "leg.foothold", "1", field="hidden", op="bilinear", form="aug",
+    algebra=Algebra(arity=2, direction="directed", value="prob", dynamic=True),
+    sources=("probe", "gt"), label="foothold_next", gen=("terrain_steps",),
+    readout=ReadoutDef("foothold", "pair", 1, "bce", label="foothold_next", reads="hidden"),
+    params=(("rank", 8),),
+    doc="swinging foot -> nearest candidate terrain cell (relgen.body.foothold_next_fn); planted feet (already in "
+        "stance) contribute no true pair"))
+register_factor(FactorDef(
+    "leg.com_support", "1", field="packet", op="inert", form="readout", label="com_support",
+    readout=ReadoutDef("com_support", "asm", 1, "gauss", label="com_support"),
+    doc="signed planar margin of the COM projection inside the convex hull of the current stance feet "
+        "(relgen.body.support_polygon_margin via com_support_fn); positive = inside, negative = outside "
+        "(0-foot stance: large fixed negative margin, relgen.body._NO_SUPPORT_MARGIN)"))
+register_preset("legged-r19", ["leg.foothold", "leg.com_support"])
 # ------------------------------------------------------------------ R20: UI (ui.*)
