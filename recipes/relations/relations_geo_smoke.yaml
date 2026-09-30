@@ -1,6 +1,6 @@
 # relations_geo SMOKE (plumbing only; NOT a result): the geo instance's relgen -> F0 path end to end on the peer in a few
-# minutes. 6 teacher episodes (3 snapshots each) are labelled, then a tiny F0 (40 steps, batch 16) takes them through
-# `params.curriculum` (interval 10) on the v7div pack, with the armdiv semfix stage-A representation instead of a fresh
+# minutes. 6 teacher episodes (3 snapshots each) are labelled, then a tiny F0 (120 steps, batch 16; the trainer logs every 100) takes them through
+# `params.curriculum` (interval 20) on the v7div pack, with the armdiv semfix stage-A representation instead of a fresh
 # stageA; no probes, dev or held-out evaluation. Check `schedule.jsonl` and train_log.jsonl (`n_relgen`, `probe_geo.depth3d`).
 #   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/<track> rrp run-dag recipes/relations/relations_geo_smoke.yaml --max-parallel-gpu 1
 extends: relations_geo.yaml
@@ -26,8 +26,8 @@ nodes:
     resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 24G, max_seconds: 360}
     per:
       fset:
-        geo: {params: {curriculum: {interval: 10, ramp_steps: 40, share_max: 0.4}}}
+        geo: {params: {curriculum: {interval: 20, ramp_steps: 120, share_max: 0.4}}}
     config:
       inputs: {representation: runs/armdiv/arm7div-semfix/train_rep_s1/representation.pt}
       options: {final_snapshot_alias: null}
-      params: {steps: 40, batch_size: 16, snapshot_every: 20, policy: {width: 64, heads: 2, ctx_layers: 1, blocks: 1}}
+      params: {steps: 120, batch_size: 16, snapshot_every: 60, policy: {width: 64, heads: 2, ctx_layers: 1, blocks: 1}}
