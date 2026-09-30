@@ -18,8 +18,8 @@ Each layer imports only layers above it in this list (checked by `tests/unit/tes
 | 1 | `rrp.bodies` | procedural + imported bodies (arms, grippers, aloha, legged, humanoids, G1 hands), catalog/registry, compiler to MuJoCo, IK, surgery/variants, **physics versions** (contact, grasp contact, actuator; was `physics/`) | mujoco |
 | 2 | `rrp.tasks` | task graph compiler/runtime/receipts/interventions (numpy/pydantic), task JSON specs, the `TaskSpec` registry (which envs a task exists in, success/termination, scripted teacher key, gates) | – |
 | 3 | `rrp.envs` | `Env` protocol, `EnvSpec`, capabilities, `make_env` registry; `mujoco/` (Session, LeggedSession, DualSession, scenes, sensors, state estimation, perturbations, embedded legged trackers, snapshots), `warp/` (batched GPU legged envs), `simple/` (optional extra), `computerworld/` (optional extra) | mujoco, mujoco_warp, torch (trackers) |
-| 4 | `rrp.policies` | `Policy` protocol, `PolicyInfo`, `Requirements`, `negotiate`, registry; `features/` (featurizers: the ONLY definition of what a policy may see), `nets/` (shared torch modules: attention, flow, codec, backbone, probes, checkpoint), `bc.py`, `latent/` (system i planners + system 0 realizers for arm, dual, legged), `trackers.py`, `teachers/` (scripted / privileged, labelled), `oracle.py`, `psi0/` (Ψ₀ direct / Ψ₀ + structure / demo replay, their nets, feature cache and training) | torch |
-| 5 | `rrp.harness` | `rollout` (the one episode loop), `eval.evaluate` (`evaluate` / `matrix`), `eval.hooks` (feasibility, settle, recorders, packet edits, perturbations), statistics, gates, audits; `data/` (collect, pack, manifests), `train/` (rep, flow, bc, refit, dagger, sft, grpo, ppo), pipelines + run-dag | – |
+| 4 | `rrp.policies` | `Policy` protocol, `PolicyInfo`, `Requirements`, `negotiate`, registry; `features/` (featurizers: the ONLY definition of what a policy may see), `nets/` (shared torch modules: attention, flow, codec, backbone, probes, checkpoint), `relations/` (the relation-factor registry: token sets + field provenance, factor entries, operators / forms, `FactorSite`, `ReadoutProbe`; section 12), `bc.py`, `latent/` (system i planners + system 0 realizers for arm, dual, legged), `trackers.py`, `teachers/` (scripted / privileged, labelled), `oracle.py`, `psi0/` (Ψ₀ direct / Ψ₀ + structure / demo replay, their nets, feature cache and training) | torch |
+| 5 | `rrp.harness` | `rollout` (the one episode loop), `eval.evaluate` (`evaluate` / `matrix`), `eval.hooks` (feasibility, settle, recorders, packet edits, perturbations), statistics, gates, audits; `data/` (collect, pack, manifests, `relgen/` label functions / scene parts / transforms / curriculum, `mix`), `train/` (rep, flow, bc, refit, dagger, sft, grpo, ppo), pipelines + run-dag | – |
 | 6 | `rrp.viz` | record/replay, the room exporter (`python -m rrp.cli viz export`, file scans only), the workbench service `viz.workbench` (was `service/`) | fastapi (extra) |
 | 7 | `rrp.cli` | the `rrp` command (`python -m rrp.cli ...`; kept at the top so every documented invocation stays valid) | – |
 
@@ -484,4 +484,16 @@ store state dicts and plain containers (no rrp classes), so they load unchanged.
 | **SIMPLE** | Ψ₀'s humanoid benchmark (MuJoCo physics + Isaac Sim rendering), env `simple` | not our MuJoCo scenes |
 | **D-xxx / P-xxx** | decisions in `research/decisions.md`; P-xxx = the folded psi1z log (appendix P, closed) | – |
 | `~/work/ext/runs/psi1z/` | historical directory name of Ψ₀ checkpoints, features and eval outputs (kept; paths in records point there) | not a code location |
+
+## 12. relation factors (D-144; full design `docs/relations.md`, catalog `research/relations_catalog.md`)
+
+Every relational trick (typed task-graph edges, morphology edges, routing masks, PaPE-style geometry, interaction and
+task-conditioned edges, probe readouts, data mixes) is one declarative entry of `rrp.policies.relations.catalog`
+(field × operator × form × algebra × conditioning × source, plus its label and data generators), switched in ONE run
+config list `factors:` (`FactorSpec`: control on / off / zero / shuffled / rewired / reversed / gt / estimated, source,
+sites, heads, gate, confidence, weight, mix). Nets consume `TokenSet`s whose fields carry provenance (public /
+estimated; privileged values live only in `labels`) and apply factors through `FactorSite` inside the shared `MHA`
+(additive bias or kernel-compatible q/k augmentation). `versions["factors"]` (compat hash) is in every checkpoint; a
+deployable policy refuses `gt` sources. Labels are written once against `envs.base.StateView`; scene parts compose
+(`compose`) under a progressive `Curriculum` in the one `relations_data` stage.
 
