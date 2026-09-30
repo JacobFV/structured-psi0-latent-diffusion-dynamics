@@ -175,13 +175,7 @@ class OracleSource:
             context_edit(cond, s, goal_off)
             o = s.observe()
             pi = f(o)
-            cmds = []
-            for _ in range(H):                          # privileged teacher demo in a discarded snapshot
-                c = teacher.act()
-                cmds.append(_flat(c))
-                s.step(c)
-                if getattr(teacher, "done", False):
-                    break
+            cmds = _teacher_demo(s, teacher, H)          # privileged teacher demo in a discarded snapshot
         except _Skip:
             pass
         finally:
@@ -195,6 +189,24 @@ class OracleSource:
                                source="target_encoder_oracle", name=self.name, sampling=samp)
         return arm_packet(f, s, o, z, lsv=self.lsv, rcv=self.rcv, knot_times=self.lcfg.knot_times,
                             source="target_encoder_oracle", name=self.name, sampling=samp)
+
+
+def _teacher_demo(s, teacher, H):
+    """The first `H` commands of the scripted `teacher` from the current state, as a `harness.rollout` of a teacher
+    policy (recorder on the executed commands; ends early when the teacher is done). The caller restores the session
+    and the teacher afterwards (a discarded look-ahead, not an evaluation episode)."""
+    from rrp.harness import rollout as R
+    from rrp.harness.eval import hooks as HK
+    from rrp.policies.teachers import TeacherPolicy
+    cmds = []
+    name = s.scenario.name
+    pol = TeacherPolicy(name, lambda e: teacher, "oracle_demo", ("joint_position", "gripper"))
+    ep = R.rollout(lambda sd: s, pol, HK.budget_task(name, s.spec.env_id), [0], batch=1, max_steps=H,
+                   hooks=[HK.Recorder(on_act=lambda i, e, a: cmds.append(_flat(a.command))),
+                          HK.EndWhen(lambda i, e: bool(getattr(teacher, "done", False)))])[0]
+    if ep.outcome == "crash":
+        raise RuntimeError(ep.metrics.get("note") or ep.failure_reason)
+    return cmds
 
 
 class _Skip(Exception):

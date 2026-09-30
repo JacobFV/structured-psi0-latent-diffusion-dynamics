@@ -10,6 +10,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from rrp.harness.eval.hooks import warm_up
 from rrp.policies.nets.batch import collate_inputs
 from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
 
@@ -92,8 +93,7 @@ def run_latency_suite(checkpoints: dict[str, str], out_path: Path, dev=None, nod
     dev = dev or torch.device("cuda" if torch.cuda.is_available() else "cpu")
     s = make_pick_place_session(seed=5, n_distractors=2)
     f = featurizer_for(s)
-    for _ in range(10):
-        s.step(None)
+    warm_up(s, 10)                    # 10 hold ticks through harness.rollout (the fixture's timing state)
     obs = s.observe()
     pi = f(obs)
     res = dict(device=str(dev), torch=torch.__version__, gpu=torch.cuda.get_device_name(0) if dev.type == "cuda" else None,
@@ -146,8 +146,7 @@ def latent_latency_suite(flow_ckpt: str, out_path: Path, dev=None, nfe_list=(1, 
     rep = representation or load_checkpoint(flow_ckpt, map_location="cpu")["config"]["representation"]
     _, _, R, _, rres = load_representation(Path(rep), dev)
     s = make_pick_place_session(seed=5, n_distractors=2)
-    for _ in range(10):
-        s.step(None)
+    warm_up(s, 10)                    # 10 hold ticks through harness.rollout (the fixture's timing state)
     res = dict(device=str(dev), gpu=torch.cuda.get_device_name(0) if dev.type == "cuda" else None, t=time.time(),
                system_i={}, note="physics paused during inference (offline loop): these are compute latencies, "
                                  "not a real-time claim")

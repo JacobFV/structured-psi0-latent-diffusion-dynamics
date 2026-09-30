@@ -120,9 +120,8 @@ def test_disturbance_test(golden):
 def test_latency_warmup_state(golden):
     """The latency suites time on a fixture stepped 10 hold ticks first; that state is unchanged by the port."""
     from rrp.envs.mujoco.fixtures import make_pick_place_session
-    s = make_pick_place_session(seed=5, n_distractors=2)
-    for _ in range(10):
-        s.step(None)
+    from rrp.harness.eval.hooks import warm_up
+    s = warm_up(make_pick_place_session(seed=5, n_distractors=2), 10)
     golden("loop.eval.latency_warmup", _digest([float(s.data.time), s.data.qpos.tolist(), s.data.qvel.tolist()]))
 
 
