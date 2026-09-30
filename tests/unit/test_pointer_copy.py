@@ -77,6 +77,7 @@ def _targets(strings, ntyped, H=7):
     return y
 
 
+@pytest.mark.slow                                                   # 115 s on the host (trains the copy head)
 def test_copy_head_types_instr_n_typed_on_unseen_strings_and_characters():
     """Trained on strings from the train hash bucket over letters a-l, the mixture head's next character
     (slot 0) equals instr[n_typed] on UNSEEN strings (held-out bucket) and on strings over letters never trained on

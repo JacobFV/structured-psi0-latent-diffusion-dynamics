@@ -187,6 +187,7 @@ def test_factors_are_threaded_stamped_and_hash_checked_on_load(tmp_path):
         load_pointer_bundle(str(tmp_path / "nohash.pt"))
 
 
+@pytest.mark.slow                                                   # ~20 s on the host (three trainers)
 def test_ui_factors_train_all_three_trainers_and_supervise_drag_to(tmp_path):
     pack = tmp_path / "p.npz"
     _pack(pack, geometry=True, seed0=10)

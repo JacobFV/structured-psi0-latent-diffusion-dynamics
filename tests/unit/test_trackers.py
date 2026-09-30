@@ -17,8 +17,10 @@ from test_golden import _saved_actor      # noqa: E402
 
 import rrp.envs.mujoco.legged_core as LC     # noqa: E402
 import rrp.envs.mujoco.legged_tracker as LT  # noqa: E402
+from tests.conftest import need_assets, need_weights  # noqa: E402
 
 BODY = "t1"
+REPO = Path(__file__).resolve().parents[2]
 
 
 def _binding(sc):
@@ -100,7 +102,8 @@ def test_registry_sha_pin_and_contact_model_checked(tmp_path, registry):
 
 
 def test_committed_registry_lists_the_installed_trackers_with_pins():
-    T = LT.scan_trackers()
+    """Reads the TRACKED meta.json files of this checkout only: not the shared store, not $RRP_HOME, no actor.pt."""
+    T = LT.scan_trackers(REPO / "artifacts" / "trackers")
     assert T[("t1", "contact_v2")].sha256 == "36e9146792743115878c34e0bbf7cc46ccb5419417921358da3658c8377fc591"
     assert T[("anymal_c", "contact_v2")].sha256 == "2a16532bbd07f7abc662bdda10df6bfb70fca2ec11d59f9567142e92a2f22d95"
     assert ("t1", "contact_v1") in T and T[("anymal_c", "contact_v2_rejected_iter2499")].decision == "rejected"
@@ -324,3 +327,29 @@ def test_trainer_runs_two_updates_and_writes_scan_meta(tmp_path, extra):
         assert meta["terrain_scan"] == LC.terrain_scan_spec() and LT.extra_kind(meta) == "terrain_scan"
     assert st["actor"]["0.weight"].shape[1] == 10 + extra
     assert len((tmp_path / "run" / "train_log.jsonl").read_text().splitlines()) == 2
+
+
+# ---------------------------------------------------------------- G0: fresh-checkout skips name what is missing; slow is registered
+def test_need_weights_and_need_assets_skip_with_the_missing_path_named(tmp_path, monkeypatch):
+    import tests.conftest as C
+    missing = tmp_path / "t1" / "contact_v2" / "actor.pt"
+    with pytest.raises(pytest.skip.Exception, match=str(missing)):
+        need_weights(missing)
+    missing.parent.mkdir(parents=True)
+    missing.write_bytes(b"")
+    assert need_weights(missing) == missing                           # present: no skip
+    monkeypatch.setattr(C, "MENAGERIE", tmp_path / "no_menagerie")
+    with pytest.raises(pytest.skip.Exception, match="Menagerie assets not fetched"):
+        need_assets()
+    monkeypatch.setattr(C, "MENAGERIE", tmp_path)
+    assert need_assets() == tmp_path
+
+
+def test_slow_marker_is_registered_and_marks_the_long_pointer_tests():
+    import tomllib
+    cfg = tomllib.loads((REPO / "pyproject.toml").read_text())["tool"]["pytest"]["ini_options"]
+    assert any(m.startswith("slow:") for m in cfg["markers"]) and cfg["addopts"] == "-ra"     # the gate passes -m "not slow"
+    from test_pointer_copy import test_copy_head_types_instr_n_typed_on_unseen_strings_and_characters as copy_head
+    from test_pointer_train_smoke import test_ui_factors_train_all_three_trainers_and_supervise_drag_to as ui_trainers
+    for t in (copy_head, ui_trainers):
+        assert "slow" in {m.name for m in t.pytestmark}

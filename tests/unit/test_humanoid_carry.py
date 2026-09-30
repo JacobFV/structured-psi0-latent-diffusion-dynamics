@@ -19,10 +19,12 @@ import numpy as np
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from test_humanoid_manip import Fake, _real_tracker, _stub_session  # noqa: E402,F401
+from test_humanoid_manip import Fake, _stub_session  # noqa: E402,F401
+from tests.conftest import need_weights  # noqa: E402
 from test_wholebody import BODY, registry  # noqa: E402,F401  (registry is a fixture)
 
 import rrp.envs.mujoco.humanoid_scenes as HS  # noqa: E402
+import rrp.envs.mujoco.legged_tracker as LT  # noqa: E402
 from rrp.core.action import NativeCommand  # noqa: E402
 from rrp.harness.eval.evaluate import evaluate  # noqa: E402
 from rrp.policies.base import POLICIES, make_policy  # noqa: E402
@@ -183,7 +185,7 @@ def test_cart_in_the_wall_is_a_wall_collision(tmp_path, registry):
 
 # ---------------------------------------------------------------- scripted-teacher episodes (real t1:contact_v2, measured)
 def _row(task, seed):
-    _real_tracker()
+    need_weights(Path(LT.TRACKER_DIR) / "t1" / "contact_v2" / "actor.pt")            # meta.json is tracked, actor.pt is not
     pol = make_policy(f"teacher:{task}")
     (ep,) = evaluate(pol, "mujoco/legged", task, BODY, [seed], batch=1, env_kw=dict(tracker="t1:contact_v2", tracker_kind="learned"))
     return ep.row(), pol
