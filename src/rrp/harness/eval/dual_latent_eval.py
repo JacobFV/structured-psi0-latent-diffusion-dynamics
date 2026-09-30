@@ -23,6 +23,7 @@ from rrp.harness.data.packed import _focus
 from rrp.policies.features.derived import OPERATORS
 from rrp.policies.features.multi import (MultiFeaturizer, assembly_operators, multi_featurizer,  # noqa: F401
                                          slot_assemblies)
+from rrp.policies.packets import chunk_hook
 
 
 def slot_label_columns(session, f: MultiFeaturizer, M: int) -> list[int]:
@@ -57,13 +58,9 @@ def probe_readout(out: dict, S: int, slot_names=("L", "R"), ent_names=None) -> l
     return lines
 
 
-def swap_slots(i: int, p):
-    """Causal packet edit (LatentStackPolicy.packet_hook): system 0 receives the packet with its two slots' z values
-    exchanged (handles unchanged), i.e. the left arm is driven by the right arm's latent and vice versa."""
-    return p.model_copy(update={"z": np.ascontiguousarray(p.z[:, ::-1]), "source": "debug"})
-
-
-PACKET_EDITS = {"swap_slots": swap_slots}
+# Causal packet edits by CLI / recipe name (LatentStackPolicy.packet_hook): `swap_slots` is the registry edit
+# `swap_assembly` of assemblies 0 and 1 (policies.packets, D-146 P3: the locked-equal edit of every packet consumer).
+PACKET_EDITS = {"swap_slots": chunk_hook("swap_assembly", a=0, b=1)}
 
 
 class DualPacketProbeHook:
@@ -102,5 +99,5 @@ class DualPacketProbeHook:
 
 def teacher_reference(task: str, pair: str, seeds: list[int], max_steps: int = 800) -> list[dict]:
     """scripted_teacher (privileged) on the SAME development scenes, for reference."""
-    from rrp.policies.teachers.dual_validate import run_one
+    from rrp.harness.eval.dual_teacher_quality import run_one
     return [run_one(task, pair, sd, max_steps=max_steps) for sd in seeds]

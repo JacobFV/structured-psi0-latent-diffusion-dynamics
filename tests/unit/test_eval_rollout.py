@@ -73,9 +73,9 @@ def test_dual_audit_episodes(golden):
 
 
 def test_dual_validate_episodes(golden):
-    """dual_validate lives in the policies layer, which may not import harness.rollout (test_layering): its episode is
-    policies.teachers.dual.run_dual_teacher_episode (not an RP2 file); the golden guards it and the eval-layer ports."""
-    from rrp.policies.teachers.dual_validate import run_one
+    """The dual teacher validation runs on harness.rollout (R2 DP moved it from policies.teachers.dual_validate; the
+    former run_dual_teacher_episode is gone): the golden recorded before the port is unchanged."""
+    from rrp.harness.eval.dual_teacher_quality import run_one
     rows = [run_one("support_insert", DUAL, sd, max_steps=12) for sd in (3, 2)]
     rows.append(run_one("support_insert", "no_such_pair", 3, max_steps=5))     # errors are recorded as data
     for r in rows:

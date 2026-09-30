@@ -154,26 +154,71 @@ def test_dual_pipeline_guards_and_template():
         p.spec("dagger_collect")
     plan = plan_dag(load_dag(ROOT / "recipes/templates/dual_lineage.yaml"), source="t")
     stages = {n.rc.stage for n in plan.nodes.values()}
-    assert {"collect", "pack", "train_rep", "probes", "train_flow", "eval_r2", "heldout", "edits"} <= stages
+    # R2 DP: parked means no training node (no Stage A / probes / flow / refit); the evals take an external checkpoint
+    assert stages == {"collect", "pack", "eval_r2", "heldout", "edits"}
+    assert "refit" not in p.stages()
     for nid, n in plan.nodes.items():
         assert n.placement == "peer", nid
-        if n.rc.stage in ("train_rep", "train_flow", "refit", "flow_ft"):
-            assert n.rc.flags.zero_prev_action is True, nid           # B-1 correct
         if n.rc.stage == "collect":
             nat = n.rc.params
             assert nat["teacher_version"] == "v3" and nat["record_quality"] and nat["noise_phase_gate"] \
                 and nat["contact_labels"], nid
             assert n.rc.options.get("gate", "enforce") == "enforce"
-    st = next(n for n in plan.nodes.values() if n.rc.stage == "train_rep" and n.rc.variant == "semfix")
-    # D-144 sweep-flags: `latent.factors` replaces the flag-driven flat `latent.probe_lv_min`
-    # (FLAG_SPEC[("dual", "train_rep")] no longer maps `probe_lv_min`; core/runconfig.py).
-    from rrp.policies.nets.semantic_latent import LatentConfig
-    assert LatentConfig(**st.rc.to_native()["latent"]).lv_min == -4.0
-    # the B-1 guard refuses a new dual training config with zero_prev_action false
-    rc = st.rc.model_copy(update=dict(flags=st.rc.flags.model_copy(update=dict(zero_prev_action=False))))
-    ctx = StageContext(rc=rc, index=None, root=ROOT)
+        if n.rc.stage in ("eval_r2", "heldout", "edits"):
+            paths = n.rc.input_paths(n.index if hasattr(n, "index") else None)
+            assert set(paths) == {"checkpoint"} and "SET_IN_CHILD_DAG" in paths["checkpoint"], nid    # refuses until set
+    # the B-1 guard of the (still registered) dual training stages refuses zero_prev_action false
+    ev = next(n for n in plan.nodes.values() if n.rc.stage == "eval_r2")
+    rc = ev.rc.model_copy(update=dict(flags=ev.rc.flags.model_copy(update=dict(zero_prev_action=False))))
     with pytest.raises(StageError, match="zero_prev_action"):
-        dual._b1(ctx)
+        dual._b1(StageContext(rc=rc, index=None, root=ROOT))
+
+
+def test_dual_eval_stages_take_an_external_checkpoint_and_the_registry_tasks():
+    from rrp.harness.pipelines import dual
+    from rrp.tasks.spec import tasks_in
+    assert dual.DUAL_TASKS == tasks_in("mujoco/dual") and {"support_insert", "handover"} <= set(dual.DUAL_TASKS)
+    import inspect
+    assert 'ctx.inp("checkpoint")' in inspect.getsource(dual._evaluate) and "ctx.inp(\"flow\")" not in inspect.getsource(dual)
+
+
+def test_dual_teacher_episodes_run_on_rollout():
+    """R2 DP: dual_validate's episode code lives in harness.eval.dual_teacher_quality on harness.rollout; the private
+    episode loop (run_dual_teacher_episode) is deleted and functional_composition runs on the same rollout."""
+    from rrp.harness.eval import dual_teacher_quality as Q
+    from rrp.policies.teachers import dual, dual_validate, functional_composition as FC
+    assert not hasattr(dual, "run_dual_teacher_episode") and not hasattr(dual, "DualTeacherResult")
+    assert [n for n in ("run_one", "main", "summarize") if hasattr(dual_validate, n)] == []
+    assert callable(Q.run_one) and callable(Q.validate_main) and callable(Q.summarize_validation)
+    row = FC.run("parm5l_pg2__parm6_pg2", 3, "stale_receipt", max_steps=6)
+    assert row["condition"] == "stale_receipt" and row["statuses"] and not row["privileged_success"]
+    assert row["failure_reason"].startswith("ended_in_phase:")
+    rows = [Q.run_one("support_insert", "parm5l_pg2__parm6_pg2", sd, max_steps=6) for sd in (3, 2)]
+    assert [r["status"] for r in rows] == ["failure", "infeasible"] and rows[1]["failure_reason"].startswith("infeasible:")
+    assert rows[0]["steps"] == 6 and rows[1]["steps"] == 0 and rows[1]["statuses"] == {}
+    summ = Q.summarize_validation(rows)
+    assert summ["support_insert|parm5l_pg2__parm6_pg2"]["n"] == 2
+
+
+def test_dual_swap_slots_is_the_registry_edit():
+    """PACKET_EDITS["swap_slots"] is packets.chunk_hook("swap_assembly", a=0, b=1) (P3's locked-equal edit)."""
+    from rrp.harness.eval.dual_latent_eval import PACKET_EDITS
+    from rrp.policies.packets import apply_edit
+
+    class _P:
+        def __init__(self, z, source="learned", sampling=None):
+            self.z, self.source, self.sampling = z, source, sampling
+
+        def model_copy(self, update):
+            q = _P(self.z, self.source, self.sampling)
+            q.__dict__.update(update)
+            return q
+
+    z = np.random.default_rng(0).normal(size=(4, 2, 5)).astype(np.float32)
+    out = PACKET_EDITS["swap_slots"](0, _P(z))
+    np.testing.assert_array_equal(out.z, apply_edit("swap_assembly", z, a=0, b=1))
+    np.testing.assert_array_equal(out.z, z[:, ::-1])
+    assert out.source == "debug" and out.sampling["intervention"] == "swap_assembly"
 
 
 # ----------------------------------------------------------------------------------------------- coordination tasks

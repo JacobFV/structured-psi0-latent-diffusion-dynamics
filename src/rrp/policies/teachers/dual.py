@@ -10,8 +10,6 @@ archived research/reports/functional_composition.md). Demonstrations only, never
 from __future__ import annotations
 
 import math
-import time
-from dataclasses import dataclass, field
 
 import mujoco
 import numpy as np
@@ -666,59 +664,6 @@ class AssignedPickPlaceTeacher(HandoverTeacher):
 
 TEACHERS = {"support_insert": SupportInsertTeacher, "handover": HandoverTeacher,
             "assign_left": AssignedPickPlaceTeacher, "assign_right": AssignedPickPlaceTeacher}
-
-
-@dataclass
-class DualTeacherResult:
-    success: bool = False                  # public runtime success
-    privileged_evaluator_success: bool = False
-    controller_source: str = SOURCE
-    privileged_inputs: bool = True
-    steps: int = 0
-    failure_reason: str | None = None
-    rejected_commands: int = 0
-    feasibility: dict | None = None
-    statuses: dict = field(default_factory=dict)
-    transitions: list = field(default_factory=list)
-    phase_log: list = field(default_factory=list)
-    truth: dict = field(default_factory=dict)
-    wall_s: float = 0.0
-
-
-def run_dual_teacher_episode(session, teacher, max_control_steps: int = 1200, check_feasibility: bool = True,
-                             on_step=None) -> DualTeacherResult:
-    res = DualTeacherResult()
-    t0 = time.time()
-    if check_feasibility:
-        f = teacher.feasibility()
-        res.feasibility = f
-        if not f["feasible"]:
-            res.failure_reason = f"infeasible:{','.join(f['unreachable'])}"
-            res.wall_s = time.time() - t0
-            return res
-    for k in range(max_control_steps):
-        cmd = teacher.act()
-        out = session.step(cmd)
-        if on_step is not None:
-            on_step(k, cmd, out)
-        if out.rejected:
-            res.rejected_commands += 1
-        res.steps = k + 1
-        if teacher.done:
-            break
-    for _ in range(5):
-        session.step(None)
-    res.success = bool(session.runtime.succeeded())
-    res.privileged_evaluator_success = bool(session.privileged_success())
-    res.statuses = {e: (v.status, v.attempt, v.reason) for e, v in session.runtime.instances.items()}
-    res.transitions = list(session.runtime.transitions)
-    res.phase_log = list(teacher.log)
-    if hasattr(session, "insertion_truth") and session.scenario.name == "support_insert":
-        res.truth = session.insertion_truth()
-    if not res.privileged_evaluator_success:
-        res.failure_reason = f"ended_in_phase:{teacher.phase_label}"
-    res.wall_s = time.time() - t0
-    return res
 
 
 def teacher_state(t):

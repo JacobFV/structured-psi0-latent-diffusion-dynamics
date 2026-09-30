@@ -40,7 +40,7 @@ TOOLS: dict[tuple[str, str], tuple[str, str]] = {
     ("suite", "system2"): ("rrp.harness.eval.system2:main", "system II (VLM) harness"),
     ("suite", "teacher-quality"): ("rrp.harness.eval.teacher_quality:main", "arm teacher motion-quality gates"),
     ("suite", "dual-teacher-quality"): ("rrp.harness.eval.dual_teacher_quality:main", "dual teacher quality"),
-    ("suite", "dual-validate"): ("rrp.policies.teachers.dual_validate:main", "dual teacher validation over arm pairs"),
+    ("suite", "dual-validate"): ("rrp.harness.eval.dual_teacher_quality:validate_main", "dual teacher validation over arm pairs"),
     ("suite", "composition"): ("rrp.policies.teachers.functional_composition:main", "dual functional composition"),
     ("suite", "tracker-validation"): ("rrp.harness.eval.tracker_validation:main", "legged tracker validation (gates)"),
     ("suite", "privileged-audit"): ("rrp.harness.eval.privileged_audit:main", "privileged-information audit"),

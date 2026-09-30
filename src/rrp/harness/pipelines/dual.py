@@ -8,21 +8,21 @@
 | train_rep | rrp.training.latent_train.train_representation on the multi-assembly pack (arm stage) |
 | probes | rrp.training.latent_train.fit_probes_on_frozen (arm stage; per-slot probes on a multi pack) |
 | train_flow / flow_ft | rrp.training.latent_train.train_latent_flow (arm stages) |
-| refit | rrp.training.latent_train.refit_realizer (arm stage) on DAgger buffers given as inputs |
-| eval_r2 / heldout | `rrp latent evaluate-dual` per (task, pair) shard, dev pairs / held-out pairs |
+| eval_r2 / heldout | `rrp latent evaluate-dual` per (task, pair) shard, dev pairs / held-out pairs, of the EXTERNAL checkpoint `inputs.checkpoint` (a run id) |
 | edits | `rrp latent evaluate-dual --packet-edit <edit>` per edit x shard (control = no edit, same seeds) |
 
-PARKED (D-146 item 5, unit A3): the dual line is not trained. There is no `dagger_collect` (no state-feedback label
-source: the v2/v3 scripted teachers are stateful FSMs that cannot label off-policy states) and no `train_bc`; the
-W12 coordination-teacher stubs are archived. Collect, eval_r2 / heldout / edits and the template stay so the dual
-teacher data and evaluation routes remain reproducible. Reopening needs a new track entry.
+PARKED (D-146 item 5, units A3 and R2 DP): the dual line is not trained. There is no `dagger_collect` (no state-feedback
+label source: the v2/v3 scripted teachers are stateful FSMs that cannot label off-policy states), no `train_bc` and no
+`refit`; the W12 coordination-teacher stubs are archived, and the template has no training node. Collect and the
+evaluation stages stay (the evaluations take an external checkpoint by run id) so the dual teacher data and evaluation
+routes remain reproducible. Reopening needs a new track entry.
 
 Physics: set the generic stage option `grasp_contact` (rrp.pipelines.base; e.g. v2.1) on collect/eval stages; the dual
 stages do not choose a grasp contact version themselves.
 
 Every dual training config must set zero_prev_action: true (B-1 fix, D-045). The v1 dual configs
 (archived configs `rep-dualarm_latent_*_v1`) predate it and are NOT used by recipes/templates/dual_lineage.yaml;
-`train_rep`/`train_flow`/`refit` refuse zero_prev_action false.
+`train_rep`/`train_flow`/`flow_ft` refuse zero_prev_action false.
 """
 from __future__ import annotations
 
@@ -31,8 +31,9 @@ from pathlib import Path
 
 from rrp.harness.pipelines import arm
 from rrp.harness.pipelines.base import StageContext, StageError, apply_gate, register_stage
+from rrp.tasks.spec import tasks_in
 
-DUAL_TASKS = ("support_insert", "handover")
+DUAL_TASKS = tasks_in("mujoco/dual")
 
 
 def _b1(ctx: StageContext):
@@ -103,13 +104,6 @@ def flow_ft(ctx: StageContext) -> dict:
     return arm.flow_ft(ctx)
 
 
-@register_stage("dual", "refit", source="learned")
-def refit(ctx: StageContext) -> dict:
-    """System-0 refit on the frozen encoder from DAgger buffers (inputs), as the arm refit."""
-    _b1(ctx)
-    return arm.refit(ctx)
-
-
 # ------------------------------------------------------------------------------------------------ rollouts
 def _shards(ctx: StageContext, key: str) -> list[dict]:
     o = ctx.opts
@@ -124,7 +118,7 @@ def _shards(ctx: StageContext, key: str) -> list[dict]:
 
 def _evaluate(ctx: StageContext, shards: list[dict], edit: str | None, tag: str) -> dict:
     o = ctx.opts
-    flow = ctx.inp("flow")
+    ckpt = ctx.inp("checkpoint")
     jobs, outs = [], {}
     for sh in shards:
         name = f"{tag}/{sh['task']}_{sh['pair']}_s{sh['seed_start']}"
@@ -133,7 +127,7 @@ def _evaluate(ctx: StageContext, shards: list[dict], edit: str | None, tag: str)
         if (ctx.root / out).exists() and o.get("resume", True):
             continue
         (ctx.root / out).parent.mkdir(parents=True, exist_ok=True)
-        argv = ["-m", "rrp.cli", "latent", "evaluate-dual", "--checkpoint", flow, "--task", sh["task"],
+        argv = ["-m", "rrp.cli", "latent", "evaluate-dual", "--checkpoint", ckpt, "--task", sh["task"],
                 "--pairs", sh["pair"], "--episodes", str(sh["episodes"]), "--seed-start", str(sh["seed_start"]),
                 "--max-steps", str(sh.get("max_steps", o.get("max_steps", 800))), "--out", out]
         if o.get("cpu", True):
@@ -155,14 +149,14 @@ def _evaluate(ctx: StageContext, shards: list[dict], edit: str | None, tag: str)
 def eval_r2(ctx: StageContext) -> dict:
     """Deployable route (system i packets -> system 0) on dev pairs/seeds."""
     outs = _evaluate(ctx, _shards(ctx, "shards"), None, "r2")
-    return dict(outputs=outs, metrics=dict(shards=len(outs)), source_detail=ctx.inp("flow"))
+    return dict(outputs=outs, metrics=dict(shards=len(outs)), source_detail=ctx.inp("checkpoint"))
 
 
 @register_stage("dual", "heldout", source="learned")
 def heldout(ctx: StageContext) -> dict:
     """Budget-0 transfer to held-out pairs (xarm7 family, panda_tf3 attachment, aloha)."""
     outs = _evaluate(ctx, _shards(ctx, "heldout_shards"), None, "heldout")
-    return dict(outputs=outs, metrics=dict(shards=len(outs)), source_detail=ctx.inp("flow"))
+    return dict(outputs=outs, metrics=dict(shards=len(outs)), source_detail=ctx.inp("checkpoint"))
 
 
 @register_stage("dual", "edits", source="learned")
@@ -172,4 +166,4 @@ def edits(ctx: StageContext) -> dict:
     outs = dict(_evaluate(ctx, shards, None, "control"))
     for e in ctx.opts.get("packet_edits", ["swap_slots"]):
         outs.update(_evaluate(ctx, shards, e, e))
-    return dict(outputs=outs, metrics=dict(shards=len(outs)), source_detail=ctx.inp("flow"))
+    return dict(outputs=outs, metrics=dict(shards=len(outs)), source_detail=ctx.inp("checkpoint"))

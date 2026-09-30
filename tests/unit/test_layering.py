@@ -22,6 +22,9 @@ LAYER = {
 ALLOWED: dict[tuple[str, str], str] = {
     ("rrp.harness.eval.latency", "rrp.ops.runtime"):
         "records the broker's active leases next to a latency measurement (lazy, guarded; external-load annotation)",
+    ("rrp.policies.teachers.functional_composition", "rrp.harness.eval.dual_teacher_quality"):
+        "a suite experiment script (`rrp suite composition`, registered by path in cli/tools.py) whose teacher-intervention "
+        "episodes run on harness.rollout through dual_teacher_quality.run_teacher_episode (lazy, inside run())",
 }
 
 

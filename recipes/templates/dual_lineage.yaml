@@ -1,32 +1,27 @@
-# TEMPLATE for the FIRST dual-arm learned models (D-126 #33; W12 phase B/C, archived note, D-126). Not run by
-# anyone yet: a child instance `recipes/<track>/dual_<name>.yaml` does `extends: ../templates/dual_lineage.yaml` and sets name / labels.
-# Recipe = the arm semfix/nosem recipe (bounded NLL -4 for semfix), zero_prev_action TRUE (B-1 fix; the v1 dual configs in
-# the archived latent/*dualarm*_v1 configs predate it and are not used). Data = dual teacher v3 (rrp.policies.teachers.dual_smooth), grasp
-# contact v2.1, W12 contact labels, phase-gated DART, dual dataset gate ENFORCED (check_dual_dataset; needs record_quality).
+# TEMPLATE for the dual-arm teacher DATA and the EVALUATION of an external checkpoint (D-126 #33; W12 phase B/C,
+# archived note, D-126). Not run by anyone yet: a child instance `recipes/<track>/dual_<name>.yaml` does
+# `extends: ../templates/dual_lineage.yaml`, sets name / labels and `vars.checkpoint`.
+# PARKED (D-146 item 5, round 2 DP): the dual line is not trained. There is no training node (no Stage A, no flow, no
+# refit; no dagger_collect / train_bc either, pipelines/dual.py): the template collects the dual teacher v3 data
+# (grasp contact v2.1, W12 contact labels, phase-gated DART, dual dataset gate ENFORCED: check_dual_dataset, needs
+# record_quality), packs it, and evaluates an EXTERNAL system-i checkpoint `inputs.checkpoint` (a run id, the
+# `vars.checkpoint` placeholder refuses at its missing input until the child names one) on dev pairs (r2), held-out
+# pairs (heldout) and the swap_slots packet edit (edits, control = no edit on the same seeds). A dual checkpoint
+# trained by a reopened track (new track entry) is what the child points at.
 # WAIT for W7's pad-cylinder / gripper-force fix (rrp.bodies.grasp_contact) before running collect: under grasp_v2.1
 # the peg slips (W12 audit, 6/24 support_insert successes with teacher v2).
-# PARKED (D-146 item 5): the dual line is not trained; the collect and eval nodes are kept, the family has no
-# dagger_collect / train_bc (pipelines/dual.py), so the lineage is Stage A -> flow -> evals. Reopening needs a track entry.
 #   rrp run-dag <track>/dual_<name>.yaml --dry-run
 #   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/w12 rrp run-dag <track>/dual_<name>.yaml
 name: dual_lineage_template
 schema: dag-1
 family: dual
 track: w12
-lineage: 'dual-{variant}'
+lineage: 'dual-eval'
 global_lineage: 'dual-v3data'
-label_prefix: 'w12{tg}{seed}'
+label_prefix: 'w12e'
 global_label_prefix: 'w12d'
-matrix:
-  variant: [semfix, nosem]
-  seed: [0]
-axis_vars:
-  variant:
-    semfix: {sw: 1.0, lv: -4.0, psw: 1.0, tg: sf}
-    nosem: {sw: 0.0, lv: -8.0, psw: 0.0, tg: ns}
 vars:
-  pfx: 'w12_dual_{variant}_s{seed}'
-  so: '{1000 * seed}'
+  checkpoint: 'runs/SET_IN_CHILD_DAG:policy.pt'      # run id of the system-i flow to evaluate (external; a child sets it)
 lists:
   si_pairs: [panda_pg2__ur5e_pg2, parm5_pg2__parm5_pg2, parm5_tf3__parm7_pg2, parm6_pg2__parm7_tf3, parm6_tf3__parm6_pg2, parm7_pg2__parm5_tf3, sawyer_tf3__ur5e_pg2, ur5e_pg2__sawyer_pg2]
   ho_pairs: [panda_pg2__ur5e_pg2, parm5_pg2__parm5_pg2, parm5_pg2__parm6_tf3, parm6_pg2__parm7_pg2, parm7_tf3__parm5_pg2, ur5e_pg2__sawyer_pg2]
@@ -68,6 +63,8 @@ defaults:
   max_mem_gib: 60
   resources: {cpu: 2, mem: 4G, gpu: false, max_seconds: 14400}
 base:
+  variant: na
+  seed: 1
   flags: {contact_version: contact_v1}       # arm/dual worlds: contact_v1 floor model; grasp contact v2.1 via options.grasp_contact
 nodes:
   collect_si:
@@ -122,65 +119,24 @@ nodes:
         sources:
           - {robots: $si_pairs, statuses: [success], include_dart_failures: false}
           - {robots: $ho_pairs, statuses: [success], include_dart_failures: false}
-  # D-144 addendum (rel-r2c open question 1, closed by the sweep-flags row): `latent.factors` replaces the
-  # flag-driven flat `latent.semantic_weight` + `flags.probe_lv_min` pair, same shape as `arm_lineage.yaml`'s
-  # `stageA` node (`dual` shares `FLAG_SPEC[("dual", "train_rep")]` with arm, which no longer maps `probe_lv_min`
-  # -- see core/runconfig.py). Only variant `semfix` needs the `per:` override (lv_min -4.0); `nosem`'s `{sw}=0.0`
-  # comes from the base template.
-  stageA:
-    stage: train_rep
-    resources: {gpu: true, gpu_mem: 16G, cpu: 6, mem: 44G, max_seconds: 21600}   # v1 dual chain 32G x 1.35 (D-117)
-    per:
-      variant:
-        semfix:
-          params:
-            latent:
-              factors: [{name: probe.arm.visible, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.arm.looking_at, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.arm.focused_on, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.arm.held_by, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.arm.acting_on, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.arm.rel_pos, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.arm.observed_effect, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.arm.subtask, weight: 1.0, params: {lv_min: -4.0}}]
-    config:
-      flags: {zero_prev_action: true, realizer_anchor: false}
-      inputs: {packed_dir: '@pack'}
-      params:
-        horizon: 16
-        stride: 1
-        seed: '{1701 + so}'
-        steps: 8000
-        batch_size: 128
-        lr: 0.0003
-        probe: {n_operators: 14, max_assemblies: 2}
-        prefetch: true
-        name: '{pfx}_stageA'
-        latent: {name: '{pfx}_stageA', factors: [{name: probe.arm.visible, weight: '{sw}'}, {name: probe.arm.looking_at, weight: '{sw}'}, {name: probe.arm.focused_on, weight: '{sw}'}, {name: probe.arm.held_by, weight: '{sw}'}, {name: probe.arm.acting_on, weight: '{sw}'}, {name: probe.arm.rel_pos, weight: '{sw}'}, {name: probe.arm.observed_effect, weight: '{sw}'}, {name: probe.arm.subtask, weight: '{sw}'}]}
-  probes:
-    stage: probes
-    resources: {gpu: true, gpu_mem: 8G, cpu: 2, mem: 24G, max_seconds: 10800}
-    config:
-      inputs: {representation: '@stageA:representation.pt', packed_dir: '@pack'}
-      options: {steps: 3000}
-  F0:
-    stage: train_flow
-    resources: {gpu: true, gpu_mem: 16G, cpu: 6, mem: 44G, max_seconds: 21600}
-    config:
-      flags: {zero_prev_action: true}
-      inputs: {representation: '@stageA:representation.pt', packed_dir: '@pack'}
-      params: {name: '{pfx}_F0', seed: '{1701 + so}', steps: 8000, batch_size: 128, lr: 0.0003, packet_semantic_weight: '{psw}', normalize_target: true, snapshot_every: 1000, packet_tau_min: 0.6, policy: {width: 256, heads: 4, ctx_layers: 3, blocks: 6, attention: factorized, name: '{pfx}_F0'}}
   r2:
     stage: eval_r2
     resources: {cpu: 4, mem: 12G}
     config:
       flags: {zero_prev_action: true}
-      inputs: {flow: '@F0:policy.pt'}
+      inputs: {checkpoint: '{checkpoint}'}
       options: {workers: 4, shards: $dev_shards, grasp_contact: v2.1}
   heldout:
     stage: heldout
     resources: {cpu: 4, mem: 12G}
     config:
       flags: {zero_prev_action: true}
-      inputs: {flow: '@F0:policy.pt'}
+      inputs: {checkpoint: '{checkpoint}'}
       options: {workers: 4, heldout_shards: $heldout_shards, grasp_contact: v2.1}
   edits:
     stage: edits
     resources: {cpu: 4, mem: 12G}
     config:
       flags: {zero_prev_action: true}
-      inputs: {flow: '@F0:policy.pt'}
+      inputs: {checkpoint: '{checkpoint}'}
       options: {workers: 4, shards: $dev_shards, packet_edits: [swap_slots], grasp_contact: v2.1}

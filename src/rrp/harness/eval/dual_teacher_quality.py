@@ -15,6 +15,13 @@ Optional DART (burst noise on executed arm commands, as rrp.harness.data.collect
 CLI (peer CPU, under a lease):
   python -m rrp.cli suite dual-teacher-quality --task support_insert --pairs A__B,C__D --seeds 0:8 \
       [--noise 0.04 --burst 20,4] --out artifacts/runs/w12_dualaudit/support_insert.jsonl --workers 2
+
+Also here (moved from policies.teachers.dual_validate, readiness R2 DP): the teacher VALIDATION over arm pairs
+(`run_one` / `summarize_validation` / `validate_main`; every episode recorded with its failure reason, public-vs-privileged
+agreement and, for support_insert, the true insertion geometry) and `run_teacher_episode`, the one rollout of a scripted
+dual teacher (the former `run_dual_teacher_episode`, which policies.teachers.functional_composition also runs on):
+  python -m rrp.cli suite dual-validate --task support_insert --pairs parm5_pg2__parm5_pg2 --seeds 0:30 --workers 4 \
+      --out artifacts/assets/dual_teacher_validation/support_insert.jsonl
 """
 from __future__ import annotations
 
@@ -241,3 +248,156 @@ def main(argv=None):
     summ = summarize(rows)
     out.with_suffix(".summary.json").write_text(json.dumps(summ, indent=1, sort_keys=True))
     print(json.dumps(summ, indent=1, sort_keys=True))
+
+
+class _TeacherEpisode:
+    """Rollout hook of one scripted dual-teacher episode: on_reset ends an infeasible layout ("infeasible", before its
+    first tick) by the teacher's own feasibility check; on_step calls `callback(k, cmd, step)` (intervention / logging) and
+    ends the episode when the teacher is done; on_end (after Settle) records the runtime instance statuses, the
+    transitions, the teacher's phase log and, for support_insert, the true insertion geometry."""
+
+    def __init__(self, teacher, callback=None, check_feasibility=True):
+        self.teacher, self.callback, self.check = teacher, callback, check_feasibility
+        self.feasibility, self.k = None, 0
+
+    def on_reset(self, i, env, obs):
+        from rrp.tasks.spec import Judgement
+        if not self.check:
+            return None
+        self.feasibility = f = self.teacher.feasibility()
+        if not f["feasible"]:
+            return Judgement(True, "infeasible", f"infeasible:{','.join(f['unreachable'])}", False, False)
+        return None
+
+    def on_step(self, i, env, act, step):
+        from rrp.tasks.spec import Judgement
+        if self.callback is not None:
+            self.callback(self.k, act.command, step)
+        self.k += 1
+        return Judgement(True, "success", "teacher_done") if self.teacher.done else None
+
+    def on_end(self, i, env, ep):
+        out = dict(feasibility=self.feasibility)
+        if ep.outcome == "infeasible":
+            return out
+        out.update(statuses={e: (v.status, v.attempt, v.reason) for e, v in env.runtime.instances.items()},
+                   transitions=list(env.runtime.transitions), phase_log=list(self.teacher.log),
+                   phase_label=self.teacher.phase_label, truth={})
+        if hasattr(env, "insertion_truth") and env.scenario.name == "support_insert":
+            out["truth"] = env.insertion_truth()
+        return out
+
+
+def run_teacher_episode(task: str, session, teacher, version: str, seed: int, *, max_steps: int = 1200, callback=None,
+                        check_feasibility: bool = True):
+    """One scripted dual-teacher episode on `session` through harness.rollout (the former
+    policies.teachers.dual.run_dual_teacher_episode): teacher.act() every control tick, `max_steps` ticks at most, then 5
+    settle ticks and the privileged verdict (hooks.Settle). Returns the rollout Episode; a crash raises."""
+    from rrp.harness import rollout as R
+    from rrp.harness.eval import hooks as H
+    from rrp.policies.teachers import TeacherPolicy
+    pol = TeacherPolicy(task, lambda e: teacher, f"dual:{version}", ("joint_position", "gripper"))
+    ep = R.rollout(lambda sd: session, pol, H.budget_task(task, session.spec.env_id), [seed], batch=1,
+                   max_steps=max_steps, hooks=[H.Settle(5), _TeacherEpisode(teacher, callback, check_feasibility)])[0]
+    if ep.outcome == "crash":                      # a crashed episode is an error row of the caller, never hidden
+        raise RuntimeError(ep.metrics.get("note") or ep.failure_reason)
+    return ep
+
+
+def teacher_failure_reason(ep) -> str | None:
+    """The teacher-episode failure vocabulary of the validation rows: `infeasible:<unreachable>` (not attempted),
+    `ended_in_phase:<phase>` (attempted, the privileged verdict failed), None on success."""
+    if ep.outcome == "infeasible":
+        return ep.failure_reason
+    return None if ep.success_privileged else f"ended_in_phase:{ep.metrics['phase_label']}"
+
+
+def run_one(task: str, pair: str, seed: int, max_steps: int = 1200) -> dict:
+    """One validation episode of the default (v2) dual teacher: a row that records success, failure, infeasibility or
+    an error (as data), with the public-vs-privileged agreement and the insertion geometry."""
+    from rrp.policies.teachers.dual import TEACHERS
+    from rrp.policies.teachers.dual_validate import make_session
+    t0 = time.time()
+    try:
+        s = make_session(task, pair, seed)
+        teacher = TEACHERS[task](s)
+        ep = run_teacher_episode(task, s, teacher, "v2", seed, max_steps=max_steps)
+    except Exception as e:  # noqa: BLE001 - errors are recorded as data
+        return dict(task=task, pair=pair, seed=seed, status="error", error=repr(e)[:400], wall_s=time.time() - t0)
+    m = ep.metrics
+    priv = bool(ep.success_privileged)
+    status = "infeasible" if ep.outcome == "infeasible" else "success" if priv else "failure"
+    statuses = m.get("statuses", {})
+    return dict(task=task, pair=pair, seed=seed, status=status, source="scripted_teacher", privileged_teacher=True,
+                public_runtime_success=bool(ep.success_public), privileged_success=priv,
+                agree=bool(ep.success_public) == priv, failure_reason=teacher_failure_reason(ep),
+                steps=ep.steps, sim_s=ep.steps * s.dt, statuses=statuses, truth=m.get("truth", {}),
+                feasibility=m["feasibility"], rejected_commands=m["command_rejections"],
+                retries={e: v[1] for e, v in statuses.items() if v[1] > 0},
+                hole_frame_used=getattr(teacher, "hole_frame_used", None), wall_s=time.time() - t0)
+
+
+def _validate_job(args):
+    return run_one(*args)
+
+
+def summarize_validation(rows: list[dict]) -> dict:
+    out = {}
+    for r in rows:
+        k = (r["task"], r["pair"])
+        d = out.setdefault(k, dict(n=0, success=0, failure=0, infeasible=0, error=0, agree=0, public_success=0,
+                                   retried=0, reasons={}))
+        d["n"] += 1
+        d[r["status"]] += 1
+        d["agree"] += int(r.get("agree", False))
+        d["public_success"] += int(r.get("public_runtime_success", False))
+        d["retried"] += int(bool(r.get("retries")))
+        if r["status"] != "success":
+            reason = (r.get("failure_reason") or r.get("error") or "")[:80]
+            d["reasons"][reason] = d["reasons"].get(reason, 0) + 1
+    res = {}
+    for (task, pair), d in out.items():
+        feas = d["n"] - d["infeasible"] - d["error"]
+        d["success_rate_all"] = d["success"] / max(d["n"], 1)
+        d["success_rate_feasible"] = d["success"] / max(feas, 1)
+        res[f"{task}|{pair}"] = d
+    return res
+
+
+def validate_main(argv=None):
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--task", required=True)
+    ap.add_argument("--pairs", required=True, help="comma-separated pair keys")
+    ap.add_argument("--seeds", default="0:30")
+    ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) // 2))
+    ap.add_argument("--max-steps", type=int, default=1200)
+    ap.add_argument("--out", required=True)
+    a = ap.parse_args(argv)
+    lo, hi = map(int, a.seeds.split(":"))
+    out = Path(a.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    rows = []
+    if out.exists():   # resume: keep finished rows (interrupted runs are common under the watchdog)
+        for line in out.read_text().splitlines():
+            try:
+                rows.append(json.loads(line))
+            except json.JSONDecodeError:
+                pass
+    done = {(r["task"], r["pair"], r["seed"]) for r in rows}
+    jobs = [(a.task, p, s, a.max_steps) for p in a.pairs.split(",") for s in range(lo, hi)
+            if (a.task, p, s) not in done]
+    t0 = time.time()
+    with ProcessPoolExecutor(max_workers=a.workers) as ex, out.open("a") as fh:
+        futs = [ex.submit(_validate_job, j) for j in jobs]
+        for i, f in enumerate(as_completed(futs)):
+            r = f.result()
+            rows.append(r)
+            fh.write(json.dumps(r, default=str) + "\n")
+            fh.flush()
+            if i % 20 == 0:
+                print(f"[dual_validate] {i + 1}/{len(jobs)} {time.time() - t0:.0f}s", flush=True)
+    want = {p for p in a.pairs.split(",")}
+    summ = summarize_validation([r for r in rows if r["pair"] in want and lo <= r["seed"] < hi])
+    out.with_suffix(".summary.json").write_text(json.dumps(summ, indent=1, sort_keys=True))
+    for k, d in sorted(summ.items()):
+        print(k, {x: d[x] for x in ("n", "success", "failure", "infeasible", "error", "agree")}, d["reasons"])

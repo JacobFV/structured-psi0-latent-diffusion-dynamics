@@ -10,6 +10,7 @@ Conditions per seed (same scene, same seed):
                  rejected with a provenance reason instead of using "the latest frame"
 Measured: commanded align/insert TCP goals, receipt provenance used by the teacher, runtime
 statuses/rejection reasons, public vs privileged success.
+Runs on harness.rollout (dual_teacher_quality.run_teacher_episode).
 Usage: python -m rrp.cli suite composition --pair parm5_pg2__parm5_pg2 --seeds 0:10 --out ...
 """
 from __future__ import annotations
@@ -26,8 +27,9 @@ NOMINAL_HOLE = np.array([0.43, -0.045, 0.045])   # mean of the randomized layout
 
 
 def run(pair: str, seed: int, condition: str, max_steps: int = 900) -> dict:
+    from rrp.harness.eval.dual_teacher_quality import run_teacher_episode, teacher_failure_reason
+    from rrp.policies.teachers.dual import SupportInsertTeacher
     from rrp.policies.teachers.dual_validate import make_session
-    from rrp.policies.teachers.dual import SupportInsertTeacher, run_dual_teacher_episode
     s = make_session("support_insert", pair, seed)
     base_provider = s._output_provider
     if condition == "shifted":
@@ -44,7 +46,7 @@ def run(pair: str, seed: int, condition: str, max_steps: int = 900) -> dict:
     goals = {"r_align": [], "r_insert": []}
     stale_done = [False]
 
-    def on_step(k, cmd, out):
+    def on_step(k, cmd, step):
         ph = teacher.phase["right"]
         if ph in goals and teacher.arms["right"].goal is not None:
             goals[ph].append(teacher.arms["right"].goal.tolist())
@@ -55,11 +57,12 @@ def run(pair: str, seed: int, condition: str, max_steps: int = 900) -> dict:
                 s.runtime.runtime_version += 1
                 stale_done[0] = True
 
-    res = run_dual_teacher_episode(s, teacher, max_control_steps=max_steps, on_step=on_step)
+    ep = run_teacher_episode("support_insert", s, teacher, "v2", seed, max_steps=max_steps, callback=on_step)
+    statuses = ep.metrics.get("statuses", {})
     rec = s.runtime.receipts.latest("locate", 0, "hole_frame")
     return dict(pair=pair, seed=seed, condition=condition, source="scripted_teacher",
-                public_success=res.success, privileged_success=res.privileged_evaluator_success,
-                failure_reason=res.failure_reason, statuses=res.statuses,
+                public_success=bool(ep.success_public), privileged_success=bool(ep.success_privileged),
+                failure_reason=teacher_failure_reason(ep), statuses=statuses,
                 locate_receipt=None if rec is None else dict(pos=rec.value["pos"], version=rec.version,
                                                              valid=rec.valid, invalid_reason=rec.invalid_reason),
                 hole_true=s.scenario.meta["privileged_layout"]["hole_world"],
@@ -68,7 +71,7 @@ def run(pair: str, seed: int, condition: str, max_steps: int = 900) -> dict:
                 insert_goal_last=goals["r_insert"][-1] if goals["r_insert"] else None,
                 align_rejections=[r["reason"] for r in s.runtime.rejections.get("align", [])][-5:],
                 n_align_rejections=len(s.runtime.rejections.get("align", [])),
-                truth=res.truth)
+                truth=ep.metrics.get("truth", {}))
 
 
 def main(argv=None):
