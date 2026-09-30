@@ -149,3 +149,34 @@ def test_g4_target_recipes_use_the_sealed_protocol_and_all_six_targets(name, n):
     assert set(proto["targets"]) <= tg
     ev = [x for x in plan.nodes.values() if x.rc.stage in ("target_eval", "target_adapt")]
     assert ev and all(x.rc.options["protocol"] == "recipes/presets/eval-armdiv_v1.json" for x in ev)
+
+
+def _dry_run_recipes():
+    return sorted([*(ROOT / "recipes/armdiv").glob("*.yaml"), *(ROOT / "recipes/templates").glob("arm_*.yaml")])
+
+
+@pytest.mark.parametrize("path", _dry_run_recipes(), ids=lambda p: p.stem)
+def test_every_arm_recipe_and_template_dry_runs(path):
+    """`rrp run-dag <recipe> --dry-run` (readiness AR): the plan AND its input-path resolution (a placeholder like
+    `packed/SET_IN_INSTANCE` resolves; a bare `SET_IN_INSTANCE` is not a run id and used to crash arm_bc)."""
+    from rrp.harness.dag import format_plan, load_dag, plan_dag
+    out = format_plan(plan_dag(load_dag(path), source=str(path)))
+    assert out.startswith("DAG ")
+
+
+def test_v6ref_cells_are_pinned_on_exactly_the_v6_files_and_refuse_until_recorded(tmp_path):
+    plan = _plan("arm_targets_v6ref")
+    assert {n.rc.options["target"] for n in plan.nodes.values() if n.rc.stage == "target_adapt"} == {"gen3_pg2", "rizon4_tf3"}
+    for n in plan.nodes.values():
+        loads = {k for k in ("flow", "representation") if str(n.rc.inputs.get(k, "")).startswith("runs/armv6/")}
+        assert set((n.rc.options.get("pin_sha256") or {})) == loads, n.name
+        if n.rc.stage.startswith("target_"):
+            assert n.rc.options["protocol"] == "recipes/presets/eval-armdiv_v1.json"
+    zs = plan.nodes["zs@nosem.s2.gen3_pg2"]
+    assert zs.rc.options["pin_sha256"]["flow"].startswith("PENDING_v6_nosem_s2_flow") and "s1" not in zs.rc.options["pin_sha256"]["representation"]
+    ck = tmp_path / "artifacts/runs/armv6/arm6-nosem/flow_ft-gdag2h_s2/policy.pt"
+    ck.parent.mkdir(parents=True)
+    ck.write_bytes(b"v6")
+    with pytest.raises(StageError, match="placeholder"):
+        parm._verify_pins(_ctx(tmp_path, {"flow": "runs/armv6/arm6-nosem/flow_ft-gdag2h_s2:policy.pt"},
+                               {"pin_sha256": {"flow": zs.rc.options["pin_sha256"]["flow"]}}))

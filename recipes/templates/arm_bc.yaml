@@ -3,7 +3,8 @@
 # route learned, 30 feasible scenes from 3,000,000; grasp_v2.1) on the v6 R2 bodies, 4 new training arms and the v6
 # held-out source bodies, plus the reference cell of the v6 BC expert on the new arms (seed 1701 only).
 # Resources: v6 BC training measured 2.03 GB RSS + ~4.5 GB CUDA -> 8G / 8G; ladder evals 6G. One peer GPU lease at a time.
-# An instance sets name, lineage, label_prefix, matrix.seed and vars.source_pack / bc_label.
+# An instance sets name, lineage, label_prefix, matrix.seed and vars.source_pack / bc_label. The placeholder run id
+# `packed/SET_IN_INSTANCE` (the convention of the other templates) plans and dry-runs; the node refuses at its missing input.
 name: arm_bc_template
 schema: dag-1
 family: arm
@@ -13,7 +14,7 @@ label_prefix: 'abc{seed}'
 matrix:
   seed: [1701, 1702]
 vars:
-  source_pack: SET_IN_INSTANCE
+  source_pack: packed/SET_IN_INSTANCE
   grasp_contact: v2.1
   bc_ref: '@train:policy.pt'
   bc_label: 'bc_direct{seed}'

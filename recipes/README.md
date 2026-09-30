@@ -2,7 +2,7 @@
 
 A recipe is a `dag-1` DAG file (`harness/yamlmini.py` subset, loaded by `harness/dag.py::load_dag`) that plans a
 lineage: a matrix of (variant x seed) points over pipeline stages. Run one with `rrp run-dag <path-or-name>`; a name is
-resolved under `recipes/` (`rrp run-dag armdiv/arm_lineage_v7div --dry-run`).
+resolved under `recipes/` (`rrp run-dag armdiv/arm_lineage_v8div --dry-run`).
 
 - `templates/` — generic, per-family recipes (`arm_lineage`, `arm_collect`, `arm_bc`, `arm_grpo`, `arm_targets_*`,
   `dual_lineage`, `legged_lineage`, `legged_heldout`, `tracker_gated`, `relations_factor`, `humanoid_task`, `humanoid_transfer`, `pointer_lineage`, `psi0_step2`). Never run bare; an instance extends one.
@@ -12,7 +12,8 @@ resolved under `recipes/` (`rrp run-dag armdiv/arm_lineage_v7div --dry-run`).
 - `<track>/` — thin instances: a header (`name schema track policy env task bodies factors`), `extends: ../templates/...`
   and only the overrides. `extends` may name a sibling instance (`*_kinfeat`, `*_smoke`) or a list, folded left:
   dicts merge, lists and scalars replace, `null` deletes.
-  - `armdiv/` — the v7div lineage, its data collection and BC baselines (+ `kinfeat` and `smoke` variants).
+  - `armdiv/` — the v8div latent lineages (`arm_lineage_v8div*`), the v7div data collection and BC baselines, and the G4 target
+    recipes (`arm_targets_v8div_{latent,bc}`, `arm_targets_v6ref` = the v6 reference cells of contrast (a); pins refuse until filled).
   - `relations/` — the relation-factor experiment (D-144): `geo`, `ix`, `task` factor sets vs the `preset:arm` control on
     one shared representation (`research/tracks/relations.md`; planned, structural side only).
   - `pointer/` — the D-142 ComputerWorld pointer lineage (`pointer_v1`, gate `pointer_smoke`); family `pointer`.

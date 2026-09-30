@@ -1,0 +1,68 @@
+# armdiv G4 contrast (a) (D-146 addendum round 2, readiness AR): the v6 REFERENCE cells. The v6 lineages (semfix / nosem x seeds 1, 2:
+# runs/armv6/arm6-<variant>/, the 13-body pool; deployed flow_ft-gdag2h + refit-gendag3_noqd) on the PRIMARY armdiv targets with the SAME
+# target recipe as arm_targets_v8div_latent (this file extends it): same protocol (recipes/presets/eval-armdiv_v1.json), same target demos
+# (the v7div collection's target_demos split), the same packs (identical global nodes: adopted, not rebuilt), same budgets / updates /
+# adapt seeds (1700 + seed), same sealed scenes. Only `flow_ref` / `rep_ref` differ. Existing-controller transfer (zero-shot) and
+# adaptation are reported separately, as for v8div. These cells give contrast (a) = v8div - v6 latent per primary-tier target (H1).
+# The v6 checkpoints are NOT in the host archive (peer runs/armv6/*): every node that loads one is PINNED by sha256, and the pins below
+# are placeholders that refuse the node (arm.py `_verify_pins`) until the lead records the real sha256 of each checkpoint
+# (procedure: research/tracks/armdiv.md, "pin procedure"). If a v6 checkpoint is not retrievable or does not load on the current code,
+# contrast (a) is dropped by a recorded note BEFORE the G4 signature; this file is then deleted, not edited. A BC v6 reference is
+# not part of the pre-registration (contrast (a) is latent); it would need a registered addendum.
+#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiv rrp run-dag recipes/armdiv/arm_targets_v6ref.yaml --dry-run
+extends: arm_targets_v8div_latent.yaml          # sibling instance: the G4 latent target recipe
+name: arm_targets_v6ref
+schema: dag-1
+track: armdiv
+policy: latent
+env: mujoco/arm
+task: pick_place
+bodies: armdiv_v1
+factors: [semfix, nosem]
+lineage: 'armtgt6ref-{variant}-{target}'
+label_prefix: 'at6r{tg}{seed}{tk}'
+matrix:
+  variant: [semfix, nosem]
+  seed: [1, 2]
+  target: [gen3_pg2, rizon4_tf3]
+axis_vars:
+  variant:
+    semfix:
+      fp1: PENDING_v6_semfix_s1_flow_ft-gdag2h_sha256_not_recorded
+      rp1: PENDING_v6_semfix_s1_refit-gendag3_noqd_sha256_not_recorded
+      fp2: PENDING_v6_semfix_s2_flow_ft-gdag2h_sha256_not_recorded
+      rp2: PENDING_v6_semfix_s2_refit-gendag3_noqd_sha256_not_recorded
+    nosem:
+      fp1: PENDING_v6_nosem_s1_flow_ft-gdag2h_sha256_not_recorded
+      rp1: PENDING_v6_nosem_s1_refit-gendag3_noqd_sha256_not_recorded
+      fp2: PENDING_v6_nosem_s2_flow_ft-gdag2h_sha256_not_recorded
+      rp2: PENDING_v6_nosem_s2_refit-gendag3_noqd_sha256_not_recorded
+vars:
+  flow_ref: 'runs/armv6/arm6-{variant}/flow_ft-gdag2h_s{seed}:policy.pt'
+  rep_ref: 'runs/armv6/arm6-{variant}/refit-gendag3_noqd_s{seed}:representation.pt'
+  # the pin of THIS point's checkpoint: seed is 1 or 2, so `fp1*(2-seed) + fp2*(seed-1)` selects fp1 / fp2 (str * int)
+  flow_pin: '{fp1*(2-seed) + fp2*(seed-1)}'
+  rep_pin: '{rp1*(2-seed) + rp2*(seed-1)}'
+nodes:
+  # only the primary-tier targets are evaluated (contrast (a)); the other targets' packs stay with arm_targets_v8div_latent
+  pack_xarm7_pg2: null
+  pack_xarm7_tf3: null
+  pack_pa2s900002_pg2: null
+  pack_pa2s900003_tf3: null
+  # a node is pinned on exactly the checkpoint(s) it loads from flow_ref / rep_ref; adapted checkpoints (jev*) are not v6 files
+  zs: {config: {options: {pin_sha256: {flow: '{flow_pin}', representation: '{rep_pin}'}}}}
+  fsft5: {config: {options: {pin_sha256: {flow: '{flow_pin}'}}}}
+  fev5: {config: {options: {pin_sha256: {representation: '{rep_pin}'}}}}
+  rz5: {config: {options: {pin_sha256: {representation: '{rep_pin}'}}}}
+  rev5: {config: {options: {pin_sha256: {flow: '{flow_pin}'}}}}
+  jad5: {config: {options: {pin_sha256: {flow: '{flow_pin}', representation: '{rep_pin}'}}}}
+  fsft20: {config: {options: {pin_sha256: {flow: '{flow_pin}'}}}}
+  fev20: {config: {options: {pin_sha256: {representation: '{rep_pin}'}}}}
+  rz20: {config: {options: {pin_sha256: {representation: '{rep_pin}'}}}}
+  rev20: {config: {options: {pin_sha256: {flow: '{flow_pin}'}}}}
+  jad20: {config: {options: {pin_sha256: {flow: '{flow_pin}', representation: '{rep_pin}'}}}}
+  fsft100: {config: {options: {pin_sha256: {flow: '{flow_pin}'}}}}
+  fev100: {config: {options: {pin_sha256: {representation: '{rep_pin}'}}}}
+  rz100: {config: {options: {pin_sha256: {representation: '{rep_pin}'}}}}
+  rev100: {config: {options: {pin_sha256: {flow: '{flow_pin}'}}}}
+  jad100: {config: {options: {pin_sha256: {flow: '{flow_pin}', representation: '{rep_pin}'}}}}
