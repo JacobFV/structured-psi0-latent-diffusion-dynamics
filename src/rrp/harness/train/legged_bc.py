@@ -24,8 +24,8 @@ import torch
 import torch.nn as nn
 
 from rrp.core.sealed import SealedSplit
-from rrp.harness.train.legged_latent_train import (LeggedData, _save, cuda_peak_mb, refuse_relgen, restore_rng,
-                                                   rng_state)
+from rrp.harness.train.legged_latent_train import (LeggedData, _save, cuda_peak_mb,
+                                                   legged_relation_batches, restore_rng, rng_state)
 from rrp.policies.bundles import _dev
 from rrp.policies.features.legged import H
 from rrp.policies.nets.legged_bc import build
@@ -63,7 +63,6 @@ def eval_bc(model, data, n_batches=20, seed=11, nfe=8):
 
 
 def train(cfg, out: Path):
-    refuse_relgen(cfg, "bc")
     SealedSplit.load().assert_dataset_allowed(cfg["data"], cfg["bodies"])
     dev = _dev()
     out.mkdir(parents=True, exist_ok=True)
@@ -86,10 +85,21 @@ def train(cfg, out: Path):
     B = cfg.get("batch_size", 256)
     ck, sn = cfg.get("ckpt_every", 500), cfg.get("snap_every", 5000)
     t0 = time.time()
+    # relgen shards: the batch keeps its B pack rows (the BC batch is not resized); the scheduled share weights the factor
+    # loss of the shard rows against the action loss: `(Bm * action + (B - Bm) * factor) / B`, like the other trainers
+    rel = legged_relation_batches(cfg, out, model.specs, B, step0)
     for step in range(step0 + 1, steps + 1):
-        i = data.sample(B, rng)
+        shard, Bm = None, B
+        if rel is not None:
+            b_, shard = rel.draw(dev)
+            Bm = b_["counts"]["main"]
+        i = data.sample(Bm, rng)
         b, a, am = bc_batch(data, i)
         loss = model.loss(b, a, am)
+        if shard is not None:
+            cache = model.prepare(shard)
+            el, _ = rel.loss(cache[3] if model.extended else None, step - 1)
+            loss = (Bm * loss + (B - Bm) * el) / B
         opt.zero_grad(); loss.backward()
         gn = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         opt.step(); sch.step()

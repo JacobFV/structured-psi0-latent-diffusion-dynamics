@@ -434,3 +434,22 @@ def interfering_pairs(records: list[dict], factors, metric: str = "competence", 
             if v is not None and v > threshold:
                 out.append((f, g, v))
     return sorted(out, key=lambda t: -t[2])
+
+
+def estimate_competence(metrics: dict, mae_ref: dict, factors) -> dict:
+    """`estimates_loss` metrics -> `{factor: {"competence": c}}` for the `factors` the scheduler tracks, every readout
+    kind giving one number in [0, 1]: a `<f>_acc` (hits, n) pair is the hit rate; a `<f>_mae` (abs-error sum, n) pair of a
+    field factor (no hit rate exists) is the fraction of its initial mean absolute error removed,
+    `clip(1 - mae / mae_ref[f], 0, 1)` (`mae_ref`: the factor's MAE at its first observation; a factor without one is
+    not reported yet). Pairs with n == 0 (the label was absent from the batch) are skipped."""
+    out = {}
+    for kind in ("_mae", "_acc"):                                   # a factor that reports both: the hit rate wins
+        for k, (v, n) in metrics.items():
+            f = k[:-len(kind)]
+            if n <= 0 or not k.endswith(kind) or f not in factors:
+                continue
+            if kind == "_acc":
+                out[f] = {"competence": float(v) / n}
+            elif mae_ref.get(f):
+                out[f] = {"competence": float(min(1.0, max(0.0, 1.0 - (float(v) / n) / mae_ref[f])))}
+    return out

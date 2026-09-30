@@ -6,7 +6,20 @@ runs the `Scheduler` (decisions at every interval, `steer.jsonl` read, `schedule
 the shard rows of each step; `collate_rows` turns those rows into a forwardable `Batch` whose
 `extra["relation_labels"]` carries their privileged labels. Shard rows carry the family collate input (the featurizer
 output on the snapshot observation), so a trainer forwards them like any pack row -- but they have no action target,
-so only the factors' own losses (`estimates_loss`) ever touch them."""
+so only the factors' own losses (`estimates_loss`) ever touch them.
+
+Two input kinds (`write_shard`'s `input_kind`): the ARM family's `PolicyInput` (`policy_input`, token banks) and the
+LEGGED / humanoid family's public batch (`legged_batch`: the arrays of `LeggedData.ctx_batch` at one tick, unbatched:
+static morphology, joint state, IMU, touch, osc phase, context, optional terrain scan). `collate_rows(rows, family)`
+forwards a legged row as that batch dict (what `LeggedFlow.prepare`, `Context.encode` and `LeggedBC.prepare` read) with
+the row's `foothold_next` label turned into the `foothold_cell` key the legged relation graph builds its pair label from.
+
+Factor-loss calibration (`RelationBatches.loss`): the raw factor losses differ by orders of magnitude (a Gaussian NLL of
+a metric field is about 330 at init, a pair BCE 0.7; the flow loss about 2), so the trainers' factor term is
+`factor_loss_scale * mean_f(loss_f / ref_f)`, `ref_f = max(|loss_f at its first observation|, 1)` (recorded in
+`<out>/factor_calibration.json`, restored on resume). Default `factor_loss_scale = 0.2` = 0.1 x the flow loss at init
+(a unit-variance rectified-flow target: 2). Competence of a field factor is the fraction of its initial mean absolute
+error removed (`curriculum.estimate_competence`)."""
 from __future__ import annotations
 
 import json
@@ -21,7 +34,9 @@ import numpy as np
 from rrp.harness.data.manifest import write_manifest
 from rrp.harness.data.relgen import Label, Sample
 
-MANIFEST_SCHEMA = "relgen-shard-2"
+MANIFEST_SCHEMA = "relgen-shard-3"
+INPUT_KINDS = ("policy_input", "legged_batch")
+FACTOR_LOSS_SCALE = 0.2          # 0.1 x the unit-variance flow loss at init (2.0); `params.factor_loss_scale` overrides
 
 
 class RelgenError(ValueError):
@@ -48,26 +63,43 @@ def _read_pi(z, i: int, meta: dict):
     return PolicyInput(**by_bank, **{k: z[f"{i}.pi.{k}"] for k in _PI_ARRAYS}, meta=dict(meta))
 
 
+def _row_input(i: int, inputs: dict) -> tuple[str, dict, dict]:
+    """(input kind, arrays under `<row>.*`, extra manifest keys) of one sample's forwardable input: exactly one of
+    `policy_input` (arm family `PolicyInput`) or `legged_batch` (`{key: array}`, the legged family's public batch of one
+    tick: no batch axis, no `foothold_cell`: that label is the row's `foothold_next`)."""
+    kinds = [k for k in INPUT_KINDS if inputs.get(k) is not None]
+    if len(kinds) != 1:
+        raise RelgenError(f"a shard row needs exactly one forwardable input of {INPUT_KINDS}; got {kinds}")
+    if kinds[0] == "policy_input":
+        pi = inputs["policy_input"]
+        return "policy_input", _pi_arrays(i, pi), {"pi_meta": dict(pi.meta)}
+    lb = inputs["legged_batch"]
+    if "foothold_cell" in lb:
+        raise RelgenError("legged_batch must not carry `foothold_cell`: the pair label is the row's `foothold_next` label")
+    return "legged_batch", {f"{i}.lb.{k}": np.asarray(v) for k, v in lb.items()}, {"lb_keys": sorted(lb)}
+
+
 def write_shard(factor: str, version: str, samples: Sequence[Sample], out_root: Path, *, shard_id: str) -> dict:
     """Write one shard (`<factor>.value`/`.valid` arrays per label, per sample, in one `.npz`; rows of an earlier write
     of the same `shard_id` are replaced, so a rerun is idempotent) plus its manifest
     entry (`rrp.harness.data.manifest.write_manifest`, the one manifest writer): one row per sample with its full
     provenance record (active set, label versions, transforms, env, task, seed) and the array keys that hold it.
-    Every sample must carry `inputs["policy_input"]` (the featurizer's `PolicyInput` on the snapshot observation, stored
-    next to its labels so the row can be forwarded) and `inputs["tokens"]["ctx"]` (the entity id of each of its
-    concatenated bank tokens, what the labels are indexed by); a sample without them is a `RelgenError`."""
+    Every sample must carry one forwardable input (`inputs["policy_input"]`, the arm featurizer's `PolicyInput` on the
+    snapshot observation, or `inputs["legged_batch"]`, the legged public batch; stored next to its labels so the row
+    can be forwarded, the manifest row says which: `input_kind`) and `inputs["tokens"]["ctx"]` (the entity id of each of
+    its concatenated context tokens, what the labels are indexed by); a sample without them is a `RelgenError`."""
     d = Path(out_root) / factor / version
     d.mkdir(parents=True, exist_ok=True)
     npz_path = d / f"{shard_id}.npz"
     arrays: dict[str, np.ndarray] = {}
     rows = []
     for i, s in enumerate(samples):
-        pi = s.get("inputs", {}).get("policy_input")
         ids = s.get("inputs", {}).get("tokens", {}).get("ctx")
-        if pi is None or ids is None:
-            raise RelgenError(f"{factor}: sample {i} has no inputs['policy_input'] / inputs['tokens']['ctx']: a shard row "
-                              "must be forwardable (the featurizer output on the snapshot observation)")
-        arrays.update(_pi_arrays(i, pi))
+        if ids is None or not any(s.get("inputs", {}).get(k) is not None for k in INPUT_KINDS):
+            raise RelgenError(f"{factor}: sample {i} has no inputs['policy_input' | 'legged_batch'] / inputs['tokens']['ctx']: "
+                              "a shard row must be forwardable (the family's collate input on the snapshot observation)")
+        kind, arr, extra = _row_input(i, s["inputs"])
+        arrays.update(arr)
         keys = []
         for lname, lab in s["labels"].items():
             vk, ok = f"{i}.{lname}.value", f"{i}.{lname}.valid"
@@ -75,7 +107,7 @@ def write_shard(factor: str, version: str, samples: Sequence[Sample], out_root: 
             arrays[ok] = np.asarray(lab.valid)
             keys.append(lname)
         rows.append({"shard": npz_path.name, "row": i, "status": "ok", "label_keys": keys, "ctx_ids": list(ids),
-                     "pi_meta": dict(pi.meta), **s["provenance"]})
+                     "input_kind": kind, **extra, **s["provenance"]})
     np.savez_compressed(npz_path, **arrays)
     existing = read_shard_manifest(d) or {}
     kept = [r for r in existing.get("episodes") or [] if r.get("shard") != npz_path.name]   # same shard id: replaced
@@ -90,12 +122,13 @@ def read_shard_manifest(shard_dir: Path) -> dict | None:
     return read_manifest(p) if p.exists() else None
 
 
-_ROW_KEYS = ("shard", "row", "status", "label_keys", "ctx_ids", "pi_meta")
+_ROW_KEYS = ("shard", "row", "status", "label_keys", "ctx_ids", "pi_meta", "lb_keys", "input_kind")
 
 
 def load_shard_rows(factor: str, version: str, out_root: Path | str) -> list[Sample]:
     """Read one factor/version's shard rows back into `Sample`s: labels rehydrated as `Label`s, `inputs` =
-    `{"policy_input": PolicyInput, "tokens": {"ctx": [entity id | None, ...]}}` (what `collate_rows` batches) -- what
+    `{"policy_input": PolicyInput | "legged_batch": {key: array}, "tokens": {"ctx": [entity id | None, ...]}}` (what
+    `collate_rows` batches) -- what
     `harness.data.mix.mixed_batches` pools from (unit R10). A shard written before rows were forwardable is refused."""
     d = Path(out_root) / factor / version
     man = read_shard_manifest(d)
@@ -118,8 +151,11 @@ def load_shard_rows(factor: str, version: str, out_root: Path | str) -> list[Sam
                                   prov=next((r["prov"] for r in row.get("labels", []) if r["label"] == lname), "gt"),
                                   version=next((r["version"] for r in row.get("labels", []) if r["label"] == lname), ""))
         prov = {k: v for k, v in row.items() if k not in _ROW_KEYS}
-        out.append({"inputs": {"policy_input": _read_pi(z, i, row["pi_meta"]), "tokens": {"ctx": list(row["ctx_ids"])}},
-                    "labels": labels, "provenance": prov})
+        if row["input_kind"] == "policy_input":
+            inp = {"policy_input": _read_pi(z, i, row["pi_meta"])}
+        else:
+            inp = {"legged_batch": {k: z[f"{i}.lb.{k}"] for k in row["lb_keys"]}}
+        out.append({"inputs": {**inp, "tokens": {"ctx": list(row["ctx_ids"])}}, "labels": labels, "provenance": prov})
     return out
 
 
@@ -217,21 +253,28 @@ def mixed_batches(main, scheduler, shards, batch_size: int, rng, *, label_names=
 
 # ------------------------------------------------------------------------------------------------ trainer hook (R1)
 def collate_rows(rows, family: str):
-    """Shard rows -> one forwardable `nets.batch.Batch` (`collate_inputs` over the rows' `PolicyInput`s) whose
-    `extra["relation_labels"] = {"ctx": {label: [B, C.., d], label + ".valid": [B, C..]}}` holds the rows' privileged
-    labels in the form `relation_token_sets(..., labels=)` takes. A label is indexed by its row's concatenated bank
-    tokens (`inputs["tokens"]["ctx"]`, unpadded); the collate pads every bank to the batch maximum, so each label is
-    scattered into the collated `ctx` layout (`bank_offset`), and every position a row does not label is invalid. The
-    set of a label is the one `FAMILIES[family].labels` attaches it to (only `ctx` is served); a row carrying a label
-    the family does not attach is an error, and a placeholder label (`prov == "none"`, `mask_missing_labels`) is absent."""
+    """Shard rows -> one forwardable batch of the family's collate input, carrying the rows' privileged labels.
+    ARM families: a `nets.batch.Batch` (`collate_inputs` over the rows' `PolicyInput`s) whose
+    `extra["relation_labels"] = {"ctx": {label: [B, C.., d], label + ".valid": [B, C..]}}` holds the labels in the form
+    `relation_token_sets(..., labels=)` takes. A label is indexed by its row's concatenated bank tokens
+    (`inputs["tokens"]["ctx"]`, unpadded); the collate pads every bank to the batch maximum, so each label is scattered
+    into the collated `ctx` layout (`bank_offset`), and every position a row does not label is invalid. LEGGED / humanoid:
+    `_collate_legged`. The set of a label is the one `FAMILIES[family].labels` attaches it to (only `ctx` is served); a
+    row carrying a label the family does not attach is an error, and a placeholder label (`prov == "none"`,
+    `mask_missing_labels`) is absent."""
     import torch
-    from rrp.policies.nets.batch import BANKS, collate_inputs
     from rrp.policies.relations.base import FAMILIES, FactorError
     if family not in FAMILIES:
         raise FactorError(f"unknown net family {family!r}; families: {sorted(FAMILIES)}")
     if not rows:
         raise RelgenError("collate_rows: no rows")
     attach = {n: st for st, names in FAMILIES[family].labels.items() for n in names}
+    kinds = {k for r in rows for k in INPUT_KINDS if r["inputs"].get(k) is not None}
+    if kinds == {"legged_batch"}:
+        return _collate_legged(rows, family, attach)
+    if kinds != {"policy_input"}:
+        raise RelgenError(f"collate_rows: rows of one batch must share one input kind, got {sorted(kinds)}")
+    from rrp.policies.nets.batch import BANKS, collate_inputs
     pis = [r["inputs"]["policy_input"] for r in rows]
     batch = collate_inputs(pis)
     C = batch.ctx_mask.shape[1]
@@ -256,6 +299,51 @@ def collate_rows(rows, family: str):
             val[ix], ok[ix] = lab.value, lab.valid
         out.setdefault("ctx", {}).update({name: torch.from_numpy(val), name + ".valid": torch.from_numpy(ok)})
     return dataclasses.replace(batch, extra={**batch.extra, "relation_labels": out})
+
+
+def _collate_legged(rows, family: str, attach: dict) -> dict:
+    """Legged rows -> the public batch dict of `LeggedData.ctx_batch` ([B, ...] tensors, one key per stored array) plus,
+    when a row carries the `foothold_next` label, the training-only `foothold_cell` [B, M] the legged relation graph turns
+    back into that label (-2 absent: the foot has no valid cell pair, -1 planted: valid pairs, none true, >= 0 the true
+    cell's index in the terrain scan). The ctx token layout of a legged row is `[glob | N joints | M limbs | M feet | C
+    cells]` (`legged_tokens`; N, M the padded batch dims, C the scan length or 0) and `inputs["tokens"]["ctx"]` is that
+    many entity ids. Rows have no action target: nothing here builds one."""
+    import torch
+    from rrp.policies.relations.base import FactorError
+    keys = {tuple(sorted(r["inputs"]["legged_batch"])) for r in rows}
+    if len(keys) != 1:
+        raise RelgenError(f"collate_rows: legged rows carry different arrays ({sorted(keys)}): one shard run, one featurizer")
+    lbs = [r["inputs"]["legged_batch"] for r in rows]
+    b = {k: torch.from_numpy(np.stack([lb[k] for lb in lbs])) for k in lbs[0]}
+    B, N = b["node_mask"].shape
+    M = b["asm_mask"].shape[1]
+    C = b["terrain"].shape[1] if "terrain" in b else 0
+    T = 1 + N + 2 * M + C
+    for i, r in enumerate(rows):
+        if len(r["inputs"]["tokens"]["ctx"]) != T:
+            raise RelgenError(f"row {i}: {len(r['inputs']['tokens']['ctx'])} ctx entity ids for a legged layout "
+                              f"[glob | {N} joints | {M} limbs | {M} feet | {C} cells] = {T} tokens")
+    names = sorted({n for r in rows for n, l in r["labels"].items() if l.prov != "none"})
+    for name in names:
+        if attach.get(name) != "ctx" or name != "foothold_next":
+            raise FactorError(f"label {name!r} cannot be carried by a legged shard row: the legged graph builds only "
+                              f"`foothold_next` from the batch ({sorted(attach)}); `leg.com_support` is a readout through "
+                              "the representation z and has no shard-row label")
+    if names:
+        fc = np.full((B, M), -2, dtype=np.int64)
+        f0, c0 = 1 + N + M, 1 + N + 2 * M
+        for i, r in enumerate(rows):
+            lab = r["labels"].get("foothold_next")
+            if lab is None or lab.prov == "none":
+                continue
+            if lab.valid.shape != (T, T):
+                raise RelgenError(f"foothold_next of row {i} has shape {lab.valid.shape}, its tokens are {T}")
+            for m in range(M):
+                ok, y = lab.valid[f0 + m, c0:], lab.value[f0 + m, c0:, 0]
+                if ok.any():
+                    fc[i, m] = int(np.argmax(y)) if (y * ok).max() > 0 else -1
+        b["foothold_cell"] = torch.from_numpy(fc)
+    return b
 
 
 def _curriculum(cur: dict, specs, relgen_dir) -> tuple:
@@ -330,6 +418,14 @@ class RelationBatches:
         if len(past) != len(records):
             self._sched_path.write_text("".join(json.dumps(r, sort_keys=True) + "\n" for r in past))
         seed = int(cfg["seed"])
+        scale = cfg.get("factor_loss_scale", FACTOR_LOSS_SCALE)
+        if isinstance(scale, bool) or not isinstance(scale, (int, float)) or not 0 < scale < float("inf"):
+            raise RelgenError(f"params.factor_loss_scale must be a positive number (the factor term's weight against the "
+                              f"task loss; default {FACTOR_LOSS_SCALE}), got {scale!r}")
+        self.factor_loss_scale = float(scale)
+        self._cal_path = self.out / "factor_calibration.json"
+        cal = json.loads(self._cal_path.read_text()) if start_step > 0 and self._cal_path.exists() else {}
+        self.loss_ref, self.mae_ref = dict(cal.get("loss_ref", {})), dict(cal.get("mae_ref", {}))
         self.scheduler = Scheduler.replay_records(self.cfg, seed, past)[0] if past else Scheduler(self.cfg, seed)
         self._lines = past[-1]["steer_line"] if past else 0
         self._pending: list = []
@@ -372,30 +468,65 @@ class RelationBatches:
         self._pending.append([int(step), metrics])
 
     def observe_estimates(self, step: int, metrics: dict) -> None:
-        """`estimates_loss` metrics -> per-factor competence: `<factor>_acc` = (hits, count) pairs, count > 0."""
-        m = {k[:-4]: {"competence": h / n} for k, (h, n) in metrics.items() if k.endswith("_acc") and n > 0
-             and k[:-4] in self.cfg.factors}
+        """`estimates_loss` metrics -> per-factor competence for the scheduler (`curriculum.estimate_competence`): a
+        `<factor>_acc` readout is its hit rate, a `<factor>_mae` field factor the fraction of its initial mean absolute
+        error removed (the first observation of a factor sets that reference and is recorded in
+        `factor_calibration.json`, so a resumed run keeps it)."""
+        from rrp.harness.data.relgen.curriculum import estimate_competence
+        new = {k[:-4]: h / n for k, (h, n) in metrics.items() if k.endswith("_mae") and n > 0
+               and k[:-4] in self.cfg.factors and k[:-4] not in self.mae_ref}
+        if new:
+            self.mae_ref.update({f: max(v, 1e-12) for f, v in new.items()})
+            self._save_calibration()
+        m = estimate_competence(metrics, self.mae_ref, self.cfg.factors)
         if m:
             self.observe(step, m)
+
+    def _save_calibration(self) -> None:
+        tmp = self._cal_path.with_suffix(".tmp")
+        tmp.write_text(json.dumps({"loss_ref": self.loss_ref, "mae_ref": self.mae_ref,
+                                   "factor_loss_scale": self.factor_loss_scale}, indent=1, sort_keys=True))
+        tmp.replace(self._cal_path)
 
     def draw(self, dev):
         """`(step record, shard Batch on dev | None)`: the next step's composition and its collated shard rows (None when
         the scheduler gave this step no relgen share)."""
         b = next(self)
-        return b, (collate_rows(b["relgen"], self.family).to(dev) if b["relgen"] else None)
+        if not b["relgen"]:
+            return b, None
+        shard = collate_rows(b["relgen"], self.family)
+        return b, ({k: v.to(dev) for k, v in shard.items()} if isinstance(shard, dict) else shard.to(dev))
 
     def loss(self, rc, step: int):
-        """The factor loss of a forwarded shard batch (`rc` = that forward's `RelCtx`): `estimates_loss` over the run's
-        factor specs, its metrics fed to the scheduler at `step`. Returns `(loss, logs)`."""
+        """The factor loss of a forwarded shard batch (`rc` = that forward's `RelCtx`), calibrated by the one rule of this
+        module: `estimates_loss` per factor spec, `factor_loss_scale * mean_f(loss_f / ref_f)` over the factors that wrote
+        a term, `ref_f = max(|loss_f at its first observation|, 1)` (kept in `factor_calibration.json`); the metrics are
+        fed to the scheduler at `step`. Returns `(loss, logs)`: `probe_<f>` the raw per-factor terms, `relgen_raw` their
+        weighted sum before calibration."""
         from rrp.policies.relations.base import estimates_loss
-        el, logs, metrics = estimates_loss(rc, self.specs)
+        if rc is None:
+            raise RelgenError(f"step {step}: the net built no relation context for the shard rows (a `legged-none` / "
+                              "factor-less net has no estimate to supervise): give the net factors or drop the curriculum")
+        terms, logs, metrics, raw = [], {}, {}, 0.0
+        for sp in self.specs:
+            l, lg, mt = estimates_loss(rc, (sp,))
+            metrics.update(mt)
+            if lg:
+                logs.update(lg)
+                terms.append((sp.name, l))
+                raw += float(l.detach())
         silent = [f for f in self._active if f"probe_{f}" not in logs]
         if silent:
             raise RelgenError(f"step {step}: scheduled factor(s) {silent} added no term to the estimate loss: the net wrote "
                               "no estimate for them (a `given` source has no readout head: give the factor "
                               "`source: probe`) or the shard rows carry no label for them")
+        fresh = {n: max(abs(float(l.detach())), 1.0) for n, l in terms if n not in self.loss_ref}
+        if fresh:
+            self.loss_ref.update(fresh)
+            self._save_calibration()
+        el = self.factor_loss_scale * sum(l / self.loss_ref[n] for n, l in terms) / len(terms)
         self.observe_estimates(step, metrics)
-        return el, logs
+        return el, dict(logs, relgen_raw=raw)
 
     def __iter__(self):
         return self

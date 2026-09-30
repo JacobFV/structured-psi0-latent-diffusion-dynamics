@@ -140,8 +140,8 @@ Closes open item 1. Nothing about the training loop changed in F0 (no new params
 ## R2 RG: relgen reaches the arm trainers (readiness round 2)
 
 Closes the R1 observation gap for the arm family and the hook wiring (open item 1).
-- Forwardable rows: a shard row stores the snapshot's `PolicyInput` arrays plus its ctx token entity ids (`relgen-shard-2`; a
-  shard-1 manifest or a row without `policy_input` is refused, no reader for the old layout). `SnapshotCollector` takes the
+- Forwardable rows: a shard row stores the snapshot's `PolicyInput` arrays plus its ctx token entity ids (`relgen-shard-3`, `input_kind` per row; a
+  shard-1 / shard-2 manifest or a row without `policy_input` is refused, no reader for the old layout). `SnapshotCollector` takes the
   observation from `on_reset(obs)` / `on_step(step.observation)` and featurizes it once per episode with the env's
   `featurizer_for`; morph tokens map to assemblies through the inverse `feat.bindings`, scene tokens to `view.token_entity`,
   task/interact tokens carry no entity. `relations_data_stage` collects inside `apply_run_context(rc)` (the run's kinfeat).
@@ -174,10 +174,27 @@ Closes the R1 observation gap for the arm family and the hook wiring (open item 
   launch found that `rrp stage run` validates the RunConfig before loading the pipeline modules, so the stage `relations_data`
   is unknown to a leased job (`base.py`, not RG's): the smoke used a peer-side `sitecustomize` preloading
   `rrp.harness.pipelines.relations` (RRP_PEER_PYTHONPATH, not in the repo).
-- Open: (1) the init-time factor loss (about 330 for depth3d) is two orders above the flow loss: a loss weight
-  (`curriculum.weight`) is probably needed before the real run; (2) `observe_estimates` reads `<factor>_acc` only, so the
-  field-estimate factors (depth3d, normal_align, pos3d, orient) give the scheduler no competence signal (`metrics` is empty in
-  `schedule.jsonl`); (3) `FlowPolicy.loss` discards the `estimates_loss` metrics, so the trainer does a second
-  prepare + estimates pass on the shard rows only (`nets/flow.py` is RC's); (4) `train_bc`'s arm.py config ignores `inputs`, so
-  BC shards come through `params.curriculum.shards`; the BC main batch cannot be resized (shard share weights the loss only);
-  (5) task / interact tokens carry no entity id; (6) legged / HD2 need their own collate (HL).
+- Open (round 2): (3) `FlowPolicy.loss` discards the `estimates_loss` metrics, so the trainer does a second prepare + estimates
+  pass on the shard rows only (`nets/flow.py` is RC's); (5) task / interact tokens carry no entity id.
+- Round 3 (relgen-train, D-146 round-3 addendum), closing the round-2 items 1, 2, 4 and 6 in this file:
+  - (1) One calibration rule, `RelationBatches.loss`: the shard factor term is `factor_loss_scale * mean_f(loss_f / ref_f)`,
+    `ref_f = max(|loss_f at its first observation|, 1)` per factor (`factor_calibration.json` in the run dir, restored on
+    resume), one run-config `params.factor_loss_scale`, default `mix.FACTOR_LOSS_SCALE = 0.2` = 0.1 x the flow loss at init (a
+    unit-variance rectified-flow target: 2). The raw term stays in the log as `relgen_raw` (the 330 of depth3d); fixture tests:
+    raw / flow > 100 at a scripted 330, calibrated / flow = 0.1 (`test_legged_relgen.py`), calibrated step-0 term <= 0.2 in every
+    trainer run. The curriculum `weight` key is not the knob. The in-data `estimates_loss` of the pack rows (legged `rep_step` /
+    `LeggedBC.loss`) is unchanged: only shard rows are calibrated.
+  - (2) Every readout factor has a competence: `<f>_acc` the hit rate, `<f>_mae` the fraction of the initial mean absolute error
+    removed (`curriculum.estimate_competence`; the first observation sets the reference, so it reads 0), both in `schedule.jsonl`.
+  - (4) The legged BC trainer reads `cfg["relgen"]` / `params.curriculum` through the same `relation_batches` path as the other
+    trainers (no `curriculum.shards` needed). The arm `train_bc` stage (`pipelines/arm.py`) still drops `inputs`, so arm BC takes
+    shards through `params.curriculum.shards` until that stage passes `cfg["relgen"]` (not this unit's file).
+  - (6) Legged / humanoid: `refuse_relgen` is gone. `write_shard` takes `inputs["legged_batch"]` (the arrays of
+    `LeggedData.ctx_batch` at one tick, no batch axis, no `foothold_cell`) and `input_kind` says which input a row holds;
+    `collate_rows(rows, "legged")` stacks them into the batch dict and turns the `foothold_next` label (ctx tokens `[glob | N
+    joints | M limbs | M feet | C cells]`) back into the `foothold_cell` [B, M] key (-2 absent, -1 planted, >= 0 the cell) the
+    legged graph builds it from. `train_rep` (E.encode), `train_flow` (F.prepare) and `legged_bc.train` (prepare) forward them
+    with the action loss on the pack rows only; BC's batch keeps its B pack rows and the shard share weights the loss.
+  - Not done (not this unit's files): no producer writes `legged_batch` rows yet (`pipelines/relations.py` has no legged
+    featurizer; `foothold_next` is all-invalid until a backend emits terrain cells); `leg.com_support` is a readout through P on z
+    and cannot be scheduled from shard rows (the error says so); `docs/relations.md` section 10 row for legged still says refused.

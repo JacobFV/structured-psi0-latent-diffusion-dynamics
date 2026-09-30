@@ -4,8 +4,8 @@ to the checkpoint, `<out stem>.relgen/`).
 
 Main rows carry the teacher's `ui.drag_to` label (`Demos.drag_labels`); relgen rows must carry the pointer family's public
 inputs (`row["inputs"]`: the keys of `Demos.batch`'s public batch), because the net cannot run on a label alone. Shards written
-before the relgen `PolicyInput` rows have `inputs == {}`, and relgen-shard-2 shards carry the arm family's `policy_input` + entity
-ids instead of the pointer batch: both are refused by name (`FactorError`), never mixed as labels without inputs.
+before the relgen `PolicyInput` rows have `inputs == {}`, and relgen-shard-3 shards carry the arm family's `policy_input` (or the legged
+`legged_batch`) + entity ids instead of the pointer batch: both are refused by name (`FactorError`), never mixed as labels without inputs.
 Only the factor loss reads the relgen rows (they have no demo chunk); the action losses read the main rows."""
 from __future__ import annotations
 

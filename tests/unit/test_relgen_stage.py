@@ -115,7 +115,7 @@ def test_relations_data_writes_shard_and_manifest(tmp_path):
     assert set(result["factors"]) == {"test.r10.pos3d"}
     man = result["factors"]["test.r10.pos3d"]
     # 2 episodes x 2 rows (test.double) = 4 rows written
-    assert man["n_episodes"] == 4 and man["schema"] == "relgen-shard-2"
+    assert man["n_episodes"] == 4 and man["schema"] == "relgen-shard-3"
     for row in man["episodes"]:
         assert row["active"] == ["test.r10.pos3d", "test.r10.nolabel"]           # active set recorded
         assert row["labels"] == [{"label": "test.pos3d", "prov": "gt", "version": "3"}]   # label + version recorded
@@ -328,11 +328,11 @@ def test_hook_splits_the_batch_and_writes_schedule_jsonl(tmp_path):
     for b in bs:
         assert b["counts"] == {"main": 4, "geo.pos3d": 4} and len(b["relgen"]) == 4 and b["main"] == []
         assert b["relgen"][0]["inputs"]["policy_input"].tokens["morph"].shape == (2, 3)
-    batches.observe_estimates(1, {"geo.pos3d_acc": (3.0, 4), "geo.pos3d_mae": (1.0, 4)})     # only `_acc` is competence
+    batches.observe_estimates(1, {"geo.pos3d_acc": (3.0, 4), "geo.pos3d_mae": (1.0, 4)})     # a factor with both: the hit rate
     recs = [json.loads(l) for l in (out / "schedule.jsonl").read_text().splitlines()]
     assert [r["step"] for r in recs] == [0] and recs[0]["share"]["geo.pos3d"] == 0.5     # interval 2: one decision in 2 steps
     assert recs[0]["steers"] == [] and recs[0]["steer_line"] == 0
-    assert batches._pending == [[1, {"geo.pos3d": {"competence": 0.75}}]]             # `_mae` gives no competence
+    assert batches._pending == [[1, {"geo.pos3d": {"competence": 0.75}}]]             # (`_mae` alone gives the fraction of the initial error removed)
 
 
 def test_no_curriculum_is_no_hook_and_relgen_alone_or_with_prefetch_is_refused(tmp_path):

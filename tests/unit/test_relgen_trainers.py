@@ -21,7 +21,7 @@ import rrp.harness.train.latent_train as latent_train
 from rrp.envs.mujoco.fixtures import make_pick_place_session
 from rrp.harness.data.collect import collect_teacher_episode, write_episode
 from rrp.harness.data.manifest import write_manifest
-from rrp.harness.data.mix import RelgenError, collate_rows, load_shard_rows
+from rrp.harness.data.mix import FACTOR_LOSS_SCALE, RelgenError, collate_rows, load_shard_rows
 from rrp.harness.data.packed import pack_dataset
 from rrp.harness.data.relgen import load_families
 from rrp.harness.data.relgen.curriculum import Scheduler
@@ -107,7 +107,7 @@ def test_collate_rows_refuses_a_label_the_family_does_not_attach_to_ctx(world):
 def _spy(monkeypatch, mod, action_loss_attr=None):
     """Record what the trainer's hook drew (composition, shard rows), each shard factor loss, and the size of every batch the
     ACTION loss saw (+ whether it carried relation labels)."""
-    rec = SimpleNamespace(rel=None, counts=[], shard_rows=[], el=[], el_grad=[], action_rows=[], action_labelled=[])
+    rec = SimpleNamespace(rel=None, counts=[], shard_rows=[], raw=[], el=[], el_grad=[], action_rows=[], action_labelled=[])
     real = mod.relation_batches
 
     def wrapped(*a, **k):
@@ -123,6 +123,7 @@ def _spy(monkeypatch, mod, action_loss_attr=None):
 
         def l(rc, step):
             el, logs = loss(rc, step)
+            rec.raw.append(logs["relgen_raw"])
             rec.el.append(float(el.detach()))
             rec.el_grad.append(el.requires_grad)
             return el, logs
@@ -145,8 +146,11 @@ def _check(rec, out: Path, seed: int):
     assert rec.shard_rows == [N_REL] * STEPS
     assert len(rec.el) == STEPS and all(np.isfinite(rec.el)) and min(rec.el) > 0 and all(rec.el_grad)   # factor loss on
     assert not any(rec.action_labelled)                                      # no action loss on a shard row
+    assert rec.el[0] <= FACTOR_LOSS_SCALE * 1.0001 and rec.raw[0] > 0         # calibrated: at most the one scale at init
     recs = [json.loads(l) for l in (out / "schedule.jsonl").read_text().splitlines()]
     assert [r["step"] for r in recs] == [0, 2]                               # interval 2 over 3 steps
+    obs = [m for _, m in recs[1]["metrics"]]                                 # the field factor's competence reaches the scheduler
+    assert obs and all(0.0 <= m["geo.pos3d"]["competence"] <= 1.0 for m in obs) and obs[0]["geo.pos3d"]["competence"] == 0.0
     _, seq = Scheduler.replay_records(rec.rel.cfg, seed, recs, steps=range(STEPS), n=B_SIZE)
     assert [[(sorted(fs), c) for fs, c in s if c > 0] for s in seq] == [[(["geo.pos3d"], N_REL)]] * STEPS
 

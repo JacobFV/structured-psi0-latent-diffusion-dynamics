@@ -76,17 +76,14 @@ def _unit_probe_specs(specs) -> tuple:
     return tuple(replace(s, weight=None) if get_factor(s.name).form == "readout" else s for s in specs)
 
 
-def refuse_relgen(cfg: dict, stage: str) -> None:
-    """Relation shards (`params.curriculum` / `inputs.relgen`, `harness.data.mix.relation_batches`) hold the ARM family's
-    collate input (`PolicyInput` token banks, `collate_rows`): a row cannot be forwarded through the legged nets, whose
-    input is the morphology / joint-state / context / terrain batch of `LeggedData.train_batch`. A run that asks for them
-    is refused at start rather than ignoring the curriculum (a silent main-data-only run would report a mix it never
-    trained) or failing at the first scheduled step. Lifted when relgen can featurize and collate a legged snapshot."""
-    from rrp.harness.data.mix import RelgenError
-    if cfg.get("curriculum") is not None or cfg.get("relgen"):
-        raise RelgenError(f"legged-latent {stage}: params.curriculum / inputs.relgen are set, but relation shard rows carry "
-                          "the arm family's collate input and cannot be forwarded through the legged nets (no legged "
-                          "featurizer / collate in relgen)")
+def legged_relation_batches(cfg: dict, out: Path, specs, batch_size: int, start_step: int):
+    """The relgen shard hook of the legged / humanoid trainers (`harness.data.mix.relation_batches`, family `legged`):
+    `params.curriculum` / `inputs.relgen` turn a share of each batch into shard rows (the legged public batch of a
+    snapshot plus its privileged labels, no action target), forwarded for the factors' estimate losses only; None when the
+    run has neither. The seed defaults to the trainer's (`cfg["seed"]`, 0)."""
+    from rrp.harness.data.mix import relation_batches
+    return relation_batches({**cfg, "seed": cfg.get("seed", 0)}, out, specs, batch_size=batch_size, family="legged",
+                            start_step=start_step)
 
 
 def _assert_sealed(cfg: dict) -> None:
@@ -516,7 +513,6 @@ def _save(path, **kw):
 
 def train_rep(cfg, out: Path):
     _assert_sealed(cfg)
-    refuse_relgen(cfg, "rep")
     dev = _dev()
     torch.manual_seed(cfg.get("seed", 0))
     rng = np.random.default_rng(cfg.get("seed", 0))
@@ -541,10 +537,20 @@ def train_rep(cfg, out: Path):
     t0 = time.time()
     B = cfg.get("batch_size", 256)
     ck, sn = cfg.get("ckpt_every", 500), cfg.get("snap_every", 0)
+    # relgen shards (docs/relations.md 5.5): params.curriculum shares of the batch are shard rows, forwarded through E's
+    # context with the factors' estimate losses on and no action target; the rest is the pack batch
+    rel = legged_relation_batches(cfg, out, specs, B, step0)
     for step in range(step0 + 1, steps + 1):
-        i = data.sample(B, rng)
-        j = torch.from_numpy(rng.integers(0, MAX_J + 1, B)).to(dev)
+        shard, Bm = None, B
+        if rel is not None:
+            b_, shard = rel.draw(dev)
+            Bm = b_["counts"]["main"]
+        i = data.sample(Bm, rng)
+        j = torch.from_numpy(rng.integers(0, MAX_J + 1, Bm)).to(dev)
         loss, logs, _ = rep_step(E, R, P, data, i, j, specs, lc.get("beta_kl", 1e-3), qd_drop=lc.get("qd_dropout", 0.0))
+        if shard is not None:
+            el, elogs = rel.loss(E.encode(shard, None)[2], step - 1)
+            loss, logs = (Bm * loss + (B - Bm) * el) / B, dict(logs, relgen=float(el.detach()), n_relgen=B - Bm, **elogs)
         opt.zero_grad()
         loss.backward()
         gn = torch.nn.utils.clip_grad_norm_(params, 1.0)
@@ -616,7 +622,6 @@ def fit_probe(cfg, out: Path):
 
 
 def train_flow(cfg, out: Path):
-    refuse_relgen(cfg, "flow")
     dev = _dev()
     torch.manual_seed(cfg.get("seed", 0))
     rng = np.random.default_rng(cfg.get("seed", 0))
@@ -661,6 +666,7 @@ def train_flow(cfg, out: Path):
     t0 = time.time()
     B = cfg.get("batch_size", 256)
     ck, sn = cfg.get("ckpt_every", 500), cfg.get("snap_every", 0)
+    rel = legged_relation_batches(cfg, out, F_.specs, B, step0)      # shard rows: factor losses only (see train_rep)
     for step in range(step0 + 1, steps + 1):
         if step > step0 + 1 and step % ck == 1 and step - 1 < steps:
             _save(last, flow=F_.state_dict(), opt=opt.state_dict(), sch=sch.state_dict(), step=step - 1,
@@ -669,7 +675,11 @@ def train_flow(cfg, out: Path):
             _save(out / f"snap_s{step - 1}.pt", flow=F_.state_dict(), cfg=cfg, specs=specs,
                   result=dict(latent_space_version=rres["latent_space_version"], step=step - 1,
                               upper_trained=rres.get("upper_trained", False), action_groups=rres.get("action_groups")))
-        i = data.sample(B, rng)
+        shard, Bm = None, B
+        if rel is not None:
+            b_, shard = rel.draw(dev)
+            Bm = b_["counts"]["main"]
+        i = data.sample(Bm, rng)
         b = data.train_batch(i)
         with torch.no_grad():
             zt, _ = E(b, data.beh(i))
@@ -677,6 +687,9 @@ def train_flow(cfg, out: Path):
         fn = (lambda zc: readout_loss(*_terms(legged_probe_read(P, zc, b["asm_mask"], b["body_asm"]), lab, b, unit))) \
             if w > 0 else None
         loss, logs = F_.loss(b, zt, fn, w, cfg.get("packet_tau_min", 0.6))
+        if shard is not None:
+            el, elogs = rel.loss(F_.prepare(shard).rc, step - 1)
+            loss, logs = (Bm * loss + (B - Bm) * el) / B, dict(logs, relgen=float(el.detach()), n_relgen=B - Bm, **elogs)
         opt.zero_grad(); loss.backward()
         gn = torch.nn.utils.clip_grad_norm_(F_.parameters(), 1.0)
         opt.step(); sch.step()

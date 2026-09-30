@@ -10,7 +10,6 @@ import numpy as np
 import pytest
 import torch
 
-from rrp.harness.data.mix import RelgenError
 from rrp.harness.train import legged_bc as TB
 from rrp.harness.train import legged_latent_train as T
 from rrp.policies.features.legged import GLOBAL_DIM, target_slot_cols
@@ -152,11 +151,3 @@ def test_old_waypoint_pack_still_trains_and_labels_its_goal_from_the_context(tmp
     assert lab["goal_valid"].all()                                # event 0 of waypoint_contact: waypoint_a, slot 0
     res = T.train_rep(_cfg(tmp_path / "d", [PROBES]), tmp_path / "rep")
     assert res["upper_trained"] is False and res["action_groups"] == ["legs"]
-
-
-@pytest.mark.parametrize("stage", ["rep", "flow", "bc"])
-def test_relgen_curriculum_is_refused_not_ignored(tmp_path, stage):
-    _write_pack(tmp_path / "d", "h_reach", wholebody=True)
-    cfg = dict(_cfg(tmp_path / "d", [PROBES]), curriculum={"factors": ["leg.foothold"]})
-    with pytest.raises(RelgenError, match="legged"):
-        {"rep": T.train_rep, "flow": T.train_flow, "bc": TB.train}[stage](cfg, tmp_path / "out")
