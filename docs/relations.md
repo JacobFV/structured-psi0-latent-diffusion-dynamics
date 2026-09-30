@@ -368,38 +368,90 @@ first rung of the curriculum (5.5), not the whole data design.
   changes); `q_t` switches; metric = steps until KL(q_t‖p̂_t) < ε. Synthetic generator over task graphs + scene
   candidates (no physics) and a relabeller of recorded episodes (contact graph from `StateView.contacts`).
 
-### 5.5 progressive composition curriculum (1 → 2 → k → full world)
+### 5.5 progressive composition curriculum: one responsive, steerable scheduler
 
 Decoupling pairs isolate one dynamic; the full world mixes all of them. Training walks between the two: batches mix
 scenes with increasingly many active factors / dynamics (contact → contact + support → contact + support +
-articulation → ... → full task scenes), while lower-k data keeps the isolated subspaces maintained.
+articulation → ... → full task scenes), lower-k data keeps isolated subspaces maintained, and the mix REACTS to what
+the model is measured to struggle with. One scheduler object, one steer grammar, no per-factor special cases.
 
 ```python
 @dataclass
-class Curriculum:                     # lives in the one data-mix stage; JSON-able; recorded in the run provenance
-    factors: tuple[str, ...]          # the dynamics / factors in play (from the resolved factor list + parts)
-    k_schedule: Callable[[int], int] | list[tuple[int, int]]   # step -> max active-set size (ramp 1 -> K)
-    subset_sampler: Literal["coverage", "uniform", "weakest"] = "coverage"
-                                      # coverage: least-seen subsets of size k first; weakest: subsets containing the
-                                      # factors with the lowest probe competence
-    replay: dict[int, float] = {1: 0.2}           # share kept for lower-k levels (maintains isolated subspaces)
-    full_world: Callable[[int], float] = ramp(0.0, 0.5)    # rising share of full task scenes (the main data)
-    promote: dict[str, float] = {}    # per-factor readout-quality gate: a factor joins larger subsets only once its
-                                      # probe metric passes (e.g. {"ix.contact": 0.9 acc, "geo.depth3d": 0.02 m})
-    def active_sets(self, step, competence: dict[str, float], rng) -> list[tuple[frozenset[str], float]]
-                                      # (active set, batch share) for this step; compose(parts covering the set)
+class ScheduleState:                  # JSON; exported every decision interval (viz room, provenance)
+    step: int
+    level: dict[str, int]             # per factor: its current max composition depth k_f (promotion is per factor)
+    share: dict[str, float]           # per factor: share of relgen rows exercising it (after bounds)
+    full_world: float                 # share of full task scenes (the main data)
+    replay: dict[int, float]          # share per lower level k
+    frozen: frozenset[str]; dropped: frozenset[str]; pins: dict[str, int]; boosts: list[Boost]   # steering state
+    signals: dict[str, dict]          # smoothed signals per factor (below)
+    reasons: list[str]                # why the last decision changed anything ("boost ix.support: competence 0.61 < 0.8, plateau 3 windows")
+
+@dataclass(frozen=True)
+class SchedulerConfig:                # the initial schedule (declarative, in the run config under `curriculum:`)
+    factors: tuple[str, ...]          # default: every resolved factor with a label / part
+    interval: int = 500               # decision interval (steps)
+    promote: dict[str, float] = {}    # competence thresholds per factor (default from the ReadoutDef metric)
+    ema: float = 0.9                  # signal smoothing
+    hysteresis: float = 0.05          # promote at thr, demote only below thr - hysteresis; boosts need 2 consecutive intervals
+    share_min: float = 0.02; share_max: float = 0.35   # per-factor bounds (nothing starves, nothing dominates)
+    full_world_floor: Callable = ramp(0.1, 0.8)        # rising target; once reached, the floor never decreases
+    replay_min: float = 0.1           # total lower-level share kept
+    boost_gain: float = 1.5; max_step_change: float = 0.25   # multiplicative, rate-limited adjustments
+
+class Scheduler:                      # rrp.harness.data.relgen.curriculum; the ONLY sampler of relgen rows
+    def __init__(self, cfg: SchedulerConfig, parts, seed: int)
+    def observe(self, step: int, metrics: dict[str, dict]) -> None   # per factor: probe quality, loss, interference,
+                                                                     # eval failures attributed to it (by active set)
+    def decide(self, step: int) -> ScheduleState                     # every `interval`: update signals -> shares/levels
+    def sample(self, step: int, n: int, rng) -> list[tuple[frozenset[str], int]]   # (active set, count) for a batch
+    def steer(self, op: SteerOp) -> None                             # validated; appended to the steer log
+    def replay(cls, cfg, seed, steer_log, metrics_log) -> "Scheduler"   # reproduces the sampling sequence exactly
 ```
 
-- **Composition is an operator, not a list of combos**: `active_sets` picks sets; `compose` picks the parts that cover
-  each set (minimal cover; requires closed; conflicts rejected; env compatibility from `ScenePart.envs` and label
-  `needs`). A new part or factor joins every level automatically.
-- **Promotion by competence**: the stage reads the latest per-factor readout metrics (`readout_metrics`, logged by the
-  trainer) and gates promotion; a factor whose probe regresses is re-weighted toward lower-k replay.
-- **Provenance**: every sample records its active set; `readout_metrics` are reported per factor × composition depth
-  (k) and per active set.
+**Signals** (per factor f, EMA-smoothed over decision intervals, evaluated on held-out relgen rows at f's current
+level and on full-world rows): competence `c_f` (its readout metric normalized to [0, 1] against its promotion
+threshold), plateau `p_f` (relative loss improvement over the last 3 intervals < 1 %), interference `i_f = max_g
+interference(f, g)` (5.5 metric below), attributed failures `e_f` (fraction of eval failures whose recorded active set
+or failure reason names f). Struggle score `s_f = (1 − c_f) + 0.5·p_f + i_f + e_f`.
+
+**Default trajectory (no intervention)**: every factor starts at k = 1 (isolated parts / decoupling pairs); a factor
+is promoted to k + 1 when `c_f ≥ thr_f` for 2 consecutive intervals, demoted when `c_f < thr_f − hysteresis`; subsets
+at a level are sampled by coverage among factors promoted to it; the full-world share follows its rising floor and
+increases further as the mean level approaches K; the end state is mostly full-world data with the replay minimum.
+Promotion is competence-driven, never step-driven (the step only feeds the full-world floor).
+
+**Responsive mixing**: shares are proportional to `share_min + s_f`, then clipped to `[share_min, share_max]`,
+renormalized, and rate-limited (`max_step_change` per interval). A factor with high `s_f` at its level for 3
+intervals and rising `i_f` drops back one level (k_f − 1) for a bounded period (hysteresis prevents oscillation).
+The full-world floor, once reached, is never undercut by boosts. Every change appends a human-readable reason.
+
+**Steering** (`rrp steer <run> <op> ...` or a line appended to `<run>/steer.jsonl`, picked up at the next decision
+interval; no restart, no code). Grammar (one op per line, JSON or CLI form):
+
+| op | effect |
+|---|---|
+| `boost <f> x<g> for <n>` | multiply f's share by g for n steps (still bounded by share_max unless `--force`) |
+| `pin <f> k=<k>` / `unpin <f>` | hold f's level |
+| `freeze <f>` / `unfreeze <f>` | keep f's share and level constant |
+| `drop <f>` / `restore <f>` | remove f from sampling (its readout loss masked) / put it back |
+| `set full_world>=<x>` / `set share_max=<x>` / `set <cfg field>=<v>` | change a schedule bound |
+| `add part <name>` | register an already-registered ScenePart into the pool (a new part is code: it must exist in PARTS) |
+| `revert <n>` / `revert to <step>` | restore the schedule state before the last n steers / at a step |
+
+Each steer is validated against the registry and bounds (a rejected op is logged with the reason), stamped with
+(step, wall time, author, reason) and stored in the run provenance; `Scheduler.replay(cfg, seed, steer_log,
+metrics_log)` reproduces the exact sampling sequence (decisions depend only on those four inputs). The state and its
+reasons are exported each interval (`<run>/schedule.jsonl`) for the viz room.
+
+- **Composition is an operator, not a list of combos**: the scheduler picks active sets; `compose` picks the parts
+  that cover each set (minimal cover; requires closed; conflicts rejected; env compatibility from `ScenePart.envs` and
+  label `needs`). A new part or factor joins every level automatically.
+- **Provenance**: every sample records its active set and the schedule step that drew it; `readout_metrics` are
+  reported per factor × composition depth k and per active set.
 - **Interference metric**: `interference(f, g) = metric_f(sets with f, without g) − metric_f(sets with f and g)` at
-  matched k and step; the eval table flags pairs whose interference exceeds a threshold (a factor's probe degrading
-  when another is added). Reported by `rrp suite relations-curriculum` from the saved per-sample metrics.
+  matched k and step window; flagged above a threshold; feeds `i_f`. `rrp suite relations-curriculum` prints
+  competence by depth, interfering pairs and the schedule history with reasons.
 - **Orthogonal transforms**: reveal / surprise / cf_swap / noise / occlude apply at any level (they act on the
   composed sample's label stream), so epistemic training runs from k = 1 upward.
 - **Composable now** (see the catalog's first wave): arm/dual MuJoCo {depth, orient, above, contact, held, support,
@@ -503,7 +555,7 @@ src/rrp/harness/data/relgen/__init__.py    LabelDef, Label, ScenePart, Transform
                                            compose, Curriculum, TokenIndex
 src/rrp/harness/data/relgen/transforms.py  reveal, surprise, cf_swap, noise, occlude, subsample     (unit G)
 src/rrp/harness/data/relgen/{geometry,contact,task,body,ui}.py   label fns + scene parts per family
-src/rrp/harness/data/relgen/curriculum.py  Curriculum, active_sets, interference                    (unit R11)
+src/rrp/harness/data/relgen/curriculum.py  ScheduleState, SchedulerConfig, SteerOp, Scheduler, interference   (F4 skeleton, R11)
 src/rrp/harness/data/mix.py                mixed_batches
 ```
 
@@ -518,7 +570,7 @@ DimEncoder on FactorSite; `PolicyConfig.factors` + legacy mapping + configs/dags
 deploy guard; `rrp factors list|show`; F4 interface skeletons with tests: `relations/probe.py` (ReadoutProbe,
 equivalence-tested against `PacketProbe`, not swapped in), `envs.base.StateView` + dataclasses,
 `harness/data/relgen/__init__.py` (LabelDef, Label, ScenePart, TransformDef, registries, `compose` signature),
-`harness/data/mix.py` (signature). Units never edit `base.py` / `ops.py`; they add entries in their own section of
+`harness/data/mix.py` (signature), `relgen/curriculum.py` (`ScheduleState`, `SchedulerConfig`, `SteerOp` grammar parser + validation, `Scheduler` interface with a uniform placeholder policy and exact replay). Units never edit `base.py` / `ops.py`; they add entries in their own section of
 `catalog.py` and in their own relgen module. A unit that needs an operator change reports it to the lead instead.
 
 Rules for every unit: worktree `~/work/rrp-wt/rel-<id>` on `track/rel-<id>` from origin/main;
@@ -541,7 +593,7 @@ cleanly.
 | R8 | StateView: Warp, ComputerWorld, SIMPLE | F | `envs/warp/tracker_env.py`, `envs/computerworld.py` (`state_view` only), `envs/simple/__init__.py` (`state_view`) | per-backend contract tests (CW on the fixture scene; SIMPLE on a recorded `truth()` dict; Warp on a 2-env CPU batch if available, else skip-marked) | 3 h |
 | R9 | generic transforms | F | `harness/data/relgen/transforms.py`, `tests/unit/test_relgen_transforms.py` | reveal targets = Bayes posterior on a toy candidate set; surprise flips after collapse and the recovery metric counts steps; cf_swap / noise (+var) / occlude / subsample are pure and seed-deterministic; provenance appended | 3 h |
 | R10 | relgen stage + shards + mix | F | `harness/pipelines/relations.py` (stage `relations_data`), `harness/data/mix.py`, shard/manifest format, `tests/unit/test_relgen_stage.py` | 2-episode fixture run writes shards + manifest with per-sample provenance (active set, label versions); `mixed_batches` fractions exact and seed-deterministic; missing labels masked | 4 h |
-| R11 | curriculum + composition + interference | R10 | `harness/data/relgen/curriculum.py`, `relgen/__init__.py` (`compose` body), `rrp suite relations-curriculum` (in `cli`), `tests/unit/test_curriculum.py` | `compose` closes requires, rejects conflicts, minimal cover; k ramp, coverage sampler, replay shares, promotion gate and full-world share follow the schedule exactly (table test); interference computed on synthetic per-sample metrics flags the planted pair | 4 h |
+| R11 | responsive, steerable scheduler + composition + interference | R10 | `harness/data/relgen/curriculum.py` (body), `relgen/__init__.py` (`compose` body), `rrp steer`, `rrp suite relations-curriculum` (in `cli`), `tests/unit/test_curriculum.py` | `compose` closes requires, rejects conflicts, minimal cover; default trajectory → mostly full-world on a simulated competence curve; planted struggling factor boosted within bounds, no oscillation; replay with a steer log reproduces sampling exactly; interference flags a planted pair | 6 h |
 | R12 | arm/dual fields | F | `features/{featurizer,multi,kinfeat}.py` (kinfeat → `feat.base_axes`), `nets/batch.py` (TokenSet fields from token columns), `envs/mujoco/sensors.py` (camera projection) | featurizer goldens unchanged; fields `pos3d` (+`.var`), `cam_uvd`, `orient`, `entity_id`, `assembly_id` with correct provenance on the arm fixture; projection test against MuJoCo camera math; `$RRP_KINFEAT` gone, `feat.base_axes` reproduces its features | 4 h |
 | R13 | geometry factors | R12 | `catalog.py` §geo (`geo.pos3d`, `geo.depth3d`, `geo.orient`, `geo.normal_align`, `geo.above`), `tests/unit/test_relations_geo.py` | factors resolve on arm / dual; deploy guard red/green with `source=gt`; field readout (`readout_layer`) wiring test; ≤10 min peer smoke of arm flow with `geo.depth3d source=probe` (loss decreases, depth probe error logged) | 3 h |
 | R14 | geometry labels + parts | R7 | `harness/data/relgen/geometry.py` (labels `pos3d`, `cam_uvd`, `orient`, `contact_normal`; parts `table_objects`, `camera_depth` with `vary`) | labels on arm / dual fixtures match hand-computed values; `camera_depth.vary` keeps pixel, changes depth; provenance recorded | 3 h |
@@ -597,10 +649,14 @@ containment, material, tool→target, cause→effect: new scene parts + labels) 
   config's factors, resolves labels / parts / transforms, collects or relabels episodes through `StateView`, writes
   shards `artifacts/relgen/<factor>/<version>/` with a manifest and per-sample provenance (active set, label versions,
   transforms, env, task, seed). `mix.mixed_batches` interleaves curriculum shares with the main data exactly.
-- **R11.** `Curriculum` (5.5): k schedule, subset sampler (coverage / uniform / weakest), replay shares, promotion by
-  per-factor readout competence, full-world share; `compose(parts)` (requires closure, conflicts, minimal cover, env
-  compatibility); `interference(f, g)` from per-sample metrics by active set; `rrp suite relations-curriculum` prints
-  competence by composition depth and flags interfering pairs.
+- **R11.** Fill in `Scheduler` (5.5) on the F4 skeleton: signals (competence, plateau, interference, attributed
+  failures) with EMA and hysteresis; per-factor levels promoted / demoted by competence; coverage subset sampling;
+  shares from struggle scores with bounds, rate limits, full-world floor and replay minimum; drop-back of struggling
+  factors; the steer ops (grammar already parsed by F4) with validation, logging and `revert`; exact `replay`;
+  `compose(parts)` (requires closure, conflicts, minimal cover, env compatibility); `interference(f, g)`;
+  `rrp steer` and `rrp suite relations-curriculum`; `schedule.jsonl` export. Tests: default trajectory on a simulated
+  competence curve reaches mostly full-world; a planted struggling factor gets boosted within bounds without
+  oscillation; replay reproduces sampling byte for byte with a steer log; invalid steers rejected and logged.
 - **R12.** Produce the arm / dual token-set fields in the collate path from existing token columns (no dataset
   rewrite): `pos3d` (+`.var` from the slot covariance), `cam_uvd` (project through the declared scene camera; add the
   projection helper to `envs/mujoco/sensors.py`), `orient` (assembly frames; objects unknown → invalid),

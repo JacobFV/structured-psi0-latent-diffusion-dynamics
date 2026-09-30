@@ -566,3 +566,94 @@ def test_train_drive_loop(golden):
                         chunks=[(c["step"], c["executed_rows"], oid(c["observation_id"]), c["sim_time"])
                                 for c in st.chunks], fin=finalize(st))) for st in sts]
     golden("loop.train.drive", _h(np.asarray(rows + [_row_h(trace)], dtype=object)))
+
+
+# ---------------------------------------------------------------- relation-bias path (D-144 F1)
+# The goldens above run with zero-init structural-bias weights, so they cannot see the relation path. These drive it
+# with seeded NON-zero weights at every site, over the real arm + dual relations, in every legacy bias mode; recorded on
+# the pre-registry code (StructuralBias / transform_relations) and kept byte-identical through the factor migration.
+# `rewired` zeroes the act>act weights: the registry's one intended change is that `rewired` also rewires act>act.
+
+def _rel_batch():
+    from rrp.bodies.catalog import workbench_robots
+    from rrp.envs.mujoco.dual import DualSession
+    from rrp.envs.mujoco.dual_scenarios import build_support_insert
+    from rrp.policies.features.featurizer import featurizer_for
+    from rrp.policies.features.multi import MultiFeaturizer
+    from rrp.policies.nets.batch import collate_inputs
+    s = _arm_session()
+    W = workbench_robots()
+    d = DualSession(build_support_insert([W["parm5l_pg2"](), W["parm6_pg2"]()], 3), seed=3)
+    return collate_inputs([featurizer_for(s)(s.observe()), MultiFeaturizer(d.model, d.scenario.robots)(d.observe())])
+
+
+def _randomize_bias(m, seed=11, zero_node=False):
+    import torch
+    g = torch.Generator().manual_seed(seed)
+    with torch.no_grad():
+        for n, p in sorted(m.named_parameters()):
+            if n.endswith("bias.w") or n.endswith("bias_c.w") or n.endswith("bias_e.w") or n.endswith("sb.w"):
+                p.copy_(torch.randn(p.shape, generator=g) * 0.7)
+                if zero_node and n.endswith("bias_e.w"):
+                    p.zero_()
+
+
+def _rel_flow(batch, seed=0, **kw):
+    import torch
+    from rrp.policies.nets.flow import FlowPolicy
+    m = FlowPolicy(_rel_cfg(**kw)).eval()
+    _randomize_bias(m, zero_node=kw.get("bias_mode") == "rewired")
+    gen = torch.Generator().manual_seed(7)
+    cache = m.prepare(batch, rewire_gen=gen)
+    B, N = cache.node_mask.shape
+    g2 = torch.Generator().manual_seed(9)
+    z = torch.randn((B, 4, N, 3), generator=g2)
+    with torch.no_grad():
+        v = m.velocity(z, torch.full((B,), 0.3), cache)
+    return _h(cache.ctx, v, *[a for a in cache.act_bias if a is not None], decimals=6)
+
+
+def _rel_cfg(**kw):
+    import torch
+    from rrp.policies.nets.flow import PolicyConfig
+    torch.manual_seed(0)
+    return PolicyConfig(**dict(dict(width=32, heads=2, ctx_layers=2, blocks=2, horizon=4, latent_dim=3, aux=False), **kw))
+
+
+@pytest.mark.parametrize("mode", ["true", "none", "zero", "reversed", "rewired"])
+def test_relation_bias_modes(golden, mode):
+    golden(f"rel.flow.{mode}", _rel_flow(_rel_batch(), bias_mode=mode))
+
+
+def test_relation_bias_unstructured_and_slots(golden):
+    b = _rel_batch()
+    golden("rel.flow.unstructured.true", _rel_flow(b, structured=False))
+    golden("rel.flow.unstructured.none", _rel_flow(b, structured=False, bias_mode="none"))
+    golden("rel.flow.slot_handles", _rel_flow(b, slot_handles=True))
+
+
+def test_relation_bias_latent_path_and_encoder(golden):
+    import torch
+    from rrp.policies.nets.latent_batch import assembly_batch
+    from rrp.policies.nets.semantic_latent import LatentConfig, TargetEncoder, assembly_tokens
+    b = _rel_batch()
+    golden("rel.flow.latent_assemblies", _rel_flow(assembly_batch(b)))
+    torch.manual_seed(0)
+    E = TargetEncoder(LatentConfig(width=32, heads=2, ctx_layers=2, enc_layers=1, knots=2, dz=4, horizon=4)).eval()
+    _randomize_bias(E)
+    B, N = b.node_feats.shape[:2]
+    a = torch.randn((B, 4, N), generator=torch.Generator().manual_seed(5))
+    with torch.no_grad():
+        mu, lv = E(b, a, torch.ones(B, 4, N, dtype=torch.bool), *assembly_tokens(b))
+    golden("rel.target_encoder", _h(mu, lv, decimals=6))
+
+
+def test_relation_bias_psi0_dims(golden):
+    import torch
+    from rrp.policies.psi0 import nets as N
+    torch.manual_seed(0)
+    morph, enc = N.Morph(), N.DimEncoder(32, 2, 2).eval()
+    _randomize_bias(enc)
+    state = torch.randn((2, 40), generator=torch.Generator().manual_seed(4))
+    with torch.no_grad():
+        golden("rel.psi0.dims", _h(enc(morph, state), decimals=6))
