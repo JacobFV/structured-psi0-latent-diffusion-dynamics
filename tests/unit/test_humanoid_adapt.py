@@ -38,7 +38,7 @@ def _short_evals(monkeypatch):
 
 @pytest.fixture(scope="module")
 def world(tmp_path_factory):
-    """A repo-like root: the pack `pack/pack.json` + `pack/n5/tinybody/` and three random source checkpoints (rep, flow, BC)
+    """(90-150 s to build on the host, so every test that takes it is marked slow.) A repo-like root: the pack `pack/pack.json` + `pack/n5/tinybody/` and three random source checkpoints (rep, flow, BC)
     trained three steps on the same tiny data."""
     root = tmp_path_factory.mktemp("ha")
     _write_pack(root / "artifacts/runs/pack" / f"n{BUDGET}", TASK, wholebody=True)
@@ -89,6 +89,7 @@ def test_adapt_stages_are_registered_and_waypoint_free_check_is_gone():
 
 
 # ---------------------------------------------------------------------------------------------------- tiny CPU runs of each stage
+@pytest.mark.slow
 def test_adapt_refit_moves_system_zero_only(world, tmp_path):
     ctx = _ctx(world, "adapt_refit", {k: INPUTS[k] for k in ("pack", "representation")}, tmp=tmp_path)
     res = HP.adapt_refit(ctx)
@@ -101,6 +102,7 @@ def test_adapt_refit_moves_system_zero_only(world, tmp_path):
     assert (ctx.out / "train_log.jsonl").exists() or STEPS < 50                      # the log rows are every 50 steps
 
 
+@pytest.mark.slow
 def test_adapt_flow_moves_system_i_only(world, tmp_path):
     ctx = _ctx(world, "adapt_flow", INPUTS, tmp=tmp_path)
     res = HP.adapt_flow(ctx)
@@ -111,6 +113,7 @@ def test_adapt_flow_moves_system_i_only(world, tmp_path):
     assert res["source_detail"].endswith("policy.pt")
 
 
+@pytest.mark.slow
 def test_adapt_bc_fine_tunes_the_whole_policy(world, tmp_path):
     ctx = _ctx(world, "adapt_bc", BC_INPUTS, tmp=tmp_path)
     res = HP.adapt_bc(ctx)
@@ -120,6 +123,7 @@ def test_adapt_bc_fine_tunes_the_whole_policy(world, tmp_path):
     assert new["result"]["upper_trained"] is True
 
 
+@pytest.mark.slow
 def test_adapt_refit_then_flow_on_the_refit_representation(world, tmp_path):
     """The joint cell: the flow warm start reads the refit representation (E identical, so the source flow still applies)."""
     c1 = _ctx(world, "adapt_refit", {k: INPUTS[k] for k in ("pack", "representation")}, tmp=tmp_path)
@@ -132,6 +136,7 @@ def test_adapt_refit_then_flow_on_the_refit_representation(world, tmp_path):
 
 
 # ---------------------------------------------------------------------------------------------------- accounting
+@pytest.mark.slow
 def test_acquisition_json_is_the_pack_record_and_names_the_native_cell(world, tmp_path):
     ctx = _ctx(world, "adapt_bc", BC_INPUTS, tmp=tmp_path)
     HP.adapt_bc(ctx)
@@ -150,6 +155,7 @@ def test_acquisition_json_is_the_pack_record_and_names_the_native_cell(world, tm
     assert st["status"] == "ready" and st["acquisition"] == dict(demos=5, teacher_ticks=1234, env_samples=0, updates=STEPS)
 
 
+@pytest.mark.slow
 def test_unmatched_update_count_is_refused(world, tmp_path):
     ctx = _ctx(world, "adapt_bc", BC_INPUTS, params=dict(steps=STEPS + 1), tmp=tmp_path)
     with pytest.raises(StageError, match="matched count"):
@@ -157,12 +163,14 @@ def test_unmatched_update_count_is_refused(world, tmp_path):
     assert not (ctx.out / "acquisition.json").exists() and not (ctx.out / "policy.pt").exists()
 
 
+@pytest.mark.slow
 def test_adapt_options_are_required(world, tmp_path):
     ctx = _ctx(world, "adapt_bc", BC_INPUTS, adapt=dict(task=TASK, body=BODY), tmp=tmp_path)
     with pytest.raises(StageError, match="options.adapt"):
         HP.adapt_bc(ctx)
 
 
+@pytest.mark.slow
 def test_a_sealed_body_trains_only_on_adaptation_seeds(world, tmp_path):
     """n1 is sealed: the pack's seeds (1, 2, 19) are source-range seeds, the stage refuses before reading or writing anything, and
     the error names the native cell id."""
@@ -176,6 +184,7 @@ def test_a_sealed_body_trains_only_on_adaptation_seeds(world, tmp_path):
     assert not (ctx.out / "policy.pt").exists()
 
 
+@pytest.mark.slow
 def test_the_adaptation_seed_range_is_accepted_for_a_sealed_body(world, tmp_path):
     ctx = _ctx(world, "adapt_bc", BC_INPUTS, tmp=tmp_path,
                adapt=dict(task=TASK, body="n1", budget=BUDGET))
@@ -228,6 +237,7 @@ def test_ppo_on_a_sealed_body_passes_only_an_adaptation_seed():
     assert HA.adapt_ppo_plan(a, dict(nworld=1000, horizon=25, seed=lo), out="o")["seed"] == lo
 
 
+@pytest.mark.slow
 def test_ppo_stage_checks_the_trainers_own_log(world, tmp_path):
     """No simulation: the trainer subprocess is stubbed. The stage writes acquisition.json only when the trainer's log ends at
     exactly the budget."""

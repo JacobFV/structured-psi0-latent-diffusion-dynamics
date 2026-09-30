@@ -34,6 +34,8 @@ def test_parked_dual_task_has_no_teacher_and_the_retired_tasks_are_gone():
         assert not (REPO / "src" / "rrp" / "tasks" / "graphs" / f"{gone}.json").exists()
         assert (REPO / ".old" / "src" / "rrp" / "tasks" / "graphs" / f"{gone}.json").is_file()
     assert not (REPO / "src" / "rrp" / "policies" / "teachers" / "legged_loco.py").exists()
+    from rrp.policies.teachers.dual_smooth import PARKED_TASKS
+    assert PARKED_TASKS == ("pivot_against_surface",)           # only the parked scenario; no retired task is named
 
 
 def test_every_h_task_has_a_step_budget():

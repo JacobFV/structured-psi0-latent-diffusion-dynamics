@@ -49,7 +49,7 @@ All JSON. Every document has `{schema: "rrp-viz/<name>/v1", generated_at, git_sh
 | `/api/training/<id>` | one training series (`rrp-viz/training-series/v1`: step[], losses{…}, grad_norm, clip_scale, lr, alpha, gate_state); ids from `/api/training` `runs[].id` |
 
 Provenance fields on every row (results, edits, robustness, training runs): `source_file` (path relative to its checkout),
-`location` (`repo` = this checkout, i.e. in git / `main` / `wt:<worktree>` / `rrp-data:<dir>` / `peer:<host>`), `in_git`, `sha1`,
+`location` (`repo` = this checkout, i.e. in git / `main` / `wt:<worktree>` / `rrp-data:<dir>` / `peer:<host>`), `in_git`, `sha256` (first 12 hex of the file's sha256),
 `copies` (identical copies found; deduplicated by content hash), `alt_paths`, `decision` (latest D-entry whose text names the file or
 its run directory), `decisions`, `decision_match` (the token that matched), `track_notes`. Results rows also carry `key_path`
 (location inside the file), `body_from` / `route_from` / `source_label_from` / `version_from` (json | key_path | path | missing),

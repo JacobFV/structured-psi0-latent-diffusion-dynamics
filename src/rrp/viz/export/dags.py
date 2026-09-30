@@ -6,7 +6,9 @@ import json
 import re
 from pathlib import Path
 
-from .common import Config, envelope, iso, sha1_bytes
+from rrp.core.provenance import digest
+
+from .common import Config, envelope, iso
 
 _ETA = re.compile(r"\bETA\b")
 
@@ -57,7 +59,7 @@ def collect(cfg: Config, peer: dict | None) -> list[dict]:
             mt = f.stat().st_mtime
         except Exception:
             continue
-        h = sha1_bytes(b)
+        h = digest(b, length=None)
         if h in by_hash:
             by_hash[h]["copies"] += 1
             by_hash[h]["mtime"] = max(by_hash[h]["mtime"], mt)

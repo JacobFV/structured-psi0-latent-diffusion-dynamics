@@ -96,7 +96,7 @@ class ArmMover:
     def tcp(self):
         return self.s._fk_site(self.r, self.h.tcp_site)
 
-    def step(self) -> dict:
+    def command(self) -> dict:
         dt = self.s.dt
         self.t_goal += dt
         tcp_now, _ = self.tcp()
@@ -209,7 +209,7 @@ class DualTeacherBase:
         self._plan()
         per: dict[int, dict] = {}
         for e, a in self.arms.items():
-            per.setdefault(a.h.robot, {}).update(a.step())
+            per.setdefault(a.h.robot, {}).update(a.command())
         return {i: NativeCommand(controller_version=self.s.robots[i].controller.version, groups=g, source=SOURCE)
                 for i, g in per.items()}
 

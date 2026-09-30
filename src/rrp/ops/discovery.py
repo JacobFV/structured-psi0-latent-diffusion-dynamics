@@ -6,7 +6,6 @@ from the local machine. Unique identifiers are redacted in written manifests.
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import re
@@ -14,6 +13,8 @@ import socket
 import subprocess
 from dataclasses import dataclass, asdict, field
 from pathlib import Path
+
+from rrp.core.provenance import digest
 
 RELEVANT = re.compile(r"(gb10|spark|dgx|peer)", re.I)
 
@@ -85,7 +86,7 @@ def local_identity() -> dict:
 
 
 def redact(v: str) -> str:
-    return "sha256:" + hashlib.sha256(v.encode()).hexdigest()[:12]
+    return "sha256:" + digest(v.encode(), length=12)
 
 
 @dataclass

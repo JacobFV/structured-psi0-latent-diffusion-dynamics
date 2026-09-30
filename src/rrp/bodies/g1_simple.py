@@ -188,9 +188,7 @@ def reads_table() -> np.ndarray:
 def spec_hash() -> str:
     """Stable identity of this command-space morphology (dims, joints, assemblies, relations); the G1 itself is simulated
     inside SIMPLE, not compiled by rrp, so there is no full `RobotSpec` for it."""
-    import hashlib
-    h = hashlib.sha256()
-    for a in (node_static(), relation_matrix(), asm_static(), DIM_PARENT, SIMPLE_QPOS_INDEX):
-        h.update(np.ascontiguousarray(a).tobytes())
-    h.update("|".join(f"{n}:{j}" for n, j in zip(DIM_NAMES, JOINT_NAMES)).encode())
-    return "g1_simple:" + h.hexdigest()[:16]
+    from rrp.core.provenance import digest
+    arrays = (node_static(), relation_matrix(), asm_static(), DIM_PARENT, SIMPLE_QPOS_INDEX)
+    return "g1_simple:" + digest(*(np.ascontiguousarray(a).tobytes() for a in arrays),
+                                 "|".join(f"{n}:{j}" for n, j in zip(DIM_NAMES, JOINT_NAMES)).encode())

@@ -15,7 +15,7 @@ The VLM is frozen (requires_grad False, eval mode); only the Resampler learns.
 """
 from __future__ import annotations
 
-import hashlib
+from rrp.core.provenance import digest, json_digest
 import json
 import os
 from dataclasses import dataclass, field, asdict
@@ -42,10 +42,8 @@ class BackboneSpec:
     attn: str = "sdpa"              # flash-attn on aarch64 unverified; not used
 
     def key(self) -> str:
-        return hashlib.sha256(json.dumps(dict(src=self.source["repo_id"], rev=self.source["revision"],
-                                              sub=self.source["subfolder"], taps=list(self.taps),
-                                              n_text=self.n_text, dtype=self.dtype), sort_keys=True).encode()
-                              ).hexdigest()[:16]
+        return json_digest(dict(src=self.source["repo_id"], rev=self.source["revision"], sub=self.source["subfolder"],
+                                taps=list(self.taps), n_text=self.n_text, dtype=self.dtype))
 
 
 def resolve_local(source: dict) -> Path:
@@ -57,22 +55,20 @@ def resolve_local(source: dict) -> Path:
 
 
 def _file_hash(paths) -> str:
-    h = hashlib.sha256()
-    for p in paths:
-        p = Path(p)
+    parts = []
+    for p in map(Path, paths):
         if p.exists():
-            h.update(p.name.encode())
-            h.update(p.read_bytes())
-    return h.hexdigest()[:16]
+            parts += [p.name.encode(), p.read_bytes()]
+    return digest(*parts)
 
 
 def image_hash(img: np.ndarray) -> str:
     a = np.ascontiguousarray(img)
-    return hashlib.sha256(str(a.shape).encode() + a.tobytes()).hexdigest()[:16]
+    return digest(str(a.shape).encode(), a.tobytes())
 
 
 def text_hash(s: str) -> str:
-    return hashlib.sha256(s.encode()).hexdigest()[:16]
+    return digest(s.encode())
 
 
 class VLMBackbone:

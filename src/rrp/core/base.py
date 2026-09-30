@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import hashlib
-import json
 import math
 from typing import Annotated, Any
 
@@ -41,9 +39,3 @@ def finite(x: float, name: str = "value") -> float:
     if not isinstance(x, (int, float)) or isinstance(x, bool) or not math.isfinite(x):
         raise ValueError(f"{name} must be finite")
     return float(x)
-
-
-def content_hash(obj: Any) -> str:
-    if isinstance(obj, BaseModel):
-        obj = obj.model_dump(mode="json")
-    return hashlib.sha256(json.dumps(obj, sort_keys=True, separators=(",", ":")).encode()).hexdigest()[:16]

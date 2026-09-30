@@ -5,12 +5,12 @@ never a learned robot-name table. Names are presentation metadata only.
 """
 from __future__ import annotations
 
-import hashlib
 from typing import Literal
 
 from pydantic import Field, model_validator
 
-from .base import Strict, content_hash
+from .base import Strict
+from .provenance import content_hash, digest
 
 JointType = Literal["hinge", "slide", "ball", "free", "fixed"]
 AssemblyKind = Literal["arm", "hand", "gripper", "leg", "base", "torso", "head", "tool", "wheel_base", "body"]
@@ -220,4 +220,4 @@ class RobotSpec(Strict):
 
 def combined_hash(hashes: list[str]) -> str:
     """Spec hash of a multi-robot session (rrp.policies.features.multi re-exports it)."""
-    return "multi:" + hashlib.sha256("|".join(hashes).encode()).hexdigest()[:16]
+    return "multi:" + digest("|".join(hashes).encode())

@@ -4,7 +4,10 @@ ignoring (a) the body of an `Env.step` implementation (that method IS an env mod
 (b) optimizer / scheduler steps (receiver named opt*, sch*, sched*, optim*). What remains must be in ALLOW, keyed
 `path::qualified.function` with the reason. The one oracle look-ahead is `policies/oracle.py::ShadowTeacher.lookahead`
 (a snapshot-restored look-ahead in a layer that may not import the harness). An entry that no longer matches a call is an
-error, so the list can only shrink."""
+error, so the list can only shrink. The three loops that were episode loops in disguise now run on rollout
+(`harness/data/collect_dual.py`, `harness/train/pointer/diagnostics.py`; the dual teacher's per-arm planner method is no
+longer called `step`); what stays is (a) oracles that advance their OWN twin / snapshot, (b) physics settle tests of a
+freshly built model and (c) vectorised pools with no per-seed episodes."""
 import ast
 import re
 from pathlib import Path
@@ -23,18 +26,12 @@ ALLOW = {
         "privileged pointer teacher oracle: advances its own twin env (never the evaluated one), not an episode loop",
     "policies/legged.py::OracleShadow.demo":
         "privileged oracle shadow that unrolls a tracker on its own copied MjData to label chunk actions, not the evaluated env",
-    "policies/teachers/dual.py::DualTeacherBase.act":
-        "`a.step()` advances the teacher's own per-arm planner, not an env",
-    "harness/data/collect_dual.py::collect_dual_episode":
-        "dual teacher collection loop on a DualSession, not yet on rollout (reported to the lead)",
     "bodies/surgery.py::validate_physics":
         "settle test of a freshly built model (finite state, drift), not an episode",
     "harness/eval/legged_catalog.py::physics_check":
         "settle test of a catalogued body (stands, finite), not an episode",
     "harness/eval/humanoid_eval.py::gap_smoke_main":
         "vectorised WarpGapEnv smoke eval (256 lanes), not a per-seed episode",
-    "harness/train/pointer/diagnostics.py::cmd_edit":
-        "pointer slot-edit diagnostic loop on a pointer env, not yet on rollout (reported to the lead)",
     "harness/train/tracker_training.py::train":
         "vectorised PPO rollout pool of the tracker trainer, not a per-seed episode",
     "harness/train/warp_tracker_ppo.py::train":
@@ -101,3 +98,11 @@ def test_allowlist_has_no_stale_entries_and_one_oracle_lookahead():
     assert not (set(ALLOW) - seen), f"stale ALLOW entries: {sorted(set(ALLOW) - seen)}"
     assert "policies/oracle.py::ShadowTeacher.lookahead" in ALLOW
     assert [k for k in ALLOW if k.startswith("policies/oracle.py")] == ["policies/oracle.py::ShadowTeacher.lookahead"]
+
+
+def test_unported_loops_are_not_allowed_and_the_list_stays_small():
+    for gone in ("harness/data/collect_dual.py::collect_dual_episode", "harness/train/pointer/diagnostics.py::cmd_edit",
+                 "policies/teachers/dual.py::DualTeacherBase.act"):
+        assert gone not in ALLOW, gone
+    assert len(ALLOW) <= 8, "the stepping ALLOW list may only shrink"
+    assert all(len(why) > 30 and "not yet" not in why for why in ALLOW.values()), "each entry states why it is not an episode loop"

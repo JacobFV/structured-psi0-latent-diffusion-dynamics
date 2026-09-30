@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
-import hashlib
 import json
 import math
 import time
@@ -29,7 +28,7 @@ import mujoco
 import numpy as np
 
 from rrp.core.paths import rrp_home
-from rrp.core.provenance import CONTACT_VERSION_DEFAULT, parse_source, physics_provenance
+from rrp.core.provenance import CONTACT_VERSION_DEFAULT, parse_source, physics_provenance, json_digest
 from rrp.harness.data.collect import EpisodeRecord, write_episode
 from rrp.harness.data.manifest import dataset_provenance, write_manifest
 from rrp.harness.data.relgen.body import support_polygon_margin
@@ -233,7 +232,7 @@ def collect_episode(body: str, seed: int, tracker_kind: str = "auto", max_steps:
     meta = dict(episode_id=f"{body}_{episode_tag(task)}_s{seed}", robot=body, spec_hash=rs.spec_hash, lineage=rs.lineage,
                 family=rs.family, synthetic=rs.synthetic, controller_version=s.controller_version(),
                 tracker_source=tracker_of(s).source, tracker_sha256=getattr(tracker_of(s), "sha256", None), task=task,
-                task_hash=hashlib.sha256(json.dumps(sc.task, sort_keys=True).encode()).hexdigest()[:16],
+                task_hash=json_digest(sc.task),
                 seed=seed, control_dt=s.dt, physics_dt=float(s.model.opt.timestep), tracker_hz=50.0, steps=steps,
                 max_steps=max_steps, status=status, failure_reason=reason, public_runtime_success=bool(s.runtime.succeeded()),
                 event_status={e: i.status for e, i in s.runtime.instances.items()},

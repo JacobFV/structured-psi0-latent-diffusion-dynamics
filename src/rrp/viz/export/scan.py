@@ -1,5 +1,5 @@
 """File discovery over the repo, the agent worktrees and ~/work/rrp-data, with content-hash deduplication, plus the
-content-level extractors (results rows, causal-edit rows) whose products are cached by sha1.
+content-level extractors (results rows, causal-edit rows) whose products are cached by sha256.
 
 A file that exists in several places (git + N worktrees) is reported ONCE, from the most authoritative location
 (repo > main checkout > worktrees > rrp-data), with the number of copies and a few alternative paths.
@@ -122,7 +122,7 @@ def discover(cfg: Config, cache: FileCache) -> dict[str, list[Found]]:
 
 
 def provenance(f: Found, decision_index=None) -> dict:
-    d = {"source_file": f.rel, "location": f.loc, "in_git": f.loc == "repo", "sha1": f.sha[:12] if f.sha else None,
+    d = {"source_file": f.rel, "location": f.loc, "in_git": f.loc == "repo", "sha256": f.sha[:12] if f.sha else None,
          "copies": getattr(f, "copies", 1)}
     alt = getattr(f, "alt", None)
     if alt:
@@ -132,7 +132,7 @@ def provenance(f: Found, decision_index=None) -> dict:
     return d
 
 
-# ================================================================ content extraction (cached per sha1)
+# ================================================================ content extraction (cached per sha256)
 CTX_KEYS = {"robot": "body", "body": "body", "route": "route", "source": "source", "sources": "source",
             "source_label": "source", "edit": "edit", "task": "task", "variant": "variant", "policy_label": "policy_label",
             "grasp_contact_version": "grasp", "grasp_contact_versions": "grasp", "contact_version": "contact",

@@ -19,7 +19,7 @@ a grandchild (a process a child spawns) finds the same context at `$RRP_RUN_CONT
 from __future__ import annotations
 
 import functools
-import hashlib
+from rrp.core.provenance import json_digest
 import json
 import os
 import subprocess
@@ -347,7 +347,7 @@ def stage_versions(rc: RunConfig) -> dict:
         from dataclasses import asdict
         from rrp.policies.relations.base import get_factor
         defs = [asdict(get_factor(n)) for n in sorted({s.name for s in specs})]
-        cat = "cat-" + hashlib.sha256(json.dumps(defs, sort_keys=True, default=repr).encode()).hexdigest()[:12]
+        cat = "cat-" + json_digest(defs, 12, default=repr)
     factors = stamp_versions({}, specs or None, [kinfeat.VERSION] if axes else []).get("factors", "")   # the checkpoint's string
     return dict(pipeline=str(PIPELINE_VERSION), factors=factors, catalog=cat)
 

@@ -12,7 +12,7 @@ episode of the pair (the other arm grasps and places the bar; the non-assigned a
 """
 from __future__ import annotations
 
-import hashlib
+from rrp.core.provenance import digest, json_digest
 import json
 from pathlib import Path
 
@@ -23,15 +23,13 @@ def scene_fingerprint(task: str, pair: str, seed: int) -> str:
     from rrp.policies.teachers.dual_validate import make_session
     s = make_session(task, pair, seed)
     m, d = s.model, s.data
-    h = hashlib.sha256()
-    for x in (d.qpos, d.qvel, m.body_pos, m.body_quat, d.mocap_pos):
-        h.update(np.round(np.asarray(x, np.float64), 7).tobytes())
-    return h.hexdigest()[:16]
+    return digest(*(np.round(np.asarray(x, np.float64), 7).tobytes()
+                    for x in (d.qpos, d.qvel, m.body_pos, m.body_quat, d.mocap_pos)))
 
 
 def task_graph_hash(task: str) -> str:
     from rrp.envs.mujoco.dual_scenarios import assign_task
-    return hashlib.sha256(json.dumps(assign_task(task.split("_", 1)[1]), sort_keys=True).encode()).hexdigest()[:16]
+    return json_digest(assign_task(task.split("_", 1)[1]))
 
 
 def annotate_validity(pairs: list) -> None:

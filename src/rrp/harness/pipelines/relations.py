@@ -24,7 +24,7 @@ code, not relgen `LABELS`.
 """
 from __future__ import annotations
 
-import hashlib
+from rrp.core.provenance import json_digest
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -140,9 +140,8 @@ def _write_all(by_factor: dict[str, list[Sample]], out_root: Path, seed: int) ->
     manifests = {}
     for name, rows in by_factor.items():
         fdef = get_factor(name)
-        blob = json.dumps([r["provenance"] for r in rows], sort_keys=True, default=str)
         manifests[name] = write_shard(name, fdef.version, rows, Path(out_root),
-                                      shard_id=f"seed{seed}-{hashlib.sha256(blob.encode()).hexdigest()[:8]}")
+                                      shard_id=f"seed{seed}-{json_digest([r['provenance'] for r in rows], 8, default=str)}")
     return {"factors": manifests}
 
 

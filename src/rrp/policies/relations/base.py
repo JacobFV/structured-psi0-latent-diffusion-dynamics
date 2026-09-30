@@ -12,7 +12,7 @@ provide and `resolve(family=..., env_caps=..., training=...)` refuses a spec the
 from __future__ import annotations
 
 import fnmatch
-import hashlib
+from rrp.core.provenance import json_digest
 import json
 import math
 from dataclasses import asdict, dataclass, field, fields, replace
@@ -443,7 +443,7 @@ def compat_hash(specs: Sequence[FactorSpec]) -> str:
         d = get_factor(s.name)
         rows.append([s.name, d.version, d.op, d.form, s.source, list(s.sites or []), list(s.heads or []), s.gate,
                      s.confidence, sorted([k, repr(v)] for k, v in {**d.p, **s.p}.items())])
-    return "fx-" + hashlib.sha256(json.dumps(rows, sort_keys=True).encode()).hexdigest()[:12]
+    return "fx-" + json_digest(rows, 12)
 
 
 def provenance(specs: Sequence[FactorSpec]) -> list[dict]:

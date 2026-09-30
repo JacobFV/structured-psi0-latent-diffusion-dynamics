@@ -3,6 +3,8 @@ Every document carries fixture: true, git_sha "fixture" and source_label/fixture
 import json, math, random
 from pathlib import Path
 
+from rrp.harness.eval.statistics import wilson as _wilson
+
 OUT = Path(__file__).resolve().parents[1] / "fixtures"
 (OUT / "replays").mkdir(parents=True, exist_ok=True)
 rng = random.Random(7)
@@ -20,10 +22,9 @@ def dump(name, doc, sub=""):
     print(p, p.stat().st_size)
 
 
-def wilson(k, n, z=1.959964):
-    p = k / n; d = 1 + z * z / n; c = (p + z * z / (2 * n)) / d
-    h = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
-    return round(max(0, c - h), 4), round(min(1, c + h), 4)
+def wilson(k, n):
+    lo, hi = _wilson(k, n)
+    return round(lo, 4), round(hi, 4)
 
 
 # ---------------------------------------------------------------- results

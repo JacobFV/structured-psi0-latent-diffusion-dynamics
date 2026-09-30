@@ -6,14 +6,15 @@ the config only declares selectors, floors and reference series/constants. Norma
     r = (floor - x) / (floor - ref)   lower is better
 clamped to the declared range for drawing (`drawn`); the unclamped `r` is kept. A missing input stays missing (a gap) with
 the reason. Spread: the range over groups (e.g. training seeds) when a sum spans several, else the recorded interval.
-Stdlib only; reads a few JSON files (host-light).
+Reads a few JSON files (host-light).
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 from pathlib import Path
+
+from rrp.core.provenance import digest
 
 from .common import Config, envelope, read_json
 
@@ -68,7 +69,7 @@ def _dedupe(rows: list[dict]) -> list[dict]:
 
 def _evidence(rows: list[dict]) -> dict:
     files = sorted({_s(r.get("source_file")) for r in rows if r.get("source_file")})
-    return {"evidence": files, "sha1": sorted({_s(r.get("sha1")) for r in rows if r.get("sha1")}),
+    return {"evidence": files, "sha256": sorted({_s(r.get("sha256")) for r in rows if r.get("sha256")}),
             "decisions": sorted({_s(r.get("decision")) for r in rows if r.get("decision")}), "n_rows": len(rows),
             "source_labels": sorted({_s(r.get("source_label")) for r in rows if r.get("source_label")})[:4]}
 
@@ -87,7 +88,7 @@ def resolve_value(sel: dict, docs: dict) -> dict:
         v = _get(obj, sel["value"])
         if not isinstance(v, (int, float)):
             return {"missing": "value not recorded in the evidence file"}
-        out = {"value": float(v), "evidence": [sel["file"]], "sha1": [hashlib.sha1(raw).hexdigest()[:12]], "n_rows": 1, "decisions": []}
+        out = {"value": float(v), "evidence": [sel["file"]], "sha256": [digest(raw, length=12)], "n_rows": 1, "decisions": []}
         if sel.get("n"):
             out["n_samples"] = _get(obj, sel["n"])
         return out

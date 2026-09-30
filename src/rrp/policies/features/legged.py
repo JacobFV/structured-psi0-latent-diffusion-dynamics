@@ -19,7 +19,7 @@ packet probes and as evaluation truth.
 """
 from __future__ import annotations
 
-import hashlib
+from rrp.core.provenance import digest
 import math
 
 import mujoco
@@ -312,4 +312,4 @@ def local_state(session, morph: LeggedMorph, touch_thresh: float = 1.0):
 
 
 def spec_hash16(spec_hash: str) -> str:
-    return hashlib.sha256(spec_hash.encode()).hexdigest()[:16]
+    return digest(spec_hash.encode())

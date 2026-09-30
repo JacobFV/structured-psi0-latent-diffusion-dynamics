@@ -14,7 +14,7 @@ well-conditioned flow target. latent_space_version identifies a frozen (encoder,
 """
 from __future__ import annotations
 
-import hashlib
+from rrp.core.provenance import json_digest
 import json
 from dataclasses import dataclass, fields
 
@@ -215,7 +215,7 @@ class LatentConfig:
                          ("probe_lv_min", -8.0)):
             if d[k] == dflt:                           # added later: omit at default so v1 versions are unchanged
                 d.pop(k)
-        return "ls-" + hashlib.sha256(json.dumps(d, sort_keys=True, default=str).encode()).hexdigest()[:12]
+        return "ls-" + json_digest(d, 12, default=str)
 
 
 def assembly_tokens(batch: Batch, max_m: int = 2):

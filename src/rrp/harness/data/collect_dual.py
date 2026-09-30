@@ -11,7 +11,6 @@ Usage (peer, under a broker lease):
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import time
@@ -20,16 +19,103 @@ from pathlib import Path
 
 import numpy as np
 
-from rrp.core.provenance import file_digest
+from rrp.core.provenance import file_digest, json_digest
 from rrp.harness.data.collect import EpisodeRecord, privileged_labels, write_episode, read_episode
 from rrp.core.provenance import FEATURIZER_VERSION as BASE_FEATURIZER_VERSION
+from rrp.policies.base import Act
 from rrp.policies.features.multi import MultiFeaturizer
+from rrp.tasks.spec import Judgement
 from rrp.harness.data.manifest import write_manifest, dataset_provenance
 from rrp.core.provenance import physics_provenance
 
 FEATURIZER_VERSION = f"feat-multi-v1+{BASE_FEATURIZER_VERSION}"
 # optional config keys (W12 / D-126 #18), all default off: absent -> the v2 collection, byte-identical files
 EXTRA_KEYS = ("contact_labels", "teacher_version", "teacher_options", "noise_phase_gate", "record_quality")
+
+
+class _CollectHook:
+    """Rollout hook of one dual-teacher collection episode (the teacher is the `TeacherPolicy`; `harness.rollout` is the
+    loop). on_reset ends an infeasible layout before its first tick; on_act records the tick's public input, the clean
+    flat command (the label), the privileged labels and the phase / runtime status, then applies the DART noise to the
+    EXECUTED arm command (the recorded label stays clean); on_step closes the quality recorder's tick and ends the
+    episode when the teacher is done or `stop_after_success` ticks after the public runtime first succeeded."""
+
+    failure_reasons = ("infeasible", "teacher_done", "stop_after_success")
+
+    def __init__(self, session, teacher, feat, feasibility, *, exec_noise, noise_seed, stop_after_success, noise_period,
+                 noise_on, noise_phase_gate, cfrec, qrec):
+        self.s, self.teacher, self.feat, self.f = session, teacher, feat, feasibility
+        self.noise, self.stop, self.period, self.on = exec_noise, stop_after_success, noise_period, noise_on
+        self.phase_gate, self.cfrec, self.qrec = noise_phase_gate, cfrec, qrec
+        self.nrng = np.random.default_rng([noise_seed, 7])
+        self.nz: dict = {}
+        self.lim: dict = {}
+        for n, (g, c) in enumerate(zip(feat.aspace.node_group, feat.aspace.node_col)):
+            self.lim.setdefault(g, {})[c] = (feat.aspace.lower[n], feat.aspace.upper[n])
+        self.arm_ent = {(h.robot, h.arm_group): e for e, h in session.handles.items()}
+        self.inputs, self.actions, self.labels, self.phases, self.statuses, self.q0s = [], [], [], [], [], []
+        self.prev, self.k, self.succ_at = None, 0, None
+
+    def on_reset(self, i, env, obs):
+        if not self.f["feasible"]:
+            return Judgement(True, "infeasible", f"infeasible:{','.join(self.f['unreachable'])}", False, False)
+        return None
+
+    def on_act(self, i, obs, act):
+        session, teacher, feat = self.s, self.teacher, self.feat
+        pi = feat(obs, self.prev)
+        cmds = act.command
+        flat = MultiFeaturizer.flatten({r: c.groups for r, c in cmds.items()})
+        a = feat.aspace.normalize([flat], pi.q0)[0]
+        self.inputs.append(pi)
+        self.actions.append(flat)
+        self.q0s.append(pi.q0)
+        lab = privileged_labels(session, feat)
+        if session.scenario.name == "support_insert":
+            lab["insertion_truth"] = session.insertion_truth()
+        self.labels.append(lab)
+        if self.cfrec is not None:
+            self.cfrec.tick()
+        self.phases.append(teacher.phase_label)
+        self.statuses.append({e: v.status for e, v in session.runtime.instances.items()})
+        clean_cmds = cmds
+        if self.noise > 0 and self.k % self.period < self.on:
+            noisy = {}
+            for ri, c in cmds.items():
+                g2 = dict(c.groups)
+                for g, v in c.groups.items():
+                    if "arm" not in g:
+                        continue
+                    key = f"r{ri}:{g}"
+                    if self.k % 5 == 0 or key not in self.nz:
+                        self.nz[key] = self.nrng.normal(0, self.noise, len(v))
+                    lo = np.array([self.lim[key][j][0] for j in range(len(v))])
+                    hi = np.array([self.lim[key][j][1] for j in range(len(v))])
+                    if self.phase_gate:
+                        from rrp.policies.teachers.dual_smooth import dart_phase_allowed
+                        ent = self.arm_ent.get((ri, g))
+                        if ent is None or not dart_phase_allowed(session.scenario.name, teacher.phase.get(ent, "")):
+                            continue                      # clean command in contact phases (D-121 gating)
+                    g2[g] = np.clip(np.asarray(v, float) + self.nz[key], lo, hi).tolist()
+                noisy[ri] = c.model_copy(update={"groups": g2})
+            cmds = noisy
+        if self.qrec is not None:
+            self.qrec.before_step(clean_cmds)
+        self.prev = a
+        return Act(cmds, info=act.info) if cmds is not clean_cmds else None
+
+    def on_step(self, i, env, act, step):
+        if self.qrec is not None:
+            self.qrec.after_step()
+        self.k += 1
+        if self.teacher.done:
+            return Judgement(True, "success", "teacher_done")
+        if self.stop is not None:
+            if self.succ_at is None and self.s.runtime.succeeded():
+                self.succ_at = self.k
+            if self.succ_at is not None and self.k - self.succ_at >= self.stop:
+                return Judgement(True, "success", "stop_after_success")
+        return None
 
 
 def collect_dual_episode(session, teacher, max_steps: int = 1200, episode_id: str = "",
@@ -50,13 +136,10 @@ def collect_dual_episode(session, teacher, max_steps: int = 1200, episode_id: st
     jerk / phase-switch steps / joint margin, penetration, W12 contact metrics) for rrp.harness.eval.gates.check_dual_dataset.
     The teacher version is recorded in the meta only when it is not v2 (`teacher_version`, `teacher_options`,
     `teacher_limits`)."""
+    from rrp.harness import hooks as H
+    from rrp.harness.rollout import rollout
+    from rrp.policies.teachers import TeacherPolicy
     feat = MultiFeaturizer(session.model, session.scenario.robots)
-    nrng = np.random.default_rng([noise_seed, 7])
-    nz: dict = {}
-    lim = {}
-    for n, (g, c) in enumerate(zip(feat.aspace.node_group, feat.aspace.node_col)):
-        lim.setdefault(g, {})[c] = (feat.aspace.lower[n], feat.aspace.upper[n])
-    succ_at = None
     cfrec = None
     if contact_labels:
         from rrp.harness.data.contact_labels import ContactFrameRecorder
@@ -65,70 +148,22 @@ def collect_dual_episode(session, teacher, max_steps: int = 1200, episode_id: st
     if record_quality:
         from rrp.harness.data.dual_quality import DualQualityRecorder
         qrec = DualQualityRecorder(session, teacher)
-    arm_ent = {(h.robot, h.arm_group): e for e, h in session.handles.items()}
     f = teacher.feasibility()
     t0 = time.time()
-    inputs, actions, labels, phases, statuses, q0s = [], [], [], [], [], []
-    obs = session.observe()
-    prev = None
-    status = "infeasible" if not f["feasible"] else "running"
-    steps = 0
-    if f["feasible"]:
-        for _ in range(max_steps):
-            pi = feat(obs, prev)
-            cmds = teacher.act()
-            flat = MultiFeaturizer.flatten({i: c.groups for i, c in cmds.items()})
-            a = feat.aspace.normalize([flat], pi.q0)[0]
-            inputs.append(pi)
-            actions.append(flat)
-            q0s.append(pi.q0)
-            lab = privileged_labels(session, feat)
-            if session.scenario.name == "support_insert":
-                lab["insertion_truth"] = session.insertion_truth()
-            labels.append(lab)
-            if cfrec is not None:
-                cfrec.tick()
-            phases.append(teacher.phase_label)
-            statuses.append({e: v.status for e, v in session.runtime.instances.items()})
-            clean_cmds = cmds
-            if exec_noise > 0 and steps % noise_period < noise_on:
-                noisy = {}
-                for i, c in cmds.items():
-                    g2 = dict(c.groups)
-                    for g, v in c.groups.items():
-                        if "arm" not in g:
-                            continue
-                        key = f"r{i}:{g}"
-                        if steps % 5 == 0 or key not in nz:
-                            nz[key] = nrng.normal(0, exec_noise, len(v))
-                        lo = np.array([lim[key][j][0] for j in range(len(v))])
-                        hi = np.array([lim[key][j][1] for j in range(len(v))])
-                        if noise_phase_gate:
-                            from rrp.policies.teachers.dual_smooth import dart_phase_allowed
-                            ent = arm_ent.get((i, g))
-                            if ent is None or not dart_phase_allowed(session.scenario.name, teacher.phase.get(ent, "")):
-                                continue                      # clean command in contact phases (D-121 gating)
-                        g2[g] = np.clip(np.asarray(v, float) + nz[key], lo, hi).tolist()
-                    noisy[i] = c.model_copy(update={"groups": g2})
-                cmds = noisy
-            if qrec is not None:
-                qrec.before_step(clean_cmds)
-            res = session.step(cmds)
-            if qrec is not None:
-                qrec.after_step()
-            obs = res.observation
-            prev = a
-            steps += 1
-            if teacher.done:
-                break
-            if stop_after_success is not None:
-                if succ_at is None and session.runtime.succeeded():
-                    succ_at = steps
-                if succ_at is not None and steps - succ_at >= stop_after_success:
-                    break
-        for _ in range(5):
-            session.step(None)
-        status = "success" if session.privileged_success() else "failure"
+    hook = _CollectHook(session, teacher, feat, f, exec_noise=exec_noise, noise_seed=noise_seed,
+                        stop_after_success=stop_after_success, noise_period=noise_period, noise_on=noise_on,
+                        noise_phase_gate=noise_phase_gate, cfrec=cfrec, qrec=qrec)
+    task = session.scenario.name
+    pol = TeacherPolicy(task, lambda e: teacher, f"dual:{getattr(teacher, 'version', 'v2')}",
+                        ("joint_position", "gripper"))
+    ep = rollout(lambda sd: session, pol, H.budget_task(task, session.spec.env_id), [session.seed], batch=1,
+                 max_steps=max_steps, hooks=[hook, H.Settle(5)])[0]     # Settle: 5 hold ticks, then the privileged verdict
+    if ep.outcome == "crash":                      # a crashed episode is an error of the caller (_job), never hidden
+        raise RuntimeError(ep.metrics.get("note") or ep.failure_reason)
+    inputs, actions, labels, phases, statuses, q0s = (hook.inputs, hook.actions, hook.labels, hook.phases,
+                                                      hook.statuses, hook.q0s)
+    steps = ep.steps
+    status = "infeasible" if not f["feasible"] else "success" if ep.success_privileged else "failure"
     rs = [mr.robot_spec for mr in session.scenario.robots]
     roles = {ent: dict(robot=h.robot, robot_name=rs[h.robot].name, assembly=h.assembly,
                        gripper_kind=h.gripper_kind) for ent, h in session.handles.items()}
@@ -136,7 +171,7 @@ def collect_dual_episode(session, teacher, max_steps: int = 1200, episode_id: st
                 spec_hash=feat.spec_hash, robot_spec_hashes=[r.spec_hash for r in rs],
                 lineage=sorted({l for r in rs for l in r.lineage}), roles=roles,
                 controller_version=session.multi_controller_version, task=session.scenario.name,
-                task_hash=hashlib.sha256(json.dumps(session.scenario.task, sort_keys=True).encode()).hexdigest()[:16],
+                task_hash=json_digest(session.scenario.task),
                 seed=session.seed, control_dt=session.dt, physics_dt=float(session.model.opt.timestep),
                 steps=steps, status=status, feasibility=f, source="scripted_teacher", privileged_teacher=True,
                 exec_noise=exec_noise, stop_after_success=stop_after_success,

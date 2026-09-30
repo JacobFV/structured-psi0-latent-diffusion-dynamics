@@ -223,11 +223,11 @@ def flow_noise(policy_seed: int, env_seed: int, packet_idx: int, shape) -> np.nd
     """Initial flow noise of ONE packet, a pure function of (policy seed, env seed, packet index): the same episode
     gets the same noise whatever else is in the batch or was rolled out before it (paired interventions, batch-1 vs
     batch-N equality). Seeds a fresh CPU generator from a hash of the triple (never a shared, order-dependent one)."""
-    import hashlib
-
     import torch
-    key = int.from_bytes(hashlib.sha256(f"pointer-flow-noise|{policy_seed}|{env_seed}|{packet_idx}".encode())
-                         .digest()[:8], "little") % (2 ** 63)
+
+    from rrp.core.provenance import digest
+    key = int.from_bytes(bytes.fromhex(digest(f"pointer-flow-noise|{policy_seed}|{env_seed}|{packet_idx}".encode())),
+                         "little") % (2 ** 63)
     return torch.randn(tuple(shape), generator=torch.Generator().manual_seed(key)).numpy()
 
 

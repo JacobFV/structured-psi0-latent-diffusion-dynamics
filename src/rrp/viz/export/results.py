@@ -5,7 +5,9 @@ import json
 import re
 from pathlib import Path
 
-from .common import (Config, FileCache, bodies_in, sha1_bytes, envelope, family_of, parse_tables, rnd, source_label, wilson)
+from rrp.core.provenance import digest
+
+from .common import (Config, FileCache, bodies_in, envelope, family_of, parse_tables, rnd, source_label, wilson)
 from .scan import Found, extract_edits, extract_results, parse_trainlog, provenance
 
 SMALL_DOC = 64_000
@@ -223,7 +225,7 @@ def peer_only_files(cfg: Config, found: dict, peer: dict | None) -> list[tuple[F
         if e.get("path") in local or not isinstance(e.get("doc"), (dict, list)):
             continue
         b = json.dumps(e["doc"], sort_keys=True).encode()
-        f = Found("json", Path(e["path"]), e["path"], f"peer:{cfg.peer}", e.get("mtime") or 0, len(b), sha1_bytes(b))
+        f = Found("json", Path(e["path"]), e["path"], f"peer:{cfg.peer}", e.get("mtime") or 0, len(b), digest(b, length=None))
         out.append((f, e["doc"]))
     return out
 

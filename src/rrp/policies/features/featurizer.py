@@ -14,7 +14,7 @@ features of the same facts (see `serialize_pointers`).
 """
 from __future__ import annotations
 
-import hashlib
+from rrp.core.provenance import digest
 import math
 from dataclasses import dataclass, field
 
@@ -59,7 +59,7 @@ def text_hash(s: str, dim: int = HASH_DIM) -> np.ndarray:
     """Deterministic bag-of-words hashing embedding (fixed, not learned, not a name table)."""
     v = np.zeros(dim, np.float32)
     for w in s.lower().replace("_", " ").split():
-        h = int(hashlib.sha256(w.encode()).hexdigest(), 16)
+        h = int(digest(w.encode(), length=None), 16)
         v[h % dim] += 1.0 if (h >> 20) & 1 else -1.0
     n = np.linalg.norm(v)
     return v / n if n > 0 else v

@@ -18,7 +18,7 @@ whose artifacts/ is the shared store.
 """
 from __future__ import annotations
 
-import hashlib
+from rrp.core.provenance import digest
 import json
 
 _TURN = "clearance_floor=-2,yaw_slip=-2,turn_step=2,turn_lin=1.5,sigma_ang=0.03"
@@ -393,5 +393,5 @@ def recipe_record(name_or_path: str) -> tuple[dict, dict]:
         rec = json.loads(raw)
         where = dict(path=name_or_path)
     opts = {k: v for k, v in rec.items() if not k.startswith("_")}
-    return opts, dict(where, sha256=hashlib.sha256(raw).hexdigest(), options=opts,
+    return opts, dict(where, sha256=digest(raw, length=None), options=opts,
                       notes={k: v for k, v in rec.items() if k.startswith("_")})

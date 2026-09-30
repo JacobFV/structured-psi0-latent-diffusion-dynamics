@@ -34,7 +34,7 @@ Every trained model reads only `rrp.policies.pointer.public_features`; weights a
 from __future__ import annotations
 
 import contextlib
-import hashlib
+from rrp.core.provenance import json_digest
 import json
 import os
 from pathlib import Path
@@ -211,7 +211,7 @@ def _method_id(ctx: StageContext, kind: str) -> str:
     """The frozen method under test: the policy kind and the digest of its input checkpoints (a second lineage that
     evaluates the same checkpoints is the same method)."""
     paths = {k: v for k, v in sorted(ctx.rc.input_paths(ctx.index).items()) if k in ("flow", "representation", "checkpoint")}
-    return f"{kind}:{hashlib.sha256(json.dumps(paths, sort_keys=True).encode()).hexdigest()[:16]}"
+    return f"{kind}:{json_digest(paths)}"
 
 
 def _sealed_split(ctx: StageContext, split: dict, seed_set: str) -> SealedSplit:

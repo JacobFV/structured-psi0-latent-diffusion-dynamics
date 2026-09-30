@@ -15,7 +15,6 @@ Stages: source_verified -> imported -> physics_validated -> controller_validated
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import math
 import time
@@ -23,7 +22,7 @@ import time
 import mujoco
 import numpy as np
 
-from rrp.core.provenance import file_digest
+from rrp.core.provenance import file_digest, json_digest
 from rrp.bodies.importers import MENAGERIE, MENAGERIE_SHA
 from rrp.bodies.legged import ALL_LEGGED, LEGGED_ASSETS, PROCEDURAL, legged_body, standalone_model
 
@@ -87,7 +86,7 @@ def body_entry(key: str) -> dict:
         mod = PROCEDURAL[key]()
         e.update(source="procedural", kind=mod.meta["family"], family=mod.meta["lineage"][1], synthetic=True,
                  license="project", generator="rrp.morphology.legged.procedural_legged")
-        ph = hashlib.sha256(json.dumps(mod.meta["params"], sort_keys=True, default=str).encode()).hexdigest()[:16]
+        ph = json_digest(mod.meta["params"], default=str)
         e["stages"]["source_verified"] = _stage(True, None, params_hash=ph)
     if not e["stages"]["source_verified"]["ok"]:
         return e

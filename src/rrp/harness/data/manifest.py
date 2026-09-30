@@ -1,7 +1,7 @@
 """Dataset manifests and lineage-disjoint split checks."""
 from __future__ import annotations
 
-import hashlib
+from rrp.core.provenance import json_digest
 import json
 from pathlib import Path
 
@@ -65,8 +65,7 @@ def write_manifest(out_dir: Path, name: str, episodes: list[dict], extra: dict |
                 status_counts={s: sum(1 for e in episodes if e.get("status") == s) for s in
                                sorted({e.get("status") for e in episodes}, key=str)},
                 episodes=episodes, **extra)
-    txt = json.dumps(body, indent=1, sort_keys=True, default=str)
-    body["manifest_hash"] = hashlib.sha256(txt.encode()).hexdigest()[:16]
+    body["manifest_hash"] = json_digest(body, indent=1, default=str)
     tmp = Path(out_dir) / (filename + ".tmp")
     tmp.write_text(json.dumps(body, indent=1, sort_keys=True, default=str))
     tmp.replace(Path(out_dir) / filename)
@@ -86,7 +85,7 @@ def read_manifest(path: Path) -> dict:
     h = body.get("manifest_hash")
     if h is not None:
         b = {k: v for k, v in body.items() if k != "manifest_hash"}
-        out["hash_ok"] = hashlib.sha256(json.dumps(b, indent=1, sort_keys=True, default=str).encode()).hexdigest()[:16] == h
+        out["hash_ok"] = json_digest(b, indent=1, default=str) == h
     else:
         out["hash_ok"] = None
     if "n_episodes" not in out and isinstance(body.get("episodes"), list):

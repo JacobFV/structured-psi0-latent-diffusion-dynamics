@@ -24,7 +24,7 @@ import numpy as np
 
 from rrp.bodies.fixtures import cw_pointer_spec
 from rrp.core.action import NativeCommand
-from rrp.core.base import content_hash
+from rrp.core.provenance import content_hash
 from rrp.core.observation import (ImageObs, NodeState, ObjectDescriptor, PolicyObservation, PrivilegedTruth,
                                   SensorChannel)
 from rrp.core.refs import EntityRef

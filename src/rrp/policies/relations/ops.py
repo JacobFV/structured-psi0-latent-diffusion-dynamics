@@ -11,7 +11,7 @@ adding factors never shifts the initialization of the rest of a net.
 """
 from __future__ import annotations
 
-import hashlib
+from rrp.core.provenance import digest
 import math
 
 import torch
@@ -26,7 +26,7 @@ FIELD_CONTROLS = ("on", "off", "zero", "rewired", "shuffled", "gt", "estimated")
 
 
 def _gen(name: str) -> torch.Generator:
-    return torch.Generator().manual_seed(int(hashlib.sha256(name.encode()).hexdigest()[:8], 16))
+    return torch.Generator().manual_seed(int(digest(name.encode(), length=8), 16))
 
 
 def _key(name: str) -> str:

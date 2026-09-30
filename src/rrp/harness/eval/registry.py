@@ -3,14 +3,14 @@ state transitions and results are appended as new rows referencing the run id.""
 from __future__ import annotations
 
 import fcntl
-import hashlib
+from rrp.core.provenance import json_digest
 import json
 import time
 from pathlib import Path
 
 
 def config_hash(cfg: dict) -> str:
-    return hashlib.sha256(json.dumps(cfg, sort_keys=True, default=str).encode()).hexdigest()[:16]
+    return json_digest(cfg, default=str)
 
 
 class ExperimentRegistry:

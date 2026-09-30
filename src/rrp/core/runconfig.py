@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import ast
 import copy
-import hashlib
+from .provenance import json_digest
 import json
 import operator
 import re
@@ -306,7 +306,7 @@ class RunConfig(Strict):
     def config_hash(self) -> str:
         d = self.model_dump(mode="json")
         d.pop("note", None)
-        return hashlib.sha256(json.dumps(d, sort_keys=True).encode()).hexdigest()[:16]
+        return json_digest(d)
 
     def to_native(self, index: "RunIndex | None" = None) -> dict:
         """The dict the stage function reads: params + resolved inputs + flags at their native keys + derived out_dir/name."""

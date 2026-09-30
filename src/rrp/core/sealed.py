@@ -31,7 +31,7 @@ import argparse
 import contextlib
 import fcntl
 import fnmatch
-import hashlib
+from .provenance import digest
 import json
 import re
 import time
@@ -105,7 +105,7 @@ class SealedSplit:
             raw = p.read_bytes()
         except OSError as e:
             raise SealedSplitError(f"sealed split file unreadable: {p} ({e})", code="sealed_split_missing") from e
-        got, want = hashlib.sha256(raw).hexdigest(), SPLITS[name]["sha256"]
+        got, want = digest(raw, length=None), SPLITS[name]["sha256"]
         if got != want:
             raise SealedSplitError(f"{p} sha256 {got[:16]} != pinned {want[:16]}: the split is frozen; a change "
                                    "needs a new split id and a decision", code="sealed_split_hash")

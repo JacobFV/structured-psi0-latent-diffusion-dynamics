@@ -9,10 +9,35 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from rrp.harness.hooks import budget_task
+from rrp.harness.rollout import rollout
 from rrp.harness.train.pointer.data import Demos
 from rrp.harness.train.pointer.split import load_split, make_split_env
 from rrp.harness.train.pointer.train import fit_probe, frozen_mu, setup
 from rrp.policies.pointer import NW
+
+
+class _EditedPacketPolicy:
+    """System 0 realizing ONE received (edited) packet, no replanning, as a `Policy` on `harness.rollout` (`max_steps` =
+    the packet's ticks). It is also the episode's hook: `on_end` reads the pointer before rollout closes the env."""
+
+    def __init__(self, s0, env):
+        from rrp.policies.base import PolicyInfo, Requirements
+        self.s0, self.env, self.end_px = s0, env, None
+        self.info = PolicyInfo("pointer_edit", "learned", "edited_packet",
+                               Requirements(frozenset({"cartesian_position", "button", "discrete"}),
+                                            observations=frozenset()))
+
+    def reset(self, spec, task, seeds, *, envs=None):
+        pass
+
+    def act(self, obs):
+        from rrp.policies.base import Act
+        return {i: Act(self.s0.tick(self.env)) for i in obs}
+
+    def on_end(self, i, env, ep):
+        self.end_px = (env.pointer.u, env.pointer.v)
+        return {}
 
 
 def cmd_edit(a):
@@ -78,10 +103,12 @@ def cmd_edit(a):
                 s0.receive(pk, now=float(env.time), graph_version=0)
                 ctr = lambda w: np.array([(w["box"][0] + w["box"][2]) / 2, (w["box"][1] + w["box"][3]) / 2])
                 p0 = np.array([env.pointer.u, env.pointer.v], float)
-                for _ in range(Demos.H):
-                    c = s0.tick(env)
-                    env.step(c)
-                u, v = env.pointer.u, env.pointer.v
+                pol = _EditedPacketPolicy(s0, env)
+                ep, = rollout(lambda sd: env, pol, budget_task("pointer_edit", env.spec.env_id), [seed], batch=1,
+                              max_steps=Demos.H, hooks=[pol])
+                if ep.outcome == "crash":
+                    raise RuntimeError(f"pointer edit {task} seed {seed}: {ep.failure_reason}: {ep.metrics.get('note', '')}")
+                u, v = pol.end_px
                 p1 = np.array([u, v], float)
                 inside = lambda w: w["box"][0] <= u < w["box"][2] and w["box"][1] <= v < w["box"][3]
                 rows.append(dict(task=task, seed=seed, mode=mode, orig_slot=orig, new_slot=new, probe_after=pr,
@@ -90,7 +117,6 @@ def cmd_edit(a):
                                  d_orig=[float(np.linalg.norm(p0 - ctr(slots[orig]))),
                                          float(np.linalg.norm(p1 - ctr(slots[orig])))],
                                  z_delta=float((z - z0).norm())))
-                env.close()
     summ = {}
     for mode in ("probe", "random", "none"):
         r = [x for x in rows if x["mode"] == mode]

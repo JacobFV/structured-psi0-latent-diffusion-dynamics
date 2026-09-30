@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { fmtNum } from '../lib/format';
 
 export type RadarValue = { value?: number; r?: number; drawn?: number; missing?: string; missing_r?: string; spread?: { x: number[]; r?: number[]; drawn?: number[]; meaning?: string };
-  evidence?: string[]; decisions?: string[]; sha1?: string[]; k?: number; n?: number; source_labels?: string[] };
+  evidence?: string[]; decisions?: string[]; sha256?: string[]; k?: number; n?: number; source_labels?: string[] };
 export type RadarAxis = { id: string; label: string; metric: string; direction: 'min' | 'max'; protocol: string; decision: string;
   floor: { value: number | null; meaning?: string; reference_multiple?: number }; reference: { series?: string; value?: number; resolved_value?: number | null; meaning?: string }; series: Record<string, RadarValue> };
 export type RadarDoc = { normalization: { clamp: [number, number]; rule: string }; series: { id: string; label: string }[]; axes: RadarAxis[] };

@@ -21,7 +21,7 @@ rrp.policies.safety)).
 """
 from __future__ import annotations
 
-import hashlib
+from rrp.core.provenance import digest
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -139,12 +139,11 @@ class PacketOODModel:
 
     # ------------------------------------------------------------------ io
     def fingerprint(self) -> str:
-        h = hashlib.sha256()
+        parts = []
         for k, v in sorted(self.model.arrays().items()):
-            h.update(k.encode())
-            h.update(np.ascontiguousarray(v, np.float64).tobytes())
-        h.update(json.dumps(self._meta(with_fp=False), sort_keys=True).encode())
-        return h.hexdigest()[:16]
+            parts += [k.encode(), np.ascontiguousarray(v, np.float64).tobytes()]
+        parts.append(json.dumps(self._meta(with_fp=False), sort_keys=True).encode())
+        return digest(*parts)
 
     def _meta(self, with_fp=True) -> dict:
         d = dict(version=self.version, feature=self.feature, thresholds=self.thresholds,

@@ -4,7 +4,7 @@ teacher phase) go to *.private.pkl. Failed and infeasible attempts are recorded 
 from __future__ import annotations
 
 import gzip
-import hashlib
+from rrp.core.provenance import digest, json_digest
 import json
 import math
 import pickle
@@ -301,7 +301,7 @@ def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_
     rs = session.scenario.robots[0].robot_spec
     meta = dict(episode_id=episode_id, robot=rs.name, spec_hash=rs.spec_hash, lineage=rs.lineage,
                 controller_version=session.robots[0].controller.version, task=session.scenario.name,
-                task_hash=hashlib.sha256(json.dumps(session.scenario.task, sort_keys=True).encode()).hexdigest()[:16],
+                task_hash=json_digest(session.scenario.task),
                 seed=session.seed, control_dt=session.dt, physics_dt=float(session.model.opt.timestep),
                 steps=steps, status=status, feasibility=f, source="scripted_teacher", privileged_teacher=True,
                 public_runtime_success=bool(session.runtime.succeeded()), featurizer=FEATURIZER_VERSION,
@@ -339,7 +339,7 @@ def write_episode(rec: EpisodeRecord, out_dir: Path) -> dict:
         tmp = path.with_suffix(".tmp")
         tmp.write_bytes(data)
         tmp.replace(path)
-        hashes[path.name] = hashlib.sha256(data).hexdigest()[:16]
+        hashes[path.name] = digest(data)
     return dict(rec.public["meta"], files=hashes)
 
 

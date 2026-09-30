@@ -91,7 +91,7 @@ class V3Options:
 
 
 class SmoothArmMover(ArmMover):
-    """v3 mover: same interface as ArmMover (set_goal / step / reached / grip), min-jerk internals."""
+    """v3 mover: same interface as ArmMover (set_goal / command / reached / grip), min-jerk internals."""
 
     def __init__(self, session, ent, speed=0.3, opts: V3Options | None = None):
         super().__init__(session, ent, speed)
@@ -182,7 +182,7 @@ class SmoothArmMover(ArmMover):
         return np.clip(q + N @ (LIMIT_GAIN * g * rng), lo, hi)
 
     # ---- per tick
-    def step(self) -> dict:
+    def command(self) -> dict:
         dt = self.s.dt
         self.t += dt
         self.t_goal += dt
@@ -403,14 +403,14 @@ class HandoverTeacherV3(_V3Mixin, HandoverTeacher):
 
 
 TEACHERS_V3 = {"support_insert": SupportInsertTeacherV3, "handover": HandoverTeacherV3}
-PARKED_TASKS = ("pivot_against_surface", "carry_tray_level")     # scenes + task graphs stay; their scripted teachers do not
+PARKED_TASKS = ("pivot_against_surface",)     # its scene + task graph stay; its scripted teacher does not (carry_tray_level is retired)
 
 
 def make_dual_teacher(task: str, session, version: str | None = None, options: dict | None = None):
     """version None/'v2' -> the v2 teacher (default, unchanged); 'v3' -> the v3 teacher with `options`."""
     v = version or DEFAULT_DUAL_TEACHER
-    if task in PARKED_TASKS:                         # D-146 item 5: the W12 coordination-teacher stubs are parked
-        raise ValueError(f"no dual teacher for {task}: the W12 coordination stubs are parked (D-146 item 5)")
+    if task in PARKED_TASKS:                         # D-146 item 5: the W12 coordination-teacher stub is parked
+        raise ValueError(f"no dual teacher for {task}: the W12 coordination stub is parked (D-146 item 5)")
     if v == "v2":
         if options:
             raise ValueError("teacher options apply to v3 only")

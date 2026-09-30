@@ -30,7 +30,7 @@ import warnings
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import Field, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 from .base import Strict
 
@@ -367,6 +367,29 @@ def is_state_dict(v) -> bool:
     except ImportError:
         return False
     return isinstance(v, dict) and len(v) > 0 and all(isinstance(x, torch.Tensor) for x in v.values())
+
+
+def digest(*parts: bytes, length: int | None = 16) -> str:
+    """THE digest primitive: sha256 over the concatenated `parts` as the first `length` hex chars (`None`: all 64).
+    Nothing else in `src/rrp` imports hashlib (tests/unit/test_digest.py)."""
+    h = hashlib.sha256()
+    for b in parts:
+        h.update(b)
+    return h.hexdigest()[:length]
+
+
+def json_digest(obj: Any, length: int | None = 16, **dumps) -> str:
+    """Digest of `obj`'s canonical JSON (sorted keys; a pydantic model is dumped in json mode). `dumps` are extra
+    `json.dumps` options (`default=str`, `separators=...`, `indent=...`): they are part of the hashed bytes, so a site
+    that hashed with them before keeps its identity."""
+    if isinstance(obj, BaseModel):
+        obj = obj.model_dump(mode="json")
+    return digest(json.dumps(obj, sort_keys=True, **dumps).encode(), length=length)
+
+
+def content_hash(obj: Any) -> str:
+    """Identity of a spec / document: `json_digest` over compact separators (16 hex chars)."""
+    return json_digest(obj, separators=(",", ":"))
 
 
 def file_digest(path: Path | str, length: int | None = 16) -> str:

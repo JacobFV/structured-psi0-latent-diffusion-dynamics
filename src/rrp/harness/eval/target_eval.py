@@ -18,7 +18,7 @@ Access rules (protocol dev_rule "targets / eval scenes untouched until the seale
 from __future__ import annotations
 
 import argparse
-import hashlib
+from rrp.core.provenance import digest
 import json
 import sys
 from pathlib import Path
@@ -30,7 +30,7 @@ TARGET_EVAL_VERSION = "target_eval_v1"
 
 def load_protocol(path: str | Path) -> tuple[dict, str]:
     raw = Path(path).read_bytes()
-    return json.loads(raw), hashlib.sha256(raw).hexdigest()
+    return json.loads(raw), digest(raw, length=None)
 
 
 def plan_scenes(protocol: dict, robot: str, *, sealed_run: bool, smoke: bool, smoke_episodes: int = 2) -> dict:

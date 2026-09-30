@@ -1,12 +1,11 @@
 """Shared helpers of the room exporter (viz/CONTRACT.md, D-131): configuration, the document envelope, atomic writes,
 markdown parsing (D-entries, tables, bullets), source-label / body / version normalization and the per-file cache.
 
-Pure stdlib file/JSON work (host-light, D-127): no numpy, no torch, no mujoco.
+Pure stdlib file/JSON work (host-light, D-127): no torch, no mujoco.
 """
 from __future__ import annotations
 
 import datetime as _dt
-import hashlib
 import json
 import math
 import os
@@ -16,6 +15,8 @@ import subprocess
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from rrp.core.provenance import digest
 
 HOME = Path.home()
 
@@ -91,10 +92,6 @@ def read_json(path: Path, default=None):
         return json.loads(Path(path).read_text())
     except Exception:
         return default
-
-
-def sha1_bytes(b: bytes) -> str:
-    return hashlib.sha1(b).hexdigest()
 
 
 def rel(path: Path, root: Path) -> str:
@@ -308,9 +305,9 @@ def rnd(x, nd=4):
 
 # ---------------------------------------------------------------- per-source cache (by path, mtime, size)
 class FileCache:
-    """path -> (mtime_ns, size, sha1). Content-derived products are cached by sha1 in `products`."""
+    """path -> (mtime_ns, size, sha256). Content-derived products are cached by sha256 in `products`."""
 
-    VERSION = 4
+    VERSION = 5
 
     def __init__(self, path: Path):
         self.path = path
@@ -332,7 +329,7 @@ class FileCache:
         if e and e[0] == st.st_mtime_ns and e[1] == st.st_size:
             return e[2]
         try:
-            h = sha1_bytes(p.read_bytes())
+            h = digest(p.read_bytes(), length=None)
         except OSError:
             return None
         self.stat[k] = [st.st_mtime_ns, st.st_size, h]
