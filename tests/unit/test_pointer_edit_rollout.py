@@ -1,5 +1,7 @@
 """`rrp train pointer edit` realizes the edited packet on `harness.rollout` (no private env.step loop): H ticks of the
 packet's system 0, the pointer read before rollout closes the env."""
+import pytest
+
 from rrp.envs.base import make_env
 from rrp.harness.train.pointer.data import Demos
 from rrp.harness.train.pointer.diagnostics import _EditedPacketPolicy
@@ -20,6 +22,7 @@ class _TeacherAsSystem0:
         return self.t.act()
 
 
+@pytest.mark.computerworld
 def test_edited_packet_runs_h_ticks_on_rollout_and_reports_the_end_pointer():
     task = "cw/calc_sum"
     env = make_env("computerworld", task=task, body="cw_pointer", seed=0)
