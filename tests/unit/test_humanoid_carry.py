@@ -87,6 +87,7 @@ def test_no_recipe_or_config_names_a_held_out_task():
 
 
 # ---------------------------------------------------------------- the arm roles are null on a legs-only body
+@pytest.mark.menagerie
 @pytest.mark.parametrize("task", TRAINED + HELD_OUT)
 def test_legs_only_body_binds_the_arm_roles_to_null(task):
     pytest.importorskip("mujoco")
