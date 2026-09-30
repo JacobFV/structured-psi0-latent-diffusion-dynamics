@@ -157,5 +157,41 @@ register_factor(FactorDef("ix.force_flow", "1", field="edges:support-v1", op="fl
                               "the estimated `edges:support-v1` graph is produced from `ix.support`'s pair estimate "
                               "by net-side wiring outside this entry's scope"))
 # ------------------------------------------------------------------ R18: task / temporal / epistemic (task.*, time.*)
+# `task.next_contact` (docs/relations.md section 6 first wave, section 10 row R18): candidate manipulator/object
+# interaction -> bilinear score on TOKEN HIDDENS (field "hidden": no FieldDef needed, matching `ix.*`, section 3.2's
+# `bilinear` op), gated by the task summary (the same scene shows several candidate next-contact edges; after the
+# task description the bias focuses on the required sequence, docs 3.4). `sources=("probe", "gt")` -- matching
+# R16's `ix.*` (the bias IS the pair probe; there is no public/estimated "given" source for interaction state, only
+# the learned kernel deployably, `gt` training/diagnostics-only per the deploy guard, section 7). Note `control="gt"`
+# itself is never valid on ANY `bilinear` factor (`BilinearOp.controls()` = on/off/zero/rewired only: a bilinear op
+# reads hiddens directly, it never resolves a field through `effective_source`); "gt" here is reached only via an
+# explicit `FactorSpec(source="gt")` override, which the deploy guard (`assert_deployable`) still honors. Its
+# candidate pool -- the soft PUBLIC EdgeSet of manipulator -> graspable / object -> support / destination pairs --
+# is emitted in the collate path (`nets.batch.candidate_interaction_edges`, this unit's other owned file), never
+# read directly by this factor (a bilinear factor reads hiddens, not edges); the candidates instead feed
+# `harness.data.relgen.task.next_contact_sample` so `reveal` / `surprise` (R9, unmodified) supervise it
+# progressively. Label `next_contact` (ground truth: which candidate is CURRENTLY touching a manipulator,
+# `envs.base.StateView.contacts`) lives in `relgen/task.py`.
+register_factor(FactorDef(
+    "task.next_contact", "1", field="hidden", op="bilinear", form="aug",
+    algebra=Algebra(arity=2, direction="directed", dynamic=True, value="prob"),
+    sources=("probe", "gt"), label="next_contact", gen=("reveal", "surprise"), gates=("task",),
+    readout=ReadoutDef(query="next_contact", address="pair", out=1, loss="soft_ce", label="next_contact",
+                       reads="hidden"),
+    params=(("rank", 8),),
+    doc="candidate manipulator -> graspable / object -> support / destination bilinear score, sharpened by the "
+        "task gate; supervised by progressive reveal / surprise over the R18 candidate-edge set (docs 5.4)."))
+
+# `time.same_track` (section 10 row R18 brief): 1[same persistent track] for multi-step token histories (system 0
+# knots, packet-history state, any net that keys history tokens by a track / assembly-over-time id); PUBLIC (the
+# track id is the pipeline's own bookkeeping, not simulator truth), so `sources=("given",)` only -- no probe / gt
+# ambiguity to resolve, unlike the privileged `ix.*` / `task.*` interaction factors above. Used only by nets that
+# carry history tokens (none yet on `main`; a declarative entry, wiring is that net's own unit per docs 3.1).
+register_field(FieldDef("track_id", 1, "id", "public"))
+register_factor(FactorDef(
+    "time.same_track", "1", field="track_id", op="same", form="aug",
+    algebra=Algebra(arity=2, direction="symmetric"),
+    sources=("given",),
+    doc="1[track_i == track_j] over multi-step history tokens (system-0 knots, packet-history state); public."))
 # ------------------------------------------------------------------ R19: legged (leg.*)
 # ------------------------------------------------------------------ R20: UI (ui.*)

@@ -16,7 +16,7 @@ import torch
 from rrp.policies.features.featurizer import (BANKS, N_REL, HASH_DIM, REL, NODE_ANCHOR_SLICE, ASM_POS_SLICE,
                                               ASM_ZCOL_SLICE, ASM_XCOL_SLICE, SCENE_POS_SLICE, SCENE_STD_SLICE,
                                               SCENE_KNOWN_COL)
-from rrp.policies.relations.base import TokenSet, TOKEN_KINDS
+from rrp.policies.relations.base import EdgeSet, TokenSet, TOKEN_KINDS
 
 MORPH_DIM = 44
 BANK_DIMS = {"morph": MORPH_DIM, "scene": 27, "task": 59, "interact": 32}
@@ -287,3 +287,47 @@ def relation_token_sets(inputs: list, batch: "Batch", cameras: list | None = Non
     ctx = TokenSet(name="ctx", mask=batch.ctx_mask, kind=ctx_kind, fields=fields)
     act = TokenSet(name="act", mask=batch.node_mask, fields=act_assembly_id(inputs, batch))
     return {"ctx": ctx, "act": act}
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# R18 (D-144, docs/relations.md sections 5.4 & 10): candidate interaction edges -- a soft PUBLIC EdgeSet of manipulator
+# -> graspable and object -> support / destination pairs, over the SAME `ctx` token set `relation_token_sets` above
+# builds (site "ctx>ctx"). `task.next_contact` (catalog.py) is a `bilinear` factor: it reads token HIDDENS, never
+# this EdgeSet directly (docs 3.2's `bilinear` op has no `edges:*` field); the candidates this function names are
+# instead the pool `harness.data.relgen.task.next_contact_sample` turns into `reveal` / `surprise` targets (R9). No
+# affordance labels exist in these fixtures, so every currently-populated candidate row is a UNIFORM prior over its
+# targets -- deliberately NOT gated by the `known` bit (an occluded object is still a valid interaction candidate;
+# resolving which one is the epistemic point of this unit, docs 5.4 / research/relations_catalog.md J).
+CAND_REL_VOCAB = ("graspable", "support", "destination")
+_CAND_GRASPABLE, _CAND_SUPPORT, _CAND_DESTINATION = range(len(CAND_REL_VOCAB))
+
+
+def candidate_interaction_edges(inputs: list, batch: "Batch") -> EdgeSet:
+    """`EdgeSet(CAND_REL_VOCAB, [B,C,C,3])`, `prov="public"` (docs `Prov`, section 1): row `i` -> uniform prior mass
+    1/|candidates| over its valid targets, 0 elsewhere (a proper per-row distribution; an all-zero row means no
+    candidate this channel applies to, e.g. no sensor token or fewer than two scene entities).
+      - `graspable`:   manipulator touch/grip SENSOR tokens (`interact` bank, local kind 1 -- the featurizer's
+                       per-manipulator `declared_sensor_channels`, `features/featurizer.py`) -> every valid SCENE
+                       entity token (`scene` bank, local kind 0).
+      - `support` / `destination`: every valid scene entity token -> every OTHER valid scene entity token (an
+                       object cannot be its own support / destination).
+    """
+    B, C = batch.B, batch.ctx_mask.shape[1]
+    data = np.zeros((B, C, C, len(CAND_REL_VOCAB)), np.float32)
+    scene_off, inter_off = batch.bank_offset["scene"], batch.bank_offset["interact"]
+    scene_kind_all = batch.bank_kind["scene"].numpy()
+    scene_mask_all = batch.bank_mask["scene"].numpy()
+    inter_kind_all = batch.bank_kind["interact"].numpy()
+    inter_mask_all = batch.bank_mask["interact"].numpy()
+    for i in range(B):
+        entity_idx = scene_off + np.where(scene_mask_all[i] & (scene_kind_all[i] == 0))[0]
+        sensor_idx = inter_off + np.where(inter_mask_all[i] & (inter_kind_all[i] == 1))[0]
+        if len(entity_idx) and len(sensor_idx):
+            data[i][np.ix_(sensor_idx, entity_idx, [_CAND_GRASPABLE])] = 1.0 / len(entity_idx)
+        if len(entity_idx) > 1:
+            p = 1.0 / (len(entity_idx) - 1)
+            for q in entity_idx:
+                others = entity_idx[entity_idx != q]
+                data[i, q, others, _CAND_SUPPORT] = p
+                data[i, q, others, _CAND_DESTINATION] = p
+    return EdgeSet(CAND_REL_VOCAB, torch.from_numpy(data), prov="public")
