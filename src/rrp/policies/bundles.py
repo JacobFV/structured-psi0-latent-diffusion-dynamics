@@ -70,6 +70,16 @@ def _dev():
     return select_device(on_cap_error="ignore")
 
 
+# D-144 addendum decision (b) ("may keep old names only if they describe recorded historical checkpoints"; sweep-
+# flags follow-up, 2026-09-30, answering that question for this table): `legged_flags` reads ANY config/checkpoint
+# dict generically by key presence -- it describes whatever a checkpoint actually recorded, never a live decision
+# point. `semantic_weight` / `probe_lv_min` are now HISTORICAL-ONLY here: every legged `train_rep` config/dag under
+# this row's scope records `latent.factors` instead (`nets/semantic_latent.py::legacy_latent_factors`), so these
+# two names simply stop matching for any checkpoint trained after this row (a correct, silent no-op -- the fields
+# they used to populate no longer exist for those checkpoints) while continuing to correctly describe every OLDER
+# checkpoint already on disk. `packet_semantic_weight` stays live/historical BOTH ways: it is deliberately NOT
+# codemodded off any on-disk config in this row (Stage B's own weight, out of this row's file-shaped scope -- see
+# `nets/semantic_latent.py::packet_semantic_weight`'s own comment), so it still matches fresh checkpoints too.
 LEGGED_FLAG_KEYS = ("semantic_weight", "beta_kl", "qd_dropout", "probe_lv_min", "packet_semantic_weight",
                     "packet_tau_min", "gen_frac", "zero_qd")
 

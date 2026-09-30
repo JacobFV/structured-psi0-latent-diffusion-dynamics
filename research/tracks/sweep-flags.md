@@ -147,3 +147,24 @@ construction smoke check.
 2. `probe_lv_min` retirement from `FLAG_SPEC[("legged", "train_rep")]` needs `dags/legged_v2_*.yaml` +
    `dags/templates/legged_v2_*.yaml` + `legged_fixrep.yaml` + `smoke_legged.yaml` (at least 9 files) in a unit's
    owned-file list alongside `core/runconfig.py`, mirroring exactly what this row did for arm/dual.
+
+## follow-up (2026-09-30, unit `lm-legged`, worktree `~/work/rrp-wt/lm-legged`, branch `lm-legged`, from origin/main `6d4099a4`)
+Closes both open questions above. Full write-up: `research/decisions.md`'s "D-144 addendum 2026-09-30: sweep-flags
+follow-up" (this same date). Summary:
+- Open question 2 (`probe_lv_min` off `FLAG_SPEC[("legged", "train_rep")]`): done. All 9 legged dag files + 27 of 29
+  `configs/{legged_latent,legged_fixsem,t1_diag}/rep_*.json` now render `latent.factors`
+  (`nets/semantic_latent.py::legacy_latent_factors`, shared with arm's own `_probe_factors`); the 2 exceptions
+  (`rep_{nosem,sem}_v1.json`) stay flat on purpose (see the decisions.md entry -- they are also valid arm
+  `LatentConfig(**...)` kwargs and are pinned by `test_relations_r2_latent.py`'s OWN frozen table under arm's
+  reading). New frozen-hash regression test: `tests/unit/test_legged_frozen_latent.py`.
+- Open question 1 (`packet_semantic_weight` full retirement): PARTIALLY closed, by design. The four readers
+  (`latent_train.py` x2, `legged_latent_train.py`, `joint_adapt.py`) now share ONE conversion point
+  (`nets/semantic_latent.py::packet_semantic_weight`/`packet_semantic_factor`), but no on-disk config changed --
+  this row judged the FULL architecture (a registered `params.on`-carrying factor, docs/relations.md 10's R2 brief)
+  to need `catalog.py`/`nets/flow.py`/`nets/probes.py` wiring, out of scope for a row whose brief named only the
+  four training-code files + runconfig. `joint_adapt.py`'s read stays permanently flat by the D-144 addendum
+  decision (b) "reading an old pickle format forever" rule (stage `adapt` is a permanent `LEGACY_ONLY_STAGE`) --
+  this is not reopened, only reconfirmed. A real follow-up remains: registering `flow.packet_semantic` (or
+  `params.on`) as a live catalog factor, IF a future unit owns `catalog.py` + `nets/flow.py` + `nets/probes.py`
+  together with these four files and wants the on-disk key retired too (not required by anything currently -- no
+  test or reader depends on the on-disk name changing).

@@ -29,7 +29,7 @@ from rrp.harness.data.latent import LatentData
 from rrp.policies.nets.checkpoint import load_checkpoint, save_checkpoint
 from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
 from rrp.harness.eval.latent_eval import readout_loss
-from rrp.policies.nets.semantic_latent import assembly_tokens
+from rrp.policies.nets.semantic_latent import assembly_tokens, packet_semantic_weight
 
 JOINT_ADAPT_VERSION = "joint_adapt_v1"
 
@@ -75,14 +75,14 @@ def joint_adapt(flow_ckpt: Path, rep_path: Path, packed_dir: Path, budget: int, 
     # D-144 addendum + sweep-flags (confirmed empirically, not just re-asserted): `packet_semantic_weight` here is
     # read from `cfgj = st["config"]`, the ALREADY-TRAINED flow checkpoint's own saved native config -- i.e. this is
     # inherently a legacy-checkpoint read, the same status as `nets/checkpoint.py` reading an old pickle format
-    # forever, because `harness/train/latent_train.py` (arm/dual, out of this row's owned files; stage `adapt` is a
-    # permanent `LEGACY_ONLY_STAGE`, docs/relations.md 10 / core/runconfig.py, never migrated to `factors:` by
-    # design) still WRITES this exact key into every flow checkpoint it produces. Renaming the read here without
-    # also renaming every writer would silently stop this stage from seeing the weight at all (`.get(..., 0.0)`
-    # would fall through to the "no semantic loss" default) rather than raise -- worse than leaving it as the one
-    # documented legacy-checkpoint exception. See harness/train/legged_latent_train.py::train_flow for the sibling
-    # occurrence and the full list of out-of-scope readers/writers this is blocked on.
-    w_sem = cfgj.get("packet_semantic_weight", 0.0)
+    # forever, because `harness/train/latent_train.py` (arm/dual; stage `adapt` is a permanent `LEGACY_ONLY_STAGE`,
+    # docs/relations.md 10 / core/runconfig.py, never migrated to `factors:` by design) still WRITES this exact key
+    # into every flow checkpoint it produces. Sweep-flags follow-up (2026-09-30): the read itself now goes through
+    # `nets/semantic_latent.py::packet_semantic_weight`, the ONE conversion point shared with `latent_train.py` /
+    # `legged_latent_train.py` -- still reading the SAME literal on-disk key (`.get(..., 0.0)`, unchanged default),
+    # never renamed, exactly as this comment always required: renaming the on-disk key without every writer moving
+    # together would silently stop this stage from seeing the weight at all rather than raise.
+    w_sem = packet_semantic_weight(cfgj)
     nf_steps, nr_steps = split_steps(steps, mode)
     kt = torch.tensor(lcfg.knot_times, device=dev)
     B = min(batch_size, max(8, len(pool)))

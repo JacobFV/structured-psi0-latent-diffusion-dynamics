@@ -144,15 +144,18 @@ def test_legged_train_rep_calls_trainer_and_checks_contact(tmp_path, monkeypatch
         (out / "representation.pt").write_bytes(b"w")
         return {"steps": 1}
     monkeypatch.setattr(llt, "train_rep", fake)
+    # D-144 sweep-flags follow-up (2026-09-30): legged `train_rep` is `factors:`-shaped now, like arm/dual --
+    # `probe_lv_min` no longer applies as a flag (`core/runconfig.py`'s `FLAG_SPEC[("legged", "train_rep")]`).
+    factors = [{"name": "probe.legged.contact", "weight": 1.0, "params": {"lv_min": -4.0}}]
     rc = RunConfig.model_validate(dict(
         schema_version="runconfig-1", family="legged", stage="train_rep", variant="semfix", seed=1, lineage="legged-go2",
         track="t", inputs={"data": "datasets/legged_x"},
-        flags=dict(zero_prev_action=None, realizer_anchor=None, realizer_drop_qd=None, probe_lv_min=-4.0,
+        flags=dict(zero_prev_action=None, realizer_anchor=None, realizer_drop_qd=None, probe_lv_min=None,
                    qd_dropout=0.5, contact_version="contact_v1"),
-        params={"bodies": ["go2"], "latent": {"semantic_weight": 1.0}}))
+        params={"bodies": ["go2"], "latent": {"factors": factors}}))
     (tmp_path / "artifacts/datasets/legged_x").mkdir(parents=True)
     Pipeline("legged").run(rc, root=tmp_path, index=RunIndex())
-    assert seen["cfg"]["latent"] == {"semantic_weight": 1.0, "probe_lv_min": -4.0, "qd_dropout": 0.5}
+    assert seen["cfg"]["latent"] == {"factors": factors, "qd_dropout": 0.5}
     assert seen["cfg"]["data"] == "artifacts/datasets/legged_x"
     # a dataset recorded with another contact version is refused
     from rrp.harness.data.manifest import write_manifest

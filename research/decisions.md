@@ -1381,3 +1381,67 @@ count in `research/tracks/rel-geo.md`.
   name overstates it; left for a later rename together with its producer). The `contains` / `above` channels of
   `envs.computerworld.UI_REL_VOCAB` / `ui_edges` are now unused by factors (still used as relgen labels and in
   tests); dropping them is left to the owner of that file.
+
+### D-144 addendum 2026-09-30: sweep-flags follow-up (legged dag/config codemod + packet_semantic_weight local factor-spec)
+Unit `lm-legged` (worktree `~/work/rrp-wt/lm-legged`, branch `lm-legged`, from origin/main `6d4099a4`, the sweep-flags
+merge commit). Closes `research/tracks/sweep-flags.md`'s two "open questions for the lead": (1) `probe_lv_min`
+retirement from `FLAG_SPEC[("legged", "train_rep")]`, needing `dags/legged_v2_*.yaml` + `dags/templates/
+legged_v2_*.yaml` + `legged_fixrep.yaml` + `smoke_legged.yaml` in one unit's owned-file list alongside
+`core/runconfig.py`; (2) `packet_semantic_weight`'s full retirement, needing a unit owning `harness/train/
+latent_train.py` together with `harness/train/legged_latent_train.py` and `harness/train/joint_adapt.py`.
+1. **Legged `train_rep`: `latent.factors` everywhere, matching arm/dual (D-144 addendum decision (b) / sweep-flags
+   above).** All 9 legged dag files (`legged_fixrep.yaml`, the 4 `legged_v2_{t1,anymal,go2,t1sl}.yaml`,
+   `legged_v2_anymal_smoke.yaml`, `smoke_legged.yaml`, the 2 `dags/templates/legged_v2_{heldout,gated}.yaml`) now
+   render `params.latent.factors` (a `probe.legged.*` FactorSpec per query, `_LEGGED_PROBE_QUERIES` order) instead
+   of a flag-driven flat `latent.semantic_weight` + `flags.probe_lv_min` pair, mirroring `dags/arm_lineage.yaml`'s
+   own conversion exactly (`per: variant: semfix: params: latent: factors: [...]` supplies the one `lv_min: -4.0`
+   override; the base `factors:` list carries `weight: '{sw}'` uniformly, `params.lv_min` omitted at the -8.0
+   default). `core/runconfig.py`'s `FLAG_SPEC[("legged", "train_rep")]` no longer maps `probe_lv_min`; `_check_
+   variant`'s old flat `lat.get("semantic_weight")` / `rc.flags.probe_lv_min` fallback (now dead for every family)
+   is deleted, and `_factors_probe_weight_lv` reduces `probe.legged.*` specs the same way it already did
+   `probe.arm.*`. 27 of 29 `configs/{legged_latent,legged_fixsem,t1_diag}/rep_*.json` files codemodded to match
+   (the exact transformation, `_ARM_PROBE_QUERIES`-analogue `_LEGGED_PROBE_QUERIES` order, params omitted at the
+   -8.0 default); `configs/legged_latent/rep_{nosem,sem}_v1.json` deliberately LEFT FLAT (their `"latent"` block has
+   no legged-only key, so it is also valid `LatentConfig(**lat)` kwargs and is separately pinned by
+   `tests/unit/test_relations_r2_latent.py`'s own frozen table under ARM's `probe.arm.*` reading; adding
+   `probe.legged.*` factors there would silently change what THAT unrelated test computes). `nets/semantic_
+   latent.py::legacy_latent_factors` (parameterized `_probe_factors`, taking a prefix + query set) is now the ONE
+   legacy remap point both arm's `LatentConfig.__init__` (via its own unparameterized `_probe_factors` wrapper,
+   output byte-identical, unchanged) and `harness/train/legged_latent_train.py::_legged_probe_factors` call into --
+   satisfying "put legged keys in the same table as arm's `LATENT_LEGACY_KEYS`" (the key NAMES were already
+   identical; what was duplicated was the conversion function, now shared). Verified byte-identical (weight,
+   lv_min) for every changed config against its pre-codemod flat reading (one-off script, not committed) AND a new
+   frozen-hash regression test, `tests/unit/test_legged_frozen_latent.py` (the "extend the frozen-versions test to
+   legged configs first" instruction) -- red (asserted) before code+config changes landed together, green after;
+   `tests/unit/test_dag.py::test_legged_dag_reproduces_legacy_configs` (general infra) proves the dag's rendered
+   native config still equals the (now-factors-shaped) `configs/legged_fixsem/**` files, with the old
+   `probe_lv_min`-specific special-case assertion removed (no longer needed: the dag and the on-disk file agree by
+   direct dict equality now, exactly like arm's own `test_arm_dag_reproduces_legacy_configs`).
+2. **`packet_semantic_weight`: moved onto a LOCAL factor-spec representation in code, NOT retired from any on-disk
+   config.** `nets/semantic_latent.py::packet_semantic_weight(cfg)` is the ONE conversion point `harness/train/
+   latent_train.py` (both call sites, `train_latent_flow` and `sft_latent_flow`), `harness/train/legged_latent_
+   train.py::train_flow` and `harness/train/joint_adapt.py::joint_adapt` now share (previously four ad hoc
+   `cfg.get("packet_semantic_weight", 0.0)` reads); `packet_semantic_factor(w)` represents the scalar as a
+   single-entry `{"name": "flow.packet_semantic", "weight": w}` tuple, the same `{"name", "weight"}` SHAPE every
+   other weight in this codebase uses. This is deliberately NOT the full architecture docs/relations.md 10's R2
+   brief sketches (`params.on = "rep"|"flow"|"both"` letting the SAME `probe.<family>.*` spec carry a flow-path
+   weight) -- that needs `catalog.py` / `nets/flow.py` / `nets/probes.py` wiring to register a real, `resolve()`-
+   able factor and was judged out of this row's file-shaped scope (none of those three files named in the row's
+   brief). No `configs/**/flow_*.json` (arm's 60+ or legged's 30+) was touched: `joint_adapt.py`'s read is
+   permanently of an ALREADY-TRAINED checkpoint's saved native config (D-144 addendum decision (b)'s "reading an
+   old pickle format forever" class; stage `adapt` is a permanent `LEGACY_ONLY_STAGE`, never migrated to `factors:`
+   by design, reconfirmed not reopened), and `core/runconfig.py`'s `_check_variant` gained a forward-compatible
+   (but currently unexercised) `flow.packet_semantic`-factor read alongside its unchanged flat-key primary read.
+   Behaviourally a complete no-op: every call site computes the identical float `w` it did before.
+3. **Provenance key lists.** `bundles.LEGGED_FLAG_KEYS` and `provenance.TRAINING_FLAG_KEYS` both keep `semantic_
+   weight` / `probe_lv_min` / `packet_semantic_weight` (decision (b): allowed when the name only describes recorded
+   historical checkpoints). `semantic_weight` / `probe_lv_min` are now HISTORICAL-ONLY for legged (item 1: no
+   on-disk config or dag this row touches writes them any more, only checkpoints trained before it did);
+   `packet_semantic_weight` stays BOTH live and historical (item 2: no on-disk config was changed, so fresh
+   checkpoints still record it under this name too). Both lists read generically by key presence, so this needed no
+   code change, only the comment above each answering "say which" concretely.
+Never touched `src/rrp/policies/relations/base.py` / `ops.py`; `tests/data/golden.json` unchanged; `catalog.py` /
+`nets/flow.py` / `nets/probes.py` untouched (item 2's own boundary). Commands: `CUDA_VISIBLE_DEVICES=
+PYTHONPATH=$PWD/src:$PWD:$HOME/work/ext/cw-site .venv/bin/python -m pytest tests/unit -q -p no:cacheprovider` --
+935 passed, 25 skipped (full suite, clean after every edit batch, same command the merge lock re-runs). Full
+details: `research/tracks/sweep-flags.md`'s follow-up note.

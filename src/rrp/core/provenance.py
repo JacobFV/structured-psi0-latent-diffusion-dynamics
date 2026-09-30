@@ -459,6 +459,15 @@ TRAINING_FLAG_KEYS = ("zero_prev_action", "realizer_drop_qd", "realizer_anchor",
 # test_arm_dag_reproduces_legacy_configs` (general infra, not owned by this row). Only `binding_cf_weight` (renamed
 # `cf_mix`) is retired outright: dead here otherwise (grep confirms no config ever set it), so nothing depends on
 # the old name.
+# Sweep-flags follow-up (2026-09-30), answering decision (b)'s "may keep old names only if they describe recorded
+# historical checkpoints" for THIS table: `probe_lv_min` / `semantic_weight` are now HISTORICAL-ONLY for legged too
+# (every legged `train_rep` config/dag this row touches now records `latent.factors` instead -- see `nets/
+# semantic_latent.py::legacy_latent_factors`), same status arm/dual already had. This function still reads ANY
+# config dict generically by key presence, so it correctly describes every checkpoint already on disk (arm, dual OR
+# legged) and simply stops matching those two names for any checkpoint trained after this row -- a correct, silent
+# no-op, not a live read. `packet_semantic_weight` stays live/historical BOTH ways: this row deliberately does not
+# codemod it off any on-disk config (`nets/semantic_latent.py::packet_semantic_weight`'s own comment), so fresh
+# checkpoints still record it under this same name too.
 
 
 def training_flags(config: dict | None) -> dict:

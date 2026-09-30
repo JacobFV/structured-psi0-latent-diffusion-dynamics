@@ -43,6 +43,35 @@ _ARM_PROBE_QUERIES = ("visible", "looking_at", "focused_on", "held_by", "acting_
 LATENT_LEGACY_KEYS = ("semantic_weight", "probe_lv_min", "binding_cf", "binding_contrast", "slot_handles")
 
 
+def _factors_for(weight: float, lv_min: float, slot_handles: bool, prefix: str, queries: tuple, *,
+                 omit_default_lv_min: bool = False) -> tuple:
+    """The shared (weight, lv_min, slot_handles) -> `factors:` reduction behind `_probe_factors` (arm) and
+    `legacy_latent_factors` (legged, sweep-flags follow-up, 2026-09-30): one `<prefix>.<query>` readout weight/
+    lv_min override per query, plus `id.slot_handle` when `slot_handles` is set. `omit_default_lv_min` (legged
+    only, matches its pre-existing behaviour and the on-disk-codemod convention of R2c's own `configs/ladder/**`
+    rewrite) skips writing `params.lv_min` when it is the -8.0 default instead of always writing it (arm keeps
+    always-writing, unchanged, for `LatentConfig.version()` hash back-compat -- see its own comment)."""
+    items = []
+    for q in queries:
+        item = {"name": f"{prefix}.{q}", "weight": weight}
+        if not omit_default_lv_min or lv_min != -8.0:
+            item["params"] = {"lv_min": lv_min}
+        items.append(item)
+    if slot_handles:
+        items.append("id.slot_handle")
+    return tuple(items)
+
+
+def legacy_latent_factors(lc: dict, *, prefix: str = "probe.arm", queries: tuple = _ARM_PROBE_QUERIES,
+                          omit_default_lv_min: bool = False) -> tuple:
+    """The ONE legacy-key (`LATENT_LEGACY_KEYS`) -> `factors:` conversion, parameterized by probe-family prefix
+    and query set so a non-arm family (legged: `probe.legged.*`, `harness/train/legged_latent_train.py`) shares
+    this table instead of keeping its own ad hoc flat-key reads. `lc` is a raw config dict (legacy `"latent"`
+    block); only `LATENT_LEGACY_KEYS`-named keys are read from it."""
+    return _factors_for(lc.get("semantic_weight", 1.0), lc.get("probe_lv_min", -8.0), lc.get("slot_handles", False),
+                        prefix, queries, omit_default_lv_min=omit_default_lv_min)
+
+
 def _probe_factors(weight: float, lv_min: float, slot_handles: bool) -> tuple:
     """`factors:` entries equivalent to the pre-R2 (semantic_weight, probe_lv_min, slot_handles) triple: one
     per-query readout weight/lv_min override (docs/relations.md 4: "Weight, lv_min ... become spec weight/params")
@@ -51,6 +80,40 @@ def _probe_factors(weight: float, lv_min: float, slot_handles: bool) -> tuple:
     if slot_handles:
         items.append("id.slot_handle")
     return tuple(items)
+
+
+# D-144 sweep-flags follow-up (2026-09-30): `packet_semantic_weight` (Stage-B / BC-only top-level knob; docs/
+# relations.md 10's R2 brief: "become spec weight, params.on") is NOT a `LatentConfig` field -- Stage B trains a
+# FROZEN probe P on z_hat, a different path from Stage A's own `probe.<family>.*` readouts -- and has no
+# relation-catalog registration of its own (wiring `params.on` through `catalog.py` / `nets/flow.py` / `nets/
+# probes.py` so the SAME `probe.<family>.*` spec could carry a flow-path weight is the full architecture this brief
+# sketches; out of this row's owned files). This is the minimal, LOCAL half asked for: represent the scalar
+# internally in the same `{"name", "weight"}` factor-spec SHAPE every other weight in this codebase uses, as ONE
+# conversion point shared by `harness/train/latent_train.py`, `harness/train/legged_latent_train.py` and
+# `harness/train/joint_adapt.py` (previously three separate `cfg.get("packet_semantic_weight", 0.0)` reads) --
+# not a registered, `resolve()`-able catalog factor. The on-disk / checkpoint key name is UNCHANGED and permanent:
+# `joint_adapt.py`'s read is of an ALREADY-TRAINED checkpoint's saved native config ("reading an old pickle format
+# forever", D-144 addendum decision (b)), stage `adapt` is a permanent `LEGACY_ONLY_STAGE` (core/runconfig.py) by
+# that same decision, and no config file in this row's scope renders anything but the flat key.
+PACKET_SEMANTIC_LEGACY_KEY = "packet_semantic_weight"
+PACKET_SEMANTIC_FACTOR_NAME = "flow.packet_semantic"
+
+
+def packet_semantic_factor(w: float) -> tuple:
+    """The flow-stage packet-semantic loss weight as a single-entry factor-spec tuple."""
+    return ({"name": PACKET_SEMANTIC_FACTOR_NAME, "weight": w},)
+
+
+def packet_semantic_weight(cfg: dict) -> float:
+    """ONE read/conversion point (replaces `cfg.get("packet_semantic_weight", 0.0)` ad hoc at each call site):
+    accepts either the legacy flat key (every on-disk / checkpoint config today) or an already factor-spec-shaped
+    `cfg["factors"]` naming `flow.packet_semantic` (forward-compatible, unused on disk today), and returns the
+    effective scalar -- exactly what every prior direct `.get(...)` read returned."""
+    for it in cfg.get("factors") or ():
+        if isinstance(it, dict) and it.get("name") == PACKET_SEMANTIC_FACTOR_NAME:
+            w = it.get("weight")
+            return 0.0 if w is None else w
+    return cfg.get(PACKET_SEMANTIC_LEGACY_KEY, 0.0)
 
 
 @dataclass(init=False)

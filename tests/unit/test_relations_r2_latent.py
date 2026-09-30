@@ -132,11 +132,11 @@ def test_new_and_legacy_construction_agree():
 
 
 # ------------------------------------------------------------------ 2. _check_variant equivalent
-# D-144 sweep-flags: arm/dual `train_rep` no longer accepts the OLD-style (flat `latent.semantic_weight` +
-# `flags.probe_lv_min`) shape at all -- `probe_lv_min` was retired from `FLAG_SPEC[("arm"|"dual", "train_rep")]`
-# (core/runconfig.py), so a RunConfig that tries to set it is rejected before `_check_variant` even runs. `_rc`'s
-# default params is `factors:`-shaped accordingly; `_rc_legged` exercises the old-style branch, which stays live
-# ONLY for `legged` (its own dags -- out of this row's file list -- still render the flat shape).
+# D-144 sweep-flags (+ 2026-09-30 follow-up): arm/dual/legged `train_rep` no longer accept the OLD-style (flat
+# `latent.semantic_weight` + `flags.probe_lv_min`) shape at all -- `probe_lv_min` was retired from
+# `FLAG_SPEC[(family, "train_rep")]` for all three families now (core/runconfig.py), so a RunConfig that tries to
+# set it is rejected before `_check_variant` even runs. `_rc` / `_rc_legged` are both `factors:`-shaped accordingly
+# (`probe.arm.*` / `probe.legged.*`).
 def _rc(**kw):
     base = dict(schema_version="runconfig-1", family="arm", stage="train_rep", variant="sem", seed=1,
                lineage="l", tag=None,
@@ -150,22 +150,23 @@ def _rc(**kw):
 def _rc_legged(**kw):
     base = dict(schema_version="runconfig-1", family="legged", stage="train_rep", variant="sem", seed=1,
                lineage="l", tag=None,
-               flags=dict(zero_prev_action=None, realizer_anchor=None, realizer_drop_qd=None, probe_lv_min=-8.0,
+               flags=dict(zero_prev_action=None, realizer_anchor=None, realizer_drop_qd=None, probe_lv_min=None,
                           qd_dropout=0.0, contact_version="contact_v1"),
-               params={"latent": {"semantic_weight": 1.0}})
+               params={"latent": {"factors": [{"name": "probe.legged.contact", "weight": 1.0}]}})
     base.update(kw)
     return RunConfig.model_validate(base)
 
 
-def test_check_variant_old_style_is_legged_only():
+def test_check_variant_legged_factors_style():
+    """Sweep-flags follow-up (2026-09-30): legged joins arm/dual -- `train_rep` is `factors:`-only now too."""
     _rc_legged(variant="sem")
     with pytest.raises(Exception, match="does not match"):
         _rc_legged(variant="nosem")
-    with pytest.raises(Exception, match="must be explicit"):
+    with pytest.raises(Exception, match="must include"):
         _rc_legged(params={"latent": {}})
-    with pytest.raises(Exception, match="does not apply"):    # arm: the flag no longer applies at all
-        _rc(flags=dict(zero_prev_action=True, realizer_anchor=True, realizer_drop_qd=None, probe_lv_min=-8.0,
-                       qd_dropout=None, contact_version="contact_v1"))
+    with pytest.raises(Exception, match="does not apply"):    # the flag no longer applies to legged either
+        _rc_legged(flags=dict(zero_prev_action=None, realizer_anchor=None, realizer_drop_qd=None, probe_lv_min=-8.0,
+                              qd_dropout=0.0, contact_version="contact_v1"))
 
 
 def test_check_variant_factors_style():

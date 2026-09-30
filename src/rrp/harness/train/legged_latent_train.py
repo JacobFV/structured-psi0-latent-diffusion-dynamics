@@ -27,29 +27,27 @@ from rrp.policies.features.legged import MAX_N, MAX_M, KNOT_TIMES, TICK_DT, H, M
 from rrp.policies.bundles import _dev, legged_flags, load_rep
 from rrp.policies.nets.legged_latent import (LeggedEncoder, LeggedRealizer, LeggedFlow, legged_probe,
                                      legged_probe_read, remap_legged_probe_state, probe_loss, probe_metrics)
+from rrp.policies.nets.semantic_latent import legacy_latent_factors, packet_semantic_weight
 from rrp.policies.relations.base import resolve
 
-# D-144 sweep-flags (docs/relations.md 10, closing rel-r2c's open question 1 for legged now that R4 has merged):
-# the ONE conversion point for this file's `latent` config dict -- on-disk / dag-injected flat `semantic_weight` /
-# `probe_lv_min` (still the live surface every `dags/legged_v2_*.yaml` + `configs/legged_latent,legged_fixsem,
-# t1_diag/**.json` rep config renders; `core/runconfig.py`'s `FLAG_SPEC[("legged", "train_rep")]` still maps
-# `probe_lv_min` -> `latent.probe_lv_min`, see its own comment) become `probe.legged.*` FactorSpec overrides here,
-# the exact shape `nets/semantic_latent.py::_probe_factors` uses for arm's `LatentConfig`. `lc["factors"]` (a config
-# already written that way) passes through unchanged. Nothing below this point reads the flat keys directly any
-# more (was: two ad hoc `lc["semantic_weight"]` / `lc.get("probe_lv_min", -8.0)` reads in `train_rep`, plus a third
-# in `train_flow` re-deriving the frozen rep's own lv_min the same flat way).
+# D-144 sweep-flags (docs/relations.md 10, closing rel-r2c's open question 1 for legged now that R4 has merged) and
+# its 2026-09-30 follow-up (retiring `dags/legged_v2_*.yaml` + `configs/{legged_latent,legged_fixsem,t1_diag}/**`'s
+# OWN flat `semantic_weight` / `probe_lv_min`, not just this file's internal reads): every legged dag and rep
+# config under those paths now renders `params.latent.factors` directly (a `probe.legged.*` FactorSpec per query,
+# the same shape `nets/semantic_latent.py`'s `LATENT_LEGACY_KEYS`-driven table uses for arm's `LatentConfig`) --
+# `core/runconfig.py`'s `FLAG_SPEC[("legged", "train_rep")]` no longer maps `probe_lv_min` either. `_legged_probe_
+# factors` below therefore no longer reads the flat keys itself; the ONE remaining legacy-key fallback (for
+# not-yet-migrated on-disk configs / already-trained checkpoints whose saved `latent` blob predates this change,
+# e.g. `configs/legged_latent/rep_{sem,nosem}_v1.json`, deliberately left flat -- see that codemod's own note) is
+# `nets/semantic_latent.py::legacy_latent_factors`, the SAME `LATENT_LEGACY_KEYS` table arm's `LatentConfig.__init__`
+# reads, parameterized here by legged's own prefix/query set.
 _LEGGED_PROBE_QUERIES = ("contact", "goal", "disp", "subtask", "fall")
 
 
 def _legged_probe_factors(lc: dict) -> tuple:
     if "factors" in lc:
         return tuple(lc["factors"])
-    w, lv = lc.get("semantic_weight", 1.0), lc.get("probe_lv_min", -8.0)
-    items = [{"name": f"probe.legged.{q}", "weight": w} for q in _LEGGED_PROBE_QUERIES]
-    if lv != -8.0:
-        for it in items:
-            it["params"] = {"lv_min": lv}
-    return tuple(items)
+    return legacy_latent_factors(lc, prefix="probe.legged", queries=_LEGGED_PROBE_QUERIES, omit_default_lv_min=True)
 
 
 def _legged_probe_weight_lv(factors: tuple) -> tuple[float, float]:
@@ -417,18 +415,16 @@ def train_flow(cfg, out: Path):
     opt = torch.optim.AdamW(F_.parameters(), lr=lr, weight_decay=1e-4)
     sch = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=lr, total_steps=steps, pct_start=0.05)
     lvm = _legged_probe_weight_lv(_legged_probe_factors(rcfg["latent"]))[1]
-    # `packet_semantic_weight` stays a flat, top-level FLOW-stage params key (distinct from `rcfg["latent"]`'s own
-    # semantic weight/factors, which is stage A's -- this is stage B's own aux-loss weight through the FROZEN P).
-    # D-144 addendum + sweep-flags (confirmed empirically, repo-wide grep, not just re-asserted): retiring it would
-    # need EVERY reader of this exact key to move together -- besides this function, that is
-    # `harness/train/latent_train.py` (arm/dual `train_flow`/`flow_ft`/`sft_latent_flow`; out of this row's owned
-    # files) and, on the config side, 9+ `dags/legged_v2_*.yaml` / `dags/templates/legged_v2_*.yaml` /
-    # `legged_fixrep.yaml` / `smoke_legged.yaml` files plus 30+ `configs/{ladder,latent,legged_latent,legged_fixsem,
-    # t1_diag}/flow_*.json` files (none in this row's owned files either) that all render/store this literal key
-    # name for arm AND legged flow configs alike. Renaming it here alone would fragment one config-key meaning
-    # across two spellings with no test able to prove the split equivalent -- exactly R2's original open question 2,
-    # still blocked on the same out-of-scope files.
-    w = cfg.get("packet_semantic_weight", 0.0)
+    # `packet_semantic_weight` stays a flat, top-level FLOW-stage params key ON DISK (distinct from `rcfg["latent"]`'s
+    # own semantic weight/factors, which is stage A's -- this is stage B's own aux-loss weight through the FROZEN P):
+    # sweep-flags follow-up (2026-09-30) moves the READ onto `nets/semantic_latent.py::packet_semantic_weight`, the
+    # ONE conversion point shared with `harness/train/latent_train.py` / `harness/train/joint_adapt.py`, but does not
+    # rewrite any on-disk `flow_*.json` (arm's OR legged's) to a different key -- that full architecture (`params.on`
+    # letting the SAME `probe.<family>.*` spec carry a flow-path weight, docs/relations.md 10's R2 brief) needs
+    # `catalog.py` / `nets/flow.py` / `nets/probes.py` wiring, out of this row's owned files. `joint_adapt.py`'s own
+    # sibling read stays doubly permanent regardless (its own comment): it reads an ALREADY-TRAINED checkpoint's
+    # saved config, the "reading an old pickle format forever" class.
+    w = packet_semantic_weight(cfg)
     out.mkdir(parents=True, exist_ok=True)
     (out / "config.json").write_text(json.dumps(cfg, indent=1))
     step0, last = 0, out / "flow_last.pt"

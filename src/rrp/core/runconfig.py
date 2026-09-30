@@ -53,14 +53,23 @@ Stage = Literal[PIPELINE_STAGES + LEGACY_ONLY_STAGES]  # type: ignore[valid-type
 # `LatentConfig.version()` table proves the hashes unchanged, `tests/unit/test_dag.py::
 # test_arm_dag_reproduces_legacy_configs` proves the dag's rendered native config still equals the (now-factors-
 # shaped) on-disk files.
-# `probe_lv_min` STAYS in FLAG_NAMES / `Flags` / `FLAG_SPEC[("legged", "train_rep")]` / `LEGACY_FLAG_DEFAULTS`: every
-# legged dag still under `dags/` (`legged_v2_*.yaml`, `dags/templates/legged_v2_*.yaml`, `legged_fixrep.yaml`,
-# `smoke_legged.yaml`, at least 9 files, confirmed by grep, none of them this row's to touch) renders a fresh,
-# non-legacy legged `train_rep` RunConfig with a literal `flags: {probe_lv_min: ..., ...}` block and a flat
-# `params.latent.semantic_weight`; `harness/train/legged_latent_train.py` (this row's file) now reads those two flat
-# keys through ONE conversion point (`_legged_probe_factors`, mirroring `nets/semantic_latent.py`'s
-# `LATENT_LEGACY_KEYS`/`_probe_factors`) instead of ad hoc at every use site, but the ON-DISK / dag-rendered key
-# NAMES are unchanged, so this Flag mapping must stay live for legged.
+# `probe_lv_min` retired (sweep-flags follow-up, 2026-09-30) from `FLAG_SPEC[("legged", "train_rep")]` too, closing
+# the note above's own open item: every `dags/legged_v2_*.yaml` / `dags/templates/legged_v2_*.yaml` /
+# `legged_fixrep.yaml` / `smoke_legged.yaml` (9 files) and every `configs/{legged_latent,legged_fixsem,t1_diag}/
+# rep_*.json` file now renders `params.latent.factors` (a `probe.legged.*` FactorSpec per query, the SAME shape
+# arm/dual use, `nets/semantic_latent.py::legacy_latent_factors`) instead of a flag-driven flat
+# `latent.semantic_weight` + `flags.probe_lv_min` pair -- exactly the arm/dual closure above, now also for legged.
+# The two exceptions deliberately left flat (`configs/legged_latent/rep_{nosem,sem}_v1.json`: their "latent" block
+# has no legged-only key, so it happens to also be valid `LatentConfig(**...)` kwargs and is pinned by
+# `tests/unit/test_relations_r2_latent.py`'s OWN frozen-hash table under arm's `probe.arm.*` reading -- adding
+# `factors:` there would silently feed that unrelated test a `probe.legged.*` list it reads as an empty `probe.arm.*`
+# set, i.e. wrong-but-plausible weight/lv_min = defaults) still load correctly at RUNTIME regardless (`harness/
+# train/legged_latent_train.py::_legged_probe_factors`'s legacy-key fallback, unaffected by this FLAG_SPEC change --
+# it reads the flat `"latent"` dict keys directly, never the `flags:` mechanism). `probe_lv_min` STAYS in
+# FLAG_NAMES / `Flags` (never mapped by ANY family's FLAG_SPEC any more) only because existing tests construct
+# `Flags(probe_lv_min=None, ...)` explicitly (`Strict`/`extra="forbid"` would reject removing the field outright);
+# `LEGACY_FLAG_DEFAULTS[("legged", "probe_lv_min")]` is removed below (dead: `load_legacy` never looks it up once
+# FLAG_SPEC drops the key, same reasoning as the arm/dual retirement above).
 FLAG_NAMES = ("zero_prev_action", "realizer_anchor", "realizer_drop_qd", "probe_lv_min", "qd_dropout", "contact_version")
 META = "@meta"          # flag recorded in the RunConfig/provenance only (no native key; e.g. contact_version)
 CLI = "@cli"            # flag the stage turns into a command-line argument (e.g. ladder --prev-action zero|own)
@@ -87,7 +96,7 @@ def _flag_spec() -> dict[tuple[str, str], dict[str, str]]:
         "train_bc": {"zero_prev_action": "zero_prev_action", "contact_version": META},
     })
     legged = {s: {"contact_version": META} for s in PIPELINE_STAGES}
-    legged["train_rep"] = {"probe_lv_min": "latent.probe_lv_min", "qd_dropout": "latent.qd_dropout", "contact_version": META}
+    legged["train_rep"] = {"qd_dropout": "latent.qd_dropout", "contact_version": META}   # sweep-flags follow-up: probe_lv_min retired here too, `latent.factors` instead
     legged["refit"] = {"qd_dropout": "qd_dropout", "contact_version": META}
     spec = {}
     for fam, table in (("arm", arm), ("legged", legged), ("dual", dual)):
@@ -195,8 +204,11 @@ LEGACY_FLAG_DEFAULTS = {
     # ("arm"|"dual", "probe_lv_min") retired (D-144 sweep-flags): no longer in FLAG_SPEC[("arm"|"dual", "train_rep")],
     # so `load_legacy` never looks this default up for those two families any more; `LatentConfig`'s own default
     # (`nets/semantic_latent.py::LATENT_LEGACY_KEYS` / `_probe_factors`) is unaffected (a different table).
+    # ("legged", "probe_lv_min") retired too (sweep-flags follow-up, 2026-09-30): no longer in
+    # FLAG_SPEC[("legged", "train_rep")] either, so `load_legacy` never looks this default up for legged now; the
+    # SAME `LATENT_LEGACY_KEYS`-derived default (-8.0) lives on in `nets/semantic_latent.py::legacy_latent_factors`,
+    # the one shared table `_legged_probe_factors` now calls into.
     ("dual", "realizer_anchor"): False, ("dual", "realizer_drop_qd"): False,
-    ("legged", "probe_lv_min"): -8.0,         # training/legged_latent_train.py: `_legged_probe_factors` default
     ("legged", "qd_dropout@train_rep"): 0.0,  # training/legged_latent_train.py lc.get("qd_dropout", 0.0)
     ("legged", "qd_dropout@refit"): 0.5,      # training/legged_dagger.py cfg.get("qd_dropout", 0.5)
 }
@@ -338,11 +350,15 @@ class RunConfig(Strict):
         return cls.model_validate(d)
 
 
+_PROBE_PREFIXES = ("probe.arm.", "probe.legged.")   # D-144 sweep-flags follow-up: legged joins arm/dual here too
+
+
 def _factors_probe_weight_lv(factors) -> tuple[float | None, float | None]:
-    """D-144 R2: `LatentConfig.factors`-style `params.latent.factors` (list of `probe.arm.*` FactorSpec-shaped
-    dicts / names) reduced to the equivalent (weight, lv_min) pair `_check_variant`'s old-style branch already
-    understands. Deliberately NOT `rrp.policies.relations.base.resolve` (a stdlib-only, no-validation reduction: this
-    module stays "stdlib + pydantic only" per its own module docstring -- `relations.ops` imports torch)."""
+    """D-144 R2 (+ sweep-flags follow-up, legged): `LatentConfig.factors`-style `params.latent.factors` (list of
+    `probe.arm.*` / `probe.legged.*` FactorSpec-shaped dicts / names) reduced to the equivalent (weight, lv_min)
+    pair `_check_variant` needs. Deliberately NOT `rrp.policies.relations.base.resolve` (a stdlib-only,
+    no-validation reduction: this module stays "stdlib + pydantic only" per its own module docstring --
+    `relations.ops` imports torch)."""
     ws, lvs = set(), set()
     for it in factors or ():
         if isinstance(it, str):
@@ -351,7 +367,7 @@ def _factors_probe_weight_lv(factors) -> tuple[float | None, float | None]:
             name, weight, params = it.get("name", ""), it.get("weight"), it.get("params") or {}
         else:
             continue
-        if isinstance(name, str) and name.startswith("probe.arm."):
+        if isinstance(name, str) and name.startswith(_PROBE_PREFIXES):
             ws.add(1.0 if weight is None else weight)
             lvs.add(params.get("lv_min", -8.0))
     if not ws:
@@ -362,29 +378,37 @@ def _factors_probe_weight_lv(factors) -> tuple[float | None, float | None]:
 def _check_variant(rc: RunConfig) -> None:
     """New configs: the variant label must match the recipe it names (catches mislabelled lineages).
 
-    D-144 sweep-flags: arm/dual `train_rep` configs are always `factors:`-shaped now (`dags/arm_lineage.yaml` /
-    `dags/templates/dual_lineage.yaml` emit `latent.factors`; `FLAG_SPEC[("arm"|"dual", "train_rep")]` no longer maps
-    `probe_lv_min`, so `rc.flags.probe_lv_min` is always None for these two families here), so the `else` branch below
-    is live ONLY for `legged` (whose own dags -- `legged_v2_*.yaml` and friends, out of this row's file list -- still
-    render a flat `latent.semantic_weight` + `flags.probe_lv_min`)."""
+    D-144 sweep-flags (+ 2026-09-30 follow-up): `train_rep` configs are always `factors:`-shaped now for EVERY
+    family (`dags/arm_lineage.yaml` / `dags/templates/dual_lineage.yaml` / every `dags/legged_v2_*.yaml` +
+    `legged_fixrep.yaml` + `smoke_legged.yaml` + the two `dags/templates/legged_v2_*.yaml` emit `latent.factors`;
+    `FLAG_SPEC[(fam, "train_rep")]` no longer maps `probe_lv_min` for any of the three families, so `rc.flags.
+    probe_lv_min` is always None here) -- the old flat `lat.get("semantic_weight")` / `rc.flags.probe_lv_min`
+    fallback this function used to carry for legged-only configs is gone; only `_legacy_variant` (`load_legacy`'s
+    OWN, separate classifier, below) still reads on-disk configs whose `"latent"` block stayed flat (`rc.legacy is
+    not None` there, so this function -- `_check_variant`, called only when `rc.legacy is None` -- never runs on
+    them anyway)."""
     if rc.variant == "na" or rc.stage not in ("train_rep", "train_flow", "flow_ft"):
         return
     p = rc.params
     if rc.stage == "train_rep":
         lat = p.get("latent") or {}
-        if "factors" in lat:
-            w, lv = _factors_probe_weight_lv(lat["factors"])
-        else:                                            # legged only, see the docstring above
-            w, lv = lat.get("semantic_weight"), rc.flags.probe_lv_min
+        w, lv = _factors_probe_weight_lv(lat.get("factors"))
         if w is None:
-            raise RunConfigError("train_rep: params.latent.semantic_weight (or a probe.arm.* weight in "
-                                 "params.latent.factors) must be explicit")
+            raise RunConfigError("train_rep: params.latent.factors must include an explicit probe.arm.*/"
+                                 "probe.legged.* weight")
         ok = {"nosem": w == 0, "sem": w > 0 and lv is not None and lv <= -8.0,
               "semfix": w > 0 and lv is not None and lv > -8.0}[rc.variant]
     else:
+        # sweep-flags follow-up: `packet_semantic_weight` may also arrive as a `flow.packet_semantic` factor spec
+        # (`nets/semantic_latent.py::packet_semantic_factor`) -- forward-compatible; every config actually on disk
+        # today (arm and legged alike) still renders the flat key, which stays the primary read.
         w = p.get("packet_semantic_weight")
+        if w is None and p.get("factors"):
+            w = next((it.get("weight", 0.0) for it in p["factors"]
+                     if isinstance(it, dict) and it.get("name") == "flow.packet_semantic"), None)
         if w is None:
-            raise RunConfigError(f"{rc.stage}: params.packet_semantic_weight must be explicit")
+            raise RunConfigError(f"{rc.stage}: params.packet_semantic_weight (or a flow.packet_semantic weight "
+                                 "in params.factors) must be explicit")
         ok = (w == 0) == (rc.variant == "nosem")
     if not ok:
         raise RunConfigError(f"variant {rc.variant!r} does not match the recipe of this {rc.stage} config")

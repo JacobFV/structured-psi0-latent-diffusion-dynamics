@@ -89,10 +89,16 @@ nodes:
   rep:
     stage: train_rep
     resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
+    per:
+      variant:
+        semfix:
+          params:
+            latent:
+              factors: [{name: probe.legged.contact, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.goal, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.disp, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.subtask, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.fall, weight: 1.0, params: {lv_min: -4.0}}]
     config:
-      flags: {probe_lv_min: '{lv}', qd_dropout: 0.5}
+      flags: {qd_dropout: 0.5}
       inputs: {data: '@collect'}
-      params: {name: '{pfx}_rep', bodies: ['{body}'], latent: {dz: 32, width: 192, semantic_weight: '{sw}', beta_kl: 0.001}, steps: '{rep_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: '{snap_every}'}
+      params: {name: '{pfx}_rep', bodies: ['{body}'], latent: {dz: 32, width: 192, factors: [{name: probe.legged.contact, weight: '{sw}'}, {name: probe.legged.goal, weight: '{sw}'}, {name: probe.legged.disp, weight: '{sw}'}, {name: probe.legged.subtask, weight: '{sw}'}, {name: probe.legged.fall, weight: '{sw}'}], beta_kl: 0.001}, steps: '{rep_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: '{snap_every}'}
   probe:
     stage: probes
     only: {variant: [nosem]}

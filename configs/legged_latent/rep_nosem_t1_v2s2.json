@@ -7,7 +7,28 @@
  "latent": {
   "dz": 32,
   "width": 192,
-  "semantic_weight": 0.0,
+  "factors": [
+   {
+    "name": "probe.legged.contact",
+    "weight": 0.0
+   },
+   {
+    "name": "probe.legged.goal",
+    "weight": 0.0
+   },
+   {
+    "name": "probe.legged.disp",
+    "weight": 0.0
+   },
+   {
+    "name": "probe.legged.subtask",
+    "weight": 0.0
+   },
+   {
+    "name": "probe.legged.fall",
+    "weight": 0.0
+   }
+  ],
   "beta_kl": 0.001,
   "qd_dropout": 0.5
  },

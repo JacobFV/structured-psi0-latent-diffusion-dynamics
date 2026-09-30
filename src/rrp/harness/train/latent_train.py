@@ -35,7 +35,8 @@ from rrp.policies.nets.flow import FlowPolicy, PolicyConfig, interpolate_target,
 from rrp.policies.nets.latent_batch import augment
 from rrp.harness.eval.latent_eval import readout_loss, readout_metrics
 from rrp.policies.nets.probes import ReadoutProbe
-from rrp.policies.nets.semantic_latent import LatentConfig, TargetEncoder, assembly_tokens
+from rrp.policies.nets.semantic_latent import (LatentConfig, TargetEncoder, assembly_tokens,
+                                               packet_semantic_weight as _packet_semantic_weight)
 from rrp.policies.system0 import LatentRealizer, REALIZER_RECURRENT_STATE
 from rrp.policies.bundles import (load_representation,  # noqa: F401  (moved to controllers, W4)
                                   _readout_probe_specs, _remap_probe_state_dict)
@@ -299,11 +300,13 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
     steps = cfg_json["steps"]
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=cfg_json.get("lr", 3e-4), total_steps=steps, pct_start=0.05)
     # `packet_semantic_weight` (top-level, Stage-B-only knob; distinct from LatentConfig.weight) keeps its pre-R2
-    # name: it has no `probe.arm.*`-style registry entry (Stage B trains a FROZEN probe on z_hat, not the
-    # representation probes) and the same key is read by `policies.bundles` / `harness.train.legged_latent_train`
-    # (other fanout units' owned files; docs/relations.md 10 brief covers moving it but this unit does not touch
-    # files it does not own to do so -- see research/tracks/rel-r2.md).
-    w_sem = cfg_json.get("packet_semantic_weight", 0.0)
+    # on-disk key name: it has no `probe.arm.*`-style registry entry of its own (Stage B trains a FROZEN probe on
+    # z_hat, not the representation probes -- full `params.on` wiring, docs/relations.md 10's R2 brief, needs
+    # catalog.py/nets/flow.py/nets/probes.py, out of this row's owned files). Sweep-flags follow-up (2026-09-30):
+    # the READ moves onto `nets/semantic_latent.py::packet_semantic_weight`, the ONE conversion point shared with
+    # `harness/train/legged_latent_train.py` / `harness/train/joint_adapt.py` (previously three ad hoc `.get(...)`
+    # reads of the same literal key).
+    w_sem = _packet_semantic_weight(cfg_json)
     out_dir.mkdir(parents=True, exist_ok=True)
     B = cfg_json.get("batch_size", 128)
     gen = torch.Generator(device=dev).manual_seed(seed)
@@ -524,7 +527,7 @@ def sft_latent_flow(flow_ckpt: Path, target_packed_dir: Path, budget: int, *, se
     chosen = [eps[i] for i in nested_budget_indices(len(eps), [budget], seed)[budget]]
     pool = [int(i) for i in np.nonzero(np.isin(data.ep, chosen))[0]]
     transitions = len(pool)
-    w_sem = cfgj.get("packet_semantic_weight", 0.0) if packet_semantic_weight is None else packet_semantic_weight
+    w_sem = _packet_semantic_weight(cfgj) if packet_semantic_weight is None else packet_semantic_weight
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     rng = random.Random(seed)
     torch.manual_seed(seed)

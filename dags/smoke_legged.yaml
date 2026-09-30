@@ -14,13 +14,13 @@ defaults:
 base:
   variant: semfix
   seed: 0
-  flags: {probe_lv_min: -4.0, qd_dropout: 0.5, contact_version: contact_v1}
+  flags: {qd_dropout: 0.5, contact_version: contact_v1}
 nodes:
   rep:
     stage: train_rep
     config:
       inputs: {data: datasets/w5_smoke_legged}
-      params: {bodies: [go2], latent: {dz: 32, width: 64, semantic_weight: 1.0, beta_kl: 0.001}, steps: 30, batch_size: 32, lr: 0.0003, seed: 0, ckpt_every: 10, snap_every: 0}
+      params: {bodies: [go2], latent: {dz: 32, width: 64, factors: [{name: probe.legged.contact, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.goal, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.disp, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.subtask, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.fall, weight: 1.0, params: {lv_min: -4.0}}], beta_kl: 0.001}, steps: 30, batch_size: 32, lr: 0.0003, seed: 0, ckpt_every: 10, snap_every: 0}
   probe:
     stage: probes
     config:

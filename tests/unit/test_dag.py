@@ -284,8 +284,6 @@ def test_legged_dag_reproduces_legacy_configs():
         drop = {"name", "note", "out_dir"}
         got = {k: v2 for k, v2 in native.items() if k not in drop}
         want = {k: v2 for k, v2 in legacy.items() if k not in drop}
-        if kind == "rep" and "probe_lv_min" not in want["latent"]:
-            assert got["latent"].pop("probe_lv_min") == -8.0            # nosem: explicit legged default
         assert got == want, nid
         n += 1
     assert n == 16
@@ -338,10 +336,16 @@ nodes:
       params: {bodies: ['{body}'], steps: 1}
   rep:
     stage: train_rep
+    per:
+      variant:
+        semfix:
+          params:
+            latent:
+              factors: [{name: probe.legged.contact, weight: 1.0, params: {lv_min: -4.0}}]
     config:
-      flags: {probe_lv_min: '{lv}', qd_dropout: 0.5}
+      flags: {qd_dropout: 0.5}
       inputs: {data: '@collect'}
-      params: {name: '{pfx}', bodies: ['{body}'], latent: {semantic_weight: '{sw}'}, seed: '{seed}'}
+      params: {name: '{pfx}', bodies: ['{body}'], latent: {factors: [{name: probe.legged.contact, weight: '{sw}'}]}, seed: '{seed}'}
   r2:
     stage: eval_r2
     config:

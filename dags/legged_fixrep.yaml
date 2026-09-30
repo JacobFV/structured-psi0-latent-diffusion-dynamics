@@ -31,14 +31,29 @@ defaults:
   max_parallel: 6
   resources: {cpu: 10, mem: 12G, gpu: false, max_seconds: 14400}
 base:
-  flags: {probe_lv_min: '{lv}', qd_dropout: 0.5, contact_version: contact_v1}
+  flags: {qd_dropout: 0.5, contact_version: contact_v1}
 nodes:
+  # sweep-flags follow-up (2026-09-30): `latent.factors` replaces the flag-driven flat `latent.semantic_weight` +
+  # `flags.probe_lv_min` pair (docs/relations.md 10, `nets/semantic_latent.py::legacy_latent_factors`'s
+  # `probe.legged.*` shape, mirroring `dags/arm_lineage.yaml`'s own `probe.arm.*` conversion). `{sw}` (0.0 nosem /
+  # 1.0 semfix) sets every `probe.legged.*` weight uniformly; the `per: variant: semfix` override below is the only
+  # place `lv_min` differs (-4.0 vs the -8.0 default, omitted like the on-disk `configs/legged_{latent,fixsem}/**`,
+  # `configs/t1_diag/**` codemod). `core/runconfig.py`'s `FLAG_SPEC[("legged", "train_rep")]` no longer maps
+  # `probe_lv_min`; `configs/legged_fixsem/rep_{fixsem,nosem}_{go2,hexapod6}_s{1,2}.json` (this dag's own recipes)
+  # codemodded to match -- proven byte-identical (weight, lv_min) by the verification script this row ran (see
+  # research/tracks/sweep-flags.md's follow-up note).
   rep:
     stage: train_rep
     resources: {gpu: true, gpu_mem: 5G, cpu: 3, mem: 8G, max_seconds: 14400}
+    per:
+      variant:
+        semfix:
+          params:
+            latent:
+              factors: [{name: probe.legged.contact, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.goal, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.disp, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.subtask, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.fall, weight: 1.0, params: {lv_min: -4.0}}]
     config:
       inputs: {data: datasets/legged_latent_v1}
-      params: {name: '{pfx}_rep', bodies: ['{body}'], latent: {dz: 32, width: 192, semantic_weight: '{sw}', beta_kl: 0.001}, steps: 12000, batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 4000}
+      params: {name: '{pfx}_rep', bodies: ['{body}'], latent: {dz: 32, width: 192, factors: [{name: probe.legged.contact, weight: '{sw}'}, {name: probe.legged.goal, weight: '{sw}'}, {name: probe.legged.disp, weight: '{sw}'}, {name: probe.legged.subtask, weight: '{sw}'}, {name: probe.legged.fall, weight: '{sw}'}], beta_kl: 0.001}, steps: 12000, batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 4000}
   probe:
     stage: probes
     only: {variant: [nosem]}
