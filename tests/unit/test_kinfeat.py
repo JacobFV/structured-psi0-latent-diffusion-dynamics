@@ -103,7 +103,8 @@ def test_checkpoint_guard():
 
 def test_stage_option_sets_ambient_only_inside_stage(monkeypatch, tmp_path):
     from rrp.harness.pipelines import base
-    src = open(base.__file__).read()
-    assert 'rc.options.get("kinfeat")' in src          # the generic stage option exists (like grasp_contact)
-    assert "os.environ" not in src.split("kf = rc.options")[1].split("os.chdir(root)")[0]
+    import inspect
+    src = inspect.getsource(base._resolved_factors)     # the generic stage option exists (like grasp_contact)
+    assert 'rc.options.get("kinfeat")' in src
+    assert "os.environ" not in src + inspect.getsource(base.apply_run_context)
     assert kinfeat.resolved() is False

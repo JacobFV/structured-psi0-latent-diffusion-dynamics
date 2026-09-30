@@ -286,43 +286,64 @@ def installed_revision(dist: str = "rrp") -> str | None:
     return (d.get("vcs_info") or {}).get("commit_id")
 
 
+def _git(root: str, *args: str, env: dict | None = None, timeout: int = 30) -> str:
+    return subprocess.run(["git", "-C", root, *args], capture_output=True, text=True, timeout=timeout,
+                          env=env).stdout.strip()
+
+
+def _src_tree(root: str) -> str | None:
+    """Git tree hash of the WORKING copy of `src/` (tracked edits and untracked, non-ignored files included), built in
+    a throw-away index so the repository's own index is untouched. Two runs with equal `src_tree` ran the same code.
+    `ops/bin/peer_sync.sh revision` computes the same value for a synced copy that has no .git."""
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        env = dict(os.environ, GIT_INDEX_FILE=str(Path(td) / "index"))
+        _git(root, "read-tree", "HEAD", env=env)
+        _git(root, "add", "-A", "--", "src", env=env)
+        return _git(root, "write-tree", "--prefix=src/", env=env) or None
+
+
 @functools.lru_cache(maxsize=4)
-def _git_info(root: str) -> tuple[str | None, bool | None]:
+def _git_info(root: str) -> tuple[str | None, bool | None, str | None, str | None]:
+    """(git_sha, dirty, tree, src_tree). `dirty` counts UNTRACKED files too (a new module is code that ran)."""
     env_sha = os.environ.get("RRP_GIT_SHA")
     try:
-        sha = subprocess.run(["git", "-C", root, "rev-parse", "HEAD"], capture_output=True, text=True,
-                             timeout=10).stdout.strip() or None
+        sha = _git(root, "rev-parse", "HEAD", timeout=10) or None
         if sha:
-            st = subprocess.run(["git", "-C", root, "status", "--porcelain", "--untracked-files=no"],
-                                capture_output=True, text=True, timeout=20).stdout
-            return sha, bool(st.strip())
+            dirty = bool(_git(root, "status", "--porcelain", timeout=60))
+            return sha, dirty, _git(root, "rev-parse", "HEAD^{tree}", timeout=10) or None, _src_tree(root)
     except Exception:  # noqa: BLE001 - no git binary
         pass
     rev = Path(root) / ".rrp_revision"          # synced copies (peer) have no .git; a sync may drop this file
     if rev.exists():
         try:
             d = json.loads(rev.read_text())
-            return d.get("git_sha"), d.get("dirty")
+            return d.get("git_sha"), d.get("dirty"), d.get("tree"), d.get("src_tree")
         except Exception:  # noqa: BLE001
             pass
-    return env_sha, None
+    return env_sha, None, None, None
 
 
 class CodeProvenance(Strict):
     git_sha: str | None = None           # None: unknown (no .git, e.g. a synced peer copy without .rrp_revision)
-    dirty: bool | None = None
+    dirty: bool | None = None            # any tracked change or untracked (non-ignored) file
+    tree: str | None = None              # git tree of HEAD
+    src_tree: str | None = None          # git tree of the working src/ (dirty edits included): the "same code" key
 
 
-def code_provenance(root: Path | None = None) -> CodeProvenance:
-    """git sha/dirty of `root` (default: the rrp checkout). An INSTALLED rrp (no checkout, no RRP_HOME) records the
-    commit it was installed from, never the git state of whatever directory the consumer runs in."""
+def code_provenance(root: Path | None = None, *, fresh: bool = False) -> CodeProvenance:
+    """git sha/dirty/tree of `root` (default: the rrp checkout). An INSTALLED rrp (no checkout, no RRP_HOME) records the
+    commit it was installed from, never the git state of whatever directory the consumer runs in. `fresh` re-reads
+    the working tree (a long-lived process such as run-dag; the default is cached per process)."""
     if root is None and not os.environ.get("RRP_HOME"):
         from .paths import is_checkout
         if not is_checkout():
             rev = installed_revision()
             return CodeProvenance(git_sha=rev or os.environ.get("RRP_GIT_SHA"), dirty=False if rev else None)
-    sha, dirty = _git_info(str(root or repo_root()))
-    return CodeProvenance(git_sha=sha, dirty=dirty)
+    if fresh:
+        _git_info.cache_clear()
+    sha, dirty, tree, src_tree = _git_info(str(root or repo_root()))
+    return CodeProvenance(git_sha=sha, dirty=dirty, tree=tree, src_tree=src_tree)
 
 
 def weights_digest(state_dict: dict) -> str:

@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from rrp.harness.dag import DagError, Executor, Ledger, load_dag, plan_dag
+from rrp.harness.pipelines.base import stage_versions
 from rrp.harness.yamlmini import YamlError, loads
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -58,7 +59,10 @@ class FakeRunner:
         else:
             p = self.root / node.rc.out
             p.mkdir(parents=True, exist_ok=True)
-            (p / "pipeline_manifest.json").write_text(json.dumps(dict(config_hash=node.rc.config_hash(), metrics={})))
+            from rrp.core.provenance import code_provenance
+            (p / "pipeline_manifest.json").write_text(json.dumps(dict(
+                config_hash=node.rc.config_hash(), metrics={}, pins=stage_versions(node.rc),
+                provenance=dict(code=code_provenance().model_dump()))))
         self.jobs[lid] = rc
         return dict(lease_id=lid, log=f"/x/{lid}.log", placement=node.placement)
 
@@ -111,7 +115,7 @@ nodes:
 
 def _ex(tmp, runner, plan=None):
     plan = plan or plan_dag(loads(TOY))
-    return Executor(plan, Ledger(tmp / "ledger.json"), runner, poll_s=0, sleep=lambda s: None, log=lambda m: None)
+    return Executor(plan, Ledger(tmp / "ledger.json"), runner, poll_s=0, sleep=lambda s: None, log=lambda m: None, pins=stage_versions)
 
 
 def test_plan_refs_and_order():
@@ -303,7 +307,7 @@ def test_gpu_and_cpu_caps(tmp_path):
             return self.jobs[h["lease_id"]]
     r = Slow(tmp_path)
     ex = Executor(plan, Ledger(tmp_path / "l.json"), r, max_parallel=8, max_parallel_gpu=2, max_cpu=16,
-                  poll_s=0, sleep=lambda s: None, log=lambda m: None)
+                  poll_s=0, sleep=lambda s: None, log=lambda m: None, pins=stage_versions)
     assert ex.run()["completed"] == len(plan.nodes)
     assert r.peak_gpu == 2 and r.peak_cpu <= 16
 
@@ -328,7 +332,7 @@ def test_shared_budget_counts_other_ledgers(tmp_path):
     resources: {gpu: true, cpu: 2, mem: 4G, gpu_mem: 2G}
 """)))
     ex = Executor(plan, Ledger(tmp_path / "_dags" / "gtoy" / "ledger.json"), FakeRunner(tmp_path), max_parallel_gpu=2,
-                  max_cpu=8, max_mem_gib=28, budget_dir=tmp_path / "_dags", poll_s=0, sleep=lambda s: None, log=lambda m: None)
+                  max_cpu=8, max_mem_gib=28, budget_dir=tmp_path / "_dags", poll_s=0, sleep=lambda s: None, log=lambda m: None, pins=stage_versions)
     assert ex._fits("rep@semfix.s0", [])                     # 1 GPU elsewhere + 1 = 2
     assert not ex._fits("rep@semfix.s1", ["rep@semfix.s0"])  # would be 3 GPU nodes in the track
     assert ex._fits("collect", ["rep@semfix.s0", "rep@nosem.s0"])      # cpu 2+2+2+1 = 7 <= 8, mem 18+1 <= 28
@@ -343,6 +347,6 @@ def test_caveat_goes_to_notes_and_ledger_without_changing_hashes(tmp_path):
     b = plan_dag(loads("caveat: 'gate exception X'\n" + GLOBAL_TOY))
     assert b.nodes["rep@semfix.s0"].rc.note == "gate exception X"
     assert all(a.nodes[k].rc.config_hash() == b.nodes[k].rc.config_hash() for k in a.nodes)
-    ex = Executor(b, Ledger(tmp_path / "l.json"), FakeRunner(tmp_path), poll_s=0, sleep=lambda s: None, log=lambda m: None)
+    ex = Executor(b, Ledger(tmp_path / "l.json"), FakeRunner(tmp_path), poll_s=0, sleep=lambda s: None, log=lambda m: None, pins=stage_versions)
     ex.run()
     assert json.loads((tmp_path / "l.json").read_text())["caveat"] == "gate exception X"

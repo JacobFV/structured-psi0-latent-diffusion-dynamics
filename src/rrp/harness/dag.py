@@ -22,7 +22,12 @@ positive control, the teacher reference) that must not be duplicated per matrix 
 
 Execution: every node is ONE leased job through the existing broker: `rrp ops run --detach` on the host or
 ops/bin/peer_run.sh --detach on the peer (RRP_PEER_REPO), running `python -m rrp.cli stage run --config-b64 ...`.
-A node is completed iff its job exit code is 0 AND <out>/pipeline_manifest.json carries the node's config_hash.
+A node is completed iff its job exit code is 0 AND <out>/pipeline_manifest.json carries the node's config_hash and the
+version pins the rendered config implies (`pipeline.base.stage_versions`: PIPELINE_VERSION, factor structure hash,
+catalog version). Existing outputs are ADOPTED (no lease) only under equal config_hash and pins; if they were produced
+by other code (the manifest's `src_tree` differs from the checkout's) the node is `stale`: adopted only with
+`--adopt-stale`, reported either way, and `run-dag` exits non-zero while stale nodes remain (docs/architecture.md 14.2).
+The ledger records per attempt the git revision, tree hash, src tree hash and dirty flag (untracked files count).
 Retries are bounded (node `retries`, default 0 as D-061); broker refusals for capacity are waited for (bounded by
 admission_timeout_s) and are not attempts. State lives in ONE JSON ledger per DAG (atomic writes, lock file); a rerun
 resumes idempotently (completed nodes skipped, running leases re-adopted by lease id). The runner never stops a lease.
@@ -45,7 +50,7 @@ from pathlib import Path
 from rrp.core.runconfig import (FLAG_NAMES, FLAG_SPEC, ensure_family, SCHEMA_VERSION, RunConfig, RunIndex, overlay, render)
 
 LEDGER_SCHEMA = "dag-ledger-1"
-TERMINAL = ("completed", "failed", "blocked")
+TERMINAL = ("completed", "failed", "blocked", "stale")
 REF = re.compile(r"^@([A-Za-z0-9_\-]+)(?::(.*))?$")
 
 
@@ -331,6 +336,9 @@ def _build_rc(spec, n, nname, point, lineage, track, family, env, lists, resolve
     cfg = overlay(base, n.get("config") or {})
     flags_in = cfg.pop("flags", {}) or {}
     ensure_family(family)                      # extension families (entry points) before the FLAG_SPEC lookup
+    if (family, stage) not in FLAG_SPEC:
+        raise DagError(f"{nname}: family {family!r} has no stage {stage!r} (registered: "
+                       f"{sorted(st for (f, st) in FLAG_SPEC if f == family)})")
     applicable = FLAG_SPEC[(family, stage)]
     flags = {}
     for f in FLAG_NAMES:
@@ -521,12 +529,31 @@ class Executor:
     #                                         dir (<dir>/*/ledger.json), so several DAGs of one track share the caps
     poll_s: float = 30.0
     admission_timeout_s: float = 10800.0
+    adopt_stale: bool = False               # accept completed nodes whose outputs came from other code (recorded, reported)
+    code_now: callable | None = None        # () -> CodeProvenance of the checkout (default: re-read git each call)
+    pins: callable = field(kw_only=True)    # (RunConfig) -> the versions a stage manifest pins (`pipelines.base.stage_versions`;
+    #                                         injected by the CLI: the flat harness layer must not import its pipelines)
     log: callable = field(default=lambda m: print(f"{time.strftime('%F %T')} [run-dag] {m}", flush=True))
     sleep: callable = time.sleep
+
+    def _code(self) -> dict:
+        if self.code_now is not None:
+            c = self.code_now()
+        else:
+            from rrp.core.provenance import code_provenance
+            c = code_provenance(fresh=True)
+        return c if isinstance(c, dict) else c.model_dump()
+
+    def _pins(self, nid: str) -> dict:
+        try:
+            return self.pins(self.plan.nodes[nid].rc)
+        except Exception as e:
+            raise DagError(f"{nid}: cannot resolve the node's factors / versions: {e}") from e
 
     def _check_ledger(self):
         if self.plan.caveat:
             self.ledger.data["caveat"] = self.plan.caveat
+        cur = self._code()
         for nid in self.plan.order:
             n, e = self.plan.nodes[nid], self.ledger.node(nid)
             h = n.rc.config_hash()
@@ -536,7 +563,35 @@ class Executor:
             e.setdefault("config_hash", h)
             e.update(run_id=n.rc.run_id, out=n.rc.out, stage=n.rc.stage, placement=n.placement,
                      resources=n.resources.__dict__)
+            pins = self._pins(nid)
+            if e["state"] == "blocked" and e.get("blocked_by") == "stale":
+                e.update(state="planned", blocked_by=None)          # its dependency may be adopted / reset now
+            if e["state"] in ("completed", "stale"):
+                if e.get("pins") not in (None, pins):
+                    raise DagError(f"{nid}: completed under versions {e['pins']} but the code now pins {pins}; "
+                                   f"use --reset {nid}")
+                self._settle(nid, e, cur, e.get("code"), pins)
         self.ledger.save()
+
+    def _settle(self, nid: str, e: dict, cur: dict, recorded: dict | None, pins: dict) -> str:
+        """completed-vs-stale for an output that exists: recorded pins and the same src_tree (or a tree already adopted)
+        -> completed; else stale, unless --adopt-stale (recorded in the ledger)."""
+        want, have = cur.get("src_tree"), (recorded or {}).get("src_tree")
+        if e.get("pins") is None:
+            reason = "completed before version pins were recorded"
+        elif want and have and (want == have or want in e.get("adopted_trees", [])):
+            e.update(state="completed", stale_reason=None)
+            return "completed"
+        else:
+            reason = f"outputs from src_tree {have or 'unknown'}, code is now {want or 'unknown'}"
+        if self.adopt_stale:
+            e.update(state="completed", stale_reason=None, pins=pins,
+                     adopted_trees=sorted({*e.get("adopted_trees", []), want or "unknown"}))
+            self.log(f"{nid}: adopted stale outputs ({reason})")
+            return "completed"
+        e.update(state="stale", stale_reason=reason)
+        self.log(f"{nid}: STALE ({reason}); --adopt-stale accepts it, --reset {nid} reruns it")
+        return "stale"
 
     def run(self) -> dict:
         self._check_ledger()
@@ -572,7 +627,7 @@ class Executor:
                     continue
                 waiting_since.pop(nid, None)
                 e = self.ledger.node(nid)
-                e["attempts"].append(dict(h, started=time.time()))
+                e["attempts"].append(dict(h, started=time.time(), revision=self._code()))
                 self.ledger.set(nid, state="running")
                 self.log(f"{nid}: launched lease {h['lease_id']} on {h['placement']}")
                 running.append(nid)
@@ -584,6 +639,9 @@ class Executor:
             self.sleep(self.poll_s)
         summary = {s: sum(1 for k in self.plan.order if self.ledger.node(k)["state"] == s)
                    for s in ("completed", "failed", "blocked", "planned", "running")}
+        n_stale = sum(1 for k in self.plan.order if self.ledger.node(k)["state"] == "stale")
+        if n_stale:
+            summary["stale"] = n_stale
         self.log(f"done: {summary}")
         return summary
 
@@ -618,13 +676,25 @@ class Executor:
         return True
 
     def _adopt_existing(self, nid: str) -> bool:
-        """Outputs already complete (manifest with this config_hash, e.g. run by hand): mark completed, no lease."""
-        m = self.runner.manifest(self.plan.nodes[nid])
-        if m and m.get("config_hash") == self.plan.nodes[nid].rc.config_hash():
-            self.ledger.set(nid, state="completed", adopted=True, metrics=m.get("metrics"))
+        """Outputs already complete (manifest with this config_hash AND the node's version pins, e.g. run by hand): no
+        lease. Other pins = a different meaning: not adopted (the node runs and replaces them). Same pins but other
+        code: `stale` (see `_settle`)."""
+        node = self.plan.nodes[nid]
+        m = self.runner.manifest(node)
+        if not m or m.get("config_hash") != node.rc.config_hash():
+            return False
+        pins = self._pins(nid)
+        if m.get("pins") != pins:
+            self.log(f"{nid}: existing outputs not adopted: version pins {m.get('pins')} != {pins}")
+            return False
+        code = ((m.get("provenance") or {}).get("code")) or {}
+        e = self.ledger.node(nid)
+        e.update(metrics=m.get("metrics"), code=code, pins=pins, state="planned")
+        state = self._settle(nid, e, self._code(), code, pins)
+        self.ledger.set(nid, state=state, adopted=state == "completed")
+        if state == "completed":
             self.log(f"{nid}: adopted existing outputs")
-            return True
-        return False
+        return True
 
     def _poll(self, nid: str):
         e = self.ledger.node(nid)
@@ -636,11 +706,13 @@ class Executor:
         node = self.plan.nodes[nid]
         if rc == 0:
             m = self.runner.manifest(node)
-            if m and m.get("config_hash") == node.rc.config_hash():
-                self.ledger.set(nid, state="completed", metrics=m.get("metrics"))
+            pins = self._pins(nid)
+            if m and m.get("config_hash") == node.rc.config_hash() and m.get("pins") == pins:
+                self.ledger.set(nid, state="completed", metrics=m.get("metrics"), pins=pins,
+                                code=((m.get("provenance") or {}).get("code")) or att.get("revision"))
                 self.log(f"{nid}: completed (lease {att['lease_id']})")
                 return
-            reason = "exit 0 but no manifest with the node's config_hash"
+            reason = "exit 0 but no manifest with the node's config_hash and version pins"
         else:
             reason = f"exit code {rc}" + (f" unit {att['unit_result']}" if att.get("unit_result") else "") + \
                 f" (log {att.get('log')})"
@@ -668,9 +740,15 @@ class Executor:
             changed = False
             for k in self.plan.order:
                 e = self.ledger.node(k)
-                if e["state"] == "planned" and any(self.ledger.node(d)["state"] in ("failed", "blocked")
-                                                   for d in self.plan.nodes[k].deps):
+                if e["state"] != "planned":
+                    continue
+                ds = [self.ledger.node(d)["state"] for d in self.plan.nodes[k].deps]
+                if any(x in ("failed", "blocked") for x in ds):
                     self.ledger.set(k, state="blocked", last_error="dependency failed")
+                    changed = True
+                elif "stale" in ds:
+                    self.ledger.set(k, state="blocked", last_error="dependency stale (--adopt-stale or --reset it)",
+                                    blocked_by="stale")
                     changed = True
 
 

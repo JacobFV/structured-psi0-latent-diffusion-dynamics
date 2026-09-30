@@ -12,9 +12,11 @@ flagged and unflagged lineages. Passive (mimic) joint tokens keep their local ax
 R12/R12c (D-144, docs/relations.md sections 8, 10): `$RRP_KINFEAT` is GONE from `src/` -- no live code path reads
 `os.environ` for this flag any more. `Featurizer` / `MultiFeaturizer` take an explicit `base_axes: bool | None`
 kwarg (`None` = ambient default via `resolved()`, `True` / `False` pins it regardless of the ambient value).
-`harness/pipelines/base.py` resolves `options.kinfeat` once per stage and calls `set_base_axes(...)` instead of
-setting an environment variable (in-process only: dag nodes are already separate subprocesses, each re-reading its
-own `RunConfig.options`, so no cross-process propagation is needed -- see `archived research/tracks/rel-r12.md`).
+`harness/pipelines/base.py::apply_run_context(rc)` resolves the run's factor list (`options.kinfeat: v1` or a
+`feat.base_axes` factor item) and calls `set_base_axes(...)` at stage entry -- in the stage's own process AND, through
+`StageContext.run` -> `child_main`, in every subprocess the stage spawns (`rrp data pack`, `rrp suite ladder`, the
+DAgger / edit workers, target_eval, ...): the rendered RunConfig (`<out>/run_context.json`) is the one channel, so a
+kinfeat lineage's children featurize -- and load checkpoints -- with the same value (docs/architecture.md 14.2).
 `harness/data/packed.py` / `harness/data/latent.py` and `policies/nets/checkpoint.py` read `resolved()` the same
 way `enabled()` used to be read. `versions["kinfeat"]` as a standalone checkpoint key is gone too: `resolved()`
 folds into `policies/nets/checkpoint.save_checkpoint`'s combined `versions["factors"]` hash instead of its own key.
@@ -34,8 +36,8 @@ VERSION = "kinfeat_v1"
 FACTOR_NAME = "feat.base_axes"        # the run-config-facing name of this featurizer option
 AXIS_COLS = slice(2, 5)
 
-_current: bool | None = None          # process-ambient resolved value, set only by harness.pipelines.base for a
-                                       # stage's duration; None = "unset" (resolved() then defaults to False)
+_current: bool | None = None          # process-ambient resolved value, set only by harness.pipelines.base
+                                       # (apply_run_context; parent stage and child); None = "unset" (resolved() then False)
 
 
 def legacy_bool(v) -> bool:

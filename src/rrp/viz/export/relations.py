@@ -119,9 +119,11 @@ def _catalog(path: Path) -> list[dict]:
 
 
 def _factor_runs(cfg: Config) -> list[dict]:
-    """Runs whose recorded versions / provenance name a factor set (versions["factors"])."""
+    """Runs whose recorded versions / provenance name a factor set (versions["factors"]): the top-level `versions` of a
+    run / summary file, or `provenance.versions` of a `pipeline_manifest.json` (unit F3; its `factors` list is the
+    factor provenance, `pins` the versions a node is adopted under)."""
     out = []
-    pat = re.compile(r"^(run|provenance|config|meta|summary)[\w.-]*\.json$")
+    pat = re.compile(r"^((run|provenance|config|meta|summary)[\w.-]*|pipeline_manifest)\.json$")
     for loc, root in _roots(cfg):
         for f in _walk(root / "artifacts/runs", pat, depth=3):
             if f.stat().st_size > 512_000:
@@ -130,11 +132,16 @@ def _factor_runs(cfg: Config) -> list[dict]:
                 d = json.loads(f.read_text())
             except (OSError, json.JSONDecodeError):
                 continue
-            v = d.get("versions") if isinstance(d, dict) else None
+            if not isinstance(d, dict):
+                continue
+            v = d.get("versions") or (d.get("provenance") or {}).get("versions")
             fac = v.get("factors") if isinstance(v, dict) else None
             if fac:
-                out.append({"run": str(f.parent.relative_to(root)), "file": str(f.relative_to(root)), "location": loc,
-                            "factors": fac, "factor_set": d.get("factors") or d.get("factor_specs")})
+                row = {"run": str(f.parent.relative_to(root)), "file": str(f.relative_to(root)), "location": loc,
+                       "factors": fac, "factor_set": d.get("factors") or d.get("factor_specs")}
+                if f.name == "pipeline_manifest.json":
+                    row.update(stage=(d.get("runconfig") or {}).get("stage"), pins=d.get("pins"))
+                out.append(row)
     return out
 
 

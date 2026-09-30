@@ -8,9 +8,16 @@ reimplement numerics. `Pipeline(family).run(rc)`:
 3. writes <out>/pipeline_manifest.json through the single manifest writer (rrp.data.manifest.write_manifest) with a
    Provenance (source label, flags, code revision) plus the RunConfig, its hash, the native config, input and output
    digests and the stage metrics. The DAG runner treats "rc 0 AND manifest with the same config_hash" as done.
+
+docs/architecture.md 14.2 (unit F3): the stage registry is OPEN (`register_stage`; a family registers in its own
+pipeline module and the stage names are derived); the RunConfig is the ONE channel to child processes: `apply_run_context`
+runs at stage entry in the parent and, through `StageContext.run` -> `child_main`, in every subprocess a stage spawns;
+`PIPELINE_VERSION` + the factor / catalog versions (`stage_versions`) are the pins a completed node is adopted under.
 """
 from __future__ import annotations
 
+import functools
+import hashlib
 import json
 import os
 import subprocess
@@ -22,9 +29,14 @@ from pathlib import Path
 from typing import Callable
 
 from rrp.core.paths import rrp_home
-from rrp.core.runconfig import BUILTIN_FAMILIES, PIPELINE_STAGES, RunConfig, RunIndex, ensure_family
+from rrp.core.runconfig import (BUILTIN_FAMILIES, PIPELINE_STAGES, RunConfig, RunIndex, declare_stage, ensure_family,
+                                families, register_family, undeclare_stage)
 
 MANIFEST = "pipeline_manifest.json"
+CONTEXT_FILE = "run_context.json"
+# Bumped when a stage changes what its outputs MEAN (not for refactors): a completed node is adopted only under the
+# same PIPELINE_VERSION (docs/architecture.md 14.2). Manifests written before it existed carry no pin and are never adopted.
+PIPELINE_VERSION = 1
 
 
 class StageError(RuntimeError):
@@ -82,16 +94,29 @@ class StageContext:
         return paths[key]
 
     def env(self, **extra) -> dict:
+        """The child environment: resources only (PYTHONPATH, threads, devices). Run semantics travel in the RunConfig."""
         e = dict(os.environ)
         src = str(self.root / "src")
         e["PYTHONPATH"] = src + (":" + e["PYTHONPATH"] if e.get("PYTHONPATH") and src not in e["PYTHONPATH"] else "")
         e.update({k: str(v) for k, v in extra.items()})
         return e
 
+    def context_file(self) -> Path:
+        """<out>/run_context.json: this stage's rendered RunConfig, the input of every child's `apply_run_context`."""
+        p = self.out / CONTEXT_FILE
+        self.out.mkdir(parents=True, exist_ok=True)
+        text = self.rc.to_json()
+        if not p.exists() or p.read_text() != text:
+            tmp = p.with_suffix(".tmp")
+            tmp.write_text(text)
+            tmp.replace(p)
+        return p
+
     def run(self, argv: list[str], *, env: dict | None = None, log_to: Path | None = None) -> None:
-        """Run [python, *argv] (argv[0] may be '-m') in the repo root; non-zero exit -> StageError."""
-        cmd = [self.python, *argv]
-        self.log("run " + " ".join(cmd))
+        """Run [python, *argv] (argv[0] may be '-m') in the repo root; non-zero exit -> StageError. The child starts
+        through `child_main`, which applies this stage's RunConfig (`apply_run_context`) before the target runs."""
+        cmd = [self.python, "-c", _CHILD_BOOT, "--context", str(self.context_file()), "--", *argv]
+        self.log("run " + " ".join([self.python, *argv]))
         fh = open(log_to, "a") if log_to else None
         try:
             r = subprocess.run(cmd, cwd=self.root, env=env or self.env(), stdout=fh, stderr=subprocess.STDOUT if fh else None)
@@ -99,7 +124,7 @@ class StageContext:
             if fh:
                 fh.close()
         if r.returncode != 0:
-            raise StageError(f"exit {r.returncode}: {' '.join(cmd)}" + (f" (log {log_to})" if log_to else ""))
+            raise StageError(f"exit {r.returncode}: {' '.join([self.python, *argv])}" + (f" (log {log_to})" if log_to else ""))
 
     def run_parallel(self, jobs: list[tuple[list[str], dict | None, Path | None]], workers: int) -> None:
         """Bounded parallel subprocesses; every job runs, then any failure raises (listing all failures)."""
@@ -128,22 +153,40 @@ class StageSpec:
 _REGISTRY: dict[tuple[str, str], StageSpec] = {}
 
 
-def register(family: str, stage: str, *, source: str):
-    """Decorator: register `fn(ctx) -> {"outputs", "metrics", ...}` as `family`'s `stage`. An extension family must be
-    registered first (rrp.contracts.runconfig.register_family); stages are the fixed PIPELINE_STAGES."""
-    if stage not in PIPELINE_STAGES:
-        raise ValueError(f"unknown stage {stage}")
-    if family not in BUILTIN_FAMILIES:
-        ensure_family(family)
+def register_stage(family: str, stage: str, fn: Callable[[StageContext], dict], *, source: str = "learned",
+                   flags=None, doc: str = "") -> Callable:
+    """Register `fn(ctx) -> {"outputs", "metrics", ...}` as `family`'s `stage`. OPEN registry: an unknown family is
+    registered on the spot (no flags) and a new stage name joins PIPELINE_STAGES. `flags` states the meaning-changing
+    flags that apply (names from runconfig.FLAG_NAMES, or {flag: where}); None keeps a core pair's table and gives a
+    new pair none. Families call this from their own pipeline module (`harness/pipelines/<family>.py`)."""
+    if family not in families():
+        register_family(family)
+    declare_stage(family, stage, flags)
+    _REGISTRY[(family, stage)] = StageSpec(family, stage, fn, source, doc or (fn.__doc__ or "").strip().split("\n")[0])
+    return fn
 
+
+def register(family: str, stage: str, *, source: str, flags=None):
+    """Decorator form of `register_stage`."""
     def deco(fn):
-        _REGISTRY[(family, stage)] = StageSpec(family, stage, fn, source, (fn.__doc__ or "").strip().split("\n")[0])
-        return fn
+        return register_stage(family, stage, fn, source=source, flags=flags)
     return deco
 
 
 def _load_families():
-    from rrp.harness.pipelines import arm, dual, legged, pointer, psi0  # noqa: F401  (registration side effects)
+    """Import every pipeline module (registration side effects): a new family adds one module, nothing else."""
+    import importlib
+    import pkgutil
+    import rrp.harness.pipelines as pkg
+    for m in pkgutil.iter_modules(pkg.__path__):
+        if m.name != "base":
+            importlib.import_module(f"{pkg.__name__}.{m.name}")
+
+
+def unregister_stage(family: str, stage: str) -> None:
+    """Drop one registered stage and its declaration when it was not part of the core table (tests)."""
+    _REGISTRY.pop((family, stage), None)
+    undeclare_stage(family, stage)
 
 
 def unregister_stages(family: str) -> None:
@@ -151,7 +194,139 @@ def unregister_stages(family: str) -> None:
     if family in BUILTIN_FAMILIES:
         raise ValueError(f"{family} is built in")
     for k in [k for k in _REGISTRY if k[0] == family]:
-        del _REGISTRY[k]
+        unregister_stage(*k)
+
+
+# ------------------------------------------------------------------------------------ run context (14.2)
+_CHILD_BOOT = "import sys; from rrp.harness.pipelines.base import child_main; sys.exit(child_main(sys.argv[1:]))"
+
+
+def _factor_items(rc: RunConfig) -> list[list]:
+    """The factor lists a rendered config carries: `params.latent.factors` (representation nets), `params.policy.factors`
+    (relation policies) and `params.factors` (flow / bc heads)."""
+    p = rc.params or {}
+    out = []
+    for path in (("latent", "factors"), ("policy", "factors"), ("factors",)):
+        cur = p
+        for k in path:
+            cur = cur.get(k) if isinstance(cur, dict) else None
+        if isinstance(cur, list) and cur:
+            out.append(cur)
+    return out
+
+
+def _is_feat_item(it) -> bool:
+    from rrp.policies.features import kinfeat
+    name = it if isinstance(it, str) else (it.get("name") if isinstance(it, dict) else None)
+    return name == kinfeat.FACTOR_NAME
+
+
+def _feat_on(it) -> bool:
+    return not (isinstance(it, dict) and it.get("control") == "off")
+
+
+@functools.lru_cache(maxsize=256)
+def _resolve_cached(blob: str) -> tuple:
+    from rrp.policies.relations.base import resolve
+    return resolve(json.loads(blob))
+
+
+def _resolved_factors(rc: RunConfig) -> tuple[tuple, bool | None]:
+    """(catalog FactorSpecs, feat.base_axes) of a rendered config. `feat.base_axes` is a featurizer option, not a catalog
+    factor: it may be stated as a factor item (`{name: feat.base_axes}`) or as `options.kinfeat: v1`; both must agree."""
+    from rrp.policies.features import kinfeat
+    kf = rc.options.get("kinfeat")
+    if kf is not None and kf != "v1":
+        raise StageError(f"options.kinfeat {kf!r}: only v1")
+    axes = kinfeat.legacy_bool(kf) if kf is not None else None
+    specs = []
+    for items in _factor_items(rc):
+        feat = [it for it in items if _is_feat_item(it)]
+        for it in feat:
+            v = _feat_on(it)
+            if axes is not None and axes != v:
+                raise StageError(f"{rc.run_id}: {kinfeat.FACTOR_NAME} stated twice with different values "
+                                 "(options.kinfeat and params factors)")
+            axes = v
+        rest = [it for it in items if not _is_feat_item(it)]
+        if rest:
+            specs.extend(_resolve_cached(json.dumps(rest, sort_keys=True, default=str)))
+    return tuple(specs), axes
+
+
+@dataclass
+class RunContext:
+    """What a stage's RunConfig configures process-wide; `restore()` undoes it (the parent stage does, a child exits)."""
+    base_axes: bool | None
+    specs: tuple
+    _prev: bool | None = None
+
+    def restore(self) -> None:
+        from rrp.policies.features import kinfeat
+        kinfeat.set_base_axes(self._prev)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.restore()
+
+
+def apply_run_context(rc: RunConfig) -> RunContext:
+    """Resolve the factor list of `rc` and configure the process from it: `feat.base_axes` (kinfeat's ambient value),
+    and, with `options.deploy`, the deploy guard (no ground-truth factor source may be active). Called at stage entry
+    in the parent (`Pipeline.run`) and in every child a stage spawns (`child_main`): the RunConfig is the one channel,
+    `$RRP_KINFEAT` no longer exists."""
+    from rrp.policies.features import kinfeat
+    specs, axes = _resolved_factors(rc)
+    if rc.options.get("deploy"):
+        from rrp.policies.relations.base import assert_deployable
+        assert_deployable(specs)
+    return RunContext(base_axes=axes, specs=specs, _prev=kinfeat.set_base_axes(axes))
+
+
+def child_main(argv: list[str]) -> int:
+    """`python -c <boot> --context <run_context.json> -- [-m module | script.py] args...`: apply the stage's RunConfig,
+    then run the target exactly as `python <argv>` would."""
+    import runpy
+    import argparse
+    ap = argparse.ArgumentParser(prog="rrp stage child")
+    ap.add_argument("--context", required=True)
+    ap.add_argument("target", nargs=argparse.REMAINDER)
+    a = ap.parse_args(argv)
+    target = a.target[1:] if a.target[:1] == ["--"] else a.target
+    if not target:
+        raise SystemExit("child_main: no target")
+    _load_families()                       # the config names a family: its module (or plugin) must be registered first
+    from rrp.core.runconfig import load_family_plugins
+    load_family_plugins()
+    apply_run_context(RunConfig.model_validate_json(Path(a.context).read_text()))
+    if target[0] == "-m":
+        sys.argv = [target[1], *target[2:]]
+        runpy.run_module(target[1], run_name="__main__", alter_sys=True)
+    else:
+        sys.argv = list(target)
+        runpy.run_path(target[0], run_name="__main__")
+    return 0
+
+
+def stage_versions(rc: RunConfig) -> dict:
+    """The versions a stage's outputs are pinned to, derived from the rendered config alone: `pipeline`
+    (PIPELINE_VERSION), `factors` (the checkpoint's combined string: relation structure hash [+ kinfeat version]; ""
+    without factors) and `catalog` (hash of the registry entries the factor specs use)."""
+    from rrp.policies.features import kinfeat
+    specs, axes = _resolved_factors(rc)
+    bits = []
+    cat = ""
+    if specs:
+        from dataclasses import asdict
+        from rrp.policies.relations.base import compat_hash, get_factor
+        bits.append(compat_hash(specs))
+        defs = [asdict(get_factor(n)) for n in sorted({s.name for s in specs})]
+        cat = "cat-" + hashlib.sha256(json.dumps(defs, sort_keys=True, default=repr).encode()).hexdigest()[:12]
+    if axes:
+        bits.append(kinfeat.VERSION)
+    return dict(pipeline=str(PIPELINE_VERSION), factors="+".join(bits), catalog=cat)
 
 
 class Pipeline:
@@ -194,17 +369,15 @@ class Pipeline:
             if gc_old is not None and resolve(gc_old) != resolve(gc):
                 raise StageError(f"options.grasp_contact {gc!r} contradicts $RRP_GRASP_CONTACT={gc_old!r}")
             os.environ["RRP_GRASP_CONTACT"] = resolve(gc)   # in-process code and every subprocess (ctx.env) see it
-        kf = rc.options.get("kinfeat")                  # feat.base_axes for the whole stage (opt-in; D-137 origin)
-        if kf is not None and kf != "v1":
-            raise StageError(f"options.kinfeat {kf!r}: only v1")
-        from rrp.policies.features import kinfeat
-        kf_prev = kinfeat.set_base_axes(kinfeat.legacy_bool(kf) if kf is not None else None)
         os.chdir(root)                                   # existing code resolves artifacts/... relative to the repo
+        rctx = None
         try:
+            rctx = apply_run_context(rc)                 # factors -> featurizer options; children get the same via ctx.run
             res = spec.fn(ctx) or {}
         finally:
             os.chdir(cwd)
-            kinfeat.set_base_axes(kf_prev)
+            if rctx is not None:
+                rctx.restore()
             if gc is not None:
                 if gc_old is None:
                     os.environ.pop("RRP_GRASP_CONTACT", None)
@@ -241,12 +414,20 @@ def write_stage_manifest(ctx: StageContext, spec: StageSpec, res: dict, *, start
     for k, v in rc.input_paths(ctx.index).items():
         vs = v if isinstance(v, list) else [v]
         inputs[k] = [dict(path=p, digest=_digest(ctx.root / p)) for p in vs]
-    prov = make_provenance(src, flags=rc.flag_dict(), versions=res.get("versions") or {},
+    pins = stage_versions(rc)
+    versions = dict(res.get("versions") or {})
+    if pins["factors"]:
+        versions.setdefault("factors", pins["factors"])           # a stage's measured value wins
+    prov = make_provenance(src, flags=rc.flag_dict(), versions=versions,
                            notes=f"pipeline {rc.family}/{rc.stage} {rc.run_id}")
-    extra = dict(schema="pipeline-manifest-1", run_id=rc.run_id, config_hash=rc.config_hash(),
+    extra = dict(schema="pipeline-manifest-1", run_id=rc.run_id, config_hash=rc.config_hash(), pins=pins,
                  runconfig=rc.model_dump(mode="json"), native_config=_safe_native(ctx),
                  inputs=inputs, outputs={k: dict(path=v, digest=_digest(ctx.root / v)) for k, v in outputs.items()},
                  metrics=res.get("metrics") or {}, started=started, finished=time.time())
+    specs, _ = _resolved_factors(rc)
+    if specs:
+        from rrp.policies.relations.base import provenance as factor_provenance
+        extra["factors"] = factor_provenance(specs)
     body = write_manifest(ctx.out, rc.run_id, [], extra, provenance=prov, filename=MANIFEST)
     ctx.log(f"manifest {ctx.out / MANIFEST} ({rc.config_hash()})")
     return body

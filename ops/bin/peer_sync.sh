@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Push project code to the peer's RAM-backed workspace (never node-local state), bounded bandwidth.
 # Usage: ops/bin/peer_sync.sh push | pull <remote-subdir> [<local-subdir>] | revision
-# push also writes $R/.rrp_revision = {"git_sha", "dirty", ...} (the synced copy has no .git; W3 provenance reads it).
+# push also writes $R/.rrp_revision = {"git_sha", "dirty", "tree", "src_tree", ...} (the synced copy has no .git; W3 provenance reads it).
 set -euo pipefail
 PEER=${ROBOT_PEER:-gb10-direct}
 P=${RRP_PEER_ROOT:-/dev/shm/rrp-brandonin}
@@ -24,13 +24,22 @@ guard_push() {
   if [ -n "$busy" ] && [ "${RRP_SYNC_FORCE:-0}" != 1 ]; then
     echo "peer_sync: refusing push: processes are running from $R:" >&2; echo "$busy" >&2; exit 3; fi
 }
-revision_json() {   # git sha + dirty flag of the pushed tree (dirty = tracked changes, as rrp.core.provenance)
-  local sha dirty
+# git sha + dirty flag + tree hashes of the pushed tree, as rrp.core.provenance.code_provenance computes them:
+# dirty = any tracked change OR untracked (non-ignored) file; src_tree = git tree of the WORKING src/ (built in a
+# throw-away index), the key run-dag uses to decide whether a completed node ran the same code.
+revision_json() {
+  local sha dirty tree src idx
   sha=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null) || sha=""
-  if [ -z "$sha" ]; then echo '{"git_sha": null, "dirty": null}'; return; fi
-  if [ -n "$(git -C "$ROOT" status --porcelain --untracked-files=no 2>/dev/null)" ]; then dirty=true; else dirty=false; fi
-  printf '{"git_sha": "%s", "dirty": %s, "branch": "%s", "synced_at": "%s", "source": "%s"}\n' "$sha" "$dirty" \
-    "$(git -C "$ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null)" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(hostname):$ROOT"
+  if [ -z "$sha" ]; then echo '{"git_sha": null, "dirty": null, "tree": null, "src_tree": null}'; return; fi
+  if [ -n "$(git -C "$ROOT" status --porcelain 2>/dev/null)" ]; then dirty=true; else dirty=false; fi
+  tree=$(git -C "$ROOT" rev-parse 'HEAD^{tree}' 2>/dev/null)
+  idx=$(mktemp -u)
+  src=$(GIT_INDEX_FILE=$idx git -C "$ROOT" read-tree HEAD 2>/dev/null && GIT_INDEX_FILE=$idx git -C "$ROOT" add -A -- src \
+        && GIT_INDEX_FILE=$idx git -C "$ROOT" write-tree --prefix=src/) || src=""
+  rm -f "$idx"
+  printf '{"git_sha": "%s", "dirty": %s, "tree": "%s", "src_tree": "%s", "branch": "%s", "synced_at": "%s", "source": "%s"}\n' \
+    "$sha" "$dirty" "$tree" "$src" "$(git -C "$ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null)" \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(hostname):$ROOT"
 }
 case "${1:-push}" in
   push)

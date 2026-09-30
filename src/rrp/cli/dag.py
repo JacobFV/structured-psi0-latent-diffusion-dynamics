@@ -10,6 +10,7 @@ def cmd_run_dag(a):
     from rrp.core.provenance import repo_root
     from rrp.harness.dag import (DagError, Executor, Ledger, OpsRunner, default_ledger_path, format_plan,
                                        load_dag, plan_dag, resolve_recipe)
+    from rrp.harness.pipelines.base import stage_versions
     root = Path(a.root).resolve() if a.root else repo_root()
     try:
         recipe = resolve_recipe(a.dag, root)
@@ -60,12 +61,16 @@ def cmd_run_dag(a):
                   max_parallel_gpu=_opt(a.max_parallel_gpu, plan.defaults.get("max_parallel_gpu"), int),
                   max_cpu=_opt(a.max_cpu, plan.defaults.get("max_cpu"), float),
                   max_mem_gib=_opt(a.max_mem_gib, plan.defaults.get("max_mem_gib"), float),
-                  budget_dir=ledger_path.parent.parent if plan.defaults.get("shared_budget") else None)
+                  budget_dir=ledger_path.parent.parent if plan.defaults.get("shared_budget") else None,
+                  adopt_stale=a.adopt_stale, pins=stage_versions)
     try:
         summ = ex.run()
     except DagError as e:
         raise SystemExit(str(e))
-    return 0 if summ.get("failed", 0) == 0 and summ.get("blocked", 0) == 0 else 1
+    if summ.get("stale"):
+        print(f"{summ['stale']} node(s) STALE (completed under other code): rerun with --adopt-stale to accept them, "
+              "or --reset <node> to recompute", file=sys.stderr)
+    return 0 if not any(summ.get(k, 0) for k in ("failed", "blocked", "stale")) else 1
 
 
 def _opt(cli, dflt, typ):
@@ -82,6 +87,8 @@ def register(sub):
     p.add_argument("--ledger", help="ledger path (default artifacts/runs/<track>/_dags/<name>/ledger.json)")
     p.add_argument("--reset", action="append", help="forget a node's ledger entry (repeatable)")
     p.add_argument("--retry-failed", action="store_true", help="re-plan failed/blocked nodes (a manual decision, D-061)")
+    p.add_argument("--adopt-stale", action="store_true",
+                   help="accept completed nodes whose outputs came from other code (same config and version pins); recorded in the ledger")
     p.add_argument("--max-parallel", type=int)
     p.add_argument("--max-parallel-gpu", type=int, help="cap on running GPU nodes (default defaults.max_parallel_gpu)")
     p.add_argument("--max-cpu", type=float, help="cap on summed declared CPU of running nodes (default defaults.max_cpu)")

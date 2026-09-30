@@ -33,10 +33,12 @@ from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validat
 SCHEMA_VERSION = "runconfig-1"
 BUILTIN_FAMILIES = ("arm", "dual", "legged", "pointer", "psi0")   # pointer / psi0: no meaning-changing flags (D-145 P4c)
 Variant = Literal["sem", "nosem", "semfix", "na"]
-PIPELINE_STAGES = ("collect", "pack", "train_rep", "probes", "train_flow", "flow_ft", "dagger_collect", "refit",
+_CORE_STAGES = ("collect", "pack", "train_rep", "probes", "train_flow", "flow_ft", "dagger_collect", "refit",
                    "eval_r1", "eval_r2", "heldout", "edits", "train_bc", "validate_tracker", "train_tracker", "eval_tracker",
                    "grpo", "target_eval", "target_adapt")   # D-126 (arm): GRPO + anchors; sealed target-body eval / adaptation
-Stage = Literal[PIPELINE_STAGES]  # type: ignore[valid-type]
+# DERIVED, open (docs/architecture.md 14.2): the core stages above plus every stage a family declares through
+# `declare_stage` (`harness.pipelines.base.register_stage` calls it). A live list: importers see additions.
+PIPELINE_STAGES: list[str] = list(_CORE_STAGES)
 # NOTE (D-144 sweep-flags, D-145 P2): no family's `train_rep` maps `probe_lv_min` any more: the probe weights / lv floor
 # are a factor set (`params.latent.factors`, a `probe.arm.*` / `probe.legged.*` FactorSpec per query;
 # `nets/semantic_latent.py::legacy_latent_factors`), and `_check_variant` reads them there. `probe_lv_min` stays in
@@ -64,15 +66,15 @@ def _flag_spec() -> dict[tuple[str, str], dict[str, str]]:
         "grpo": arm_eval, "target_eval": arm_eval, "target_adapt": {"contact_version": META},
         "train_bc": {"zero_prev_action": "zero_prev_action", "contact_version": META},
     })
-    legged = {s: {"contact_version": META} for s in PIPELINE_STAGES}
+    legged = {s: {"contact_version": META} for s in _CORE_STAGES}
     legged["train_rep"] = {"qd_dropout": "latent.qd_dropout", "contact_version": META}   # sweep-flags follow-up: probe_lv_min retired here too, `latent.factors` instead
     legged["refit"] = {"qd_dropout": "qd_dropout", "contact_version": META}
     spec = {}
     for fam, table in (("arm", arm), ("legged", legged), ("dual", dual)):
-        for st in PIPELINE_STAGES:
+        for st in _CORE_STAGES:
             spec[(fam, st)] = dict(table.get(st, {"contact_version": META}))
     for fam in ("pointer", "psi0"):   # UI pointer / Psi0 humanoid VLA: no arm-physics flags apply to any stage
-        for st in PIPELINE_STAGES:
+        for st in _CORE_STAGES:
             spec[(fam, st)] = {}
     return spec
 
@@ -115,7 +117,7 @@ def register_family(name: str, *, flag_spec: dict[str, dict[str, str]] | None = 
             raise RunConfigError(f"family {name!r} is already registered with a different spec")
         return
     _EXTERNAL_FAMILIES[name] = info
-    for st in PIPELINE_STAGES:
+    for st in _CORE_STAGES:
         FLAG_SPEC[(name, st)] = dict(flag_spec.get(st, default_stage_flags))
 
 
@@ -125,6 +127,56 @@ def unregister_family(name: str) -> None:
         return
     for k in [k for k in FLAG_SPEC if k[0] == name]:
         del FLAG_SPEC[k]
+    _prune_stages()
+
+
+_DECLARED: set[tuple[str, str]] = set()      # (family, stage) pairs added by declare_stage (not the core table)
+
+
+def declare_stage(family: str, stage: str, flags=None) -> None:
+    """Declare that `family` has a `stage` (the pair a RunConfig may name), adding the stage name to PIPELINE_STAGES.
+
+    flags: None keeps an existing pair's flag table unchanged (a new pair gets no flags); an iterable of FLAG_NAMES
+    (each recorded as META) or a {flag: where} dict states the table. A different table for an existing pair raises.
+    The family must be built in or registered (`register_family`)."""
+    if family not in BUILTIN_FAMILIES and family not in _EXTERNAL_FAMILIES:
+        raise RunConfigError(f"declare_stage: unknown family {family!r} (register_family first)")
+    if not re.fullmatch(r"[a-z][a-z0-9_]*", stage):
+        raise RunConfigError(f"bad stage name {stage!r} (lowercase identifier)")
+    table = None if flags is None else (dict(flags) if isinstance(flags, dict) else {f: META for f in flags})
+    bad = [f for f in (table or {}) if f not in FLAG_NAMES]
+    if bad:
+        raise RunConfigError(f"{family}/{stage}: unknown flags {bad} (known: {FLAG_NAMES})")
+    have = FLAG_SPEC.get((family, stage))
+    if have is not None:
+        if table is not None and table != have:
+            raise RunConfigError(f"{family}/{stage} is already declared with flags {have}, not {table}")
+        return
+    FLAG_SPEC[(family, stage)] = table or {}
+    _DECLARED.add((family, stage))
+    if stage not in PIPELINE_STAGES:
+        PIPELINE_STAGES.append(stage)
+
+
+def undeclare_stage(family: str, stage: str) -> None:
+    """Remove a stage declared by `declare_stage` (tests); core pairs are never removed."""
+    if (family, stage) in _DECLARED:
+        _DECLARED.discard((family, stage))
+        FLAG_SPEC.pop((family, stage), None)
+        _prune_stages()
+
+
+def _prune_stages() -> None:
+    """Drop non-core stage names no (family, stage) pair uses any more."""
+    used = {st for (_, st) in FLAG_SPEC}
+    PIPELINE_STAGES[:] = [st for st in PIPELINE_STAGES if st in _CORE_STAGES or st in used]
+
+
+def ensure_stage(name: str) -> str:
+    if name not in PIPELINE_STAGES:
+        raise ValueError(f"unknown stage {name!r} (known: {tuple(PIPELINE_STAGES)}; families declare stages with "
+                         "harness.pipelines.base.register_stage)")
+    return name
 
 
 def load_family_plugins(force: bool = False) -> list[str]:
@@ -164,6 +216,7 @@ def ensure_family(name: str) -> str:
 
 
 Family = Annotated[str, AfterValidator(ensure_family)]
+Stage = Annotated[str, AfterValidator(ensure_stage)]
 
 
 class RunConfigError(ValueError):
@@ -200,7 +253,7 @@ InputValue = Union[str, list[str], ProductRef]
 class RunConfig(Strict):
     schema_version: Literal["runconfig-1"]
     family: Family
-    stage: Stage  # type: ignore[valid-type]
+    stage: Stage
     variant: Variant
     seed: int
     lineage: str
@@ -215,7 +268,10 @@ class RunConfig(Strict):
 
     @model_validator(mode="after")
     def _check(self):
-        spec = FLAG_SPEC[(self.family, self.stage)]
+        spec = FLAG_SPEC.get((self.family, self.stage))
+        if spec is None:
+            raise RunConfigError(f"{self.family} has no stage {self.stage!r} (declared: "
+                                 f"{sorted(st for (f, st) in FLAG_SPEC if f == self.family)})")
         for name in FLAG_NAMES:
             v = getattr(self.flags, name)
             if name in spec and v is None:
