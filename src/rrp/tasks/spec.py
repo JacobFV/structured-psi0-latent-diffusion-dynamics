@@ -140,10 +140,6 @@ register_task(TaskSpec("loco_pick", {"mujoco/legged": {}}, 60.0, legged_judge(),
                        note="teacher is a stub (policies.teachers.legged_loco); no working demonstrator"))
 register_task(TaskSpec("foothold_steps", {"mujoco/legged": {}}, 60.0, legged_judge(), graph="foothold_steps",
                        hooks=("session",), failure_reasons=LEGGED_REASONS))
-register_task(TaskSpec("h_steps", {"mujoco/legged": {}, "warp/legged": {}}, 40.0, legged_judge(), graph="h_steps",
-                       teacher="teacher:h_steps", hooks=("session",), failure_reasons=LEGGED_REASONS))
-register_task(TaskSpec("h_gap", {"mujoco/legged": {}, "warp/legged": {}}, 30.0, legged_judge(), graph="h_gap_sidestep",
-                       teacher="teacher:h_gap", hooks=("session",), failure_reasons=LEGGED_REASONS))
 register_task(TaskSpec("locomotion", {"warp/legged": {}}, 20.0, lambda env, t, T: Judgement(t >= T, "timeout" if t >= T else None),
                        failure_reasons=("timeout",),
                        note="tracker training task: command following, reward-driven (capability reward)"))
@@ -195,3 +191,6 @@ for _task, (_run, _pub, _status) in SIMPLE_TASKS.items():
 def tasks_in(env_id: str) -> tuple[str, ...]:
     """Names of the registered tasks that exist in `env_id` (the one source of "the dual tasks", "the legged tasks")."""
     return tuple(n for n, t in TASKS.items() if env_id in t.envs)
+
+
+import rrp.tasks.humanoid  # noqa: E402,F401  (registers h_steps, h_gap; it imports this module, so it comes last)
