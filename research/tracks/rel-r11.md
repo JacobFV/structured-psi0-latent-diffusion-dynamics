@@ -127,6 +127,21 @@ in the merge section below.
   `test_never_observed_factor_keeps_level_one_and_flat_baseline_share` (guards against a future edit accidentally
   changing the no-`observe()` baseline and silently breaking `test_relgen.py`'s F4 tests).
 
+## merge fixup: `compose` test isolation (found by the merge's own rebase/rerun cycle)
+While rebasing onto commits landed by other units mid-merge, `pytest tests/unit -q` picked up one failure:
+`test_compose_closes_requires_transitively` (passed alone, failed in the full suite -- classic test-order-dependent
+global-registry pollution). Cause: R16/R17 had by then merged real `PARTS` entries (`grasp_target` activating
+"contact", `stack` activating "support"/"force_flow", both for `envs=("mujoco/arm", "mujoco/dual")`) registered as
+an import-time side effect in `harness/data/relgen/{contact,support}.py`; some other test module imports one of
+those at collection time, so by the time `test_curriculum.py`'s compose tests ran later in the full suite, the real
+`PARTS` registry (process-global, no per-test reset) already had entries whose generic-sounding activation tags
+("contact", "support") and env ("mujoco/arm") collided with the ones this unit's fixtures used, so `_min_cover`
+picked a different (still-valid) cover than the test's hard-coded expectation. Fixed by namespacing every fixture
+part name, activation tag and env string used by `compose`'s tests (`_ut11` suffix / `unit-test-env_ut11`), and by
+making `parts_sandbox` save and restore (not just delete) whatever it shadows in `PARTS`, so it is now safe even if
+a name collides with something real. Re-ran the full suite clean (below) before merging. This is exactly the kind
+of thing "rerun the unit suite if the rebase brought new commits" is for.
+
 ## merge
 Command sequence (executed after the unit suite above passed): `pytest tests/unit -q` (full suite, exit 0) ->
 `git add -A && git commit` -> `git fetch origin && git rebase origin/main` -> re-run the unit suite if the rebase

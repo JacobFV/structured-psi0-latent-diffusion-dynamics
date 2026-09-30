@@ -20,96 +20,112 @@ from rrp.harness.data.relgen.curriculum import (Scheduler, SchedulerConfig, inte
 
 
 # ==================================================================== compose
+# All fixture part NAMES, ACTIVATION TAGS and the ENV below are namespaced ("_ut11") so `compose`'s tests are
+# isolated from whatever the real catalog (other fanout units' `PARTS` entries, e.g. R16's "grasp_target" activating
+# "contact", R17's "stack" activating "support", both for env "mujoco/arm") happens to have registered by the time
+# this test runs in the full suite -- a real part registered at another test module's import time is process-global
+# and outlives that module (docs/relations.md 5.2's PARTS has no per-test reset), so reusing a real env name or a
+# generic tag like "support"/"contact" here would silently pick up real parts and make `compose`'s result (and this
+# test's assertions on it) depend on suite ordering / which sibling units have merged.
+_UT_ENV = "unit-test-env_ut11"
+_UT_OTHER_ENV = "unit-test-other-env_ut11"
+
+
 @pytest.fixture
 def parts_sandbox():
-    """Registers/unregisters test-only ScenePart fixtures in the real PARTS registry without leaking across tests
-    (this unit does not own any catalog.py part -- compose is exercised purely against fixtures here, exactly like
-    R9's/R10's fixture-only unit tests)."""
-    added: list[str] = []
+    """Registers/unregisters test-only ScenePart fixtures in the real PARTS registry, restoring (not just deleting)
+    any entry a fixture name happens to shadow, so this is safe even if a name collides with something real."""
+    added: dict[str, object] = {}   # name -> the PARTS entry that was there before (or _MISSING)
+    _MISSING = object()
 
     def _add(name, activates, requires=(), conflicts=(), envs=(), build=None):
+        name = f"{name}_ut11"
+        if name not in added:
+            added[name] = PARTS.get(name, _MISSING)
         p = ScenePart(name=name, version="1", activates=frozenset(activates), requires=frozenset(requires),
                       conflicts=frozenset(conflicts), envs=tuple(envs),
                       build=build or (lambda draft, rng, _n=name: draft.entities.append({"name": _n})))
         PARTS[name] = p
-        added.append(name)
         return p
 
     yield _add
-    for n in added:
-        PARTS.pop(n, None)
+    for n, prev in added.items():
+        if prev is _MISSING:
+            PARTS.pop(n, None)
+        else:
+            PARTS[n] = prev
 
 
 def test_compose_minimal_cover(parts_sandbox):
-    parts_sandbox("part_x", {"x"})
-    parts_sandbox("part_y", {"y"})
-    parts_sandbox("part_xy", {"x", "y"})            # one part covering both beats combining two single-purpose parts
-    draft = compose({"x", "y"}, "mujoco/arm", np.random.default_rng(0))
-    assert draft.parts == ("part_xy",)
-    assert draft.active == frozenset({"x", "y"})
+    parts_sandbox("part_x", {"ut.x"})
+    parts_sandbox("part_y", {"ut.y"})
+    parts_sandbox("part_xy", {"ut.x", "ut.y"})       # one part covering both beats combining two single-purpose parts
+    draft = compose({"ut.x", "ut.y"}, _UT_ENV, np.random.default_rng(0))
+    assert draft.parts == ("part_xy_ut11",)
+    assert draft.active == frozenset({"ut.x", "ut.y"})
 
 
 def test_compose_closes_requires_transitively(parts_sandbox):
-    parts_sandbox("stack_part", {"support"}, requires={"contact"})
-    parts_sandbox("contact_part", {"contact"}, requires={"table"})
-    parts_sandbox("table_part", {"table"})
-    draft = compose({"support"}, "mujoco/arm", np.random.default_rng(0))
-    assert set(draft.parts) == {"stack_part", "contact_part", "table_part"}
-    assert draft.active == frozenset({"support", "contact", "table"})
+    parts_sandbox("stack_part", {"ut.support"}, requires={"ut.contact"})
+    parts_sandbox("contact_part", {"ut.contact"}, requires={"ut.table"})
+    parts_sandbox("table_part", {"ut.table"})
+    draft = compose({"ut.support"}, _UT_ENV, np.random.default_rng(0))
+    assert set(draft.parts) == {"stack_part_ut11", "contact_part_ut11", "table_part_ut11"}
+    assert draft.active == frozenset({"ut.support", "ut.contact", "ut.table"})
 
 
 def test_compose_rejects_conflicts(parts_sandbox):
-    parts_sandbox("a", {"x"}, conflicts={"y"})
-    parts_sandbox("b", {"y"})
+    parts_sandbox("a", {"ut.x"}, conflicts={"ut.y"})
+    parts_sandbox("b", {"ut.y"})
     with pytest.raises(ComposeError):
-        compose({"x", "y"}, "mujoco/arm", np.random.default_rng(0))
+        compose({"ut.x", "ut.y"}, _UT_ENV, np.random.default_rng(0))
 
 
 def test_compose_unsatisfiable_requires_raises(parts_sandbox):
-    parts_sandbox("needs_ghost", {"x"}, requires={"ghost"})   # nothing activates "ghost"
+    parts_sandbox("needs_ghost", {"ut.x"}, requires={"ut.ghost"})   # nothing activates "ut.ghost"
     with pytest.raises(ComposeError):
-        compose({"x"}, "mujoco/arm", np.random.default_rng(0))
+        compose({"ut.x"}, _UT_ENV, np.random.default_rng(0))
 
 
 def test_compose_no_covering_part_raises(parts_sandbox):
-    parts_sandbox("unrelated", {"y"})
+    parts_sandbox("unrelated", {"ut.y"})
     with pytest.raises(ComposeError):
-        compose({"x"}, "mujoco/arm", np.random.default_rng(0))
+        compose({"ut.x"}, _UT_ENV, np.random.default_rng(0))
 
 
 def test_compose_env_compatibility(parts_sandbox):
-    parts_sandbox("arm_only", {"x"}, envs=("mujoco/arm",))
+    parts_sandbox("this_env_only", {"ut.x"}, envs=(_UT_ENV,))
     with pytest.raises(ComposeError):
-        compose({"x"}, "mujoco/legged", np.random.default_rng(0))
-    draft = compose({"x"}, "mujoco/arm", np.random.default_rng(0))
-    assert draft.parts == ("arm_only",)
+        compose({"ut.x"}, _UT_OTHER_ENV, np.random.default_rng(0))
+    draft = compose({"ut.x"}, _UT_ENV, np.random.default_rng(0))
+    assert draft.parts == ("this_env_only_ut11",)
 
 
 def test_compose_empty_active_set_is_a_noop():
-    draft = compose((), "mujoco/arm", np.random.default_rng(0))
+    draft = compose((), _UT_ENV, np.random.default_rng(0))
     assert draft.active == frozenset() and draft.parts == () and draft.entities == []
 
 
 def test_compose_merges_and_dedupes_events(parts_sandbox):
-    parts_sandbox("a", {"x"}, build=lambda d, r: d.events.append({"kind": "e1"}))
-    parts_sandbox("b", {"y"}, build=lambda d, r: (d.events.append({"kind": "e1"}), d.events.append({"kind": "e2"})))
-    draft = compose({"x", "y"}, "mujoco/arm", np.random.default_rng(0))
+    parts_sandbox("a", {"ut.x"}, build=lambda d, r: d.events.append({"kind": "e1"}))
+    parts_sandbox("b", {"ut.y"}, build=lambda d, r: (d.events.append({"kind": "e1"}), d.events.append({"kind": "e2"})))
+    draft = compose({"ut.x", "ut.y"}, _UT_ENV, np.random.default_rng(0))
     assert draft.events == [{"kind": "e1"}, {"kind": "e2"}]     # the "e1" duplicate across parts is merged away
 
 
 def test_compose_resolves_non_overlapping_layout(parts_sandbox):
-    parts_sandbox("a", {"x"}, build=lambda d, r: d.entities.append({"name": "o1", "pos": (0.0, 0.0, 0.0), "radius": 0.2}))
-    parts_sandbox("b", {"y"}, build=lambda d, r: d.entities.append({"name": "o2", "pos": (0.05, 0.0, 0.0), "radius": 0.2}))
-    draft = compose({"x", "y"}, "mujoco/arm", np.random.default_rng(0))
+    parts_sandbox("a", {"ut.x"}, build=lambda d, r: d.entities.append({"name": "o1", "pos": (0.0, 0.0, 0.0), "radius": 0.2}))
+    parts_sandbox("b", {"ut.y"}, build=lambda d, r: d.entities.append({"name": "o2", "pos": (0.05, 0.0, 0.0), "radius": 0.2}))
+    draft = compose({"ut.x", "ut.y"}, _UT_ENV, np.random.default_rng(0))
     xs = sorted(e["pos"][0] for e in draft.entities)
     assert xs[1] - xs[0] >= 0.2 + 0.2 + 0.15 - 1e-9    # radius + radius + min_gap clearance
 
 
 def test_compose_is_deterministic(parts_sandbox):
-    parts_sandbox("small", {"contact"})
-    parts_sandbox("big", {"contact", "support"})
-    a = compose({"contact"}, "mujoco/arm", np.random.default_rng(0))
-    b = compose({"contact"}, "mujoco/arm", np.random.default_rng(0))
+    parts_sandbox("small", {"ut.contact"})
+    parts_sandbox("big", {"ut.contact", "ut.support"})
+    a = compose({"ut.contact"}, _UT_ENV, np.random.default_rng(0))
+    b = compose({"ut.contact"}, _UT_ENV, np.random.default_rng(0))
     assert a.parts == b.parts and a.active == b.active
 
 
