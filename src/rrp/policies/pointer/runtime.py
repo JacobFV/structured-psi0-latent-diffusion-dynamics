@@ -17,7 +17,8 @@ from rrp.policies.pointer.checkpoint import load_pointer_bundle
 from rrp.policies.pointer.features import EventHistory, collate_public, public_features, screen_half
 from rrp.policies.pointer.packet import (EngineeredSystem0, cmd_source, encode_commands, packet_ticks, pointer_packet,
                                          tick_slot)
-from rrp.policies.pointer.spec import ENG_VERSION, POINTER_KINDS, PointerGeometry, VALIDITY_S
+from rrp.policies.relations.base import assert_deployable
+from rrp.policies.pointer.spec import ENG_VERSION, KNOT_TIMES, POINTER_KINDS, PointerGeometry, VALIDITY_S
 
 
 def _twin(env):
@@ -42,9 +43,9 @@ def env_widget_table(env) -> list[dict | None]:
     """The env's current slot-indexed `scene_widgets` table (`SlotRegistry.assign`, `env.slots`): 1:1 with
     `obs.object_descriptors` when called right after `env.observe()` with no `env.step()` in between, matching
     `widget_features`' `table` argument (D-144 R20 follow-up). Used only at LIVE rollout call sites
-    (`TeacherOracleSource._encode`, `PointerSystemI.packets`, `PointerBCPolicy.act`) so `preset:ui` factors see real
-    edges/fields at inference when a factor set enables them; the training data pipeline
-    (`harness.train.pointer.collect_episode`) stays on `table=None`, unchanged."""
+    (`TeacherOracleSource._encode`, `PointerSystemI.packets`, `PointerBCPolicy.act`) AND by training collect
+    (`harness.train.pointer.collect_episode`): one featurizer path, so the stored UI fields are exactly what a rollout
+    feeds the net."""
     from rrp.envs.computerworld import scene_widgets
     return env.slots.assign(scene_widgets(env.scene()))
 
@@ -212,21 +213,36 @@ class LearnedSystem0(System0Base):
         return NativeCommand(controller_version=controller_version or "cw_pointer.v1", groups=g, source=cmd_source(p))
 
 
+def flow_noise(policy_seed: int, env_seed: int, packet_idx: int, shape) -> np.ndarray:
+    """Initial flow noise of ONE packet, a pure function of (policy seed, env seed, packet index): the same episode
+    gets the same noise whatever else is in the batch or was rolled out before it (paired interventions, batch-1 vs
+    batch-N equality). Seeds a fresh CPU generator from a hash of the triple (never a shared, order-dependent one)."""
+    import hashlib
+
+    import torch
+    key = int.from_bytes(hashlib.sha256(f"pointer-flow-noise|{policy_seed}|{env_seed}|{packet_idx}".encode())
+                         .digest()[:8], "little") % (2 ** 63)
+    return torch.randn(tuple(shape), generator=torch.Generator().manual_seed(key)).numpy()
+
+
 class PointerSystemI:
     """Learned system i: public features (+ own event history) -> flow sample -> packet. `target="latent"` emits the
-    learned latent (for LearnedSystem0); `target="eng"` emits the engineered encoding (for EngineeredSystem0)."""
+    learned latent (for LearnedSystem0); `target="eng"` emits the engineered encoding (for EngineeredSystem0).
+    Flow noise per packet is `flow_noise(seed, env.seed, packet index of that env)`; `reset` restarts the counters."""
 
     def __init__(self, flow, *, lsv: str, rcv: str, device="cpu", nfe=8, seed=0, name="pointer_system_i",
                  validity=VALIDITY_S):
-        import torch
         self.flow, self.lsv, self.rcv, self.device, self.nfe = flow.eval(), lsv, rcv, device, nfe
-        self.gen = torch.Generator(device=device).manual_seed(seed)
+        assert_deployable(flow.ctx.specs)              # a learned system i never runs on privileged (gt) factor sources
+        self.seed = int(seed)
         self.name, self.validity = name, validity
         self.calls = 0
         self.hist: dict[int, EventHistory] = {}
+        self.n_packets: dict[int, int] = {}
 
     def reset(self, envs):
         self.hist = {id(e): EventHistory() for e in envs}
+        self.n_packets = {id(e): 0 for e in envs}
 
     def featurizer(self, env):
         return None
@@ -239,8 +255,13 @@ class PointerSystemI:
         obs = [e.observe() for e in envs]
         fs = [public_features(o, screen_half(e.spec), self.hist[id(e)], e.steps, table=env_widget_table(e))
               for e, o in zip(envs, obs)]
+        shape = (len(KNOT_TIMES), 1, self.flow.dz)
+        noise = np.stack([flow_noise(self.seed, e.seed, self.n_packets[id(e)], shape) for e in envs])
+        for e in envs:
+            self.n_packets[id(e)] += 1
         with torch.no_grad():
-            z = self.flow.sample(collate_public(fs, self.device), nfe=self.nfe, generator=self.gen).float().cpu().numpy()
+            z = self.flow.sample(collate_public(fs, self.device), nfe=self.nfe,
+                                 noise=torch.from_numpy(noise)).float().cpu().numpy()
         self.calls += len(envs)
         return [pointer_packet(e, o, z[i], lsv=self.lsv, rcv=self.rcv, source="learned", name=self.name,
                                sampling=dict(nfe=self.nfe, sampler="euler"), validity=self.validity)
@@ -283,6 +304,7 @@ class PointerBCPolicy:
     def __init__(self, bundle: dict, *, path: str, replan_ticks: int = 4, device: str = "cpu", name: str = "pointer_bc"):
         from rrp.policies.base import PolicyInfo
         self.net, self.replan, self.device = bundle["modules"]["BC"], int(replan_ticks), device
+        assert_deployable(self.net.ctx.specs)
         self.info = PolicyInfo(name, "bc", f"bc:{path}",
                                pointer_requirements(tasks=bundle["config"].get("tasks")), "bc")
 

@@ -88,11 +88,12 @@ def widget_features(obs, half, table=None) -> dict:
     R20 follow-up): the same screen-geometry `widget_position` already puts in `d.position_estimate` (the 1 mm/px
     `ScreenFrame` mapping, `+` z-layer depth when `depth="stack"`) -- `pos3d` world-frame metres, `cam_uvd` the
     already-computed normalized screen (u, v) `+` the same depth, matching `geo.*`'s field kinds (`catalog.py`).
-    `table` (optional; the env's raw `scene_widgets` slot table, `env_widget_table(env)`): when given, also adds
-    R20's public UI fields / `ui-rel-v1` edges (`ui_widget_fields`) that `preset:ui` factors read; omitted (as at
-    the training data pipeline, `harness.train.pointer.collect_episode`), `UICtx` runs those factors as a harmless
-    no-op (zero edges) -- never a silent fabrication, since `factors` must be explicitly turned on for them to be
-    read at all (`PolicyConfig`, `POINTER_FACTORS_PRESET` stays the default)."""
+    `wgeo_ok` (C1): which slots' geometry is real (== `wmask` here; `Demos` clears it for packs collected before the
+    geometry fields). `table` (the env's raw `scene_widgets` slot table, `env_widget_table(env)`) feeds R20's public
+    UI fields / `ui-rel-v1` edges (`ui_widget_fields`) that `preset:ui` factors read. The key set is the same with or
+    without it (an absent table is an EMPTY one: zero z-layer, parent / focus rank -1, no edges), so the ONE
+    featurizer path of training collect (`harness.train.pointer.collect_episode`), `Demos.batch` and live rollout
+    yields identical batch keys; every caller with an env passes `env_widget_table(env)`."""
     check_bound_ids(obs.object_descriptors[:NW])
     ch = np.zeros((NW, LC), np.int16)
     role = np.zeros(NW, np.int8)
@@ -117,9 +118,8 @@ def widget_features(obs, half, table=None) -> dict:
         m[s] = True
         pos3d[s] = [x, y, z]
         camuvd[s] = [x / half[0], y / half[1], z]
-    out = dict(wch=ch, wrole=role, wbound=bound, wf=wf, wmask=m, wpos3d=pos3d, wcamuvd=camuvd)
-    if table is not None:
-        out.update(ui_widget_fields(table))
+    out = dict(wch=ch, wrole=role, wbound=bound, wf=wf, wmask=m, wpos3d=pos3d, wcamuvd=camuvd, wgeo_ok=m.copy())
+    out.update(ui_widget_fields(table if table is not None else []))
     return out
 
 
@@ -152,8 +152,9 @@ class EventHistory:
         return out
 
 
-def public_features(obs, half, hist: EventHistory, tick: int, table=None) -> dict:
-    """One tick of public input (numpy, unbatched). `table`: see `widget_features`."""
+def public_features(obs, half, hist: EventHistory, tick: int, *, table) -> dict:
+    """One tick of public input (numpy, unbatched): the ONE featurizer of training collect, `Demos` and live rollout.
+    `table` is required (`env_widget_table(env)`, taken right after `env.observe()`): see `widget_features`."""
     f = widget_features(obs, half, table)
     q = obs.measured_node_state.qpos
     btn = float(obs.declared_sensor_channels[0].values[0]) if obs.declared_sensor_channels else 0.0

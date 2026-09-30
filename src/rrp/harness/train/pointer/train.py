@@ -14,19 +14,75 @@ import torch
 from rrp.harness.train.pointer.data import Demos, pointer_geometry
 from rrp.harness.train.pointer.losses import _agg, _fin, action_loss, action_metrics, probe_loss, probe_metrics
 from rrp.harness.train.pointer.split import TASKS, check_no_leak, load_split
+from rrp.policies.relations.base import provenance
 
 
 # ------------------------------------------------------------------------------------------------ shared helpers
 def setup(a):
-    """(device, Demos) for a trainer's args; seeds torch / numpy; refuses packs collected under another geometry and
-    any split leak."""
+    """(device, Demos) for a trainer's args; seeds torch / numpy from `--seed` (init, sampling, noise) and the
+    train / validation episode split from the SEPARATE `--split-seed` (so a seed sweep compares models on one held-out
+    set); refuses packs collected under another geometry and any split leak."""
     geom = pointer_geometry()
     torch.manual_seed(a.seed)
     np.random.seed(a.seed)
     dev = a.device or ("cuda" if torch.cuda.is_available() else "cpu")
-    data = Demos(sorted(a.data), dev, geom, seed=a.seed)
+    data = Demos(sorted(a.data), dev, geom, seed=a.split_seed)
     check_no_leak(data, load_split(a.split))
     return dev, data
+
+
+def ui_fields_needed(specs) -> bool:
+    """Does any active spec read the public UI fields (`wzlayer` / `wparent` / `wfocusrank` / `wuiedges`)?"""
+    from rrp.policies.relations.base import get_factor
+    for s in specs:
+        d = get_factor(s.name)
+        if s.control != "off" and (d.field in ("zlayer", "parent_id") or d.field.startswith("edges:")
+                                   or d.label == "drag_to"):
+            return True
+    return False
+
+
+def factor_specs(a, data):
+    """Resolved `FactorSpec`s of `--factors` for the pointer family (`resolve(family="pointer", training=True)`: a spec
+    the net cannot run, or a label it cannot attach, raises). Refuses what the pointer trainers cannot honour instead of
+    skipping it: `mix > 0` (no relgen scene mix here) and UI factors on packs collected before the public UI fields."""
+    from rrp.policies.pointer import POINTER_FACTORS_PRESET
+    from rrp.policies.relations.base import FactorError, resolve
+    items = [json.loads(x) if x.lstrip().startswith("{") else x for x in (getattr(a, "factors", None) or [])]
+    specs = resolve(items or None, default=POINTER_FACTORS_PRESET, family="pointer", training=True)
+    bad = [s.name for s in specs if s.control != "off" and s.mix is not None and s.mix > 0]
+    if bad:
+        raise FactorError(f"{bad}: mix > 0 needs relgen scene mixing, which the pointer trainers do not do")
+    if ui_fields_needed(specs) and not data.has_ui:
+        raise FactorError("UI factors need packs collected with the public UI fields (wzlayer / wparent / wfocusrank / "
+                          "wuiedges); recollect (`rrp train pointer collect`)")
+    return specs
+
+
+def factor_arch(specs) -> dict:
+    """The `arch[<module>]["factors"]` entry of a factor-bearing net: JSON-able specs (`FactorSpec.to_dict`), rebuilt by
+    `relations.resolve` in `load_pointer_bundle`."""
+    return dict(factors=[s.to_dict() for s in specs])
+
+
+def factor_loss(ctx, specs):
+    """Supervision of the estimates the last training forward of `ctx` (a `UICtx`) wrote (`relations.estimates_loss`:
+    probe-source factors such as `ui.drag_to`) -> (loss, logs); (0, {}) when no spec has a readout. Run in fp32 outside
+    autocast. Never leaves a probe-source head unsupervised (D-146: no silent skips)."""
+    from rrp.policies.relations.base import estimates_loss, get_factor
+    rc, ctx.last_rc = ctx.last_rc, None
+    if rc is None or not any(s.control != "off" and get_factor(s.name).readout is not None for s in specs):
+        return 0.0, {}
+    cast = lambda v: tuple(x.float() for x in v) if isinstance(v, tuple) else v.float()
+    rc.estimates = {k: cast(v) for k, v in rc.estimates.items()}
+    loss, logs, _ = estimates_loss(rc, specs)
+    return loss, {f"fx_{k}": v for k, v in logs.items()}
+
+
+def record_estimates(ctx, specs) -> None:
+    """Have `ctx` keep each forward's `RelCtx` for `factor_loss` (only when a spec has a readout)."""
+    from rrp.policies.relations.base import get_factor
+    ctx.record_rc = any(s.control != "off" and get_factor(s.name).readout is not None for s in specs)
 
 
 def amp(dev):
@@ -40,12 +96,13 @@ def set_lr(opt, step, total, lr, warm=500):
         g["lr"] = lr * max(f, 0.02)
 
 
-def save_checkpoint(path, *, kind, state: dict, config: dict, versions: dict, metrics: dict):
+def save_checkpoint(path, *, kind, state: dict, config: dict, versions: dict, metrics: dict, factors=()):
+    """`factors`: the resolved specs of the checkpoint's factor-bearing net (E / S / BC; `()` = none), stamped into
+    `versions["factors"]` (`relations.stamp_versions`) and checked on load (`load_pointer_bundle`)."""
     from rrp.core.provenance import weights_digest
-    from rrp.policies.pointer import POINTER_FACTORS_PRESET
-    from rrp.policies.relations.base import compat_hash, resolve
+    from rrp.policies.relations.base import stamp_versions
     Path(path).parent.mkdir(parents=True, exist_ok=True)
-    versions = dict(versions, factors=compat_hash(resolve([f"preset:{POINTER_FACTORS_PRESET}"])))
+    versions = stamp_versions(versions, tuple(factors))
     blob = dict(kind=kind, state={k: m.state_dict() for k, m in state.items()}, config=config, versions=versions,
                 digests={k: weights_digest(m.state_dict()) for k, m in state.items()}, metrics=metrics,
                 saved_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
@@ -106,9 +163,11 @@ def cmd_rep(a):
     dev, data = setup(a)
     dt = data.geom.dt
     N = nets()
-    arch = dict(E=dict(dz=a.dz), R=dict(dz=a.dz), P=dict(dz=a.dz, lv_min=a.lv_min))
+    specs = factor_specs(a, data)
+    arch = dict(E=dict(dz=a.dz, **factor_arch(specs)), R=dict(dz=a.dz), P=dict(dz=a.dz, lv_min=a.lv_min))
     E, R, P = N["PointerEncoder"](**arch["E"]).to(dev), N["PointerRealizer"](**arch["R"]).to(dev), \
         new_pointer_probe(**arch["P"]).to(dev)
+    record_estimates(E.ctx, specs)
     w_sem = a.w_sem if a.variant == "semfix" else 0.0
 
     def step_fn(ix):
@@ -120,8 +179,10 @@ def cmd_rep(a):
         mu, lv = mu.float(), lv.float()
         Lxy, Lb, Lk = action_loss(dxy, bl, kl, ch)
         kl_div = 0.5 * (mu ** 2 + lv.exp() - 1 - lv).mean()
-        loss = a.w_xy * Lxy + Lb + Lk + a.beta * kl_div
-        logs = dict(xy=float(Lxy.detach()), btn=float(Lb.detach()), key=float(Lk.detach()), kl=float(kl_div.detach()))
+        Lfx, fx_logs = factor_loss(E.ctx, specs)
+        loss = a.w_xy * Lxy + Lb + Lk + a.beta * kl_div + Lfx
+        logs = dict(xy=float(Lxy.detach()), btn=float(Lb.detach()), key=float(Lk.detach()), kl=float(kl_div.detach()),
+                    **fx_logs)
         if w_sem > 0:
             pl, pl_logs = probe_loss(po, lab, P.specs)
             loss = loss + w_sem * pl
@@ -133,9 +194,11 @@ def cmd_rep(a):
               log_every=a.log_every)
     lsv, rcv = bundle_versions(f"cw_pointer_latent.v1-{a.variant}-dz{a.dz}", E.state_dict(), R.state_dict())
     cfg = dict(variant=a.variant, arch=arch, w_sem=w_sem, lv_min=a.lv_min, beta=a.beta, w_xy=a.w_xy, steps=a.steps,
-               batch=a.batch, lr=a.lr, seed=a.seed, data=sorted(a.data), tasks=list(TASKS), target="latent")
+               batch=a.batch, lr=a.lr, seed=a.seed, split_seed=a.split_seed, data=sorted(a.data), tasks=list(TASKS),
+               target="latent", factors=provenance(specs))
     save_checkpoint(a.out, kind="pointer_rep", state=dict(E=E, R=R, P=P), config=cfg,
-                    versions=dict(latent_space_version=lsv, realizer_compat_version=rcv), metrics=log[-1])
+                    versions=dict(latent_space_version=lsv, realizer_compat_version=rcv), metrics=log[-1],
+                    factors=specs)
 
 
 @torch.no_grad()
@@ -205,8 +268,10 @@ def cmd_flow(a):
         if P is not None:
             for p in P.parameters():
                 p.requires_grad_(False)
-    arch = dict(S=dict(dz=dz))
+    specs = factor_specs(a, data)
+    arch = dict(S=dict(dz=dz, **factor_arch(specs)))
     S = N["PointerFlow"](**arch["S"]).to(dev)
+    record_estimates(S.ctx, specs)
     tr = Z[data.train_idx]
     S.z_mean.copy_(tr.reshape(-1, dz).mean(0))
     S.z_std.copy_(tr.reshape(-1, dz).std(0).clamp(min=1e-3))
@@ -215,14 +280,18 @@ def cmd_flow(a):
     def step_fn(ix):
         b, _, lab = data.batch(ix)
         with amp(dev):
-            return S.loss(b, Z[ix], probe_fn=(lambda zc: probe_loss(run_pointer_probe(P, zc), lab, P.specs))
-                          if P is not None else None, w_sem=w_sem)
+            loss, logs = S.loss(b, Z[ix], probe_fn=(lambda zc: probe_loss(run_pointer_probe(P, zc), lab, P.specs))
+                                if P is not None else None, w_sem=w_sem)
+        Lfx, fx_logs = factor_loss(S.ctx, specs)
+        return loss + Lfx, dict(logs, **fx_logs)
 
     log = fit(S.parameters(), step_fn, data, steps=a.steps, batch=a.batch, lr=a.lr,
               eval_fn=lambda: _eval_flow(S, Z, data, dev, R), log_every=a.log_every)
     cfg = dict(variant=variant, target=a.target, representation=a.representation, arch=arch, w_sem=w_sem,
-               steps=a.steps, batch=a.batch, lr=a.lr, seed=a.seed, data=sorted(a.data), tasks=list(TASKS))
-    save_checkpoint(a.out, kind="pointer_flow", state=dict(S=S), config=cfg, versions=versions, metrics=log[-1])
+               steps=a.steps, batch=a.batch, lr=a.lr, seed=a.seed, split_seed=a.split_seed, data=sorted(a.data),
+               tasks=list(TASKS), factors=provenance(specs))
+    save_checkpoint(a.out, kind="pointer_flow", state=dict(S=S), config=cfg, versions=versions, metrics=log[-1],
+                    factors=specs)
 
 
 @torch.no_grad()
@@ -251,8 +320,10 @@ def cmd_bc(a):
     from rrp.policies.pointer import nets
     dev, data = setup(a)
     N = nets()
-    arch = dict(BC=dict())
-    BC = N["PointerBC"]().to(dev)
+    specs = factor_specs(a, data)
+    arch = dict(BC=factor_arch(specs))
+    BC = N["PointerBC"](**arch["BC"]).to(dev)
+    record_estimates(BC.ctx, specs)
 
     def to_steps(x):                                      # absolute position (normalized) -> pointer-step units
         return x * data.half / data.geom.step_m
@@ -263,7 +334,9 @@ def cmd_bc(a):
             xy, bl, kl = BC(b)
         ch["dxy_target"] = to_steps(ch["xy"])
         Lxy, Lb, Lk = action_loss(to_steps(xy.float()), bl, kl, ch)
-        return a.w_xy * Lxy + Lb + Lk, dict(xy=float(Lxy.detach()), btn=float(Lb.detach()), key=float(Lk.detach()))
+        Lfx, fx_logs = factor_loss(BC.ctx, specs)
+        return a.w_xy * Lxy + Lb + Lk + Lfx, dict(xy=float(Lxy.detach()), btn=float(Lb.detach()), key=float(Lk.detach()),
+                                                  **fx_logs)
 
     def eval_fn():
         BC.eval()
@@ -280,10 +353,10 @@ def cmd_bc(a):
 
     log = fit(BC.parameters(), step_fn, data, steps=a.steps, batch=a.batch, lr=a.lr, eval_fn=eval_fn,
               log_every=a.log_every)
-    cfg = dict(variant="bc", arch=arch, steps=a.steps, batch=a.batch, lr=a.lr, seed=a.seed, data=sorted(a.data),
-               tasks=list(TASKS), w_xy=a.w_xy)
+    cfg = dict(variant="bc", arch=arch, steps=a.steps, batch=a.batch, lr=a.lr, seed=a.seed, split_seed=a.split_seed,
+               data=sorted(a.data), tasks=list(TASKS), w_xy=a.w_xy, factors=provenance(specs))
     save_checkpoint(a.out, kind="pointer_bc", state=dict(BC=BC), config=cfg, versions=dict(bc="cw_pointer_bc.v1"),
-                    metrics=log[-1])
+                    metrics=log[-1], factors=specs)
 
 
 # ------------------------------------------------------------------------------------------------ probe

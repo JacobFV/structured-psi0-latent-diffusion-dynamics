@@ -314,10 +314,9 @@ def test_widget_features_with_table_carries_r20s_ui_fields_and_a_nonempty_edge_g
     assert b["wuiedges"][0, 4:].sum() == 0 and b["wuiedges"][0, :, 4:].sum() == 0   # padding stays all-False
 
 
-def test_widget_features_without_table_leaves_the_ui_keys_out():
-    """The default call shape (every existing caller: no `table`) adds `wpos3d` / `wcamuvd` (free from the existing
-    descriptor geometry) but leaves the table-derived UI keys out entirely -- `UICtx._relctx` then falls back to an
-    all-zero `ui-rel-v1` graph (a documented no-op, not a silent fabrication)."""
+def test_widget_features_without_table_has_the_same_keys_with_empty_ui_fields():
+    """C1: an absent `table` is an EMPTY one -- the key set (and dtypes) never depend on it, so training and live batches
+    cannot diverge; the UI values are then the documented empty defaults (zero z-layer, parent / focus rank -1, no edges)."""
     from rrp.envs.computerworld import ScreenFrame, SlotRegistry, descriptors, scene_widgets
     from rrp.policies.pointer import widget_features
     table = SlotRegistry().assign(scene_widgets(_UI_SCENE))
@@ -327,9 +326,12 @@ def test_widget_features_without_table_leaves_the_ui_keys_out():
     class _Obs:
         object_descriptors = descriptors(table, frame, 0.0, {})
 
-    f = widget_features(_Obs(), half)
-    assert "wpos3d" in f and "wcamuvd" in f
-    assert not ({"wuiedges", "wzlayer", "wparent", "wfocusrank"} & set(f))
+    f, g = widget_features(_Obs(), half), widget_features(_Obs(), half, table)
+    assert set(f) == set(g) >= {"wpos3d", "wcamuvd", "wgeo_ok", "wuiedges", "wzlayer", "wparent", "wfocusrank"}
+    assert {k: (v.shape, v.dtype) for k, v in f.items()} == {k: (v.shape, v.dtype) for k, v in g.items()}
+    assert not f["wuiedges"].any() and not f["wzlayer"].any() and (f["wparent"] == -1).all() and \
+        (f["wfocusrank"] == -1).all()
+    assert g["wuiedges"].any()
 
 
 def test_default_uictx_factors_are_a_zero_bias_no_op():
@@ -389,6 +391,51 @@ def test_preset_ui_changes_widget_self_attention_logits_on_the_cw_fixture_scene(
         x_on, m_on = on(b)
     assert torch.equal(m_off, m_on)                                           # the key mask itself is unaffected
     assert not torch.allclose(x_off, x_on)                                    # but the self-attended hiddens differ
+
+
+@pytest.mark.parametrize("name", ["ui.same_window", "ui.label_for"])
+def test_each_ui_factor_alone_changes_widget_attention_and_forward_output(name):
+    """C1: `ui.same_window` and `ui.label_for` EACH change the widget self-attention bias (exact `None` without them ->
+    a finite non-zero logit term with them) and `UICtx`'s output, on the fixture scene's public UI fields."""
+    import torch
+    from rrp.envs.computerworld import SlotRegistry, scene_widgets
+    from rrp.policies.pointer import LI, NH, NW, nets
+    from rrp.policies.relations.base import resolve
+
+    b = _ui_batch(SlotRegistry().assign(scene_widgets(_UI_SCENE)))
+    T = NW + LI + NH + 1
+    torch.manual_seed(0)
+    UICtx = nets()["UICtx"]
+    off = UICtx(D=16, heads=2, layers=1)
+    on = UICtx(D=16, heads=2, layers=1, specs=resolve([name], default="none", family="pointer"))
+    on.load_state_dict(off.state_dict(), strict=False)
+    torch.manual_seed(1)
+    for p in on.rel.parameters():
+        torch.nn.init.normal_(p, std=0.2)
+    bias = on.rel[0].bias(on._relctx(b, T))
+    assert off.rel[0].bias(off._relctx(b, T)) is None
+    assert bias is not None and torch.isfinite(bias).all() and bias.abs().sum() > 0
+    with torch.no_grad():
+        assert not torch.allclose(off(b)[0], on(b)[0])
+
+
+def test_drag_to_label_is_the_focused_widget_to_its_nearest_other_widget():
+    """`drag_to_label` (the probe-source `ui.drag_to` head's supervision) from public batch fields only: focused
+    widget -> nearest OTHER widget by `wpos3d`; every pair of present widgets valid; no focus -> no positive."""
+    import torch
+    from rrp.policies.nets.pointer import drag_to_label
+    from rrp.policies.pointer import NW
+    wmask = torch.zeros(2, NW, dtype=torch.bool)
+    wmask[:, :3] = True
+    pos = torch.zeros(2, NW, 3)
+    pos[:, 1, 0], pos[:, 2, 0] = 1.0, 5.0
+    foc = torch.full((2, NW), -1)
+    foc[0, 0] = 0                                                # sample 0: widget 0 focused; sample 1: none
+    y, valid = drag_to_label(dict(wmask=wmask, wpos3d=pos, wfocusrank=foc))
+    assert y[0].nonzero().tolist() == [[0, 1]] and y[1].sum() == 0
+    assert valid[:, :3, :3].all() and not valid[:, 3:].any() and not valid[:, :, 3:].any()
+    y, _ = drag_to_label(dict(wmask=wmask, wpos3d=pos, wfocusrank=foc, wgeo_ok=torch.zeros_like(wmask)))
+    assert y.sum() == 0                                          # geometry not stored: no label, never a fabricated one
 
 
 # ================================================================== D-144 R20 follow-up: live rollout call sites pass `env_widget_table`
@@ -600,7 +647,7 @@ def test_frozen_pointer_nets_give_identical_outputs():
         z = torch.randn(B, 4, 1, 8)
         r = R(z, torch.rand(B), b["ptr"], b["btn"])
         v = S.velocity(torch.randn(B, 4, 1, 8), torch.rand(B), S.ctx(b))
-        smp = S.sample(b, nfe=3, generator=torch.Generator().manual_seed(9))
+        smp = S.sample(b, nfe=3, noise=torch.randn(B, 4, 1, 8, generator=torch.Generator().manual_seed(9)))
         bc = BC(b)
         torch.manual_seed(6)
         loss = float(S.loss(b, torch.randn(B, 4, 1, 8))[0])

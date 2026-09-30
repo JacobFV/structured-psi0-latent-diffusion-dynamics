@@ -2,7 +2,11 @@
 research/tracks/pointer.md "pointer policy"). `rrp train pointer <cmd> ...`:
 
     split    write the seed lists of research/splits/cworld_pointer_v1.json (held-out variants are declared there)
-    collect  scripted-teacher demos (DART pointer noise on move ticks for a fraction of episodes) -> .npz (peer store)
+    collect  scripted-teacher demos (DART pointer noise on move ticks for a fraction of episodes) -> .npz (peer store);
+             widget tables come from the live featurizer (`public_features` + `env_widget_table`), incl. z-layer, parent,
+             focus rank and the ui-rel-v1 edges
+    (rep / flow / bc take --factors <relations.resolve items>, stamped into the checkpoint and checked on load;
+     --split-seed fixes the train / validation split independently of --seed)
     rep      E (encoder) + R (learned system 0) + P (packet probe) on demo chunks; --variant semfix | nosem
     flow     system i (rectified flow) on the frozen representation's posterior means (--target latent), or on the
              engineered encoding (--target eng, for the SCRIPTED engineered system 0)
@@ -41,7 +45,9 @@ def main(argv=None):
         p.add_argument("--steps", type=int, default=steps)
         p.add_argument("--batch", type=int, default=512)
         p.add_argument("--lr", type=float, default=lr)
-        p.add_argument("--seed", type=int, default=0)
+        p.add_argument("--seed", type=int, default=0, help="init / sampling / noise seed")
+        p.add_argument("--split-seed", type=int, default=0, help="train / validation episode split seed (independent "
+                       "of --seed: a seed sweep keeps one held-out set)")
         p.add_argument("--device", default=None)
         p.add_argument("--log-every", type=int, default=1000)
         p.add_argument("--split", default=SPLIT_PATH)
@@ -70,16 +76,25 @@ def main(argv=None):
     p.add_argument("--lv-min", type=float, default=-4.0, help="semfix: bounded probe NLL (as the arm's semfix)")
     p.add_argument("--beta", type=float, default=3e-3)
     p.add_argument("--w-xy", type=float, default=5.0)
+    p.add_argument("--factors", nargs="*", default=None, metavar="SPEC",
+                   help="relation factors of the net's public context (relations.resolve items: names, globs, "
+                        "preset:ui, or JSON specs); default preset:none")
     p.set_defaults(fn=cmd_rep)
     p = sub.add_parser("flow")
     common(p, steps=30000)
     p.add_argument("--target", choices=("latent", "eng"), default="latent")
     p.add_argument("--representation", help="rep checkpoint (target latent)")
     p.add_argument("--w-sem", type=float, default=0.5)
+    p.add_argument("--factors", nargs="*", default=None, metavar="SPEC",
+                   help="relation factors of the net's public context (relations.resolve items: names, globs, "
+                        "preset:ui, or JSON specs); default preset:none")
     p.set_defaults(fn=cmd_flow)
     p = sub.add_parser("bc")
     common(p, steps=50000)
     p.add_argument("--w-xy", type=float, default=5.0)
+    p.add_argument("--factors", nargs="*", default=None, metavar="SPEC",
+                   help="relation factors of the net's public context (relations.resolve items: names, globs, "
+                        "preset:ui, or JSON specs); default preset:none")
     p.set_defaults(fn=cmd_bc)
     p = sub.add_parser("probe")
     common(p, steps=8000, lr=1e-3)

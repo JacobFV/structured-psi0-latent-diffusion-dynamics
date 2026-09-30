@@ -185,3 +185,33 @@ ops/bin/peer_run.sh ...` appends it to the job's PYTHONPATH.
     `edit`'s probe now trains under bf16 autocast on CUDA like the other probes (it did not before); a diagnostic, CPU
     unchanged.
   - Not touched (D-146 item 7): the recorded `cworld_pointer_v1` split and version strings.
+- Readiness C1 (audit D21 / D22, pointer training correctness). Re-checked on origin/main 6f8e4910 before editing: all five
+  findings still held (collect called `public_features` with no table, so packs lacked z-layer / parent / focus rank / UI
+  edges and a `preset:ui` net trained on zeros while rollout fed real edges; the nets took no `factors` from the trainers
+  and `save_checkpoint` stamped the empty-preset hash regardless; `--seed` also seeded the train / validation split; flow
+  noise came from one shared generator, so a packet depended on the batch and the rollout order).
+  - One featurizer path: `collect_episode` calls `public_features(..., table=env_widget_table(env))` exactly as the three
+    live call sites do (`table` is now a required keyword of `public_features`; `widget_features` without one yields the
+    same keys with empty UI values). Packs gain `wzlayer` / `wparent` / `wfocusrank` / `wuiedges` (edges bit-packed per
+    table; `data.stack_tables` / `unpack_edges`; `collect.write_pack`), and `widget_features` emits `wgeo_ok`, so
+    `Demos.batch` and a live batch have identical key sets, dtypes and (tick 0) values (test). Old packs load with empty UI
+    fields flagged `wui` False (`Demos.has_ui`); UI factors refuse them (`FactorError`), default factors still train.
+  - `--factors <relations.resolve items>` on `rep` / `flow` / `bc`: resolved with `family="pointer", training=True`, stored
+    in `arch[<net>]["factors"]`, the net is built with it, `save_checkpoint(factors=specs)` stamps `versions["factors"]`
+    (`stamp_versions`, so a flow no longer inherits its representation's hash) and `load_pointer_bundle` rebuilds from the
+    saved specs and `require_factors` (a missing / different hash is refused; `allow_factor_mismatch` for ablations). `mix > 0`
+    is refused (no relgen scene mix in these trainers). `assert_deployable` guards `PointerSystemI` / `PointerBCPolicy`.
+    Default factors are byte-identical to before (frozen-nets sums unchanged; old checkpoints load).
+  - `ui.drag_to` (probe source) is supervised, not left untrained: `nets.pointer.drag_to_label` builds its pair label from
+    the public batch fields (focused widget -> nearest other widget by `wpos3d`, `relgen.ui.drag_to_fn`'s definition), the
+    trainers run `relations.estimates_loss` on the forward's `RelCtx` (`UICtx.record_rc` / `last_rc`) and log
+    `fx_probe_ui.drag_to`. Not done here: scene-mix (`mix`) and gt-source labels from relgen (C3 / R1 own those).
+  - `--split-seed` (default 0) seeds the train / validation split; `--seed` seeds torch / numpy only, so a seed sweep keeps
+    one held-out set. Both are recorded in the checkpoint config.
+  - Flow noise: `PointerFlow.sample(b, nfe, noise=None)` replaces `generator=`; `PointerSystemI` feeds
+    `flow_noise(policy seed, env.seed, packet index)` per env row (fresh CPU generator from a hash of the triple, counters
+    restart at `reset`), so z is identical at batch 1 and batch N and an episode replays exactly.
+  - Tests: `tests/unit/test_pointer_train_smoke.py` (UI fields in the batch, split seed, factor stamp / load / refusal,
+    drag_to term in all three trainers, collect == live featurizer, batch-1 == batch-N, noise triple) and
+    `tests/unit/test_pointer.py` (`ui.same_window` / `ui.label_for` each change attention, `drag_to_label`). The frozen-nets
+    golden is unchanged (the sample call moved to `noise=`, same numbers).

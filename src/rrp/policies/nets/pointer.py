@@ -16,7 +16,7 @@ from rrp.policies.nets.attention import MHA, RelBlock
 from rrp.policies.nets.flow import MLP, sinusoidal
 from rrp.policies.nets.pointer_vocab import (KNOT_TIMES, LC, LI, N_BOUND, N_KEYCLS, N_ROLE, N_SYM, NW, POINTER_FACTORS_PRESET,
                                            UI_CARRIES, WF)
-from rrp.policies.relations.base import EdgeSet, RelCtx, TokenSet, resolve
+from rrp.policies.relations.base import EdgeSet, RelCtx, TokenSet, get_factor, resolve
 from rrp.policies.relations.ops import FactorSite
 
 
@@ -66,6 +66,24 @@ class LabelBag(nn.Module):
         return e.reshape(B, W, -1)
 
 
+def drag_to_label(b):
+    """`ui.drag_to`'s pair label from the PUBLIC batch fields alone (`relgen.ui.drag_to_fn`'s definition, evaluated on
+    what a policy sees): the focused widget (`wfocusrank == 0`, CW's only public signal of the widget being interacted
+    with) -> the nearest OTHER widget by `wpos3d`. -> (y [B, NW, NW] float, valid [B, NW, NW] bool); every pair of
+    present widgets is a scored candidate, only the focused widget's row has a 1, and only when another widget exists.
+    A batch without stored geometry (`wgeo_ok` false) yields no valid pair."""
+    wmask, pos = b["wmask"], b["wpos3d"]
+    ok = wmask & b.get("wgeo_ok", wmask)
+    foc = ok & (b["wfocusrank"] == 0) if "wfocusrank" in b else torch.zeros_like(ok)
+    d = (pos[:, :, None] - pos[:, None]).norm(dim=-1)
+    eye = torch.eye(ok.shape[1], dtype=torch.bool, device=ok.device)[None]
+    cand = ok[:, None, :] & ok[:, :, None] & ~eye
+    nearest = torch.where(cand, d, torch.full_like(d, float("inf"))).argmin(-1)              # [B, NW] per row
+    has = cand.any(-1)
+    y = (F.one_hot(nearest, ok.shape[1]).bool() & (foc & has)[..., None]).float()
+    return y, ok[:, :, None] & ok[:, None, :]
+
+
 class UICtx(nn.Module):
     """Public context tokens: NW widget tokens (label chars + role + bound entity + geometry, pointer-relative
     centre), LI instruction characters, NH own-event tokens and one proprio token; `layers` self-attention
@@ -78,6 +96,12 @@ class UICtx(nn.Module):
 
     def __init__(self, D=128, heads=4, layers=3, specs=()):
         super().__init__()
+        self.specs = tuple(specs)
+        # C1: `ui.drag_to` (probe source) is supervised by `drag_to_label(b)`, attached to the `ctx` token set only when
+        # a spec asks for that label; `record_rc` keeps the last forward's `RelCtx` (`last_rc`) so the trainer can run
+        # `relations.estimates_loss` on the estimates the forward wrote (the head is never silently left untrained)
+        self.wants_drag_to = any(s.control != "off" and get_factor(s.name).label == "drag_to" for s in self.specs)
+        self.record_rc, self.last_rc = False, None
         self.sym = nn.Embedding(N_SYM, D)
         self.cpos = nn.Embedding(LI, D)
         self.bag = LabelBag(D)
@@ -111,8 +135,13 @@ class UICtx(nn.Module):
         mask = torch.cat([wmask, torch.ones(B, pad, dtype=torch.bool, device=device)], 1)
         geo_ok = b.get("wgeo_ok", wmask)        # a pack without stored geometry (zeros) says so: `Demos.batch`
         geo_ok = F.pad(geo_ok, (0, pad))
+        labels = {}
+        if self.wants_drag_to:
+            y, yv = drag_to_label(b)
+            labels = {"drag_to": F.pad(y, (0, pad, 0, pad)), "drag_to.valid": F.pad(yv, (0, pad, 0, pad))}
         ts = TokenSet("ctx", mask, fields={"pos3d": pos3d, "pos3d.valid": geo_ok, "cam_uvd": camuvd,
-                                           "cam_uvd.valid": geo_ok, "zlayer": zlayer, "parent_id": parent})
+                                           "cam_uvd.valid": geo_ok, "zlayer": zlayer, "parent_id": parent},
+                      labels=labels)
         wuiedges = b.get("wuiedges")
         edges = (torch.zeros(B, NW, NW, len(UI_REL_VOCAB), device=device) if wuiedges is None
                  else wuiedges.to(pos3d.dtype))
@@ -136,6 +165,7 @@ class UICtx(nn.Module):
         m = torch.cat([b["wmask"], b["instr"] > 0, h[..., 0] > 0, torch.ones(B, 1, dtype=torch.bool,
                                                                             device=x.device)], 1)
         rc = self._relctx(b, x.shape[1])
+        self.last_rc = rc if self.record_rc else None
         for L, site in zip(self.blocks, self.rel):
             xn = L.n2(x)                                  # the exact pre-self-attention hidden (`.x` is a
                                                             # zero-init no-op, docs 3.2, so this equals n2 of L's
@@ -257,10 +287,19 @@ class PointerFlow(nn.Module):
         return loss, logs
 
     @torch.no_grad()
-    def sample(self, b, nfe=8, generator=None):
+    def sample(self, b, nfe=8, noise=None):
+        """Euler sample of the packet. `noise` [B, K, 1, dz] is the initial flow noise (rollout: one row per env and
+        packet, `rrp.policies.pointer.runtime.flow_noise`, so a row never depends on the rest of the batch); None
+        draws fresh unseeded noise (validation / probes)."""
         cache = self.ctx(b)
         B = b["ptr"].shape[0]
-        z = torch.randn(B, len(KNOT_TIMES), 1, self.dz, device=b["ptr"].device, generator=generator)
+        shape = (B, len(KNOT_TIMES), 1, self.dz)
+        if noise is None:
+            z = torch.randn(shape, device=b["ptr"].device)
+        else:
+            if tuple(noise.shape) != shape:
+                raise ValueError(f"flow noise shape {tuple(noise.shape)} != {shape}")
+            z = noise.to(b["ptr"].device, torch.float32)
         for k in range(nfe):
             tau = torch.full((B,), k / nfe, device=z.device)
             z = z + self.velocity(z, tau, cache) / nfe

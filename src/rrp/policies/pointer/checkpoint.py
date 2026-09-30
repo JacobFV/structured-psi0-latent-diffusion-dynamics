@@ -83,14 +83,24 @@ def load_pointer_module(cls_name: str, ctor, sd: dict, device="cpu"):
     return m
 
 
-def load_pointer_bundle(path: str, device="cpu") -> dict:
+def load_pointer_bundle(path: str, device="cpu", allow_factor_mismatch: bool = False) -> dict:
     """A pointer checkpoint (rrp.harness.train.pointer): {'kind', 'config', 'state' (module -> state_dict), 'versions'}.
     `E` / `R` / `S` / `BC` load through `load_pointer_module` (RelBlock checkpoint map, D-144 R6: strict for a
     post-R6 checkpoint, key-mapped for a pre-R6 one); `P` (the packet probe) through `load_pointer_probe_state`
-    (different architecture pre/post R6: key-mapped load is a refit, not a strict load, for an old checkpoint)."""
+    (different architecture pre/post R6: key-mapped load is a refit, not a strict load, for an old checkpoint).
+    C1: a factor-bearing module (`E` / `S` / `BC`) is rebuilt with the specs saved in `config["arch"][k]["factors"]`
+    (absent = the empty `POINTER_FACTORS_PRESET`) and the structure hash in `versions["factors"]` must equal theirs
+    (`relations.require_factors`; a checkpoint without a hash is refused; `allow_factor_mismatch` = a deliberate
+    ablation load)."""
     import torch
+    from rrp.policies.pointer.spec import POINTER_FACTORS_PRESET
+    from rrp.policies.relations.base import require_factors, resolve
     st = torch.load(path, map_location=device, weights_only=False)
     N, cfg = nets(), st["config"]
+    for k in ("E", "S", "BC"):
+        if k in st["state"]:
+            require_factors(st.get("versions"), resolve(cfg["arch"].get(k, {}).get("factors"),
+                                                        default=POINTER_FACTORS_PRESET), allow_factor_mismatch)
     mods = {}
     for k, sd in st["state"].items():
         if k == "P":

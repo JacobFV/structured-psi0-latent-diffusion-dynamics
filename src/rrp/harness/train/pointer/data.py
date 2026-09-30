@@ -6,12 +6,35 @@ import json
 import numpy as np
 import torch
 
+from rrp.envs.computerworld import UI_REL_VOCAB
 from rrp.harness.train.pointer.split import TASKS
-from rrp.policies.pointer.spec import PointerGeometry
+from rrp.policies.pointer.spec import NW, PointerGeometry
 
-# per-table widget arrays a pack stores; `wpos3d` / `wcamuvd` (D-144 R20 follow-up geometry) are the ones the net's
-# `_relctx` reads besides the five descriptor arrays, and packs collected before them lack them (`Demos`)
-TABLE_KEYS = ("wch", "wrole", "wbound", "wf", "wmask", "wpos3d", "wcamuvd")
+# per-table widget arrays a pack stores = the widget half of `rrp.policies.pointer.public_features`' output, one
+# featurizer path shared with live rollout (C1). `wpos3d` / `wcamuvd` (D-144 R20 follow-up geometry) and the public UI
+# fields `wzlayer` / `wparent` / `wfocusrank` / `wuiedges` (R20, `ui_widget_fields`) are what the net's `_relctx` reads
+# besides the five descriptor arrays; packs collected before them lack them and `Demos` flags that (`wgeo` / `wui`)
+TABLE_KEYS = ("wch", "wrole", "wbound", "wf", "wmask", "wpos3d", "wcamuvd", "wzlayer", "wparent", "wfocusrank",
+              "wuiedges")
+_EDGE_SHAPE = (NW, NW, len(UI_REL_VOCAB))
+
+
+def stack_tables(tabs: list[dict]) -> dict:
+    """Per-table feature dicts -> the pack's table arrays (on-disk dtypes). `wuiedges` is bit-packed per table
+    ([n, ceil(NW * NW * R / 8)] uint8; `unpack_edges` inverts it)."""
+    st = lambda k, dt: np.stack([t[k] for t in tabs]).astype(dt)
+    return dict(wch=st("wch", np.int16), wrole=st("wrole", np.int8), wbound=st("wbound", np.int8),
+                wf=st("wf", np.float16), wmask=st("wmask", bool), wpos3d=st("wpos3d", np.float32),
+                wcamuvd=st("wcamuvd", np.float32), wzlayer=st("wzlayer", np.float32),
+                wparent=st("wparent", np.int64), wfocusrank=st("wfocusrank", np.int64),
+                wuiedges=np.stack([np.packbits(np.asarray(t["wuiedges"], bool).reshape(-1)) for t in tabs]))
+
+
+def unpack_edges(packed: torch.Tensor) -> torch.Tensor:
+    """[..., ceil(NW * NW * R / 8)] uint8 (`stack_tables`) -> [..., NW, NW, R] bool."""
+    bits = (packed[..., None].to(torch.uint8) >> torch.arange(7, -1, -1, device=packed.device, dtype=torch.uint8)) & 1
+    n = NW * NW * len(UI_REL_VOCAB)
+    return bits.reshape(*packed.shape[:-1], -1)[..., :n].reshape(*packed.shape[:-1], *_EDGE_SHAPE).bool()
 
 
 def pointer_geometry(task: str = "cw/calc_sum") -> PointerGeometry:
@@ -53,6 +76,15 @@ class Demos:
                 p["wgeo"] = np.zeros(n_tab, bool)
             else:
                 p["wgeo"] = np.ones(len(p["wch"]), bool)
+            if "wuiedges" not in p:             # a pack from before the public UI fields: defaults, flagged below
+                n_tab, nw = len(p["wch"]), p["wch"].shape[1]
+                p["wzlayer"] = np.zeros((n_tab, nw), np.float32)
+                p["wparent"] = np.full((n_tab, nw), -1, np.int64)
+                p["wfocusrank"] = np.full((n_tab, nw), -1, np.int64)
+                p["wuiedges"] = np.zeros((n_tab, -(-NW * NW * len(UI_REL_VOCAB) // 8)), np.uint8)
+                p["wui"] = np.zeros(n_tab, bool)
+            else:
+                p["wui"] = np.ones(len(p["wch"]), bool)
             p["ep_task"] = np.full(len(p["ep_seed"]), TASKS.index(str(p["task"])), np.int8)
             tab_off += len(p["wch"])
             tick_off += len(p["tab"])
@@ -79,13 +111,16 @@ class Demos:
         self.t = dict(wch=T(d["wch"].astype(np.int64)), wrole=T(d["wrole"].astype(np.int64)),
                       wbound=T(d["wbound"].astype(np.int64)), wf=T(d["wf"].astype(np.float32)), wmask=T(d["wmask"]),
                       wpos3d=T(d["wpos3d"].astype(np.float32)), wcamuvd=T(d["wcamuvd"].astype(np.float32)),
-                      wgeo=T(d["wgeo"]), tab=T(d["tab"].astype(np.int64)), ep=T(d["ep"].astype(np.int64)), ptr=T(d["ptr"]), btn=T(d["btn"]),
+                      wgeo=T(d["wgeo"]), wui=T(d["wui"]), wzlayer=T(d["wzlayer"].astype(np.float32)),
+                      wparent=T(d["wparent"].astype(np.int64)), wfocusrank=T(d["wfocusrank"].astype(np.int64)),
+                      wuiedges=T(d["wuiedges"].astype(np.uint8)), tab=T(d["tab"].astype(np.int64)), ep=T(d["ep"].astype(np.int64)), ptr=T(d["ptr"]), btn=T(d["btn"]),
                       hist=T(d["hist"]), cmd_xy=T(d["cmd_xy"]), cmd_btn=T(d["cmd_btn"]),
                       cmd_key=T(d["cmd_key"].astype(np.int64)), slot=T(d["slot"].astype(np.int64)),
                       txy=T(np.nan_to_num(d["txy"], nan=0.0)), txy_ok=T(~np.isnan(d["txy"][:, 0])),
                       phase=T(d["phase"].astype(np.int64)), instr=T(d["ep_instr"].astype(np.int64)),
                       tick=T((np.arange(N) - d["ep_start"][d["ep"]]).astype(np.float32)), chunk=T(idx.astype(np.int64)))
         self.N, self.device = N, device
+        self.has_ui = bool(self.t["wui"].all())      # every pack carries the public UI fields (`preset:ui` needs them)
         self.train_idx = T(np.nonzero(~self.val_mask)[0].astype(np.int64))
         tick_task = self.ep_task[d["ep"]][~self.val_mask]
         cnt = np.bincount(tick_task, minlength=len(TASKS)).astype(np.float64)
@@ -102,6 +137,8 @@ class Demos:
         tab = t["tab"][ix]
         b = dict(wch=t["wch"][tab], wrole=t["wrole"][tab], wbound=t["wbound"][tab], wf=t["wf"][tab], wmask=t["wmask"][tab],
                  wpos3d=t["wpos3d"][tab], wcamuvd=t["wcamuvd"][tab], wgeo_ok=t["wmask"][tab] & t["wgeo"][tab][:, None],
+                 wzlayer=t["wzlayer"][tab], wparent=t["wparent"][tab], wfocusrank=t["wfocusrank"][tab],
+                 wuiedges=unpack_edges(t["wuiedges"][tab]),
                  instr=t["instr"][t["ep"][ix]], ptr=t["ptr"][ix], btn=t["btn"][ix], tick=t["tick"][ix],
                  hist=t["hist"][ix])
         ci = t["chunk"][ix]                                        # [B,H]
