@@ -659,6 +659,7 @@ class FactorSite(nn.Module):
             sub = FactorSite.__new__(FactorSite)
             nn.Module.__init__(sub)
             sub.heads, sub.site, sub.specs = self.heads, self.site, (s,)
+            sub.emitters = ()
             sub.edge_specs = (s,) if s in self.edge_specs else ()
             sub.w = self.w[[self.edge_specs.index(s)]] if s in self.edge_specs else None
             sub.f = self.f
