@@ -1,0 +1,387 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:rrp:task-graph:1.0",
+  "title": "supplied event graph",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "task_id",
+    "graph_version",
+    "entity_declarations",
+    "events",
+    "success_events"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "graph_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "entity_declarations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "descriptor"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "manipulator",
+              "object",
+              "feature",
+              "sensor",
+              "body"
+            ]
+          },
+          "descriptor": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/event"
+      },
+      "minItems": 1
+    },
+    "success_events": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "entity_ref": {
+      "type": "object",
+      "required": [
+        "id",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "binding": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "entity"
+          ],
+          "properties": {
+            "kind": {
+              "const": "entity"
+            },
+            "entity": {
+              "$ref": "#/$defs/entity_ref"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "event_id",
+            "attempt",
+            "output_name"
+          ],
+          "properties": {
+            "kind": {
+              "const": "event_output"
+            },
+            "event_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "attempt": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "output_name": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "condition": {
+      "type": "object",
+      "required": [
+        "predicate",
+        "arguments",
+        "comparison",
+        "value",
+        "source"
+      ],
+      "properties": {
+        "predicate": {
+          "type": "string",
+          "minLength": 1
+        },
+        "arguments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/binding"
+          }
+        },
+        "comparison": {
+          "enum": [
+            "eq",
+            "le",
+            "ge",
+            "inside_interval"
+          ]
+        },
+        "value": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          ]
+        },
+        "source": {
+          "enum": [
+            "observation_estimate",
+            "validated_receipt",
+            "declared_spec",
+            "desired_effect"
+          ]
+        },
+        "persistence_seconds": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "event": {
+      "type": "object",
+      "required": [
+        "id",
+        "operator",
+        "roles",
+        "requires_completed",
+        "requires_active",
+        "preconditions",
+        "invariants",
+        "desired_effects",
+        "completion",
+        "resources",
+        "produces",
+        "timeout_seconds",
+        "recovery"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "role",
+              "ordinal",
+              "binding"
+            ],
+            "properties": {
+              "role": {
+                "enum": [
+                  "actor",
+                  "patient",
+                  "instrument",
+                  "target",
+                  "source",
+                  "destination",
+                  "reference",
+                  "support",
+                  "cooperating_actor"
+                ]
+              },
+              "ordinal": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "binding": {
+                "$ref": "#/$defs/binding"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "requires_completed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "requires_active": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "preconditions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/condition"
+          }
+        },
+        "invariants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/condition"
+          }
+        },
+        "desired_effects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/condition"
+          }
+        },
+        "completion": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/condition"
+          }
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "entity",
+              "mode"
+            ],
+            "properties": {
+              "entity": {
+                "$ref": "#/$defs/entity_ref"
+              },
+              "mode": {
+                "enum": [
+                  "exclusive_control",
+                  "shared_support",
+                  "observe"
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "produces": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "type",
+              "availability"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "frame_estimate",
+                  "contact_anchor",
+                  "alignment_receipt",
+                  "completion_receipt"
+                ]
+              },
+              "availability": {
+                "enum": [
+                  "on_success",
+                  "while_active_and_valid"
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "frame_binding": {
+          "$ref": "#/$defs/binding"
+        },
+        "timeout_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "recovery": {
+          "type": "object",
+          "required": [
+            "max_attempts",
+            "on_failure"
+          ],
+          "properties": {
+            "max_attempts": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "on_failure": {
+              "enum": [
+                "fail",
+                "reobserve_then_retry",
+                "release_then_retry",
+                "cancel_dependents"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

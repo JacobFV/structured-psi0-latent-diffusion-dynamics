@@ -32,8 +32,8 @@ def test_task_roundtrip_and_unknown_field_rejection():
 
 def test_example_also_validates_against_supplied_json_schema():
     import jsonschema
-    from tests.support import HANDOFF
-    schema = json.loads((HANDOFF / "contracts" / "task_graph.schema.json").read_text())
+    from tests.support import DATA
+    schema = json.loads((DATA / "task_graph.schema.json").read_text())
     jsonschema.validate(supplied_task_payload(), schema)
 
 

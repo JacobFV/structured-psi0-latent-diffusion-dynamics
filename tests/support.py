@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-HANDOFF = Path(__file__).resolve().parents[1] / "docs" / "handoff"
+DATA = Path(__file__).resolve().parent / "data"
 
 
 def fake_enforcement_backend():
@@ -14,7 +14,7 @@ def fake_enforcement_backend():
 
 def supplied_task_payload() -> dict:
     """Exact copy of the package example (not an invented simplified graph)."""
-    return json.loads((HANDOFF / "examples" / "support_and_insert.task.json").read_text())
+    return json.loads((DATA / "support_and_insert.task.json").read_text())
 
 
 def make_observation(estimates=(), t=0.0, oid="obs"):

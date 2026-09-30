@@ -1,4 +1,4 @@
-"""Supplied event-hypergraph definition (mirrors the archived handoff contract task_graph.schema.json).
+"""Supplied event-hypergraph definition (mirrors the handoff contract, pinned as tests/data/task_graph.schema.json).
 
 Events are hyperedges realized as event nodes + ordered role-slot incidence records.
 Semantic validation (referential integrity, cycles, role arity, output provenance,
