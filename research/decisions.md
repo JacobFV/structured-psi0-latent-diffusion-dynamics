@@ -1221,3 +1221,6 @@ need a re-replay (cheap, CPU) for the next step-2 task.
 `LEVEL=1|2 scripts/step2_eval.sh ...` (validated: 0–2) selects simple-eval/<task>/dr-level-<L> (present for all six tasks);
 closed_loop/eval_loop take --level {0,1,2}; the level, render profile, RTC and seed are recorded in result.json
 provenance flags; outputs for L>0 get an _L<L> suffix. No DR-level runs launched (step-2 L0 has priority).
+
+## D-143 2026-09-30 Agent concurrency uncapped; fan-out work on Sonnet (owner)
+Owner: "no 3-agent-limit. we can go as much as needed/useful … once things are fanning out into an otherwise regular codebase, workflows with claude-sonnet are the way since sonnet is faster/cheaper". Replaces the D-127 cap of 3 concurrent agents. Host rules otherwise unchanged (no training/sim/heavy python on the host). Design/architecture stays with the lead model; parallel implementation units run as Sonnet agents or workflows. (D-142 is reserved by the pointer track.)
