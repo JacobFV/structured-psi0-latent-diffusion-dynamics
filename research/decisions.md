@@ -1041,6 +1041,43 @@ Also recorded: probes on E(demonstrated chunk) beat the metadata-only control on
   training (constant −0.15 rad -> −1), and flipping that one dim moves system 0's waist-pitch command 0.091 -> −0.001,
   matching the logged 0.095. Fix options in the track note; nothing retrained or rerun.
 
+## D-142 2026-09-30 ComputerWorld pointer policy (track pointer; owner request 2026-09-29 "engineer or train a pointer policy with/as a system 0 on computerworld"): engineered system 0 verified; PRE-REGISTRATION of the sealed evaluation of the learned routes
+Step 1 (verified, 855c4fb): engineered packet encoding `cw_pointer_eng.v1` (z[4, 1, 14] at the contract knots; per knot
+early/late tick slots: target xy, depth, button, key, wheel, flag) and a SCRIPTED system 0 (`EngineeredSystem0`,
+speed-limited tracking from the measured pointer). Teacher-oracle packets → engineered system 0: 100/100 on each cw/*
+task (seeds 0–99, `rrp eval`), with the teacher's exact control-step totals. Details: research/tracks/cworld.md.
+Step 2 set-up (all before any demo): split `research/splits/cworld_pointer_v1.json` (34fbc94; held-out calc pairs,
+words, names; dev / sealed_id / sealed_heldout seed lists); adapter cw_env.v2 (24 words / 24 names). Demos: 6000
+teacher episodes per task (545k ticks, DART on half the episodes). One training seed per model.
+Dev results (50 dev seeds per task, 200 total; recipe-selection set, used once per checkpoint):
+- ORACLE teacher chunk → frozen E → learned system 0: semfix 200/200, nosem 200/200.
+- learned latent semfix (flow_semfix → learned system 0): 179/200 (calc 46, type 50, drag 40, form 43).
+- learned latent nosem: 184/200 (calc 46, type 49, drag 49, form 40).
+- learned system i → SCRIPTED engineered system 0 (`eng`): 95/200 (calc 49, type 6, drag 40, form 0): the scalar key
+  code (index/|vocab|) is too fine for the flow to hit; typing fails (wrong_text / wrong_value:name).
+- pointer BC (same inputs, same demos): 200/200.
+- Packet probes (val episodes of the training seeds; post-hoc probe, same recipe for every packet source; metadata-only
+  control = 67.5% slot, 41% phase, 137 px): E means semfix slot 100% / phase 100% / rel. target 1.8 px; nosem 98.6% /
+  99.98% / 36.2 px. Generated packets semfix 99.3% / 94.5% / 6.0 px; nosem 97.6% / 94.4% / 38.2 px.
+- Causal edit (probe-guided retargeting of the first packet toward another visible widget, system 0 realizes the edited
+  packet for 7 ticks, 25 dev episodes each on calc and form; `rrp train pointer edit`, settings 60 steps / anchor 0.1 and
+  200 / 0.01): semfix — the pointer's approach to the original target drops from 163 px (no edit) / 102–105 px (random
+  edit of equal norm) to 41 / 22 px, and it moves +15 / +24 px toward the new target (random −45); ends closer to the new
+  than the original target in 8–9/25 (random 3). nosem — probe edits are indistinguishable from random (128–141 vs
+  137–144 px toward the original). The edits are partial: the probe itself reads the new target after editing in only
+  8–10/25 (semfix) episodes.
+Frozen checkpoints (peer store artifacts/runs/pointer_v1/, file sha256[:16]): rep_semfix dbf6e3c5eae8ba30, rep_nosem
+e59c351562bd730e, flow_semfix c68c8a48c130806f, flow_nosem 768c87516640963b, flow_eng 13e293a8ed7dc524, bc
+9ed11aee0704eacf. Code: track/pointer at this commit (the same code that produced the dev numbers).
+PRE-REGISTRATION (sealed seeds evaluated ONCE, after this commit, with exactly these checkpoints, replan 4 ticks, nfe 8,
+policy seed 0): methods teacher, pointer_oracle (eng), latent semfix, latent nosem, eng, BC on sealed_id (100 per task,
+400) and sealed_heldout (50 each for calc / type / form, 150). Primary metric: success over attempted, per task and
+pooled, Wilson 95%; paired comparisons by seed (McNemar exact). Pre-stated expectations from dev: (P1) BC ≥ both latent
+routes on sealed_id; (P2) semfix and nosem within 0.05 of each other pooled on sealed_id (no directional claim);
+(P3) eng < 0.6 pooled; (P4) every learned method is lower on sealed_heldout than on sealed_id for type and form
+(unseen words / names require copying characters from the instruction). No checkpoint, recipe or code change after
+seeing sealed numbers; any later fix is a new lineage evaluated on new seeds.
+
 # Appendix P: psi1z decisions P-001..P-023 (folded 2026-09-29, D-140)
 
 The Ψ₀ line lived in the separate repo psi1z (github.com/JacobFV/psi1z, archived; last commit 6f5e2b3) from D-100 until
