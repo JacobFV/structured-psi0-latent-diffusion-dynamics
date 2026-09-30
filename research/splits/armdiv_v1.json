@@ -3,7 +3,7 @@
  "decision": "D-137",
  "frozen_utc": "2026-09-29",
  "task": "pick_place",
- "basis": "teacher admission only on TARGET-DEMO seeds 1000000-1000019 (research/tracks/armdiv/screen/targets.admission.json); pre-declared selection rules of D-137; no sealed scene touched; no policy run on any target",
+ "basis": "teacher admission only on TARGET-DEMO seeds 1000000-1000019 (artifacts/runs/armdiv/screen/targets.admission.json); pre-declared selection rules of D-137; no sealed scene touched; no policy run on any target",
  "source_train_robots": [
   "parm5_pg2",
   "parm5_tf3",

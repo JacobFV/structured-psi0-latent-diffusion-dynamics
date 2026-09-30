@@ -2,7 +2,7 @@
  "id": "armdiv_pool_v1",
  "decision": "D-137",
  "frozen_utc": "2026-09-29",
- "basis": "teacher admission screen only (research/tracks/armdiv/screen/train.admission.json; scripted teacher v2, grasp_v2.1, source seeds 0-19; rule feasible>=0.75 and success/feasible>=0.9); no policy result on any new key existed",
+ "basis": "teacher admission screen only (artifacts/runs/armdiv/screen/train.admission.json; scripted teacher v2, grasp_v2.1, source seeds 0-19; rule feasible>=0.75 and success/feasible>=0.9); no policy result on any new key existed",
  "source_train_robots_v6": [
   "parm5_pg2",
   "parm5_tf3",

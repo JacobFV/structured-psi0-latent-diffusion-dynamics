@@ -70,7 +70,7 @@ Both can fail; a null or negative result will be recorded as failed_hypothesis, 
 - BC experts `bcv7div` 1701/1702 on the v7div pack (the v6 BC recipe): both the DAgger labeller / stateless-R1 expert of
   the latent lineages AND the BC baseline (same inputs, same data).
 - Latent lineages `arm7div-{semfix,nosem}` x seeds 1, 2: the full `arm_lineage_v6` recipe (Stage A, F0, Fft, bc/gen
-  DAgger rounds, refits, Fgdag1/2h), DAG `dags/arm_lineage_v7div.yaml` extending v6 with the new body lists.
+  DAgger rounds, refits, Fgdag1/2h), recipe `recipes/armdiv/arm_lineage_v7div.yaml` (the v6 chain flattened into the instance, new body lists).
 - Ablation `arm7div-semfix-kinfeat` x seeds 1, 2 plus BC `bcv7div_kinfeat` 1701 (same input information for both).
 - Comparison baseline for H1 (no new training): the existing v6 lineages and v6 BC experts evaluated on the new
   targets with the same protocol.
@@ -124,9 +124,9 @@ Cheapest early signal: G2 BC in-distribution + the first semfix lineage at ~15-2
 - Tests: tests/unit/test_armdiv_bodies.py, tests/unit/test_kinfeat.py; legacy spec hashes unchanged.
 
 ## Screens (teacher only; peer leases 1790665037_40b935 train, _32ce76 targets; rc 0)
-`PY scripts/armdiv_screen.py --set train|targets --out-dir artifacts/runs/armdiv/screen/<set> --workers 6`
+`armdiv_screen.py --set train|targets --out-dir artifacts/runs/armdiv/screen/<set> --workers 6` (one-off driver, deleted in D-140; in git history)
 (RRP_GRASP_CONTACT=v2.1; cpu 6; peaks 10.0 G (throttled at 0.8 x 12 G) and 3.1 G). Copies:
-`research/tracks/armdiv/screen/{train,targets}.admission.json`.
+`artifacts/runs/armdiv/screen/{train,targets}.admission.json` (moved from `research/tracks/armdiv/screen/`, D-145).
 - train: 106/142 keys build (home-IK or attachment failures recorded), 56 admitted: 25 procedural seeds x 2 grippers,
   rizon4, ur10e, vx300s x 2. wx250s 2-3/20 feasible, piper/arxl5/yam 0/20.
 - targets: gen3 20/20, rizon4 20/20, iiwa14 7/20 (not admitted); sealed procedural seeds admitted 900002 (16/20 feasible),
@@ -135,7 +135,7 @@ Cheapest early signal: G2 BC in-distribution + the first semfix lineage at ~15-2
   primary gen3_pg2, rizon4_tf3; secondary pa2s900002_pg2, pa2s900003_tf3; tertiary REUSED xarm7_pg2/tf3.
 
 ## G1 data (2026-09-29)
-- Collect (run-dag `dags/armdiv_data_v7div.yaml`, peer lease 1790665718_c503c1, 6 workers, ~10 min, peak 20.0 G of 29 G):
+- Collect (run-dag `recipes/armdiv/armdiv_data_v7div.yaml`, peer lease 1790665718_c503c1, 6 workers, ~10 min, peak 20.0 G of 29 G):
   15,356 episodes: 14,068 success, 7 failure, 1,281 infeasible (the teacher's analytic feasibility check; parm5l/6/7 as
   in v6, some pa2s arms 20-30% infeasible). Target demos: gen3_pg2 150/150, rizon4_tf3 150/150, pa2s900002_pg2 133
   (+17 infeasible), pa2s900003_tf3 150, xarm7_pg2 149 (+1 failure), xarm7_tf3 150.
@@ -145,7 +145,7 @@ Cheapest early signal: G2 BC in-distribution + the first semfix lineage at ~15-2
   1790666387_f3e71c): **gate PASS** (phase switch 0.998; menagerie clean margin 0.978; penetration <= 3 mm 0.996;
   reported: DART margin 0.990, procedural margin 0.790). Jerk-vs-teacher has no reference for the new bodies (reported).
 - Pack: NOT a run-dag node (a run-dag pack writes under artifacts/runs = peer /dev/shm); leased
-  `scripts/armdiv_pack.sh` -> `artifacts/packed/latent_pp_v7div_s1_H16` = peer disk ~/rrp-peer-data/packed (lease
+  `.old/scripts/armdiv_pack.sh` (a leased `rrp data pack` of the 65 pool keys, horizon 16 stride 1) -> `artifacts/packed/latent_pp_v7div_s1_H16` = peer disk ~/rrp-peer-data/packed (lease
   1790666539_455dec). Smoke pack: 160 rows per new-arm episode, 11.2 KB/row -> expected ~2.1 M rows, ~23 GB.
 - Peer /dev/shm incident 00:20: admission stopped on disk_below_reserve (10.0 GB free vs 10.7 GB). My collect added
   2 GB. I archived cold, finished run dirs to the host (`~/work/rrp-data/peer-archive/runs/`, rsync, then checksum
@@ -153,14 +153,14 @@ Cheapest early signal: G2 BC in-distribution + the first semfix lineage at ~15-2
   armdiag (503 files), ladder_smoke (193), armv2 (56), armexpert_bcv5 (8). armexpert_bcv2 and armexpert/v4dart, v5dart
   were NOT removed (their symlinks made the checksum check differ); the lead is archiving those.
 
-## G2/G3 chain (host unit `rrp-armdiv-chain`, `scripts/armdiv_chain.sh`)
+## G2/G3 chain (host unit `rrp-armdiv-chain`, `.old/scripts/armdiv_chain.sh`; now the run-dag lines of RESUME)
 Sequential steps, one GPU lease at a time: pack wait -> BC smoke (30 updates) -> lineage smoke (tiny steps, 4 bodies,
-labeller = v6 BC, SMOKE only) -> BC 1701 (`dags/armdiv_bc_v7div.yaml`) -> lineage semfix s1 -> the other 3 lineages
-(`dags/arm_lineage_v7div.yaml`) -> BC 1702 -> kinfeat BC 1701 -> kinfeat lineages. Resume = rerun the script.
+labeller = v6 BC, SMOKE only) -> BC 1701 (`recipes/armdiv/armdiv_bc_v7div.yaml`) -> lineage semfix s1 -> the other 3 lineages
+(`recipes/armdiv/arm_lineage_v7div.yaml`) -> BC 1702 -> kinfeat BC 1701 -> kinfeat lineages. Resume = rerun the step's run-dag (completed nodes are skipped by the ledger).
 DAgger rounds use 5 episodes per body (65 bodies = 325 per round; v6 312), so per-round volume matches v6.
 - Pack done (lease 1790666539_455dec, rc 0, peak 22.9 G of 36 G): 1,914,009 rows, 65 bodies, 21 GB on peer disk.
-- BC smoke (`dags/armdiv_bc_v7div_smoke.yaml`, 30 updates, 2-episode evals): 4/4 nodes rc 0.
-- Lineage smoke (`dags/arm_lineage_v7div_smoke.yaml`, SMOKE only): first attempt failed at Fft/refits with 20 steps
+- BC smoke (`recipes/armdiv/armdiv_bc_v7div_smoke.yaml`, 30 updates, 2-episode evals): 4/4 nodes rc 0.
+- Lineage smoke (`recipes/armdiv/arm_lineage_v7div_smoke.yaml`, SMOKE only): first attempt failed at Fft/refits with 20 steps
   (OneCycleLR zero-length phase: a smoke-size artifact); with >= 100 steps all 22 nodes rc 0 (00:40-01:01). Smoke peaks:
   Stage A 1.7 G, DAgger collection (4 bodies) 3.3 G, flow ft 2.1 G.
 - 01:01: BC 1701 full training started (lease 1790668907_4b07e2), then the chain continues with the lineages.
@@ -184,29 +184,40 @@ Paths (peer store = /dev/shm/rrp-brandonin/repo/artifacts = RAM; host copy of ru
 - Code: main (track/armdiv); peer code dir /dev/shm/rrp-brandonin/wt/armdiv (re-push after the refactor:
   `RRP_PEER_REPO=... ops/bin/peer_sync.sh push`). Menagerie: 9 extra dirs in the pinned sparse checkout (host + peer).
 - Frozen splits: research/splits/armdiv_pool_v1.json (65 keys), research/splits/armdiv_v1.json (targets),
-  research/splits/armdiv_candidates_v1.json; screens research/tracks/armdiv/screen/.
+  research/splits/armdiv_candidates_v1.json; screens artifacts/runs/armdiv/screen/.
 - Data: collection runs/armdiv/v7div/collect-v7div_s1 (peer /dev/shm, 2.0 GB, gate PASS; episodes NOT on the host copy);
   pack **peer disk ~/rrp-peer-data/packed/latent_pp_v7div_s1_H16** (= artifacts/packed/..., 21 GB, 1,914,009 rows).
 - BC expert 1701: runs/armdiv/bcv7div-1701/train_bc-bc1701_s1701/policy.pt (final; also policy_last.pt); its dev evals
   in runs/armdiv/bcv7div-1701/{eval_r2-*,heldout-*}. Ledger: artifacts/runs/armdiv/_dags/armdiv_bc_v7div/ledger.json (host).
-- Lineage semfix s1 (dags/arm_lineage_v7div.yaml): stageA done (runs/armdiv/arm7div-semfix/train_rep_s1/
+- Lineage semfix s1 (`recipes/armdiv/arm_lineage_v7div.yaml`): stageA done (runs/armdiv/arm7div-semfix/train_rep_s1/
   representation.pt, 2 h 34 min, peak 1.86 G); bc1 done (dagger_collect-bc1_s1, peak 5.66 G); F0 INTERRUPTED at step
   3,893/20,000 (train_flow_s1/policy_last.pt; the node is `failed` in the ledger
   artifacts/runs/armdiv/_dags/arm_lineage_v7div/ledger.json; `--retry-failed` resumes from policy_last.pt).
 - Smokes (SMOKE, not results): runs/armdiv/{bcv7div-smoke-1701, arm7div-smoke-semfix, smoke}; deletable.
-Remaining:
-- G2: BC 1702 (`dags/armdiv_bc_v7div.yaml --point seed=1702`, ~7 h GPU incl. one 6 h-cap resume), kinfeat BC 1701
-  (`dags/armdiv_bc_v7div_kinfeat.yaml`).
-- G3: finish semfix s1 (F0 resume, then Fft ... Fgdag2h, evals), then semfix s2, nosem s1/s2 (~5-7 GPU-h each;
-  Stage A alone took 2.6 h here), then kinfeat semfix s1/s2 (`dags/arm_lineage_v7div_kinfeat.yaml`).
-- G4: write the pre-registration (protocol config listing the armdiv targets, methods zero-shot / joint_adapt split
-  gen_frac 0.5 / BC SFT at budgets 5/20/100, reading rules) and commit it BEFORE any sealed run; target demo packs from
-  the v7div collection (target_demos split); the v6 lineages/BC evaluated on the same new targets as the no-diversity
-  comparison. Not started.
-- Resume command (after re-pushing code and checking the refactor kept these stage names/paths):
-  `systemd-run --user --unit rrp-armdiv-chain3 --setenv=RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiv
-  --setenv="STEPS=lin_sf1 lin_rest bc1702 bckf lin_kf" --working-directory=$HOME/work/rrp-wt/armdiv bash scripts/armdiv_chain.sh`
-  (add `--retry-failed` to the lin_sf1 run-dag call once, for the interrupted F0).
+Remaining (each line is a step; run in this order; every command needs `RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiv` and
+`PYTHONPATH=src`, prefix `rrp` = `.venv/bin/python -m rrp.cli`; ONE peer GPU lease at a time, hence `--max-parallel-gpu 1`;
+each step is idempotent: completed nodes are skipped by the ledger). The former coordinator `.old/scripts/armdiv_chain.sh` ran exactly these:
+1. Re-push code: `RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiv ops/bin/peer_sync.sh push`.
+2. G3 semfix s1 (F0 resumes from `train_flow_s1/policy_last.pt`; `--retry-failed` once, for the interrupted node):
+   `rrp run-dag recipes/armdiv/arm_lineage_v7div.yaml --point variant=semfix,seed=1 --max-parallel 3 --max-parallel-gpu 1 --retry-failed`
+3. G3 the other three lineages (semfix s2, nosem s1, nosem s2; semfix s1 is skipped as complete):
+   `rrp run-dag recipes/armdiv/arm_lineage_v7div.yaml --max-parallel 3 --max-parallel-gpu 1`
+4. G2 BC seed 1702 (~7 h GPU incl. one 6 h-cap resume): `rrp run-dag recipes/armdiv/armdiv_bc_v7div.yaml --point seed=1702 --max-parallel 3 --max-parallel-gpu 1`
+5. G2 kinfeat BC 1701: `rrp run-dag recipes/armdiv/armdiv_bc_v7div_kinfeat.yaml --max-parallel 3 --max-parallel-gpu 1`
+6. G3 kinfeat lineages (semfix s1/s2): `rrp run-dag recipes/armdiv/arm_lineage_v7div_kinfeat.yaml --max-parallel 3 --max-parallel-gpu 1`
+   (needs step 5's `bcv7divkf-1701` policy as labeller).
+7. G4 (not started, no recipe yet): write the pre-registration (protocol config listing the armdiv targets, methods zero-shot /
+   joint_adapt split gen_frac 0.5 / BC SFT at budgets 5/20/100, reading rules) and commit it BEFORE any sealed run; target demo
+   packs from the v7div collection (target_demos split); the v6 lineages/BC evaluated on the same new targets as the
+   no-diversity comparison. Then add its recipe instance under `recipes/armdiv/` (template `arm_targets_*`).
+Not needed again (done): collection (`recipes/armdiv/armdiv_data_v7div.yaml`, gate PASS), pack (`.old/scripts/armdiv_pack.sh`), BC 1701
+(`rrp run-dag recipes/armdiv/armdiv_bc_v7div.yaml --point seed=1701 ...`). Smokes: `recipes/armdiv/{armdiv_bc_v7div_smoke,arm_lineage_v7div_smoke}.yaml`.
+
+Dry-run node lists (`rrp run-dag <recipe> --dry-run`, D-145 P4b; digests pinned as `recipe.*` in `tests/data/golden.json`):
+- `armdiv_bc_v7div` (4 nodes per seed) and `armdiv_bc_v7div_kinfeat`: train, ev_v6bodies, ev_newarms, ev_heldout (the v6-BC reference cell
+  `ref_v6bc_newarms` exists for seed 1701 only).
+- `arm_lineage_v7div` (22 nodes per variant x seed; 88 in all, 44 for `..._kinfeat`): stageA, F0, Fft, bc1, rzbcdag1, rzbcdag1long, bc2, bc3,
+  gen1, rzbcdag2, rzgendag1, gen2, rzgendag2, gen3, gdag1, rzgendag3, Fgdag1, gdag2, Fgdag2h, finalevals, heldout, newarms.
 
 ## Log
 - 2026-09-28: plan written (D-137).
@@ -214,3 +225,4 @@ Remaining:
 - 2026-09-29 00:30: G1 collect + gate PASS (after the pa2s gate fix); pack running; chain started.
 - 2026-09-29 08:09: G2 BC 1701 done (120/120 new arms; v6 BC 21/120). 10:43 semfix s1 Stage A done.
 - 2026-09-29 12:05: paused for the repo refactor (RESUME above).
+- 2026-09-30: D-145 P4b: RESUME rewritten as `rrp run-dag recipes/armdiv/...` lines; `armdiv_{chain,pack}` scripts and the pack config to `.old/scripts/`; screen admissions to `artifacts/runs/armdiv/screen/`.

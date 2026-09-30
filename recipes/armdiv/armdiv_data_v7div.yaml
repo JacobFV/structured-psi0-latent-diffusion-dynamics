@@ -3,7 +3,7 @@
 # (300 clean + 300 DART each, seed_start 0) + 52 new keys with 64 clean + 64 DART; target demos (150 each, seeds
 # 1,000,000+) for the new sealed targets (research/splits/armdiv_v1.json) and the REUSED xarm7 targets.
 # The PACK is not a DAG node (a run-dag pack would write under artifacts/runs on the peer /dev/shm, RAM); it runs as a
-# leased `rrp data pack --out artifacts/packed/...` (peer disk, <= 25 GB) through ops/bin (armdiv_pack.sh, P3/P4b).
+# leased `rrp data pack --out artifacts/packed/...` (peer disk, <= 25 GB) (done; driver and config are recorded in research/tracks/armdiv.md).
 # Memory: v6 collect peak 20.1G at 6 workers (declared 29G); the pack peak is recorded in research/tracks/armdiv.md.
 #   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiv rrp run-dag recipes/armdiv/armdiv_data_v7div.yaml
 extends: ../templates/arm_collect.yaml
