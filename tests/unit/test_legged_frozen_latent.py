@@ -1,7 +1,9 @@
 """Frozen legged latent version, anchored to the RENDERED `recipes/templates/legged_lineage.yaml` `rep` nodes (D-145 P1).
 
 The legged `"latent"` block is a plain dict (no `LatentConfig`), converted by
-`harness/train/legged_latent_train.py::_legged_probe_factors` / `_legged_probe_weight_lv`. `_legged_version` below is the
+`harness/train/legged_latent_train.py::_legged_probe_factors` (the trainer itself weights per spec through
+`readout_loss` and no longer reduces to one scalar; `_weight_lv` below is this test's own reduction, kept so the frozen
+version hashes still pin the effective per-query weights / log-variance floors). `_legged_version` below is the
 legged analogue of `LatentConfig.version()`: a hash of the effective `(weight, lv_min)` pair plus the scalar fields.
 The frozen values were computed before the D-144 codemod from the pre-codemod flat `configs/legged_*/rep_*.json`
 dicts (semfix -> weight 1.0 / lv_min -4.0, nosem -> weight 0.0), and are unchanged by rendering the recipe. The legacy
@@ -17,15 +19,26 @@ from pathlib import Path
 import pytest
 
 from rrp.harness.dag import load_dag, plan_dag
-from rrp.harness.train.legged_latent_train import _legged_probe_factors, _legged_probe_weight_lv
+from rrp.harness.train.legged_latent_train import _legged_probe_factors
+from rrp.policies.relations.base import resolve
 
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = ROOT / "recipes/templates/legged_lineage.yaml"
 SHA = "af3f06f4" + "0" * 56
 
 
+def _weight_lv(factors: tuple) -> tuple[float, float]:
+    """Uniform (weight, lv_min) over the resolved `probe.legged.*` specs (the pre-factors scalar semantics)."""
+    on = [s for s in resolve(factors) if s.name.startswith("probe.legged.") and s.control != "off"]
+    ws = {1.0 if s.weight is None else s.weight for s in on}
+    lvs = {s.p.get("lv_min", -8.0) for s in on}
+    w = next(iter(ws)) if len(ws) == 1 else (1.0 if not ws else sorted(ws)[-1])
+    lv = next(iter(lvs)) if len(lvs) == 1 else (-8.0 if not lvs else sorted(lvs)[-1])
+    return w, lv
+
+
 def _legged_version(lat: dict) -> str:
-    w, lv = _legged_probe_weight_lv(_legged_probe_factors(lat))
+    w, lv = _weight_lv(_legged_probe_factors(lat))
     d = {"dz": lat.get("dz"), "width": lat.get("width"), "beta_kl": lat.get("beta_kl"),
          "qd_dropout": lat.get("qd_dropout", 0.0), "semantic_weight": w, "probe_lv_min": lv}
     if d["probe_lv_min"] == -8.0:

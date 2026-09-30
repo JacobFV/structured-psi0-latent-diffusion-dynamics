@@ -438,3 +438,22 @@ DAG humanoid_tracker_gate_pool: 6 nodes (source recipes/humanoid/tracker_gate_po
   a payload alone (16/256 vs 3/256 episodes ended by tick 130 with the untrained warm start), the expected training signal. No training was run.
 - Known gap: the procedural `phum_*` bodies with arms (phum_0/2/3/4/7) fail scene compile (`capabilities: 'manipulate'` is not an AssemblySpec
   literal, `humanoid_gen.py`); the CPU `LeggedEnv`/`tracker-cpu` trainer is not extended (humanoid training is on Warp).
+
+## HL (D-144 / relations.md section 11, 2026-09-30): legged relation sites
+- Catalog `legged-rel-v1` (nine edges: same_node, kin_parent, kin_child, same_assembly, mirror, node_in_assembly, limb_adjacent, foot_of,
+  over_cell) and presets `legged-none` (default: no parameters, state-dict keys and outputs identical, so old checkpoints and legged goldens are
+  unchanged) and `legged` (nine edges + `leg.foothold` + `leg.com_support`, for NEW lineages). `leg.com_support` is a gauss readout (mu, logvar), out 2 (was 1).
+- Nets (`policies/nets/{legged_latent,legged_bc}.py`): with a relational list the public context grows from [glob, joints] to
+  [glob, joints, limbs, feet, terrain cells]; Context / LeggedEncoder / LeggedFlow / LeggedBC run FactorSites at `ctx>ctx` (every context
+  layer), `act>ctx`, `act>act` (every packet block; BC: the joint rows). Graph from PUBLIC tensors only (`legged_graph`); kin_parent / kin_child come
+  from the per-assembly depth chain and mirror / limb_adjacent from kind + side + position, because parent ids are not in shards or `LeggedMorph`
+  (HX / U1 / H4 own adding them). `foothold_next` and `com_support` labels are training-only and dropped in deploy (`set_deploy`).
+- Trainer (`legged_latent_train.py`): `factors` resolved with `family="legged"`; `readout_loss` / `estimates_loss` per spec replace the scalar
+  reduction and the hand-written probe loss; checkpoints carry `factors` and `versions["factors"]`; `load_legged_rep` rebuilds the nets from the
+  checkpoint (unstamped = `legged-none`, refused if the config asks for relational factors); sealed guard in every stage (H5). fit_probe now uses
+  unit-weight specs and each spec's `lv_min`.
+- Acceptance: `tests/unit/test_legged_relations.py` (toggling `leg.foothold` and `edge.kin_parent` off changes attention and output on a tiny humanoid
+  batch, encoder and BC; legged-none identity; estimates loss; deploy refusal; three trainer runs). No training or simulation was run.
+- Open (not HL-owned): shards need `terrain`, `foothold_cell`, `com_support(_valid)` from collect (H4), else those labels are masked;
+  `bundles.load_rep`, `policies/legged.py` and `legged_dagger.py` build nets without factors (use `load_legged_rep` / `build_legged_rep`, feed the
+  terrain keys at deploy); `legged_bc.bc_batch` should use `data.train_batch` for the foothold label; the lineage recipe adds `preset:legged`.

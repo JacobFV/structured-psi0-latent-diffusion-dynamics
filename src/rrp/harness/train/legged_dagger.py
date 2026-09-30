@@ -271,7 +271,7 @@ def refit(cfg, out: Path):
             if F_ is not None and d is base:
                 l, lg = gen_step(E, R, F_, d, i, j, gen_frac, qd_drop)
             else:
-                l, lg, _ = rep_step(E, R, P, d, i, j, 0.0, 0.0, train=True, qd_drop=qd_drop)
+                l, lg, _ = rep_step(E, R, P, d, i, j, (), 0.0, train=True, qd_drop=qd_drop)
             loss = loss + l * nb / B
             logs[f"real_{k}"] = lg["real"]
         opt.zero_grad(); loss.backward()

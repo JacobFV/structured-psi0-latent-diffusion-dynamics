@@ -208,7 +208,7 @@ def test_catalog_leg_foothold_is_bilinear_pair_over_terrain_steps():
 def test_catalog_leg_com_support_is_an_asm_readout():
     d = get_factor("leg.com_support")
     assert d.op == "inert" and d.form == "readout" and d.label == "com_support"
-    assert d.readout is not None and d.readout.address == "asm" and d.readout.out == 1
+    assert d.readout is not None and d.readout.address == "asm" and d.readout.out == 2
     assert d.form in OPS[d.op].forms
 
 

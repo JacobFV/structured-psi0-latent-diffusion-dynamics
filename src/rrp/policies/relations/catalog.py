@@ -335,11 +335,34 @@ register_factor(FactorDef(
         "stance) contribute no true pair"))
 register_factor(FactorDef(
     "leg.com_support", "1", field="packet", op="inert", form="readout", label="com_support",
-    readout=ReadoutDef("com_support", "asm", 1, "gauss", label="com_support"),
+    readout=ReadoutDef("com_support", "asm", 2, "gauss", label="com_support"),       # (mu, logvar) of one scalar
     doc="signed planar margin of the COM projection inside the convex hull of the current stance feet "
         "(relgen.body.support_polygon_margin via com_support_fn); positive = inside, negative = outside "
         "(0-foot stance: large fixed negative margin, relgen.body._NO_SUPPORT_MARGIN)"))
 register_preset("legged-r19", ["leg.foothold", "leg.com_support"])
+
+# ------------------------------------------------------------------ HL: legged relations (`legged-rel-v1`)
+# docs/relations.md section 11 (legged). One vocabulary over the legged ctx token set `[glob, joints, limbs, feet, terrain
+# cells]` (`nets.legged_latent.legged_graph` builds it from PUBLIC batch tensors only: static morphology, joint
+# depths, the assembly table and the terrain scan of D-146) and over the `act` queries (packet tokens, one per
+# knot x assembly). The nine edges keep the on-disk channel order below; the six shared edges are the existing
+# `edge.*` entries (`_EDGE_DOC`), read at the leg sites with the legged meaning documented there.
+LEGGED_REL_VOCAB = ("same_node", "kin_parent", "kin_child", "same_assembly", "mirror", "node_in_assembly",
+                    "limb_adjacent", "foot_of", "over_cell")
+VOCABS["legged-rel-v1"] = LEGGED_REL_VOCAB
+_LEGGED_EDGE_DOC = {
+    "limb_adjacent": "limb <-> limb attached to the same trunk link (same-kind non-body assemblies: exact for quadruped, "
+                     "hexapod and humanoid legs / arms; symmetric)",
+    "foot_of": "limb token -> its foot token (foot-carrying assemblies only)",
+    "over_cell": "foot token -> terrain-scan cells in its landing window (0.05 m behind to 0.35 m ahead, +-0.15 m "
+                 "aside, body frame, default stance foot xy)",
+}
+for _n, _doc in _LEGGED_EDGE_DOC.items():
+    register_factor(FactorDef(f"edge.{_n}", "1", field="edges:*", op="edge", form="bias",
+                              algebra=Algebra(direction="symmetric" if _n == "limb_adjacent" else "directed"),
+                              sources=("given",), params=(("edge", _n),), doc=_doc))
+register_preset("legged-none", [])          # no relational factor: no parameters, the pre-HL nets bit for bit
+register_preset("legged", [f"edge.{_n}" for _n in LEGGED_REL_VOCAB] + ["leg.foothold", "leg.com_support"])
 # ------------------------------------------------------------------ R20: UI (ui.*)
 # `envs.computerworld` builds the public data this section names (`UI_REL_VOCAB`, `ui_public_fields`, `ui_edges`;
 # docs/relations.md section 2's pointer/CW family row: "+pos3d ..., +zlayer, +parent_id, +focus_rank, entity_id").
@@ -407,8 +430,8 @@ register_preset("ui", ["ui.label_for", "ui.same_window", "ui.focus_next", "ui.ab
 # What each net family's collate path fills (`sets`), its attention sites offer factors (`sites`: edge vocab, fields,
 # "hidden"), the training collate's labels (`labels`, relgen LABELS names) and the message / embed / readout factors
 # its net implements (`inert`). `resolve(family=...)` refuses a factor list the family cannot run; the nets derive their
-# `FactorSite` carries from here. Legged / humanoid: what their nets run today (system-0 routing + the packet probe);
-# unit HL adds the `legged-rel-v1` vocabulary, the ctx sets and the ctx>ctx / act>ctx / act>act sites.
+# `FactorSite` carries from here. Legged / humanoid (unit HL): system-0 routing + the packet probes, plus the
+# `legged-rel-v1` graph and the pair estimate `leg.foothold` at ctx>ctx / act>ctx / act>act.
 _ARM_LABELS = ("pos3d", "orient", "contact_normal", "cam_uvd", "contact_pairs", "held_pairs", "support_pairs",
                "support_closure", "next_contact")
 _ARM_SITES = {"ctx>ctx": ("edges:arm-rel-v1", "hidden", "cam_uvd", "pos3d", "orient", "normal"),
@@ -418,8 +441,11 @@ _ARM_SETS = {"ctx": ("pos3d", "orient", "cam_uvd", "entity_id", "assembly_id"), 
 _ARM_INERT = ("probe.arm.*", "msg.incidence", "id.slot_handle")
 register_family("arm", FamilyTokens(_ARM_SETS, _ARM_SITES, {"ctx": _ARM_LABELS}, _ARM_INERT))
 register_family("dual", FamilyTokens(_ARM_SETS, _ARM_SITES, {"ctx": _ARM_LABELS + ("handover_pairs",)}, _ARM_INERT))
-_LEGGED = FamilyTokens({"act": ("assembly_id",), "knots": ("assembly_id", "body")},
-                       {"act>knots": ("assembly_id",)}, {}, ("probe.legged.*",))
+_LEGGED = FamilyTokens(
+    {"ctx": ("pos3d", "assembly_id"), "act": ("assembly_id",), "knots": ("assembly_id", "body")},
+    {"ctx>ctx": ("edges:legged-rel-v1", "hidden"), "act>ctx": ("edges:legged-rel-v1",),
+     "act>act": ("edges:legged-rel-v1",), "act>knots": ("assembly_id",)},
+    {"ctx": ("foothold_next",)}, ("probe.legged.*", "leg.com_support"))
 register_family("legged", _LEGGED)
 register_family("humanoid", _LEGGED)
 register_family("psi0", FamilyTokens(
