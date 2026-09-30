@@ -1,5 +1,8 @@
 """relgen foundation skeletons (D-144 F4): exact batch allocation, steer grammar + validation + logging, scheduler
-replay contract, full-world floor monotonicity, ReadoutProbe == PacketProbe under the arm preset."""
+replay contract, full-world floor monotonicity. The former `ReadoutProbe == PacketProbe under the arm preset`
+equivalence test lived here; PacketProbe is now deleted for real (D-144 R1 follow-up, research/tracks/rel-r1c.md)
+so the comparison can no longer be run -- the invariant it proved is now load-bearing on the golden hashes in
+tests/unit/test_golden.py and the key-set checks in tests/unit/test_relations_r1_probes.py instead."""
 import pytest
 
 from rrp.harness.data.mix import allocate
@@ -43,21 +46,3 @@ def test_scheduler_replay_and_floor():
     assert all(b >= a for a, b in zip(fw, fw[1:])) and fw[-1] >= 0.7
     st = s.history[2]                                             # step 20: b boosted
     assert st.share["b"] > st.share["a"]
-
-
-def test_readout_probe_equals_packet_probe():
-    import torch
-    from rrp.policies.nets.latent_probes import PacketProbe
-    from rrp.policies.nets.probes import ReadoutProbe
-    for goal in (False, True):
-        torch.manual_seed(0)
-        old = PacketProbe(dz=8, knots=3, width=32, heads=2, goal_effect=goal)
-        torch.manual_seed(0)
-        new = ReadoutProbe(dz=8, knots=3, width=32, heads=2,
-                           specs=["preset:probes:arm-packet-v1"] + (["probe.arm.goal_effect"] if goal else []))
-        so, sn = old.state_dict(), new.state_dict()
-        assert list(so) == list(sn) and all(torch.equal(so[k], sn[k]) for k in so)
-        z, zm = torch.randn(2, 3, 2, 8), torch.tensor([[True, True], [True, False]])
-        o, n = old(z, zm, 4), new(z, zm, 4)
-        for k in n:
-            assert torch.equal(o[k], n[k]), k

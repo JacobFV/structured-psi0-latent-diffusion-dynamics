@@ -524,8 +524,7 @@ def _compare(models, s, zg, zo, device) -> dict:
     """Same state: generated z vs oracle z (distance), system-0 first-tick action from each vs the teacher label,
     and packet-probe readouts of each against privileged labels (diagnostic)."""
     from rrp.policies.features.derived import local_sensors
-    from rrp.harness.eval.latent_eval import packet_labels
-    from rrp.policies.nets.latent_probes import probe_metrics
+    from rrp.harness.eval.latent_eval import packet_labels, readout_metrics
     f = cached_featurizer(s)
     pi = f(s.observe())
     kt = torch.tensor(models["lcfg"].knot_times, dtype=torch.float32, device=device)
@@ -552,7 +551,7 @@ def _compare(models, s, zg, zo, device) -> dict:
         lab = {k: v.to(device) for k, v in lab.items()}
         msk = torch.ones(1, Sn, dtype=torch.bool, device=device)
         for name, z in (("gen", zg), ("oracle", zo)):
-            for q, (x, n) in probe_metrics(models["P"](tz(z), zm, Sn), lab, msk).items():
+            for q, (x, n) in readout_metrics(models["P"](tz(z), zm, Sn), lab, msk).items():
                 if n:
                     out[f"probe_{name}_{q}"] = float(x / n)
     return out

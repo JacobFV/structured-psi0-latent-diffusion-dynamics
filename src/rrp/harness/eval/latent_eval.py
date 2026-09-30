@@ -1,18 +1,33 @@
 """Arm latent evaluation conventions for harness.rollout (the loop itself is rollout + policies.latent.LatentStackPolicy):
 packet-only probes scored on the ACTUAL noise-started packets against privileged/public labels at packet time (sampled
 semantics, test 5), system 0 counters, paired binding scenes; plus the disturbance test with the packet held fixed
-(test 7)."""
+(test 7).
+
+`readout_loss` / `readout_metrics` (below): D-144 R1 follow-up (research/tracks/rel-r1c.md) ported here, unchanged,
+from the deleted `nets.latent_probes.probe_loss` / `probe_metrics` -- the arm/dual `nets.probes.ReadoutProbe` output
+dict has the identical shape/keys `PacketProbe` had (foundation equivalence, docs/relations.md 10 R1), so this math
+still applies verbatim. NOT the same function as the generic `nets.probes.readout_loss` / `readout_metrics`
+(spec-driven, one (sum, n) pair per query, `<query>_acc` / `<query>_mae` key scheme): those cannot reproduce arm's
+established key names (`visible`, `rel_pos_err_m`, `desired_delta_err_m`, ...), the positives-balanced `*_pos`
+views, the goal-effect patient/zero-baseline breakdown or the dual `held_m`/`contact_m` per-slot (`@m`) addressing
+that every existing hook, dashboard and threshold already depends on -- "metric key names reported by hooks must
+not change" (deferred-scope instructions) rules out the generic keys for this family. Every caller that used to
+import `probe_loss`/`probe_metrics` from `nets.latent_probes` now imports `readout_loss`/`readout_metrics` from
+here instead."""
 from __future__ import annotations
 
 import mujoco
 import numpy as np
 import torch
+import torch.nn.functional as F
 
 from rrp.policies.system0 import LatentSystem0
 from rrp.harness.data.collect import privileged_labels
 from rrp.harness.data.packed import _focus
 from rrp.policies.features.derived import active_operator
-from rrp.policies.nets.latent_probes import probe_metrics
+from rrp.policies.nets.probes import gaussian_nll  # identical formula (d=3 either way); shared with the foundation
+
+ENTITY_QUERIES = ("visible", "looking_at", "focused_on")
 
 
 def packet_labels(session, pi, M=1, S=None):
@@ -77,6 +92,141 @@ def acc_probe_counts(d: dict, res: dict) -> None:
         d[q] = (a_ + x, b_ + n)
 
 
+# ------------------------------------------------------------------ readout_loss / readout_metrics (arm / dual)
+# Ported unchanged from the deleted `nets.latent_probes.probe_loss` / `probe_metrics` (+ `_multi` variants);
+# see this file's module docstring for why these stay a dedicated arm/dual implementation rather than the generic
+# `nets.probes.readout_loss` / `readout_metrics`.
+def _goal_terms(out, lab, smask):
+    """Goal-effect loss/metric only when both the probe head and the label exist."""
+    return "goal_effect" in out and "goal_effect" in lab
+
+
+def readout_loss(out: dict, lab: dict, smask: torch.Tensor, m0: int = 0, lv_min: float = -8.0) -> tuple[torch.Tensor, dict]:
+    """lab: held/contact/visible/focus [B,S] (manipulator 0 for held/contact/rel), rel_tcp/future_disp [B,S,3],
+    gaze [B,S], subtask [B]. Positions scaled to decimeters for conditioning.
+    Multi-assembly labels (held_m/contact_m [B,S,M], rel_tcp_m [B,S,M,3], subtask_m [B,M], packet slot order)
+    switch the manipulator-indexed queries to ALL packet slots."""
+    if "held_m" in lab:
+        return _readout_loss_multi(out, lab, smask, lv_min=lv_min)
+    m = smask.float()
+    den = m.sum().clamp(min=1)
+    bce = lambda logit, y: (F.binary_cross_entropy_with_logits(logit.squeeze(-1), y.float(), reduction="none")
+                            * m).sum() / den
+    L = dict(
+        visible=bce(out["visible"], lab["visible"]),
+        focused_on=bce(out["focused_on"], lab["focus"]),
+        held_by=bce(out["held_by"][:, :, m0], lab["held"]),
+        acting_on=bce(out["acting_on"][:, :, m0], lab["contact"]),
+        looking_at=((out["looking_at"].squeeze(-1) - lab["gaze"] / 30).pow(2) * m).sum() / den,
+        rel_pos=gaussian_nll(out["rel_pos"][:, :, m0], lab["rel_tcp"] * 10, smask, lv_min),
+        observed_effect=gaussian_nll(out["observed_effect"], lab["future_disp"] * 10, smask, lv_min),
+        subtask=F.cross_entropy(out["subtask"][:, m0], lab["subtask"].long()),
+    )
+    if _goal_terms(out, lab, smask):
+        L["goal_effect"] = gaussian_nll(out["goal_effect"], lab["goal_effect"] * 10, smask, lv_min)
+    total = sum(L.values())
+    return total, {f"probe_{k}": float(v.detach()) for k, v in L.items()}
+
+
+@torch.no_grad()
+def readout_metrics(out: dict, lab: dict, smask: torch.Tensor, m0: int = 0) -> dict:
+    """Accuracy / error metrics (raw sums for aggregation)."""
+    if "held_m" in lab:
+        return _readout_metrics_multi(out, lab, smask)
+    m = smask.bool()
+    res = {}
+    for q, key in (("visible", "visible"), ("focused_on", "focus"), ("held_by", "held"), ("acting_on", "contact")):
+        logit = out[q][..., 0] if q in ENTITY_QUERIES else out[q][:, :, m0, 0]
+        pred = logit > 0
+        y = lab[key].bool()
+        res[q] = (int(((pred == y) & m).sum()), int(m.sum()))
+        pos = y & m
+        res[q + "_pos"] = (int(((pred == y) & pos).sum()), int(pos.sum()))   # balanced view on rare positives
+    err = (out["rel_pos"][:, :, m0, :3] / 10 - lab["rel_tcp"]).norm(dim=-1)
+    res["rel_pos_err_m"] = (float((err * m).sum()), int(m.sum()))
+    derr = (out["observed_effect"][..., :3] / 10 - lab["future_disp"]).norm(dim=-1)
+    res["observed_effect_err_m"] = (float((derr * m).sum()), int(m.sum()))
+    res["desired_delta_err_m"] = res["observed_effect_err_m"]          # deprecated alias (same quantity)
+    res["subtask"] = (int((out["subtask"][:, m0].argmax(-1) == lab["subtask"].long()).sum()), int(len(lab["subtask"])))
+    if _goal_terms(out, lab, smask):
+        res.update(goal_metrics(out, lab, m))
+    return res
+
+
+@torch.no_grad()
+def goal_metrics(out, lab, m) -> dict:
+    """goal_effect error on all slots and on goal-bearing slots (bound patient), plus a zero-prediction baseline."""
+    g = lab["goal_effect"]
+    err = (out["goal_effect"][..., :3] / 10 - g).norm(dim=-1)
+    gp = (g.norm(dim=-1) > 1e-6) & m
+    return dict(goal_effect_err_m=(float((err * m).sum()), int(m.sum())),
+                goal_effect_err_patient_m=(float((err * gp).sum()), int(gp.sum())),
+                goal_effect_zero_baseline_patient_m=(float((g.norm(dim=-1) * gp).sum()), int(gp.sum())))
+
+
+def _readout_loss_multi(out: dict, lab: dict, smask: torch.Tensor, lv_min: float = -8.0) -> tuple[torch.Tensor, dict]:
+    """Every packet slot m answers its own held_by/acting_on/rel_pos/subtask queries (role-addressed)."""
+    m = smask.float()
+    den = m.sum().clamp(min=1)
+    M = lab["held_m"].shape[-1]
+    mm = m[:, :, None].expand(-1, -1, M)
+    denm = mm.sum().clamp(min=1)
+    bce = lambda logit, y, w, d: (F.binary_cross_entropy_with_logits(logit, y.float(), reduction="none") * w).sum() / d
+    L = dict(
+        visible=bce(out["visible"].squeeze(-1), lab["visible"], m, den),
+        focused_on=bce(out["focused_on"].squeeze(-1), lab["focus"], m, den),
+        held_by=bce(out["held_by"][:, :, :M, 0], lab["held_m"], mm, denm),
+        acting_on=bce(out["acting_on"][:, :, :M, 0], lab["contact_m"], mm, denm),
+        looking_at=((out["looking_at"].squeeze(-1) - lab["gaze"] / 30).pow(2) * m).sum() / den,
+        rel_pos=gaussian_nll(out["rel_pos"][:, :, :M], lab["rel_tcp_m"] * 10, mm.bool(), lv_min),
+        observed_effect=gaussian_nll(out["observed_effect"], lab["future_disp"] * 10, smask, lv_min),
+        subtask=F.cross_entropy(out["subtask"][:, :M].reshape(-1, out["subtask"].shape[-1]),
+                                lab["subtask_m"].reshape(-1).long()),
+    )
+    if _goal_terms(out, lab, smask):
+        L["goal_effect"] = gaussian_nll(out["goal_effect"], lab["goal_effect"] * 10, smask, lv_min)
+    total = sum(L.values())
+    return total, {f"probe_{k}": float(v.detach()) for k, v in L.items()}
+
+
+@torch.no_grad()
+def _readout_metrics_multi(out: dict, lab: dict, smask: torch.Tensor) -> dict:
+    """Per packet slot m: held_by / acting_on accuracy (all and on positives), rel_pos error, subtask accuracy;
+    plus the slot-independent queries. Keys are suffixed @m (m = packet slot, i.e. role order)."""
+    m = smask.bool()
+    res = {}
+    for q, key in (("visible", "visible"), ("focused_on", "focus")):
+        pred = out[q][..., 0] > 0
+        y = lab[key].bool()
+        res[q] = (int(((pred == y) & m).sum()), int(m.sum()))
+        pos = y & m
+        res[q + "_pos"] = (int(((pred == y) & pos).sum()), int(pos.sum()))
+    derr = (out["observed_effect"][..., :3] / 10 - lab["future_disp"]).norm(dim=-1)
+    res["observed_effect_err_m"] = (float((derr * m).sum()), int(m.sum()))
+    res["desired_delta_err_m"] = res["observed_effect_err_m"]          # deprecated alias
+    if _goal_terms(out, lab, smask):
+        res.update(goal_metrics(out, lab, m))
+    M = lab["held_m"].shape[-1]
+    for a in range(M):
+        for q, key in (("held_by", "held_m"), ("acting_on", "contact_m")):
+            pred = out[q][:, :, a, 0] > 0
+            y = lab[key][:, :, a].bool()
+            res[f"{q}@{a}"] = (int(((pred == y) & m).sum()), int(m.sum()))
+            pos = y & m
+            res[f"{q}_pos@{a}"] = (int(((pred == y) & pos).sum()), int(pos.sum()))
+            neg = ~y & m
+            res[f"{q}_neg@{a}"] = (int(((pred == y) & neg).sum()), int(neg.sum()))
+        err = (out["rel_pos"][:, :, a, :3] / 10 - lab["rel_tcp_m"][:, :, a]).norm(dim=-1)
+        res[f"rel_pos_err_m@{a}"] = (float((err * m).sum()), int(m.sum()))
+        res[f"subtask@{a}"] = (int((out["subtask"][:, a].argmax(-1) == lab["subtask_m"][:, a].long()).sum()),
+                               int(lab["subtask_m"].shape[0]))
+    # pooled over slots (comparable with single-assembly keys)
+    for k in ("held_by", "held_by_pos", "acting_on", "acting_on_pos", "rel_pos_err_m", "subtask"):
+        xs = [res[f"{k}@{a}"] for a in range(M)]
+        res[k] = (sum(x for x, _ in xs), sum(n for _, n in xs))
+    return res
+
+
 class PacketProbeHook:
     """on_act: packet-only probes scored on each packet system i ACTUALLY emitted (Act.packet, after any edit), against
     labels read from the env at packet time (privileged labels: diagnostics only, never fed back into control).
@@ -103,8 +253,8 @@ class PacketProbeHook:
         am = torch.tensor([p.assembly_mask], device=dev)
         Sn = lab["held"].shape[1]
         lab = {k: v.to(dev) for k, v in lab.items()}
-        acc_probe_counts(self.counts[i], probe_metrics(self.probe(z, am, Sn), lab,
-                                                       torch.ones(1, Sn, dtype=torch.bool, device=dev)))
+        acc_probe_counts(self.counts[i], readout_metrics(self.probe(z, am, Sn), lab,
+                                                         torch.ones(1, Sn, dtype=torch.bool, device=dev)))
 
     def on_end(self, i, env, ep):
         return dict(probe_counts=self.counts.pop(i))

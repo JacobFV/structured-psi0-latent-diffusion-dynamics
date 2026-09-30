@@ -289,7 +289,7 @@ def probe_orthogonal(P, z, n_ent, key, norm):
     rows = []
     feats = [out["focused_on"][0, :, 0], out["visible"][0, :, 0], out["held_by"][0, :, 0, 0],
              out["acting_on"][0, :, 0, 0], out["rel_pos"][0, :, 0, :3].reshape(-1), out["subtask"][0, 0],
-             out["desired_delta"][0, :, :3].reshape(-1)]
+             out["observed_effect"][0, :, :3].reshape(-1)]  # D-144 R1: desired_delta output alias dropped
     y = torch.cat(feats)
     for i in range(len(y)):
         g, = torch.autograd.grad(y[i], zt, retain_graph=True)

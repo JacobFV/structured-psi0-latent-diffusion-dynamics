@@ -10,7 +10,8 @@ from rrp.envs.mujoco.fixtures import make_pick_place_session
 from rrp.core.latent_action import LatentActionChunk
 from rrp.policies.system0 import LatentRealizer, LatentSystem0
 from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
-from rrp.policies.nets.latent_probes import PacketProbe, probe_loss
+from rrp.policies.nets.probes import ReadoutProbe
+from rrp.harness.eval.latent_eval import readout_loss
 from rrp.policies.latent import LatentPolicy
 
 DZ, K = 16, 4
@@ -83,7 +84,7 @@ def test_no_semantic_bypass_and_version_invalidation():
 
 
 def test_metadata_only_probe_ignores_latent():
-    P = PacketProbe(DZ, K, width=32, metadata_only=True)
+    P = ReadoutProbe(DZ, K, specs=["preset:probes:arm-packet-v1"], width=32, metadata_only=True)
     z1, z2 = torch.randn(2, K, 1, DZ), torch.randn(2, K, 1, DZ)
     m = torch.ones(2, 1, dtype=torch.bool)
     o1, o2 = P(z1, m, 4), P(z2, m, 4)
@@ -97,7 +98,7 @@ def test_semantic_loss_on_predicted_clean_latent_reaches_flow_model_only_via_pac
     s = make_pick_place_session(seed=5, n_distractors=1)
     pol = tiny_policy()
     b = assembly_batch(collate_inputs([pol.featurizer(s)(s.observe())] * 2))
-    P = PacketProbe(DZ, K, width=32)
+    P = ReadoutProbe(DZ, K, specs=["preset:probes:arm-packet-v1"], width=32)
     for q in P.parameters():
         q.requires_grad_(False)                       # frozen probe; gradient must still flow through its input
     Sn = b.bank_tokens["scene"].shape[1]
@@ -110,7 +111,7 @@ def test_semantic_loss_on_predicted_clean_latent_reaches_flow_model_only_via_pac
     model.train()
     target = torch.randn(2, K, 1, DZ)
     valid = b.node_mask[:, None, :].expand(-1, K, -1)
-    loss, logs = model.loss(b, target, valid, None, packet_loss_fn=lambda zc: probe_loss(P(zc, b.node_mask, Sn), lab, smask),
+    loss, logs = model.loss(b, target, valid, None, packet_loss_fn=lambda zc: readout_loss(P(zc, b.node_mask, Sn), lab, smask),
                             packet_weight=1.0)
     assert model.readout is None                     # no hidden-state readout route exists in this model
     model.zero_grad()
@@ -121,7 +122,7 @@ def test_semantic_loss_on_predicted_clean_latent_reaches_flow_model_only_via_pac
     z_tau = 0.5 * eps + 0.5 * target
     v = model.velocity(z_tau, tau, cache)
     z_hat = z_tau + 0.5 * v
-    sem, _ = probe_loss(P(z_hat, b.node_mask, Sn), lab, smask)
+    sem, _ = readout_loss(P(z_hat, b.node_mask, Sn), lab, smask)
     sem.backward()
     g = [p.grad for p in model.blocks.parameters() if p.grad is not None]
     assert g and all(torch.isfinite(x).all() for x in g) and sum(float(x.abs().sum()) for x in g) > 0

@@ -28,7 +28,7 @@ from rrp.policies.system0 import make_realizer
 from rrp.harness.data.latent import LatentData
 from rrp.policies.nets.checkpoint import load_checkpoint, save_checkpoint
 from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
-from rrp.policies.nets.latent_probes import probe_loss
+from rrp.harness.eval.latent_eval import readout_loss
 from rrp.policies.nets.semantic_latent import assembly_tokens
 
 JOINT_ADAPT_VERSION = "joint_adapt_v1"
@@ -89,7 +89,7 @@ def joint_adapt(flow_ckpt: Path, rep_path: Path, packed_dir: Path, budget: int, 
     def flow_loss(batch, ab, am, zt, lab):
         smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
         S = smask.shape[1]
-        fn = (lambda zc: probe_loss(P(zc, am, S), lab, smask, lv_min=lcfg.lv_min)) if w_sem > 0 else None
+        fn = (lambda zc: readout_loss(P(zc, am, S), lab, smask, lv_min=lcfg.lv_min)) if w_sem > 0 else None
         loss, _ = flow.loss(ab, zt, am[:, None, :].expand(-1, lcfg.knots, -1), None, packet_loss_fn=fn,
                             packet_weight=w_sem)
         return loss

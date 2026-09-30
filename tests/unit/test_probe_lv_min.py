@@ -3,7 +3,7 @@ import math
 
 import torch
 
-from rrp.policies.nets.latent_probes import gaussian_nll
+from rrp.policies.nets.probes import gaussian_nll
 from rrp.policies.nets.semantic_latent import LatentConfig
 
 

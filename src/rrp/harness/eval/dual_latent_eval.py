@@ -85,8 +85,7 @@ class DualPacketProbeHook:
 
     @torch.no_grad()
     def _score(self, i, p):
-        from rrp.harness.eval.latent_eval import acc_probe_counts
-        from rrp.policies.nets.latent_probes import probe_metrics
+        from rrp.harness.eval.latent_eval import acc_probe_counts, readout_metrics
         env, dev = self.envs[i], self.device
         pi = env._rrp_featurizer(env.observe())
         lab = {k: v.to(dev) for k, v in dual_packet_labels(env, pi, p.z.shape[1]).items()}
@@ -94,8 +93,8 @@ class DualPacketProbeHook:
         am = torch.tensor([p.assembly_mask], device=dev)
         Sn = lab["visible"].shape[1]
         sm = torch.ones(1, Sn, dtype=torch.bool, device=dev)
-        acc_probe_counts(self.counts[i], probe_metrics(self.probe(z, am, Sn), lab, sm))
-        acc_probe_counts(self.swap[i], probe_metrics(self.probe(z.flip(2), am.flip(1), Sn), lab, sm))
+        acc_probe_counts(self.counts[i], readout_metrics(self.probe(z, am, Sn), lab, sm))
+        acc_probe_counts(self.swap[i], readout_metrics(self.probe(z.flip(2), am.flip(1), Sn), lab, sm))
 
     def on_end(self, i, env, ep):
         return dict(probe_counts=self.counts.pop(i), probe_counts_slotswap=self.swap.pop(i))

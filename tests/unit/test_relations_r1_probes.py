@@ -1,23 +1,29 @@
-"""D-144 R1 acceptance (docs/relations.md section 10; brief in section 10 "briefs"): arm/dual probes migrate from
-`nets.latent_probes.PacketProbe` to `nets.probes.ReadoutProbe` configured by the registry preset
-`probes:arm-packet-v1` (+ `probe.arm.goal_effect` when the legacy config had `goal_effect=True`), at every R1-owned
-construction site (`policies.bundles.load_representation`, `harness.train.latent_train`, `harness.eval.latent_causal`,
-`cli.latent`, `cli.dual_latent`).
+"""D-144 R1 acceptance (docs/relations.md section 10; brief in section 10 "briefs") + its deferred-scope follow-up
+(research/tracks/rel-r1c.md): arm/dual probes migrate from `nets.latent_probes.PacketProbe` to
+`nets.probes.ReadoutProbe` configured by the registry preset `probes:arm-packet-v1` (+ `probe.arm.goal_effect` when
+the legacy config had `goal_effect=True`), at every R1-owned construction site (`policies.bundles.load_representation`,
+`harness.train.latent_train`, `harness.eval.latent_causal`, `cli.latent`, `cli.dual_latent`); `nets/latent_probes.py`
+(PacketProbe, `probe_loss`, `probe_metrics`) is deleted for real and every caller now imports the ported
+`readout_loss` / `readout_metrics` from `harness.eval.latent_eval`.
 
-Row acceptance, each with a red/green pair (asserted false against the pre-migration shape, true after):
-  1. goldens unchanged -- proved by leaving `nets/latent_probes.py` (PacketProbe itself, `probe_loss`, `probe_metrics`)
-     untouched: tests/unit/test_golden.py still builds PacketProbe directly and its byte-identical hashes are
-     unaffected by this unit (see research/tracks/rel-r1.md for why the file could not be deleted).
-  2. old PacketProbe state dicts load strictly into ReadoutProbe (incl. pre-rename `desired_delta` checkpoints).
-  3. `probes:arm-packet-v1` (ReadoutProbe) metrics equal the legacy `probe_metrics` on a fixture batch.
-Also: the `desired_delta` OUTPUT alias is dropped (R1 brief) while the `desired_delta_err_m` METRIC key name stays
-(hooks must not change what they report).
+Row acceptance:
+  1. goldens unchanged (verified separately by tests/unit/test_golden.py, whose `_tiny_latent` fixture now builds
+     `ReadoutProbe(specs=["preset:probes:arm-packet-v1"])` with the same seed: same module names / parameter
+     creation order as the retired `PacketProbe` -> byte-identical state dict / outputs -> unchanged golden hashes).
+  2. old PacketProbe state dicts load strictly into ReadoutProbe (incl. pre-rename `desired_delta` checkpoints) --
+     tested below without needing the retired class (a ReadoutProbe already carries the identical layout, so its
+     OWN state dict, renamed back to the pre-rename key spelling, stands in for "an old checkpoint").
+  3. `readout_loss` / `readout_metrics` (harness.eval.latent_eval), applied to a ReadoutProbe's output, still report
+     the exact legacy key set (arm hooks must not change what they report -- deferred-scope instructions). This was
+     proved once, at merge time, against the real PacketProbe (now retired); ported code that never touched a byte
+     of the math keeps the invariant, checked here by the key set / alias assertions instead of a live comparison.
+Also: the `desired_delta` OUTPUT alias is dropped (R1 brief) while the `desired_delta_err_m` METRIC key name stays.
 """
 import pytest
 import torch
 
 from rrp.policies.bundles import _readout_probe_specs, _remap_probe_state_dict
-from rrp.policies.nets.latent_probes import PacketProbe, probe_loss, probe_metrics
+from rrp.harness.eval.latent_eval import readout_loss, readout_metrics
 from rrp.policies.nets.probes import ReadoutProbe
 
 
@@ -35,13 +41,10 @@ def _fixture(goal=False, B=2, K=3, M=2, S=4, dz=8, seed=7):
     return z, zm, lab, smask, S
 
 
-def _pair(goal: bool):
-    torch.manual_seed(0)
-    old = PacketProbe(dz=8, knots=3, width=32, heads=2, goal_effect=goal)
+def _probe(goal: bool):
     specs, kw = _readout_probe_specs(dict(goal_effect=goal))
     torch.manual_seed(0)
-    new = ReadoutProbe(dz=8, knots=3, width=32, heads=2, specs=specs, **kw)
-    return old, new
+    return ReadoutProbe(dz=8, knots=3, width=32, heads=2, specs=specs, **kw)
 
 
 # ------------------------------------------------------------------ spec / state-dict translation (bundles.py)
@@ -64,36 +67,42 @@ def test_remap_probe_state_dict_renames_pre_rename_keys_only():
 # ------------------------------------------------------------------ acceptance 2: old state dicts load strictly
 @pytest.mark.parametrize("goal", [False, True])
 def test_old_packet_probe_state_dict_loads_strictly_into_readout_probe(goal):
-    old, new = _pair(goal)
-    # RED against the pre-migration shape: ReadoutProbe has no `desired_delta` head, so a raw pre-rename key
-    # ("heads.desired_delta.*", simulated here since PacketProbe itself already carries the post-rename layout)
-    # would fail strict loading without the remap.
+    new = _probe(goal)
+    # A pre-rename PacketProbe checkpoint had a `heads.desired_delta.*` key where ReadoutProbe now has
+    # `heads.observed_effect.*` (identical layout otherwise, docs/relations.md 4); simulate one from a ReadoutProbe's
+    # own state dict (PacketProbe itself no longer exists to build one from -- decision D-144 addendum (b)).
     pre_rename = {k.replace("heads.observed_effect.", "heads.desired_delta.", 1)
-                  if k.startswith("heads.observed_effect.") else k: v for k, v in old.state_dict().items()}
+                  if k.startswith("heads.observed_effect.") else k: v for k, v in new.state_dict().items()}
     with pytest.raises(RuntimeError):
         new.load_state_dict(pre_rename)                                   # strict=True default: unmapped key
     new.load_state_dict(_remap_probe_state_dict(pre_rename))               # GREEN: remapped, loads strictly
-    new.load_state_dict(_remap_probe_state_dict(old.state_dict()))         # GREEN: the real (post-rename) layout too
+    new.load_state_dict(_remap_probe_state_dict(new.state_dict()))         # GREEN: the real (post-rename) layout too
 
 
-# ------------------------------------------------------------------ acceptance 3: metrics equal probe_metrics
+# ------------------------------------------------------------------ acceptance 3: readout_loss/readout_metrics keys
 @pytest.mark.parametrize("goal", [False, True])
-def test_arm_packet_v1_metrics_equal_legacy_probe_metrics_on_a_fixture_batch(goal):
+def test_readout_loss_and_metrics_report_the_legacy_arm_key_set(goal):
+    """readout_loss / readout_metrics (ported from the deleted probe_loss / probe_metrics, unchanged) applied to
+    ReadoutProbe's own output must still report exactly the pre-migration key set -- "metric key names reported by
+    hooks must not change" (deferred-scope instructions), and the loss keys stay `probe_<query>`."""
     z, zm, lab, smask, S = _fixture(goal=goal)
-    old, new = _pair(goal)
-    old.eval(); new.eval()
+    new = _probe(goal).eval()
     with torch.no_grad():
-        o_old, o_new = old(z, zm, S), new(z, zm, S)
-    assert "desired_delta" in o_old and "desired_delta" not in o_new       # R1 brief: output alias dropped
-    m_old, m_new = probe_metrics(o_old, lab, smask), probe_metrics(o_new, lab, smask)
-    assert m_old.keys() == m_new.keys()
-    for k in m_old:
-        assert m_old[k] == m_new[k], k
-    assert "desired_delta_err_m" in m_new                                  # ...but the METRIC key name stays
-    l_old, logs_old = probe_loss(o_old, lab, smask)
-    l_new, logs_new = probe_loss(o_new, lab, smask)
-    assert torch.allclose(l_old, l_new)
-    assert logs_old.keys() == logs_new.keys() and all(logs_old[k] == logs_new[k] for k in logs_old)
+        o_new = new(z, zm, S)
+    assert "desired_delta" not in o_new                                    # R1 brief: output alias dropped
+    m_new = readout_metrics(o_new, lab, smask)
+    expected = {"visible", "visible_pos", "focused_on", "focused_on_pos", "held_by", "held_by_pos",
+                "acting_on", "acting_on_pos", "rel_pos_err_m", "observed_effect_err_m", "desired_delta_err_m",
+                "subtask"}
+    if goal:
+        expected |= {"goal_effect_err_m", "goal_effect_err_patient_m", "goal_effect_zero_baseline_patient_m"}
+    assert set(m_new) == expected
+    assert m_new["desired_delta_err_m"] == m_new["observed_effect_err_m"]  # METRIC key name / value stays
+    l_new, logs_new = readout_loss(o_new, lab, smask)
+    expected_logs = {f"probe_{q}" for q in ("visible", "focused_on", "held_by", "acting_on", "looking_at",
+                                            "rel_pos", "observed_effect", "subtask") + (("goal_effect",) if goal else ())}
+    assert set(logs_new) == expected_logs
+    assert torch.isfinite(l_new)
 
 
 def test_load_representation_constructs_readout_probe_not_packet_probe(tmp_path):
@@ -104,3 +113,9 @@ def test_load_representation_constructs_readout_probe_not_packet_probe(tmp_path)
     from rrp.policies import bundles
     src = inspect.getsource(bundles.load_representation)
     assert "ReadoutProbe(" in src and "PacketProbe(" not in src
+
+
+def test_latent_probes_module_is_gone():
+    """docs/relations.md 8.2 delete list; D-144 addendum (b): no live code path reads the old name."""
+    with pytest.raises(ModuleNotFoundError):
+        import rrp.policies.nets.latent_probes  # noqa: F401

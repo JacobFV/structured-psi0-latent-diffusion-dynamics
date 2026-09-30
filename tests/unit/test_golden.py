@@ -400,7 +400,7 @@ def test_oracle_encoder_is_the_former_inline_encoder():
 def _tiny_latent(dual=False):
     import torch
     from rrp.policies.latent import DualLatentPolicy, LatentPolicy
-    from rrp.policies.nets.latent_probes import PacketProbe
+    from rrp.policies.nets.probes import ReadoutProbe
     from rrp.policies.system0 import LatentRealizer
     cls = DualLatentPolicy if dual else LatentPolicy
     si = cls(_flow(), knot_times=(0.1, 0.3, 0.5, 0.7), latent_space_version="ls-g", realizer_compat_version="rz-g",
@@ -408,7 +408,10 @@ def _tiny_latent(dual=False):
     torch.manual_seed(1)
     R = LatentRealizer(8, width=32, layers=1)
     torch.manual_seed(4)
-    return si, R, PacketProbe(8, 4, width=32, heads=2).eval()
+    # D-144 R1 follow-up (research/tracks/rel-r1c.md): PacketProbe -> ReadoutProbe(probes:arm-packet-v1). Same seed,
+    # same module names/parameter creation order (docs/relations.md 4, nets/probes.py docstring) -> byte-identical
+    # state dict / outputs to the retired PacketProbe, so this golden's recorded hashes are unaffected (verified).
+    return si, R, ReadoutProbe(8, 4, specs=["preset:probes:arm-packet-v1"], width=32, heads=2).eval()
 
 
 def _probe_key(d):

@@ -3,7 +3,7 @@
 Stage A (representation, `train_representation`): target encoder E, system-0 realizer R and packet probes P jointly:
     z ~ E(context_t, task_t, morphology, demonstrated a[t:t+H])            (reparameterized)
     L_real  = || R(z, knot_times, phase=j*dt, state_{t+j}, local_{t+j}) - a*_{t+j} ||^2      (j ~ U{0..J})
-    L_sem   = probe_loss(P(z, queries), privileged/public labels at t)       (cfg.weight; 0 => latent_nosem)
+    L_sem   = readout_loss(P(z, queries), privileged/public labels at t)       (cfg.weight; 0 => latent_nosem)
     L       = L_real + cfg.weight * L_sem + beta * KL(q(z) || N(0, I))       (cfg.weight/cfg.lv_min: docs/relations.md
               10 R2, LatentConfig.factors -- probe.arm.* readout weight / params.lv_min, resolved through the
               registry; see nets/semantic_latent.py)
@@ -33,7 +33,7 @@ from rrp.harness.data.packed import PackedChunkDataset
 from rrp.policies.nets.batch import Batch
 from rrp.policies.nets.flow import FlowPolicy, PolicyConfig, interpolate_target, masked_mse
 from rrp.policies.nets.latent_batch import augment
-from rrp.policies.nets.latent_probes import probe_loss, probe_metrics
+from rrp.harness.eval.latent_eval import readout_loss, readout_metrics
 from rrp.policies.nets.probes import ReadoutProbe
 from rrp.policies.nets.semantic_latent import LatentConfig, TargetEncoder, assembly_tokens
 from rrp.policies.system0 import LatentRealizer, REALIZER_RECURRENT_STATE
@@ -42,13 +42,16 @@ from rrp.policies.bundles import (load_representation,  # noqa: F401  (moved to 
 from rrp.harness.data.latent import LatentData  # noqa: F401  (moved to data, W4)
 from rrp.ops.workload import CheckpointSignal
 
-# `probe_loss` / `probe_metrics` (rrp.policies.nets.latent_probes) stay imported above: they are generic dict-in/
-# dict-out math over a probe's output keys (unchanged by which network produced them; D-144 R1 only swaps PacketProbe
-# for `nets.probes.ReadoutProbe`, preset `probes:arm-packet-v1`) and are still depended on, unmodified, by code
-# outside this unit's scope (harness.eval.latent_eval.PacketProbeHook, harness.train.joint_adapt,
-# tests/unit/test_relgen.py's PacketProbe<->ReadoutProbe equivalence golden, tests/unit/test_latent_boundary.py) —
-# see research/tracks/rel-r1.md. `_readout_probe_specs` / `_remap_probe_state_dict` (rrp.policies.bundles) translate
-# the legacy `probe` config dict / pre-rename state dicts the same way for every arm probe construction site.
+# `readout_loss` / `readout_metrics` (rrp.harness.eval.latent_eval; D-144 R1 follow-up, research/tracks/rel-r1c.md)
+# stay imported above: they are the arm/dual probe math ported unchanged from the deleted
+# `nets.latent_probes.probe_loss` / `probe_metrics` (dict-in/dict-out over a probe's output keys, unchanged by
+# which network produced them -- D-144 R1 swaps PacketProbe for `nets.probes.ReadoutProbe`, preset
+# `probes:arm-packet-v1`), now living in `harness.eval.latent_eval` since every remaining caller
+# (harness.eval.{latent_eval,dual_latent_eval,ladder}, harness.train.joint_adapt, tests) needs the SAME
+# arm-specific key names / `_pos` / goal-effect / dual `@m` handling the generic `nets.probes.readout_loss` /
+# `readout_metrics` do not provide. `_readout_probe_specs` / `_remap_probe_state_dict` (rrp.policies.bundles)
+# translate the legacy `probe` config dict / pre-rename state dicts the same way for every arm probe construction
+# site.
 
 
 def _dev():
@@ -110,7 +113,7 @@ def representation_step(E, R, P, data_b, cfg: LatentConfig, train=True):
     kl = (0.5 * (mu ** 2 + logvar.exp() - 1 - logvar) * mm).sum() / mm.sum().clamp(min=1)
     smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
     out = P(z, am, batch.bank_tokens["scene"].shape[1])
-    l_sem, logs = probe_loss(out, lab, smask, lv_min=cfg.lv_min)
+    l_sem, logs = readout_loss(out, lab, smask, lv_min=cfg.lv_min)
     loss = l_real + cfg.weight * l_sem + cfg.beta_kl * kl
     if cf is not None:
         d = (mu[:nf][cf["pick"]] - mu[nf:]).flatten(1).norm(dim=1) / mu[:nf][cf["pick"]].flatten(1).norm(dim=1).clamp(min=1e-3)
@@ -138,7 +141,7 @@ def cf_swap_metrics(E, P, batch, a, v, lab, gen=None) -> dict:
     out = P(mu[nf:], am[nf:], S)
     lc = {k: x[nf:] for k, x in l2.items()}
     smask = b2.bank_mask["scene"][nf:] & lc["slot_valid"].bool()
-    res = {f"cf_{k}": x for k, x in probe_metrics(out, lc, smask).items()}
+    res = {f"cf_{k}": x for k, x in readout_metrics(out, lc, smask).items()}
     zf = mu[:nf][info["pick"]]
     rd = (zf - mu[nf:]).flatten(1).norm(dim=1) / zf.flatten(1).norm(dim=1).clamp(min=1e-3)
     res["cf_rel_z_dist"] = (float(rd.sum()), int(len(rd)))
@@ -265,10 +268,10 @@ def evaluate_representation(E, R, P, data, cfg, dev, n_batches=30, seed=99) -> d
         m = (r["v1"] & r["node_mask"]).float()
         real.append(float(((pred - r["a1"]) ** 2 * m).sum() / m.sum()))
         hold.append(float(((r["a1"]) ** 2 * m).sum() / m.sum()))
-        for k, (x, n) in probe_metrics(out, lab2, smask).items():
+        for k, (x, n) in readout_metrics(out, lab2, smask).items():
             s_, n_ = agg.get(k, (0, 0)); agg[k] = (s_ + x, n_ + n)
         zs = z[torch.randperm(z.shape[0], device=dev)]
-        for k, (x, n) in probe_metrics(P(zs, am, smask.shape[1]), lab2, smask).items():
+        for k, (x, n) in readout_metrics(P(zs, am, smask.shape[1]), lab2, smask).items():
             s_, n_ = agg_sh.get(k, (0, 0)); agg_sh[k] = (s_ + x, n_ + n)
         for k, (x, n) in cf_swap_metrics(E, P, batch, a, v, lab, gcf).items():
             s_, n_ = agg_cf.get(k, (0, 0)); agg_cf[k] = (s_ + x, n_ + n)
@@ -355,7 +358,7 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
             ab = assembly_batch(batch)
             smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
             S = batch.bank_tokens["scene"].shape[1]
-            pl_fn = (lambda zc: probe_loss(P(zc, am, S), lab, smask, lv_min=lcfg.lv_min)) if w_sem > 0 else None
+            pl_fn = (lambda zc: readout_loss(P(zc, am, S), lab, smask, lv_min=lcfg.lv_min)) if w_sem > 0 else None
             valid = am[:, None, :].expand(-1, lcfg.knots, -1)
             loss, logs = model.loss(ab, z_target, valid, None, generator=gen, packet_loss_fn=pl_fn, packet_weight=w_sem,
                                     packet_tau_min=cfg_json.get("packet_tau_min", 0.0))
@@ -434,7 +437,7 @@ def evaluate_generated(model, E, R, P, data, lcfg, dev, n_batches=20, seed=7, nf
         S = smask.shape[1]
         for name, z in (("oracle", zt), ("one_step", z1), ("free", zf),
                         ("free_shuffled", zf[torch.randperm(zf.shape[0], device=dev)])):
-            for k, (x, n) in probe_metrics(P(z, am, S), lab, smask).items():
+            for k, (x, n) in readout_metrics(P(z, am, S), lab, smask).items():
                 s_, n_ = aggs[name].get(k, (0, 0)); aggs[name][k] = (s_ + x, n_ + n)
         zdist.append(float(((zf - zt) ** 2).mean()))
     model.train()
@@ -471,7 +474,7 @@ def fit_probes_on_frozen(rep_path: Path, packed_dir: Path, out_path: Path, steps
             af, am, ai = assembly_tokens(batch)
             mu, _ = E(batch, a, v, af, am, ai)
         smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
-        loss, _ = probe_loss(P(mu.detach(), am, smask.shape[1]), lab, smask)
+        loss, _ = readout_loss(P(mu.detach(), am, smask.shape[1]), lab, smask)
         opt.zero_grad()
         loss.backward()
         opt.step()
@@ -488,7 +491,7 @@ def fit_probes_on_frozen(rep_path: Path, packed_dir: Path, out_path: Path, steps
             mu, _ = E(batch, a, v, af, am, ai)
             smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
             for d_, z in ((agg, mu), (sh, mu[torch.randperm(mu.shape[0], device=dev)])):
-                for k, (x, n) in probe_metrics(P(z, am, smask.shape[1]), lab, smask).items():
+                for k, (x, n) in readout_metrics(P(z, am, smask.shape[1]), lab, smask).items():
                     s_, n_ = d_.get(k, (0, 0)); d_[k] = (s_ + x, n_ + n)
             for k, (x, n) in cf_swap_metrics(E, P, batch, a, v, lab, gcf2).items():
                 s_, n_ = cfm.get(k, (0, 0)); cfm[k] = (s_ + x, n_ + n)
@@ -536,7 +539,7 @@ def sft_latent_flow(flow_ckpt: Path, target_packed_dir: Path, budget: int, *, se
         ab = assembly_batch(batch)
         smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
         S = smask.shape[1]
-        fn = (lambda zc: probe_loss(P(zc, am, S), lab, smask, lv_min=lcfg.lv_min)) if w_sem > 0 else None
+        fn = (lambda zc: readout_loss(P(zc, am, S), lab, smask, lv_min=lcfg.lv_min)) if w_sem > 0 else None
         loss, _ = model.loss(ab, zt, am[:, None, :].expand(-1, lcfg.knots, -1), None, packet_loss_fn=fn,
                              packet_weight=w_sem)
         opt.zero_grad()
