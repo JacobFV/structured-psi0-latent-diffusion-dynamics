@@ -165,11 +165,11 @@ def test_data_and_train_loops_are_rollouts(rollout_guard, monkeypatch):
     monkeypatch.setattr(B, "Renderer", Renderer)
     calls = rollout_guard["calls"]
     collect_teacher_episode(make_pick_place_session(seed=3), max_steps=4, episode_id="x")
-    assert rollout_guard["calls"] == calls + 1
+    assert rollout_guard["calls"] == calls + 2          # the episode + its nested settle rollout
     replay_render(ROBOT, 3, 1, every=4, max_steps=5)
-    assert rollout_guard["calls"] == calls + 2
-    fixture_teacher_run(seed=4, max_steps=3)
     assert rollout_guard["calls"] == calls + 3
+    fixture_teacher_run(seed=4, max_steps=3)
+    assert rollout_guard["calls"] == calls + 5
     si, R, _ = _tiny_latent()
     run_episodes(si, R, ROBOT, [3, 3, 4], max_steps=6, prefix_steps=3)
     assert rollout_guard["calls"] > calls + 3      # the batched teacher prefix, then the policy episodes

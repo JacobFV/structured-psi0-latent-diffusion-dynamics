@@ -70,7 +70,7 @@ def main(argv=None):
     if dev == "cuda":
         from rrp.ops.workload import apply_cap
         apply_cap()
-    from rrp.harness.eval.ladder import LadderConfig, load_models, run_ladder, summarize, OraclePacketPolicy, install_prev_action
+    from rrp.harness.eval.ladder import LadderConfig, load_models, run_ladder, summarize, OraclePacketPolicy
     from rrp.harness.eval.robustness import feasible_arm_seeds
     seeds = feasible_arm_seeds(a.robot, a.seed_start, a.n)
     cfg = LadderConfig(route=a.route, robot=a.robot, seeds=seeds, representation=a.rep, flow=a.flow, policy=a.policy, policy_label=a.policy_label, oracle_expert=a.oracle_expert, noise_scale=a.noise_scale,
@@ -93,7 +93,7 @@ def main(argv=None):
         for ji in (1, 3):
             rows += [dict(r, joint_index=ji, route=a.route, checkpoints=ids)
                      for r in disturbance_test(pol, models["R"], a.robot, seeds, joint_index=ji, device=dev,
-                                               session_hook=lambda s: install_prev_action(s, a.prev_action))]
+                                               prev_action=a.prev_action)]
         p = out / f"disturbance_{name}.jsonl"
         p.write_text("".join(json.dumps(r) + "\n" for r in rows))
         import numpy as np

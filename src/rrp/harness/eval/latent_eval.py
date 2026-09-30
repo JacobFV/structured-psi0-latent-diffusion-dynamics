@@ -304,14 +304,14 @@ def _roll_ticks(s, info, fn, ticks, hooks=()):
 
 
 def disturbance_test(policy, realizer, robot_key: str, seeds: list[int], *, warmup_ticks=30, hold_ticks=8,
-                     joint_offset=0.12, joint_index=1, device="cpu", session_hook=None) -> list[dict]:
+                     joint_offset=0.12, joint_index=1, device="cpu", prev_action: str | None = None) -> list[dict]:
     """Packet held FIXED (no system-i call). Compare TCP deviation from the undisturbed rollout for:
     A) system 0 closed loop (state-dependent realization), B) open-loop replay of the nominal commands expressed as
     deltas from the current state (no feedback), C) replay of the nominal ABSOLUTE targets (native servo
     stabilization only). Every stretch of ticks is a `harness.rollout` (warm-up: the latent stack's schedule; the
     held-packet stretches: a command policy + Recorder hooks).
-    session_hook(s): optional, called on each new session before anything else (e.g. the ladder installs its
-    input featurizer there)."""
+    prev_action: optional PrevActionFeaturizer mode (the ladder's `--prev-action`); installed on each new session before
+    the policy sees it, and fed by `hooks.PrevAction` on every stretch of ticks (snapshot/restore carries its state)."""
     from rrp.bodies.catalog import workbench_robots
     from rrp.envs.mujoco.scenario import BUILDERS
     from rrp.envs.mujoco.session import Session
@@ -323,15 +323,18 @@ def disturbance_test(policy, realizer, robot_key: str, seeds: list[int], *, warm
     rows = []
     for sd in seeds:
         s = Session(BUILDERS["pick_place"](robot, sd, n_distractors=0), seed=sd)
-        if session_hook is not None:
-            session_hook(s)
+        pa = [H.PrevAction()] if prev_action is not None else []
+        if prev_action is not None:
+            from rrp.harness.eval.ladder import PrevActionFeaturizer
+            from rrp.policies.features.featurizer import cached_featurizer
+            s._rrp_featurizer = PrevActionFeaturizer(cached_featurizer(s), prev_action)
         f = policy.featurizer(s)
         s0 = LatentSystem0(realizer, f, latent_space_version=policy.lsv, realizer_compat_version=policy.rcv, device=device)
         stack = LatentStackPolicy(policy, realizer, replan_ticks=8, device=device, name="latent_disturbance",
                                   make_s0=lambda e: s0)
         if warmup_ticks > 0:                      # normal operation to mid-approach
             ep = R.rollout(lambda sd_: s, stack, H.budget_task("pick_place", s.spec.env_id), [sd], batch=1,
-                           max_steps=warmup_ticks)[0]
+                           max_steps=warmup_ticks, hooks=pa)[0]
             if ep.outcome == "crash":
                 raise RuntimeError(ep.metrics.get("note") or ep.failure_reason)
         info = stack.info
@@ -339,6 +342,7 @@ def disturbance_test(policy, realizer, robot_key: str, seeds: list[int], *, warm
         p = policy.packets([s])[0]
         s0.receive(p, now=float(s.data.time), graph_version=s.runtime.graph_version)
         snap = s.snapshot()
+        prev_snap = None if prev_action is None or s._rrp_featurizer.prev is None else s._rrp_featurizer.prev.copy()
         arm_q = lambda: s.data.qpos[s.robots[0].qadr[:len(s.robots[0].arm_joints)]].copy()
         held = lambda h: s0.tick(s, s.controller_version())
         # nominal
@@ -351,10 +355,12 @@ def disturbance_test(policy, realizer, robot_key: str, seeds: list[int], *, warm
                 if qs is not None:
                     qs.append(arm_q())
             return H.Recorder(on_act=on_act, on_step=lambda i, e, a, st: tcp.append(_tcp(e)))
-        _roll_ticks(s, info, held, hold_ticks, [rec(tcp_nom, nominal_cmds, q_nom)])
+        _roll_ticks(s, info, held, hold_ticks, [*pa, rec(tcp_nom, nominal_cmds, q_nom)])
 
         def perturb():
             s.restore(snap)
+            if prev_action is not None:
+                s._rrp_featurizer.prev = None if prev_snap is None else prev_snap.copy()
             s0.receive(p, now=float(s.data.time), graph_version=s.runtime.graph_version)
             adr = s.robots[0].qadr[joint_index]
             s.data.qpos[adr] += joint_offset
@@ -363,7 +369,7 @@ def disturbance_test(policy, realizer, robot_key: str, seeds: list[int], *, warm
         # A: closed-loop system 0
         perturb()
         tcp_a = []
-        _roll_ticks(s, info, held, hold_ticks, [rec(tcp_a)])
+        _roll_ticks(s, info, held, hold_ticks, [*pa, rec(tcp_a)])
         # B: open-loop deltas (predetermined trajectory relative to state at disturbance)
         perturb()
         tcp_b = []
@@ -374,11 +380,11 @@ def disturbance_test(policy, realizer, robot_key: str, seeds: list[int], *, warm
             g = dict(c.groups)
             g["arm"] = (np.array(c.groups["arm"]) - q_nom[0] + q_start).tolist()
             return NativeCommand(controller_version=c.controller_version, groups=g, source="debug")
-        _roll_ticks(s, info, delta_cmd, len(nominal_cmds), [rec(tcp_b)])
+        _roll_ticks(s, info, delta_cmd, len(nominal_cmds), [*pa, rec(tcp_b)])
         # C: absolute nominal targets (servo stabilization)
         perturb()
         tcp_c = []
-        _roll_ticks(s, info, lambda h: nominal_cmds[h], len(nominal_cmds), [rec(tcp_c)])
+        _roll_ticks(s, info, lambda h: nominal_cmds[h], len(nominal_cmds), [*pa, rec(tcp_c)])
         dev_ = lambda tr: float(np.linalg.norm(tr[-1] - tcp_nom[-1]))
         rows.append(dict(robot=robot_key, seed=sd, system_i_calls_during_hold=policy.calls - calls_before - 1,
                          final_dev_closed_loop_m=dev_(tcp_a), final_dev_open_loop_delta_m=dev_(tcp_b),

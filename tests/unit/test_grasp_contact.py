@@ -8,6 +8,7 @@ mujoco = pytest.importorskip("mujoco")
 from rrp.core.provenance import physics_provenance
 from rrp.harness.eval.grasp_rig import build, run
 from rrp.bodies import grasp_contact as GC
+from tests.unit.test_golden import golden  # noqa: F401  (golden is the recording fixture)
 
 
 def test_versioning_and_provenance():
@@ -36,3 +37,12 @@ def test_slip_under_load_is_coulomb(fscale):
     """Parallel jaw: slip onset at m*g ~= mu * sum(N) (within 25 %), also at x0.05 friction."""
     r = run("v2", "pg2", fscale)
     assert r["slip_ratio"] is not None and 0.8 <= r["slip_ratio"] <= 1.25, r
+
+
+def test_grasp_rig_outputs_are_recorded(golden):
+    """RL (D-146): the rig runs on a bare-model bench env under harness.rollout. Its reports (both grippers, a yawed cube,
+    a low-friction pad, the whole mass ramp) were recorded from the private mj_step loop BEFORE the port
+    (`loop.grasp_rig` in tests/data/golden.json) and must stay byte-identical."""
+    from tests.unit.test_ladder_rollout import _digest
+    rows = [run("v2", "pg2", yaw=math.radians(15)), run("v2", "tf3"), run("v2", "pg2", 0.05), run("v1", "pg2", t_close=0.3)]
+    golden("loop.grasp_rig", _digest(rows))

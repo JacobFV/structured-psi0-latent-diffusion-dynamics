@@ -109,12 +109,11 @@ def test_causal_episode_protocol(golden):
 
 def test_disturbance_test(golden):
     from rrp.harness.eval.latent_eval import disturbance_test
-    from rrp.harness.eval.ladder import install_prev_action
     si, R, _ = _tiny_latent()
     rows = disturbance_test(si, R, ROBOT, [3], warmup_ticks=9, hold_ticks=3)
     si2, R2, _ = _tiny_latent()
     rows += disturbance_test(si2, R2, ROBOT, [3, 4], warmup_ticks=5, hold_ticks=2, joint_offset=0.05, joint_index=2,
-                             session_hook=lambda s: install_prev_action(s, "own"))
+                             prev_action="own")
     golden("loop.eval.disturbance", _digest(rows))
 
 

@@ -117,7 +117,10 @@ def test_run_ladder_is_a_rollout(monkeypatch):
     real = R.rollout
 
     def spy(make_env, policy, task, seeds, **kw):
-        seen.append((type(policy).__name__, [type(h).__name__ for h in kw["hooks"]], kw["max_steps"], kw["batch"]))
+        if type(policy).__name__ != "LadderPolicy":      # the teacher route's settle tick is a nested hold rollout
+            return real(make_env, policy, task, seeds, **kw)
+        assert "max_steps" not in kw                     # the tick budget rides TaskSpec.max_steps
+        seen.append((type(policy).__name__, [type(h).__name__ for h in kw["hooks"]], task.max_steps, kw["batch"]))
         return real(make_env, policy, task, seeds, **kw)
     monkeypatch.setattr(R, "rollout", spy)
     _run(_cfg("teacher", seeds=(3,), max_steps=3, keep_ticks=False, object_shift=(1, 0.01, 0.0)),

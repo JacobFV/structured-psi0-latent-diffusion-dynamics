@@ -88,32 +88,6 @@ class PrevActionFeaturizer:
             self.prev = self.base.aspace.normalize([cmd.groups], q0)[0].astype(np.float32)
 
 
-def install_prev_action(s, mode: str):
-    """Install PrevActionFeaturizer on a session and make it follow every executed command and snapshot/restore
-    (for code paths that step the session themselves, e.g. latent_eval.disturbance_test)."""
-    f = s._rrp_featurizer = PrevActionFeaturizer(cached_featurizer(s), mode)
-    step, snap, restore = s.step, s.snapshot, s.restore
-    saved = {}
-
-    def step_(cmd=None, robot=0):
-        if f.mode == "own" and cmd is not None and not isinstance(cmd, dict):
-            f.record(cmd, f.base(s.observe()).q0)
-        return step(cmd, robot)
-
-    def snap_():
-        sn = snap()
-        saved[id(sn)] = None if f.prev is None else f.prev.copy()
-        return sn
-
-    def restore_(sn):
-        f.prev = saved.get(id(sn))
-        return restore(sn)
-    s.step, s.snapshot, s.restore = step_, snap_, restore_
-    return f
-
-
-
-
 # ------------------------------------------------------------------ privileged measurement helpers
 class Meter:
     """Evaluation-only privileged measurements per session: milestones, tracking error, label error."""
@@ -266,10 +240,11 @@ def load_models(cfg: LadderConfig):
 
 def _ladder_task(cfg: LadderConfig) -> TaskSpec:
     """The ladder's own end rules live in LadderTrace (teacher reference done / dropped / public success); the task
-    judge only spends the tick budget, so rollout(max_steps=cfg.max_steps) ends an episode exactly at cfg.max_steps."""
+    judge only spends the tick budget: `TaskSpec.max_steps = cfg.max_steps` ends an episode exactly at cfg.max_steps."""
     def judge(env, t, max_seconds):
         return Judgement(t >= max_seconds, "timeout", "timeout" if t >= max_seconds else None)
-    return TaskSpec(cfg.task, {"mujoco/arm": {}}, float("inf"), judge, note="ladder: end rules in LadderTrace")
+    return TaskSpec(cfg.task, {"mujoco/arm": {}}, float("inf"), judge, max_steps=cfg.max_steps,
+                    note="ladder: end rules in LadderTrace", failure_reasons=("timeout", "dropped_off_table"))
 
 
 class LadderEnvs:
@@ -487,7 +462,7 @@ class LadderTrace:
             return {}
         cfg, pol, mt, s = self.cfg, self.pol, self.meters[i], env
         if cfg.route == "teacher":
-            s.step(None)
+            H.warm_up(s, 1)                      # one hold tick (a rollout), then the privileged verdict
         priv = bool(s.privileged_success())
         if self.dropped[i]:
             outcome = "dropped_off_table"
@@ -575,8 +550,7 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
         hooks.append(H.FrameCallback(lambda i, env, k, phase: frame_cb(i, env, k, phase)))
     if cfg.object_shift:
         hooks.append(H.ObjectShift(cfg.object_shift[0], cfg.object_shift[1], cfg.object_shift[2], alive=trace.alive))
-    eps = rollout(envs, pol, _ladder_task(cfg), list(cfg.seeds), batch=max(1, len(cfg.seeds)), max_steps=cfg.max_steps,
-                  hooks=hooks)
+    eps = rollout(envs, pol, _ladder_task(cfg), list(cfg.seeds), batch=max(1, len(cfg.seeds)), hooks=hooks)
     crashed = [e for e in eps if e.outcome == "crash"]
     if crashed:
         raise RuntimeError("; ".join(f"ladder seed {e.seed}: {e.failure_reason} {e.metrics.get('note', '')}" for e in crashed))

@@ -35,6 +35,7 @@
  "loop.eval.video_arm.scripted_teacher": "bb9e89a8e45fe67de9410b33",
  "loop.eval.video_dual.learned_latent": "0658d5ee43276eddea6a3763",
  "loop.eval.video_dual.scripted_teacher": "4b7d0d991ceb079cea36a72e",
+ "loop.grasp_rig": "717cbb82e554373ddd207a43",
  "loop.grpo.episodes": "220781bc4e23df2d12386722",
  "loop.grpo.prefix_terminal": "b88901a06a71c3c8d5b042a1",
  "loop.ladder.generated": "19fdbc979f5b6b4fe84c3df7",

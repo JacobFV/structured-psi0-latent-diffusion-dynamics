@@ -57,8 +57,9 @@ class SessionRecord:
 
 
 class Settle:
-    """on_end (dual arm): after the episode ends, step `n` hold ticks and re-read privileged success, as the dual eval
-    did (success is judged after the objects settle). Timeouts stay timeouts unless the settled scene succeeds."""
+    """on_end (dual arm): after the episode ends, step `n` hold ticks (`warm_up`, a rollout) and re-read privileged
+    success, as the dual eval did (success is judged after the objects settle). Timeouts stay timeouts unless the settled
+    scene succeeds."""
 
     def __init__(self, n: int = 5):
         self.n = n
@@ -66,8 +67,7 @@ class Settle:
     def on_end(self, i, env, ep):
         if ep.outcome in ("infeasible", "crash"):
             return {}
-        for _ in range(self.n):
-            env.step(None)
+        warm_up(env, self.n)
         priv, pub = bool(env.privileged_success()), bool(env.runtime.succeeded())
         ep.success_privileged, ep.success_public = priv, pub
         if priv:
@@ -254,9 +254,13 @@ class HoldPolicy:
 
 def warm_up(env, ticks: int = 10):
     """Step `env` `ticks` hold ticks (through rollout: same state as calling env.step(None) `ticks` times) and return
-    it. rollout only closes the env, which a session survives."""
+    it. rollout only closes the env, which a session survives. A crashed tick raises (as the direct step did)."""
     from rrp.harness.rollout import rollout
-    rollout(lambda seed: env, HoldPolicy(), budget_task("warm_up", env.spec.env_id), [0], batch=1, max_steps=ticks)
+    if ticks > 0:
+        ep = rollout(lambda seed: env, HoldPolicy(), budget_task("warm_up", env.spec.env_id), [0], batch=1,
+                     max_steps=ticks)[0]
+        if ep.outcome == "crash":
+            raise RuntimeError(ep.metrics.get("note") or ep.failure_reason)
     return env
 
 
