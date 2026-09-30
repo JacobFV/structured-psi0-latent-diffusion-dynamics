@@ -182,21 +182,22 @@ class QualityTrace:
         return {}
 
 
-def _quality_rollout(env, policy, seed, max_steps, trace, done):
+def _quality_rollout(env, policy, seed, max_steps, trace, done, hooks=()):
     """One episode of `env` under `policy` (rollout, batch 1): ticks until max_steps or done(env); then one hold tick
     and the privileged verdict (Settle) - the episode row is built from the trace by the caller."""
     from rrp.harness import rollout as R
     from rrp.harness.eval import hooks as H
     return R.rollout(lambda sd: env, policy, H.budget_task("pick_place", env.spec.env_id), [seed], batch=1,
-                     max_steps=max_steps, hooks=[H.EndWhen(lambda i, e: done(i, e)), H.Settle(1), trace])[0]
+                     max_steps=max_steps, hooks=[H.EndWhen(lambda i, e: done(i, e)), H.Settle(1), trace, *hooks])[0]
 
 
 def run_quality_episode(robot_key: str, seed: int, version: str = "v1", *, max_steps: int = 600,
                         robot=None, frames: dict | None = None, keep_trace: bool = False,
-                        obj_friction: float = 1.0, obj_mass: float = 1.0) -> dict:
+                        obj_friction: float = 1.0, obj_mass: float = 1.0, hooks=()) -> dict:
     """One teacher episode with full diagnostics. `frames` = dict(renderer=..., camera=..., every=..., out=[...],
     caption=callable) to also collect rendered frames. The episode is a `harness.rollout` (scripted teacher policy,
-    QualityTrace hook); a crash is a recorded failure (`error` = the rollout's crash note), never hidden."""
+    QualityTrace hook); a crash is a recorded failure (`error` = the rollout's crash note), never hidden. `hooks`: extra
+    rollout hooks (read-only recorders such as the replay recorder, rrp.viz.record) after the episode's own."""
     from rrp.bodies.catalog import workbench_robots
     from rrp.envs.mujoco.session import Session
     from rrp.envs.mujoco.scenario import BUILDERS
@@ -220,7 +221,7 @@ def run_quality_episode(robot_key: str, seed: int, version: str = "v1", *, max_s
     pol = make_arm_teacher_policy(arg="pick_place", version=version)
     trace = QualityTrace(pol, frames=frames)
     t0 = time.time()
-    ep = _quality_rollout(s, pol, seed, max_steps, trace, lambda i, e: pol.teachers[i].done)
+    ep = _quality_rollout(s, pol, seed, max_steps, trace, lambda i, e: pol.teachers[i].done, hooks)
     res = trace.result[0]
     T, teacher = res["T"], res["teacher"]
     error = ep.metrics.get("note", "crash") if ep.outcome == "crash" else None

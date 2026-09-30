@@ -83,7 +83,7 @@ class _AuditHook:
                 noisy[ri] = c.model_copy(update={"groups": g2})
             cmds = noisy
         self.qrec.before_step(clean)
-        return Act(cmds) if cmds is not clean else None
+        return Act(cmds, info=act.info) if cmds is not clean else None
 
     def on_step(self, i, env, act, step):
         from rrp.tasks.spec import Judgement
@@ -102,8 +102,8 @@ class _AuditHook:
 def run_audit_episode(task: str, pair: str, seed: int, *, max_steps: int = 1200, noise: float = 0.0,
                       burst: tuple = (1, 1), stop_after_success: int | None = 10, teacher_version: str | None = None,
                       teacher_options: dict | None = None, phase_gate: bool = False,
-                      source_labels: bool | None = None) -> dict:
-    """One audited teacher episode. teacher_version None/'v2' = the default teacher; 'v3' = rrp.policies.teachers.dual_smooth.
+                      source_labels: bool | None = None, hooks=()) -> dict:
+    """One audited teacher episode (`hooks`: extra read-only rollout hooks, e.g. the replay recorder, after the audit's own). teacher_version None/'v2' = the default teacher; 'v3' = rrp.policies.teachers.dual_smooth.
     phase_gate: DART noise only in free-space phases (as collect_dual noise_phase_gate)."""
     from rrp.harness.data.dual_quality import DualQualityRecorder
     from rrp.bodies.grasp_contact import model_grasp_version
@@ -132,7 +132,7 @@ def run_audit_episode(task: str, pair: str, seed: int, *, max_steps: int = 1200,
                        stop_after_success=stop_after_success, seed=seed)
     pol = TeacherPolicy(task, lambda e: teacher, f"dual:{teacher_version or 'default'}", ("joint_position", "gripper"))
     ep = R.rollout(lambda sd: s, pol, H.budget_task(task, s.spec.env_id), [seed], batch=1, max_steps=max_steps,
-                   hooks=[audit, H.Settle(5)])[0]
+                   hooks=[audit, H.Settle(5), *hooks])[0]
     if ep.outcome == "crash":                      # a crashed episode is an error row of the caller (_job), never hidden
         raise RuntimeError(ep.metrics.get("note") or ep.failure_reason)
     qrec, steps = audit.qrec, ep.steps

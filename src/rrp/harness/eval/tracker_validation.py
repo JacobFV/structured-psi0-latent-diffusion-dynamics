@@ -112,17 +112,19 @@ class _BenchEnv:
             self.act.command(0, tgt)
         else:
             d.ctrl[b.pol_act] = tgt
+        energy, dt = 0.0, float(model.opt.timestep)
         for _ in range(self.sub):
             if self.act is not None:
                 d.ctrl[b.pol_act] = self.act.substep_ctrl(0, d)
             mujoco.mj_step(model, d)
+            energy += float(np.sum(np.abs(d.actuator_force[b.pol_act] * d.qvel[b.pol_dadr]))) * dt
             if self.on_substep is not None:
                 self.on_substep(d)
         bad = b.stance(d)[3]
         if bad or d.qpos[b.qa + 2] < b.min_h or b.tilt(d) > b.tilt_limit or not np.isfinite(d.qpos).all():
             self.fell, self.fell_t = True, self.k * _DT
         self.k += 1
-        return StepResult(observation=self.observe(), qpos=None, time=float(d.time))
+        return StepResult(observation=self.observe(), qpos=None, time=float(d.time), energy_j=energy)
 
 
 class _ScriptedCommand:
@@ -172,7 +174,8 @@ class _Kick:
 
 class _Meter:
     """Every measurement of a trial (protocol v2): per-substep energy and 20 ms-averaged peak foot force, per-tick
-    tracking, slip, gait and joint-limit margin; `on_end` returns the trial's raw metrics."""
+    tracking, slip, gait and joint-limit margin; `on_end` returns the trial's raw metrics. The energy is the sum of the
+    env's per-step `StepResult.energy_j` (substep-exact)."""
 
     def __init__(self, steps: int, cmd, record: bool = False):
         self.steps, self.cmd, self.record = steps, np.array(cmd, float), record
@@ -196,8 +199,7 @@ class _Meter:
         env.on_substep = self.substep
 
     def substep(self, d):
-        b, model = self.env.b, self.env.model
-        self.energy += float(np.sum(np.abs(d.actuator_force[b.pol_act] * d.qvel[b.pol_dadr]))) * model.opt.timestep
+        b = self.env.b
         fn_s = b.stance(d)[1]                                            # W6 gate: per-foot normal force (N)
         self.peak_raw = max(self.peak_raw, float(np.max(fn_s)))
         self.fbuf.append(fn_s)
@@ -208,6 +210,7 @@ class _Meter:
 
     def on_step(self, i, env, act, step):
         b, model, d = env.b, env.model, env.d
+        self.energy += step.energy_j
         k = env.k - 1
         t = k * _DT
         v = b.base_lin_vel_body(d)
@@ -266,12 +269,13 @@ class _Meter:
         return dict(trial=out)
 
 
-def run_episode(model, b: LeggedBinding, tracker, script: dict, seed: int, record=False, act=None):
+def run_episode(model, b: LeggedBinding, tracker, script: dict, seed: int, record=False, act=None, hooks=()):
     """One validation trial through harness.rollout: the scripted command policy on a bare-model bench env whose own
-    controller is the tracker; kick and metrics are hooks. Returns the trial's metrics row."""
+    controller is the tracker; kick and metrics are hooks (`hooks`: extra read-only ones after them, e.g. the replay
+    recorder). Returns the trial's metrics row."""
     from rrp.harness.rollout import rollout
     steps = int(script["T"] / _DT)
-    hooks = ([_Kick(*script["push"])] if "push" in script else []) + [_Meter(steps, script["cmd"], record)]
+    hooks = ([_Kick(*script["push"])] if "push" in script else []) + [_Meter(steps, script["cmd"], record), *hooks]
     ep, = rollout(lambda sd: _BenchEnv(model, b, tracker, sd, act), _ScriptedCommand(script["cmd"]), _tracker_task(),
                   [seed], batch=1, max_steps=steps, hooks=hooks)
     if ep.outcome == "crash":

@@ -15,7 +15,8 @@ from rrp.policies.base import Act, PolicyInfo, Requirements
 
 class TeacherPolicy:
     """One scripted teacher per episode; act() = teacher.act() (NativeCommand, or {robot: NativeCommand} for dual).
-    `make(env)` builds the teacher of one episode; `kinds` are the action kinds it emits."""
+    `make(env)` builds the teacher of one episode; `kinds` are the action kinds it emits. The Act's info carries the
+    teacher's phase label (a display label; nothing reads it to act)."""
 
     def __init__(self, task: str, make: Callable, version: str, kinds: tuple[str, ...]):
         self.make = make
@@ -28,7 +29,14 @@ class TeacherPolicy:
         self.teachers = [self.make(e) for e in envs]
 
     def act(self, obs):
-        return {i: Act(self.teachers[i].act()) for i in obs}
+        return {i: Act(self.teachers[i].act(), info=_phase_info(self.teachers[i])) for i in obs}
+
+
+def _phase_info(teacher) -> dict:
+    """`Act.info["phase"]` (what FrameCallback reads): the teacher's phase label after this tick's command, when it has one
+    (`phase_label` of the dual teachers, the arm teachers' `phase` string)."""
+    ph = getattr(teacher, "phase_label", None) or getattr(teacher, "phase", None)
+    return {"phase": ph} if isinstance(ph, str) else {}
 
 
 def make_arm_teacher_policy(*, arg: str, version: str | None = None, options: dict | None = None) -> TeacherPolicy:

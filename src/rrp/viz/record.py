@@ -3,12 +3,15 @@
     python -m rrp.cli viz record --spec viz/specs/<name>.yaml --out <dir> [--only ID[,ID]] [--shard i/n] [--list]
 
 Each spec entry re-runs chosen episodes through EXACTLY the harness that produced a recorded result (same module
-functions, seeds, batching, checkpoints, physics env vars, thread counts, CPU device), and records them by OBSERVING
-that harness from outside: existing read-only callbacks (ladder frame_cb, run_condition on_step), or class-level
-wrappers around read-only recorder hooks (LeggedMotionRecorder.on_tick, DualQualityRecorder.after_step) or around
-`mujoco.mj_step` in the harness module namespace (grasp rig, tracker validation). The wrappers call the original first
-and then only READ mjData; no harness file is edited and no RNG is consumed. tests/unit/test_viz_record.py checks
-recorded == unrecorded actions on a tiny case.
+functions, seeds, batching, checkpoints, physics env vars, thread counts, CPU device), and records them as ROLLOUT HOOKS
+(docs/architecture.md section 6): every family's episode is a `harness.rollout`, and the recorder is a read-only hook
+(`_Tap.on_step`, or the existing ladder `FrameCallback` / `run_condition(on_step=)`) passed through the harness function's
+`hooks=` argument. There is no private `mj_step` / `Session.step` loop and no patch of a stepping function in this
+module. Energy is substep-exact where the env reports it (`StepResult.energy_j` of the bench envs, the legged run's
+`motion_recorder.energy`) and frame-sampled for arm sessions (labelled in the signal notes). Only the PACKET taps patch a
+generator (LatentSystem0.receive, GeneratedSource.packet, LatentLeggedController.generate: the edited packet and, for
+display, the unedited counterfactual); they read and call the original. No RNG is consumed by the recorder.
+tests/unit/test_viz_record.py checks recorded == unrecorded on tiny cases and that this module steps nothing itself.
 
 Every replay carries the original eval row's outcome (meta.recorded_success) next to the re-run's (meta.success) and
 meta.reproduced; a mismatch is reported, never hidden. Each entry runs in its own subprocess with the entry's env
@@ -125,22 +128,6 @@ def physics_meta(model, *, family: str) -> dict:
                 actuator_limits_version=model_actuator_limits(model), actuator_mode=resolve_mode())
 
 
-class _Proxy:
-    """Stands in for the `mujoco` module inside ONE harness module: forwards everything, wraps mj_step to call the
-    original and then the (read-only) observer."""
-
-    def __init__(self, mod, on_step):
-        self._mod, self._on_step = mod, on_step
-
-    def __getattr__(self, k):
-        return getattr(self._mod, k)
-
-    def mj_step(self, m, d, *a, **k):
-        r = self._mod.mj_step(m, d, *a, **k)
-        self._on_step(m, d)
-        return r
-
-
 @contextlib.contextmanager
 def _patched(obj, name, new):
     old = getattr(obj, name)
@@ -175,12 +162,6 @@ class Episode:
                     bodies.append(n)
             self.col = RP.FrameCollector(model, bodies, 1.0 / self.control_hz)
         return self.col
-
-    def reset_frames(self):
-        if self.col is not None:
-            m = self.model
-            self.col = None
-            self.ensure(m)
 
 
 def _penetration_mm(m, d, geoms_a: set | None = None, bodies_b: set | None = None) -> float:
@@ -285,7 +266,9 @@ def _power(d, act_ids) -> float:
 
 
 class _Energy:
-    """Integrates |mechanical power|; cost of transport = energy / (m g horizontal path)."""
+    """Mechanical energy and cost of transport (energy / (m g horizontal path)). `add` takes the env's own per-step
+    energy (substep-exact: StepResult.energy_j of the bench envs, the legged run's motion recorder); `sample` integrates
+    the power sampled at a frame (arm sessions report no energy: control-tick resolution, an approximation)."""
 
     def __init__(self, act_ids, mass=None, base_qadr=None):
         self.act, self.mass, self.qa = np.asarray(act_ids, int), mass, base_qadr
@@ -294,7 +277,11 @@ class _Energy:
     def reset(self):
         self.e, self.path, self.p_last, self.last_p = 0.0, 0.0, None, 0.0
 
-    def step(self, d, dt):
+    def add(self, d, energy_j):
+        self.last_p = _power(d, self.act)
+        self.e += float(energy_j)
+
+    def sample(self, d, dt):
         self.last_p = _power(d, self.act)
         self.e += self.last_p * dt
 
@@ -310,6 +297,33 @@ class _Energy:
         if self.mass is None or self.path < 0.2:
             return None
         return self.e / (self.mass * 9.81 * self.path)
+
+
+class _Tap:
+    """THE recorder, a rollout hook (docs/architecture.md section 6): `start(env)` builds (Episode, signals) when the
+    episode starts (on_reset); `each(sig, env, act, step)` runs after every executed tick (running integrals); when the
+    collector is due (<= 30 fps) `frame(sig, env, act, step, col)` returns the frame's signals, read from the env. It
+    returns nothing to the rollout and consumes no RNG, so a recorded episode equals an unrecorded one. `data(env)`
+    names the env's mjData (`.data` of a session, `.d` of a bench env)."""
+
+    def __init__(self, start, frame, each=None, data=lambda env: env.data):
+        self.start, self.frame, self.each, self.data = start, frame, each, data
+        self.ep: Episode | None = None
+        self.sig = None
+
+    def on_reset(self, i, env, obs):
+        self.ep, self.sig = self.start(env)
+
+    def on_step(self, i, env, act, step):
+        d = self.data(env)
+        if self.each is not None:
+            self.each(self.sig, env, act, step)
+        col = self.ep.ensure(env.model)
+        if col.due():
+            col.frame(d, **self.frame(self.sig, env, act, step, col))
+            if getattr(env, "runtime", None) is not None:
+                col.events(d.time, _statuses(env.runtime))
+        col.tick()
 
 
 def _packet_summary(z, head: int = 8):
@@ -486,7 +500,7 @@ class _ArmSignals:
         if edit_active is not None:
             out["edit_active"] = bool(edit_active)
         # v1.2 rich signals
-        self.energy.step(d, dt)                       # sampled at recorded frames (control-tick resolution)
+        self.energy.sample(d, dt)                       # sampled at recorded frames (control-tick resolution)
         out.update(joint_vel=d.qvel[self.r.dadr].copy(), actuator_force=d.actuator_force[self.act_ids].copy(),
                    object_vel=_body_vel(m, d, self.cube), power_w=self.energy.last_p, energy_j=self.energy.e)
         if self.finger_groups:
@@ -661,48 +675,31 @@ def _ckpt_shas(ids: dict) -> dict:
 
 # ------------------------------------------------------------------ ARM: scripted teacher v2 (rrp.evaluation.teacher_quality)
 def run_arm_teacher(e: dict, out: Path, pcache: dict) -> list[dict]:
-    from rrp.envs.mujoco import session as native
     from rrp.harness.eval.teacher_quality import run_quality_episode
-    import rrp.policies.teachers.arm_smooth as AS
     a = e["args"]
     results = []
+
+    def start(s):
+        sig = _ArmSignals(s)
+        ep = Episode(1.0 / s.dt)
+        ep.extra = sig.meta()
+        return ep, sig
+
+    def frame(sig, s, act, step, col):
+        return sig.frame(phase=act.info.get("phase"), dt=s.dt * col.stride, col=col)
     for sd in e["seeds"]:
         sd = int(sd)
-        st = dict(ep=None, sig=None, armed=False, depth=0, teacher=None)
-        orig_step = native.Session.step
-        orig_make = AS.make_arm_teacher
-
-        def make(s, version, *aa, **kk):
-            t = orig_make(s, version, *aa, **kk)
-            st.update(armed=True, teacher=t, ep=Episode(1.0 / s.dt), sig=_ArmSignals(s))
-            st["ep"].extra = st["sig"].meta()
-            return t
-
-        def step(self, *aa, **kk):
-            st["depth"] += 1
-            try:
-                r = orig_step(self, *aa, **kk)
-            finally:
-                st["depth"] -= 1
-            if st["armed"] and st["depth"] == 0:
-                col = st["ep"].ensure(self.model)
-                if col.due():
-                    col.frame(self.data, **st["sig"].frame(phase=getattr(st["teacher"], "phase", None), dt=self.dt * col.stride,
-                                                           col=col))
-                    col.events(self.data.time, _statuses(self.runtime))
-                col.tick()
-            return r
-        with _patched(native.Session, "step", step), _patched(AS, "make_arm_teacher", make):
-            row = run_quality_episode(a["robot"], sd, a.get("version", "v2"), max_steps=int(a.get("max_steps", 600)))
-        if st["ep"] is None:
+        tap = _Tap(start, frame)
+        row = run_quality_episode(a["robot"], sd, a.get("version", "v2"), max_steps=int(a.get("max_steps", 600)), hooks=[tap])
+        if tap.ep is None:
             raise RuntimeError(f"{e['id']} seed {sd}: episode not run ({row.get('outcome')})")
         rec = find_recorded(e.get("recorded"), sd, {"robot": a["robot"], "version": a.get("version", "v2")})
-        meta = _meta(e, sd, st["ep"].model, success=bool(row["success"]), failure_stage=row.get("failure_stage"),
+        meta = _meta(e, sd, tap.ep.model, success=bool(row["success"]), failure_stage=row.get("failure_stage"),
                      ckpt_sha=None, recorded=rec, rec_key="success",
                      compare=dict(outcome=(row.get("outcome"), rec.get("outcome") if rec else None),
                                   steps=(row.get("steps"), rec.get("steps") if rec else None)))
         meta["signal_notes"] = dict(ARM_NOTES, phase="scripted teacher v2 phase (the controller itself; privileged)")
-        results.append(_finish(e, sd, meta, st["ep"], out))
+        results.append(_finish(e, sd, meta, tap.ep, out))
     return results
 
 
@@ -791,7 +788,7 @@ def run_arm_edit(e: dict, out: Path, pcache: dict) -> list[dict]:
 
 # ------------------------------------------------------------------ LEGGED (rrp.evaluation.legged_latent_eval / robustness)
 class _LeggedSignals:
-    def __init__(self, s, b, *, ctl=None, basis=None, t_edit=None, edit="none"):
+    def __init__(self, s, b, *, ctl=None, basis=None, t_edit=None, edit="none", packets=None):
         self.s, self.b, self.ctl, self.basis = s, b, ctl, basis
         self.t_edit, self.edit = t_edit, edit
         self.p0, self.yaw0 = None, None
@@ -800,7 +797,7 @@ class _LeggedSignals:
         self.floor_bodies = {int(m.geom_bodyid[g]) for g in self._fg}
         self.feet = _subtrees(m, [int(x) for x in b.foot_bids])
         self.energy = _Energy(b.pol_act, mass=float(m.body_subtreemass[b.root_bid]), base_qadr=b.qa)
-        self.packets: list = []            # (t, edit, z [K,M,dz] after any edit, |edited - unedited| or None)
+        self.packets: list = [] if packets is None else packets   # (t, edit, z [K,M,dz] after any edit, |edited - unedited| or None)
         self._n_pk = 0
 
     def meta(self) -> dict:
@@ -913,21 +910,18 @@ def _legged_ctl(a: dict, seed: int):
 
 def _run_legged(e: dict, out: Path, pcache: dict, robust: bool) -> list[dict]:
     import torch
-    import rrp.envs.mujoco.motion_quality as MQ
     from rrp.harness.eval.legged_latent_eval import run_episode
+    from rrp.policies.legged import LatentLeggedController as LLC
     a = e["args"]
     torch.set_num_threads(int(e.get("threads", 1 if robust else 2)))
     basis = pca_basis(e.get("pca"), pcache)
     results = []
+    CTX = ("mirror_goal", "halt", "mirror_active", "mirror_inactive")
     for sd in e["seeds"]:
         sd = int(sd)
         ctl = _legged_ctl(a, sd)
-        st = dict(ep=None, sig=None)
-        o_init, o_tick, o_reset = MQ.LeggedMotionRecorder.__init__, MQ.LeggedMotionRecorder.on_tick, MQ.LeggedMotionRecorder.on_reset
-        o_sub = MQ.LeggedMotionRecorder.on_substep
-        from rrp.policies.legged import LatentLeggedController as LLC
+        packets: list = []                  # (t, edit, z after any edit, |edited - unedited| or None), fed by `generate`
         o_gen = LLC.generate
-        CTX = ("mirror_goal", "halt", "mirror_active", "mirror_inactive")
 
         def generate(self, ad, now):
             """The harness's generate(); for context edits also the UNEDITED packet with a copy of the generator
@@ -948,51 +942,33 @@ def _run_legged(e: dict, out: Path, pcache: dict, robust: bool) -> list[dict]:
                 dz = float(np.linalg.norm(np.asarray(p.z) - z0))
             elif edit != "none" and self.packets:
                 dz = self.packets[-1].get("dz_norm")
-            if st["sig"] is not None:
-                st["sig"].packets.append((float(now), edit, np.asarray(p.z, np.float32), dz))
+            packets.append((float(now), edit, np.asarray(p.z, np.float32), dz))
             return p
 
-        def on_substep(self, d, dt):
-            o_sub(self, d, dt)
-            if self.on and st["sig"] is not None:
-                st["sig"].energy.step(d, dt)
+        def start(s, packets=packets, ctl=ctl):
+            sig = _LeggedSignals(s, s.binding, ctl=ctl, basis=basis, t_edit=float(a.get("t_edit", 1.0)),
+                                 edit=a.get("edit", "none"), packets=packets)
+            ep = Episode(float(TRACKER_HZ()))
+            ep.extra = sig.meta()
+            return ep, sig
 
-        def init(self, session, *aa, **kk):
-            o_init(self, session, *aa, **kk)
-            st["ep"] = Episode(float(TRACKER_HZ()))
-            st["sig"] = _LeggedSignals(session, session.binding, ctl=ctl, basis=basis,
-                                       t_edit=float(a.get("t_edit", 1.0)), edit=a.get("edit", "none"))
-            st["ep"].extra = st["sig"].meta()
+        def each(sig, s, act, step):
+            sig.energy.e = float(s.motion_recorder.energy)      # substep-exact (install_legged feeds the recorder)
+            sig.energy.move(s.data)
 
-        def on_reset(self, done):
-            o_reset(self, done)
-            if done and st["ep"] is not None:
-                st["ep"].reset_frames()
-                st["sig"].p0 = None
-                st["sig"].energy.reset()
-
-        def on_tick(self, d):
-            o_tick(self, d)
-            if not self.on or st["ep"] is None:
-                return
-            col = st["ep"].ensure(self.s.model)
-            st["sig"].energy.move(d)
-            if col.due():
-                col.frame(d, **st["sig"].frame(d, col=col))
-                col.events(d.time, _statuses(self.s.runtime))
-            col.tick()
+        def frame(sig, s, act, step, col):
+            return sig.frame(s.data, col=col)
+        tap = _Tap(start, frame, each)
         kw = dict(max_s=float(a.get("max_s", 60.0)))
         if robust:
             from rrp.harness.eval.robustness import _cond_by_key
             cond = _cond_by_key("legged", e["body"], a["condition_key"])
             kw["perturb"] = cond["pert"]
-        with _patched(MQ.LeggedMotionRecorder, "__init__", init), _patched(MQ.LeggedMotionRecorder, "on_tick", on_tick), \
-                _patched(MQ.LeggedMotionRecorder, "on_reset", on_reset), _patched(MQ.LeggedMotionRecorder, "on_substep", on_substep), \
-                _patched(LLC, "generate", generate), torch.no_grad():
-            row, _frames = run_episode(ctl, e["body"], sd, **kw)
+        with _patched(LLC, "generate", generate), torch.no_grad():
+            row, _frames = run_episode(ctl, e["body"], sd, hooks=[tap], **kw)
         match = dict(e.get("recorded", {}).get("match_row") or {})
         rec = find_recorded(e.get("recorded"), sd, match)
-        ep = st["ep"]
+        ep = tap.ep
         meta = _meta(e, sd, ep.model, success=bool(row["success"]), failure_stage=row.get("failure_stage"),
                      ckpt_sha=_legged_shas(a), recorded=rec, rec_key="success",
                      compare=dict(fell=(row.get("fell"), rec.get("fell") if rec else None),
@@ -1010,7 +986,7 @@ def _run_legged(e: dict, out: Path, pcache: dict, robust: bool) -> list[dict]:
                     fell=row.get("fell"), row_source=row.get("source"), signal_notes=LEGGED_NOTES,
                     waypoints=row.get("waypoints"))
         if a.get("edit", "none") != "none":
-            first = next((t_ for t_, ed, _z, _dz in st["sig"].packets if ed != "none"), None)
+            first = next((t_ for t_, ed, _z, _dz in packets if ed != "none"), None)
             meta.update(edit_onset_t=float(a.get("t_edit", 1.0)), edit_first_packet_t=None if first is None else round(first, 4))
         if robust:
             meta["perturbation"] = row.get("perturbation")
@@ -1041,13 +1017,12 @@ def run_legged_robust(e, out, pcache):
     return _run_legged(e, out, pcache, robust=True)
 
 
-# ------------------------------------------------------------------ tracker validation (own mj_step loop)
+# ------------------------------------------------------------------ tracker validation (bench env under rollout)
 def run_tracker_val(e: dict, out: Path, pcache: dict) -> list[dict]:
     import rrp.harness.eval.tracker_validation as TV
     from rrp.bodies.legged import legged_body, standalone_model
     from rrp.envs.mujoco.legged_core import LeggedBinding
     from rrp.envs.mujoco.legged_tracker import LearnedTracker, CPGTracker, tracker_path
-    import mujoco
     a = e["args"]
     body = e["body"]
     model, _, meta_b = standalone_model(legged_body(body), contact=a.get("contact", "v1"))
@@ -1061,26 +1036,24 @@ def run_tracker_val(e: dict, out: Path, pcache: dict) -> list[dict]:
         tracker, tsha = CPGTracker(b, meta_b), "scripted"
     sc = TV.scripts(b)[a["trial"]]
     results = []
+
+    def start(env):
+        sig = _LeggedSignals(None, b)
+        ep = Episode(1.0 / TV._DT)                           # tracker ticks at 50 Hz (dt 0.02)
+        ep.extra = sig.meta()
+        return ep, sig
+
+    def each(sig, env, act, step):
+        sig.energy.add(env.d, step.energy_j)                 # the bench env's own per-step energy (substep-exact)
+        sig.energy.move(env.d)
+
+    def frame(sig, env, act, step, col):
+        return sig.frame(env.d, col=col)
     for s_i in e["seeds"]:
         sd = int(s_i)
-        ep = Episode(50.0)                                   # tracker ticks at 50 Hz (dt 0.02)
-        sig = _LeggedSignals(None, b)
-        ep.extra = sig.meta()
-        sub = max(1, int(round(0.02 / model.opt.timestep)))
-        cnt = dict(n=0)
-
-        def on_step(m, d):
-            cnt["n"] += 1
-            sig.energy.step(d, float(m.opt.timestep))
-            if cnt["n"] % sub:
-                return
-            sig.energy.move(d)
-            col = ep.ensure(m)
-            if col.due():
-                col.frame(d, **sig.frame(d, col=col))
-            col.tick()
-        with _patched(TV, "mujoco", _Proxy(mujoco, on_step)):
-            res = TV.run_episode(model, b, tracker, sc, sd, act=None)
+        tap = _Tap(start, frame, each, data=lambda env: env.d)
+        res = TV.run_episode(model, b, tracker, sc, sd, act=None, hooks=[tap])
+        ep = tap.ep
         rec = find_recorded(e.get("recorded"), sd)
         e2 = dict(e)
         meta = _meta(e2, sd, model, success=not res["fell"], failure_stage="fell" if res["fell"] else None,
@@ -1105,99 +1078,88 @@ def _r3(x):
 # ------------------------------------------------------------------ DUAL teacher (rrp.evaluation.dual_teacher_quality)
 def run_dual_teacher(e: dict, out: Path, pcache: dict) -> list[dict]:
     import mujoco
-    import rrp.harness.data.dual_quality as DQ
     from rrp.harness.eval.dual_teacher_quality import run_audit_episode
     a = e["args"]
     results = []
+
+    def start(s):
+        m = s.model
+        objs = sorted({mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, o.sim_body) for o in s.detectables} - {-1})
+        names = [{l.name for l in r.spec.links} for r in s.robots]
+        rb = {b for b in range(m.nbody) if any(m.body(b).name in n for n in names)}     # robot bodies (contact exclusions)
+        acts = np.concatenate([_robot_act_ids(rr) for rr in s.robots])
+        ep = Episode(1.0 / s.dt)
+        ep.extra = dict(contact_bodies=[b for rr in s.robots for b in _sensor_bodies(m, rr.touch)],
+                        joint_names=[n for rr in s.robots for n in _qadr_joint_names(m, rr.qadr)],
+                        object_body=m.body(objs[0]).name if objs else None, hands=list(s.handles),
+                        joint_torque_names=[m.actuator(int(i)).name for i in acts])
+        groups = []
+        for rr in s.robots:
+            tb = [mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, n) if n else -1 for n in _sensor_bodies(m, rr.touch)]
+            groups += _subtrees(m, [x for x in tb if x >= 0])
+        return ep, dict(objs=objs, rb=rb, acts=acts, groups=groups, grip0={}, energy=_Energy(acts))
+
+    def each(sig, s, act, step):
+        pass
+
+    def frame(sig, s, act, step, col):
+        d, m, ob = s.data, s.model, sig["objs"]
+        tg, jp, tv = [], [], []
+        for rr in s.robots:
+            c = rr.controller
+            if c.target:
+                tg += [float(x) for g in c.groups if g in c.target for x in np.atleast_1d(c.target[g])]
+            jp += d.qpos[rr.qadr].tolist()
+            tv += [bool(v >= 0.2) for v in s._touch_values(rr)]
+        pose = np.concatenate([np.concatenate([d.xpos[b], d.xquat[b]]) for b in ob]) if ob else None
+        sig["energy"].sample(d, s.dt * col.stride)
+        rich = dict(joint_vel=np.concatenate([d.qvel[rr.dadr] for rr in s.robots]),
+                    actuator_force=d.actuator_force[sig["acts"]].copy(),
+                    power_w=sig["energy"].last_p, energy_j=sig["energy"].e,
+                    object_vel=_body_vel(m, d, ob[0]) if ob else None)
+        if sig["groups"]:
+            rich["contact_force"], rich["contact_pos"] = _contact_groups(m, d, sig["groups"], exclude=sig["rb"])
+        held_by = s.truth().held_by
+        hc, drift = [], []
+        for ent, h in s.handles.items():
+            tvh = list(s._touch_values(s.robots[h.robot]))
+            hc.append(bool(len(tvh) and max(tvh) >= 0.2))
+            objs = held_by.get(ent) or []
+            if not objs:
+                sig["grip0"].pop(ent, None)
+                drift.append(None)
+                continue
+            bid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, objs[0])
+            tcp, R = s.tcp_pose(ent)
+            pr = R.T @ (d.xpos[bid] - tcp)
+            Rr = R.T @ d.xmat[bid].reshape(3, 3)
+            if ent not in sig["grip0"] or sig["grip0"][ent][0] != bid:
+                sig["grip0"][ent] = (bid, pr.copy(), Rr.copy())
+            _, p0_, R0_ = sig["grip0"][ent]
+            ang = math.degrees(math.acos(max(-1.0, min(1.0, (np.trace(R0_.T @ Rr) - 1) / 2))))
+            drift.append([float(np.linalg.norm(pr - p0_)) * 1000.0, ang])
+        rich.update(hand_contact=hc, grip_drift=drift)
+        return dict(joint_target=tg, joint_pos=jp, contacts=tv, object_pose=pose,
+                    penetration_mm=_penetration_mm(m, d, {g for g in range(m.ngeom) if m.geom_bodyid[g] in set(ob)}, sig["rb"]),
+                    phase=act.info.get("phase"), **rich)
+
     for sd in e["seeds"]:
         sd = int(sd)
-        st = dict(ep=None, objs=None, rb=None)
-        o_init, o_after = DQ.DualQualityRecorder.__init__, DQ.DualQualityRecorder.after_step
-
-        def init(self, session, teacher=None, *aa, **kk):
-            o_init(self, session, teacher, *aa, **kk)
-            st["ep"] = Episode(1.0 / session.dt)
-            st["objs"] = sorted(self.obj_bodies)
-            st["rb"] = set(self.body_robot)
-            m = session.model
-            st["ep"].extra = dict(contact_bodies=[b for rr in session.robots for b in _sensor_bodies(m, rr.touch)],
-                                  joint_names=[n for rr in session.robots for n in _qadr_joint_names(m, rr.qadr)],
-                                  object_body=m.body(st["objs"][0]).name if st["objs"] else None,
-                                  hands=list(session.handles))
-            st["acts"] = np.concatenate([_robot_act_ids(rr) for rr in session.robots])
-            st["ep"].extra["joint_torque_names"] = [m.actuator(int(i)).name for i in st["acts"]]
-            st["energy"] = _Energy(st["acts"])
-            groups = []
-            for rr in session.robots:
-                tb = [mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, n) if n else -1 for n in _sensor_bodies(m, rr.touch)]
-                groups += _subtrees(m, [x for x in tb if x >= 0])
-            st["groups"] = groups
-            st["grip0"] = {}
-
-        def after(self, *aa, **kk):
-            r = o_after(self, *aa, **kk)
-            s, d, m = self.s, self.s.data, self.s.model
-            col = st["ep"].ensure(m)
-            if col.due():
-                tg, jp, tv = [], [], []
-                for rr in s.robots:
-                    c = rr.controller
-                    if c.target:
-                        tg += [float(x) for g in c.groups if g in c.target for x in np.atleast_1d(c.target[g])]
-                    jp += d.qpos[rr.qadr].tolist()
-                    tv += [bool(v >= 0.2) for v in s._touch_values(rr)]
-                ob = st["objs"]
-                pose = np.concatenate([np.concatenate([d.xpos[b], d.xquat[b]]) for b in ob]) if ob else None
-                t = self.teacher
-                st["energy"].step(d, s.dt * col.stride)
-                rich = dict(joint_vel=np.concatenate([d.qvel[rr.dadr] for rr in s.robots]),
-                            actuator_force=d.actuator_force[st["acts"]].copy(),
-                            power_w=st["energy"].last_p, energy_j=st["energy"].e,
-                            object_vel=_body_vel(m, d, ob[0]) if ob else None)
-                if st["groups"]:
-                    rich["contact_force"], rich["contact_pos"] = _contact_groups(m, d, st["groups"], exclude=st["rb"])
-                held_by = s.truth().held_by
-                hc, drift = [], []
-                for ent, h in s.handles.items():
-                    tvh = list(s._touch_values(s.robots[h.robot]))
-                    hc.append(bool(len(tvh) and max(tvh) >= 0.2))
-                    objs = held_by.get(ent) or []
-                    if not objs:
-                        st["grip0"].pop(ent, None)
-                        drift.append(None)
-                        continue
-                    bid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, objs[0])
-                    tcp, R = s.tcp_pose(ent)
-                    pr = R.T @ (d.xpos[bid] - tcp)
-                    Rr = R.T @ d.xmat[bid].reshape(3, 3)
-                    if ent not in st["grip0"] or st["grip0"][ent][0] != bid:
-                        st["grip0"][ent] = (bid, pr.copy(), Rr.copy())
-                    _, p0_, R0_ = st["grip0"][ent]
-                    ang = math.degrees(math.acos(max(-1.0, min(1.0, (np.trace(R0_.T @ Rr) - 1) / 2))))
-                    drift.append([float(np.linalg.norm(pr - p0_)) * 1000.0, ang])
-                rich.update(hand_contact=hc, grip_drift=drift)
-                col.frame(d, joint_target=tg, joint_pos=jp, contacts=tv, object_pose=pose,
-                          penetration_mm=_penetration_mm(m, d, {g for g in range(m.ngeom) if m.geom_bodyid[g] in set(ob)},
-                                                         st["rb"]),
-                          phase=getattr(t, "phase_label", None) if t is not None else None, **rich)
-                col.events(d.time, _statuses(s.runtime))
-            col.tick()
-            return r
-        with _patched(DQ.DualQualityRecorder, "__init__", init), _patched(DQ.DualQualityRecorder, "after_step", after):
-            row = run_audit_episode(a["task"], a["pair"], sd, max_steps=int(a.get("max_steps", 1200)),
-                                    teacher_version=a.get("teacher_version"), noise=float(a.get("noise", 0.0)))
-        if st["ep"] is None:
+        tap = _Tap(start, frame, each)
+        row = run_audit_episode(a["task"], a["pair"], sd, max_steps=int(a.get("max_steps", 1200)),
+                                teacher_version=a.get("teacher_version"), noise=float(a.get("noise", 0.0)), hooks=[tap])
+        if tap.ep is None:
             results.append(dict(id=f"{e['id']}-s{sd}", skipped=row.get("status")))
             continue
         rec = find_recorded(e.get("recorded"), sd, {"pair": a["pair"]})
-        meta = _meta(e, sd, st["ep"].model, success=row["status"] == "success", failure_stage=row.get("failure_phase"),
+        meta = _meta(e, sd, tap.ep.model, success=row["status"] == "success", failure_stage=row.get("failure_phase"),
                      ckpt_sha=None, recorded=rec, rec_key=None,
                      rec_success=(rec.get("status") == "success") if rec else None,
                      compare=dict(status=(row.get("status"), rec.get("status") if rec else None),
                                   steps=(row.get("steps"), rec.get("steps") if rec else None),
                                   failure_phase=(row.get("failure_phase"), rec.get("failure_phase") if rec else None)))
         meta.update(pair=a["pair"], teacher_version=row.get("teacher_version") or "v2", gate=row.get("gate"),
-                    penetration_max_m=row.get("penetration_max_m"), objects=[st["ep"].model.body(b).name for b in st["objs"]],
+                    penetration_max_m=row.get("penetration_max_m"), objects=[tap.ep.model.body(b).name for b in tap.sig["objs"]],
                     signal_notes=dict(joint_target="both robots' controller targets (all groups, robot order)",
                                       joint_pos="both robots' joint positions", contacts="finger touch sensors >= 0.2, robot order",
                                       object_pose="task objects (meta.objects), xyz + quat wxyz each (privileged)",
@@ -1206,70 +1168,70 @@ def run_dual_teacher(e: dict, out: Path, pcache: dict) -> list[dict]:
                                                     "tangential] N against non-robot bodies (privileged)",
                                       contact_pos="per finger force-weighted contact point (world m; privileged)",
                                       power_w="sum |actuator force x velocity| sampled at control ticks (W)",
-                                      energy_j="tick-sampled integral of power_w (J)",
+                                      energy_j="integral of power_w sampled at recorded frames (J; control-tick resolution, an approximation)",
                                       object_vel="first task object [v, w] world (privileged)",
                                       hand_contact="per hand (meta.hands): any touch sensor >= 0.2 (public)",
                                       grip_drift="per hand: held object's [position mm, rotation deg] drift in the TCP frame "
                                                  "since the grip formed (privileged held truth); null when not holding",
                                       penetration_mm="max object-robot penetration (privileged)",
                                       phase="scripted teacher phase label L:<left>|R:<right>"))
-        results.append(_finish(e, sd, meta, st["ep"], out))
+        results.append(_finish(e, sd, meta, tap.ep, out))
     return results
 
 
-# ------------------------------------------------------------------ GRASP RIG (rrp.evaluation.grasp_rig, own mj_step loop)
+# ------------------------------------------------------------------ GRASP RIG (bench env under rollout)
 def run_grasp_rig(e: dict, out: Path, pcache: dict) -> list[dict]:
     import mujoco
     import rrp.harness.eval.grasp_rig as GR
     a = e["args"]
-    st = dict(ep=None, sig=None, n=0, mass=None)
 
-    def on_step(m, d):
-        if st["ep"] is None:
-            st["ep"] = Episode(1.0 / m.opt.timestep)
-            cube = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, "cube")
-            palm = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, "r0_palm")
-            cg = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_GEOM, "cube_geom")
-            pads = [g for g in range(m.ngeom) if GR.GC.PAD_RE.search(m.geom(g).name or "")]
-            jn = [j for j in range(m.njnt) if m.jnt_type[j] in (2, 3)]
-            st["sig"] = dict(cube=cube, palm=palm, cg=cg, pads=pads, qadr=[int(m.jnt_qposadr[j]) for j in jn], rel0=None,
-                             dadr=[int(m.jnt_dofadr[j]) for j in jn], energy=_Energy(np.arange(m.nu)),
-                             groups=[{int(m.geom_bodyid[p])} for p in pads])
-            st["ep"].extra = dict(contact_bodies=[m.body(int(m.geom_bodyid[p])).name for p in pads], object_body="cube",
-                                  base_body="carriage", joint_names=[m.joint(j).name for j in jn],
-                                  joint_target_names=[m.actuator(i).name for i in range(m.nu)],
-                                  joint_torque_names=[m.actuator(i).name for i in range(m.nu)])
-        col = st["ep"].ensure(m)
-        g = st["sig"]
-        g["energy"].step(d, float(m.opt.timestep))
-        if col.due():
-            rel = d.xpos[g["cube"]] - d.xpos[g["palm"]]
-            if g["rel0"] is None:
-                g["rel0"] = rel.copy()
-            touch = set()
-            for i in range(d.ncon):
-                c = d.contact[i]
-                if g["cg"] in (c.geom1, c.geom2):
-                    touch.add(c.geom1 if c.geom2 == g["cg"] else c.geom2)
-            t = float(d.time)
-            ph = "settle" if t < 0.2 else "close" if t < 1.0 else "lift" if t < 1.5 else "hold" if t < 2.0 else "mass_ramp"
-            col.frame(d, joint_target=d.ctrl.copy(), joint_pos=d.qpos[g["qadr"]], contacts=[p in touch for p in g["pads"]],
-                      object_pose=np.concatenate([d.xpos[g["cube"]], d.xquat[g["cube"]]]),
-                      penetration_mm=_penetration_mm(m, d, {g["cg"]}, {int(m.geom_bodyid[p]) for p in g["pads"]}),
-                      slip=float(np.linalg.norm(rel - g["rel0"])) * 1000.0, phase=ph,
-                      joint_vel=d.qvel[g["dadr"]], actuator_force=d.actuator_force.copy(), object_vel=_body_vel(m, d, g["cube"]),
-                      power_w=g["energy"].last_p, energy_j=g["energy"].e,
-                      **dict(zip(("contact_force", "contact_pos"), _contact_groups(m, d, g["groups"], other={g["cube"]}))))
-            mass = round(float(m.body_mass[g["cube"]]), 4)
-            if mass != st["mass"]:
-                col.annotate(t, f"cube mass {mass:.3f} kg")
-                st["mass"] = mass
-        col.tick()
-    with _patched(GR, "mujoco", _Proxy(mujoco, on_step)):
-        res = GR.run(a["version"], a["gripper"], float(a.get("friction_scale", 1.0)), yaw=math.radians(float(a.get("yaw_deg", 0.0))))
+    def start(env):
+        m = env.model
+        pads = [g for g in range(m.ngeom) if GR.GC.PAD_RE.search(m.geom(g).name or "")]
+        jn = [j for j in range(m.njnt) if m.jnt_type[j] in (2, 3)]
+        sig = dict(cube=mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, "cube"), cg=mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_GEOM, "cube_geom"),
+                   palm=mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, "r0_palm"), pads=pads,
+                   qadr=[int(m.jnt_qposadr[j]) for j in jn], dadr=[int(m.jnt_dofadr[j]) for j in jn], rel0=None, mass=None,
+                   energy=_Energy(np.arange(m.nu)), groups=[{int(m.geom_bodyid[p])} for p in pads])
+        ep = Episode(1.0 / m.opt.timestep)
+        ep.extra = dict(contact_bodies=[m.body(int(m.geom_bodyid[p])).name for p in pads], object_body="cube",
+                        base_body="carriage", joint_names=[m.joint(j).name for j in jn],
+                        joint_target_names=[m.actuator(i).name for i in range(m.nu)],
+                        joint_torque_names=[m.actuator(i).name for i in range(m.nu)])
+        return ep, sig
+
+    def each(g, env, act, step):
+        g["energy"].add(env.d, step.energy_j)                 # the rig env's own per-tick energy (every physics step)
+
+    def frame(g, env, act, step, col):
+        m, d = env.model, env.d
+        rel = d.xpos[g["cube"]] - d.xpos[g["palm"]]
+        if g["rel0"] is None:
+            g["rel0"] = rel.copy()
+        touch = set()
+        for i in range(d.ncon):
+            c = d.contact[i]
+            if g["cg"] in (c.geom1, c.geom2):
+                touch.add(c.geom1 if c.geom2 == g["cg"] else c.geom2)
+        t = float(d.time)
+        ph = "settle" if t < 0.2 else "close" if t < 1.0 else "lift" if t < 1.5 else "hold" if t < 2.0 else "mass_ramp"
+        mass = round(float(m.body_mass[g["cube"]]), 4)
+        if mass != g["mass"]:
+            col.annotate(t, f"cube mass {mass:.3f} kg")
+            g["mass"] = mass
+        return dict(joint_target=d.ctrl.copy(), joint_pos=d.qpos[g["qadr"]], contacts=[p in touch for p in g["pads"]],
+                    object_pose=np.concatenate([d.xpos[g["cube"]], d.xquat[g["cube"]]]),
+                    penetration_mm=_penetration_mm(m, d, {g["cg"]}, {int(m.geom_bodyid[p]) for p in g["pads"]}),
+                    slip=float(np.linalg.norm(rel - g["rel0"])) * 1000.0, phase=ph,
+                    joint_vel=d.qvel[g["dadr"]], actuator_force=d.actuator_force.copy(), object_vel=_body_vel(m, d, g["cube"]),
+                    power_w=g["energy"].last_p, energy_j=g["energy"].e,
+                    **dict(zip(("contact_force", "contact_pos"), _contact_groups(m, d, g["groups"], other={g["cube"]}))))
+    tap = _Tap(start, frame, each, data=lambda env: env.d)
+    res = GR.run(a["version"], a["gripper"], float(a.get("friction_scale", 1.0)), yaw=math.radians(float(a.get("yaw_deg", 0.0))),
+                 hooks=[tap])
     rec = _rig_recorded(e.get("recorded"), a)
     sd = 0
-    meta = _meta(e, sd, st["ep"].model, success=bool(res["lift_held"]), failure_stage=None if res["lift_held"] else "lift",
+    meta = _meta(e, sd, tap.ep.model, success=bool(res["lift_held"]), failure_stage=None if res["lift_held"] else "lift",
                  ckpt_sha=None, recorded=rec, rec_key="lift_held",
                  compare=dict(lift_held=(res["lift_held"], rec.get("lift_held") if rec else None),
                               slip_mass_kg=(_r3(res.get("slip_mass_kg")), _r3(rec.get("slip_mass_kg")) if rec else None),
@@ -1281,8 +1243,8 @@ def run_grasp_rig(e: dict, out: Path, pcache: dict) -> list[dict]:
         phase="rig schedule: settle 0.2 s, close 0.8 s, lift 0.5 s, hold 0.5 s, then mass ramp x1.08 / 0.25 s to slip",
         joint_vel="rig joint velocities", actuator_force="rig actuator forces (lift, grip)",
         contact_force="per pad [normal, tangential] force on the cube (N)", contact_pos="per pad force-weighted contact point",
-        object_vel="cube [v, w] world", power_w="sum |actuator force x velocity| (W)", energy_j="integral over every step (J)"))
-    return [_finish(e, sd, meta, st["ep"], out)]
+        object_vel="cube [v, w] world", power_w="sum |actuator force x velocity| (W)", energy_j="integral over every physics step, from the rig env's StepResult (J)"))
+    return [_finish(e, sd, meta, tap.ep, out)]
 
 
 def _rig_recorded(rec, a):

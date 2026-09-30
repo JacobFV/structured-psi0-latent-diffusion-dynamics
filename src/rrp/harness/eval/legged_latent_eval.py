@@ -136,7 +136,7 @@ def _episode_task(max_s: float, long_mode: bool):
 
 
 def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=None, arc_only=False, frame_every=2,
-                cam_scale=1.0, size=(368, 480), perturb=None, deploy=None):
+                cam_scale=1.0, size=(368, 480), perturb=None, deploy=None, hooks=()):
     """One waypoint_contact episode through harness.rollout. ctl None: the scripted teacher (privileged WaypointTeacher,
     base_velocity control through the body tracker); a LatentLeggedController / BCController: the policy on the `legs`
     action space (rrp.policies.legged; 50 Hz joint targets, 10 Hz sensing/runtime/fall schedule unchanged).
@@ -144,7 +144,9 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
     `motion` (read-only recording) and, if perturbed, `perturbation`. deploy: rrp.harness.eval.deploy_eval.DeployOptions
     (D-126: estimator, packet OOD, safety, long runs, latency; None or the default instance = no options).
     Rows keep the former fields; since S5 the policy routes' per-tick `trace`, adapter `stats` and the failure-stage
-    path start after the 0.3 s reset settle (research/decisions.md, D-140 S5e)."""
+    path start after the 0.3 s reset settle (research/decisions.md, D-140 S5e). `hooks`: extra rollout hooks after the
+    episode's own (read-only recorders, rrp.viz.record); the session carries `motion_recorder`, the per-substep
+    LeggedMotionRecorder that `install_legged` feeds (its `energy` is the substep-exact energy of the episode)."""
     from rrp.envs.mujoco.motion_quality import LeggedMotionRecorder
     from rrp.envs.mujoco.perturb import apply_model, install_legged
     from rrp.harness.data.contact_metrics import contact_metrics_enabled
@@ -181,7 +183,7 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
             b_ = s.binding
             pert_rec = apply_model(s.model, perturb, robot_bodies=b_.robot_bodies, com_body=b_.root_bid,
                                    act_ids=b_.pol_act)
-        mrec = LeggedMotionRecorder(s, record_stance=cfm)
+        mrec = s.motion_recorder = LeggedMotionRecorder(s, record_stance=cfm)
         pst = install_legged(s, perturb if perturb is not None else _NOMINAL, seed, on_substep=mrec.on_substep,
                              on_tick=mrec.on_tick, on_reset=mrec.on_reset)
         dep = _deploy_setup(s, ctl, deploy) if deploy is not None else None
@@ -202,7 +204,7 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
     hook = _LeggedEpisode(policy, ctl, deploy, dep, rend, cam, frame_every)
     t0 = time.time()
     ep, = rollout(lambda sd: s, policy, _episode_task(max_s, long_mode), [seed], batch=1, max_seconds=math.inf,
-                  hooks=[hook])
+                  hooks=[hook, *hooks])
     if ep.outcome == "crash":
         raise RuntimeError(f"legged episode crashed ({ep.failure_reason}): {ep.metrics.get('note', '')}")
     ad = getattr(policy, "ad", None)

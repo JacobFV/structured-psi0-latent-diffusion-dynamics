@@ -1,11 +1,14 @@
-"""Replay recorder (rrp.viz.record / rrp.viz.replay, viz/CONTRACT.md, D-131). Host-light: a tiny synthetic model
-(no simulation beyond 3 mj_steps) for the schema, and a 6-tick arm case for recorded == unrecorded actions.
-The legged hook check runs a short legged episode and is peer-only (RRP_NODE=peer)."""
+"""Replay recorder (rrp.viz.record / rrp.viz.replay, viz/CONTRACT.md, D-131; RP5 / D-146: the recorder is a set of
+rollout hooks). Host-light: a tiny synthetic model (no simulation beyond 3 mj_steps) for the schema, tiny
+CPG-tracker / arm / dual / rig episodes for "recorded == unrecorded" and "energy from StepResult", and an AST check
+that record.py steps nothing itself. The legged hook check runs a short legged episode and is peer-only (RRP_NODE=peer)."""
 from __future__ import annotations
 
+import ast
 import gzip
 import json
 import os
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -215,3 +218,119 @@ def test_recorded_legged_episode_matches_unrecorded(tmp_path):
     doc = RP.read_replay(res[0]["file"])
     RP.validate_replay(doc)
     assert doc["meta"]["reproduction"]["compared"]["final_pose"]["rerun"] == np.round(row0["final_pose"], 3).tolist()
+
+
+# ------------------------------------------------------------------ RP5: the recorder is a set of rollout hooks
+def _calls(tree):
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Call):
+            f = n.func
+            yield (f.attr if isinstance(f, ast.Attribute) else f.id if isinstance(f, ast.Name) else None), n
+
+
+def test_record_has_no_private_step_loop():
+    """record.py owns no stepping: no `mj_step` / `.step()` / `mj_forward` call, no patched stepping or
+    recorder-class function. The only things it still wraps are the three packet generators (display taps that read and
+    call the original)."""
+    src = Path(RV.__file__).read_text()
+    tree = ast.parse(src)
+    bad = [name for name, _ in _calls(tree) if name in ("step", "mj_step", "mj_forward", "mj_kinematics")]
+    assert not bad, f"record.py steps the physics itself: {bad}"
+    patched = [c.args[1].value for n, c in _calls(tree) if n == "_patched" and len(c.args) > 1
+               and isinstance(c.args[1], ast.Constant)]
+    assert set(patched) <= {"generate", "packet", "receive"}, patched
+    assert "_Proxy" not in src and "on_substep" not in src and "after_step" not in src
+
+
+def _entry(**kw):
+    e = dict(id="unit", family="legged", task="waypoint", body="hexapod6", route="teacher",
+             source_label="scripted_teacher:unit", decision_refs=["D-146"], seeds=[1000], condition="unit")
+    e.update(kw)
+    return e
+
+
+def test_recorded_tracker_trial_equals_unrecorded_and_energy_is_the_step_result(tmp_path, monkeypatch):
+    """The tracker-validation recorder is a hook on the bench env: the row is identical with and without it, and the
+    replay's cumulative energy at its last frame is the sum of the env's own per-step `StepResult.energy_j` (substep-exact)."""
+    pytest.importorskip("mujoco")
+    from rrp.bodies.legged import legged_body, standalone_model
+    from rrp.envs.mujoco.legged_core import LeggedBinding
+    from rrp.envs.mujoco.legged_tracker import CPGTracker
+    from rrp.harness.eval import tracker_validation as TV
+    from rrp.harness.rollout import rollout
+    model, _, meta = standalone_model(legged_body("hexapod6"), contact="v1")
+    b = LeggedBinding(model, meta)
+    trial = dict(T=0.8, cmd=[0.3 * b.cmd_ranges["vx"][1], 0, 0])
+    row0 = TV.run_episode(model, b, CPGTracker(b, meta), trial, 1000)
+    monkeypatch.setattr(TV, "scripts", lambda bb: {"t": trial})
+    e = _entry(harness="tracker_val", args=dict(kind="cpg", trial="t"))
+    res = RV.run_tracker_val(e, tmp_path, {})
+    doc = RP.read_replay(res[0]["file"])
+    RP.validate_replay(doc)
+    assert doc["meta"]["success"] == (not row0["fell"])
+    for k in ("dist_m", "mean_vx", "slip_mps", "duty_factor"):
+        assert doc["meta"]["result"][k] == pytest.approx(row0[k], abs=1e-9)
+    # energy: an independent rollout summing the env's StepResult.energy_j at the same frames
+    seen = []
+
+    class Sum:
+        def on_step(self, i, env, act, step):
+            seen.append(step.energy_j)
+    TV.run_episode(model, b, CPGTracker(b, meta), trial, 1000, hooks=[Sum()])
+    assert len(seen) == int(round(trial["T"] / TV._DT)) and all(x is not None and x >= 0 for x in seen)
+    k = int(round(doc["frames"]["t"][-1] / TV._DT))                    # the last recorded frame is the k-th tick
+    total = doc["meta"]["energy_total_j"]
+    assert total == pytest.approx(sum(seen[:k]), rel=1e-3) and total > 0
+
+
+def test_recorded_arm_teacher_equals_unrecorded(tmp_path):
+    """The arm-teacher recorder is a hook of `run_quality_episode`: the quality row is identical with and without it and
+    the replay's phase is the teacher's own label, delivered as `Act.info["phase"]`."""
+    pytest.importorskip("mujoco")
+    from rrp.harness.eval.teacher_quality import run_quality_episode
+    row0 = run_quality_episode("parm5_pg2", 3, "v1", max_steps=14)
+    e = _entry(harness="arm_teacher", family="arm", task="pick_place", body="parm5_pg2", seeds=[3],
+               args=dict(robot="parm5_pg2", version="v1", max_steps=14))
+    res = RV.run_arm_teacher(e, tmp_path, {})
+    doc = RP.read_replay(res[0]["file"])
+    RP.validate_replay(doc)
+    assert doc["meta"]["success"] == bool(row0["success"])
+    assert doc["meta"]["reproduction"]["compared"]["steps"]["rerun"] == row0["steps"]
+    assert doc["n_frames"] >= 1 and all(isinstance(p, str) and p for p in doc["signals"]["phase"])
+
+
+def test_recorded_dual_teacher_equals_unrecorded(tmp_path):
+    """The dual-teacher recorder is a hook after the audit's own: same row with and without it; the replay's phase
+    comes from `Act.info` (the teacher's label) and survives DART noise."""
+    pytest.importorskip("mujoco")
+    from rrp.harness.eval.dual_teacher_quality import run_audit_episode
+    row0 = run_audit_episode("support_insert", DUAL_PAIR, 3, max_steps=12, noise=0.03)
+    e = _entry(harness="dual_teacher", family="dual", task="support_insert", body=DUAL_PAIR, seeds=[3],
+               args=dict(task="support_insert", pair=DUAL_PAIR, max_steps=12, noise=0.03))
+    res = RV.run_dual_teacher(e, tmp_path, {})
+    doc = RP.read_replay(res[0]["file"])
+    RP.validate_replay(doc)
+    m = doc["meta"]
+    assert m["success"] == (row0["status"] == "success")
+    assert m["reproduction"]["compared"]["steps"]["rerun"] == row0["steps"]
+    assert doc["n_frames"] >= 1 and all(p is None or p.startswith("L:") for p in doc["signals"]["phase"])
+    assert any(doc["signals"]["phase"])
+
+
+def test_recorded_grasp_rig_equals_unrecorded(tmp_path):
+    """The rig recorder is a hook on the rig env: the rig's result row is identical with and without it, and the
+    replay's energy is the env's per-step StepResult.energy_j integrated over every physics step."""
+    pytest.importorskip("mujoco")
+    import rrp.harness.eval.grasp_rig as GR
+    res0 = GR.run("v2", "pg2", 1.0)
+    e = _entry(harness="grasp_rig", family="rig", task="grasp_rig", body="pg2", seeds=[0],
+               args=dict(version="v2", gripper="pg2"))
+    res = RV.run_grasp_rig(e, tmp_path, {})
+    doc = RP.read_replay(res[0]["file"])
+    RP.validate_replay(doc)
+    assert doc["meta"]["result"] == res0
+    assert doc["meta"]["energy_total_j"] > 0 and doc["n_frames"] > 10
+    assert set(doc["signals"]["phase"]) >= {"close", "lift"}
+
+
+DUAL_PAIR = "parm5l_pg2__parm6_pg2"

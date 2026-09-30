@@ -92,7 +92,8 @@ class _RigEnv:
         self.d.ctrl[self.lift] = command.groups["lift"][0]
         mujoco.mj_step(self.model, self.d)
         self.k += 1
-        return StepResult(observation=self.observe(), qpos=None, time=float(self.d.time))
+        energy = float(np.sum(np.abs(self.d.actuator_force * self.d.actuator_velocity))) * float(self.model.opt.timestep)
+        return StepResult(observation=self.observe(), qpos=None, time=float(self.d.time), energy_j=energy)
 
 
 class _RigScript:
@@ -204,7 +205,8 @@ class _RigMeter:
                              slip_mass=self.slip_mass, N_prev=self.N_prev))
 
 
-def run(version="v2", kind="pg2", fscale=1.0, t_close=0.8, verbose=False, yaw=0.0):
+def run(version="v2", kind="pg2", fscale=1.0, t_close=0.8, verbose=False, yaw=0.0, hooks=()):
+    """One rig run (`hooks`: extra read-only rollout hooks after the meter, e.g. the replay recorder)."""
     from rrp.harness.rollout import rollout
     m, info = build(version, kind, fscale=fscale, yaw=yaw)
     d = mujoco.MjData(m)
@@ -224,7 +226,7 @@ def run(version="v2", kind="pg2", fscale=1.0, t_close=0.8, verbose=False, yaw=0.
     script = _RigScript(dt, opened, closed, n_settle, n_close, n_lift, t_lift)
     meter = _RigMeter(m, pads, n_settle, n_close, n_lift, n_win)
     ep, = rollout(lambda sd: _RigEnv(m, d, kind, grip, lift), script, _rig_task(n_settle + n_close + n_lift + 200 * n_win),
-                  [0], batch=1, hooks=[meter])
+                  [0], batch=1, hooks=[meter, *hooks])
     if ep.outcome == "crash":
         raise RuntimeError(f"grasp rig crashed ({ep.failure_reason}): {ep.metrics.get('note', '')}")
     r = ep.metrics["rig"]
