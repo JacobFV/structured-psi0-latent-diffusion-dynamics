@@ -17,7 +17,7 @@ peak measured PER BODY (D-117); never live-modify a lease; `rrp ops stop` only w
 - Tracker PPO today: CPU C-MuJoCo, ~2.5 k samples/s at 3–4 workers (g1_src 800 it × 6144 samples in 1,887 s; t1 w8d 2,497 s;
   h1 r2 5,500 it in 3,842 s of resumed wall). ≈ 650–800 samples/s per worker ⇒ ≈ 10–12 k samples/s with 16 workers on an idle peer.
 - Code ready, never run: `--ref-gait clock`, `--yaw-progress-cap`, `--limit-margin[-agg]`, recipes in
-  `rrp.training.tracker_recipes`, `dags/d126_tracker_*.yaml`; MJX prototype (`envs/mjx_legged.py`, contact_v2 accepted with
+  `rrp.harness.train.tracker_recipes`, `recipes/humanoid/d126_tracker_*.yaml`; MJX prototype (dropped with the env refactor; contact_v2 accepted with
   `no_self_collision`; 512 envs ≈ 512 ticks/s on a CONTENDED GPU, i.e. not yet useful).
 
 ## 1. body pool (a): menagerie humanoids + a procedural family
@@ -61,7 +61,7 @@ multiplicity and null bindings (no arms ⇒ `hand_*` roles bound to null with re
 context, not afterthoughts.
 
 ## 2. tasks (b): staged, easy → hard (success metric; failure reasons; privileged-only fields marked)
-All scenes built by `rrp.envs.humanoid_scenes` (P2), task graphs in `tasks/h_*.json`, contact_v2, sourced limits, scaled to
+All scenes built by `rrp.envs.mujoco.humanoid_scenes` (P2), task graphs built in code (no `tasks/h_*.json` files any more), contact_v2, sourced limits, scaled to
 body height where geometry matters (step height, gap width, object size = f(leg length)). Every episode records `fell`
 (base height < 0.55 × nominal or tilt > 0.7 rad), `timeout`, and the task-specific reasons below; failure reasons are
 computed by the privileged evaluator and never enter deployable observations.
@@ -153,7 +153,7 @@ Results here (does a semantic packet help a humanoid realizer transfer?) inform 
 
 ## P1a RESULT (2026-09-29 00:00): MuJoCo Warp adopted as the humanoid training simulator (gate partly missed, recorded)
 Engine: mujoco_warp 3.14.0 + warp-lang 1.17.0 in an isolated target dir on the peer (`~/work/ext/pylibs/mjwarp`, 468 MB; not an
-rrp dependency; `PYTHONPATH=src:~/work/ext/pylibs/mjwarp`). Code: `src/rrp/envs/warp_legged.py` (bake-off), raw JSON
+rrp dependency; `PYTHONPATH=src:~/work/ext/pylibs/mjwarp`). Code: `src/rrp/envs/warp/` (bake-off; then model/tracker_env/task_env), raw JSON
 `artifacts/runs/humanoid_p1a_warp_{t1,g1,h1}.json` (peer store). Model = the contact_v2 tracker world with the declared
 adaptation `no_self_collision` (robot collides with ground only), identical on both sides.
 - Parity (open-loop PD, same model, float32 vs float64): max |dqpos| 4.5e-6 (t1), 2.2e-6 (g1), 2.6e-6 (h1) over 50 ticks (1 s);
@@ -161,13 +161,13 @@ adaptation `no_self_collision` (robot collides with ground only), identical on b
 - Throughput, env-ticks/s (1 tick = 10 substeps), idle GPU: t1 62.7k/57.7k/55.3k at 1,024/4,096/8,192 worlds; g1 52.0k/58.0k/58.0k;
   h1 106.8k/126.4k/119.5k (saturates at ~1k worlds). C MuJoCo one thread: t1 1.5k, g1 1.5k, h1 4.3k.
   Fewer solver iterations do not help (10 iters/20 ls: g1 43k, with line-search warnings; 4 iters: C side unstable).
-- GPU PPO end to end (`rrp.training.warp_tracker_ppo`, t1, 4,096 worlds, horizon 24): 2.3 s/iter = 42k samples/s vs the CPU
+- GPU PPO end to end (`rrp.harness.train.warp_tracker_ppo`, t1, 4,096 worlds, horizon 24): 2.3 s/iter = 42k samples/s vs the CPU
   trainer's ~11k samples/s at 16 workers (measured 650-800/worker) => 3.8x. The pre-declared gate asked >= 5x: MISSED on
   training throughput (5.2x only on raw simulation). Decision (recorded, not silent): adopt the GPU trainer anyway, because it
   leaves the shared 20 peer CPUs to the other tracks and still cuts per-body wall-clock ~4x. Side effect: two concurrent GPU
   runs hold the GB10 at ~95% and the SoC at ~95 C, which trips the broker's `cpu_hot` admission stop for everyone; keep W13 to
   <= 2 GPU training leases and schedule short checks between runs.
-- Observation parity of the GPU env (`scripts/humanoid_warp_obs_parity.py`) vs `LeggedBinding.public_obs`: <= 3e-7 on t1, g1,
+- Observation parity of the GPU env (`humanoid_warp_obs_parity` (throwaway diagnostic, not kept)) vs `LeggedBinding.public_obs`: <= 3e-7 on t1, g1,
   op3, apollo, adam_lite. Zero-action survival agrees with C MuJoCo (t1 ~1.2 s both; op3 stands both; apollo/adam_lite fall at
   ~1.4-1.6 s both).
 
@@ -212,7 +212,7 @@ Long runs use `/dev/shm/rrp-brandonin/wt/humanoid` (never re-synced while they r
   the 0.15 m/s push and all in-range robustness conditions; forward 1.08, turn 0.96, slip 0.018, CoT 0.51, joint margin 0.032.
   Lab gate PASS. D-112 gate FAIL on one criterion: peak foot force 3.72 BW (limit 3.0). Waypoint (scripted_teacher) 0/20
   success, 0 falls: walk_to_a and walk_to_b succeed, the final `halt` fails because under a zero command h1 keeps stepping and
-  drifts ~0.06 m/s with yaw (`scripts/humanoid_waypoint_diag.py`). Videos (peer store, `artifacts/video/INDEX.md`):
+  drifts ~0.06 m/s with yaw (`humanoid_waypoint_diag` (throwaway diagnostic, not kept)). Videos (peer store, `artifacts/video/INDEX.md`):
   `2026-09-29_contact_h1_{forward,turn}_*-vs-h1-gpu-r3_ok_ok.mp4` (both panels show r3: no installed h1 contact_v2 actor on the
   peer, labelled by the version string), t1 r1 failure clip `2026-09-29_contact_t1_forward_forward_installed-vs-t1-gpu-r1_ok_fell.mp4`.
   -> h1 r4 (running): ~25% zero commands, stand_contact 2, stand_still -1, impact -0.5.
@@ -251,7 +251,7 @@ Long runs use `/dev/shm/rrp-brandonin/wt/humanoid` (never re-synced while they r
 - `h_steps` GPU expert env bug found and fixed: changing box geom sizes at run time (per-world step heights via batched
   geom_size/pos/aabb/rbound) breaks mujoco_warp contacts -- with a flush h = 0 staircase, h1 r6 (which walks indefinitely on the
   flat GPU env and crosses the same h = 0 staircase in C MuJoCo, 2/3 success + 1 lateral miss) tipped over at x ~ 1 m in 100% of
-  episodes; the same model compiled at h = 0 did not (`scripts/humanoid_steps_diag.py`). Steps are now fixed-size boxes on mocap
+  episodes; the same model compiled at h = 0 did not (`humanoid_steps_diag` (throwaway diagnostic, not kept)). Steps are now fixed-size boxes on mocap
   bodies moved per world (level 0: no falls in 500 ticks). The first h1 steps run (v2, geom-resizing) was void and stopped.
 - h1 steps expert v2 (warm start h1 r6, privileged 11x3 height scan + h_frac, scripted heading command, step-height
   curriculum 0-0.30 L): running.
@@ -278,7 +278,7 @@ Long runs use `/dev/shm/rrp-brandonin/wt/humanoid` (never re-synced while they r
   (+ target_margin 0.05), recorded stop-rule deviation (sample budget ~3.3e8 of 6e8).
 - **g1 v4ft2** (target_margin 0.05): WORSE: waypoint 0/20 with 20 falls, force 3.04 BW, margin 0.016, turn 0.69. g1 stops
   here (stop rule); best g1 = **v4** (only joint margin 0.012 fails; waypoint 17/20, 3 falls).
-- Per-joint margin diagnosis (`scripts/humanoid_margin_diag.py`, C MuJoCo, validation command set): the worst joints are the
+- Per-joint margin diagnosis (`humanoid_margin_diag` (throwaway diagnostic, not kept), C MuJoCo, validation command set): the worst joints are the
   KNEES at the straight-leg limit for g1 (0.018 with a 5% target band) and right HIP YAW for t1 v2ft3 (0.0085 with a 3% band):
   the PD servo overshoots the (clipped) target at stance impact. Target clipping alone cannot bound it.
 - Status asked of the lead (2026-09-29): a D-113-style labelled exception for the margin/force criteria, or more iterations
@@ -292,28 +292,7 @@ Long runs use `/dev/shm/rrp-brandonin/wt/humanoid` (never re-synced while they r
   staircase course (x_end + 0.3 L ~ 6.5 m at 0.48 m/s = 13.5 s on flat ground; slower on steps), so timeouts count as failures
   and the 0.7 level-up threshold is never reached. Next segment: 30 s episodes, level-up 0.6 (recorded before running).
 
-## RESUME (checkpoint 2026-09-29, humanoid agent)
-Running peer leases (W13, <= 2 GPU):
-- `1790702624_8e8209` hum_p1c_shared_v2: `python -m rrp.training.warp_tracker_ppo --recipe shared_morph_v2 --out
-  artifacts/runs/humanoid_p1c_shared_v2` from `wt/humanoid_run24` (6 h cap; ~14 s/iter shared; 3000 iters -> resume segments
-  with `--resume` from a fresh peer code dir).
-- `1790703036_10ad63` hum_p2_h1_steps_v2: resume segment `--recipe h1_steps_gpu_v2 --resume --iters 6000 --level0 0.4
-  --episode-s 30 --level-up 0.6` from `wt/humanoid_run25`.
-Next, in order (<= 2 GPU leases; never sync a code dir with running jobs; one fresh `wt/humanoid_runN` per launch):
-1. When steps finishes: C grid `scripts/humanoid_steps_eval_grid.sh h1 <actor> artifacts/runs/humanoid_p1b_h1_r6/actor_r6final.pt
-   <out>` (CPU lease, via run_retry pattern); P2 gate = expert >= 0.9 at 0.10-0.30 L.
-2. Gap expert: smoke `scripts/humanoid_gap_smoke.py h1 artifacts/runs/humanoid_p1b_h1_r6/actor_r6final.pt`, then
-   `--recipe h1_gap_gpu_v1` (then t1_gap_gpu_v1); C eval `scripts/humanoid_gap_eval.py`.
-3. D-139 side attempt (<= 1 recipe, pre-declared): g1 knee-specific target band + stance knee-flex term.
-4. Shared morph_v2: C gate per pool body (LearnedTracker deploys morph_v1 automatically; `scripts/humanoid_tracker_finalize.sh
-   <body> <shared actor> ...`), then SEALED zero-shot once on n1 / berkeley (adapter still to write) / toddlerbot (adapter to
-   write) / phum sealed seeds `sealed_region_seeds(20)` -- Level-1 existing-controller transfer.
-5. P3 design: generalise `rrp.features.legged.public_context` (EVENTS / GLOBAL_DIM are waypoint-specific) and
-   `rrp.data.legged_latent_collect` to task scenarios + expert trackers (extra_fn) before any latent/BC training.
-Pool trackers (D-139 labels): h1 r6 (`artifacts/runs/humanoid_p1b_h1_r6/actor_r6final.pt`), t1 v2ft4
-(`artifacts/runs/humanoid_p1b_t1_v2ft4/actor.pt`), g1 v4 (`artifacts/runs/humanoid_p1b_g1_v4/actor_v4final.pt`).
-
-## RESUME — WIND-DOWN for the repo refactor (owner decision via lead, 2026-09-29 ~12:00). SUPERSEDES the checkpoint above.
+## RESUME (state at the repo-refactor wind-down, owner decision via lead 2026-09-29 ~12:00; commands rewritten as recipes, D-145 P4a)
 State: **no W13 lease running, no host loop running, nothing queued.** Do not re-run anything to reproduce results.
 Done (all numbers in this file / D-138 / D-139):
 - P0 plan + sealed split (D-138); P1a Warp adopted; P1b pool trackers under the D-139 exception: h1 r6, t1 v2ft4, g1 v4.
@@ -331,7 +310,76 @@ Artifacts: all `artifacts/runs/humanoid_*` (93 MB incl. every tracker actor/chec
 `~/work/rrp-data/peer-archive/{runs,video}` (ARCHIVE_LOG.txt); peer copies kept (small). Weights are never committed.
 Peer code dirs `/dev/shm/rrp-brandonin/wt/humanoid*` (~45 MB each) can be deleted after the refactor. The isolated Warp
 install `~/work/ext/pylibs/mjwarp` (468 MB, peer disk) is needed to resume GPU training.
-Refactor notes: the GPU stack is `rrp.envs.{warp_legged,warp_tracker_env,warp_task_env,morph_obs,humanoid_scenes}`,
-`rrp.training.{warp_tracker_ppo,humanoid_recipes}`, `rrp.bodies.humanoid_gen`, `rrp.teachers.humanoid`; deployment-side
+Refactor notes: the GPU stack is `rrp.envs.warp.{model,tracker_env,task_env}`, `rrp.envs.mujoco.{morph_obs,humanoid_scenes}`,
+`rrp.harness.train.{warp_tracker_ppo,humanoid_recipes}`, `rrp.bodies.humanoid_gen`, `rrp.policies.teachers.humanoid`; deployment-side
 options live in actor meta (clock_gate, target_margin, obs_format morph_v1, extra_obs_dim) and are honoured by
-`rrp.envs.legged_tracker.LearnedTracker` — keep them when moving to the common env/policy abstractions.
+`rrp.envs.mujoco.legged_tracker.LearnedTracker` — keep them when moving to the common env/policy abstractions.
+
+### Resume steps as recipes (D-145 P4a; the old `scripts/humanoid_*` drivers are in `.old/scripts/`)
+`rrp run-dag recipes/humanoid/<name>.yaml [--dry-run]` on the peer (`RRP_PEER_REPO` = a fresh `wt/humanoid_runN` per launch;
+<= 2 GPU leases; never sync a code dir with running jobs). Weights are not in git: restore the run directories named below from
+`~/work/rrp-data/peer-archive/runs` into `artifacts/runs/` on the peer first. Stages: `train_tracker` (option `engine: warp`,
+`resume_from`), `eval_tracker` (tasks `steps`, `gap`, `gap_smoke`, `waypoint`; tools `rrp suite {humanoid-steps, humanoid-gap,
+humanoid-gap-smoke, contact-waypoint}`), `validate_tracker` (the D-112 gate). Template: `recipes/templates/humanoid_task.yaml`.
+Resources in the recipes are ESTIMATES: measure and redeclare >= 1.35 x peak (D-117).
+1. **h1 steps expert, C grid** -- `recipes/humanoid/h1_steps_v2.yaml`: nodes `eval` (expert actor
+   `humanoid_p2_h1_steps_v2/actor.pt`, h_frac 0.10-0.30, 20 seeds; P2 gate: success >= 0.9 at every step height) and
+   `eval_blind` (r6 tracker at 0.10 / 0.15). Add a training segment by dropping `train: null` (header of the file).
+2. **Gap experts** -- `h1_gap_v1.yaml`, then `t1_gap_v1.yaml`: nodes `smoke` -> `train` (`{h1,t1}_gap_gpu_v1`, stop rule <= 2 reward
+   designs, <= 3e8 samples per body) -> `eval` (C, `--level 1.0`).
+3. **Shared morph_v2** -- `shared_morph_v2.yaml`: `train` resumes the run stopped at iter 415/3000 (`resume_from`), then the C gate
+   (`eval@<body>`, tracker gate) on each of the 6 pool bodies. The SEALED zero-shot (n1 / berkeley / toddlerbot / phum sealed seeds
+   `sealed_region_seeds(20)`, once) is Level-1 existing-controller transfer; it is not a recipe yet because the berkeley and
+   toddlerbot adapters still have to be written.
+4. **Pool tracker gate** -- `tracker_gate_pool.yaml` (h1 r6, t1 v2ft4, g1 v4): validation + D-112 gate + waypoint +
+   `lab_gate.json` (replaces `humanoid_tracker_gate.sh`). The comparison videos of `humanoid_tracker_finalize.sh` are `rrp video legged`
+   now; the side-by-side installed-vs-new renderer went to `.old/scripts/render_contact_compare.py`.
+5. **Not a recipe (needs code first):** the D-139 side attempt (g1 knee-specific target band + stance knee-flex term; add a
+   `g1_*` entry to `rrp.harness.train.humanoid_recipes`, then an instance of `humanoid_task.yaml`), and P3 (generalise
+   `rrp.features.legged.public_context`, whose EVENTS / GLOBAL_DIM are waypoint-specific, and `rrp.harness.data.legged_latent_collect`
+   to task scenarios + expert trackers before any latent / BC training).
+Also here: the four never-run D-126 CPU tracker recipes `recipes/humanoid/d126_tracker_*.yaml` (superseded in practice by the GPU
+recipes of `humanoid_recipes.py`).
+
+Dry-run node lists (`rrp run-dag <recipe> --dry-run`, 2026-09-30):
+```
+$ rrp run-dag recipes/humanoid/h1_steps_v2.yaml --dry-run
+DAG humanoid_h1_steps_v2_eval: 2 nodes (source recipes/humanoid/h1_steps_v2.yaml)
+- eval [planned ] eval_tracker-expert @peer cpu=4 mem=8G retries=0
+- eval_blind [planned ] eval_tracker-blind @peer cpu=4 mem=8G retries=0
+```
+```
+$ rrp run-dag recipes/humanoid/h1_gap_v1.yaml --dry-run
+DAG humanoid_h1_gap_v1: 3 nodes (source recipes/humanoid/h1_gap_v1.yaml)
+- smoke [planned ] eval_tracker-smoke @peer cpu=2 mem=8G gpu=4G retries=0
+- train [planned ] train_tracker @peer cpu=4 mem=24G gpu=12G retries=2
+- eval [planned ] eval_tracker @peer cpu=2 mem=6G retries=0
+```
+```
+$ rrp run-dag recipes/humanoid/t1_gap_v1.yaml --dry-run
+DAG humanoid_t1_gap_v1: 3 nodes (source recipes/humanoid/t1_gap_v1.yaml)
+- smoke [planned ] eval_tracker-smoke @peer cpu=2 mem=8G gpu=4G retries=0
+- train [planned ] train_tracker @peer cpu=4 mem=24G gpu=12G retries=2
+- eval [planned ] eval_tracker @peer cpu=2 mem=6G retries=0
+```
+```
+$ rrp run-dag recipes/humanoid/shared_morph_v2.yaml --dry-run
+DAG humanoid_shared_morph_v2: 7 nodes (source recipes/humanoid/shared_morph_v2.yaml)
+- train [planned ] train_tracker @peer cpu=6 mem=40G gpu=24G retries=2
+- eval@t1 [planned ] validate_tracker @peer cpu=1 mem=4G retries=0
+- eval@g1 [planned ] validate_tracker @peer cpu=1 mem=4G retries=0
+- eval@h1 [planned ] validate_tracker @peer cpu=1 mem=4G retries=0
+- eval@op3 [planned ] validate_tracker @peer cpu=1 mem=4G retries=0
+- eval@apollo [planned ] validate_tracker @peer cpu=1 mem=4G retries=0
+- eval@adam_lite [planned ] validate_tracker @peer cpu=1 mem=4G retries=0
+```
+```
+$ rrp run-dag recipes/humanoid/tracker_gate_pool.yaml --dry-run
+DAG humanoid_tracker_gate_pool: 6 nodes (source recipes/humanoid/tracker_gate_pool.yaml)
+- validate@h1_r6 [planned ] validate_tracker @peer cpu=1 mem=4G retries=0
+- waypoint@h1_r6 [planned ] eval_tracker @peer cpu=1 mem=4G retries=0
+- validate@t1_v2ft4 [planned ] validate_tracker @peer cpu=1 mem=4G retries=0
+- waypoint@t1_v2ft4 [planned ] eval_tracker @peer cpu=1 mem=4G retries=0
+- validate@g1_v4 [planned ] validate_tracker @peer cpu=1 mem=4G retries=0
+- waypoint@g1_v4 [planned ] eval_tracker @peer cpu=1 mem=4G retries=0
+```
