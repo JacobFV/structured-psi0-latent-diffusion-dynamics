@@ -15,7 +15,7 @@ DZ, K = 8, 4
 
 def _policy(seed=0):
     torch.manual_seed(seed)
-    m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=1, horizon=K, latent_dim=DZ, aux=False))
+    m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=1, horizon=K, latent_dim=DZ))
     with torch.no_grad():
         m.out.weight.normal_(0, 0.2)
         m.set_target_norm(torch.linspace(-1, 1, DZ), torch.linspace(0.5, 2, DZ))

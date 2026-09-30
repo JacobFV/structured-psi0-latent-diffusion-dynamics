@@ -48,7 +48,8 @@ def source_config(method: str, seed: int, cell: Path, smoke: bool = False, sourc
     cfg = dict(base, seed=seed, out_dir=str(cell / "source"), name=f"{method}_seed{seed}",
                packed_dir=source_pack, packed_stride=base.get("stride", 2), prefetch=True, exact_resume=True,
                checkpoint_every_steps=1000, zero_prev_action=True)   # D-045: deployment-consistent input (B-1)
-    cfg["policy"] = dict(base["policy"], name=f"{method}_seed{seed}")
+    cfg.pop("aux_weight", None)       # D-146 item 4: no hidden-state readout objective any more
+    cfg["policy"] = {k: v for k, v in dict(base["policy"], name=f"{method}_seed{seed}").items() if k != "aux"}
     if snapshot_steps:
         cfg["snapshot_steps"] = list(snapshot_steps)
     mp = Path(source_pack) / "meta.json"
@@ -62,6 +63,15 @@ def source_config(method: str, seed: int, cell: Path, smoke: bool = False, sourc
         cfg["epochs"] = 1
         cfg["smoke_max_steps"] = 30
     return cfg
+
+
+def assert_shared_policy_factors(cell: Path, smoke: bool = False, source_pack: str = SOURCE_PACK) -> str:
+    """Both baseline arms of a recipe are trained from the same preset: their policy factor lists (structure hash) must
+    be equal, else the contrast is a factor ablation. Config-only check, runs before any training."""
+    from rrp.policies.bundles import assert_shared_factors
+    from rrp.policies.nets.flow import PolicyConfig
+    return assert_shared_factors({m: PolicyConfig.from_dict(source_config(m, 0, cell, smoke, source_pack)["policy"]).specs()
+                                  for m in BASELINE_METHODS})
 
 
 def codec_config(seed: int, cell: Path, smoke: bool = False) -> dict:
@@ -146,6 +156,7 @@ def run_baseline_cell(protocol: dict, method: str, seed: int, target: str, budge
         raise ValueError(f"cell {target}/{budget} not in the sealed protocol")
     cell = root / method / f"seed{seed}"
     cell.mkdir(parents=True, exist_ok=True)
+    assert_shared_policy_factors(cell, smoke, source_pack)
     dev = eval_device or ("cuda" if torch.cuda.is_available() else "cpu")
     src_ck = ensure_source(method, seed, cell, smoke, source_pack, snapshot_steps)
     ck, sft_res = src_ck, None

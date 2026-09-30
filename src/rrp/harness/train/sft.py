@@ -18,7 +18,7 @@ from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
 
 def sft(source_ckpt: Path, dataset: Path, target_robot: str, budget: int, *, seed: int, out_dir: Path,
         steps: int = 300, lr: float = 1e-4, batch_size: int = 128, modules: str = "all",
-        demo_pool_seeds=(1000000, 1100000), aux_weight: float = 0.1) -> dict:
+        demo_pool_seeds=(1000000, 1100000)) -> dict:
     dev, _ = device_setup()
     out_dir.mkdir(parents=True, exist_ok=True)
     st = load_checkpoint(source_ckpt, map_location=dev)
@@ -43,8 +43,7 @@ def sft(source_ckpt: Path, dataset: Path, target_robot: str, budget: int, *, see
     while step < steps:
         for batch, a, v, lab, eff in ds.batches(min(batch_size, max(8, len(ds))), rng, drop_last=False):
             batch, a, v = batch.to(dev), a.to(dev), v.to(dev)
-            lab = {k: x.to(dev) for k, x in lab.items()}
-            loss, logs = model.loss(batch, a, v, lab if pcfg.aux else None, aux_weight=aux_weight)
+            loss, logs = model.loss(batch, a, v)
             opt.zero_grad()
             loss.backward()
             torch.nn.utils.clip_grad_norm_(params, 1.0)
@@ -66,7 +65,7 @@ def sft(source_ckpt: Path, dataset: Path, target_robot: str, budget: int, *, see
 
 
 def sft_packed(source_ckpt: Path, target_packed_dir: Path, budget: int, *, seed: int, out_dir: Path, steps: int,
-               lr: float = 1e-4, batch_size: int = 128, aux_weight: float = 0.1) -> dict:
+               lr: float = 1e-4, batch_size: int = 128) -> dict:
     """Baseline new-body SFT with EXACTLY the acquisition of the latent methods (sft_latent_flow): the same target
     pack (stride-1 rows), the same nested episode choice (nested_budget_indices over the sorted episode ids, seeded),
     the same row sampler, batch min(128, max(8, rows)), lr, and optimizer-update count. All FlowPolicy parameters are
@@ -109,9 +108,8 @@ def sft_packed(source_ckpt: Path, target_packed_dir: Path, budget: int, *, seed:
         sel = np.array(sorted(rng.sample(pool, B) if len(pool) >= B else [rng.choice(pool) for _ in range(B)]))
         batch, a, v, lab, _ = data.collate(sel)
         batch, a, v = batch.to(dev), a.to(dev), v.to(dev)
-        lab = {k: x.to(dev) for k, x in lab.items()}
         target = encode_targets(codec, batch, a, v)
-        loss, logs = model.loss(batch, target, v, lab if pcfg.aux else None, aux_weight=aux_weight, generator=gen)
+        loss, logs = model.loss(batch, target, v, generator=gen)
         opt.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(params, 1.0)

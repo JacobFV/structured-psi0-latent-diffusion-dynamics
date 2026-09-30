@@ -207,10 +207,8 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
             it = ds.batches(cfg["batch_size"], rng)
         for batch, a, v, lab, eff in (prefetch(it) if cfg.get("prefetch") else it):
             batch, a, v = batch.to(dev), a.to(dev), v.to(dev)
-            lab = {k: t.to(dev) for k, t in lab.items()}
             target = encode_targets(codec, batch, a, v)
-            loss, logs = model.loss(batch, target, v, lab if pcfg.aux else None, aux_weight=cfg.get("aux_weight", 0.1),
-                                    generator=gen)
+            loss, logs = model.loss(batch, target, v, generator=gen)
             if proj is not None and len(pairs) >= 8:
                 sl = swap_alignment_loss(model, proj, rng.sample(pairs, min(swap.get("pairs_per_step", 64), len(pairs))),
                                          dev)

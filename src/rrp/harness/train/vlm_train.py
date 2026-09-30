@@ -52,8 +52,8 @@ class VLMFlowPolicy(nn.Module):
         batch.extra["image_tokens"] = self.image_tokens(feats.to(next(self.parameters()).device), n_visual)
         return batch
 
-    def loss(self, batch, target, valid, labels, feats=None, n_visual=None, **kw):
-        return self.policy.loss(self.attach(batch, feats, n_visual), target, valid, labels, **kw)
+    def loss(self, batch, target, valid, feats=None, n_visual=None, **kw):
+        return self.policy.loss(self.attach(batch, feats, n_visual), target, valid, **kw)
 
     def prepare(self, batch, key=("uncached",), rewire_gen=None):
         return self.policy.prepare(self.attach(batch), key, rewire_gen)
@@ -129,7 +129,7 @@ def heldout_loss(model, held, store, dev, n_visual, image_mode="real", max_batch
                 feats = feats.roll(1, 0)
             elif image_mode == "blank":
                 feats = torch.zeros_like(feats)
-        l, logs = model.loss(batch, a, v, None, feats=feats, n_visual=n_visual, generator=g)
+        l, logs = model.loss(batch, a, v, feats=feats, n_visual=n_visual, generator=g)
         tot += logs["flow"]
         n += 1
     model.train()
@@ -157,9 +157,7 @@ def train(cfg: dict, out_dir: Path) -> dict:
     for epoch in range(cfg["epochs"]):
         for batch, a, v, lab, feats in batches(tr, cfg["batch_size"], rng, store):
             batch, a, v = batch.to(dev), a.to(dev), v.to(dev)
-            lab = {k: t.to(dev) for k, t in lab.items()}
-            loss, logs = model.loss(batch, a, v, lab if pcfg.get("aux", True) else None, feats=feats.to(dev),
-                                    n_visual=nv, aux_weight=cfg.get("aux_weight", 0.1), generator=gen)
+            loss, logs = model.loss(batch, a, v, feats=feats.to(dev), n_visual=nv, generator=gen)
             opt.zero_grad()
             loss.backward()
             gn = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)

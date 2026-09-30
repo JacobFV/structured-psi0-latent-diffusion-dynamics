@@ -218,7 +218,7 @@ class ExpoAgent(PolicyAdapter):
                 _, target, _ = self.codec.encode(a, batch.node_feats, batch.node_mask)
         else:
             target = a[..., None]
-        loss, logs = self.model.loss(batch, target, v, None, generator=None)
+        loss, logs = self.model.loss(batch, target, v, generator=None)
         self.opt_b.zero_grad(set_to_none=True)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.base_params, 1.0)

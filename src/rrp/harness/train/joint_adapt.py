@@ -54,14 +54,14 @@ def joint_adapt(flow_ckpt: Path, rep_path: Path, packed_dir: Path, budget: int, 
     st = load_checkpoint(Path(flow_ckpt), map_location=dev)
     cfgj = st["config"]
     lcfg, E, _, P, _ = load_representation(Path(cfgj["representation"]), dev)
-    pcfg = PolicyConfig.from_dict(dict(cfgj["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz, aux=False))
+    pcfg = PolicyConfig.from_dict(dict(cfgj["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz))
     flow = FlowPolicy(pcfg).to(dev)
     flow.load_state_dict(st["model"])
     st0 = load_checkpoint(Path(rep_path), map_location=dev)
     lcfg_r, E_r, R_old, P_r, rep_res = load_representation(Path(rep_path), dev)
     if not all(torch.equal(x, y) for x, y in zip(E.state_dict().values(), E_r.state_dict().values())):
         raise ValueError("flow and representation bundle use different encoders (latent spaces)")
-    R = make_realizer(lcfg.dz, lcfg.realizer_layers, st0["config"].get("realizer_arch")).to(dev)
+    R = make_realizer(lcfg.dz, lcfg.realizer_layers, st0["config"].get("realizer_arch"), lcfg.realizer_factors).to(dev)
     R.load_state_dict(R_old.state_dict())
     R.anchor = bool(st0["config"].get("realizer_anchor", False))
     R.drop_qd = bool(st0["config"].get("realizer_drop_qd", False))
@@ -100,7 +100,7 @@ def joint_adapt(flow_ckpt: Path, rep_path: Path, packed_dir: Path, budget: int, 
         smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
         S = smask.shape[1]
         fn = (lambda zc: readout_loss(P(zc, am, S), lab, smask, lv_min=lcfg.lv_min)) if w_sem > 0 else None
-        loss, _ = flow.loss(ab, zt, am[:, None, :].expand(-1, lcfg.knots, -1), None, packet_loss_fn=fn,
+        loss, _ = flow.loss(ab, zt, am[:, None, :].expand(-1, lcfg.knots, -1), packet_loss_fn=fn,
                             packet_weight=w_sem)
         return loss
 

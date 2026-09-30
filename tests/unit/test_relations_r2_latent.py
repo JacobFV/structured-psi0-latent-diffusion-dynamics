@@ -201,7 +201,8 @@ def test_no_legacy_flat_keys_as_new_primary_surface():
     # `factors`, `cf_mix`, `cf_contrast` are the whole new field surface (docs/relations.md 10 R2).
     assert names == {"width", "heads", "ctx_layers", "enc_layers", "knots", "knot_times", "dz", "horizon",
                      "control_dt", "beta_kl", "realizer_layers", "max_phase_ticks", "name", "factors", "cf_mix",
-                     "cf_contrast"}
+                     "cf_contrast",
+                     "encoder_factors", "realizer_factors"}      # + per-site factor lists (readiness A1)
 
 
 def test_no_binding_cf_as_live_parameter_name():

@@ -39,7 +39,7 @@ from rrp.policies.nets.semantic_latent import (LatentConfig, TargetEncoder, asse
                                                packet_semantic_weight as _packet_semantic_weight)
 from rrp.policies.system0 import LatentRealizer, REALIZER_RECURRENT_STATE
 from rrp.policies.bundles import (load_representation,  # noqa: F401  (moved to controllers, W4)
-                                  _readout_probe_specs, _remap_probe_state_dict)
+                                  _readout_probe_specs, _remap_probe_state_dict, bundle_factor_specs)
 from rrp.harness.data.latent import LatentData  # noqa: F401  (moved to data, W4)
 from rrp.ops.workload import CheckpointSignal
 
@@ -173,7 +173,7 @@ def train_representation(cfg_json: dict, out_dir: Path) -> dict:
     rng = random.Random(seed)
     data = LatentData(Path(cfg_json["packed_dir"]), zero_prev_action=cfg_json.get("zero_prev_action", False),
                       anchor=cfg_json.get("realizer_anchor", False))
-    E, R = TargetEncoder(cfg).to(dev), LatentRealizer(cfg.dz, layers=cfg.realizer_layers).to(dev)
+    E, R = TargetEncoder(cfg).to(dev), LatentRealizer(cfg.dz, layers=cfg.realizer_layers, factors=cfg.realizer_factors).to(dev)
     R.anchor = cfg_json.get("realizer_anchor", False)
     specs, probe_kw = _readout_probe_specs(cfg_json.get("probe", {}))
     P = ReadoutProbe(cfg.dz, cfg.knots, specs=specs, **probe_kw).to(dev)
@@ -248,6 +248,9 @@ def _bundle(E, R, P):
     class _B:
         def state_dict(self):
             return dict(E=E.state_dict(), R=R.state_dict(), P=P.state_dict())
+
+        def factor_specs(self):             # `save_checkpoint` stamps versions["factors"] from this
+            return bundle_factor_specs(E, R, P)
     return _B()
 
 
@@ -294,7 +297,7 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
     lcfg, E, R, P, rep_res = load_representation(Path(cfg_json["representation"]), dev)
     pack_free = cfg_json.get("gen_dagger_frac", 0.0) >= 1.0 and bool(cfg_json.get("init_from"))
     data = None if pack_free else LatentData(Path(cfg_json["packed_dir"]), zero_prev_action=cfg_json.get("zero_prev_action", False))
-    pcfg = PolicyConfig.from_dict(dict(cfg_json["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz, aux=False))
+    pcfg = PolicyConfig.from_dict(dict(cfg_json["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz))
     model = FlowPolicy(pcfg).to(dev)
     opt = torch.optim.AdamW(model.parameters(), lr=cfg_json.get("lr", 3e-4), weight_decay=1e-4)
     steps = cfg_json["steps"]
@@ -363,7 +366,7 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
             S = batch.bank_tokens["scene"].shape[1]
             pl_fn = (lambda zc: readout_loss(P(zc, am, S), lab, smask, lv_min=lcfg.lv_min)) if w_sem > 0 else None
             valid = am[:, None, :].expand(-1, lcfg.knots, -1)
-            loss, logs = model.loss(ab, z_target, valid, None, generator=gen, packet_loss_fn=pl_fn, packet_weight=w_sem,
+            loss, logs = model.loss(ab, z_target, valid, generator=gen, packet_loss_fn=pl_fn, packet_weight=w_sem,
                                     packet_tau_min=cfg_json.get("packet_tau_min", 0.0))
         if Bg:
             from rrp.policies.nets.batch import collate_inputs
@@ -374,7 +377,7 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
             for i_, x in enumerate(it):
                 m_ = x[1].shape[1]
                 zt[i_, :, :m_] = torch.from_numpy(x[1]).to(dev)
-            ld, _ = model.loss(assembly_batch(bd), zt, amd[:, None, :].expand(-1, lcfg.knots, -1), None, generator=gen)
+            ld, _ = model.loss(assembly_batch(bd), zt, amd[:, None, :].expand(-1, lcfg.knots, -1), generator=gen)
             logs = dict(logs, gen_dagger=float(ld.detach()))
             loss = (Bp * loss + Bg * ld) / B
         opt.zero_grad()
@@ -518,7 +521,7 @@ def sft_latent_flow(flow_ckpt: Path, target_packed_dir: Path, budget: int, *, se
     st = load_checkpoint(flow_ckpt, map_location=dev)
     cfgj = st["config"]
     lcfg, E, R, P, rep_res = load_representation(Path(cfgj["representation"]), dev)
-    pcfg = PolicyConfig.from_dict(dict(cfgj["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz, aux=False))
+    pcfg = PolicyConfig.from_dict(dict(cfgj["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz))
     model = FlowPolicy(pcfg).to(dev)
     model.load_state_dict(st["model"])
     data = LatentData(target_packed_dir, zero_prev_action=resolve_zero_prev_action(   # as the source flow (B-1)
@@ -543,7 +546,7 @@ def sft_latent_flow(flow_ckpt: Path, target_packed_dir: Path, budget: int, *, se
         smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
         S = smask.shape[1]
         fn = (lambda zc: readout_loss(P(zc, am, S), lab, smask, lv_min=lcfg.lv_min)) if w_sem > 0 else None
-        loss, _ = model.loss(ab, zt, am[:, None, :].expand(-1, lcfg.knots, -1), None, packet_loss_fn=fn,
+        loss, _ = model.loss(ab, zt, am[:, None, :].expand(-1, lcfg.knots, -1), packet_loss_fn=fn,
                              packet_weight=w_sem)
         opt.zero_grad()
         loss.backward()
@@ -585,7 +588,7 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
     for k_ in ("layers", "width", "z_norm"):                  # capacity / input-normalization overrides (ladder sprint)
         if f"realizer_{k_}" in cfg_json:
             arch[k_] = cfg_json[f"realizer_{k_}"]
-    R = make_realizer(lcfg.dz, lcfg.realizer_layers, arch).to(dev)
+    R = make_realizer(lcfg.dz, lcfg.realizer_layers, arch, lcfg.realizer_factors).to(dev)
     R.anchor = cfg_json.get("realizer_anchor", False)
     R.drop_qd = cfg_json.get("realizer_drop_qd", False)
     if cfg_json.get("init", "fresh") == "old":

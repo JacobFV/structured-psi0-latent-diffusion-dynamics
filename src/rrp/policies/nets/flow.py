@@ -63,7 +63,6 @@ class PolicyConfig:
     factors: list | None = None       # relation factors (docs/relations.md); None = preset "arm" (the 17 typed edges
                                       # + incidence messages). Former flags: bias_mode -> control of edge.*,
                                       # structured=False -> msg.incidence serialized, slot_handles -> id.slot_handle
-    aux: bool = True                  # auxiliary semantic readouts from action hidden states
     dropout: float = 0.0
     attention: str = "factorized"     # factorized | dense (all-token ablation of the action stream)
     image_tokens: int = 0             # VLM resampled tokens appended to the scene bank
@@ -82,8 +81,10 @@ class PolicyConfig:
     @classmethod
     def from_dict(cls, d: dict) -> "PolicyConfig":
         """Config dict -> PolicyConfig. Maps the pre-D-144 flags still stored in checkpoint configs (on-disk data):
-        bias_mode, structured, slot_handles -> `factors`."""
+        bias_mode, structured, slot_handles -> `factors`; `aux` (D-146 item 4: the hidden-state `SemanticReadout` is
+        gone, a recorded `aux: true` config only names parameters `FlowPolicy` drops on load) is discarded."""
         d = dict(d)
+        d.pop("aux", None)
         bm, st, sh = d.pop("bias_mode", None), d.pop("structured", None), d.pop("slot_handles", None)
         if bm is None and st is None and sh is None:
             return cls(**d)
@@ -265,12 +266,18 @@ class FlowPolicy(nn.Module):
         self.out = nn.Linear(D, cfg.latent_dim)
         nn.init.zeros_(self.out.weight)
         nn.init.zeros_(self.out.bias)
-        self.readout = SemanticReadout(cfg) if cfg.aux else None
         # Per-dim target standardization: the flow runs in (z - z_mean) / z_std; loss()/sample() speak raw z.
         # Identity by default (action-space flows, checkpoints saved before these buffers existed).
         self.register_buffer("z_mean", torch.zeros(cfg.latent_dim))
         self.register_buffer("z_std", torch.ones(cfg.latent_dim))
         self._register_load_state_dict_pre_hook(self._default_norm_buffers)
+        self._register_load_state_dict_pre_hook(self._drop_legacy_readout)
+
+    def _drop_legacy_readout(self, state_dict, prefix, *args):
+        """On-disk data remap (D-144 addendum b): checkpoints trained with the removed `SemanticReadout` (`aux: true`, the
+        v6 / v7div BC experts) carry `readout.*` tensors no module owns any more; inference never read them."""
+        for k in [k for k in state_dict if k.startswith(prefix + "readout.")]:
+            del state_dict[k]
 
     def _default_norm_buffers(self, state_dict, prefix, *args):
         for k, v in (("z_mean", self.z_mean), ("z_std", self.z_std)):
@@ -333,11 +340,11 @@ class FlowPolicy(nn.Module):
         v = v * cache.node_mask[:, None, :, None].to(v.dtype)
         return (v, hidden) if return_hidden else v
 
-    def loss(self, batch: Batch, target: torch.Tensor, valid: torch.Tensor, labels: dict | None = None,
-             aux_weight: float = 0.1, generator=None, packet_loss_fn=None,
+    def loss(self, batch: Batch, target: torch.Tensor, valid: torch.Tensor, generator=None, packet_loss_fn=None,
              packet_weight: float = 0.0, packet_tau_min: float = 0.0) -> tuple[torch.Tensor, dict]:
         """target [B,H,N,d] clean latent/action (raw space); valid [B,H,N] mask. The flow MSE is computed in
-        standardized space; packet/readout objectives see the de-standardized estimate."""
+        standardized space; the packet objective sees the de-standardized estimate; the factors' own probes / pair
+        estimates are supervised through `estimates_loss` (labels ride in `batch.extra["relation_labels"]`)."""
         cache = self.prepare(batch)
         target = self.normalize(target)
         B = target.shape[0]
@@ -346,13 +353,13 @@ class FlowPolicy(nn.Module):
         z_tau, v_t = interpolate_target(eps, target, tau)
         m = (valid & batch.node_mask[:, None, :]).to(target.dtype)
         z_tau = z_tau * m[..., None]
-        v, hidden = self.velocity(z_tau, tau, cache, return_hidden=True)
+        v = self.velocity(z_tau, tau, cache)
         fl = masked_mse(v, v_t, m)
         logs = {"flow": float(fl.detach())}
         loss = fl
         if packet_loss_fn is not None and packet_weight > 0:
-            # R38: semantic objective on the predicted CLEAN LATENT (the tensor system 0 will receive), not on
-            # hidden states: z_hat_clean = z_tau + (1 - tau) * v_theta
+            # R38: semantic objective on the predicted CLEAN LATENT (the tensor system 0 will receive):
+            # z_hat_clean = z_tau + (1 - tau) * v_theta
             t_ = tau[:, None, None, None]
             z_hat_clean = self.denormalize(z_tau + (1 - t_) * v)
             if packet_tau_min > 0:
@@ -363,13 +370,6 @@ class FlowPolicy(nn.Module):
             pl, plogs = packet_loss_fn(z_hat_clean)
             loss = loss + packet_weight * pl
             logs.update({f"zhat_{k}": x for k, x in plogs.items()})
-        if self.readout is not None and labels is not None:
-            # predicted clean action from the current estimate (future-effect readouts use it)
-            t_ = tau[:, None, None, None]
-            z_hat = self.denormalize(z_tau + (1 - t_) * v)
-            aux, alog = self.readout(hidden, cache, batch, labels, z_hat)
-            loss = loss + aux_weight * aux
-            logs.update(alog)
         if cache.rc.estimates:       # the factors' own probes / pair estimates, supervised by the relation labels
             el, elogs, _ = estimates_loss(cache.rc, self.cfg.specs())    # weighted per factor (FactorSpec.weight)
             loss = loss + el
@@ -387,53 +387,3 @@ class FlowPolicy(nn.Module):
             tau = torch.full((B,), k * dt, device=z.device, dtype=z.dtype)
             z = z + dt * self.velocity(z, tau, cache)
         return self.denormalize(z) * cache.node_mask[:, None, :, None].to(z.dtype)
-
-
-# ------------------------------------------------------------------ auxiliary semantic readouts
-class SemanticReadout(nn.Module):
-    """Query-conditioned readouts from ACTION-EXPERT hidden states (system i), bound to canonical
-    scene slots. Gradients flow into the denoising blocks (R37)."""
-
-    def __init__(self, cfg: PolicyConfig, layers=(-1, None)):
-        super().__init__()
-        D = cfg.D
-        self.cfg = cfg
-        self.q = nn.Linear(D, D)
-        self.att = MHA(D, cfg.heads)
-        self.zproj = nn.Linear(cfg.latent_dim, D)
-        self.heads = nn.ModuleDict(dict(held=nn.Linear(D, 1), contact=nn.Linear(D, 1), visible=nn.Linear(D, 1),
-                                        rel=nn.Linear(D, 3), focus=nn.Linear(D, 1), fut=nn.Linear(D, 3),
-                                        gaze=nn.Linear(D, 1)))
-
-    def read(self, hidden, cache, batch, z_hat=None, layer: int = None):
-        layer = len(hidden) // 2 if layer is None else layer
-        h = hidden[layer]                                        # [B, H, N, D]
-        B, Hh, N, D = h.shape
-        if z_hat is not None:
-            h = h + self.zproj(z_hat)
-        keys = h.reshape(B, Hh * N, D)
-        km = cache.node_mask[:, None, :].expand(B, Hh, N).reshape(B, Hh * N)
-        so = batch.bank_offset["scene"]
-        S = batch.bank_tokens["scene"].shape[1]
-        slot_q = self.q(cache.ctx[:, so:so + S])                 # canonical slot handles
-        r = self.att(slot_q, kv=keys, key_mask=km)                # [B, S, D]
-        return {k: v(r) for k, v in self.heads.items()}
-
-    def forward(self, hidden, cache, batch, labels, z_hat):
-        out = self.read(hidden, cache, batch, z_hat)
-        smask = batch.bank_mask["scene"] & labels["slot_valid"]
-        m = smask.float()
-        den = m.sum().clamp(min=1)
-        bce = lambda logit, y: (F.binary_cross_entropy_with_logits(logit.squeeze(-1), y.float(),
-                                                                   reduction="none") * m).sum() / den
-        l_held = bce(out["held"], labels["held"])
-        l_contact = bce(out["contact"], labels["contact"])
-        l_vis = bce(out["visible"], labels["visible"])
-        l_focus = bce(out["focus"], labels["focus"])
-        l_rel = ((out["rel"] - labels["rel_tcp"] * 5).pow(2).sum(-1) * m).sum() / den
-        l_fut = ((out["fut"] - labels["future_disp"] * 10).pow(2).sum(-1) * m).sum() / den
-        l_gaze = ((out["gaze"].squeeze(-1) - labels["gaze"] / 30).pow(2) * m).sum() / den
-        total = l_held + l_contact + l_vis + l_focus + l_rel + l_fut + 0.5 * l_gaze
-        return total, dict(aux_held=float(l_held), aux_contact=float(l_contact), aux_visible=float(l_vis),
-                           aux_focus=float(l_focus), aux_rel=float(l_rel), aux_future=float(l_fut),
-                           aux_gaze=float(l_gaze))

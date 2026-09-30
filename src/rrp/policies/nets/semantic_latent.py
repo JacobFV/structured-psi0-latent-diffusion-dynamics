@@ -116,6 +116,9 @@ def packet_semantic_weight(cfg: dict) -> float:
     return cfg.get(PACKET_SEMANTIC_LEGACY_KEY, 0.0)
 
 
+_SITE_FACTOR_FIELDS = ("encoder_factors", "realizer_factors")     # omitted from `version()` at None: legacy hashes hold
+
+
 @dataclass(init=False)
 class LatentConfig:
     """R38 target-encoder config. `factors` (docs/relations.md 10, unit R2) is the one declarative knob for what used
@@ -134,7 +137,12 @@ class LatentConfig:
     `binding_contrast`, `slot_handles`); that call keeps working unchanged (`bundles.load_representation`,
     `policies.latent`, this module's own `train_representation` -- two of those three files are owned by other
     fanout units and must not be edited here). `__init__` accepts either the flat legacy keys OR `factors=`
-    (mixing both is an error, same rule as `PolicyConfig.from_dict`)."""
+    (mixing both is an error, same rule as `PolicyConfig.from_dict`).
+
+    Per-site factor lists (readiness A1): `factors` is the probe P's list (plus the slot-handle flag), `encoder_factors`
+    the target encoder E's context list, `realizer_factors` system 0's routing list; the policy (system i) list is
+    `PolicyConfig.factors`. All four resolve through the one registry and enter the checkpoint's factor hash
+    (`TargetEncoder.factor_specs`, `LatentRealizer.factor_specs`, `bundles.bundle_factor_specs`)."""
     width: int = 256
     heads: int = 4
     ctx_layers: int = 2
@@ -151,6 +159,8 @@ class LatentConfig:
     factors: tuple | None = None                   # None = the former defaults (weight 1.0, lv_min -8.0, no handles)
     cf_mix: float = 0.0                             # fraction of each batch appended as counterfactual-binding copies
     cf_contrast: float = 0.0                        # optional weight: push E(cf) away from E(factual) (hinge)
+    encoder_factors: tuple | None = None            # E's context-encoder factor list (None = `preset:arm` [+ id.slot_handle])
+    realizer_factors: tuple | None = None           # R's node>knot routing site list (None = preset `s0-arm`)
 
     def __init__(self, **kw):
         legacy = {k: kw.pop(k) for k in LATENT_LEGACY_KEYS if k in kw}
@@ -190,7 +200,8 @@ class LatentConfig:
         return any(s.name == "id.slot_handle" and s.control != "off" for s in self.specs)
 
     def version(self) -> str:
-        d = {f.name: getattr(self, f.name) for f in fields(self) if f.name != "factors"}
+        d = {f.name: getattr(self, f.name) for f in fields(self)
+             if f.name != "factors" and not (f.name in _SITE_FACTOR_FIELDS and getattr(self, f.name) is None)}
         # --- back-compat only: reproduces the pre-R2 hash shape bit-for-bit so existing checkpoints / lineage
         # `latent_space_version` strings stay valid (the acceptance criterion "LatentConfig.version() identical for
         # every legacy config", tests/data/latent_versions.json). This is the one place in this unit's owned files where the retired flat key
@@ -231,9 +242,11 @@ class TargetEncoder(nn.Module):
         super().__init__()
         self.cfg = cfg
         D = cfg.width
-        pc = PolicyConfig(width=D, heads=cfg.heads, ctx_layers=cfg.ctx_layers, blocks=1, horizon=cfg.horizon,
-                          aux=False, factors=["preset:arm", "id.slot_handle"] if cfg.slot_handles else None)
+        ef = cfg.encoder_factors if cfg.encoder_factors is not None else (
+            ["preset:arm", "id.slot_handle"] if cfg.slot_handles else None)
+        pc = PolicyConfig(width=D, heads=cfg.heads, ctx_layers=cfg.ctx_layers, blocks=1, horizon=cfg.horizon, factors=ef)
         self.context = ContextEncoder(pc)
+        self.policy_cfg = pc
         self.node = MLP(NODE_DIM, D)
         self.a_in = nn.Linear(1, D)
         self.h_emb = nn.Embedding(cfg.horizon, D)
@@ -243,6 +256,10 @@ class TargetEncoder(nn.Module):
                                                         s=MHA(D, cfg.heads), n3=nn.LayerNorm(D), m=MLP(D, D, 4 * D)))
                                      for _ in range(cfg.enc_layers)])
         self.out = nn.Linear(D, 2 * cfg.dz)
+
+    def factor_specs(self):
+        """E's resolved context factor list (the structure hash the checkpoint stamps)."""
+        return self.policy_cfg.specs()
 
     def forward(self, batch: Batch, a: torch.Tensor, valid: torch.Tensor, asm_feats, asm_mask, asm_ctx_idx):
         """a [B,H,N] normalized demonstrated actions; returns mu, logvar [B,K,M,dz]."""

@@ -150,9 +150,9 @@ def test_new_factor_is_zero_init_and_rng_isolated():
     s = make_pick_place_session(seed=3)
     b = collate_inputs([featurizer_for(s)(s.observe())])
     torch.manual_seed(0)
-    m0 = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=2, blocks=1, horizon=4, latent_dim=2, aux=False)).eval()
+    m0 = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=2, blocks=1, horizon=4, latent_dim=2)).eval()
     torch.manual_seed(0)
-    m1 = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=2, blocks=1, horizon=4, latent_dim=2, aux=False,
+    m1 = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=2, blocks=1, horizon=4, latent_dim=2,
                                  factors=["preset:arm", "test.bil"])).eval()
     sd1 = m1.state_dict()
     assert all(torch.equal(v, sd1[k]) for k, v in m0.state_dict().items())   # same init for every shared parameter

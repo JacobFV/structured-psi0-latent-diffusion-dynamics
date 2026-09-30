@@ -38,7 +38,7 @@ def _batch(fixture, cam=False):
 
 
 def _policy(factors, **kw):
-    return FlowPolicy(PolicyConfig(width=16, heads=2, ctx_layers=1, blocks=1, horizon=2, aux=False,
+    return FlowPolicy(PolicyConfig(width=16, heads=2, ctx_layers=1, blocks=1, horizon=2,
                                    factors=factors, **kw))
 
 

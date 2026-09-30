@@ -41,13 +41,36 @@ def _remap_probe_state_dict(sd: dict) -> dict:
              if k.startswith(_DESIRED_DELTA_PREFIX) else k): v for k, v in sd.items()}
 
 
+def bundle_factor_specs(E, R, P) -> list:
+    """The arm bundle's resolved factor list: E's context factors, R's routing factors, P's probe readouts. The
+    checkpoint stamps `compat_hash` of exactly this list (`latent_train._bundle`) and `load_representation` verifies it."""
+    return [*E.factor_specs(), *R.factor_specs(), *P.specs]
+
+
+def assert_shared_factors(named: dict) -> str:
+    """Compared methods of one recipe must share their factor set: `named` maps method -> resolved specs; raises
+    `FactorError` naming the methods whose structure hash differs, else returns the common hash. A comparison in which
+    the arms differ is a factor ablation and must say so (`allow_mismatch` at the load), not pass as a method contrast."""
+    import json
+    from rrp.policies.relations.base import FactorError, compat_hash
+    full = {m: json.dumps([x.to_dict() for x in s], sort_keys=True, default=str) for m, s in named.items()}
+    if len(set(full.values())) > 1:       # the whole spec, not the structure hash: controls / weights / sources are the ablations
+        raise FactorError(f"compared methods do not share a factor set: {sorted(full)} differ "
+                          f"({ {m: compat_hash(s) for m, s in named.items()} })")
+    return next((compat_hash(s) for s in named.values()), "")
+
+
 def load_representation(path: Path, dev):
     st = load_checkpoint(path, map_location=dev)
     cfg = LatentConfig(**st["config"]["latent"])
     from rrp.policies.system0 import make_realizer
     specs, probe_kw = _readout_probe_specs(st["config"].get("probe", {}))
-    E, R, P = TargetEncoder(cfg).to(dev), make_realizer(cfg.dz, cfg.realizer_layers, st["config"].get("realizer_arch")).to(dev), \
+    E, R, P = TargetEncoder(cfg).to(dev), make_realizer(cfg.dz, cfg.realizer_layers, st["config"].get("realizer_arch"),
+                                                        cfg.realizer_factors).to(dev), \
         ReadoutProbe(cfg.dz, cfg.knots, specs=specs, **probe_kw).to(dev)
+    if str((st.get("versions") or {}).get("factors", "")).startswith("fx-"):     # checkpoints before A1 carry no hash
+        from rrp.policies.relations.base import require_factors
+        require_factors(st["versions"], bundle_factor_specs(E, R, P))
     E.load_state_dict(st["model"]["E"]); R.load_state_dict(st["model"]["R"])
     P.load_state_dict(_remap_probe_state_dict(st["model"]["P"]))
     R.anchor = bool(st["config"].get("realizer_anchor", False))    # ladder: anchored realizer input (col 28)

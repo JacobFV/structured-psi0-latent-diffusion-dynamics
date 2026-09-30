@@ -92,7 +92,7 @@ def _flow(seed=0, dz=8, K=4):
     import torch
     from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
     torch.manual_seed(seed)
-    m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=1, horizon=K, latent_dim=dz, aux=False))
+    m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=1, horizon=K, latent_dim=dz))
     with torch.no_grad():
         m.out.weight.normal_(0, 0.2)
         m.set_target_norm(torch.linspace(-1, 1, dz), torch.linspace(0.5, 2, dz))
@@ -130,7 +130,7 @@ def test_arm_bc_chunk(golden):
     from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
     s = _arm_session()
     torch.manual_seed(2)
-    m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=1, horizon=8, latent_dim=1, aux=False))
+    m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=1, horizon=8, latent_dim=1))
     with torch.no_grad():
         m.out.weight.normal_(0, 0.2)
     pol = LearnedPolicy(m, None, "cpu", nfe=4, execute_prefix=4, seed=5)
@@ -324,7 +324,7 @@ def test_bc_adapter_matches_old_path(golden):
     from rrp.policies.bc import BCPolicy, LearnedPolicy
     from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
     torch.manual_seed(2)
-    m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=1, horizon=8, latent_dim=1, aux=False))
+    m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=1, horizon=8, latent_dim=1))
     with torch.no_grad():
         m.out.weight.normal_(0, 0.2)
     rec = _run(lambda sd: _arm_session(sd), BCPolicy(LearnedPolicy(m, None, "cpu", nfe=4, execute_prefix=4, seed=5)),
@@ -339,7 +339,7 @@ def _tiny_bc():
     from rrp.policies.bc import LearnedPolicy
     from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
     torch.manual_seed(2)
-    m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=1, horizon=8, latent_dim=1, aux=False))
+    m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=1, horizon=8, latent_dim=1))
     with torch.no_grad():
         m.out.weight.normal_(0, 0.2)
     return LearnedPolicy(m, None, "cpu", nfe=4, execute_prefix=4, seed=5)
@@ -620,7 +620,7 @@ def _rel_cfg(**kw):
     import torch
     from rrp.policies.nets.flow import PolicyConfig
     torch.manual_seed(0)
-    return PolicyConfig.from_dict(dict(dict(width=32, heads=2, ctx_layers=2, blocks=2, horizon=4, latent_dim=3, aux=False), **kw))
+    return PolicyConfig.from_dict(dict(dict(width=32, heads=2, ctx_layers=2, blocks=2, horizon=4, latent_dim=3), **kw))
 
 
 @pytest.mark.parametrize("mode", ["true", "none", "zero", "reversed", "rewired"])

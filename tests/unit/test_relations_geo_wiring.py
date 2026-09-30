@@ -78,7 +78,7 @@ def test_geo_depth3d_reaches_the_real_flowpolicy_ctx_ctx_site_without_any_runtim
     """R13's own peer smoke had to patch `flow_mod.CTX_CARRIES` in-process because "cam_uvd" was not yet in the
     tuple (archived research/tracks/rel-r13.md "peer smoke"). With this unit's change, a real `FlowPolicy` built with
     `factors=["preset:arm", "geo.depth3d"]` picks it up out of the box -- no patch, no `FactorSite` built by hand."""
-    cfg = PolicyConfig(width=16, heads=2, ctx_layers=1, blocks=1, horizon=2, aux=False,
+    cfg = PolicyConfig(width=16, heads=2, ctx_layers=1, blocks=1, horizon=2,
                        factors=["preset:arm", "geo.depth3d"])
     torch.manual_seed(0)
     model = FlowPolicy(cfg)
@@ -100,7 +100,7 @@ def test_geo_depth3d_changes_ctx_attention_logits_in_the_real_context_encoder():
     yielding a genuinely zero dot product no amount of nudging PaPE's own coefficients alone can move, an
     initialization artifact orthogonal to the CTX_CARRIES wiring under test here)."""
     s, pi, b = _arm_batch()
-    cfg = PolicyConfig(width=16, heads=2, ctx_layers=1, blocks=1, horizon=2, aux=False,
+    cfg = PolicyConfig(width=16, heads=2, ctx_layers=1, blocks=1, horizon=2,
                        factors=["preset:arm", "geo.depth3d"])
     torch.manual_seed(0)
     model = FlowPolicy(cfg).eval()

@@ -31,6 +31,7 @@ from collections import Counter
 from pathlib import Path
 
 from rrp.harness.pipelines.base import apply_gate, StageContext, StageError, register
+from rrp.harness.train.baseline_campaign import SFT_LR, SFT_STEPS   # the one copy (BC SFT budget -> updates, lr)
 
 LADDER = ["-m", "rrp.cli", "suite", "ladder"]
 TRAIN_BODIES = ("panda_pg2", "parm5_pg2", "parm5_tf3", "parm5l_tf3", "parm5s_pg2", "parm6_pg2", "parm6_tf3",
@@ -530,10 +531,6 @@ def target_eval(ctx: StageContext) -> dict:
     metrics["protocol"] = dict(id=proto.get("id"), sha256=sha)
     return dict(outputs={"summary": str(sp), "rows": str(Path(ctx.rc.out) / f"{route}_{tag}.jsonl")}, metrics=metrics,
                 source=src, source_detail=detail)
-
-
-SFT_STEPS = {5: 150, 20: 300, 100: 600}      # = rrp.harness.train.baseline_campaign.SFT_STEPS / run_latent_cell
-SFT_LR = 1e-4
 
 
 @register("arm", "target_adapt", source="learned")

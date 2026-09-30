@@ -133,39 +133,15 @@ def test_padding_nodes_do_not_change_valid_outputs(inputs):
     assert torch.all(v2[0, :, N:] == 0)
 
 
-def test_aux_readout_gradients_reach_action_expert_blocks(inputs):
-    from rrp.harness.data.chunks import Sample, collate_samples
-    m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=3, horizon=4, aux=True))
-    S = inputs[0].tokens["scene"].shape[0]
-    N = inputs[0].act_node_feats.shape[0]
-    labels = dict(held=np.ones(S, bool), contact=np.zeros(S, bool), visible=np.ones(S, bool), focus=np.zeros(S, bool),
-                  slot_valid=np.ones(S, bool), rel_tcp=np.zeros((S, 3), np.float32),
-                  future_disp=np.zeros((S, 3), np.float32), gaze=np.zeros(S, np.float32), status={})
-    smp = [Sample(pi, np.zeros((4, N), np.float32), np.ones((4, N), bool), labels, np.zeros((4, 4), np.float32), {})
-           for pi in inputs]
-    batch, a, v, lab, eff = collate_samples(smp)
-    _, logs = m.loss(batch, a, v, lab, aux_weight=1.0)
-    m.zero_grad()
-    # aux-only gradient
-    cache = m.prepare(batch)
-    z = torch.randn_like(a)
-    vel, hidden = m.velocity(z, torch.full((2,), 0.5), cache, return_hidden=True)
-    aux, _ = m.readout(hidden, cache, batch, lab, z)
-    aux.backward()
-    g_block0 = sum(p.grad.abs().sum() for p in m.blocks[0].parameters() if p.grad is not None)
-    assert g_block0 > 0, "auxiliary loss must shape system-i denoising blocks"
-    assert all(torch.isfinite(p.grad).all() for p in m.parameters() if p.grad is not None)
-
-
 def test_unstructured_baseline_has_no_pointer_messages(inputs):
     b = collate_inputs(inputs)
-    m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=1, horizon=4, aux=False,
+    m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=1, horizon=4,
                                 factors=["preset:arm", {"name": "edge.*", "control": "off"},
                                          {"name": "msg.incidence", "control": "serialized"}]))
     c = m.prepare(b)
     assert all(x is None for x in c.act_bias)
     n_params_s = sum(p.numel() for p in FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=1,
-                                                                horizon=4, aux=False)).parameters())
+                                                                horizon=4)).parameters())
     n_params_u = sum(p.numel() for p in m.parameters())
     assert n_params_s == n_params_u   # matched parameter budget (pointer vs text projections are same size)
 

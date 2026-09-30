@@ -38,7 +38,7 @@ class LatentPolicy:
         res = (st.get("extra") or {}).get("result") or rep["extra"]["result"]
         from rrp.policies.nets.semantic_latent import LatentConfig
         lcfg = LatentConfig(**rep["config"]["latent"])
-        pc = PolicyConfig.from_dict(dict(st["config"]["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz, aux=False))
+        pc = PolicyConfig.from_dict(dict(st["config"]["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz))
         m = FlowPolicy(pc).to(device)
         m.load_state_dict(st["model"])
         from rrp.policies.system0 import bundle_versions, is_fingerprinted

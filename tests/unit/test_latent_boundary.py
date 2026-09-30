@@ -19,7 +19,7 @@ torch.manual_seed(0)
 
 
 def tiny_policy():
-    m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=1, horizon=K, latent_dim=DZ, aux=False))
+    m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=1, horizon=K, latent_dim=DZ))
     with torch.no_grad():
         m.out.weight.normal_(0, 0.1)
     return LatentPolicy(m, knot_times=(0.1, 0.3, 0.5, 0.7), latent_space_version="ls-test", realizer_compat_version="rz-test",
@@ -111,9 +111,9 @@ def test_semantic_loss_on_predicted_clean_latent_reaches_flow_model_only_via_pac
     model.train()
     target = torch.randn(2, K, 1, DZ)
     valid = b.node_mask[:, None, :].expand(-1, K, -1)
-    loss, logs = model.loss(b, target, valid, None, packet_loss_fn=lambda zc: readout_loss(P(zc, b.node_mask, Sn), lab, smask),
+    loss, logs = model.loss(b, target, valid, packet_loss_fn=lambda zc: readout_loss(P(zc, b.node_mask, Sn), lab, smask),
                             packet_weight=1.0)
-    assert model.readout is None                     # no hidden-state readout route exists in this model
+    assert not hasattr(model, "readout")              # no hidden-state readout route exists in this model
     model.zero_grad()
     # isolate the packet-semantic term: recompute only it at an intermediate noise level
     cache = model.prepare(b)

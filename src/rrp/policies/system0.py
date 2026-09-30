@@ -29,11 +29,12 @@ import hashlib
 REALIZER_RECURRENT_STATE = "none-v1"
 
 
-def make_realizer(dz: int, default_layers: int, arch: dict | None = None) -> "LatentRealizer":
-    """Realizer from a bundle's optional `realizer_arch` (ladder refits: layers/width/z_norm); default = Stage-A arch."""
+def make_realizer(dz: int, default_layers: int, arch: dict | None = None, factors=None) -> "LatentRealizer":
+    """Realizer from a bundle's optional `realizer_arch` (ladder refits: layers/width/z_norm); default = Stage-A arch.
+    `factors` = the routing-site list (`LatentConfig.realizer_factors`)."""
     a = arch or {}
     return LatentRealizer(dz, width=a.get("width", 192), layers=a.get("layers", default_layers),
-                          z_norm=a.get("z_norm", False))
+                          z_norm=a.get("z_norm", False), factors=factors)
 
 
 class LatentRealizer(nn.Module):
@@ -53,10 +54,15 @@ class LatentRealizer(nn.Module):
         self.local = nn.Linear(4, D)
         self.z_in = nn.Linear(dz, D)
         self.dt_in = MLP(D, D)
-        self.route = FactorSite(heads, D, "node>knot", resolve(factors, default="s0-arm"), ("assembly_id",))
+        self.route_specs = resolve(factors, default="s0-arm")
+        self.route = FactorSite(heads, D, "node>knot", self.route_specs, ("assembly_id",))
         self.blocks = nn.ModuleList([RelBlock(D, heads) for _ in range(layers)])
         self.out = nn.Linear(D, 1)
         self.D = D
+
+    def factor_specs(self):
+        """The routing site's resolved factor list (the structure hash the checkpoint stamps)."""
+        return self.route_specs
 
     def route_bias(self, zmask, node_mask, K, node_asm=None):
         """`route.own_assembly` (preset `s0-arm`, D-144 R3): [B,1,N,K*M] -inf off a node's own packet assembly.

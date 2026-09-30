@@ -17,6 +17,7 @@ def _done(p: Path) -> bool:
 def run_latent_cell(protocol: dict, method: str, seed: int, *, base_flow_config: str, target_packed: str,
                     root: Path = Path("artifacts/runs/latent_slice1")) -> dict:
     from rrp.harness.train.latent_train import train_latent_flow, sft_latent_flow
+    from rrp.harness.train.baseline_campaign import SFT_STEPS
     from rrp.policies.bundles import load_representation
     from rrp.policies.latent import LatentPolicy
     from rrp.harness.eval.hooks import latent_hooks
@@ -73,7 +74,7 @@ def run_latent_cell(protocol: dict, method: str, seed: int, *, base_flow_config:
             d = cell / "sft" / f"{tgt}_b{b}"
             if not _done(d / "policy.pt"):
                 sft_latent_flow(src / "policy.pt", Path(target_packed) / tgt, b, seed=seed, out_dir=d,
-                                steps={5: 150, 20: 300, 100: 600}[b])
+                                steps=SFT_STEPS[b])
             summ[f"{tgt}/{b}"] = eval_ckpt(d / "policy.pt", [tgt], f"{tgt}_b{b}", ev["episodes"])
     (cell / "summary.json").write_text(json.dumps(summ, indent=1))
     reg.update(run_id, "completed", summary_path=str(cell / "summary.json"))

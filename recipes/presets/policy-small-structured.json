@@ -24,7 +24,6 @@
  "batch_size": 256,
  "lr": 0.0003,
  "stride": 2,
- "aux_weight": 0.1,
  "policy": {
   "width": 256,
   "heads": 4,
@@ -32,7 +31,6 @@
   "blocks": 6,
   "horizon": 16,
   "latent_dim": 1,
-  "aux": true,
   "name": "dev_structured_direct"
  },
  "include_dart_failures": true,
