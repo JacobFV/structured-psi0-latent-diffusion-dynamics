@@ -14,7 +14,8 @@ from rrp.harness.pipelines.base import _REGISTRY, StageError, _load_families
 
 ROOT = Path(__file__).resolve().parents[2]
 HELD_OUT = ("h_steps_carry", "h_gap_cart")                   # evaluation-only recipes (tests/unit/test_humanoid_recipes.py)
-RECIPES = sorted(p for p in (ROOT / "recipes/humanoid").glob("transfer_h_*.yaml") if p.stem.removeprefix("transfer_") not in HELD_OUT)
+RECIPES = sorted(p for p in (ROOT / "recipes/humanoid").glob("transfer_h_*.yaml")      # the `preset:legged` arm; the `_legged_none` control arm is checked in test_humanoid_recipes.py
+                 if p.stem.removeprefix("transfer_") not in HELD_OUT and not p.stem.endswith("_legged_none"))
 UPDATES = {5: 150, 20: 300, 100: 600}
 
 

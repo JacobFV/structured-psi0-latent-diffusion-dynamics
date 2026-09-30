@@ -20,7 +20,8 @@
 # stage that produces it (`producer`) and `missing_run` otherwise. Level-1 PPO (`adapt_ppo`, h_steps / h_gap only) is declared by the instance.
 # Relational factors (D-144 / D-146): `vars.rel_preset` (default `legged` = the nine legged-rel-v1 edges + leg.foothold + leg.com_support) is listed in
 # the `latent.factors` of rep and in the BC `model.factors`; `legged-none` (no relational factor, the pre-relations nets) is the control arm
-# (the `transfer_<task>_legged_none.yaml` instances).
+# (the `transfer_<task>_legged_none.yaml` instances = this template + recipes/templates/humanoid_transfer_legged_none.yaml). The preset is part of every
+# per-arm lineage (`humanoid-transfer-<task>-<system>-<preset>`) and trainer name, so the arms never collide; collect / pack / references carry none and are shared.
 # NOT in this DAG: system-0 refit and joint flow + system-0 from a demo pack WITH DAgger buffers (the adapt nodes train on the nested first-N
 # pack only; DAgger rounds need the warm-start trainers to read rollout buffers).
 # The pooled results: `rrp eval humanoid-transfer --config <transfer_config.json> --tables-only` (merges every point's results_glob).
@@ -29,7 +30,7 @@ name: humanoid_transfer_template
 schema: dag-1
 family: humanoid
 track: humanoid
-lineage: 'humanoid-transfer-{task}-{system}'
+lineage: 'humanoid-transfer-{task}-{system}-{rel_preset}'
 global_lineage: 'humanoid-transfer-{task}'
 label_prefix: 'htr_{tg}{seed}'
 global_label_prefix: 'htr'
@@ -72,7 +73,7 @@ lists:
     scenes: 100
     bodies: {dev: [t1, g1, h1], sealed: [n1, berkeley, toddlerbot_2xc]}
     pack: [artifacts/runs/humanoid/humanoid-transfer-<task>/pack_s0/pack.json, artifacts/runs/humanoid/humanoid-transfer-<task>/pack-sealed_s0/pack.json]
-    results_glob: ['artifacts/runs/humanoid/humanoid-transfer-<task>*/eval_transfer*', 'artifacts/runs/humanoid/humanoid-transfer-<task>*/sealed_eval*']
+    results_glob: ['artifacts/runs/humanoid/humanoid-transfer-<task>-*-legged/eval_transfer*', 'artifacts/runs/humanoid/humanoid-transfer-<task>-*-legged/sealed_eval*', 'artifacts/runs/humanoid/humanoid-transfer-<task>/eval_transfer*', 'artifacts/runs/humanoid/humanoid-transfer-<task>/sealed_eval*']
     latent_kw: {}
     levels:
       '2': {unit: demos, budgets: [5, 20, 100], updates: {5: 150, 20: 300, 100: 600}, reference: bc_sft}
@@ -86,7 +87,7 @@ lists:
           trained: true
           producer: train_flow
           policy: legged_latent
-          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/train_rep_s<seed>/representation.pt'}
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix-legged/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix-legged/train_rep_s<seed>/representation.pt'}
         - name: semfix_refit
           level: 2
           variant: semfix
@@ -96,8 +97,8 @@ lists:
           budgeted: true
           producer: adapt_refit
           policy: legged_latent
-          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/adapt_refit-<body>-n<budget>_s<seed>/representation.pt'}
-          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/adapt_refit-<body>-n<budget>_s<seed>/acquisition.json'
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix-legged/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix-legged/adapt_refit-<body>-n<budget>_s<seed>/representation.pt'}
+          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix-legged/adapt_refit-<body>-n<budget>_s<seed>/acquisition.json'
         - name: semfix_joint
           level: 2
           variant: semfix
@@ -107,8 +108,8 @@ lists:
           budgeted: true
           producer: adapt_flow
           policy: legged_latent
-          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/adapt_flow-<body>-n<budget>_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/adapt_refit-<body>-n<budget>_s<seed>/representation.pt'}
-          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/adapt_flow-<body>-n<budget>_s<seed>/acquisition.json'
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix-legged/adapt_flow-<body>-n<budget>_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix-legged/adapt_refit-<body>-n<budget>_s<seed>/representation.pt'}
+          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix-legged/adapt_flow-<body>-n<budget>_s<seed>/acquisition.json'
         - name: nosem_zeroshot
           level: 2
           variant: nosem
@@ -117,7 +118,7 @@ lists:
           trained: true
           producer: train_flow
           policy: legged_latent
-          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/train_rep_s<seed>/representation.pt'}
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem-legged/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem-legged/train_rep_s<seed>/representation.pt'}
         - name: nosem_refit
           level: 2
           variant: nosem
@@ -127,8 +128,8 @@ lists:
           budgeted: true
           producer: adapt_refit
           policy: legged_latent
-          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/adapt_refit-<body>-n<budget>_s<seed>/representation.pt'}
-          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/adapt_refit-<body>-n<budget>_s<seed>/acquisition.json'
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem-legged/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem-legged/adapt_refit-<body>-n<budget>_s<seed>/representation.pt'}
+          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem-legged/adapt_refit-<body>-n<budget>_s<seed>/acquisition.json'
         - name: nosem_joint
           level: 2
           variant: nosem
@@ -138,8 +139,8 @@ lists:
           budgeted: true
           producer: adapt_flow
           policy: legged_latent
-          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/adapt_flow-<body>-n<budget>_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/adapt_refit-<body>-n<budget>_s<seed>/representation.pt'}
-          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/adapt_flow-<body>-n<budget>_s<seed>/acquisition.json'
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem-legged/adapt_flow-<body>-n<budget>_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem-legged/adapt_refit-<body>-n<budget>_s<seed>/representation.pt'}
+          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem-legged/adapt_flow-<body>-n<budget>_s<seed>/acquisition.json'
         - name: bc_zeroshot
           level: 2
           variant: bc
@@ -148,7 +149,7 @@ lists:
           trained: true
           producer: train_bc
           policy: legged_bc
-          kw: {checkpoint: 'artifacts/runs/humanoid/humanoid-transfer-<task>-bc/train_bc_s<seed>/policy.pt'}
+          kw: {checkpoint: 'artifacts/runs/humanoid/humanoid-transfer-<task>-bc-legged/train_bc_s<seed>/policy.pt'}
         - name: bc_sft
           level: 2
           variant: bc
@@ -158,8 +159,8 @@ lists:
           budgeted: true
           producer: adapt_bc
           policy: legged_bc
-          kw: {checkpoint: 'artifacts/runs/humanoid/humanoid-transfer-<task>-bc/adapt_bc-<body>-n<budget>_s<seed>/policy.pt'}
-          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-bc/adapt_bc-<body>-n<budget>_s<seed>/acquisition.json'
+          kw: {checkpoint: 'artifacts/runs/humanoid/humanoid-transfer-<task>-bc-legged/adapt_bc-<body>-n<budget>_s<seed>/policy.pt'}
+          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-bc-legged/adapt_bc-<body>-n<budget>_s<seed>/acquisition.json'
       reference:
         - name: teacher
           level: 0
@@ -228,21 +229,21 @@ nodes:
     config:
       flags: {qd_dropout: 0.5}
       inputs: {data: '@collect_src'}
-      params: {name: 'htr_{system}_{task}_s{seed}_rep', bodies: $src_bodies, latent: {dz: 32, width: 192, factors: [{name: probe.legged.contact, weight: '{sw}'}, {name: probe.legged.goal, weight: '{sw}'}, {name: probe.legged.disp, weight: '{sw}'}, {name: probe.legged.subtask, weight: '{sw}'}, {name: probe.legged.fall, weight: '{sw}'}, 'preset:{rel_preset}'], beta_kl: 0.001}, steps: '{rep_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 4000}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_s{seed}_rep', bodies: $src_bodies, latent: {dz: 32, width: 192, factors: [{name: probe.legged.contact, weight: '{sw}'}, {name: probe.legged.goal, weight: '{sw}'}, {name: probe.legged.disp, weight: '{sw}'}, {name: probe.legged.subtask, weight: '{sw}'}, {name: probe.legged.fall, weight: '{sw}'}, 'preset:{rel_preset}'], beta_kl: 0.001}, steps: '{rep_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 4000}
   flow:
     stage: train_flow
     only: {system: [semfix, nosem]}
     resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
     config:
       inputs: {representation: '@rep:representation.pt'}
-      params: {name: 'htr_{system}_{task}_s{seed}_flow', width: 256, layers: 4, packet_semantic_weight: '{psw}', packet_tau_min: 0.6, steps: '{flow_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 4000}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_s{seed}_flow', width: 256, layers: 4, packet_semantic_weight: '{psw}', packet_tau_min: 0.6, steps: '{flow_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 4000}
   bc:
     stage: train_bc
     only: {system: [bc]}
     resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
     config:
       inputs: {data: '@collect_src'}
-      params: {name: 'htr_bc_{task}_s{seed}', bodies: $src_bodies, model: {width: 192, enc_layers: 2, dec_layers: 3, factors: ['preset:{rel_preset}']}, steps: '{bc_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 5000}
+      params: {name: 'htr_bc_{task}_{rel_preset}_s{seed}', bodies: $src_bodies, model: {width: 192, enc_layers: 2, dec_layers: 3, factors: ['preset:{rel_preset}']}, steps: '{bc_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 5000}
   adapt_refit_d0_n5:
     stage: adapt_refit
     tag: '{dev0}-n5'
@@ -252,7 +253,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', representation: '@rep:representation.pt'}
       options: {adapt: {task: '{task}', body: '{dev0}', budget: 5}}
-      params: {name: 'htr_{system}_{task}_{dev0}_n5_s{seed}_refit', steps: 150, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{dev0}_n5_s{seed}_refit', steps: 150, seed: '{seed}'}
   adapt_refit_d0_n20:
     stage: adapt_refit
     tag: '{dev0}-n20'
@@ -262,7 +263,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', representation: '@rep:representation.pt'}
       options: {adapt: {task: '{task}', body: '{dev0}', budget: 20}}
-      params: {name: 'htr_{system}_{task}_{dev0}_n20_s{seed}_refit', steps: 300, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{dev0}_n20_s{seed}_refit', steps: 300, seed: '{seed}'}
   adapt_refit_d0_n100:
     stage: adapt_refit
     tag: '{dev0}-n100'
@@ -272,7 +273,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', representation: '@rep:representation.pt'}
       options: {adapt: {task: '{task}', body: '{dev0}', budget: 100}}
-      params: {name: 'htr_{system}_{task}_{dev0}_n100_s{seed}_refit', steps: 600, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{dev0}_n100_s{seed}_refit', steps: 600, seed: '{seed}'}
   adapt_refit_d1_n5:
     stage: adapt_refit
     tag: '{dev1}-n5'
@@ -282,7 +283,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', representation: '@rep:representation.pt'}
       options: {adapt: {task: '{task}', body: '{dev1}', budget: 5}}
-      params: {name: 'htr_{system}_{task}_{dev1}_n5_s{seed}_refit', steps: 150, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{dev1}_n5_s{seed}_refit', steps: 150, seed: '{seed}'}
   adapt_refit_d1_n20:
     stage: adapt_refit
     tag: '{dev1}-n20'
@@ -292,7 +293,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', representation: '@rep:representation.pt'}
       options: {adapt: {task: '{task}', body: '{dev1}', budget: 20}}
-      params: {name: 'htr_{system}_{task}_{dev1}_n20_s{seed}_refit', steps: 300, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{dev1}_n20_s{seed}_refit', steps: 300, seed: '{seed}'}
   adapt_refit_d1_n100:
     stage: adapt_refit
     tag: '{dev1}-n100'
@@ -302,7 +303,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', representation: '@rep:representation.pt'}
       options: {adapt: {task: '{task}', body: '{dev1}', budget: 100}}
-      params: {name: 'htr_{system}_{task}_{dev1}_n100_s{seed}_refit', steps: 600, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{dev1}_n100_s{seed}_refit', steps: 600, seed: '{seed}'}
   adapt_refit_d2_n5:
     stage: adapt_refit
     tag: '{dev2}-n5'
@@ -312,7 +313,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', representation: '@rep:representation.pt'}
       options: {adapt: {task: '{task}', body: '{dev2}', budget: 5}}
-      params: {name: 'htr_{system}_{task}_{dev2}_n5_s{seed}_refit', steps: 150, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{dev2}_n5_s{seed}_refit', steps: 150, seed: '{seed}'}
   adapt_refit_d2_n20:
     stage: adapt_refit
     tag: '{dev2}-n20'
@@ -322,7 +323,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', representation: '@rep:representation.pt'}
       options: {adapt: {task: '{task}', body: '{dev2}', budget: 20}}
-      params: {name: 'htr_{system}_{task}_{dev2}_n20_s{seed}_refit', steps: 300, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{dev2}_n20_s{seed}_refit', steps: 300, seed: '{seed}'}
   adapt_refit_d2_n100:
     stage: adapt_refit
     tag: '{dev2}-n100'
@@ -332,7 +333,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', representation: '@rep:representation.pt'}
       options: {adapt: {task: '{task}', body: '{dev2}', budget: 100}}
-      params: {name: 'htr_{system}_{task}_{dev2}_n100_s{seed}_refit', steps: 600, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{dev2}_n100_s{seed}_refit', steps: 600, seed: '{seed}'}
   adapt_refit_s0_n5:
     stage: adapt_refit
     tag: '{seal0}-n5'
@@ -342,7 +343,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', representation: '@rep:representation.pt'}
       options: {adapt: {task: '{task}', body: '{seal0}', budget: 5}}
-      params: {name: 'htr_{system}_{task}_{seal0}_n5_s{seed}_refit', steps: 150, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{seal0}_n5_s{seed}_refit', steps: 150, seed: '{seed}'}
   adapt_refit_s0_n20:
     stage: adapt_refit
     tag: '{seal0}-n20'
@@ -352,7 +353,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', representation: '@rep:representation.pt'}
       options: {adapt: {task: '{task}', body: '{seal0}', budget: 20}}
-      params: {name: 'htr_{system}_{task}_{seal0}_n20_s{seed}_refit', steps: 300, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{seal0}_n20_s{seed}_refit', steps: 300, seed: '{seed}'}
   adapt_refit_s0_n100:
     stage: adapt_refit
     tag: '{seal0}-n100'
@@ -362,7 +363,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', representation: '@rep:representation.pt'}
       options: {adapt: {task: '{task}', body: '{seal0}', budget: 100}}
-      params: {name: 'htr_{system}_{task}_{seal0}_n100_s{seed}_refit', steps: 600, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{seal0}_n100_s{seed}_refit', steps: 600, seed: '{seed}'}
   adapt_refit_s1_n5:
     stage: adapt_refit
     tag: '{seal1}-n5'
@@ -372,7 +373,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', representation: '@rep:representation.pt'}
       options: {adapt: {task: '{task}', body: '{seal1}', budget: 5}}
-      params: {name: 'htr_{system}_{task}_{seal1}_n5_s{seed}_refit', steps: 150, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{seal1}_n5_s{seed}_refit', steps: 150, seed: '{seed}'}
   adapt_refit_s1_n20:
     stage: adapt_refit
     tag: '{seal1}-n20'
@@ -382,7 +383,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', representation: '@rep:representation.pt'}
       options: {adapt: {task: '{task}', body: '{seal1}', budget: 20}}
-      params: {name: 'htr_{system}_{task}_{seal1}_n20_s{seed}_refit', steps: 300, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{seal1}_n20_s{seed}_refit', steps: 300, seed: '{seed}'}
   adapt_refit_s1_n100:
     stage: adapt_refit
     tag: '{seal1}-n100'
@@ -392,7 +393,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', representation: '@rep:representation.pt'}
       options: {adapt: {task: '{task}', body: '{seal1}', budget: 100}}
-      params: {name: 'htr_{system}_{task}_{seal1}_n100_s{seed}_refit', steps: 600, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{seal1}_n100_s{seed}_refit', steps: 600, seed: '{seed}'}
   adapt_refit_s2_n5:
     stage: adapt_refit
     tag: '{seal2}-n5'
@@ -402,7 +403,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', representation: '@rep:representation.pt'}
       options: {adapt: {task: '{task}', body: '{seal2}', budget: 5}}
-      params: {name: 'htr_{system}_{task}_{seal2}_n5_s{seed}_refit', steps: 150, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{seal2}_n5_s{seed}_refit', steps: 150, seed: '{seed}'}
   adapt_refit_s2_n20:
     stage: adapt_refit
     tag: '{seal2}-n20'
@@ -412,7 +413,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', representation: '@rep:representation.pt'}
       options: {adapt: {task: '{task}', body: '{seal2}', budget: 20}}
-      params: {name: 'htr_{system}_{task}_{seal2}_n20_s{seed}_refit', steps: 300, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{seal2}_n20_s{seed}_refit', steps: 300, seed: '{seed}'}
   adapt_refit_s2_n100:
     stage: adapt_refit
     tag: '{seal2}-n100'
@@ -422,7 +423,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', representation: '@rep:representation.pt'}
       options: {adapt: {task: '{task}', body: '{seal2}', budget: 100}}
-      params: {name: 'htr_{system}_{task}_{seal2}_n100_s{seed}_refit', steps: 600, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{seal2}_n100_s{seed}_refit', steps: 600, seed: '{seed}'}
   adapt_flow_d0_n5:
     stage: adapt_flow
     tag: '{dev0}-n5'
@@ -432,7 +433,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d0_n5:representation.pt'}
       options: {adapt: {task: '{task}', body: '{dev0}', budget: 5}}
-      params: {name: 'htr_{system}_{task}_{dev0}_n5_s{seed}_flow', steps: 150, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{dev0}_n5_s{seed}_flow', steps: 150, seed: '{seed}'}
   adapt_flow_d0_n20:
     stage: adapt_flow
     tag: '{dev0}-n20'
@@ -442,7 +443,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d0_n20:representation.pt'}
       options: {adapt: {task: '{task}', body: '{dev0}', budget: 20}}
-      params: {name: 'htr_{system}_{task}_{dev0}_n20_s{seed}_flow', steps: 300, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{dev0}_n20_s{seed}_flow', steps: 300, seed: '{seed}'}
   adapt_flow_d0_n100:
     stage: adapt_flow
     tag: '{dev0}-n100'
@@ -452,7 +453,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d0_n100:representation.pt'}
       options: {adapt: {task: '{task}', body: '{dev0}', budget: 100}}
-      params: {name: 'htr_{system}_{task}_{dev0}_n100_s{seed}_flow', steps: 600, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{dev0}_n100_s{seed}_flow', steps: 600, seed: '{seed}'}
   adapt_flow_d1_n5:
     stage: adapt_flow
     tag: '{dev1}-n5'
@@ -462,7 +463,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d1_n5:representation.pt'}
       options: {adapt: {task: '{task}', body: '{dev1}', budget: 5}}
-      params: {name: 'htr_{system}_{task}_{dev1}_n5_s{seed}_flow', steps: 150, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{dev1}_n5_s{seed}_flow', steps: 150, seed: '{seed}'}
   adapt_flow_d1_n20:
     stage: adapt_flow
     tag: '{dev1}-n20'
@@ -472,7 +473,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d1_n20:representation.pt'}
       options: {adapt: {task: '{task}', body: '{dev1}', budget: 20}}
-      params: {name: 'htr_{system}_{task}_{dev1}_n20_s{seed}_flow', steps: 300, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{dev1}_n20_s{seed}_flow', steps: 300, seed: '{seed}'}
   adapt_flow_d1_n100:
     stage: adapt_flow
     tag: '{dev1}-n100'
@@ -482,7 +483,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d1_n100:representation.pt'}
       options: {adapt: {task: '{task}', body: '{dev1}', budget: 100}}
-      params: {name: 'htr_{system}_{task}_{dev1}_n100_s{seed}_flow', steps: 600, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{dev1}_n100_s{seed}_flow', steps: 600, seed: '{seed}'}
   adapt_flow_d2_n5:
     stage: adapt_flow
     tag: '{dev2}-n5'
@@ -492,7 +493,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d2_n5:representation.pt'}
       options: {adapt: {task: '{task}', body: '{dev2}', budget: 5}}
-      params: {name: 'htr_{system}_{task}_{dev2}_n5_s{seed}_flow', steps: 150, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{dev2}_n5_s{seed}_flow', steps: 150, seed: '{seed}'}
   adapt_flow_d2_n20:
     stage: adapt_flow
     tag: '{dev2}-n20'
@@ -502,7 +503,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d2_n20:representation.pt'}
       options: {adapt: {task: '{task}', body: '{dev2}', budget: 20}}
-      params: {name: 'htr_{system}_{task}_{dev2}_n20_s{seed}_flow', steps: 300, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{dev2}_n20_s{seed}_flow', steps: 300, seed: '{seed}'}
   adapt_flow_d2_n100:
     stage: adapt_flow
     tag: '{dev2}-n100'
@@ -512,7 +513,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d2_n100:representation.pt'}
       options: {adapt: {task: '{task}', body: '{dev2}', budget: 100}}
-      params: {name: 'htr_{system}_{task}_{dev2}_n100_s{seed}_flow', steps: 600, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{dev2}_n100_s{seed}_flow', steps: 600, seed: '{seed}'}
   adapt_flow_s0_n5:
     stage: adapt_flow
     tag: '{seal0}-n5'
@@ -522,7 +523,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s0_n5:representation.pt'}
       options: {adapt: {task: '{task}', body: '{seal0}', budget: 5}}
-      params: {name: 'htr_{system}_{task}_{seal0}_n5_s{seed}_flow', steps: 150, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{seal0}_n5_s{seed}_flow', steps: 150, seed: '{seed}'}
   adapt_flow_s0_n20:
     stage: adapt_flow
     tag: '{seal0}-n20'
@@ -532,7 +533,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s0_n20:representation.pt'}
       options: {adapt: {task: '{task}', body: '{seal0}', budget: 20}}
-      params: {name: 'htr_{system}_{task}_{seal0}_n20_s{seed}_flow', steps: 300, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{seal0}_n20_s{seed}_flow', steps: 300, seed: '{seed}'}
   adapt_flow_s0_n100:
     stage: adapt_flow
     tag: '{seal0}-n100'
@@ -542,7 +543,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s0_n100:representation.pt'}
       options: {adapt: {task: '{task}', body: '{seal0}', budget: 100}}
-      params: {name: 'htr_{system}_{task}_{seal0}_n100_s{seed}_flow', steps: 600, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{seal0}_n100_s{seed}_flow', steps: 600, seed: '{seed}'}
   adapt_flow_s1_n5:
     stage: adapt_flow
     tag: '{seal1}-n5'
@@ -552,7 +553,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s1_n5:representation.pt'}
       options: {adapt: {task: '{task}', body: '{seal1}', budget: 5}}
-      params: {name: 'htr_{system}_{task}_{seal1}_n5_s{seed}_flow', steps: 150, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{seal1}_n5_s{seed}_flow', steps: 150, seed: '{seed}'}
   adapt_flow_s1_n20:
     stage: adapt_flow
     tag: '{seal1}-n20'
@@ -562,7 +563,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s1_n20:representation.pt'}
       options: {adapt: {task: '{task}', body: '{seal1}', budget: 20}}
-      params: {name: 'htr_{system}_{task}_{seal1}_n20_s{seed}_flow', steps: 300, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{seal1}_n20_s{seed}_flow', steps: 300, seed: '{seed}'}
   adapt_flow_s1_n100:
     stage: adapt_flow
     tag: '{seal1}-n100'
@@ -572,7 +573,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s1_n100:representation.pt'}
       options: {adapt: {task: '{task}', body: '{seal1}', budget: 100}}
-      params: {name: 'htr_{system}_{task}_{seal1}_n100_s{seed}_flow', steps: 600, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{seal1}_n100_s{seed}_flow', steps: 600, seed: '{seed}'}
   adapt_flow_s2_n5:
     stage: adapt_flow
     tag: '{seal2}-n5'
@@ -582,7 +583,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s2_n5:representation.pt'}
       options: {adapt: {task: '{task}', body: '{seal2}', budget: 5}}
-      params: {name: 'htr_{system}_{task}_{seal2}_n5_s{seed}_flow', steps: 150, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{seal2}_n5_s{seed}_flow', steps: 150, seed: '{seed}'}
   adapt_flow_s2_n20:
     stage: adapt_flow
     tag: '{seal2}-n20'
@@ -592,7 +593,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s2_n20:representation.pt'}
       options: {adapt: {task: '{task}', body: '{seal2}', budget: 20}}
-      params: {name: 'htr_{system}_{task}_{seal2}_n20_s{seed}_flow', steps: 300, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{seal2}_n20_s{seed}_flow', steps: 300, seed: '{seed}'}
   adapt_flow_s2_n100:
     stage: adapt_flow
     tag: '{seal2}-n100'
@@ -602,7 +603,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s2_n100:representation.pt'}
       options: {adapt: {task: '{task}', body: '{seal2}', budget: 100}}
-      params: {name: 'htr_{system}_{task}_{seal2}_n100_s{seed}_flow', steps: 600, seed: '{seed}'}
+      params: {name: 'htr_{system}_{task}_{rel_preset}_{seal2}_n100_s{seed}_flow', steps: 600, seed: '{seed}'}
   adapt_bc_d0_n5:
     stage: adapt_bc
     tag: '{dev0}-n5'
@@ -612,7 +613,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@bc:policy.pt'}
       options: {adapt: {task: '{task}', body: '{dev0}', budget: 5}}
-      params: {name: 'htr_bc_{task}_{dev0}_n5_s{seed}_sft', steps: 150, seed: '{seed}'}
+      params: {name: 'htr_bc_{task}_{rel_preset}_{dev0}_n5_s{seed}_sft', steps: 150, seed: '{seed}'}
   adapt_bc_d0_n20:
     stage: adapt_bc
     tag: '{dev0}-n20'
@@ -622,7 +623,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@bc:policy.pt'}
       options: {adapt: {task: '{task}', body: '{dev0}', budget: 20}}
-      params: {name: 'htr_bc_{task}_{dev0}_n20_s{seed}_sft', steps: 300, seed: '{seed}'}
+      params: {name: 'htr_bc_{task}_{rel_preset}_{dev0}_n20_s{seed}_sft', steps: 300, seed: '{seed}'}
   adapt_bc_d0_n100:
     stage: adapt_bc
     tag: '{dev0}-n100'
@@ -632,7 +633,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@bc:policy.pt'}
       options: {adapt: {task: '{task}', body: '{dev0}', budget: 100}}
-      params: {name: 'htr_bc_{task}_{dev0}_n100_s{seed}_sft', steps: 600, seed: '{seed}'}
+      params: {name: 'htr_bc_{task}_{rel_preset}_{dev0}_n100_s{seed}_sft', steps: 600, seed: '{seed}'}
   adapt_bc_d1_n5:
     stage: adapt_bc
     tag: '{dev1}-n5'
@@ -642,7 +643,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@bc:policy.pt'}
       options: {adapt: {task: '{task}', body: '{dev1}', budget: 5}}
-      params: {name: 'htr_bc_{task}_{dev1}_n5_s{seed}_sft', steps: 150, seed: '{seed}'}
+      params: {name: 'htr_bc_{task}_{rel_preset}_{dev1}_n5_s{seed}_sft', steps: 150, seed: '{seed}'}
   adapt_bc_d1_n20:
     stage: adapt_bc
     tag: '{dev1}-n20'
@@ -652,7 +653,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@bc:policy.pt'}
       options: {adapt: {task: '{task}', body: '{dev1}', budget: 20}}
-      params: {name: 'htr_bc_{task}_{dev1}_n20_s{seed}_sft', steps: 300, seed: '{seed}'}
+      params: {name: 'htr_bc_{task}_{rel_preset}_{dev1}_n20_s{seed}_sft', steps: 300, seed: '{seed}'}
   adapt_bc_d1_n100:
     stage: adapt_bc
     tag: '{dev1}-n100'
@@ -662,7 +663,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@bc:policy.pt'}
       options: {adapt: {task: '{task}', body: '{dev1}', budget: 100}}
-      params: {name: 'htr_bc_{task}_{dev1}_n100_s{seed}_sft', steps: 600, seed: '{seed}'}
+      params: {name: 'htr_bc_{task}_{rel_preset}_{dev1}_n100_s{seed}_sft', steps: 600, seed: '{seed}'}
   adapt_bc_d2_n5:
     stage: adapt_bc
     tag: '{dev2}-n5'
@@ -672,7 +673,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@bc:policy.pt'}
       options: {adapt: {task: '{task}', body: '{dev2}', budget: 5}}
-      params: {name: 'htr_bc_{task}_{dev2}_n5_s{seed}_sft', steps: 150, seed: '{seed}'}
+      params: {name: 'htr_bc_{task}_{rel_preset}_{dev2}_n5_s{seed}_sft', steps: 150, seed: '{seed}'}
   adapt_bc_d2_n20:
     stage: adapt_bc
     tag: '{dev2}-n20'
@@ -682,7 +683,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@bc:policy.pt'}
       options: {adapt: {task: '{task}', body: '{dev2}', budget: 20}}
-      params: {name: 'htr_bc_{task}_{dev2}_n20_s{seed}_sft', steps: 300, seed: '{seed}'}
+      params: {name: 'htr_bc_{task}_{rel_preset}_{dev2}_n20_s{seed}_sft', steps: 300, seed: '{seed}'}
   adapt_bc_d2_n100:
     stage: adapt_bc
     tag: '{dev2}-n100'
@@ -692,7 +693,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@bc:policy.pt'}
       options: {adapt: {task: '{task}', body: '{dev2}', budget: 100}}
-      params: {name: 'htr_bc_{task}_{dev2}_n100_s{seed}_sft', steps: 600, seed: '{seed}'}
+      params: {name: 'htr_bc_{task}_{rel_preset}_{dev2}_n100_s{seed}_sft', steps: 600, seed: '{seed}'}
   adapt_bc_s0_n5:
     stage: adapt_bc
     tag: '{seal0}-n5'
@@ -702,7 +703,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@bc:policy.pt'}
       options: {adapt: {task: '{task}', body: '{seal0}', budget: 5}}
-      params: {name: 'htr_bc_{task}_{seal0}_n5_s{seed}_sft', steps: 150, seed: '{seed}'}
+      params: {name: 'htr_bc_{task}_{rel_preset}_{seal0}_n5_s{seed}_sft', steps: 150, seed: '{seed}'}
   adapt_bc_s0_n20:
     stage: adapt_bc
     tag: '{seal0}-n20'
@@ -712,7 +713,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@bc:policy.pt'}
       options: {adapt: {task: '{task}', body: '{seal0}', budget: 20}}
-      params: {name: 'htr_bc_{task}_{seal0}_n20_s{seed}_sft', steps: 300, seed: '{seed}'}
+      params: {name: 'htr_bc_{task}_{rel_preset}_{seal0}_n20_s{seed}_sft', steps: 300, seed: '{seed}'}
   adapt_bc_s0_n100:
     stage: adapt_bc
     tag: '{seal0}-n100'
@@ -722,7 +723,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@bc:policy.pt'}
       options: {adapt: {task: '{task}', body: '{seal0}', budget: 100}}
-      params: {name: 'htr_bc_{task}_{seal0}_n100_s{seed}_sft', steps: 600, seed: '{seed}'}
+      params: {name: 'htr_bc_{task}_{rel_preset}_{seal0}_n100_s{seed}_sft', steps: 600, seed: '{seed}'}
   adapt_bc_s1_n5:
     stage: adapt_bc
     tag: '{seal1}-n5'
@@ -732,7 +733,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@bc:policy.pt'}
       options: {adapt: {task: '{task}', body: '{seal1}', budget: 5}}
-      params: {name: 'htr_bc_{task}_{seal1}_n5_s{seed}_sft', steps: 150, seed: '{seed}'}
+      params: {name: 'htr_bc_{task}_{rel_preset}_{seal1}_n5_s{seed}_sft', steps: 150, seed: '{seed}'}
   adapt_bc_s1_n20:
     stage: adapt_bc
     tag: '{seal1}-n20'
@@ -742,7 +743,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@bc:policy.pt'}
       options: {adapt: {task: '{task}', body: '{seal1}', budget: 20}}
-      params: {name: 'htr_bc_{task}_{seal1}_n20_s{seed}_sft', steps: 300, seed: '{seed}'}
+      params: {name: 'htr_bc_{task}_{rel_preset}_{seal1}_n20_s{seed}_sft', steps: 300, seed: '{seed}'}
   adapt_bc_s1_n100:
     stage: adapt_bc
     tag: '{seal1}-n100'
@@ -752,7 +753,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@bc:policy.pt'}
       options: {adapt: {task: '{task}', body: '{seal1}', budget: 100}}
-      params: {name: 'htr_bc_{task}_{seal1}_n100_s{seed}_sft', steps: 600, seed: '{seed}'}
+      params: {name: 'htr_bc_{task}_{rel_preset}_{seal1}_n100_s{seed}_sft', steps: 600, seed: '{seed}'}
   adapt_bc_s2_n5:
     stage: adapt_bc
     tag: '{seal2}-n5'
@@ -762,7 +763,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@bc:policy.pt'}
       options: {adapt: {task: '{task}', body: '{seal2}', budget: 5}}
-      params: {name: 'htr_bc_{task}_{seal2}_n5_s{seed}_sft', steps: 150, seed: '{seed}'}
+      params: {name: 'htr_bc_{task}_{rel_preset}_{seal2}_n5_s{seed}_sft', steps: 150, seed: '{seed}'}
   adapt_bc_s2_n20:
     stage: adapt_bc
     tag: '{seal2}-n20'
@@ -772,7 +773,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@bc:policy.pt'}
       options: {adapt: {task: '{task}', body: '{seal2}', budget: 20}}
-      params: {name: 'htr_bc_{task}_{seal2}_n20_s{seed}_sft', steps: 300, seed: '{seed}'}
+      params: {name: 'htr_bc_{task}_{rel_preset}_{seal2}_n20_s{seed}_sft', steps: 300, seed: '{seed}'}
   adapt_bc_s2_n100:
     stage: adapt_bc
     tag: '{seal2}-n100'
@@ -782,7 +783,7 @@ nodes:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@bc:policy.pt'}
       options: {adapt: {task: '{task}', body: '{seal2}', budget: 100}}
-      params: {name: 'htr_bc_{task}_{seal2}_n100_s{seed}_sft', steps: 600, seed: '{seed}'}
+      params: {name: 'htr_bc_{task}_{rel_preset}_{seal2}_n100_s{seed}_sft', steps: 600, seed: '{seed}'}
   eval:
     stage: eval_transfer
     resources: {cpu: 4, mem: 8G, max_seconds: 43200}

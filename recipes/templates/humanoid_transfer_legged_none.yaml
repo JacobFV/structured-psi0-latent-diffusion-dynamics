@@ -1,0 +1,99 @@
+# FRAGMENT (D-146 round 3 T5): the `legged-none` CONTROL ARM of recipes/templates/humanoid_transfer.yaml (and of its steps / gap templates). An instance
+# `recipes/humanoid/transfer_<task>_legged_none.yaml` extends `[transfer_<task>.yaml, ../templates/humanoid_transfer_legged_none.yaml]` and sets
+# vars.rel_preset: legged-none. The template renders `{rel_preset}` into every lineage (`humanoid-transfer-{task}-{system}-{rel_preset}`) and trainer name, so the two
+# arms train, evaluate and pool under different directories and latent-space versions from the SAME data (the global collect / pack nodes carry no preset). The
+# `lists` of a DAG are not rendered, so the eval config repeats the method paths with the control lineage (`-legged-none/`); a test compares them with the
+# template's (only that segment may differ). The preset-free references (teacher, Level 1, PPO) are run once by the `legged` instance, so this arm has no
+# `eval_ref` / `sealed_ref` / `teacher_check` node and pools the preset-free dirs through `results_glob`. The instance sets `lists.transfer.name`.
+# Level 2 of the `legged` arm: recipes/templates/humanoid_transfer.yaml.
+lists:
+  transfer:
+    results_glob: ['artifacts/runs/humanoid/humanoid-transfer-<task>-*-legged-none/eval_transfer*', 'artifacts/runs/humanoid/humanoid-transfer-<task>-*-legged-none/sealed_eval*', 'artifacts/runs/humanoid/humanoid-transfer-<task>/eval_transfer*', 'artifacts/runs/humanoid/humanoid-transfer-<task>/sealed_eval*']
+    methods:
+      level2:
+        - name: semfix_zeroshot
+          level: 2
+          variant: semfix
+          kind: latent
+          source: learned
+          trained: true
+          producer: train_flow
+          policy: legged_latent
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix-legged-none/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix-legged-none/train_rep_s<seed>/representation.pt'}
+        - name: semfix_refit
+          level: 2
+          variant: semfix
+          kind: latent
+          source: learned
+          trained: true
+          budgeted: true
+          producer: adapt_refit
+          policy: legged_latent
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix-legged-none/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix-legged-none/adapt_refit-<body>-n<budget>_s<seed>/representation.pt'}
+          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix-legged-none/adapt_refit-<body>-n<budget>_s<seed>/acquisition.json'
+        - name: semfix_joint
+          level: 2
+          variant: semfix
+          kind: latent
+          source: learned
+          trained: true
+          budgeted: true
+          producer: adapt_flow
+          policy: legged_latent
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix-legged-none/adapt_flow-<body>-n<budget>_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix-legged-none/adapt_refit-<body>-n<budget>_s<seed>/representation.pt'}
+          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix-legged-none/adapt_flow-<body>-n<budget>_s<seed>/acquisition.json'
+        - name: nosem_zeroshot
+          level: 2
+          variant: nosem
+          kind: latent
+          source: learned
+          trained: true
+          producer: train_flow
+          policy: legged_latent
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem-legged-none/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem-legged-none/train_rep_s<seed>/representation.pt'}
+        - name: nosem_refit
+          level: 2
+          variant: nosem
+          kind: latent
+          source: learned
+          trained: true
+          budgeted: true
+          producer: adapt_refit
+          policy: legged_latent
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem-legged-none/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem-legged-none/adapt_refit-<body>-n<budget>_s<seed>/representation.pt'}
+          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem-legged-none/adapt_refit-<body>-n<budget>_s<seed>/acquisition.json'
+        - name: nosem_joint
+          level: 2
+          variant: nosem
+          kind: latent
+          source: learned
+          trained: true
+          budgeted: true
+          producer: adapt_flow
+          policy: legged_latent
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem-legged-none/adapt_flow-<body>-n<budget>_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem-legged-none/adapt_refit-<body>-n<budget>_s<seed>/representation.pt'}
+          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem-legged-none/adapt_flow-<body>-n<budget>_s<seed>/acquisition.json'
+        - name: bc_zeroshot
+          level: 2
+          variant: bc
+          kind: bc
+          source: bc
+          trained: true
+          producer: train_bc
+          policy: legged_bc
+          kw: {checkpoint: 'artifacts/runs/humanoid/humanoid-transfer-<task>-bc-legged-none/train_bc_s<seed>/policy.pt'}
+        - name: bc_sft
+          level: 2
+          variant: bc
+          kind: bc
+          source: bc
+          trained: true
+          budgeted: true
+          producer: adapt_bc
+          policy: legged_bc
+          kw: {checkpoint: 'artifacts/runs/humanoid/humanoid-transfer-<task>-bc-legged-none/adapt_bc-<body>-n<budget>_s<seed>/policy.pt'}
+          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-bc-legged-none/adapt_bc-<body>-n<budget>_s<seed>/acquisition.json'
+nodes:
+  eval_ref: null
+  sealed_ref: null
+  teacher_check: null

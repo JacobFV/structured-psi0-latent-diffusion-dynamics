@@ -89,7 +89,7 @@ def test_no_recipe_or_config_names_a_held_out_task():
                 txt = p.read_text(errors="ignore")
                 if p.suffix in (".yaml", ".yml"):
                     txt = "\n".join(ln for ln in txt.splitlines() if not ln.lstrip().startswith("#"))
-                hits += [f"{rel}:{n}" for n in HELD_OUT if n in txt and rel != f"recipes/humanoid/transfer_{n}.yaml"]
+                hits += [f"{rel}:{n}" for n in HELD_OUT if n in txt and rel not in (f"recipes/humanoid/transfer_{n}.yaml", f"recipes/humanoid/transfer_{n}_legged_none.yaml")]
     assert not hits, hits
 
 

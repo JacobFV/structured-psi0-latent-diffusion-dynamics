@@ -263,3 +263,152 @@ def test_teacher_check_config_plans_as_ready_cells(task, tmp_path):
     cfg = HE.validate_config(json.loads(json.dumps(_plan(HUM / f"transfer_{task}.yaml").nodes["teacher_check"].rc.options["transfer"])))
     plan = HE.run_matrix(cfg, root=tmp_path, out=tmp_path / "o", scope="dev", sealed_flag=False, run=False, pack=HE.load_packs(cfg, tmp_path))
     assert {c["status"] for c in plan["cells"]} == {"ready"} and {c["body"] for c in plan["cells"]} == {"t1", "g1", "h1"}
+
+
+# ---------------------------------------------------------------------------------------------------- R3 (D-146 round 3): T0 warm-start pins, g1 steps recipe
+PIN_PATHS = ("artifacts/runs/humanoid_p1b_t1_v2ft4/actor.pt", "artifacts/runs/humanoid_p1b_g1_v4ft/actor_v4ftfinal.pt",
+             "artifacts/runs/humanoid_p1b_h1_r6/actor_r6final.pt")
+
+
+def test_t0_declares_the_sha256_of_every_warm_start_actor_and_the_recipes_agree():
+    from rrp.harness import yamlmini
+    from rrp.harness.train import tracker_recipes as R
+    declared = yamlmini.load((HUM / "trackers_pins.yaml").read_text())["lists"]["warm_starts"]
+    assert set(declared) == set(PIN_PATHS) == set(R.INIT_PINS)
+    assert declared == R.INIT_PINS and all(re.fullmatch(r"[0-9a-f]{64}", v) for v in declared.values())
+    # every warp recipe that warm-starts from one of the three actors is covered by the pin (the trainer looks the path up)
+    used = {r["init_shared"] for r in R.WARP_RECIPES.values() if r and r.get("init_shared") in PIN_PATHS}
+    assert used == set(PIN_PATHS), used
+    archive = Path.home() / "work/rrp-data/peer-archive"
+    for p, sha in declared.items():
+        f = archive / p.replace("artifacts/", "", 1)
+        if f.is_file():                                                       # the host copy of the peer store must agree
+            import hashlib
+            assert hashlib.sha256(f.read_bytes()).hexdigest() == sha, p
+
+
+def test_pinned_init_is_refused_when_its_sha256_differs(tmp_path):
+    from rrp.harness.train import tracker_recipes as R
+    f = tmp_path / PIN_PATHS[0]
+    f.parent.mkdir(parents=True)
+    f.write_bytes(b"not the actor")
+    with pytest.raises(SystemExit, match="sha256"):
+        R.check_init_pin(f)
+    g = tmp_path / "other" / "actor.pt"
+    g.parent.mkdir()
+    g.write_bytes(b"unpinned path, nothing declared")
+    assert R.check_init_pin(g) is None
+    with pytest.raises(SystemExit, match="declared"):                          # an explicit declaration is checked on any path
+        R.check_init_pin(g, "0" * 64)
+
+
+def test_the_warp_trainer_checks_the_pin_before_it_loads_or_writes_anything(tmp_path):
+    import torch
+    from rrp.harness.train import warp_tracker_ppo as W
+    f = tmp_path / PIN_PATHS[1]
+    f.parent.mkdir(parents=True)
+    f.write_bytes(b"swapped file")
+    args = W.build_args(["--body", "g1", "--out", str(tmp_path / "run"), "--iters", "1", "--init-shared", str(f)])
+    with pytest.raises(SystemExit, match="sha256"):
+        W.train(args, object(), dev=torch.device("cpu"), engine="fake")
+    assert not (tmp_path / "run").exists()
+
+
+def test_g1_has_its_own_steps_scan_recipe():
+    from rrp.harness import yamlmini
+    from rrp.harness.train.tracker_recipes import WARP_RECIPES as W
+    rec = yamlmini.load((HUM / "trackers_steps_scan.yaml").read_text())["axis_vars"]["body"]
+    assert {b: v["recipe"] for b, v in rec.items()} == {"t1": "t1_steps_gpu", "g1": "g1_steps_gpu", "h1": "h1_steps_gpu"}
+    assert W["g1_steps_gpu"]["body"] == "g1" and W["g1_steps_gpu"]["task"] == "steps" and not W["g1_steps_gpu"].get("init_shared")
+    assert W["g1_steps_gpu"]["reward_set"] != W["t1_steps_gpu"]["reward_set"]      # the g1 yaw-cap terms of g1_clock_gpu
+    assert "yaw_progress_cap=1.0" in W["g1_steps_gpu"]["reward_set"]
+
+
+# ---------------------------------------------------------------------------------------------------- R3 (D-146 round 3): the relation-preset arms do not collide
+ARMS = {"legged": "", "legged-none": "_legged_none"}             # rel_preset -> instance suffix: transfer_<task>[_legged_none].yaml
+
+
+def _arm(task, preset):
+    return _plan(HUM / f"transfer_{task}{ARMS[preset]}.yaml")
+
+
+def _swap(x, a, b):
+    return json.loads(json.dumps(x).replace(a, b))
+
+
+@pytest.mark.parametrize("task", FULL + HELD)
+def test_every_transfer_task_has_a_legged_none_control_arm_that_shares_only_identical_runs(task):
+    p, q = _arm(task, "legged"), _arm(task, "legged-none")
+    outs_p = {n.rc.run_id: n.rc.config_hash() for n in p.nodes.values()}
+    outs_q = {n.rc.run_id: n.rc.config_hash() for n in q.nodes.values()}
+    shared = set(outs_p) & set(outs_q)
+    assert all(outs_p[r] == outs_q[r] for r in shared), [r for r in shared if outs_p[r] != outs_q[r]]      # a shared dir is the SAME run
+    for plan, preset in ((p, "legged"), (q, "legged-none")):
+        for n in plan.nodes.values():
+            if n.rc.variant in ("semfix", "nosem", "bc"):                          # every preset-dependent node has its own lineage
+                assert n.rc.lineage.endswith(f"-{n.rc.variant}-{preset}"), n.rc.run_id
+                assert n.rc.run_id not in shared
+    assert (bool(shared) or task in HELD) and all(n.rc.variant in ("na", "-") for n in p.nodes.values() if n.rc.run_id in shared)      # data, packs, references, PPO only
+
+
+@pytest.mark.parametrize("preset", ARMS)
+@pytest.mark.parametrize("task", FULL)
+def test_each_arm_trains_its_own_relation_preset_under_its_own_names(task, preset):
+    plan = _arm(task, preset)
+    rep, bc = plan.nodes["rep@semfix.s0"].rc, plan.nodes["bc@bc.s0"].rc
+    assert rep.params["latent"]["factors"][-1] == f"preset:{preset}" == bc.params["model"]["factors"][-1]
+    assert plan.nodes["rep@nosem.s0"].rc.params["latent"]["factors"][-1] == f"preset:{preset}"
+    names = [n.rc.params["name"] for n in plan.nodes.values() if n.rc.params.get("name")]
+    assert names and all(preset in x for x in names), [x for x in names if preset not in x]        # the latent-space version / checkpoint name carries the arm
+
+
+@pytest.mark.parametrize("task", FULL)
+def test_the_two_arms_never_share_a_trainer_name(task):
+    a = {n.rc.params["name"] for n in _arm(task, "legged").nodes.values() if n.rc.params.get("name")}
+    b = {n.rc.params["name"] for n in _arm(task, "legged-none").nodes.values() if n.rc.params.get("name")}
+    assert a and b and not a & b
+
+
+@pytest.mark.parametrize("preset", ARMS)
+@pytest.mark.parametrize("task", FULL)
+def test_method_paths_and_results_globs_follow_the_arm_lineage(task, preset):
+    import fnmatch
+    plan = _arm(task, preset)
+    other = _arm(task, next(k for k in ARMS if k != preset))
+    cfg = _cfg(plan)
+    by_out = {n.rc.out: n for n in plan.nodes.values()}
+    for cell in HE.expand_cells(cfg):
+        m = HE.method_of(cfg, cell["method"])
+        kv = dict(body=cell["body"], task=task, budget=cell["budget"], seed=cell["train_seed"])
+        for v in list((m.get("kw") or {}).values()) + [m.get("acquisition", "")]:
+            if isinstance(v, str) and v.endswith((".pt", ".json")) and m.get("variant") in ("semfix", "nosem", "bc"):
+                p = HE.fmt(v, **kv)
+                assert p.rsplit("/", 1)[0] in by_out, (preset, m["name"], p)
+                assert f"-{m['variant']}-{preset}/" in p, p
+    mine = [n.rc.out for n in plan.nodes.values() if n.rc.stage in ("eval_transfer", "sealed_eval") and n.rc.options.get("variant") not in (None, "-")]
+    theirs = [n.rc.out for n in other.nodes.values() if n.rc.stage in ("eval_transfer", "sealed_eval") and n.rc.options.get("variant") not in (None, "-")]
+    globs = [HE.fmt(g, task=task) for g in cfg["results_glob"]]
+    assert mine and all(any(fnmatch.fnmatch(o, g) for g in globs) for o in mine)
+    assert not [o for o in theirs if any(fnmatch.fnmatch(o, g) for g in globs)]          # the other arm's cells never enter this arm's tables
+    refs = [n.rc.out for n in plan.nodes.values() if n.rc.stage in ("eval_transfer", "sealed_eval") and n.rc.options.get("variant") == "-"]
+    refs += [n.rc.out for n in _arm(task, "legged").nodes.values() if n.rc.stage in ("eval_transfer", "sealed_eval") and n.rc.options.get("variant") == "-"]
+    assert all(any(fnmatch.fnmatch(o, g) for g in globs) for o in refs)                    # the preset-free references (teacher, Level 1) are pooled into both
+
+
+@pytest.mark.parametrize("task", FULL + HELD)
+def test_the_control_arm_config_is_the_preset_arm_config_with_its_own_paths(task):
+    a, b = _cfg(_arm(task, "legged")), _cfg(_arm(task, "legged-none"))
+    assert a["name"] != b["name"] and b["name"].endswith("_legged_none")
+    for k in set(a) - {"name", "methods", "results_glob"}:
+        assert a[k] == b[k], k
+    assert _swap(a["methods"], "-legged/", "-legged-none/") == b["methods"]             # nothing but the lineage of the paths differs
+
+
+@pytest.mark.parametrize("task", HELD)
+def test_held_out_control_checkpoints_are_the_h_carry_control_arm_outs(task):
+    cfg = _cfg(_arm(task, "legged-none"))
+    outs = {n.rc.out for n in _arm("h_carry", "legged-none").nodes.values()}
+    for m in cfg["methods"]:
+        for v in (m.get("kw") or {}).values():
+            if m["level"] == 2:
+                assert HE.fmt(v, seed=0).rsplit("/", 1)[0] in outs, v

@@ -7,8 +7,7 @@
 # INSTALL (not a stage; the lead runs it after the gate passed, from the repo root; it refuses unless tracker_sha matches and the verdict is pass):
 #   rrp train tracker-install <run of train> --validation <run of validate>/validation.json --body <body> --version steps_scan_v1 --label "<gate>"
 # `lists.installs` records the version: the transfer recipes name `<body>:<version>` and a test checks the two agree.
-# g1 has no `g1_steps_gpu` recipe (tracker_recipes.py is not HR's): the t1 recipe runs with --body g1 (body overrides the recipe); the lead may add
-# the g1 recipe with the g1 yaw-cap reward set.
+# g1 trains with its own `g1_steps_gpu` (D-146 R3: the g1 yaw-cap reward set of `g1_clock_gpu`; it no longer runs the t1 recipe with --body g1).
 extends: ../templates/humanoid_task.yaml
 name: humanoid_trackers_steps_scan
 schema: dag-1
@@ -27,7 +26,7 @@ matrix:
 axis_vars:
   body:
     t1: {recipe: t1_steps_gpu}
-    g1: {recipe: t1_steps_gpu}
+    g1: {recipe: g1_steps_gpu}
     h1: {recipe: h1_steps_gpu}
 vars: {task: steps, body: null, recipe: null}     # body and recipe come from the matrix point
 lists:

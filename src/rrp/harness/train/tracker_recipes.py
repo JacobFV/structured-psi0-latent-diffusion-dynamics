@@ -20,6 +20,33 @@ from __future__ import annotations
 
 from rrp.core.provenance import digest
 import json
+from pathlib import Path
+
+# D-146 R3 T0: the warm-start actors the T1 / T2 recipes (gap ring, `*_ub`) start from, pinned by sha256 (peer store and the host copy of
+# it, ~/work/rrp-data/peer-archive/runs/, agree). The warp trainer refuses a different file (`check_init_pin`); recipes/humanoid/trackers_pins.yaml
+# declares the same table (`lists.warm_starts`, a test compares the two). A changed actor is a NEW run name, never an edit of a pin.
+INIT_PINS: dict[str, str] = {
+    "artifacts/runs/humanoid_p1b_t1_v2ft4/actor.pt": "69a483590788eb5101b2c0a21b3297d75c322410559960a27bd5ae9f43927dd6",
+    "artifacts/runs/humanoid_p1b_g1_v4ft/actor_v4ftfinal.pt": "ad4073fcf954f1e7a9a9a24e74416cbe199cf1240fb5f97778b7198dbdbbec20",
+    "artifacts/runs/humanoid_p1b_h1_r6/actor_r6final.pt": "7304ee7d769764d2b9b301b3dd5b6feab9f2ab306d9e0ddb0447960edb0e37f3",
+}
+
+
+def check_init_pin(path, declared: str | None = None) -> str | None:
+    """Refuse (SystemExit) a warm-start actor whose sha256 is not the pinned one. The pin is looked up by the path from its `artifacts/`
+    component on (the peer store and every checkout share that layout); `declared` (--init-shared-sha256) is checked on any path. Returns the
+    file's sha256 when a pin or declaration applied, else None."""
+    from rrp.core.provenance import file_digest
+    parts = Path(path).parts
+    pinned = INIT_PINS.get("/".join(parts[parts.index("artifacts"):])) if "artifacts" in parts else None
+    if not (pinned or declared):
+        return None
+    got = file_digest(Path(path), length=None)
+    for what, want in (("pinned", pinned), ("declared", declared)):
+        if want and got != want:
+            raise SystemExit(f"--init-shared {path} sha256 {got} != {what} {want}")
+    return got
+
 
 _TURN = "clearance_floor=-2,yaw_slip=-2,turn_step=2,turn_lin=1.5,sigma_ang=0.03"
 
@@ -194,6 +221,9 @@ WARP_RECIPES["t1_clock_gpu_r2"] = _ft("t1", "artifacts/runs/humanoid_p1b_t1_r1/a
 # pass through each other; with leg_cross_collision the r1 actor falls at ~1 s (t1 r2 fine-tune: every episode, ep_len 57).
 # r1/r2 are void; t1 v2 = the r1 clock recipe from scratch under leg_cross_collision + the yaw/standing/limit fixes.
 _FIX = ",yaw_progress_cap=1.0,yaw_overshoot=-2.0,stand_vel=-3.0"
+# D-146 R3 T1: g1's own h_steps scan recipe (was the t1 recipe run with --body g1): g1 over-rotated under the plain turn terms (contact.md
+# g1_src spun 2.4-4x the command), so it gets the yaw-cap / over-rotation / standing terms of `g1_clock_gpu` on top of the steps expert's set.
+WARP_RECIPES["g1_steps_gpu"] = _steps("g1", reward_set=_TURN + _CLOCK + _FIX)
 WARP_RECIPES["t1_clock_gpu_v2"] = _clock("t1", reward_set=_TURN + _CLOCK.replace("limit_margin=-1.0", "limit_margin=-2.0") + _FIX)
 WARP_RECIPES["g1_clock_gpu_v2"] = _clock("g1", reward_set=_TURN + _CLOCK.replace("limit_margin=-1.0", "limit_margin=-2.0") + _FIX)
 

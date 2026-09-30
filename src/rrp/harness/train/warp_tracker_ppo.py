@@ -119,6 +119,8 @@ def build_args(argv=None):
     ap.add_argument("--level-down", type=float, default=0.3)
     ap.add_argument("--level0", type=float, default=0.0, help="initial task curriculum level (e.g. resuming a pre-level-save run)")
     ap.add_argument("--init-shared", default=None, help="warm start the actor from an exported morph_v1 actor.pt (extra inputs zero-init)")
+    ap.add_argument("--init-shared-sha256", default=None, help="refuse unless --init-shared has this sha256 (the actors in "
+                    "tracker_recipes.INIT_PINS are checked without it)")
     ap.add_argument("--groups", default=None, help="morph_v1 shared tracker: JSON list of [[body keys], nworld] (or a recipe key)")
     a0, _ = ap.parse_known_args(argv)
     if a0.recipe:
@@ -205,8 +207,10 @@ def train(args, env, *, groups=None, dev, engine: str):
     """Asymmetric PPO on `env` (the Warp env, or any object with the same surface), writing meta.json / train_log.jsonl /
     checkpoint.pt / actor.pt under args.out."""
     from rrp.envs.warp.tracker_env import ENV_VERSION, window_metrics
-    from rrp.harness.train.tracker_recipes import assert_trainable
+    from rrp.harness.train.tracker_recipes import assert_trainable, check_init_pin
     assert_trainable(args)                       # sealed split: before anything is written
+    if args.init_shared:
+        check_init_pin(args.init_shared, args.init_shared_sha256)      # T0 pins: a different warm-start actor is refused before any write
     public = public_extra_meta(env)              # the env's declared public extra block (refuses an undeclared one, before anything is written)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)

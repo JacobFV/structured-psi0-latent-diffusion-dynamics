@@ -36,7 +36,7 @@ lists:
           source: learned
           trained: true
           policy: legged_latent
-          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-h_carry-semfix/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-h_carry-semfix/train_rep_s<seed>/representation.pt'}
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-h_carry-semfix-legged/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-h_carry-semfix-legged/train_rep_s<seed>/representation.pt'}
         - name: nosem_zeroshot
           level: 2
           variant: nosem
@@ -44,7 +44,7 @@ lists:
           source: learned
           trained: true
           policy: legged_latent
-          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-h_carry-nosem/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-h_carry-nosem/train_rep_s<seed>/representation.pt'}
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-h_carry-nosem-legged/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-h_carry-nosem-legged/train_rep_s<seed>/representation.pt'}
         - name: bc_zeroshot
           level: 2
           variant: bc
@@ -52,7 +52,7 @@ lists:
           source: bc
           trained: true
           policy: legged_bc
-          kw: {checkpoint: 'artifacts/runs/humanoid/humanoid-transfer-h_carry-bc/train_bc_s<seed>/policy.pt'}
+          kw: {checkpoint: 'artifacts/runs/humanoid/humanoid-transfer-h_carry-bc-legged/train_bc_s<seed>/policy.pt'}
       reference:
         - name: teacher
           level: 0

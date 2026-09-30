@@ -1,0 +1,17 @@
+# h_gap_cart CONTROL ARM `legged-none` (D-146 round 3 T5): the same task, data and bodies as transfer_h_gap_cart.yaml with relation preset `legged-none` (no relation edges),
+# written next to the `preset:legged` instance so the two arms never share a lineage, trainer name or latent-space version (fragment: recipes/templates/humanoid_transfer_heldout_legged_none.yaml).
+# Preset-free global nodes (collect, pack, references) run once in the `legged` instance; this arm pools them through results_glob.
+extends: [transfer_h_gap_cart.yaml, ../templates/humanoid_transfer_heldout_legged_none.yaml]
+name: humanoid_transfer_h_gap_cart_legged_none
+schema: dag-1
+track: humanoid
+policy: latent
+env: mujoco/legged
+task: h_gap_cart
+bodies: humanoid_pool_v1
+factors: []
+vars: {rel_preset: legged-none}
+lists:
+  transfer:
+    name: humanoid_transfer_h_gap_cart_legged_none
+  teacher_check: null

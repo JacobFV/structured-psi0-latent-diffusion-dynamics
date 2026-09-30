@@ -16,6 +16,14 @@ factors: []
 lineage: 'trk-pin-{body}'
 label_prefix: 'hpin'
 vars: {recipe: null, body: t1}
+# D-146 R3: the warm-start actors the T1 (gap ring) and T2 (`*_ub`) recipes start from, with their expected sha256 (ssh gb10-direct sha256sum on the peer
+# store and on the host copy ~/work/rrp-data/peer-archive/runs/ agree, 2026-09-30). `rrp train tracker-warp` refuses a different file (tracker_recipes.INIT_PINS,
+# the same table; tests/unit/test_humanoid_recipes.py compares the two), so a swapped actor stops the run before anything is written.
+lists:
+  warm_starts:
+    artifacts/runs/humanoid_p1b_t1_v2ft4/actor.pt: 69a483590788eb5101b2c0a21b3297d75c322410559960a27bd5ae9f43927dd6
+    artifacts/runs/humanoid_p1b_g1_v4ft/actor_v4ftfinal.pt: ad4073fcf954f1e7a9a9a24e74416cbe199cf1240fb5f97778b7198dbdbbec20
+    artifacts/runs/humanoid_p1b_h1_r6/actor_r6final.pt: 7304ee7d769764d2b9b301b3dd5b6feab9f2ab306d9e0ddb0447960edb0e37f3
 nodes:
   train: null
   validate:
