@@ -173,12 +173,37 @@ def test_camera_intrinsics_and_extrinsics(kind, cam):
         sv.camera("no_such_camera")
 
 
-def test_render_depth_shape_matches_declared_size():
-    """Host-cheap unit-test-fixture scale only (a single tiny render); the production relgen depth pipeline uses
-    EGL contexts on the peer (docs/relations.md 5.1, section 10 row R7)."""
+def test_render_depth_shape_matches_declared_size(monkeypatch):
+    """docs/relations.md 5.1, section 10 row R7: "render_depth via mujoco.Renderer depth mode, EGL only on the
+    peer — host tests use the camera math only". So this test never constructs a real `mujoco.Renderer` (that
+    needs a GL context — EGL/GLX — which is GPU/peer work, not host unit-test work); it fakes `mujoco.Renderer`
+    to check the declared-size plumbing (`depth_wh` -> `Renderer(model, height, width)` -> the returned array's
+    shape) instead, which is the part of `render_depth` this row's unit suite owns on host."""
+    calls = {}
+
+    class _FakeRenderer:
+        def __init__(self, model, height, width):
+            calls["hw"] = (height, width)
+
+        def enable_depth_rendering(self):
+            calls["depth_mode"] = True
+
+        def update_scene(self, data, camera):
+            calls["camera"] = camera
+
+        def render(self):
+            h, w = calls["hw"]
+            return np.zeros((h, w), dtype=float)
+
+    import rrp.envs.mujoco.session as session_mod
+    monkeypatch.setattr(session_mod.mujoco, "Renderer", _FakeRenderer)
+
     s = _arm_session()
     sv = s.state_view(depth_width=24, depth_height=16)
     depth = sv.render_depth("front")
+    assert calls["hw"] == (16, 24)             # mujoco.Renderer(model, height, width) — height first
+    assert calls["depth_mode"] is True
+    assert calls["camera"] == "front"
     assert depth.shape == (16, 24)
     assert np.isfinite(depth).all() and depth.min() >= 0.0
 

@@ -2,9 +2,23 @@
 
 Worktree `~/work/rrp-wt/rel-r7`, branch `track/rel-r7`, from `origin/main` (c5e7d45, D-144 foundation). Brief:
 `docs/relations.md` section 10, row R7 / briefs. Deps: F (foundation) only, merged. Host only: no CUDA, no
-training/simulation beyond unit-test fixtures (all MuJoCo sessions here are CPU physics + a tiny 16-64 px offscreen
-render for the `render_depth` shape check, same cost class as the existing detector/camera-visibility unit tests).
+training/simulation beyond unit-test fixtures. All MuJoCo sessions here are CPU physics only; `render_depth` itself
+is never invoked on host (docs/relations.md 5.1: "EGL only on the peer — host tests use the camera math only" —
+this host has no GPU-free GL backend available either: no `libOSMesa`, and the default backend absent `MUJOCO_GL`
+is `glfw`, which would open a real GLX/GPU context if one ran it here). The `render_depth` shape acceptance
+criterion is met by faking `mujoco.Renderer` in the test (checks the declared-size plumbing only); a fix applied
+on resume after finding the original test called the real renderer (see "resume fix" below).
 No peer smoke: the brief does not ask for one for this unit.
+
+## resume fix (2026-09-29, continuing this worktree)
+The commit already on this branch (`6976aa1`) had `test_render_depth_shape_matches_declared_size` call
+`sv.render_depth("front")` for real. That only passed because this shell happened to have `DISPLAY` set, so
+`mujoco.Renderer` opened a real GLX context against the host GPU — exactly the host GPU/EGL rendering
+docs/relations.md 5.1 reserves for the peer, and it would have failed outright on a true headless host (no
+`libOSMesa` in this venv). Rewrote the test to monkeypatch `rrp.envs.mujoco.session.mujoco.Renderer` with a
+fake that records `(height, width)` / `enable_depth_rendering` / `update_scene(camera=...)` and returns a
+correctly-shaped array, so the declared-size plumbing is checked without ever constructing a GL context on host.
+No production code changed for this fix, only the test.
 
 ## what changed
 - `src/rrp/envs/mujoco/session.py`: `Session.state_view()` returns `MujocoStateView`, gated by the
@@ -55,8 +69,11 @@ No peer smoke: the brief does not ask for one for this unit.
 - **camera K/T**: `test_camera_intrinsics_and_extrinsics` (parametrized) — `K` reproduces the `cam_fovy` formula at
   a non-square (32, 48) size, `T_world_cam` equals `cam_xpos`/`cam_xmat` exactly; unknown camera name raises
   `KeyError`.
-- **`render_depth` shape**: `test_render_depth_shape_matches_declared_size` — a single tiny (16x24) host-cheap
-  render (unit-test-fixture scale, not the EGL production relgen pipeline, which is peer-only per the brief).
+- **`render_depth` shape**: `test_render_depth_shape_matches_declared_size` — `mujoco.Renderer` faked (never
+  constructs a real GL context on host, see "resume fix" above); checks `render_depth` passes the declared
+  `(height, width)` into `Renderer(model, height, width)`, calls `enable_depth_rendering()`, forwards the
+  camera name to `update_scene`, and returns the renderer's array unchanged (shape (16, 24) for a
+  `depth_width=24, depth_height=16` view).
 - **caps declared**: `test_caps_declared_and_protocol_satisfied` — `isinstance(sv, StateView)` (the protocol is
   `runtime_checkable`), expected caps present, `ui_tree()` raises `CapabilityError`.
 - **views never reachable from the featurizer**: `test_state_view_never_reachable_from_the_featurizer` — greps
