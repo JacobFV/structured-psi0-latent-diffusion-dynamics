@@ -107,7 +107,22 @@ def negotiate(info: PolicyInfo, spec: EnvSpec, task=None) -> Compat:
 
 # ------------------------------------------------------------------ registry (lazy: "module:factory")
 POLICIES: dict[str, str] = {
-    "teacher:*": "rrp.policies.teachers:make_teacher",          # scripted_teacher, privileged; arg = task
+    # scripted_teacher, privileged; one key per task (TaskSpec.teacher names it); the factory gets arg = task
+    "teacher:pick_place": "rrp.policies.teachers:make_arm_teacher_policy",
+    "teacher:support_insert": "rrp.policies.teachers:make_dual_teacher_policy",
+    "teacher:handover": "rrp.policies.teachers:make_dual_teacher_policy",
+    "teacher:assign_left": "rrp.policies.teachers:make_dual_teacher_policy",
+    "teacher:assign_right": "rrp.policies.teachers:make_dual_teacher_policy",
+    "teacher:pivot_against_surface": "rrp.policies.teachers:make_dual_teacher_policy",
+    "teacher:carry_tray_level": "rrp.policies.teachers:make_dual_teacher_policy",
+    "teacher:waypoint_contact": "rrp.policies.teachers:make_waypoint_teacher_policy",
+    "teacher:loco_pick": "rrp.policies.teachers:make_loco_pick_teacher_policy",
+    "teacher:h_steps": "rrp.policies.teachers:make_steps_teacher_policy",
+    "teacher:h_gap": "rrp.policies.teachers:make_gap_teacher_policy",
+    "teacher:cw/calc_sum": "rrp.policies.teachers:make_cw_teacher_policy",
+    "teacher:cw/open_type": "rrp.policies.teachers:make_cw_teacher_policy",
+    "teacher:cw/drag_window": "rrp.policies.teachers:make_cw_teacher_policy",
+    "teacher:cw/fill_form": "rrp.policies.teachers:make_cw_teacher_policy",
     "bc": "rrp.policies.bc:make_bc",
     "latent": "rrp.policies.latent:make_latent",
     "legged_latent": "rrp.policies.legged:make_legged_latent",
@@ -129,7 +144,8 @@ def register_policy(name: str, target: str) -> None:
 
 
 def make_policy(name: str, **kw) -> Policy:
-    """name: a registry key, or "<family>:<arg>" whose family is registered as "<family>:*" (e.g. "teacher:pick_place")."""
+    """name: a registry key. A name "<family>:<arg>" not registered itself resolves to the key "<family>:*" (factory gets
+    `arg`); a registered "<family>:<arg>" key (the teachers) gets `arg` too."""
     key = name if name in POLICIES else f"{name.split(':', 1)[0]}:*"
     if key not in POLICIES:
         raise KeyError(f"unknown policy {name!r}; registered: {sorted(POLICIES)}")
@@ -140,6 +156,6 @@ def make_policy(name: str, **kw) -> Policy:
         if e.name == mod:
             raise NotImplementedError(f"policy {name!r} is declared but not implemented yet ({mod})") from e
         raise
-    if key.endswith(":*"):
+    if ":" in name:
         kw["arg"] = name.split(":", 1)[1]
     return getattr(m, fn)(**kw)

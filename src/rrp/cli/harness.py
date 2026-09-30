@@ -26,30 +26,28 @@ def _body(s: str):
     return s.split("+") if "+" in s else s
 
 
-def default_hooks(env_id: str, task: str) -> list:
-    """The per-family conventions of the former eval loops: arm feasibility + session record; dual adds settling."""
-    from rrp.harness.eval import hooks as H
-    if env_id == "mujoco/arm" and task == "pick_place":
-        return H.arm_hooks()
-    if env_id == "mujoco/dual":
-        return H.dual_hooks(task)
-    if env_id.startswith("mujoco/"):
-        return [H.SessionRecord()]
-    return []
+def _env_kw(items: list[str] | None) -> dict:
+    """--env-kw k=v (repeatable): v is JSON when it parses (1, 0.5, true, [1,2]) else the string (split=heldout)."""
+    out = {}
+    for it in items or []:
+        k, sep, v = it.partition("=")
+        if not sep or not k:
+            raise SystemExit(f"--env-kw expects k=v, got {it!r}")
+        try:
+            out[k] = json.loads(v)
+        except ValueError:
+            out[k] = v
+    return out
 
 
 def cmd_eval(a):
-    from rrp.harness.eval.evaluate import evaluate, summarize
+    from rrp.harness.eval.evaluate import evaluate, summarize, task_hooks
     from rrp.policies.base import make_policy
     p = _policy_arg(a.policy)
     pol = make_policy(p[0], **p[1]) if isinstance(p, tuple) else make_policy(p)
-    scene = json.loads(a.scene) if a.scene else None
-    if a.env == "mujoco/arm" and a.task == "pick_place" and scene is None:
-        from rrp.harness.eval.hooks import arm_scene
-        scene = arm_scene
-    eps = evaluate(pol, a.env, a.task, _body(a.body), _seeds(a.seeds), scene=scene, batch=a.batch,
-                   max_seconds=a.max_seconds, max_steps=a.max_steps,
-                   hooks=[] if a.no_hooks else default_hooks(a.env, a.task), out=Path(a.out))
+    eps = evaluate(pol, a.env, a.task, _body(a.body), _seeds(a.seeds), scene=json.loads(a.scene) if a.scene else None,
+                   batch=a.batch, max_seconds=a.max_seconds, max_steps=a.max_steps,
+                   hooks=[] if a.no_hooks else task_hooks(a.task, a.env), out=Path(a.out), env_kw=_env_kw(a.env_kw))
     summ = dict(policy=pol.info.name, source=pol.info.source, env=a.env, task=a.task, body=a.body, **summarize(eps))
     Path(a.out).with_suffix(".summary.json").write_text(json.dumps(summ, indent=1))
     print(json.dumps(summ, indent=1))
@@ -85,11 +83,12 @@ def register(sub):
     e.add_argument("--task", required=True)
     e.add_argument("--body", required=True, help="body key; dual pairs as a+b or a pair key")
     e.add_argument("--seeds", required=True, help='"start:stop" or "a,b,c"')
-    e.add_argument("--scene", help="JSON scene kwargs for the env factory (default: the family's eval convention)")
+    e.add_argument("--scene", help="JSON scene kwargs for the env factory (default: the task's own scene, if it declares one)")
+    e.add_argument("--env-kw", action="append", metavar="K=V", help="repeatable; extra env kwargs (level=1, split=heldout, ...)")
     e.add_argument("--batch", type=int, default=8)
     e.add_argument("--max-seconds", type=float)
     e.add_argument("--max-steps", type=int)
-    e.add_argument("--no-hooks", action="store_true", help="skip the family's default hooks (feasibility, settle, ...)")
+    e.add_argument("--no-hooks", action="store_true", help="skip the task's default hooks (feasibility, settle, ...)")
     e.add_argument("--out", required=True)
     e.set_defaults(fn=cmd_eval)
     m = sub.add_parser("matrix", help="policy x env x task compatibility (negotiate reasons; n/a shown), optional rollouts")

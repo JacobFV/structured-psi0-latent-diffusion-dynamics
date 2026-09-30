@@ -13,6 +13,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Callable, Protocol, Sequence
 
 from rrp.core.errors import ControllerRejection, StaleActionError
+from rrp.envs.base import env_failure_reason
 from rrp.policies.base import Act, Policy, negotiate
 from rrp.tasks.spec import Judgement, TaskSpec
 
@@ -74,20 +75,26 @@ def rollout(make_env: Callable[[int], object], policy: Policy, task: TaskSpec, s
             hooks: Sequence = ()) -> list[Episode]:
     """make_env(seed) returns an env already reset to `seed` (every registered factory does).
 
-    Budget: `max_seconds` (default task.max_seconds) of env time; `max_steps` additionally ends an episode after that
-    many control ticks (the task judge is then asked with the budget spent, so its timeout rule applies exactly).
+    Budget: `max_seconds` (default task.max_seconds) of env time; `max_steps` (default task.max_steps) additionally ends
+    an episode after that many control ticks (the task judge is then asked with the budget spent, so its timeout rule
+    applies exactly). Every env of a group is negotiated (specs may differ per env: body, level, scene).
     A hook's on_reset may return a done Judgement (e.g. "infeasible") to end that episode before its first tick; an
     on_step hook may return one to end it after a tick (used only when the task judge has not ended it)."""
     max_s = task.max_seconds if max_seconds is None else max_seconds
+    max_steps = task.max_steps if max_steps is None else max_steps
     info = policy.info
     episodes: list[Episode] = []
     for b0 in range(0, len(seeds), batch):
         group = list(seeds[b0:b0 + batch])
         envs = [make_env(sd) for sd in group]
         spec = envs[0].spec
-        c = negotiate(info, spec, task)
-        if not c.ok:
-            raise Incompatible(c.reasons)
+        reasons: list[str] = []
+        for e in envs:
+            reasons += [r for r in negotiate(info, e.spec, task).reasons if r not in reasons]
+        if reasons:
+            for e in envs:
+                e.close()
+            raise Incompatible(reasons)
         policy.reset(spec, task, group, envs=envs)
         obs = {i: e.observe() for i, e in enumerate(envs)}
         t0 = {i: float(getattr(o, "sensor_time", getattr(o, "time", 0.0))) for i, o in obs.items()}
@@ -153,6 +160,8 @@ def rollout(make_env: Callable[[int], object], policy: Policy, task: TaskSpec, s
                                       chunks=st["chunks"], packets=st["packets"],
                                       **({"note": st["note"]} if st["note"] else {})),
                          provenance=dict(env=spec.provenance, policy_version=info.version, variant=info.variant))
+            if (why := env_failure_reason(env)) is not None:
+                ep.metrics["env_failure_reason"] = why
             for h in hooks:
                 if hasattr(h, "on_end"):
                     ep.metrics.update(h.on_end(i, env, ep) or {})

@@ -155,8 +155,8 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
     if long_mode:
         max_s = deploy.long_s
     if ctl is None:
-        from rrp.policies.teachers import TeacherPolicy
-        policy = TeacherPolicy("waypoint_contact", options=dict(arc_only=arc_only))
+        from rrp.policies.base import make_policy
+        policy = make_policy("teacher:waypoint_contact", options=dict(arc_only=arc_only))
     elif isinstance(ctl, BCController):
         from rrp.policies.legged import LeggedBCPolicy
         policy = LeggedBCPolicy(ctl)

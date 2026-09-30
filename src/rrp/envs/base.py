@@ -120,7 +120,8 @@ Observation = PolicyObservation | VectorObservation
 class Env(Protocol):
     """Required methods. Capability-gated (raise CapabilityError when absent): truth() ["privileged_truth"],
     snapshot()/restore(s) ["snapshot"], submit_chunk(chunk, robot=0, execute_prefix=None) ["chunk_executor"],
-    render(camera=None, width=, height=) ["render"]."""
+    render(camera=None, width=, height=) ["render"]. Optional (any env, use `env_failure_reason`): failure_reason() ->
+    str | None, the env's own public failure code in its own vocabulary (a judge may map it to a Judgement reason)."""
 
     @property
     def spec(self) -> EnvSpec: ...
@@ -229,14 +230,59 @@ def register_env(env_id: str, target: str) -> None:
     ENVS[env_id] = target
 
 
-def make_env(env_id: str, *, task: str, body: str | list[str], seed: int = 0, **kw) -> Env:
-    if env_id not in ENVS:
-        raise KeyError(f"unknown env {env_id!r}; registered: {sorted(ENVS)}")
-    mod, fn = ENVS[env_id].split(":")
+class SceneUnsupported(CapabilityError):
+    """A scene was requested from an env whose factory takes none. `reasons` is the negotiation text."""
+
+    def __init__(self, reasons):
+        super().__init__("; ".join(reasons))
+        self.reasons = list(reasons)
+
+
+def _resolve(target: str):
+    mod, fn = target.split(":")
     try:
         m = importlib.import_module(mod)
     except ModuleNotFoundError as e:
         if e.name == mod:
-            raise NotImplementedError(f"env {env_id!r} is declared but not implemented yet ({mod})") from e
+            raise NotImplementedError(f"{target!r} is declared but not implemented yet ({mod})") from e
         raise
-    return getattr(m, fn)(task=task, body=body, seed=seed, **kw)
+    return getattr(m, fn)
+
+
+def _factory(env_id: str, task: str):
+    """The callable that builds `env_id` for `task`: the task's own `build` entry, else the env's registered factory."""
+    if env_id not in ENVS:
+        raise KeyError(f"unknown env {env_id!r}; registered: {sorted(ENVS)}")
+    from rrp.tasks.spec import TASKS
+    t = TASKS.get(task)
+    return _resolve((t.build.get(env_id) if t is not None else None) or ENVS[env_id])
+
+
+def env_takes_scene(env_id: str, task: str | None = None) -> bool:
+    """Does the factory of `env_id` (for `task`) declare a `scene` parameter?"""
+    import inspect
+    return "scene" in inspect.signature(_factory(env_id, task or "")).parameters
+
+
+def scene_reasons(env_id: str, task: str, scene) -> list[str]:
+    """Negotiation of a scene against an env: [] when none is requested or the factory takes one."""
+    if scene is None or env_takes_scene(env_id, task):
+        return []
+    return [f"task {task!r} declares a scene; env {env_id!r} takes none"]
+
+
+def env_failure_reason(env) -> str | None:
+    """The env's public failure code (`env.failure_reason()`), or None when it declares none / has not failed."""
+    f = getattr(env, "failure_reason", None)
+    return f() if callable(f) else None
+
+
+def make_env(env_id: str, *, task: str, body: str | list[str], seed: int = 0, scene: dict | None = None, **kw) -> Env:
+    """Build `env_id` for (task, body), reset to `seed`. `scene` is passed to the factory only when given; a scene for a
+    factory that takes none raises SceneUnsupported (a negotiation reason), never a TypeError."""
+    factory = _factory(env_id, task)
+    if scene is not None:
+        if reasons := scene_reasons(env_id, task, scene):
+            raise SceneUnsupported(reasons)
+        kw["scene"] = scene
+    return factory(task=task, body=body, seed=seed, **kw)

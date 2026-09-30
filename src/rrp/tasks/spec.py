@@ -1,6 +1,11 @@
 """Task registry (docs/architecture.md section 4): which envs a task exists in, how an episode is judged, its scripted
 teacher (a policy registry key; teachers are policies, rrp.policies.teachers) and its episode budget.
 
+A task also owns how its env is built and driven: `build` (env_id -> "module:builder", used by `make_env` in place of
+the env's task if/elif), `scene` (seed -> scene kwargs; None = the env takes no scene), the default eval `hooks` by
+name, an explicit tick budget `max_steps` and the `failure_reasons` vocabulary its judge may emit
+(docs/architecture.md section 14.1).
+
 Judges are harness-side evaluators: they may read privileged state through the env's `privileged_truth` capability
 (`env.truth()`, `env.privileged_success()`), and what they return is reported, never fed back to a policy. They are
 duck-typed on the env so this module stays below rrp.envs. Episode budgets are the ones the existing evaluations use
@@ -29,13 +34,27 @@ Judge = Callable[[Any, float, float], Judgement]     # (env, elapsed seconds, bu
 @dataclass(frozen=True)
 class TaskSpec:
     name: str
-    envs: Mapping[str, dict]                 # env_id -> scene kwargs for the env factory (make_env(..., scene=...))
+    envs: Mapping[str, dict]                 # env_id -> extra env kwargs (make_env(..., **kw)) of the envs the task exists in
     max_seconds: float
     judge: Judge
     graph: str | None = None                 # src/rrp/tasks/graphs/<graph>.json task graph (None: the env supplies success)
-    teacher: str | None = None               # policy registry key of the scripted teacher
+    teacher: str | None = None               # POLICIES key of the scripted teacher (None: no demonstrator, explicit)
     gates: Mapping[str, Any] = field(default_factory=dict)
     note: str = ""
+    build: Mapping[str, str] = field(default_factory=dict)   # env_id -> "module:builder" (replaces the env factory's task if/elif)
+    scene: Callable[[int], dict] | None = None               # seed -> scene kwargs; None = the env takes no scene
+    hooks: tuple[str, ...] = ()              # default eval hooks by name (rrp.harness.eval.evaluate.HOOKS)
+    max_steps: int | None = None             # explicit control-tick budget (rollout's `max_steps` default)
+    failure_reasons: tuple[str, ...] = ()    # the vocabulary the judge may emit (Judgement.failure_reason)
+
+
+def arm_scene(seed: int) -> dict:
+    """The arm pick_place scene rule: seed % 3 distractors."""
+    return {"n_distractors": seed % 3}
+
+
+GRAPH_REASONS = ("timeout", "privileged_failure")
+LEGGED_REASONS = ("fell", "timeout", "privileged_failure", "drift_a", "drift_b", "halt")
 
 
 def graph_judge(*, dropped_below_m: float | None = None, dropped_body: str = "cube") -> Judge:
@@ -103,31 +122,40 @@ def get_task(name: str) -> TaskSpec:
     return TASKS[name]
 
 
-for _name, _graph, _teacher in [("pick_place", "pick_place", "teacher:pick_place"), ("reach_pose", "reach_pose", None)]:
-    register_task(TaskSpec(_name, {"mujoco/arm": {}}, 15.0,
-                           graph_judge(dropped_below_m=-0.05 if _name == "pick_place" else None),
-                           graph=_graph, teacher=_teacher))
+register_task(TaskSpec("pick_place", {"mujoco/arm": {}}, 15.0, graph_judge(dropped_below_m=-0.05), graph="pick_place",
+                       teacher="teacher:pick_place", scene=arm_scene, hooks=("arm",),
+                       failure_reasons=("dropped_off_table",) + GRAPH_REASONS))
+register_task(TaskSpec("reach_pose", {"mujoco/arm": {}}, 15.0, graph_judge(), graph="reach_pose", hooks=("session",),
+                       failure_reasons=GRAPH_REASONS))
 for _name, _graph in [("support_insert", "support_and_insert"), ("handover", "handover"), ("assign_left", "pick_place"),
                       ("assign_right", "pick_place"), ("pivot_against_surface", "pivot_against_surface"),
                       ("carry_tray_level", "carry_tray_level")]:
-    register_task(TaskSpec(_name, {"mujoco/dual": {}}, 40.0, graph_judge(), graph=_graph, teacher=f"teacher:{_name}"))
+    register_task(TaskSpec(_name, {"mujoco/dual": {}}, 40.0, graph_judge(), graph=_graph, teacher=f"teacher:{_name}",
+                           hooks=("dual",), failure_reasons=GRAPH_REASONS))
 register_task(TaskSpec("waypoint_contact", {"mujoco/legged": {}}, 60.0, legged_judge(), graph="waypoint_contact",
-                       teacher="teacher:waypoint_contact",
+                       teacher="teacher:waypoint_contact", hooks=("session",), failure_reasons=LEGGED_REASONS,
                        note="legged_judge: fall / drift_a / drift_b / halt (the former run_episode rules)"))
 register_task(TaskSpec("loco_pick", {"mujoco/legged": {}}, 60.0, legged_judge(), graph="loco_pick",
+                       hooks=("session",), failure_reasons=LEGGED_REASONS,
                        note="teacher is a stub (policies.teachers.legged_loco); no working demonstrator"))
-register_task(TaskSpec("foothold_steps", {"mujoco/legged": {}}, 60.0, legged_judge(), graph="foothold_steps"))
+register_task(TaskSpec("foothold_steps", {"mujoco/legged": {}}, 60.0, legged_judge(), graph="foothold_steps",
+                       hooks=("session",), failure_reasons=LEGGED_REASONS))
 register_task(TaskSpec("h_steps", {"mujoco/legged": {}, "warp/legged": {}}, 40.0, legged_judge(), graph="h_steps",
-                       teacher="teacher:h_steps"))
+                       teacher="teacher:h_steps", hooks=("session",), failure_reasons=LEGGED_REASONS))
 register_task(TaskSpec("h_gap", {"mujoco/legged": {}, "warp/legged": {}}, 30.0, legged_judge(), graph="h_gap_sidestep",
-                       teacher="teacher:h_gap"))
+                       teacher="teacher:h_gap", hooks=("session",), failure_reasons=LEGGED_REASONS))
 register_task(TaskSpec("locomotion", {"warp/legged": {}}, 20.0, lambda env, t, T: Judgement(t >= T, "timeout" if t >= T else None),
+                       failure_reasons=("timeout",),
                        note="tracker training task: command following, reward-driven (capability reward)"))
 # ComputerWorld (architecture.md section 5): setups, instructions and judges are env-side (rrp.envs.computerworld reads
 # CW scenes); no task graph yet, the env judges success. Budgets at 10 Hz.
-for _name, _budget in [("cw/calc_sum", 15.0), ("cw/open_type", 12.0), ("cw/drag_window", 8.0), ("cw/fill_form", 20.0)]:
+for _name, _budget, _why in [
+        ("cw/calc_sum", 15.0, ("wrong_result", "no_result", "timeout")),
+        ("cw/open_type", 12.0, ("wrong_text", "app_not_open", "incomplete_text", "timeout")),
+        ("cw/drag_window", 8.0, ("window_closed", "off_target", "timeout")),
+        ("cw/fill_form", 20.0, ("wrong_value:name", "wrong_value:email", "not_submitted", "timeout"))]:
     register_task(TaskSpec(_name, {"computerworld": {}}, _budget, lambda env, t, T: env.cw_judge(t, T),
-                           teacher=f"teacher:{_name}"))
+                           teacher=f"teacher:{_name}", failure_reasons=_why))
 
 
 # ------------------------------------------------------------------ Ψ₀ SIMPLE benchmark (W10, D-140; research/tracks/psi0.md)
@@ -160,4 +188,10 @@ def simple_judge(env, t: float, max_seconds: float) -> Judgement:
 for _task, (_run, _pub, _status) in SIMPLE_TASKS.items():
     register_task(TaskSpec(f"simple/{_task}", {"simple": {}}, 20.0, simple_judge,
                            gates=dict(published_success_of_10=_pub, released_run=_run, step1=_status),
+                           failure_reasons=("timeout", "chunk_required"),
                            note="judge reads env.truth(); episode budget = SIMPLE's own TimeLimit (<= 16 s at 50 Hz)"))
+
+
+def tasks_in(env_id: str) -> tuple[str, ...]:
+    """Names of the registered tasks that exist in `env_id` (the one source of "the dual tasks", "the legged tasks")."""
+    return tuple(n for n, t in TASKS.items() if env_id in t.envs)

@@ -1,13 +1,50 @@
 """Evaluation front-ends over harness.rollout (docs/architecture.md section 6): `evaluate` (one policy on env x task x
 body, JSONL rows), `summarize` (Wilson), `matrix` (every policy x env x task cell: accepted | n/a with reasons) and
-`env_spec` (static specs; simulators such as SIMPLE/Isaac are never started implicitly). CLI: `rrp eval`, `rrp matrix`."""
+`env_spec` (static specs; simulators such as SIMPLE/Isaac are never started implicitly). CLI: `rrp eval`, `rrp matrix`.
+
+Nothing here compares env ids or task names: the scene an env gets is the task's (`TaskSpec.scene`, or the caller's), the
+default hooks are the task's by name (`TaskSpec.hooks` -> HOOKS). A scene for an env whose factory takes none is a
+negotiation failure (`Incompatible` with the reason text, an "n/a" cell in `matrix`), never a TypeError."""
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Sequence
+from typing import Callable, Sequence
 
-from rrp.harness.rollout import Episode, rollout
+from rrp.harness.rollout import Episode, Incompatible, rollout
+
+
+def _session(task):
+    from rrp.harness.eval import hooks as H
+    return [H.SessionRecord()]
+
+
+def _arm(task):
+    from rrp.harness.eval import hooks as H
+    return H.arm_hooks()
+
+
+def _dual(task):
+    from rrp.harness.eval import hooks as H
+    return H.dual_hooks(task.name)
+
+
+# TaskSpec.hooks name -> (env_id prefix the hook applies to, factory(task) -> [hook]): the per-family conventions of the
+# former eval loops (arm feasibility + session record; dual adds settling; MuJoCo session facts for legged).
+HOOKS: dict[str, tuple[str, Callable]] = {"session": ("mujoco/", _session), "arm": ("mujoco/arm", _arm),
+                                          "dual": ("mujoco/dual", _dual)}
+
+
+def task_hooks(task: str, env_id: str) -> list:
+    """The default eval hooks the task declares (`TaskSpec.hooks`) that apply to `env_id`."""
+    from rrp.tasks.spec import get_task
+    t = get_task(task)
+    out: list = []
+    for name in t.hooks:
+        prefix, make = HOOKS[name]
+        if env_id.startswith(prefix):
+            out += make(t)
+    return out
 
 def summarize(episodes: Sequence[Episode]) -> dict:
     """Success over attempted (non-infeasible) episodes, Wilson 95% interval, outcome counts, public/privileged
@@ -25,22 +62,31 @@ def summarize(episodes: Sequence[Episode]) -> dict:
                 control_steps=sum(e.steps for e in att))
 
 
-def _scene_fn(scene):
-    return scene if callable(scene) else (lambda seed: dict(scene or {}))
+def env_factory(env_id: str, task: str, body, *, scene=None, env_kw: dict | None = None) -> Callable[[int], object]:
+    """seed -> a built env of (env_id, task, body). `scene` (a dict, or seed -> dict) overrides the task's own scene
+    (`TaskSpec.scene`); a scene is passed to the factory only when there is one. Raises Incompatible when a scene is
+    requested from an env whose factory takes none."""
+    from rrp.envs.base import make_env, scene_reasons
+    from rrp.tasks.spec import get_task
+    sc = scene if scene is not None else get_task(task).scene
+    if reasons := scene_reasons(env_id, task, sc):
+        raise Incompatible(reasons)
+    sf = sc if callable(sc) or sc is None else (lambda seed: dict(sc))
+    return lambda sd: make_env(env_id, task=task, body=body, seed=sd, scene=None if sf is None else sf(sd),
+                               **(env_kw or {}))
 
 
 def evaluate(policy, env_id: str, task: str, body, seeds: Sequence[int], *, scene=None, batch: int = 8,
              max_seconds: float | None = None, max_steps: int | None = None, hooks: Sequence = (),
              out: Path | None = None, env_kw: dict | None = None, row_extra: dict | None = None) -> list[Episode]:
-    """rollout of `policy` (a Policy, or a registry name for make_policy) on make_env(env_id, task, body, seed) with
-    scene kwargs `scene` (a dict, or seed -> dict). Rows (Episode.row() + row_extra) are appended to `out` (JSONL)."""
-    from rrp.envs.base import make_env
+    """rollout of `policy` (a Policy, or a registry name for make_policy) on make_env(env_id, task, body, seed). Scene:
+    `scene` (a dict, or seed -> dict) else the task's own, passed only when there is one; `env_kw` are extra env
+    kwargs (level, split, render profile). Rows (Episode.row() + row_extra) are appended to `out` (JSONL)."""
     from rrp.policies.base import make_policy
     from rrp.tasks.spec import get_task
     pol = make_policy(policy) if isinstance(policy, str) else policy
-    sf = _scene_fn(scene)
-    eps = rollout(lambda sd: make_env(env_id, task=task, body=body, seed=sd, scene=sf(sd), **(env_kw or {})), pol,
-                  get_task(task), list(seeds), batch=batch, max_seconds=max_seconds, max_steps=max_steps, hooks=hooks)
+    eps = rollout(env_factory(env_id, task, body, scene=scene, env_kw=env_kw), pol, get_task(task), list(seeds),
+                  batch=batch, max_seconds=max_seconds, max_steps=max_steps, hooks=hooks)
     if out is not None:
         out = Path(out)
         out.parent.mkdir(parents=True, exist_ok=True)
@@ -87,7 +133,7 @@ def matrix(policies: Sequence, envs: Sequence[tuple[str, object]], tasks: Sequen
     """negotiate() every policy x (env_id, body) x task cell. A cell is "n/a" with reasons when the task does not exist
     in the env, the env or policy cannot be built here, or negotiate declines; accepted cells are rolled out on `seeds`
     (none: negotiation only). policies: registry names, (name, make_policy kwargs) pairs, or Policy objects."""
-    from rrp.envs.base import make_env
+    from rrp.envs.base import scene_reasons
     from rrp.policies.base import make_policy, negotiate
     from rrp.tasks.spec import get_task
     pols: list[tuple[str, object]] = []
@@ -104,6 +150,8 @@ def matrix(policies: Sequence, envs: Sequence[tuple[str, object]], tasks: Sequen
             spec, why = None, None
             if env_id not in t.envs:
                 why = f"task {tname!r} does not exist in {env_id}"
+            elif reasons := scene_reasons(env_id, tname, t.scene):
+                why = reasons[0]
             else:
                 try:
                     spec = env_spec(env_id, task=tname, body=body, seed=seeds[0] if seeds else 0,
@@ -119,8 +167,7 @@ def matrix(policies: Sequence, envs: Sequence[tuple[str, object]], tasks: Sequen
                     c = negotiate(pol.info, spec, t)
                     row.update(status="accepted" if c.ok else "n/a", reasons=list(c.reasons), source=pol.info.source)
                     if c.ok and seeds:
-                        eps = rollout(lambda sd: make_env(env_id, task=tname, body=body, seed=sd), pol, t, list(seeds),
-                                      batch=batch)
+                        eps = rollout(env_factory(env_id, tname, body), pol, t, list(seeds), batch=batch)
                         row["summary"] = summarize(eps)
                 rows.append(row)
     if out is not None:
