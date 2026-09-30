@@ -1,6 +1,8 @@
 """Legged policies (D-140 S4): the latent packet stack (system i = LeggedFlow, system 0 = LeggedRealizer), the BC
 positive control, and the privileged oracle packet source, as `rrp.policies.base.Policy`s on the `legs` action space
-of `mujoco/legged` (control="legs"). Moved from rrp.harness.eval.legged_latent_eval, where they lived in the
+of `mujoco/legged` (control="legs"). HX (D-146): with `upper=True` the latent policy also realizes the `upper` group
+(arms, waist, head; the held actuators) from the SAME packet on `control="wholebody"`: the arm / body assemblies of
+the packet drive the held joints exactly as the leg assemblies drive the legs. Without it the command is `legs` only. Moved from rrp.harness.eval.legged_latent_eval, where they lived in the
 session's tracker slot; `System0Adapter` / `BCAdapter` keep the exact per-tick logic (packet every TICKS_PER_PACKET
 ticks, fallback hold, OOD / safety hooks) and are now driven by the policy instead of the session.
 """
@@ -56,6 +58,7 @@ class System0Adapter:
         self.packet = None
         self.ticks = 0
         self.log = []
+        self.upper_tgt = None              # HX: the `upper` group target of the last tick (None = not realized)
         self.stats = dict(ticks=0, packets=0, rejected=0, fallback=0)
         self.ood = None                    # D-126 #29: rrp.policies.packet_ood.PacketOODMonitor (None = off)
         self.fallback_mode = "hold_default"
@@ -65,6 +68,7 @@ class System0Adapter:
         self.ticks = 0
         self.packet = None
         self.armed = False
+        self.upper_tgt = None
 
     def state(self):
         return dict(ticks=self.ticks)
@@ -117,15 +121,23 @@ class System0Adapter:
             if self.c.edit == "freeze":
                 ph = ph.clamp(max=KNOT_TIMES[-1])
             with torch.no_grad():
-                a = self.c.R(zp, bb, ph)[0, :b.n].cpu().numpy().astype(np.float64)
+                out = self.c.R(zp, bb, ph)[0]
+            a = out[:b.n].cpu().numpy().astype(np.float64)
             tgt = b.targets(np.clip(a, -5, 5))
+            if self.c.upper:                             # HX: the held (upper) rows of the same realizer output
+                au = out[b.n:self.m.N].cpu().numpy().astype(np.float64)
+                self.upper_tgt = np.clip(b.q0_held + self.m.action_scale * np.clip(au, -5, 5), b.held_lo, b.held_hi)
             self.stats["ticks"] += 1
         else:
             self.stats["fallback"] += 1
             if self.fallback_mode == "hold_measured":
                 tgt = np.clip(data.qpos[b.pol_qadr], b.lo, b.hi)
+                if self.c.upper:
+                    self.upper_tgt = np.clip(data.qpos[b.held_qadr], b.held_lo, b.held_hi)
             else:
                 tgt = np.clip(b.q0, b.lo, b.hi)          # declared fallback: hold the default stance
+                if self.c.upper:
+                    self.upper_tgt = np.clip(b.q0_held, b.held_lo, b.held_hi)
         fc, _ = b.contacts(data)
         self.c.trace.append(dict(t=now, pose=self.s.base_pose_truth().tolist(), contact=fc.astype(int).tolist()))
         if getattr(self.c, "recorder", None) is not None and self.armed:
@@ -165,6 +177,7 @@ class BCController:
 
 class BCAdapter:
     source = "learned"
+    upper_tgt = None                       # the BC positive control commands the legs only
 
     def __init__(self, ctl, session, morph):
         self.c, self.s, self.m = ctl, session, morph
@@ -214,7 +227,7 @@ class BCAdapter:
 
 class LatentLeggedController:
     def __init__(self, flow_ckpt: Path | None, dev, nfe=8, edit="none", t_edit=1.0, seed=0, posthoc_probe=None,
-                 rep=None, realizer=None, zero_qd=False):
+                 rep=None, realizer=None, zero_qd=False, upper=False):
         st = torch.load(str(flow_ckpt), map_location=dev, weights_only=False) if flow_ckpt else None
         self.cfg = st["cfg"] if st else dict(representation=str(rep))
         rcfg, self.E, self.R, self.P, rres = load_rep(Path(rep or self.cfg["representation"]), dev)
@@ -231,6 +244,7 @@ class LatentLeggedController:
                 mode="json", include={"legacy", "weights", "notes"})
             self.R.load_state_dict(rs["R"])
         self.zero_qd = zero_qd
+        self.upper = bool(upper)           # HX: realize the `upper` group too (a declaration: the realizer's upper rows were trained)
         if posthoc_probe:                              # measurement probe for latent_nosem (frozen, detached z)
             pp = torch.load(posthoc_probe, map_location=dev, weights_only=False)
             self.P = legged_probe(dz=rcfg["latent"]["dz"]).to(dev)
@@ -449,6 +463,7 @@ class _LeggedPolicy:
     The adapter's tick counter starts after the env's reset settle, so gait phase and replan ticks are unchanged."""
 
     adapter_cls = None
+    controls = ("legs",)                   # env control modes this policy can drive
 
     def __init__(self, ctl, info):
         self.ctl, self.info = ctl, info
@@ -461,8 +476,8 @@ class _LeggedPolicy:
         if len(envs) != 1:
             raise ValueError("legged policies run one episode at a time (rollout batch=1)")
         s = envs[0]
-        if getattr(s, "control", None) != "legs":
-            raise ValueError("legged policies need a mujoco/legged env built with control='legs'")
+        if getattr(s, "control", None) not in self.controls:
+            raise ValueError(f"this legged policy needs a mujoco/legged env built with control in {self.controls}")
         morph = LeggedMorph(s.model, s.binding, s.scenario.robots[0].robot_spec.spec_hash)
         self._bind(s, morph)
         self.env, self.ad = s, self.adapter_cls(self.ctl, s, morph)
@@ -476,25 +491,34 @@ class _LeggedPolicy:
         n0 = ad.stats["packets"]
         tgt = ad.act(s.data, None)
         new = ad.stats["packets"] > n0
-        cmd = NativeCommand(controller_version=s.controller_version(), groups={"legs": np.asarray(tgt, float).tolist()},
-                            source=self.info.source)
+        groups = {"legs": np.asarray(tgt, float).tolist()}
+        if ad.upper_tgt is not None:
+            groups["upper"] = np.asarray(ad.upper_tgt, float).tolist()
+        cmd = NativeCommand(controller_version=s.controller_version(), groups=groups, source=self.info.source)
         return {i: Act(cmd, packet=getattr(ad, "packet", None) if new else None) for i in obs}
 
 
 class LeggedLatentPolicy(_LeggedPolicy):
     """System i (LeggedFlow; or oracle packets E(privileged teacher look-ahead) with oracle=True, or E(BC chunk) when
-    ctl.bc is set) + system 0 (LeggedRealizer) on the legs space. Edits: ctl.edit / ctl.t_edit as before."""
+    ctl.bc is set) + system 0 (LeggedRealizer) on the legs space. Edits: ctl.edit / ctl.t_edit as before.
+    `ctl.upper` (HX): realize the `upper` group as well, from the same packet; needs `control="wholebody"` (a policy
+    without it also runs there and leaves the upper joints at their default stance, the env's rule for an omitted group)."""
     adapter_cls = System0Adapter
 
     def __init__(self, ctl: LatentLeggedController, *, oracle: bool = False, name: str = "legged_latent",
                  variant: str | None = None):
         from rrp.envs.base import LEGGED_FAMILIES
         from rrp.policies.base import PolicyInfo, Requirements
+        if ctl.upper and (oracle or ctl.bc is not None):
+            raise ValueError("upper=True is the learned packet route only: oracle / BC-expert packets carry no upper targets")
         self.oracle = oracle
         src = "oracle" if (oracle or ctl.bc is not None) else "learned"
-        super().__init__(ctl, PolicyInfo(name, src, f"{ctl.policy_version}|{ctl.lsv}|{ctl.rcv}", Requirements(
-            frozenset({"joint_position"}), groups=frozenset({"legs"}), observations=frozenset({"proprio", "task_graph"}),
-            body_families=LEGGED_FAMILIES, privileged=oracle), variant))
+        self.controls = ("wholebody",) if ctl.upper else ("legs", "wholebody")
+        groups = frozenset({"legs", "upper"} if ctl.upper else {"legs"})
+        super().__init__(ctl, PolicyInfo(name, src, f"{ctl.policy_version}|{ctl.lsv}|{ctl.rcv}" + ("|upper" if ctl.upper else ""),
+                                         Requirements(frozenset({"joint_position"}), groups=groups,
+                                                      observations=frozenset({"proprio", "task_graph"}),
+                                                      body_families=LEGGED_FAMILIES, privileged=oracle), variant))
 
     def _bind(self, s, morph):
         self.ctl.bind(s, morph)

@@ -457,3 +457,18 @@ DAG humanoid_tracker_gate_pool: 6 nodes (source recipes/humanoid/tracker_gate_po
 - Open (not HL-owned): shards need `terrain`, `foothold_cell`, `com_support(_valid)` from collect (H4), else those labels are masked;
   `bundles.load_rep`, `policies/legged.py` and `legged_dagger.py` build nets without factors (use `load_legged_rep` / `build_legged_rep`, feed the
   terrain keys at deploy); `legged_bc.bc_batch` should use `data.train_batch` for the foothold label; the lineage recipe adds `preset:legged`.
+
+## HX (D-146, 2026-09-30): humanoid system 0 realizes the `upper` group
+- The packet already carried the arm / body assemblies (`LeggedMorph`: nf legs + body + one assembly per arm side, held joints as nodes) and the
+  realizer already emitted a value for every actuated node; what was missing was the group split and the command. `nets.legged_latent`:
+  `REALIZER_GROUPS = ("legs", "upper")`, `group_masks(b)` (the public node flag `node_static[:, IS_POLICY_COL]`), `LeggedRealizer.groups(...)`.
+  No parameter or state-dict key was added: legs-only checkpoints load unchanged and the upper rows share the one output head.
+- `policies/legged.py`: `LatentLeggedController(upper=True)` (a declaration that the realizer's upper rows were trained; never inferred) makes
+  `System0Adapter` emit `upper = clip(q0_held + action_scale * a_upper, held_lo, held_hi)` next to `legs` (fallback: default stance / measured
+  hold), `LeggedLatentPolicy` requires groups {legs, upper} and `control="wholebody"`; without it the policy is unchanged (legs command only;
+  it also runs on a wholebody env and leaves `upper` at the default stance). `upper=True` with oracle / BC-expert packets is refused.
+- Acceptance: `tests/unit/test_legged_upper.py` (tiny random models; t1 tests need the Menagerie assets): group partition, own/body-assembly routing and
+  arm-knot causality on the realizer, packet with arm assemblies + both command groups on t1 wholebody, an edited packet changes the upper command.
+- Open (not HX-owned): the trainer (`legged_latent_train.py`, `amask` = policy joints only) and shards (`a` holds policy rows only) do not yet
+  supervise the upper rows; until collect (U2 teacher upper targets) and the trainer add them, `upper=True` is only valid for a realizer trained that way.
+  Nothing stamps "upper trained" in a checkpoint yet.
