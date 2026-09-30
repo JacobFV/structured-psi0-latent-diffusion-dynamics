@@ -355,9 +355,33 @@ class Scheduler:
             out.append((frozenset((f,) + tuple(extra)), c))
         return out
 
-    def export(self, path) -> None:
+    def export(self, path, extra: dict | None = None) -> None:
+        """Append the last decision to `path` (schedule.jsonl); `extra` keys (steers applied, metrics observed since the
+        previous decision) ride on the record for `replay_records`."""
         with open(path, "a") as fh:
-            fh.write(json.dumps(asdict(self.history[-1]), sort_keys=True, default=list) + "\n")
+            fh.write(json.dumps({**asdict(self.history[-1]), **(extra or {})}, sort_keys=True, default=list) + "\n")
+
+    @classmethod
+    def replay_records(cls, cfg: SchedulerConfig, seed: int, records, steps=(), n: int = 0):
+        """Rebuild the scheduler from a run's `schedule.jsonl` records (each: the decision `step`, the `steers` applied
+        at it, the `metrics` observed before it), feeding each decision only what was known when it was taken, so the
+        decisions come out identical to the live run's. With `steps` (and `n`), also returns the `sample(step, n)`
+        composition at each of those steps (state = the last decision at or before it): `(scheduler, [sample, ...])`."""
+        s = cls(cfg, seed)
+        todo = sorted(records, key=lambda r: r["step"])
+
+        def apply_until(t):
+            while todo and todo[0]["step"] <= t:
+                r = todo.pop(0)
+                s.steer_log.extend(parse_steer(o) for o in r.get("steers", []))
+                s.metrics_log.extend((int(st), m) for st, m in r.get("metrics", []))
+                s.decide(r["step"])
+        seq = []
+        for t in steps:
+            apply_until(t)
+            seq.append(s.sample(t, n))
+        apply_until(float("inf"))
+        return s, seq
 
     @classmethod
     def replay(cls, cfg: SchedulerConfig, seed: int, steer_log, metrics_log, steps, n: int):

@@ -2,7 +2,8 @@
 
 `rrp steer <run> <op...>` appends a validated-at-decision-time steer to `<run>/steer.jsonl` (picked up at the run's
 next decision interval; no restart, no code -- this command only writes the line, `Scheduler.steer` / `.validate`
-do the real work when the training loop next calls `decide()`). `rrp suite relations-curriculum` (registered into
+do the real work when the training loop's `relation_batches` next decides); `rrp steer <run>` alone lists the run's
+steer lines and what became of each (pending / applied at step / REJECTED). `rrp suite relations-curriculum` (registered into
 `rrp.cli.tools.TOOLS`) reads a run's `schedule.jsonl` (written by `Scheduler.export`, one `ScheduleState` per
 decision) and prints competence by composition depth, the schedule history with its reasons, and (given eval
 records) interfering pairs (`rrp.harness.data.relgen.curriculum.interfering_pairs`).
@@ -15,16 +16,39 @@ from pathlib import Path
 
 
 # ------------------------------------------------------------------ rrp steer
+def _steer_status(run: Path) -> list[str]:
+    """Each line of `<run>/steer.jsonl` with what the run did with it: pending (not yet read at a decision), applied at
+    step N, or REJECTED (reason), from the last records of `<run>/schedule.jsonl`."""
+    lines = [l for l in (run / "steer.jsonl").read_text().splitlines() if l.strip()] if (run / "steer.jsonl").exists() else []
+    recs = _read_jsonl(run / "schedule.jsonl")
+    read = recs[-1].get("steer_line", 0) if recs else 0
+    done = {}
+    k = 0
+    for r in recs:
+        for op in r.get("steers", []):
+            done[k] = op
+            k += 1
+    out = []
+    for i, line in enumerate(lines):
+        op = done.get(i)
+        state = "pending" if i >= read else ("rejected: " + op["reason"] if op and "REJECTED" in op.get("reason", "")
+                                             else f"applied at step {op['at']}" if op else "read")
+        out.append(f"{i + 1:>3}  [{state}]  {line}")
+    return out
+
+
 def cmd_steer(a) -> int:
     from rrp.harness.data.relgen.curriculum import parse_steer
+    run = Path(a.run)
     op_text = " ".join(a.op)
-    if not op_text:
-        raise SystemExit("usage: rrp steer <run> <op...> (e.g. rrp steer artifacts/runs/foo boost ix.support x2 for 5000)")
+    if not op_text:                                     # no op: what this run's steer log holds and what became of it
+        rows = _steer_status(run)
+        print("\n".join(rows) if rows else f"no steers recorded at {run / 'steer.jsonl'}")
+        return 0
     # `op` is argparse.REMAINDER, so it swallows every token after `run` verbatim, including anything that looks
     # like a flag -- author/reason are only settable through the op's own JSON form (docs/relations.md 5.5:
     # {"op": "boost", ..., "author": "...", "reason": "..."}), never as separate `rrp steer` flags.
     op = parse_steer(op_text)
-    run = Path(a.run)
     run.mkdir(parents=True, exist_ok=True)
     with open(run / "steer.jsonl", "a") as fh:
         fh.write(op.to_json() + "\n")
@@ -36,7 +60,7 @@ def register(sub) -> None:
     p = sub.add_parser("steer", help="append a curriculum steer op to <run>/steer.jsonl (docs/relations.md 5.5)")
     p.add_argument("run", help="run directory (its steer.jsonl is appended to)")
     p.add_argument("op", nargs=argparse.REMAINDER,
-                   help='the op: CLI grammar (docs/relations.md 5.5), e.g. boost ix.support x2 for 5000, or one '
+                   help='omit to list the run\'s steers and their status; else the op: CLI grammar (docs/relations.md 5.5), e.g. boost ix.support x2 for 5000, or one '
                         'JSON object (quoted) to also set author/reason, e.g. \'{"op": "pin", "factor": "geo.above", '
                         '"value": 2, "author": "lead", "reason": "lags"}\'')
     p.set_defaults(fn=cmd_steer)

@@ -9,10 +9,11 @@
 # The `ui` preset (ui.* on the ComputerWorld widget tree) is a pointer-track factor set: it is a `factors:` var of the
 # pointer recipes (recipes/pointer, P4c), not an arm instance.
 # Instances extend this file and only choose the matrix (recipes/relations/relations_<set>.yaml).
-# CAVEAT (recorded in the ledger and every manifest): structural side only. `harness/pipelines/relations.py::relations_data`
-# (labelled shards + mix, docs/relations.md 5.3) is a library function, not a DAG stage, so the probe-sourced factors
-# (geo.depth3d, ix.*, task.next_contact) train without their label shards here: their estimate heads start at zero and an
-# `aug` factor is a no-op until a stage feeds the labels. State: planned (renders and plans dry; no run recorded).
+# CAVEAT (recorded in the ledger and every manifest): the `relgen` node writes the labelled shards of each set's factors
+# (privileged-truth labels on scripted-teacher snapshots, one body, docs/relations.md 5.3), but F0's trainer does not read
+# them yet: the probe-sourced factors (geo.depth3d, ix.*, task.next_contact) still train without label shards until the
+# arm trainer calls `relation_batches` (the one-line hook, docs/architecture.md 14.2; unit A1). Until then a set's result
+# is the structural side only. State: planned (renders and plans dry; no run recorded).
 # The interference report (a set vs base, per body, paired seeds) is `rrp suite` / room material over the `dev` results.
 #   rrp run-dag recipes/relations/relations_geo.yaml --dry-run --point fset=geo,seed=1
 #   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/relations rrp run-dag recipes/relations/relations_geo.yaml --max-parallel-gpu 1
@@ -20,7 +21,7 @@ name: relations_factor
 schema: dag-1
 family: arm
 track: relations
-caveat: 'D-145 relations recipe: structural factors only, relations_data shards are not a DAG stage (planned, never run)'
+caveat: 'D-145 relations recipe: relgen shards are a DAG node, but the F0 trainer does not read them yet (structural side only; planned, never run)'
 lineage: 'relations-{fset}'
 label_prefix: 'rf{fset}{seed}'
 global_lineage: 'relations-shared'
@@ -73,6 +74,19 @@ nodes:
       inputs: {representation: '@stageA:representation.pt', packed_dir: '{pack}'}
       options: {final_snapshot_alias: snap_final_s20000.pt}
       params: {name: '{pfx}_F0', seed: '{1701 + so}', steps: 20000, batch_size: 128, lr: 0.0003, packet_semantic_weight: 1.0, normalize_target: true, snapshot_every: 1000, packet_tau_min: 0.6, policy: {width: 256, heads: 4, ctx_layers: 3, blocks: 6, attention: factorized, name: '{pfx}_F0'}}
+  # labelled relgen shards for the set's factors: teacher snapshots labelled through StateView (privileged truth, never a
+  # deployable input); a trainer takes them with relation_batches(rc, out_dir, main) and params.curriculum.shards
+  relgen:
+    stage: relations_data
+    only: {fset: [geo, ix, task]}
+    resources: {cpu: 3, mem: 8G, max_seconds: 7200}
+    per:
+      fset:
+        geo: {params: {factors: ['preset:geo']}}
+        ix: {params: {factors: ['preset:ix']}}
+        task: {params: {factors: ['preset:task']}}
+    config:
+      options: {env: mujoco/arm, task: pick_place, body: parm6_pg2, n_episodes: 200, seed_start: 5000000, snapshot_every: 8, max_snapshots: 6, batch: 4}
   # the deployable route (frozen flow + shared system 0) on the R2 dev bodies / seeds, and on the two held-out bodies
   dev:
     stage: eval_r2

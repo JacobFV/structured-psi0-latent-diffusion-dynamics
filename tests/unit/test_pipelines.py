@@ -35,7 +35,7 @@ def _touch(root: Path, *rels):
 def test_stage_registry():
     assert Pipeline("arm").stages() == ["collect", "pack", "train_rep", "probes", "train_flow", "flow_ft",
                                         "dagger_collect", "refit", "eval_r1", "eval_r2", "heldout", "edits", "train_bc",
-                                        "grpo", "target_eval", "target_adapt"]
+                                        "grpo", "target_eval", "target_adapt", "relations_data"]
     assert "pack" not in Pipeline("legged").stages() and "refit" in Pipeline("legged").stages()
     # D-126 #33 / D-146 item 5: the dual family is parked (collect / evaluation stay); dagger_collect and train_bc are
     # not registered; eval_r1 is not implemented for dual

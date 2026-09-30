@@ -26,10 +26,10 @@ held-out bodies (`heldout`). `base` (preset:arm only) is the paired control at e
 (`recipes/pointer/`), not an arm instance. Legged / humanoid sets (`legged-r19`: `leg.foothold leg.com_support`) run through
 `recipes/templates/legged_lineage.yaml` once a body set is chosen; no instance yet.
 
-CAVEAT recorded in the DAG ledger: structural side only. `relations_data` (labelled shards + `harness/data/mix.py`) is a
-library function, not a DAG stage (open item 1), so probe-sourced factors (`geo.depth3d`, `ix.*`, `task.next_contact`)
-train without their label shards: their estimate heads start at zero and an `aug` factor is a no-op at step 0. Until item 1
-lands, a positive result would show only what the structural inputs give; a null is NOT evidence against the factor.
+CAVEAT recorded in the DAG ledger: the `relgen` node writes the label shards (stage `relations_data`, R1), but no
+trainer reads them yet (see the R1 note: the hook is in `harness/data/mix.py`, the trainers wire it in A1 / HL), so probe-sourced
+factors (`geo.depth3d`, `ix.*`, `task.next_contact`) still train without their label shards until that lands: their
+estimate heads start at zero and an `aug` factor is a no-op at step 0. A null before then is NOT evidence against the factor.
 
 ## resume
 
@@ -48,10 +48,9 @@ each `fset` in base, geo and seed in 1, 2: `F0@<fset>.s<seed>` -> `dev@...` and 
 
 ## open items (collected from the rel-* notes and sweep-flags)
 
-1. **`relations_data` is not a stage** (R10): the shard writer / reader and `mix.mixed_batches` exist, but `"relations_data"`
-   is not in `PIPELINE_STAGES` and no training stage reads `artifacts/relgen/` shards. Needs `core/runconfig.py`
-   (stage list, `register_family` validation) + `harness/pipelines/base.py` registration + a `train_flow` option that mixes
-   shards. Blocks every probe-sourced factor experiment above.
+1. ~~`relations_data` is not a stage~~ (R10) closed by R1 below: a registered stage (`arm`, `legged`, `pointer`, `psi0`,
+   `relations`) and the trainer hook `relation_batches`; what remains is each trainer calling the hook (A1 arm, HL legged) and
+   the observation gap (R1 note).
 2. **Probe-sourced `edges:support-v1`** (rel-geo, R17): `ix.force_flow` reads the support graph from the PRIVILEGED label
    only (`nets/batch.py::support_edges`, a pure function, not on `RelCtx.edges`); the deployable half (from `ix.support`'s own
    bilinear pair score) needs a read hook in `relations/ops.py` (`BilinearOp` returns q/k features, `FieldReadouts` skips
@@ -103,3 +102,36 @@ published by `ix.support`'s own pair logits) and makes "resolves" mean "runs".
   NameError) and padded pair labels along one token dim only; `relations.base` is torch-free at import again
   (`rrp factors list`, the DAG parent); the `est_weight` loss argument is gone (`FactorSpec.weight` is the one knob);
   the env-caps literals of `rrp factors coverage` are now actually tested against the env sources.
+
+## R1: `relations_data` stage + trainer hook (ready-r1; audit D1)
+
+Closes open item 1. Nothing about the training loop changed in F0 (no new params or inputs); a trainer opts in with one line.
+- Stage `relations_data` (`harness/pipelines/relations.py`, registered for `relations arm legged pointer psi0`, source
+  `privileged_teacher`): resolves `params.factors` (or `policy.factors` / `latent.factors`), rolls the driver (`options.policy`,
+  default `teacher:<task>`) over `options.seeds` / `n_episodes (+ seed_start)` on `options.env / task / body` through the ordinary
+  `evaluate` with a `SnapshotCollector` rollout hook. The hook labels from `env.state_view()` at reset and every
+  `snapshot_every` ticks (at most `max_snapshots` per episode), at capture time, so a lazy view is never labelled from a later
+  state. Shards land under `<out>/relgen/<factor>/<version>/` (not `artifacts/relgen`: `schema.toml` forbids it); the shard id is
+  `seed<seed>-<hash of the rows' provenance>`, so rerunning replaces its rows instead of doubling them. The stage manifest carries
+  per-shard `manifest_hash`, row count and npz digests; a stage that produces no rows raises. DAG adoption (config hash + pins)
+  is the resume-by-hash. The `relations_factor` template has a `relgen` node per `geo / ix / task` instance (dry-run planned for
+  the three relations recipes).
+- Names are checked: a factor label not in `LABELS` (except `probe.*`, whose labels are family-level readouts) or a `gen` that
+  is neither a TRANSFORM nor a scene PART raises `RelgenError` (F1 note: the silent `TRANSFORMS.get` skip is gone).
+- Trainer hook (`harness/data/mix.py`): `batches = relation_batches(rc, out_dir, main_batches)`. Needs `params.curriculum`
+  (`shards`: the `relations_data` `<run>/relgen` dir(s); optional `factors`; any `SchedulerConfig` key such as `interval`,
+  `share_min`, `share_max`) and `batch_size`. Each batch is `{"step", "main", "relgen", "counts", "active", "labels"}`; `labels`
+  is ready for `batch.extra["relation_labels"]`. The trainer feeds `batches.observe(step, {factor: {"competence": ..}})` or
+  `batches.observe_estimates(step, metrics_of_estimates_loss)`. Every decision appends `<out_dir>/schedule.jsonl` with the
+  steers applied and metrics observed since the last one, so `Scheduler.replay_records(cfg, seed, records, steps, n)` reproduces
+  the composition exactly (tested); `start_step > 0` resumes and re-decides from the earlier records.
+- `rrp steer <run>` with no op lists `<run>/steer.jsonl` as pending / applied at step N / REJECTED; `rrp steer <run> <op>`
+  appends as before. An unparseable line is logged as a rejected steer, not applied.
+- `rrp run-dag` now loads the pipeline modules before planning (`cli/dag.py`), otherwise a stage a module registers on import
+  (this one) is unknown to the recipe planner.
+- OBSERVATION GAP (open): shard rows carry labels and tokens but not observations, so a trainer cannot forward a shard row as
+  is. Options: re-render the observation from `(env, task, seed, step)` in the trainer, or train shard-only heads on the tokens.
+  Decision belongs to the trainer owners (A1, HL); `estimates_loss` masks main rows without labels and shard rows count only
+  where they carry one.
+- Not run: no peer smoke of the real collector path (the host does no simulation); the tests drive `SnapshotCollector` with a
+  fake env and the stage with a fake collector.
