@@ -217,7 +217,7 @@ def test_trainers_without_a_curriculum_draw_no_shards(world, monkeypatch, tmp_pa
 
 
 # ------------------------------------------------------------------ the recipes: relgen is an input of the arm trainers
-@pytest.mark.parametrize("fset,factors", [("geo", ["geo.depth3d"]), ("ix", ["ix.contact", "ix.held_by", "ix.handover", "ix.support"]),
+@pytest.mark.parametrize("fset,factors", [("geo", ["geo.depth3d", "geo.normal_align"]), ("ix", ["ix.contact", "ix.held_by", "ix.support"]),
                                           ("task", ["task.next_contact"])])
 def test_relations_recipe_feeds_shards_to_f0(fset, factors):
     from rrp.harness.dag import load_dag, plan_dag
@@ -227,6 +227,11 @@ def test_relations_recipe_feeds_shards_to_f0(fset, factors):
     f0, base = plan.nodes[f"F0@{fset}.s1"], plan.nodes["F0@base.s1"]
     assert f"relgen@{fset}.s1" in f0.deps and "relgen" in f0.rc.inputs
     assert f0.rc.params["curriculum"]["factors"] == factors
-    # a scheduled factor must write an estimate: each is probe-sourced in the preset (the trainer raises otherwise)
+    # the F0 factor list builds in the arm family (the presets' handover / same_track / given-normal members do not),
+    # and every scheduled factor is a probe-sourced one with a readout: it writes the estimate the loss supervises
+    from rrp.policies.relations.base import effective_source, resolve
+    specs = {s.name: s for s in resolve(f0.rc.params["policy"]["factors"], default="arm", family="arm")}
+    for f in factors:
+        assert f in specs and effective_source(specs[f]) == "probe", f
     assert "relgen" not in base.rc.inputs and "curriculum" not in base.rc.params
     assert "caveat" not in load_dag(f"recipes/relations/relations_{fset}.yaml")

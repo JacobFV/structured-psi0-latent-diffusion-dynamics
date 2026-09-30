@@ -3,9 +3,10 @@
 # flow F0 trained with `params.policy.factors` = preset:arm (+ the set), then the deployable route evaluated on the R2 dev
 # seeds and the shared packet probes read once. Compare each set with `base` (preset:arm only) at equal steps / seeds.
 #   base   preset:arm (the 17 typed edges + incidence messages), the control
-#   geo    + preset:geo   (geo.pos3d geo.depth3d geo.orient geo.normal_align geo.above)
-#   ix     + preset:ix    (ix.contact/support/held_by/handover bilinear pair factors, ix.force_flow over the support graph)
+#   geo    + preset:geo   (geo.pos3d geo.depth3d geo.orient geo.normal_align[probe] geo.above)
+#   ix     + preset:ix    less ix.handover (ix.contact/support/held_by bilinear pair factors, ix.force_flow over the support graph)
 #   task   + preset:task  (task.next_contact)
+# (ix.handover is dropped: the arm family cannot build it, see `lists:`; the full ix preset fails at model build)
 # The `ui` preset (ui.* on the ComputerWorld widget tree) is a pointer-track factor set: it is a `factors:` var of the
 # pointer recipes (recipes/pointer, P4c), not an arm instance.
 # Instances extend this file and only choose the matrix (recipes/relations/relations_<set>.yaml).
@@ -13,7 +14,7 @@
 # `params.curriculum` (docs/relations.md 5.5) schedules them into the batch (latent_train's hook, `relation_batches`:
 # shard rows are forwarded through the flow's context with the action loss masked, the factors' `estimates_loss` on, and
 # `schedule.jsonl` + steer.jsonl in the run dir). Only factors whose net writes an estimate can be scheduled: a probe-sourced
-# factor with a readout (geo.depth3d, ix.contact/held_by/handover/support, task.next_contact); the trainer raises otherwise.
+# factor with a readout (geo.depth3d, geo.normal_align, ix.contact/held_by/support, task.next_contact); the trainer raises otherwise.
 # The shared stageA (global) and the `base` control take no shards. State: planned (renders and plans dry; smoke on the peer).
 # The interference report (a set vs base, per body, paired seeds) is `rrp suite` / room material over the `dev` results.
 #   rrp run-dag recipes/relations/relations_geo.yaml --dry-run --point fset=geo,seed=1
@@ -36,6 +37,12 @@ vars:
   dataset: datasets/pick_place_primary_v3dart
 lists:
   rep_bodies: [parm5_pg2, parm5_tf3, parm5s_pg2, parm5l_tf3, parm6_pg2, parm6_tf3, parm7_pg2, parm7_tf3, panda_pg2, ur5e_pg2, ur5e_tf3, sawyer_pg2, sawyer_tf3]
+  # the arm family's sets (`resolve(family="arm")` rejects the presets' other members): normal is not a filled ctx field, so
+  # geo.normal_align is estimated (source probe); ix.handover has no arm label (handover_pairs); ix.force_flow rides the
+  # support emitter (kept).
+  f_geo: ['preset:arm', geo.pos3d, geo.depth3d, geo.orient, {name: geo.normal_align, source: probe}, geo.above]
+  f_ix: ['preset:arm', ix.contact, ix.support, ix.held_by, ix.force_flow]
+  f_task: ['preset:arm', task.next_contact]
   probe_factors: [{name: probe.arm.visible, weight: 1.0}, {name: probe.arm.looking_at, weight: 1.0}, {name: probe.arm.focused_on, weight: 1.0}, {name: probe.arm.held_by, weight: 1.0}, {name: probe.arm.acting_on, weight: 1.0}, {name: probe.arm.rel_pos, weight: 1.0}, {name: probe.arm.observed_effect, weight: 1.0}, {name: probe.arm.subtask, weight: 1.0}]
 defaults:
   placement: peer
@@ -67,9 +74,9 @@ nodes:
     resources: {gpu: true, gpu_mem: 16G, cpu: 4, mem: 24G, max_seconds: 14400}
     per:
       fset:
-        geo: {inputs: {relgen: '@relgen:relgen'}, params: {policy: {factors: ['preset:arm', 'preset:geo']}, curriculum: {factors: ['geo.depth3d'], interval: 1000, ramp_steps: 20000, share_max: 0.25}}}
-        ix: {inputs: {relgen: '@relgen:relgen'}, params: {policy: {factors: ['preset:arm', 'preset:ix']}, curriculum: {factors: ['ix.contact', 'ix.held_by', 'ix.handover', 'ix.support'], interval: 1000, ramp_steps: 20000, share_max: 0.2}}}
-        task: {inputs: {relgen: '@relgen:relgen'}, params: {policy: {factors: ['preset:arm', 'preset:task']}, curriculum: {factors: ['task.next_contact'], interval: 1000, ramp_steps: 20000, share_max: 0.25}}}
+        geo: {inputs: {relgen: '@relgen:relgen'}, params: {policy: {factors: $f_geo}, curriculum: {factors: ['geo.depth3d', 'geo.normal_align'], interval: 1000, ramp_steps: 20000, share_max: 0.25}}}
+        ix: {inputs: {relgen: '@relgen:relgen'}, params: {policy: {factors: $f_ix}, curriculum: {factors: ['ix.contact', 'ix.held_by', 'ix.support'], interval: 1000, ramp_steps: 20000, share_max: 0.2}}}
+        task: {inputs: {relgen: '@relgen:relgen'}, params: {policy: {factors: $f_task}, curriculum: {factors: ['task.next_contact'], interval: 1000, ramp_steps: 20000, share_max: 0.25}}}
     config:
       inputs: {representation: '@stageA:representation.pt', packed_dir: '{pack}'}
       options: {final_snapshot_alias: snap_final_s20000.pt}
