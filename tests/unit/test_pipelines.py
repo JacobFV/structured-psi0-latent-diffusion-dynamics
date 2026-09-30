@@ -40,7 +40,7 @@ def test_stage_registry():
     # D-126 #33 / D-146 item 5: the dual family is parked (collect / evaluation stay); dagger_collect and train_bc are
     # not registered; eval_r1 is not implemented for dual
     assert Pipeline("dual").stages() == ["collect", "pack", "train_rep", "probes", "train_flow", "flow_ft",
-                                         "refit", "eval_r2", "heldout", "edits"]
+                                         "eval_r2", "heldout", "edits"]          # R2 DP: no dual refit
     with pytest.raises(StageError, match="not implemented"):
         Pipeline("dual").spec("eval_r1")
 
