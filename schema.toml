@@ -25,7 +25,7 @@ allow = ["src/rrp/*.py", "src/rrp/**/*.py", "src/rrp/tasks/graphs/*.json"]
 [area.tests]
 allow = ["tests/__init__.py", "tests/conftest.py", "tests/support.py", "tests/unit/__init__.py", "tests/unit/test_*.py", "tests/unit/_*.py",
          "tests/integration/__init__.py", "tests/integration/test_*.py", "tests/gpu/test_*.py",
-         "tests/browser/*", "tests/data/golden.json", "tests/data/*.json"]
+         "tests/data/golden.json", "tests/data/*.json"]
 
 [area.recipes]
 # run definitions: DAG templates + thin instances; no hand-written per-run config files.
@@ -90,7 +90,8 @@ frozen_runs = [
 allow = ["ops/resource-ledger.jsonl", "ops/resources.local.json", "ops/bin/*.sh"]
 
 [area.viz]
-allow = ["viz/CONTRACT.md", "viz/radar_axes.json", "viz/specs/*.yaml", "viz/room/**", "viz/workbench/**"]
+# the loopback workbench (ui/, viz/workbench) is retired to .old/ (D-145 addendum); the room is the only viz surface
+allow = ["viz/CONTRACT.md", "viz/radar_axes.json", "viz/specs/*.yaml", "viz/room/**"]
 
 [area.old]
 allow = [".old/README.md", ".old/**"]

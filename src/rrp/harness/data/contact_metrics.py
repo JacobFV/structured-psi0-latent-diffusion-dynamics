@@ -73,7 +73,7 @@ def _intersect(A, B):
 
 
 # ----------------------------------------------------------------------------------------------- sequence
-# Contact-sequence specs derived from the task graphs (tasks/support_and_insert.json, tasks/handover.json). Keys are
+# Contact-sequence specs derived from the task graphs (src/rrp/tasks/graphs/support_and_insert.json, .../handover.json). Keys are
 # "make:<a>|<b>" / "break:<a>|<b>" with the recorder's pair names (manipulator entity | sim body).
 #   precedence: (x, y) = x must happen before y
 #   maintained: (pair, until) = once made, the pair stays in contact (no debounced break) until event `until`

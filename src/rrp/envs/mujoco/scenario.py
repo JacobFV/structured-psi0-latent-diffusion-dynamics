@@ -11,6 +11,7 @@ import json
 import math
 import os
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import mujoco
 import numpy as np
@@ -21,9 +22,7 @@ from rrp.bodies.surgery import Assembled
 from rrp.bodies.compiler import compile_robot_spec
 from rrp.core.robot import RobotSpec
 
-from rrp.core.paths import data_path  # noqa: E402
-
-TASKS_DIR = data_path("tasks")     # the checkout's tasks/ (unchanged); packaged rrp/_data/tasks when installed
+TASKS_DIR = Path(__file__).resolve().parents[2] / "tasks" / "graphs"     # package data: src/rrp/tasks/graphs/<task>.json
 
 COLORS = {"red": (0.85, 0.12, 0.1, 1), "blue": (0.12, 0.25, 0.85, 1), "yellow": (0.9, 0.8, 0.1, 1),
           "purple": (0.55, 0.15, 0.7, 1), "orange": (0.95, 0.5, 0.1, 1), "cyan": (0.1, 0.8, 0.85, 1)}

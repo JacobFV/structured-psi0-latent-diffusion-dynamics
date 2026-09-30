@@ -45,7 +45,7 @@ Code: ✅ exists · 🔧 implementing (D-126) · ❌ not a code problem / needs 
 | 19 | H1 go/no-go: base-frame vs anchor-relative supervision vs anchor-input system 0 (seed 0) | 18, 3 | 9–24 GPU-h | planned | ✅ |
 | 20 | Full W12 matrix (+event-aligned knots, anchor-input control, 3 seeds) with anchor-shift and contact-sequence edits | 19 | 2–6 days | planned | ✅ |
 | 21 | Legged stance drift with the new contact metrics on existing W8 checkpoints | – | ~0.5 day | planned | ✅ |
-| 22 | Coordination tasks: pivot against a surface, carry a tray level, legged foothold stepping | – | design + data | open | arm tasks ✅ stubs: `tasks/pivot_against_surface.json`, `tasks/carry_tray_level.json`, scenes `envs/dual_scenarios.build_pivot/build_carry_tray`, labelled unvalidated teacher stubs `policies/teachers/dual_coord.py` (W12); legged foothold ✅ `envs/mujoco/legged_scenes.py`, `tasks/foothold_steps.json`; see research/tracks/d126_legged.md) |
+| 22 | Coordination tasks: pivot against a surface, carry a tray level, legged foothold stepping | – | design + data | open | arm tasks ✅ stubs: `src/rrp/tasks/graphs/pivot_against_surface.json`, `src/rrp/tasks/graphs/carry_tray_level.json`, scenes `envs/dual_scenarios.build_pivot/build_carry_tray`, labelled unvalidated teacher stubs `policies/teachers/dual_coord.py` (W12); legged foothold ✅ `envs/mujoco/legged_scenes.py`, `src/rrp/tasks/graphs/foothold_steps.json`; see research/tracks/d126_legged.md) |
 
 ## E. Ψ₀ line (psi1z, W10)
 | # | question | depends on | cost | experiment | code |
@@ -134,7 +134,7 @@ Two things to know first:
 |---|---|---|---|---|---|
 | Limit-aware IK | D-114(3) | code implemented (D-126 arm; experiment pending) | no margin or barrier term in `bodies/ik.py` or `policies/teachers/arm_smooth.py` (only a comment in `harness/eval/gates.py:232`) | M | enforcing the parm* joint-margin gate |
 | Arm object variety (size, mass, friction, shape) | §4.2 | code implemented (D-126 arm; experiment pending) | distractors exist, and a `cube_size` parameter exists but is fixed at the default (`envs/mujoco/scenario.py`). Mass and friction are eval perturbations only; no shape variety | M | — |
-| Loco-manipulation task | §4.9; W9 | **task + scene 2026-09-28 (D-126)**: `tasks/loco_pick.json`, spot_arm scene, STUB teacher | none in rrp (only `tasks/waypoint_contact.json`). psi1z drops walking-heavy tasks by D-120 | L | W9 |
+| Loco-manipulation task | §4.9; W9 | **task + scene 2026-09-28 (D-126)**: `src/rrp/tasks/graphs/loco_pick.json`, spot_arm scene, STUB teacher | none in rrp (only `src/rrp/tasks/graphs/waypoint_contact.json`). psi1z drops walking-heavy tasks by D-120 | L | W9 |
 | Grasp-accept tolerance under DART | armexpert.md backlog | partial | only the 1.6 cm reachability tolerance (`arm_smooth.py:312,408`) | S | — |
 
 ### backlog: Models / packet / representation

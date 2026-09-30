@@ -1,3 +1,8 @@
+> RETIRED (D-145 addendum, purge unit P6): the loopback workbench UI, replaced by the viz room (`viz/room/`, D-131).
+> Its backend is `.old/src/rrp/viz/workbench/` (was `src/rrp/service/`), its acceptance tests `.old/tests/browser/`,
+> `.old/tests/integration/test_{service,ui_contract}.py`. The type generator `scripts/export_ui_types.py` moves with the scripts
+> group (`.old/scripts/`). History: `STATUS.md` (P10 service, P11 UI). Nothing live imports or reads this directory.
+
 # RRP workbench UI
 
 React + TypeScript (Vite) front end for the loopback workbench service in `src/rrp/service/`.

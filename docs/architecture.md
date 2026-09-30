@@ -20,7 +20,7 @@ Each layer imports only layers above it in this list (checked by `tests/unit/tes
 | 3 | `rrp.envs` | `Env` protocol, `EnvSpec`, capabilities, `make_env` registry; `mujoco/` (Session, LeggedSession, DualSession, scenes, sensors, state estimation, perturbations, embedded legged trackers, snapshots), `warp/` (batched GPU legged envs), `simple/` (optional extra), `computerworld/` (optional extra) | mujoco, mujoco_warp, torch (trackers) |
 | 4 | `rrp.policies` | `Policy` protocol, `PolicyInfo`, `Requirements`, `negotiate`, registry; `features/` (featurizers: the ONLY definition of what a policy may see), `nets/` (shared torch modules: attention, flow, codec, backbone, probes, checkpoint), `relations/` (the relation-factor registry: token sets + field provenance, factor entries, operators / forms, `FactorSite`, `ReadoutProbe`; section 12), `bc.py`, `latent/` (system i planners + system 0 realizers for arm, dual, legged), `trackers.py`, `teachers/` (scripted / privileged, labelled), `oracle.py`, `psi0/` (Ψ₀ direct / Ψ₀ + structure / demo replay, their nets, feature cache and training) | torch |
 | 5 | `rrp.harness` | `rollout` (the one episode loop), `eval.evaluate` (`evaluate` / `matrix`), `eval.hooks` (feasibility, settle, recorders, packet edits, perturbations), statistics, gates, audits; `data/` (collect, pack, manifests, `relgen/` label functions / scene parts / transforms / curriculum, `mix`), `train/` (rep, flow, bc, refit, dagger, sft, grpo, ppo), pipelines + run-dag | – |
-| 6 | `rrp.viz` | record/replay, the room exporter (`python -m rrp.cli viz export`, file scans only), the workbench service `viz.workbench` (was `service/`) | fastapi (extra) |
+| 6 | `rrp.viz` | record/replay, the room exporter (`python -m rrp.cli viz export`, file scans only), (the loopback workbench service and its React UI are retired, D-145: `.old/src/rrp/viz/workbench/`, `.old/ui/`) | – |
 | 7 | `rrp.cli` | the `rrp` command (`python -m rrp.cli ...`; kept at the top so every documented invocation stays valid) | – |
 
 Rules:
@@ -299,7 +299,7 @@ DAgger, GRPO and adaptation call `rollout`.
 
 CLI (`rrp` = `python -m rrp.cli`, S6b): `eval` / `matrix` (harness.eval.evaluate over harness.rollout, default hooks
 from harness.eval.hooks), `run-dag`, `ops …`, `data …`, `train …`, `latent …`, `adapt`, `campaign …`, `latency`,
-`analyze`, `workbench`, `task validate`, `assets validate`, and the tool commands of `rrp.cli.tools`. No library module
+`analyze`, `task validate`, `assets validate`, and the tool commands of `rrp.cli.tools`. No library module
 is a program any more (a test enforces it; the only `__main__` modules left are `rrp.cli` and the SIMPLE worker /
 compat layer, which run inside the Isaac Sim venv as subprocess targets of `rrp.envs.simple`). A tool keeps its own
 argument parser; `rrp <group> <tool> ARGS` passes ARGS through unchanged:
@@ -451,7 +451,7 @@ unless a more specific row exists); module names inside packages are unchanged.
 | `rrp.physics` | `rrp.bodies` |
 | `rrp.physics.snapshot` | `rrp.envs.mujoco.snapshot` |
 | `rrp.pipelines` | `rrp.harness.pipelines` |
-| `rrp.service` | `rrp.viz.workbench` |
+| `rrp.service` | retired: `.old/src/rrp/viz/workbench/` |
 | `rrp.teachers` | `rrp.policies.teachers` |
 | `rrp.training` | `rrp.harness.train` |
 
@@ -507,13 +507,13 @@ re-expressed in the schema or moved under `.old/`. The layout test is xfail unti
 | path | holds | rule |
 |---|---|---|
 | `src/rrp/` | all code (sections 1–6, 12); task graphs as package data `src/rrp/tasks/graphs/*.json` | no program outside the `rrp` CLI |
-| `tests/` | `unit/`, `integration/`, `gpu/`, `browser/`, `data/` (goldens and JSON fixtures only) | tests never read `.old/` |
+| `tests/` | `unit/`, `integration/`, `gpu/`, `data/` (goldens and JSON fixtures only) | tests never read `.old/` |
 | `recipes/` | every run definition: `templates/*.yaml` (DAG templates), `<track>/*.yaml` (thin instances), `presets/*.json` (shared `params` fragments: model sizes, eval protocols) | no hand-written per-run config |
 | `docs/` | `architecture.md`, `relations.md`, `strategy.md`, `experiments_roadmap.md`, `robot_training_considerations.md` | fold, do not add |
 | `research/` | `decisions.md` (append-only, never moved), `registry.jsonl`, `relations_catalog.md`, `sources*.json`, `tasks.json`, `splits/` (sealed splits and paired-data specs), `methods/`, `corrections/`, `reports/evidence_matrix.md`, `tracks/<track>.md` for the tracks in `schema.toml [tracks]` + `BRIEF.md` | a closed track's note moves to `.old/` |
 | `artifacts/` | the append-only evidence store (13.4) | small raw results only; weights / datasets are never tracked |
 | `ops/` | `resource-ledger.jsonl`, `resources.local.json`, `bin/*.sh` (peer transport, asset fetch, external setup: shell that must run without the python env) | runtime state is git-ignored |
-| `viz/` | `room/` (the room), `workbench/` (the loopback workbench UI, was `ui/`), `specs/`, `CONTRACT.md`, `radar_axes.json` | |
+| `viz/` | `room/` (the room), `specs/`, `CONTRACT.md`, `radar_axes.json` | |
 | `.old/` | legacy (13.5) | never read by live code |
 | files | `AGENTS.md`, `CLAUDE.md`, `README.md`, `STATUS.md`, `pyproject.toml`, `schema.toml`, `.gitignore` | |
 
@@ -581,7 +581,8 @@ move to `.old/`); a new run directory must start with a track name from `[tracks
 | `docs/` | the five files of 13.1; sections 7–10 of this page (D-140 delete list, stage table, hand-off, moved paths) move out | `handoff/`, `demo/`, the D-140 tables |
 | `tests/` | everything except: | `tests/data/legacy_scripts/` + `test_ladder_cli_parity.py` (RETIRED: the ports are pinned by goldens) |
 | `ops/` | ledger | `host-preflight-initial.json` |
-| `tasks/`, `ui/` | → `src/rrp/tasks/graphs/`, `viz/workbench/` | – |
+| `tasks/` | → `src/rrp/tasks/graphs/` (package data) | – |
+| `ui/`, `src/rrp/viz/workbench/`, `tests/browser/`, `tests/integration/test_{service,ui_contract}.py` | – (the loopback workbench is RETIRED, D-145 lead ruling: the viz room replaced it) | `.old/ui/`, `.old/src/rrp/viz/workbench/`, `.old/tests/` |
 
 Tests and goldens that pin legacy configs:
 
@@ -612,7 +613,7 @@ legacy DAGs / scripts move. All other tracks are closed: their notes move to `.o
 | P4c | psi0 + pointer recipes | P1, P3 | `recipes/psi0/`, `recipes/pointer/`, `recipes/templates/{psi0_step2,pointer_lineage}.yaml`, `research/tracks/{psi0,pointer}.md` (`cworld.md` renamed) |
 | P4d | relations recipes | P1 | `recipes/relations/`, `recipes/templates/relations_factor.yaml`, `research/tracks/relations.md` (new; folds the open items of `rel-*.md`) |
 | P5 | research purge | P4a–d | `research/**` except the P4 notes and `decisions.md`; `viz/export/{knowledge,scan,dags,psi0}.py` path literals; docstring references to moved notes in tests; `.old/research/` |
-| P6 | tasks + workbench move | – | `tasks/` → `src/rrp/tasks/graphs/`, `ui/` → `viz/workbench/`, `pyproject.toml`, `core/paths.py`, `tests/browser/`, `viz/workbench` references |
+| P6 | tasks + workbench move | – | `tasks/` → `src/rrp/tasks/graphs/`; `ui/`, `src/rrp/viz/workbench/`, `tests/browser/` and the workbench tests → `.old/`; `rrp workbench`; `pyproject.toml`, `core/paths.py`, `.old/ui/`, `.old/src/`, `.old/tests/{browser,integration}/` |
 | P7 | tests + ops leftovers | – | `tests/data/legacy_scripts/`, `tests/unit/test_ladder_cli_parity.py`, `ops/host-preflight-initial.json`, `.old/tests/`, `.old/ops/` |
 | P8 | docs + top-level | P1–P7 | `docs/**`, `README.md`, `STATUS.md`, `AGENTS.md`, `CLAUDE.md`, `.old/docs/`, `.old/README.md` (final index), every remaining textual reference to a moved path |
 | P9 | close | P8 | remove the xfail marker in `tests/unit/test_layout.py`; dry-run every recipe; record the result under D-145 |
@@ -644,8 +645,8 @@ Briefs:
 - **P5.** Move closed-track notes and their subdirectories, `research/scripts/`, superseded reports and `naming.md`
   to `.old/research/` (README table: track → what → decisions → state at closure); move `pairs/` into `splits/`
   (update `configs/data` consumers if any remain live); fix exporter path literals so the room reads only open tracks.
-- **P6.** Task graphs become package data (`data_path` reads `rrp/tasks/graphs`; drop the wheel force-include);
-  `ui/` moves to `viz/workbench/` with its build / test paths.
+- **P6.** Task graphs become package data (`scenario.TASKS_DIR` reads `rrp/tasks/graphs`; `data_path` / `package_data` and the wheel force-include are dropped);
+  the loopback workbench (`ui/`, `src/rrp/viz/workbench/`, its browser and service tests, the `rrp workbench` command, the `service` extra) is retired to `.old/` (the viz room replaced it).
 - **P7.** Retire the ladder CLI parity test and its frozen scripts; move the initial preflight record.
 - **P8.** Move `docs/handoff/`, `docs/demo/` and sections 7–10 of this page to `.old/docs/`; fold the still-binding
   handoff rules into `AGENTS.md`; rewrite `README.md` / `STATUS.md` to the schema; finish `.old/README.md`; grep the

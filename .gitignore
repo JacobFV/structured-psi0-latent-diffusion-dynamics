@@ -4,7 +4,6 @@
 __pycache__/
 *.pyc
 node_modules/
-ui/dist/
 *.tmp
 MUJOCO_LOG.TXT
 
@@ -12,7 +11,6 @@ MUJOCO_LOG.TXT
 ops/broker/
 ops/logs/
 ops/watchdog/
-ops/workbench-token
 ops/**/*.log
 
 # data and weights never go in git (public repo): they live in the peer store / ~/work/rrp-data

@@ -32,7 +32,7 @@ class TaskSpec:
     envs: Mapping[str, dict]                 # env_id -> scene kwargs for the env factory (make_env(..., scene=...))
     max_seconds: float
     judge: Judge
-    graph: str | None = None                 # tasks/<graph>.json task graph (None: the env supplies success)
+    graph: str | None = None                 # src/rrp/tasks/graphs/<graph>.json task graph (None: the env supplies success)
     teacher: str | None = None               # policy registry key of the scripted teacher
     gates: Mapping[str, Any] = field(default_factory=dict)
     note: str = ""

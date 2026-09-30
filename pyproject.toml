@@ -12,7 +12,6 @@ dependencies = [
 [project.optional-dependencies]
 sim = ["mujoco>=3.2"]
 ml = ["torch>=2.5"]
-service = ["fastapi>=0.110", "uvicorn>=0.29", "websockets>=12", "httpx>=0.27"]
 viz = ["pillow>=10", "imageio>=2.31", "imageio-ffmpeg>=0.4", "matplotlib>=3.8"]
 vlm = ["transformers>=4.45", "huggingface_hub>=0.25"]
 dev = ["pytest>=8", "pytest-timeout>=2.3", "jsonschema>=4.22"]
@@ -20,7 +19,7 @@ computerworld = ["computerworld==0.2.0"]   # ComputerWorld env (rrp.envs.compute
 # Ψ₀ policies + training (psi venv, Python 3.11; SIMPLE/Isaac Sim 5.1 live in their own venv): scripts/psi0_ext.sh
 psi0 = ["torch>=2.5", "torchvision", "transformers==4.57.1", "qwen-vl-utils==0.0.14", "safetensors", "sentencepiece",
         "pandas", "pillow", "huggingface_hub"]
-all = ["rrp[sim,ml,service,viz,dev]"]
+all = ["rrp[sim,ml,viz,dev]"]
 
 [project.scripts]
 rrp = "rrp.cli:main"
@@ -32,12 +31,10 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/rrp"]
 
-# package data the installed rrp needs at runtime (rrp.contracts.paths.data_path falls back to it)
-[tool.hatch.build.targets.wheel.force-include]
-"tasks" = "rrp/_data/tasks"
+# task graphs are package data: src/rrp/tasks/graphs/*.json (D-145)
 
 [tool.hatch.build.targets.sdist]
-include = ["src/rrp", "tasks", "pyproject.toml", "README.md", "docs/architecture.md"]
+include = ["src/rrp", "pyproject.toml", "README.md", "docs/architecture.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -45,7 +42,6 @@ pythonpath = ["src", "."]
 addopts = "-ra"
 markers = [
   "gpu: requires the verified peer GPU (tier 3)",
-  "browser: requires a real browser (tier 2)",
   "slow: longer integration tests",
   "cgroup: exercises real user cgroup enforcement with bounded fixtures",
   "menagerie: needs the MuJoCo Menagerie assets in .cache/assets (skipped when absent; see tests/conftest.py)",

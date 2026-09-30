@@ -267,7 +267,7 @@ def _foot_entity(foot: str) -> str:
 
 
 def foothold_task(n_steps: int, order: list, radius: float, meta: dict) -> dict:
-    """Per-instance task graph: tasks/foothold_steps.json is the template (declares the predicate conventions);
+    """Per-instance task graph: src/rrp/tasks/graphs/foothold_steps.json is the template (declares the predicate conventions);
     events step_00..step_{n-1} are generated here because n and the foot order vary. The foot is a second `actor`
     (ordinal 1, after the body at ordinal 0) bound to a foot entity (type body); a None foot (any foot) has NO foot role and the completion uses
     the body entity (min over feet): the null identity is explicit in the graph."""

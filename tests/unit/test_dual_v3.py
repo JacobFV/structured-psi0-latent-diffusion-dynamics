@@ -178,7 +178,7 @@ def test_coordination_tasks_compile_and_estimators():
     for name, edges in (("pivot_against_surface", {("brace", "pivot", "maintained_during"),
                                                    ("contact", "pivot", "maintained_during")}),
                         ("carry_tray_level", {("carry", "release", "enables")})):
-        c = compile_task(TaskDefinition.model_validate(json.loads((ROOT / "tasks" / f"{name}.json").read_text())))
+        c = compile_task(TaskDefinition.model_validate(json.loads((ROOT / "src" / "rrp" / "tasks" / "graphs" / f"{name}.json").read_text())))
         assert edges <= {(e.src, e.dst, e.type) for e in c.edges}
     L, h = 0.05, 0.015
     for th in (0.0, 0.4, 1.0, 1.2):

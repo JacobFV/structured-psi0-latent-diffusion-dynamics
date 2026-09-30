@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 REPO = Path(__file__).resolve().parents[2]
-TOP = ["doctor", "ops", "workbench", "task", "assets", "data", "train", "campaign", "latency", "analyze", "eval", "matrix",
+TOP = ["doctor", "ops", "task", "assets", "data", "train", "campaign", "latency", "analyze", "eval", "matrix",
        "latent", "adapt", "run-dag", "suite", "stage", "viz"]
 # commands used by scripts/ and configs (grep "-m rrp.cli" in scripts/), plus one per remaining group
 USED = [
@@ -21,7 +21,7 @@ USED = [
     "latent causal", "latent composition", "latent grpo", "latent cell", "latent latency", "latent pack-dual",
     "latent evaluate-dual", "latent teacher-ref-dual", "latent pair-index-dual",
     "campaign baseline-cell", "campaign cell", "data generate", "data pack", "train policy", "train codec",
-    "latency", "analyze", "adapt", "workbench", "task validate", "assets validate", "eval", "matrix",
+    "latency", "analyze", "adapt", "task validate", "assets validate", "eval", "matrix",
 ]
 BLOCKED = ("numpy", "torch", "mujoco", "pydantic", "fastapi", "scipy", "jsonschema")
 

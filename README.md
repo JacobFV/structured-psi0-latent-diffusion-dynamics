@@ -91,12 +91,11 @@ and task-context edit suites.
 | labelled video | `scripts/render_episode.py`, `scripts/render_legged_episode.py`, `scripts/render_dual_episode.py` |
 | demo page | `scripts/demo/refresh.sh` (builds `docs/demo/` from raw results) |
 | visualization room | `cd viz/room && npm run snapshot` (exporter `rrp viz export`) |
-| workbench UI (loopback) | `rrp workbench --port 8765` |
 
 ## quickstart
 
 Requirements: Linux aarch64 or x86_64, Python 3.12, [`uv`](https://github.com/astral-sh/uv), a systemd user session
-(the broker uses user cgroups), Node 20+ only for the UI.
+(the broker uses user cgroups), Node 20+ only for the room.
 
 ```bash
 git clone https://github.com/JacobFV/structured-psi0-latent-diffusion-dynamics.git && cd structured-psi0-latent-diffusion-dynamics
@@ -130,9 +129,8 @@ src/rrp/          layers import only downward (tests/unit/test_layering.py)
                   psi0/
   harness/        rollout.py (the one episode loop), eval/ (evaluate.py: evaluate / matrix; hooks.py; suites), train/,
                   data/, pipelines/, dag.py (run-dag)
-  viz/            room exporter, recorder/replay, workbench service
+  viz/            room exporter, recorder/replay
   cli/            the `rrp` command (tools.py: `rrp <group> <tool>` for data / train / suite / stage / viz tools)
-ui/               React + TypeScript workbench
 viz/room/         visualization room (exporter output in viz/data)
 configs/, dags/   run configs and lineage DAGs (provenance of every run)
 scripts/          peer transport (peer_run/sync/bootstrap), asset fetch, renderers, demo builder, paused-track drivers

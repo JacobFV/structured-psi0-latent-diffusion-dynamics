@@ -1,14 +1,9 @@
-"""Extended CLI commands (need the project venv: numpy/mujoco/fastapi/torch)."""
+"""Extended CLI commands (need the project venv: numpy/mujoco/torch)."""
 from __future__ import annotations
 
 import argparse
 import json
 import sys
-
-
-def cmd_workbench(a):
-    from rrp.viz.workbench.app import serve
-    serve(host=a.host, port=a.port)
 
 
 def cmd_task_validate(a):
@@ -32,10 +27,6 @@ def cmd_assets_validate(a):
 
 
 def register(sub):
-    p = sub.add_parser("workbench", help="serve the loopback workbench (backend + built UI)")
-    p.add_argument("--host", default="127.0.0.1")
-    p.add_argument("--port", type=int, default=8765)
-    p.set_defaults(fn=cmd_workbench)
     t = sub.add_parser("task", help="task graph tools").add_subparsers(dest="task_cmd", required=True)
     v = t.add_parser("validate")
     v.add_argument("path")
