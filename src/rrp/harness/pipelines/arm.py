@@ -66,6 +66,33 @@ def _verify_pins(ctx: StageContext) -> None:
             raise StageError(f"pinned input {key} sha256 mismatch: {got} != {want} ({p})")
 
 
+def pending_pins(nodes) -> list[tuple[str, str, str]]:
+    """Every `(node, input_key, value)` whose `options.pin_sha256` value is not a recorded sha256 (a `PENDING_*`
+    placeholder, an untrained marker, a typo). Static: reads the planned nodes' options, so a pin on an input the node does
+    not take is reported too (at run time it would be skipped, in a dry-run it is still an unfilled pre-registration row).
+    `nodes`: a Plan's `nodes` mapping (name -> node with `.rc.options`)."""
+    out = []
+    for name, n in nodes.items():
+        for key, want in (n.rc.options.get("pin_sha256") or {}).items():
+            if not (isinstance(want, str) and re.fullmatch(r"[0-9a-f]{64}", want)):
+                out.append((name, key, str(want)))
+    return out
+
+
+def format_pending_pins(nodes) -> str:
+    """Dry-run report of `pending_pins`: one line per distinct placeholder (with its node count and first nodes), or ''."""
+    by: dict[tuple[str, str], list[str]] = {}
+    for name, key, want in pending_pins(nodes):
+        by.setdefault((key, want), []).append(name)
+    if not by:
+        return ""
+    lines = [f"PENDING pins: {sum(map(len, by.values()))} node pin(s), {len(by)} distinct (fill before the signature, "
+             "research/tracks/armdiv.md pin procedure)"]
+    for (key, want), names in sorted(by.items(), key=lambda kv: kv[0][1]):
+        lines.append(f"  PENDING {key}={want}  [{len(names)} node(s): {', '.join(names[:3])}{' ...' if len(names) > 3 else ''}]")
+    return "\n".join(lines)
+
+
 def _pinned(fn):
     @functools.wraps(fn)
     def run(ctx: StageContext) -> dict:

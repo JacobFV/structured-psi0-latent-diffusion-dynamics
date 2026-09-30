@@ -1,5 +1,5 @@
 # armdiv: training-arm diversity for new-arm transfer (D-137)
-State: **planned** — paused for the repo refactor (2026-09-29 12:05; owner wind-down; progress vocabulary per `STATUS.md`). G0, G1 and G2 (BC 1701) done; the v7div latent lineage is DISCARDED (D-146 item 4: restart as lineage v8div on current code, readiness A2); G4 protocol pre-registered below (readiness AR: the v6 reference recipe and the pin procedure are in place; pins still PENDING), AWAITING the lead's signature; no training started, no sealed run.
+State: **planned** — paused for the repo refactor (2026-09-29 12:05; owner wind-down; progress vocabulary per `STATUS.md`). G0, G1 and G2 (BC 1701) done; the v7div latent lineage is DISCARDED (D-146 item 4: restart as lineage v8div on current code, readiness A2); G4 protocol pre-registered below (round 3: the eight v6 pins are recorded and the v6 checkpoints load on the current code; two pins remain PENDING because campaign run T6 produces them: BC 1702 and kinfeat BC 1701; `rrp run-dag --dry-run` reports them), AWAITING the lead's signature; no training started, no sealed run.
 Branch `track/armdiv`, worktree `~/work/rrp-wt/armdiv`, peer code dir `/dev/shm/rrp-brandonin/wt/armdiv` (never the
 shared repo). At most ONE concurrent peer GPU lease (humanoids have priority); CPU leases for simulation are separate
 and declared at >= 1.35 x measured peak. No host compute beyond unit tests, tiny smokes and orchestration.
@@ -176,7 +176,7 @@ Reading: the expanded-pool BC expert is competent on every body checked (it beco
 v6 expert does not handle the new arms, so the new arms are genuinely new kinematics for the v6 models. Not a transfer
 result: all bodies here are training bodies (or v6's held-out source bodies); no target was touched.
 
-## G4 pre-registration (readiness A2, 2026-09-30) -- DRAFT, NOT SIGNED: the lead signs before any v8div training
+## G4 pre-registration (readiness A2, round 3, 2026-09-30) -- NOT SIGNED: complete except the two T6-produced pins (BC 1702, kinfeat BC 1701); the lead signs after T6 records them, before any v8div training
 Frozen before any result. Protocol `recipes/presets/eval-armdiv_v1.json` (sha256 aad7c9fe59469d47a4e0307f6632f5095c82fe6cefb1a36d731b2e45e7fe6ad1; byte-frozen from the
 signature on), split `research/splits/armdiv_v1.json` (sha256 26448f52...ef414), pool `research/splits/armdiv_pool_v1.json` (sha256 688e7d8c...323b5).
 - **Question / hypotheses.** H1 (primary): a latent route trained on the 65-key pool transfers better to NEW arms than the v6 13-body lineages,
@@ -199,16 +199,19 @@ signature on), split `research/splits/armdiv_v1.json` (sha256 26448f52...ef414),
   (1) v6 reference cells for contrast (a): `recipes/armdiv/arm_targets_v6ref.yaml` = the G4 latent recipe (same protocol, target demos, packs, budgets,
   updates, adapt seeds 1700 + seed, sealed scenes) with `flow_ref` / `rep_ref` = the v6 lineages' deployed checkpoints (`runs/armv6/arm6-{semfix,nosem}/
   {flow_ft-gdag2h,refit-gendag3_noqd}_s{1,2}`), primary-tier targets only (gen3_pg2, rizon4_tf3), 154 nodes. Every node that loads a v6 file is pinned by sha256
-  (eight pins; placeholders refuse the node until recorded, see "pin procedure"). The v6 files must load on the current code (a load check is the first
-  node, `zs`, whose pins are verified before any compute). If a v6 checkpoint is not retrievable, does not match a recorded hash, or does not load, contrast (a) is DROPPED by a
+  (eight pins, RECORDED 2026-09-30, table below; a placeholder or mismatch refuses the node). The v6 files load on the current code (peer CPU check of
+  `make_latent(flow, representation)` on all four (variant, seed) pairs, 2026-09-30; the first node `zs` verifies the pins before any compute). If a v6 checkpoint is not retrievable, does not match a recorded hash, or does not load, contrast (a) is DROPPED by a
   recorded note in this file BEFORE the signature, `arm_targets_v6ref.yaml` is deleted, and H1 is then read from contrasts (b) and (c) and the zero-shot / adaptation
   curves alone. No v6 BC reference is registered (contrast (a) is latent-vs-latent).
+  Recorded v6 pins (full sha256 in `arm_targets_v6ref.yaml` `axis_vars.variant.<variant>.{fp1,rp1,fp2,rp2}`; peer and host copies equal): semfix s1 flow `b4e9dff7`, rep `d2360bb4`;
+  semfix s2 flow `854ad478`, rep `f37b2c79`; nosem s1 flow `5288d3a1`, rep `c6f726ba`; nosem s2 flow `26cef27b`, rep `66dd44bb`.
   (2) kinfeat (H2, contrast (c)): its BC expert `armdiv_bc_v7div_kinfeat` (seed 1701; the DAgger labeller of `arm_lineage_v8div_kinfeat`) is trained (step 4 of RESUME) and its
   policy.pt sha256 recorded in `arm_lineage_v8div_kinfeat.yaml` (`base.options.pin_sha256.bc_policy`) before the signature; the placeholder refuses every stage that takes it until then.
   If the kinfeat expert is not trained before the signature, H2 is dropped by a recorded note (the kinfeat lineages are not run); it is never added after the sealed run.
   The same rule covers the BC seed 1702 pin (`arm_targets_v8div_bc.yaml`, `bc_pin`): recorded before the signature.
-- **Signature precondition.** All pins of the three recipes are real sha256 values (or the corresponding contrast is dropped by a recorded note), the recipe goldens are re-recorded
-  (see the pin procedure). The v8div lineages start after the signature; the sealed run starts only after the G3 in-distribution gate passes.
+- **Signature precondition.** All pins of the three recipes are real sha256 values (or the corresponding contrast is dropped by a recorded note; `rrp run-dag <recipe> --dry-run` prints `PENDING pins:` for every
+  placeholder). State at round 3: `arm_targets_v6ref` (8 pins) and `arm_lineage_v8div` are complete; the only PENDING pins are the two T6 outputs (`arm_targets_v8div_bc` `bc_pin` seed 1702,
+  `arm_lineage_v8div_kinfeat` `base.options.pin_sha256.bc_policy`). The recipe goldens are re-recorded after each pin (see the pin procedure). The v8div lineages start after the signature; the sealed run starts only after the G3 in-distribution gate passes.
 Signed: ____________ (lead)  date: __________
 
 ## Pin procedure (readiness AR; T6 of research/readiness.md)
@@ -220,10 +223,10 @@ or mismatch refuses the stage before any compute; a pin whose input the stage do
 | v7div pack `meta.json`, BC 1701 `policy.pt` (frozen, DONE) | `armdiv_data_v7div` pack step; `armdiv_bc_v7div --point seed=1701` | `arm_lineage_v8div.yaml` (`abb149a8...3b6d`, `831470cb...d8cd`); `arm_targets_v8div_bc.yaml` `bc_pin` seed 1701 |
 | BC 1702 `policy.pt` | `rrp run-dag recipes/armdiv/armdiv_bc_v7div.yaml --point seed=1702` node `train` (`runs/armdiv/bcv7div-1702/train_bc-bc1702_s1702/policy.pt`) | `arm_targets_v8div_bc.yaml` `axis_vars.seed.1702.bc_pin` |
 | kinfeat BC 1701 `policy.pt` | `rrp run-dag recipes/armdiv/armdiv_bc_v7div_kinfeat.yaml` node `train` (`runs/armdiv/bcv7divkf-1701/train_bc-bc1701_s1701/policy.pt`) | `arm_lineage_v8div_kinfeat.yaml` `base.options.pin_sha256.bc_policy` |
-| v6 flow (`flow_ft-gdag2h_s{1,2}/policy.pt`) and system-0 bundle (`refit-gendag3_noqd_s{1,2}/representation.pt`) for semfix, nosem | the archived v6 lineage (`.old/dags/arm_lineage_v6.yaml`; peer `runs/armv6/arm6-<variant>/`; NOT in the host archive) | `arm_targets_v6ref.yaml` `axis_vars.variant.<variant>.{fp1,rp1,fp2,rp2}` (seed 1 -> fp1 / rp1, seed 2 -> fp2 / rp2) |
+| v6 flow (`flow_ft-gdag2h_s{1,2}/policy.pt`) and system-0 bundle (`refit-gendag3_noqd_s{1,2}/representation.pt`) for semfix, nosem | the archived v6 lineage (`.old/dags/arm_lineage_v6.yaml`; peer `runs/armv6/arm6-<variant>/`; host copy of the eight files added 2026-09-30) | `arm_targets_v6ref.yaml` `axis_vars.variant.<variant>.{fp1,rp1,fp2,rp2}` (seed 1 -> fp1 / rp1, seed 2 -> fp2 / rp2) |
 Steps: (1) take the file's sha256 on the peer (`sha256sum` through `ops/bin/peer_run.sh`); (2) edit the one line above; (3) re-record the affected `recipe.*` digests
 (`recipe.arm_targets_v8div_bc`, `recipe.arm_lineage_v8div_kinfeat`, `recipe.arm_targets_v6ref`: options are part of every node's config hash, so a filled pin changes the digest;
-compute it with `digest()` of `tests/unit/test_recipes.py` and record the change in `research/decisions.md`); (4) `rrp run-dag <recipe> --dry-run` shows no `PENDING`. The lead signs G4 after step 4 for all rows.
+compute it with `digest()` of `tests/unit/test_recipes.py` and record the change in `research/decisions.md`); (4) `rrp run-dag <recipe> --dry-run` prints no `PENDING pins:` block (the dry-run lists every distinct placeholder with its node count; `harness/pipelines/arm.py::pending_pins`). The lead signs G4 after step 4 for all rows.
 A checkpoint that does not exist on the peer store (e.g. RAM store wiped) is `blocked_external` for its recipe: the affected contrast is dropped by a recorded note, not replaced by a retrained lookalike.
 
 ## RESUME (paused 2026-09-29 12:05 for the repo refactor; owner decision relayed by the lead)
@@ -263,7 +266,7 @@ Dry-run node lists (`rrp run-dag <recipe> --dry-run`, D-145 P4b; digests pinned 
 - `arm_lineage_v8div` (22 nodes per variant x seed; 88 in all, 44 for `..._kinfeat`, 22 for `..._smoke`): stageA, F0, Fft, bc1, rzbcdag1, rzbcdag1long, bc2, bc3,
   gen1, rzbcdag2, rzgendag1, gen2, rzgendag2, gen3, gdag1, rzgendag3, Fgdag1, gdag2, Fgdag2h, finalevals, heldout, newarms.
 - `arm_targets_v8div_latent` (470 nodes: 6 packs, 4 x 6 x (zs + 18 adapt/eval nodes) + 8 source cells) and `arm_targets_v8div_bc` (94 nodes), protocol `eval-armdiv_v1.json`.
-- `arm_targets_v6ref` (154 nodes: 2 shared packs + 4 x 2 x (zs + 18 adapt/eval nodes); primary targets, v6 checkpoints, pins refuse until recorded); every `arm_*` template plans and dry-runs (`arm_bc` with the placeholder run id `packed/SET_IN_INSTANCE`).
+- `arm_targets_v6ref` (154 nodes: 2 shared packs + 4 x 2 x (zs + 18 adapt/eval nodes); primary targets, v6 checkpoints, pins recorded 2026-09-30, `recipe.arm_targets_v6ref` golden fa9327e6... -> 442c7315...); every `arm_*` template plans and dry-runs (`arm_bc` with the placeholder run id `packed/SET_IN_INSTANCE`).
 
 ## Log
 - 2026-09-28: plan written (D-137).
@@ -273,4 +276,5 @@ Dry-run node lists (`rrp run-dag <recipe> --dry-run`, D-145 P4b; digests pinned 
 - 2026-09-29 12:05: paused for the repo refactor (RESUME above).
 - 2026-09-30: D-145 P4b: RESUME rewritten as `rrp run-dag recipes/armdiv/...` lines; `armdiv_{chain,pack}` scripts and the pack config to `.old/scripts/`; screen admissions to `artifacts/runs/armdiv/screen/`.
 - 2026-09-30: readiness A2 (D-146 item 4): v7div lineage discarded, `arm_lineage_v8div{,_kinfeat,_smoke}` (pack + BC pinned by sha256), G4 protocol `eval-armdiv_v1.json` + `arm_targets_v8div_{latent,bc}`; held-out guard now reads the checkpoints' real training bodies; sealed constants from `rrp.bodies.armdiv`. Pre-registration drafted, awaiting the lead. No training started.
+- 2026-09-30: round 3 armdiv-pins: the eight v6 pins recorded (peer sha256, host copy byte-equal, all four (variant, seed) pairs load through `make_latent` on the current code); `--dry-run` reports PENDING pins; G4 text completed except the T6 pins (D-146 round-3 addendum).
 - 2026-09-30: readiness RP3 (D-146, audit D29): the data / train loops run on `harness.rollout`. `harness/data/collect.py` (`run_teacher_rollout` + `_TeacherEnd`: harness.data cannot import the old `harness/eval` hooks module because eval imports data (package cycle, test_layering), so the teacher end / settle / budget task are local to data; X1 then moved the generic hooks to `harness.hooks`; `_TeacherTrace` hook: DART noise, guards, descent, labels; the teacher's end ends the episode, one hold tick), `harness/data/vlm_features.py::replay_render`, `harness/train/rollout.py::teacher_prefix` (boundary / terminal as hook judgements) and the `latent_grpo.run_episodes` curriculum prefix (one batched teacher rollout over the group leaders, followers restore their snapshot) are ported with byte-identical goldens (`tests/unit/test_data_train_rollout.py`: `loop.data.collect`, `loop.data.vlm_replay`, `loop.data.fixture_teacher`, `loop.train.teacher_prefix`, `loop.grpo.prefix_terminal`; recorded on the old loops first; `loop.grpo.episodes` unchanged). Private teacher loops deleted: `policies/teachers/arm.py::{run_teacher_episode, run_fixture_pick_place, TeacherResult}` (its integration test runs the teacher as a rollout via the test helper). sft / expo / grpo / vlm_train / adapt tick no session (their `.step` calls are optimizers); no change needed. Two fixes of the port: `replay_render` no longer crashes (unbound `k`) on an infeasible layout (steps 0); a prefix in which the teacher finishes the task is now pinned by a golden. Left as is: `policies/oracle.py::ShadowTeacher.lookahead` (a policy-internal snapshot look-ahead in the policies layer, which may not import `harness`; same call as RP2 made for `dual_validate`; X1 allowlisted it in `tests/unit/test_step_lint.py`); `latent_semantic_edits._teacher_demo` is its harness-layer twin. `tests/data/golden.json` was re-sorted by the recorder when the new keys went in.

@@ -34,6 +34,9 @@ def cmd_run_dag(a):
     if a.dry_run:
         print(format_plan(plan, ledger, runner))
         print(f"ledger: {ledger_path}")
+        from rrp.harness.pipelines.arm import format_pending_pins
+        if pending := format_pending_pins(plan.nodes):      # unfilled `options.pin_sha256` rows: report, never hide
+            print(pending)
         if cross:
             print("WARNING: cross-placement edges (artifacts are NOT transferred automatically; pre-sync them): "
                   + "; ".join(cross[:10]))

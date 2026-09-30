@@ -4,9 +4,10 @@
 # (the v7div collection's target_demos split), the same packs (identical global nodes: adopted, not rebuilt), same budgets / updates /
 # adapt seeds (1700 + seed), same sealed scenes. Only `flow_ref` / `rep_ref` differ. Existing-controller transfer (zero-shot) and
 # adaptation are reported separately, as for v8div. These cells give contrast (a) = v8div - v6 latent per primary-tier target (H1).
-# The v6 checkpoints are NOT in the host archive (peer runs/armv6/*): every node that loads one is PINNED by sha256, and the pins below
-# are placeholders that refuse the node (arm.py `_verify_pins`) until the lead records the real sha256 of each checkpoint
-# (procedure: research/tracks/armdiv.md, "pin procedure"). If a v6 checkpoint is not retrievable or does not load on the current code,
+# The v6 checkpoints live on the peer store (runs/armv6/arm6-<variant>/, RAM) and, since 2026-09-30, byte-verified on the host archive
+# (~/work/rrp-data/peer-archive/runs/armv6/, the eight files + configs); every node that loads one is PINNED by sha256 (`_verify_pins`:
+# mismatch refuses the node). The eight pins below were taken on the peer and cross-checked on the host copy (D-146 round-3 addendum);
+# all eight load on the current code (`make_latent(flow, representation)`, peer CPU check, 2026-09-30). Were a checkpoint to go missing,
 # contrast (a) is dropped by a recorded note BEFORE the G4 signature; this file is then deleted, not edited. A BC v6 reference is
 # not part of the pre-registration (contrast (a) is latent); it would need a registered addendum.
 #   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiv rrp run-dag recipes/armdiv/arm_targets_v6ref.yaml --dry-run
@@ -28,15 +29,15 @@ matrix:
 axis_vars:
   variant:
     semfix:
-      fp1: PENDING_v6_semfix_s1_flow_ft-gdag2h_sha256_not_recorded
-      rp1: PENDING_v6_semfix_s1_refit-gendag3_noqd_sha256_not_recorded
-      fp2: PENDING_v6_semfix_s2_flow_ft-gdag2h_sha256_not_recorded
-      rp2: PENDING_v6_semfix_s2_refit-gendag3_noqd_sha256_not_recorded
+      fp1: b4e9dff7384c23364c969646573deceaa0109237422b4aa48649831aa797a860
+      rp1: d2360bb4e1e2af45df9192d955d38aff02fd0cddef268a5f3a1a0726194389a7
+      fp2: 854ad478991a8c4b4f025fbcf954cd927f69f9167d0d7a20feb93b7f82cd1d9f
+      rp2: f37b2c794f43d156a83d6085119191cde064e671280708a623c150d908dd5369
     nosem:
-      fp1: PENDING_v6_nosem_s1_flow_ft-gdag2h_sha256_not_recorded
-      rp1: PENDING_v6_nosem_s1_refit-gendag3_noqd_sha256_not_recorded
-      fp2: PENDING_v6_nosem_s2_flow_ft-gdag2h_sha256_not_recorded
-      rp2: PENDING_v6_nosem_s2_refit-gendag3_noqd_sha256_not_recorded
+      fp1: 5288d3a108afbc9f5828dfed5a3f9a3bf01bca72bcbb869de0924983196ca960
+      rp1: c6f726ba3367a4b94c975bb7e80a71cb00ba5a14f3dba9812ce03144e1ffaee7
+      fp2: 26cef27b4abc3cf80de183682e1c1c798c097f583a94ca15932a8c75e185ca0e
+      rp2: 66dd44bb77df2055a2802a528b8e195963bba8ec307ce50b8bab3d5c9e7da22c
 vars:
   flow_ref: 'runs/armv6/arm6-{variant}/flow_ft-gdag2h_s{seed}:policy.pt'
   rep_ref: 'runs/armv6/arm6-{variant}/refit-gendag3_noqd_s{seed}:representation.pt'

@@ -164,7 +164,19 @@ def test_every_arm_recipe_and_template_dry_runs(path):
     assert out.startswith("DAG ")
 
 
-def test_v6ref_cells_are_pinned_on_exactly_the_v6_files_and_refuse_until_recorded(tmp_path):
+V6 = {   # sha256 of the eight v6 checkpoints (peer runs/armv6/arm6-<variant>/, taken 2026-09-30, D-146 round-3 addendum)
+    ("semfix", 1): ("b4e9dff7384c23364c969646573deceaa0109237422b4aa48649831aa797a860",
+                    "d2360bb4e1e2af45df9192d955d38aff02fd0cddef268a5f3a1a0726194389a7"),
+    ("semfix", 2): ("854ad478991a8c4b4f025fbcf954cd927f69f9167d0d7a20feb93b7f82cd1d9f",
+                    "f37b2c794f43d156a83d6085119191cde064e671280708a623c150d908dd5369"),
+    ("nosem", 1): ("5288d3a108afbc9f5828dfed5a3f9a3bf01bca72bcbb869de0924983196ca960",
+                   "c6f726ba3367a4b94c975bb7e80a71cb00ba5a14f3dba9812ce03144e1ffaee7"),
+    ("nosem", 2): ("26cef27b4abc3cf80de183682e1c1c798c097f583a94ca15932a8c75e185ca0e",
+                   "66dd44bb77df2055a2802a528b8e195963bba8ec307ce50b8bab3d5c9e7da22c"),
+}
+
+
+def test_v6ref_cells_are_pinned_on_exactly_the_v6_files_with_their_recorded_hashes(tmp_path):
     plan = _plan("arm_targets_v6ref")
     assert {n.rc.options["target"] for n in plan.nodes.values() if n.rc.stage == "target_adapt"} == {"gen3_pg2", "rizon4_tf3"}
     for n in plan.nodes.values():
@@ -172,11 +184,50 @@ def test_v6ref_cells_are_pinned_on_exactly_the_v6_files_and_refuse_until_recorde
         assert set((n.rc.options.get("pin_sha256") or {})) == loads, n.name
         if n.rc.stage.startswith("target_"):
             assert n.rc.options["protocol"] == "recipes/presets/eval-armdiv_v1.json"
-    zs = plan.nodes["zs@nosem.s2.gen3_pg2"]
-    assert zs.rc.options["pin_sha256"]["flow"].startswith("PENDING_v6_nosem_s2_flow") and "s1" not in zs.rc.options["pin_sha256"]["representation"]
+    for (variant, seed), (f, r) in V6.items():                     # each cell's zs node carries its own (variant, seed) hashes
+        pins = plan.nodes[f"zs@{variant}.s{seed}.gen3_pg2"].rc.options["pin_sha256"]
+        assert pins == {"flow": f, "representation": r}
+    assert len({h for fr in V6.values() for h in fr}) == 8
+    assert parm.pending_pins(plan.nodes) == []                     # nothing in the v6 reference recipe is a placeholder
+    # a recorded pin is checked against the file's bytes (a different file at the pinned path refuses the node)
     ck = tmp_path / "artifacts/runs/armv6/arm6-nosem/flow_ft-gdag2h_s2/policy.pt"
     ck.parent.mkdir(parents=True)
     ck.write_bytes(b"v6")
-    with pytest.raises(StageError, match="placeholder"):
+    with pytest.raises(StageError, match="sha256 mismatch"):
         parm._verify_pins(_ctx(tmp_path, {"flow": "runs/armv6/arm6-nosem/flow_ft-gdag2h_s2:policy.pt"},
-                               {"pin_sha256": {"flow": zs.rc.options["pin_sha256"]["flow"]}}))
+                               {"pin_sha256": {"flow": V6[("nosem", 2)][0]}}))
+
+
+def test_pending_pins_reports_every_placeholder_and_only_those():
+    """Red (round 3): the dry-run was silent about an unfilled pin. The two T6-produced pins are the only ones left."""
+    bc = parm.pending_pins(_plan("arm_targets_v8div_bc").nodes)
+    assert bc and {k for _, k, _ in bc} == {"bc_policy"}
+    assert {v for _, _, v in bc} == {"PENDING_bcv7div_1702_not_trained_yet"}
+    assert all(".s1702." in n or "1702" in n for n, _, _ in bc)
+    kf = parm.pending_pins(_plan("arm_lineage_v8div_kinfeat").nodes)
+    assert kf and {v for _, _, v in kf} == {"PENDING_bcv7divkf_1701_not_trained_yet"}
+    for clean in ("arm_targets_v6ref", "arm_targets_v8div_latent", "arm_lineage_v8div"):
+        assert parm.pending_pins(_plan(clean).nodes) == [], clean
+
+
+def test_pending_pins_flags_a_short_or_malformed_hash():
+    class N:
+        def __init__(self, o): self.rc = type("R", (), {"options": o})()
+    nodes = {"a": N({"pin_sha256": {"flow": "abc123", "rep": "0" * 64, "x": None}}), "b": N({})}
+    assert [(n, k) for n, k, _ in parm.pending_pins(nodes)] == [("a", "flow"), ("a", "x")]
+
+
+@pytest.mark.parametrize("recipe,pending", [("arm_targets_v6ref", False), ("arm_targets_v8div_bc", True),
+                                            ("arm_lineage_v8div_kinfeat", True), ("arm_targets_v8div_latent", False)])
+def test_run_dag_dry_run_reports_pending_pins(recipe, pending, tmp_path, capsys):
+    from rrp.cli.dag import cmd_run_dag
+    import argparse
+    a = argparse.Namespace(dag=str(ROOT / f"recipes/armdiv/{recipe}.yaml"), root=str(ROOT), point=None, only=None,
+                           peer_repo=None, ledger=str(tmp_path / "l.json"), show_config=None, dry_run=True)
+    assert cmd_run_dag(a) == 0
+    out = capsys.readouterr().out
+    assert ("PENDING pins:" in out) is pending
+    if pending:
+        assert "  PENDING bc_policy=PENDING_bcv7div" in out or "PENDING_bcv7divkf_1701" in out
+    else:
+        assert "PENDING" not in out
