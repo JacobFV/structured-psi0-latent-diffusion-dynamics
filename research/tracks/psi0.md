@@ -1,5 +1,7 @@
 # track psi0: the Ψ₀ line (W10) inside rrp
 
+State: **planned** — the closure code is merged (readiness PS, commit `a07c8f22`: gate stage, labels stage, one ext-dir resolver); the D-141 structured-arm diagnosis (Psi0 + structure 0/20 vs direct 19/20) is run T7 and has not started.
+
 Owner: psi0mig agent (D-140 migration). Branch `track/psi0mig`, worktree `~/work/rrp-wt/psi0mig`. Before D-140 this work
 lived in the separate repo psi1z (github.com/JacobFV/psi1z, last commit 6f5e2b3, archived); its decisions are the
 P-appendix of `research/decisions.md`, its notes are folded verbatim at the end of this file. The early W10 scratch branch

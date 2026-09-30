@@ -6,17 +6,17 @@ separately from experiment status: per D-126, everything that is purely a code p
 flags, so experiments can launch as soon as compute allows. Related docs: docs/strategy.md (workstreams, allocation),
 the appendix below (stated-but-unimplemented items, D-123), research/reports/evidence_matrix.md (what IS established).
 
-Status legend (experiment): running · queued · planned · open (needs design) · done → decision.
+Status legend (experiment; the repository's progress vocabulary, AGENTS.md): planned · implementing · test_failed · verified · running · completed · failed_hypothesis (answered no) · blocked_external · budget_exhausted, each `→ decision` when a decision records it. **parked** is a scope tag, not a state (D-146 round 2: the dual-arm line is not trained; the row keeps its state word and says what stays).
 Code: ✅ exists · 🔧 implementing (D-126) · ❌ not a code problem / needs research design.
 
 ## A. Arm: semantic packet under realistic physics
 | # | question | depends on | cost | experiment | code |
 |---|---|---|---|---|---|
-| 1 | Do the arm semantic results (D-095) survive grasp_v2? Re-eval of existing routes | – | ~free | done → D-127 (yes; semfix 311/480 vs nosem 40/480; frozen sem s1 collapses) | ✅ |
-| 2 | Is v6dart data good enough: v6 BC expert ≥ v2 expert (D-121 condition)? | – | ~3 h | done → D-121 addendum (yes: 58/60 panda, 60/60 parm6 under grasp_v2.1) | ✅ |
-| 3 | Do semfix vs nosem arm results hold on realistic physics + teacher v2 + v6dart? | 2 | 24–30 h | done → D-134 (semfix +0.23, all cells; nosem competent; binding seed-dependent) | ✅ |
+| 1 | Do the arm semantic results (D-095) survive grasp_v2? Re-eval of existing routes | – | ~free | completed → D-127 (yes; semfix 311/480 vs nosem 40/480; frozen sem s1 collapses) | ✅ |
+| 2 | Is v6dart data good enough: v6 BC expert ≥ v2 expert (D-121 condition)? | – | ~3 h | completed → D-121 addendum (yes: 58/60 panda, 60/60 parm6 under grasp_v2.1) | ✅ |
+| 3 | Do semfix vs nosem arm results hold on realistic physics + teacher v2 + v6dart? | 2 | 24–30 h | completed → D-134 (semfix +0.23, all cells; nosem competent; binding seed-dependent) | ✅ |
 | 4 | Can upstream recipe choices (Stage A β, BC-DAgger schedule, refit lengths) rescue nosem? (D-099 fairness) | 3 | ~1 day | planned | ✅ overlays (.old/dags/overlays/arm_recipe) |
-| 5 | Does small-amplitude descent-phase DART restore near-grasp recovery without penetration? (D-121 fallback) | 2 | ~0.5 day | conditional | ✅ `dart_descent_sigma` |
+| 5 | Does small-amplitude descent-phase DART restore near-grasp recovery without penetration? (D-121 fallback) | 2 | ~0.5 day | planned (conditional on the preceding result) | ✅ `dart_descent_sigma` |
 | 6 | Can GRPO (success reward, anchor/forgetting evals) lift the latent route past the scripted ceiling vs BC at equal budget? | 3 | 6–10 h | planned | ✅ grpo stage + anchors (recipes/templates/arm_grpo.yaml) |
 | 7 | Does overlapping-chunk blending remove chunk-boundary steps without losing success (BC and system 0)? | – | 0.5–1 day | planned | ✅ `chunk_blend` |
 | 8 | Does limit-aware IK remove procedural-arm joint-limit contact so the gate can be enforced? | – | ~1 day + data | planned | ✅ `ik_limit_margin` / teacher v2lim |
@@ -24,8 +24,8 @@ Code: ✅ exists · 🔧 implementing (D-126) · ❌ not a code problem / needs 
 ## B. Cross-body transfer (the untested core claim)
 | # | question | depends on | cost | experiment | code |
 |---|---|---|---|---|---|
-| 9 | Does the latent route transfer to the sealed target bodies (xarm7_pg2/tf3, panda_tf3): zero-shot and with small adaptation budgets? | 3 | 1–2 days | done → D-135 (no on new arm: latent refit ≤38/200 vs BC SFT up to 192/200; new gripper on panda transfers, still ≤ BC) | ✅ DAG template arm_targets_latent |
-| 10 | Fair baselines on those bodies: BC seeds 1702/1703, SFT budgets on the same data | – | ~1 day | done → D-135 | ✅ DAG template arm_targets_bc |
+| 9 | Does the latent route transfer to the sealed target bodies (xarm7_pg2/tf3, panda_tf3): zero-shot and with small adaptation budgets? | 3 | 1–2 days | failed_hypothesis → D-135 (no on new arm: latent refit ≤38/200 vs BC SFT up to 192/200; new gripper on panda transfers, still ≤ BC) | ✅ DAG template arm_targets_latent |
+| 10 | Fair baselines on those bodies: BC seeds 1702/1703, SFT budgets on the same data | – | ~1 day | completed → D-135 | ✅ DAG template arm_targets_bc |
 | 11 | Legged held-out body transfer (heldout + refit stages) | – | ~1 day | planned | ✅ code (D-126 legged): `recipes/templates/legged_heldout.yaml` (validate_tracker-gated; zero-shot `heldout` + equal-budget refit vs BC) |
 | 12 | Do anchor-relative packets transfer better than base-frame ones? (W12 H2) | 20 | in W12 | planned | ✅ (W12 A) |
 
@@ -36,23 +36,23 @@ Code: ✅ exists · 🔧 implementing (D-126) · ❌ not a code problem / needs 
 | 14 | Do trackers and latent routes survive actuator dynamics + latency as default (sourced speeds)? | 13 | 1–2 days | planned | ✅ code: `actuator_mode` ideal/v1lat/v2 (default ideal) through training, validation, pipeline (`options.actuator_mode`), eval; estimated speeds flagged |
 | 15 | Does a terrain curriculum (and MJX for throughput) move the 8 cm terrain break-point? | – | 2–4 days | planned | ✅ code: `--terrain-curriculum gated`; MJX prototype `envs/warp/model.py` (peer smoke: parity ok, no throughput win yet) |
 | 16 | Is the semantic robustness cost (D-112: −4.6 points) general beyond anymal_c (go2, later t1)? | – | ~1 day/body | planned | ✅ |
-| 17 | Why does semfix steer 2× more on anymal_c but not go2? Does it replicate? | – | ~1 day | open | ✅ |
+| 17 | Why does semfix steer 2× more on anymal_c but not go2? Does it replicate? | – | ~1 day | planned (needs design) | ✅ |
 
 ## D. Feature-centric coordination (W12)
 | # | question | depends on | cost | experiment | code |
 |---|---|---|---|---|---|
-| 18 | Grasp fix for pegs/bars and dual teacher v3 (smooth, contact-confirmed, limit-aware, phase-gated DART), then data | – | 1–2 days | queued (W7 grasp part) | ✅ teacher v3 `policies/teachers/dual_smooth.py` (default off: `teacher_version: v3`, ablations `teacher_options`), phase-gated DART `noise_phase_gate`, quality record `record_quality`, gate `gates.check_dual_dataset`; peer smoke: support_insert v3 5/5 vs v2 1/5 (.old/research/tracks/w12.md §10). Grasp model: W7 |
+| 18 | Grasp fix for pegs/bars and dual teacher v3 (smooth, contact-confirmed, limit-aware, phase-gated DART), then data | – | 1–2 days | planned (W7 grasp part); dual part parked (D-146: collect / pack stay, no training) | ✅ teacher v3 `policies/teachers/dual_smooth.py` (default off: `teacher_version: v3`, ablations `teacher_options`), phase-gated DART `noise_phase_gate`, quality record `record_quality`, gate `gates.check_dual_dataset`; peer smoke: support_insert v3 5/5 vs v2 1/5 (.old/research/tracks/w12.md §10). Grasp model: W7 |
 | 19 | H1 go/no-go: base-frame vs anchor-relative supervision vs anchor-input system 0 (seed 0) | 18, 3 | 9–24 GPU-h | planned | ✅ |
 | 20 | Full W12 matrix (+event-aligned knots, anchor-input control, 3 seeds) with anchor-shift and contact-sequence edits | 19 | 2–6 days | planned | ✅ |
 | 21 | Legged stance drift with the new contact metrics on existing W8 checkpoints | – | ~0.5 day | planned | ✅ |
-| 22 | Coordination tasks: pivot against a surface, carry a tray level, legged foothold stepping | – | design + data | open | arm tasks ✅ stubs: `src/rrp/tasks/graphs/pivot_against_surface.json`, `src/rrp/tasks/graphs/carry_tray_level.json`, scenes `envs/dual_scenarios.build_pivot/build_carry_tray`, labelled unvalidated teacher stubs `policies/teachers/dual_coord.py` (W12); legged foothold ✅ `envs/mujoco/legged_scenes.py`, `src/rrp/tasks/graphs/foothold_steps.json`; see .old/research/tracks/d126_legged.md) |
+| 22 | Coordination tasks: pivot against a surface, carry a tray level, legged foothold stepping | – | design + data | planned (needs design); the dual parts (pivot against a surface, carry a tray level) are **parked** (D-146 A3: the coordination-teacher stubs `dual_coord.py` are archived, dual tasks without a teacher have `teacher=None`; the pivot graph and scene builder stay) | dual parts: parked, no code; legged foothold ✅ `envs/mujoco/legged_scenes.py`, `src/rrp/tasks/graphs/foothold_steps.json`; see .old/research/tracks/d126_legged.md |
 
 ## E. Ψ₀ line (psi1z, W10)
 | # | question | depends on | cost | experiment | code |
 |---|---|---|---|---|---|
 | 23 | TabletopGrasp: released vs Ψ₀ direct fine-tune vs Ψ₀ + our structure; hand-binding and goal edits | – | ~1 day | running | ✅ |
 | 24 | BendPickMP, HandoverTeleop step 2, with a grasp-region affordance head | 23 | 2–3 days | planned | ✅ head (psi1z P-022, default off; needs re-replay labels) |
-| 25 | Can a better render (materials/lighting) reproduce the walking tasks (XMovePick, LocoPick, XMoveBendPick)? | – | open-ended | open | ❌ research |
+| 25 | Can a better render (materials/lighting) reproduce the walking tasks (XMovePick, LocoPick, XMoveBendPick)? | – | open-ended | planned (needs design) | ❌ research |
 | 26 | Higher DR levels (1–2) on reproduced tasks | 23 | ~1 day/task | planned | ✅ eval flags (psi1z P-023) |
 
 ## F. Representation and deployment credibility
@@ -62,7 +62,7 @@ Code: ✅ exists · 🔧 implementing (D-126) · ❌ not a code problem / needs 
 | 28 | Automated per-group privileged-information audit (ablate input groups, measure causal use) | – | ~1 day | planned | ✅ `rrp.harness.eval.privileged_audit` (paudit-1) |
 | 29 | Does an OOD packet detector + fallback catch the packet edits that make t1 fall? | – | 1–2 days | planned | ✅ `--packet-ood`, `rrp.harness.train.packet_ood_fit` (pood-1) |
 | 30 | Safety layer (clamp, rate limit, safe stop, fall recovery): cost to success, benefit under perturbation | – | 1–2 days | planned | ✅ `--safety` (safety-1) |
-| 31 | VLM system II: language → packet, real evaluation | – | 3+ days | open | ✅ harness only: `rrp.harness.eval.system2` (s2h-1), `--system2` |
+| 31 | VLM system II: language → packet, real evaluation | – | 3+ days | planned (needs design) | ✅ harness only: `rrp.harness.eval.system2` (s2h-1), `--system2` |
 | 32 | Minutes-long runs (drift) and latency on current routes | – | ~0.5 day | planned | ✅ `--eval-mode long`, `--measure-latency`; `rrp latent latency --representation` |
 
 Section F code (D-126, 2026-09-28): commands and flags in .old/research/tracks/d126_deploy.md "exact configs". All options
@@ -71,8 +71,8 @@ default off; defaults golden-identical to pre-D-126 rows.
 ## G. New task families
 | # | question | depends on | cost | experiment | code |
 |---|---|---|---|---|---|
-| 33 | First dual-arm learned models (M=2 "across bodies") | 18 | 2–3 days | planned | ✅ stages collect/pack/train_rep/probes/train_flow/flow_ft/refit/eval_r2/heldout/edits (`harness/pipelines/dual.py`), DAG `recipes/templates/dual_lineage.yaml` (zero_prev_action true); dual DAgger ❌ (no dual label source) |
-| 34 | Loco-manipulation (walk to a table, then pick); humanoid versions M1–M3 in W13 (D-138) | 13 | 3+ days | open | ✅ task + scene (spot_arm) + STUB teacher; needs a spot tracker |
+| 33 | First dual-arm learned models (M=2 "across bodies") | 18 | 2–3 days | planned, **parked** (D-146 A3 / R2 DP: the dual line is not trained; reopening needs a new track entry) | what stays: stages collect / pack / eval_r2 / heldout / edits (`harness/pipelines/dual.py`; the evals take an external checkpoint by run id), `recipes/templates/dual_lineage.yaml` = collect → pack → evals with no training node; `train_rep` / `probes` / `train_flow` / `flow_ft` remain registered arm-trainer wrappers with `zero_prev_action true` but no recipe runs them; dual `refit`, `dagger_collect` (no label source) and `train_bc` are gone |
+| 34 | Loco-manipulation (walk to a table, then pick); humanoid versions M1–M3 in W13 (D-138) | 13 | 3+ days | planned (needs design) | ✅ task + scene (spot_arm) + STUB teacher; needs a spot tracker |
 | 35 | Richer arm objects (sizes, masses, friction, shapes) | – | 1–2 days + data | planned | ✅ `object_spec` / `object_variation` |
 
 ## H. Humanoid transfer (W13, D-138; plan research/tracks/humanoid.md, sealed split research/splits/humanoid_v1.json)
@@ -87,10 +87,10 @@ default off; defaults golden-identical to pre-D-126 rows.
 ## I. ComputerWorld pointer (track pointer, D-142; research/tracks/pointer.md "pointer policy", split research/splits/cworld_pointer_v1.json)
 | # | question | depends on | cost | experiment | code |
 |---|---|---|---|---|---|
-| 41 | Can an engineered (scripted) pointer system 0 realize packets well enough to solve all four cw/* tasks from teacher-oracle packets? | – | ~free | done → D-142 (400/400, teacher-identical step counts) | ✅ `policies/pointer.py` |
-| 42 | Does a learned pointer latent route (system i flow → learned system 0) solve the cw/* tasks on sealed seeds, vs pointer BC with the same inputs and demos, and vs a learned system i driving the engineered system 0? | 41 | ~4 GPU-h | done → D-142 (sealed_id: BC 0.995, latent semfix 0.930, nosem 0.920, eng 0.463) | ✅ `rrp train pointer` |
-| 43 | Does semantic packet supervision (semfix) make the UI probes (target widget, pointer-relative target, button/key phase) decodable and causally usable (probe-guided retargeting) vs nosem? | 42 | ~1 GPU-h | done → D-142 (probes sharper with semfix; semfix edits steer system 0, nosem ≈ random; no success difference) | ✅ `rrp train pointer probe/edit` |
-| 44 | Held-out variants (unseen calc pairs, words, names): does typing copy characters from the instruction? | 42 | in 42 | done → D-142 (no: 0/100 unseen words/names for every learned method; unseen calc pairs 45–50/50) | ✅ |
+| 41 | Can an engineered (scripted) pointer system 0 realize packets well enough to solve all four cw/* tasks from teacher-oracle packets? | – | ~free | completed → D-142 (400/400, teacher-identical step counts) | ✅ `policies/pointer.py` |
+| 42 | Does a learned pointer latent route (system i flow → learned system 0) solve the cw/* tasks on sealed seeds, vs pointer BC with the same inputs and demos, and vs a learned system i driving the engineered system 0? | 41 | ~4 GPU-h | completed → D-142 (sealed_id: BC 0.995, latent semfix 0.930, nosem 0.920, eng 0.463) | ✅ `rrp train pointer` |
+| 43 | Does semantic packet supervision (semfix) make the UI probes (target widget, pointer-relative target, button/key phase) decodable and causally usable (probe-guided retargeting) vs nosem? | 42 | ~1 GPU-h | completed → D-142 (probes sharper with semfix; semfix edits steer system 0, nosem ≈ random; no success difference) | ✅ `rrp train pointer probe/edit` |
+| 44 | Held-out variants (unseen calc pairs, words, names): does typing copy characters from the instruction? | 42 | in 42 | failed_hypothesis → D-142 (no: 0/100 unseen words/names for every learned method; unseen calc pairs 45–50/50) | ✅ |
 
 ## ordering once current runs finish (lead)
 1–3 (running/queued) → 9–10 (core claim) → 23 (queued) → 13 (unblocks humanoid) → 18–19 (W12 go/no-go). The rest fits
@@ -108,7 +108,7 @@ I found 44 intentions that are stated in the docs but only partly built or not b
 
 Two things to know first:
 - `docs/robot_training_considerations.md` and `STATUS.md` are themselves out of date. Several items marked ❌ there now exist in code; those are listed under "Checked and implemented" at the end.
-- The only real TODO or not-implemented markers in code are the skeleton in `harness/pipelines/dual.py` and the `NotImplementedError` stubs in `core/system0.py`. The latter are abstract base methods, not gaps.
+- The only real TODO or not-implemented markers in code were the skeleton in `harness/pipelines/dual.py` (since built, then PARKED: D-146 A3 / R2 DP) and the `NotImplementedError` stubs in `core/system0.py`. The latter are abstract base methods, not gaps.
 
 ### backlog: Physics / sim
 | item | source | status | evidence | size | blocks |
@@ -145,7 +145,7 @@ Two things to know first:
 | State estimation | §4.3 | **code done 2026-09-28 (D-126: `envs/mujoco/state_estimator.py` bse-1 fills `base_vel_estimate`; `--base-state-source estimator`; .old/research/tracks/d126_deploy.md); experiment #27 pending** — was partial | Tracker actors use IMU + encoders only; true base velocity goes only to the critic (`envs/mujoco/legged_core.py` `priv`). System i's speed comes from a "declared localization" that is truth + Gaussian noise (`envs/mujoco/legged.py _sense`). `base_vel_estimate` (`core/observation.py:26`) is never filled | M–L | deployable-observation credibility |
 | Privileged-information audit per input group | §4.3 | **code done 2026-09-28 (D-126: `harness/eval/privileged_audit.py` ablation runner + static/schema/tripwire checks; .old/research/tracks/d126_deploy.md); experiment #28 pending** — was partial | `core/channels.py` rejects privileged keys on transport. No automated per-group causal or ablation audit | M | fairness and leak claims |
 | VLM system II | legged_vlm.md | **harness done 2026-09-28 (D-126: `harness/eval/system2.py` 98a9beb, `--system2` in the legged eval); no model/result** — was partial | `research/system2_eval.py` (ground, closed_loop) sits in `research/`, smoke test only, no results | L | System II claim |
-| Dual-arm learned models | dualarm.md next 1–2 | missing | the `swap_slots` edit exists (`harness/eval/dual_latent_eval.py:234`), but no dual lineage has ever been trained | L | M=2 "across bodies" |
+| Dual-arm learned models | dualarm.md next 1–2 | **parked** (D-146: not trained; was missing) | the `swap_slots` edit exists (`harness/eval/dual_latent_eval.py:234`), but no dual lineage has ever been trained | L | M=2 "across bodies" |
 | Canonical source labels everywhere | provenance.md; audit §3 | **done 2026-09-28 (D-126 sl-1 switch 5aaea4d, default off; legged rows too)** — was partial | `core/action.py:10` is still a Literal with teacher / scripted_teacher / privileged_teacher. Ladder rows write a bare `"oracle"` (`harness/eval/ladder.py:649`) | S–M | labelling contract |
 
 ### backlog: Training / RL
@@ -168,7 +168,7 @@ Two things to know first:
 |---|---|---|---|---|---|
 | `ladder.py` (archived script) main moved into `rrp.harness.eval` | W5; pipeline.md step 3 | **done 2026-09-28 (D-126 ade3628: `harness/eval/ladder_cli.py`, script = wrapper, parity test)** — was missing | the 149-line `main()` is still called as a subprocess by `harness/pipelines/arm.py` | S–M | in-process arm stages |
 | Legged summary/effects scripts moved into the library | pipeline.md step 3 | **done 2026-09-28 (D-126 ade3628: `harness/eval/legged_summaries.py`, scripts = wrappers, parity test)** — was missing | `harness/pipelines/legged.py:347` ran the archived `legged_ladder_summary.py` | S | — |
-| Dual pipeline stages | W5; `harness/pipelines/dual.py` TODO | **done 2026-09-28 (D-126 #33, W12)** except dual DAgger (refuses: no dual label source) — was: missing (skeleton) | only `train_rep` and `train_flow`. Pack logic is still in `cli/dual_latent.cmd_pack`; there is no dual DAgger | M (L with DAgger) | dual models; "one pipeline" |
+| Dual pipeline stages | W5; `harness/pipelines/dual.py` TODO | built 2026-09-28 (D-126 #33, W12), then **parked** (D-146 A3 / R2 DP): collect / pack / evals on an external checkpoint stay; no DAgger (no dual label source), no refit, no training node — was: missing (skeleton) | only `train_rep` and `train_flow`. Pack logic is still in `cli/dual_latent.cmd_pack`; there is no dual DAgger | M (L with DAgger) | dual models; "one pipeline" |
 | Chain-script retirement | W5 gate; audit phase 4 | missing | 13 `*_chain.sh` remain; there are 107 `.sh` scripts in total (89 at audit time) | S–M | phase 5 |
 | `rrp run-dag` host↔peer artifact transfer | pipeline.md step 4 | missing | `harness/dag.py:266-270` places jobs but has no transfer between nodes. Moot while D-115 keeps heavy work on the peer | M | mixed-node DAGs |
 | Robot thermal and duty-cycle limits | §4.11 | missing | the only "thermal" hits are the host watchdog | M | — |
@@ -200,7 +200,7 @@ Two things to know first:
 3. **Humanoid trackers** (a t1 that passes the lab gate, h1, g1). These block W8 humanoid results and the W1 gate.
 4. **State estimation plus an automated per-group privileged audit.** Deployable observations currently rely on truth + noise.
 5. **Actuator dynamics and latency as the default,** with sourced joint speeds, which needs trackers that hold their gaits under it.
-6. **Dual pipeline stages and a first dual lineage.** "Across bodies" currently excludes M=2, and it blocks "one pipeline".
+6. **Dual pipeline stages and a first dual lineage.** PARKED (D-146 A3 / R2 DP): the stages exist for collect and evaluation only; "across bodies" excludes M=2 by decision.
 7. **GRPO with anchor evals as a pipeline stage.** This is the W7 gate and needs a competent checkpoint first.
 8. **Chunk-boundary blending and limit-aware IK.** These make the D-112 policy and arm joint-margin gates enforceable.
 9. **Terrain curriculum (and MJX to afford it).** Needed for rough-terrain credibility.

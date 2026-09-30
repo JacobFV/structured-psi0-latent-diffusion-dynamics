@@ -19,13 +19,13 @@ Primitives (docs/relations.md 3.1–3.2):
 - **conditioning**: gates task / instruction / goal / embodiment / history; confidence scaling.
 - **sources**: given (public / estimated) | probe | estimator:<name> (distilled) | gt (supervision only).
 
-Status: **W1** first wave (docs/relations.md section 6; envs can label now), **W2** next (needs a new scene part or
+Wave tags (a scope label for the entry, NOT a progress state; progress states are the vocabulary in `STATUS.md`): **W1** first wave (docs/relations.md section 6; envs can label now), **W2** next (needs a new scene part or
 label), **P** planned (entry declarable, no env / label yet), **X** out of scope for our envs (no physics / sensing for
 it), **M** meta (not a factor).
 
 ## A. geometry and pose (fields: position / frame; ops: sqdiff+diff, diff, rel_rot, align, order)
 
-| family | candidates (examples) | decomposition | status | label (StateView caps) | envs |
+| family | candidates (examples) | decomposition | wave | label (StateView caps) | envs |
 |---|---|---|---|---|---|
 | metric position | 2d / 3d position, world / camera / object / manipulator / task-frame position, relative translation, x/y/z displacement, range, bearing, azimuth, elevation, euclidean distance, nearest / farthest neighbor | pos3d × sqdiff+diff × aug (frame world or query; nearest-neighbor = emergent from distance term) | W1 `geo.pos3d` | `pos3d` (poses) | arm, dual, legged, cw |
 | depth | depth, camera-frame position, image-plane distance, ordering along view ray | cam_uvd × sqdiff+diff × aug, source probe | W1 `geo.depth3d` | `cam_uvd` (poses, camera, depth_render) | arm, dual |
@@ -39,7 +39,7 @@ it), **M** meta (not a factor).
 
 ## B. identity, membership, correspondence (fields: id / membership; ops: same, sim, hop, ancestor)
 
-| family | candidates | decomposition | status | label | envs |
+| family | candidates | decomposition | wave | label | envs |
 |---|---|---|---|---|---|
 | same-X | same object / part / subpart / component / rigid body / articulated body / semantic instance / category / class / material / texture / color region / functional region / motion group / support group / assembly | id field × same × aug (fixed codes) | W1 `id.same_body`, `id.same_assembly`; W2 `id.same_material` (needs material ids) | public ids / `materials` | all |
 | correspondence | same point / patch / object across views or time, track identity, temporal persistence, object permanence, dense / sparse correspondence | track_id × same across time tokens | W1 declared `time.same_track` (used when a net has history tokens) | public tracker ids; gt `track` (poses over time) | arm, dual |
@@ -49,7 +49,7 @@ it), **M** meta (not a factor).
 
 ## C. embodiment and kinematics (graphs over morphology tokens; public)
 
-| family | candidates | decomposition | status | envs |
+| family | candidates | decomposition | wave | envs |
 |---|---|---|---|---|
 | kinematic tree | kinematic-tree, kinematic chain membership, joint-to-link, link-to-link, kinematic dependency, end-effector relation | edges(arm-rel-v1 `kin_parent`, g1 `parent`/`child`) × edge / ancestor | W1 (legacy `edge.kin_parent`, `edge.kin_child`, `kin.ancestor`) | arm, simple, legged |
 | ownership | manipulator ownership, left / right arm, body membership, effector binding, node-in-assembly | assembly_id × same; edges `node_in_assembly` | W1 (legacy + `route.own_assembly`, `id.same_assembly`) | all |
@@ -60,7 +60,7 @@ it), **M** meta (not a factor).
 
 ## D. physical interaction (dynamic pairs / graphs; labels from contacts, poses, gravity)
 
-| family | candidates | decomposition | status | label (caps) | envs |
+| family | candidates | decomposition | wave | label (caps) | envs |
 |---|---|---|---|---|---|
 | contact | touching, contact point / patch / manifold / area, collision partner / point / normal, contact graph, contact phase | hidden × bilinear × aug, source probe; contact normal → A | W1 `ix.contact` | `contact_pairs` (contacts) | arm, dual, legged |
 | grasp | hand-object, finger-object, gripper-object, grasp point / region / axis / aperture, antipodal, pinch / power grasp, held-by | bilinear (held_by); unary grasp region | W1 `ix.held_by`; grasp region = Ψ₀ `probe.psi0.grasp_*` | `held_pairs` (contacts) | arm, dual, simple |
@@ -79,7 +79,7 @@ it), **M** meta (not a factor).
 
 ## E. affordances and function (object → region / action; mostly unary scores or task-gated pairs)
 
-| family | candidates | decomposition | status | envs |
+| family | candidates | decomposition | wave | envs |
 |---|---|---|---|---|
 | affordance scores | graspability, liftability, pushability, openability, insertability, stackability, carryability, containability, ... (all "-ability") | unary field × unary op (key prior), readout from probe | P `aff.<verb>` (labels need per-object scripted affordance tables; start with graspable / supportable from scene parts) | arm, dual |
 | affordance pairs | object → affordance region, handle-object, button-device, knob-device, switch-device, receptacle-object, fixture / clamp / locator | bilinear gate task | W2 with the matching part | arm, cw (button-device = `ui.label_for` analogue) |
@@ -88,7 +88,7 @@ it), **M** meta (not a factor).
 
 ## F. task, procedure and causality (public task structure; task-conditioned)
 
-| family | candidates | decomposition | status | label | envs |
+| family | candidates | decomposition | wave | label | envs |
 |---|---|---|---|---|---|
 | role / argument | agent-patient, instrument, source, destination, location, predicate-argument, subject-object, role relation | edges(arm-rel-v1: actor_of, patient_of, target_of, destination_of, support_of, role_points_to, pred_arg) | W1 (legacy) | public task graph | arm, dual |
 | prerequisites | prerequisite, successor, dependency, enables, maintained, blocks, unlocks, output_to, produced, consumed_by, co-requirement, mutual exclusion, critical path | edges(enables, maintained, output_to, produced, consumed_by) + ancestor closure | W1 (legacy); closure W2 `task.precedes` | public | arm, dual |
@@ -100,7 +100,7 @@ it), **M** meta (not a factor).
 
 ## G. temporal and motion
 
-| family | candidates | decomposition | status | envs |
+| family | candidates | decomposition | wave | envs |
 |---|---|---|---|---|
 | order in time | before, after, overlap, adjacency, temporal distance, duration | time × sqdiff+diff (1-d) / order | W1 via knot `time` fields (system 0 already keys knots by knot time − phase) | all |
 | periodicity / phase | periodicity, phase relation, synchronization, anti-synchronization | time/phase × rel_rot on S¹ (cos / sin features = align) | W2 `time.phase_sync` (legged gait legs) | legged |
@@ -109,13 +109,13 @@ it), **M** meta (not a factor).
 
 ## H. user interface (ComputerWorld; public from semantic.v1 unless noted)
 
-| candidates | decomposition | status | label |
+| candidates | decomposition | wave | label |
 |---|---|---|---|
 | label ↔ widget, containment tree, focus order, drag source → target, z-order depth, window membership | edges(ui-rel-v1) × edge × bias; drag = bilinear gate task (probe) | W1 `ui.label_for`, `ui.contains`, `ui.focus_next`, `ui.above`, `ui.drag_to` | ui_tree (public); drag target from the teacher (privileged) |
 
 ## I. language and grounding
 
-| candidates | decomposition | status |
+| candidates | decomposition | wave |
 |---|---|---|
 | text-object / text-part / text-region / text-contact alignment, reference resolution, coreference, deixis, pointing, symbol-object correspondence, instruction-action alignment | bilinear between text tokens and entity tokens; label = task binding (public, `task`) or synthetic | W2 `lang.refers_to` (needs instruction tokens in the arm ctx; Ψ₀ / cw have text) |
 | semantic similarity / opposition / entailment / synonymy / category / concept hierarchy | sim(text embedding) | P |

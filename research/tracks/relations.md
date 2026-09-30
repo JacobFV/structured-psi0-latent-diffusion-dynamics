@@ -1,9 +1,11 @@
 # track: relations (open) — relation-factor experiments (D-144)
 
+State: **planned** — recipes render and plan dry; nothing has run (run T9).
+
 The relation-factor registry (D-144, `docs/relations.md`, catalog `research/relations_catalog.md`) is built: token model,
 `FactorSite` in the shared attention block, `ReadoutProbe`, `relgen` labels / parts / transforms, curriculum scheduler,
 deploy guard, room panels. What is missing is the EXPERIMENT: no factor set has been trained against the `preset:arm`
-control. That is this track. State: **planned** (recipes render and plan dry; nothing has run).
+control. That is this track.
 
 Per-unit history of the build (R1-R21, rel-geo, sweep-flags, closures) is in `research/decisions.md` D-144 and its
 addenda; the unit notes `research/tracks/rel-*.md` and `sweep-flags.md` are closed-track material (moved to `.old/research/tracks/` by P5).

@@ -10,11 +10,14 @@ manipulator, what relation should change, relative geometry, contact, uncertaint
 controller ("system 0") realizes that same `z` online from the robot's own proprioception and touch. Simulation is
 native MuJoCo on two NVIDIA GB10 machines.
 
-> **Status (2026-09-26):** research code, not a product. On deployable routes (no teacher, oracle or BC at run time) the
-> latent route is competent on legged go2, hexapod6 and the t1 humanoid, and partly competent on arms (below plain BC).
-> Task-context edits reach behaviour through the generated packet (goal and binding on arms, goal and halt on legs).
-> Semantic supervision of the packet is essential on the arm and adds a halt channel on legs (D-089..D-092). All legged
-> results so far use contact model v1, whose trackers skate (D-093); they are being redone on contact v2.
+> **Status (2026-09-30):** research code, not a product. The code for the pre-training campaign is merged (readiness
+> round 2, 21 units; ledger in [`STATUS.md`](STATUS.md), plan in [`research/readiness.md`](research/readiness.md)); the
+> campaign-opening runs T0 to T9 are `planned` and none has started. Results so far (through D-145): on deployable routes
+> (no teacher, oracle or BC at run time) the latent route is competent on legged go2, hexapod6 and the t1 humanoid, and
+> partly competent on arms (below plain BC); it does not transfer to a new arm (D-135). Legged results use contact model
+> v1 unless a v2 tracker is named (D-093). The dual arm is parked (collect, pack and evals on an external checkpoint stay;
+> no training, D-146). Progress states use one vocabulary everywhere: planned, implementing, test_failed, verified,
+> running, completed, failed_hypothesis, blocked_external, budget_exhausted (`rrp.core.runs.RunState`).
 > What is and is not shown: [`research/reports/evidence_matrix.md`](research/reports/evidence_matrix.md).
 > Plan and workstreams: [`docs/strategy.md`](docs/strategy.md). Problem checklist for physically credible training:
 > [`docs/robot_training_considerations.md`](docs/robot_training_considerations.md). Running work: [`STATUS.md`](STATUS.md).
@@ -62,9 +65,9 @@ moved-path table: [`docs/architecture.md`](docs/architecture.md).
 
 | kind | registered names |
 |---|---|
-| environments (`rrp.envs.base.make_env`) | `mujoco/arm`, `mujoco/dual`, `mujoco/legged` (`control="base_velocity"` through the embedded tracker, or `"legs"` joint targets), `warp/legged` (batched GPU), `simple` (Ψ₀ SIMPLE, Isaac Sim), `computerworld` (UI world as 3D, in progress) |
-| policies (`rrp.policies.base.make_policy`) | `bc`, `latent` (system i + system 0; sem / nosem / semfix variants), `legged_latent`, `legged_bc`, `oracle` (privileged diagnostic), `teacher:<task>` (scripted_teacher), `psi0_direct`, `psi0_structured`, `psi0_replay` |
-| tasks (`rrp.tasks.spec.TASKS`) | pick_place, reach_pose, support_insert, handover, assign_left/right, pivot_against_surface, waypoint_contact, foothold_steps, h_steps, h_gap, h_reach, h_carry (and the other h_* humanoid tasks), locomotion, `simple/<Task>` |
+| environments (`rrp.envs.base.make_env`) | `mujoco/arm`, `mujoco/dual` (parked), `mujoco/legged` (`control="base_velocity"` through the embedded tracker, or `"legs"` joint targets), `warp/legged` (batched GPU), `simple` (Ψ₀ SIMPLE, Isaac Sim), `computerworld` (UI world as 3D; pointer track) |
+| policies (`rrp.policies.base.make_policy`) | `bc`, `latent` (system i + system 0; sem / nosem / semfix variants), `legged_latent`, `legged_bc`, `pointer_latent`, `pointer_bc`, `pointer_oracle`, `oracle` (privileged diagnostic), `rl_expert`, `teacher:<task>` (scripted_teacher), `psi0_direct`, `psi0_structured`, `psi0_replay` |
+| tasks (`rrp.tasks.spec.TASKS`) | arm: pick_place, reach_pose, support_insert, handover, assign_left/right, pivot_against_surface, waypoint_contact; legged: foothold_steps, locomotion; humanoid: h_walk, h_turn, h_reach, h_squat_pick, h_place, h_steps, h_gap, h_carry, h_loco_pick, held-out h_steps_carry and h_gap_cart; pointer: `cw/<task>`; `simple/<Task>` |
 
 Lineage codes in config and run names (`sfjf`, `nsjf2`, `fixsem`, `gendag3_noqd`, …) are decoded in
 [`.old/research/naming.md`](.old/research/naming.md). The training lineages (arm ladder, legged, dual arm) run as pipeline stages
@@ -78,9 +81,9 @@ and task-context edit suites.
 
 | goal | command |
 |---|---|
-| evaluate any policy × env × task | `rrp eval --policy NAME[=JSON] --env ENV --task TASK --body BODY --seeds a:b --out F` (`harness.eval.evaluate` over `harness.rollout`, family hooks from `harness.eval.hooks`; JSONL rows + Wilson summary) |
+| evaluate any policy × env × task | `rrp eval --policy NAME[=JSON] --env ENV --task TASK --body BODY --seeds a:b --out F` (`harness.eval.evaluate` over `harness.rollout`, family hooks from `harness.hooks`; JSONL rows + Wilson summary) |
 | compatibility matrix (n/a with reasons) | `rrp matrix …` |
-| a whole lineage (collect → pack → Stage A → flow → DAgger / refit → eval → edits) | `rrp run-dag recipes/<track>/<lineage>.yaml` (or a name under `recipes/`) (resumable JSON ledger; stage list: `rrp stage list`) |
+| a whole lineage (collect → pack → Stage A → flow → DAgger / refit → eval → edits; families arm / legged / humanoid / psi0 / pointer / relations; dual is parked) | `rrp run-dag recipes/<track>/<lineage>.yaml` (or a name under `recipes/`) (resumable JSON ledger; stage list: `rrp stage list`) |
 | generate / pack arm data | `rrp data generate --config <data config JSON, rendered by the recipe stage>`; `rrp data pack --config … --out artifacts/packed/<name>` |
 | arm Stage A / flow / probes | `rrp latent train-representation --config …`; `rrp latent train-flow --config …`; `rrp latent fit-probes …` |
 | arm ladder evaluation (R0/R1/R2) | `rrp suite ladder --route {teacher,oracle,generated} --robot panda_pg2 --n 30 --out …` |
@@ -89,6 +92,7 @@ and task-context edit suites.
 | legged trackers (GPU PPO) | `rrp train tracker-warp --recipe <recipe> --out …` |
 | Ψ₀ fine-tunes | `rrp train psi0 …` (SIMPLE eval needs the Isaac venv: `ops/bin/psi0_ext.sh`) |
 | labelled video | `rrp video {arm,dual,legged} …` |
+| sealed-cell log (per split) | `rrp suite sealed-log {list,infra-failure}` |
 | visualization room | `cd viz/room && npm run snapshot` (exporter `rrp viz export`) |
 
 ## quickstart
@@ -100,7 +104,7 @@ Requirements: Linux aarch64 or x86_64, Python 3.12, [`uv`](https://github.com/as
 git clone https://github.com/JacobFV/structured-psi0-latent-diffusion-dynamics.git && cd structured-psi0-latent-diffusion-dynamics
 uv venv --python 3.12 .venv
 uv pip install --python .venv/bin/python -e '.[sim,ml,dev]'   # CPU torch is fine for tests
-PYTHONPATH=src:. .venv/bin/python -m pytest tests/unit -q              # ~2 min; Menagerie/data tests skip if absent
+PYTHONPATH=src:. .venv/bin/python -m pytest tests/unit -q -m 'not slow'   # merge gate; tests needing weights / Menagerie / warp skip naming what is missing
 ops/bin/fetch_menagerie.sh                                             # pinned third-party robot assets (~1.7 GB)
 
 # one-time: measure free capacity and create the enforced project slice + watchdog
@@ -126,7 +130,7 @@ src/rrp/          layers import only downward (tests/unit/test_layering.py)
   policies/       base.py (Policy, negotiate, make_policy); features/ (featurizers: the only definition of what a
                   policy may see); nets/; bc, latent, system0, legged, oracle, packets; teachers/ (scripted_teacher);
                   psi0/
-  harness/        rollout.py (the one episode loop), eval/ (evaluate.py: evaluate / matrix; hooks.py; suites), train/,
+  harness/        rollout.py (the one episode loop), hooks.py (rollout hooks: HOOKS, TASK_HOOKS), eval/ (evaluate.py: evaluate / matrix; suites), train/,
                   data/, pipelines/, dag.py (run-dag)
   viz/            room exporter, recorder/replay, replay-spec generator
   cli/            the `rrp` command (tools.py: `rrp <group> <tool>` for data / train / suite / stage / viz tools)
@@ -159,7 +163,9 @@ tests/            unit/ (incl. test_golden.py: byte-identity of featurizers, tea
 - **Branch:** `main` is the integration branch; parallel agents work in `track/<track>` worktrees and rebase onto main
   (`research/tracks/BRIEF.md`). Commit small, push often.
 - **Testing:** light at this research stage (policy in [`AGENTS.md`](AGENTS.md)): test loss/likelihood math, leakage,
-  resource safety and split leakage; otherwise prefer a short real run.
+  resource safety and split leakage; otherwise prefer a short real run. `tests/unit` is green in a fresh checkout; tests
+  that need untracked weights, assets, warp or the peer skip naming what is missing, and tests over 20 s carry
+  `@pytest.mark.slow` (the merge gate is `-m "not slow"`).
 - **Decisions:** anything that changes a plan, gate or interpretation goes into `research/decisions.md` with evidence.
 
 ## where to look next

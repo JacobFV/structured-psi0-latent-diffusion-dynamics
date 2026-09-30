@@ -1,6 +1,8 @@
 # track pointer: ComputerWorld environment and the pointer policy (D-140, D-142; was research/tracks/cworld.md)
 
-Owner decision D-140; design `docs/architecture.md` section 5. Status: **verified, merged after S3**. Code:
+State: **planned** — the env, teachers and pointer policy are merged and unit-tested (readiness PC, commit `1decd724`); the v2 lineage runs (T8) have not started.
+
+Owner decision D-140; design `docs/architecture.md` section 5. Code:
 `src/rrp/envs/computerworld.py` (env, mapping, cw/* setups + judges), `src/rrp/bodies/fixtures.py:cw_pointer_spec`,
 `src/rrp/tasks/spec.py` (cw/* TaskSpecs), `src/rrp/policies/teachers/computerworld.py` (teacher:cw/*),
 `tests/unit/test_computerworld.py`. The pre-S3 prototype (proto/cworld, commit c305296) is deleted.

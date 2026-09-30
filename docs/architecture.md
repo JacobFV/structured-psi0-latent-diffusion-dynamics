@@ -19,7 +19,7 @@ Each layer imports only layers above it in this list (checked by `tests/unit/tes
 | 2 | `rrp.tasks` | task graph compiler/runtime/receipts/interventions (numpy/pydantic), task JSON specs, the `TaskSpec` registry (which envs a task exists in, success/termination, scripted teacher key, gates) | – |
 | 3 | `rrp.envs` | `Env` protocol, `EnvSpec`, capabilities, `make_env` registry; `mujoco/` (Session, LeggedSession, DualSession, scenes, sensors, state estimation, perturbations, embedded legged trackers, snapshots), `warp/` (batched GPU legged envs), `simple/` (optional extra), `computerworld/` (optional extra) | mujoco, mujoco_warp, torch (trackers) |
 | 4 | `rrp.policies` | `Policy` protocol, `PolicyInfo`, `Requirements`, `negotiate`, registry; `features/` (featurizers: the ONLY definition of what a policy may see), `nets/` (shared torch modules: attention, flow, codec, backbone, probes, checkpoint), `relations/` (the relation-factor registry: token sets + field provenance, factor entries, operators / forms, `FactorSite`, `ReadoutProbe`; section 12), `bc.py`, `latent/` (system i planners + system 0 realizers for arm, dual, legged), `trackers.py`, `teachers/` (scripted / privileged, labelled), `oracle.py`, `psi0/` (Ψ₀ direct / Ψ₀ + structure / demo replay, their nets, feature cache and training) | torch |
-| 5 | `rrp.harness` | `rollout` (the one episode loop), `eval.evaluate` (`evaluate` / `matrix`), `eval.hooks` (feasibility, settle, recorders, packet edits, perturbations), statistics, gates, audits; `data/` (collect, pack, manifests, `relgen/` label functions / scene parts / transforms / curriculum, `mix`), `train/` (rep, flow, bc, refit, dagger, sft, grpo, ppo), pipelines + run-dag | – |
+| 5 | `rrp.harness` | `rollout` (the one episode loop), `hooks` (the one hooks module: feasibility, settle, recorders, packet edits, perturbations; `HOOKS` by name, `TASK_HOOKS` per task), `eval.evaluate` (`evaluate` / `matrix`), statistics, gates, audits; `data/` (collect, pack, manifests, `relgen/` label functions / scene parts / transforms / curriculum, `mix`), `train/` (rep, flow, bc, refit, dagger, sft, grpo, ppo), pipelines + run-dag | – |
 | 6 | `rrp.viz` | record/replay, the room exporter (`python -m rrp.cli viz export`, file scans only), replay-spec generator (`rrp viz specs`); the loopback workbench service is RETIRED (D-145, `.old/`) | – |
 | 7 | `rrp.cli` | the `rrp` command (`python -m rrp.cli ...`; kept at the top so every documented invocation stays valid) | – |
 
@@ -279,7 +279,7 @@ class Episode:
     steps; time; wall_s; metrics: dict (command_rejections, chunk_rejections, hook metrics); provenance: dict
     def row(self) -> dict
 
-# S5 (harness.eval.evaluate over harness.rollout; hooks in harness.eval.hooks; CLI `rrp eval`, `rrp matrix`)
+# S5 (harness.eval.evaluate over harness.rollout; hooks in harness.hooks; CLI `rrp eval`, `rrp matrix`)
 def evaluate(policy, env_id, task, body, seeds, *, scene=None, batch=8, max_seconds=None, max_steps=None,
              hooks=(), out=None, row_extra=None) -> list[Episode]          # JSONL rows (Episode.row() + row_extra)
 def summarize(episodes) -> dict       # attempted/successes/Wilson95/infeasible/outcomes/agreement/policy_calls/control_steps
@@ -288,7 +288,7 @@ def matrix(policies, envs: [(env_id, body)], tasks, *, seeds=(), out=None, build
 #   on `seeds`. Env specs come from the env module's static `env_spec(task=, body=)` when present; HEAVY_ENVS
 #   (simple: starts Isaac Sim) are never built implicitly.
 # rollout(): max_steps (exact tick budget: the judge is asked with the budget spent); a hook's on_reset may return a
-#   done Judgement (harness.eval.hooks.Feasibility -> "infeasible", 0 steps); Episode.metrics counts chunks and packets.
+#   done Judgement (harness.hooks.Feasibility -> "infeasible", 0 steps); Episode.metrics counts chunks and packets.
 ```
 
 Hooks replace the special cases of the current loops: `Meter`/stage reached, label error vs shadow teacher, oracle
@@ -298,50 +298,13 @@ context transforms), noise keys for paired edits. Training (`harness.train`) kee
 DAgger, GRPO and adaptation call `rollout`.
 
 CLI (`rrp` = `python -m rrp.cli`, S6b): `eval` / `matrix` (harness.eval.evaluate over harness.rollout, default hooks
-from harness.eval.hooks), `run-dag`, `ops …`, `data …`, `train …`, `latent …`, `adapt`, `campaign …`, `latency`,
+from harness.hooks), `run-dag`, `ops …`, `data …`, `train …`, `latent …`, `adapt`, `campaign …`, `latency`,
 `analyze`, `task validate`, `assets validate`, and the tool commands of `rrp.cli.tools`. No library module
 is a program any more (a test enforces it; the only `__main__` modules left are `rrp.cli` and the SIMPLE worker /
 compat layer, which run inside the Isaac Sim venv as subprocess targets of `rrp.envs.simple`). A tool keeps its own
 argument parser; `rrp <group> <tool> ARGS` passes ARGS through unchanged:
 
-| command | function (formerly `python -m <module>`) |
-|---|---|
-| `rrp data collect-dual` | `rrp.harness.data.collect_dual:main` |
-| `rrp data legged-collect` | `rrp.harness.data.legged_collect:main` |
-| `rrp data legged-latent-collect` | `rrp.harness.data.legged_latent_collect:main` |
-| `rrp data vlm-features` | `rrp.harness.data.vlm_features:main` |
-| `rrp train legged-latent` | `rrp.harness.train.legged_latent_train:main` |
-| `rrp train legged-bc` | `rrp.harness.train.legged_bc:main` |
-| `rrp train legged-dagger` | `rrp.harness.train.legged_dagger:main` |
-| `rrp train tracker-cpu` | `rrp.harness.train.tracker_training:main` |
-| `rrp train tracker-warp` | `rrp.harness.train.warp_tracker_ppo:main` |
-| `rrp train joint-adapt` | `rrp.harness.train.joint_adapt:main` |
-| `rrp train packet-ood` | `rrp.harness.train.packet_ood_fit:main` |
-| `rrp train vlm` | `rrp.harness.train.vlm_train:main` |
-| `rrp train synthetic` | `rrp.harness.train.synthetic:main` |
-| `rrp suite ladder` | `rrp.harness.eval.ladder_cli:main` |
-| `rrp suite legged` | `rrp.harness.eval.legged_latent_eval:main` |
-| `rrp suite legged-summary` | `rrp.harness.eval.legged_summaries:ladder_summary_main` |
-| `rrp suite legged-edit-effects` | `rrp.harness.eval.legged_summaries:edit_effects_main` |
-| `rrp suite legged-mirror-effect` | `rrp.harness.eval.legged_summaries:mirror_effect_main` |
-| `rrp suite robustness` | `rrp.harness.eval.robustness:main` |
-| `rrp suite target` | `rrp.harness.eval.target_eval:main` |
-| `rrp suite system2` | `rrp.harness.eval.system2:main` |
-| `rrp suite teacher-quality` | `rrp.harness.eval.teacher_quality:main` |
-| `rrp suite dual-teacher-quality` | `rrp.harness.eval.dual_teacher_quality:main` |
-| `rrp suite dual-validate` | `rrp.policies.teachers.dual_validate:main` |
-| `rrp suite composition` | `rrp.policies.teachers.functional_composition:main` |
-| `rrp suite tracker-validation` | `rrp.harness.eval.tracker_validation:main` |
-| `rrp suite privileged-audit` | `rrp.harness.eval.privileged_audit:main` |
-| `rrp suite checkpoint-audit` | `rrp.harness.eval.checkpoint_audit:main` |
-| `rrp suite legged-catalog` | `rrp.harness.eval.legged_catalog:main` |
-| `rrp suite grasp-rig` | `rrp.harness.eval.grasp_rig:main` |
-| `rrp stage run` | `rrp.harness.pipelines.base:stage_main` |
-| `rrp stage list` | `rrp.harness.pipelines.base:stage_main` |
-| `rrp viz export` | `rrp.viz.export:main` |
-| `rrp viz api` | `rrp.viz.api:main` |
-| `rrp viz record` | `rrp.viz.record:main` |
-| `rrp ops child` | `rrp.ops.child:main` |
+The command list is data, not prose: `rrp.cli.tools.TOOLS` maps `(group, name)` to `module:function` (formerly `python -m <module>`), and `rrp --help` lists the groups; a unit test keeps every entry importable. Groups: `data`, `train`, `suite` (evaluation suites, audits, validators, `sealed-log`), `eval` (`humanoid-transfer`), `stage`, `viz`, `video`, `factors`, `ops`.
 
 The BC `rrp evaluate` is `rrp eval --policy 'bc={"checkpoint": ..., "nfe": 8, "execute_prefix": 8}' --env mujoco/arm
 --task pick_place --body <robot> --seeds <a:b> --out ...` (one body per call).
@@ -544,7 +507,7 @@ class TaskSpec:                        # rrp.tasks.spec (adds to section 4)
     ...
     build: Mapping[str, str] = {}      # env_id -> "module:builder" (scene builder owned by the task, no if/elif in factories)
     scene: Callable[[int], dict] | None = None   # seed -> scene kwargs; None = the env takes no scene
-    hooks: tuple[str, ...] = ()        # default eval hooks by name (rrp.harness.eval.hooks.HOOKS)
+    hooks: tuple[str, ...] = ()        # default eval hooks by name (rrp.harness.hooks.HOOKS)
     teacher: str | None = None         # POLICIES key (factory owned by the policy registry; no tuples in teachers/__init__)
     max_steps: int | None = None       # explicit tick budget (replaces the judge max_steps hack)
     failure_reasons: tuple[str, ...] = ()   # the vocabulary the judge may emit
@@ -555,6 +518,19 @@ class Env(Protocol): def failure_reason(self) -> str | None   # optional; env-si
   is a `negotiate` failure (reason text), never a TypeError. `evaluate()` / `rrp eval` take `--env-kw k=v` (level,
   split, render profile) and contain no env-id or task-name string comparisons. `rollout` negotiates every env of a
   group. One `DUAL_TASKS` definition.
+- **Hooks** live in ONE module, `rrp.harness.hooks` (beside `rollout.py`; it imports nothing from `harness.eval` or
+  `harness.data`, both import it): `HOOKS` (by name), `TASK_HOOKS` (the per-family defaults a `TaskSpec.hooks` entry
+  selects, with the env-id prefix each applies to) and the generic hook classes (feasibility, settle, session record,
+  displacement, recorders, end-when). Hooks that need a family's probe or metric code live beside it
+  (`harness.eval.latent_eval`, `dual_latent_eval`, `harness.data.contact_metrics`). `rollout` refuses a failure reason
+  outside `TaskSpec.failure_reasons` + rollout's own reasons + the `failure_reasons` of its hooks (`UndeclaredFailureReason`).
+- **Bench envs**: a rig that is not a task world runs under `rollout` as a bare-model `Env` (no scene, no task runtime,
+  one control tick per physics step): `grasp_rig` (`mujoco/grasp_rig`, `_RigEnv` + `_RigMeter`) and the tracker validation
+  trials (`mujoco/tracker_bench`, `_BenchEnv` + a scripted command policy + kick / meter hooks). The quantities they report
+  (contact forces, cost of transport, joint margins) are read from the model / data by the env or a hook, never by a
+  private stepping loop. Energy and CoT stay substep-exact because the env integrates them and reports them in
+  `StepResult`. Outside `rollout.py` and env modules `.step(` / `mj_step(` is a lint error
+  (`tests/unit/test_step_lint.py`); the one allowlisted exception is the snapshot look-ahead of `ShadowTeacher.lookahead`.
 - Humanoid judge (unit HJ, `rrp.tasks.humanoid`): `fell`, `wall_collision`, `wrong_heading`, `trip`, `missed_step`,
   `hold_lost`, `dropped`, `timeout` from `env.failure_reason()` + truth; tasks registered with `build`.
 
@@ -566,7 +542,8 @@ class Env(Protocol): def failure_reason(self) -> str | None   # optional; env-si
 - **One channel to child processes**: the rendered `RunConfig`. `apply_run_context(cfg)` (called at stage entry in
   parent and child) resolves `factors`, configures featurizer options from them (`feat.base_axes`; the
   `$RRP_KINFEAT` environment variable is deleted) and sets the deploy flag. `StageContext.env()` carries only
-  resources.
+  resources and `$RRP_RUN_CONTEXT`, the path of the rendered context, so a grandchild process (a process a child
+  spawns) finds the same `RunConfig` (not a second channel). Families load at plan time.
 - **Trainer hook**: `relation_batches(cfg, out_dir)` (`harness.data.mix`) wraps `mixed_batches` + `Scheduler`, reads
   `steer.jsonl`, appends `schedule.jsonl`; run-config keys `factors:` and `curriculum:`. Each trainer calls it once.
 - **Adoption** of a completed node requires equal `config_hash`, `versions["factors"]`, catalog version (hash of the
@@ -580,11 +557,20 @@ class Env(Protocol): def failure_reason(self) -> str | None   # optional; env-si
 - `TRACKERS[(body, version)] -> TrackerEntry(sha256, obs_format, extra_obs, gate, decision, store)` loaded from
   `artifacts/trackers/<body>/<version>/meta.json`; `make_env("mujoco/legged", ..., tracker="<body>:<version>")`;
   no monkeypatching of `load_tracker`. One recipe registry, one `_TURN`.
-- **Terrain is a public sensor** (D-146): `terrain_scan` = egocentric elevation grid (11 × 7 cells, 0.1 m, body
-  frame, range 1.5 m) from a declared downward depth-sensor model with noise (σ 1 cm), 2 % dropout and one-tick
-  latency, computed identically in Warp and MuJoCo (`mj_ray`); capability `terrain_scan`; a
-  `declared_sensor_channels` entry. The actor and `rl_expert` consume it (`extra_obs_dim` = 77); the critic keeps
-  the exact scan (privileged). Test: Warp actor obs dim == MuJoCo adapter dim, same cell layout.
+- **Terrain is a public sensor** (D-146): `terrain_scan` = egocentric elevation grid (11 × 7 cells, 0.1 m, x from −0.2 m
+  and y from −0.3 m) in the **yaw frame** (base position, heading-only rotation, gravity-aligned; not the full body
+  frame), range 1.5 m, from a declared downward depth-sensor model with noise (σ 1 cm), 2 % dropout and one-tick latency,
+  computed identically in Warp and MuJoCo (`mj_ray`); it reads the ground (floor + scene ground geoms) only, so walls,
+  objects and the robot itself are not scanned. Capability `terrain_scan`; a `declared_sensor_channels` entry; layout
+  and noise model in the actor meta (`terrain_scan_spec()`, version `terrain_scan_v1`). The actor and `rl_expert`
+  consume it (`extra_obs_dim` = 77); the critic keeps the exact scan (privileged). Test: Warp actor obs dim == MuJoCo
+  adapter dim, same cell layout.
+- **`range_ring`** (HS1, the gap expert's second public sensor): 16 horizontal rays in the yaw frame (ray k at angle
+  2πk/16 from +x, counter-clockwise) cast from the base origin (torso height) through every colliding geom except the
+  robot's own; reading = hit distance, clipped to 3 m (no return = 3 m), noise σ 2 cm, 2 % dropout, one tick of latency;
+  capability `range_ring`, declared channel `0:range_ring`, `range_ring_spec()` (`range_ring_v1`). A gap actor takes
+  scan + ring (`extra_obs_dim` = 77 + 16 = 93, scan first); `make_env("mujoco/legged", ..., range_ring=None)` turns it on
+  exactly when the actor takes it, so the expert is not blind to walls. Both sensors need `control="base_velocity"`.
 - `rl_expert` Policy (`policies.teachers.humanoid`, key `rl_expert`): loads a registry actor, source
   `learned:rl_expert:<sha>` when its obs are public, `privileged_teacher:rl_expert:<sha>` otherwise.
 
@@ -596,6 +582,11 @@ class Env(Protocol): def failure_reason(self) -> str | None   # optional; env-si
 - `rrp.core.sealed.SealedSplit` (hash-pinned `research/splits/humanoid_v1.json`): `assert_train_allowed(bodies,
   seeds)` in every data / train stage; `sealed_eval` needs `--sealed`, appends to
   `artifacts/runs/humanoid/sealed_log.jsonl` and refuses a repeat of a (method, body, task, seed set) cell.
+- **Sealed cells** (`core/sealed.py`): `SealedSplit` is split-agnostic (`humanoid_v1`, `armdiv_v1`, `cworld_pointer_v2`;
+  `SealedSplit.load(name)`); a cell is the native id `body|method|task|n<budget>|adaptation|s<train_seed>|seed_set` (absent
+  parts `-`); each split has its own run-once log (`artifacts/runs/<track>/sealed_log.jsonl`); `rrp suite sealed-log list` shows the cells and
+  `infra-failure` releases an OPEN cell after an infrastructure failure (never after a bad result). The wholebody and gap tracker trainers call
+  `assert_train_allowed` before creating anything; humanoid adaptation stages write `acquisition.json` with their cell id.
 - **Upper body**: control mode `wholebody` = the `legs` group (unchanged: `control="legs"` stays bit-identical,
   golden) + an `upper` joint_position group (arms, waist, head; 50 Hz PD) in both backends. Trackers for wholebody
   are trained with random upper-body targets and payload (recipes `*_ub`); system 0 realizes `upper` from the packet

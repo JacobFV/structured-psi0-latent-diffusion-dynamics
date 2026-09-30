@@ -1,5 +1,7 @@
 # track: humanoid (W13, D-138) — humanoid transfer program
 
+State: **implementing** — the trainers, stages and recipes are merged (readiness round 2: HS1, HD1, HD2, HP, HS2, HA, HR, see `STATUS.md`); two code gaps stay open before the gated runs: `LearnedTracker` cannot load a `morph_v2` checkpoint (blocks T3) and the gap trainer writes no `range_ring` actor meta (blocks the T1 `h_gap` run). No campaign run has started (T1 to T5 are `planned`).
+
 Owner request (2026-09-28): "focus more on humanoids. we need to test lots of humanoid transfer" and "the humanoid tasks need
 to be more complex". Worktree `~/work/rrp-wt/humanoid`, branch `track/humanoid`, peer code dir
 `/dev/shm/rrp-brandonin/wt/humanoid` (always `export RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/humanoid`).

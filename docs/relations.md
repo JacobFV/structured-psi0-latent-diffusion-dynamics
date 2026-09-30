@@ -359,7 +359,8 @@ first rung of the curriculum (5.5), not the whole data design.
 - `rrp stage run relations_data --config <run>`: for the run's resolved factor list, collect or relabel episodes
   (env × task × seeds from the config; relabelling reads recorded snapshots so no new physics is needed where
   snapshots exist), apply each factor's variations and transforms, write labelled shards
-  `artifacts/relgen/<factor>/<version>/` + manifest. No per-factor scripts.
+  `<run>/relgen/<factor>/<version>/` (inside the run directory, `artifacts/runs/<track>/<lineage>/<stage>_s<seed>/`;
+  `schema.toml` has no top-level `artifacts/relgen`) + manifest with hashes. No per-factor scripts.
 - `mixed_batches(main, curriculum, rng)` (`rrp.harness.data.mix`): each batch = the curriculum's share of composed
   relgen samples + the main (task) data, fraction-exact per batch and deterministic under the seed; labels a sample
   does not carry are masked. This is how a probe keeps its latent subspace while the policy trains.
@@ -654,7 +655,7 @@ containment, material, tool→target, cause→effect: new scene parts + labels) 
   `occlude(p)` masks tokens; `subsample`. Each appends its provenance; math tests as in the table.
 - **R10.** The one data stage: `harness/pipelines/relations.py` registers `relations_data`, which reads the run
   config's factors, resolves labels / parts / transforms, collects or relabels episodes through `StateView`, writes
-  shards `artifacts/relgen/<factor>/<version>/` with a manifest and per-sample provenance (active set, label versions,
+  shards `<run>/relgen/<factor>/<version>/` with a manifest and per-sample provenance (active set, label versions,
   transforms, env, task, seed). `mix.mixed_batches` interleaves curriculum shares with the main data exactly.
 - **R11.** Fill in `Scheduler` (5.5) on the F4 skeleton: signals (competence, plateau, interference, attributed
   failures) with EMA and hysteresis; per-factor levels promoted / demoted by competence; coverage subset sampling;
@@ -728,6 +729,19 @@ def require_factors(saved_versions, specs, allow_mismatch=False)   # every check
 - Coverage: `rrp factors coverage` writes `artifacts/runs/relations/coverage/coverage.json` (factor × family × env:
   resolves / label runnable / part available) and a unit test asserts it against the catalog.
 - The pipeline manifest copies `versions["factors"]` and the factor provenance (unit F3).
+
+**Live sites per family** (what `FAMILIES` declares today; `tests/unit/test_docs_truth.py` compares this table with the
+registry, so a site added in code without a row here fails). A factor applies only where a site exists; "relgen shards"
+says whether the family's trainers consume `relation_batches`:
+
+| family | token sets | live sites (`query>key`) | edge vocabulary | relgen shards reach the trainer |
+|---|---|---|---|---|
+| arm | `ctx`, `act`, `node`, `knot` | `ctx>ctx`, `act>ctx`, `act>act`, `node>knot` | `arm-rel-v1` | yes: stage A and flow (`harness/train/latent_train.py`), BC (`behavior.py`) |
+| dual | `ctx`, `act`, `node`, `knot` | `ctx>ctx`, `act>ctx`, `act>act`, `node>knot` | `arm-rel-v1` | no: parked (no training node; evals take an external checkpoint) |
+| legged | `ctx`, `act`, `knots` | `ctx>ctx`, `act>ctx`, `act>act`, `act>knots` | `legged-rel-v1` | no: the legged trainers raise `RelgenError` on `params.curriculum` / `inputs.relgen` (`refuse_relgen`); the arm rows are not legged batches |
+| humanoid | `ctx`, `act`, `knots` | `ctx>ctx`, `act>ctx`, `act>act`, `act>knots` | `legged-rel-v1` | no (same trainers as legged) |
+| psi0 | `dims`, `knots` | `dims>dims`, `dims>knots` | `g1-dim-rel-v1` | no: the Ψ₀ trainers have no `relation_batches` call |
+| pointer | `ctx` | `ctx>ctx` | `ui-rel-v1` | yes (`harness/train/pointer/relmix.py`, label `drag_to`) |
 
 **Legged / humanoid (unit HL).** Vocabulary `legged-rel-v1`, all public (morphology + the public terrain scan):
 `same_node`, `kin_parent`, `kin_child`, `same_assembly` (joints of one limb), `mirror` (left/right homologous limb),
