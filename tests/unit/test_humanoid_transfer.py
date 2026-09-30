@@ -71,14 +71,23 @@ def test_equal_acquisition_green_and_red():
 
 
 def test_sealed_cell_id_carries_task_budget_and_adaptation():
-    c = dict(task="h_walk", body="n1", method="bc_sft", budget=5, train_seed=0)
-    ids = {HE.sealed_method(dict(c, **kw)) for kw in ({}, dict(budget=20), dict(task="h_turn"), dict(method="semfix_refit"))}
-    assert len(ids) == 4
+    from rrp.core.sealed import SealedSplit
+    cfg = HE.validate_config(dict(name="x", task="h_walk", bodies=["n1"], train_seeds=[0],
+                                  levels={"2": dict(unit="demos", budgets=[5, 20], updates={"5": 150, "20": 300})},
+                                  methods=[dict(name=n, level=2, kind="bc", source="bc", trained=True, budgeted=True, policy="legged_bc",
+                                                producer="adapt_bc") for n in ("bc_sft", "bc_other")]))
+    scenes = list(range(2_000_000, 2_000_100))
+    base = HE.expand_cells(cfg)[0]
+    ids = {SealedSplit.cell_id(HE.sealed_cell(cfg, dict(base, **kw), scenes))
+           for kw in ({}, dict(budget=20), dict(task="h_turn"), dict(method="bc_other"), dict(train_seed=1))}
+    assert len(ids) == 5
+    assert SealedSplit.cell_id(HE.sealed_cell(cfg, base, scenes)) == "n1|bc_sft|h_walk|n5|adapt_bc|s0|evaluation"
 
 
 def test_pipeline_family_stages_registered():
     _load_families()
-    for st in ("collect", "pack", "train_rep", "train_flow", "train_bc", "eval_transfer", "sealed_eval"):
+    for st in ("collect", "pack", "train_rep", "train_flow", "train_bc", "adapt_refit", "adapt_flow", "adapt_bc", "adapt_ppo",
+               "eval_transfer", "sealed_eval"):
         assert ("humanoid", st) in _REGISTRY, st
 
 

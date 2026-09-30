@@ -135,9 +135,56 @@ def _episode_task(max_s: float, long_mode: bool):
     return dataclasses.replace(task, judge=judge, max_seconds=max_s)
 
 
-def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=None, arc_only=False, frame_every=2,
-                cam_scale=1.0, size=(368, 480), perturb=None, deploy=None, hooks=()):
-    """One waypoint_contact episode through harness.rollout. ctl None: the scripted teacher (privileged WaypointTeacher,
+WAYPOINT_TASK = "waypoint_contact"
+
+
+def _policy_of(ctl, oracle=False):
+    if isinstance(ctl, BCController):
+        from rrp.policies.legged import LeggedBCPolicy
+        return LeggedBCPolicy(ctl)
+    from rrp.policies.legged import LeggedLatentPolicy
+    return LeggedLatentPolicy(ctl, oracle=oracle)
+
+
+def run_task_episode(ctl, body, seed, task, max_s=None, *, oracle=False, tracker=None, hooks=()):
+    """One episode of a registered humanoid task (`h_*`: h_steps, h_gap, the carry / push tasks) through the generic
+    `evaluate()` path (the task's own scene, judge and hooks). ctl None: the task's registered scripted teacher
+    (privileged; its `teacher` entry); a LatentLeggedController / BCController: the policy on the `legs` (or, with
+    ctl.upper, the `wholebody`) action space over the tracker the env is built with (`tracker=` a tracker-registry spec;
+    None = the body default). max_s None = the task's own budget. The waypoint_contact-only features (deploy options,
+    perturbations, video, system II) are not available here; the row carries the core keys of `run_episode` and
+    failure_stage = success or the task judge's failure reason. Returns (row, frames=[])."""
+    from rrp.harness.eval.evaluate import evaluate, task_hooks
+    from rrp.policies.base import make_policy
+    from rrp.tasks.spec import get_task
+    spec = get_task(task)
+    if ctl is None:
+        policy = make_policy(spec.teacher)
+    else:
+        policy = _policy_of(ctl, oracle)
+    t0 = time.time()
+    ep, = evaluate(policy, "mujoco/legged", task, body, [seed], batch=1, max_seconds=max_s,
+                   hooks=[*task_hooks(task, "mujoco/legged"), *hooks],
+                   env_kw=({} if tracker is None else dict(tracker=tracker)))
+    if ep.outcome == "crash":
+        raise RuntimeError(f"{task} episode crashed ({ep.failure_reason}): {ep.metrics.get('note', '')}")
+    ok = bool(ep.success_privileged)
+    fell = ep.failure_reason == "fell"
+    row = dict(body=body, seed=seed, task=task, source=str(getattr(ep.source, "value", ep.source)),
+               policy=ep.policy, edit=(ctl.edit if ctl else "none"), t_edit=(ctl.t_edit if ctl else None), success=ok,
+               fell=fell, public_success=bool(ep.success_public), sim_time=float(ep.time), wall_s=time.time() - t0,
+               outcome=ep.outcome, failure_reason=ep.failure_reason, n_steps=ep.steps, tracker=tracker,
+               failure_stage="success" if ok else (ep.failure_reason or ep.outcome))
+    if ctl is not None:
+        row.update(latent_space_version=getattr(ctl, "lsv", None), realizer_compat_version=getattr(ctl, "rcv", None),
+                   checkpoint_provenance=getattr(ctl, "checkpoint_provenance", None))
+    return row, []
+
+
+def run_episode(ctl, body, seed, max_s=None, video=None, oracle=False, scenario=None, arc_only=False, frame_every=2,
+                cam_scale=1.0, size=(368, 480), perturb=None, deploy=None, hooks=(), task=WAYPOINT_TASK, tracker=None):
+    """One waypoint_contact episode through harness.rollout (`task=` an `h_*` task: `run_task_episode`; there max_s
+    None is the task's own budget, and scenario / arc_only / perturb / deploy / video are refused). ctl None: the scripted teacher (privileged WaypointTeacher,
     base_velocity control through the body tracker); a LatentLeggedController / BCController: the policy on the `legs`
     action space (rrp.policies.legged; 50 Hz joint targets, 10 Hz sensing/runtime/fall schedule unchanged).
     perturb: rrp.envs.mujoco.perturb.PhysicsPerturbation (W6 robustness sweeps; None = nominal). Every row carries
@@ -147,6 +194,16 @@ def run_episode(ctl, body, seed, max_s=60.0, video=None, oracle=False, scenario=
     path start after the 0.3 s reset settle (research/decisions.md, D-140 S5e). `hooks`: extra rollout hooks after the
     episode's own (read-only recorders, rrp.viz.record); the session carries `motion_recorder`, the per-substep
     LeggedMotionRecorder that `install_legged` feeds (its `energy` is the substep-exact energy of the episode)."""
+    if task != WAYPOINT_TASK:
+        bad = [k for k, v in (("scenario", scenario), ("arc_only", arc_only), ("perturb", perturb), ("deploy", deploy),
+                              ("video", video)) if v]
+        if bad:
+            raise ValueError(f"task {task!r}: {', '.join(bad)} apply to {WAYPOINT_TASK} only")
+        return run_task_episode(ctl, body, seed, task, max_s, oracle=oracle, tracker=tracker, hooks=hooks)
+    if tracker is not None:
+        raise ValueError(f"{WAYPOINT_TASK}: the tracker is the body default (LeggedSession tracker_kind); "
+                         "tracker= applies to the h_* tasks")
+    max_s = 60.0 if max_s is None else max_s
     from rrp.envs.mujoco.motion_quality import LeggedMotionRecorder
     from rrp.envs.mujoco.perturb import apply_model, install_legged
     from rrp.harness.data.contact_metrics import contact_metrics_enabled
@@ -364,7 +421,14 @@ def main(argv=None):
     ap.add_argument("--edit", default="none")
     ap.add_argument("--t-edit", type=float, default=1.0)
     ap.add_argument("--nfe", type=int, default=8)
-    ap.add_argument("--max-s", type=float, default=60.0)
+    ap.add_argument("--max-s", type=float, default=None, help="episode budget in sim seconds (default: 60 for "
+                    "waypoint_contact, the task's own budget for an h_* task)")
+    ap.add_argument("--task", default=WAYPOINT_TASK, help="waypoint_contact (default) or a registered h_* humanoid task "
+                    "(generic evaluate() path; scripted teacher = the task's own teacher)")
+    ap.add_argument("--upper", action="store_true", help="realize the upper group as well (wholebody; a flow / rep trained "
+                    "with upper targets)")
+    ap.add_argument("--tracker", default=None, help="h_* tasks: tracker-registry spec <body>:<version> the env is built "
+                    "with (default: the body's)")
     ap.add_argument("--posthoc-probe", default=None)
     ap.add_argument("--oracle", action="store_true", help="DIAGNOSTIC: E-encoded shadow teacher rollouts as packets")
     ap.add_argument("--bc", default=None, help="BC policy.pt: alone = BC route (positive control); with --rep or "
@@ -384,6 +448,16 @@ def main(argv=None):
     ap.add_argument("--system2", default="off", help="D-126 #31 system II harness (rrp.harness.eval.system2): off (default) "
                     "| oracle (DIAGNOSTIC) | default | mock[:name] | vlm[:<weights dir>]; instruction -> target -> context")
     a = ap.parse_args(argv)
+    if a.task != WAYPOINT_TASK:
+        if not a.task.startswith("h_"):
+            ap.error(f"--task {a.task}: waypoint_contact or an h_* task")
+        used = [f for f, v in (("--system2", a.system2 != "off"), ("--video-dir", a.video_dir), ("--arc-only", a.arc_only != "none"),
+                               ("--oracle", a.oracle), ("--oracle-bc", a.oracle_bc), ("--edit", a.edit != "none"),
+                               ("--posthoc-probe", a.posthoc_probe), ("--zero-qd", a.zero_qd)) if v]
+        if used:
+            ap.error(f"{', '.join(used)} apply to waypoint_contact only")
+    elif a.tracker:
+        ap.error("--tracker applies to the h_* tasks")
     from rrp.harness.eval.system2 import make_system2
     sys2 = make_system2(a.system2)
     deploy = DeployOptions.from_args(a)
@@ -402,7 +476,7 @@ def main(argv=None):
                 elif a.flow or a.rep:
                     ctl = LatentLeggedController(Path(a.flow) if a.flow else None, dev, nfe=a.nfe, edit=a.edit,
                                                  t_edit=a.t_edit, seed=sd, posthoc_probe=a.posthoc_probe, rep=a.rep,
-                                                 realizer=a.realizer, zero_qd=a.zero_qd)
+                                                 realizer=a.realizer, zero_qd=a.zero_qd, upper=a.upper)
                     if a.oracle_bc:
                         from rrp.policies.nets.legged_bc import load_bc
                         ctl.bc, _ = load_bc(a.bc, dev)
@@ -418,6 +492,7 @@ def main(argv=None):
                     if ctl is not None and not isinstance(ctl, BCController):
                         _attach_provider(ctl, prov)
                 row, frames = run_episode(ctl, body, sd, a.max_s, video=True if want else None, oracle=a.oracle,
+                                         task=a.task, tracker=a.tracker,
                                          arc_only=(a.flow is None and (a.arc_only == "all" or body in a.arc_only.split(","))),
                                          **({} if deploy is None else dict(deploy=deploy)), **s2kw)
                 if s2rec is not None:
@@ -448,7 +523,7 @@ def main(argv=None):
         summ[body] = dict(n=len(rs), success=sum(r["success"] for r in rs), fell=sum(r["fell"] for r in rs),
                           stages=stages, seeds=a.seeds,
                           mean_sim_time=float(np.mean([r["sim_time"] for r in rs])),
-                          packet_probes=packet_probe_accuracy(rs) if (a.flow or a.rep) else None)
-    out.with_suffix(".summary.json").write_text(json.dumps(dict(source=rows[0]["source"], edit=a.edit, per_body=summ),
+                          packet_probes=(packet_probe_accuracy(rs) if (a.flow or a.rep) and a.task == WAYPOINT_TASK else None))
+    out.with_suffix(".summary.json").write_text(json.dumps(dict(source=rows[0]["source"], edit=a.edit, task=a.task, per_body=summ),
                                                            indent=1))
     print(json.dumps(summ, indent=1))

@@ -5,7 +5,9 @@ recipe instance, contact model in flags.contact_version:
 |---|---|
 | collect | per body and seed one shard of the scripted teacher (task registry) driving a REGISTERED actor (`rl_expert`, spec `<body>:<version>`), `rrp data legged-latent-collect --task T --tracker-id S` |
 | pack | nested target-demo packs: the FIRST N demos (by seed) of a body linked under `n<N>/<body>/`, and `pack.json` = the acquisition record of every (task, body, N): demos, teacher ticks, env samples, matched updates |
-| train_rep, train_flow, train_bc | the legged trainers, behind the humanoid guards: sealed dataset, contact version, waypoint-free shards refused with a reason, and (options.adapt) the matched-update check + `acquisition.json` |
+| train_rep, train_flow, train_bc | the legged trainers (task-agnostic `LeggedData`), behind the humanoid guards: sealed dataset, contact version, and (options.adapt) the matched-update check + `acquisition.json` |
+| adapt_refit, adapt_flow, adapt_bc | Level 2 adaptation from the target pack `n<N>` (inputs `pack` + the source `representation` / `init`; options.adapt = {task, body, budget}): system-0 refit, flow warm start (on the refit or source rep), BC SFT warm start. Each checks the matched update count, guards the sealed split with its native cell id and writes `acquisition.json` (what the transfer driver reads) |
+| adapt_ppo | Level 1 tracker fine-tune (input `init` = an actor.pt) or scratch through `rrp train tracker-warp`; options.adapt = {task, body, budget (env samples), mode}; iterations are derived from the budget, the trainer's own log must reach exactly it; writes `acquisition.json` |
 | eval_transfer | `rrp eval humanoid-transfer --scope dev`: bodies x methods x budgets x training seeds, Level 1 apart from Level 2, one acquisition accounting, tables |
 | sealed_eval | the same on the SEALED bodies and evaluation scenes; needs options.sealed: true; every cell runs once (SealedSplit log `artifacts/runs/humanoid/sealed_log.jsonl`) |
 
@@ -24,11 +26,12 @@ from rrp.core.runconfig import META, register_family
 from rrp.core.sealed import SealedSplit
 from rrp.harness.pipelines.base import StageContext, StageError, register_stage
 from rrp.harness.pipelines.legged import _json_safe, _seed_list, check_contact_version, physics_env
+from rrp.harness.train.humanoid_adapt import ADAPT_STAGES
 
 FAMILY = "humanoid"
 register_family(FAMILY, flag_spec={"train_rep": {"qd_dropout": "latent.qd_dropout", "contact_version": META}},
                 default_stage_flags={"contact_version": META},
-                doc="humanoid transfer stages (collect, pack, train_*, eval_transfer, sealed_eval); contact model in flags.contact_version")
+                doc="humanoid transfer stages (collect, pack, train_*, adapt_*, eval_transfer, sealed_eval); contact model in flags.contact_version")
 
 SHARD_ARRAYS = (".npz", ".json", ".manifest.json")
 
@@ -86,19 +89,6 @@ def acquisition_record(pack: dict, task: str, body: str, budget: int, steps: int
     if int(steps) != int(rec["updates"]):
         raise StageError(f"{task}|{body}|n{budget}: {steps} updates, the matched count is {rec['updates']} (demo budgets are compared at equal updates)")
     return {k: rec[k] for k in ("task", "body", "budget", "demos", "teacher_ticks", "env_samples", "updates", "seeds")}
-
-
-def check_waypoint_free(data: str | Path, bodies) -> None:
-    """The legged trainers' `LeggedData` reads `episodes[i]['waypoints']` of every shard; humanoid tasks other than the waypoint task record
-    none. Refuse with the reason instead of a KeyError deep in the loader (the loader is the legged owner's)."""
-    for b in bodies:
-        for js in sorted(Path(data, b).glob("s*.json")):
-            if js.name.endswith(".manifest.json"):
-                continue
-            eps = json.loads(js.read_text())["episodes"]
-            if any(not e.get("waypoints") for e in eps):
-                raise StageError(f"{js}: episodes carry no `waypoints`; LeggedData (rrp.harness.train.legged_latent_train) requires them, so the "
-                                 "task's shards cannot be trained on until the loader is task-agnostic (research/tracks/humanoid.md, H6)")
 
 
 # ---------------------------------------------------------------------------------------------------- stages
@@ -165,18 +155,43 @@ def pack(ctx: StageContext) -> dict:
                 source_detail=str(ctx.inp("data")))
 
 
+def adapt_cell(ctx: StageContext, a: dict, seed) -> dict:
+    """The SealedSplit cell an adapting run belongs to, in SL's native keys: the body, the stage as the method, the task, the demo /
+    sample budget, the adaptation it performs and the training seed. `cell_id` of it is the identity recorded next to the accounting."""
+    return dict(body=a["body"], method=ctx.rc.stage, train_seed=int(seed or 0), task=a["task"], budget=int(a["budget"]),
+                adaptation=ctx.rc.stage)
+
+
+def _adapt_opts(ctx: StageContext, *, mode: bool = False) -> dict:
+    a = ctx.opts.get("adapt")
+    need = ("task", "body", "budget") + (("mode",) if mode else ())
+    if not a or any(k not in a for k in need):
+        raise StageError(f"{ctx.rc.stage}: options.adapt = {{{', '.join(need)}}} is required (the acquisition record is keyed by it)")
+    return dict(a)
+
+
+def _sealed_adapt_guard(ctx: StageContext, a: dict, seeds, seed) -> str:
+    """Sealed guard of an adapting run: a sealed body trains only on its target-adaptation seeds (the pack's), and the run names
+    its cell id (`body|stage|task|n<budget>|stage|s<seed>|evaluation`) in the error and in `acquisition.json`."""
+    cid = SealedSplit.cell_id(adapt_cell(ctx, a, seed))
+    SealedSplit.load().assert_train_allowed([a["body"]], seeds, what=f"{ctx.rc.stage} [{cid}]")
+    return cid
+
+
+def _write_acquisition(ctx: StageContext, acq: dict, **extra) -> None:
+    ctx.out.mkdir(parents=True, exist_ok=True)
+    (ctx.out / "acquisition.json").write_text(json.dumps(dict(acq, stage=ctx.rc.stage, **extra), indent=1, sort_keys=True))
+
+
 def _guard(ctx: StageContext, data, bodies, steps) -> None:
     from rrp.harness.pipelines.legged import sealed_data_guard
     sealed_data_guard(data, bodies)
     check_contact_version(ctx, str(data))
-    check_waypoint_free(data, bodies)
     a = ctx.opts.get("adapt")
     if a:
         pk = json.loads((ctx.root / ctx.inp("pack")).read_text())
         acq = acquisition_record(pk, a["task"], a["body"], int(a["budget"]), int(steps))
-        ctx.out.mkdir(parents=True, exist_ok=True)
-        (ctx.out / "acquisition.json").write_text(json.dumps(dict(acq, stage=ctx.rc.stage, pack_sha256=hashlib.sha256(
-            (ctx.root / ctx.inp("pack")).read_bytes()).hexdigest()), indent=1, sort_keys=True))
+        _write_acquisition(ctx, acq, pack_sha256=hashlib.sha256((ctx.root / ctx.inp("pack")).read_bytes()).hexdigest())
 
 
 @register_stage(FAMILY, "train_rep", source="learned")
@@ -212,6 +227,100 @@ def train_bc(ctx: StageContext) -> dict:
     res = fn(cfg, ctx.out)
     pol = str(Path(ctx.rc.out) / "policy.pt")
     return dict(outputs={"policy": pol}, metrics=_json_safe(res), source_detail=pol)
+
+
+# ---------------------------------------------------------------------------------------------------- Level 2 adaptation
+def _adapt_data(ctx: StageContext) -> dict:
+    """The native config over the pack `n<budget>` of the body, after the guards: the sealed split (the pack's seeds, the dataset),
+    the contact version and the matched update count; `acquisition.json` is written (pack sha, the cell id)."""
+    a = _adapt_opts(ctx)
+    pack_rel = ctx.inp("pack")
+    pack_path = ctx.root / pack_rel
+    pk = json.loads(pack_path.read_text())
+    rec = (pk.get("records") or {}).get(f"{a['task']}|{a['body']}|n{int(a['budget'])}")
+    if rec is None:
+        raise StageError(f"pack has no record for {a['task']}|{a['body']}|n{int(a['budget'])}")
+    rel = Path(pack_rel).parent / f"n{int(a['budget'])}"
+    cfg = dict(ctx.native)
+    steps = int(cfg["steps"])
+    cfg.update(data=str(ctx.root / rel), bodies=[a["body"]], adapt=a)
+    cid = _sealed_adapt_guard(ctx, a, rec["seeds"], cfg.get("seed", 0))
+    from rrp.harness.pipelines.legged import sealed_data_guard
+    sealed_data_guard(cfg["data"], cfg["bodies"])
+    check_contact_version(ctx, str(rel))
+    acq = acquisition_record(pk, a["task"], a["body"], int(a["budget"]), steps)
+    _write_acquisition(ctx, acq, pack_sha256=hashlib.sha256(pack_path.read_bytes()).hexdigest(), cell=cid)
+    cfg.pop("pack", None)
+    for k in ("init", "representation"):
+        if k in cfg:
+            cfg[k] = str(ctx.root / cfg[k])
+    return cfg
+
+
+@register_stage(FAMILY, "adapt_refit", source="learned", flags=["contact_version"])
+def adapt_refit(ctx: StageContext) -> dict:
+    """System-0 refit from the target pack (E and P frozen; inputs `pack`, `representation`; params steps, lr, seed, ...)."""
+    from rrp.harness.train.humanoid_adapt import adapt_refit as fn
+    res = fn(_adapt_data(ctx), ctx.out)
+    rep = str(Path(ctx.rc.out) / "representation.pt")
+    return dict(outputs={"representation": rep}, metrics=_json_safe(res), source_detail=rep)
+
+
+@register_stage(FAMILY, "adapt_flow", source="learned", flags=["contact_version"])
+def adapt_flow(ctx: StageContext) -> dict:
+    """Flow warm start on the target pack (inputs `pack`, `init` = the source flow, `representation` = the refit or source rep)."""
+    from rrp.harness.train.humanoid_adapt import adapt_flow as fn
+    res = fn(_adapt_data(ctx), ctx.out)
+    pol = str(Path(ctx.rc.out) / "policy.pt")
+    return dict(outputs={"policy": pol}, metrics=_json_safe(res), source_detail=pol)
+
+
+@register_stage(FAMILY, "adapt_bc", source="bc", flags=["contact_version"])
+def adapt_bc(ctx: StageContext) -> dict:
+    """BC SFT warm start on the target pack (inputs `pack`, `init` = the source BC policy; source bc)."""
+    from rrp.harness.train.humanoid_adapt import adapt_bc as fn
+    res = fn(_adapt_data(ctx), ctx.out)
+    pol = str(Path(ctx.rc.out) / "policy.pt")
+    return dict(outputs={"policy": pol}, metrics=_json_safe(res), source_detail=pol)
+
+
+# ---------------------------------------------------------------------------------------------------- Level 1: PPO
+@register_stage(FAMILY, "adapt_ppo", source="learned_tracker", flags=["contact_version"])
+def adapt_ppo(ctx: StageContext) -> dict:
+    """Level-1 tracker adaptation through the HS2 trainer (`rrp train tracker-warp`, GPU MuJoCo Warp; declare resources.gpu).
+    options: adapt = {task, body, budget (env samples), mode: finetune | scratch}, recipe (a tracker recipe), args ({option dest:
+    value}), resume (default true). finetune needs input `init` (an actor.pt); scratch has none. The iteration count is DERIVED from
+    the budget (samples = iters * horizon * nworld; a budget that is not a multiple is refused) and the trainer's own log must end at
+    exactly that many samples before `acquisition.json` ({env_samples: budget}, nothing else) is written. Output: actor.pt."""
+    from rrp.harness.train.humanoid_adapt import adapt_ppo_plan, ppo_acquisition
+    o = ctx.opts
+    a = _adapt_opts(ctx, mode=True)
+    init = ctx.inp("init", required=False)
+    if init is not None:
+        init = str(ctx.root / init)
+        if not Path(init).exists():
+            raise StageError(f"adapt_ppo: init actor {init} missing")
+    args = dict(o.get("args") or {})
+    if o.get("recipe"):
+        args["recipe"] = o["recipe"]
+    plan = adapt_ppo_plan(a, args, out=ctx.rc.out, init=init, resume=bool(o.get("resume", True)))
+    cid = _sealed_adapt_guard(ctx, a, [plan["seed"]], plan["seed"])
+    ctx.run(["-m", "rrp.cli", "train", "tracker-warp", *plan["argv"]], env=physics_env(ctx, OMP_NUM_THREADS=1))
+    actor = ctx.out / "actor.pt"
+    if not actor.exists():
+        raise StageError(f"{actor} missing after training")
+    rows = [json.loads(x) for x in (ctx.out / "train_log.jsonl").read_text().splitlines() if x.strip()]
+    got = int(rows[-1]["samples"]) if rows else 0
+    acq = ppo_acquisition(plan)
+    if got != acq["env_samples"]:
+        raise StageError(f"adapt_ppo: the trainer's log ends at {got} env samples, the budget is {acq['env_samples']} (an unmatched budget is "
+                         "not the same acquisition)")
+    _write_acquisition(ctx, acq, cell=cid, measured_env_samples=got)
+    meta = json.loads((ctx.out / "meta.json").read_text())
+    return dict(outputs={"actor": str(Path(ctx.rc.out) / "actor.pt")},
+                metrics=dict(body=meta["body"], mode=a["mode"], env_samples=got, iters=plan["iters"],
+                             actor_sha256=hashlib.sha256(actor.read_bytes()).hexdigest(), init_from=meta.get("init_from")),
+                source_detail=meta.get("source_label"))
 
 
 def _transfer(ctx: StageContext, scope: str) -> dict:

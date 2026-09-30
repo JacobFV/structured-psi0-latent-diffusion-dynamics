@@ -11,8 +11,9 @@ docs/architecture.md sections 6 and 14.4). Two parts:
    (research/tracks/humanoid.md section 4): sealed bodies x methods x demo budgets x training seeds. Level 1 (existing-controller
    transfer) and Level 2 (new controller training) are separate tables and never pooled; every adapting cell of a group has
    the SAME acquisition record (demos, teacher ticks, env samples, updates), checked against the pack that produced the data;
-   a cell without a run or accounting is reported (`missing_run` / `unaccounted`), never skipped; sealed cells run once through
-   `SealedSplit.sealed_eval`; tables (Wilson per cell, Newcombe method - reference) come from `statistics.py`.
+   a cell without a run or accounting is reported (`missing_run` / `unaccounted`; `pending` = the run is planned: the method declares
+   the stage that produces it, `producer`), never skipped; sealed cells run once through `SealedSplit.sealed_eval` with SL's native
+   cell (body, method, train seed, scenes, task, budget, adaptation); tables (Wilson per cell, Newcombe method - reference) come from `statistics.py`.
 * lab_gate: the W13 lab gate over a tracker_validation JSON (no-fall 1.0, forward >= 0.8, turn >= 0.5, slip < 0.15).
 """
 from __future__ import annotations
@@ -236,6 +237,10 @@ LEVEL_NAMES = {"1": "Level 1: existing-controller transfer", "2": "Level 2: new 
                "0": "Reference: scripted / privileged teacher (not a learned method)"}
 SOURCES = ("learned", "privileged_teacher", "scripted_teacher", "bc", "privileged", "oracle", "random", "mock")
 RESULTS = "results.jsonl"
+# the stage that creates a method's run: the adapting stages of humanoid/adapt_* (research/tracks/humanoid.md section 4), the zero-shot
+# trainers, the tracker trainer and the tracker registry install. A method that declares one has its missing runs `pending` (planned),
+# never `missing_run`: that word is for a run nothing is going to produce.
+PRODUCERS = ("adapt_refit", "adapt_flow", "adapt_bc", "adapt_ppo", "train_rep", "train_flow", "train_bc", "train_tracker", "tracker-install")
 
 
 class MissingRun(RuntimeError):
@@ -291,6 +296,8 @@ def validate_config(cfg: dict) -> dict:
         names.add(m["name"])
         if m.get("budgeted") and lv == "0":
             raise ValueError(f"method {m['name']!r}: a reference method has no budget")
+        if m.get("producer") is not None and m["producer"] not in PRODUCERS:
+            raise ValueError(f"method {m['name']!r}: producer {m['producer']!r} is not one of {PRODUCERS}")
     for lv, d in cfg["levels"].items():
         if d.get("unit") not in ("demos", "samples"):
             raise ValueError(f"level {lv}: unit must be demos | samples")
@@ -309,10 +316,14 @@ def cell_key(c: dict) -> str:
     return f"{c['task']}|{c['body']}|{c['method']}|n{c['budget'] if c['budget'] is not None else 0}|s{c['train_seed']}"
 
 
-def sealed_method(c: dict) -> str:
-    """The `method` of a SealedSplit cell. Its cell id is body|method|seed, so the task, the adaptation and the budget ride in
-    the method string: two cells that differ only there must not be one run-once cell."""
-    return f"{c['task']}/{c['method']}/n{c['budget'] if c['budget'] is not None else 0}"
+def sealed_cell(cfg: dict, c: dict, scenes) -> dict:
+    """The SealedSplit cell of a matrix cell, in SL's native keys (core.sealed.CELL_KEYS): its id is
+    body|method|task|n<budget>|adaptation|s<train seed>|evaluation, so two cells that differ only in task, demo / sample budget or
+    adaptation are different run-once cells. `adaptation` is the stage that produced the run (the method's `producer`; none for a
+    zero-shot, reference or registry cell)."""
+    m = method_of(cfg, c["method"])
+    return dict(body=c["body"], method=c["method"], train_seed=c["train_seed"], scenes=list(scenes), task=c["task"], budget=c["budget"],
+                adaptation=m.get("producer") if c["budget"] is not None else None)
 
 
 def expand_cells(cfg: dict, bodies=None) -> list[dict]:
@@ -387,29 +398,49 @@ def read_json(p: Path):
     return json.loads(p.read_text())
 
 
+def _absent(m: dict, status: str, reason: str, expect: dict) -> dict:
+    """A run that does not exist yet: `pending` when the method names the stage that produces it, else `status`."""
+    if m.get("producer"):
+        return dict(status="pending", reason=f"{reason}; produced by {m['producer']}", acquisition=expect)
+    return dict(status=status, reason=reason, acquisition=expect)
+
+
+def _is_actor_file(spec: str) -> bool:
+    return str(spec).endswith(".pt")
+
+
 def cell_state(cfg: dict, cell: dict, root: Path, pack: dict) -> dict:
-    """Pre-flight of one cell without simulating: status ready | missing_run | unaccounted, the reason and the acquisition.
+    """Pre-flight of one cell without simulating: status ready | pending | missing_run | unaccounted, the reason and the acquisition.
     A budgeted cell needs the run's `acquisition.json` (path template `acquisition` of the method, next to its checkpoint) and it
-    must equal the pack's record; a trained/expert cell needs its checkpoints / registry actor."""
+    must equal the pack's record (a mismatch is `unaccounted` whatever the method declares); a trained/expert cell needs its
+    checkpoints / its tracker (a registry spec or an actor file). A run that does not exist yet is `pending` when the method has a
+    `producer` and `missing_run` / `unaccounted` when it has none."""
     m = method_of(cfg, cell["method"])
     kv = dict(body=cell["body"], task=cell["task"], budget=cell["budget"], seed=cell["train_seed"])
     try:
         expect = acquisition_of_pack(pack, cfg, cell)
     except MissingRun as e:
+        if m.get("producer") and not pack.get("records"):             # no pack exists at all: its stage has not run
+            return _absent(m, "unaccounted", "the pack is not produced yet", dict(ZERO_ACQ))
         return dict(status="unaccounted", reason=str(e), acquisition=dict(ZERO_ACQ))
     if m["kind"] == "expert":
-        from rrp.envs.mujoco.legged_tracker import get_entry
-        try:
-            get_entry(fmt(m["tracker"], **kv))
-        except (KeyError, FileNotFoundError, ValueError) as e:
-            return dict(status="missing_run", reason=str(e)[:200], acquisition=expect)
+        spec = fmt(m["tracker"], **kv)
+        if _is_actor_file(spec):
+            if not (root / spec).exists():
+                return _absent(m, "missing_run", f"tracker actor {spec} does not exist", expect)
+        else:
+            from rrp.envs.mujoco.legged_tracker import get_entry
+            try:
+                get_entry(spec)
+            except (KeyError, FileNotFoundError, ValueError) as e:
+                return _absent(m, "missing_run", str(e)[:200], expect)
     for k, v in (fmt(m.get("kw") or {}, **kv)).items():
         if isinstance(v, str) and v.endswith(".pt") and not (root / v).exists():
-            return dict(status="missing_run", reason=f"{k}: {v} does not exist", acquisition=expect)
+            return _absent(m, "missing_run", f"{k}: {v} does not exist", expect)
     if m.get("budgeted"):
         ap = fmt(m.get("acquisition", ""), **kv)
         if not ap or not (root / ap).exists():
-            return dict(status="unaccounted", reason=f"no acquisition.json ({ap or 'method declares none'})", acquisition=expect)
+            return _absent(m, "unaccounted", f"no acquisition.json ({ap or 'method declares none'})", expect)
         got = read_json(root / ap)
         if {k: int(got.get(k, 0)) for k in ACQ_KEYS} != expect:
             return dict(status="unaccounted", reason=f"{ap} records {got}, the pack says {expect}", acquisition=expect)
@@ -426,6 +457,8 @@ def build_policy(cfg: dict, cell: dict, root: Path):
     if m["kind"] == "expert":
         from rrp.policies.teachers.humanoid import make_rl_expert
         spec = fmt(m["tracker"], **kv)
+        if _is_actor_file(spec):                       # an adapted actor (adapt_ppo output): registered for this process, sha pinned
+            spec = resolve_actor(cell["body"], str(root / spec))
         pol, env_kw = make_rl_expert(arg=spec), dict(env_kw, tracker=spec)
     else:
         kw = fmt(m.get("kw") or {}, **kv)
@@ -504,7 +537,7 @@ def run_matrix(cfg: dict, *, root: Path, out: Path, scope: str, sealed_flag: boo
             continue
         try:
             if want_sealed:
-                with split.sealed_eval(dict(body=cell["body"], method=sealed_method(cell), train_seed=cell["train_seed"], scenes=scenes)):
+                with split.sealed_eval(sealed_cell(cfg, cell, scenes)):
                     res = run_cell(cfg, cell, st, scenes, root, out)
             else:
                 res = run_cell(cfg, cell, st, scenes, root, out)
