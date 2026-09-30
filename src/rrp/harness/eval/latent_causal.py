@@ -42,6 +42,7 @@ import mujoco
 import numpy as np
 import torch
 
+from rrp.policies.base import Act
 from rrp.policies.system0 import LatentSystem0
 from rrp.core.errors import ControllerRejection, StaleActionError
 
@@ -218,10 +219,69 @@ def _recv(s0, p, s):
         return False
 
 
+# ------------------------------------------------------------------ rollout plumbing shared by both protocols
+def _info(policy, R, replan, dev):
+    """The policy card of every causal-protocol policy = the latent stack's (same requirements, source learned)."""
+    from rrp.policies.latent import LatentStackPolicy
+    return LatentStackPolicy(policy, R, replan_ticks=replan, device=dev, name="latent_causal").info
+
+
+def _roll(make_env, pol, seeds, max_steps, hooks):
+    """One `harness.rollout` of `pol` on already-built sessions (budget-only task: the end rules are the hooks').
+    A crashed episode raises (the protocols never hide one)."""
+    from rrp.harness import rollout as R
+    from rrp.harness.eval import hooks as H
+    eps = R.rollout(make_env, pol, H.budget_task("pick_place", make_env(seeds[0]).spec.env_id), list(seeds), batch=len(seeds),
+                    max_steps=max_steps, hooks=hooks)
+    for e in eps:
+        if e.outcome == "crash":
+            raise RuntimeError(e.metrics.get("note") or e.failure_reason)
+    return eps
+
+
+def _fell(s):
+    return bool(s.runtime.succeeded() or _body_pos(s, "cube")[2] < -0.05)
+
+
 # ------------------------------------------------------------------ window protocol (exactly paired)
+class _WindowPolicy:
+    """The window protocol's main episode as a policy: the latent stack's schedule (system i every `replan` ticks with
+    the protocol's own noise keys, system 0 in between), and at each decision tick the paired window conditions
+    (nested `harness.rollout`s from a snapshot, `_window_conditions`) are run and their rows collected."""
+
+    def __init__(self, policy, R, P, robot_key, sd, *, decision_ticks, window, replan, delta_m, conditions, edit_steps,
+                 dev, last_ctrl):
+        self.policy, self.R, self.P, self.robot_key, self.sd = policy, R, P, robot_key, sd
+        self.kw = dict(decision_ticks=decision_ticks, window=window, replan=replan, delta_m=delta_m,
+                       conditions=conditions, edit_steps=edit_steps)
+        self.dev, self.last_ctrl = dev, last_ctrl
+        self.info = _info(policy, R, replan, dev)
+        self.rows, self.mine, self.calls, self.t = [], {}, 0, 0
+
+    def reset(self, spec, task, seeds, *, envs=None):
+        self.s = envs[0]
+        self.s0 = _s0(self.policy, self.R, self.s, self.dev)
+
+    def act(self, obs):
+        s, step, kw = self.s, self.t, self.kw
+        if step % kw["replan"] == 0 or self.s0.packet is None:
+            p = self.policy.packets([s], noise_keys=[_key(self.sd, self.calls)])[0]
+            self.calls += 1
+            _recv(self.s0, p, s)
+            if step in kw["decision_ticks"]:
+                self.mine[step] = p
+                self.rows.extend(_window_conditions(self.policy, self.R, self.P, s, p, self.robot_key, self.sd, step,
+                                                    kw["window"], kw["delta_m"], kw["conditions"],
+                                                    self.last_ctrl.get(step), kw["edit_steps"], self.dev,
+                                                    _key(self.sd, self.calls - 1)))
+        self.t += 1
+        return {0: Act(self.s0.tick(s, s.controller_version()))}
+
+
 def window_protocol(policy, R, P, robot_key, seeds, *, decision_ticks=(8, 32, 56, 80, 104, 128), window=8,
                     replan=8, delta_m=0.05, conditions=WINDOW_CONDS, edit_steps=80, dev="cpu", log=print):
     from rrp.bodies.catalog import workbench_robots
+    from rrp.harness.eval import hooks as H
     robot = workbench_robots()[robot_key]()
     rows = []
     last_ctrl = {}                     # decision tick -> control packet of the most recent OTHER seed (shuffle)
@@ -231,40 +291,47 @@ def window_protocol(policy, R, P, robot_key, seeds, *, decision_ticks=(8, 32, 56
         if not feas:
             rows.append(dict(robot=robot_key, seed=sd, skipped="infeasible"))
             continue
-        s0 = _s0(policy, R, s, dev)
-        calls = 0
-        mine = {}
-        for step in range(horizon):
-            if step % replan == 0 or s0.packet is None:
-                p = policy.packets([s], noise_keys=[_key(sd, calls)])[0]
-                calls += 1
-                _recv(s0, p, s)
-                if step in decision_ticks:
-                    mine[step] = p
-                    rows.extend(_window_conditions(policy, R, P, s, p, robot_key, sd, step, window, delta_m,
-                                                   conditions, last_ctrl.get(step), edit_steps, dev,
-                                                   _key(sd, calls - 1)))
-            r = s.step(s0.tick(s, s.controller_version()))
-            if s.runtime.succeeded() or _body_pos(s, "cube")[2] < -0.05:
-                break
-        last_ctrl.update(mine)
+        pol = _WindowPolicy(policy, R, P, robot_key, sd, decision_ticks=decision_ticks, window=window, replan=replan,
+                            delta_m=delta_m, conditions=conditions, edit_steps=edit_steps, dev=dev,
+                            last_ctrl=last_ctrl)
+        _roll(lambda _sd: s, pol, [sd], horizon, [H.EndWhen(lambda i, e: _fell(e))])
+        rows.extend(pol.rows)
+        last_ctrl.update(pol.mine)
         log(f"[window] {robot_key} seed {sd}: {sum(1 for r in rows if r.get('seed') == sd)} rows", flush=True)
     return rows
 
 
+class _PacketWindow:
+    """One packet realized by a fresh system 0 from the (restored) start state: the counterfactual window."""
+
+    def __init__(self, policy, R, packet, dev):
+        self.policy, self.R, self.packet, self.dev = policy, R, packet, dev
+        self.info = _info(policy, R, 8, dev)
+
+    def reset(self, spec, task, seeds, *, envs=None):
+        self.s = envs[0]
+        self.s0 = _s0(self.policy, self.R, self.s, self.dev)
+        self.accepted = _recv(self.s0, self.packet, self.s)
+
+    def act(self, obs):
+        return {i: Act(self.s0.tick(self.s, self.s.controller_version())) for i in obs}
+
+
 def _run_window(policy, R, s, snap, packet, window, dev):
+    from rrp.harness.eval import hooks as H
     s.restore(snap)
-    s0 = _s0(policy, R, s, dev)
-    ok = _recv(s0, packet, s)
-    tcp, cube, dis = [_tcp(s)], [_body_pos(s, "cube")], []
+    tcp, cube, dis = [], [], []
     has_d = any(o.sim_body == "distractor0" for o in s.detectables)
-    if has_d:
-        dis.append(_body_pos(s, "distractor0"))
-    for _ in range(window):
-        s.step(s0.tick(s, s.controller_version()))
-        tcp.append(_tcp(s))
-        cube.append(_body_pos(s, "cube"))
-    return dict(accepted=ok, tcp=np.array(tcp), cube=np.array(cube), dis0=dis[0] if dis else None)
+
+    def start(i, e):
+        tcp.append(_tcp(e))
+        cube.append(_body_pos(e, "cube"))
+        if has_d:
+            dis.append(_body_pos(e, "distractor0"))
+    pol = _PacketWindow(policy, R, packet, dev)
+    _roll(lambda _sd: s, pol, [0], window, [H.Recorder(on_reset=start, on_step=lambda i, e, a, st: (
+        tcp.append(_tcp(e)), cube.append(_body_pos(e, "cube"))))])
+    return dict(accepted=pol.accepted, tcp=np.array(tcp), cube=np.array(cube), dis0=dis[0] if dis else None)
 
 
 def _window_conditions(policy, R, P, s, p, robot_key, sd, step, window, delta_m, conditions, other, edit_steps,
@@ -358,27 +425,33 @@ def episode_protocol(policy, R, P, robot_key, seeds, *, conditions=EPISODE_CONDS
     return rows
 
 
-def _episodes(policy, R, P, robot, robot_key, seeds, cond, replan, max_steps, delta_m, chain_t1, edit_steps, dev,
-              ctrl_packets):
-    from rrp.envs.mujoco.scenario import BUILDERS
-    from rrp.envs.mujoco.session import Session
-    S = [Session(BUILDERS["pick_place"](robot, sd, n_distractors=sd % 3), seed=sd) for sd in seeds]
-    s0 = [_s0(policy, R, s, dev) for s in S]
-    calls = [0] * len(S)
-    done = [False] * len(S)
-    has_d = [any(o.sim_body == "distractor0" for o in s.detectables) for s in S]
-    traj = [dict(tcp=[_tcp(s)], cube=[_body_pos(s, "cube")],
-                 dis0=[_body_pos(s, "distractor0")] if has_d[k] else None) for k, s in enumerate(S)]
-    edits = [[] for _ in S]
-    if cond == "control":
-        for sd in seeds:
-            ctrl_packets[sd] = []
-    t0 = time.time()
-    for step in range(max_steps):
-        act = [k for k in range(len(S)) if not done[k]]
-        if not act:
-            break
-        need = [k for k in act if step % replan == 0 or s0[k].packet is None]
+class _EpisodePolicy:
+    """The episode protocol's closed loop as a policy: every replan tick system i emits (batched over the episodes that
+    need a packet, the protocol's noise keys), the condition edits the packets (probe edits, zero, shuffle, counterfactual
+    states, focus swap, chain) and system 0 realizes them."""
+
+    def __init__(self, policy, R, P, cond, seeds, replan, delta_m, chain_t1, edit_steps, dev, ctrl_packets):
+        self.policy, self.R, self.P, self.cond, self.seeds = policy, R, P, cond, list(seeds)
+        self.replan, self.delta_m, self.chain_t1, self.edit_steps, self.dev = replan, delta_m, chain_t1, edit_steps, dev
+        self.ctrl_packets = ctrl_packets
+        self.info = _info(policy, R, replan, dev)
+
+    def reset(self, spec, task, seeds, *, envs=None):
+        self.S = list(envs)
+        n = len(self.S)
+        self.s0 = [_s0(self.policy, self.R, s, self.dev) for s in self.S]
+        self.calls, self.t = [0] * n, [0] * n
+        self.has_d = [any(o.sim_body == "distractor0" for o in s.detectables) for s in self.S]
+        self.edits = [[] for _ in self.S]
+        if self.cond == "control":
+            for sd in self.seeds:
+                self.ctrl_packets[sd] = []
+
+    def act(self, obs):
+        policy, P, cond, seeds, S, s0, calls = self.policy, self.P, self.cond, self.seeds, self.S, self.s0, self.calls
+        delta_m, dev, edits, has_d, ctrl_packets = self.delta_m, self.dev, self.edits, self.has_d, self.ctrl_packets
+        act = sorted(obs)
+        need = [k for k in act if self.t[k] % self.replan == 0 or s0[k].packet is None]
         if need:
             keys = [_key(seeds[k], calls[k]) for k in need]
             base = policy.packets([S[k] for k in need], noise_keys=keys)
@@ -390,7 +463,7 @@ def _episodes(policy, R, P, robot, robot_key, seeds, cond, replan, max_steps, de
                 c = "rel+x" if cond == "rand" else cond
                 ents = [S[k].entity_slots.get("cube", _slot(S[k], "cube")) for k in need]
                 zs, ds, inf = probe_edits(P, [p.z for p in base], ents, [len(S[k].detectables) for k in need],
-                                          [np.array(DIRS[c]) * delta_m] * len(need), steps=edit_steps, dev=dev)
+                                          [np.array(DIRS[c]) * delta_m] * len(need), steps=self.edit_steps, dev=dev)
                 for j, k in enumerate(need):
                     if cond == "rand":
                         r = _rand_like(ds[j], keys[j])
@@ -415,27 +488,47 @@ def _episodes(policy, R, P, robot, robot_key, seeds, cond, replan, max_steps, de
                                                 lambda ss: shift_state(ss, d))
                     for j, q in zip(sw, cf):
                         deliv[j] = deliver(q, S[need[j]], q.z, cond)
-                        edits[need[j]].append(dict(step=step))
+                        edits[need[j]].append(dict(step=self.t[need[j]]))
             elif cond in ("focus_swap", "chain_A_then_B"):
                 sw = [j for j, k in enumerate(need) if has_d[k] and not _held(S[k]) and
-                      (cond == "focus_swap" or step >= chain_t1)]
+                      (cond == "focus_swap" or self.t[k] >= self.chain_t1)]
                 if sw:
                     cf = counterfactual_packets(policy, [S[need[j]] for j in sw], [keys[j] for j in sw])
                     for j, q in zip(sw, cf):
                         deliv[j] = deliver(q, S[need[j]], q.z, cond)
-                        edits[need[j]].append(dict(step=step))
+                        edits[need[j]].append(dict(step=self.t[need[j]]))
             for j, k in enumerate(need):
                 calls[k] += 1
                 _recv(s0[k], deliv[j], S[k])
+        out = {}
         for k in act:
-            s = S[k]
-            s.step(s0[k].tick(s, s.controller_version()))
-            traj[k]["tcp"].append(_tcp(s))
-            traj[k]["cube"].append(_body_pos(s, "cube"))
-            if has_d[k]:
-                traj[k]["dis0"].append(_body_pos(s, "distractor0"))
-            if s.runtime.succeeded() or _body_pos(s, "cube")[2] < -0.05:
-                done[k] = True
+            out[k] = Act(s0[k].tick(S[k], S[k].controller_version()))
+            self.t[k] += 1
+        return out
+
+
+def _episodes(policy, R, P, robot, robot_key, seeds, cond, replan, max_steps, delta_m, chain_t1, edit_steps, dev,
+              ctrl_packets):
+    from rrp.envs.mujoco.scenario import BUILDERS
+    from rrp.envs.mujoco.session import Session
+    from rrp.harness.eval import hooks as H
+    S = [Session(BUILDERS["pick_place"](robot, sd, n_distractors=sd % 3), seed=sd) for sd in seeds]
+    by_seed = dict(zip(seeds, S))
+    pol = _EpisodePolicy(policy, R, P, cond, seeds, replan, delta_m, chain_t1, edit_steps, dev, ctrl_packets)
+    traj: dict = {}
+
+    def start(k, s):
+        d = any(o.sim_body == "distractor0" for o in s.detectables)
+        traj[k] = dict(tcp=[_tcp(s)], cube=[_body_pos(s, "cube")], dis0=[_body_pos(s, "distractor0")] if d else None)
+
+    def tick(k, s, a, st):
+        traj[k]["tcp"].append(_tcp(s))
+        traj[k]["cube"].append(_body_pos(s, "cube"))
+        if traj[k]["dis0"] is not None:
+            traj[k]["dis0"].append(_body_pos(s, "distractor0"))
+    _roll(lambda sd: by_seed[sd], pol, seeds, max_steps,
+          [H.Recorder(on_reset=start, on_step=tick), H.EndWhen(lambda k, s: _fell(s))])
+    s0, calls, edits, has_d = pol.s0, pol.calls, pol.edits, pol.has_d
     rows = []
     for k, s in enumerate(S):
         tcp, cube = np.array(traj[k]["tcp"]), np.array(traj[k]["cube"])
