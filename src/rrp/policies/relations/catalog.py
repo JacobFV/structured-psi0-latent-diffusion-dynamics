@@ -83,6 +83,37 @@ for _q, _addr, _out, _loss, _lab, _sc in _ARM_PROBE:
 register_preset("probes:arm-packet-v1", [f"probe.arm.{q[0]}" for q in _ARM_PROBE[:-1]])
 # ------------------------------------------------------------------ R13: geometry (geo.*)
 # ------------------------------------------------------------------ R15: membership / graph (id.*, kin.*)
+# entity_id / assembly_id are registered above (foundation); mirror_id is new: a public per-token left/right
+# mirror-pair id (mirror_id_i == mirror_id_j <-> i, j are morphological mirror partners; -1 = unpaired), generalizing
+# the g1-dim-rel-v1-only `edge.mirror` channel to any morphology whose collate path fills the field (arm, legged).
+register_field(FieldDef("mirror_id", 1, "id", "public"))
+
+register_factor(FactorDef("id.same_body", "1", field="entity_id", op="same", form="aug", sources=("given",),
+                          doc="1[entity_id_i == entity_id_j]: same rigid body / object / scene entity across a pair "
+                              "of tokens (fixed random unit codes per id, exact equality for n_ids <= code_dim)"))
+register_factor(FactorDef("id.same_assembly", "1", field="assembly_id", op="same", form="aug", sources=("given",),
+                          doc="1[assembly_id_i == assembly_id_j]: same manipulator / limb / body assembly across a "
+                              "pair of tokens; the field-level generalization of edge.same_assembly (g1-dim-rel-v1 "
+                              "channel only) and route.own_assembly (mask, system 0 routing) to any token set that "
+                              "carries a per-token assembly_id (arm, dual, legged, Ψ₀)"))
+register_factor(FactorDef("kin.ancestor", "1", field="edges:*", op="ancestor", form="bias", sources=("given",),
+                          params=(("edge", "kin_parent"),),
+                          doc="transitive closure of the kin_parent graph: 1[j is an ancestor of i] (params.rel: "
+                              "'closure' (default) ancestor, 'inverse' descendant, 'sibling' see kin.sibling)"))
+register_factor(FactorDef("kin.sibling", "1", field="edges:*", op="hop", form="bias", sources=("given",),
+                          params=(("edge", "kin_parent"), ("hops", 2)),
+                          doc="kin_parent graph-distance exactly 2 in the undirected (symmetrized) kinematic tree: "
+                              "the common case is two nodes sharing an immediate parent (siblings), but a generic "
+                              "graph-distance-2 op also lights up grandparent<->grandchild pairs at the same "
+                              "undirected distance; params.hops overrides the distance"))
+register_factor(FactorDef("kin.mirror", "1", field="mirror_id", op="same", form="aug", sources=("given",),
+                          doc="1[mirror_id_i == mirror_id_j] over the public mirror-pair id (unpaired tokens use "
+                              "mirror_id = -1 and never match); a token trivially matches itself, same as any other "
+                              "`same` factor. Generalizes Ψ₀ dims' edges:g1-dim-rel-v1 `mirror` channel (still "
+                              "available as edge.mirror) to morphologies with no such edge vocab (arm, legged), once "
+                              "their collate path fills mirror_id"))
+
+register_preset("graph", ["id.same_body", "id.same_assembly", "kin.ancestor", "kin.sibling", "kin.mirror"])
 # ------------------------------------------------------------------ R16: contact / grasp / handover (ix.contact, ix.held_by, ix.handover)
 # ------------------------------------------------------------------ R17: support / force flow (ix.support, ix.force_flow)
 # ------------------------------------------------------------------ R18: task / temporal / epistemic (task.*, time.*)

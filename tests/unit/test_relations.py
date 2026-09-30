@@ -189,3 +189,130 @@ def test_deploy_guard():
     rc.deploy = True
     with pytest.raises(PrivilegedInput):
         site.augment(rc, torch.randn(2, 5, 16))
+
+
+# ------------------------------------------------------------------ R15: membership / graph (id.*, kin.*)
+# catalog.py §graph: id.same_body, id.same_assembly, kin.ancestor, kin.sibling, kin.mirror. Section is disjoint from
+# the rest of this file (only new functions below); no change to `base.py` / `ops.py` was needed.
+def _undirected_hop_distance(parent: dict, n: int, k: int) -> "torch.Tensor":
+    """[n, n] bool, distance(i, j) == k in the undirected graph of a `parent` map (child -> parent, -1 = root).
+    Reference BFS used to check `HopOp` independently of its implementation."""
+    import collections
+    adj = collections.defaultdict(set)
+    for c, p in parent.items():
+        if p is not None and p >= 0:
+            adj[c].add(p)
+            adj[p].add(c)
+    out = torch.zeros(n, n, dtype=torch.bool)
+    for src in range(n):
+        dist = {src: 0}
+        q = collections.deque([src])
+        while q:
+            u = q.popleft()
+            if dist[u] == k:
+                continue
+            for v in adj[u]:
+                if v not in dist:
+                    dist[v] = dist[u] + 1
+                    q.append(v)
+        for j, d in dist.items():
+            if d == k and j != src:
+                out[src, j] = True
+    return out
+
+
+def _ancestor_closure(parent: dict, n: int) -> "torch.Tensor":
+    """[n, n] bool, j is an ancestor of i (any number of >=1 hops up `parent`). Reference used to check `ClosureOp`."""
+    out = torch.zeros(n, n, dtype=torch.bool)
+    for i in range(n):
+        j = parent.get(i, -1)
+        seen = set()
+        while j is not None and j >= 0 and j not in seen:
+            out[i, j] = True
+            seen.add(j)
+            j = parent.get(j, -1)
+    return out
+
+
+def test_graph_factors_registered_and_resolve_on_arm_psi0_legged():
+    from rrp.policies.relations.base import get_factor
+    for name in ("id.same_body", "id.same_assembly", "kin.ancestor", "kin.sibling", "kin.mirror"):
+        d = get_factor(name)
+        assert d.status == "implemented"
+    # arm: the arm preset's edges (kin_parent lives in arm-rel-v1) plus every graph factor.
+    arm = resolve(["preset:arm", "preset:graph"])
+    assert {"id.same_body", "id.same_assembly", "kin.ancestor", "kin.sibling", "kin.mirror"} <= {s.name for s in arm}
+    # Ψ₀: the psi0-dims preset's edges (g1-dim-rel-v1 also carries kin_parent) plus every graph factor.
+    psi0 = resolve(["preset:psi0-dims", "preset:graph"])
+    assert {"id.same_body", "id.same_assembly", "kin.ancestor", "kin.sibling", "kin.mirror"} <= {s.name for s in psi0}
+    # legged: no edge vocabulary at all (docs/relations.md §2), only per-token assembly_id / entity_id fields.
+    legged = resolve(["preset:graph"])
+    assert {s.name for s in legged} == {"id.same_body", "id.same_assembly", "kin.ancestor", "kin.sibling", "kin.mirror"}
+    site = FactorSite(1, 8, "n>n", legged, ("assembly_id", "entity_id"))
+    assert {s.name for s in site.specs} == {"id.same_body", "id.same_assembly"}   # edge / mirror_id factors inert here
+
+
+def test_kin_ancestor_and_sibling_on_arm_morphology_fixture():
+    """Small synthetic arm-style morph tree over `edges:arm-rel-v1`'s `kin_parent` channel (0 root; 1, 2 children of
+    0; 3, 4 children of 1; 5, 6 children of 2): `kin_parent[i, j] = 1` iff j is i's direct parent."""
+    from rrp.policies.relations.base import get_factor, spec
+    from rrp.policies.relations.ops import OPS
+    n = 7
+    parent = {1: 0, 2: 0, 3: 1, 4: 1, 5: 2, 6: 2}
+    A = torch.zeros(1, n, n, 1, dtype=torch.bool)
+    for c, p in parent.items():
+        A[0, c, p, 0] = True
+    rc = RelCtx(sets={"n": TokenSet("n", torch.ones(1, n, dtype=torch.bool))},
+               edges={"n>n": EdgeSet(("kin_parent",), A)})
+
+    anc = OPS["ancestor"].value(get_factor("kin.ancestor"), spec("kin.ancestor"), None, rc, "n>n")
+    assert torch.equal(anc[0], _ancestor_closure(parent, n))
+    assert anc[0, 3].tolist() == [True, True, False, False, False, False, False]      # 3's ancestors: 1, 0
+    assert anc[0].sum() == sum(len(_ancestor_closure(parent, n)[i].nonzero()) for i in range(n))  # sanity, not vacuous
+
+    sib = OPS["hop"].value(get_factor("kin.sibling"), spec("kin.sibling"), None, rc, "n>n")
+    expect = _undirected_hop_distance(parent, n, 2)
+    assert torch.equal(sib[0], expect)
+    # exact pairs at undirected distance 2: the 3 true sibling pairs plus the 4 grandparent<->grandchild pairs
+    # through the root (kin.sibling's doc says both occur; hops=2 does not disambiguate them)
+    got_pairs = {(i, j) for i in range(n) for j in range(n) if sib[0, i, j]}
+    assert got_pairs == {(1, 2), (2, 1), (3, 4), (4, 3), (5, 6), (6, 5),
+                         (0, 3), (3, 0), (0, 4), (4, 0), (0, 5), (5, 0), (0, 6), (6, 0)}
+
+
+def test_kin_ancestor_sibling_mirror_and_same_assembly_on_g1_morphology_fixture():
+    """The real G1 morphology (`rrp.bodies.g1_simple`, D-098): 36 command-dim tokens, real kinematic parent chain and
+    mirror pairing. `kin.ancestor` / `kin.sibling` are checked against independent BFS references; `id.same_assembly`
+    against the body module's own `same_assembly` edge channel; `kin.mirror` against `DIM_MIRROR`."""
+    from rrp.bodies import g1_simple as G
+    from rrp.policies.relations.base import get_factor, spec
+    from rrp.policies.relations.ops import OPS
+    n = G.ACTION_DIM
+    parent = {i: int(G.DIM_PARENT[i]) for i in range(n)}
+    rel = torch.from_numpy(G.relation_matrix()).permute(1, 2, 0).unsqueeze(0)         # [1, T, T, R]
+    asm = torch.from_numpy(G.DIM_ASM).view(1, n, 1)
+    mirror_id = torch.tensor([min(i, int(G.DIM_MIRROR[i])) if G.DIM_MIRROR[i] >= 0 else -1 for i in range(n)])
+    ts = TokenSet("dims", torch.ones(1, n, dtype=torch.bool),
+                 fields={"assembly_id": asm, "mirror_id": mirror_id.view(1, n, 1)})
+    rc = RelCtx(sets={"dims": ts}, edges={"dims>dims": EdgeSet(G.RELATIONS, rel)})
+
+    anc = OPS["ancestor"].value(get_factor("kin.ancestor"), spec("kin.ancestor"), None, rc, "dims>dims")[0]
+    assert torch.equal(anc, _ancestor_closure(parent, n))
+    assert bool(anc.any(-1).sum()) and int(anc.sum(-1).max()) == int(G.DIM_DEPTH.max())   # root-to-leaf depth check
+
+    sib = OPS["hop"].value(get_factor("kin.sibling"), spec("kin.sibling"), None, rc, "dims>dims")[0]
+    assert torch.equal(sib, _undirected_hop_distance(parent, n, 2))
+    # concrete real sibling: l_thumb0 / l_middle0 / l_index0 (dims 0, 3, 5) share the immediate parent l_wrist_yaw (20)
+    for i, j in ((0, 3), (0, 5), (3, 5)):
+        assert bool(sib[i, j]) and bool(sib[j, i])
+
+    same_asm = OPS["same"].value(get_factor("id.same_assembly"), spec("id.same_assembly"), None, rc, "dims>dims")[0]
+    assert torch.equal(same_asm, torch.from_numpy(G.relation_matrix()[G.RELATIONS.index("same_assembly")]))
+
+    mirror = OPS["same"].value(get_factor("kin.mirror"), spec("kin.mirror"), None, rc, "dims>dims")[0]
+    expect_mirror = torch.from_numpy(G.relation_matrix()[G.RELATIONS.index("mirror")]).clone()
+    paired = mirror_id >= 0
+    expect_mirror[paired, paired] = True    # kin.mirror's `same` trivially matches a paired token to itself too;
+                                            # unpaired dims (mirror_id = -1) stay False on the diagonal, like the rest
+    assert torch.equal(mirror, expect_mirror)
+    assert bool(mirror[0, int(G.DIM_MIRROR[0])]) and not bool(mirror[0, 1])   # l_thumb0 <-> r_thumb0, not l_thumb1
