@@ -178,7 +178,7 @@ def test_catalog_ui_fields_registered():
     assert FIELDS["parent_id"].prov == "public"                          # foundation field, reused here
 
 
-@pytest.mark.parametrize("name", ["ui.label_for", "ui.contains", "ui.focus_next", "ui.above"])
+@pytest.mark.parametrize("name", ["ui.label_for", "ui.focus_next"])
 def test_catalog_ui_edge_factors_are_edge_bias_on_ui_rel_v1(name):
     d = get_factor(name)
     assert d.field == "edges:ui-rel-v1" and d.op == "edge" and d.form == "bias"
@@ -187,15 +187,35 @@ def test_catalog_ui_edge_factors_are_edge_bias_on_ui_rel_v1(name):
     assert d.form in OPS[d.op].forms
 
 
-def test_catalog_ui_contains_is_symmetric_others_are_directed():
-    assert get_factor("ui.contains").algebra.direction == "symmetric"
-    for name in ("ui.label_for", "ui.focus_next", "ui.above"):
+def test_catalog_ui_field_factors_use_generic_ops():
+    """D-144 addendum: same-window = `same` on parent_id (symmetric), above = `order` on zlayer (antisymmetric)."""
+    sw, ab = get_factor("ui.same_window"), get_factor("ui.above")
+    assert (sw.field, sw.op, sw.algebra.direction) == ("parent_id", "same", "symmetric")
+    assert (ab.field, ab.op, ab.algebra.direction) == ("zlayer", "order", "antisymmetric")
+    for name in ("ui.label_for", "ui.focus_next"):
         assert get_factor(name).algebra.direction == "directed"
+
+
+def test_ui_field_factor_values_match_the_env_channels():
+    rc, n = _ui_relctx(_table())
+    site = FactorSite(heads=1, dim=8, site="ctx>ctx", specs=resolve(["ui.same_window", "ui.above"]),
+                      carries=("parent_id", "zlayer"))
+    with torch.no_grad():
+        site.f["ui__same_window"].w.fill_(1.0)
+        site.f["ui__above"].w.fill_(10.0)
+    b = site.bias(rc)[0, 0]
+    edges = torch.from_numpy(ui_edges(_table()))
+    ok = rc.sets["ctx"].mask[0]
+    pair = ok[:, None] & ok[None, :]
+    same = edges[..., UI_REL_VOCAB.index("contains")].float()
+    above = edges[..., UI_REL_VOCAB.index("above")].float()
+    want = same + 10 * (above - above.T)
+    assert torch.equal(b[pair], want[pair])
 
 
 def test_catalog_ui_label_for_carries_reveal_and_surprise_gen():
     assert get_factor("ui.label_for").gen == ("reveal", "surprise")
-    for name in ("ui.contains", "ui.focus_next", "ui.above"):
+    for name in ("ui.same_window", "ui.focus_next", "ui.above"):
         assert get_factor(name).gen == ()
 
 
@@ -214,7 +234,7 @@ def test_ui_rel_v1_vocab_registered_in_catalog():
 
 def test_catalog_ui_preset():
     specs = resolve(["preset:ui"])
-    assert {s.name for s in specs} == {"ui.label_for", "ui.contains", "ui.focus_next", "ui.above", "ui.drag_to"}
+    assert {s.name for s in specs} == {"ui.label_for", "ui.same_window", "ui.focus_next", "ui.above", "ui.drag_to"}
 
 
 def test_catalog_ui_factors_resolve_and_default_deploy_safe():
@@ -222,7 +242,7 @@ def test_catalog_ui_factors_resolve_and_default_deploy_safe():
 
 
 def test_catalog_ui_gt_source_is_blocked_in_deploy_mode():
-    for name in ("ui.contains", "ui.drag_to"):
+    for name in ("ui.label_for", "ui.drag_to"):
         with pytest.raises(PrivilegedInput):
             assert_deployable(resolve([FactorSpec(name=name, source="gt")]))
 
@@ -250,8 +270,9 @@ def test_ui_preset_resolves_on_the_pointer_body_ctx_ctx_site():
     `RelBlock`s use, on data built by this unit's own `envs.computerworld` functions."""
     rc, n = _ui_relctx(_table())
     specs = resolve(["preset:ui"])
-    site = FactorSite(heads=2, dim=8, site="ctx>ctx", specs=specs, carries=("edges:ui-rel-v1", "hidden"))
-    assert {s.name for s in site.specs} == {"ui.label_for", "ui.contains", "ui.focus_next", "ui.above", "ui.drag_to"}
+    site = FactorSite(heads=2, dim=8, site="ctx>ctx", specs=specs,
+                      carries=("edges:ui-rel-v1", "hidden", "parent_id", "zlayer"))
+    assert {s.name for s in site.specs} == {"ui.label_for", "ui.same_window", "ui.focus_next", "ui.above", "ui.drag_to"}
 
 
 def test_pointer_policy_with_preset_ui_runs_one_rollout_tick_on_the_fixture():
@@ -261,7 +282,7 @@ def test_pointer_policy_with_preset_ui_runs_one_rollout_tick_on_the_fixture():
     torch.manual_seed(0)
     rc, n = _ui_relctx(_table())
     specs = resolve(["preset:ui"])
-    site = FactorSite(heads=2, dim=8, site="ctx>ctx", specs=specs, carries=("edges:ui-rel-v1", "hidden"))
+    site = FactorSite(heads=2, dim=8, site="ctx>ctx", specs=specs, carries=("edges:ui-rel-v1", "hidden", "parent_id", "zlayer"))
     for p in site.parameters():                                          # off zero-init: every factor is a
         torch.nn.init.normal_(p, std=0.1)                                # genuine no-op at step 0 (docs 3.2)
 
@@ -291,7 +312,7 @@ def test_pointer_body_rollout_tick_with_the_real_computerworld_wheel():
     table = SlotRegistry().assign(scene_widgets(env.scene()))
     rc, n = _ui_relctx(table)
     specs = resolve(["preset:ui"])
-    site = FactorSite(heads=2, dim=8, site="ctx>ctx", specs=specs, carries=("edges:ui-rel-v1", "hidden"))
+    site = FactorSite(heads=2, dim=8, site="ctx>ctx", specs=specs, carries=("edges:ui-rel-v1", "hidden", "parent_id", "zlayer"))
     b = site.bias(rc)
     assert b is not None and b.shape == (1, 2, n, n)
     env.close()

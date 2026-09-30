@@ -175,6 +175,11 @@ Each operator declares its arity, input field kinds, the forms it can realize an
 | `bilinear` | ⟨U_h x_i, V_h x_j⟩ on token hiddens — the learned kernel; read at the readout layer it is also the edge probe p̂_ij = σ(⟨U x_i, V x_j⟩ + c) (the bias IS the probe: a supervised attention subspace) | hidden | aug, bias | q: U x_i, k: V x_j |
 | `unary` | ⟨w_h, φ(f_j)⟩: key-side prior from a property field (salience, graspability, hazard, relevance) | scalar, vector | aug, bias | q: w_h (constant 1-dim), k: φ(f_j) |
 
+**Pair estimates feed graphs** (`params.emits = (vocab, edge)` on a `bilinear` factor): at its readout layer the
+factor's pair probe p_ij = σ(pair logit) is published as the estimated EdgeSet `rc.edges["<site>#<vocab>"]`
+(`FactorSite.emit`), so any graph factor over that vocabulary runs on it with source `probe` (deployable), or on the
+privileged `"<site>#<vocab>@gt"` set with source `gt` (training only). Example: `ix.support` → `ix.force_flow`.
+
 Forms wrap an op's value uniformly: `bias` adds `w[f,h] · value` (all `edge`/`bias` factors of a site are ONE stacked
 einsum `bqkr,rh->bhqk`); `aug` concatenates `g_h · φ_q` / `φ_k` to q / k (kernel-compatible: SDPA with fixed
 `scale = 1/√d`, `qa` pre-multiplied by √d; the dense mask disappears when no `bias` factor is on at the site); `gate`
@@ -479,11 +484,11 @@ Chosen because our envs can label them today (catalog with the rest: `research/r
 | `ix.contact` | hidden / bilinear / aug | probe | `contact_pairs` (contacts) | arm, dual, legged (foot–ground) | reveal |
 | `ix.support` | hidden / bilinear / aug | probe | `support_pairs` (contacts, poses, gravity) | arm, dual (support_insert, stacks) | part `stack` |
 | `ix.held_by` | hidden / bilinear / aug | probe | `held_pairs` (contacts; ≥ 2 finger bodies) | arm, dual | – |
-| `ix.force_flow` | support graph / flow / bias | probe | `support_pairs` closure | arm, dual stacks | part `stack` |
+| `ix.force_flow` | support graph / flow / bias | probe (`ix.support`'s emitted estimate, `params.emits`) | `support_pairs` closure | arm, dual stacks | part `stack` |
 | `ix.handover` | hidden / bilinear / aug | probe | `handover_pairs` (contacts over time) | dual | – |
 | `task.next_contact` | hidden / bilinear / aug, gate task | probe | `next_contact` (task runtime + contacts) | arm, dual, cw (drag) | reveal, surprise |
 | `leg.foothold` | pos3d / sqdiff+diff / aug, gate task | probe | `foothold_next` (contacts, terrain) | legged, humanoid (foothold_steps, h_steps) | reveal |
-| `ui.label_for`, `ui.contains`, `ui.focus_next`, `ui.above`, `ui.drag_to` | edges(ui-rel-v1) / edge / bias; drag: bilinear | given (public semantic.v1); drag: probe | `ui_tree`, teacher drag target | cw | cf_swap(label), surprise |
+| `ui.label_for`, `ui.focus_next`, `ui.same_window`, `ui.above`, `ui.drag_to` | edges(ui-rel-v1) / edge / bias; same_window: parent_id / same; above: zlayer / order; drag: bilinear | given (public semantic.v1); drag: probe | `ui_tree`, teacher drag target | cw | cf_swap(label), surprise |
 
 ## 7. deploy guard
 

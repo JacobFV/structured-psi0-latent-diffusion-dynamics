@@ -96,6 +96,25 @@ class RelCtx:
         q, k = site.split(">")
         return self.sets[q], self.sets[k]
 
+    def edge_set(self, site: str, edge: str, source: str) -> "EdgeSet":
+        """The EdgeSet at `site` whose vocabulary has `edge`, for a factor source. Keys: `site` (the net's primary
+        vocabulary), `site#<vocab>` (further vocabularies, incl. estimates emitted by bilinear factors with
+        `params.emits`), `+ "@gt"` (privileged). source "gt" -> privileged only (refused in deploy mode); "probe" ->
+        estimated only; "given" -> any non-privileged."""
+        if source == "gt" and self.deploy:
+            raise PrivilegedInput(f"ground-truth edge {edge!r} at {site} in deploy mode")
+        for key, es in self.edges.items():
+            base = key[:-3] if key.endswith("@gt") else key
+            if base != site and not base.startswith(site + "#"):
+                continue
+            if (source == "gt") != key.endswith("@gt") or edge not in es.vocab:
+                continue
+            if source == "probe" and es.prov != "estimated":
+                continue
+            return es
+        raise FactorError(f"no {source} EdgeSet with edge {edge!r} at site {site} (keys: {sorted(self.edges)}); "
+                          f"estimated edges come from a bilinear factor with params.emits at its readout layer")
+
 
 # ------------------------------------------------------------------ entries
 @dataclass(frozen=True)

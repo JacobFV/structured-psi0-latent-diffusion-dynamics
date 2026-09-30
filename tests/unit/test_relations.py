@@ -316,3 +316,40 @@ def test_kin_ancestor_sibling_mirror_and_same_assembly_on_g1_morphology_fixture(
                                             # unpaired dims (mirror_id = -1) stay False on the diagonal, like the rest
     assert torch.equal(mirror, expect_mirror)
     assert bool(mirror[0, int(G.DIM_MIRROR[0])]) and not bool(mirror[0, 1])   # l_thumb0 <-> r_thumb0, not l_thumb1
+
+
+def test_bilinear_pair_estimate_feeds_graph_factor():
+    """ix.support's pair estimate (bilinear, params.emits) -> estimated edges:support-v1 -> ix.force_flow closure;
+    deployable with source probe, refused in deploy mode with source gt."""
+    A = torch.tensor([[0, 1, 0], [0, 0, 1], [0, 0, 0]], dtype=torch.float32)       # 0 supports 1 supports 2
+    x = torch.eye(3)[None]                                                            # one-hot token hiddens [1,3,3]
+
+    def run(specs, deploy=False, gt=None):
+        rc = RelCtx(sets={"ctx": TokenSet("ctx", torch.ones(1, 3, dtype=torch.bool))}, deploy=deploy)
+        if gt is not None:
+            rc.edges["ctx>ctx#support-v1@gt"] = EdgeSet(("support",), gt[None, :, :, None], prov="privileged")
+        site = FactorSite(1, 3, "ctx>ctx", resolve(specs), ("hidden",))
+        assert [s.name for s in site.specs] == ["ix.support", "ix.force_flow"]     # force_flow applies via emits
+        with torch.no_grad():
+            m = site.f["ix__support"]
+            m.U.zero_()
+            m.U[:3] = 10 * torch.eye(3)                                               # u_i = 10 e_i (rank 8, 3 used)
+            m.V.zero_()
+            m.V[:3] = A - 0.5                                                         # logit_ij = 10 (A_ij - 1/2)
+            site.f["ix__force_flow"].w.fill_(1.0)
+        site.augment(rc, x, x)
+        return rc, site.bias(rc)[0, 0]
+
+    rc, b = run(["ix.support", "ix.force_flow"])
+    assert torch.allclose(torch.sigmoid(rc.estimates[("pair", "ix.support")][0]) > 0.5, A.bool())
+    assert rc.edges["ctx>ctx#support-v1"].prov == "estimated"
+    assert b.tolist() == [[0, 1, 1], [0, 0, 1], [0, 0, 0]]                          # closure: 0 -> 2 upstream
+    _, b_dep = run(["ix.support", "ix.force_flow"], deploy=True)                     # estimated: deployable
+    assert torch.equal(b, b_dep)
+    gt_graph = torch.tensor([[0, 0, 0], [1, 0, 0], [0, 1, 0]], dtype=torch.float32)
+    _, b_gt = run(["ix.support", {"name": "ix.force_flow", "source": "gt"}], gt=gt_graph)
+    assert b_gt.tolist() == [[0, 0, 0], [1, 0, 0], [1, 1, 0]]
+    with pytest.raises(PrivilegedInput):
+        run(["ix.support", {"name": "ix.force_flow", "source": "gt"}], deploy=True, gt=gt_graph)
+    with pytest.raises(PrivilegedInput):
+        RB.assert_deployable(resolve(["ix.support", {"name": "ix.force_flow", "source": "gt"}]))

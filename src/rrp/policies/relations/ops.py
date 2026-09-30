@@ -18,8 +18,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from rrp.policies.relations.base import (FactorError, FactorSpec, PrivilegedInput, RelCtx, effective_source,
-                                         get_factor)
+from rrp.policies.relations.base import (EdgeSet, FactorError, FactorSpec, PrivilegedInput, RelCtx,
+                                         effective_source, get_factor)
 
 GRAPH_CONTROLS = ("on", "off", "zero", "rewired", "shuffled", "reversed", "gt", "estimated")
 FIELD_CONTROLS = ("on", "off", "zero", "rewired", "shuffled", "gt", "estimated")
@@ -122,10 +122,14 @@ class EdgeOp(Op):
     graph = True
 
     def value(self, d, s, mod, rc, site):
-        es = rc.edges[site + "@gt"] if effective_source(s) == "gt" else rc.edges[site]
-        if effective_source(s) == "gt" and rc.deploy:
-            raise PrivilegedInput(f"factor {s.name}: ground-truth edges in deploy mode")
-        return es.data[..., es.channel({**d.p, **s.p}["edge"])]
+        edge = {**d.p, **s.p}["edge"]
+        es = rc.edge_set(site, edge, effective_source(s))
+        return es.data[..., es.channel(edge)]
+
+
+def _adjacency(v: torch.Tensor, d, s) -> torch.Tensor:
+    """Bool adjacency from given (bool) or estimated / soft (float, thresholded at params.threshold) edges."""
+    return v if v.dtype == torch.bool else v > float({**d.p, **s.p}.get("threshold", 0.5))
 
 
 def _closure(A: torch.Tensor) -> torch.Tensor:
@@ -144,7 +148,7 @@ class ClosureOp(EdgeOp):
     forms = ("bias",)
 
     def value(self, d, s, mod, rc, site):
-        A = super().value(d, s, mod, rc, site).bool()
+        A = _adjacency(super().value(d, s, mod, rc, site), d, s)
         if A.shape[1] != A.shape[2]:
             raise FactorError(f"{s.name}: closure needs a square self site, got {site}")
         C = _closure(A)
@@ -163,7 +167,7 @@ class HopOp(EdgeOp):
 
     def value(self, d, s, mod, rc, site):
         p = {**d.p, **s.p}
-        A = super().value(d, s, mod, rc, site).bool()
+        A = _adjacency(super().value(d, s, mod, rc, site), d, s)
         if p.get("symmetric", True):
             A = A | A.transpose(1, 2)
         k = int(p.get("hops", 2))
@@ -409,6 +413,11 @@ class BilinearOp(Op):
         v = F.linear(xk, mod.V).view(*xk.shape[:2], mod.heads, mod.rank).transpose(1, 2)
         return u, v
 
+    def pair_logits(self, mod, xq, xk) -> torch.Tensor:
+        """The factor's pair probe logit [B,Q,K]: head-mean <U_h x_i, V_h x_j> + c (the same U, V as its aug)."""
+        u, v = self.scores(mod, xq, xk)
+        return (u @ v.transpose(-1, -2)).mean(1) + mod.c
+
     def features(self, d, s, mod, rc, site, xq, xk):
         if xk is None:
             raise FactorError(f"{s.name}: bilinear needs the key hiddens at {site}")
@@ -458,7 +467,13 @@ class FactorSite(nn.Module):
     def __init__(self, heads: int, dim: int, site: str, specs, carries: tuple):
         super().__init__()
         self.heads, self.site = heads, site
-        self.specs = tuple(s for s in specs if _applies(get_factor(s.name), s, site, tuple(carries)))
+        carries = tuple(carries)
+        # bilinear factors with params.emits = (vocab, edge) publish their pair estimate as an estimated EdgeSet at
+        # this site, so graph factors over that vocabulary apply here too (e.g. ix.support -> ix.force_flow)
+        self.emitters = tuple(s for s in specs if s.control != "off" and get_factor(s.name).op == "bilinear"
+                              and "emits" in {**get_factor(s.name).p, **s.p} and _applies(get_factor(s.name), s, site, carries))
+        carries = carries + tuple("edges:" + {**get_factor(s.name).p, **s.p}["emits"][0] for s in self.emitters)
+        self.specs = tuple(s for s in specs if _applies(get_factor(s.name), s, site, carries))
         self.edge_specs = tuple(s for s in self.specs if get_factor(s.name).op == "edge" and get_factor(s.name).form == "bias")
         self.w = nn.Parameter(torch.full((len(self.edge_specs), heads), 0.0)) if self.edge_specs else None
         self.f = nn.ModuleDict()
@@ -514,11 +529,11 @@ class FactorSite(nn.Module):
         gt = [s for s in act if effective_source(s) == "gt"]
         if gt and rc.deploy:
             raise PrivilegedInput(f"ground-truth edges in deploy mode: {[s.name for s in gt]}")
-        es = rc.edges[self.site]
+        es = rc.edge_set(self.site, {**get_factor(act[0].name).p, **act[0].p}["edge"], "given")
         idx = [es.channel({**get_factor(s.name).p, **s.p}["edge"]) for s in act]
         rel = es.data if idx == list(range(es.data.shape[-1])) else es.data[..., idx]
         if gt:
-            g = rc.edges[self.site + "@gt"]
+            g = rc.edge_set(self.site, {**get_factor(gt[0].name).p, **gt[0].p}["edge"], "gt")
             for j, s in enumerate(act):
                 if s in gt:
                     rel = rel.clone() if rel is es.data else rel
@@ -581,7 +596,9 @@ class FactorSite(nn.Module):
         return out
 
     def augment(self, rc: RelCtx, xq: torch.Tensor, xk: torch.Tensor | None = None):
-        """Query-dependent q/k augmentation ([B,H,Q,A], [B,H,K,A]) of every `aug` factor, or (None, None)."""
+        """Query-dependent q/k augmentation ([B,H,Q,A], [B,H,K,A]) of every `aug` factor, or (None, None).
+        Also emits the pair estimates of `params.emits` bilinear factors (see `emit`), before any bias() of the call."""
+        self.emit(rc, xq, xk)
         qs, ks = [], []
         for s in self.specs:
             d = get_factor(s.name)
@@ -603,6 +620,33 @@ class FactorSite(nn.Module):
         if not qs:
             return None, None
         return torch.cat(qs, -1), torch.cat(ks, -1)
+
+    def emit(self, rc: RelCtx, xq: torch.Tensor, xk: torch.Tensor | None) -> None:
+        """Pair-estimate hook (docs/relations.md 3.2 `bilinear`): at its `params.readout_layer` (the n-th call of this
+        site in the forward, default 0) a bilinear factor with `params.emits = (vocab, edge)` writes
+        p_ij = sigmoid(pair logit) as `rc.edges[f"{site}#{vocab}"]` (prov "estimated": deployable), and the logits as
+        `rc.estimates[("pair", factor)]` (its readout loss). Graph factors over that vocabulary with source "probe" read
+        it; source "gt" reads `...@gt` and stays refused in deploy mode."""
+        if not self.emitters:
+            return
+        n = rc.memo.get(("layer", self.site), 0)
+        rc.memo[("layer", self.site)] = n + 1
+        for s in self.emitters:
+            d = get_factor(s.name)
+            p = {**d.p, **s.p}
+            if int(p.get("readout_layer", 0)) != n:
+                continue
+            vocab, edge = p["emits"]
+            from rrp.policies.relations.catalog import VOCABS
+            logit = OPS["bilinear"].pair_logits(self.f[_key(s.name)], xq, xq if xk is None else xk)
+            rc.estimates[("pair", s.name)] = logit
+            prob = control_graph(torch.sigmoid(logit), "on" if s.control not in ("zero", "rewired") else s.control,
+                                 rc, self.site)
+            key = f"{self.site}#{vocab}"
+            vv = tuple(VOCABS[vocab])
+            data = rc.edges[key].data.clone() if key in rc.edges else prob.new_zeros(*prob.shape, len(vv))
+            data[..., vv.index(edge)] = prob
+            rc.edges[key] = EdgeSet(vv, data, prov="estimated")
 
     @torch.no_grad()
     def contributions(self, rc: RelCtx, xq=None, xk=None) -> dict:

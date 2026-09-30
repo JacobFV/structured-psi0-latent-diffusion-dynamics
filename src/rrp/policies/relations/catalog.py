@@ -264,16 +264,18 @@ register_factor(FactorDef("ix.support", "1", field="hidden", op="bilinear", form
                           algebra=Algebra(direction="directed", value="prob", dynamic=True),
                           sources=("probe", "gt"), label="support_pairs", gen=("stack",),
                           readout=ReadoutDef("support", "pair", 1, "bce", label="support_pairs", reads="tokens"),
-                          params=(("rank", 8),),
+                          params=(("rank", 8), ("emits", ("support-v1", "support"))),
                           doc="a supports b: contact + contact normal within 30 deg of gravity-up at a's top "
-                              "(relgen.support.support_matrix)"))
+                              "(relgen.support.support_matrix); its pair estimate is emitted as the estimated "
+                              "`edges:support-v1` graph (FactorSite.emit) that `ix.force_flow` closes"))
 register_factor(FactorDef("ix.force_flow", "1", field="edges:support-v1", op="flow", form="bias",
                           algebra=Algebra(direction="directed", transitive=True, value="bool", dynamic=True),
                           sources=("probe", "gt"), label="support_closure", gen=("stack",),
                           params=(("edge", "support"),),
                           doc="upstream / downstream closure of the support graph (relgen.support.support_closure); "
-                              "the estimated `edges:support-v1` graph is produced from `ix.support`'s pair estimate "
-                              "by net-side wiring outside this entry's scope"))
+                              "source probe = the closure of `ix.support`'s emitted pair estimate thresholded at "
+                              "params.threshold (0.5; FactorSite.emit, deployable); source gt = the privileged "
+                              "`support_edges` graph at `<site>#support-v1@gt` (training / diagnostics only)"))
 # ------------------------------------------------------------------ R18: task / temporal / epistemic (task.*, time.*)
 # `task.next_contact` (docs/relations.md section 6 first wave, section 10 row R18): candidate manipulator/object
 # interaction -> bilinear score on TOKEN HIDDENS (field "hidden": no FieldDef needed, matching `ix.*`, section 3.2's
@@ -350,7 +352,7 @@ register_field(FieldDef("zlayer", 1, "scalar", "public", units="dense z-layer ra
 register_field(FieldDef("focus_rank", 1, "scalar", "public", units="0 = currently focused, -1 = every other widget"))
 VOCABS["ui-rel-v1"] = UI_REL_VOCAB
 
-# `ui.label_for` / `ui.contains` / `ui.focus_next` / `ui.above`: the ARM `edge.*` pattern (foundation, above) applied
+# `ui.label_for` / `ui.focus_next`: the ARM `edge.*` pattern (foundation, above) applied
 # to `UI_REL_VOCAB` -- every channel is public / deterministic (built from role, window, scene order, z-layer and
 # focusable/disabled, all already in `ObjectDescriptor.attributes`), so `sources` defaults to "given" everywhere;
 # "gt" is additionally offered (matching `geo.*`'s pattern, docs section 6) so a privileged `envs.computerworld`
@@ -362,18 +364,26 @@ VOCABS["ui-rel-v1"] = UI_REL_VOCAB
 _UI_EDGE_DOC = {
     "label_for": "role=\"label\" widget -> the next widget after it (scene order) in the same window: the "
                  "'label immediately precedes the control it describes' layout convention",
-    "contains": "1[i, j are widgets of the same window] (reflexive, symmetric); desktop-level widgets (window is "
-               "None) never match each other, so unrelated top-level icons are not bundled together",
     "focus_next": "i, j are consecutive slots of the public tab order (focusable, enabled, boxed widgets in scene "
                   "order; cyclic, the last wraps to the first)",
-    "above": "zlayer_j > zlayer_i: which of the pair renders on top / would occlude the other",
 }
 for _n, _doc in _UI_EDGE_DOC.items():
     register_factor(FactorDef(f"ui.{_n}", "1", field="edges:ui-rel-v1", op="edge", form="bias",
-                              algebra=Algebra(direction="symmetric" if _n == "contains" else "directed"),
                               sources=("given", "gt"), label=_n,
                               gen=("reveal", "surprise") if _n == "label_for" else (),
                               params=(("edge", _n),), doc=_doc))
+# D-144 addendum (lead review of R20): relations that are functions of a public per-token field are declared with the
+# generic operator over that field, not as hand-built vocabulary channels (docs 3.1: compose primitives). Windows are
+# not tokens, so the widget-level containment relation is membership of one window (`same` on `parent_id`); a
+# container -> member tree edge (`ancestor` over `parent_id`) needs container tokens and stays a catalog entry.
+register_factor(FactorDef("ui.same_window", "1", field="parent_id", op="same", form="bias",
+                          algebra=Algebra(direction="symmetric"), sources=("given",),
+                          doc="1[i, j are widgets of the same window] (parent_id equality; desktop-level widgets, "
+                              "parent_id -1, never match)"))
+register_factor(FactorDef("ui.above", "2", field="zlayer", op="order", form="bias",
+                          algebra=Algebra(direction="antisymmetric", value="signed"), sources=("given",),
+                          params=(("axis", (1.0,)), ("margin", 0.5)),
+                          doc="sign(zlayer_j - zlayer_i): +1 = j renders above i, -1 = below, 0 = same layer"))
 
 # `ui.drag_to`: the ix.*/leg.* bilinear pair-probe pattern (docs 3.1: the bias IS the pair probe) -- there is no
 # public/estimated "given" source for a drag DESTINATION (only the learned kernel deployably; "gt" is
@@ -390,4 +400,4 @@ register_factor(FactorDef(
     doc="widget currently interacted with (scene.focus) -> nearest other widget by position, the candidate drop "
         "target of an in-progress drag (relgen.ui.drag_to_fn)"))
 
-register_preset("ui", ["ui.label_for", "ui.contains", "ui.focus_next", "ui.above", "ui.drag_to"])
+register_preset("ui", ["ui.label_for", "ui.same_window", "ui.focus_next", "ui.above", "ui.drag_to"])

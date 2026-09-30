@@ -1333,3 +1333,29 @@ the lead" notes). Never touched `relations/base.py` / `relations/ops.py`.
    so nobody re-litigates the preset name or re-derives the table.
 Evidence: `tests/unit/test_relations_geo_wiring.py` (new, this unit's own file, 20 tests); full suite command +
 count in `research/tracks/rel-geo.md`.
+
+### D-144 addendum 2026-09-30: estimated pair relations feed graph factors; review of R6 / R20 judgment calls (relations architect, asked by the lead)
+- **Pair estimate → EdgeSet hook.** A `bilinear` factor with `params.emits = (vocab, edge)` publishes its pair probe
+  p_ij = σ(head-mean ⟨U x_i, V x_j⟩ + c) at its readout layer as the ESTIMATED EdgeSet `"<site>#<vocab>"`
+  (`FactorSite.emit`, called from `augment`, before any bias of that call; logits in `rc.estimates[("pair", name)]`
+  for its readout loss). `RelCtx.edge_set(site, edge, source)` looks edges up across a site's vocabularies: source
+  `given` → non-privileged, `probe` → estimated only, `gt` → `...@gt` only and refused in deploy mode. `ancestor` /
+  `flow` / `hop` threshold soft edges at `params.threshold` (0.5). `ix.support` now emits `support-v1:support`, so
+  `ix.force_flow` runs deployably on the estimate (default source probe) and on the privileged graph with source gt.
+  Test: `tests/unit/test_relations.py::test_bilinear_pair_estimate_feeds_graph_factor`. `ix.support`'s compat hash
+  changes (new param); no checkpoint used it.
+- **R6 (pointer `slot` query by opaque slot index): kept.** It is the arm contract (D-029: a probe sees only the
+  packet + opaque handle codes; the arm's entity queries are also slot-handle addressed). CW slot identity is keyed by
+  (interaction, role, label), so a slot index names a widget identity consistently within an app; the probe therefore
+  tests whether z encodes WHICH widget is targeted (binding), not only where. The old content-keyed probe could
+  answer partly from widget content. Consequence: post-R6 `slot` accuracies are not comparable with pre-R6 pointer
+  probe numbers; reports must name the probe version (`probes:pointer-v1`).
+- **R20 UI vocabulary: two of three reversed.** Relations that are functions of a public per-token field are declared
+  with the generic operator, not as hand-built vocabulary channels (docs 3.1). `ui.above` → `op="order"` on `zlayer`
+  (signed, antisymmetric; v2); `ui.contains` → `ui.same_window` (`op="same"` on `parent_id`, symmetric): windows are
+  not tokens, so "contains" was always same-window membership and the name misled; a container → member tree edge
+  (`ancestor` over `parent_id`) needs container tokens and stays a catalog entry. `focus_rank` binary: kept — tab
+  order is already carried by `ui.focus_next`, and the 0 / -1 encoding is R8's accepted StateView convention (the
+  name overstates it; left for a later rename together with its producer). The `contains` / `above` channels of
+  `envs.computerworld.UI_REL_VOCAB` / `ui_edges` are now unused by factors (still used as relgen labels and in
+  tests); dropping them is left to the owner of that file.
