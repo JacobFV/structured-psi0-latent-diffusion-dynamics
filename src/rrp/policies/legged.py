@@ -16,12 +16,94 @@ import numpy as np
 import torch
 
 from rrp.core.latent_action import AssemblyHandle, LatentActionChunk, check_packet
-from rrp.policies.bundles import load_rep
+from rrp.policies.bundles import checkpoint_provenance
 from rrp.policies.features.legged import (EVENTS, KNOT_TIMES, MAX_M, MAX_N, TICK_DT, TICKS_PER_PACKET, LeggedMorph,
                                           active_event, local_state, public_context)
-from rrp.policies.nets.legged_latent import LeggedFlow, legged_probe, legged_probe_read, remap_legged_probe_state
+from rrp.policies.nets.legged_latent import (LeggedFlow, build_legged_rep, legged_probe, legged_probe_read,
+                                             legged_specs, relational_specs, remap_legged_probe_state)
+from rrp.policies.relations.base import FactorError, compat_hash, require_factors
 
 REALIZER_COMPAT = "legged-rz-osc-v1"     # base of the system-0 compatibility ID (osc-v1 phase input)
+TERRAIN_CHANNEL = "0:terrain_scan"       # the env's declared public terrain channel (envs.mujoco.legged)
+TERRAIN_FACTORS = ("edge.over_cell", "leg.foothold")   # the factors that read terrain-scan cells (catalog: foot -> cell pairs)
+
+
+# ------------------------------------------------------------------ checkpoint loaders (D-146 HP)
+# The nets are built from the checkpoint's OWN resolved factor list (`st["factors"]`, written by every stamped save), and the
+# saved `versions["factors"]` structure hash must equal it (`require_factors`). A checkpoint without a stamp is a
+# pre-stamp `legged-none` one: built with no relational factor (its state dict must then fit, else the load raises).
+def needs_terrain(specs) -> bool:
+    """True when the factor list reads terrain cells: the deployed batch then needs the public scan (`terrain`,
+    `terrain_valid`); a policy built on such a checkpoint requires the env capability `terrain_scan`."""
+    return any(s.name in TERRAIN_FACTORS for s in (specs or ()))
+
+
+def _stamped_specs(st: dict, path):
+    """(resolved factor list | None, provenance): None = unstamped (pre-stamp `legged-none`, no relational factor)."""
+    prov = checkpoint_provenance(st, path)           # raises on a fingerprint mismatch
+    saved = prov.versions.get("factors")
+    if not (isinstance(saved, str) and saved.startswith("fx-")):
+        return None, prov
+    if "factors" not in st:
+        raise FactorError(f"{path}: stamped {saved!r} but the checkpoint carries no factor list")
+    specs = legged_specs(st["factors"])
+    require_factors(prov.versions, specs)
+    return specs, prov
+
+
+def _check_net_stamp(st: dict, path, specs) -> None:
+    """A net built from its config (BC: `cfg.model.factors`) against the stamp of its checkpoint."""
+    saved = checkpoint_provenance(st, path).versions.get("factors")
+    if isinstance(saved, str) and saved.startswith("fx-"):
+        require_factors(dict(factors=saved), specs)
+    elif relational_specs(specs):
+        raise FactorError(f"{path}: unstamped checkpoint (legged-none) but its config lists relational factors "
+                          f"{[s.name for s in relational_specs(specs)]}")
+
+
+def load_legged_rep(path, dev):
+    """(cfg, E, R, P, result, specs) of a representation checkpoint, frozen and eval; `specs` is the factor list the nets
+    were built on (None for an unstamped legged-none checkpoint)."""
+    st = torch.load(str(path), map_location=dev, weights_only=False)
+    specs, prov = _stamped_specs(st, path)
+    if prov.legacy:
+        print(f"[legged] {path}: legacy checkpoint ({prov.notes}); compatibility IDs are fingerprinted at load", flush=True)
+    lc = st["cfg"]["latent"]
+    E, R, P = (m.to(dev) for m in build_legged_rep(lc, specs))
+    E.load_state_dict(st["E"]); R.load_state_dict(st["R"]); P.load_state_dict(remap_legged_probe_state(st["P"]))
+    for m in (E, R, P):
+        m.eval()
+        for p in m.parameters():
+            p.requires_grad_(False)
+    return st["cfg"], E, R, P, st["result"], specs
+
+
+def load_legged_flow(path, dev, rep_specs, dz: int):
+    """System i from its checkpoint, built on its own stamped factor list, which must be the representation's (a flow is
+    trained on one rep: a different structure is a different model, never loaded silently)."""
+    st = torch.load(str(path), map_location=dev, weights_only=False)
+    specs, _ = _stamped_specs(st, path)
+    if (specs is None and relational_specs(rep_specs or ())) or \
+            (specs is not None and (rep_specs is None or compat_hash(specs) != compat_hash(rep_specs))):
+        raise FactorError(f"{path}: flow factor structure {None if specs is None else compat_hash(specs)!r} != "
+                          f"representation {None if rep_specs is None else compat_hash(rep_specs)!r}")
+    F = LeggedFlow(dz=dz, D=st["cfg"].get("width", 256), layers=st["cfg"].get("layers", 4), factors=specs).to(dev)
+    F.load_state_dict(st["flow"]); F.eval()
+    return F, st
+
+
+def load_legged_bc(path, dev):
+    """(BC model, checkpoint dict): built from its config's factor list and checked against its stamp."""
+    from rrp.policies.nets.legged_bc import load_bc
+    m, st = load_bc(path, dev)
+    _check_net_stamp(st, path, m.specs)
+    return m, st
+
+
+def upper_trained(result: dict | None) -> bool:
+    """Whether a checkpoint's realizer was trained on the `upper` group rows (the trainer's declaration in the checkpoint
+    `result`, HD2); absent = legs-only."""
+    return bool((result or {}).get("upper_trained", False))
 
 
 def legged_bundle_versions(base_lsv: str, encoder_state: dict, realizer_state: dict) -> tuple[str, str]:
@@ -59,6 +141,7 @@ class System0Adapter:
         self.ticks = 0
         self.log = []
         self.upper_tgt = None              # HX: the `upper` group target of the last tick (None = not realized)
+        self.terrain = None                # the env's latest public scan (values, valid) of `0:terrain_scan`, fed by the policy
         self.stats = dict(ticks=0, packets=0, rejected=0, fallback=0)
         self.ood = None                    # D-126 #29: rrp.policies.packet_ood.PacketOODMonitor (None = off)
         self.fallback_mode = "hold_default"
@@ -69,6 +152,7 @@ class System0Adapter:
         self.packet = None
         self.armed = False
         self.upper_tgt = None
+        self.terrain = None
 
     def state(self):
         return dict(ticks=self.ticks)
@@ -91,6 +175,12 @@ class System0Adapter:
         b = dict(self.c.static)
         t = lambda x: torch.from_numpy(np.asarray(x, np.float32))[None].to(dev)
         b.update(q=t(qq), qd=t(dd), imu=t(imu), asm_touch=t(tt), osc=torch.tensor([self.osc()], device=dev))
+        if getattr(self.c, "needs_terrain", False):     # the factors read terrain cells: the PUBLIC scan or a hard error
+            if self.terrain is None:
+                raise RuntimeError("this checkpoint's factors read the terrain scan but no `0:terrain_scan` channel was "
+                                   "observed (build the env with the terrain_scan capability)")
+            vals, valid = self.terrain
+            b.update(terrain=t(vals), terrain_valid=torch.from_numpy(np.asarray(valid, bool))[None].to(dev))
         return b
 
     def act(self, data, cmd):
@@ -161,8 +251,9 @@ class BCController:
     every `replan` ticks from the same public inputs (context + local state) and executes it open-loop between."""
 
     def __init__(self, ckpt: Path, dev, nfe=8, replan=5, seed=0):
-        from rrp.policies.nets.legged_bc import load_bc
-        self.model, st = load_bc(ckpt, dev)
+        self.model, st = load_legged_bc(ckpt, dev)
+        self.specs = self.model.specs
+        self.needs_terrain = needs_terrain(self.specs)
         self.dev, self.nfe, self.replan = dev, nfe, replan
         self.gen = torch.Generator(device=dev).manual_seed(seed)
         from rrp.core.provenance import source_label
@@ -183,11 +274,13 @@ class BCAdapter:
         self.c, self.s, self.m = ctl, session, morph
         self.version = f"bc:{ctl.policy_version}"
         self.armed, self.ticks, self.chunk, self.k = False, 0, None, 0
+        self.terrain = None
         self.log = []
         self.stats = dict(ticks=0, packets=0, rejected=0, fallback=0)
 
     def reset(self, phase=0.0):
         self.ticks, self.chunk, self.armed = 0, None, False
+        self.terrain = None
 
     def state(self):
         return dict(ticks=self.ticks)
@@ -230,8 +323,9 @@ class LatentLeggedController:
                  rep=None, realizer=None, zero_qd=False, upper=False):
         st = torch.load(str(flow_ckpt), map_location=dev, weights_only=False) if flow_ckpt else None
         self.cfg = st["cfg"] if st else dict(representation=str(rep))
-        rcfg, self.E, self.R, self.P, rres = load_rep(Path(rep or self.cfg["representation"]), dev)
-        from rrp.policies.bundles import checkpoint_provenance
+        rcfg, self.E, self.R, self.P, rres, self.specs = load_legged_rep(Path(rep or self.cfg["representation"]), dev)
+        rep_res = rres
+        self.needs_terrain = needs_terrain(self.specs)     # the deployed batch carries the public scan for these factors
         self.checkpoint_provenance = dict(representation=checkpoint_provenance(
             torch.load(str(rep or self.cfg["representation"]), map_location="cpu", weights_only=False),
             rep or self.cfg["representation"]).model_dump(mode="json", include={"legacy", "weights", "notes"}))
@@ -242,19 +336,30 @@ class LatentLeggedController:
             rs = torch.load(str(realizer), map_location=dev, weights_only=False)
             self.checkpoint_provenance["realizer"] = checkpoint_provenance(rs, realizer).model_dump(
                 mode="json", include={"legacy", "weights", "notes"})
+            rspecs, _ = _stamped_specs(rs, realizer)
+            if (rspecs is None) != (self.specs is None) or (rspecs is not None and compat_hash(rspecs) != compat_hash(self.specs)):
+                raise FactorError(f"{realizer}: realizer factor structure differs from the representation's "
+                                  f"({None if rspecs is None else compat_hash(rspecs)!r} vs "
+                                  f"{None if self.specs is None else compat_hash(self.specs)!r})")
             self.R.load_state_dict(rs["R"])
+            rres = rs.get("result", {})                # the refit realizer's own declaration (legs-only DAgger labels)
         self.zero_qd = zero_qd
-        self.upper = bool(upper)           # HX: realize the `upper` group too (a declaration: the realizer's upper rows were trained)
+        # HX: realize the `upper` group too. Only a realizer whose upper rows were trained may: the checkpoint's own
+        # `result["upper_trained"]` decides, never the caller's wish.
+        if upper and not upper_trained(rres):
+            raise ValueError(f"upper=True: {realizer or rep or self.cfg['representation']} does not declare upper_trained "
+                             f"(its realizer was not trained on the `upper` group rows); use the legs-only policy or a "
+                             f"checkpoint trained with the upper group")
+        self.upper = bool(upper)
         if posthoc_probe:                              # measurement probe for latent_nosem (frozen, detached z)
             pp = torch.load(posthoc_probe, map_location=dev, weights_only=False)
             self.P = legged_probe(dz=rcfg["latent"]["dz"]).to(dev)
             self.P.load_state_dict(remap_legged_probe_state(pp["state"])); self.P.eval()
         self.F = None
         if st:
-            self.F = LeggedFlow(dz=rcfg["latent"]["dz"], D=self.cfg.get("width", 256), layers=self.cfg.get("layers", 4)).to(dev)
-            self.F.load_state_dict(st["flow"]); self.F.eval()
+            self.F, _ = load_legged_flow(flow_ckpt, dev, self.specs, rcfg["latent"]["dz"])
         # fingerprinted IDs computed from the weights actually loaded (legacy checkpoints included)
-        self.lsv, self.rcv = legged_bundle_versions(rres["latent_space_version"], self.E.state_dict(),
+        self.lsv, self.rcv = legged_bundle_versions(rep_res["latent_space_version"], self.E.state_dict(),
                                                     self.R.state_dict())
         self.policy_version = (f"learned:{Path(flow_ckpt).parent.name}/{Path(flow_ckpt).name}" if flow_ckpt else
                                f"rep:{Path(rep).parent.name}") + (f"+rz:{Path(realizer).parent.name}/{Path(realizer).name}"
@@ -488,6 +593,14 @@ class _LeggedPolicy:
         from rrp.core.action import NativeCommand
         from rrp.policies.base import Act
         s, ad = self.env, self.ad
+        if getattr(self.ctl, "needs_terrain", False):
+            # the PUBLIC scan of this tick, from the observation's declared channel (never the simulator's ground truth). A
+            # missing channel raises here: the adapters swallow generation errors as "packet_rejected", which would hide it.
+            ch = next((c for o in obs.values() for c in o.declared_sensor_channels if c.name == TERRAIN_CHANNEL), None)
+            if ch is None:
+                raise RuntimeError(f"this checkpoint's factors {[f.name for f in self.ctl.specs if f.name in TERRAIN_FACTORS]} "
+                                   f"read the terrain scan but the observation has no {TERRAIN_CHANNEL!r} channel")
+            ad.terrain = (np.asarray(ch.values, np.float32), np.asarray(ch.mask, bool))
         n0 = ad.stats["packets"]
         tgt = ad.act(s.data, None)
         new = ad.stats["packets"] > n0
@@ -518,6 +631,7 @@ class LeggedLatentPolicy(_LeggedPolicy):
         super().__init__(ctl, PolicyInfo(name, src, f"{ctl.policy_version}|{ctl.lsv}|{ctl.rcv}" + ("|upper" if ctl.upper else ""),
                                          Requirements(frozenset({"joint_position"}), groups=groups,
                                                       observations=frozenset({"proprio", "task_graph"}),
+                                                      env_capabilities=frozenset({"terrain_scan"} if ctl.needs_terrain else ()),
                                                       body_families=LEGGED_FAMILIES, privileged=oracle), variant))
 
     def _bind(self, s, morph):
@@ -534,7 +648,7 @@ class LeggedBCPolicy(_LeggedPolicy):
         from rrp.policies.base import PolicyInfo, Requirements
         super().__init__(ctl, PolicyInfo(name, "bc", ctl.policy_version, Requirements(
             frozenset({"joint_position"}), groups=frozenset({"legs"}), observations=frozenset({"proprio", "task_graph"}),
-            body_families=LEGGED_FAMILIES)))
+            env_capabilities=frozenset({"terrain_scan"} if ctl.needs_terrain else ()), body_families=LEGGED_FAMILIES)))
 
 
 def make_legged_latent(*, flow: str | None = None, rep: str | None = None, realizer: str | None = None,

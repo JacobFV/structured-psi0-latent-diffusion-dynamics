@@ -26,7 +26,8 @@ import torch
 from rrp.core.sealed import SealedSplit
 from rrp.policies.features.legged import public_context, active_event, MAX_N
 from rrp.harness.train.legged_latent_train import LeggedData, rep_step, _save
-from rrp.policies.bundles import load_rep, _dev
+from rrp.policies.bundles import _dev
+from rrp.policies.legged import load_legged_bc, load_legged_flow, load_legged_rep
 from rrp.policies.features.legged import MAX_J, H
 
 
@@ -39,6 +40,7 @@ class Recorder:
 
     def reset(self):
         self.rows = {k: [] for k in ("q", "qd", "imu", "touch", "osc", "a", "beh", "ctx", "ev", "pose", "contact")}
+        self.rows_optional = ("terrain", "terrain_valid")   # the PUBLIC scan of the tick (only when the policy carries it)
         if self.diag:                                      # t1 diagnosis: received packet + shadow-teacher chunk
             self.rows.update(pk=[], zpk=[], tch=[])        # (privileged; DIAGNOSTIC labels only) at packet ticks
         self.ctx = None
@@ -57,6 +59,9 @@ class Recorder:
         self.rows["beh"].append(ch.astype(np.float16)); self.rows["ctx"].append(self.ctx.copy())
         self.rows["ev"].append(active_event(ad.s.runtime)); self.rows["pose"].append(ad.s.base_pose_truth().astype(np.float32))
         self.rows["contact"].append(np.asarray(fc, bool))
+        if "terrain" in bb:                                # public scan (D-146), recorded as the shard arrays LeggedData reads
+            for k in self.rows_optional:
+                self.rows.setdefault(k, []).append(bb[k][0].cpu().numpy())
         if self.diag:
             from rrp.policies.features.legged import TICKS_PER_PACKET
             at = ad.ticks % TICKS_PER_PACKET == 0
@@ -78,12 +83,11 @@ def collect(a):
     from rrp.core.runs import parse_seed_spec
     from rrp.harness.eval.legged_latent_eval import run_episode
     from rrp.policies.legged import BCController, LatentLeggedController
-    from rrp.policies.nets.legged_bc import load_bc
     seeds = parse_seed_spec(a.seeds)
     SealedSplit.load().assert_train_allowed([a.body], seeds, what="dagger collect")
     dev = torch.device("cpu")
     torch.set_num_threads(1)
-    bc, _ = load_bc(a.bc, dev)
+    bc, _ = load_legged_bc(a.bc, dev)
     out = Path(a.out) / a.body
     out.mkdir(parents=True, exist_ok=True)
     f = out / f"s{seeds[0]}-{seeds[-1]}.npz"
@@ -181,15 +185,12 @@ def gate_metrics(E, R, data, n_batches=20, B=256, seed=3, F_=None, realizer_labe
 
 def gate(a):
     dev = _dev()
-    rcfg, E, R, P, rres = load_rep(Path(a.rep), dev)
+    rcfg, E, R, P, rres, specs = load_legged_rep(Path(a.rep), dev)
     if a.realizer:
         R.load_state_dict(torch.load(a.realizer, map_location=dev, weights_only=False)["R"])
     F_ = None
     if a.flow:
-        from rrp.policies.nets.legged_latent import LeggedFlow
-        st = torch.load(a.flow, map_location=dev, weights_only=False)
-        F_ = LeggedFlow(dz=rcfg["latent"]["dz"], D=st["cfg"].get("width", 256), layers=st["cfg"].get("layers", 4)).to(dev)
-        F_.load_state_dict(st["flow"]); F_.eval()
+        F_, _ = load_legged_flow(a.flow, dev, specs, rcfg["latent"]["dz"])
     res = dict(rep=a.rep, realizer=a.realizer, flow=a.flow, label_source="stateless BC expert chunk (see buffer json)")
     for name, root in (("bc_visited", a.buf), ("teacher_heldout", a.teacher_data)):
         if not root:
@@ -224,7 +225,7 @@ def gen_step(E, R, F_, data, i, j, gen_frac, qd_drop):
 
 def refit(cfg, out: Path):
     dev = _dev()
-    rcfg, E, R, P, rres = load_rep(Path(cfg["representation"]), dev)
+    rcfg, E, R, P, rres, specs = load_legged_rep(Path(cfg["representation"]), dev)
     if cfg.get("init_realizer"):
         R.load_state_dict(torch.load(cfg["init_realizer"], map_location=dev, weights_only=False)["R"])
     R.train()
@@ -243,10 +244,7 @@ def refit(cfg, out: Path):
         dag = [LeggedData(Path(r), bodies, dev) for r in cfg.get("dagger", [])]
     F_ = None
     if cfg.get("gen_flow"):          # generator-aware system 0: train on packets the deployed flow actually emits
-        from rrp.policies.nets.legged_latent import LeggedFlow
-        fst = torch.load(cfg["gen_flow"], map_location=dev, weights_only=False)
-        F_ = LeggedFlow(dz=rcfg["latent"]["dz"], D=fst["cfg"].get("width", 256), layers=fst["cfg"].get("layers", 4)).to(dev)
-        F_.load_state_dict(fst["flow"]); F_.eval()
+        F_, _ = load_legged_flow(cfg["gen_flow"], dev, specs, rcfg["latent"]["dz"])
         gen_frac = float(cfg.get("gen_frac", 0.5))
     steps, lr = cfg["steps"], cfg.get("lr", 3e-4)
     opt = torch.optim.AdamW(R.parameters(), lr=lr, weight_decay=1e-4)
@@ -280,7 +278,11 @@ def refit(cfg, out: Path):
         if step % 200 == 0:
             log.write(json.dumps(dict(step=step, t=time.time() - t0, loss=float(loss.detach()), **logs)) + "\n"); log.flush()
         if step % 1000 == 0 or step == steps:
-            _save(out / "realizer.pt", R=R.state_dict(), cfg=cfg, step=step, representation=cfg["representation"])
+            # The refit labels are the legs-only stateless BC expert chunk, so the realizer's upper rows are NOT trained: the
+            # checkpoint says so, and the policy refuses `upper=True` on it (policies.legged.upper_trained). The stamp
+            # carries the representation's own factor list (the refit only moves R).
+            _save(out / "realizer.pt", R=R.state_dict(), cfg=cfg, step=step, representation=cfg["representation"],
+                  specs=specs, result=dict(upper_trained=False, action_groups=["legs"]))
     R.eval()
     res = dict(steps=steps, wall_s=time.time() - t0)
     for k, d in enumerate(dag):

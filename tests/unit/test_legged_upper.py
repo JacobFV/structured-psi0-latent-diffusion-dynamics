@@ -73,7 +73,7 @@ def _policy(tmp_path, **kw):
     import torch as T
     from rrp.policies.legged import LatentLeggedController, LeggedLatentPolicy
     T.set_num_threads(1)
-    _, flow = tiny_bundle(tmp_path)
+    _, flow = tiny_bundle(tmp_path, upper_trained=bool(kw.get("upper")))
     return LeggedLatentPolicy(LatentLeggedController(flow, T.device("cpu"), nfe=2, seed=3, **kw))
 
 
@@ -132,5 +132,5 @@ def test_legs_only_policy_leaves_the_upper_group_out_and_upper_needs_wholebody(t
         up.reset(None, None, [0], envs=[legs_env])
     with pytest.raises(ValueError, match="upper=True"):
         from rrp.policies.legged import LatentLeggedController, LeggedLatentPolicy
-        _, flow = tiny_bundle(tmp_path)
+        _, flow = tiny_bundle(tmp_path, upper_trained=True)
         LeggedLatentPolicy(LatentLeggedController(flow, torch.device("cpu"), upper=True), oracle=True)
