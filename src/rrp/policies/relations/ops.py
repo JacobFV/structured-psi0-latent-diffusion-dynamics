@@ -96,10 +96,46 @@ def site_field(rc: RelCtx, set_name: str, name: str, s: FactorSpec):
     return ts.field(name), ts.fields.get(name + ".var")
 
 
+def field_valid(rc: RelCtx, set_name: str, name: str, s: FactorSpec):
+    """[B,T] bool validity of the field `name` of a token set for the spec's effective source, or None when the set
+    declares none (every token then counts as valid): `<name>.valid` of the public fields, `<label>.valid` of the
+    privileged labels (source gt). An estimate (source probe) exists for every token. A graph or hidden-feature
+    "field" (`edges:*`, `hidden`) has no per-token validity."""
+    if name.startswith("edges:") or name == "hidden":
+        return None
+    ts = rc.sets[set_name]
+    src = effective_source(s)
+    if src == "probe":
+        return None
+    v = ts.labels.get((get_factor(s.name).label or name) + ".valid") if src == "gt" else ts.fields.get(name + ".valid")
+    return None if v is None else v.bool()
+
+
+def _both(a, b):
+    return b if a is None else a if b is None else a & b
+
+
+def apply_valid(v: torch.Tensor, vq, vk, *, feature: str | None = None) -> torch.Tensor:
+    """Zero what an invalid token contributes. feature None: a pair value [B,Q,K]; "q" / "k": a q / k feature
+    [B,H,T,A] (only that side's validity applies)."""
+    if feature is None:
+        if vq is not None:
+            v = v * vq[:, :, None].to(v.dtype)
+        return v if vk is None else v * vk[:, None, :].to(v.dtype)
+    m = vq if feature == "q" else vk
+    return v if m is None else v * m[:, None, :, None].to(v.dtype)
+
+
 # ------------------------------------------------------------------ operators
 class Op:
     forms: tuple = ()
     graph = False                      # value computed from graphs (bias / mask), else field / hidden features (aug)
+
+    def valid(self, d, s, rc: RelCtx, site: str) -> tuple:
+        """(query-side [B,Q], key-side [B,K]) validity of the fields this operator reads at `site` (None = all
+        valid). A token whose field is invalid contributes zero on the side it is on (`<field>.valid`, D-146)."""
+        q, k = site.split(">")
+        return field_valid(rc, q, d.field, s), field_valid(rc, k, d.field, s)
 
     def controls(self, form: str) -> tuple:
         if form == "mask":
@@ -265,6 +301,14 @@ class PapeOp(Op):
     params: m (projection rows, default p), frame ('world' | 'query'; query needs params.orient = orientation field)."""
     forms = ("aug",)
 
+    def valid(self, d, s, rc, site):
+        vq, vk = super().valid(d, s, rc, site)
+        p = {**d.p, **s.p}
+        if p.get("frame", "world") == "query":
+            o = rc.sets[site.split(">")[0]].fields.get(p.get("orient", "orient") + ".valid")
+            vq = _both(vq, None if o is None else o.bool())
+        return vq, vk
+
     def build(self, d, s, heads, dim):
         p = {**d.p, **s.p}
         P, m_ = int(p["p"]), int(p.get("m", p["p"]))
@@ -339,6 +383,12 @@ class AlignOp(Op):
     """<b_i, R_i^T n_j> (frame query, needs params.orient) or <b_i, n_j> (world): phi_q = R_i b_i | b_i, phi_k = n_j."""
     forms = ("aug",)
 
+    def valid(self, d, s, rc, site):                          # the query side reads only its frame (orient)
+        q, k = site.split(">")
+        p = {**d.p, **s.p}
+        vq = rc.sets[q].fields.get(p.get("orient", "orient") + ".valid") if p.get("frame", "world") == "query" else None
+        return None if vq is None else vq.bool(), field_valid(rc, k, d.field, s)
+
     def build(self, d, s, heads, dim):
         mod = nn.Module()
         mod.b = _Coeff(dim, heads, 3)
@@ -377,6 +427,9 @@ class SimOp(Op):
 class UnaryOp(Op):
     """Key-side property prior <w_h, f_j>: phi_q = w_h (constant over queries), phi_k = f_j (w zero-init)."""
     forms = ("aug",)
+
+    def valid(self, d, s, rc, site):                          # the query side reads no field
+        return None, field_valid(rc, site.split(">")[1], d.field, s)
 
     def build(self, d, s, heads, dim):
         mod = nn.Module()
@@ -622,6 +675,7 @@ class FactorSite(nn.Module):
                 t = torch.zeros(v.shape, dtype=torch.float32, device=v.device).masked_fill(~v.bool(), float("-inf"))[:, None]
             else:
                 v = control_graph(v.float(), s.control, rc, self.site)
+                v = apply_valid(v, *OPS[d.op].valid(d, s, rc, self.site))
                 m = self.f[_key(s.name)]
                 w = m.w * (self._head_mask(s, m.w.device, m.w.dtype) if s.heads is not None else 1)
                 if s.gate is not None:
@@ -648,6 +702,8 @@ class FactorSite(nn.Module):
             fq, fk = OPS[d.op].features(d, s, m, rc, self.site, xq, xk)
             if s.control == "zero" and d.op != "bilinear":
                 fk = torch.zeros_like(fk)
+            vq, vk = OPS[d.op].valid(d, s, rc, self.site)             # an invalid token contributes zero on its side
+            fq, fk = apply_valid(fq, vq, vk, feature="q"), apply_valid(fk, vq, vk, feature="k")
             if s.heads is not None:
                 fq = fq * self._head_mask(s, fq.device, fq.dtype)[None, :, None, None]
             if s.gate is not None:

@@ -169,10 +169,10 @@ class ContextEncoder(nn.Module):
             mask = torch.cat([mask, torch.ones(it.shape[:2], dtype=torch.bool, device=mask.device)], 1)
             rel = F.pad(rel, (0, 0, 0, pad, 0, pad))
         # the ctx / act token sets: fields the active factors read (only then), the training labels, the image pad
+        edges = {"ctx>ctx": EdgeSet(ARM_REL_VOCAB, rel)}
         sets = relation_token_sets(self.cfg.family, batch, batch.extra.get("relation_labels"), self.deploy,
-                                   fields=None if self.fields else (), pad_ctx=pad)
-        rc = RelCtx(sets=sets, edges={"ctx>ctx": EdgeSet(ARM_REL_VOCAB, rel)}, generator=rewire_gen,
-                    deploy=self.deploy)
+                                   fields=None if self.fields else (), pad_ctx=pad, edges=edges)
+        rc = RelCtx(sets=sets, edges=edges, generator=rewire_gen, deploy=self.deploy)
         for li, L in enumerate(self.layers):
             self.readouts.observe(li, "ctx", h, rc)
             xn = L["n1"](h)

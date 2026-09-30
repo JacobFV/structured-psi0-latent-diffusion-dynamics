@@ -269,13 +269,15 @@ def _pad_ctx(d: dict, pad: int, pair: frozenset = frozenset()) -> dict:
 
 
 def relation_token_sets(family: str, batch: "Batch", labels: dict | None = None, deploy: bool = False,
-                        fields=None, pad_ctx: int = 0) -> dict:
+                        fields=None, pad_ctx: int = 0, edges: dict | None = None) -> dict:
     """The `ctx` / `act` `TokenSet`s of a net family (docs/relations.md section 11): `kind`, every public / estimated
     field the family declares (`FAMILIES[family].sets`; `fields=()` skips them when no factor reads one), then
     `batch.extra["ctx_fields"]` (camera-derived `cam_uvd`), and, for training, `labels` =
     {"ctx": {name: tensor, name + ".valid": mask}, "act": {...}} (names must be ones the family attaches). Labels are
     privileged: passing them with `deploy=True` raises `PrivilegedInput`. `pad_ctx` appends invalid ctx positions
-    (VLM image tokens) to every ctx tensor."""
+    (VLM image tokens) to every ctx tensor. `edges` (the caller's `RelCtx.edges` dict, filled in place): when `labels`
+    carry a ctx `support_pairs`, the privileged direct-support graph is attached at `"ctx>ctx#support-v1@gt"` (the key
+    `ix.force_flow` with source `gt` reads; `support_pairs * support_pairs.valid`, `prov="privileged"`)."""
     from rrp.policies.relations.base import FAMILIES, FactorError, PrivilegedInput, pair_labels
     if family not in FAMILIES:
         raise FactorError(f"unknown net family {family!r}; families: {sorted(FAMILIES)}")
@@ -309,6 +311,11 @@ def relation_token_sets(family: str, batch: "Batch", labels: dict | None = None,
                 raise FactorError(f"label {k!r} is not one family {family!r} attaches to {name!r} "
                                   f"({list(ft.labels.get(name, ()))})")
         sets[name].labels = _pad_ctx(lab, pad_ctx, pair_labels()) if name == "ctx" else dict(lab)
+    sp = sets["ctx"].labels.get("support_pairs")
+    if edges is not None and sp is not None:
+        ok = sets["ctx"].labels.get("support_pairs.valid")
+        edges["ctx>ctx#support-v1@gt"] = EdgeSet(SUPPORT_REL_VOCAB, sp if ok is None else sp * ok[..., None].to(sp.dtype),
+                                                 prov="privileged")
     return sets
 
 

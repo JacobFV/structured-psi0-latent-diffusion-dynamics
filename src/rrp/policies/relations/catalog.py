@@ -198,12 +198,8 @@ register_factor(FactorDef(
     doc="sign((r_j - r_i) . +z) with a dead zone: above / below along the world-up (gravity) axis"))
 register_preset("geo", ["geo.pos3d", "geo.depth3d", "geo.orient", "geo.normal_align", "geo.above"])
 # ------------------------------------------------------------------ R15: membership / graph (id.*, kin.*)
-# ------------------------------------------------------------------ R15: membership / graph (id.*, kin.*)
-# entity_id / assembly_id are registered above (foundation); mirror_id is new: a public per-token left/right
-# mirror-pair id (mirror_id_i == mirror_id_j <-> i, j are morphological mirror partners; -1 = unpaired), generalizing
-# the g1-dim-rel-v1-only `edge.mirror` channel to any morphology whose collate path fills the field (arm, legged).
-register_field(FieldDef("mirror_id", 1, "id", "public"))
-
+# entity_id / assembly_id are registered above (foundation). The left/right mirror partner is the `edge.mirror`
+# channel of the g1 dim vocabulary (`kin.mirror` over a per-token `mirror_id` duplicated it and was deleted, D-146).
 register_factor(FactorDef("id.same_body", "1", field="entity_id", op="same", form="aug", sources=("given",),
                           doc="1[entity_id_i == entity_id_j]: same rigid body / object / scene entity across a pair "
                               "of tokens (fixed random unit codes per id, exact equality for n_ids <= code_dim)"))
@@ -222,14 +218,7 @@ register_factor(FactorDef("kin.sibling", "1", field="edges:*", op="hop", form="b
                               "the common case is two nodes sharing an immediate parent (siblings), but a generic "
                               "graph-distance-2 op also lights up grandparent<->grandchild pairs at the same "
                               "undirected distance; params.hops overrides the distance"))
-register_factor(FactorDef("kin.mirror", "1", field="mirror_id", op="same", form="aug", sources=("given",),
-                          doc="1[mirror_id_i == mirror_id_j] over the public mirror-pair id (unpaired tokens use "
-                              "mirror_id = -1 and never match); a token trivially matches itself, same as any other "
-                              "`same` factor. Generalizes Ψ₀ dims' edges:g1-dim-rel-v1 `mirror` channel (still "
-                              "available as edge.mirror) to morphologies with no such edge vocab (arm, legged), once "
-                              "their collate path fills mirror_id"))
-
-register_preset("graph", ["id.same_body", "id.same_assembly", "kin.ancestor", "kin.sibling", "kin.mirror"])
+register_preset("graph", ["id.same_body", "id.same_assembly", "kin.ancestor", "kin.sibling"])
 # ------------------------------------------------------------------ R16: contact / grasp / handover (ix.contact, ix.held_by, ix.handover)
 # Labels from `rrp.harness.data.relgen.contact` against `StateView.contacts()` (docs/relations.md 5.1, 6, 10;
 # research/relations_catalog.md D "physical interaction"). All three are the learned bilinear kernel on ctx token
@@ -303,18 +292,16 @@ register_factor(FactorDef(
     doc="candidate manipulator -> graspable / object -> support / destination bilinear score, sharpened by the "
         "task gate; supervised by progressive reveal / surprise over the R18 candidate-edge set (docs 5.4)."))
 
-# `time.same_track` (section 10 row R18 brief): 1[same persistent track] for multi-step token histories (system 0
-# knots, packet-history state, any net that keys history tokens by a track / assembly-over-time id); PUBLIC (the
-# track id is the pipeline's own bookkeeping, not simulator truth), so `sources=("given",)` only -- no probe / gt
-# ambiguity to resolve, unlike the privileged `ix.*` / `task.*` interaction factors above. Used only by nets that
-# carry history tokens (none yet on `main`; a declarative entry, wiring is that net's own unit per docs 3.1).
+# `time.same_track`: 1[same persistent track] for multi-step token histories. PLANNED (D-146): no net family has history
+# tokens (system 0 knots / packet-history state carry no track id), so nothing can run it; it becomes implemented with
+# the first family that fills `track_id`. Declared, not resolvable (`resolve` refuses a planned entry).
 register_field(FieldDef("track_id", 1, "id", "public"))
 register_factor(FactorDef(
     "time.same_track", "1", field="track_id", op="same", form="aug",
     algebra=Algebra(arity=2, direction="symmetric"),
-    sources=("given",),
+    sources=("given",), status="planned",
     doc="1[track_i == track_j] over multi-step history tokens (system-0 knots, packet-history state); public."))
-register_preset("task", ["task.next_contact", "time.same_track"])   # rel-geo (D-144 addendum, item 3)
+register_preset("task", ["task.next_contact"])
 # ------------------------------------------------------------------ R19: legged (leg.*)
 # Labels from `rrp.harness.data.relgen.body` against `StateView.entities()` / `.contacts()` (docs/relations.md 5.1,
 # 10 row R19; research/relations_catalog.md B "locomotion": "footholds, COM <-> support polygon, stability margin").
@@ -385,6 +372,7 @@ VOCABS["ui-rel-v1"] = UI_REL_VOCAB
 # label-role widget a control is bound to is exactly docs 5.4's own worked surprise example ("UI label changes") --
 # a candidate classification over a window's label-role widgets, not a fixed fact, so it is the one channel here
 # that benefits from progressive reveal / contradiction-after-collapse training (`relgen.ui.label_for_sample`).
+_CW_PARTS = ("cw_viewport", "cw_depth")  # the relgen scene parts (harness/data/relgen/ui.py) that exercise ui.* relations
 _UI_EDGE_DOC = {
     "label_for": "role=\"label\" widget -> the next widget after it (scene order) in the same window: the "
                  "'label immediately precedes the control it describes' layout convention",
@@ -394,19 +382,19 @@ _UI_EDGE_DOC = {
 for _n, _doc in _UI_EDGE_DOC.items():
     register_factor(FactorDef(f"ui.{_n}", "1", field="edges:ui-rel-v1", op="edge", form="bias",
                               sources=("given", "gt"), label=_n,
-                              gen=("reveal", "surprise") if _n == "label_for" else (),
+                              gen=(("reveal", "surprise") if _n == "label_for" else ()) + _CW_PARTS,
                               params=(("edge", _n),), doc=_doc))
 # D-144 addendum (lead review of R20): relations that are functions of a public per-token field are declared with the
 # generic operator over that field, not as hand-built vocabulary channels (docs 3.1: compose primitives). Windows are
 # not tokens, so the widget-level containment relation is membership of one window (`same` on `parent_id`); a
 # container -> member tree edge (`ancestor` over `parent_id`) needs container tokens and stays a catalog entry.
 register_factor(FactorDef("ui.same_window", "1", field="parent_id", op="same", form="bias",
-                          algebra=Algebra(direction="symmetric"), sources=("given",),
+                          algebra=Algebra(direction="symmetric"), sources=("given",), gen=_CW_PARTS,
                           doc="1[i, j are widgets of the same window] (parent_id equality; desktop-level widgets, "
                               "parent_id -1, never match)"))
 register_factor(FactorDef("ui.above", "2", field="zlayer", op="order", form="bias",
                           algebra=Algebra(direction="antisymmetric", value="signed"), sources=("given",),
-                          params=(("axis", (1.0,)), ("margin", 0.5)),
+                          gen=_CW_PARTS, params=(("axis", (1.0,)), ("margin", 0.5)),
                           doc="sign(zlayer_j - zlayer_i): +1 = j renders above i, -1 = below, 0 = same layer"))
 
 # `ui.drag_to`: the ix.*/leg.* bilinear pair-probe pattern (docs 3.1: the bias IS the pair probe) -- there is no
@@ -418,7 +406,7 @@ register_factor(FactorDef("ui.above", "2", field="zlayer", op="order", form="bia
 register_factor(FactorDef(
     "ui.drag_to", "1", field="hidden", op="bilinear", form="aug",
     algebra=Algebra(direction="directed", dynamic=True, value="prob"),
-    sources=("probe", "gt"), label="drag_to",
+    sources=("probe", "gt"), label="drag_to", gen=_CW_PARTS,
     readout=ReadoutDef("drag_to", "pair", 1, "bce", label="drag_to", reads="tokens"),
     params=(("rank", 8),),
     doc="widget currently interacted with (scene.focus) -> nearest other widget by position, the candidate drop "
@@ -434,7 +422,7 @@ register_preset("ui", ["ui.label_for", "ui.same_window", "ui.focus_next", "ui.ab
 # `legged-rel-v1` graph and the pair estimate `leg.foothold` at ctx>ctx / act>ctx / act>act.
 _ARM_LABELS = ("pos3d", "orient", "contact_normal", "cam_uvd", "contact_pairs", "held_pairs", "support_pairs",
                "support_closure", "next_contact")
-_ARM_SITES = {"ctx>ctx": ("edges:arm-rel-v1", "hidden", "cam_uvd", "pos3d", "orient", "normal"),
+_ARM_SITES = {"ctx>ctx": ("edges:arm-rel-v1", "hidden", "cam_uvd", "pos3d", "orient", "normal", "entity_id"),
               "act>ctx": ("edges:arm-rel-v1",), "act>act": ("edges:arm-rel-v1",), "node>knot": ("assembly_id",)}
 _ARM_SETS = {"ctx": ("pos3d", "orient", "cam_uvd", "entity_id", "assembly_id"), "act": ("assembly_id",),
              "node": ("assembly_id",), "knot": ("assembly_id",)}

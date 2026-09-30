@@ -18,10 +18,15 @@ from rrp.harness.data.relgen import LABELS, TRANSFORMS
 from rrp.harness.data.relgen.task import manipulator_ids, next_contact_sample, touching_entities
 import rrp.harness.data.relgen.transforms  # noqa: F401  (registers TRANSFORMS on import)
 from rrp.policies.nets.batch import CAND_REL_VOCAB, candidate_interaction_edges, collate_inputs
-from rrp.policies.relations.base import FactorError, PrivilegedInput, RelCtx, TokenSet, compat_hash, resolve
+from rrp.policies.relations.base import (Algebra, FactorDef, FactorError, PrivilegedInput, RelCtx, TokenSet, compat_hash,
+                                         register_factor, resolve)
 from rrp.policies.relations.ops import FactorSite
 
 pytest.importorskip("mujoco")
+
+# `time.same_track` is planned (round 2: no net family fills `track_id`), so its operator math runs on this twin.
+register_factor(FactorDef("test.r18_same_track", "1", field="track_id", op="same", form="aug",
+                          algebra=Algebra(arity=2, direction="symmetric"), sources=("given",)))
 
 
 # ------------------------------------------------------------------------------------------------ fixtures
@@ -54,9 +59,11 @@ def _dual_batch(seed=3):
 
 # ------------------------------------------------------------------------------------------------ registry
 def test_factors_registered_and_resolve():
-    specs = resolve(["task.next_contact", "time.same_track"])
-    assert [s.name for s in specs] == ["task.next_contact", "time.same_track"]
+    specs = resolve(["task.next_contact", "test.r18_same_track"])
+    assert [s.name for s in specs] == ["task.next_contact", "test.r18_same_track"]
     assert compat_hash(specs) != compat_hash(resolve(["task.next_contact"]))
+    with pytest.raises(FactorError):
+        resolve(["time.same_track"])                                         # planned (round 2): no net carries track_id
     resolve([{"name": "task.next_contact", "gate": "task"}])                 # "task" is an allowed gate: no raise
     with pytest.raises(FactorError):
         resolve([{"name": "task.next_contact", "gate": "goal"}])             # "goal" is not in FactorDef.gates
@@ -65,7 +72,7 @@ def test_factors_registered_and_resolve():
         # source-resolved field) -- true for every factor built on `op="bilinear"`, `task.next_contact` included.
         resolve([{"name": "task.next_contact", "control": "gt"}])
     with pytest.raises(FactorError):
-        resolve([{"name": "time.same_track", "control": "gt"}])              # "given"-only: no gt source either
+        resolve([{"name": "test.r18_same_track", "control": "gt"}])              # "given"-only: no gt source either
 
 
 def test_next_contact_readout_is_soft_ce_pair():
@@ -153,9 +160,9 @@ def test_same_track_is_exact_equality_aug():
     rc = RelCtx(sets={"q": q, "k": k})
     # n_ids <= code_dim: SameOp's fixed random codes are then ORTHONORMAL, i.e. EXACT equality (docs 3.2's `same`
     # op); the registry default (n_ids=64 > code_dim=16) is only approximate, so this test overrides it.
-    site = FactorSite(heads, dim, "q>k", resolve([{"name": "time.same_track", "params": {"n_ids": 8}}]), ("track_id",))
+    site = FactorSite(heads, dim, "q>k", resolve([{"name": "test.r18_same_track", "params": {"n_ids": 8}}]), ("track_id",))
     with torch.no_grad():
-        site.f["time__same_track"].g.fill_(1.0)
+        site.f["test__r18_same_track"].g.fill_(1.0)
     x = torch.randn(B, Tq, dim)
     xk = torch.randn(B, Tk, dim)
     qa, ka = site.augment(rc, x, xk)
