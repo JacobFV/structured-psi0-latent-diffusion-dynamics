@@ -79,3 +79,23 @@ cd ~/work/relational-robot-policy && git worktree add ~/work/rrp-wt/rel-r8 -b tr
 cd ~/work/rrp-wt/rel-r8 && export PYTHONPATH=$PWD/src:$PWD
 ~/work/relational-robot-policy/.venv/bin/python -m pytest tests/unit -q   # full suite before merge
 ```
+
+## D-144 addendum (lead decisions, recorded by this unit -- first to need them)
+
+No prior D-144 addendum existed in `research/decisions.md` at merge time, so this unit added one with the lead's
+three merge-protocol decisions (readout-probe swap acceptance criteria; the "gone from `src/`" definition; the
+`~/work/rrp-data/main-merge.lock` serialization) so R4/R5/R6 and siblings needing "gone from src/" can cite it
+without re-deriving it.
+
+## merge
+
+Committed the `StateView` feature (`493eded6b`) and the D-144 addendum (`afc0e553`) in the worktree, then ran the
+documented `flock ~/work/rrp-data/main-merge.lock bash -c '...'` merge command exactly once. `git fetch origin &&
+git rebase origin/main` rebased cleanly onto `566fccc6` (R11's merge) with no conflicts and no new commits landing
+between fetch and rebase (no siblings merged concurrently during this window), so the full-suite re-run and push
+happened on the first attempt -- no push race.
+
+Final full-suite result before the push: `789 passed, 40 skipped, 0 failed` (exit code 0). Pushed to `origin/main`
+at commit `e622bedae1eab1daab5fdc9d8fcd81d7aff3fd93` ("D-144 addendum: readout-probe swap acceptance, gone-from-src
+definition, merge lock (R8 lead decisions)"), on top of `44ceba89` (the R8 feature commit itself, `493eded6b`
+rebased).
