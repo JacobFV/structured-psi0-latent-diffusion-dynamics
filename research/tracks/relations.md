@@ -29,8 +29,8 @@ held-out bodies (`heldout`). `base` (preset:arm only) is the paired control at e
 Relgen reaches the trainer (R2 RG, below): per set the F0 node takes the `relgen` shards through `inputs.relgen` and a
 `params.curriculum`; the `base` control and the shared stageA take none. Factor lists are the ones the arm family can build:
 `resolve(family="arm")` rejects `geo.normal_align` as `given` (no `normal` ctx field; it is `source: probe` here), `ix.handover`
-(no `handover_pairs` label) and `time.same_track` (no site), so those three are not in the F0 lists (the full presets failed at
-model build, which no run had reached before). State: planned for the real recipes, smoke on the peer (R2 RG note).
+(no `handover_pairs` label), so those two are not in the F0 lists (the full presets failed at model build, which no run had
+reached before; `time.same_track` is already out of `preset:task`, D-146 round 2). State: planned for the real recipes, smoke on the peer (R2 RG note).
 
 ## resume
 
