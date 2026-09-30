@@ -65,5 +65,11 @@
  "recipe.h1_steps_v2": "21ef62349e1541b0f20d32f5",
  "recipe.h1_gap_v1": "f613a6a92a5b5baa120d0955",
  "recipe.t1_gap_v1": "e18584e96df6e5caee576aed",
- "recipe.tracker_gate_pool": "2ebc07de6fe2c8389343991a"
+ "recipe.tracker_gate_pool": "2ebc07de6fe2c8389343991a",
+ "loop.ladder.generated": "19fdbc979f5b6b4fe84c3df7",
+ "loop.ladder.learned_bc": "8d96d2ef869e21d0ebb1ab03",
+ "loop.ladder.oracle": "a2d80c8f3a43731e1fd35c37",
+ "loop.ladder.teacher": "6292122cf70d3376582e4262",
+ "loop.ladder.teacher_full": "22e8d4004c5fda08964078bd",
+ "loop.ladder.teacher_perturbed": "e83b8fda4d5f6f9590928a4d"
 }
