@@ -268,10 +268,12 @@ def test_grasp_head_off_by_default_and_loss_only_when_weighted():
 
 
 @torch_only
-def test_load_stage_a_infers_grasp_head(tmp_path):
+def test_load_stage_a_restores_grasp_head_from_config(tmp_path):
+    """D-146 P1: `load_stage_a` rebuilds the net from the checkpoint's own config (no inference from weights)."""
+    from rrp.policies.nets.checkpoint import save_checkpoint
     for g in (False, True):
         torch.manual_seed(1); A = N.StageA(grasp=g)
-        torch.save(dict(model=A.state_dict()), tmp_path / "a.pt")
+        save_checkpoint(tmp_path / "a.pt", model=A, step=0, versions={}, config=dict(stage_a=A.cfg))
         B = N.load_stage_a(tmp_path / "a.pt")
         sa, sb = A.state_dict(), B.state_dict()
         assert N.probe_has_grasp(B.P) == g and sa.keys() == sb.keys() and all(torch.equal(sa[k], sb[k]) for k in sa)

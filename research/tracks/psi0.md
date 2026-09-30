@@ -129,9 +129,16 @@ by the `labels` node (`psi0_replay` x `simple` through `harness.rollout` + `Labe
 recipe reads the released run + data from `~/work/ext/psi_home` (`ops/bin/psi0_ext.sh fetch-ckpt|fetch-data`). Old checkpoints, features
 and closed-loop outputs stay in `~/work/ext/runs/psi1z/{train,features,replay_labels,cl}/` and are still usable as
 inputs (`@`-refs accept any `artifacts/<store>/<name>` path; copy or link them there).
-Before the structured arm's closed loop is rerun the D-141 code fix is required (a code change, not a recipe): mask the
-state dims that are CONSTANT in training in DimEncoder/Realizer and force packet use in Stage A (state noise/dropout for R),
-then the item-3 test (R(z_mean) clearly worse than R(E(a))) on the offline `heldout` stage, only then `eval_structured`.
+The D-141 code fix is in (D-146 P1, architecture 14.5): `rrp train psi0 --arm stageA` fits the constant-input mask on the
+feature cache (state dims with std < 1e-4 are zeroed in E, R and the structured head, mask stored in the checkpoint), drops
+R's state while training (per dim 0.3, whole 0.1) and adds the permuted-packet hinge (margin 0.05; `--p-state-dim`,
+`--p-state-all`, `--w-perm`, `--perm-margin`); checkpoints are written by `save_checkpoint` with `config["stage_a"]` (widths
++ factor list) and `versions["factors"]`, and `load_stage_a` validates them (a pre-P1 stage A is refused: retrain). `--factors
+'<json list>'` sets the factor list (stage A: E/R/probe; structured: context tokens). Gate: `rrp train psi0 heldout --feat-dir
+.. --val-episodes .. --stage-a <stage_a.pt> --out gate.json` (no `--run-dir` = gate only) reports err(R(z_mean)) - err(R(E(a)))
+and writes `<stage-a dir>/packet_gate.json`; `--arm structured` refuses to start unless that file passes for the same
+stage-A file (`--gate` overrides the path). So the recipe's `heldout` gate runs BEFORE `structured` (stage wiring: P2).
+Only then `eval_structured`.
 Stale psi1z watcher loops on the peer (bash `until ... sleep` loops, pids 2873754, 3156994, 3389109 on 2026-09-29) hold no
 lease and can be killed.
 

@@ -4,14 +4,19 @@
     rrp train psi0 --arm direct ...       "Ψ₀ direct"
     rrp train psi0 --arm structured ...   "Ψ₀ + structure": same transformer init, optimizer, schedule, batch, steps
                                           as direct; flow over z + bounded semantic loss through the frozen probe;
-                                          actions from the frozen system 0
+                                          actions from the frozen system 0; refuses to start unless the stage A passed
+                                          the packet-use gate (`--gate`, written by `heldout`, architecture 14.5 c)
     rrp train psi0 probes ...             fresh probe + metadata-only control on frozen z (diagnostics)
-    rrp train psi0 heldout ...            held-out open-loop L1 per action group
+    rrp train psi0 heldout ...            held-out open-loop L1 per action group; `--stage-a` adds the packet-use gate
+                                          err(R(z_mean)) - err(R(E(a))) (with only `--stage-a`: the gate alone)
 
 Fairness: identical cached trunk features, data, held-out episodes, batch, steps, optimizer and schedule for direct vs
 structured; stage A compute is reported separately. Monitoring: per-loss gradient norms on the shared transformer
 (D-085), bounded probe NLL (lv_min -4). No teacher actions enter any input (actions are only targets / E's input for the
 packet target; system 0 sees z, morphology and the current state only). `--resume` continues from last.pt.
+Structure fix (D-141, architecture 14.5): stage A fits the constant-input mask on the feature cache before training
+(dims with std < 1e-4 are zeroed for E, R and the structured head), drops R's state while training and adds the
+permuted-packet hinge; checkpoints carry the factor list (`config["stage_a"]`) and its structure hash.
 """
 from __future__ import annotations
 
@@ -28,6 +33,7 @@ import torch
 from rrp.policies.psi0.data import CachedDataset, collate
 from rrp.policies.psi0 import load_launch_config, psi_home
 from rrp.policies.psi0 import nets as N
+from rrp.policies.nets.checkpoint import save_checkpoint
 
 GROUPS = [("hand_joints", 0, 14), ("arm_joints", 14, 28), ("waist_rp", 28, 30), ("waist_yaw", 30, 31),
           ("height", 31, 32), ("vx", 32, 33), ("vy", 33, 34), ("turn_flag", 34, 35), ("target_yaw", 35, 36)]
@@ -72,6 +78,66 @@ def load_model_cfg(run_dir):
     return load_launch_config(Path(run_dir)).model
 
 
+def parse_factors(text):
+    """`--factors`: a JSON list of factor items (names, `preset:<name>`, spec dicts) or None (the arm's default)."""
+    if text is None:
+        return None
+    items = json.loads(text)
+    if not isinstance(items, list):
+        raise SystemExit(f"--factors must be a JSON list of factor items, got {text!r}")
+    return items
+
+
+@torch.no_grad()
+def state_std(ds, batch=1024):
+    """Per-dim std of R's state input (`state_j`) over the whole feature cache (every item, every tick j)."""
+    n, s1, s2 = 0, torch.zeros(N.DA, dtype=torch.float64), torch.zeros(N.DA, dtype=torch.float64)
+    for b in torch.utils.data.DataLoader(ds, batch_size=batch, collate_fn=collate):
+        x = b["state_j"].double()
+        n += x.shape[0]; s1 += x.sum(0); s2 += (x ** 2).sum(0)
+    mean = s1 / max(n, 1)
+    return ((s2 / max(n, 1) - mean ** 2).clamp(min=0)).sqrt().float()
+
+
+def file_digest(path):
+    import hashlib
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()[:16]
+
+
+@torch.no_grad()
+def packet_use(A, ds, z_mean, stride=4, batch=32, device="cpu", margin=N.PACKET_MARGIN):
+    """Gate of architecture 14.5 (c) on held-out items: mean err(R(z_mean)) - err(R(E(a))) in normalized action units.
+    `passed` iff the gap >= margin, i.e. R needs the packet."""
+    A = A.to(device).eval()
+    idx = [i for i, it in enumerate(ds.items) if it["fr"] % stride == 0]
+    zm = z_mean.to(device)
+    e_mean, e_enc = [], []
+    for b0 in range(0, len(idx), batch):
+        b = to_dev(collate([ds[i] for i in idx[b0:b0 + batch]]), device)
+        em, ee = A.packet_gap(b, zm)
+        e_mean.append(em.cpu()); e_enc.append(ee.cpu())
+    if not e_mean:
+        raise SystemExit("packet gate: no held-out frames")
+    em, ee = torch.cat(e_mean), torch.cat(e_enc)
+    gap = float((em - ee).mean())
+    return dict(frames=int(em.numel()), err_z_mean=float(em.mean()), err_encoded=float(ee.mean()), gap=gap,
+                margin=margin, passed=gap >= margin)
+
+
+def require_gate(gate_path, stage_a_path):
+    """The structured head refuses to train unless the gate file reports a pass for THIS stage-A checkpoint."""
+    if gate_path is None or not Path(gate_path).exists():
+        raise SystemExit(f"structured arm refused: no packet-use gate at {gate_path}; run `rrp train psi0 heldout "
+                         f"--stage-a {stage_a_path} ...` first (architecture 14.5 c)")
+    g = json.loads(Path(gate_path).read_text()).get("packet_use")
+    if not g or g.get("stage_a_sha256_16") != file_digest(stage_a_path):
+        raise SystemExit(f"structured arm refused: {gate_path} has no packet_use for {stage_a_path}")
+    if not g["passed"]:
+        raise SystemExit(f"structured arm refused: R does not use the packet (err(R(z_mean)) - err(R(E(a))) = "
+                         f"{g['gap']:.4f} < margin {g['margin']}); retrain stage A")
+    return g
+
+
 def train(argv=None):
     ap = argparse.ArgumentParser(prog="rrp train psi0")
     ap.add_argument("--arm", choices=["stageA", "direct", "structured"], required=True)
@@ -80,6 +146,9 @@ def train(argv=None):
     ap.add_argument("--run-dir", required=True, help="released SIMPLE run (model config + normalization)")
     ap.add_argument("--action-header", default=str(psi_home() / "cache/checkpoints/psi0/postpre.1by1.pad36.2601131206.ckpt.he30k"))
     ap.add_argument("--stage-a", default=None)
+    ap.add_argument("--gate", default=None, help="structured arm: heldout gate file (default: <stage-a dir>/packet_gate.json)")
+    ap.add_argument("--factors", default=None, help="JSON list of relation-factor items (stageA: E/R/probe list; "
+                    "structured: the context tokens' list); default = the arm's default lists")
     ap.add_argument("--out", required=True)
     ap.add_argument("--steps", type=int, default=6000)
     ap.add_argument("--batch", type=int, default=32)
@@ -93,6 +162,10 @@ def train(argv=None):
     ap.add_argument("--z-noise", type=float, default=0.0)
     ap.add_argument("--w-grasp", type=float, default=0.0, help="grasp-region affordance probe weight (roadmap #24; 0 = off, no head)")
     ap.add_argument("--rec-w-cmd", type=float, default=1.0, help="stage A: reconstruction weight of vx/vyaw dims")
+    ap.add_argument("--p-state-dim", type=float, default=0.3, help="stage A: per-dim state dropout on R (14.5 b)")
+    ap.add_argument("--p-state-all", type=float, default=0.1, help="stage A: whole-state dropout on R (14.5 b)")
+    ap.add_argument("--w-perm", type=float, default=1.0, help="stage A: permuted-packet hinge weight (0 = off)")
+    ap.add_argument("--perm-margin", type=float, default=N.PACKET_MARGIN)
     ap.add_argument("--gn-every", type=int, default=200)
     ap.add_argument("--log-every", type=int, default=50)
     ap.add_argument("--ckpt-every", type=int, default=1000)
@@ -100,6 +173,11 @@ def train(argv=None):
     ap.add_argument("--workers", type=int, default=2)
     ap.add_argument("--device", default="cuda")
     a = ap.parse_args(argv)
+    factors = parse_factors(a.factors)
+    if a.arm == "structured":
+        if not a.stage_a:
+            raise SystemExit("--arm structured needs --stage-a")
+        gate = require_gate(a.gate or Path(a.stage_a).parent / "packet_gate.json", a.stage_a)
     torch.manual_seed(a.seed); np.random.seed(a.seed)
     dev = a.device
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
@@ -117,7 +195,10 @@ def train(argv=None):
     dlv = torch.utils.data.DataLoader(dv, batch_size=a.batch, shuffle=False, collate_fn=collate)
 
     if a.arm == "stageA":
-        model = N.StageA(grasp=a.w_grasp > 0).to(dev)
+        model = N.StageA(grasp=a.w_grasp > 0, factors=factors)
+        masked = model.fit_state_mask(state_std(ds))
+        print(f"[train] constant-input mask: {len(masked)} state dims zeroed {masked}", flush=True)
+        model = model.to(dev)
         if a.rec_w_cmd != 1.0:
             w = torch.ones(N.DA); w[list(N.CMD_DIMS)] = a.rec_w_cmd; model.rec_dim_w = w
         shared = list(model.E.parameters())
@@ -129,7 +210,7 @@ def train(argv=None):
         else:
             A = N.load_stage_a(a.stage_a)
             zs = torch.load(Path(a.stage_a).parent / "z_stats.pt")
-            model = N.StructuredHead(mcfg, A, zs["mean"], zs["std"], w_sem=a.w_sem, w_grasp=a.w_grasp)
+            model = N.StructuredHead(mcfg, A, zs["mean"], zs["std"], w_sem=a.w_sem, w_grasp=a.w_grasp, factors=factors)
         info = N.load_pretrained_blocks(model.header, a.action_header)
         print(f"[train] pretrained blocks: {info}", flush=True)
         model = model.to(dev)
@@ -161,7 +242,9 @@ def train(argv=None):
         with torch.autocast("cuda" if dev == "cuda" else "cpu", dtype=torch.bfloat16, enabled=dev == "cuda"):
             if a.arm == "stageA":
                 loss, logs, parts = model.loss(b, w_kl=a.w_kl, w_sem=a.w_sem if "labels" in b else 0.0,
-                                               lv_min=a.lv_min, z_noise=a.z_noise, w_grasp=a.w_grasp)
+                                               lv_min=a.lv_min, z_noise=a.z_noise, w_grasp=a.w_grasp,
+                                               p_state_dim=a.p_state_dim, p_state_all=a.p_state_all, w_perm=a.w_perm,
+                                               perm_margin=a.perm_margin)
             else:
                 loss, logs, parts = model.loss(b)
         rec = {"step": step, "loss": float(loss.detach()), **logs}
@@ -208,9 +291,12 @@ def train(argv=None):
                 zs.append(mu.float().cpu())
         z = torch.cat(zs)                                          # [N, K, M, DZ]
         torch.save(dict(mean=z.mean(0), std=z.std(0).clamp(min=1e-3)), out / "z_stats.pt")
-        torch.save(dict(model=model.state_dict(), args=vars(a)), out / "stage_a.pt")
+        save_checkpoint(out / "stage_a.pt", model=model, step=step, versions=dict(psi0_nets=N.NETS_VERSION),
+                        config=dict(vars(a), stage_a=model.cfg), source=f"learned:{out.name}/stage_a.pt")
     else:
-        torch.save(dict(model={k: v for k, v in model.state_dict().items()}, args=vars(a), step=step), out / "final.pt")
+        save_checkpoint(out / "final.pt", model=model, step=step, versions=dict(psi0_nets=N.NETS_VERSION),
+                        config=dict(vars(a), packet_gate=gate if a.arm == "structured" else None),
+                        source=f"learned:{out.name}/final.pt")
     from rrp.core.provenance import make_provenance, source_label, weights_digest
     ck_out = out / ("stage_a.pt" if a.arm == "stageA" else "final.pt")
     summ["provenance"] = make_provenance(source_label("learned", str(ck_out)), weights=dict(head=weights_digest(model.state_dict())),
@@ -245,13 +331,13 @@ def fit_probes(argv=None):
     if lh:
         zs = torch.load(Path(a.stage_a).parent / "z_stats.pt")
         head = N.StructuredHead(load_model_cfg(a.run_dir), A, zs["mean"], zs["std"])
-        N.load_tolerant(head, torch.load(a.structured, weights_only=False)["model"]); head = head.to(dev).eval()
+        N.load_structured(head, a.structured); head = head.to(dev).eval()
     ds = CachedDataset(a.feat_dir, a.labels_dir, episodes=set(summ["train_eps"]), load_hidden=lh)
     dv = CachedDataset(a.feat_dir, a.labels_dir, episodes=set(summ["val_eps"]), load_hidden=lh)
     res = {}
     for name, meta_only in (("probe_on_z", False), ("metadata_only_control", True)):
         torch.manual_seed(0)
-        P = N.new_probe(metadata_only=meta_only).to(dev)
+        P = N.new_probe(metadata_only=meta_only, specs=A.specs).to(dev)
         opt = torch.optim.AdamW(P.parameters(), lr=3e-4)
         dl = torch.utils.data.DataLoader(ds, batch_size=128, shuffle=True, drop_last=True, collate_fn=collate)
         it, step = iter(dl), 0
@@ -281,10 +367,15 @@ def fit_probes(argv=None):
 
 def heldout(argv=None):
     """Held-out open-loop L1 per action group on cached features: released Ψ₀ header, direct, structured, and the
-    DIAGNOSTIC oracle route R(E(demonstrated chunk)) (uses the target actions; never a deployable number)."""
+    DIAGNOSTIC oracle route R(E(demonstrated chunk)) (uses the target actions; never a deployable number).
+    With `--stage-a` it also reports the packet-use gate of architecture 14.5 (c), err(R(z_mean)) - err(R(E(a))) vs
+    the margin, into `--out` and into `--gate-out` (default `<stage-a dir>/packet_gate.json`, read by
+    `train --arm structured`); without `--run-dir` it reports only that gate."""
     ap = argparse.ArgumentParser(prog="rrp train psi0 heldout")
     ap.add_argument("--feat-dir", required=True)
-    ap.add_argument("--run-dir", required=True)
+    ap.add_argument("--run-dir", default=None)
+    ap.add_argument("--gate-out", default=None)
+    ap.add_argument("--device", default="cuda")
     ap.add_argument("--direct", default=None)
     ap.add_argument("--structured", default=None)
     ap.add_argument("--stage-a", default=None)
@@ -293,10 +384,24 @@ def heldout(argv=None):
     ap.add_argument("--nfe", type=int, default=10)
     ap.add_argument("--out", required=True)
     a = ap.parse_args(argv)
+    if a.run_dir is None and a.stage_a is None:
+        raise SystemExit("heldout needs --run-dir (model comparison) and/or --stage-a (packet-use gate)")
+    eps = {int(x) for x in a.val_episodes.split(",")}
+    gate = None
+    if a.stage_a:
+        ds_g = CachedDataset(a.feat_dir, None, episodes=eps, max_j=1, load_hidden=False)
+        zmean = torch.load(Path(a.stage_a).parent / "z_stats.pt")["mean"]
+        gate = dict(packet_use(N.load_stage_a(a.stage_a), ds_g, zmean, a.stride, device=a.device),
+                    stage_a=str(a.stage_a), stage_a_sha256_16=file_digest(a.stage_a), val_episodes=sorted(eps))
+        gp = Path(a.gate_out) if a.gate_out else Path(a.stage_a).parent / "packet_gate.json"
+        gp.write_text(json.dumps(dict(packet_use=gate), indent=1))
+        print("packet_use", json.dumps(gate), flush=True)
+        if a.run_dir is None:
+            Path(a.out).write_text(json.dumps(dict(packet_use=gate), indent=1))
+            return
     lc = load_launch_config(Path(a.run_dir))
     maxmin = lc.data.transform.field
     mcfg = lc.model
-    eps = {int(x) for x in a.val_episodes.split(",")}
     ds = CachedDataset(a.feat_dir, None, episodes=eps, max_j=1)
     idx = [i for i, it in enumerate(ds.items) if it["fr"] % a.stride == 0]
     models = {}
@@ -314,7 +419,7 @@ def heldout(argv=None):
     if a.structured:
         A = N.load_stage_a(a.stage_a)
         zs = torch.load(Path(a.stage_a).parent / "z_stats.pt")
-        m = N.StructuredHead(mcfg, A, zs["mean"], zs["std"]); N.load_tolerant(m, torch.load(a.structured, weights_only=False)["model"])
+        m = N.StructuredHead(mcfg, A, zs["mean"], zs["std"]); N.load_structured(m, a.structured)
         models["structured"] = m
 
         class Oracle(torch.nn.Module):       # DIAGNOSTIC (oracle): R(E(demonstrated chunk)) — uses the target actions
@@ -325,14 +430,14 @@ def heldout(argv=None):
                 mu, _ = self.A.E(self.A.morph, b["state0"], b["actions"])
                 return self.A.R(self.A.morph, mu, b["state0"], torch.zeros(mu.shape[0], device=mu.device))
         models["oracle_R_of_E(actions)"] = Oracle(m.A)
-    res = dict(val_episodes=sorted(eps), frames=len(idx), stride=a.stride, nfe=a.nfe, models={})
+    res = dict(val_episodes=sorted(eps), frames=len(idx), stride=a.stride, nfe=a.nfe, packet_use=gate, models={})
     for name, m in models.items():
-        m = m.to("cuda").eval()
+        m = m.to(a.device).eval()
         errs, errs24 = [], []
-        g = torch.Generator(device="cuda").manual_seed(0)
+        g = torch.Generator(device=a.device).manual_seed(0)
         for b0 in range(0, len(idx), 32):
-            b = to_dev(collate([ds[i] for i in idx[b0:b0 + 32]]), "cuda")
-            with torch.no_grad(), torch.autocast("cuda", dtype=torch.bfloat16):
+            b = to_dev(collate([ds[i] for i in idx[b0:b0 + 32]]), a.device)
+            with torch.no_grad(), torch.autocast("cuda", dtype=torch.bfloat16, enabled=a.device == "cuda"):
                 pred = m.sample(b, nfe=a.nfe, generator=g).float()
             p = np.asarray(maxmin.denormalize(pred.cpu().numpy()))
             gt = np.asarray(maxmin.denormalize(b["actions"].float().cpu().numpy()))

@@ -36,7 +36,7 @@ import torch.nn.functional as F
 
 from rrp.bodies import g1_simple as G
 from rrp.policies.nets.attention import MHA, RelBlock
-from rrp.policies.relations.base import EdgeSet, RelCtx, TokenSet, get_factor, resolve
+from rrp.policies.relations.base import EdgeSet, RelCtx, TokenSet, get_factor, require_factors, resolve
 from rrp.policies.relations.ops import FactorSite
 from rrp.policies.nets.flow import MLP, sinusoidal
 from rrp.policies.nets.probes import ReadoutProbe, gaussian_nll, readout_defs, readout_loss, readout_metrics
@@ -47,6 +47,19 @@ M = len(G.ASSEMBLIES)
 DZ = 64
 TP = 30                     # Psi0 chunk length
 DA = G.ACTION_DIM           # 36
+
+NETS_VERSION = "2"          # D-146 P1: relation-factor lists, constant-input mask, forced packet use (architecture 14.5)
+PACKET_MARGIN = 0.05        # m of 14.5, normalized action units: hinge margin in StageA.loss and the heldout gate threshold
+MASK_STD = 1e-4             # state dims with training std below this are constant inputs (14.5 a)
+# The resolved factor list of a stage A (family "psi0", relations.md 11): the command-dim structure edges of E and R,
+# the system-0 routing site of R, and the packet probe. `factors=` replaces the whole list (an ablation).
+DEFAULT_FACTORS = ("preset:psi0-dims", "preset:s0-psi0", "preset:probes:psi0-v1")
+GRASP_FACTORS = ("probe.psi0.grasp_pt", "probe.psi0.grasp_face")
+
+
+def stage_a_specs(factors=None, grasp: bool = False):
+    items = list(DEFAULT_FACTORS if factors is None else factors) + (list(GRASP_FACTORS) if grasp else [])
+    return resolve(items, family="psi0")
 
 # which assemblies' knots each assembly's command dims may read in system 0 (own + kinematic neighbours); canonical
 # table: bodies.g1_simple.READS / reads_table() (also the `route.assembly_reads` factor's params.reads, D-144 R5).
@@ -63,9 +76,10 @@ def read_mask() -> torch.Tensor:
 
 
 class Morph(nn.Module):
-    """Constant morphology buffers (node features, relations, assembly tokens)."""
+    """Constant morphology buffers (node features, relations, assembly tokens). `masked=True` (stage A, structured
+    head) adds the constant-input mask `state_keep` (trained state, stored in checkpoints)."""
 
-    def __init__(self):
+    def __init__(self, masked: bool = False):
         super().__init__()
         self.register_buffer("node_static", torch.from_numpy(G.node_static()))                   # [DA, F]
         self.register_buffer("rel", torch.from_numpy(G.relation_matrix()).permute(1, 2, 0))       # [DA, DA, R]
@@ -75,6 +89,12 @@ class Morph(nn.Module):
         sm = torch.zeros(DA, dtype=torch.bool)
         sm[:G.STATE_DIM] = True
         self.register_buffer("state_valid", sm)                                                   # dims with a state
+        self.masked = masked
+        if masked:      # 1 = the dim is a live input; 0 = constant in the training cache (D-141: zeroed at training AND inference)
+            self.register_buffer("state_keep", torch.ones(DA))
+
+    def keep_state(self, state):
+        return state * self.state_keep[:state.shape[-1]].to(state.dtype) if self.masked else state
 
 
 class DimEncoder(nn.Module):
@@ -85,7 +105,7 @@ class DimEncoder(nn.Module):
     def __init__(self, D, heads=4, layers=2, extra=0, factors=None):
         super().__init__()
         self.inp = MLP(G.NODE_STATIC_DIM + 2 + extra, D)
-        specs = resolve(factors, default="psi0-dims")
+        specs = self.specs = resolve(factors, default="psi0-dims")
         self.layers = nn.ModuleList([nn.ModuleDict(dict(n=nn.LayerNorm(D), a=MHA(D, heads),
                                                         sb=FactorSite(heads, D, "dims>dims", specs, ("edges:g1-dim-rel-v1",)),
                                                         n2=nn.LayerNorm(D), m=MLP(D, D, 4 * D)))
@@ -94,7 +114,7 @@ class DimEncoder(nn.Module):
     def forward(self, morph: Morph, state, extra=None):
         B = state.shape[0]
         sv = morph.state_valid.to(state.dtype)
-        x = torch.cat([morph.node_static[None].expand(B, -1, -1), (state[:, :DA] * sv)[..., None],
+        x = torch.cat([morph.node_static[None].expand(B, -1, -1), (morph.keep_state(state[:, :DA]) * sv)[..., None],
                        sv[None, :, None].expand(B, -1, -1)] + ([extra] if extra is not None else []), -1)
         t = self.inp(x)
         rc = RelCtx(sets={"dims": TokenSet("dims", torch.ones(B, t.shape[1], dtype=torch.bool, device=t.device))},
@@ -131,9 +151,9 @@ class KnotQueries(nn.Module):
 class PacketEncoder(nn.Module):
     """E: demonstrated normalized chunk [B, TP, DA] + state -> Gaussian posterior over z [B, K, M, DZ]."""
 
-    def __init__(self, D=256, heads=4, layers=3):
+    def __init__(self, D=256, heads=4, layers=3, factors=None):
         super().__init__()
-        self.dims = DimEncoder(D, heads, 2, extra=TP)
+        self.dims = DimEncoder(D, heads, 2, extra=TP, factors=factors)
         self.q = KnotQueries(D)
         self.blocks = nn.ModuleList([block(D, heads) for _ in range(layers)])
         self.out = nn.Linear(D, 2 * DZ)
@@ -218,11 +238,14 @@ def probe_specs(grasp: bool = False):
     return ["preset:probes:psi0-v1"] + (["probe.psi0.grasp_pt", "probe.psi0.grasp_face"] if grasp else [])
 
 
-def new_probe(D=192, heads=4, metadata_only=False, seed=1234, grasp=False) -> ReadoutProbe:
-    """The psi0 packet probe: a `ReadoutProbe` (docs/relations.md 4) configured by `probes:psi0-v1`. `max_pairs=2`
-    addresses the two hands (`hand_dist`, `contact`, and the optional grasp queries read both; `lift` / `target_pos`
-    / `base_cmd` are per-knot only and read pair slot 0 — see `run_probe`)."""
-    return ReadoutProbe(DZ, K, specs=probe_specs(grasp), width=D, heads=heads, max_assemblies=M, max_pairs=2,
+def new_probe(D=192, heads=4, metadata_only=False, seed=1234, grasp=False, specs=None) -> ReadoutProbe:
+    """The psi0 packet probe: a `ReadoutProbe` (docs/relations.md 4) configured by `probes:psi0-v1` (or by the readout
+    factors of `specs`, e.g. a stage A's own list). `max_pairs=2` addresses the two hands (`hand_dist`, `contact`, and
+    the optional grasp queries read both; `lift` / `target_pos` / `base_cmd` are per-knot only and read pair slot 0 —
+    see `run_probe`)."""
+    if specs is not None:
+        specs = tuple(s for s, _ in readout_defs(specs))
+    return ReadoutProbe(DZ, K, specs=probe_specs(grasp) if specs is None else specs, width=D, heads=heads, max_assemblies=M, max_pairs=2,
                         metadata_only=metadata_only, seed=seed)
 
 
@@ -298,43 +321,106 @@ def kl_std_normal(mu, lv):
 
 
 class StageA(nn.Module):
-    """E + R + P trained jointly (the packet's semantics are supervised ON z; R realizes the SAME z)."""
+    """E + R + P trained jointly (the packet's semantics are supervised ON z; R realizes the SAME z).
 
-    def __init__(self, D=256, probe_D=192, metadata_only_probe=False, grasp=False):
+    `factors` (resolved with family "psi0", `stage_a_specs`) configures the command-dim edges of E and R, R's routing
+    site and the probe; `factor_specs()` is what checkpoints stamp. Structure fix (architecture 14.5, D-141):
+    `morph.state_keep` is the constant-input mask (`fit_state_mask`), stored in the checkpoint and applied inside every
+    DimEncoder (E, R), and `loss` forces packet use (state dropout on R + permuted-packet hinge)."""
+
+    def __init__(self, D=256, probe_D=192, metadata_only_probe=False, grasp=False, factors=None):
         super().__init__()
-        self.morph = Morph()
-        self.E = PacketEncoder(D)
-        self.R = Realizer(D)
-        self.P = new_probe(probe_D, metadata_only=metadata_only_probe, grasp=grasp)
+        self.specs = stage_a_specs(factors, grasp)
+        self.cfg = dict(D=D, probe_D=probe_D, metadata_only_probe=metadata_only_probe,
+                        factors=[s.to_dict() for s in self.specs])
+        self.morph = Morph(masked=True)
+        self.E = PacketEncoder(D, factors=self.specs)
+        self.R = Realizer(D, factors=self.specs)
+        self.P = new_probe(probe_D, metadata_only=metadata_only_probe, specs=self.specs)
 
     rec_dim_w = None      # optional [DA] reconstruction weights (set by the trainer)
 
-    def loss(self, b, w_kl=1e-3, w_sem=1.0, lv_min=-4.0, z_noise=0.0, w_grasp=0.0):
-        """b: state0 [B,36] (packet start), actions [B,TP,DA] normalized, amask [B,TP,DA],
-        j [B] realization tick, state_j [B,36] (state at tick j), labels (see probe_loss)."""
-        add_cmd_labels(b)
-        mu, lv = self.E(self.morph, b["state0"], b["actions"])
-        z = mu + torch.randn_like(mu) * (0.5 * lv).exp()
-        zr = z + z_noise * torch.randn_like(z) if z_noise > 0 else z
-        pred = self.R(self.morph, zr, b["state_j"], b["j"].to(z.dtype) / TP)
+    def factor_specs(self):
+        return self.specs
+
+    @torch.no_grad()
+    def fit_state_mask(self, std, min_std=MASK_STD):
+        """Constant-input mask: `std` [DA] = per-dim std of R's state input over the feature cache. Dims below `min_std`
+        (and the non-state dims) are zeroed from now on, in training and at inference. Returns the masked dim ids."""
+        keep = (std.to(self.morph.state_keep) >= min_std) & self.morph.state_valid
+        self.morph.state_keep.copy_(keep.to(self.morph.state_keep))
+        return [i for i in range(G.STATE_DIM) if not bool(keep[i])]
+
+    def drop_state(self, s, p_dim, p_all):
+        """Training-time state dropout on R's input: each dim zeroed with p_dim, the whole state with p_all (zero = the
+        normalized mean, the value a masked dim carries at inference)."""
+        keep = (torch.rand_like(s) >= p_dim) & (torch.rand(s.shape[0], 1, device=s.device) >= p_all)
+        return s * keep.to(s.dtype)
+
+    def recon_err(self, b, z, state=None):
+        """Per-sample masked mean squared error of R(z) against the demonstrated chunk (rows >= j), normalized units."""
+        pred = self.R(self.morph, z, b["state_j"] if state is None else state, b["j"].to(z.dtype) / TP)
         tmask = (torch.arange(TP, device=z.device)[None] >= b["j"][:, None]).to(z.dtype)[..., None]  # rows >= j
         m = b["amask"] * tmask
         if self.rec_dim_w is not None:
             m = m * self.rec_dim_w.to(m.device)
+        return pred, m, (((pred - b["actions"]) ** 2) * m).sum((1, 2)) / m.sum((1, 2)).clamp(min=1)
+
+    @torch.no_grad()
+    def packet_gap(self, b, z_mean):
+        """Per-sample (err(R(z_mean)), err(R(E(a)))): R fed the dataset-mean packet vs the packet of the demonstrated
+        chunk, same state and tick. The gap is the gate of architecture 14.5 (c): R that ignores the packet has none."""
+        mu, _ = self.E(self.morph, b["state0"], b["actions"])
+        return (self.recon_err(b, z_mean[None].expand_as(mu).to(mu))[2], self.recon_err(b, mu)[2])
+
+    def loss(self, b, w_kl=1e-3, w_sem=1.0, lv_min=-4.0, z_noise=0.0, w_grasp=0.0, p_state_dim=0.3, p_state_all=0.1,
+             w_perm=1.0, perm_margin=PACKET_MARGIN):
+        """b: state0 [B,36] (packet start), actions [B,TP,DA] normalized, amask [B,TP,DA],
+        j [B] realization tick, state_j [B,36] (state at tick j), labels (see probe_loss).
+        Forced packet use (14.5 b): while training, R's state is dropped per dim (p_state_dim) and whole (p_state_all);
+        the hinge `relu(margin - (err(R(z_perm)) - err(R(z))))` with z_perm = z of other samples of the batch (same
+        state, tick, target) penalizes an R that realizes the chunk without reading its packet."""
+        add_cmd_labels(b)
+        mu, lv = self.E(self.morph, b["state0"], b["actions"])
+        z = mu + torch.randn_like(mu) * (0.5 * lv).exp()
+        zr = z + z_noise * torch.randn_like(z) if z_noise > 0 else z
+        sj = self.drop_state(b["state_j"], p_state_dim, p_state_all) if self.training else b["state_j"]
+        pred, m, err = self.recon_err(b, zr, sj)
         rec = (((pred - b["actions"]) ** 2) * m).sum() / m.sum().clamp(min=1)
         kl = kl_std_normal(mu, lv)
         pl, plog = probe_loss(run_probe(self.P, z), b["labels"], self.P.specs, lv_min=lv_min, w_grasp=w_grasp) \
             if w_sem > 0 else (z.sum() * 0, {})
         loss = rec + w_kl * kl + w_sem * pl
-        return loss, dict(rec=float(rec.detach()), kl=float(kl.detach()), **plog), dict(rec=rec, kl=kl, sem=pl)
+        parts, logs = dict(rec=rec, kl=kl, sem=pl), dict(rec=float(rec.detach()), kl=float(kl.detach()), **plog)
+        if w_perm > 0 and z.shape[0] > 1:
+            shift = int(torch.randint(1, z.shape[0], (1,)))
+            err_perm = self.recon_err(b, zr.roll(shift, 0), sj)[2]
+            hinge = F.relu(perm_margin - (err_perm - err)).mean()
+            loss = loss + w_perm * hinge
+            parts["perm"] = hinge
+            logs.update(perm_hinge=float(hinge.detach()), perm_gap=float((err_perm - err).mean().detach()))
+        return loss, logs, parts
 
 
-def load_stage_a(path, map_location="cpu"):
-    """Load a stage-A checkpoint through `load_tolerant` (pre-D-144 `PacketProbe` checkpoints: `P.*` is redesigned as
-    `ReadoutProbe`, D-144 R5, so it keeps its fresh init and is fit again; `R` / `E` / `morph` load strictly)."""
-    sd = torch.load(path, weights_only=False, map_location=map_location)["model"]
-    grasp = any(k.startswith("P.grasp_") or "grasp_pt" in k or "grasp_face" in k for k in sd)  # old or new key names
-    return load_tolerant(StageA(grasp=grasp), sd)
+def load_stage_a(path, map_location="cpu", factors=None, allow_factor_mismatch=False):
+    """Load a stage-A checkpoint written by `train --arm stageA` (`nets.checkpoint.save_checkpoint`). The net is rebuilt
+    from the checkpoint's own `config["stage_a"]` (widths + resolved factor list) and validated: config present and
+    complete, the factor structure hash equals the stamped `versions["factors"]`, every tensor (incl. the constant-input
+    mask `morph.state_keep`) present with its shape (strict load). `factors` = the list the caller expects (must hash
+    equal unless `allow_factor_mismatch`). A checkpoint written before D-146 P1 has no config and is refused: it has
+    no input mask and its R bypasses the packet (D-141)."""
+    state = torch.load(path, weights_only=False, map_location=map_location)
+    cfg = (state.get("config") or {}).get("stage_a") if isinstance(state, dict) else None
+    need = {"D", "probe_D", "metadata_only_probe", "factors"}
+    if not isinstance(cfg, dict) or need - set(cfg):
+        raise ValueError(f"{path}: not a P1 stage-A checkpoint (config['stage_a'] missing keys "
+                         f"{sorted(need - set(cfg or {}))}); retrain stage A (architecture 14.5)")
+    A = StageA(cfg["D"], cfg["probe_D"], cfg["metadata_only_probe"], factors=cfg["factors"])
+    require_factors(state.get("versions"), A.specs)
+    if factors is not None:
+        require_factors(state.get("versions"), stage_a_specs(factors), allow_factor_mismatch)
+    A.load_state_dict(state["model"], strict=True)
+    return A
 
 
 def load_tolerant(module, sd):
@@ -426,10 +512,11 @@ class DirectHead(nn.Module):
 class ContextTokens(nn.Module):
     """Morphology-relation tokens (36) + one object-entity token, in the VLM token space (2048)."""
 
-    def __init__(self, D=512):
+    def __init__(self, D=512, factors=None, masked=False):
         super().__init__()
-        self.morph = Morph()
-        self.dims = DimEncoder(D, heads=8, layers=2)
+        self.morph = Morph(masked)
+        self.dims = DimEncoder(D, heads=8, layers=2, factors=factors)
+        self.specs = self.dims.specs
         self.dim_out = nn.Linear(D, VIEW_DIM)
         self.ent = nn.Sequential(nn.LayerNorm(VIEW_DIM), nn.Linear(VIEW_DIM, VIEW_DIM))
         self.ent_null = nn.Parameter(torch.randn(VIEW_DIM) * 0.02)
@@ -450,16 +537,26 @@ class ContextTokens(nn.Module):
 
 
 class StructuredHead(nn.Module):
-    def __init__(self, model_cfg, stage_a: StageA, z_mean, z_std, w_sem=0.1, sigma_max_sem=0.4, w_grasp=0.0):
+    def __init__(self, model_cfg, stage_a: StageA, z_mean, z_std, w_sem=0.1, sigma_max_sem=0.4, w_grasp=0.0,
+                 factors=None):
         super().__init__()
         self.header = build_header(model_cfg, DZ, K * M)
-        self.ctx = ContextTokens()
+        self.ctx = ContextTokens(factors=factors, masked=True)            # `factors`: the context tokens' command-dim edges
         self.A = stage_a                                     # frozen E/R/P (E only used for targets)
         for p in self.A.parameters():
             p.requires_grad_(False)
+        self.ctx.morph.state_keep.copy_(self.A.morph.state_keep)      # the same constant-input mask (D-141, 14.5 a)
         self.register_buffer("z_mean", z_mean)
         self.register_buffer("z_std", z_std)
         self.w_sem, self.sigma_max_sem, self.w_grasp = w_sem, sigma_max_sem, w_grasp
+
+    def factor_specs(self):
+        """Context-token factors then the frozen stage A's list (what `save_checkpoint` stamps)."""
+        return tuple(self.ctx.specs) + tuple(self.A.specs)
+
+    def state0(self, b):
+        """The header's state input: the packet-start state with the stage A's constant dims zeroed (14.5 a)."""
+        return self.A.morph.keep_state(b["state0"])
 
     def _flat(self, z):
         return ((z - self.z_mean) / self.z_std).reshape(z.shape[0], K * M, DZ)
@@ -475,7 +572,7 @@ class StructuredHead(nn.Module):
         sigma = torch.rand(a.shape[0], device=a.device)
         x = (1 - sigma[:, None, None]) * a + sigma[:, None, None] * eps
         views, mask = self.ctx(b)
-        v = header_forward(self.header, x, sigma, views, mask, b["state0"]).float()
+        v = header_forward(self.header, x, sigma, views, mask, self.state0(b)).float()
         fl = flow_loss(v, a, eps)
         logs, parts = dict(flow=float(fl.detach())), dict(flow=fl)
         loss = fl
@@ -500,7 +597,7 @@ class StructuredHead(nn.Module):
         x = torch.randn(B, K * M, DZ, device=b["state0"].device, generator=generator)
         for i in range(nfe):
             s = torch.full((B,), 1.0 - i / nfe, device=x.device)
-            x = x - (1.0 / nfe) * header_forward(self.header, x, s, views, mask, b["state0"]).float()
+            x = x - (1.0 / nfe) * header_forward(self.header, x, s, views, mask, self.state0(b)).float()
         return self._unflat(x)
 
     @torch.no_grad()
@@ -511,3 +608,11 @@ class StructuredHead(nn.Module):
     def sample(self, b, nfe=10, generator=None):
         z = self.sample_z(b, nfe, generator)
         return self.realize(z, b["state0"], torch.zeros(z.shape[0], device=z.device))
+
+
+def load_structured(head: StructuredHead, path, allow_factor_mismatch=False):
+    """Load a structured-head checkpoint into a head built from its stage A: the stamped factor structure (context
+    tokens + stage A) must equal the head's, then `load_tolerant`."""
+    state = torch.load(path, weights_only=False, map_location="cpu")
+    require_factors(state.get("versions"), head.factor_specs(), allow_factor_mismatch)
+    return load_tolerant(head, state["model"])
