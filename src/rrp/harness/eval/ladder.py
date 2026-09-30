@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -29,11 +28,16 @@ import mujoco
 import numpy as np
 import torch
 
+from rrp.core.action import NativeCommand
 from rrp.core.provenance import stamp_source_label
 from rrp.core.errors import ControllerRejection, StaleActionError
+from rrp.harness.eval import hooks as H
 from rrp.harness.eval.statistics import wilson as _stats_wilson
+from rrp.policies.base import Act, PolicyInfo, Requirements
 from rrp.policies.features.featurizer import cached_featurizer
 from rrp.policies.oracle import BCLookahead, OraclePacketPolicy, ShadowTeacher, make_packet
+from rrp.policies.system0 import LatentSystem0, batched_ticks
+from rrp.tasks.spec import Judgement, TaskSpec
 
 STAGES = ["approach", "grasp", "lift", "transport", "place"]
 
@@ -260,79 +264,93 @@ def load_models(cfg: LadderConfig):
     return out, ids
 
 
-@torch.no_grad()
-def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids=None, frame_cb=None,
-               collect: dict | None = None, cmd_log: dict | None = None) -> list[dict]:
-    """cmd_log: if given, cmd_log[k] = list of the EXACT executed command groups per tick (None = hold), for replay.
-    frame_cb(k, session, step, shadow_phase): optional per-tick callback after each executed step (rendering).
-    collect: DAgger buffer for system 0 (route oracle): at each replan the oracle posterior (mu, logvar) of the teacher
-    chunk; at each executed tick with phase j <= collect['max_j'] the LEARNER-visited state (node features, local
-    sensors) and the shadow teacher's command there (normalized with that tick's q0) -> see save_dagger/refit."""
-    if collect is not None:
-        collect.setdefault("mu", []); collect.setdefault("lv", []); collect.setdefault("rows", [])
-        collect["cur"] = {}; collect.setdefault("max_j", 12)
-    from rrp.bodies.catalog import workbench_robots
-    from rrp.envs.mujoco.scenario import BUILDERS
-    from rrp.envs.mujoco.session import Session
-    from rrp.policies.system0 import LatentSystem0
-    from rrp.policies.system0 import batched_ticks
-    if models is None:
-        models, ids = load_models(cfg)
-    robot = workbench_robots()[cfg.robot]()
-    oracle = OraclePacketPolicy(models["E"], models["lcfg"], models["res"], cfg.device,
-                                reanchor=cfg.oracle_reanchor) if models["E"] is not None else None
-    gen = models["flow"]
-    lp = models.get("learned")
-    if cfg.route == "learned" and lp is None:
-        raise ValueError("route learned needs cfg.policy")
-    from rrp.envs.mujoco.motion_quality import ArmMotionRecorder
-    if cfg.perturb is not None and cfg.perturb.step_hooks and (cfg.route == "oracle" or (cfg.route == "generated"
-                                                                                            and cfg.compare_oracle)):
-        # the oracle look-ahead rolls the real session forward and restores it; the step hooks (ctrl-delay FIFO, push
-        # bookkeeping) are not part of the snapshot, so they would be corrupted by the look-ahead
-        raise ValueError("step-level perturbations need a route without look-ahead rollouts (compare_oracle=False)")
-    S, s0, meters, shadows, meta, mrecs, perts = [], [], [], [], [], [], []
-    from rrp.harness.data.contact_metrics import contact_metrics_enabled
-    cfrecs = [] if contact_metrics_enabled() else None     # W12 held-object drift keys (RRP_CONTACT_METRICS=1)
-    for sd in cfg.seeds:
-        s = Session(BUILDERS[cfg.task](robot, sd, n_distractors=sd % 3), seed=sd)
+def _ladder_task(cfg: LadderConfig) -> TaskSpec:
+    """The ladder's own end rules live in LadderTrace (teacher reference done / dropped / public success); the task
+    judge only spends the tick budget, so rollout(max_steps=cfg.max_steps) ends an episode exactly at cfg.max_steps."""
+    def judge(env, t, max_seconds):
+        return Judgement(t >= max_seconds, "timeout", "timeout" if t >= max_seconds else None)
+    return TaskSpec(cfg.task, {"mujoco/arm": {}}, float("inf"), judge, note="ladder: end rules in LadderTrace")
+
+
+class LadderEnvs:
+    """make_env for the ladder: a matched arm scene per seed (n_distractors = seed % 3), the optional physics
+    perturbation (W6) and the PrevActionFeaturizer installed BEFORE the policy is reset (system 0 holds it)."""
+
+    def __init__(self, cfg: LadderConfig):
+        self.cfg = cfg
+        self.perts: list = []                      # (applied record, install_arm state) per created env, in order
+
+    def __call__(self, seed: int):
+        from rrp.envs.mujoco.session import make_arm_env
+        cfg = self.cfg
+        s = make_arm_env(task=cfg.task, body=cfg.robot, seed=seed, scene=dict(n_distractors=seed % 3))
         if cfg.perturb is not None:
             from rrp.envs.mujoco.perturb import apply_model, install_arm, arm_parts
             ap_ = arm_parts(s.model, s.robots[0])
             cube_ = [mujoco.mj_name2id(s.model, mujoco.mjtObj.mjOBJ_BODY, "cube")]
             rec_ = apply_model(s.model, cfg.perturb, robot_bodies=ap_["bodies"], com_body=ap_["last_link"],
                                act_ids=ap_["act_ids"], object_bodies=cube_, object_contact_geoms=ap_["finger_geoms"])
-            perts.append((rec_, install_arm(s, cfg.perturb, sd)))
-        mrecs.append(ArmMotionRecorder(s))
-        if cfrecs is not None:
-            from rrp.harness.data.contact_labels import ContactFrameRecorder
-            cfrecs.append(ContactFrameRecorder(s))
-        f = s._rrp_featurizer = PrevActionFeaturizer(cached_featurizer(s), cfg.prev_action)
-        S.append(s)
-        meters.append(Meter(s))
-        if cfg.oracle_expert == "bc":
-            if lp is None:
-                raise ValueError("oracle_expert bc needs cfg.policy")
-            oracle.shadows[id(s)] = BCLookahead(lp)
-            shadows.append(ShadowTeacher(s))            # labels/phase only
-        else:
-            shadows.append(oracle.shadow(s) if oracle else ShadowTeacher(s))
-        if cfg.route not in ("teacher", "learned") or models["R"] is not None:     # teacher route + R: shadow system 0 (not executed)
-            s0.append(LatentSystem0(models["R"], f, latent_space_version=models["res"]["latent_space_version"],
-                                    realizer_compat_version=models["res"]["realizer_compat_version"], device=cfg.device))
-            if cfg.chunk_blend != "none" and cfg.route in ("oracle", "generated"):     # D-126 #7 (executed system 0)
-                s0[-1].configure_blend(cfg.chunk_blend, cfg.blend_ticks, cfg.blend_decay)
-        meta.append(dict(done=False, outcome=None, steps=0, calls=0, t0=time.time(), ticks=[], replans=[],
-                         teacher_done_tick=None))
-    for step in range(cfg.max_steps):
-        act = [k for k, m in enumerate(meta) if not m["done"]]
-        if not act:
-            break
-        if cfg.object_shift and step == cfg.object_shift[0]:
-            for k in act:
-                p = S[k].data.xpos[meters[k].cube].copy()
-                p[0] += cfg.object_shift[1]; p[1] += cfg.object_shift[2]
-                S[k].teleport_object("cube", p, source="ladder_disturbance")
+            self.perts.append((rec_, install_arm(s, cfg.perturb, seed)))
+        s._rrp_featurizer = PrevActionFeaturizer(cached_featurizer(s), cfg.prev_action)
+        return s
+
+
+class LadderPolicy:
+    """One ladder route as a Policy. Per tick, for the running episodes: replan (oracle / generated packets into system 0,
+    or the learned policy's chunks), the shadow teacher's phase label, then ONE batched system-0 tick (or the learned
+    executor's next row). Act.command is what executes (the teacher label on route `teacher`, whose system-0 output is
+    shadow-only); Act.info carries the label, the system-0 command (c0), the phase and the replan boundary for the hooks.
+    Sources: teacher = scripted_teacher (privileged), oracle = oracle diagnostic (privileged future), generated / learned
+    = learned; see route_source."""
+
+    def __init__(self, cfg: LadderConfig, models: dict, collect: dict | None = None):
+        self.cfg, self.models, self.collect = cfg, models, collect
+        legacy, kind, _ = route_source(cfg)
+        self.oracle = OraclePacketPolicy(models["E"], models["lcfg"], models["res"], cfg.device,
+                                         reanchor=cfg.oracle_reanchor) if models["E"] is not None else None
+        self.gen = models["flow"]
+        self.lp = models.get("learned")
+        if cfg.route == "learned" and self.lp is None:
+            raise ValueError("route learned needs cfg.policy")
+        if cfg.oracle_expert == "bc" and self.lp is None:
+            raise ValueError("oracle_expert bc needs cfg.policy")
+        if cfg.perturb is not None and cfg.perturb.step_hooks and (
+                cfg.route == "oracle" or (cfg.route == "generated" and cfg.compare_oracle)):
+            # the oracle look-ahead rolls the real session forward and restores it; the step hooks (ctrl-delay FIFO, push
+            # bookkeeping) are not part of the snapshot, so they would be corrupted by the look-ahead
+            raise ValueError("step-level perturbations need a route without look-ahead rollouts (compare_oracle=False)")
+        self.info = PolicyInfo(f"ladder:{cfg.route}", kind, legacy, Requirements(
+            frozenset({"joint_position", "gripper"}), observations=frozenset({"proprio"}),
+            body_families=frozenset({"arm"}), tasks=frozenset({cfg.task}), privileged=True))
+
+    def reset(self, spec, task, seeds, *, envs=None):
+        cfg, models = self.cfg, self.models
+        self.S, self.shadows, self.s0 = list(envs), [], []
+        self.calls, self.replans = [0] * len(self.S), [[] for _ in self.S]
+        self.tick = 0
+        if self.collect is not None:
+            self.collect.setdefault("mu", []); self.collect.setdefault("lv", []); self.collect.setdefault("rows", [])
+            self.collect["cur"] = {}; self.collect.setdefault("max_j", 12)
+        for s in self.S:
+            f = cached_featurizer(s)
+            if cfg.oracle_expert == "bc":
+                self.oracle.shadows[id(s)] = BCLookahead(self.lp)
+                self.shadows.append(ShadowTeacher(s))            # labels/phase only
+            else:
+                self.shadows.append(self.oracle.shadow(s) if self.oracle else ShadowTeacher(s))
+            if cfg.route not in ("teacher", "learned") or models["R"] is not None:   # teacher route + R: shadow system 0 (not executed)
+                self.s0.append(LatentSystem0(models["R"], f, latent_space_version=models["res"]["latent_space_version"],
+                                             realizer_compat_version=models["res"]["realizer_compat_version"],
+                                             device=cfg.device))
+                if cfg.chunk_blend != "none" and cfg.route in ("oracle", "generated"):   # D-126 #7 (executed system 0)
+                    self.s0[-1].configure_blend(cfg.chunk_blend, cfg.blend_ticks, cfg.blend_decay)
+
+    @torch.no_grad()
+    def act(self, obs) -> dict[int, Act]:
+        cfg, models, S, s0, collect, oracle = self.cfg, self.models, self.S, self.s0, self.collect, self.oracle
+        act = sorted(obs)
+        step = self.tick
+        self.tick += 1
         need = [] if not s0 else [k for k in act if step % cfg.replan_ticks == 0 or s0[k].packet is None]
         if need:
             zo = oracle.encode([S[k] for k in need]) if (cfg.route != "generated" or (cfg.compare_oracle and oracle)) else None
@@ -341,7 +359,7 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
                                   oracle.validity, source="target_encoder_oracle", policy_version="oracle_diagnostic")
                       for k, z in zip(need, zo)]
             else:
-                pk = gen.packets([S[k] for k in need])
+                pk = self.gen.packets([S[k] for k in need])
             if collect is not None and cfg.route == "oracle":
                 for j, k in enumerate(need):
                     collect["cur"][k] = len(collect["mu"])
@@ -356,11 +374,11 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
                     if collect.get("gen_ctx") is not None:   # generator DAgger: (public context at the learner state, z*)
                         collect["gen_ctx"].append((cached_featurizer(S[k])(S[k].observe()), np.asarray(zo[j], np.float32)))
             for j, (k, p) in enumerate(zip(need, pk)):
-                meta[k]["calls"] += 1
+                self.calls[k] += 1
                 rec = dict(t=step)
                 if zo is not None and cfg.route == "generated":
                     rec.update(_compare(models, S[k], p.z, zo[j], cfg.device))
-                meta[k]["replans"].append(rec)
+                self.replans[k].append(rec)
                 try:
                     s0[k].receive(p, now=float(S[k].data.time), graph_version=S[k].runtime.graph_version)
                 except (ControllerRejection, StaleActionError):
@@ -369,102 +387,113 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
         if cfg.route == "learned":
             needl = [k for k in act if step % cfg.replan_ticks == 0 or not S[k].executor.queue]
             if needl:
-                for k, ch in zip(needl, lp.chunks([S[k] for k in needl])):
-                    meta[k]["calls"] += 1
-                    meta[k]["replans"].append(dict(t=step))
+                for k, ch in zip(needl, self.lp.chunks([S[k] for k in needl])):
+                    self.calls[k] += 1
+                    self.replans[k].append(dict(t=step))
                     try:
                         S[k].submit_chunk(ch, execute_prefix=cfg.replan_ticks)
                     except (ControllerRejection, StaleActionError):
-                        meta[k]["replans"][-1]["rejected"] = True
-        bnd = set(need) | (set(needl) if cfg.route == "learned" else set())
-        labels = {k: shadows[k].label(S[k]) for k in act}
+                        self.replans[k][-1]["rejected"] = True
+        bnd = set(need) | set(needl)
+        labels = {k: self.shadows[k].label(S[k]) for k in act}
         sys0 = batched_ticks([s0[k] for k in act], [S[k] for k in act]) if s0 else [None] * len(act)
         if cfg.route == "learned":
-            from rrp.core.action import NativeCommand
             sys0 = []
             for k in act:
                 row_ = S[k].executor.pop()
                 sys0.append(None if row_ is None else NativeCommand(controller_version=S[k].controller_version(),
                                                                     groups=row_, source="learned"))
         cmds = [labels[k] for k in act] if cfg.route == "teacher" else sys0
-        for k, cmd, c0 in zip(act, cmds, sys0):
-            s, mt = S[k], meters[k]
-            if cmd_log is not None:
-                cmd_log.setdefault(k, []).append(None if cmd is None else {g: np.array(v, copy=True) if not np.isscalar(v)
-                                                                           else v for g, v in cmd.groups.items()})
-            f = cached_featurizer(s)
-            q_meas = s.data.qpos[mt.qadr].copy()
-            lab = labels[k]
-            row = dict(t=step, phase=shadows[k].t.phase)
-            if cfg.keep_ticks:
-                xm = s.data.site_xmat[mt.site].reshape(3, 3)
-                row.update(q=q_meas.round(4).tolist(), tcp=mt.tcp().round(4).tolist(),
-                           cube=s.data.xpos[mt.cube].round(4).tolist(), tool_z=xm[:, 2].round(3).tolist(),
-                           lab=np.round(lab.groups["arm"], 4).tolist(), lab_g=lab.groups.get("gripper"),
-                           cmd=np.round(c0.groups["arm"], 4).tolist() if c0 is not None else None,
-                           cmd_g=c0.groups.get("gripper") if c0 is not None else None)
-            if s0 and s0[k].packet is not None:
-                row["j"] = int(round((float(s.data.time) - s0[k].packet.valid_from) / s.dt))
-                if cfg.keep_ticks and oracle is not None and getattr(oracle, "last_cmds", None) and id(s) in oracle.last_cmds:
-                    pl = oracle.last_cmds[id(s)]                    # the packet's encoded plan row j (diagnostic)
-                    pr = pl[min(row["j"], len(pl) - 1)]
-                    row["plan"] = np.round(pr["arm"], 4).tolist(); row["plan_g"] = pr.get("gripper")
-                    row["plan_tcp"] = mt.tcp_of(np.asarray(pr["arm"], float)).round(4).tolist()
-                    if c0 is not None:
-                        row["cmd_tcp"] = mt.tcp_of(_arm(c0.groups)).round(4).tolist()
-            if collect is not None and c0 is not None and k in collect["cur"] and row.get("j", 99) <= collect["max_j"]:
-                pi_c = f.base(s.observe())
-                n_ = pi_c.act_node_feats.shape[0]
-                nd = np.zeros((12, pi_c.act_node_feats.shape[1]), np.float16); nd[:n_] = pi_c.act_node_feats
-                lg = lab.groups
-                if cfg.oracle_expert == "bc":           # label = the packet's own plan row j (consistent with z)
-                    plan = oracle.last_cmds.get(id(s))
-                    lg = plan[min(row["j"], len(plan) - 1)] if plan else None
-                if lg is not None:
-                    a1 = np.zeros(12, np.float32); a1[:n_] = f.aspace.normalize([lg], pi_c.q0)[0]
-                    from rrp.policies.features.derived import local_sensors
-                    collect["rows"].append((collect["cur"][k], row["j"], nd, n_, local_sensors(pi_c).astype(np.float16), a1))
-            if c0 is not None:              # system-0 output (executed in R1/R2; shadow-only in R0) vs teacher label
-                q0z = np.zeros(len(f.aspace.node_group))       # the q0 offset cancels in the difference
-                la = f.aspace.normalize([lab.groups], q0z)[0]
-                ca = f.aspace.normalize([c0.groups], q0z)[0]
-                arm_n = [i for i, g in enumerate(f.aspace.is_gripper) if not g]
-                grip_n = [i for i, g in enumerate(f.aspace.is_gripper) if g]
-                row["lab_err_arm"] = float(np.mean((la[arm_n] - ca[arm_n]) ** 2))
-                row["lab_err_grip"] = float(np.mean((la[grip_n] - ca[grip_n]) ** 2)) if grip_n else 0.0
-                row["lab_step_arm"] = float(np.mean(((la[arm_n] - f.aspace.normalize([dict(lab.groups, arm=q_meas.tolist())], q0z)[0][arm_n])) ** 2))
-            if cmd is not None:
-                qc = _arm(cmd.groups)
-                row["cmd_step"] = float(np.abs(qc - q_meas).max())
-                tcp_cmd = mt.tcp_of(qc)
-            f.record(cmd, f.base(s.observe()).q0 if cmd is not None and f.mode == "own" else None)
-            s.step(cmd)
-            meta[k]["steps"] += 1
-            mrecs[k].tick(None if cmd is None else cmd.groups, k in bnd)
-            if cfrecs is not None:
-                cfrecs[k].tick()
-            if cmd is not None:
-                row["track_q"] = float(np.abs(s.data.qpos[mt.qadr] - qc).mean())
-                row["track_tcp"] = float(np.linalg.norm(mt.tcp() - tcp_cmd))
-            row["held"] = mt.update(step)
-            meta[k]["ticks"].append(row)
-            if frame_cb is not None:
-                frame_cb(k, s, step, shadows[k].t.phase)
-            if cfg.route == "teacher" and shadows[k].t.done:
-                meta[k]["done"] = True
-            if s.data.xpos[mt.cube][2] < -0.05:
-                meta[k].update(done=True, outcome="dropped_off_table")
-            elif s.runtime.succeeded() and cfg.route != "teacher":
-                meta[k]["done"] = True
-    out = []
-    for k, s in enumerate(S):
-        m, mt = meta[k], meters[k]
+        return {k: Act(cmd, info=dict(c0=c0, lab=labels[k], boundary=k in bnd, phase=self.shadows[k].t.phase))
+                for k, cmd, c0 in zip(act, cmds, sys0)}
+
+
+class LadderTrace:
+    """The ladder's evaluation-only measurements and end rules as a rollout hook: privileged milestones (Meter), the
+    per-tick diagnostic rows, and termination (teacher reference done / cube dropped / public success on the executed
+    routes; the tick budget is rollout's max_steps). on_end assembles `rows[i]` (everything but `motion` and the
+    perturbation record, which run_ladder adds)."""
+
+    def __init__(self, cfg: LadderConfig, policy: LadderPolicy, ids: dict | None):
+        self.cfg, self.pol, self.ids = cfg, policy, ids
+        self.meters, self.ticks, self.steps, self.pending, self.ended, self.dropped = {}, {}, {}, {}, {}, {}
+        self.rows: dict[int, dict] = {}
+
+    def alive(self, i: int) -> bool:
+        return not self.ended[i]
+
+    def on_reset(self, i, env, obs):
+        self.meters[i], self.ticks[i], self.steps[i], self.ended[i], self.dropped[i] = Meter(env), [], 0, False, False
+
+    def on_act(self, i, obs, act):
+        cfg, pol, s, mt = self.cfg, self.pol, self.pol.S[i], self.meters[i]
+        cmd, c0, lab = act.command, act.info["c0"], act.info["lab"]
+        f = cached_featurizer(s)
+        q_meas = s.data.qpos[mt.qadr].copy()
+        row = dict(t=self.steps[i], phase=pol.shadows[i].t.phase)
+        if cfg.keep_ticks:
+            xm = s.data.site_xmat[mt.site].reshape(3, 3)
+            row.update(q=q_meas.round(4).tolist(), tcp=mt.tcp().round(4).tolist(),
+                       cube=s.data.xpos[mt.cube].round(4).tolist(), tool_z=xm[:, 2].round(3).tolist(),
+                       lab=np.round(lab.groups["arm"], 4).tolist(), lab_g=lab.groups.get("gripper"),
+                       cmd=np.round(c0.groups["arm"], 4).tolist() if c0 is not None else None,
+                       cmd_g=c0.groups.get("gripper") if c0 is not None else None)
+        if pol.s0 and pol.s0[i].packet is not None:
+            row["j"] = act.info["j"] = int(round((float(s.data.time) - pol.s0[i].packet.valid_from) / s.dt))
+            oracle = pol.oracle
+            if cfg.keep_ticks and oracle is not None and getattr(oracle, "last_cmds", None) and id(s) in oracle.last_cmds:
+                pl = oracle.last_cmds[id(s)]                    # the packet's encoded plan row j (diagnostic)
+                pr = pl[min(row["j"], len(pl) - 1)]
+                row["plan"] = np.round(pr["arm"], 4).tolist(); row["plan_g"] = pr.get("gripper")
+                row["plan_tcp"] = mt.tcp_of(np.asarray(pr["arm"], float)).round(4).tolist()
+                if c0 is not None:
+                    row["cmd_tcp"] = mt.tcp_of(_arm(c0.groups)).round(4).tolist()
+        if c0 is not None:              # system-0 output (executed in R1/R2; shadow-only in R0) vs teacher label
+            q0z = np.zeros(len(f.aspace.node_group))       # the q0 offset cancels in the difference
+            la = f.aspace.normalize([lab.groups], q0z)[0]
+            ca = f.aspace.normalize([c0.groups], q0z)[0]
+            arm_n = [n for n, g in enumerate(f.aspace.is_gripper) if not g]
+            grip_n = [n for n, g in enumerate(f.aspace.is_gripper) if g]
+            row["lab_err_arm"] = float(np.mean((la[arm_n] - ca[arm_n]) ** 2))
+            row["lab_err_grip"] = float(np.mean((la[grip_n] - ca[grip_n]) ** 2)) if grip_n else 0.0
+            row["lab_step_arm"] = float(np.mean(((la[arm_n] - f.aspace.normalize([dict(lab.groups, arm=q_meas.tolist())], q0z)[0][arm_n])) ** 2))
+        qc = tcp_cmd = None
+        if cmd is not None:
+            qc = _arm(cmd.groups)
+            row["cmd_step"] = float(np.abs(qc - q_meas).max())
+            tcp_cmd = mt.tcp_of(qc)
+        self.pending[i] = (row, qc, tcp_cmd)
+
+    def on_step(self, i, env, act, step):
+        cfg, mt = self.cfg, self.meters[i]
+        row, qc, tcp_cmd = self.pending.pop(i)
+        k = self.steps[i]
+        self.steps[i] += 1
+        if act.command is not None:
+            row["track_q"] = float(np.abs(env.data.qpos[mt.qadr] - qc).mean())
+            row["track_tcp"] = float(np.linalg.norm(mt.tcp() - tcp_cmd))
+        row["held"] = mt.update(k)
+        self.ticks[i].append(row)
+        teacher_done = cfg.route == "teacher" and self.pol.shadows[i].t.done
+        self.dropped[i] = bool(env.data.xpos[mt.cube][2] < -0.05)
+        public = cfg.route != "teacher" and bool(env.runtime.succeeded())
+        self.ended[i] = teacher_done or self.dropped[i] or public or self.steps[i] >= cfg.max_steps
+        if teacher_done or self.dropped[i] or public:
+            return Judgement(True, "failure" if self.dropped[i] else "success",
+                             "dropped_off_table" if self.dropped[i] else None)
+
+    def on_end(self, i, env, ep):
+        if ep.outcome == "crash":
+            return {}
+        cfg, pol, mt, s = self.cfg, self.pol, self.meters[i], env
         if cfg.route == "teacher":
             s.step(None)
         priv = bool(s.privileged_success())
-        if m["outcome"] is None:
-            m["outcome"] = "success" if priv else ("timeout" if m["steps"] >= cfg.max_steps else "failure")
-        T = m["ticks"]
+        if self.dropped[i]:
+            outcome = "dropped_off_table"
+        else:
+            outcome = "success" if priv else ("timeout" if self.steps[i] >= cfg.max_steps else "failure")
+        T = self.ticks[i]
         agg = lambda key, rows: float(np.mean([r[key] for r in rows if key in r])) if any(key in r for r in rows) else None
         by_phase = {}
         for ph in sorted({r["phase"] for r in T}):
@@ -475,33 +504,94 @@ def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids
         for r in T:
             if "j" in r and "lab_err_arm" in r:
                 by_j.setdefault(r["j"], []).append(r["lab_err_arm"])
-        rp = [r for r in m["replans"] if "z_dist_rel" in r]
-        out.append(dict(
-            route=cfg.route, robot=cfg.robot, seed=cfg.seeds[k], outcome=m["outcome"], privileged_success=priv,
-            public_success=bool(s.runtime.succeeded()), steps=m["steps"], packets=m["calls"],
-            rejected=s0[k].stats.rejected if s0 else 0, fallback_holds=s0[k].stats.fallback_holds if s0 else 0,
+        rp = [r for r in pol.replans[i] if "z_dist_rel" in r]
+        s0 = pol.s0
+        self.rows[i] = dict(
+            route=cfg.route, robot=cfg.robot, seed=ep.seed, outcome=outcome, privileged_success=priv,
+            public_success=bool(s.runtime.succeeded()), steps=self.steps[i], packets=pol.calls[i],
+            rejected=s0[i].stats.rejected if s0 else 0, fallback_holds=s0[i].stats.fallback_holds if s0 else 0,
             events={e: v.status for e, v in s.runtime.instances.items()}, stage_reached=mt.reached,
-            failed_stage=mt.stage_failed(priv), min_tcp_cube_m=mt.min_d, final_teacher_phase=shadows[k].t.phase,
+            failed_stage=mt.stage_failed(priv), min_tcp_cube_m=mt.min_d, final_teacher_phase=pol.shadows[i].t.phase,
             track_q_rad=agg("track_q", T), track_tcp_m=agg("track_tcp", T), cmd_step_rad=agg("cmd_step", T),
-            lab_err_arm=agg("lab_err_arm", T), lab_step_arm=agg("lab_step_arm", T), lab_err_grip=agg("lab_err_grip", T), by_phase=by_phase,
-            lab_err_by_j={j: float(np.mean(v)) for j, v in sorted(by_j.items())},
+            lab_err_arm=agg("lab_err_arm", T), lab_step_arm=agg("lab_step_arm", T), lab_err_grip=agg("lab_err_grip", T),
+            by_phase=by_phase, lab_err_by_j={j: float(np.mean(v)) for j, v in sorted(by_j.items())},
             oracle_cmp=({key: float(np.mean([r[key] for r in rp if key in r])) for key in sorted({x for r in rp for x in r})
                          if key not in ("t", "rejected")} if rp else None),
             oracle_cmp_by_phase=_cmp_by_phase(rp, T) if rp else None,
-            ticks=T if cfg.keep_ticks else None, replans=m["replans"] if cfg.keep_ticks else None,
-            interventions=s.intervention_log, wall_s=time.time() - m["t0"],
-            source=route_source(cfg)[0],
-            checkpoints=ids, motion=mrecs[k].summary()))
-        stamp_source_label(out[-1], *route_source(cfg)[1:], enabled=cfg.source_labels)
-        if cfrecs is not None:
-            from rrp.harness.data.contact_metrics import arm_contact_motion
-            out[-1]["motion"].update(arm_contact_motion(cfrecs[k].recording()))
+            ticks=T if cfg.keep_ticks else None, replans=pol.replans[i] if cfg.keep_ticks else None,
+            interventions=s.intervention_log, wall_s=ep.wall_s, source=route_source(cfg)[0], checkpoints=self.ids)
+        return {}
+
+
+class DaggerRows:
+    """on_act: the system-0 DAgger rows (ladder route oracle / generated+bc): at each executed tick with phase j <=
+    collect['max_j'] the LEARNER-visited state (node features, local sensors) and the label there (the shadow teacher's
+    command, or the packet's own plan row for oracle_expert bc), normalized with that tick's q0. See save_dagger."""
+
+    def __init__(self, cfg: LadderConfig, policy: LadderPolicy, collect: dict):
+        self.cfg, self.pol, self.collect = cfg, policy, collect
+
+    def on_act(self, i, obs, act):
+        cfg, collect, s = self.cfg, self.collect, self.pol.S[i]
+        j = act.info.get("j")
+        if act.info["c0"] is None or i not in collect["cur"] or (j if j is not None else 99) > collect["max_j"]:
+            return
+        f = cached_featurizer(s)
+        pi_c = f.base(s.observe())
+        n_ = pi_c.act_node_feats.shape[0]
+        nd = np.zeros((12, pi_c.act_node_feats.shape[1]), np.float16); nd[:n_] = pi_c.act_node_feats
+        lg = act.info["lab"].groups
+        if cfg.oracle_expert == "bc":           # label = the packet's own plan row j (consistent with z)
+            plan = self.pol.oracle.last_cmds.get(id(s))
+            lg = plan[min(j, len(plan) - 1)] if plan else None
+        if lg is not None:
+            a1 = np.zeros(12, np.float32); a1[:n_] = f.aspace.normalize([lg], pi_c.q0)[0]
+            from rrp.policies.features.derived import local_sensors
+            collect["rows"].append((collect["cur"][i], j, nd, n_, local_sensors(pi_c).astype(np.float16), a1))
+
+
+def run_ladder(cfg: LadderConfig, out_path: Path | None = None, models=None, ids=None, frame_cb=None,
+               collect: dict | None = None, cmd_log: dict | None = None) -> list[dict]:
+    """The ladder is `rollout` with a LadderPolicy and hooks (LadderTrace, MotionRecord, PrevAction, DaggerRows,
+    CommandLog, FrameCallback, ObjectShift); one lock-step batch of cfg.seeds.
+    cmd_log: if given, cmd_log[k] = list of the EXACT executed command groups per tick (None = hold), for replay.
+    frame_cb(k, session, step, shadow_phase): optional per-tick callback after each executed step (rendering).
+    collect: DAgger buffer for system 0 (route oracle): at each replan the oracle posterior (mu, logvar) of the teacher
+    chunk; at each executed tick with phase j <= collect['max_j'] the LEARNER-visited state (node features, local
+    sensors) and the shadow teacher's command there (normalized with that tick's q0) -> see save_dagger/refit."""
+    from rrp.harness.rollout import rollout
+    if models is None:
+        models, ids = load_models(cfg)
+    pol = LadderPolicy(cfg, models, collect)
+    envs = LadderEnvs(cfg)
+    trace = LadderTrace(cfg, pol, ids)
+    motion = H.MotionRecord()
+    hooks = [trace, motion, H.PrevAction()]
+    if collect is not None:
+        hooks.append(DaggerRows(cfg, pol, collect))
+    if cmd_log is not None:
+        hooks.append(H.CommandLog(cmd_log))
+    if frame_cb is not None:
+        hooks.append(H.FrameCallback(lambda i, env, k, phase: frame_cb(i, env, k, phase)))
+    if cfg.object_shift:
+        hooks.append(H.ObjectShift(cfg.object_shift[0], cfg.object_shift[1], cfg.object_shift[2], alive=trace.alive))
+    eps = rollout(envs, pol, _ladder_task(cfg), list(cfg.seeds), batch=max(1, len(cfg.seeds)), max_steps=cfg.max_steps,
+                  hooks=hooks)
+    crashed = [e for e in eps if e.outcome == "crash"]
+    if crashed:
+        raise RuntimeError("; ".join(f"ladder seed {e.seed}: {e.failure_reason} {e.metrics.get('note', '')}" for e in crashed))
+    out = []
+    for k, ep in enumerate(eps):
+        row = trace.rows[k]
+        row["motion"] = ep.metrics["motion"]
+        stamp_source_label(row, *route_source(cfg)[1:], enabled=cfg.source_labels)
         if cfg.perturb is not None:
-            rec_, st_ = perts[k]
-            out[-1]["perturbation"] = dict(cfg.perturb.to_dict(), applied=rec_,
-                                           ctrl_delay=(dict(version=st_["delay"].version, substeps=st_["delay"].n)
-                                                       if st_["delay"] is not None else None),
-                                           push=(st_["push"].record() if st_["push"] is not None else None))
+            rec_, st_ = envs.perts[k]
+            row["perturbation"] = dict(cfg.perturb.to_dict(), applied=rec_,
+                                       ctrl_delay=(dict(version=st_["delay"].version, substeps=st_["delay"].n)
+                                                   if st_["delay"] is not None else None),
+                                       push=(st_["push"].record() if st_["push"] is not None else None))
+        out.append(row)
     if out_path:
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with open(out_path, "a") as fh:

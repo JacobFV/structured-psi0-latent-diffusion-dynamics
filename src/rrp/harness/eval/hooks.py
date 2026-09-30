@@ -1,7 +1,9 @@
 """Rollout hooks for the special cases of the former per-family eval loops (docs/architecture.md section 6).
 
 Feasibility (pre-episode teacher layout filter -> outcome "infeasible"), session records (sim time, task-event statuses),
-post-success settling (dual arm) and object displacement. Probe readouts live next to their label functions
+post-success settling (dual arm), object displacement, and the ladder's per-tick machinery (object shift, motion
+recorders, executed-command log, previous-command feature, frame callback). `HOOKS` names the constructors
+(docs/architecture.md section 14.1: TaskSpec.hooks refers to these names). Probe readouts live next to their label functions
 (harness.eval.latent_eval.PacketProbeHook, harness.eval.dual_latent_eval.DualPacketProbeHook); the per-family
 compositions (arm_hooks, dual_hooks, latent_hooks, dual_latent_hooks) are here.
 """
@@ -87,6 +89,105 @@ class Displacement:
         return dict(final_disp_m=disp, moved=[b for b, d in disp.items() if d > self.moved_m])
 
 
+class ObjectShift:
+    """Intervention (labelled `ladder_disturbance` in the session's intervention log): teleport `body` by (dx, dy) at
+    the START of control tick `tick` (tick 0: at reset; later ticks: right after the previous tick's step). An episode
+    that ends on the previous tick is not touched: `alive(i)` (default: always) says whether episode i continues."""
+
+    def __init__(self, tick, dx: float, dy: float, body: str = "cube", alive: Callable[[int], bool] | None = None,
+                 source: str = "ladder_disturbance"):
+        self.tick, self.dx, self.dy, self.body, self.alive, self.source = tick, dx, dy, body, alive, source
+        self.n: dict[int, int] = {}
+
+    def _shift(self, env):
+        p = env.data.xpos[env.model.body(self.body).id].copy()
+        p[0] += self.dx
+        p[1] += self.dy
+        env.teleport_object(self.body, p, source=self.source)
+
+    def on_reset(self, i, env, obs):
+        self.n[i] = 0
+        if self.tick == 0:
+            self._shift(env)
+
+    def on_step(self, i, env, act, step):
+        self.n[i] += 1
+        if self.n[i] == self.tick and (self.alive is None or self.alive(i)):
+            self._shift(env)
+
+
+class MotionRecord:
+    """Per-tick arm motion-quality recorder (envs.mujoco.motion_quality); on_end: metrics["motion"], plus the held-object
+    drift keys when contact metrics are on (RRP_CONTACT_METRICS=1, or `contact=True`). A tick counts as a chunk / packet
+    boundary when the policy's Act.info says `boundary`."""
+
+    def __init__(self, contact: bool | None = None):
+        from rrp.harness.data.contact_metrics import contact_metrics_enabled
+        self.contact = contact_metrics_enabled(contact)
+        self.rec, self.cf = {}, {}
+
+    def on_reset(self, i, env, obs):
+        from rrp.envs.mujoco.motion_quality import ArmMotionRecorder
+        self.rec[i] = ArmMotionRecorder(env)
+        if self.contact:
+            from rrp.harness.data.contact_labels import ContactFrameRecorder
+            self.cf[i] = ContactFrameRecorder(env)
+
+    def on_step(self, i, env, act, step):
+        self.rec[i].tick(None if act.command is None else act.command.groups, bool(act.info.get("boundary")))
+        if self.contact:
+            self.cf[i].tick()
+
+    def on_end(self, i, env, ep):
+        motion = self.rec.pop(i).summary()
+        if self.contact:
+            from rrp.harness.data.contact_metrics import arm_contact_motion
+            motion.update(arm_contact_motion(self.cf.pop(i).recording()))
+        return dict(motion=motion)
+
+
+class CommandLog:
+    """on_act: log[i] = the EXACT executed command groups per tick (None = hold), for replay."""
+
+    def __init__(self, log: dict):
+        self.log = log
+
+    def on_act(self, i, obs, act):
+        c = act.command
+        self.log.setdefault(i, []).append(None if c is None else {
+            g: np.array(v, copy=True) if not np.isscalar(v) else v for g, v in c.groups.items()})
+
+
+class PrevAction:
+    """on_act: feed the command about to be executed to the session's PrevActionFeaturizer (rrp.harness.eval.ladder;
+    the training-consistent previous-command input, mode 'own'; the pre-step measured q0 normalizes it). The featurizer
+    itself is installed by the env factory, before the policy's reset."""
+
+    def __init__(self):
+        self.env = {}
+
+    def on_reset(self, i, env, obs):
+        self.env[i] = env
+
+    def on_act(self, i, obs, act):
+        env = self.env[i]
+        f = env._rrp_featurizer
+        if act.command is not None and f.mode == "own":
+            f.record(act.command, f.base(env.observe()).q0)
+
+
+class FrameCallback:
+    """on_step: cb(i, env, tick, teacher_phase) after every executed tick (rendering)."""
+
+    def __init__(self, cb: Callable):
+        self.cb, self.n = cb, {}
+
+    def on_step(self, i, env, act, step):
+        k = self.n.get(i, 0)
+        self.n[i] = k + 1
+        self.cb(i, env, k, act.info.get("phase"))
+
+
 def arm_scene(seed: int) -> dict:
     """The arm runner's scene rule: pick_place with seed % 3 distractors."""
     return {"n_distractors": seed % 3}
@@ -115,3 +216,16 @@ def dual_latent_hooks(policy, task: str, probe=None, *, device="cpu", packet_edi
     from rrp.harness.eval.latent_eval import System0Stats
     policy.packet_hook = PACKET_EDITS[packet_edit] if packet_edit else None
     return dual_hooks(task) + [System0Stats(policy)] + ([DualPacketProbeHook(probe, device)] if probe else [])
+
+
+HOOKS: dict[str, Callable] = {
+    "feasibility": lambda check=arm_feasible, reason="teacher_infeasible": Feasibility(check, reason),
+    "session_record": SessionRecord,
+    "settle": Settle,
+    "displacement": Displacement,
+    "object_shift": ObjectShift,
+    "motion": MotionRecord,
+    "command_log": CommandLog,
+    "prev_action": PrevAction,
+    "frame": FrameCallback,
+}

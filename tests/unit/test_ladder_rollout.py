@@ -108,3 +108,53 @@ def test_ladder_learned_and_bc_oracle_routes(golden):
     rows = _run(_cfg("learned", seeds=(3,), replan_ticks=4), _models(with_bc=True))
     rows += _run(_cfg("oracle", seeds=(3,), oracle_expert="bc", replan_ticks=4), _models(with_bc=True))
     golden("loop.ladder.learned_bc", _digest(rows))
+
+
+def test_run_ladder_is_a_rollout(monkeypatch):
+    """No private loop: run_ladder calls harness.rollout with the ladder's hooks (the shift hook only when asked)."""
+    import rrp.harness.rollout as R
+    seen = []
+    real = R.rollout
+
+    def spy(make_env, policy, task, seeds, **kw):
+        seen.append((type(policy).__name__, [type(h).__name__ for h in kw["hooks"]], kw["max_steps"], kw["batch"]))
+        return real(make_env, policy, task, seeds, **kw)
+    monkeypatch.setattr(R, "rollout", spy)
+    _run(_cfg("teacher", seeds=(3,), max_steps=3, keep_ticks=False, object_shift=(1, 0.01, 0.0)),
+         dict(E=None, R=None, P=None, lcfg=None, res=None, flow=None, learned=None), cmd_log={})
+    assert seen == [("LadderPolicy", ["LadderTrace", "MotionRecord", "PrevAction", "CommandLog", "ObjectShift"], 3, 1)]
+
+
+def test_hooks_registry_names_every_ladder_hook():
+    from rrp.harness.eval import hooks as H
+    assert {"feasibility", "session_record", "settle", "displacement", "object_shift", "motion", "command_log",
+            "prev_action", "frame"} <= set(H.HOOKS)
+    assert isinstance(H.HOOKS["object_shift"](2, 0.1, 0.0), H.ObjectShift)
+    assert isinstance(H.HOOKS["settle"](), H.Settle) and isinstance(H.HOOKS["prev_action"](), H.PrevAction)
+    assert isinstance(H.HOOKS["feasibility"](), H.Feasibility)
+
+
+def test_object_shift_moves_the_cube_at_the_start_of_its_tick_and_not_after_the_episode_ended():
+    from types import SimpleNamespace as NS
+    from rrp.harness.eval.hooks import ObjectShift
+
+    class Env:
+        def __init__(self):
+            self.data = NS(xpos={7: np.zeros(3)})
+            self.model = NS(body=lambda n: NS(id=7))
+            self.moved = []
+
+        def teleport_object(self, body, p, source):
+            self.moved.append((body, p.tolist(), source))
+    alive = {0: True, 1: False}
+    h = ObjectShift(2, 0.1, -0.2, alive=lambda i: alive[i])
+    envs = [Env(), Env()]
+    for i, e in enumerate(envs):
+        h.on_reset(i, e, None)
+    for _ in range(2):
+        for i, e in enumerate(envs):
+            h.on_step(i, e, None, None)
+    assert envs[0].moved == [("cube", [0.1, -0.2, 0.0], "ladder_disturbance")] and envs[1].moved == []
+    e0 = Env()
+    ObjectShift(0, 0.1, 0.0).on_reset(0, e0, None)          # tick 0: at reset, before the first act
+    assert len(e0.moved) == 1
