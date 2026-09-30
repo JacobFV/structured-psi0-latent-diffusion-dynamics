@@ -6,6 +6,12 @@
 extends: relations_geo.yaml
 name: relations_geo_smoke
 schema: dag-1
+track: relations
+policy: latent
+env: mujoco/arm
+task: pick_place
+bodies: primary_v1
+factors: [preset:arm, preset:geo]
 lineage: 'relations-smoke-{fset}'
 label_prefix: 'rfsm{fset}{seed}'
 matrix:
