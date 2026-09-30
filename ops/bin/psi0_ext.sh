@@ -16,7 +16,7 @@ set -euo pipefail
 export PATH=$HOME/.local/bin:$PATH UV_HTTP_TIMEOUT=3000 GIT_LFS_SKIP_SMUDGE=1
 EXT=${RRP_PSI0_EXT:-$HOME/work/ext}
 PH=${PSI_HOME:-$EXT/psi_home}
-REPO=$(cd "$(dirname "$0")/.." && pwd)
+REPO=$(cd "$(dirname "$0")/../.." && pwd)
 HFM=https://huggingface.co/USC-PSI-Lab/psi-model/resolve/main
 HFD=https://huggingface.co/datasets/USC-PSI-Lab/psi-data/resolve/main
 LEROBOT="lerobot @ git+https://github.com/songlin/lerobot.git@09929d8057b044b53aecaf5c6d7eb71f99e8beb9"

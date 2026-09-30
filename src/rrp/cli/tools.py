@@ -53,13 +53,18 @@ TOOLS: dict[tuple[str, str], tuple[str, str]] = {
     ("viz", "export"): ("rrp.viz.export:main", "room data exporter"),
     ("viz", "api"): ("rrp.viz.api:main", "room API helper (read-only)"),
     ("viz", "record"): ("rrp.viz.record:main", "replay recorder (peer)"),
+    ("viz", "specs"): ("rrp.viz.record_specs:main", "write the replay-recorder specs viz/specs/*.yaml"),
+    ("video", "arm"): ("rrp.harness.eval.video_arm:main", "labelled arm episode videos (teacher / learned / latent)"),
+    ("video", "dual"): ("rrp.harness.eval.video_dual:main", "labelled dual-arm episode videos (with per-slot packet probe)"),
+    ("video", "legged"): ("rrp.harness.eval.video_legged:main", "labelled legged / humanoid teacher+tracker clips"),
     ("factors", "list"): ("rrp.policies.relations.base:cli", "relation-factor registry: list [GLOB]"),
     ("factors", "show"): ("rrp.policies.relations.base:cli", "relation-factor registry: show NAME"),
     ("factors", "presets"): ("rrp.policies.relations.base:cli", "relation-factor presets"),
     ("ops", "child"): ("rrp.ops.child:main", "internal: the leased workload runner inside rrp-job-<lease>.service"),
 }
 GROUP_HELP = {"factors": "relation-factor registry (docs/relations.md)", "suite": "evaluation suites, audits and validators", "stage": "pipeline stages (run-dag jobs)",
-              "viz": "visualization room: export / api / record"}
+              "viz": "visualization room: export / api / record / specs",
+              "video": "labelled demo-video renderers (peer; artifacts/video/INDEX.md)"}
 
 
 def dispatch(argv: list[str]):

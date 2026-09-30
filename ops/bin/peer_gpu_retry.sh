@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Retry a detached peer GPU lease on CapacityError/AdmissionStopped (slowly). Usage:
-#   scripts/peer_gpu_retry.sh LABEL MAX_SECONDS GPU_MEM CPU MEM -- python-args...
+#   ops/bin/peer_gpu_retry.sh LABEL MAX_SECONDS GPU_MEM CPU MEM -- python-args...
 set -u
 label=$1; maxs=$2; gmem=$3; cpu=$4; mem=$5; shift 6
 for i in $(seq 1 40); do

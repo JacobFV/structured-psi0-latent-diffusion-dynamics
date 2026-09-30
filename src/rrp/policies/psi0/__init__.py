@@ -13,7 +13,7 @@ resize/crop, state padding + normalization, action denormalization, RTC state) a
 HTTP handler does; our heads replace `Psi0Model.from_pretrained` as psi1z's serve_ours did. No listener is opened.
 Every tick: when the observation's `chunk_request` flag is set, return `Act(chunk=...)` with the 30 rows (the env
 executes the first 24, as the upstream server returns them); otherwise `Act(command=None)` (the env executes the next
-queued row). Needs the psi venv (`scripts/psi0_ext.sh psi-env`, extra `rrp[psi0]`); every heavy import is lazy.
+queued row). Needs the psi venv (`ops/bin/psi0_ext.sh psi-env`, extra `rrp[psi0]`); every heavy import is lazy.
 """
 from __future__ import annotations
 

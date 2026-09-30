@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run a leased job on the peer from this checkout's peer code dir, using the ONE shared peer broker.
-# Usage: [RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/<name>] scripts/peer_run.sh <ops-run args> -- PY <args...>
-#   e.g. scripts/peer_run.sh --gpu --gpu-mem 12G --cpu 4 --mem 24G --label X --max-seconds 7200 -- PY -m rrp.cli ...
+# Usage: [RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/<name>] ops/bin/peer_run.sh <ops-run args> -- PY <args...>
+#   e.g. ops/bin/peer_run.sh --gpu --gpu-mem 12G --cpu 4 --mem 24G --label X --max-seconds 7200 -- PY -m rrp.cli ...
 # A bare argument "PY" is replaced by the peer venv python. Relative paths resolve inside the peer code dir, whose
 # artifacts/ and .cache/ are symlinks to the shared store. Add --detach to return immediately.
 # RRP_PEER_PYTHONPATH (peer paths, ':'-separated) is appended to PYTHONPATH, e.g. the ComputerWorld wheel dir

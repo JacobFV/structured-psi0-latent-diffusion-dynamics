@@ -87,9 +87,8 @@ and task-context edit suites.
 | arm task-context edits | `rrp latent semantic-edits --route {teacher,oracle,generated,bc} …` |
 | evaluation suites / audits | `rrp suite {ladder,legged,robustness,target,tracker-validation,privileged-audit,…} …` |
 | legged trackers (GPU PPO) | `rrp train tracker-warp --recipe <recipe> --out …` |
-| Ψ₀ fine-tunes | `rrp train psi0 …` (SIMPLE eval needs the Isaac venv: `scripts/psi0_ext.sh`) |
-| labelled video | `scripts/render_episode.py`, `scripts/render_legged_episode.py`, `scripts/render_dual_episode.py` |
-| demo page | `scripts/demo/refresh.sh` (builds `docs/demo/` from raw results) |
+| Ψ₀ fine-tunes | `rrp train psi0 …` (SIMPLE eval needs the Isaac venv: `ops/bin/psi0_ext.sh`) |
+| labelled video | `rrp video {arm,dual,legged} …` |
 | visualization room | `cd viz/room && npm run snapshot` (exporter `rrp viz export`) |
 
 ## quickstart
@@ -100,9 +99,9 @@ Requirements: Linux aarch64 or x86_64, Python 3.12, [`uv`](https://github.com/as
 ```bash
 git clone https://github.com/JacobFV/structured-psi0-latent-diffusion-dynamics.git && cd structured-psi0-latent-diffusion-dynamics
 uv venv --python 3.12 .venv
-uv pip install --python .venv/bin/python -e '.[sim,service,ml,dev]'   # CPU torch is fine for tests
+uv pip install --python .venv/bin/python -e '.[sim,ml,dev]'   # CPU torch is fine for tests
 PYTHONPATH=src:. .venv/bin/python -m pytest tests/unit -q              # ~2 min; Menagerie/data tests skip if absent
-scripts/fetch_menagerie.sh                                             # pinned third-party robot assets (~1.7 GB)
+ops/bin/fetch_menagerie.sh                                             # pinned third-party robot assets (~1.7 GB)
 
 # one-time: measure free capacity and create the enforced project slice + watchdog
 PYTHONPATH=src python3 -m rrp.cli ops init --role host
@@ -129,11 +128,11 @@ src/rrp/          layers import only downward (tests/unit/test_layering.py)
                   psi0/
   harness/        rollout.py (the one episode loop), eval/ (evaluate.py: evaluate / matrix; hooks.py; suites), train/,
                   data/, pipelines/, dag.py (run-dag)
-  viz/            room exporter, recorder/replay
+  viz/            room exporter, recorder/replay, replay-spec generator
   cli/            the `rrp` command (tools.py: `rrp <group> <tool>` for data / train / suite / stage / viz tools)
 viz/room/         visualization room (exporter output in viz/data)
 configs/, dags/   run configs and lineage DAGs (provenance of every run)
-scripts/          peer transport (peer_run/sync/bootstrap), asset fetch, renderers, demo builder, paused-track drivers
+ops/bin/          peer transport (peer_run/sync/bootstrap), asset fetch, external-env setup (shell)
 research/         decisions.md (append-only; appendix P = former psi1z), naming.md, tracks/, reports/, splits/, registry.jsonl
 artifacts/        small raw results (JSON/JSONL), receipts, labelled videos
 docs/             architecture.md, strategy.md, experiments_roadmap.md, robot_training_considerations.md, demo/, handoff/
@@ -168,7 +167,7 @@ tests/            unit/ (incl. test_golden.py: byte-identity of featurizers, tea
 
 ## the Ψ₀ line (W10)
 Ψ₀ direct and Ψ₀ + structure on Ψ₀'s SIMPLE benchmark are policies (`rrp.policies.psi0`) on the `simple` env
-(`rrp.envs.simple`, Isaac Sim 5.1 in its own venv: `scripts/psi0_ext.sh`, extra `rrp[psi0]`). The separate psi1z repo is
+(`rrp.envs.simple`, Isaac Sim 5.1 in its own venv: `ops/bin/psi0_ext.sh`, extra `rrp[psi0]`). The separate psi1z repo is
 retired (D-140); its decisions are appendix P of [research/decisions.md](research/decisions.md), its notes and results
 [research/tracks/psi0.md](research/tracks/psi0.md).
 Open questions and planned experiments (what is still uncertain but in scope): [docs/experiments_roadmap.md](docs/experiments_roadmap.md).

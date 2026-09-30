@@ -1,8 +1,8 @@
-"""Render labelled videos of dual-arm episodes (support_insert / handover) on the corrected latent path.
+"""`rrp video dual`: render labelled videos of dual-arm episodes (support_insert / handover) on the corrected latent path.
 
-  render_dual_episode.py --task handover --pair panda_pg2__ur5e_pg2 --seeds 3000001 --source learned_latent \
+  rrp video dual --task handover --pair panda_pg2__ur5e_pg2 --seeds 3000001 --source learned_latent \
       --checkpoint artifacts/runs/dualarm_flow_sem_v1/policy.pt [--probe probe.pt]
-  render_dual_episode.py --task support_insert --pair parm5_pg2__parm5_pg2 --seeds 3000001 --source scripted_teacher
+  rrp video dual --task support_insert --pair parm5_pg2__parm5_pg2 --seeds 3000001 --source scripted_teacher
 
 Caption: controller source (LEARNED latent / SCRIPTED TEACHER), task, pair, seed, runtime event statuses, and for
 learned runs the per-slot answers of the packet probe on the RECEIVED packet (diagnostic readout only; slot L = left
@@ -19,17 +19,8 @@ os.environ.setdefault("MUJOCO_GL", "egl")
 
 import imageio
 import mujoco
-import numpy as np
-from PIL import Image, ImageDraw
 
-
-def caption(frame, lines):
-    im = Image.fromarray(frame)
-    d = ImageDraw.Draw(im)
-    d.rectangle([0, 0, im.width, 14 * len(lines) + 6], fill=(0, 0, 0))
-    for i, t in enumerate(lines):
-        d.text((6, 3 + 14 * i), t, fill=(255, 255, 255))
-    return np.asarray(im)
+from rrp.harness.eval.captions import caption
 
 
 def run(a):
@@ -109,7 +100,7 @@ def run(a):
         print(name, tag, flush=True)
 
 
-if __name__ == "__main__":
+def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--task", required=True)
     ap.add_argument("--pair", required=True)
@@ -125,4 +116,4 @@ if __name__ == "__main__":
     ap.add_argument("--every", type=int, default=2)
     ap.add_argument("--fps", type=int, default=10)
     ap.add_argument("--max-steps", type=int, default=600)
-    run(ap.parse_args())
+    run(ap.parse_args(argv))

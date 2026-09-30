@@ -57,7 +57,7 @@ VLM-backed policy training waits for the controller-facing latent path (branch `
 
 ## Resume (only after the lead's go-ahead)
 ```bash
-scripts/peer_sync.sh push
+ops/bin/peer_sync.sh push
 L="ssh gb10-direct 'cd /dev/shm/rrp-brandonin/repo && export PATH=/dev/shm/rrp-brandonin/bin:\$PATH PYTHONPATH=src RRP_NODE=peer RRP_REPO=\$PWD && python3 -m rrp.cli ops run"
 # 1. packages (CPU lease)
 #    ... ops run --cpu 2 --mem 4G --label vlm_pip --env UV_CACHE_DIR=/dev/shm/rrp-brandonin/cache/uv -- \

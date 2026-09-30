@@ -580,7 +580,7 @@ equivalence-tested against `PacketProbe`, not swapped in), `envs.base.StateView`
 
 Rules for every unit: worktree `~/work/rrp-wt/rel-<id>` on `track/rel-<id>` from origin/main;
 `export PYTHONPATH=$PWD/src:$PWD`; host = git / editing / unit suite only (CUDA hidden; no training or simulation
-beyond unit-test fixtures; smokes go to the peer via `scripts/peer_run.sh`); `pytest tests/unit` exit code 0 before
+beyond unit-test fixtures; smokes go to the peer via `ops/bin/peer_run.sh`); `pytest tests/unit` exit code 0 before
 merge; `tests/data/golden.json` untouched unless the brief says otherwise; no shims, no new files beyond those listed;
 notes in `research/tracks/rel-<id>.md`; merge with `git fetch origin && git rebase origin/main && git push origin
 HEAD:main`; commit trailer as in AGENTS.md. Shared files are shared by disjoint functions only (noted), which rebases

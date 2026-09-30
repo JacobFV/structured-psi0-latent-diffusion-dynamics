@@ -154,7 +154,7 @@ def menagerie_arm(key: str) -> Module:
     info = _arm_info(key)
     path = MENAGERIE / info["dir"] / info["file"]
     if not path.exists():
-        raise FileNotFoundError(f"asset not fetched: {path} (run scripts/fetch_menagerie.sh)")
+        raise FileNotFoundError(f"asset not fetched: {path} (run ops/bin/fetch_menagerie.sh)")
     spec = mujoco.MjSpec.from_file(str(path))
     spec.modelname = key
     home_all = None

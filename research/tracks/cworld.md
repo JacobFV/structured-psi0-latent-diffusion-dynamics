@@ -91,7 +91,7 @@ every task with the reasons above. Speed: `scene()` ~1 ms, `step` ~0.7 ms, snaps
 Code: `src/rrp/policies/pointer.py`, `tests/unit/test_pointer.py`. Peer: code dir `/dev/shm/rrp-brandonin/wt/pointer`,
 CW wheel extracted to `/home/brandonin/work/ext/cw-site` on the peer (the peer venv has no pip: `python -m zipfile -e
 <wheel> ~/work/ext/cw-site`, same sha256 as above); `RRP_PEER_PYTHONPATH=/home/brandonin/work/ext/cw-site
-scripts/peer_run.sh ...` appends it to the job's PYTHONPATH.
+ops/bin/peer_run.sh ...` appends it to the job's PYTHONPATH.
 
 ### step 1: engineered system 0 + teacher oracle packets (verified 2026-09-29)
 - Packet contract for the pointer: M = 1 assembly (`tool`), the latent contract's knots (0.1, 0.3, 0.5, 0.7) s,
@@ -110,7 +110,7 @@ scripts/peer_run.sh ...` appends it to the job's PYTHONPATH.
   100/100 on each of cw/calc_sum, cw/open_type, cw/drag_window, cw/fill_form, with exactly the teacher's control-step
   totals (2860, 1729, 766, 3508), i.e. the packet round trip is lossless; teacher 100/100 each on the same seeds.
   Command:
-  `scripts/peer_run.sh --cpu 2 --mem 4G --label pointer_s1_eval -- PY -m rrp.cli eval --policy pointer_oracle --env computerworld --task cw/<t> --body cw_pointer --seeds 0:100 --out artifacts/runs/pointer_s1/oracle_eng_<t>.jsonl`
+  `ops/bin/peer_run.sh --cpu 2 --mem 4G --label pointer_s1_eval -- PY -m rrp.cli eval --policy pointer_oracle --env computerworld --task cw/<t> --body cw_pointer --seeds 0:100 --out artifacts/runs/pointer_s1/oracle_eng_<t>.jsonl`
 
 ### step 2: learned route (completed; D-142)
 - Split `research/splits/cworld_pointer_v1.json` (commit 34fbc94, before any demo): held-out calc pairs (9), words (4),

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Push project code to the peer's RAM-backed workspace (never node-local state), bounded bandwidth.
-# Usage: scripts/peer_sync.sh push | pull <remote-subdir> [<local-subdir>] | revision
+# Usage: ops/bin/peer_sync.sh push | pull <remote-subdir> [<local-subdir>] | revision
 # push also writes $R/.rrp_revision = {"git_sha", "dirty", ...} (the synced copy has no .git; W3 provenance reads it).
 set -euo pipefail
 PEER=${ROBOT_PEER:-gb10-direct}
 P=${RRP_PEER_ROOT:-/dev/shm/rrp-brandonin}
-ROOT=$(cd "$(dirname "$0")/.." && pwd)
+ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 # Each worktree/agent may use its own peer code dir (RRP_PEER_REPO); artifacts, assets and ops state stay shared
 # with the main peer repo so there is one broker and one artifact store.
 R=${RRP_PEER_REPO:-$P/repo}

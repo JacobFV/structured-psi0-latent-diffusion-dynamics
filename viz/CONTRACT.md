@@ -10,7 +10,7 @@ read-only local data API with a short cache, and a static snapshot fallback that
   and `~/work/rrp-data/viz/`.
 - **Host-light (D-127).** The host exporter is pure file/JSON work: ≤ 1 CPU, ≤ 500 MB, runs at most every 15 s
   (live ops every 10 s), and does no simulation, no torch and no mujoco. Anything that simulates (replay recording) runs on the
-  PEER through the broker (`scripts/peer_run.sh`, memory ≥ 1.35 × peak).
+  PEER through the broker (`ops/bin/peer_run.sh`, memory ≥ 1.35 × peak).
 - **Honest labels everywhere.** Every number shows its source file, its decision id and a source label
   (scripted_teacher / oracle / learned:<ckpt> / bc:<ckpt> / learned_tracker:<body>:<ver>). Caveats (e.g. t1 D-113, grasp_v1)
   are shown, not hidden. Interim results are marked interim. There are no invented progress percentages and no fake live

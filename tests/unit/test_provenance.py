@@ -183,13 +183,13 @@ def test_legacy_provenance_unknown_source_is_marked():
 
 
 def test_peer_sync_revision_record():
-    """scripts/peer_sync.sh push writes this JSON as .rrp_revision on the peer (read by W3 code_provenance)."""
+    """ops/bin/peer_sync.sh push writes this JSON as .rrp_revision on the peer (read by W3 code_provenance)."""
     import json
     import subprocess
     import shutil
     if not shutil.which("git") or not (Path(__file__).resolve().parents[2] / ".git").exists():
         pytest.skip("not a git checkout")
-    r = subprocess.run(["bash", str(Path(__file__).resolve().parents[2] / "scripts" / "peer_sync.sh"), "revision"], capture_output=True, text=True,
+    r = subprocess.run(["bash", str(Path(__file__).resolve().parents[2] / "ops" / "bin" / "peer_sync.sh"), "revision"], capture_output=True, text=True,
                        timeout=60)
     assert r.returncode == 0, r.stderr
     d = json.loads(r.stdout)

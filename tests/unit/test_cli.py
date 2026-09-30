@@ -12,7 +12,7 @@ import pytest
 
 REPO = Path(__file__).resolve().parents[2]
 TOP = ["doctor", "ops", "task", "assets", "data", "train", "campaign", "latency", "analyze", "eval", "matrix",
-       "latent", "adapt", "run-dag", "suite", "stage", "viz"]
+       "latent", "adapt", "run-dag", "suite", "stage", "viz", "video"]
 # commands used by scripts/ and configs (grep "-m rrp.cli" in scripts/), plus one per remaining group
 USED = [
     "ops run", "ops status", "ops stop", "ops init", "ops start-watchdog", "ops shrink", "ops discover", "doctor",

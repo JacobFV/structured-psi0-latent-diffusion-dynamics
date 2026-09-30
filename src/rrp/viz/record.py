@@ -1456,7 +1456,7 @@ def main(argv=None):
             print(e["id"], e["harness"], e.get("seeds"))
         return 0
     if os.environ.get("RRP_NODE") != "peer" and os.environ.get("RRP_VIZ_RECORD_ALLOW_HOST") != "1":
-        sys.exit("rrp.viz.record simulates: run it on the PEER through the broker (scripts/peer_run.sh; D-115/D-127)")
+        sys.exit("rrp.viz.record simulates: run it on the PEER through the broker (ops/bin/peer_run.sh; D-115/D-127)")
     out.mkdir(parents=True, exist_ok=True)
     log = out / "record_log.jsonl"
     done = set()

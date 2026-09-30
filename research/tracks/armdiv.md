@@ -182,7 +182,7 @@ Nothing of mine runs: coordinator `rrp-armdiv-chain2` stopped; my F0 lease 17907
 Paths (peer store = /dev/shm/rrp-brandonin/repo/artifacts = RAM; host copy of runs/armdiv, byte-verified with
 `rsync -rcn`, at `~/work/rrp-data/peer-archive/runs/armdiv/`, collect episodes excluded):
 - Code: main (track/armdiv); peer code dir /dev/shm/rrp-brandonin/wt/armdiv (re-push after the refactor:
-  `RRP_PEER_REPO=... scripts/peer_sync.sh push`). Menagerie: 9 extra dirs in the pinned sparse checkout (host + peer).
+  `RRP_PEER_REPO=... ops/bin/peer_sync.sh push`). Menagerie: 9 extra dirs in the pinned sparse checkout (host + peer).
 - Frozen splits: research/splits/armdiv_pool_v1.json (65 keys), research/splits/armdiv_v1.json (targets),
   research/splits/armdiv_candidates_v1.json; screens research/tracks/armdiv/screen/.
 - Data: collection runs/armdiv/v7div/collect-v7div_s1 (peer /dev/shm, 2.0 GB, gate PASS; episodes NOT on the host copy);

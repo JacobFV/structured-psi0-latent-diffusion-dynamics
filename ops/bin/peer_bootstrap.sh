@@ -26,7 +26,7 @@ $P/venv/bin/python -c "import torch,mujoco;print('ok',torch.__version__,torch.cu
 # pinned robot assets live on the persistent disk (peer_sync never pushes .cache; /dev/shm is wiped on reboot)
 mkdir -p $D/cache
 [ -e $P/repo/.cache ] || ln -s $D/cache $P/repo/.cache
-[ -d $D/cache/assets/mujoco_menagerie/.git ] || scripts/fetch_menagerie.sh
+[ -d $D/cache/assets/mujoco_menagerie/.git ] || ops/bin/fetch_menagerie.sh
 # data links (datasets/packed on disk)
 for d in datasets packed; do [ -e artifacts/$d ] || ln -s $D/$d artifacts/$d; done
 test "$(git -C .cache/assets/mujoco_menagerie rev-parse HEAD)" = c96a32d28fb5da84da38c1da4d749e7a13212855 && echo menagerie-ok

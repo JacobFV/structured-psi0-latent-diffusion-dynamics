@@ -2,7 +2,7 @@
 editing the upstream clone (moved from psi1z `simple_compat` + `_simple_autocompat` + `simple_run`, D-140; P-002).
 
 Stdlib-only at import: this module is imported inside the SIMPLE venv (the SimpleEnv worker, and every interpreter via
-the `.pth` line that `scripts/psi0_ext.sh simple-env` writes):
+the `.pth` line that `ops/bin/psi0_ext.sh simple-env` writes):
 
     import os; os.environ.get("RRP_SIMPLE_COMPAT") == "1" and __import__("rrp.envs.simple.compat", fromlist=["x"]).install()
 

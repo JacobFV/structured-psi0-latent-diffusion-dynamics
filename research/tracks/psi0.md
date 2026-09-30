@@ -63,11 +63,11 @@ repo; weights, datasets, venvs and runs stay under `~/work/ext`. psi1z never nee
 | `openloop.py` | deleted | port of the upstream notebook for the released model (done, notes below); `load_launch_config` moves to `policies/psi0` |
 | `render_calib.py`, `render_sensitivity.py`, `isaac_smoke.py`, `debug_isaac_env.py`, `diag/{cl_audit,factor_test,render_walk,rtc_openloop,vx_oracle}.py` | deleted | finished diagnostics of P-002/P-005/P-007/P-009/P-012; `git show 6f5e2b3:src/psi1z/<name>` in psi1z |
 | `tests/test_core_invariants.py`, `tests/test_roadmap_24_26.py` | `tests/unit/test_psi0.py` | + golden digests of the nets; skips cleanly without torch |
-| `scripts/install_{simple_env,simple_deps,psi_env}.sh`, `upgrade_torch_psi.sh`, `build_cyclonedds.sh`, `download_*.sh`, `psienv.sh` | `scripts/psi0_ext.sh` | one script: `simple-env`, `psi-env`, `cyclonedds`, `fetch-base`, `fetch-ckpt RUN…`, `fetch-data TASK…` |
+| `scripts/install_{simple_env,simple_deps,psi_env}.sh`, `upgrade_torch_psi.sh`, `build_cyclonedds.sh`, `download_*.sh`, `psienv.sh` | `ops/bin/psi0_ext.sh` | one script: `simple-env`, `psi-env`, `cyclonedds`, `fetch-base`, `fetch-ckpt RUN…`, `fetch-data TASK…` |
 | other scripts (`peer_queue`, `queue_host`, `stageA_v2*`, `step2_*`, `cl_parallel`, `*_retry`, `resume_after_lease`, `sync_to_peer`, `server_loadtest`, `prepush_check`, `factor_tests`, `features_task`, `rrp_ops`) | deleted | finished queues/one-offs; commands for reruns are `rrp train psi0 …` / `rrp eval …` |
 | SIMPLE tasks | `rrp/tasks`: `simple/<Task>` TaskSpecs (6 tasks) | judge = SIMPLE `_success` from `env.truth()` (success_privileged; there is no public success estimator); the task table (released run, published L0/L1/L2, step-1 status) moves from `envs/simple.TASKS` into the task registry at S3 (tasks sit below envs) |
 | viz exporter `rrp/viz/export/psi0.py` | reads the P-appendix and this file | no psi1z checkout or crosswalk table any more |
-| pyproject | extra `rrp[psi0]` | psi-side Python deps; Isaac Sim + SIMPLE stay in their own venv (`scripts/psi0_ext.sh simple-env`), which imports only `rrp.envs.simple.{compat,worker}` |
+| pyproject | extra `rrp[psi0]` | psi-side Python deps; Isaac Sim + SIMPLE stay in their own venv (`ops/bin/psi0_ext.sh simple-env`), which imports only `rrp.envs.simple.{compat,worker}` |
 
 Runtime layout: the harness and the Ψ₀ policies run in the psi venv (`~/work/ext/venvs/psi`, Python 3.11, torch
 2.14+cu130, `rrp[psi0]` editable); `SimpleEnv` spawns `python -m rrp.envs.simple.worker` in the SIMPLE venv
@@ -117,7 +117,7 @@ torso-state finding). Proposed (not run; needs a lead decision):
 
 ## resume
 - Checkpoints, features, labels (peer and host): `~/work/ext/runs/psi1z/{train,features,replay_labels}/`; closed-loop
-  outputs `~/work/ext/runs/psi1z/cl/`. Released checkpoints and data: `~/work/ext/psi_home` (`scripts/psi0_ext.sh fetch-*`).
+  outputs `~/work/ext/runs/psi1z/cl/`. Released checkpoints and data: `~/work/ext/psi_home` (`ops/bin/psi0_ext.sh fetch-*`).
 - Stale psi1z watcher loops on the peer (bash `until … sleep` loops waiting on `cl/psi0rel_*/episodes.jsonl`, pids
   2873754, 3156994, 3389109 on 2026-09-29) hold no lease and do nothing; they can be killed.
 
@@ -176,7 +176,7 @@ Owner: psi0 agent. Repo `~/work/psi1z` (LOCAL ONLY, main). Third-party code, wei
   (1.3 GB/s, PSI 0). Shed: the Isaac Sim install (twice), the Ψ₀ open-loop smoke (4 attempts, trace
   `~/work/ext/runs/psi1z/psi_trace3.txt`). The brief allows the peer when the host cannot run a job: the stack is
   mirrored to the peer with `scripts/sync_to_peer.sh` (same user/home paths, so venvs stay valid) and jobs run through
-  `scripts/peer_run.sh` with `RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/psi0` (rrp code only; psi1z lives in ~/work/psi1z
+  `ops/bin/peer_run.sh` with `RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/psi0` (rrp code only; psi1z lives in ~/work/psi1z
   on the peer).
 
 - Peer stack (2026-09-27): Isaac Sim 5.1.0 installed (17 GB venv). Headless render of a trivial scene verified
@@ -343,7 +343,7 @@ Owner: psi0 agent. Repo `~/work/psi1z` (LOCAL ONLY, main). Third-party code, wei
 ### prep status (2026-09-29, before S3)
 Drafted on `track/psi0mig` as NEW files only (no existing `src/rrp` file touched): `bodies/g1_simple.py`,
 `policies/psi0/{__init__,nets}.py`, `envs/simple/{__init__,compat,worker}.py`, `harness/data/psi0.py`,
-`harness/train/psi0.py`, `scripts/psi0_ext.sh`, extra `psi0` in pyproject, `tests/unit/test_psi0.py` (nets byte-identical
+`harness/train/psi0.py`, `ops/bin/psi0_ext.sh`, extra `psi0` in pyproject, `tests/unit/test_psi0.py` (nets byte-identical
 to psi1z; worker plumbing with a test double). After S3: adapt to the real `Env`/`Policy`/`TaskSpec`/`Act`, register
 `psi0_direct`/`psi0_structured`/`psi0_replay` and `simple` + `simple/<Task>`, wire `rrp train psi0`, point the viz
 exporter at the P-appendix + this note, delete docs/related_repos.md (glossary → architecture.md), README/STATUS/
@@ -355,12 +355,12 @@ AGENTS/strategy pointers, D-entry for the step-2 result (labelled: structured ro
 2. Peer eval: lease 1790515469_2faf45 (`cl/psi0rel_xmovepick_L0_torsofb`). Resumable: rerun the same
    `scripts/cl_parallel.sh` command (eval_loop skips finished episodes in episodes.jsonl).
 3. Our arms closed loop (after the peer GPU frees):
-   `scripts/peer_run.sh ... bash scripts/cl_parallel.sh OUT 1 10 2 -- --task G1WholebodyXMovePickTeleop-v0 --level 0
+   `ops/bin/peer_run.sh ... bash scripts/cl_parallel.sh OUT 1 10 2 -- --task G1WholebodyXMovePickTeleop-v0 --level 0
    --run-dir <released run> --server-module psi1z.serve_ours --no-rtc --source learned:<final.pt> --server-extra
    "--arm structured --ckpt <final.pt> --stage-a <stage_a.pt> --vlm <psi_home>/cache/checkpoints/psi0/pre.fast.1by1.2601091803.ckpt.ego200k.he30k"`
    (same for --arm direct). Edits: add `--edit entity:<name> | probe:target_dx:<m> | probe:hand:<0|1> | random:<norm>`.
 4. Peer code/env sync: `rsync -a --delete --exclude .git ~/work/psi1z/ gb10-direct:work/psi1z/`; rrp code dir via
-   `RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/psi0 scripts/peer_sync.sh push` from ~/work/rrp-wt/psi0.
+   `RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/psi0 ops/bin/peer_sync.sh push` from ~/work/rrp-wt/psi0.
 - host disk (other users) fell below the 100 GB reserve twice; freed my XMovePick ckpt copy, Handover v1 arms and cached features (all re-creatable).
 - INCIDENT 13:08-13:42: two of my concurrent eval jobs used the same policy-server port 22085 (cl_parallel default).
   The Handover eval's queries failed after the XMovePick-RTC server exited ("Server is not up"); zero Handover queries

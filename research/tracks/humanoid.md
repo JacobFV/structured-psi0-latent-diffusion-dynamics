@@ -22,7 +22,7 @@ peak measured PER BODY (D-117); never live-modify a lease; `rrp ops stop` only w
 
 ## 1. body pool (a): menagerie humanoids + a procedural family
 
-Menagerie pinned at `c96a32d28fb5da84da38c1da4d749e7a13212855` (`scripts/fetch_menagerie.sh`; assets never committed).
+Menagerie pinned at `c96a32d28fb5da84da38c1da4d749e7a13212855` (`ops/bin/fetch_menagerie.sh`; assets never committed).
 Licenses read from each directory's LICENSE at that commit. MJCF sha256 prefixes recorded so the sealed set cannot drift.
 
 | body | dir / file | sha256[:16] | license | mass kg | root z m | DoF (nu) | arms | role |

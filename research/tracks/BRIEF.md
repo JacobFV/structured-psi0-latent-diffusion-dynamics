@@ -4,7 +4,7 @@
 - What we do, in what order, and who owns which paths: `docs/strategy.md` (workstreams W1–W9, R0, gates, conflict rules).
   Rules: `AGENTS.md` (resources D-033/D-086: host ≤80% of free CPU/memory with host GPU, peer 100%, ≥100 GB host disk free).
   State: `STATUS.md`; evidence: `research/reports/evidence_matrix.md`; lineage codes: `research/naming.md`.
-- **Always `export RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/<track>` before `scripts/peer_sync.sh`.** Without it the
+- **Always `export RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/<track>` before `ops/bin/peer_sync.sh`.** Without it the
   script syncs (with `--delete`) into the lead's `/dev/shm/rrp-brandonin/repo`, where chains run (D-090 incident).
   Never sync into a dir whose jobs are still running (R0 runs from `wt/ladder`).
 - The worktree/merge workflow below ("how to work") still applies. The host budget numbers in it are historical; ask the
@@ -40,8 +40,8 @@ Known state:
 - Host jobs: `PYTHONPATH=src ~/work/relational-robot-policy/.venv/bin/python -m rrp.cli ops run --cpu X --mem Y [--gpu --gpu-mem G] --label <track>_x --max-seconds N -- cmd`.
   The host broker is shared (2026-09-25 numbers: 11 CPU, 33 GiB, 2 GPU leases across ALL agents; now 3 GPU leases, D-086). Take at most ~3 CPU / 10 GiB / 1 GPU lease
   unless the host is idle. If admission is refused, use the peer.
-- Peer (the main compute): ALWAYS `export RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/<track>` first, then `scripts/peer_sync.sh push` from your worktree;
-  then `scripts/peer_run.sh --gpu --gpu-mem 16G --cpu 4 --mem 24G --label <track>_x --max-seconds N [--detach] -- PY -m rrp.cli ...`.
+- Peer (the main compute): ALWAYS `export RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/<track>` first, then `ops/bin/peer_sync.sh push` from your worktree;
+  then `ops/bin/peer_run.sh --gpu --gpu-mem 16G --cpu 4 --mem 24G --label <track>_x --max-seconds N [--detach] -- PY -m rrp.cli ...`.
   The peer GB10 is shared by ~6 agents plus the lead's chain: at most 2 concurrent GPU jobs per track, and each <=20 GiB GPU memory.
   CPU-only sim/eval jobs can use more (the peer has 20 cores). Name every output `artifacts/runs/<track>_...`.
   Never run `rrp ops stop` without `--lease <your id>`.

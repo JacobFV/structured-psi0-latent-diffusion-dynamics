@@ -1,9 +1,9 @@
-"""Render short labelled clips of the SCRIPTED TEACHER (privileged) driving the frozen body tracker on legged /
+"""`rrp video legged`: render short labelled clips of the SCRIPTED TEACHER (privileged) driving the frozen body tracker on legged /
 humanoid bodies (waypoint_contact task). Same scene builder, teacher and tracker as the teacher route of
 rrp.evaluation.legged_latent_eval (run_episode with ctl=None). No learned high-level policy is involved.
 
 usage (GPU lease for EGL on the peer):
-  MUJOCO_GL=egl python scripts/render_legged_episode.py --bodies go2,t1 --seeds 10000,10001 --out artifacts/video \
+  MUJOCO_GL=egl rrp video legged --bodies go2,t1 --seeds 10000,10001 --out artifacts/video \
       [--arc-only g1] [--rows artifacts/runs/bodies_teacher_ref/render_rows.jsonl]
 Each clip is <= --max-clip-s seconds (long episodes are played back faster; the speed-up is in the caption), and
 its caption carries source label, tracker, body, task, seed and privileged-evaluator outcome. A line is appended to
@@ -19,7 +19,6 @@ import sys
 from pathlib import Path
 
 os.environ.setdefault("MUJOCO_GL", "egl")
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import imageio  # noqa: E402
 import numpy as np  # noqa: E402
@@ -111,6 +110,3 @@ def main(argv=None):
             print(json.dumps(dict(body=body, seed=sd, outcome=tag, sim_time=round(sim_t, 1), frames=len(imgs),
                                   speed=round(speed, 2), mb=round(mb, 2), video=name)), flush=True)
 
-
-if __name__ == "__main__":
-    main()

@@ -21,7 +21,7 @@ way, so axis-dependent flags belong in the point nodes' own config). Point nodes
 positive control, the teacher reference) that must not be duplicated per matrix point.
 
 Execution: every node is ONE leased job through the existing broker: `rrp ops run --detach` on the host or
-scripts/peer_run.sh --detach on the peer (RRP_PEER_REPO), running `python -m rrp.cli stage run --config-b64 ...`.
+ops/bin/peer_run.sh --detach on the peer (RRP_PEER_REPO), running `python -m rrp.cli stage run --config-b64 ...`.
 A node is completed iff its job exit code is 0 AND <out>/pipeline_manifest.json carries the node's config_hash.
 Retries are bounded (node `retries`, default 0 as D-061); broker refusals for capacity are waited for (bounded by
 admission_timeout_s) and are not attempts. State lives in ONE JSON ledger per DAG (atomic writes, lock file); a rerun
@@ -416,7 +416,7 @@ _CAPACITY = re.compile(r"aggregate limit|gpu owners|CapacityError|capacity|insuf
 
 
 class OpsRunner:
-    """Launch through the existing broker. host: `python -m rrp.cli ops run --detach`; peer: scripts/peer_run.sh
+    """Launch through the existing broker. host: `python -m rrp.cli ops run --detach`; peer: ops/bin/peer_run.sh
     --detach with RRP_PEER_REPO (the synced code dir; its artifacts/ is the shared peer store)."""
 
     def __init__(self, root: Path, host_python: str = sys.executable, peer: str = "gb10-direct",
@@ -438,7 +438,7 @@ class OpsRunner:
                     dict(os.environ, PYTHONPATH=str(self.root / "src")))
         if not self.peer_repo or not self.peer_repo.startswith("/dev/shm/rrp-brandonin/wt/"):
             raise DagError("peer placement needs RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/<track> (never repo or wt/ladder)")
-        return ([str(self.root / "scripts/peer_run.sh"), *ops, *self.command(node, self.peer_python)],
+        return ([str(self.root / "ops/bin/peer_run.sh"), *ops, *self.command(node, self.peer_python)],
                 dict(os.environ, RRP_PEER_REPO=self.peer_repo))
 
     def launch(self, node: PlannedNode) -> dict:

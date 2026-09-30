@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Demo sprint: scripted-teacher clips (privileged) into artifacts/runs/demo_video/ (not the shared INDEX).
-# Run on the peer from the demo peer dir: scripts/peer_run.sh --gpu --gpu-mem 4G ... -- bash scripts/demo/render_teacher.sh
+# Run on the peer from the demo peer dir: ops/bin/peer_run.sh --gpu --gpu-mem 4G ... -- bash scripts/demo/render_teacher.sh
 set -uo pipefail
 PY=${PY:-/dev/shm/rrp-brandonin/venv/bin/python}
 O=artifacts/runs/demo_video

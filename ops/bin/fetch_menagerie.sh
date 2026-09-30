@@ -2,7 +2,7 @@
 # Pinned sparse fetch of audited menagerie directories (read-only reference assets).
 set -euo pipefail
 SHA=c96a32d28fb5da84da38c1da4d749e7a13212855
-D=${RRP_MENAGERIE_DIR:-$(cd "$(dirname "$0")/.." && pwd)/.cache/assets/mujoco_menagerie}
+D=${RRP_MENAGERIE_DIR:-$(cd "$(dirname "$0")/../.." && pwd)/.cache/assets/mujoco_menagerie}
 if [ ! -d "$D/.git" ]; then
   git clone --filter=blob:none --no-checkout --sparse https://github.com/google-deepmind/mujoco_menagerie "$D"
 fi

@@ -1,4 +1,4 @@
-"""Caption strip for labelled demo-video frames (moved from scripts/render_episode.py, D-126; that script re-exports it)."""
+"""Caption strip for labelled demo-video frames (used by `rrp video arm|dual`)."""
 from __future__ import annotations
 
 import numpy as np

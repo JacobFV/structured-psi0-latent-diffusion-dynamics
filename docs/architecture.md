@@ -20,7 +20,7 @@ Each layer imports only layers above it in this list (checked by `tests/unit/tes
 | 3 | `rrp.envs` | `Env` protocol, `EnvSpec`, capabilities, `make_env` registry; `mujoco/` (Session, LeggedSession, DualSession, scenes, sensors, state estimation, perturbations, embedded legged trackers, snapshots), `warp/` (batched GPU legged envs), `simple/` (optional extra), `computerworld/` (optional extra) | mujoco, mujoco_warp, torch (trackers) |
 | 4 | `rrp.policies` | `Policy` protocol, `PolicyInfo`, `Requirements`, `negotiate`, registry; `features/` (featurizers: the ONLY definition of what a policy may see), `nets/` (shared torch modules: attention, flow, codec, backbone, probes, checkpoint), `relations/` (the relation-factor registry: token sets + field provenance, factor entries, operators / forms, `FactorSite`, `ReadoutProbe`; section 12), `bc.py`, `latent/` (system i planners + system 0 realizers for arm, dual, legged), `trackers.py`, `teachers/` (scripted / privileged, labelled), `oracle.py`, `psi0/` (Ψ₀ direct / Ψ₀ + structure / demo replay, their nets, feature cache and training) | torch |
 | 5 | `rrp.harness` | `rollout` (the one episode loop), `eval.evaluate` (`evaluate` / `matrix`), `eval.hooks` (feasibility, settle, recorders, packet edits, perturbations), statistics, gates, audits; `data/` (collect, pack, manifests, `relgen/` label functions / scene parts / transforms / curriculum, `mix`), `train/` (rep, flow, bc, refit, dagger, sft, grpo, ppo), pipelines + run-dag | – |
-| 6 | `rrp.viz` | record/replay, the room exporter (`python -m rrp.cli viz export`, file scans only), (the loopback workbench service and its React UI are retired, D-145: `.old/src/rrp/viz/workbench/`, `.old/ui/`) | – |
+| 6 | `rrp.viz` | record/replay, the room exporter (`python -m rrp.cli viz export`, file scans only), replay-spec generator (`rrp viz specs`); the loopback workbench service is RETIRED (D-145, `.old/`) | – |
 | 7 | `rrp.cli` | the `rrp` command (`python -m rrp.cli ...`; kept at the top so every documented invocation stays valid) | – |
 
 Rules:
@@ -461,7 +461,7 @@ legged`, `scripts/ladder.py` → `rrp suite ladder`, `python -m rrp.pipelines ru
 `python -m rrp.viz.export` → `rrp viz export`); `python -m rrp.cli` (and the `rrp` console script) is unchanged. Pipeline families, stage names (`collect`, `pack`, `train_rep`, `train_flow`,
 `dagger`, `refit`, `eval_r1`, `eval_r2`, `heldout`, `edits`, ...), DAG files, configs and `artifacts/runs/<track>/...`
 output paths are unchanged, so armdiv's resume (`dags/arm_lineage_v7div*.yaml`, `dags/armdiv_bc_v7div*.yaml`, ledgers
-under `artifacts/runs/armdiv/_dags/`) and W13's resume work as written after `scripts/peer_sync.sh push`; their
+under `artifacts/runs/armdiv/_dags/`) and W13's resume work as written after `ops/bin/peer_sync.sh push`; their
 scripts (`armdiv_chain.sh`, `armdiv_pack.sh`, `humanoid_{steps_eval,steps_eval_grid,gap_smoke,gap_eval,tracker_gate,tracker_finalize}`,
 `contact_waypoint_eval.py`, `render_contact_compare.py`) were kept for that and are rewritten to the new module paths.
 Other deleted scripts: `git show a951398^:scripts/<name>`.

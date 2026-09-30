@@ -1,8 +1,8 @@
-"""Render short labelled demo videos of teacher or learned-policy episodes (GPU EGL on the peer/host
+"""`rrp video arm`: render short labelled demo videos of teacher or learned-policy episodes (GPU EGL on the peer/host
 GPU lease). Usage:
-  render_episode.py --robot panda_pg2 --seeds 3000001,3000002 --source learned --checkpoint ckpt.pt --out artifacts/video
-  render_episode.py --robot panda_pg2 --seeds 3000001 --source scripted_teacher --out artifacts/video
-  render_episode.py --robot panda_pg2 --seeds 3000001 --source learned_latent --checkpoint flow/policy.pt
+  rrp video arm --robot panda_pg2 --seeds 3000001,3000002 --source learned --checkpoint ckpt.pt --out artifacts/video
+  rrp video arm --robot panda_pg2 --seeds 3000001 --source scripted_teacher --out artifacts/video
+  rrp video arm --robot panda_pg2 --seeds 3000001 --source learned_latent --checkpoint flow/policy.pt
 Each video's caption states the controller source, robot, task, seed and privileged-evaluator outcome, and a
 line is appended to artifacts/video/INDEX.md.
 """
@@ -17,11 +17,8 @@ os.environ.setdefault("MUJOCO_GL", "egl")
 
 import imageio
 import mujoco
-import numpy as np
-from PIL import Image, ImageDraw
 
-
-from rrp.harness.eval.captions import caption  # noqa: E402,F401  (moved to the library, D-126; re-exported here)
+from rrp.harness.eval.captions import caption
 
 
 def run(args):
@@ -113,7 +110,7 @@ def run(args):
         print(name, tag, flush=True)
 
 
-if __name__ == "__main__":
+def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--robot", required=True)
     ap.add_argument("--task", default="pick_place")
@@ -132,4 +129,4 @@ if __name__ == "__main__":
     ap.add_argument("--teacher-prefix-steps", type=int, default=0, help="learned_latent: scripted teacher for the first N ticks")
     ap.add_argument("--patient", type=int, default=0, help="pick_place_paired: index of the cube bound as patient")
     ap.add_argument("--tag", default="", help="extra filename tag (e.g. grpo / reference)")
-    run(ap.parse_args())
+    run(ap.parse_args(argv))

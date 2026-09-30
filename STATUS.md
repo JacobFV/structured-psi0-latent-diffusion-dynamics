@@ -107,8 +107,8 @@ Never sync into a peer dir with running jobs; never stop another agent's lease.
 cd ~/work/relational-robot-policy
 PYTHONPATH=src python3 -m rrp.cli ops status
 PYTHONPATH=src python3 -m rrp.cli ops run --cpu 1 --mem 2G --label NAME -- <cmd>
-# peer (agents: export RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/<track> first, and use scripts/peer_run.sh; see AGENTS.md):
-scripts/peer_sync.sh push
+# peer (agents: export RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/<track> first, and use ops/bin/peer_run.sh; see AGENTS.md):
+ops/bin/peer_sync.sh push
 ssh gb10-direct 'cd /dev/shm/rrp-brandonin/repo && PATH=/dev/shm/rrp-brandonin/bin:$PATH PYTHONPATH=src RRP_NODE=peer RRP_REPO=$PWD python3 -m rrp.cli ops run --gpu --gpu-mem 8G --cpu 4 --mem 16G --label NAME -- /dev/shm/rrp-brandonin/venv/bin/python ...'
 ```
 
@@ -220,7 +220,7 @@ Deciding experiments, all deployment-consistent (zero_prev_action):
   scripts/baselines_host_b1fix.sh, root artifacts/runs/latent_slice1_b1fix); codec baseline on the PEER (unit rrp-b1fix-codec, dir wt/lead).
 Stopped as B-1-contaminated (kept, never resume): flow_latent_{sem_v3,nosem_v2}, rep_binding_paired_*_v3, baseline sources in wt/baselines latent_slice1/.
 Resume: `systemctl --user list-units 'rrp-*'` on both nodes; each script above is idempotent/resumable. Track notes: research/tracks/*.md on origin/track/*.
-After a peer reboot: push source, run `scripts/peer_bootstrap.sh`, and restore runs from `~/rrp-peer-data/artifacts-snapshot-20260921/runs/` (on the PEER).
+After a peer reboot: push source, run `ops/bin/peer_bootstrap.sh`, and restore runs from `~/rrp-peer-data/artifacts-snapshot-20260921/runs/` (on the PEER).
 
 ## earlier work log (2026-09-21, superseded by the track table; kept for accounting)
 - lead: codec + structured/unstructured BC policies training on peer (artifacts/runs/codec_dev_v1, dev_structured_direct, dev_unstructured_direct).
