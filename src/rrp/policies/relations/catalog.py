@@ -115,6 +115,27 @@ register_factor(FactorDef("kin.mirror", "1", field="mirror_id", op="same", form=
 
 register_preset("graph", ["id.same_body", "id.same_assembly", "kin.ancestor", "kin.sibling", "kin.mirror"])
 # ------------------------------------------------------------------ R16: contact / grasp / handover (ix.contact, ix.held_by, ix.handover)
+# Labels from `rrp.harness.data.relgen.contact` against `StateView.contacts()` (docs/relations.md 5.1, 6, 10;
+# research/relations_catalog.md D "physical interaction"). All three are the learned bilinear kernel on ctx token
+# hiddens (`hidden` / `bilinear` / `aug`): the bias IS the pair probe (sigmoid(<Ux_i,Vx_j>+c), section 3.2); there is
+# no public/estimated "given" source for contact state, so `probe` (learned) is the only deployable source and `gt`
+# is training/diagnostics only (deploy guard, section 7). `part grasp_target` (this unit) is the shared scene
+# component that makes a graspable object reachable by one or two manipulators, so it is named in `gen` by all three.
+_IX_BILINEAR = (
+    # name        label              doc
+    ("contact",  "contact_pairs",  "two entities in geometric contact (arm, dual, legged foot-ground)"),
+    ("held_by",  "held_pairs",     "an object held by a manipulator assembly (>= 2 contacts with its hand bodies, "
+                                    "like today's `held` label); arm, dual"),
+    ("handover", "handover_pairs", "two manipulator assemblies simultaneously in contact with the same object "
+                                    "(a handover in progress); dual only"),
+)
+for _n, _lab, _doc in _IX_BILINEAR:
+    register_factor(FactorDef(f"ix.{_n}", "1", field="hidden", op="bilinear", form="aug",
+                              algebra=Algebra(arity=2, direction="symmetric", value="prob", dynamic=True),
+                              sources=("probe", "gt"), label=_lab, gen=("grasp_target",),
+                              readout=ReadoutDef(_n, "pair", 1, "bce", label=_lab, reads="hidden"),
+                              params=(("rank", 8),), doc=_doc))
+register_preset("ix", [f"ix.{n}" for n, _, _ in _IX_BILINEAR])
 # ------------------------------------------------------------------ R17: support / force flow (ix.support, ix.force_flow)
 # ------------------------------------------------------------------ R18: task / temporal / epistemic (task.*, time.*)
 # ------------------------------------------------------------------ R19: legged (leg.*)
