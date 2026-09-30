@@ -1,6 +1,5 @@
 """Repository schema (D-145): every tracked path matches schema.toml; legacy lives only under .old/ and is never read
-by live code. docs/architecture.md section 13. The purge units (P1-P9) bring the tree into the schema; until the last
-one lands these tests are xfail (strict=False) -- unit P9 removes the marker."""
+by live code. docs/architecture.md section 13."""
 import re
 import subprocess
 import tomllib
@@ -10,7 +9,6 @@ import pytest
 
 REPO = Path(__file__).resolve().parents[2]
 SCHEMA = tomllib.loads((REPO / "schema.toml").read_text())
-PURGE_PENDING = pytest.mark.xfail(reason="D-145 purge in progress (docs/architecture.md 13.6)", strict=False)
 
 
 def _tracked() -> list[str]:
@@ -43,14 +41,12 @@ def test_schema_manifest_is_consistent():
     assert all(t["state"] in ("open", "paused") for t in SCHEMA["tracks"].values())
 
 
-@PURGE_PENDING
 def test_every_tracked_path_is_in_the_schema():
     bad = [p for p in _tracked() if not any(r.match(p) for r in ALLOW)]
     tops = sorted({p.split("/")[0] for p in bad})
     assert not bad, f"{len(bad)} tracked paths outside schema.toml (top-level: {tops}); first: {bad[:15]}"
 
 
-@PURGE_PENDING
 def test_live_code_never_references_legacy_areas():
     f = SCHEMA["forbid"]
     pats = [re.compile(p) for p in f["patterns"]]
@@ -65,7 +61,6 @@ def test_live_code_never_references_legacy_areas():
     assert not hits, f"{len(hits)} live files reference legacy areas: {hits[:15]}"
 
 
-@PURGE_PENDING
 def test_recipes_are_templates_plus_thin_instances():
     a = SCHEMA["area"]["recipes"]
     bad = []
@@ -89,7 +84,6 @@ def test_recipes_are_templates_plus_thin_instances():
     assert not bad, bad[:15]
 
 
-@PURGE_PENDING
 def test_track_notes_are_open_tracks_only():
     names = {Path(p).stem for p in _tracked() if re.match(r"research/tracks/[^/]+\.md\Z", p)} - {"BRIEF"}
     assert names <= set(SCHEMA["tracks"]), f"notes of closed tracks (move to .old/research/tracks): {sorted(names - set(SCHEMA['tracks']))}"
@@ -114,7 +108,6 @@ def test_artifacts_are_a_frozen_or_track_named_evidence_store():
     assert not bad, bad[:15]
 
 
-@PURGE_PENDING
 def test_old_groups_are_indexed():
     groups = sorted({p.split("/")[1] for p in _tracked() if p.startswith(".old/") and p.count("/") >= 2})
     assert (REPO / ".old" / "README.md").exists()
