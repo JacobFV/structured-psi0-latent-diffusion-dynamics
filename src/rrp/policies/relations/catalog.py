@@ -138,6 +138,26 @@ for _q, _addr, _out, _loss, _lab, _sc in _LEGGED_PROBE:
     register_factor(FactorDef(f"probe.legged.{_q}", "1", field="packet", op="inert", form="readout", label=_lab,
                               readout=ReadoutDef(_q, _addr, _out, _loss, label=_lab, scale=_sc)))
 register_preset("probes:legged-v1", [f"probe.legged.{q[0]}" for q in _LEGGED_PROBE])
+
+# unit R6: pointer packet probe (former `policies.pointer.PointerProbe`; query names kept identical to its old
+# output dict -- slot, rel, phase). M = 1 (the pointer body's single "tool" assembly), so every query addresses
+# `knot×asm` (the psi0/legged precedent above): the generic head reads only z's own K*M packet tokens plus fixed
+# random handle codes, no widget content -- unlike the pre-R6 probe, which cross-attended the widget descriptors'
+# real label/role/geometry. `slot` is a fixed NW=80-way classification of the packet's target widget by SLOT INDEX
+# (stable within an episode, research/tracks/cworld.md) instead of by content: a strictly harder, more honest test
+# of what `z` itself encodes, and the change that brings pointer's probe into line with every other family's
+# "opaque codes only" design (nets/probes.py). No `route.*` factor: the pointer body has no cross-assembly routing
+# to restrict (M = 1), so its `RelBlock`s carry the empty preset `none` (registered above) -- there is nothing here
+# for R20 (UI factors) to do but ADD entries, not change this preset.
+_POINTER_PROBE = (
+    ("slot", "knot×asm", 80, "ce", "slot", 1.0),
+    ("rel", "knot×asm", 4, "gauss", "rel", 1.0),
+    ("phase", "knot×asm", 6, "ce", "phase", 1.0),
+)
+for _q, _addr, _out, _loss, _lab, _sc in _POINTER_PROBE:
+    register_factor(FactorDef(f"probe.pointer.{_q}", "1", field="packet", op="inert", form="readout", label=_lab,
+                              readout=ReadoutDef(_q, _addr, _out, _loss, label=_lab, scale=_sc)))
+register_preset("probes:pointer-v1", [f"probe.pointer.{q[0]}" for q in _POINTER_PROBE])
 # ------------------------------------------------------------------ R13: geometry (geo.*)
 # PaPE (sqdiff+diff), rel_rot, align and order over the R12 fields (`pos3d`, `cam_uvd`, `orient`, `normal`). Every
 # entry offers `probe` as a source: a `FieldReadouts` head (the foundation hook, `rrp.policies.relations.ops`) reads

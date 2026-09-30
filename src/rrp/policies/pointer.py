@@ -40,6 +40,11 @@ SLOT_W = len(SLOT_FIELDS)
 ENG_DIM = 2 * SLOT_W
 MAX_STEP_PX = 60                           # = rrp.policies.teachers.computerworld.MAX_STEP_PX
 POINTER_KINDS = frozenset({"cartesian_position", "button", "discrete"})
+# D-144 R6: the pointer body's `RelBlock`s carry no relation factors (single "tool" assembly, no cross-assembly
+# routing to restrict; UI factors are unit R20's, gated on this track merging first). `_save` (harness/train/pointer)
+# records its `compat_hash` into every checkpoint's `versions["factors"]` for provenance / future compatibility
+# checks, same as every other family's factor hash.
+POINTER_FACTORS_PRESET = "none"
 
 
 def tick_slot(phase: float, dt: float, knot_times=KNOT_TIMES) -> tuple[int, int] | None:
@@ -411,19 +416,32 @@ def _nets():
     import torch
     import torch.nn as nn
     import torch.nn.functional as F
-    from rrp.policies.nets.attention import MHA
+    from rrp.policies.nets.attention import MHA, RelBlock
     from rrp.policies.nets.flow import MLP, sinusoidal
 
-    class Block(nn.Module):
-        def __init__(self, D, heads, cross=False):
-            super().__init__()
-            self.n1, self.a, self.n2, self.m = nn.LayerNorm(D), MHA(D, heads), nn.LayerNorm(D), MLP(D, D, 4 * D)
-            self.cross = cross
+    def _zero_mha_out(m: MHA) -> MHA:
+        """Zero-init an MHA's output projection so it contributes exactly 0 to a residual sum: the same
+        zero-bias-equivalence idiom docs/relations.md 3.2 uses for factor gates/aug, reused here (D-144 R6) for an
+        entire unused `RelBlock` attention stage."""
+        nn.init.zeros_(m.o.weight)
+        nn.init.zeros_(m.o.bias)
+        return m
 
-        def forward(self, x, kv=None, key_mask=None):
-            h = self.n1(x)
-            x = x + self.a(h, kv=kv if self.cross else None, key_mask=key_mask)
-            return x + self.m(self.n2(x))
+    def cross_relblock(D, heads) -> RelBlock:
+        """`RelBlock` standing in for the former pointer `Block(cross=True)` (cross-attention + MLP only, no
+        self-attention among the query tokens): the unused self stage (`.s`) is zero-init-output, an exact no-op
+        both fresh (bit-identical to the old 2-stage forward) and from an old checkpoint (nothing is loaded into
+        `.s`, so it stays zero-init -- `_remap_block_state` below)."""
+        b = RelBlock(D, heads)
+        _zero_mha_out(b.s)
+        return b
+
+    def self_relblock(D, heads) -> RelBlock:
+        """`RelBlock` standing in for the former pointer `Block(cross=False)` (self-attention + MLP only): the
+        unused cross stage (`.x`) is zero-init-output, same reasoning as `cross_relblock`."""
+        b = RelBlock(D, heads)
+        _zero_mha_out(b.x)
+        return b
 
     class LabelBag(nn.Module):
         """Widget label -> one vector: mean of char and (char, position) embeddings (embedding_bag: the [B, NW, LC, D]
@@ -457,7 +475,7 @@ def _nets():
             self.hk, self.hf = nn.Embedding(4, D), MLP(5, D)
             self.prop = MLP(4, D)
             self.typ = nn.Embedding(4, D)
-            self.blocks = nn.ModuleList([Block(D, heads) for _ in range(layers)])
+            self.blocks = nn.ModuleList([self_relblock(D, heads) for _ in range(layers)])
             self.D = D
 
         def label_tokens(self, b):
@@ -480,7 +498,7 @@ def _nets():
             m = torch.cat([b["wmask"], b["instr"] > 0, h[..., 0] > 0, torch.ones(B, 1, dtype=torch.bool,
                                                                                 device=x.device)], 1)
             for L in self.blocks:
-                x = L(x, key_mask=m)
+                x = L(x, kv=x, q_mask=m)
             return x, m
 
     class Knots(nn.Module):
@@ -510,7 +528,7 @@ def _nets():
         def __init__(self, dz=16, D=128, heads=4, layers=2):
             super().__init__()
             self.ctx, self.knots, self.ticks = UICtx(D, heads, 2), Knots(D), tick_tokens(D)
-            self.blocks = nn.ModuleList([Block(D, heads, cross=True) for _ in range(layers)])
+            self.blocks = nn.ModuleList([cross_relblock(D, heads) for _ in range(layers)])
             self.out = nn.Linear(D, 2 * dz)
             self.dz = dz
 
@@ -520,7 +538,7 @@ def _nets():
             km = torch.cat([m, a["valid"]], 1)
             q = self.knots(t.shape[0])
             for L in self.blocks:
-                q = L(q, kv=kv, key_mask=km)
+                q = L(q, kv=kv, kv_mask=km)
             mu, lv = self.out(q).chunk(2, -1)
             return mu[:, :, None], lv.clamp(-8, 4)[:, :, None]
 
@@ -533,7 +551,7 @@ def _nets():
             self.z_in, self.dt = nn.Linear(dz, D), MLP(D, D)
             self.loc = MLP(3, D)
             self.ph = MLP(D, D)
-            self.blocks = nn.ModuleList([Block(D, heads, cross=True) for _ in range(layers)])
+            self.blocks = nn.ModuleList([cross_relblock(D, heads) for _ in range(layers)])
             self.xy, self.btn, self.key = nn.Linear(D, 2), nn.Linear(D, 1), nn.Linear(D, N_KEYCLS)
             self.register_buffer("kt", torch.tensor(KNOT_TIMES, dtype=torch.float32))
             self.D = D
@@ -546,31 +564,6 @@ def _nets():
             q = q[:, 0]
             return self.xy(q), self.btn(q)[:, 0], self.key(q)
 
-    class PointerProbe(nn.Module):
-        """P(z, widget descriptors) per knot: target widget slot (logits over NW), target position relative to the
-        pointer (Gaussian mean + log-variance, normalized screen units) and tick phase (PHASES).
-        metadata_only: the same probe without z (control)."""
-
-        def __init__(self, dz=16, D=96, metadata_only=False):
-            super().__init__()
-            self.metadata_only = metadata_only
-            self.z = MLP(dz, D)
-            self.kq = nn.Parameter(torch.randn(len(KNOT_TIMES), D) * 0.02)
-            self.bag = LabelBag(D)
-            self.wf, self.role = MLP(WF + 2, D), nn.Embedding(N_ROLE, D)
-            self.q = MLP(D, D)
-            self.rel, self.phase = MLP(D, 4), MLP(D, len(PHASES))
-
-        def forward(self, z, b):
-            B = b["ptr"].shape[0]
-            h = self.kq[None].expand(B, -1, -1)
-            if not self.metadata_only:
-                h = h + self.z(z[:, :, 0])
-            w = self.bag(b["wch"]) + self.role(b["wrole"]) + self.wf(torch.cat([b["wf"], b["wf"][..., :2] - b["ptr"][:, None]], -1))
-            s = torch.einsum("bkd,bnd->bkn", self.q(h), w) / w.shape[-1] ** 0.5
-            s = s.masked_fill(~b["wmask"][:, None], -1e4)
-            return dict(slot=s, rel=self.rel(h), phase=self.phase(h))
-
     class PointerFlow(nn.Module):
         """System i: rectified flow over the standardized packet, conditioned on the public context only."""
 
@@ -578,8 +571,8 @@ def _nets():
             super().__init__()
             self.ctx, self.knots = UICtx(D, heads, 3), Knots(D)
             self.z_in, self.t_in = nn.Linear(dz, D), MLP(D, D)
-            self.blocks = nn.ModuleList([Block(D, heads, cross=True) for _ in range(layers)])
-            self.self_blocks = nn.ModuleList([Block(D, heads) for _ in range(layers)])
+            self.blocks = nn.ModuleList([cross_relblock(D, heads) for _ in range(layers)])
+            self.self_blocks = nn.ModuleList([self_relblock(D, heads) for _ in range(layers)])
             self.out = nn.Linear(D, dz)
             self.register_buffer("z_mean", torch.zeros(dz))
             self.register_buffer("z_std", torch.ones(dz))
@@ -589,7 +582,8 @@ def _nets():
             t, m = cache
             h = self.knots(zt.shape[0]) + self.z_in(zt[:, :, 0]) + self.t_in(sinusoidal(tau, t.shape[-1]))[:, None]
             for X, S in zip(self.blocks, self.self_blocks):
-                h = S(X(h, kv=t, key_mask=m))
+                h = X(h, kv=t, kv_mask=m)
+                h = S(h, kv=h)
             return self.out(h)[:, :, None]
 
         def loss(self, b, z_target, probe_fn=None, w_sem=0.0, tau_min=0.6):
@@ -628,19 +622,21 @@ def _nets():
             super().__init__()
             self.ctx = UICtx(D, heads, 3)
             self.q = nn.Parameter(torch.randn(H, D) * 0.02)
-            self.blocks = nn.ModuleList([Block(D, heads, cross=True) for _ in range(layers)])
-            self.self_blocks = nn.ModuleList([Block(D, heads) for _ in range(layers)])
+            self.blocks = nn.ModuleList([cross_relblock(D, heads) for _ in range(layers)])
+            self.self_blocks = nn.ModuleList([self_relblock(D, heads) for _ in range(layers)])
             self.xy, self.btn, self.key = nn.Linear(D, 2), nn.Linear(D, 1), nn.Linear(D, N_KEYCLS)
 
         def forward(self, b):
             t, m = self.ctx(b)
             h = self.q[None].expand(t.shape[0], -1, -1)
             for X, S in zip(self.blocks, self.self_blocks):
-                h = S(X(h, kv=t, key_mask=m))
+                h = X(h, kv=t, kv_mask=m)
+                h = S(h, kv=h)
             return self.xy(h), self.btn(h)[..., 0], self.key(h)
 
-    return dict(UICtx=UICtx, PointerEncoder=PointerEncoder, PointerRealizer=PointerRealizer, PointerProbe=PointerProbe,
-                PointerFlow=PointerFlow, PointerBC=PointerBC, F=F)
+    return dict(UICtx=UICtx, PointerEncoder=PointerEncoder, PointerRealizer=PointerRealizer,
+                PointerFlow=PointerFlow, PointerBC=PointerBC, F=F,
+                cross_relblock=cross_relblock, self_relblock=self_relblock)
 
 
 _NETS: dict | None = None
@@ -651,6 +647,137 @@ def nets() -> dict:
     if _NETS is None:
         _NETS = _nets()
     return _NETS
+
+
+# ------------------------------------------------------------------------------------------- D-144 R6: relation-factor probe
+# Former `PointerProbe` (content-keyed: cross-attended real widget label/role/geometry) -> `nets.probes.ReadoutProbe`
+# configured by `probes:pointer-v1` (catalog.py). M = 1 (the pointer body's single "tool" assembly), so every query
+# addresses `knot×asm` (psi0/legged precedent, docs/relations.md 4): the generic head reads only z's own K*M packet
+# tokens plus fixed random handle codes, no widget content -- the "opaque codes only" design every other family's
+# probe already follows (nets/probes.py's own docstring), which this migration now brings the pointer probe into
+# line with. `target_slot` (query name `slot`, kept identical to the old dict key) is a fixed NW=80-way
+# classification of the packet's target widget by SLOT INDEX (stable within an episode, docs/architecture.md
+# ComputerWorld notes) rather than by content -- a probe that can no longer partly cheat off widget text/role, a
+# strictly harder and more honest test of what `z` encodes than the pre-migration probe was.
+POINTER_PROBE_PRESET = "probes:pointer-v1"
+
+
+def pointer_probe_specs(lv_min: float | None = None):
+    """`preset:probes:pointer-v1`, with the Gaussian `rel` query's `params.lv_min` overridden when given (former CLI
+    `--lv-min`; D-085 bounded NLL, as the arm's semfix). Mirrors `policies.psi0.nets._with_lv_min`."""
+    from dataclasses import replace
+    from rrp.policies.relations.base import get_factor, resolve
+    specs = resolve([f"preset:{POINTER_PROBE_PRESET}"])
+    if lv_min is None:
+        return specs
+    out = []
+    for s in specs:
+        if get_factor(s.name).readout.loss == "gauss":
+            p = dict(s.p); p["lv_min"] = lv_min
+            s = replace(s, params=tuple(sorted(p.items())))
+        out.append(s)
+    return tuple(out)
+
+
+def new_pointer_probe(dz=16, D=96, heads=4, metadata_only=False, seed=1234, lv_min: float | None = None):
+    """The pointer packet probe: a `ReadoutProbe` (docs/relations.md 4) on `pointer_probe_specs(lv_min)`. Old
+    `PointerProbe` checkpoints do not strictly load (different architecture); `load_pointer_probe_state` drops them
+    and refits, the same fallback psi0 (R5) uses for the identical situation (D-144 addendum a, which names R6)."""
+    from rrp.policies.nets.probes import ReadoutProbe
+    return ReadoutProbe(dz, len(KNOT_TIMES), specs=pointer_probe_specs(lv_min), width=D, heads=heads,
+                        max_assemblies=1, metadata_only=metadata_only, seed=seed)
+
+
+def run_pointer_probe(P, z) -> dict:
+    """P(z) narrowed to the former `PointerProbe` output shapes (M = 1 squeezed out of every `knot×asm` output):
+    slot [B,K,NW] classification logits, rel [B,K,4] (Gaussian mu(2)+logvar(2)), phase [B,K,n_phases] logits."""
+    import torch
+    B = z.shape[0]
+    zmask = torch.ones(B, 1, dtype=torch.bool, device=z.device)
+    out = P(z, zmask)
+    return {k: v[:, :, 0] for k, v in out.items()}
+
+
+def _is_old_pointer_probe_state(sd: dict) -> bool:
+    """True for a pre-D-144-R6 `PointerProbe` state dict (module names `bag` / `wf` / `role` / `rel` / `phase` /
+    bare `kq`, none of which the new `ReadoutProbe` layout uses)."""
+    return any(k.startswith(("bag.", "wf.", "role.", "rel.", "phase.")) or k == "kq" for k in sd)
+
+
+def load_pointer_probe_state(sd: dict, *, dz=16, D=96, heads=4, metadata_only=False, seed=1234,
+                             lv_min: float | None = None, device="cpu"):
+    """`new_pointer_probe(...)`, loaded from `sd`: an old-architecture `PointerProbe` state is dropped (fresh init,
+    refit -- see `new_pointer_probe`'s docstring); a post-D-144 `ReadoutProbe` state loads strictly."""
+    P = new_pointer_probe(dz=dz, D=D, heads=heads, metadata_only=metadata_only, seed=seed, lv_min=lv_min).to(device)
+    if _is_old_pointer_probe_state(sd):
+        return P
+    missing, unexpected = P.load_state_dict(sd, strict=False)
+    if missing or unexpected:
+        raise RuntimeError(f"PointerProbe: key mismatch missing={list(missing)[:5]} unexpected={list(unexpected)[:5]}")
+    return P
+
+
+# ------------------------------------------------------------------------------------- D-144 R6: RelBlock checkpoint map
+# `_BLOCK_PATHS[cls]`: every (dotted path prefix, mode) of a `blocks`-style ModuleList the class holds, `mode` being
+# which `RelBlock` stage the former bespoke `Block`'s one attention module becomes ("cross" -> `.x`, old `n1` stays
+# `n1`; "self" -> `.s`, old `n1` becomes `n2`, the LayerNorm immediately before `.s`). Old `n2` (pre-MLP LayerNorm)
+# always becomes `n3`; old `m` always stays `m`. See `cross_relblock` / `self_relblock` above for why the OTHER
+# stage needs no entry (it is left at its zero-init-output construction, an exact no-op).
+_BLOCK_PATHS = {
+    "PointerEncoder": (("ctx.blocks.", "self"), ("blocks.", "cross")),
+    "PointerRealizer": (("blocks.", "cross"),),
+    "PointerFlow": (("ctx.blocks.", "self"), ("blocks.", "cross"), ("self_blocks.", "self")),
+    "PointerBC": (("ctx.blocks.", "self"), ("blocks.", "cross"), ("self_blocks.", "self")),
+}
+
+
+def _remap_block_state(sd: dict, prefix: str, mode: str) -> dict:
+    """One (prefix, mode) entry of `_BLOCK_PATHS`: the old `Block` keys under `prefix` -> their `RelBlock` layout
+    (see `_BLOCK_PATHS`'s docstring). Raises on a key it does not recognize (never silently drops data)."""
+    ln1_new = "n1" if mode == "cross" else "n2"
+    att_new = "x" if mode == "cross" else "s"
+    out = {}
+    for k, v in sd.items():
+        if not k.startswith(prefix):
+            continue
+        i, sub = k[len(prefix):].split(".", 1)
+        if sub.startswith("n1."):
+            out[f"{prefix}{i}.{ln1_new}.{sub[len('n1.'):]}"] = v
+        elif sub.startswith("a."):
+            out[f"{prefix}{i}.{att_new}.{sub[len('a.'):]}"] = v
+        elif sub.startswith("n2."):
+            out[f"{prefix}{i}.n3.{sub[len('n2.'):]}"] = v
+        elif sub.startswith("m."):
+            out[f"{prefix}{i}.{sub}"] = v
+        else:
+            raise ValueError(f"_remap_block_state: unmapped old block key {k!r}")
+    return out
+
+
+def load_pointer_module(cls_name: str, ctor, sd: dict, device="cpu"):
+    """Construct `ctor()` and load `sd`, remapping every `_BLOCK_PATHS[cls_name]` path whose checkpoint predates
+    D-144 R6 (detected per-path by the old block's `.a.` attention key, which the new layout never has; a
+    post-D-144 checkpoint has no such key anywhere and passes through unremapped). The only keys allowed to stay
+    missing after a remap are the OTHER (zero-init, never-loaded) stage's parameters."""
+    m = ctor().to(device)
+    sd = dict(sd)
+    expect_missing: set[str] = set()
+    for prefix, mode in _BLOCK_PATHS.get(cls_name, ()):
+        old = any(k.startswith(prefix) and k[len(prefix):].split(".", 1)[1].startswith("a.") for k in sd)
+        if not old:
+            continue
+        remapped = _remap_block_state(sd, prefix, mode)
+        for k in [k for k in sd if k.startswith(prefix)]:
+            del sd[k]
+        sd.update(remapped)
+        unused = ("n2.", "s.") if mode == "cross" else ("n1.", "x.")   # the OTHER stage: its LayerNorm too
+        expect_missing |= {k for k in m.state_dict()
+                          if k.startswith(prefix) and k[len(prefix):].split(".", 1)[1].startswith(unused)}
+    missing, unexpected = m.load_state_dict(sd, strict=False)
+    bad = [k for k in missing if k not in expect_missing] + list(unexpected)
+    if bad:
+        raise RuntimeError(f"{cls_name}: key mismatch {bad[:5]}")
+    return m
 
 
 # ------------------------------------------------------------------------------------------------ learned runtime
@@ -737,17 +864,21 @@ class PointerSystemI:
 
 
 def load_pointer_bundle(path: str, device="cpu") -> dict:
-    """A pointer checkpoint (rrp.harness.train.pointer): {'kind', 'config', 'state' (module -> state_dict), 'versions'}."""
+    """A pointer checkpoint (rrp.harness.train.pointer): {'kind', 'config', 'state' (module -> state_dict), 'versions'}.
+    `E` / `R` / `S` / `BC` load through `load_pointer_module` (RelBlock checkpoint map, D-144 R6: strict for a
+    post-R6 checkpoint, key-mapped for a pre-R6 one); `P` (the packet probe) through `load_pointer_probe_state`
+    (different architecture pre/post R6: key-mapped load is a refit, not a strict load, for an old checkpoint)."""
     import torch
     st = torch.load(path, map_location=device, weights_only=False)
     N, cfg = nets(), st["config"]
     mods = {}
     for k, sd in st["state"].items():
-        cls = {"E": "PointerEncoder", "R": "PointerRealizer", "P": "PointerProbe", "S": "PointerFlow",
-               "BC": "PointerBC"}[k]
-        m = N[cls](**cfg["arch"].get(k, {})).to(device)
-        m.load_state_dict(sd)
-        mods[k] = m.eval()
+        if k == "P":
+            mods[k] = load_pointer_probe_state(sd, device=device, **cfg["arch"].get("P", {})).eval()
+            continue
+        cls = {"E": "PointerEncoder", "R": "PointerRealizer", "S": "PointerFlow", "BC": "PointerBC"}[k]
+        mods[k] = load_pointer_module(cls, lambda cls=cls, kw=cfg["arch"].get(k, {}): N[cls](**kw), sd,
+                                      device=device).eval()
     return dict(st, modules=mods)
 
 

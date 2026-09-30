@@ -297,38 +297,34 @@ class Demos:
         return b, a, lab
 
 
-def probe_loss(out, lab, lv_min: float):
-    """Probe objectives on the packet: target slot CE, relative target Gaussian NLL (log-variance bounded below by
-    lv_min), phase CE; ignored where the label is missing (-1 / not ok)."""
-    import torch.nn.functional as F
+def probe_loss(out, lab, specs):
+    """Probe objectives on the packet (docs/relations.md 4, D-144 R6): target-slot CE, relative-target Gaussian NLL
+    (log-variance floor `params.lv_min`, former CLI `--lv-min`, now on `specs` -- `pointer.pointer_probe_specs` /
+    `ReadoutProbe.specs`), phase CE; ignored where the label is missing (-1 / not ok). `out`:
+    `pointer.run_pointer_probe`'s dict (keys `slot` / `rel` / `phase`, unchanged from the pre-R6 probe)."""
+    from rrp.policies.nets.probes import readout_loss
     out = {k: v.float() for k, v in out.items()}
-    B, K, Nw = out["slot"].shape
-    sl = lab["slot"].reshape(-1)
-    L_slot = F.cross_entropy(out["slot"].reshape(-1, Nw), sl.clamp(min=0), reduction="none")
-    m = (sl >= 0).float()
-    L_slot = (L_slot * m).sum() / m.sum().clamp(min=1)
-    mu, lv = out["rel"][..., :2], out["rel"][..., 2:].clamp(lv_min, 6)
-    nll = 0.5 * (((lab["rel"] - mu) ** 2) / lv.exp() + lv + math.log(2 * math.pi)).sum(-1)
-    ro = lab["rel_ok"].float()
-    L_rel = (nll * ro).sum() / ro.sum().clamp(min=1)
-    ph = lab["phase"].reshape(-1)
-    L_ph = F.cross_entropy(out["phase"].reshape(-1, out["phase"].shape[-1]), ph.clamp(min=0), reduction="none")
-    pm = (ph >= 0).float()
-    L_ph = (L_ph * pm).sum() / pm.sum().clamp(min=1)
-    L = L_slot + L_rel + L_ph
-    return L, dict(slot=float(L_slot.detach()), rel=float(L_rel.detach()), phase=float(L_ph.detach()))
+    lab2 = dict(slot=lab["slot"].clamp(min=0), rel=lab["rel"], phase=lab["phase"].clamp(min=0))
+    masks = dict(slot=lab["slot"] >= 0, rel=lab["rel_ok"], phase=lab["phase"] >= 0)
+    total, logs = readout_loss(out, lab2, specs, masks)
+    return total, {k[len("probe_"):]: v for k, v in logs.items()}
 
 
 @torch.no_grad()
-def probe_metrics(out, lab) -> dict:
-    """(sum, count) pairs: slot top-1 accuracy, relative-position error (normalized units -> px), phase accuracy."""
-    sl, ph = lab["slot"], lab["phase"]
-    ms, mp, mr = sl >= 0, ph >= 0, lab["rel_ok"]
+def probe_metrics(out, lab, specs) -> dict:
+    """(sum, count) pairs: slot top-1 accuracy, relative-position error (px, kept in pixel units -- the generic
+    `readout_metrics` MAE is in normalized screen units -- for continuity with existing eval consumers), phase
+    accuracy. `slot_acc` / `phase_acc` come from the foundation's `readout_metrics` (docs/relations.md 4): same
+    masked-argmax-equality formula the pre-R6 bespoke code used, so the numbers are unchanged."""
+    from rrp.policies.nets.probes import readout_metrics
+    lab2 = dict(slot=lab["slot"].clamp(min=0), rel=lab["rel"], phase=lab["phase"].clamp(min=0))
+    masks = dict(slot=lab["slot"] >= 0, rel=lab["rel_ok"], phase=lab["phase"] >= 0)
+    m = readout_metrics(out, lab2, specs, masks)
     px = torch.tensor([480.0, 320.0], device=lab["rel"].device)       # normalized screen units -> px (960 x 640)
     err = ((out["rel"][..., :2] - lab["rel"]) * px).norm(dim=-1)
-    return dict(slot_acc=(int(((out["slot"].argmax(-1) == sl) & ms).sum()), int(ms.sum())),
-                phase_acc=(int(((out["phase"].argmax(-1) == ph) & mp).sum()), int(mp.sum())),
-                rel_err=(float((err * mr).sum()), int(mr.sum())))
+    ro = lab["rel_ok"]
+    return dict(slot_acc=m["slot_acc"], phase_acc=m["phase_acc"],
+                rel_err=(float((err * ro.float()).sum()), int(ro.sum())))
 
 
 def action_loss(xy_pred_steps, bl, kl, a):
@@ -403,7 +399,10 @@ def _sched(opt, step, total, lr, warm=500):
 def _save(path, *, kind, state: dict, config: dict, versions: dict, metrics: dict):
     import torch
     from rrp.core.provenance import weights_digest
+    from rrp.policies.pointer import POINTER_FACTORS_PRESET
+    from rrp.policies.relations.base import compat_hash, resolve
     Path(path).parent.mkdir(parents=True, exist_ok=True)
+    versions = dict(versions, factors=compat_hash(resolve([f"preset:{POINTER_FACTORS_PRESET}"])))
     blob = dict(kind=kind, state={k: m.state_dict() for k, m in state.items()}, config=config, versions=versions,
                 digests={k: weights_digest(m.state_dict()) for k, m in state.items()}, metrics=metrics,
                 saved_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
@@ -432,13 +431,13 @@ def _rep_forward(E, R, a_b, a, dev, sample=True):
 
 def cmd_rep(a):
     import torch
-    from rrp.policies.pointer import nets
+    from rrp.policies.pointer import new_pointer_probe, nets, run_pointer_probe
     from rrp.policies.system0 import bundle_versions
     dev, data = _setup(a)
     N = nets()
-    arch = dict(E=dict(dz=a.dz), R=dict(dz=a.dz), P=dict(dz=a.dz))
+    arch = dict(E=dict(dz=a.dz), R=dict(dz=a.dz), P=dict(dz=a.dz, lv_min=a.lv_min))
     E, R, P = N["PointerEncoder"](**arch["E"]).to(dev), N["PointerRealizer"](**arch["R"]).to(dev), \
-        N["PointerProbe"](**arch["P"]).to(dev)
+        new_pointer_probe(**arch["P"]).to(dev)
     params = list(E.parameters()) + list(R.parameters()) + list(P.parameters())
     opt = torch.optim.AdamW(params, lr=a.lr, weight_decay=1e-4)
     w_sem = a.w_sem if a.variant == "semfix" else 0.0
@@ -451,14 +450,14 @@ def cmd_rep(a):
         ch = _chunk_targets(ch, data.half)
         with _amp(dev):
             mu, lv, z, dxy, bl, kl = _rep_forward(E, R, b, ch, dev)
-            po = P(z, b) if w_sem > 0 else None
+            po = run_pointer_probe(P, z) if w_sem > 0 else None
         mu, lv = mu.float(), lv.float()
         Lxy, Lb, Lk = action_loss(dxy, bl, kl, ch)
         kl_div = 0.5 * (mu ** 2 + lv.exp() - 1 - lv).mean()
         loss = a.w_xy * Lxy + Lb + Lk + a.beta * kl_div
         logs = dict(xy=float(Lxy.detach()), btn=float(Lb.detach()), key=float(Lk.detach()), kl=float(kl_div.detach()))
         if w_sem > 0:
-            pl, pl_logs = probe_loss(po, lab, a.lv_min)
+            pl, pl_logs = probe_loss(po, lab, P.specs)
             loss = loss + w_sem * pl
             logs.update({f"p_{k}": v for k, v in pl_logs.items()})
         opt.zero_grad(set_to_none=True)
@@ -479,6 +478,7 @@ def cmd_rep(a):
 @torch.no_grad()
 def _eval_rep(E, R, P, data, dev, n=4096) -> dict:
     import torch
+    from rrp.policies.pointer import run_pointer_probe
     E.eval(); R.eval()
     acc = {}
     vi = data.val_idx[:n]
@@ -489,7 +489,7 @@ def _eval_rep(E, R, P, data, dev, n=4096) -> dict:
         _agg(acc, action_metrics(dxy, bl, kl, ch))
         if P is not None:
             P.eval()
-            _agg(acc, probe_metrics(P(mu, b), lab))
+            _agg(acc, probe_metrics(run_pointer_probe(P, mu), lab, P.specs))
             P.train()
     E.train(); R.train()
     return _fin(acc)
@@ -529,7 +529,7 @@ def eng_targets(data, dev, bs=4096):
 
 def cmd_flow(a):
     import torch
-    from rrp.policies.pointer import load_pointer_bundle, nets, ENG_DIM, ENG_VERSION
+    from rrp.policies.pointer import load_pointer_bundle, nets, run_pointer_probe, ENG_DIM, ENG_VERSION
     dev, data = _setup(a)
     N = nets()
     if a.target == "eng":
@@ -557,7 +557,7 @@ def cmd_flow(a):
         ix = data.sample(a.batch)
         b, _, lab = data.batch(ix)
         with _amp(dev):
-            loss, logs = S.loss(b, Z[ix], probe_fn=(lambda zc: probe_loss(P(zc, b), lab, rb["config"]["lv_min"]))
+            loss, logs = S.loss(b, Z[ix], probe_fn=(lambda zc: probe_loss(run_pointer_probe(P, zc), lab, P.specs))
                             if P is not None else None, w_sem=w_sem)
         opt.zero_grad(set_to_none=True)
         loss.backward()
@@ -644,9 +644,8 @@ def cmd_probe(a):
     """Post-hoc probes on frozen packets (E posterior means, or packets generated by a flow): the same probe recipe
     for every representation, plus the metadata-only control (no z). Reports held-out-episode metrics."""
     import torch
-    from rrp.policies.pointer import load_pointer_bundle, nets
+    from rrp.policies.pointer import load_pointer_bundle, new_pointer_probe, run_pointer_probe
     dev, data = _setup(a)
-    N = nets()
     rb = load_pointer_bundle(a.representation, dev)
     Z = _frozen_mu(rb["modules"]["E"], data, dev)
     if a.flow:
@@ -659,15 +658,15 @@ def cmd_probe(a):
     res = {}
     for name, meta in (("probe", False), ("metadata_only", True)):
         torch.manual_seed(a.seed)
-        P = N["PointerProbe"](dz=Z.shape[-1], metadata_only=meta).to(dev)
+        P = new_pointer_probe(dz=Z.shape[-1], metadata_only=meta, lv_min=-8.0).to(dev)
         opt = torch.optim.AdamW(P.parameters(), lr=a.lr, weight_decay=1e-4)
         for step in range(a.steps):
             _sched(opt, step, a.steps, a.lr)
             ix = data.sample(a.batch)
-            b, _, lab = data.batch(ix)
+            _, _, lab = data.batch(ix)
             with _amp(dev):
-                po = P(Z[ix], b)
-            loss, _ = probe_loss(po, lab, -8.0)
+                po = run_pointer_probe(P, Z[ix])
+            loss, _ = probe_loss(po, lab, P.specs)
             opt.zero_grad(set_to_none=True)
             loss.backward()
             opt.step()
@@ -676,8 +675,8 @@ def cmd_probe(a):
         with torch.no_grad():
             for s in range(0, len(data.val_idx), 2048):
                 ix = data.val_idx[s:s + 2048]
-                b, _, lab = data.batch(ix)
-                _agg(acc, probe_metrics(P(Z[ix], b), lab))
+                _, _, lab = data.batch(ix)
+                _agg(acc, probe_metrics(run_pointer_probe(P, Z[ix]), lab, P.specs))
         r = _fin(acc)
         r["rel_err_px"] = r.pop("rel_err")
         res[name] = r
@@ -698,20 +697,19 @@ def cmd_edit(a):
     import torch
     from rrp.envs.base import make_env
     from rrp.envs.computerworld import scene_widgets
-    from rrp.policies.pointer import (EventHistory, LearnedSystem0, PointerSystemI, collate_public, load_pointer_bundle,
-                                      nets, pointer_packet, public_features, screen_half)
+    from rrp.policies.pointer import (LearnedSystem0, PointerSystemI, load_pointer_bundle, new_pointer_probe,
+                                      pointer_packet, run_pointer_probe)
     dev, data = _setup(a)
-    N = nets()
     rb, fb = load_pointer_bundle(a.representation, dev), load_pointer_bundle(a.flow, dev)
     Z = _frozen_mu(rb["modules"]["E"], data, dev)
     torch.manual_seed(a.seed)
-    P = N["PointerProbe"](dz=Z.shape[-1]).to(dev)
+    P = new_pointer_probe(dz=Z.shape[-1], lv_min=-8.0).to(dev)
     opt = torch.optim.AdamW(P.parameters(), lr=1e-3, weight_decay=1e-4)
     for step in range(a.probe_steps):
         _sched(opt, step, a.probe_steps, 1e-3)
         ix = data.sample(512)
-        b, _, lab = data.batch(ix)
-        loss, _ = probe_loss(P(Z[ix], b), lab, -8.0)
+        _, _, lab = data.batch(ix)
+        loss, _ = probe_loss(run_pointer_probe(P, Z[ix]), lab, P.specs)
         opt.zero_grad(set_to_none=True)
         loss.backward()
         opt.step()
@@ -730,13 +728,10 @@ def cmd_edit(a):
                 env = make_env("computerworld", task=task, body="cw_pointer", seed=seed)
                 si.reset([env])
                 obs = env.observe()
-                half = screen_half(env.spec)
-                f = public_features(obs, half, EventHistory(), 0)
-                b = collate_public([f], dev)
                 p0 = si.packets([env])[0]
                 z0 = torch.from_numpy(np.asarray(p0.z, np.float32))[None].to(dev)
                 with torch.no_grad():
-                    orig = int(P(z0, b)["slot"][0, -1].argmax())
+                    orig = int(run_pointer_probe(P, z0)["slot"][0, -1].argmax())
                 ws = [w for w in scene_widgets(env.scene()) if w["visible"] and w["box"] and w["role"] in
                       ("button", "textbox")]
                 slots = {env.slots.slots[w["key"]]: w for w in ws if env.slots.slots.get(w["key"], 99) < 80}
@@ -750,7 +745,7 @@ def cmd_edit(a):
                     zv = z0.clone().requires_grad_(True)
                     o2 = torch.optim.Adam([zv], lr=a.edit_lr)
                     for _ in range(a.edit_steps):
-                        s_ = P(zv, b)["slot"][0]                          # [K, NW]
+                        s_ = run_pointer_probe(P, zv)["slot"][0]                       # [K, NW]
                         L = torch.nn.functional.cross_entropy(s_, torch.full((s_.shape[0],), new, device=dev)) \
                             + a.anchor * ((zv - z0) ** 2).mean()
                         o2.zero_grad()
@@ -762,7 +757,7 @@ def cmd_edit(a):
                         delta = r / r.norm() * delta.norm()
                     z = z0 + delta
                 with torch.no_grad():
-                    pr = P(z, b)["slot"][0, -1].argmax().item()
+                    pr = run_pointer_probe(P, z)["slot"][0, -1].argmax().item()
                 pk = pointer_packet(env, obs, z[0].cpu().numpy(), lsv=lsv, rcv=rcv, source="learned",
                                     name=f"edit:{mode}")
                 s0 = LearnedSystem0(R, env, latent_space_version=lsv, realizer_compat_version=rcv, device=dev)
