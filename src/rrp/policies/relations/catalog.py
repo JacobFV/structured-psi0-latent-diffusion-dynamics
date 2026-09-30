@@ -407,7 +407,8 @@ register_preset("ui", ["ui.label_for", "ui.same_window", "ui.focus_next", "ui.ab
 # What each net family's collate path fills (`sets`), its attention sites offer factors (`sites`: edge vocab, fields,
 # "hidden"), the training collate's labels (`labels`, relgen LABELS names) and the message / embed / readout factors
 # its net implements (`inert`). `resolve(family=...)` refuses a factor list the family cannot run; the nets derive their
-# `FactorSite` carries from here. Legged / humanoid families are declared by their own unit.
+# `FactorSite` carries from here. Legged / humanoid: what their nets run today (system-0 routing + the packet probe);
+# unit HL adds the `legged-rel-v1` vocabulary, the ctx sets and the ctx>ctx / act>ctx / act>act sites.
 _ARM_LABELS = ("pos3d", "orient", "contact_normal", "cam_uvd", "contact_pairs", "held_pairs", "support_pairs",
                "support_closure", "next_contact")
 _ARM_SITES = {"ctx>ctx": ("edges:arm-rel-v1", "hidden", "cam_uvd", "pos3d", "orient", "normal"),
@@ -417,6 +418,10 @@ _ARM_SETS = {"ctx": ("pos3d", "orient", "cam_uvd", "entity_id", "assembly_id"), 
 _ARM_INERT = ("probe.arm.*", "msg.incidence", "id.slot_handle")
 register_family("arm", FamilyTokens(_ARM_SETS, _ARM_SITES, {"ctx": _ARM_LABELS}, _ARM_INERT))
 register_family("dual", FamilyTokens(_ARM_SETS, _ARM_SITES, {"ctx": _ARM_LABELS + ("handover_pairs",)}, _ARM_INERT))
+_LEGGED = FamilyTokens({"act": ("assembly_id",), "knots": ("assembly_id", "body")},
+                       {"act>knots": ("assembly_id",)}, {}, ("probe.legged.*",))
+register_family("legged", _LEGGED)
+register_family("humanoid", _LEGGED)
 register_family("psi0", FamilyTokens(
     {"dims": ("assembly_id",), "knots": ("assembly_id",)},
     {"dims>dims": ("edges:g1-dim-rel-v1",), "dims>knots": ("assembly_id",)}, {}, ("probe.psi0.*",)))

@@ -191,3 +191,53 @@ def test_coverage_json_matches_catalog(tmp_path):
     assert doc["factors"]["probe.arm.visible"]["label"] == "visible" and \
         doc["factors"]["probe.arm.visible"]["envs"]["mujoco/arm"]["label_runnable"] is None   # family-level label
     assert doc["factors"]["ix.contact"]["training"]["arm"]["computerworld"] != True
+
+
+# ------------------------------------------------------------------ review additions (architect pass)
+def test_every_family_resolves_its_own_presets():
+    assert set(FAMILIES) == {"arm", "dual", "legged", "humanoid", "psi0", "pointer"}       # docs section 11
+    own = {"arm": ("arm", "s0-arm", "probes:arm-packet-v1"), "dual": ("arm", "s0-arm"),
+           "legged": ("legged-s0", "probes:legged-v1"), "humanoid": ("legged-s0", "probes:legged-v1"),
+           "psi0": ("psi0-dims", "s0-psi0", "probes:psi0-v1"), "pointer": ("ui", "probes:pointer-v1")}
+    for fam, presets in own.items():
+        for p in presets:
+            resolve([f"preset:{p}"], family=fam)
+
+
+def test_token_sets_are_built_on_the_batch_device(fixture):
+    """The field builders run inside the forward (not at collate time), so every tensor they create must live on
+    the batch's device. The `meta` device stands in for a GPU: mixing it with a CPU tensor raises."""
+    b = _batch(fixture).to("meta")
+    sets = relation_token_sets("arm", b)
+    for ts in sets.values():
+        for v in [ts.mask, ts.kind, *ts.fields.values()]:
+            assert v is None or v.device.type == "meta"
+    assert {"pos3d", "orient", "entity_id", "assembly_id"} <= set(sets["ctx"].fields)
+
+
+def test_image_pad_pads_fields_and_pair_labels(fixture):
+    b = _batch(fixture)
+    C = b.ctx_mask.shape[1]
+    y, ok = _support_label(b)
+    lab = {"ctx": {"pos3d": torch.zeros(2, C, 3), "pos3d.valid": b.ctx_mask,
+                   "support_pairs": y[..., None], "support_pairs.valid": ok}}
+    ts = relation_token_sets("arm", b, lab, pad_ctx=3)["ctx"]
+    assert ts.mask.shape == (2, C + 3) and not ts.mask[:, C:].any() and ts.kind.shape == (2, C + 3)
+    assert ts.fields["pos3d"].shape == (2, C + 3, 3) and ts.fields["pos3d.valid"].shape == (2, C + 3)
+    assert ts.labels["pos3d"].shape == (2, C + 3, 3)
+    assert ts.labels["support_pairs"].shape == (2, C + 3, C + 3, 1)
+    assert ts.labels["support_pairs.valid"].shape == (2, C + 3, C + 3) and not ts.labels["support_pairs.valid"][:, C:].any()
+
+
+def test_coverage_env_caps_match_the_envs():
+    """`relgen._env_caps` repeats the caps the non-MuJoCo envs set in heavy constructors: keep them equal."""
+    from pathlib import Path
+    import rrp.envs as envs
+    root = Path(envs.__file__).parent
+    caps = relgen._env_caps()
+    for env, rel in (("warp/legged", "warp/tracker_env.py"), ("simple", "simple/__init__.py"),
+                     ("computerworld", "computerworld.py")):
+        lit = "frozenset({" + ", ".join(f'"{c}"' for c in (("poses", "contacts") if env != "computerworld"
+                                                          else ("poses", "ui_tree"))) + "})"
+        assert lit in (root / rel).read_text(), (env, lit)
+        assert caps[env] == frozenset(eval(lit))

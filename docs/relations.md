@@ -701,11 +701,13 @@ class FamilyTokens:                    # FAMILIES[family]: the static declaratio
     sets: dict[str, tuple[str, ...]]   # token set -> public/estimated fields it fills ("pos3d", "orient", "cam_uvd", ...)
     sites: dict[str, tuple[str, ...]]  # site "q>k" -> carries ("edges:<vocab>", field names, "hidden")
     labels: dict[str, tuple[str, ...]] # token set -> label names the TRAINING collate can attach (from relgen LABELS)
+    inert: tuple[str, ...] = ()        # globs of the message / embed / readout factors the family's net implements
 def register_family(name, FamilyTokens); FAMILIES: arm, dual, legged, humanoid, psi0, pointer
-def resolve(specs, default=None, *, family=None, env_caps=None, training=False) -> tuple[FactorSpec, ...]
+def resolve(specs, default=None, *, family=None, env_caps=None, env=None, training=False) -> tuple[FactorSpec, ...]
     # with family: every non-off spec must apply to >= 1 site of the family (else FactorError listing the family's
     # sites and carries); a `probe`-source spec needs a readout and a label the family can attach; with env_caps and
-    # training: LABELS[label].needs <= env_caps, and `mix > 0` needs a scene part for that env. No silent skips.
+    # training: LABELS[label].needs <= env_caps, and `mix > 0` needs a scene part or transform that runs in `env`
+    # (the env id; required when any mix > 0). No silent skips.
 def estimates_loss(rc, specs) -> (loss, logs, metrics)
     # every estimate written during the forward gets a loss, weighted by FactorSpec.weight (default 1):
     #   rc.estimates[("pair", f)]  logits [B,Q,K]  -> bce (soft_ce when the ReadoutDef says so) vs the pair label,

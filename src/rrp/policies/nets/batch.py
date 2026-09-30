@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 
 from rrp.policies.features.featurizer import (BANKS, N_REL, HASH_DIM, REL, NODE_ANCHOR_SLICE, ASM_POS_SLICE,
                                               ASM_ZCOL_SLICE, ASM_XCOL_SLICE, SCENE_POS_SLICE, SCENE_STD_SLICE,
@@ -37,7 +38,7 @@ _BANK_LOCAL_KIND = {
 
 
 def _global_kind(bank: str, local: torch.Tensor) -> torch.Tensor:
-    table = torch.full((8,), _KIND_ID["pad"], dtype=torch.long)
+    table = torch.full((8,), _KIND_ID["pad"], dtype=torch.long, device=local.device)
     for k, name in _BANK_LOCAL_KIND[bank].items():
         table[k] = _KIND_ID[name]
     return table[local.long()]
@@ -83,8 +84,7 @@ def collate_inputs(inputs: list, extra_tokens: dict | None = None) -> Batch:
     C = o
     toks, masks, kinds, texts = {}, {}, {}, {}
     for b in BANKS:
-        F = BANK_DIMS[b]
-        x = np.zeros((B, T[b], F), np.float32)
+        x = np.zeros((B, T[b], BANK_DIMS[b]), np.float32)
         m = np.zeros((B, T[b]), bool)
         k = np.zeros((B, T[b]), np.int64)
         t = np.zeros((B, T[b], HASH_DIM), np.float32)
@@ -143,7 +143,7 @@ def _cat_banks(batch: "Batch", fn, dim: int, dtype=torch.float32) -> torch.Tenso
     for b in BANKS:
         B, T = batch.bank_mask[b].shape
         v = fn(b)
-        outs.append(torch.zeros(B, T, dim, dtype=dtype) if v is None else v)
+        outs.append(torch.zeros(B, T, dim, dtype=dtype, device=batch.ctx_mask.device) if v is None else v)
     return torch.cat(outs, 1)
 
 
@@ -203,15 +203,16 @@ def ctx_id_fields(batch: "Batch") -> dict:
         act>ctx, never ctx>ctx.
     """
     B, C = batch.ctx_mask.shape
-    own = torch.arange(C).expand(B, C)
+    dev = batch.ctx_mask.device                # built in the forward: every new tensor lives on the batch's device
+    own = torch.arange(C, device=dev).expand(B, C)
     ptr = batch.pointers
     src, dst = ptr[..., 0], ptr[..., 1]
     ok = (src >= 0) & (dst >= 0)
-    cnt = torch.zeros(B, C, dtype=torch.long).scatter_add(1, src.clamp(min=0), ok.long())
-    dsum = torch.zeros(B, C, dtype=torch.long).scatter_add(1, src.clamp(min=0), torch.where(ok, dst, 0))
+    cnt = torch.zeros(B, C, dtype=torch.long, device=dev).scatter_add(1, src.clamp(min=0), ok.long())
+    dsum = torch.zeros(B, C, dtype=torch.long, device=dev).scatter_add(1, src.clamp(min=0), dst * ok)
     ent = torch.where(cnt == 1, dsum, own)
     mo = batch.bank_offset["morph"]
-    is_asm = torch.zeros(B, C, dtype=torch.bool)
+    is_asm = torch.zeros(B, C, dtype=torch.bool, device=dev)
     is_asm[:, mo:mo + batch.bank_kind["morph"].shape[1]] = (batch.bank_kind["morph"] == 2) & batch.bank_mask["morph"]
     has, last = _last_true(batch.ctx_rel[..., NODE_IN_ASSEMBLY] & is_asm[:, None, :])
     asm = torch.where(has, last, torch.where(is_asm, own, torch.full_like(own, -1)))
@@ -253,8 +254,18 @@ _DERIVED = {"pos3d": ctx_geometry_fields, "orient": ctx_geometry_fields, "entity
 _ARM_FAMILIES = ("arm", "dual")          # the families this collate path serves; others build their own sets
 
 
-def _pad_ctx(d: dict, pad: int) -> dict:
-    return {k: F.pad(v, (0, 0) * (v.dim() - 2) + (0, pad)) if pad and v.dim() >= 2 else v for k, v in d.items()}
+def _pad_ctx(d: dict, pad: int, pair: frozenset = frozenset()) -> dict:
+    """Append `pad` invalid ctx positions along the token dim; a pair label ([B,C,C(,1)], names in `pair`) is padded
+    along both token dims."""
+    if not pad:
+        return dict(d)
+    out = {}
+    for k, v in d.items():
+        if v.dim() >= 2:
+            both = k.split(".valid")[0] in pair and v.dim() >= 3 and v.shape[2] == v.shape[1]
+            v = F.pad(v, (0, 0) * (v.dim() - 3) + (0, pad, 0, pad)) if both else F.pad(v, (0, 0) * (v.dim() - 2) + (0, pad))
+        out[k] = v
+    return out
 
 
 def relation_token_sets(family: str, batch: "Batch", labels: dict | None = None, deploy: bool = False,
@@ -265,7 +276,7 @@ def relation_token_sets(family: str, batch: "Batch", labels: dict | None = None,
     {"ctx": {name: tensor, name + ".valid": mask}, "act": {...}} (names must be ones the family attaches). Labels are
     privileged: passing them with `deploy=True` raises `PrivilegedInput`. `pad_ctx` appends invalid ctx positions
     (VLM image tokens) to every ctx tensor."""
-    from rrp.policies.relations.base import FAMILIES, FactorError, PrivilegedInput
+    from rrp.policies.relations.base import FAMILIES, FactorError, PrivilegedInput, pair_labels
     if family not in FAMILIES:
         raise FactorError(f"unknown net family {family!r}; families: {sorted(FAMILIES)}")
     if family not in _ARM_FAMILIES:
@@ -297,7 +308,7 @@ def relation_token_sets(family: str, batch: "Batch", labels: dict | None = None,
             if k.split(".valid")[0] not in ft.labels.get(name, ()):
                 raise FactorError(f"label {k!r} is not one family {family!r} attaches to {name!r} "
                                   f"({list(ft.labels.get(name, ()))})")
-        sets[name].labels = _pad_ctx(dict(lab), pad_ctx) if name == "ctx" else dict(lab)
+        sets[name].labels = _pad_ctx(lab, pad_ctx, pair_labels()) if name == "ctx" else dict(lab)
     return sets
 
 

@@ -335,8 +335,7 @@ class FlowPolicy(nn.Module):
 
     def loss(self, batch: Batch, target: torch.Tensor, valid: torch.Tensor, labels: dict | None = None,
              aux_weight: float = 0.1, generator=None, packet_loss_fn=None,
-             packet_weight: float = 0.0, packet_tau_min: float = 0.0,
-             est_weight: float = 1.0) -> tuple[torch.Tensor, dict]:
+             packet_weight: float = 0.0, packet_tau_min: float = 0.0) -> tuple[torch.Tensor, dict]:
         """target [B,H,N,d] clean latent/action (raw space); valid [B,H,N] mask. The flow MSE is computed in
         standardized space; packet/readout objectives see the de-standardized estimate."""
         cache = self.prepare(batch)
@@ -372,8 +371,8 @@ class FlowPolicy(nn.Module):
             loss = loss + aux_weight * aux
             logs.update(alog)
         if cache.rc.estimates:       # the factors' own probes / pair estimates, supervised by the relation labels
-            el, elogs, _ = estimates_loss(cache.rc, self.cfg.specs())
-            loss = loss + est_weight * el
+            el, elogs, _ = estimates_loss(cache.rc, self.cfg.specs())    # weighted per factor (FactorSpec.weight)
+            loss = loss + el
             logs.update(elogs)
         return loss, logs
 

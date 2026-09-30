@@ -18,9 +18,6 @@ import math
 from dataclasses import asdict, dataclass, field, fields, replace
 from typing import Any, Literal, Sequence
 
-import torch
-import torch.nn.functional as F
-
 Prov = Literal["public", "estimated", "privileged"]
 FORMS = ("bias", "aug", "gate", "mask", "message", "embed", "readout")
 CONTROLS = ("on", "off", "zero", "shuffled", "rewired", "reversed", "gt", "estimated", "serialized")
@@ -488,7 +485,14 @@ def gaussian_nll(pred, target, mask, lv_min: float = -8.0, lv_max: float = 6.0):
     return (nll * m).sum() / m.sum().clamp(min=1)
 
 
+def pair_labels() -> frozenset:
+    """Names of the labels that are pair targets ([B,Q,K]): the labels of the registered bilinear factors."""
+    _ensure_catalog()
+    return frozenset(d.label for d in FACTORS.values() if d.op == "bilinear" and d.label)
+
+
 def _label_valid(ts: TokenSet, name: str, shape) -> Any:
+    import torch
     v = ts.labels.get(name + ".valid")
     if v is None:
         return torch.ones(shape, dtype=torch.bool, device=ts.mask.device)
@@ -500,6 +504,7 @@ def _label_valid(ts: TokenSet, name: str, shape) -> Any:
 def _pair_loss(logit, y, valid, kmask, qmask, kind: str):
     """(loss, acc_sum, n) of one pair estimate. bce: elementwise over valid pairs of two valid tokens. soft_ce: per
     query row a softmax over the valid keys against the row's target distribution (rows with no mass do not count)."""
+    import torch.nn.functional as F
     pm = valid & qmask[:, :, None] & kmask[:, None, :]
     if kind == "soft_ce":
         lg = logit.masked_fill(~kmask[:, None, :], float("-inf"))
@@ -524,6 +529,7 @@ def estimates_loss(rc: RelCtx, specs: Sequence[FactorSpec]):
       rc.estimates[(set, field)]         (mu, var) + logvar -> Gaussian NLL vs `TokenSet.label(<label or field>)`
     A factor whose label is absent from the batch is masked (mix rows without it): no term, count 0, never an error.
     Refused in deploy mode (a loss needs privileged labels)."""
+    import torch
     if rc.deploy:
         raise PrivilegedInput("estimates_loss reads privileged labels: not available in a deployable forward")
     dev = next(iter(rc.sets.values())).mask.device
@@ -574,7 +580,7 @@ def estimates_loss(rc: RelCtx, specs: Sequence[FactorSpec]):
             m = _label_valid(ts, lab, ts.mask.shape) & ts.mask
             terms.append(gaussian_nll(torch.cat([mu, rc.estimates[(set_name, fld, "logvar")]], -1), y.to(mu.dtype), m,
                                       p.get("lv_min", -8.0)))
-            metrics[f"{s.name}_mae"] = (float(((mu - y).abs() * m[..., None]).sum()), int(m.sum()) * y.shape[-1])
+            metrics[f"{s.name}_mae"] = (float(((mu.detach() - y).abs() * m[..., None]).sum()), int(m.sum()) * y.shape[-1])
         if terms:
             v = sum(terms)
             loss = loss + w * v

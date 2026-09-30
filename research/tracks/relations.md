@@ -84,7 +84,8 @@ published by `ix.support`'s own pair logits) and makes "resolves" mean "runs".
   the net does not implement, StateView caps, no scene part / transform for `mix > 0`); `estimates_loss` supervises the
   pair estimates and field probes a forward wrote (Gaussian NLL / bce / soft_ce, `(sum, count)` metrics);
   `stamp_versions` / `require_factors` for checkpoints. `gaussian_nll` lives here (`nets.probes` re-exports it).
-- `relations.catalog`: families `arm`, `dual`, `psi0`, `pointer`. Legged / humanoid families are declared by unit HL.
+- `relations.catalog`: families `arm`, `dual`, `psi0`, `pointer`, and `legged` / `humanoid` as their nets run today
+  (the `act>knots` routing site + `probe.legged.*`); unit HL extends those two with `legged-rel-v1` and the ctx sites.
 - `relations.ops`: every bilinear factor writes `rc.estimates[("pair", name)]`; closure / hop ops apply only at square self
   sites (`kin.ancestor` / `kin.sibling` crashed at `act>ctx` before); `site_field` gt path reads the factor's label name.
 - `nets.batch`: field builders are Batch-only and vectorised; `relation_token_sets(family, batch, labels, deploy, fields,
@@ -96,3 +97,9 @@ published by `ix.support`'s own pair logits) and makes "resolves" mean "runs".
 - Not done (lead questions): other checkpoint writers (`pointer.py`, `bundles.py`, `latent.py`, `bc.py`) still stamp by hand
   and do not `require_factors`; `harness/pipelines/relations.py` still uses `TRANSFORMS.get` (silent skip); no `@gt`
   EdgeSet builder for `ix.force_flow` source gt; the `dual` family is checked by the shared arm test only.
+- Architect review fixes: the field builders now run inside the forward, so every tensor they create is placed on the
+  batch's device (the branch built them on CPU: any GPU forward, default preset included, would have raised in
+  `_global_kind`; test on the `meta` device); `nets.batch` was missing its `F` import (the image-token pad path raised
+  NameError) and padded pair labels along one token dim only; `relations.base` is torch-free at import again
+  (`rrp factors list`, the DAG parent); the `est_weight` loss argument is gone (`FactorSpec.weight` is the one knob);
+  the env-caps literals of `rrp factors coverage` are now actually tested against the env sources.
