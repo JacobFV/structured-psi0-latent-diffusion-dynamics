@@ -116,6 +116,14 @@ def test_sealed_cells_run_once_and_only_infrastructure_failures_reopen(root, cal
     assert len(calls) == n                                                # nothing was launched
 
 
+def test_the_splits_env_kwargs_reach_every_eval_job(root, calls):
+    f = root / SYN
+    f.write_text(json.dumps(dict(json.loads(f.read_text()), env_kw={"strings": "procedural", "level": 2})))
+    P.eval_r2(_sealed(root))
+    assert calls and all(a.count("--env-kw") == 2 for a in calls)
+    assert all("strings=procedural" in a and "level=2" in a for a in calls)
+
+
 def test_a_crashed_sealed_attempt_stays_open_until_released_with_a_reason(root, monkeypatch, calls):
     ctx = _sealed(root)
     monkeypatch.setattr(B.StageContext, "run_parallel", lambda self, jobs, w: (_ for _ in ()).throw(B.StageError("node lost")))
@@ -188,6 +196,18 @@ def test_ui_arm_differs_from_none_only_in_the_factors_and_shares_the_demos():
         assert b.pop("factors") == ["preset:ui"] and "factors" not in a and a == b
         assert ui.nodes[nid].rc.inputs.get("data") == seeds.nodes[nid].rc.inputs.get("data")
     assert not any(n.startswith(("bc", "eval_bc", "flow_eng", "eval_eng", "eval_oracle")) for n in ui.nodes)
+
+
+def test_copy_recipe_arms_differ_only_in_eng_version_and_key_head():
+    plan = _plan("pointer_copy")
+    assert {n.rc.seed for n in plan.nodes.values() if n.rc.stage == "train_flow"} == {1, 2, 3}
+    for s in (1, 2, 3):
+        free, copy, bc = (plan.nodes[f"{k}@nosem.s{s}"].rc.params for k in ("flow_eng", "flow_copy", "bc"))
+        assert free.pop("eng_version") == copy.pop("eng_version") == "cw_pointer_eng.v2"
+        assert "key_head" not in free and copy.pop("key_head") == "copy" and bc["key_head"] == "copy"
+        assert free == copy                                            # steps, batch, target, w_sem: identical
+    data = {n.rc.inputs.get("data") for n in plan.nodes.values() if "data" in n.rc.inputs}
+    assert len(data) == 1                                              # one collect run for every arm
 
 
 def test_sealed_recipes_evaluate_frozen_checkpoints_of_every_seed_on_both_sealed_sets():

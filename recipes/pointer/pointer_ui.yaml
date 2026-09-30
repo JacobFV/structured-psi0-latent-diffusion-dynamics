@@ -7,6 +7,11 @@ extends: pointer_seeds.yaml
 name: pointer_ui
 schema: dag-1
 track: pointer
+policy: pointer_latent
+env: computerworld
+task: 'cw/*'
+bodies: cw_pointer
+factors: [semfix, nosem]
 lineage: 'pointer-ui-{variant}'
 label_prefix: 'ptrui_{variant}{seed}'
 nodes:

@@ -1,0 +1,50 @@
+# Discrete key code and instruction-copy head, 3 seeds (D-146 C3 on C2's arms; research/tracks/pointer.md, rows P-KEY and P-COPY).
+# Only the engineered-encoding route (target eng, realised by the SCRIPTED engineered system 0) and the BC can copy: the
+# latent-route realizer cannot (C2). Same collect run as pointer_seeds (global lineage pointer-v2-data), same v2 split, same seeds.
+#   flow_eng  = cw_pointer_eng.v2 (discrete key code), free key head    -> vs pointer_seeds' eng.v1 (continuous key): P-KEY
+#   flow_copy = cw_pointer_eng.v2, copy key head                        -> vs flow_eng: P-COPY
+#   bc        = BC with the copy key head                               -> vs pointer_seeds' BC: P-COPY on the baseline
+# The eval stages read the eng version and the copy head from the checkpoints. Dev only; sealed: pointer_sealed's pattern.
+extends: pointer_seeds.yaml
+name: pointer_copy
+schema: dag-1
+track: pointer
+policy: pointer_latent
+env: computerworld
+task: 'cw/*'
+bodies: cw_pointer
+factors: [nosem]
+lineage: 'pointer-copy-{variant}'
+label_prefix: 'ptrcp_{variant}{seed}'
+matrix:
+  variant: [nosem]
+  seed: [1, 2, 3]
+nodes:
+  rep: null
+  flow: null
+  eval_dev: null
+  eval_r1: null
+  probes: null
+  edits: null
+  eval_oracle: null
+  bc: {tag: bccopy, config: {params: {key_head: copy}}}
+  eval_bc: {tag: bccopy}
+  flow_eng: {tag: eng2, config: {params: {eng_version: cw_pointer_eng.v2}}}
+  eval_eng: {tag: eng2}
+  flow_copy:
+    stage: train_flow
+    scope: point
+    tag: eng2copy
+    resources: {gpu: true, gpu_mem: 8G, cpu: 4, mem: 8G, max_seconds: 21600}
+    config:
+      variant: na
+      params: {target: eng, w_sem: 0, eng_version: cw_pointer_eng.v2, key_head: copy, steps: '{flow_steps}', batch: 512}
+      inputs: {data: '@collect'}
+  eval_copy:
+    stage: eval_r2
+    scope: point
+    tag: eng2copy
+    config:
+      variant: na
+      inputs: {flow: '@flow_copy:flow.pt'}
+      options: {policy: pointer_latent, seed_set: '{seed_set}', tasks: '$tasks', batch: 16}

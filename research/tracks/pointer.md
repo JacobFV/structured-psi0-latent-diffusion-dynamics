@@ -228,11 +228,11 @@ ops/bin/peer_run.sh ...` appends it to the job's PYTHONPATH.
     `release_sealed_cell(root, cell, reason)` records an infrastructure failure and re-opens it; a bad result never does. The
     consumed `cworld_pointer_v1` (D-142) refuses its sealed sets outright. Dev is unguarded. `PIPELINE_VERSION` is unchanged
     (F3 owns `base.py`); `pointer_v1` / `pointer_smoke` keep their config hashes (the template did not change).
-  - Recipes (all on `research/splits/cworld_pointer_v2.json`, which C2 must land before `collect`; dry-run plans need nothing):
+  - Recipes (all on `research/splits/cworld_pointer_v2.json` (C2: procedural strings; the eval stages pass the split's `env_kw` as `--env-kw`)):
     `pointer_seeds` (variant semfix|nosem x seeds 1,2,3; BC and the engineered flow per seed at variant nosem, shared demos in
     lineage `pointer-v2-data`; `eval_oracle` global), `pointer_ui` (same graph, rep and flow with `preset:ui`, no baselines; same
-    collect run), `pointer_sealed` / `pointer_ui_sealed` (frozen checkpoints of those lineages on both sealed sets, nothing
-    trained). Dry-run node counts: pointer_seeds 50, pointer_ui 37. `rrp run-dag recipes/pointer/<name>.yaml --dry-run`; peer
+    collect run), `pointer_copy` (variant nosem x seeds 1,2,3: eng.v2 discrete key with the free head, eng.v2 with the copy head, BC with the copy head; same collect run), `pointer_sealed` / `pointer_ui_sealed` (frozen checkpoints of those lineages on both sealed sets, nothing
+    trained). Dry-run node counts: pointer_seeds 50, pointer_ui 37, pointer_copy 19, pointer_sealed 19, pointer_ui_sealed 12. `rrp run-dag recipes/pointer/<name>.yaml --dry-run`; peer
     only, as pointer_v1. Resume: nodes are adopted by config hash; a sealed node that crashed needs `release_sealed_cell` first.
   - Scene parts (`relgen/ui.py`): `cw_viewport` (activates `viewport`; width, height, m_per_px of `make_env(scene=...)`) and
     `cw_depth` (activates `zstack`; `depth` stack|constant, `dz`), env `computerworld`, no entities; each has a `vary` that
@@ -244,8 +244,8 @@ ops/bin/peer_run.sh ...` appends it to the job's PYTHONPATH.
     Sealed sets are evaluated once per arm and seed after the dev table is written down, for every arm, whatever dev says.
     | row | question | arms | metric and rule | status |
     |---|---|---|---|---|
-    | P-SEEDS | Is D-142's semfix vs nosem vs eng ordering stable over training seeds? | pointer_seeds: semfix, nosem, eng, BC | dev and sealed_id success per task; rule above; no claim about semfix on a single seed | planned (needs v2 split) |
-    | P-UI | Do the ui.* relation factors help vs none? | pointer_ui vs pointer_seeds (same variant, same demos) | dev per-task success (expected: drag_window, fill_form, open_type); UI wins if mean gain >= 4 points on >= 2 tasks and no task loses more than the seed range | planned (needs v2 split) |
-    | P-COPY | Does a copy mechanism fix unseen-word typing (0/50 heldout words and names, D-142)? | flow / BC with a copy head over the goal-language tokens vs without | sealed_heldout open_type and fill_form success; copy wins if >= 10/50 on both with the same dev success elsewhere | blocked: needs a net and trainer change in `harness/train/pointer/**` and `nets/pointer` (not C3 files) |
-    | P-KEY | Does a discrete key code let a learned system i type? | key field as a categorical code (CE over KEY_VOCAB) vs the engineered continuous field | dev open_type / fill_form success and packet key probe accuracy; wins if the dev gain exceeds the seed range | blocked: same trainer / net files |
+    | P-SEEDS | Is D-142's semfix vs nosem vs eng ordering stable over training seeds? | pointer_seeds: semfix, nosem, eng, BC | dev and sealed_id success per task; rule above; no claim about semfix on a single seed | planned |
+    | P-UI | Do the ui.* relation factors help vs none? | pointer_ui vs pointer_seeds (same variant, same demos) | dev per-task success (expected: drag_window, fill_form, open_type); UI wins if mean gain >= 4 points on >= 2 tasks and no task loses more than the seed range | planned |
+    | P-COPY | Does a copy mechanism fix unseen-word typing (0/50 heldout words and names, D-142)? | pointer_copy: eng.v2 flow with the copy key head vs the free head, and BC with the copy head vs pointer_seeds' BC (the latent-route realizer cannot copy, so learned-realizer arms are not in this row) | sealed_heldout open_type and fill_form success (procedural strings); copy wins if >= 10/50 on both with the same dev success elsewhere | planned (dev first; sealed once per arm and seed) |
+    | P-KEY | Does a discrete key code let a learned system i type? | pointer_copy flow_eng (cw_pointer_eng.v2, free head) vs pointer_seeds eng (cw_pointer_eng.v1, continuous key), same demos and seeds | dev open_type / fill_form success; wins if the dev gain exceeds the seed range | planned |
     | P-CURR | Does relgen scene variation (viewport, z-stack) make the pointer robust to frame changes? | mix of `cw_viewport` / `cw_depth` scenes at 0, 0.25 vs none | success on a viewport not seen in training and on constant-depth scenes; wins if the shifted-frame success gap to in-frame closes by half | blocked: the trainers do not call `relation_batches`, the `ui.*` catalog entries name no scene part in `gen` (so `mix > 0` is refused), and the data path has to render scenes with the composed kwargs |

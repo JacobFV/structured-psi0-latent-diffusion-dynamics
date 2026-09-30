@@ -276,6 +276,8 @@ def _evaluate(ctx: StageContext, kind: str) -> dict:
                 continue
             argv = ["-m", "rrp.cli", "eval", "--policy", pol, "--env", "computerworld", "--task", t, "--body", "cw_pointer",
                     "--seeds", _seeds(ctx, seed_set, t), "--batch", str(o.get("batch", 16)), "--out", str(out)]
+            for k, v in sorted(split.get("env_kw", {}).items()):     # the split's env kwargs (v2: strings=procedural)
+                argv += ["--env-kw", f"{k}={v if isinstance(v, str) else json.dumps(v)}"]
             jobs.append((argv, None, ctx.out / f"eval_{_slug(t)}_{seed_set}.log"))
             todo.append(t)
         cells = _sealed_start(ctx, split, seed_set, todo, kind) if sealed else []
