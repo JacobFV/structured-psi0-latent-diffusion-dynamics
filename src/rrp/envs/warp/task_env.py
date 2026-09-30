@@ -49,6 +49,9 @@ def task_adapted_model(key: str, task: str, params=None):
 
 
 class WarpStepsEnv(WarpTrackerEnv):
+    # the PUBLIC inputs of the actor's extra block, in order (the single declaration the trainer writes into the actor meta)
+    public_extra = ("terrain_scan",)
+
     def __init__(self, body, nworld: int, seed: int = 1, level: float = 0.0, **kw):
         kw.setdefault("cmd_mix", "default")
         kw["terrain_scan"] = True                  # the staircase is seen through the PUBLIC terrain scan (D-146)
@@ -165,6 +168,9 @@ class WarpGapEnv(WarpTrackerEnv):
     (vy) onto the gap centre; past the wall, stop and turn to psi_f. Privileged expert inputs: gap centre in the yaw frame / L,
     wall distance / L, gap width / L, body width / L, sin/cos(psi_f - yaw), phase (7+1). Success: past the wall by 0.5 L and
     |psi_f - yaw| < 0.3 held 0.5 s. Wall contact: -2 per tick; > 0.2 s of contact ends the episode (failure wall_collision)."""
+
+    # the PUBLIC inputs of the actor's extra block, in order: [scan (SCAN_DIM) | ring (RING_N)] (see extra_dim below)
+    public_extra = ("terrain_scan", "range_ring")
 
     def __init__(self, body, nworld: int, seed: int = 1, level: float = 0.0, **kw):
         kw.setdefault("cmd_mix", "default")

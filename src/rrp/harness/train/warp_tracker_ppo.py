@@ -171,13 +171,43 @@ def main(argv=None):
     train(args, env, groups=groups, dev=dev, engine=f"mujoco_warp {getattr(mujoco_warp, '__version__', '3.14.0')}")
 
 
+def public_extra_meta(env) -> dict:
+    """The actor-meta keys that describe the env's PUBLIC extra input block, from the env's own declaration (`env.public_extra`:
+    the sensors in input order; a group env reads its first group's). Keys: `extra_obs` (the `legged_tracker.PUBLIC_EXTRA` kind),
+    `public_extra` ([{sensor, dim, version}] in order) and one sensor spec per declared sensor (`terrain_scan`, `range_ring`), exactly
+    what `extra_kind` reads. Refuses an undeclared block (never a guess from the width) and one whose declared dims are not the env's
+    `extra_dim`. The only implicit case is the base WarpTrackerEnv, whose extra block is the terrain scan by construction."""
+    from rrp.envs.mujoco import legged_core as LC
+    from rrp.envs.mujoco.legged_tracker import PUBLIC_EXTRA, extra_kind
+    table = dict(terrain_scan=(LC.SCAN_DIM, LC.TERRAIN_SCAN_VERSION, LC.terrain_scan_spec),
+                 range_ring=(LC.RING_N, LC.RANGE_RING_VERSION, LC.range_ring_spec))
+    n = int(env.extra_dim)
+    sensors = getattr(env, "public_extra", None)
+    if sensors is None and hasattr(env, "envs"):
+        sensors = getattr(env.envs[0], "public_extra", None)
+    if sensors is None:
+        if n not in (0, LC.SCAN_DIM):
+            raise ValueError(f"the env has a {n}-wide extra block but declares no `public_extra`; refusing to label it from its width")
+        sensors = ("terrain_scan",) if n else ()
+    kind = "+".join(sensors) or "none"
+    if kind not in PUBLIC_EXTRA or any(k not in table for k in sensors):
+        raise ValueError(f"public_extra {tuple(sensors)} is not one of {sorted(PUBLIC_EXTRA)}")
+    if sum(table[k][0] for k in sensors) != n:
+        raise ValueError(f"public_extra {tuple(sensors)} declares dims {sum(table[k][0] for k in sensors)} but the env's extra_dim is {n}")
+    meta = dict(extra_obs=kind, public_extra=[dict(sensor=k, dim=table[k][0], version=table[k][1]) for k in sensors])
+    meta.update({k: table[k][2]() for k in sensors})
+    if extra_kind(dict(meta, extra_obs_dim=n)) != kind:
+        raise ValueError(f"declared public extra block {kind!r} does not read back through extra_kind")
+    return meta
+
+
 def train(args, env, *, groups=None, dev, engine: str):
     """Asymmetric PPO on `env` (the Warp env, or any object with the same surface), writing meta.json / train_log.jsonl /
     checkpoint.pt / actor.pt under args.out."""
     from rrp.envs.warp.tracker_env import ENV_VERSION, window_metrics
-    from rrp.envs.mujoco.legged_core import terrain_scan_spec
     from rrp.harness.train.tracker_recipes import assert_trainable
     assert_trainable(args)                       # sealed split: before anything is written
+    public = public_extra_meta(env)              # the env's declared public extra block (refuses an undeclared one, before anything is written)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     task_envs = [e for e in getattr(env, "envs", [env]) if hasattr(e, "set_level")]
@@ -228,7 +258,7 @@ def train(args, env, *, groups=None, dev, engine: str):
     meta = dict(body=args.body or "shared", obs_dim=env.obs_dim, priv_dim=env.priv_dim, act_dim=env.nA, control_dt=env.dt, hidden=list(hidden),
                 kind=env.b.kind, algo="ppo_asymmetric_actor_critic",
                 actor_inputs="public: imu gyro, imu gravity, command, joint pos/vel, last action, gait clock"
-                             + (", terrain_scan_v1 (sensor model: noise, dropout, 1-tick latency)" if env.extra_dim else "")
+                             + "".join(f", {d['version']} (sensor model: noise, dropout, 1-tick latency)" for d in public["public_extra"])
                              + ((", upper-body joint state (morph_v2: padded q - q0, qdot + static slot descriptors)" if groups is not None
                     else ", upper-body joint state (q - q0, qdot)") if env.upper_dim else ""),
                 critic_inputs="public + privileged: base lin vel, height, foot contacts, friction, push flag + reward-schedule alpha"
@@ -246,10 +276,8 @@ def train(args, env, *, groups=None, dev, engine: str):
                 reward_options=env.cfg0.options(), recipe=args.recipe_record, task=args.task,
                 clock_gate=bool(args.clock_gate), target_margin=float(args.target_margin), land_vel=float(args.land_vel), force_cap=float(args.force_cap),
                 force_cap_bw=float(args.force_cap_bw),
-                extra_obs_dim=int(env.extra_dim), extra_obs="terrain_scan" if env.extra_dim else "none",
-                gpu=(torch.cuda.get_device_name(0) if dev.type == "cuda" else str(dev)))
-    if env.extra_dim:
-        meta["terrain_scan"] = terrain_scan_spec()
+                extra_obs_dim=int(env.extra_dim), gpu=(torch.cuda.get_device_name(0) if dev.type == "cuda" else str(dev)))
+    meta.update(public)
     if env.upper_dim:
         meta.update(upper_obs=True, upper_body=env.upper_meta(),
                     upper_ramp=dict(amp0=args.upper_amp0, amp=args.upper_amp, payload_frac=args.payload_frac, ramp=args.upper_ramp,

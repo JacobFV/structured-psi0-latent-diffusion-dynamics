@@ -513,6 +513,59 @@ def test_trainer_runs_two_updates_and_writes_scan_meta(tmp_path, extra):
     assert len((tmp_path / "run" / "train_log.jsonl").read_text().splitlines()) == 2
 
 
+class _FakeGapEnv(_FakeEnv):
+    """A WarpGapEnv-shaped actor: extra block = scan + ring (93), declared the way WarpGapEnv declares it."""
+    public_extra = ("terrain_scan", "range_ring")
+
+    def __init__(self):
+        super().__init__(LC.EXTRA_DIM_RING)
+
+
+def test_warp_envs_declare_their_public_extra_block():
+    import rrp.envs.warp.task_env as TK
+    assert TK.WarpGapEnv.public_extra == ("terrain_scan", "range_ring") and TK.WarpStepsEnv.public_extra == ("terrain_scan",)
+    assert LC.SCAN_DIM + LC.RING_N == LC.EXTRA_DIM_RING == 93
+
+
+def test_gap_actor_round_trips_as_public_scan_and_ring(tmp_path):
+    """Item 3: a WarpGapEnv actor (scan + ring, 93) is written as public scan+ring, not `privileged`, and install records it."""
+    import torch
+    from rrp.harness.train import warp_tracker_ppo as W
+    from rrp.harness.train.tracker_training import install
+    args = W.build_args(["--body", BODY, "--out", str(tmp_path / "run"), "--iters", "1", "--horizon", "4", "--epochs", "1",
+                         "--minibatches", "2", "--hidden", "16,8", "--alpha-schedule", "fixed:1.0", "--ckpt-every", "1", "--terrain-scan"])
+    W.train(args, _FakeGapEnv(), dev=torch.device("cpu"), engine="fake")
+    st = torch.load(tmp_path / "run" / "actor.pt", weights_only=False)
+    meta = st["meta"]
+    assert meta["extra_obs_dim"] == 93 and meta["extra_obs"] == "terrain_scan+range_ring"
+    assert meta["terrain_scan"] == LC.terrain_scan_spec() and meta["range_ring"] == LC.range_ring_spec()
+    assert meta["public_extra"] == [dict(sensor="terrain_scan", dim=77, version=LC.TERRAIN_SCAN_VERSION),
+                                    dict(sensor="range_ring", dim=16, version=LC.RANGE_RING_VERSION)]
+    assert LT.extra_kind(meta) == "terrain_scan+range_ring"
+    import hashlib
+    run = tmp_path / "run"
+    sha = hashlib.sha256((run / "actor.pt").read_bytes()).hexdigest()
+    v = tmp_path / "validation.json"
+    v.write_text(json.dumps(dict(body=BODY, tracker_sha=sha, w6_gate=dict(verdict="pass", failed=[]))))
+    store = install(run, [v], BODY, "ring_v1", label="gap ring", root=tmp_path / "store")
+    assert json.loads((store / "meta.json").read_text())["extra_obs"] == "terrain_scan+range_ring"
+    assert LT.scan_trackers(tmp_path / "store")[(BODY, "ring_v1")].extra_obs == "terrain_scan+range_ring"
+
+
+def test_trainer_refuses_an_undeclared_extra_block(tmp_path):
+    """No guessing from the width: a 93-wide block with no declaration is not labelled (and not written)."""
+    import torch
+    from rrp.harness.train import warp_tracker_ppo as W
+    args = W.build_args(["--body", BODY, "--out", str(tmp_path / "run"), "--iters", "1", "--horizon", "4", "--hidden", "16,8"])
+    with pytest.raises(ValueError, match="public_extra"):
+        W.train(args, _FakeEnv(LC.EXTRA_DIM_RING), dev=torch.device("cpu"), engine="fake")
+    bad = _FakeGapEnv()
+    bad.public_extra = ("terrain_scan",)                          # declared dims (77) != extra_dim (93)
+    with pytest.raises(ValueError, match="dims"):
+        W.train(args, bad, dev=torch.device("cpu"), engine="fake")
+    assert not (tmp_path / "run" / "meta.json").exists()
+
+
 # ---------------------------------------------------------------- G0: fresh-checkout skips name what is missing; slow is registered
 def test_need_weights_and_need_assets_skip_with_the_missing_path_named(tmp_path, monkeypatch):
     import tests.conftest as C
