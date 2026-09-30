@@ -159,3 +159,8 @@ ops/bin/peer_run.sh ...` appends it to the job's PYTHONPATH.
   on computerworld × all four cw/* tasks; teacher:pick_place declined (needs gripper, joint_position).
 - Open: typing generalization needs a copy mechanism; the engineered key field needs a discrete code for a learned
   system i; one training seed per model.
+- Readiness K2 (D-146): `Demos.batch` now supplies `wpos3d` / `wcamuvd` (stored per widget table by `collect`; packs from
+  before D-144's geometry get zeros with `wgeo_ok` False, which `_relctx` forwards as `pos3d.valid` / `cam_uvd.valid`), so
+  `rrp train pointer rep|flow|bc` no longer KeyErrors on the first step; `tests/unit/test_pointer_train_smoke.py` runs two
+  steps of each trainer on a synthetic pack. Already-collected packs (`artifacts/datasets/pointer_v1/`) are unchanged and
+  read as zero geometry; re-collect to train with real geometry.

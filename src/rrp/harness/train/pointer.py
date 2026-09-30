@@ -28,6 +28,9 @@ import torch
 
 SPLIT_PATH = "research/splits/cworld_pointer_v1.json"
 TASKS = ("cw/calc_sum", "cw/open_type", "cw/drag_window", "cw/fill_form")
+# per-table widget arrays a pack stores; `wpos3d` / `wcamuvd` (D-144 R20 follow-up geometry) are the ones the net's
+# `_relctx` reads besides the five descriptor arrays, and packs collected before them lack them (`Demos`)
+TABLE_KEYS = ("wch", "wrole", "wbound", "wf", "wmask", "wpos3d", "wcamuvd")
 
 
 # ------------------------------------------------------------------------------------------------ split
@@ -129,7 +132,7 @@ def collect_episode(task: str, seed: int, *, dart_px: float, rng: random.Random,
         wkey = (f["wch"].tobytes(), f["wf"].tobytes(), f["wmask"].tobytes(), f["wbound"].tobytes())
         if wkey not in tab_keys:
             tab_keys[wkey] = len(tabs)
-            tabs.append({k: f[k] for k in ("wch", "wrole", "wbound", "wf", "wmask")})
+            tabs.append({k: f[k] for k in TABLE_KEYS})
         tslot = env.slots.slots.get(tt.target, -1) if tt.target else -1
         tpx = tt.target_px
         txy = (np.array(env.frame.px_to_m(*tpx)) / half) if tpx is not None else np.array([np.nan, np.nan])
@@ -190,6 +193,8 @@ def cmd_collect(a):
         wch=np.stack([t["wch"] for t in tabs]), wrole=np.stack([t["wrole"] for t in tabs]),
         wbound=np.stack([t["wbound"] for t in tabs]), wf=np.stack([t["wf"] for t in tabs]).astype(np.float16),
         wmask=np.stack([t["wmask"] for t in tabs]),
+        wpos3d=np.stack([t["wpos3d"] for t in tabs]).astype(np.float32),
+        wcamuvd=np.stack([t["wcamuvd"] for t in tabs]).astype(np.float32),
         tab=np.array([t["tab"] for t in ticks], np.int32), ep=np.array([t["ep"] for t in ticks], np.int32),
         ptr=np.stack([t["ptr"] for t in ticks]).astype(np.float32), btn=np.array([t["btn"] for t in ticks], np.float32),
         hist=np.stack([t["hist"] for t in ticks]).astype(np.float32),
@@ -228,6 +233,13 @@ class Demos:
             p["ep"] = p["ep"] + ep_off
             p["ep_start"] = p["ep_start"] + tick_off
             p["ep_end"] = p["ep_end"] + tick_off
+            if "wpos3d" not in p:               # a pack from before D-144's geometry: zeros, flagged invalid below
+                n_tab = len(p["wch"])
+                p["wpos3d"] = np.zeros((n_tab, *p["wch"].shape[1:2], 3), np.float32)
+                p["wcamuvd"] = np.zeros((n_tab, *p["wch"].shape[1:2], 3), np.float32)
+                p["wgeo"] = np.zeros(n_tab, bool)
+            else:
+                p["wgeo"] = np.ones(len(p["wch"]), bool)
             p["ep_task"] = np.full(len(p["ep_seed"]), TASKS.index(str(p["task"])), np.int8)
             tab_off += len(p["wch"])
             tick_off += len(p["tab"])
@@ -253,7 +265,8 @@ class Demos:
         T = lambda x, dt=None: torch.as_tensor(np.ascontiguousarray(x), device=device, dtype=dt)
         self.t = dict(wch=T(d["wch"].astype(np.int64)), wrole=T(d["wrole"].astype(np.int64)),
                       wbound=T(d["wbound"].astype(np.int64)), wf=T(d["wf"].astype(np.float32)), wmask=T(d["wmask"]),
-                      tab=T(d["tab"].astype(np.int64)), ep=T(d["ep"].astype(np.int64)), ptr=T(d["ptr"]), btn=T(d["btn"]),
+                      wpos3d=T(d["wpos3d"].astype(np.float32)), wcamuvd=T(d["wcamuvd"].astype(np.float32)),
+                      wgeo=T(d["wgeo"]), tab=T(d["tab"].astype(np.int64)), ep=T(d["ep"].astype(np.int64)), ptr=T(d["ptr"]), btn=T(d["btn"]),
                       hist=T(d["hist"]), cmd_xy=T(d["cmd_xy"]), cmd_btn=T(d["cmd_btn"]),
                       cmd_key=T(d["cmd_key"].astype(np.int64)), slot=T(d["slot"].astype(np.int64)),
                       txy=T(np.nan_to_num(d["txy"], nan=0.0)), txy_ok=T(~np.isnan(d["txy"][:, 0])),
@@ -277,6 +290,7 @@ class Demos:
         t = self.t
         tab = t["tab"][ix]
         b = dict(wch=t["wch"][tab], wrole=t["wrole"][tab], wbound=t["wbound"][tab], wf=t["wf"][tab], wmask=t["wmask"][tab],
+                 wpos3d=t["wpos3d"][tab], wcamuvd=t["wcamuvd"][tab], wgeo_ok=t["wmask"][tab] & t["wgeo"][tab][:, None],
                  instr=t["instr"][t["ep"][ix]], ptr=t["ptr"][ix], btn=t["btn"][ix], tick=t["tick"][ix],
                  hist=t["hist"][ix])
         ci = t["chunk"][ix]                                        # [B,H]

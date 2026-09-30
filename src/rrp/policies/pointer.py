@@ -573,8 +573,10 @@ def _nets():
             parent = F.pad(b.get("wparent", torch.full((B, NW), -1, dtype=torch.long, device=device)),
                            (0, pad), value=-1)[..., None]
             mask = torch.cat([wmask, torch.ones(B, pad, dtype=torch.bool, device=device)], 1)
-            ts = TokenSet("ctx", mask, fields={"pos3d": pos3d, "cam_uvd": camuvd, "zlayer": zlayer,
-                                               "parent_id": parent})
+            geo_ok = b.get("wgeo_ok", wmask)        # a pack without stored geometry (zeros) says so: `Demos.batch`
+            geo_ok = F.pad(geo_ok, (0, pad))
+            ts = TokenSet("ctx", mask, fields={"pos3d": pos3d, "pos3d.valid": geo_ok, "cam_uvd": camuvd,
+                                               "cam_uvd.valid": geo_ok, "zlayer": zlayer, "parent_id": parent})
             wuiedges = b.get("wuiedges")
             edges = (torch.zeros(B, NW, NW, len(UI_REL_VOCAB), device=device) if wuiedges is None
                      else wuiedges.to(pos3d.dtype))
