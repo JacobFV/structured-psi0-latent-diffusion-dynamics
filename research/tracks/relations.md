@@ -74,3 +74,25 @@ each `fset` in base, geo and seed in 1, 2: `F0@<fset>.s<seed>` -> `dev@...` and 
    anything today; `joint_adapt.py`'s flat read stays (stage `adapt` is a permanent legacy-only stage).
 10. **Curriculum policy** (R11): `relgen/curriculum.py` ships the scheduler, promotion by probe competence and `rrp steer`; no
     run has used it. First use belongs to the geo -> ix -> task ladder once item 1 lands.
+
+## F1: relation runtime contract (ready-f1; audit D2 / D5; docs/relations.md section 11)
+
+Closes open items 2 and 3 above for the arm / dual nets (pair readouts are consumed; the probe-sourced support graph is
+published by `ix.support`'s own pair logits) and makes "resolves" mean "runs".
+- `relations.base`: `FamilyTokens` / `FAMILIES` / `register_family`; `resolve(..., family=, env_caps=, env=, training=)`
+  refuses what the net cannot run (no applicable site, unfilled `given` field, label the collate cannot attach, readout
+  the net does not implement, StateView caps, no scene part / transform for `mix > 0`); `estimates_loss` supervises the
+  pair estimates and field probes a forward wrote (Gaussian NLL / bce / soft_ce, `(sum, count)` metrics);
+  `stamp_versions` / `require_factors` for checkpoints. `gaussian_nll` lives here (`nets.probes` re-exports it).
+- `relations.catalog`: families `arm`, `dual`, `psi0`, `pointer`. Legged / humanoid families are declared by unit HL.
+- `relations.ops`: every bilinear factor writes `rc.estimates[("pair", name)]`; closure / hop ops apply only at square self
+  sites (`kin.ancestor` / `kin.sibling` crashed at `act>ctx` before); `site_field` gt path reads the factor's label name.
+- `nets.batch`: field builders are Batch-only and vectorised; `relation_token_sets(family, batch, labels, deploy, fields,
+  pad_ctx)`; labels are refused when `deploy=True`. `nets.flow` builds its ctx / act sets through it (the arm net had no
+  fields at all before, so every `geo.*` / `id.*` factor was unrunnable there) and adds `estimates_loss` to `loss`.
+- `relgen`: `load_families()`, raising `label_def` / `part_def` / `transform_def`, `rrp factors coverage` writing
+  `artifacts/runs/relations/coverage/coverage.json` (factor x family x env: resolves / label runnable / part available /
+  training resolve).
+- Not done (lead questions): other checkpoint writers (`pointer.py`, `bundles.py`, `latent.py`, `bc.py`) still stamp by hand
+  and do not `require_factors`; `harness/pipelines/relations.py` still uses `TRANSFORMS.get` (silent skip); no `@gt`
+  EdgeSet builder for `ix.force_flow` source gt; the `dual` family is checked by the shared arm test only.

@@ -133,10 +133,27 @@ def collate_inputs(inputs: list, extra_tokens: dict | None = None) -> Batch:
 
 
 # ---------------------------------------------------------------------------------------------------------------
-# R12 (D-144, docs/relations.md sections 2 & 10): `ctx` / `act` TokenSet fields, derived from token columns already
-# in `PolicyInput` (no dataset rewrite). Field dims / provenance are declared once in `catalog.FIELDS`; this module
-# only supplies the VALUES. `cam_uvd` needs a live camera and is attached separately (`attach_cam_uvd`).
-def ctx_geometry_fields(inputs: list, batch: "Batch") -> dict:
+# R12 (D-144, docs/relations.md sections 2 & 10): `ctx` / `act` TokenSet fields, derived from the collated tensors
+# (no dataset rewrite, no per-sample loops: the same code runs at collate, train and deploy time). Field dims /
+# provenance are declared once in `catalog.FIELDS`; this module only supplies the VALUES. `cam_uvd` needs a live
+# camera: the caller puts it (and its `.valid`) in `batch.extra["ctx_fields"]`, `attach_cam_uvd` builds it.
+def _cat_banks(batch: "Batch", fn, dim: int, dtype=torch.float32) -> torch.Tensor:
+    """Concatenate a per-bank [B, T, dim] value (fn(bank) or None -> zeros) over the ctx bank order."""
+    outs = []
+    for b in BANKS:
+        B, T = batch.bank_mask[b].shape
+        v = fn(b)
+        outs.append(torch.zeros(B, T, dim, dtype=dtype) if v is None else v)
+    return torch.cat(outs, 1)
+
+
+def _last_true(m: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    """(any, index of the last True) along the final dim of a bool tensor."""
+    n = m.shape[-1]
+    return m.any(-1), (n - 1 - m.flip(-1).long().argmax(-1))
+
+
+def ctx_geometry_fields(batch: "Batch") -> dict:
     """`pos3d` (+`.var`) and `orient` of the concatenated `ctx` bank:
       - morph action / passive-joint tokens: `pos3d` = the public-FK joint anchor (`NODE_ANCHOR_SLICE`), always
         valid; no `orient` (a joint anchor is a point, not a frame).
@@ -148,119 +165,73 @@ def ctx_geometry_fields(inputs: list, batch: "Batch") -> dict:
         (`SCENE_KNOWN_COL`; an unknown slot is a masked belief, not a public zero); `.var` = the tracked position
         covariance, recovered from the stored `log(std + 1e-4) / 5` (`SCENE_STD_SLICE`); no `orient` (object
         frames are unknown to the tracker, docs/relations.md section 2).
-      - task / interact tokens: no geometry; `pos3d` / `orient` stay invalid.
+      - task / interact tokens: no geometry; `pos3d` / `orient` stay invalid. Padding is never valid.
     """
-    B, C = batch.B, batch.ctx_mask.shape[1]
-    pos = np.zeros((B, C, 3), np.float32)
-    pos_valid = np.zeros((B, C), bool)
-    var = np.zeros((B, C, 3), np.float32)
-    orient = np.zeros((B, C, 9), np.float32)
-    orient_valid = np.zeros((B, C), bool)
-    moff, soff = batch.bank_offset["morph"], batch.bank_offset["scene"]
-    for i, pi in enumerate(inputs):
-        mk, mt = pi.token_kind["morph"], pi.tokens["morph"]
-        midx = moff + np.arange(len(mk))
-        node = mk < 2
-        pos[i, midx[node]] = mt[node][:, NODE_ANCHOR_SLICE]
-        pos_valid[i, midx[node]] = True
-        asm = mk == 2
-        if asm.any():
-            pos[i, midx[asm]] = mt[asm][:, ASM_POS_SLICE]
-            pos_valid[i, midx[asm]] = True
-            zcol, xcol = mt[asm][:, ASM_ZCOL_SLICE], mt[asm][:, ASM_XCOL_SLICE]
-            R = np.stack([xcol, np.cross(zcol, xcol), zcol], axis=-1)   # columns x, y = z(cross)x, z
-            orient[i, midx[asm]] = R.reshape(len(R), 9)
-            orient_valid[i, midx[asm]] = True
-        sk, st = pi.token_kind["scene"], pi.tokens["scene"]
-        known = (sk == 0) & (st[:, SCENE_KNOWN_COL] > 0.5)
-        if known.any():
-            sidx = soff + np.arange(len(sk))
-            pos[i, sidx[known]] = st[known][:, SCENE_POS_SLICE]
-            pos_valid[i, sidx[known]] = True
-            std = np.clip(np.exp(5.0 * st[known][:, SCENE_STD_SLICE]) - 1e-4, 0.0, None)
-            var[i, sidx[known]] = std ** 2
-    t = torch.from_numpy
-    return {"pos3d": t(pos), "pos3d.valid": t(pos_valid), "pos3d.var": t(var),
-            "orient": t(orient), "orient.valid": t(orient_valid)}
+    mt, mk, mm = batch.bank_tokens["morph"], batch.bank_kind["morph"], batch.bank_mask["morph"]
+    st, sk, sm = batch.bank_tokens["scene"], batch.bank_kind["scene"], batch.bank_mask["scene"]
+    node, asm = (mk < 2) & mm, (mk == 2) & mm
+    known = (sk == 0) & sm & (st[..., SCENE_KNOWN_COL] > 0.5)
+    pos = {"morph": torch.where(asm[..., None], mt[..., ASM_POS_SLICE], mt[..., NODE_ANCHOR_SLICE]) * (node | asm)[..., None],
+           "scene": st[..., SCENE_POS_SLICE] * known[..., None]}
+    valid = {"morph": node | asm, "scene": known}
+    zcol, xcol = mt[..., ASM_ZCOL_SLICE], mt[..., ASM_XCOL_SLICE]
+    R = torch.stack([xcol, torch.cross(zcol, xcol, dim=-1), zcol], -1)          # columns x, y = z(cross)x, z
+    std = (torch.exp(5.0 * st[..., SCENE_STD_SLICE]) - 1e-4).clamp(min=0.0)
+    zero_b = {b: torch.zeros_like(batch.bank_mask[b]) for b in BANKS}
+    return {"pos3d": _cat_banks(batch, lambda b: pos.get(b), 3),
+            "pos3d.valid": torch.cat([valid.get(b, zero_b[b]) for b in BANKS], 1),
+            "pos3d.var": _cat_banks(batch, lambda b: (std ** 2) * known[..., None] if b == "scene" else None, 3),
+            "orient": _cat_banks(batch, lambda b: R.flatten(-2) * asm[..., None] if b == "morph" else None, 9),
+            "orient.valid": torch.cat([asm if b == "morph" else zero_b[b] for b in BANKS], 1)}
 
 
-def ctx_id_fields(inputs: list, batch: "Batch") -> dict:
+def ctx_id_fields(batch: "Batch") -> dict:
     """`entity_id` / `assembly_id` of the `ctx` bank (docs/relations.md section 2, R15 `id.same_*`), read off the
-    EXISTING `relations` / `pointers` arrays (no dataset rewrite):
+    EXISTING `ctx_rel` / `pointers` tensors (no dataset rewrite):
       - `entity_id`: every ctx token defaults to its OWN flattened ctx index (self-identifying); a token that is
         the source of EXACTLY ONE incidence pointer (a task-role token referencing an entity, a receipt
         referencing an event) instead takes that pointer's DESTINATION index, so two tokens referring to the same
         public entity compare equal under the `same` op. A predicate-estimate token can point at SEVERAL argument
         entities at once (`pred_arg`, one pointer per argument); such a fan-out source is not one entity's alias,
-        so it keeps its own self id (its per-argument bindings stay available as `pred_arg` edges). Always valid.
+        so it keeps its own self id (its per-argument bindings stay available as `pred_arg` edges). Valid on
+        every real token.
       - `assembly_id`: every ctx token defaults to -1 (invalid, no assembly); a morph assembly token's own id is
         its flattened index; any OTHER ctx token with a `node_in_assembly` edge to one (today: per-manipulator
-        sensor tokens of the `interact` bank) takes that assembly's index. Action-NODE `assembly_id` (the `act`
-        set) is `act_assembly_id` below: a node's `node_in_assembly` edge is act>ctx (`relations[:, 0] == -1`),
-        never a ctx>ctx one.
+        sensor tokens of the `interact` bank) takes that assembly's index. `node_in_assembly` is stored BOTH
+        directions, so only rows whose KEY is a morph assembly token count (the reverse rows must not overwrite an
+        assembly's own id). Action-NODE `assembly_id` (the `act` set) is `act_assembly_id`: a node's edge is
+        act>ctx, never ctx>ctx.
     """
-    B, C = batch.B, batch.ctx_mask.shape[1]
-    ent = np.zeros((B, C), np.int64)
-    asm = -np.ones((B, C), np.int64)
-    offs = batch.bank_offset
-    for i, pi in enumerate(inputs):
-        for b in BANKS:
-            n = len(pi.token_kind[b])
-            ent[i, offs[b]:offs[b] + n] = offs[b] + np.arange(n)
-        mk = pi.token_kind["morph"]
-        aidx = offs["morph"] + np.where(mk == 2)[0]
-        asm[i, aidx] = aidx
-        R = np.asarray(pi.relations).reshape(-1, 5)
-        # `node_in_assembly` is stored BOTH directions (member -> assembly AND assembly -> member, e.g.
-        # featurizer.py's sensor-token relations), so only the member -> assembly direction, i.e. rows whose KEY
-        # is itself a morph assembly token, means "the query token belongs to this assembly" -- the reverse rows
-        # (an assembly token as query) must NOT overwrite that assembly's own self id.
-        ctx_edges = R[(R[:, 0] != -1) & (R[:, 4] == NODE_IN_ASSEMBLY) & (R[:, 2] == MORPH_BANK_ID)]
-        if len(ctx_edges):
-            kind_ok = mk[ctx_edges[:, 3]] == 2
-            ctx_edges = ctx_edges[kind_ok]
-        if len(ctx_edges):
-            qflat = np.array([offs[BANKS[qb]] for qb in ctx_edges[:, 0]]) + ctx_edges[:, 1]
-            kflat = offs["morph"] + ctx_edges[:, 3]
-            asm[i, qflat] = kflat
-        P = np.asarray(pi.pointers).reshape(-1, 4)
-        if len(P):
-            sflat = np.array([offs[BANKS[sb]] for sb in P[:, 0]]) + P[:, 1]
-            dflat = np.array([offs[BANKS[db]] for db in P[:, 2]]) + P[:, 3]
-            uniq, counts = np.unique(sflat, return_counts=True)
-            single = set(uniq[counts == 1].tolist())
-            keep = np.array([s in single for s in sflat])
-            ent[i, sflat[keep]] = dflat[keep]
-    ctx_mask_np = batch.ctx_mask.numpy()
-    ent_valid = ctx_mask_np.copy()
-    asm_valid = (asm >= 0) & ctx_mask_np
-    t = torch.from_numpy
-    return {"entity_id": t(ent[..., None].astype(np.float32)), "entity_id.valid": t(ent_valid),
-            "assembly_id": t(asm[..., None].astype(np.float32)), "assembly_id.valid": t(asm_valid)}
+    B, C = batch.ctx_mask.shape
+    own = torch.arange(C).expand(B, C)
+    ptr = batch.pointers
+    src, dst = ptr[..., 0], ptr[..., 1]
+    ok = (src >= 0) & (dst >= 0)
+    cnt = torch.zeros(B, C, dtype=torch.long).scatter_add(1, src.clamp(min=0), ok.long())
+    dsum = torch.zeros(B, C, dtype=torch.long).scatter_add(1, src.clamp(min=0), torch.where(ok, dst, 0))
+    ent = torch.where(cnt == 1, dsum, own)
+    mo = batch.bank_offset["morph"]
+    is_asm = torch.zeros(B, C, dtype=torch.bool)
+    is_asm[:, mo:mo + batch.bank_kind["morph"].shape[1]] = (batch.bank_kind["morph"] == 2) & batch.bank_mask["morph"]
+    has, last = _last_true(batch.ctx_rel[..., NODE_IN_ASSEMBLY] & is_asm[:, None, :])
+    asm = torch.where(has, last, torch.where(is_asm, own, torch.full_like(own, -1)))
+    return {"entity_id": ent[..., None].float(), "entity_id.valid": batch.ctx_mask.clone(),
+            "assembly_id": asm[..., None].float(), "assembly_id.valid": (asm >= 0) & batch.ctx_mask}
 
 
-def act_assembly_id(inputs: list, batch: "Batch") -> dict:
-    """`assembly_id` of the `act` token set (action nodes): the node's `node_in_assembly` act>ctx edge
-    (`relations[:, 0] == -1`), giving its owning morph assembly token's flattened `ctx` index."""
-    B, N = batch.node_mask.shape
-    offs = batch.bank_offset
-    asm = -np.ones((B, N), np.int64)
-    for i, pi in enumerate(inputs):
-        R = np.asarray(pi.relations).reshape(-1, 5)
-        node_edges = R[(R[:, 0] == -1) & (R[:, 4] == NODE_IN_ASSEMBLY)]
-        if len(node_edges):
-            kflat = np.array([offs[BANKS[kb]] for kb in node_edges[:, 2]]) + node_edges[:, 3]
-            asm[i, node_edges[:, 1]] = kflat
-    valid = (asm >= 0) & batch.node_mask.numpy()
-    t = torch.from_numpy
-    return {"assembly_id": t(asm[..., None].astype(np.float32)), "assembly_id.valid": t(valid)}
+def act_assembly_id(batch: "Batch") -> dict:
+    """`assembly_id` of the `act` token set (action nodes): the node's `node_in_assembly` act>ctx edge, giving its
+    owning morph assembly token's flattened `ctx` index."""
+    has, last = _last_true(batch.act_rel[..., NODE_IN_ASSEMBLY])
+    asm = torch.where(has, last, torch.full_like(last, -1))
+    return {"assembly_id": asm[..., None].float(), "assembly_id.valid": (asm >= 0) & batch.node_mask}
 
 
 def attach_cam_uvd(pos3d: torch.Tensor, pos3d_valid: torch.Tensor, cameras: list) -> dict:
     """`cam_uvd` from an ALREADY-DERIVED `pos3d` field, projected per batch item through its own declared scene
     camera (`envs.mujoco.sensors.project_points`; `cameras[i] = (model, data, cam_name)`, one triple per item --
-    collation has no live MuJoCo state of its own, so this is a separate step from `ctx_geometry_fields`).
-    Positions behind the camera or with invalid `pos3d` stay invalid."""
+    collation has no live MuJoCo state of its own, so this is a separate step from `ctx_geometry_fields`; the caller
+    stores the result in `batch.extra["ctx_fields"]`). Positions behind the camera or with invalid `pos3d` stay invalid."""
     from rrp.envs.mujoco.sensors import project_points
     pos = pos3d.detach().cpu().numpy() if hasattr(pos3d, "detach") else np.asarray(pos3d)
     val = pos3d_valid.detach().cpu().numpy() if hasattr(pos3d_valid, "detach") else np.asarray(pos3d_valid)
@@ -277,17 +248,57 @@ def attach_cam_uvd(pos3d: torch.Tensor, pos3d_valid: torch.Tensor, cameras: list
     return {"cam_uvd": torch.from_numpy(out), "cam_uvd.valid": torch.from_numpy(out_valid)}
 
 
-def relation_token_sets(inputs: list, batch: "Batch", cameras: list | None = None) -> dict:
-    """R12: the `ctx` / `act` `TokenSet`s (docs/relations.md section 2) carrying every field this unit owns.
-    `cameras` (one `(model, data, cam_name)` triple per item) also attaches `cam_uvd`; omit it to skip that
-    field (e.g. when only ids / geometry are needed, or no camera is declared for the scene)."""
-    fields = {**ctx_geometry_fields(inputs, batch), **ctx_id_fields(inputs, batch)}
-    if cameras is not None:
-        fields.update(attach_cam_uvd(fields["pos3d"], fields["pos3d.valid"], cameras))
-    ctx_kind = torch.cat([_global_kind(b, batch.bank_kind[b]) for b in BANKS], 1)
-    ctx = TokenSet(name="ctx", mask=batch.ctx_mask, kind=ctx_kind, fields=fields)
-    act = TokenSet(name="act", mask=batch.node_mask, fields=act_assembly_id(inputs, batch))
-    return {"ctx": ctx, "act": act}
+_DERIVED = {"pos3d": ctx_geometry_fields, "orient": ctx_geometry_fields, "entity_id": ctx_id_fields,
+            "assembly_id": ctx_id_fields}
+_ARM_FAMILIES = ("arm", "dual")          # the families this collate path serves; others build their own sets
+
+
+def _pad_ctx(d: dict, pad: int) -> dict:
+    return {k: F.pad(v, (0, 0) * (v.dim() - 2) + (0, pad)) if pad and v.dim() >= 2 else v for k, v in d.items()}
+
+
+def relation_token_sets(family: str, batch: "Batch", labels: dict | None = None, deploy: bool = False,
+                        fields=None, pad_ctx: int = 0) -> dict:
+    """The `ctx` / `act` `TokenSet`s of a net family (docs/relations.md section 11): `kind`, every public / estimated
+    field the family declares (`FAMILIES[family].sets`; `fields=()` skips them when no factor reads one), then
+    `batch.extra["ctx_fields"]` (camera-derived `cam_uvd`), and, for training, `labels` =
+    {"ctx": {name: tensor, name + ".valid": mask}, "act": {...}} (names must be ones the family attaches). Labels are
+    privileged: passing them with `deploy=True` raises `PrivilegedInput`. `pad_ctx` appends invalid ctx positions
+    (VLM image tokens) to every ctx tensor."""
+    from rrp.policies.relations.base import FAMILIES, FactorError, PrivilegedInput
+    if family not in FAMILIES:
+        raise FactorError(f"unknown net family {family!r}; families: {sorted(FAMILIES)}")
+    if family not in _ARM_FAMILIES:
+        raise FactorError(f"family {family!r} builds its own token sets; this collate path serves {_ARM_FAMILIES}")
+    if labels and deploy:
+        raise PrivilegedInput("relation labels passed with deploy=True (labels are supervision-only)")
+    ft = FAMILIES[family]
+    want = tuple(ft.sets["ctx"]) if fields is None else tuple(fields)
+    cf = {}
+    for n in want:
+        if n in _DERIVED:
+            cf.update({k: v for k, v in _DERIVED[n](batch).items() if k.split(".")[0] == n})
+    for k, v in batch.extra.get("ctx_fields", {}).items():
+        if k.split(".")[0] not in ft.sets["ctx"]:
+            raise FactorError(f"ctx field {k!r} is not one family {family!r} fills ({list(ft.sets['ctx'])})")
+        cf[k] = v
+    af = act_assembly_id(batch) if "assembly_id" in ft.sets["act"] and ("assembly_id" in want or fields is None) else {}
+    kind = torch.cat([_global_kind(b, batch.bank_kind[b]) for b in BANKS], 1)
+    mask = batch.ctx_mask
+    if pad_ctx:
+        mask = F.pad(mask, (0, pad_ctx))
+        kind = F.pad(kind, (0, pad_ctx), value=_KIND_ID["pad"])
+    sets = {"ctx": TokenSet("ctx", mask, kind, _pad_ctx(cf, pad_ctx), deploy=deploy),
+            "act": TokenSet("act", batch.node_mask, None, af, deploy=deploy)}
+    for name, lab in (labels or {}).items():
+        if name not in sets:
+            raise FactorError(f"labels for unknown token set {name!r}")
+        for k in lab:
+            if k.split(".valid")[0] not in ft.labels.get(name, ()):
+                raise FactorError(f"label {k!r} is not one family {family!r} attaches to {name!r} "
+                                  f"({list(ft.labels.get(name, ()))})")
+        sets[name].labels = _pad_ctx(dict(lab), pad_ctx) if name == "ctx" else dict(lab)
+    return sets
 
 
 # ---------------------------------------------------------------------------------------------------------------

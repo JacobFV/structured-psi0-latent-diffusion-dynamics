@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -18,21 +19,16 @@ import torch.nn.functional as F
 
 from rrp.policies.features.featurizer import BANKS, HASH_DIM
 from rrp.policies.nets.attention import MHA
-from rrp.policies.nets.batch import Batch, BANK_DIMS, NODE_DIM
-from rrp.policies.relations.base import EdgeSet, RelCtx, TokenSet, assert_deployable, control_of, resolve
+from rrp.policies.nets.batch import Batch, BANK_DIMS, NODE_DIM, relation_token_sets
+from rrp.policies.relations.base import (EdgeSet, FAMILIES, RelCtx, assert_deployable, control_of, estimates_loss,
+                                         resolve)
 from rrp.policies.relations.catalog import ARM_REL_VOCAB
-from rrp.policies.relations.ops import FactorSite, FieldReadouts
+from rrp.policies.relations.ops import FactorSite, FieldReadouts, needs_token_fields
 
-CTX_CARRIES = ("edges:arm-rel-v1", "hidden", "cam_uvd", "pos3d", "orient", "normal")
-# what the arm ctx>ctx site provides to factors: the arm-rel-v1 edge vocab, token hiddens (unit R12) and the R12
-# geometry fields (unit R13's `geo.*`: sqdiff+diff on `pos3d`/`cam_uvd`, rel_rot on `orient`, align on `normal` --
-# rel-geo D-144 addendum; R13's own row landed with only "edges:arm-rel-v1"/"hidden" here and flagged this exact gap
-# in archived research/tracks/rel-r13.md "lead question", since `nets/flow.py` was outside its owned-files cell). Extending
-# this tuple only ADDS which fields `FactorSite._applies` (relations/ops.py, unedited) lets a factor read at this
-# site -- the default "arm" preset's own factors (`edge.*`, `msg.incidence`) never match any of the new names (they
-# key on "edges:arm-rel-v1" / are filtered out as `form="message"` before the carries check), so this is a no-op
-# for every existing config (tests/unit/test_golden.py; test_relations_geo_wiring.py's own byte-identical check).
-ACT_CARRIES = ("edges:arm-rel-v1",)
+# what the arm sites offer factors: declared once in `catalog.FAMILIES["arm"]` (edge vocab, token hiddens (R12),
+# the R13 geometry fields); a factor applies only where `FactorSite._applies` finds its field in these carries.
+CTX_CARRIES = FAMILIES["arm"].sites["ctx>ctx"]
+ACT_CARRIES = FAMILIES["arm"].sites["act>ctx"]
 
 
 # ------------------------------------------------------------------ flow math
@@ -73,6 +69,7 @@ class PolicyConfig:
     image_tokens: int = 0             # VLM resampled tokens appended to the scene bank
     image_dim: int = 0
     max_slots: int = 8
+    family: str = "arm"               # net family (catalog.FAMILIES): what `factors` are checked against
     name: str = "policy"
 
     @property
@@ -80,7 +77,7 @@ class PolicyConfig:
         return self.width
 
     def specs(self):
-        return resolve(self.factors, default="arm")
+        return resolve(self.factors, default="arm", family=self.family)
 
     @classmethod
     def from_dict(cls, d: dict) -> "PolicyConfig":
@@ -142,6 +139,7 @@ class ContextEncoder(nn.Module):
                                                   mlp=MLP(D, D, 4 * D),
                                                   bias=FactorSite(cfg.heads, D, "ctx>ctx", specs, CTX_CARRIES))))
         self.readouts = FieldReadouts(D, specs)
+        self.fields = needs_token_fields(specs)
         self.deploy = False
 
     def forward(self, batch: Batch, rewire_gen=None):
@@ -162,16 +160,18 @@ class ContextEncoder(nn.Module):
             gathered = torch.gather(h, 1, dst.clamp(min=0)[..., None].expand(-1, -1, h.shape[-1]))
             msg = self.ptr(gathered) * valid[..., None].to(h.dtype)
             h = h.scatter_add(1, src.clamp(min=0)[..., None].expand(-1, -1, h.shape[-1]), msg)
+        rel, pad = batch.ctx_rel, 0
         if self.img is not None and "image_tokens" in batch.extra:
             it = self.img(batch.extra["image_tokens"])            # [B, I, D]
             h = torch.cat([h, it], 1)
+            pad = it.shape[1]
             mask = torch.cat([mask, torch.ones(it.shape[:2], dtype=torch.bool, device=mask.device)], 1)
-        rel = batch.ctx_rel
-        if self.img is not None and "image_tokens" in batch.extra:
-            pad = batch.extra["image_tokens"].shape[1]
             rel = F.pad(rel, (0, 0, 0, pad, 0, pad))
-        rc = RelCtx(sets={"ctx": TokenSet("ctx", mask, deploy=self.deploy)},
-                    edges={"ctx>ctx": EdgeSet(ARM_REL_VOCAB, rel)}, generator=rewire_gen, deploy=self.deploy)
+        # the ctx / act token sets: fields the active factors read (only then), the training labels, the image pad
+        sets = relation_token_sets(self.cfg.family, batch, batch.extra.get("relation_labels"), self.deploy,
+                                   fields=None if self.fields else (), pad_ctx=pad)
+        rc = RelCtx(sets=sets, edges={"ctx>ctx": EdgeSet(ARM_REL_VOCAB, rel)}, generator=rewire_gen,
+                    deploy=self.deploy)
         for li, L in enumerate(self.layers):
             self.readouts.observe(li, "ctx", h, rc)
             xn = L["n1"](h)
@@ -193,6 +193,7 @@ class ContextCache:
     node_bias: list
     node_mask: torch.Tensor
     hits: int = 0
+    rc: Any = None                   # the forward's RelCtx (pair / field estimates for `estimates_loss`)
 
 
 class AdaLN(nn.Module):
@@ -309,7 +310,6 @@ class FlowPolicy(nn.Module):
         act_rel = batch.act_rel
         if ctx.shape[1] > act_rel.shape[2]:
             act_rel = F.pad(act_rel, (0, 0, 0, ctx.shape[1] - act_rel.shape[2]))
-        rc.sets["act"] = TokenSet("act", batch.node_mask, deploy=self.context.deploy)
         rc.edges["act>ctx"] = EdgeSet(ARM_REL_VOCAB, act_rel)
         rc.edges["act>act"] = EdgeSet(ARM_REL_VOCAB, batch.node_rel)
         kv, ab, nb = [], [], []
@@ -317,7 +317,7 @@ class FlowPolicy(nn.Module):
             kv.append(blk.a_c.kv(ctx))
             ab.append(blk.bias_c.bias(rc))
             nb.append(blk.bias_e.bias(rc))
-        return ContextCache(key, ctx, cmask, kv, node_emb, ab, nb, batch.node_mask)
+        return ContextCache(key, ctx, cmask, kv, node_emb, ab, nb, batch.node_mask, rc=rc)
 
     # ---------------- velocity field
     def velocity(self, z: torch.Tensor, tau: torch.Tensor, cache: ContextCache, return_hidden: bool = False):
@@ -335,7 +335,8 @@ class FlowPolicy(nn.Module):
 
     def loss(self, batch: Batch, target: torch.Tensor, valid: torch.Tensor, labels: dict | None = None,
              aux_weight: float = 0.1, generator=None, packet_loss_fn=None,
-             packet_weight: float = 0.0, packet_tau_min: float = 0.0) -> tuple[torch.Tensor, dict]:
+             packet_weight: float = 0.0, packet_tau_min: float = 0.0,
+             est_weight: float = 1.0) -> tuple[torch.Tensor, dict]:
         """target [B,H,N,d] clean latent/action (raw space); valid [B,H,N] mask. The flow MSE is computed in
         standardized space; packet/readout objectives see the de-standardized estimate."""
         cache = self.prepare(batch)
@@ -370,6 +371,10 @@ class FlowPolicy(nn.Module):
             aux, alog = self.readout(hidden, cache, batch, labels, z_hat)
             loss = loss + aux_weight * aux
             logs.update(alog)
+        if cache.rc.estimates:       # the factors' own probes / pair estimates, supervised by the relation labels
+            el, elogs, _ = estimates_loss(cache.rc, self.cfg.specs())
+            loss = loss + est_weight * el
+            logs.update(elogs)
         return loss, logs
 
     @torch.no_grad()

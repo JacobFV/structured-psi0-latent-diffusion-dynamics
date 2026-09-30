@@ -9,14 +9,13 @@ dual checkpoints load strictly. Other families' checkpoints load through data-le
 """
 from __future__ import annotations
 
-import math
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from rrp.policies.nets.attention import MHA
-from rrp.policies.relations.base import FactorSpec, get_factor, resolve
+from rrp.policies.relations.base import FactorSpec, gaussian_nll, get_factor, resolve  # noqa: F401 (re-exported)
 
 
 def readout_defs(specs):
@@ -119,14 +118,6 @@ class ReadoutProbe(nn.Module):
 
 
 # ------------------------------------------------------------------ losses (one table for every readout)
-def gaussian_nll(pred, target, mask, lv_min: float = -8.0, lv_max: float = 6.0):
-    d = target.shape[-1]
-    mu, lv = pred[..., :d], pred[..., d:2 * d].clamp(lv_min, lv_max)
-    nll = 0.5 * (((target - mu) ** 2) / lv.exp() + lv + math.log(2 * math.pi)).sum(-1)
-    m = mask.float()
-    return (nll * m).sum() / m.sum().clamp(min=1)
-
-
 def readout_loss(out: dict, labels: dict, specs, masks: dict | None = None) -> tuple[torch.Tensor, dict]:
     """labels[ReadoutDef.label] (target), masks[query] (bool over the prediction's leading dims; default all).
     Weight = FactorSpec.weight (default 1). Returns (total, {probe_<query>: float})."""

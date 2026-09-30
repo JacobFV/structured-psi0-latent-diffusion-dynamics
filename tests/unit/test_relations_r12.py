@@ -80,7 +80,7 @@ def test_project_points_batches():
 # ------------------------------------------------------------------ pos3d / orient (nets.batch.ctx_geometry_fields)
 def test_pos3d_assembly_matches_public_fk():
     s, f, pi, obs, b = _batch()
-    fields = ctx_geometry_fields([pi], b)
+    fields = ctx_geometry_fields(b)
     off = b.bank_offset["morph"]
     mk = pi.token_kind["morph"]
     asm_idx = np.where(mk == 2)[0]
@@ -96,7 +96,7 @@ def test_pos3d_assembly_matches_public_fk():
 
 def test_pos3d_action_node_matches_joint_anchor_token_column():
     s, f, pi, obs, b = _batch()
-    fields = ctx_geometry_fields([pi], b)
+    fields = ctx_geometry_fields(b)
     off = b.bank_offset["morph"]
     N = len(f.node_joint_names)
     for i in range(N):
@@ -107,7 +107,7 @@ def test_pos3d_action_node_matches_joint_anchor_token_column():
 
 def test_pos3d_scene_valid_only_when_known_and_var_recovers_cov():
     s, f, pi, obs, b = _batch()
-    fields = ctx_geometry_fields([pi], b)
+    fields = ctx_geometry_fields(b)
     off = b.bank_offset["scene"]
     sk = pi.token_kind["scene"]
     known = (sk == 0) & (pi.tokens["scene"][:, 7] > 0.5)
@@ -123,7 +123,7 @@ def test_pos3d_scene_valid_only_when_known_and_var_recovers_cov():
 
 def test_orient_only_valid_on_assembly_tokens_and_is_right_handed():
     s, f, pi, obs, b = _batch()
-    fields = ctx_geometry_fields([pi], b)
+    fields = ctx_geometry_fields(b)
     off = b.bank_offset["morph"]
     mk = pi.token_kind["morph"]
     for j, k in enumerate(mk):
@@ -147,7 +147,7 @@ def test_orient_dim_matches_catalog_field_def():
 # ------------------------------------------------------------------ entity_id / assembly_id (nets.batch.ctx_id_fields)
 def test_entity_id_defaults_to_self_and_aliases_pointer_targets():
     s, f, pi, obs, b = _batch()
-    fields = ctx_id_fields([pi], b)
+    fields = ctx_id_fields(b)
     C = b.ctx_mask.shape[1]
     ent = fields["entity_id"][0, :, 0].numpy()
     valid = fields["entity_id.valid"][0].numpy()
@@ -175,7 +175,7 @@ def test_entity_id_defaults_to_self_and_aliases_pointer_targets():
 
 def test_assembly_id_self_ids_assembly_tokens_and_reaches_interact_sensors():
     s, f, pi, obs, b = _batch()
-    fields = ctx_id_fields([pi], b)
+    fields = ctx_id_fields(b)
     off = b.bank_offset["morph"]
     mk = pi.token_kind["morph"]
     asm_positions = off + np.where(mk == 2)[0]
@@ -194,8 +194,8 @@ def test_assembly_id_self_ids_assembly_tokens_and_reaches_interact_sensors():
 
 def test_act_assembly_id_matches_ctx_assembly_tokens():
     s, f, pi, obs, b = _batch()
-    out = act_assembly_id([pi], b)
-    ctx = ctx_id_fields([pi], b)
+    out = act_assembly_id(b)
+    ctx = ctx_id_fields(b)
     off = b.bank_offset["morph"]
     mk = pi.token_kind["morph"]
     asm_positions = set((off + np.where(mk == 2)[0]).tolist())
@@ -217,7 +217,7 @@ def test_id_fields_missing_before_r12():
 # ------------------------------------------------------------------ cam_uvd (attach_cam_uvd)
 def test_attach_cam_uvd_matches_direct_projection():
     s, f, pi, obs, b = _batch()
-    geo = ctx_geometry_fields([pi], b)
+    geo = ctx_geometry_fields(b)
     out = attach_cam_uvd(geo["pos3d"], geo["pos3d.valid"], [(s.model, s.data, "front")])
     off = b.bank_offset["morph"]
     mk = pi.token_kind["morph"]
@@ -230,7 +230,9 @@ def test_attach_cam_uvd_matches_direct_projection():
 
 def test_relation_token_sets_shapes_and_masks():
     s, f, pi, obs, b = _batch()
-    sets = relation_token_sets([pi], b, cameras=[(s.model, s.data, "front")])
+    g = ctx_geometry_fields(b)
+    b.extra["ctx_fields"] = attach_cam_uvd(g["pos3d"], g["pos3d.valid"], [(s.model, s.data, "front")])
+    sets = relation_token_sets("arm", b)
     assert set(sets) == {"ctx", "act"}
     ctx = sets["ctx"]
     C = b.ctx_mask.shape[1]
@@ -253,9 +255,9 @@ def test_ctx_fields_on_dual_featurizer():
     mf = MultiFeaturizer(d.model, d.scenario.robots)
     pi = mf(d.observe())
     b = collate_inputs([pi])
-    fields = ctx_geometry_fields([pi], b)
+    fields = ctx_geometry_fields(b)
     assert fields["pos3d.valid"][0].any()
-    ids = ctx_id_fields([pi], b)
+    ids = ctx_id_fields(b)
     assert ids["assembly_id.valid"][0].any()
 
 

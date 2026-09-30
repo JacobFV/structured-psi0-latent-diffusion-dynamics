@@ -98,8 +98,45 @@ def register_transform(t: TransformDef) -> TransformDef:
     return t
 
 
+def _lookup(table: dict, kind: str, name: str):
+    try:
+        return table[name]
+    except KeyError:
+        raise ValueError(f"unknown relgen {kind} {name!r}; registered: {sorted(table)} "
+                         f"(call load_families() first if the registry is empty)") from None
+
+
+def label_def(name: str) -> LabelDef:
+    return _lookup(LABELS, "label", name)
+
+
+def part_def(name: str) -> ScenePart:
+    return _lookup(PARTS, "part", name)
+
+
+def transform_def(name: str) -> TransformDef:
+    return _lookup(TRANSFORMS, "transform", name)
+
+
 def label_runs_in(label: str, caps) -> bool:
-    return LABELS[label].needs <= frozenset(caps)
+    return label_def(label).needs <= frozenset(caps)
+
+
+_FAMILY_MODULES = ("geometry", "contact", "support", "task", "body", "ui", "transforms")
+
+
+def load_families() -> None:
+    """Import every label / part / transform module (the registries are filled by import side effects) and hand the
+    registries to the policy side (`relations.base.resolve(env_caps=..., training=True)` checks factors against
+    them without importing harness). Raises if a registry stays empty."""
+    import importlib
+    from rrp.policies.relations.base import register_data
+    for m in _FAMILY_MODULES:
+        importlib.import_module(f"{__name__}.{m}")
+    for kind, reg in (("labels", LABELS), ("parts", PARTS), ("transforms", TRANSFORMS)):
+        if not reg:
+            raise RuntimeError(f"relgen {kind} registry is empty after loading {_FAMILY_MODULES}")
+    register_data(LABELS, PARTS, TRANSFORMS)
 
 
 class ComposeError(ValueError):
@@ -230,3 +267,85 @@ def label_record(label: Label, name: str) -> dict:
 
 Sample = dict[str, Any]   # {"inputs": ..., "labels": {name: Label}, "provenance": {"active": [...], "parts": [...],
                           #  "transforms": [...], "env": ..., "task": ..., "seed": ..., "step": ...}}
+
+
+# ------------------------------------------------------------------ `rrp factors coverage`
+def _env_caps() -> dict[str, frozenset]:
+    """StateView caps per registered env (each env's own declaration; the non-MuJoCo envs set theirs in a heavy
+    constructor, so they are literals here, kept equal by tests/unit/test_relations_runtime.py's env-caps check)."""
+    from rrp.envs.mujoco.session import MujocoStateView
+    tracker = frozenset({"poses", "contacts"})                      # envs.warp.tracker_env / envs.simple
+    return {"mujoco/arm": MujocoStateView.CAPS, "mujoco/dual": MujocoStateView.CAPS,
+            "mujoco/legged": MujocoStateView.CAPS, "warp/legged": tracker, "simple": tracker,
+            "computerworld": frozenset({"poses", "ui_tree"})}
+
+
+def coverage(out: Any = None) -> dict:
+    """Factor x net family x env: does the factor list resolve for the family, does its label run in the env
+    (StateView caps), is its scene part / transform available there, and does the training resolve (probe source,
+    mix 0.5) pass. Labels absent from `LABELS` (the legacy `probe.*` packet labels) are family-level: no relgen label
+    to run. Written to `out` (a path) when given."""
+    from rrp.policies.relations import catalog  # noqa: F401  (fills FACTORS / FAMILIES)
+    from rrp.policies.relations.base import FACTORS, FAMILIES, FactorError, resolve
+    load_families()
+    envs = _env_caps()
+    emitters = [n for n, d in FACTORS.items() if d.op == "bilinear" and "emits" in d.p]
+    rows = {}
+    for name, d in sorted(FACTORS.items()):
+        if d.status != "implemented":
+            continue
+        row = {"label": d.label or None, "gen": list(d.gen), "form": d.form, "families": {}, "resolved_as": {},
+               "envs": {}, "training": {}}
+        for env, caps in envs.items():
+            row["envs"][env] = {
+                "label_runnable": None if d.label not in LABELS else LABELS[d.label].needs <= caps,
+                "parts": {g: (g in TRANSFORMS) or (g in PARTS and (not PARTS[g].envs or env in PARTS[g].envs))
+                          for g in d.gen}}
+        for fam in FAMILIES:
+            # first list that resolves: the factor alone, then with the probe source, then with the emitters it reads
+            attempts = [[name], [{"name": name, "source": "probe"}] if "probe" in d.sources else None,
+                        emitters + [{"name": name, "source": "probe"} if "probe" in d.sources else name]]
+            err, ok = None, None
+            for att in attempts:
+                if att is None:
+                    continue
+                try:
+                    resolve(att, family=fam)
+                    ok = att
+                    break
+                except FactorError as e:
+                    err = err or str(e)
+            row["families"][fam] = True if ok else f"refused: {err}"
+            if not ok:
+                continue
+            row["resolved_as"][fam] = ok                     # the factor list that runs this factor in the family
+            row["training"][fam] = {}
+            for env, caps in envs.items():
+                item = {**(ok[-1] if isinstance(ok[-1], dict) else {"name": name}), "mix": 0.5 if d.gen else None}
+                try:
+                    resolve(ok[:-1] + [item], family=fam, env_caps=caps, env=env, training=True)
+                    row["training"][fam][env] = True
+                except FactorError as e:
+                    row["training"][fam][env] = f"refused: {e}"
+        rows[name] = row
+    doc = {"version": 1, "envs": {e: sorted(c) for e, c in envs.items()}, "families": sorted(FAMILIES), "factors": rows}
+    if out is not None:
+        from pathlib import Path
+        Path(out).parent.mkdir(parents=True, exist_ok=True)
+        Path(out).write_text(json.dumps(doc, indent=1, sort_keys=True))
+    return doc
+
+
+def coverage_main(argv: list[str]) -> int:
+    import argparse
+    from rrp.core.paths import rrp_home
+    ap = argparse.ArgumentParser(prog="rrp factors")
+    ap.add_argument("what", choices=["coverage"])
+    ap.add_argument("--out", default=None)
+    a = ap.parse_args(argv)
+    out = a.out or str(rrp_home() / "artifacts" / "runs" / "relations" / "coverage" / "coverage.json")
+    doc = coverage(out)
+    n = len(doc["factors"])
+    ok = sum(1 for r in doc["factors"].values() if any(v is True for v in r["families"].values()))
+    print(f"coverage: {n} factors, {ok} resolve in at least one family -> {out}")
+    return 0

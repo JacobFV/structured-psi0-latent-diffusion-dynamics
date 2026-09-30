@@ -17,7 +17,7 @@ import torch
 from rrp.envs.mujoco.fixtures import make_pick_place_session
 from rrp.policies.features.featurizer import featurizer_for
 from rrp.policies.features.multi import MultiFeaturizer
-from rrp.policies.nets.batch import collate_inputs, relation_token_sets
+from rrp.policies.nets.batch import attach_cam_uvd, collate_inputs, ctx_geometry_fields, relation_token_sets
 import rrp.policies.relations.catalog  # noqa: F401  (registers FACTORS / FIELDS on import)
 from rrp.policies.relations.base import FACTORS, FIELDS, PrivilegedInput, RelCtx, TokenSet, assert_deployable, resolve
 from rrp.policies.relations.catalog import ARM_REL_VOCAB
@@ -79,7 +79,7 @@ def test_resolve_on_dual():
     mf = MultiFeaturizer(d.model, d.scenario.robots)
     pi = mf(d.observe())
     b = collate_inputs([pi])
-    sets = relation_token_sets([pi], b)
+    sets = relation_token_sets("dual", b)
     ctx = sets["ctx"]
     specs = resolve(["preset:geo"])
     site = FactorSite(heads=2, dim=8, site="ctx>ctx", specs=specs, carries=("pos3d", "orient", "hidden"))
@@ -209,7 +209,9 @@ def test_geo_aug_factors_are_zero_init():
 # ------------------------------------------------------------------ correctness on a real fixture (unit R12 fields)
 def test_geo_above_sign_matches_hand_computed_height_order():
     s, pi, b = _arm_batch()
-    sets = relation_token_sets([pi], b, cameras=[(s.model, s.data, "front")])
+    g = ctx_geometry_fields(b)
+    b.extra["ctx_fields"] = attach_cam_uvd(g["pos3d"], g["pos3d.valid"], [(s.model, s.data, "front")])
+    sets = relation_token_sets("arm", b)
     ctx = sets["ctx"]
     specs = resolve([{"name": "geo.above", "source": "given"}])
     site = FactorSite(heads=1, dim=4, site="ctx>ctx", specs=specs, carries=("pos3d",))
@@ -231,7 +233,9 @@ def test_geo_above_sign_matches_hand_computed_height_order():
 
 def test_geo_factors_resolve_and_run_on_the_arm_fixture_ctx_set():
     s, pi, b = _arm_batch()
-    sets = relation_token_sets([pi], b, cameras=[(s.model, s.data, "front")])
+    g = ctx_geometry_fields(b)
+    b.extra["ctx_fields"] = attach_cam_uvd(g["pos3d"], g["pos3d.valid"], [(s.model, s.data, "front")])
+    sets = relation_token_sets("arm", b)
     ctx = sets["ctx"]
     specs = resolve([{"name": "geo.pos3d", "source": "given"}, {"name": "geo.orient", "source": "given"},
                      {"name": "geo.above", "source": "given"}, "geo.depth3d"])   # depth3d stays source=probe (default)
