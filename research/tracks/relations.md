@@ -20,7 +20,7 @@ held-out bodies (`heldout`). `base` (preset:arm only) is the paired control at e
 |---|---|---|
 | `recipes/relations/relations_geo.yaml` | `preset:geo` | `geo.pos3d geo.depth3d geo.orient geo.normal_align geo.above` |
 | `recipes/relations/relations_ix.yaml` | `preset:ix` | `ix.contact ix.held_by ix.handover ix.support ix.force_flow` |
-| `recipes/relations/relations_task.yaml` | `preset:task` | `task.next_contact time.same_track` |
+| `recipes/relations/relations_task.yaml` | `preset:task` | `task.next_contact` (`time.same_track` is `planned`, D-146 round 2) |
 
 `preset:ui` (ComputerWorld widget tree) is a pointer-track factor set: it is a `factors:` var of the pointer recipes
 (`recipes/pointer/`), not an arm instance. Legged / humanoid sets (`legged-r19`: `leg.foothold leg.com_support`) run through

@@ -5,7 +5,7 @@
 #   base   preset:arm (the 17 typed edges + incidence messages), the control
 #   geo    + preset:geo   (geo.pos3d geo.depth3d geo.orient geo.normal_align geo.above)
 #   ix     + preset:ix    (ix.contact/support/held_by/handover bilinear pair factors, ix.force_flow over the support graph)
-#   task   + preset:task  (task.next_contact time.same_track)
+#   task   + preset:task  (task.next_contact)
 # The `ui` preset (ui.* on the ComputerWorld widget tree) is a pointer-track factor set: it is a `factors:` var of the
 # pointer recipes (recipes/pointer, P4c), not an arm instance.
 # Instances extend this file and only choose the matrix (recipes/relations/relations_<set>.yaml).

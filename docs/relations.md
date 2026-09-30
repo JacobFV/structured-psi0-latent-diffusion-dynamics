@@ -66,6 +66,8 @@ class TokenSet:
     labels: dict[str, Tensor] = {}    # privileged per-token targets (supervision only)
     def field(self, name) -> Tensor
     def label(self, name) -> Tensor   # raises PrivilegedInput in deploy mode
+    # Field operators honour "<name>.valid" ("<label>.valid" for source gt): a token whose field is invalid contributes
+    # zero on the side it is on (aug q / k features, bias pair values; mask form untouched). D-146 round 2.
 
 @dataclass
 class EdgeSet:                        # a graph field between a query set and a key set
@@ -602,7 +604,7 @@ cleanly.
 | R12 | arm/dual fields | F | `features/{featurizer,multi,kinfeat}.py` (kinfeat → `feat.base_axes`), `nets/batch.py` (TokenSet fields from token columns), `envs/mujoco/sensors.py` (camera projection) | featurizer goldens unchanged; fields `pos3d` (+`.var`), `cam_uvd`, `orient`, `entity_id`, `assembly_id` with correct provenance on the arm fixture; projection test against MuJoCo camera math; `$RRP_KINFEAT` gone, `feat.base_axes` reproduces its features | 4 h |
 | R13 | geometry factors | R12 | `catalog.py` §geo (`geo.pos3d`, `geo.depth3d`, `geo.orient`, `geo.normal_align`, `geo.above`), `tests/unit/test_relations_geo.py` | factors resolve on arm / dual; deploy guard red/green with `source=gt`; field readout (`readout_layer`) wiring test; ≤10 min peer smoke of arm flow with `geo.depth3d source=probe` (loss decreases, depth probe error logged) | 3 h |
 | R14 | geometry labels + parts | R7 | `harness/data/relgen/geometry.py` (labels `pos3d`, `cam_uvd`, `orient`, `contact_normal`; parts `table_objects`, `camera_depth` with `vary`) | labels on arm / dual fixtures match hand-computed values; `camera_depth.vary` keeps pixel, changes depth; provenance recorded | 3 h |
-| R15 | membership / graph factors | R12 | `catalog.py` §graph (`id.same_body`, `id.same_assembly`, `kin.ancestor`, `kin.sibling`, `kin.mirror` generalized), `tests/unit/test_relations.py` (§graph tests only; shared file, no dedicated test file) | closure / hop values on the arm and G1 morphology fixtures; factors resolve on arm / Ψ₀ / legged sets | 2 h |
+| R15 | membership / graph factors | R12 | `catalog.py` §graph (`id.same_body`, `id.same_assembly`, `kin.ancestor`, `kin.sibling`; `kin.mirror` deleted by D-146 round 2, a duplicate of `edge.mirror`), `tests/unit/test_relations.py` (§graph tests only; shared file, no dedicated test file) | closure / hop values on the arm and G1 morphology fixtures; factors resolve on arm / Ψ₀ / legged sets | 2 h |
 | R16 | contact / grasp / handover | R7, R12 | `catalog.py` §contact (`ix.contact`, `ix.held_by`, `ix.handover`), `harness/data/relgen/contact.py` (labels `contact_pairs`, `held_pairs`, `handover_pairs`; part `grasp_target`), `tests/unit/test_relations_contact.py` | labels on grasp / dual-handover fixtures; bilinear readout trains on a synthetic batch (loss decreases, host-cheap) | 3 h |
 | R17 | support / force flow | R7, R12 | `catalog.py` §support (`ix.support`, `ix.force_flow`), `harness/data/relgen/support.py` (label `support_pairs` + closure; part `stack` with `vary`), `tests/unit/test_relations_support.py` | stack fixture: support pairs and upstream / downstream closure correct; `stack.vary` changes only the order | 3 h |
 | R18 | task / temporal / epistemic | R9, R12 | `catalog.py` §task (`task.next_contact`, `time.same_track`), `harness/data/relgen/task.py` (label `next_contact`; candidate-edge emission), `nets/batch.py` (candidate edges only, after R12), `tests/unit/test_relations_r18.py` | next_contact candidates on pick_place / dual fixtures; reveal and surprise applied to its targets; gate `task` changes the bias between two task texts on a fixture | 4 h |
@@ -681,7 +683,7 @@ containment, material, tool→target, cause→effect: new scene parts + labels) 
   force-flow closure (upstream / downstream along support), part `stack` (n objects, vary order), entries.
 - **R18.** Candidate interaction edges (manipulator→graspable, object→support / destination) emitted in the collate
   path as a soft public EdgeSet; `task.next_contact` (bilinear, gate task, `soft_ce` readout) with reveal / surprise
-  targets; `time.same_track` for multi-step token histories (entry + label; used when a net has history tokens).
+  targets; `time.same_track` for multi-step token histories (a `planned` entry since D-146 round 2: no family has history tokens).
 - **R19.** Legged labels (next foothold cell, per-foot contact, COM projection inside the support polygon), entries
   `leg.foothold` / `leg.com_support`, part `terrain_steps`; move the Warp height scan out of the deployable `vec` into
   a label block (privileged layout test).
