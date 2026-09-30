@@ -26,8 +26,8 @@ from rrp.core.errors import ControllerRejection, StaleActionError
 from rrp.core.observation import NodeState, PolicyObservation, SensorChannel, PredicateEstimate
 from rrp.core.robot import CommandGroup, ControllerContract
 from rrp.envs.mujoco.joint_targets import ChunkExecutor, JointTargetController
-from rrp.envs.mujoco.legged_core import LeggedBinding, quat_rotate_inv, yaw_of
-from rrp.envs.mujoco.legged_tracker import load_tracker
+from rrp.envs.mujoco.legged_core import LeggedBinding, TerrainScan, quat_rotate_inv, yaw_of
+from rrp.envs.mujoco.legged_tracker import TrackerMismatch, load_tracker
 from rrp.bodies.compiler import compile_robot_spec
 from rrp.bodies.generators import Module
 from rrp.bodies.legged import legged_body, legged_world
@@ -116,7 +116,7 @@ class LeggedSession(Session):
 
     def __init__(self, scenario: Scenario, *, tracker_kind: str = "auto", seed: int = 0, actuator_mode: str | None = None,
                  actuator_latency_ms: float | None = None, base_state_source: str = "truth_noise", estimator_cfg=None,
-                 control: str = "base_velocity", **kw):
+                 control: str = "base_velocity", tracker: str | None = None, terrain_scan: bool | None = None, **kw):
         """actuator_mode (D-126 #14): None -> $RRP_ACTUATOR_MODE, else rrp.bodies.actuator.ACTUATOR_MODE_DEFAULT ("ideal": the
         bounded PD servo, byte-identical to before). "v1lat" / "v2" route every tracker tick through ActuatorModel (nominal
         parameters, a fixed per-episode latency: actuator_latency_ms, else $RRP_ACTUATOR_LATENCY_MS, else drawn from the seed).
@@ -127,10 +127,19 @@ class LeggedSession(Session):
         "legs" = one step() per 50 Hz tracker tick carrying absolute joint targets for the policy joints (group "legs"),
         no tracker (the body tracker stays loaded as `body_tracker`). Observations, sensing, the task runtime and the
         fall check keep their 10 Hz schedule (`boundary` is True on the ticks where they ran); with no command the
-        declared fallback holds the default stance (also during the reset settle)."""
+        declared fallback holds the default stance (also during the reset settle).
+        tracker (HT): "<body>:<version>" id of a registered actor (rrp.envs.mujoco.legged_tracker.TRACKERS); None = the body's
+        default actor for the scene's contact model. terrain_scan (D-146): the PUBLIC terrain sensor (11 x 7 elevation grid,
+        declared channel `0:terrain_scan`, capability `terrain_scan`); None = on exactly when the tracker's actor takes the
+        scan as input (meta extra_obs_dim 77 + terrain_scan layout), True on any other tracker only publishes the channel;
+        a scan-input actor with terrain_scan=False raises TrackerMismatch. Not available with control="legs"."""
         if control not in ("base_velocity", "legs"):
             raise ValueError(f"control {control!r} not in ('base_velocity', 'legs')")
         self.control = control
+        self.tracker_spec = tracker
+        self._terrain_req = terrain_scan
+        if terrain_scan and control != "base_velocity":
+            raise ValueError('terrain_scan needs control="base_velocity" (the scan is sampled by the body tracker)')
         from rrp.bodies.actuator import resolve_mode
         from rrp.envs.mujoco.state_estimator import BASE_STATE_SOURCES
         if base_state_source not in BASE_STATE_SOURCES:
@@ -156,7 +165,9 @@ class LeggedSession(Session):
         touch = [mr.prefix + n for n in mr.meta["legged"]["touch_sensors"]]
         self.binding = LeggedBinding(m, mr.meta, mr.prefix)
         self.body_key = self.scenario.meta["body_key"]
-        self.tracker = load_tracker(self.body_key, self.binding, mr.meta, self.tracker_kind)
+        self.tracker = load_tracker(self.body_key, self.binding, mr.meta, self.tracker_kind,
+                                    **({"tracker": self.tracker_spec} if self.tracker_spec else {}))
+        self._attach_terrain()
         tc = next(c for c in mr.robot_spec.controller_contracts if c.kind == "legged_tracker")
         self.tracker_contract = tc
         self.tracker_version_str = f"{tc.id}:{tc.version}:{self.tracker.version}:{mr.robot_spec.spec_hash}"
@@ -171,6 +182,30 @@ class LeggedSession(Session):
         return RobotRuntime(i, mr.prefix, mr.robot_spec, mr.meta, ctrl, jn, np.array([m.jnt_qposadr[j] for j in jids]),
                             np.array([m.jnt_dofadr[j] for j in jids]), {"body": mr.prefix + mr.meta["legged"]["imu"]["site"]},
                             touch, None, None, [])
+
+    def _attach_terrain(self):
+        """D-146: build the terrain sensor and wire it to the body tracker. The scan is sampled once per tracker tick, just
+        before the tracker acts (any `_tracker_tick`, including perturb.install_legged's, goes through tracker.act)."""
+        kind = getattr(self.tracker, "extra_kind", "none")
+        on = self._terrain_req
+        if on is None:
+            on = kind == "terrain_scan" and self.control == "base_velocity"
+        if kind == "terrain_scan" and not on and self.control == "base_velocity":
+            raise TrackerMismatch("this tracker takes the terrain scan as input; terrain_scan=False disables the sensor")
+        self.terrain = TerrainScan(self.binding) if on else None
+        if self.terrain is None:
+            return
+        tr, terrain, act = self.tracker, self.terrain, self.tracker.act
+
+        def act_with_scan(data, cmd):
+            terrain.tick(data)
+            return act(data, cmd)
+        tr.act = act_with_scan
+        if kind == "terrain_scan":
+            tr.extra_fn = lambda data: terrain.values
+
+    def _capabilities(self) -> list[str]:
+        return super()._capabilities() + (["terrain_scan"] if self.terrain is not None else [])
 
     def controller_version(self, robot: int = 0) -> str:
         return self.tracker_version_str
@@ -203,6 +238,8 @@ class LeggedSession(Session):
         r.controller.prev = r.controller.current_targets(self.data)
         r.controller.target = dict(r.controller.prev)
         self.tracker.reset(0.0)
+        if self.terrain is not None:
+            self.terrain.reset(self.data, seed)
         self.cmd = np.zeros(3)
         self.env_rng = np.random.default_rng([seed, 1])
         self.sampler_rng = np.random.default_rng([seed, 2])
@@ -396,6 +433,9 @@ class LeggedSession(Session):
         if self.loc is not None:
             chans.append(SensorChannel(name="0:localization", kind="base_pose_xy_yaw", values=self.loc.copy(),
                                        mask=np.ones(3, bool), timestamp=t))
+        if self.terrain is not None and self.terrain.values is not None:
+            chans.append(SensorChannel(name="0:terrain_scan", kind="terrain_elevation_grid", values=self.terrain.values.copy(),
+                                       mask=self.terrain.valid.copy(), timestamp=t))
         chans.append(SensorChannel(name="0:base_velocity_command", kind="command_echo", values=self.cmd.copy(),
                                    mask=np.ones(3, bool), timestamp=t))
         pes = []
@@ -552,6 +592,8 @@ class LeggedSession(Session):
                                                    speed_est=self.speed_est,
                                                    hist=[h.tolist() for h in self.loc_hist])
         c["entity_tracker"] = self.tracker_obj.state()
+        if self.terrain is not None:
+            c["sensor_filters"]["terrain_scan"] = self.terrain.state()
         if self.base_estimator is not None:
             c["sensor_filters"]["base_estimator"] = dict(self.base_estimator.state(),
                                                          hist=[h.tolist() for h in self.est_hist])
@@ -584,6 +626,8 @@ class LeggedSession(Session):
         self.loc = None if loc.get("loc") is None else np.array(loc["loc"])
         self.speed_est = loc.get("speed_est", float("nan"))
         self.loc_hist = [np.array(h) for h in loc.get("hist", [])]
+        if self.terrain is not None and "terrain_scan" in c["sensor_filters"]:
+            self.terrain.load(c["sensor_filters"]["terrain_scan"])
         if self.base_estimator is not None and "base_estimator" in c["sensor_filters"]:
             be = c["sensor_filters"]["base_estimator"]
             self.base_estimator.load(be)

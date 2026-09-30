@@ -2,13 +2,13 @@
 
 WarpStepsEnv (task h_steps, rrp.envs.humanoid_scenes): the staircase is part of the world; per-world step height
 h = h_frac x L with h_frac ~ U(0, level x 0.30) (curriculum level, set_level). The command layer is SCRIPTED (heading
-controller toward +x at 0.6 vx_max: label scripted_command); the learned expert maps (tracker observation + PRIVILEGED height
-scan) -> joint targets (label privileged_teacher:rl_expert). Success: base x > x_end + 0.3 L without a fall.
-Privileged extra observation (expert / critic only, never the deployable vec -- D-144 R19, docs/relations.md 5.1 and
-section 10 row R19: this used to be concatenated onto `observe()`'s public output; `extra_obs()` now feeds only
-`privileged()`, matching `rrp.envs.base.VectorObservation`'s own contract, "privileged state is truth()", and the
-module docstring below it, "the actor is then... deployed without it"): ground height minus (base z - L) at an
-11 x 3 grid in the yaw frame (x -0.3 L .. 1.2 L, y -0.25 L .. 0.25 L), divided by L; plus h_frac.
+controller toward +x at 0.6 vx_max: label scripted_command / scripted_teacher). The learned expert maps the PUBLIC actor
+observation (tracker proprio + the terrain scan, D-146: `terrain_scan=True` always, ground height from `height_at`) to joint
+targets; the critic additionally gets the exact scan (WarpTrackerEnv.privileged) and h_frac. Because the actor input is public
+the expert's label is `learned:rl_expert:<sha>` (rrp.policies.teachers.humanoid.make_rl_expert). Success: base x > x_end + 0.3 L
+without a fall.
+WarpGapEnv (task h_gap): the gap layout is critic-only (`task_priv`, D-144 R19); the actor is proprio only (the terrain scan
+covers the ground, not walls).
 """
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ import math
 import numpy as np
 import torch
 
-from rrp.envs.mujoco.humanoid_scenes import (BURY, SCAN_X, SCAN_Y, STEPS_N, STEPS_PLATFORM, STEPS_TREAD, STEPS_X0,
+from rrp.envs.mujoco.humanoid_scenes import (BURY, STEPS_N, STEPS_PLATFORM, STEPS_TREAD, STEPS_X0,
                                               task_model)
 from rrp.envs.warp.tracker_env import WarpTrackerEnv
 
@@ -25,11 +25,9 @@ H_MAX = 0.30
 
 
 def _layout_dims(base_obs_dim: int, base_priv_dim: int, extra_dim: int) -> tuple[int, int]:
-    """Deployable / privileged observation-width split for a Warp task env's extra (privileged) block (D-144 R19,
-    docs/relations.md section 10 row R19's "privileged layout test"): the base tracker's public width is the
-    actor's `obs_dim`, UNCHANGED by `extra_dim` (the height-scan-style block, `extra_obs()`); `extra_dim` widens
-    `priv_dim` (the critic-only channel, `WarpTrackerEnv.privileged`) instead of the deployable vec. Pure arithmetic,
-    no CUDA / mujoco_warp needed to test it -- the actual width numbers a live env would compute."""
+    """Deployable / privileged observation-width split for a Warp task env's task-specific privileged block (D-144 R19,
+    docs/relations.md section 10 row R19's "privileged layout test"): the actor's `obs_dim` is UNCHANGED by `extra_dim`
+    (`task_priv()`); it widens `priv_dim` (the critic-only channel) instead. Pure arithmetic, no CUDA / mujoco_warp needed."""
     return base_obs_dim, base_priv_dim + extra_dim
 
 
@@ -50,6 +48,7 @@ def task_adapted_model(key: str, task: str, params=None):
 class WarpStepsEnv(WarpTrackerEnv):
     def __init__(self, body, nworld: int, seed: int = 1, level: float = 0.0, **kw):
         kw.setdefault("cmd_mix", "default")
+        kw["terrain_scan"] = True                  # the staircase is seen through the PUBLIC terrain scan (D-146)
         # steps = fixed-size boxes on mocap bodies, moved per world (runtime geom size changes broke mujoco_warp contacts:
         # a flush h=0 staircase tipped h1 r6 over at x ~ 1 m in 100% of episodes, while the same model compiled at h=0 did not)
         super().__init__(body, nworld, seed, model_fn=lambda k: task_adapted_model(k, "h_steps", {"h_frac": 0.0, "mocap_h_max": H_MAX}),
@@ -65,17 +64,18 @@ class WarpStepsEnv(WarpTrackerEnv):
         self.mocap_pos = self.wp.to_torch(self.dw.mocap_pos)            # (N, nmocap, 3)
         self.step_mocap = [int(m.body_mocapid[m.geom_bodyid[g]]) for g in self.step_gids]
         self.box_hz = float(0.5 * (BURY + (STEPS_N + 1) * H_MAX))        # x L
-        sx, sy = np.meshgrid(SCAN_X, SCAN_Y, indexing="ij")
-        self.scan_xy = torch.as_tensor(np.stack([sx.ravel(), sy.ravel()], -1), device=self.dev, dtype=torch.float32)
         self.prev_x = torch.zeros(self.N, device=self.dev)
         self._layout(torch.ones(self.N, dtype=torch.bool, device=self.dev))
         self.reset_all()
-        self.obs_dim, self.priv_dim = _layout_dims(self.b.obs_dim, self.priv_dim, int(self.extra_obs().shape[1]))
-        # `observe()` is deliberately NOT overridden here any more (D-144 R19): the base `WarpTrackerEnv.observe`
-        # is already the full deployable vec; the height scan reaches only `privileged()` below.
+        self.obs_dim, self.priv_dim = _layout_dims(self.obs_dim, self.priv_dim, 1)
+        # `observe()` is deliberately NOT overridden (D-144 R19): the base `WarpTrackerEnv.observe` is the full deployable
+        # vec (proprio + public scan); only `privileged()` below adds the task's h_frac.
 
     def privileged(self, fc):
-        return torch.cat([super().privileged(fc), self.extra_obs()], -1)
+        return torch.cat([super().privileged(fc), self.task_priv()], -1)
+
+    def task_priv(self):
+        return (self.h / self.L)[:, None] if hasattr(self, "mocap_pos") else torch.zeros(self.N, 1, device=self.dev)
 
     def set_level(self, level: float) -> float:
         self.level = float(min(1.0, max(0.0, level)))
@@ -105,9 +105,14 @@ class WarpStepsEnv(WarpTrackerEnv):
             self.mocap_pos[:, mid] = torch.where(M, pos, self.mocap_pos[:, mid])
         self._rows = rows
 
+    def ground_z(self, xw, yw):
+        return self.height_at(xw)
+
     def height_at(self, xw):
-        """Ground height at world x (N, P) for each world's staircase."""
+        """Ground height at world x (N, P) for each world's staircase (flat before the first layout)."""
         z = torch.zeros_like(xw)
+        if not hasattr(self, "_rows"):
+            return z
         for cx, hx, top in self._rows:
             z = torch.where((xw - cx[:, None]).abs() <= hx[:, None], torch.maximum(z, top[:, None]), z)
         return z
@@ -124,10 +129,7 @@ class WarpStepsEnv(WarpTrackerEnv):
             q[:, self.qa + 6] = torch.where(mask, torch.sin(yaw / 2), q[:, self.qa + 6])
             self.prev_x = torch.where(mask, q[:, self.qa], self.prev_x)
             self._command()
-
-    def _yaw(self):
-        q = self.qpos[:, self.qa + 3:self.qa + 7]
-        return torch.atan2(2 * (q[:, 0] * q[:, 3] + q[:, 1] * q[:, 2]), 1 - 2 * (q[:, 2] ** 2 + q[:, 3] ** 2))
+            self._scan_sync(mask)
 
     def _command(self):
         """Scripted heading controller (scripted_command): walk +x at 0.6 vx_max, steer yaw and lateral offset to 0."""
@@ -138,17 +140,6 @@ class WarpStepsEnv(WarpTrackerEnv):
         self.cmd = torch.stack([vx, torch.zeros_like(vx), (1.5 * head).clamp(-0.5, 0.5)], -1)
         self.turn_cmd = torch.zeros_like(self.turn_cmd)
         self.cmd_timer = torch.full_like(self.cmd_timer, 1e6)
-
-    def extra_obs(self):
-        if not hasattr(self, "mocap_pos"):
-            return torch.zeros(self.N, SCAN_X.size * SCAN_Y.size + 1, device=self.dev)
-        yaw = self._yaw()
-        c, s_ = torch.cos(yaw), torch.sin(yaw)
-        L = self.L[:, None]
-        px = self.qpos[:, self.qa:self.qa + 1] + L * (c[:, None] * self.scan_xy[:, 0] - s_[:, None] * self.scan_xy[:, 1])
-        hz = self.height_at(px)
-        base = self.qpos[:, self.qa + 2:self.qa + 3] - L
-        return torch.cat([(hz - base) / L, (self.h / self.L)[:, None]], -1)
 
     def task_step(self, fell):
         x = self.qpos[:, self.qa]
@@ -196,11 +187,11 @@ class WarpGapEnv(WarpTrackerEnv):
         self.gap_w, self.gap_y, self.psi_f, self.phase2, self.wall_t, self.hold_t = z.clone(), z.clone(), z.clone(), z.clone(), z.clone(), z.clone()
         self._layout(torch.ones(self.N, dtype=torch.bool, device=self.dev))
         self.reset_all()
-        self.obs_dim, self.priv_dim = _layout_dims(self.b.obs_dim, self.priv_dim, int(self.extra_obs().shape[1]))
+        self.obs_dim, self.priv_dim = _layout_dims(self.obs_dim, self.priv_dim, 8)
         # `observe()` not overridden (D-144 R19): see WarpStepsEnv above -- same fix, same reason.
 
     def privileged(self, fc):
-        return torch.cat([super().privileged(fc), self.extra_obs()], -1)
+        return torch.cat([super().privileged(fc), self.task_priv()], -1)
 
     def set_level(self, level: float) -> float:
         self.level = float(min(1.0, max(0.0, level)))
@@ -232,10 +223,7 @@ class WarpGapEnv(WarpTrackerEnv):
             q[:, self.qa + 3] = torch.where(mask, torch.cos(yaw / 2), q[:, self.qa + 3])
             q[:, self.qa + 6] = torch.where(mask, torch.sin(yaw / 2), q[:, self.qa + 6])
             self._command()
-
-    def _yaw(self):
-        q = self.qpos[:, self.qa + 3:self.qa + 7]
-        return torch.atan2(2 * (q[:, 0] * q[:, 3] + q[:, 1] * q[:, 2]), 1 - 2 * (q[:, 2] ** 2 + q[:, 3] ** 2))
+            self._scan_sync(mask)
 
     def _command(self):
         from rrp.envs.mujoco.humanoid_scenes import GAP_X
@@ -253,7 +241,7 @@ class WarpGapEnv(WarpTrackerEnv):
         self.turn_cmd = (self.phase2 > 0) & (self.cmd[:, 2] != 0)
         self.cmd_timer = torch.full_like(self.cmd_timer, 1e6)
 
-    def extra_obs(self):
+    def task_priv(self):
         if not hasattr(self, "mocap_pos"):
             return torch.zeros(self.N, 8, device=self.dev)
         from rrp.envs.mujoco.humanoid_scenes import GAP_X

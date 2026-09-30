@@ -49,7 +49,7 @@ def _kv(spec: str) -> dict:
 
 def build_args(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("--recipe", default=None, help="name in rrp.harness.train.humanoid_recipes or a JSON file of defaults")
+    ap.add_argument("--recipe", default=None, help="name in rrp.harness.train.tracker_recipes.WARP_RECIPES or a JSON file of defaults")
     ap.add_argument("--body")
     ap.add_argument("--out")
     ap.add_argument("--nworld", type=int, default=4096)
@@ -91,7 +91,10 @@ def build_args(argv=None):
     ap.add_argument("--no-push", action="store_true")
     ap.add_argument("--nconmax", type=int, default=48)
     ap.add_argument("--njmax", type=int, default=320)
-    ap.add_argument("--task", default=None, help="None (tracker) | steps (h_steps privileged expert, rrp.envs.warp_task_env)")
+    ap.add_argument("--task", default=None, help="None (tracker) | steps (h_steps expert: public terrain scan in the actor) | "
+                    "gap (h_gap expert; privileged gap terms in the critic only), rrp.envs.warp.task_env")
+    ap.add_argument("--terrain-scan", action="store_true", help="append the public terrain_scan_v1 (D-146) to the actor input "
+                    "(always on for --task steps)")
     ap.add_argument("--level-every", type=int, default=25, help="task curriculum window (iterations)")
     ap.add_argument("--level-up", type=float, default=0.7, help="window success rate to raise the task level")
     ap.add_argument("--level-down", type=float, default=0.3)
@@ -100,7 +103,7 @@ def build_args(argv=None):
     ap.add_argument("--groups", default=None, help="morph_v1 shared tracker: JSON list of [[body keys], nworld] (or a recipe key)")
     a0, _ = ap.parse_known_args(argv)
     if a0.recipe:
-        from rrp.harness.train.humanoid_recipes import recipe_record
+        from rrp.harness.train.tracker_recipes import recipe_record
         opts, rec = recipe_record(a0.recipe)
         ap.set_defaults(**opts)
         args = ap.parse_args(argv)
@@ -113,18 +116,14 @@ def build_args(argv=None):
     return args
 
 
-def main(argv=None):
-    args = build_args(argv)
-    from rrp.envs.warp.tracker_env import ENV_VERSION, MorphMultiEnv, WarpTrackerEnv, window_metrics
-    import mujoco_warp
-    torch.manual_seed(args.seed)
-    out = Path(args.out)
-    out.mkdir(parents=True, exist_ok=True)
-    dev = torch.device("cuda")
+def make_env(args):
+    """(env, groups) for the parsed args: WarpTrackerEnv / task env, or a MorphMultiEnv over --groups."""
+    from rrp.envs.warp.tracker_env import MorphMultiEnv, WarpTrackerEnv
     ekw = dict(reward_overrides=_kv(args.reward_set), episode_s=args.episode_s, push=not args.no_push, cmd_mix=args.cmd_mix,
                turn_frac=args.turn_frac, slow_frac=args.slow_frac, nconmax=args.nconmax, njmax=args.njmax,
                teacher_stop=args.teacher_stop, clock_gate=args.clock_gate, target_margin=args.target_margin,
-               land_vel=args.land_vel, force_cap=args.force_cap, force_cap_bw=args.force_cap_bw)
+               land_vel=args.land_vel, force_cap=args.force_cap, force_cap_bw=args.force_cap_bw,
+               terrain_scan=args.terrain_scan)
     groups = None
     env_cls = None
     if args.task == "steps":
@@ -140,6 +139,25 @@ def main(argv=None):
         env = MorphMultiEnv(groups, seed=args.seed, env_cls=env_cls, **ekw)
     else:
         env = (env_cls or WarpTrackerEnv)(args.body, args.nworld, seed=args.seed, **ekw)
+    return env, groups
+
+
+def main(argv=None):
+    args = build_args(argv)
+    import mujoco_warp
+    torch.manual_seed(args.seed)
+    dev = torch.device("cuda")
+    env, groups = make_env(args)
+    train(args, env, groups=groups, dev=dev, engine=f"mujoco_warp {getattr(mujoco_warp, '__version__', '3.14.0')}")
+
+
+def train(args, env, *, groups=None, dev, engine: str):
+    """Asymmetric PPO on `env` (the Warp env, or any object with the same surface), writing meta.json / train_log.jsonl /
+    checkpoint.pt / actor.pt under args.out."""
+    from rrp.envs.warp.tracker_env import ENV_VERSION, window_metrics
+    from rrp.envs.mujoco.legged_core import terrain_scan_spec
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
     task_envs = [e for e in getattr(env, "envs", [env]) if hasattr(e, "set_level")]
     level = float(args.level0)
     for e in task_envs:
@@ -187,8 +205,10 @@ def main(argv=None):
         print(f"resumed from iter {it0}", flush=True)
     meta = dict(body=args.body or "shared", obs_dim=env.obs_dim, priv_dim=env.priv_dim, act_dim=env.nA, control_dt=env.dt, hidden=list(hidden),
                 kind=env.b.kind, algo="ppo_asymmetric_actor_critic",
-                actor_inputs="public: imu gyro, imu gravity, command, joint pos/vel, last action, gait clock",
-                critic_inputs="public + privileged: base lin vel, height, foot contacts, friction, push flag + reward-schedule alpha",
+                actor_inputs="public: imu gyro, imu gravity, command, joint pos/vel, last action, gait clock"
+                             + (", terrain_scan_v1 (sensor model: noise, dropout, 1-tick latency)" if env.extra_dim else ""),
+                critic_inputs="public + privileged: base lin vel, height, foot contacts, friction, push flag + reward-schedule alpha"
+                              + (", exact noise-free terrain scan" if env.extra_dim else "") + (", task terms" if args.task else ""),
                 source_label="learned_tracker (trained with privileged critic)", args={k: v for k, v in vars(args).items()
                                                                                        if k != "recipe_record"},
                 contact_model=env.meta.get("contact_model"), reward_version="gait_v2", init_from=args.init_shared,
@@ -196,15 +216,15 @@ def main(argv=None):
                 ref_ff=0.0,
                 actuator_limits=env.meta.get("actuator_limits"), actuator=None,
                 alpha_schedule=args.alpha_schedule, trainer=TRAINER_VERSION, env_version=ENV_VERSION,
-                sim_engine=f"mujoco_warp {getattr(mujoco_warp, '__version__', '3.14.0')}", sim_adaptations=env.adaptations,
+                sim_engine=engine, sim_adaptations=env.adaptations,
                 env_differences="per-world randomisation resampled at reset; see rrp.envs.warp_tracker_env docstring",
                 reward_options=env.cfg0.options(), recipe=args.recipe_record, task=args.task,
                 clock_gate=bool(args.clock_gate), target_margin=float(args.target_margin), land_vel=float(args.land_vel), force_cap=float(args.force_cap),
                 force_cap_bw=float(args.force_cap_bw),
-                extra_obs_dim=int(getattr(env, "extra_dim", env.obs_dim - env.b.obs_dim)),
-                extra_obs={"steps": "privileged height scan 11x3 + h_frac (critic only; R19 moved it out of the actor's deployable vec)",
-                           "gap": "privileged gap centre/width/wall distance, body width, final heading, phase (critic only; R19 moved it out of the actor's deployable vec)"}.get(args.task),
-                gpu=torch.cuda.get_device_name(0))
+                extra_obs_dim=int(env.extra_dim), extra_obs="terrain_scan" if env.extra_dim else "none",
+                gpu=(torch.cuda.get_device_name(0) if dev.type == "cuda" else str(dev)))
+    if env.extra_dim:
+        meta["terrain_scan"] = terrain_scan_spec()
     if groups is not None:
         from rrp.envs.mujoco.morph_obs import OBS_FORMAT
         meta.update(obs_format=OBS_FORMAT, groups=groups, train_bodies=sorted({k for ks, _ in groups for k in ([ks] if isinstance(ks, str) else ks)}),

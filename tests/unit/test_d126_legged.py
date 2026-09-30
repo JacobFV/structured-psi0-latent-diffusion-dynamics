@@ -221,7 +221,7 @@ def test_pipeline_threads_the_declared_actuator_mode(tmp_path, monkeypatch):
 
 def test_tracker_recipes_parse_and_pin_their_initial_actors():
     from rrp.harness.train import tracker_training as T
-    from rrp.harness.train.tracker_recipes import TRACKER_RECIPES
+    from rrp.harness.train.tracker_recipes import CPU_RECIPES as TRACKER_RECIPES
     seen = {}
     T_train = T.train
     try:
@@ -250,7 +250,7 @@ def test_tracker_recipes_parse_and_pin_their_initial_actors():
 
 def test_tracker_recipe_dags_plan():
     from rrp.harness.dag import load_dag, plan_dag
-    from rrp.harness.train.tracker_recipes import TRACKER_RECIPES
+    from rrp.harness.train.tracker_recipes import CPU_RECIPES as TRACKER_RECIPES
     for f in sorted((ROOT / "recipes/humanoid").glob("d126_tracker_*.yaml")):
         p = plan_dag(load_dag(f), source="t")
         tr = p.nodes["train"]

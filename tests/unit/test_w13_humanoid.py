@@ -27,7 +27,7 @@ def test_sealed_bodies_disjoint_from_training():
 
 def test_recipes_train_only_pool_bodies_and_valid_reward_keys():
     from rrp.envs.mujoco.legged_core import RewardCfg
-    from rrp.harness.train.humanoid_recipes import HUMANOID_RECIPES, recipe_record
+    from rrp.harness.train.tracker_recipes import WARP_RECIPES as HUMANOID_RECIPES, recipe_record
     pool = set(SPLIT["source_train_bodies"])
     for name, rec in HUMANOID_RECIPES.items():
         opts, record = recipe_record(name)

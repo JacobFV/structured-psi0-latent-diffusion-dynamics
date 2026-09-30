@@ -123,6 +123,8 @@ POLICIES: dict[str, str] = {
     "teacher:cw/open_type": "rrp.policies.teachers:make_cw_teacher_policy",
     "teacher:cw/drag_window": "rrp.policies.teachers:make_cw_teacher_policy",
     "teacher:cw/fill_form": "rrp.policies.teachers:make_cw_teacher_policy",
+    "rl_expert": "rrp.policies.teachers.humanoid:make_rl_expert",   # make_policy("rl_expert", tracker="<body>:<version>")
+    "rl_expert:*": "rrp.policies.teachers.humanoid:make_rl_expert",  # make_policy("rl_expert:<body>:<version>")
     "bc": "rrp.policies.bc:make_bc",
     "latent": "rrp.policies.latent:make_latent",
     "legged_latent": "rrp.policies.legged:make_legged_latent",

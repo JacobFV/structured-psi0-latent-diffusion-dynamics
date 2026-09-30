@@ -13,6 +13,11 @@ Declared differences from LeggedEnv (recorded in actor meta `sim_engine` / `sim_
   * slip: normal-force-weighted horizontal speed of the foot body AT each floor contact point (as LeggedBinding.stance).
 Reward: rrp.envs.legged_core.RewardCfg weights (gait_v2 + overrides), the same terms and formulas as LeggedEnv.step.
 
+Terrain (D-146): with `terrain_scan=True` the actor observation is proprio + the PUBLIC terrain scan (rrp.envs.mujoco.legged_core:
+TERRAIN_SCAN_VERSION: 11 x 7 yaw-frame elevation cells, sigma 1 cm noise, 2 % dropout, one tick of latency), sampled from the
+task's analytic ground height (`ground_z`; flat here) exactly as LeggedSession samples it with mj_ray; the critic block gets the
+exact, current, noise-free scan (privileged). `extra_dim` is the width of that block (0 = blind actor).
+
 Requires mujoco_warp + warp-lang (not rrp dependencies; peer: PYTHONPATH=src:~/work/ext/pylibs/mjwarp) and torch (CUDA).
 """
 from __future__ import annotations
@@ -24,7 +29,8 @@ import mujoco
 import numpy as np
 import torch
 
-from rrp.envs.mujoco.legged_core import CMD_SCALE, MIN_STOP_SHARE, RewardCfg
+from rrp.envs.mujoco.legged_core import (CMD_SCALE, MIN_STOP_SHARE, SCAN_DIM, SCAN_DROPOUT, SCAN_DROPOUT_VALUE, SCAN_OFFSETS,
+                                          SCAN_RANGE, SCAN_SIGMA, RewardCfg)
 from rrp.envs.warp.model import build_model, default_data
 
 ENV_VERSION = "warp_tracker_env_v1"
@@ -74,7 +80,7 @@ class WarpTrackerEnv:
                  push: bool = True, obs_noise: float = 1.0, cmd_mix: str = "default", teacher_stop: float = MIN_STOP_SHARE,
                  turn_frac: float = 0.25, slow_frac: float = 0.0, randomize: bool = True, nconmax: int = 48,
                  njmax: int = 320, model_fn=None, extra_batch=(), clock_gate: bool = False, target_margin: float = 0.0,
-                 land_vel: float = 0.0, force_cap: float = 0.0, force_cap_bw: float = 2.5):
+                 land_vel: float = 0.0, force_cap: float = 0.0, force_cap_bw: float = 2.5, terrain_scan: bool = False):
         wp, mjw = _wp()
         self.wp, self.mjw = wp, mjw
         self.dev = torch.device("cuda")
@@ -221,8 +227,11 @@ class WarpTrackerEnv:
             with wp.ScopedCapture() as cap:
                 mjw.step(self.mw, self.dw)
         self.graph = cap.graph
-        self.obs_dim = b.obs_dim
-        self.priv_dim = b.priv_dim + 1
+        self.extra_dim = SCAN_DIM if terrain_scan else 0
+        self.obs_dim = b.obs_dim + self.extra_dim
+        self.priv_dim = b.priv_dim + 1 + self.extra_dim
+        self._scan_off = torch.as_tensor(SCAN_OFFSETS, device=self.dev, dtype=torch.float32)
+        self._scan_pub = torch.zeros(self.N, self.extra_dim, device=self.dev)
         self.reset_all()
 
     # ------------------------------------------------------------------ helpers
@@ -322,6 +331,7 @@ class WarpTrackerEnv:
             self.fric_scale = torch.where(mask, mu / 0.9, self.fric_scale)
             self.lat = torch.where(mask, torch.randint(0, 5, (n,), generator=self.gen, device=self.dev), self.lat)
         self._sample_cmd(mask)
+        self._scan_sync(mask)
 
     def reset_all(self):
         self._reset(torch.ones(self.N, dtype=torch.bool, device=self.dev))
@@ -346,7 +356,7 @@ class WarpTrackerEnv:
                        self.clock_obs()], -1)
         if self.obs_noise:
             o = o + torch.randn(o.shape, generator=self.gen, device=self.dev) * self._nz * self.obs_noise
-        return o
+        return torch.cat([o, self.extra_obs()], -1) if self.extra_dim else o
 
     def clock_obs(self):
         c = torch.stack([torch.sin(2 * math.pi * self.phase), torch.cos(2 * math.pi * self.phase)], -1)
@@ -355,8 +365,44 @@ class WarpTrackerEnv:
             c = c * mv[:, None]
         return c
 
+    # ------------------------------------------------------------------ public terrain scan (D-146)
+    def _yaw(self):
+        q = self.qpos[:, self.qa + 3:self.qa + 7]
+        return torch.atan2(2 * (q[:, 0] * q[:, 3] + q[:, 1] * q[:, 2]), 1 - 2 * (q[:, 2] ** 2 + q[:, 3] ** 2))
+
+    def ground_z(self, xw, yw):
+        """Ground height (m) at world (x, y), each (N, P). Flat floor here; task envs override with their scene."""
+        return torch.zeros_like(xw)
+
+    def terrain_exact(self):
+        """(N, SCAN_DIM) exact scan of the current pose: nominal_h - clip(base_z - ground_z, 0, SCAN_RANGE) per cell (the
+        numpy twin is rrp.envs.mujoco.legged_core.TerrainScan.exact, which casts mj_ray)."""
+        yaw = self._yaw()
+        c, s_ = torch.cos(yaw)[:, None], torch.sin(yaw)[:, None]
+        o = self._scan_off
+        px = self.qpos[:, self.qa:self.qa + 1] + c * o[:, 0] - s_ * o[:, 1]
+        py = self.qpos[:, self.qa + 1:self.qa + 2] + s_ * o[:, 0] + c * o[:, 1]
+        rng = (self.qpos[:, self.qa + 2:self.qa + 3] - self.ground_z(px, py)).clamp(0.0, SCAN_RANGE)
+        return self.nominal_h[:, None] - rng
+
+    def _scan_model(self, exact):
+        """The declared sensor model (numpy twin: legged_core.scan_sensor_model): N(0, SCAN_SIGMA) noise, SCAN_DROPOUT of the
+        cells read SCAN_DROPOUT_VALUE. Independent of `obs_noise` (the scan noise is the sensor's, not a training knob)."""
+        v = exact + torch.randn(exact.shape, generator=self.gen, device=self.dev) * SCAN_SIGMA
+        keep = torch.rand(exact.shape, generator=self.gen, device=self.dev) >= SCAN_DROPOUT
+        return torch.where(keep, v, torch.full_like(v, SCAN_DROPOUT_VALUE))
+
+    def _scan_sync(self, mask):
+        """Episode start of the masked worlds: the published scan is the (noisy) scan of the new pose."""
+        if self.extra_dim:
+            self._scan_pub = torch.where(mask[:, None], self._scan_model(self.terrain_exact()), self._scan_pub)
+
     def extra_obs(self):
-        """Task-specific PRIVILEGED expert inputs (height scan, targets); none for the plain tracker."""
+        """The PUBLIC extra actor inputs: the terrain scan of the pre-step pose (one tick of latency); (N, 0) when blind."""
+        return self._scan_pub
+
+    def task_priv(self):
+        """Task-specific PRIVILEGED critic inputs (targets, layout); none for the plain tracker."""
         return torch.zeros(self.N, 0, device=self.dev)
 
     def task_step(self, fell):
@@ -369,9 +415,10 @@ class WarpTrackerEnv:
         return quat_rot_inv(quat, self.qvel[:, self.da:self.da + 3])
 
     def privileged(self, fc):
-        return torch.cat([self._base_vel_body(), (self.qpos[:, self.qa + 2] - self.nominal_h)[:, None], fc.float(),
-                          (self.fric_scale - 1)[:, None], self.push_flag[:, None],
-                          torch.full((self.N, 1), self.alpha, device=self.dev)], -1)
+        p = torch.cat([self._base_vel_body(), (self.qpos[:, self.qa + 2] - self.nominal_h)[:, None], fc.float(),
+                       (self.fric_scale - 1)[:, None], self.push_flag[:, None],
+                       torch.full((self.N, 1), self.alpha, device=self.dev)], -1)
+        return torch.cat([p, self.terrain_exact()], -1) if self.extra_dim else p     # the critic keeps the exact scan
 
     # ------------------------------------------------------------------ contacts
     def _stance(self):
@@ -413,6 +460,8 @@ class WarpTrackerEnv:
             new_t = torch.clamp(self.q0 + self.scale * a, self.lo + self.target_margin * sp_, self.hi - self.target_margin * sp_)
         else:
             new_t = torch.clamp(self.q0 + self.scale * a, self.lo, self.hi)
+        if self.extra_dim:       # the scan the actor sees after this step is the one taken from the pre-step pose
+            self._scan_pub = self._scan_model(self.terrain_exact())
         old_full = self.ctrl.clone()
         if self.held_act is not None:
             old_full[:, self.held_act] = self.q0_held
@@ -765,7 +814,7 @@ class MorphMultiEnv:
             self.names.append(keys[0] if len(keys) == 1 else f"{keys[0]}+{len(keys) - 1}")
             n0 += e.N
         self.N, self.nA, self.nf = n0, NS, 2
-        self.extra_dim = int(self.envs[0].extra_obs().shape[1])
+        self.extra_dim = int(self.envs[0].extra_dim)
         self.obs_dim, self.dyn_dim, self.ctx_dim = OBS_DIM + self.extra_dim, DYN_DIM, CTX_DIM
         self.priv_dim = self.envs[0].priv_dim
         self.dev = self.envs[0].dev
@@ -864,7 +913,8 @@ class WarpEnv:
                        batch=int(e.N), control_hz=1.0 / dt,
                        action_spaces=[ActionSpace(group="legs", kind="joint_position", width=int(e.nA), rate_hz=1.0 / dt,
                                                   low=[-5.0] * int(e.nA), high=[5.0] * int(e.nA), units="normalized")],
-                       capabilities=["batched", "vector_obs", "reward", "privileged_truth", "proprio"],
+                       capabilities=["batched", "vector_obs", "reward", "privileged_truth", "proprio"]
+                       + (["terrain_scan"] if int(getattr(e, "extra_dim", 0)) else []),
                        provenance=dict(engine=type(e).__name__, obs_dim=int(e.obs_dim)))
 
     def _vobs(self, o):

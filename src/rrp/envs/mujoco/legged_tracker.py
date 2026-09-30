@@ -13,15 +13,28 @@ from __future__ import annotations
 
 import json
 import math
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 
-from rrp.envs.mujoco.legged_core import LeggedBinding
+from rrp.core.paths import rrp_home
+from rrp.envs.mujoco.legged_core import SCAN_DIM, TERRAIN_SCAN_VERSION, LeggedBinding
 
 
 class TrackerMismatch(ValueError):
     code = "tracker_body_mismatch"
+
+
+def extra_kind(meta: dict) -> str:
+    """What the actor's extra input block is: none | terrain_scan (the PUBLIC D-146 scan, layout-versioned) | privileged
+    (any other extra_obs_dim: a task-specific privileged block the caller must supply through `extra_fn`)."""
+    n = int(meta.get("extra_obs_dim") or 0)
+    if n == 0:
+        return "none"
+    if n == SCAN_DIM and (meta.get("terrain_scan") or {}).get("version") == TERRAIN_SCAN_VERSION:
+        return "terrain_scan"
+    return "privileged"
 
 
 class LearnedTracker:
@@ -47,6 +60,14 @@ class LearnedTracker:
         # W13 task experts: PRIVILEGED extra inputs (e.g. a height scan) appended to the observation; the caller sets
         # extra_fn(data) -> np.ndarray (meta extra_obs_dim). None for every plain tracker.
         self.extra_fn = None
+        self.extra_kind = extra_kind(meta)
+        self.spec = None                                 # '<body>:<version>' when loaded from the registry
+        if self.extra_kind == "terrain_scan":
+            from rrp.envs.mujoco.legged_core import terrain_scan_spec
+            want = terrain_scan_spec()
+            got = meta["terrain_scan"]
+            if any(got.get(k) != want[k] for k in ("shape", "cell_m", "x0_m", "y0_m", "frame", "range_m")):
+                raise TrackerMismatch("tracker was trained with a different terrain-scan layout")
         self.net = mlp(meta["obs_dim"], tuple(meta["hidden"]), meta["act_dim"])
         self.net.load_state_dict(st["actor"])
         self.net.eval()
@@ -192,20 +213,88 @@ class CPGTracker:
         self.phase = st["phase"]
 
 
-TRACKER_DIR = Path(__file__).resolve().parents[3] / "artifacts" / "trackers"
+TRACKER_DIR = rrp_home() / "artifacts" / "trackers"
+V1 = "contact_v1"                                   # the v1 actor lives at trackers/<body>/ (no version subdirectory)
+
+
+@dataclass(frozen=True)
+class TrackerEntry:
+    """One registered actor: `artifacts/trackers/<body>/<version>/meta.json` (v1: `<body>/meta.json`, version contact_v1)."""
+    body: str
+    version: str
+    sha256: str | None          # meta pin of the actor file (None = unpinned); checked against actor.pt on load
+    obs_format: str | None      # meta obs_format (None = per-body; morph_v1 = shared morphology-conditioned)
+    extra_obs: str              # none | terrain_scan | privileged   (see extra_kind)
+    gate: bool                  # actor was trained with the gait-clock gate
+    decision: str               # meta decision, else "rejected" when the version name says so, else "accepted"
+    store: Path                 # directory holding actor.pt / meta.json
+
+    @property
+    def spec(self) -> str:
+        return f"{self.body}:{self.version}"
+
+    @property
+    def actor(self) -> Path:
+        return self.store / "actor.pt"
+
+
+def scan_trackers(root: Path | None = None) -> dict[tuple[str, str], TrackerEntry]:
+    out: dict[tuple[str, str], TrackerEntry] = {}
+    root = Path(TRACKER_DIR if root is None else root)
+    for f in sorted(root.glob("*/meta.json")) + sorted(root.glob("*/*/meta.json")):
+        meta = json.loads(f.read_text())
+        body = f.parent.name if f.parent.parent == root else f.parent.parent.name
+        version = V1 if f.parent.parent == root else f.parent.name
+        decision = meta.get("decision") or ("rejected" if "rejected" in version else "accepted")
+        out[(body, version)] = TrackerEntry(
+            body=body, version=version, sha256=meta.get("sha256"), obs_format=meta.get("obs_format"),
+            extra_obs=extra_kind(meta), gate=bool(meta.get("clock_gate")), decision=decision, store=f.parent)
+    return out
+
+
+TRACKERS: dict[tuple[str, str], TrackerEntry] = scan_trackers()
+
+
+def parse_spec(spec: str) -> tuple[str, str]:
+    body, sep, version = spec.partition(":")
+    if not sep or not body or not version:
+        raise ValueError(f"tracker spec must be '<body>:<version>', got {spec!r}")
+    return body, version
+
+
+def get_entry(spec: str) -> TrackerEntry:
+    key = parse_spec(spec)
+    if key not in TRACKERS:
+        raise KeyError(f"unknown tracker {spec!r}; registered: {sorted(':'.join(k) for k in TRACKERS)}")
+    return TRACKERS[key]
 
 
 def tracker_path(body_key: str, contact: str | None = "v1") -> Path:
-    """v1 trackers live at trackers/<body>/actor.pt; contact_v2 ones at trackers/<body>/contact_v2/actor.pt."""
+    """Actor file of the body's tracker for a contact model: v1 at trackers/<body>/actor.pt, vN at trackers/<body>/contact_vN/."""
     from rrp.bodies.contact import resolve
     c = resolve(contact)
-    return TRACKER_DIR / body_key / ("actor.pt" if c == "v1" else f"contact_{c}/actor.pt")
+    return Path(TRACKER_DIR) / body_key / ("actor.pt" if c == "v1" else f"contact_{c}/actor.pt")
 
 
-def load_tracker(body_key: str, binding: LeggedBinding, meta: dict, kind: str = "auto"):
+def load_tracker(body_key: str, binding: LeggedBinding, meta: dict, kind: str = "auto", tracker: str | None = None):
     """kind: learned | cpg | auto (learned if a frozen, validated actor exists, else cpg for procedural).
-    The actor is chosen to match the physics the scene was built with (meta['contact_model'], default v1)."""
+    Default actor: the one matching the physics the scene was built with (meta['contact_model'], default v1).
+    `tracker="<body>:<version>"` picks a registered actor by id (sha pin checked); it must match the scene's contact model."""
     contact = meta.get("contact_model", "contact_v1")
+    if tracker is not None:
+        e = get_entry(tracker)
+        if not e.actor.exists():
+            raise FileNotFoundError(e.actor)
+        if e.sha256 is not None:
+            import hashlib
+            got = hashlib.sha256(e.actor.read_bytes()).hexdigest()
+            if got != e.sha256:
+                raise TrackerMismatch(f"tracker {tracker} sha256 {got[:12]} does not match its registry pin {e.sha256[:12]}")
+        t = LearnedTracker(e.actor, binding, body_key)
+        t.spec = e.spec
+        if t.contact_model != contact:
+            raise TrackerMismatch(f"tracker {tracker} trained in {t.contact_model}, scene uses {contact}")
+        return t
     p = tracker_path(body_key, contact)
     if kind in ("learned", "auto") and p.exists():
         t = LearnedTracker(p, binding, body_key)

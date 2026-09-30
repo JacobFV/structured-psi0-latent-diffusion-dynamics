@@ -291,6 +291,103 @@ class LeggedBinding:
         return float(math.acos(max(-1.0, min(1.0, -g[2]))))
 
 
+# ---------------------------------------------------------------------------------------------------- public terrain scan
+# D-146 (architecture 14.3): terrain is a PUBLIC sensor. A downward depth sensor at the base origin reads the range to the
+# ground on an egocentric (yaw frame) 11 x 7 grid of 0.1 m cells; the reading of a cell is elevation = nominal_height - range,
+# in metres, with range = clip(base_z - ground_z, 0, SCAN_RANGE) (ground above the mount, or nothing within range, saturate).
+# "Ground" = the floor plus the scene's ground geoms (LeggedBinding.ground); walls, objects and the robot itself are not
+# scanned. Sensor model: additive N(0, SCAN_SIGMA) noise, SCAN_DROPOUT of the cells return SCAN_DROPOUT_VALUE (masked in the
+# declared channel), and the scan is one tracker tick (20 ms) old. Warp (analytic ground height, torch) and MuJoCo (mj_ray)
+# share every constant below; the actor input is proprio + this scan, the critic gets the exact (noise-free, current) scan.
+TERRAIN_SCAN_VERSION = "terrain_scan_v1"
+SCAN_NX, SCAN_NY, SCAN_DX = 11, 7, 0.1
+SCAN_X0, SCAN_Y0 = -0.2, -0.3                    # first row / first column offsets (m), body yaw frame, x forward
+SCAN_DIM = SCAN_NX * SCAN_NY
+SCAN_RANGE, SCAN_SIGMA, SCAN_DROPOUT, SCAN_DROPOUT_VALUE, SCAN_LATENCY_TICKS = 1.5, 0.01, 0.02, 0.0, 1
+SCAN_LIFT = 2.0                                  # rays start this far above the mount (surfaces above the mount saturate)
+_sx, _sy = np.meshgrid(SCAN_X0 + SCAN_DX * np.arange(SCAN_NX), SCAN_Y0 + SCAN_DX * np.arange(SCAN_NY), indexing="ij")
+SCAN_OFFSETS = np.stack([_sx.ravel(), _sy.ravel()], -1)      # (SCAN_DIM, 2); index = ix * SCAN_NY + iy
+
+
+def terrain_scan_spec() -> dict:
+    """The layout / sensor model as data (actor meta `terrain_scan`, the declared channel's description)."""
+    return dict(version=TERRAIN_SCAN_VERSION, shape=[SCAN_NX, SCAN_NY], cell_m=SCAN_DX, x0_m=SCAN_X0, y0_m=SCAN_Y0,
+                frame="yaw", range_m=SCAN_RANGE, sigma_m=SCAN_SIGMA, dropout=SCAN_DROPOUT, dropout_value=SCAN_DROPOUT_VALUE,
+                latency_ticks=SCAN_LATENCY_TICKS, ground="floor + scene ground geoms",
+                value="nominal_height - clip(base_z - ground_z, 0, range_m)")
+
+
+def scan_world_xy(x: float, y: float, yaw: float) -> tuple[np.ndarray, np.ndarray]:
+    c, s = math.cos(yaw), math.sin(yaw)
+    return x + c * SCAN_OFFSETS[:, 0] - s * SCAN_OFFSETS[:, 1], y + s * SCAN_OFFSETS[:, 0] + c * SCAN_OFFSETS[:, 1]
+
+
+def scan_sensor_model(exact: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray]:
+    """(values, valid): noise + dropout applied to an exact scan (numpy twin of WarpTrackerEnv.extra_obs)."""
+    v = exact + rng.normal(0.0, SCAN_SIGMA, exact.shape)
+    valid = rng.random(exact.shape) >= SCAN_DROPOUT
+    return np.where(valid, v, SCAN_DROPOUT_VALUE).astype(np.float32), valid
+
+
+class TerrainScan:
+    """MuJoCo terrain sensor of one LeggedSession: exact scan by mj_ray, then the declared sensor model with one tick of latency.
+    `tick(data)` runs once per tracker tick BEFORE the tracker acts; `values` / `valid` are what the actor and the declared
+    channel see (the scan of the previous tick's pose)."""
+
+    def __init__(self, binding: "LeggedBinding"):
+        self.b = binding
+        self.h0 = binding.nominal_height()
+        gg = np.zeros(mujoco.mjNGROUP, np.uint8)         # rays see only the geom groups that hold ground (the robot's own
+        gg[[int(binding.model.geom_group[g]) for g in binding.ground]] = 1   # geoms are usually in other groups)
+        self.geomgroup = gg
+        self.prev = self.values = None
+        self.valid = None
+        self.rng = np.random.default_rng(0)
+
+    def exact(self, data) -> np.ndarray:
+        b, m = self.b, self.b.model
+        q = data.qpos[b.qa:b.qa + 7]
+        wx, wy = scan_world_xy(float(q[0]), float(q[1]), yaw_of(q[3:7]))
+        out = np.empty(SCAN_DIM, np.float32)
+        gid = np.zeros(1, np.int32)
+        down = np.array([0.0, 0.0, -1.0])
+        z0 = float(q[2]) + SCAN_LIFT
+        for i in range(SCAN_DIM):
+            pnt = np.array([wx[i], wy[i], z0])
+            hit = None
+            for _ in range(16):                         # skip non-ground geoms sharing a ground group (walls, markers, the robot)
+                d = mujoco.mj_ray(m, data, pnt, down, self.geomgroup, 1, -1, gid)
+                if d < 0:
+                    break
+                pnt[2] -= d
+                if int(gid[0]) in b.ground:
+                    hit = pnt[2]
+                    break
+                pnt[2] -= 1e-4
+            rng_ = SCAN_RANGE if hit is None else min(max(float(q[2]) - hit, 0.0), SCAN_RANGE)
+            out[i] = self.h0 - rng_
+        return out
+
+    def reset(self, data, seed: int) -> None:
+        self.rng = np.random.default_rng([int(seed), 5])
+        self.prev = self.exact(data)
+        self.values, self.valid = scan_sensor_model(self.prev, self.rng)
+
+    def tick(self, data) -> None:
+        self.values, self.valid = scan_sensor_model(self.prev, self.rng)
+        self.prev = self.exact(data)
+
+    def state(self) -> dict:
+        return dict(prev=self.prev.tolist(), values=self.values.tolist(), valid=self.valid.tolist(),
+                    rng=self.rng.bit_generator.state)
+
+    def load(self, st: dict) -> None:
+        self.prev = np.array(st["prev"], np.float32)
+        self.values = np.array(st["values"], np.float32)
+        self.valid = np.array(st["valid"], bool)
+        self.rng.bit_generator.state = st["rng"]
+
+
 PRIOR_TERMS = ("air_time", "clearance", "contact_phase")                        # gait-shaping priors: decay
 NATURAL_TERMS = ("torque", "action_rate", "smooth", "power", "impact")           # natural objectives: ramp up
 # PERMANENT = everything else, notably: tracking, termination, orientation/height, lin_z/ang_xy, limits, alive, stance slip

@@ -311,7 +311,7 @@ Artifacts: all `artifacts/runs/humanoid_*` (93 MB incl. every tracker actor/chec
 Peer code dirs `/dev/shm/rrp-brandonin/wt/humanoid*` (~45 MB each) can be deleted after the refactor. The isolated Warp
 install `~/work/ext/pylibs/mjwarp` (468 MB, peer disk) is needed to resume GPU training.
 Refactor notes: the GPU stack is `rrp.envs.warp.{model,tracker_env,task_env}`, `rrp.envs.mujoco.{morph_obs,humanoid_scenes}`,
-`rrp.harness.train.{warp_tracker_ppo,humanoid_recipes}`, `rrp.bodies.humanoid_gen`, `rrp.policies.teachers.humanoid`; deployment-side
+`rrp.harness.train.{warp_tracker_ppo,tracker_recipes}`, `rrp.bodies.humanoid_gen`, `rrp.policies.teachers.humanoid`; deployment-side
 options live in actor meta (clock_gate, target_margin, obs_format morph_v1, extra_obs_dim) and are honoured by
 `rrp.envs.mujoco.legged_tracker.LearnedTracker` — keep them when moving to the common env/policy abstractions.
 
@@ -335,11 +335,11 @@ Resources in the recipes are ESTIMATES: measure and redeclare >= 1.35 x peak (D-
    `lab_gate.json` (replaces `humanoid_tracker_gate.sh`). The comparison videos of `humanoid_tracker_finalize.sh` are `rrp video legged`
    now; the side-by-side installed-vs-new renderer went to `.old/scripts/render_contact_compare.py`.
 5. **Not a recipe (needs code first):** the D-139 side attempt (g1 knee-specific target band + stance knee-flex term; add a
-   `g1_*` entry to `rrp.harness.train.humanoid_recipes`, then an instance of `humanoid_task.yaml`), and P3 (generalise
+   `g1_*` entry to `rrp.harness.train.tracker_recipes` (`WARP_RECIPES`), then an instance of `humanoid_task.yaml`), and P3 (generalise
    `rrp.policies.features.legged.public_context`, whose EVENTS / GLOBAL_DIM are waypoint-specific, and `rrp.harness.data.legged_latent_collect`
    to task scenarios + expert trackers before any latent / BC training).
 Also here: the four never-run D-126 CPU tracker recipes `recipes/humanoid/d126_tracker_*.yaml` (superseded in practice by the GPU
-recipes of `humanoid_recipes.py`).
+recipes of `tracker_recipes.py`).
 
 Dry-run node lists (`rrp run-dag <recipe> --dry-run`, 2026-09-30):
 ```
@@ -396,3 +396,17 @@ DAG humanoid_tracker_gate_pool: 6 nodes (source recipes/humanoid/tracker_gate_po
   evaluation was run). No body is cut. Declared, not manufacturer, values: toddlerbot torque limits (mass x leg-length scaling law,
   `limits_source: declared_scaling`), berkeley gain_scale 4.0 (kp = 4 x effort; found in the stand test), g1_hands hand gains,
   toddlerbot_2xc dropped self-collision pairs (asset pairs interpenetrate at home).
+
+## HT (D-146, 2026-09-30): tracker registry, public terrain scan, `rl_expert`
+- `rrp.envs.mujoco.legged_tracker.TRACKERS[(body, version)]` (built from `artifacts/trackers/<body>/<version>/meta.json`; v1 = `contact_v1`);
+  spec `"<body>:<version>"`, `make_legged_env(..., tracker=spec)` / `LeggedSession(tracker=spec)` replace monkeypatching `load_tracker`. A
+  meta `sha256` pin is checked against the actor file (t1 and anymal_c contact_v2 are pinned). `TRACKER_DIR` now resolves through `rrp_home()`
+  (it pointed at `src/artifacts` before).
+- `terrain_scan_v1` is a public sensor: 11x7 yaw-frame elevation cells (0.1 m, x -0.2..0.8, y -0.3..0.3), noise 1 cm, 2 % dropout (reads 0.0),
+  one tick of latency, ground only (floor + scene ground geoms; walls are not scanned). Warp (analytic ground) and MuJoCo (`mj_ray`) share the
+  constants. The steps expert's ACTOR now consumes it (`extra_obs` = "terrain_scan", `terrain_scan` spec in the actor meta); its critic keeps the
+  exact scan. Actors of the earlier privileged 11x3 scan (pre-D-146) are labelled `privileged_teacher` by `rl_expert`. The gap expert stays blind
+  to walls (critic-only gap terms), so a wall-avoiding gap actor is a separate, declared sensor.
+- `rl_expert:<body>:<version>` (POLICIES): registered actor under the task's scripted command layer; label `learned:rl_expert:<sha12>`
+  (or `privileged_teacher:...`); `requires.privileged` because the command layer reads the base pose truth.
+- One recipe registry: `tracker_recipes.{CPU_RECIPES, WARP_RECIPES, RECIPES, recipe_record}` (`humanoid_recipes.py` is gone; recorded recipe shas unchanged).

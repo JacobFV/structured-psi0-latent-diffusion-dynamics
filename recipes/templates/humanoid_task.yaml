@@ -1,5 +1,5 @@
 # TEMPLATE (W13, D-138): a humanoid tracker / task expert trained on the GPU (MuJoCo Warp) under a named recipe
-# (rrp.harness.train.humanoid_recipes), then judged in C MuJoCo with full self-collision, contact_v2 (never in the training
+# (rrp.harness.train.tracker_recipes.WARP_RECIPES), then judged in C MuJoCo with full self-collision, contact_v2 (never in the training
 # simulator). An instance sets name, lineage, vars.recipe / body / task and either keeps `train` (continue or start a run;
 # options.resume_from seeds the run directory from an earlier run's checkpoint) or nulls `train` and names options.actor.
 # Source labels: the trained actor is learned_tracker (privileged critic); an expert (extra_obs_dim > 0) is privileged_teacher:rl_expert;

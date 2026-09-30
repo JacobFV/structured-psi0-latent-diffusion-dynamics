@@ -347,8 +347,8 @@ def validate_tracker(ctx: StageContext) -> dict:
 
 @register("legged", "train_tracker", source="learned_tracker")
 def train_tracker(ctx: StageContext) -> dict:
-    """D-126 #13: tracker training through run-dag. options: body, recipe (a name in rrp.harness.train.tracker_recipes /
-    humanoid_recipes or a JSON path; optional), args ({option dest: value}, explicit overrides; True = bare flag),
+    """D-126 #13: tracker training through run-dag. options: body, recipe (a name in rrp.harness.train.tracker_recipes:
+    CPU_RECIPES or WARP_RECIPES, or a JSON path; optional), args ({option dest: value}, explicit overrides; True = bare flag),
     resume (default true: a retried lease continues from checkpoint.pt), actuator_mode (D-126 #14; wins over the recipe),
     engine (cpu = `rrp train tracker-cpu`, default; warp = `rrp train tracker-warp`, GPU MuJoCo Warp, W13; declare
     resources.gpu), pythonpath (extra PYTHONPATH entries, e.g. the isolated Warp install), resume_from (a run directory
