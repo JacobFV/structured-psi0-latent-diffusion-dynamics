@@ -242,3 +242,94 @@ def test_video_dual(golden, monkeypatch, tmp_path, source):
         else:
             outs.append("skipped")
     golden(f"loop.eval.video_dual.{source}", _digest(outs))
+
+
+# ------------------------------------------------------------------ every loop is a rollout
+@pytest.fixture
+def rollout_guard(monkeypatch):
+    """Counts harness.rollout calls and fails any session tick made outside one (the loops must not step sessions
+    themselves; policy-internal look-aheads are rollouts too)."""
+    from rrp.envs.mujoco.session import Session
+    from rrp.harness import rollout as R
+    state = dict(depth=0, calls=0)
+    orig_roll, orig_step = R.rollout, Session.step
+
+    def roll(*a, **k):
+        state["depth"] += 1
+        state["calls"] += 1
+        try:
+            return orig_roll(*a, **k)
+        finally:
+            state["depth"] -= 1
+
+    def step(self, *a, **k):
+        assert state["depth"] > 0, "session ticked outside harness.rollout"
+        return orig_step(self, *a, **k)
+    monkeypatch.setattr(R, "rollout", roll)
+    monkeypatch.setattr(Session, "step", step)
+    from rrp.envs.mujoco.dual import DualSession
+    orig_dual = DualSession.step
+
+    def dual_step(self, *a, **k):
+        assert state["depth"] > 0, "dual session ticked outside harness.rollout"
+        return orig_dual(self, *a, **k)
+    monkeypatch.setattr(DualSession, "step", dual_step)
+    return state
+
+
+def test_loops_step_only_inside_rollout(rollout_guard, monkeypatch, tmp_path):
+    from rrp.harness.eval.dual_teacher_quality import run_audit_episode
+    from rrp.harness.eval.hooks import warm_up
+    from rrp.harness.eval.latent_causal import episode_protocol, window_protocol
+    from rrp.harness.eval.latent_eval import disturbance_test
+    from rrp.harness.eval.teacher_quality import run_policy_quality_episode, run_quality_episode
+    from rrp.policies.teachers.dual_validate import run_one
+    from rrp.envs.mujoco.fixtures import make_pick_place_session
+    quiet = dict(log=lambda *a, **k: None)
+    run_quality_episode(ROBOT, 3, "v1", max_steps=4)
+    run_policy_quality_episode(_tiny_bc(), ROBOT, 3, label="tiny", max_steps=4)
+    run_audit_episode("support_insert", DUAL, 3, max_steps=4)
+    assert run_one("support_insert", DUAL, 3, max_steps=4)["status"] != "error"
+    si, R, P = _tiny_latent()
+    window_protocol(si, R, P, ROBOT, [3], decision_ticks=(2,), window=2, replan=2, conditions=("control_replay", "zero"),
+                    edit_steps=1, **quiet)
+    episode_protocol(si, R, P, ROBOT, [3], conditions=("control", "zero"), replan=2, max_steps=3, edit_steps=1, **quiet)
+    si2, R2, _ = _tiny_latent()
+    disturbance_test(si2, R2, ROBOT, [3], warmup_ticks=3, hold_ticks=2)
+    warm_up(make_pick_place_session(seed=5, n_distractors=0), 2)
+    seen, cams = _video_env(monkeypatch, tmp_path)
+    import importlib
+    va = importlib.import_module("rrp.harness.eval.video_arm")
+    _cap(monkeypatch, va)
+    va.run(_arm_args(tmp_path, seeds="3", max_steps=3))
+    vd = importlib.import_module("rrp.harness.eval.video_dual")
+    _cap(monkeypatch, vd)
+    vd.run(_dual_args(tmp_path, max_steps=3))
+    assert rollout_guard["calls"] >= 12
+
+
+def test_semantic_oracle_lookahead_is_a_rollout(rollout_guard):
+    """latent_semantic_edits' privileged teacher demo (a discarded-snapshot look-ahead) runs as a rollout."""
+    from rrp.envs.mujoco.fixtures import make_pick_place_session
+    from rrp.harness.eval.latent_semantic_edits import _teacher_demo
+    from rrp.policies.teachers.arm import PickPlaceTeacher
+    s = make_pick_place_session(seed=5, n_distractors=0)
+    teacher = PickPlaceTeacher(s)
+    snap, tst = s.snapshot(), teacher.state()
+    cmds = _teacher_demo(s, teacher, 3)
+    s.restore(snap)
+    teacher.load(tst)
+    assert len(cmds) == 3 and rollout_guard["calls"] == 1
+
+
+def test_end_when_and_recorder_hooks_are_registered():
+    from rrp.harness.eval import hooks as H
+    from rrp.envs.mujoco.fixtures import make_pick_place_session
+    from rrp.harness.rollout import rollout
+    seen = []
+    s = make_pick_place_session(seed=5, n_distractors=0)
+    hs = [H.HOOKS["recorder"](on_step=lambda i, e, a, st: seen.append(round(float(e.data.time), 5))),
+          H.HOOKS["end_when"](lambda i, e: len(seen) >= 3, outcome="failure", reason="three")]
+    ep = rollout(lambda sd: s, H.HoldPolicy(), H.budget_task("pick_place", s.spec.env_id), [5], batch=1,
+                 max_steps=50, hooks=hs)[0]
+    assert ep.steps == 3 and ep.failure_reason == "three" and len(seen) == 3
