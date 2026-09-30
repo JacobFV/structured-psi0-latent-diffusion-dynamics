@@ -70,14 +70,8 @@ def replay_render(robot_key: str, seed: int, n_distractors: int, task: str = "pi
                 self.k += 1
 
         # the replay is a harness.rollout of the scripted teacher (docs/architecture.md 14.1)
-        from rrp.harness import rollout as R
-        from rrp.harness.eval import hooks as H
-        from rrp.policies.teachers import TeacherPolicy
-        pol = TeacherPolicy(task, lambda e: teacher, "replay", ("joint_position", "gripper"))
-        ep = R.rollout(lambda sd: sess, pol, H.budget_task(task, sess.spec.env_id), [seed], batch=1, max_steps=max_steps,
-                       hooks=[Replay(), H.EndWhen(lambda i, e: bool(teacher.done))])[0]
-        if ep.outcome == "crash":
-            raise RuntimeError(ep.metrics.get("note") or ep.failure_reason)
+        from rrp.harness.data.collect import run_teacher_rollout
+        ep = run_teacher_rollout(sess, teacher, version="replay", hooks=[Replay()], max_steps=max_steps)
         steps = ep.steps
     rend.close()
     return dict(t=ts, frames=frames, cameras=cams, text=task_text(sess), q0_max_dev=dev[0], steps=steps)
