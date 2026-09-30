@@ -34,8 +34,7 @@ node node_modules/.cache/render-check/render-check.js ../..
 - Every view shows its mode: `live export` (with its age and git sha), `STALE` (the latest export failed, so the previous file
   is served along with the error), `SNAPSHOT` (static build) or `FIXTURE`.
 - Fixtures (`fixtures/`, made by `scripts/make_fixtures.py`) are synthetic and labelled as fixtures everywhere. They are used
-  only when the exporter module is absent or when the URL has `fixture=1`. The theatre's fixture demo opens only on request
-  (`#theatre?demo=1`) while no replay has been recorded.
+  only when the exporter module is absent or when the URL has `fixture=1`.
 - A missing document or signal shows "no data" and the path that was expected. Nothing is interpolated, smoothed or estimated.
   Every source label (scripted teacher, oracle, learned, BC, tracker, synthetic) is spelled out, and signals the recorder
   marks privileged are flagged as display-only.
@@ -46,9 +45,8 @@ The left sidebar holds a view picker at the top and that view's controls underne
 tabs, and narrow screens get a drawer. The type scale is 10/11/12 px; only the board's headline numbers are larger.
 
 Four views (keys 1–4); older addresses redirect:
-1. **Overview** (`#overview`): the one-screen board (claim, competence, open, live; one chart and one number each). The
-   same sidebar opens decisions, the roadmap and backlog (as status grids), strategy, STATUS, the D ↔ P crosswalk, claims
-   and a docs reader.
+1. **Board** (`#board`): one screen at 1440×900: headline tiles (arm v6, new arm, new gripper, legged, Ψ₀ step 2,
+   a tiny curriculum tile, status), the policy × env matrix, relation factors, DAGs, leases and latest decisions.
 2. **Runs** (`#runs`): the IBM-2 run sidebar (Environment, a Task listbox tinted by outcome, Result, search tokens, the run
    list, "compare with…"). For the selected run it shows one stack of linked panels sharing a time cursor:
    - pipeline flow, morphology, packet structure;
@@ -57,9 +55,8 @@ Four views (keys 1–4); older addresses redirect:
    - packet heatmaps, probe vs truth;
    - events, edit and B − A traces;
    - video, evidence.
-3. **Training** (`#training`): peer vitals, leases, DAG progress and broker events as charts, then training curves and
-   gradient health.
-4. **Evaluations** (`#evaluations`): curated success heatmaps with CI whiskers and version deltas, the route radar, causal
-   effect forests, robustness break-points, physics gates and Ψ₀.
+3. **Training** (`#training`): peer vitals as charts, then training curves.
+4. **Evaluations** (`#evaluations`), four lenses: Success (legged cv2, arm v6, transfer), Route radar, Causal effects,
+   Relation factors.
 
-Raw tables appear only behind "show data tables". Every panel carries a LIVE/STALE/SNAPSHOT/FIXTURE/NO DATA badge.
+Every panel carries a LIVE/STALE/SNAPSHOT/FIXTURE/NO DATA badge.

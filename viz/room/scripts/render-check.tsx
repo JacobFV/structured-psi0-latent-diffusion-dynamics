@@ -20,14 +20,12 @@ g.localStorage = { getItem: () => null, setItem() {} };
 // [label, component, hashes (view?query)]: every consolidated view and every lens
 const VIEWS: [string, () => Promise<{ default: ComponentType }>, string[]][] = [
   ['ticker', () => import('../src/components/Ticker'), ['board']],
-  ['overview', () => import('../src/views/OverviewView'), ['overview', 'resultsboard', 'claims']],
-  ['evaluations', () => import('../src/views/Evidence'), ['matrix', 'matrix?data=1', 'factors', 'results', 'results?tv=nosem&tb=5', 'results?data=1', 'results?data=1&mode=delta&dd=grasp_version', 'results?agg=pool&r1=route&c=metric&metric=', 'results?q=compare_gc2_final&metric=grasp_v2',
-    'radar', 'edits', 'edits?body=go2', 'robustness', 'robustness?m=motion.joint_jerk_rms', 'physics', 'physics?data=1', 'psi0', 'psi0?data=1', 'edits?data=1', 'robustness?data=1']],
-  ['runs', () => import('../src/views/RunHistory'), ['runs', 'runs?list=videos', 'runs?demo=1', 'runs?env=legged&oc=fell', 'runs?gb=outcome&q=body:go2', 'runs?env=dual&task=handover&gb=robot', 'runs?gb=none&robot=panda_pg2']],
-  ['training', () => import('../src/views/TrainingView'), ['training', 'training?data=1', 'live']],
-  ['overview-docs', () => import('../src/views/OverviewView'), ['knowledge', 'knowledge?tab=crosswalk', 'knowledge?tab=roadmap&q=%2313', 'knowledge?tab=backlog', 'knowledge?tab=strategy', 'knowledge?tab=status', 'knowledge?tab=docs', 'knowledge?tab=decisions&d=D-100']],
+  ['board', () => import('../src/views/Board'), ['board']],
+  ['evaluations', () => import('../src/views/Evidence'), ['results', 'results?tv=nosem&tb=5', 'radar', 'edits', 'edits?body=go2', 'factors']],
+  ['runs', () => import('../src/views/RunHistory'), ['runs', 'runs?env=legged&oc=fell', 'runs?gb=outcome&q=body:go2', 'runs?env=dual&task=handover&gb=robot', 'runs?gb=none&robot=panda_pg2']],
+  ['training', () => import('../src/views/Training'), ['training']],
 ];
-const DOCS = ['matrix', 'factors', 'radar', 'overview', 'live', 'dags', 'results', 'edits', 'training', 'robustness', 'physics', 'psi0', 'knowledge', 'replays', 'videos'];
+const DOCS = ['matrix', 'factors', 'radar', 'overview', 'live', 'dags', 'results', 'edits', 'training', 'psi0', 'replays', 'videos'];
 
 function load(dir: string) {
   const out: Record<string, unknown> = {};
@@ -38,9 +36,9 @@ function load(dir: string) {
 const paneCount = new Map<string, number>();
 async function main() {
   let failures = 0;
-  const lensMods = await Promise.all([import('../src/views/Evidence'), import('../src/views/TrainingView'), import('../src/views/OverviewView')]);
+  const { EVIDENCE } = await import('../src/views/Evidence');
   g.__RRP_LENS__ = {};
-  for (const l of [...lensMods[0].EVIDENCE, ...lensMods[1].TRAINING, ...lensMods[2].OVERVIEW]) (g.__RRP_LENS__ as Record<string, unknown>)[l.id] = (await l.load()).default;
+  for (const l of EVIDENCE) (g.__RRP_LENS__ as Record<string, unknown>)[l.id] = (await l.load()).default;
   const sets: [string, Record<string, unknown>][] = [
     ['real', load(resolve(repo, 'viz/data'))],
     ['fixture', load(resolve(repo, 'viz/room/fixtures'))],
@@ -135,7 +133,7 @@ async function main() {
   console.log(`${cssBad.length ? 'FAIL' : 'ok  '} css type scale: ${cssBad.length ? cssBad.join(' | ') : 'all font sizes ≤ 12 px except .big/.headline'}`);
   if (cssBad.length) failures++;
   // Board budget at 1440×900: every panel's content must fit its fixed cell (no vertical overflow)
-  for (const [boardName, bm] of [['board', await import('../src/views/Board')], ['resultsboard', await import('../src/views/ResultsBoard')]] as const) {
+  for (const [boardName, bm] of [['board', await import('../src/views/Board')]] as const) {
     for (const [label, docs] of sets.slice(0, 2)) {
       const needs = bm.panelNeeds(docs as Record<string, never>);
       for (const [panel, { need, cells }] of Object.entries(needs)) {

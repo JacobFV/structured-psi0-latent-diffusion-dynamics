@@ -7,16 +7,16 @@ import { go, href, useHashView } from './lib/url';
 
 // IBM-2 shell: left sidebar (brand, view picker, that view's controls), one workspace, no top tabs.
 const views: { id: string; key: string; title: string; load: () => Promise<{ default: ComponentType }> }[] = [
-  { id: 'overview', key: '1', title: 'Overview', load: () => import('./views/OverviewView') },
+  { id: 'board', key: '1', title: 'Board', load: () => import('./views/Board') },
   { id: 'runs', key: '2', title: 'Runs', load: () => import('./views/RunHistory') },
-  { id: 'training', key: '3', title: 'Training', load: () => import('./views/TrainingView') },
+  { id: 'training', key: '3', title: 'Training', load: () => import('./views/Training') },
   { id: 'evaluations', key: '4', title: 'Evaluations', load: () => import('./views/Evidence') },
 ];
-// IBM-2 has four views; every older address maps to the view that now holds it (as a lens)
+// older addresses land on the view that replaced them
 const aliases: Record<string, string> = {
-  board: 'overview', resultsboard: 'overview', knowledge: 'overview', claims: 'overview', library: 'overview',
-  evidence: 'evaluations', results: 'evaluations', edits: 'evaluations', robustness: 'evaluations', physics: 'evaluations', psi0: 'evaluations', radar: 'evaluations', matrix: 'evaluations', factors: 'evaluations',
-  ops: 'training', live: 'training', theatre: 'runs',
+  overview: 'board', resultsboard: 'board', knowledge: 'board', claims: 'board', library: 'board', live: 'training', ops: 'training',
+  evidence: 'evaluations', results: 'evaluations', edits: 'evaluations', radar: 'evaluations', factors: 'evaluations', matrix: 'evaluations',
+  robustness: 'evaluations', physics: 'evaluations', psi0: 'evaluations', theatre: 'runs',
 };
 const lazyViews = Object.fromEntries(views.map((v) => [v.id, lazy(v.load)]));
 
@@ -30,7 +30,7 @@ function initialTheme(): Theme {
 }
 
 export default function App() {
-  const raw = useHashView('overview');
+  const raw = useHashView('board');
   const view = aliases[raw] ?? raw;
   const current = views.find((v) => v.id === view) || views[0];
   const View = lazyViews[current.id];
@@ -70,7 +70,7 @@ export default function App() {
         <button className="sidebar-backdrop" aria-label="Close controls" tabIndex={-1} onClick={() => setMenu(false)} />
         <aside id="app-sidebar" className="app-sidebar">
           <div className="sidebar-brand">
-            <a href={href('overview')} className="brand-mark">rrp</a>
+            <a href={href('board')} className="brand-mark">rrp</a>
             <select className="view-select" aria-label="View" value={current.id} onChange={(e) => go(e.target.value)}>
               {views.map((v) => <option key={v.id} value={v.id}>{v.key} · {v.title}</option>)}
             </select>

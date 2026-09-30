@@ -1,7 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { writeParams } from '../lib/url';
 import type { DocResult, Envelope } from '../lib/api';
-import { ago, arr, fmtNum, fmtTime, num, shortSha, sortNatural, str, timeOf, type Row } from '../lib/format';
+import { ago, fmtNum, fmtTime, num, shortSha, sortNatural, str, timeOf, type Row } from '../lib/format';
 import { sourceStyle, stateTone } from '../lib/labels';
 
 export function Card({ title, hint, right, children, flush, className }: {
@@ -60,10 +59,6 @@ export function Caveat({ text }: { text: unknown }) {
   if (!s) return null;
   return <span className="badge caveat" title={s}>⚠ {s.length > 60 ? `${s.slice(0, 57)}…` : s}</span>;
 }
-export function Interim({ on }: { on: unknown }) {
-  return on ? <span className="badge interim" title="interim result: not final">interim</span> : null;
-}
-
 export function Loading({ what }: { what?: string }) {
   return (
     <div aria-busy="true" aria-live="polite">
@@ -179,46 +174,6 @@ export function Select({ label, value, options, onChange, all = true, width }: {
     </label>
   );
 }
-export function Seg<T extends string>({ value, options, onChange, label }: {
-  value: T; options: { id: T; label: string }[]; onChange: (v: T) => void; label?: string;
-}) {
-  return (
-    <div className="seg" role="group" aria-label={label}>
-      {options.map((o) => (
-        <button key={o.id} aria-pressed={value === o.id} onClick={() => onChange(o.id)}>{o.label}</button>
-      ))}
-    </div>
-  );
-}
-export function Tabs<T extends string>({ value, options, onChange }: { value: T; options: { id: T; label: string }[]; onChange: (v: T) => void }) {
-  return (
-    <div className="tabs" role="tablist">
-      {options.map((o) => (
-        <button key={o.id} role="tab" aria-pressed={value === o.id} aria-selected={value === o.id} onClick={() => onChange(o.id)}>{o.label}</button>
-      ))}
-    </div>
-  );
-}
-
-export function KV({ data, keys }: { data: Row; keys?: string[] }) {
-  const ks = keys || Object.keys(data);
-  return (
-    <dl className="kvtable">
-      {ks.filter((k) => data[k] !== undefined).map((k) => (
-        <FragmentKV key={k} k={k} v={data[k]} />
-      ))}
-    </dl>
-  );
-}
-function FragmentKV({ k, v }: { k: string; v: unknown }) {
-  return (
-    <>
-      <dt>{k}</dt>
-      <dd>{typeof v === 'object' && v !== null ? <code>{JSON.stringify(v)}</code> : k === 'source_label' ? <SourceBadge label={v} /> : str(v)}</dd>
-    </>
-  );
-}
-
 /** Column rendering hints shared by generic tables. */
 export function cellValue(key: string, v: unknown): ReactNode {
   if (v === null || v === undefined || v === '') return <span className="muted">—</span>;
@@ -227,7 +182,7 @@ export function cellValue(key: string, v: unknown): ReactNode {
   if (k === 'state' || k === 'status' || k === 'verdict' || k === 'gate' || k === 'level') return <Status state={v} />;
   if (k === 'decision' || k === 'id' && /^[DP]-\d+/.test(str(v))) return <Did id={v} />;
   if (k === 'caveat') return <Caveat text={v} />;
-  if (k === 'interim') return v ? <Interim on /> : <span className="muted">no</span>;
+  if (k === 'interim') return v ? 'interim' : <span className="muted">no</span>;
   if (typeof v === 'boolean') return v ? 'yes' : 'no';
   if (typeof v === 'number') return fmtNum(v);
   if (Array.isArray(v) && v.length === 2 && v.every((x) => typeof x === 'number')) return `[${fmtNum(v[0])}, ${fmtNum(v[1])}]`;
@@ -288,83 +243,3 @@ export function DataTable({ rows, columns, max = 500, onRow, selected, tall, emp
   );
 }
 
-export function Stat({ k, v, s }: { k: ReactNode; v: ReactNode; s?: ReactNode }) {
-  return (
-    <div className="card stat">
-      <div className="k">{k}</div>
-      <div className="v">{v}</div>
-      {s && <div className="s">{s}</div>}
-    </div>
-  );
-}
-
-/** Any-document fallback: every array of objects becomes a table, scalars become a key/value list. */
-export function RawDoc({ data, skip = [] }: { data: Row; skip?: string[] }) {
-  const meta = new Set(['schema', 'generated_at', 'git_sha', 'sources', ...skip]);
-  const entries = Object.entries(data).filter(([k]) => !meta.has(k));
-  const scalars = entries.filter(([, v]) => v === null || typeof v !== 'object');
-  const tables = entries.filter(([, v]) => Array.isArray(v) && v.some((x) => typeof x === 'object' && x !== null));
-  const objects = entries.filter(([, v]) => v && typeof v === 'object' && !Array.isArray(v));
-  return (
-    <div className="stack">
-      {scalars.length > 0 && <KV data={Object.fromEntries(scalars)} />}
-      {tables.map(([k, v]) => (
-        <Card key={k} title={k} hint={`${(v as unknown[]).length} rows`}>
-          <DataTable rows={(v as unknown[]).filter((x): x is Row => typeof x === 'object' && x !== null && !Array.isArray(x))} tall />
-        </Card>
-      ))}
-      {objects.map(([k, v]) => (
-        <Card key={k} title={k}>
-          <RawDoc data={v as Row} />
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-/** Markdown-derived table: {heading, header[], rows[][], source_file, line}. Cells keep their text; D-ids become chips. */
-export function ArrayTable({ t }: { t: Row }) {
-  const header = Array.isArray(t.header) ? t.header.map(str) : [];
-  const body = Array.isArray(t.rows) ? (t.rows as unknown[]).filter(Array.isArray) as unknown[][] : [];
-  return (
-    <div className="table-wrap tall">
-      <table className="t">
-        <thead><tr>{header.map((h, i) => <th key={i}>{h}</th>)}</tr></thead>
-        <tbody>{body.map((r, i) => <tr key={i}>{r.map((c, j) => <td key={j} className={/^[-+]?[0-9.,/%]+$/.test(str(c)) ? 'n' : ''}>{str(c).replace(/\*\*/g, '')}</td>)}</tr>)}</tbody>
-      </table>
-    </div>
-  );
-}
-
-/** Browse many markdown tables: pick by file and heading, with provenance. */
-export function TablesBrowser({ tables, param = 'table' }: { tables: Row[]; param?: string }) {
-  const [q, setQ] = useState('');
-  const [sel, setSel] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] || '').get(param) || '0');
-  const label = (t: Row) => `${str(t.source_file)}${t.line != null ? `:${str(t.line)}` : ''}${t.heading ? ` · ${str(t.heading)}` : ''}`;
-  const shown = tables.map((t, i) => ({ t, i })).filter(({ t }) => !q || JSON.stringify(t).toLowerCase().includes(q.toLowerCase()));
-  const cur = tables[Number(sel)] || shown[0]?.t;
-  if (!tables.length) return <p className="muted small">No tables in the document.</p>;
-  return (
-    <div className="stack" style={{ gap: 8 }}>
-      <div className="filters" style={{ marginBottom: 0 }}>
-        <label>search<input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="file, heading, cell text" /></label>
-        <label style={{ flex: 1, minWidth: 260 }}>table ({shown.length} of {tables.length})
-          <select value={sel} onChange={(e) => { setSel(e.target.value); writeParams({ [param]: e.target.value }); }}>
-            {shown.slice(0, 800).map(({ t, i }) => <option key={i} value={String(i)}>{label(t).slice(0, 160)}</option>)}
-          </select>
-        </label>
-      </div>
-      {cur && (
-        <>
-          <div className="row small">
-            <b>{str(cur.heading) || '(no heading)'}</b>
-            <code className="muted">{label(cur)}</code>
-            {cur.location ? <span className="badge">{str(cur.location)}</span> : null}
-            {arr(cur.decisions).map((d) => <Did key={str(d)} id={d} />)}
-          </div>
-          <ArrayTable t={cur} />
-        </>
-      )}
-    </div>
-  );
-}

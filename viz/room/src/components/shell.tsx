@@ -11,9 +11,6 @@ export function SidebarControls({ children }: { children: ReactNode }) {
   if (typeof document === 'undefined') return <div data-sidebar-ssr>{children}</div>;
   return element ? createPortal(children, element) : null;
 }
-export function useCloseMenu() {
-  return useContext(SidebarContext).closeMenu;
-}
 export function SideGroup({ title, children, right }: { title: string; children: ReactNode; right?: ReactNode }) {
   return (
     <section className="side-group">

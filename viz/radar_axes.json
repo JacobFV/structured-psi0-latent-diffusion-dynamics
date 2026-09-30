@@ -28,15 +28,11 @@
   },
   {
    "id": "semfix",
-   "label": "latent semfix (arm v1 · D-127; legged: legged8)"
+   "label": "latent semfix (legged8)"
   },
   {
    "id": "nosem",
-   "label": "latent nosem (arm v1 · D-127; legged: legged8)"
-  },
-  {
-   "id": "frozen_sem",
-   "label": "latent · frozen sem"
+   "label": "latent nosem (legged8)"
   },
   {
    "id": "latent_jointfix",
@@ -50,8 +46,8 @@
    "label": "arm gv2 panda",
    "metric": "deployable success rate",
    "direction": "max",
-   "protocol": "pick_place on panda_pg2, grasp_v2 physics, 90 episodes per lineage seed (armexpert_gc2eval/compare_gc2_final.json) · v6 series: grasp_v2.1, v6 BC expert, 2 seeds (compare_v6.json, D-134); reference BC is the v1-era direct BC under grasp_v2",
-   "decision": "D-127 · D-134",
+   "protocol": "pick_place on panda_pg2, grasp_v2 physics, v6 lineages: grasp_v2.1, 2 seeds (compare_v6.json, D-134) · reference: direct BC under grasp_v2 (compare_gc2_final.json, D-127)",
+   "decision": "D-134",
    "floor": {
     "value": 0.0,
     "meaning": "no success"
@@ -61,46 +57,10 @@
    },
    "series": {
     "semfix": {
-     "doc": "results",
-     "where": {
-      "source_file": "compare_gc2_final.json$",
-      "metric": "^grasp_v2$"
-     },
-     "key_path": [
-      "^semfix, seed",
-      "^panda_pg2$",
-      "^grasp_v2$"
-     ],
-     "agg": "sum_kn",
-     "group": 0
+     "missing": "arm v1 superseded by v6 (D-134)"
     },
     "nosem": {
-     "doc": "results",
-     "where": {
-      "source_file": "compare_gc2_final.json$",
-      "metric": "^grasp_v2$"
-     },
-     "key_path": [
-      "^nosem, seed",
-      "^panda_pg2$",
-      "^grasp_v2$"
-     ],
-     "agg": "sum_kn",
-     "group": 0
-    },
-    "frozen_sem": {
-     "doc": "results",
-     "where": {
-      "source_file": "compare_gc2_final.json$",
-      "metric": "^grasp_v2$"
-     },
-     "key_path": [
-      "^frozen sem, seed",
-      "^panda_pg2$",
-      "^grasp_v2$"
-     ],
-     "agg": "sum_kn",
-     "group": 0
+     "missing": "arm v1 superseded by v6 (D-134)"
     },
     "bc": {
      "doc": "results",
@@ -155,8 +115,8 @@
    "label": "arm gv2 parm6",
    "metric": "deployable success rate",
    "direction": "max",
-   "protocol": "pick_place on parm6_tf3, grasp_v2 physics, 90 episodes per lineage seed (armexpert_gc2eval/compare_gc2_final.json) · v6 series: grasp_v2.1, v6 BC expert, 2 seeds (compare_v6.json, D-134); reference BC is the v1-era direct BC under grasp_v2",
-   "decision": "D-127 · D-134",
+   "protocol": "pick_place on parm6_tf3, grasp_v2 physics, v6 lineages: grasp_v2.1, 2 seeds (compare_v6.json, D-134) · reference: direct BC under grasp_v2 (compare_gc2_final.json, D-127)",
+   "decision": "D-134",
    "floor": {
     "value": 0.0,
     "meaning": "no success"
@@ -166,46 +126,10 @@
    },
    "series": {
     "semfix": {
-     "doc": "results",
-     "where": {
-      "source_file": "compare_gc2_final.json$",
-      "metric": "^grasp_v2$"
-     },
-     "key_path": [
-      "^semfix, seed",
-      "^parm6_tf3$",
-      "^grasp_v2$"
-     ],
-     "agg": "sum_kn",
-     "group": 0
+     "missing": "arm v1 superseded by v6 (D-134)"
     },
     "nosem": {
-     "doc": "results",
-     "where": {
-      "source_file": "compare_gc2_final.json$",
-      "metric": "^grasp_v2$"
-     },
-     "key_path": [
-      "^nosem, seed",
-      "^parm6_tf3$",
-      "^grasp_v2$"
-     ],
-     "agg": "sum_kn",
-     "group": 0
-    },
-    "frozen_sem": {
-     "doc": "results",
-     "where": {
-      "source_file": "compare_gc2_final.json$",
-      "metric": "^grasp_v2$"
-     },
-     "key_path": [
-      "^frozen sem, seed",
-      "^parm6_tf3$",
-      "^grasp_v2$"
-     ],
-     "agg": "sum_kn",
-     "group": 0
+     "missing": "arm v1 superseded by v6 (D-134)"
     },
     "bc": {
      "doc": "results",
@@ -260,8 +184,8 @@
    "label": "arm gv2 parm5s",
    "metric": "deployable success rate",
    "direction": "max",
-   "protocol": "pick_place on parm5s_tf3, grasp_v2 physics, 90 episodes per lineage seed (armexpert_gc2eval/compare_gc2_final.json) · procedural body · v6 series: grasp_v2.1, v6 BC expert, 2 seeds (compare_v6.json, D-134); reference BC is the v1-era direct BC under grasp_v2",
-   "decision": "D-127 · D-134",
+   "protocol": "pick_place on parm5s_tf3, grasp_v2 physics, v6 lineages: grasp_v2.1, 2 seeds (compare_v6.json, D-134) · procedural body · reference: direct BC under grasp_v2 (compare_gc2_final.json, D-127)",
+   "decision": "D-134",
    "floor": {
     "value": 0.0,
     "meaning": "no success"
@@ -271,46 +195,10 @@
    },
    "series": {
     "semfix": {
-     "doc": "results",
-     "where": {
-      "source_file": "compare_gc2_final.json$",
-      "metric": "^grasp_v2$"
-     },
-     "key_path": [
-      "^semfix, seed",
-      "^parm5s_tf3$",
-      "^grasp_v2$"
-     ],
-     "agg": "sum_kn",
-     "group": 0
+     "missing": "arm v1 superseded by v6 (D-134)"
     },
     "nosem": {
-     "doc": "results",
-     "where": {
-      "source_file": "compare_gc2_final.json$",
-      "metric": "^grasp_v2$"
-     },
-     "key_path": [
-      "^nosem, seed",
-      "^parm5s_tf3$",
-      "^grasp_v2$"
-     ],
-     "agg": "sum_kn",
-     "group": 0
-    },
-    "frozen_sem": {
-     "doc": "results",
-     "where": {
-      "source_file": "compare_gc2_final.json$",
-      "metric": "^grasp_v2$"
-     },
-     "key_path": [
-      "^frozen sem, seed",
-      "^parm5s_tf3$",
-      "^grasp_v2$"
-     ],
-     "agg": "sum_kn",
-     "group": 0
+     "missing": "arm v1 superseded by v6 (D-134)"
     },
     "bc": {
      "doc": "results",
@@ -365,8 +253,8 @@
    "label": "arm gv2 parm5l",
    "metric": "deployable success rate",
    "direction": "max",
-   "protocol": "pick_place on parm5l_pg2, grasp_v2 physics, 90 episodes per lineage seed (armexpert_gc2eval/compare_gc2_final.json) · procedural body · v6 series: grasp_v2.1, v6 BC expert, 2 seeds (compare_v6.json, D-134); reference BC is the v1-era direct BC under grasp_v2",
-   "decision": "D-127 · D-134",
+   "protocol": "pick_place on parm5l_pg2, grasp_v2 physics, v6 lineages: grasp_v2.1, 2 seeds (compare_v6.json, D-134) · procedural body · reference: direct BC under grasp_v2 (compare_gc2_final.json, D-127)",
+   "decision": "D-134",
    "floor": {
     "value": 0.0,
     "meaning": "no success"
@@ -376,46 +264,10 @@
    },
    "series": {
     "semfix": {
-     "doc": "results",
-     "where": {
-      "source_file": "compare_gc2_final.json$",
-      "metric": "^grasp_v2$"
-     },
-     "key_path": [
-      "^semfix, seed",
-      "^parm5l_pg2$",
-      "^grasp_v2$"
-     ],
-     "agg": "sum_kn",
-     "group": 0
+     "missing": "arm v1 superseded by v6 (D-134)"
     },
     "nosem": {
-     "doc": "results",
-     "where": {
-      "source_file": "compare_gc2_final.json$",
-      "metric": "^grasp_v2$"
-     },
-     "key_path": [
-      "^nosem, seed",
-      "^parm5l_pg2$",
-      "^grasp_v2$"
-     ],
-     "agg": "sum_kn",
-     "group": 0
-    },
-    "frozen_sem": {
-     "doc": "results",
-     "where": {
-      "source_file": "compare_gc2_final.json$",
-      "metric": "^grasp_v2$"
-     },
-     "key_path": [
-      "^frozen sem, seed",
-      "^parm5l_pg2$",
-      "^grasp_v2$"
-     ],
-     "agg": "sum_kn",
-     "group": 0
+     "missing": "arm v1 superseded by v6 (D-134)"
     },
     "bc": {
      "doc": "results",
@@ -528,9 +380,6 @@
      ],
      "agg": "sum_kn"
     },
-    "frozen_sem": {
-     "missing": "no frozen-sem legged lineage"
-    },
     "semfix_v6": {
      "missing": "not an arm v6 axis"
     },
@@ -605,9 +454,6 @@
      ],
      "agg": "sum_kn"
     },
-    "frozen_sem": {
-     "missing": "no frozen-sem legged lineage"
-    },
     "semfix_v6": {
      "missing": "not an arm v6 axis"
     },
@@ -662,9 +508,6 @@
     },
     "teacher": {
      "missing": "scripted teacher is not edited"
-    },
-    "frozen_sem": {
-     "missing": "no frozen-sem legged lineage"
     },
     "semfix_v6": {
      "missing": "not an arm v6 axis"
@@ -721,9 +564,6 @@
     "teacher": {
      "missing": "scripted teacher is not edited"
     },
-    "frozen_sem": {
-     "missing": "no frozen-sem legged lineage"
-    },
     "semfix_v6": {
      "missing": "not an arm v6 axis"
     },
@@ -778,9 +618,6 @@
     },
     "teacher": {
      "missing": "scripted teacher is not edited"
-    },
-    "frozen_sem": {
-     "missing": "no frozen-sem legged lineage"
     },
     "semfix_v6": {
      "missing": "not an arm v6 axis"
@@ -837,9 +674,6 @@
     "teacher": {
      "missing": "scripted teacher is not edited"
     },
-    "frozen_sem": {
-     "missing": "no frozen-sem legged lineage"
-    },
     "semfix_v6": {
      "missing": "not an arm v6 axis"
     },
@@ -856,8 +690,8 @@
    "label": "arm rebind (first approach, new cube)",
    "metric": "rebind_first_approach_new rate",
    "direction": "max",
-   "protocol": "parm6 edit suite, 82 edited episodes per seed: v1 = seed-2 lineages (compare_three_way_seed2.json, D-095); v6 = 2 seeds pooled (compare_v6.json, D-134; early route checkpoint, competence-confounded)",
-   "decision": "D-095 · D-134",
+   "protocol": "parm6 edit suite, 82 edited episodes per seed, 2 seeds pooled (compare_v6.json, D-134; early route checkpoint, competence-confounded)",
+   "decision": "D-134",
    "floor": {
     "value": 0.0,
     "meaning": "never follows"
@@ -868,49 +702,10 @@
    },
    "series": {
     "semfix": {
-     "doc": "results",
-     "where": {
-      "source_file": "compare_three_way_seed2.json$",
-      "metric": "^rebind_first_approach_new$",
-      "variant": "^semfix$"
-     },
-     "key_path": [
-      "^edits_parm6$",
-      "^semfix$",
-      "^key$",
-      "^rebind_first_approach_new$"
-     ],
-     "agg": "sum_kn"
+     "missing": "arm v1 superseded by v6 (D-134)"
     },
     "nosem": {
-     "doc": "results",
-     "where": {
-      "source_file": "compare_three_way_seed2.json$",
-      "metric": "^rebind_first_approach_new$",
-      "variant": "^nosem$"
-     },
-     "key_path": [
-      "^edits_parm6$",
-      "^nosem$",
-      "^key$",
-      "^rebind_first_approach_new$"
-     ],
-     "agg": "sum_kn"
-    },
-    "frozen_sem": {
-     "doc": "results",
-     "where": {
-      "source_file": "compare_three_way_seed2.json$",
-      "metric": "^rebind_first_approach_new$",
-      "variant": "^sem$"
-     },
-     "key_path": [
-      "^edits_parm6$",
-      "^sem$",
-      "^key$",
-      "^rebind_first_approach_new$"
-     ],
-     "agg": "sum_kn"
+     "missing": "arm v1 superseded by v6 (D-134)"
     },
     "bc": {
      "missing": "not in this comparison"
@@ -962,8 +757,8 @@
    "label": "arm goal edit",
    "metric": "goal_cube_at_new_goal rate",
    "direction": "max",
-   "protocol": "parm6 edit suite, 82 edited episodes per seed: v1 = seed-2 lineages (compare_three_way_seed2.json, D-095); v6 = 2 seeds pooled (compare_v6.json, D-134; early route checkpoint, competence-confounded)",
-   "decision": "D-095 · D-134",
+   "protocol": "parm6 edit suite, 82 edited episodes per seed, 2 seeds pooled (compare_v6.json, D-134; early route checkpoint, competence-confounded)",
+   "decision": "D-134",
    "floor": {
     "value": 0.0,
     "meaning": "never follows"
@@ -974,49 +769,10 @@
    },
    "series": {
     "semfix": {
-     "doc": "results",
-     "where": {
-      "source_file": "compare_three_way_seed2.json$",
-      "metric": "^goal_cube_at_new_goal$",
-      "variant": "^semfix$"
-     },
-     "key_path": [
-      "^edits_parm6$",
-      "^semfix$",
-      "^key$",
-      "^goal_cube_at_new_goal$"
-     ],
-     "agg": "sum_kn"
+     "missing": "arm v1 superseded by v6 (D-134)"
     },
     "nosem": {
-     "doc": "results",
-     "where": {
-      "source_file": "compare_three_way_seed2.json$",
-      "metric": "^goal_cube_at_new_goal$",
-      "variant": "^nosem$"
-     },
-     "key_path": [
-      "^edits_parm6$",
-      "^nosem$",
-      "^key$",
-      "^goal_cube_at_new_goal$"
-     ],
-     "agg": "sum_kn"
-    },
-    "frozen_sem": {
-     "doc": "results",
-     "where": {
-      "source_file": "compare_three_way_seed2.json$",
-      "metric": "^goal_cube_at_new_goal$",
-      "variant": "^sem$"
-     },
-     "key_path": [
-      "^edits_parm6$",
-      "^sem$",
-      "^key$",
-      "^goal_cube_at_new_goal$"
-     ],
-     "agg": "sum_kn"
+     "missing": "arm v1 superseded by v6 (D-134)"
     },
     "bc": {
      "missing": "not in this comparison"
@@ -1178,31 +934,6 @@
       "n"
      ]
     },
-    "frozen_sem": {
-     "doc": "robustness",
-     "list": "reports",
-     "where": {
-      "robot": "^panda_pg2$",
-      "route": "^frozen_sem$"
-     },
-     "agg": "path",
-     "value": [
-      "pooled_perturbed",
-      "rate"
-     ],
-     "ci": [
-      "pooled_perturbed",
-      "wilson95"
-     ],
-     "k": [
-      "pooled_perturbed",
-      "success"
-     ],
-     "n": [
-      "pooled_perturbed",
-      "n"
-     ]
-    },
     "semfix_v6": {
      "missing": "not an arm v6 axis"
     },
@@ -1310,31 +1041,6 @@
      "where": {
       "robot": "^anymal_c$",
       "route": "^nosem$"
-     },
-     "agg": "path",
-     "value": [
-      "pooled_perturbed",
-      "rate"
-     ],
-     "ci": [
-      "pooled_perturbed",
-      "wilson95"
-     ],
-     "k": [
-      "pooled_perturbed",
-      "success"
-     ],
-     "n": [
-      "pooled_perturbed",
-      "n"
-     ]
-    },
-    "frozen_sem": {
-     "doc": "robustness",
-     "list": "reports",
-     "where": {
-      "robot": "^anymal_c$",
-      "route": "^frozen_sem$"
      },
      "agg": "path",
      "value": [
@@ -1468,124 +1174,6 @@
       "n"
      ]
     },
-    "frozen_sem": {
-     "doc": "robustness",
-     "list": "levels",
-     "where": {
-      "robot": "^anymal_c$",
-      "route": "^frozen_sem$",
-      "factor": "^all_moderate$"
-     },
-     "agg": "path",
-     "value": [
-      "rate"
-     ],
-     "ci": [
-      "ci"
-     ],
-     "k": [
-      "k"
-     ],
-     "n": [
-      "n"
-     ]
-    },
-    "semfix_v6": {
-     "missing": "not an arm v6 axis"
-    },
-    "nosem_v6": {
-     "missing": "not an arm v6 axis"
-    },
-    "latent_jointfix": {
-     "missing": "not declared for this axis"
-    }
-   }
-  },
-  {
-   "id": "smoothness_arm_panda",
-   "label": "smoothness arm panda",
-   "metric": "max joint-velocity step at chunk boundaries (rad/s)",
-   "direction": "min",
-   "protocol": "panda_pg2 robustness sweep, same 20 seeds per route",
-   "decision": "D-114",
-   "floor": {
-    "value": 6.0,
-    "meaning": "declared display floor 6 rad/s (about twice the worst observed)"
-   },
-   "reference": {
-    "series": "bc"
-   },
-   "series": {
-    "teacher": {
-     "doc": "robustness",
-     "list": "reports",
-     "where": {
-      "robot": "^panda_pg2$",
-      "route": "^teacher$"
-     },
-     "agg": "path",
-     "value": [
-      "nominal",
-      "motion",
-      "chunk_vel_step_max"
-     ]
-    },
-    "bc": {
-     "doc": "robustness",
-     "list": "reports",
-     "where": {
-      "robot": "^panda_pg2$",
-      "route": "^bc$"
-     },
-     "agg": "path",
-     "value": [
-      "nominal",
-      "motion",
-      "chunk_vel_step_max"
-     ]
-    },
-    "semfix": {
-     "doc": "robustness",
-     "list": "reports",
-     "where": {
-      "robot": "^panda_pg2$",
-      "route": "^semfix$"
-     },
-     "agg": "path",
-     "value": [
-      "nominal",
-      "motion",
-      "chunk_vel_step_max"
-     ]
-    },
-    "nosem": {
-     "doc": "robustness",
-     "list": "reports",
-     "where": {
-      "robot": "^panda_pg2$",
-      "route": "^nosem$"
-     },
-     "agg": "path",
-     "value": [
-      "nominal",
-      "motion",
-      "chunk_vel_step_max"
-     ]
-    },
-    "frozen_sem": {
-     "doc": "robustness",
-     "list": "reports",
-     "where": {
-      "robot": "^panda_pg2$",
-      "route": "^frozen_sem$"
-     },
-     "agg": "path",
-     "value": [
-      "nominal",
-      "motion",
-      "chunk_vel_step_max"
-     ]
-    },
     "semfix_v6": {
      "missing": "not an arm v6 axis"
     },
@@ -1631,9 +1219,6 @@
     },
     "nosem": {
      "missing": "v1 checkpoints not run on sealed targets"
-    },
-    "frozen_sem": {
-     "missing": "not run"
     },
     "teacher": {
      "missing": "no scripted teacher for zero-shot transfer"
@@ -1731,9 +1316,6 @@
     "nosem": {
      "missing": "v1 checkpoints not run on sealed targets"
     },
-    "frozen_sem": {
-     "missing": "not run"
-    },
     "teacher": {
      "missing": "no scripted teacher for the new arm"
     },
@@ -1787,9 +1369,6 @@
      "missing": "latency not measured for this lineage"
     },
     "nosem": {
-     "missing": "latency not measured for this lineage"
-    },
-    "frozen_sem": {
      "missing": "latency not measured for this lineage"
     },
     "teacher": {

@@ -212,16 +212,10 @@ def test_training_downsampled_with_alpha_and_gate(exported):
     assert trk["kind"] == "tracker" and st["alpha"][-1] == pytest.approx(0.4) and st["gate_state"][0] == "hold"
 
 
-def test_knowledge_overview_dags_videos_replays(exported):
+def test_overview_dags_videos_replays(exported):
     cfg, _, _ = exported
-    k = _doc(cfg, "knowledge")
-    assert [d["id"] for d in k["decisions"]] == ["D-001", "D-105"]
-    assert [r["status"] for r in k["roadmap"]] == ["done", "running"]
-    assert k["workstreams"][0]["id"] == "W1" and "body" in k["workstreams"][0]["detail_markdown"]
     o = _doc(cfg, "overview")
-    assert [c["status"] for c in o["claims"]] == ["established", "interim", "open"]
-    assert any(n["k"] == 29 and n["n"] == 30 for n in o["key_numbers"])
-    assert o["latest_decisions"][0]["id"] == "D-105" and len(o["open"]) == 1
+    assert [d["id"] for d in o["latest_decisions"]] == ["D-105", "D-001"]
     d = _doc(cfg, "dags")["dags"][0]
     assert d["dag"] == "legged_v2_go2" and d["counts"] == {"completed": 1, "running": 1} and not d["complete"]
     assert d["eta_statements"] and "ETA" in d["eta_statements"][0]["text"]
@@ -254,14 +248,6 @@ def test_small_parsers():
     assert r["rows"][0]["ctx"]["body"] == "panda_pg2" and r["rows"][0]["metric"] == "ctl"
     p = parse_trainlog("\n".join(json.dumps({"iter": i, "x": i}) for i in range(4001)))
     assert len(p["step"]) <= 2000 and p["step"][-1] == 4000
-
-
-def test_api_doc_allowlist(exported):
-    cfg, _, _ = exported
-    assert api.doc(cfg, "STATUS.md")["markdown"].startswith("# project status")
-    assert api.doc(cfg, "docs/strategy.md") is not None
-    for bad in ("../x.md", "/etc/passwd", "src/rrp/x.md", "docs/../../x.md", "STATUS.txt", "psi1z/secret.md"):
-        assert api.doc(cfg, bad) is None, bad
 
 
 def test_only_and_cache_reuse(exported):

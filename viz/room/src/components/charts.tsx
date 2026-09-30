@@ -101,25 +101,6 @@ export function divColor(d: number) {
   const pole = d < 0 ? 'var(--div-neg)' : 'var(--div-pos)';
   return `color-mix(in srgb, ${pole} ${Math.round(a * 100)}%, var(--div-mid))`;
 }
-export function SeqLegend({ label = 'rate' }: { label?: string }) {
-  return (
-    <span className="legend">
-      {label} 0
-      <span className="ramp">{Array.from({ length: 8 }, (_, i) => <i key={i} style={{ background: `var(--seq-${i})` }} />)}</span>
-      1
-    </span>
-  );
-}
-export function DivLegend() {
-  return (
-    <span className="legend">
-      −0.5
-      <span className="ramp">{[-0.5, -0.35, -0.2, -0.07, 0.07, 0.2, 0.35, 0.5].map((d) => <i key={d} style={{ background: divColor(d) }} />)}</span>
-      +0.5 (B − A)
-    </span>
-  );
-}
-
 export type ForestRow = { key: string; label: ReactNode; group?: string; effect: number | null; lo: number | null; hi: number | null; control?: boolean; p?: number | null; n?: number | null; tone?: string; note?: string };
 
 /** Forest plot: effect ± 95% CI per row, zero line, controls drawn hollow and grey. */

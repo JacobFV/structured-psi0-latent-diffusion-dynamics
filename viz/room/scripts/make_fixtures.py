@@ -45,15 +45,7 @@ for fam, tasks, bodies in [("arm", ["pick_place", "pick_place_paired"], ["fixtur
 dump("results", env("results", rows=rows))
 
 # ---------------------------------------------------------------- overview (shape of rrp.viz.export overview)
-dump("overview", env("overview", status_updated="FIXTURE", current_state_markdown="**FIXTURE** current state text.",
-    claims=[dict(title="FIXTURE claim", text="an established claim appears here with its decision id", decisions=["D-000"], status="established", interim=False, source_file="STATUS.md", line=1),
-            dict(title="FIXTURE interim claim", text="a claim still being checked", decisions=["D-000"], status="interim", interim=True, source_file="STATUS.md", line=2)],
-    open=[dict(n="1", section="FIXTURE", question="FIXTURE: an open roadmap question", status="running", status_text="running", decisions=[], source_file="docs/experiments_roadmap.md", line=1)],
-    caveats=[dict(text="FIXTURE: caveats are listed, never hidden", decisions=["D-000"], source_file="STATUS.md", line=3)],
-    key_numbers=[dict(k=15, n=30, text="15/30", context="FIXTURE context", claim="FIXTURE claim", decisions=["D-000"], interim=True, source_file="STATUS.md", line=1)],
-    latest_decisions=[dict(id=f"D-{i:03d}", date="2026-09-28", title=f"FIXTURE decision {i}") for i in range(3, 0, -1)],
-    workstreams=[dict(id="W0", workstream="FIXTURE workstream", state="running", where="research/tracks/room.md", decisions=["D-000"])],
-    results_summary=dict(n_rows=len(rows), n_files=1, n_interim=0, n_with_caveat=0)))
+dump("overview", env("overview", latest_decisions=[dict(id=f"D-{i:03d}", date="2026-09-28", title=f"FIXTURE decision {i}") for i in range(3, 0, -1)]))
 
 # ---------------------------------------------------------------- live + dags
 now = 1790553600
@@ -115,44 +107,10 @@ for name, kind in [("fixture_flow_run", "flow"), ("fixture_bc_run", "bc")]:
     runs.append(r)
 dump("training", env("training", runs=runs, grad_health=[]))
 
-# ---------------------------------------------------------------- robustness
-levels = []
-reports = []
-for route in ["flow_sem", "bc"]:
-    for factor, lv in [("friction", [0.25, 0.5, 1.0, 1.5, 2.0]), ("push_Ns", [0, 5, 10, 20, 40])]:
-        for li, x in enumerate(lv):
-            n = 20; k = max(0, min(20, int(18 - (abs(li - 2) if factor == "friction" else li) * (4 if route == "bc" else 2.5))))
-            lo, hi = wilson(k, n)
-            levels.append(dict(route=route, robot="fixture_arm", factor=factor, level=x, k=k, n=n, rate=k / n, ci=[lo, hi], drop=round(0.9 - k / n, 3),
-                               motion=dict(joint_jerk_rms=round(rng.uniform(20, 40), 2), penetration_max_m=round(rng.uniform(0, 0.01), 4))))
-    reports.append(dict(route=route, robot="fixture_arm", nominal=dict(k=18, n=20, rate=0.9, ci=list(wilson(18, 20)), sources=["fixture"]),
-                        break_points=dict(push_Ns=dict(high=10.0 if route == "bc" else 20.0), friction=dict(low=None, high=None)),
-                        pooled_perturbed=dict(success=150, n=200, rate=0.75, wilson95=list(wilson(150, 200)), lost=30, gained=5), decision="D-000"))
-dump("robustness", env("robustness", levels=levels, reports=reports,
-    comparisons=[dict(a="flow_sem", b="bc", robot="fixture_arm", metric="privileged_success", n_seeds=20, n_levels=10, level_mean_a=0.7, level_mean_b=0.6,
-                      diff_level_mean=0.1, diff_level_mean_ci=[0.02, 0.18], p_level_mean=0.01, diff_drop=0.02, p_drop=0.6, decision="D-000")],
-    variant_diffs=[]))
-
-# ---------------------------------------------------------------- physics, psi0, knowledge, videos
-dump("physics", env("physics",
-    trackers=[dict(body=f"fixture_body_{i}", tracker_version=f"learned_tracker:fixture_body_{i}:v1", synthetic=True, passed=i != 2,
-                   gate=dict(no_fall_rate=1.0, forward_ratio=0.95, turn_ratio=0.7, passed=i != 2),
-                   contact_gate=dict(slip_ratio=round(0.1 + 0.15 * i, 3), slip_ok=i == 0, duty_min=0.6, duty_max=0.7, stepping_ok=True, clearance_ok=True, passed=i == 0),
-                   modes=dict(forward=dict(cot=round(0.8 + 0.1 * i, 2), slip_mps=0.1, duty_min=0.6, duty_max=0.7, swing_apex_m=0.04)), source_file="fixture") for i in range(3)],
-    gates=[dict(gate=f"FIXTURE gate {i}", version="fixture", subject=dict(name="fixture", n=100, bodies=["fixture_body_0"]), verdict=v, decision="D-000",
-                criteria=[dict(name="criterion", status=v, value=0.9, threshold=">= 0.95", note="FIXTURE")]) for i, v in enumerate(["pass", "pass", "fail"])],
-    dataset_gates=[], gate_tables=[dict(heading="FIXTURE table", header=["kind", "verdict"], rows=[["tracker", "pass"]], source_file="fixture.md", line=1)]))
+# ---------------------------------------------------------------- psi0, videos
 dump("psi0", env("psi0",
     runs=[dict(run="fixture_run", task="FIXTURE task", level=None, k=3, n=10, rate=0.3, ci=list(wilson(3, 10)), interim=True, interim_reason="FIXTURE")],
-    p_decisions=[dict(id="P-001", date="2026-09-20", title="FIXTURE P-decision", body="FIXTURE body linking D-000.", refs_d=["D-000"])],
-    crosswalk=[dict(rrp=["D-000"], psi1z=["P-001"], topic="FIXTURE: informs", source_file="research/decisions.md", line=1)],
-    p_to_d_table=[], rrp_w10_decisions=[], notes_tables=[], notes_markdown="FIXTURE notes", readme_markdown="FIXTURE readme", missing=[]))
-dump("knowledge", env("knowledge",
-    decisions=[dict(id=f"D-{i:03d}", date=f"2026-09-{20 + i % 8:02d}", title=f"FIXTURE decision {i}", refs_p=[], workstreams=[], paths=[],
-                    body=f"FIXTURE body for decision {i}. See D-{max(1, i - 1):03d}.\n\n- a list item\n- `code`", source_file="fixture", line=i) for i in range(1, 12)],
-    roadmap=[dict(n="1", question="FIXTURE roadmap item", status="running")], backlog=[dict(item="FIXTURE backlog item", status="planned")],
-    workstreams=[dict(id="W0", workstream="FIXTURE workstream", status="FIXTURE", decisions=["D-000"], detail_markdown="- FIXTURE scope")],
-    status_markdown="# FIXTURE STATUS\n\nThis is fixture text, not the real STATUS.md.", docs=[dict(path="STATUS.md", title="STATUS")]))
+    missing=[]))
 dump("videos", env("videos", videos=[]))
 
 

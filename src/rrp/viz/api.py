@@ -3,8 +3,6 @@
 The plugin shells out (cwd = repo root, PYTHONPATH=src, like IBM-2's progress plugin) and caches the result:
   python -m rrp.cli viz api get <name> [--max-age 15] [--live]   -> prints the absolute path of viz/data/<name>.json after
                                                                 re-exporting it if older than --max-age seconds
-  python -m rrp.cli viz api doc <path>                            -> prints {"path", "markdown", "mtime"} for an allowlisted
-                                                                markdown document (exit 2 if not allowed / missing)
   python -m rrp.cli viz api replay <id>                           -> prints the absolute path of a replay file (exit 2)
   python -m rrp.cli viz api media <name>                          -> prints the absolute path of a video (exit 2)
   python -m rrp.cli viz api training <id>                         -> prints the absolute path of one training series
@@ -15,7 +13,6 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import sys
 import time
 from pathlib import Path
 
@@ -24,7 +21,7 @@ from rrp.viz.export.common import Config, read_json
 
 ROUTES = {**{f"/api/{n}": f"{n}.json" for n in DOCS},
           "/api/replay/<id>": "api replay <id>", "/api/training/<id>": "training/<id>.json",
-          "/api/doc?path=<p>": "api doc <p>", "/media/<name>": "api media <name>"}
+          "/media/<name>": "api media <name>"}
 _SAFE_ID = re.compile(r"^[A-Za-z0-9_.\-]{1,200}$")
 LIVE_MAX_AGE_S = 10
 DEFAULT_MAX_AGE_S = 15
@@ -44,27 +41,6 @@ def ensure(cfg: Config, name: str, max_age_s: float | None = None) -> Path:
     if not p.exists() or time.time() - p.stat().st_mtime > max_age:
         run(cfg, [name])
     return p
-
-
-def doc_allowed(rel: str, cfg: Config) -> Path | None:
-    """Allowlisted markdown: docs/**, research/**, STATUS.md, README.md, AGENTS.md."""
-    if not rel or rel.startswith("/") or "\\" in rel or ".." in Path(rel).parts or not rel.endswith(".md"):
-        return None
-    if not (rel in ("STATUS.md", "README.md", "AGENTS.md") or rel.startswith(("docs/", "research/"))):
-        return None
-    p = (cfg.repo / rel).resolve()
-    try:
-        p.relative_to(cfg.repo.resolve())
-    except ValueError:
-        return None
-    return p if p.is_file() else None
-
-
-def doc(cfg: Config, rel: str) -> dict | None:
-    p = doc_allowed(rel, cfg)
-    if p is None:
-        return None
-    return {"schema": "rrp-viz/doc/v1", "path": rel, "markdown": p.read_text(), "mtime": p.stat().st_mtime}
 
 
 def replay_file(cfg: Config, rid: str) -> Path | None:
@@ -110,7 +86,7 @@ def main(argv=None) -> int:
     g.add_argument("name", choices=DOCS)
     g.add_argument("--max-age", type=float, default=None)
     g.add_argument("--live", action="store_true")
-    for c in ("doc", "replay", "media", "training"):
+    for c in ("replay", "media", "training"):
         sub.add_parser(c).add_argument("arg")
     sub.add_parser("routes")
     a = ap.parse_args(argv)
@@ -120,13 +96,6 @@ def main(argv=None) -> int:
         return 0
     if a.cmd == "get":
         print(ensure(cfg, a.name, a.max_age))
-        return 0
-    if a.cmd == "doc":
-        d = doc(cfg, a.arg)
-        if d is None:
-            print(json.dumps({"error": "not allowed or missing", "path": a.arg}))
-            return 2
-        print(json.dumps(d))
         return 0
     fn = {"replay": replay_file, "media": media_file, "training": training_file}[a.cmd]
     p = fn(cfg, a.arg)

@@ -47,18 +47,6 @@ export function fmtNum(v: unknown, digits = 3): string {
   if (Number.isInteger(n)) return n.toLocaleString('en-US');
   return Number(n.toPrecision(digits)).toString();
 }
-export function pct(v: unknown, digits = 0): string {
-  const n = num(v);
-  return n === null ? '—' : `${(n * 100).toFixed(digits)}%`;
-}
-export function fmtBytes(v: unknown): string {
-  const n = num(v);
-  if (n === null) return '—';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  let x = n, i = 0;
-  while (Math.abs(x) >= 1024 && i < units.length - 1) { x /= 1024; i++; }
-  return `${x.toFixed(x >= 100 || i === 0 ? 0 : 1)} ${units[i]}`;
-}
 export function ago(iso: unknown, now = Date.now()): string {
   const t = typeof iso === 'number' ? (iso < 1e12 ? iso * 1000 : iso) : Date.parse(str(iso));
   if (!Number.isFinite(t)) return '—';
@@ -112,15 +100,4 @@ export function sortNatural(a: string, b: string) {
 }
 export function clamp(x: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, x));
-}
-/** Keep every k-th point so that at most `max` remain (plus the last). */
-export function thin<T>(xs: T[], max = 1500): T[] {
-  if (xs.length <= max) return xs;
-  const k = Math.ceil(xs.length / max);
-  const out = xs.filter((_, i) => i % k === 0);
-  if (out[out.length - 1] !== xs[xs.length - 1]) out.push(xs[xs.length - 1]);
-  return out;
-}
-export function decisionIds(s: string): string[] {
-  return uniq(s.match(/\b[DP]-\d{2,4}\b/g) || []);
 }

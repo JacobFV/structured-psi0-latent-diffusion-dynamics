@@ -363,46 +363,6 @@ def build_robustness(cfg: Config, cache: FileCache, found: dict, dec, results_ro
                                                        "decision", "interim", "caveat")} for r in per_level])
 
 
-def build_physics(cfg: Config, cache: FileCache, found: dict, dec) -> dict:
-    trackers, gates, dataset_gates, docs = [], [], [], []
-    for f in found["json"]:
-        prod = content(cfg, cache, f)
-        obj = prod.get("obj")
-        if not isinstance(obj, dict):
-            continue
-        prov = provenance(f, dec)
-        if "tracker_version" in obj and isinstance(obj.get("gate"), dict) and isinstance(obj.get("summary"), dict):
-            g = obj["gate"]
-            trackers.append({"body": obj.get("body"), "tracker_version": obj.get("tracker_version"),
-                             "tracker_sha": obj.get("tracker_sha"), "tracker_source": obj.get("tracker_source"),
-                             "synthetic": obj.get("synthetic"), "passed": g.get("passed"),
-                             "gate": {k: rnd(v) for k, v in g.items() if not isinstance(v, dict)},
-                             "contact_gate": {k: rnd(v) for k, v in (g.get("contact_gate") or {}).items()},
-                             "modes": {m: {k: rnd(v) for k, v in s.items() if not isinstance(v, (list, dict))}
-                                       for m, s in obj["summary"].items() if isinstance(s, dict)}, **prov})
-        elif "verdict" in obj and isinstance(obj.get("criteria"), list):
-            gates.append({"gate": obj.get("gate"), "version": obj.get("version"), "subject": obj.get("subject"),
-                          "verdict": obj.get("verdict"),
-                          "criteria": [{k: c.get(k) for k in ("name", "status", "value", "threshold", "note")}
-                                       for c in obj["criteria"] if isinstance(c, dict)], **prov})
-        elif isinstance(obj.get("gate"), dict) and "passed" in obj["gate"]:
-            dataset_gates.append({"body": obj.get("body"), "gate": obj["gate"], "by_sigma": obj.get("by_sigma"),
-                                  "tracker_sha256": obj.get("tracker_sha256"),
-                                  "actuator_limits": obj.get("actuator_limits"), **prov})
-        elif not f.rel.endswith(".summary.json"):
-            docs.append({"title": f.rel.rsplit("/", 1)[-1], "doc": obj, **prov})
-    gate_tables = []
-    for f in found["md"]:
-        if "gates" in f.rel or "contact" in f.rel:
-            p = cache.product("md", f.sha) or []
-            gate_tables += [{**t, **provenance(f, dec)} for t in p if t["rows"]]
-    return envelope("physics", cfg, sorted({x["source_file"] for x in trackers + gates + dataset_gates + docs}),
-                    notes=["Tracker validation = learned tracker vs its gate; gates = D-112/D-114 gate reports "
-                           "(report-only where the report says so); documents = other small physics JSON files verbatim."],
-                    trackers=trackers, gates=gates, dataset_gates=dataset_gates, gate_tables=gate_tables,
-                    documents=docs[:400], n_documents=len(docs))
-
-
 _KIND_RULES = [("trackers/", "tracker"), ("/contact_", "tracker"), ("psi1z", "psi1z"), ("grpo", "grpo"), ("adapt_expo", "grpo"),
                ("adapt_grpo", "grpo"), ("stagea", "stageA"), ("train_rep", "stageA"), ("_rep_", "stageA"),
                ("latent_sem", "stageA"), ("latent_nosem", "stageA"), ("rep_", "stageA"), ("codec", "bc"),

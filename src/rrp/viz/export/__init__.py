@@ -1,7 +1,7 @@
 """Room data exporter (viz/CONTRACT.md, D-131): `python -m rrp.cli viz export [--live] --out viz/data [--only name]`.
 
-Writes one JSON document per API path (overview, live, dags, results, edits, training, robustness, physics, psi0,
-knowledge, replays, videos) plus training/<id>.json series and _manifest.json (timings, sizes, row counts, errors).
+Writes one JSON document per API path (overview, live, dags, results, edits, training, robustness (radar input), psi0,
+replays, videos, radar, matrix, factors) plus training/<id>.json series and _manifest.json (timings, sizes, row counts, errors).
 Host-light: stdlib only, one process, caches every source by (path, mtime, size) under <out>/_cache. The peer is read
 only with --live, by ONE bounded ssh call; without it the cached peer read is re-served and marked stale.
 """
@@ -15,9 +15,9 @@ from pathlib import Path
 
 from .common import Config, FileCache, envelope, read_json, write_json
 
-DOCS = ("overview", "live", "dags", "results", "edits", "training", "robustness", "physics", "psi0", "knowledge",
+DOCS = ("overview", "live", "dags", "results", "edits", "training", "robustness", "psi0",
         "replays", "videos", "radar", "matrix", "factors")
-_SCAN_DOCS = {"results", "edits", "training", "robustness", "physics"}
+_SCAN_DOCS = {"results", "edits", "training", "robustness"}
 
 
 def _rows(doc: dict) -> int | None:
@@ -124,10 +124,6 @@ def _run(cfg: Config, only: list[str] | None = None, sync_psi1z: bool = False) -
             d = timed("robustness", lambda: results.build_robustness(cfg, cache, found, dec, res_doc["rows"]))
             if d:
                 emit("robustness", d)
-        if "physics" in want:
-            d = timed("physics", lambda: results.build_physics(cfg, cache, found, dec))
-            if d:
-                emit("physics", d)
         if "training" in want:
             def _tr():
                 clip = []
@@ -160,13 +156,9 @@ def _run(cfg: Config, only: list[str] | None = None, sync_psi1z: bool = False) -
                         p.unlink()
         cache.save(prune_kinds=("x", "md", "tl") if want >= _SCAN_DOCS else ())
     if "overview" in want:
-        d = timed("overview", lambda: knowledge.build_overview(cfg, decisions, results_meta))
+        d = timed("overview", lambda: knowledge.build_overview(cfg, decisions))
         if d:
             emit("overview", d)
-    if "knowledge" in want:
-        d = timed("knowledge", lambda: knowledge.build_knowledge(cfg, decisions))
-        if d:
-            emit("knowledge", d)
     if "psi0" in want:
         d = timed("psi0", lambda: psi0.build_psi0(cfg, decisions))
         if d:

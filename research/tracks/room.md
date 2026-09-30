@@ -268,3 +268,18 @@ Resume: `cd ~/work/rrp-wt/roomui/viz/room && npm install && npm run dev` (add `R
   - new axis "new-arm transfer (adapted)": d136_compare pooled k/1200, BC SFT = reference; semfix v6 595 (r 0.71), nosem v6
     151 (r 0.18);
   - the held-out xarm7 zero-shot axis now carries v6 latent zero-shot 0/200 (targets_v6).
+
+### frontend: deletion pass (owner: "a lot of shit that needs to be removed"), 2026-09-29
+- Views 4 → 4, renamed Overview → Board (`#overview`, `#resultsboard`, `#knowledge`, `#claims`, `#library` redirect to `#board`).
+  - Board: headline (+ tiny curriculum tile), matrix, factors, DAGs, leases, decisions.
+  - Runs: facets and run panels; the video library and fixture demo are gone.
+  - Training: vitals charts + curves.
+  - Evaluations: 8 lenses → 4 (Success, Route radar, Causal effects, Relation factors). The old lens ids redirect.
+- Deleted: the Results board copy; the Knowledge/docs reader (decisions/roadmap/backlog/strategy/STATUS/crosswalk/claims/docs);
+  the Robustness, Physics, Ψ₀, standalone Matrix and Theatre views; v1 arm panels, go2 contact, raw Results tables, Edits stat grid and
+  tables, grad-health table, the "show data tables" toggle, Markdown/Sections components and unused ui/board/format helpers; 74 lines of dead CSS.
+- Exporter: removed docs `physics`, `knowledge`, the `api doc` subcommand, and `/api/doc` + `/api/doclist` routes. `robustness`
+  is exporter-internal (radar input); `overview` is now latest decisions only. The radar dropped the frozen_sem series and the
+  superseded arm v1 axes (gaps now cite D-134).
+- LOC: −4236 / +313 overall (room src −3397/+238, exporter + tests −244/+17, plugin + scripts −111/+13).
+- Checks: typecheck, build, render-check (333 ok incl. 160 replays), pytest viz tests 31 passed.

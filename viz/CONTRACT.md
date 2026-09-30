@@ -32,26 +32,23 @@ All JSON. Every document has `{schema: "rrp-viz/<name>/v1", generated_at, git_sh
 
 | path | content |
 |---|---|
-| `/api/overview` | headline claims: established (with D-id), open (roadmap #), caveats; key numbers table; latest 15 decisions |
+| `/api/overview` | latest 15 decisions (id, date, title, source line, D refs, workstreams) |
 | `/api/live` | peer node (GPU util/temp, CPU temp, memory available, PSI, project memory, disk free, admission state + reason), active leases (id, label, workstream, declared mem/GPU/CPU, measured current/peak, memory.high events, age), last 200 watchdog samples (level, reasons), host basics; `stale: true` if older than 60 s |
 | `/api/dags` | every run-dag ledger (host + peer copies): dag name, nodes (id, stage, state, lease, started/ended, rc, caveat), counts, a stated ETA if recorded in track notes (never invented) |
 | `/api/results` | normalized results catalogue: rows `{id, family: arm/legged/dual/psi0, task, body, route, variant, seed, grasp/contact/actuator version, metric, k, n, rate, ci_lo, ci_hi, source_label, source_file, decision, interim, caveat}` from every summary.json / compare table / gate report |
 | `/api/edits` | causal edit effects: `{body, variant, seed, edit (ctx_halt / mirror_active / mirror_inactive / z_halt / z_turn / goal / rebind…), control?, effect, ci, n_pairs, permutation p, decision}` |
 | `/api/training` | training curves index + series: `{run, kind (stageA / flow / refit / bc / tracker / grpo / psi1z), step[], losses{…}, grad_norm, clip_scale, lr, alpha (reward schedule), gate state}`, downsampled to ≤ 2000 points |
-| `/api/robustness` | sweep tables: route × factor × level success with CIs, break-points, motion-quality medians, variant-level paired diffs (D-108/D-112) |
-| `/api/physics` | contact v2 slip / CoT tables per tracker, grasp rig results, tracker validation, gate backfill verdicts (D-093..D-114) |
-| `/api/psi0` | the Ψ₀ line: reproduction table, step-2 results, psi1z P-decisions and crosswalk (reads ~/work/psi1z and its local results copies) |
-| `/api/knowledge` | decisions (parsed D-entries: id, date, title, body markdown), roadmap items, backlog items, strategy workstreams, STATUS markdown, docs list |
+| (`robustness.json`) | exporter-internal since the deletion pass: sweep tables read by the radar builder; not served by the plugin |
+| `/api/psi0` | the Ψ₀ step-2 runs (Board headline) and missing sources |
 | `/api/replays` | replay index: `{id, family, task, body, route, source_label, variant, seed, condition, success, n_frames, fps, file, video?}` |
 | `/api/replay/<id>` | a replay file (below) |
 | `/api/videos` | `artifacts/video/INDEX.md` entries with labels; files served from `/media/<name>` |
-| `/api/doc?path=` | allowlisted markdown document (docs/, research/, STATUS.md, README.md, AGENTS.md, psi1z README/notes/decisions) |
 | `/api/matrix` | recorded `rrp matrix --out` rows (`rrp-viz/matrix/v1`): policy × env × body × task, status accepted / n/a with the declared negotiate() reasons, source, optional rollout summary; newest per cell; plus the ENVS / POLICIES registries read from source |
 | `/api/factors` | relation factors (`rrp-viz/factors/v1`, D-144): registry (field × op × form, status, sources, field provenance), presets, fields, candidate catalog (W1/W2/P/X/M), runs whose versions name a factor set, curriculum schedules from `<run>/schedule.jsonl` + `steer.jsonl` |
-| `/api/radar` | declared route radar (`rrp-viz/radar/v1`) built from `viz/radar_axes.json`: axes (metric, direction, floor, reference, protocol, decision) × series (teacher, bc, semfix, nosem, frozen_sem) with value, r (floor → reference), drawn (clamped), spread and per-value evidence; missing values stay gaps with a reason |
+| `/api/radar` | declared route radar (`rrp-viz/radar/v1`) built from `viz/radar_axes.json`: axes (metric, direction, floor, reference, protocol, decision) × series (teacher, bc, semfix_v6, nosem_v6, semfix, nosem, latent_jointfix) with value, r (floor → reference), drawn (clamped), spread and per-value evidence; missing values stay gaps with a reason |
 | `/api/training/<id>` | one training series (`rrp-viz/training-series/v1`: step[], losses{…}, grad_norm, clip_scale, lr, alpha, gate_state); ids from `/api/training` `runs[].id` |
 
-Provenance fields on every row (results, edits, physics, robustness, training runs): `source_file` (path relative to its checkout),
+Provenance fields on every row (results, edits, robustness, training runs): `source_file` (path relative to its checkout),
 `location` (`repo` = this checkout, i.e. in git / `main` / `wt:<worktree>` / `rrp-data:<dir>` / `peer:<host>`), `in_git`, `sha1`,
 `copies` (identical copies found; deduplicated by content hash), `alt_paths`, `decision` (latest D-entry whose text names the file or
 its run directory), `decisions`, `decision_match` (the token that matched), `track_notes`. Results rows also carry `key_path`
@@ -69,9 +66,7 @@ its run directory), `decisions`, `decision_match` (the token that matched), `tra
   `python -m rrp.cli viz api get <name> [--live] [--max-age S]` prints the absolute path of the fresh document (it re-exports only that
   document when older than S); then the plugin reads that file. `/api/live` uses `get live --live` (one bounded ssh read of the
   peer, ≤ 5 s; `stale` when the last good read is older than 60 s).
-- `python -m rrp.cli viz api doc <path>` prints `{schema: rrp-viz/doc/v1, path, markdown, mtime}` (exit 2 if not allowlisted; optional,
-  the plugin may serve `/api/doc` itself with the same allowlist, v1.1);
-  `api replay <id>`, `api media <name>`, `api training <id>` print an absolute file path (exit 2 if unknown). `api routes` prints the table.
+- `api replay <id>`, `api media <name>`, `api training <id>` print an absolute file path (exit 2 if unknown). `api routes` prints the table.
 - `python -m rrp.cli viz export --sync-psi1z` rsyncs small psi1z summary files from the peer into `~/work/rrp-data/viz/psi1z/` (≤ 50 MB);
   it is never part of a periodic refresh.
 
@@ -128,16 +123,9 @@ is undefined (e.g. before the first packet, a foot in swing). Units and privileg
 - Dual: `hand_contact: [[bool per meta.hands]]` (public touch ≥ 0.2); `grip_drift: [[[pos_mm, rot_deg] | null per hand]]`
   held object's pose drift in the TCP frame since the grip formed (PRIVILEGED held truth).
 - `meta.waypoints`, `meta.t_edit` are recorded for legged (top-down map).
-- `/api/doc?path=` is served by the plugin directly from the allowlist (no exporter call). The packet PCA basis is fitted per bundle on training packets and stored in `meta`.
+- The packet PCA basis is fitted per bundle on training packets and stored in `meta`.
 
 ## views (frontend)
-1. **Overview**: what is established vs open, key numbers, caveats, latest decisions.
-2. **Live ops**: peer vitals timeline, admission, leases (declared vs measured, throttling), DAG progress per workstream, watchdog events.
-3. **Results matrix**: task × body × route heatmap (rate + CI), filters for physics version, seeds and variants, and deltas (e.g. grasp v1 → v2).
-4. **Episode theatre**: a three.js 3D replay with synchronized timelines (targets/positions, contacts, packet PCA trajectory, probe readouts, phase, task events, edits), side-by-side compare, and scrubbing. Video fallback.
-5. **Causal edits**: effect plots with controls, per seed and body, with permutation tests.
-6. **Training**: curves and gradient health (D-085 clip scale), reward-schedule α, DAgger rounds, probes.
-7. **Robustness**: break-point curves, motion quality, variant-level diffs.
-8. **Physics credibility**: contact/grasp/actuator tables, tracker validation, gates.
-9. **Ψ₀ line**: reproduction and step-2 results; psi1z decisions.
-10. **Knowledge**: decisions timeline (D ↔ P crosswalk), roadmap, backlog, strategy, docs reader.
+Superseded by the deletion pass (2026-09-29): four views (Board, Runs, Training, Evaluations); see viz/room/README.md.
+Removed: the Knowledge/docs reader (`/api/knowledge`, `/api/doc`), physics credibility (`/api/physics`), robustness, Ψ₀ and
+standalone matrix views.

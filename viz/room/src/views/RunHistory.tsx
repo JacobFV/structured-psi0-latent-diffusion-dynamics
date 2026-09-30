@@ -15,7 +15,6 @@ import { useDoc, useReplay, type DocResult, type Envelope } from '../lib/api';
 import { arr, fmtNum, isObj, pick, rows, shortSha, sortNatural, str, type Row } from '../lib/format';
 import { Clock, relTimes, useClock, type Replay } from '../lib/replay';
 import { readParam, useUrlState, writeParams } from '../lib/url';
-import { useFixtureIndex, VideoLibrary, VideoPanel, videoCandidates } from './Theatre';
 
 const SPEEDS = ['0.25', '0.5', '1', '2', '4'];
 declare global { var __RRP_EAGER__: boolean | undefined }
@@ -64,7 +63,6 @@ const CAPS: Record<string, string> = {
   evidence: 'the original eval row, the reproduction check (recorded vs re-run) and the replay metadata',
 };
 
-const ENVS: [string, string][] = [['arm', 'arm (pick and place)'], ['legged', 'legged (waypoints, edits)'], ['dual', 'dual arm'], ['physics', 'physics (tracker, grasp rig)']];
 function envOf(e: Row) {
   return /^(grasp_rig|tracker_validation)$/.test(str(e.task)) ? 'physics' : str(e.family);
 }
@@ -103,37 +101,10 @@ function matches(e: Row, q: string) {
 export default function RunHistory() {
   const index = useDoc<Envelope>('replays');
   const videos = useDoc<Envelope>('videos');
-  const [list, setList] = useUrlState('list', 'runs');
-  const [demo, setDemo] = useUrlState('demo', '0');
-  const real = index.result.status === 'ok' ? rows(pick(index.result.data, 'replays', 'rows')) : [];
-  const fx = useFixtureIndex(demo === '1' && index.result.status === 'ok' && !real.length);
-  const entries = real.length ? real : demo === '1' ? fx || [] : [];
-  const header = list === 'videos' ? (
-    <SidebarControls>
-      <SideGroup title="Environment" right={<ModeBadge result={videos.result} />}>
-        <select value="videos" onChange={(e) => { if (e.target.value !== 'videos') { setList('runs'); window.location.hash = `#runs?env=${e.target.value}`; } }} aria-label="environment">
-          {ENVS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          <option value="videos">video library</option>
-        </select>
-      </SideGroup>
-    </SidebarControls>
-  ) : null;
-  if (list === 'videos') {
-    return <>{header}{videos.result.status === 'ok' ? <VideoLibrary d={videos.result.data} /> : <Status r={videos.result} what="videos (/api/videos)" />}</>;
-  }
+  const entries = index.result.status === 'ok' ? rows(pick(index.result.data, 'replays', 'rows')) : [];
   if (index.result.status !== 'ok') return <Status r={index.result} what="replay index (/api/replays)" />;
-  if (!entries.length) {
-    return (
-      <>
-        <div className="state">
-          <h3>No replays recorded yet</h3>
-          <div>Expected <code>~/work/rrp-data/viz/replays/index.json</code> (recorder: <code>python -m rrp.viz.record</code>, peer only).</div>
-          <button onClick={() => setDemo('1')} style={{ marginTop: 6 }}>open a synthetic FIXTURE demo</button>
-        </div>
-      </>
-    );
-  }
-  return <Runs entries={entries} videos={videos.result} fixture={!real.length} indexResult={index.result} onVideos={() => setList('videos')} />;
+  if (!entries.length) return <NoData expected="~/work/rrp-data/viz/replays/index.json (via /api/replays)" what="replays" />;
+  return <Runs entries={entries} videos={videos.result} indexResult={index.result} />;
 }
 function Status({ r, what }: { r: DocResult<Envelope>; what: string }) {
   if (r.status === 'loading') return <Loading what={what} />;
@@ -142,7 +113,7 @@ function Status({ r, what }: { r: DocResult<Envelope>; what: string }) {
   return null;
 }
 
-function Runs({ entries, videos, fixture, indexResult, onVideos }: { entries: Row[]; videos: DocResult<Envelope>; fixture: boolean; indexResult: DocResult<Envelope>; onVideos: () => void }) {
+function Runs({ entries, videos, indexResult }: { entries: Row[]; videos: DocResult<Envelope>; indexResult: DocResult<Envelope> }) {
   const [a, setA] = useUrlState('a', '');
   const [b, setB] = useUrlState('b', '');
   const [q, setQ] = useUrlState('q', '');
@@ -226,9 +197,6 @@ function Runs({ entries, videos, fixture, indexResult, onVideos }: { entries: Ro
                 {['env', 'robot', 'task', 'outcome', 'none'].map((g) => <option key={g} value={g}>{g}</option>)}
               </select>
             </label>
-            <label>more
-              <select value="" onChange={(e) => { if (e.target.value === 'videos') onVideos(); }} aria-label="other lists"><option value="">recorded runs</option><option value="videos">video library</option></select>
-            </label>
           </div>
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search runs… (route:bc variant:semfix seed:3000000)" aria-label="search runs" />
           <div className="runtable" role="listbox" aria-label="runs">
@@ -260,7 +228,6 @@ function Runs({ entries, videos, fixture, indexResult, onVideos }: { entries: Ro
         </SideGroup>
       </SidebarControls>
 
-      {fixture && <div className="mode-banner fixture"><span className="badge src t-fixture">FIXTURE DEMO</span>No replays have been recorded; these synthetic episodes only demonstrate the view. Not results.</div>}
       {sides.map((s) => <Banner key={s.tag} r={s.replay} tag={B ? s.tag : undefined} color={s.color} entry={entries.find((e) => str(e.id) === s.replay.id)} />)}
       {ra && ra.status !== 'ok' && <Status r={ra as DocResult<Envelope>} what="replay A" />}
       {rb && rb.status !== 'ok' && <Status r={rb as DocResult<Envelope>} what="replay B" />}
@@ -443,3 +410,50 @@ function FragmentDl({ k, v }: { k: string; v: unknown }) {
   const text = typeof v === 'string' ? v : JSON.stringify(v);
   return <><dt>{k}</dt><dd title={text.length > 400 ? text : undefined}>{text.length > 400 ? `${text.slice(0, 400)}…` : text}{arr(v).length > 20 ? ` (${arr(v).length} items)` : ''}</dd></>;
 }
+
+/* ---------- video matched to a run (recorder link, else by file name) */
+function videoRows(videos: DocResult<Envelope>): Row[] {
+  return videos.status === 'ok' ? rows(pick(videos.data, 'videos', 'entries', 'rows')) : [];
+}
+function videoName(v: Row) {
+  return str(pick(v, 'file', 'name', 'path')).split('/').pop() || '';
+}
+function videoCandidates(entry: Row | undefined, videos: DocResult<Envelope>): { name: string; label: string; exact: boolean }[] {
+  if (!entry) return [];
+  const all = videoRows(videos);
+  const direct = str(entry.video);
+  if (direct) {
+    const name = direct.split('/').pop()!;
+    const v = all.find((x) => videoName(x) === name);
+    return [{ name, label: v ? str(pick(v, 'description', 'text', 'label')) : 'linked from the replay index', exact: true }];
+  }
+  const seed = str(entry.seed), body = str(entry.body), task = str(entry.task);
+  return all
+    .filter((v) => {
+      const n = videoName(v);
+      const vseed = str(v.seed), vbodies = arr(v.bodies).map(str).concat(str(v.robot));
+      const seedOk = seed && (vseed ? vseed === seed : n.includes(`s${seed}`));
+      const bodyOk = !body || vbodies.includes(body) || n.includes(body);
+      const taskOk = !task || !v.task || str(v.task) === task;
+      return seedOk && bodyOk && taskOk && v.exists_locally !== false;
+    })
+    .slice(0, 6)
+    .map((v) => ({ name: videoName(v), label: str(pick(v, 'description', 'text', 'label')), exact: false }));
+}
+
+function VideoPanel({ vids, reason }: { vids: { name: string; label: string; exact: boolean }[]; reason?: string }) {
+  const [i, setI] = useState(0);
+  const v = vids[Math.min(i, vids.length - 1)];
+  const ref = useRef<HTMLVideoElement>(null);
+  if (!v) return null;
+  return (
+    <div style={{ padding: 10, display: 'grid', gap: 6, paddingTop: 40 }}>
+      {reason && <div className="badge caveat">{reason}</div>}
+      {!v.exact && <div className="small ink2">Matched by file name (seed/body/task), not linked by the recorder: check the label.</div>}
+      <video ref={ref} className="media" src={`/media/${encodeURIComponent(v.name)}`} controls loop playsInline preload="metadata" />
+      {vids.length > 1 && <select value={i} onChange={(e) => setI(Number(e.target.value))}>{vids.map((x, k) => <option key={x.name} value={k}>{x.name}</option>)}</select>}
+      <div className="small">{v.label || <span className="muted">no label in the video index</span>}</div>
+    </div>
+  );
+}
+

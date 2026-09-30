@@ -6,11 +6,10 @@
  * Older result panels live in Overview → Results board. Every figure is captioned; the render check asserts the budget.
  */
 import type { ReactNode } from 'react';
-import { Cap } from '../components/board';
+import { Cap, ModeBadge } from '../components/board';
 import { useDoc, type DocResult, type Envelope } from '../lib/api';
-import { arr, isObj, newcombe, num, rows, str, type Row } from '../lib/format';
+import { arr, fmtNum, isObj, newcombe, num, rows, str, type Row } from '../lib/format';
 import { href } from '../lib/url';
-import { DagPanel, DecisionPanel, haltDiffs, LeasePanel, lineages, P, transfer, v6 } from './ResultsBoard';
 
 export const VIEWPORT_H = 900;
 export const TICKER_H = 20;
@@ -23,6 +22,130 @@ export const CAP_H = 40;
 const LINE = 13;
 
 const ok = (r: DocResult<Envelope>) => (r.status === 'ok' ? r.data : null);
+const GB = 1024 ** 3;
+
+/* ---------- shared helpers (arm v6 D-134, transfer D-135/136, legged halt D-124) */
+function lineages(res: Envelope | null) {
+  const by = new Map<string, { k: number; n: number }>();
+  if (res) for (const r of rows(res.rows)) {
+    const kp = arr(r.key_path).map(str);
+    if (str(r.metric) !== 'grasp_v2' || kp.length !== 3 || !str(r.source_file).endsWith('compare_gc2_final.json')) continue;
+    const x = by.get(kp[0]) || { k: 0, n: 0 };
+    x.k += num(r.k) || 0; x.n += num(r.n) || 0;
+    by.set(kp[0], x);
+  }
+  const sum = (re: RegExp) => [...by.entries()].filter(([l]) => re.test(l)).reduce((a, [, v]) => ({ k: a.k + v.k, n: a.n + v.n }), { k: 0, n: 0 });
+  return { semfix: sum(/^semfix/i), nosem: sum(/^nosem/i) };
+}
+function v6(res: Envelope | null) {
+  const cells = new Map<string, { k: number; n: number }>();
+  const bodies: string[] = [];
+  const tot = { semfix: { k: 0, n: 0 }, nosem: { k: 0, n: 0 } };
+  if (res) for (const r of rows(res.rows)) {
+    const kp = arr(r.key_path).map(str);
+    if (kp.length !== 3 || kp[0] !== 'v6' || !/compare_v6\.json$/.test(str(r.source_file))) continue;
+    const lin = /^semfix_s/.test(kp[1]) ? 'semfix' : /^nosem_s/.test(kp[1]) ? 'nosem' : null;
+    if (!lin) continue;
+    const k = num(r.k) || 0, n = num(r.n) || 0;
+    if (kp[2] === 'all') { tot[lin].k += k; tot[lin].n += n; continue; }
+    if (!bodies.includes(kp[2])) bodies.push(kp[2]);
+    const x = cells.get(`${kp[2]}|${lin}`) || { k: 0, n: 0 };
+    x.k += k; x.n += n;
+    cells.set(`${kp[2]}|${lin}`, x);
+  }
+  return { cells, bodies, tot };
+}
+function transfer(res: Envelope | null) {
+  const z = () => ({ k: 0, n: 0 });
+  const t = { joint: z(), bcSft: z(), gripLatent: z(), gripBc: z() };
+  if (res) for (const r of rows(res.rows)) {
+    const f = str(r.source_file), kp = arr(r.key_path).map(str), k = num(r.k) || 0, n = num(r.n) || 0;
+    if (/armdiag\/d136_compare\.json$/.test(f) && kp.length === 3 && kp[0] === 'pooled' && /^semfix\/xarm7_(pg2|tf3)\/b\d+$/.test(kp[1])) {
+      if (kp[2] === 'joint_adapt') { t.joint.k += k; t.joint.n += n; }
+      if (kp[2] === 'bc_sft') { t.bcSft.k += k; t.bcSft.n += n; }
+    }
+    if (/ladder\/armv6\/targets_v6\.json$/.test(f) && kp.length === 4 && kp[2] === 'panda_tf3' && kp[3] === 'zero_shot') {
+      if (kp[0] === 'latent' && kp[1].startsWith('semfix_s')) { t.gripLatent.k += k; t.gripLatent.n += n; }
+      if (kp[0] === 'bc') { t.gripBc.k += k; t.gripBc.n += n; }
+    }
+  }
+  return t;
+}
+function haltDiffs(ed: Envelope | null) {
+  if (!ed) return [];
+  const rs = rows(ed.rows);
+  return ['anymal_c', 'go2'].flatMap((b) => {
+    const d = rs.find((r) => str(r.body) === b && /summary_contact_v2/.test(str(r.source_file)) && /pooled_diff/.test(str(r.metric)));
+    return d ? [{ body: b, v: num(d.effect)!, lo: num(arr(d.ci)[0])!, hi: num(arr(d.ci)[1])!, row: d }] : [];
+  });
+}
+function P({ title, link, result, meta, children, cls = '' }: { title: string; link: string; result?: DocResult<Envelope>; meta?: ReactNode; children: ReactNode; cls?: string }) {
+  return (
+    <section className={`bp ${cls}`}>
+      <header><a href={link}>{title}</a>{meta !== undefined && <span className="meta">{meta}</span>}{result && <ModeBadge result={result} />}</header>
+      <div className="bb">{children}</div>
+    </section>
+  );
+}
+
+const activeDags = (g: Envelope | null) => (g ? rows(g.dags).filter((d) => d.complete === false) : []);
+function LeasePanel({ r }: { r: DocResult<Envelope> }) {
+  const l = ok(r);
+  const ls = l ? rows(l.leases) : [];
+  return (
+    <P title="Leases · memory" link={href('training')} result={r} meta={`${ls.length}`}>
+      {ls.map((x) => {
+        const dec = isObj(x.declared) ? x.declared : {}, m = isObj(x.measured) ? x.measured : {};
+        const dm = num(dec.memory_bytes) || 1, c = num(m.memory_current) || 0, pk = num(m.memory_peak), hi = num(m.memory_high), thr = num(m.memory_high_events) || 0;
+        const f = (v: number) => `${Math.min(100, (v / dm) * 100)}%`;
+        return (
+          <div key={str(x.id)} className="barrow" title={`${str(x.label)} · ${str(x.workstream)} ${str(x.dag_node)} · ${(c / GB).toFixed(1)}/${(dm / GB).toFixed(0)} GB · peak ${fmtNum(pk !== null ? pk / GB : null)} GB · memory.high events ${thr}`}>
+            <span>{str(x.label)}</span>
+            <span className="bar"><i style={{ width: f(c), background: thr ? 'var(--critical)' : 'var(--accent)' }} />{hi !== null && <u style={{ left: f(hi) }} />}{pk !== null && <em style={{ left: f(pk) }} />}</span>
+            <b>{(c / GB).toFixed(1)}/{(dm / GB).toFixed(0)}G</b>
+          </div>
+        );
+      })}
+      <Cap>bar: current / declared memory · black tick: peak · orange: memory.high · red: throttled</Cap>
+    </P>
+  );
+}
+function DagPanel({ r }: { r: DocResult<Envelope> }) {
+  const g = ok(r);
+  const all = g ? rows(g.dags) : [];
+  const shown = [...activeDags(g), ...all.filter((d) => d.complete === true)].slice(0, 10);
+  return (
+    <P title="Run DAGs" link={href('training')} result={r} meta={`${activeDags(g).length} active`}>
+      {shown.map((d) => {
+        const c = isObj(d.counts) ? d.counts : {};
+        const total = Object.values(c).reduce<number>((a, v) => a + (num(v) || 0), 0) || 1;
+        const eta = arr(d.eta_statements).map((e) => str(isObj(e) ? e.text ?? e.eta : e)).join('; ');
+        return (
+          <div key={`${str(d.dag)}${str(d.location)}`} className="barrow" title={`${str(d.track)} · ${Object.entries(c).map(([k, v]) => `${k} ${v}`).join(', ')}${eta ? ` · ETA ${eta}` : ' · no ETA recorded'}`}>
+            <span>{str(d.dag)}</span>
+            <span className="bar">{['completed', 'running', 'failed'].map((k) => <i key={k} style={{ position: 'relative', display: 'inline-block', width: `${((num(c[k]) || 0) / total) * 100}%`, background: k === 'completed' ? 'var(--good)' : k === 'running' ? 'var(--accent)' : 'var(--critical)' }} />)}</span>
+            <b>{fmtNum(c.completed ?? 0)}/{total}{eta ? ` ${eta}` : ''}</b>
+          </div>
+        );
+      })}
+      <Cap>bar: nodes completed (green), running (blue), failed (red) · done/total · ETA only if stated</Cap>
+    </P>
+  );
+}
+function DecisionPanel({ r, wide }: { r: DocResult<Envelope>; wide?: boolean }) {
+  const o = ok(r);
+  const ds = o ? rows(o.latest_decisions) : [];
+  return (
+    <P title="Latest decisions" link={href('board')} result={r} cls={wide ? 'span4' : 'span2'}>
+      {ds.slice(0, 15).map((x) => (
+        <div key={str(x.id)} className="barrow dline" title={`${str(x.date)} · ${str(x.title)} (research/decisions.md)`}>
+          <span className="mono">{str(x.id)}</span><span>{str(x.title)}</span>
+        </div>
+      ))}
+    </P>
+  );
+}
+
 const FORM_COLOR: Record<string, string> = { bias: 'var(--s1)', aug: 'var(--s3)', gate: 'var(--s4)', mask: 'var(--s8)', message: 'var(--s7)', embed: 'var(--s5)', readout: 'var(--s2)' };
 const SRC_TONE: Record<string, string> = { learned: 'var(--tone-learned)', bc: 'var(--tone-bc)', scripted_teacher: 'var(--tone-teacher)', oracle: 'var(--tone-oracle)', third_party: 'var(--ink-2)' };
 
@@ -47,9 +170,8 @@ export function panelNeeds(docs: Record<string, Envelope | null>) {
     matrix: { need: 16 + m.pols.length * 17 + 14 + CAP_H + 14, cells: 2 },
     factors: { need: f.fams.length * 16 + 22 + 16 + CAP_H, cells: 1 },
     scheduler: { need: 150 + CAP_H, cells: 1 },
-    factorRuns: { need: Math.max(2, f.runs.length) * LINE + Object.keys(f.presets).length * LINE + 16 + CAP_H, cells: 1 },
     dags: { need: 10 * LINE + 4 + CAP_H, cells: 1 },
-    decisions: { need: 15 * LINE + 4, cells: 1 },
+    decisions: { need: 15 * LINE + 4, cells: 1 },  // spans 2 columns
     leases: { need: (docs.live ? rows(docs.live.leases).length : 0) * LINE + 4 + CAP_H, cells: 1 },
   };
 }
@@ -59,17 +181,17 @@ export default function Board() {
     matrix: useDoc<Envelope>('matrix'), factors: useDoc<Envelope>('factors'), results: useDoc<Envelope>('results'), edits: useDoc<Envelope>('edits'),
     psi0: useDoc<Envelope>('psi0'), live: useDoc<Envelope>('live', 10_000), dags: useDoc<Envelope>('dags', 30_000), overview: useDoc<Envelope>('overview'),
   };
+  const hasSchedule = factorShape(ok(d.factors.result)).sched.some((x) => rows(x.records).length);
   return (
     <div className="board5" style={{ ['--cell-h' as string]: `${CELL_H}px`, ['--kpi-h' as string]: `${KPI_H}px` }}>
       <Headlines d={d} />
       <div className="b5grid">
         <MatrixPanel r={d.matrix.result} />
         <FactorsPanel r={d.factors.result} />
-        <SchedulerPanel r={d.factors.result} />
-        <FactorRunsPanel r={d.factors.result} />
         <DagPanel r={d.dags.result} />
-        <DecisionPanel r={d.overview.result} />
         <LeasePanel r={d.live.result} />
+        <DecisionPanel r={d.overview.result} wide={!hasSchedule} />
+        {hasSchedule && <SchedulerPanel r={d.factors.result} />}
       </div>
     </div>
   );
@@ -96,8 +218,9 @@ function Headlines({ d }: { d: Record<string, { result: DocResult<Envelope> }> }
       <H k="new arm latent − BC · D-136" v={fmtD(na)} s={`${T.joint.k}/${T.joint.n} vs ${T.bcSft.k}/${T.bcSft.n} · NOT supported`} tone="bad" link={href('results', { tb: '100' })} tip="sealed xarm7 targets: joint adaptation (added after D-135) vs BC SFT at equal data and updates; worse in 12/12 cells" />
       <H k="new gripper zs · D-135" v={fmtD(ng)} s={`${T.gripLatent.k}/${T.gripLatent.n} vs BC ${T.gripBc.k}/${T.gripBc.n}`} tone="bad" link={href('results')} tip="panda_tf3 zero-shot, latent semfix v6 vs BC" />
       {halts.length ? <H k="legged halt Δ · D-124" v={halts.map((h) => h.v.toFixed(2)).join(' | ')} s={halts.map((h) => h.body).join(' | ') + ' (m)'} link={href('edits')} tip="semantic − nosem forward travel after a halt edit, contact v2" /> : null}
-      <H k="Ψ₀ step 2 · D-141" v={s2.map((r) => `${str(r.k)}/${str(r.n)}`).join(' · ') || '—'} s="+ structured 0/20 (D-141): integration bug" link={href('psi0')} tip={`${s2.map((r) => `${str(r.run)} ${str(r.k)}/${str(r.n)}`).join(' · ')} (run summaries) · structured 0/20 from the D-141 write-up (the exported run summaries still hold an interim 0/6): a confirmed integration bug, not evidence against structure`} />
-      <H k="status · D-140 / D-144" v="paused" s="one-repo refactor · relation factors" tone="warn" link={href('knowledge', { tab: 'decisions', d: 'D-140' })} tip="D-140: experiments wound down for the one-repo refactor (resume steps in track notes). D-144: relation-factor registry and scheduler under construction." />
+      <H k="Ψ₀ step 2 · D-141" v={s2.map((r) => `${str(r.k)}/${str(r.n)}`).join(' · ') || '—'} s="+ structured 0/20 (D-141): integration bug" link={href('board')} tip={`${s2.map((r) => `${str(r.run)} ${str(r.k)}/${str(r.n)}`).join(' · ')} (run summaries) · structured 0/20 from the D-141 write-up (the exported run summaries still hold an interim 0/6): a confirmed integration bug, not evidence against structure`} />
+      {!rows(ok(d.factors.result)?.schedules).some((x) => rows(x.records).length) && <H k="curriculum (R11)" v="no runs" s="schedule.jsonl not written yet" link={href('factors')} tip="the curriculum scheduler (docs/relations.md 5.5) exports <run>/schedule.jsonl; no run has written one yet" />}
+      <H k="status · D-140 / D-144" v="paused" s="one-repo refactor · relation factors" tone="warn" link={href('board')} tip="D-140: experiments wound down for the one-repo refactor (resume steps in track notes). D-144: relation-factor registry and scheduler under construction." />
     </div>
   );
 }
@@ -131,7 +254,7 @@ function MatrixPanel({ r }: { r: DocResult<Envelope> }) {
         ))}
       </div>
       {m.missing.length > 0 && <p className="board-note">registered envs with no recorded matrix row: {m.missing.join(', ')}</p>}
-      <Cap>rows: registered policy (colour tag = source: learned, bc, scripted teacher, oracle) · cols: env · task pairs in the recorded matrix · cell: ✓ accepted by negotiate(), · n/a (hover: the declared reasons), number = successes when rolled out · hatched: not in the matrix</Cap>
+      <Cap>rows: policy (tag = source) · cols: env · task · cell: ✓ accepted, · n/a (hover: reasons) · hatched: not in the recorded matrix</Cap>
     </P>
   );
 }
@@ -161,7 +284,7 @@ function FactorsPanel({ r }: { r: DocResult<Envelope> }) {
         <span className="fr-l">catalog</span>
         <span className="wbar">{waves.map((w) => { const n = f.cat.filter((c) => c.status === w).length; return n ? <i key={w} style={{ flex: n, background: wcol[w] }} title={`${w}: ${n} candidate families`}>{w} {n}</i> : null; })}</span>
       </div>
-      <Cap>rows: factor family · square: one registered factor, colour = form (bias blue, aug green, gate yellow, mask red, message violet, embed pink, readout orange), hollow = planned · corner dot: field is estimated (amber) or privileged (red) · catalog bar: candidate relation families by status (W1 first wave, W2 next, P planned, X out of scope, M meta)</Cap>
+      <Cap>square: registered factor, colour = form (hover: field × op), hollow = planned, dot = estimated/privileged field · bar: catalog families by wave</Cap>
     </P>
   );
 }
@@ -171,19 +294,7 @@ function SchedulerPanel({ r }: { r: DocResult<Envelope> }) {
   const f = factorShape(ok(r));
   const s = f.sched[0];
   const recs = s ? rows(s.records) : [];
-  if (!recs.length) {
-    return (
-      <P title="Curriculum scheduler" link={href('factors', { view: 'schedule' })} result={r} cls="span2" meta="no runs yet">
-        <svg width="100%" height={120} viewBox="0 0 560 120" role="img" aria-label="empty schedule chart">
-          <rect x={30} y={6} width={520} height={96} fill="none" stroke="var(--grid)" strokeDasharray="3 3" />
-          <line x1={30} x2={550} y1={102} y2={102} stroke="var(--axis)" />
-          <text x={34} y={116} fill="var(--muted)">training step →</text>
-          <text x={290} y={58} textAnchor="middle" fill="var(--muted)">no run has written schedule.jsonl yet (R11 scheduler, docs/relations.md 5.5)</text>
-        </svg>
-        <Cap>when a run writes &lt;run&gt;/schedule.jsonl: x = training step · stacked area = per-factor sampling share · line = full-world share · marks = steers (hover: reason) · levels, competence and interference per factor on hover</Cap>
-      </P>
-    );
-  }
+  if (!recs.length) return null;
   // generic reader: per record {step, shares|share{f}, full_world, levels{f}, competence{f}, interference{f}, reasons[]}
   const steps = recs.map((x, i) => num(x.step) ?? i);
   const shareOf = (x: Row) => (isObj(x.shares) ? x.shares : isObj(x.share) ? x.share : {}) as Record<string, unknown>;
@@ -208,23 +319,7 @@ function SchedulerPanel({ r }: { r: DocResult<Envelope> }) {
         <text x={30} y={H - 4} fill="var(--muted)">step {x0}</text><text x={W - 10} y={H - 4} fill="var(--muted)" textAnchor="end">{x1}</text>
       </svg>
       <div className="legend">{facs.map((fac, k) => <span key={fac}><i className="sw" style={{ background: `var(--s${(k % 8) + 1})` }} />{fac}</span>)}<span>— full world</span></div>
-      <Cap>x: training step · stacked area: per-factor sampling share (0–1) · black line: full-world share · red dashed: steers from steer.jsonl (hover: op, reason, author)</Cap>
-    </P>
-  );
-}
-
-/* ---------- factor sets used by runs + presets */
-function FactorRunsPanel({ r }: { r: DocResult<Envelope> }) {
-  const f = factorShape(ok(r));
-  return (
-    <P title="Factor sets in runs" link={href('factors')} result={r}>
-      {f.runs.length ? f.runs.slice(0, 8).map((x) => (
-        <div key={str(x.file)} className="barrow dline" title={`${str(x.file)}\nfactors ${JSON.stringify(x.factors)}`}><span className="mono">{JSON.stringify(x.factors).slice(0, 8)}</span><span>{str(x.run)}</span></div>
-      )) : <p className="board-note">no run records versions["factors"] yet</p>}
-      {Object.entries(f.presets).map(([n, items]) => (
-        <div key={n} className="barrow dline" title={arr(items).map((i) => (typeof i === 'string' ? i : JSON.stringify(i))).join('\n')}><span className="mono">{arr(items).length}</span><span>preset {n}</span></div>
-      ))}
-      <Cap>top: runs whose recorded versions name a factor-set hash (hash · run) · bottom: registered presets (number of factor specs · name; hover: the specs)</Cap>
+      <Cap>x: step · area: per-factor share · line: full-world share · red: steers (hover)</Cap>
     </P>
   );
 }

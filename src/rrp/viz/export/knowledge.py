@@ -1,14 +1,12 @@
-"""Knowledge and overview documents: parsed D-entries, roadmap, backlog, strategy workstreams, STATUS, docs list; the
-decision index that attaches D-ids to result files (by explicit mention of the run directory in the decision text)."""
+"""Decisions: parsed D-entries, the decision index that attaches D-ids to result files (by explicit mention of the run
+directory in the decision text), and the overview document (latest decisions)."""
 from __future__ import annotations
 
 import re
 from pathlib import Path
 
-from .common import (Config, bodies_in, bullets, d_refs, envelope, parse_entries, parse_sections, parse_tables)
+from .common import Config, bodies_in, envelope, parse_entries
 
-DOC_FILES = ("research/decisions.md", "research/reports/evidence_matrix.md", "docs/strategy.md",
-             "docs/experiments_roadmap.md", "STATUS.md", "research/tracks/psi0.md")
 _TOKEN = re.compile(r"[A-Za-z0-9_.\-=+/]+")
 _STOP = {"artifacts", "runs", "research", "tracks", "eval", "train", "diag", "val", "summary", "json", "jsonl", "md",
          "policy", "final", "compare", "results", "logs", "data", "none", "shard", "shard0", "part0", "seed", "docs",
@@ -119,140 +117,9 @@ def load_track_notes(cfg: Config) -> dict[str, str]:
     return out
 
 
-def _roadmap(cfg: Config) -> list[dict]:
-    t = _read(cfg.repo / "docs/experiments_roadmap.md") or ""
-    rows = []
-    for tab in parse_tables(t, "docs/experiments_roadmap.md"):
-        h = [c.lower() for c in tab["header"]]
-        if "#" not in h and "question" not in h:
-            continue
-        for r in tab["rows"]:
-            d = dict(zip(h, r))
-            st = d.get("experiment", "")
-            status = ("done" if st.lower().startswith("done") else "running" if "running" in st.lower()
-                      else "planned" if "planned" in st.lower() else "conditional" if "conditional" in st.lower()
-                      else st.split(" ")[0].lower() if st else None)
-            rows.append({"n": d.get("#"), "section": tab["heading"], "question": d.get("question"),
-                         "depends_on": d.get("depends on"), "cost": d.get("cost"), "status_text": st, "status": status,
-                         "code": d.get("code"), "decisions": d_refs(" ".join(r)), "source_file": tab["source_file"],
-                         "line": tab["line"]})
-    return rows
-
-
-def _backlog(cfg: Config) -> list[dict]:
-    """The stated-but-unimplemented tables (header `item`), an appendix of docs/experiments_roadmap.md since D-140."""
-    t = _read(cfg.repo / "docs/experiments_roadmap.md") or ""
-    rows = []
-    for tab in parse_tables(t, "docs/experiments_roadmap.md"):
-        h = [c.lower() for c in tab["header"]]
-        if "item" not in h:
-            continue
-        for r in tab["rows"]:
-            d = dict(zip(h, r))
-            rows.append({"section": tab["heading"], "item": d.get("item"), "source": d.get("source"),
-                         "status": d.get("status"), "evidence": d.get("evidence"), "size": d.get("size"),
-                         "blocks": d.get("blocks"), "decisions": d_refs(" ".join(r)),
-                         "source_file": tab["source_file"], "line": tab["line"]})
-    return rows
-
-
-def _workstreams(cfg: Config) -> list[dict]:
-    t = _read(cfg.repo / "docs/strategy.md") or ""
-    secs = {s["title"].split(" ")[0]: s for s in parse_sections(t) if re.match(r"W\d+\b", s["title"])}
-    rows = []
-    for tab in parse_tables(t, "docs/strategy.md"):
-        h = [c.lower() for c in tab["header"]]
-        if h[:2] != ["id", "workstream"]:
-            continue
-        for r in tab["rows"]:
-            d = dict(zip(h, r))
-            s = secs.get(d.get("id"))
-            rows.append({"id": d.get("id"), "workstream": d.get("workstream"), "owner": d.get("owner"),
-                         "depends_on": d.get("depends on"), "status": d.get("status"), "decisions": d_refs(" ".join(r)),
-                         "detail_markdown": s["body"] if s else None, "source_file": "docs/strategy.md",
-                         "line": tab["line"]})
-    return rows
-
-
-def _status_table(cfg: Config) -> list[dict]:
-    t = _read(cfg.repo / "STATUS.md") or ""
-    for tab in parse_tables(t, "STATUS.md"):
-        h = [c.lower() for c in tab["header"]]
-        if h[:3] == ["id", "workstream", "state"]:
-            return [dict(zip(h, r), decisions=d_refs(" ".join(r)), source_file="STATUS.md", line=tab["line"])
-                    for r in tab["rows"]]
-    return []
-
-
-def docs_list(cfg: Config) -> list[dict]:
-    out = []
-    for base in ("docs", "research"):
-        b = cfg.repo / base
-        if b.is_dir():
-            for p in sorted(b.rglob("*.md")):
-                r = str(p.relative_to(cfg.repo))
-                first = ""
-                try:
-                    with p.open() as fh:
-                        first = fh.readline().strip().lstrip("# ")[:160]
-                except OSError:
-                    pass
-                out.append({"path": r, "title": first, "bytes": p.stat().st_size, "mtime": p.stat().st_mtime})
-    for name in ("STATUS.md", "README.md", "AGENTS.md"):
-        p = cfg.repo / name
-        if p.exists():
-            out.append({"path": name, "title": name, "bytes": p.stat().st_size, "mtime": p.stat().st_mtime})
-    return out
-
-
-def build_knowledge(cfg: Config, decisions: list[dict]) -> dict:
-    status_md = _read(cfg.repo / "STATUS.md")
-    return envelope("knowledge", cfg, [f for f in DOC_FILES if (cfg.repo / f).exists()],
-                    decisions=decisions, n_decisions=len(decisions),
-                    roadmap=_roadmap(cfg), backlog=_backlog(cfg), workstreams=_workstreams(cfg),
-                    status_table=_status_table(cfg), status_markdown=status_md,
-                    evidence_matrix_markdown=_read(cfg.repo / "research/reports/evidence_matrix.md"),
-                    docs=docs_list(cfg))
-
-
-_KN = re.compile(r"(\d+)\s*/\s*(\d+)")
-
-
-def build_overview(cfg: Config, decisions: list[dict], results_meta: dict | None = None) -> dict:
-    t = _read(cfg.repo / "STATUS.md") or ""
-    secs = parse_sections(t)
-    ev = next((s for s in secs if s["title"].startswith("evidence summary")), None)
-    lim = next((s for s in secs if s["title"].startswith("blockers and known limits")), None)
-    cur = next((s for s in secs if s["title"].startswith("current state")), None)
-    established, key_numbers = [], []
-    if ev:
-        for i, b in enumerate(bullets(ev["body"])):
-            m = re.match(r"\*\*(.+?)\*\*\s*(.*)", b)
-            title, text = (m.group(1), m.group(2)) if m else (b[:80], b)
-            interim = bool(re.search(r"\binterim\b|\bINTERIM\b|not final", b))
-            refs = d_refs(b)
-            kind = ("open" if title.lower().startswith("still not tested") else
-                    "interim" if interim else "established")
-            established.append({"title": title.rstrip("."), "text": text, "decisions": refs, "status": kind,
-                                "interim": interim, "source_file": "STATUS.md", "section": ev["title"],
-                                "line": ev["line"]})
-            for km in _KN.finditer(b):
-                a, n = int(km.group(1)), int(km.group(2))
-                if n == 0 or a > n:
-                    continue
-                s0, s1 = max(0, km.start() - 90), min(len(b), km.end() + 40)
-                key_numbers.append({"k": a, "n": n, "text": km.group(0), "context": b[s0:s1].replace("**", ""),
-                                    "claim": title.rstrip("."), "decisions": refs, "interim": interim,
-                                    "source_file": "STATUS.md", "line": ev["line"]})
-    caveats = [{"text": b, "decisions": d_refs(b), "source_file": "STATUS.md", "line": lim["line"]}
-               for b in bullets(lim["body"])] if lim else []
-    open_items = [r for r in _roadmap(cfg) if r["status"] not in ("done",)]
+def build_overview(cfg: Config, decisions: list[dict]) -> dict:
+    """The latest 15 decisions (Board list and ticker)."""
     latest = sorted(decisions, key=lambda d: int(d["id"][2:]))[-15:][::-1]
-    return envelope("overview", cfg, ["STATUS.md", "docs/experiments_roadmap.md", "research/decisions.md"],
-                    status_updated=(re.search(r"Updated:\s*([^.(]+)", t).group(1).strip()
-                                    if re.search(r"Updated:\s*([^.(]+)", t) else None),
-                    current_state_markdown=cur["body"] if cur else None,
-                    claims=established, open=open_items, caveats=caveats, key_numbers=key_numbers,
-                    latest_decisions=[{k: d[k] for k in ("id", "date", "title", "source_file", "line", "refs_d",
-                                                         "workstreams")} for d in latest],
-                    workstreams=_status_table(cfg), results_summary=results_meta or {})
+    return envelope("overview", cfg, ["research/decisions.md"],
+                    latest_decisions=[{k: d[k] for k in ("id", "date", "title", "source_file", "line", "refs_d", "workstreams")}
+                                      for d in latest])

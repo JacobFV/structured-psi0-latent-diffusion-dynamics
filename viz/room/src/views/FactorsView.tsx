@@ -1,8 +1,8 @@
-/** Evaluations → Relation factors: registry, presets, fields (provenance), candidate catalog, runs with factor sets, schedules. */
+/** Evaluations → Relation factors: registry by operator × form, candidate catalog by section and wave. */
 import { Cap, ModeBadge } from '../components/board';
-import { DataTable, Gate } from '../components/ui';
+import { Gate } from '../components/ui';
 import { useDoc, type Envelope } from '../lib/api';
-import { arr, isObj, rows, str } from '../lib/format';
+import { rows, str } from '../lib/format';
 
 export default function FactorsView() {
   const { result } = useDoc<Envelope>('factors');
@@ -25,7 +25,7 @@ export default function FactorsView() {
                   ...forms.map((f) => { const xs = fs.filter((x) => str(x.op) === o && str(x.form) === f); return <span key={`${o}${f}`} className={`pm-c ${xs.length ? 'ok' : 'e'}`} title={xs.map((x) => `${str(x.name)} (${str(x.status)}, field ${str(x.field)} ${str(x.field_prov)})`).join('\n')}>{xs.length || ''}</span>; }),
                 ])}
               </div>
-              <Cap>rows: operator · cols: form · cell: number of registered factors with that operator and form (hover: names, status, field and its provenance) · hatched: none</Cap>
+              <Cap>rows: operator · cols: form · cell: number of registered factors (hover: names, field, provenance)</Cap>
             </section>
             <section className="ev-panel">
               <header>Candidate catalog · status by section<span className="meta">research/relations_catalog.md</span></header>
@@ -39,21 +39,7 @@ export default function FactorsView() {
                 );
               })}
               <div className="legend">{waves.map((w) => <span key={w}><i className="sw" style={{ background: wcol[w] }} />{w} {cat.filter((c) => c.status === w).length}</span>)}</div>
-              <Cap>rows: catalog section · square: one candidate relation family, colour = status (W1 first wave: envs can label now; W2 needs a new scene part or label; P planned; X out of scope; M meta) · hover: candidates, decomposition status, envs</Cap>
-            </section>
-            <section className="ev-panel wide">
-              <header>Registered factors<span className="meta">field provenance: public / estimated / privileged</span></header>
-              <DataTable tall rows={fs.map((x) => ({ name: x.name, v: x.version, status: x.status, field: x.field, prov: x.field_prov, op: x.op, form: x.form, sources: arr(x.sources).join(', '), gates: arr(x.gates).join(', '), readout: x.readout, doc: x.doc }))} />
-              <Cap>one row per registered factor (rrp factors list): field × operator × form, declared sources and gates; prov = provenance of the field it reads</Cap>
-            </section>
-            <section className="ev-panel">
-              <header>Presets</header>
-              {Object.entries(isObj(d.presets) ? d.presets : {}).map(([n, items]) => <div key={n} className="small"><b>{n}</b> ({arr(items).length}): {arr(items).map((i) => (typeof i === 'string' ? i : JSON.stringify(i))).join(', ')}</div>)}
-            </section>
-            <section className="ev-panel">
-              <header>Runs with a factor set · schedules</header>
-              {rows(d.runs).length ? <DataTable rows={rows(d.runs).map((r) => ({ run: r.run, factors: JSON.stringify(r.factors), file: r.file }))} /> : <p className="side-note">no run records versions["factors"] yet</p>}
-              {rows(d.schedules).length ? rows(d.schedules).map((s) => <div key={str(s.run)} className="small">{str(s.run)} · {rows(s.records).length} intervals · {rows(s.steer).length} steers</div>) : <p className="side-note">no run has written schedule.jsonl yet</p>}
+              <Cap>rows: catalog section · square: candidate relation family, colour = wave (W1 first, W2 next, P planned, X out of scope, M meta)</Cap>
             </section>
           </div>
         );

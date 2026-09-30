@@ -179,18 +179,6 @@ export function useReplay<T>(id: string | undefined) {
   return result;
 }
 
-export async function fetchMarkdown(path: string): Promise<DocResult<{ markdown: string; modified?: string; sources?: string[] }>> {
-  const meta = await getMeta();
-  if (meta === null) return { status: 'missing', mode: 'snapshot', expected: `${path} (the docs reader needs the local API)` };
-  try {
-    const r = await fetch(`/api/doc?path=${encodeURIComponent(path)}`, { cache: 'no-store' });
-    const body = await r.json().catch(() => ({}));
-    if (!r.ok) return { status: 'missing', mode: 'api', expected: body.expected || path, detail: body.error };
-    return { status: 'ok', data: body, mode: 'live', fetchedAt: Date.now() };
-  } catch (e) {
-    return { status: 'error', message: String(e) };
-  }
-}
 
 const seriesCache = new Map<string, Promise<DocResult<Record<string, unknown>>>>();
 /** One training series (`rrp-viz/training-series/v1`) by run id; fixtures embed their series in the index. */

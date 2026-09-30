@@ -7,7 +7,6 @@
  *   UI can say it is stale. Nothing is invented: a missing document is a 503 naming the path that was expected.
  * - `/api/replay/<id>` serves `~/work/rrp-data/viz/replays/<id>.json[.gz]` (id allowlist regex, path containment).
  * - `/media/<name>` serves `artifacts/video/<name>` (name regex, extension allowlist, Range support for seeking).
- * - `/api/doc?path=` serves allowlisted markdown directly.
  * - `/api/meta` reports what exists, so the UI can decide between live data and clearly labelled fixtures.
  * Only GET/HEAD. Request values never reach subprocess arguments except the doc name from a fixed list.
  */
@@ -21,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'vite';
 
 export const DOCS = [
-  'overview', 'live', 'dags', 'results', 'edits', 'training', 'robustness', 'physics', 'psi0', 'knowledge', 'replays', 'videos', 'radar', 'matrix', 'factors',
+  'overview', 'live', 'dags', 'results', 'edits', 'training', 'psi0', 'replays', 'videos', 'radar', 'matrix', 'factors',
 ] as const;
 const LIVE_DOCS = new Set(['live']);
 const TTL_MS = 15_000;
@@ -29,7 +28,7 @@ const LIVE_TTL_MS = 10_000;
 const EXPORT_TIMEOUT_MS = 30_000; // contract: 20 s exporter timeout (+ margin for a cold first export)
 
 type Paths = {
-  root: string; python: string; exporter: string; out: string; replays: string; video: string; psi1z: string;
+  root: string; python: string; exporter: string; out: string; replays: string; video: string;
 };
 
 function paths(): Paths {
@@ -47,7 +46,6 @@ function paths(): Paths {
     out: resolve(root, 'viz/data'),
     replays: resolve(process.env.RRP_REPLAYS || resolve(home, 'work/rrp-data/viz/replays')),
     video: resolve(root, 'artifacts/video'),
-    psi1z: resolve(process.env.RRP_PSI1Z || resolve(home, 'work/psi1z')),
   };
 }
 
@@ -228,56 +226,6 @@ function serveFile(file: string, size: number, type: string, req: IncomingMessag
   createReadStream(file).pipe(res);
 }
 
-/** Markdown allowlist from the contract: docs/, research/, STATUS.md, README.md, AGENTS.md, psi1z notes. */
-function docPath(p: Paths, raw: string): string | null {
-  if (!raw || raw.includes('\0') || raw.includes('..') || !raw.endsWith('.md')) return null;
-  if (raw.startsWith('psi1z/')) {
-    const rel = raw.slice('psi1z/'.length);
-    const file = resolve(p.psi1z, rel);
-    const ok = /^(README\.md|research\/notes\.md|research\/decisions\.md)$/.test(rel);
-    return ok && within(p.psi1z, file) ? file : null;
-  }
-  if (!/^(STATUS\.md|README\.md|AGENTS\.md|(docs|research)\/[A-Za-z0-9._/ -]+\.md)$/.test(raw)) return null;
-  const file = resolve(p.root, raw);
-  return within(p.root, file) ? file : null;
-}
-
-async function serveDoc(p: Paths, raw: string, res: ServerResponse) {
-  const file = docPath(p, raw);
-  if (!file) return send(res, 400, { error: 'path not in the allowlist', path: raw });
-  try {
-    const info = await stat(file);
-    if (info.size > 4 * 1024 * 1024) return send(res, 413, { error: 'document too large', path: raw });
-    const markdown = await readFile(file, 'utf8');
-    send(res, 200, {
-      schema: 'rrp-viz/doc/v1', generated_at: new Date().toISOString(), git_sha: null, sources: [file],
-      path: raw, modified: new Date(info.mtimeMs).toISOString(), markdown,
-    });
-  } catch {
-    send(res, 404, { error: 'no data', expected: file, path: raw });
-  }
-}
-
-async function listDocs(p: Paths): Promise<string[]> {
-  const out: string[] = [];
-  for (const top of ['STATUS.md', 'README.md', 'AGENTS.md']) if (existsSync(resolve(p.root, top))) out.push(top);
-  async function walk(rel: string, depth: number) {
-    if (depth > 4) return;
-    let entries: import('node:fs').Dirent[] = [];
-    try { entries = await readdir(resolve(p.root, rel), { withFileTypes: true }); } catch { return; }
-    for (const e of entries) {
-      const child = `${rel}/${e.name}`;
-      if (e.isDirectory()) await walk(child, depth + 1);
-      else if (e.name.endsWith('.md')) out.push(child);
-    }
-  }
-  await walk('docs', 0);
-  await walk('research', 0);
-  for (const f of ['README.md', 'research/notes.md', 'research/decisions.md'])
-    if (existsSync(resolve(p.psi1z, f))) out.push(`psi1z/${f}`);
-  return out.sort();
-}
-
 export function rrpApi(): Plugin {
   const p = paths();
   const docs = docApi(p);
@@ -300,8 +248,6 @@ export function rrpApi(): Plugin {
               cache_s: TTL_MS / 1000, live_cache_s: LIVE_TTL_MS / 1000, docs: DOCS,
             });
           }
-          if (rest === 'doc') return await serveDoc(p, url.searchParams.get('path') || '', res);
-          if (rest === 'doclist') return send(res, 200, { schema: 'rrp-viz/doclist/v1', generated_at: new Date().toISOString(), docs: await listDocs(p) });
           if (rest.startsWith('replay/')) return await serveReplay(p, rest.slice('replay/'.length), res);
           if (rest.startsWith('training/')) return await serveTraining(p, rest.slice('training/'.length), res);
           if ((DOCS as readonly string[]).includes(rest)) return await docs(rest, req, res);

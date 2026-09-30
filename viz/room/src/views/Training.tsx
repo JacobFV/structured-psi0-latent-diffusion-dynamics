@@ -1,8 +1,8 @@
-import { useShowData } from './Lens';
+import OpsCharts from './OpsCharts';
 import { SidebarControls } from '../components/shell';
 import { useEffect, useMemo, useState } from 'react';
 import { Lines } from '../components/charts';
-import { Card, Caveat, DataTable, Did, ErrorState, Gate, Loading, ModeBanner, NoData, PageHead, Provenance, SourceBadge, Status } from '../components/ui';
+import { Card, Caveat, DataTable, Did, ErrorState, Gate, Loading, ModeBanner, NoData, Provenance, SourceBadge, Status } from '../components/ui';
 import { fetchTrainingSeries, useDoc, type DocResult, type Envelope } from '../lib/api';
 import { arr, fmtNum, isObj, num, pick, rows, sortNatural, str, uniq, type Row } from '../lib/format';
 import { SERIES } from '../lib/labels';
@@ -29,16 +29,13 @@ export default function Training() {
   const { result, reload, busy } = useDoc<Envelope>('training');
   return (
     <>
-      <PageHead
-        title="Training"
-      />
+      <OpsCharts />
       <ModeBanner result={result} reload={reload} busy={busy} />
       <Gate result={result} what="training (/api/training)">
         {(d) => (
           <>
             <TrainingBody index={rows(pick(d, 'runs', 'series', 'curves'))} />
             <GradHealth rs={rows(pick(d, 'grad_health'))} />
-            {arr(d.notes).length > 0 && <ul className="small muted">{arr(d.notes).map((n, i) => <li key={i}>{str(n)}</li>)}</ul>}
           </>
         )}
       </Gate>
@@ -130,7 +127,6 @@ function TrainingBody({ index }: { index: Row[] }) {
 }
 
 function GradHealth({ rs }: { rs: Row[] }) {
-  const show = useShowData();
   if (!rs.length) return null;
   const runs = rs.flatMap((g) => Object.entries(isObj(g.doc) ? g.doc : {}).filter(([, v]) => isObj(v)).map(([name, v]) => ({ name, v: v as Row, src: str(g.source_file), decision: str(g.decision) })));
   const gmax = Math.max(1e-9, ...runs.flatMap((r) => arr(r.v.by_third).filter(isObj).map((t) => num(t.median_grad_norm) || 0)));
@@ -161,7 +157,6 @@ function GradHealth({ rs }: { rs: Row[] }) {
         })}
       </div>
       <p className="fig-cap">one mini chart per run · bars: median gradient norm in each training third (scaled to the largest across runs) · dots: mean update (clip) scale in that third, 0–1</p>
-      {show && runs.map((r) => <DataTable key={r.name} rows={[{ run: r.name, median_grad_norm: r.v.median_grad_norm, mean_update_scale: r.v.mean_update_scale, n_logged: r.v.n_logged, last_step: r.v.last_step }]} />)}
     </section>
   );
 }
