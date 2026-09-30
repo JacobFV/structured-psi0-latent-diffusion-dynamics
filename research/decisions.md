@@ -1298,3 +1298,38 @@ Applied by rel-r2c (unit `rel-r2c`, worktree `~/work/rrp-wt/rel-r2c`, `track/rel
   - `core/provenance.py` (`TRAINING_FLAG_KEYS`) and `core/runconfig.py` (`FLAG_NAMES` / `Flags.probe_lv_min` / `FLAG_SPEC` / `LEGACY_FLAG_DEFAULTS`) are confirmed, concretely and not just by inspection, to be **not retirable within this unit's owned files**: `probe_lv_min` / `semantic_weight` remain live, shared (arm AND still-unmigrated legged, fanout unit R4) flag/params surface, locked in by three things outside rel-r2c's owned-file list -- (1) legged's identical use of the same closed `Flags` schema (R4 not merged), (2) `test_runconfig.py::test_variant_must_match_recipe` (general infra; constructs a RunConfig on the old-style `_check_variant` branch), and, newly confirmed by rel-r2c empirically, (3) `dags/arm_lineage.yaml` / `dags/templates/dual_lineage.yaml`, which render a flag-driven `latent.probe_lv_min` injection coupled to a flat `latent.semantic_weight` block, proven byte-identical to 6 on-disk `configs/ladder/**` rep files by `test_dag.py::test_arm_dag_reproduces_legacy_configs` (general infra). rel-r2c attempted the matching `configs/ladder/**` codemod (mirroring R2's original `configs/latent/**` codemod, using the same `_probe_factors` shape, verified byte-identical `LatentConfig.version()` hashes against the frozen table in `tests/unit/test_relations_r2_latent.py`) and reverted it after this test failed: the dag's Flag-mechanism unconditionally re-writes a flat `latent.probe_lv_min` into `to_native()`'s output for these lineages, so the config file and the dag template can only be retired TOGETHER with a `FLAG_SPEC` change, which is out of this row's owned files (`core/runconfig.py` itself is owned; `dags/**` is explicitly in scope per this addendum, but a `FLAG_SPEC` change touching legged is not, per (1)/(2) above). Recorded as a concrete follow-up, not dropped: whichever unit next owns `dags/arm_lineage.yaml` + `dags/templates/dual_lineage.yaml` + a `FLAG_SPEC` change together can finish this.
   - `packet_semantic_weight` (Stage-B / BC-only top-level knob): confirmed, by grep of every read site, to be read live outside rel-r2c's owned files by `harness/train/joint_adapt.py` (stage `adapt`, a permanent `LEGACY_ONLY_STAGE` -- never migrated to `factors:` by design, the same status as reading an old pickle format forever) and `harness/train/legged_latent_train.py` (fanout unit R4, not merged). Retiring the arm/dual `train_flow`/`flow_ft` read in `harness/train/latent_train.py` alone, while these two out-of-scope files keep the same on-disk key name for their own (also-shared) configs, would fragment ONE config-key meaning across two spellings for no live benefit and no test coverage to prove equivalence. Deferred, not dropped, exactly as R2's own open question 2 anticipated; unblocked once R4 merges and `harness/train/joint_adapt.py` is in a unit's owned-file list alongside `harness/train/latent_train.py`.
 (c) Merges are serialized through `~/work/rrp-data/main-merge.lock`.
+
+## D-144 addendum 2026-09-30 rel-geo (CTX_CARRIES, edges:support-v1, presets): scope decisions
+Unit rel-geo (worktree `~/work/rrp-wt/rel-geo`, branch `track/rel-geo`; brief: wire R13's `geo.*` and R17's `ix.support`
+/ `ix.force_flow` so they actually reach attention; follow-up to research/tracks/rel-r13.md and rel-r17.md's own "for
+the lead" notes). Never touched `relations/base.py` / `relations/ops.py`.
+1. `nets/flow.py` `CTX_CARRIES` now also names `cam_uvd`, `pos3d`, `orient`, `normal` (R13's exact request) so
+   `geo.*` applies at the real `ctx>ctx` site; `ACT_CARRIES` left untouched (not asked for; R13 never used act>ctx).
+   Structurally a no-op for every existing config (`edge.*` factors key on `edges:*`, `msg.incidence` is
+   `form="message"` and is filtered out before the carries check regardless) -- proven both by a direct
+   `FactorSite.specs` equality test and by the unmodified `tests/data/golden.json` digests still passing.
+2. `nets/batch.py` `support_edges(inputs, batch, graphs, views)`: builds `ix.force_flow`'s "edges:support-v1"
+   `EdgeSet` (new `catalog.SUPPORT_REL_VOCAB = ("support",)`, also registered into `catalog.VOCABS["support-v1"]`)
+   from `ix.support`'s privileged label side ONLY. `graphs[i]` is the caller-supplied `relgen.support.support_matrix
+   (view)` dict (a harness-layer call `nets/batch.py` cannot make itself: `tests/unit/test_layering.py` forbids
+   `policies` -> `harness` imports, including lazy/function-local ones -- caught by CI on first attempt, fixed by
+   accepting the precomputed graph instead of importing `relgen.support` from `nets/batch.py`); `views[i]` is one
+   `StateView` per item, used only for `token_entity("scene", slot)` (R7) to map a scene-bank slot to the entity id
+   `support_matrix` keys its graph by. The PROBE/estimate half of this EdgeSet (from `ix.support`'s own learned
+   bilinear pair score, not the privileged label) is NOT built: `relations/ops.py`'s `BilinearOp.features` returns
+   q/k kernel features, never the raw `[B,Q,K]` pair score, and `FieldReadouts` explicitly skips `op="bilinear"` --
+   exposing that score needs a new read hook in `relations/ops.py`, an operator-level change outside this unit's
+   rules. Flagged for whichever unit adds that hook (same shape as R17's own original "for the lead" note, which
+   this addendum otherwise resolves the label/GT half of). Exposed as a pure function only (R18's
+   `candidate_interaction_edges` precedent) -- not wired into `relation_token_sets` / any net's `RelCtx.edges`.
+3. Presets (`catalog.py`, additive only): `register_preset("ix", ...)` extended with `ix.support` / `ix.force_flow`
+   (previously R16's three `ix.*` only); new `register_preset("task", ["task.next_contact", "time.same_track"])`.
+   The third part of this item -- "decide `route.assembly_reads`' preset with R5's Ψ₀ usage" -- turned out to need
+   no decision from this unit: `git fetch` mid-unit showed R5 (`db8b603a`) had already landed on `main` with its own
+   `register_preset("s0-psi0", [{"name": "route.assembly_reads", "params": {"reads": _G.reads_table().tolist()}}])`,
+   `_G.reads_table()` a new `bodies.g1_simple` function computing the real `[M,M]` READS-derived table at the BODY
+   layer -- precisely avoiding the `catalog.py` -> `psi0.nets` circular import this unit had independently
+   identified as the reason it could not compute that table itself. rel-geo made no further change here; recorded
+   so nobody re-litigates the preset name or re-derives the table.
+Evidence: `tests/unit/test_relations_geo_wiring.py` (new, this unit's own file, 20 tests); full suite command +
+count in `research/tracks/rel-geo.md`.

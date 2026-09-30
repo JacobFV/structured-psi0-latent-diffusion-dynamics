@@ -17,6 +17,7 @@ from rrp.policies.features.featurizer import (BANKS, N_REL, HASH_DIM, REL, NODE_
                                               ASM_ZCOL_SLICE, ASM_XCOL_SLICE, SCENE_POS_SLICE, SCENE_STD_SLICE,
                                               SCENE_KNOWN_COL)
 from rrp.policies.relations.base import EdgeSet, TokenSet, TOKEN_KINDS
+from rrp.policies.relations.catalog import SUPPORT_REL_VOCAB
 
 MORPH_DIM = 44
 BANK_DIMS = {"morph": MORPH_DIM, "scene": 27, "task": 59, "interact": 32}
@@ -331,3 +332,70 @@ def candidate_interaction_edges(inputs: list, batch: "Batch") -> EdgeSet:
                 data[i, q, others, _CAND_SUPPORT] = p
                 data[i, q, others, _CAND_DESTINATION] = p
     return EdgeSet(CAND_REL_VOCAB, torch.from_numpy(data), prov="public")
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# rel-geo (D-144 addendum, item 2; R17 follow-up, research/tracks/rel-r17.md "for the lead"): `ix.force_flow`'s
+# "edges:support-v1" EdgeSet (`SUPPORT_REL_VOCAB = ("support",)`, `catalog.py`) -- the DIRECT support graph
+# (id-keyed, the shape `harness.data.relgen.support.support_matrix` returns), over the SAME `ctx` SCENE-bank token
+# positions `relation_token_sets` above serves. This module (`policies.nets`, architecture.md layer 4) never
+# imports `harness.data.relgen.support` itself (layer 5; `tests/unit/test_layering.py` forbids the upward edge) --
+# `graphs` is the caller-supplied `support_matrix(view)` result per batch item (a harness-layer caller, e.g. a
+# training loop or this unit's own tests, computes it and passes the plain dict in), and `views` is one privileged
+# `envs.base` view (docs 5.1's read-only truth interface, layer 3, a downward/allowed import; the same
+# one-handle-per-item pattern `attach_cam_uvd`'s `cameras` already uses) used ONLY for its `token_entity("scene",
+# slot)` accessor (unit R7), which maps a scene-bank local slot back onto the entity id `support_matrix` keys its
+# graph by -- the same identifier
+# space `relgen.support`'s own `TokenIndex`-based labels assume, resolved here directly off a live `Batch` instead
+# of an offline `TokenIndex`. `ix.force_flow`'s `flow` operator (`ClosureOp`, relations/ops.py, unedited) computes
+# the transitive closure of whichever direct edge channel it is pointed at (`params.edge="support"`) itself, at
+# attention time -- this function only needs to supply that one direct channel.
+#
+# Exposed as a pure function only (matching R18's `candidate_interaction_edges` precedent exactly) -- NOT wired into
+# `relation_token_sets` / any net's `RelCtx.edges`. That wiring, plus the PROBE-sourced half of this same EdgeSet
+# (built from `ix.support`'s own learned bilinear pair estimate rather than the privileged label), is net-side
+# plumbing this unit does not do: `relations/ops.py`'s `BilinearOp.features` returns q/k KERNEL features for the
+# `aug` form, never the raw `[B, Q, K]` pair score, and `FieldReadouts` explicitly skips `op="bilinear"` -- exposing
+# that score as an `EdgeSet` needs a new read hook there, which is an operator-level change this unit's rules
+# forbid making unilaterally (`relations/ops.py` never touched; see research/decisions.md D-144 addendum, flagged
+# in lead_questions rather than implemented). Only the GT/label half (this function) is buildable without one.
+def support_edges(inputs: list, batch: "Batch", graphs: list | None = None, views: list | None = None) -> EdgeSet:
+    """`EdgeSet(SUPPORT_REL_VOCAB, [B,C,C,1])`, `prov="privileged"` (docs `Prov`; this is ground truth, the training
+    /diagnostics-only `source="gt"` side of `ix.force_flow` -- the deploy guard blocks it outside training, same as
+    every other privileged edge/label in this registry). `data[i, q, k, 0] = 1.0` iff the scene entity resolved at
+    ctx position `q` directly supports the one at `k` (`graphs[i]`, one `relgen.support.support_matrix(view)` dict
+    per item; the transitive closure is `ix.force_flow`'s own operator's job, not this function's). A missing
+    `graphs[i]` / `views[i]` (`None`, or either list shorter than `inputs`), or a scene with fewer than two entities
+    `token_entity` can resolve, contributes an all-zero row -- never an error, matching
+    `candidate_interaction_edges`'s degenerate-batch behaviour."""
+    B, C = batch.B, batch.ctx_mask.shape[1]
+    data = np.zeros((B, C, C, 1), np.float32)
+    scene_off = batch.bank_offset["scene"]
+    scene_kind_all = batch.bank_kind["scene"].numpy()
+    scene_mask_all = batch.bank_mask["scene"].numpy()
+    graphs, views = graphs or [], views or []
+    for i in range(min(B, len(graphs), len(views))):
+        graph, view = graphs[i], views[i]
+        if graph is None or view is None:
+            continue
+        slots = np.where(scene_mask_all[i] & (scene_kind_all[i] == 0))[0]
+        if len(slots) == 0:
+            continue
+        idx_of_id = {}
+        for s in slots.tolist():
+            eid = view.token_entity("scene", s)
+            if eid is not None:
+                idx_of_id[eid] = scene_off + s
+        if len(idx_of_id) < 2:
+            continue
+        for a, row in graph.items():
+            qi = idx_of_id.get(a)
+            if qi is None:
+                continue
+            for b, supports in row.items():
+                if not supports:
+                    continue
+                ki = idx_of_id.get(b)
+                if ki is not None:
+                    data[i, qi, ki, 0] = 1.0
+    return EdgeSet(SUPPORT_REL_VOCAB, torch.from_numpy(data), prov="privileged")

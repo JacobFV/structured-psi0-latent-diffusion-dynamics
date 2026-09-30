@@ -23,7 +23,15 @@ from rrp.policies.relations.base import EdgeSet, RelCtx, TokenSet, assert_deploy
 from rrp.policies.relations.catalog import ARM_REL_VOCAB
 from rrp.policies.relations.ops import FactorSite, FieldReadouts
 
-CTX_CARRIES = ("edges:arm-rel-v1", "hidden")      # what the arm context site provides to factors (fields: unit R12)
+CTX_CARRIES = ("edges:arm-rel-v1", "hidden", "cam_uvd", "pos3d", "orient", "normal")
+# what the arm ctx>ctx site provides to factors: the arm-rel-v1 edge vocab, token hiddens (unit R12) and the R12
+# geometry fields (unit R13's `geo.*`: sqdiff+diff on `pos3d`/`cam_uvd`, rel_rot on `orient`, align on `normal` --
+# rel-geo D-144 addendum; R13's own row landed with only "edges:arm-rel-v1"/"hidden" here and flagged this exact gap
+# in research/tracks/rel-r13.md "lead question", since `nets/flow.py` was outside its owned-files cell). Extending
+# this tuple only ADDS which fields `FactorSite._applies` (relations/ops.py, unedited) lets a factor read at this
+# site -- the default "arm" preset's own factors (`edge.*`, `msg.incidence`) never match any of the new names (they
+# key on "edges:arm-rel-v1" / are filtered out as `form="message"` before the carries check), so this is a no-op
+# for every existing config (tests/unit/test_golden.py; test_relations_geo_wiring.py's own byte-identical check).
 ACT_CARRIES = ("edges:arm-rel-v1",)
 
 

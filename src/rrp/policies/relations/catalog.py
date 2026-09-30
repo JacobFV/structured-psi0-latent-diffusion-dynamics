@@ -11,7 +11,8 @@ from rrp.policies.relations.base import (Algebra, FactorDef, FieldDef, ReadoutDe
 ARM_REL_VOCAB = ("same_node", "node_in_assembly", "actor_of", "support_of", "patient_of", "target_of", "destination_of",
                  "enables", "maintained", "output_to", "produced", "consumed_by", "pred_arg", "node_actor_of",
                  "role_in_event", "role_points_to", "kin_parent")        # PolicyInput.relations type ids (featurizer REL)
-VOCABS = {"arm-rel-v1": ARM_REL_VOCAB, "g1-dim-rel-v1": tuple(_G.RELATIONS)}
+SUPPORT_REL_VOCAB = ("support",)      # `ix.force_flow`'s "edges:support-v1" (rel-geo D-144 addendum, R17 follow-up)
+VOCABS = {"arm-rel-v1": ARM_REL_VOCAB, "g1-dim-rel-v1": tuple(_G.RELATIONS), "support-v1": SUPPORT_REL_VOCAB}
 
 # ------------------------------------------------------------------ fields
 for _f in (FieldDef("pos3d", 3, "position", "estimated", units="m"),
@@ -61,6 +62,13 @@ register_preset("psi0-dims", [f"edge.{n}" for n in _G.RELATIONS])
 register_preset("none", [])
 # ------------------------------------------------------------------ R3: arm system 0 routing (node>knot)
 register_preset("s0-arm", ["route.own_assembly"])
+# rel-geo (D-144 addendum, item 3) found R5 already landed on `main` (`db8b603a`, merged while this unit was in
+# flight) with its own `route.assembly_reads` preset for Ψ₀ -- `register_preset("s0-psi0", [{"name":
+# "route.assembly_reads", "params": {"reads": _G.reads_table().tolist()}}])`, `_G.reads_table()` a new
+# `bodies.g1_simple` function (the real `[M, M]` READS-derived table, computed at the BODY layer specifically to
+# avoid the `catalog.py` -> `psi0.nets` circular import this unit had independently flagged as the reason it could
+# not supply the table itself). No further action needed here: R5's `s0-psi0` fully resolves the open naming /
+# wiring question this item asked rel-geo to "decide"; see research/decisions.md D-144 addendum.
 
 # ------------------------------------------------------------------ R1 / R4 / R5 / R6: probe readouts (probes:<family>)
 # arm / dual packet probe (former nets.latent_probes.PacketProbe; query order = its ALL_QUERIES order). Labels are
@@ -222,7 +230,10 @@ for _n, _lab, _doc in _IX_BILINEAR:
                               sources=("probe", "gt"), label=_lab, gen=("grasp_target",),
                               readout=ReadoutDef(_n, "pair", 1, "bce", label=_lab, reads="hidden"),
                               params=(("rank", 8),), doc=_doc))
-register_preset("ix", [f"ix.{n}" for n, _, _ in _IX_BILINEAR])
+register_preset("ix", [f"ix.{n}" for n, _, _ in _IX_BILINEAR] + ["ix.support", "ix.force_flow"])
+# extended by rel-geo (D-144 addendum) to include R17's `ix.support` / `ix.force_flow` -- forward-referenced here
+# (the `FactorDef`s themselves are registered below, in the R17 section) exactly like R13/R18's own forward
+# references to not-yet-registered R14 label/part names (unregistered names are inert strings until looked up).
 # ------------------------------------------------------------------ R17: support / force flow (ix.support, ix.force_flow)
 # labels + part `stack`: rrp.harness.data.relgen.support (research/relations_catalog.md D "support / stacking",
 # "force transfer"). `ix.support` is the pairwise bilinear (learned kernel on token hiddens, address "pair", bce
@@ -280,5 +291,6 @@ register_factor(FactorDef(
     algebra=Algebra(arity=2, direction="symmetric"),
     sources=("given",),
     doc="1[track_i == track_j] over multi-step history tokens (system-0 knots, packet-history state); public."))
+register_preset("task", ["task.next_contact", "time.same_track"])   # rel-geo (D-144 addendum, item 3)
 # ------------------------------------------------------------------ R19: legged (leg.*)
 # ------------------------------------------------------------------ R20: UI (ui.*)
