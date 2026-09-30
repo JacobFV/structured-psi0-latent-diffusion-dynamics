@@ -1,6 +1,8 @@
 import { LensView, type LensDef } from './Lens';
 
 export const EVIDENCE: LensDef[] = [
+  { id: 'matrix', title: 'Policy × env × task', load: () => import('./MatrixView') },
+  { id: 'factors', title: 'Relation factors', load: () => import('./FactorsView') },
   { id: 'results', title: 'Success matrix', load: () => import('./EvidenceMatrix') },
   { id: 'radar', title: 'Route radar', load: () => import('./Radar') },
   { id: 'edits', title: 'Causal effects', load: () => import('./Edits') },
@@ -9,5 +11,5 @@ export const EVIDENCE: LensDef[] = [
   { id: 'psi0', title: 'Ψ₀ line', load: () => import('./Psi0') },
 ];
 export default function Evaluations() {
-  return <LensView lenses={EVIDENCE} fallback="results" />;
+  return <LensView lenses={EVIDENCE} fallback="matrix" />;
 }

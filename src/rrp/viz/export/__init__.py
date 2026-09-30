@@ -16,7 +16,7 @@ from pathlib import Path
 from .common import Config, FileCache, envelope, read_json, write_json
 
 DOCS = ("overview", "live", "dags", "results", "edits", "training", "robustness", "physics", "psi0", "knowledge",
-        "replays", "videos", "radar")
+        "replays", "videos", "radar", "matrix", "factors")
 _SCAN_DOCS = {"results", "edits", "training", "robustness", "physics"}
 
 
@@ -179,6 +179,13 @@ def _run(cfg: Config, only: list[str] | None = None, sync_psi1z: bool = False) -
         d = timed("replays", lambda: media.build_replays(cfg))
         if d:
             emit("replays", d)
+    if want & {"matrix", "factors"}:
+        from . import relations
+        for name, fn in (("matrix", relations.build_matrix), ("factors", relations.build_factors)):
+            if name in want:
+                d = timed(name, lambda fn=fn: fn(cfg))
+                if d:
+                    emit(name, d)
     if "radar" in want:  # after results/edits/robustness: it reads their exported files
         from . import radar
         d = timed("radar", lambda: radar.build_radar(cfg))

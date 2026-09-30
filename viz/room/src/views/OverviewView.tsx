@@ -8,6 +8,7 @@ import type { LensDef } from './Lens';
 
 export const OVERVIEW: LensDef[] = [
   { id: 'overview', title: 'Board', load: () => import('./Board') },
+  { id: 'resultsboard', title: 'Results board (D-121…D-136)', load: () => import('./ResultsBoard') },
   { id: 'knowledge', title: 'Knowledge', load: () => import('./Knowledge') },
   { id: 'claims', title: 'Claims and caveats', load: () => import('./Overview') },
 ];
@@ -18,7 +19,7 @@ function comp(l: LensDef) {
   return globalThis.__RRP_LENS__?.[l.id] ?? cache.get(l.id)!;
 }
 const ITEMS: [string, string, Record<string, string>?][] = [
-  ['overview', 'Board'], ['knowledge', 'Decisions', { tab: 'decisions' }], ['knowledge', 'Roadmap', { tab: 'roadmap' }],
+  ['overview', 'Board'], ['resultsboard', 'Results board'], ['knowledge', 'Decisions', { tab: 'decisions' }], ['knowledge', 'Roadmap', { tab: 'roadmap' }],
   ['knowledge', 'Backlog', { tab: 'backlog' }], ['knowledge', 'Strategy', { tab: 'strategy' }], ['knowledge', 'STATUS', { tab: 'status' }],
   ['knowledge', 'D ↔ P crosswalk', { tab: 'crosswalk' }], ['claims', 'Claims and caveats'], ['knowledge', 'Docs', { tab: 'docs' }],
 ];

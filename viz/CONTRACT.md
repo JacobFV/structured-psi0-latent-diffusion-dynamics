@@ -46,6 +46,8 @@ All JSON. Every document has `{schema: "rrp-viz/<name>/v1", generated_at, git_sh
 | `/api/replay/<id>` | a replay file (below) |
 | `/api/videos` | `artifacts/video/INDEX.md` entries with labels; files served from `/media/<name>` |
 | `/api/doc?path=` | allowlisted markdown document (docs/, research/, STATUS.md, README.md, AGENTS.md, psi1z README/notes/decisions) |
+| `/api/matrix` | recorded `rrp matrix --out` rows (`rrp-viz/matrix/v1`): policy × env × body × task, status accepted / n/a with the declared negotiate() reasons, source, optional rollout summary; newest per cell; plus the ENVS / POLICIES registries read from source |
+| `/api/factors` | relation factors (`rrp-viz/factors/v1`, D-144): registry (field × op × form, status, sources, field provenance), presets, fields, candidate catalog (W1/W2/P/X/M), runs whose versions name a factor set, curriculum schedules from `<run>/schedule.jsonl` + `steer.jsonl` |
 | `/api/radar` | declared route radar (`rrp-viz/radar/v1`) built from `viz/radar_axes.json`: axes (metric, direction, floor, reference, protocol, decision) × series (teacher, bc, semfix, nosem, frozen_sem) with value, r (floor → reference), drawn (clamped), spread and per-value evidence; missing values stay gaps with a reason |
 | `/api/training/<id>` | one training series (`rrp-viz/training-series/v1`: step[], losses{…}, grad_norm, clip_scale, lr, alpha, gate_state); ids from `/api/training` `runs[].id` |
 

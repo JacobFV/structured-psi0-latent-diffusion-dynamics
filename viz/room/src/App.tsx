@@ -14,8 +14,8 @@ const views: { id: string; key: string; title: string; load: () => Promise<{ def
 ];
 // IBM-2 has four views; every older address maps to the view that now holds it (as a lens)
 const aliases: Record<string, string> = {
-  board: 'overview', knowledge: 'overview', claims: 'overview', library: 'overview',
-  evidence: 'evaluations', results: 'evaluations', edits: 'evaluations', robustness: 'evaluations', physics: 'evaluations', psi0: 'evaluations', radar: 'evaluations',
+  board: 'overview', resultsboard: 'overview', knowledge: 'overview', claims: 'overview', library: 'overview',
+  evidence: 'evaluations', results: 'evaluations', edits: 'evaluations', robustness: 'evaluations', physics: 'evaluations', psi0: 'evaluations', radar: 'evaluations', matrix: 'evaluations', factors: 'evaluations',
   ops: 'training', live: 'training', theatre: 'runs',
 };
 const lazyViews = Object.fromEntries(views.map((v) => [v.id, lazy(v.load)]));

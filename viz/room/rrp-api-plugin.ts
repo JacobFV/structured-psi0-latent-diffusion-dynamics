@@ -21,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'vite';
 
 export const DOCS = [
-  'overview', 'live', 'dags', 'results', 'edits', 'training', 'robustness', 'physics', 'psi0', 'knowledge', 'replays', 'videos', 'radar',
+  'overview', 'live', 'dags', 'results', 'edits', 'training', 'robustness', 'physics', 'psi0', 'knowledge', 'replays', 'videos', 'radar', 'matrix', 'factors',
 ] as const;
 const LIVE_DOCS = new Set(['live']);
 const TTL_MS = 15_000;
