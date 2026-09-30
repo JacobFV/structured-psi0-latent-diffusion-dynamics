@@ -245,8 +245,13 @@ def cw_state_view(scene: dict, frame: ScreenFrame, slots: SlotRegistry, t: float
 # how `ix.force_flow`'s "edges:support-v1" is built in `nets/batch.py` from `relgen.support.support_matrix`'s plain
 # dict output, not in the env adapter -- rel-geo, D-144 addendum). `focus_rank` matches `cw_state_view`'s own,
 # already-merged convention exactly (0 = the currently focused widget via `scene.focus.interaction`, -1 = every
-# other widget): a per-widget RANK beyond that binary needs an explicit UI tab-index CW does not expose.
-UI_REL_VOCAB = ("label_for", "contains", "focus_next", "above")
+# other widget): a per-widget RANK beyond that binary needs an explicit UI tab-index CW does not expose. `contains`
+# and `above` are RETIRED as vocabulary channels here (D-144 addendum, lead review of R20): both are functions of a
+# public per-token field this section already exports (`parent_id`, `zlayer`), so `catalog.py` reads them through
+# the generic `same` / `order` operators as `ui.same_window` / `ui.above` instead of a hand-built edge channel --
+# `ui_public_fields` alone now carries what they need; `ui_edges` keeps only the two channels with no such generic
+# operator equivalent (a document-order layout convention, and a public tab-index walk).
+UI_REL_VOCAB = ("label_for", "focus_next")
 
 
 def _tab_order(table: Sequence[dict | None]) -> list[int]:
@@ -276,30 +281,24 @@ def ui_public_fields(table: Sequence[dict | None]) -> dict[str, np.ndarray]:
 
 def ui_edges(table: Sequence[dict | None]) -> np.ndarray:
     """`[W, W, len(UI_REL_VOCAB)]` bool public graph over the same slot table (`W = len(table)`); a null slot's row
-    / column stays all-False.
-      contains[i, j]    : i, j are widgets of the SAME window (reflexive, symmetric); desktop-level widgets
-                          (window is None) never match each other, so unrelated top-level icons are not bundled
-                          into one "container" -- there is no window entity token to hang a real containment edge
-                          off (CW's window frame itself carries no `semantic` node, `scene_widgets`), so this is
-                          "co-contained in one window" rather than a widget literally containing another.
+    / column stays all-False. `ui.same_window` (`parent_id` equality) and `ui.above` (`zlayer` order) are NOT
+    channels here any more (D-144 addendum): `catalog.py` reads them straight off `ui_public_fields` through the
+    generic `same` / `order` operators instead.
       label_for[i, j]   : i has role "label", j does not, both are in the same window (or both desktop-level), and
                           j is the NEXT widget after i in scene (document) order within that group -- the standard
                           "the label immediately precedes the control it describes" layout convention.
       focus_next[i, j]  : i, j are consecutive slots of the public tab order (`_tab_order`, cyclic: the last widget
                           wraps to the first).
-      above[i, j]       : zlayer_j > zlayer_i (which of the pair renders on top / would occlude the other).
     """
     n = len(table)
     out = np.zeros((n, n, len(UI_REL_VOCAB)), bool)
-    i_label, i_contains, i_focus, i_above = range(len(UI_REL_VOCAB))
+    i_label, i_focus = range(len(UI_REL_VOCAB))
 
     windows: dict[int, list[int]] = {}
     for slot, w in enumerate(table):
         if w is not None and w["window"] is not None:
             windows.setdefault(w["window"], []).append(slot)
     for members in windows.values():
-        for i in members:
-            out[i, members, i_contains] = True
         ordered = sorted(members, key=lambda s: table[s]["order"])
         for a, b in zip(ordered, ordered[1:]):
             if table[a]["role"] == "label" and table[b]["role"] != "label":
@@ -309,9 +308,6 @@ def ui_edges(table: Sequence[dict | None]) -> np.ndarray:
     for a, b in zip(order, order[1:] + order[:1]):
         out[a, b, i_focus] = True
 
-    layer = np.array([w["layer"] if w is not None else -1 for w in table], dtype=np.int64)
-    present = np.array([w is not None for w in table], dtype=bool)
-    out[..., i_above] = (layer[None, :] > layer[:, None]) & present[:, None] & present[None, :]
     return out
 
 

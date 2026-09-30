@@ -2,12 +2,16 @@
 "ComputerWorld {label_for, contains, focus, z-order, drag}"): the PRIVILEGED labels of `catalog.py`'s `ui.*`
 entries, written once against `rrp.envs.base.StateView` (cap "ui_tree", `+"poses"` for `drag_to`).
 
-`label_for` / `contains` / `focus_next` / `above` recompute, from `StateView.ui_tree()` alone, exactly the same
-relation `envs.computerworld.ui_edges` builds from the raw scene (the deployable "given" side of the SAME `ui.*`
-entries) -- an independent StateView-side implementation, the same duplication R14's geometry labels accept for
-`geo.*`'s "given" fields (docs 10 row R14: "labels on arm / dual fixtures match hand-computed values"), here
-cross-checked against `ui_edges` itself (`tests/unit/test_relations_r20.py`). `drag_to` has no "given" counterpart
-(docs 3.1: the bias IS the pair probe for a drag destination) and is privileged-only.
+`label_for` / `focus_next` recompute, from `StateView.ui_tree()` alone, exactly the same relation
+`envs.computerworld.ui_edges` builds from the raw scene (the deployable "given" side of the SAME `ui.*` entries) --
+an independent StateView-side implementation, the same duplication R14's geometry labels accept for `geo.*`'s
+"given" fields (docs 10 row R14: "labels on arm / dual fixtures match hand-computed values"), here cross-checked
+against `ui_edges` itself (`tests/unit/test_relations_r20.py`). `same_window` / `above` recompute, from the same
+`ui_tree()`, the `parent_id` / `zlayer` fields `envs.computerworld.ui_public_fields` builds from the raw scene --
+`ui.same_window` / `ui.above` (catalog.py) read those PUBLIC fields directly through the generic `same` / `order`
+operators (D-144 addendum), so these two labels are a StateView-side cross-check of `ui_public_fields`, not of the
+retired `ui_edges` "contains" / "above" channels. `drag_to` has no "given" counterpart (docs 3.1: the bias IS the
+pair probe for a drag destination) and is privileged-only.
 
 Never imports `rrp.policies.relations` (labels stay on the privileged side of the deploy boundary, docs section 7;
 `policies/` never imports `relgen`)."""
@@ -41,11 +45,11 @@ def _label2(value: np.ndarray, valid: np.ndarray) -> Label:
     return Label(value=value[..., None], valid=valid, prov="gt", version=UI_LABELS_VERSION)
 
 
-# ------------------------------------------------------------------------------------------------ contains
-def contains_fn(view: StateView, index: TokenIndex) -> Label:
+# ------------------------------------------------------------------------------------------------ same_window
+def same_window_fn(view: StateView, index: TokenIndex) -> Label:
     """1[i, j share a window] (reflexive, symmetric); desktop-level widgets (`parent is None`) never match each
-    other -- mirrors `envs.computerworld.ui_edges`'s "contains" channel exactly, off `ui_tree` instead of the raw
-    scene table."""
+    other -- mirrors `envs.computerworld.ui_public_fields`'s `parent_id` field exactly (`ui.same_window`'s generic
+    `same` operator, D-144 addendum), off `ui_tree` instead of the raw scene table."""
     nodes = _ui_nodes(view)
     ids, valid = _pairwise(index, nodes)
     T = len(ids)
@@ -106,7 +110,9 @@ def focus_next_fn(view: StateView, index: TokenIndex) -> Label:
 
 # ------------------------------------------------------------------------------------------------ above
 def above_fn(view: StateView, index: TokenIndex) -> Label:
-    """zlayer_j > zlayer_i (which of the pair renders on top). Mirrors `ui_edges`'s "above" channel."""
+    """zlayer_j > zlayer_i (which of the pair renders on top), by `zlayer` order alone. Mirrors
+    `envs.computerworld.ui_public_fields`'s `zlayer` field (`ui.above`'s generic `order` operator, D-144
+    addendum), not the retired `ui_edges` "above" channel."""
     nodes = _ui_nodes(view)
     ids, valid = _pairwise(index, nodes)
     z = np.array([nodes[i]["z"] if (i is not None and i in nodes) else -1 for i in ids], dtype=np.float64)
@@ -150,8 +156,8 @@ def drag_to_fn(view: StateView, index: TokenIndex) -> Label:
     return _label2(value, valid)
 
 
-register_label(LabelDef(name="contains", version=UI_LABELS_VERSION, arity=2, needs=frozenset({"ui_tree"}),
-                        fn=contains_fn, prov="gt"))
+register_label(LabelDef(name="same_window", version=UI_LABELS_VERSION, arity=2, needs=frozenset({"ui_tree"}),
+                        fn=same_window_fn, prov="gt"))
 register_label(LabelDef(name="label_for", version=UI_LABELS_VERSION, arity=2, needs=frozenset({"ui_tree"}),
                         fn=label_for_fn, prov="gt"))
 register_label(LabelDef(name="focus_next", version=UI_LABELS_VERSION, arity=2, needs=frozenset({"ui_tree", "poses"}),

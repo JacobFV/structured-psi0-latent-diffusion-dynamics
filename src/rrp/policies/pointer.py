@@ -60,7 +60,7 @@ UI_CARRIES = ("edges:ui-rel-v1", "hidden", "pos3d", "cam_uvd", "zlayer", "parent
 class PolicyConfig:
     """Pointer-net relation factors (docs/relations.md; D-144 R20 follow-up). `factors=None` (the default) resolves
     to `POINTER_FACTORS_PRESET` ("none"): unchanged nets, byte-identical checkpoints. `factors=["preset:ui"]` turns
-    on `ui.label_for` / `ui.contains` / `ui.focus_next` / `ui.above` / `ui.drag_to` (`catalog.py` §ui) at `UICtx`'s
+    on `ui.label_for` / `ui.same_window` / `ui.focus_next` / `ui.above` / `ui.drag_to` (`catalog.py` §ui) at `UICtx`'s
     widget self-attention; add `geo.*` names (or `"geo.*"` itself) to also enable the PaPE / bilinear geometry
     factors over the same tokens' `pos3d` / `cam_uvd` fields."""
     factors: list | None = None
@@ -193,6 +193,17 @@ def target_depth(env, x: float, y: float) -> float:
     return float(widget_position(max(hits, key=lambda w: (w["layer"], w["order"])), env.frame)[2])
 
 
+def env_widget_table(env) -> list[dict | None]:
+    """The env's current slot-indexed `scene_widgets` table (`SlotRegistry.assign`, `env.slots`): 1:1 with
+    `obs.object_descriptors` when called right after `env.observe()` with no `env.step()` in between, matching
+    `widget_features`' `table` argument (D-144 R20 follow-up). Used only at LIVE rollout call sites
+    (`TeacherOracleSource._encode`, `PointerSystemI.packets`, `PointerBCPolicy.act`) so `preset:ui` factors see real
+    edges/fields at inference when a factor set enables them; the training data pipeline
+    (`harness.train.pointer.collect_episode`) stays on `table=None`, unchanged."""
+    from rrp.envs.computerworld import scene_widgets
+    return env.slots.assign(scene_widgets(env.scene()))
+
+
 class TeacherOracleSource:
     """ORACLE DIAGNOSTIC packet source (privileged): the scripted teacher's next ticks, run on a shadow twin env, encoded
     with the engineered encoding, or (`encoder` = a frozen PointerEncoder with its versions) as z = E(public features
@@ -241,7 +252,7 @@ class TeacherOracleSource:
     def _encode(self, e, obs, st, n, H):
         import torch
         half = screen_half(e.spec)
-        f = public_features(obs, half, self.hist[id(e)], n)
+        f = public_features(obs, half, self.hist[id(e)], n, table=env_widget_table(e))
         cmds, ptrs, btns = st["cmds"][n:n + H], st["ptrs"][n:n + H], st["btns"][n:n + H]
         a = dict(dxy=np.zeros((H, 2), np.float32), xy=np.zeros((H, 2), np.float32), btn=np.zeros(H, np.float32),
                  key=np.zeros(H, np.int64), valid=np.zeros(H, bool))
@@ -382,11 +393,11 @@ def widget_features(obs, half, table=None) -> dict:
     R20 follow-up): the same screen-geometry `widget_position` already puts in `d.position_estimate` (the 1 mm/px
     `ScreenFrame` mapping, `+` z-layer depth when `depth="stack"`) -- `pos3d` world-frame metres, `cam_uvd` the
     already-computed normalized screen (u, v) `+` the same depth, matching `geo.*`'s field kinds (`catalog.py`).
-    `table` (optional; the env's raw `scene_widgets` slot table, `None` at every call site that does not have it
-    yet): when given, also adds R20's public UI fields / `ui-rel-v1` edges (`ui_widget_fields`) that `preset:ui`
-    factors read; omitted, `UICtx` runs those factors as a harmless no-op (zero edges) -- never a silent fabrication,
-    since `factors` must be explicitly turned on for them to be read at all (`PolicyConfig`, `POINTER_FACTORS_PRESET`
-    stays the default)."""
+    `table` (optional; the env's raw `scene_widgets` slot table, `env_widget_table(env)`): when given, also adds
+    R20's public UI fields / `ui-rel-v1` edges (`ui_widget_fields`) that `preset:ui` factors read; omitted (as at
+    the training data pipeline, `harness.train.pointer.collect_episode`), `UICtx` runs those factors as a harmless
+    no-op (zero edges) -- never a silent fabrication, since `factors` must be explicitly turned on for them to be
+    read at all (`PolicyConfig`, `POINTER_FACTORS_PRESET` stays the default)."""
     ch = np.zeros((NW, LC), np.int16)
     role = np.zeros(NW, np.int8)
     bound = np.zeros(NW, np.int8)
@@ -950,7 +961,8 @@ class PointerSystemI:
     def packets(self, envs) -> list[LatentActionChunk]:
         import torch
         obs = [e.observe() for e in envs]
-        fs = [public_features(o, screen_half(e.spec), self.hist[id(e)], e.steps) for e, o in zip(envs, obs)]
+        fs = [public_features(o, screen_half(e.spec), self.hist[id(e)], e.steps, table=env_widget_table(e))
+              for e, o in zip(envs, obs)]
         with torch.no_grad():
             z = self.flow.sample(collate_public(fs, self.device), nfe=self.nfe, generator=self.gen).float().cpu().numpy()
         self.calls += len(envs)
@@ -1030,7 +1042,8 @@ class PointerBCPolicy:
         idx = sorted(obs)
         need = [i for i in idx if self.t[i] % self.replan == 0 or self.chunk[i] is None]
         if need:
-            fs = [public_features(obs[i], screen_half(self.envs[i].spec), self.hist[i], self.envs[i].steps) for i in need]
+            fs = [public_features(obs[i], screen_half(self.envs[i].spec), self.hist[i], self.envs[i].steps,
+                                  table=env_widget_table(self.envs[i])) for i in need]
             with torch.no_grad():
                 xy, bl, kl = self.net(collate_public(fs, self.device))
             for n, i in enumerate(need):

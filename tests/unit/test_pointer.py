@@ -253,8 +253,9 @@ def test_pointer_probe_loss_masks_missing_labels():
 # ================================================================== D-144 R20 follow-up: `preset:ui` at UICtx's widget self-attention (research/tracks/rel-r20.md "lead_questions")
 # The exact fixture `test_relations_r20.py` uses (no `computerworld` wheel needed: `scene_widgets` / `SlotRegistry` /
 # `descriptors` are pure): window 0 an enabled "Name" label + focused textbox (z-layer 0); window 1 a Email label +
-# a DISABLED textbox (z-layer 1, renders above window 0) -- `ui_edges` is non-empty on it (`label_for`, `focus_next`,
-# `above`; `contains` within each window), so `UICtx`'s `preset:ui` factors have real graph structure to read.
+# a DISABLED textbox (z-layer 1, renders above window 0) -- `ui_edges` is non-empty on it (`label_for`, `focus_next`)
+# and `ui_public_fields` carries real `parent_id` / `zlayer` structure (`ui.same_window` / `ui.above`, D-144
+# addendum), so `UICtx`'s `preset:ui` factors have real graph structure to read.
 _I = {"a": 1024, "b": 0, "c": 0, "d": 1024, "tx": 0, "ty": 0}
 
 
@@ -308,7 +309,7 @@ def test_widget_features_with_table_carries_r20s_ui_fields_and_a_nonempty_edge_g
     b = _ui_batch(table)
     np.testing.assert_array_equal(b["wzlayer"][0, :4].numpy(), [0.0, 0.0, 1.0, 1.0])
     np.testing.assert_array_equal(b["wfocusrank"][0, :4].numpy(), [-1, 0, -1, -1])
-    assert b["wuiedges"].shape == (1, NW, NW, 4)
+    assert b["wuiedges"].shape == (1, NW, NW, 2)
     assert b["wuiedges"][0, :4, :4].sum() > 0
     assert b["wuiedges"][0, 4:].sum() == 0 and b["wuiedges"][0, :, 4:].sum() == 0   # padding stays all-False
 
@@ -388,3 +389,125 @@ def test_preset_ui_changes_widget_self_attention_logits_on_the_cw_fixture_scene(
         x_on, m_on = on(b)
     assert torch.equal(m_off, m_on)                                           # the key mask itself is unaffected
     assert not torch.allclose(x_off, x_on)                                    # but the self-attended hiddens differ
+
+
+# ================================================================== D-144 R20 follow-up: live rollout call sites pass `env_widget_table`
+@pytest.mark.computerworld
+def test_env_widget_table_matches_the_real_envs_observe_slot_table():
+    """`env_widget_table(env)` (the new helper the three live rollout call sites use) is 1:1 with `obs.object_
+    descriptors` -- same slot count, same `key` per occupied slot -- on a REAL `ComputerWorldEnv`
+    (`~/work/ext/cw-site` on PYTHONPATH; skips otherwise), exactly like the fixture-only `SlotRegistry().assign
+    (scene_widgets(...))` calls `test_relations_r20.py` / this file already use for the wheel-free tests."""
+    from rrp.envs.base import make_env
+    from rrp.policies.pointer import env_widget_table
+
+    env = make_env("computerworld", task="cw/fill_form", body="cw_pointer", seed=0)
+    obs = env.reset(seed=0)
+    table = env_widget_table(env)
+    assert len(table) == len(obs.object_descriptors)
+    occupied = [w for w in table if w is not None]
+    assert occupied                                                          # the fixture form has real widgets
+    env.close()
+
+
+@pytest.mark.computerworld
+def test_live_rollout_call_sites_are_byte_identical_with_the_default_empty_factor_set(monkeypatch):
+    """The acceptance check for item (2): `PointerBCPolicy.act` now threads `env_widget_table(env)` through to
+    `public_features` / `widget_features` so `preset:ui` factors see real edges once a factor set enables them --
+    but `PolicyConfig(factors=None)` (== every existing BC checkpoint's construction) still resolves to the EMPTY
+    preset, so this must emit BYTE-IDENTICAL commands on a real, fixed-seed `ComputerWorldEnv` rollout
+    (`~/work/ext/cw-site` on PYTHONPATH; skips otherwise) whether or not a real widget table backs the batch --
+    a fixed-seed digest of the rollout's commands with `env_widget_table` monkeypatched back to the old
+    `table=None` call shape must match the un-patched one exactly."""
+    import hashlib
+    import json
+
+    import torch
+
+    from rrp.envs.base import make_env
+    from rrp.policies.pointer import PointerBCPolicy, nets
+
+    def rollout(ticks=5):
+        torch.manual_seed(0)
+        net = nets()["PointerBC"](D=16, heads=2, layers=1).eval()            # factors=None (default): no UI reads
+        policy = PointerBCPolicy({"modules": {"BC": net}, "config": {}}, path="test", replan_ticks=4)
+        env = make_env("computerworld", task="cw/fill_form", body="cw_pointer", seed=0)
+        obs = env.reset(seed=0)
+        policy.reset(env.spec, "cw/fill_form", [0], envs=[env])
+        groups = []
+        for _ in range(ticks):
+            act = policy.act({0: obs})[0]
+            groups.append(act.command.groups)
+            obs = env.step(act.command).observation
+        env.close()
+        return hashlib.sha256(json.dumps(groups, sort_keys=True).encode()).hexdigest()
+
+    digest_with_table = rollout()
+
+    import rrp.policies.pointer as pointer_mod
+    monkeypatch.setattr(pointer_mod, "env_widget_table", lambda env: None)   # the pre-change call shape
+    digest_without_table = rollout()
+
+    assert digest_with_table == digest_without_table
+
+
+@pytest.mark.computerworld
+def test_teacher_oracle_source_encode_is_byte_identical_with_the_default_empty_factor_set(monkeypatch):
+    """`TeacherOracleSource._encode` (the LEARNED target-encoder oracle route) also now threads
+    `env_widget_table(env)` through to `public_features` -- with a `PointerEncoder` built from the default (empty)
+    `PolicyConfig`, its emitted z must stay byte-identical to the pre-change `table=None` call shape, on a real,
+    fixed-seed `ComputerWorldEnv` rollout (`~/work/ext/cw-site` on PYTHONPATH; skips otherwise)."""
+    import torch
+
+    from rrp.envs.base import make_env
+    from rrp.policies.pointer import TeacherOracleSource, nets
+
+    def run():
+        torch.manual_seed(0)
+        enc = nets()["PointerEncoder"](dz=8, D=16, heads=2, layers=1).eval()   # factors=None (default): no UI reads
+        env = make_env("computerworld", task="cw/fill_form", body="cw_pointer", seed=0)
+        env.reset(seed=0)
+        src = TeacherOracleSource(encoder=enc, versions={"latent_space_version": "x", "realizer_compat_version": "y"})
+        src.reset([env])
+        z = np.array(src.packets([env])[0].z)
+        env.close()
+        return z
+
+    z_with_table = run()
+
+    import rrp.policies.pointer as pointer_mod
+    monkeypatch.setattr(pointer_mod, "env_widget_table", lambda env: None)   # the pre-change call shape
+    z_without_table = run()
+
+    np.testing.assert_array_equal(z_with_table, z_without_table)
+
+
+@pytest.mark.computerworld
+def test_pointer_system_i_packets_is_byte_identical_with_the_default_empty_factor_set(monkeypatch):
+    """`PointerSystemI.packets` (system i's own live rollout call site) also now threads `env_widget_table(env)`
+    through to `public_features` -- with a `PointerFlow` built from the default (empty) `PolicyConfig`, its sampled
+    z must stay byte-identical to the pre-change `table=None` call shape, on a real, fixed-seed `ComputerWorldEnv`
+    (`~/work/ext/cw-site` on PYTHONPATH; skips otherwise)."""
+    import torch
+
+    from rrp.envs.base import make_env
+    from rrp.policies.pointer import ENG_VERSION, PointerSystemI, nets
+
+    def run():
+        torch.manual_seed(0)
+        flow = nets()["PointerFlow"](dz=8, D=16, heads=2, layers=1).eval()   # factors=None (default): no UI reads
+        env = make_env("computerworld", task="cw/fill_form", body="cw_pointer", seed=0)
+        env.reset(seed=0)
+        si = PointerSystemI(flow, lsv=ENG_VERSION, rcv=ENG_VERSION, nfe=2, seed=0)
+        si.reset([env])
+        z = np.array(si.packets([env])[0].z)
+        env.close()
+        return z
+
+    z_with_table = run()
+
+    import rrp.policies.pointer as pointer_mod
+    monkeypatch.setattr(pointer_mod, "env_widget_table", lambda env: None)   # the pre-change call shape
+    z_without_table = run()
+
+    np.testing.assert_array_equal(z_with_table, z_without_table)

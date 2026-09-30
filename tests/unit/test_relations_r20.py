@@ -1,7 +1,8 @@
 """Unit R20 (docs/relations.md section 10, row R20): UI factors. `catalog.py` section `ui` (`ui.label_for`,
-`ui.contains`, `ui.focus_next`, `ui.above`, `ui.drag_to`), `envs.computerworld`'s public UI fields
-(`ui_public_fields`: `parent_id`, `zlayer`, `focus_rank`) and `ui-rel-v1` edges (`ui_edges`), and
-`harness/data/relgen/ui.py`'s privileged labels of the same five names.
+`ui.same_window`, `ui.focus_next`, `ui.above`, `ui.drag_to`), `envs.computerworld`'s public UI fields
+(`ui_public_fields`: `parent_id`, `zlayer`, `focus_rank`) and `ui-rel-v1` edges (`ui_edges`, now just `label_for` /
+`focus_next` -- `same_window` / `above` are generic `same` / `order` ops straight over `ui_public_fields`, D-144
+addendum), and `harness/data/relgen/ui.py`'s privileged labels of the same five names.
 
 No `computerworld` wheel needed anywhere in this file: every scene here is the same hand-built inline dict
 `test_computerworld.py` / `test_state_view_envs.py` use (`scene_widgets`, `cw_state_view` are pure)."""
@@ -15,8 +16,8 @@ from rrp.envs.computerworld import (ScreenFrame, SlotRegistry, UI_REL_VOCAB, cw_
                                     ui_public_fields)
 from rrp.harness.data.relgen import TokenIndex
 from rrp.harness.data.relgen.transforms import cf_swap, reveal, surprise
-from rrp.harness.data.relgen.ui import (above_fn, contains_fn, dragged_widget_id, drag_to_fn, focus_next_fn,
-                                        label_for_fn, label_for_sample)
+from rrp.harness.data.relgen.ui import (above_fn, dragged_widget_id, drag_to_fn, focus_next_fn, label_for_fn,
+                                        label_for_sample, same_window_fn)
 import rrp.policies.relations.catalog  # noqa: F401  (registers FACTORS / FIELDS / PRESETS on import)
 from rrp.policies.relations.base import FACTORS, FIELDS, PRESETS, FactorSpec, PrivilegedInput, RelCtx, TokenSet, \
     EdgeSet, assert_deployable, get_factor, resolve
@@ -79,7 +80,7 @@ def test_ui_public_fields_null_slot_gets_neutral_defaults():
 
 # ================================================================== envs.computerworld: ui-rel-v1 edges
 def test_ui_edges_vocab_order():
-    assert UI_REL_VOCAB == ("label_for", "contains", "focus_next", "above")
+    assert UI_REL_VOCAB == ("label_for", "focus_next")
 
 
 def test_ui_edges_label_for_points_from_label_to_its_control():
@@ -90,11 +91,14 @@ def test_ui_edges_label_for_points_from_label_to_its_control():
     assert e[..., i].sum() == 2                                           # no spurious cross-window pairs
 
 
-def test_ui_edges_contains_is_same_window_reflexive_symmetric():
-    e = ui_edges(_table())
-    i = UI_REL_VOCAB.index("contains")
-    assert e[NAME_LABEL, NAME_BOX, i] and e[NAME_BOX, NAME_LABEL, i] and e[NAME_LABEL, NAME_LABEL, i]
-    assert not e[NAME_LABEL, EMAIL_LABEL, i] and not e[NAME_BOX, EMAIL_BOX, i]
+def test_ui_public_fields_parent_id_is_same_window_reflexive_symmetric():
+    """`contains` is RETIRED as a `ui_edges` channel (D-144 addendum): `ui.same_window` reads `parent_id` equality
+    straight off `ui_public_fields` through the generic `same` op instead."""
+    f = ui_public_fields(_table())
+    known = f["parent_id"] >= 0
+    same = (f["parent_id"][:, None] == f["parent_id"][None, :]) & known[:, None] & known[None, :]
+    assert same[NAME_LABEL, NAME_BOX] and same[NAME_BOX, NAME_LABEL] and same[NAME_LABEL, NAME_LABEL]
+    assert not same[NAME_LABEL, EMAIL_LABEL] and not same[NAME_BOX, EMAIL_BOX]
 
 
 def test_ui_edges_focus_next_only_links_focusable_enabled_boxed_widgets_cyclically():
@@ -106,11 +110,13 @@ def test_ui_edges_focus_next_only_links_focusable_enabled_boxed_widgets_cyclical
     assert e[..., i].sum() == 1
 
 
-def test_ui_edges_above_is_the_higher_zlayer_widget():
-    e = ui_edges(_table())
-    i = UI_REL_VOCAB.index("above")
-    assert e[NAME_LABEL, EMAIL_LABEL, i] and e[NAME_BOX, EMAIL_BOX, i]
-    assert not e[EMAIL_LABEL, NAME_LABEL, i] and not e[NAME_LABEL, NAME_BOX, i]    # same layer: never above itself
+def test_ui_public_fields_zlayer_orders_the_higher_widget_above():
+    """`above` is RETIRED as a `ui_edges` channel (D-144 addendum): `ui.above` reads `zlayer` order straight off
+    `ui_public_fields` through the generic `order` op instead."""
+    f = ui_public_fields(_table())
+    above = f["zlayer"][None, :] > f["zlayer"][:, None]
+    assert above[NAME_LABEL, EMAIL_LABEL] and above[NAME_BOX, EMAIL_BOX]
+    assert not above[EMAIL_LABEL, NAME_LABEL] and not above[NAME_LABEL, NAME_BOX]    # same layer: never above itself
 
 
 def test_ui_edges_null_slot_row_and_column_are_all_false():
@@ -129,11 +135,29 @@ def test_ui_relgen_labels_match_ui_edges_on_the_fixture():
     e = ui_edges(table)
     ids = [sv.token_entity("widgets", i) for i in range(len(table))]
     idx = TokenIndex(sets={"ctx": ids})
-    for name, fn in (("label_for", label_for_fn), ("contains", contains_fn), ("focus_next", focus_next_fn),
-                     ("above", above_fn)):
+    for name, fn in (("label_for", label_for_fn), ("focus_next", focus_next_fn)):
         lab = fn(sv, idx)
         col = UI_REL_VOCAB.index(name)
         np.testing.assert_array_equal(lab.value[..., 0] > 0, e[..., col])
+        assert lab.valid.all()                                           # every slot here is a real widget
+
+
+# ================================================================== harness/data/relgen/ui.py: same_window / above match `ui_public_fields` (StateView side, R14-style cross-check)
+def test_ui_relgen_same_window_and_above_labels_match_ui_public_fields_on_the_fixture():
+    """`same_window` / `above` no longer have a `ui_edges` channel to cross-check against (D-144 addendum): they
+    mirror `ui_public_fields`'s `parent_id` / `zlayer` fields instead, the exact same fields `ui.same_window` /
+    `ui.above`'s generic `same` / `order` ops read at inference."""
+    sv, reg = _state_view()
+    table = reg.assign(scene_widgets(SCENE))
+    f = ui_public_fields(table)
+    ids = [sv.token_entity("widgets", i) for i in range(len(table))]
+    idx = TokenIndex(sets={"ctx": ids})
+    known = f["parent_id"] >= 0
+    same = (f["parent_id"][:, None] == f["parent_id"][None, :]) & known[:, None] & known[None, :]
+    above = f["zlayer"][None, :] > f["zlayer"][:, None]
+    for name, fn, want in (("same_window", same_window_fn, same), ("above", above_fn, above)):
+        lab = fn(sv, idx)
+        np.testing.assert_array_equal(lab.value[..., 0] > 0, want)
         assert lab.valid.all()                                           # every slot here is a real widget
 
 
@@ -166,9 +190,9 @@ def test_drag_to_fn_no_focused_widget_is_all_zero():
 
 def test_labels_registered():
     from rrp.harness.data.relgen import LABELS
-    assert {"label_for", "contains", "focus_next", "above", "drag_to"} <= set(LABELS)
+    assert {"label_for", "same_window", "focus_next", "above", "drag_to"} <= set(LABELS)
     assert LABELS["drag_to"].needs == frozenset({"ui_tree", "poses"})
-    assert LABELS["contains"].needs == frozenset({"ui_tree"})
+    assert LABELS["same_window"].needs == frozenset({"ui_tree"})
 
 
 # ================================================================== catalog.py: ui.*
@@ -197,6 +221,8 @@ def test_catalog_ui_field_factors_use_generic_ops():
 
 
 def test_ui_field_factor_values_match_the_env_channels():
+    """`ui.same_window` / `ui.above` read `parent_id` / `zlayer` straight off `ui_public_fields` (D-144 addendum);
+    neither is a `ui_edges` channel any more, so the expected values here are built from `ui_public_fields` too."""
     rc, n = _ui_relctx(_table())
     site = FactorSite(heads=1, dim=8, site="ctx>ctx", specs=resolve(["ui.same_window", "ui.above"]),
                       carries=("parent_id", "zlayer"))
@@ -204,11 +230,13 @@ def test_ui_field_factor_values_match_the_env_channels():
         site.f["ui__same_window"].w.fill_(1.0)
         site.f["ui__above"].w.fill_(10.0)
     b = site.bias(rc)[0, 0]
-    edges = torch.from_numpy(ui_edges(_table()))
+    f = ui_public_fields(_table())
+    parent_id, zlayer = torch.as_tensor(f["parent_id"]), torch.as_tensor(f["zlayer"])
     ok = rc.sets["ctx"].mask[0]
     pair = ok[:, None] & ok[None, :]
-    same = edges[..., UI_REL_VOCAB.index("contains")].float()
-    above = edges[..., UI_REL_VOCAB.index("above")].float()
+    known = parent_id >= 0
+    same = ((parent_id[:, None] == parent_id[None, :]) & known[:, None] & known[None, :]).float()
+    above = (zlayer[None, :] > zlayer[:, None]).float()
     want = same + 10 * (above - above.T)
     assert torch.equal(b[pair], want[pair])
 
@@ -323,10 +351,10 @@ def test_cf_swap_on_a_ui_label_field_swaps_widget_identity_and_its_pairwise_labe
     sv, reg = _state_view()
     table = reg.assign(scene_widgets(SCENE))
     ids = [sv.token_entity("widgets", i) for i in range(len(table))]
-    lab = contains_fn(sv, TokenIndex(sets={"ctx": ids}))
+    lab = same_window_fn(sv, TokenIndex(sets={"ctx": ids}))
     char_codes = np.array([[1, 2, 0], [3, 4, 0], [5, 6, 0], [7, 8, 0]])   # a stand-in widget "label" text field
     sample = {"inputs": {"tokens": {"ctx": {"fields": {"label": char_codes}}}},
-             "labels": {"contains": {"set": "ctx", "arity": 2, "value": lab.value, "valid": lab.valid}}}
+             "labels": {"same_window": {"set": "ctx", "arity": 2, "value": lab.value, "valid": lab.valid}}}
     rng = np.random.default_rng(0)
     [out] = cf_swap(sample, rng, {"field": "label", "pair": (NAME_LABEL, EMAIL_LABEL)})
 
@@ -335,10 +363,10 @@ def test_cf_swap_on_a_ui_label_field_swaps_widget_identity_and_its_pairwise_labe
     np.testing.assert_array_equal(swapped[EMAIL_LABEL], char_codes[NAME_LABEL])
     np.testing.assert_array_equal(swapped[NAME_BOX], char_codes[NAME_BOX])         # untouched slot: unchanged
 
-    before, after = lab.value[..., 0], out["labels"]["contains"]["value"][..., 0]
-    # the swap is applied to BOTH axes of the pairwise "contains" label (docs 5.2: everything that references the
-    # swapped slots moves together) -- Name-window membership now shows up at the Email-label row/column and vice
-    # versa
+    before, after = lab.value[..., 0], out["labels"]["same_window"]["value"][..., 0]
+    # the swap is applied to BOTH axes of the pairwise "same_window" label (docs 5.2: everything that references
+    # the swapped slots moves together) -- Name-window membership now shows up at the Email-label row/column and
+    # vice versa
     assert after[EMAIL_LABEL, NAME_BOX] == before[NAME_LABEL, NAME_BOX] == 1.0
     assert after[NAME_LABEL, NAME_BOX] == before[EMAIL_LABEL, NAME_BOX] == 0.0
     assert out["provenance"]["transforms"][-1]["transform"] == "cf_swap"
