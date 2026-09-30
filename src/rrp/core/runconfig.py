@@ -41,6 +41,20 @@ PIPELINE_STAGES = ("collect", "pack", "train_rep", "probes", "train_flow", "flow
 # train_bc moved to PIPELINE_STAGES (W8: legged BC positive control through run-dag); arm/dual do not implement it.
 LEGACY_ONLY_STAGES = ("train_policy", "adapt", "vlm", "protocol")
 Stage = Literal[PIPELINE_STAGES + LEGACY_ONLY_STAGES]  # type: ignore[valid-type]
+# NOTE (D-144 addendum, decision (b), unit R2c): `probe_lv_min` stays a first-class Flag here, mapped to
+# `latent.probe_lv_min` for arm/dual `train_rep`, although unit R2 (docs/relations.md 10) retired that flat key as
+# LatentConfig's OWN construction surface (`factors:` instead). It cannot be removed from FLAG_SPEC without breaking
+# three things this unit does not own: (1) `legged`'s identical mapping (legged has not migrated: fanout unit R4,
+# not merged) sharing this same closed `Flags` schema; (2) `test_runconfig.py::test_variant_must_match_recipe`
+# (general infra, constructs a RunConfig with `flags.probe_lv_min` set for the OLD-style `_check_variant` branch);
+# (3) `dags/arm_lineage.yaml` / `dags/templates/dual_lineage.yaml`, which render `flags: {probe_lv_min: '{lv}', ...}`
+# together with a flat `latent: {semantic_weight: '{sw}'}` block for the SAME lineages `test_dag.py::
+# test_arm_dag_reproduces_legacy_configs` proves byte-identical to `configs/ladder/**` rep files still on disk
+# (confirmed empirically: codemodding those config files to `factors:` while leaving the dag's Flag-driven
+# `latent.probe_lv_min` injection in place breaks that test, since `to_native()` unconditionally re-writes
+# `latent.probe_lv_min` from the flag for every applicable stage). Retiring the flag needs a coordinated edit of
+# FLAG_SPEC + those two dags + the linked config files together, which is out of R2c's owned-file list (only
+# core/runconfig.py itself, not the dags) -- see research/tracks/rel-r2c.md.
 FLAG_NAMES = ("zero_prev_action", "realizer_anchor", "realizer_drop_qd", "probe_lv_min", "qd_dropout", "contact_version")
 META = "@meta"          # flag recorded in the RunConfig/provenance only (no native key; e.g. contact_version)
 CLI = "@cli"            # flag the stage turns into a command-line argument (e.g. ladder --prev-action zero|own)

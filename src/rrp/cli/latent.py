@@ -168,7 +168,7 @@ def register_more(p):
 def cmd_fit_probes(a):
     from rrp.harness.train.latent_train import fit_probes_on_frozen
     res = fit_probes_on_frozen(Path(a.representation), Path(a.packed_dir), Path(a.out), steps=a.steps,
-                               metadata_only=a.metadata_only, binding_cf=a.binding_cf)
+                               metadata_only=a.metadata_only, cf_mix=a.cf_mix)
     print(json.dumps(res, indent=1))
 
 
@@ -179,8 +179,12 @@ def register_probe_cmd(p):
     f.add_argument("--out", required=True)
     f.add_argument("--steps", type=int, default=6000)
     f.add_argument("--metadata-only", action="store_true")
-    f.add_argument("--binding-cf", type=float, default=0.0,
-                   help="fraction of each probe batch appended as counterfactual-binding copies (focus follows binding)")
+    # D-144 addendum (decision (b)): --cf-mix replaces --binding-cf (harness.train.latent_train.fit_probes_on_frozen
+    # cf_mix, ex binding_cf). --binding-cf is kept as a deprecated alias, same dest, for existing invocations on
+    # disk (scripts / shell history) -- the CLI-flag analogue of the loader's on-disk legacy-key remap.
+    f.add_argument("--cf-mix", "--binding-cf", dest="cf_mix", type=float, default=0.0,
+                   help="fraction of each probe batch appended as counterfactual-binding copies (focus follows "
+                        "binding); --binding-cf is a deprecated alias")
     f.set_defaults(fn=cmd_fit_probes)
 
 

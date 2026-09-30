@@ -443,15 +443,20 @@ def read_provenance(meta: dict | None) -> Provenance:
 
 TRAINING_FLAG_KEYS = ("zero_prev_action", "realizer_drop_qd", "realizer_anchor", "realizer_qd_dropout", "probe_lv_min",
                       "semantic_weight", "packet_semantic_weight", "qd_dropout", "cf_mix", "init")
-# NOTE (D-144 R2): `probe_lv_min` / `semantic_weight` / `packet_semantic_weight` are kept here, byte-identical to
-# pre-R2, although this unit's brief retires them as LatentConfig's own primary surface (see nets/semantic_latent.py
-# LatentConfig.factors). This function reads ANY config dict generically by key presence -- it is also how
-# `harness.train.legged_latent_train` / legged checkpoints get fingerprinted (`test_provenance.py::
-# test_legged_checkpoints_fingerprinted_and_legacy` asserts `flags["probe_lv_min"]` for a legged checkpoint), and
-# legged's own config files are not migrated by this unit (out of R2's owned files: legged is fanout unit R4).
-# Dropping these keys would silently stop recording them for every still-legacy-style (arm OR legged) config. Only
-# `binding_cf_weight` (renamed `cf_mix`) is retired outright: dead here otherwise (grep confirms no config ever set
-# it), so nothing depends on the old name.
+# NOTE (D-144 addendum, decision (b), unit R2c -- re-confirms R2's original finding): `probe_lv_min` / `semantic_weight`
+# / `packet_semantic_weight` are kept here, byte-identical to pre-R2, although unit R2 (docs/relations.md 10) retires
+# them as LatentConfig's own primary surface (see nets/semantic_latent.py `LatentConfig.factors` / the ONE legacy
+# mapping table `LATENT_LEGACY_KEYS`). This function reads ANY config dict generically by key presence -- it is the
+# provenance path every `save_checkpoint` call goes through (`nets/checkpoint.py`), arm and legged alike, and legged
+# checkpoints/configs are not migrated by any merged unit yet (fanout unit R4, not merged: `legged_latent_train.py`
+# still writes these flat keys). Dropping them would silently stop recording them for every still-legacy-style (arm
+# OR legged) config or checkpoint. R2c confirmed concretely (not just by inspection) that even the last arm-only
+# occurrences cannot be retired in isolation: `dags/arm_lineage.yaml` / `dags/templates/dual_lineage.yaml` still
+# render a flat `latent.semantic_weight` block coupled to the `Flags.probe_lv_min` mechanism (`core/runconfig.py`'s
+# `FLAG_NAMES` note), proven byte-identical to on-disk `configs/ladder/**` files by `test_dag.py::
+# test_arm_dag_reproduces_legacy_configs` (general infra, not owned by this row). Only `binding_cf_weight` (renamed
+# `cf_mix`) is retired outright: dead here otherwise (grep confirms no config ever set it), so nothing depends on
+# the old name.
 
 
 def training_flags(config: dict | None) -> dict:

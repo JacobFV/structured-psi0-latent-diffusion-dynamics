@@ -35,6 +35,14 @@ _ARM_PROBE_QUERIES = ("visible", "looking_at", "focused_on", "held_by", "acting_
                       "subtask")
 
 
+# D-144 addendum (2026-09-30, decision (b)): the ONE legacy-key mapping table for on-disk LatentConfig
+# configs/checkpoints written before unit R2 (docs/relations.md 10). Applies to LOADING an existing legacy dict
+# into `LatentConfig(**kw)` only -- it is not a construction surface for new configs (see `__init__` below), the
+# same status as `LEGACY_PICKLE_MODULES` in `harness.data.collect`. Extend it only if another flat key is found to
+# have fed `LatentConfig` historically.
+LATENT_LEGACY_KEYS = ("semantic_weight", "probe_lv_min", "binding_cf", "binding_contrast", "slot_handles")
+
+
 def _probe_factors(weight: float, lv_min: float, slot_handles: bool) -> tuple:
     """`factors:` entries equivalent to the pre-R2 (semantic_weight, probe_lv_min, slot_handles) triple: one
     per-query readout weight/lv_min override (docs/relations.md 4: "Weight, lv_min ... become spec weight/params")
@@ -82,8 +90,7 @@ class LatentConfig:
     cf_contrast: float = 0.0                        # optional weight: push E(cf) away from E(factual) (hinge)
 
     def __init__(self, **kw):
-        legacy_keys = ("semantic_weight", "probe_lv_min", "binding_cf", "binding_contrast", "slot_handles")
-        legacy = {k: kw.pop(k) for k in legacy_keys if k in kw}
+        legacy = {k: kw.pop(k) for k in LATENT_LEGACY_KEYS if k in kw}
         if legacy and kw.get("factors") is not None:
             raise ValueError("LatentConfig: mixes `factors` with the legacy semantic_weight/probe_lv_min/"
                              "binding_cf/binding_contrast/slot_handles keys")

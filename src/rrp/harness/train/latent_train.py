@@ -446,13 +446,13 @@ def evaluate_generated(model, E, R, P, data, lcfg, dev, n_batches=20, seed=7, nf
 
 
 def fit_probes_on_frozen(rep_path: Path, packed_dir: Path, out_path: Path, steps: int = 6000, seed: int = 5,
-                         metadata_only: bool = False, binding_cf: float = 0.0) -> dict:
+                         metadata_only: bool = False, cf_mix: float = 0.0) -> dict:
     """MEASUREMENT probe: a fresh ReadoutProbe (preset `probes:arm-packet-v1`) trained on DETACHED z from the frozen
     encoder (identical procedure for latent_sem and latent_nosem). metadata_only=True trains the no-latent control
-    probe. `binding_cf` keeps its pre-R2 name: it is a plain CLI/pipeline-option float (`cli/latent.py`,
-    `harness/pipelines/arm.py`, both owned by other fanout units), not `LatentConfig.cf_mix`; renaming this
-    parameter would break those out-of-scope call sites (docs/relations.md 10: "edit only the files your row
-    owns")."""
+    probe. `cf_mix` (ex `binding_cf`; D-144 addendum, decision (b): retired everywhere it is a live read, not just
+    LatentConfig's own field) is a plain CLI/pipeline-option float, unrelated to `LatentConfig.cf_mix` of the loaded
+    representation; both of its call sites (`cli/latent.py`, `harness/pipelines/arm.py`) are this unit's own files
+    and were renamed with it."""
     dev = _dev()
     lcfg, E, R, _, rep_res = load_representation(rep_path, dev)
     rep_cfg = load_checkpoint(rep_path, map_location="cpu")["config"]
@@ -468,8 +468,8 @@ def fit_probes_on_frozen(rep_path: Path, packed_dir: Path, out_path: Path, steps
     for step in range(steps):
         sel, tgt, j = data.sample(128, rng, 0)
         batch, a, v, lab, r = data.fetch(sel, tgt, dev)
-        if binding_cf > 0:        # probe also sees counterfactual-binding packets (labels follow the binding)
-            batch, a, v, lab, _, _ = augment(batch, a, v, lab, binding_cf, gcf)
+        if cf_mix > 0:        # probe also sees counterfactual-binding packets (labels follow the binding)
+            batch, a, v, lab, _, _ = augment(batch, a, v, lab, cf_mix, gcf)
         with torch.no_grad():
             af, am, ai = assembly_tokens(batch)
             mu, _ = E(batch, a, v, af, am, ai)
@@ -496,7 +496,7 @@ def fit_probes_on_frozen(rep_path: Path, packed_dir: Path, out_path: Path, steps
             for k, (x, n) in cf_swap_metrics(E, P, batch, a, v, lab, gcf2).items():
                 s_, n_ = cfm.get(k, (0, 0)); cfm[k] = (s_ + x, n_ + n)
     f = lambda d: {k: (x / n if n else None) for k, (x, n) in d.items()}
-    res = dict(steps=steps, wall_s=time.time() - t0, metadata_only=metadata_only, binding_cf=binding_cf,
+    res = dict(steps=steps, wall_s=time.time() - t0, metadata_only=metadata_only, cf_mix=cf_mix,
                encoded_target=f(agg), encoded_target_shuffled=f(sh), binding_counterfactual=f(cfm),
                latent_space_version=rep_res["latent_space_version"])
     torch.save(dict(state=P.state_dict(), cfg=dict(dz=lcfg.dz, knots=lcfg.knots, metadata_only=metadata_only,

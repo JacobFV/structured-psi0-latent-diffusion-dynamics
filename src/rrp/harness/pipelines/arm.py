@@ -102,9 +102,11 @@ def probes(ctx: StageContext) -> dict:
     from rrp.harness.train.latent_train import fit_probes_on_frozen
     o = ctx.opts
     out = ctx.out / o.get("out_name", "probes.json")
+    # D-144 addendum (decision (b)): `cf_mix` replaces `binding_cf` (fit_probes_on_frozen); `options.binding_cf` is
+    # read as a fallback for any not-yet-updated pipeline options dict (on-disk dag/options legacy remap).
     res = fit_probes_on_frozen(Path(ctx.inp("representation")), Path(ctx.inp("packed_dir")), out,
                                steps=int(o.get("steps", 6000)), metadata_only=bool(o.get("metadata_only", False)),
-                               binding_cf=float(o.get("binding_cf", 0.0)))
+                               cf_mix=float(o.get("cf_mix", o.get("binding_cf", 0.0))))
     return dict(outputs={}, metrics=_json_safe(res), source_detail=ctx.inp("representation"))
 
 

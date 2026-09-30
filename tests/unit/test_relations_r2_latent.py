@@ -7,9 +7,11 @@ Acceptance (the table row):
   2. `_check_variant` equivalent (old-style AND new `factors:`-style configs validate the same recipes).
   3. `cf_swap("binding")` batches equal `binding_aug` batches on a fixture.
   4. no `semantic_weight` / `probe_lv_min` / `binding_cf` as LatentConfig's primary (dataclass-field / RunConfig-flag)
-     surface -- see the documented exceptions in nets/semantic_latent.py (version() hash back-compat) and
-     harness/train/latent_train.py (fit_probes_on_frozen's `binding_cf` kwarg, an out-of-scope external call site)
-     and research/tracks/rel-r2.md.
+     surface -- see the documented exception in nets/semantic_latent.py (`LatentConfig.version()`'s hash back-compat,
+     the one on-disk legacy-key mapping table, `LATENT_LEGACY_KEYS`) and research/tracks/rel-r2.md /
+     research/tracks/rel-r2c.md. `fit_probes_on_frozen`'s parameter was `binding_cf` in R2 (out-of-scope call sites
+     at the time); the R2c addendum (D-144, decision (b)) renamed it and both call sites to `cf_mix` (R2c owns
+     cli/latent.py and harness/pipelines/arm.py too) -- see test_no_binding_cf_as_live_parameter_name below.
 """
 from __future__ import annotations
 
@@ -217,3 +219,14 @@ def test_no_legacy_flat_keys_as_new_primary_surface():
     assert names == {"width", "heads", "ctx_layers", "enc_layers", "knots", "knot_times", "dz", "horizon",
                      "control_dt", "beta_kl", "realizer_layers", "max_phase_ticks", "name", "factors", "cf_mix",
                      "cf_contrast"}
+
+
+def test_no_binding_cf_as_live_parameter_name():
+    """D-144 addendum (decision (b)): `fit_probes_on_frozen`'s own parameter is `cf_mix`, not `binding_cf` -- R2c
+    owns both external call sites (cli/latent.py, harness/pipelines/arm.py) that R2 could not rename. `binding_cf`
+    remains ONLY as a deprecated CLI alias (`--binding-cf`, same `dest="cf_mix"`) and an `options` fallback read in
+    harness/pipelines/arm.py, both on-disk/invocation legacy surfaces, not a live parameter name."""
+    import inspect
+    from rrp.harness.train.latent_train import fit_probes_on_frozen
+    params = inspect.signature(fit_probes_on_frozen).parameters
+    assert "cf_mix" in params and "binding_cf" not in params
