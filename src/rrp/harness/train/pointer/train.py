@@ -13,6 +13,7 @@ import torch
 
 from rrp.harness.train.pointer.data import Demos, pointer_geometry
 from rrp.harness.train.pointer.losses import _agg, _fin, action_loss, action_metrics, probe_loss, probe_metrics
+from rrp.harness.train.pointer.relmix import drag_label_dict, needs_drag
 from rrp.harness.train.pointer.split import TASKS, check_no_leak, load_split
 from rrp.policies.relations.base import provenance
 
@@ -50,13 +51,22 @@ def factor_specs(a, data):
     from rrp.policies.relations.base import FactorError, resolve
     items = [json.loads(x) if x.lstrip().startswith("{") else x for x in (getattr(a, "factors", None) or [])]
     specs = resolve(items or None, default=POINTER_FACTORS_PRESET, family="pointer", training=True)
-    bad = [s.name for s in specs if s.control != "off" and s.mix is not None and s.mix > 0]
-    if bad:
-        raise FactorError(f"{bad}: mix > 0 needs relgen scene mixing, which the pointer trainers do not do")
     if ui_fields_needed(specs) and not data.has_ui:
         raise FactorError("UI factors need packs collected with the public UI fields (wzlayer / wparent / wfocusrank / "
                           "wuiedges); recollect (`rrp train pointer collect`)")
+    if needs_drag(specs) and not data.has_drag:
+        raise FactorError("ui.drag_to is supervised by the teacher's drag target, which these packs lack (`ep_drag`); "
+                          "recollect (`rrp train pointer collect`)")
     return specs
+
+
+def make_stream(a, data, specs, dev):
+    """None (plain `data.sample` batches) unless a factor has `mix > 0`: then the `relation_batches` stream
+    (`relmix.RelStream`, needs `--curriculum`)."""
+    if any(s.control != "off" and s.mix is not None and s.mix > 0 for s in specs):
+        from rrp.harness.train.pointer.relmix import RelStream
+        return RelStream(a, data, specs, dev)
+    return None
 
 
 def factor_arch(specs) -> dict:
@@ -65,18 +75,49 @@ def factor_arch(specs) -> dict:
     return dict(factors=[s.to_dict() for s in specs])
 
 
-def factor_loss(ctx, specs):
+def inject_labels(rc, labels: dict) -> None:
+    """Replace the `ctx` token set's pair labels by `labels` (`{name: [B, NW, NW, 1], name + ".valid": [B, NW, NW]}`,
+    the teacher's / a relgen row's gt labels), zero-padded past the NW widget tokens to the set's T like the net's own."""
+    ts = rc.sets["ctx"]
+    pad = ts.mask.shape[1] - next(iter(labels.values())).shape[1]
+    for k, v in labels.items():
+        v = v[..., 0] if k[-6:] != ".valid" and v.dim() == 4 else v
+        ts.labels[k] = torch.nn.functional.pad(v.to(ts.mask.device), (0, pad, 0, pad))
+
+
+def factor_loss(ctx, specs, labels=None, observe=None):
     """Supervision of the estimates the last training forward of `ctx` (a `UICtx`) wrote (`relations.estimates_loss`:
     probe-source factors such as `ui.drag_to`) -> (loss, logs); (0, {}) when no spec has a readout. Run in fp32 outside
-    autocast. Never leaves a probe-source head unsupervised (D-146: no silent skips)."""
-    from rrp.policies.relations.base import estimates_loss, get_factor
+    autocast. Never leaves a probe-source head unsupervised (D-146: no silent skips). `labels` (`drag_label_dict`) are
+    the batch's gt labels: they REPLACE what the net derived from its own inputs, and a `drag_to` head without them is an
+    error (the net's focused-widget proxy is not a label of a drag). `observe(metrics)` gets `estimates_loss`' metrics."""
+    from rrp.policies.relations.base import FactorError, estimates_loss, get_factor
     rc, ctx.last_rc = ctx.last_rc, None
     if rc is None or not any(s.control != "off" and get_factor(s.name).readout is not None for s in specs):
         return 0.0, {}
+    if needs_drag(specs) and (labels is None or "drag_to" not in labels):
+        raise FactorError("ui.drag_to needs the teacher's drag label (`drag_label_dict`); none was given for this batch")
+    if labels:
+        inject_labels(rc, labels)
     cast = lambda v: tuple(x.float() for x in v) if isinstance(v, tuple) else v.float()
     rc.estimates = {k: cast(v) for k, v in rc.estimates.items()}
-    loss, logs, _ = estimates_loss(rc, specs)
+    loss, logs, metrics = estimates_loss(rc, specs)
+    if observe is not None:
+        observe(metrics)
     return loss, {f"fx_{k}": v for k, v in logs.items()}
+
+
+def supervise(ctx, specs, data, ix, stream=None):
+    """The factor loss of one training step: the main rows `ix` (teacher labels from `data`) plus, with a `relation_batches`
+    `stream`, the relgen rows of the step (a forward of `ctx` alone; they have no demo chunk) and the scheduler's
+    competence observation (the estimates' accuracy on the main rows)."""
+    loss, logs = factor_loss(ctx, specs, drag_label_dict(data, specs, ix), None if stream is None else stream.observe)
+    if stream is not None and (rel := stream.relgen_batch()) is not None and ctx.record_rc:
+        b, lab = rel
+        ctx(b)
+        Lr, rlogs = factor_loss(ctx, specs, lab or None)
+        loss, logs = loss + Lr, dict(logs, **{f"rel_{k}": v for k, v in rlogs.items()})
+    return loss, logs
 
 
 def record_estimates(ctx, specs) -> None:
@@ -112,16 +153,16 @@ def save_checkpoint(path, *, kind, state: dict, config: dict, versions: dict, me
 
 
 def fit(params, step_fn, data, *, steps: int, batch: int, lr: float, clip: float | None = 1.0, eval_fn=None,
-        log_every: int = 1000) -> list[dict]:
-    """The one training loop. Per step: cosine-warmup lr, a task-balanced sample `ix`, `step_fn(ix) -> (loss, logs)`
-    (which owns its forward pass, autocast and any RNG draws), backward, optional grad-norm clip, AdamW step. With
-    `eval_fn() -> dict` a validation row is logged every `log_every` steps and at the last; returns the log rows."""
+        log_every: int = 1000, stream=None) -> list[dict]:
+    """The one training loop. Per step: cosine-warmup lr, a task-balanced sample `ix` (or the next `relation_batches`
+    step of `stream`), `step_fn(ix) -> (loss, logs)` (which owns its forward pass, autocast and any RNG draws), backward, optional grad-norm clip,
+    AdamW step. With `eval_fn() -> dict` a validation row is logged every `log_every` steps and at the last; returns the log rows."""
     params = list(params)
     opt = torch.optim.AdamW(params, lr=lr, weight_decay=1e-4)
     log, t0 = [], time.time()
     for step in range(steps):
         set_lr(opt, step, steps, lr)
-        ix = data.sample(batch)
+        ix = data.sample(batch) if stream is None else stream.next()
         loss, logs = step_fn(ix)
         opt.zero_grad(set_to_none=True)
         loss.backward()
@@ -168,6 +209,7 @@ def cmd_rep(a):
     E, R, P = N["PointerEncoder"](**arch["E"]).to(dev), N["PointerRealizer"](**arch["R"]).to(dev), \
         new_pointer_probe(**arch["P"]).to(dev)
     record_estimates(E.ctx, specs)
+    stream = make_stream(a, data, specs, dev)
     w_sem = a.w_sem if a.variant == "semfix" else 0.0
 
     def step_fn(ix):
@@ -179,7 +221,7 @@ def cmd_rep(a):
         mu, lv = mu.float(), lv.float()
         Lxy, Lb, Lk = action_loss(dxy, bl, kl, ch)
         kl_div = 0.5 * (mu ** 2 + lv.exp() - 1 - lv).mean()
-        Lfx, fx_logs = factor_loss(E.ctx, specs)
+        Lfx, fx_logs = supervise(E.ctx, specs, data, ix, stream)
         loss = a.w_xy * Lxy + Lb + Lk + a.beta * kl_div + Lfx
         logs = dict(xy=float(Lxy.detach()), btn=float(Lb.detach()), key=float(Lk.detach()), kl=float(kl_div.detach()),
                     **fx_logs)
@@ -191,7 +233,7 @@ def cmd_rep(a):
 
     log = fit(list(E.parameters()) + list(R.parameters()) + list(P.parameters()), step_fn, data, steps=a.steps,
               batch=a.batch, lr=a.lr, eval_fn=lambda: _eval_rep(E, R, P if w_sem > 0 else None, data, dev),
-              log_every=a.log_every)
+              log_every=a.log_every, stream=stream)
     lsv, rcv = bundle_versions(f"cw_pointer_latent.v1-{a.variant}-dz{a.dz}", E.state_dict(), R.state_dict())
     cfg = dict(variant=a.variant, arch=arch, w_sem=w_sem, lv_min=a.lv_min, beta=a.beta, w_xy=a.w_xy, steps=a.steps,
                batch=a.batch, lr=a.lr, seed=a.seed, split_seed=a.split_seed, data=sorted(a.data), tasks=list(TASKS),
@@ -286,6 +328,7 @@ def cmd_flow(a):
     arch = dict(S=dict(dz=dz, **factor_arch(specs), **(dict(copy_key=True) if copy_key else {})))
     S = N["PointerFlow"](**arch["S"]).to(dev)
     record_estimates(S.ctx, specs)
+    stream = make_stream(a, data, specs, dev)
     tr = Z[data.train_idx]
     S.z_mean.copy_(tr.reshape(-1, dz).mean(0))
     S.z_std.copy_(tr.reshape(-1, dz).std(0).clamp(min=1e-3))
@@ -296,11 +339,11 @@ def cmd_flow(a):
         with amp(dev):
             loss, logs = S.loss(b, Z[ix], probe_fn=(lambda zc: probe_loss(run_pointer_probe(P, zc), lab, P.specs))
                                 if P is not None else None, w_sem=w_sem)
-        Lfx, fx_logs = factor_loss(S.ctx, specs)
+        Lfx, fx_logs = supervise(S.ctx, specs, data, ix, stream)
         return loss + Lfx, dict(logs, **fx_logs)
 
     log = fit(S.parameters(), step_fn, data, steps=a.steps, batch=a.batch, lr=a.lr,
-              eval_fn=lambda: _eval_flow(S, Z, data, dev, R), log_every=a.log_every)
+              eval_fn=lambda: _eval_flow(S, Z, data, dev, R), log_every=a.log_every, stream=stream)
     cfg = dict(variant=variant, target=a.target, representation=a.representation, arch=arch, w_sem=w_sem,
                steps=a.steps, batch=a.batch, lr=a.lr, seed=a.seed, split_seed=a.split_seed, data=sorted(a.data),
                tasks=list(TASKS), factors=provenance(specs))
@@ -339,6 +382,7 @@ def cmd_bc(a):
                                                  else {})))
     BC = N["PointerBC"](**arch["BC"]).to(dev)
     record_estimates(BC.ctx, specs)
+    stream = make_stream(a, data, specs, dev)
 
     def to_steps(x):                                      # absolute position (normalized) -> pointer-step units
         return x * data.half / data.geom.step_m
@@ -349,7 +393,7 @@ def cmd_bc(a):
             xy, bl, kl = BC(b)
         ch["dxy_target"] = to_steps(ch["xy"])
         Lxy, Lb, Lk = action_loss(to_steps(xy.float()), bl, kl, ch)
-        Lfx, fx_logs = factor_loss(BC.ctx, specs)
+        Lfx, fx_logs = supervise(BC.ctx, specs, data, ix, stream)
         return a.w_xy * Lxy + Lb + Lk + Lfx, dict(xy=float(Lxy.detach()), btn=float(Lb.detach()), key=float(Lk.detach()),
                                                   **fx_logs)
 
@@ -367,7 +411,7 @@ def cmd_bc(a):
         return _fin(acc)
 
     log = fit(BC.parameters(), step_fn, data, steps=a.steps, batch=a.batch, lr=a.lr, eval_fn=eval_fn,
-              log_every=a.log_every)
+              log_every=a.log_every, stream=stream)
     cfg = dict(variant="bc", arch=arch, steps=a.steps, batch=a.batch, lr=a.lr, seed=a.seed, split_seed=a.split_seed,
                data=sorted(a.data), tasks=list(TASKS), w_xy=a.w_xy, factors=provenance(specs))
     save_checkpoint(a.out, kind="pointer_bc", state=dict(BC=BC), config=cfg, versions=dict(bc="cw_pointer_bc.v1"),

@@ -1,5 +1,8 @@
-# Gate before pointer_v1: one task (cw/calc_sum), 100 episodes, 300 steps per model. Peer; minutes. Not a result.
-extends: pointer_v1.yaml
+# PC smoke (readiness round 2, unit PC): the whole v2 pointer pipeline once, tiny. 4 teacher episodes of cw/calc_sum collected on
+# the v2 split (env kwargs strings=procedural, through harness.rollout, with the teacher's drag target in the pack), then 20 steps
+# of rep -> flow -> bc -> eval on the dev seeds. Peer; minutes. A wiring check: no number from it is a result. The real runs are
+# pointer_seeds / pointer_ui / pointer_copy (3 seeds), the sealed evaluation pointer_sealed (gated on a written decision).
+extends: ../templates/pointer_lineage.yaml
 name: pointer_smoke
 schema: dag-1
 track: pointer
@@ -10,10 +13,27 @@ bodies: cw_pointer
 factors: [semfix, nosem]
 lineage: 'pointer-smoke-{variant}'
 global_lineage: 'pointer-smoke-data'
+label_prefix: 'ptrsm_{variant}{seed}'
+global_label_prefix: 'ptrsm'
+base:
+  options: {split: research/splits/cworld_pointer_v2.json}
 vars:
-  episodes: 100
-  rep_steps: 300
-  flow_steps: 300
-  bc_steps: 300
+  episodes: 4
+  rep_steps: 20
+  flow_steps: 20
+  bc_steps: 20
 lists:
   tasks: [cw/calc_sum]
+nodes:
+  collect: {resources: {cpu: 2, mem: 4G, max_seconds: 600}}
+  bc: {resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 4G, max_seconds: 600}, config: {params: {batch: 4, key_head: copy}}}
+  flow_eng: {resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 4G, max_seconds: 600}, config: {params: {batch: 4, w_sem: 0, eng_version: cw_pointer_eng.v2, key_head: copy}}}
+  rep: {resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 4G, max_seconds: 600}, config: {params: {batch: 4, factors: ['preset:ui']}}}
+  flow: {resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 4G, max_seconds: 600}, config: {params: {batch: 4, factors: ['preset:ui']}}}
+  eval_bc: {config: {options: {batch: 2, max_seeds: 2}}}          # the first 2 dev seeds (options.max_seeds: dev only)
+  eval_eng: {config: {options: {batch: 2, max_seeds: 2}}}
+  eval_dev: {config: {options: {batch: 2, max_seeds: 2}}}
+  eval_oracle: null
+  eval_r1: null
+  probes: null
+  edits: null

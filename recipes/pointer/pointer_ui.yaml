@@ -2,7 +2,8 @@
 # (empty factor list); this instance trains the same graph with `preset:ui` (ui.label_for, same_window, focus_next, above,
 # drag_to) on the rep and flow nets and nothing else changed: same collect run (shared global lineage `pointer-v2-data`, so
 # the demos are the very same run), same split, seeds, steps and evaluation. The eval stages read the factors stamped in the
-# checkpoints. mix stays 0 (the trainers refuse scene mix: the relgen curriculum row is separate).
+# checkpoints. mix stays 0: the relgen scene mix (`--curriculum`, relation_batches) is P-CURR and waits for RG's PolicyInput shards
+# (research/tracks/pointer.md). `ui.drag_to` is supervised by the teacher's drag target stored in the packs (`ep_drag`), not a proxy.
 extends: pointer_seeds.yaml
 name: pointer_ui
 schema: dag-1

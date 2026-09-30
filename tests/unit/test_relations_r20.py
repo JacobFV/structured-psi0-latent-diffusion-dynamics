@@ -16,8 +16,10 @@ from rrp.envs.computerworld import (ScreenFrame, SlotRegistry, UI_REL_VOCAB, cw_
                                     ui_public_fields)
 from rrp.harness.data.relgen import TokenIndex
 from rrp.harness.data.relgen.transforms import cf_swap, reveal, surprise
-from rrp.harness.data.relgen.ui import (above_fn, dragged_widget_id, drag_to_fn, focus_next_fn, label_for_fn,
-                                        label_for_sample, same_window_fn)
+from rrp.envs.base import CapabilityError
+from rrp.harness.data.relgen.ui import (DRAG_TO_VERSION, TEACHER_DRAG_CAP, TeacherDragView, above_fn, drag_to_fn,
+                                        focus_next_fn, label_for_fn, label_for_sample, nearest_outside_window,
+                                        same_window_fn)
 import rrp.policies.relations.catalog  # noqa: F401  (registers FACTORS / FIELDS / PRESETS on import)
 from rrp.policies.relations.base import FACTORS, FIELDS, PRESETS, FactorSpec, PrivilegedInput, RelCtx, TokenSet, \
     EdgeSet, assert_deployable, get_factor, resolve
@@ -161,37 +163,83 @@ def test_ui_relgen_same_window_and_above_labels_match_ui_public_fields_on_the_fi
         assert lab.valid.all()                                           # every slot here is a real widget
 
 
-def test_dragged_widget_id_is_the_currently_focused_widget():
-    sv, _ = _state_view()
-    ids = [n["id"] for n in sv.ui_tree() if n["role"] == "textbox" and n["label"] == "Name"]
-    assert dragged_widget_id(sv) == ids[0]
-
-
-def test_drag_to_fn_targets_the_nearest_other_widget_to_the_dragged_one():
+def _drag_view(drag):
     sv, reg = _state_view()
     table = reg.assign(scene_widgets(SCENE))
     ids = [sv.token_entity("widgets", i) for i in range(len(table))]
-    idx = TokenIndex(sets={"ctx": ids})
-    lab = drag_to_fn(sv, idx)
-    assert lab.value[NAME_BOX, NAME_LABEL, 0] == 1.0                     # the Name label sits right above its box
-    assert lab.value[NAME_BOX].sum() == 1.0                              # exactly one drop-target candidate wins
-    assert lab.value[NAME_LABEL].sum() == 0.0                            # only the dragged (focused) row is ever true
+    return TeacherDragView(sv, drag), TokenIndex(sets={"ctx": ids}), ids
 
 
-def test_drag_to_fn_no_focused_widget_is_all_zero():
-    scene = dict(SCENE, focus={})
-    reg = SlotRegistry()
-    sv = cw_state_view(scene, ScreenFrame(640, 480), reg, t=0.0)
-    table = reg.assign(scene_widgets(scene))
-    ids = [sv.token_entity("widgets", i) for i in range(len(table))]
-    lab = drag_to_fn(sv, TokenIndex(sets={"ctx": ids}))
-    assert lab.value.sum() == 0.0
+def test_nearest_outside_window_skips_the_dragged_window():
+    sv, _ = _state_view()
+    nodes = sv.ui_tree()
+    email = next(n for n in nodes if n["label"] == "Email")
+    x0, y0, x1, y1 = email["bounds"]
+    assert nearest_outside_window(((x0 + x1) / 2, (y0 + y1) / 2), nodes, "window:0") == email["id"]
+    # a destination sitting on window 0's own widgets still never picks window 0
+    name = next(n for n in nodes if n["label"] == "Name" and n["role"] == "textbox")
+    got = nearest_outside_window(((name["bounds"][0] + name["bounds"][2]) / 2, name["bounds"][1]), nodes, "window:0")
+    assert got is not None and next(n for n in nodes if n["id"] == got)["parent"] == "window:1"
+    assert nearest_outside_window((0, 0), [n for n in nodes if n["parent"] == "window:0"], "window:0") is None
+
+
+def test_drag_to_fn_needs_the_teacher_drag_capability():
+    sv = _state_view()[0]
+    idx = TokenIndex(sets={"ctx": [sv.token_entity("widgets", i) for i in range(4)]})
+    with pytest.raises(CapabilityError, match="teacher_drag"):
+        drag_to_fn(sv, idx)                                               # the plain StateView carries no drag goal
+
+
+def test_drag_to_fn_marks_exactly_the_teachers_handle_to_target_pair():
+    _, _, ids = _drag_view(None)
+    drag = dict(src=ids[NAME_BOX], dst=ids[EMAIL_LABEL], dest_px=[0, 0], src_slot=NAME_BOX, dst_slot=EMAIL_LABEL)
+    view, idx, ids = _drag_view(drag)
+    lab = drag_to_fn(view, idx)
+    assert lab.version == DRAG_TO_VERSION and lab.prov == "gt"
+    assert lab.value[NAME_BOX, EMAIL_LABEL, 0] == 1.0 and lab.value.sum() == 1.0   # one true pair, nothing else
+    assert lab.valid.all()
+
+
+def test_drag_to_fn_no_teacher_drag_is_a_real_negative():
+    view, idx, _ = _drag_view(None)
+    lab = drag_to_fn(view, idx)
+    assert lab.value.sum() == 0.0 and lab.valid.all()                     # valid: the teacher never drags
+
+
+def test_drag_to_fn_absent_target_carries_no_label():
+    view, idx, ids = _drag_view(dict(src="slot99:gone", dst=None, dest_px=[0, 0], src_slot=99, dst_slot=None))
+    lab = drag_to_fn(view, idx)
+    assert not lab.valid.any() and lab.value.sum() == 0.0                 # a missing target is never a negative
+
+
+def test_teacher_drag_view_caps_and_delegation():
+    view, _, _ = _drag_view(None)
+    assert TEACHER_DRAG_CAP in view.caps and {"ui_tree"} <= set(view.caps)
+    assert view.teacher_drag() is None and len(view.ui_tree()) == 4
+
+
+@pytest.mark.computerworld
+def test_teacher_drag_target_on_a_real_drag_window_episode():
+    """The handle is the dragged window's title bar, the target is a widget outside that window, and the teacher of
+    every other task never drags (-> None)."""
+    import random
+    from rrp.harness.train.pointer.collect import collect_episode
+    kw = dict(dart_px=0.0, rng=random.Random(0), env_kw={"strings": "procedural"})
+    ep = collect_episode("cw/drag_window", 1, **kw)
+    assert ep is not None and ep["drag"] is not None
+    src, dst = ep["drag"]["src"], ep["drag"]["dst"]
+    assert ":drag|" in src and dst is not None and dst != src
+    assert ep["drag"]["src_slot"] != ep["drag"]["dst_slot"]
+    assert not dst.split("|")[0].startswith(src.split("|")[0].split(":", 1)[1].rsplit(":", 1)[0])
+    other = collect_episode("cw/calc_sum", 3, **kw)
+    assert other is not None and other["drag"] is None
 
 
 def test_labels_registered():
     from rrp.harness.data.relgen import LABELS
     assert {"label_for", "same_window", "focus_next", "above", "drag_to"} <= set(LABELS)
-    assert LABELS["drag_to"].needs == frozenset({"ui_tree", "poses"})
+    assert LABELS["drag_to"].needs == frozenset({"ui_tree", TEACHER_DRAG_CAP})
+    assert LABELS["drag_to"].version == DRAG_TO_VERSION
     assert LABELS["same_window"].needs == frozenset({"ui_tree"})
 
 

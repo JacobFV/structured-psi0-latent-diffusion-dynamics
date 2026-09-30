@@ -224,8 +224,7 @@ ops/bin/peer_run.sh ...` appends it to the job's PYTHONPATH.
     split first); list params are repeated values (`params.factors: [preset:ui]` -> `--factors preset:ui`; empty = absent);
     `options.seed_sets` evaluates several sets in one node. Sealed guard: `sealed_id` / `sealed_heldout` run at most once per
     (split, seed set, task, method = policy kind + digest of the frozen checkpoint paths), logged as start / done in
-    `artifacts/runs/pointer/sealed_log.jsonl` (the `core.sealed` event format, flocked). A crash leaves the attempt open;
-    `release_sealed_cell(root, cell, reason)` records an infrastructure failure and re-opens it; a bad result never does. The
+    `artifacts/runs/pointer/sealed_log.jsonl` (superseded by PC below: now `core.sealed.SealedSplit`). A crash leaves the attempt open; a bad result never re-opens it. The
     consumed `cworld_pointer_v1` (D-142) refuses its sealed sets outright. Dev is unguarded. `PIPELINE_VERSION` is unchanged
     (F3 owns `base.py`); `pointer_v1` / `pointer_smoke` keep their config hashes (the template did not change).
   - Recipes (all on `research/splits/cworld_pointer_v2.json` (C2: procedural strings; the eval stages pass the split's `env_kw` as `--env-kw`)):
@@ -233,7 +232,7 @@ ops/bin/peer_run.sh ...` appends it to the job's PYTHONPATH.
     lineage `pointer-v2-data`; `eval_oracle` global), `pointer_ui` (same graph, rep and flow with `preset:ui`, no baselines; same
     collect run), `pointer_copy` (variant nosem x seeds 1,2,3: eng.v2 discrete key with the free head, eng.v2 with the copy head, BC with the copy head; same collect run), `pointer_sealed` / `pointer_ui_sealed` (frozen checkpoints of those lineages on both sealed sets, nothing
     trained). Dry-run node counts: pointer_seeds 50, pointer_ui 37, pointer_copy 19, pointer_sealed 19, pointer_ui_sealed 12. `rrp run-dag recipes/pointer/<name>.yaml --dry-run`; peer
-    only, as pointer_v1. Resume: nodes are adopted by config hash; a sealed node that crashed needs `release_sealed_cell` first.
+    only, as pointer_v1. Resume: nodes are adopted by config hash; a sealed node that crashed needs `SealedSplit.record_infrastructure_failure` first (PC).
   - Scene parts (`relgen/ui.py`): `cw_viewport` (activates `viewport`; width, height, m_per_px of `make_env(scene=...)`) and
     `cw_depth` (activates `zstack`; `depth` stack|constant, `dz`), env `computerworld`, no entities; each has a `vary` that
     changes only its own scene keys (decoupling pairs). `compose({"viewport","zstack"}, "computerworld", rng)` returns the kwargs.
@@ -247,5 +246,28 @@ ops/bin/peer_run.sh ...` appends it to the job's PYTHONPATH.
     | P-SEEDS | Is D-142's semfix vs nosem vs eng ordering stable over training seeds? | pointer_seeds: semfix, nosem, eng, BC | dev and sealed_id success per task; rule above; no claim about semfix on a single seed | planned |
     | P-UI | Do the ui.* relation factors help vs none? | pointer_ui vs pointer_seeds (same variant, same demos) | dev per-task success (expected: drag_window, fill_form, open_type); UI wins if mean gain >= 4 points on >= 2 tasks and no task loses more than the seed range | planned |
     | P-COPY | Does a copy mechanism fix unseen-word typing (0/50 heldout words and names, D-142)? | pointer_copy: eng.v2 flow with the copy key head vs the free head, and BC with the copy head vs pointer_seeds' BC (the latent-route realizer cannot copy, so learned-realizer arms are not in this row) | sealed_heldout open_type and fill_form success (procedural strings); copy wins if >= 10/50 on both with the same dev success elsewhere | planned (dev first; sealed once per arm and seed) |
-    | P-KEY | Does a discrete key code let a learned system i type? | pointer_copy flow_eng (cw_pointer_eng.v2, free head) vs pointer_seeds eng (cw_pointer_eng.v1, continuous key), same demos and seeds | dev open_type / fill_form success; wins if the dev gain exceeds the seed range | planned |
+    | P-KEY | Does a discrete key code let a learned system i type? | pointer_copy flow_eng (cw_pointer_eng.v2, free head) vs pointer_seeds eng (PC: stated explicitly as cw_pointer_eng.v1, free head; the pipeline default is now v2 + copy), same demos and seeds | dev open_type / fill_form success; wins if the dev gain exceeds the seed range | planned |
     | P-CURR | Does relgen scene variation (viewport, z-stack) make the pointer robust to frame changes? | mix of `cw_viewport` / `cw_depth` scenes at 0, 0.25 vs none | success on a viewport not seen in training and on constant-depth scenes; wins if the shifted-frame success gap to in-frame closes by half | blocked: the trainers do not call `relation_batches`, the `ui.*` catalog entries name no scene part in `gen` (so `mix > 0` is refused), and the data path has to render scenes with the composed kwargs |
+- Readiness round 2, unit PC (pointer closure). Re-checked on origin/main 6d5ed2ab first: the gap held except checkpoint
+  stamping (`stamp_versions` / `require_factors` were already wired; `test_factors_are_threaded_stamped_and_hash_checked_on_load`
+  covers it). Changes:
+  - Pipeline (`pipelines/pointer.py`): `SPLIT_PATH_V2` imported from the split module (one definition); `env_kw`
+    (`strings=procedural`) reaches every job as `--env-kw k=v`; eval and train defaults are `cw_pointer_eng.v2` + key head `copy`
+    (`V2_EVAL_DEFAULTS`; pointer_v1 / P-SEEDS state v1 / free explicitly); sealed guard is `SealedSplit("cworld_pointer_v2")`
+    (cell = body, method, train_seed, scenes, task, seed_set; 7 cells per method), the local run-once log is gone; `options.max_seeds`
+    (dev only) bounds the smoke; local `_env` keeps the inherited PYTHONPATH (see lead_questions: `StageContext.env()` drops it).
+  - Collect (`train/pointer/collect.py`) runs on `harness.rollout` (`DemoTeacher`, source scripted_teacher, privileged, + `DemoRecorder`);
+    digests identical to the old collector (c2c83c9c713bc7ce, 30 rows; 81dfc0a7eb242537, 19 rows). The pack stores the teacher drag
+    target (`ep_drag`, `ep_drags`).
+  - Trainers call `relation_batches` (`train/pointer/relmix.py`, `RelStream`); `ui.drag_to` label v2 (`relgen/ui.py`,
+    `DRAG_TO_VERSION = "2"`) is the TEACHER's drag target, needs cap `teacher_drag`, and `factor_loss` refuses a drag_to head without
+    labels (the old net-proxy label is removed). Mixed relgen shards are refused by name while `load_shard_rows` returns `inputs == {}`.
+  - Recipes: `--curriculum` flag on rep / flow / bc; `pointer_smoke` = 4 episodes, 20 steps, v2 split, `max_seeds: 2`, `preset:ui`.
+  - Tests (red then green): `test_pointer_pc.py` (9), `test_pointer_c3.py` (sealed rewritten), `test_relations_r20.py` (drag),
+    `test_pointer_train_smoke.py`. Unit suite: 1418 passed, 100 skipped, 2 deselected.
+  - Peer smoke 2026-09-30 (`pointer_smoke`, own RRP_PEER_REPO, one lease at a time, stopped): 11/11 nodes completed after one
+    `--retry-failed` (first attempt: ModuleNotFoundError computerworld, from the PYTHONPATH bug above). Collect: 4 episodes, 128 ticks,
+    teacher_failures 0, `ep_drag` (4, 2) and `ep_drags` (4,) in the pack. Eval (dev, 2 seeds, 20-step models): bc 0/2, eng 0/2
+    (timeout), i.e. a wiring check, not a result. Raw: peer `artifacts/runs/pointer/pointer-smoke-*`.
+  - P-CURR stays blocked on the RG redesign (`track/r2-rg`, unmerged): shards carry no `inputs`. No real training run was started;
+    sealed v2 evaluation needs a written decision first (T8: dev tables only).

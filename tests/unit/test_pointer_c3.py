@@ -1,5 +1,7 @@
-"""D-146 C3 (audit D7 / D1): pointer recipes (multi-seed lineage, UI factors vs none, run-once sealed evaluation on a declared
-split) and the ComputerWorld scene parts of relgen. No torch, no simulator: stage argv are recorded from a stubbed runner."""
+"""D-146 C3 + readiness R2 unit PC (audit D7 / D1): pointer recipes (multi-seed lineage, UI factors vs none, run-once sealed
+evaluation on the pinned split) and the ComputerWorld scene parts of relgen. The sealed guard is `core.sealed.SealedSplit`
+(pinned `cworld_pointer_v2`, run-once log `artifacts/runs/pointer/sealed_log.jsonl`). No torch, no simulator: stage argv are
+recorded from a stubbed runner."""
 from __future__ import annotations
 
 import json
@@ -10,7 +12,7 @@ import numpy as np
 import pytest
 
 from rrp.core.runconfig import RunIndex
-from rrp.core.sealed import SealedSplitError
+from rrp.core.sealed import SPLITS, SealedSplit, SealedSplitError
 from rrp.harness import dag
 from rrp.harness.data import relgen
 from rrp.harness.pipelines import base as B
@@ -18,8 +20,10 @@ from rrp.harness.pipelines import pointer as P
 
 ROOT = Path(__file__).resolve().parents[2]
 V1 = "research/splits/cworld_pointer_v1.json"
-SYN = "research/splits/synthetic_v9.json"
-TASKS = ["cw/calc_sum", "cw/drag_window"]
+V2 = "research/splits/cworld_pointer_v2.json"
+LOG = SPLITS["cworld_pointer_v2"]["log"]
+TASKS = ["cw/calc_sum", "cw/open_type", "cw/drag_window", "cw/fill_form"]
+N_CELLS = 7                                                             # 4 tasks on sealed_id + 3 with held-out variants
 
 
 def _plan(name):
@@ -33,12 +37,11 @@ def _ctx(node, root, **opts):
 
 @pytest.fixture
 def root(tmp_path):
+    if not (ROOT / V2).exists() or not (ROOT / V1).exists():
+        pytest.skip(f"{V1} / {V2} missing in this checkout")
     (tmp_path / "research/splits").mkdir(parents=True)
-    shutil.copy(ROOT / V1, tmp_path / V1)
-    v1 = json.loads((ROOT / V1).read_text())
-    seeds = {t: {"dev": [0, 1], "sealed_id": [10, 11]} for t in TASKS}
-    seeds["cw/calc_sum"]["sealed_heldout"] = [20]                   # drag_window has no held-out variants
-    (tmp_path / SYN).write_text(json.dumps(dict(v1, split_id="synthetic_v9", seeds=seeds)))
+    for f in (V1, V2):
+        shutil.copy(ROOT / f, tmp_path / f)
     return tmp_path
 
 
@@ -61,7 +64,7 @@ def test_list_params_become_repeated_values_and_empty_lists_are_absent():
 def test_every_training_stage_passes_the_split_and_the_factors(root, calls):
     plan = _plan("pointer_ui")
     for nid in ("rep@semfix.s1", "flow@semfix.s1"):
-        ctx = _ctx(plan.nodes[nid], root, split=SYN)
+        ctx = _ctx(plan.nodes[nid], root, split=V2)
         for k, v in ctx.rc.input_paths(ctx.index).items():
             if k == "data":
                 (root / v).mkdir(parents=True, exist_ok=True)
@@ -72,77 +75,142 @@ def test_every_training_stage_passes_the_split_and_the_factors(root, calls):
         calls.clear()
         B._REGISTRY[(ctx.rc.family, ctx.rc.stage)].fn(ctx)
         argv = calls[0]
-        assert argv[argv.index("--split") + 1] == SYN
+        assert argv[argv.index("--split") + 1] == V2
         i = argv.index("--factors")
         assert argv[i + 1] == "preset:ui" and not argv[i + 2].startswith("preset")
 
 
 def test_a_missing_split_is_refused_before_any_job(root, calls):
     plan = _plan("pointer_seeds")
-    ctx = _ctx(plan.nodes["collect"], root)                               # v2 is C2's file: not in this tree
-    assert not (root / ctx.opts["split"]).exists()
+    ctx = _ctx(plan.nodes["collect"], root, split="research/splits/not_declared.json")
     with pytest.raises(B.StageError, match="declare the split"):
         P._seeds(ctx, "dev", "cw/calc_sum")
-    ev = _ctx(_plan("pointer_sealed").nodes["sealed_latent@semfix.s1"], root)
+    ev = _ctx(_plan("pointer_sealed").nodes["sealed_latent@semfix.s1"], root, split="research/splits/not_declared.json")
     with pytest.raises(B.StageError, match="declare the split"):
         P.eval_r2(ev)
     assert not calls
 
 
-# ------------------------------------------------------------------------------------------------ sealed guard
+def test_the_default_split_of_the_pipeline_and_the_trainers_is_v2():
+    from rrp.harness.train.pointer import SPLIT_PATH_V2
+    from rrp.harness.train.pointer.split import load_split
+    import inspect
+    assert SPLIT_PATH_V2.endswith("cworld_pointer_v2.json")
+    assert inspect.signature(load_split).parameters["path"].default == SPLIT_PATH_V2
+    assert P._split_path(B.StageContext(rc=_plan("pointer_seeds").nodes["collect"].rc.model_copy(update=dict(options={})),
+                                        index=RunIndex(), root=ROOT)) == SPLIT_PATH_V2
+
+
+def test_the_pipeline_module_imports_without_torch():
+    import subprocess
+    import sys
+    code = "import sys, rrp.harness.pipelines.pointer, rrp.harness.train.pointer; sys.exit(int('torch' in sys.modules))"
+    r = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True,
+                       env={**__import__("os").environ, "PYTHONPATH": f"{ROOT / 'src'}:{ROOT}"})
+    assert r.returncode == 0, r.stderr[-400:]
+
+
+def _stub_inputs(ctx, root):
+    for k, v in ctx.rc.input_paths(ctx.index).items():
+        if k == "data":
+            (root / v).mkdir(parents=True, exist_ok=True)
+            (root / v / "t.npz").write_text("x")
+        else:
+            (root / v).parent.mkdir(parents=True, exist_ok=True)
+            (root / v).write_text("x")
+
+
+def test_eng_and_bc_default_to_the_v2_code_with_the_copy_head_and_the_p_seeds_recipe_states_its_arm(root, calls):
+    plan = _plan("pointer_seeds")
+    eng, bc = plan.nodes["flow_eng@nosem.s1"], plan.nodes["bc@nosem.s1"]
+    assert eng.rc.params["eng_version"] == "cw_pointer_eng.v1" and eng.rc.params["key_head"] == "free"   # stated, not defaulted
+    assert bc.rc.params["key_head"] == "free"
+    for node in (eng, bc):                                                # a node that says nothing gets the v2 defaults
+        ctx = _ctx(node, root)
+        ctx = B.StageContext(rc=ctx.rc.model_copy(update=dict(params={k: v for k, v in ctx.rc.params.items()
+                                                                     if k not in ("eng_version", "key_head")})),
+                             index=RunIndex(), root=root)
+        _stub_inputs(ctx, root)
+        calls.clear()
+        B._REGISTRY[(ctx.rc.family, ctx.rc.stage)].fn(ctx)
+        argv = calls[0]
+        assert argv[argv.index("--key-head") + 1] == "copy"
+        assert ("--eng-version" in argv) == (node is eng) and (node is not eng or argv[argv.index("--eng-version") + 1] == "cw_pointer_eng.v2")
+    sm = _plan("pointer_smoke")
+    assert {n.rc.options["split"] for n in sm.nodes.values()} == {V2}
+    assert sm.nodes["collect"].rc.params["episodes"] == 4 and sm.nodes["flow@semfix.s1"].rc.params["steps"] == 20
+
+
+# ------------------------------------------------------------------------------------------------ sealed guard (core.sealed)
 def _sealed(root, seed=1, variant="semfix", node="sealed_latent", **opts):
-    return _ctx(_plan("pointer_sealed").nodes[f"{node}@{variant}.s{seed}"], root, split=SYN, tasks=TASKS, **opts)
+    opts = {"split": V2, "tasks": TASKS, **opts}
+    return _ctx(_plan("pointer_sealed").nodes[f"{node}@{variant}.s{seed}"], root, **opts)
 
 
 def _events(root):
-    p = root / P.SEALED_LOG
+    p = root / LOG
     return [json.loads(x) for x in p.read_text().splitlines()] if p.exists() else []
+
+
+def _sp(root):
+    return SealedSplit.load("cworld_pointer_v2", path=root / V2)
 
 
 def test_sealed_cells_run_once_and_only_infrastructure_failures_reopen(root, calls):
     ctx = _sealed(root)
     P.eval_r2(ctx)                                                        # first run: both sets, drag_window has no heldout
     ev = _events(root)
-    assert sorted(e["event"] for e in ev) == ["done"] * 3 + ["start"] * 3
+    assert sorted(e["event"] for e in ev) == ["done"] * N_CELLS + ["start"] * N_CELLS
     cells = {e["cell"] for e in ev}
-    assert len(cells) == 3 and all(c.startswith("synthetic_v9|") for c in cells)
-    seeds = [a[a.index("--seeds") + 1] for a in calls]
-    assert sorted(seeds) == ["10,11", "10,11", "20"]
+    assert len(cells) == N_CELLS and all(c.startswith("cw_pointer|pointer_latent:") for c in cells)
+    assert {c.split("|")[-1] for c in cells} == {"sealed_id", "sealed_heldout"}
+    n_seeds = sorted(len(a[a.index("--seeds") + 1].split(",")) for a in calls)
+    assert n_seeds == [50] * 3 + [100] * 4                                # the split's declared lists, nothing else
     for out in (root / ctx.rc.out).glob("*.jsonl"):
         out.unlink()                                                      # even with the outputs gone
     n = len(calls)
+    with pytest.raises(SealedSplitError, match="already ran") as e:
+        P.eval_r2(ctx)
+    assert e.value.code == "sealed_cell_rerun" and len(calls) == n        # nothing was launched
+
+
+def test_a_started_cell_refuses_the_whole_attempt_before_any_other_cell_starts(root, calls):
+    ctx = _sealed(root)
+    sp, log = _sp(root), root / LOG
+    cell = P._sealed_cells(ctx, sp, P._split(ctx), "sealed_id", ["cw/calc_sum"], "pointer_latent")[0]
+    with sp.sealed_eval(cell, log):
+        pass                                                              # one cell already done
     with pytest.raises(SealedSplitError, match="already ran"):
         P.eval_r2(ctx)
-    assert len(calls) == n                                                # nothing was launched
+    assert not calls and len(_events(root)) == 2                          # no job, and no other cell was started
 
 
 def test_the_splits_env_kwargs_reach_every_eval_job(root, calls):
-    f = root / SYN
-    f.write_text(json.dumps(dict(json.loads(f.read_text()), env_kw={"strings": "procedural", "level": 2})))
+    assert json.loads((root / V2).read_text())["env_kw"] == {"strings": "procedural"}
     P.eval_r2(_sealed(root))
-    assert calls and all(a.count("--env-kw") == 2 for a in calls)
-    assert all("strings=procedural" in a and "level=2" in a for a in calls)
+    assert len(calls) == N_CELLS and all(a.count("--env-kw") == 1 and "strings=procedural" in a for a in calls)
+    calls.clear()
+    P.eval_r2(_sealed(root, seed=2, seed_sets=["dev"]))                   # dev evaluation gets them too
+    assert len(calls) == 4 and all("strings=procedural" in a for a in calls)
 
 
-def test_a_crashed_sealed_attempt_stays_open_until_released_with_a_reason(root, monkeypatch, calls):
+def test_a_crashed_sealed_attempt_stays_open_until_an_infrastructure_failure_is_recorded(root, monkeypatch, calls):
     ctx = _sealed(root)
     monkeypatch.setattr(B.StageContext, "run_parallel", lambda self, jobs, w: (_ for _ in ()).throw(B.StageError("node lost")))
     with pytest.raises(B.StageError):
         P.eval_r2(ctx)
     ev = _events(root)
-    assert {e["event"] for e in ev} == {"start"}
+    assert {e["event"] for e in ev} == {"start"}                          # the first seed set's cells: open, never done
     with pytest.raises(SealedSplitError, match="already ran"):            # a bad result / crash is not a free retry
         P.eval_r2(ctx)
-    cid = ev[0]["cell"]
+    sp, log = _sp(root), root / LOG
     with pytest.raises(SealedSplitError, match="reason"):
-        P.release_sealed_cell(root, cid, "  ")
-    with pytest.raises(SealedSplitError, match="no open attempt"):
-        P.release_sealed_cell(root, "synthetic_v9|sealed_id|cw/none|x", "typo")
+        sp.record_infrastructure_failure(ev[0]["cell"], "  ", log)
     for e in ev:
-        P.release_sealed_cell(root, e["cell"], "peer OOM-killed the job (infra)")
+        sp.record_infrastructure_failure(e["cell"], "peer OOM-killed the job (infra)", log)
     monkeypatch.setattr(B.StageContext, "run_parallel", lambda self, jobs, w: calls.extend(list(j[0]) for j in jobs))
     P.eval_r2(ctx)                                                        # released: one more attempt
-    assert [e["event"] for e in _events(root)].count("done") == 3
+    assert [e["event"] for e in _events(root)].count("done") == N_CELLS
     with pytest.raises(SealedSplitError, match="already ran"):
         P.eval_r2(ctx)
 
@@ -152,18 +220,32 @@ def test_the_method_is_its_frozen_checkpoints_so_other_seeds_and_arms_are_other_
     P.eval_r2(_sealed(root, seed=2))
     P.eval_r2(_sealed(root, seed=1, variant="nosem"))
     P.eval_r2(_sealed(root, seed=1, variant="nosem", node="sealed_bc", policy="pointer_bc"))
-    assert len({e["cell"] for e in _events(root)}) == 12
+    assert len({e["cell"] for e in _events(root)}) == 4 * N_CELLS
 
 
 def test_the_consumed_v1_sealed_sets_are_refused_but_dev_is_not(root, calls):
-    ctx = _sealed(root)
-    ctx = B.StageContext(rc=ctx.rc.model_copy(update=dict(options={**ctx.opts, "split": V1})), index=RunIndex(), root=root)
-    with pytest.raises(SealedSplitError, match="consumed"):
+    ctx = _sealed(root, split=V1)
+    with pytest.raises(SealedSplitError, match="consumed") as e:
         P.eval_r2(ctx)
-    assert not calls and not _events(root)
-    dev = B.StageContext(rc=ctx.rc.model_copy(update=dict(options={**ctx.opts, "seed_sets": ["dev"]})), index=RunIndex(), root=root)
-    P.eval_r2(dev)
+    assert e.value.code == "sealed_split_consumed" and not calls and not _events(root)
+    P.eval_r2(_sealed(root, split=V1, seed_sets=["dev"]))
     assert calls and not _events(root)                                    # dev evaluation is unguarded and unlogged
+
+
+def test_an_unpinned_split_has_no_sealed_evaluation(root, calls):
+    f = root / "research/splits/mine.json"
+    f.write_text(json.dumps(dict(json.loads((root / V2).read_text()), split_id="mine_v9")))
+    with pytest.raises(SealedSplitError, match="pins no such split") as e:
+        P.eval_r2(_sealed(root, split="research/splits/mine.json"))
+    assert e.value.code == "sealed_split_unknown" and not calls
+
+
+def test_an_edited_split_file_is_refused_by_the_pin(root, calls):
+    f = root / V2
+    f.write_text(f.read_text() + "\n")                                     # any byte change breaks the sha256 pin
+    with pytest.raises(SealedSplitError) as e:
+        P.eval_r2(_sealed(root))
+    assert e.value.code == "sealed_split_hash" and not calls
 
 
 def test_only_the_declared_seed_sets_exist(root, calls):
@@ -204,7 +286,7 @@ def test_copy_recipe_arms_differ_only_in_eng_version_and_key_head():
     for s in (1, 2, 3):
         free, copy, bc = (plan.nodes[f"{k}@nosem.s{s}"].rc.params for k in ("flow_eng", "flow_copy", "bc"))
         assert free.pop("eng_version") == copy.pop("eng_version") == "cw_pointer_eng.v2"
-        assert "key_head" not in free and copy.pop("key_head") == "copy" and bc["key_head"] == "copy"
+        assert free.pop("key_head") == "free" and copy.pop("key_head") == "copy" and bc["key_head"] == "copy"
         assert free == copy                                            # steps, batch, target, w_sem: identical
     data = {n.rc.inputs.get("data") for n in plan.nodes.values() if "data" in n.rc.inputs}
     assert len(data) == 1                                              # one collect run for every arm
@@ -260,3 +342,20 @@ def test_cw_parts_vary_only_the_named_factor():
         assert d.kwargs == relgen.compose({"viewport", "zstack"}, "computerworld", np.random.default_rng(1)).kwargs  # not mutated
     with pytest.raises(ValueError, match="unsupported factor"):
         relgen.PARTS["cw_depth"].vary(d, np.random.default_rng(0), "orient")
+
+
+def test_max_seeds_truncates_dev_seeds_only(root, calls):
+    ctx = _ctx(_plan("pointer_smoke").nodes["eval_dev@semfix.s1"], root)
+    assert len(P._seeds(ctx, "dev", "cw/calc_sum").split(",")) == 2
+    with pytest.raises(B.StageError, match="only the dev seeds"):
+        P._seeds(ctx, "sealed_id", "cw/calc_sum")
+    full = _ctx(_plan("pointer_seeds").nodes["eval_dev@semfix.s1"], root)
+    assert len(P._seeds(full, "dev", "cw/calc_sum").split(",")) == 50
+
+
+def test_stage_jobs_keep_the_inherited_pythonpath(root, monkeypatch):
+    """`StageContext.env` drops a PYTHONPATH that already holds the repo src (the computerworld wheel dir with it); the
+    pointer stages pass the inherited path on so collect / train / eval find the optional extra on the peer."""
+    ctx = _ctx(_plan("pointer_smoke").nodes["collect"], root)
+    monkeypatch.setenv("PYTHONPATH", f"{root / 'src'}:/peer/cw-site")
+    assert P._env(ctx)["PYTHONPATH"] == f"{root / 'src'}:/peer/cw-site"

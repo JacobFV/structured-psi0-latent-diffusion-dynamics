@@ -9,3 +9,8 @@ env: computerworld
 task: 'cw/*'
 bodies: cw_pointer
 factors: [semfix, nosem]
+base:
+  options: {split: research/splits/cworld_pointer_v1.json}   # the lineage of D-142: its packs and sealed sets predate v2
+nodes:
+  bc: {config: {params: {key_head: free}}}
+  flow_eng: {config: {params: {eng_version: cw_pointer_eng.v1, key_head: free}}}   # the D-142 arms: v1 packets, free key head

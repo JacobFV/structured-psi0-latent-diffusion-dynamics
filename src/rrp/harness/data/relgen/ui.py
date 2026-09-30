@@ -11,7 +11,10 @@ against `ui_edges` itself (`tests/unit/test_relations_r20.py`). `same_window` / 
 `ui.same_window` / `ui.above` (catalog.py) read those PUBLIC fields directly through the generic `same` / `order`
 operators (D-144 addendum), so these two labels are a StateView-side cross-check of `ui_public_fields`, not of the
 retired `ui_edges` "contains" / "above" channels. `drag_to` has no "given" counterpart (docs 3.1: the bias IS the
-pair probe for a drag destination) and is privileged-only.
+pair probe for a drag destination) and is privileged-only: its label is the drag the scripted TEACHER performs (D-146 round 2
+PC; the focus-widget-to-nearest-widget proxy it replaces labelled no real drag): handle -> the widget outside the dragged
+window nearest to where the drag ends. The teacher's goal is not in `CWStateView`, so `teacher_drag_view(env)` wraps the
+view with cap `teacher_drag`.
 
 Never imports `rrp.policies.relations` (labels stay on the privileged side of the deploy boundary, docs section 7;
 `policies/` never imports `relgen`)."""
@@ -22,11 +25,12 @@ from typing import Sequence
 
 import numpy as np
 
-from rrp.envs.base import StateView
+from rrp.envs.base import CapabilityError, StateView
 from rrp.harness.data.relgen import (Label, LabelDef, Sample, SceneDraft, ScenePart, TokenIndex, register_label,
                                      register_part)
 
 UI_LABELS_VERSION = "1"
+DRAG_TO_VERSION = "2"      # 1 = focused widget -> nearest widget (a proxy); 2 = the scripted teacher's drag target
 
 
 def _ui_nodes(view: StateView) -> dict[str, dict]:
@@ -43,8 +47,8 @@ def _pairwise(index: TokenIndex, nodes: dict[str, dict]) -> tuple[list, np.ndarr
     return ids, known[:, None] & known[None, :]
 
 
-def _label2(value: np.ndarray, valid: np.ndarray) -> Label:
-    return Label(value=value[..., None], valid=valid, prov="gt", version=UI_LABELS_VERSION)
+def _label2(value: np.ndarray, valid: np.ndarray, version: str = UI_LABELS_VERSION) -> Label:
+    return Label(value=value[..., None], valid=valid, prov="gt", version=version)
 
 
 # ------------------------------------------------------------------------------------------------ same_window
@@ -123,39 +127,90 @@ def above_fn(view: StateView, index: TokenIndex) -> Label:
 
 
 # ------------------------------------------------------------------------------------------------ drag_to
-def dragged_widget_id(view: StateView) -> str | None:
-    """The widget CW's own focus currently names (`scene.focus.interaction`, `cw_state_view`'s `focus_rank == 0`):
-    the only public/privileged signal of "the widget the pointer is actively interacting with", so the one
-    candidate for "currently being dragged" a 2D desktop UI exposes without task-specific plumbing."""
-    for n in view.ui_tree():
-        if n["focus_rank"] == 0:
-            return n["id"]
-    return None
+TEACHER_DRAG_CAP = "teacher_drag"
+
+
+def nearest_outside_window(dest_px, nodes: Sequence[dict], window: str | None) -> str | None:
+    """The drop target of a window drag: among the `ui_tree` nodes that have a box and are not in `window` (nor the
+    window's own node), the id whose box centre is nearest to the drag's destination pixel. Ties go to the lower scene
+    `order`, then the id, so the choice is a pure function of the scene. None when nothing qualifies."""
+    best, key = None, None
+    for n in nodes:
+        if n["bounds"] is None or n["parent"] == window or n["id"] == window:
+            continue
+        x0, y0, x1, y1 = n["bounds"]
+        d = float(np.hypot((x0 + x1) / 2 - dest_px[0], (y0 + y1) / 2 - dest_px[1]))
+        k = (d, n["order"], n["id"])
+        if key is None or k < key:
+            best, key = n["id"], k
+    return best
+
+
+def teacher_drag_target(env) -> dict | None:
+    """The drag the scripted teacher of `env` performs (`policies.teachers.computerworld._drag`), as widget ids:
+    `{"src": title-bar handle, "dst": nearest widget outside the dragged window to where the drag ends, "dest_px",
+    "src_slot", "dst_slot"}`; None when the task has no drag (the teacher never drags: a real negative). Read from the
+    env's goal and scene, i.e. privileged: a label, never a policy input. `env.state_view()` assigns the slots the
+    policy's own tables use (`SlotRegistry`), so the slots are the stored packs' widget indices."""
+    from rrp.envs.computerworld import find_widget
+    if env.task_name != "cw/drag_window":
+        return None
+    g = env.goal
+    w = find_widget(env, lambda w: w["interaction"] == f"window:{g['window']}:drag")
+    if w is None or w["box"] is None:
+        raise ValueError(f"{env.task_name}: no drag handle for window {g['window']!r} in the scene")
+    view = env.state_view()
+    x0, y0, x1, y1 = w["box"]
+    dest = ((x0 + x1) // 2 + g["dx"], (y0 + y1) // 2 + g["dy"])
+    src_slot = env.slots.slots[w["key"]]
+    dst = nearest_outside_window(dest, view.ui_tree(), f"window:{w['window']}")
+    dst_slot = None if dst is None else next(sl for sl in env.slots.slots.values()
+                                              if view.token_entity("widgets", sl) == dst)
+    return dict(src=view.token_entity("widgets", src_slot), dst=dst, dest_px=[int(dest[0]), int(dest[1])],
+                src_slot=int(src_slot), dst_slot=None if dst_slot is None else int(dst_slot))
+
+
+class TeacherDragView:
+    """A `StateView` plus cap `teacher_drag` and `teacher_drag()` (-> `teacher_drag_target`'s dict, or None when the
+    episode's teacher never drags). Everything else is the wrapped view's own; `drag_to_fn` reads it."""
+
+    def __init__(self, view: StateView, drag: dict | None):
+        self._view, self._drag = view, drag
+
+    @property
+    def caps(self) -> frozenset:
+        return frozenset(self._view.caps) | {TEACHER_DRAG_CAP}
+
+    def teacher_drag(self) -> dict | None:
+        return None if self._drag is None else dict(self._drag)
+
+    def __getattr__(self, name):
+        return getattr(self._view, name)
+
+
+def teacher_drag_view(env) -> TeacherDragView:
+    """`env.state_view()` with the env's teacher drag attached (the ComputerWorld StateView has no goal of its own)."""
+    return TeacherDragView(env.state_view(), teacher_drag_target(env))
 
 
 def drag_to_fn(view: StateView, index: TokenIndex) -> Label:
-    """The dragged widget (`dragged_widget_id`) -> the nearest OTHER widget by on-screen position: the candidate
-    drop target of an in-progress drag (`leg.foothold`'s own nearest-candidate pattern, R19, applied here). Every
-    pair of known widgets is a scored candidate (`valid`); only the dragged widget's row ever has a true (1.0)
-    entry, and only when at least one other widget exists."""
+    """`ui.drag_to` from the TEACHER's drag (`view.teacher_drag()`): pair (handle, drop target) is true. Every pair of
+    known widgets is a scored candidate; an episode whose teacher never drags has no true pair (a real negative). When the
+    teacher drags but its handle or drop target is not among the context tokens, the sample carries no label (nothing is
+    valid): a missing target is never a negative."""
+    if TEACHER_DRAG_CAP not in view.caps:
+        raise CapabilityError(f"ui.drag_to needs the teacher's drag target (cap {TEACHER_DRAG_CAP!r}); "
+                              f"view caps {sorted(view.caps)}")
     nodes = _ui_nodes(view)
-    ents = {e.id: e for e in view.entities()}
     ids, valid = _pairwise(index, nodes)
-    T = len(ids)
-    value = np.zeros((T, T), dtype=np.float64)
-    dragged = dragged_widget_id(view)
-    if dragged is not None and dragged in ents and dragged in ids:
-        a = ids.index(dragged)
-        best_b, best_d = None, None
-        for b, ib in enumerate(ids):
-            if ib is None or ib not in ents or ib == dragged:
-                continue
-            d = float(np.linalg.norm(ents[dragged].pos - ents[ib].pos))
-            if best_d is None or d < best_d:
-                best_b, best_d = b, d
-        if best_b is not None:
-            value[a, best_b] = 1.0
-    return _label2(value, valid)
+    value = np.zeros((len(ids), len(ids)), dtype=np.float64)
+    td = view.teacher_drag()
+    if td is not None:
+        if td["src"] in ids and td["dst"] in ids:
+            value[ids.index(td["src"]), ids.index(td["dst"])] = 1.0
+        else:
+            valid = np.zeros_like(valid)
+    return _label2(value, valid, DRAG_TO_VERSION)
 
 
 register_label(LabelDef(name="same_window", version=UI_LABELS_VERSION, arity=2, needs=frozenset({"ui_tree"}),
@@ -166,7 +221,7 @@ register_label(LabelDef(name="focus_next", version=UI_LABELS_VERSION, arity=2, n
                         fn=focus_next_fn, prov="gt"))
 register_label(LabelDef(name="above", version=UI_LABELS_VERSION, arity=2, needs=frozenset({"ui_tree"}),
                         fn=above_fn, prov="gt"))
-register_label(LabelDef(name="drag_to", version=UI_LABELS_VERSION, arity=2, needs=frozenset({"ui_tree", "poses"}),
+register_label(LabelDef(name="drag_to", version=DRAG_TO_VERSION, arity=2, needs=frozenset({"ui_tree", TEACHER_DRAG_CAP}),
                         fn=drag_to_fn, prov="gt"))
 
 

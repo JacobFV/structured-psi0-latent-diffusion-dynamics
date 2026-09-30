@@ -17,7 +17,7 @@ SPLIT_PATH_V2 = "research/splits/cworld_pointer_v2.json"
 TASKS = ("cw/calc_sum", "cw/open_type", "cw/drag_window", "cw/fill_form")
 
 
-def load_split(path: str = SPLIT_PATH) -> dict:
+def load_split(path: str = SPLIT_PATH_V2) -> dict:
     return json.loads(Path(path).read_text())
 
 

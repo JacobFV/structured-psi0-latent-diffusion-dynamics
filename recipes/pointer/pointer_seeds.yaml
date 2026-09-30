@@ -6,6 +6,9 @@
 # engineered-encoding flow are trained per seed too (point nodes, variant nosem: they have no probe head), so every arm gets the
 # same number of seeds and the same public inputs and demos. `eval_oracle` (teacher packets -> scripted system 0) stays global.
 # `research/splits/cworld_pointer_v2.json` (C2) must exist before `collect` runs: the stages refuse a missing split.
+# The P-SEEDS arms are the v1 packet encoding with the free key head, stated on the nodes: the pipeline's default for target eng and
+# the BC is the v2 code with the copy head (pipelines/pointer.py V2_EVAL_DEFAULTS), so nothing here depends on a silent default.
+# The demos are collected with the env kwargs of the split (`strings: procedural`) and carry the teacher's drag target (`ep_drag`).
 # Dev seeds only here; the run-once sealed evaluation is recipes/pointer/pointer_sealed.yaml.
 extends: ../templates/pointer_lineage.yaml
 name: pointer_seeds
@@ -26,7 +29,7 @@ matrix:
 base:
   options: {split: research/splits/cworld_pointer_v2.json}
 nodes:
-  bc: {scope: point, only: {variant: [nosem]}}
+  bc: {scope: point, only: {variant: [nosem]}, config: {params: {key_head: free}}}
   eval_bc: {scope: point, only: {variant: [nosem]}}
-  flow_eng: {scope: point, only: {variant: [nosem]}, tag: eng, config: {params: {w_sem: 0}}}   # w_sem is unused by target eng (no probe head)
+  flow_eng: {scope: point, only: {variant: [nosem]}, tag: eng, config: {params: {w_sem: 0, eng_version: cw_pointer_eng.v1, key_head: free}}}   # w_sem is unused by target eng (no probe head)
   eval_eng: {scope: point, only: {variant: [nosem]}}

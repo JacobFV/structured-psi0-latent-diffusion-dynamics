@@ -48,6 +48,9 @@ def _pack(path, *, geometry: bool, seed0: int, n_ep=4, n_tick=8, ui: bool = True
         d["wfocusrank"] = foc
         edges = rng.random((n_tab, NW, NW, len(UI_REL_VOCAB))) < 0.05
         d["wuiedges"] = np.stack([np.packbits(e.reshape(-1)) for e in edges])
+        drags = np.arange(n_ep) % 2 == 0                        # even episodes drag (handle slot 1 -> target slot 3)
+        d["ep_drags"] = drags
+        d["ep_drag"] = np.where(drags[:, None], np.array([1, 3]), -1).astype(np.int16)
     np.savez_compressed(path, **d)
 
 
@@ -58,7 +61,7 @@ def _geometry(monkeypatch):
 
 def _args(tmp_path, files, **kw):
     return argparse.Namespace(**dict(dict(data=[str(f) for f in files], steps=2, batch=8, lr=3e-4, seed=0, split_seed=0,
-                                          device="cpu", log_every=1, split=T.SPLIT_PATH, factors=None), **kw))
+                                          device="cpu", log_every=1, split=T.SPLIT_PATH_V2, factors=None), **kw))
 
 
 def test_demos_batch_supplies_geometry_stored_or_flagged_invalid(tmp_path):
@@ -204,7 +207,7 @@ def test_ui_factors_train_all_three_trainers_and_supervise_drag_to(tmp_path):
     load_pointer_bundle(str(rep)), load_pointer_bundle(str(flow)), load_pointer_bundle(str(bc))
 
 
-def test_ui_factors_refuse_a_pack_without_the_public_ui_fields_and_mix(tmp_path):
+def test_ui_factors_refuse_a_pack_without_the_public_ui_fields_the_drag_target_and_a_curriculum(tmp_path):
     from rrp.policies.relations.base import FactorError
     old = tmp_path / "old.npz"
     _pack(old, geometry=True, seed0=10, ui=False)
@@ -213,9 +216,15 @@ def test_ui_factors_refuse_a_pack_without_the_public_ui_fields_and_mix(tmp_path)
     T.cmd_bc(_args(tmp_path, [old], out=str(tmp_path / "y.pt"), w_xy=5.0))          # default factors: an old pack still trains
     new = tmp_path / "new.npz"
     _pack(new, geometry=True, seed0=11)
-    with pytest.raises(FactorError, match="mix"):
+    with pytest.raises(FactorError, match="--curriculum"):                       # mix > 0 needs the relgen stream
         T.cmd_bc(_args(tmp_path, [new], out=str(tmp_path / "z.pt"), w_xy=5.0,
                        factors=['{"name": "ui.same_window", "mix": 0.5}']))
+    nodrag = tmp_path / "nodrag.npz"                                              # UI fields but no stored teacher drag
+    z = dict(np.load(new))
+    z.pop("ep_drag"), z.pop("ep_drags")
+    np.savez_compressed(nodrag, **z)
+    with pytest.raises(FactorError, match="ep_drag"):
+        T.cmd_bc(_args(tmp_path, [nodrag], out=str(tmp_path / "w.pt"), w_xy=5.0, factors=["preset:ui"]))
 
 
 def test_flow_noise_is_a_function_of_policy_seed_env_seed_and_packet_index():

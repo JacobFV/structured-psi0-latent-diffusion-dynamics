@@ -26,17 +26,30 @@ from __future__ import annotations
 
 import argparse
 
-from rrp.harness.train.pointer.collect import cmd_collect
-from rrp.harness.train.pointer.data import TABLE_KEYS, Demos, pointer_geometry
-from rrp.harness.train.pointer.diagnostics import cmd_edit
-from rrp.harness.train.pointer.losses import action_loss, action_metrics, probe_loss, probe_metrics
-from rrp.harness.train.pointer.split import (SPLIT_PATH, TASKS, check_no_leak, cmd_split, excluded_seeds, heldout_goal,
-                                             load_split)
-from rrp.harness.train.pointer.train import (cmd_bc, cmd_flow, cmd_probe, cmd_rep, eng_targets, fit, frozen_mu,
-                                             save_checkpoint)
-from rrp.harness.train.pointer.video import FrameHook, cmd_video
+from rrp.harness.train.pointer.split import SPLIT_PATH, SPLIT_PATH_V2, TASKS
+
+# The package's public names live in submodules that import torch (`data`, `train`, ...); the pipeline modules only need
+# the torch-free `split` (paths, seed lists), so they resolve lazily (PEP 562) and `import rrp.harness.train.pointer`
+# stays light. `from rrp.harness.train.pointer import Demos` still works.
+_LAZY = {
+    "cmd_collect": "collect", "TABLE_KEYS": "data", "Demos": "data", "pointer_geometry": "data",
+    "cmd_edit": "diagnostics", "action_loss": "losses", "action_metrics": "losses", "probe_loss": "losses",
+    "probe_metrics": "losses", "check_no_leak": "split", "cmd_split": "split", "excluded_seeds": "split",
+    "heldout_goal": "split", "load_split": "split", "cmd_bc": "train", "cmd_flow": "train", "cmd_probe": "train",
+    "cmd_rep": "train", "eng_targets": "train", "fit": "train", "frozen_mu": "train", "save_checkpoint": "train",
+    "FrameHook": "video", "cmd_video": "video",
+}
+
+
+def __getattr__(name):
+    import importlib
+    if name in _LAZY:
+        return getattr(importlib.import_module(f"rrp.harness.train.pointer.{_LAZY[name]}"), name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 def main(argv=None):
+    from rrp.harness.train.pointer import collect, diagnostics, split, train, video
     ap = argparse.ArgumentParser(prog="rrp train pointer", description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
 
@@ -51,14 +64,14 @@ def main(argv=None):
                        "of --seed: a seed sweep keeps one held-out set)")
         p.add_argument("--device", default=None)
         p.add_argument("--log-every", type=int, default=1000)
-        p.add_argument("--split", default=SPLIT_PATH)
+        p.add_argument("--split", default=SPLIT_PATH_V2)
 
     p = sub.add_parser("split")
-    p.add_argument("--split", default=SPLIT_PATH)
+    p.add_argument("--split", default=SPLIT_PATH_V2)
     p.add_argument("--n-dev", type=int, default=50)
     p.add_argument("--n-sealed", type=int, default=100)
     p.add_argument("--n-heldout", type=int, default=50)
-    p.set_defaults(fn=cmd_split)
+    p.set_defaults(fn=split.cmd_split)
     p = sub.add_parser("collect")
     p.add_argument("--task", required=True, choices=TASKS)
     p.add_argument("--episodes", type=int, required=True)
@@ -66,9 +79,9 @@ def main(argv=None):
     p.add_argument("--dart-frac", type=float, default=0.5)
     p.add_argument("--dart-px", type=float, default=25.0)
     p.add_argument("--seed", type=int, default=0)
-    p.add_argument("--split", default=SPLIT_PATH)
+    p.add_argument("--split", default=SPLIT_PATH_V2)
     p.add_argument("--out", required=True)
-    p.set_defaults(fn=cmd_collect)
+    p.set_defaults(fn=collect.cmd_collect)
     p = sub.add_parser("rep")
     common(p)
     p.add_argument("--variant", required=True, choices=("semfix", "nosem"))
@@ -80,7 +93,10 @@ def main(argv=None):
     p.add_argument("--factors", nargs="*", default=None, metavar="SPEC",
                    help="relation factors of the net's public context (relations.resolve items: names, globs, "
                         "preset:ui, or JSON specs); default preset:none")
-    p.set_defaults(fn=cmd_rep)
+    p.add_argument("--curriculum", default=None, metavar="JSON",
+                   help="relgen mix (a factor with mix > 0): JSON of `relgen.curriculum.SchedulerConfig` keys plus shards = the "
+                        "relations_data output dir(s); batches then come from `relation_batches`")
+    p.set_defaults(fn=train.cmd_rep)
     p = sub.add_parser("flow")
     common(p, steps=30000)
     p.add_argument("--target", choices=("latent", "eng"), default="latent")
@@ -93,7 +109,10 @@ def main(argv=None):
     p.add_argument("--factors", nargs="*", default=None, metavar="SPEC",
                    help="relation factors of the net's public context (relations.resolve items: names, globs, "
                         "preset:ui, or JSON specs); default preset:none")
-    p.set_defaults(fn=cmd_flow)
+    p.add_argument("--curriculum", default=None, metavar="JSON",
+                   help="relgen mix (a factor with mix > 0): JSON of `relgen.curriculum.SchedulerConfig` keys plus shards = the "
+                        "relations_data output dir(s); batches then come from `relation_batches`")
+    p.set_defaults(fn=train.cmd_flow)
     p = sub.add_parser("bc")
     common(p, steps=50000)
     p.add_argument("--w-xy", type=float, default=5.0)
@@ -102,12 +121,15 @@ def main(argv=None):
     p.add_argument("--factors", nargs="*", default=None, metavar="SPEC",
                    help="relation factors of the net's public context (relations.resolve items: names, globs, "
                         "preset:ui, or JSON specs); default preset:none")
-    p.set_defaults(fn=cmd_bc)
+    p.add_argument("--curriculum", default=None, metavar="JSON",
+                   help="relgen mix (a factor with mix > 0): JSON of `relgen.curriculum.SchedulerConfig` keys plus shards = the "
+                        "relations_data output dir(s); batches then come from `relation_batches`")
+    p.set_defaults(fn=train.cmd_bc)
     p = sub.add_parser("probe")
     common(p, steps=8000, lr=1e-3)
     p.add_argument("--representation", required=True)
     p.add_argument("--flow", help="probe packets generated by this flow instead of E means")
-    p.set_defaults(fn=cmd_probe)
+    p.set_defaults(fn=train.cmd_probe)
     p = sub.add_parser("edit")
     common(p, steps=0)
     p.add_argument("--representation", required=True)
@@ -117,12 +139,12 @@ def main(argv=None):
     p.add_argument("--edit-steps", type=int, default=60)
     p.add_argument("--edit-lr", type=float, default=0.05)
     p.add_argument("--anchor", type=float, default=0.1)
-    p.set_defaults(fn=cmd_edit)
+    p.set_defaults(fn=diagnostics.cmd_edit)
     p = sub.add_parser("video")
     p.add_argument("--policy", required=True, help="NAME or NAME=JSON kwargs (as rrp eval)")
     p.add_argument("--episodes", nargs="+", required=True, help="task@seed ...")
     p.add_argument("--caption", default="")
     p.add_argument("--out", required=True)
-    p.set_defaults(fn=cmd_video)
+    p.set_defaults(fn=video.cmd_video)
     a = ap.parse_args(argv)
     return a.fn(a)

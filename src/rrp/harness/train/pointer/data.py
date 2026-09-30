@@ -85,6 +85,13 @@ class Demos:
                 p["wui"] = np.zeros(n_tab, bool)
             else:
                 p["wui"] = np.ones(len(p["wch"]), bool)
+            if "ep_drag" not in p:              # a pack from before the teacher drag label: flagged below
+                n_ep = len(p["ep_seed"])
+                p["ep_drag"] = np.full((n_ep, 2), -1, np.int16)
+                p["ep_drags"] = np.zeros(n_ep, bool)
+                p["ep_drag_ok"] = np.zeros(n_ep, bool)
+            else:
+                p["ep_drag_ok"] = np.ones(len(p["ep_seed"]), bool)
             p["ep_task"] = np.full(len(p["ep_seed"]), TASKS.index(str(p["task"])), np.int8)
             tab_off += len(p["wch"])
             tick_off += len(p["tab"])
@@ -123,8 +130,10 @@ class Demos:
                       cmd_key=T(d["cmd_key"].astype(np.int64)), slot=T(d["slot"].astype(np.int64)),
                       txy=T(np.nan_to_num(d["txy"], nan=0.0)), txy_ok=T(~np.isnan(d["txy"][:, 0])),
                       phase=T(d["phase"].astype(np.int64)), instr=T(d["ep_instr"].astype(np.int64)),
+                      ep_drag=T(d["ep_drag"].astype(np.int64)), ep_drags=T(d["ep_drags"]),
                       tick=T((np.arange(N) - d["ep_start"][d["ep"]]).astype(np.float32)), ntyped=T(ntyped), chunk=T(idx.astype(np.int64)))
         self.N, self.device = N, device
+        self.has_drag = bool(d["ep_drag_ok"].all())    # every pack carries the teacher's drag target (`drag_labels`)
         self.has_ui = bool(self.t["wui"].all())      # every pack carries the public UI fields (`preset:ui` needs them)
         self.train_idx = T(np.nonzero(~self.val_mask)[0].astype(np.int64))
         tick_task = self.ep_task[d["ep"]][~self.val_mask]
@@ -135,6 +144,27 @@ class Demos:
     def sample(self, n: int):
         """Task-balanced training sample indices."""
         return self.train_idx[torch.multinomial(self.train_w, n, replacement=True)]
+
+    def drag_labels(self, ix):
+        """`ui.drag_to`'s gt label from the TEACHER's drag (stored per episode at collect: handle slot, drop-target slot;
+        `relgen.ui.teacher_drag_target`) for sample indices ix -> (y [B, NW, NW, 1] float, valid [B, NW, NW] bool), the
+        layout of a relgen `Label`. Every pair of present widgets is a candidate and only (handle, target) is true; an
+        episode whose teacher never drags has no true pair, and one whose handle or target is not in the tick's table carries
+        no label (nothing valid)."""
+        if not self.has_drag:
+            raise ValueError("a demo pack lacks the teacher's drag target (`ep_drag`): recollect (`rrp train pointer collect`)")
+        t = self.t
+        ep = t["ep"][ix]
+        mask = t["wmask"][t["tab"][ix]]
+        valid = mask[:, :, None] & mask[:, None, :]
+        src, dst, drags = t["ep_drag"][ep, 0], t["ep_drag"][ep, 1], t["ep_drags"][ep]
+        r = torch.arange(len(ix), device=mask.device)
+        sc, dc = src.clamp(min=0), dst.clamp(min=0)
+        present = drags & (src >= 0) & (dst >= 0) & mask[r, sc] & mask[r, dc]
+        y = torch.zeros(len(ix), NW, NW, device=mask.device)
+        y[r, sc, dc] = present.float()
+        valid = valid & ~(drags & ~present)[:, None, None]
+        return y[..., None], valid
 
     def batch(self, ix):
         """-> (public batch b, demo chunk a, probe labels lab) for sample indices ix (a 1-D long tensor)."""

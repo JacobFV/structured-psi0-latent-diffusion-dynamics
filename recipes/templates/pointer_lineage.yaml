@@ -9,7 +9,7 @@
 # The v1 sealed sets (sealed_id, sealed_heldout) were run ONCE (D-142): this template evaluates dev (`options.seed_set`). An
 # instance may name another split (`base: {options: {split: ...}}`, passed to every stage as --split), add seeds, make the
 # baselines per-seed point nodes (recipes/pointer/pointer_seeds.yaml), pass `params.factors` (pointer_ui.yaml) or evaluate the
-# sealed sets of a new split once (pointer_sealed.yaml; the stage refuses a second attempt, pipelines/pointer.py).
+# sealed sets of a new split once (pointer_sealed.yaml; the stage refuses a second attempt: core.sealed.SealedSplit, pipelines/pointer.py).
 # Resources: peer GPU (bf16), one lease at a time. Public inputs only: rrp.policies.pointer.public_features.
 # An instance sets name, track, header keys and may override vars / params.
 name: pointer_lineage_template

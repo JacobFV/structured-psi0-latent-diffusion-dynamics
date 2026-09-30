@@ -29,7 +29,7 @@ nodes:
   eval_oracle: null
   bc: {tag: bccopy, config: {params: {key_head: copy}}}
   eval_bc: {tag: bccopy}
-  flow_eng: {tag: eng2, config: {params: {eng_version: cw_pointer_eng.v2}}}
+  flow_eng: {tag: eng2, config: {params: {eng_version: cw_pointer_eng.v2, key_head: free}}}
   eval_eng: {tag: eng2}
   flow_copy:
     stage: train_flow
