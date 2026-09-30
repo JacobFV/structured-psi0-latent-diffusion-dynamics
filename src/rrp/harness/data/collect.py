@@ -15,6 +15,7 @@ from pathlib import Path
 import mujoco
 import numpy as np
 
+from rrp.policies.base import Act
 from rrp.policies.teachers.arm import PickPlaceTeacher
 from rrp.policies.features.featurizer import Featurizer, featurizer_for  # noqa: F401  (featurizer_for moved to rrp.policies.features)
 from rrp.envs.mujoco.session import Session
@@ -171,6 +172,84 @@ class EpisodeRecord:
     private: dict
 
 
+class _TeacherTrace:
+    """Rollout hook of `collect_teacher_episode`: per tick the featurized public input (previous-command feature = the
+    normalized CLEAN teacher command), the clean teacher command as the label, the privileged labels, the teacher phase
+    and the task-event statuses; the DART execution perturbation (on_act: the executed command differs, the recorded
+    label never does) and the W6 motion recorder. `dart_stats` / `mrec` are read by the caller after the episode."""
+
+    def __init__(self, session, teacher, feat, *, exec_noise, noise_seed, dart_safety, dart_descent_sigma):
+        self.session, self.teacher, self.feat = session, teacher, feat
+        self.exec_noise, self.descent_sigma = exec_noise, dart_descent_sigma
+        self.inputs, self.actions, self.labels, self.phases, self.statuses, self.q0s = [], [], [], [], [], []
+        self.prev, self.k, self.nz, self.last_exec = None, 0, None, None
+        self.nrng = np.random.default_rng([noise_seed, 7])
+        self.dart_stats = dict(mode=dart_safety or "none", ticks_by_phase={}, applied_by_phase={}, rejected_by_phase={},
+                               held_by_phase={})
+        self.ds_mode, _, ds_arg = (dart_safety or "").partition(":")      # "proximity" or "proximity:<margin_m>"
+        self.guard = (DartProximityGuard(session, margin=float(ds_arg) if ds_arg else 0.005,
+                                         strict=self.ds_mode == "proximity_strict")
+                      if (exec_noise > 0 and self.ds_mode in ("proximity", "proximity_strict")) else None)
+        if self.guard is not None:
+            self.dart_stats["margin_m"] = self.guard.margin
+        if self.ds_mode == "phase":
+            self.dart_stats["free_phases"] = list(DART_FREE_PHASES)
+        self.dguard = None
+        if dart_descent_sigma and dart_descent_sigma > 0:
+            if self.ds_mode != "phase":
+                raise ValueError("dart_descent_sigma needs dart_safety 'phase' (D-121 phase-gated DART)")
+            if exec_noise > 0:
+                self.dguard = DartProximityGuard(session, margin=0.005, strict=False)
+                self.dart_stats["descent"] = dict(sigma=float(dart_descent_sigma), phases=list(DART_DESCENT_PHASES),
+                                                  margin_m=self.dguard.margin, guard="proximity")
+        from rrp.envs.mujoco.motion_quality import ArmMotionRecorder
+        # W6 gates: read-only, the CLEAN label is recorded
+        self.mrec = ArmMotionRecorder(session, boundary_kind="phase_switch")
+
+    def on_act(self, i, obs, act):
+        session, teacher, feat, cmd, k = self.session, self.teacher, self.feat, act.command, self.k
+        pi = feat(obs, self.prev)
+        self.a = feat.aspace.normalize([cmd.groups], pi.q0)[0]
+        self.inputs.append(pi)
+        self.actions.append(cmd.groups)
+        out = None
+        if self.exec_noise > 0:
+            if k % 5 == 0:
+                self.nz = self.nrng.normal(0, self.exec_noise, len(cmd.groups["arm"]))
+            g, nz, stats = feat.aspace, self.nz, self.dart_stats
+            arm_lo = [lo for lo, grp in zip(g.lower, g.node_group) if grp == "arm"]
+            arm_hi = [hi for hi, grp in zip(g.upper, g.node_group) if grp == "arm"]
+            noisy = np.clip(np.array(cmd.groups["arm"]) + nz, arm_lo, arm_hi)
+            ph = teacher.phase
+            stats["ticks_by_phase"][ph] = stats["ticks_by_phase"].get(ph, 0) + 1
+            if self.ds_mode == "phase":   # D-118 fallback: perturb only in the free-space phases
+                kind, q_exec = ("noisy", noisy) if ph in DART_FREE_PHASES else ("clean", None)
+                if self.dguard is not None and ph in DART_DESCENT_PHASES:     # D-126 #5: small, guarded descent noise
+                    clean_arm = np.array(cmd.groups["arm"])
+                    small = np.clip(clean_arm + nz * (self.descent_sigma / self.exec_noise), arm_lo, arm_hi)
+                    kind, q_exec = self.dguard.choose(clean_arm, small, self.last_exec)
+            else:
+                kind, q_exec = ("noisy", noisy) if self.guard is None else self.guard.choose(
+                    np.array(cmd.groups["arm"]), noisy, self.last_exec)
+            key = dict(noisy="applied_by_phase", clean="rejected_by_phase", hold="held_by_phase")[kind]
+            stats.setdefault(key, {})
+            stats[key][ph] = stats[key].get(ph, 0) + 1
+            if kind != "clean":      # execute the perturbed (or held) command; the recorded label stays clean
+                cmd = cmd.model_copy(update={"groups": dict(cmd.groups, arm=np.asarray(q_exec).tolist())})
+                out = Act(cmd, act.packet, act.chunk, act.info)
+            self.last_exec = np.array(cmd.groups["arm"])
+        self.q0s.append(pi.q0)
+        self.labels.append(privileged_labels(session, feat))
+        self.phases.append(teacher.phase)
+        self.statuses.append({e: v.status for e, v in session.runtime.instances.items()})
+        return out
+
+    def on_step(self, i, env, act, step):
+        self.mrec.tick(self.actions[-1], self.k > 0 and self.phases[-1] != self.phases[-2])
+        self.prev = self.a
+        self.k += 1
+
+
 def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_steps: int = 600,
                             episode_id: str = "", split_lineage: dict | None = None,
                             exec_noise: float = 0.0, noise_seed: int = 0,
@@ -184,6 +263,9 @@ def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_
     is clean + (dart_descent_sigma / exec_noise) x the SAME held noise draw (so the noise RNG stream is unchanged),
     passed through DartProximityGuard (5 mm, non-strict); episode meta dart.descent records sigma, phases and counts.
     teacher_kw: extra keyword arguments for the teacher version (e.g. ik_limit_margin for v2lim; recorded in meta)."""
+    from rrp.harness import rollout as R
+    from rrp.harness.eval import hooks as H
+    from rrp.policies.teachers import TeacherPolicy
     from rrp.policies.teachers.arm_smooth import make_arm_teacher, teacher_source, teacher_version_id
     feat = featurizer_for(session)
     if teacher_kw and not teacher_version:
@@ -192,77 +274,21 @@ def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_
                else teacher_cls(session))
     f = teacher.feasibility() if hasattr(teacher, "feasibility") else {"feasible": True}
     t0 = time.time()
-    inputs, actions, labels, phases, statuses, q0s = [], [], [], [], [], []
-    obs = session.observe()
-    prev = None
-    status = "infeasible" if not f["feasible"] else "running"
-    nrng = np.random.default_rng([noise_seed, 7])
-    nz = None
-    dart_stats = dict(mode=dart_safety or "none", ticks_by_phase={}, applied_by_phase={}, rejected_by_phase={},
-                      held_by_phase={})
-    last_exec = None
-    ds_mode, _, ds_arg = (dart_safety or "").partition(":")          # "proximity" or "proximity:<margin_m>"
-    guard = (DartProximityGuard(session, margin=float(ds_arg) if ds_arg else 0.005, strict=ds_mode == "proximity_strict")
-             if (exec_noise > 0 and ds_mode in ("proximity", "proximity_strict")) else None)
-    if guard is not None:
-        dart_stats["margin_m"] = guard.margin
-    if ds_mode == "phase":
-        dart_stats["free_phases"] = list(DART_FREE_PHASES)
-    dguard = None
-    if dart_descent_sigma and dart_descent_sigma > 0:
-        if ds_mode != "phase":
-            raise ValueError("dart_descent_sigma needs dart_safety 'phase' (D-121 phase-gated DART)")
-        if exec_noise > 0:
-            dguard = DartProximityGuard(session, margin=0.005, strict=False)
-            dart_stats["descent"] = dict(sigma=float(dart_descent_sigma), phases=list(DART_DESCENT_PHASES),
-                                         margin_m=dguard.margin, guard="proximity")
-    steps = 0
-    from rrp.envs.mujoco.motion_quality import ArmMotionRecorder
-    mrec = ArmMotionRecorder(session, boundary_kind="phase_switch")   # W6 gates: read-only, the CLEAN label is recorded
+    trace = _TeacherTrace(session, teacher, feat, exec_noise=exec_noise, noise_seed=noise_seed, dart_safety=dart_safety,
+                          dart_descent_sigma=dart_descent_sigma)
+    dart_stats, mrec = trace.dart_stats, trace.mrec
+    status, steps = "infeasible", 0
     if f["feasible"]:
-        for k in range(max_steps):
-            pi = feat(obs, prev)
-            cmd = teacher.act()
-            a = feat.aspace.normalize([cmd.groups], pi.q0)[0]
-            inputs.append(pi)
-            actions.append(cmd.groups)
-            if exec_noise > 0:
-                if k % 5 == 0:
-                    nz = nrng.normal(0, exec_noise, len(cmd.groups["arm"]))
-                g = feat.aspace
-                arm_lo = [lo for lo, grp in zip(g.lower, g.node_group) if grp == "arm"]
-                arm_hi = [hi for hi, grp in zip(g.upper, g.node_group) if grp == "arm"]
-                noisy = np.clip(np.array(cmd.groups["arm"]) + nz, arm_lo, arm_hi)
-                ph = teacher.phase
-                dart_stats["ticks_by_phase"][ph] = dart_stats["ticks_by_phase"].get(ph, 0) + 1
-                if ds_mode == "phase":   # D-118 fallback: perturb only in the free-space phases
-                    kind, q_exec = ("noisy", noisy) if ph in DART_FREE_PHASES else ("clean", None)
-                    if dguard is not None and ph in DART_DESCENT_PHASES:     # D-126 #5: small, guarded descent noise
-                        clean_arm = np.array(cmd.groups["arm"])
-                        small = np.clip(clean_arm + nz * (dart_descent_sigma / exec_noise), arm_lo, arm_hi)
-                        kind, q_exec = dguard.choose(clean_arm, small, last_exec)
-                else:
-                    kind, q_exec = ("noisy", noisy) if guard is None else guard.choose(
-                        np.array(cmd.groups["arm"]), noisy, last_exec)
-                key = dict(noisy="applied_by_phase", clean="rejected_by_phase", hold="held_by_phase")[kind]
-                dart_stats.setdefault(key, {})
-                dart_stats[key][ph] = dart_stats[key].get(ph, 0) + 1
-                if kind != "clean":      # execute the perturbed (or held) command; the recorded label stays clean
-                    cmd = cmd.model_copy(update={"groups": dict(cmd.groups, arm=np.asarray(q_exec).tolist())})
-                last_exec = np.array(cmd.groups["arm"])
-            q0s.append(pi.q0)
-            labels.append(privileged_labels(session, feat))
-            phases.append(teacher.phase)
-            statuses.append({e: v.status for e, v in session.runtime.instances.items()})
-            res = session.step(cmd)
-            mrec.tick(actions[-1], k > 0 and phases[-1] != phases[-2])
-            obs = res.observation
-            prev = a
-            steps += 1
-            if teacher.done:
-                break
-        session.step(None)
-        status = "success" if session.privileged_success() else "failure"
+        # the episode is a harness.rollout of the scripted teacher (docs/architecture.md 14.1): the trace records and
+        # executes the DART perturbation, the teacher's end ends the episode, one hold tick then the privileged verdict
+        pol = TeacherPolicy(session.scenario.name, lambda e: teacher, "collect", ("joint_position", "gripper"))
+        ep = R.rollout(lambda sd: session, pol, H.budget_task(session.scenario.name, session.spec.env_id), [session.seed],
+                       batch=1, max_steps=max_steps, hooks=[trace, H.EndWhen(lambda i, e: bool(teacher.done)), H.Settle(1)])[0]
+        if ep.outcome == "crash":
+            raise RuntimeError(ep.metrics.get("note") or ep.failure_reason)
+        status, steps = ("success" if ep.success_privileged else "failure"), ep.steps
+    inputs, actions, labels, phases, statuses, q0s = (trace.inputs, trace.actions, trace.labels, trace.phases,
+                                                      trace.statuses, trace.q0s)
     rs = session.scenario.robots[0].robot_spec
     meta = dict(episode_id=episode_id, robot=rs.name, spec_hash=rs.spec_hash, lineage=rs.lineage,
                 controller_version=session.robots[0].controller.version, task=session.scenario.name,

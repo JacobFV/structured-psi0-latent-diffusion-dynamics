@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from tests.unit.test_golden import _pi, golden  # noqa: F401  (golden is the recording fixture)
+from tests.unit.test_eval_rollout import rollout_guard  # noqa: F401  (fixture)
 from tests.unit.test_ladder_rollout import _digest
 
 pytest.importorskip("mujoco")
@@ -73,6 +74,7 @@ def test_adaptation_teacher_prefix(golden):
     rows = []
     for seed, n, boundary in ((3, 12, lambda st: st.steps >= 6),            # boundary fires
                               (4, 8, lambda st: False),                     # step allowance ends the prefix
+                              (3, 600, lambda st: False),                   # the teacher finishes the task: terminal
                               (3, 600, event_boundary("grasp"))):           # the public grasp event
         s = Session(BUILDERS["pick_place"](robot, seed, n_distractors=seed % 3), seed=seed)
         pol = PolicyAdapter(None, None, "cpu")
@@ -83,15 +85,91 @@ def test_adaptation_teacher_prefix(golden):
     golden("loop.train.teacher_prefix", _digest(rows))
 
 
+def teacher_run(session, max_steps=600):
+    """The scripted pick_place teacher on `session` as one harness.rollout (the loop the retired
+    `policies.teachers.arm.run_teacher_episode` was): infeasible layouts are recorded, not attempted; the teacher's end
+    ends the episode; one hold tick, then the privileged verdict. Returns a namespace of the trace and the verdicts."""
+    from types import SimpleNamespace as NS
+    from rrp.harness import rollout as R
+    from rrp.harness.eval import hooks as H
+    from rrp.policies.teachers import TeacherPolicy
+    from rrp.policies.teachers.arm import PickPlaceTeacher
+    teacher = PickPlaceTeacher(session)
+    res = NS(actions=[], phases=[], rejected_commands=0, feasibility=teacher.feasibility(), steps=0)
+    res.failure_reason = None
+    if not res.feasibility["feasible"]:
+        res.failure_reason = f"infeasible:{','.join(res.feasibility['unreachable'])}"
+        return res
+    rec = H.Recorder(on_act=lambda i, env, act: (res.actions.append(act.command.groups), res.phases.append(teacher.phase)),
+                     on_step=lambda i, env, act, step: setattr(res, "rejected_commands",
+                                                               res.rejected_commands + int(bool(step.rejected))))
+    pol = TeacherPolicy("pick_place", lambda e: teacher, "test", ("joint_position", "gripper"))
+    ep = R.rollout(lambda sd: session, pol, H.budget_task("pick_place", session.spec.env_id), [session.seed], batch=1,
+                   max_steps=max_steps, hooks=[rec, H.EndWhen(lambda i, e: bool(teacher.done)), H.Settle(1)])[0]
+    res.steps, res.success, res.privileged_evaluator_success = ep.steps, bool(ep.success_public), bool(ep.success_privileged)
+    if not res.privileged_evaluator_success:
+        res.failure_reason = f"ended_in_phase:{teacher.phase}"
+    return res
+
+
+def fixture_teacher_run(seed=0, gripper="parallel", max_steps=600):
+    from rrp.envs.mujoco.fixtures import make_pick_place_session
+    return teacher_run(make_pick_place_session(seed=seed, gripper=gripper), max_steps)
+
+
 def test_fixture_teacher_episode(golden):
     from rrp.envs.mujoco.fixtures import make_pick_place_session
-    from rrp.policies.teachers.arm import PickPlaceTeacher, run_fixture_pick_place, run_teacher_episode
     rows = []
-    for r in (run_fixture_pick_place(seed=4, max_control_steps=600), run_fixture_pick_place(seed=1, gripper="three_finger")):
+    for r in (fixture_teacher_run(seed=4), fixture_teacher_run(seed=1, gripper="three_finger")):
         rows.append([r.actions, r.phases, r.steps, r.success, r.privileged_evaluator_success, r.failure_reason,
                      r.rejected_commands])
     s = make_pick_place_session(seed=0)
     s.teleport_object("target_zone", [1.5, 0.0, 0.0005])
-    r = run_teacher_episode(s, PickPlaceTeacher(s))
+    r = teacher_run(s)
     rows.append([r.actions, r.steps, r.failure_reason, r.feasibility])
     golden("loop.data.fixture_teacher", _digest(rows))
+
+
+def test_grpo_teacher_prefix_that_finishes_the_task(golden):
+    """A curriculum prefix long enough for the scripted teacher to finish: those episodes end as
+    `teacher_prefix_terminal` (shared by the group members of a repeated seed) and never reach the learned policy."""
+    from tests.unit.test_golden import _row_h, _tiny_latent
+    from rrp.harness.train.latent_grpo import run_episodes
+    si, R, _ = _tiny_latent()
+    rows = run_episodes(si, R, ROBOT, [3, 3, 4], max_steps=700, prefix_steps=650)
+    assert {r["outcome"] for r in rows} == {"teacher_prefix_terminal"}
+    golden("loop.grpo.prefix_terminal", _digest([_row_h(r) for r in rows]))
+
+
+def test_data_and_train_loops_are_rollouts(rollout_guard, monkeypatch):
+    """Every ported loop ticks its session inside harness.rollout (rollout_guard fails a tick made outside one)."""
+    import rrp.policies.nets.backbone as B
+    from rrp.envs.mujoco.fixtures import make_pick_place_session
+    from rrp.harness.data.collect import collect_teacher_episode
+    from rrp.harness.data.vlm_features import replay_render
+    from rrp.harness.train.latent_grpo import run_episodes
+    from tests.unit.test_golden import _tiny_latent
+
+    class Renderer:
+        def __init__(self, model, size=256):
+            pass
+
+        def cameras(self, want):
+            return list(want)
+
+        def render(self, data, cams):
+            return [np.zeros(3)]
+
+        def close(self):
+            pass
+    monkeypatch.setattr(B, "Renderer", Renderer)
+    calls = rollout_guard["calls"]
+    collect_teacher_episode(make_pick_place_session(seed=3), max_steps=4, episode_id="x")
+    assert rollout_guard["calls"] == calls + 1
+    replay_render(ROBOT, 3, 1, every=4, max_steps=5)
+    assert rollout_guard["calls"] == calls + 2
+    fixture_teacher_run(seed=4, max_steps=3)
+    assert rollout_guard["calls"] == calls + 3
+    si, R, _ = _tiny_latent()
+    run_episodes(si, R, ROBOT, [3, 3, 4], max_steps=6, prefix_steps=3)
+    assert rollout_guard["calls"] > calls + 3      # the batched teacher prefix, then the policy episodes

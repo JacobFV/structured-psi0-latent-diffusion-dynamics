@@ -287,22 +287,40 @@ def teacher_prefix(policy, st: EpisodeState, boundary, max_steps: int) -> bool:
     """Execute the SCRIPTED TEACHER (source=scripted_teacher, privileged planner) until the public
     boundary fires. Used only for labelled "suffix adaptation from teacher prefix" experiments; the
     learned policy's previous-action feature is set exactly as in teacher data collection."""
+    from rrp.harness import rollout as R
+    from rrp.harness.eval import hooks as H
+    from rrp.policies.teachers import TeacherPolicy
     from rrp.policies.teachers.arm import PickPlaceTeacher
+    from rrp.tasks.spec import Judgement
     s = st.session
-    t = PickPlaceTeacher(s)
     f = policy.featurizer(s)
-    while st.steps < max_steps:
-        pi_q0 = f(s.observe(), policy.prev.get(id(s))).q0
-        c = t.act()
-        policy.prev[id(s)] = f.aspace.normalize([c.groups], pi_q0)[0]
-        s.step(c)
-        st.steps += 1
-        st.tag["teacher_steps"] = st.tag.get("teacher_steps", 0) + 1
-        if cube_fell(s) or s.runtime.succeeded():
-            st.done = True
-            return False
-        if boundary(st):
-            s.executor.invalidate("branch_point", float(s.data.time))
-            return True
+    end = []
+
+    class Prefix:
+        def on_act(self, i, obs, act):                   # the previous-command feature of the next teacher tick
+            pi_q0 = f(obs, policy.prev.get(id(s))).q0
+            policy.prev[id(s)] = f.aspace.normalize([act.command.groups], pi_q0)[0]
+
+        def on_step(self, i, env, act, step):
+            st.steps += 1
+            st.tag["teacher_steps"] = st.tag.get("teacher_steps", 0) + 1
+            if cube_fell(s) or s.runtime.succeeded():
+                st.done = True
+                end.append(False)
+                return Judgement(True, "failure", "teacher_prefix_terminal")
+            if boundary(st):
+                s.executor.invalidate("branch_point", float(s.data.time))
+                end.append(True)
+                return Judgement(True, "timeout", "boundary")
+            return None
+
+    if st.steps < max_steps:
+        pol = TeacherPolicy("pick_place", PickPlaceTeacher, "prefix", ("joint_position", "gripper"))
+        ep = R.rollout(lambda sd: s, pol, H.budget_task("pick_place", s.spec.env_id), [st.seed], batch=1,
+                       max_steps=max_steps - st.steps, hooks=[Prefix()])[0]
+        if ep.outcome == "crash":
+            raise RuntimeError(ep.metrics.get("note") or ep.failure_reason)
+    if end:
+        return end[0]
     st.done, st.outcome = True, "timeout"
     return False

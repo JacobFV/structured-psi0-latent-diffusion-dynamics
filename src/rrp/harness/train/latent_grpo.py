@@ -228,25 +228,35 @@ def run_episodes(policy, realizer, robot_key: str, seeds: list[int], *, replan_t
     if prefix_steps > 0:
         # teacher prefix runs ONCE per distinct seed; group members get a snapshot restore (physics, controller,
         # task runtime, tracker, RNG) so the shared prefix is identical and counted once in accounting.
+        from rrp.harness import rollout as R
+        from rrp.harness.eval import hooks as H
+        from rrp.harness.train.rollout import cube_fell
+        from rrp.policies.teachers import TeacherPolicy
         from rrp.policies.teachers.arm import PickPlaceTeacher
         leader: dict = {}
+        for k in range(len(S)):
+            leader.setdefault(seeds[k], k)
+        lead = sorted(leader.values())
+        # the prefix is a harness.rollout of the scripted teacher on each leader (the episode ends when the task is
+        # done or the cube left the table: the "teacher_prefix_terminal" outcome)
+        pol = TeacherPolicy(task, PickPlaceTeacher, "prefix", ("joint_position", "gripper"))
+        for k, ep in zip(lead, R.rollout(
+                lambda j: S[lead[j]], pol, H.budget_task(task, S[0].spec.env_id), list(range(len(lead))),
+                batch=len(lead), max_steps=prefix_steps,
+                hooks=[H.EndWhen(lambda j, e: bool(e.runtime.succeeded()) or cube_fell(e),
+                                 reason="teacher_prefix_terminal")])):
+            if ep.outcome == "crash":
+                raise RuntimeError(ep.metrics.get("note") or ep.failure_reason)
+            meta[k]["teacher_steps"] = ep.steps
+            if ep.failure_reason == "teacher_prefix_terminal":
+                meta[k].update(done=True, outcome="teacher_prefix_terminal")
         for k, s in enumerate(S):
-            if seeds[k] in leader:
-                j = leader[seeds[k]]
+            if leader[seeds[k]] != k:                # group members: a snapshot restore (physics, controller, task
+                j = leader[seeds[k]]                 # runtime, tracker, RNG) so the shared prefix is identical
                 if meta[j]["outcome"] != "teacher_prefix_terminal":
                     s.restore(S[j].snapshot())
                 meta[k].update(teacher_steps=meta[j]["teacher_steps"], done=meta[j]["done"], outcome=meta[j]["outcome"],
                                shared_prefix=True)
-                continue
-            leader[seeds[k]] = k
-            t = PickPlaceTeacher(s)
-            for _ in range(prefix_steps):
-                s.step(t.act())
-                meta[k]["teacher_steps"] += 1
-                if s.runtime.succeeded() or s.data.xpos[s.model.body("cube").id][2] < -0.05:
-                    meta[k]["done"] = True
-                    meta[k]["outcome"] = "teacher_prefix_terminal"
-                    break
     for k, s in enumerate(S):
         meta[k]["min_reach"] = meta[k]["reach0"] = _tcp_cube_d(s)
     from rrp.harness.rollout import rollout

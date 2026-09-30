@@ -45,27 +45,42 @@ def replay_render(robot_key: str, seed: int, n_distractors: int, task: str = "pi
     f = teacher.feasibility()
     rend = Renderer(sess.model, size)
     cams = rend.cameras(list(cameras))
-    frames, ts, dev = [], [], 0.0
-    obs = sess.observe()
-    prev = None
+    frames, ts, dev = [], [], [0.0]
+    steps = 0
     if f["feasible"]:
-        for k in range(max_steps):
-            pi = feat(obs, prev)
-            if k % every == 0:
-                frames.append(rend.render(sess.data, cams))
-                ts.append(k)
-                if ref_q0 is not None and k < len(ref_q0):
-                    dev = max(dev, float(np.max(np.abs(np.asarray(pi.q0) - np.asarray(ref_q0[k])))))
-            cmd = teacher.act()
-            a = feat.aspace.normalize([cmd.groups], pi.q0)[0]
-            privileged_labels(sess, feat)          # keep the exact call sequence of collection
-            res = sess.step(cmd)
-            obs = res.observation
-            prev = a
-            if teacher.done:
-                break
+        prev = [None]
+
+        class Replay:
+            """on_act (the state the tick starts from): featurize as the collector did, render the keyframes, keep the
+            exact call sequence of collection (privileged_labels); on_step: the previous-command feature."""
+            k = 0
+
+            def on_act(self, i, obs, act):
+                pi = feat(obs, prev[0])
+                if self.k % every == 0:
+                    frames.append(rend.render(sess.data, cams))
+                    ts.append(self.k)
+                    if ref_q0 is not None and self.k < len(ref_q0):
+                        dev[0] = max(dev[0], float(np.max(np.abs(np.asarray(pi.q0) - np.asarray(ref_q0[self.k])))))
+                self.a = feat.aspace.normalize([act.command.groups], pi.q0)[0]
+                privileged_labels(sess, feat)
+
+            def on_step(self, i, env, act, step):
+                prev[0] = self.a
+                self.k += 1
+
+        # the replay is a harness.rollout of the scripted teacher (docs/architecture.md 14.1)
+        from rrp.harness import rollout as R
+        from rrp.harness.eval import hooks as H
+        from rrp.policies.teachers import TeacherPolicy
+        pol = TeacherPolicy(task, lambda e: teacher, "replay", ("joint_position", "gripper"))
+        ep = R.rollout(lambda sd: sess, pol, H.budget_task(task, sess.spec.env_id), [seed], batch=1, max_steps=max_steps,
+                       hooks=[Replay(), H.EndWhen(lambda i, e: bool(teacher.done))])[0]
+        if ep.outcome == "crash":
+            raise RuntimeError(ep.metrics.get("note") or ep.failure_reason)
+        steps = ep.steps
     rend.close()
-    return dict(t=ts, frames=frames, cameras=cams, text=task_text(sess), q0_max_dev=dev, steps=k + 1)
+    return dict(t=ts, frames=frames, cameras=cams, text=task_text(sess), q0_max_dev=dev[0], steps=steps)
 
 
 def _job(args):

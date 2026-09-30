@@ -3,8 +3,6 @@
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-
 import mujoco
 import numpy as np
 
@@ -18,21 +16,6 @@ SOURCE = "scripted_teacher"
 def _yaw_of_quat(q):
     w, x, y, z = q
     return float(np.arctan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z)))
-
-
-@dataclass
-class TeacherResult:
-    actions: list = field(default_factory=list)          # native commands per control step
-    observations: list = field(default_factory=list)     # public observation ids
-    phases: list = field(default_factory=list)
-    success: bool = False                                  # public runtime success
-    privileged_evaluator_success: bool = False
-    controller_source: str = SOURCE
-    privileged_inputs: bool = True
-    steps: int = 0
-    failure_reason: str | None = None
-    rejected_commands: int = 0
-    feasibility: dict | None = None
 
 
 class PickPlaceTeacher:
@@ -198,42 +181,6 @@ class PickPlaceTeacher:
     @property
     def done(self):
         return self.phase == "retreat" and self.t_phase > 0.8
-
-
-def run_teacher_episode(session, teacher, max_control_steps: int = 600, record_obs: bool = False,
-                        check_feasibility: bool = True) -> TeacherResult:
-    res = TeacherResult()
-    if check_feasibility and hasattr(teacher, "feasibility"):
-        f = teacher.feasibility()
-        res.feasibility = f
-        if not f["feasible"]:
-            res.failure_reason = f"infeasible:{','.join(f['unreachable'])}"
-            return res
-    for k in range(max_control_steps):
-        cmd = teacher.act()
-        res.actions.append(cmd.groups)
-        res.phases.append(teacher.phase)
-        out = session.step(cmd)
-        if out.rejected:
-            res.rejected_commands += 1
-        if record_obs:
-            res.observations.append(out.observation.observation_id)
-        res.steps = k + 1
-        if teacher.done:
-            break
-    session.step(None)
-    res.success = session.runtime.succeeded()
-    res.privileged_evaluator_success = session.privileged_success()
-    if not res.privileged_evaluator_success:
-        res.failure_reason = f"ended_in_phase:{teacher.phase}"
-    return res
-
-
-def run_fixture_pick_place(seed: int = 0, max_control_steps: int = 600, gripper: str = "parallel",
-                           n_distractors: int = 0) -> TeacherResult:
-    from rrp.envs.mujoco.fixtures import make_pick_place_session
-    s = make_pick_place_session(seed=seed, gripper=gripper, n_distractors=n_distractors)
-    return run_teacher_episode(s, PickPlaceTeacher(s), max_control_steps)
 
 
 class ShiftedGoalTeacher(PickPlaceTeacher):

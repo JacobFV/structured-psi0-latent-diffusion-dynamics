@@ -69,6 +69,10 @@ class ShadowTeacher:
         return c
 
     def lookahead(self, s, H: int):
+        """The teacher's next H commands from the current state, on a snapshot that is restored. The one session tick
+        made outside harness.rollout in the owned files (D-146 RP3): this is a policy-internal look-ahead in the
+        policies layer, which may not import harness (tests/unit/test_layering.py); the equivalent harness-layer
+        look-ahead is latent_semantic_edits._teacher_demo. Reported to X1 (lint allowlist or a layer-correct home)."""
         self.catch_up(s)
         if self.reanchor:
             self.reanchor_now(s)
