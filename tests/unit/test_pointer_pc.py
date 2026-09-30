@@ -1,6 +1,6 @@
 """Readiness R2 unit PC (pointer closure): the collector runs on `harness.rollout` and keeps its demos byte-identical; the
 teacher's drag target is stored per episode and is what `ui.drag_to` is supervised with (no net proxy); `--curriculum` mixes
-relgen rows through `relation_batches` and refuses shards that carry no policy inputs; the checkpoint stamps / checks its
+relgen rows through `relation_batches` and refuses shards that carry no pointer public inputs; the checkpoint stamps / checks its
 factor structure. CPU, tiny packs; the CW tests need the `computerworld` extra."""
 from __future__ import annotations
 
@@ -153,7 +153,7 @@ def test_relation_batches_refuses_shards_without_policy_inputs(tmp_path, monkeyp
     row = dict(inputs={}, labels={"drag_to": Label(value=np.zeros((5, 5, 1)), valid=np.ones((5, 5), bool), prov="gt", version="2")},
                provenance={})
     monkeypatch.setattr(relmix, "load_shard_rows", lambda *a: [row])
-    with pytest.raises(FactorError, match="no policy inputs"):
+    with pytest.raises(FactorError, match="no pointer public inputs"):
         T.cmd_bc(_args(tmp_path, [p], out=str(tmp_path / "x.pt"), w_xy=5.0, factors=MIX, curriculum=CURRICULUM))
 
 

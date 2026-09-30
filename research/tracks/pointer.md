@@ -269,5 +269,7 @@ ops/bin/peer_run.sh ...` appends it to the job's PYTHONPATH.
     `--retry-failed` (first attempt: ModuleNotFoundError computerworld, from the PYTHONPATH bug above). Collect: 4 episodes, 128 ticks,
     teacher_failures 0, `ep_drag` (4, 2) and `ep_drags` (4,) in the pack. Eval (dev, 2 seeds, 20-step models): bc 0/2, eng 0/2
     (timeout), i.e. a wiring check, not a result. Raw: peer `artifacts/runs/pointer/pointer-smoke-*`.
-  - P-CURR stays blocked on the RG redesign (`track/r2-rg`, unmerged): shards carry no `inputs`. No real training run was started;
+  - RG (relgen-shard-2, merged 3fb304fd) changed `relation_batches` to `(cfg dict, out_dir, specs, family=, main=)`; `RelStream` follows it.
+    P-CURR stays blocked: relgen-shard-2 rows carry the arm family's `policy_input` + entity ids, not the pointer public batch
+    (`Demos.batch` keys), so `RelStream` refuses them by name; it needs relgen rows featurized by the pointer featurizer. No real training run was started;
     sealed v2 evaluation needs a written decision first (T8: dev tables only).
