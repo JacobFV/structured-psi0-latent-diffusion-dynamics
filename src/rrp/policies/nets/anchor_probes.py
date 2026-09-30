@@ -1,6 +1,6 @@
 """Anchor-relative packet probes (W12; query version "probe-anchor-v1").
 
-Same rules as rrp.models.latent_probes.PacketProbe: the probe sees ONLY the received packet z [B,K,M,dz], the query
+Same rules as rrp.policies.nets.probes.ReadoutProbe: the probe sees ONLY the received packet z [B,K,M,dz], the query
 type and opaque FIXED random handle codes (knot index, packet slot, contact-pair index). No labels, features or
 descriptors enter a query. `metadata_only=True` is the no-z control probe.
 

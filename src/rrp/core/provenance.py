@@ -447,10 +447,12 @@ TRAINING_FLAG_KEYS = ("zero_prev_action", "realizer_drop_qd", "realizer_anchor",
 # / `packet_semantic_weight` are kept here, byte-identical to pre-R2, although unit R2 (docs/relations.md 10) retires
 # them as LatentConfig's own primary surface (see nets/semantic_latent.py `LatentConfig.factors` / the ONE legacy
 # mapping table `LATENT_LEGACY_KEYS`). This function reads ANY config dict generically by key presence -- it is the
-# provenance path every `save_checkpoint` call goes through (`nets/checkpoint.py`), arm and legged alike, and legged
-# checkpoints/configs are not migrated by any merged unit yet (fanout unit R4, not merged: `legged_latent_train.py`
-# still writes these flat keys). Dropping them would silently stop recording them for every still-legacy-style (arm
-# OR legged) config or checkpoint. R2c confirmed concretely (not just by inspection) that even the last arm-only
+# provenance path every `save_checkpoint` call goes through (`nets/checkpoint.py`), arm and legged alike. Fanout
+# unit R4 (docs/relations.md 10, legged nets on RelBlock / route.own_assembly / ReadoutProbe) has since merged, but
+# R4's owned files never included retiring these flat keys: `harness/train/legged_latent_train.py` still writes them
+# (grep-confirmed), so legged checkpoints/configs remain unmigrated for this surface. Dropping them would silently
+# stop recording them for every still-legacy-style (arm OR legged) config or checkpoint. R2c confirmed concretely
+# (not just by inspection) that even the last arm-only
 # occurrences cannot be retired in isolation: `dags/arm_lineage.yaml` / `dags/templates/dual_lineage.yaml` still
 # render a flat `latent.semantic_weight` block coupled to the `Flags.probe_lv_min` mechanism (`core/runconfig.py`'s
 # `FLAG_NAMES` note), proven byte-identical to on-disk `configs/ladder/**` files by `test_dag.py::

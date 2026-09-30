@@ -202,8 +202,8 @@ def main(argv=None):
                 clock_gate=bool(args.clock_gate), target_margin=float(args.target_margin), land_vel=float(args.land_vel), force_cap=float(args.force_cap),
                 force_cap_bw=float(args.force_cap_bw),
                 extra_obs_dim=int(getattr(env, "extra_dim", env.obs_dim - env.b.obs_dim)),
-                extra_obs={"steps": "privileged height scan 11x3 + h_frac (expert only)",
-                           "gap": "privileged gap centre/width/wall distance, body width, final heading, phase (expert only)"}.get(args.task),
+                extra_obs={"steps": "privileged height scan 11x3 + h_frac (critic only; R19 moved it out of the actor's deployable vec)",
+                           "gap": "privileged gap centre/width/wall distance, body width, final heading, phase (critic only; R19 moved it out of the actor's deployable vec)"}.get(args.task),
                 gpu=torch.cuda.get_device_name(0))
     if groups is not None:
         from rrp.envs.mujoco.morph_obs import OBS_FORMAT
