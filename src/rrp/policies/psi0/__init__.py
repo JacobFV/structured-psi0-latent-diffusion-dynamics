@@ -3,8 +3,10 @@
     psi0_direct      Ψ₀ action head over the 30x36 chunk: the RELEASED upstream checkpoint (`weights="released"`,
                      source `learned:psi0-released/<run>/ckpt_<step>`: upstream weights, not trained by us; RTC as
                      released) or our matched fine-tune (`weights=<final.pt>`, source `learned:<final.pt>`, no RTC).
-    psi0_structured  Ψ₀ + structure: system i samples the packet z[5, 6, 64] (StructuredHead), `packet_hook(i, z)` may
-                     edit it (harness packet edits), system 0 (Realizer) turns it into the 30x36 chunk. No RTC.
+    psi0_structured  Ψ₀ + structure: system i samples the packet z[5, 6, 64] (StructuredHead), `packet_edit=` (a registered
+                     `rrp.policies.packets` edit) or `packet_hook(i, z)` may edit it (harness packet edits); `Act.info["packet"]`
+                     carries source kind, head / stage-A hashes, packet-use gate and edit; the head checkpoint must
+                     carry a passed gate for the stage A it is loaded with and its factor structure is checked, system 0 (Realizer) turns it into the 30x36 chunk. No RTC.
     psi0_replay      recorded training rows of one episode (source `replay:<task>/episode_<e>`; labels / fidelity
                      checks, psi1z replay_labels). Needs `split="train"` on the env.
 
@@ -25,6 +27,14 @@ from pathlib import Path
 import numpy as np
 
 TP, DA, TA = 30, 36, 24
+
+# What BOTH of our arms (direct and structured) are given at every tick (`OursModel.batch`, one code path); a structured
+# arm gets nothing else, and its packet is the only new intermediate (D-146 P3). The packet-level edit is recorded apart.
+INPUT_SPEC = dict(
+    images="ego view through the upstream server's resize + center crop", instruction="task text, lower-cased",
+    state="last 36 dims of the proprio state (state0)",
+    vlm="frozen Ψ₀ base VLM last hidden states + attention mask",
+    entity="mask of the instruction's object-name tokens (pooled), optionally read from an override prompt")
 
 
 def ext_dir() -> Path:
@@ -86,6 +96,19 @@ def psi_runtime():
     transformers.PreTrainedModel.resize_token_embeddings = resize_token_embeddings
 
 
+def structured_provenance(state: dict, stage_a: str) -> dict:
+    """What a structured-head checkpoint (`save_checkpoint` state) says about its own lineage, verified against the
+    stage-A file the policy loads: the packet-use gate it was trained under must have passed for THIS stage A
+    (architecture 14.5 c), else the policy refuses (D-141: a head over an R that ignores the packet is not the arm)."""
+    gate = (state.get("config") or {}).get("packet_gate")
+    sha = _digest_file(stage_a)
+    if not gate or not gate.get("passed") or gate.get("stage_a_sha256_16") != sha:
+        raise ValueError(f"psi0_structured: head was not trained under a passed packet-use gate for stage A {stage_a} "
+                         f"(gate={gate}, stage-A sha256_16={sha}); retrain through `rrp train psi0 heldout --stage-a`")
+    return dict(stage_a=sha, packet_gate=dict(gap=gate["gap"], margin=gate["margin"]),
+                factors=(state.get("versions") or {}).get("factors"))
+
+
 class OursModel:
     """Frozen Ψ₀ base VLM (the SAME weights that produced the cached training features) + our trained head, with
     upstream Psi0Model's `predict_action` signature (psi1z serve_ours)."""
@@ -98,18 +121,21 @@ class OursModel:
         self.vlm_processor = AutoProcessor.from_pretrained(vlm)
         self.vlm = Qwen3VLForConditionalGeneration.from_pretrained(vlm, dtype=torch.bfloat16, attn_implementation="sdpa").to(device).eval()
         mcfg = load_launch_config(Path(run_dir)).model
+        self.provenance = dict(arm=arm, head=_digest_file(ckpt), inputs=INPUT_SPEC)
         if arm == "direct":
             self.head = N.DirectHead(mcfg)
+            self.head.load_state_dict(torch.load(ckpt, weights_only=False)["model"], strict=True)
         else:
             A = N.load_stage_a(stage_a)
             zs = torch.load(Path(stage_a).parent / "z_stats.pt")
             self.head = N.StructuredHead(mcfg, A, zs["mean"], zs["std"])
-        sd = torch.load(ckpt, weights_only=False)["model"]
-        N.load_tolerant(self.head, sd) if arm == "structured" else self.head.load_state_dict(sd, strict=True)
+            self.provenance.update(structured_provenance(torch.load(ckpt, weights_only=False, map_location="cpu"), stage_a))
+            N.load_structured(self.head, ckpt)              # factor structure (context tokens + stage A) must match
         self.head.to(device).eval()
         self.entity_override = None      # input-channel edit: pool the object token from another object's name
-        self.packet_hook = None          # z -> z (harness packet edits); structured only
-        self.last_z = None
+        self.packet_hook = None          # z -> z (per-episode harness hook); structured only
+        self.packet_edit = None          # (name, kwargs) of a registered `rrp.policies.packets` edit; structured only
+        self.last_z = self.generated_z = None
 
     # upstream Server calls .to(device) and .eval() on the model
     def to(self, device):
@@ -147,21 +173,34 @@ class OursModel:
                 ent[j, pos] = True
         return h.to(torch.bfloat16), mask, ent
 
+    def batch(self, observations, states, instructions) -> dict:
+        """The head input, identical for both arms (`INPUT_SPEC`)."""
+        h, mask, ent = self.vlm_features(observations, instructions)
+        b = dict(hidden=h, mask=mask, ent=ent, state0=states[:, -1, :36].float())
+        if self.entity_override:
+            alt = [re.sub(r"pick up the .+?($| and |\.|,)", f"pick up the {self.entity_override}\\1", i) for i in instructions]
+            h2, _, e2 = self.vlm_features(observations, alt)
+            b["ent_hidden"], b["ent"] = h2, e2
+        return b
+
+    def edited(self, z):
+        """The packet system 0 receives: the generated z after the optional edit (registered edit or per-episode hook)."""
+        if self.packet_edit is not None and self.packet_hook is not None:
+            raise ValueError("set packet_edit or packet_hook, not both")
+        if self.packet_edit is not None:
+            from rrp.policies.packets import apply_edit
+            name, kw = self.packet_edit
+            return apply_edit(name, z, **({"mean": self.head.z_mean} if name == "mean_packet" and "mean" not in kw else {}), **kw)
+        return self.packet_hook(z) if self.packet_hook is not None else z
+
     def predict_action(self, observations, states, instructions, num_inference_steps=10, traj2ds=None, **kw):
         import torch
         with torch.no_grad():
-            h, mask, ent = self.vlm_features(observations, instructions)
-            b = dict(hidden=h, mask=mask, ent=ent, state0=states[:, -1, :36].float())
-            if self.entity_override:
-                alt = [re.sub(r"pick up the .+?($| and |\.|,)", f"pick up the {self.entity_override}\\1", i) for i in instructions]
-                h2, _, e2 = self.vlm_features(observations, alt)
-                b["ent_hidden"], b["ent"] = h2, e2
+            b = self.batch(observations, states, instructions)
             with torch.autocast("cuda", dtype=torch.bfloat16):
                 if self.arm == "structured":
-                    z = self.head.sample_z(b, nfe=num_inference_steps)
-                    if self.packet_hook is not None:
-                        z = self.packet_hook(z)
-                    self.last_z = z
+                    self.generated_z = self.head.sample_z(b, nfe=num_inference_steps)
+                    z = self.last_z = self.edited(self.generated_z)
                     a = self.head.realize(z, b["state0"], torch.zeros(z.shape[0], device=z.device))
                 else:
                     a = self.head.sample(b, nfe=num_inference_steps)
@@ -227,11 +266,21 @@ class Psi0Policy:
 
     def __init__(self, kind: str, *, task: str = "simple/G1WholebodyTabletopGraspMP-v0", weights: str = "released", stage_a: str | None = None,
                  vlm: str | None = None, rtc: bool | None = None, seed: int = 0, nfe: int = 10,
-                 entity_override: str | None = None, data_root: str | None = None, device: str = "cuda:0"):
+                 entity_override: str | None = None, packet_edit: dict | None = None, data_root: str | None = None,
+                 device: str = "cuda:0"):
+        """`packet_edit=dict(name=<rrp.policies.packets.EDITS key>, **kwargs)` (structured only): system 0 receives the
+        edited packet; `packet_hook(i, z)` is the free-form per-episode alternative (not both)."""
         if kind not in ("psi0_direct", "psi0_structured", "psi0_replay"):
             raise ValueError(kind)
         self.kind, self.task, self.nfe, self.device, self.seed = kind, task.split("/", 1)[-1], nfe, device, seed
         self.packet_hook = None
+        if packet_edit is not None:
+            from rrp.policies.packets import EDITS
+            if kind != "psi0_structured" or packet_edit.get("name") not in EDITS:
+                raise ValueError(f"packet_edit={packet_edit!r}: needs psi0_structured and a name in {sorted(EDITS)}")
+            packet_edit = dict(packet_edit)
+            packet_edit = (packet_edit.pop("name"), packet_edit)
+        self.packet_edit = packet_edit
         run = released_run(self.task)
         if kind == "psi0_replay":
             self.data_root = Path(data_root or psi_home() / "data/simple") / self.task
@@ -291,12 +340,21 @@ class Psi0Policy:
             srv.previous_action = self._prev[i]                     # RTC state per env
             if self.ours is not None:
                 srv.model.packet_hook = (lambda z, _i=i: self.packet_hook(_i, z)) if self.packet_hook else None
+                srv.model.packet_edit = self.packet_edit
             chunk = server_infer(srv, o.sensor_images[0].pixels, _channel(o, "psi0_state"), o.instruction,
                                  reset=self._reset_flags[i])
             self._prev[i], self._reset_flags[i] = srv.previous_action, False
             info = {}
+            if self.ours is not None:
+                info["inputs"] = INPUT_SPEC                       # identical for the direct and structured arm
             if self.kind == "psi0_structured":
-                info["packet_z"] = srv.model.last_z.float().cpu().numpy()[0]
+                m = srv.model
+                edited = self.packet_edit is not None or self.packet_hook is not None
+                info["packet_z"] = m.last_z.float().cpu().numpy()[0]
+                info["packet"] = dict(m.provenance, source="edited:debug" if edited else "system_i_generated",
+                                      edit=self.packet_edit[0] if self.packet_edit else ("hook" if self.packet_hook else None))
+                if edited:
+                    info["packet_z_generated"] = m.generated_z.float().cpu().numpy()[0]     # before the edit
             acts[i] = Act(command=None, chunk=_chunk(chunk, o, self.info), info=info)
         return acts
 

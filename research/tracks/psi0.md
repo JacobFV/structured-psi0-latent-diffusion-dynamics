@@ -411,6 +411,17 @@ peer GPU-h (lease-log estimate).
 - direct / structured arms: training on the peer (direct done at 8000 steps; structured next in the same lease);
   their 20-episode evals start after W7's priority job is admitted (P-019).
 
+### 2026-09-30 readiness P3 (audit D20): policy surface and the tensor-level edit registry
+- `policies/packets.py` `EDITS` (`mean_packet`, `zero_slot`, `swap_assembly`; pure, numpy or torch, assembly axis -2) is the one
+  packet-edit registry; `chunk_hook(name, **kw)` (LatentStackPolicy: edited packet `source="debug"`, `sampling.intervention`) and
+  `tensor_hook` / `apply_edit` (Ψ₀) use it. Hand-over to RP2/RP1: `harness/eval/dual_latent_eval.PACKET_EDITS["swap_slots"]` is
+  `chunk_hook("swap_assembly", a=0, b=1)`; replace it (and the `hooks.dual_latent_hooks` lookup) when those files are theirs.
+- `psi0.OursModel`: one `batch()` for both arms (`INPUT_SPEC`; test: identical head inputs), the structured head loads through
+  `N.load_structured` (factor hash check) and must carry a passed packet-use gate for the SAME stage-A file
+  (`structured_provenance`); `Psi0Policy(packet_edit=dict(name=..., **kw))`; `Act.info["packet"]` = arm, head / stage-A sha,
+  gate, factors, source (`system_i_generated` | `edited:debug`), edit; `packet_z_generated` keeps the pre-edit z.
+- Tests: `tests/unit/test_packets.py` (registry, hooks, identical inputs, edit reaches R, gate refusal).
+
 ### 2026-09-30 readiness P2 (audit D20): data driver and SIMPLE plumbing
 - `CachedDataset`: the realization tick j is drawn from `default_rng([seed, episode, frame, visit])`, `visit` = fetches of
   that item so far (a shared-memory counter: every DataLoader worker bumps the same one, persistent workers included). One
