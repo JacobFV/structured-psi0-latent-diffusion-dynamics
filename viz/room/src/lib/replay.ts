@@ -27,6 +27,28 @@ export type Replay = {
   annotations?: { t: number; text: string }[];
 };
 
+/** rrp-viz/factormap/v1 (D-144 R21, viz/CONTRACT.md): `FactorSite.contributions()` at chosen steps, fetched from
+ * `/api/replay/<replay id>.factormap` (served by the same generic replay-file route as the replay itself — no
+ * separate plugin route). Its own schema, not the replay one: a per-factor per-head logit map is not a fixed-shape
+ * per-frame signal. Provenance mirrors `rrp.policies.relations.base.provenance`. */
+export type FactorProvenance = {
+  name: string; version?: string; op?: string; form?: string; source: string; control?: string; privileged: boolean;
+  field?: string; sites?: string[]; heads?: number[]; gate?: string; confidence?: boolean; [k: string]: unknown;
+};
+export type FactorMapStep = { t: number; site: string; factors: Record<string, number[][][]> };  // [factor][H][Q][K]
+export type FactorMap = { schema: string; id: string; provenance: FactorProvenance[]; steps: FactorMapStep[] };
+
+/** Index of the recorded step nearest `t` (factor maps are sparse — chosen steps, not every frame). */
+export function nearestFactorStep(map: FactorMap, t: number): number {
+  if (!map.steps.length) return -1;
+  let best = 0, bestD = Math.abs(map.steps[0].t - t);
+  for (let i = 1; i < map.steps.length; i++) {
+    const d = Math.abs(map.steps[i].t - t);
+    if (d < bestD) { best = i; bestD = d; }
+  }
+  return best;
+}
+
 /** Times relative to the first frame. */
 export function relTimes(r: Replay) {
   const t = r.frames.t;

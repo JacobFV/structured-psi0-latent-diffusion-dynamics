@@ -4,6 +4,8 @@ import os
 import time
 from types import SimpleNamespace
 
+import pytest
+
 from rrp.viz.export.relations import _catalog, build_factors, build_matrix
 
 
@@ -40,3 +42,29 @@ def test_factors_doc_from_the_registry(tmp_path):
     assert d["schema"] == "rrp-viz/factors/v1" and d["n_factors"] > 0
     assert {"name", "field", "op", "form", "status", "field_prov"} <= set(d["factors"][0])
     assert d["runs"] == [] and d["schedules"] == []
+
+
+def test_schedule_competence_by_depth_when_present(tmp_path):
+    """R21: competence by composition depth reduces the latest `ScheduleState` line; a factor with no `signals` yet
+    (today's R11 placeholder scheduler) stays `competence: None`, never fabricated; `has_competence` flips once a
+    line carries real signals (R11 landed)."""
+    run_dir = tmp_path / "artifacts/runs/rel_curriculum_demo"
+    run_dir.mkdir(parents=True)
+    sched = run_dir / "schedule.jsonl"
+    sched.write_text(json.dumps({"step": 0, "level": {"geo.depth3d": 1, "ix.contact": 1},
+                                 "share": {"geo.depth3d": 0.1}, "full_world": 0.1, "signals": {}}) + "\n")
+    d = build_factors(_cfg(tmp_path))
+    assert len(d["schedules"]) == 1
+    s0 = d["schedules"][0]
+    assert s0["step"] == 0 and s0["has_competence"] is False
+    cbd = {r["factor"]: r for r in s0["competence_by_depth"]}
+    assert cbd["geo.depth3d"] == {"factor": "geo.depth3d", "depth": 1, "share": 0.1, "competence": None,
+                                  "plateau": None, "interference": None, "attributed_failures": None}
+    sched.write_text(sched.read_text() + json.dumps({"step": 500, "level": {"geo.depth3d": 2, "ix.contact": 1},
+                                                      "share": {"geo.depth3d": 0.2}, "full_world": 0.12,
+                                                      "signals": {"geo.depth3d": {"competence": 0.61, "plateau": 0.02}}}) + "\n")
+    d2 = build_factors(_cfg(tmp_path))
+    s1 = d2["schedules"][0]
+    assert s1["step"] == 500 and s1["has_competence"] is True
+    dep = next(r for r in s1["competence_by_depth"] if r["factor"] == "geo.depth3d")
+    assert dep["depth"] == 2 and dep["competence"] == pytest.approx(0.61) and dep["plateau"] == pytest.approx(0.02)

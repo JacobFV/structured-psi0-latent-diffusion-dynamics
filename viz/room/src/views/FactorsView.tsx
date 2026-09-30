@@ -2,7 +2,7 @@
 import { Cap, ModeBadge } from '../components/board';
 import { Gate } from '../components/ui';
 import { useDoc, type Envelope } from '../lib/api';
-import { rows, str } from '../lib/format';
+import { fmtNum, rows, str } from '../lib/format';
 
 export default function FactorsView() {
   const { result } = useDoc<Envelope>('factors');
@@ -40,6 +40,32 @@ export default function FactorsView() {
               })}
               <div className="legend">{waves.map((w) => <span key={w}><i className="sw" style={{ background: wcol[w] }} />{w} {cat.filter((c) => c.status === w).length}</span>)}</div>
               <Cap>rows: catalog section · square: candidate relation family, colour = wave (W1 first, W2 next, P planned, X out of scope, M meta)</Cap>
+            </section>
+            <section className="ev-panel">
+              <header>Runs · schedules<span className="meta">{rows(d.runs).length} run{rows(d.runs).length === 1 ? '' : 's'} with a factor set</span></header>
+              {rows(d.schedules).length ? rows(d.schedules).map((s) => (
+                <div key={str(s.run)} className="small" style={{ marginBottom: 8 }}>
+                  <div>{str(s.run)} · step {s.step == null ? '—' : str(s.step)} · {rows(s.records).length} intervals · {rows(s.steer).length} steers{s.has_competence === false ? <span className="muted"> · no competence signals yet (R11 placeholder)</span> : null}</div>
+                  {rows(s.competence_by_depth).length > 0 && (
+                    <table className="bt">
+                      <thead><tr><th>factor</th><th>depth</th><th>share</th><th>competence</th><th>plateau</th><th>interference</th></tr></thead>
+                      <tbody>
+                        {rows(s.competence_by_depth).map((c) => (
+                          <tr key={str(c.factor)}>
+                            <td className="mono">{str(c.factor)}</td>
+                            <td className="n">{c.depth == null ? '—' : str(c.depth)}</td>
+                            <td className="n">{fmtNum(c.share)}</td>
+                            <td className="n">{c.competence == null ? <span className="muted">—</span> : fmtNum(c.competence)}</td>
+                            <td className="n">{fmtNum(c.plateau)}</td>
+                            <td className="n">{fmtNum(c.interference)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              )) : <p className="side-note">no run has written schedule.jsonl yet</p>}
+              <Cap>competence by composition depth: the latest decision line per run (docs/relations.md 5.5) · depth = the factor's current level k · competence / plateau / interference: null until R11 fills in the scheduler's real signals (today's foundation placeholder always leaves them empty) — never fabricated</Cap>
             </section>
           </div>
         );

@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ModeBadge } from '../components/board';
 import { EditPanel, EventGantt, GaitDiagram, hasEdit, hasMap, hasProbeTruth, JointHeatmap, PacketHeatmap, pcaSpeed, PhaseLanes, PhasePortrait, ProbeTruth, TopDownMap } from '../components/runpanels';
+import { FactorMapPanel } from '../components/FactorHeat';
 import { SideGroup, SidebarControls } from '../components/shell';
 import { hasMorphology, hasPacketStructure, hasPipeline, Morphology, PacketStructure, PipelineFlow } from '../components/diagrams';
 import Stage, { PcaPlot, type StageOptions } from '../components/Stage';
@@ -13,7 +14,7 @@ import { CategoryTrack, ProbeTracks, RasterTrack, ScalarTrack, type Side, type V
 import { Caveat, Did, ErrorState, Loading, NoData, SourceBadge } from '../components/ui';
 import { useDoc, useReplay, type DocResult, type Envelope } from '../lib/api';
 import { arr, fmtNum, isObj, pick, rows, shortSha, sortNatural, str, type Row } from '../lib/format';
-import { Clock, relTimes, useClock, type Replay } from '../lib/replay';
+import { Clock, relTimes, useClock, type FactorMap, type Replay } from '../lib/replay';
 import { readParam, useUrlState, writeParams } from '../lib/url';
 
 const SPEEDS = ['0.25', '0.5', '1', '2', '4'];
@@ -61,6 +62,8 @@ const CAPS: Record<string, string> = {
   probe: 'x: time (s) · rows/lines: probe readouts of the packet; with truth: probe (solid) vs privileged truth (dashed) and a calibration strip (observed frequency per predicted-probability decile)',
   video: 'recorded video matched to this run (label from artifacts/video/INDEX.md)',
   evidence: 'the original eval row, the reproduction check (recorded vs re-run) and the replay metadata',
+  factors: 'per-factor, per-head attention logit map (FactorSite.contributions) at the recorded step nearest the cursor · '
+    + 'rows/cols: query/key tokens · colour: signed logit, scaled to this map\'s own max |value| · badge: source (public / estimated / privileged)',
 };
 
 function envOf(e: Row) {
@@ -139,6 +142,7 @@ function Runs({ entries, videos, indexResult }: { entries: Row[]; videos: DocRes
   const idA = a || str(shown[0]?.id ?? entries[0]?.id);
   const ra = useReplay<Replay>(idA || undefined);
   const rb = useReplay<Replay>(b || undefined);
+  const fmA = useReplay<FactorMap>(idA ? `${idA}.factormap` : undefined);   // D-144 R21: recorded FactorSite.contributions, if any
   const clock = useMemo(() => new Clock(), []);
   useEffect(() => () => clock.dispose(), [clock]);
   const snap = useClock(clock);
@@ -245,7 +249,7 @@ function Runs({ entries, videos, indexResult }: { entries: Row[]; videos: DocRes
             <label className="small"><input type="checkbox" checked={follow === '1'} onChange={(e) => setFollow(e.target.checked ? '1' : '0')} /> follow</label>
           </div>
           <div className="rh-stack">
-            {panes(sides, p, clock, opts, cur, videos)}
+            {panes(sides, p, clock, opts, cur, videos, fmA)}
           </div>
         </>
       )}
@@ -277,7 +281,7 @@ function Banner({ r, tag, color, entry }: { r: Replay; tag?: string; color: stri
   );
 }
 
-function panes(sides: Side[], p: { sides: Side[]; t: number; duration: number; onSeek: (t: number) => void }, clock: Clock, opts: StageOptions, entry: Row | undefined, videos: DocResult<Envelope>) {
+function panes(sides: Side[], p: { sides: Side[]; t: number; duration: number; onSeek: (t: number) => void }, clock: Clock, opts: StageOptions, entry: Row | undefined, videos: DocResult<Envelope>, fmA?: DocResult<FactorMap> | null) {
   const A = sides[0].replay;
   const any = (f: (r: Replay) => unknown) => sides.some((s) => { const v = f(s.replay); return Array.isArray(v) ? v.some((x) => x !== null && x !== undefined) : !!v; });
   const out: ReactNode[] = [];
@@ -296,6 +300,11 @@ function panes(sides: Side[], p: { sides: Side[]; t: number; duration: number; o
   )));
   if (hasMorphology(A)) out.push(<Pane key="morph" cap={CAPS.morph} title="Morphology" meta="recorded body positions, contacts, torque"><Morphology r={A} times={sides[0].times} t={p.t} /></Pane>);
   if (hasPacketStructure(A)) out.push(<Pane key="pstruct" cap={CAPS.pstruct} title="Packet structure" meta="knots × assemblies with probe heads"><PacketStructure r={A} times={sides[0].times} t={p.t} /></Pane>);
+  if (fmA && fmA.status === 'ok' && fmA.data.steps.length > 0) out.push(
+    <Pane key="factors" cap={CAPS.factors} title="Relation-factor attention" meta={`${fmA.data.steps.length} recorded step${fmA.data.steps.length === 1 ? '' : 's'} · D-144 R21`}>
+      <FactorMapPanel map={fmA.data} t={p.t} />
+    </Pane>,
+  );
   if (sides.some((s) => hasMap(s.replay))) out.push(<Pane key="map" cap={CAPS.map} title="Top-down trajectory" meta="base and object paths, waypoints, edit onset, fall"><TopDownMap {...p} /></Pane>);
   if (any((r) => r.signals.phase)) out.push(<Pane key="phase" cap={CAPS.phase} title="Phase" meta={str((A.meta.signal_notes as Record<string, string> | undefined)?.phase)}><PhaseLanes {...p} /></Pane>);
   if (any((r) => r.signals.task_events)) out.push(<Pane key="events" cap={CAPS.events} title="Task events" meta="status of each task event over time"><EventGantt {...p} /></Pane>);

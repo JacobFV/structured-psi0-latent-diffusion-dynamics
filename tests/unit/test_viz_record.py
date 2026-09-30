@@ -9,7 +9,9 @@ import os
 
 import numpy as np
 import pytest
+import torch
 
+from rrp.viz import record as RV
 from rrp.viz import replay as RP
 
 XML = """<mujoco><asset><mesh name="tet" vertex="0 0 0 0.1 0 0 0 0.1 0 0 0 0.1"/></asset>
@@ -114,6 +116,56 @@ def test_pca_roundtrip():
     assert b["dim"] == 12 and len(b["components"]) == 3 and b["explained_variance_ratio"][0] > 0.8
     p = RP.project_pca(b, Z[0])
     assert len(p) == 3
+
+
+# ------------------------------------------------------------------ R21: relation-factor maps
+def test_factor_maps_schema_and_provenance(tmp_path):
+    """record_factor_maps / write_factor_map / read_factor_map (D-144 R21) on a REAL `FactorSite.contributions()`
+    call (tiny fixture, CPU, no simulation) — the per-factor per-head logit maps and their source provenance that
+    the room's factor-inspection panel reads."""
+    from rrp.policies.relations.base import FactorDef, RelCtx, TokenSet, register_factor, resolve
+    from rrp.policies.relations.ops import FactorSite
+    register_factor(FactorDef("test.viz_pape", "1", field="pos3d", op="sqdiff+diff", form="aug",
+                              sources=("given", "gt"), params=(("p", 3),)))
+    g = torch.Generator().manual_seed(0)
+    tq = TokenSet("q", torch.ones(1, 3, dtype=torch.bool), fields={"pos3d": torch.randn(1, 3, 3, generator=g)})
+    tk = TokenSet("k", torch.ones(1, 4, dtype=torch.bool), fields={"pos3d": torch.randn(1, 4, 3, generator=g)})
+    rc = RelCtx(sets={"q": tq, "k": tk})
+    specs = resolve(["test.viz_pape"])
+    site = FactorSite(2, 8, "q>k", specs, ("pos3d",))
+    with torch.no_grad():
+        for prm in site.parameters():
+            prm.copy_(torch.randn(prm.shape, generator=g))
+    x = torch.randn(1, 3, 8, generator=g)
+    contrib = site.contributions(rc, x, x)
+    assert set(contrib) == {"test.viz_pape"} and tuple(contrib["test.viz_pape"].shape) == (1, 2, 3, 4)   # [B,H,Q,K]
+
+    doc = RV.record_factor_maps("unit-factormap-s0", [{"t": 0.0, "site": "q>k", "contributions": contrib}], specs)
+    assert doc["schema"] == RV.FACTORMAP_SCHEMA and doc["id"] == "unit-factormap-s0" and len(doc["steps"]) == 1
+    step = doc["steps"][0]
+    assert step["site"] == "q>k" and step["t"] == 0.0
+    arr = step["factors"]["test.viz_pape"]
+    assert len(arr) == 2 and len(arr[0]) == 3 and len(arr[0][0]) == 4                                    # [H,Q,K]
+    ref = contrib["test.viz_pape"][0].detach().numpy()
+    assert np.allclose(np.asarray(arr), np.round(ref, 4), atol=1e-4)
+    prov = {row["name"]: row for row in doc["provenance"]}
+    assert prov["test.viz_pape"]["source"] == "given" and prov["test.viz_pape"]["privileged"] is False
+    assert prov["test.viz_pape"].get("control", "on") == "on"        # default control: `to_dict()` omits it
+
+    p = RV.write_factor_map(doc, tmp_path)
+    assert p.name == "unit-factormap-s0.factormap.json.gz" and p.parent == tmp_path
+    back = RV.read_factor_map(p)
+    assert back == doc
+
+
+def test_factor_maps_batch_zero_and_missing_contributions_stay_absent():
+    """A factor whose control is `off` (or that never reaches `contributions()`) is simply absent from a step's
+    `factors` — never a zero-filled placeholder — and only batch element 0 is kept."""
+    doc = RV.record_factor_maps("unit-empty", [{"t": 1.5, "site": "a>b",
+                                                "contributions": {"x": np.zeros((3, 2, 4, 4))}}], specs=())
+    assert doc["provenance"] == []
+    step = doc["steps"][0]
+    assert set(step["factors"]) == {"x"} and len(step["factors"]["x"]) == 2       # head dim of batch element 0
 
 
 def test_recorded_arm_episode_actions_match_unrecorded(tmp_path):

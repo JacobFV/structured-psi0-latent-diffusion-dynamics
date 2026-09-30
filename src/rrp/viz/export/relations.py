@@ -138,6 +138,24 @@ def _factor_runs(cfg: Config) -> list[dict]:
     return out
 
 
+def _competence_by_depth(records: list[dict]) -> tuple[list[dict], bool]:
+    """R21: the latest `ScheduleState` (`relgen/curriculum.py`) reduced to one row per factor — its current
+    composition depth (`level`), share and, once R11 fills in the scheduler's real signals (today's foundation
+    placeholder always leaves `signals` empty), competence / plateau / interference. Never fabricated when absent:
+    a factor with no signals yet gets `competence: None`, not a guessed number. Returns (rows, any_competence)."""
+    if not records:
+        return [], False
+    last = records[-1] if isinstance(records[-1], dict) else {}
+    level, share, signals = last.get("level") or {}, last.get("share") or {}, last.get("signals") or {}
+    rows = []
+    for f in sorted(level):
+        sig = signals.get(f) or {}
+        rows.append({"factor": f, "depth": level.get(f), "share": share.get(f), "competence": sig.get("competence"),
+                     "plateau": sig.get("plateau"), "interference": sig.get("interference"),
+                     "attributed_failures": sig.get("attributed_failures")})
+    return rows, any(bool(signals.get(f)) for f in level)
+
+
 def _schedules(cfg: Config) -> list[dict]:
     out = []
     roots = [(loc, root / "artifacts/runs") for loc, root in _roots(cfg)]
@@ -161,7 +179,10 @@ def _schedules(cfg: Config) -> list[dict]:
                         steer.append(json.loads(line))
                     except json.JSONDecodeError:
                         steer.append({"raw": line})
-            out.append({"run": str(f.parent), "location": loc, "file": str(f), "records": recs, "steer": steer})
+            cbd, has_comp = _competence_by_depth(recs)
+            last_step = recs[-1].get("step") if recs and isinstance(recs[-1], dict) else None
+            out.append({"run": str(f.parent), "location": loc, "file": str(f), "records": recs, "steer": steer,
+                        "step": last_step, "competence_by_depth": cbd, "has_competence": has_comp})
     return out
 
 

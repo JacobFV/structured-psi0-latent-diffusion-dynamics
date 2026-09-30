@@ -373,6 +373,54 @@ def pca_basis(spec: dict | None, cache: dict) -> dict | None:
     return b
 
 
+# ------------------------------------------------------------------ relation-factor maps (D-144 R21, viz/CONTRACT.md)
+FACTORMAP_SCHEMA = "rrp-viz/factormap/v1"
+
+
+def record_factor_maps(replay_id: str, entries: list[dict], specs=()) -> dict:
+    """`FactorSite.contributions(rc, xq, xk)` (per-factor `[B,H,Q,K]` logit terms, `relations/ops.py` 3.5) at chosen
+    steps, into one factor-map record: its own schema, not the replay v1 schema (a per-factor per-head logit map is
+    not a fixed-shape per-frame signal like the others in `FRAME_SIGNALS`). A net that runs its attention through
+    `FactorSite` calls this with the steps it chose to keep (host-light: this function does not subsample on its own
+    — a full-episode recording at every tick would be large; callers keep a stride, e.g. every packet).
+
+    `entries`: `[{t, site, contributions: {factor_name: array-like [B,H,Q,K] or [H,Q,K]}}]`, one per recorded step
+    (`site` = the `FactorSite`'s `"q>k"`, e.g. `"ctx>ctx"`). `specs`: the run's resolved `FactorSpec`s (its
+    `factors:` list), turned into `rrp.policies.relations.base.provenance` (name, op, form, source, control,
+    privileged) so the room can badge each map by its source without re-deriving it. Only batch element 0 is kept
+    (one recorded episode); values rounded to 4 dp, like every other recorded signal (`rrp.viz.replay.r4`)."""
+    from rrp.policies.relations.base import provenance as factor_provenance
+    steps = []
+    for e in entries:
+        factors = {}
+        for name, arr in e["contributions"].items():
+            a = arr.detach().cpu().numpy() if hasattr(arr, "detach") else np.asarray(arr)
+            if a.ndim == 4:                                      # [B,H,Q,K] -> the recorded episode's one batch element
+                a = a[0]
+            factors[name] = RP.r4(a)                              # [H,Q,K]
+        steps.append(dict(t=round(float(e["t"]), 4), site=str(e["site"]), factors=factors))
+    return dict(schema=FACTORMAP_SCHEMA, id=replay_id, provenance=factor_provenance(specs), steps=steps)
+
+
+def write_factor_map(doc: dict, out_dir: Path) -> Path:
+    """`<out_dir>/<id>.factormap.json.gz`, alongside the replay of the same id; the room's generic `/api/replay/<id>`
+    file walk (viz/CONTRACT.md, `rrp-api-plugin.ts`) serves it at `/api/replay/<id>.factormap` with no plugin change."""
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    p = out_dir / f"{doc['id']}.factormap.json.gz"
+    raw = json.dumps(doc, separators=(",", ":"), allow_nan=False).encode()
+    with gzip.open(p, "wb", compresslevel=9) as fh:
+        fh.write(raw)
+    return p
+
+
+def read_factor_map(p: Path) -> dict:
+    p = Path(p)
+    op = gzip.open if p.suffix == ".gz" else open
+    with op(p, "rt") as fh:
+        return json.load(fh)
+
+
 # ------------------------------------------------------------------ ARM: ladder (R2 generated / BC learned / teacher route)
 class _ArmSignals:
     def __init__(self, s, P=None, dev="cpu"):
