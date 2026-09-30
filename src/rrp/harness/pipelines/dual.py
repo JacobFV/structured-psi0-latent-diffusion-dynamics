@@ -18,7 +18,7 @@ Physics: set the generic stage option `grasp_contact` (rrp.pipelines.base; e.g. 
 stages do not choose a grasp contact version themselves.
 
 Every dual training config must set zero_prev_action: true (B-1 fix, D-045). The v1 dual configs
-(configs/latent/rep-dualarm_latent_*_v1.json) predate it and are NOT used by dags/templates/dual_lineage.yaml;
+(configs/latent/rep-dualarm_latent_*_v1.json) predate it and are NOT used by recipes/templates/dual_lineage.yaml;
 `train_rep`/`train_flow`/`refit` refuse zero_prev_action false for new (non-legacy) dual configs.
 """
 from __future__ import annotations

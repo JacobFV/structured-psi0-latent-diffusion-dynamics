@@ -1,7 +1,7 @@
 # TEMPLATE (D-126 #11; NOT RUN): legged HELD-OUT-BODY transfer with a small-budget REFIT, gated by validate_tracker.
 # Question (roadmap #11): does a legged latent route trained on bodies A + B work zero-shot on a held-out body H, and how much does a
 # system-0 refit on a small, EQUAL data budget from H recover, compared with BC given the same H data?
-# Protocol (recipe = dags/legged_v2_go2.yaml / templates/legged_v2_gated.yaml, D-090, with the W8 contact_v2 physics):
+# Protocol (recipe = the retired legged_v2_go2 DAG / templates/legged_lineage.yaml, D-090, with the W8 contact_v2 physics):
 # - validate_{a,b,h} (global, first): tracker gate on all three bodies (D-112/D-114); a FAIL blocks everything downstream.
 #   Learned trackers are pinned by sha256 (vars.sha_*); a CPG body (kind cpg) has no weights to pin.
 # - collect_{a,b} (global): the training data (seeds cseeds per body) into ONE shared data root (vars.data_run), so train_rep /
@@ -17,7 +17,7 @@
 # Sources: commands = scripted_teacher; gaits = the pinned trackers; routes learned / bc labelled by the stages.
 # A child DAG `extends: templates/legged_v2_heldout.yaml` and sets name, label prefixes, vars.body_* / kind_* / sha_* / sigmas_*.
 # The SET_IN_CHILD_DAG sha placeholders make the validate nodes refuse at once, before any compute.
-# Resources copy legged_v2_gated.yaml (measured W8 peaks, D-117) except collect_h (a 50-episode shard; 16G as a 100-episode shard).
+# Resources copy legged_lineage.yaml (measured W8 peaks, D-117) except collect_h (a 50-episode shard; 16G as a 100-episode shard).
 name: legged_v2_heldout_template
 schema: dag-1
 family: legged

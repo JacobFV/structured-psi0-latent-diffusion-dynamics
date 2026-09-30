@@ -1,8 +1,15 @@
 # D-126 (NOT RUN; ready to launch when the lead schedules it): tracker recipe g1_yawcap_ft (rrp.harness.train.tracker_recipes; rationale,
-# cost and gate in the recipe's _what/_why/_cost fields). Launch: rrp run-dag dags/d126_tracker_g1_yawcap_ft.yaml (peer; D-115).
+# cost and gate in the recipe's _what/_why/_cost fields). Launch: rrp run-dag recipes/humanoid/d126_tracker_g1_yawcap_ft.yaml (peer; D-115).
 # Resources are ESTIMATES (workers + 1 CPU; ~0.35 GB per worker + 2 GB): measure a 20-iteration smoke first and redeclare >= 1.35 x peak (D-117).
-extends: templates/tracker_recipe_gated.yaml
+extends: ../templates/tracker_gated.yaml
 name: d126_tracker_g1_yawcap_ft
+schema: dag-1
+track: trackers            # rendered track of the never-run recipes (goldens); P4a re-homes it under `humanoid`
+policy: tracker
+env: mujoco/legged
+task: locomotion
+bodies: g1
+factors: []
 lineage: 'tracker-g1_yawcap_ft'
 label_prefix: 'd126trk_g1'
 vars:

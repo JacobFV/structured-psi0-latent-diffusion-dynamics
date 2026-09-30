@@ -68,7 +68,7 @@ moved-path table: [`docs/architecture.md`](docs/architecture.md).
 
 Lineage codes in config and run names (`sfjf`, `nsjf2`, `fixsem`, `gendag3_noqd`, …) are decoded in
 [`research/naming.md`](research/naming.md). The training lineages (arm ladder, legged, dual arm) run as pipeline stages
-(`rrp.harness.pipelines`, families arm / dual / legged) from DAG files in `dags/`; evaluation routes on matched seeds are
+(`rrp.harness.pipelines`, families arm / dual / legged) from recipe files in `recipes/` (templates + per-track instances); evaluation routes on matched seeds are
 R0 teacher, R1 oracle packet E(expert chunk) (DIAGNOSTIC), R2 generated packet (deployable), plus a BC positive control
 and task-context edit suites.
 
@@ -80,7 +80,7 @@ and task-context edit suites.
 |---|---|
 | evaluate any policy × env × task | `rrp eval --policy NAME[=JSON] --env ENV --task TASK --body BODY --seeds a:b --out F` (`harness.eval.evaluate` over `harness.rollout`, family hooks from `harness.eval.hooks`; JSONL rows + Wilson summary) |
 | compatibility matrix (n/a with reasons) | `rrp matrix …` |
-| a whole lineage (collect → pack → Stage A → flow → DAgger / refit → eval → edits) | `rrp run-dag dags/<lineage>.yaml` (resumable JSON ledger; stage list: `rrp stage list`) |
+| a whole lineage (collect → pack → Stage A → flow → DAgger / refit → eval → edits) | `rrp run-dag recipes/<track>/<lineage>.yaml` (or a name under `recipes/`) (resumable JSON ledger; stage list: `rrp stage list`) |
 | generate / pack arm data | `rrp data generate --config configs/data/…`; `rrp data pack --config … --out artifacts/packed/<name>` |
 | arm Stage A / flow / probes | `rrp latent train-representation --config …`; `rrp latent train-flow --config …`; `rrp latent fit-probes …` |
 | arm ladder evaluation (R0/R1/R2) | `rrp suite ladder --route {teacher,oracle,generated} --robot panda_pg2 --n 30 --out …` |
@@ -131,7 +131,7 @@ src/rrp/          layers import only downward (tests/unit/test_layering.py)
   viz/            room exporter, recorder/replay, replay-spec generator
   cli/            the `rrp` command (tools.py: `rrp <group> <tool>` for data / train / suite / stage / viz tools)
 viz/room/         visualization room (exporter output in viz/data)
-configs/, dags/   run configs and lineage DAGs (provenance of every run)
+recipes/          recipe templates + per-track instances (the run DAGs; `rrp run-dag`); legacy configs and DAGs: `.old/`
 ops/bin/          peer transport (peer_run/sync/bootstrap), asset fetch, external-env setup (shell)
 research/         decisions.md (append-only; appendix P = former psi1z), naming.md, tracks/, reports/, splits/, registry.jsonl
 artifacts/        small raw results (JSON/JSONL), receipts, labelled videos

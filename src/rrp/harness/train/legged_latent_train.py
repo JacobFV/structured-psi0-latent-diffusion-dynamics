@@ -31,7 +31,7 @@ from rrp.policies.nets.semantic_latent import legacy_latent_factors, packet_sema
 from rrp.policies.relations.base import resolve
 
 # D-144 sweep-flags (docs/relations.md 10, closing rel-r2c's open question 1 for legged now that R4 has merged) and
-# its 2026-09-30 follow-up (retiring `dags/legged_v2_*.yaml` + `configs/{legged_latent,legged_fixsem,t1_diag}/**`'s
+# its 2026-09-30 follow-up (retiring the retired legged_v2_* DAGs + `configs/{legged_latent,legged_fixsem,t1_diag}/**`'s
 # OWN flat `semantic_weight` / `probe_lv_min`, not just this file's internal reads): every legged dag and rep
 # config under those paths now renders `params.latent.factors` directly (a `probe.legged.*` FactorSpec per query,
 # the same shape `nets/semantic_latent.py`'s `LATENT_LEGACY_KEYS`-driven table uses for arm's `LatentConfig`) --

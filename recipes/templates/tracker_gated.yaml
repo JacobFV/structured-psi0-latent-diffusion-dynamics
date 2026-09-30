@@ -31,7 +31,7 @@ nodes:
       options: {body: '{body}', recipe: '{recipe}', resume: true}
   validate:
     stage: validate_tracker
-    resources: {cpu: 1, mem: 4G, max_seconds: 7200}      # D-117: 1.35 x the 2.63 GB backfill peak (as legged_v2_gated)
+    resources: {cpu: 1, mem: 4G, max_seconds: 7200}      # D-117: 1.35 x the 2.63 GB backfill peak (as legged_lineage)
     retries: 0
     config:
       inputs: {actor: '@train:actor.pt'}

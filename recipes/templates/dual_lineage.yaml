@@ -1,13 +1,13 @@
 # TEMPLATE for the FIRST dual-arm learned models (D-126 #33; W12 phase B/C, research/tracks/w12.md §8). Not run by
-# anyone yet: a child DAG `dags/dual_<name>.yaml` does `extends: templates/dual_lineage.yaml` and sets name / labels.
+# anyone yet: a child instance `recipes/<track>/dual_<name>.yaml` does `extends: ../templates/dual_lineage.yaml` and sets name / labels.
 # Recipe = the arm semfix/nosem recipe (bounded NLL -4 for semfix), zero_prev_action TRUE (B-1 fix; the v1 dual configs in
 # configs/latent/*dualarm*_v1.json predate it and are not used). Data = dual teacher v3 (rrp.policies.teachers.dual_smooth), grasp
 # contact v2.1, W12 contact labels, phase-gated DART, dual dataset gate ENFORCED (check_dual_dataset; needs record_quality).
 # WAIT for W7's pad-cylinder / gripper-force fix (rrp.bodies.grasp_contact) before running collect: under grasp_v2.1
 # the peg slips (W12 audit, 6/24 support_insert successes with teacher v2).
 # Dual DAgger does not exist yet (pipelines/dual.py: dagger_collect refuses), so the lineage is Stage A -> flow -> evals.
-#   rrp run-dag dags/dual_<name>.yaml --dry-run
-#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/w12 rrp run-dag dags/dual_<name>.yaml
+#   rrp run-dag <track>/dual_<name>.yaml --dry-run
+#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/w12 rrp run-dag <track>/dual_<name>.yaml
 name: dual_lineage_template
 schema: dag-1
 family: dual
@@ -122,7 +122,7 @@ nodes:
           - {robots: $si_pairs, statuses: [success], include_dart_failures: false}
           - {robots: $ho_pairs, statuses: [success], include_dart_failures: false}
   # D-144 addendum (rel-r2c open question 1, closed by the sweep-flags row): `latent.factors` replaces the
-  # flag-driven flat `latent.semantic_weight` + `flags.probe_lv_min` pair, same shape as `dags/arm_lineage.yaml`'s
+  # flag-driven flat `latent.semantic_weight` + `flags.probe_lv_min` pair, same shape as `arm_lineage.yaml`'s
   # `stageA` node (`dual` shares `FLAG_SPEC[("dual", "train_rep")]` with arm, which no longer maps `probe_lv_min`
   # -- see core/runconfig.py). Only variant `semfix` needs the `per:` override (lv_min -4.0); `nosem`'s `{sw}=0.0`
   # comes from the base template.

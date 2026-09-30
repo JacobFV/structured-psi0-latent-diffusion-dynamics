@@ -1,5 +1,5 @@
 # TEMPLATE (D-126 #10, roadmap #10): fair direct-action BC baselines for the sealed target bodies, on the SAME data,
-# protocol, harness and acquisition as dags/templates/arm_targets_latent.yaml (the latent route):
+# protocol, harness and acquisition as templates/arm_targets_latent.yaml (the latent route):
 #   train_bc<seed> (global): the stateless BC expert recipe (baseline_campaign.source_config: policy-small-structured,
 #       stride-2 rows of the stride-1 source pack, zero_prev_action) on `source_pack`, seeds 1702 / 1703 (protocol seeds;
 #       1701 is the lineage's DAgger labeller). Snapshot at 12,000 updates kept (the labeller checkpoint convention).

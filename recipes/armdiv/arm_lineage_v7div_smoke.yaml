@@ -1,8 +1,15 @@
 # armdiv G3 SMOKE (plumbing only; NOT a result): the v7div lineage DAG end to end with tiny step counts, 1 DAgger
 # episode per body on 4 bodies (2 v6 + 2 new), 2-episode evaluations; labeller = the v6 BC expert (plumbing only).
-#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiv rrp run-dag dags/arm_lineage_v7div_smoke.yaml --max-parallel-gpu 1
-extends: arm_lineage_v7div.yaml
+#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiv rrp run-dag recipes/armdiv/arm_lineage_v7div_smoke.yaml --max-parallel-gpu 1
+extends: arm_lineage_v7div.yaml         # (sibling instance)
 name: arm_lineage_v7div_smoke
+schema: dag-1
+track: armdiv
+policy: latent
+env: mujoco/arm
+task: pick_place
+bodies: armdiv_pool_v1
+factors: [semfix]
 lineage: 'arm7div-smoke-{variant}'
 label_prefix: 'a7s{tg}{seed}'
 matrix:

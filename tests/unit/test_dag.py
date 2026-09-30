@@ -1,5 +1,5 @@
-"""run-dag (W5): the arm DAG reproduces the committed lineage configs; planning, ledger, retries and resume with a
-fake runner; the YAML subset."""
+"""run-dag (W5): planning, ledger, retries and resume with a fake runner; the YAML subset. The rendered nodes of every kept
+recipe are pinned by tests/unit/test_recipes.py (recipe.* goldens, D-145)."""
 from __future__ import annotations
 
 import json
@@ -7,96 +7,15 @@ from pathlib import Path
 
 import pytest
 
-from rrp.core.runconfig import RunIndex
 from rrp.harness.dag import DagError, Executor, Ledger, load_dag, plan_dag
 from rrp.harness.yamlmini import YamlError, loads
 
 ROOT = Path(__file__).resolve().parents[2]
-LEGACY = {  # (variant, seed) -> (config dir, lineage code, Stage-A dir, Stage-A config)
-    ("semfix", 2): ("configs/ladder/armseed2/sfjf2", "sfjf2", "ladder_latent_semfix_b1fix_anchor_s2",
-                    "rep-ladder_latent_semfix_b1fix_anchor_s2.json"),
-    ("nosem", 2): ("configs/ladder/armseed2/nsjf2", "nsjf2", "ladder_latent_nosem_b1fix_anchor_s2",
-                   "rep-ladder_latent_nosem_b1fix_anchor_s2.json"),
-    ("sem", 2): ("configs/ladder/armseed2/sejf2", "sejf2", "ladder_latent_sem_b1fix_anchor_s2",
-                 "rep-ladder_latent_sem_b1fix_anchor_s2.json"),
-    ("semfix", 1): ("configs/ladder/armsemfix", "sfjf", "ladder_latent_semfix_b1fix_anchor",
-                    "rep-latent_semfix_b1fix_anchor.json"),
-    ("sem", 1): ("configs/ladder", "jointfix", "ladder_latent_sem_b1fix_anchor", "rep-latent_sem_b1fix_anchor.json"),
-    ("nosem", 1): ("configs/ladder/armnosem", "nsjf", "ladder_latent_nosem_b1fix_anchor",
-                   "rep-latent_nosem_b1fix_anchor.json"),
-}
-NAMES = {"name", "out_dir"}
-EXPLICIT_DEFAULTS = {"realizer_drop_qd": False}           # stated in the DAG, the code default where legacy omits it
-
-
-def _legacy_dir(node: str, tag: str | None, lin: str, repn: str) -> str:
-    if node == "stageA":
-        return repn
-    if node == "F0":
-        return f"ladder_flow_{lin}"
-    if node.startswith("F"):
-        return f"ladder_flow_{lin}_{tag}"
-    if node.startswith("rz"):
-        return f"ladder_rz_{lin}_{tag}"
-    return f"ladder_dagger_{node}" if lin == "jointfix" else f"ladder_dagger_{lin}_{node}"
-
-
-def _legacy_file(node: str, tag: str | None, lin: str, repcfg: str) -> str | None:
-    if node == "stageA":
-        return repcfg
-    if node == "F0":
-        return f"flow_{lin}.json"
-    if node.startswith("F"):
-        return f"flow_{lin}_{tag}.json"
-    if node.startswith("rz"):
-        return f"rz_{lin}_{tag}.json"
-    return None
-
-
-def _strip(d: dict) -> dict:
-    d = {k: v for k, v in d.items() if k not in NAMES}
-    for k in ("latent", "policy"):
-        if isinstance(d.get(k), dict):
-            d[k] = {kk: vv for kk, vv in d[k].items() if kk != "name"}
-    return d
 
 
 @pytest.fixture(scope="module")
 def arm_plan():
-    return plan_dag(load_dag(ROOT / "dags/arm_lineage.yaml"))
-
-
-@pytest.mark.parametrize("variant,seed", sorted(LEGACY))
-def test_arm_dag_reproduces_legacy_configs(arm_plan, variant, seed):
-    cdir, lin, repn, repcfg = LEGACY[(variant, seed)]
-    sfx = f"@{variant}.s{seed}"
-    nodes = {nid[: -len(sfx)]: n for nid, n in arm_plan.nodes.items() if nid.endswith(sfx)}
-    trans = {n.rc.out: "artifacts/runs/" + _legacy_dir(name, n.rc.tag, lin, repn) for name, n in nodes.items()}
-
-    def tr(v):
-        if isinstance(v, list):
-            return [tr(x) for x in v]
-        if isinstance(v, str):
-            for new, old in trans.items():
-                if v.startswith(new + "/") or v == new:
-                    return old + v[len(new):]
-        return v
-    checked = 0
-    for name, n in nodes.items():
-        f = _legacy_file(name, n.rc.tag, lin, repcfg)
-        if f is None:
-            continue
-        legacy = json.loads((ROOT / cdir / f).read_text())
-        native = {k: tr(v) for k, v in n.rc.to_native(RunIndex()).items()}
-        got, want = _strip(native), _strip(legacy)
-        for k, dv in EXPLICIT_DEFAULTS.items():
-            if k not in want and got.get(k) == dv:
-                got.pop(k)
-        if "probe_lv_min" not in want.get("latent", {"probe_lv_min": 0}) and got.get("latent", {}).get("probe_lv_min") == -8.0:
-            got["latent"].pop("probe_lv_min")                # nosem/sem Stage A: explicit -8 = the LatentConfig default
-        assert got == want, (name, f, {k: (got.get(k), want.get(k)) for k in set(got) | set(want) if got.get(k) != want.get(k)})
-        checked += 1
-    assert checked == 11          # stageA, F0, Fft, Fgdag1, Fgdag2h and the 6 refits
+    return plan_dag(load_dag(ROOT / "recipes/templates/arm_lineage.yaml"))
 
 
 def test_arm_dag_structure(arm_plan):
@@ -114,7 +33,7 @@ def test_arm_dag_structure(arm_plan):
 
 
 def test_legged_dag_plans():
-    p = plan_dag(load_dag(ROOT / "dags/legged_fixrep.yaml"))
+    p = plan_dag(load_dag(ROOT / "recipes/templates/legged_lineage.yaml"))
     assert p.nodes and all(n.rc.family == "legged" for n in p.nodes.values())
     assert all(n.rc.flags.contact_version for n in p.nodes.values())
 
@@ -265,28 +184,6 @@ f: '{1 + 2}'
         loads("a: &anchor 1")
     with pytest.raises(YamlError):
         loads("a: 1\na: 2")
-
-
-def test_legged_dag_reproduces_legacy_configs():
-    p = plan_dag(load_dag(ROOT / "dags/legged_fixrep.yaml"))
-    n = 0
-    for nid, node in p.nodes.items():
-        if node.rc.stage not in ("train_rep", "train_flow"):
-            continue
-        v, b, s = node.point["variant"], node.point["body"], node.point["seed"]
-        code = {"semfix": "fixsem", "nosem": "nosem"}[v]
-        kind = "rep" if node.rc.stage == "train_rep" else "flow"
-        legacy = json.loads((ROOT / f"configs/legged_fixsem/{kind}_{code}_{b}_s{s}.json").read_text())
-        native = node.rc.to_native(RunIndex())
-        if kind == "flow":
-            assert native.pop("representation").endswith(f"legged-{b}-{v}/train_rep_s{s}/representation.pt")
-            legacy.pop("representation")
-        drop = {"name", "note", "out_dir"}
-        got = {k: v2 for k, v2 in native.items() if k not in drop}
-        want = {k: v2 for k, v2 in legacy.items() if k not in drop}
-        assert got == want, nid
-        n += 1
-    assert n == 16
 
 
 def test_ops_runner_poll_reads_rc_file(tmp_path):

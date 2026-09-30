@@ -251,7 +251,7 @@ def test_tracker_recipes_parse_and_pin_their_initial_actors():
 def test_tracker_recipe_dags_plan():
     from rrp.harness.dag import load_dag, plan_dag
     from rrp.harness.train.tracker_recipes import TRACKER_RECIPES
-    for f in sorted((ROOT / "dags").glob("d126_tracker_*.yaml")):
+    for f in sorted((ROOT / "recipes/humanoid").glob("d126_tracker_*.yaml")):
         p = plan_dag(load_dag(f), source="t")
         tr = p.nodes["train"]
         assert tr.rc.stage == "train_tracker" and tr.rc.options["recipe"] in TRACKER_RECIPES and tr.placement == "peer"
@@ -262,7 +262,7 @@ def test_tracker_recipe_dags_plan():
 
 def test_heldout_template_keeps_the_heldout_body_out_of_training():
     from rrp.harness.dag import load_dag, plan_dag
-    p = plan_dag(load_dag(ROOT / "dags/templates/legged_v2_heldout.yaml"), source="t")
+    p = plan_dag(load_dag(ROOT / "recipes/templates/legged_heldout.yaml"), source="t")
     nodes = p.nodes
     h = "anymal_c"
     for nid, n in nodes.items():

@@ -1,0 +1,32 @@
+# ARM DATA COLLECTION template (D-137 G1 recipe): scripted teacher v2 + grasp_v2.1 + phase-gated DART, one `collect` node
+# over `lists.items` (per-robot {robot, split, seed_start, episodes, dart_noise}). An instance sets vars.dataset (the
+# dataset name), vars.dataset_tag (the node tag), vars.split_file and lists.items. Planned bare it holds no items.
+name: arm_collect_template
+schema: dag-1
+family: arm
+track: armcollect
+lineage: collect
+label_prefix: acol
+vars:
+  dataset: SET_IN_INSTANCE
+  dataset_tag: SET_IN_INSTANCE
+  split_file: SET_IN_INSTANCE
+lists:
+  items: []
+defaults:
+  placement: peer
+  retries: 0
+  max_parallel: 1
+  resources: {cpu: 6, mem: 12G, gpu: false, max_seconds: 14400}
+base:
+  variant: na
+  seed: 1
+  flags: {zero_prev_action: null, realizer_anchor: null, realizer_drop_qd: null, probe_lv_min: null, qd_dropout: null, contact_version: contact_v1}
+nodes:
+  collect:
+    stage: collect
+    tag: '{dataset_tag}'
+    resources: {cpu: 6, mem: 29G, disk: 4G, max_seconds: 14400}
+    config:
+      options: {workers: 6}
+      params: {name: '{dataset}', workers: 6, max_distractors: 2, items: $items, split_file: '{split_file}', teacher_version: v2, grasp_contact: v2.1, dart_safety: phase}

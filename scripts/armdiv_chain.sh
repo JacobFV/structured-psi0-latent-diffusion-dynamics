@@ -20,14 +20,14 @@ for s in $STEPS; do
       for i in $(seq 1 480); do ssh gb10-direct "test -s $P/repo/artifacts/packed/latent_pp_v7div_s1_H16/meta.json" && break; sleep 60; done
       ssh gb10-direct "test -s $P/repo/artifacts/packed/latent_pp_v7div_s1_H16/meta.json" || { log "pack not done"; exit 1; }
       log "pack done: $(ssh gb10-direct "du -sh $P/repo/artifacts/packed/latent_pp_v7div_s1_H16 | cut -f1")" ;;
-    bcsmoke)  dag dags/armdiv_bc_v7div_smoke.yaml || exit 1 ;;
-    lsmoke)   dag dags/arm_lineage_v7div_smoke.yaml --max-parallel 3 --retry-failed || exit 1 ;;
-    bc1701)   dag dags/armdiv_bc_v7div.yaml --point seed=1701 --max-parallel 3 || exit 1 ;;
-    lin_sf1)  dag dags/arm_lineage_v7div.yaml --point variant=semfix,seed=1 --max-parallel 3 || exit 1 ;;
-    lin_rest) dag dags/arm_lineage_v7div.yaml --max-parallel 3 || exit 1 ;;
-    bc1702)   dag dags/armdiv_bc_v7div.yaml --point seed=1702 --max-parallel 3 || exit 1 ;;
-    bckf)     dag dags/armdiv_bc_v7div_kinfeat.yaml --max-parallel 3 || exit 1 ;;
-    lin_kf)   dag dags/arm_lineage_v7div_kinfeat.yaml --max-parallel 3 || exit 1 ;;
+    bcsmoke)  dag recipes/armdiv/armdiv_bc_v7div_smoke.yaml || exit 1 ;;
+    lsmoke)   dag recipes/armdiv/arm_lineage_v7div_smoke.yaml --max-parallel 3 --retry-failed || exit 1 ;;
+    bc1701)   dag recipes/armdiv/armdiv_bc_v7div.yaml --point seed=1701 --max-parallel 3 || exit 1 ;;
+    lin_sf1)  dag recipes/armdiv/arm_lineage_v7div.yaml --point variant=semfix,seed=1 --max-parallel 3 || exit 1 ;;
+    lin_rest) dag recipes/armdiv/arm_lineage_v7div.yaml --max-parallel 3 || exit 1 ;;
+    bc1702)   dag recipes/armdiv/armdiv_bc_v7div.yaml --point seed=1702 --max-parallel 3 || exit 1 ;;
+    bckf)     dag recipes/armdiv/armdiv_bc_v7div_kinfeat.yaml --max-parallel 3 || exit 1 ;;
+    lin_kf)   dag recipes/armdiv/arm_lineage_v7div_kinfeat.yaml --max-parallel 3 || exit 1 ;;
     *) log "unknown step $s"; exit 2 ;;
   esac
 done

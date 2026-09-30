@@ -146,7 +146,7 @@ def test_dual_pipeline_guards_and_template():
     p = Pipeline("dual")
     with pytest.raises(StageError, match="label source"):
         p.spec("dagger_collect").fn(None)
-    plan = plan_dag(load_dag(ROOT / "dags/templates/dual_lineage.yaml"), source="t")
+    plan = plan_dag(load_dag(ROOT / "recipes/templates/dual_lineage.yaml"), source="t")
     stages = {n.rc.stage for n in plan.nodes.values()}
     assert {"collect", "pack", "train_rep", "probes", "train_flow", "eval_r2", "heldout", "edits"} <= stages
     for nid, n in plan.nodes.items():

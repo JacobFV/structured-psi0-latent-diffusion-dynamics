@@ -1,10 +1,10 @@
 # TEMPLATE for FUTURE legged contact_v2 lineages (records refresh 2026-09-27, D-114 / D-123 backlog "validate_tracker stage
-# used in DAGs"). Do not run this file directly: a new DAG `dags/legged_v2_<body>.yaml` does
-#     extends: templates/legged_v2_gated.yaml
+# used in DAGs"). Do not run this file directly: a new instance `recipes/<track>/legged_<body>.yaml` does
+#     extends: ../templates/legged_lineage.yaml
 # and sets at least name, lineage / global_lineage / label_prefix / global_label_prefix, vars.body, vars.tracker_sha256
 # (the installed contact_v2 tracker's full sha256) and vars.sigmas (the body's DART sigmas). The placeholder sha256 below
 # makes the first node (`validate`) refuse at once, before any compute.
-# Protocol, recipe, seeds and suites = dags/legged_v2_go2.yaml (D-090 protocol, W8 D-105 / D-113), with GATES ENFORCED (D-112, D-114):
+# Protocol, recipe, seeds and suites = the retired legged_v2_go2 DAG (D-090 protocol, W8 D-105 / D-113), with GATES ENFORCED (D-112, D-114):
 # - `validate` (global, first): stage validate_tracker = rrp.harness.eval.tracker_validation protocol v2 + the W6 robustness trial on
 #   the installed tracker, after checking its sha256 against the declaration. A tracker-gate FAIL fails the node (exit 86, no
 #   retries) and blocks everything downstream. Resources: 1 CPU, 4G (1.35 x the measured 2.63 GB peak of the 6-tracker
@@ -12,7 +12,7 @@
 # - `collect` depends on `validate` and runs the D-112 legged dataset gate in ENFORCE mode (no `gate: report`), with the declared
 #   tracker sha256 and sourced actuator limits checked in every shard and teacher row.
 # A body that needs a recorded exception (as t1, D-113) sets `gate: report` in its own DAG, with a `caveat:` and a decision reference.
-# The DAGs that running coordinators execute (legged_v2_t1sl.yaml) and the completed W8 DAGs are NOT changed by this template.
+# The DAGs that running coordinators execute (the retired legged_v2_t1sl DAG) and the completed W8 DAGs are NOT changed by this template.
 name: legged_v2_gated_template
 schema: dag-1
 family: legged

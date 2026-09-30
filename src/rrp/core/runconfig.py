@@ -46,15 +46,15 @@ Stage = Literal[PIPELINE_STAGES + LEGACY_ONLY_STAGES]  # type: ignore[valid-type
 # things it did not own together: (1) legged's identical `Flags` schema (fanout unit R4, merged since -- but see
 # below, legged's OWN dags still use it, a separate reason it survives in FLAG_NAMES); (2)
 # `test_runconfig.py::test_variant_must_match_recipe` (now updated to the `factors:`-style RunConfig, the only shape
-# arm/dual `train_rep` still accepts for a NEW, non-legacy config -- see `_check_variant`); (3) `dags/arm_lineage.yaml`
-# / `dags/templates/dual_lineage.yaml`, now emitting `latent: {factors: [...]}` (a `probe.arm.*` FactorSpec per
+# arm/dual `train_rep` still accepts for a NEW, non-legacy config -- see `_check_variant`); (3) `recipes/templates/arm_lineage.yaml`
+# / `recipes/templates/dual_lineage.yaml`, now emitting `latent: {factors: [...]}` (a `probe.arm.*` FactorSpec per
 # query, `docs/relations.md` 10's `_probe_factors` shape) instead of a flag-driven flat `latent.semantic_weight`, and
 # `configs/ladder/**.json` (6 rep files) codemodded to match -- `tests/unit/test_relations_r2_latent.py`'s frozen
 # `LatentConfig.version()` table proves the hashes unchanged, `tests/unit/test_dag.py::
 # test_arm_dag_reproduces_legacy_configs` proves the dag's rendered native config still equals the (now-factors-
 # shaped) on-disk files.
 # `probe_lv_min` retired (sweep-flags follow-up, 2026-09-30) from `FLAG_SPEC[("legged", "train_rep")]` too, closing
-# the note above's own open item: every `dags/legged_v2_*.yaml` / `dags/templates/legged_v2_*.yaml` /
+# the note above's own open item: every retired legged_v2_* instance DAG / `recipes/templates/legged_*.yaml` /
 # `legged_fixrep.yaml` / `smoke_legged.yaml` (9 files) and every `configs/{legged_latent,legged_fixsem,t1_diag}/
 # rep_*.json` file now renders `params.latent.factors` (a `probe.legged.*` FactorSpec per query, the SAME shape
 # arm/dual use, `nets/semantic_latent.py::legacy_latent_factors`) instead of a flag-driven flat
@@ -379,8 +379,8 @@ def _check_variant(rc: RunConfig) -> None:
     """New configs: the variant label must match the recipe it names (catches mislabelled lineages).
 
     D-144 sweep-flags (+ 2026-09-30 follow-up): `train_rep` configs are always `factors:`-shaped now for EVERY
-    family (`dags/arm_lineage.yaml` / `dags/templates/dual_lineage.yaml` / every `dags/legged_v2_*.yaml` +
-    `legged_fixrep.yaml` + `smoke_legged.yaml` + the two `dags/templates/legged_v2_*.yaml` emit `latent.factors`;
+    family (`recipes/templates/arm_lineage.yaml` / `recipes/templates/dual_lineage.yaml` / the retired legged_v2_* DAGs +
+    `legged_fixrep.yaml` + `smoke_legged.yaml` + the two `recipes/templates/legged_*.yaml` emit `latent.factors`;
     `FLAG_SPEC[(fam, "train_rep")]` no longer maps `probe_lv_min` for any of the three families, so `rc.flags.
     probe_lv_min` is always None here) -- the old flat `lat.get("semantic_weight")` / `rc.flags.probe_lv_min`
     fallback this function used to carry for legged-only configs is gone; only `_legacy_variant` (`load_legacy`'s

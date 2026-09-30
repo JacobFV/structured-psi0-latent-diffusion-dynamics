@@ -1,25 +1,22 @@
-# armdiv G2 (D-137): the v6 BC expert recipe (train_bc = baseline_campaign.source_config: policy-small-structured,
-# 6 epochs over stride-2 rows, batch 256, zero_prev_action) on the v7div pack (65 training keys). bcv7div 1701 is the
-# DAgger labeller / stateless-R1 expert of the v7div latent lineages AND a BC baseline; 1702 is the second BC seed
-# (G4). In-distribution dev evaluations (ladder route learned, 30 feasible scenes from 3,000,000; grasp_v2.1): v6's R2
-# bodies parm6_tf3 + panda_pg2, 4 new training arms, v6's held-out source bodies parm5s_tf3 + parm5l_pg2 (still held out).
-# Reference cells: the v6 BC expert 1701 on the same new training arms (no retraining).
-# Resources: v6 BC training measured 2.03 GB RSS (lease 1790567433) + ~4.5 GB CUDA -> 8G / 8G; ladder evals 6G.
-# One peer GPU lease at a time (lead).
-#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiv rrp run-dag dags/armdiv_bc_v7div.yaml --max-parallel-gpu 1
-name: armdiv_bc_v7div
+# ARM BC EXPERT template (D-137 G2 recipe): train_bc = baseline_campaign.source_config (policy-small-structured, 6 epochs
+# over stride-2 rows, batch 256, zero_prev_action) on `vars.source_pack`, then in-distribution dev evaluations (ladder
+# route learned, 30 feasible scenes from 3,000,000; grasp_v2.1) on the v6 R2 bodies, 4 new training arms and the v6
+# held-out source bodies, plus the reference cell of the v6 BC expert on the new arms (seed 1701 only).
+# Resources: v6 BC training measured 2.03 GB RSS + ~4.5 GB CUDA -> 8G / 8G; ladder evals 6G. One peer GPU lease at a time.
+# An instance sets name, lineage, label_prefix, matrix.seed and vars.source_pack / bc_label.
+name: arm_bc_template
 schema: dag-1
 family: arm
-track: armdiv
-lineage: 'bcv7div-{seed}'
-label_prefix: 'adb{seed}'
+track: armbc
+lineage: 'bc-{seed}'
+label_prefix: 'abc{seed}'
 matrix:
   seed: [1701, 1702]
 vars:
-  source_pack: packed/latent_pp_v7div_s1_H16
+  source_pack: SET_IN_INSTANCE
   grasp_contact: v2.1
   bc_ref: '@train:policy.pt'
-  bc_label: 'bcv7div_direct{seed}'
+  bc_label: 'bc_direct{seed}'
   v6bc: 'runs/armexpert_bcv6/baseline_direct_action/seed1701/source:policy.pt'
 defaults:
   placement: peer

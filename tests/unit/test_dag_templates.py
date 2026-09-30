@@ -1,5 +1,5 @@
-"""Legged DAG template for FUTURE runs (dags/templates/legged_v2_gated.yaml; D-114, D-123 backlog): the tracker is validated
-and gated before any collection, the dataset gate is enforced, and the recipe equals the completed W8 go2 DAG."""
+"""Legged DAG template for FUTURE runs (recipes/templates/legged_lineage.yaml; D-114, D-123 backlog): the tracker is validated
+and gated before any collection, the dataset gate is enforced, and the go2 child renders as pinned by the recipe.legged_lineage.go2 golden (tests/unit/test_recipes.py)."""
 import hashlib
 import json
 from pathlib import Path
@@ -9,7 +9,7 @@ import pytest
 from rrp.harness.dag import load_dag, plan_dag
 
 ROOT = Path(__file__).resolve().parents[2]
-TEMPLATE = ROOT / "dags/templates/legged_v2_gated.yaml"
+TEMPLATE = ROOT / "recipes/templates/legged_lineage.yaml"
 GO2_SHA = "af3f06f4e029e9f92fafc50e6174ffdb171c5512fbab4cd6fac18e6ce23cf18b"
 
 
@@ -32,16 +32,8 @@ def test_template_validates_tracker_before_collect_and_enforces_gates():
         assert n.placement == "peer", nid                                  # D-115
 
 
-def test_child_dag_matches_go2_recipe_and_declares_one_tracker(tmp_path):
+def test_child_dag_declares_one_tracker(tmp_path):
     child = plan_dag(load_dag(_child(tmp_path)), source="t")
-    go2 = plan_dag(load_dag(ROOT / "dags/legged_v2_go2.yaml"), source="t")
-    assert set(child.order) == set(go2.order) | {"validate"}
-    strip = lambda d: {k: v for k, v in d.items() if k != "name"}
-    for nid in go2.order:
-        a, b = go2.nodes[nid].rc.model_dump(), child.nodes[nid].rc.model_dump()
-        assert strip(a["params"]) == strip(b["params"]), nid
-        assert a["flags"] == b["flags"], nid
-        assert a["stage"] == b["stage"] and a["seed"] == b["seed"] and a["variant"] == b["variant"], nid
     shas = {n.rc.options["tracker_sha256"] for n in child.nodes.values() if "tracker_sha256" in n.rc.options}
     assert shas == {GO2_SHA}
     assert child.nodes["collect"].rc.options["actuator_limits"] == "sourced_v1"

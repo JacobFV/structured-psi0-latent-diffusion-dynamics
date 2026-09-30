@@ -1,7 +1,7 @@
-"""`rrp run-dag dags/<lineage>.yaml`: DAG orchestration of pipeline stages (W5; replaces the chain scripts' need()/node()
+"""`rrp run-dag recipes/<track>/<instance>.yaml`: DAG orchestration of pipeline stages (W5; replaces the chain scripts' need()/node()
 functions and their .done/.failed markers).
 
-DAG file (YAML; see dags/arm_lineage.yaml):
+DAG file (YAML; a recipe: recipes/templates/arm_lineage.yaml is the template, recipes/<track>/*.yaml its instances):
   name, family, track, lineage (template), label_prefix (template)
   matrix: {variant: [...], seed: [...]}        # the whole DAG is instantiated per point; node ids get "@<variant>.s<seed>"
   axis_vars: {variant: {sem: {...}}, seed: {...}}   # variables per axis value
@@ -119,10 +119,23 @@ class Plan:
                     [k for k in self.order if k in keep], self.defaults, self.track, self.source, self.caveat)
 
 
+def resolve_recipe(arg: Path | str, root: Path | str | None = None) -> Path:
+    """`rrp run-dag` argument -> file: an existing path as given, else a recipe name relative to `<root>/recipes/`
+    (`armdiv/arm_lineage_v7div`, `templates/arm_grpo.yaml`; the `.yaml` suffix is optional)."""
+    p = Path(arg)
+    if p.exists():
+        return p
+    base = Path(root) if root else Path(__file__).resolve().parents[3]
+    for cand in (base / "recipes" / p, base / "recipes" / (str(p) + ".yaml")):
+        if cand.is_file():
+            return cand
+    raise DagError(f"recipe not found: {arg} (a path, or a name under recipes/)")
+
+
 def load_dag(path: Path | str, _seen: tuple = (), fragment: bool = False) -> dict:
     """Load a DAG file. `extends: <parent.yaml>` (path relative to this file) deep-merges this file over the parent
     (runconfig.overlay: dicts merge, lists and scalars replace, None deletes), e.g. a new data/expert set that changes
-    only names, matrix and input vars of an existing DAG (dags/arm_lineage_v2.yaml)."""
+    only names, matrix and input vars of an existing template (recipes/armdiv/arm_lineage_v7div.yaml)."""
     from rrp.harness.yamlmini import load
     p = Path(path)
     d = load(p.read_text())
@@ -131,7 +144,7 @@ def load_dag(path: Path | str, _seen: tuple = (), fragment: bool = False) -> dic
     parent = d.pop("extends", None)
     if parent:
         # D-126: a list [base.yaml, overlay1.yaml, ...] folds left (base, then each overlay fragment, then this file);
-        # fragments (dags/overlays/**) may omit `nodes`. A single path is the historical behaviour.
+        # fragments may omit `nodes`. A single path is the historical behaviour.
         parents = parent if isinstance(parent, list) else [parent]
         acc = None
         for i, par in enumerate(parents):

@@ -1,0 +1,20 @@
+# armdiv G2 (D-137): the v6 BC expert recipe (recipes/templates/arm_bc.yaml) on the v7div pack (65 training keys).
+# bcv7div 1701 is the DAgger labeller / stateless-R1 expert of the v7div latent lineages AND a BC baseline; 1702 is the
+# second BC seed (G4). Reference cells: the v6 BC expert 1701 on the same new training arms (no retraining).
+#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiv rrp run-dag recipes/armdiv/armdiv_bc_v7div.yaml --max-parallel-gpu 1
+extends: ../templates/arm_bc.yaml
+name: armdiv_bc_v7div
+schema: dag-1
+track: armdiv
+policy: bc
+env: mujoco/arm
+task: pick_place
+bodies: armdiv_pool_v1
+factors: []
+lineage: 'bcv7div-{seed}'
+label_prefix: 'adb{seed}'
+matrix:
+  seed: [1701, 1702]
+vars:
+  source_pack: packed/latent_pp_v7div_s1_H16
+  bc_label: 'bcv7div_direct{seed}'

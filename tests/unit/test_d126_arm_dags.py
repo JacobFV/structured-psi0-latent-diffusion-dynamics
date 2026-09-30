@@ -1,5 +1,5 @@
-"""D-126 arm DAG templates and recipe overlays (#4, #6, #9, #10): they plan, change only what they declare, keep the
-sealed protocol and matched budgets, and never collide with the parent's outputs."""
+"""D-126 arm recipe templates (#6, #9, #10): they plan, keep the sealed protocol and matched budgets. (The #4 ablation
+overlays moved to the legacy area with the closed armabl track.)"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -9,63 +9,12 @@ import pytest
 from rrp.harness.dag import DagError, load_dag, plan_dag
 
 ROOT = Path(__file__).resolve().parents[2]
-DAGS = ROOT / "dags"
-OVERLAYS = ("stageA_beta_kl", "bcdagger_schedule", "refit_lengths")
-DECLARED = {   # node -> the only (section, key path) that may differ from the parent
-    "stageA_beta_kl": {"stageA": [("params", ("latent", "beta_kl"))]},
-    "bcdagger_schedule": {**{n: [("options", ("episodes",))] for n in ("bc1", "bc2", "bc3")},
-                          **{n: [("params", ("dagger_frac",))] for n in ("rzbcdag1", "rzbcdag1long", "rzbcdag2")}},
-    "refit_lengths": {n: [("params", ("steps",))] for n in ("rzbcdag1", "rzbcdag2", "rzgendag1", "rzgendag2", "rzgendag3")},
-}
-
-
-def _strip(d: dict, drop: list) -> dict:
-    import copy
-    d = copy.deepcopy(d)
-    for sec, path in drop:
-        cur = d[sec]
-        for k in path[:-1]:
-            cur = cur[k]
-        cur.pop(path[-1], None)
-    return d
-
-
-def _names(d):
-    """Names/labels embed the lineage prefix; the comparison is about recipe content."""
-    return {k: v for k, v in d.items() if k != "name"} if isinstance(d, dict) else d
-
-
-@pytest.mark.parametrize("ov", OVERLAYS)
-def test_recipe_overlay_changes_only_declared_keys(tmp_path, ov):
-    child = tmp_path / "c.yaml"
-    child.write_text(f"extends: [{DAGS / 'arm_lineage_v2.yaml'}, {DAGS / 'overlays/arm_recipe' / (ov + '.yaml')}]\n"
-                     f"name: c_{ov}\n")
-    parent = plan_dag(load_dag(DAGS / "arm_lineage_v2.yaml"), source="p").select(points=[{"variant": "nosem"}])
-    comp = plan_dag(load_dag(child), source="c")
-    assert {n.point["variant"] for n in comp.nodes.values()} == {"nosem"}
-    assert set(comp.nodes) == set(parent.nodes)
-    assert not {n.rc.out for n in comp.nodes.values()} & {n.rc.out for n in parent.nodes.values()}
-    changed = set()
-    for nid, n in comp.nodes.items():
-        a, b = parent.nodes[nid].rc.model_dump(), n.rc.model_dump()
-        drop = DECLARED[ov].get(n.name, [])
-        pa, pb = _names(_strip(a, drop)["params"]), _names(_strip(b, drop)["params"])
-        if isinstance(pa.get("latent"), dict):
-            pa["latent"], pb["latent"] = _names(pa["latent"]), _names(pb["latent"])
-        assert pa == pb, nid
-        assert _strip(a, drop)["options"] == _strip(b, drop)["options"], nid
-        assert a["flags"] == b["flags"] and a["stage"] == b["stage"] and a["seed"] == b["seed"], nid
-        fa, fb = _names(a["params"]), _names(b["params"])
-        if isinstance(fa.get("latent"), dict):
-            fa, fb = dict(fa, latent=_names(fa["latent"])), dict(fb, latent=_names(fb["latent"]))
-        if fa != fb or a["options"] != b["options"]:
-            changed.add(n.name)
-    assert changed and changed <= set(DECLARED[ov]), (ov, changed)     # (refit_lengths: bcdag2 already had 16000)
+DAGS = ROOT / "recipes"
 
 
 def test_list_extends_refuses_cycles(tmp_path):
     a = tmp_path / "a.yaml"
-    a.write_text(f"extends: [{DAGS / 'arm_lineage.yaml'}, a.yaml]\nname: a\n")
+    a.write_text(f"extends: [{DAGS / 'templates/arm_lineage.yaml'}, a.yaml]\nname: a\n")
     with pytest.raises(DagError, match="circular"):
         load_dag(a)
 
@@ -113,11 +62,10 @@ def test_target_templates_sealed_and_fair():
     assert pk(lat) == pk(bc)                                     # identical target demo packs
 
 
-def test_existing_arm_dags_still_plan_identically():
-    """Default-off: the committed arm DAGs plan to the same node set and config hashes with the D-126 code (the hash
-    values are pinned by tests/unit/test_dag.py's legacy-config equality; here: nothing new leaks into them)."""
-    for f in ("arm_lineage.yaml", "arm_lineage_v2.yaml", "armexpert_v6dart.yaml"):
-        p = plan_dag(load_dag(DAGS / f), source="x")
-        for n in p.nodes.values():
-            assert "grasp_contact" not in n.rc.options and "chunk_blend" not in n.rc.options
-            assert n.rc.stage not in ("grpo", "target_eval", "target_adapt")
+def test_arm_lineage_template_stays_default_off():
+    """Default-off: the arm lineage template plans without any D-126 option (the rendered nodes of every kept recipe are
+    pinned by the recipe.* goldens, tests/unit/test_recipes.py)."""
+    p = plan_dag(load_dag(DAGS / "templates/arm_lineage.yaml"), source="x")
+    for n in p.nodes.values():
+        assert "grasp_contact" not in n.rc.options and "chunk_blend" not in n.rc.options
+        assert n.rc.stage not in ("grpo", "target_eval", "target_adapt")

@@ -1,19 +1,29 @@
-# armdiv G3 (D-137): ARM v6 lineages (dags/arm_lineage_v6.yaml -> v2 -> arm_lineage.yaml: identical recipe, steps,
-# seeds, DAgger rounds, refits, flow fine-tunes) on the EXPANDED pool armdiv_pool_v1 (65 keys) and its data:
-#   data  = v7div (dags/armdiv_data_v7div.yaml; pack packed/latent_pp_v7div_s1_H16)
-#   DAgger labeller / stateless-R1 expert = learned:bcv7div_direct1701 (dags/armdiv_bc_v7div.yaml, final checkpoint)
-# Changes from v6, all forced by the larger pool: (1) DAgger rounds collect 5 episodes per body (65 bodies = 325 per
-# round; v6: 24 x 13 = 312), so the per-round data volume and cost match v6; (2) the body lists are the pool;
-# (3) diagnostic nodes not needed for the armdiv question are dropped (semedits, prog20k, proggdag1, orcbc); a new-arm
-# dev evaluation (newarms) is added next to finalevals / heldout. Variants semfix / nosem x seeds 1, 2.
-# kinfeat ablation lineages: dags/arm_lineage_v7div_kinfeat.yaml (extends this file).
-# Peer only; ONE GPU lease at a time (lead: humanoids first).
-#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiv rrp run-dag dags/arm_lineage_v7div.yaml --max-parallel-gpu 1
-extends: arm_lineage_v6.yaml
+# armdiv G3 (D-137): the ARM v6 lineage recipe on the EXPANDED pool armdiv_pool_v1 (65 keys) and its data (v7div:
+# recipes/armdiv/armdiv_data_v7div.yaml; pack packed/latent_pp_v7div_s1_H16). FLATTENED from the former chain
+# arm_lineage_v7div -> v6 -> v2 -> arm_lineage (D-145 P1): the training recipe, rounds, seeds, eval sets and edit suite are
+# the template's (recipes/templates/arm_lineage.yaml); this file carries the data/expert vars, the pool lists, the
+# resource declarations (>= 1.35 x measured peak, D-117; nothing here enters a config hash) and the deltas below.
+#   DAgger labeller / stateless-R1 expert = learned:bcv7div_direct1701 (recipes/armdiv/armdiv_bc_v7div.yaml, final checkpoint)
+#   grasp contact v2.1 in EVERY simulated stage (`options.grasp_contact`; training stages read packs only)
+# Deltas from v6, forced by the larger pool: DAgger rounds collect 5 episodes per body (65 bodies = 325 per round; v6:
+# 24 x 13 = 312); the body lists are the pool; semedits / prog20k / proggdag1 / orcbc are dropped; a new-arm dev evaluation
+# (newarms) is added. Variants semfix / nosem x seeds 1, 2. Peer only; ONE GPU lease at a time (lead: humanoids first).
+# kinfeat ablation: recipes/armdiv/arm_lineage_v7div_kinfeat.yaml; smoke: arm_lineage_v7div_smoke.yaml.
+#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiv rrp run-dag recipes/armdiv/arm_lineage_v7div.yaml --max-parallel-gpu 1
+extends: ../templates/arm_lineage.yaml
 name: arm_lineage_v7div
+schema: dag-1
 track: armdiv
+policy: latent
+env: mujoco/arm
+task: pick_place
+bodies: armdiv_pool_v1
+factors: [semfix, nosem]
 lineage: 'arm7div-{variant}'
 label_prefix: 'a7d{tg}{seed}'
+matrix:
+  variant: [semfix, nosem]
+  seed: [1, 2]
 vars:
   pfx: 'arm7div_{variant}_s{seed}'
   dataset: runs/armdiv/v7div/collect-v7div_s1
@@ -30,22 +40,35 @@ defaults:
   max_parallel_gpu: 1
   max_cpu: 10
 nodes:
-  bc1: {config: {options: {episodes: 5}}}
-  bc2: {config: {options: {episodes: 5}}}
-  bc3: {config: {options: {episodes: 5}}}
-  gen1: {config: {options: {episodes: 5}}}
-  gen2: {config: {options: {episodes: 5}}}
-  gen3: {config: {options: {episodes: 5}}}
-  gdag1: {config: {options: {episodes: 5}}}
-  gdag2: {config: {options: {episodes: 5}}}
-  semedits: null
-  prog20k: null
-  proggdag1: null
-  orcbc: null
+  stageA: {resources: {cpu: 2, mem: '14G', gpu_mem: '2G', max_seconds: 21600}}
+  F0: {resources: {cpu: 2, mem: '9G', gpu_mem: '2G', max_seconds: 21600}}
+  Fft: {resources: {cpu: 2, mem: '9G', gpu_mem: '2G', max_seconds: 21600}}
+  Fgdag1: {resources: {cpu: 2, mem: '9G', gpu_mem: '2G', max_seconds: 21600}}
+  Fgdag2h: {resources: {cpu: 2, mem: '9G', gpu_mem: '2G', max_seconds: 14400}}
+  rzbcdag1: {resources: {cpu: 2, mem: '8G', gpu_mem: '3G', max_seconds: 21600}}
+  rzbcdag1long: {resources: {cpu: 2, mem: '8G', gpu_mem: '3G', max_seconds: 21600}}
+  rzbcdag2: {resources: {cpu: 2, mem: '8G', gpu_mem: '3G', max_seconds: 21600}}
+  rzgendag1: {resources: {cpu: 2, mem: '8G', gpu_mem: '3G', max_seconds: 21600}}
+  rzgendag2: {resources: {cpu: 2, mem: '8G', gpu_mem: '3G', max_seconds: 21600}}
+  rzgendag3: {resources: {cpu: 2, mem: '8G', gpu_mem: '3G', max_seconds: 21600}}
+  bc1: {resources: {cpu: 8, mem: '22G'}, config: {options: {workers: 4, threads: 2, grasp_contact: v2.1, episodes: 5}}}
+  bc2: {resources: {cpu: 8, mem: '22G'}, config: {options: {workers: 4, threads: 2, grasp_contact: v2.1, episodes: 5}}}
+  bc3: {resources: {cpu: 8, mem: '22G'}, config: {options: {workers: 4, threads: 2, grasp_contact: v2.1, episodes: 5}}}
+  gen1: {resources: {cpu: 8, mem: '22G'}, config: {options: {workers: 4, threads: 2, grasp_contact: v2.1, episodes: 5}}}
+  gen2: {resources: {cpu: 8, mem: '22G'}, config: {options: {workers: 4, threads: 2, grasp_contact: v2.1, episodes: 5}}}
+  gen3: {resources: {cpu: 8, mem: '22G'}, config: {options: {workers: 4, threads: 2, grasp_contact: v2.1, episodes: 5}}}
+  gdag1: {resources: {cpu: 8, mem: '22G'}, config: {options: {workers: 4, threads: 2, grasp_contact: v2.1, episodes: 5}}}
+  gdag2: {resources: {cpu: 8, mem: '22G'}, config: {options: {workers: 4, threads: 2, grasp_contact: v2.1, episodes: 5}}}
+  finalevals: {resources: {mem: '6G'}, config: {options: {grasp_contact: v2.1}}}
+  heldout: {resources: {mem: '6G'}, config: {options: {grasp_contact: v2.1}}}
+  semedits: null            # dropped (not needed for the armdiv question)
+  prog20k: null            # dropped (not needed for the armdiv question)
+  proggdag1: null            # dropped (not needed for the armdiv question)
+  orcbc: null            # dropped (not needed for the armdiv question)
   newarms:
     stage: eval_r2
     tag: newarms
-    resources: {cpu: 3, mem: 6G, max_seconds: 10800}
+    resources: {cpu: 3, mem: '6G', max_seconds: 10800}
     config:
       inputs: {flow: '@Fgdag2h:policy.pt', representation: '@rzgendag3:representation.pt'}
       options: {tag: newarms, robots: [pa2s0_pg2, pa2s3_tf3, ur10e_pg2, vx300s_tf3], seed_starts: [3000000], episodes: 30, workers: 1, grasp_contact: v2.1}

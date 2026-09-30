@@ -1,4 +1,4 @@
-"""`rrp run-dag <dag.yaml>`: plan / run / resume a pipeline DAG through the broker (rrp.orchestration.dag)."""
+"""`rrp run-dag <recipe.yaml>`: plan / run / resume a pipeline DAG through the broker (rrp.orchestration.dag)."""
 from __future__ import annotations
 
 import json
@@ -9,9 +9,13 @@ from pathlib import Path
 def cmd_run_dag(a):
     from rrp.core.provenance import repo_root
     from rrp.harness.dag import (DagError, Executor, Ledger, OpsRunner, default_ledger_path, format_plan,
-                                       load_dag, plan_dag)
+                                       load_dag, plan_dag, resolve_recipe)
     root = Path(a.root).resolve() if a.root else repo_root()
-    plan = plan_dag(load_dag(a.dag), source=str(a.dag))
+    try:
+        recipe = resolve_recipe(a.dag, root)
+    except DagError as e:
+        raise SystemExit(str(e))
+    plan = plan_dag(load_dag(recipe), source=str(recipe))
     points = [dict(kv.split("=", 1) for kv in p.split(",")) for p in (a.point or [])]
     if a.only or points:
         plan = plan.select(a.only, points)
@@ -70,8 +74,8 @@ def _opt(cli, dflt, typ):
 
 
 def register(sub):
-    p = sub.add_parser("run-dag", help="run a pipeline DAG (dags/*.yaml) through the broker; JSON ledger, resumable")
-    p.add_argument("dag")
+    p = sub.add_parser("run-dag", help="run a recipe (recipes/<track>/*.yaml) through the broker; JSON ledger, resumable")
+    p.add_argument("dag", help="recipe file, or a name under recipes/ (armdiv/arm_lineage_v7div)")
     p.add_argument("--dry-run", action="store_true", help="print the plan (nodes, resources, placement, outputs, commands)")
     p.add_argument("--only", help="regex over node ids (dependencies are included)")
     p.add_argument("--point", action="append", help="matrix point filter, e.g. variant=semfix,seed=2 (repeatable)")

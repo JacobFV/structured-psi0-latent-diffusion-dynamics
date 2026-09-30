@@ -1,10 +1,17 @@
 # armdiv G3 ablation (D-137 H2): the v7div lineage recipe with the `kinfeat` features (options.kinfeat=v1 on EVERY node:
 # base-frame joint axes at home in the static columns, world-axis column in the base frame; rrp.policies.features.kinfeat).
-# semfix x seeds 1, 2. DAgger labeller = the kinfeat BC expert bcv7divkf 1701 (dags/armdiv_bc_v7div_kinfeat.yaml), so
+# semfix x seeds 1, 2. DAgger labeller = the kinfeat BC expert bcv7divkf 1701 (recipes/armdiv/armdiv_bc_v7div_kinfeat.yaml), so
 # the expert and the latent route see the same inputs. Same data/pack (the flag is applied at load time).
-#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiv rrp run-dag dags/arm_lineage_v7div_kinfeat.yaml --max-parallel-gpu 1
-extends: arm_lineage_v7div.yaml
+#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiv rrp run-dag recipes/armdiv/arm_lineage_v7div_kinfeat.yaml --max-parallel-gpu 1
+extends: arm_lineage_v7div.yaml         # (sibling instance: the v7div lineage + `options.kinfeat`)
 name: arm_lineage_v7div_kinfeat
+schema: dag-1
+track: armdiv
+policy: latent
+env: mujoco/arm
+task: pick_place
+bodies: armdiv_pool_v1
+factors: [semfix]
 lineage: 'arm7divkf-{variant}'
 label_prefix: 'a7k{tg}{seed}'
 matrix:

@@ -1,6 +1,13 @@
 # armdiv G2 SMOKE (plumbing only; NOT a result): train_bc on the v7div pack for 30 updates, 2-episode evaluations.
-extends: armdiv_bc_v7div.yaml
+extends: armdiv_bc_v7div.yaml         # sibling instance
 name: armdiv_bc_v7div_smoke
+schema: dag-1
+track: armdiv
+policy: bc
+env: mujoco/arm
+task: pick_place
+bodies: armdiv_pool_v1
+factors: []
 lineage: 'bcv7div-smoke-{seed}'
 label_prefix: 'ads{seed}'
 matrix:

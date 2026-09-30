@@ -6,11 +6,11 @@
 # Recipes are the committed configs (configs/ladder/armsemfix, armnosem, armseed2/*): seed s = seed-1 recipe + 1000*(s-1)
 # on every training seed and + 1,100,000*(s-1) on every DAgger collection seed (naming.md). Variants: sem = semantic
 # NLL with the unbounded log-variance floor (-8, the frozen jointfix/sejf2 recipe), semfix = bounded NLL (-4), nosem =
-# no semantic objective (capacity matched). tests/unit/test_dag.py checks every planned native config against the
-# committed legacy config of the same lineage (all six: seed 1 = jointfix, sfjf, nsjf; seed 2 = sejf2, sfjf2, nsjf2).
+# no semantic objective (capacity matched). The rendered digest is pinned by `recipe.arm_lineage` in tests/data/golden.json
+# (tests/unit/test_recipes.py); the legacy per-run configs it was checked against are retired (legacy area, see the .old index at the repo root).
 # Outputs: artifacts/runs/pipeline/arm-<variant>/<stage>[-<tag>]_s<seed>. Usage:
-#   rrp run-dag dags/arm_lineage.yaml --dry-run --point variant=semfix,seed=2
-#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/pipeline rrp run-dag dags/arm_lineage.yaml --point variant=semfix,seed=3
+#   rrp run-dag templates/arm_lineage.yaml --dry-run --point variant=semfix,seed=2
+#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/pipeline rrp run-dag templates/arm_lineage.yaml --point variant=semfix,seed=3
 name: arm_lineage
 schema: dag-1
 family: arm
@@ -29,7 +29,7 @@ vars:
   so: '{1000 * (seed - 1)}'
   soff: '{1100000 * (seed - 1)}'
   pfx: 'w5_arm_{variant}_s{seed}'
-  # data/expert inputs (v1 set; dags/arm_lineage_v2.yaml overrides them for the v2-teacher set, D-102)
+  # data/expert inputs (v1 set; the retired arm_lineage_v2 DAG overrode them for the v2-teacher set, D-102)
   dataset: datasets/pick_place_primary_v3dart
   pack: packed/latent_pp_v3dart_s1_H16
   bc_policy: 'runs/baselines_bc_ckpts:direct1701_u12000.pt'

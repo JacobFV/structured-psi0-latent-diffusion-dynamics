@@ -453,7 +453,7 @@ TRAINING_FLAG_KEYS = ("zero_prev_action", "realizer_drop_qd", "realizer_anchor",
 # (grep-confirmed), so legged checkpoints/configs remain unmigrated for this surface. Dropping them would silently
 # stop recording them for every still-legacy-style (arm OR legged) config or checkpoint. R2c confirmed concretely
 # (not just by inspection) that even the last arm-only
-# occurrences cannot be retired in isolation: `dags/arm_lineage.yaml` / `dags/templates/dual_lineage.yaml` still
+# occurrences cannot be retired in isolation: `recipes/templates/arm_lineage.yaml` / `recipes/templates/dual_lineage.yaml` still
 # render a flat `latent.semantic_weight` block coupled to the `Flags.probe_lv_min` mechanism (`core/runconfig.py`'s
 # `FLAG_NAMES` note), proven byte-identical to on-disk `configs/ladder/**` files by `test_dag.py::
 # test_arm_dag_reproduces_legacy_configs` (general infra, not owned by this row). Only `binding_cf_weight` (renamed
