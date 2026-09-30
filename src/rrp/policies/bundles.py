@@ -1,5 +1,5 @@
 """Loaders for trained bundles (W4: moved unchanged out of the training modules, which re-export every name), so that
-evaluation, deployment and the workbench load trained models without importing training code.
+evaluation, deployment and the viz room load trained models without importing training code.
 
 arm (from rrp.learning.latent_train): `load_representation` -> (LatentConfig, encoder E, system 0 R, probe P, result)
 with weight-fingerprinted compatibility IDs.

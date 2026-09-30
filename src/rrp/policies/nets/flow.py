@@ -1,6 +1,6 @@
 """Cached multi-bank flow policy (system i).
 
-Conventions (docs/handoff/docs/01_architecture.md):
+Conventions (archived handoff doc 01_architecture.md):
   eps ~ N(0, I) on valid coords;  z_tau = (1 - tau) eps + tau z ;  v_target = z - eps
   loss = masked mean ||v_theta(z_tau, tau, ctx) - v_target||^2 ; sample: integrate tau 0 -> 1.
 Only the action stream is noised. Context (4 typed clean banks) is encoded once per

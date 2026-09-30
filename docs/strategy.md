@@ -50,7 +50,7 @@ Principles:
   - Stop tracking datasets (`.npz`, `.pkl`, `.pt`) and `ops/*.log`: untrack only; history is left as is.
   - Reconcile README / AGENTS / CLAUDE / STATUS / BRIEF with reality (resource rule D-033/D-086, public repo, current pipelines, rates).
   - Refresh `research/registry.jsonl` and `artifacts/requirements.json`.
-  - Record the naming map (`research/naming.md`: sfjf/nsjf/sejf2/fixsem/jointfix … → variant × seed × stage).
+  - Record the naming map (`.old/research/naming.md`: sfjf/nsjf/sejf2/fixsem/jointfix … → variant × seed × stage).
 - **Gate:** `pytest tests/unit` green on a fresh checkout without assets. No tracked dataset files. Docs consistent (checklist in the PR/commit).
 
 ### W3 Provenance and contracts (phase 1)
@@ -78,7 +78,7 @@ Principles:
 - **Scope:**
   - `Pipeline(family)` with stages collect / pack / train-rep / train-flow / dagger / refit / eval / edits.
   - A config schema (pydantic `RunConfig`, schema version, required flags, derived output paths, overlays and matrices).
-  - `rrp run-dag dags/<lineage>.yaml` replaces the chain shell scripts (resources, dependencies, retries, JSON state ledger, host/peer placement).
+  - `rrp run-dag recipes/<track>/<name>.yaml` replaces the chain shell scripts (resources, dependencies, retries, JSON state ledger, host/peer placement).
   - Arm first, with a parity check, then legged, then dual.
 - **Gate:** the new arm pipeline reproduces an existing lineage's gate metrics with fixed seeds (within seed noise). The chain scripts
   are retired once no lease references them.

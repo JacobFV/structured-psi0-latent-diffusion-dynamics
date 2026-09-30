@@ -112,7 +112,7 @@ POLICIES: dict[str, str] = {
     "latent": "rrp.policies.latent:make_latent",
     "legged_latent": "rrp.policies.legged:make_legged_latent",
     "legged_bc": "rrp.policies.legged:make_legged_bc",
-    "psi0_direct": "rrp.policies.psi0:make_direct",          # Ψ₀ migration (architecture.md section 9)
+    "psi0_direct": "rrp.policies.psi0:make_direct",          # Ψ₀ migration (architecture.md section 11 glossary)
     "psi0_structured": "rrp.policies.psi0:make_structured",
     "psi0_replay": "rrp.policies.psi0:make_replay",
     "oracle": "rrp.policies.oracle:make_oracle",                # privileged diagnostic, source oracle

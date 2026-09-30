@@ -30,7 +30,7 @@ Causes:
   (solref 0.02), floor friction 1.0. The menagerie go2 uses an elliptic cone with impratio 100.
 - PPO reward `feet_slip` −0.05 (negligible). Friction is randomized only as one sliding scale per worker.
 - The gate had no slip criterion, so skating trackers passed.
-Fixed: contact model v2 + reward schedule + slip gate (D-101, D-103; research/tracks/contact.md). Stance slip v1 → v2: t1 0.86 → 0.151,
+Fixed: contact model v2 + reward schedule + slip gate (D-101, D-103; .old/research/tracks/contact.md). Stance slip v1 → v2: t1 0.86 → 0.151,
 h1 0.57 → 0.13, g1 0.42 → 0.08, go2 0.26 → 0.02, anymal_c 0.34 → 0.03. W8 regenerated anymal_c and go2 on contact v2 (D-105, D-113).
 All legged results up to D-092 were produced with contact v1 and must be read with that caveat.
 
@@ -172,7 +172,7 @@ Test: compare α = 0 against the final α for slip ratio, tracking, falls, duty 
 - ✅ Motion-quality metrics (slip ratio, CoT, jerk, contact forces, joint-limit margin, chunk-boundary steps) in every legged and arm eval
   row (`rrp.envs.mujoco.motion_quality`, D-108); tracker foot force is the 20 ms-filtered peak (D-114).
 - ✅ Robustness sweeps (see 4.2). ✅ Gates in code for trackers, datasets and policy flags (`rrp.harness.eval.gates`, D-112, D-114); the
-  `validate_tracker` stage is wired into the legged DAG template for future runs (`dags/templates/legged_v2_gated.yaml`).
+  `validate_tracker` stage is wired into the legged DAG template for future runs (`recipes/templates/legged_lineage.yaml`).
   ❌ Long-duration runs (minutes) for drift.
 
 ### 4.11 Safety and hardware

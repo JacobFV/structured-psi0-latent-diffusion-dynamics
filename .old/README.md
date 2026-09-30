@@ -16,8 +16,11 @@ kept for provenance only. Rules (schema.toml, tests/unit/test_layout.py, docs/ar
 | `.old/dags/` | per-lineage DAG copies superseded by `recipes/templates/` + instances | `.old/dags/README.md` |
 | `.old/scripts/` | finished drivers, renderers and the demo page builder | `.old/scripts/README.md` |
 | `.old/research/` | notes and working files of closed tracks, one-off analysis scripts, superseded reports, naming map | `.old/research/README.md` |
-| `.old/docs/` | the original handoff package, the sprint demo page, the D-140 migration tables | `.old/docs/README.md` |
+| `.old/docs/` | the original handoff package, the sprint demo page, architecture.md sections 7-10 (D-140 migration tables) | `.old/docs/README.md` |
 | `.old/tests/` | frozen pre-move scripts used by retired parity tests | `.old/tests/README.md` |
 | `.old/ui/` | the loopback workbench React UI (retired, replaced by the viz room) | `.old/ui/README.md` |
 | `.old/src/` | the loopback workbench service (`rrp.viz.workbench`) | `.old/src/README.md` |
 | `.old/ops/` | initial host preflight record | `.old/ops/README.md` |
+
+Single files: `.old/STATUS.md` is the previous long-form status page (per-workstream table, evidence summary through D-123, sprint and
+work logs); the current one is `STATUS.md`.

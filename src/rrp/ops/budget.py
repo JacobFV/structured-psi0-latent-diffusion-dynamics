@@ -1,4 +1,4 @@
-"""Conservative resource budgets implementing docs/handoff/docs/03_resource_safety.md.
+"""Conservative resource budgets implementing the archived handoff doc 03_resource_safety.md.
 
 Pure arithmetic. Measurement lives in telemetry.py and enforcement in cgroup.py.
 The host budget is half of CURRENTLY FREE capacity (never of nominal totals),

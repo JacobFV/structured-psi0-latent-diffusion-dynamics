@@ -51,7 +51,7 @@ joint-target tracking in MuJoCo
 - Semantic vs no-semantic ("nosem") variants are capacity-matched: nosem sets the semantic loss weights to 0. The
   bounded-NLL fix (`latent.probe_lv_min: -4`, D-085) is part of the current sem recipe ("semfix"/"fixsem").
 - Design contract: [`research/corrections/controller-facing-semantic-latent.md`](research/corrections/controller-facing-semantic-latent.md).
-  Original assignment (historical): [`docs/handoff/`](docs/handoff/).
+  Original assignment (historical): [`.old/docs/handoff/`](.old/docs/handoff/).
 
 ## one repo, three interfaces (D-140)
 
@@ -67,7 +67,7 @@ moved-path table: [`docs/architecture.md`](docs/architecture.md).
 | tasks (`rrp.tasks.spec.TASKS`) | pick_place, reach_pose, support_insert, handover, assign_left/right, pivot_against_surface, carry_tray_level, waypoint_contact, loco_pick, foothold_steps, h_steps, h_gap, locomotion, `simple/<Task>` |
 
 Lineage codes in config and run names (`sfjf`, `nsjf2`, `fixsem`, `gendag3_noqd`, …) are decoded in
-[`research/naming.md`](research/naming.md). The training lineages (arm ladder, legged, dual arm) run as pipeline stages
+[`.old/research/naming.md`](.old/research/naming.md). The training lineages (arm ladder, legged, dual arm) run as pipeline stages
 (`rrp.harness.pipelines`, families arm / dual / legged) from recipe files in `recipes/` (templates + per-track instances); evaluation routes on matched seeds are
 R0 teacher, R1 oracle packet E(expert chunk) (DIAGNOSTIC), R2 generated packet (deployable), plus a BC positive control
 and task-context edit suites.
@@ -81,7 +81,7 @@ and task-context edit suites.
 | evaluate any policy × env × task | `rrp eval --policy NAME[=JSON] --env ENV --task TASK --body BODY --seeds a:b --out F` (`harness.eval.evaluate` over `harness.rollout`, family hooks from `harness.eval.hooks`; JSONL rows + Wilson summary) |
 | compatibility matrix (n/a with reasons) | `rrp matrix …` |
 | a whole lineage (collect → pack → Stage A → flow → DAgger / refit → eval → edits) | `rrp run-dag recipes/<track>/<lineage>.yaml` (or a name under `recipes/`) (resumable JSON ledger; stage list: `rrp stage list`) |
-| generate / pack arm data | `rrp data generate --config configs/data/…`; `rrp data pack --config … --out artifacts/packed/<name>` |
+| generate / pack arm data | `rrp data generate --config <data config JSON, rendered by the recipe stage>`; `rrp data pack --config … --out artifacts/packed/<name>` |
 | arm Stage A / flow / probes | `rrp latent train-representation --config …`; `rrp latent train-flow --config …`; `rrp latent fit-probes …` |
 | arm ladder evaluation (R0/R1/R2) | `rrp suite ladder --route {teacher,oracle,generated} --robot panda_pg2 --n 30 --out …` |
 | arm task-context edits | `rrp latent semantic-edits --route {teacher,oracle,generated,bc} …` |
@@ -131,12 +131,16 @@ src/rrp/          layers import only downward (tests/unit/test_layering.py)
   viz/            room exporter, recorder/replay, replay-spec generator
   cli/            the `rrp` command (tools.py: `rrp <group> <tool>` for data / train / suite / stage / viz tools)
 viz/room/         visualization room (exporter output in viz/data)
-recipes/          recipe templates + per-track instances (the run DAGs; `rrp run-dag`); legacy configs and DAGs: `.old/`
+recipes/          recipe templates + presets + per-track instances (the run DAGs; `rrp run-dag`)
 ops/bin/          peer transport (peer_run/sync/bootstrap), asset fetch, external-env setup (shell)
-research/         decisions.md (append-only; appendix P = former psi1z), naming.md, tracks/, reports/, splits/, registry.jsonl
+research/         decisions.md (append-only; appendix P = former psi1z), registry.jsonl, tracks/<open track>.md, methods/,
+                  corrections/, splits/, reports/evidence_matrix.md
 artifacts/        small raw results (JSON/JSONL), receipts, labelled videos
-docs/             architecture.md, strategy.md, experiments_roadmap.md, robot_training_considerations.md, demo/, handoff/
-tests/            unit/ (incl. test_golden.py: byte-identity of featurizers, teachers, physics, policies), integration/, browser/, gpu/
+docs/             architecture.md (interfaces; section 13 = the repository schema), strategy.md, relations.md,
+                  experiments_roadmap.md, robot_training_considerations.md
+.old/             retired configs, DAGs, scripts, notes, handoff package, demo page (index: .old/README.md; never read by code)
+schema.toml       the repository schema (every tracked path must match; tests/unit/test_layout.py)
+tests/            unit/ (incl. test_golden.py: byte-identity of featurizers, teachers, physics, policies), integration/, gpu/
 ```
 
 ## rules that shape the results
@@ -145,7 +149,7 @@ tests/            unit/ (incl. test_golden.py: byte-identity of featurizers, tea
   rewards and evaluation.
 - **Labels.** scripted_teacher (privileged) / oracle (teacher- or expert-encoded packet: diagnostic, not deployable) /
   bc / learned:<ckpt>. Every number comes from a saved raw output; failures are kept.
-- **Splits are sealed before results** (`research/splits/`, `configs/eval/latent_slice1.json`).
+- **Splits are sealed before results** (`research/splits/`, `recipes/presets/eval-latent_slice1.json`).
 - **Resources.** Host: ≤80% of currently free CPU and memory, host GPU allowed, ≥100 GB disk kept free; peer: all of it
   (D-026, D-033, D-086). Details and the peer workflow: [`AGENTS.md`](AGENTS.md). No cloud spend,
   no physical robots.
@@ -162,7 +166,7 @@ tests/            unit/ (incl. test_golden.py: byte-identity of featurizers, tea
 
 - current state and workstreams → [`STATUS.md`](STATUS.md), [`docs/strategy.md`](docs/strategy.md)
 - what is shown → [`research/reports/evidence_matrix.md`](research/reports/evidence_matrix.md)
-- why → [`research/decisions.md`](research/decisions.md); names → [`research/naming.md`](research/naming.md)
+- why → [`research/decisions.md`](research/decisions.md); names → [`.old/research/naming.md`](.old/research/naming.md)
 - agent rules → [`AGENTS.md`](AGENTS.md)
 
 ## the Ψ₀ line (W10)

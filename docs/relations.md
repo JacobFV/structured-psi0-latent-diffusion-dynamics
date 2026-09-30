@@ -523,7 +523,7 @@ Chosen because our envs can label them today (catalog with the rest: `research/r
 
 `LatentConfig.version()` must stay identical for every existing representation (bundle compatibility IDs): computed
 from the legacy-equivalent dict when the specs equal the legacy defaults; the factor hash enters only when they differ
-(test: every `configs/**` latent config hashes as before).
+(test: every `.old/configs/**` latent config hashes as before).
 
 ### 8.2 delete list
 
@@ -541,7 +541,7 @@ featurizer; `nets/latent_probes.py`, `nets/anchor_probes.py`, `LeggedProbe`, Ψ�
    with random `sb.w`.
 2. Every migration commit leaves `tests/data/golden.json` byte-identical (no re-record) and the unit suite green.
 3. Checkpoint test: state-dict key lists of the old classes (frozen in the test) load strictly into the new ones.
-4. Config test: every `configs/**` / `dags/**` policy block resolves to the same effective factor list as its legacy
+4. Config test: every `.old/configs/**` / `.old/dags/**` policy block resolves to the same effective factor list as its legacy
    flags; the codemod then rewrites those files to `factors:`; `PolicyConfig.from_dict` maps legacy keys only for
    configs stored inside checkpoints (on-disk data).
 
@@ -571,7 +571,7 @@ src/rrp/harness/data/mix.py                mixed_batches
 `relations/base.py`, `relations/ops.py` with ALL operators of 3.2 and all forms / controls / gates / confidence /
 field readouts, `relations/catalog.py` (legacy entries, presets, one pre-created section per unit), `FactorSite`;
 F3 `MHA` q/k augmentation, `RelBlock`; delete `StructuralBias` / `transform_relations`; arm/dual flow + E + Ψ₀
-DimEncoder on FactorSite; `PolicyConfig.factors` + legacy mapping + configs/dags codemod + factor hash in checkpoints;
+DimEncoder on FactorSite; `PolicyConfig.factors` + legacy mapping + (archived) configs/dags codemod + factor hash in checkpoints;
 deploy guard; `rrp factors list|show`; F4 interface skeletons with tests: `nets/probes.py` (ReadoutProbe,
 equivalence-tested against `PacketProbe`, not swapped in), `envs.base.StateView` + dataclasses,
 `harness/data/relgen/__init__.py` (LabelDef, Label, ScenePart, TransformDef, registries, `compose` signature),
@@ -589,7 +589,7 @@ cleanly.
 | id | unit | deps | owns | acceptance | est. |
 |---|---|---|---|---|---|
 | R1 | arm/dual probes → ReadoutProbe | F | `nets/latent_probes.py` (delete), `harness/eval/{hooks,ladder,dual_latent_eval,latent_causal,edit_harness}.py`, `cli/{latent,dual_latent}.py`, `viz/record.py` (probe calls only), `policies/bundles.py` (`load_representation` only), probe lines of `harness/train/latent_train.py` | goldens unchanged; old PacketProbe state dicts load strictly; `probes:arm-packet-v1` metrics equal `probe_metrics` on a fixture batch | 4 h |
-| R2 | arm latent config + flags → specs | R1, R9 | `nets/semantic_latent.py`, `nets/binding_aug.py` (delete), `nets/latent_batch.py`, `harness/train/{latent_train,behavior,joint_adapt,sft,adapt,vlm_train}.py`, `harness/data/{packed,dual_latent,chunks}.py`, `harness/eval/latent_counterfactuals.py`, `core/{runconfig,provenance}.py`, `configs/latent/**`, `dags/**` (latent keys) | `LatentConfig.version()` identical for every config under `configs/`; `_check_variant` equivalent; `cf_swap("binding")` batches equal `binding_aug` batches on a fixture; no `semantic_weight` / `probe_lv_min` / `binding_cf` in `src/` | 5 h |
+| R2 | arm latent config + flags → specs | R1, R9 | `nets/semantic_latent.py`, `nets/binding_aug.py` (delete), `nets/latent_batch.py`, `harness/train/{latent_train,behavior,joint_adapt,sft,adapt,vlm_train}.py`, `harness/data/{packed,dual_latent,chunks}.py`, `harness/eval/latent_counterfactuals.py`, `core/{runconfig,provenance}.py`, `.old/configs/latent/**`, `dags/**` (latent keys) | `LatentConfig.version()` identical for every config under `configs/`; `_check_variant` equivalent; `cf_swap("binding")` batches equal `binding_aug` batches on a fixture; no `semantic_weight` / `probe_lv_min` / `binding_cf` in `src/` | 5 h |
 | R3 | arm system 0 on RelBlock + `route.own_assembly` | F | `policies/system0.py`, `policies/latent.py` | `latent.system0.*` goldens unchanged; realizer state dicts load strictly | 2 h |
 | R4 | legged nets | F | `nets/{legged_latent,legged_bc}.py`, `policies/legged.py`, `features/legged.py`, `harness/train/{legged_latent_train,legged_bc,legged_dagger}.py`, `harness/eval/legged_latent_eval.py`, `policies/bundles.py` (`load_rep` only) | legged goldens unchanged; LeggedProbe checkpoints load via the key map; `probes:legged-v1` metrics equal `probe_metrics` on a fixture | 4 h |
 | R5 | Ψ₀ nets | F | `policies/psi0/{nets,train,data}.py`, `bodies/g1_simple.py` | `test_psi0.py` green; Realizer output byte-identical on a seeded fixture; stage-A checkpoints load (`load_tolerant` paths); `probes:psi0-v1` | 3 h |
@@ -626,7 +626,7 @@ containment, material, tool→target, cause→effect: new scene parts + labels) 
   top-level `packet_semantic_weight` / `aux_weight` into the run config's `factors:` list (readout `weight`,
   `params.on`, `params.lv_min`, transform `cf_swap("binding")` with `mix`, `id.slot_handle`). `LatentConfig.version()`
   must return the same string for every existing config (write the test first: freeze today's versions of all configs
-  under `configs/`). Port `binding_aug` onto R9's `cf_swap` and delete it; replace hard-coded relation ids with
+  under `.old/configs/`). Port `binding_aug` onto R9's `cf_swap` and delete it; replace hard-coded relation ids with
   `REL[...]`; rewrite `RunConfig._check_variant` and `TRAINING_FLAG_KEYS` on the specs; codemod configs / dags.
 - **R3.** Replace the inline `-inf` own-assembly mask and the private block of `LatentRealizer` with `RelBlock` and
   the `route.own_assembly` factor (preset `s0-arm`); parameter paths must not change; goldens byte-identical.

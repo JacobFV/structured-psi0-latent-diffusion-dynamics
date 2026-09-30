@@ -1,8 +1,18 @@
 # agent operating contract (current; applies to every agent and resumed session)
 
-This file is the single source of the operating rules. `CLAUDE.md` imports it. `docs/handoff/AGENTS.md` is the
-HISTORICAL contract from the original assignment: where the two differ (resources above all), this file wins; the
-decisions cited here record the user's changes. What we are doing and in what order: `docs/strategy.md` (D-094).
+This file is the single source of the operating rules. `CLAUDE.md` imports it. The original assignment package
+(handoff contract, master prompt, docs 00-10) is archived under `.old/docs/handoff/`; where it differs from this file
+(resources above all) this file wins, and the decisions cited here record the user's changes. What we are doing and in
+what order: `docs/strategy.md` (D-094).
+
+## layout (D-145; `schema.toml`, docs/architecture.md section 13, `tests/unit/test_layout.py`)
+Every tracked path must match `schema.toml`. `src/` code, `tests/`, `recipes/` (templates + thin per-track instances =
+every run definition; `rrp run-dag`), `docs/` (five files), `research/` (decisions, registry, notes of the tracks in
+`schema.toml [tracks]`), `artifacts/` (small raw evidence, append-only), `ops/`, `viz/` (the room), `.old/`. Anything
+not in the schema moves under `.old/<same path>` with its group README line (`.old/README.md`); live code never
+imports or reads `.old/`. A track that closes moves its note and recipes to `.old/` and leaves `[tracks]`; new runs are
+`artifacts/runs/<track>/<lineage>/<stage>[-tag]_s<seed>/`. Do not add top-level areas, per-run config files or
+one-off scripts (rendered `RunConfig` comes from a recipe).
 
 ## architecture (authoritative correction 2026-09-21, D-029)
 Read `research/corrections/controller-facing-semantic-latent.md` first. System i generates a structured continuous latent
@@ -60,7 +70,32 @@ are BASELINES ONLY. Integration branch: `main`.
   learned:<ckpt> / bc / random / mock.
 - Make reversible routine decisions autonomously; ask only for genuinely unavailable permissions/credentials.
 - At context/session limits, checkpoint state and write exact resume steps. Do not restart completed experiments.
-- No unbounded search or fake success (`docs/handoff/docs/10_autonomy_and_recovery.md`).
+- Implement the WHOLE declared scope; a first toy demo or small profile is a gate, not the deliverable. Use a dedicated
+  repository and isolated environments; the resource preflight only measures, heavy jobs need tested enforcement (broker
+  leases + watchdog).
+- Budgets and evidence (from the handoff): one owner (the lead) for the broker, the integration branch, the run registry
+  and final claims; every worker shares one budget and requests leases (agent count is not permission for more GPU owners
+  or CPU threads). Each task ends with changed files, test commands and results, artifact paths, source version and
+  remaining risks. Keep `STATUS.md` short and current; no secrets in `STATUS.md`, `ops/`, `research/` or `artifacts/`.
+- Restart: read `STATUS.md` and broker state first, check whether an owned job still runs and attach instead of
+  starting a duplicate (validate PID start time / cgroup ownership; a dropped SSH does not mean the remote job died).
+  Checkpoints are written atomically (checksum + source/config/model/optimizer/RNG state + data cursor); keep the last
+  known-good one until the new one verifies; register local and remote artifact paths explicitly; never overwrite newer
+  remote results.
+- Failure taxonomy: infrastructure (reproduce minimally, isolate the environment, fix with a regression check; no
+  global upgrades or guessed CUDA flags); contract (unit, mask, identity, role order, stale cache, privileged leakage:
+  stop contaminated runs, fix the boundary, label earlier results invalid); identifiability (add the legitimate
+  observation or reduce the claim; privileged labels cannot repair indistinguishable inputs); optimization (check
+  losses, gradients, normalizations, teacher coverage, small overfit; bounded variants; keep every failure);
+  hypothesis (report it, keep the simpler working method, do not redefine success after seeing the test); external
+  blocker (record the exact dependency and continue independent work; no paid cloud, no physical robots).
+- Do not stop at a proposal, scaffold, first video or first negative result; do not rerun an unchanged failing job. Each
+  new expensive run needs a specific hypothesis, cost profile and remaining-budget check; memory / disk / thermal
+  emergencies override the experiment. At a ceiling, leave a complete resumable status and mark incomplete mandatory
+  work; do not renew silently. No unbounded search or fake success.
+- Final report of a delivery: where things live, exact launch command, model / controller scope, tests actually run,
+  checkpoints actually produced, primary result with limitations, resource totals, remaining gaps, how to resume.
+  Never claim readiness for real hardware.
 
 ## testing (user instruction 2026-09-21: light testing at the research stage)
 - Prefer one quick smoke run of the real thing over new unit suites. Before any long run, a tiny real run.

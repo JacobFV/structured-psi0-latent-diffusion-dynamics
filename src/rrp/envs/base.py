@@ -217,8 +217,8 @@ ENVS: dict[str, str] = {
     "mujoco/dual": "rrp.envs.mujoco.dual:make_dual_env",
     "mujoco/legged": "rrp.envs.mujoco.legged:make_legged_env",
     "warp/legged": "rrp.envs.warp.tracker_env:make_warp_env",
-    "simple": "rrp.envs.simple:make_env",                   # Ψ₀ migration (architecture.md section 9)
-    "computerworld": "rrp.envs.computerworld:make_env",     # ComputerWorld (architecture.md sections 5, 9)
+    "simple": "rrp.envs.simple:make_env",                   # Ψ₀ migration (architecture.md section 11 glossary)
+    "computerworld": "rrp.envs.computerworld:make_env",     # ComputerWorld (architecture.md section 5)
 }
 
 
@@ -237,7 +237,6 @@ def make_env(env_id: str, *, task: str, body: str | list[str], seed: int = 0, **
         m = importlib.import_module(mod)
     except ModuleNotFoundError as e:
         if e.name == mod:
-            raise NotImplementedError(f"env {env_id!r} is declared but not implemented yet ({mod}; "
-                                      "docs/architecture.md section 9)") from e
+            raise NotImplementedError(f"env {env_id!r} is declared but not implemented yet ({mod})") from e
         raise
     return getattr(m, fn)(task=task, body=body, seed=seed, **kw)

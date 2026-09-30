@@ -1,6 +1,6 @@
 """Single aggregate resource broker. All project work acquires leases here.
 
-State is a JSON file guarded by an fcntl lock so the CLI, workbench, workers and the
+State is a JSON file guarded by an fcntl lock so the CLI, viz room, workers and the
 watchdog share one budget. Leases are reservations under the parent allocation; the
 sum of active leases can never exceed the current live limit. Lease slices are created
 under the enforced parent slice, so even a mis-sized child cannot exceed the parent.

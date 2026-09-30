@@ -485,7 +485,7 @@ def _route_args(ctx: StageContext, route: str) -> list[str]:
 
 
 def _ladder(ctx: StageContext, default_route: str) -> dict:
-    """scripts/legged_ladder.sh: split the seed range into `par` chunks, run in parallel, concatenate, summarize."""
+    """The former legged_ladder driver: split the seed range into `par` chunks, run in parallel, concatenate, summarize."""
     o = ctx.opts
     body, tag, par = o["body"], o["tag"], int(o.get("workers", 1))
     route = o.get("route", default_route)
