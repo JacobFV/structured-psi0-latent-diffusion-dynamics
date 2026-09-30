@@ -4,7 +4,7 @@
 extends: ../templates/tracker_gated.yaml
 name: d126_tracker_anymal_c_terrain_ft
 schema: dag-1
-track: trackers            # rendered track of the never-run recipes (goldens); P4a re-homes it under `humanoid`
+track: humanoid
 policy: tracker
 env: mujoco/legged
 task: locomotion
