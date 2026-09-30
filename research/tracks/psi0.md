@@ -119,25 +119,40 @@ torso-state finding). Proposed (not run; needs a lead decision):
 The paused work is "fix the structured arm, then rerun step 2". Every command is a recipe now:
 `recipes/templates/psi0_step2.yaml`, instances `recipes/psi0/psi0_tabletop_step2.yaml` (public data; released 20/20,
 direct 19/20, structured 0/20) and `psi0_bendpick_step2.yaml` (not started); family `psi0`, stages in
-`src/rrp/harness/pipelines/psi0.py` (each wraps `rrp data psi0-features`, `rrp train psi0 [probes|heldout]`, `rrp eval
+`src/rrp/harness/pipelines/psi0.py` (each wraps `rrp data psi0-features`, `rrp train psi0 [probes|gate|heldout]`, `rrp eval
 --env simple`). Peer, GPU lease limit 1, psi venv as peer python (`ops/bin/psi0_ext.sh psi-env`):
 `RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/psi0 rrp run-dag recipes/psi0/psi0_tabletop_step2.yaml --dry-run`, then the same
-without `--dry-run`; `--point seed=0`. Dry-run nodes (P2 order): global `feat`, global `labels` (`collect` with
-`options.data: labels` = `rrp data psi0-labels`); at s0 `stage_a`, `probes`, `gate` (`heldout` on stage A only), `direct`,
-`structured` (input `gate`), `heldout`, `probes_gen`, `eval_released`, `eval_direct`, `eval_structured`. Labels are recorded
-by the `labels` node (`psi0_replay` x `simple` through `harness.rollout` + `LabelRecorder`); `vars.labels_dir` is gone. The
-recipe reads the released run + data from `~/work/ext/psi_home` (`ops/bin/psi0_ext.sh fetch-ckpt|fetch-data`). Old checkpoints, features
-and closed-loop outputs stay in `~/work/ext/runs/psi1z/{train,features,replay_labels,cl}/` and are still usable as
-inputs (`@`-refs accept any `artifacts/<store>/<name>` path; copy or link them there).
+without `--dry-run`; `--point seed=0`. Dedicated stage names (D-146 R2 PS): `collect` (feature cache only), `labels`
+(`rrp data psi0-labels`), `train_rep`, `gate` (`rrp train psi0 gate`), `train_bc`, `train_flow`, `probes`, `heldout`, `eval_r2`.
+Dry-run nodes, in this order: global `feat` -> global `labels` -> s0 `stage_a` -> `probes` -> `gate` -> `direct` ->
+`structured` (depends on `gate`: input `@gate:packet_gate.json`) -> `heldout` (the later model comparison of all arms) ->
+`probes_gen` -> `eval_released`, `eval_direct`, `eval_structured` (12 nodes; the bendpick instance plans the same 12).
+Labels are recorded by the `labels` node (`psi0_replay` x `simple` through `harness.rollout` + `LabelRecorder`; source
+`privileged_teacher:sim_replay`, labels only). It is MuJoCo-only but needs a GPU lease (upstream's AMO lower-body policy is
+a CUDA TorchScript: on a CPU-only lease the worker exits with "Error loading JIT models") and the psi venv as python (the
+replay policy reads parquet through pandas, which the plain peer venv lacks). The recipe reads the released run + data from
+`~/work/ext/psi_home` (`ops/bin/psi0_ext.sh fetch-ckpt|fetch-data`). Old checkpoints, features and closed-loop outputs stay in
+`~/work/ext/runs/psi1z/{train,features,replay_labels,cl}/` and are still usable as inputs (`@`-refs accept any
+`artifacts/<store>/<name>` path; copy or link them there).
+Smoke (2026-09-30, unit R2 PS): `ops/bin/peer_run.sh --gpu --gpu-mem 4G --cpu 2 --mem 8G -- <psi venv python> -m rrp.cli data
+psi0-labels --task G1WholebodyTabletopGraspMP-v0 --episodes 0:1` from `/dev/shm/rrp-brandonin/wt/r2-ps`: rc 0, peak 2.2 GiB, 116
+label steps (qpos, reward, contact, palm / object poses), outcome success, `artifacts/runs/psi0/r2ps_smoke/labels` in the shared store.
+Open environment item (lead): the peer `venvs/simple` still carries the psi1z-era editable install and `psi1z_simple_autocompat.pth`
+(ModuleNotFoundError on every interpreter start, harmless) and NO `rrp_simple_compat.pth`; the smoke activated the compat layer
+through a `sitecustomize.py` on `RRP_PEER_PYTHONPATH` instead. Before T7 re-run `ops/bin/psi0_ext.sh simple-env` from the
+checkout that stays (it writes the pth and installs rrp editable) or keep using that variable.
 The D-141 code fix is in (D-146 P1, architecture 14.5): `rrp train psi0 --arm stageA` fits the constant-input mask on the
 feature cache (state dims with std < 1e-4 are zeroed in E, R and the structured head, mask stored in the checkpoint), drops
 R's state while training (per dim 0.3, whole 0.1) and adds the permuted-packet hinge (margin 0.05; `--p-state-dim`,
 `--p-state-all`, `--w-perm`, `--perm-margin`); checkpoints are written by `save_checkpoint` with `config["stage_a"]` (widths
 + factor list) and `versions["factors"]`, and `load_stage_a` validates them (a pre-P1 stage A is refused: retrain). `--factors
-'<json list>'` sets the factor list (stage A: E/R/probe; structured: context tokens). Gate: `rrp train psi0 heldout --feat-dir
-.. --val-episodes .. --stage-a <stage_a.pt> --out gate.json` (no `--run-dir` = gate only) reports err(R(z_mean)) - err(R(E(a)))
-and writes `<stage-a dir>/packet_gate.json`; `--arm structured` refuses to start unless that file passes for the same
-stage-A file (`--gate` overrides the path). So the recipe's `heldout` gate runs BEFORE `structured` (stage wiring: P2).
+'<json list>'` sets the factor list (stage A: E/R/probe; structured: the context tokens' list). Gate: `rrp train psi0 gate --feat-dir ..
+--val-episodes .. --stage-a <stage_a.pt> --out <dir>/packet_gate.json` reports err(R(z_mean)) - err(R(E(a))) on the held-out episodes
+and writes `{"gate": {gap, margin, passed, stage_a_sha256_16, ...}}` into ITS OWN node dir (nothing is written next to stage A);
+`--arm structured --gate <that file>` refuses to start unless it passed for the same stage-A file (no default path), and the
+`train_flow` stage re-checks the file before launching. `heldout` is only the model comparison (released / direct / structured
+and the oracle route). The recipe's `gate` node therefore runs BEFORE `structured`; a failed gate is recorded as `failed_hypothesis`
+(T7, research/readiness.md section B) and nothing trains after it.
 Only then `eval_structured`.
 Stale psi1z watcher loops on the peer (bash `until ... sleep` loops, pids 2873754, 3156994, 3389109 on 2026-09-29) hold no
 lease and can be killed.

@@ -148,18 +148,18 @@ def test_forced_packet_use_hinge_and_gate(tmp_path):
     ck = tmp_path / "stage_a.pt"
     save_checkpoint(ck, model=A, step=0, versions=dict(psi0_nets=N.NETS_VERSION), config=dict(stage_a=A.cfg))
     gate = tmp_path / "packet_gate.json"
-    bad = dict(packet_use=dict(gap=0.0, margin=N.PACKET_MARGIN, passed=False, stage_a_sha256_16=T.file_digest(ck)))
+    bad = dict(gate=dict(gap=0.0, margin=N.PACKET_MARGIN, passed=False, stage_a_sha256_16=T.file_digest(ck)))
     gate.write_text(json.dumps(bad))
     with pytest.raises(SystemExit, match="does not use the packet"):
         T.require_gate(gate, ck)
     with pytest.raises(SystemExit, match="no packet-use gate"):
         T.require_gate(tmp_path / "missing.json", ck)
-    bad["packet_use"].update(passed=True, gap=0.5)
+    bad["gate"].update(passed=True, gap=0.5)
     gate.write_text(json.dumps(bad))
     assert T.require_gate(gate, ck)["gap"] == 0.5
-    bad["packet_use"]["stage_a_sha256_16"] = "0" * 16            # a gate of another stage A does not count
+    bad["gate"]["stage_a_sha256_16"] = "0" * 16            # a gate of another stage A does not count
     gate.write_text(json.dumps(bad))
-    with pytest.raises(SystemExit, match="no packet_use for"):
+    with pytest.raises(SystemExit, match="has no gate for"):
         T.require_gate(gate, ck)
 
 
@@ -182,3 +182,28 @@ def test_stage_a_checkpoint_carries_mask_and_factors(tmp_path):
         N.load_stage_a(old)
     with pytest.raises(FactorError, match="applies to no site"):             # family check at construction
         N.StageA(D=32, probe_D=32, factors=["ui.same_window"])
+
+
+def test_gate_command_writes_what_the_stage_and_the_trainer_read(tmp_path, monkeypatch):
+    """Red before D-146 R2 PS: the CLI wrote `packet_use` while the pipeline stage read `gate` (only stubs agreed)."""
+    from rrp.harness.pipelines.psi0 import gate_report, read_gate
+    A = N.StageA(D=32, probe_D=32)
+    ck = tmp_path / "s" / "stage_a.pt"
+    ck.parent.mkdir()
+    save_checkpoint(ck, model=A, step=0, versions=dict(psi0_nets=N.NETS_VERSION), config=dict(stage_a=A.cfg))
+    torch.save(dict(mean=torch.zeros(N.K, N.M, N.DZ), std=torch.ones(N.K, N.M, N.DZ)), ck.parent / "z_stats.pt")
+    monkeypatch.setattr(T, "CachedDataset", lambda *a, **k: _Cache(16))
+    out = tmp_path / "g" / "packet_gate.json"
+    T.main(["gate", "--feat-dir", "unused", "--stage-a", str(ck), "--val-episodes", "0,1", "--stride", "2", "--device", "cpu",
+            "--out", str(out)])
+    g = read_gate(out)                                                # the stage's reader: gate {gap, margin}
+    assert g["margin"] == N.PACKET_MARGIN and g["stage_a_sha256_16"] == T.file_digest(ck) and g["val_episodes"] == [0, 1]
+    assert gate_report(g, "t")["verdict"] == ("pass" if g["gap"] >= g["margin"] else "fail")
+    assert not (ck.parent / "packet_gate.json").exists()              # nothing is written into another node's dir
+    if g["passed"]:                                                   # the trainer's reader agrees with the stage's
+        assert T.require_gate(out, ck) == g
+    else:
+        with pytest.raises(SystemExit, match="does not use the packet"):
+            T.require_gate(out, ck)
+    with pytest.raises(SystemExit, match="needs --stage-a and --gate"):
+        T.train(["--arm", "structured", "--feat-dir", "x", "--run-dir", "y", "--stage-a", str(ck), "--out", str(tmp_path / "o")])

@@ -37,7 +37,7 @@ def test_stages_build_valid_commands(path, tmp_path, monkeypatch):
 
     def fake_run(self, argv, **kw):
         calls.append(list(argv))
-        if argv[:5] == ["-m", "rrp.cli", "train", "psi0", "heldout"]:      # what the wrapped CLI writes (architecture 14.5)
+        if argv[:5] == ["-m", "rrp.cli", "train", "psi0", "gate"]:      # what the wrapped CLI writes (architecture 14.5)
             f = Path(argv[argv.index("--out") + 1])
             f.parent.mkdir(parents=True, exist_ok=True)
             f.write_text(json.dumps(dict(gate=dict(gap=0.2, margin=0.05))))

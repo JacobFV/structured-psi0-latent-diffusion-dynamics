@@ -1,6 +1,6 @@
 """Ψ₀ data driver + SIMPLE plumbing (readiness unit P2, audit D20): per-item seeded realization ticks (one epoch identical for
 any worker count), the one ext-dir resolver, the render profile as an env kwarg, the label driver on harness.rollout, and the
-psi0 stages' heldout gate. No GPU, no simulator (the label driver runs against the fake worker of test_psi0)."""
+psi0 stages' packet gate. No GPU, no simulator (the label driver runs against the fake worker of test_psi0)."""
 from __future__ import annotations
 
 import json
@@ -166,59 +166,70 @@ def test_structured_stage_is_blocked_by_the_gate(tmp_path, monkeypatch):
     calls = []
     monkeypatch.setattr(B.StageContext, "run", lambda self, argv, **kw: calls.append(argv))
     monkeypatch.setattr("rrp.harness.pipelines.psi0._run_dir", lambda ctx: "run")
-    inputs = dict(features="in/feat", labels="in/labels", stage_a="in/stage_a.pt", gate="in/heldout.json")
+    inputs = dict(features="in/feat", labels="in/labels", stage_a="in/stage_a.pt", gate="in/packet_gate.json")
     (tmp_path / "artifacts/in").mkdir(parents=True)
     stage = B._REGISTRY[("psi0", "train_flow")].fn
     opts = dict(task="G1WholebodyTabletopGraspMP-v0")
     for gate, exc in ((dict(gate=dict(gap=0.01, margin=0.05)), GateFailed), (dict(no="gate"), StageError)):
-        (tmp_path / "artifacts/in/heldout.json").write_text(json.dumps(gate))
+        (tmp_path / "artifacts/in/packet_gate.json").write_text(json.dumps(gate))
         with pytest.raises(exc):
             stage(_ctx(tmp_path, "train_flow", options=opts, inputs=inputs))
     assert not calls                                                   # the trainer never started
-    (tmp_path / "artifacts/in/heldout.json").write_text(json.dumps(dict(gate=dict(gap=0.07, margin=0.05))))
+    (tmp_path / "artifacts/in/packet_gate.json").write_text(json.dumps(dict(gate=dict(gap=0.07, margin=0.05))))
     ctx = _ctx(tmp_path, "train_flow", options=opts, inputs=inputs)
     try:
         stage(ctx)
     except (FileNotFoundError, StageError):                            # no summary.json: the stub trainer wrote nothing
         pass
-    assert calls and "--labels-dir" in calls[0] and json.loads((ctx.out / "gate_report.json").read_text())["verdict"] == "pass"
+    assert calls and "--labels-dir" in calls[0] and calls[0][calls[0].index("--gate") + 1] == "artifacts/in/packet_gate.json"
+    assert json.loads((ctx.out / "gate_report.json").read_text())["verdict"] == "pass"
 
 
 def test_collect_labels_stage_and_source(tmp_path, monkeypatch):
     from rrp.harness.pipelines import base as B
-    from rrp.harness.pipelines.base import StageError
     calls = []
     monkeypatch.setattr(B.StageContext, "run", lambda self, argv, **kw: calls.append(argv))
     (tmp_path / "artifacts/in/feat").mkdir(parents=True)
     (tmp_path / "artifacts/in/feat/meta.json").write_text(json.dumps(dict(episodes=6)))
-    ctx = _ctx(tmp_path, "collect", options=dict(task="simple/G1WholebodyTabletopGraspMP-v0", data="labels"),
-               inputs=dict(features="in/feat"))
-    res = B._REGISTRY[("psi0", "collect")].fn(ctx)
+    ctx = _ctx(tmp_path, "labels", options=dict(task="simple/G1WholebodyTabletopGraspMP-v0"), inputs=dict(features="in/feat"))
+    assert B._REGISTRY[("psi0", "labels")].source == "privileged_teacher"
+    res = B._REGISTRY[("psi0", "labels")].fn(ctx)
     a = calls[0]
     assert a[:4] == ["-m", "rrp.cli", "data", "psi0-labels"] and a[a.index("--episodes") + 1] == "0:6"
     assert a[a.index("--task") + 1] == "G1WholebodyTabletopGraspMP-v0" and res["source"] == "privileged_teacher:sim_replay"
     from rrp.core.provenance import make_provenance
     assert make_provenance(res["source"], flags={}, versions={}, notes="t").source.startswith("privileged_teacher")
-    with pytest.raises(StageError, match="features or labels"):
-        B._REGISTRY[("psi0", "collect")].fn(_ctx(tmp_path, "collect", options=dict(task="x", data="frames")))
+    assert not any(k[1] == "collect" and "labels" in k[1] for k in B._REGISTRY)      # collect is the feature cache only
 
 
-def test_heldout_without_structured_is_the_gate(tmp_path, monkeypatch):
+def test_gate_stage_is_the_gate_only_call_and_heldout_the_comparison(tmp_path, monkeypatch):
     from rrp.harness.pipelines import base as B
     from rrp.harness.pipelines.base import GateFailed
     monkeypatch.setattr("rrp.harness.pipelines.psi0._run_dir", lambda ctx: "run")
     (tmp_path / "artifacts/in").mkdir(parents=True)
-    (tmp_path / "artifacts/in/summary.json").write_text(json.dumps(dict(val_eps=[1])))
+    (tmp_path / "artifacts/in/summary.json").write_text(json.dumps(dict(val_eps=[1, 4])))
     inputs = dict(features="in/feat", summary="in/summary.json", stage_a="in/stage_a.pt")
+    calls = []
 
     def stub(gap):
         def run(self, argv, **kw):
+            calls.append(argv)
             f = Path(argv[argv.index("--out") + 1]); f.parent.mkdir(parents=True, exist_ok=True)
             f.write_text(json.dumps(dict(gate=dict(gap=gap, margin=0.05))))
         return run
-    fn = B._REGISTRY[("psi0", "heldout")].fn
+    opts = dict(task="G1WholebodyTabletopGraspMP-v0")
+    fn = B._REGISTRY[("psi0", "gate")].fn
     monkeypatch.setattr(B.StageContext, "run", stub(0.2))
-    assert fn(_ctx(tmp_path, "heldout", options=dict(task="G1WholebodyTabletopGraspMP-v0"), inputs=inputs))["metrics"]["verdict"] == "pass"
+    res = fn(_ctx(tmp_path, "gate", options=opts, inputs=inputs))
+    assert res["metrics"]["verdict"] == "pass" and list(res["outputs"]) == ["packet_gate.json"]
+    a = calls[0]
+    assert a[4] == "gate" and "--run-dir" not in a and a[a.index("--val-episodes") + 1] == "1,4"      # stage A alone
     monkeypatch.setattr(B.StageContext, "run", stub(0.0))
     with pytest.raises(GateFailed):
-        fn(_ctx(tmp_path, "heldout", options=dict(task="G1WholebodyTabletopGraspMP-v0"), inputs=inputs))
+        fn(_ctx(tmp_path, "gate", options=opts, inputs=inputs))
+    calls.clear()                                                     # the comparison: no gate report, always the run dir
+    monkeypatch.setattr(B.StageContext, "run", lambda self, argv, **kw: calls.append(argv))
+    ctx = _ctx(tmp_path, "heldout", options=opts, inputs=dict(inputs, direct="in/d.pt", structured="in/s.pt"))
+    B._REGISTRY[("psi0", "heldout")].fn(ctx)
+    a = calls[0]
+    assert a[4] == "heldout" and a[a.index("--run-dir") + 1] == "run" and "--structured" in a and not (ctx.out / "gate_report.json").exists()

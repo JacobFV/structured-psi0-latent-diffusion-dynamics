@@ -2,10 +2,11 @@
 # pretrained humanoid VLA? Matched arms on ONE SIMPLE task: the released Psi0 checkpoint (UPSTREAM weights, not trained by us),
 # our matched fine-tune of the action head ("direct"), and Psi0 + structure ("structured": system i samples z, the frozen
 # Stage A realises it). Same cached features, same split (split_episodes seed 1234), same steps and batch for direct and structured.
-# Order: feat (frozen-VLM feature cache) -> labels (probe labels: `psi0_replay` x `simple`, MuJoCo only, through
-# harness.rollout + LabelRecorder; source privileged:sim_replay, labels only) -> stage_a -> probes (packet probes + the
-# metadata-only control on E means) -> gate (heldout on stage_a only: heldout.json["gate"] gap >= margin, else the node
-# fails and `structured` never starts) -> direct / structured -> heldout (all arms; its R(E(chunk)) route is an ORACLE)
+# Order: feat (collect: frozen-VLM feature cache) -> labels (probe labels: `psi0_replay` x `simple`, MuJoCo only, through
+# harness.rollout + LabelRecorder; source privileged_teacher:sim_replay, labels only) -> stage_a -> probes (packet probes + the
+# metadata-only control on E means) -> gate (`rrp train psi0 gate` on stage_a alone: packet_gate.json gate gap >= margin, else
+# the node fails and `structured` never starts; structured depends on it) -> direct / structured -> heldout (the later model
+# comparison of all arms; its R(E(chunk)) route is an ORACLE)
 # -> probes_gen (probes on the generated packets) -> closed loop (eval_*): Isaac Sim through `rrp eval --env simple`,
 # seeds 0:10 x repeats via `batch`.
 # Prerequisites (host/peer, once): ops/bin/psi0_ext.sh fetch-base / fetch-ckpt / fetch-data <TASK>. Run with the psi venv as
@@ -37,15 +38,14 @@ nodes:
     stage: collect
     scope: global
     config:
-      options: {task: '{task}', data: features}
+      options: {task: '{task}'}
   labels:
-    stage: collect
-    tag: labels
+    stage: labels
     scope: global
-    resources: {cpu: 2, mem: 8G, gpu: false, max_seconds: 21600}
+    resources: {cpu: 2, mem: 8G, gpu: true, gpu_mem: 4G, max_seconds: 21600}     # MuJoCo only, but upstream's AMO lower-body policy is a CUDA TorchScript (peer smoke: 2.2 GiB peak)
     config:
       inputs: {features: '@feat:feat'}
-      options: {task: '{task}', data: labels}
+      options: {task: '{task}'}
   stage_a:
     stage: train_rep
     config:
@@ -58,8 +58,7 @@ nodes:
       inputs: {features: '@feat:feat', labels: '@labels:labels', summary: '@stage_a:summary.json', stage_a: '@stage_a:stage_a.pt'}
       options: {task: '{task}'}
   gate:
-    stage: heldout
-    tag: gate
+    stage: gate
     config:
       inputs: {features: '@feat:feat', summary: '@stage_a:summary.json', stage_a: '@stage_a:stage_a.pt'}
       options: {task: '{task}'}
@@ -73,7 +72,7 @@ nodes:
     stage: train_flow
     config:
       params: {steps: '{steps}', batch: 32, w_sem: 0.1}
-      inputs: {features: '@feat:feat', labels: '@labels:labels', stage_a: '@stage_a:stage_a.pt', gate: '@gate:heldout.json'}
+      inputs: {features: '@feat:feat', labels: '@labels:labels', stage_a: '@stage_a:stage_a.pt', gate: '@gate:packet_gate.json'}
       options: {task: '{task}'}
   heldout:
     stage: heldout

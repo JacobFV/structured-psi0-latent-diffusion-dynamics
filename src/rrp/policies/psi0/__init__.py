@@ -26,6 +26,8 @@ from pathlib import Path
 
 import numpy as np
 
+from rrp.envs.simple.compat import psi_home      # THE one ext-dir / PSI_HOME resolver (stdlib-only)
+
 TP, DA, TA = 30, 36, 24
 
 # What BOTH of our arms (direct and structured) are given at every tick (`OursModel.batch`, one code path); a structured
@@ -35,14 +37,6 @@ INPUT_SPEC = dict(
     state="last 36 dims of the proprio state (state0)",
     vlm="frozen Ψ₀ base VLM last hidden states + attention mask",
     entity="mask of the instruction's object-name tokens (pooled), optionally read from an override prompt")
-
-
-def ext_dir() -> Path:
-    return Path(os.environ.get("RRP_PSI0_EXT", Path.home() / "work/ext"))
-
-
-def psi_home() -> Path:
-    return Path(os.environ.get("PSI_HOME", ext_dir() / "psi_home"))
 
 
 def released_run(task: str) -> Path:
@@ -104,7 +98,7 @@ def structured_provenance(state: dict, stage_a: str) -> dict:
     sha = _digest_file(stage_a)
     if not gate or not gate.get("passed") or gate.get("stage_a_sha256_16") != sha:
         raise ValueError(f"psi0_structured: head was not trained under a passed packet-use gate for stage A {stage_a} "
-                         f"(gate={gate}, stage-A sha256_16={sha}); retrain through `rrp train psi0 heldout --stage-a`")
+                         f"(gate={gate}, stage-A sha256_16={sha}); retrain through `rrp train psi0 gate`")
     return dict(stage_a=sha, packet_gate=dict(gap=gate["gap"], margin=gate["margin"]),
                 factors=(state.get("versions") or {}).get("factors"))
 

@@ -5,10 +5,11 @@
     rrp train psi0 --arm structured ...   "Ψ₀ + structure": same transformer init, optimizer, schedule, batch, steps
                                           as direct; flow over z + bounded semantic loss through the frozen probe;
                                           actions from the frozen system 0; refuses to start unless the stage A passed
-                                          the packet-use gate (`--gate`, written by `heldout`, architecture 14.5 c)
+                                          the packet-use gate (`--gate`, written by `gate`, architecture 14.5 c)
     rrp train psi0 probes ...             fresh probe + metadata-only control on frozen z (diagnostics)
-    rrp train psi0 heldout ...            held-out open-loop L1 per action group; `--stage-a` adds the packet-use gate
-                                          err(R(z_mean)) - err(R(E(a))) (with only `--stage-a`: the gate alone)
+    rrp train psi0 gate ...               the packet-use gate on stage A alone: err(R(z_mean)) - err(R(E(a))) vs the margin
+                                          -> `packet_gate.json` {gate: {gap, margin, passed, stage_a_sha256_16, ...}}
+    rrp train psi0 heldout ...            held-out open-loop L1 per action group of every arm (the later model comparison)
 
 Fairness: identical cached trunk features, data, held-out episodes, batch, steps, optimizer and schedule for direct vs
 structured; stage A compute is reported separately. Monitoring: per-loss gradient norms on the shared transformer
@@ -125,13 +126,13 @@ def packet_use(A, ds, z_mean, stride=4, batch=32, device="cpu", margin=N.PACKET_
 
 
 def require_gate(gate_path, stage_a_path):
-    """The structured head refuses to train unless the gate file reports a pass for THIS stage-A checkpoint."""
+    """The structured head refuses to train unless the gate file (`gate` command) reports a pass for THIS stage-A checkpoint."""
     if gate_path is None or not Path(gate_path).exists():
-        raise SystemExit(f"structured arm refused: no packet-use gate at {gate_path}; run `rrp train psi0 heldout "
+        raise SystemExit(f"structured arm refused: no packet-use gate at {gate_path}; run `rrp train psi0 gate "
                          f"--stage-a {stage_a_path} ...` first (architecture 14.5 c)")
-    g = json.loads(Path(gate_path).read_text()).get("packet_use")
+    g = json.loads(Path(gate_path).read_text()).get("gate")
     if not g or g.get("stage_a_sha256_16") != file_digest(stage_a_path):
-        raise SystemExit(f"structured arm refused: {gate_path} has no packet_use for {stage_a_path}")
+        raise SystemExit(f"structured arm refused: {gate_path} has no gate for {stage_a_path}")
     if not g["passed"]:
         raise SystemExit(f"structured arm refused: R does not use the packet (err(R(z_mean)) - err(R(E(a))) = "
                          f"{g['gap']:.4f} < margin {g['margin']}); retrain stage A")
@@ -146,7 +147,7 @@ def train(argv=None):
     ap.add_argument("--run-dir", required=True, help="released SIMPLE run (model config + normalization)")
     ap.add_argument("--action-header", default=str(psi_home() / "cache/checkpoints/psi0/postpre.1by1.pad36.2601131206.ckpt.he30k"))
     ap.add_argument("--stage-a", default=None)
-    ap.add_argument("--gate", default=None, help="structured arm: heldout gate file (default: <stage-a dir>/packet_gate.json)")
+    ap.add_argument("--gate", default=None, help="structured arm: the `gate` command's packet_gate.json (required)")
     ap.add_argument("--factors", default=None, help="JSON list of relation-factor items (stageA: E/R/probe list; "
                     "structured: the context tokens' list); default = the arm's default lists")
     ap.add_argument("--out", required=True)
@@ -175,9 +176,9 @@ def train(argv=None):
     a = ap.parse_args(argv)
     factors = parse_factors(a.factors)
     if a.arm == "structured":
-        if not a.stage_a:
-            raise SystemExit("--arm structured needs --stage-a")
-        gate = require_gate(a.gate or Path(a.stage_a).parent / "packet_gate.json", a.stage_a)
+        if not (a.stage_a and a.gate):
+            raise SystemExit("--arm structured needs --stage-a and --gate")
+        gate = require_gate(a.gate, a.stage_a)
     torch.manual_seed(a.seed); np.random.seed(a.seed)
     dev = a.device
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
@@ -365,16 +366,37 @@ def fit_probes(argv=None):
     Path(a.out).write_text(json.dumps(res, indent=1))
 
 
+def packet_gate(argv=None):
+    """The packet-use gate of architecture 14.5 (c) on the held-out episodes of a stage A, and nothing else: mean
+    err(R(z_mean)) - err(R(E(a))) vs the margin -> `--out` (`packet_gate.json`): {"gate": {gap, margin, passed, frames, err_*,
+    stage_a, stage_a_sha256_16, val_episodes}}. `train --arm structured --gate` reads it; the `gate` pipeline stage fails
+    the node (GateFailed) when gap < margin. The diagnostic reads the target actions (E(a)): never a deployable number."""
+    ap = argparse.ArgumentParser(prog="rrp train psi0 gate")
+    ap.add_argument("--feat-dir", required=True)
+    ap.add_argument("--stage-a", required=True)
+    ap.add_argument("--val-episodes", required=True, help="comma list (from the training summary)")
+    ap.add_argument("--stride", type=int, default=4)
+    ap.add_argument("--device", default="cuda")
+    ap.add_argument("--out", required=True)
+    a = ap.parse_args(argv)
+    eps = {int(x) for x in a.val_episodes.split(",")}
+    ds = CachedDataset(a.feat_dir, None, episodes=eps, max_j=1, load_hidden=False)
+    zmean = torch.load(Path(a.stage_a).parent / "z_stats.pt")["mean"]
+    g = dict(packet_use(N.load_stage_a(a.stage_a), ds, zmean, a.stride, device=a.device),
+             stage_a=str(a.stage_a), stage_a_sha256_16=file_digest(a.stage_a), val_episodes=sorted(eps))
+    Path(a.out).parent.mkdir(parents=True, exist_ok=True)
+    Path(a.out).write_text(json.dumps(dict(gate=g), indent=1))
+    print("packet gate", json.dumps(g), flush=True)
+    return g
+
+
 def heldout(argv=None):
     """Held-out open-loop L1 per action group on cached features: released Ψ₀ header, direct, structured, and the
-    DIAGNOSTIC oracle route R(E(demonstrated chunk)) (uses the target actions; never a deployable number).
-    With `--stage-a` it also reports the packet-use gate of architecture 14.5 (c), err(R(z_mean)) - err(R(E(a))) vs
-    the margin, into `--out` and into `--gate-out` (default `<stage-a dir>/packet_gate.json`, read by
-    `train --arm structured`); without `--run-dir` it reports only that gate."""
+    DIAGNOSTIC oracle route R(E(demonstrated chunk)) (uses the target actions; never a deployable number). The
+    pre-head packet gate is the separate `gate` command."""
     ap = argparse.ArgumentParser(prog="rrp train psi0 heldout")
     ap.add_argument("--feat-dir", required=True)
-    ap.add_argument("--run-dir", default=None)
-    ap.add_argument("--gate-out", default=None)
+    ap.add_argument("--run-dir", required=True)
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--direct", default=None)
     ap.add_argument("--structured", default=None)
@@ -384,21 +406,9 @@ def heldout(argv=None):
     ap.add_argument("--nfe", type=int, default=10)
     ap.add_argument("--out", required=True)
     a = ap.parse_args(argv)
-    if a.run_dir is None and a.stage_a is None:
-        raise SystemExit("heldout needs --run-dir (model comparison) and/or --stage-a (packet-use gate)")
+    if a.structured and not a.stage_a:
+        raise SystemExit("heldout --structured needs --stage-a (the head is built over its stage A)")
     eps = {int(x) for x in a.val_episodes.split(",")}
-    gate = None
-    if a.stage_a:
-        ds_g = CachedDataset(a.feat_dir, None, episodes=eps, max_j=1, load_hidden=False)
-        zmean = torch.load(Path(a.stage_a).parent / "z_stats.pt")["mean"]
-        gate = dict(packet_use(N.load_stage_a(a.stage_a), ds_g, zmean, a.stride, device=a.device),
-                    stage_a=str(a.stage_a), stage_a_sha256_16=file_digest(a.stage_a), val_episodes=sorted(eps))
-        gp = Path(a.gate_out) if a.gate_out else Path(a.stage_a).parent / "packet_gate.json"
-        gp.write_text(json.dumps(dict(packet_use=gate), indent=1))
-        print("packet_use", json.dumps(gate), flush=True)
-        if a.run_dir is None:
-            Path(a.out).write_text(json.dumps(dict(packet_use=gate), indent=1))
-            return
     lc = load_launch_config(Path(a.run_dir))
     maxmin = lc.data.transform.field
     mcfg = lc.model
@@ -430,7 +440,7 @@ def heldout(argv=None):
                 mu, _ = self.A.E(self.A.morph, b["state0"], b["actions"])
                 return self.A.R(self.A.morph, mu, b["state0"], torch.zeros(mu.shape[0], device=mu.device))
         models["oracle_R_of_E(actions)"] = Oracle(m.A)
-    res = dict(val_episodes=sorted(eps), frames=len(idx), stride=a.stride, nfe=a.nfe, packet_use=gate, models={})
+    res = dict(val_episodes=sorted(eps), frames=len(idx), stride=a.stride, nfe=a.nfe, models={})
     for name, m in models.items():
         m = m.to(a.device).eval()
         errs, errs24 = [], []
@@ -454,6 +464,6 @@ def heldout(argv=None):
 
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
-    if argv and argv[0] in ("probes", "heldout"):
-        return (fit_probes if argv[0] == "probes" else heldout)(argv[1:])
+    if argv and argv[0] in ("probes", "gate", "heldout"):
+        return dict(probes=fit_probes, gate=packet_gate, heldout=heldout)[argv[0]](argv[1:])
     return train(argv)
