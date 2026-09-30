@@ -18,7 +18,45 @@ os.environ.setdefault("MUJOCO_GL", "egl")
 import imageio
 import mujoco
 
+from rrp.harness.eval import hooks as H
 from rrp.harness.eval.captions import caption
+from rrp.harness.rollout import rollout
+
+
+class _LatentVideo:
+    """The `learned_latent` video controller: system i packet every `replan` ticks -> system 0 every tick (a rejected
+    packet leaves system 0's fallback hold), after an optional labelled scripted-teacher prefix of `prefix` ticks (the
+    replan phase counts the prefix ticks, as the video always did)."""
+
+    def __init__(self, sys_i, realizer, dev, replan, prefix):
+        from rrp.policies.latent import LatentStackPolicy
+        self.sys_i, self.realizer, self.dev, self.replan, self.prefix = sys_i, realizer, dev, replan, prefix
+        self.info = LatentStackPolicy(sys_i, realizer, replan_ticks=replan, device=dev, name="video:latent",
+                                      privileged=prefix > 0).info
+
+    def reset(self, spec, task, seeds, *, envs=None):
+        from rrp.policies.system0 import LatentSystem0
+        self.env = envs[0]
+        self.s0 = LatentSystem0(self.realizer, self.sys_i.featurizer(self.env), latent_space_version=self.sys_i.lsv,
+                                realizer_compat_version=self.sys_i.rcv, device=self.dev)
+        self.k, self.pteacher = 0, None
+
+    def act(self, obs):
+        from rrp.policies.base import Act
+        from rrp.policies.teachers.arm import PickPlaceTeacher
+        s, k = self.env, self.k
+        self.k += 1
+        if k < self.prefix:                                   # labelled curriculum prefix
+            if k == 0:
+                self.pteacher = PickPlaceTeacher(s)
+            return {0: Act(self.pteacher.act())}
+        if k % self.replan == 0 or self.s0.packet is None:
+            try:
+                self.s0.receive(self.sys_i.packets([s])[0], now=float(s.data.time),
+                                graph_version=s.runtime.graph_version)
+            except Exception as e:          # rejected/stale packet: system 0 keeps its fallback hold
+                print("packet rejected:", e, flush=True)
+        return {0: Act(self.s0.tick(s, s.controller_version()))}
 
 
 def run(args):
@@ -41,7 +79,6 @@ def run(args):
         from rrp.policies.latent import LatentPolicy
         from rrp.policies.nets.checkpoint import load_checkpoint
         from rrp.policies.bundles import load_representation
-        from rrp.policies.system0 import LatentSystem0
         dev = "cuda" if torch.cuda.is_available() else "cpu"
         if dev == "cuda":
             from rrp.ops.workload import apply_cap
@@ -63,39 +100,33 @@ def run(args):
         label = "SCRIPTED TEACHER (privileged)" if teacher else f"LEARNED {Path(args.checkpoint).parent.name}"
         if args.source == "learned_latent":
             label = f"LEARNED latent (sys-i flow + sys-0) {Path(args.checkpoint).parent.name}"
-            s0 = LatentSystem0(realizer, pol.featurizer(s), latent_space_version=pol.lsv,
-                               realizer_compat_version=pol.rcv, device=dev)
-        for k in range(args.max_steps):
-            if teacher:
-                s.step(teacher.act())
-                done = teacher.done
-            elif args.source == "learned_latent" and k < args.teacher_prefix_steps:   # labelled curriculum prefix
-                if k == 0:
-                    pteacher = PickPlaceTeacher(s)
-                s.step(pteacher.act())
-                done = s.runtime.succeeded()
-            elif args.source == "learned_latent":
-                if k % args.replan == 0 or s0.packet is None:
-                    try:
-                        s0.receive(pol.packets([s])[0], now=float(s.data.time), graph_version=s.runtime.graph_version)
-                    except Exception as e:          # rejected/stale packet: system 0 keeps its fallback hold
-                        print("packet rejected:", e, flush=True)
-                s.step(s0.tick(s, s.controller_version()))
-                done = s.runtime.succeeded()
-            else:
-                if not s.executor.queue:
-                    s.submit_chunk(pol.chunks([s])[0], execute_prefix=pol.execute_prefix)
-                s.step(None)
-                done = s.runtime.succeeded()
+        if teacher:
+            from rrp.policies.teachers import TeacherPolicy
+            vpol = TeacherPolicy(args.task, lambda e: teacher, "video:pick_place", ("joint_position", "gripper"))
+            end = lambda i, e: bool(teacher.done)
+        elif args.source == "learned_latent":
+            vpol = _LatentVideo(pol, realizer, dev, args.replan, args.teacher_prefix_steps)
+            end = lambda i, e: bool(e.runtime.succeeded())
+        else:
+            from rrp.policies.bc import BCPolicy
+            vpol = BCPolicy(pol, name="video:learned")
+            end = lambda i, e: bool(e.runtime.succeeded())
+        tick = [0]
+
+        def frame(i, e, act, step):
+            k = tick[0]
+            tick[0] += 1
             if k % args.every == 0:
-                r.update_scene(s.data, camera=args.camera)
-                st = " ".join(f"{e}:{v.status}" for e, v in s.runtime.instances.items())
+                r.update_scene(e.data, camera=args.camera)
+                st = " ".join(f"{n}:{v.status}" for n, v in e.runtime.instances.items())
                 lab = label if not (args.source == "learned_latent" and k < args.teacher_prefix_steps) else \
                     f"SCRIPTED TEACHER prefix (privileged) {k + 1}/{args.teacher_prefix_steps}, then {label}"
                 frames.append(caption(r.render().copy(), [f"{lab} | {args.robot} | {args.task}{ptag} | seed {sd}",
-                                                          f"t={s.data.time:.1f}s  {st}"]))
-            if done:
-                break
+                                                          f"t={e.data.time:.1f}s  {st}"]))
+        ep = rollout(lambda _sd: s, vpol, H.budget_task(args.task, s.spec.env_id), [sd], batch=1,
+                     max_steps=args.max_steps, hooks=[H.EndWhen(end), H.Recorder(on_step=frame)])[0]
+        if ep.outcome == "crash":
+            raise RuntimeError(ep.metrics.get("note") or ep.failure_reason)
         ok = s.privileged_success()
         tag = "success" if ok else "failure"
         pf = f"_teacherprefix{args.teacher_prefix_steps}" if args.teacher_prefix_steps else ""

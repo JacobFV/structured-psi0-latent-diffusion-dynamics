@@ -20,7 +20,46 @@ os.environ.setdefault("MUJOCO_GL", "egl")
 import imageio
 import mujoco
 
+from rrp.harness.eval import hooks as H
 from rrp.harness.eval.captions import caption
+from rrp.harness.rollout import rollout
+
+
+class _DualLatentVideo:
+    """The dual `learned_latent` video controller: system i packet every `replan` ticks (a rejected packet leaves system
+    0's fallback hold) -> system 0 every tick. `readout` = the probe's per-slot diagnostic of the last emitted packet
+    (shown in the caption; never fed back)."""
+
+    def __init__(self, sys_i, realizer, probe, ents, dev, replan):
+        from rrp.policies.latent import LatentStackPolicy
+        self.sys_i, self.realizer, self.probe, self.ents, self.dev, self.replan = sys_i, realizer, probe, ents, dev, replan
+        self.info = LatentStackPolicy(sys_i, realizer, replan_ticks=replan, device=dev, name="video:dual_latent").info
+        self.readout = []
+
+    def reset(self, spec, task, seeds, *, envs=None):
+        from rrp.policies.system0 import DualLatentSystem0
+        self.env = envs[0]
+        self.s0 = DualLatentSystem0(self.realizer, self.sys_i.featurizer(self.env), latent_space_version=self.sys_i.lsv,
+                                    realizer_compat_version=self.sys_i.rcv, device=self.dev)
+        self.k = 0
+
+    def act(self, obs):
+        import torch
+        from rrp.harness.eval.dual_latent_eval import probe_readout
+        from rrp.policies.base import Act
+        s, k = self.env, self.k
+        self.k += 1
+        if k % self.replan == 0 or self.s0.packet is None:
+            p = self.sys_i.packets([s])[0]
+            try:
+                self.s0.receive(p, now=float(s.data.time), graph_version=s.runtime.graph_version)
+            except Exception as e:          # noqa: BLE001 - rejected packet: fallback hold
+                print("packet rejected:", e, flush=True)
+            with torch.no_grad():
+                z = torch.from_numpy(p.z)[None].to(self.dev)
+                o = self.probe(z, torch.tensor([p.assembly_mask], device=self.dev), len(self.ents))
+            self.readout = probe_readout({kk: v.cpu() for kk, v in o.items()}, len(self.ents), ent_names=self.ents)
+        return {0: Act(self.s0.tick(s))}
 
 
 def run(a):
@@ -30,9 +69,7 @@ def run(a):
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     pol = R = P = None
     if a.source == "learned_latent":
-        from rrp.harness.eval.dual_latent_eval import probe_readout
         from rrp.policies.latent import DualLatentPolicy
-        from rrp.policies.system0 import DualLatentSystem0
         from rrp.policies.nets.checkpoint import load_checkpoint
         from rrp.policies.bundles import load_representation
         if dev == "cuda":
@@ -56,40 +93,32 @@ def run(a):
             continue
         label = "SCRIPTED TEACHER (privileged)" if teacher else f"LEARNED latent sys-i flow + sys-0 {Path(a.checkpoint).parent.name}"
         ents = [o.sim_body for o in s.detectables]
-        readout = []
-        if pol is not None:
-            s0 = DualLatentSystem0(R, pol.featurizer(s), latent_space_version=pol.lsv, realizer_compat_version=pol.rcv,
-                                   device=dev)
+        if teacher is not None:
+            from rrp.policies.teachers import TeacherPolicy
+            vpol = TeacherPolicy(a.task, lambda e: teacher, "video:dual", ("joint_position", "gripper"))
+            end = lambda i, e: bool(teacher.done or e.runtime.succeeded())
+        else:
+            vpol = _DualLatentVideo(pol, R, P, ents, dev, a.replan)
+            end = lambda i, e: bool(e.runtime.succeeded())
         frames = []
-        for k in range(a.max_steps):
-            if teacher:
-                s.step(teacher.act())
-                done = teacher.done or s.runtime.succeeded()
-            else:
-                if k % a.replan == 0 or s0.packet is None:
-                    p = pol.packets([s])[0]
-                    try:
-                        s0.receive(p, now=float(s.data.time), graph_version=s.runtime.graph_version)
-                    except Exception as e:          # noqa: BLE001 - rejected packet: fallback hold
-                        print("packet rejected:", e, flush=True)
-                    with torch.no_grad():
-                        z = torch.from_numpy(p.z)[None].to(dev)
-                        o = P(z, torch.tensor([p.assembly_mask], device=dev), len(ents))
-                    readout = probe_readout({kk: v.cpu() for kk, v in o.items()}, len(ents), ent_names=ents)
-                s.step(s0.tick(s))
-                done = s.runtime.succeeded()
+        tick = [0]
+
+        def frame(i, e, act, step):
+            k = tick[0]
+            tick[0] += 1
             if k % a.every == 0:
-                rd.update_scene(s.data, camera=a.camera)
-                st = " ".join(f"{e}:{v.status[:6]}" for e, v in s.runtime.instances.items())
-                lines = [f"{label} | {a.task} | {a.pair} | seed {sd}", f"t={s.data.time:.1f}s {st}"]
+                rd.update_scene(e.data, camera=a.camera)
+                st = " ".join(f"{n}:{v.status[:6]}" for n, v in e.runtime.instances.items())
+                lines = [f"{label} | {a.task} | {a.pair} | seed {sd}", f"t={e.data.time:.1f}s {st}"]
+                readout = getattr(vpol, "readout", None)
                 if readout:
                     lines += ["probe(received packet), diagnostic:"] + readout
                 frames.append(caption(rd.render().copy(), lines))
-            if done:
-                break
-        for _ in range(5):
-            s.step(None)
-        ok = s.privileged_success()
+        ep = rollout(lambda _sd: s, vpol, H.budget_task(a.task, s.spec.env_id), [sd], batch=1, max_steps=a.max_steps,
+                     hooks=[H.EndWhen(end), H.Recorder(on_step=frame), H.Settle(5)])[0]
+        if ep.outcome == "crash":
+            raise RuntimeError(ep.metrics.get("note") or ep.failure_reason)
+        ok = bool(ep.success_privileged)
         tag = "success" if ok else "failure"
         src = "scripted_teacher" if teacher else f"learned-{Path(a.checkpoint).parent.name}"
         name = f"{dt.date.today()}_dual_{src}_{a.task}_{a.pair}_s{sd}_{tag}.mp4"
