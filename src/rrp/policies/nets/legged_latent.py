@@ -388,18 +388,6 @@ def group_masks(b) -> dict:
     return {"legs": b["node_mask"] & pol, "upper": b["node_mask"] & ~pol}
 
 
-REALIZER_GROUPS = ("legs", "upper")     # the action groups the realizer output is split into (`control="wholebody"`)
-IS_POLICY_COL = 10                      # node_static column: 1 for a policy (legs) joint, 0 for a held (upper) joint
-
-
-def group_masks(b) -> dict:
-    """{group: [B,N] bool}: which node rows of the realizer output belong to the `legs` group (the policy actuators) and
-    which to the `upper` group (the held actuators: arms, waist, head), from the PUBLIC per-node static flag
-    (`LeggedMorph.node_static[:, IS_POLICY_COL]`). They partition `node_mask`."""
-    pol = b["node_static"][..., IS_POLICY_COL] > 0.5
-    return {"legs": b["node_mask"] & pol, "upper": b["node_mask"] & ~pol}
-
-
 class LeggedRealizer(nn.Module):
     """System 0. Inputs are ONLY: z, knot times, elapsed phase, morphology tokens, current encoders/IMU/touch,
     osc-v1. No task, goal, waypoint, localization or system-i state.
@@ -439,11 +427,6 @@ class LeggedRealizer(nn.Module):
             "knots": TokenSet("knots", knot_valid, fields={"assembly_id": knot_asm_b, "body": body_field}),
         })
         return self.route.bias(rc)
-
-    def groups(self, z, b, phase, knot_times=None) -> dict:
-        """`forward` split by output group: {"legs": [B,N], "upper": [B,N]}, zero outside the group's rows."""
-        out = self.forward(z, b, phase, knot_times)
-        return {g: out * m for g, m in group_masks(b).items()}
 
     def groups(self, z, b, phase, knot_times=None) -> dict:
         """`forward` split by output group: {"legs": [B,N], "upper": [B,N]}, zero outside the group's rows."""

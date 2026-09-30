@@ -31,12 +31,13 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from rrp.policies.features.legged import MAX_N, MAX_M, KNOT_TIMES, TICK_DT, H, MAX_J, KNOT_TICKS
+from rrp.policies.features.legged import (MAX_N, MAX_M, KNOT_TIMES, TICK_DT, H, MAX_J, KNOT_TICKS, EVENT_SLOTS,
+                                          TARGET_SLOTS, target_slot_cols, task_view_of)
 from rrp.core.sealed import SealedSplit
 from rrp.policies.bundles import _dev, checkpoint_provenance, legged_flags
-from rrp.policies.nets.legged_latent import (LeggedFlow, build_legged_rep, legged_probe, legged_probe_read,
-                                             legged_specs, probe_metrics, probe_terms, relational_specs,
-                                             remap_legged_probe_state)
+from rrp.policies.nets.legged_latent import (LeggedFlow, REALIZER_GROUPS, build_legged_rep, group_masks, legged_probe,
+                                             legged_probe_read, legged_specs, probe_metrics, probe_terms,
+                                             relational_specs, remap_legged_probe_state)
 from rrp.policies.nets.probes import readout_loss, readout_metrics
 from rrp.policies.nets.semantic_latent import legacy_latent_factors, packet_semantic_weight
 from rrp.policies.relations.base import (FactorError, estimates_loss, require_factors, resolve, stamp_versions,
@@ -73,6 +74,19 @@ def _unit_probe_specs(specs) -> tuple:
     `packet_semantic_weight`; each query's `params.lv_min` is kept)."""
     from rrp.policies.relations.base import get_factor
     return tuple(replace(s, weight=None) if get_factor(s.name).form == "readout" else s for s in specs)
+
+
+def refuse_relgen(cfg: dict, stage: str) -> None:
+    """Relation shards (`params.curriculum` / `inputs.relgen`, `harness.data.mix.relation_batches`) hold the ARM family's
+    collate input (`PolicyInput` token banks, `collate_rows`): a row cannot be forwarded through the legged nets, whose
+    input is the morphology / joint-state / context / terrain batch of `LeggedData.train_batch`. A run that asks for them
+    is refused at start rather than ignoring the curriculum (a silent main-data-only run would report a mix it never
+    trained) or failing at the first scheduled step. Lifted when relgen can featurize and collate a legged snapshot."""
+    from rrp.harness.data.mix import RelgenError
+    if cfg.get("curriculum") is not None or cfg.get("relgen"):
+        raise RelgenError(f"legged-latent {stage}: params.curriculum / inputs.relgen are set, but relation shard rows carry "
+                          "the arm family's collate input and cannot be forwarded through the legged nets (no legged "
+                          "featurizer / collate in relgen)")
 
 
 def _assert_sealed(cfg: dict) -> None:
@@ -114,14 +128,60 @@ _TERRAIN_KEYS = ("terrain", "terrain_valid")
 _RELATION_LABEL_KEYS = ("foothold_cell", "com_support", "com_support_valid")
 
 
+# A shard written before the collectors recorded `task` (pre-H4) holds the waypoint task: the only one there was.
+LEGACY_PACK_TASK = "waypoint_contact"
+_GOAL_ROLES = ("target", "patient", "reference", "support")     # which entity an event walks / reaches to: its target, else what it acts on
+
+
+def event_goal_slots(task: str) -> tuple:
+    """Entity slot (`TaskView.targets` order = the context's target slots) each event's goal sits in, for event index
+    0..EVENT_SLOTS (`done` and any event without an entity: -1). The goal of an event is its `target` entity, else its
+    `patient`, `reference` or `support`. Read from the registered task graph, the same one `public_context` names its
+    slots from, so the label needs no task-specific key in the shard."""
+    from rrp.envs.mujoco.scenario import load_task
+    from rrp.tasks.spec import get_task
+    view = task_view_of(task)
+    graph = load_task(get_task(task).graph)
+    out = []
+    for e in graph["events"]:
+        ent = {}
+        for r in e["roles"]:
+            ent.setdefault(r["role"], r["binding"].get("entity", {}).get("id"))
+        name = next((ent[role] for role in _GOAL_ROLES if ent.get(role)), None)
+        out.append(view.targets.index(name) if name in view.targets else -1)
+    return tuple(out) + (-1,) * (EVENT_SLOTS + 1 - len(out))
+
+
+def goal_columns(task: str, ctx: np.ndarray, ev: np.ndarray):
+    """(goal [T,2], goal_valid [T]): the active event's goal entity in the body frame (/2 m), as the PUBLIC context
+    states it (`target_slot_cols(slot)` of `ctx`: bx/2, by/2; valid = the slot's own valid flag), and whether the event
+    has one. The label is the public estimate, not simulator truth: the goal probe measures what the packet keeps of
+    it."""
+    slot = np.asarray(event_goal_slots(task))[np.minimum(ev, EVENT_SLOTS)]
+    goal = np.zeros((len(ev), 2), np.float32)
+    ok = np.zeros(len(ev), bool)
+    for k in range(TARGET_SLOTS):
+        m = slot == k
+        c = ctx[:, target_slot_cols(k)]
+        goal[m], ok[m] = c[m, :2], c[m, 3] > 0.5
+    return goal, ok
+
+
 class LeggedData:
+    """Rows of a legged latent pack, any registered task (`h_*` and `waypoint_contact`): the task's events and target
+    slots come from its graph (`event_goal_slots`), nothing from the episode's `waypoints`. The action columns hold the
+    `legs` rows (`a`, policy joints) and, where the shard's `upper_valid` says the teacher commanded them (wholebody
+    control), the `upper` rows of the held joints behind them; `amask` covers exactly those rows, so every loss and
+    target chunk trains the upper rows only where they were commanded (`upper_trained`)."""
+
     def __init__(self, root: Path, bodies: list[str], dev, holdout_every: int = 20, max_eps: int | None = None):
         self.dev = dev
         cols = {k: [] for k in ("q", "qd", "a", "amask", "imu", "touch", "osc", "ctx", "ev", "pose", "contact",
-                                "body", "ep_end", "fell", "wpa", "wpb", "held_out")}
+                                "body", "ep_end", "fell", "goal", "goal_valid", "held_out")}
         self.static = dict(node_static=[], node_asm=[], asm_static=[], node_mask=[], asm_mask=[], asm_is_leg=[],
                            body_asm=[])
         self.body_names, self.ep_meta = [], []
+        self.n_upper_valid = 0
         off = 0
         for bi, body in enumerate(bodies):
             shards = sorted((root / body).glob("s*.npz"))
@@ -149,8 +209,16 @@ class LeggedData:
                                              start=off, T=T))
                     pad = lambda x, w: np.pad(x, ((0, 0), (0, w - x.shape[1])))
                     cols["q"].append(pad(d["q"][sl], MAX_N)); cols["qd"].append(pad(d["qd"][sl], MAX_N))
-                    cols["a"].append(pad(d["a"][sl], MAX_N))
+                    a_all = pad(d["a"][sl], MAX_N)
                     am = np.zeros((T, MAX_N), bool); am[:, :npol] = True
+                    if "upper" in d:                 # held-joint rows, commanded only where the shard says so
+                        nh = d["upper"].shape[1]
+                        if npol + nh != N:
+                            raise ValueError(f"{sh}: {npol} policy + {nh} upper columns != {N} nodes")
+                        a_all[:, npol:N] = d["upper"][sl]
+                        am[:, npol:N] = d["upper_valid"][sl][:, None]
+                        self.n_upper_valid += int(d["upper_valid"][sl].sum())
+                    cols["a"].append(a_all)
                     cols["amask"].append(am)
                     cols["imu"].append(d["imu"][sl]); cols["osc"].append(d["osc"][sl].astype(np.float32))
                     cols["touch"].append(pad(d["touch"][sl].astype(np.float32), MAX_M))
@@ -158,8 +226,8 @@ class LeggedData:
                     cols["ctx"].append(d["ctx"][sl]); cols["ev"].append(d["ev"][sl]); cols["pose"].append(d["pose"][sl])
                     cols["body"].append(np.full(T, bi)); cols["ep_end"].append(np.full(T, off + T - 1))
                     cols["fell"].append(np.full(T, em["status"] == "fell"))
-                    cols["wpa"].append(np.tile(np.array(em["waypoints"]["a"], np.float32), (T, 1)))
-                    cols["wpb"].append(np.tile(np.array(em["waypoints"]["b"], np.float32), (T, 1)))
+                    g, gv = goal_columns(meta.get("task", LEGACY_PACK_TASK), d["ctx"][sl], d["ev"][sl])
+                    cols["goal"].append(g); cols["goal_valid"].append(gv)
                     cols["held_out"].append(np.full(T, ho))
                     for k in _TERRAIN_KEYS + _RELATION_LABEL_KEYS:
                         if k in d:
@@ -185,6 +253,16 @@ class LeggedData:
         # rows that have a full horizon are not required: horizon indices clamp to the episode end
         self.train_idx = np.nonzero(~ho)[0]
         self.test_idx = np.nonzero(ho)[0]
+
+    @property
+    def upper_trained(self) -> bool:
+        """Did any row of this data train the `upper` action group? (a rep trained on it declares it in its result)"""
+        return self.n_upper_valid > 0
+
+    @property
+    def action_groups(self) -> list:
+        """The realizer's action groups this data trains, in `REALIZER_GROUPS` order."""
+        return [g for g in REALIZER_GROUPS if g == "legs" or self.upper_trained]
 
     def _add_static(self, d, meta):
         N, M = d["node_static"].shape[0], d["asm_static"].shape[0]
@@ -230,15 +308,12 @@ class LeggedData:
         pose = A["pose"][i]
         c, s = torch.cos(pose[:, 2]), torch.sin(pose[:, 2])
         ev = A["ev"][i]
-        wp = torch.where((ev == 0)[:, None], A["wpa"][i], A["wpb"][i])
-        dx, dy = wp[:, 0] - pose[:, 0], wp[:, 1] - pose[:, 1]
-        goal = torch.stack([c * dx + s * dy, -s * dx + c * dy], -1) / 2.0
         p2 = A["pose"][torch.minimum(i + H, end)]
         ex, ey = p2[:, 0] - pose[:, 0], p2[:, 1] - pose[:, 1]
         dyaw = torch.remainder(p2[:, 2] - pose[:, 2] + math.pi, 2 * math.pi) - math.pi
         disp = torch.stack([(c * ex + s * ey) / 0.5, (-s * ex + c * ey) / 0.5, dyaw], -1)
         fall = A["fell"][i] & ((end - i) <= H)
-        lab = dict(contact_k=contact_k, goal=goal, goal_valid=ev < 3, disp=disp, subtask=ev.clamp(max=3), fall=fall)
+        lab = dict(contact_k=contact_k, goal=A["goal"][i], goal_valid=A["goal_valid"][i], disp=disp, subtask=ev.clamp(max=3), fall=fall)
         if "com_support" in A:
             lab.update(com_support=A["com_support"][i], com_support_valid=A["com_support_valid"][i])
         return lab
@@ -283,8 +358,19 @@ def rep_step(E, R, P, data, i, j, specs, beta, train=True, qd_drop=0.0):
         l_sem = l_sem + el
         logs.update(elogs)
     loss = l_real + l_sem + beta * kl
-    logs.update(real=float(l_real.detach()), kl=float(kl.detach()), sem=float(l_sem.detach()))
+    logs.update(real=float(l_real.detach()), kl=float(kl.detach()), sem=float(l_sem.detach()),
+                **{f"real_{g}": v for g, v in _group_mse(pred, a1, m, b).items() if v is not None})
     return loss, logs, (z, out, lab, b, pred, a1, m)
+
+
+def _group_mse(pred, a1, m, b) -> dict:
+    """Realizer error per action group (`legs`, `upper`) over the rows that carry a target; None where the batch has no
+    such row (an `upper` group that was not commanded is not measured, not zero)."""
+    out = {}
+    for g, gm in group_masks(b).items():
+        w = m * gm.float()
+        out[g] = float((((pred - a1) ** 2) * w).sum().detach() / w.sum()) if float(w.sum()) > 0 else None
+    return out
 
 
 def _terms(out, lab, b, specs):
@@ -319,6 +405,7 @@ def eval_rep(E, R, P, data, specs=(), n_batches=40, seed=99):
         m.eval()
     rng = np.random.default_rng(seed)
     agg, sh, real, zero = {}, {}, [], []
+    by_group = {g: [] for g in REALIZER_GROUPS}
     unit = _unit_probe_specs(specs)
     for _ in range(n_batches):
         i = data.sample(256, rng, test=True)
@@ -326,12 +413,16 @@ def eval_rep(E, R, P, data, specs=(), n_batches=40, seed=99):
         _, _, (z, out, lab, b, pred, a1, m) = rep_step(E, R, P, data, i, j, unit, 0.0, train=False)
         real.append(float((((pred - a1) ** 2) * m).sum() / m.sum()))
         zero.append(float(((a1 ** 2) * m).sum() / m.sum()))
+        for g, v in _group_mse(pred, a1, m, b).items():
+            if v is not None:
+                by_group[g].append(v)
         _agg(agg, _probe_metrics(out, lab, b, specs))
         perm = torch.randperm(len(i), device=data.dev)
         _agg(sh, _probe_metrics(legged_probe_read(P, z[perm], b["asm_mask"], b["body_asm"]), lab, b, specs))
     for m in (E, R, P):
         m.train()
     return dict(split="held_out_episodes", realize_mse=float(np.mean(real)), zero_action_mse=float(np.mean(zero)),
+                realize_mse_by_group={g: (float(np.mean(v)) if v else None) for g, v in by_group.items()},
                 probes=_fin(agg), probes_shuffled_z=_fin(sh))
 
 
@@ -425,6 +516,7 @@ def _save(path, **kw):
 
 def train_rep(cfg, out: Path):
     _assert_sealed(cfg)
+    refuse_relgen(cfg, "rep")
     dev = _dev()
     torch.manual_seed(cfg.get("seed", 0))
     rng = np.random.default_rng(cfg.get("seed", 0))
@@ -465,10 +557,12 @@ def train_rep(cfg, out: Path):
                   sch=sch.state_dict(), step=step, **rng_state(rng))
         if sn and step % sn == 0 and step < steps:
             _save(out / f"snap_s{step}.pt", E=E.state_dict(), R=R.state_dict(), P=P.state_dict(), cfg=cfg,
-                  result=dict(latent_space_version=f"legged-ls-{cfg['name']}", step=step))
+                  result=dict(latent_space_version=f"legged-ls-{cfg['name']}", step=step,
+                              upper_trained=data.upper_trained, action_groups=data.action_groups))
     res = dict(steps=steps, wall_s=time.time() - t0, bodies=cfg["bodies"], n_rows=data.n,
                n_train_rows=len(data.train_idx), n_heldout_rows=len(data.test_idx),
-               latent_space_version=f"legged-ls-{cfg['name']}", eval=eval_rep(E, R, P, data, specs))
+               latent_space_version=f"legged-ls-{cfg['name']}", upper_trained=data.upper_trained,
+               action_groups=data.action_groups, eval=eval_rep(E, R, P, data, specs))
     _save(out / "representation.pt", E=E.state_dict(), R=R.state_dict(), P=P.state_dict(), cfg=cfg, result=res)
     (out / "result.json").write_text(json.dumps(res, indent=1))
     return res
@@ -522,6 +616,7 @@ def fit_probe(cfg, out: Path):
 
 
 def train_flow(cfg, out: Path):
+    refuse_relgen(cfg, "flow")
     dev = _dev()
     torch.manual_seed(cfg.get("seed", 0))
     rng = np.random.default_rng(cfg.get("seed", 0))
@@ -572,7 +667,8 @@ def train_flow(cfg, out: Path):
                   specs=specs, **rng_state(rng))
         if sn and step > 1 and (step - 1) % sn == 0:
             _save(out / f"snap_s{step - 1}.pt", flow=F_.state_dict(), cfg=cfg, specs=specs,
-                  result=dict(latent_space_version=rres["latent_space_version"], step=step - 1))
+                  result=dict(latent_space_version=rres["latent_space_version"], step=step - 1,
+                              upper_trained=rres.get("upper_trained", False), action_groups=rres.get("action_groups")))
         i = data.sample(B, rng)
         b = data.train_batch(i)
         with torch.no_grad():
@@ -588,7 +684,8 @@ def train_flow(cfg, out: Path):
             log.write(json.dumps(dict(step=step, t=time.time() - t0, loss=float(loss.detach()), gn=float(gn), cuda_peak_mb=cuda_peak_mb(), **logs)) + "\n")
             log.flush()
     res = dict(steps=steps, wall_s=time.time() - t0, representation=cfg["representation"],
-               latent_space_version=rres["latent_space_version"], eval=eval_flow(F_, E, R, P, data, specs))
+               latent_space_version=rres["latent_space_version"], upper_trained=rres.get("upper_trained", False),
+               action_groups=rres.get("action_groups"), eval=eval_flow(F_, E, R, P, data, specs))
     _save(out / "policy.pt", flow=F_.state_dict(), cfg=cfg, specs=specs, result=res)
     (out / "result.json").write_text(json.dumps(res, indent=1))
     return res

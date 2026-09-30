@@ -24,14 +24,17 @@ import torch
 import torch.nn as nn
 
 from rrp.core.sealed import SealedSplit
-from rrp.harness.train.legged_latent_train import LeggedData, _save, rng_state, restore_rng, cuda_peak_mb
+from rrp.harness.train.legged_latent_train import (LeggedData, _save, cuda_peak_mb, refuse_relgen, restore_rng,
+                                                   rng_state)
 from rrp.policies.bundles import _dev
 from rrp.policies.features.legged import H
 from rrp.policies.nets.legged_bc import build
 
 
 def bc_batch(data: LeggedData, i):
-    b = data.ctx_batch(i)
+    """(public batch + the training-only `foothold_cell` label key the relation graph reads, target chunks, action mask
+    covering the `upper` rows where they were commanded)."""
+    b = data.train_batch(i)
     return b, data.beh(i), data.A["amask"][i]
 
 
@@ -60,6 +63,7 @@ def eval_bc(model, data, n_batches=20, seed=11, nfe=8):
 
 
 def train(cfg, out: Path):
+    refuse_relgen(cfg, "bc")
     SealedSplit.load().assert_dataset_allowed(cfg["data"], cfg["bodies"])
     dev = _dev()
     out.mkdir(parents=True, exist_ok=True)
@@ -100,7 +104,8 @@ def train(cfg, out: Path):
             log.write(json.dumps(dict(step=step, eval=ev)) + "\n"); log.flush()
             _save(out / f"snap_s{step}.pt", model=model.state_dict(), cfg=cfg, step=step, eval=ev)
     res = dict(steps=steps, wall_s=time.time() - t0, bodies=cfg["bodies"], n_rows=data.n,
-               n_train_rows=len(data.train_idx), n_heldout_rows=len(data.test_idx), eval=eval_bc(model, data),
+               n_train_rows=len(data.train_idx), n_heldout_rows=len(data.test_idx), upper_trained=data.upper_trained,
+               action_groups=data.action_groups, eval=eval_bc(model, data),
                source="learned (behaviour cloning of scripted_teacher -> frozen tracker targets; POSITIVE CONTROL)")
     _save(out / "policy.pt", model=model.state_dict(), cfg=cfg, step=steps, result=res)
     (out / "result.json").write_text(json.dumps(res, indent=1))
