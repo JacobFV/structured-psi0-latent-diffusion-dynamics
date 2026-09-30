@@ -14,3 +14,4 @@ vars: {rel_preset: legged-none}
 lists:
   transfer:
     name: humanoid_transfer_h_steps_legged_none
+nodes: {eval_ref: null, sealed_ref: null, teacher_check: null}

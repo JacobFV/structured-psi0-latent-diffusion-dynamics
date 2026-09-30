@@ -1,7 +1,16 @@
 # FRAGMENT (D-146 round 3 T5): the `legged-none` control arm of the EVAL-ONLY held-out template (recipes/templates/humanoid_transfer_heldout.yaml). The Level-2 cells
 # are the zero-shot checkpoints of the `h_carry` CONTROL arm (`humanoid-transfer-h_carry-<system>-legged-none`, recipes/humanoid/transfer_h_carry_legged_none.yaml) evaluated
-# on the held-out task; the preset-free references run once in the `legged` instance (no eval_ref / sealed_ref node here). Instances:
+# on the held-out task; the preset-free references run once in the `legged` instance (the instance nulls the eval_ref / sealed_ref / teacher_check nodes). Instances:
 # `recipes/humanoid/transfer_<held-out>_legged_none.yaml` = `extends: [transfer_<held-out>.yaml, ../templates/humanoid_transfer_heldout_legged_none.yaml]`. Why a fragment: see humanoid_transfer_legged_none.yaml.
+name: humanoid_transfer_heldout_legged_none_fragment
+schema: dag-1
+family: humanoid
+track: humanoid
+policy: latent
+env: mujoco/legged
+task: SET_BY_INSTANCE
+bodies: humanoid_pool_v1
+factors: []
 lists:
   transfer:
     results_glob: ['artifacts/runs/humanoid/humanoid-transfer-<task>-*-legged-none/eval_transfer*', 'artifacts/runs/humanoid/humanoid-transfer-<task>-*-legged-none/sealed_eval*', 'artifacts/runs/humanoid/humanoid-transfer-<task>/eval_transfer*', 'artifacts/runs/humanoid/humanoid-transfer-<task>/sealed_eval*']
@@ -31,7 +40,4 @@ lists:
           trained: true
           policy: legged_bc
           kw: {checkpoint: 'artifacts/runs/humanoid/humanoid-transfer-h_carry-bc-legged-none/train_bc_s<seed>/policy.pt'}
-nodes:
-  eval_ref: null
-  sealed_ref: null
-  teacher_check: null
+nodes: {}

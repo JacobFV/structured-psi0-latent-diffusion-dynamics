@@ -4,8 +4,17 @@
 # arms train, evaluate and pool under different directories and latent-space versions from the SAME data (the global collect / pack nodes carry no preset). The
 # `lists` of a DAG are not rendered, so the eval config repeats the method paths with the control lineage (`-legged-none/`); a test compares them with the
 # template's (only that segment may differ). The preset-free references (teacher, Level 1, PPO) are run once by the `legged` instance, so this arm has no
-# `eval_ref` / `sealed_ref` / `teacher_check` node and pools the preset-free dirs through `results_glob`. The instance sets `lists.transfer.name`.
+# `eval_ref` / `sealed_ref` / `teacher_check` node (the instance nulls them) and pools the preset-free dirs through `results_glob`. The instance sets `lists.transfer.name`. Standalone it plans as an empty DAG (every recipes/**/*.yaml must plan: test_pipeline_contract).
 # Level 2 of the `legged` arm: recipes/templates/humanoid_transfer.yaml.
+name: humanoid_transfer_legged_none_fragment
+schema: dag-1
+family: humanoid
+track: humanoid
+policy: latent
+env: mujoco/legged
+task: SET_BY_INSTANCE
+bodies: humanoid_pool_v1
+factors: []
 lists:
   transfer:
     results_glob: ['artifacts/runs/humanoid/humanoid-transfer-<task>-*-legged-none/eval_transfer*', 'artifacts/runs/humanoid/humanoid-transfer-<task>-*-legged-none/sealed_eval*', 'artifacts/runs/humanoid/humanoid-transfer-<task>/eval_transfer*', 'artifacts/runs/humanoid/humanoid-transfer-<task>/sealed_eval*']
@@ -93,7 +102,4 @@ lists:
           policy: legged_bc
           kw: {checkpoint: 'artifacts/runs/humanoid/humanoid-transfer-<task>-bc-legged-none/adapt_bc-<body>-n<budget>_s<seed>/policy.pt'}
           acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-bc-legged-none/adapt_bc-<body>-n<budget>_s<seed>/acquisition.json'
-nodes:
-  eval_ref: null
-  sealed_ref: null
-  teacher_check: null
+nodes: {}

@@ -15,3 +15,4 @@ lists:
   transfer:
     name: humanoid_transfer_h_gap_cart_legged_none
   teacher_check: null
+nodes: {eval_ref: null, sealed_ref: null, teacher_check: null}
