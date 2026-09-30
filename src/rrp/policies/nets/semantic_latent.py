@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, fields
 
 import torch
 import torch.nn as nn
@@ -24,12 +24,46 @@ import torch.nn as nn
 from rrp.policies.nets.attention import MHA
 from rrp.policies.nets.batch import Batch, NODE_DIM, MORPH_DIM
 from rrp.policies.nets.flow import ContextEncoder, PolicyConfig, MLP
+from rrp.policies.relations.base import resolve
 
 ASM_GRIPPER_ONEHOT = (1, 2)   # ASM_KINDS index of 'hand', 'gripper' in the morph assembly token
 
+# D-144 R2: the arm/dual probe queries of preset "probes:arm-packet-v1" (catalog.py), in the order LatentConfig's
+# legacy scalar knobs used to apply uniformly. `goal_effect` is excluded (R1: it is a SEPARATE, opt-in spec toggled
+# by the run's `probe` config block, not by this scalar).
+_ARM_PROBE_QUERIES = ("visible", "looking_at", "focused_on", "held_by", "acting_on", "rel_pos", "observed_effect",
+                      "subtask")
 
-@dataclass
+
+def _probe_factors(weight: float, lv_min: float, slot_handles: bool) -> tuple:
+    """`factors:` entries equivalent to the pre-R2 (semantic_weight, probe_lv_min, slot_handles) triple: one
+    per-query readout weight/lv_min override (docs/relations.md 4: "Weight, lv_min ... become spec weight/params")
+    plus `id.slot_handle` when slot_handles was set (PolicyConfig already reads this same factor name)."""
+    items = [{"name": f"probe.arm.{q}", "weight": weight, "params": {"lv_min": lv_min}} for q in _ARM_PROBE_QUERIES]
+    if slot_handles:
+        items.append("id.slot_handle")
+    return tuple(items)
+
+
+@dataclass(init=False)
 class LatentConfig:
+    """R38 target-encoder config. `factors` (docs/relations.md 10, unit R2) is the one declarative knob for what used
+    to be four separate scalars (semantic_weight, probe_lv_min, slot_handles were LatentConfig fields;
+    packet_semantic_weight / aux_weight were separate top-level run-config keys read by the flow/BC trainers): each
+    arm probe query's loss weight and Gaussian log-variance floor is now a `probe.arm.<query>` FactorSpec override
+    (`weight`, `params.lv_min`), and the public slot-address embedding is the `id.slot_handle` factor -- the SAME
+    registry entries `nets.probes.ReadoutProbe` / `PolicyConfig.factors` already read (F2-F4, R1). `cf_mix` /
+    `cf_contrast` (ex `binding_cf` / `binding_contrast`) stay plain scalars: the counterfactual-binding swap
+    (`nets.latent_batch`, ported onto `harness.data.relgen.transforms.cf_swap`) has no catalog entry of its own
+    (out of this unit's owned files: catalog.py belongs to no single fanout row for a non-relational data
+    augmentation), so there is nothing in `factors:` for it to reference.
+
+    Legacy construction: every stored checkpoint / config on disk was written as
+    `LatentConfig(**cfg_json["latent"])` with the flat pre-R2 keys (`semantic_weight`, `probe_lv_min`, `binding_cf`,
+    `binding_contrast`, `slot_handles`); that call keeps working unchanged (`bundles.load_representation`,
+    `policies.latent`, this module's own `train_representation` -- two of those three files are owned by other
+    fanout units and must not be edited here). `__init__` accepts either the flat legacy keys OR `factors=`
+    (mixing both is an error, same rule as `PolicyConfig.from_dict`)."""
     width: int = 256
     heads: int = 4
     ctx_layers: int = 2
@@ -40,17 +74,62 @@ class LatentConfig:
     horizon: int = 16                              # demonstrated action steps seen by E
     control_dt: float = 0.05
     beta_kl: float = 1e-3
-    semantic_weight: float = 1.0                   # 0 => latent_nosem (capacity-matched control)
     realizer_layers: int = 2
     max_phase_ticks: int = 12                      # realizer trained on phases 0..max (0.55 s)
     name: str = "latent_sem_v1"
-    binding_cf: float = 0.0                        # fraction of each batch appended as counterfactual-binding copies
-    binding_contrast: float = 0.0                  # optional weight: push E(cf) away from E(factual) (hinge)
-    slot_handles: bool = False                     # public slot-address embedding on scene tokens (see PolicyConfig)
-    probe_lv_min: float = -8.0                     # probe Gaussian-NLL log-variance floor; -4 = bounded NLL (D-085 fix)
+    factors: tuple | None = None                   # None = the former defaults (weight 1.0, lv_min -8.0, no handles)
+    cf_mix: float = 0.0                             # fraction of each batch appended as counterfactual-binding copies
+    cf_contrast: float = 0.0                        # optional weight: push E(cf) away from E(factual) (hinge)
+
+    def __init__(self, **kw):
+        legacy_keys = ("semantic_weight", "probe_lv_min", "binding_cf", "binding_contrast", "slot_handles")
+        legacy = {k: kw.pop(k) for k in legacy_keys if k in kw}
+        if legacy and kw.get("factors") is not None:
+            raise ValueError("LatentConfig: mixes `factors` with the legacy semantic_weight/probe_lv_min/"
+                             "binding_cf/binding_contrast/slot_handles keys")
+        if legacy:
+            kw["factors"] = _probe_factors(legacy.get("semantic_weight", 1.0), legacy.get("probe_lv_min", -8.0),
+                                           legacy.get("slot_handles", False))
+            kw["cf_mix"] = legacy.get("binding_cf", 0.0)
+            kw["cf_contrast"] = legacy.get("binding_contrast", 0.0)
+        names = {f.name for f in fields(self)}
+        unknown = set(kw) - names
+        if unknown:
+            raise TypeError(f"LatentConfig: unknown field(s) {sorted(unknown)}")
+        for f in fields(self):
+            setattr(self, f.name, kw.get(f.name, f.default))
+
+    # ------------------------------------------------------------------ factor-derived (docs/relations.md 4, R2)
+    @property
+    def specs(self):
+        return resolve(self.factors if self.factors is not None else _probe_factors(1.0, -8.0, False))
+
+    @property
+    def weight(self) -> float:
+        """The (uniform, pre-R2-equivalent) probe loss weight: every `probe.arm.*` spec carries the same value."""
+        ws = {s.weight for s in self.specs if s.name.startswith("probe.arm.") and s.control != "off"}
+        return next(iter(ws)) if len(ws) == 1 else (1.0 if not ws else sorted(ws)[-1])
+
+    @property
+    def lv_min(self) -> float:
+        lvs = {s.p.get("lv_min", -8.0) for s in self.specs if s.name.startswith("probe.arm.") and s.control != "off"}
+        return next(iter(lvs)) if len(lvs) == 1 else (-8.0 if not lvs else sorted(lvs)[-1])
+
+    @property
+    def slot_handles(self) -> bool:
+        return any(s.name == "id.slot_handle" and s.control != "off" for s in self.specs)
 
     def version(self) -> str:
-        d = asdict(self)
+        d = {f.name: getattr(self, f.name) for f in fields(self) if f.name != "factors"}
+        # --- back-compat only: reproduces the pre-R2 hash shape bit-for-bit so existing checkpoints / lineage
+        # `latent_space_version` strings stay valid (the acceptance criterion "LatentConfig.version() identical for
+        # every config under configs/"). This is the one place in this unit's owned files where the retired flat key
+        # NAMES ("semantic_weight", "probe_lv_min", "binding_cf") must still appear: they are literally the JSON
+        # object keys the ALREADY-COMPUTED, already-shipped hashes were taken over, and a SHA-256 preimage cannot be
+        # reproduced under different key names. See research/tracks/rel-r2.md ("open question for the lead").
+        d.pop("cf_mix", None); d.pop("cf_contrast", None)
+        d["semantic_weight"], d["probe_lv_min"] = self.weight, self.lv_min
+        d["binding_cf"], d["binding_contrast"], d["slot_handles"] = self.cf_mix, self.cf_contrast, self.slot_handles
         for k, dflt in (("binding_cf", 0.0), ("binding_contrast", 0.0), ("slot_handles", False),
                          ("probe_lv_min", -8.0)):
             if d[k] == dflt:                           # added later: omit at default so v1 versions are unchanged

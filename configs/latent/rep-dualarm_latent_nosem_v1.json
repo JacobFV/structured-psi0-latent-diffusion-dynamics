@@ -16,7 +16,40 @@
  "out_dir": "artifacts/runs/dualarm_latent_nosem_v1",
  "latent": {
   "name": "dualarm_latent_nosem_v1",
-  "semantic_weight": 0.0
+  "factors": [
+   {
+    "name": "probe.arm.visible",
+    "weight": 0.0
+   },
+   {
+    "name": "probe.arm.looking_at",
+    "weight": 0.0
+   },
+   {
+    "name": "probe.arm.focused_on",
+    "weight": 0.0
+   },
+   {
+    "name": "probe.arm.held_by",
+    "weight": 0.0
+   },
+   {
+    "name": "probe.arm.acting_on",
+    "weight": 0.0
+   },
+   {
+    "name": "probe.arm.rel_pos",
+    "weight": 0.0
+   },
+   {
+    "name": "probe.arm.observed_effect",
+    "weight": 0.0
+   },
+   {
+    "name": "probe.arm.subtask",
+    "weight": 0.0
+   }
+  ]
  },
  "prefetch": true
 }

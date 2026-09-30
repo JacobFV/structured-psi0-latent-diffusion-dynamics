@@ -3,8 +3,10 @@
 Stage A (representation, `train_representation`): target encoder E, system-0 realizer R and packet probes P jointly:
     z ~ E(context_t, task_t, morphology, demonstrated a[t:t+H])            (reparameterized)
     L_real  = || R(z, knot_times, phase=j*dt, state_{t+j}, local_{t+j}) - a*_{t+j} ||^2      (j ~ U{0..J})
-    L_sem   = probe_loss(P(z, queries), privileged/public labels at t)       (semantic_weight; 0 => latent_nosem)
-    L       = L_real + semantic_weight * L_sem + beta * KL(q(z) || N(0, I))
+    L_sem   = probe_loss(P(z, queries), privileged/public labels at t)       (cfg.weight; 0 => latent_nosem)
+    L       = L_real + cfg.weight * L_sem + beta * KL(q(z) || N(0, I))       (cfg.weight/cfg.lv_min: docs/relations.md
+              10 R2, LatentConfig.factors -- probe.arm.* readout weight / params.lv_min, resolved through the
+              registry; see nets/semantic_latent.py)
 state_{t+j} comes from the stored rollout at t+j, INCLUDING DART execution-noise (off-nominal) episodes; labels
 a*_{t+j} are the teacher's corrective 1-step commands. For latent_nosem a separate probe is afterwards trained on
 the frozen (detached) z for MEASUREMENT only (`fit_probes_on_frozen`).
@@ -30,6 +32,7 @@ from rrp.policies.nets.checkpoint import save_checkpoint, load_checkpoint
 from rrp.harness.data.packed import PackedChunkDataset
 from rrp.policies.nets.batch import Batch
 from rrp.policies.nets.flow import FlowPolicy, PolicyConfig, interpolate_target, masked_mse
+from rrp.policies.nets.latent_batch import augment
 from rrp.policies.nets.latent_probes import probe_loss, probe_metrics
 from rrp.policies.nets.probes import ReadoutProbe
 from rrp.policies.nets.semantic_latent import LatentConfig, TargetEncoder, assembly_tokens
@@ -87,14 +90,14 @@ def _prefetch(data, B, rng, max_j, dev, depth: int = 6, workers: int = 3, idx_po
 
 
 def representation_step(E, R, P, data_b, cfg: LatentConfig, train=True):
-    """With cfg.binding_cf > 0 (training only) a fraction of the batch is appended as counterfactual-binding copies
-    (model/binding_aug.py): same trajectory, body and scene tokens, task roles rebound to another slot, `focus`
-    labels follow the binding. Realizer loss uses FACTUAL rows only; probe and KL terms use all rows."""
+    """With cfg.cf_mix > 0 (training only) a fraction of the batch is appended as counterfactual-binding copies
+    (nets/latent_batch.py, ported onto R9's cf_swap): same trajectory, body and scene tokens, task roles rebound to
+    another slot, `focus` labels follow the binding. Realizer loss uses FACTUAL rows only; probe and KL terms use
+    all rows."""
     batch, a, v, lab, r, j = data_b
     nf, cf = batch.B, None
-    if train and cfg.binding_cf > 0:
-        from rrp.policies.nets.binding_aug import augment
-        batch, a, v, lab, nf, cf = augment(batch, a, v, lab, cfg.binding_cf)
+    if train and cfg.cf_mix > 0:
+        batch, a, v, lab, nf, cf = augment(batch, a, v, lab, cfg.cf_mix)
     af, am, ai = assembly_tokens(batch)
     mu, logvar = E(batch, a, v, af, am, ai)
     z = mu + torch.randn_like(mu) * (0.5 * logvar).exp() if train else mu
@@ -107,14 +110,14 @@ def representation_step(E, R, P, data_b, cfg: LatentConfig, train=True):
     kl = (0.5 * (mu ** 2 + logvar.exp() - 1 - logvar) * mm).sum() / mm.sum().clamp(min=1)
     smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
     out = P(z, am, batch.bank_tokens["scene"].shape[1])
-    l_sem, logs = probe_loss(out, lab, smask, lv_min=cfg.probe_lv_min)
-    loss = l_real + cfg.semantic_weight * l_sem + cfg.beta_kl * kl
+    l_sem, logs = probe_loss(out, lab, smask, lv_min=cfg.lv_min)
+    loss = l_real + cfg.weight * l_sem + cfg.beta_kl * kl
     if cf is not None:
         d = (mu[:nf][cf["pick"]] - mu[nf:]).flatten(1).norm(dim=1) / mu[:nf][cf["pick"]].flatten(1).norm(dim=1).clamp(min=1e-3)
         logs.update(cf_rel_dist=float(d.mean().detach()), n_cf=int(len(cf["pick"])))
-        if cfg.binding_contrast > 0:
+        if cfg.cf_contrast > 0:
             l_con = F.relu(0.25 - d).mean()
-            loss = loss + cfg.binding_contrast * l_con
+            loss = loss + cfg.cf_contrast * l_con
             logs.update(contrast=float(l_con.detach()))
     logs.update(real=float(l_real.detach()), kl=float(kl.detach()), sem=float(l_sem.detach()))
     return loss, logs, (z[:nf], am[:nf], {k: x[:nf] for k, x in out.items()}, {k: x[:nf] for k, x in lab.items()},
@@ -122,11 +125,10 @@ def representation_step(E, R, P, data_b, cfg: LatentConfig, train=True):
 
 
 @torch.no_grad()
-def binding_cf_metrics(E, P, batch, a, v, lab, gen=None) -> dict:
+def cf_swap_metrics(E, P, batch, a, v, lab, gen=None) -> dict:
     """Counterfactual-binding response of the encoded packet (raw sums): relative z change, probe metrics on the
     counterfactual rows against binding-following labels, and `focus_follows` = the probe's focus flips from the
     rebound-away slot to the newly bound slot (among swaps that change the focus label)."""
-    from rrp.policies.nets.binding_aug import augment
     b2, a2, v2, l2, nf, info = augment(batch, a, v, lab, 1.0, gen)
     if info is None:
         return {}
@@ -268,7 +270,7 @@ def evaluate_representation(E, R, P, data, cfg, dev, n_batches=30, seed=99) -> d
         zs = z[torch.randperm(z.shape[0], device=dev)]
         for k, (x, n) in probe_metrics(P(zs, am, smask.shape[1]), lab2, smask).items():
             s_, n_ = agg_sh.get(k, (0, 0)); agg_sh[k] = (s_ + x, n_ + n)
-        for k, (x, n) in binding_cf_metrics(E, P, batch, a, v, lab, gcf).items():
+        for k, (x, n) in cf_swap_metrics(E, P, batch, a, v, lab, gcf).items():
             s_, n_ = agg_cf.get(k, (0, 0)); agg_cf[k] = (s_ + x, n_ + n)
     E.train(); R.train(); P.train()
     f = lambda d: {k: (x / n if n else None) for k, (x, n) in d.items()}
@@ -293,6 +295,11 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
     opt = torch.optim.AdamW(model.parameters(), lr=cfg_json.get("lr", 3e-4), weight_decay=1e-4)
     steps = cfg_json["steps"]
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=cfg_json.get("lr", 3e-4), total_steps=steps, pct_start=0.05)
+    # `packet_semantic_weight` (top-level, Stage-B-only knob; distinct from LatentConfig.weight) keeps its pre-R2
+    # name: it has no `probe.arm.*`-style registry entry (Stage B trains a FROZEN probe on z_hat, not the
+    # representation probes) and the same key is read by `policies.bundles` / `harness.train.legged_latent_train`
+    # (other fanout units' owned files; docs/relations.md 10 brief covers moving it but this unit does not touch
+    # files it does not own to do so -- see research/tracks/rel-r2.md).
     w_sem = cfg_json.get("packet_semantic_weight", 0.0)
     out_dir.mkdir(parents=True, exist_ok=True)
     B = cfg_json.get("batch_size", 128)
@@ -348,7 +355,7 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
             ab = assembly_batch(batch)
             smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
             S = batch.bank_tokens["scene"].shape[1]
-            pl_fn = (lambda zc: probe_loss(P(zc, am, S), lab, smask, lv_min=lcfg.probe_lv_min)) if w_sem > 0 else None
+            pl_fn = (lambda zc: probe_loss(P(zc, am, S), lab, smask, lv_min=lcfg.lv_min)) if w_sem > 0 else None
             valid = am[:, None, :].expand(-1, lcfg.knots, -1)
             loss, logs = model.loss(ab, z_target, valid, None, generator=gen, packet_loss_fn=pl_fn, packet_weight=w_sem,
                                     packet_tau_min=cfg_json.get("packet_tau_min", 0.0))
@@ -439,7 +446,10 @@ def fit_probes_on_frozen(rep_path: Path, packed_dir: Path, out_path: Path, steps
                          metadata_only: bool = False, binding_cf: float = 0.0) -> dict:
     """MEASUREMENT probe: a fresh ReadoutProbe (preset `probes:arm-packet-v1`) trained on DETACHED z from the frozen
     encoder (identical procedure for latent_sem and latent_nosem). metadata_only=True trains the no-latent control
-    probe."""
+    probe. `binding_cf` keeps its pre-R2 name: it is a plain CLI/pipeline-option float (`cli/latent.py`,
+    `harness/pipelines/arm.py`, both owned by other fanout units), not `LatentConfig.cf_mix`; renaming this
+    parameter would break those out-of-scope call sites (docs/relations.md 10: "edit only the files your row
+    owns")."""
     dev = _dev()
     lcfg, E, R, _, rep_res = load_representation(rep_path, dev)
     rep_cfg = load_checkpoint(rep_path, map_location="cpu")["config"]
@@ -456,7 +466,6 @@ def fit_probes_on_frozen(rep_path: Path, packed_dir: Path, out_path: Path, steps
         sel, tgt, j = data.sample(128, rng, 0)
         batch, a, v, lab, r = data.fetch(sel, tgt, dev)
         if binding_cf > 0:        # probe also sees counterfactual-binding packets (labels follow the binding)
-            from rrp.policies.nets.binding_aug import augment
             batch, a, v, lab, _, _ = augment(batch, a, v, lab, binding_cf, gcf)
         with torch.no_grad():
             af, am, ai = assembly_tokens(batch)
@@ -481,7 +490,7 @@ def fit_probes_on_frozen(rep_path: Path, packed_dir: Path, out_path: Path, steps
             for d_, z in ((agg, mu), (sh, mu[torch.randperm(mu.shape[0], device=dev)])):
                 for k, (x, n) in probe_metrics(P(z, am, smask.shape[1]), lab, smask).items():
                     s_, n_ = d_.get(k, (0, 0)); d_[k] = (s_ + x, n_ + n)
-            for k, (x, n) in binding_cf_metrics(E, P, batch, a, v, lab, gcf2).items():
+            for k, (x, n) in cf_swap_metrics(E, P, batch, a, v, lab, gcf2).items():
                 s_, n_ = cfm.get(k, (0, 0)); cfm[k] = (s_ + x, n_ + n)
     f = lambda d: {k: (x / n if n else None) for k, (x, n) in d.items()}
     res = dict(steps=steps, wall_s=time.time() - t0, metadata_only=metadata_only, binding_cf=binding_cf,
@@ -527,7 +536,7 @@ def sft_latent_flow(flow_ckpt: Path, target_packed_dir: Path, budget: int, *, se
         ab = assembly_batch(batch)
         smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
         S = smask.shape[1]
-        fn = (lambda zc: probe_loss(P(zc, am, S), lab, smask, lv_min=lcfg.probe_lv_min)) if w_sem > 0 else None
+        fn = (lambda zc: probe_loss(P(zc, am, S), lab, smask, lv_min=lcfg.lv_min)) if w_sem > 0 else None
         loss, _ = model.loss(ab, zt, am[:, None, :].expand(-1, lcfg.knots, -1), None, packet_loss_fn=fn,
                              packet_weight=w_sem)
         opt.zero_grad()

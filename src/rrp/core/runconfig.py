@@ -316,16 +316,41 @@ class RunConfig(Strict):
         return cls.model_validate(d)
 
 
+def _factors_probe_weight_lv(factors) -> tuple[float | None, float | None]:
+    """D-144 R2: `LatentConfig.factors`-style `params.latent.factors` (list of `probe.arm.*` FactorSpec-shaped
+    dicts / names) reduced to the equivalent (weight, lv_min) pair `_check_variant`'s old-style branch already
+    understands. Deliberately NOT `rrp.policies.relations.base.resolve` (a stdlib-only, no-validation reduction: this
+    module stays "stdlib + pydantic only" per its own module docstring -- `relations.ops` imports torch)."""
+    ws, lvs = set(), set()
+    for it in factors or ():
+        if isinstance(it, str):
+            name, weight, params = it, None, {}
+        elif isinstance(it, dict):
+            name, weight, params = it.get("name", ""), it.get("weight"), it.get("params") or {}
+        else:
+            continue
+        if isinstance(name, str) and name.startswith("probe.arm."):
+            ws.add(1.0 if weight is None else weight)
+            lvs.add(params.get("lv_min", -8.0))
+    if not ws:
+        return None, None
+    return (ws.pop() if len(ws) == 1 else sorted(ws)[-1]), (lvs.pop() if len(lvs) == 1 else sorted(lvs)[-1])
+
+
 def _check_variant(rc: RunConfig) -> None:
     """New configs: the variant label must match the recipe it names (catches mislabelled lineages)."""
     if rc.variant == "na" or rc.stage not in ("train_rep", "train_flow", "flow_ft"):
         return
     p = rc.params
     if rc.stage == "train_rep":
-        w = (p.get("latent") or {}).get("semantic_weight")
+        lat = p.get("latent") or {}
+        if "factors" in lat:
+            w, lv = _factors_probe_weight_lv(lat["factors"])
+        else:
+            w, lv = lat.get("semantic_weight"), rc.flags.probe_lv_min
         if w is None:
-            raise RunConfigError("train_rep: params.latent.semantic_weight must be explicit")
-        lv = rc.flags.probe_lv_min
+            raise RunConfigError("train_rep: params.latent.semantic_weight (or a probe.arm.* weight in "
+                                 "params.latent.factors) must be explicit")
         ok = {"nosem": w == 0, "sem": w > 0 and lv is not None and lv <= -8.0,
               "semfix": w > 0 and lv is not None and lv > -8.0}[rc.variant]
     else:

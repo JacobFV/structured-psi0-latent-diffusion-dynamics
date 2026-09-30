@@ -89,7 +89,7 @@ def joint_adapt(flow_ckpt: Path, rep_path: Path, packed_dir: Path, budget: int, 
     def flow_loss(batch, ab, am, zt, lab):
         smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
         S = smask.shape[1]
-        fn = (lambda zc: probe_loss(P(zc, am, S), lab, smask, lv_min=lcfg.probe_lv_min)) if w_sem > 0 else None
+        fn = (lambda zc: probe_loss(P(zc, am, S), lab, smask, lv_min=lcfg.lv_min)) if w_sem > 0 else None
         loss, _ = flow.loss(ab, zt, am[:, None, :].expand(-1, lcfg.knots, -1), None, packet_loss_fn=fn,
                             packet_weight=w_sem)
         return loss

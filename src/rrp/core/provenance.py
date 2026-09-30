@@ -366,7 +366,7 @@ class Provenance(Strict):
     weights: dict[str, str] = Field(default_factory=dict)  # component -> weights_digest; {} for data / legacy
     bundle_fingerprint: str | None = None                   # digest over `weights` (None when there are no weights)
     versions: dict[str, str] = Field(default_factory=dict)  # e.g. latent_space_version, realizer_compat_version
-    flags: dict[str, Any] = Field(default_factory=dict)     # zero_prev_action, realizer_drop_qd, probe_lv_min, ...
+    flags: dict[str, Any] = Field(default_factory=dict)     # zero_prev_action, realizer_drop_qd, latent lv_min, ...
     legacy: bool = False                                    # reconstructed for a run written before provenance-1
     created_at: float | None = None
     notes: str = ""
@@ -442,7 +442,16 @@ def read_provenance(meta: dict | None) -> Provenance:
 
 
 TRAINING_FLAG_KEYS = ("zero_prev_action", "realizer_drop_qd", "realizer_anchor", "realizer_qd_dropout", "probe_lv_min",
-                      "semantic_weight", "packet_semantic_weight", "qd_dropout", "binding_cf_weight", "init")
+                      "semantic_weight", "packet_semantic_weight", "qd_dropout", "cf_mix", "init")
+# NOTE (D-144 R2): `probe_lv_min` / `semantic_weight` / `packet_semantic_weight` are kept here, byte-identical to
+# pre-R2, although this unit's brief retires them as LatentConfig's own primary surface (see nets/semantic_latent.py
+# LatentConfig.factors). This function reads ANY config dict generically by key presence -- it is also how
+# `harness.train.legged_latent_train` / legged checkpoints get fingerprinted (`test_provenance.py::
+# test_legged_checkpoints_fingerprinted_and_legacy` asserts `flags["probe_lv_min"]` for a legged checkpoint), and
+# legged's own config files are not migrated by this unit (out of R2's owned files: legged is fanout unit R4).
+# Dropping these keys would silently stop recording them for every still-legacy-style (arm OR legged) config. Only
+# `binding_cf_weight` (renamed `cf_mix`) is retired outright: dead here otherwise (grep confirms no config ever set
+# it), so nothing depends on the old name.
 
 
 def training_flags(config: dict | None) -> dict:

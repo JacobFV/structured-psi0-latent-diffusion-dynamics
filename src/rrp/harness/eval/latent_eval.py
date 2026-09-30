@@ -28,7 +28,7 @@ def packet_labels(session, pi, M=1, S=None):
 
 def _goal(pi):
     from rrp.policies.nets.batch import collate_inputs
-    from rrp.policies.nets.binding_aug import goal_effect_from_batch
+    from rrp.policies.nets.latent_batch import goal_effect_from_batch
     return goal_effect_from_batch(collate_inputs([pi]))
 
 

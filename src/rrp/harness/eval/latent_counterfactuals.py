@@ -36,10 +36,10 @@ def counterexample(E, P, ds_dir, robot="panda_pg2", n=20, dev="cpu", seed=0, per
     only relations whose KEY was slot 0, leaving slot 0's own patient_of / pred_arg edges (query side) in place, so
     the edited graph bound the patient to BOTH slots; (2) its only readout was the focus argmax of a probe that had
     never seen a focused slot >= 2 (in the training data the patient is always canonical slot 0), so it could not
-    flip even for a binding-aware z. Here the edit is the symmetric slot-edge swap of model/binding_aug.rebind, the
+    flip even for a binding-aware z. Here the edit is the symmetric slot-edge swap of `nets.latent_batch.rebind` (D-144 R2: moved from model/binding_aug), the
     expected label is recomputed from the edited relations with the public focus rule, and the headline metric is
     `focus_follows`: probe focus is ON for the newly bound slot and OFF for the old one."""
-    from rrp.policies.nets.binding_aug import focus_from_batch, rebind, slot_has_edges
+    from rrp.policies.nets.latent_batch import focus_from_batch, rebind, slot_has_edges
     rng = np.random.default_rng(seed)
     eps = load_episodes(ds_dir, robots={robot}, limit_per_robot=n)
     rows = []
@@ -83,7 +83,7 @@ def counterexample(E, P, ds_dir, robot="panda_pg2", n=20, dev="cpu", seed=0, per
 
 
 def _encode_batch(E, batches, a, dev):
-    from rrp.policies.nets.binding_aug import cat_batch
+    from rrp.policies.nets.latent_batch import cat_batch
     b = batches[0]
     for x in batches[1:]:
         b = cat_batch(b, x)

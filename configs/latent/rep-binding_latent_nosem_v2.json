@@ -28,8 +28,41 @@
  "out_dir": "artifacts/runs/binding_latent_nosem_v2",
  "latent": {
   "name": "binding_latent_nosem_v2",
-  "semantic_weight": 0.0,
-  "binding_cf": 0.5
+  "factors": [
+   {
+    "name": "probe.arm.visible",
+    "weight": 0.0
+   },
+   {
+    "name": "probe.arm.looking_at",
+    "weight": 0.0
+   },
+   {
+    "name": "probe.arm.focused_on",
+    "weight": 0.0
+   },
+   {
+    "name": "probe.arm.held_by",
+    "weight": 0.0
+   },
+   {
+    "name": "probe.arm.acting_on",
+    "weight": 0.0
+   },
+   {
+    "name": "probe.arm.rel_pos",
+    "weight": 0.0
+   },
+   {
+    "name": "probe.arm.observed_effect",
+    "weight": 0.0
+   },
+   {
+    "name": "probe.arm.subtask",
+    "weight": 0.0
+   }
+  ],
+  "cf_mix": 0.5
  },
  "notes": "v1 + counterfactual-binding augmentation (track binding): 50% of each batch appended with task roles rebound to another slot; focus labels follow the binding; realizer loss on factual rows only. sem/nosem differ only in semantic_weight."
 }
