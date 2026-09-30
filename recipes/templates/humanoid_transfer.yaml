@@ -19,8 +19,8 @@
 # methods of a (level, body, budget) group carry ONE acquisition record; a method whose run does not exist is `pending` when it declares the
 # stage that produces it (`producer`) and `missing_run` otherwise. Level-1 PPO (`adapt_ppo`, h_steps / h_gap only) is declared by the instance.
 # Relational factors (D-144 / D-146): `vars.rel_preset` (default `legged` = the nine legged-rel-v1 edges + leg.foothold + leg.com_support) is listed in
-# the `latent.factors` of rep and in the BC `model.factors`; `legged-none` (registered preset, no relational factor, the pre-relations nets) is the control arm:
-# an instance that sets `vars.rel_preset: legged-none` (and its own out tag) is the control; none is committed.
+# the `latent.factors` of rep and in the BC `model.factors`; `legged-none` (no relational factor, the pre-relations nets) is the control arm
+# (the `transfer_<task>_legged_none.yaml` instances).
 # NOT in this DAG: system-0 refit and joint flow + system-0 from a demo pack WITH DAgger buffers (the adapt nodes train on the nested first-N
 # pack only; DAgger rounds need the warm-start trainers to read rollout buffers).
 # The pooled results: `rrp eval humanoid-transfer --config <transfer_config.json> --tables-only` (merges every point's results_glob).

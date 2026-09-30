@@ -588,7 +588,7 @@ trackers (existing controllers, Level 1); the `eval_ref` / `sealed_ref` cells ar
   plus a gate on every source body, installs `shared: morph_v2_ub`).
   `rrp train tracker-install RUN --validation V --body B --version X --label L` is not a DAG stage: each recipe records it as the `tracker-install` command
   in `lists.installs` (the driver's producer name). The install needs a passed gate first.
-- Transfer recipes (`recipes/templates/humanoid_transfer.yaml`): one per registered humanoid task: h_walk, h_turn, h_reach, h_squat_pick, h_place, h_carry,
+- Transfer recipes (`recipes/templates/humanoid_transfer.yaml`; h_steps / h_gap through `humanoid_transfer_{steps,gap}.yaml`, the held-out ones through `humanoid_transfer_heldout.yaml`, instances stay <= 80 lines): one per registered humanoid task: h_walk, h_turn, h_reach, h_squat_pick, h_place, h_carry,
   h_loco_pick, h_steps, h_gap, plus the EVAL-ONLY held-out h_steps_carry and h_gap_cart (zero-shot cells on the h_carry checkpoints, no collect / pack / train /
   adapt nodes; their Level-2 cells report `missing_run` until the h_carry runs exist). Adapting nodes: `adapt_{refit,flow,bc}_<slot>_n{5,20,100}` (steps
   150 / 300 / 600), sealed slots on `pack_sealed`; `adapt_ppo` (h_steps / h_gap, Level 1): `ppo_{ft|scratch}_<body>_n{1000000|10000000}`, nworld 1000 x horizon 25

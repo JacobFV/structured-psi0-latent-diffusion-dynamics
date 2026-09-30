@@ -190,7 +190,7 @@ def test_ppo_nodes_are_accepted_by_the_stage_plan(task):
 def test_gap_ppo_recipes_are_the_registry_recipes_without_a_warm_start():
     from rrp.harness.train.tracker_recipes import WARP_RECIPES
     for name, reg in (("gap_t1", "t1_gap_gpu_v1"), ("gap_h1", "h1_gap_gpu_v1")):
-        got = json.loads((HUM / f"ppo/{name}.json").read_text())
+        got = json.loads((HUM.parent / "presets" / f"tracker-{name}.json").read_text())
         want = {k: v for k, v in WARP_RECIPES[reg].items() if k != "init_shared"}
         assert {k: v for k, v in got.items() if not k.startswith("_")} == {k: v for k, v in want.items() if not k.startswith("_")}
         assert "init_shared" not in got

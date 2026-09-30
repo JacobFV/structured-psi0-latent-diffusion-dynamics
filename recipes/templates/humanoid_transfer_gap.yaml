@@ -1,0 +1,318 @@
+# TEMPLATE (D-146 R2 HR): the gap variant of recipes/templates/humanoid_transfer.yaml; instance recipes/humanoid/transfer_<task>.yaml.
+# Dev bodies [t1, h1], sealed [n1, berkeley, toddlerbot_2xc]. Tracker of every collect and of the teacher reference: the installed `gap_ring_v1` of the body (recipes/humanoid/trackers_gap_ring.yaml; install with `rrp train tracker-install`).
+# Level 1 (existing controllers: shared morphology tracker and the task expert zero-shot, PPO fine-tune from the shared tracker vs scratch at 1e6 / 1e7 env samples,
+# nworld 1000 x horizon 25) is reported apart from Level 2. A PPO node of a sealed body trains on the adaptation seed 1000000 only.
+# SOURCES are labelled per method in the config: teacher = scripted_teacher, latent = learned, bc = bc, PPO = learned; a teacher reference is never a learned result.
+extends: humanoid_transfer.yaml
+name: humanoid_transfer_h_gap
+schema: dag-1
+track: humanoid
+policy: latent
+env: mujoco/legged
+task: h_gap
+bodies: humanoid_pool_v1
+factors: []
+vars: {task: h_gap, upper: false, dev1: h1}
+lists:
+  dev_bodies: [t1, h1]
+  sealed_bodies: [n1, berkeley, toddlerbot_2xc]
+  trackers: {t1: 't1:gap_ring_v1', h1: 'h1:gap_ring_v1'}
+  transfer:
+    name: humanoid_transfer_h_gap
+    task: h_gap
+    latent_kw: {upper: false}
+    bodies: {dev: [t1, h1], sealed: [n1, berkeley, toddlerbot_2xc]}
+    levels:
+      '1': {unit: samples, budgets: [1000000, 10000000], reference: ppo_scratch}
+    methods:
+      reference:
+        - name: teacher
+          level: 0
+          kind: teacher
+          source: scripted_teacher
+          policy: 'teacher:<task>'
+          env_kw: {tracker: '<body>:gap_ring_v1'}
+      level1:
+        - name: shared_morph_zeroshot
+          level: 1
+          kind: expert
+          source: learned
+          producer: tracker-install
+          tracker: 'shared:morph_v2_ub'
+        - name: task_expert_zeroshot
+          level: 1
+          kind: expert
+          source: learned
+          producer: tracker-install
+          tracker: '<body>:gap_ring_v1'
+        - name: ppo_finetune
+          level: 1
+          kind: expert
+          source: learned
+          budgeted: true
+          producer: adapt_ppo
+          tracker: 'artifacts/runs/humanoid/humanoid-transfer-h_gap/adapt_ppo-ft-<body>-n<budget>_s0/actor.pt'
+          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-h_gap/adapt_ppo-ft-<body>-n<budget>_s0/acquisition.json'
+        - name: ppo_scratch
+          level: 1
+          kind: expert
+          source: learned
+          budgeted: true
+          producer: adapt_ppo
+          tracker: 'artifacts/runs/humanoid/humanoid-transfer-h_gap/adapt_ppo-scratch-<body>-n<budget>_s0/actor.pt'
+          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-h_gap/adapt_ppo-scratch-<body>-n<budget>_s0/acquisition.json'
+nodes:
+  adapt_refit_d2_n5: null
+  adapt_refit_d2_n20: null
+  adapt_refit_d2_n100: null
+  adapt_flow_d2_n5: null
+  adapt_flow_d2_n20: null
+  adapt_flow_d2_n100: null
+  adapt_bc_d2_n5: null
+  adapt_bc_d2_n20: null
+  adapt_bc_d2_n100: null
+  eval:
+    per:
+      system:
+        semfix:
+          inputs: {ar_d2_n5: null, af_d2_n5: null, ar_d2_n20: null, af_d2_n20: null, ar_d2_n100: null, af_d2_n100: null}
+        nosem:
+          inputs: {ar_d2_n5: null, af_d2_n5: null, ar_d2_n20: null, af_d2_n20: null, ar_d2_n100: null, af_d2_n100: null}
+        bc:
+          inputs: {ab_d2_n5: null, ab_d2_n20: null, ab_d2_n100: null}
+  ppo_ft_t1_n1000000:
+    stage: adapt_ppo
+    tag: 'ft-t1-n1000000'
+    scope: global
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    config:
+      inputs: {init: 'artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt'}
+      options:
+        adapt: {task: h_gap, body: t1, budget: 1000000, mode: finetune}
+        recipe: recipes/presets/tracker-gap_t1.json
+        args: {nworld: 1000, horizon: 25}
+  ppo_scratch_t1_n1000000:
+    stage: adapt_ppo
+    tag: 'scratch-t1-n1000000'
+    scope: global
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    config:
+      options:
+        adapt: {task: h_gap, body: t1, budget: 1000000, mode: scratch}
+        recipe: recipes/presets/tracker-gap_t1.json
+        args: {nworld: 1000, horizon: 25}
+  ppo_ft_t1_n10000000:
+    stage: adapt_ppo
+    tag: 'ft-t1-n10000000'
+    scope: global
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    config:
+      inputs: {init: 'artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt'}
+      options:
+        adapt: {task: h_gap, body: t1, budget: 10000000, mode: finetune}
+        recipe: recipes/presets/tracker-gap_t1.json
+        args: {nworld: 1000, horizon: 25}
+  ppo_scratch_t1_n10000000:
+    stage: adapt_ppo
+    tag: 'scratch-t1-n10000000'
+    scope: global
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    config:
+      options:
+        adapt: {task: h_gap, body: t1, budget: 10000000, mode: scratch}
+        recipe: recipes/presets/tracker-gap_t1.json
+        args: {nworld: 1000, horizon: 25}
+  ppo_ft_h1_n1000000:
+    stage: adapt_ppo
+    tag: 'ft-h1-n1000000'
+    scope: global
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    config:
+      inputs: {init: 'artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt'}
+      options:
+        adapt: {task: h_gap, body: h1, budget: 1000000, mode: finetune}
+        recipe: recipes/presets/tracker-gap_h1.json
+        args: {nworld: 1000, horizon: 25}
+  ppo_scratch_h1_n1000000:
+    stage: adapt_ppo
+    tag: 'scratch-h1-n1000000'
+    scope: global
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    config:
+      options:
+        adapt: {task: h_gap, body: h1, budget: 1000000, mode: scratch}
+        recipe: recipes/presets/tracker-gap_h1.json
+        args: {nworld: 1000, horizon: 25}
+  ppo_ft_h1_n10000000:
+    stage: adapt_ppo
+    tag: 'ft-h1-n10000000'
+    scope: global
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    config:
+      inputs: {init: 'artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt'}
+      options:
+        adapt: {task: h_gap, body: h1, budget: 10000000, mode: finetune}
+        recipe: recipes/presets/tracker-gap_h1.json
+        args: {nworld: 1000, horizon: 25}
+  ppo_scratch_h1_n10000000:
+    stage: adapt_ppo
+    tag: 'scratch-h1-n10000000'
+    scope: global
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    config:
+      options:
+        adapt: {task: h_gap, body: h1, budget: 10000000, mode: scratch}
+        recipe: recipes/presets/tracker-gap_h1.json
+        args: {nworld: 1000, horizon: 25}
+  ppo_ft_n1_n1000000:
+    stage: adapt_ppo
+    tag: 'ft-n1-n1000000'
+    scope: global
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    config:
+      inputs: {init: 'artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt'}
+      options:
+        adapt: {task: h_gap, body: n1, budget: 1000000, mode: finetune}
+        recipe: recipes/presets/tracker-gap_t1.json
+        args: {nworld: 1000, horizon: 25, seed: 1000000}
+  ppo_scratch_n1_n1000000:
+    stage: adapt_ppo
+    tag: 'scratch-n1-n1000000'
+    scope: global
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    config:
+      options:
+        adapt: {task: h_gap, body: n1, budget: 1000000, mode: scratch}
+        recipe: recipes/presets/tracker-gap_t1.json
+        args: {nworld: 1000, horizon: 25, seed: 1000000}
+  ppo_ft_n1_n10000000:
+    stage: adapt_ppo
+    tag: 'ft-n1-n10000000'
+    scope: global
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    config:
+      inputs: {init: 'artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt'}
+      options:
+        adapt: {task: h_gap, body: n1, budget: 10000000, mode: finetune}
+        recipe: recipes/presets/tracker-gap_t1.json
+        args: {nworld: 1000, horizon: 25, seed: 1000000}
+  ppo_scratch_n1_n10000000:
+    stage: adapt_ppo
+    tag: 'scratch-n1-n10000000'
+    scope: global
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    config:
+      options:
+        adapt: {task: h_gap, body: n1, budget: 10000000, mode: scratch}
+        recipe: recipes/presets/tracker-gap_t1.json
+        args: {nworld: 1000, horizon: 25, seed: 1000000}
+  ppo_ft_berkeley_n1000000:
+    stage: adapt_ppo
+    tag: 'ft-berkeley-n1000000'
+    scope: global
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    config:
+      inputs: {init: 'artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt'}
+      options:
+        adapt: {task: h_gap, body: berkeley, budget: 1000000, mode: finetune}
+        recipe: recipes/presets/tracker-gap_t1.json
+        args: {nworld: 1000, horizon: 25, seed: 1000000}
+  ppo_scratch_berkeley_n1000000:
+    stage: adapt_ppo
+    tag: 'scratch-berkeley-n1000000'
+    scope: global
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    config:
+      options:
+        adapt: {task: h_gap, body: berkeley, budget: 1000000, mode: scratch}
+        recipe: recipes/presets/tracker-gap_t1.json
+        args: {nworld: 1000, horizon: 25, seed: 1000000}
+  ppo_ft_berkeley_n10000000:
+    stage: adapt_ppo
+    tag: 'ft-berkeley-n10000000'
+    scope: global
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    config:
+      inputs: {init: 'artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt'}
+      options:
+        adapt: {task: h_gap, body: berkeley, budget: 10000000, mode: finetune}
+        recipe: recipes/presets/tracker-gap_t1.json
+        args: {nworld: 1000, horizon: 25, seed: 1000000}
+  ppo_scratch_berkeley_n10000000:
+    stage: adapt_ppo
+    tag: 'scratch-berkeley-n10000000'
+    scope: global
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    config:
+      options:
+        adapt: {task: h_gap, body: berkeley, budget: 10000000, mode: scratch}
+        recipe: recipes/presets/tracker-gap_t1.json
+        args: {nworld: 1000, horizon: 25, seed: 1000000}
+  ppo_ft_toddlerbot_2xc_n1000000:
+    stage: adapt_ppo
+    tag: 'ft-toddlerbot_2xc-n1000000'
+    scope: global
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    config:
+      inputs: {init: 'artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt'}
+      options:
+        adapt: {task: h_gap, body: toddlerbot_2xc, budget: 1000000, mode: finetune}
+        recipe: recipes/presets/tracker-gap_t1.json
+        args: {nworld: 1000, horizon: 25, seed: 1000000}
+  ppo_scratch_toddlerbot_2xc_n1000000:
+    stage: adapt_ppo
+    tag: 'scratch-toddlerbot_2xc-n1000000'
+    scope: global
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    config:
+      options:
+        adapt: {task: h_gap, body: toddlerbot_2xc, budget: 1000000, mode: scratch}
+        recipe: recipes/presets/tracker-gap_t1.json
+        args: {nworld: 1000, horizon: 25, seed: 1000000}
+  ppo_ft_toddlerbot_2xc_n10000000:
+    stage: adapt_ppo
+    tag: 'ft-toddlerbot_2xc-n10000000'
+    scope: global
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    config:
+      inputs: {init: 'artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt'}
+      options:
+        adapt: {task: h_gap, body: toddlerbot_2xc, budget: 10000000, mode: finetune}
+        recipe: recipes/presets/tracker-gap_t1.json
+        args: {nworld: 1000, horizon: 25, seed: 1000000}
+  ppo_scratch_toddlerbot_2xc_n10000000:
+    stage: adapt_ppo
+    tag: 'scratch-toddlerbot_2xc-n10000000'
+    scope: global
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    config:
+      options:
+        adapt: {task: h_gap, body: toddlerbot_2xc, budget: 10000000, mode: scratch}
+        recipe: recipes/presets/tracker-gap_t1.json
+        args: {nworld: 1000, horizon: 25, seed: 1000000}
+  eval_ref:
+    config:
+      inputs:
+        ppo_ft_t1_n1000000: '@ppo_ft_t1_n1000000:actor.pt'
+        ppo_scratch_t1_n1000000: '@ppo_scratch_t1_n1000000:actor.pt'
+        ppo_ft_t1_n10000000: '@ppo_ft_t1_n10000000:actor.pt'
+        ppo_scratch_t1_n10000000: '@ppo_scratch_t1_n10000000:actor.pt'
+        ppo_ft_h1_n1000000: '@ppo_ft_h1_n1000000:actor.pt'
+        ppo_scratch_h1_n1000000: '@ppo_scratch_h1_n1000000:actor.pt'
+        ppo_ft_h1_n10000000: '@ppo_ft_h1_n10000000:actor.pt'
+        ppo_scratch_h1_n10000000: '@ppo_scratch_h1_n10000000:actor.pt'
+  sealed_ref:
+    config:
+      inputs:
+        ppo_ft_n1_n1000000: '@ppo_ft_n1_n1000000:actor.pt'
+        ppo_scratch_n1_n1000000: '@ppo_scratch_n1_n1000000:actor.pt'
+        ppo_ft_n1_n10000000: '@ppo_ft_n1_n10000000:actor.pt'
+        ppo_scratch_n1_n10000000: '@ppo_scratch_n1_n10000000:actor.pt'
+        ppo_ft_berkeley_n1000000: '@ppo_ft_berkeley_n1000000:actor.pt'
+        ppo_scratch_berkeley_n1000000: '@ppo_scratch_berkeley_n1000000:actor.pt'
+        ppo_ft_berkeley_n10000000: '@ppo_ft_berkeley_n10000000:actor.pt'
+        ppo_scratch_berkeley_n10000000: '@ppo_scratch_berkeley_n10000000:actor.pt'
+        ppo_ft_toddlerbot_2xc_n1000000: '@ppo_ft_toddlerbot_2xc_n1000000:actor.pt'
+        ppo_scratch_toddlerbot_2xc_n1000000: '@ppo_scratch_toddlerbot_2xc_n1000000:actor.pt'
+        ppo_ft_toddlerbot_2xc_n10000000: '@ppo_ft_toddlerbot_2xc_n10000000:actor.pt'
+        ppo_scratch_toddlerbot_2xc_n10000000: '@ppo_scratch_toddlerbot_2xc_n10000000:actor.pt'
