@@ -689,3 +689,50 @@ containment, material, tool→target, cause→effect: new scene parts + labels) 
   UI entries and labels (label_for, contains, focus_next, above, drag_to from the teacher), `cf_swap(label)`.
 - **R21.** Record `FactorSite.contributions` for chosen steps into viz records, export per-factor per-head logit maps,
   the factor provenance per run and competence-by-depth tables; room panels with unmistakable source badges.
+
+## 11. runtime contract (D-146; unit F1) and the legged vocabulary (unit HL)
+
+What every net family must provide before a factor list means anything at training time.
+
+```python
+# relations/base.py
+@dataclass(frozen=True)
+class FamilyTokens:                    # FAMILIES[family]: the static declaration a family's collate path honours
+    sets: dict[str, tuple[str, ...]]   # token set -> public/estimated fields it fills ("pos3d", "orient", "cam_uvd", ...)
+    sites: dict[str, tuple[str, ...]]  # site "q>k" -> carries ("edges:<vocab>", field names, "hidden")
+    labels: dict[str, tuple[str, ...]] # token set -> label names the TRAINING collate can attach (from relgen LABELS)
+def register_family(name, FamilyTokens); FAMILIES: arm, dual, legged, humanoid, psi0, pointer
+def resolve(specs, default=None, *, family=None, env_caps=None, training=False) -> tuple[FactorSpec, ...]
+    # with family: every non-off spec must apply to >= 1 site of the family (else FactorError listing the family's
+    # sites and carries); a `probe`-source spec needs a readout and a label the family can attach; with env_caps and
+    # training: LABELS[label].needs <= env_caps, and `mix > 0` needs a scene part for that env. No silent skips.
+def estimates_loss(rc, specs) -> (loss, logs, metrics)
+    # every estimate written during the forward gets a loss, weighted by FactorSpec.weight (default 1):
+    #   rc.estimates[("pair", f)]  logits [B,Q,K]  -> bce (soft_ce when the ReadoutDef says so) vs the pair label,
+    #                                                 masked by label validity and both token masks
+    #   rc.estimates[(set, field)] (mu, var) + logvar -> Gaussian NLL vs TokenSet.label(field), lv_min from params
+    # logs `probe_<factor>`; a probe-source factor with no label in the batch is masked (mix rows), never an error
+def stamp_versions(versions: dict, specs) -> dict      # versions["factors"] = compat_hash; every checkpoint writer
+def require_factors(saved_versions, specs, allow_mismatch=False)   # every checkpoint loader
+```
+
+- One token-set builder per family (`nets.batch.relation_token_sets(family, batch, labels=None, deploy=False)`),
+  used by the production forward (ContextEncoder and the act set), not only by tests; labels are attached only with
+  `labels=` on the training path and refused when `deploy=True`.
+- `harness.data.relgen.load_families()` imports every relgen family module (LABELS / PARTS / TRANSFORMS are never
+  empty at runtime); an unknown label or transform name raises.
+- Coverage: `rrp factors coverage` writes `artifacts/runs/relations/coverage/coverage.json` (factor × family × env:
+  resolves / label runnable / part available) and a unit test asserts it against the catalog.
+- The pipeline manifest copies `versions["factors"]` and the factor provenance (unit F3).
+
+**Legged / humanoid (unit HL).** Vocabulary `legged-rel-v1`, all public (morphology + the public terrain scan):
+`same_node`, `kin_parent`, `kin_child`, `same_assembly` (joints of one limb), `mirror` (left/right homologous limb),
+`node_in_assembly` (joint → limb token), `limb_adjacent` (limbs attached to the same trunk link), `foot_of` (limb →
+its foot sensor token), `over_cell` (foot token → the terrain cells under and ahead of it). Token sets: `ctx` =
+global + joint (`morph_node`) + limb (`assembly`) + foot (`sensor`) + terrain cell (`entity`, fields `pos3d` in the
+body frame with `.var` from the scan noise model); `act` = packet knot × assembly tokens; `knots` for system 0.
+Sites: `ctx>ctx` (Context encoder), `act>ctx` and `act>act` (the RelBlock cross / self attention of E and the
+flow), `act>knots` (realizer routing, existing). Default preset `legged-none` (no parameters: old checkpoints load
+and goldens hold); new lineages use `preset:legged` (= the nine edges + `leg.foothold` + `leg.com_support`).
+System 0 stays blind to terrain and task (D-029): only its routing site exists.
+

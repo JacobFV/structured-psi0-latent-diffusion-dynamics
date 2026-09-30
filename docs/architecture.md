@@ -534,3 +534,91 @@ Briefs:
   handoff rules into `AGENTS.md`; rewrite `README.md` / `STATUS.md` to the schema; finish `.old/README.md`; grep the
   tree for every removed top-level path and fix or delete the reference.
 
+## 14. pre-training contracts (D-146; plan and units: `research/readiness.md`)
+
+### 14.1 task / eval contract (unit F2)
+
+```python
+@dataclass(frozen=True)
+class TaskSpec:                        # rrp.tasks.spec (adds to section 4)
+    ...
+    build: Mapping[str, str] = {}      # env_id -> "module:builder" (scene builder owned by the task, no if/elif in factories)
+    scene: Callable[[int], dict] | None = None   # seed -> scene kwargs; None = the env takes no scene
+    hooks: tuple[str, ...] = ()        # default eval hooks by name (rrp.harness.eval.hooks.HOOKS)
+    teacher: str | None = None         # POLICIES key (factory owned by the policy registry; no tuples in teachers/__init__)
+    max_steps: int | None = None       # explicit tick budget (replaces the judge max_steps hack)
+    failure_reasons: tuple[str, ...] = ()   # the vocabulary the judge may emit
+class Env(Protocol): def failure_reason(self) -> str | None   # optional; env-side public failure code in its own vocabulary
+```
+
+- `make_env` passes `scene` only when the task declares one; a task with a scene on an env whose factory takes none
+  is a `negotiate` failure (reason text), never a TypeError. `evaluate()` / `rrp eval` take `--env-kw k=v` (level,
+  split, render profile) and contain no env-id or task-name string comparisons. `rollout` negotiates every env of a
+  group. One `DUAL_TASKS` definition.
+- Humanoid judge (unit HJ, `rrp.tasks.humanoid`): `fell`, `wall_collision`, `wrong_heading`, `trip`, `missed_step`,
+  `hold_lost`, `dropped`, `timeout` from `env.failure_reason()` + truth; tasks registered with `build`.
+
+### 14.2 pipeline / recipe contract (unit F3)
+
+- **Open stage registry**: `register_stage(family, stage, fn, *, flags=())` in `harness.pipelines.base`; `PIPELINE_STAGES`
+  is derived. Families: `arm`, `dual` (parked: collect / eval only), `legged`, `humanoid`, `psi0`, `pointer`,
+  `relations`. `relations_data` is a real stage usable as a node of any family's recipe.
+- **One channel to child processes**: the rendered `RunConfig`. `apply_run_context(cfg)` (called at stage entry in
+  parent and child) resolves `factors`, configures featurizer options from them (`feat.base_axes`; the
+  `$RRP_KINFEAT` environment variable is deleted) and sets the deploy flag. `StageContext.env()` carries only
+  resources.
+- **Trainer hook**: `relation_batches(cfg, out_dir)` (`harness.data.mix`) wraps `mixed_batches` + `Scheduler`, reads
+  `steer.jsonl`, appends `schedule.jsonl`; run-config keys `factors:` and `curriculum:`. Each trainer calls it once.
+- **Adoption** of a completed node requires equal `config_hash`, `versions["factors"]`, catalog version (hash of the
+  registry entries the specs use) and `PIPELINE_VERSION` (one constant, bumped when a stage changes meaning). The
+  ledger records git revision, tree hash and dirty flag (untracked files count as dirty) per attempt; a node completed
+  under another revision with equal versions is `stale`: adopted only with `--adopt-stale`, and reported.
+- **Manifest**: `pipeline_manifest.json` carries `provenance.versions.factors` + factor provenance; the room reads it.
+
+### 14.3 trackers, experts, terrain (unit HT)
+
+- `TRACKERS[(body, version)] -> TrackerEntry(sha256, obs_format, extra_obs, gate, decision, store)` loaded from
+  `artifacts/trackers/<body>/<version>/meta.json`; `make_env("mujoco/legged", ..., tracker="<body>:<version>")`;
+  no monkeypatching of `load_tracker`. One recipe registry, one `_TURN`.
+- **Terrain is a public sensor** (D-146): `terrain_scan` = egocentric elevation grid (11 × 7 cells, 0.1 m, body
+  frame, range 1.5 m) from a declared downward depth-sensor model with noise (σ 1 cm), 2 % dropout and one-tick
+  latency, computed identically in Warp and MuJoCo (`mj_ray`); capability `terrain_scan`; a
+  `declared_sensor_channels` entry. The actor and `rl_expert` consume it (`extra_obs_dim` = 77); the critic keeps
+  the exact scan (privileged). Test: Warp actor obs dim == MuJoCo adapter dim, same cell layout.
+- `rl_expert` Policy (`policies.teachers.humanoid`, key `rl_expert`): loads a registry actor, source
+  `learned:rl_expert:<sha>` when its obs are public, `privileged_teacher:rl_expert:<sha>` otherwise.
+
+### 14.4 humanoid family, sealed split, upper body (units H4, H5, H6, U1–U3)
+
+- Stages: `collect` (task registry + `rl_expert`; EVENTS / public context from the TaskSpec) → `pack` → `train_rep`
+  → `train_flow` → `eval_transfer` (bodies × methods × demo budgets × seeds; Level 1 reported apart from Level 2;
+  one acquisition accounting) → `sealed_eval`.
+- `rrp.core.sealed.SealedSplit` (hash-pinned `research/splits/humanoid_v1.json`): `assert_train_allowed(bodies,
+  seeds)` in every data / train stage; `sealed_eval` needs `--sealed`, appends to
+  `artifacts/runs/humanoid/sealed_log.jsonl` and refuses a repeat of a (method, body, task, seed set) cell.
+- **Upper body**: control mode `wholebody` = the `legs` group (unchanged: `control="legs"` stays bit-identical,
+  golden) + an `upper` joint_position group (arms, waist, head; 50 Hz PD) in both backends. Trackers for wholebody
+  are trained with random upper-body targets and payload (recipes `*_ub`); system 0 realizes `upper` from the packet
+  like arm joints. Teachers: scripted IK reach / grasp on the humanoid hands (public FK, labelled
+  `scripted_teacher`) composed with `rl_expert` legs. Tasks: L0 stand / walk-to, L3 turn-in-place; M1 reach, M2
+  squat-pick, M3 place; C1 carry (tray / box while walking), C2 loco_pick; held-out `h_steps_carry`, `h_gap_cart`.
+
+### 14.5 Ψ₀ + structure fix (D-141; unit P1)
+
+Diagnosis (D-141 addendum): system 0 bypassed the packet, and state dims constant in training went OOD in closed
+loop. Mechanism: (a) **constant-input mask** — per-dim std of every R input over the feature cache; dims with std <
+1e-4 are zeroed and their mask is stored in the checkpoint and applied at inference; (b) **forced packet use** in
+`StageA.loss`: state dropout on R (each non-masked state dim dropped with p = 0.3, whole state with p = 0.1) and a
+permuted-packet hinge `relu(m − (err(R(z_perm)) − err(R(z))))`, m = 0.05 in normalized action units; (c) **gate**:
+the `heldout` stage reports err(R(z_mean)) − err(R(E(a))); the structured head refuses to train when the gap < m.
+Red/green test reproduces the ±1 torso-command shift.
+
+### 14.6 pointer copy mechanism and discrete key code (unit C2)
+
+- Key head = mixture: `p(key) = (1 − g)·softmax(free) + g·Σ_pos α_pos·onehot(char_at(pos))`, α = attention from the
+  knot token to instruction-character tokens, g = sigmoid gate; loss = NLL of the mixture; next-char supervision is
+  `instr[n_typed]` (public).
+- `cw_pointer_eng.v2`: the key is a 7-bit ±1 code over `KEY_VOCAB` (v1's scalar stays decodable by version tag).
+- Procedural strings (seeded generator) and `research/splits/cworld_pointer_v2.json` declared before any demo;
+  `cworld_pointer_v1` and its sealed rows are untouched.
+
