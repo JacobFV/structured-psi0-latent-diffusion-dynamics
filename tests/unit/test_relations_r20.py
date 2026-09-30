@@ -242,9 +242,9 @@ def test_ui_field_factor_values_match_the_env_channels():
 
 
 def test_catalog_ui_label_for_carries_reveal_and_surprise_gen():
-    assert get_factor("ui.label_for").gen == ("reveal", "surprise")
+    assert get_factor("ui.label_for").gen == ("reveal", "surprise", "cw_viewport", "cw_depth")   # + scene parts (RC)
     for name in ("ui.same_window", "ui.focus_next", "ui.above"):
-        assert get_factor(name).gen == ()
+        assert get_factor(name).gen == ("cw_viewport", "cw_depth")
 
 
 def test_catalog_ui_drag_to_is_a_bilinear_pair_probe():
