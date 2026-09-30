@@ -554,3 +554,9 @@ DAG humanoid_transfer_h_walk: 29 nodes
 - One constant widens the context: `features/legged.TARGET_SLOTS` (now 3; `EVENT_SLOTS` 3). `GLOBAL_DIM` = 26: the 22 legacy columns are unchanged, entity slot 2 is appended at cols 22:26 (`target_slot_cols(k)`). `TaskView` takes the first distinct entity ids across events in role order and raises beyond the slots; every registered `h_*` graph fits. 22-wide checkpoints no longer load. `test_deploy_eval.GOLDEN_LATENT` (random-weight closed loop) re-recorded for the new width. `harness/eval/privileged_audit.LEGGED_GROUPS` still names only cols 0:22 (not owned here).
 - One `--out` per task: `assert_one_task` now looks into the body subdirectories; the layout stays `<out>/<body>/`.
 - No peer smoke, no training, no real-tracker episode was run (host: stub trackers, unit suite).
+
+## D-146 R2 HS2: wholebody tracker training (2026-09-30)
+- Recipes: `{t1,g1,h1,op3,apollo,adam_lite}_clock_gpu_ub` (amplitude 0.1 -> 0.4 and payload 0 -> 8 % over the first 30 % of the iterations), `{t1,g1,h1}_steps_ub` (steps expert + upper body, scratch), `shared_morph_ub` (morph_v2 shared tracker; lazy, phum topologies with arms). Launch: `rrp train tracker-warp --recipe <name> --out artifacts/runs/<run>`.
+- Install after the D-112 gate passed: `rrp train tracker-install artifacts/runs/<run> --validation <tracker_validation.json> --body <b> --version <v> --label "..."`.
+- Smoke (peer, 6 iterations `t1_steps_ub`, 1024 worlds): runs, ramp as designed, all episodes fall in 6 iterations from scratch (expected). Not a result.
+- Open: `LearnedTracker` cannot load `morph_v2` yet (HS1 file); the shared env upper path has no real-warp run.
