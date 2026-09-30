@@ -403,14 +403,14 @@ class HandoverTeacherV3(_V3Mixin, HandoverTeacher):
 
 
 TEACHERS_V3 = {"support_insert": SupportInsertTeacherV3, "handover": HandoverTeacherV3}
+PARKED_TASKS = ("pivot_against_surface", "carry_tray_level")     # scenes + task graphs stay; their scripted teachers do not
 
 
 def make_dual_teacher(task: str, session, version: str | None = None, options: dict | None = None):
     """version None/'v2' -> the v2 teacher (default, unchanged); 'v3' -> the v3 teacher with `options`."""
     v = version or DEFAULT_DUAL_TEACHER
-    from rrp.policies.teachers.dual_coord import COORD_TEACHERS
-    if task in COORD_TEACHERS:                       # D-126 #22 coordination tasks: labelled stubs only
-        return COORD_TEACHERS[task](session)
+    if task in PARKED_TASKS:                         # D-146 item 5: the W12 coordination-teacher stubs are parked
+        raise ValueError(f"no dual teacher for {task}: the W12 coordination stubs are parked (D-146 item 5)")
     if v == "v2":
         if options:
             raise ValueError("teacher options apply to v3 only")

@@ -46,7 +46,6 @@ def test_v3_options_dart_gate_and_factory():
 
 def test_make_dual_teacher_default_is_v2():
     from rrp.policies.teachers.dual import HandoverTeacher, SupportInsertTeacher
-    from rrp.policies.teachers.dual_coord import CarryTrayTeacherStub, PivotTeacherStub
     from rrp.policies.teachers.dual_smooth import (DEFAULT_DUAL_TEACHER, HandoverTeacherV3, SupportInsertTeacherV3,
                                           make_dual_teacher)
     from rrp.policies.teachers.dual_validate import make_session
@@ -62,14 +61,22 @@ def test_make_dual_teacher_default_is_v2():
     h = make_session("handover", "parm5_pg2__parm5_pg2", 0)
     assert type(make_dual_teacher("handover", h)) is HandoverTeacher
     assert isinstance(make_dual_teacher("handover", h, "v3"), HandoverTeacherV3)
-    p = make_session("pivot_against_surface", "parm5_pg2__parm5_pg2", 0)
-    assert isinstance(make_dual_teacher("pivot_against_surface", p), PivotTeacherStub)
-    c = make_session("carry_tray_level", "parm5_pg2__parm5_pg2", 0)
-    stub = make_dual_teacher("carry_tray_level", c)
-    assert isinstance(stub, CarryTrayTeacherStub) and stub.stub is True
-    for sess, te in ((s, t3), (p, make_dual_teacher("pivot_against_surface", p)), (c, stub)):
-        for _ in range(5):                                     # tiny: the teachers act without errors
-            sess.step(te.act())
+    for parked in ("pivot_against_surface", "carry_tray_level"):        # D-146 item 5: the W12 coordination stubs are parked
+        with pytest.raises(ValueError, match="parked"):
+            make_dual_teacher(parked, make_session(parked, "parm5_pg2__parm5_pg2", 0))
+    for _ in range(5):                                         # tiny: the v3 teacher acts without errors
+        s.step(t3.act())
+
+
+def test_dual_training_parked():
+    """D-146 item 5 / unit A3: no dual dagger_collect, no dual BC stage, no W12 coordination stubs; the collect and
+    evaluation stages the dual_lineage template keeps stay registered."""
+    import importlib.util
+    from rrp.harness.pipelines.base import Pipeline
+    st = Pipeline("dual").stages()
+    assert "dagger_collect" not in st and "train_bc" not in st
+    assert {"collect", "eval_r2", "heldout", "edits"} <= set(st)
+    assert importlib.util.find_spec("rrp.policies.teachers.dual_coord") is None
 
 
 # ----------------------------------------------------------------------------------------------- collection defaults
@@ -144,8 +151,8 @@ def test_dual_pipeline_guards_and_template():
     from rrp.harness.pipelines.base import Pipeline, StageContext, StageError
     from rrp.harness.pipelines import dual
     p = Pipeline("dual")
-    with pytest.raises(StageError, match="label source"):
-        p.spec("dagger_collect").fn(None)
+    with pytest.raises(StageError, match="not implemented"):          # parked (D-146 item 5): not registered at all
+        p.spec("dagger_collect")
     plan = plan_dag(load_dag(ROOT / "recipes/templates/dual_lineage.yaml"), source="t")
     stages = {n.rc.stage for n in plan.nodes.values()}
     assert {"collect", "pack", "train_rep", "probes", "train_flow", "eval_r2", "heldout", "edits"} <= stages

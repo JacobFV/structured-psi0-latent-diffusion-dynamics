@@ -11,8 +11,11 @@
 | refit | rrp.training.latent_train.refit_realizer (arm stage) on DAgger buffers given as inputs |
 | eval_r2 / heldout | `rrp latent evaluate-dual` per (task, pair) shard, dev pairs / held-out pairs |
 | edits | `rrp latent evaluate-dual --packet-edit <edit>` per edit x shard (control = no edit, same seeds) |
-| dagger_collect | NOT AVAILABLE: raises. Dual DAgger needs a state-feedback label source (a dual BC expert, as the arm's |
-|                | BC-DAgger); the v2/v3 scripted teachers are stateful FSMs that cannot label off-policy states. |
+
+PARKED (D-146 item 5, unit A3): the dual line is not trained. There is no `dagger_collect` (no state-feedback label
+source: the v2/v3 scripted teachers are stateful FSMs that cannot label off-policy states) and no `train_bc`; the
+W12 coordination-teacher stubs are archived. Collect, eval_r2 / heldout / edits and the template stay so the dual
+teacher data and evaluation routes remain reproducible. Reopening needs a new track entry.
 
 Physics: set the generic stage option `grasp_contact` (rrp.pipelines.base; e.g. v2.1) on collect/eval stages; the dual
 stages do not choose a grasp contact version themselves.
@@ -105,13 +108,6 @@ def refit(ctx: StageContext) -> dict:
     """System-0 refit on the frozen encoder from DAgger buffers (inputs), as the arm refit."""
     _b1(ctx)
     return arm.refit(ctx)
-
-
-@register("dual", "dagger_collect", source="bc")
-def dagger_collect(ctx: StageContext) -> dict:
-    """Not available yet (see module doc): refuses before any compute."""
-    raise StageError("dual dagger_collect: no dual state-feedback label source (dual BC expert) exists; "
-                     "train_bc is not implemented for the dual family (D-126 #33 follow-up)")
 
 
 # ------------------------------------------------------------------------------------------------ rollouts
