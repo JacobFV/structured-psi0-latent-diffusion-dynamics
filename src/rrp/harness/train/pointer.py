@@ -1,5 +1,5 @@
 """ComputerWorld pointer policies: split, teacher-demo collection, training and packet diagnostics (track pointer;
-research/tracks/cworld.md "pointer policy"). `rrp train pointer <cmd> ...`:
+research/tracks/pointer.md "pointer policy"). `rrp train pointer <cmd> ...`:
 
     split    write the seed lists of research/splits/cworld_pointer_v1.json (held-out variants are declared there)
     collect  scripted-teacher demos (DART pointer noise on move ticks for a fraction of episodes) -> .npz (peer store)

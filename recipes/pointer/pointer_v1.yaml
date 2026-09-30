@@ -1,0 +1,11 @@
+# D-142 pointer lineage, re-runnable: 6000 teacher episodes per task, rep 20k / flow 30k / BC 50k steps, dev seeds (50/task).
+# Peer only: rrp run-dag recipes/pointer/pointer_v1.yaml (needs RRP_PEER_PYTHONPATH=~/work/ext/cw-site; research/tracks/pointer.md).
+extends: ../templates/pointer_lineage.yaml
+name: pointer_v1
+schema: dag-1
+track: pointer
+policy: pointer_latent
+env: computerworld
+task: 'cw/*'
+bodies: cw_pointer
+factors: [semfix, nosem]

@@ -115,11 +115,24 @@ torso-state finding). Proposed (not run; needs a lead decision):
   stage A (state noise/dropout for R, or restrict R's state to its own assembly's proprio), then check with the item-3
   test (R(z_mean) must be clearly worse than R(E(a))) before any closed loop.
 
-## resume
-- Checkpoints, features, labels (peer and host): `~/work/ext/runs/psi1z/{train,features,replay_labels}/`; closed-loop
-  outputs `~/work/ext/runs/psi1z/cl/`. Released checkpoints and data: `~/work/ext/psi_home` (`ops/bin/psi0_ext.sh fetch-*`).
-- Stale psi1z watcher loops on the peer (bash `until … sleep` loops waiting on `cl/psi0rel_*/episodes.jsonl`, pids
-  2873754, 3156994, 3389109 on 2026-09-29) hold no lease and do nothing; they can be killed.
+## resume (P4c, D-145: recipes replace the psi1z scripts)
+The paused work is "fix the structured arm, then rerun step 2". Every command is a recipe now:
+`recipes/templates/psi0_step2.yaml`, instances `recipes/psi0/psi0_tabletop_step2.yaml` (public data; released 20/20,
+direct 19/20, structured 0/20) and `psi0_bendpick_step2.yaml` (not started); family `psi0`, stages in
+`src/rrp/harness/pipelines/psi0.py` (each wraps `rrp data psi0-features`, `rrp train psi0 [probes|heldout]`, `rrp eval
+--env simple`). Peer, GPU lease limit 1, psi venv as peer python (`ops/bin/psi0_ext.sh psi-env`):
+`RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/psi0 rrp run-dag recipes/psi0/psi0_tabletop_step2.yaml --dry-run`, then the same
+without `--dry-run`; `--point seed=0`. Dry-run nodes: global `feat`; at s0 `stage_a`, `direct`, `structured`, `heldout`,
+`probes`, `eval_released`, `eval_direct`, `eval_structured`. The recipe reads the recorded packet labels from
+`vars.labels_dir` (`~/work/ext/runs/psi1z/replay_labels/tabletop`; recording = `psi0_replay` + `LabelRecorder`, no CLI) and the
+released run + data from `~/work/ext/psi_home` (`ops/bin/psi0_ext.sh fetch-ckpt|fetch-data`). Old checkpoints, features
+and closed-loop outputs stay in `~/work/ext/runs/psi1z/{train,features,replay_labels,cl}/` and are still usable as
+inputs (`@`-refs accept any `artifacts/<store>/<name>` path; copy or link them there).
+Before the structured arm's closed loop is rerun the D-141 code fix is required (a code change, not a recipe): mask the
+state dims that are CONSTANT in training in DimEncoder/Realizer and force packet use in Stage A (state noise/dropout for R),
+then the item-3 test (R(z_mean) clearly worse than R(E(a))) on the offline `heldout` stage, only then `eval_structured`.
+Stale psi1z watcher loops on the peer (bash `until ... sleep` loops, pids 2873754, 3156994, 3389109 on 2026-09-29) hold no
+lease and can be killed.
 
 ---
 
@@ -349,18 +362,11 @@ to psi1z; worker plumbing with a test double). After S3: adapt to the real `Env`
 exporter at the P-appendix + this note, delete docs/related_repos.md (glossary → architecture.md), README/STATUS/
 AGENTS/strategy pointers, D-entry for the step-2 result (labelled: structured route likely has an integration bug).
 
-## resume
-1. Host queue: `~/work/ext/runs/psi1z/queue_host.log` (direct handover, then probe fits). Rerun
-   `scripts/queue_host.sh` (idempotent: skips finished outputs; training resumes from last.pt).
-2. Peer eval: lease 1790515469_2faf45 (`cl/psi0rel_xmovepick_L0_torsofb`). Resumable: rerun the same
-   `scripts/cl_parallel.sh` command (eval_loop skips finished episodes in episodes.jsonl).
-3. Our arms closed loop (after the peer GPU frees):
-   `ops/bin/peer_run.sh ... bash scripts/cl_parallel.sh OUT 1 10 2 -- --task G1WholebodyXMovePickTeleop-v0 --level 0
-   --run-dir <released run> --server-module psi1z.serve_ours --no-rtc --source learned:<final.pt> --server-extra
-   "--arm structured --ckpt <final.pt> --stage-a <stage_a.pt> --vlm <psi_home>/cache/checkpoints/psi0/pre.fast.1by1.2601091803.ckpt.ego200k.he30k"`
-   (same for --arm direct). Edits: add `--edit entity:<name> | probe:target_dx:<m> | probe:hand:<0|1> | random:<norm>`.
-4. Peer code/env sync: `rsync -a --delete --exclude .git ~/work/psi1z/ gb10-direct:work/psi1z/`; rrp code dir via
-   `RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/psi0 ops/bin/peer_sync.sh push` from ~/work/rrp-wt/psi0.
+## resume (historical; superseded by the recipes named at the top of this note)
+psi1z queues (`scripts/queue_host.sh`, `cl_parallel.sh`, `peer_retry.sh`) are deleted; their reruns are
+`rrp run-dag recipes/psi0/psi0_tabletop_step2.yaml` (idempotent: finished nodes are skipped; `rrp train psi0 --resume`
+continues from `last.pt`). Packet edits (`--edit entity:<name> | probe:target_dx:<m> | probe:hand:<0|1> | random:<norm>`)
+are the policy option `entity_override` and the harness packet hook `psi0_probe_edit`, not a recipe node yet.
 - host disk (other users) fell below the 100 GB reserve twice; freed my XMovePick ckpt copy, Handover v1 arms and cached features (all re-creatable).
 - INCIDENT 13:08-13:42: two of my concurrent eval jobs used the same policy-server port 22085 (cl_parallel default).
   The Handover eval's queries failed after the XMovePick-RTC server exited ("Server is not up"); zero Handover queries

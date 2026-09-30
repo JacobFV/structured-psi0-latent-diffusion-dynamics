@@ -31,7 +31,7 @@ from typing import Annotated, Any, Literal, Union
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
 SCHEMA_VERSION = "runconfig-1"
-BUILTIN_FAMILIES = ("arm", "dual", "legged")
+BUILTIN_FAMILIES = ("arm", "dual", "legged", "pointer", "psi0")   # pointer / psi0: no meaning-changing flags (D-145 P4c)
 Variant = Literal["sem", "nosem", "semfix", "na"]
 PIPELINE_STAGES = ("collect", "pack", "train_rep", "probes", "train_flow", "flow_ft", "dagger_collect", "refit",
                    "eval_r1", "eval_r2", "heldout", "edits", "train_bc", "validate_tracker", "train_tracker", "eval_tracker",
@@ -71,6 +71,9 @@ def _flag_spec() -> dict[tuple[str, str], dict[str, str]]:
     for fam, table in (("arm", arm), ("legged", legged), ("dual", dual)):
         for st in PIPELINE_STAGES:
             spec[(fam, st)] = dict(table.get(st, {"contact_version": META}))
+    for fam in ("pointer", "psi0"):   # UI pointer / Psi0 humanoid VLA: no arm-physics flags apply to any stage
+        for st in PIPELINE_STAGES + LEGACY_ONLY_STAGES:
+            spec[(fam, st)] = {}
     return spec
 
 
@@ -311,6 +314,13 @@ def _check_variant(rc: RunConfig) -> None:
     if rc.variant == "na" or rc.stage not in ("train_rep", "train_flow", "flow_ft"):
         return
     p = rc.params
+    if rc.family == "pointer":      # `rrp train pointer rep|flow --w-sem`: semfix = probe loss on z, nosem = both weights 0
+        w = p.get("w_sem")
+        if w is None:
+            raise RunConfigError(f"pointer/{rc.stage}: params.w_sem must be explicit")
+        if (w == 0) != (rc.variant == "nosem"):
+            raise RunConfigError(f"variant {rc.variant!r} does not match params.w_sem={w} of this pointer {rc.stage} config")
+        return
     if rc.stage == "train_rep":
         lat = p.get("latent") or {}
         w, lv = _factors_probe_weight_lv(lat.get("factors"))

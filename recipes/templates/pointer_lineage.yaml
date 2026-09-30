@@ -1,0 +1,122 @@
+# TEMPLATE: ComputerWorld pointer lineage (track pointer, D-142). Question: does a learned system i -> learned system 0 stack
+# on the pointer packet contract reach the scripted teacher, and does the semantic (probe) factor set matter?
+# Global (planned once): teacher demos (collect), the BC baseline on the SAME public inputs and demos (bc, eval_bc), the
+# flow trained on the ENGINEERED encoding (flow_eng, realised by the SCRIPTED engineered system 0; eval_eng) and the oracle
+# reference (eval_oracle: teacher packets -> engineered system 0, ORACLE, diagnostic).
+# Per variant (semfix | nosem = the factor set: probe loss on z + packet semantic loss, or both weights 0) and seed:
+# rep (E + R + P) -> flow (system i on the frozen representation) -> eval_dev (DEPLOYABLE route on the dev seeds) ->
+# eval_r1 (ORACLE rung: teacher chunk -> frozen E -> LEARNED system 0), probes (post-hoc packet probes), edits (causal).
+# The sealed splits (sealed_id, sealed_heldout) were run ONCE (D-142) and are not part of a recipe; `options.seed_set`
+# selects dev. Resources: peer GPU (bf16), one lease at a time. Public inputs only: rrp.policies.pointer.public_features.
+# An instance sets name, track, header keys and may override vars / params.
+name: pointer_lineage_template
+schema: dag-1
+family: pointer
+track: pointer
+lineage: 'pointer-{variant}'
+global_lineage: 'pointer-data'
+label_prefix: 'ptr_{variant}{seed}'
+global_label_prefix: 'ptr'
+matrix:
+  variant: [semfix, nosem]
+  seed: [1]
+axis_vars:
+  variant:
+    semfix: {w_rep: 1.0, w_flow: 0.5}
+    nosem: {w_rep: 0.0, w_flow: 0.0}
+vars:
+  episodes: 6000
+  rep_steps: 20000
+  flow_steps: 30000
+  bc_steps: 50000
+  seed_set: dev
+lists:
+  tasks: [cw/calc_sum, cw/open_type, cw/drag_window, cw/fill_form]
+defaults:
+  placement: peer
+  retries: 1
+  max_parallel: 3
+  max_parallel_gpu: 1
+  admission_timeout_s: 10800
+  resources: {cpu: 3, mem: 6G, gpu: false, max_seconds: 14400}
+nodes:
+  collect:
+    stage: collect
+    scope: global
+    resources: {cpu: 4, mem: 8G, max_seconds: 21600}
+    config:
+      variant: na
+      params: {episodes: '{episodes}'}
+      options: {tasks: '$tasks', workers: 2}
+  bc:
+    stage: train_bc
+    scope: global
+    resources: {gpu: true, gpu_mem: 8G, cpu: 4, mem: 8G, max_seconds: 21600}
+    config:
+      variant: na
+      params: {steps: '{bc_steps}', batch: 512}
+      inputs: {data: '@collect'}
+  eval_bc:
+    stage: eval_r2
+    scope: global
+    tag: bc
+    config:
+      variant: na
+      inputs: {checkpoint: '@bc:bc.pt'}
+      options: {policy: pointer_bc, seed_set: '{seed_set}', tasks: '$tasks', batch: 16}
+  flow_eng:
+    stage: train_flow
+    scope: global
+    resources: {gpu: true, gpu_mem: 8G, cpu: 4, mem: 8G, max_seconds: 21600}
+    config:
+      variant: na
+      params: {target: eng, steps: '{flow_steps}', batch: 512}
+      inputs: {data: '@collect'}
+  eval_eng:
+    stage: eval_r2
+    scope: global
+    tag: eng
+    config:
+      variant: na
+      inputs: {flow: '@flow_eng:flow.pt'}
+      options: {policy: pointer_latent, seed_set: '{seed_set}', tasks: '$tasks', batch: 16}
+  eval_oracle:
+    stage: eval_r1
+    scope: global
+    tag: oracle_eng
+    config:
+      variant: na
+      options: {seed_set: '{seed_set}', tasks: '$tasks', batch: 16}
+  rep:
+    stage: train_rep
+    resources: {gpu: true, gpu_mem: 8G, cpu: 4, mem: 8G, max_seconds: 14400}
+    config:
+      params: {steps: '{rep_steps}', batch: 512, dz: 16, w_sem: '{w_rep}'}
+      inputs: {data: '@collect'}
+  flow:
+    stage: train_flow
+    deps: [rep]
+    resources: {gpu: true, gpu_mem: 8G, cpu: 4, mem: 8G, max_seconds: 21600}
+    config:
+      params: {target: latent, steps: '{flow_steps}', batch: 512, w_sem: '{w_flow}'}
+      inputs: {data: '@collect', representation: '@rep:rep.pt'}
+  eval_dev:
+    stage: eval_r2
+    tag: dev
+    config:
+      inputs: {flow: '@flow:flow.pt', representation: '@rep:rep.pt'}
+      options: {policy: pointer_latent, seed_set: '{seed_set}', tasks: '$tasks', batch: 16}
+  eval_r1:
+    stage: eval_r1
+    tag: learned_s0
+    config:
+      inputs: {representation: '@rep:rep.pt'}
+      options: {seed_set: '{seed_set}', tasks: '$tasks', batch: 16}
+  probes:
+    stage: probes
+    config:
+      inputs: {data: '@collect', representation: '@rep:rep.pt', flow: '@flow:flow.pt'}
+  edits:
+    stage: edits
+    config:
+      inputs: {data: '@collect', representation: '@rep:rep.pt', flow: '@flow:flow.pt'}

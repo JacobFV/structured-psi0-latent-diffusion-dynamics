@@ -1,0 +1,19 @@
+# Gate before pointer_v1: one task (cw/calc_sum), 100 episodes, 300 steps per model. Peer; minutes. Not a result.
+extends: pointer_v1.yaml
+name: pointer_smoke
+schema: dag-1
+track: pointer
+policy: pointer_latent
+env: computerworld
+task: cw/calc_sum
+bodies: cw_pointer
+factors: [semfix, nosem]
+lineage: 'pointer-smoke-{variant}'
+global_lineage: 'pointer-smoke-data'
+vars:
+  episodes: 100
+  rep_steps: 300
+  flow_steps: 300
+  bc_steps: 300
+lists:
+  tasks: [cw/calc_sum]

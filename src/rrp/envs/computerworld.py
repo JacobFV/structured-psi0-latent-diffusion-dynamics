@@ -7,7 +7,7 @@ static web form for `cw/fill_form`); tasks set up owner-side (launching an app i
 Task setups and judges live here (they read CW scenes); `rrp.tasks.spec` registers the `cw/*` TaskSpecs, and the
 scripted teachers are `rrp.policies.teachers.computerworld`.
 
-Measured on computerworld 0.2.0 (see research/tracks/cworld.md): scene node ids change across layout revisions, so a
+Measured on computerworld 0.2.0 (see research/tracks/pointer.md): scene node ids change across layout revisions, so a
 slot is keyed on (interaction, role, label, occurrence); depth "stack" ranks the scene's distinct z-layers (dense rank x
 dz); within a layer later insertion occludes, as CW's own hit test does.
 """

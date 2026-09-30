@@ -2,7 +2,7 @@
 
 Branch `track/rel-r6`, worktree `~/work/rrp-wt/rel-r6`, from `origin/main` (D-144 foundation + the pointer track,
 D-142, already merged). Spec: `docs/relations.md` sections 2-5 and 10 (row R6 + its brief), `research/decisions.md`
-D-144 addendum, `research/tracks/cworld.md` "pointer policy". Host only (git / editing / unit suite; CUDA hidden via
+D-144 addendum, `research/tracks/pointer.md` "pointer policy". Host only (git / editing / unit suite; CUDA hidden via
 `CUDA_VISIBLE_DEVICES=""`); no peer smoke run (the row's acceptance is pure unit tests on fixtures, no
 training/simulation).
 
@@ -49,7 +49,7 @@ only in its own pre-created section: `src/rrp/policies/relations/catalog.py` (ne
   queries with the query names kept IDENTICAL to the old output dict (`slot`, `rel`, `phase`) so nothing downstream
   needs renaming. M = 1, so every query addresses `knot×asm` (the psi0/legged precedent): `slot` is now a fixed
   NW=80-way classification of the target widget by SLOT INDEX (CW slot identity is stable within an episode,
-  `research/tracks/cworld.md`) rather than by content -- the probe can no longer partly cheat off widget
+  `research/tracks/pointer.md`) rather than by content -- the probe can no longer partly cheat off widget
   text/role, a strictly harder and more honest test of what `z` itself encodes, and exactly the simplification
   that brings pointer into line with the shared design. `rel` (out=4, Gaussian mu(2)+logvar(2)) and `phase`
   (out=6, CE) map directly. `new_pointer_probe` / `run_pointer_probe` / `pointer_probe_specs` (the former CLI

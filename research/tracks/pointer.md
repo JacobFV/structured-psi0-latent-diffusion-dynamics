@@ -1,4 +1,4 @@
-# track cworld: ComputerWorld as an rrp environment (D-140)
+# track pointer: ComputerWorld environment and the pointer policy (D-140, D-142; was research/tracks/cworld.md)
 
 Owner decision D-140; design `docs/architecture.md` section 5. Status: **verified, merged after S3**. Code:
 `src/rrp/envs/computerworld.py` (env, mapping, cw/* setups + judges), `src/rrp/bodies/fixtures.py:cw_pointer_spec`,
@@ -142,10 +142,19 @@ ops/bin/peer_run.sh ...` appends it to the job's PYTHONPATH.
 - Rebase onto the D-144 relation-factor main: frozen checkpoints give identical per-seed outcomes and step counts on the
   old and new code (fill_form dev seeds 500000–5, semfix), so the merged code reproduces the evaluated policies.
   Outcomes depend on batch composition (one flow-noise generator per policy): sealed/dev rows used batch 16.
-- Resume / reuse: checkpoints and data in the peer store `artifacts/runs/pointer_v1/`, `artifacts/datasets/pointer_v1/`.
+- Resume / reuse (P4c, D-145): the whole lineage is a recipe, `recipes/templates/pointer_lineage.yaml` (instances
+  `recipes/pointer/pointer_v1.yaml`, gate `pointer_smoke.yaml`; family `pointer`, stages in
+  `src/rrp/harness/pipelines/pointer.py`). Peer only, from the peer code dir, with the wheel dir on the peer path:
+  `RRP_PEER_PYTHONPATH=$HOME/work/ext/cw-site RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/pointer rrp run-dag recipes/pointer/pointer_v1.yaml`
+  (`--dry-run` first; `--point variant=nosem` selects one factor set; the smoke recipe writes its own lineage). Dry-run nodes
+  of pointer_v1: global `collect`, `bc`, `eval_bc`, `flow_eng`, `eval_eng`, `eval_oracle`; per variant (semfix, nosem) at s1
+  `rep`, `flow`, `eval_dev`, `eval_r1`, `probes`, `edits`. Checkpoints and data of the completed run stay in the peer store
+  `artifacts/runs/pointer_v1/`, `artifacts/datasets/pointer_v1/`; evaluating them needs no recipe:
   `rrp eval --policy 'pointer_latent={"flow": "artifacts/runs/pointer_v1/flow_semfix.pt"}' --env computerworld --task
   cw/<t> --body cw_pointer --seeds ...`; `pointer_bc={"checkpoint": ".../bc.pt"}`; `pointer_oracle` (optionally
-  `{"representation": ".../rep_semfix.pt"}` for the learned system 0). Probes/edits: `rrp train pointer probe|edit`.
+  `{"representation": ".../rep_semfix.pt"}` for the learned system 0). The sealed splits (sealed_id, sealed_heldout) were
+  consumed once (D-142); a recipe evaluates `dev` (`vars.seed_set`). Not in the recipe: videos (`rrp train pointer
+  video`) and the split file (`rrp train pointer split`, done).
 - `rrp matrix` (artifacts/runs/pointer_v1/matrix.jsonl): pointer_latent (semfix, nosem), pointer_bc, pointer_oracle accepted
   on computerworld × all four cw/* tasks; teacher:pick_place declined (needs gripper, joint_position).
 - Open: typing generalization needs a copy mechanism; the engineered key field needs a discrete code for a learned

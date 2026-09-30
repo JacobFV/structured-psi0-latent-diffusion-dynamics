@@ -1,0 +1,15 @@
+# Step 2 on G1WholebodyTabletopGraspMP-v0 (public data; D-140 table: released 20/20, direct 19/20, structured 0/20 with the
+# pre-D-141 arm). Re-run this after the structured-arm fix. Labels: peer store of the psi1z label recording.
+extends: ../templates/psi0_step2.yaml
+name: psi0_tabletop_step2
+schema: dag-1
+track: psi0
+policy: psi0_structured
+env: simple
+task: simple/G1WholebodyTabletopGraspMP-v0
+bodies: g1_simple
+factors: []
+vars:
+  task: G1WholebodyTabletopGraspMP-v0
+  task_key: tabletop
+  labels_dir: ~/work/ext/runs/psi1z/replay_labels/tabletop

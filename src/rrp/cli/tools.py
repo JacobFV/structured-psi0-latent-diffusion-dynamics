@@ -14,6 +14,7 @@ TOOLS: dict[tuple[str, str], tuple[str, str]] = {
     ("data", "legged-collect"): ("rrp.harness.data.legged_collect:main", "legged waypoint teacher data (10 Hz)"),
     ("data", "legged-latent-collect"): ("rrp.harness.data.legged_latent_collect:main",
                                         "tick-level legged teacher data for the latent path (50 Hz)"),
+    ("data", "psi0-features"): ("rrp.policies.psi0.data:cache_features", "Psi0 frozen-VLM feature cache of a SIMPLE task (peer)"),
     ("data", "vlm-features"): ("rrp.harness.data.vlm_features:main", "rendered-image VLM feature cache (peer)"),
     # training
     ("train", "legged-latent"): ("rrp.harness.train.legged_latent_train:main", "legged Stage A / flow / probe {rep,flow,probe}"),
@@ -25,7 +26,7 @@ TOOLS: dict[tuple[str, str], tuple[str, str]] = {
     ("train", "packet-ood"): ("rrp.harness.train.packet_ood_fit:main", "fit the packet OOD detector"),
     ("train", "vlm"): ("rrp.harness.train.vlm_train:main", "VLM policy training / evaluation"),
     ("train", "pointer"): ("rrp.harness.train.pointer:main",
-                           "ComputerWorld pointer {split,collect,rep,flow,bc,probe,edit} (research/tracks/cworld.md)"),
+                           "ComputerWorld pointer {split,collect,rep,flow,bc,probe,edit} (research/tracks/pointer.md)"),
     ("train", "synthetic"): ("rrp.harness.train.synthetic:main", "synthetic flow-SDE GRPO sanity check (not robot)"),
     # evaluation suites, audits and validators
     ("suite", "ladder"): ("rrp.harness.eval.ladder_cli:main", "arm closed-loop ladder (R0 teacher / R1 oracle / R2 generated)"),

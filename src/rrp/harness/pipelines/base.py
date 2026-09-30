@@ -143,7 +143,7 @@ def register(family: str, stage: str, *, source: str):
 
 
 def _load_families():
-    from rrp.harness.pipelines import arm, dual, legged  # noqa: F401  (registration side effects)
+    from rrp.harness.pipelines import arm, dual, legged, pointer, psi0  # noqa: F401  (registration side effects)
 
 
 def unregister_stages(family: str) -> None:
@@ -282,7 +282,7 @@ def stage_main(argv=None) -> int:
     if a.cmd == "list":
         from rrp.core.runconfig import families, load_family_plugins
         load_family_plugins()
-        for fam in ("arm", "legged", "dual") + families()[3:]:
+        for fam in families():
             print(fam, " ".join(Pipeline(fam).stages()))
         return 0
     from rrp.core.runconfig import RunConfig

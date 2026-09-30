@@ -1,0 +1,14 @@
+# Step 2 on G1WholebodyBendPickMP-v0 (public data; released 10/10; not started). Needs recorded labels first.
+extends: ../templates/psi0_step2.yaml
+name: psi0_bendpick_step2
+schema: dag-1
+track: psi0
+policy: psi0_structured
+env: simple
+task: simple/G1WholebodyBendPickMP-v0
+bodies: g1_simple
+factors: []
+vars:
+  task: G1WholebodyBendPickMP-v0
+  task_key: bendpick
+  labels_dir: ~/work/ext/runs/psi1z/replay_labels/bendpick

@@ -390,7 +390,7 @@ stage's commit message and section 10 record.
 - [x] `rrp/tasks/spec.py`: `simple/<Task>` for the six benchmark tasks (`SIMPLE_TASKS`: released run, published rates, step-1 status), judge = SIMPLE `_success` via `env.truth()`.
 - [x] P-001..P-023 folded as appendix P of `research/decisions.md`; notes in `research/tracks/psi0.md`; `docs/related_repos.md` deleted (glossary: section 11). psi1z archived read-only after owner approval.
 
-ComputerWorld (track cworld, research/tracks/cworld.md):
+ComputerWorld (track pointer, research/tracks/pointer.md):
 - [x] optional extra `computerworld = ["computerworld==0.2.0"]` (PyPI abi3 wheel incl. aarch64; no Rust build).
 - [x] `rrp/envs/computerworld.py` (`ComputerWorldEnv`, `make_env`), `tests/unit/test_computerworld.py` (mapping, depth
   modes, occlusion, null slots, button edges, negotiation; rollout/judge/determinism tests marked `computerworld`).
@@ -596,7 +596,7 @@ Tests and goldens that pin legacy configs:
 | `tests/data/golden.json` | unchanged except the added `recipe.*` keys |
 
 Tracks (`schema.toml [tracks]`): `humanoid` (W13, paused), `armdiv` (paused), `psi0` (paused: structured-arm fix),
-`pointer` (paused: follow-ups; note `research/tracks/cworld.md` is renamed), `relations` (open). Each paused track's
+`pointer` (paused: follow-ups; note `research/tracks/pointer.md`, was `cworld.md`), `relations` (open). Each paused track's
 RESUME section is rewritten as recipe commands (`rrp run-dag recipes/<track>/<name>.yaml [--point …]`) BEFORE its
 legacy DAGs / scripts move. All other tracks are closed: their notes move to `.old/`, their decisions stay in
 `research/decisions.md`.

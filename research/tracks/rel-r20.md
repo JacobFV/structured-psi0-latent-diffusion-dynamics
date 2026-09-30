@@ -5,7 +5,7 @@ row R20 / briefs: "ComputerWorld public UI fields (parent, z-layer, focus rank) 
 adapter, UI entries and labels (label_for, contains, focus_next, above, drag_to from the teacher), `cf_swap(label)`."
 Deps: R6 (pointer nets, merged), R8 (StateView: Warp / ComputerWorld / SIMPLE, merged). Host only:
 `CUDA_VISIBLE_DEVICES=""`, no training / simulation beyond unit-test fixtures. Never edited `relations/base.py` /
-`relations/ops.py`. Read `docs/relations.md` sections 2-5, 10 and `research/tracks/cworld.md` first, per the brief.
+`relations/ops.py`. Read `docs/relations.md` sections 2-5, 10 and `research/tracks/pointer.md` first, per the brief.
 
 ## what changed
 - `src/rrp/envs/computerworld.py`:

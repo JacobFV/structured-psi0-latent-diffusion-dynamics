@@ -4,7 +4,7 @@ Markers (registered in pyproject.toml):
 - ``menagerie``: needs the MuJoCo Menagerie assets under ``.cache/assets/mujoco_menagerie``
   (fetch with ``ops/bin/fetch_menagerie.sh``; the main checkout symlinks them).
 - ``packed_data``: needs the packed training data ``artifacts/packed/latent_pp_v3dart_s1_H16`` (not in git).
-- ``computerworld``: needs the optional extra ``computerworld==0.2.0`` (research/tracks/cworld.md has install steps).
+- ``computerworld``: needs the optional extra ``computerworld==0.2.0`` (research/tracks/pointer.md has install steps).
 """
 
 

@@ -144,7 +144,7 @@ register_preset("probes:legged-v1", [f"probe.legged.{q[0]}" for q in _LEGGED_PRO
 # `knot×asm` (the psi0/legged precedent above): the generic head reads only z's own K*M packet tokens plus fixed
 # random handle codes, no widget content -- unlike the pre-R6 probe, which cross-attended the widget descriptors'
 # real label/role/geometry. `slot` is a fixed NW=80-way classification of the packet's target widget by SLOT INDEX
-# (stable within an episode, research/tracks/cworld.md) instead of by content: a strictly harder, more honest test
+# (stable within an episode, research/tracks/pointer.md) instead of by content: a strictly harder, more honest test
 # of what `z` itself encodes, and the change that brings pointer's probe into line with every other family's
 # "opaque codes only" design (nets/probes.py). No `route.*` factor: the pointer body has no cross-assembly routing
 # to restrict (M = 1), so its `RelBlock`s carry the empty preset `none` (registered above) -- there is nothing here

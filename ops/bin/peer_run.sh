@@ -5,7 +5,7 @@
 # A bare argument "PY" is replaced by the peer venv python. Relative paths resolve inside the peer code dir, whose
 # artifacts/ and .cache/ are symlinks to the shared store. Add --detach to return immediately.
 # RRP_PEER_PYTHONPATH (peer paths, ':'-separated) is appended to PYTHONPATH, e.g. the ComputerWorld wheel dir
-# /home/brandonin/work/ext/cw-site (research/tracks/cworld.md).
+# /home/brandonin/work/ext/cw-site (research/tracks/pointer.md).
 set -euo pipefail
 PEER=${ROBOT_PEER:-gb10-direct}
 P=${RRP_PEER_ROOT:-/dev/shm/rrp-brandonin}

@@ -84,7 +84,7 @@ default off; defaults golden-identical to pre-D-126 rows.
 | 39 | Does the semantic packet help new-humanoid transfer (sealed S1–S5) vs nosem and BC at matched data/updates (zero-shot, refit, joint adaptation, BC SFT)? | 38 | 3–4 days | planned (P3) | 🔧 |
 | 40 | Held-out task compositions (steps+carry, gap+cart) zero-shot | 38 | in P3 | planned | 🔧 |
 
-## I. ComputerWorld pointer (track pointer, D-142; research/tracks/cworld.md "pointer policy", split research/splits/cworld_pointer_v1.json)
+## I. ComputerWorld pointer (track pointer, D-142; research/tracks/pointer.md "pointer policy", split research/splits/cworld_pointer_v1.json)
 | # | question | depends on | cost | experiment | code |
 |---|---|---|---|---|---|
 | 41 | Can an engineered (scripted) pointer system 0 realize packets well enough to solve all four cw/* tasks from teacher-oracle packets? | – | ~free | done → D-142 (400/400, teacher-identical step counts) | ✅ `policies/pointer.py` |
