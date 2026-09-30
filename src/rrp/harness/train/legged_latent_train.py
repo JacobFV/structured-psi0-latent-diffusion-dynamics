@@ -27,6 +27,42 @@ from rrp.policies.features.legged import MAX_N, MAX_M, KNOT_TIMES, TICK_DT, H, M
 from rrp.policies.bundles import _dev, legged_flags, load_rep
 from rrp.policies.nets.legged_latent import (LeggedEncoder, LeggedRealizer, LeggedFlow, legged_probe,
                                      legged_probe_read, remap_legged_probe_state, probe_loss, probe_metrics)
+from rrp.policies.relations.base import resolve
+
+# D-144 sweep-flags (docs/relations.md 10, closing rel-r2c's open question 1 for legged now that R4 has merged):
+# the ONE conversion point for this file's `latent` config dict -- on-disk / dag-injected flat `semantic_weight` /
+# `probe_lv_min` (still the live surface every `dags/legged_v2_*.yaml` + `configs/legged_latent,legged_fixsem,
+# t1_diag/**.json` rep config renders; `core/runconfig.py`'s `FLAG_SPEC[("legged", "train_rep")]` still maps
+# `probe_lv_min` -> `latent.probe_lv_min`, see its own comment) become `probe.legged.*` FactorSpec overrides here,
+# the exact shape `nets/semantic_latent.py::_probe_factors` uses for arm's `LatentConfig`. `lc["factors"]` (a config
+# already written that way) passes through unchanged. Nothing below this point reads the flat keys directly any
+# more (was: two ad hoc `lc["semantic_weight"]` / `lc.get("probe_lv_min", -8.0)` reads in `train_rep`, plus a third
+# in `train_flow` re-deriving the frozen rep's own lv_min the same flat way).
+_LEGGED_PROBE_QUERIES = ("contact", "goal", "disp", "subtask", "fall")
+
+
+def _legged_probe_factors(lc: dict) -> tuple:
+    if "factors" in lc:
+        return tuple(lc["factors"])
+    w, lv = lc.get("semantic_weight", 1.0), lc.get("probe_lv_min", -8.0)
+    items = [{"name": f"probe.legged.{q}", "weight": w} for q in _LEGGED_PROBE_QUERIES]
+    if lv != -8.0:
+        for it in items:
+            it["params"] = {"lv_min": lv}
+    return tuple(items)
+
+
+def _legged_probe_weight_lv(factors: tuple) -> tuple[float, float]:
+    """Uniform (weight, lv_min) over the resolved `probe.legged.*` specs: the pre-factors semantics (ONE scalar
+    weight / log-variance floor applied to every query), mirroring `LatentConfig.weight` / `.lv_min`
+    (nets/semantic_latent.py)."""
+    specs = resolve(factors)
+    on = [s for s in specs if s.name.startswith("probe.legged.") and s.control != "off"]
+    ws = {1.0 if s.weight is None else s.weight for s in on}
+    lvs = {s.p.get("lv_min", -8.0) for s in on}
+    w = next(iter(ws)) if len(ws) == 1 else (1.0 if not ws else sorted(ws)[-1])
+    lv = next(iter(lvs)) if len(lvs) == 1 else (-8.0 if not lvs else sorted(lvs)[-1])
+    return w, lv
 
 
 class LeggedData:
@@ -274,9 +310,11 @@ def train_rep(cfg, out: Path):
     rng = np.random.default_rng(cfg.get("seed", 0))
     data = LeggedData(Path(cfg["data"]), cfg["bodies"], dev)
     lc = cfg["latent"]
+    factors = _legged_probe_factors(lc)
+    w_sem, probe_lv_min = _legged_probe_weight_lv(factors)
     E = LeggedEncoder(dz=lc["dz"], D=lc["width"], H=H).to(dev)
     R = LeggedRealizer(dz=lc["dz"], D=lc["width"]).to(dev)
-    P = legged_probe(dz=lc["dz"]).to(dev)
+    P = legged_probe(dz=lc["dz"], factors=factors).to(dev)
     params = [p for m in (E, R, P) for p in m.parameters()]
     steps, lr = cfg["steps"], cfg.get("lr", 3e-4)
     opt = torch.optim.AdamW(params, lr=lr, weight_decay=1e-4)
@@ -297,8 +335,8 @@ def train_rep(cfg, out: Path):
     for step in range(step0 + 1, steps + 1):
         i = data.sample(B, rng)
         j = torch.from_numpy(rng.integers(0, MAX_J + 1, B)).to(dev)
-        loss, logs, _ = rep_step(E, R, P, data, i, j, lc["semantic_weight"], lc.get("beta_kl", 1e-3),
-                                 qd_drop=lc.get("qd_dropout", 0.0), lv_min=lc.get("probe_lv_min", -8.0))
+        loss, logs, _ = rep_step(E, R, P, data, i, j, w_sem, lc.get("beta_kl", 1e-3),
+                                 qd_drop=lc.get("qd_dropout", 0.0), lv_min=probe_lv_min)
         opt.zero_grad()
         loss.backward()
         gn = torch.nn.utils.clip_grad_norm_(params, 1.0)
@@ -378,6 +416,18 @@ def train_flow(cfg, out: Path):
     steps, lr = cfg["steps"], cfg.get("lr", 3e-4)
     opt = torch.optim.AdamW(F_.parameters(), lr=lr, weight_decay=1e-4)
     sch = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=lr, total_steps=steps, pct_start=0.05)
+    lvm = _legged_probe_weight_lv(_legged_probe_factors(rcfg["latent"]))[1]
+    # `packet_semantic_weight` stays a flat, top-level FLOW-stage params key (distinct from `rcfg["latent"]`'s own
+    # semantic weight/factors, which is stage A's -- this is stage B's own aux-loss weight through the FROZEN P).
+    # D-144 addendum + sweep-flags (confirmed empirically, repo-wide grep, not just re-asserted): retiring it would
+    # need EVERY reader of this exact key to move together -- besides this function, that is
+    # `harness/train/latent_train.py` (arm/dual `train_flow`/`flow_ft`/`sft_latent_flow`; out of this row's owned
+    # files) and, on the config side, 9+ `dags/legged_v2_*.yaml` / `dags/templates/legged_v2_*.yaml` /
+    # `legged_fixrep.yaml` / `smoke_legged.yaml` files plus 30+ `configs/{ladder,latent,legged_latent,legged_fixsem,
+    # t1_diag}/flow_*.json` files (none in this row's owned files either) that all render/store this literal key
+    # name for arm AND legged flow configs alike. Renaming it here alone would fragment one config-key meaning
+    # across two spellings with no test able to prove the split equivalent -- exactly R2's original open question 2,
+    # still blocked on the same out-of-scope files.
     w = cfg.get("packet_semantic_weight", 0.0)
     out.mkdir(parents=True, exist_ok=True)
     (out / "config.json").write_text(json.dumps(cfg, indent=1))
@@ -403,7 +453,6 @@ def train_flow(cfg, out: Path):
         with torch.no_grad():
             zt, _ = E(b, data.beh(i))
         lab = data.labels(i)
-        lvm = rcfg["latent"].get("probe_lv_min", -8.0)
         fn = (lambda zc: probe_loss(legged_probe_read(P, zc, b["asm_mask"], b["body_asm"]), lab, b, lv_min=lvm)) if w > 0 else None
         loss, logs = F_.loss(b, zt, fn, w, cfg.get("packet_tau_min", 0.6))
         opt.zero_grad(); loss.backward()

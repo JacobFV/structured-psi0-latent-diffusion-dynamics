@@ -72,6 +72,16 @@ def joint_adapt(flow_ckpt: Path, rep_path: Path, packed_dir: Path, budget: int, 
     eps = sorted(set(data.ep.tolist()))
     chosen = [eps[i] for i in nested_budget_indices(len(eps), [budget], seed)[budget]]
     pool = [int(i) for i in np.nonzero(np.isin(data.ep, chosen))[0]]
+    # D-144 addendum + sweep-flags (confirmed empirically, not just re-asserted): `packet_semantic_weight` here is
+    # read from `cfgj = st["config"]`, the ALREADY-TRAINED flow checkpoint's own saved native config -- i.e. this is
+    # inherently a legacy-checkpoint read, the same status as `nets/checkpoint.py` reading an old pickle format
+    # forever, because `harness/train/latent_train.py` (arm/dual, out of this row's owned files; stage `adapt` is a
+    # permanent `LEGACY_ONLY_STAGE`, docs/relations.md 10 / core/runconfig.py, never migrated to `factors:` by
+    # design) still WRITES this exact key into every flow checkpoint it produces. Renaming the read here without
+    # also renaming every writer would silently stop this stage from seeing the weight at all (`.get(..., 0.0)`
+    # would fall through to the "no semantic loss" default) rather than raise -- worse than leaving it as the one
+    # documented legacy-checkpoint exception. See harness/train/legged_latent_train.py::train_flow for the sibling
+    # occurrence and the full list of out-of-scope readers/writers this is blocked on.
     w_sem = cfgj.get("packet_semantic_weight", 0.0)
     nf_steps, nr_steps = split_steps(steps, mode)
     kt = torch.tensor(lcfg.knot_times, device=dev)

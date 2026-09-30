@@ -132,22 +132,40 @@ def test_new_and_legacy_construction_agree():
 
 
 # ------------------------------------------------------------------ 2. _check_variant equivalent
+# D-144 sweep-flags: arm/dual `train_rep` no longer accepts the OLD-style (flat `latent.semantic_weight` +
+# `flags.probe_lv_min`) shape at all -- `probe_lv_min` was retired from `FLAG_SPEC[("arm"|"dual", "train_rep")]`
+# (core/runconfig.py), so a RunConfig that tries to set it is rejected before `_check_variant` even runs. `_rc`'s
+# default params is `factors:`-shaped accordingly; `_rc_legged` exercises the old-style branch, which stays live
+# ONLY for `legged` (its own dags -- out of this row's file list -- still render the flat shape).
 def _rc(**kw):
     base = dict(schema_version="runconfig-1", family="arm", stage="train_rep", variant="sem", seed=1,
                lineage="l", tag=None,
-               flags=dict(zero_prev_action=True, realizer_anchor=True, realizer_drop_qd=None, probe_lv_min=-8.0,
+               flags=dict(zero_prev_action=True, realizer_anchor=True, realizer_drop_qd=None, probe_lv_min=None,
                           qd_dropout=None, contact_version="contact_v1"),
+               params={"latent": {"factors": [{"name": "probe.arm.visible", "weight": 1.0}]}})
+    base.update(kw)
+    return RunConfig.model_validate(base)
+
+
+def _rc_legged(**kw):
+    base = dict(schema_version="runconfig-1", family="legged", stage="train_rep", variant="sem", seed=1,
+               lineage="l", tag=None,
+               flags=dict(zero_prev_action=None, realizer_anchor=None, realizer_drop_qd=None, probe_lv_min=-8.0,
+                          qd_dropout=0.0, contact_version="contact_v1"),
                params={"latent": {"semantic_weight": 1.0}})
     base.update(kw)
     return RunConfig.model_validate(base)
 
 
-def test_check_variant_old_style_unchanged():
-    _rc(variant="sem")
+def test_check_variant_old_style_is_legged_only():
+    _rc_legged(variant="sem")
     with pytest.raises(Exception, match="does not match"):
-        _rc(variant="nosem")
+        _rc_legged(variant="nosem")
     with pytest.raises(Exception, match="must be explicit"):
-        _rc(params={"latent": {}})
+        _rc_legged(params={"latent": {}})
+    with pytest.raises(Exception, match="does not apply"):    # arm: the flag no longer applies at all
+        _rc(flags=dict(zero_prev_action=True, realizer_anchor=True, realizer_drop_qd=None, probe_lv_min=-8.0,
+                       qd_dropout=None, contact_version="contact_v1"))
 
 
 def test_check_variant_factors_style():
@@ -222,11 +240,24 @@ def test_no_legacy_flat_keys_as_new_primary_surface():
 
 
 def test_no_binding_cf_as_live_parameter_name():
-    """D-144 addendum (decision (b)): `fit_probes_on_frozen`'s own parameter is `cf_mix`, not `binding_cf` -- R2c
-    owns both external call sites (cli/latent.py, harness/pipelines/arm.py) that R2 could not rename. `binding_cf`
-    remains ONLY as a deprecated CLI alias (`--binding-cf`, same `dest="cf_mix"`) and an `options` fallback read in
-    harness/pipelines/arm.py, both on-disk/invocation legacy surfaces, not a live parameter name."""
+    """D-144 addendum (decision (b)) + sweep-flags: `fit_probes_on_frozen`'s own parameter is `cf_mix`, not
+    `binding_cf` (R2c renamed both external call sites, cli/latent.py and harness/pipelines/arm.py, that R2 could
+    not). The sweep-flags row went further and deleted the two remaining legacy surfaces decision (b) had allowed
+    to stay (the deprecated `--binding-cf` CLI alias and the `options.get("cf_mix", options.get("binding_cf", ...))`
+    pipeline-options fallback): `binding_cf` is not a live read anywhere in src/ any more."""
     import inspect
     from rrp.harness.train.latent_train import fit_probes_on_frozen
     params = inspect.signature(fit_probes_on_frozen).parameters
     assert "cf_mix" in params and "binding_cf" not in params
+    import argparse
+    from rrp.cli.latent import register_probe_cmd
+    p = argparse.ArgumentParser().add_subparsers()
+    register_probe_cmd(p)
+    fit_probes_parser = p.choices["fit-probes"]
+    opt_strings = {s for a in fit_probes_parser._actions for s in a.option_strings}
+    assert "--cf-mix" in opt_strings and "--binding-cf" not in opt_strings
+    # bytecode co_names/co_consts, not source text: a code comment mentioning the retired name for history is fine
+    # (e.g. "options.binding_cf" in a docstring), an actual identifier/string LITERAL the running code touches is not.
+    from rrp.harness.pipelines.arm import probes as arm_probes_stage
+    code = arm_probes_stage.__code__
+    assert "binding_cf" not in code.co_names and "binding_cf" not in code.co_consts

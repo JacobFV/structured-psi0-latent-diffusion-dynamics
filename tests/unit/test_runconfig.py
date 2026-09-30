@@ -36,7 +36,9 @@ def test_legacy_classification_and_flags():
     assert rc.out == "artifacts/runs/ladder_rz_sfjf2_gendag1_noqd"
     rep = load_legacy(ROOT / "configs/ladder/armseed2/nsjf2/rep-ladder_latent_nosem_b1fix_anchor_s2.json", ROOT)
     assert (rep.stage, rep.variant) == ("train_rep", "nosem")
-    assert rep.flags.probe_lv_min == -8.0 and "probe_lv_min" in rep.legacy.absent_flags   # code default, not written back
+    # D-144 sweep-flags: `probe_lv_min` no longer applies to arm `train_rep` (retired from FLAG_SPEC; `latent.factors`
+    # instead, codemodded onto this exact file -- see nets/semantic_latent.py / tests/unit/test_relations_r2_latent.py).
+    assert rep.flags.probe_lv_min is None and "probe_lv_min" not in rep.legacy.absent_flags
     lg = load_legacy(ROOT / "configs/legged_fixsem/rep_fixsem_go2_s1.json", ROOT)
     assert (lg.family, lg.stage, lg.variant) == ("legged", "train_rep", "semfix")
     assert lg.flags.qd_dropout == 0.5 and lg.flags.zero_prev_action is None and lg.flags.contact_version == "contact_v1"
@@ -72,9 +74,13 @@ def test_flags_required_and_applicability():
 
 
 def test_variant_must_match_recipe():
-    flags = dict(zero_prev_action=True, realizer_anchor=True, realizer_drop_qd=None, probe_lv_min=-8.0,
+    # D-144 sweep-flags: arm `train_rep` variant checking is `latent.factors`-only now (`probe_lv_min` retired from
+    # FLAG_SPEC[("arm", "train_rep")]; see core/runconfig.py::_check_variant and tests/unit/test_relations_r2_latent.py
+    # for the full old-style-vs-factors-style coverage, incl. the legged-only old-style path).
+    flags = dict(zero_prev_action=True, realizer_anchor=True, realizer_drop_qd=None, probe_lv_min=None,
                  qd_dropout=None, contact_version="contact_v1")
-    base = dict(stage="train_rep", tag=None, params={"latent": {"semantic_weight": 1.0}}, flags=flags)
+    base = dict(stage="train_rep", tag=None,
+               params={"latent": {"factors": [{"name": "probe.arm.visible", "weight": 1.0}]}}, flags=flags)
     _new(**base, variant="sem")
     with pytest.raises(Exception, match="does not match"):
         _new(**base, variant="semfix")                       # semfix needs the bounded floor (> -8)

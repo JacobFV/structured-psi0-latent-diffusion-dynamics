@@ -48,11 +48,24 @@ defaults:
   admission_timeout_s: 10800
   resources: {cpu: 3, mem: 8G, gpu: false, max_seconds: 10800}
 base:
-  flags: {zero_prev_action: true, realizer_anchor: true, realizer_drop_qd: false, probe_lv_min: '{lv}', contact_version: contact_v1}
+  flags: {zero_prev_action: true, realizer_anchor: true, realizer_drop_qd: false, contact_version: contact_v1}
 nodes:
+  # D-144 addendum (rel-r2c open question 1, closed by the sweep-flags row): `latent.factors` replaces the flag-driven
+  # flat `latent.semantic_weight` + `flags.probe_lv_min` pair (docs/relations.md 10, R2's `_probe_factors` shape).
+  # `{sw}` (0.0 nosem / 1.0 sem+semfix) sets every `probe.arm.*` weight uniformly; the `per: variant: semfix` override
+  # below is the only place `lv_min` differs (-4.0 vs the LatentConfig default -8.0, omitted like R2's own codemod of
+  # configs/latent/**.json). `core/runconfig.py`'s `FLAG_SPEC[("arm"|"dual", "train_rep")]` no longer maps
+  # `probe_lv_min` (see its own comment); `configs/ladder/**.json` (6 rep files) codemodded to match, byte-identical
+  # `LatentConfig.version()` hashes proven by tests/unit/test_relations_r2_latent.py's frozen table.
   stageA:
     stage: train_rep
     resources: {gpu: true, gpu_mem: 16G, cpu: 4, mem: 24G, max_seconds: 14400}
+    per:
+      variant:
+        semfix:
+          params:
+            latent:
+              factors: [{name: probe.arm.visible, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.arm.looking_at, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.arm.focused_on, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.arm.held_by, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.arm.acting_on, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.arm.rel_pos, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.arm.observed_effect, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.arm.subtask, weight: 1.0, params: {lv_min: -4.0}}]
     config:
       inputs: {dataset: '{dataset}', packed_dir: '{pack}'}
       params:
@@ -65,7 +78,7 @@ nodes:
         batch_size: 128
         lr: 0.0003
         name: '{pfx}_stageA'
-        latent: {name: '{pfx}_stageA', semantic_weight: '{sw}'}
+        latent: {name: '{pfx}_stageA', factors: [{name: probe.arm.visible, weight: '{sw}'}, {name: probe.arm.looking_at, weight: '{sw}'}, {name: probe.arm.focused_on, weight: '{sw}'}, {name: probe.arm.held_by, weight: '{sw}'}, {name: probe.arm.acting_on, weight: '{sw}'}, {name: probe.arm.rel_pos, weight: '{sw}'}, {name: probe.arm.observed_effect, weight: '{sw}'}, {name: probe.arm.subtask, weight: '{sw}'}]}
   F0:
     stage: train_flow
     resources: {gpu: true, gpu_mem: 16G, cpu: 4, mem: 24G, max_seconds: 14400}

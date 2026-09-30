@@ -179,12 +179,12 @@ def register_probe_cmd(p):
     f.add_argument("--out", required=True)
     f.add_argument("--steps", type=int, default=6000)
     f.add_argument("--metadata-only", action="store_true")
-    # D-144 addendum (decision (b)): --cf-mix replaces --binding-cf (harness.train.latent_train.fit_probes_on_frozen
-    # cf_mix, ex binding_cf). --binding-cf is kept as a deprecated alias, same dest, for existing invocations on
-    # disk (scripts / shell history) -- the CLI-flag analogue of the loader's on-disk legacy-key remap.
-    f.add_argument("--cf-mix", "--binding-cf", dest="cf_mix", type=float, default=0.0,
+    # D-144 sweep-flags: the deprecated --binding-cf alias is gone (rel-r2c/D-144 addendum decision (b) kept it as
+    # the CLI-flag analogue of the loader's on-disk legacy-key remap; this row's own scope explicitly retires it --
+    # `--cf-mix` is the only spelling now, matching harness.train.latent_train.fit_probes_on_frozen's `cf_mix` param).
+    f.add_argument("--cf-mix", dest="cf_mix", type=float, default=0.0,
                    help="fraction of each probe batch appended as counterfactual-binding copies (focus follows "
-                        "binding); --binding-cf is a deprecated alias")
+                        "binding)")
     f.set_defaults(fn=cmd_fit_probes)
 
 

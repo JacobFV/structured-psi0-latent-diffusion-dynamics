@@ -99,10 +99,11 @@ against the frozen table are reproducible from this track note's description; no
 
 ## open questions for the lead
 
-1. `packet_semantic_weight` full retirement and the `configs/ladder/**` + `dags/arm_lineage.yaml` /
-   `dags/templates/dual_lineage.yaml` codemod both need a SINGLE unit that owns `core/runconfig.py`'s `FLAG_SPEC`
-   (or an explicit go-ahead to touch it from here), `dags/**`, `harness/train/joint_adapt.py` and, for
-   `packet_semantic_weight`, `harness/train/legged_latent_train.py` (R4) together -- none of which is this row's
-   file list. Worth a dedicated follow-up row once R4 merges, scoped explicitly to that file set.
+1. **CLOSED by unit `sweep-flags`** (`research/tracks/sweep-flags.md`, D-144 addendum 2026-09-30 "Applied by
+   sweep-flags"): the `configs/ladder/**` + `dags/arm_lineage.yaml` / `dags/templates/dual_lineage.yaml` codemod +
+   `core/runconfig.py`'s `FLAG_SPEC[("arm"|"dual", "train_rep")]` change landed together, once R4 had merged.
+   `packet_semantic_weight` full retirement is still NOT closed (re-confirmed blocked on `harness/train/
+   latent_train.py`, out of sweep-flags' scope too, plus 9+ legged dag files and 30+ legged flow configs) --
+   sweep-flags' own open question 1 restates this as the next follow-up, now scoped precisely.
 2. No new D-144 addendum items were needed beyond (a)/(b)/(c) already given; nothing added under D-144 that
    wasn't already the lead's own text.

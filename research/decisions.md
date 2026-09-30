@@ -1299,6 +1299,28 @@ Applied by rel-r2c (unit `rel-r2c`, worktree `~/work/rrp-wt/rel-r2c`, `track/rel
   - `packet_semantic_weight` (Stage-B / BC-only top-level knob): confirmed, by grep of every read site, to be read live outside rel-r2c's owned files by `harness/train/joint_adapt.py` (stage `adapt`, a permanent `LEGACY_ONLY_STAGE` -- never migrated to `factors:` by design, the same status as reading an old pickle format forever) and `harness/train/legged_latent_train.py` (fanout unit R4, not merged). Retiring the arm/dual `train_flow`/`flow_ft` read in `harness/train/latent_train.py` alone, while these two out-of-scope files keep the same on-disk key name for their own (also-shared) configs, would fragment ONE config-key meaning across two spellings for no live benefit and no test coverage to prove equivalence. Deferred, not dropped, exactly as R2's own open question 2 anticipated; unblocked once R4 merges and `harness/train/joint_adapt.py` is in a unit's owned-file list alongside `harness/train/latent_train.py`.
 (c) Merges are serialized through `~/work/rrp-data/main-merge.lock`.
 
+Applied by sweep-flags (unit `sweep-flags`, worktree `~/work/rrp-wt/sweep-flags`, `track/sweep-flags` from
+origin/main, after R20/rel-geo/rel-r2c/R4 all merged) to close rel-r2c's open question 1 (`research/tracks/
+rel-r2c.md`) now that R4 (legged fanout) has merged: `probe_lv_min` retired from `FLAG_SPEC[("arm"|"dual",
+"train_rep")]` (`core/runconfig.py`) and from `dags/arm_lineage.yaml` / `dags/templates/dual_lineage.yaml` (both now
+render `latent.factors` instead of flat `latent.semantic_weight` + `flags.probe_lv_min`), together with the matching
+`configs/ladder/**.json` (6 rep files) codemod R2c had prepared, verified and reverted -- `LatentConfig.version()`
+proven byte-identical against R2c's own frozen hash table. `harness/train/legged_latent_train.py` now converts its
+own `latent` config dict (still flat `semantic_weight`/`probe_lv_min` on disk -- `probe_lv_min` stays in FLAG_NAMES/
+Flags/FLAG_SPEC[("legged", "train_rep")] for that reason, per legged's own dags, out of this unit's scope) through
+ONE conversion point (`_legged_probe_factors`/`_legged_probe_weight_lv`, mirroring `LATENT_LEGACY_KEYS`/
+`_probe_factors`) instead of reading the flat keys ad hoc at each use site. `harness/pipelines/arm.py`'s
+`options.get(..., options.get("binding_cf", ...))` fallback and `cli/latent.py`'s deprecated `--binding-cf` alias
+(both decision (b) had explicitly kept as legacy CLI/options surfaces) are now fully deleted, per this unit's own
+brief, which supersedes that specific sub-decision -- `binding_cf` is not a live read anywhere in `src/` any more,
+by any name. `packet_semantic_weight` retirement is re-confirmed (not just re-asserted) still blocked: it is a live,
+shared, literal key in `harness/train/latent_train.py` (arm/dual, out of scope) and at least 9 `dags/legged_v2_*`
+files + 30+ `configs/*/flow_*.json` files (also out of scope); `harness/train/joint_adapt.py`'s own read is
+additionally, and separately, inherent to reading an already-trained checkpoint's saved native config (the same
+class of read as `LatentConfig.version()`'s own documented hash-preimage exception). `aux_weight` is untouched and
+out of scope (no file this unit owns reads it). Full details, verification commands and the concrete file-count
+evidence: `research/tracks/sweep-flags.md`.
+
 ## D-144 addendum 2026-09-30 rel-geo (CTX_CARRIES, edges:support-v1, presets): scope decisions
 Unit rel-geo (worktree `~/work/rrp-wt/rel-geo`, branch `track/rel-geo`; brief: wire R13's `geo.*` and R17's `ix.support`
 / `ix.force_flow` so they actually reach attention; follow-up to research/tracks/rel-r13.md and rel-r17.md's own "for

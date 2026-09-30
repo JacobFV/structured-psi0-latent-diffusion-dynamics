@@ -121,11 +121,22 @@ nodes:
         sources:
           - {robots: $si_pairs, statuses: [success], include_dart_failures: false}
           - {robots: $ho_pairs, statuses: [success], include_dart_failures: false}
+  # D-144 addendum (rel-r2c open question 1, closed by the sweep-flags row): `latent.factors` replaces the
+  # flag-driven flat `latent.semantic_weight` + `flags.probe_lv_min` pair, same shape as `dags/arm_lineage.yaml`'s
+  # `stageA` node (`dual` shares `FLAG_SPEC[("dual", "train_rep")]` with arm, which no longer maps `probe_lv_min`
+  # -- see core/runconfig.py). Only variant `semfix` needs the `per:` override (lv_min -4.0); `nosem`'s `{sw}=0.0`
+  # comes from the base template.
   stageA:
     stage: train_rep
     resources: {gpu: true, gpu_mem: 16G, cpu: 6, mem: 44G, max_seconds: 21600}   # v1 dual chain 32G x 1.35 (D-117)
+    per:
+      variant:
+        semfix:
+          params:
+            latent:
+              factors: [{name: probe.arm.visible, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.arm.looking_at, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.arm.focused_on, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.arm.held_by, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.arm.acting_on, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.arm.rel_pos, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.arm.observed_effect, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.arm.subtask, weight: 1.0, params: {lv_min: -4.0}}]
     config:
-      flags: {zero_prev_action: true, realizer_anchor: false, probe_lv_min: '{lv}'}
+      flags: {zero_prev_action: true, realizer_anchor: false}
       inputs: {packed_dir: '@pack'}
       params:
         horizon: 16
@@ -137,7 +148,7 @@ nodes:
         probe: {n_operators: 14, max_assemblies: 2}
         prefetch: true
         name: '{pfx}_stageA'
-        latent: {name: '{pfx}_stageA', semantic_weight: '{sw}'}
+        latent: {name: '{pfx}_stageA', factors: [{name: probe.arm.visible, weight: '{sw}'}, {name: probe.arm.looking_at, weight: '{sw}'}, {name: probe.arm.focused_on, weight: '{sw}'}, {name: probe.arm.held_by, weight: '{sw}'}, {name: probe.arm.acting_on, weight: '{sw}'}, {name: probe.arm.rel_pos, weight: '{sw}'}, {name: probe.arm.observed_effect, weight: '{sw}'}, {name: probe.arm.subtask, weight: '{sw}'}]}
   probes:
     stage: probes
     resources: {gpu: true, gpu_mem: 8G, cpu: 2, mem: 24G, max_seconds: 10800}

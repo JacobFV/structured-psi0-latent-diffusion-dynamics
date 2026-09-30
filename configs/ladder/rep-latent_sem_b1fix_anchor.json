@@ -27,7 +27,40 @@
  "out_dir": "artifacts/runs/ladder_latent_sem_b1fix_anchor",
  "latent": {
   "name": "ladder_latent_sem_b1fix_anchor",
-  "semantic_weight": 1.0
+  "factors": [
+   {
+    "name": "probe.arm.visible",
+    "weight": 1.0
+   },
+   {
+    "name": "probe.arm.looking_at",
+    "weight": 1.0
+   },
+   {
+    "name": "probe.arm.focused_on",
+    "weight": 1.0
+   },
+   {
+    "name": "probe.arm.held_by",
+    "weight": 1.0
+   },
+   {
+    "name": "probe.arm.acting_on",
+    "weight": 1.0
+   },
+   {
+    "name": "probe.arm.rel_pos",
+    "weight": 1.0
+   },
+   {
+    "name": "probe.arm.observed_effect",
+    "weight": 1.0
+   },
+   {
+    "name": "probe.arm.subtask",
+    "weight": 1.0
+   }
+  ]
  },
  "zero_prev_action": true,
  "realizer_anchor": true

@@ -159,7 +159,10 @@ def test_dual_pipeline_guards_and_template():
                 and nat["contact_labels"], nid
             assert n.rc.options.get("gate", "enforce") == "enforce"
     st = next(n for n in plan.nodes.values() if n.rc.stage == "train_rep" and n.rc.variant == "semfix")
-    assert st.rc.to_native()["latent"]["probe_lv_min"] == -4.0
+    # D-144 sweep-flags: `latent.factors` replaces the flag-driven flat `latent.probe_lv_min`
+    # (FLAG_SPEC[("dual", "train_rep")] no longer maps `probe_lv_min`; core/runconfig.py).
+    from rrp.policies.nets.semantic_latent import LatentConfig
+    assert LatentConfig(**st.rc.to_native()["latent"]).lv_min == -4.0
     # the B-1 guard refuses a new dual training config with zero_prev_action false
     rc = st.rc.model_copy(update=dict(flags=st.rc.flags.model_copy(update=dict(zero_prev_action=False))))
     ctx = StageContext(rc=rc, index=None, root=ROOT)

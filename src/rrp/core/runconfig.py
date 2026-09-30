@@ -41,20 +41,26 @@ PIPELINE_STAGES = ("collect", "pack", "train_rep", "probes", "train_flow", "flow
 # train_bc moved to PIPELINE_STAGES (W8: legged BC positive control through run-dag); arm/dual do not implement it.
 LEGACY_ONLY_STAGES = ("train_policy", "adapt", "vlm", "protocol")
 Stage = Literal[PIPELINE_STAGES + LEGACY_ONLY_STAGES]  # type: ignore[valid-type]
-# NOTE (D-144 addendum, decision (b), unit R2c): `probe_lv_min` stays a first-class Flag here, mapped to
-# `latent.probe_lv_min` for arm/dual `train_rep`, although unit R2 (docs/relations.md 10) retired that flat key as
-# LatentConfig's OWN construction surface (`factors:` instead). It cannot be removed from FLAG_SPEC without breaking
-# three things this unit does not own: (1) `legged`'s identical mapping (legged has not migrated: fanout unit R4,
-# not merged) sharing this same closed `Flags` schema; (2) `test_runconfig.py::test_variant_must_match_recipe`
-# (general infra, constructs a RunConfig with `flags.probe_lv_min` set for the OLD-style `_check_variant` branch);
-# (3) `dags/arm_lineage.yaml` / `dags/templates/dual_lineage.yaml`, which render `flags: {probe_lv_min: '{lv}', ...}`
-# together with a flat `latent: {semantic_weight: '{sw}'}` block for the SAME lineages `test_dag.py::
-# test_arm_dag_reproduces_legacy_configs` proves byte-identical to `configs/ladder/**` rep files still on disk
-# (confirmed empirically: codemodding those config files to `factors:` while leaving the dag's Flag-driven
-# `latent.probe_lv_min` injection in place breaks that test, since `to_native()` unconditionally re-writes
-# `latent.probe_lv_min` from the flag for every applicable stage). Retiring the flag needs a coordinated edit of
-# FLAG_SPEC + those two dags + the linked config files together, which is out of R2c's owned-file list (only
-# core/runconfig.py itself, not the dags) -- see research/tracks/rel-r2c.md.
+# NOTE (D-144 addendum, decision (b); unit R2c raised this, unit sweep-flags closed it once R4 merged): arm/dual
+# `train_rep` no longer maps `probe_lv_min` in FLAG_SPEC below. R2c left it in place because retiring it needed three
+# things it did not own together: (1) legged's identical `Flags` schema (fanout unit R4, merged since -- but see
+# below, legged's OWN dags still use it, a separate reason it survives in FLAG_NAMES); (2)
+# `test_runconfig.py::test_variant_must_match_recipe` (now updated to the `factors:`-style RunConfig, the only shape
+# arm/dual `train_rep` still accepts for a NEW, non-legacy config -- see `_check_variant`); (3) `dags/arm_lineage.yaml`
+# / `dags/templates/dual_lineage.yaml`, now emitting `latent: {factors: [...]}` (a `probe.arm.*` FactorSpec per
+# query, `docs/relations.md` 10's `_probe_factors` shape) instead of a flag-driven flat `latent.semantic_weight`, and
+# `configs/ladder/**.json` (6 rep files) codemodded to match -- `tests/unit/test_relations_r2_latent.py`'s frozen
+# `LatentConfig.version()` table proves the hashes unchanged, `tests/unit/test_dag.py::
+# test_arm_dag_reproduces_legacy_configs` proves the dag's rendered native config still equals the (now-factors-
+# shaped) on-disk files.
+# `probe_lv_min` STAYS in FLAG_NAMES / `Flags` / `FLAG_SPEC[("legged", "train_rep")]` / `LEGACY_FLAG_DEFAULTS`: every
+# legged dag still under `dags/` (`legged_v2_*.yaml`, `dags/templates/legged_v2_*.yaml`, `legged_fixrep.yaml`,
+# `smoke_legged.yaml`, at least 9 files, confirmed by grep, none of them this row's to touch) renders a fresh,
+# non-legacy legged `train_rep` RunConfig with a literal `flags: {probe_lv_min: ..., ...}` block and a flat
+# `params.latent.semantic_weight`; `harness/train/legged_latent_train.py` (this row's file) now reads those two flat
+# keys through ONE conversion point (`_legged_probe_factors`, mirroring `nets/semantic_latent.py`'s
+# `LATENT_LEGACY_KEYS`/`_probe_factors`) instead of ad hoc at every use site, but the ON-DISK / dag-rendered key
+# NAMES are unchanged, so this Flag mapping must stay live for legged.
 FLAG_NAMES = ("zero_prev_action", "realizer_anchor", "realizer_drop_qd", "probe_lv_min", "qd_dropout", "contact_version")
 META = "@meta"          # flag recorded in the RunConfig/provenance only (no native key; e.g. contact_version)
 CLI = "@cli"            # flag the stage turns into a command-line argument (e.g. ladder --prev-action zero|own)
@@ -67,7 +73,7 @@ def _flag_spec() -> dict[tuple[str, str], dict[str, str]]:
     arm = {
         "collect": {"contact_version": META}, "pack": {"contact_version": META},
         "train_rep": {"zero_prev_action": "zero_prev_action", "realizer_anchor": "realizer_anchor",
-                      "probe_lv_min": "latent.probe_lv_min", "contact_version": META},
+                      "contact_version": META},   # D-144 sweep-flags: probe_lv_min retired here, `latent.factors` instead
         "probes": {"contact_version": META},
         "train_flow": {"zero_prev_action": "zero_prev_action", "contact_version": META},
         "flow_ft": {"zero_prev_action": "zero_prev_action", "contact_version": META},
@@ -186,9 +192,11 @@ Family = Annotated[str, AfterValidator(ensure_family)]
 LEGACY_FLAG_DEFAULTS = {
     ("arm", "realizer_anchor"): False,        # training/latent_train.py cfg_json.get("realizer_anchor", False)
     ("arm", "realizer_drop_qd"): False,       # training/latent_train.py, controllers/bundles.py .get(..., False)
-    ("arm", "probe_lv_min"): -8.0,            # models/semantic_latent.py LatentConfig.probe_lv_min
-    ("dual", "realizer_anchor"): False, ("dual", "realizer_drop_qd"): False, ("dual", "probe_lv_min"): -8.0,
-    ("legged", "probe_lv_min"): -8.0,         # training/legged_latent_train.py lc.get("probe_lv_min", -8.0)
+    # ("arm"|"dual", "probe_lv_min") retired (D-144 sweep-flags): no longer in FLAG_SPEC[("arm"|"dual", "train_rep")],
+    # so `load_legacy` never looks this default up for those two families any more; `LatentConfig`'s own default
+    # (`nets/semantic_latent.py::LATENT_LEGACY_KEYS` / `_probe_factors`) is unaffected (a different table).
+    ("dual", "realizer_anchor"): False, ("dual", "realizer_drop_qd"): False,
+    ("legged", "probe_lv_min"): -8.0,         # training/legged_latent_train.py: `_legged_probe_factors` default
     ("legged", "qd_dropout@train_rep"): 0.0,  # training/legged_latent_train.py lc.get("qd_dropout", 0.0)
     ("legged", "qd_dropout@refit"): 0.5,      # training/legged_dagger.py cfg.get("qd_dropout", 0.5)
 }
@@ -352,7 +360,13 @@ def _factors_probe_weight_lv(factors) -> tuple[float | None, float | None]:
 
 
 def _check_variant(rc: RunConfig) -> None:
-    """New configs: the variant label must match the recipe it names (catches mislabelled lineages)."""
+    """New configs: the variant label must match the recipe it names (catches mislabelled lineages).
+
+    D-144 sweep-flags: arm/dual `train_rep` configs are always `factors:`-shaped now (`dags/arm_lineage.yaml` /
+    `dags/templates/dual_lineage.yaml` emit `latent.factors`; `FLAG_SPEC[("arm"|"dual", "train_rep")]` no longer maps
+    `probe_lv_min`, so `rc.flags.probe_lv_min` is always None for these two families here), so the `else` branch below
+    is live ONLY for `legged` (whose own dags -- `legged_v2_*.yaml` and friends, out of this row's file list -- still
+    render a flat `latent.semantic_weight` + `flags.probe_lv_min`)."""
     if rc.variant == "na" or rc.stage not in ("train_rep", "train_flow", "flow_ft"):
         return
     p = rc.params
@@ -360,7 +374,7 @@ def _check_variant(rc: RunConfig) -> None:
         lat = p.get("latent") or {}
         if "factors" in lat:
             w, lv = _factors_probe_weight_lv(lat["factors"])
-        else:
+        else:                                            # legged only, see the docstring above
             w, lv = lat.get("semantic_weight"), rc.flags.probe_lv_min
         if w is None:
             raise RunConfigError("train_rep: params.latent.semantic_weight (or a probe.arm.* weight in "
@@ -585,8 +599,12 @@ def _legacy_variant(stage: str, rel: str, cfg: dict) -> str:
         return "na"
     rep = cfg.get("representation") if isinstance(cfg.get("representation"), str) else ""
     text = f"{Path(rel).stem} {cfg.get('name', '')} {rep}".lower()
-    lat = cfg.get("latent") if isinstance(cfg.get("latent"), dict) else {}
-    if _SEMFIX.search(text) or (lat.get("probe_lv_min", -8.0) > -8.0 and lat.get("semantic_weight", 0) > 0):
+    # D-144 sweep-flags: dropped the `lat.get("probe_lv_min"...) / lat.get("semantic_weight"...)` flat-key fallback
+    # that used to supplement the filename/name regex below -- confirmed empirically (a repo-wide scan over every
+    # configs/**/*.json with a "latent" block) that no file's classification actually depended on it; the filename
+    # regexes alone already agree with it everywhere. Text-only classification now, for every config under configs/,
+    # factors:-shaped or still-flat alike (this function only reads `rel`/`cfg.get("name")`/`representation` now).
+    if _SEMFIX.search(text):
         return "semfix"
     if _NOSEM.search(text):
         return "nosem"
