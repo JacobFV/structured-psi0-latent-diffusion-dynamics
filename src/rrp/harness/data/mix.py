@@ -9,8 +9,78 @@ from __future__ import annotations
 import json
 from dataclasses import fields
 from pathlib import Path
+from typing import Sequence
 
 import numpy as np
+
+from rrp.harness.data.manifest import write_manifest
+from rrp.harness.data.relgen import Label, Sample
+
+MANIFEST_SCHEMA = "relgen-shard-1"
+
+
+class RelgenError(ValueError):
+    """A factor names a label / transform relgen does not have, or a run's shards / schedule are unusable."""
+
+
+# ------------------------------------------------------------------------------------------------ shard IO
+def write_shard(factor: str, version: str, samples: Sequence[Sample], out_root: Path, *, shard_id: str) -> dict:
+    """Write one shard (`<factor>.value`/`.valid` arrays per label, per sample, in one `.npz`; rows of an earlier write
+    of the same `shard_id` are replaced, so a rerun is idempotent) plus its manifest
+    entry (`rrp.harness.data.manifest.write_manifest`, the one manifest writer): one row per sample with its full
+    provenance record (active set, label versions, transforms, env, task, seed) and the array keys that hold it."""
+    d = Path(out_root) / factor / version
+    d.mkdir(parents=True, exist_ok=True)
+    npz_path = d / f"{shard_id}.npz"
+    arrays: dict[str, np.ndarray] = {}
+    rows = []
+    for i, s in enumerate(samples):
+        keys = []
+        for lname, lab in s["labels"].items():
+            vk, ok = f"{i}.{lname}.value", f"{i}.{lname}.valid"
+            arrays[vk] = np.asarray(lab.value)
+            arrays[ok] = np.asarray(lab.valid)
+            keys.append(lname)
+        rows.append({"shard": npz_path.name, "row": i, "status": "ok", "label_keys": keys, **s["provenance"]})
+    np.savez_compressed(npz_path, **arrays)
+    existing = read_shard_manifest(d) or {}
+    kept = [r for r in existing.get("episodes") or [] if r.get("shard") != npz_path.name]   # same shard id: replaced
+    all_rows = kept + rows
+    return write_manifest(d, factor, all_rows, {"schema": MANIFEST_SCHEMA, "factor": factor, "version": version},
+                          filename="manifest.json")
+
+
+def read_shard_manifest(shard_dir: Path) -> dict | None:
+    from rrp.harness.data.manifest import read_manifest
+    p = Path(shard_dir) / "manifest.json"
+    return read_manifest(p) if p.exists() else None
+
+
+def load_shard_rows(factor: str, version: str, out_root: Path | str) -> list[Sample]:
+    """Read one factor/version's shard rows back into `Sample`s (labels rehydrated as `Label`s) -- what
+    `harness.data.mix.mixed_batches` pools from (unit R10)."""
+    d = Path(out_root) / factor / version
+    man = read_shard_manifest(d)
+    if not man:
+        return []
+    by_shard: dict[str, np.lib.npyio.NpzFile] = {}
+    out = []
+    for row in man["episodes"]:
+        shard = row["shard"]
+        if shard not in by_shard:
+            by_shard[shard] = np.load(d / shard)
+        z = by_shard[shard]
+        i = row["row"]
+        labels = {}
+        for lname in row.get("label_keys", []):
+            labels[lname] = Label(value=z[f"{i}.{lname}.value"], valid=z[f"{i}.{lname}.valid"],
+                                  prov=next((r["prov"] for r in row.get("labels", []) if r["label"] == lname), "gt"),
+                                  version=next((r["version"] for r in row.get("labels", []) if r["label"] == lname), ""))
+        prov = {k: v for k, v in row.items() if k not in ("shard", "row", "status", "label_keys")}
+        out.append({"inputs": {}, "labels": labels, "provenance": prov})
+    return out
+
+
 
 
 def allocate(n: int, shares: dict[str, float]) -> dict[str, int]:
@@ -133,6 +203,24 @@ def stack_labels(rows, family: str) -> dict:
     return out
 
 
+def _run_specs(cfg) -> tuple:
+    """The catalog FactorSpecs a RunConfig states (`params.latent.factors`, `params.policy.factors`, `params.factors`; the
+    featurizer switch `feat.base_axes` is not a catalog factor). Same reading as `pipelines.base._resolved_factors`, which
+    this layer cannot import."""
+    from rrp.policies.features import kinfeat
+    from rrp.policies.relations.base import resolve
+    specs = []
+    for path in (("latent", "factors"), ("policy", "factors"), ("factors",)):
+        cur = cfg.params or {}
+        for k in path:
+            cur = cur.get(k) if isinstance(cur, dict) else None
+        items = [it for it in (cur if isinstance(cur, list) else [])
+                 if (it if isinstance(it, str) else (it.get("name") if isinstance(it, dict) else None)) != kinfeat.FACTOR_NAME]
+        if items:
+            specs.extend(resolve(items))
+    return tuple(specs)
+
+
 def _curriculum(cur: dict, specs) -> tuple:
     from rrp.harness.data.relgen.curriculum import SchedulerConfig
     cur = dict(cur)
@@ -174,11 +262,8 @@ class RelationBatches:
 
     def __init__(self, cfg, out_dir, main, *, batch_size: int | None = None, start_step: int = 0):
         from rrp.harness.data.relgen.curriculum import Scheduler
-        from rrp.harness.pipelines.base import apply_run_context
-        from rrp.harness.pipelines.relations import RelgenError, load_shard_rows
         from rrp.policies.relations.base import get_factor
-        with apply_run_context(cfg) as rctx:
-            specs = rctx.specs
+        specs = _run_specs(cfg)
         cur = (cfg.params or {}).get("curriculum")
         if not isinstance(cur, dict):
             raise ValueError("params.curriculum (a dict) is required by relation_batches")

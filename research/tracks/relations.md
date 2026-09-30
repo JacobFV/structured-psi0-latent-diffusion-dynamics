@@ -116,6 +116,7 @@ Closes open item 1. Nothing about the training loop changed in F0 (no new params
   per-shard `manifest_hash`, row count and npz digests; a stage that produces no rows raises. DAG adoption (config hash + pins)
   is the resume-by-hash. The `relations_factor` template has a `relgen` node per `geo / ix / task` instance (dry-run planned for
   the three relations recipes).
+- Shard IO (`write_shard`, `load_shard_rows`, `RelgenError`) lives in `harness/data/mix.py` (the data layer must not import pipelines: `test_layering`); the stage imports it from there.
 - Names are checked: a factor label not in `LABELS` (except `probe.*`, whose labels are family-level readouts) or a `gen` that
   is neither a TRANSFORM nor a scene PART raises `RelgenError` (F1 note: the silent `TRANSFORMS.get` skip is gone).
 - Trainer hook (`harness/data/mix.py`): `batches = relation_batches(rc, out_dir, main_batches)`. Needs `params.curriculum`

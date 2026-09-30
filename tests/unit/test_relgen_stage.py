@@ -11,8 +11,8 @@ import pytest
 from rrp.harness.data.mix import allocate, mask_missing_labels, mixed_batches
 from rrp.harness.data.relgen import Label, LabelDef, TokenIndex, TransformDef, register_label, register_transform
 from rrp.harness.data.relgen.curriculum import Scheduler, SchedulerConfig
-from rrp.harness.pipelines.relations import (EpisodeSnapshot, label_episode, load_shard_rows, read_shard_manifest,
-                                             relations_data, write_shard)
+from rrp.harness.data.mix import RelgenError, load_shard_rows, read_shard_manifest, write_shard
+from rrp.harness.pipelines.relations import EpisodeSnapshot, label_episode, relations_data
 from rrp.policies.relations.base import FactorDef, register_factor
 
 
@@ -202,7 +202,7 @@ from rrp.envs.base import EntityState
 from rrp.harness.data import relgen as _relgen
 from rrp.harness.data.mix import relation_batches, stack_labels
 from rrp.harness.pipelines import base as B
-from rrp.harness.pipelines.relations import RelgenError, SnapshotCollector, producer_status
+from rrp.harness.pipelines.relations import SnapshotCollector, producer_status
 from rrp.policies.relations import catalog as _catalog  # noqa: F401  (registers geo.pos3d & co)
 from rrp.policies.relations.base import RelCtx, TokenSet, estimates_loss, spec
 
@@ -352,7 +352,6 @@ def test_bad_steer_line_is_a_rejected_record_and_the_listing_says_so(tmp_path, c
 
 # (c) resume adopts by hash ----------------------------------------------------------------------------------------
 def test_resume_from_step_rebuilds_the_scheduler_and_replays_the_same_rows(tmp_path):
-    from rrp.harness.pipelines.relations import RelgenError
     root = _shards(tmp_path)
     full = list(relation_batches(_rc(root), tmp_path / "full", _main(4)))
     out = tmp_path / "run"
@@ -397,7 +396,7 @@ def test_stage_writes_hashed_shards_and_the_dag_adopts_it_on_rerun(tmp_path, mon
     m2 = json.loads((tmp_path / rc.out / "pipeline_manifest.json").read_text())
     assert m2["metrics"]["shards"] == man["metrics"]["shards"]                      # identical hashes, no doubled rows
     assert sorted((tmp_path / rc.out / "relgen" / "geo.pos3d" / "1").glob("*.npz")) == n_files
-    assert len(R.load_shard_rows("geo.pos3d", "1", tmp_path / rc.out / "relgen")) == 6
+    assert len(load_shard_rows("geo.pos3d", "1", tmp_path / rc.out / "relgen")) == 6
 
     class Runner:                                                                # the DAG must adopt, not launch
         launched = []
