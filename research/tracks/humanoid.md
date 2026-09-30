@@ -304,7 +304,7 @@ Stopped / final state of the last two runs:
 - h1 steps expert v2: FINISHED its segment (iter 6000, 30 s episodes). Curriculum level 0.6 (step heights up to 0.18 L),
   last window success 0.33; NOT evaluated in C MuJoCo after the resume (last C grid = the iter-1500 actor: 20/20 at 0.10 L,
   0/20 at >= 0.15 L). Checkpoint `artifacts/runs/humanoid_p2_h1_steps_v2/checkpoint.pt` (stores level 0.6).
-Not started: D-139 g1 knee side attempt, gap experts, sealed transfer (no berkeley/toddlerbot adapters yet), P3.
+Not started: D-139 g1 knee side attempt, gap experts, sealed transfer (no berkeley/toddlerbot adapters yet), P3 (planned as recipes, item 6 below; not run).
 Artifacts: all `artifacts/runs/humanoid_*` (93 MB incl. every tracker actor/checkpoint/gate JSON) and the 31 W13 videos
 (`artifacts/video/2026-09-29_{contact_h1,contact_t1,contact_g1,humanoid}_*`) are copied, sha256-verified, to
 `~/work/rrp-data/peer-archive/{runs,video}` (ARCHIVE_LOG.txt); peer copies kept (small). Weights are never committed.
@@ -335,9 +335,25 @@ Resources in the recipes are ESTIMATES: measure and redeclare >= 1.35 x peak (D-
    `lab_gate.json` (replaces `humanoid_tracker_gate.sh`). The comparison videos of `humanoid_tracker_finalize.sh` are `rrp video legged`
    now; the side-by-side installed-vs-new renderer went to `.old/scripts/render_contact_compare.py`.
 5. **Not a recipe (needs code first):** the D-139 side attempt (g1 knee-specific target band + stance knee-flex term; add a
-   `g1_*` entry to `rrp.harness.train.tracker_recipes` (`WARP_RECIPES`), then an instance of `humanoid_task.yaml`), and P3 (generalise
-   `rrp.policies.features.legged.public_context`, whose EVENTS / GLOBAL_DIM are waypoint-specific, and `rrp.harness.data.legged_latent_collect`
-   to task scenarios + expert trackers before any latent / BC training).
+   `g1_*` entry to `rrp.harness.train.tracker_recipes` (`WARP_RECIPES`), then an instance of `humanoid_task.yaml`).
+6. **Transfer matrix (P3; H6)** -- one recipe per humanoid task, `recipes/humanoid/transfer_<task>.yaml` for h_steps, h_gap, h_walk, h_turn,
+   h_reach, h_squat_pick, h_place (template `recipes/templates/humanoid_transfer.yaml`, family `humanoid`,
+   `rrp.harness.pipelines.humanoid`: collect -> pack -> train_rep -> train_flow / train_bc -> eval_transfer -> sealed_eval).
+   The driver is `rrp eval humanoid-transfer` (bodies x methods x demo budgets 5 / 20 / 100 x 2 training seeds; Level 1 apart from Level 2;
+   one acquisition record per (level, task, body, budget): demos, teacher TICKS, env samples, updates 150 / 300 / 600; tables through
+   `statistics.py`: Wilson k/200, Newcombe vs BC SFT). Order: `collect_src` / `collect_tgt` / `collect_sealed` (teacher demos, sealed bodies
+   only on adaptation seeds) -> `pack` / `pack_sealed` (nested first-N packs) -> per system (semfix, nosem, bc) x seed the trainers ->
+   `eval@<system>.s<seed>` on the non-sealed bodies (dev scenes) -> `sealed@...` (needs `vars.sealed: true`; every cell runs ONCE, logged in
+   `artifacts/runs/humanoid/sealed_log.jsonl`, and a cell whose run is missing never enters `sealed_eval`). `eval_ref` / `sealed_ref` are the
+   variant-less cells (Level 1 existing controllers, the scripted-teacher reference). Pooled tables:
+   `rrp eval humanoid-transfer --config <point out>/transfer_config.json --tables-only`.
+   What is NOT in the DAG and is reported as `missing_run` / `unaccounted` (never faked): the adapting trainers (system-0 refit from a
+   demo pack, joint flow warm start, BC SFT warm start: `train_flow` / `legged_bc` have no warm start) and the Level-1 PPO fine-tune / scratch
+   runs. The humanoid task shards carry no `waypoints`, which `LeggedData` requires, so `train_rep` / `train_flow` / `train_bc` refuse them with
+   a StageError until the loader is task-agnostic. h_steps / h_gap name `SET_WHEN_REGISTERED` trackers (no contact_v2 tracker of those tasks is
+   registered), so their collect nodes fail at once. Only t1, g1, h1 have registered trackers: source and dev pool = those three; sealed
+   bodies n1 / berkeley / toddlerbot_2xc (legs tasks), g1_hands / n1 (manipulation tasks); phum sealed is not planned.
+   Not planned: the carry / loco-pick tasks (U3 not merged). Training is paused: nothing here has been run.
 Also here: the four never-run D-126 CPU tracker recipes `recipes/humanoid/d126_tracker_*.yaml` (superseded in practice by the GPU
 recipes of `tracker_recipes.py`).
 
@@ -382,6 +398,17 @@ DAG humanoid_tracker_gate_pool: 6 nodes (source recipes/humanoid/tracker_gate_po
 - waypoint@t1_v2ft4 [planned ] eval_tracker @peer cpu=1 mem=4G retries=0
 - validate@g1_v4 [planned ] validate_tracker @peer cpu=1 mem=4G retries=0
 - waypoint@g1_v4 [planned ] eval_tracker @peer cpu=1 mem=4G retries=0
+```
+```
+$ rrp run-dag recipes/humanoid/transfer_h_walk.yaml --dry-run          # the other six differ in bodies / methods only
+DAG humanoid_transfer_h_walk: 29 nodes
+- collect_src, collect_tgt, collect_sealed  [collect @peer cpu=6 mem=16G]
+- pack, pack_sealed                         [pack @peer cpu=1 mem=2G]
+- eval_ref, sealed_ref                      [eval_transfer / sealed_eval @peer cpu=4 mem=8G]
+- rep@{semfix,nosem}.s{0,1}                 [train_rep @peer cpu=2 mem=3G gpu=4G]
+- flow@{semfix,nosem}.s{0,1}                [train_flow @peer cpu=2 mem=3G gpu=4G]
+- bc@bc.s{0,1}                              [train_bc @peer cpu=2 mem=3G gpu=4G]
+- eval@<system>.s<seed>, sealed@<system>.s<seed>   [eval_transfer / sealed_eval @peer cpu=4 mem=8G]   (6 + 6 nodes)
 ```
 
 ## Sealed split guard and sealed-body adapters (H5, audit D12, D-146 item 2)

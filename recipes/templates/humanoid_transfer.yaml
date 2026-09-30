@@ -1,0 +1,262 @@
+# TEMPLATE (H6, D-146; docs/architecture.md 14.4; research/tracks/humanoid.md section 4): the humanoid transfer pipeline of ONE task.
+# An instance `recipes/humanoid/transfer_<task>.yaml` extends this and sets vars.task / vars.upper, lists.src_bodies / dev_bodies /
+# sealed_bodies / trackers and lists.transfer (task, bodies, methods that differ). Stages of family `humanoid`
+# (rrp.harness.pipelines.humanoid):
+#   collect_src   teacher demos of the SOURCE bodies (seeds 0-99)                                  scripted teacher -> labelled scripted_teacher
+#   collect_tgt   target-adaptation demos of the non-sealed dev bodies (seeds 1000000-1000099)
+#   collect_sealed  the same for the SEALED bodies (adaptation seeds only; SealedSplit refuses any other seed)
+#   pack / pack_sealed  nested first-N packs (N = 5 / 20 / 100) + pack.json: the acquisition record (demos, teacher ticks, matched updates 150 / 300 / 600)
+#   rep, flow     latent semfix / nosem on the source demos (zero-shot systems), one node per (variant, training seed)
+#   bc            whole-policy BC on the source demos (zero-shot BC), variant bc
+#   eval          `rrp eval humanoid-transfer --scope dev`: this point's cells (system x training seed) on development scenes
+#   sealed        the same on the sealed bodies and evaluation scenes; every cell runs once (needs vars.sealed: true)
+#   eval_ref, sealed_ref  (global) the cells without a variant: existing-controller transfer (Level 1) and the scripted-teacher reference
+# Level 1 (existing-controller transfer) and Level 2 (new controller training) are separate sections of every table and never pooled. All
+# methods of a (level, body, budget) group carry ONE acquisition record; a method whose run does not exist is reported `missing_run`.
+# NOT in this DAG (no trainer exists yet; the driver reports their cells as missing_run): system-0 refit and joint flow + system-0 from a
+# demo pack (needs a warm-start `init` in train_flow and DAgger buffers), BC SFT (warm start in legged_bc), PPO fine-tune / scratch.
+# The pooled results: `rrp eval humanoid-transfer --config <transfer_config.json> --tables-only` (merges every point's results_glob).
+# Resources are ESTIMATES (D-117): redeclare >= 1.35 x the measured peak before a real launch. Training is paused (2026-09-30).
+name: humanoid_transfer_template
+schema: dag-1
+family: humanoid
+track: humanoid
+lineage: 'humanoid-transfer-{task}-{system}'
+global_lineage: 'humanoid-transfer-{task}'
+label_prefix: 'htr_{tg}{seed}'
+global_label_prefix: 'htr'
+matrix:
+  system: [semfix, nosem, bc]
+  seed: [0, 1]
+axis_vars:
+  system:
+    semfix: {sw: 1.0, psw: 0.5, tg: fs}
+    nosem: {sw: 0.0, psw: 0.0, tg: ns}
+    bc: {sw: 0.0, psw: 0.0, tg: bc}
+vars:
+  task: SET_IN_CHILD_DAG
+  upper: false                 # true for the wholebody tasks (h_walk .. h_place): the latent policy realizes the `upper` group
+  sealed: false                # the sealed node refuses until this is true (sealed cells run once)
+  src_seeds: 0-99
+  tgt_seeds: 1000000-1000099
+  rep_steps: 12000
+  flow_steps: 12000
+  bc_steps: 20000
+lists:
+  src_bodies: [t1, g1, h1]
+  dev_bodies: [t1, g1, h1]
+  sealed_bodies: [n1, berkeley, toddlerbot_2xc]
+  trackers: {}                 # {body: '<body>:<version>'}: the registered actor a body's demos are collected with (default: the body's own)
+  budgets: [5, 20, 100]
+  updates: {5: 150, 20: 300, 100: 600}
+  transfer:
+    name: SET_IN_CHILD_DAG
+    task: SET_IN_CHILD_DAG
+    env: mujoco/legged
+    train_seeds: [0, 1]
+    scenes: 100
+    bodies: {dev: [t1, g1, h1], sealed: [n1, berkeley, toddlerbot_2xc]}
+    pack: [artifacts/runs/humanoid/humanoid-transfer-<task>/pack_s0/pack.json, artifacts/runs/humanoid/humanoid-transfer-<task>/pack-sealed_s0/pack.json]
+    results_glob: ['artifacts/runs/humanoid/humanoid-transfer-<task>*/eval_transfer*', 'artifacts/runs/humanoid/humanoid-transfer-<task>*/sealed_eval*']
+    latent_kw: {}
+    levels:
+      '2': {unit: demos, budgets: [5, 20, 100], updates: {5: 150, 20: 300, 100: 600}, reference: bc_sft}
+    methods:
+      level2:
+        - name: semfix_zeroshot
+          level: 2
+          variant: semfix
+          kind: latent
+          source: learned
+          trained: true
+          policy: legged_latent
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/train_rep_s<seed>/representation.pt'}
+        - name: nosem_zeroshot
+          level: 2
+          variant: nosem
+          kind: latent
+          source: learned
+          trained: true
+          policy: legged_latent
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/train_rep_s<seed>/representation.pt'}
+        - name: bc_zeroshot
+          level: 2
+          variant: bc
+          kind: bc
+          source: bc
+          trained: true
+          policy: legged_bc
+          kw: {checkpoint: 'artifacts/runs/humanoid/humanoid-transfer-<task>-bc/train_bc_s<seed>/policy.pt'}
+        - name: semfix_refit
+          level: 2
+          variant: semfix
+          kind: latent
+          source: learned
+          trained: true
+          budgeted: true
+          policy: legged_latent
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/refit-n<budget>_s<seed>/representation.pt'}
+          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/refit-n<budget>_s<seed>/acquisition.json'
+        - name: semfix_joint
+          level: 2
+          variant: semfix
+          kind: latent
+          source: learned
+          trained: true
+          budgeted: true
+          policy: legged_latent
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/flow-n<budget>_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/refit-n<budget>_s<seed>/representation.pt'}
+          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-semfix/flow-n<budget>_s<seed>/acquisition.json'
+        - name: nosem_refit
+          level: 2
+          variant: nosem
+          kind: latent
+          source: learned
+          trained: true
+          budgeted: true
+          policy: legged_latent
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/train_flow_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/refit-n<budget>_s<seed>/representation.pt'}
+          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/refit-n<budget>_s<seed>/acquisition.json'
+        - name: nosem_joint
+          level: 2
+          variant: nosem
+          kind: latent
+          source: learned
+          trained: true
+          budgeted: true
+          policy: legged_latent
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/flow-n<budget>_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/refit-n<budget>_s<seed>/representation.pt'}
+          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-nosem/flow-n<budget>_s<seed>/acquisition.json'
+        - name: bc_sft
+          level: 2
+          variant: bc
+          kind: bc
+          source: bc
+          trained: true
+          budgeted: true
+          policy: legged_bc
+          kw: {checkpoint: 'artifacts/runs/humanoid/humanoid-transfer-<task>-bc/train_bc-sft-n<budget>_s<seed>/policy.pt'}
+          acquisition: 'artifacts/runs/humanoid/humanoid-transfer-<task>-bc/train_bc-sft-n<budget>_s<seed>/acquisition.json'
+      reference:
+        - name: teacher
+          level: 0
+          kind: teacher
+          source: scripted_teacher
+          policy: 'teacher:<task>'
+defaults:
+  placement: peer
+  retries: 0
+  max_parallel: 4
+  max_parallel_gpu: 2
+  max_cpu: 8
+  max_mem_gib: 28
+  shared_budget: true
+  resources: {cpu: 4, mem: 6G, gpu: false, max_seconds: 14400}
+base:
+  flags: {contact_version: contact_v2}
+nodes:
+  collect_src:
+    stage: collect
+    tag: src
+    scope: global
+    resources: {cpu: 6, mem: 16G, max_seconds: 21600}
+    config:
+      options: {task: '{task}', bodies: $src_bodies, trackers: $trackers, seeds: '{src_seeds}', workers: 6}
+  collect_tgt:
+    stage: collect
+    tag: tgt
+    scope: global
+    resources: {cpu: 6, mem: 16G, max_seconds: 21600}
+    config:
+      options: {task: '{task}', bodies: $dev_bodies, trackers: $trackers, seeds: '{tgt_seeds}', workers: 6}
+  collect_sealed:
+    stage: collect
+    tag: sealed
+    scope: global
+    resources: {cpu: 6, mem: 16G, max_seconds: 21600}
+    config:
+      options: {task: '{task}', bodies: $sealed_bodies, trackers: $trackers, seeds: '{tgt_seeds}', workers: 6}
+  pack:
+    stage: pack
+    scope: global
+    resources: {cpu: 1, mem: 2G, max_seconds: 1800}
+    config:
+      inputs: {data: '@collect_tgt'}
+      options: {task: '{task}', bodies: $dev_bodies, budgets: $budgets, updates: $updates}
+  pack_sealed:
+    stage: pack
+    tag: sealed
+    scope: global
+    resources: {cpu: 1, mem: 2G, max_seconds: 1800}
+    config:
+      inputs: {data: '@collect_sealed'}
+      options: {task: '{task}', bodies: $sealed_bodies, budgets: $budgets, updates: $updates}
+  rep:
+    stage: train_rep
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
+    per:
+      system:
+        semfix:
+          variant: semfix
+          params:
+            latent:
+              factors: [{name: probe.legged.contact, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.goal, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.disp, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.subtask, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.fall, weight: 1.0, params: {lv_min: -4.0}}]
+    config:
+      flags: {qd_dropout: 0.5}
+      inputs: {data: '@collect_src'}
+      params: {name: 'htr_{system}_{task}_s{seed}_rep', bodies: $src_bodies, latent: {dz: 32, width: 192, factors: [{name: probe.legged.contact, weight: '{sw}'}, {name: probe.legged.goal, weight: '{sw}'}, {name: probe.legged.disp, weight: '{sw}'}, {name: probe.legged.subtask, weight: '{sw}'}, {name: probe.legged.fall, weight: '{sw}'}], beta_kl: 0.001}, steps: '{rep_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 4000}
+  flow:
+    stage: train_flow
+    only: {system: [semfix, nosem]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
+    config:
+      inputs: {representation: '@rep:representation.pt'}
+      params: {name: 'htr_{system}_{task}_s{seed}_flow', width: 256, layers: 4, packet_semantic_weight: '{psw}', packet_tau_min: 0.6, steps: '{flow_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 4000}
+  bc:
+    stage: train_bc
+    only: {system: [bc]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
+    config:
+      inputs: {data: '@collect_src'}
+      params: {name: 'htr_bc_{task}_s{seed}', bodies: $src_bodies, model: {width: 192, enc_layers: 2, dec_layers: 3}, steps: '{bc_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 5000}
+  eval:
+    stage: eval_transfer
+    resources: {cpu: 4, mem: 8G, max_seconds: 43200}
+    per:
+      system:
+        semfix: {inputs: {flow: '@flow:policy.pt'}}
+        nosem: {inputs: {flow: '@flow:policy.pt'}}
+        bc: {inputs: {bc: '@bc:policy.pt'}}
+    config:
+      inputs: {pack: '@pack:pack.json'}
+      options: {transfer: $transfer, variant: '{system}', train_seed: '{seed}'}
+  sealed:
+    stage: sealed_eval
+    deps: [eval]
+    resources: {cpu: 4, mem: 8G, max_seconds: 43200}
+    per:
+      system:
+        semfix: {inputs: {flow: '@flow:policy.pt'}}
+        nosem: {inputs: {flow: '@flow:policy.pt'}}
+        bc: {inputs: {bc: '@bc:policy.pt'}}
+    config:
+      inputs: {pack: '@pack_sealed:pack.json'}
+      options: {transfer: $transfer, variant: '{system}', train_seed: '{seed}', sealed: '{sealed}'}
+  eval_ref:
+    stage: eval_transfer
+    tag: ref
+    scope: global
+    resources: {cpu: 4, mem: 8G, max_seconds: 43200}
+    config:
+      inputs: {pack: '@pack:pack.json'}
+      options: {transfer: $transfer, variant: '-'}
+  sealed_ref:
+    stage: sealed_eval
+    tag: ref
+    scope: global
+    deps: [eval_ref]
+    resources: {cpu: 4, mem: 8G, max_seconds: 43200}
+    config:
+      inputs: {pack: '@pack_sealed:pack.json'}
+      options: {transfer: $transfer, variant: '-', sealed: '{sealed}'}

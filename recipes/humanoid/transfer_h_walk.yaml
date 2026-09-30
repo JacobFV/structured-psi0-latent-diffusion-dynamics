@@ -1,0 +1,19 @@
+extends: ../templates/humanoid_transfer.yaml
+name: humanoid_transfer_h_walk
+schema: dag-1
+track: humanoid
+policy: latent
+env: mujoco/legged
+task: h_walk
+bodies: humanoid_pool_v1
+factors: []
+# L0 walk to the marker and halt. Wholebody task: the latent policy realizes the `upper` group (latent_kw.upper). Sealed bodies: [n1, berkeley, toddlerbot_2xc].
+vars: {task: h_walk, upper: true}
+lists:
+  sealed_bodies: [n1, berkeley, toddlerbot_2xc]
+  transfer:
+    name: humanoid_transfer_h_walk
+    task: h_walk
+    latent_kw: {upper: true}
+    bodies:
+      sealed: [n1, berkeley, toddlerbot_2xc]

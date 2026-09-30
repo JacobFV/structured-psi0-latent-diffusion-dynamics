@@ -1,0 +1,19 @@
+extends: ../templates/humanoid_transfer.yaml
+name: humanoid_transfer_h_squat_pick
+schema: dag-1
+track: humanoid
+policy: latent
+env: mujoco/legged
+task: h_squat_pick
+bodies: humanoid_pool_v1
+factors: []
+# M2 squat and pick. Wholebody task: the latent policy realizes the `upper` group (latent_kw.upper). Sealed bodies: [g1_hands, n1].
+vars: {task: h_squat_pick, upper: true}
+lists:
+  sealed_bodies: [g1_hands, n1]
+  transfer:
+    name: humanoid_transfer_h_squat_pick
+    task: h_squat_pick
+    latent_kw: {upper: true}
+    bodies:
+      sealed: [g1_hands, n1]

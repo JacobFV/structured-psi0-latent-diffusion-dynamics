@@ -49,6 +49,8 @@ TOOLS: dict[tuple[str, str], tuple[str, str]] = {
     ("suite", "humanoid-gap"): ("rrp.harness.eval.humanoid_eval:gap_main", "C-MuJoCo h_gap_sidestep evaluation (expert / blind tracker)"),
     ("suite", "humanoid-gap-smoke"): ("rrp.harness.eval.humanoid_eval:gap_smoke_main", "WarpGapEnv smoke with a tracker actor (peer GPU)"),
     ("suite", "contact-waypoint"): ("rrp.harness.eval.humanoid_eval:waypoint_main", "WaypointTeacher driving a tracker on waypoint_contact"),
+    ("eval", "humanoid-transfer"): ("rrp.harness.eval.humanoid_eval:transfer_main",
+                                    "humanoid transfer matrix: sealed bodies x methods x demo budgets x seeds, Level 1 apart from Level 2"),
     ("suite", "grasp-rig"): ("rrp.harness.eval.grasp_rig:main", "grasp contact rig [VERSION [GRIPPER [FRICTION]]]"),
     ("suite", "relations-curriculum"): ("rrp.cli.curriculum:suite_main",
                                         "curriculum schedule / competence-by-depth / interfering-pairs report (R11)"),
@@ -96,6 +98,8 @@ def register(sub) -> None:
         if acts:
             groups[g] = acts[0]
     for (g, name), (_, hlp) in TOOLS.items():
+        if g in sub.choices and g not in groups:       # a leaf command of that name (`rrp eval`): dispatch reaches the tool anyway
+            continue
         if g not in groups:
             groups[g] = sub.add_parser(g, help=GROUP_HELP.get(g, g)).add_subparsers(dest=f"{g}_cmd", required=True)
         groups[g].add_parser(name, help=hlp, add_help=False)

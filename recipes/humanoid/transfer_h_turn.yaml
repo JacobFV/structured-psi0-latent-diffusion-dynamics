@@ -1,0 +1,19 @@
+extends: ../templates/humanoid_transfer.yaml
+name: humanoid_transfer_h_turn
+schema: dag-1
+track: humanoid
+policy: latent
+env: mujoco/legged
+task: h_turn
+bodies: humanoid_pool_v1
+factors: []
+# L0 turn in place to a heading. Wholebody task: the latent policy realizes the `upper` group (latent_kw.upper). Sealed bodies: [n1, berkeley, toddlerbot_2xc].
+vars: {task: h_turn, upper: true}
+lists:
+  sealed_bodies: [n1, berkeley, toddlerbot_2xc]
+  transfer:
+    name: humanoid_transfer_h_turn
+    task: h_turn
+    latent_kw: {upper: true}
+    bodies:
+      sealed: [n1, berkeley, toddlerbot_2xc]

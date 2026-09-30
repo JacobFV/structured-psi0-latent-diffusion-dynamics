@@ -1,0 +1,19 @@
+extends: ../templates/humanoid_transfer.yaml
+name: humanoid_transfer_h_reach
+schema: dag-1
+track: humanoid
+policy: latent
+env: mujoco/legged
+task: h_reach
+bodies: humanoid_pool_v1
+factors: []
+# M1 palm reaches a point in the air. Wholebody task: the latent policy realizes the `upper` group (latent_kw.upper). Sealed bodies: [g1_hands, n1].
+vars: {task: h_reach, upper: true}
+lists:
+  sealed_bodies: [g1_hands, n1]
+  transfer:
+    name: humanoid_transfer_h_reach
+    task: h_reach
+    latent_kw: {upper: true}
+    bodies:
+      sealed: [g1_hands, n1]

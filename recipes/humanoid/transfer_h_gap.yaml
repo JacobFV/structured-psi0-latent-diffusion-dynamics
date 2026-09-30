@@ -1,0 +1,45 @@
+extends: ../templates/humanoid_transfer.yaml
+name: humanoid_transfer_h_gap
+schema: dag-1
+track: humanoid
+policy: latent
+env: mujoco/legged
+task: h_gap
+bodies: humanoid_pool_v1
+factors: []
+# L3 gap side-step. The scripted teacher runs over a tracker per body; no contact_v2 tracker of this task is registered yet, so the collect
+# nodes name `SET_WHEN_REGISTERED` (they fail at once) and the transfer cells report missing_run: nothing is faked. Level 1 (existing
+# controllers: the shared morphology tracker and task experts zero-shot, PPO fine-tune 1e6 / 1e7 samples vs scratch) is reported apart.
+vars: {task: h_gap, upper: false}
+lists:
+  trackers: {t1: 't1:SET_WHEN_REGISTERED', g1: 'g1:SET_WHEN_REGISTERED', h1: 'h1:SET_WHEN_REGISTERED'}
+  transfer:
+    name: humanoid_transfer_h_gap
+    task: h_gap
+    latent_kw: {}
+    levels:
+      '1': {unit: samples, budgets: [1000000, 10000000], reference: ppo_scratch}
+    methods:
+      level1:
+        - name: shared_morph_zeroshot
+          level: 1
+          kind: expert
+          source: learned
+          tracker: '<body>:SET_WHEN_REGISTERED'
+        - name: task_expert_zeroshot
+          level: 1
+          kind: expert
+          source: learned
+          tracker: '<body>:SET_WHEN_REGISTERED'
+        - name: ppo_finetune
+          level: 1
+          kind: expert
+          source: learned
+          budgeted: true
+          tracker: '<body>:SET_WHEN_REGISTERED_ppo_ft<budget>'
+        - name: ppo_scratch
+          level: 1
+          kind: expert
+          source: learned
+          budgeted: true
+          tracker: '<body>:SET_WHEN_REGISTERED_ppo_scratch<budget>'

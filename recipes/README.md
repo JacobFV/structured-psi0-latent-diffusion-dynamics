@@ -5,7 +5,7 @@ lineage: a matrix of (variant x seed) points over pipeline stages. Run one with 
 resolved under `recipes/` (`rrp run-dag armdiv/arm_lineage_v7div --dry-run`).
 
 - `templates/` — generic, per-family recipes (`arm_lineage`, `arm_collect`, `arm_bc`, `arm_grpo`, `arm_targets_*`,
-  `dual_lineage`, `legged_lineage`, `legged_heldout`, `tracker_gated`, `relations_factor`, `humanoid_task`, `pointer_lineage`, `psi0_step2`). Never run bare; an instance extends one.
+  `dual_lineage`, `legged_lineage`, `legged_heldout`, `tracker_gated`, `relations_factor`, `humanoid_task`, `humanoid_transfer`, `pointer_lineage`, `psi0_step2`). Never run bare; an instance extends one.
 - `presets/` — shared parameter fragments read by code, not by a DAG: `policy-small-structured.json`, `codec-small.json`
   (the baseline campaign's model sizes), `eval-latent_slice1.json` (the sealed target-eval protocol; byte-frozen, its
   sha256 is recorded in eval results), `eval-primary.json` (draft protocol, unsealed).
@@ -17,7 +17,7 @@ resolved under `recipes/` (`rrp run-dag armdiv/arm_lineage_v7div --dry-run`).
     one shared representation (`research/tracks/relations.md`; planned, structural side only).
   - `pointer/` — the D-142 ComputerWorld pointer lineage (`pointer_v1`, gate `pointer_smoke`); family `pointer`.
   - `psi0/` — step 2 of the Psi0 line on one SIMPLE task each (`psi0_tabletop_step2`, `psi0_bendpick_step2`); family `psi0`.
-  - `humanoid/` — W13 (`track: humanoid`): `h1_steps_v2`, `h1_gap_v1`, `t1_gap_v1`, `shared_morph_v2`, `tracker_gate_pool`
+  - `humanoid/` — W13 (`track: humanoid`): `h1_steps_v2`, `h1_gap_v1`, `t1_gap_v1`, `shared_morph_v2`, `tracker_gate_pool`, `transfer_<task>` (H6: extend `templates/humanoid_transfer.yaml`, family `humanoid`)
     (the note's RESUME steps; extend `templates/humanoid_task.yaml`, stages `train_tracker` engine warp, `eval_tracker`,
     `validate_tracker`) and the four never-run CPU `d126_tracker_*` recipes (extend `tracker_gated`).
 

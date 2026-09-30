@@ -1,0 +1,19 @@
+extends: ../templates/humanoid_transfer.yaml
+name: humanoid_transfer_h_place
+schema: dag-1
+track: humanoid
+policy: latent
+env: mujoco/legged
+task: h_place
+bodies: humanoid_pool_v1
+factors: []
+# M3 pick and place on a surface. Wholebody task: the latent policy realizes the `upper` group (latent_kw.upper). Sealed bodies: [g1_hands, n1].
+vars: {task: h_place, upper: true}
+lists:
+  sealed_bodies: [g1_hands, n1]
+  transfer:
+    name: humanoid_transfer_h_place
+    task: h_place
+    latent_kw: {upper: true}
+    bodies:
+      sealed: [g1_hands, n1]
