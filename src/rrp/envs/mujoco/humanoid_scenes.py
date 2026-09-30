@@ -245,6 +245,14 @@ def build_h_gap(robot, seed: int, level: float = 1.0, contact: str | None = "v2"
                               gap_ratio=f, body_width=bw, y_c=y_c, psi_f=psi_f, wall_x=GAP_X * L, walls=walls))
 
 
+def make_humanoid_session(*, task: str, body: str, seed: int = 0, scene: dict | None = None, **kw):
+    """env_id "mujoco/legged" for the humanoid tasks (the `build` entry of rrp.tasks.humanoid): the task's scene on `body`
+    (`scene` = builder kwargs: h_frac | level, contact) driven by a LeggedSession; `kw` go to the session."""
+    from rrp.envs.mujoco.legged import LeggedSession
+    builder = {"h_steps": build_h_steps, "h_gap": build_h_gap}[task]
+    return LeggedSession(builder(body, seed, **(scene or {})), seed=seed, **kw)
+
+
 def gap_obs_np(qpos_root: np.ndarray, sc_meta: dict, phase2: float) -> np.ndarray:
     """numpy twin of WarpGapEnv.extra_obs (PRIVILEGED expert input)."""
     x, y = qpos_root[0], qpos_root[1]

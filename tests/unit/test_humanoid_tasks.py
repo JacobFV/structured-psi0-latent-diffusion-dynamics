@@ -34,9 +34,9 @@ def test_registered_with_build_and_vocabulary():
     for name in ("h_steps", "h_gap"):
         t = get_task(name)
         assert t.failure_reasons == HUMANOID_REASONS and set(t.envs) == {"mujoco/legged", "warp/legged"}
-        assert t.build == {"mujoco/legged": "rrp.tasks.humanoid:build_mujoco"} and t.teacher == f"teacher:{name}"
+        assert t.build == {"mujoco/legged": "rrp.envs.mujoco.humanoid_scenes:make_humanoid_session"} and t.teacher == f"teacher:{name}"
         assert t.judge is not TASKS["waypoint_contact"].judge
-    assert _factory("mujoco/legged", "h_gap").__name__ == "build_mujoco"
+    assert _factory("mujoco/legged", "h_gap").__name__ == "make_humanoid_session"
     assert env_takes_scene("mujoco/legged", "h_steps")                      # scene kwargs (h_frac | level) reach the builder
     assert not env_takes_scene("warp/legged", "h_steps")                    # warp keeps its own factory
     assert _factory("warp/legged", "h_steps").__name__ == ENVS["warp/legged"].split(":")[1]

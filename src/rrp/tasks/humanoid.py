@@ -42,13 +42,13 @@ def humanoid_judge() -> Judge:
     """Done on a fall or another terminal env failure, the public task graph completing, or the budget. Only the env's
     10 Hz boundary ticks end an episode (as `legged_judge`). Outcome: success iff privileged success; "fell" for a
     fall; "timeout" for an unfinished graph at the budget; otherwise "failure" with the mapped reason."""
-    from rrp.envs.base import env_failure_reason
 
     def judge(env, t: float, max_seconds: float) -> Judgement:
         if not getattr(env, "boundary", True):
             return Judgement(False)
         pub = bool(env.runtime.succeeded())
-        code = env_failure_reason(env)
+        f = getattr(env, "failure_reason", None)          # the env's own code (rrp.envs.base.env_failure_reason; envs sit above tasks)
+        code = f() if callable(f) else None
         reason = canonical(code) if code else None
         if reason is None and getattr(env, "fell", False):
             reason = "fell"
@@ -71,16 +71,7 @@ def humanoid_judge() -> Judge:
     return judge
 
 
-def build_mujoco(*, task: str, body: str, seed: int = 0, scene: dict | None = None, **kw):
-    """env_id "mujoco/legged" for h_steps / h_gap: the humanoid scene (`scene` = builder kwargs: h_frac | level, contact)
-    on the body, driven by a LeggedSession. `kw` go to the session."""
-    from rrp.envs.mujoco import humanoid_scenes as hs
-    from rrp.envs.mujoco.legged import LeggedSession
-    builder = {"h_steps": hs.build_h_steps, "h_gap": hs.build_h_gap}[task]
-    return LeggedSession(builder(body, seed, **(scene or {})), seed=seed, **kw)
-
-
-_BUILD = {"mujoco/legged": "rrp.tasks.humanoid:build_mujoco"}
+_BUILD = {"mujoco/legged": "rrp.envs.mujoco.humanoid_scenes:make_humanoid_session"}
 _ENVS = {"mujoco/legged": {}, "warp/legged": {}}       # warp/legged: the env's own factory (task dispatch in make_warp_env)
 
 register_task(TaskSpec("h_steps", _ENVS, 40.0, humanoid_judge(), graph="h_steps", teacher="teacher:h_steps",
