@@ -13,7 +13,6 @@ import argparse
 import json
 import os
 import time
-import types
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
@@ -22,47 +21,13 @@ def make_session(task: str, pair: str, seed: int):
     return make_dual_env(task=task, body=pair, seed=seed)
 
 
-class _TeacherDone:
-    """Rollout hook: the episode ends when the scripted teacher's FSM is done (the teacher's own end rule)."""
-
-    def __init__(self, teacher):
-        self.teacher = teacher
-
-    def on_step(self, i, env, act, step):
-        from rrp.tasks.spec import Judgement
-        return Judgement(True, "success", "teacher_done") if self.teacher.done else None
-
-
 def run_one(task: str, pair: str, seed: int, max_steps: int = 1200) -> dict:
-    """One scripted-teacher validation episode: the feasibility check, then a `harness.rollout` of the teacher policy
-    (public runtime + privileged evaluator read after 5 settle ticks). Any exception, incl. a crashed rollout, is an
-    error row (data), never hidden."""
-    from rrp.harness import rollout as R
-    from rrp.harness.eval import hooks as H
-    from rrp.policies.teachers import TeacherPolicy
-    from rrp.policies.teachers.dual import TEACHERS
+    from rrp.policies.teachers.dual import TEACHERS, run_dual_teacher_episode
     t0 = time.time()
     try:
         s = make_session(task, pair, seed)
         teacher = TEACHERS[task](s)
-        feas = teacher.feasibility()
-        if not feas["feasible"]:
-            return dict(task=task, pair=pair, seed=seed, status="infeasible", source="scripted_teacher",
-                        privileged_teacher=True, public_runtime_success=False, privileged_success=False, agree=True,
-                        failure_reason=f"infeasible:{','.join(feas['unreachable'])}", steps=0, sim_s=0.0, statuses={},
-                        truth={}, feasibility=feas, rejected_commands=0, retries={},
-                        hole_frame_used=getattr(teacher, "hole_frame_used", None), wall_s=time.time() - t0)
-        pol = TeacherPolicy(task, lambda e: teacher, "dual:v2", ("joint_position", "gripper"))
-        ep = R.rollout(lambda sd: s, pol, H.budget_task(task, s.spec.env_id), [seed], batch=1, max_steps=max_steps,
-                       hooks=[_TeacherDone(teacher), H.Settle(5)])[0]
-        if ep.outcome == "crash":
-            raise RuntimeError(ep.metrics.get("note") or ep.failure_reason)
-        res = types.SimpleNamespace(
-            success=bool(ep.success_public), privileged_evaluator_success=bool(ep.success_privileged), steps=ep.steps,
-            statuses={e: (v.status, v.attempt, v.reason) for e, v in s.runtime.instances.items()},
-            truth=s.insertion_truth() if hasattr(s, "insertion_truth") and s.scenario.name == "support_insert" else {},
-            feasibility=feas, rejected_commands=ep.metrics["command_rejections"],
-            failure_reason=None if ep.success_privileged else f"ended_in_phase:{teacher.phase_label}")
+        res = run_dual_teacher_episode(s, teacher, max_control_steps=max_steps)
     except Exception as e:  # noqa: BLE001 - errors are recorded as data
         return dict(task=task, pair=pair, seed=seed, status="error", error=repr(e)[:400], wall_s=time.time() - t0)
     status = ("infeasible" if res.failure_reason and res.failure_reason.startswith("infeasible")

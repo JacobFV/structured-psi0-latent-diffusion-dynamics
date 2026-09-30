@@ -73,6 +73,8 @@ def test_dual_audit_episodes(golden):
 
 
 def test_dual_validate_episodes(golden):
+    """dual_validate lives in the policies layer, which may not import harness.rollout (test_layering): its episode is
+    policies.teachers.dual.run_dual_teacher_episode (not an RP2 file); the golden guards it and the eval-layer ports."""
     from rrp.policies.teachers.dual_validate import run_one
     rows = [run_one("support_insert", DUAL, sd, max_steps=12) for sd in (3, 2)]
     rows.append(run_one("support_insert", "no_such_pair", 3, max_steps=5))     # errors are recorded as data
@@ -283,13 +285,11 @@ def test_loops_step_only_inside_rollout(rollout_guard, monkeypatch, tmp_path):
     from rrp.harness.eval.latent_causal import episode_protocol, window_protocol
     from rrp.harness.eval.latent_eval import disturbance_test
     from rrp.harness.eval.teacher_quality import run_policy_quality_episode, run_quality_episode
-    from rrp.policies.teachers.dual_validate import run_one
     from rrp.envs.mujoco.fixtures import make_pick_place_session
     quiet = dict(log=lambda *a, **k: None)
     run_quality_episode(ROBOT, 3, "v1", max_steps=4)
     run_policy_quality_episode(_tiny_bc(), ROBOT, 3, label="tiny", max_steps=4)
     run_audit_episode("support_insert", DUAL, 3, max_steps=4)
-    assert run_one("support_insert", DUAL, 3, max_steps=4)["status"] != "error"
     si, R, P = _tiny_latent()
     window_protocol(si, R, P, ROBOT, [3], decision_ticks=(2,), window=2, replan=2, conditions=("control_replay", "zero"),
                     edit_steps=1, **quiet)
