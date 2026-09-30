@@ -156,7 +156,7 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
         codec.eval()
         for p in codec.parameters():
             p.requires_grad_(False)       # frozen codec for the policy experiment
-    pcfg = PolicyConfig(**cfg["policy"])
+    pcfg = PolicyConfig.from_dict(cfg["policy"])
     model = FlowPolicy(pcfg).to(dev)
     swap = cfg.get("swap_alignment")
     proj, pairs = None, []

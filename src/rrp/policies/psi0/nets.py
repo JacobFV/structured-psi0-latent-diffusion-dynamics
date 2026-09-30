@@ -35,7 +35,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from rrp.bodies import g1_simple as G
-from rrp.policies.nets.attention import MHA, StructuralBias
+from rrp.policies.nets.attention import MHA
+from rrp.policies.relations.base import EdgeSet, RelCtx, TokenSet, resolve
+from rrp.policies.relations.ops import FactorSite
 from rrp.policies.nets.flow import MLP, sinusoidal
 from rrp.policies.nets.legged_latent import gnll
 
@@ -45,7 +47,6 @@ M = len(G.ASSEMBLIES)
 DZ = 64
 TP = 30                     # Psi0 chunk length
 DA = G.ACTION_DIM           # 36
-N_REL = len(G.RELATIONS)
 
 # which assemblies' knots each assembly's command dims may read in system 0 (own + kinematic neighbours)
 _A = G.ASM_INDEX
@@ -89,10 +90,12 @@ class DimEncoder(nn.Module):
     per-dim extra features), mixed by self-attention with a learned per-relation structural bias
     (self/parent/child/same-assembly/mirror). With the bias weights at 0 it is plain attention."""
 
-    def __init__(self, D, heads=4, layers=2, extra=0):
+    def __init__(self, D, heads=4, layers=2, extra=0, factors=None):
         super().__init__()
         self.inp = MLP(G.NODE_STATIC_DIM + 2 + extra, D)
-        self.layers = nn.ModuleList([nn.ModuleDict(dict(n=nn.LayerNorm(D), a=MHA(D, heads), sb=StructuralBias(heads, N_REL),
+        specs = resolve(factors, default="psi0-dims")
+        self.layers = nn.ModuleList([nn.ModuleDict(dict(n=nn.LayerNorm(D), a=MHA(D, heads),
+                                                        sb=FactorSite(heads, D, "dims>dims", specs, ("edges:g1-dim-rel-v1",)),
                                                         n2=nn.LayerNorm(D), m=MLP(D, D, 4 * D)))
                                      for _ in range(layers)])
 
@@ -102,9 +105,10 @@ class DimEncoder(nn.Module):
         x = torch.cat([morph.node_static[None].expand(B, -1, -1), (state[:, :DA] * sv)[..., None],
                        sv[None, :, None].expand(B, -1, -1)] + ([extra] if extra is not None else []), -1)
         t = self.inp(x)
-        rel = morph.rel[None].expand(B, -1, -1, -1)
+        rc = RelCtx(sets={"dims": TokenSet("dims", torch.ones(B, t.shape[1], dtype=torch.bool, device=t.device))},
+                    edges={"dims>dims": EdgeSet(G.RELATIONS, morph.rel[None].expand(B, -1, -1, -1))})
         for L in self.layers:
-            t = t + L["a"](L["n"](t), bias=L["sb"](rel))
+            t = t + L["a"](L["n"](t), bias=L["sb"].bias(rc))
             t = t + L["m"](L["n2"](t))
         return t                                                                                   # [B, DA, D]
 

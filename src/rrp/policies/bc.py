@@ -33,6 +33,8 @@ class LearnedPolicy:
                  execute_prefix: int = 8, name: str = "policy", seed: int = 0, chunk_blend: str = "none",
                  blend_ticks: int = 4, blend_decay: float = 0.0):
         self.model = model.eval()
+        if hasattr(model, "set_deploy"):         # deployable inference: no privileged factor sources (D-144)
+            model.set_deploy(True)
         self.codec = codec.eval() if codec is not None else None
         self.device = device
         self.nfe = nfe
@@ -49,7 +51,7 @@ class LearnedPolicy:
     def from_checkpoint(cls, path, device="cpu", **kw):
         st = load_checkpoint(path, map_location=device)
         cfg = st["config"]
-        model = FlowPolicy(PolicyConfig(**cfg["policy"])).to(device)
+        model = FlowPolicy(PolicyConfig.from_dict(cfg["policy"])).to(device)
         model.load_state_dict(st["model"])
         codec = None
         if cfg.get("codec_checkpoint"):

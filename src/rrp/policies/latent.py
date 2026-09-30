@@ -20,6 +20,8 @@ class LatentPolicy:
     def __init__(self, model: FlowPolicy, *, knot_times, latent_space_version, realizer_compat_version, device,
                  nfe=8, validity_s=0.8, name="latent_policy", seed=0):
         self.model = model.eval()
+        if hasattr(model, "set_deploy"):         # deployable inference: no privileged factor sources (D-144)
+            model.set_deploy(True)
         self.knot_times = list(knot_times)
         self.lsv, self.rcv = latent_space_version, realizer_compat_version
         self.device, self.nfe, self.validity = device, nfe, validity_s
@@ -36,7 +38,7 @@ class LatentPolicy:
         res = (st.get("extra") or {}).get("result") or rep["extra"]["result"]
         from rrp.policies.nets.semantic_latent import LatentConfig
         lcfg = LatentConfig(**rep["config"]["latent"])
-        pc = PolicyConfig(**dict(st["config"]["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz, aux=False))
+        pc = PolicyConfig.from_dict(dict(st["config"]["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz, aux=False))
         m = FlowPolicy(pc).to(device)
         m.load_state_dict(st["model"])
         from rrp.policies.system0 import bundle_versions, is_fingerprinted

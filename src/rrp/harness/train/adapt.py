@@ -31,7 +31,7 @@ def load_policy(path, device):
     if st["versions"].get("featurizer") != FEATURIZER_VERSION:
         raise ValueError(f"checkpoint featurizer {st['versions'].get('featurizer')!r} != {FEATURIZER_VERSION!r}")
     cfg = st["config"]
-    model = FlowPolicy(PolicyConfig(**cfg["policy"])).to(device)
+    model = FlowPolicy(PolicyConfig.from_dict(cfg["policy"])).to(device)
     model.load_state_dict(st["model"])
     codec = None
     if cfg.get("codec_checkpoint"):

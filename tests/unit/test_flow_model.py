@@ -40,8 +40,8 @@ def dbl(b):
 
 def test_zero_bias_equals_no_bias(inputs):
     b = dbl(collate_inputs(inputs))
-    m_true = small(bias_mode="true")
-    m_none = small(bias_mode="none")
+    m_true = small()
+    m_none = small(factors=["preset:arm", {"name": "edge.*", "control": "off"}])
     m_none.load_state_dict(m_true.state_dict())
     z = torch.randn(2, 4, b.node_feats.shape[1], 1, dtype=torch.float64)
     tau = torch.tensor([0.3, 0.7], dtype=torch.float64)
@@ -159,8 +159,9 @@ def test_aux_readout_gradients_reach_action_expert_blocks(inputs):
 
 def test_unstructured_baseline_has_no_pointer_messages(inputs):
     b = collate_inputs(inputs)
-    m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=1, horizon=4, structured=False,
-                                bias_mode="none", aux=False))
+    m = FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=1, horizon=4, aux=False,
+                                factors=["preset:arm", {"name": "edge.*", "control": "off"},
+                                         {"name": "msg.incidence", "control": "serialized"}]))
     c = m.prepare(b)
     assert all(x is None for x in c.act_bias)
     n_params_s = sum(p.numel() for p in FlowPolicy(PolicyConfig(width=32, heads=2, ctx_layers=1, blocks=1,

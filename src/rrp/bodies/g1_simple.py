@@ -126,7 +126,7 @@ def node_static() -> np.ndarray:
     return x
 
 
-RELATIONS = ("self", "parent", "child", "same_assembly", "mirror")
+RELATIONS = ("same_node", "kin_parent", "kin_child", "same_assembly", "mirror")   # edge vocabulary g1-dim-rel-v1 (D-144)
 
 
 def relation_matrix() -> np.ndarray:

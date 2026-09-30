@@ -19,8 +19,6 @@
   "blocks": 4,
   "horizon": 16,
   "latent_dim": 1,
-  "structured": true,
-  "bias_mode": "true",
   "aux": true,
   "name": "adapt_start_bc_xarm7pg2_only_v1"
  },

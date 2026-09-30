@@ -29,8 +29,6 @@
   "horizon": 16,
   "latent_dim": 1,
   "name": "si_dev_structured",
-  "structured": true,
-  "bias_mode": "true",
   "aux": true
  }
 }

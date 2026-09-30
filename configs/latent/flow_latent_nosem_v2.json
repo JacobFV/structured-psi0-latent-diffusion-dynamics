@@ -14,8 +14,6 @@
   "heads": 4,
   "ctx_layers": 3,
   "blocks": 6,
-  "structured": true,
-  "bias_mode": "true",
   "attention": "factorized",
   "name": "flow_latent_nosem_v2"
  },

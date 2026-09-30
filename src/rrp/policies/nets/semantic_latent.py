@@ -83,7 +83,7 @@ class TargetEncoder(nn.Module):
         self.cfg = cfg
         D = cfg.width
         pc = PolicyConfig(width=D, heads=cfg.heads, ctx_layers=cfg.ctx_layers, blocks=1, horizon=cfg.horizon,
-                          structured=True, bias_mode="true", aux=False, slot_handles=cfg.slot_handles)
+                          aux=False, factors=["preset:arm", "id.slot_handle"] if cfg.slot_handles else None)
         self.context = ContextEncoder(pc)
         self.node = MLP(NODE_DIM, D)
         self.a_in = nn.Linear(1, D)

@@ -15,6 +15,9 @@ One repo, one Env / Policy / Task interface each, one rollout harness: [docs/arc
   oracle module); Ψ₀ line migrated (envs.simple, policies.psi0; psi1z archived); S5a arm eval loop on the rollout +
   `rrp eval` / `rrp matrix`.
 - Done since: S5 (all eval loops on the rollout, legged judge), S6b (every `python -m <module>` entry point is an `rrp <group> <tool>` command; table in architecture.md section 6). In progress: ComputerWorld env.
+- D-144 relation factors (docs/relations.md): foundation on main (registry `rrp.policies.relations`, FactorSite in the
+  shared MHA, `factors:` config list, ReadoutProbe, StateView, relgen / mix / scheduler skeletons); fanout units R1-R21
+  per docs/relations.md section 10.
 - Verification is golden/unit only (no reruns, D-140). Resume steps of paused tracks (W13 humanoid, armdiv, W10) are in
   their track notes; old module paths map to new ones via architecture.md section 10.
 

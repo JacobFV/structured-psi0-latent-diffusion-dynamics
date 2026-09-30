@@ -104,7 +104,7 @@ def run_latency_suite(checkpoints: dict[str, str], out_path: Path, dev=None, nod
         entry = dict(params=sum(p.numel() for p in m.parameters()), cfg=m.cfg.__dict__)
         entry["cached"] = bench_policy(m, pi, dev)
         entry["uncached"] = bench_policy(m, pi, dev, nfe_list=(1, 8), cached=False, reps=20)
-        dense = FlowPolicy(PolicyConfig(**dict(m.cfg.__dict__, attention="dense"))).to(dev)
+        dense = FlowPolicy(PolicyConfig.from_dict(dict(m.cfg.__dict__, attention="dense"))).to(dev)
         dense.load_state_dict(m.state_dict())
         entry["dense_action_attention"] = bench_policy(dense, pi, dev, nfe_list=(8,), reps=20)
         entry["node_sweep_nfe8"] = {n: bench_policy(m, replicate_nodes(pi, n), dev, nfe_list=(8,), reps=20)[8]
@@ -204,7 +204,7 @@ def latent_latency_suite(flow_ckpt: str, out_path: Path, dev=None, nfe_list=(1, 
         from rrp.policies.bc import LearnedPolicy
         cfg = json.loads(Path(direct_config).read_text())
         torch.manual_seed(0)
-        dp = LearnedPolicy(FlowPolicy(PolicyConfig(**cfg["policy"])).to(dev), None, dev, name="direct_random_init")
+        dp = LearnedPolicy(FlowPolicy(PolicyConfig.from_dict(cfg["policy"])).to(dev), None, dev, name="direct_random_init")
         res["baseline_direct_action_source"] = f"random-init weights, architecture {direct_config} (timing only)"
     if dp is not None:
         for _ in range(3):

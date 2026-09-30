@@ -16,9 +16,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from rrp.policies.features.featurizer import BANKS, HASH_DIM, N_REL
-from rrp.policies.nets.attention import MHA, StructuralBias, transform_relations
+from rrp.policies.features.featurizer import BANKS, HASH_DIM
+from rrp.policies.nets.attention import MHA
 from rrp.policies.nets.batch import Batch, BANK_DIMS, NODE_DIM
+from rrp.policies.relations.base import EdgeSet, RelCtx, TokenSet, assert_deployable, control_of, resolve
+from rrp.policies.relations.catalog import ARM_REL_VOCAB
+from rrp.policies.relations.ops import FactorSite, FieldReadouts
+
+CTX_CARRIES = ("edges:arm-rel-v1", "hidden")      # what the arm context site provides to factors (fields: unit R12)
+ACT_CARRIES = ("edges:arm-rel-v1",)
 
 
 # ------------------------------------------------------------------ flow math
@@ -50,21 +56,42 @@ class PolicyConfig:
     blocks: int = 6
     horizon: int = 16
     latent_dim: int = 1               # action coords per node (1 = direct normalized action)
-    structured: bool = True           # pointers/incidence messages
-    bias_mode: str = "true"           # true|none|zero|reversed|rewired
+    factors: list | None = None       # relation factors (docs/relations.md); None = preset "arm" (the 17 typed edges
+                                      # + incidence messages). Former flags: bias_mode -> control of edge.*,
+                                      # structured=False -> msg.incidence serialized, slot_handles -> id.slot_handle
     aux: bool = True                  # auxiliary semantic readouts from action hidden states
     dropout: float = 0.0
     attention: str = "factorized"     # factorized | dense (all-token ablation of the action stream)
     image_tokens: int = 0             # VLM resampled tokens appended to the scene bank
     image_dim: int = 0
     max_slots: int = 8
-    slot_handles: bool = False        # add a learned embedding of the PUBLIC tracker slot id (entity address) to
-                                      # scene tokens; needed when slot order is not canonical (paired binding data)
     name: str = "policy"
 
     @property
     def D(self):
         return self.width
+
+    def specs(self):
+        return resolve(self.factors, default="arm")
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "PolicyConfig":
+        """Config dict -> PolicyConfig. Maps the pre-D-144 flags still stored in checkpoint configs (on-disk data):
+        bias_mode, structured, slot_handles -> `factors`."""
+        d = dict(d)
+        bm, st, sh = d.pop("bias_mode", None), d.pop("structured", None), d.pop("slot_handles", None)
+        if bm is None and st is None and sh is None:
+            return cls(**d)
+        if d.get("factors") is not None:
+            raise ValueError("config mixes `factors` with the legacy bias_mode / structured / slot_handles keys")
+        items = ["preset:arm"]
+        if bm not in (None, "true"):
+            items.append({"name": "edge.*", "control": {"none": "off"}.get(bm, bm)})
+        if st is False:
+            items.append({"name": "msg.incidence", "control": "serialized"})
+        if sh:
+            items.append("id.slot_handle")
+        return cls(**d, factors=None if items == ["preset:arm"] else items)
 
 
 def sinusoidal(x: torch.Tensor, dim: int) -> torch.Tensor:
@@ -97,25 +124,31 @@ class ContextEncoder(nn.Module):
         self.text = nn.Linear(HASH_DIM, D)          # serialized pointer text (unstructured baseline)
         self.ptr = nn.Linear(D, D)                  # incidence message (structured)
         self.img = nn.Linear(cfg.image_dim, D) if cfg.image_tokens else None
-        self.slot_emb = nn.Embedding(cfg.max_slots, D) if cfg.slot_handles else None
+        specs = cfg.specs()
+        self.msg = control_of(specs, "msg.incidence")            # on | serialized | off
+        self.slot_emb = nn.Embedding(cfg.max_slots, D) if any(s.name == "id.slot_handle" for s in specs) else None
+        self.use_slots = control_of(specs, "id.slot_handle") == "on"
         self.layers = nn.ModuleList()
         for _ in range(cfg.ctx_layers):
             self.layers.append(nn.ModuleDict(dict(n1=nn.LayerNorm(D), att=MHA(D, cfg.heads), n2=nn.LayerNorm(D),
-                                                  mlp=MLP(D, D, 4 * D), bias=StructuralBias(cfg.heads))))
+                                                  mlp=MLP(D, D, 4 * D),
+                                                  bias=FactorSite(cfg.heads, D, "ctx>ctx", specs, CTX_CARRIES))))
+        self.readouts = FieldReadouts(D, specs)
+        self.deploy = False
 
     def forward(self, batch: Batch, rewire_gen=None):
         parts, masks = [], []
         for i, b in enumerate(BANKS):
             x = self.proj[b](batch.bank_tokens[b]) + self.bank_emb.weight[i] + self.kind_emb(batch.bank_kind[b].clamp(max=7))
-            if not self.cfg.structured:
+            if self.msg == "serialized":                        # unstructured baseline: the facts as hashed text
                 x = x + self.text(batch.bank_text[b])
-            if b == "scene" and self.slot_emb is not None:     # public slot address (tracker slot id)
+            if b == "scene" and self.use_slots:                 # public slot address (tracker slot id)
                 x = x + self.slot_emb.weight[:x.shape[1]][None]
             parts.append(x)
             masks.append(batch.bank_mask[b])
         h = torch.cat(parts, 1)
         mask = torch.cat(masks, 1)
-        if self.cfg.structured and batch.pointers.shape[1] > 0:
+        if self.msg == "on" and batch.pointers.shape[1] > 0:
             src, dst = batch.pointers[..., 0], batch.pointers[..., 1]
             valid = src >= 0
             gathered = torch.gather(h, 1, dst.clamp(min=0)[..., None].expand(-1, -1, h.shape[-1]))
@@ -129,13 +162,15 @@ class ContextEncoder(nn.Module):
         if self.img is not None and "image_tokens" in batch.extra:
             pad = batch.extra["image_tokens"].shape[1]
             rel = F.pad(rel, (0, 0, 0, pad, 0, pad))
-        rel = transform_relations(rel, self.cfg.bias_mode, rewire_gen, mask) if self.cfg.structured or \
-            self.cfg.bias_mode != "none" else None
-        for L in self.layers:
-            bias = L["bias"](rel) if rel is not None else None
-            h = h + L["att"](L["n1"](h), key_mask=mask, bias=bias)
+        rc = RelCtx(sets={"ctx": TokenSet("ctx", mask, deploy=self.deploy)},
+                    edges={"ctx>ctx": EdgeSet(ARM_REL_VOCAB, rel)}, generator=rewire_gen, deploy=self.deploy)
+        for li, L in enumerate(self.layers):
+            self.readouts.observe(li, "ctx", h, rc)
+            xn = L["n1"](h)
+            qa, ka = L["bias"].augment(rc, xn, xn)
+            h = h + L["att"](xn, key_mask=mask, bias=L["bias"].bias(rc), q_aug=qa, k_aug=ka)
             h = h + L["mlp"](L["n2"](h))
-        return h, mask, rel
+        return h, mask, rc
 
 
 @dataclass
@@ -177,8 +212,9 @@ class ActionBlock(nn.Module):
         self.n_e, self.a_e = AdaLN(D), MHA(D, H)
         self.n_c, self.a_c = AdaLN(D), MHA(D, H)
         self.n_m, self.mlp = AdaLN(D), MLP(D, D, 4 * D)
-        self.bias_c = StructuralBias(H)
-        self.bias_e = StructuralBias(H)
+        specs = cfg.specs()
+        self.bias_c = FactorSite(H, D, "act>ctx", specs, ACT_CARRIES)
+        self.bias_e = FactorSite(H, D, "act>act", specs, ACT_CARRIES)
 
     def forward(self, x, tcond, cache: ContextCache, li: int, dense: bool = False):
         B, Hh, N, D = x.shape
@@ -242,8 +278,18 @@ class FlowPolicy(nn.Module):
         return z * self.z_std + self.z_mean
 
     # ---------------- context / cache
+    def factor_specs(self):
+        return self.cfg.specs()
+
+    def set_deploy(self, deploy: bool = True) -> "FlowPolicy":
+        """Deployable inference: refuse privileged (gt) factor sources and label reads (docs/relations.md 7)."""
+        if deploy:
+            assert_deployable(self.cfg.specs())
+        self.context.deploy = deploy
+        return self
+
     def prepare(self, batch: Batch, key: tuple = ("uncached",), rewire_gen=None) -> ContextCache:
-        ctx, cmask, _ = self.context(batch, rewire_gen)
+        ctx, cmask, rc = self.context(batch, rewire_gen)
         B, N = batch.node_feats.shape[:2]
         morph_off = batch.bank_offset["morph"]
         if "node_ctx_index" in batch.extra:              # latent path: generated entities are assemblies
@@ -252,18 +298,17 @@ class FlowPolicy(nn.Module):
         else:
             node_ctx = ctx[:, morph_off:morph_off + N]   # action node tokens are the first morph tokens
         node_emb = self.node(batch.node_feats) + self.node_from_ctx(node_ctx)
-        use_bias = self.cfg.bias_mode != "none"
         act_rel = batch.act_rel
         if ctx.shape[1] > act_rel.shape[2]:
             act_rel = F.pad(act_rel, (0, 0, 0, ctx.shape[1] - act_rel.shape[2]))
-        if use_bias:
-            act_rel = transform_relations(act_rel, "rewired" if self.cfg.bias_mode == "rewired" else
-                                          ("zero" if self.cfg.bias_mode == "zero" else "true"), rewire_gen, cmask)
+        rc.sets["act"] = TokenSet("act", batch.node_mask, deploy=self.context.deploy)
+        rc.edges["act>ctx"] = EdgeSet(ARM_REL_VOCAB, act_rel)
+        rc.edges["act>act"] = EdgeSet(ARM_REL_VOCAB, batch.node_rel)
         kv, ab, nb = [], [], []
         for blk in self.blocks:
             kv.append(blk.a_c.kv(ctx))
-            ab.append(blk.bias_c(act_rel) if use_bias else None)
-            nb.append(blk.bias_e(batch.node_rel) if use_bias and self.cfg.bias_mode != "zero" else None)
+            ab.append(blk.bias_c.bias(rc))
+            nb.append(blk.bias_e.bias(rc))
         return ContextCache(key, ctx, cmask, kv, node_emb, ab, nb, batch.node_mask)
 
     # ---------------- velocity field

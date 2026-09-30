@@ -26,17 +26,14 @@ from typing import TYPE_CHECKING
 from rrp.core.observation import PolicyObservation
 from rrp.core.robot import RobotSpec
 from rrp.core.task import EntityBinding, OutputBinding
+from rrp.policies.relations.catalog import ARM_REL_VOCAB
 
 ROLE_TYPES = ["actor", "patient", "instrument", "target", "source", "destination", "reference", "support",
               "cooperating_actor"]
 STATUS = ["pending", "ready", "active", "succeeded", "failed", "cancelled", "blocked"]
 ASM_KINDS = ["arm", "hand", "gripper", "leg", "base", "torso", "head", "tool", "wheel_base", "body"]
 OUT_TYPES = ["frame_estimate", "contact_anchor", "alignment_receipt", "completion_receipt"]
-REL = {  # typed structural relations (query token -> key token)
-    "same_node": 0, "node_in_assembly": 1, "actor_of": 2, "support_of": 3, "patient_of": 4, "target_of": 5,
-    "destination_of": 6, "enables": 7, "maintained": 8, "output_to": 9, "produced": 10, "consumed_by": 11,
-    "pred_arg": 12, "node_actor_of": 13, "role_in_event": 14, "role_points_to": 15, "kin_parent": 16,
-}
+REL = {n: i for i, n in enumerate(ARM_REL_VOCAB)}   # typed edges (query token -> key token), vocab arm-rel-v1 (D-144)
 N_REL = len(REL)
 HASH_DIM = 16
 BANKS = ["morph", "scene", "task", "interact"]

@@ -32,8 +32,6 @@
   "blocks": 12,
   "horizon": 16,
   "latent_dim": 1,
-  "structured": true,
-  "bias_mode": "true",
   "aux": true,
   "name": "dev6_structured_medium"
  },

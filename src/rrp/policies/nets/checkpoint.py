@@ -25,6 +25,12 @@ def save_checkpoint(path: Path, *, model, optimizer=None, step: int, versions: d
     from rrp.policies.features import kinfeat
     if kinfeat.enabled():            # D-137 ablation flag: features differ -> recorded as a version, checked at load
         versions = {**(versions or {}), "kinfeat": kinfeat.VERSION}
+    factors = None
+    if callable(getattr(model, "factor_specs", None)):   # relation factors (D-144): structure hash + full provenance
+        from rrp.policies.relations.base import compat_hash, provenance as factor_provenance
+        specs = model.factor_specs()
+        versions = {**(versions or {}), "factors": compat_hash(specs)}
+        factors = factor_provenance(specs)
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     sd = model.state_dict()
@@ -35,7 +41,7 @@ def save_checkpoint(path: Path, *, model, optimizer=None, step: int, versions: d
                  versions=versions, config=config, data_cursor=data_cursor or {},
                  rng=dict(python=random.getstate(), numpy=np.random.get_state(), torch=torch.get_rng_state(),
                           cuda=torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None),
-                 extra=extra or {}, provenance=prov.to_dict())
+                 extra=extra or {}, provenance=prov.to_dict(), factors=factors)
     tmp = path.with_suffix(".tmp")
     torch.save(state, tmp)
     digest = hashlib.sha256(tmp.read_bytes()).hexdigest()[:16]

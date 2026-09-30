@@ -134,6 +134,83 @@ class Env(Protocol):
     def close(self) -> None: ...
 
 
+# ------------------------------------------------------------------ privileged state for labelling (D-144)
+StateCap = Literal["poses", "velocities", "contacts", "forces", "joints", "inertia", "materials", "camera",
+                   "depth_render", "ui_tree", "task_runtime", "terrain"]
+
+
+@dataclass(frozen=True)
+class EntityState:
+    id: str
+    kind: str                       # "object" | "body" | "assembly" | "link" | "widget" | "terrain" ...
+    name: str
+    pos: np.ndarray                 # [3] world
+    quat: np.ndarray | None = None  # [4] wxyz
+    vel: np.ndarray | None = None   # [6] lin + ang
+    extent: np.ndarray | None = None
+    mass: float | None = None
+    friction: float | None = None
+    material: str | None = None
+    parent: str | None = None
+    assembly: str | None = None
+    body: int | None = None         # robot index
+    visible: bool | None = None
+    attrs: dict | None = None
+
+
+@dataclass(frozen=True)
+class ContactState:
+    a: str
+    b: str
+    pos: np.ndarray
+    normal: np.ndarray              # world, pointing from a to b
+    force: np.ndarray | None = None
+    time: float = 0.0
+
+
+@dataclass(frozen=True)
+class JointState:
+    name: str
+    parent: str
+    child: str
+    kind: str
+    axis: np.ndarray
+    q: float
+    qd: float
+    limits: tuple | None = None
+
+
+@dataclass(frozen=True)
+class Camera:
+    name: str
+    K: np.ndarray                   # [3,3] intrinsics (pixels)
+    T_world_cam: np.ndarray         # [4,4]
+    width: int
+    height: int
+
+
+@runtime_checkable
+class StateView(Protocol):
+    """Privileged simulator state for LABELS ONLY (docs/relations.md 5.1): `env.state_view()` behind capability
+    "privileged_truth". Label functions (rrp.harness.data.relgen) are written once against this interface and run in
+    every env whose `caps` cover their `needs`. Never imported by policies/ (featurizers are the only policy inputs)."""
+    caps: frozenset
+    time: float
+    gravity: np.ndarray
+
+    def entities(self) -> list[EntityState]: ...
+
+    def contacts(self) -> list[ContactState]: ...          # caps "contacts" (+ "forces")
+
+    def joints(self) -> list[JointState]: ...              # caps "joints"
+
+    def camera(self, name: str) -> Camera: ...             # caps "camera"; render_depth(name) with "depth_render"
+
+    def ui_tree(self) -> list[dict]: ...                   # caps "ui_tree"
+
+    def token_entity(self, token_set: str, slot) -> str | None: ...   # privileged token -> entity association
+
+
 # ------------------------------------------------------------------ registry (lazy: "module:factory")
 ENVS: dict[str, str] = {
     "mujoco/arm": "rrp.envs.mujoco.session:make_arm_env",

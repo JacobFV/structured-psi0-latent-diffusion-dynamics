@@ -31,10 +31,19 @@
   "blocks": 6,
   "horizon": 16,
   "latent_dim": 1,
-  "structured": false,
-  "bias_mode": "none",
   "aux": false,
-  "name": "dev_unstructured_direct"
+  "name": "dev_unstructured_direct",
+  "factors": [
+   "preset:arm",
+   {
+    "name": "edge.*",
+    "control": "off"
+   },
+   {
+    "name": "msg.incidence",
+    "control": "serialized"
+   }
+  ]
  },
  "include_dart_failures": true,
  "packed_dir": "artifacts/packed/pp_v3dart_s2_H16"

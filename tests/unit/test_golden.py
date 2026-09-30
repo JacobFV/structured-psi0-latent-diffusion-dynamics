@@ -617,7 +617,7 @@ def _rel_cfg(**kw):
     import torch
     from rrp.policies.nets.flow import PolicyConfig
     torch.manual_seed(0)
-    return PolicyConfig(**dict(dict(width=32, heads=2, ctx_layers=2, blocks=2, horizon=4, latent_dim=3, aux=False), **kw))
+    return PolicyConfig.from_dict(dict(dict(width=32, heads=2, ctx_layers=2, blocks=2, horizon=4, latent_dim=3, aux=False), **kw))
 
 
 @pytest.mark.parametrize("mode", ["true", "none", "zero", "reversed", "rewired"])

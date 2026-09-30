@@ -37,8 +37,6 @@
   "blocks": 6,
   "horizon": 16,
   "latent_dim": 1,
-  "structured": true,
-  "bias_mode": "true",
   "aux": true,
   "name": "vlm_psi0_structured_v1"
  },

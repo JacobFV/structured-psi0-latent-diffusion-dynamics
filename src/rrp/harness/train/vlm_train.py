@@ -110,7 +110,7 @@ def build_model(cfg, store):
         L, T, W = store.tokens.shape[1:]
         rcfg = dict(in_width=W, n_taps=T, **cfg.get("resampler", {}))
         pcfg.update(image_tokens=rcfg.get("queries", 16), image_dim=rcfg.get("dim", 256))
-    return VLMFlowPolicy(PolicyConfig(**pcfg), rcfg), pcfg, rcfg
+    return VLMFlowPolicy(PolicyConfig.from_dict(pcfg), rcfg), pcfg, rcfg
 
 
 @torch.no_grad()
@@ -201,7 +201,7 @@ def make_eval_policy(ckpt: Path, device, nfe=8, execute_prefix=8, image_mode="re
 
     st = load_checkpoint(ckpt, map_location=device)
     cfg = st["config"]
-    model = VLMFlowPolicy(PolicyConfig(**cfg["policy"]), cfg.get("resampler_cfg")).to(device)
+    model = VLMFlowPolicy(PolicyConfig.from_dict(cfg["policy"]), cfg.get("resampler_cfg")).to(device)
     model.load_state_dict(st["model"])
     model.eval()
 

@@ -51,9 +51,12 @@ TOOLS: dict[tuple[str, str], tuple[str, str]] = {
     ("viz", "export"): ("rrp.viz.export:main", "room data exporter"),
     ("viz", "api"): ("rrp.viz.api:main", "room API helper (read-only)"),
     ("viz", "record"): ("rrp.viz.record:main", "replay recorder (peer)"),
+    ("factors", "list"): ("rrp.policies.relations.base:cli", "relation-factor registry: list [GLOB]"),
+    ("factors", "show"): ("rrp.policies.relations.base:cli", "relation-factor registry: show NAME"),
+    ("factors", "presets"): ("rrp.policies.relations.base:cli", "relation-factor presets"),
     ("ops", "child"): ("rrp.ops.child:main", "internal: the leased workload runner inside rrp-job-<lease>.service"),
 }
-GROUP_HELP = {"suite": "evaluation suites, audits and validators", "stage": "pipeline stages (run-dag jobs)",
+GROUP_HELP = {"factors": "relation-factor registry (docs/relations.md)", "suite": "evaluation suites, audits and validators", "stage": "pipeline stages (run-dag jobs)",
               "viz": "visualization room: export / api / record"}
 
 
@@ -64,10 +67,10 @@ def dispatch(argv: list[str]):
         return False, None
     mod, fn = TOOLS[key][0].split(":")
     args = argv[2:]
-    if key[0] == "stage":                       # one parser for both stage commands
+    if key[0] in ("stage", "factors"):          # one parser for all commands of the group
         args = argv[1:]
     import sys
-    sys.argv[0] = f"rrp {key[0]}" if key[0] == "stage" else f"rrp {key[0]} {key[1]}"   # argparse prog / usage lines
+    sys.argv[0] = f"rrp {key[0]}" if key[0] in ("stage", "factors") else f"rrp {key[0]} {key[1]}"   # argparse prog / usage lines
     return True, getattr(importlib.import_module(mod), fn)(args)
 
 

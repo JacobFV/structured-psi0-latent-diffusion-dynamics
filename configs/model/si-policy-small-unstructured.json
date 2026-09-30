@@ -29,8 +29,17 @@
   "horizon": 16,
   "latent_dim": 1,
   "name": "si_dev_unstructured",
-  "structured": false,
-  "bias_mode": "none",
-  "aux": false
+  "aux": false,
+  "factors": [
+   "preset:arm",
+   {
+    "name": "edge.*",
+    "control": "off"
+   },
+   {
+    "name": "msg.incidence",
+    "control": "serialized"
+   }
+  ]
  }
 }

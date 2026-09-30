@@ -22,7 +22,7 @@ def sft(source_ckpt: Path, dataset: Path, target_robot: str, budget: int, *, see
     dev, _ = device_setup()
     out_dir.mkdir(parents=True, exist_ok=True)
     st = load_checkpoint(source_ckpt, map_location=dev)
-    pcfg = PolicyConfig(**st["config"]["policy"])
+    pcfg = PolicyConfig.from_dict(st["config"]["policy"])
     model = FlowPolicy(pcfg).to(dev)
     model.load_state_dict(st["model"])
     pool = load_episodes(dataset, robots={target_robot}, seeds=demo_pool_seeds)
@@ -77,7 +77,7 @@ def sft_packed(source_ckpt: Path, target_packed_dir: Path, budget: int, *, seed:
     dev, _ = device_setup()
     st = load_checkpoint(source_ckpt, map_location=dev)
     cfgj = st["config"]
-    pcfg = PolicyConfig(**cfgj["policy"])
+    pcfg = PolicyConfig.from_dict(cfgj["policy"])
     model = FlowPolicy(pcfg).to(dev)
     model.load_state_dict(st["model"])
     codec = None

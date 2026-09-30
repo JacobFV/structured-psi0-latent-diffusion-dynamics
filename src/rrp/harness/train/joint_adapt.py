@@ -54,7 +54,7 @@ def joint_adapt(flow_ckpt: Path, rep_path: Path, packed_dir: Path, budget: int, 
     st = load_checkpoint(Path(flow_ckpt), map_location=dev)
     cfgj = st["config"]
     lcfg, E, _, P, _ = load_representation(Path(cfgj["representation"]), dev)
-    pcfg = PolicyConfig(**dict(cfgj["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz, aux=False))
+    pcfg = PolicyConfig.from_dict(dict(cfgj["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz, aux=False))
     flow = FlowPolicy(pcfg).to(dev)
     flow.load_state_dict(st["model"])
     st0 = load_checkpoint(Path(rep_path), map_location=dev)

@@ -208,7 +208,7 @@ control of every `edge.*` entry (section 8).
 
 ### 3.4 conditioning, confidence, heads
 
-- **Gates** (`gate: task | instruction | goal | embodiment | history`): `γ_{f,h} = σ(u_{f,h}·c + b_{f,h})` scales the
+- **Gates** (`gate: task | instruction | goal | embodiment | history`): `γ_{f,h} = 2σ(u_{f,h}·c + b_{f,h})` (= 1 at init) scales the
   factor's contribution; `c` is the corresponding summary vector in `RelCtx` (task-bank mean, instruction embedding,
   goal token, morphology summary, packet-history state). Zero-init `u`. For `aug` it scales `φ_q` per sample, so it
   stays kernel-compatible. This is how "the same scene shows several candidate next-contact edges; after the task
@@ -548,7 +548,7 @@ src/rrp/policies/relations/base.py         Prov, FieldDef, TokenSet, EdgeSet, Re
                                            FIELDS / OPS / FACTORS / PRESETS, resolve, compat_hash, provenance, guard
 src/rrp/policies/relations/ops.py          the operators (3.2) and forms; FactorSite
 src/rrp/policies/relations/catalog.py      the FactorDef / FieldDef table (sections per unit) + presets
-src/rrp/policies/relations/probe.py        ReadoutDef, ReadoutProbe, readout_loss / readout_metrics
+src/rrp/policies/nets/probes.py            ReadoutProbe, readout_loss / readout_metrics (ReadoutDef: relations.base)
 src/rrp/policies/nets/attention.py         MHA (+ q_aug / k_aug), RelBlock
 src/rrp/envs/base.py                       + StateView, EntityState, ContactState, JointState, Camera
 src/rrp/harness/data/relgen/__init__.py    LabelDef, Label, ScenePart, TransformDef, LABELS / PARTS / TRANSFORMS,
@@ -567,7 +567,7 @@ src/rrp/harness/data/mix.py                mixed_batches
 field readouts, `relations/catalog.py` (legacy entries, presets, one pre-created section per unit), `FactorSite`;
 F3 `MHA` q/k augmentation, `RelBlock`; delete `StructuralBias` / `transform_relations`; arm/dual flow + E + Ψ₀
 DimEncoder on FactorSite; `PolicyConfig.factors` + legacy mapping + configs/dags codemod + factor hash in checkpoints;
-deploy guard; `rrp factors list|show`; F4 interface skeletons with tests: `relations/probe.py` (ReadoutProbe,
+deploy guard; `rrp factors list|show`; F4 interface skeletons with tests: `nets/probes.py` (ReadoutProbe,
 equivalence-tested against `PacketProbe`, not swapped in), `envs.base.StateView` + dataclasses,
 `harness/data/relgen/__init__.py` (LabelDef, Label, ScenePart, TransformDef, registries, `compose` signature),
 `harness/data/mix.py` (signature), `relgen/curriculum.py` (`ScheduleState`, `SchedulerConfig`, `SteerOp` grammar parser + validation, `Scheduler` interface with a uniform placeholder policy and exact replay). Units never edit `base.py` / `ops.py`; they add entries in their own section of
@@ -611,7 +611,7 @@ containment, material, tool→target, cause→effect: new scene parts + labels) 
 
 ### briefs (one paragraph each; read this page's sections 2–5 and `research/relations_catalog.md` first)
 
-- **R1.** Replace `nets/latent_probes.PacketProbe` everywhere with `relations.probe.ReadoutProbe` configured by the
+- **R1.** Replace `nets/latent_probes.PacketProbe` everywhere with `nets.probes.ReadoutProbe` configured by the
   preset `probes:arm-packet-v1` (and `probe.arm.goal_effect` when the old config had `goal_effect=True`). Keep the
   state-dict layout (the foundation's equivalence test proves it) so `bundles.load_representation` loads old
   checkpoints strictly; `probe_loss` / `probe_metrics` become `readout_loss` / `readout_metrics` over the specs; drop

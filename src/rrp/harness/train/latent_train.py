@@ -276,7 +276,7 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
     lcfg, E, R, P, rep_res = load_representation(Path(cfg_json["representation"]), dev)
     pack_free = cfg_json.get("gen_dagger_frac", 0.0) >= 1.0 and bool(cfg_json.get("init_from"))
     data = None if pack_free else LatentData(Path(cfg_json["packed_dir"]), zero_prev_action=cfg_json.get("zero_prev_action", False))
-    pcfg = PolicyConfig(**dict(cfg_json["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz, aux=False))
+    pcfg = PolicyConfig.from_dict(dict(cfg_json["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz, aux=False))
     model = FlowPolicy(pcfg).to(dev)
     opt = torch.optim.AdamW(model.parameters(), lr=cfg_json.get("lr", 3e-4), weight_decay=1e-4)
     steps = cfg_json["steps"]
@@ -489,7 +489,7 @@ def sft_latent_flow(flow_ckpt: Path, target_packed_dir: Path, budget: int, *, se
     st = load_checkpoint(flow_ckpt, map_location=dev)
     cfgj = st["config"]
     lcfg, E, R, P, rep_res = load_representation(Path(cfgj["representation"]), dev)
-    pcfg = PolicyConfig(**dict(cfgj["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz, aux=False))
+    pcfg = PolicyConfig.from_dict(dict(cfgj["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz, aux=False))
     model = FlowPolicy(pcfg).to(dev)
     model.load_state_dict(st["model"])
     data = LatentData(target_packed_dir, zero_prev_action=resolve_zero_prev_action(   # as the source flow (B-1)
