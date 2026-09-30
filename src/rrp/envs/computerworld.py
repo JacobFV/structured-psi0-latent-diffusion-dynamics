@@ -228,10 +228,91 @@ def cw_state_view(scene: dict, frame: ScreenFrame, slots: SlotRegistry, t: float
                                     parent=parent, assembly=None, body=None, visible=w["visible"],
                                     attrs=widget_attributes(w)))
         ui_tree.append(dict(id=wid, parent=parent, z=w["layer"], focus_rank=0 if w["focused"] else None,
-                            role=w["role"], label=w["label"], bounds=w["box"]))
+                            role=w["role"], label=w["label"], bounds=w["box"], order=w["order"]))
         token_map[("widgets", slot)] = wid
     return CWStateView(caps=frozenset({"poses", "ui_tree"}), time=t, gravity=np.zeros(3), _entities=tuple(entities),
                        _ui_tree=tuple(ui_tree), _token_map=token_map)
+
+
+# ------------------------------------------------------------------------------------------------ public UI fields / ui-rel-v1 edges (D-144 R20)
+# The pointer / ComputerWorld family's own public fields (docs/relations.md section 2's family row: "+pos3d (screen
+# mm + z-layer depth), +zlayer, +parent_id, +focus_rank, entity_id") and the "ui-rel-v1" edge vocabulary
+# (`catalog.py` section 10 row R20's `ui.*`), built PURELY from the same `scene_widgets` slot table
+# `cw_state_view` / `descriptors` already use -- so a slot's field / edge row lines up with its `ObjectDescriptor`
+# slot and its `CWStateView` entity 1:1. Plain numpy only: `envs` sits below `policies` in the layer order
+# (`tests/unit/test_layering.py`), so this file never imports `rrp.policies.relations` -- the actual `TokenSet` /
+# `EdgeSet` wrapping of this data is a collate-path concern (a future unit's `nets/batch.py`-style file, matching
+# how `ix.force_flow`'s "edges:support-v1" is built in `nets/batch.py` from `relgen.support.support_matrix`'s plain
+# dict output, not in the env adapter -- rel-geo, D-144 addendum). `focus_rank` matches `cw_state_view`'s own,
+# already-merged convention exactly (0 = the currently focused widget via `scene.focus.interaction`, -1 = every
+# other widget): a per-widget RANK beyond that binary needs an explicit UI tab-index CW does not expose.
+UI_REL_VOCAB = ("label_for", "contains", "focus_next", "above")
+
+
+def _tab_order(table: Sequence[dict | None]) -> list[int]:
+    """Slots of focusable, enabled, boxed widgets, in scene (document) order -- the deterministic public tab
+    sequence `ui_edges`'s `focus_next` walks cyclically. CW exposes no explicit tab index; `order` (scene node
+    index, already in every `scene_widgets` record) is the same document-order proxy `label_for` uses below."""
+    return [s for s, w in enumerate(table) if w is not None and w["focusable"] and not w["disabled"] and w["box"]]
+
+
+def ui_public_fields(table: Sequence[dict | None]) -> dict[str, np.ndarray]:
+    """Per-slot `parent_id` (window index, -1 = desktop-level or a null slot), `zlayer` (dense z-layer rank, `float`)
+    and `focus_rank` (0 / -1, `cw_state_view`'s own convention) over a `SlotRegistry.assign` table -- every input is
+    already in `ObjectDescriptor.attributes` / `scene_widgets`' own record, nothing privileged. Pixel-frame
+    independent (unlike `widget_position`): no `ScreenFrame` argument needed."""
+    n = len(table)
+    parent_id = np.full(n, -1, np.int64)
+    zlayer = np.zeros(n, np.float32)
+    focus_rank = np.full(n, -1, np.int64)
+    for slot, w in enumerate(table):
+        if w is None:
+            continue
+        parent_id[slot] = -1 if w["window"] is None else w["window"]
+        zlayer[slot] = float(w["layer"])
+        focus_rank[slot] = 0 if w["focused"] else -1
+    return dict(parent_id=parent_id, zlayer=zlayer, focus_rank=focus_rank)
+
+
+def ui_edges(table: Sequence[dict | None]) -> np.ndarray:
+    """`[W, W, len(UI_REL_VOCAB)]` bool public graph over the same slot table (`W = len(table)`); a null slot's row
+    / column stays all-False.
+      contains[i, j]    : i, j are widgets of the SAME window (reflexive, symmetric); desktop-level widgets
+                          (window is None) never match each other, so unrelated top-level icons are not bundled
+                          into one "container" -- there is no window entity token to hang a real containment edge
+                          off (CW's window frame itself carries no `semantic` node, `scene_widgets`), so this is
+                          "co-contained in one window" rather than a widget literally containing another.
+      label_for[i, j]   : i has role "label", j does not, both are in the same window (or both desktop-level), and
+                          j is the NEXT widget after i in scene (document) order within that group -- the standard
+                          "the label immediately precedes the control it describes" layout convention.
+      focus_next[i, j]  : i, j are consecutive slots of the public tab order (`_tab_order`, cyclic: the last widget
+                          wraps to the first).
+      above[i, j]       : zlayer_j > zlayer_i (which of the pair renders on top / would occlude the other).
+    """
+    n = len(table)
+    out = np.zeros((n, n, len(UI_REL_VOCAB)), bool)
+    i_label, i_contains, i_focus, i_above = range(len(UI_REL_VOCAB))
+
+    windows: dict[int, list[int]] = {}
+    for slot, w in enumerate(table):
+        if w is not None and w["window"] is not None:
+            windows.setdefault(w["window"], []).append(slot)
+    for members in windows.values():
+        for i in members:
+            out[i, members, i_contains] = True
+        ordered = sorted(members, key=lambda s: table[s]["order"])
+        for a, b in zip(ordered, ordered[1:]):
+            if table[a]["role"] == "label" and table[b]["role"] != "label":
+                out[a, b, i_label] = True
+
+    order = _tab_order(table)
+    for a, b in zip(order, order[1:] + order[:1]):
+        out[a, b, i_focus] = True
+
+    layer = np.array([w["layer"] if w is not None else -1 for w in table], dtype=np.int64)
+    present = np.array([w is not None for w in table], dtype=bool)
+    out[..., i_above] = (layer[None, :] > layer[:, None]) & present[:, None] & present[None, :]
+    return out
 
 
 # ------------------------------------------------------------------------------------------------ actions

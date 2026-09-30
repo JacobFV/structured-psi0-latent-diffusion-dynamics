@@ -338,3 +338,56 @@ register_factor(FactorDef(
         "(0-foot stance: large fixed negative margin, relgen.body._NO_SUPPORT_MARGIN)"))
 register_preset("legged-r19", ["leg.foothold", "leg.com_support"])
 # ------------------------------------------------------------------ R20: UI (ui.*)
+# `envs.computerworld` builds the public data this section names (`UI_REL_VOCAB`, `ui_public_fields`, `ui_edges`;
+# docs/relations.md section 2's pointer/CW family row: "+pos3d ..., +zlayer, +parent_id, +focus_rank, entity_id").
+# `envs` sits below `policies` in the layer order (`tests/unit/test_layering.py`), so importing FROM the env adapter
+# here (policies -> envs, downward) is fine; the reverse is not, which is why `envs.computerworld` builds plain
+# numpy, never a `TokenSet` / `EdgeSet` (those stay a collate-path concern, matching rel-geo's `edges:support-v1`
+# precedent). `parent_id` / `entity_id` are the foundation's own fields already; `zlayer` (named in section 1's
+# vocabulary table already) and `focus_rank` are new.
+from rrp.envs.computerworld import UI_REL_VOCAB
+register_field(FieldDef("zlayer", 1, "scalar", "public", units="dense z-layer rank"))
+register_field(FieldDef("focus_rank", 1, "scalar", "public", units="0 = currently focused, -1 = every other widget"))
+VOCABS["ui-rel-v1"] = UI_REL_VOCAB
+
+# `ui.label_for` / `ui.contains` / `ui.focus_next` / `ui.above`: the ARM `edge.*` pattern (foundation, above) applied
+# to `UI_REL_VOCAB` -- every channel is public / deterministic (built from role, window, scene order, z-layer and
+# focusable/disabled, all already in `ObjectDescriptor.attributes`), so `sources` defaults to "given" everywhere;
+# "gt" is additionally offered (matching `geo.*`'s pattern, docs section 6) so a privileged `envs.computerworld`
+# relgen label can be diagnosed against / substituted for the deployable public edge on the SAME entry, via
+# `relgen.ui`'s label of the identical name. `ui.label_for` alone gets `gen=("reveal", "surprise")`: which
+# label-role widget a control is bound to is exactly docs 5.4's own worked surprise example ("UI label changes") --
+# a candidate classification over a window's label-role widgets, not a fixed fact, so it is the one channel here
+# that benefits from progressive reveal / contradiction-after-collapse training (`relgen.ui.label_for_sample`).
+_UI_EDGE_DOC = {
+    "label_for": "role=\"label\" widget -> the next widget after it (scene order) in the same window: the "
+                 "'label immediately precedes the control it describes' layout convention",
+    "contains": "1[i, j are widgets of the same window] (reflexive, symmetric); desktop-level widgets (window is "
+               "None) never match each other, so unrelated top-level icons are not bundled together",
+    "focus_next": "i, j are consecutive slots of the public tab order (focusable, enabled, boxed widgets in scene "
+                  "order; cyclic, the last wraps to the first)",
+    "above": "zlayer_j > zlayer_i: which of the pair renders on top / would occlude the other",
+}
+for _n, _doc in _UI_EDGE_DOC.items():
+    register_factor(FactorDef(f"ui.{_n}", "1", field="edges:ui-rel-v1", op="edge", form="bias",
+                              algebra=Algebra(direction="symmetric" if _n == "contains" else "directed"),
+                              sources=("given", "gt"), label=_n,
+                              gen=("reveal", "surprise") if _n == "label_for" else (),
+                              params=(("edge", _n),), doc=_doc))
+
+# `ui.drag_to`: the ix.*/leg.* bilinear pair-probe pattern (docs 3.1: the bias IS the pair probe) -- there is no
+# public/estimated "given" source for a drag DESTINATION (only the learned kernel deployably; "gt" is
+# training/diagnostics-only, section 7's deploy guard). Label `drag_to` (`relgen.ui.drag_to_fn`): the currently
+# focused widget (CW's only public signal of "the widget the pointer is actively interacting with", `scene.focus`)
+# paired with the nearest OTHER widget by on-screen position -- the same nearest-candidate pattern R19's own
+# `leg.foothold` uses for its privileged pair label.
+register_factor(FactorDef(
+    "ui.drag_to", "1", field="hidden", op="bilinear", form="aug",
+    algebra=Algebra(direction="directed", dynamic=True, value="prob"),
+    sources=("probe", "gt"), label="drag_to",
+    readout=ReadoutDef("drag_to", "pair", 1, "bce", label="drag_to", reads="tokens"),
+    params=(("rank", 8),),
+    doc="widget currently interacted with (scene.focus) -> nearest other widget by position, the candidate drop "
+        "target of an in-progress drag (relgen.ui.drag_to_fn)"))
+
+register_preset("ui", ["ui.label_for", "ui.contains", "ui.focus_next", "ui.above", "ui.drag_to"])
