@@ -669,9 +669,150 @@ class PlaceTeacher(SquatPickTeacher):
         return up
 
 
+# ------------------------------------------------------------------ U3: C1 h_carry, C2 h_loco_pick and the held-out h_steps_carry, h_gap_cart
+class CarryTeacher(SquatPickTeacher):
+    """h_carry (C1): the M2 squat pick, then hand the legs over to the registered tracker (an abrupt hand-over from the planned standing
+    pose; a blended one dropped the box) and carry the box to the goal: a heading law on the tracker command (turn towards the goal,
+    always to the LEFT: a right turn under the payload tips the tracker over; walk at 0.6 vx_max scaled by cos(heading error), slow down
+    over the last 0.5 m, halt when the BOX is within 0.15 m of the goal; the box rides ~0.36 m ahead of the base) while the arm grip law
+    (`_grip`) keeps the squeeze. The tracker also runs in the shadow (output discarded)
+    during the pick so that its observation history (last action, gait phase) is continuous at the hand-over. PRIVILEGED: true base and box
+    poses. The flat `t1:contact_v2` tracker was trained without a payload or upper-body motion: what it does with the box is measured
+    (research/tracks/humanoid.md U3), not assumed."""
+    name = "h_carry"
+    legs = "planned_com+rl_expert"
+    STOP_M, SLOW_M, REACH = 0.15, 0.5, 0.36
+    V_FRAC, GATE, WZ_MAX, WZ_KP = 0.6, 1.0, 0.5, 1.5
+    LEFT_ABOVE = 0.3
+
+    def carry_started(self) -> bool:
+        return self.t >= self.tl["up"]
+
+    def target(self) -> np.ndarray:
+        return np.asarray(self.sc["goal"], float)
+
+    def payload_xy(self) -> np.ndarray:
+        return np.asarray(self.s._body_pos("box")[:2], float)
+
+    def command_values(self) -> np.ndarray:
+        if not self.carry_started():
+            return np.zeros(3)
+        x, y, yaw = self.s.base_pose_truth()
+        g = self.target()
+        if float(np.linalg.norm(g - self.payload_xy())) < self.STOP_M:
+            return np.zeros(3)
+        dist = float(np.linalg.norm(g - np.array([x, y])))                   # base to goal: the payload rides REACH ahead of the base
+        head = _wrap(math.atan2(g[1] - y, g[0] - x) - yaw)
+        if head < -self.LEFT_ABOVE:              # the tracker turns left more stably than right under the payload: go the long way round
+            head += 2.0 * math.pi
+        vx = self.V_FRAC * self.r["vx"][1] * min(1.0, max(0.0, dist - self.REACH) / self.SLOW_M) * max(0.0, math.cos(head)) ** self.GATE
+        return np.array([vx, 0.0, float(np.clip(self.WZ_KP * head, -self.WZ_MAX, self.WZ_MAX))])
+
+    def legs_command(self) -> np.ndarray:
+        planned = super().legs_command()
+        tracker = np.asarray(self.bt.act(self.s.data, self.command_values()), float)     # shadow until the hand-over
+        if not self.carry_started():
+            return planned
+        return tracker
+
+
+class StepsCarryTeacher(CarryTeacher):
+    """h_steps_carry (HELD OUT): the C1 teacher on the staircase scene (goal beyond the mirrored staircase behind the start). The legs
+    are the tracker the session was built with: the flat `t1:contact_v2` has no terrain scan and will trip on the steps; a steps
+    actor (`rl_expert:<body>:<steps version>`) is what this task is for once one is registered (training is paused)."""
+    name = "h_steps_carry"
+
+
+class LocoPickTeacher(SquatPickTeacher):
+    """h_loco_pick (C2): walk to the M2 stance in front of the crate with the tracker (heading law, slow down over the last 0.3 m, a
+    minimum 0.25 m/s so that the gait gate stays open), settle for 1 s, then run the M2 pick (planned squat legs + CoM feedback, arm
+    IK on the TRUE box pose, so a few cm of stance error are absorbed by the arms). The squat plan is the M2 plan of the shifted scene
+    (cached under the same key). The timeline of the pick starts when the walk ends (`t` is the pick clock)."""
+    name = "h_loco_pick"
+    legs = "rl_expert+planned_com"
+    T_SETTLE, T_WALK_MAX, T_BLEND = 1.0, 20.0, 0.6
+    X_TOL, X_SETTLE, Y_TOL, V_MIN = 0.05, 0.08, 0.10, 0.25          # walk stops at X_TOL; the pick starts within X_SETTLE
+
+    def __init__(self, session):
+        self.k_pick, self._still = None, 0
+        super().__init__(session)
+
+    @property
+    def t(self) -> float:
+        return 0.0 if self.k_pick is None else (self.k - self.k_pick) * self.dt
+
+    def _plan(self) -> dict:
+        real, a = self.sc, self.sc["approach_m"]
+        back = lambda d: {**d, "xy": [d["xy"][0] - a, d["xy"][1]]}
+        self.sc = {**real, "box": back(real["box"]), "crate": back(real["crate"])}         # the plan frame: the stance at the origin
+        try:
+            return super()._plan()
+        finally:
+            self.sc = real
+
+    def command_values(self) -> np.ndarray:
+        if self.k_pick is not None:
+            return np.zeros(3)
+        x, y, yaw = self.s.base_pose_truth()
+        ex, ey = self.sc["stance_x"] - x, -y
+        dist = math.hypot(ex, ey)
+        if dist > 0.3:
+            head = _wrap(math.atan2(ey, ex) - yaw)
+            vx = self.V_FRAC * self.r["vx"][1] * min(1.0, dist / 0.5) * max(0.0, math.cos(head)) ** 2
+            return np.array([max(vx, self.V_MIN), 0.0, float(np.clip(1.5 * head, -0.5, 0.5))])
+        c, s_ = math.cos(yaw), math.sin(yaw)
+        vx = float(np.clip(1.5 * (c * ex + s_ * ey), 0.0, 0.3))
+        vy = float(np.clip(1.5 * (-s_ * ex + c * ey), -0.1, 0.1))
+        return np.array([max(vx, self.V_MIN) if ex > self.X_TOL else 0.0, vy, float(np.clip(-1.5 * yaw, -0.3, 0.3))])
+
+    V_FRAC = 0.6
+
+    def _at_stance(self) -> bool:
+        x, y, _ = self.s.base_pose_truth()
+        return abs(self.sc["stance_x"] - x) <= self.X_SETTLE and abs(y) <= self.Y_TOL and self.s.truth_predicate("base_speed", ["body"]) < 0.08
+
+    def legs_command(self) -> np.ndarray:
+        if self.k_pick is None:
+            self._still = self._still + 1 if self._at_stance() else 0
+            if self._still * self.dt >= self.T_SETTLE or self.k * self.dt >= self.T_WALK_MAX:
+                self.k_pick = self.k
+        if self.k_pick is None:
+            return np.asarray(self.bt.act(self.s.data, self.command_values()), float)
+        planned = super().legs_command()
+        if self.t >= self.T_BLEND:
+            return planned
+        a = _smooth(self.t / self.T_BLEND)                    # tracker -> planned standing pose over the pick's first T_BLEND s
+        return (1.0 - a) * np.asarray(self.bt.act(self.s.data, np.zeros(3)), float) + a * planned
+
+    @property
+    def approach_s(self) -> float:
+        return (self.k_pick if self.k_pick is not None else self.k) * self.dt
+
+
+class CartTeacher(CarryTeacher):
+    """h_gap_cart (HELD OUT): grasp the cart's handle block with the M2 pick (the handle is only a few cm below the standing palm
+    height: the plan squats 2-3 cm), stand, then push: the tracker walks at 0.4 vx_max steering the base at the gap centre until the
+    cart has passed the wall, then at the goal, halting when the cart is within 0.12 m of it. The squeeze friction of the grasp
+    carries the push (no palm is on a rear face). Legs: the tracker after the grasp (as the carry teacher)."""
+    name = "h_gap_cart"
+    V_FRAC, STOP_M, REACH = 0.4, 0.12, 0.45
+
+    def payload_xy(self) -> np.ndarray:
+        return np.asarray(self.s._body_pos("cart")[:2], float)
+
+    def target(self) -> np.ndarray:
+        if self.payload_xy()[0] < self.sc["wall_x"] + 0.15:
+            return np.array([self.sc["wall_x"] + 0.3, self.sc["y_c"]])
+        return np.asarray(self.sc["goal"], float)
+
+
+CARRY_TEACHERS = {"h_carry": CarryTeacher, "h_loco_pick": LocoPickTeacher, "h_steps_carry": StepsCarryTeacher, "h_gap_cart": CartTeacher}
+
+
 MANIP_TEACHERS = {"h_walk": WalkTeacher, "h_turn": TurnTeacher, "h_reach": ReachTeacher, "h_squat_pick": SquatPickTeacher,
                   "h_place": PlaceTeacher}
 MANIP_TEACHER_VERSION = "upper_ik_v1"
+ALL_MANIP_TEACHERS = {**MANIP_TEACHERS, **CARRY_TEACHERS}      # the U2 set and the U3 set (POLICIES teacher:<task>)
 
 
 COMMAND_LAYERS = {"h_steps": StepsHeadingTeacher, "h_gap": GapTeacher}
@@ -733,8 +874,8 @@ class ManipTeacherPolicy:
     the upper body and the base command are scripted. Every Act carries the composition in its info."""
 
     def __init__(self, task: str):
-        if task not in MANIP_TEACHERS:
-            raise KeyError(f"no U2 teacher for task {task!r}; has {sorted(MANIP_TEACHERS)}")
+        if task not in ALL_MANIP_TEACHERS:
+            raise KeyError(f"no U2/U3 teacher for task {task!r}; has {sorted(ALL_MANIP_TEACHERS)}")
         self.task = task
         self.info = PolicyInfo(f"teacher:{task}", "scripted_teacher", MANIP_TEACHER_VERSION,
                                Requirements(frozenset({"joint_position"}), observations=frozenset(), tasks=frozenset({task}),
@@ -742,10 +883,13 @@ class ManipTeacherPolicy:
         self.teachers, self.labels = [], []
 
     def reset(self, spec, task, seeds, *, envs=None):
-        self.teachers = [MANIP_TEACHERS[self.task](e) for e in envs]
-        self.labels = [source_label("scripted_teacher", f"{self.task}+legs:" + (
-            f"{getattr(e.body_tracker, 'version', '?')}:{str(getattr(e.body_tracker, 'sha256', ''))[:12]}" if t.legs == "rl_expert"
-            else t.legs)) for t, e in zip(self.teachers, envs)]
+        self.teachers = [ALL_MANIP_TEACHERS[self.task](e) for e in envs]
+        def legs(t, e):
+            if "rl_expert" not in t.legs:
+                return t.legs
+            tag = f"{getattr(e.body_tracker, 'version', '?')}:{str(getattr(e.body_tracker, 'sha256', ''))[:12]}"
+            return tag if t.legs == "rl_expert" else f"{t.legs}:{tag}"       # e.g. planned_com+rl_expert:contact_v2:<sha12>
+        self.labels = [source_label("scripted_teacher", f"{self.task}+legs:" + legs(t, e)) for t, e in zip(self.teachers, envs)]
 
     def act(self, obs):
         return {i: Act(self.teachers[i].act(), info=dict(source_label=self.labels[i], command_layer=f"scripted_teacher:{self.task}"))

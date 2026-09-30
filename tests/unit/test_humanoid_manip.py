@@ -42,7 +42,7 @@ def test_tasks_registered_with_graph_teacher_and_vocabulary():
         assert type(make_policy(f"teacher:{name}")).__name__ == "ManipTeacherPolicy"
     assert set(MANIP_REASONS) == {"drift", "no_grasp", "not_upright", "place_miss"} and "drift" in ENDS_AT_ONCE
     assert set(TH.MANIP_TEACHERS) == set(TASKS)
-    with pytest.raises(KeyError, match="no U2 teacher"):
+    with pytest.raises(KeyError, match="no U2/U3 teacher"):
         TH.ManipTeacherPolicy("h_steps")
 
 

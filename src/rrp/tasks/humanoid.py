@@ -1,6 +1,8 @@
 """Humanoid tasks (docs/architecture.md sections 14.1 and 14.4, unit HJ): the judge and the registration of `h_steps`
 and `h_gap`; U2 adds L0 `h_walk`, L3 `h_turn`, M1 `h_reach`, M2 `h_squat_pick`, M3 `h_place` (whole-body control: the
-`legs` group from a tracker actor plus the `upper` group from the scripted upper-body teacher). U3 adds C1, C2.
+`legs` group from a tracker actor plus the `upper` group from the scripted upper-body teacher). U3 adds C1 `h_carry`, C2
+`h_loco_pick` and the HELD-OUT `h_steps_carry` (carry over steps) and `h_gap_cart` (push a cart through the gap); the held-out
+names are never in a training list (`humanoid_scenes.HELD_OUT_TASKS`, guarded by tests/unit/test_humanoid_carry.py).
 
 The judge maps what the env says (`env.failure_reason()` in its own vocabulary, `env.fell`) and what privileged truth
 says (`env.privileged_success()`, the public task graph) to the humanoid failure vocabulary `HUMANOID_REASONS`; what
@@ -97,5 +99,21 @@ _MANIP = (
      "M3: lift the box, twist the trunk about the waist and put it down on the crate mark (within 4 cm, hands 15 cm clear for 1 s)"),
 )
 for _name, _sec, _graph, _why, _note in _MANIP:
+    register_task(TaskSpec(_name, _MANIP_ENVS, _sec, humanoid_judge(), graph=_graph, teacher=f"teacher:{_name}", hooks=("session",),
+                           build=_BUILD, failure_reasons=_why, max_steps=int(50 * _sec), note=f"humanoid_judge; {_note}"))
+
+# U3: carry / loco-pick (train) and the held-out compositions. Same 50 Hz whole-body env as U2. `dropped`: the payload left the crate /
+# hands for the floor; `hold_lost`: it was lifted (or the cart pushed) and the palms have since left it; the cart adds `wall_collision`.
+_CARRY = (
+    ("h_carry", 45.0, "h_carry", ("fell", "no_grasp", "dropped", "hold_lost", "timeout"),
+     "C1: squat pick, stand, carry the box to a goal 1-1.6 leg lengths away behind the start and halt there (box within 0.3 m for 1 s, still held)"),
+    ("h_loco_pick", 50.0, "h_loco_pick", ("fell", "no_grasp", "dropped", "not_upright", "timeout"),
+     "C2: walk to a crate 0.8-1.4 m ahead, halt at the stance, squat pick and stand (M2 success condition after a walk)"),
+    ("h_steps_carry", 70.0, "h_steps_carry", ("fell", "no_grasp", "dropped", "hold_lost", "timeout"),
+     "HELD OUT: C1 with a staircase between the start and the goal (h_steps composed with a carry); needs the arm roles (S3 berkeley: absent_limb)"),
+    ("h_gap_cart", 50.0, "h_gap_cart", ("fell", "wall_collision", "no_grasp", "dropped", "hold_lost", "timeout"),
+     "HELD OUT: push a cart by its handle through the h_gap opening to a goal beyond the wall (h_gap composed with a manipulation)"),
+)
+for _name, _sec, _graph, _why, _note in _CARRY:
     register_task(TaskSpec(_name, _MANIP_ENVS, _sec, humanoid_judge(), graph=_graph, teacher=f"teacher:{_name}", hooks=("session",),
                            build=_BUILD, failure_reasons=_why, max_steps=int(50 * _sec), note=f"humanoid_judge; {_note}"))

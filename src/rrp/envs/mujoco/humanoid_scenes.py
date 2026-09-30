@@ -61,12 +61,13 @@ def steps_height_at(xq: np.ndarray, L: float, h: float, n: int = STEPS_N) -> np.
     return z
 
 
-def add_steps(spec: mujoco.MjSpec, L: float, h: float, floor_kw: dict, n: int = STEPS_N, width: float = 3.0) -> list:
+def add_steps(spec: mujoco.MjSpec, L: float, h: float, floor_kw: dict, n: int = STEPS_N, width: float = 3.0, sign: float = 1.0) -> list:
+    """The staircase along +x (sign 1) or mirrored behind the origin (sign -1: h_steps_carry, the robot turns to face it)."""
     names = []
     lay, _ = steps_layout(L, h, n)
     for name, cx, hx, top in lay:
         # boxes extend BURY x L below the floor, so a zero-height step is flush with the floor (no 0.2 mm edge to trip on)
-        spec.worldbody.add_geom(name=name, type=G.mjGEOM_BOX, pos=[cx, 0, 0.5 * (top - BURY * L)],
+        spec.worldbody.add_geom(name=name, type=G.mjGEOM_BOX, pos=[sign * cx, 0, 0.5 * (top - BURY * L)],
                                 size=[hx, 0.5 * width * L, 0.5 * (top + BURY * L)],
                                 rgba=[0.55, 0.5, 0.45, 1], **floor_kw)
         names.append(name)
@@ -261,6 +262,27 @@ def build_h_gap(robot, seed: int, level: float = 1.0, contact: str | None = "v2"
 # ------------------------------------------------------------------ U2: L0 h_walk, L3 h_turn, M1 h_reach, M2 h_squat_pick, M3 h_place
 MANIP_TASKS = ("h_walk", "h_turn", "h_reach", "h_squat_pick", "h_place")
 MANIP_SCENE_VERSION = "humanoid_manip_v1"
+# U3: C1 h_carry, C2 h_loco_pick (trained tasks) and the two HELD-OUT tasks (never in a training list: `TRAIN_TASKS` / `HELD_OUT_TASKS`,
+# research/splits/humanoid_v1.json `held_out_tasks`). All four are built by `build_h_manip` and run in a HumanoidSession.
+CARRY_TASKS = ("h_carry", "h_loco_pick")
+HELD_OUT_TASKS = ("h_steps_carry", "h_gap_cart")
+TRAIN_TASKS = ("h_steps", "h_gap") + MANIP_TASKS + CARRY_TASKS
+CARRY_SCENE_VERSION = "humanoid_carry_v1"
+LOCO_APPROACH = (0.8, 1.4)              # x L, h_loco_pick: how far the crate is placed beyond the M2 stance (the robot walks it first)
+CARRY_GOAL_ANGLE = (1.6, 2.6)           # rad, h_carry: |bearing| of the goal from the start (behind / beside the robot: the crate is ahead)
+CARRY_GOAL_DIST = (1.0, 1.6)            # x L
+CARRY_TOL = 0.30                        # m, box-to-goal tolerance of the carry tasks
+HELD_M = 0.25                           # m, "held": the nearest palm within this of the box / handle (a grasp has it at ~0.15)
+HOLD_LOST_M = 0.35                      # m, hold_lost: the nearest palm farther than this from the box for HOLD_LOST_TICKS boundary ticks
+HOLD_LOST_TICKS = 3
+STEPS_CARRY_H = (0.08, 0.16)            # x L, h_steps_carry step height (2 up, platform, 2 down, mirrored behind the start)
+STEPS_CARRY_N = 2
+CART_HALF = (0.20, 0.5, 0.03)           # cart deck half sizes: x (m), y (x body width), z (m); the deck floats CART_Z above the floor
+CART_Z = 0.12
+CART_MASS = 3.0                         # kg; planar joints with viscous damping (below): a pram on a smooth floor, pushed by the squeeze friction
+CART_DAMP = (20.0, 20.0, 4.0)           # N s/m, N s/m, N m s/rad of the x, y, yaw joints
+CART_HANDLE = (0.30, 0.65)              # (x m in front of the start, z m): centre of the handle block (BOX_HALF-sized; the M2 palm targets sit 5 cm above it)
+GAP_CART_F = (1.25, 1.5)                # gap width / cart width
 BOX_HALF = (0.10, 0.18, 0.14)          # x L, box half sizes (x forward, y lateral, z): 0.13 x 0.24 x 0.13 m on t1 (the palms cannot
 #                                        close inside a 0.13 m half-span: the shoulder roll limit)
 BOX_MASS = 0.4                          # kg (the arms are 18 N m servos; a squeeze holds it with a wide margin)
@@ -304,6 +326,64 @@ def _add_ball(scene, name: str, xyz, radius: float, rgba):
     return b
 
 
+class AbsentLimb(ValueError):
+    """The body has no arms (no palm links): the carry tasks bind their hand roles to null with reason `absent_limb` (docs/architecture.md
+    14.4; research/splits/humanoid_v1.json S3). Raised by the scene builder, so a runner records the null binding instead of a failed grasp."""
+    reason = "absent_limb"
+
+
+def require_arms(robot, task: str):
+    """Raise `AbsentLimb` unless `robot` (a LeggedBody) has two palm links (`LeggedBinding.payload_bodies`, the hand-held-load bodies)."""
+    from rrp.envs.mujoco.legged_core import LeggedBinding
+    m = robot.spec.copy().compile()
+    if len(LeggedBinding(m, robot.meta, "").payload_bodies()) < 2:
+        raise AbsentLimb(f"absent_limb: {task} needs two arms; body {robot.meta['name']!r} has {len(LeggedBinding(m, robot.meta, '').payload_bodies())} "
+                         "palm links (its hand roles are null)")
+
+
+def _add_gap_cart(scene, robot, rng, contact, floor_kw, L: float, p: dict):
+    """h_gap_cart (HELD OUT): the h_gap wall with a floating cart (planar x / y / yaw joints, viscous damping, no floor contact) whose
+    rear handle block (BOX_HALF-sized, the palms squeeze it like the M2 box) stands in front of the robot; the cart must go
+    through the gap (width = f x cart width) to the goal. Returns (camera, camera centre, objects, scene meta). The handle is the
+    body `box` (task entity `box`) so that the grasp code of the pick teachers applies unchanged."""
+    from rrp.bodies.legged import standalone_model
+    from rrp.envs.mujoco.legged import WAYPOINT_COLORS, _waypoint
+    from rrp.envs.mujoco.legged_core import LeggedBinding
+    from rrp.envs.mujoco.scenario import ObjectDecl
+    m0, _, meta0 = standalone_model(robot, contact=contact)
+    bw = body_width(m0, LeggedBinding(m0, meta0))
+    cw = 2.0 * CART_HALF[1] * bw                         # cart width
+    f = float(p.get("gap_ratio", rng.uniform(*GAP_CART_F)))
+    y_c = float(p.get("y_c", rng.uniform(-0.3, 0.3) * L))
+    bh = np.array(BOX_HALF) * L
+    xh, zh = CART_HANDLE
+    xc = xh + bh[0] + 0.02 + CART_HALF[0]                # deck centre
+    zc = CART_Z + CART_HALF[2]
+    cb = scene.worldbody.add_body(name="cart", pos=[xc, 0.0, zc])
+    for nm, ax, kind, dmp in (("cart_x", [1, 0, 0], mujoco.mjtJoint.mjJNT_SLIDE, CART_DAMP[0]),
+                              ("cart_y", [0, 1, 0], mujoco.mjtJoint.mjJNT_SLIDE, CART_DAMP[1]),
+                              ("cart_yaw", [0, 0, 1], mujoco.mjtJoint.mjJNT_HINGE, CART_DAMP[2])):
+        cb.add_joint(name=nm, type=kind, axis=ax, damping=dmp)
+    cb.add_geom(name="cart_geom", type=G.mjGEOM_BOX, size=[CART_HALF[0], 0.5 * cw, CART_HALF[2]], mass=CART_MASS,
+                rgba=[0.3, 0.45, 0.75, 1.0], friction=[0.4, 0.02, 0.002])
+    cb.add_geom(name="cart_post", type=G.mjGEOM_BOX, pos=[-CART_HALF[0] + 0.01, 0.0, 0.5 * (zh - zc)], size=[0.01, 0.05, 0.5 * abs(zh - zc)],
+                rgba=[0.3, 0.45, 0.75, 1.0], contype=0, conaffinity=0, mass=0.05)
+    hb = cb.add_body(name="box", pos=[xh - xc, 0.0, zh - zc])
+    hb.add_geom(name="box_geom", type=G.mjGEOM_BOX, size=list(bh), rgba=[0.85, 0.15, 0.12, 1.0], mass=0.05,
+                friction=list(BOX_FRICTION), condim=4)
+    walls = add_gap_walls(scene, L, floor_kw, f * cw, y_c)
+    goal = [GAP_X * L + 0.9, y_c]
+    _waypoint(scene, "goal", goal, WAYPOINT_COLORS["cyan"])
+    objects = [ObjectDecl("cart", "blue cart", "object", (CART_HALF[0], 0.5 * cw, CART_HALF[2]), task_entity="cart"),
+               ObjectDecl("box", "red cart handle", "object", tuple(bh), task_entity="box"),
+               ObjectDecl("goal", "cart goal marker beyond the gap", "feature", radius=0.12, task_entity="goal")]
+    smeta = dict(cart=dict(xy=[xc, 0.0], half=[CART_HALF[0], 0.5 * cw, CART_HALF[2]], width=cw), gap_width=f * cw, gap_ratio=f,
+                 y_c=y_c, wall_x=GAP_X * L, walls=walls, goal=goal, goal_tol_m=0.35, halt_speed=HALT_SPEED, body_width=bw,
+                 box=dict(xy=[xh, 0.0], half=bh.tolist(), z0=zh), crate=dict(xy=[xh, 0.0], top=zh - float(bh[2]), half=[0.0, 0.0]),
+                 lift_m=0.05)
+    return "overhead", [GAP_X * L, 0.0], objects, smeta
+
+
 def build_h_manip(robot, seed: int, task: str, contact: str | None = "v2", **p):
     """Scenario for HumanoidSession: `task` in MANIP_TASKS on the humanoid `robot` (body key), the body at the origin facing +x.
     Everything is drawn from the seed (rng [seed, 4545]) unless a keyword (`dist_frac`, `angle`, `psi_f`, `target`, `side`) fixes
@@ -313,11 +393,13 @@ def build_h_manip(robot, seed: int, task: str, contact: str | None = "v2", **p):
     from rrp.bodies.legged import legged_body, legged_world
     from rrp.envs.mujoco.legged import WAYPOINT_COLORS, _waypoint, tracker_contract
     from rrp.envs.mujoco.scenario import MountedRobot, ObjectDecl, Scenario, load_task
-    if task not in MANIP_TASKS:
-        raise KeyError(f"unknown humanoid manipulation task {task!r}; has {MANIP_TASKS}")
+    if task not in MANIP_TASKS + CARRY_TASKS + HELD_OUT_TASKS:
+        raise KeyError(f"unknown humanoid manipulation task {task!r}; has {MANIP_TASKS + CARRY_TASKS + HELD_OUT_TASKS}")
     body_key = robot if isinstance(robot, str) else robot.meta["name"]
     if isinstance(robot, str):
         robot = legged_body(robot)
+    if task in CARRY_TASKS + HELD_OUT_TASKS:
+        require_arms(robot, task)
     meta = copy.deepcopy(robot.meta)
     L = float(meta["legged"]["nominal_height"])
     rng = np.random.default_rng([seed, 4545])
@@ -348,12 +430,15 @@ def build_h_manip(robot, seed: int, task: str, contact: str | None = "v2", **p):
         objects = [ObjectDecl("target", "orange target ball", "feature", radius=REACH_R, task_entity="target")]
         smeta = dict(target=tgt, side=side, tol_m=REACH_R)
         cam, centre = "front", [0.0, 0.0]
+    elif task == "h_gap_cart":
+        cam, centre, objects, smeta = _add_gap_cart(scene, robot, rng, contact, floor_kw, L, p)
     else:
         bh = np.array(BOX_HALF) * L
-        cr = M2_CRATE if task == "h_squat_pick" else M3_CRATE
+        cr = M3_CRATE if task == "h_place" else M2_CRATE
         top, half_c = cr["top"] * L, (CRATE_HALF_XY[0] * L, CRATE_HALF_XY[1] * L)
-        cx = cr["front"] * L + half_c[0]
-        bxy = [(cr["front"] + BOX_X) * L, 0.0]
+        appr = float(p.get("approach_frac", rng.uniform(*LOCO_APPROACH))) * L if task == "h_loco_pick" else 0.0
+        cx = cr["front"] * L + half_c[0] + appr
+        bxy = [(cr["front"] + BOX_X) * L + appr, 0.0]
         z0 = top + bh[2] + 0.002
         _add_crate(scene, "crate", [cx, 0.0], top, half_c, floor_kw)
         _add_box(scene, "box", [bxy[0], bxy[1], z0], bh)
@@ -363,7 +448,7 @@ def build_h_manip(robot, seed: int, task: str, contact: str | None = "v2", **p):
         smeta = dict(crate=dict(xy=[cx, 0.0], top=top, half=list(half_c)), box=dict(xy=bxy, half=bh.tolist(), z0=z0), lift_m=0.05)
         if task == "h_squat_pick":
             smeta["hold_s"] = 2.0
-        else:
+        elif task == "h_place":
             side = float(p.get("side", rng.choice([-1.0, 1.0])))
             w = waist_axis_xy(robot)
             r0 = np.array(bxy) - w
@@ -372,13 +457,40 @@ def build_h_manip(robot, seed: int, task: str, contact: str | None = "v2", **p):
             _add_ball(scene, "place_mark", [place[0], place[1], top + 0.01], 0.02, (0.1, 0.8, 0.85, 0.9))
             objects.append(ObjectDecl("place_mark", "cyan placement mark", "feature", radius=0.02, task_entity="place_mark"))
             smeta.update(place=place, side=side, twist_rad=psi, waist_xy=w.tolist(), place_tol_m=0.04)
-        cam, centre = "front", [0.4 * L, 0.0]
+        elif task == "h_loco_pick":            # the M2 scene shifted `appr` ahead: the robot walks to the M2 stance first
+            smeta.update(approach_m=appr, stance_x=0.0 + appr, stance_dist=cx - appr, stance_tol_m=0.12, hold_s=2.0)
+        else:                                   # h_carry, h_steps_carry: pick, then carry the box to a goal behind / beside the start
+            sg = 1.0 if p.get("side", rng.choice([-1.0, 1.0])) > 0 else -1.0
+            if task == "h_carry":
+                ang = sg * float(p.get("angle", rng.uniform(*CARRY_GOAL_ANGLE)))
+                dist = float(p.get("dist_frac", rng.uniform(*CARRY_GOAL_DIST))) * L
+                goal = [dist * math.cos(ang), dist * math.sin(ang)]
+            else:
+                hf = float(p.get("h_frac", rng.uniform(*STEPS_CARRY_H)))
+                n = int(p.get("n_steps", STEPS_CARRY_N))
+                ground = add_steps(scene, L, hf * L, floor_kw, n=n, sign=-1.0)
+                x_end = steps_layout(L, hf * L, n)[1]
+                goal = [-(x_end + 0.3 * L), 0.0]
+                smeta.update(h_frac=hf, x_end=x_end, ground=ground,
+                             staircase=dict(x0=-STEPS_X0 * L, tread=STEPS_TREAD * L, n=n, h=hf * L, platform=STEPS_PLATFORM * L,
+                                            direction=-1.0))
+            _waypoint(scene, "goal", goal, cyan)
+            objects.append(ObjectDecl("goal", "cyan goal marker", "feature", radius=0.12, task_entity="goal"))
+            smeta.update(goal=goal, goal_tol_m=CARRY_TOL, halt_speed=HALT_SPEED)
+            cam = "overhead"
+        if task == "h_loco_pick":
+            cam, centre = "overhead", [0.5 * (cx + 0.0), 0.0]
+        elif task in ("h_carry", "h_steps_carry"):
+            centre = [0.5 * smeta["goal"][0], 0.5 * smeta["goal"][1]]
+        else:
+            cam, centre = "front", [0.4 * L, 0.0]
     scene.worldbody.add_camera(name="overhead", pos=[centre[0], centre[1], 12.0], xyaxes=[1, 0, 0, 0, 1, 0], fovy=100)
-    if cam == "front":       # a camera beyond the crate, looking back at the robot: the arms do not hide the box
+    if cam == "front" and task in MANIP_TASKS:       # a camera beyond the crate, looking back at the robot: the arms do not hide the box
         cpos = [2.2 * L, 0.0, 1.3 * L]
         scene.worldbody.add_camera(name="front", pos=cpos, xyaxes=_lookat_xyaxes(cpos, [0.2 * L, 0.0, 0.6 * L]), fovy=70)
     meta["contact_model"] = version_str(contact)
-    meta["scene"] = dict(task=task, version=MANIP_SCENE_VERSION, params=dict(smeta), ground=[], L=L)
+    meta["scene"] = dict(task=task, version=CARRY_SCENE_VERSION if task in CARRY_TASKS + HELD_OUT_TASKS else MANIP_SCENE_VERSION,
+                         params=dict(smeta), ground=list(smeta.get("ground", [])), L=L, walls=list(smeta.get("walls", [])))
     site = scene.worldbody.add_site(name="mount0", pos=[0, 0, 0])
     scene.attach(robot.spec.copy(), prefix="r0_", site=site)
     scene.memory = 8 * 2 ** 20
@@ -386,9 +498,12 @@ def build_h_manip(robot, seed: int, task: str, contact: str | None = "v2", **p):
     rs = compile_robot_spec(model, meta, prefix="r0_", name=body_key)
     rs = rs.model_copy(update=dict(controller_contracts=rs.controller_contracts + [tracker_contract(meta, rs)])).with_hash()
     mr = MountedRobot("r0_", meta, rs, [0.0, 0.0, 0.0], 0.0, {"body": "body"})
-    return Scenario(task, load_task(task), scene, model, [mr], objects, seed,
+    tdef = load_task(task)
+    if task == "h_loco_pick":            # the walk_to threshold is in units of the body: the M2 stance distance + tolerance
+        tdef["events"][0]["completion"][0]["value"] = round(smeta["stance_dist"] + smeta["stance_tol_m"], 4)
+    return Scenario(task, tdef, scene, model, [mr], objects, seed,
                     meta=dict(body_key=body_key, contact_model=meta["contact_model"], L=L, detector_camera=cam,
-                              scene_version=MANIP_SCENE_VERSION, **smeta))
+                              scene_version=meta["scene"]["version"], **smeta))
 
 
 def waist_joint(model, binding) -> tuple | None:
@@ -439,7 +554,8 @@ class HumanoidSession(LeggedSession):
     the base one), `bearing_error_rad(body, e)` (|heading to the tracked entity - localized yaw|), `drift_m(body)` (horizontal
     distance from the first localized position) and `stand_frac(body)` (pelvis height over the lowest foot site by the same
     forward kinematics, as a fraction of its default-stance value). The truth versions read the simulator.
-    `failure_reason()` is a PRIVILEGED diagnostic for the reports (fell, dropped, drift, no_grasp, not_upright, place_miss)."""
+    `failure_reason()` is a PRIVILEGED diagnostic for the reports (fell, dropped, hold_lost, wall_collision, drift, no_grasp,
+    not_upright, place_miss)."""
 
     STAND_OK = 0.9
     LOC_AVG = 5           # boundary ticks (0.5 s) of the localization average that public_fk places the hands with (the single-sample noise
@@ -453,6 +569,9 @@ class HumanoidSession(LeggedSession):
         self._geo = None
         self._loc_recent = []
         self._true_xy = []
+        self._hold_bad = 0          # U3: boundary ticks in a row with the nearest palm farther than HOLD_LOST_M from the box / handle
+        self._wall_ticks = 0        # h_gap_cart: boundary ticks with a robot or cart geom in contact with a wall
+        self._engaged = False       # the payload was lifted (box tasks) / the cart pushed 0.10 m (h_gap_cart): hold_lost applies from then on
         super().__init__(scenario, **kw)
 
     # ------------------------------------------------------------------ geometry constants (from the public body model)
@@ -482,6 +601,7 @@ class HumanoidSession(LeggedSession):
         self._lift_max = 0.0
         self._loc_recent = []
         self._true_xy = []
+        self._hold_bad, self._wall_ticks, self._engaged = 0, 0, False
         return super().reset(seed)
 
     def _sense(self):
@@ -494,9 +614,31 @@ class HumanoidSession(LeggedSession):
 
     def _control_boundary(self):
         obs = super()._control_boundary()
-        if "box" in self.scenario.meta:
-            self._lift_max = max(self._lift_max, float(self._body_pos("box")[2]) - self.scenario.meta["box"]["z0"])
+        sc = self.scenario.meta
+        if "box" in sc:
+            self._lift_max = max(self._lift_max, float(self._body_pos("box")[2]) - sc["box"]["z0"])
+        if self.scenario.name in CARRY_TASKS + HELD_OUT_TASKS:
+            self._track_payload(sc)
         return obs
+
+    def _track_payload(self, sc: dict):
+        """U3 bookkeeping at every boundary tick (truth, for `failure_reason`): engaged, palm-to-payload distance run, wall contacts."""
+        cart = self.scenario.name == "h_gap_cart"
+        if not self._engaged:
+            self._engaged = (float(self._body_pos("cart")[0]) - sc["cart"]["xy"][0] >= 0.10) if cart else self._lift_max >= sc["lift_m"]
+        far = self.truth_predicate("hand_distance_m", ["body", "box"]) > HOLD_LOST_M
+        self._hold_bad = self._hold_bad + 1 if (self._engaged and far) else 0
+        if cart:
+            m, d = self.model, self.data
+            walls = {mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_GEOM, w) for w in sc["walls"]}
+            cart_b = m.body("cart").id
+            hit = False
+            for c in d.contact[:d.ncon]:
+                a, b = int(c.geom1), int(c.geom2)
+                if (a in walls) != (b in walls):
+                    o = b if a in walls else a
+                    hit = hit or bool(self.binding.is_robot_body[m.geom_bodyid[o]]) or int(m.body_rootid[m.geom_bodyid[o]]) == int(m.body_rootid[cart_b])
+            self._wall_ticks = self._wall_ticks + 1 if hit else 0
 
     def _body_pos(self, entity: str) -> np.ndarray:
         o = next(o for o in self.scenario.objects if o.task_entity == entity)
@@ -595,26 +737,38 @@ class HumanoidSession(LeggedSession):
 
     # ------------------------------------------------------------------ PRIVILEGED failure naming (reports only)
     def failure_reason(self) -> str | None:
-        """First applicable of: fell; dropped (the box is below every support top: it left the crate); drift (h_turn: the
-        base left its start by more than `drift_max`); no_grasp (box tasks: the box never rose `lift_m` above the crate);
-        not_upright (h_squat_pick: lifted but the body is not standing); place_miss (h_place: lifted but not on the mark at the
-        end). None when nothing applies (the judge then reports timeout)."""
+        """First applicable of: fell; dropped (the box is below every support top: it left the crate for the floor); wall_collision
+        (h_gap_cart: a robot or cart geom in contact with a wall for 0.2 s); drift (h_turn: the base left its start by more than
+        `drift_max`); hold_lost (U3: after the payload was lifted / the cart pushed, the nearest palm has been farther than
+        HOLD_LOST_M from it for HOLD_LOST_TICKS boundary ticks while it is not on the floor); no_grasp (box tasks: the box never rose
+        `lift_m` above the crate; h_gap_cart: the cart never moved 0.3 m); not_upright (h_squat_pick, h_loco_pick: lifted but the body is
+        not standing); place_miss (h_place: lifted but not on the mark at the end). None when nothing applies (the judge then
+        reports timeout)."""
         sc = self.scenario.meta
+        name = self.scenario.name
+        cart = name == "h_gap_cart"
         if self.fell:
             return "fell"
-        if "box" in sc:
+        if "box" in sc and not cart:
             supports = [sc["crate"]["top"]]
             if float(self._body_pos("box")[2]) - sc["box"]["half"][2] < min(supports) - 0.06:
                 return "dropped"
+        if cart and self._wall_ticks >= 2:
+            return "wall_collision"
         if "drift_max" in sc and self._start is not None:
             if float(np.linalg.norm(self.data.qpos[self.binding.qa:self.binding.qa + 2] - self._start)) > sc["drift_max"]:
                 return "drift"
-        if "box" in sc:
+        if self._hold_bad >= HOLD_LOST_TICKS:
+            return "hold_lost"
+        if cart:
+            if float(self._body_pos("cart")[0]) - sc["cart"]["xy"][0] < 0.3:
+                return "no_grasp"
+        elif "box" in sc:
             if self._lift_max < sc["lift_m"]:
                 return "no_grasp"
-            if self.scenario.name == "h_squat_pick" and self.truth_predicate("stand_frac", ["body"]) < self.STAND_OK:
+            if name in ("h_squat_pick", "h_loco_pick") and self.truth_predicate("stand_frac", ["body"]) < self.STAND_OK:
                 return "not_upright"
-            if self.scenario.name == "h_place":
+            if name == "h_place":
                 on = np.linalg.norm(self._body_pos("box")[:2] - np.array(sc["place"])) <= sc["place_tol_m"]
                 if not on:
                     return "place_miss"
@@ -625,7 +779,8 @@ class HumanoidSession(LeggedSession):
         snap.components["controller_state"][0]["humanoid"] = dict(
             start=None if self._start is None else self._start.tolist(), lift_max=self._lift_max,
             loc_recent=[x.tolist() for x in self._loc_recent],
-            true_xy=[x.tolist() for x in self._true_xy])
+            true_xy=[x.tolist() for x in self._true_xy], hold_bad=self._hold_bad, wall_ticks=self._wall_ticks,
+            engaged=self._engaged)
         return snap
 
     def restore(self, snap):
@@ -635,6 +790,8 @@ class HumanoidSession(LeggedSession):
         self._lift_max = float(st.get("lift_max", 0.0))
         self._loc_recent = [np.array(x) for x in st.get("loc_recent", [])]
         self._true_xy = [np.array(x) for x in st.get("true_xy", [])]
+        self._hold_bad, self._wall_ticks = int(st.get("hold_bad", 0)), int(st.get("wall_ticks", 0))
+        self._engaged = bool(st.get("engaged", False))
         return obs
 
 
@@ -646,8 +803,9 @@ def _wrap(a: float, absolute: bool = False) -> float:
 def make_humanoid_session(*, task: str, body: str, seed: int = 0, scene: dict | None = None, **kw):
     """env_id "mujoco/legged" for the humanoid tasks (the `build` entry of rrp.tasks.humanoid): the task's scene on `body`
     (`scene` = builder kwargs: h_frac | level | the U2 task parameters, contact) driven by a LeggedSession (h_steps, h_gap) or a
-    HumanoidSession (h_walk, h_turn, h_reach, h_squat_pick, h_place; control defaults to "wholebody"); `kw` go to the session."""
-    if task in MANIP_TASKS:
+    HumanoidSession (h_walk, h_turn, h_reach, h_squat_pick, h_place, U3: h_carry, h_loco_pick, h_steps_carry, h_gap_cart; control defaults
+    to "wholebody"); `kw` go to the session."""
+    if task in MANIP_TASKS + CARRY_TASKS + HELD_OUT_TASKS:
         kw.setdefault("control", "wholebody")
         return HumanoidSession(build_h_manip(body, seed, task, **(scene or {})), seed=seed, **kw)
     builder = {"h_steps": build_h_steps, "h_gap": build_h_gap}[task]
